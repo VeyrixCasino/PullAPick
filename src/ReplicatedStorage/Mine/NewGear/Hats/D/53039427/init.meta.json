@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 53039427.0,
+    "DisplayName": "Pretty Pretty Princess",
+    "RAP": 160144.0,
+    "Rarity": "D"
+  }
+}

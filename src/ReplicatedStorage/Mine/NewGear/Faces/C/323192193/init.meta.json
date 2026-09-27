@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 323192193.0,
+    "DisplayName": "Purple Alien",
+    "RAP": 12206.0,
+    "Rarity": "C"
+  }
+}

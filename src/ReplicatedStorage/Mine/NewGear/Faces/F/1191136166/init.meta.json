@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1191136166.0,
+    "DisplayName": "Golden Bling Braces",
+    "RAP": 6123.0,
+    "Rarity": "F"
+  }
+}

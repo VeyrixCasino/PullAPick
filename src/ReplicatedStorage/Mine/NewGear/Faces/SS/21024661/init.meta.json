@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 21024661.0,
+    "DisplayName": "Optimist",
+    "RAP": 107010.0,
+    "Rarity": "SS"
+  }
+}

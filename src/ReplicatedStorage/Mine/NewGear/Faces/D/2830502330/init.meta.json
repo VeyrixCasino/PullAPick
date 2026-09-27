@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 2830502330.0,
+    "DisplayName": "Sapphire Archfey Visage",
+    "RAP": 11436.0,
+    "Rarity": "D"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 42846048.0,
+    "DisplayName": "Emo King",
+    "RAP": 224394.0,
+    "Rarity": "C"
+  }
+}

@@ -1,0 +1,181 @@
+ue,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Position = UDim2.fromOffset(14, 28),
+		Size = UDim2.new(1, -28, 0, 40),
+		ZIndex = 64,
+	}, questCard)
+
+	local questProg = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT_M,
+		TextSize = 13,
+		Text = "",
+		TextColor3 = MUTED,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(14, 72),
+		Size = UDim2.new(1, -28, 0, 20),
+		ZIndex = 64,
+	}, questCard)
+
+	mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT_M,
+		TextSize = 13,
+		Text = "Pass tiers",
+		TextColor3 = TEXT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Size = UDim2.new(1, 0, 0, 22),
+		LayoutOrder = 4,
+		ZIndex = 63,
+	}, passScroll)
+
+	local tiersHost = mk("Frame", {
+		Name = "TiersHost",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 10),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 5,
+		ZIndex = 63,
+	}, passScroll)
+	mk("UIListLayout", {
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, tiersHost)
+
+	local function clearTiers()
+		for _, ch in ipairs(tiersHost:GetChildren()) do
+			if ch:IsA("Frame") then
+				ch:Destroy()
+			end
+		end
+	end
+
+	local function paintPass()
+		local ep = state.eventPass
+		if not ep then
+			passTitle.Text = "Event Pass"
+			passBlurb.Text = "Join the event to unlock the pass."
+			tierName.Text = "—"
+			tierTip.Text = ""
+			xpFill.Size = UDim2.new(0, 0, 1, 0)
+			xpLbl.Text = "0 XP"
+			questText.Text = "No active event quest."
+			questProg.Text = ""
+			clearTiers()
+			return
+		end
+
+		passTitle.Text = ep.name or "Event Pass"
+		passBlurb.Text = (ep.blurb or "") .. "  Quests only count inside the event mine. Rewards are event bonuses — never coins, gems, or packs."
+
+		local tier = ep.tier
+		tierName.Text = (tier and tier.name) or "Horizon Scout"
+		tierTip.Text = (tier and tier.tip) or ""
+
+		local xp = tonumber(ep.xp) or 0
+		local nextT = ep.nextTier
+		local curXp = (tier and tonumber(tier.xp)) or 0
+		local nextXp = nextT and tonumber(nextT.xp) or nil
+		local frac = 1
+		if nextXp and nextXp > curXp then
+			frac = math.clamp((xp - curXp) / (nextXp - curXp), 0, 1)
+			xpLbl.Text = string.format("%d / %d XP", xp, nextXp)
+		else
+			xpLbl.Text = string.format("%d XP  ·  MAX", xp)
+		end
+		xpFill.Size = UDim2.new(frac, 0, 1, 0)
+
+		local q = ep.quest
+		if q then
+			questText.Text = q.text or ""
+			questProg.Text = string.format(
+				"%d / %d   ·   Reward: %d event XP only",
+				tonumber(q.progress) or 0,
+				tonumber(q.goal) or 0,
+				tonumber(q.xp) or 0
+			)
+		else
+			questText.Text = "All event quests cleared."
+			questProg.Text = string.format("Quest %d / %d", tonumber(ep.questTotal) or 0, tonumber(ep.questTotal) or 0)
+		end
+
+		clearTiers()
+		local tiers = ep.tiers or {}
+		local ti = tonumber(ep.tierIndex) or 1
+		for i, t in ipairs(tiers) do
+			local row = mk("Frame", {
+				BackgroundColor3 = (i == ti) and Color3.fromRGB(40, 52, 78) or Color3.fromRGB(28, 32, 44),
+				BorderSizePixel = 0,
+				Size = UDim2.new(1, 0, 0, 48),
+				LayoutOrder = i,
+				ZIndex = 64,
+			}, tiersHost)
+			round(row, 8)
+			mk("TextLabel", {
+				BackgroundTransparency = 1,
+				Font = FONT_M,
+				TextSize = 14,
+				Text = string.format("%s  ·  %d XP", t.name or ("Tier " .. i), tonumber(t.xp) or 0),
+				TextColor3 = (i <= ti) and TEXT or MUTED,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Position = UDim2.fromOffset(12, 4),
+				Size = UDim2.new(1, -24, 0, 20),
+				ZIndex = 65,
+			}, row)
+			mk("TextLabel", {
+				BackgroundTransparency = 1,
+				Font = FONT_S,
+				TextSize = 12,
+				Text = t.tip or "",
+				TextColor3 = MUTED,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Position = UDim2.fromOffset(12, 24),
+				Size = UDim2.new(1, -24, 0, 18),
+				ZIndex = 65,
+			}, row)
+		end
+	end
+
+	local function openPass()
+		passOpen = true
+		passLayer.Visible = true
+		paintPass()
+		if opts.onOpenPass then
+			opts.onOpenPass()
+		end
+	end
+
+	local function closePass()
+		passOpen = false
+		passLayer.Visible = false
+	end
+
+	local function currentEvent()
+		local list = C.EVENTS or {}
+		for _, ev in ipairs(list) do
+			return ev
+		end
+		return nil
+	end
+
+	local function formatLeft()
+		if C.limitedCountdown then
+			return C.limitedCountdown()
+		end
+		return nil
+	end
+
+	local function paint()
+		local ev = currentEvent()
+		if not ev then
+			card.Visible = false
+			empty.Visible = true
+			empty.Text = "No event right now."
+			detailsBtn.Visible = false
+			closePass()
+			return
+		end
+
+		card.Visible = true
+		

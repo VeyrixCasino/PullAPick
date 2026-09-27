@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 72082328.0,
+    "DisplayName": "Red Sparkle Time Fedora",
+    "RAP": 4871499.0,
+    "Rarity": "SSS"
+  }
+}

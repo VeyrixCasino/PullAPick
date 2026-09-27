@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 26343188.0,
+    "DisplayName": "Tattletale",
+    "RAP": 486592.0,
+    "Rarity": "SSS"
+  }
+}

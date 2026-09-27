@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 323191596.0,
+    "DisplayName": "Green Super Happy Joy",
+    "RAP": 24680.0,
+    "Rarity": "A"
+  }
+}

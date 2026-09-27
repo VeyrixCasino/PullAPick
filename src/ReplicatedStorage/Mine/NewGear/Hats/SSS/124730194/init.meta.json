@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 124730194.0,
+    "DisplayName": "Blackvalk",
+    "RAP": 7733715.0,
+    "Rarity": "SSS"
+  }
+}

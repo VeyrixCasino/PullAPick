@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1032641.0,
+    "DisplayName": "Princess Hat",
+    "RAP": 16888.0,
+    "Rarity": "F"
+  }
+}

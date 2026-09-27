@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 25975243.0,
+    "DisplayName": "Bling",
+    "RAP": 158034.0,
+    "Rarity": "SS"
+  }
+}

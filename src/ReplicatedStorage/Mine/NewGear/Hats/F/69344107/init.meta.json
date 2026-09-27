@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 69344107.0,
+    "DisplayName": "Crazy Crown",
+    "RAP": 38190.0,
+    "Rarity": "F"
+  }
+}

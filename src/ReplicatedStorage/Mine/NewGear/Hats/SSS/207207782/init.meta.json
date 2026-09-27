@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 207207782.0,
+    "DisplayName": "Lady of the Federation",
+    "RAP": 5950184.0,
+    "Rarity": "SSS"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 27599954.0,
+    "DisplayName": "Seeing Stars",
+    "RAP": 11806.0,
+    "Rarity": "C"
+  }
+}

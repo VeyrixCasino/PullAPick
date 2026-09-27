@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 24975496.0,
+    "DisplayName": "Where are the eggs?",
+    "RAP": 36115.0,
+    "Rarity": "S"
+  }
+}

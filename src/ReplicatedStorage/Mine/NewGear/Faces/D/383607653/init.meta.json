@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 383607653.0,
+    "DisplayName": "Monarch Butterfly Smile",
+    "RAP": 7706.0,
+    "Rarity": "D"
+  }
+}

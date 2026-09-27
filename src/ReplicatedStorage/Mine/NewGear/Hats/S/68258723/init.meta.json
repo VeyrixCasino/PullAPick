@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 68258723.0,
+    "DisplayName": "Bluesteel Domino Crown",
+    "RAP": 1086250.0,
+    "Rarity": "S"
+  }
+}

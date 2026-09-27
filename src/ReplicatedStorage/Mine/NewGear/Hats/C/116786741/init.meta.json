@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 116786741.0,
+    "DisplayName": "Crimsonwrath, Lord of the Magma",
+    "RAP": 202625.0,
+    "Rarity": "C"
+  }
+}

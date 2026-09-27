@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 583635712.0,
+    "DisplayName": "CW Ultimate: Ruby Rapture",
+    "RAP": 1021413.0,
+    "Rarity": "S"
+  }
+}

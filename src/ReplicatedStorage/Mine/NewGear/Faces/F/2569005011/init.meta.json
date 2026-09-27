@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 2569005011.0,
+    "DisplayName": "Snow Queen Smile",
+    "RAP": 4069.0,
+    "Rarity": "F"
+  }
+}

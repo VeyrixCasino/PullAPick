@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 136802867.0,
+    "DisplayName": "Hooded Frostlord",
+    "RAP": 167620.0,
+    "Rarity": "D"
+  }
+}

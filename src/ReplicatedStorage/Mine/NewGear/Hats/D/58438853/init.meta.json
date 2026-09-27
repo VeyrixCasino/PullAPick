@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 58438853.0,
+    "DisplayName": "Ancalagon",
+    "RAP": 168529.0,
+    "Rarity": "D"
+  }
+}

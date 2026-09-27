@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 215718515.0,
+    "DisplayName": "Fiery Horns of the Netherworld",
+    "RAP": 2277946.0,
+    "Rarity": "SS"
+  }
+}

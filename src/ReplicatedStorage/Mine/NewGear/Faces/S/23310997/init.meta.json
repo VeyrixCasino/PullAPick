@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 23310997.0,
+    "DisplayName": "Paintball Enthusiast",
+    "RAP": 40364.0,
+    "Rarity": "S"
+  }
+}

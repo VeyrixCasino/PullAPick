@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 139152348.0,
+    "DisplayName": "Christmas Fedora",
+    "RAP": 2269.0,
+    "Rarity": "F"
+  }
+}

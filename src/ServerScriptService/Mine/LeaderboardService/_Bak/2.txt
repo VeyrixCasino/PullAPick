@@ -1,0 +1,299 @@
+r(entry.value) or 0
+			if v >= minDepth then
+				count += 1
+			else
+				return count
+			end
+		end
+		if pages.IsFinished then
+			break
+		end
+		local advOk = pcall(function()
+			pages:AdvanceToNextPageAsync()
+		end)
+		if not advOk then
+			break
+		end
+	end
+	return count
+end
+
+local function paintDepthBoard(part, zoneId)
+	if not part or not part.Parent then
+		return
+	end
+	local gui = part:FindFirstChild("BoardGui")
+	local list = gui and gui:FindFirstChild("RankList")
+	local title = gui and gui:FindFirstChild("Title")
+	if not list then
+		return
+	end
+	local zone = MineConfig.zoneById and MineConfig.zoneById(zoneId)
+	local zoneName = (zone and zone.name) or tostring(zoneId)
+	if title and title:IsA("TextLabel") then
+		title.Text = "Depth — " .. zoneName
+	end
+	for _, child in ipairs(list:GetChildren()) do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
+	local rows = LeaderboardService.getDepthTop(zoneId, 10)
+	for i = 1, 10 do
+		local row = rows[i]
+		local frame = Instance.new("TextLabel")
+		frame.Name = "Rank_" .. tostring(i)
+		frame.Size = UDim2.new(1, 0, 0, 18)
+		frame.BackgroundTransparency = 1
+		frame.Font = Enum.Font.GothamMedium
+		frame.TextSize = 14
+		frame.TextColor3 = Color3.fromRGB(230, 230, 240)
+		frame.TextXAlignment = Enum.TextXAlignment.Left
+		frame.LayoutOrder = i
+		if row then
+			frame.Text = string.format("#%d  %s  ·  %s", i, tostring(row.name or "—"), tostring(row.value or 0))
+		else
+			frame.Text = string.format("#%d  —", i)
+		end
+		frame.Parent = list
+	end
+	part:SetAttribute("UpdatedAt", os.time())
+end
+
+function LeaderboardService.attachDepthBoard(part, zoneId)
+	if not part or not part:IsA("BasePart") then
+		return
+	end
+	zoneId = tostring(zoneId or part:GetAttribute("ZoneId") or "")
+	if zoneId == "" then
+		return
+	end
+	part:SetAttribute("ZoneId", zoneId)
+	table.insert(depthBoardParts, { part = part, zoneId = zoneId })
+	task.spawn(function()
+		paintDepthBoard(part, zoneId)
+	end)
+end
+
+function LeaderboardService.refreshDepthBoards()
+	-- Drop dead refs, then repaint.
+	local alive = {}
+	for _, entry in ipairs(depthBoardParts) do
+		if entry.part and entry.part.Parent then
+			table.insert(alive, entry)
+			pcall(paintDepthBoard, entry.part, entry.zoneId)
+		end
+	end
+	depthBoardParts = alive
+	-- Also discover any DepthBoard parts not yet attached.
+	local world = workspace:FindFirstChild("MineWorld")
+	if not world then
+		return
+	end
+	for _, inst in ipairs(world:GetDescendants()) do
+		if inst.Name == "DepthBoard" and inst:IsA("BasePart") then
+			local zid = tostring(inst:GetAttribute("ZoneId") or "")
+			if zid ~= "" then
+				local known = false
+				for _, e in ipairs(depthBoardParts) do
+					if e.part == inst then
+						known = true
+						break
+					end
+				end
+				if not known then
+					LeaderboardService.attachDepthBoard(inst, zid)
+				end
+			end
+		end
+	end
+end
+
+function LeaderboardService.queueUpdate(userId, prestige, gems, dustValue)
+	local now = os.clock()
+	local prev = lastPush[userId]
+	if prev and (now - prev) < THROTTLE then
+		return
+	end
+	lastPush[userId] = now
+	LeaderboardService.recordRoster(userId)
+	local want = {
+		prestige = math.max(0, math.floor(tonumber(prestige) or 0)),
+		gems = math.max(0, math.floor(tonumber(gems) or 0)),
+		dust = math.max(0, math.floor(tonumber(dustValue) or 0)),
+	}
+	local sent = lastSent[userId]
+	if not sent then
+		sent = {}
+		lastSent[userId] = sent
+	end
+	task.spawn(function()
+		-- Only the boards whose number actually moved get a write.
+		for _, kind in ipairs(KINDS) do
+			if sent[kind] ~= want[kind] then
+				local ok, err = pcall(function()
+					store(kind):SetAsync(keyOf(userId), want[kind])
+				end)
+				if ok then
+					sent[kind] = want[kind]
+				else
+					warn("[Leaderboard] update failed: ", err)
+				end
+			end
+		end
+	end)
+end
+
+local function pushScores(userId, prestige, gems, dustValue)
+	store("prestige"):SetAsync(keyOf(userId), math.max(0, math.floor(tonumber(prestige) or 0)))
+	store("gems"):SetAsync(keyOf(userId), math.max(0, math.floor(tonumber(gems) or 0)))
+	store("dust"):SetAsync(keyOf(userId), math.max(0, math.floor(tonumber(dustValue) or 0)))
+	pcall(function()
+		getRoster():SetAsync(keyOf(userId), os.time())
+	end)
+end
+
+local function keyNameOf(entry)
+	local ok, kn = pcall(function()
+		return entry.KeyName
+	end)
+	if ok and type(kn) == "string" and kn ~= "" then
+		return kn
+	end
+	if type(entry) == "string" then
+		return entry
+	end
+	return tostring(entry)
+end
+
+local function collectUserIdsFromListKeys(profileStore)
+	local ids = {}
+	local seen = {}
+	local ok, pagesOrErr = pcall(function()
+		return profileStore:ListKeysAsync("u_", LIST_PAGE_SIZE)
+	end)
+	if not ok or not pagesOrErr then
+		warn("[Leaderboard] ListKeysAsync failed: ", pagesOrErr)
+		return ids, false
+	end
+	local pages = pagesOrErr
+	while true do
+		for _, entry in ipairs(pages:GetCurrentPage()) do
+			local key = keyNameOf(entry)
+			local uid = tonumber(tostring(key):match("^u_(%d+)$"))
+			if uid and not seen[uid] then
+				seen[uid] = true
+				table.insert(ids, uid)
+			end
+		end
+		if pages.IsFinished then
+			break
+		end
+		local advOk, advErr = pcall(function()
+			pages:AdvanceToNextPageAsync()
+		end)
+		if not advOk then
+			warn("[Leaderboard] ListKeys page advance failed: ", advErr)
+			break
+		end
+		task.wait(0.1)
+	end
+	return ids, true
+end
+
+local function collectUserIdsFromRoster()
+	local ids = {}
+	local seen = {}
+	local ok, pagesOrErr = pcall(function()
+		return getRoster():ListKeysAsync("", LIST_PAGE_SIZE)
+	end)
+	if not ok or not pagesOrErr then
+		return ids
+	end
+	local pages = pagesOrErr
+	while true do
+		for _, entry in ipairs(pages:GetCurrentPage()) do
+			local key = keyNameOf(entry)
+			local uid = tonumber(tostring(key))
+			if uid and not seen[uid] then
+				seen[uid] = true
+				table.insert(ids, uid)
+			end
+		end
+		if pages.IsFinished then
+			break
+		end
+		local advOk = pcall(function()
+			pages:AdvanceToNextPageAsync()
+		end)
+		if not advOk then
+			break
+		end
+		task.wait(0.1)
+	end
+	return ids
+end
+
+--[[
+	One-shot backfill: Mine_v1 profile keys -> prestige/dust OrderedDataStores.
+	Gems board intentionally omitted.
+]]
+function LeaderboardService.backfillFromAllProfiles()
+	local profileName = MineConfig.DATASTORE or "Mine_v1"
+	local profileStore = DataStoreService:GetDataStore(profileName)
+	local ids, listOk = collectUserIdsFromListKeys(profileStore)
+	if not listOk or #ids == 0 then
+		local rosterIds = collectUserIdsFromRoster()
+		local merged = {}
+		local seen = {}
+		for _, uid in ipairs(ids) do
+			seen[uid] = true
+			table.insert(merged, uid)
+		end
+		for _, uid in ipairs(rosterIds) do
+			if not seen[uid] then
+				seen[uid] = true
+				table.insert(merged, uid)
+			end
+		end
+		ids = merged
+		if #ids == 0 then
+			warn("[Leaderboard] backfill: no profile keys found")
+			return { scanned = 0, written = 0, failed = 0, listOk = listOk }
+		end
+		print("[Leaderboard] backfill: using roster fallback, ids=", #ids)
+	end
+
+	local scanned, written, failed = 0, 0, 0
+	print("[Leaderboard] backfill start: keys=", #ids)
+	for _, uid in ipairs(ids) do
+		scanned += 1
+		local ok, profileOrErr = pcall(function()
+			return profileStore:GetAsync("u_" .. uid)
+		end)
+		if ok and type(profileOrErr) == "table" then
+			local prestige = profileOrErr.prestige or 0
+			local gems = profileOrErr.gems or 0
+			local dustValue = LeaderboardService.profileStardustValue(profileOrErr)
+			local wOk, wErr = pcall(pushScores, uid, prestige, gems, dustValue)
+			if wOk then
+				written += 1
+			else
+				failed += 1
+				warn("[Leaderboard] backfill write failed", uid, wErr)
+			end
+		else
+			failed += 1
+		end
+		if scanned % 25 == 0 then
+			print(string.format("[Leaderboard] backfill progress scanned=%d written=%d failed=%d", scanned, written, failed))
+		end
+		task.wait(BACKFILL_WRITE_PAUSE)
+	end
+	print(string.format("[Leaderboard] backfill done scanned=%d written=%d failed=%d", scanned, written, failed))
+	return { scanned = scanned, written = written, failed = failed, listOk = listOk }
+end
+
+function LeaderboardService.maybeBackfillOnce()
+	local already = false
+	p

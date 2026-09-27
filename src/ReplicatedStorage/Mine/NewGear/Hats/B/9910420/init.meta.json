@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 9910420.0,
+    "DisplayName": "Helm of the Great Tree",
+    "RAP": 255991.0,
+    "Rarity": "B"
+  }
+}

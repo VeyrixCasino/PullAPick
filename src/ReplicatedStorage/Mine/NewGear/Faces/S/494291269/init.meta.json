@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 494291269.0,
+    "DisplayName": "Super Super Happy Face",
+    "RAP": 50353.0,
+    "Rarity": "S"
+  }
+}

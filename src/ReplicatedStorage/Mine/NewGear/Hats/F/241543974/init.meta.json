@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 241543974.0,
+    "DisplayName": "Tasteful Top Hat",
+    "RAP": 50915.0,
+    "Rarity": "F"
+  }
+}

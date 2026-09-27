@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 21392863.0,
+    "DisplayName": "Clown School Dropout",
+    "RAP": 25379.0,
+    "Rarity": "A"
+  }
+}

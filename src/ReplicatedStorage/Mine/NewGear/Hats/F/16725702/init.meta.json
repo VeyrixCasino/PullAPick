@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 16725702.0,
+    "DisplayName": "Wicked Top Hat",
+    "RAP": 23098.0,
+    "Rarity": "F"
+  }
+}

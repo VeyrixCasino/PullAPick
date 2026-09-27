@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 232492903.0,
+    "DisplayName": "DIY Clockwork",
+    "RAP": 1979.0,
+    "Rarity": "F"
+  }
+}

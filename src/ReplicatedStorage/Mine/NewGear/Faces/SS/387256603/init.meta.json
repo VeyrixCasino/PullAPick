@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 387256603.0,
+    "DisplayName": "Silver Punk Face",
+    "RAP": 74203.0,
+    "Rarity": "SS"
+  }
+}

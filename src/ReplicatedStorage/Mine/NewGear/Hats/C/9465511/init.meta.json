@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 9465511.0,
+    "DisplayName": "Red Crown of Ozymandias",
+    "RAP": 216295.0,
+    "Rarity": "C"
+  }
+}

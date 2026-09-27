@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 66330144.0,
+    "DisplayName": "Green-eyed Awesome Face",
+    "RAP": 18141.0,
+    "Rarity": "B"
+  }
+}

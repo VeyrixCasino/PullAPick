@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1031429.0,
+    "DisplayName": "Domino Crown",
+    "RAP": 5726071.0,
+    "Rarity": "SSS"
+  }
+}

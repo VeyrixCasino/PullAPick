@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1744060292.0,
+    "DisplayName": "Poisoned Horns of the Toxic Wasteland",
+    "RAP": 1423433.0,
+    "Rarity": "SS"
+  }
+}

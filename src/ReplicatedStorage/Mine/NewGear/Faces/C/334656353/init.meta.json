@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 334656353.0,
+    "DisplayName": "Sneaky Green-Eyed Snake",
+    "RAP": 13705.0,
+    "Rarity": "C"
+  }
+}

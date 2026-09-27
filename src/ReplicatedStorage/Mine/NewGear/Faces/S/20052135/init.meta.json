@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 20052135.0,
+    "DisplayName": "Prankster",
+    "RAP": 44520.0,
+    "Rarity": "S"
+  }
+}

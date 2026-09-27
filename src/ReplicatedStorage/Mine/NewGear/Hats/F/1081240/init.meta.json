@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1081240.0,
+    "DisplayName": "Got Milk Visor",
+    "RAP": 19541.0,
+    "Rarity": "F"
+  }
+}

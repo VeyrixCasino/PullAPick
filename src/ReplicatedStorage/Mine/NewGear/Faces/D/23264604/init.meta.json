@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 23264604.0,
+    "DisplayName": "Mick McCann",
+    "RAP": 11452.0,
+    "Rarity": "D"
+  }
+}

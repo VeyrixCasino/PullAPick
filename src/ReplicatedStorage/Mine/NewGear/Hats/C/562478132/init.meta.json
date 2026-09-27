@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 562478132.0,
+    "DisplayName": "Voidwrath",
+    "RAP": 243649.0,
+    "Rarity": "C"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 30394316.0,
+    "DisplayName": "Imagine",
+    "RAP": 26247.0,
+    "Rarity": "A"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 22547617.0,
+    "DisplayName": "The Crown of Nachos",
+    "RAP": 25853.0,
+    "Rarity": "F"
+  }
+}

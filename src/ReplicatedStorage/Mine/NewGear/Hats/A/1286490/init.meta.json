@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1286490.0,
+    "DisplayName": "The Agonizingly Ugly Bucket of Doom",
+    "RAP": 270035.0,
+    "Rarity": "A"
+  }
+}

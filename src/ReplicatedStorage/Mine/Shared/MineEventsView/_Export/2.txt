@@ -1,0 +1,194 @@
+	Size = UDim2.fromOffset(18, 18),
+		Position = UDim2.fromOffset(13, 0),
+		ZIndex = 9,
+	}, miner)
+	round(head, 999)
+	local helm = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(90, 100, 120),
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(22, 10),
+		Position = UDim2.fromOffset(11, -2),
+		ZIndex = 10,
+	}, miner)
+	round(helm, 4)
+	local body = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(70, 130, 200),
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(20, 22),
+		Position = UDim2.fromOffset(12, 18),
+		ZIndex = 9,
+	}, miner)
+	round(body, 4)
+	local legs = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(50, 55, 70),
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(18, 14),
+		Position = UDim2.fromOffset(13, 40),
+		ZIndex = 9,
+	}, miner)
+	round(legs, 3)
+
+	return stage
+end
+
+function MineEventsView.mount(parent, opts)
+	opts = opts or {}
+	local C = opts.config
+	assert(C, "MineEventsView needs opts.config")
+
+	local state = {
+		bigbangOwned = false,
+		limitedActive = false,
+		eventPass = nil,
+	}
+	local tickConn = nil
+	local passOpen = false
+
+	local root = mk("Frame", {
+		Name = "EventsPanel",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.52),
+		Size = UDim2.fromScale(0.92, 0.88),
+		BackgroundColor3 = PANEL,
+		BackgroundTransparency = 0.04,
+		Visible = false,
+		ZIndex = 40,
+		BorderSizePixel = 0,
+	}, parent)
+	round(root, 12)
+	stroke(root, 1.5)
+	do
+		local cap = Instance.new("UISizeConstraint")
+		cap.MaxSize = Vector2.new(1180, 820)
+		cap.MinSize = Vector2.new(520, 380)
+		cap.Parent = root
+	end
+
+	mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT,
+		TextSize = 22,
+		Text = "EVENTS",
+		Size = UDim2.new(1, -72, 0, 36),
+		Position = UDim2.fromOffset(18, 10),
+		TextColor3 = TEXT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 41,
+	}, root)
+
+	local closeBtn = mk("TextButton", {
+		Text = "X",
+		Font = FONT,
+		TextSize = 18,
+		TextColor3 = TEXT,
+		BackgroundColor3 = BG2,
+		Size = UDim2.fromOffset(36, 36),
+		Position = UDim2.new(1, -48, 0, 10),
+		ZIndex = 42,
+		AutoButtonColor = true,
+	}, root)
+	round(closeBtn, 8)
+
+	local body = mk("ScrollingFrame", {
+		Name = "Body",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(16, 52),
+		Size = UDim2.new(1, -32, 1, -68),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 6,
+		CanvasSize = UDim2.new(),
+		BorderSizePixel = 0,
+		ZIndex = 41,
+	}, root)
+	mk("UIListLayout", {
+		Padding = UDim.new(0, 12),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, body)
+
+	local card = mk("Frame", {
+		Name = "EventCard",
+		BackgroundColor3 = BG2,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, 440),
+		LayoutOrder = 1,
+		ZIndex = 42,
+	}, body)
+	round(card, 14)
+	stroke(card, 1)
+
+	local bannerHost = mk("Frame", {
+		Name = "Banner",
+		BackgroundColor3 = Color3.fromRGB(10, 12, 22),
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		Size = UDim2.new(1, -24, 0, 200),
+		Position = UDim2.fromOffset(12, 12),
+		ZIndex = 43,
+	}, card)
+	round(bannerHost, 12)
+	paintCartoonBanner(bannerHost)
+
+	local bannerImg = mk("ImageLabel", {
+		Name = "BannerImage",
+		BackgroundTransparency = 1,
+		Image = "",
+		ScaleType = Enum.ScaleType.Crop,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		ZIndex = 50,
+	}, bannerHost)
+
+	local title = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT,
+		TextSize = 26,
+		Text = "Event Horizon",
+		TextColor3 = ACCENT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(16, 224),
+		Size = UDim2.new(1, -32, 0, 32),
+		ZIndex = 44,
+	}, card)
+
+	local timerLbl = mk("TextLabel", {
+		Name = "Timer",
+		BackgroundTransparency = 1,
+		Font = FONT_M,
+		TextSize = 16,
+		Text = "",
+		TextColor3 = TEXT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(16, 256),
+		Size = UDim2.new(1, -32, 0, 24),
+		ZIndex = 44,
+	}, card)
+
+	local blurb = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT_S,
+		TextSize = 15,
+		Text = "",
+		TextColor3 = MUTED,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Position = UDim2.fromOffset(16, 286),
+		Size = UDim2.new(1, -32, 0, 56),
+		ZIndex = 44,
+	}, card)
+
+	local cta = mk("TextButton", {
+		Name = "Claim",
+		Font = FONT,
+		TextSize = 16,
+		Text = "Claim",
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		BackgroundColor3 = CTA,
+		AutoButtonColor = true,
+		Position = UDim2.fromOffset(16, 354),
+		Size = UDim2.new(0.48, -20, 0, 44),
+		ZIndex = 45,
+	}, card)
+	round(cta, 10)
+
+	local de

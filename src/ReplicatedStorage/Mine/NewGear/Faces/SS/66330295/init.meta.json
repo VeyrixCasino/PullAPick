@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 66330295.0,
+    "DisplayName": "Red RAWR",
+    "RAP": 166358.0,
+    "Rarity": "SS"
+  }
+}

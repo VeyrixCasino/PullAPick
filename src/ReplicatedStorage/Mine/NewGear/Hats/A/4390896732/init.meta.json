@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 4390896732.0,
+    "DisplayName": "Viscount of the Federation",
+    "RAP": 744042.0,
+    "Rarity": "A"
+  }
+}

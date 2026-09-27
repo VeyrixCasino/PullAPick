@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 440739518.0,
+    "DisplayName": "Blue Galaxy Gaze",
+    "RAP": 90072.0,
+    "Rarity": "SS"
+  }
+}

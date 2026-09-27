@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 25308781.0,
+    "DisplayName": "Chronoterminus: The Epochalypse Helm",
+    "RAP": 240524.0,
+    "Rarity": "C"
+  }
+}

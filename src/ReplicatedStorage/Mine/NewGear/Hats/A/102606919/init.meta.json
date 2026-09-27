@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 102606919.0,
+    "DisplayName": "Agonizingly Violet Bucket of Cheer",
+    "RAP": 278516.0,
+    "Rarity": "A"
+  }
+}

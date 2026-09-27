@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 88885069.0,
+    "DisplayName": "Lord of the Federation",
+    "RAP": 1277922.0,
+    "Rarity": "S"
+  }
+}

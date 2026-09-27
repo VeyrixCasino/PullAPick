@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 323191979.0,
+    "DisplayName": "Blue Eyeroll",
+    "RAP": 5504.0,
+    "Rarity": "F"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 29109681.0,
+    "DisplayName": "Trance",
+    "RAP": 9696.0,
+    "Rarity": "D"
+  }
+}

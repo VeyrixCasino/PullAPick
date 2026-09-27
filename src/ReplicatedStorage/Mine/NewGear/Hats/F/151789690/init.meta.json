@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 151789690.0,
+    "DisplayName": "DIY Dominus Empyreus",
+    "RAP": 13359.0,
+    "Rarity": "F"
+  }
+}

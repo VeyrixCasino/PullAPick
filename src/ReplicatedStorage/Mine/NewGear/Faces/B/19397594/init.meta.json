@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 19397594.0,
+    "DisplayName": "Rudolph",
+    "RAP": 16197.0,
+    "Rarity": "B"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 440738448.0,
+    "DisplayName": "Pink Galaxy Gaze",
+    "RAP": 16469.0,
+    "Rarity": "B"
+  }
+}

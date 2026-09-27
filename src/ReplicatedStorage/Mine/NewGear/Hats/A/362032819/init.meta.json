@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 362032819.0,
+    "DisplayName": "The Fire Crown",
+    "RAP": 510399.0,
+    "Rarity": "A"
+  }
+}

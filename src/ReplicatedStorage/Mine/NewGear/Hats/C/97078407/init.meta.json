@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 97078407.0,
+    "DisplayName": "DJ Money",
+    "RAP": 217483.0,
+    "Rarity": "C"
+  }
+}

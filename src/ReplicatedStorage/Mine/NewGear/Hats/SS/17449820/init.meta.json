@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 17449820.0,
+    "DisplayName": "The Crown of Roses",
+    "RAP": 2119359.0,
+    "Rarity": "SS"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 31101391.0,
+    "DisplayName": "Dominus Infernus",
+    "RAP": 1973087.0,
+    "Rarity": "SS"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 878889105.0,
+    "DisplayName": "Archduchess of the Federation",
+    "RAP": 1194541.0,
+    "Rarity": "S"
+  }
+}

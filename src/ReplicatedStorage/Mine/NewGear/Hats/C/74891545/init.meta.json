@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 74891545.0,
+    "DisplayName": "Scary Hood",
+    "RAP": 231680.0,
+    "Rarity": "C"
+  }
+}

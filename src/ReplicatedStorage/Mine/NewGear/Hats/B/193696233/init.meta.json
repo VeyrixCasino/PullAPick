@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 193696233.0,
+    "DisplayName": "Green Ice Crown",
+    "RAP": 291845.0,
+    "Rarity": "B"
+  }
+}

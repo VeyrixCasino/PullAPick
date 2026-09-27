@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 24727929.0,
+    "DisplayName": "Butterfly",
+    "RAP": 12821.0,
+    "Rarity": "C"
+  }
+}

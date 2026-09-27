@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 29844011.0,
+    "DisplayName": "Retro 80s Headphones",
+    "RAP": 185148.0,
+    "Rarity": "D"
+  }
+}

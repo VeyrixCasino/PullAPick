@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 79402992.0,
+    "DisplayName": "Bluesteel Sombrero",
+    "RAP": 37432.0,
+    "Rarity": "F"
+  }
+}

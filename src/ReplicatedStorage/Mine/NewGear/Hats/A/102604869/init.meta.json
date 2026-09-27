@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 102604869.0,
+    "DisplayName": "Agonizingly Green Bucket of Cheer",
+    "RAP": 307591.0,
+    "Rarity": "A"
+  }
+}

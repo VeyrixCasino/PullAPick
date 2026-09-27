@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 135470997.0,
+    "DisplayName": "Dr. Ishmael",
+    "RAP": 815066.0,
+    "Rarity": "S"
+  }
+}

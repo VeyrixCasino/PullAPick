@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 110207471.0,
+    "DisplayName": "Egg on your Face",
+    "RAP": 5614.0,
+    "Rarity": "F"
+  }
+}

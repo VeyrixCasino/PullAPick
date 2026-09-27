@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 406000421.0,
+    "DisplayName": "Red Serious Scar Face",
+    "RAP": 12297.0,
+    "Rarity": "C"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 25556219.0,
+    "DisplayName": "Freckled Cheeks",
+    "RAP": 96573.0,
+    "Rarity": "SS"
+  }
+}

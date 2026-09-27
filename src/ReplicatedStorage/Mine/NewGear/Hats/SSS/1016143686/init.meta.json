@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1016143686.0,
+    "DisplayName": "White Sparkle Time Fedora",
+    "RAP": 3958209.0,
+    "Rarity": "SSS"
+  }
+}

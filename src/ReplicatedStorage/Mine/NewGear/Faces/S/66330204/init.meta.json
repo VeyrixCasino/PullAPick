@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 66330204.0,
+    "DisplayName": "Not So Friendly Eviscerator",
+    "RAP": 58603.0,
+    "Rarity": "S"
+  }
+}

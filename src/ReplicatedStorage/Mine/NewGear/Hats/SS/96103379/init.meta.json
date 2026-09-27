@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 96103379.0,
+    "DisplayName": "Dominus Vespertilio",
+    "RAP": 1836761.0,
+    "Rarity": "SS"
+  }
+}

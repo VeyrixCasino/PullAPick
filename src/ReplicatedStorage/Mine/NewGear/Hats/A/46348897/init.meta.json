@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 46348897.0,
+    "DisplayName": "Soviet Ushanka",
+    "RAP": 308782.0,
+    "Rarity": "A"
+  }
+}

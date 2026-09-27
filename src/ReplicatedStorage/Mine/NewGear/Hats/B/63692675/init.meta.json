@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 63692675.0,
+    "DisplayName": "Hooded Spacelord",
+    "RAP": 290715.0,
+    "Rarity": "B"
+  }
+}

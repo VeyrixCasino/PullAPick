@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 9910070.0,
+    "DisplayName": "The Wanwood Crown",
+    "RAP": 2442902.0,
+    "Rarity": "SS"
+  }
+}

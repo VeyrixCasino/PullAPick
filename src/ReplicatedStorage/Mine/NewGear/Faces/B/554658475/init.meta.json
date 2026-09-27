@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 554658475.0,
+    "DisplayName": "Madbot 10000",
+    "RAP": 15167.0,
+    "Rarity": "B"
+  }
+}

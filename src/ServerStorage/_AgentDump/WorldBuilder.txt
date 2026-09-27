@@ -1,0 +1,930 @@
+-- WorldBuilder: terrain biomes + stone camp. Leaves TCGAfkHub / city portal intact.
+local MineConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineConfig"))
+
+local WorldBuilder = {}
+
+local WOOD = Color3.fromRGB(118, 90, 62)
+local STONE = Color3.fromRGB(92, 90, 84)
+local DARK = Color3.fromRGB(48, 46, 42)
+local CREAM = Color3.fromRGB(232, 224, 208)
+
+-- Two opaque faces at exactly the same height flicker against each other as the
+-- camera moves. That is the twitchy look, and it is easy to author by accident
+-- here: every path is laid at GROUND + 0.04 and every station beam sits at the
+-- same beam height, so wherever two of them overlap in plan view their top faces
+-- land on precisely the same plane and the renderer has no way to pick a winner.
+--
+-- Rather than hand-tune every prop, each new part checks the tops already
+-- claimed at a footprint it overlaps and drops by a hair until it has that plane
+-- to itself. Four thousandths of a stud is invisible; being coplanar is not.
+local COPLANAR_EPS = 0.004
+local usedTops = {}
+
+local function claimTop(p)
+	-- Axis-aligned boxes only. A rotated prop almost never lines up by accident,
+	-- and its footprint is not the AABB this test assumes.
+	if math.abs(p.CFrame.UpVector.Y) < 0.999 then
+		return
+	end
+	for _ = 1, 12 do
+		local pos, half = p.Position, p.Size * 0.5
+		local key = string.format("%.3f", pos.Y + half.Y)
+		local list = usedTops[key]
+		local clash = false
+		if list then
+			for _, r in ipairs(list) do
+				-- Touching edge to edge is fine; only genuine overlap fights.
+				if math.abs(r.x - pos.X) < (r.sx + half.X) - 0.02
+					and math.abs(r.z - pos.Z) < (r.sz + half.Z) - 0.02 then
+					clash = true
+					break
+				end
+			end
+		end
+		if not clash then
+			list = list or {}
+			usedTops[key] = list
+			table.insert(list, { x = pos.X, z = pos.Z, sx = half.X, sz = half.Z })
+			return
+		end
+		p.CFrame = p.CFrame - Vector3.new(0, COPLANAR_EPS, 0)
+	end
+end
+
+local function part(props)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = props.CanCollide ~= false
+	p.Material = props.Material or Enum.Material.SmoothPlastic
+	p.Color = props.Color or STONE
+	p.Size = props.Size or Vector3.new(4, 4, 4)
+	p.CFrame = props.CFrame or CFrame.new()
+	p.Name = props.Name or "Part"
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.CastShadow = true
+	p.Parent = props.Parent
+	if props.Shape then p.Shape = props.Shape end
+	if props.Transparency then p.Transparency = props.Transparency end
+	claimTop(p)
+	return p
+end
+
+local function prompt(adornee, action, object)
+	local pr = Instance.new("ProximityPrompt")
+	pr.ActionText = action
+	pr.ObjectText = object
+	pr.HoldDuration = 0.4
+	pr.MaxActivationDistance = 12
+	pr.RequiresLineOfSight = false
+	pr.Parent = adornee
+	return pr
+end
+
+local function sign(adornee, text, face)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = face or Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 25
+	gui.Parent = adornee
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.fromScale(1, 1)
+	t.Font = Enum.Font.BuilderSansBold
+	t.TextScaled = true
+	t.TextColor3 = CREAM
+	t.Text = text
+	t.Parent = gui
+end
+
+local function applyLighting()
+	-- Grass decoration renders as waist-high blades. The property is not on
+	-- Terrain in every Studio build, and when it threw here it took the entire
+	-- world build with it. Best effort only.
+	pcall(function()
+		(workspace.Terrain :: any).Decoration = false
+	end)
+	local lighting = game:GetService("Lighting")
+	lighting.ClockTime = 14.5
+	lighting.Brightness = 2.4
+	lighting.Ambient = Color3.fromRGB(70, 70, 70)
+	lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+	lighting.FogEnd = 100000
+	lighting.FogStart = 0
+	lighting.EnvironmentDiffuseScale = 1
+	lighting.EnvironmentSpecularScale = 1
+	lighting.GeographicLatitude = 0
+	local atmo = lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
+	atmo.Parent = lighting
+	atmo.Density = 0.3
+	atmo.Offset = 0.25
+	atmo.Color = Color3.fromRGB(199, 199, 199)
+	atmo.Decay = Color3.fromRGB(106, 112, 125)
+	atmo.Glare = 0
+	atmo.Haze = 0
+	local bloom = lighting:FindFirstChildOfClass("BloomEffect") or Instance.new("BloomEffect")
+	bloom.Parent = lighting
+	bloom.Intensity = 0.6
+	bloom.Threshold = 2.6
+	bloom.Size = 24
+	local rays = lighting:FindFirstChildOfClass("SunRaysEffect")
+	if rays then rays.Intensity = 0.01 rays.Spread = 0.1 rays.Enabled = true end
+	local dof = lighting:FindFirstChildOfClass("DepthOfFieldEffect")
+	if dof then dof.Enabled = false end
+	local blur = lighting:FindFirstChild("BL_Blur")
+	if blur then blur.Enabled = false end
+end
+
+local function stall(parent, cf, machine)
+	local body = part({ Name = "Machine_" .. machine.id, Parent = parent, Size = Vector3.new(8, 3.2, 5), CFrame = cf, Color = WOOD, Material = Enum.Material.WoodPlanks })
+	body:SetAttribute("Machine", machine.id)
+	part({ Name = "Roof", Parent = parent, Size = Vector3.new(9, 0.6, 6.2), CFrame = cf * CFrame.new(0, 2.6, 0), Color = Color3.fromRGB(86, 64, 44), Material = Enum.Material.Wood })
+	part({ Name = "PostL", Parent = parent, Size = Vector3.new(0.6, 4.4, 0.6), CFrame = cf * CFrame.new(-3.4, 0.6, -2), Color = WOOD, Material = Enum.Material.Wood })
+	part({ Name = "PostR", Parent = parent, Size = Vector3.new(0.6, 4.4, 0.6), CFrame = cf * CFrame.new(3.4, 0.6, -2), Color = WOOD, Material = Enum.Material.Wood })
+	local plaque = part({ Name = "Plaque", Parent = parent, Size = Vector3.new(5.4, 1.1, 0.2), CFrame = cf * CFrame.new(0, 1.1, -2.6), Color = DARK, Material = Enum.Material.SmoothPlastic })
+	sign(plaque, machine.name)
+	prompt(body, "Use", machine.name)
+	return body
+end
+
+local function shrine(parent)
+	local cf = CFrame.new(0, 4, 22)
+	part({ Name = "ShrineBase", Parent = parent, Size = Vector3.new(16, 1.2, 16), CFrame = cf * CFrame.new(0, -1.4, 0), Color = STONE, Material = Enum.Material.Cobblestone })
+	part({ Name = "ShrineStep", Parent = parent, Size = Vector3.new(10, 1, 10), CFrame = cf * CFrame.new(0, -0.4, 0), Color = Color3.fromRGB(110, 108, 100), Material = Enum.Material.Slate })
+	for i = 1, 4 do
+		local a = math.rad(i * 90 + 45)
+		part({ Name = "Pillar", Parent = parent, Size = Vector3.new(1.2, 8, 1.2), CFrame = cf * CFrame.new(math.sin(a) * 4.6, 3.2, math.cos(a) * 4.6), Color = STONE, Material = Enum.Material.Slate })
+	end
+	local crystal = part({ Name = "Machine_prestige", Parent = parent, Size = Vector3.new(2.4, 7, 2.4), CFrame = cf * CFrame.new(0, 3.6, 0) * CFrame.Angles(0, math.rad(45), 0), Color = Color3.fromRGB(186, 92, 168), Material = Enum.Material.Glass })
+	crystal:SetAttribute("Machine", "prestige")
+	part({ Name = "CrystalCap", Parent = parent, Size = Vector3.new(1.6, 1.6, 1.6), CFrame = cf * CFrame.new(0, 7.6, 0), Color = Color3.fromRGB(210, 140, 190), Material = Enum.Material.Glass, Shape = Enum.PartType.Ball })
+	local plaque = part({ Name = "PrestigeSign", Parent = parent, Size = Vector3.new(8, 1.2, 0.2), CFrame = cf * CFrame.new(0, 1.2, -8.2), Color = DARK, Material = Enum.Material.SmoothPlastic })
+	sign(plaque, "PRESTIGE  ·  keeps cards")
+	prompt(crystal, "Prestige", "Reset pick and bag, keep cards")
+end
+
+local function arch(parent, pos, zone, silent)
+	local look = Vector3.new(0, pos.Y, 0)
+	local cf = CFrame.lookAt(pos, look)
+	part({ Name = "PillarL", Parent = parent, Size = Vector3.new(1.6, 12, 1.6), CFrame = cf * CFrame.new(-4.2, 0, 0), Color = STONE, Material = Enum.Material.Slate })
+	part({ Name = "PillarR", Parent = parent, Size = Vector3.new(1.6, 12, 1.6), CFrame = cf * CFrame.new(4.2, 0, 0), Color = STONE, Material = Enum.Material.Slate })
+	local lintel = part({ Name = "Gate_" .. zone.id, Parent = parent, Size = Vector3.new(10.4, 1.8, 1.8), CFrame = cf * CFrame.new(0, 6.6, 0), Color = zone.color:Lerp(STONE, 0.55), Material = Enum.Material.Slate })
+	lintel:SetAttribute("ZoneId", zone.id)
+	lintel:SetAttribute("PrestigeReq", zone.prestige)
+	sign(lintel, zone.name)
+	-- Walk-to zones get no prompt. The mine is right there; you walk in.
+	if not silent then
+		prompt(lintel, "Enter", zone.name)
+	end
+	return lintel
+end
+
+local function tree(folder, pos, rng)
+	local h = 7 + rng:NextNumber() * 5
+	part({ Name = "Trunk", Parent = folder, Size = Vector3.new(1.2, h, 1.2), CFrame = CFrame.new(pos + Vector3.new(0, h * 0.5, 0)), Color = Color3.fromRGB(86, 64, 42), Material = Enum.Material.Wood })
+	part({ Name = "Leaves", Parent = folder, Size = Vector3.new(6 + rng:NextNumber() * 3, 5, 6 + rng:NextNumber() * 3), CFrame = CFrame.new(pos + Vector3.new(0, h + 1.2, 0)), Color = Color3.fromRGB(62, 118, 58), Material = Enum.Material.Grass, Shape = Enum.PartType.Ball })
+end
+
+local function decorate(folder, zone, origin)
+	local rng = Random.new(zone.angle * 91 + 7)
+	local kind = zone.decor or "trees"
+	for i = 1, 8 do
+		local a = rng:NextNumber() * math.pi * 2
+		local d = 18 + rng:NextNumber() * 16
+		local pos = origin + Vector3.new(math.sin(a) * d, 6, math.cos(a) * d)
+		if kind == "trees" then
+			tree(folder, pos, rng)
+		elseif kind == "spikes" then
+			part({ Name = "Rock", Parent = folder, Size = Vector3.new(3 + rng:NextNumber() * 4, 4 + rng:NextNumber() * 7, 3 + rng:NextNumber() * 4), CFrame = CFrame.new(pos) * CFrame.Angles(0, a, rng:NextNumber() * 0.3), Color = Color3.fromRGB(176, 132, 78), Material = Enum.Material.Sandstone })
+		elseif kind == "pools" then
+			part({ Name = "Ice", Parent = folder, Size = Vector3.new(4, 3, 5), CFrame = CFrame.new(pos + Vector3.new(0, -1, 0)), Color = Color3.fromRGB(190, 220, 230), Material = Enum.Material.Ice })
+		elseif kind == "bolts" then
+			part({ Name = "Crystal", Parent = folder, Size = Vector3.new(1.4, 4 + rng:NextNumber() * 3, 1.4), CFrame = CFrame.new(pos) * CFrame.Angles(0, a, 0.15), Color = Color3.fromRGB(236, 214, 120), Material = Enum.Material.Glass })
+		elseif kind == "orbs" then
+			part({ Name = "Menhir", Parent = folder, Size = Vector3.new(2.2, 8, 2.2), CFrame = CFrame.new(pos), Color = Color3.fromRGB(54, 42, 62), Material = Enum.Material.Slate })
+		else
+			part({ Name = "Obelisk", Parent = folder, Size = Vector3.new(1.8, 10, 1.8), CFrame = CFrame.new(pos), Color = Color3.fromRGB(28, 24, 32), Material = Enum.Material.Basalt })
+		end
+	end
+end
+
+
+--------------------------------------------------------------------------------
+-- THE LOBBY
+--
+-- Open grass with stone paths, not a plaza. A single circular slab reads as a
+-- menu screen: everything the same distance out, the same colour, arranged by a
+-- loop rather than by anybody. Buildings sit at uneven distances and bearings,
+-- each with its own palette, joined by paths that show you where to go.
+--
+-- The starter mine is straight ahead through a deliberate gap in the buildings.
+-- The other five mines are portals, each alone in its own clearing so they read
+-- as places rather than a row of doors.
+--------------------------------------------------------------------------------
+
+-- Roughly double the old 8 x 3.2 x 5 market stall. Big enough to read as a
+-- building from across the field, small enough that you stand AT it rather
+-- than walking around inside it.
+-- Ground level. Terrain fills top out HERE and buildings sit ON it. Getting
+-- these out of step is what buried every shop: the grass topped at 6 while
+-- the floors topped at 5.
+local GROUND = 5
+
+local SHOP_W, SHOP_D, SHOP_H = 18, 13, 12
+
+local TIMBER = Color3.fromRGB(104, 74, 48)
+local SLATE = Color3.fromRGB(74, 78, 92)
+local LAMP = Color3.fromRGB(255, 214, 150)
+local PATH = Color3.fromRGB(146, 140, 128)
+
+-- A stone path from a to b. Terrain rather than parts, so it beds into the
+-- ground instead of floating on it.
+-- A path drawn ON the deck. Terrain paths cut trenches through a flat plate.
+local function pathBetween(parent, a, b, width)
+	local flatA = Vector3.new(a.X, GROUND + 0.04, a.Z)
+	local flatB = Vector3.new(b.X, GROUND + 0.04, b.Z)
+	local delta = flatB - flatA
+	local len = delta.Magnitude
+	if len < 1 then
+		return
+	end
+	local p = part({ Name = "Path", Parent = parent, Size = Vector3.new(width or 12, 0.4, len),
+		CFrame = CFrame.lookAt(flatA + delta * 0.5, flatB),
+		Color = Color3.fromRGB(142, 138, 128), Material = Enum.Material.Cobblestone })
+	p.CanCollide = false
+	return p
+end
+
+local function npc(parent, cf, skin, shirt, trousers, name, role)
+	local m = Instance.new("Model")
+	m.Name = "NPC_" .. name:gsub("%s", "")
+	m.Parent = parent
+
+	local torso = part({ Name = "Torso", Parent = m, Size = Vector3.new(2.6, 3.1, 1.4),
+		CFrame = cf * CFrame.new(0, 4.1, 0), Color = shirt, Material = Enum.Material.Fabric })
+	part({ Name = "Head", Parent = m, Size = Vector3.new(1.95, 1.95, 1.95),
+		CFrame = cf * CFrame.new(0, 6.6, 0), Color = skin, Material = Enum.Material.SmoothPlastic })
+	part({ Name = "ArmL", Parent = m, Size = Vector3.new(1.1, 2.9, 1.15),
+		CFrame = cf * CFrame.new(-1.9, 4, 0), Color = shirt, Material = Enum.Material.Fabric })
+	part({ Name = "ArmR", Parent = m, Size = Vector3.new(1.1, 2.9, 1.15),
+		CFrame = cf * CFrame.new(1.9, 4, 0), Color = shirt, Material = Enum.Material.Fabric })
+	part({ Name = "LegL", Parent = m, Size = Vector3.new(1.25, 2.6, 1.3),
+		CFrame = cf * CFrame.new(-0.68, 1.3, 0), Color = trousers, Material = Enum.Material.Fabric })
+	part({ Name = "LegR", Parent = m, Size = Vector3.new(1.25, 2.6, 1.3),
+		CFrame = cf * CFrame.new(0.68, 1.3, 0), Color = trousers, Material = Enum.Material.Fabric })
+
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "Tag"
+	bb.Size = UDim2.fromOffset(240, 54)
+	bb.StudsOffset = Vector3.new(0, 4.2, 0)
+	bb.AlwaysOnTop = true
+	bb.MaxDistance = 120
+	bb.Adornee = torso
+	bb.Parent = torso
+	local who = Instance.new("TextLabel")
+	who.BackgroundTransparency = 1
+	who.Size = UDim2.new(1, 0, 0, 28)
+	who.Font = Enum.Font.BuilderSansBold
+	who.TextSize = 22
+	who.TextColor3 = Color3.fromRGB(255, 255, 255)
+	who.TextStrokeTransparency = 0.3
+	who.Text = name
+	who.Parent = bb
+	local what = Instance.new("TextLabel")
+	what.BackgroundTransparency = 1
+	what.Position = UDim2.fromOffset(0, 27)
+	what.Size = UDim2.new(1, 0, 0, 22)
+	what.Font = Enum.Font.BuilderSansMedium
+	what.TextSize = 16
+	what.TextColor3 = Color3.fromRGB(206, 214, 232)
+	what.TextStrokeTransparency = 0.55
+	what.Text = role
+	what.Parent = bb
+
+	m.PrimaryPart = torso
+	return m
+end
+
+-- The pad you stand on. Ring stays green because green means "you can use
+-- this"; the WORD is white, because a green word on a green ring on grass reads
+-- as one glowing smear.
+local function pad(parent, cf, label, promptText, machineId, locked)
+	local f = Instance.new("Folder")
+	f.Name = "Pad_" .. (machineId or label)
+	f.Parent = parent
+	local col = locked and Color3.fromRGB(128, 136, 152) or Color3.fromRGB(70, 255, 140)
+
+	local ring = part({ Name = "Ring", Parent = f, Size = Vector3.new(0.4, 12, 12),
+		CFrame = cf * CFrame.new(0, 0.28, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = col, Material = Enum.Material.Neon, Shape = Enum.PartType.Cylinder })
+	ring.CanCollide = false
+	part({ Name = "RingHole", Parent = f, Size = Vector3.new(0.5, 9.6, 9.6),
+		CFrame = cf * CFrame.new(0, 0.3, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = PATH, Material = Enum.Material.Slate,
+		Shape = Enum.PartType.Cylinder }).CanCollide = false
+	local glow = part({ Name = "Glow", Parent = f, Size = Vector3.new(0.3, 9.4, 9.4),
+		CFrame = cf * CFrame.new(0, 0.34, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = col, Material = Enum.Material.Neon, Shape = Enum.PartType.Cylinder })
+	glow.Transparency = 0.88
+	glow.CanCollide = false
+
+	local pl = Instance.new("PointLight")
+	pl.Brightness = 1.4
+	pl.Range = 20
+	pl.Color = col
+	pl.Parent = ring
+
+	local anchorPart = part({ Name = "LabelAnchor", Parent = f, Size = Vector3.new(1, 1, 1),
+		CFrame = cf * CFrame.new(0, 6, 0), Color = col, Material = Enum.Material.Neon })
+	anchorPart.Transparency = 1
+	anchorPart.CanCollide = false
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "PadLabel"
+	bb.Size = UDim2.fromOffset(300, 70)
+	bb.AlwaysOnTop = true
+	bb.MaxDistance = 70
+	bb.Adornee = anchorPart
+	bb.Parent = anchorPart
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.fromScale(1, 1)
+	t.Font = Enum.Font.BuilderSansBold
+	t.TextSize = 44
+	t.TextColor3 = Color3.fromRGB(255, 255, 255)
+	t.TextStrokeTransparency = 0.15
+	t.TextStrokeColor3 = Color3.fromRGB(8, 10, 14)
+	t.Text = string.upper(label)
+	t.Parent = bb
+
+	local hit = part({ Name = "Trigger", Parent = f, Size = Vector3.new(12, 8, 12),
+		CFrame = cf * CFrame.new(0, 4, 0), Color = col, Material = Enum.Material.Neon })
+	hit.Transparency = 1
+	hit.CanCollide = false
+	hit:SetAttribute("Machine", machineId)
+	if locked then
+		hit:SetAttribute("Locked", true)
+		prompt(hit, "Read", promptText .. " (soon)")
+	else
+		prompt(hit, "Open", promptText)
+	end
+	return f
+end
+
+-- One building. `pal` gives it its own brick, roof and trim so the row does not
+-- read as nine copies.
+-- Each trade gets its own building. Colour alone never distinguished them.
+local ShopFronts = require(script.Parent:FindFirstChild("MineShopFronts")
+	or script:FindFirstChild("MineShopFronts"))
+local SHOP_KIT = { part = part, sign = sign, npc = npc, pad = pad }
+
+local function shopFront(parent, cf, pal, title, npcName, role, verb, machineId, locked)
+	local f = Instance.new("Folder")
+	f.Name = "Shop_" .. (machineId or title:gsub("%s", ""))
+	f.Parent = parent
+	local W, D, H = SHOP_W, SHOP_D, SHOP_H
+
+	part({ Name = "Floor", Parent = f, Size = Vector3.new(W + 6, 1.2, D + 6),
+		CFrame = cf * CFrame.new(0, 0.6, 0), Color = SLATE, Material = Enum.Material.Slate })
+	part({ Name = "Back", Parent = f, Size = Vector3.new(W, H, 1.4),
+		CFrame = cf * CFrame.new(0, H / 2, D / 2), Color = pal.brick, Material = pal.mat })
+	part({ Name = "SideL", Parent = f, Size = Vector3.new(1.4, H, D),
+		CFrame = cf * CFrame.new(-W / 2, H / 2, 0), Color = pal.brick, Material = pal.mat })
+	part({ Name = "SideR", Parent = f, Size = Vector3.new(1.4, H, D),
+		CFrame = cf * CFrame.new(W / 2, H / 2, 0), Color = pal.brick, Material = pal.mat })
+	part({ Name = "Roof", Parent = f, Size = Vector3.new(W + 8, 1.6, D + 8),
+		CFrame = cf * CFrame.new(0, H + 0.8, 0), Color = pal.roof, Material = Enum.Material.Slate })
+	part({ Name = "Cornice", Parent = f, Size = Vector3.new(W + 9, 1, D + 9),
+		CFrame = cf * CFrame.new(0, H + 1.9, 0), Color = pal.trim, Material = Enum.Material.WoodPlanks })
+	part({ Name = "Lintel", Parent = f, Size = Vector3.new(W + 3, 3, 2),
+		CFrame = cf * CFrame.new(0, H - 2, -D / 2), Color = pal.trim, Material = Enum.Material.WoodPlanks })
+
+	for i = 0, 7 do
+		part({ Name = "Awn", Parent = f, Size = Vector3.new(W / 8 - 0.2, 0.5, 8),
+			CFrame = cf * CFrame.new(-W / 2 + (W / 8) * (i + 0.5), H - 5, -D / 2 - 3.4)
+				* CFrame.Angles(math.rad(-20), 0, 0),
+			Color = (i % 2 == 0) and pal.accent or CREAM, Material = Enum.Material.Fabric })
+	end
+
+	part({ Name = "Counter", Parent = f, Size = Vector3.new(W - 8, 4.4, 3.2),
+		CFrame = cf * CFrame.new(0, 2.2, -D / 2 + 3), Color = pal.trim, Material = Enum.Material.WoodPlanks })
+	part({ Name = "CounterTop", Parent = f, Size = Vector3.new(W - 6, 0.6, 4.4),
+		CFrame = cf * CFrame.new(0, 4.7, -D / 2 + 3), Color = CREAM, Material = Enum.Material.Wood })
+
+	local board = part({ Name = "Sign", Parent = f, Size = Vector3.new(W - 5, 3.6, 0.4),
+		CFrame = cf * CFrame.new(0, H - 2, -D / 2 - 1.1), Color = DARK, Material = Enum.Material.SmoothPlastic })
+	sign(board, string.upper(title), Enum.NormalId.Front)
+
+	local bulb = part({ Name = "Lamp", Parent = f, Size = Vector3.new(1.8, 0.7, 1.8),
+		CFrame = cf * CFrame.new(0, H - 3.5, 2), Color = LAMP, Material = Enum.Material.Neon })
+	local pl = Instance.new("PointLight")
+	pl.Brightness = 2
+	pl.Range = 38
+	pl.Color = LAMP
+	pl.Parent = bulb
+
+	npc(f, cf * CFrame.new(0, 1.2, D / 2 - 6) * CFrame.Angles(0, math.rad(180), 0),
+		Color3.fromRGB(226, 186, 148), pal.accent, Color3.fromRGB(58, 56, 70), npcName, role)
+	pad(f, cf * CFrame.new(0, 0.35, -D / 2 - 8), verb, npcName .. "  -  " .. title, machineId, locked)
+	return f
+end
+
+-- A portal standing alone in its own clearing, with a path leading to it.
+-- A portal. Built DEAD: dark stone, no glow, no motion. The client lights it
+-- and starts the swirl only once that player can actually walk through, so an
+-- unreachable zone never advertises itself as open.
+--
+-- `facing` is what it looks toward, so the same function works in the lobby and
+-- out on an island.
+local function portal(parent, pos, zone, facing, label, destination)
+	local f = Instance.new("Folder")
+	f.Name = "Portal_" .. (destination or zone.id)
+	f.Parent = parent
+	local col = zone.color or Color3.fromRGB(140, 140, 160)
+	local cf = CFrame.lookAt(pos, facing or Vector3.new(0, pos.Y, 0))
+	local stone = Color3.fromRGB(96, 94, 104)
+
+	-- Stepped base, so it stands on something rather than sprouting from a plate.
+	part({ Name = "Step", Parent = f, Size = Vector3.new(34, 1, 26),
+		CFrame = cf * CFrame.new(0, 0.5, 0), Color = Color3.fromRGB(150, 146, 138),
+		Material = Enum.Material.Slate })
+	part({ Name = "Base", Parent = f, Size = Vector3.new(28, 1.4, 20),
+		CFrame = cf * CFrame.new(0, 1.7, 0), Color = Color3.fromRGB(126, 122, 116),
+		Material = Enum.Material.Slate })
+
+	-- Tapered jambs with a capital, rather than two bare posts.
+	for _, s in ipairs({ -1, 1 }) do
+		part({ Name = "Jamb", Parent = f, Size = Vector3.new(4.2, 24, 4.2),
+			CFrame = cf * CFrame.new(s * 9.6, 14.4, 0), Color = stone, Material = Enum.Material.Rock })
+		part({ Name = "Capital", Parent = f, Size = Vector3.new(5.6, 1.8, 5.6),
+			CFrame = cf * CFrame.new(s * 9.6, 27.2, 0), Color = zone.dirt or stone, Material = Enum.Material.Rock })
+		part({ Name = "Foot", Parent = f, Size = Vector3.new(5.6, 1.6, 5.6),
+			CFrame = cf * CFrame.new(s * 9.6, 3.2, 0), Color = zone.dirt or stone, Material = Enum.Material.Rock })
+	end
+	part({ Name = "Lintel", Parent = f, Size = Vector3.new(25, 3.6, 5),
+		CFrame = cf * CFrame.new(0, 29.4, 0), Color = stone, Material = Enum.Material.Rock })
+	part({ Name = "Keystone", Parent = f, Size = Vector3.new(4.6, 5, 5.6),
+		CFrame = cf * CFrame.new(0, 31.4, 0), Color = zone.dirt or stone, Material = Enum.Material.Rock })
+
+	-- The gateway itself. Dark until lit.
+	local veil = part({ Name = "Veil", Parent = f, Size = Vector3.new(15.4, 24, 0.6),
+		CFrame = cf * CFrame.new(0, 15, 0), Color = Color3.fromRGB(18, 18, 24),
+		Material = Enum.Material.SmoothPlastic })
+	veil.Transparency = 0.15
+	veil.CanCollide = false
+
+	-- Spun by the client, and only when the portal is open.
+	-- A cylinder's flat faces are on its own X, so both discs are turned 90
+	-- degrees about Y to stand them up facing out of the doorway.
+	local face = CFrame.Angles(0, math.rad(90), 0)
+	-- The glow behind the arms. Dim on its own; the arms are the read.
+	local swirl = part({ Name = "Swirl", Parent = f, Size = Vector3.new(0.3, 13.4, 13.4),
+		CFrame = cf * CFrame.new(0, 15, -0.25) * face,
+		Color = col, Material = Enum.Material.Neon, Shape = Enum.PartType.Cylinder })
+	swirl.Transparency = 1
+	swirl.CanCollide = false
+
+	-- Three spiral arms, each a chain of tapering bars sweeping out from the
+	-- middle. Spinning a plain disc is invisible; spinning these is not.
+	local ARMS, LINKS = 3, 9
+	for arm = 0, ARMS - 1 do
+		for i = 0, LINKS - 1 do
+			local u = i / (LINKS - 1)
+			local rad = 1.1 + u * 5.6
+			local ang = math.rad(arm * (360 / ARMS)) + u * math.rad(150)
+			local seg = part({ Name = "Arm", Parent = f,
+				Size = Vector3.new(0.22, 1.5 - u * 0.7, 0.5 - u * 0.22),
+				CFrame = cf * CFrame.new(0, 15, -0.45)
+					* CFrame.Angles(0, 0, ang)
+					* CFrame.new(0, rad, 0)
+					* CFrame.Angles(0, 0, math.rad(38)),
+				Color = col:Lerp(Color3.new(1, 1, 1), u * 0.5),
+				Material = Enum.Material.Neon })
+			seg.Transparency = 1
+			seg.CanCollide = false
+			seg:SetAttribute("Radius", rad)
+			seg:SetAttribute("Ang", ang)
+		end
+	end
+	local ring = part({ Name = "Ring", Parent = f, Size = Vector3.new(0.45, 17.5, 17.5),
+		CFrame = cf * CFrame.new(0, 15, -0.62) * face,
+		Color = col, Material = Enum.Material.Neon, Shape = Enum.PartType.Cylinder })
+	ring.Transparency = 1
+	ring.CanCollide = false
+	-- A darker disc behind the ring turns it into an annulus rather than a
+	-- filled dot, and gives the swirl something to read against.
+	local iris = part({ Name = "Iris", Parent = f, Size = Vector3.new(0.3, 15.2, 15.2),
+		CFrame = cf * CFrame.new(0, 15, -0.12) * face,
+		Color = Color3.fromRGB(16, 14, 24), Material = Enum.Material.SmoothPlastic,
+		Shape = Enum.PartType.Cylinder })
+	iris.Transparency = 1
+	iris.CanCollide = false
+	-- Shards the client orbits once the gate is lit.
+	for i = 0, 5 do
+		local sh = part({ Name = "Shard", Parent = f, Size = Vector3.new(0.5, 1.9, 0.5),
+			CFrame = cf * CFrame.new(0, 15, -0.9) * CFrame.Angles(0, 0, math.rad(i * 60))
+				* CFrame.new(0, 10.8, 0),
+			Color = col, Material = Enum.Material.Neon })
+		sh.Transparency = 1
+		sh.CanCollide = false
+		sh:SetAttribute("Phase", i / 6)
+	end
+
+	local gl = Instance.new("PointLight")
+	gl.Brightness = 0
+	gl.Range = 46
+	gl.Color = col
+	gl.Enabled = false
+	gl.Parent = veil
+
+	local plaque = part({ Name = "Plaque", Parent = f, Size = Vector3.new(23, 3.6, 0.4),
+		CFrame = cf * CFrame.new(0, 34.2, -0.4), Color = DARK, Material = Enum.Material.SmoothPlastic })
+	sign(plaque, string.upper(label or zone.name or zone.id), Enum.NormalId.Front)
+
+	local trigger = part({ Name = "Trigger", Parent = f, Size = Vector3.new(15, 22, 6),
+		CFrame = cf * CFrame.new(0, 14, 0), Color = col, Material = Enum.Material.Neon })
+	trigger.Transparency = 1
+	trigger.CanCollide = false
+	if destination == "lobby" then
+		trigger:SetAttribute("Destination", "lobby")
+		prompt(trigger, "Enter", "Back to the Lobby")
+	else
+		trigger:SetAttribute("ZoneId", zone.id)
+		trigger:SetAttribute("Prestige", zone.prestige or 0)
+		prompt(trigger, "Enter", (zone.name or zone.id) ..
+			((zone.prestige or 0) > 0 and ("  -  Rebirth " .. zone.prestige) or ""))
+	end
+	f:SetAttribute("ZoneId", destination == "lobby" and "lobby" or zone.id)
+	f:SetAttribute("Prestige", destination == "lobby" and 0 or (zone.prestige or 0))
+	return f
+end
+
+-- A small outpost beside a mine: somewhere to sell your haul and buy the
+-- next tool without portalling home. The lobby keeps the full set of
+-- services; an island only needs the two you use mid-run.
+function WorldBuilder.buildOutpost(parent, zone, origin, dir)
+	local f = Instance.new("Folder")
+	f.Name = "Outpost_" .. zone.id
+	f.Parent = parent
+
+	-- Sits beside the pit mouth, off to one side of the stand.
+	local side = Vector3.new(-dir.Z, 0, dir.X)
+	local base = origin - dir * (MineConfig.GRID * MineConfig.BLOCK * 0.5 + 22) + side * 26
+	base = Vector3.new(base.X, GROUND, base.Z)
+	part({ Name = "Apron", Parent = f, Size = Vector3.new(0.5, 44, 44),
+		CFrame = CFrame.new(base.X, GROUND + 0.03, base.Z) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(106, 103, 96), Material = Enum.Material.Slate,
+		Shape = Enum.PartType.Cylinder }).CanCollide = false
+
+	local facing = CFrame.lookAt(base, Vector3.new(origin.X, base.Y, origin.Z))
+	part({ Name = "Deck", Parent = f, Size = Vector3.new(40, 1.2, 22),
+		CFrame = facing * CFrame.new(0, 0.6, 0), Color = Color3.fromRGB(74, 78, 92),
+		Material = Enum.Material.Slate })
+	part({ Name = "Canopy", Parent = f, Size = Vector3.new(42, 1, 24),
+		CFrame = facing * CFrame.new(0, 11, 0), Color = zone.dirt or Color3.fromRGB(96, 74, 54),
+		Material = Enum.Material.WoodPlanks })
+	for _, x in ipairs({ -19, 19 }) do
+		part({ Name = "Post", Parent = f, Size = Vector3.new(1.2, 11, 1.2),
+			CFrame = facing * CFrame.new(x, 5.5, 0), Color = Color3.fromRGB(96, 74, 54),
+			Material = Enum.Material.Wood })
+	end
+
+	for i, spec in ipairs({
+		{ id = "sell", verb = "SELL", who = "Hodge", role = "Buys your haul", off = -11,
+		  shirt = Color3.fromRGB(255, 210, 70) },
+		{ id = "shop", verb = "SHOP", who = "Nan", role = "Tools and bags", off = 11,
+		  shirt = Color3.fromRGB(255, 160, 80) },
+	}) do
+		part({ Name = "Counter", Parent = f, Size = Vector3.new(14, 4, 2.6),
+			CFrame = facing * CFrame.new(spec.off, 2.6, 6), Color = Color3.fromRGB(104, 74, 48),
+			Material = Enum.Material.WoodPlanks })
+		npc(f, facing * CFrame.new(spec.off, 1.2, 9) * CFrame.Angles(0, math.rad(180), 0),
+			Color3.fromRGB(226, 186, 148), spec.shirt, Color3.fromRGB(58, 56, 70), spec.who, spec.role)
+		pad(f, facing * CFrame.new(spec.off, 0.35, -6), spec.verb, spec.who .. "  -  " .. spec.verb, spec.id, false)
+	end
+	return f
+end
+
+function WorldBuilder.buildLobby(world)
+	local lobby = Instance.new("Folder")
+	lobby.Name = "Lobby"
+	lobby.Parent = world
+	local terrain = workspace.Terrain
+
+	-- FLAT platform, not terrain. FillCylinder makes a rounded mound, so every
+	-- building ended up on its own hill with its floor sunk into the next one.
+	-- A hub needs one plane you can read across at a glance.
+	local deck = part({ Name = "Deck", Parent = lobby, Size = Vector3.new(2, 270, 270),
+		CFrame = CFrame.new(0, GROUND - 1, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(104, 162, 90), Material = Enum.Material.Grass,
+		Shape = Enum.PartType.Cylinder })
+	deck.TopSurface = Enum.SurfaceType.Smooth
+	part({ Name = "DeckRim", Parent = lobby, Size = Vector3.new(2.6, 282, 282),
+		CFrame = CFrame.new(0, GROUND - 2.2, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(76, 118, 66), Material = Enum.Material.Slate,
+		Shape = Enum.PartType.Cylinder })
+	part({ Name = "Court", Parent = lobby, Size = Vector3.new(0.6, 96, 96),
+		CFrame = CFrame.new(0, GROUND + 0.02, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(122, 119, 111), Material = Enum.Material.Cobblestone,
+		Shape = Enum.PartType.Cylinder })
+	-- No terrain mounds: they were the hills the shops sank into.
+
+	-- A small stone courtyard at the middle. Small on purpose: the landscape is
+	-- the floor, not a slab.
+	-- courtyard is a plate now
+
+	part({ Name = "Monument", Parent = lobby, Size = Vector3.new(5, 11, 5),
+		CFrame = CFrame.new(0, GROUND + 5.5, 0), Color = Color3.fromRGB(156, 152, 146),
+		Material = Enum.Material.Slate })
+	part({ Name = "MonumentBase", Parent = lobby, Size = Vector3.new(11, 1.4, 11),
+		CFrame = CFrame.new(0, GROUND + 0.7, 0), Color = Color3.fromRGB(132, 128, 122),
+		Material = Enum.Material.Slate })
+	local crystal = part({ Name = "Crystal", Parent = lobby, Size = Vector3.new(3.4, 5.6, 3.4),
+		CFrame = CFrame.new(0, GROUND + 11.6, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color = Color3.fromRGB(104, 160, 232), Material = Enum.Material.Neon })
+	crystal.Transparency = 0.18
+	local cl = Instance.new("PointLight")
+	cl.Brightness = 1.2
+	cl.Range = 90
+	cl.Color = Color3.fromRGB(170, 210, 255)
+	cl.Parent = crystal
+
+	-- Uneven positions and distances, each with its own palette. The gap toward
+	-- +Z is the walk out to the starter mine.
+	-- PLACEMENT RULE: nothing may stand within ISLAND (84) + margin of a zone
+	-- origin. Zones sit at 60 degree bearings, so buildings and portals live in
+	-- the GAPS between them. The +Z corridor is left empty: that is the walk out
+	-- to the starter mine.
+	local STATIONS = {
+		{ x = 53, z = 63, style = "depot", title = "Depot", verb = "SELL", npc = "Marla",
+		  role = "Sells your haul", machine = "sell",
+		  pal = { brick = Color3.fromRGB(168, 116, 76), roof = Color3.fromRGB(138, 76, 52), trim = TIMBER, accent = Color3.fromRGB(255, 200, 84), mat = Enum.Material.Brick } },
+		{ x = 76, z = 40, style = "forge", title = "Blacksmith", verb = "FORGE", npc = "Bruk",
+		  role = "Picks, drills, bags", machine = "shop",
+		  pal = { brick = Color3.fromRGB(96, 92, 96), roof = Color3.fromRGB(58, 56, 64), trim = Color3.fromRGB(84, 62, 42), accent = Color3.fromRGB(255, 146, 62), mat = Enum.Material.Brick } },
+		{ x = 20, z = -88, style = "arcane", title = "Fusery", verb = "FUSE", npc = "Tup",
+		  role = "Three of a kind", machine = "merge",
+		  pal = { brick = Color3.fromRGB(118, 96, 150), roof = Color3.fromRGB(72, 54, 100), trim = Color3.fromRGB(158, 138, 200), accent = Color3.fromRGB(184, 126, 255), mat = Enum.Material.Slate } },
+		{ x = -22, z = -84, style = "works", title = "Scrapper", verb = "DUST", npc = "Grit",
+		  role = "Cards into dust", machine = "dust",
+		  pal = { brick = Color3.fromRGB(98, 118, 88), roof = Color3.fromRGB(70, 78, 62), trim = Color3.fromRGB(126, 132, 112), accent = Color3.fromRGB(164, 224, 122), mat = Enum.Material.Metal } },
+		{ x = -70, z = -46, style = "spire", title = "Enchanter", verb = "RUNES", npc = "Sable",
+		  role = "Runes and gear", machine = "enchanter", locked = false,
+		  pal = { brick = Color3.fromRGB(74, 70, 106), roof = Color3.fromRGB(46, 42, 72), trim = Color3.fromRGB(102, 94, 138), accent = Color3.fromRGB(154, 144, 226), mat = Enum.Material.Slate } },
+		-- Moved off the west wall. It sat 36 studs from the Enchanter while the
+		-- east-south arc was empty for 105 degrees, so two stations crowded each
+		-- other and half the ring had nothing on it.
+		{ x = 66, z = -30, style = "board", title = "Fossil Bench", verb = "FOSSIL", npc = "Ossie",
+		  role = "Assemble fossil tools", machine = "fossil", locked = false,
+		  pal = { brick = Color3.fromRGB(168, 140, 96), roof = Color3.fromRGB(110, 88, 58), trim = TIMBER, accent = Color3.fromRGB(210, 180, 120), mat = Enum.Material.Sandstone } },
+		-- Job Board / Contractor: rotating contracts (was "coming soon" lean-to).
+		{ x = -48, z = 68, style = "board", title = "Job Board", verb = "JOBS", npc = "Pike",
+		  role = "Daily contracts", machine = "contractor", locked = false,
+		  pal = { brick = Color3.fromRGB(128, 108, 78), roof = Color3.fromRGB(88, 70, 48), trim = TIMBER, accent = Color3.fromRGB(240, 196, 96), mat = Enum.Material.WoodPlanks } },
+		{ x = -84, z = 40, style = "rotunda", title = "Cloud Gate", verb = "REBIRTH", npc = "Auria",
+		  role = "Rebirth and skills", machine = "prestige",
+		  pal = { brick = Color3.fromRGB(214, 210, 222), roof = Color3.fromRGB(180, 150, 96), trim = Color3.fromRGB(198, 166, 106), accent = Color3.fromRGB(255, 206, 128), mat = Enum.Material.Marble } },
+	}
+	for _, s in ipairs(STATIONS) do
+		local pos = Vector3.new(s.x, GROUND, s.z)
+		pathBetween(lobby, Vector3.new(0, 0, 0), pos, 13)
+		part({ Name = "Apron", Parent = lobby, Size = Vector3.new(0.5, 46, 46),
+			CFrame = CFrame.new(s.x, GROUND + 0.03, s.z) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = Color3.fromRGB(106, 103, 96), Material = Enum.Material.Slate,
+			Shape = Enum.PartType.Cylinder }).CanCollide = false
+		ShopFronts.build(SHOP_KIT, lobby, CFrame.lookAt(pos, Vector3.new(0, pos.Y, 0)),
+			s, SHOP_W, SHOP_D, SHOP_H)
+	end
+
+	-- No portals here. Each zone carries the doorway to the NEXT one, so you
+	-- find them by playing rather than reading a row of five arches on the lawn.
+
+	-- And the road out to the starter mine.
+	pathBetween(lobby, Vector3.new(0, 0, 0), Vector3.new(0, 0, 132), 18)
+	return lobby
+end
+
+-- The Clouds. Rebirth used to drop you back on the lobby deck, which made the
+-- one moment the game asks you to stop and re-plan feel like a respawn. This is
+-- somewhere else: a drift of cloud islands above the map, with the gate you came
+-- through in the middle. You leave it by choosing to.
+local CLOUD_Y = 420
+
+local function buildClouds(parent)
+	local f = Instance.new("Folder")
+	f.Name = "Clouds"
+	f.Parent = parent
+	local WHITE = Color3.fromRGB(244, 246, 252)
+	local SHADE = Color3.fromRGB(214, 222, 238)
+
+	-- A main deck you land on, built from overlapping puffs so the rim is soft
+	-- rather than a disc with an edge.
+	local rng = Random.new(11)
+	for i = 1, 26 do
+		local a = (i / 26) * math.pi * 2
+		local r = (i % 3 == 0) and 15 or 22
+		local d = 8 + rng:NextNumber() * 5
+		part({ Name = "Puff", Parent = f, Shape = Enum.PartType.Ball,
+			Size = Vector3.new(d, d * 0.62, d),
+			CFrame = CFrame.new(math.cos(a) * r, CLOUD_Y - 3 + rng:NextNumber() * 2, math.sin(a) * r),
+			Color = (i % 4 == 0) and SHADE or WHITE, Material = Enum.Material.SmoothPlastic })
+	end
+	part({ Name = "Deck", Parent = f, Size = Vector3.new(54, 2, 54),
+		CFrame = CFrame.new(0, CLOUD_Y - 1, 0), Color = WHITE,
+		Material = Enum.Material.SmoothPlastic })
+
+	-- Outlying islands, purely so the place has a horizon.
+	for i = 1, 7 do
+		local a = rng:NextNumber() * math.pi * 2
+		local r = 70 + rng:NextNumber() * 90
+		local d = 14 + rng:NextNumber() * 16
+		part({ Name = "Isle", Parent = f, Shape = Enum.PartType.Ball,
+			Size = Vector3.new(d, d * 0.5, d),
+			CFrame = CFrame.new(math.cos(a) * r, CLOUD_Y - 20 + rng:NextNumber() * 46, math.sin(a) * r),
+			Color = WHITE, Material = Enum.Material.SmoothPlastic }).CanCollide = false
+	end
+
+	-- The gate itself, so the space reads as the Cloud Gate's other side.
+	for _, x in ipairs({ -7, 7 }) do
+		part({ Name = "GatePost", Parent = f, Size = Vector3.new(1.6, 18, 1.6),
+			CFrame = CFrame.new(x, CLOUD_Y + 9, -12), Color = Color3.fromRGB(226, 214, 176),
+			Material = Enum.Material.Marble })
+	end
+	part({ Name = "GateArch", Parent = f, Size = Vector3.new(17, 1.8, 2.2),
+		CFrame = CFrame.new(0, CLOUD_Y + 18, -12), Color = Color3.fromRGB(226, 214, 176),
+		Material = Enum.Material.Marble })
+	local glow = part({ Name = "GateLight", Parent = f, Size = Vector3.new(13, 15, 0.4),
+		CFrame = CFrame.new(0, CLOUD_Y + 9, -12), Color = Color3.fromRGB(180, 214, 255),
+		Material = Enum.Material.Neon })
+	glow.Transparency = 0.55
+	glow.CanCollide = false
+	local pl = Instance.new("PointLight")
+	pl.Brightness = 3
+	pl.Range = 60
+	pl.Color = Color3.fromRGB(200, 224, 255)
+	pl.Parent = glow
+
+	sign(part({ Name = "Plaque", Parent = f, Size = Vector3.new(14, 3, 0.4),
+		CFrame = CFrame.new(0, CLOUD_Y + 22, -12), Color = Color3.fromRGB(58, 62, 88),
+		Material = Enum.Material.SmoothPlastic }), "THE CLOUDS", Enum.NormalId.Front)
+	return f
+end
+
+WorldBuilder.CLOUD_Y = CLOUD_Y
+
+function WorldBuilder.build()
+	local old = workspace:FindFirstChild("MineWorld")
+	if old then old:Destroy() end
+	table.clear(usedTops) -- world rebuilt, so the ledger starts clean
+	local world = Instance.new("Folder")
+	world.Name = "MineWorld"
+	world.Parent = workspace
+	buildClouds(world)
+
+	local base = workspace:FindFirstChild("Baseplate")
+	if base and base:IsA("BasePart") then
+		base.Transparency = 1
+		base.CanCollide = false
+	end
+
+	local spawn = workspace:FindFirstChildOfClass("SpawnLocation")
+	if spawn then
+		spawn.CFrame = CFrame.new(0, 6.5, 8)
+		spawn.Size = Vector3.new(8, 1, 8)
+		spawn.Color = Color3.fromRGB(118, 112, 102)
+		spawn.Material = Enum.Material.Slate
+		spawn.Anchored = true
+		spawn.Neutral = true
+		spawn.Duration = 0
+		spawn.Transparency = 1
+	end
+
+	applyLighting()
+
+	local terrain = workspace.Terrain
+	terrain:Clear()
+	-- No terrain anywhere: every surface is a plate.
+	-- No terrain. Every surface in this world is a plate.
+
+	local camp = Instance.new("Folder")
+	camp.Name = "Camp"
+	camp.Parent = world
+
+	part({ Name = "Plaza", Parent = camp, Size = Vector3.new(42, 1.2, 42), CFrame = CFrame.new(0, 3.4, 0), Color = Color3.fromRGB(128, 122, 112), Material = Enum.Material.Cobblestone })
+	part({ Name = "PlazaRing", Parent = camp, Size = Vector3.new(48, 0.8, 48), CFrame = CFrame.new(0, 2.8, 0), Color = STONE, Material = Enum.Material.Slate })
+
+	-- Six market stalls became nine shopfronts with people and glowing pads.
+	WorldBuilder.buildLobby(world)
+
+	local gates = Instance.new("Folder")
+	gates.Name = "Gates"
+	gates.Parent = world
+	local pits = Instance.new("Folder")
+	pits.Name = "Pits"
+	pits.Parent = world
+
+	local pitW = MineConfig.GRID * MineConfig.BLOCK
+
+	for zoneIndex, zone in ipairs(MineConfig.ZONES) do
+		local origin = MineConfig.zoneOrigin(zone)
+		local folder = Instance.new("Folder")
+		folder.Name = "Biome_" .. zone.id
+		folder.Parent = world
+
+		local flat = Vector3.new(origin.X, 0, origin.Z)
+		-- Plastic plate, not terrain: four slabs forming a frame around the pit
+		-- mouth. Terrain gave lumpy hills, buried blocks, and grass blades taller
+		-- than the buildings.
+		local ISL = MineConfig.ISLAND
+		local hole = pitW * 0.5
+		local arm = (ISL - hole) * 0.5
+		for _, s in ipairs({
+			{ Vector3.new(0, 0, hole + arm), Vector3.new(ISL * 2, 2, arm * 2) },
+			{ Vector3.new(0, 0, -(hole + arm)), Vector3.new(ISL * 2, 2, arm * 2) },
+			{ Vector3.new(hole + arm, 0, 0), Vector3.new(arm * 2, 2, hole * 2) },
+			{ Vector3.new(-(hole + arm), 0, 0), Vector3.new(arm * 2, 2, hole * 2) },
+		}) do
+			part({ Name = "Ground_" .. zone.id, Parent = folder, Size = s[2],
+				CFrame = CFrame.new(origin + s[1] + Vector3.new(0, 0, 0)),
+				Color = zone.dirt or Color3.fromRGB(120, 170, 110),
+				Material = Enum.Material.SmoothPlastic })
+		end
+
+		-- Walk-to zones get a road and a gate. Portal islands do not: at 1,400
+		-- studs out, a road from the lobby is a path to nowhere.
+		local walkTo = flat.Magnitude < 400
+		if walkTo then
+			local mid = flat * 0.52
+			local pathCf = CFrame.lookAt(Vector3.new(mid.X, 0, mid.Z), Vector3.new(origin.X, 0, origin.Z))
+			part({ Name = "Road_" .. zone.id, Parent = folder,
+				Size = Vector3.new(16, 1, flat.Magnitude * 0.46), CFrame = pathCf * CFrame.new(0, 4.6, 0),
+				Color = Color3.fromRGB(142, 138, 128), Material = Enum.Material.Cobblestone })
+		end
+		-- Nothing to carve: the island is a plate with the mouth already open.
+
+		decorate(folder, zone, origin)
+
+		local dir = flat.Unit
+		if not walkTo then
+			-- Island zones get their own sell and shop stand.
+			WorldBuilder.buildOutpost(folder, zone, origin, dir)
+		end
+		-- The doorway onward lives HERE, on this zone's ground.
+		local side = Vector3.new(-dir.Z, 0, dir.X)
+		local hole = pitW * 0.5
+		local nextZone = MineConfig.ZONES[zoneIndex + 1]
+		if nextZone then
+			local spot = Vector3.new(origin.X, GROUND, origin.Z) + side * (hole + 16)
+			portal(folder, spot, nextZone, Vector3.new(origin.X, GROUND, origin.Z))
+		end
+		if not walkTo then
+			local home = Vector3.new(origin.X, GROUND, origin.Z) - side * (hole + 16)
+			portal(folder, home, zone, Vector3.new(origin.X, GROUND, origin.Z), "Lobby", "lobby")
+		end
+		if walkTo then
+			local gatePos = Vector3.new(origin.X, 8, origin.Z) - dir * (MineConfig.ISLAND - 8)
+			arch(gates, gatePos, zone, true)
+		end
+
+		local stand = Instance.new("Part")
+		stand.Name = "Stand_" .. zone.id
+		stand.Anchored = true
+		stand.Transparency = 1
+		stand.CanCollide = false
+		stand.Size = Vector3.new(4, 1, 4)
+		stand.CFrame = CFrame.new(origin - dir * (pitW * 0.5 + 4) + Vector3.new(0, 6, 0), origin)
+		stand.Parent = pits
+		stand:SetAttribute("ZoneId", zone.id)
+
+		local shaftPad = (MineConfig.LAYER_WINDOW or 8) * MineConfig.BLOCK
+		-- No PitFloor: falling below the generated shaft sends you to the surface
+		-- (MineServer), instead of landing on a platform at max depth.
+
+		-- Shaft walls line the INSIDE of the mouth. Centering them on the hole
+		-- edge buried half their thickness in Ground_* rim plates and left
+		-- coplanar vertical faces at the cut — brown rock flickering through tan
+		-- dirt. Keep them fully inside; tops sit below the ground underside.
+		-- MineServer.syncPitWalls grows height the same way as layers open.
+		local wallH = shaftPad + 8
+		local wallT = 4
+		-- Ground plates are 2 studs thick, centered at origin.Y (= GROUND - 1).
+		local wallTop = GROUND - 2.05
+		local wallY = wallTop - wallH * 0.5
+		local inset = (pitW - wallT) * 0.5
+		local rock = (zone.dirt or Color3.fromRGB(96, 90, 84)):Lerp(Color3.fromRGB(24, 22, 26), 0.55)
+		for _, w in ipairs({
+			{ "N", Vector3.new(pitW, wallH, wallT), Vector3.new(0, 0, inset) },
+			{ "S", Vector3.new(pitW, wallH, wallT), Vector3.new(0, 0, -inset) },
+			{ "E", Vector3.new(wallT, wallH, pitW - wallT * 2), Vector3.new(inset, 0, 0) },
+			{ "W", Vector3.new(wallT, wallH, pitW - wallT * 2), Vector3.new(-inset, 0, 0) },
+		}) do
+			part({ Name = "PitWall" .. w[1] .. "_" .. zone.id, Parent = pits, Size = w[2],
+				CFrame = CFrame.new(origin.X + w[3].X, wallY, origin.Z + w[3].Z),
+				Color = rock, Material = Enum.Material.Rock })
+		end
+	end
+
+	print("[Mine] terrain biomes built")
+	return world
+end
+
+return WorldBuilder

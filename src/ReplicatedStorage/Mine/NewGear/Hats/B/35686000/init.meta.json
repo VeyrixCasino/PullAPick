@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 35686000.0,
+    "DisplayName": "Baron von Bot",
+    "RAP": 264532.0,
+    "Rarity": "B"
+  }
+}

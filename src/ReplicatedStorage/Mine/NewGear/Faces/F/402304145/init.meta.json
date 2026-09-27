@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 402304145.0,
+    "DisplayName": "Friendly Trusting Smile",
+    "RAP": 5470.0,
+    "Rarity": "F"
+  }
+}

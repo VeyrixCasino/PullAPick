@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 259424300.0,
+    "DisplayName": "Universal Fedora",
+    "RAP": 3255.0,
+    "Rarity": "F"
+  }
+}

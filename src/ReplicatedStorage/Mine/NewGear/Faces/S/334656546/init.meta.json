@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 334656546.0,
+    "DisplayName": "Teal Rock Star Smile",
+    "RAP": 39088.0,
+    "Rarity": "S"
+  }
+}

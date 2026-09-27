@@ -1,0 +1,222 @@
+(CFrame.lookAt(pos, Vector3.new(look.X, pos.Y, look.Z)))
+	-- Keep nameplate above the full character
+	local root = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+	local labelHost = ped:FindFirstChild("NameplateHost", true)
+	if labelHost and root then
+		labelHost.Parent = root
+		labelHost.StudsOffset = Vector3.new(0, bboxSize.Y * 0.55, 0)
+	end
+end
+
+local function applyPedestal(folder, kind, rows)
+	if not folder then return end
+	local col = folder:FindFirstChild("Col_" .. kind)
+	if not col then return end
+	for i = 1, 3 do
+		local ped = col:FindFirstChild("Pedestal_" .. i)
+		if not ped then continue end
+		local row = rows[i]
+		local newId = row and row.userId or 0
+		local prevId = tonumber(ped:GetAttribute("UserId")) or 0
+		ped:SetAttribute("UserId", newId)
+		ped:SetAttribute("Value", row and row.value or 0)
+		ped:SetAttribute("PlayerName", row and row.name or "—")
+		ped:SetAttribute("Rank", i)
+		local label = ped:FindFirstChild("Nameplate", true)
+		if label and label:IsA("TextLabel") then
+			if row then
+				label.Text = string.format("#%d  %s\n%s", i, row.name, tostring(row.value))
+			else
+				label.Text = string.format("#%d  —", i)
+			end
+		end
+		if newId ~= prevId then
+			task.spawn(function()
+				mountAvatar(ped, newId, Vector3.new(0, 0, 0))
+			end)
+		end
+	end
+end
+
+--[[
+	DEEPEST MINERS. One big board at the far end of every mine -- across the
+	pit from the camp, so it is the thing you look at while you dig -- with
+	the top ten all-time depths for that mine and their avatars.
+]]
+local deepBoards = {} -- { { part =, zoneId = } }
+
+local function deepFarPoint(zone)
+	local origin = MineConfig.zoneOrigin(zone)
+	local world = workspace:FindFirstChild("MineWorld")
+	local pits = world and world:FindFirstChild("Pits")
+	-- The camp side is where Stand_<zone> sits; the far end is opposite it.
+	local stand = pits and pits:FindFirstChild("Stand_" .. zone.id)
+	local toward = stand and (stand.Position - origin) or (Vector3.zero - origin)
+	toward = Vector3.new(toward.X, 0, toward.Z)
+	local axis
+	if math.abs(toward.X) > math.abs(toward.Z) then
+		axis = Vector3.new(toward.X > 0 and 1 or -1, 0, 0)
+	else
+		axis = Vector3.new(0, 0, toward.Z > 0 and 1 or -1)
+	end
+	local half = (MineConfig.GRID or 21) * (MineConfig.BLOCK or 5) * 0.5
+	return origin, -axis, half
+end
+
+local function buildDeepBoard(zone)
+	local world = workspace:FindFirstChild("MineWorld")
+	local pits = world and world:FindFirstChild("Pits")
+	if not pits or pits:FindFirstChild("DeepBoard_" .. zone.id) then
+		return nil
+	end
+	local origin, far, half = deepFarPoint(zone)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { pits:FindFirstChild("Vox_" .. zone.id) }
+	-- Stand on something solid: step in from 18 studs past the rim until the
+	-- ground is not water (Mistreef's far side is sea past the pier).
+	local spot, ground
+	for _, out in ipairs({ 18, 15, 12, 9, 6 }) do
+		local at = origin + far * (half + out)
+		local hit = workspace:Raycast(Vector3.new(at.X, origin.Y + 120, at.Z), Vector3.new(0, -260, 0), params)
+		local wet = hit and hit.Instance == workspace.Terrain and hit.Material == Enum.Material.Water
+		if hit and not wet and hit.Position.Y > origin.Y - 12 then
+			spot, ground = at, hit.Position.Y
+			break
+		end
+	end
+	if not spot then
+		spot = origin + far * (half + 18)
+		ground = origin.Y + 1
+	end
+	local model = Instance.new("Model")
+	model.Name = "DeepBoard_" .. zone.id
+	-- Big enough to read from the camp side of the pit.
+	local W, H = 40, 26
+	local centre = Vector3.new(spot.X, ground + 7 + H / 2, spot.Z)
+	local look = CFrame.lookAt(centre, Vector3.new(origin.X, centre.Y, origin.Z))
+	local function piece(name, size, cf, color, material)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.Size = size
+		p.CFrame = cf
+		p.Color = color
+		p.Material = material or Enum.Material.Wood
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.Parent = model
+		return p
+	end
+	local postH = 7 + H + 2
+	for _, side in ipairs({ -1, 1 }) do
+		piece("Post", Vector3.new(1.6, postH, 1.6),
+			look * CFrame.new(side * (W / 2 + 0.6), -H / 2 - 7 + postH / 2, 0.4),
+			Color3.fromRGB(70, 52, 38))
+		local lamp = piece("Lamp", Vector3.new(1.2, 1.2, 1.2),
+			look * CFrame.new(side * (W / 2 + 0.6), H / 2 + 2.6, 0), Color3.fromRGB(255, 214, 120), Enum.Material.Neon)
+		lamp.CanCollide = false
+		local light = Instance.new("PointLight")
+		light.Range = 22
+		light.Brightness = 1.6
+		light.Color = Color3.fromRGB(255, 214, 140)
+		light.Parent = lamp
+	end
+	piece("Header", Vector3.new(W + 3.6, 1.4, 1.8), look * CFrame.new(0, H / 2 + 0.7, 0.2), Color3.fromRGB(96, 70, 44))
+	local board = piece("Board", Vector3.new(W, H, 0.8), look, Color3.fromRGB(28, 26, 32), Enum.Material.SmoothPlastic)
+	board:SetAttribute("ZoneId", zone.id)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "BoardGui"
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 20
+	gui.LightInfluence = 0
+	gui.Parent = board
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.BackgroundTransparency = 1
+	title.Size = UDim2.new(1, 0, 0, 60)
+	title.Position = UDim2.fromOffset(0, 10)
+	title.Font = Enum.Font.FredokaOne
+	title.TextSize = 50
+	title.TextColor3 = Color3.fromRGB(255, 210, 90)
+	title.Text = "DEEPEST MINERS"
+	title.Parent = gui
+	local sub = Instance.new("TextLabel")
+	sub.Name = "Zone"
+	sub.BackgroundTransparency = 1
+	sub.Size = UDim2.new(1, 0, 0, 28)
+	sub.Position = UDim2.fromOffset(0, 66)
+	sub.Font = Enum.Font.GothamBold
+	sub.TextSize = 24
+	sub.TextColor3 = Color3.fromRGB(200, 196, 210)
+	sub.Text = tostring(zone.name or zone.id) .. "  ·  all-time depth"
+	sub.Parent = gui
+	local list = Instance.new("Frame")
+	list.Name = "RankList"
+	list.BackgroundTransparency = 1
+	list.Position = UDim2.fromOffset(30, 104)
+	list.Size = UDim2.new(1, -60, 1, -114)
+	list.Parent = gui
+	local grid = Instance.new("UIListLayout")
+	grid.Padding = UDim.new(0, 3)
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.Parent = list
+	model.Parent = pits
+	table.insert(deepBoards, { part = board, zoneId = zone.id })
+	return board
+end
+
+local function paintDeepBoard(part, zoneId)
+	local gui = part and part.Parent and part:FindFirstChild("BoardGui")
+	local list = gui and gui:FindFirstChild("RankList")
+	if not list then
+		return
+	end
+	local rows = LeaderboardService.getDepthTop(zoneId, 10)
+	for _, child in ipairs(list:GetChildren()) do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
+	for i = 1, 10 do
+		local row = rows[i]
+		local cell = Instance.new("Frame")
+		cell.Name = "Rank_" .. i
+		cell.LayoutOrder = i
+		cell.Size = UDim2.new(1, 0, 0, 34)
+		cell.BackgroundColor3 = (i <= 3) and Color3.fromRGB(52, 44, 34) or Color3.fromRGB(40, 38, 46)
+		cell.Parent = list
+		local cc = Instance.new("UICorner")
+		cc.CornerRadius = UDim.new(0, 10)
+		cc.Parent = cell
+		local rankL = Instance.new("TextLabel")
+		rankL.BackgroundTransparency = 1
+		rankL.Size = UDim2.new(0, 50, 1, 0)
+		rankL.Font = Enum.Font.FredokaOne
+		rankL.TextSize = 26
+		rankL.TextColor3 = RANK_COLOR[i] or Color3.fromRGB(170, 166, 178)
+		rankL.Text = tostring(i)
+		rankL.Parent = cell
+		local icon = Instance.new("ImageLabel")
+		icon.BackgroundColor3 = Color3.fromRGB(70, 66, 78)
+		icon.Size = UDim2.fromOffset(28, 28)
+		icon.Position = UDim2.new(0, 48, 0.5, -14)
+		icon.Image = row and row.userId and headshot(row.userId) or ""
+		icon.Parent = cell
+		local ic = Instance.new("UICorner")
+		ic.CornerRadius = UDim.new(1, 0)
+		ic.Parent = icon
+		if RANK_COLOR[i] then
+			local ring = Instance.new("UIStroke")
+			ring.Color = RANK_COLOR[i]
+			ring.Thickness = 2
+			ring.Parent = icon
+		end
+		local nameL = Instance.new("TextLabel")
+		nameL.BackgroundTransparency = 1
+		nameL.Position = UDim2.fromOffset(88, 0)
+		nameL.Size = UDim2.new(1, -250, 1, 0)
+		nameL.Font = Enum.Font.GothamBold
+		nameL.TextSize = 22
+		nameL.TextXAlignment = Enum.TextXAlignm

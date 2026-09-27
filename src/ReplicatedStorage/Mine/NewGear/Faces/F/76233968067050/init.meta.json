@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 76233968067050.0,
+    "DisplayName": "Snowflake Eyes",
+    "RAP": 5983.0,
+    "Rarity": "F"
+  }
+}

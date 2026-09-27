@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 382881237.0,
+    "DisplayName": "Tixvalk",
+    "RAP": 1296575.0,
+    "Rarity": "S"
+  }
+}

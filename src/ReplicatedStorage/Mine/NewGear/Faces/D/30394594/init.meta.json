@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 30394594.0,
+    "DisplayName": "Facepalm",
+    "RAP": 9656.0,
+    "Rarity": "D"
+  }
+}

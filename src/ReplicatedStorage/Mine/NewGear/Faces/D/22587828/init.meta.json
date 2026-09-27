@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 22587828.0,
+    "DisplayName": "Winter",
+    "RAP": 8185.0,
+    "Rarity": "D"
+  }
+}

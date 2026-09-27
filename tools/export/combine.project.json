@@ -1,0 +1,11 @@
+{
+  "name": "combined",
+  "tree": {
+    "$className": "Folder",
+    "ReplicatedFirst": { "$path": "in/ReplicatedFirst.rbxm" },
+    "ReplicatedStorage": { "$path": "in/ReplicatedStorage.rbxm" },
+    "ServerScriptService": { "$path": "in/ServerScriptService.rbxm" },
+    "ServerStorage": { "$path": "in/ServerStorage.rbxm" },
+    "StarterPlayerScripts": { "$path": "in/StarterPlayerScripts.rbxm" }
+  }
+}

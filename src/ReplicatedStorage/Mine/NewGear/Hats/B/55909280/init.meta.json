@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 55909280.0,
+    "DisplayName": "Ops Warrior",
+    "RAP": 371359.0,
+    "Rarity": "B"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 20908915.0,
+    "DisplayName": "A Dark Presence",
+    "RAP": 292943.0,
+    "Rarity": "B"
+  }
+}

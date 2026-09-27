@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1402433072.0,
+    "DisplayName": "Agonizingly White Bucket of Ultimate Doom",
+    "RAP": 500440.0,
+    "Rarity": "A"
+  }
+}

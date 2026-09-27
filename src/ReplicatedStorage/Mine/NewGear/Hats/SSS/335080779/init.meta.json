@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 335080779.0,
+    "DisplayName": "Dominus Pittacium",
+    "RAP": 6936989.0,
+    "Rarity": "SSS"
+  }
+}

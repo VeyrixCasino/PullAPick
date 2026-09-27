@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 260303894.0,
+    "DisplayName": "Green Trance",
+    "RAP": 4723.0,
+    "Rarity": "F"
+  }
+}

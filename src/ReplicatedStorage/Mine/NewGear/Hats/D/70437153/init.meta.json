@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 70437153.0,
+    "DisplayName": "Blue Mystic Advisor",
+    "RAP": 193235.0,
+    "Rarity": "D"
+  }
+}

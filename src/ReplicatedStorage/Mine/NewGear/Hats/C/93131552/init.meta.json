@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 93131552.0,
+    "DisplayName": "Dark Conjurer",
+    "RAP": 207602.0,
+    "Rarity": "C"
+  }
+}

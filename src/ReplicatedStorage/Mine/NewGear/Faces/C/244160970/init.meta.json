@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 244160970.0,
+    "DisplayName": "Blue Trance",
+    "RAP": 12654.0,
+    "Rarity": "C"
+  }
+}

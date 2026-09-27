@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1172161.0,
+    "DisplayName": "The Bluesteel Bathelm",
+    "RAP": 40549.0,
+    "Rarity": "D"
+  }
+}

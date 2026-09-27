@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 193659065.0,
+    "DisplayName": "Golden Antlers",
+    "RAP": 425194.0,
+    "Rarity": "A"
+  }
+}

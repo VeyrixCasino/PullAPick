@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 16413496.0,
+    "DisplayName": "zOMG Hat Selling!",
+    "RAP": 91523.0,
+    "Rarity": "SS"
+  }
+}

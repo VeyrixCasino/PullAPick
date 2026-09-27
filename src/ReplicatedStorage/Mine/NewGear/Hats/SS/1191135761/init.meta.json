@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1191135761.0,
+    "DisplayName": "Red Void Star",
+    "RAP": 2879848.0,
+    "Rarity": "SS"
+  }
+}

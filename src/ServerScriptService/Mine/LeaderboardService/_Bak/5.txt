@@ -1,0 +1,116 @@
+ent.Left
+		nameL.TextTruncate = Enum.TextTruncate.AtEnd
+		nameL.TextColor3 = Color3.fromRGB(236, 232, 224)
+		nameL.Text = row and tostring(row.name or "—") or "—"
+		nameL.Parent = cell
+		local valL = Instance.new("TextLabel")
+		valL.BackgroundTransparency = 1
+		valL.AnchorPoint = Vector2.new(1, 0)
+		valL.Position = UDim2.new(1, -14, 0, 0)
+		valL.Size = UDim2.new(0, 150, 1, 0)
+		valL.Font = Enum.Font.FredokaOne
+		valL.TextSize = 24
+		valL.TextXAlignment = Enum.TextXAlignment.Right
+		valL.TextColor3 = Color3.fromRGB(255, 210, 120)
+		local depth = tostring(math.floor(tonumber(row and row.value) or 0)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+		valL.Text = row and (depth .. "m") or ""
+		valL.Parent = cell
+	end
+	part:SetAttribute("UpdatedAt", os.time())
+end
+
+function LeaderboardService.buildDeepBoards()
+	for _, zone in ipairs(MineConfig.ZONES or {}) do
+		local ok, err = pcall(buildDeepBoard, zone)
+		if not ok then
+			warn("[Leaderboard] deep board " .. tostring(zone.id) .. ": " .. tostring(err))
+		end
+	end
+end
+
+-- One board per call, round robin: ten boards every minute would spend the
+-- whole GetSortedAsync budget (5 + 2 per player per minute) on its own.
+local deepNext = 0
+function LeaderboardService.paintNextDeepBoard()
+	if #deepBoards == 0 then
+		return
+	end
+	deepNext = (deepNext % #deepBoards) + 1
+	local entry = deepBoards[deepNext]
+	if entry and entry.part and entry.part.Parent then
+		pcall(paintDeepBoard, entry.part, entry.zoneId)
+	end
+end
+
+function LeaderboardService.refresh()
+	for _, kind in ipairs(KINDS) do
+		fetchTop(kind, 100)
+	end
+	local folder = findBoardFolder()
+	if folder then
+		paintBoardLists(folder)
+		-- Pedestals deferred; RankList SurfaceGui is the live board.
+		folder:SetAttribute("UpdatedAt", os.time())
+	end
+	pcall(LeaderboardService.refreshDepthBoards)
+	pcall(function()
+		local plazas = script.Parent:FindFirstChild("MineDepthPlazas")
+		if plazas then
+			local mod = require(plazas)
+			if mod.refreshComingSoon then
+				mod.refreshComingSoon()
+			end
+		end
+	end)
+end
+
+function LeaderboardService.broadcast(net)
+	LeaderboardService.refresh()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		net:FireClient(plr, "leaderboard", LeaderboardService.payloadFor(plr.UserId))
+	end
+end
+
+function LeaderboardService.start(net)
+	task.spawn(function()
+		pcall(LeaderboardService.buildDeepBoards)
+		while true do
+			pcall(LeaderboardService.paintNextDeepBoard)
+			task.wait(20)
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(30)
+			pcall(LeaderboardService.flushDepth)
+		end
+	end)
+	task.spawn(function()
+		task.wait(BACKFILL_DELAY)
+		local okBf, bfErr = pcall(function()
+			LeaderboardService.maybeBackfillOnce()
+		end)
+		if not okBf then
+			warn("[Leaderboard] backfill error: ", bfErr)
+		end
+		-- Refresh rankings after backfill (board UI owned elsewhere).
+		while true do
+			local ok, err = pcall(function()
+				LeaderboardService.broadcast(net)
+			end)
+			if not ok then warn("[Leaderboard] refresh: ", err) end
+			task.wait(REFRESH)
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(plr)
+		lastPush[plr.UserId] = nil
+		task.spawn(function()
+			pcall(LeaderboardService.flushDepth, plr.UserId)
+		end)
+	end)
+	game:BindToClose(function()
+		pcall(LeaderboardService.flushDepth)
+	end)
+end
+
+return LeaderboardService

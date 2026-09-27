@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 82332012.0,
+    "DisplayName": "Rainbow Fedora",
+    "RAP": 92817.0,
+    "Rarity": "D"
+  }
+}

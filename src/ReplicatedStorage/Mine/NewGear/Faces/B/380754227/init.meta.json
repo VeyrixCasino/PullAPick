@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 380754227.0,
+    "DisplayName": "Green Bubble Trouble",
+    "RAP": 19179.0,
+    "Rarity": "B"
+  }
+}

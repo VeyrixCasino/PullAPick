@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 173783297.0,
+    "DisplayName": "SFOTH IV Crown of Fire",
+    "RAP": 177480.0,
+    "Rarity": "D"
+  }
+}

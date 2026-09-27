@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 116043052.0,
+    "DisplayName": "Rosey Smile",
+    "RAP": 7128.0,
+    "Rarity": "D"
+  }
+}

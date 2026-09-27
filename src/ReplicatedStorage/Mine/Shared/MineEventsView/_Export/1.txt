@@ -1,0 +1,171 @@
+-- MineEventsView: Events tab — live limited event, banner, ticking countdown.
+
+local RunService = game:GetService("RunService")
+
+local MineEventsView = {}
+
+local FONT = Enum.Font.GothamBold
+local FONT_M = Enum.Font.GothamMedium
+local FONT_S = Enum.Font.Gotham
+local PANEL = Color3.fromRGB(22, 24, 32)
+local BG2 = Color3.fromRGB(32, 36, 48)
+local TEXT = Color3.fromRGB(235, 238, 245)
+local MUTED = Color3.fromRGB(150, 158, 175)
+local ACCENT = Color3.fromRGB(200, 220, 255)
+local CTA = Color3.fromRGB(70, 140, 255)
+local OWNED = Color3.fromRGB(70, 180, 120)
+local PASS_ACCENT = Color3.fromRGB(120, 180, 255)
+
+local function mk(className, props, parent)
+	local inst = Instance.new(className)
+	if props then
+		for k, v in pairs(props) do
+			inst[k] = v
+		end
+	end
+	if parent then
+		inst.Parent = parent
+	end
+	return inst
+end
+
+local function round(inst, r)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, r or 10)
+	c.Parent = inst
+	return c
+end
+
+local function stroke(inst, t)
+	local s = Instance.new("UIStroke")
+	s.Thickness = t or 1
+	s.Color = Color3.fromRGB(55, 60, 78)
+	s.Parent = inst
+	return s
+end
+
+-- Cartoon banner: moon planet + black hole with white event-horizon ring.
+-- Used when bannerImage is empty, or under an optional uploaded image.
+local function paintCartoonBanner(parent)
+	local stage = mk("Frame", {
+		Name = "CartoonBanner",
+		BackgroundColor3 = Color3.fromRGB(12, 14, 28),
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 1,
+	}, parent)
+	round(stage, 14)
+
+	-- soft nebula blobs
+	local nebA = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(48, 36, 90),
+		BackgroundTransparency = 0.55,
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(220, 120),
+		Position = UDim2.new(0.55, 0, 0.1, 0),
+		ZIndex = 2,
+	}, stage)
+	round(nebA, 60)
+
+	local neb = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(36, 60, 110),
+		BackgroundTransparency = 0.6,
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(180, 100),
+		Position = UDim2.new(0.08, 0, 0.55, 0),
+		ZIndex = 2,
+	}, stage)
+	round(neb, 50)
+
+	-- stars
+	for i = 1, 18 do
+		local x = (i * 37) % 97
+		local y = (i * 53) % 89
+		mk("Frame", {
+			BackgroundColor3 = Color3.fromRGB(230, 235, 255),
+			BorderSizePixel = 0,
+			Size = UDim2.fromOffset(2 + (i % 3), 2 + (i % 3)),
+			Position = UDim2.new(x / 100, 0, y / 100, 0),
+			ZIndex = 3,
+		}, stage)
+	end
+
+	-- black hole (upper right)
+	local holeWrap = mk("Frame", {
+		Name = "BlackHole",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(150, 150),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.72, 0, 0.38, 0),
+		ZIndex = 4,
+	}, stage)
+	local ring = mk("Frame", {
+		Name = "HorizonRing",
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 4,
+	}, holeWrap)
+	round(ring, 999)
+	local hole = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.82, 0.82),
+		ZIndex = 5,
+	}, holeWrap)
+	round(hole, 999)
+	-- thin accretion hint
+	local disk = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(160, 140, 255),
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1.35, 0, 0.22, 0),
+		Rotation = -18,
+		ZIndex = 3,
+	}, holeWrap)
+	round(disk, 40)
+
+	-- moon planet (lower left)
+	local moon = mk("Frame", {
+		Name = "Moon",
+		BackgroundColor3 = Color3.fromRGB(178, 186, 198),
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(210, 210),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.22, 0, 1.05, 0),
+		ZIndex = 6,
+	}, stage)
+	round(moon, 999)
+	local function crater(ox, oy, s, t)
+		local c = mk("Frame", {
+			BackgroundColor3 = Color3.fromRGB(148, 156, 170),
+			BackgroundTransparency = t or 0.15,
+			BorderSizePixel = 0,
+			Size = UDim2.fromOffset(s, s),
+			Position = UDim2.new(ox, 0, oy, 0),
+			ZIndex = 7,
+		}, moon)
+		round(c, 999)
+	end
+	crater(0.18, 0.22, 28)
+	crater(0.55, 0.18, 18)
+	crater(0.4, 0.45, 36, 0.25)
+	crater(0.7, 0.4, 14)
+
+	-- little cartoon miner on the moon, looking at the hole
+	local miner = mk("Frame", {
+		Name = "Miner",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(44, 58),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.42, 0, 0.12, 0),
+		ZIndex = 8,
+	}, moon)
+	local head = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(255, 220, 180),
+		BorderSizePixel = 0,
+	

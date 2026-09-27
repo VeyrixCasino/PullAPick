@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 162200633.0,
+    "DisplayName": "Crimson Starface",
+    "RAP": 14687.0,
+    "Rarity": "B"
+  }
+}

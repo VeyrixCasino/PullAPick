@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 134522901.0,
+    "DisplayName": "Fawkes Face",
+    "RAP": 18521.0,
+    "Rarity": "B"
+  }
+}

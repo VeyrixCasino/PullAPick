@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 92142710.0,
+    "DisplayName": "Dark Star Top Hat",
+    "RAP": 273587.0,
+    "Rarity": "B"
+  }
+}

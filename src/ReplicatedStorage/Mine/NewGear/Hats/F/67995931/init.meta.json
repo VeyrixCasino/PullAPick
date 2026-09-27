@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 67995931.0,
+    "DisplayName": "8-Bit Fedora",
+    "RAP": 31798.0,
+    "Rarity": "F"
+  }
+}

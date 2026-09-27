@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 188003914.0,
+    "DisplayName": "Countess of the Federation",
+    "RAP": 894176.0,
+    "Rarity": "S"
+  }
+}

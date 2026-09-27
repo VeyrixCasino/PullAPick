@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 259423513.0,
+    "DisplayName": "Bluesteel Bucket",
+    "RAP": 39423.0,
+    "Rarity": "F"
+  }
+}

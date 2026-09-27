@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 106689944.0,
+    "DisplayName": "Blizzaria: The Frozen",
+    "RAP": 249237.0,
+    "Rarity": "C"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 280988393.0,
+    "DisplayName": "Mildly Irritated Face",
+    "RAP": 12059.0,
+    "Rarity": "C"
+  }
+}

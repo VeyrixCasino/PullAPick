@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 2409285794.0,
+    "DisplayName": "Playful Vampire",
+    "RAP": 26607.0,
+    "Rarity": "A"
+  }
+}

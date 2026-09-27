@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 24485062.0,
+    "DisplayName": "Brighteyes' Lavender Egg of Anticipation",
+    "RAP": 668649.0,
+    "Rarity": "A"
+  }
+}

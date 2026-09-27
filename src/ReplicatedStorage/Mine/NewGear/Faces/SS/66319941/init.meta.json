@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 66319941.0,
+    "DisplayName": "Golden Shiny Teeth",
+    "RAP": 83082.0,
+    "Rarity": "SS"
+  }
+}

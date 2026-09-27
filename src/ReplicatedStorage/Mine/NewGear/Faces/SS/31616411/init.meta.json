@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 31616411.0,
+    "DisplayName": "Mr. Bubbles",
+    "RAP": 96795.0,
+    "Rarity": "SS"
+  }
+}

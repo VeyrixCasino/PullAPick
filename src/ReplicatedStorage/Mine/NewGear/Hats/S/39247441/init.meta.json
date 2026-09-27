@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 39247441.0,
+    "DisplayName": "Subarctic Commando",
+    "RAP": 1193837.0,
+    "Rarity": "S"
+  }
+}

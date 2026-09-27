@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 114385498.0,
+    "DisplayName": "Redspybot",
+    "RAP": 231920.0,
+    "Rarity": "C"
+  }
+}

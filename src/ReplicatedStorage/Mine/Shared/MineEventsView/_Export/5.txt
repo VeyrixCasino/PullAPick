@@ -1,0 +1,144 @@
+title.Text = ev.name or "Event"
+		blurb.Text = ev.blurb or ""
+
+		local img = ev.bannerImage
+		if type(img) == "string" and img ~= "" and not string.find(img, "REPLACE", 1, true) then
+			bannerImg.Image = img
+			bannerImg.Visible = true
+		else
+			bannerImg.Visible = false
+		end
+
+		local owned = state.bigbangOwned == true
+		local active = state.limitedActive == true
+		if C.limitedActive then
+			active = C.limitedActive()
+		end
+		local left = formatLeft()
+
+		detailsBtn.Visible = true
+
+		if owned then
+			timerLbl.Text = (active and left and left ~= "closed")
+				and ("Yours to keep  ·  event closes in " .. left)
+				or "Yours to keep"
+			cta.Text = "Owned — enter from Zones"
+			cta.BackgroundColor3 = OWNED
+			cta.Active = false
+			empty.Visible = false
+		elseif active and left ~= "closed" then
+			timerLbl.Text = left and ("Closes in " .. left) or "Live now"
+			cta.Text = "Claim Event Horizon  ·  FREE"
+			cta.BackgroundColor3 = CTA
+			cta.Active = true
+			empty.Visible = false
+		else
+			timerLbl.Text = "Event ended"
+			cta.Text = "Event ended"
+			cta.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+			cta.Active = false
+			empty.Visible = true
+			empty.Text = "No event right now. Last up: " .. (ev.name or "Event Horizon") .. "."
+			detailsBtn.Visible = state.eventPass ~= nil
+		end
+
+		if passOpen then
+			paintPass()
+		end
+	end
+
+	local function stopTick()
+		if tickConn then
+			tickConn:Disconnect()
+			tickConn = nil
+		end
+	end
+
+	local function startTick()
+		stopTick()
+		local acc = 0
+		tickConn = RunService.Heartbeat:Connect(function(dt)
+			if not root.Visible then
+				return
+			end
+			acc += dt
+			if acc < 1 then
+				return
+			end
+			acc = 0
+			paint()
+		end)
+	end
+
+	local view = {}
+
+	function view.setState(snap)
+		snap = snap or {}
+		state.bigbangOwned = snap.bigbangOwned and true or false
+		state.limitedActive = snap.limitedActive and true or false
+		state.eventPass = snap.eventPass
+		if root.Visible then
+			paint()
+		end
+	end
+
+	function view.open()
+		root.Visible = true
+		closePass()
+		paint()
+		startTick()
+	end
+
+	function view.close()
+		closePass()
+		root.Visible = false
+		stopTick()
+	end
+
+	function view.toggle()
+		if root.Visible then
+			view.close()
+		else
+			view.open()
+		end
+	end
+
+	closeBtn.MouseButton1Click:Connect(function()
+		view.close()
+	end)
+
+	passBack.MouseButton1Click:Connect(function()
+		closePass()
+	end)
+
+	detailsBtn.MouseButton1Click:Connect(function()
+		openPass()
+	end)
+
+	cta.MouseButton1Click:Connect(function()
+		if not cta.Active then
+			return
+		end
+		local ev = currentEvent()
+		local zoneId = ev and ev.zoneId or "bigbang"
+		if opts.onClaim then
+			opts.onClaim(zoneId)
+		end
+	end)
+
+	root:GetPropertyChangedSignal("Visible"):Connect(function()
+		if root.Visible then
+			paint()
+			startTick()
+		else
+			closePass()
+			stopTick()
+		end
+	end)
+
+	view.root = root
+	paint()
+	return view
+end
+
+return MineEventsView

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 193696364.0,
+    "DisplayName": "Purple Ice Crown",
+    "RAP": 412070.0,
+    "Rarity": "B"
+  }
+}

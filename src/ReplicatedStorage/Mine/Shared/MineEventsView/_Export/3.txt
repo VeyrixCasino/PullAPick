@@ -1,0 +1,194 @@
+tailsBtn = mk("TextButton", {
+		Name = "Details",
+		Font = FONT,
+		TextSize = 16,
+		Text = "Event Pass",
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		BackgroundColor3 = Color3.fromRGB(55, 70, 110),
+		AutoButtonColor = true,
+		Position = UDim2.new(0.52, 4, 0, 354),
+		Size = UDim2.new(0.48, -20, 0, 44),
+		ZIndex = 45,
+		Visible = false,
+	}, card)
+	round(detailsBtn, 10)
+
+	local empty = mk("TextLabel", {
+		Name = "Empty",
+		BackgroundTransparency = 1,
+		Font = FONT_M,
+		TextSize = 16,
+		Text = "No event right now.",
+		TextColor3 = MUTED,
+		Visible = false,
+		Size = UDim2.new(1, 0, 0, 40),
+		LayoutOrder = 2,
+		ZIndex = 42,
+	}, body)
+
+	-- Pass overlay
+	local passLayer = mk("Frame", {
+		Name = "PassLayer",
+		BackgroundColor3 = Color3.fromRGB(8, 10, 16),
+		BackgroundTransparency = 0.25,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		ZIndex = 60,
+	}, root)
+
+	local passPanel = mk("Frame", {
+		Name = "PassPanel",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(0.94, 0, 0.92, 0),
+		BackgroundColor3 = PANEL,
+		BorderSizePixel = 0,
+		ZIndex = 61,
+	}, passLayer)
+	round(passPanel, 12)
+	stroke(passPanel, 1.5)
+
+	local passTitle = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT,
+		TextSize = 20,
+		Text = "Event Pass",
+		TextColor3 = TEXT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(18, 10),
+		Size = UDim2.new(1, -100, 0, 32),
+		ZIndex = 62,
+	}, passPanel)
+
+	local passBack = mk("TextButton", {
+		Text = "Back",
+		Font = FONT_M,
+		TextSize = 14,
+		TextColor3 = TEXT,
+		BackgroundColor3 = BG2,
+		Size = UDim2.fromOffset(72, 32),
+		Position = UDim2.new(1, -88, 0, 10),
+		ZIndex = 63,
+		AutoButtonColor = true,
+	}, passPanel)
+	round(passBack, 8)
+
+	local passScroll = mk("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(14, 50),
+		Size = UDim2.new(1, -28, 1, -64),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 6,
+		CanvasSize = UDim2.new(),
+		BorderSizePixel = 0,
+		ZIndex = 62,
+	}, passPanel)
+	mk("UIListLayout", {
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, passScroll)
+
+	local passBlurb = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT_S,
+		TextSize = 14,
+		Text = "",
+		TextColor3 = MUTED,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Size = UDim2.new(1, 0, 0, 40),
+		LayoutOrder = 1,
+		ZIndex = 63,
+	}, passScroll)
+
+	local tierCard = mk("Frame", {
+		BackgroundColor3 = BG2,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, 88),
+		LayoutOrder = 2,
+		ZIndex = 63,
+	}, passScroll)
+	round(tierCard, 10)
+	stroke(tierCard, 1)
+
+	local tierName = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT,
+		TextSize = 18,
+		Text = "Tier",
+		TextColor3 = PASS_ACCENT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(14, 10),
+		Size = UDim2.new(1, -28, 0, 24),
+		ZIndex = 64,
+	}, tierCard)
+
+	local tierTip = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT_S,
+		TextSize = 13,
+		Text = "",
+		TextColor3 = MUTED,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(14, 34),
+		Size = UDim2.new(1, -28, 0, 18),
+		ZIndex = 64,
+	}, tierCard)
+
+	local xpTrack = mk("Frame", {
+		BackgroundColor3 = Color3.fromRGB(20, 22, 30),
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(14, 60),
+		Size = UDim2.new(1, -28, 0, 14),
+		ZIndex = 64,
+	}, tierCard)
+	round(xpTrack, 7)
+
+	local xpFill = mk("Frame", {
+		BackgroundColor3 = PASS_ACCENT,
+		BorderSizePixel = 0,
+		Size = UDim2.new(0, 0, 1, 0),
+		ZIndex = 65,
+	}, xpTrack)
+	round(xpFill, 7)
+
+	local xpLbl = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT_M,
+		TextSize = 11,
+		Text = "0 XP",
+		TextColor3 = TEXT,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 66,
+	}, xpTrack)
+
+	local questCard = mk("Frame", {
+		BackgroundColor3 = BG2,
+		BorderSizePixel = 0,
+		Size = UDim2.new(1, 0, 0, 110),
+		LayoutOrder = 3,
+		ZIndex = 63,
+	}, passScroll)
+	round(questCard, 10)
+	stroke(questCard, 1)
+
+	mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT_M,
+		TextSize = 12,
+		Text = "EVENT QUEST  ·  XP ONLY",
+		TextColor3 = PASS_ACCENT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(14, 8),
+		Size = UDim2.new(1, -28, 0, 16),
+		ZIndex = 64,
+	}, questCard)
+
+	local questText = mk("TextLabel", {
+		BackgroundTransparency = 1,
+		Font = FONT,
+		TextSize = 15,
+		Text = "",
+		TextColor3 = TEXT,
+		TextWrapped = tr

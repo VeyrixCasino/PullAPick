@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 382880833.0,
+    "DisplayName": "Lord of the Tixeration",
+    "RAP": 1800807.0,
+    "Rarity": "SS"
+  }
+}

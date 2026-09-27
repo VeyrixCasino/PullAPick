@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 323191683.0,
+    "DisplayName": "Desert Commando",
+    "RAP": 4722.0,
+    "Rarity": "F"
+  }
+}

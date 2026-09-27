@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 2225761296.0,
+    "DisplayName": "Radioactive Beast Mode",
+    "RAP": 22083.0,
+    "Rarity": "A"
+  }
+}

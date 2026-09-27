@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 29715011.0,
+    "DisplayName": "American Cowboy",
+    "RAP": 858659.0,
+    "Rarity": "S"
+  }
+}

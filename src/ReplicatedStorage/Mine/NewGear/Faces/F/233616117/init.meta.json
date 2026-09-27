@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 233616117.0,
+    "DisplayName": "Egg Crazed",
+    "RAP": 4579.0,
+    "Rarity": "F"
+  }
+}

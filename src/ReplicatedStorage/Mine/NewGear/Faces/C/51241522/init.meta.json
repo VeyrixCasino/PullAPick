@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 51241522.0,
+    "DisplayName": "Country Morning",
+    "RAP": 13371.0,
+    "Rarity": "C"
+  }
+}

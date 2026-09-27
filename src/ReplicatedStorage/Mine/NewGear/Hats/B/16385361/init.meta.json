@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 16385361.0,
+    "DisplayName": "Cthulhu",
+    "RAP": 242050.0,
+    "Rarity": "B"
+  }
+}

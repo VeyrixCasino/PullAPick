@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 169444515.0,
+    "DisplayName": "Rbadam's Smokestack Top Hat",
+    "RAP": 1231694.0,
+    "Rarity": "S"
+  }
+}

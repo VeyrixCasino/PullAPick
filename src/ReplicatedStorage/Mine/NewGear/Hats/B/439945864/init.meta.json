@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 439945864.0,
+    "DisplayName": "Gold King of the Night",
+    "RAP": 401158.0,
+    "Rarity": "B"
+  }
+}

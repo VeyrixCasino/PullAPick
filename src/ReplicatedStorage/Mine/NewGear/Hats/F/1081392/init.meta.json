@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1081392.0,
+    "DisplayName": "Police Sergeants Cap",
+    "RAP": 18018.0,
+    "Rarity": "F"
+  }
+}

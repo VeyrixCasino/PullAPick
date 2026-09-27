@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 250654457.0,
+    "DisplayName": "Sad Clown",
+    "RAP": 321180.0,
+    "Rarity": "SSS"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 60115635.0,
+    "DisplayName": "Sinister Fedora",
+    "RAP": 184173.0,
+    "Rarity": "C"
+  }
+}

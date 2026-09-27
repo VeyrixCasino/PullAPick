@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 147180077.0,
+    "DisplayName": "Teal Sparkle Time Fedora",
+    "RAP": 6212590.0,
+    "Rarity": "SSS"
+  }
+}

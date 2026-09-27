@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 22546563.0,
+    "DisplayName": "): Gold Ollie",
+    "RAP": 354081.0,
+    "Rarity": "B"
+  }
+}

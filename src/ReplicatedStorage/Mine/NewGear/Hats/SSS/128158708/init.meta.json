@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 128158708.0,
+    "DisplayName": "Duke of the Federation",
+    "RAP": 3469832.0,
+    "Rarity": "SSS"
+  }
+}

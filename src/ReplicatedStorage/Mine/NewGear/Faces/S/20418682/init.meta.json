@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 20418682.0,
+    "DisplayName": "Bandage",
+    "RAP": 64984.0,
+    "Rarity": "S"
+  }
+}

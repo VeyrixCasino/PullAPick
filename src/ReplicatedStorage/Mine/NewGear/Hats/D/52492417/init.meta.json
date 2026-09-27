@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 52492417.0,
+    "DisplayName": "Korblox King",
+    "RAP": 93445.0,
+    "Rarity": "D"
+  }
+}

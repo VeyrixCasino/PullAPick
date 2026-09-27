@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1365767.0,
+    "DisplayName": "Valkyrie Helm",
+    "RAP": 242226.0,
+    "Rarity": "S"
+  }
+}

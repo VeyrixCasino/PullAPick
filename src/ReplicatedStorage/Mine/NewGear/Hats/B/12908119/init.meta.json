@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 12908119.0,
+    "DisplayName": "Steampunk Aetherspectacles",
+    "RAP": 337200.0,
+    "Rarity": "B"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 398676450.0,
+    "DisplayName": "Green Glowing Eyes",
+    "RAP": 702334.0,
+    "Rarity": "SSS"
+  }
+}

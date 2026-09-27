@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 406000562.0,
+    "DisplayName": "Gritty Bombo",
+    "RAP": 4214.0,
+    "Rarity": "F"
+  }
+}

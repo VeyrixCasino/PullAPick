@@ -1,0 +1,45 @@
+local function syncPitWalls(zone)
+	local world = workspace:FindFirstChild("MineWorld")
+	local pits = world and world:FindFirstChild("Pits")
+	if not pits then
+		return
+	end
+	local depth = math.max(builtTo[zone.id] or 0, C.LAYER_WINDOW or 8)
+	local pitW = C.GRID * C.BLOCK
+	local wallT = 4
+	-- Match WorldBuilder: walls line the INSIDE of the mouth, tops below the
+	-- Ground_* underside, so rim plates and shaft rock never share a plane.
+	local wallH = depth * C.BLOCK + 8
+	local wallTop = GROUND_Y - 2.05
+	local wallY = wallTop - wallH * 0.5
+	local inset = (pitW - wallT) * 0.5
+	local origin = pitOrigin(zone)
+	local rock = (zone.dirt or Color3.fromRGB(96, 90, 84)):Lerp(Color3.fromRGB(24, 22, 26), 0.55)
+	local specs = {
+		{ "N", Vector3.new(pitW, wallH, wallT), Vector3.new(0, 0, inset) },
+		{ "S", Vector3.new(pitW, wallH, wallT), Vector3.new(0, 0, -inset) },
+		{ "E", Vector3.new(wallT, wallH, pitW - wallT * 2), Vector3.new(inset, 0, 0) },
+		{ "W", Vector3.new(wallT, wallH, pitW - wallT * 2), Vector3.new(-inset, 0, 0) },
+	}
+	for _, w in ipairs(specs) do
+		local name = "PitWall" .. w[1] .. "_" .. zone.id
+		local wall = pits:FindFirstChild(name) or pits:FindFirstChild("PitWall_" .. zone.id)
+		if not wall then
+			wall = Instance.new("Part")
+			wall.Name = name
+			wall.Anchored = true
+			wall.Material = Enum.Material.Rock
+			wall.TopSurface = Enum.SurfaceType.Smooth
+			wall.BottomSurface = Enum.SurfaceType.Smooth
+			wall.Parent = pits
+		end
+		wall.Name = name
+		wall.Size = w[2]
+		wall.Color = rock
+		wall.CFrame = CFrame.new(origin.X + w[3].X, wallY, origin.Z + w[3].Z)
+	end
+	local floor = pits:FindFirstChild("PitFloor_" .. zone.id)
+	if floor then
+		floor:Destroy()
+	end
+end

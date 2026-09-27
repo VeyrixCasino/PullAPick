@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1235488.0,
+    "DisplayName": "Clockwork's Headphones",
+    "RAP": 828318.0,
+    "Rarity": "S"
+  }
+}

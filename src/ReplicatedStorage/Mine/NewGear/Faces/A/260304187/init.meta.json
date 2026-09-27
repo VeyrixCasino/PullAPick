@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 260304187.0,
+    "DisplayName": "Purple Trance",
+    "RAP": 30816.0,
+    "Rarity": "A"
+  }
+}

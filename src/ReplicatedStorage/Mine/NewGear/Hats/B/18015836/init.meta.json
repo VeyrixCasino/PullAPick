@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 18015836.0,
+    "DisplayName": "Mr. Hatbot",
+    "RAP": 426027.0,
+    "Rarity": "B"
+  }
+}

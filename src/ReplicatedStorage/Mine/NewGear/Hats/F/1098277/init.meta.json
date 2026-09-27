@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1098277.0,
+    "DisplayName": "Santa Hat",
+    "RAP": 1650.0,
+    "Rarity": "F"
+  }
+}

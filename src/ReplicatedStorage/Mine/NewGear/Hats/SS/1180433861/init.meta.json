@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1180433861.0,
+    "DisplayName": "Sparkle Time Valkyrie",
+    "RAP": 2580879.0,
+    "Rarity": "SS"
+  }
+}

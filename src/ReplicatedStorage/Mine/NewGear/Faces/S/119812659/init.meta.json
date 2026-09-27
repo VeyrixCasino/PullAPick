@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 119812659.0,
+    "DisplayName": "Punk Face",
+    "RAP": 51268.0,
+    "Rarity": "S"
+  }
+}

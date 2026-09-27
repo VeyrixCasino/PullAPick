@@ -1,0 +1,272 @@
+--[[
+	LeaderboardService -- global OrderedDataStore boards + lobby pedestals.
+	Stats: prestige, dust (stardust value).
+]]
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local shared = game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared")
+local MineConfig = require(shared:WaitForChild("MineConfig"))
+
+local LeaderboardService = {}
+
+-- "_Studio" in Studio: test sessions must never reach the live boards.
+local STORE_SUFFIX = game:GetService("RunService"):IsStudio() and "_Studio" or ""
+local STORES = {
+	prestige = "Mine_v1_lb_prestige" .. STORE_SUFFIX,
+	gems = "Mine_v1_lb_gems" .. STORE_SUFFIX,
+	dust = "Mine_v1_lb_stardust_value" .. STORE_SUFFIX,
+}
+local ROSTER_STORE = "Mine_v1_lb_roster" .. STORE_SUFFIX
+local META_STORE = "Mine_v1_lb_meta" .. STORE_SUFFIX
+local BACKFILL_FLAG = "backfill_v1" -- version bump to re-run
+local BACKFILL_DELAY = 3
+local BACKFILL_WRITE_PAUSE = 0.15
+local LIST_PAGE_SIZE = 100
+
+local KINDS = { "prestige", "gems", "dust" }
+
+local ordered = {}
+local cache = { prestige = {}, gems = {}, dust = {} } -- { {userId, value, name}, ... }
+local lastPush = {}
+-- What each player's boards last received, so an autosave where nothing
+-- changed writes NOTHING. The 45s autosave used to push five SetAsyncs per
+-- player per tick regardless — that is the DataStore queue warning spam.
+local lastSent = {}
+local rosterSent = {}
+local THROTTLE = 120
+local REFRESH = 60
+local rosterStore
+local metaStore
+
+local function store(kind)
+	if not ordered[kind] then
+		ordered[kind] = DataStoreService:GetOrderedDataStore(STORES[kind])
+	end
+	return ordered[kind]
+end
+
+local function getRoster()
+	if not rosterStore then
+		rosterStore = DataStoreService:GetDataStore(ROSTER_STORE)
+	end
+	return rosterStore
+end
+
+local function getMeta()
+	if not metaStore then
+		metaStore = DataStoreService:GetDataStore(META_STORE)
+	end
+	return metaStore
+end
+
+local function keyOf(userId)
+	-- Must match Creator Dashboard key template: Player_{UserId}
+	return "Player_" .. tostring(userId)
+end
+
+local TradeValue = require(shared:WaitForChild("MineTradeValue"))
+
+-- Wallet dust + recycle value of cards/packs/runes/gear (= inventory net worth).
+function LeaderboardService.profileStardustValue(p)
+	if type(p) ~= "table" then return 0 end
+	local offer = {
+		dust = tonumber(p.dust) or 0,
+		gems = 0,
+		coins = 0,
+		cardIds = {},
+		packs = {},
+		runes = p.runes or {},
+		gear = p.gear or {},
+		tools = {},
+	}
+	local byId = {}
+	for _, c in ipairs(p.cards or {}) do
+		local id = c.serial or c.id
+		if id then
+			table.insert(offer.cardIds, id)
+			byId[id] = c
+		end
+	end
+	for _, pk in ipairs(p.packs or {}) do
+		table.insert(offer.packs, pk)
+	end
+	return TradeValue.total(offer, function(id)
+		return byId[id]
+	end)
+end
+
+function LeaderboardService.recordRoster(userId)
+	userId = tonumber(userId)
+	if not userId or userId <= 0 then
+		return
+	end
+	-- The roster is "has this player ever been here" with a last-seen stamp.
+	-- Once per server session per player is plenty; every autosave was noise.
+	if rosterSent[userId] then
+		return
+	end
+	rosterSent[userId] = true
+	task.spawn(function()
+		local ok = pcall(function()
+			getRoster():SetAsync(keyOf(userId), os.time())
+		end)
+		if not ok then
+			rosterSent[userId] = nil
+		end
+	end)
+end
+
+-- Per-zone deepest OrderedDataStore. Minimal write from creditDeepest.
+local depthOrdered = {}
+local depthLast = {} -- [userId] = { [zoneId] = value }
+
+--[[
+	A depth record only ever goes UP, and is written at most every 30 seconds
+	per player. It used to SetAsync on every new layer -- a fast digger is a
+	write every couple of seconds, well past the ordered-store budget -- and a
+	rebirth (which resets p.deepest) wrote the smaller number over the record.
+	Now it queues the best seen and flushDepth writes it with UpdateAsync,
+	keeping whichever is larger.
+]]
+local depthPending = {} -- [userId] = { [zoneId] = best seen, not yet written }
+
+function LeaderboardService.queueDepth(userId, zoneId, deepest)
+	userId = tonumber(userId)
+	zoneId = tostring(zoneId or "")
+	deepest = math.max(0, math.floor(tonumber(deepest) or 0))
+	if not userId or userId <= 0 or zoneId == "" or deepest <= 0 then
+		return
+	end
+	local last = depthLast[userId] and depthLast[userId][zoneId]
+	if last and deepest <= last then
+		return
+	end
+	depthPending[userId] = depthPending[userId] or {}
+	if (depthPending[userId][zoneId] or 0) < deepest then
+		depthPending[userId][zoneId] = deepest
+	end
+end
+
+function LeaderboardService.flushDepth(onlyUserId)
+	for userId, zones in pairs(depthPending) do
+		if not onlyUserId or onlyUserId == userId then
+			depthPending[userId] = nil
+			for zoneId, value in pairs(zones) do
+				local storeRef = DataStoreService:GetOrderedDataStore("Mine_v1_lb_depth_" .. zoneId .. STORE_SUFFIX)
+				depthOrdered[zoneId] = depthOrdered[zoneId] or storeRef
+				local ok, err = pcall(function()
+					depthOrdered[zoneId]:UpdateAsync(keyOf(userId), function(old)
+						old = tonumber(old) or 0
+						if value <= old then
+							return nil
+						end
+						return value
+					end)
+				end)
+				if ok then
+					depthLast[userId] = depthLast[userId] or {}
+					depthLast[userId][zoneId] = math.max(depthLast[userId][zoneId] or 0, value)
+				else
+					warn("[Leaderboard] depth update failed: ", err)
+					depthPending[userId] = depthPending[userId] or {}
+					depthPending[userId][zoneId] = math.max(depthPending[userId][zoneId] or 0, value)
+				end
+			end
+		end
+	end
+end
+
+local depthCache = {} -- [zoneId] = { at=, rows= }
+local depthBoardParts = {} -- weak-ish list of { part=, zoneId= }
+local DEPTH_CACHE_TTL = 60
+
+local function depthStore(zoneId)
+	zoneId = tostring(zoneId or "")
+	if zoneId == "" then
+		return nil
+	end
+	if not depthOrdered[zoneId] then
+		depthOrdered[zoneId] = DataStoreService:GetOrderedDataStore("Mine_v1_lb_depth_" .. zoneId .. STORE_SUFFIX)
+	end
+	return depthOrdered[zoneId]
+end
+
+function LeaderboardService.getDepthTop(zoneId, n)
+	zoneId = tostring(zoneId or "")
+	n = math.clamp(math.floor(tonumber(n) or 10), 1, 100)
+	if zoneId == "" then
+		return {}
+	end
+	local cached = depthCache[zoneId]
+	if cached and cached.rows and (os.clock() - (cached.at or 0)) < DEPTH_CACHE_TTL then
+		local out = {}
+		for i = 1, math.min(n, #cached.rows) do
+			out[i] = cached.rows[i]
+		end
+		return out
+	end
+	local storeRef = depthStore(zoneId)
+	if not storeRef then
+		return (cached and cached.rows) or {}
+	end
+	local list = {}
+	local function depthName(userId)
+		local plr = Players:GetPlayerByUserId(userId)
+		if plr then
+			return plr.DisplayName
+		end
+		local ok, name = pcall(function()
+			return Players:GetNameFromUserIdAsync(userId)
+		end)
+		return (ok and name) or ("User " .. tostring(userId))
+	end
+	local ok, pages = pcall(function()
+		return storeRef:GetSortedAsync(false, math.min(100, n))
+	end)
+	if ok and pages then
+		for rank, entry in ipairs(pages:GetCurrentPage()) do
+			local key = tostring(entry.key or "")
+			local uid = tonumber(key:match("(%d+)$")) or tonumber(key)
+			if uid then
+				table.insert(list, {
+					rank = rank,
+					userId = uid,
+					value = entry.value,
+					name = depthName(uid),
+				})
+			end
+		end
+		depthCache[zoneId] = { at = os.clock(), rows = list }
+	elseif cached and cached.rows then
+		list = cached.rows
+	end
+	local out = {}
+	for i = 1, math.min(n, #list) do
+		out[i] = list[i]
+	end
+	return out
+end
+
+-- Count unique keys with depth >= minDepth (for Coming Soon 50-player gate).
+function LeaderboardService.countDepthAtLeast(zoneId, minDepth)
+	zoneId = tostring(zoneId or "")
+	minDepth = math.max(1, math.floor(tonumber(minDepth) or 2500))
+	if zoneId == "" then
+		return 0
+	end
+	local storeRef = depthStore(zoneId)
+	if not storeRef then
+		return 0
+	end
+	local count = 0
+	local ok, pages = pcall(function()
+		return storeRef:GetSortedAsync(false, 100)
+	end)
+	if not ok or not pages then
+		return 0
+	end
+	while true do
+		for _, entry in ipairs(pages:GetCurrentPage()) do
+			local v = tonumbe

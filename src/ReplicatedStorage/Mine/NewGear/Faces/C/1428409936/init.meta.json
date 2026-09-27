@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 1428409936.0,
+    "DisplayName": "Blue Rock Star Smile",
+    "RAP": 12674.0,
+    "Rarity": "C"
+  }
+}

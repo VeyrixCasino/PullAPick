@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 35686056.0,
+    "DisplayName": "The Bull Moose Vengeance",
+    "RAP": 197646.0,
+    "Rarity": "C"
+  }
+}

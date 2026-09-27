@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 71499623.0,
+    "DisplayName": "Dark Horns of Pwnage",
+    "RAP": 982847.0,
+    "Rarity": "S"
+  }
+}

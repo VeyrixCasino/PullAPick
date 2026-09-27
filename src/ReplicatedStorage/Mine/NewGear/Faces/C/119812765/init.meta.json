@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 119812765.0,
+    "DisplayName": "Purple Starface",
+    "RAP": 11616.0,
+    "Rarity": "C"
+  }
+}

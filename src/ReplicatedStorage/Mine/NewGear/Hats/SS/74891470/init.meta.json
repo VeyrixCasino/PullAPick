@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 74891470.0,
+    "DisplayName": "Frozen Horns of the Frigid Planes",
+    "RAP": 2047939.0,
+    "Rarity": "SS"
+  }
+}

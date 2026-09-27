@@ -1,0 +1,285 @@
+call(function()
+		already = getMeta():GetAsync(BACKFILL_FLAG) == true
+	end)
+	if already then
+		print("[Leaderboard] backfill skipped (flag ", BACKFILL_FLAG, ")")
+		return nil
+	end
+	local result = LeaderboardService.backfillFromAllProfiles()
+	pcall(function()
+		getMeta():SetAsync(BACKFILL_FLAG, true)
+	end)
+	return result
+end
+
+local nameCache = {}
+local function displayName(userId)
+	local plr = Players:GetPlayerByUserId(userId)
+	if plr then
+		local prefix = tostring(plr:GetAttribute("NamePrefix") or "")
+		local name = prefix .. plr.DisplayName
+		nameCache[userId] = name
+		return name
+	end
+	if nameCache[userId] then return nameCache[userId] end
+	local ok, name = pcall(function()
+		return Players:GetNameFromUserIdAsync(userId)
+	end)
+	nameCache[userId] = (ok and name) or ("User " .. tostring(userId))
+	return nameCache[userId]
+end
+
+local function fetchTop(kind, n)
+	n = n or 100
+	local list = {}
+	local ok, pages = pcall(function()
+		return store(kind):GetSortedAsync(false, math.min(100, n))
+	end)
+	if not ok or not pages then
+		return cache[kind] or {}
+	end
+	local page = pages:GetCurrentPage()
+	for rank, entry in ipairs(page) do
+		local key = tostring(entry.key or "")
+		local uid = tonumber(key:match("Player_(%d+)") or key)
+		if uid then
+			table.insert(list, {
+				rank = rank,
+				userId = uid,
+				value = entry.value,
+				name = displayName(uid),
+			})
+		end
+	end
+	cache[kind] = list
+	return list
+end
+
+function LeaderboardService.getRank(kind, userId)
+	local list = cache[kind] or {}
+	for _, row in ipairs(list) do
+		if row.userId == userId then
+			return row.rank, row.value
+		end
+	end
+	-- Not in top 100: try GetAsync for value only.
+	local ok, val = pcall(function()
+		return store(kind):GetAsync(keyOf(userId))
+	end)
+	return nil, ok and val or 0
+end
+
+function LeaderboardService.payloadFor(userId)
+	local boards = {}
+	for _, kind in ipairs(KINDS) do
+		local rows = cache[kind] or {}
+		local myRank, myVal = LeaderboardService.getRank(kind, userId)
+		boards[kind] = {
+			rows = rows,
+			you = { rank = myRank, value = myVal or 0 },
+		}
+	end
+	return boards
+end
+
+local function findBoardFolder()
+	local world = workspace:FindFirstChild("MineWorld")
+	local lobby = world and world:FindFirstChild("Lobby")
+	return lobby and lobby:FindFirstChild("Leaderboards")
+end
+
+local MEDAL = {
+	[1] = "🥇",
+	[2] = "🥈",
+	[3] = "🥉",
+}
+
+local function formatValue(v)
+	local n = tonumber(v) or 0
+	if n >= 1e9 then
+		return string.format("%.2fB", n / 1e9)
+	elseif n >= 1e6 then
+		return string.format("%.2fM", n / 1e6)
+	elseif n >= 1e3 then
+		return string.format("%.1fK", n / 1e3)
+	end
+	return tostring(math.floor(n))
+end
+
+local function headshot(userId)
+	return "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=150&h=150"
+end
+
+local function paintRankRow(list, row)
+	local rank = row.rank or 0
+	local frame = Instance.new("Frame")
+	frame.Name = "Rank_" .. tostring(rank)
+	frame.Size = UDim2.new(1, -4, 0, 28)
+	frame.BackgroundTransparency = 1
+	frame.LayoutOrder = rank
+	frame.Parent = list
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "Icon"
+	icon.BackgroundColor3 = Color3.fromRGB(58, 54, 64)
+	icon.Size = UDim2.fromOffset(26, 26)
+	icon.Position = UDim2.new(0, 44, 0.5, -13)
+	icon.Image = row.userId and headshot(row.userId) or ""
+	icon.Parent = frame
+	local ic = Instance.new("UICorner")
+	ic.CornerRadius = UDim.new(1, 0)
+	ic.Parent = icon
+
+	local rankL = Instance.new("TextLabel")
+	rankL.Name = "Rank"
+	rankL.Size = UDim2.new(0, 44, 1, 0)
+	rankL.BackgroundTransparency = 1
+	rankL.Font = Enum.Font.GothamBold
+	rankL.TextSize = 15
+	rankL.TextXAlignment = Enum.TextXAlignment.Left
+	if MEDAL[rank] then
+		rankL.Text = MEDAL[rank]
+		rankL.TextSize = 18
+		if rank == 1 then
+			rankL.TextColor3 = Color3.fromRGB(255, 210, 70)
+		elseif rank == 2 then
+			rankL.TextColor3 = Color3.fromRGB(200, 210, 220)
+		else
+			rankL.TextColor3 = Color3.fromRGB(205, 140, 80)
+		end
+	else
+		rankL.Text = tostring(rank)
+		rankL.TextColor3 = Color3.fromRGB(180, 175, 165)
+	end
+	rankL.Parent = frame
+
+	local nameL = Instance.new("TextLabel")
+	nameL.Name = "Name"
+	nameL.Size = UDim2.new(1, -172, 1, 0)
+	nameL.Position = UDim2.fromOffset(78, 0)
+	nameL.BackgroundTransparency = 1
+	nameL.Font = Enum.Font.GothamMedium
+	nameL.TextSize = 14
+	nameL.TextColor3 = Color3.fromRGB(235, 230, 220)
+	nameL.TextXAlignment = Enum.TextXAlignment.Left
+	nameL.TextTruncate = Enum.TextTruncate.AtEnd
+	nameL.Text = tostring(row.name or "—")
+	nameL.Parent = frame
+
+	local valL = Instance.new("TextLabel")
+	valL.Name = "Value"
+	valL.Size = UDim2.new(0, 88, 1, 0)
+	valL.Position = UDim2.new(1, -88, 0, 0)
+	valL.BackgroundTransparency = 1
+	valL.Font = Enum.Font.GothamBold
+	valL.TextSize = 14
+	valL.TextColor3 = Color3.fromRGB(240, 210, 140)
+	valL.TextXAlignment = Enum.TextXAlignment.Right
+	valL.Text = formatValue(row.value)
+	valL.Parent = frame
+end
+
+local function paintBoardLists(folder)
+	if not folder then return end
+	for _, kind in ipairs(KINDS) do
+		local col = folder:FindFirstChild("Col_" .. kind)
+		local board = col and col:FindFirstChild("Board")
+		local gui = board and board:FindFirstChild("BoardGui")
+		local list = gui and gui:FindFirstChild("RankList")
+		if not list then continue end
+		for _, child in ipairs(list:GetChildren()) do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		local rows = cache[kind] or {}
+		local n = math.min(100, #rows)
+		local lay = list:FindFirstChildOfClass("UIListLayout")
+		if lay then
+			lay.SortOrder = Enum.SortOrder.LayoutOrder
+		end
+		-- The top three are on the podium above the list.
+		local podium = gui and gui:FindFirstChild("Top3")
+		for i = podium and 4 or 1, n do
+			paintRankRow(list, rows[i])
+		end
+		if podium then
+			LeaderboardService.paintPodium(podium, rows)
+		end
+	end
+end
+
+-- Three avatar icons in gold, silver and bronze rings (Top3 is built by
+-- WorldBuilder.buildLeaderboards; slots are named Slot_1..Slot_3).
+local RANK_COLOR = {
+	[1] = Color3.fromRGB(255, 210, 70),
+	[2] = Color3.fromRGB(205, 214, 226),
+	[3] = Color3.fromRGB(214, 142, 82),
+}
+function LeaderboardService.paintPodium(podium, rows)
+	for rank = 1, 3 do
+		local slot = podium:FindFirstChild("Slot_" .. rank)
+		if slot then
+			local row = rows[rank]
+			local icon = slot:FindFirstChild("Icon")
+			local nameL = slot:FindFirstChild("Name")
+			local valL = slot:FindFirstChild("Value")
+			if icon then
+				icon.Image = row and row.userId and headshot(row.userId) or ""
+				local ring = icon:FindFirstChildOfClass("UIStroke")
+				if ring then
+					ring.Color = RANK_COLOR[rank]
+				end
+			end
+			if nameL then
+				nameL.Text = row and tostring(row.name or "—") or "—"
+			end
+			if valL then
+				valL.Text = row and formatValue(row.value) or ""
+			end
+		end
+	end
+end
+
+local function mountAvatar(ped, userId, faceToward)
+	local old = ped:FindFirstChild("Avatar")
+	if old then old:Destroy() end
+	if not userId or userId <= 0 then return end
+	local ok, model = pcall(function()
+		return Players:CreateHumanoidModelFromUserIdAsync(userId)
+	end)
+	if not ok or not model then
+		warn("[Leaderboard] avatar failed: ", userId, model)
+		return
+	end
+	model.Name = "Avatar"
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.Massless = true
+		elseif d:IsA("Script") or d:IsA("LocalScript") then
+			d:Destroy()
+		end
+	end
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		hum.WalkSpeed = 0
+		hum.JumpPower = 0
+		hum.JumpHeight = 0
+		hum.AutoRotate = false
+		pcall(function()
+			hum:ChangeState(Enum.HumanoidStateType.Physics)
+		end)
+	end
+	local plate = ped:FindFirstChild("Plate")
+	if not plate then
+		model:Destroy()
+		return
+	end
+	model.Parent = ped
+	local bboxCF, bboxSize = model:GetBoundingBox()
+	local standY = plate.Position.Y + plate.Size.Y * 0.5 + bboxSize.Y * 0.5
+	local pos = Vector3.new(plate.Position.X, standY, plate.Position.Z)
+	local look = faceToward or Vector3.new(0, pos.Y, 0)
+	model:PivotTo

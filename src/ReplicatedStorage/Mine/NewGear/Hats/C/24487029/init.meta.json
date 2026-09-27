@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 24487029.0,
+    "DisplayName": "Chrysophylax",
+    "RAP": 256481.0,
+    "Rarity": "C"
+  }
+}

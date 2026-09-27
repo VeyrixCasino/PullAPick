@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 26674400.0,
+    "DisplayName": "It's so beautiful!",
+    "RAP": 12092.0,
+    "Rarity": "C"
+  }
+}

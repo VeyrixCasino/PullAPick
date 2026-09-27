@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 238983270.0,
+    "DisplayName": "Purple Butterfly Smile",
+    "RAP": 7233.0,
+    "Rarity": "D"
+  }
+}

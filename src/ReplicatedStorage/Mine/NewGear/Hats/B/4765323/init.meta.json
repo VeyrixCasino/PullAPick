@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 4765323.0,
+    "DisplayName": "Darkseed the Fallen",
+    "RAP": 299172.0,
+    "Rarity": "B"
+  }
+}

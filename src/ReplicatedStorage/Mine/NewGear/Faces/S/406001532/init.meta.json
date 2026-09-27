@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 406001532.0,
+    "DisplayName": "Green Drool Angry Zombie",
+    "RAP": 56427.0,
+    "Rarity": "S"
+  }
+}

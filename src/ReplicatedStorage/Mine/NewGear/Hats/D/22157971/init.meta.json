@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 22157971.0,
+    "DisplayName": "Helm of the Sacred Earth",
+    "RAP": 166993.0,
+    "Rarity": "D"
+  }
+}

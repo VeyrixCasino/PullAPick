@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 23644960.0,
+    "DisplayName": "Clown Face",
+    "RAP": 168501.0,
+    "Rarity": "SSS"
+  }
+}

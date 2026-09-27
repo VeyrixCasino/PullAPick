@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 193696583.0,
+    "DisplayName": "Red Ice Crown",
+    "RAP": 279201.0,
+    "Rarity": "B"
+  }
+}

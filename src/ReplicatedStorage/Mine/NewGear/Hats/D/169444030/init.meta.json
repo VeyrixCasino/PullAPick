@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 169444030.0,
+    "DisplayName": "Sorcus' Lightning Fedora",
+    "RAP": 90201.0,
+    "Rarity": "D"
+  }
+}

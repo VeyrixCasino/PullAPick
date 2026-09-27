@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "IconTint": {
+      "Color3": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "attributes": {
+    "CatalogId": 66330165.0,
+    "DisplayName": "Emerald Laser Vision",
+    "RAP": 79692.0,
+    "Rarity": "SS"
+  }
+}
