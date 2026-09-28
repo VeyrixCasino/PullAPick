@@ -90,6 +90,11 @@ they finish.
 
 ## Done
 
+- [x] ~~Every owned instance carries a uid~~ **done** — chestTools, gear and
+  relics were the gaps; cards, packs and runes already had one. Ore tools are
+  built with uids from the start. Quantity maps (charms, tempers, eventTools,
+  ores, tools) deliberately keep counts — instancing them would grow the save.
+
 - [x] ~~Echo stripped from every pet, all 140 kept~~ **done** — 45 pets in the
   main roster plus 12 Event Horizon pets. The mechanic survives: runes, skills,
   tool specials, the Echo Strike card and  are untouched. Space lost

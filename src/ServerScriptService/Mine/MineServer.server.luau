@@ -523,11 +523,23 @@ local function blank()
 		cards = {}, equipped = {},
 		-- Ore, by id. Never builds a tool; it upgrades one, with stardust.
 		ores = {},
-		-- Tool level, by tool key, on its own 1..MineConfig.TOOL_MAX_LEVEL
-		-- scale. Absent means level 1: a tool found in a wall has had nothing
-		-- put into it, which is exactly why recycling one pays nothing and the
-		-- rate can stay a flat half of what was spent.
-		toolLevels = {},
+		--[[
+			Ore tools: one row per tool the player owns, not a count.
+
+			An ore tool is a distinct object -- a tier-74 Frack at level 300 is
+			not interchangeable with another tier-74 Frack at level 12 -- so it
+			cannot be stored as a quantity the way charms and tempers are. Each
+			row carries its own uid from the moment it is made, so it can be
+			named for upgrading, recycling or trading without relying on its
+			position in the list.
+
+			  { uid, tier, typeId, level }
+
+			`level` runs 1..MineConfig.TOOL_MAX_LEVEL and defaults to 1: a tool
+			found in a wall has had nothing put into it, which is why recycling
+			one pays nothing and the rate can stay a flat half of what went in.
+		]]
+		oreTools = {},
 		-- How full the bag is, in block-equivalents. Every point of damage adds
 		-- damage/maxHp, so the bag creeps up as you mine instead of jumping when
 		-- a block dies, and a 41,000 HP crystal fills exactly as much as a clod
@@ -1120,6 +1132,9 @@ local function load(plr)
 		players keep the pickaxe they have always had -- nobody logs in tomorrow
 		to find their tool confiscated.
 	]]
+	if type(p.oreTools) ~= "table" then
+		p.oreTools = {}
+	end
 	if p.gotFirstPick == nil then
 		p.gotFirstPick = true
 	end
@@ -2373,6 +2388,31 @@ local function snap(plr)
 	for _, pk in ipairs(p.packs or {}) do
 		if type(pk) == "table" and not pk.uid then
 			pk.uid = instanceHex16()
+		end
+	end
+	--[[
+		Same stamp, for every other list of owned instances.
+
+		chestTools was the real gap: its `id` is the CATALOG id, so two copies
+		of the same flagship tool were indistinguishable in the save -- you
+		could not name one of them to upgrade, trade or scrap it. gear and
+		relics had the same shape. `id` is left alone because plenty of code
+		keys off it; `uid` is added beside it.
+
+		Runes are skipped on purpose: their `id` is already a 16-hex instance
+		value, so a `uid` next to it would just be the same bytes twice.
+
+		Quantity maps -- charms, tempers, eventTools, fossilTools, ores, tools --
+		get nothing. You own three of a charm, not three distinguishable charms,
+		and giving each a row would grow the save rather than shrink it.
+	]]
+	for _, list in ipairs({ p.chestTools, p.gear, p.relics, p.oreTools }) do
+		if type(list) == "table" then
+			for _, row in ipairs(list) do
+				if type(row) == "table" and not row.uid then
+					row.uid = instanceHex16()
+				end
+			end
 		end
 	end
 	-- Other players see your pets: the few fields a pet model needs, as an
@@ -3935,7 +3975,7 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 		-- Head-slot gear, rolled on the spot. The common cosmetic find.
 		if Gear and Gear.rollPiece then
 			p.gear = p.gear or {}
-			local id = "g" .. tostring(os.time()) .. tostring(rng:NextInteger(1000, 9999))
+			local id = instanceHex16()
 			local piece = Gear.rollPiece(id, rng, "head")
 			if piece then
 				table.insert(p.gear, piece)
@@ -3998,7 +4038,7 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 			return "pack", chest.id
 		end
 		local r = pool[rng:NextInteger(1, #pool)]
-		table.insert(p.relics, { id = r.id, found = os.time() })
+		table.insert(p.relics, { uid = instanceHex16(), id = r.id, found = os.time() })
 		return "relic", r.name
 	end
 	return "pack", chest.id
@@ -4305,6 +4345,7 @@ local function grantChestTool(plr, p, toolId)
 	if not ct then return end
 	-- No temperament: those are bought with tokens (Verbs.rollTemper).
 	table.insert(p.chestTools, {
+		uid = instanceHex16(),
 		id = ct.id, name = ct.name, family = ct.family,
 		rarity = ct.rarity or ct.rarityId,
 		rarityId = ct.rarity or ct.rarityId,
