@@ -93,3 +93,51 @@ rock.
 - No limits on the upside. Infinitely lucky is the point.
 - Studio is the source of truth; Cursor edits the same scripts concurrently, so
   every edit anchors and asserts the source is unchanged before committing.
+
+## Ore blocks: ten shapes, all contained, none overlapping
+
+Ten patterns in `ServerStorage.OreShapes` — Speck, Crack, Vein, Blotch, Band,
+Core, Checker, Lattice, Dust, Massive. Every ore in the game uses one of them;
+no ore gets art of its own. Plates carrying a `Tint` attribute take the ore's
+colour and material at spawn, and an optional `TintMul` darkens a plate so a
+shape can have depth without needing a second colour.
+
+The language is the one `_OrePreview.Uranium` was reaching for: flat plates
+laid on the faces of a rock cube. Nothing protrudes. Every plate's outer face
+sits exactly on the block boundary at 2.5, verified by walking all eight
+corners of every part.
+
+### Two flicker bugs, and only the second one was real
+
+**First guess, wrong:** plates sat 0.012 studs proud of a full-size host. That
+is below depth-buffer precision, so plate and rock traded places as the camera
+moved. Fixed by undersizing the host to 4.9 so there is 0.05 of clear air
+behind every plate. The flicker continued.
+
+**The actual cause:** plate on plate. Layered shapes put a dark halo and a
+bright core at the *same* outer depth, so wherever they overlapped there were
+two coplanar surfaces fighting. That is why the *detailed* shapes crawled while
+the plain ones were steady — Speck, Blotch, Core, Massive and Vein all stacked,
+and those were exactly the ones that misbehaved.
+
+So depth now comes from **frames around a core, never slabs stacked on one**.
+A frame is four bars with the verticals shortened to sit between the
+horizontals, so even the corners do not overlap.
+
+### The check that earns its keep
+
+The builder groups plates by face normal, projects each pair onto that face's
+two in-plane axes, and counts any pair whose footprints intersect. It caught
+two shapes that looked finished: Crack's arms ran under its core, and Vein's
+diagonal squares were stepped closer together than their own width. Both would
+have shipped flickering.
+
+Current state: 10 shapes, 368 plates, **0 overlapping pairs**, average 37
+plates a block.
+
+### Not in git
+
+These are Studio instances, so they live in the place file, not in `src/`.
+Rojo leaves them alone (`$ignoreUnknownInstances` on ServerStorage), but they
+are only as safe as the last place save. Exporting them to
+`src/ServerStorage/OreShapes.rbxm` would put them under version control.
