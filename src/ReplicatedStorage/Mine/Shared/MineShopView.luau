@@ -963,6 +963,17 @@ function MineShopView.mount(parent, opts)
 	-- wall, a floor catching the light, and a plinth the tool actually stands on.
 	-- Built once at mount; setModel only ever swaps the model.
 	----------------------------------------------------------------------------
+	-- Where a tool's feet go: the plinth cap's top surface, a hair proud of it
+	-- so the tool sits ON the cap rather than hovering over it. setModel stands
+	-- every tool here and the camera aims here, so the two cannot drift apart.
+	local PLINTH_TOP = -10.75
+
+	-- How far above the plinth the camera aims, as a fraction of its distance.
+	-- At the viewport's 70-degree FOV this drops the cap into the lower third
+	-- and leaves the tool the rest -- and because it is a fraction of distance
+	-- and not a stud count, it lands identically for every tool.
+	local FRAME_LIFT = 0.28
+
 	local function buildStage()
 		-- Pedestal only — no workshop room. Clear ViewportFrame shows the shop
 		-- background art around the tool so themes can breathe.
@@ -1016,14 +1027,26 @@ function MineShopView.mount(parent, opts)
 	vp.BackgroundColor3 = Color3.fromRGB(34, 26, 22)
 	vp.BackgroundTransparency = 0
 
-	-- Drag to spin. A shop that shows one fixed angle hides half of what you are
-	-- buying, and these models are asymmetric.
-	local userYaw, dragging, lastX, grabbed = 0, false, 0, false
+	--[[
+		Drag to spin. A shop that shows one fixed angle hides half of what you
+		are buying, and these models are asymmetric.
+
+		Grabbing it used to end the idle sway for good -- one drag and the
+		showcase went dead for the rest of the session, every tool after it
+		sitting stock still. The sway is how the shop shows a tool off, so it
+		comes back: your angle is kept (userYaw is never touched), the drift
+		just eases back in a few seconds after you let go, and a tool you have
+		only just clicked on sways straight away.
+	]]
+	local SWAY_RESUME = 3.0 -- seconds of hands-off before the drift returns
+	local SWAY_EASE = 1.0 -- and how long it takes to come back to full
+	local userYaw, dragging, lastX = 0, false, 0
+	local idle = math.huge -- seconds since the last drag input
 	vp.Active = true
 	vp.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
-			dragging, lastX, grabbed = true, input.Position.X, true
+			dragging, lastX, idle = true, input.Position.X, 0
 		end
 	end)
 	vp.InputChanged:Connect(function(input)
@@ -1031,6 +1054,7 @@ function MineShopView.mount(parent, opts)
 			or input.UserInputType == Enum.UserInputType.Touch) then
 			userYaw += (input.Position.X - lastX) * 0.011
 			lastX = input.Position.X
+			idle = 0
 		end
 	end)
 	local function release(input)
@@ -1180,11 +1204,13 @@ function MineShopView.mount(parent, opts)
 
 		-- Sit it on the plinth rather than through it.
 		local centre, size = model:GetBoundingBox()
-		model:TranslateBy(-centre.Position + Vector3.new(0, size.Y * 0.5 - 10.75, 0))
+		model:TranslateBy(-centre.Position + Vector3.new(0, size.Y * 0.5 + PLINTH_TOP, 0))
 		model.Parent = vp
 		shown = model
 
-		centre, size = model:GetBoundingBox()
+		-- Only the size is wanted now: the camera aims at the plinth, so where
+		-- the tool's own centre landed no longer decides the shot.
+		_, size = model:GetBoundingBox()
 
 		-- The plinth follows the tool. A fixed 16-stud block dwarfed a 4-stud
 		-- pick and read as the subject of the shot.
@@ -1224,9 +1250,10 @@ function MineShopView.mount(parent, opts)
 
 		local reach = math.max(size.X, size.Y, size.Z)
 		shown:SetAttribute("Dist", reach * 1.30 + 3.6)
-		shown:SetAttribute("Cx", centre.Position.X)
-		shown:SetAttribute("Cy", centre.Position.Y)
-		shown:SetAttribute("Cz", centre.Position.Z)
+
+		-- A fresh tool gets the full show: drift from zero (so it opens square
+		-- on the hero angle) whether or not you were mid-drag on the last one.
+		sway, idle = 0, math.huge
 	end
 
 	RunService.RenderStepped:Connect(function(dt)
@@ -1234,15 +1261,34 @@ function MineShopView.mount(parent, opts)
 			return
 		end
 		sway += dt
+		idle = dragging and 0 or (idle + dt)
 		local hero = HERO[activeTab] or HERO.pickaxe
-		-- Idle drift until you grab it; after that the angle is yours.
-		local drift = grabbed and 0 or math.sin(sway * 0.6) * 0.30
+		-- The little back-and-forth that shows the tool off. It yields to your
+		-- hands and eases back in once they are off it, rather than dying at
+		-- the first drag.
+		local back = math.clamp((idle - SWAY_RESUME) / SWAY_EASE, 0, 1)
+		local drift = math.sin(sway * 0.6) * 0.30 * back
 		local a = (shown:GetAttribute("FaceYaw") or 0) + hero.yaw + userYaw + drift
-		local centre = Vector3.new(shown:GetAttribute("Cx") or 0,
-			shown:GetAttribute("Cy") or 0, shown:GetAttribute("Cz") or 0)
-		cam.CFrame = CFrame.new(centre)
+
+		--[[
+			Aim at the PLINTH, not at the tool.
+
+			The pivot used to be the model's own bounding-box centre, which sits
+			half a tool-height off the cap -- so a stubby pick and a long drill
+			put the camera's eye at different heights and the whole showcase,
+			plinth and all, hopped up and down as you paged through the shop.
+
+			The plinth never moves, so aim there and it never moves on screen
+			either. The lift is a fraction of the camera DISTANCE rather than a
+			fixed number of studs: distance already scales with the tool, so a
+			constant fraction of it puts the plinth at the same spot in the
+			frame for every tool in the game, big or small.
+		]]
+		local dist = shown:GetAttribute("Dist") or 6
+		local pivot = Vector3.new(0, PLINTH_TOP + dist * FRAME_LIFT, 0)
+		cam.CFrame = CFrame.new(pivot)
 			* CFrame.Angles(0, a, 0) * CFrame.Angles(hero.pitch, 0, 0)
-			* CFrame.new(0, 0, shown:GetAttribute("Dist") or 6)
+			* CFrame.new(0, 0, dist)
 	end)
 
 	----------------------------------------------------------------------------
