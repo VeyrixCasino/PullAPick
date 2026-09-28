@@ -523,6 +523,11 @@ local function blank()
 		cards = {}, equipped = {},
 		-- Ore, by id. Never builds a tool; it upgrades one, with stardust.
 		ores = {},
+		-- Tool level, by tool key, on its own 1..MineConfig.TOOL_MAX_LEVEL
+		-- scale. Absent means level 1: a tool found in a wall has had nothing
+		-- put into it, which is exactly why recycling one pays nothing and the
+		-- rate can stay a flat half of what was spent.
+		toolLevels = {},
 		-- How full the bag is, in block-equivalents. Every point of damage adds
 		-- damage/maxHp, so the bag creeps up as you mine instead of jumping when
 		-- a block dies, and a 41,000 HP crystal fills exactly as much as a clod
