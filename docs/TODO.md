@@ -8,13 +8,28 @@ they finish.
 
 ## Blocked — needs you, not me
 
-- [ ] **Grant the place access to the 30 ore face assets.** They uploaded as
-  *Private* under a different owner than the experience, so Studio loads
-  nothing and renders nothing with no error. Roblox shows an
-  "Experience needs access to assets" dialog — click **Share access** and page
-  through it, there are 30. The preview blocks at `z 168` already wear all 30
-  faces and will fill in the moment access lands.
-  *(I misread this as moderation twice before your screenshot showed otherwise.)*
+- [ ] **Get the 30 ore faces owned by the group, or shared to it.**
+
+  The place belongs to a **group** (`Mine For Cards`, id 7706885185). The
+  assets belong to a **user** (`iPressBars`, id 465369561), because the MCP's
+  `upload_image` uploads to the signed-in user with no way to target a group.
+  A group experience cannot load a user's private assets, so Studio renders
+  nothing and reports nothing.
+
+  Two fixes:
+  - *Quick* — click **Share access** on the "Experience needs access to assets"
+    dialog. Works, but the assets stay personally owned and on loan.
+  - *Right* — re-import them into the group. Asset Manager, with the project
+    selected, **Import** → `build/ore-sheet/ore_01.png … ore_30.png`. Then the
+    ids change and `MineConfig.ORE_FACE` needs regenerating via
+    `tools/map-ores-to-tiles.js`.
+
+  The preview blocks at `z 168` already wear all 30 faces and fill in the
+  moment access lands.
+
+  *(I called this moderation twice before checking the creator. It was never
+  moderation — `GetProductInfo` resolving the asset only proves it exists, not
+  that this place may load it.)*
 
 - [ ] **Push to GitHub.** 8 commits sit on local `main`; `origin` is
   `VeyrixCasino/PullAPick`. Not pushed because you said to wait.

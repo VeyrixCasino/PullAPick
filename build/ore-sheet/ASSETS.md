@@ -42,3 +42,24 @@ call. Serve the folder first:
 ```bash
 node -e "const http=require('http'),fs=require('fs'),p=require('path');const d=process.cwd();http.createServer((q,r)=>{const f=p.join(d,q.url.replace(/^\/+/,''));if(!f.startsWith(d)||!fs.existsSync(f))return r.writeHead(404),r.end();r.writeHead(200,{'Content-Type':'image/png'});fs.createReadStream(f).pipe(r)}).listen(8733)"
 ```
+
+## Ownership — why these did not render
+
+The place is **group**-owned (`Mine For Cards`, 7706885185). These assets are
+**user**-owned (`iPressBars`, 465369561), because `upload_image` uploads to the
+signed-in user and offers no way to target a group.
+
+A group experience cannot load a user's private assets. Studio renders nothing
+and raises nothing; `MarketplaceService:GetProductInfo` still resolves the
+asset, which makes it look like the asset is fine and the code is wrong.
+
+Check ownership first next time:
+
+```lua
+local info = game:GetService("MarketplaceService"):GetProductInfo(assetId)
+print(info.Creator.Name, info.Creator.Id, info.Creator.CreatorType)
+```
+
+To own them properly, re-import the PNGs through Asset Manager with the group's
+project selected, then regenerate `MineConfig.ORE_FACE` with
+`tools/map-ores-to-tiles.js` against the new ids.
