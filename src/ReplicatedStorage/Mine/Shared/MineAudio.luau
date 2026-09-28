@@ -1,6 +1,9 @@
--- MineAudio: punchy licensed SFX (Pro Sound Effects / APM) plus a quiet bed.
+-- MineAudio: licensed SFX (Pro Sound Effects / APM), a nature bed and a quiet
+-- music playlist. Tuned to keep players content rather than wound up: warm
+-- major-key acoustic music at resting-heart-rate tempos, soft highs, no
+-- alarm-like or casino-style escalation, and gaps of silence between tracks.
 -- Digs layer a rock thunk with crackle, sit on the block, and run through a
--- compressor so they read over ambience without stacking into noise.
+-- gentle compressor so they read over the bed without stacking into noise.
 local Debris = game:GetService("Debris")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
@@ -8,7 +11,31 @@ local Players = game:GetService("Players")
 
 local MineAudio = {}
 
-MineAudio.BGM_VOL = 0.10
+MineAudio.BGM_VOL = 0.16
+-- Seconds of silence between tracks; constant music is what players mute.
+MineAudio.MUSIC_GAP = { 18, 40 }
+
+-- Surface: carefree, open, mid-tempo. Underground: slower and quieter, since
+-- digging is repetitive focus work and lower-arousal music suits it.
+MineAudio.MUSIC = {
+	bright = {
+		"rbxassetid://1839843882", -- A Welcome Smile: inviting carefree acoustic
+		"rbxassetid://1839844012", -- Feel The Breeze: carefree open-air guitar
+		"rbxassetid://1842285702", -- On the Go: light-hearted easy listening
+		"rbxassetid://9039827617", -- Ponder Steps: 102 bpm chilled guitar
+		"rbxassetid://9039827056", -- Bredie On A Sunday: 96 bpm warm guitar
+		"rbxassetid://9038622067", -- Lakefront Days: soft hopeful ukulele
+		"rbxassetid://1845913205", -- Walking On The Beach: ukulele solo
+	},
+	calm = {
+		"rbxassetid://1842276007", -- Tranquilo: peaceful classical guitar
+		"rbxassetid://9042458043", -- Down In The Valley: restful lullaby guitar
+		"rbxassetid://1836754180", -- Little Moment Of Calm
+		"rbxassetid://1839737612", -- Peaceful Forest
+		"rbxassetid://1839835149", -- Mellow Out
+		"rbxassetid://9038622067", -- Lakefront Days
+	},
+}
 
 -- One id, or a list to pick from at random.
 MineAudio.IDS = {
@@ -36,7 +63,6 @@ MineAudio.IDS = {
 	explosive = {
 		"rbxassetid://9116973611", -- mortar thump
 		"rbxassetid://9114362114", -- dull charge
-		"rbxassetid://9120705982", -- whoosh blast
 	},
 	boom = "rbxassetid://9114086657", -- dirt explosion
 	shop = {
@@ -46,7 +72,7 @@ MineAudio.IDS = {
 	},
 	pack = "rbxassetid://9125414959", -- burlap rip
 	open = "rbxassetid://9125414959",
-	pack_rise = "rbxassetid://9120057087",
+	pack_rise = "rbxassetid://9116394545", -- soft chime (was a searing build-up)
 	pack_foil = {
 		"rbxassetid://9113848518",
 		"rbxassetid://9116397026",
@@ -61,8 +87,8 @@ MineAudio.IDS = {
 		"rbxassetid://9116396987",
 	},
 	pack_burst = {
-		"rbxassetid://9120705982",
 		"rbxassetid://9116395089",
+		"rbxassetid://9116394876",
 	},
 	sell = {
 		"rbxassetid://9114058693",
@@ -88,13 +114,14 @@ MineAudio.IDS = {
 		"rbxassetid://9116395089",
 		"rbxassetid://9116394876",
 	},
+	click = "rbxassetid://9113885761", -- every UI button: tiny soft tick
 	equip = "rbxassetid://9119717523", -- switch click
-	rebirth = "rbxassetid://1840076509", -- APM sting
+	rebirth = "rbxassetid://9116395424", -- warm chime cluster
 	tick = "rbxassetid://9119717523",
-	spin = "rbxassetid://9120705982",
+	spin = "rbxassetid://9116394876",
 	reveal = "rbxassetid://9116394876",
 	jackpot = "rbxassetid://9116395089",
-	flash = "rbxassetid://9120705982",
+	flash = "rbxassetid://9116395424",
 	thud = {
 		"rbxassetid://9118596772",
 		"rbxassetid://9118597103",
@@ -104,7 +131,7 @@ MineAudio.IDS = {
 		"rbxassetid://9113848518",
 		"rbxassetid://9113704038",
 	},
-	riser = "rbxassetid://9120057087",
+	riser = "rbxassetid://9116394545",
 	rare = "rbxassetid://9116395089",
 	crunch = {
 		"rbxassetid://9118596772",
@@ -113,59 +140,67 @@ MineAudio.IDS = {
 	},
 }
 
--- Per-zone soft beds (ambience-first, not melodic earworms). Quiet vols.
+-- Per-zone soft beds under the music. Natural sounds only (birds, leaves,
+-- water, light wind): groans, howls and low rumbles read as threat and keep
+-- players on edge, so the darker zones get wind and water instead.
 MineAudio.ZONE_BEDS = {
-	lobby = { id = "rbxassetid://9112835068", vol = 0.055 },
-	meadow = { id = "rbxassetid://9112781510", vol = 0.06 },
-	sunscar = { id = "rbxassetid://9114057104", vol = 0.05 },
-	mistreef = { id = "rbxassetid://9112805227", vol = 0.055 },
-	arcwork = { id = "rbxassetid://9112775175", vol = 0.035 },
-	bloodmoon = { id = "rbxassetid://9114228774", vol = 0.04 },
-	eclipse = { id = "rbxassetid://9118747853", vol = 0.03 },
-	riftmarch = { id = "rbxassetid://9120505513", vol = 0.07 },
-	starfall = { id = "rbxassetid://9112775175", vol = 0.032 },
-	mythral = { id = "rbxassetid://273398061", vol = 0.05 },
-	primordium = { id = "rbxassetid://9118747853", vol = 0.028 },
-	bigbang = { id = "rbxassetid://9114228774", vol = 0.03 },
+	lobby = { id = "rbxassetid://9112835068", vol = 0.05 },
+	meadow = { id = "rbxassetid://9112781510", vol = 0.05 },
+	sunscar = { id = "rbxassetid://9114057104", vol = 0.04 },
+	mistreef = { id = "rbxassetid://9112805227", vol = 0.045 },
+	arcwork = { id = "rbxassetid://9120505513", vol = 0.05 },
+	bloodmoon = { id = "rbxassetid://9114057104", vol = 0.035 },
+	eclipse = { id = "rbxassetid://9114057104", vol = 0.03 },
+	riftmarch = { id = "rbxassetid://9120505513", vol = 0.06 },
+	starfall = { id = "rbxassetid://9120505513", vol = 0.045 },
+	mythral = { id = "rbxassetid://273398061", vol = 0.045 },
+	primordium = { id = "rbxassetid://9120505513", vol = 0.04 },
+	bigbang = { id = "rbxassetid://9114057104", vol = 0.03 },
 	surface = { id = "rbxassetid://9112835068", vol = 0.055 },
-	mine = { id = "rbxassetid://9120505513", vol = 0.08 },
+	mine = { id = "rbxassetid://9120505513", vol = 0.065 },
 }
 MineAudio.AMBIENCE = MineAudio.ZONE_BEDS
 MineAudio.MINE_Y = -3
 
+-- Sounds heard hundreds of times an hour (digs, clicks) sit lowest; rewards
+-- are pleasant but only a little louder than the work, never a blast.
 local VOL = {
-	pickaxe = 0.62,
-	gravel = 0.34,
-	drill = 0.48,
-	explosive = 0.58,
-	boom = 0.46,
-	shop = 0.40,
-	sell = 0.48,
-	found = 0.52,
-	pack = 0.64,
-	open = 0.64,
-	pack_rise = 0.36,
-	pack_foil = 0.42,
-	pack_tear = 0.68,
-	pack_sparkle = 0.52,
-	pack_burst = 0.56,
-	lucky = 0.50,
-	lucky_rattle = 0.38,
-	lucky_pop = 0.56,
-	equip = 0.34,
-	rebirth = 0.50,
-	tick = 0.20,
-	spin = 0.36,
-	reveal = 0.54,
-	jackpot = 0.66,
-	flash = 0.40,
-	thud = 0.50,
-	flip = 0.34,
-	loot = 0.28,
-	riser = 0.38,
-	rare = 0.54,
-	crunch = 0.72,
+	pickaxe = 0.50,
+	gravel = 0.28,
+	drill = 0.40,
+	explosive = 0.48,
+	boom = 0.38,
+	shop = 0.36,
+	sell = 0.42,
+	found = 0.46,
+	pack = 0.50,
+	open = 0.50,
+	pack_rise = 0.30,
+	pack_foil = 0.36,
+	pack_tear = 0.50,
+	pack_sparkle = 0.44,
+	pack_burst = 0.46,
+	lucky = 0.44,
+	lucky_rattle = 0.30,
+	lucky_pop = 0.46,
+	click = 0.24,
+	equip = 0.30,
+	rebirth = 0.48,
+	tick = 0.16,
+	spin = 0.28,
+	reveal = 0.46,
+	jackpot = 0.50,
+	flash = 0.30,
+	thud = 0.42,
+	flip = 0.30,
+	loot = 0.24,
+	riser = 0.30,
+	rare = 0.48,
+	crunch = 0.55,
 }
+
+-- Celebrations dip the music briefly instead of shouting over it.
+local DUCK = { jackpot = 2.2, rare = 1.6, rebirth = 2.5, lucky_pop = 1.2, found = 1.0 }
 
 local CD = {
 	pickaxe = 0.06,
@@ -186,6 +221,7 @@ local CD = {
 	lucky = 0.18,
 	lucky_rattle = 0.05,
 	lucky_pop = 0.35,
+	click = 0.035,
 	equip = 0.08,
 	rebirth = 0.80,
 	tick = 0.016,
@@ -206,7 +242,9 @@ local TRIM = {
 	pickaxe = 0.38,
 	gravel = 0.24,
 	drill = 0.50,
+	click = 0.12,
 	equip = 0.26,
+	rebirth = 2.4,
 	tick = 0.08,
 	flip = 0.36,
 	shop = 0.55,
@@ -224,6 +262,8 @@ local TRIM = {
 
 local lastAt = {}
 local musicGroup, sfxGroup, bgmSound
+local musicMood = "bright"
+local duckUntil = 0
 local worldEmit
 -- The Settings panel's switches; remembered so groups made later obey them.
 local sfxEnabled, ambienceEnabled = true, true
@@ -240,23 +280,23 @@ local function groups()
 	sfxGroup.Name = "MineSfx"
 	sfxGroup.Volume = sfxEnabled and 1 or 0
 	sfxGroup.Parent = SoundService
+	-- A gentle leveller, not a squash: hard compression plus a big treble lift
+	-- made every hit bright and fatiguing over a long session.
 	local punch = Instance.new("CompressorSoundEffect")
 	punch.Name = "Punch"
-	punch.Threshold = -18
-	punch.Ratio = 10
-	punch.Attack = 0.003
-	punch.Release = 0.09
-	-- No makeup gain here. CompressorSoundEffect has no Gain (nor MakeupGain)
-	-- property at all, so this line threw, and it threw inside groups(), which
-	-- startBgm() calls on the first line of MineClient -- taking every UI in the
-	-- game down with it. The 9 dB it wanted is folded into the EQ below instead,
-	-- applied evenly so the tone is unchanged.
+	punch.Threshold = -16
+	punch.Ratio = 4
+	punch.Attack = 0.006
+	punch.Release = 0.12
+	-- CompressorSoundEffect has no Gain (nor MakeupGain) property; setting one
+	-- throws inside groups(), which runs on the first line of MineClient.
 	punch.Parent = sfxGroup
+	-- Warm body, rolled-off highs: soft attack is what reads as friendly.
 	local eq = Instance.new("EqualizerSoundEffect")
 	eq.Name = "Body"
-	eq.LowGain = 9
-	eq.MidGain = 6
-	eq.HighGain = 7
+	eq.LowGain = 5
+	eq.MidGain = 3
+	eq.HighGain = -3
 	eq.Parent = sfxGroup
 end
 
@@ -276,6 +316,48 @@ end
 
 local function validId(id)
 	return type(id) == "string" and id ~= "" and id ~= "rbxassetid://0"
+end
+
+-- Dip the music for `secs`, then ease it back.
+function MineAudio.duck(secs)
+	local now = os.clock()
+	local untilAt = now + (tonumber(secs) or 1.5)
+	if untilAt <= duckUntil then
+		return
+	end
+	duckUntil = untilAt
+	local s = bgmSound
+	if not s or not s.Parent then
+		return
+	end
+	TweenService:Create(s, TweenInfo.new(0.25), { Volume = MineAudio.BGM_VOL * 0.4 }):Play()
+	task.delay(untilAt - now, function()
+		if os.clock() + 0.05 >= duckUntil and s.Parent and s:GetAttribute("Live") then
+			TweenService:Create(s, TweenInfo.new(1.4, Enum.EasingStyle.Sine), { Volume = MineAudio.BGM_VOL }):Play()
+		end
+	end)
+end
+
+-- A small soft tick on every button under `root`, now and later. Buttons can
+-- opt out with the NoClickSfx attribute.
+function MineAudio.bindUiClicks(root)
+	if not root or root:GetAttribute("UiClicksBound") then
+		return
+	end
+	root:SetAttribute("UiClicksBound", true)
+	local function hook(b)
+		if b:IsA("GuiButton") then
+			b.Activated:Connect(function()
+				if not b:GetAttribute("NoClickSfx") then
+					MineAudio.play("click")
+				end
+			end)
+		end
+	end
+	for _, d in root:GetDescendants() do
+		hook(d)
+	end
+	root.DescendantAdded:Connect(hook)
 end
 
 local function pick(entry)
@@ -337,6 +419,15 @@ function MineAudio.play(name, extraVol, pitch, at, skipCd)
 	if name == "pickaxe" or name == "gravel" or name == "drill" or name == "equip" or name == "crunch"
 		or name == "lucky_rattle" or name == "pack_tear" or name == "loot" then
 		s.PlaybackSpeed = 0.88 + math.random() * 0.22
+	elseif name == "click" then
+		s.PlaybackSpeed = 0.94 + math.random() * 0.10
+	end
+	-- The button already ticked; a second full click on top reads as a stutter.
+	if name == "equip" and lastAt.click and (now - lastAt.click) < 0.15 then
+		s.Volume *= 0.5
+	end
+	if DUCK[name] then
+		MineAudio.duck(DUCK[name])
 	end
 	if tonumber(pitch) then
 		s.PlaybackSpeed = math.clamp(tonumber(pitch), 0.25, 3)
@@ -373,7 +464,7 @@ function MineAudio.playDig(tool, at)
 end
 
 function MineAudio.playSell(coins, gems)
-	local fat = math.clamp(((tonumber(coins) or 0) + (tonumber(gems) or 0) * 8) / 5000, 0.85, 1.25)
+	local fat = math.clamp(((tonumber(coins) or 0) + (tonumber(gems) or 0) * 8) / 5000, 0.9, 1.1)
 	MineAudio.play("sell", fat)
 	task.delay(0.08, function()
 		MineAudio.play("shop", 0.7 * fat, nil, nil, true)
@@ -383,8 +474,8 @@ end
 function MineAudio.playFound(oneIn)
 	local n = tonumber(oneIn) or 50
 	if n >= 1000 then
-		MineAudio.play("rare", 1.1)
-		MineAudio.play("riser", 0.85, nil, nil, true)
+		MineAudio.play("rare", 1.05)
+		MineAudio.play("reveal", 0.6, 1.12, nil, true)
 	elseif n >= 150 then
 		MineAudio.play("found", 1)
 		MineAudio.play("reveal", 0.7, nil, nil, true)
@@ -420,10 +511,11 @@ end
 
 function MineAudio.playLuckyWin(rank)
 	rank = tonumber(rank) or 1
+	-- One warm chime per tier, no strobe-and-siren stacking: a win should feel
+	-- nice, not like a slot machine paying out.
 	if rank >= 6 then
-		MineAudio.play("jackpot", 1.1)
-		MineAudio.play("flash", 1, nil, nil, true)
-		MineAudio.play("pack_sparkle", 0.9, nil, nil, true)
+		MineAudio.play("jackpot", 1)
+		MineAudio.play("pack_sparkle", 0.6, nil, nil, true)
 	elseif rank >= 4 then
 		MineAudio.play("lucky_pop", 1)
 		MineAudio.play("reveal", 0.85, nil, nil, true)
@@ -438,16 +530,11 @@ function MineAudio.playCard(band)
 	band = tostring(band or "HIT")
 	MineAudio.play("flip")
 	if band == "GOD" then
-		MineAudio.play("jackpot", 1.15, nil, nil, true)
-		MineAudio.play("flash", 1, nil, nil, true)
-		MineAudio.play("pack_sparkle", 1, 1.1, nil, true)
-		task.delay(0.12, function()
-			MineAudio.play("pack_burst", 0.85, nil, nil, true)
-		end)
+		MineAudio.play("jackpot", 1, nil, nil, true)
+		MineAudio.play("pack_sparkle", 0.7, 1.1, nil, true)
 	elseif band == "CHASE" then
-		MineAudio.play("rare", 1, nil, nil, true)
-		MineAudio.play("reveal", 0.9, nil, nil, true)
-		MineAudio.play("pack_sparkle", 0.75, nil, nil, true)
+		MineAudio.play("rare", 0.95, nil, nil, true)
+		MineAudio.play("pack_sparkle", 0.5, nil, nil, true)
 	elseif band == "HIT" then
 		MineAudio.play("reveal", 0.85, nil, nil, true)
 		MineAudio.play("pack_foil", 0.55, nil, nil, true)
@@ -463,7 +550,6 @@ function MineAudio.playPull(band)
 	end
 	if band == "GOD" then
 		MineAudio.play("jackpot", 1)
-		MineAudio.play("flash", 0.9, nil, nil, true)
 	elseif band == "CHASE" then
 		MineAudio.play("rare", 0.95)
 	elseif band == "HIT" then
@@ -548,10 +634,13 @@ function MineAudio.startAmbience()
 					want = zid
 				end
 			end
+			local plr = Players.LocalPlayer
+			local root = plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+			local pos = root and root.Position
+			if pos then
+				musicMood = (pos.Y < MineAudio.MINE_Y and not (atSurface and atSurface(pos))) and "calm" or "bright"
+			end
 			if not want then
-				local plr = Players.LocalPlayer
-				local root = plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-				local pos = root and root.Position
 				if pos and atSurface and atSurface(pos) then
 					want = "lobby"
 				elseif pos and pos.Y < MineAudio.MINE_Y then
@@ -577,28 +666,66 @@ function MineAudio.stopAmbience()
 	end
 end
 
+-- Shuffled without an immediate repeat; the mood is read fresh for each track
+-- so going underground changes the next song rather than cutting this one.
+local lastTrack
+local function nextTrack()
+	local list = MineAudio.MUSIC[musicMood] or MineAudio.MUSIC.bright
+	if not list or #list == 0 then
+		return nil
+	end
+	local id = list[math.random(1, #list)]
+	if id == lastTrack and #list > 1 then
+		id = list[(table.find(list, id) % #list) + 1]
+	end
+	lastTrack = id
+	return id
+end
+
 function MineAudio.startBgm()
 	groups()
 	MineAudio.startAmbience()
 	if bgmSound then
 		return
 	end
-	local id = MineAudio.IDS.bgm
-	if not validId(id) then
-		return
-	end
 	local s = Instance.new("Sound")
 	s.Name = "MineBgm"
-	s.SoundId = id
-	s.Looped = true
+	s.Looped = false
 	s.Volume = 0
 	s.SoundGroup = musicGroup
 	s.Parent = SoundService
-	s:Play()
 	bgmSound = s
-	TweenService:Create(s, TweenInfo.new(4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Volume = MineAudio.BGM_VOL,
-	}):Play()
+	task.spawn(function()
+		-- Let the world load and the player settle before the first note.
+		task.wait(4)
+		while s.Parent do
+			local id = nextTrack() or (validId(MineAudio.IDS.bgm) and MineAudio.IDS.bgm)
+			if not id then
+				return
+			end
+			s.SoundId = id
+			s.TimePosition = 0
+			s.Volume = 0
+			s:SetAttribute("Live", true)
+			s:Play()
+			TweenService:Create(s, TweenInfo.new(5, Enum.EasingStyle.Sine), { Volume = MineAudio.BGM_VOL }):Play()
+			local t0 = os.clock()
+			while s.Parent and not s.IsLoaded and os.clock() - t0 < 10 do
+				task.wait(0.25)
+			end
+			local len = s.TimeLength > 1 and s.TimeLength or 120
+			-- Fade the tail rather than letting a track stop dead.
+			while s.Parent and s.IsPlaying and s.TimePosition < len - 4 do
+				task.wait(0.5)
+			end
+			s:SetAttribute("Live", false)
+			TweenService:Create(s, TweenInfo.new(3.5, Enum.EasingStyle.Sine), { Volume = 0 }):Play()
+			task.wait(3.6)
+			s:Stop()
+			local gap = MineAudio.MUSIC_GAP
+			task.wait(gap[1] + math.random() * (gap[2] - gap[1]))
+		end
+	end)
 end
 
 return MineAudio

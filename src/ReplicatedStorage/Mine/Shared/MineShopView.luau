@@ -29,7 +29,6 @@ local Factory = require(RS:WaitForChild("ToolModelFactory"))
 local ShopLadders = require(shared:WaitForChild("MineShopLadders"))
 local Icons = require(shared:WaitForChild("MineIcons"))
 local Cards = require(shared:WaitForChild("MineCards"))
-local ShopBgArt = require(shared:WaitForChild("MineShopBackgrounds"))
 
 --------------------------------------------------------------------------------
 -- PALETTE
@@ -88,6 +87,16 @@ local TABS = {
 	{ id = "drill", label = "Drills", blurb = "Hold to mine. Wide clears area, narrow melts rock." },
 	{ id = "explosive", label = "Explosives", blurb = "Throw and clear a pattern. Extra bombs split the power." },
 	{ id = "backpack", label = "Backpacks", blurb = "Haul capacity. Coins for most rungs; the top pack is Robux." },
+	--[[
+		Secrets was wired everywhere and never given a button.
+
+		FAMILY_TINT carries a secrets colour, rows() returns secretRankList() for
+		it, paint() branches on it and the tab counter prints "have/total" for
+		it -- but no commit in this file's history ever put it in TABS, so the
+		forever tools could not be reached from the shop at all.
+	]]
+	{ id = "secrets", label = "Secrets", blurb = "Forever tools. Pulled from chests, never sold on a shelf." },
+	{ id = "bench", label = "Upgrade", blurb = "Level the ore tools you found. Paid in their own ore, plus stardust." },
 }
 
 --------------------------------------------------------------------------------
@@ -199,7 +208,7 @@ end
 ]]
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
-	local state = { coins = 0, gems = 0, credits = 0, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
+	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oreTools = {}, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
 	local activeTab = "pickaxe"
 	local index = 1
 	state.tempers, state.toolTempers = {}, {}
@@ -217,40 +226,93 @@ function MineShopView.mount(parent, opts)
 		ZIndex = 80,
 		BorderSizePixel = 0,
 	}, parent)
-	-- Full-bleed theme plate. Covers the whole screen so other HUD doesn't float on top weirdly.
-	local shopBg = mk("ImageLabel", {
-		Name = "ShopBg",
+	--[[
+		THE BACKDROP IS DRAWN, NOT PHOTOGRAPHED.
+
+		What used to be here was `shopBg`: an OPAQUE ImageLabel at ZIndex 80
+		holding a zone painting. This ScreenGui runs ZIndexBehavior.Sibling, so
+		among root's children that plate drew over every sibling beneath it --
+		the 3D stage at 2, the tab strip at 41 and the temperament picker at 70.
+		One plate is why the shop showed a background and nothing else, and why
+		the sort options disappeared along with the tools.
+
+		Three cheap layers replace it, none above ZIndex 3, so the stage and
+		every control are unambiguously in front:
+
+		  1. a vertical gradient, cold night at the top falling into forge
+		     ember at the bottom, so the room has a floor without a floor being
+		     modelled;
+		  2. a soft warm disc low and centred, where the plinth stands, so the
+		     tool reads as lit by the hearth rather than pasted on a gradient;
+		  3. a vignette that pulls the corners down and puts the eye on the
+		     pedestal.
+
+		No image means nothing to load, nothing to own, and no zone whose
+		painting is missing.
+	]]
+	local backdrop = mk("Frame", {
+		Name = "Backdrop",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(18, 22, 32),
-		BackgroundTransparency = 0,
-		Image = "",
-		ScaleType = Enum.ScaleType.Crop,
-		ZIndex = 80,
+		BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+		ZIndex = 1,
 		BorderSizePixel = 0,
 	}, root)
-	local veil = mk("Frame", {
-		Name = "Veil",
+	mk("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(9, 11, 20)),
+			ColorSequenceKeypoint.new(0.42, Color3.fromRGB(24, 23, 33)),
+			ColorSequenceKeypoint.new(0.76, Color3.fromRGB(56, 36, 29)),
+			ColorSequenceKeypoint.new(1.00, Color3.fromRGB(88, 50, 27)),
+		}),
+		Rotation = 90,
+	}, backdrop)
+
+	local glow = mk("Frame", {
+		Name = "ForgeGlow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.76),
+		Size = UDim2.fromScale(0.92, 0.66),
+		BackgroundColor3 = Color3.fromRGB(255, 152, 64),
+		BackgroundTransparency = 0.8,
+		ZIndex = 2,
+		BorderSizePixel = 0,
+	}, root)
+	mk("UICorner", { CornerRadius = UDim.new(0.5, 0) }, glow)
+	mk("UIGradient", {
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.55, 0.3),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+		Rotation = 90,
+	}, glow)
+
+	local vignette = mk("Frame", {
+		Name = "Vignette",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(6, 8, 14),
-		BackgroundTransparency = 0.35,
-		ZIndex = 81,
+		BackgroundColor3 = Color3.fromRGB(4, 5, 10),
+		BackgroundTransparency = 0.5,
+		ZIndex = 3,
 		BorderSizePixel = 0,
 	}, root)
 	mk("UIGradient", {
 		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.1),
-			NumberSequenceKeypoint.new(0.4, 0.4),
-			NumberSequenceKeypoint.new(1, 0.2),
+			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(0.45, 0.95),
+			NumberSequenceKeypoint.new(1, 0.1),
 		}),
 		Rotation = 90,
-	}, veil)
+	}, vignette)
 
 	----------------------------------------------------------------------------
 	-- HEADER
 	----------------------------------------------------------------------------
 
 	local header = mk("Frame", {
-		Name = "Header", Size = UDim2.new(1, 0, 0, 64),
+		-- 64 -> 78: the title sat 11px off the top edge, crowding it. The extra
+		-- height is what the logo moves down into rather than overlapping the
+		-- blurb underneath it.
+		Name = "Header", Size = UDim2.new(1, 0, 0, 78),
 		BackgroundColor3 = Color3.fromRGB(8, 10, 16), BackgroundTransparency = 0.35, ZIndex = 90,
 		BorderSizePixel = 0,
 	}, root)
@@ -263,38 +325,96 @@ function MineShopView.mount(parent, opts)
 	}, header)
 
 	mk("TextLabel", {
-		BackgroundTransparency = 1, Position = UDim2.fromOffset(26, 11),
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(26, 22),
 		Size = UDim2.fromOffset(340, 30), Font = FONT, TextSize = 26, TextColor3 = TEXT,
-		TextXAlignment = Enum.TextXAlignment.Left, Text = "BLACKSMITH", ZIndex = 83,
+		TextXAlignment = Enum.TextXAlignment.Left, Text = "BLACKSMITH", ZIndex = 86,
 	}, header)
 	local sub = mk("TextLabel", {
-		BackgroundTransparency = 1, Position = UDim2.fromOffset(26, 39),
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(26, 50),
 		Size = UDim2.fromOffset(560, 20), Font = FONT_M, TextSize = 14, TextColor3 = MUTED,
 		TextXAlignment = Enum.TextXAlignment.Left, Text = TABS[1].blurb, ZIndex = 83,
 	}, header)
 
-	local function chip(x, tint, name)
+	--[[
+		THE WALLET SHOWS WHAT THIS BUILDING SPENDS.
+
+		Three chips, and two of the currencies the blacksmith actually takes
+		were not among them: stardust pays for tool levels and temperament
+		tokens pay for rolls, so a player had to leave the shop to find out
+		whether they could afford what was in front of them.
+
+		The old chips were pinned at hard-coded offsets (-74, -228, -382). Two
+		more at that pitch would run under the BLACKSMITH title, so the row is a
+		right-aligned UIListLayout instead: chips place themselves, the row grows
+		leftward, and a sixth currency later costs no arithmetic.
+
+		The tinted circle is gone. Every one of these has real art in MineIcons
+		-- the same source Icons.priceChip already draws from everywhere else in
+		the game -- so a coloured dot here was the odd one out.
+	]]
+	local DUST_TINT = Color3.fromRGB(178, 150, 255)
+	local TOKEN_TINT = Color3.fromRGB(255, 178, 94)
+
+	local wallet = mk("Frame", {
+		Name = "Wallet",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -84, 0, 19),
+		Size = UDim2.fromOffset(716, 40),
+		BackgroundTransparency = 1,
+		ZIndex = 86,
+	}, header)
+	mk("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, wallet)
+
+	local function chip(order, tint, iconId, name)
 		local f = mk("Frame", {
-			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, x, 0, 16),
-			Size = UDim2.fromOffset(146, 40), BackgroundColor3 = Color3.fromRGB(32, 37, 56),
-			BackgroundTransparency = 0.05, ZIndex = 83,
-		}, header)
+			Name = name,
+			Size = UDim2.fromOffset(132, 40),
+			BackgroundColor3 = Color3.fromRGB(32, 37, 56),
+			BackgroundTransparency = 0.05,
+			LayoutOrder = order,
+			ZIndex = 86,
+			BorderSizePixel = 0,
+		}, wallet)
 		round(f, 12)
 		stroke(f, 1.5, tint, 0.45)
-		local dot = mk("Frame", {
-			Name = name, Position = UDim2.fromOffset(9, 11), Size = UDim2.fromOffset(18, 18),
-			BackgroundColor3 = tint, ZIndex = 84, BorderSizePixel = 0,
-		}, f)
-		round(dot, 9)
+		-- Icons.draw returns a holder whose ZIndex defaults low; the chip is at
+		-- 86, so anything inside it has to be raised or the art hides behind the
+		-- chip's own fill.
+		local ok, holder = pcall(function()
+			return Icons.icon(f, iconId, UDim2.fromOffset(26, 26), UDim2.fromOffset(7, 7))
+		end)
+		if ok and holder then
+			holder.ZIndex = 87
+			for _, d in ipairs(holder:GetDescendants()) do
+				if d:IsA("GuiObject") then
+					d.ZIndex = 87
+				end
+			end
+		else
+			-- No art for this id: fall back to the old dot rather than a blank.
+			local dot = mk("Frame", {
+				Position = UDim2.fromOffset(9, 11), Size = UDim2.fromOffset(18, 18),
+				BackgroundColor3 = tint, ZIndex = 87, BorderSizePixel = 0,
+			}, f)
+			round(dot, 9)
+		end
 		return mk("TextLabel", {
-			BackgroundTransparency = 1, Position = UDim2.fromOffset(34, 0),
-			Size = UDim2.new(1, -44, 1, 0), Font = FONT, TextSize = 17, TextColor3 = TEXT,
-			TextXAlignment = Enum.TextXAlignment.Left, Text = "0", ZIndex = 84,
+			BackgroundTransparency = 1, Position = UDim2.fromOffset(40, 0),
+			Size = UDim2.new(1, -48, 1, 0), Font = FONT, TextSize = 16, TextColor3 = TEXT,
+			TextXAlignment = Enum.TextXAlignment.Left, Text = "0", ZIndex = 87,
 		}, f)
 	end
-	local gemLbl = chip(-74, GEM, "GemDot")
-	local coinLbl = chip(-228, GOLD, "CoinDot")
-	local creditLbl = chip(-382, CREDIT, "CreditDot")
+	local coinLbl = chip(1, GOLD, "coins", "Coins")
+	local gemLbl = chip(2, GEM, "gems", "Gems")
+	local dustLbl = chip(3, DUST_TINT, "dust", "Stardust")
+	local tokenLbl = chip(4, TOKEN_TINT, "tokens", "Tokens")
+	local creditLbl = chip(5, CREDIT, "credits", "Credits")
 
 	--[[
 		LEAVING HAS TO WORK ON A PHONE.
@@ -322,8 +442,10 @@ function MineShopView.mount(parent, opts)
 	----------------------------------------------------------------------------
 
 	local strip = mk("Frame", {
-		Name = "Tabs", Position = UDim2.fromOffset(0, 84), Size = UDim2.new(1, 0, 0, 44),
-		BackgroundTransparency = 1, ZIndex = 41,
+		Name = "Tabs", Position = UDim2.fromOffset(0, 98), Size = UDim2.new(1, 0, 0, 44),
+		-- Was 41: under the old ZIndex-80 plate, so the whole browse row was
+		-- painted over. Above the stage now, where a tab strip belongs.
+		BackgroundTransparency = 1, ZIndex = 84,
 	}, root)
 	mk("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10),
@@ -334,7 +456,9 @@ function MineShopView.mount(parent, opts)
 	for i, tab in ipairs(TABS) do
 		local tint = FAMILY_TINT[tab.id]
 		local b = mk("TextButton", {
-			Name = "Tab_" .. tab.id, Size = UDim2.fromOffset(168, 44),
+			-- 168 -> 150: six tabs at the old width are 1058px before the
+			-- UIScale a phone applies, which runs the row off both edges.
+			Name = "Tab_" .. tab.id, Size = UDim2.fromOffset(150, 44),
 			BackgroundColor3 = CARD, Text = "", AutoButtonColor = false,
 			LayoutOrder = i, ZIndex = 83,
 		}, strip)
@@ -356,6 +480,56 @@ function MineShopView.mount(parent, opts)
 		b.MouseButton1Click:Connect(function()
 			view.setTab(tab.id)
 		end)
+	end
+
+	----------------------------------------------------------------------------
+	-- THE BENCH
+	--
+	-- MineBenchView already draws one row per ore tool with its next-level cost,
+	-- what you are holding against that cost, and +1 / +10 / MAX / SCRAP. It was
+	-- never mounted anywhere, so none of it could be reached. It hangs off the
+	-- shop root at 86 -- above the stage, below the header -- and only the
+	-- Upgrade tab shows it.
+	--
+	-- Required through pcall: if the module is missing from a build, the tab
+	-- goes quiet instead of taking the whole shop down with it.
+	----------------------------------------------------------------------------
+	local okBench, Bench = pcall(function()
+		return require(shared:WaitForChild("MineBenchView", 5))
+	end)
+	local benchPanel, benchCtl
+	if okBench and Bench and Bench.mount then
+		benchPanel = mk("Frame", {
+			Name = "BenchPanel",
+			Visible = false,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 156),
+			Size = UDim2.new(0.86, 0, 1, -236),
+			BackgroundTransparency = 1,
+			ZIndex = 86,
+		}, root)
+		local okMount, ctl = pcall(Bench.mount, benchPanel, {
+			-- The bench reads the same state the rest of the shop does, so a
+			-- price it quotes cannot drift from the wallet shown above it.
+			getSnap = function()
+				return {
+					oreTools = state.oreTools or {},
+					ores = state.ores or {},
+					dust = state.dust or 0,
+				}
+			end,
+			onUpgrade = function(uid, n)
+				if opts.onUpgradeOreTool then
+					opts.onUpgradeOreTool(uid, n)
+				end
+			end,
+			onRecycle = function(uid)
+				if opts.onRecycleOreTool then
+					opts.onRecycleOreTool(uid)
+				end
+			end,
+		})
+		benchCtl = okMount and ctl or nil
 	end
 
 	----------------------------------------------------------------------------
@@ -403,7 +577,9 @@ function MineShopView.mount(parent, opts)
 	local picker = mk("Frame", {
 		Name = "TemperPicker", Visible = false, AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(580, 440),
-		BackgroundColor3 = INK, ZIndex = 70,
+		-- Was 70, i.e. behind the old plate: a modal nothing could see. It has
+		-- to outrank the header (90) and the temperament bar (85) it opens from.
+		BackgroundColor3 = INK, ZIndex = 92,
 	}, root)
 	round(picker, 16)
 	stroke(picker, 2, GOLD, 0.2)
@@ -608,7 +784,10 @@ function MineShopView.mount(parent, opts)
 		Ambient = Color3.fromRGB(170, 178, 198),
 		LightColor = Color3.fromRGB(255, 248, 230),
 		LightDirection = Vector3.new(-0.4, -1, -0.55),
-		ZIndex = 2,
+		-- Above the three backdrop layers (1-3), below every control (41+).
+		-- This was 2, i.e. under the old background plate, which is what made
+		-- the tools invisible.
+		ZIndex = 5,
 		BorderSizePixel = 0,
 	}, root)
 	local cam = mk("Camera", { FieldOfView = 40 }, vp)
@@ -1290,21 +1469,94 @@ function MineShopView.mount(parent, opts)
 		end
 
 		--[[
-			Radius, not longest side.
+			RADIUS IS MEASURED FROM WHERE THE CAMERA ACTUALLY LOOKS.
 
-			Distance is fitted against the bounding SPHERE of the plinth plus the
-			tool, because the camera orbits: a pick that fits the frame face-on
+			Distance is fitted against a bounding SPHERE rather than the longest
+			side, because the camera orbits: a pick that fits the frame face-on
 			swings wider when you drag it side-on, and fitting the longest edge
 			alone crops it mid-turn.
 
-			The plinth is 18 studs across and sits 13 below the origin, so it has
-			to be in the box or the pedestal falls out of frame on tall screens.
+			The sphere has to be centred on the point the camera orbits, and it
+			was not. The camera aims at `centre` -- the TOOL's box centre, about
+			y = -9.7, because the tool stands on the plinth -- but the radius was
+			sqrt(9^2 + 14^2) = 16.64, a sphere about the WORLD ORIGIN. Measuring
+			the subject from one point and orbiting about another overstates the
+			fit: everything that must be in frame is within ~8 studs of the aim
+			point, so the camera sat at 56 studs instead of 27 and framed a
+			33-stud-wide view around a 4-stud pickaxe. The tool was rendering --
+			it was a speck on a big empty plinth.
+
+			The union of the plinth and the tool, measured corner by corner from
+			the aim point. No magic constants, so a taller plinth or a longer
+			tool reframes itself.
 		]]
-		local half = size * 0.5
-		local toTop = math.max(math.abs(centre.Position.Y + half.Y), 1)
-		local plinthReach = math.sqrt(9 * 9 + 14 * 14)
-		local radius = math.max(half.Magnitude, toTop, plinthReach)
+		local aim = centre.Position
+		local function reachFrom(boxCF, boxSize)
+			local h = boxSize * 0.5
+			local worst = 0
+			for _, sx in ipairs({ -1, 1 }) do
+				for _, sy in ipairs({ -1, 1 }) do
+					for _, sz in ipairs({ -1, 1 }) do
+						local corner = (boxCF * CFrame.new(h.X * sx, h.Y * sy, h.Z * sz)).Position
+						worst = math.max(worst, (corner - aim).Magnitude)
+					end
+				end
+			end
+			return worst
+		end
+		--[[
+			The plinth is ROUND, so its box corners are a lie.
+
+			A 13.5-stud disc has a bounding box whose corners reach
+			sqrt(6.75^2 + 6.75^2) = 9.55 studs out, where the disc itself never
+			passes 6.75. Walking those corners inflated the radius by root two in
+			the horizontal plane -- 10.45 against a true 7.98 -- and the camera
+			backed up to make room for air that is not there.
+
+			Measured as the cylinder it is: the horizontal reach is the disc
+			radius, and only the vertical extremes vary.
+		]]
+		local function reachFromCylinder(boxCF, boxSize)
+			local h = boxSize * 0.5
+			local hr = math.max(h.X, h.Z)
+			local worst = 0
+			for _, sy in ipairs({ -1, 1 }) do
+				local dy = (boxCF * CFrame.new(0, h.Y * sy, 0)).Position.Y - aim.Y
+				local dxz = (Vector3.new(boxCF.Position.X, aim.Y, boxCF.Position.Z)
+					- Vector3.new(aim.X, aim.Y, aim.Z)).Magnitude
+				worst = math.max(worst, math.sqrt((dxz + hr) ^ 2 + dy * dy))
+			end
+			return worst
+		end
+
+		local radius = reachFrom(centre, size)
+		if stage then
+			local okBox, scf, ssz = pcall(function()
+				return stage:GetBoundingBox()
+			end)
+			-- pcall returns (ok, cf, size); a Model with no parts throws.
+			if okBox and scf and ssz then
+				radius = math.max(radius, reachFromCylinder(scf, ssz))
+			end
+		end
+		-- Floor it so a tiny tool on an empty stage cannot put the camera inside
+		-- the plinth it is standing on.
+		radius = math.max(radius, 4)
 		shown:SetAttribute("Radius", radius)
+		--[[
+			A DISTANCE THAT IS ALWAYS SET.
+
+			frameStage() does the real fitting, but it returns early while the
+			panel has no pixels -- and on the frame the shop opens,
+			vp.AbsoluteSize is (0, 0). Dist was written ONLY in there, so the
+			render loop fell through to `or 6`: six studs from the middle of a
+			plinth eighteen across, which is a camera inside the pedestal.
+
+			Seeded from the radius alone here, so the first frame already looks
+			at the tool from outside it and frameStage only ever refines this.
+		]]
+		shown:SetAttribute("Dist",
+			radius / math.max(0.05, math.sin(math.rad(cam.FieldOfView) * 0.5)) * FIT_MARGIN)
 		shown:SetAttribute("Cx", centre.Position.X)
 		shown:SetAttribute("Cy", centre.Position.Y)
 		shown:SetAttribute("Cz", centre.Position.Z)
@@ -1361,6 +1613,10 @@ function MineShopView.mount(parent, opts)
 	end
 
 	function rows()
+		-- The bench is a list, not a shelf: no rungs to step through.
+		if activeTab == "bench" then
+			return {}
+		end
 		if activeTab == "backpack" then
 			local Bags = require(shared:WaitForChild("MineBags"))
 			if Bags.shopRows then
@@ -1490,13 +1746,19 @@ function MineShopView.mount(parent, opts)
 		creditLbl.Text = money(state.credits or 0)
 		coinLbl.Text = money(state.coins or 0)
 		gemLbl.Text = money(state.gems or 0)
+		dustLbl.Text = money(state.dust or 0)
+		tokenLbl.Text = money(state.tokens or 0)
 
 		for id, t in pairs(tabBtns) do
 			local on = (id == activeTab)
 			t.button.BackgroundColor3 = on and CARD_HI or CARD
 			t.stroke.Transparency = on and 0.05 or 0.6
 			t.label.TextColor3 = on and TEXT or MUTED
-			if id == "secrets" then
+			if id == "bench" then
+				-- How many tools there are to work on, not a have/total: every
+				-- ore tool you own is levellable, so a denominator is noise.
+				t.count.Text = tostring(#(state.oreTools or {}))
+			elseif id == "secrets" then
 				local have = 0
 				local total = #(Tools.CHEST_TOOLS or {})
 				local owned = {}
@@ -1542,6 +1804,37 @@ function MineShopView.mount(parent, opts)
 		end
 
 		paintTemper()
+		--[[
+			The bench replaces the stage rather than sitting beside it.
+
+			Everything the carousel owns -- the card, both arrows, the counter,
+			the track, the temperament bar and the 3D preview itself -- is about
+			ONE tool you are choosing between rungs. The bench is a list of tools
+			you already own, so leaving the pedestal running behind it would show
+			a tool that has nothing to do with the rows.
+		]]
+		if activeTab == "bench" then
+			creditsStage.Visible = false
+			card.Visible = false
+			leftBtn.Visible = false
+			rightBtn.Visible = false
+			counter.Visible = false
+			track.Visible = false
+			temperBar.Visible = false
+			vp.Visible = false
+			if benchPanel then
+				benchPanel.Visible = true
+			end
+			if benchCtl and benchCtl.refresh then
+				pcall(benchCtl.refresh)
+			end
+			return
+		end
+		if benchPanel then
+			benchPanel.Visible = false
+		end
+		vp.Visible = true
+
 		local isSecrets = activeTab == "secrets"
 		creditsStage.Visible = false
 		card.Visible = true
@@ -1816,7 +2109,17 @@ function MineShopView.mount(parent, opts)
 		end
 		state.coins = snapshot.coins or 0
 		state.gems = snapshot.gems or 0
+		state.dust = snapshot.dust or 0
+		-- Temperament tokens ride in the skills payload, not at the top level
+		-- (MineServer builds them as skillEarned + skillBought - burned - spent).
+		state.tokens = snapshot.tokens
+			or (snapshot.skills and snapshot.skills.tokens)
+			or 0
 		state.tools = snapshot.tools or {}
+		-- Banked ore and the ore tools themselves: the bench prices every row
+		-- against these two.
+		state.ores = snapshot.ores or {}
+		state.oreTools = snapshot.oreTools or {}
 		state.backpackTier = snapshot.backpackTier or 1
 		state.family = snapshot.tool and snapshot.tool.family or nil
 		state.credits = snapshot.credits or 0
@@ -1862,8 +2165,6 @@ function MineShopView.mount(parent, opts)
 		root.AnchorPoint = Vector2.new(0.5, 0.5)
 		root.Position = UDim2.fromScale(0.5, 0.5)
 		root.Size = UDim2.fromScale(1, 1)
-		-- Surface blacksmith uses the zone's surface shop painting.
-		ShopBgArt.apply(shopBg, state.zoneId or "meadow", 0)
 		local sg = root.Parent
 		if sg and sg:IsA("ScreenGui") then
 			sg.DisplayOrder = math.max(sg.DisplayOrder or 0, 120)

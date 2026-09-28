@@ -4500,6 +4500,20 @@ shopCtl = ShopView.mount(gui, {
 	onBuyScroll = function(id, bundle)
 		net:FireServer("buyScroll", { id = id, bundle = bundle and true or nil })
 	end,
+	--[[
+		The blacksmith bench.
+
+		Both verbs take a UID, never a row index: the list reorders whenever a
+		tool is found or scrapped, and an index captured when the panel was drawn
+		names a different tool by the time the button is pressed. Levels are a
+		count, and the server clamps it to what is left below the cap.
+	]]
+	onUpgradeOreTool = function(uid, count)
+		net:FireServer("upgradeOreTool", { uid = uid, count = count })
+	end,
+	onRecycleOreTool = function(uid)
+		net:FireServer("recycleOreTool", { uid = uid })
+	end,
 })
 
 depthShopCtl = DepthShopView.mount(gui, {
