@@ -25,33 +25,33 @@ MineEventHorizonPets.BUDGET = {
 MineEventHorizonPets.PET_BOOSTS = {
 	["Cosmo"] = { backpack = 1.36, walkSpeed = 1.06, luck = 0.4725, chestLuck = 0.43 }, -- 379.7 pts / 4 stats
 	["Matter+"] = { luck = 0.3801, gemFind = 0.475, chestLuck = 0.3109, backpack = 1.368, coinBonus = 0.665, walkSpeed = 1.9 }, -- 380.0 pts / 6 stats
-	["Matter-"] = { blastRadius = 0.2, mineSpeed = 0.8, dirtBreak = 1.2, swingRate = 0.4, echo = 0.12, coinBonus = 0.2 }, -- 380.0 pts / 6 stats
+	["Matter-"] = { blastRadius = 0.2, mineSpeed = 0.8, dirtBreak = 1.2, swingRate = 0.4, coinBonus = 0.2 }, -- 380.0 pts / 6 stats
 	["Albert Minestein"] = { gemFind = 1.1875, luck = 0.9501 }, -- 379.9 pts / 2 stats
 	["Accretia"] = { blastRadius = 0.206, mineSpeed = 0.963, swingRate = 0.393 }, -- 274.9 pts / 3 stats
 	["Singuluna"] = { luck = 0.6188, chestLuck = 0.437, rareOre = 0.306 }, -- 275.0 pts / 3 stats
-	["Quasarin"] = { zap = 0.495, swingRate = 0.688, echo = 0.183 }, -- 275.0 pts / 3 stats
+	["Quasarin"] = { zap = 0.495, swingRate = 0.688 }, -- 275.0 pts / 3 stats
 	["Photonna"] = { backpack = 1.76, luck = 0.3163, oreYield = 0.2238, gemFind = 0.1903 }, -- 274.9 pts / 3 stats
 	["Gravpaw"] = { dirtBreak = 2.063, mineSpeed = 0.963, oreYield = 0.458 }, -- 275.0 pts / 3 stats
 	["Relativox"] = { swingRate = 0.884, dirtBreak = 1.604, mineSpeed = 0.55 }, -- 275.0 pts / 3 stats
-	["Nebulisk"] = { echo = 0.413, gemFind = 0.5348, luck = 0.2753 }, -- 275.2 pts / 3 stats
+	["Nebulisk"] = { gemFind = 0.5348, luck = 0.2753 }, -- 275.2 pts / 3 stats
 	["Crystalith"] = { rareOre = 0.688, gemFind = 0.602, oreYield = 0.458 }, -- 275.1 pts / 3 stats
 	["Bangcub"] = { blastRadius = 0.143, mineSpeed = 0.665, swingRate = 0.271 }, -- 190.2 pts / 3 stats
 	["Eventide"] = { luck = 0.4275, chestLuck = 0.302, rareOre = 0.211 }, -- 189.9 pts / 3 stats
-	["Pulsarina"] = { zap = 0.342, swingRate = 0.475, echo = 0.127 }, -- 190.1 pts / 3 stats
+	["Pulsarina"] = { zap = 0.342, swingRate = 0.475 }, -- 190.1 pts / 3 stats
 	["Moonshear"] = { backpack = 1.221, walkSpeed = 0.739, coinBonus = 0.475 }, -- 190.0 pts / 3 stats
 	["Craterjaw"] = { dirtBreak = 1.425, mineSpeed = 0.665, oreYield = 0.317 }, -- 190.0 pts / 3 stats
 	["Frosthole"] = { swingRate = 0.611, dirtBreak = 1.108, mineSpeed = 0.38 }, -- 190.0 pts / 3 stats
-	["Echoflare"] = { echo = 0.285, gemFind = 0.3694, luck = 0.1898 }, -- 189.9 pts / 3 stats
+	["Echoflare"] = { gemFind = 0.3694, luck = 0.1898 }, -- 189.9 pts / 3 stats
 	["Gemnova"] = { rareOre = 0.475, gemFind = 0.416, oreYield = 0.317 }, -- 190.1 pts / 3 stats
 	["Oreproto"] = { coinBonus = 1.069, oreYield = 0.554, backpack = 0.543 }, -- 190.0 pts / 3 stats
 	["Starloom"] = { backpack = 1.221, oreYield = 0.554, walkSpeed = 0.422 }, -- 189.9 pts / 3 stats
 	["Diskflare"] = { blastRadius = 0.129, mineSpeed = 0.475 }, -- 124.9 pts / 2 stats
 	["Vantail"] = { luck = 0.3878, chestLuck = 0.216 }, -- 125.1 pts / 2 stats
-	["Sparkorbit"] = { zap = 0.225, swingRate = 0.313, echo = 0.083 }, -- 125.0 pts / 3 stats
+	["Sparkorbit"] = { zap = 0.225, swingRate = 0.313 }, -- 125.0 pts / 3 stats
 	["Tidewell"] = { backpack = 1.107, walkSpeed = 0.528 }, -- 125.0 pts / 2 stats
 	["Faultstar"] = { dirtBreak = 1.292, mineSpeed = 0.475 }, -- 125.0 pts / 2 stats
 	["Chillaxis"] = { swingRate = 0.554, dirtBreak = 0.792 }, -- 125.1 pts / 2 stats
-	["Warpup"] = { echo = 0.188, gemFind = 0.243, luck = 0.1253 }, -- 125.2 pts / 3 stats
+	["Warpup"] = { gemFind = 0.243, luck = 0.1253 }, -- 125.2 pts / 3 stats
 	["Prismoon"] = { rareOre = 0.431, gemFind = 0.297 }, -- 125.1 pts / 2 stats
 	["Coinbang"] = { backpack = 0.95, coinBonus = 0.7688, gemFind = 0.0889 }, -- 125.0 pts / 2 stats
 	["Bloomstar"] = { oreYield = 0.646, backpack = 0.679 }, -- 125.1 pts / 2 stats
@@ -61,7 +61,7 @@ MineEventHorizonPets.PET_BOOSTS = {
 	["Bagtide"] = { backpack = 0.797, walkSpeed = 0.38 }, -- 90.0 pts / 2 stats
 	["Dustwell"] = { dirtBreak = 0.93, mineSpeed = 0.342 }, -- 90.0 pts / 2 stats
 	["Icering"] = { swingRate = 0.399, dirtBreak = 0.57 }, -- 90.1 pts / 2 stats
-	["Paralite"] = { echo = 0.186, oreYield = 0.0856 }, -- 90.1 pts / 2 stats
+	["Paralite"] = { oreYield = 0.0856 }, -- 90.1 pts / 2 stats
 	["Glimore"] = { rareOre = 0.31, gemFind = 0.214 }, -- 90.0 pts / 2 stats
 	["Smeltbit"] = { coinBonus = 0.698, oreYield = 0.285 }, -- 90.0 pts / 2 stats
 	["Leafnova"] = { oreYield = 0.465, backpack = 0.489 }, -- 90.0 pts / 2 stats
@@ -71,13 +71,13 @@ MineEventHorizonPets.PET_BOOSTS = {
 	["Puddleorb"] = { backpack = 0.531, walkSpeed = 0.253 }, -- 59.9 pts / 2 stats
 	["Crateroo"] = { dirtBreak = 0.62, mineSpeed = 0.228 }, -- 60.0 pts / 2 stats
 	["Snowaxis"] = { swingRate = 0.266, dirtBreak = 0.38 }, -- 60.0 pts / 2 stats
-	["Echopea"] = { echo = 0.124, luck = 0.114 }, -- 60.0 pts / 2 stats
+	["Echopea"] = { luck = 0.114 }, -- 60.0 pts / 2 stats
 	["Shardlet"] = { rareOre = 0.207, gemFind = 0.143 }, -- 60.1 pts / 2 stats
 	["Coinseed"] = { coinBonus = 0.465, oreYield = 0.19 }, -- 60.0 pts / 2 stats
 	["Petalstar"] = { oreYield = 0.31, backpack = 0.326 }, -- 60.0 pts / 2 stats
 	["Ashorbit"] = { mineSpeed = 0.372, dirtBreak = 0.38 }, -- 60.0 pts / 2 stats
 	["Nightbag"] = { luck = 0.186, backpack = 0.326 }, -- 60.0 pts / 2 stats
-	["Zipmite"] = { zap = 0.149, echo = 0.076 }, -- 60.0 pts / 2 stats
+	["Zipmite"] = { zap = 0.149 }, -- 60.0 pts / 2 stats
 	["Kelporb"] = { backpack = 0.531, coinBonus = 0.285 }, -- 60.0 pts / 2 stats
 	["Dirtmoon"] = { dirtBreak = 0.62, oreYield = 0.19 }, -- 60.0 pts / 2 stats
 	["Sparkitten"] = { mineSpeed = 0.298, dirtBreak = 0.304 }, -- 48.0 pts / 2 stats
@@ -86,12 +86,12 @@ MineEventHorizonPets.PET_BOOSTS = {
 	["Bubbleorb"] = { backpack = 0.425, walkSpeed = 0.203 }, -- 48.0 pts / 2 stats
 	["Dustnip"] = { dirtBreak = 0.496, mineSpeed = 0.182 }, -- 48.0 pts / 2 stats
 	["Chillbit"] = { swingRate = 0.213, dirtBreak = 0.304 }, -- 48.1 pts / 2 stats
-	["Peeporbit"] = { echo = 0.099, coinBonus = 0.2282 }, -- 48.0 pts / 2 stats
+	["Peeporbit"] = { coinBonus = 0.2282 }, -- 48.0 pts / 2 stats
 	["Shimmerbit"] = { rareOre = 0.165, gemFind = 0.114 }, -- 47.9 pts / 2 stats
 	["Tinyclink"] = { backpack = 0.3648, coinBonus = 0.1438, gemFind = 0.1014 }, -- 48.0 pts / 2 stats
 	["Cloverbit"] = { backpack = 0.425, oreYield = 0.152 }, -- 48.0 pts / 2 stats
 	["Speck"] = { dirtBreak = 0.258, mineSpeed = 0.095 }, -- 25.0 pts / 2 stats
-	["Glowpuff"] = { echo = 0.052, luck = 0.0473 }, -- 25.1 pts / 2 stats
+	["Glowpuff"] = { luck = 0.0473 }, -- 25.1 pts / 2 stats
 	["Dustmite"] = { oreYield = 0.129, backpack = 0.136 }, -- 25.0 pts / 2 stats
 	["Tinyspark"] = { zap = 0.062, swingRate = 0.068 }, -- 25.0 pts / 2 stats
 	["Barybub"] = { backpack = 0.221, walkSpeed = 0.106 }, -- 25.0 pts / 2 stats

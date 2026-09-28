@@ -80,7 +80,7 @@ MineStats.TYPE_KITS = {
 	Electric = { verb = "Zap",       primary = "zap",        secondary = "swingRate",  tertiary = "mineSpeed" },
 	Crystal  = { verb = "Prospect",  primary = "gemFind",    secondary = "luck",       tertiary = "chestLuck" },
 	Shadow   = { verb = "Fortune",   primary = "luck",       secondary = "chestLuck",  tertiary = "backpack" },
-	Space    = { verb = "Find",      primary = "luckyFind",  secondary = "echo",       tertiary = "luck" },
+	Space    = { verb = "Find",      primary = "luckyFind",  secondary = "rareOre",       tertiary = "luck" },
 }
 
 -- Cleared: no type/family marketing blurbs on pets (wild claims like instant-break).

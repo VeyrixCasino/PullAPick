@@ -30,8 +30,11 @@ they finish.
   meshes (119 unique) are merged into `ToolParts_import.obj` ready for Studio's
   3D importer; `AssetService:CreateEditableMesh` is proven with Pickaxe tier 0.
 - [ ] **Shop GUI → fullscreen pedestal.** Still renders as a window.
-- [ ] **Echo pets removed.**
-- [ ] **Pet ids updated** to the newest patch of their tier.
+- [ ] **Unique item ids across everything owned.** Every owned thing gets its
+  own uid whose FIRST FOUR DIGITS identify which specific thing it is. Applies
+  to tools, packs, charms, hats, pets, bags, runes, tempers -- everything
+  except currency itself. Some of this existed once and was dropped; packs
+  still carry a .
 - [ ] **New enchantments** added.
 - [ ] **Blacksmith bench: UI + verb.** The pricing model is committed and
   tested (`MineConfig.toolUpgradeCost` / `toolSpent` / `toolRecycle`,
@@ -86,6 +89,11 @@ they finish.
 ---
 
 ## Done
+
+- [x] ~~Echo stripped from every pet, all 140 kept~~ **done** — 45 pets in the
+  main roster plus 12 Event Horizon pets. The mechanic survives: runes, skills,
+  tool specials, the Echo Strike card and  are untouched. Space lost
+  its signature stat so it took  instead.
 
 - [x] ~~Ore art needs no uploaded asset at all~~ **done** — the group/user
   ownership wall is gone because nothing is uploaded now. The 30 faces ship as
