@@ -2463,6 +2463,7 @@ local function snap(plr)
 		deepest = p.deepest, deepestSection = p.deepestSection or {}, backpack = p.backpack,
 		packs = p.packs, cards = p.cards, equipped = p.equipped, cap = cap(p),
 		ores = p.ores or {},
+		oreTools = p.oreTools or {},
 		itemSlotsUsed = C.itemSlotsUsed and C.itemSlotsUsed(p) or nil,
 		itemSlotCap = C.itemSlotCap and C.itemSlotCap(p) or nil,
 		itemSlotPrice = C.itemSlotPrice and C.itemSlotPrice(p) or nil,
