@@ -13,16 +13,6 @@ const ROOT = path.join(__dirname, "..");
 const CFG = path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineConfig.luau");
 const TILES = path.join(ROOT, "build/ore-sheet/tiles.json");
 
-const ASSETS = {
-  1:"134734971214180", 2:"105633529891119", 3:"106914023049797", 4:"88532105421863",
-  5:"86304229053849", 6:"112854689185355", 7:"74737609497499", 8:"76913308948341",
-  9:"126479264674710", 10:"134147809936964", 11:"78199354101188", 12:"129476993907726",
-  13:"98362208126288", 14:"118739538475706", 15:"71072403741037", 16:"85338713561217",
-  17:"121154392090249", 18:"96995318953858", 19:"116279937969373", 20:"96875547055077",
-  21:"87756268089286", 22:"99267987107170", 23:"105087604047102", 24:"133712386346215",
-  25:"100350147403182", 26:"132396924098729", 27:"80927927747250", 28:"83820835706578",
-  29:"84085335599436", 30:"108183158878775",
-};
 
 function rgb2hsl(r, g, b) {
   r /= 255; g /= 255; b /= 255;
@@ -97,9 +87,9 @@ for (const o of ores.filter((_, i) => i % 12 === 0)) {
 }
 
 // emit the lua table
-const rows = ores.map(o => "\t" + o.id + ' = "rbxassetid://' + ASSETS[o.tile] + '",').join("\n");
+const rows = ores.map(o => "\t" + o.id + " = " + o.tile + ",").join("\n");
 const block = `--[[
-	Which hand-made ore face each ore wears.
+	Which hand-made ore face each ore wears, by index into MineOreArt.
 
 	Thirty tiles, every one of them used. Matching is on hue first and lightness
 	second rather than raw RGB, so a navy ore and a pale sky-blue one land on

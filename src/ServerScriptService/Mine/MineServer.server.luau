@@ -3194,29 +3194,22 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 			were the same blue box. Each ore now wears one of thirty hand-drawn
 			faces (MineConfig.ORE_FACE), and the part underneath takes the
 			zone's own rock, darkened, so the ore reads as sitting IN the wall
-			rather than replacing a chunk of it.
+			rather than replacing a chunk of it. The CLIENT hangs the face on it;
+			an EditableImage does not replicate, so it has to be built where it
+			is drawn.
 		]==]
 		local rock = (zone and zone.dirt) or Color3.fromRGB(96, 92, 88)
 		part.Color = Color3.new(rock.R * 0.7, rock.G * 0.7, rock.B * 0.7)
-		part.Material = (zone and zone.accent) or Enum.Material.Slate
-		local faceId = C.ORE_FACE and C.ORE_FACE[oreDef.id]
-		if faceId then
-			for _, nf in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Right,
-				Enum.NormalId.Left, Enum.NormalId.Top, Enum.NormalId.Bottom }) do
-				local tex = Instance.new("Texture")
-				tex.Name = "OreFace"
-				tex.Face = nf
-				tex.Texture = faceId
-				tex.StudsPerTileU = size
-				tex.StudsPerTileV = size
-				tex.Parent = part
-			end
-		else
-			-- no face for this id: fall back to the old solid look rather than
-			-- spawning a block that reads as plain rock and pays out ore.
-			part.Color = oreDef.color
-			part.Material = oreDef.material
-		end
+		--[[
+			SmoothPlastic on purpose: flat, textureless, no surface detail.
+
+			Roblox's stone materials carry their own grain, and that grain reads
+			at roughly the same scale as the ore pixels sitting on top of it --
+			two competing textures on one face, and the art loses. A flat host
+			gives the pixel art the whole surface to itself, which is why every
+			game that draws ore this way keeps the block underneath plain.
+		]]
+		part.Material = Enum.Material.SmoothPlastic
 		part:SetAttribute("OreId", oreDef.id)
 		part:SetAttribute("OreName", oreDef.name)
 		part:SetAttribute("OreTier", oreDef.tier)

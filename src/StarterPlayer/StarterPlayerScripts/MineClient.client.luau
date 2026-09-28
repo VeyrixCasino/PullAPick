@@ -11463,3 +11463,64 @@ task.spawn(function()
 		end
 	end)
 end)
+
+--[[
+	ORE FACES.
+
+	The server stamps OreId on an ore block and stops there. The art is built
+	here because an EditableImage does not replicate -- it has to exist where it
+	is drawn -- and because the alternative, an uploaded image, cannot work at
+	all on this place: the experience belongs to a group and anything the
+	upload tooling produces belongs to a user, so Roblox loads nothing and says
+	nothing.
+
+	Everything below lives inside this one spawned function on purpose. This
+	script is at the 200 top-level local ceiling, and a do-block shares that
+	budget, so a plain block of locals here would break the whole client.
+]]
+task.spawn(function()
+	local okArt, Art = pcall(function()
+		return require(game:GetService("ReplicatedStorage")
+			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineOreArt"))
+	end)
+	if not okArt or not Art then
+		return
+	end
+	local okCfg, Cfg = pcall(function()
+		return require(game:GetService("ReplicatedStorage")
+			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineConfig"))
+	end)
+	if not okCfg or not Cfg or type(Cfg.ORE_FACE) ~= "table" then
+		return
+	end
+
+	local function skin(part)
+		if not part:IsA("BasePart") then
+			return
+		end
+		local id = part:GetAttribute("OreId")
+		if type(id) ~= "string" then
+			return
+		end
+		local index = Cfg.ORE_FACE[id]
+		if not index then
+			return
+		end
+		pcall(function()
+			Art.apply(part, index)
+		end)
+	end
+
+	-- blocks that already exist, then everything that streams in after
+	local world = workspace:WaitForChild("MineWorld", 30)
+	if not world then
+		return
+	end
+	for _, d in ipairs(world:GetDescendants()) do
+		skin(d)
+	end
+	world.DescendantAdded:Connect(function(d)
+		-- the attribute is set after the part is parented, so wait a frame
+		task.defer(skin, d)
+	end)
+end)
