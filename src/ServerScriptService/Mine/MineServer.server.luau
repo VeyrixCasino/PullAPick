@@ -3186,8 +3186,37 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		part.Material = Enum.Material.Neon
 		part:SetAttribute("LuckyBlockId", luckyId)
 	elseif kind == "ore" and oreDef then
-		part.Color = oreDef.color
-		part.Material = oreDef.material
+		--[==[
+			The ore lives in the face art now, so the block itself is rock.
+
+			It used to be a solid cube of the ore's own colour, which is why 121
+			ores read as 121 coloured cubes -- a Cobalt vein and a Niobium one
+			were the same blue box. Each ore now wears one of thirty hand-drawn
+			faces (MineConfig.ORE_FACE), and the part underneath takes the
+			zone's own rock, darkened, so the ore reads as sitting IN the wall
+			rather than replacing a chunk of it.
+		]==]
+		local rock = (zone and zone.dirt) or Color3.fromRGB(96, 92, 88)
+		part.Color = Color3.new(rock.R * 0.7, rock.G * 0.7, rock.B * 0.7)
+		part.Material = (zone and zone.accent) or Enum.Material.Slate
+		local faceId = C.ORE_FACE and C.ORE_FACE[oreDef.id]
+		if faceId then
+			for _, nf in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Right,
+				Enum.NormalId.Left, Enum.NormalId.Top, Enum.NormalId.Bottom }) do
+				local tex = Instance.new("Texture")
+				tex.Name = "OreFace"
+				tex.Face = nf
+				tex.Texture = faceId
+				tex.StudsPerTileU = size
+				tex.StudsPerTileV = size
+				tex.Parent = part
+			end
+		else
+			-- no face for this id: fall back to the old solid look rather than
+			-- spawning a block that reads as plain rock and pays out ore.
+			part.Color = oreDef.color
+			part.Material = oreDef.material
+		end
 		part:SetAttribute("OreId", oreDef.id)
 		part:SetAttribute("OreName", oreDef.name)
 		part:SetAttribute("OreTier", oreDef.tier)

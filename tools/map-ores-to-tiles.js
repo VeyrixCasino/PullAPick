@@ -1,0 +1,116 @@
+// Assign each of the 121 ores the hand-made tile that looks most like it.
+//
+// The tiles are already coloured, so this matches on hue first and lightness
+// second rather than on raw RGB distance -- a dark navy ore and a pale sky-blue
+// one should land on different tiles even though both are "blue", and matching
+// on RGB alone puts every dark ore on whichever tile happens to be darkest.
+//
+// Every tile has to be used: the art was made to be seen, and leaving six of
+// them unreferenced because their hue is crowded would waste it. So after the
+// first pass, any unused tile claims the ore that suits it best.
+const fs = require("fs"), path = require("path");
+const ROOT = path.join(__dirname, "..");
+const CFG = path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineConfig.luau");
+const TILES = path.join(ROOT, "build/ore-sheet/tiles.json");
+
+const ASSETS = {
+  1:"134734971214180", 2:"105633529891119", 3:"106914023049797", 4:"88532105421863",
+  5:"86304229053849", 6:"112854689185355", 7:"74737609497499", 8:"76913308948341",
+  9:"126479264674710", 10:"134147809936964", 11:"78199354101188", 12:"129476993907726",
+  13:"98362208126288", 14:"118739538475706", 15:"71072403741037", 16:"85338713561217",
+  17:"121154392090249", 18:"96995318953858", 19:"116279937969373", 20:"96875547055077",
+  21:"87756268089286", 22:"99267987107170", 23:"105087604047102", 24:"133712386346215",
+  25:"100350147403182", 26:"132396924098729", 27:"80927927747250", 28:"83820835706578",
+  29:"84085335599436", 30:"108183158878775",
+};
+
+function rgb2hsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) {
+    if (mx === r) h = ((g - b) / d) % 6;
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  const l = (mx + mn) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  return [h, s, l];
+}
+// hue distance dominates; saturation and lightness break ties. A desaturated
+// ore ignores hue entirely, which is what makes greys land on grey tiles.
+function dist(a, b) {
+  const [h1, s1, l1] = a, [h2, s2, l2] = b;
+  let dh = Math.abs(h1 - h2); if (dh > 180) dh = 360 - dh;
+  const hueWeight = Math.min(s1, s2);
+  return (dh / 180) * 2.6 * hueWeight + Math.abs(s1 - s2) * 0.8 + Math.abs(l1 - l2) * 1.5;
+}
+
+const tiles = JSON.parse(fs.readFileSync(TILES, "utf8"))
+  .map(t => ({ n: t.n, rgb: t.avg, hsl: rgb2hsl(...t.avg) }));
+
+const src = fs.readFileSync(CFG, "utf8").split("\r\n").join("\n");
+const lines = src.split("\n");
+const a = lines.findIndex(l => l.startsWith("MineConfig.ORES = {"));
+let e = a; while (lines[e].trim() !== "}") e++;
+const ores = [];
+for (let i = a + 1; i < e; i++) {
+  const m = lines[i].match(/id = "([^"]+)", name = "([^"]+)", tier = (\d+), color = Color3\.fromRGB\((\d+), (\d+), (\d+)\)/);
+  if (m) ores.push({ id: m[1], name: m[2], tier: +m[3], rgb: [+m[4], +m[5], +m[6]], hsl: rgb2hsl(+m[4], +m[5], +m[6]) });
+}
+if (ores.length !== 121) throw new Error("expected 121 ores, got " + ores.length);
+
+// pass 1: everyone takes their best tile
+for (const o of ores) {
+  let best = null, bd = Infinity;
+  for (const t of tiles) { const d = dist(o.hsl, t.hsl); if (d < bd) { bd = d; best = t; } }
+  o.tile = best.n; o.d = bd;
+}
+// pass 2: any unused tile claims the ore it suits best, provided that ore is
+// not the only one left on its own tile
+const used = new Set(ores.map(o => o.tile));
+const unused = tiles.filter(t => !used.has(t.n));
+for (const t of unused) {
+  const counts = {};
+  ores.forEach(o => counts[o.tile] = (counts[o.tile] || 0) + 1);
+  let pick = null, bd = Infinity;
+  for (const o of ores) {
+    if (counts[o.tile] <= 1) continue;
+    const d = dist(o.hsl, t.hsl);
+    if (d < bd) { bd = d; pick = o; }
+  }
+  if (pick) { pick.tile = t.n; pick.d = bd; }
+}
+
+const counts = {};
+ores.forEach(o => counts[o.tile] = (counts[o.tile] || 0) + 1);
+const stillUnused = tiles.filter(t => !counts[t.n]).map(t => t.n);
+console.log("tiles in use: " + Object.keys(counts).length + " of 30"
+  + (stillUnused.length ? "   UNUSED: " + stillUnused.join(",") : ""));
+console.log("ores per tile: min " + Math.min(...Object.values(counts))
+  + ", max " + Math.max(...Object.values(counts)) + "\n");
+console.log("sample:");
+for (const o of ores.filter((_, i) => i % 12 === 0)) {
+  console.log("  t" + String(o.tier).padStart(3) + " " + o.name.padEnd(16)
+    + "rgb " + o.rgb.join(",").padEnd(13) + "-> tile " + String(o.tile).padStart(2));
+}
+
+// emit the lua table
+const rows = ores.map(o => "\t" + o.id + ' = "rbxassetid://' + ASSETS[o.tile] + '",').join("\n");
+const block = `--[[
+	Which hand-made ore face each ore wears.
+
+	Thirty tiles, every one of them used. Matching is on hue first and lightness
+	second rather than raw RGB, so a navy ore and a pale sky-blue one land on
+	different tiles instead of both collapsing onto whichever blue is nearest in
+	straight distance; a desaturated ore ignores hue entirely, which is what
+	keeps greys on grey tiles.
+
+	Generated by tools/map-ores-to-tiles.js from build/ore-sheet/tiles.json.
+]]
+MineConfig.ORE_FACE = {
+${rows}
+}`;
+fs.writeFileSync(path.join(ROOT, "build/ore-sheet/ORE_FACE.lua"), block);
+console.log("\nwrote build/ore-sheet/ORE_FACE.lua (" + ores.length + " entries)");
