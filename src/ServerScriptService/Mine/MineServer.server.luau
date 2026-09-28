@@ -3136,6 +3136,17 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		part:SetAttribute("OreId", oreDef.id)
 		part:SetAttribute("OreName", oreDef.name)
 		part:SetAttribute("OreTier", oreDef.tier)
+		-- Six faces of ore, drawn from the identity -- see MineOreLook.decorate.
+		-- Required here rather than at the top of the file: this chunk is one
+		-- local short of Luau's 200-register ceiling and one more up there
+		-- fails to compile the whole server. require is cached, so the cost is
+		-- a table lookup on the ~1 block in 200 that is ore.
+		-- Guarded for the same reason the fossil art is: decoration must never
+		-- be able to stop a block existing.
+		local OreLook = require(shared:WaitForChild("MineOreLook"))
+		if OreLook and OreLook.decorate then
+			pcall(OreLook.decorate, part, oreDef)
+		end
 		if oreDef.glow then
 			--[[
 				Glowing ore lights the shaft it sits in.
