@@ -13383,7 +13383,7 @@ function Verbs.upgradeOreTool(plr, payload)
 		return
 	end
 	local level = math.max(1, tonumber(tool.level) or 1)
-	if level >= (C.TOOL_MAX_LEVEL or 1000) then
+	if level >= C.TOOL_MAX_LEVEL then
 		net:FireClient(plr, "toast", "That tool is at max level")
 		return
 	end
@@ -13403,7 +13403,7 @@ function Verbs.upgradeOreTool(plr, payload)
 	-- by the level ceiling. `count` lets the panel offer +1 / +10 / max without
 	-- a round trip per level.
 	local want = math.floor(tonumber(type(payload) == "table" and payload.count) or 1)
-	want = math.clamp(want, 1, (C.TOOL_MAX_LEVEL or 1000) - level)
+	want = math.clamp(want, 1, C.TOOL_MAX_LEVEL - level)
 
 	p.ores = p.ores or {}
 	local haveOre = tonumber(p.ores[oreId]) or 0

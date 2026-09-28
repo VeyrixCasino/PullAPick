@@ -2203,14 +2203,53 @@ MineConfig.ORES = {
 	Numbers come from the balance model in tools/upgrade-calculator.html; the
 	harnesses under tools/verify assert on them.
 ]]
-MineConfig.TOOL_MAX_LEVEL = 1000
+--[[
+	THE CAP IS ONE LINE, ON PURPOSE.
+
+	Raising TOOL_MAX_LEVEL used to mean re-tuning three growth rates by hand,
+	and getting it wrong was silent: at a 10,000 cap the old per-level rates put
+	max damage at 1.1e100, which is 5.6e79 times the deepest block in the game,
+	and the cost of a full climb at 1.76e37 ore. Nothing overflowed -- it just
+	stopped meaning anything.
+
+	So the per-level rates are DERIVED from what a whole climb is worth instead
+	of being stated directly. Move the cap and the curve restretches:
+
+	  DAMAGE holds exactly. A full climb is worth 3.9e8 at any cap, so a maxed
+	  tool lands 222x over the deepest block whether that took 1,000 levels or
+	  10,000. This is the property that matters, because it is what keeps tools
+	  in step with the mine.
+
+	  COST scales with the cap, roughly linearly -- about 1.5e10 stardust for a
+	  full climb at 1,000 and 1.5e11 at 10,000. That is not a leak, it is
+	  arithmetic: stretch the same curve over ten times more steps and the sum
+	  of those steps is ten times larger. Ten times the levels for ten times the
+	  investment, at the same final power. If a bigger cap should NOT cost more,
+	  drop TOOL_CLIMB_ORE and TOOL_CLIMB_DUST by the same factor as the cap rose.
+
+	At 1000 these reproduce the hand-tuned originals exactly -- 1.02 damage,
+	1.0075 ore, 1.011 dust -- so this is a refactor, not a rebalance. At 10,000
+	they become 1.00198, 1.00075 and 1.00109.
+]]
+MineConfig.TOOL_MAX_LEVEL = 1000      -- the one line to move
+
+-- What a full 1 -> max climb multiplies by. Cap-independent.
+MineConfig.TOOL_CLIMB_DAMAGE = 3.9e8
+MineConfig.TOOL_CLIMB_ORE = 1747      -- last level costs this many x the first
+MineConfig.TOOL_CLIMB_DUST = 55800
+
+local function perLevel(total)
+	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
+	return total ^ (1 / steps)
+end
+
 MineConfig.TOOL_TIER_SPAN = 16        -- 6^16 from tier 1 to tier 121
 MineConfig.TOOL_DMG_BASE = 10
-MineConfig.TOOL_DMG_STEP = 1.02       -- per level
+MineConfig.TOOL_DMG_STEP = perLevel(MineConfig.TOOL_CLIMB_DAMAGE)
 MineConfig.TOOL_ORE_BASE = 4
-MineConfig.TOOL_ORE_GROW = 1.0075
+MineConfig.TOOL_ORE_GROW = perLevel(MineConfig.TOOL_CLIMB_ORE)
 MineConfig.TOOL_DUST_BASE = 25
-MineConfig.TOOL_DUST_GROW = 1.011
+MineConfig.TOOL_DUST_GROW = perLevel(MineConfig.TOOL_CLIMB_DUST)
 MineConfig.TOOL_COST_TIER = 0.85      -- cost exponent on ore tier
 MineConfig.TOOL_COST_TYPE = 0.5       -- cost exponent on type rarity
 MineConfig.TOOL_RECYCLE_PCT = 0.5     -- flat cut of what went in
