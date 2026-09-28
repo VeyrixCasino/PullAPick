@@ -21,6 +21,15 @@ they finish.
 
 ## Next up
 
+- [ ] **Decide on the duplicate Event Horizon pet module.**
+  `MineEHPets.luau` and `MineEventHorizonPets.luau` are byte-identical (same
+  md5) and both live in the tree. Every consumer reads
+  `FindFirstChild("MineEHPets") or FindFirstChild("MineEventHorizonPets")`, so
+  the short name always wins and the long one is 34 KB that never loads. It
+  looks like a rename that kept the old file as a fallback. Not deleted unasked
+  — removing it makes Rojo drop the instance from Studio, and Cursor works in
+  this tree too.
+
 - [ ] **Ore faces on every block type, in every zone.** Once access lands:
   confirm the faces read on ore in all 11 zones against each zone's own rock
   colour and accent material, and against every block kind that can carry ore.
@@ -29,7 +38,6 @@ they finish.
 - [ ] **Pickaxe models.** None of the pickaxes have one. 2,278 `.obj` tool
   meshes (119 unique) are merged into `ToolParts_import.obj` ready for Studio's
   3D importer; `AssetService:CreateEditableMesh` is proven with Pickaxe tier 0.
-- [ ] **Shop GUI → fullscreen pedestal.** Still renders as a window.
 - [ ] **Unique item ids across everything owned.** Every owned thing gets its
   own uid whose FIRST FOUR DIGITS identify which specific thing it is. Applies
   to tools, packs, charms, hats, pets, bags, runes, tempers -- everything
@@ -89,6 +97,12 @@ they finish.
 ---
 
 ## Done
+
+- [x] ~~Shop stage goes full screen~~ **done** (visual pass still unrun) — the
+  viewport is the bottom layer of the whole panel, no backdrop, no ground slab,
+  camera framed from the real aspect and centred in the free band between the
+  header and the name/stats/BUY stack. Arithmetic checked at all nine
+  acceptance resolutions; nothing seen on screen yet.
 
 - [x] ~~Blacksmith bench verbs~~ **done** — upgrade and recycle, both keyed by
   uid rather than list index, so a bag that reorders cannot upgrade the wrong
