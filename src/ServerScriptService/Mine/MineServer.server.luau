@@ -535,6 +535,12 @@ local function blank()
 
 			  { uid, tier, typeId, level }
 
+			The uid is minted once and NEVER regenerated -- not on upgrade, not
+			on equip, not on trade. Levelling mutates `level` and touches
+			nothing else, so a tool is the same object at level 900 that it was
+			at level 1. That is the whole point of having the id: without it,
+			"which Frack did I just upgrade" has no answer.
+
 			`level` runs 1..MineConfig.TOOL_MAX_LEVEL and defaults to 1: a tool
 			found in a wall has had nothing put into it, which is why recycling
 			one pays nothing and the rate can stay a flat half of what went in.
@@ -13292,6 +13298,182 @@ task.spawn(function()
 	end
 end)
 
+
+--[[
+	THE BLACKSMITH BENCH.
+
+	Ore tools level on their own 1..TOOL_MAX_LEVEL scale, paid for in ore and
+	stardust. MineConfig owns the pricing so the bench, the recycler and the UI
+	cannot drift apart: toolUpgradeCost for one step, toolSpent for everything
+	poured in, toolRecycle for what comes back.
+
+	Every entry point takes a UID. Not an index -- the bag reorders whenever a
+	tool is found or scrapped, and an index captured when the panel was drawn
+	names a different tool by the time the button is pressed. Packs already
+	learned this; the comment on openAt says so.
+
+	The uid never changes here. Upgrading mutates `level` and nothing else, so
+	a tool is the same object at level 900 that it was at level 1.
+]]
+local function findOreTool(p, uid)
+	if type(uid) ~= "string" or uid == "" then
+		return nil, nil
+	end
+	for i, t in ipairs(p.oreTools or {}) do
+		if type(t) == "table" and t.uid == uid then
+			return t, i
+		end
+	end
+	return nil, nil
+end
+
+local function benchNum(n)
+	n = tonumber(n) or 0
+	if n < 1000 then
+		return tostring(math.floor(n))
+	end
+	if n < 1e6 then
+		return string.format("%.1fK", n / 1e3)
+	end
+	if n < 1e9 then
+		return string.format("%.1fM", n / 1e6)
+	end
+	return string.format("%.2e", n)
+end
+
+--[[
+	The ore an ore tool is made of is the ore it eats to level. Anything else
+	would let a player bank one cheap ore and level every tool they own with it.
+
+	typeMult comes from the tool's RARITY RANK, not a weight field -- tool defs
+	carry a rarity, and MineTools.RARITY_RANK turns that into 1 for Common up
+	to 8 for Exotic. toolCostMult raises it to TOOL_COST_TYPE (0.5), so a rarer
+	frame costs about 2.8x a Common one to level, never less.
+]]
+local function oreToolTypeMult(tool)
+	local fam = Tools.TOOLS and Tools.TOOLS[tool.familyId or "pickaxe"]
+	if fam then
+		for _, td in ipairs(fam) do
+			if td.id == tool.typeId then
+				local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
+				return (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
+			end
+		end
+	end
+	return 1
+end
+
+local function oreToolCost(tool)
+	local oreDef = C.ORES and C.ORES[tonumber(tool.tier) or 1]
+	local typeMult = oreToolTypeMult(tool)
+	local level = math.max(1, tonumber(tool.level) or 1)
+	local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
+	return ore, dust, oreDef, typeMult
+end
+
+function Verbs.upgradeOreTool(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local uid = (type(payload) == "table") and payload.uid or payload
+	local tool = findOreTool(p, uid)
+	if not tool then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+	local level = math.max(1, tonumber(tool.level) or 1)
+	if level >= (C.TOOL_MAX_LEVEL or 1000) then
+		net:FireClient(plr, "toast", "That tool is at max level")
+		return
+	end
+
+	local ore, dust, oreDef = oreToolCost(tool)
+	if not ore or not dust then
+		net:FireClient(plr, "toast", "That tool cannot be levelled")
+		return
+	end
+	local oreId = oreDef and oreDef.id
+	if not oreId then
+		net:FireClient(plr, "toast", "That tool has no ore")
+		return
+	end
+
+	-- How many steps the player can actually afford, capped by the request and
+	-- by the level ceiling. `count` lets the panel offer +1 / +10 / max without
+	-- a round trip per level.
+	local want = math.floor(tonumber(type(payload) == "table" and payload.count) or 1)
+	want = math.clamp(want, 1, (C.TOOL_MAX_LEVEL or 1000) - level)
+
+	p.ores = p.ores or {}
+	local haveOre = tonumber(p.ores[oreId]) or 0
+	local haveDust = tonumber(p.dust) or 0
+	local typeMult = oreToolTypeMult(tool)
+	local spentOre, spentDust, steps = 0, 0, 0
+	for i = 0, want - 1 do
+		local o, d = C.toolUpgradeCost(tool.tier, level + i, typeMult)
+		if not o then break end
+		if haveOre - spentOre < o or haveDust - spentDust < d then break end
+		spentOre += o
+		spentDust += d
+		steps += 1
+	end
+
+	if steps == 0 then
+		net:FireClient(plr, "toast", string.format(
+			"Needs %s %s and %s stardust",
+			benchNum(ore),
+			(oreDef and oreDef.name) or oreId,
+			benchNum(dust)))
+		return
+	end
+
+	p.ores[oreId] = haveOre - spentOre
+	p.dust = haveDust - spentDust
+	tool.level = level + steps          -- the uid is untouched, on purpose
+	bumpStat(plr, p, "upgrades")
+	net:FireClient(plr, "toast", string.format("+%d  ->  level %d", steps, tool.level))
+	snap(plr)
+	markDirty(plr)
+end
+
+function Verbs.recycleOreTool(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local uid = (type(payload) == "table") and payload.uid or payload
+	local tool, index = findOreTool(p, uid)
+	if not tool or not index then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+	if tool.equipped then
+		net:FireClient(plr, "toast", "Unequip it first")
+		return
+	end
+
+	local _, _, oreDef, typeMult = oreToolCost(tool)
+	local level = math.max(1, tonumber(tool.level) or 1)
+	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
+	local oreId = oreDef and oreDef.id
+
+	table.remove(p.oreTools, index)
+	if oreId and ore > 0 then
+		p.ores = p.ores or {}
+		p.ores[oreId] = (tonumber(p.ores[oreId]) or 0) + ore
+	end
+	if dust > 0 then
+		p.dust = (tonumber(p.dust) or 0) + dust
+	end
+	net:FireClient(plr, "toast", string.format("Scrapped  +%s %s  +%s stardust",
+		benchNum(ore),
+		(oreDef and oreDef.name) or "ore",
+		benchNum(dust)))
+	snap(plr)
+	markDirty(plr)
+end
+
 net.OnServerEvent:Connect(function(plr, action, payload)
 	if action == "swing" and typeof(payload) == "Instance" then
 		if not profiles[plr.UserId] then load(plr) end
@@ -13305,6 +13487,8 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if not profiles[plr.UserId] then load(plr) end
 		if Verbs.policyBlocks(plr, action) then return end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
+		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
+		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
 		elseif action == "throwAt" then throwAt(plr, payload)
 		elseif action == "bagGo" then
 			if payload == "sell" and hasVipPass(plr) then

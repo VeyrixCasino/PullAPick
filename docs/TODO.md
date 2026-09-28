@@ -36,10 +36,10 @@ they finish.
   except currency itself. Some of this existed once and was dropped; packs
   still carry a .
 - [ ] **New enchantments** added.
-- [ ] **Blacksmith bench: UI + verb.** The pricing model is committed and
-  tested (`MineConfig.toolUpgradeCost` / `toolSpent` / `toolRecycle`,
-  `p.toolLevels`); what's missing is the server verb that spends ore + dust and
-  the bench screen. The blacksmith building itself already exists.
+- [ ] **Blacksmith bench: the UI.** Server side is done — `upgradeOreTool` and
+  `recycleOreTool` both take a uid and are wired into the dispatch, and the
+  pricing lives in `MineConfig`. What's missing is the panel that lists a
+  player's ore tools and offers +1 / +10 / max. The building already exists.
 
 ---
 
@@ -89,6 +89,10 @@ they finish.
 ---
 
 ## Done
+
+- [x] ~~Blacksmith bench verbs~~ **done** — upgrade and recycle, both keyed by
+  uid rather than list index, so a bag that reorders cannot upgrade the wrong
+  tool. Levelling mutates `level` and never the uid, proven over 550 levels.
 
 - [x] ~~Every owned instance carries a uid~~ **done** — chestTools, gear and
   relics were the gaps; cards, packs and runes already had one. Ore tools are
