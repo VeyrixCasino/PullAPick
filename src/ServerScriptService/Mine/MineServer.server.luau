@@ -1139,11 +1139,17 @@ local function load(plr)
 		if type(map) == "table" then
 			if type(p.ores) == "table" then
 				for oldId, newId in pairs(map) do
-					local held = tonumber(p.ores[oldId])
-					if held and held > 0 then
-						p.ores[newId] = (tonumber(p.ores[newId]) or 0) + held
+					-- An id mapped to itself would add a pile to itself and then
+					-- delete the lot. The generator refuses to emit one, and this
+					-- refuses to act on one, because the failure is silent and
+					-- total: the player just finds the ore gone.
+					if oldId ~= newId then
+						local held = tonumber(p.ores[oldId])
+						if held and held > 0 then
+							p.ores[newId] = (tonumber(p.ores[newId]) or 0) + held
+						end
+						p.ores[oldId] = nil
 					end
-					p.ores[oldId] = nil
 				end
 			end
 			if type(p.packs) == "table" then
