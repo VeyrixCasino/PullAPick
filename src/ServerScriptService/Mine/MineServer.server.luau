@@ -1118,6 +1118,50 @@ local function load(plr)
 	if p.gotFirstPick == nil then
 		p.gotFirstPick = true
 	end
+	--[[
+		Ore roster swap: 33 ids were retired and every one of them is load
+		bearing twice over. p.ores[id] is banked material, and every ore pack in
+		the bag is "<id>_ore_pack" -- so dropping an id without a map does not
+		just rename a rock, it deletes a player's stock and bricks their packs
+		into rows that no longer resolve to anything.
+
+		Runs once per profile and stamps oreRosterV so it never runs twice. The
+		merge is additive: a save holding both the old id and its replacement
+		keeps the sum rather than whichever the loop happened to reach last.
+	]]
+	if p.oreRosterV ~= 1 then
+		local map = C.ORE_MIGRATION
+		if type(map) == "table" then
+			if type(p.ores) == "table" then
+				for oldId, newId in pairs(map) do
+					local held = tonumber(p.ores[oldId])
+					if held and held > 0 then
+						p.ores[newId] = (tonumber(p.ores[newId]) or 0) + held
+					end
+					p.ores[oldId] = nil
+				end
+			end
+			if type(p.packs) == "table" then
+				-- ore packs resolve through MineZonePacks, not MinePackConfig:
+				-- only the former has get(), so `Packs` here would silently
+				-- leave every renamed pack showing its old name.
+				local ZonePacks = require(shared:WaitForChild("MineZonePacks"))
+				for _, pk in ipairs(p.packs) do
+					local pid = pk and pk.packId
+					if type(pid) == "string" then
+						local baseId = pid:match("^(.*)_ore_pack$")
+						local to = baseId and map[baseId]
+						if to then
+							pk.packId = to .. "_ore_pack"
+							local def = ZonePacks.get and ZonePacks.get(pk.packId)
+							pk.packName = (def and def.name) or pk.packName
+						end
+					end
+				end
+			end
+		end
+		p.oreRosterV = 1
+	end
 	if type(p.tools) ~= "table" then
 		p.tools = { pickaxe = math.max(1, tonumber(p.pickaxeTier) or 1), drill = 0, explosive = 0 }
 		p.gotFirstPick = true
@@ -3136,6 +3180,44 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		part:SetAttribute("OreId", oreDef.id)
 		part:SetAttribute("OreName", oreDef.name)
 		part:SetAttribute("OreTier", oreDef.tier)
+		--[==[
+			Name the ore on the block itself.
+
+			The server has always stamped OreId / OreName / OreTier onto the
+			part and nothing has ever read them -- the client has no ore
+			awareness at all. So 121 ores share one palette and, in the wall,
+			a Cobalt vein and a Niobium one are the same blue cube. Colour
+			cannot carry identity at this roster size; the name has to.
+
+			MaxDistance keeps it on the block you are standing at instead of
+			papering the whole shaft with floating text, and the tier line is
+			tinted the ore's own colour so the two read as one object.
+		]==]
+		local tag = Instance.new("BillboardGui")
+		tag.Name = "OreTag"
+		tag.Size = UDim2.fromOffset(150, 34)
+		tag.StudsOffsetWorldSpace = Vector3.new(0, size * 0.75, 0)
+		tag.MaxDistance = 42
+		tag.Parent = part
+		local nameLbl = Instance.new("TextLabel")
+		nameLbl.BackgroundTransparency = 1
+		nameLbl.Size = UDim2.new(1, 0, 0, 20)
+		nameLbl.Font = Enum.Font.GothamBold
+		nameLbl.TextSize = 15
+		nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+		nameLbl.TextStrokeTransparency = 0.35
+		nameLbl.Text = tostring(oreDef.name)
+		nameLbl.Parent = tag
+		local tierLbl = Instance.new("TextLabel")
+		tierLbl.BackgroundTransparency = 1
+		tierLbl.Position = UDim2.fromOffset(0, 19)
+		tierLbl.Size = UDim2.new(1, 0, 0, 14)
+		tierLbl.Font = Enum.Font.Gotham
+		tierLbl.TextSize = 11
+		tierLbl.TextColor3 = oreDef.color
+		tierLbl.TextStrokeTransparency = 0.5
+		tierLbl.Text = "tier " .. tostring(oreDef.tier)
+		tierLbl.Parent = tag
 		if oreDef.glow then
 			--[[
 				Glowing ore lights the shaft it sits in.
@@ -5775,9 +5857,15 @@ local function openPack(plr, setId, chestId, pk, collect)
 				bumpStat(plr, p, "packs")
 				-- The reveal needs something to celebrate with, and every ore is
 				-- Common on the card rarity scale. Grade it off its own tier.
+				-- Bands, straight off the roster: Common 1-24, Uncommon 25-48,
+				-- Rare 49-72, Epic 73-96, Legendary 97-108, Mythic 109-114,
+				-- Divine 115-118, Exotic 119-121. These used to stop at Divine
+				-- with the top three ores grading as merely Divine, and the
+				-- Mythic/Divine cuts sat at 110/118 rather than 108/114.
 				local tier = (ore and ore.tier) or 1
-				local grade = (tier > 118 and "Divine")
-					or (tier > 110 and "Mythic")
+				local grade = (tier > 118 and "Exotic")
+					or (tier > 114 and "Divine")
+					or (tier > 108 and "Mythic")
 					or (tier > 96 and "Legendary")
 					or (tier > 72 and "Epic")
 					or (tier > 48 and "Rare")
