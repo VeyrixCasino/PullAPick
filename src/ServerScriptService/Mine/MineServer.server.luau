@@ -3851,9 +3851,10 @@ local function zoneTierOf(zone)
 	return 1
 end
 
--- What a broken chest actually yields. Almost always a pack; sometimes coins,
--- gems or dust; very rarely a relic, which is a permanent item that survives
--- rebirth. Luck shifts weight onto the rows worth having.
+-- What a broken chest actually yields. Usually packs -- a run of them, which
+-- can be none -- sometimes coins, a hat often enough to chase sets, a charm
+-- rarely, and a relic almost never. No gems: those are minted from scrap ore
+-- now. Luck shifts weight onto the rows worth having AND lengthens the run.
 local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	local rng = Random.new()
 	local rows = C.CHEST_LOOT
@@ -3878,22 +3879,65 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	-- zone-6 chest never pays zone-1 money and nothing needs re-tuning when a
 	-- zone is added. A chest is meant to feel like a seam, not like a block.
 	local dirtValue = math.max(1, C.coinsFor and C.coinsFor("dirt", zone, layer) or 1)
-	local oreValue = math.max(1, C.gemsFor and C.gemsFor("iron", zone, layer) or 1)
 
 	if chosen.kind == "pack" then
-		local row = {
-			kind = kind,
-			chestId = chest.id,
-			zoneTier = tier,
-			zoneId = zone.id,
-			layer = layer,
-			setId = C.setForLayer(zone, layer),
-		}
+		-- A run, not a row. Sometimes nothing, sometimes a pile; the count is
+		-- uncapped on purpose (C.chestPackCount).
 		local stampedLuck = tonumber(b and b.luck) or 1
-		if stampedLuck > 1 then
-			row.luck = stampedLuck
+		local n = C.chestPackCount and C.chestPackCount(luck, rng) or 1
+		for _ = 1, n do
+			local row = {
+				kind = kind,
+				chestId = chest.id,
+				zoneTier = tier,
+				zoneId = zone.id,
+				layer = layer,
+				setId = C.setForLayer(zone, layer),
+			}
+			if stampedLuck > 1 then
+				row.luck = stampedLuck
+			end
+			table.insert(p.packs, row)
 		end
-		table.insert(p.packs, row)
+		if n == 0 then
+			return "empty", 0
+		end
+		return "pack", chest.id, n
+	elseif chosen.kind == "hat" then
+		-- Head-slot gear, rolled on the spot. The common cosmetic find.
+		if Gear and Gear.rollPiece then
+			p.gear = p.gear or {}
+			local id = "g" .. tostring(os.time()) .. tostring(rng:NextInteger(1000, 9999))
+			local piece = Gear.rollPiece(id, rng, "head")
+			if piece then
+				table.insert(p.gear, piece)
+				return "hat", piece.name or "Hat"
+			end
+		end
+		-- Gear unavailable: fall through to a pack rather than a dead chest.
+		table.insert(p.packs, { kind = kind, chestId = chest.id, zoneTier = tier,
+			zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) })
+		return "pack", chest.id
+	elseif chosen.kind == "charm" then
+		-- The rare one. Never a duplicate; a full set falls back to a pack so
+		-- the rarest roll is never a dead one, same as relics.
+		local okC, Charms = pcall(function()
+			return require(shared:WaitForChild("MineCharms"))
+		end)
+		if okC and Charms and Charms.packPool then
+			p.charms = p.charms or {}
+			local pool = {}
+			for _, c in ipairs(Charms.packPool() or {}) do
+				if not p.charms[c.id] then table.insert(pool, c) end
+			end
+			if #pool > 0 then
+				local c = pool[rng:NextInteger(1, #pool)]
+				p.charms[c.id] = true
+				return "charm", c.name or c.id
+			end
+		end
+		table.insert(p.packs, { kind = kind, chestId = chest.id, zoneTier = tier,
+			zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) })
 		return "pack", chest.id
 	elseif chosen.kind == "coins" then
 		-- Worth roughly 280-760 dirt blocks: a real jump, not a rounding error.
@@ -3901,12 +3945,6 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 			* (b.coinBonus or 1) * luck)
 		p.coins = (p.coins or 0) + amount
 		return "coins", amount
-	elseif chosen.kind == "gems" then
-		-- Worth roughly 6-18 ore blocks.
-		local amount = math.max(1, math.floor(oreValue * (6 + rng:NextNumber() * 12)
-			* (b.gemFind or 1) * luck))
-		p.gems = (p.gems or 0) + amount
-		return "gems", amount
 	elseif chosen.kind == "dust" then
 		local amount = math.max(5, math.floor(tier * tier * 120 * (0.6 + rng:NextNumber())))
 		p.dust = (p.dust or 0) + amount

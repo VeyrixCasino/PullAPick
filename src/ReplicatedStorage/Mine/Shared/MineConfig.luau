@@ -181,13 +181,60 @@ end
 
 -- What a broken chest turns into. Weights are relative; luck pushes the good
 -- rows up and the filler rows down.
+--[[
+	WHAT A CHEST PAYS.
+
+	Gems are gone from this table on purpose. Gems are minted by selling scrap
+	ore now, which is the whole point of the ore roster -- a currency whose
+	price we set rather than one that leaks out of every chest in the game.
+
+	Hats and charms both arrive here, and the gap between them is the design:
+	a hat is something you see often enough to go looking for sets, a charm is
+	a real find. Hats run about 8x the rate of charms.
+
+	Per 1000 chests, roughly: 701 packs, 170 coins, 90 hats, 22 dust,
+	11 charms, 6 relics.
+]]
 MineConfig.CHEST_LOOT = {
-	{ kind = "pack",   weight = 62 },
-	{ kind = "coins",  weight = 14 },
-	{ kind = "gems",   weight = 12 },
-	{ kind = "dust",   weight = 8 },
+	{ kind = "pack",   weight = 70 },
+	{ kind = "coins",  weight = 17 },
+	{ kind = "hat",    weight = 9 },
+	{ kind = "dust",   weight = 2.2 },
+	{ kind = "charm",  weight = 1.1, lucky = true },
 	{ kind = "relic",  weight = 0.6, lucky = true },
 }
+
+--[[
+	HOW MANY PACKS A PACK CHEST PAYS.
+
+	Not one. A chest can come up empty and a chest can bury you, and there is
+	no cap on the good end -- that open tail is the entire reason the empty end
+	is allowed to exist. No pity, no floor, no "guaranteed after N".
+
+	The haul is base + a geometric run: each extra pack keeps the run going
+	with probability STREAK, scaled by luck. At luck 1 that averages under two
+	packs and comes up empty about one time in ten. Stack enough luck and
+	STREAK approaches its ceiling, where hauls of 10-20 stop being remarkable.
+	The ceiling is on the per-step probability, never on the count.
+]]
+MineConfig.CHEST_PACK_BASE = 1
+MineConfig.CHEST_PACK_EMPTY = 0.10
+MineConfig.CHEST_PACK_STREAK = 0.42
+MineConfig.CHEST_PACK_STREAK_MAX = 0.94
+
+function MineConfig.chestPackCount(luck, rng)
+	rng = rng or Random.new()
+	local l = math.max(1, tonumber(luck) or 1)
+	if rng:NextNumber() < (MineConfig.CHEST_PACK_EMPTY / l) then
+		return 0
+	end
+	local n = MineConfig.CHEST_PACK_BASE
+	local p = math.min(MineConfig.CHEST_PACK_STREAK_MAX, MineConfig.CHEST_PACK_STREAK * l)
+	while rng:NextNumber() < p do
+		n += 1
+	end
+	return n
+end
 
 function MineConfig.zoneOrigin(zone)
 	local rad = math.rad(zone.angle or 0)

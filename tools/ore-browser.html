@@ -1,0 +1,298 @@
+<title>Ore Cabinet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --paper:#efe9df; --case:#f7f3ec; --sunk:#e4dccf;
+    --ink:#1f1b16; --ink-2:#5b5148; --ink-3:#8a7f72;
+    --line:#d6cbb9; --line-2:#c2b49e;
+    --brass:#8a6a2f; --brass-2:#b08b42;
+    --new:#7a4a18;
+    --shadow: 0 1px 2px rgba(31,27,22,.08), 0 8px 24px rgba(31,27,22,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --paper:#141310; --case:#1c1a16; --sunk:#100f0d;
+      --ink:#f2ece1; --ink-2:#b3a896; --ink-3:#7d7364;
+      --line:#2e2a23; --line-2:#3d372d;
+      --brass:#d6ab5c; --brass-2:#eac986;
+      --new:#e0a566;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --paper:#141310; --case:#1c1a16; --sunk:#100f0d;
+    --ink:#f2ece1; --ink-2:#b3a896; --ink-3:#7d7364;
+    --line:#2e2a23; --line-2:#3d372d;
+    --brass:#d6ab5c; --brass-2:#eac986;
+    --new:#e0a566;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Petrona",Georgia,"Times New Roman",serif;
+    font-size:16px; line-height:1.5;
+    padding-block:28px 64px; padding-left:20px; padding-right:20px;
+    margin:0;
+  }
+  .wrap{max-width:1180px; margin:0 auto}
+
+  /* ---- masthead ---- */
+  header{border-bottom:2px solid var(--line-2); padding-bottom:18px; margin-bottom:22px}
+  .eyebrow{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--brass);
+    margin:0 0 6px;
+  }
+  h1{
+    font-size:clamp(30px,5vw,46px); font-weight:600; letter-spacing:-.015em;
+    margin:0 0 8px; text-wrap:balance;
+  }
+  .sub{color:var(--ink-2); margin:0; max-width:62ch; font-size:16px}
+  .sub em{color:var(--ink); font-style:italic}
+
+  /* ---- controls ---- */
+  .controls{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    margin:20px 0 6px; padding:12px; background:var(--case);
+    border:1px solid var(--line); border-radius:3px;
+    position:sticky; top:env(safe-area-inset-top, 0px); z-index:20;
+    box-shadow:var(--shadow);
+  }
+  input[type="search"], select{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:13px;
+    background:var(--paper); color:var(--ink);
+    border:1px solid var(--line-2); border-radius:2px; padding:7px 9px;
+  }
+  input[type="search"]{min-width:150px; flex:1 1 150px}
+  label.chk{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12px;
+    color:var(--ink-2); display:flex; align-items:center; gap:6px;
+    cursor:pointer; white-space:nowrap;
+  }
+  .count{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12px;
+    color:var(--ink-3); margin-left:auto; white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+  }
+  :focus-visible{outline:2px solid var(--brass); outline-offset:2px}
+
+  /* ---- band sections ---- */
+  .band{margin-top:34px}
+  .band-head{
+    display:flex; align-items:baseline; gap:12px;
+    border-bottom:1px solid var(--line); padding-bottom:6px; margin-bottom:14px;
+  }
+  .band-name{
+    font-size:21px; font-weight:600; letter-spacing:-.01em; margin:0;
+  }
+  .band-range{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+    color:var(--ink-3); letter-spacing:.08em; font-variant-numeric:tabular-nums;
+  }
+  .band-rule{flex:1; height:1px; background:var(--line)}
+
+  /* ---- specimen grid ---- */
+  .grid{
+    display:grid; gap:12px;
+    grid-template-columns:repeat(auto-fill,minmax(212px,1fr));
+  }
+  .spec{
+    background:var(--case); border:1px solid var(--line);
+    border-radius:3px; overflow:hidden; box-shadow:var(--shadow);
+    display:flex; flex-direction:column;
+  }
+  .swatch{
+    height:104px; position:relative; background:var(--sw);
+    border-bottom:1px solid var(--line);
+  }
+  /* finishes, keyed off the Roblox material */
+  .f-metal::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(115deg,
+      rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 32%,
+      rgba(0,0,0,.28) 58%, rgba(255,255,255,.34) 84%, rgba(0,0,0,.2) 100%);
+  }
+  .f-glass::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(160deg, rgba(255,255,255,.5), rgba(255,255,255,0) 46%),
+               radial-gradient(120% 80% at 22% 12%, rgba(255,255,255,.42), transparent 60%);
+  }
+  .f-matte::after{
+    content:""; position:absolute; inset:0; opacity:.5;
+    background-image:
+      radial-gradient(rgba(0,0,0,.16) 1px, transparent 1.1px),
+      radial-gradient(rgba(255,255,255,.14) 1px, transparent 1.1px);
+    background-size:7px 7px, 11px 11px;
+    background-position:0 0, 3px 5px;
+  }
+  .glowring{
+    position:absolute; inset:0; pointer-events:none;
+    box-shadow:inset 0 0 34px 6px var(--gl), inset 0 0 8px 1px var(--gl);
+  }
+  .rainbow{animation:hue 6s linear infinite}
+  @keyframes hue{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(360deg)}}
+  @media (prefers-reduced-motion: reduce){ .rainbow{animation:none} }
+
+  .tierno{
+    position:absolute; left:8px; top:6px;
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+    font-weight:600; letter-spacing:.06em; font-variant-numeric:tabular-nums;
+    color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.85);
+  }
+  .flags{position:absolute; right:7px; top:6px; display:flex; gap:4px}
+  .flag{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:9px;
+    letter-spacing:.1em; text-transform:uppercase; font-weight:600;
+    padding:2px 5px; border-radius:2px; backdrop-filter:blur(2px);
+    background:rgba(0,0,0,.5); color:#fff;
+  }
+  .flag.new{background:rgba(0,0,0,.5); color:#ffd9a8}
+
+  .body{padding:9px 11px 11px; display:flex; flex-direction:column; gap:5px; flex:1}
+  .nm{font-size:17px; font-weight:600; letter-spacing:-.01em; line-height:1.2; margin:0}
+  .toolname{
+    font-size:13px; font-style:italic; color:var(--ink-2); margin:0; line-height:1.3;
+  }
+  .meta{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10.5px;
+    color:var(--ink-3); letter-spacing:.02em; margin:0;
+    display:flex; flex-wrap:wrap; gap:3px 9px; margin-top:auto; padding-top:5px;
+    font-variant-numeric:tabular-nums;
+  }
+  .empty{
+    color:var(--ink-3); font-style:italic; padding:40px 0; text-align:center;
+  }
+  footer{
+    margin-top:48px; padding-top:16px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:13.5px; max-width:70ch;
+  }
+  code{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.88em;
+    background:var(--sunk); padding:1px 4px; border-radius:2px; color:var(--ink-2);
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Mine for Cards &middot; MineConfig.ORES</p>
+    <h1>Ore Cabinet</h1>
+    <p class="sub">All 121 ores as they now sit in the config, in tier order across the eight
+      rarity bands. Colour, finish and glow are the real values the block spawns with.
+      <em>Say it with a tool</em> shows how each name reads once a tool is made of it &mdash;
+      which is the thing worth judging before any of these are locked in.</p>
+  </header>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search name or id" aria-label="Search ores">
+    <select id="band" aria-label="Filter by rarity band"><option value="">All bands</option></select>
+    <select id="tool" aria-label="Say it with a tool">
+      <option value="">Say it with a tool&hellip;</option>
+      <option>Pickaxe</option><option>Sledge</option><option>Trench Shovel</option>
+      <option>Drill</option><option>Breacher</option><option>Frack</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="onlyNew"> new only</label>
+    <label class="chk"><input type="checkbox" id="onlyGlow"> glowing</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div id="out"></div>
+
+  <footer>
+    <p>Tier sets difficulty as <code>D = (tier &minus; 1) &times; 0.2674</code>, so tier 121 sits
+      32.09 steps of &times;6 above tier 1 &mdash; the same unit the mine measures depth in.
+      <code>met</code> and <code>rough</code> are the PBR values on the spawned part;
+      <code>glow</code> ores carry a PointLight whose range follows its brightness.</p>
+    <p>33 of these are new to the roster. The other 88 kept their id, so saves holding them
+      carry straight over; the retired 33 map to a replacement on load.</p>
+  </footer>
+</div>
+
+<script>
+  const ORES = [{"id":"stone","name":"Stone","tier":1,"rgb":[131,131,131],"mat":"Rock","met":0,"rough":0.9},{"id":"cobblestone","name":"Cobblestone","tier":2,"rgb":[105,107,113],"mat":"Cobblestone","met":0,"rough":0.95},{"id":"clay","name":"Clay","tier":3,"rgb":[184,93,48],"mat":"Mud","met":0,"rough":0.95},{"id":"sandstone","name":"Sandstone","tier":4,"rgb":[231,182,102],"mat":"Sandstone","met":0,"rough":0.95},{"id":"limestone","name":"Limestone","tier":5,"rgb":[240,229,191],"mat":"Limestone","met":0,"rough":0.9},{"id":"pumice","name":"Pumice","tier":6,"rgb":[200,195,185],"mat":"Concrete","met":0,"rough":1},{"id":"rock_salt","name":"Rock Salt","tier":7,"rgb":[255,196,196],"mat":"Salt","met":0,"rough":0.4},{"id":"coal","name":"Coal","tier":8,"rgb":[40,40,46],"mat":"Slate","met":0,"rough":0.7},{"id":"flint","name":"Flint","tier":9,"rgb":[138,119,100],"mat":"Slate","met":0,"rough":0.35},{"id":"chert","name":"Chert","tier":10,"rgb":[178,110,61],"mat":"Limestone","met":0,"rough":0.5},{"id":"basalt","name":"Basalt","tier":11,"rgb":[55,57,70],"mat":"Basalt","met":0,"rough":0.85},{"id":"slate","name":"Slate","tier":12,"rgb":[41,81,138],"mat":"Slate","met":0,"rough":0.6},{"id":"bone","name":"Bone","tier":13,"rgb":[243,211,140],"mat":"Plaster","met":0,"rough":0.7},{"id":"granite","name":"Granite","tier":14,"rgb":[189,131,128],"mat":"Granite","met":0,"rough":0.5},{"id":"copper","name":"Copper","tier":15,"rgb":[205,87,5],"mat":"Metal","met":1,"rough":0.3},{"id":"diorite","name":"Diorite","tier":16,"rgb":[215,215,215],"mat":"Pebble","met":0,"rough":0.6},{"id":"tin","name":"Tin","tier":17,"rgb":[210,212,218],"mat":"CorrodedMetal","met":1,"rough":0.45},{"id":"cassiterite","name":"Cassiterite","tier":18,"rgb":[138,52,0],"mat":"Slate","met":0.6,"rough":0.2},{"id":"emberstone","name":"Emberstone","tier":19,"rgb":[80,32,18],"mat":"CrackedLava","met":0,"rough":0.8,"glow":{"rgb":[255,100,20],"b":0.5}},{"id":"sulfur","name":"Sulfur","tier":20,"rgb":[254,226,0],"mat":"Sand","met":0,"rough":0.6},{"id":"lead","name":"Lead","tier":21,"rgb":[71,91,138],"mat":"CorrodedMetal","met":1,"rough":0.6},{"id":"galena","name":"Galena","tier":22,"rgb":[147,159,181],"mat":"DiamondPlate","met":1,"rough":0.08},{"id":"zinc","name":"Zinc","tier":23,"rgb":[137,178,211],"mat":"Foil","met":1,"rough":0.5},{"id":"aluminum","name":"Aluminum","tier":24,"rgb":[200,210,225],"mat":"Metal","met":1,"rough":0.35},{"id":"iron","name":"Iron","tier":25,"rgb":[166,166,172],"mat":"Metal","met":1,"rough":0.5},{"id":"hematite","name":"Hematite","tier":26,"rgb":[63,63,76],"mat":"Metal","met":1,"rough":0.08},{"id":"graphite","name":"Graphite","tier":27,"rgb":[102,113,138],"mat":"Metal","met":0.5,"rough":0.35},{"id":"pyrite","name":"Pyrite","tier":28,"rgb":[227,206,75],"mat":"DiamondPlate","met":1,"rough":0.15},{"id":"quartzite","name":"Quartzite","tier":29,"rgb":[255,172,192],"mat":"Salt","met":0,"rough":0.45},{"id":"selenite","name":"Selenite","tier":30,"rgb":[255,255,245],"mat":"Glass","met":0,"rough":0.2,"glow":{"rgb":[255,255,240],"b":0.2}},{"id":"chalcopyrite","name":"Chalcopyrite","tier":31,"rgb":[231,178,1],"mat":"Foil","met":1,"rough":0.2},{"id":"marble","name":"Marble","tier":32,"rgb":[254,252,246],"mat":"Marble","met":0,"rough":0.25},{"id":"pearl","name":"Pearl","tier":33,"rgb":[252,245,236],"mat":"SmoothPlastic","met":0.2,"rough":0.15},{"id":"frost_crystal","name":"Frost Crystal","tier":34,"rgb":[140,225,255],"mat":"Ice","met":0,"rough":0.05,"glow":{"rgb":[170,235,255],"b":0.4}},{"id":"quartz","name":"Quartz","tier":35,"rgb":[249,249,255],"mat":"Glass","met":0,"rough":0.05},{"id":"agate","name":"Agate","tier":36,"rgb":[205,86,26],"mat":"Marble","met":0,"rough":0.15},{"id":"jasper","name":"Jasper","tier":37,"rgb":[184,14,0],"mat":"Rock","met":0,"rough":0.3},{"id":"amber","name":"Amber","tier":38,"rgb":[255,152,0],"mat":"Glass","met":0,"rough":0.12},{"id":"petrified_wood","name":"Petrified Wood","tier":39,"rgb":[151,79,45],"mat":"Wood","met":0,"rough":0.4},{"id":"nickel","name":"Nickel","tier":40,"rgb":[227,195,131],"mat":"Foil","met":1,"rough":0.3},{"id":"magnetite","name":"Magnetite","tier":41,"rgb":[31,31,44],"mat":"Basalt","met":0.9,"rough":0.4,"glow":{"rgb":[67,136,255],"b":0.5}},{"id":"manganese","name":"Manganese","tier":42,"rgb":[205,97,159],"mat":"Metal","met":1,"rough":0.5},{"id":"malachite","name":"Malachite","tier":43,"rgb":[0,151,76],"mat":"Marble","met":0,"rough":0.2},{"id":"azurite","name":"Azurite","tier":44,"rgb":[0,92,229],"mat":"Marble","met":0,"rough":0.1},{"id":"cinnabar","name":"Cinnabar","tier":45,"rgb":[194,0,6],"mat":"Slate","met":0,"rough":0.35},{"id":"fluorite","name":"Fluorite","tier":46,"rgb":[139,69,255],"mat":"Glass","met":0,"rough":0.08,"glow":{"rgb":[149,93,255],"b":0.4}},{"id":"chromite","name":"Chromite","tier":47,"rgb":[60,31,31],"mat":"Rock","met":0.6,"rough":0.35},{"id":"onyx","name":"Onyx","tier":48,"rgb":[15,15,15],"mat":"Marble","met":0,"rough":0.04},{"id":"kimberlite","name":"Kimberlite","tier":49,"rgb":[83,138,113],"mat":"Pebble","met":0,"rough":0.8},{"id":"bloodstone","name":"Bloodstone","tier":50,"rgb":[20,95,50],"mat":"Marble","met":0,"rough":0.3},{"id":"garnet","name":"Garnet","tier":51,"rgb":[151,0,15],"mat":"Glass","met":0,"rough":0.07},{"id":"citrine","name":"Citrine","tier":52,"rgb":[255,212,0],"mat":"Glass","met":0,"rough":0.07},{"id":"chromium","name":"Chromium","tier":53,"rgb":[171,201,255],"mat":"Metal","met":1,"rough":0.04},{"id":"turquoise","name":"Turquoise","tier":54,"rgb":[11,216,201],"mat":"Marble","met":0,"rough":0.4},{"id":"rhodochrosite","name":"Rhodochrosite","tier":55,"rgb":[243,48,93],"mat":"Marble","met":0,"rough":0.25},{"id":"bismuth","name":"Bismuth","tier":56,"rgb":[188,156,238],"mat":"Foil","met":1,"rough":0.1,"rainbow":true},{"id":"silver","name":"Silver","tier":57,"rgb":[250,248,242],"mat":"Metal","met":1,"rough":0.12},{"id":"amethyst","name":"Amethyst","tier":58,"rgb":[112,8,186],"mat":"Glass","met":0,"rough":0.07},{"id":"apatite","name":"Apatite","tier":59,"rgb":[0,216,173],"mat":"Glass","met":0,"rough":0.1},{"id":"moissanite","name":"Moissanite","tier":60,"rgb":[34,72,61],"mat":"Foil","met":0.4,"rough":0.14},{"id":"tigers_eye","name":"Tiger's Eye","tier":61,"rgb":[189,112,0],"mat":"Marble","met":0.3,"rough":0.2},{"id":"lapis_lazuli","name":"Lapis Lazuli","tier":62,"rgb":[0,39,184],"mat":"Marble","met":0,"rough":0.3},{"id":"geode","name":"Geode","tier":63,"rgb":[150,80,240],"mat":"Glass","met":0,"rough":0.2},{"id":"topaz","name":"Topaz","tier":64,"rgb":[255,113,57],"mat":"Glass","met":0,"rough":0.05},{"id":"phosphorus","name":"Phosphorus","tier":65,"rgb":[255,252,175],"mat":"SmoothPlastic","met":0,"rough":0.4,"glow":{"rgb":[80,255,108],"b":0.7}},{"id":"peridot","name":"Peridot","tier":66,"rgb":[176,229,0],"mat":"Glass","met":0,"rough":0.07},{"id":"jade","name":"Jade","tier":67,"rgb":[58,194,104],"mat":"Marble","met":0,"rough":0.35},{"id":"phoenix_stone","name":"Phoenix Stone","tier":68,"rgb":[255,90,0],"mat":"Glass","met":0.3,"rough":0.1,"glow":{"rgb":[255,140,30],"b":1}},{"id":"tungsten","name":"Tungsten","tier":69,"rgb":[113,118,138],"mat":"Metal","met":1,"rough":0.35},{"id":"lithium","name":"Lithium","tier":70,"rgb":[215,222,235],"mat":"Metal","met":1,"rough":0.3,"glow":{"rgb":[255,60,80],"b":0.2}},{"id":"titanium","name":"Titanium","tier":71,"rgb":[103,58,216],"mat":"Metal","met":1,"rough":0.32},{"id":"obsidian","name":"Obsidian","tier":72,"rgb":[26,9,48],"mat":"Glass","met":0,"rough":0.06},{"id":"electrum","name":"Electrum","tier":73,"rgb":[251,220,98],"mat":"Metal","met":1,"rough":0.2},{"id":"cobalt","name":"Cobalt","tier":74,"rgb":[0,73,248],"mat":"Metal","met":1,"rough":0.28},{"id":"labradorite","name":"Labradorite","tier":75,"rgb":[71,104,138],"mat":"Glass","met":0.2,"rough":0.15,"glow":{"rgb":[15,152,255],"b":0.4}},{"id":"zirconium","name":"Zirconium","tier":76,"rgb":[31,31,44],"mat":"Metal","met":0.8,"rough":0.18,"glow":{"rgb":[255,255,210],"b":0.3}},{"id":"beryllium","name":"Beryllium","tier":77,"rgb":[97,243,151],"mat":"Metal","met":1,"rough":0.3},{"id":"niobium","name":"Niobium","tier":78,"rgb":[0,162,221],"mat":"Metal","met":1,"rough":0.22},{"id":"gold","name":"Gold","tier":79,"rgb":[255,186,0],"mat":"Metal","met":1,"rough":0.15},{"id":"fulgurite","name":"Fulgurite","tier":80,"rgb":[227,189,117],"mat":"Glass","met":0,"rough":0.4,"glow":{"rgb":[158,203,255],"b":0.3}},{"id":"tektite","name":"Tektite","tier":81,"rgb":[68,51,1],"mat":"Glass","met":0,"rough":0.15},{"id":"moldavite","name":"Moldavite","tier":82,"rgb":[42,138,10],"mat":"Glass","met":0,"rough":0.1,"glow":{"rgb":[52,216,23],"b":0.4}},{"id":"moon_rock","name":"Moon Rock","tier":83,"rgb":[175,175,188],"mat":"Pebble","met":0,"rough":0.8},{"id":"sunstone","name":"Sunstone","tier":84,"rgb":[255,97,0],"mat":"Foil","met":0.3,"rough":0.1,"glow":{"rgb":[255,112,0],"b":0.9}},{"id":"spinel","name":"Spinel","tier":85,"rgb":[255,0,131],"mat":"Glass","met":0,"rough":0.03},{"id":"emerald","name":"Emerald","tier":86,"rgb":[0,173,86],"mat":"Glass","met":0,"rough":0.05},{"id":"tourmaline","name":"Tourmaline","tier":87,"rgb":[0,240,251],"mat":"Glass","met":0,"rough":0.05},{"id":"zircon","name":"Zircon","tier":88,"rgb":[0,154,255],"mat":"Glass","met":0,"rough":0.02},{"id":"moonstone","name":"Moonstone","tier":89,"rgb":[132,168,255],"mat":"Glass","met":0,"rough":0.1,"glow":{"rgb":[132,175,255],"b":0.5}},{"id":"alexandrite","name":"Alexandrite","tier":90,"rgb":[0,151,140],"mat":"Glass","met":0,"rough":0.04},{"id":"sapphire","name":"Sapphire","tier":91,"rgb":[0,79,201],"mat":"Glass","met":0,"rough":0.03},{"id":"ruby","name":"Ruby","tier":92,"rgb":[242,0,91],"mat":"Glass","met":0,"rough":0.03,"glow":{"rgb":[255,0,68],"b":0.6}},{"id":"palladium","name":"Palladium","tier":93,"rgb":[118,164,255],"mat":"Metal","met":1,"rough":0.18},{"id":"aquamarine","name":"Aquamarine","tier":94,"rgb":[123,224,251],"mat":"Ice","met":0,"rough":0.05},{"id":"tanzanite","name":"Tanzanite","tier":95,"rgb":[38,9,216],"mat":"Glass","met":0,"rough":0.04},{"id":"opal","name":"Opal","tier":96,"rgb":[240,240,255],"mat":"ForceField","met":0,"rough":0.1,"rainbow":true},{"id":"platinum","name":"Platinum","tier":97,"rgb":[232,223,185],"mat":"Metal","met":1,"rough":0.1},{"id":"stormstone","name":"Stormstone","tier":98,"rgb":[60,85,160],"mat":"Slate","met":0.3,"rough":0.3,"glow":{"rgb":[140,190,255],"b":0.6}},{"id":"rhodium","name":"Rhodium","tier":99,"rgb":[244,248,255],"mat":"Glass","met":1,"rough":0.02},{"id":"diamond","name":"Diamond","tier":100,"rgb":[199,240,255],"mat":"Glass","met":0,"rough":0,"glow":{"rgb":[197,238,255],"b":0.4}},{"id":"starmetal","name":"Starmetal","tier":101,"rgb":[55,65,130],"mat":"Metal","met":1,"rough":0.1,"glow":{"rgb":[200,220,255],"b":0.5}},{"id":"aether_crystal","name":"Aether Crystal","tier":102,"rgb":[225,245,255],"mat":"Glass","met":0,"rough":0.02,"glow":{"rgb":[200,240,255],"b":0.9}},{"id":"meteorite","name":"Meteorite","tier":103,"rgb":[138,94,66],"mat":"CrackedLava","met":0.6,"rough":0.5,"glow":{"rgb":[255,95,0],"b":0.3}},{"id":"soulstone","name":"Soulstone","tier":104,"rgb":[70,255,200],"mat":"Glass","met":0,"rough":0.1,"glow":{"rgb":[80,255,200],"b":0.9}},{"id":"osmium","name":"Osmium","tier":105,"rgb":[102,134,189],"mat":"Metal","met":1,"rough":0.1},{"id":"galaxyrock","name":"Galaxyrock","tier":106,"rgb":[40,20,90],"mat":"Basalt","met":0.2,"rough":0.3,"glow":{"rgb":[140,90,255],"b":0.8}},{"id":"iridium","name":"Iridium","tier":107,"rgb":[236,242,252],"mat":"Metal","met":1,"rough":0.05,"glow":{"rgb":[210,228,255],"b":0.3}},{"id":"frostfire_crystal","name":"Frostfire Crystal","tier":108,"rgb":[120,200,255],"mat":"Glass","met":0,"rough":0.03,"glow":{"rgb":[255,120,60],"b":1}},{"id":"shadow_shard","name":"Shadow Shard","tier":109,"rgb":[20,10,32],"mat":"Glass","met":0.3,"rough":0.05,"glow":{"rgb":[130,40,255],"b":1}},{"id":"celestial_crystal","name":"Celestial Crystal","tier":110,"rgb":[255,228,140],"mat":"Glass","met":0.2,"rough":0.02,"glow":{"rgb":[255,240,180],"b":1.2}},{"id":"orichalcum","name":"Orichalcum","tier":111,"rgb":[255,145,0],"mat":"Metal","met":1,"rough":0.15},{"id":"rainbow_crystal","name":"Rainbow Crystal","tier":112,"rgb":[255,255,255],"mat":"ForceField","met":0,"rough":0.02,"glow":{"rgb":[255,255,255],"b":1.2},"rainbow":true},{"id":"mythril","name":"Mythril","tier":113,"rgb":[132,207,255],"mat":"Metal","met":1,"rough":0.08,"glow":{"rgb":[106,191,255],"b":0.8}},{"id":"dragonstone","name":"Dragonstone","tier":114,"rgb":[185,10,20],"mat":"Slate","met":0.4,"rough":0.15,"glow":{"rgb":[255,60,0],"b":1.3}},{"id":"adamantite","name":"Adamantite","tier":115,"rgb":[184,0,32],"mat":"Metal","met":1,"rough":0.18},{"id":"thorium","name":"Thorium","tier":116,"rgb":[191,191,181],"mat":"Metal","met":1,"rough":0.3,"glow":{"rgb":[171,171,255],"b":0.6}},{"id":"uranium","name":"Uranium","tier":117,"rgb":[255,226,0],"mat":"Neon","met":0.6,"rough":0.3,"glow":{"rgb":[255,236,40],"b":1.2}},{"id":"plutonium","name":"Plutonium","tier":118,"rgb":[222,150,105],"mat":"Metal","met":0.85,"rough":0.25,"glow":{"rgb":[255,120,30],"b":1.2}},{"id":"fermium","name":"Fermium","tier":119,"rgb":[255,2,70],"mat":"Metal","met":0.8,"rough":0.12,"glow":{"rgb":[255,15,97],"b":1.5}},{"id":"lawrencium","name":"Lawrencium","tier":120,"rgb":[255,235,177],"mat":"Metal","met":1,"rough":0.05,"glow":{"rgb":[255,239,190],"b":1.7}},{"id":"oganesson","name":"Oganesson","tier":121,"rgb":[17,0,42],"mat":"ForceField","met":1,"rough":0.05,"glow":{"rgb":[137,54,255],"b":2},"rainbow":true}];
+
+  const BANDS = [
+    ["Common", 1, 24], ["Uncommon", 25, 48], ["Rare", 49, 72], ["Epic", 73, 96],
+    ["Legendary", 97, 108], ["Mythic", 109, 114], ["Divine", 115, 118], ["Exotic", 119, 121]
+  ];
+  const NEW = new Set(["pumice","rock_salt","coal","emberstone","sulfur","aluminum","selenite",
+    "pearl","frost_crystal","cinnabar","bloodstone","rhodochrosite","bismuth","moissanite",
+    "tigers_eye","lapis_lazuli","geode","phoenix_stone","lithium","labradorite","moon_rock",
+    "stormstone","starmetal","aether_crystal","soulstone","osmium","galaxyrock","iridium",
+    "frostfire_crystal","shadow_shard","celestial_crystal","rainbow_crystal","dragonstone"]);
+
+  const METAL = new Set(["Metal","Foil","DiamondPlate","CorrodedMetal"]);
+  const GLASS = new Set(["Glass","Ice","ForceField","Neon","Glacier"]);
+  function finish(m){ return METAL.has(m) ? "f-metal" : GLASS.has(m) ? "f-glass" : "f-matte"; }
+  const rgb = a => "rgb(" + a[0] + "," + a[1] + "," + a[2] + ")";
+
+  const bandSel = document.getElementById("band");
+  BANDS.forEach(b => {
+    const o = document.createElement("option");
+    o.value = b[0]; o.textContent = b[0] + "  (" + b[1] + "–" + b[2] + ")";
+    bandSel.appendChild(o);
+  });
+
+  const els = {
+    q: document.getElementById("q"), band: bandSel, tool: document.getElementById("tool"),
+    onlyNew: document.getElementById("onlyNew"), onlyGlow: document.getElementById("onlyGlow"),
+    out: document.getElementById("out"), count: document.getElementById("count")
+  };
+
+  function card(o, toolWord){
+    const d = ((o.tier - 1) * 0.2674).toFixed(2);
+    const flags = [];
+    if (NEW.has(o.id)) flags.push('<span class="flag new">new</span>');
+    if (o.rainbow) flags.push('<span class="flag">rainbow</span>');
+    else if (o.glow) flags.push('<span class="flag">glow</span>');
+
+    const sw = ['<div class="swatch ', finish(o.mat), o.rainbow ? " rainbow" : "",
+      '" style="--sw:', rgb(o.rgb), '">',
+      o.glow ? '<span class="glowring" style="--gl:' + rgb(o.glow.rgb) + '"></span>' : "",
+      '<span class="tierno">', o.tier, '</span>',
+      flags.length ? '<span class="flags">' + flags.join("") + "</span>" : "",
+      "</div>"].join("");
+
+    const meta = ['<p class="meta"><span>', o.mat, "</span><span>met ", o.met.toFixed(2),
+      "</span><span>rough ", o.rough.toFixed(2), "</span><span>D ", d, "</span>",
+      o.glow ? "<span>glow " + o.glow.b.toFixed(1) + "</span>" : "", "</p>"].join("");
+
+    return ['<article class="spec">', sw, '<div class="body"><p class="nm">', esc(o.name), "</p>",
+      toolWord ? '<p class="toolname">' + esc(o.name + " " + toolWord) + "</p>" : "",
+      meta, "</div></article>"].join("");
+  }
+  function esc(s){ return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+  function render(){
+    const q = els.q.value.trim().toLowerCase();
+    const band = els.band.value, toolWord = els.tool.value;
+    const wantNew = els.onlyNew.checked, wantGlow = els.onlyGlow.checked;
+
+    let shown = 0, html = "";
+    for (const [name, lo, hi] of BANDS){
+      if (band && band !== name) continue;
+      const list = ORES.filter(o =>
+        o.tier >= lo && o.tier <= hi &&
+        (!q || o.name.toLowerCase().includes(q) || o.id.includes(q)) &&
+        (!wantNew || NEW.has(o.id)) &&
+        (!wantGlow || !!o.glow));
+      if (!list.length) continue;
+      shown += list.length;
+      html += ['<section class="band"><div class="band-head"><h2 class="band-name">', name,
+        '</h2><span class="band-range">TIER ', lo, "–", hi, " · ", list.length,
+        '</span><span class="band-rule"></span></div><div class="grid">',
+        list.map(o => card(o, toolWord)).join(""), "</div></section>"].join("");
+    }
+    els.out.innerHTML = html || '<p class="empty">Nothing matches that.</p>';
+    els.count.textContent = shown + " of " + ORES.length;
+  }
+
+  ["input","change"].forEach(ev => Object.values(els).forEach(el => {
+    if (el && el.addEventListener && el !== els.out && el !== els.count) el.addEventListener(ev, render);
+  }));
+  render();
+</script>
