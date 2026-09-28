@@ -13316,7 +13316,7 @@ end)
 	The uid never changes here. Upgrading mutates `level` and nothing else, so
 	a tool is the same object at level 900 that it was at level 1.
 ]]
-local function findOreTool(p, uid)
+function Verbs._findOreTool(p, uid)
 	if type(uid) ~= "string" or uid == "" then
 		return nil, nil
 	end
@@ -13328,7 +13328,7 @@ local function findOreTool(p, uid)
 	return nil, nil
 end
 
-local function benchNum(n)
+function Verbs._benchNum(n)
 	n = tonumber(n) or 0
 	if n < 1000 then
 		return tostring(math.floor(n))
@@ -13351,7 +13351,7 @@ end
 	to 8 for Exotic. toolCostMult raises it to TOOL_COST_TYPE (0.5), so a rarer
 	frame costs about 2.8x a Common one to level, never less.
 ]]
-local function oreToolTypeMult(tool)
+function Verbs._oreToolTypeMult(tool)
 	local fam = Tools.TOOLS and Tools.TOOLS[tool.familyId or "pickaxe"]
 	if fam then
 		for _, td in ipairs(fam) do
@@ -13364,9 +13364,9 @@ local function oreToolTypeMult(tool)
 	return 1
 end
 
-local function oreToolCost(tool)
+function Verbs._oreToolCost(tool)
 	local oreDef = C.ORES and C.ORES[tonumber(tool.tier) or 1]
-	local typeMult = oreToolTypeMult(tool)
+	local typeMult = Verbs._oreToolTypeMult(tool)
 	local level = math.max(1, tonumber(tool.level) or 1)
 	local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
 	return ore, dust, oreDef, typeMult
@@ -13378,7 +13378,7 @@ function Verbs.upgradeOreTool(plr, payload)
 		return
 	end
 	local uid = (type(payload) == "table") and payload.uid or payload
-	local tool = findOreTool(p, uid)
+	local tool = Verbs._findOreTool(p, uid)
 	if not tool then
 		net:FireClient(plr, "toast", "That tool is not in your bag")
 		return
@@ -13389,7 +13389,7 @@ function Verbs.upgradeOreTool(plr, payload)
 		return
 	end
 
-	local ore, dust, oreDef = oreToolCost(tool)
+	local ore, dust, oreDef = Verbs._oreToolCost(tool)
 	if not ore or not dust then
 		net:FireClient(plr, "toast", "That tool cannot be levelled")
 		return
@@ -13409,7 +13409,7 @@ function Verbs.upgradeOreTool(plr, payload)
 	p.ores = p.ores or {}
 	local haveOre = tonumber(p.ores[oreId]) or 0
 	local haveDust = tonumber(p.dust) or 0
-	local typeMult = oreToolTypeMult(tool)
+	local typeMult = Verbs._oreToolTypeMult(tool)
 	local spentOre, spentDust, steps = 0, 0, 0
 	for i = 0, want - 1 do
 		local o, d = C.toolUpgradeCost(tool.tier, level + i, typeMult)
@@ -13423,9 +13423,9 @@ function Verbs.upgradeOreTool(plr, payload)
 	if steps == 0 then
 		net:FireClient(plr, "toast", string.format(
 			"Needs %s %s and %s stardust",
-			benchNum(ore),
+			Verbs._benchNum(ore),
 			(oreDef and oreDef.name) or oreId,
-			benchNum(dust)))
+			Verbs._benchNum(dust)))
 		return
 	end
 
@@ -13444,7 +13444,7 @@ function Verbs.recycleOreTool(plr, payload)
 		return
 	end
 	local uid = (type(payload) == "table") and payload.uid or payload
-	local tool, index = findOreTool(p, uid)
+	local tool, index = Verbs._findOreTool(p, uid)
 	if not tool or not index then
 		net:FireClient(plr, "toast", "That tool is not in your bag")
 		return
@@ -13454,7 +13454,7 @@ function Verbs.recycleOreTool(plr, payload)
 		return
 	end
 
-	local _, _, oreDef, typeMult = oreToolCost(tool)
+	local _, _, oreDef, typeMult = Verbs._oreToolCost(tool)
 	local level = math.max(1, tonumber(tool.level) or 1)
 	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
 	local oreId = oreDef and oreDef.id
@@ -13468,9 +13468,9 @@ function Verbs.recycleOreTool(plr, payload)
 		p.dust = (tonumber(p.dust) or 0) + dust
 	end
 	net:FireClient(plr, "toast", string.format("Scrapped  +%s %s  +%s stardust",
-		benchNum(ore),
+		Verbs._benchNum(ore),
 		(oreDef and oreDef.name) or "ore",
-		benchNum(dust)))
+		Verbs._benchNum(dust)))
 	snap(plr)
 	markDirty(plr)
 end
