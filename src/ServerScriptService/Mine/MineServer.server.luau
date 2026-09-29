@@ -523,6 +523,29 @@ local function blank()
 		cards = {}, equipped = {},
 		-- Ore, by id. Never builds a tool; it upgrades one, with stardust.
 		ores = {},
+		--[[
+			Ore tools: one row per tool the player owns, not a count.
+
+			An ore tool is a distinct object -- a tier-74 Frack at level 300 is
+			not interchangeable with another tier-74 Frack at level 12 -- so it
+			cannot be stored as a quantity the way charms and tempers are. Each
+			row carries its own uid from the moment it is made, so it can be
+			named for upgrading, recycling or trading without relying on its
+			position in the list.
+
+			  { uid, tier, typeId, level }
+
+			The uid is minted once and NEVER regenerated -- not on upgrade, not
+			on equip, not on trade. Levelling mutates `level` and touches
+			nothing else, so a tool is the same object at level 900 that it was
+			at level 1. That is the whole point of having the id: without it,
+			"which Frack did I just upgrade" has no answer.
+
+			`level` runs 1..MineConfig.TOOL_MAX_LEVEL and defaults to 1: a tool
+			found in a wall has had nothing put into it, which is why recycling
+			one pays nothing and the rate can stay a flat half of what went in.
+		]]
+		oreTools = {},
 		-- How full the bag is, in block-equivalents. Every point of damage adds
 		-- damage/maxHp, so the bag creeps up as you mine instead of jumping when
 		-- a block dies, and a 41,000 HP crystal fills exactly as much as a clod
@@ -1115,8 +1138,61 @@ local function load(plr)
 		players keep the pickaxe they have always had -- nobody logs in tomorrow
 		to find their tool confiscated.
 	]]
+	if type(p.oreTools) ~= "table" then
+		p.oreTools = {}
+	end
 	if p.gotFirstPick == nil then
 		p.gotFirstPick = true
+	end
+	--[[
+		Ore roster swap: 33 ids were retired and every one of them is load
+		bearing twice over. p.ores[id] is banked material, and every ore pack in
+		the bag is "<id>_ore_pack" -- so dropping an id without a map does not
+		just rename a rock, it deletes a player's stock and bricks their packs
+		into rows that no longer resolve to anything.
+
+		Runs once per profile and stamps oreRosterV so it never runs twice. The
+		merge is additive: a save holding both the old id and its replacement
+		keeps the sum rather than whichever the loop happened to reach last.
+	]]
+	if p.oreRosterV ~= 1 then
+		local map = C.ORE_MIGRATION
+		if type(map) == "table" then
+			if type(p.ores) == "table" then
+				for oldId, newId in pairs(map) do
+					-- An id mapped to itself would add a pile to itself and then
+					-- delete the lot. The generator refuses to emit one, and this
+					-- refuses to act on one, because the failure is silent and
+					-- total: the player just finds the ore gone.
+					if oldId ~= newId then
+						local held = tonumber(p.ores[oldId])
+						if held and held > 0 then
+							p.ores[newId] = (tonumber(p.ores[newId]) or 0) + held
+						end
+						p.ores[oldId] = nil
+					end
+				end
+			end
+			if type(p.packs) == "table" then
+				-- ore packs resolve through MineZonePacks, not MinePackConfig:
+				-- only the former has get(), so `Packs` here would silently
+				-- leave every renamed pack showing its old name.
+				local ZonePacks = require(shared:WaitForChild("MineZonePacks"))
+				for _, pk in ipairs(p.packs) do
+					local pid = pk and pk.packId
+					if type(pid) == "string" then
+						local baseId = pid:match("^(.*)_ore_pack$")
+						local to = baseId and map[baseId]
+						if to then
+							pk.packId = to .. "_ore_pack"
+							local def = ZonePacks.get and ZonePacks.get(pk.packId)
+							pk.packName = (def and def.name) or pk.packName
+						end
+					end
+				end
+			end
+		end
+		p.oreRosterV = 1
 	end
 	if type(p.tools) ~= "table" then
 		p.tools = { pickaxe = math.max(1, tonumber(p.pickaxeTier) or 1), drill = 0, explosive = 0 }
@@ -2320,6 +2396,31 @@ local function snap(plr)
 			pk.uid = instanceHex16()
 		end
 	end
+	--[[
+		Same stamp, for every other list of owned instances.
+
+		chestTools was the real gap: its `id` is the CATALOG id, so two copies
+		of the same flagship tool were indistinguishable in the save -- you
+		could not name one of them to upgrade, trade or scrap it. gear and
+		relics had the same shape. `id` is left alone because plenty of code
+		keys off it; `uid` is added beside it.
+
+		Runes are skipped on purpose: their `id` is already a 16-hex instance
+		value, so a `uid` next to it would just be the same bytes twice.
+
+		Quantity maps -- charms, tempers, eventTools, fossilTools, ores, tools --
+		get nothing. You own three of a charm, not three distinguishable charms,
+		and giving each a row would grow the save rather than shrink it.
+	]]
+	for _, list in ipairs({ p.chestTools, p.gear, p.relics, p.oreTools }) do
+		if type(list) == "table" then
+			for _, row in ipairs(list) do
+				if type(row) == "table" and not row.uid then
+					row.uid = instanceHex16()
+				end
+			end
+		end
+	end
 	-- Other players see your pets: the few fields a pet model needs, as an
 	-- attribute every client can read (ClientFns.othersPets builds them).
 	do
@@ -2362,6 +2463,7 @@ local function snap(plr)
 		deepest = p.deepest, deepestSection = p.deepestSection or {}, backpack = p.backpack,
 		packs = p.packs, cards = p.cards, equipped = p.equipped, cap = cap(p),
 		ores = p.ores or {},
+		oreTools = p.oreTools or {},
 		itemSlotsUsed = C.itemSlotsUsed and C.itemSlotsUsed(p) or nil,
 		itemSlotCap = C.itemSlotCap and C.itemSlotCap(p) or nil,
 		itemSlotPrice = C.itemSlotPrice and C.itemSlotPrice(p) or nil,
@@ -3131,11 +3233,71 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		part.Material = Enum.Material.Neon
 		part:SetAttribute("LuckyBlockId", luckyId)
 	elseif kind == "ore" and oreDef then
-		part.Color = oreDef.color
-		part.Material = oreDef.material
+		--[==[
+			The ore lives in the face art now, so the block itself is rock.
+
+			It used to be a solid cube of the ore's own colour, which is why 121
+			ores read as 121 coloured cubes -- a Cobalt vein and a Niobium one
+			were the same blue box. Each ore now wears one of thirty hand-drawn
+			faces (MineConfig.ORE_FACE), and the part underneath takes the
+			zone's own rock, darkened, so the ore reads as sitting IN the wall
+			rather than replacing a chunk of it. The CLIENT hangs the face on it;
+			an EditableImage does not replicate, so it has to be built where it
+			is drawn.
+		]==]
+		local rock = (zone and zone.dirt) or Color3.fromRGB(96, 92, 88)
+		part.Color = Color3.new(rock.R * 0.7, rock.G * 0.7, rock.B * 0.7)
+		--[[
+			SmoothPlastic on purpose: flat, textureless, no surface detail.
+
+			Roblox's stone materials carry their own grain, and that grain reads
+			at roughly the same scale as the ore pixels sitting on top of it --
+			two competing textures on one face, and the art loses. A flat host
+			gives the pixel art the whole surface to itself, which is why every
+			game that draws ore this way keeps the block underneath plain.
+		]]
+		part.Material = Enum.Material.SmoothPlastic
 		part:SetAttribute("OreId", oreDef.id)
 		part:SetAttribute("OreName", oreDef.name)
 		part:SetAttribute("OreTier", oreDef.tier)
+		--[==[
+			Name the ore on the block itself.
+
+			The server has always stamped OreId / OreName / OreTier onto the
+			part and nothing has ever read them -- the client has no ore
+			awareness at all. So 121 ores share one palette and, in the wall,
+			a Cobalt vein and a Niobium one are the same blue cube. Colour
+			cannot carry identity at this roster size; the name has to.
+
+			MaxDistance keeps it on the block you are standing at instead of
+			papering the whole shaft with floating text, and the tier line is
+			tinted the ore's own colour so the two read as one object.
+		]==]
+		local tag = Instance.new("BillboardGui")
+		tag.Name = "OreTag"
+		tag.Size = UDim2.fromOffset(150, 34)
+		tag.StudsOffsetWorldSpace = Vector3.new(0, size * 0.75, 0)
+		tag.MaxDistance = 42
+		tag.Parent = part
+		local nameLbl = Instance.new("TextLabel")
+		nameLbl.BackgroundTransparency = 1
+		nameLbl.Size = UDim2.new(1, 0, 0, 20)
+		nameLbl.Font = Enum.Font.GothamBold
+		nameLbl.TextSize = 15
+		nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+		nameLbl.TextStrokeTransparency = 0.35
+		nameLbl.Text = tostring(oreDef.name)
+		nameLbl.Parent = tag
+		local tierLbl = Instance.new("TextLabel")
+		tierLbl.BackgroundTransparency = 1
+		tierLbl.Position = UDim2.fromOffset(0, 19)
+		tierLbl.Size = UDim2.new(1, 0, 0, 14)
+		tierLbl.Font = Enum.Font.Gotham
+		tierLbl.TextSize = 11
+		tierLbl.TextColor3 = oreDef.color
+		tierLbl.TextStrokeTransparency = 0.5
+		tierLbl.Text = "tier " .. tostring(oreDef.tier)
+		tierLbl.Parent = tag
 		-- Six faces of ore, drawn from the identity -- see MineOreLook.decorate.
 		-- Required here rather than at the top of the file: this chunk is one
 		-- local short of Luau's 200-register ceiling and one more up there
@@ -3775,9 +3937,10 @@ local function zoneTierOf(zone)
 	return 1
 end
 
--- What a broken chest actually yields. Almost always a pack; sometimes coins,
--- gems or dust; very rarely a relic, which is a permanent item that survives
--- rebirth. Luck shifts weight onto the rows worth having.
+-- What a broken chest actually yields. Usually packs -- a run of them, which
+-- can be none -- sometimes coins, a hat often enough to chase sets, a charm
+-- rarely, and a relic almost never. No gems: those are minted from scrap ore
+-- now. Luck shifts weight onto the rows worth having AND lengthens the run.
 local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	local rng = Random.new()
 	local rows = C.CHEST_LOOT
@@ -3802,22 +3965,65 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	-- zone-6 chest never pays zone-1 money and nothing needs re-tuning when a
 	-- zone is added. A chest is meant to feel like a seam, not like a block.
 	local dirtValue = math.max(1, C.coinsFor and C.coinsFor("dirt", zone, layer) or 1)
-	local oreValue = math.max(1, C.gemsFor and C.gemsFor("iron", zone, layer) or 1)
 
 	if chosen.kind == "pack" then
-		local row = {
-			kind = kind,
-			chestId = chest.id,
-			zoneTier = tier,
-			zoneId = zone.id,
-			layer = layer,
-			setId = C.setForLayer(zone, layer),
-		}
+		-- A run, not a row. Sometimes nothing, sometimes a pile; the count is
+		-- uncapped on purpose (C.chestPackCount).
 		local stampedLuck = tonumber(b and b.luck) or 1
-		if stampedLuck > 1 then
-			row.luck = stampedLuck
+		local n = C.chestPackCount and C.chestPackCount(luck, rng) or 1
+		for _ = 1, n do
+			local row = {
+				kind = kind,
+				chestId = chest.id,
+				zoneTier = tier,
+				zoneId = zone.id,
+				layer = layer,
+				setId = C.setForLayer(zone, layer),
+			}
+			if stampedLuck > 1 then
+				row.luck = stampedLuck
+			end
+			table.insert(p.packs, row)
 		end
-		table.insert(p.packs, row)
+		if n == 0 then
+			return "empty", 0
+		end
+		return "pack", chest.id, n
+	elseif chosen.kind == "hat" then
+		-- Head-slot gear, rolled on the spot. The common cosmetic find.
+		if Gear and Gear.rollPiece then
+			p.gear = p.gear or {}
+			local id = instanceHex16()
+			local piece = Gear.rollPiece(id, rng, "head")
+			if piece then
+				table.insert(p.gear, piece)
+				return "hat", piece.name or "Hat"
+			end
+		end
+		-- Gear unavailable: fall through to a pack rather than a dead chest.
+		table.insert(p.packs, { kind = kind, chestId = chest.id, zoneTier = tier,
+			zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) })
+		return "pack", chest.id
+	elseif chosen.kind == "charm" then
+		-- The rare one. Never a duplicate; a full set falls back to a pack so
+		-- the rarest roll is never a dead one, same as relics.
+		local okC, Charms = pcall(function()
+			return require(shared:WaitForChild("MineCharms"))
+		end)
+		if okC and Charms and Charms.packPool then
+			p.charms = p.charms or {}
+			local pool = {}
+			for _, c in ipairs(Charms.packPool() or {}) do
+				if not p.charms[c.id] then table.insert(pool, c) end
+			end
+			if #pool > 0 then
+				local c = pool[rng:NextInteger(1, #pool)]
+				p.charms[c.id] = true
+				return "charm", c.name or c.id
+			end
+		end
+		table.insert(p.packs, { kind = kind, chestId = chest.id, zoneTier = tier,
+			zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) })
 		return "pack", chest.id
 	elseif chosen.kind == "coins" then
 		-- Worth roughly 280-760 dirt blocks: a real jump, not a rounding error.
@@ -3825,12 +4031,6 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 			* (b.coinBonus or 1) * luck)
 		p.coins = (p.coins or 0) + amount
 		return "coins", amount
-	elseif chosen.kind == "gems" then
-		-- Worth roughly 6-18 ore blocks.
-		local amount = math.max(1, math.floor(oreValue * (6 + rng:NextNumber() * 12)
-			* (b.gemFind or 1) * luck))
-		p.gems = (p.gems or 0) + amount
-		return "gems", amount
 	elseif chosen.kind == "dust" then
 		local amount = math.max(5, math.floor(tier * tier * 120 * (0.6 + rng:NextNumber())))
 		p.dust = (p.dust or 0) + amount
@@ -3856,7 +4056,7 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 			return "pack", chest.id
 		end
 		local r = pool[rng:NextInteger(1, #pool)]
-		table.insert(p.relics, { id = r.id, found = os.time() })
+		table.insert(p.relics, { uid = instanceHex16(), id = r.id, found = os.time() })
 		return "relic", r.name
 	end
 	return "pack", chest.id
@@ -4163,6 +4363,7 @@ local function grantChestTool(plr, p, toolId)
 	if not ct then return end
 	-- No temperament: those are bought with tokens (Verbs.rollTemper).
 	table.insert(p.chestTools, {
+		uid = instanceHex16(),
 		id = ct.id, name = ct.name, family = ct.family,
 		rarity = ct.rarity or ct.rarityId,
 		rarityId = ct.rarity or ct.rarityId,
@@ -5786,9 +5987,15 @@ local function openPack(plr, setId, chestId, pk, collect)
 				bumpStat(plr, p, "packs")
 				-- The reveal needs something to celebrate with, and every ore is
 				-- Common on the card rarity scale. Grade it off its own tier.
+				-- Bands, straight off the roster: Common 1-24, Uncommon 25-48,
+				-- Rare 49-72, Epic 73-96, Legendary 97-108, Mythic 109-114,
+				-- Divine 115-118, Exotic 119-121. These used to stop at Divine
+				-- with the top three ores grading as merely Divine, and the
+				-- Mythic/Divine cuts sat at 110/118 rather than 108/114.
 				local tier = (ore and ore.tier) or 1
-				local grade = (tier > 118 and "Divine")
-					or (tier > 110 and "Mythic")
+				local grade = (tier > 118 and "Exotic")
+					or (tier > 114 and "Divine")
+					or (tier > 108 and "Mythic")
 					or (tier > 96 and "Legendary")
 					or (tier > 72 and "Epic")
 					or (tier > 48 and "Rare")
@@ -13103,6 +13310,182 @@ task.spawn(function()
 	end
 end)
 
+
+--[[
+	THE BLACKSMITH BENCH.
+
+	Ore tools level on their own 1..TOOL_MAX_LEVEL scale, paid for in ore and
+	stardust. MineConfig owns the pricing so the bench, the recycler and the UI
+	cannot drift apart: toolUpgradeCost for one step, toolSpent for everything
+	poured in, toolRecycle for what comes back.
+
+	Every entry point takes a UID. Not an index -- the bag reorders whenever a
+	tool is found or scrapped, and an index captured when the panel was drawn
+	names a different tool by the time the button is pressed. Packs already
+	learned this; the comment on openAt says so.
+
+	The uid never changes here. Upgrading mutates `level` and nothing else, so
+	a tool is the same object at level 900 that it was at level 1.
+]]
+function Verbs._findOreTool(p, uid)
+	if type(uid) ~= "string" or uid == "" then
+		return nil, nil
+	end
+	for i, t in ipairs(p.oreTools or {}) do
+		if type(t) == "table" and t.uid == uid then
+			return t, i
+		end
+	end
+	return nil, nil
+end
+
+function Verbs._benchNum(n)
+	n = tonumber(n) or 0
+	if n < 1000 then
+		return tostring(math.floor(n))
+	end
+	if n < 1e6 then
+		return string.format("%.1fK", n / 1e3)
+	end
+	if n < 1e9 then
+		return string.format("%.1fM", n / 1e6)
+	end
+	return string.format("%.2e", n)
+end
+
+--[[
+	The ore an ore tool is made of is the ore it eats to level. Anything else
+	would let a player bank one cheap ore and level every tool they own with it.
+
+	typeMult comes from the tool's RARITY RANK, not a weight field -- tool defs
+	carry a rarity, and MineTools.RARITY_RANK turns that into 1 for Common up
+	to 8 for Exotic. toolCostMult raises it to TOOL_COST_TYPE (0.5), so a rarer
+	frame costs about 2.8x a Common one to level, never less.
+]]
+function Verbs._oreToolTypeMult(tool)
+	local fam = Tools.TOOLS and Tools.TOOLS[tool.familyId or "pickaxe"]
+	if fam then
+		for _, td in ipairs(fam) do
+			if td.id == tool.typeId then
+				local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
+				return (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
+			end
+		end
+	end
+	return 1
+end
+
+function Verbs._oreToolCost(tool)
+	local oreDef = C.ORES and C.ORES[tonumber(tool.tier) or 1]
+	local typeMult = Verbs._oreToolTypeMult(tool)
+	local level = math.max(1, tonumber(tool.level) or 1)
+	local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
+	return ore, dust, oreDef, typeMult
+end
+
+function Verbs.upgradeOreTool(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local uid = (type(payload) == "table") and payload.uid or payload
+	local tool = Verbs._findOreTool(p, uid)
+	if not tool then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+	local level = math.max(1, tonumber(tool.level) or 1)
+	if level >= C.TOOL_MAX_LEVEL then
+		net:FireClient(plr, "toast", "That tool is at max level")
+		return
+	end
+
+	local ore, dust, oreDef = Verbs._oreToolCost(tool)
+	if not ore or not dust then
+		net:FireClient(plr, "toast", "That tool cannot be levelled")
+		return
+	end
+	local oreId = oreDef and oreDef.id
+	if not oreId then
+		net:FireClient(plr, "toast", "That tool has no ore")
+		return
+	end
+
+	-- How many steps the player can actually afford, capped by the request and
+	-- by the level ceiling. `count` lets the panel offer +1 / +10 / max without
+	-- a round trip per level.
+	local want = math.floor(tonumber(type(payload) == "table" and payload.count) or 1)
+	want = math.clamp(want, 1, C.TOOL_MAX_LEVEL - level)
+
+	p.ores = p.ores or {}
+	local haveOre = tonumber(p.ores[oreId]) or 0
+	local haveDust = tonumber(p.dust) or 0
+	local typeMult = Verbs._oreToolTypeMult(tool)
+	local spentOre, spentDust, steps = 0, 0, 0
+	for i = 0, want - 1 do
+		local o, d = C.toolUpgradeCost(tool.tier, level + i, typeMult)
+		if not o then break end
+		if haveOre - spentOre < o or haveDust - spentDust < d then break end
+		spentOre += o
+		spentDust += d
+		steps += 1
+	end
+
+	if steps == 0 then
+		net:FireClient(plr, "toast", string.format(
+			"Needs %s %s and %s stardust",
+			Verbs._benchNum(ore),
+			(oreDef and oreDef.name) or oreId,
+			Verbs._benchNum(dust)))
+		return
+	end
+
+	p.ores[oreId] = haveOre - spentOre
+	p.dust = haveDust - spentDust
+	tool.level = level + steps          -- the uid is untouched, on purpose
+	bumpStat(plr, p, "upgrades")
+	net:FireClient(plr, "toast", string.format("+%d  ->  level %d", steps, tool.level))
+	snap(plr)
+	markDirty(plr)
+end
+
+function Verbs.recycleOreTool(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local uid = (type(payload) == "table") and payload.uid or payload
+	local tool, index = Verbs._findOreTool(p, uid)
+	if not tool or not index then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+	if tool.equipped then
+		net:FireClient(plr, "toast", "Unequip it first")
+		return
+	end
+
+	local _, _, oreDef, typeMult = Verbs._oreToolCost(tool)
+	local level = math.max(1, tonumber(tool.level) or 1)
+	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
+	local oreId = oreDef and oreDef.id
+
+	table.remove(p.oreTools, index)
+	if oreId and ore > 0 then
+		p.ores = p.ores or {}
+		p.ores[oreId] = (tonumber(p.ores[oreId]) or 0) + ore
+	end
+	if dust > 0 then
+		p.dust = (tonumber(p.dust) or 0) + dust
+	end
+	net:FireClient(plr, "toast", string.format("Scrapped  +%s %s  +%s stardust",
+		Verbs._benchNum(ore),
+		(oreDef and oreDef.name) or "ore",
+		Verbs._benchNum(dust)))
+	snap(plr)
+	markDirty(plr)
+end
+
 net.OnServerEvent:Connect(function(plr, action, payload)
 	if action == "swing" and typeof(payload) == "Instance" then
 		if not profiles[plr.UserId] then load(plr) end
@@ -13116,6 +13499,8 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if not profiles[plr.UserId] then load(plr) end
 		if Verbs.policyBlocks(plr, action) then return end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
+		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
+		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
 		elseif action == "throwAt" then throwAt(plr, payload)
 		elseif action == "bagGo" then
 			if payload == "sell" and hasVipPass(plr) then

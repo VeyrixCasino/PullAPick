@@ -1,0 +1,889 @@
+<title>Tool Upgrade Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#e9ecee; --surface:#fdfdfc; --surface-2:#f1f3f5; --line:#ccd4da; --line-2:#e3e8ec;
+    --ink:#11161b; --ink-2:#49545e; --ink-3:#78848e;
+    --ore:#a4531a; --dust:#5b4b9e; --dmg:#1d6b5d; --drop:#1f5f8b;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+    --disp:'Archivo','IBM Plex Sans',system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#0c1015; --surface:#141a20; --surface-2:#1a222a; --line:#2a343e; --line-2:#212a33;
+      --ink:#e6ecf1; --ink-2:#a2afba; --ink-3:#73818d;
+      --ore:#d4803e; --dust:#9b8ae0; --dmg:#46b199; --drop:#5ba3d0;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#0c1015; --surface:#141a20; --surface-2:#1a222a; --line:#2a343e; --line-2:#212a33;
+    --ink:#e6ecf1; --ink-2:#a2afba; --ink-3:#73818d;
+    --ore:#d4803e; --dust:#9b8ae0; --dmg:#46b199; --drop:#5ba3d0;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;
+    margin:0;padding-block:0 60px;padding-left:16px;padding-right:16px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1,h2{font-family:var(--disp);text-wrap:balance;margin:0}
+  h1{font-size:clamp(28px,5vw,42px);font-weight:800;letter-spacing:-.022em;line-height:1.05}
+  h2{font-size:20px;font-weight:700}
+  p{margin:0}
+  .eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ore)}
+  header{padding-block:40px 24px;border-bottom:2px solid var(--ink);margin-bottom:26px}
+  header .lede{margin-top:12px;max-width:58ch;color:var(--ink-2);font-size:16px}
+  section{margin-bottom:32px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px;
+    padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .sec-head .n{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-weight:600}
+  .prose{max-width:66ch;color:var(--ink-2);margin-top:10px}
+  .prose p+p{margin-top:9px}
+  .prose strong{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);background:var(--surface-2);padding:1px 5px;border-radius:3px;font-size:.89em}
+  .n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:18px}
+  .row{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));align-items:end}
+  label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+  select,input[type=range]{width:100%;font-family:var(--sans);font-size:14px}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--surface-2);color:var(--ink)}
+  input[type=range]{accent-color:var(--ore);height:26px;padding:0;margin:0}
+
+  .out{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));margin-top:16px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:13px 14px}
+  .tile .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .tile .v{font-family:var(--disp);font-size:23px;font-weight:700;margin-top:3px;letter-spacing:-.02em}
+  .tile .s{font-size:12.5px;color:var(--ink-2);margin-top:2px}
+  .tile.ore .v{color:var(--ore)} .tile.dust .v{color:var(--dust)}
+  .tile.dmg .v{color:var(--dmg)} .tile.drop .v{color:var(--drop)}
+
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface);margin-top:14px}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line-2);white-space:nowrap}
+  thead th{background:var(--surface-2);font-family:var(--mono);font-size:10.5px;font-weight:600;
+    letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  tr.here{background:color-mix(in srgb, var(--ore) 12%, transparent)}
+  .pill{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;
+    padding:2px 7px;border-radius:99px;border:1px solid currentColor}
+
+  /* compact tuners: one line each */
+  .rack{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:10px 12px}
+  .gh{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-3);margin:8px 0 4px;display:flex;justify-content:space-between;align-items:baseline}
+  .gh:first-child{margin-top:0}
+  .gh em{font-style:normal;color:var(--ink-3);text-transform:none;letter-spacing:0;font-size:11px}
+  .tn{display:grid;grid-template-columns:96px 1fr 68px;gap:8px;align-items:center;padding:1px 0}
+  .tn span.lab{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tn span.val{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--ink);text-align:right}
+  .tn input[type=range]{height:18px}
+  .split{display:grid;gap:12px;grid-template-columns:330px 1fr;align-items:start;margin-top:14px}
+  @media(max-width:760px){.split{grid-template-columns:1fr}
+    .tn{grid-template-columns:110px 1fr 70px}}
+  canvas{width:100%;height:100%;min-height:196px;display:block;
+    border:1px solid var(--line);border-radius:5px;background:var(--surface)}
+  .cwrap{height:100%;min-height:196px}
+  .clab{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:6px}
+  footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);
+    color:var(--ink-3);font-size:12.5px;font-family:var(--mono)}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Mine for Cards &middot; upgrade bench</p>
+  <h1>Tool Upgrade Bench</h1>
+  <p class="lede">Every tool works out its own level. Twelve tuners in six pairs &mdash; a base and a rate
+  for each system &mdash; so nothing gets muddied by one slider doing two jobs.</p>
+</header>
+
+<section>
+  <div class="sec-head"><span class="n">01</span><h2>Pick a tool</h2></div>
+  <div class="panel">
+    <div class="row">
+      <div><label for="type">Tool type</label><select id="type"></select></div>
+      <div><label for="ore">Ore</label><select id="ore"></select></div>
+      <div><label for="lvl">Upgrades &mdash; <span class="n" id="lvlLab">0</span></label>
+        <input id="lvl" type="range" min="0" max="10000" value="0" step="10"></div>
+    </div>
+  </div>
+  <div class="out">
+    <div class="tile dmg"><div class="k">Damage</div><div class="v n" id="oDmg">&mdash;</div>
+      <div class="s" id="oDmgSub">&mdash;</div></div>
+    <div class="tile ore"><div class="k">Next level &mdash; ore</div><div class="v n" id="oOre">&mdash;</div>
+      <div class="s" id="oOreSub">&mdash;</div></div>
+    <div class="tile dust"><div class="k">Next level &mdash; dust</div><div class="v n" id="oDust">&mdash;</div>
+      <div class="s">stardust</div></div>
+    <div class="tile"><div class="k">Spent to here</div><div class="v n" id="oCum">&mdash;</div>
+      <div class="s" id="oCumSub">&mdash;</div></div>
+    <div class="tile dust"><div class="k">Recycle back</div><div class="v n" id="oRec">&mdash;</div>
+      <div class="s" id="oRecSub">&mdash;</div></div>
+  </div>
+  <div class="split">
+    <div class="rack" id="toolTuners"></div>
+    <div class="cwrap">
+      <canvas id="chart" width="1000" height="400"></canvas>
+      <p class="clab">damage &middot; cumulative ore &middot; cumulative dust &mdash; log scale, dashed = you</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">02</span><h2>Same upgrade, different tool</h2>
+    <span class="n" id="cmpNote"></span></div>
+  <div class="prose">
+    <p>What this level costs on other tools, so you can see the spread rather than one number.
+    Upgrade cost scales with <strong>ore tier</strong> and <strong>type rarity</strong>, and both only
+    ever go <em>up</em> &mdash; a Stone Pickaxe is the baseline at 1&times;, and nothing in the game is
+    cheaper to level than that.</p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Tool</th><th class="n">Ore tier</th><th class="n">Level</th>
+        <th class="n">Cost &times;</th><th class="n">Ore</th><th class="n">Dust</th>
+        <th class="n">Ore total</th><th class="n">Dust total</th><th class="n">Recycle</th></tr></thead>
+      <tbody id="cmpBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">03</span><h2>Drop chance, every tool on this ore</h2></div>
+  <div class="prose">
+    <p>What a chest yields, for the ore you picked. Type weight &times; ore weight &mdash; a rarer ore makes
+    <em>every</em> tool on it rarer, so the top of the list stays a trophy without a second table.</p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Tool</th><th>Family</th><th>Rarity</th><th class="n">Ore tier gate</th>
+        <th class="n">Type weight</th><th class="n">1 in</th><th class="n">per 1000 chests</th></tr></thead>
+      <tbody id="dropBody"></tbody>
+    </table>
+  </div>
+  <p class="prose n" id="dropNote" style="font-size:12.5px;color:var(--ink-3)"></p>
+  <div class="rack" id="dropTuners" style="margin-top:12px"></div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">04</span><h2>Rebirth</h2>
+    <span class="n" id="rbNote"></span></div>
+  <div class="split">
+    <div class="rack" id="rbTuners"></div>
+    <div class="cwrap">
+      <canvas id="rbChart" width="1000" height="400"></canvas>
+      <p class="clab">rebirth cost, log scale &mdash; <code>base &times; dispersion^(n&minus;1)</code></p>
+    </div>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="n">Rebirth</th><th class="n">Cost</th><th class="n">&times; prev</th>
+        <th class="n" style="border-left:1px solid var(--line)">Rebirth</th>
+        <th class="n">Cost</th><th class="n">&times; prev</th></tr></thead>
+      <tbody id="rbBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">05</span><h2>The climb</h2></div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="n">Upgrades</th><th class="n">Level</th><th class="n">Damage</th>
+        <th class="n">&times; base</th><th class="n">Ore</th><th class="n">Dust</th>
+        <th class="n">Ore total</th><th class="n">Dust total</th><th class="n">Recycle</th><th class="n">per level</th></tr></thead>
+      <tbody id="ladder"></tbody>
+    </table>
+  </div>
+  <p class="prose" id="verdict" style="font-size:13px"></p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">06</span><h2>Zones &mdash; block health &amp; ore spread</h2>
+    <span class="n" id="zNote"></span></div>
+  <div class="panel">
+    <div class="row">
+      <div><label for="zZone">Zone</label><select id="zZone"></select></div>
+      <div><label for="zLayer">Layer &mdash; <span class="n" id="zLayerLab">250</span></label>
+        <input id="zLayer" type="range" min="1" max="5000" value="250" step="1"></div>
+    </div>
+  </div>
+  <div class="out">
+    <div class="tile"><div class="k">Dirt block</div><div class="v n" id="zDirt">&mdash;</div>
+      <div class="s" id="zDirtSub">&mdash;</div></div>
+    <div class="tile ore"><div class="k">Ore block</div><div class="v n" id="zOreHp">&mdash;</div>
+      <div class="s" id="zOreHpSub">&mdash;</div></div>
+    <div class="tile"><div class="k">Ore spawn</div><div class="v n" id="zChance">&mdash;</div>
+      <div class="s" id="zChanceSub">&mdash;</div></div>
+    <div class="tile ore"><div class="k">Ores in play</div><div class="v n" id="zSpread">&mdash;</div>
+      <div class="s" id="zSpreadSub">&mdash;</div></div>
+  </div>
+  <div class="split">
+    <div class="rack" id="zoneTuners"></div>
+    <div class="cwrap">
+      <canvas id="zChart" width="1000" height="400"></canvas>
+      <p class="clab">share of every ore roll at this depth &mdash; log scale, bar = one ore tier</p>
+    </div>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="n">#</th><th>Ore</th><th class="n">tier D</th><th class="n">share</th>
+        <th class="n">1 in</th><th class="n">cumulative</th></tr></thead>
+      <tbody id="zOreBody"></tbody>
+    </table>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Zone</th><th class="n">reb</th><th class="n">D</th><th class="n">dirt HP</th>
+        <th class="n">ore HP</th><th class="n">top ore</th><th class="n">share</th>
+        <th class="n">ores @95%</th></tr></thead>
+      <tbody id="zZoneBody"></tbody>
+    </table>
+  </div>
+  <p class="prose" id="zVerdict" style="font-size:13px"></p>
+</section>
+
+<footer>
+  Ore tiers and hardness from <code>MineConfig.ORES</code>; tool multipliers from
+  <code>ToolCatalog.Types</code>. Proposal &mdash; nothing committed.
+</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TYPES=[
+    ["Pickaxe","Swing","Rare",1,1.0,1.00],["Sledgehammer","Swing","Rare",1,2.0,1.00],
+    ["Chisel","Swing","Epic",3,0.5,0.45],["Sledge","Swing","Epic",8,2.5,0.40],
+    ["Grenade","Explosive","Rare",12,1.0,0.90],["Cluster","Explosive","Epic",20,1.0,0.35],
+    ["Proximity","Explosive","Epic",20,2.5,0.35],["Ice Pick","Swing","Legendary",26,0.25,0.12],
+    ["Trench Shovel","Swing","Legendary",26,1.25,0.12],["Drill","Drill","Rare",26,1.0,0.90],
+    ["Auger","Drill","Epic",33,1.0,0.32],["Bit Array Cutter","Drill","Epic",33,1.0,0.30],
+    ["Quickcharge","Explosive","Legendary",43,0.7,0.10],["Breacher","Explosive","Legendary",43,2.0,0.09],
+    ["Bore","Drill","Legendary",49,1.0,0.08],["Frack","Drill","Legendary",49,4.0,0.07]
+  ];
+  var ORES="Stone,Cobblestone,Flint,Chert,Obsidian,Basalt,Sandstone,Limestone,Slate,Marble,Quartzite,Clay,Brick,Bone,Amber,Petrified Wood,Lignite,Bituminous Coal,Anthracite,Charcoal,Graphite,Granite,Diorite,Shungite,Fulgurite,Copper,Tin,Lead,Zinc,Bronze,Brass,Iron,Steel,Damascus Steel,Cast Iron,Meteoric Iron,Nickel,Cobalt,Chromium,Manganese,Pewter,Electrum,Phosphorus,Silver,Palladium,Rhodium,Gold,Platinum,Titanium,Orichalcum,Adamantite,Vanadium Steel,Tungsten,Niobium,Zirconium,Beryllium,Silicon Carbide,Boron Carbide,Graphene,Boron Nitride,Alumina,Silicon Nitride,Bauxite,Cassiterite,Chalcopyrite,Galena,Sphalerite,Pyrite,Hematite,Magnetite,Ilmenite,Chromite,Wolframite,Quartz,Amethyst,Citrine,Agate,Jasper,Onyx,Malachite,Azurite,Turquoise,Fluorite,Garnet,Peridot,Topaz,Diamond,Ruby,Sapphire,Emerald,Tourmaline,Tanzanite,Alexandrite,Jade,Moonstone,Meteorite,Spinel,Zircon,Opal,Aquamarine,Mythril,Sunstone,Prismarine,Kimberlite,Moldavite,Tektite,Impactite,Coesite,Stishovite,Ringwoodite,Bridgmanite,Apatite,Monazite,Pallasite,Dunite,Thorium,Uranium,Plutonium,Fermium,Lawrencium,Oganesson".split(",");
+
+  //[[ Every tool runs its OWN 1-1000 scale. Ore tier no longer sets a tool's
+  //   starting level -- a tier-121 tool used to be BORN at level 700, so
+  //   finding one was the end of its story rather than the start. Tier now
+  //   buys the band a tool plays in; level is the whole climb inside it, and
+  //   every tool climbs the same 1000.
+  //
+  //   That also makes recycling honest without any machinery: a found tool is
+  //   level 1, so it has had nothing put into it and gives nothing back. The
+  //   rate can be a flat cut of what you actually spent, and nothing about it
+  //   is exploitable. ]]
+  var DMAX=23.41, NORE=121, MAXLVL=1000;
+  function oreD(t){ return (t-1)*DMAX/120; }
+  function homeHp(t){ return 20*Math.pow(6,oreD(t))*3; }
+
+  //[[ LIVE GAME DATA, read out of MineConfig on 2026-09-27. Everything below
+  //   this line mirrors the shipped math rather than proposing new math.
+  //
+  //   Difficulty is the one axis: D = log6(dirtHp / 20). A zone step is exactly
+  //   x6, so D(zone, layer) = Dmeadow(layer) + (zoneIndex - 1) -- confirmed
+  //   against all 11 zones. That makes one sampled curve enough to rebuild
+  //   every zone's health AND its ore spread.
+  //
+  //   NOTE: ore spacing is 0.2674 D per tier (121 ores spanning D 0 -> 32.09),
+  //   NOT the 23.41/120 = 0.195 that DMAX above still uses. DMAX is stale --
+  //   it predates the 63 sections appended past Finalite. The tool model above
+  //   still runs on the old value; this panel uses the real one. ]]
+  //   Difficulty is a STEP function, not a curve: it is constant across a whole
+  //   named section, so layers 1-40 are all D=0 and 41-80 are all D=0.44.
+  //   Interpolating between samples quietly invents difficulty the game does
+  //   not have. These are the 75 real section boundaries over layers 1-5000,
+  //   as [firstLayer, D].
+  var DSTEPS=[[1,0],[41,0.44],[81,0.8637],[121,1.2907],[161,1.7175],[201,2.1452],
+    [241,2.5974],[281,3.0102],[321,3.4279],[361,3.8553],[401,4.0999],[441,4.3439],
+    [481,4.5885],[521,4.833],[561,5.0772],[601,5.3218],[641,5.5664],[681,5.8109],
+    [721,6.0918],[761,6.3009],[801,6.55],[841,6.7982],[881,7.0386],[921,7.2832],
+    [961,7.5234],[1001,7.661],[1081,7.8006],[1161,7.9369],[1241,8.0747],[1321,8.213],
+    [1401,8.3501],[1481,8.4878],[1561,8.6253],[1641,8.7634],[1721,8.901],[1801,9.0386],
+    [1881,9.1764],[1961,9.3142],[2041,9.452],[2121,9.5898],[2201,9.7275],[2281,9.8653],
+    [2361,10.0404],[2441,10.1562],[2521,10.2808],[2601,10.4272],[2681,10.5603],
+    [2761,10.6949],[2841,10.8351],[2921,10.9719],[3001,11.1077],[3081,11.2472],
+    [3161,11.3825],[3241,11.5193],[3321,11.6583],[3401,11.7959],[3481,11.9328],
+    [3561,12.0705],[3641,12.208],[3721,12.3458],[3801,12.4833],[3881,12.6212],
+    [3961,12.7586],[4041,12.8965],[4121,13.0342],[4201,13.172],[4281,13.3097],
+    [4361,13.4475],[4441,13.5852],[4521,13.723],[4601,13.8956],[4681,14.0115],
+    [4761,14.1633],[4841,14.2825],[4921,14.4156]];
+  var ZONES=[["Dirt Meadow","meadow",0],["Greyvein Quarry","sunscar",0],
+    ["Mistreef Depths","mistreef",1],["Arcwork Veins","arcwork",2],
+    ["Bloodmoon Hollow","bloodmoon",3],["Eclipse Core","eclipse",4],
+    ["Riftmarch Scarps","riftmarch",5],["Starfall Barrens","starfall",6],
+    ["Mythral Catacombs","mythral",7],["Primordium Heart","primordium",8],
+    ["Event Horizon","bigbang",0]];
+  var ORE_SPACING=0.2674, ORE_HP_MULT=3;
+
+  var T={
+    dmgBase:10, dmgStep:1.02, tierSpan:16,
+    oreBase:4,  oreGrow:1.0075,
+    dustBase:25, dustGrow:1.011,
+    recPct:0.50,
+    dropBase:8,  dropFall:6.0,
+    yieldBase:6, yieldFall:1.0,
+    costTier:0.85, costType:0.5,
+    rbBase:7500, rbGrow:2.08,
+    oreChance:0.005, oreX0:-4.2, oreK:0.45, oreS:4.0, oreW:3.0,
+    gemBase:2, gemSpan:1.5, bulkEvery:7, bulkMult:8
+  };
+  var GROUPS=[
+    ["Damage","what a level is worth",[
+      ["dmgBase","Base damage at level 1",1,100,1,function(v){return Math.round(v);}],
+      ["dmgStep","Per level",1.002,1.05,0.0005,function(v){
+        return "+"+((v-1)*100).toFixed(2)+"% ("+fmt(Math.pow(v,MAXLVL-1))+"x over 1000)";}],
+      ["tierSpan","Tier band",4,28,0.5,function(v){
+        return "6^"+v.toFixed(1)+" ("+fmt(Math.pow(6,v))+"x, tier 1 to 121)";}]]],
+    ["Ore cost","what a level costs in ore",[
+      ["oreBase","Base",1,50,1,function(v){return Math.round(v);}],
+      ["oreGrow","Growth",1.001,1.02,0.0005,function(v){return "+"+((v-1)*100).toFixed(2)+"%";}]]],
+    ["Stardust cost","what a level costs in dust",[
+      ["dustBase","Base",5,300,5,function(v){return Math.round(v);}],
+      ["dustGrow","Growth",1.001,1.03,0.0005,function(v){return "+"+((v-1)*100).toFixed(2)+"%";}]]],
+    ["Cost disparity","better tool, dearer level — never cheaper",[
+      ["costTier","By ore tier",0,1.5,0.05,function(v){
+        return "^"+v.toFixed(2)+" ("+Math.round(Math.pow(121,v))+"× top)";}],
+      ["costType","By tool type",0,1.5,0.05,function(v){
+        return "^"+v.toFixed(2)+" ("+Math.pow(14.3,v).toFixed(1)+"× Frack)";}]]],
+    ["Recycle","a flat cut of whatever you actually put in",[
+      ["recPct","Return",0.05,1,0.01,function(v){return Math.round(v*100)+"%";}]]],
+    ["Ore to gems","scrap ore is where gems come from",[
+      ["gemBase","Gems per tier-1 ore",0.2,20,0.2,function(v){return v.toFixed(1);}],
+      ["gemSpan","Deeper-zone edge",0,4,0.1,function(v){
+        return Math.pow(6,v).toFixed(1)+"x from tier 1 to 121";}],
+      ["bulkEvery","Bulk ore every",0,12,1,function(v){
+        return v<1 ? "off" : "every "+Math.round(v)+"th tier";}],
+      ["bulkMult","Bulk drop size",2,20,1,function(v){
+        return Math.round(v)+"x drop, 1/"+Math.round(v)+" value each";}]]],
+    ["Tool drop","how often a chest gives a tool",[
+      ["dropBase","Base 1 in",2,60,1,function(v){return "1 in "+Math.round(v);}],
+      ["dropFall","Ore falloff",2,14,0.5,function(v){return "6^(-D/"+v.toFixed(1)+")";}]]],
+    ["Ore yield","how much an ore pack pays",[
+      ["yieldBase","Base amount",1,30,1,function(v){return Math.round(v);}],
+      ["yieldFall","Tier falloff",0,3,0.1,function(v){return "^"+v.toFixed(1);}]]],
+    ["Ore spawn","how often a block is ore",[
+      ["oreChance","Chance",0.0005,0.02,0.0005,function(v){
+        return "1 in "+Math.round(1/v);}]]],
+    ["Ore spread","which ore you get — live MineConfig curve",[
+      ["oreX0","Cutoff X0",-8,0,0.1,function(v){
+        return v.toFixed(1)+" (above-depth ores)";}],
+      ["oreK","Cutoff sharpness",0.05,1,0.005,function(v){
+        return v.toFixed(3)+" — each tier "+Math.exp(ORE_SPACING/v).toFixed(1)+
+          "× rarer (surface dial)";}],
+      ["oreS","Fade rate S",0.2,6,0.05,function(v){
+        return v.toFixed(2)+" = "+(v/ORE_SPACING).toFixed(1)+" tiers (deep dial)";}],
+      ["oreW","Fade width W",0.2,5,0.05,function(v){
+        return v.toFixed(2)+" = "+(v/ORE_SPACING).toFixed(1)+" tiers (deep dial)";}]]],
+    ["Rebirth","what a reset costs",[
+      ["rbBase","Base cost",500,50000,500,function(v){return Math.round(v).toLocaleString("en-US");}],
+      ["rbGrow","Dispersion",1.20,3.50,0.01,function(v){return "×"+v.toFixed(2)+"/rebirth";}]]]
+  ];
+
+  function fmt(n){
+    if(!isFinite(n)) return "∞";
+    if(n>=1e6) return n.toExponential(2).replace("e+","e");
+    if(n<1&&n>0) return n.toFixed(2);
+    return Math.round(n).toLocaleString("en-US");
+  }
+  function mult(n){
+    if(n>=1e6) return n.toExponential(2).replace("e+","e")+"×";
+    return (n>=100?Math.round(n):n.toFixed(1))+"×";
+  }
+
+  //[[ Tier is a MULTIPLIER now, not a head start. tierSpan says how many
+  //   x6 steps separate tier 1 from tier 121, which is the same unit the mine
+  //   measures depth in, so "this tool is 4 zones better" is a thing you can
+  //   read straight off the slider. ]]
+  function tierPower(tier){ return Math.pow(6, T.tierSpan*(tier-1)/120); }
+  function dmgAt(L,tier,ti){
+    return T.dmgBase*tierPower(tier)*TYPES[ti][4]*Math.pow(T.dmgStep,Math.max(0,L-1));
+  }
+  //[[ Upgrade cost used to be identical for every tool in the game -- levelling
+  //   a Stone Pickaxe cost exactly what levelling an Oganesson Frack cost. It
+  //   scales with both axes now: the ore tier it is made of, and how rare its
+  //   type is.
+  //
+  //   Both anchor at 1 and only ever go UP. Tier 1 and a Pickaxe are the
+  //   baseline -- nothing is ever cheaper than the curve, a better tool is
+  //   simply dearer. ]]
+  function typeFactor(ti){ return 1.00/TYPES[ti][5]; }   // Pickaxe 1.0 -> Frack 14.3
+  function costMult(tier,ti){
+    return Math.pow(tier,T.costTier)*Math.pow(typeFactor(ti),T.costType);
+  }
+  function oreAt(L,tier,ti){ return Math.ceil(T.oreBase*Math.pow(T.oreGrow,Math.max(0,L-1))*costMult(tier,ti)); }
+  function dustAt(L,tier,ti){ return Math.ceil(T.dustBase*Math.pow(T.dustGrow,Math.max(0,L-1))*costMult(tier,ti)); }
+  function cumOre(L,tier,ti){ if(L<=1)return 0; var r=T.oreGrow;
+    return Math.ceil(T.oreBase*(Math.pow(r,L-1)-1)/(r-1)*costMult(tier,ti)); }
+  function cumDust(L,tier,ti){ if(L<=1)return 0; var r=T.dustGrow;
+    return Math.ceil(T.dustBase*(Math.pow(r,L-1)-1)/(r-1)*costMult(tier,ti)); }
+  //[[ Gems come out of scrap ore, and that is the whole gem supply -- which is
+  //   the point: the price is ours to set, so the economy cannot drift.
+  //
+  //   Bulk ores are the lapis idea. Every Nth tier drops a pile instead of a
+  //   couple, and each one is worth proportionally less, so the VALUE of a
+  //   bulk find matches its neighbours while the feel is completely different:
+  //   a heap you cash in rather than a single good rock. ]]
+  function isBulk(tier){
+    var e = Math.round(T.bulkEvery);
+    return e >= 1 && (tier % e) === 0;
+  }
+  function oreDrop(tier){
+    return Math.max(1, Math.round(T.yieldBase*(isBulk(tier)?T.bulkMult:1)));
+  }
+  function gemPer(tier){
+    var v = T.gemBase*Math.pow(6, T.gemSpan*(tier-1)/120);
+    return isBulk(tier) ? v/T.bulkMult : v;
+  }
+  function gemsPerFind(tier){ return oreDrop(tier)*gemPer(tier); }
+  //[[ Recycling is a flat cut of what you actually spent. No tier falloff, no
+  //   type falloff, no level tax.
+  //
+  //   All of that machinery existed to stop a tool FOUND in a wall from being
+  //   a payout, because a found tool used to arrive at level 700 with a huge
+  //   notional build cost behind it. On the 1-1000 scale it arrives at level 1
+  //   with nothing behind it, so the exploit is gone by construction and the
+  //   rate can be generous and legible instead of defensive. ]]
+  function recycleOre(tier,L,ti){ return cumOre(L,tier,ti)*T.recPct; }
+  function recycleAt(tier,L,ti){ return cumDust(L,tier,ti)*T.recPct; }
+  function recRate(){ return T.recPct; }
+  function recyclePerLevel(tier,L,ti){ return L>1 ? recycleAt(tier,L,ti)/(L-1) : 0; }
+  function pctStr(x){ var p=x*100;
+    return p>=1 ? p.toFixed(0)+"%" : p>=0.01 ? p.toFixed(2)+"%" : p.toExponential(1)+"%"; }
+  //[[ The only question that matters for a sink: does the refund buy back a
+  //   real number of levels at the level you are actually at? A percentage can
+  //   look fine and still be worthless if costs have run away from it. ]]
+  function recycleBuysBack(tier,L,ti){
+    var back=recycleAt(tier,L,ti), top=Math.max(1,L), n=0, spent=0;
+    while(n<top){ spent+=dustAt(top-n,tier,ti); if(spent>back) break; n++; }
+    return n;
+  }
+  //[[ The gift test: scrapping has to beat handing the tool to someone else.
+  //   Expressed as the share of the tool's own build cost that comes back -- if
+  //   that is a real number, the rational move is the sink, not the gift. ]]
+  function giftTest(tier,L,ti){ return recRate(tier,L,ti); }
+  //[[ ===== ZONE / ORE SPREAD, mirroring MineConfig =====
+  //   oreWeights():  x = ore.d - D
+  //                  v = 1 / (1 + exp((x - X0) / K))
+  //                  if x < 0:  v *= exp(x/S) * exp(-((x/W)^2))
+  //   The sigmoid is a wall against ores ABOVE your depth; the x<0 branch is
+  //   what fades out the ones you have left behind. S and W are therefore the
+  //   only two dials that decide how many ores are live at once. ]]
+  function dMeadow(layer){
+    var L=Math.max(1,Math.min(5000,layer)), d=0;
+    for(var i=0;i<DSTEPS.length;i++){ if(DSTEPS[i][0]<=L) d=DSTEPS[i][1]; else break; }
+    return d;
+  }
+  //[[ MineAbbrev.ceil, verbatim: every HP in the game is rounded UP to one
+  //   decimal place of its thousands-unit, which is why Event Horizon's surface
+  //   reads 1.3B and not the 1.209B the raw formula gives. Skipping this makes
+  //   the panel disagree with the tooltip a player actually sees. ]]
+  function abbrevCeil(n){
+    n=+n||0; if(n<=0) return 0;
+    if(n<1000) return Math.ceil(n-1e-8);
+    var exp=Math.max(1,Math.min(20,Math.floor(Math.log10(n)/3)));
+    var unit=Math.pow(10,exp*3);
+    function ceilTenth(x){ var t=x*10, f=Math.floor(t+1e-6); if(t-f>1e-4) f+=1; return f/10; }
+    var shown=ceilTenth(n/unit);
+    if(shown>=1000){ exp+=1; unit=Math.pow(10,exp*3); shown=ceilTenth(n/unit); }
+    return shown*unit;
+  }
+  //[[ The 1e-4 nudge is not a fudge factor, it undoes one. The D table above was
+  //   read back out of ALREADY-SNAPPED health and stored to four decimals, and
+  //   that rounding goes up, so 20*6^D lands a hair ABOVE the snap boundary it
+  //   came from (3.300252e12 for a value that is really 3.3e12). Without the
+  //   nudge abbrevCeil rounds a second time and the panel reads 3.4B where the
+  //   game says 3.3B. 1e-4 is below the resolution of the stored D and well
+  //   under one snap step, so it cannot move a genuine value. ]]
+  function zoneDirtHp(zi,layer){
+    return abbrevCeil(20*Math.pow(6,dMeadow(layer)+(zi-1))*(1-1e-4));
+  }
+  // D is read back OFF the snapped health, exactly as MineConfig.oreDifficulty does
+  function zoneD(zi,layer){ return Math.log(Math.max(20,zoneDirtHp(zi,layer))/20)/Math.log(6); }
+  function oreDg(tier){ return (tier-1)*ORE_SPACING; }
+  function oreShares(zi,layer){
+    var D=zoneD(zi,layer), w=[], tot=0;
+    for(var i=1;i<=NORE;i++){
+      var x=oreDg(i)-D, v=1/(1+Math.exp((x-T.oreX0)/T.oreK));
+      if(x<0) v=v*Math.exp(x/T.oreS)*Math.exp(-Math.pow(x/T.oreW,2));
+      w.push(v); tot+=v;
+    }
+    if(!(tot>0)) return {list:[],tot:0,n95:0,n999:0};
+    var list=w.map(function(v,i){ return {tier:i+1,share:v/tot}; })
+              .sort(function(a,b){ return b.share-a.share; });
+    var cum=0,n95=0,n999=0;
+    list.forEach(function(e,k){ cum+=e.share;
+      if(!n95&&cum>=0.95) n95=k+1;
+      if(!n999&&cum>=0.999) n999=k+1; });
+    return {list:list,tot:tot,n95:n95||NORE,n999:n999||NORE};
+  }
+  function oreWeight(tier){ return Math.pow(6,-oreD(tier)/T.dropFall); }
+  function dropOneIn(ti,tier){
+    var w=TYPES[ti][5]*oreWeight(tier);
+    return w>0 ? T.dropBase/w : Infinity;
+  }
+  // Matches MineSkillData.rebirthCost: base x grow^(n-1), rounded to 3 figures.
+  function rebirthCost(n){
+    var c=T.rbBase*Math.pow(T.rbGrow,Math.max(0,n-1));
+    if(!isFinite(c)) return Infinity;
+    var mag=Math.pow(10,Math.max(0,Math.floor(Math.log(c)/Math.LN10)-2));
+    return Math.round(c/mag)*mag;
+  }
+  function rebirthOverflowAt(){
+    var n=Math.floor(Math.log(1.79e308/T.rbBase)/Math.log(T.rbGrow))+1;
+    return n;
+  }
+  function yieldAt(tier){
+    var hi=Math.max(1,Math.round(T.yieldBase*Math.pow(1-(tier-1)/120,T.yieldFall)));
+    return [Math.max(1,Math.round(hi*0.5)),hi];
+  }
+
+  var typeSel=document.getElementById("type"), oreSel=document.getElementById("ore"),
+      lvl=document.getElementById("lvl");
+  TYPES.forEach(function(t,i){
+    var o=document.createElement("option"); o.value=String(i);
+    o.textContent=t[0]; typeSel.appendChild(o);
+  });
+  ORES.forEach(function(nm,i){
+    var o=document.createElement("option"); o.value=String(i+1);
+    o.textContent=(i+1)+"  "+nm; oreSel.appendChild(o);
+  });
+  typeSel.value="0"; oreSel.value="100";
+
+  // each rack gets the groups that belong beside its chart
+  var RACKS={ toolTuners:["Damage","Ore cost","Stardust cost","Cost disparity","Recycle"],
+              dropTuners:["Tool drop","Ore yield"],
+              rbTuners:["Rebirth"],
+              zoneTuners:["Ore spawn","Ore spread","Ore to gems"] };
+  Object.keys(RACKS).forEach(function(hostId){
+    var host=document.getElementById(hostId), html="";
+    RACKS[hostId].forEach(function(name){
+      var g=null;
+      GROUPS.forEach(function(x){ if(x[0]===name) g=x; });
+      if(!g) return;
+      html+="<div class='gh'><span>"+g[0]+"</span><em>"+g[1]+"</em></div>";
+      g[2].forEach(function(t){
+        html+="<div class='tn'><span class='lab'>"+t[1]+"</span>"+
+          "<input id='t_"+t[0]+"' type='range' min='"+t[2]+"' max='"+t[3]+
+          "' step='"+t[4]+"' value='"+T[t[0]]+"'>"+
+          "<span class='val' id='v_"+t[0]+"'></span></div>";
+      });
+    });
+    host.innerHTML=html;
+    RACKS[hostId].forEach(function(name){
+      GROUPS.forEach(function(g){
+        if(g[0]!==name) return;
+        g[2].forEach(function(t){
+          document.getElementById("t_"+t[0]).addEventListener("input",function(e){
+            T[t[0]]=parseFloat(e.target.value); render();
+          });
+        });
+      });
+    });
+  });
+
+  function drawChart(tier,ti){
+    var c=document.getElementById("chart"), g=c.getContext("2d");
+    var W=c.width,H=c.height,pad=8;
+    g.clearRect(0,0,W,H);
+    var css=getComputedStyle(document.documentElement);
+    var cd=css.getPropertyValue("--dmg").trim()||"#1d6b5d";
+    var co=css.getPropertyValue("--ore").trim()||"#a4531a";
+    g.strokeStyle=css.getPropertyValue("--line-2").trim()||"#e3e8ec"; g.lineWidth=1;
+    for(var i=0;i<=4;i++){ var y=pad+(H-pad*2)*i/4;
+      g.beginPath(); g.moveTo(pad,y); g.lineTo(W-pad,y); g.stroke(); }
+    function plot(fn,col){
+      var top=fn(MAXLVL);
+      if(!isFinite(top)||top<=0) return;
+      var mx=Math.log(top+1);
+      g.strokeStyle=col; g.lineWidth=2; g.beginPath();
+      var started=false;
+      for(var L=1;L<=MAXLVL;L+=MAXLVL/200){
+        var f=fn(L);
+        if(!isFinite(f)) break;
+        var v=Math.log(Math.max(f,1e-9)+1)/mx;
+        var x=pad+(W-pad*2)*(L/MAXLVL), y=H-pad-(H-pad*2)*v;
+        if(!started){ g.moveTo(x,y); started=true; } else g.lineTo(x,y);
+      }
+      g.stroke();
+    }
+    plot(function(L){return dmgAt(L,tier,ti)/dmgAt(1,tier,ti);},cd);
+    plot(function(L){return cumOre(L,tier,ti);},co);
+    plot(function(L){return cumDust(L,tier,ti);},css.getPropertyValue("--dust").trim()||"#5b4b9e");
+    var mx=pad+(W-pad*2)*((+lvl.value)/MAXLVL);
+    g.strokeStyle=css.getPropertyValue("--ink-3").trim()||"#78848e";
+    g.setLineDash([4,4]); g.beginPath(); g.moveTo(mx,pad); g.lineTo(mx,H-pad); g.stroke();
+    g.setLineDash([]);
+  }
+
+  function drawRebirth(){
+    var c=document.getElementById("rbChart"), g=c.getContext("2d");
+    var W=c.width,H=c.height,pad=10,N=200;
+    g.clearRect(0,0,W,H);
+    var css=getComputedStyle(document.documentElement);
+    g.strokeStyle=css.getPropertyValue("--line-2").trim()||"#e3e8ec"; g.lineWidth=1;
+    for(var i=0;i<=4;i++){ var y=pad+(H-pad*2)*i/4;
+      g.beginPath(); g.moveTo(pad,y); g.lineTo(W-pad,y); g.stroke(); }
+    var top=rebirthCost(N);
+    if(!isFinite(top)||top<=0) return;
+    var mx=Math.log(top+1);
+    g.strokeStyle=css.getPropertyValue("--drop").trim()||"#1f5f8b"; g.lineWidth=2;
+    g.beginPath();
+    var started=false;
+    for(var n=1;n<=N;n++){
+      var v=rebirthCost(n);
+      if(!isFinite(v)) break;
+      var yy=H-pad-(H-pad*2)*(Math.log(v+1)/mx);
+      var xx=pad+(W-pad*2)*((n-1)/(N-1));
+      if(!started){ g.moveTo(xx,yy); started=true; } else g.lineTo(xx,yy);
+    }
+    g.stroke();
+  }
+
+  var rc={Rare:"var(--dmg)",Epic:"var(--ore)",Legendary:"var(--dust)"};
+
+  function render(){
+    GROUPS.forEach(function(g){ g[2].forEach(function(t){
+      document.getElementById("v_"+t[0]).textContent=t[5](T[t[0]]);
+    }); });
+    var ti=+typeSel.value, tier=+oreSel.value, L=+lvl.value;
+    document.getElementById("lvlLab").textContent=L;
+    var here=Math.max(1,L);
+    var base=dmgAt(1,tier,ti), dmg=dmgAt(here,tier,ti), oreName=ORES[tier-1];
+
+    document.getElementById("oDmg").textContent=fmt(dmg);
+    document.getElementById("oDmgSub").textContent="level "+here+" · "+mult(dmg/base)+
+      " · home rock in "+Math.max(1,Math.ceil(homeHp(tier)/dmg))+" swings";
+    document.getElementById("oOre").textContent=L>=MAXLVL?"maxed":fmt(oreAt(L+1,tier,ti));
+    document.getElementById("oOreSub").textContent=oreName;
+    document.getElementById("oDust").textContent=L>=MAXLVL?"maxed":fmt(dustAt(L+1,tier,ti));
+    document.getElementById("oCum").textContent=fmt(cumOre(L,tier,ti));
+    document.getElementById("oCumSub").textContent=fmt(cumDust(L,tier,ti))+" dust paid · "+
+      fmt(cumDust(L,tier,ti))+" dust in";
+    document.getElementById("oRec").textContent=fmt(recycleAt(tier,L,ti));
+    var effPct=recRate(tier,L,ti);
+    document.getElementById("oRecSub").textContent=
+      pctStr(effPct)+" of build cost · re-buys "+
+      recycleBuysBack(tier,L,ti).toLocaleString("en-US")+" of "+
+      Math.max(1,L).toLocaleString("en-US")+" levels \u00b7 "+
+      fmt(recyclePerLevel(tier,L,ti))+"/level";
+
+    // same upgrade, different tool
+    var cmp=[];
+    [1,32,74,100,121].forEach(function(t){ cmp.push([t,ti]); });
+    [0,3,15].forEach(function(x){ if(x!==ti) cmp.push([tier,x]); });
+    document.getElementById("cmpBody").innerHTML=cmp.map(function(c){
+      var ct=c[0], cy=c[1];
+      var cl0=1;
+      var m=costMult(ct,cy);
+      var mine=(ct===tier&&cy===ti);
+      return "<tr"+(mine?" class='here'":"")+"><td>"+ORES[ct-1]+" "+TYPES[cy][0]+"</td>"+
+        "<td class='n'>"+ct+"</td><td class='n'>"+(cl0+L).toLocaleString("en-US")+"</td>"+
+        "<td class='n'>"+(m>=100?m.toFixed(0):m.toFixed(m<1?3:1))+"×</td>"+
+        "<td class='n'>"+(L>=MAXLVL?"—":fmt(oreAt(L+1,ct,cy)))+"</td>"+
+        "<td class='n'>"+(L>=MAXLVL?"—":fmt(dustAt(L+1,ct,cy)))+"</td>"+
+        "<td class='n'>"+fmt(cumOre(L,ct,cy))+"</td>"+
+        "<td class='n'>"+fmt(cumDust(L,ct,cy))+"</td>"+
+        "<td class='n' style='color:var(--dust)'>"+fmt(recycleAt(ct,L,cy))+"</td></tr>";
+    }).join("");
+    document.getElementById("cmpNote").textContent=
+      "at "+L.toLocaleString("en-US")+" upgrades · cost × = ore^"+
+      T.costTier.toFixed(1)+" × type^"+T.costType.toFixed(1);
+
+    // drop table
+    var y=yieldAt(tier);
+    document.getElementById("dropBody").innerHTML=TYPES.map(function(t,i){
+      var gated=tier<t[3];
+      var oneIn=dropOneIn(i,tier);
+      return "<tr"+(i===ti?" class='here'":"")+"><td>"+t[0]+"</td>"+
+        "<td style='color:var(--ink-2)'>"+t[1]+"</td>"+
+        "<td><span class='pill' style='color:"+rc[t[2]]+"'>"+t[2]+"</span></td>"+
+        "<td class='n'>"+t[3]+"</td><td class='n'>"+t[5].toFixed(2)+"</td>"+
+        (gated
+          ? "<td class='n' colspan='2' style='color:var(--ink-3)'>ore tier too low</td>"
+          : "<td class='n'>"+fmt(oneIn)+"</td><td class='n'>"+(1000/oneIn).toFixed(2)+"</td>")+
+        "</tr>";
+    }).join("");
+    document.getElementById("dropNote").textContent=
+      oreName+" — ore weight 6^(-"+oreD(tier).toFixed(2)+"/"+T.dropFall.toFixed(1)+") = "+
+      oreWeight(tier).toFixed(4)+"  ·  an ore pack pays "+y[0]+"–"+y[1]+" "+oreName;
+
+    // rebirth ladder, early game beside late game
+    var early=[1,2,3,4,5,6,7,8,9,10,12,15],
+        late =[20,25,30,40,50,75,100,150,200,300,400,500];
+    function rbCells(n,edge){
+      var c=rebirthCost(n), prev=rebirthCost(n-1);
+      var ratio=(n>1&&isFinite(c)&&isFinite(prev)&&prev>0)
+        ? (c/prev).toFixed(2)+"×" : "—";
+      var lead=edge?" style='border-left:1px solid var(--line)'":"";
+      return "<td class='n'"+lead+">"+n+"</td>"+
+        "<td class='n'>"+(isFinite(c)?fmt(c):"overflow")+"</td>"+
+        "<td class='n' style='color:var(--ink-3)'>"+ratio+"</td>";
+    }
+    document.getElementById("rbBody").innerHTML=early.map(function(a,i){
+      return "<tr>"+rbCells(a,false)+rbCells(late[i],true)+"</tr>";
+    }).join("");
+    var ovf=rebirthOverflowAt();
+    document.getElementById("rbNote").textContent=
+      "×"+T.rbGrow.toFixed(2)+" each · numbers run out at rebirth "+ovf;
+
+    // clean numbers only: x00 to 1000, then x000 to 10000
+    var rows=[0];
+    for(var h=100;h<=1000;h+=100) rows.push(h);
+    for(var k=200;k<=MAXLVL;k+=100) rows.push(k);
+    document.getElementById("ladder").innerHTML=rows.map(function(l){
+      var d=dmgAt(l,tier,ti), last=(l>=MAXLVL);
+      var band=(l>=2000)?" style='background:color-mix(in srgb, var(--dust) 7%, transparent)'":"";
+      var near=(Math.abs(l-L)<=(l>=2000?500:50));
+      return "<tr"+(near?" class='here'":"")+band+">"+
+        "<td class='n'>"+l.toLocaleString("en-US")+"</td>"+
+        "<td class='n' style='color:var(--ink-3)'>"+l.toLocaleString("en-US")+"</td>"+
+        "<td class='n'>"+fmt(d)+"</td><td class='n'>"+mult(d/base)+"</td>"+
+        "<td class='n'>"+(last?"—":fmt(oreAt(l+1,tier,ti)))+"</td>"+
+        "<td class='n'>"+(last?"—":fmt(dustAt(l+1,tier,ti)))+"</td>"+
+        "<td class='n'>"+fmt(cumOre(l,tier,ti))+"</td><td class='n'>"+fmt(cumDust(l,tier,ti))+"</td>"+
+        "<td class='n' style='color:var(--dust)'>"+fmt(recycleAt(tier,l,ti))+"</td>"+"<td class='n' style='color:var(--ink-3)'>"+(l>0?fmt(recyclePerLevel(tier,l,ti)):"—")+"</td></tr>";
+    }).join("");
+
+    var atMax=dmgAt(MAXLVL,tier,ti);
+    var bandUp=Math.log(atMax/dmgAt(1,tier,ti))/Math.log(6);
+    document.getElementById("verdict").innerHTML=
+      "<strong>"+oreName+" "+TYPES[ti][0]+"</strong> starts at level 1 like every other tool. "+
+      "Its ore tier ("+tier+") is worth <strong>"+fmt(tierPower(tier))+"\u00d7</strong> and its "+
+      TYPES[ti][0]+" frame <strong>"+TYPES[ti][4]+"\u00d7</strong>, so it opens at "+fmt(dmgAt(1,tier,ti))+
+      ". Levelling it to "+MAXLVL.toLocaleString("en-US")+" takes it to "+fmt(atMax)+
+      " \u2014 <strong>"+bandUp.toFixed(1)+" zone steps</strong> of climb on its own, for "+
+      fmt(cumOre(MAXLVL,tier,ti))+" "+oreName+" and "+fmt(cumDust(MAXLVL,tier,ti))+
+      " dust. Scrapping it at max returns "+fmt(recycleOre(tier,MAXLVL,ti))+" ore and "+
+      fmt(recycleAt(tier,MAXLVL,ti))+" dust \u2014 a flat "+Math.round(T.recPct*100)+"%. "+
+      "Found in a wall at level 1 it returns nothing, because nothing went into it.";
+    drawChart(tier,ti);
+    drawRebirth();
+    renderZones();
+  }
+
+  function renderZones(){
+    var zi=(+zZone.value)+1, layer=+zLayer.value;
+    document.getElementById("zLayerLab").textContent=layer.toLocaleString("en-US");
+    var D=zoneD(zi,layer), hp=zoneDirtHp(zi,layer), s=oreShares(zi,layer);
+    document.getElementById("zDirt").textContent=fmt(hp);
+    document.getElementById("zDirtSub").textContent="D "+D.toFixed(2)+" · log6 of HP/20";
+    document.getElementById("zOreHp").textContent=fmt(hp*ORE_HP_MULT);
+    document.getElementById("zOreHpSub").textContent=ORE_HP_MULT+"× dirt, applied at spawn";
+    document.getElementById("zChance").textContent="1 in "+Math.round(1/T.oreChance);
+    document.getElementById("zChanceSub").textContent=
+      (T.oreChance*100).toFixed(2)+"% of blocks · "+
+      (T.oreChance*1000).toFixed(1)+" per 1000 dug";
+    document.getElementById("zSpread").textContent=s.n95;
+    document.getElementById("zSpreadSub").textContent=
+      "cover 95% of rolls · "+s.n999+" cover 99.9%";
+    document.getElementById("zNote").textContent=
+      "top ore "+(s.list[0]?(s.list[0].share*100).toFixed(1):"0")+"%";
+
+    var rows="";
+    s.list.slice(0,14).forEach(function(e,k){
+      var cum=0; for(var j=0;j<=k;j++) cum+=s.list[j].share;
+      var oneIn=e.share>0 ? 1/(e.share*T.oreChance) : Infinity;
+      rows+="<tr><td class='n' style='color:var(--ink-3)'>"+(k+1)+"</td>"+
+        "<td>"+ORES[e.tier-1]+"</td>"+
+        "<td class='n' style='color:var(--ink-3)'>"+oreDg(e.tier).toFixed(2)+"</td>"+
+        "<td class='n' style='color:var(--ore)'>"+(e.share*100).toFixed(2)+"%</td>"+
+        "<td class='n'>"+(isFinite(oneIn)?fmt(oneIn)+" blocks":"never")+"</td>"+
+        "<td class='n' style='color:var(--ink-3)'>"+(cum*100).toFixed(1)+"%</td></tr>";
+    });
+    document.getElementById("zOreBody").innerHTML=rows;
+
+    var zr="";
+    ZONES.forEach(function(z,i){
+      var zz=i+1, zs=oreShares(zz,layer), zhp=zoneDirtHp(zz,layer);
+      zr+="<tr"+(zz===zi?" class='here'":"")+"><td>"+z[0]+"</td>"+
+        "<td class='n' style='color:var(--ink-3)'>"+z[2]+"</td>"+
+        "<td class='n'>"+zoneD(zz,layer).toFixed(2)+"</td>"+
+        "<td class='n'>"+fmt(zhp)+"</td>"+
+        "<td class='n' style='color:var(--ore)'>"+fmt(zhp*ORE_HP_MULT)+"</td>"+
+        "<td>"+(zs.list[0]?ORES[zs.list[0].tier-1]:"—")+"</td>"+
+        "<td class='n'>"+(zs.list[0]?(zs.list[0].share*100).toFixed(1)+"%":"—")+"</td>"+
+        "<td class='n'>"+zs.n95+"</td></tr>";
+    });
+    document.getElementById("zZoneBody").innerHTML=zr;
+
+    document.getElementById("zVerdict").innerHTML=
+      "At <strong>"+ZONES[zi-1][0]+" layer "+layer.toLocaleString("en-US")+
+      "</strong> a dirt block is "+fmt(hp)+" HP and an ore block "+fmt(hp*ORE_HP_MULT)+
+      ". Ore is <strong>1 in "+Math.round(1/T.oreChance)+"</strong> blocks, and when it rolls it "+
+      "spreads over <strong>"+s.n95+" different ores</strong> before you reach 95% of outcomes"+
+      (s.n95>8 ? " — which is why the mine reads as noise rather than as a find. "+
+        (D<1.5
+          ? "Near the surface the dial is <strong>cutoff sharpness K</strong>, which sets how fast "+
+            "ores ABOVE your depth fall off: K 0.45 makes each tier only 1.8× rarer than the "+
+            "one above, so six ores share the surface. K 0.116 makes it 10× and Stone takes 90%."
+          : "Down here the dials are <strong>fade rate S</strong> and <strong>fade width W</strong>, "+
+            "which set how fast ores BELOW your depth fade out. K barely moves this regime. "+
+            "S and W are shown in ore tiers beside each slider; under ~1 tier the spread collapses "+
+            "onto the top few ores.")
+        : ". That reads as a find.");
+    drawZChart(zi,layer);
+  }
+
+  function drawZChart(zi,layer){
+    var c=document.getElementById("zChart"), g=c.getContext("2d");
+    var css=getComputedStyle(document.documentElement);
+    var ink=css.getPropertyValue("--ink-3")||"#888",
+        ore=css.getPropertyValue("--ore")||"#c80",
+        line=css.getPropertyValue("--line")||"#333";
+    var W=c.width, H=c.height, pad=44;
+    g.clearRect(0,0,W,H);
+    var D=zoneD(zi,layer), w=[], mx=0;
+    for(var i=1;i<=NORE;i++){
+      var x=oreDg(i)-D, v=1/(1+Math.exp((x-T.oreX0)/T.oreK));
+      if(x<0) v=v*Math.exp(x/T.oreS)*Math.exp(-Math.pow(x/T.oreW,2));
+      w.push(v); if(v>mx) mx=v;
+    }
+    if(!(mx>0)) return;
+    var tot=w.reduce(function(a,b){return a+b;},0);
+    var lo=1e-8;
+    function px(i){ return pad+(W-pad*2)*(i/(NORE-1)); }
+    function py(v){
+      var t=Math.log(Math.max(lo,v/tot)/lo)/Math.log(1/lo);
+      return H-pad-(H-pad*2)*Math.max(0,Math.min(1,t));
+    }
+    g.strokeStyle=line; g.lineWidth=1;
+    [0.5,0.1,0.01,0.001].forEach(function(s){
+      var y=py(s*tot); g.beginPath(); g.moveTo(pad,y); g.lineTo(W-pad,y); g.stroke();
+      g.fillStyle=ink; g.font="11px ui-monospace,monospace";
+      g.fillText((s*100)+"%",6,y+4);
+    });
+    g.fillStyle=ore;
+    for(var k=0;k<NORE;k++){
+      var v=w[k]/tot; if(v<lo) continue;
+      var x=px(k), y=py(w[k]);
+      g.fillRect(x-2,y,4,H-pad-y);
+    }
+    g.fillStyle=ink; g.font="11px ui-monospace,monospace";
+    g.fillText("tier 1",pad-8,H-pad+16);
+    g.fillText("tier 121",W-pad-24,H-pad+16);
+  }
+  var zZone=document.getElementById("zZone"), zLayer=document.getElementById("zLayer");
+  zZone.innerHTML=ZONES.map(function(z,i){
+    return "<option value='"+i+"'>"+z[0]+(z[2]>0?" · reb "+z[2]:"")+"</option>";
+  }).join("");
+  zZone.value="0";
+  zZone.addEventListener("change",renderZones);
+  zLayer.addEventListener("input",renderZones);
+
+  typeSel.addEventListener("change",render);
+  oreSel.addEventListener("change",render);
+  lvl.addEventListener("input",render);
+  window.addEventListener("resize",render);
+  render();
+})();
+</script>

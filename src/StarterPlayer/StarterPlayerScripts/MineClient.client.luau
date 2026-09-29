@@ -4500,6 +4500,20 @@ shopCtl = ShopView.mount(gui, {
 	onBuyScroll = function(id, bundle)
 		net:FireServer("buyScroll", { id = id, bundle = bundle and true or nil })
 	end,
+	--[[
+		The blacksmith bench.
+
+		Both verbs take a UID, never a row index: the list reorders whenever a
+		tool is found or scrapped, and an index captured when the panel was drawn
+		names a different tool by the time the button is pressed. Levels are a
+		count, and the server clamps it to what is left below the cap.
+	]]
+	onUpgradeOreTool = function(uid, count)
+		net:FireServer("upgradeOreTool", { uid = uid, count = count })
+	end,
+	onRecycleOreTool = function(uid)
+		net:FireServer("recycleOreTool", { uid = uid })
+	end,
 })
 
 depthShopCtl = DepthShopView.mount(gui, {
@@ -6881,6 +6895,23 @@ local function refreshDust()
 
 	elseif tab == "packs" then
 		local PacksMod = require(shared:WaitForChild("MinePackConfig"))
+		--[==[
+			Ore packs carry their ore's tier, and at 121 ores the name alone
+			does not place one: "Magnetite Ore Pack" says nothing about whether
+			that is an early find or a deep one. The tier does, so it rides on
+			the subtitle where the generic "Unopened pack" used to sit.
+		]==]
+		local ZonePacks
+		pcall(function()
+			ZonePacks = require(shared:WaitForChild("MineZonePacks"))
+		end)
+		local function packSub(pk)
+			local def = ZonePacks and ZonePacks.get and ZonePacks.get(pk.packId)
+			if def and def.kind == "ore" and def.tier then
+				return "Ore pack  |  tier " .. tostring(def.tier)
+			end
+			return "Unopened pack"
+		end
 		local list = {}
 		for idx, pk in ipairs(snap.packs or {}) do
 			local dust = 0
@@ -6898,6 +6929,7 @@ local function refreshDust()
 				table.insert(list, {
 					idx = idx,
 					name = pk.packName or pk.packId or pk.setId or ("Pack " .. idx),
+					sub = packSub(pk),
 					dust = dust,
 					-- The pack's own id, so a bag that shifts before SCRAP is
 					-- pressed still scraps the packs that were ticked.
@@ -6912,7 +6944,7 @@ local function refreshDust()
 			return a.idx < b.idx
 		end)
 		for i, row in ipairs(list) do
-			tile(i, tostring(row.name), "Unopened pack",
+			tile(i, tostring(row.name), tostring(row.sub or "Unopened pack"),
 				"+" .. shortNum(row.dust) .. " stardust", T.GREEN, Color3.fromRGB(190, 150, 255), { row.id }, function()
 				sel[row.id] = (not sel[row.id]) or nil
 				refreshDust()
@@ -8218,6 +8250,9 @@ function ClientFns.paintEnchantExtra()
 			n += 1
 			local def = ZP and ZP.get and ZP.get(offer.id)
 			local name = (def and def.name) or tostring(offer.id)
+			-- 121 ores on the roster: the tier is what places a pack.
+			local tierBit = (def and def.kind == "ore" and def.tier)
+				and ("  |  tier " .. tostring(def.tier)) or ""
 			local row = mk("TextButton", {
 				BackgroundColor3 = BG2, Text = "", AutoButtonColor = true,
 				Size = UDim2.new(1, -8, 0, 36), LayoutOrder = n, ZIndex = 35,
@@ -8226,7 +8261,7 @@ function ClientFns.paintEnchantExtra()
 			mk("TextLabel", {
 				BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = TEXT,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				Text = string.format("%s    %s dust", name, tostring(offer.price or "?")),
+				Text = string.format("%s%s    %s dust", name, tierBit, tostring(offer.price or "?")),
 				Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -20, 1, 0), ZIndex = 36,
 			}, row)
 			local oid = offer.id
@@ -9780,7 +9815,20 @@ RunService.Heartbeat:Connect(function(dt)
 		local blockName = target:GetAttribute("BlockName") or (spec and spec.name) or "Block"
 		local section = target:GetAttribute("SectionName")
 		local layer = target:GetAttribute("CY")
-		if section and target:GetAttribute("Kind") ~= "chest" and target:GetAttribute("Kind") ~= "fossil" then
+		--[[
+			An ore block carries a SectionName like every other block, so it used to
+			fall into the section branch below and the card read "Clayfall | L312" --
+			the one thing it could not tell you was which of the 121 ores you were
+			standing in front of. Ore is checked FIRST for that reason; the section
+			is still on screen in the depth HUD, the ore's identity was nowhere.
+		]]
+		local oreName = target:GetAttribute("OreName")
+		if kind == "ore" and oreName then
+			local oreTier = tonumber(target:GetAttribute("OreTier"))
+			hoverName.Text = oreTier
+				and string.format("%s  |  tier %d", tostring(oreName), oreTier)
+				or tostring(oreName)
+		elseif section and target:GetAttribute("Kind") ~= "chest" and target:GetAttribute("Kind") ~= "fossil" then
 			hoverName.Text = string.format("%s  |  L%d", section, layer or 1)
 		elseif target:GetAttribute("Kind") == "chest" then
 			local flavour = section and ("  |  " .. section) or ""
@@ -11427,5 +11475,66 @@ task.spawn(function()
 				net:FireServer("afkStart")
 			end
 		end
+	end)
+end)
+
+--[[
+	ORE FACES.
+
+	The server stamps OreId on an ore block and stops there. The art is built
+	here because an EditableImage does not replicate -- it has to exist where it
+	is drawn -- and because the alternative, an uploaded image, cannot work at
+	all on this place: the experience belongs to a group and anything the
+	upload tooling produces belongs to a user, so Roblox loads nothing and says
+	nothing.
+
+	Everything below lives inside this one spawned function on purpose. This
+	script is at the 200 top-level local ceiling, and a do-block shares that
+	budget, so a plain block of locals here would break the whole client.
+]]
+task.spawn(function()
+	local okArt, Art = pcall(function()
+		return require(game:GetService("ReplicatedStorage")
+			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineOreArt"))
+	end)
+	if not okArt or not Art then
+		return
+	end
+	local okCfg, Cfg = pcall(function()
+		return require(game:GetService("ReplicatedStorage")
+			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineConfig"))
+	end)
+	if not okCfg or not Cfg or type(Cfg.ORE_FACE) ~= "table" then
+		return
+	end
+
+	local function skin(part)
+		if not part:IsA("BasePart") then
+			return
+		end
+		local id = part:GetAttribute("OreId")
+		if type(id) ~= "string" then
+			return
+		end
+		local index = Cfg.ORE_FACE[id]
+		if not index then
+			return
+		end
+		pcall(function()
+			Art.apply(part, index)
+		end)
+	end
+
+	-- blocks that already exist, then everything that streams in after
+	local world = workspace:WaitForChild("MineWorld", 30)
+	if not world then
+		return
+	end
+	for _, d in ipairs(world:GetDescendants()) do
+		skin(d)
+	end
+	world.DescendantAdded:Connect(function(d)
+		-- the attribute is set after the part is parented, so wait a frame
+		task.defer(skin, d)
 	end)
 end)

@@ -642,9 +642,11 @@ function MineGear.makePiece(id, setId, slot, rarity, catalog)
 	return piece
 end
 
-function MineGear.rollPiece(id, rng)
+-- `forceSlot` pins the slot instead of rolling it, which is what makes a hat
+-- crate a hat crate rather than a gear crate that sometimes pays boots.
+function MineGear.rollPiece(id, rng, forceSlot)
 	rng = rng or Random.new()
-	local slot = MineGear.rollSlot(rng)
+	local slot = forceSlot or MineGear.rollSlot(rng)
 	local rarity, info = MineGear.rollRarity(rng)
 	rarity = MineGear.snapGrade(slot, rarity)
 	-- The catalog item picks the set, not the other way round, so the hat you
