@@ -1499,28 +1499,48 @@ end
 -- makes a 25-rung tool ladder mean anything.
 --------------------------------------------------------------------------------
 
-MineConfig.VAL_ZONE = 2.2
-MineConfig.VAL_DEPTH = 14.0
+--[[
+	ONE BLOCK, ONE COIN -- times a steady 5x per zone, and nothing else.
 
-function MineConfig.valueScale(zone, layer)
-	local tier = math.max(1, MineConfig.zoneTier(zone))
-	local deep = math.max(2, MineConfig.LAYERS)
-	local t = (math.clamp(layer or 1, 1, deep) - 1) / (deep - 1)
-	return (MineConfig.VAL_ZONE ^ (tier - 1)) * (1 + t * MineConfig.VAL_DEPTH)
+	What this replaces: coins used to equal a block's HP, and HP scales 6^(zone-1)
+	times roughly 15x over a zone's depth. So a Primordium block paid about 200
+	million where a Meadow one paid 3, and digging deeper inside one zone paid
+	more for the same click. Two compounding multipliers nobody could read, on
+	top of each other.
+
+	Now the rate is flat inside a zone and steps 5x between them, which is a
+	number a player can hold in their head -- and the outpost sign at every zone
+	entrance states it outright (WorldBuilder.buildOutpost).
+
+	VAL_ZONE / VAL_DEPTH / valueScale are gone with it. They had no callers at
+	all -- dead since whenever coins became HP-based -- so deleting them changes
+	nothing except the amount of misleading code in here.
+]]
+MineConfig.ZONE_COIN_STEP = 5
+
+-- Coins for one block in this zone. No depth term: inside a zone every block
+-- pays the same, whether it is layer 1 or layer 2500.
+function MineConfig.zoneCoinRate(zone)
+	local zi = MineConfig.zoneIndex(zone)
+	return MineConfig.ZONE_COIN_STEP ^ (zi - 1)
 end
 
--- One coin per point of HP. Every block, no exceptions -- this is the whole
--- coin economy. Coins used to come only from dirt, and the ore mix squeezes
--- dirt out entirely by layer 50, so a deep player earned nothing at all.
-function MineConfig.coinsFor(kind, mult)
-	-- Base rock pays nothing: it is the obstacle, not the reward.
+--[[
+	One coin per block, at this zone's rate.
+
+	`mult` stays in the signature for the player's own coinBonus. It is NOT a
+	zone or depth term any more -- callers that used to pass a valueScale should
+	pass nothing.
+]]
+function MineConfig.coinsFor(kind, zone, mult)
 	local spec = MineConfig.BLOCKS[kind]
-	local base = (spec and spec.coins) or 0
-	if base <= 0 then
+	-- Base rock still pays nothing: it is the obstacle, not the reward.
+	if not spec or (spec.coins or 0) <= 0 then
 		return 0
 	end
-	return math.max(1, math.floor(base * (mult or 1) + 0.5))
+	return math.max(1, math.floor(MineConfig.zoneCoinRate(zone) * (tonumber(mult) or 1) + 0.5))
 end
+
 -- Gems, paid only when the block is fully broken. Dirt has no `sell`, so it
 -- pays none.
 function MineConfig.gemsFor(kind, mult)

@@ -4051,7 +4051,9 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	-- Scale the currency rows off the blocks the chest was buried in, so a
 	-- zone-6 chest never pays zone-1 money and nothing needs re-tuning when a
 	-- zone is added. A chest is meant to feel like a seam, not like a block.
-	local dirtValue = math.max(1, C.coinsFor and C.coinsFor("dirt", zone, layer) or 1)
+	-- Zone rate only: coinsFor no longer takes a depth term, and passing `layer`
+	-- here would have multiplied a chest's payout by its layer number.
+	local dirtValue = math.max(1, C.coinsFor and C.coinsFor("dirt", zone) or 1)
 
 	if chosen.kind == "pack" then
 		-- A run, not a row. Sometimes nothing, sometimes a pile; the count is
