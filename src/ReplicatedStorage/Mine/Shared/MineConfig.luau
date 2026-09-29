@@ -2343,7 +2343,7 @@ end
 
 
 --------------------------------------------------------------------------------
--- ORE TOOL POWER -- anchored to the rock the ore lives in
+-- ORE TOOL POWER -- a smooth ramp across the 82 ores
 --
 -- A tool made of an ore should open able to work the rock that ore comes out
 -- of. That is the whole idea, and it removes the guesswork: `home` on each ore
@@ -2375,22 +2375,38 @@ function MineConfig.toolLevelPct(rank)
 end
 
 --[[
-	The rock an ore calls home, in HP.
+	THE POWER ANCHOR -- one number per ore, spread smoothly across the roster.
 
-	Derived from `home` rather than stored as a baked table: a constant table is
-	a second copy of the same fact, and the two drift the first time an ore
-	moves. Clamped to the deepest reachable main-zone rock, because an ore whose
-	home sits past that (tiers 46 up) is never actually found in rock that hard
-	-- its real home is the Primordium floor, and sizing its tool for imaginary
-	rock would make it far too strong.
+	This was "the HP of the rock the ore calls home", clamped to the deepest
+	rock a main zone reaches. That clamp was a mistake and a bad one: every ore
+	whose home sits past hardness 19.14 got the SAME anchor, which is tiers 57
+	to 82 -- twenty-six ores, a quarter of the roster, producing byte-identical
+	tools. Oganesson and Ruby made the same pick.
+
+	So power no longer reads `home` at all. `home` does spawn, and nothing else.
+	The anchor is a smooth ramp across the 82 tiers, which means every ore makes
+	a different tool by construction rather than by luck of where its home fell.
+
+	ORE_POWER_TOP is not a taste value. A Luau number holds integers exactly only
+	to 2^53 (9,007,199,254,740,992), and the strongest tool in the game is its
+	anchor times 61.1 (TOOL_POWER_START * sqrt(8) * climb(8)). Working backwards,
+	the top anchor has to stay under 147 trillion, which is hardness 16.54. At
+	16.4 the strongest possible tool lands at 7,058,448,439,055,122 -- inside the
+	limit with room, so damage arithmetic stays exact.
+
+	One consequence, stated plainly because it is a design change and not a
+	rounding one: the top tools no longer one-shot the deepest rock. They can
+	still break it well inside the Breaking Power budget, but Primordium's floor
+	at 15,700,000,000,000,000 HP outlives a single hit from anything. That is the
+	opposite of the old behaviour, where everything Legendary and up one-shot the
+	bottom of the game.
 ]]
-function MineConfig.oreHomeHp(tier)
-	local o = MineConfig.ORES[clampTier(tier)]
-	if not o then
-		return 20
-	end
-	local h = math.min(o.home or 0, MineConfig.oreDeepestHardness())
-	return 20 * (6 ^ h)
+MineConfig.ORE_POWER_TOP = 16.4
+
+function MineConfig.orePowerAnchor(tier)
+	local t = clampTier(tier)
+	local n = math.max(2, #MineConfig.ORES)
+	return 20 * (6 ^ (MineConfig.ORE_POWER_TOP * (t - 1) / (n - 1)))
 end
 
 -- Hardness of the deepest rock a main zone actually reaches, cached.
@@ -2414,16 +2430,17 @@ end
 
 	start = homeHp * TOOL_POWER_START * sqrt(rank), then climb^((L-1)/99).
 
-	The maxed multiples are the safety rail: a maxed Common one-shots rock up to
-	3.6x its home HP (0.7 of a zone step) and a maxed Exotic up to 61x (2.3
-	steps). Both fall out of the formula rather than being clamped, so they
-	cannot be broken by tuning one number without the sim noticing.
+	The maxed multiples are the safety rail: a maxed Common reaches 3.6x its
+	anchor and a maxed Exotic 61x. Both fall out of the formula rather than being
+	clamped, so they cannot be broken by tuning one number without the sim
+	noticing -- and 61x is exactly what sets ORE_POWER_TOP, since it is the
+	multiplier that has to stay inside 2^53.
 ]]
 function MineConfig.toolPower(tier, level, rank)
 	local L = clampLevel(level)
 	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
 	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
-	local start = MineConfig.oreHomeHp(tier) * MineConfig.TOOL_POWER_START * math.sqrt(r)
+	local start = MineConfig.orePowerAnchor(tier) * MineConfig.TOOL_POWER_START * math.sqrt(r)
 	return start * (MineConfig.toolPowerClimb(r) ^ ((L - 1) / steps))
 end
 
