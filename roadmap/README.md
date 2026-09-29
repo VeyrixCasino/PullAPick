@@ -44,11 +44,23 @@ find. Tune the find.
 |---|---|
 | `PRINCIPLES.md` | **always, first.** Invariants. Breaking one is a bug, not a trade-off. |
 | `GATING.md` | you are adding or changing any reward |
+| `PROGRESSION.md` | you touch builds, the skill tree, currency sinks, rebirth or pacing |
 | `ECONOMY.md` | you touch supply, sinks, trade, prices or monetisation |
 | `ORE.md` | you touch ore, ore tools, or ore packs |
 | `CHARMS.md` | you touch charms (there is a rework pending) |
 | `NUMBERS.md` | you need real magnitudes — HP, boosts, zones — or hit a big-number bug |
 | `POSTMORTEM.md` | before proposing a redesign. It lists what has already been tried and how it failed. |
+
+## Three things that are already true and easy to get wrong
+
+- **The build system exists and is good.** 10 energies, 5 rival pairs, 10 XOR
+  roads, breadth inflation that punishes sprinkling. Do not rebuild it — read
+  `PROGRESSION.md` §1 for why it does not currently *feel* like it matters.
+- **Coins have 3 sinks; gems have 8+.** Mining pays in the currency the game barely
+  consumes. `PROGRESSION.md` §2.
+- **Rebirth cost doubles (×2.08) against income that goes flat after the last zone
+  gate.** Your own code comment warns about it. There are 10 zones, so the wall is
+  at rebirth 9. `PROGRESSION.md` §3.
 
 ## Ground rules for agents
 
