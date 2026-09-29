@@ -200,6 +200,30 @@ local net = remotes:FindFirstChild("MineNet") or Instance.new("RemoteEvent")
 net.Name = "MineNet"
 net.Parent = remotes
 
+-- Admin remotes are created HERE, not in MineAdmin.start().
+--
+-- start() is called at the very bottom of this file (~line 14990 of 15000) with
+-- 100+ yield points ahead of it, so MineAdminClient:19 -- a top-level
+-- WaitForChild("AdminReady") with no timeout -- reached its wait long before the
+-- remote existed and warned "Infinite yield possible". The panel then never
+-- appeared for admins, silently: the fallback at MineAdminClient:861 cannot help
+-- because line 19 never returns.
+--
+-- Creating them up here costs nothing (bare instances, no handlers) and start()
+-- is FindFirstChild-or-create, so it adopts these rather than making new ones.
+-- IIFE so these do not burn main-chunk registers (Luau 200-local cap).
+do
+	local function ensureRemote(name, className)
+		local r = remotes:FindFirstChild(name) or Instance.new(className)
+		r.Name = name
+		r.Parent = remotes
+		return r
+	end
+	ensureRemote("AdminReady", "RemoteEvent")
+	ensureRemote("AdminNotify", "RemoteEvent")
+	ensureRemote("AdminInvoke", "RemoteFunction")
+end
+
 require(shared.MineWorldEvents).bind({
 	C = C,
 	Gear = Gear,
@@ -512,6 +536,9 @@ local function blank()
 		coreSamples = {},
 		coreRiftOpened = {},
 		deepest = {}, depthUnlock = {}, backpack = {},
+		-- Seams bought, keyed "<zoneIndex>:<seam>". Depth is the one axis nothing
+		-- else gates, and ore tool power rides it.
+		seams = {},
 		-- Four meadow Loam packs so the first Inventory open has something to crack
 		-- before the player finds a chest. Real roster ids, not placeholder wrappers.
 		packs = {
@@ -718,7 +745,21 @@ local function load(plr)
 	local key = "u_" .. plr.UserId
 	local lockTtl = RunService:IsStudio() and 0 or 120
 	local data, read = nil, false
-	for attempt = 1, 8 do
+	-- With API access off, all 8 lock-claim attempts are refused and each one logs
+	-- StudioAccessToApisNotAllowed with backoff between -- the UpdateAsync lines
+	-- scattered through the boot log. The existing Studio fallback below already
+	-- handles the "cannot read" case, so skip straight to it rather than spending
+	-- ~15s failing loudly first.
+	-- LeaderboardService is the local from line 43, well above this function --
+	-- checked, because a local declared BELOW its use site is a nil global to this
+	-- closure and the guard would silently never fire. That trap has bitten this
+	-- file four times (shortNum, invCtl, vipSeatsLeft, SET_IDS).
+	local claimAttempts = 8
+	if RunService:IsStudio() and LeaderboardService.dataStoresUsable
+		and not LeaderboardService.dataStoresUsable() then
+		claimAttempts = 0
+	end
+	for attempt = 1, claimAttempts do
 		local blocked, seen = false, nil
 		local okU = pcall(function()
 			store:UpdateAsync(key, function(old)
@@ -867,6 +908,24 @@ local function load(plr)
 	p.foundersBag = p.foundersBag and true or false
 	p.potions = p.potions or {}
 	p.coins = p.coins or 0
+	--[[
+		GRANDFATHERING THE DEPTH GATE.
+
+		Nobody loses depth they already reached. grantReachedSeams derives the
+		grant from p.deepest, which creditDeepest has been writing all along, so
+		this needs no migration flag and no version stamp -- the evidence was
+		already on the profile before the gate existed.
+
+		It is add-only and therefore safe to run on every load: creditDeepest
+		keeps pushing deepest down as they mine, and re-running must never take a
+		seam away. It runs HERE, inside load and before the first canDigLayer,
+		because a returning player whose first swing is at layer 900 would
+		otherwise eat a refusal for a seam they earned months ago.
+	]]
+	p.seams = p.seams or {}
+	if Dig.Depth.grantReachedSeams then
+		Dig.Depth.grantReachedSeams(p)
+	end
 	p.runes = p.runes or {}
 	p.gear = p.gear or {}
 	p.equippedGear = p.equippedGear or { hat = nil, face = nil }
@@ -1447,6 +1506,100 @@ local function equippedTool(p)
 			return et, et.family or "pickaxe", et.tier or 1
 		end
 	end
+	--[[
+		AN EQUIPPED ORE TOOL OUTRANKS THE LADDER.
+
+		Ore tools are found, not bought. Like a chest flagship they are a
+		separate object rather than a rung, so holding one replaces whatever
+		pickaxe tier the player has climbed to.
+
+		The row is synthesised, not stored. Its `name` is the ORE's name, which
+		is exactly what ToolModels_50 keys the baked head on, so the model
+		resolves through the existing fromNamed path off the same string the
+		bench prints -- no second lookup table to drift.
+
+		A missing uid clears the equip instead of erroring: scrapping the tool
+		in your hand must not leave you swinging a ghost.
+
+		The lookup is inline because Verbs is declared some six thousand lines
+		below this function, so Verbs._findOreTool is not in scope here.
+	]]
+	if p.oreToolEquipped then
+		local held
+		for _, t in ipairs(p.oreTools or {}) do
+			if type(t) == "table" and t.uid == p.oreToolEquipped then
+				held = t
+				break
+			end
+		end
+		if not held then
+			p.oreToolEquipped = nil
+		else
+			local famId = held.familyId or "pickaxe"
+			local oreDef = C.ORES and C.ORES[tonumber(held.tier) or 1]
+			-- Same rarity rank the bench prices against, so what you paid for
+			-- and what you swing agree.
+			local typeMult = 1
+			local famList = Tools.TOOLS and Tools.TOOLS[famId]
+			if famList then
+				for _, td in ipairs(famList) do
+					if td.id == held.typeId then
+						local rr = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
+						typeMult = (Tools.RARITY_RANK and Tools.RARITY_RANK[rr or td.rarity]) or 1
+						break
+					end
+				end
+			end
+			local lvl = math.max(1, tonumber(held.level) or 1)
+			local power = 1
+			if C.toolPower then
+				power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)))
+			end
+			--[[
+				FINISHES RIDE AN ORE TOOL THE SAME WAY THEY RIDE A FLAGSHIP.
+
+				Same two multipliers a chest tool gets, and the same route to
+				the screen: givePickaxe reads row.shiny / row.shadow without
+				caring what kind of tool the row describes, so setting them
+				here is the whole of it -- ToolModelFactory.applyFinish puts the
+				mirror and sparks, or the near-black body and red fire, on the
+				model it already built.
+
+				Shadow wins over shiny rather than stacking, matching withShiny
+				above. A finish never changes what a level COSTS, only what the
+				tool hits for, so the bench prices a shadow tool exactly like a
+				plain one and recycle still returns a flat cut of what went in.
+			]]
+			local shiny = held.shiny and true or nil
+			local shadow = held.shadow and true or nil
+			local nightmare = held.nightmare and true or nil
+			-- Highest finish wins outright; they never stack, same as withShiny.
+			if nightmare then
+				power = math.max(1, math.floor(power * (C.NIGHTMARE_MULT or 4.5)))
+			elseif shadow then
+				power = math.max(1, math.floor(power * (C.SHADOW_MULT or 3)))
+			elseif shiny then
+				power = math.max(1, math.floor(power * (C.SHINY_MULT or 1.5)))
+			end
+			local finish = (nightmare and "Nightmare") or (shadow and "Shadow")
+				or (shiny and "Shiny") or "Normal"
+			return {
+				id = "oretool_" .. tostring(held.uid),
+				uid = held.uid,
+				name = (oreDef and oreDef.name) or "Ore Tool",
+				modelName = (oreDef and oreDef.name) or nil,
+				family = famId,
+				power = power,
+				level = lvl,
+				oreTool = true,
+				shiny = shiny,
+				shadow = shadow,
+				nightmare = nightmare,
+				finish = finish,
+			}, famId, 0
+		end
+	end
+
 	-- A chest flagship overrides the ladder entirely: it is not a rung, it is a
 	-- separate object you found. Held only while the player has it selected.
 	local function withShiny(def, owned)
@@ -2464,6 +2617,7 @@ local function snap(plr)
 		packs = p.packs, cards = p.cards, equipped = p.equipped, cap = cap(p),
 		ores = p.ores or {},
 		oreTools = p.oreTools or {},
+		oreToolEquipped = p.oreToolEquipped,
 		itemSlotsUsed = C.itemSlotsUsed and C.itemSlotsUsed(p) or nil,
 		itemSlotCap = C.itemSlotCap and C.itemSlotCap(p) or nil,
 		itemSlotPrice = C.itemSlotPrice and C.itemSlotPrice(p) or nil,
@@ -4768,6 +4922,24 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			if stampedLuck > 1 then
 				row.luck = stampedLuck
 			end
+			--[[
+				THE ORE FINDER IS STAMPED HERE, LIKE LUCK.
+
+				It used to be read from live boosts at OPEN, which meant a pack
+				mined with the finder up paid nothing extra if you unequipped
+				before opening -- and a bag of old packs all cashed in at
+				whatever you happened to be wearing. Stamped at the break, so
+				what a pack is worth is settled by how you were kitted when you
+				earned it.
+
+				(Key is still fossilFind: fossils are gone and ore replaced
+				them, so it IS the ore finder. Renaming the key would orphan
+				every rune, charm and card that writes it.)
+			]]
+			local stampedFind = tonumber(bb.fossilFind) or 0
+			if stampedFind > 0 then
+				row.oreFind = stampedFind
+			end
 			table.insert(p.packs, row)
 			net:FireClient(plr, "toast", ore.name .. " Ore Pack!")
 		end
@@ -5969,26 +6141,29 @@ local function openPack(plr, setId, chestId, pk, collect)
 				local hi = (zdef.yield and zdef.yield[2]) or lo
 				local orng = Random.new()
 				local got = orng:NextInteger(math.min(lo, hi), math.max(lo, hi))
-				local find = math.max(0, tonumber((boosts(p) or {}).fossilFind) or 0)
+				-- The finder the pack was MINED with, not the one worn now.
+				local find = math.max(0, tonumber(pk and pk.oreFind) or 0)
 				got = math.max(1, math.floor(got * (1 + find) + 0.5))
 				p.ores = p.ores or {}
 				p.ores[zdef.oreId] = (tonumber(p.ores[zdef.oreId]) or 0) + got
 				bumpStat(plr, p, "packs")
 				-- The reveal needs something to celebrate with, and every ore is
 				-- Common on the card rarity scale. Grade it off its own tier.
-				-- Bands, straight off the roster: Common 1-24, Uncommon 25-48,
-				-- Rare 49-72, Epic 73-96, Legendary 97-108, Mythic 109-114,
-				-- Divine 115-118, Exotic 119-121. These used to stop at Divine
-				-- with the top three ores grading as merely Divine, and the
-				-- Mythic/Divine cuts sat at 110/118 rather than 108/114.
+				-- Bands, straight off the 82-ore roster: Common 1-18,
+				-- Uncommon 19-29, Rare 30-49, Epic 50-60, Legendary 61-69,
+				-- Mythic 70-75, Divine 76-79, Exotic 80-82. These were the
+				-- 121-ore cuts (24/48/72/96/108/114/118). After the trim the
+				-- roster stops at 82, so the top four cuts sat past the end of
+				-- it entirely: nothing could ever grade above Epic, and the
+				-- Legendary, Mythic, Divine and Exotic reveals were dead code.
 				local tier = (ore and ore.tier) or 1
-				local grade = (tier > 118 and "Exotic")
-					or (tier > 114 and "Divine")
-					or (tier > 108 and "Mythic")
-					or (tier > 96 and "Legendary")
-					or (tier > 72 and "Epic")
-					or (tier > 48 and "Rare")
-					or (tier > 24 and "Uncommon")
+				local grade = (tier > 79 and "Exotic")
+					or (tier > 75 and "Divine")
+					or (tier > 69 and "Mythic")
+					or (tier > 60 and "Legendary")
+					or (tier > 49 and "Epic")
+					or (tier > 29 and "Rare")
+					or (tier > 18 and "Uncommon")
 					or "Common"
 				local loot = { {
 					kind = "ore",
@@ -7898,6 +8073,60 @@ function Verbs.bindSellPad(part)
 		Verbs.sellPadAt[plr.UserId] = now
 		pcall(Verbs.sellAtPad, plr, part, part:GetAttribute("ZoneId"))
 	end)
+end
+
+--[[
+	BUY A SEAM. The coin sink the economy is short of.
+
+	Rebirth is nine one-time purchases and then that sink is gone forever; seams
+	repeat in every zone, never run out, and scale at exactly the rate coin income
+	does -- because the price IS income, measured in minutes.
+
+	Nothing here stores a coin figure. seamPrice derives it from the band's own
+	average income every time it is asked, so the ladder self-corrects the moment
+	the block rate or the coin curve moves, and cannot go stale.
+]]
+function Verbs.buySeam(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local Depth = Dig.Depth
+	local seam = payload
+	if type(payload) == "table" then
+		seam = payload.seam or payload.layer
+	end
+	seam = math.floor(tonumber(seam) or 0)
+	local zi = math.max(1, math.floor(tonumber(C.zoneIndex and C.zoneIndex(p.zoneId)) or 1))
+	local price = Depth.seamPrice and Depth.seamPrice(seam, zi)
+	if not price then
+		net:FireClient(plr, "toast", "No seam at that depth")
+		return
+	end
+	if Depth.ownsSeam(p, seam, zi) then
+		net:FireClient(plr, "toast", "That seam is already open")
+		return
+	end
+	-- Seams open in order. Skipping one would skip the band whose income pays for
+	-- the next, and 30 minutes is only honest if the player mined the band below.
+	for _, s in ipairs(Depth.SEAMS) do
+		if s >= seam then
+			break
+		end
+		if not Depth.ownsSeam(p, s, zi) then
+			net:FireClient(plr, "toast", "Open layer " .. tostring(s) .. " first")
+			return
+		end
+	end
+	if (p.coins or 0) < price then
+		net:FireClient(plr, "toast", string.format("Layer %d costs %s coins", seam, tostring(price)))
+		return
+	end
+	p.coins -= price
+	Depth.grantSeam(p, seam, zi)
+	net:FireClient(plr, "toast", string.format("Layer %d open -- dig on", seam))
+	markDirty(plr)
+	snap(plr)
 end
 
 function Verbs.buyCharter(plr, id)
@@ -13438,6 +13667,50 @@ function Verbs.upgradeOreTool(plr, payload)
 	markDirty(plr)
 end
 
+--[[
+	Equip an ore tool, or put it away.
+
+	uid-keyed like the rest of the bench: a row index names a different tool the
+	moment the list reorders. An empty uid unequips, which is how a player gets
+	back to their ladder pickaxe without scrapping anything.
+
+	One object claims the hand at a time. A chest flagship and a fossil tool are
+	both cleared here, because equippedTool checks the ore tool FIRST and would
+	otherwise silently mask a flagship the player thinks they are holding.
+]]
+function Verbs.equipOreTool(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local uid = (type(payload) == "table") and payload.uid or payload
+	uid = tostring(uid or "")
+	if uid == "" then
+		p.oreToolEquipped = nil
+		givePickaxe(plr)
+		markDirty(plr)
+		snap(plr)
+		return
+	end
+	local tool = Verbs._findOreTool(p, uid)
+	if not tool then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+	if p.oreToolEquipped == uid then
+		-- Tapping the held tool puts it away.
+		p.oreToolEquipped = nil
+	else
+		p.oreToolEquipped = uid
+		p.chestTool = nil
+		p.fossilTool = nil
+	end
+	p.toolEquipped = true
+	givePickaxe(plr)
+	markDirty(plr)
+	snap(plr)
+end
+
 function Verbs.recycleOreTool(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -13459,7 +13732,15 @@ function Verbs.recycleOreTool(plr, payload)
 	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
 	local oreId = oreDef and oreDef.id
 
+	-- Let go before it stops existing, or the hand keeps a uid that no longer
+	-- resolves. equippedTool self-heals from this, but re-giving the pickaxe
+	-- here is what actually puts the ladder tool back in the player's hand.
+	local wasHeld = (p.oreToolEquipped == tool.uid)
 	table.remove(p.oreTools, index)
+	if wasHeld then
+		p.oreToolEquipped = nil
+		givePickaxe(plr)
+	end
 	if oreId and ore > 0 then
 		p.ores = p.ores or {}
 		p.ores[oreId] = (tonumber(p.ores[oreId]) or 0) + ore
@@ -13490,6 +13771,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
+		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "throwAt" then throwAt(plr, payload)
 		elseif action == "bagGo" then
 			if payload == "sell" and hasVipPass(plr) then
@@ -13734,6 +14016,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "applyOmniscroll" then Verbs.applyOmniscroll(plr, payload)
 		elseif action == "buyCreditPack" then Verbs.buyCreditPack(plr, payload)
 		elseif action == "buyCharter" then Verbs.buyCharter(plr, payload)
+		elseif action == "buySeam" then Verbs.buySeam(plr, payload)
 		elseif action == "equipTool" then equipTool(plr, payload)
 		elseif action == "equipShopTool" then
 			local p = profiles[plr.UserId]

@@ -6,7 +6,14 @@
 local MineDepth = {}
 
 MineDepth.ZONE_HP_MULT = 6
-MineDepth.SEAMS = { 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000 }
+-- Outposts every 500 to 3000, then every 1000 to 10000. The widening is
+-- deliberate: 500 layers is a shorter and shorter stretch of progress the deeper
+-- you go, so past 3000 the same effort buys one outpost instead of two.
+--
+-- 10000 is the LAST seam, not the bottom of the mine. gateForLayer returns the
+-- deepest seam at or below a layer, so buying 10000 opens everything beneath it
+-- and depth carries on by the same formula with no further gate or outpost.
+MineDepth.SEAMS = { 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000 }
 MineDepth.AIR_GAP = 5 -- layers of air ending at seam (e.g. 496-500)
 MineDepth.DEPTH_SELL_FRAC = 0.78
 MineDepth.COMING_SOON_SEAM = 99999
@@ -17,6 +24,41 @@ MineDepth.DIG_LEAD = 8
 --   band C (1500 / Shadowzone): 70, 80, 90… = 60 + 10 * zoneIndex
 MineDepth.REBIRTH_PER_ZONE_B = 10
 MineDepth.REBIRTH_BAND_C_BASE = 60
+
+-- COIN-PRICED DEPTH GATES.
+--
+-- These gate SEAMS -- the same 500-layer ladder that MineDepthPlazas,
+-- MineDepthShop, MineDigAuth and world gen already read for desks, sell pads and
+-- air gaps. One ladder, not two. A separate doubling ladder
+-- (100/200/400...12800) was written first and dropped: a second set of depths to
+-- reason about is a dial this game does not need, and its top rung sat below no
+-- outpost at all. Gating on SEAMS also lands every gate on an air gap that is
+-- already generated there.
+--
+-- Fixed widths do mean the PRICE step decays -- 2.64x at the first gate, 1.10x
+-- at the last. That is the shrinking relative growth of a linear curve and no
+-- multiplier fixes it. It costs nothing in fairness: price is derived from the
+-- band's own income, so every gate is SEAM_MINUTES of play no matter how wide
+-- the band is. What it costs is signposting, and markers are a display concern.
+--
+-- Why this exists: rebirthForSeam and rebirthForLayer both return 0, so depth is
+-- gated by nothing at all and the only brake on a new player reaching layer 5000
+-- is the anti-teleport position check in MineDigAuth. Ore tool power follows
+-- depth, so an ungated depth axis is an ungated POWER axis -- that is the
+-- bootstrap loop, and this is its brake.
+
+-- Price is stored as MINUTES of the income available just above the seam, and the
+-- coin figure is derived. A hardcoded coin number goes stale the moment the block
+-- rate or the coin curve moves, and both are still being tuned.
+MineDepth.SEAM_MINUTES = 30
+-- Measured, not assumed: a fresh account at Meadow layer 1 breaks 2,016 blocks an
+-- hour (wood pick power 4 x rate 2.8 against 20 HP dirt). Rounded to 2,000.
+MineDepth.GATE_BLOCKS_PER_HOUR = 2000
+-- coinValue(Z,L) = 5^(Z-1) * (1 + COIN_DEPTH*L)^COIN_POW. Zone term is factored
+-- out of seamPrice so the ladder costs the same number of minutes in every zone.
+MineDepth.GATE_COIN_ZONE = 5
+MineDepth.GATE_COIN_DEPTH = 0.075
+MineDepth.GATE_COIN_POW = 0.9
 
 -- 20 authored sections (midpoint dirt HP). Exclusive spawn sits inside a band.
 -- Shallow band = the design curve (zone-layer-docs, PROGRESSION_AUDIT: Loam 10 -> Crimson
@@ -330,8 +372,11 @@ function MineDepth.bandUnlockKey(seam)
 		return "shadowzone" -- was deep / band c
 	elseif seam == 2000 then
 		return "twothou"
-	elseif seam >= 2500 and seam <= 5000 and seam % 500 == 0 then
+	elseif seam >= 2500 and seam <= 10000 and (seam % 500 == 0) then
 		-- Own outpost desk per depth. Shops past 2500 show no tools.
+		-- Upper bound follows the last entry in SEAMS. Old profiles may still
+		-- carry outpost_3500 / outpost_4500 keys from when the ladder ran every
+		-- 500 the whole way; those simply go unread rather than breaking.
 		return "outpost_" .. tostring(seam)
 	end
 	return nil
@@ -347,6 +392,114 @@ end
 
 function MineDepth.rebirthForLayer(layer, zoneIndex)
 	return 0
+end
+
+-- ---------------------------------------------------------------------------
+-- Coin-priced depth gates (SEAMS). Depth is bought, not rebirthed for.
+-- ---------------------------------------------------------------------------
+
+-- Coin value of one block at (zone, layer), zone term included.
+function MineDepth.gateCoinValue(zoneIndex, layer)
+	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	local zone = MineDepth.GATE_COIN_ZONE ^ (zoneIndex - 1)
+	return zone * (1 + MineDepth.GATE_COIN_DEPTH * layer) ^ MineDepth.GATE_COIN_POW
+end
+
+-- The band a seam gates: from the previous seam up to seam-1. This is the stretch
+-- the player is already allowed to mine, so its income is what they can actually
+-- earn while saving for the next seam -- which is what makes 30 minutes honest.
+function MineDepth.gateBand(seam)
+	seam = math.floor(tonumber(seam) or 0)
+	local lo = 1
+	for _, s in ipairs(MineDepth.SEAMS) do
+		if s == seam then
+			return lo, seam - 1
+		end
+		lo = s
+	end
+	return nil
+end
+
+-- SEAM_MINUTES of the band's average income. Minutes stored, coins derived.
+function MineDepth.seamPrice(seam, zoneIndex)
+	local lo, hi = MineDepth.gateBand(seam)
+	if not lo then
+		return nil
+	end
+	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	local sum = 0
+	for L = lo, hi do
+		sum += MineDepth.gateCoinValue(zoneIndex, L)
+	end
+	local avgCoinPerBlock = sum / (hi - lo + 1)
+	local coinsPerHour = avgCoinPerBlock * MineDepth.GATE_BLOCKS_PER_HOUR
+	return math.floor(coinsPerHour * (MineDepth.SEAM_MINUTES / 60) + 0.5)
+end
+
+-- The deepest gate a layer sits at or below, or nil if it is above the first one.
+function MineDepth.gateForLayer(layer)
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	local need = nil
+	for _, s in ipairs(MineDepth.SEAMS) do
+		if layer >= s then
+			need = s
+		end
+	end
+	return need
+end
+
+local function seamKey(zoneIndex, seam)
+	return tostring(zoneIndex) .. ":" .. tostring(seam)
+end
+MineDepth.gateSeamKey = seamKey
+
+function MineDepth.ownsSeam(p, seam, zoneIndex)
+	if type(p) ~= "table" or not seam then
+		return false
+	end
+	return (p.seams or {})[seamKey(zoneIndex or 1, seam)] == true
+end
+
+function MineDepth.grantSeam(p, seam, zoneIndex)
+	if type(p) ~= "table" or not seam then
+		return false
+	end
+	p.seams = p.seams or {}
+	p.seams[seamKey(zoneIndex or 1, seam)] = true
+	return true
+end
+
+-- Grandfather: a player keeps every gate at or below the depth they already
+-- reached. p.deepest has been tracked all along (MineDigAuth.creditDeepest), so
+-- this needs no migration flag -- it is derived from data already on the profile.
+--
+-- Add-only and therefore idempotent: creditDeepest keeps pushing deepest down as
+-- they mine, and re-running must never take a seam away. Must run on load BEFORE
+-- the first gate check, or a returning player eats a refusal on their first swing.
+function MineDepth.grantReachedSeams(p)
+	if type(p) ~= "table" then
+		return 0
+	end
+	p.seams = p.seams or {}
+	local granted = 0
+	for zoneId, reached in pairs(p.deepest or {}) do
+		local zi = 1
+		local okZone, C = pcall(function()
+			return require(script.Parent:WaitForChild("MineConfig"))
+		end)
+		if okZone and C and C.zoneIndex then
+			zi = C.zoneIndex(tostring(zoneId)) or 1
+		end
+		local deepest = math.floor(tonumber(reached) or 0)
+		for _, s in ipairs(MineDepth.SEAMS) do
+			if deepest >= s and not MineDepth.ownsSeam(p, s, zi) then
+				MineDepth.grantSeam(p, s, zi)
+				granted += 1
+			end
+		end
+	end
+	return granted
 end
 
 function MineDepth.meetsRebirth(p, need)

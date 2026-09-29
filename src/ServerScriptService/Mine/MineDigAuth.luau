@@ -66,6 +66,17 @@ local function unlockedForLayer(p, layer, zoneId)
 	if need > 0 and not (Depth.meetsRebirth and Depth.meetsRebirth(p, need)) then
 		return false, "need_rebirth", need, zi
 	end
+	-- THE DEPTH GATE. Every other entitlement check in this file funnels through
+	-- here -- canDigLayer, maxAllowedLayer, maxStandLayer, canAccessSeam and
+	-- grantDepthPass -- so the gate is stated once rather than in six places.
+	--
+	-- It has to be here and not in canDigLayer alone: grantDepthPass would
+	-- otherwise hand out a permanent pass for a seam the player never bought,
+	-- and that pass outlives the refusal.
+	local gate = Depth.gateForLayer and Depth.gateForLayer(layer)
+	if gate and Depth.ownsSeam and not Depth.ownsSeam(p, gate, zi) then
+		return false, "need_seam", gate, zi
+	end
 	return true, nil
 end
 
