@@ -26,12 +26,16 @@ outranks an item that adds a thing to look at, every time.
 
 ## P0 — launch blockers
 
-- [ ] **Depth gate UI.** The gate is live and priced (13 seams, 30 min each)
-  but nothing calls `Verbs.buySeam`, so players stop dead at layer 500.
-  **The game cannot ship in this state.**
-  *Cheap path:* `MineDepthPlazas` already owns the seam prompt geometry and
-  already runs an unlock check there. Extend that prompt rather than building
-  a new panel. `MineDepth.seamPrice(seam, zi)` gives the figure.
+- [x] ~~**Depth gate UI**~~ **done, unshot** — the gate opens on the refusal
+  itself rather than from a menu: swinging into sealed rock fires `seamGate`,
+  and `ClientFns.confirmSeam` shows depth, price, minutes and your balance
+  with a buy button wired to `buySeam`. Opening on the refusal is deliberate —
+  the moment a player learns a seam exists is the moment their pickaxe stops
+  working on it, so sending them to find a shop teaches the rule twice.
+  Throttled server-side (1.5 s) and the panel refuses to reopen while it is
+  up, because the refusal fires on every swing. Built once and relabelled
+  rather than rebuilt, so a dig loop does not drop frames.
+  **Not yet seen on screen** — needs a Studio pass.
 
 - [ ] **Nowhere to equip a tool.** You cannot change your pickaxe. Everything
   else about tools — 82 baked models, bench, upgrade, recycle, `equipOreTool`

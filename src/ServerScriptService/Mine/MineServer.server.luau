@@ -5505,6 +5505,27 @@ local function swingBlock(plr, part)
 				local need = (Dig.Depth.rebirthForLayer and Dig.Depth.rebirthForLayer(layer, zi)) or 10
 				net:FireClient(plr, "toast", (Dig.Depth.rebirthToast and Dig.Depth.rebirthToast(need, zi, seam))
 					or string.format("Rebirth %d required", need))
+			elseif why == "need_seam" then
+				-- The seam gate is the one refusal a player can act on immediately,
+				-- so it opens the purchase rather than explaining itself in a toast.
+				--
+				-- Throttled: this fires on every swing into locked rock, and a
+				-- player who keeps swinging would otherwise rebuild the panel ten
+				-- times a second. The client also refuses to reopen while it is up,
+				-- so this is the cheap half of a belt-and-braces guard.
+				local zi = (C.zoneIndex and C.zoneIndex(zoneId or p.zoneId)) or 1
+				local seam = Dig.Depth.gateForLayer and Dig.Depth.gateForLayer(layer)
+				local price = seam and Dig.Depth.seamPrice and Dig.Depth.seamPrice(seam, zi)
+				local now = os.clock()
+				if price and (now - (tonumber(p._seamPromptAt) or 0)) > 1.5 then
+					p._seamPromptAt = now
+					net:FireClient(plr, "seamGate", {
+						seam = seam,
+						price = price,
+						minutes = Dig.Depth.SEAM_MINUTES,
+						coins = math.floor(p.coins or 0),
+					})
+				end
 			elseif why == "need_mid" or why == "need_deep" then
 				net:FireClient(plr, "toast", "Reach the depth plaza to unlock this band")
 			end

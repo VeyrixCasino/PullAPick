@@ -7384,6 +7384,106 @@ function ClientFns.confirmRebirth()
 end
 
 --[[
+	THE SEAM GATE.
+
+	Depth is bought, and this is where it is bought. It opens on the refusal
+	itself rather than sitting in a menu, because the moment a player learns a
+	seam exists is the moment their pickaxe stops working on it -- sending them
+	to go find a shop would be teaching the rule twice.
+
+	Built once and relabelled, not rebuilt: the server fires this on every swing
+	into locked rock, and tearing down a frame ten times a second to draw the
+	same thing with a different number in it is how a dig loop drops frames.
+]]
+-- Held on ClientFns, not as top-level locals: this script sits a handful of
+-- registers under Luau's 200 top-level local ceiling, and going over fails to
+-- compile the whole client rather than just this panel.
+function ClientFns.confirmSeam(payload)
+	if type(payload) ~= "table" then
+		return
+	end
+	local seam = tonumber(payload.seam) or 0
+	local price = tonumber(payload.price) or 0
+	local coins = tonumber(payload.coins) or (snap and snap.coins) or 0
+	local minutes = tonumber(payload.minutes) or 30
+	if seam <= 0 or price <= 0 then
+		return
+	end
+	-- Already deciding. Do not yank the panel out from under a click.
+	if ClientFns.seamMenu and ClientFns.seamMenu.Parent and ClientFns.seamMenu.Visible then
+		return
+	end
+	if not (ClientFns.seamMenu and ClientFns.seamMenu.Parent) then
+		local f = mk("Frame", {
+			Name = "ConfirmSeam", AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.44), Size = UDim2.fromOffset(460, 260),
+			BackgroundColor3 = Color3.fromRGB(46, 52, 78), ZIndex = 90,
+		}, gui)
+		ClientFns.seamMenu = f
+		round(f, 18)
+		stroke(f, 2)
+		ClientFns.seamTitle = mk("TextLabel", {
+			BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 22),
+			Size = UDim2.new(1, 0, 0, 32), Font = FONT, TextSize = 24,
+			TextColor3 = Color3.fromRGB(255, 255, 255), TextStrokeTransparency = 1,
+			Text = "", ZIndex = 91,
+		}, f)
+		ClientFns.seamBody = mk("TextLabel", {
+			BackgroundTransparency = 1, Position = UDim2.fromOffset(24, 62),
+			Size = UDim2.new(1, -48, 0, 86), Font = FONT_M, TextSize = 14,
+			TextColor3 = Color3.fromRGB(212, 216, 232), TextWrapped = true,
+			TextYAlignment = Enum.TextYAlignment.Top, Text = "", ZIndex = 91,
+		}, f)
+		local row = mk("Frame", {
+			BackgroundTransparency = 1, Position = UDim2.fromOffset(24, 160),
+			Size = UDim2.new(1, -48, 0, 46), ZIndex = 91,
+		}, f)
+		mk("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Padding = UDim.new(0, 12),
+		}, row)
+		ClientFns.seamBuy = mk("TextButton", {
+			AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(96, 190, 104),
+			Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(12, 24, 16),
+			Text = "", Size = UDim2.fromOffset(200, 42), ZIndex = 92,
+		}, row)
+		round(ClientFns.seamBuy, 9)
+		ClientFns.seamBuy.MouseButton1Click:Connect(function()
+			-- The server re-prices and re-checks affordability; this only asks.
+			if ClientFns.seamMenu then
+				ClientFns.seamMenu.Visible = false
+			end
+			net:FireServer("buySeam", { seam = tonumber(ClientFns.seamMenu and ClientFns.seamMenu:GetAttribute("Seam")) or 0 })
+		end)
+		local back = mk("TextButton", {
+			AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(70, 74, 96),
+			Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(238, 240, 248),
+			Text = "Not yet", Size = UDim2.fromOffset(160, 42), ZIndex = 92,
+		}, row)
+		round(back, 9)
+		back.MouseButton1Click:Connect(function()
+			ClientFns.seamMenu.Visible = false
+		end)
+	end
+	ClientFns.seamMenu:SetAttribute("Seam", seam)
+	ClientFns.seamTitle.Text = string.format("Layer %d is sealed", seam)
+	local short = shortNum and shortNum(price) or tostring(price)
+	local afford = coins >= price
+	ClientFns.seamBody.Text = string.format(
+		"Buy through the seam to mine below layer %d.\n\nCost %s coins — about %d minutes of mining at this depth.\nYou have %s.%s",
+		seam, short, minutes, shortNum and shortNum(coins) or tostring(coins),
+		afford and "" or "\n\nKeep mining above the seam and come back."
+	)
+	ClientFns.seamBuy.Text = afford and ("Open the seam — " .. short) or ("Need " .. short)
+	ClientFns.seamBuy.BackgroundColor3 = afford and Color3.fromRGB(96, 190, 104) or Color3.fromRGB(88, 92, 112)
+	ClientFns.seamBuy.TextColor3 = afford and Color3.fromRGB(12, 24, 16) or Color3.fromRGB(196, 200, 216)
+	ClientFns.seamBuy.Active = afford
+	ClientFns.seamBuy.AutoButtonColor = afford
+	ClientFns.seamMenu.Visible = true
+end
+
+--[[
 	The Rebirth screen is ONE decision: "should I press the button yet?"
 	Everything on it serves that question, in reading order: what rebirth is,
 	how close your bank is (one bar, two marked lines), what stays vs what
@@ -10519,6 +10619,8 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if ClientFns.noteDepthLive then
 			ClientFns.noteDepthLive(payload)
 		end
+	elseif action == "seamGate" then
+		ClientFns.confirmSeam(payload)
 	elseif action == "toast" then
 		showToast(tostring(payload))
 	elseif action == "openElevator" then
