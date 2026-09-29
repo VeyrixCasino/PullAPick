@@ -42,11 +42,19 @@ outranks an item that adds a thing to look at, every time.
   — is built and reachable, and the one verb that makes it matter has no
   button. Same shape of bug as the depth gate.
 
-- [ ] **Battle pass claim does not persist.** Notification still says 2 to
-  claim, and a relog lets you claim again. That is a duplication bug in a
-  *monetised* system, so it is a launch blocker on money grounds, not polish.
-  *Suspect:* claim writes to the profile but never `markDirty`, so it is never
-  saved. Cheap to confirm, cheap to fix.
+- [x] ~~**Battle pass claim does not persist**~~ **done** — root cause was
+  that **`markDirty` does not save.** It queues a client *snapshot*; the loop
+  that drains it calls `snap`, never `save`. `claimPass` called only
+  `markDirty`, so a claim granted in memory survived until the 45-second
+  autosave — relog inside that window and the ledger was gone while the reward
+  had already been handed over, so the tier paid twice. Claims carrying a
+  lucky block were already safe (that path commits the ledger inside the
+  `UpdateAsync` callback); the cheaper path was the hole. Now calls `save`,
+  matching the daily reward, which hit this exact bug already.
+
+  **Worth a sweep:** `markDirty` is named like it persists and does not. Any
+  other verb granting something valuable and calling only `markDirty` has the
+  same 45-second hole.
 
 - [ ] **Redo the tutorial, end to end.** It predates ores, packs, the bench,
   charms and depth entirely, so it teaches a game that no longer exists.

@@ -10805,6 +10805,24 @@ function Verbs.claimPass(plr, payload)
 		return
 	end
 	markDirty(plr)
+	--[[
+		Persist the claim NOW, not on the 45-second autosave.
+
+		markDirty only queues a client snapshot -- it does not save. So a claim
+		whose reward has no lucky block (the `else` branch above, which grants in
+		memory) survived only until the next autosave. Relog inside that window
+		and the ledger was gone while the reward had already been handed over:
+		the tier reads unclaimed again and pays a second time.
+
+		This is the same bug the daily reward already hit and fixed the same way
+		-- see the save(plr) on the daily path and its comment about the popup
+		returning every login as Day 1.
+
+		Claims with lucky blocks were already safe: that path commits the ledger
+		inside the UpdateAsync callback. This makes both paths durable rather
+		than leaving the cheaper one to chance.
+	]]
+	save(plr)
 	net:FireClient(plr, "claimPassResult", { tier = tier, track = trackName, ok = true })
 	net:FireClient(plr, "toast", "Claimed: " .. Scrolls.describeReward(reward))
 	snap(plr)
