@@ -1194,6 +1194,104 @@ local function load(plr)
 		end
 		p.oreRosterV = 1
 	end
+	--[[
+		SECOND roster pass: 121 ores became 82, and 39 ids went away.
+
+		Separate table and separate stamp from v1 on purpose. v1 still has to
+		run for a save that has never seen it, so a save arrives here as v0, v1
+		or v2 and walks forward: v0 -> 1 -> 2, v1 -> 2, v2 -> nothing. Editing
+		v1 in place instead would have quietly skipped the rename step for
+		every save that predates it.
+
+		Three things move, and a fourth is repaired:
+		  p.ores       amounts, summed where two old ids land on one new one
+		  p.packs      "<old>_ore_pack" -> "<new>_ore_pack"
+		  p.oreTools   tier is an INDEX into C.ORES, so it is re-pointed through
+		               ORE_TIER_REMAP_V2 -- the uid is kept, because the uid is
+		               what every button in the bench sends
+		  level        clamped to the new cap, with the overspend refunded
+	]]
+	if p.oreRosterV ~= (C.ORE_ROSTER_V or 2) then
+		local map = C.ORE_MIGRATION_V2
+		local moved, packed, retiered, clamped = 0, 0, 0, 0
+		if type(map) == "table" then
+			if type(p.ores) == "table" then
+				for oldId, newId in pairs(map) do
+					if oldId ~= newId then
+						local held = tonumber(p.ores[oldId])
+						if held and held > 0 then
+							p.ores[newId] = (tonumber(p.ores[newId]) or 0) + held
+							moved += 1
+						end
+						p.ores[oldId] = nil
+					end
+				end
+			end
+			if type(p.packs) == "table" then
+				local ZonePacks = require(shared:WaitForChild("MineZonePacks"))
+				for _, pk in ipairs(p.packs) do
+					local pid = pk and pk.packId
+					if type(pid) == "string" then
+						local baseId = pid:match("^(.*)_ore_pack$")
+						local to = baseId and map[baseId]
+						if to then
+							pk.packId = to .. "_ore_pack"
+							local def = ZonePacks.get and ZonePacks.get(pk.packId)
+							pk.packName = (def and def.name) or pk.packName
+							packed += 1
+						end
+					end
+				end
+			end
+		end
+		--[[
+			Ore tools. The cap drops to 100, so a tool saved above it is set to
+			100 and handed back half of what the levels above 100 cost -- the
+			same 50% the bench already refunds on a recycle, so nobody can farm
+			the migration by having over-levelled first.
+		]]
+		local remap = C.ORE_TIER_REMAP_V2
+		local cap = math.min(100, tonumber(C.TOOL_MAX_LEVEL) or 100)
+		if type(p.oreTools) == "table" then
+			for _, t in ipairs(p.oreTools) do
+				if type(t) == "table" then
+					local oldTier = tonumber(t.tier)
+					if oldTier and type(remap) == "table" and remap[oldTier] then
+						if remap[oldTier] ~= oldTier then
+							retiered += 1
+						end
+						t.tier = remap[oldTier]
+					end
+					local lv = math.max(1, math.floor(tonumber(t.level) or 1))
+					if lv > cap then
+						if C.toolSpent then
+							local oreWas, dustWas = C.toolSpent(t.tier, lv, t.typeMult)
+							local oreNow, dustNow = C.toolSpent(t.tier, cap, t.typeMult)
+							local oreBack = math.floor(math.max(0, (oreWas or 0) - (oreNow or 0)) * 0.5)
+							local dustBack = math.floor(math.max(0, (dustWas or 0) - (dustNow or 0)) * 0.5)
+							if oreBack > 0 then
+								local ore = C.ORES[t.tier]
+								if ore then
+									p.ores = p.ores or {}
+									p.ores[ore.id] = (tonumber(p.ores[ore.id]) or 0) + oreBack
+								end
+							end
+							if dustBack > 0 then
+								p.dust = (tonumber(p.dust) or 0) + dustBack
+							end
+						end
+						lv = cap
+						clamped += 1
+					end
+					t.level = lv
+				end
+			end
+		end
+		print(string.format(
+			"[oreRosterV2] %s: %d ore piles merged, %d packs renamed, %d tools re-tiered, %d levels clamped",
+			tostring(p.userId or p.name or "?"), moved, packed, retiered, clamped))
+		p.oreRosterV = C.ORE_ROSTER_V or 2
+	end
 	if type(p.tools) ~= "table" then
 		p.tools = { pickaxe = math.max(1, tonumber(p.pickaxeTier) or 1), drill = 0, explosive = 0 }
 		p.gotFirstPick = true
@@ -3953,7 +4051,9 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	-- Scale the currency rows off the blocks the chest was buried in, so a
 	-- zone-6 chest never pays zone-1 money and nothing needs re-tuning when a
 	-- zone is added. A chest is meant to feel like a seam, not like a block.
-	local dirtValue = math.max(1, C.coinsFor and C.coinsFor("dirt", zone, layer) or 1)
+	-- Zone rate only: coinsFor no longer takes a depth term, and passing `layer`
+	-- here would have multiplied a chest's payout by its layer number.
+	local dirtValue = math.max(1, C.coinsFor and C.coinsFor("dirt", zone) or 1)
 
 	if chosen.kind == "pack" then
 		-- A run, not a row. Sometimes nothing, sometimes a pile; the count is
@@ -5969,27 +6069,28 @@ local function openPack(plr, setId, chestId, pk, collect)
 				local hi = (zdef.yield and zdef.yield[2]) or lo
 				local orng = Random.new()
 				local got = orng:NextInteger(math.min(lo, hi), math.max(lo, hi))
+				--[[
+					Yield boosts are capped on ore packs.
+
+					fossilFind multiplies the haul, and at the top of the boost
+					stack it multiplied it a long way. Upgrade costs are sized in
+					HOURS of supply, so an uncapped multiplier is not "nicer
+					drops", it is a shortcut straight past the cost curve for
+					whoever stacked pets hardest. ORE_PACK_FIND_CAP holds the
+					best case to about 2x an unboosted player.
+				]]
 				local find = math.max(0, tonumber((boosts(p) or {}).fossilFind) or 0)
+				find = math.min(find, tonumber(C.ORE_PACK_FIND_CAP) or 1)
 				got = math.max(1, math.floor(got * (1 + find) + 0.5))
 				p.ores = p.ores or {}
 				p.ores[zdef.oreId] = (tonumber(p.ores[zdef.oreId]) or 0) + got
 				bumpStat(plr, p, "packs")
-				-- The reveal needs something to celebrate with, and every ore is
-				-- Common on the card rarity scale. Grade it off its own tier.
-				-- Bands, straight off the roster: Common 1-24, Uncommon 25-48,
-				-- Rare 49-72, Epic 73-96, Legendary 97-108, Mythic 109-114,
-				-- Divine 115-118, Exotic 119-121. These used to stop at Divine
-				-- with the top three ores grading as merely Divine, and the
-				-- Mythic/Divine cuts sat at 110/118 rather than 108/114.
+				-- The reveal grade is the ore's BAND, read straight off the
+				-- roster. This used to be eight hard-coded tier cutoffs
+				-- (24/48/72/96/108/114/118), which silently mis-graded every ore
+				-- the moment the roster was renumbered from 121 down to 82.
 				local tier = (ore and ore.tier) or 1
-				local grade = (tier > 118 and "Exotic")
-					or (tier > 114 and "Divine")
-					or (tier > 108 and "Mythic")
-					or (tier > 96 and "Legendary")
-					or (tier > 72 and "Epic")
-					or (tier > 48 and "Rare")
-					or (tier > 24 and "Uncommon")
-					or "Common"
+				local grade = (ore and ore.band) or "Common"
 				local loot = { {
 					kind = "ore",
 					name = (ore and ore.name) or zdef.oreName or tostring(zdef.oreId),

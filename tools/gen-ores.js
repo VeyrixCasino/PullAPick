@@ -143,7 +143,52 @@ ${migLines}
 }`
 };
 
+// ---- has the live table moved past what this generator can express? ----
+//
+// This writes id/name/tier/colour/material/met/rough/glow and nothing else, from
+// a doc that is a snapshot of one moment. Two later commits went further than
+// that doc, so a --write today is not a regeneration, it is a revert:
+//
+//   72b81ed renamed 14 ores. docs/ore-remake.md still says "Rock Salt",
+//           "Tiger's Eye", "Frostfire Crystal", "Galaxyrock"; the live table
+//           says halite, tigereye, frostfire, galaxite.
+//   the 82-cut dropped 39 ores and put `band`, `home` and `yield` on every row.
+//           This emitter knows about none of those three, and the doc still
+//           holds all 121.
+//
+// So the roster is now authored in MineConfig.luau, and the doc is history. The
+// checks below refuse rather than silently undo that. If the generator is ever
+// meant to lead again, teach it the new columns first and re-snapshot the doc.
+const liveHasBand = cfgLines.slice(start, end).some(l => /\bband = "/.test(l));
+const liveHasHome = cfgLines.slice(start, end).some(l => /\bhome = /.test(l));
+const liveCount = oldIds.length;
+const drift = [];
+if (liveHasBand || liveHasHome) {
+  drift.push("live rows carry " + [liveHasBand && "band", liveHasHome && "home"]
+    .filter(Boolean).join(" and ") + ", which this generator does not emit");
+}
+if (liveCount !== ores.length) {
+  drift.push("live table has " + liveCount + " ores, the doc has " + ores.length);
+}
+for (const [was, now] of [["rock_salt", "halite"], ["tigers_eye", "tigereye"],
+                          ["frostfire_crystal", "frostfire"], ["galaxyrock", "galaxite"]]) {
+  // Drift is: the DOC still carries the old id while the LIVE table has the new
+  // one. (Written the other way round first, which made this check silently
+  // never fire on the 121-row table it exists to protect.)
+  if (seen.has(was) && oldIds.some(o => o.id === now)) {
+    drift.push("doc still calls " + now + " by its old name (" + was + ")");
+  }
+}
+if (drift.length) {
+  console.log("\nGENERATOR IS BEHIND THE LIVE TABLE:");
+  drift.forEach(d => console.log("  - " + d));
+  console.log("\n  The roster is authored in MineConfig.luau now; this doc is a snapshot.");
+  console.log("  Writing would revert work, so --write is refused. Pass --force-stale");
+  console.log("  only if you have just taught this script the new columns.");
+}
+
 if (process.argv.includes("--write")) {
+  if (drift.length && !process.argv.includes("--force-stale")) { process.exit(1); }
   if (errs.length) { console.log("\nrefusing to write with errors above"); process.exit(1); }
   if (unmapped.length) { console.log("\nrefusing to write with unmapped ids"); process.exit(1); }
   const next = cfgLines.slice(0, start).concat(

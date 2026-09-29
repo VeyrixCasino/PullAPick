@@ -1499,28 +1499,48 @@ end
 -- makes a 25-rung tool ladder mean anything.
 --------------------------------------------------------------------------------
 
-MineConfig.VAL_ZONE = 2.2
-MineConfig.VAL_DEPTH = 14.0
+--[[
+	ONE BLOCK, ONE COIN -- times a steady 5x per zone, and nothing else.
 
-function MineConfig.valueScale(zone, layer)
-	local tier = math.max(1, MineConfig.zoneTier(zone))
-	local deep = math.max(2, MineConfig.LAYERS)
-	local t = (math.clamp(layer or 1, 1, deep) - 1) / (deep - 1)
-	return (MineConfig.VAL_ZONE ^ (tier - 1)) * (1 + t * MineConfig.VAL_DEPTH)
+	What this replaces: coins used to equal a block's HP, and HP scales 6^(zone-1)
+	times roughly 15x over a zone's depth. So a Primordium block paid about 200
+	million where a Meadow one paid 3, and digging deeper inside one zone paid
+	more for the same click. Two compounding multipliers nobody could read, on
+	top of each other.
+
+	Now the rate is flat inside a zone and steps 5x between them, which is a
+	number a player can hold in their head -- and the outpost sign at every zone
+	entrance states it outright (WorldBuilder.buildOutpost).
+
+	VAL_ZONE / VAL_DEPTH / valueScale are gone with it. They had no callers at
+	all -- dead since whenever coins became HP-based -- so deleting them changes
+	nothing except the amount of misleading code in here.
+]]
+MineConfig.ZONE_COIN_STEP = 5
+
+-- Coins for one block in this zone. No depth term: inside a zone every block
+-- pays the same, whether it is layer 1 or layer 2500.
+function MineConfig.zoneCoinRate(zone)
+	local zi = MineConfig.zoneIndex(zone)
+	return MineConfig.ZONE_COIN_STEP ^ (zi - 1)
 end
 
--- One coin per point of HP. Every block, no exceptions -- this is the whole
--- coin economy. Coins used to come only from dirt, and the ore mix squeezes
--- dirt out entirely by layer 50, so a deep player earned nothing at all.
-function MineConfig.coinsFor(kind, mult)
-	-- Base rock pays nothing: it is the obstacle, not the reward.
+--[[
+	One coin per block, at this zone's rate.
+
+	`mult` stays in the signature for the player's own coinBonus. It is NOT a
+	zone or depth term any more -- callers that used to pass a valueScale should
+	pass nothing.
+]]
+function MineConfig.coinsFor(kind, zone, mult)
 	local spec = MineConfig.BLOCKS[kind]
-	local base = (spec and spec.coins) or 0
-	if base <= 0 then
+	-- Base rock still pays nothing: it is the obstacle, not the reward.
+	if not spec or (spec.coins or 0) <= 0 then
 		return 0
 	end
-	return math.max(1, math.floor(base * (mult or 1) + 0.5))
+	return math.max(1, math.floor(MineConfig.zoneCoinRate(zone) * (tonumber(mult) or 1) + 0.5))
 end
+
 -- Gems, paid only when the block is fully broken. Dirt has no `sell`, so it
 -- pays none.
 function MineConfig.gemsFor(kind, mult)
@@ -2048,128 +2068,186 @@ MineConfig.ORE_K = 0.45
 MineConfig.ORE_S = 4.0
 MineConfig.ORE_W = 3.0
 
+--[[
+	BANDS -- an ore's grade, and the only thing that says how rare its whole
+	group is.
+
+	Pack reveal colour and UI rarity both read `band` off the ore, and every
+	cutoff in the game derives from this list plus that field. Nothing anywhere
+	may hard-code "Common is 1-24": the roster gets renumbered, and a stale
+	cutoff left behind is a silently mis-graded ore.
+]]
+-- Ore packs cap the yield boost so the cost curve (sized in hours of supply)
+-- cannot be multiplied past by a maxed boost stack. 1 = at most 2x unboosted.
+MineConfig.ORE_PACK_FIND_CAP = 1
+
+MineConfig.ORE_BAND_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic" }
+MineConfig.ORE_BAND_INDEX = {}
+for i, b in ipairs(MineConfig.ORE_BAND_ORDER) do
+	MineConfig.ORE_BAND_INDEX[b] = i
+end
+
+--[[
+	How rare each band is, on top of the depth curve.
+
+	Common..Epic ride the curve alone -- where they sit is the whole story. The
+	four rare bands need a second lever, because the curve's own decay between
+	neighbouring ores (about 5x per hardness step near the top) is far too
+	coarse to land Legendary at 0.35% and Exotic at 0.028% per ore while
+	keeping nine Legendary ores within a hair of each other.
+
+	Solved, not guessed: ServerStorage.OreBalanceSim drives these until every
+	cap, floor and ladder rule passes.
+
+	The owner asked for the band ladder to hold literally at depth, so the peak
+	was pushed DOWN the list: the deepest main-zone spot now rolls mostly Rare,
+	and every band above it is rarer than the one below, all the way to Exotic.
+	Band totals there are Rare 54.3%, Epic 44.5%, Legendary 0.83%, Mythic
+	0.28%, Divine 0.09%, Exotic 0.031% -- a 3x step across the four rare bands,
+	and Legendary down from one find a minute to one every ten.
+
+	Common and Uncommon read 0.0% at that spot. They are not out-ranked, they
+	are absent: the tail term puts an ore 23 hardness-steps below its home at
+	e^-59, so no weight short of 10^26 would show them there. That is the one
+	part of a literal eight-band ladder the shape cannot express, and the shape
+	is fixed by the brief.
+]]
+MineConfig.ORE_BAND_WEIGHT = {
+	Common = 1,
+	Uncommon = 1,
+	Rare = 1,
+	Epic = 1,
+	Legendary = 0.060718,
+	Mythic = 0.0470812,
+	Divine = 0.0358072,
+	Exotic = 0.0239957,
+}
+
+--[[
+	Exotic is a Primordium find, and the curve cannot say so on its own.
+
+	Zone 9's floor and zone 10's floor are 0.983 hardness apart, and the cliff
+	above an ore's home tops out at 9.23x per hardness step -- so no placement
+	of `home` can make the best Exotic rate outside Primordium more than 8.88x
+	rarer than inside it. The brief asks for 100x. That gap is arithmetic, not
+	tuning, so the last 11x is an explicit gate rather than a bent curve: the
+	shape constants above stay exactly as they were.
+]]
+MineConfig.ORE_EXOTIC_HOME_ZONE = "primordium"
+MineConfig.ORE_EXOTIC_OFF_ZONE = 0.028
+
+--[[
+	Per-zone ore shift (ore brief 4d: every zone surface a different ore).
+
+	Left at 0, because re-spreading `home` already does it -- the ten surfaces
+	roll Stone, Pumice, Flint, Slate, Copper, Sulfur, Aluminum, Pyrite, Rime,
+	Amber. The hook stays so a zone's whole roll can be pushed deeper without
+	touching blockHp, which would move HP, coins and tool prices with it.
+]]
+MineConfig.ZONE_ORE_SHIFT = 0
+
+--[[
+	Where the curve actually peaks.
+
+	The weight function above is its highest 4.15 hardness-steps BELOW the
+	rock, not at it (that is the argmax given X0/K/S/W, not a free number). So
+	`home` on each ore is authored as the hardness at which that ore is the
+	most common find, and `d` is derived from it. Authoring d directly is how
+	the old ladder ended up with 64 ores past the deepest reachable peak.
+]]
+MineConfig.ORE_PEAK_OFFSET = -4.15
+
 MineConfig.ORES = {
-	{ id = "stone", name = "Stone", tier = 1, color = Color3.fromRGB(131, 131, 131), material = Enum.Material.Rock, met = 0, rough = .9 },
-	{ id = "cobblestone", name = "Cobblestone", tier = 2, color = Color3.fromRGB(105, 107, 113), material = Enum.Material.Cobblestone, met = 0, rough = .95 },
-	{ id = "clay", name = "Clay", tier = 3, color = Color3.fromRGB(184, 93, 48), material = Enum.Material.Mud, met = 0, rough = .95 },
-	{ id = "sandstone", name = "Sandstone", tier = 4, color = Color3.fromRGB(231, 182, 102), material = Enum.Material.Sandstone, met = 0, rough = .95 },
-	{ id = "limestone", name = "Limestone", tier = 5, color = Color3.fromRGB(240, 229, 191), material = Enum.Material.Limestone, met = 0, rough = .9 },
-	{ id = "pumice", name = "Pumice", tier = 6, color = Color3.fromRGB(200, 195, 185), material = Enum.Material.Concrete, met = 0, rough = 1 },
-	{ id = "halite", name = "Halite", tier = 7, color = Color3.fromRGB(255, 196, 196), material = Enum.Material.Salt, met = 0, rough = .4 },
-	{ id = "coal", name = "Coal", tier = 8, color = Color3.fromRGB(40, 40, 46), material = Enum.Material.Slate, met = 0, rough = .7 },
-	{ id = "flint", name = "Flint", tier = 9, color = Color3.fromRGB(138, 119, 100), material = Enum.Material.Slate, met = 0, rough = .35 },
-	{ id = "chert", name = "Chert", tier = 10, color = Color3.fromRGB(178, 110, 61), material = Enum.Material.Limestone, met = 0, rough = .5 },
-	{ id = "basalt", name = "Basalt", tier = 11, color = Color3.fromRGB(55, 57, 70), material = Enum.Material.Basalt, met = 0, rough = .85 },
-	{ id = "slate", name = "Slate", tier = 12, color = Color3.fromRGB(41, 81, 138), material = Enum.Material.Slate, met = 0, rough = .6 },
-	{ id = "bone", name = "Bone", tier = 13, color = Color3.fromRGB(243, 211, 140), material = Enum.Material.Plaster, met = 0, rough = .7 },
-	{ id = "granite", name = "Granite", tier = 14, color = Color3.fromRGB(189, 131, 128), material = Enum.Material.Granite, met = 0, rough = .5 },
-	{ id = "copper", name = "Copper", tier = 15, color = Color3.fromRGB(205, 87, 5), material = Enum.Material.Metal, met = 1, rough = .3 },
-	{ id = "diorite", name = "Diorite", tier = 16, color = Color3.fromRGB(215, 215, 215), material = Enum.Material.Pebble, met = 0, rough = .6 },
-	{ id = "tin", name = "Tin", tier = 17, color = Color3.fromRGB(210, 212, 218), material = Enum.Material.CorrodedMetal, met = 1, rough = .45 },
-	{ id = "cassiterite", name = "Cassiterite", tier = 18, color = Color3.fromRGB(138, 52, 0), material = Enum.Material.Slate, met = .6, rough = .2 },
-	{ id = "ember", name = "Ember", tier = 19, color = Color3.fromRGB(80, 32, 18), material = Enum.Material.CrackedLava, met = 0, rough = .8, glow = Color3.fromRGB(255, 100, 20), glowBright = 0.5 },
-	{ id = "sulfur", name = "Sulfur", tier = 20, color = Color3.fromRGB(254, 226, 0), material = Enum.Material.Sand, met = 0, rough = .6 },
-	{ id = "lead", name = "Lead", tier = 21, color = Color3.fromRGB(71, 91, 138), material = Enum.Material.CorrodedMetal, met = 1, rough = .6 },
-	{ id = "galena", name = "Galena", tier = 22, color = Color3.fromRGB(147, 159, 181), material = Enum.Material.DiamondPlate, met = 1, rough = .08 },
-	{ id = "zinc", name = "Zinc", tier = 23, color = Color3.fromRGB(137, 178, 211), material = Enum.Material.Foil, met = 1, rough = .5 },
-	{ id = "aluminum", name = "Aluminum", tier = 24, color = Color3.fromRGB(200, 210, 225), material = Enum.Material.Metal, met = 1, rough = .35 },
-	{ id = "iron", name = "Iron", tier = 25, color = Color3.fromRGB(166, 166, 172), material = Enum.Material.Metal, met = 1, rough = .5 },
-	{ id = "hematite", name = "Hematite", tier = 26, color = Color3.fromRGB(63, 63, 76), material = Enum.Material.Metal, met = 1, rough = .08 },
-	{ id = "graphite", name = "Graphite", tier = 27, color = Color3.fromRGB(102, 113, 138), material = Enum.Material.Metal, met = .5, rough = .35 },
-	{ id = "pyrite", name = "Pyrite", tier = 28, color = Color3.fromRGB(227, 206, 75), material = Enum.Material.DiamondPlate, met = 1, rough = .15 },
-	{ id = "quartzite", name = "Quartzite", tier = 29, color = Color3.fromRGB(255, 172, 192), material = Enum.Material.Salt, met = 0, rough = .45 },
-	{ id = "selenite", name = "Selenite", tier = 30, color = Color3.fromRGB(255, 255, 245), material = Enum.Material.Glass, met = 0, rough = .2, glow = Color3.fromRGB(255, 255, 240), glowBright = 0.2 },
-	{ id = "chalcopyrite", name = "Chalcopyrite", tier = 31, color = Color3.fromRGB(231, 178, 1), material = Enum.Material.Foil, met = 1, rough = .2 },
-	{ id = "marble", name = "Marble", tier = 32, color = Color3.fromRGB(254, 252, 246), material = Enum.Material.Marble, met = 0, rough = .25 },
-	{ id = "pearl", name = "Pearl", tier = 33, color = Color3.fromRGB(252, 245, 236), material = Enum.Material.SmoothPlastic, met = .2, rough = .15 },
-	{ id = "rime", name = "Rime", tier = 34, color = Color3.fromRGB(140, 225, 255), material = Enum.Material.Ice, met = 0, rough = .05, glow = Color3.fromRGB(170, 235, 255), glowBright = 0.4 },
-	{ id = "quartz", name = "Quartz", tier = 35, color = Color3.fromRGB(249, 249, 255), material = Enum.Material.Glass, met = 0, rough = .05 },
-	{ id = "agate", name = "Agate", tier = 36, color = Color3.fromRGB(205, 86, 26), material = Enum.Material.Marble, met = 0, rough = .15 },
-	{ id = "jasper", name = "Jasper", tier = 37, color = Color3.fromRGB(184, 14, 0), material = Enum.Material.Rock, met = 0, rough = .3 },
-	{ id = "amber", name = "Amber", tier = 38, color = Color3.fromRGB(255, 152, 0), material = Enum.Material.Glass, met = 0, rough = .12 },
-	{ id = "petrifact", name = "Petrifact", tier = 39, color = Color3.fromRGB(151, 79, 45), material = Enum.Material.Wood, met = 0, rough = .4 },
-	{ id = "nickel", name = "Nickel", tier = 40, color = Color3.fromRGB(227, 195, 131), material = Enum.Material.Foil, met = 1, rough = .3 },
-	{ id = "magnetite", name = "Magnetite", tier = 41, color = Color3.fromRGB(31, 31, 44), material = Enum.Material.Basalt, met = .9, rough = .4, glow = Color3.fromRGB(67, 136, 255), glowBright = 0.5 },
-	{ id = "manganese", name = "Manganese", tier = 42, color = Color3.fromRGB(205, 97, 159), material = Enum.Material.Metal, met = 1, rough = .5 },
-	{ id = "malachite", name = "Malachite", tier = 43, color = Color3.fromRGB(0, 151, 76), material = Enum.Material.Marble, met = 0, rough = .2 },
-	{ id = "azurite", name = "Azurite", tier = 44, color = Color3.fromRGB(0, 92, 229), material = Enum.Material.Marble, met = 0, rough = .1 },
-	{ id = "cinnabar", name = "Cinnabar", tier = 45, color = Color3.fromRGB(194, 0, 6), material = Enum.Material.Slate, met = 0, rough = .35 },
-	{ id = "fluorite", name = "Fluorite", tier = 46, color = Color3.fromRGB(139, 69, 255), material = Enum.Material.Glass, met = 0, rough = .08, glow = Color3.fromRGB(149, 93, 255), glowBright = 0.4 },
-	{ id = "chromite", name = "Chromite", tier = 47, color = Color3.fromRGB(60, 31, 31), material = Enum.Material.Rock, met = .6, rough = .35 },
-	{ id = "onyx", name = "Onyx", tier = 48, color = Color3.fromRGB(15, 15, 15), material = Enum.Material.Marble, met = 0, rough = .04 },
-	{ id = "kimberlite", name = "Kimberlite", tier = 49, color = Color3.fromRGB(83, 138, 113), material = Enum.Material.Pebble, met = 0, rough = .8 },
-	{ id = "bloodstone", name = "Bloodstone", tier = 50, color = Color3.fromRGB(20, 95, 50), material = Enum.Material.Marble, met = 0, rough = .3 },
-	{ id = "garnet", name = "Garnet", tier = 51, color = Color3.fromRGB(151, 0, 15), material = Enum.Material.Glass, met = 0, rough = .07 },
-	{ id = "citrine", name = "Citrine", tier = 52, color = Color3.fromRGB(255, 212, 0), material = Enum.Material.Glass, met = 0, rough = .07 },
-	{ id = "chromium", name = "Chromium", tier = 53, color = Color3.fromRGB(171, 201, 255), material = Enum.Material.Metal, met = 1, rough = .04 },
-	{ id = "turquoise", name = "Turquoise", tier = 54, color = Color3.fromRGB(11, 216, 201), material = Enum.Material.Marble, met = 0, rough = .4 },
-	{ id = "rhodochrosite", name = "Rhodochrosite", tier = 55, color = Color3.fromRGB(243, 48, 93), material = Enum.Material.Marble, met = 0, rough = .25 },
-	{ id = "bismuth", name = "Bismuth", tier = 56, color = Color3.fromRGB(188, 156, 238), material = Enum.Material.Foil, met = 1, rough = .1, rainbow = true },
-	{ id = "silver", name = "Silver", tier = 57, color = Color3.fromRGB(250, 248, 242), material = Enum.Material.Metal, met = 1, rough = .12 },
-	{ id = "amethyst", name = "Amethyst", tier = 58, color = Color3.fromRGB(112, 8, 186), material = Enum.Material.Glass, met = 0, rough = .07 },
-	{ id = "apatite", name = "Apatite", tier = 59, color = Color3.fromRGB(0, 216, 173), material = Enum.Material.Glass, met = 0, rough = .1 },
-	{ id = "moissanite", name = "Moissanite", tier = 60, color = Color3.fromRGB(34, 72, 61), material = Enum.Material.Foil, met = .4, rough = .14 },
-	{ id = "tigereye", name = "Tigereye", tier = 61, color = Color3.fromRGB(189, 112, 0), material = Enum.Material.Marble, met = .3, rough = .2 },
-	{ id = "lapis", name = "Lapis", tier = 62, color = Color3.fromRGB(0, 39, 184), material = Enum.Material.Marble, met = 0, rough = .3 },
-	{ id = "geode", name = "Geode", tier = 63, color = Color3.fromRGB(150, 80, 240), material = Enum.Material.Glass, met = 0, rough = .2 },
-	{ id = "topaz", name = "Topaz", tier = 64, color = Color3.fromRGB(255, 113, 57), material = Enum.Material.Glass, met = 0, rough = .05 },
-	{ id = "phosphorus", name = "Phosphorus", tier = 65, color = Color3.fromRGB(255, 252, 175), material = Enum.Material.SmoothPlastic, met = 0, rough = .4, glow = Color3.fromRGB(80, 255, 108), glowBright = 0.7 },
-	{ id = "peridot", name = "Peridot", tier = 66, color = Color3.fromRGB(176, 229, 0), material = Enum.Material.Glass, met = 0, rough = .07 },
-	{ id = "jade", name = "Jade", tier = 67, color = Color3.fromRGB(58, 194, 104), material = Enum.Material.Marble, met = 0, rough = .35 },
-	{ id = "emberglass", name = "Emberglass", tier = 68, color = Color3.fromRGB(255, 90, 0), material = Enum.Material.Glass, met = .3, rough = .1, glow = Color3.fromRGB(255, 140, 30), glowBright = 1 },
-	{ id = "tungsten", name = "Tungsten", tier = 69, color = Color3.fromRGB(113, 118, 138), material = Enum.Material.Metal, met = 1, rough = .35 },
-	{ id = "lithium", name = "Lithium", tier = 70, color = Color3.fromRGB(215, 222, 235), material = Enum.Material.Metal, met = 1, rough = .3, glow = Color3.fromRGB(255, 60, 80), glowBright = 0.2 },
-	{ id = "titanium", name = "Titanium", tier = 71, color = Color3.fromRGB(103, 58, 216), material = Enum.Material.Metal, met = 1, rough = .32 },
-	{ id = "obsidian", name = "Obsidian", tier = 72, color = Color3.fromRGB(26, 9, 48), material = Enum.Material.Glass, met = 0, rough = .06 },
-	{ id = "electrum", name = "Electrum", tier = 73, color = Color3.fromRGB(251, 220, 98), material = Enum.Material.Metal, met = 1, rough = .2 },
-	{ id = "cobalt", name = "Cobalt", tier = 74, color = Color3.fromRGB(0, 73, 248), material = Enum.Material.Metal, met = 1, rough = .28 },
-	{ id = "labradorite", name = "Labradorite", tier = 75, color = Color3.fromRGB(71, 104, 138), material = Enum.Material.Glass, met = .2, rough = .15, glow = Color3.fromRGB(15, 152, 255), glowBright = 0.4 },
-	{ id = "zirconium", name = "Zirconium", tier = 76, color = Color3.fromRGB(31, 31, 44), material = Enum.Material.Metal, met = .8, rough = .18, glow = Color3.fromRGB(255, 255, 210), glowBright = 0.3 },
-	{ id = "beryllium", name = "Beryllium", tier = 77, color = Color3.fromRGB(97, 243, 151), material = Enum.Material.Metal, met = 1, rough = .3 },
-	{ id = "niobium", name = "Niobium", tier = 78, color = Color3.fromRGB(0, 162, 221), material = Enum.Material.Metal, met = 1, rough = .22 },
-	{ id = "gold", name = "Gold", tier = 79, color = Color3.fromRGB(255, 186, 0), material = Enum.Material.Metal, met = 1, rough = .15 },
-	{ id = "fulgurite", name = "Fulgurite", tier = 80, color = Color3.fromRGB(227, 189, 117), material = Enum.Material.Glass, met = 0, rough = .4, glow = Color3.fromRGB(158, 203, 255), glowBright = 0.3 },
-	{ id = "tektite", name = "Tektite", tier = 81, color = Color3.fromRGB(68, 51, 1), material = Enum.Material.Glass, met = 0, rough = .15 },
-	{ id = "moldavite", name = "Moldavite", tier = 82, color = Color3.fromRGB(42, 138, 10), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(52, 216, 23), glowBright = 0.4 },
-	{ id = "regolith", name = "Regolith", tier = 83, color = Color3.fromRGB(175, 175, 188), material = Enum.Material.Pebble, met = 0, rough = .8 },
-	{ id = "sunstone", name = "Sunstone", tier = 84, color = Color3.fromRGB(255, 97, 0), material = Enum.Material.Foil, met = .3, rough = .1, glow = Color3.fromRGB(255, 112, 0), glowBright = 0.9 },
-	{ id = "spinel", name = "Spinel", tier = 85, color = Color3.fromRGB(255, 0, 131), material = Enum.Material.Glass, met = 0, rough = .03 },
-	{ id = "emerald", name = "Emerald", tier = 86, color = Color3.fromRGB(0, 173, 86), material = Enum.Material.Glass, met = 0, rough = .05 },
-	{ id = "tourmaline", name = "Tourmaline", tier = 87, color = Color3.fromRGB(0, 240, 251), material = Enum.Material.Glass, met = 0, rough = .05 },
-	{ id = "zircon", name = "Zircon", tier = 88, color = Color3.fromRGB(0, 154, 255), material = Enum.Material.Glass, met = 0, rough = .02 },
-	{ id = "moonstone", name = "Moonstone", tier = 89, color = Color3.fromRGB(132, 168, 255), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(132, 175, 255), glowBright = 0.5 },
-	{ id = "alexandrite", name = "Alexandrite", tier = 90, color = Color3.fromRGB(0, 151, 140), material = Enum.Material.Glass, met = 0, rough = .04 },
-	{ id = "sapphire", name = "Sapphire", tier = 91, color = Color3.fromRGB(0, 79, 201), material = Enum.Material.Glass, met = 0, rough = .03 },
-	{ id = "ruby", name = "Ruby", tier = 92, color = Color3.fromRGB(242, 0, 91), material = Enum.Material.Glass, met = 0, rough = .03, glow = Color3.fromRGB(255, 0, 68), glowBright = 0.6 },
-	{ id = "palladium", name = "Palladium", tier = 93, color = Color3.fromRGB(118, 164, 255), material = Enum.Material.Metal, met = 1, rough = .18 },
-	{ id = "aquamarine", name = "Aquamarine", tier = 94, color = Color3.fromRGB(123, 224, 251), material = Enum.Material.Ice, met = 0, rough = .05 },
-	{ id = "tanzanite", name = "Tanzanite", tier = 95, color = Color3.fromRGB(38, 9, 216), material = Enum.Material.Glass, met = 0, rough = .04 },
-	{ id = "opal", name = "Opal", tier = 96, color = Color3.fromRGB(240, 240, 255), material = Enum.Material.ForceField, met = 0, rough = .1, rainbow = true },
-	{ id = "platinum", name = "Platinum", tier = 97, color = Color3.fromRGB(232, 223, 185), material = Enum.Material.Metal, met = 1, rough = .1 },
-	{ id = "stormstone", name = "Stormstone", tier = 98, color = Color3.fromRGB(60, 85, 160), material = Enum.Material.Slate, met = .3, rough = .3, glow = Color3.fromRGB(140, 190, 255), glowBright = 0.6 },
-	{ id = "rhodium", name = "Rhodium", tier = 99, color = Color3.fromRGB(244, 248, 255), material = Enum.Material.Glass, met = 1, rough = .02 },
-	{ id = "diamond", name = "Diamond", tier = 100, color = Color3.fromRGB(199, 240, 255), material = Enum.Material.Glass, met = 0, rough = 0, glow = Color3.fromRGB(197, 238, 255), glowBright = 0.4 },
-	{ id = "starmetal", name = "Starmetal", tier = 101, color = Color3.fromRGB(55, 65, 130), material = Enum.Material.Metal, met = 1, rough = .1, glow = Color3.fromRGB(200, 220, 255), glowBright = 0.5 },
-	{ id = "aetherite", name = "Aetherite", tier = 102, color = Color3.fromRGB(225, 245, 255), material = Enum.Material.Glass, met = 0, rough = .02, glow = Color3.fromRGB(200, 240, 255), glowBright = 0.9 },
-	{ id = "meteorite", name = "Meteorite", tier = 103, color = Color3.fromRGB(138, 94, 66), material = Enum.Material.CrackedLava, met = .6, rough = .5, glow = Color3.fromRGB(255, 95, 0), glowBright = 0.3 },
-	{ id = "soulstone", name = "Soulstone", tier = 104, color = Color3.fromRGB(70, 255, 200), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(80, 255, 200), glowBright = 0.9 },
-	{ id = "osmium", name = "Osmium", tier = 105, color = Color3.fromRGB(102, 134, 189), material = Enum.Material.Metal, met = 1, rough = .1 },
-	{ id = "galaxite", name = "Galaxite", tier = 106, color = Color3.fromRGB(40, 20, 90), material = Enum.Material.Basalt, met = .2, rough = .3, glow = Color3.fromRGB(140, 90, 255), glowBright = 0.8 },
-	{ id = "iridium", name = "Iridium", tier = 107, color = Color3.fromRGB(236, 242, 252), material = Enum.Material.Metal, met = 1, rough = .05, glow = Color3.fromRGB(210, 228, 255), glowBright = 0.3 },
-	{ id = "frostfire", name = "Frostfire", tier = 108, color = Color3.fromRGB(120, 200, 255), material = Enum.Material.Glass, met = 0, rough = .03, glow = Color3.fromRGB(255, 120, 60), glowBright = 1 },
-	{ id = "umbrite", name = "Umbrite", tier = 109, color = Color3.fromRGB(20, 10, 32), material = Enum.Material.Glass, met = .3, rough = .05, glow = Color3.fromRGB(130, 40, 255), glowBright = 1 },
-	{ id = "celestine", name = "Celestine", tier = 110, color = Color3.fromRGB(255, 228, 140), material = Enum.Material.Glass, met = .2, rough = .02, glow = Color3.fromRGB(255, 240, 180), glowBright = 1.2 },
-	{ id = "orichalcum", name = "Orichalcum", tier = 111, color = Color3.fromRGB(255, 145, 0), material = Enum.Material.Metal, met = 1, rough = .15 },
-	{ id = "spectrite", name = "Spectrite", tier = 112, color = Color3.fromRGB(255, 255, 255), material = Enum.Material.ForceField, met = 0, rough = .02, glow = Color3.fromRGB(255, 255, 255), glowBright = 1.2, rainbow = true },
-	{ id = "mythril", name = "Mythril", tier = 113, color = Color3.fromRGB(132, 207, 255), material = Enum.Material.Metal, met = 1, rough = .08, glow = Color3.fromRGB(106, 191, 255), glowBright = 0.8 },
-	{ id = "dragonstone", name = "Dragonstone", tier = 114, color = Color3.fromRGB(185, 10, 20), material = Enum.Material.Slate, met = .4, rough = .15, glow = Color3.fromRGB(255, 60, 0), glowBright = 1.3 },
-	{ id = "adamantite", name = "Adamantite", tier = 115, color = Color3.fromRGB(184, 0, 32), material = Enum.Material.Metal, met = 1, rough = .18 },
-	{ id = "thorium", name = "Thorium", tier = 116, color = Color3.fromRGB(191, 191, 181), material = Enum.Material.Metal, met = 1, rough = .3, glow = Color3.fromRGB(171, 171, 255), glowBright = 0.6 },
-	{ id = "uranium", name = "Uranium", tier = 117, color = Color3.fromRGB(255, 226, 0), material = Enum.Material.Neon, met = .6, rough = .3, glow = Color3.fromRGB(255, 236, 40), glowBright = 1.2 },
-	{ id = "plutonium", name = "Plutonium", tier = 118, color = Color3.fromRGB(222, 150, 105), material = Enum.Material.Metal, met = .85, rough = .25, glow = Color3.fromRGB(255, 120, 30), glowBright = 1.2 },
-	{ id = "fermium", name = "Fermium", tier = 119, color = Color3.fromRGB(255, 2, 70), material = Enum.Material.Metal, met = .8, rough = .12, glow = Color3.fromRGB(255, 15, 97), glowBright = 1.5 },
-	{ id = "lawrencium", name = "Lawrencium", tier = 120, color = Color3.fromRGB(255, 235, 177), material = Enum.Material.Metal, met = 1, rough = .05, glow = Color3.fromRGB(255, 239, 190), glowBright = 1.7 },
-	{ id = "oganesson", name = "Oganesson", tier = 121, color = Color3.fromRGB(17, 0, 42), material = Enum.Material.ForceField, met = 1, rough = .05, glow = Color3.fromRGB(137, 54, 255), glowBright = 2, rainbow = true },
+	-- COMMON (1-18)
+	{ id = "stone", name = "Stone", tier = 1, band = "Common", home = 0.00, yield = { 3, 6 }, color = Color3.fromRGB(131, 131, 131), material = Enum.Material.Rock, met = 0, rough = .9 },
+	{ id = "clay", name = "Clay", tier = 2, band = "Common", home = 0.44, yield = { 3, 6 }, color = Color3.fromRGB(184, 93, 48), material = Enum.Material.Mud, met = 0, rough = .95 },
+	{ id = "limestone", name = "Limestone", tier = 3, band = "Common", home = 0.87, yield = { 3, 6 }, color = Color3.fromRGB(240, 229, 191), material = Enum.Material.Limestone, met = 0, rough = .9 },
+	{ id = "pumice", name = "Pumice", tier = 4, band = "Common", home = 1.31, yield = { 3, 6 }, color = Color3.fromRGB(200, 195, 185), material = Enum.Material.Concrete, met = 0, rough = 1 },
+	{ id = "halite", name = "Halite", tier = 5, band = "Common", home = 1.74, yield = { 3, 6 }, color = Color3.fromRGB(255, 196, 196), material = Enum.Material.Salt, met = 0, rough = .4 },
+	{ id = "coal", name = "Coal", tier = 6, band = "Common", home = 2.18, yield = { 3, 6 }, color = Color3.fromRGB(40, 40, 46), material = Enum.Material.Slate, met = 0, rough = .7 },
+	{ id = "flint", name = "Flint", tier = 7, band = "Common", home = 2.61, yield = { 3, 6 }, color = Color3.fromRGB(138, 119, 100), material = Enum.Material.Slate, met = 0, rough = .35 },
+	{ id = "basalt", name = "Basalt", tier = 8, band = "Common", home = 3.05, yield = { 3, 6 }, color = Color3.fromRGB(55, 57, 70), material = Enum.Material.Basalt, met = 0, rough = .85 },
+	{ id = "slate", name = "Slate", tier = 9, band = "Common", home = 3.48, yield = { 3, 6 }, color = Color3.fromRGB(41, 81, 138), material = Enum.Material.Slate, met = 0, rough = .6 },
+	{ id = "bone", name = "Bone", tier = 10, band = "Common", home = 3.92, yield = { 3, 6 }, color = Color3.fromRGB(243, 211, 140), material = Enum.Material.Plaster, met = 0, rough = .7 },
+	{ id = "granite", name = "Granite", tier = 11, band = "Common", home = 4.35, yield = { 3, 6 }, color = Color3.fromRGB(189, 131, 128), material = Enum.Material.Granite, met = 0, rough = .5 },
+	{ id = "copper", name = "Copper", tier = 12, band = "Common", home = 4.79, yield = { 3, 6 }, color = Color3.fromRGB(205, 87, 5), material = Enum.Material.Metal, met = 1, rough = .3 },
+	{ id = "tin", name = "Tin", tier = 13, band = "Common", home = 5.22, yield = { 3, 6 }, color = Color3.fromRGB(210, 212, 218), material = Enum.Material.CorrodedMetal, met = 1, rough = .45 },
+	{ id = "ember", name = "Ember", tier = 14, band = "Common", home = 5.66, yield = { 3, 6 }, color = Color3.fromRGB(80, 32, 18), material = Enum.Material.CrackedLava, met = 0, rough = .8, glow = Color3.fromRGB(255, 100, 20), glowBright = 0.5 },
+	{ id = "sulfur", name = "Sulfur", tier = 15, band = "Common", home = 6.09, yield = { 3, 6 }, color = Color3.fromRGB(254, 226, 0), material = Enum.Material.Sand, met = 0, rough = .6 },
+	{ id = "lead", name = "Lead", tier = 16, band = "Common", home = 6.53, yield = { 3, 6 }, color = Color3.fromRGB(71, 91, 138), material = Enum.Material.CorrodedMetal, met = 1, rough = .6 },
+	{ id = "zinc", name = "Zinc", tier = 17, band = "Common", home = 6.96, yield = { 3, 6 }, color = Color3.fromRGB(137, 178, 211), material = Enum.Material.Foil, met = 1, rough = .5 },
+	{ id = "aluminum", name = "Aluminum", tier = 18, band = "Common", home = 7.40, yield = { 3, 6 }, color = Color3.fromRGB(200, 210, 225), material = Enum.Material.Metal, met = 1, rough = .35 },
+	-- UNCOMMON (19-29)
+	{ id = "iron", name = "Iron", tier = 19, band = "Uncommon", home = 7.83, yield = { 3, 7 }, color = Color3.fromRGB(166, 166, 172), material = Enum.Material.Metal, met = 1, rough = .5 },
+	{ id = "graphite", name = "Graphite", tier = 20, band = "Uncommon", home = 8.27, yield = { 3, 7 }, color = Color3.fromRGB(102, 113, 138), material = Enum.Material.Metal, met = .5, rough = .35 },
+	{ id = "pyrite", name = "Pyrite", tier = 21, band = "Uncommon", home = 8.70, yield = { 3, 7 }, color = Color3.fromRGB(227, 206, 75), material = Enum.Material.DiamondPlate, met = 1, rough = .15 },
+	{ id = "marble", name = "Marble", tier = 22, band = "Uncommon", home = 9.14, yield = { 3, 7 }, color = Color3.fromRGB(254, 252, 246), material = Enum.Material.Marble, met = 0, rough = .25 },
+	{ id = "pearl", name = "Pearl", tier = 23, band = "Uncommon", home = 9.57, yield = { 3, 7 }, color = Color3.fromRGB(252, 245, 236), material = Enum.Material.SmoothPlastic, met = .2, rough = .15 },
+	{ id = "rime", name = "Rime", tier = 24, band = "Uncommon", home = 10.01, yield = { 3, 7 }, color = Color3.fromRGB(140, 225, 255), material = Enum.Material.Ice, met = 0, rough = .05, glow = Color3.fromRGB(170, 235, 255), glowBright = 0.4 },
+	{ id = "quartz", name = "Quartz", tier = 25, band = "Uncommon", home = 10.44, yield = { 3, 7 }, color = Color3.fromRGB(249, 249, 255), material = Enum.Material.Glass, met = 0, rough = .05 },
+	{ id = "amber", name = "Amber", tier = 26, band = "Uncommon", home = 10.88, yield = { 3, 7 }, color = Color3.fromRGB(255, 152, 0), material = Enum.Material.Glass, met = 0, rough = .12 },
+	{ id = "petrifact", name = "Petrifact", tier = 27, band = "Uncommon", home = 11.31, yield = { 3, 7 }, color = Color3.fromRGB(151, 79, 45), material = Enum.Material.Wood, met = 0, rough = .4 },
+	{ id = "nickel", name = "Nickel", tier = 28, band = "Uncommon", home = 11.75, yield = { 3, 7 }, color = Color3.fromRGB(227, 195, 131), material = Enum.Material.Foil, met = 1, rough = .3 },
+	{ id = "onyx", name = "Onyx", tier = 29, band = "Uncommon", home = 12.18, yield = { 3, 7 }, color = Color3.fromRGB(15, 15, 15), material = Enum.Material.Marble, met = 0, rough = .04 },
+	-- RARE (30-49)
+	{ id = "bloodstone", name = "Bloodstone", tier = 30, band = "Rare", home = 12.62, yield = { 4, 7 }, color = Color3.fromRGB(20, 95, 50), material = Enum.Material.Marble, met = 0, rough = .3 },
+	{ id = "garnet", name = "Garnet", tier = 31, band = "Rare", home = 13.05, yield = { 4, 7 }, color = Color3.fromRGB(151, 0, 15), material = Enum.Material.Glass, met = 0, rough = .07 },
+	{ id = "citrine", name = "Citrine", tier = 32, band = "Rare", home = 13.49, yield = { 4, 7 }, color = Color3.fromRGB(255, 212, 0), material = Enum.Material.Glass, met = 0, rough = .07 },
+	{ id = "chromium", name = "Chromium", tier = 33, band = "Rare", home = 13.92, yield = { 4, 7 }, color = Color3.fromRGB(171, 201, 255), material = Enum.Material.Metal, met = 1, rough = .04 },
+	{ id = "turquoise", name = "Turquoise", tier = 34, band = "Rare", home = 14.36, yield = { 4, 7 }, color = Color3.fromRGB(11, 216, 201), material = Enum.Material.Marble, met = 0, rough = .4 },
+	{ id = "bismuth", name = "Bismuth", tier = 35, band = "Rare", home = 14.79, yield = { 4, 7 }, color = Color3.fromRGB(188, 156, 238), material = Enum.Material.Foil, met = 1, rough = .1, rainbow = true },
+	{ id = "silver", name = "Silver", tier = 36, band = "Rare", home = 15.23, yield = { 4, 7 }, color = Color3.fromRGB(250, 248, 242), material = Enum.Material.Metal, met = 1, rough = .12 },
+	{ id = "amethyst", name = "Amethyst", tier = 37, band = "Rare", home = 15.66, yield = { 4, 7 }, color = Color3.fromRGB(112, 8, 186), material = Enum.Material.Glass, met = 0, rough = .07 },
+	{ id = "tigereye", name = "Tigereye", tier = 38, band = "Rare", home = 16.10, yield = { 4, 7 }, color = Color3.fromRGB(189, 112, 0), material = Enum.Material.Marble, met = .3, rough = .2 },
+	{ id = "lapis", name = "Lapis", tier = 39, band = "Rare", home = 16.53, yield = { 4, 7 }, color = Color3.fromRGB(0, 39, 184), material = Enum.Material.Marble, met = 0, rough = .3 },
+	{ id = "geode", name = "Geode", tier = 40, band = "Rare", home = 16.97, yield = { 4, 7 }, color = Color3.fromRGB(150, 80, 240), material = Enum.Material.Glass, met = 0, rough = .2 },
+	{ id = "topaz", name = "Topaz", tier = 41, band = "Rare", home = 17.40, yield = { 4, 7 }, color = Color3.fromRGB(255, 113, 57), material = Enum.Material.Glass, met = 0, rough = .05 },
+	{ id = "phosphorus", name = "Phosphorus", tier = 42, band = "Rare", home = 17.84, yield = { 4, 7 }, color = Color3.fromRGB(255, 252, 175), material = Enum.Material.SmoothPlastic, met = 0, rough = .4, glow = Color3.fromRGB(80, 255, 108), glowBright = 0.7 },
+	{ id = "peridot", name = "Peridot", tier = 43, band = "Rare", home = 18.27, yield = { 4, 7 }, color = Color3.fromRGB(176, 229, 0), material = Enum.Material.Glass, met = 0, rough = .07 },
+	{ id = "jade", name = "Jade", tier = 44, band = "Rare", home = 18.71, yield = { 4, 7 }, color = Color3.fromRGB(58, 194, 104), material = Enum.Material.Marble, met = 0, rough = .35 },
+	{ id = "emberglass", name = "Emberglass", tier = 45, band = "Rare", home = 19.14, yield = { 4, 7 }, color = Color3.fromRGB(255, 90, 0), material = Enum.Material.Glass, met = .3, rough = .1, glow = Color3.fromRGB(255, 140, 30), glowBright = 1 },
+	{ id = "tungsten", name = "Tungsten", tier = 46, band = "Rare", home = 19.26, yield = { 4, 7 }, color = Color3.fromRGB(113, 118, 138), material = Enum.Material.Metal, met = 1, rough = .35 },
+	{ id = "lithium", name = "Lithium", tier = 47, band = "Rare", home = 19.37, yield = { 4, 7 }, color = Color3.fromRGB(215, 222, 235), material = Enum.Material.Metal, met = 1, rough = .3, glow = Color3.fromRGB(255, 60, 80), glowBright = 0.2 },
+	{ id = "titanium", name = "Titanium", tier = 48, band = "Rare", home = 19.49, yield = { 4, 7 }, color = Color3.fromRGB(103, 58, 216), material = Enum.Material.Metal, met = 1, rough = .32 },
+	{ id = "obsidian", name = "Obsidian", tier = 49, band = "Rare", home = 19.60, yield = { 4, 7 }, color = Color3.fromRGB(26, 9, 48), material = Enum.Material.Glass, met = 0, rough = .06 },
+	-- EPIC (50-60)
+	{ id = "cobalt", name = "Cobalt", tier = 50, band = "Epic", home = 19.80, yield = { 4, 8 }, color = Color3.fromRGB(0, 73, 248), material = Enum.Material.Metal, met = 1, rough = .28 },
+	{ id = "gold", name = "Gold", tier = 51, band = "Epic", home = 19.88, yield = { 4, 8 }, color = Color3.fromRGB(255, 186, 0), material = Enum.Material.Metal, met = 1, rough = .15 },
+	{ id = "regolith", name = "Regolith", tier = 52, band = "Epic", home = 19.96, yield = { 4, 8 }, color = Color3.fromRGB(175, 175, 188), material = Enum.Material.Pebble, met = 0, rough = .8 },
+	{ id = "sunstone", name = "Sunstone", tier = 53, band = "Epic", home = 20.04, yield = { 5, 8 }, color = Color3.fromRGB(255, 97, 0), material = Enum.Material.Foil, met = .3, rough = .1, glow = Color3.fromRGB(255, 112, 0), glowBright = 0.9 },
+	{ id = "emerald", name = "Emerald", tier = 54, band = "Epic", home = 20.12, yield = { 5, 8 }, color = Color3.fromRGB(0, 173, 86), material = Enum.Material.Glass, met = 0, rough = .05 },
+	{ id = "moonstone", name = "Moonstone", tier = 55, band = "Epic", home = 20.20, yield = { 5, 8 }, color = Color3.fromRGB(132, 168, 255), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(132, 175, 255), glowBright = 0.5 },
+	{ id = "sapphire", name = "Sapphire", tier = 56, band = "Epic", home = 20.28, yield = { 5, 8 }, color = Color3.fromRGB(0, 79, 201), material = Enum.Material.Glass, met = 0, rough = .03 },
+	{ id = "ruby", name = "Ruby", tier = 57, band = "Epic", home = 20.36, yield = { 5, 8 }, color = Color3.fromRGB(242, 0, 91), material = Enum.Material.Glass, met = 0, rough = .03, glow = Color3.fromRGB(255, 0, 68), glowBright = 0.6 },
+	{ id = "palladium", name = "Palladium", tier = 58, band = "Epic", home = 20.44, yield = { 5, 8 }, color = Color3.fromRGB(118, 164, 255), material = Enum.Material.Metal, met = 1, rough = .18 },
+	{ id = "aquamarine", name = "Aquamarine", tier = 59, band = "Epic", home = 20.52, yield = { 5, 8 }, color = Color3.fromRGB(123, 224, 251), material = Enum.Material.Ice, met = 0, rough = .05 },
+	{ id = "opal", name = "Opal", tier = 60, band = "Epic", home = 20.60, yield = { 5, 8 }, color = Color3.fromRGB(240, 240, 255), material = Enum.Material.ForceField, met = 0, rough = .1, rainbow = true },
+	-- LEGENDARY (61-69)
+	{ id = "platinum", name = "Platinum", tier = 61, band = "Legendary", home = 20.90, yield = { 5, 8 }, color = Color3.fromRGB(232, 223, 185), material = Enum.Material.Metal, met = 1, rough = .1 },
+	{ id = "stormstone", name = "Stormstone", tier = 62, band = "Legendary", home = 20.91, yield = { 7, 10 }, color = Color3.fromRGB(60, 85, 160), material = Enum.Material.Slate, met = .3, rough = .3, glow = Color3.fromRGB(140, 190, 255), glowBright = 0.6 },
+	{ id = "diamond", name = "Diamond", tier = 63, band = "Legendary", home = 20.92, yield = { 4, 6 }, color = Color3.fromRGB(199, 240, 255), material = Enum.Material.Glass, met = 0, rough = 0, glow = Color3.fromRGB(197, 238, 255), glowBright = 0.4 },
+	{ id = "starmetal", name = "Starmetal", tier = 64, band = "Legendary", home = 20.94, yield = { 5, 8 }, color = Color3.fromRGB(55, 65, 130), material = Enum.Material.Metal, met = 1, rough = .1, glow = Color3.fromRGB(200, 220, 255), glowBright = 0.5 },
+	{ id = "aetherite", name = "Aetherite", tier = 65, band = "Legendary", home = 20.95, yield = { 4, 6 }, color = Color3.fromRGB(225, 245, 255), material = Enum.Material.Glass, met = 0, rough = .02, glow = Color3.fromRGB(200, 240, 255), glowBright = 0.9 },
+	{ id = "meteorite", name = "Meteorite", tier = 66, band = "Legendary", home = 20.96, yield = { 8, 11 }, color = Color3.fromRGB(138, 94, 66), material = Enum.Material.CrackedLava, met = .6, rough = .5, glow = Color3.fromRGB(255, 95, 0), glowBright = 0.3 },
+	{ id = "soulstone", name = "Soulstone", tier = 67, band = "Legendary", home = 20.98, yield = { 5, 8 }, color = Color3.fromRGB(70, 255, 200), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(80, 255, 200), glowBright = 0.9 },
+	{ id = "galaxite", name = "Galaxite", tier = 68, band = "Legendary", home = 20.99, yield = { 7, 10 }, color = Color3.fromRGB(40, 20, 90), material = Enum.Material.Basalt, met = .2, rough = .3, glow = Color3.fromRGB(140, 90, 255), glowBright = 0.8 },
+	{ id = "frostfire", name = "Frostfire", tier = 69, band = "Legendary", home = 21.00, yield = { 5, 8 }, color = Color3.fromRGB(120, 200, 255), material = Enum.Material.Glass, met = 0, rough = .03, glow = Color3.fromRGB(255, 120, 60), glowBright = 1 },
+	-- MYTHIC (70-75)
+	{ id = "umbrite", name = "Umbrite", tier = 70, band = "Mythic", home = 21.20, yield = { 5, 8 }, color = Color3.fromRGB(20, 10, 32), material = Enum.Material.Glass, met = .3, rough = .05, glow = Color3.fromRGB(130, 40, 255), glowBright = 1 },
+	{ id = "celestine", name = "Celestine", tier = 71, band = "Mythic", home = 21.22, yield = { 5, 8 }, color = Color3.fromRGB(255, 228, 140), material = Enum.Material.Glass, met = .2, rough = .02, glow = Color3.fromRGB(255, 240, 180), glowBright = 1.2 },
+	{ id = "orichalcum", name = "Orichalcum", tier = 72, band = "Mythic", home = 21.24, yield = { 5, 8 }, color = Color3.fromRGB(255, 145, 0), material = Enum.Material.Metal, met = 1, rough = .15 },
+	{ id = "spectrite", name = "Spectrite", tier = 73, band = "Mythic", home = 21.26, yield = { 4, 6 }, color = Color3.fromRGB(255, 255, 255), material = Enum.Material.ForceField, met = 0, rough = .02, glow = Color3.fromRGB(255, 255, 255), glowBright = 1.2, rainbow = true },
+	{ id = "mythril", name = "Mythril", tier = 74, band = "Mythic", home = 21.28, yield = { 5, 8 }, color = Color3.fromRGB(132, 207, 255), material = Enum.Material.Metal, met = 1, rough = .08, glow = Color3.fromRGB(106, 191, 255), glowBright = 0.8 },
+	{ id = "dragonstone", name = "Dragonstone", tier = 75, band = "Mythic", home = 21.30, yield = { 5, 8 }, color = Color3.fromRGB(185, 10, 20), material = Enum.Material.Slate, met = .4, rough = .15, glow = Color3.fromRGB(255, 60, 0), glowBright = 1.3 },
+	-- DIVINE (76-79)
+	{ id = "adamantite", name = "Adamantite", tier = 76, band = "Divine", home = 21.50, yield = { 5, 8 }, color = Color3.fromRGB(184, 0, 32), material = Enum.Material.Metal, met = 1, rough = .18 },
+	{ id = "thorium", name = "Thorium", tier = 77, band = "Divine", home = 21.52, yield = { 8, 11 }, color = Color3.fromRGB(191, 191, 181), material = Enum.Material.Metal, met = 1, rough = .3, glow = Color3.fromRGB(171, 171, 255), glowBright = 0.6 },
+	{ id = "uranium", name = "Uranium", tier = 78, band = "Divine", home = 21.53, yield = { 5, 8 }, color = Color3.fromRGB(255, 226, 0), material = Enum.Material.Neon, met = .6, rough = .3, glow = Color3.fromRGB(255, 236, 40), glowBright = 1.2 },
+	{ id = "plutonium", name = "Plutonium", tier = 79, band = "Divine", home = 21.55, yield = { 5, 8 }, color = Color3.fromRGB(222, 150, 105), material = Enum.Material.Metal, met = .85, rough = .25, glow = Color3.fromRGB(255, 120, 30), glowBright = 1.2 },
+	-- EXOTIC (80-82)
+	{ id = "fermium", name = "Fermium", tier = 80, band = "Exotic", home = 21.75, yield = { 5, 8 }, color = Color3.fromRGB(255, 2, 70), material = Enum.Material.Metal, met = .8, rough = .12, glow = Color3.fromRGB(255, 15, 97), glowBright = 1.5 },
+	{ id = "lawrencium", name = "Lawrencium", tier = 81, band = "Exotic", home = 21.77, yield = { 5, 8 }, color = Color3.fromRGB(255, 235, 177), material = Enum.Material.Metal, met = 1, rough = .05, glow = Color3.fromRGB(255, 239, 190), glowBright = 1.7 },
+	{ id = "oganesson", name = "Oganesson", tier = 82, band = "Exotic", home = 21.80, yield = { 3, 6 }, color = Color3.fromRGB(17, 0, 42), material = Enum.Material.ForceField, met = 1, rough = .05, glow = Color3.fromRGB(137, 54, 255), glowBright = 2, rainbow = true },
 }
 
 --[[
@@ -2231,12 +2309,12 @@ MineConfig.ORES = {
 	1.0075 ore, 1.011 dust -- so this is a refactor, not a rebalance. At 10,000
 	they become 1.00198, 1.00075 and 1.00109.
 ]]
-MineConfig.TOOL_MAX_LEVEL = 1000      -- the one line to move
+MineConfig.TOOL_MAX_LEVEL = 100       -- the one line to move
 
 -- What a full 1 -> max climb multiplies by. Cap-independent.
 MineConfig.TOOL_CLIMB_DAMAGE = 3.9e8
-MineConfig.TOOL_CLIMB_ORE = 1747      -- last level costs this many x the first
-MineConfig.TOOL_CLIMB_DUST = 55800
+MineConfig.TOOL_CLIMB_ORE = 1500      -- last level costs this many x the first
+MineConfig.TOOL_CLIMB_DUST = 1000
 
 local function perLevel(total)
 	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
@@ -2263,6 +2341,306 @@ local function clampTier(tier)
 	return math.clamp(n, 1, #MineConfig.ORES)
 end
 
+
+--------------------------------------------------------------------------------
+-- ORE TOOL POWER -- a smooth ramp across the 82 ores
+--
+-- A tool made of an ore should open able to work the rock that ore comes out
+-- of. That is the whole idea, and it removes the guesswork: `home` on each ore
+-- already says which hardness it belongs to (see ORE_PEAK_OFFSET), so homeHp is
+-- the HP of dirt there and every number below hangs off it.
+--
+-- The third argument everywhere is RANK: MineTools.RARITY_RANK of the tool
+-- TYPE, 1 for Common to 8 for Exotic. Both callers -- Verbs._oreToolTypeMult and
+-- the bench's typeMultOf -- already pass exactly that, which is why none of
+-- these signatures changed.
+--
+-- Shop and chest tools are NOT affected: their power comes from
+-- MineShopEconomy.toolPower and nothing here touches it.
+--------------------------------------------------------------------------------
+MineConfig.TOOL_POWER_START = 0.10    -- level 1 = this share of home HP, x sqrt(rank)
+
+-- Total growth over the 99 steps. Common 36x, Exotic 216x -- a rarer frame is
+-- worth more per level as well as more at level 1, so the gap widens as you
+-- pour into it rather than being a flat head start.
+function MineConfig.toolPowerClimb(rank)
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	return 6 ^ (2.0 + (r - 1) / 7)
+end
+
+-- What a level is worth, as a percentage. Common +3.69%, Exotic +5.58%.
+function MineConfig.toolLevelPct(rank)
+	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
+	return MineConfig.toolPowerClimb(rank) ^ (1 / steps) - 1
+end
+
+--[[
+	THE POWER ANCHOR -- one number per ore, spread smoothly across the roster.
+
+	This was "the HP of the rock the ore calls home", clamped to the deepest
+	rock a main zone reaches. That clamp was a mistake and a bad one: every ore
+	whose home sits past hardness 19.14 got the SAME anchor, which is tiers 57
+	to 82 -- twenty-six ores, a quarter of the roster, producing byte-identical
+	tools. Oganesson and Ruby made the same pick.
+
+	So power no longer reads `home` at all. `home` does spawn, and nothing else.
+	The anchor is a smooth ramp across the 82 tiers, which means every ore makes
+	a different tool by construction rather than by luck of where its home fell.
+
+	ORE_POWER_TOP is not a taste value. A Luau number holds integers exactly only
+	to 2^53 (9,007,199,254,740,992), and the strongest tool in the game is its
+	anchor times 61.1 (TOOL_POWER_START * sqrt(8) * climb(8)). Working backwards,
+	the top anchor has to stay under 147 trillion, which is hardness 16.54. At
+	16.4 the strongest possible tool lands at 7,058,448,439,055,122 -- inside the
+	limit with room, so damage arithmetic stays exact.
+
+	One consequence, stated plainly because it is a design change and not a
+	rounding one: the top tools no longer one-shot the deepest rock. They can
+	still break it well inside the Breaking Power budget, but Primordium's floor
+	at 15,700,000,000,000,000 HP outlives a single hit from anything. That is the
+	opposite of the old behaviour, where everything Legendary and up one-shot the
+	bottom of the game.
+]]
+MineConfig.ORE_POWER_TOP = 16.4
+
+function MineConfig.orePowerAnchor(tier)
+	local t = clampTier(tier)
+	local n = math.max(2, #MineConfig.ORES)
+	return 20 * (6 ^ (MineConfig.ORE_POWER_TOP * (t - 1) / (n - 1)))
+end
+
+-- Hardness of the deepest rock a main zone actually reaches, cached.
+local deepestH
+function MineConfig.oreDeepestHardness()
+	if deepestH then
+		return deepestH
+	end
+	local worst = 0
+	for i, z in ipairs(MineConfig.ZONES or {}) do
+		if z.id ~= "bigbang" then
+			worst = math.max(worst, MineConfig.oreDifficulty(z.id, 2500))
+		end
+	end
+	deepestH = worst
+	return worst
+end
+
+--[[
+	Ore tool damage.
+
+	start = homeHp * TOOL_POWER_START * sqrt(rank), then climb^((L-1)/99).
+
+	The maxed multiples are the safety rail: a maxed Common reaches 3.6x its
+	anchor and a maxed Exotic 61x. Both fall out of the formula rather than being
+	clamped, so they cannot be broken by tuning one number without the sim
+	noticing -- and 61x is exactly what sets ORE_POWER_TOP, since it is the
+	multiplier that has to stay inside 2^53.
+]]
+function MineConfig.toolPower(tier, level, rank)
+	local L = clampLevel(level)
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
+	local start = MineConfig.orePowerAnchor(tier) * MineConfig.TOOL_POWER_START * math.sqrt(r)
+	return start * (MineConfig.toolPowerClimb(r) ^ ((L - 1) / steps))
+end
+
+--------------------------------------------------------------------------------
+-- WHAT AN ORE TOOL COSTS -- priced in HOURS, not in ore
+--
+-- Pricing per level in ore means the answer changes every time the spawn curve
+-- or a pack yield moves. Pricing in TIME does not: a Common tool is 40 hours of
+-- that ore at its home, an Exotic 80, and the ore number is whatever those
+-- hours happen to be worth. Bigger pack yields then make the numbers bigger
+-- without making the tool cheaper, which is the point -- the old 1-per-pack
+-- endgame supply made forty consecutive levels all round to the same 1 ore.
+--------------------------------------------------------------------------------
+MineConfig.TOOL_HOURS_BASE = 40       -- hours to max a Common
+MineConfig.TOOL_HOURS_SPAN = 40       -- Exotic takes this much longer again
+MineConfig.ORE_RATE_STRONG = 145000   -- blocks/hour the cost curve is sized against
+
+function MineConfig.toolHoursToMax(rank)
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	return MineConfig.TOOL_HOURS_BASE + (r - 1) * MineConfig.TOOL_HOURS_SPAN / 7
+end
+
+--[[
+	What share of the ore roll this ore is at its own best spot.
+
+	Computed from the same weight formula the generator uses, at the difficulty
+	where the ore peaks (clamped to the deepest reachable rock for the ores whose
+	home sits past it). Cached, because it is 82 weights per ore and it never
+	changes at runtime.
+
+	Not a baked constant for the same reason homeHp is not: it would be a second
+	copy of the curve, free to disagree with it.
+]]
+local bestShareCache
+function MineConfig.oreBestShare(tier)
+	if not bestShareCache then
+		bestShareCache = {}
+		local deep = MineConfig.oreDeepestHardness()
+		local X0, K, S, W = MineConfig.ORE_X0, MineConfig.ORE_K, MineConfig.ORE_S, MineConfig.ORE_W
+		local bandW = MineConfig.ORE_BAND_WEIGHT or {}
+		for i, o in ipairs(MineConfig.ORES) do
+			local dl = math.min(o.home or 0, deep)
+			local tot, mine = 0, 0
+			for j, p in ipairs(MineConfig.ORES) do
+				local x = p.d - dl
+				local v = 1 / (1 + math.exp((x - X0) / K))
+				if x < 0 then
+					v = v * math.exp(x / S) * math.exp(-((x / W) ^ 2))
+				end
+				v = v * (bandW[p.band] or 1)
+				tot += v
+				if j == i then
+					mine = v
+				end
+			end
+			bestShareCache[i] = (tot > 0) and (mine / tot) or 0
+		end
+	end
+	return bestShareCache[clampTier(tier)] or 0
+end
+
+-- Ore per hour a strong player gathers of this ore, at its home.
+function MineConfig.oreSupplyPerHour(tier)
+	local o = MineConfig.ORES[clampTier(tier)]
+	if not o then
+		return 1
+	end
+	local ev = (o.yield and ((tonumber(o.yield[1]) or 1) + (tonumber(o.yield[2]) or 1)) / 2) or 1
+	return math.max(0.01, MineConfig.ORE_RATE_STRONG * MineConfig.ORE_CHANCE
+		* MineConfig.oreBestShare(tier) * ev)
+end
+
+
+--[[
+	DUST INCOME, MEASURED RATHER THAN ASSUMED.
+
+	Ore is the flavour on an upgrade; dust is the gate, so its cost has to be
+	sized against what a player actually earns. Two sources are modelled, both
+	read off the live tables rather than estimated:
+
+	  CHESTS   CHEST_CHANCE of blocks are a chest, and CHEST_LOOT gives the dust
+	           roll weight 2.2 out of 99.9 -- about 22 in every 1000 chests. The
+	           roll itself is zoneTier^2 * 120 * (0.6..1.6), so its mean is
+	           zoneTier^2 * 132.
+	  SALVAGE  every chest that pays a pack eventually pays cards, and scrapping
+	           them runs through salvageDust. Weight 70 of 99.9 chests.
+
+	NOT modelled: pulverize and quest payouts. Both are player-initiated rather
+	than per-block, so they do not belong in a per-hour rate that upgrade costs
+	are divided by -- counting them would size dust against income a player can
+	choose not to earn, and then the gate stops being a gate. The sim prints the
+	measured table so the omission is visible rather than buried.
+]]
+MineConfig.DUST_CHEST_ROLL_MEAN = 132  -- zoneTier^2 * 120 * mean(0.6..1.6)
+MineConfig.DUST_SALVAGE_PER_PACK = 0   -- filled in below if salvageDust resolves
+
+function MineConfig.chestLootShare(kind)
+	local tot, mine = 0, 0
+	for _, row in ipairs(MineConfig.CHEST_LOOT or {}) do
+		tot += (tonumber(row.weight) or 0)
+		if row.kind == kind then
+			mine += (tonumber(row.weight) or 0)
+		end
+	end
+	return (tot > 0) and (mine / tot) or 0
+end
+
+--[[
+	Which zone a player is standing in when an ore is its most common find.
+
+	An ore's home is a HARDNESS, and many zone/layer pairs reach it -- meadow
+	just has to go deeper. The home zone is therefore the EARLIEST zone that can
+	reach it, because that is where a player meets the ore first and where the
+	dust they are earning alongside it comes from.
+]]
+function MineConfig.oreHomeZoneIndex(tier)
+	local o = MineConfig.ORES[clampTier(tier)]
+	if not o then
+		return 1
+	end
+	local h = math.min(o.home or 0, MineConfig.oreDeepestHardness())
+	local meadowMax = MineConfig.oreDifficulty("meadow", 2500)
+	if h <= meadowMax then
+		return 1
+	end
+	local zi = math.ceil(h - meadowMax) + 1
+	return math.clamp(zi, 1, 10)
+end
+
+-- Dust per hour a strong player earns in a zone, from the two per-block sources.
+function MineConfig.dustPerHour(zoneIndex)
+	local zi = math.clamp(math.floor(tonumber(zoneIndex) or 1), 1, 10)
+	local chestsPerHour = MineConfig.ORE_RATE_STRONG * (MineConfig.CHEST_CHANCE or 0)
+	local fromRolls = chestsPerHour * MineConfig.chestLootShare("dust")
+		* (zi * zi * MineConfig.DUST_CHEST_ROLL_MEAN)
+	local fromSalvage = chestsPerHour * MineConfig.chestLootShare("pack")
+		* (MineConfig.DUST_SALVAGE_PER_PACK or 0)
+	return math.max(1, fromRolls + fromSalvage)
+end
+
+-- Dust per hour alongside a given ore, at that ore's home.
+function MineConfig.oreDustPerHour(tier)
+	return MineConfig.dustPerHour(MineConfig.oreHomeZoneIndex(tier))
+end
+
+--[[
+	The raw geometric series, and the rounding that makes it climb.
+
+	ceil() per level was what flat-lined the top tiers: once a level's true cost
+	is 0.3 ore, ceil makes it 1, and it stays 1 for dozens of levels while the
+	real curve quietly triples underneath. The cumulative floor fixes that
+	without a milestone hack --
+
+	    cost(L -> L+1) = floor(cum(L+1)) - floor(cum(L))
+
+	-- which is exact (the steps sum to the total, always), never negative, and
+	climbs naturally: a rare top-tier tool opens with a few dust-only levels,
+	then 1, 1, 2, and several ore a level by 100. The bench shows "dust only"
+	when a level's ore cost is 0.
+]]
+local function seriesBase(total, climb, steps)
+	local r = climb ^ (1 / math.max(1, steps - 1))
+	if math.abs(r - 1) < 1e-12 then
+		return total / steps, r
+	end
+	return total * (r - 1) / (r ^ steps - 1), r
+end
+
+local function cumAt(base, r, level)
+	if level <= 1 then
+		return 0
+	end
+	if math.abs(r - 1) < 1e-12 then
+		return base * (level - 1)
+	end
+	return base * (r ^ (level - 1) - 1) / (r - 1)
+end
+
+-- Ore and dust series for one tool, cached per tier+rank.
+local seriesCache = {}
+local function seriesFor(tier, rank)
+	local t = clampTier(tier)
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	local key = t * 16 + r
+	local hit = seriesCache[key]
+	if hit then
+		return hit
+	end
+	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
+	local hours = MineConfig.toolHoursToMax(r)
+	local totalOre = MineConfig.oreSupplyPerHour(t) * hours
+	local totalDust = MineConfig.oreDustPerHour(t) * hours
+	local ob, orr = seriesBase(totalOre, MineConfig.TOOL_CLIMB_ORE, steps)
+	local db, dr = seriesBase(totalDust, MineConfig.TOOL_CLIMB_DUST, steps)
+	local row = { ob = ob, orr = orr, db = db, dr = dr, totalOre = totalOre, totalDust = totalDust }
+	seriesCache[key] = row
+	return row
+end
+MineConfig._oreSeriesFor = seriesFor
+
 -- Both anchor at 1 and only ever go UP. typeMult is the tool type's rarity
 -- weight (1 for a plain pickaxe); a rarer frame costs more per level.
 function MineConfig.toolCostMult(tier, typeMult)
@@ -2271,59 +2649,41 @@ function MineConfig.toolCostMult(tier, typeMult)
 	return (t ^ MineConfig.TOOL_COST_TIER) * (m ^ MineConfig.TOOL_COST_TYPE)
 end
 
--- What tier alone is worth, before any levelling.
+-- What tier alone is worth, before any levelling. Kept for the shop/chest
+-- ladders that still read it; ore tools go through toolPower above, which is
+-- anchored to the ore's home rock instead of a flat 6^(16*(t-1)/120) ramp.
 function MineConfig.toolTierPower(tier)
 	local t = clampTier(tier)
 	return 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / 120)
 end
 
-function MineConfig.toolPower(tier, level, typeMult)
-	local L = clampLevel(level)
-	return MineConfig.TOOL_DMG_BASE
-		* MineConfig.toolTierPower(tier)
-		* math.max(0.01, tonumber(typeMult) or 1)
-		* (MineConfig.TOOL_DMG_STEP ^ (L - 1))
-end
-
 -- Cost of the step from `level` to `level + 1`. Returns nil at the cap so a
 -- caller cannot accidentally charge for a level that does not exist.
-function MineConfig.toolUpgradeCost(tier, level, typeMult)
+function MineConfig.toolUpgradeCost(tier, level, rank)
 	local L = clampLevel(level)
 	if L >= MineConfig.TOOL_MAX_LEVEL then
 		return nil, nil
 	end
-	local mult = MineConfig.toolCostMult(tier, typeMult)
-	local ore = math.ceil(MineConfig.TOOL_ORE_BASE * (MineConfig.TOOL_ORE_GROW ^ (L - 1)) * mult)
-	local dust = math.ceil(MineConfig.TOOL_DUST_BASE * (MineConfig.TOOL_DUST_GROW ^ (L - 1)) * mult)
-	return ore, dust
+	local q = seriesFor(tier, rank)
+	local ore = math.floor(cumAt(q.ob, q.orr, L + 1)) - math.floor(cumAt(q.ob, q.orr, L))
+	local dust = math.floor(cumAt(q.db, q.dr, L + 1)) - math.floor(cumAt(q.db, q.dr, L))
+	return math.max(0, ore), math.max(0, dust)
 end
 
--- Everything poured in to reach `level` from 1. Geometric, so it stays exact
--- at level 1000 instead of drifting the way a loop would.
-function MineConfig.toolSpent(tier, level, typeMult)
+-- Everything poured in to reach `level` from 1. The same floor(cum(L)) the per
+-- level cost is built out of, so spent is exactly the sum of the steps charged
+-- -- which is what keeps toolRecycle honest at 50%.
+function MineConfig.toolSpent(tier, level, rank)
 	local L = clampLevel(level)
 	if L <= 1 then
 		return 0, 0
 	end
-	local mult = MineConfig.toolCostMult(tier, typeMult)
-	local ro, rd = MineConfig.TOOL_ORE_GROW, MineConfig.TOOL_DUST_GROW
-	local ore = math.ceil(MineConfig.TOOL_ORE_BASE * ((ro ^ (L - 1)) - 1) / (ro - 1) * mult)
-	local dust = math.ceil(MineConfig.TOOL_DUST_BASE * ((rd ^ (L - 1)) - 1) / (rd - 1) * mult)
-	return ore, dust
+	local q = seriesFor(tier, rank)
+	return math.floor(cumAt(q.ob, q.orr, L)), math.floor(cumAt(q.db, q.dr, L))
 end
 
---[[
-	Scrapping returns a flat cut of what was actually spent -- no tier falloff,
-	no type falloff, no level tax.
-
-	All of that machinery existed to stop a tool FOUND in a wall from being a
-	payout, because a found tool used to arrive at level 700 with a huge
-	notional build cost behind it. On this scale it arrives at level 1 with
-	nothing behind it, so the exploit is gone by construction and the rate can
-	be generous and legible instead of defensive.
-]]
-function MineConfig.toolRecycle(tier, level, typeMult)
-	local ore, dust = MineConfig.toolSpent(tier, level, typeMult)
+function MineConfig.toolRecycle(tier, level, rank)
+	local ore, dust = MineConfig.toolSpent(tier, level, rank)
 	local pct = MineConfig.TOOL_RECYCLE_PCT
 	return math.floor(ore * pct), math.floor(dust * pct)
 end
@@ -2331,7 +2691,7 @@ end
 --[[
 	Which hand-made ore face each ore wears, by index into MineOreArt.
 
-	Thirty tiles, every one of them used. Matching is on hue first and lightness
+	Thirty tiles. Matching is on hue first and lightness
 	second rather than raw RGB, so a navy ore and a pale sky-blue one land on
 	different tiles instead of both collapsing onto whichever blue is nearest in
 	straight distance; a desaturated ore ignores hue entirely, which is what
@@ -2341,65 +2701,42 @@ end
 ]]
 MineConfig.ORE_FACE = {
 	stone = 10,
-	cobblestone = 10,
 	clay = 3,
-	sandstone = 28,
 	limestone = 18,
 	pumice = 30,
 	halite = 27,
 	coal = 10,
 	flint = 18,
-	chert = 18,
 	basalt = 10,
 	slate = 21,
 	bone = 28,
 	granite = 30,
 	copper = 3,
-	diorite = 30,
 	tin = 30,
-	cassiterite = 23,
 	ember = 23,
 	sulfur = 28,
 	lead = 10,
-	galena = 30,
 	zinc = 26,
 	aluminum = 30,
 	iron = 30,
-	hematite = 10,
 	graphite = 10,
 	pyrite = 28,
-	quartzite = 27,
-	selenite = 28,
-	chalcopyrite = 28,
 	marble = 28,
 	pearl = 28,
 	rime = 26,
 	quartz = 8,
-	agate = 3,
-	jasper = 20,
 	amber = 28,
 	petrifact = 6,
 	nickel = 18,
-	magnetite = 13,
-	manganese = 16,
-	malachite = 15,
-	azurite = 14,
-	cinnabar = 27,
-	fluorite = 24,
-	chromite = 25,
 	onyx = 10,
-	kimberlite = 10,
 	bloodstone = 15,
 	garnet = 27,
 	citrine = 28,
 	chromium = 26,
 	turquoise = 12,
-	rhodochrosite = 27,
 	bismuth = 24,
 	silver = 18,
 	amethyst = 24,
-	apatite = 22,
-	moissanite = 22,
 	tigereye = 28,
 	lapis = 14,
 	geode = 24,
@@ -2412,41 +2749,25 @@ MineConfig.ORE_FACE = {
 	lithium = 30,
 	titanium = 11,
 	obsidian = 17,
-	electrum = 28,
 	cobalt = 14,
-	labradorite = 10,
-	zirconium = 13,
-	beryllium = 15,
-	niobium = 29,
 	gold = 28,
-	fulgurite = 18,
-	tektite = 25,
-	moldavite = 7,
 	regolith = 30,
 	sunstone = 3,
-	spinel = 4,
 	emerald = 15,
-	tourmaline = 19,
-	zircon = 2,
 	moonstone = 14,
-	alexandrite = 5,
 	sapphire = 14,
 	ruby = 4,
 	palladium = 26,
 	aquamarine = 26,
-	tanzanite = 8,
 	opal = 8,
 	platinum = 18,
 	stormstone = 10,
-	rhodium = 26,
 	diamond = 26,
 	starmetal = 10,
 	aetherite = 26,
 	meteorite = 18,
 	soulstone = 22,
-	osmium = 30,
 	galaxite = 1,
-	iridium = 26,
 	frostfire = 26,
 	umbrite = 1,
 	celestine = 28,
@@ -2463,8 +2784,9 @@ MineConfig.ORE_FACE = {
 	oganesson = 17,
 }
 
+
 MineConfig.ORE_MIGRATION = {
-	alumina = "selenite",
+	alumina = "pyrite",
 	anthracite = "pearl",
 	bauxite = "rime",
 	bituminous_coal = "ember",
@@ -2473,17 +2795,17 @@ MineConfig.ORE_MIGRATION = {
 	brass = "tigereye",
 	brick = "pumice",
 	bridgmanite = "dragonstone",
-	bronze = "cinnabar",
+	bronze = "nickel",
 	cast_iron = "sulfur",
 	charcoal = "halite",
 	coesite = "umbrite",
-	damascus_steel = "labradorite",
+	damascus_steel = "cobalt",
 	dunite = "bloodstone",
 	graphene = "galaxite",
 	ilmenite = "lithium",
 	impactite = "regolith",
 	lignite = "coal",
-	meteoric_iron = "iridium",
+	meteoric_iron = "galaxite",
 	monazite = "aetherite",
 	pallasite = "soulstone",
 	petrified_wood = "petrifact",
@@ -2491,13 +2813,96 @@ MineConfig.ORE_MIGRATION = {
 	prismarine = "frostfire",
 	ringwoodite = "spectrite",
 	shungite = "geode",
-	silicon_carbide = "moissanite",
-	silicon_nitride = "rhodochrosite",
+	silicon_carbide = "amethyst",
+	silicon_nitride = "turquoise",
 	sphalerite = "aluminum",
 	steel = "bismuth",
 	stishovite = "celestine",
-	vanadium_steel = "osmium",
+	vanadium_steel = "soulstone",
 	wolframite = "stormstone",
+}
+
+--[[
+	Second roster pass: the 121 became 82 and 39 ids went away.
+
+	v1 above still has to work for a save that never ran it, so this is a
+	separate table and a separate stamp rather than an edit: v0 goes 0 -> 1 -> 2,
+	v1 goes 1 -> 2. Every v1 target that pointed at one of the 39 has been
+	re-pointed to its final home, so no chain ends on an id that no longer
+	exists even if only one pass runs.
+
+	Each removed ore goes to the nearest KEPT ore at or below it in the old
+	121 order -- downhill, so nobody is handed something they had not earned.
+]]
+MineConfig.ORE_ROSTER_V = 2
+MineConfig.ORE_MIGRATION_V2 = {
+	agate = "quartz",
+	alexandrite = "moonstone",
+	apatite = "amethyst",
+	azurite = "nickel",
+	beryllium = "cobalt",
+	cassiterite = "tin",
+	chalcopyrite = "pyrite",
+	chert = "flint",
+	chromite = "nickel",
+	cinnabar = "nickel",
+	cobblestone = "stone",
+	diorite = "copper",
+	electrum = "obsidian",
+	fluorite = "nickel",
+	fulgurite = "gold",
+	galena = "lead",
+	hematite = "iron",
+	iridium = "galaxite",
+	jasper = "quartz",
+	kimberlite = "onyx",
+	labradorite = "cobalt",
+	magnetite = "nickel",
+	malachite = "nickel",
+	manganese = "nickel",
+	moissanite = "amethyst",
+	moldavite = "gold",
+	niobium = "cobalt",
+	osmium = "soulstone",
+	quartzite = "pyrite",
+	rhodium = "stormstone",
+	rhodochrosite = "turquoise",
+	sandstone = "clay",
+	selenite = "pyrite",
+	spinel = "sunstone",
+	tanzanite = "aquamarine",
+	tektite = "gold",
+	tourmaline = "emerald",
+	zircon = "emerald",
+	zirconium = "cobalt",
+}
+
+--[[
+	Old ore INDEX -> new ore INDEX, for p.oreTools.
+
+	A saved ore tool stores `tier` as a position in MineConfig.ORES, not an id,
+	so renumbering 121 rows down to 82 silently re-points every tool a player
+	owns. This is the explicit map: 121 entries, one per old position, each
+	landing on the new position of whatever that ore became (itself if it was
+	kept, its migration target if it was removed).
+
+	Generated alongside ORE_MIGRATION_V2 and printed by the balance sim. Two old
+	positions can share a new one -- Stone and Cobblestone both end up at 1.
+]]
+MineConfig.ORE_TIER_REMAP_V2 = {
+	[1] = 1, [2] = 1, [3] = 2, [4] = 2, [5] = 3, [6] = 4, [7] = 5, [8] = 6, [9] = 7, [10] = 7,
+	[11] = 8, [12] = 9, [13] = 10, [14] = 11, [15] = 12, [16] = 12, [17] = 13, [18] = 13, [19] = 14, [20] = 15,
+	[21] = 16, [22] = 16, [23] = 17, [24] = 18, [25] = 19, [26] = 19, [27] = 20, [28] = 21, [29] = 21, [30] = 21,
+	[31] = 21, [32] = 22, [33] = 23, [34] = 24, [35] = 25, [36] = 25, [37] = 25, [38] = 26, [39] = 27, [40] = 28,
+	[41] = 28, [42] = 28, [43] = 28, [44] = 28, [45] = 28, [46] = 28, [47] = 28, [48] = 29, [49] = 29, [50] = 30,
+	[51] = 31, [52] = 32, [53] = 33, [54] = 34, [55] = 34, [56] = 35, [57] = 36, [58] = 37, [59] = 37, [60] = 37,
+	[61] = 38, [62] = 39, [63] = 40, [64] = 41, [65] = 42, [66] = 43, [67] = 44, [68] = 45, [69] = 46, [70] = 47,
+	[71] = 48, [72] = 49, [73] = 49, [74] = 50, [75] = 50, [76] = 50, [77] = 50, [78] = 50, [79] = 51, [80] = 51,
+	[81] = 51, [82] = 51, [83] = 52, [84] = 53, [85] = 53, [86] = 54, [87] = 54, [88] = 54, [89] = 55, [90] = 55,
+	[91] = 56, [92] = 57, [93] = 58, [94] = 59, [95] = 59, [96] = 60, [97] = 61, [98] = 62, [99] = 62, [100] = 63,
+	[101] = 64, [102] = 65, [103] = 66, [104] = 67, [105] = 67, [106] = 68, [107] = 68, [108] = 69, [109] = 70, [110] = 71,
+	[111] = 72, [112] = 73, [113] = 74, [114] = 75, [115] = 76, [116] = 77, [117] = 78, [118] = 79, [119] = 80, [120] = 81,
+	[121] = 82,
 }
 
 MineConfig.ORE_BY_ID = {}
@@ -2505,10 +2910,15 @@ do
 	-- D is derived from tier so the ladder cannot drift out of step with it.
 	local top = Depth.SECTIONS[#Depth.SECTIONS]
 	MineConfig.ORE_DMAX = math.log((top.dirtHp * 2 * 6 ^ 9) / 20) / math.log(6)
-	local n = #MineConfig.ORES
 	for _, o in ipairs(MineConfig.ORES) do
-		o.d = (o.tier - 1) * MineConfig.ORE_DMAX / (n - 1)
+		-- Authored home -> curve coordinate. See ORE_PEAK_OFFSET.
+		o.home = tonumber(o.home) or 0
+		o.d = o.home + MineConfig.ORE_PEAK_OFFSET
 		o.packId = o.id .. "_ore_pack"
+		o.bandIndex = MineConfig.ORE_BAND_INDEX[o.band] or 1
+		-- The rock this ore calls home, in HP rather than hardness. Tool power
+		-- is anchored to it, so it is derived here and never re-derived.
+		o.homeHp = 20 * (6 ^ o.home)
 		MineConfig.ORE_BY_ID[o.id] = o
 	end
 end
@@ -2566,8 +2976,13 @@ function MineConfig.oreWeights(zoneId, layer, rareOre)
 	if hit then
 		return hit
 	end
+	local zi = MineConfig.zoneIndex(zoneId)
 	local dl = MineConfig.oreDifficulty(zoneId, layer) + bucket / 20
+		+ (MineConfig.ZONE_ORE_SHIFT or 0) * zi
 	local X0, K, S, W = MineConfig.ORE_X0, MineConfig.ORE_K, MineConfig.ORE_S, MineConfig.ORE_W
+	local bandW = MineConfig.ORE_BAND_WEIGHT
+	local offZone = (zoneId ~= MineConfig.ORE_EXOTIC_HOME_ZONE)
+		and (MineConfig.ORE_EXOTIC_OFF_ZONE or 1) or 1
 	local list = MineConfig.ORES
 	local w, tot = table.create(#list), 0
 	for i, o in ipairs(list) do
@@ -2575,6 +2990,11 @@ function MineConfig.oreWeights(zoneId, layer, rareOre)
 		local v = 1 / (1 + math.exp((x - X0) / K))
 		if x < 0 then
 			v = v * math.exp(x / S) * math.exp(-((x / W) ^ 2))
+		end
+		-- Band rarity, then the Exotic-outside-Primordium gate.
+		v = v * (bandW[o.band] or 1)
+		if o.band == "Exotic" then
+			v = v * offZone
 		end
 		w[i] = v
 		tot += v
