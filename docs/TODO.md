@@ -6,16 +6,42 @@ they finish.
 
 ---
 
+## Where the design spec lives
+
+The balance design is **not in this repo.** It is `AGENT_PROMPT.md` (the
+briefing: what the game is, what already went wrong, the invariants, the
+formulas) plus `PROMPTS.md` (tasks, in dependency order), both kept outside
+version control. Ask for them before starting balance work.
+
+Two corrections to apply when reading them:
+
+- **`roadmap/` does not exist.** `AGENT_PROMPT.md` §13 gives a reading order
+  of eight files under `roadmap/` — `PRINCIPLES.md`, `GATING.md`,
+  `POSTMORTEM.md` and the rest. None of them are in this tree. Do not go
+  looking; the briefing itself carries the content.
+- **The "Rebalance Numbers" artifact is superseded** by `AGENT_PROMPT.md` on
+  two numbers: seam placement and `REBIRTH_BASE` (artifact says ~1,000,
+  briefing says ~3,600). The briefing is newer and explains why.
+
+And one correction to the briefing, from this repo: it prices seams on a
+doubling ladder. Shipped code gates on `MineDepth.SEAMS` instead — see Done.
+The pricing *rule* (minutes of local income) is unchanged and is what makes
+either ladder honest.
+
+---
+
 ## Blocked — needs you, not me
 
 - [ ] **Push to GitHub.** 8 commits sit on local `main`; `origin` is
   `VeyrixCasino/PullAPick`. Not pushed because you said to wait.
 
-- [ ] **Connect Rojo.** `rojo serve` is running but Studio has never attached,
-  so none of the committed source is live. Every Studio-only edit from these
-  sessions is already ported into `src/`, so connecting is safe and will not
-  revert anything. `ServerStorage` survives regardless
-  (`$ignoreUnknownInstances`).
+- [ ] **A way to BUY a seam.** Depth is now gated on coins
+  (`MineDepth.SEAMS`, enforced in `MineDigAuth.unlockedForLayer`) and
+  `Verbs.buySeam` is live on the `"buySeam"` action — but nothing fires it.
+  **Do not ship the gate until a prompt exists**, or every player stops dead
+  at layer 500. The depth plazas in `MineDepthPlazas` already own the seam
+  prompt geometry and are the obvious host; `MineDepth.seamPrice(seam, zi)`
+  gives the figure to show.
 
 ---
 
@@ -39,7 +65,16 @@ they finish.
   being normalised away) so depth decides WHICH and rarity decides WHETHER —
   not another DMAX value.
 
-- [ ] **Pick a time-to-max, then set the cost dial.** Shape and cap are done;
+- [ ] **Pick a time-to-max, then set the cost dial.**
+  ⚠️ **Read this before acting on it.** "Time to max" is a metric the owner
+  has explicitly rejected — *"why are we so worried about maxed out THATS NOT
+  WHAT THE GAME IS ABOUT"* — and pricing the upgrade ladder to hit a
+  time-to-max target is listed in the postmortem as a named past mistake.
+  Nobody is meant to reach the ceiling. If this item is worked, the question
+  to answer is what a level FEELS like at the first hour and the hundredth,
+  not where the ladder terminates. Numbers below kept for reference only.
+
+  Shape and cap are done;
   only the scale is open. At cap 100, worst case (Epic), 10 blocks/s, best
   depth, no ore finder — `TOOL_ORE_BASE`/`TOOL_CLIMB_ORE`:
   4/1747 = 289 d (live now), 2/400 = 42 d, 1/120 = 7.8 d, 1/40 = 3.3 d,
@@ -56,14 +91,11 @@ they finish.
   Finder". A stat called Ore Finder multiplying fossil pieces wants resolving
   one way or the other.
 
-- [ ] **Decide on the duplicate Event Horizon pet module.**
-  `MineEHPets.luau` and `MineEventHorizonPets.luau` are byte-identical (same
-  md5) and both live in the tree. Every consumer reads
-  `FindFirstChild("MineEHPets") or FindFirstChild("MineEventHorizonPets")`, so
-  the short name always wins and the long one is 34 KB that never loads. It
-  looks like a rename that kept the old file as a fallback. Not deleted unasked
-  — removing it makes Rojo drop the instance from Studio, and Cursor works in
-  this tree too.
+- [ ] **Block HP outruns 2⁵³ long before the mine floor.** `SECTIONS` authors
+  Terminus (layers 9961–10040) at `9.30735e18` — **1,033× over 2⁵³**, so
+  damage arithmetic loses precision well above the new floor, not just in
+  Primordium. This is the HP-curve rebalance (linear `20 + 1.5L`), and it is
+  the reason that change and the tool-power change have to ship together.
 
 - [ ] **Ore faces on every block type, in every zone.** Once access lands:
   confirm the faces read on ore in all 11 zones against each zone's own rock
@@ -128,6 +160,41 @@ they finish.
 ---
 
 ## Done
+
+- [x] ~~Depth is gated by nothing~~ **done** — `rebirthForSeam` and
+  `rebirthForLayer` both return 0, so the only brake on a fresh profile
+  reaching the mine floor was the anti-teleport check. Ore tool power follows
+  depth, so that was an ungated power axis too. Depth is now bought:
+  `MineDepth.SEAMS` every 500 to 3000 then every 1000 to 10000, priced at
+  `SEAM_MINUTES` (30) of the income of the band below, **stored as minutes and
+  derived as coins** so the ladder self-corrects when block rates move. All 13
+  gates come out at exactly 30.0 min — 6.5 h of depth per zone, 2.25M coins
+  across Meadow — and the zone term factors out, so a seam costs the same
+  minutes in Primordium as in Meadow.
+
+  One ladder, not two: a separate doubling ladder (100/200/400…12800) was
+  drafted and dropped, because a second set of depths is a dial the game does
+  not need and its top rungs sat under no outpost. Gating on `SEAMS` also
+  lands every gate on an air gap that already generates there.
+
+  Enforcement is one line in `MineDigAuth.unlockedForLayer` — `canDigLayer`,
+  `maxAllowedLayer`, `maxStandLayer`, `canAccessSeam` and `grantDepthPass` all
+  funnel through it. It cannot live in `canDigLayer` alone or `grantDepthPass`
+  mints a permanent pass for an unbought seam.
+
+  Nobody loses depth they reached: `grantReachedSeams` derives grants from
+  `p.deepest`, so no migration flag was needed, and it is add-only and
+  idempotent. 10000 is the last seam, not the bottom — `gateForLayer` returns
+  the deepest seam at or below a layer, so buying it opens everything under it
+  and depth continues by formula. `MINE1_LAYERS` 5000 → 10000 to match.
+  Verified by `tools/verify/seams.js` (`--break` fails it on purpose).
+  **Still needs a purchase prompt before it can ship — see Blocked.**
+
+- [x] ~~Duplicate Event Horizon pet module~~ **done** — `MineEHPets.luau` and
+  `MineEventHorizonPets.luau` were byte-identical. All three consumers read
+  `FindFirstChild("MineEHPets") or FindFirstChild("MineEventHorizonPets")`, so
+  the short name always won and the long one was 34 KB that never loaded.
+  Deleted; the `or` branch is now never taken rather than rarely taken.
 
 - [x] ~~Roster cut 121 -> 82, level cap 1000 -> 100~~ **done** — the 39 ores
   that are gone each map to a survivor, because `p.ores[id]` is banked
