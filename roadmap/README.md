@@ -50,6 +50,8 @@ find. Tune the find.
 | `CHARMS.md` | you touch charms (there is a rework pending) |
 | `NUMBERS.md` | you need real magnitudes — HP, boosts, zones — or hit a big-number bug |
 | `POSTMORTEM.md` | before proposing a redesign. It lists what has already been tried and how it failed. |
+| `AGENT_PROMPT.md` | you are briefing another agent. A standalone paste-able briefing. |
+| `PROMPTS.md` | you want a specific task done. Ready-to-paste task prompts, in dependency order. |
 
 ## Three things that are already true and easy to get wrong
 
