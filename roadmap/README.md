@@ -61,6 +61,9 @@ find. Tune the find.
 - **Rebirth cost doubles (×2.08) against income that goes flat after the last zone
   gate.** Your own code comment warns about it. There are 10 zones, so the wall is
   at rebirth 9. `PROGRESSION.md` §3.
+- **Under flat "1 block = 1 coin", every existing coin price is mis-scaled and
+  descending makes you poorer.** Rebirth 1 costs 17.5 hours of starter income
+  against a first zone meant to take 27 minutes. `PROGRESSION.md` §5, §6.
 
 ## Ground rules for agents
 
