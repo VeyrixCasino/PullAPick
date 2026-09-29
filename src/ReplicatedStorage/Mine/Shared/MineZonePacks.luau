@@ -203,6 +203,8 @@ MineZonePacks.PACKS = MineZonePacks.buildAll()
 	itself is, supply between the ends of the list differs by orders of
 	magnitude, which is what lets upgrade costs climb the same way.
 ]]
+-- Kept for callers that still read them. Yield itself comes from
+-- MineConfig.ORE_YIELD_BANDS now, which is a bell rather than this ramp.
 MineZonePacks.ORE_YIELD_LO = 1
 MineZonePacks.ORE_YIELD_HI = 6
 
@@ -213,12 +215,9 @@ do
 	if okC and C and C.ORES then
 		local n = #C.ORES
 		for _, ore in ipairs(C.ORES) do
-			-- 6 at tier 1 down to 1 at tier 121, rounded.
-			local t = (ore.tier - 1) / math.max(1, n - 1)
-			local hi = math.max(MineZonePacks.ORE_YIELD_LO,
-				math.floor(MineZonePacks.ORE_YIELD_HI
-					- (MineZonePacks.ORE_YIELD_HI - MineZonePacks.ORE_YIELD_LO) * t + 0.5))
-			local lo = math.max(MineZonePacks.ORE_YIELD_LO, math.floor(hi * 0.5 + 0.5))
+			-- Band table in MineConfig, not a ramp: yield peaks on Epic now,
+			-- matching where the cost bell peaks.
+			local lo, hi = C.oreYieldFor(ore.tier)
 			MineZonePacks.PACKS[ore.packId] = {
 				id = ore.packId,
 				kind = "ore",
@@ -250,11 +249,7 @@ function MineZonePacks.get(packId)
 			for _, ore in ipairs(C.ORES) do
 				local pid = ore.packId or (ore.id .. "_ore_pack")
 				if not MineZonePacks.PACKS[pid] then
-					local t = (ore.tier - 1) / math.max(1, n - 1)
-					local hi = math.max(MineZonePacks.ORE_YIELD_LO,
-						math.floor(MineZonePacks.ORE_YIELD_HI
-							- (MineZonePacks.ORE_YIELD_HI - MineZonePacks.ORE_YIELD_LO) * t + 0.5))
-					local lo = math.max(MineZonePacks.ORE_YIELD_LO, math.floor(hi * 0.5 + 0.5))
+					local lo, hi = C.oreYieldFor(ore.tier)
 					MineZonePacks.PACKS[pid] = {
 						id = pid,
 						kind = "ore",

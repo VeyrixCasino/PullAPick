@@ -1,0 +1,951 @@
+{
+ "survivors": [
+  {
+   "id": "stone",
+   "name": "Stone",
+   "oldTier": 1,
+   "newTier": 1,
+   "band": "common"
+  },
+  {
+   "id": "clay",
+   "name": "Clay",
+   "oldTier": 3,
+   "newTier": 2,
+   "band": "common"
+  },
+  {
+   "id": "limestone",
+   "name": "Limestone",
+   "oldTier": 5,
+   "newTier": 3,
+   "band": "common"
+  },
+  {
+   "id": "pumice",
+   "name": "Pumice",
+   "oldTier": 6,
+   "newTier": 4,
+   "band": "common"
+  },
+  {
+   "id": "halite",
+   "name": "Halite",
+   "oldTier": 7,
+   "newTier": 5,
+   "band": "common"
+  },
+  {
+   "id": "coal",
+   "name": "Coal",
+   "oldTier": 8,
+   "newTier": 6,
+   "band": "common"
+  },
+  {
+   "id": "flint",
+   "name": "Flint",
+   "oldTier": 9,
+   "newTier": 7,
+   "band": "common"
+  },
+  {
+   "id": "basalt",
+   "name": "Basalt",
+   "oldTier": 11,
+   "newTier": 8,
+   "band": "common"
+  },
+  {
+   "id": "slate",
+   "name": "Slate",
+   "oldTier": 12,
+   "newTier": 9,
+   "band": "common"
+  },
+  {
+   "id": "bone",
+   "name": "Bone",
+   "oldTier": 13,
+   "newTier": 10,
+   "band": "common"
+  },
+  {
+   "id": "granite",
+   "name": "Granite",
+   "oldTier": 14,
+   "newTier": 11,
+   "band": "common"
+  },
+  {
+   "id": "copper",
+   "name": "Copper",
+   "oldTier": 15,
+   "newTier": 12,
+   "band": "common"
+  },
+  {
+   "id": "tin",
+   "name": "Tin",
+   "oldTier": 17,
+   "newTier": 13,
+   "band": "common"
+  },
+  {
+   "id": "ember",
+   "name": "Ember",
+   "oldTier": 19,
+   "newTier": 14,
+   "band": "common"
+  },
+  {
+   "id": "sulfur",
+   "name": "Sulfur",
+   "oldTier": 20,
+   "newTier": 15,
+   "band": "common"
+  },
+  {
+   "id": "lead",
+   "name": "Lead",
+   "oldTier": 21,
+   "newTier": 16,
+   "band": "common"
+  },
+  {
+   "id": "zinc",
+   "name": "Zinc",
+   "oldTier": 23,
+   "newTier": 17,
+   "band": "common"
+  },
+  {
+   "id": "aluminum",
+   "name": "Aluminum",
+   "oldTier": 24,
+   "newTier": 18,
+   "band": "common"
+  },
+  {
+   "id": "iron",
+   "name": "Iron",
+   "oldTier": 25,
+   "newTier": 19,
+   "band": "uncommon"
+  },
+  {
+   "id": "graphite",
+   "name": "Graphite",
+   "oldTier": 27,
+   "newTier": 20,
+   "band": "uncommon"
+  },
+  {
+   "id": "pyrite",
+   "name": "Pyrite",
+   "oldTier": 28,
+   "newTier": 21,
+   "band": "uncommon"
+  },
+  {
+   "id": "marble",
+   "name": "Marble",
+   "oldTier": 32,
+   "newTier": 22,
+   "band": "uncommon"
+  },
+  {
+   "id": "pearl",
+   "name": "Pearl",
+   "oldTier": 33,
+   "newTier": 23,
+   "band": "uncommon"
+  },
+  {
+   "id": "rime",
+   "name": "Rime",
+   "oldTier": 34,
+   "newTier": 24,
+   "band": "uncommon"
+  },
+  {
+   "id": "quartz",
+   "name": "Quartz",
+   "oldTier": 35,
+   "newTier": 25,
+   "band": "uncommon"
+  },
+  {
+   "id": "amber",
+   "name": "Amber",
+   "oldTier": 38,
+   "newTier": 26,
+   "band": "uncommon"
+  },
+  {
+   "id": "petrifact",
+   "name": "Petrifact",
+   "oldTier": 39,
+   "newTier": 27,
+   "band": "uncommon"
+  },
+  {
+   "id": "nickel",
+   "name": "Nickel",
+   "oldTier": 40,
+   "newTier": 28,
+   "band": "uncommon"
+  },
+  {
+   "id": "onyx",
+   "name": "Onyx",
+   "oldTier": 48,
+   "newTier": 29,
+   "band": "uncommon"
+  },
+  {
+   "id": "bloodstone",
+   "name": "Bloodstone",
+   "oldTier": 50,
+   "newTier": 30,
+   "band": "rare"
+  },
+  {
+   "id": "garnet",
+   "name": "Garnet",
+   "oldTier": 51,
+   "newTier": 31,
+   "band": "rare"
+  },
+  {
+   "id": "citrine",
+   "name": "Citrine",
+   "oldTier": 52,
+   "newTier": 32,
+   "band": "rare"
+  },
+  {
+   "id": "chromium",
+   "name": "Chromium",
+   "oldTier": 53,
+   "newTier": 33,
+   "band": "rare"
+  },
+  {
+   "id": "turquoise",
+   "name": "Turquoise",
+   "oldTier": 54,
+   "newTier": 34,
+   "band": "rare"
+  },
+  {
+   "id": "bismuth",
+   "name": "Bismuth",
+   "oldTier": 56,
+   "newTier": 35,
+   "band": "rare"
+  },
+  {
+   "id": "silver",
+   "name": "Silver",
+   "oldTier": 57,
+   "newTier": 36,
+   "band": "rare"
+  },
+  {
+   "id": "amethyst",
+   "name": "Amethyst",
+   "oldTier": 58,
+   "newTier": 37,
+   "band": "rare"
+  },
+  {
+   "id": "tigereye",
+   "name": "Tigereye",
+   "oldTier": 61,
+   "newTier": 38,
+   "band": "rare"
+  },
+  {
+   "id": "lapis",
+   "name": "Lapis",
+   "oldTier": 62,
+   "newTier": 39,
+   "band": "rare"
+  },
+  {
+   "id": "geode",
+   "name": "Geode",
+   "oldTier": 63,
+   "newTier": 40,
+   "band": "rare"
+  },
+  {
+   "id": "topaz",
+   "name": "Topaz",
+   "oldTier": 64,
+   "newTier": 41,
+   "band": "rare"
+  },
+  {
+   "id": "phosphorus",
+   "name": "Phosphorus",
+   "oldTier": 65,
+   "newTier": 42,
+   "band": "rare"
+  },
+  {
+   "id": "peridot",
+   "name": "Peridot",
+   "oldTier": 66,
+   "newTier": 43,
+   "band": "rare"
+  },
+  {
+   "id": "jade",
+   "name": "Jade",
+   "oldTier": 67,
+   "newTier": 44,
+   "band": "rare"
+  },
+  {
+   "id": "emberglass",
+   "name": "Emberglass",
+   "oldTier": 68,
+   "newTier": 45,
+   "band": "rare"
+  },
+  {
+   "id": "tungsten",
+   "name": "Tungsten",
+   "oldTier": 69,
+   "newTier": 46,
+   "band": "rare"
+  },
+  {
+   "id": "lithium",
+   "name": "Lithium",
+   "oldTier": 70,
+   "newTier": 47,
+   "band": "rare"
+  },
+  {
+   "id": "titanium",
+   "name": "Titanium",
+   "oldTier": 71,
+   "newTier": 48,
+   "band": "rare"
+  },
+  {
+   "id": "obsidian",
+   "name": "Obsidian",
+   "oldTier": 72,
+   "newTier": 49,
+   "band": "rare"
+  },
+  {
+   "id": "cobalt",
+   "name": "Cobalt",
+   "oldTier": 74,
+   "newTier": 50,
+   "band": "epic"
+  },
+  {
+   "id": "gold",
+   "name": "Gold",
+   "oldTier": 79,
+   "newTier": 51,
+   "band": "epic"
+  },
+  {
+   "id": "regolith",
+   "name": "Regolith",
+   "oldTier": 83,
+   "newTier": 52,
+   "band": "epic"
+  },
+  {
+   "id": "sunstone",
+   "name": "Sunstone",
+   "oldTier": 84,
+   "newTier": 53,
+   "band": "epic"
+  },
+  {
+   "id": "emerald",
+   "name": "Emerald",
+   "oldTier": 86,
+   "newTier": 54,
+   "band": "epic"
+  },
+  {
+   "id": "moonstone",
+   "name": "Moonstone",
+   "oldTier": 89,
+   "newTier": 55,
+   "band": "epic"
+  },
+  {
+   "id": "sapphire",
+   "name": "Sapphire",
+   "oldTier": 91,
+   "newTier": 56,
+   "band": "epic"
+  },
+  {
+   "id": "ruby",
+   "name": "Ruby",
+   "oldTier": 92,
+   "newTier": 57,
+   "band": "epic"
+  },
+  {
+   "id": "palladium",
+   "name": "Palladium",
+   "oldTier": 93,
+   "newTier": 58,
+   "band": "epic"
+  },
+  {
+   "id": "aquamarine",
+   "name": "Aquamarine",
+   "oldTier": 94,
+   "newTier": 59,
+   "band": "epic"
+  },
+  {
+   "id": "opal",
+   "name": "Opal",
+   "oldTier": 96,
+   "newTier": 60,
+   "band": "epic"
+  },
+  {
+   "id": "platinum",
+   "name": "Platinum",
+   "oldTier": 97,
+   "newTier": 61,
+   "band": "legendary"
+  },
+  {
+   "id": "stormstone",
+   "name": "Stormstone",
+   "oldTier": 98,
+   "newTier": 62,
+   "band": "legendary"
+  },
+  {
+   "id": "diamond",
+   "name": "Diamond",
+   "oldTier": 100,
+   "newTier": 63,
+   "band": "legendary"
+  },
+  {
+   "id": "starmetal",
+   "name": "Starmetal",
+   "oldTier": 101,
+   "newTier": 64,
+   "band": "legendary"
+  },
+  {
+   "id": "aetherite",
+   "name": "Aetherite",
+   "oldTier": 102,
+   "newTier": 65,
+   "band": "legendary"
+  },
+  {
+   "id": "meteorite",
+   "name": "Meteorite",
+   "oldTier": 103,
+   "newTier": 66,
+   "band": "legendary"
+  },
+  {
+   "id": "soulstone",
+   "name": "Soulstone",
+   "oldTier": 104,
+   "newTier": 67,
+   "band": "legendary"
+  },
+  {
+   "id": "galaxite",
+   "name": "Galaxite",
+   "oldTier": 106,
+   "newTier": 68,
+   "band": "legendary"
+  },
+  {
+   "id": "frostfire",
+   "name": "Frostfire",
+   "oldTier": 108,
+   "newTier": 69,
+   "band": "legendary"
+  },
+  {
+   "id": "umbrite",
+   "name": "Umbrite",
+   "oldTier": 109,
+   "newTier": 70,
+   "band": "mythic"
+  },
+  {
+   "id": "celestine",
+   "name": "Celestine",
+   "oldTier": 110,
+   "newTier": 71,
+   "band": "mythic"
+  },
+  {
+   "id": "orichalcum",
+   "name": "Orichalcum",
+   "oldTier": 111,
+   "newTier": 72,
+   "band": "mythic"
+  },
+  {
+   "id": "spectrite",
+   "name": "Spectrite",
+   "oldTier": 112,
+   "newTier": 73,
+   "band": "mythic"
+  },
+  {
+   "id": "mythril",
+   "name": "Mythril",
+   "oldTier": 113,
+   "newTier": 74,
+   "band": "mythic"
+  },
+  {
+   "id": "dragonstone",
+   "name": "Dragonstone",
+   "oldTier": 114,
+   "newTier": 75,
+   "band": "mythic"
+  },
+  {
+   "id": "adamantite",
+   "name": "Adamantite",
+   "oldTier": 115,
+   "newTier": 76,
+   "band": "divine"
+  },
+  {
+   "id": "thorium",
+   "name": "Thorium",
+   "oldTier": 116,
+   "newTier": 77,
+   "band": "divine"
+  },
+  {
+   "id": "uranium",
+   "name": "Uranium",
+   "oldTier": 117,
+   "newTier": 78,
+   "band": "divine"
+  },
+  {
+   "id": "plutonium",
+   "name": "Plutonium",
+   "oldTier": 118,
+   "newTier": 79,
+   "band": "divine"
+  },
+  {
+   "id": "fermium",
+   "name": "Fermium",
+   "oldTier": 119,
+   "newTier": 80,
+   "band": "exotic"
+  },
+  {
+   "id": "lawrencium",
+   "name": "Lawrencium",
+   "oldTier": 120,
+   "newTier": 81,
+   "band": "exotic"
+  },
+  {
+   "id": "oganesson",
+   "name": "Oganesson",
+   "oldTier": 121,
+   "newTier": 82,
+   "band": "exotic"
+  }
+ ],
+ "mig": [
+  {
+   "from": "cobblestone",
+   "fromName": "Cobblestone",
+   "fromTier": 2,
+   "to": "stone",
+   "toName": "Stone",
+   "toTier": 1
+  },
+  {
+   "from": "sandstone",
+   "fromName": "Sandstone",
+   "fromTier": 4,
+   "to": "clay",
+   "toName": "Clay",
+   "toTier": 3
+  },
+  {
+   "from": "chert",
+   "fromName": "Chert",
+   "fromTier": 10,
+   "to": "flint",
+   "toName": "Flint",
+   "toTier": 9
+  },
+  {
+   "from": "diorite",
+   "fromName": "Diorite",
+   "fromTier": 16,
+   "to": "copper",
+   "toName": "Copper",
+   "toTier": 15
+  },
+  {
+   "from": "cassiterite",
+   "fromName": "Cassiterite",
+   "fromTier": 18,
+   "to": "tin",
+   "toName": "Tin",
+   "toTier": 17
+  },
+  {
+   "from": "galena",
+   "fromName": "Galena",
+   "fromTier": 22,
+   "to": "lead",
+   "toName": "Lead",
+   "toTier": 21
+  },
+  {
+   "from": "hematite",
+   "fromName": "Hematite",
+   "fromTier": 26,
+   "to": "iron",
+   "toName": "Iron",
+   "toTier": 25
+  },
+  {
+   "from": "quartzite",
+   "fromName": "Quartzite",
+   "fromTier": 29,
+   "to": "pyrite",
+   "toName": "Pyrite",
+   "toTier": 28
+  },
+  {
+   "from": "selenite",
+   "fromName": "Selenite",
+   "fromTier": 30,
+   "to": "pyrite",
+   "toName": "Pyrite",
+   "toTier": 28
+  },
+  {
+   "from": "chalcopyrite",
+   "fromName": "Chalcopyrite",
+   "fromTier": 31,
+   "to": "marble",
+   "toName": "Marble",
+   "toTier": 32
+  },
+  {
+   "from": "agate",
+   "fromName": "Agate",
+   "fromTier": 36,
+   "to": "quartz",
+   "toName": "Quartz",
+   "toTier": 35
+  },
+  {
+   "from": "jasper",
+   "fromName": "Jasper",
+   "fromTier": 37,
+   "to": "amber",
+   "toName": "Amber",
+   "toTier": 38
+  },
+  {
+   "from": "magnetite",
+   "fromName": "Magnetite",
+   "fromTier": 41,
+   "to": "nickel",
+   "toName": "Nickel",
+   "toTier": 40
+  },
+  {
+   "from": "manganese",
+   "fromName": "Manganese",
+   "fromTier": 42,
+   "to": "nickel",
+   "toName": "Nickel",
+   "toTier": 40
+  },
+  {
+   "from": "malachite",
+   "fromName": "Malachite",
+   "fromTier": 43,
+   "to": "nickel",
+   "toName": "Nickel",
+   "toTier": 40
+  },
+  {
+   "from": "azurite",
+   "fromName": "Azurite",
+   "fromTier": 44,
+   "to": "nickel",
+   "toName": "Nickel",
+   "toTier": 40
+  },
+  {
+   "from": "cinnabar",
+   "fromName": "Cinnabar",
+   "fromTier": 45,
+   "to": "onyx",
+   "toName": "Onyx",
+   "toTier": 48
+  },
+  {
+   "from": "fluorite",
+   "fromName": "Fluorite",
+   "fromTier": 46,
+   "to": "onyx",
+   "toName": "Onyx",
+   "toTier": 48
+  },
+  {
+   "from": "chromite",
+   "fromName": "Chromite",
+   "fromTier": 47,
+   "to": "onyx",
+   "toName": "Onyx",
+   "toTier": 48
+  },
+  {
+   "from": "kimberlite",
+   "fromName": "Kimberlite",
+   "fromTier": 49,
+   "to": "onyx",
+   "toName": "Onyx",
+   "toTier": 48
+  },
+  {
+   "from": "rhodochrosite",
+   "fromName": "Rhodochrosite",
+   "fromTier": 55,
+   "to": "turquoise",
+   "toName": "Turquoise",
+   "toTier": 54
+  },
+  {
+   "from": "apatite",
+   "fromName": "Apatite",
+   "fromTier": 59,
+   "to": "amethyst",
+   "toName": "Amethyst",
+   "toTier": 58
+  },
+  {
+   "from": "moissanite",
+   "fromName": "Moissanite",
+   "fromTier": 60,
+   "to": "tigereye",
+   "toName": "Tigereye",
+   "toTier": 61
+  },
+  {
+   "from": "electrum",
+   "fromName": "Electrum",
+   "fromTier": 73,
+   "to": "obsidian",
+   "toName": "Obsidian",
+   "toTier": 72
+  },
+  {
+   "from": "labradorite",
+   "fromName": "Labradorite",
+   "fromTier": 75,
+   "to": "cobalt",
+   "toName": "Cobalt",
+   "toTier": 74
+  },
+  {
+   "from": "zirconium",
+   "fromName": "Zirconium",
+   "fromTier": 76,
+   "to": "cobalt",
+   "toName": "Cobalt",
+   "toTier": 74
+  },
+  {
+   "from": "beryllium",
+   "fromName": "Beryllium",
+   "fromTier": 77,
+   "to": "gold",
+   "toName": "Gold",
+   "toTier": 79
+  },
+  {
+   "from": "niobium",
+   "fromName": "Niobium",
+   "fromTier": 78,
+   "to": "gold",
+   "toName": "Gold",
+   "toTier": 79
+  },
+  {
+   "from": "fulgurite",
+   "fromName": "Fulgurite",
+   "fromTier": 80,
+   "to": "gold",
+   "toName": "Gold",
+   "toTier": 79
+  },
+  {
+   "from": "tektite",
+   "fromName": "Tektite",
+   "fromTier": 81,
+   "to": "gold",
+   "toName": "Gold",
+   "toTier": 79
+  },
+  {
+   "from": "moldavite",
+   "fromName": "Moldavite",
+   "fromTier": 82,
+   "to": "regolith",
+   "toName": "Regolith",
+   "toTier": 83
+  },
+  {
+   "from": "spinel",
+   "fromName": "Spinel",
+   "fromTier": 85,
+   "to": "sunstone",
+   "toName": "Sunstone",
+   "toTier": 84
+  },
+  {
+   "from": "tourmaline",
+   "fromName": "Tourmaline",
+   "fromTier": 87,
+   "to": "emerald",
+   "toName": "Emerald",
+   "toTier": 86
+  },
+  {
+   "from": "zircon",
+   "fromName": "Zircon",
+   "fromTier": 88,
+   "to": "moonstone",
+   "toName": "Moonstone",
+   "toTier": 89
+  },
+  {
+   "from": "alexandrite",
+   "fromName": "Alexandrite",
+   "fromTier": 90,
+   "to": "moonstone",
+   "toName": "Moonstone",
+   "toTier": 89
+  },
+  {
+   "from": "tanzanite",
+   "fromName": "Tanzanite",
+   "fromTier": 95,
+   "to": "aquamarine",
+   "toName": "Aquamarine",
+   "toTier": 94
+  },
+  {
+   "from": "rhodium",
+   "fromName": "Rhodium",
+   "fromTier": 99,
+   "to": "stormstone",
+   "toName": "Stormstone",
+   "toTier": 98
+  },
+  {
+   "from": "osmium",
+   "fromName": "Osmium",
+   "fromTier": 105,
+   "to": "soulstone",
+   "toName": "Soulstone",
+   "toTier": 104
+  },
+  {
+   "from": "iridium",
+   "fromName": "Iridium",
+   "fromTier": 107,
+   "to": "galaxite",
+   "toName": "Galaxite",
+   "toTier": 106
+  }
+ ],
+ "bounds": [
+  {
+   "band": "common",
+   "from": 1,
+   "to": 18,
+   "n": 18,
+   "centre": 9.5
+  },
+  {
+   "band": "uncommon",
+   "from": 19,
+   "to": 29,
+   "n": 11,
+   "centre": 24
+  },
+  {
+   "band": "rare",
+   "from": 30,
+   "to": 49,
+   "n": 20,
+   "centre": 39.5
+  },
+  {
+   "band": "epic",
+   "from": 50,
+   "to": 60,
+   "n": 11,
+   "centre": 55
+  },
+  {
+   "band": "legendary",
+   "from": 61,
+   "to": 69,
+   "n": 9,
+   "centre": 65
+  },
+  {
+   "band": "mythic",
+   "from": 70,
+   "to": 75,
+   "n": 6,
+   "centre": 72.5
+  },
+  {
+   "band": "divine",
+   "from": 76,
+   "to": 79,
+   "n": 4,
+   "centre": 77.5
+  },
+  {
+   "band": "exotic",
+   "from": 80,
+   "to": 82,
+   "n": 3,
+   "centre": 81
+  }
+ ],
+ "D_TOP": 20.21
+}

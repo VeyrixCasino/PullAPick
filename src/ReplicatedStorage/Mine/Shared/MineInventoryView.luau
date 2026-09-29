@@ -2282,7 +2282,7 @@ function MineInventoryView.mount(parent, opts)
 		coinBonus = "Coins", gemFind = "Gems", chestLuck = "Chest luck",
 	swingRate = "Swing rate", blastRadius = "Blast radius", autoMine = "Gem Find",
 		echo = "Echo", zap = "Zap", luckyFind = "Lucky Block find",
-		fossilFind = "Fossil Finder", pulverize = "Pulverizer",
+		fossilFind = "Ore Finder", pulverize = "Pulverizer",
 		scrap = "Scrap", coolant = "Coolant", shortFuse = "Short Fuse", reach = "Reach",
 	}
 	----------------------------------------------------------------------------

@@ -23,6 +23,36 @@ end
 
 -- "_Studio" in Studio: test sessions must never reach the live boards.
 local STORE_SUFFIX = game:GetService("RunService"):IsStudio() and "_Studio" or ""
+
+-- DataStore reachability, probed ONCE.
+--
+-- With "Enable Studio Access to API Services" off, every DataStore call throws
+-- StudioAccessToApisNotAllowed. This service makes ~50 of them at boot (one
+-- RemoveAsync + one GetSortedAsync per board, x12 depth zones, plus the roster
+-- scan), so the output window filled with the same error 50 times and buried
+-- real warnings -- including, for a while, an actual startup race.
+--
+-- The probe is a cheap read against a throwaway key. It is NOT "am I in Studio":
+-- a Studio session WITH API access enabled probes fine and behaves exactly as
+-- live, so enabling the toggle needs no code change. On a live server the probe
+-- succeeds and nothing here changes.
+local dsOk = nil
+local function dataStoresUsable()
+	if dsOk == nil then
+		local ok = pcall(function()
+			DataStoreService:GetDataStore("Mine_v1_probe" .. STORE_SUFFIX):GetAsync("_probe")
+		end)
+		dsOk = ok
+		if not ok then
+			-- One line instead of fifty. Says what is off and how to turn it on.
+			warn("[Leaderboard] DataStores unreachable -- boards and backfill are "
+				.. "skipped this session. In Studio: Game Settings > Security > "
+				.. "Enable Studio Access to API Services.")
+		end
+	end
+	return dsOk
+end
+LeaderboardService.dataStoresUsable = dataStoresUsable
 local STORES = {
 	prestige = "Mine_v1_lb_prestige" .. STORE_SUFFIX,
 	gems = "Mine_v1_lb_gems" .. STORE_SUFFIX,
@@ -188,6 +218,11 @@ function LeaderboardService.queueDepth(userId, zoneId, deepest)
 end
 
 function LeaderboardService.flushDepth(onlyUserId)
+	-- Keep the queue intact when DataStores are unreachable: enabling API access
+	-- mid-session (or shipping to live) then flushes it rather than losing it.
+	if not dataStoresUsable() then
+		return
+	end
 	for userId, zones in pairs(depthPending) do
 		if LeaderboardService.isBanned(userId) then
 			depthPending[userId] = nil
@@ -243,6 +278,13 @@ function LeaderboardService.getDepthTop(zoneId, n)
 	n = math.clamp(math.floor(tonumber(n) or 10), 1, 100)
 	if zoneId == "" then
 		return {}
+	end
+	-- No DataStores: hand back whatever is cached (usually nothing) so the boards
+	-- still paint as empty instead of firing one refused GetSortedAsync per zone,
+	-- per refresh tick, for the life of the session.
+	if not dataStoresUsable() then
+		local c = depthCache[zoneId]
+		return (c and c.rows) or {}
 	end
 	local cached = depthCache[zoneId]
 	local fresh = cached and cached.rows and (os.clock() - (cached.at or 0)) < DEPTH_CACHE_TTL
@@ -545,6 +587,9 @@ function LeaderboardService.queueUpdate(userId, prestige, gems, dustValue)
 		lastSent[userId] = sent
 	end
 	task.spawn(function()
+		if not dataStoresUsable() then
+			return
+		end
 		-- Only the boards whose number actually moved get a write.
 		for _, kind in ipairs(KINDS) do
 			if sent[kind] ~= want[kind] then
@@ -659,6 +704,11 @@ end
 	Gems board intentionally omitted.
 ]]
 function LeaderboardService.backfillFromAllProfiles()
+	-- Without this the scan reports "no profile keys found", which reads as an
+	-- empty datastore rather than a refused request. Two misleading warnings.
+	if not dataStoresUsable() then
+		return { scanned = 0, written = 0, failed = 0, listOk = false, skipped = true }
+	end
 	local profileName = MineConfig.DATASTORE or "Mine_v1"
 	local profileStore = DataStoreService:GetDataStore(profileName)
 	local ids, listOk = collectUserIdsFromListKeys(profileStore)
@@ -715,6 +765,11 @@ function LeaderboardService.backfillFromAllProfiles()
 end
 
 function LeaderboardService.maybeBackfillOnce()
+	-- Guarded before the flag read: GetAsync on the meta store is itself one of
+	-- the refused calls, and its pcall would swallow the cause silently.
+	if not dataStoresUsable() then
+		return nil
+	end
 	local already = false
 	pcall(function()
 		already = getMeta():GetAsync(BACKFILL_FLAG) == true
@@ -1611,6 +1666,13 @@ function LeaderboardService.broadcast(net)
 end
 
 function LeaderboardService.purgeBanned()
+	-- 16 RemoveAsyncs per banned id (3 boards + roster + 12 depth zones) fired at
+	-- boot -- the first block of refused calls in the log. The purge only matters
+	-- against stores that exist, so skipping it when they are unreachable loses
+	-- nothing: it runs again next boot.
+	if not dataStoresUsable() then
+		return
+	end
 	for uid in pairs(BANNED_USER_IDS) do
 		local key = keyOf(uid)
 		for _, kind in ipairs(KINDS) do

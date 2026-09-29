@@ -17,6 +17,19 @@
 ]]
 local MineBenchView = {}
 
+--[[
+	The level cap, with a floor under it.
+
+	Every row compares its level against C.TOOL_MAX_LEVEL. When that arrived nil
+	-- which a stale module cache is enough to cause -- the comparison threw on
+	the first row and the panel drew nothing at all, which reads exactly like
+	"you own no tools". A wrong cap costs one wrong number; a nil one cost the
+	whole bench.
+]]
+local function levelCap(C)
+	return tonumber(C.TOOL_MAX_LEVEL) or 1000
+end
+
 local RS = game:GetService("ReplicatedStorage")
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared:WaitForChild("MineConfig"))
@@ -83,11 +96,41 @@ local function typeMultOf(tool)
 	return 1, nil
 end
 
+--[[
+	A finish goes in FRONT of the name, the way the game says it everywhere
+	else: "Shadow Obsidian Pickaxe". It is the first thing you want to see in a
+	list of twenty tools, and putting it after the name buries it past the
+	truncation on a narrow panel.
+]]
+-- Multipliers come from MineConfig, never a copy: a hardcoded 3 here would go
+-- on saying 3 the day the constant moves, and the panel would quietly lie.
+local FINISHES = {
+	Nightmare = { tint = Color3.fromRGB(150, 60, 220), key = "NIGHTMARE_MULT", fallback = 4.5 },
+	Shadow = { tint = Color3.fromRGB(196, 30, 58), key = "SHADOW_MULT", fallback = 3 },
+	Shiny = { tint = Color3.fromRGB(236, 240, 255), key = "SHINY_MULT", fallback = 1.5 },
+}
+local function finishMult(def)
+	return tonumber(C[def.key]) or def.fallback
+end
+
+local function finishOf(tool)
+	if tool.nightmare then
+		return "Nightmare"
+	elseif tool.shadow then
+		return "Shadow"
+	elseif tool.shiny then
+		return "Shiny"
+	end
+	return nil
+end
+
 local function toolTitle(tool, def)
 	local ore = C.ORES and C.ORES[tonumber(tool.tier) or 1]
 	local oreName = (ore and ore.name) or ("Tier " .. tostring(tool.tier))
 	local typeName = (def and def.name) or tostring(tool.typeId or "Tool")
-	return oreName .. " " .. typeName, ore
+	local fin = finishOf(tool)
+	local name = oreName .. " " .. typeName
+	return (fin and (fin .. " " .. name)) or name, ore, fin
 end
 
 --[[
@@ -129,13 +172,13 @@ function MineBenchView.mount(parent, opts)
 		nil, UDim2.new(1, 0, 0, 40), FONT_M, Enum.TextXAlignment.Center)
 	empty.Visible = false
 
-	local function button(parent, text, colour, x, w, enabled, onClick)
+	local function button(parent, text, colour, x, w, enabled, onClick, yRow)
 		local b = mk("TextButton", {
 			BackgroundColor3 = enabled and colour or BG3,
 			AutoButtonColor = enabled,
 			Text = text, Font = FONT, TextSize = 13,
 			TextColor3 = enabled and Color3.new(1, 1, 1) or MUTED,
-			Position = UDim2.new(1, x, 0, 44), Size = UDim2.fromOffset(w, 26),
+			Position = UDim2.new(1, x, 0, yRow or 44), Size = UDim2.fromOffset(w, 26),
 			BorderSizePixel = 0, Active = enabled,
 		}, parent)
 		round(b, 6)
@@ -148,28 +191,50 @@ function MineBenchView.mount(parent, opts)
 	local function row(tool, snapshot, order)
 		local typeMult, def = typeMultOf(tool)
 		local level = math.max(1, tonumber(tool.level) or 1)
-		local title, oreDef = toolTitle(tool, def)
+		local title, oreDef, fin = toolTitle(tool, def)
 		local oreId = oreDef and oreDef.id
 		local haveOre = (snapshot.ores and oreId and tonumber(snapshot.ores[oreId])) or 0
 		local haveDust = tonumber(snapshot.dust) or 0
 
-		local maxed = level >= C.TOOL_MAX_LEVEL
-		local costOre, costDust = C.toolUpgradeCost(tool.tier, level, typeMult)
+		local cap = levelCap(C)
+		local maxed = level >= cap
+		-- Pricing lives in MineConfig and is never recomputed here, but a build
+		-- without it must still list what you own rather than blank the panel.
+		local costOre, costDust
+		if C.toolUpgradeCost then
+			costOre, costDust = C.toolUpgradeCost(tool.tier, level, typeMult)
+		end
 		local canOne = (not maxed) and costOre and haveOre >= costOre and haveDust >= costDust
 
 		local f = mk("Frame", {
 			BackgroundColor3 = BG3, BorderSizePixel = 0,
-			Size = UDim2.new(1, 0, 0, 78), LayoutOrder = order,
+			--[[
+				78 -> 104.
+
+				SCRAP was 160px wide from x = -168, which is exactly where MAX,
+				+10 and +1 sit. As later siblings they drew on top of it, so the
+				only way to scrap a tool was covered by the buttons that level
+				it. Levelling keeps line one; EQUIP and SCRAP get line two.
+			]]
+			Size = UDim2.new(1, 0, 0, 104), LayoutOrder = order,
 		}, scroll)
 		round(f, 8)
 
-		label(f, title, 15, TEXT, UDim2.fromOffset(12, 8), UDim2.new(1, -180, 0, 18), FONT)
-		label(f, string.format("level %d / %d", level, C.TOOL_MAX_LEVEL), 12,
-			maxed and GOLD or MUTED, UDim2.fromOffset(12, 28), UDim2.new(1, -180, 0, 14))
+		local finDef = fin and FINISHES[fin]
+		label(f, title, 15, (finDef and finDef.tint) or TEXT,
+			UDim2.fromOffset(12, 8), UDim2.new(1, -250, 0, 18), FONT)
+		local lvlLine = string.format("level %d / %d", level, cap)
+		if finDef then
+			-- What the finish is actually worth, next to the level, because
+			-- "Shadow" on its own does not say whether that is 1.5x or 3x.
+			lvlLine = lvlLine .. string.format("   \u{00B7}   %s  %gx damage", fin, finishMult(finDef))
+		end
+		label(f, lvlLine, 12,
+			maxed and GOLD or MUTED, UDim2.fromOffset(12, 28), UDim2.new(1, -250, 0, 14))
 
 		if maxed then
 			label(f, "Fully levelled", 12, GOLD, UDim2.fromOffset(12, 48),
-				UDim2.new(1, -180, 0, 14))
+				UDim2.new(1, -250, 0, 14))
 		else
 			--[[
 				Show what it costs AND what you hold, because "needs 4.2K Halite"
@@ -181,21 +246,38 @@ function MineBenchView.mount(parent, opts)
 			local line = string.format("%s %s  \u{00B7}  %s dust",
 				num(costOre or 0), (oreDef and oreDef.name) or "ore", num(costDust or 0))
 			label(f, line, 12, (okOre and okDust) and GREEN or MUTED,
-				UDim2.fromOffset(12, 48), UDim2.new(1, -180, 0, 14))
+				UDim2.fromOffset(12, 48), UDim2.new(1, -250, 0, 14))
 			label(f, string.format("held  %s  \u{00B7}  %s", num(haveOre), num(haveDust)),
-				11, MUTED, UDim2.fromOffset(12, 62), UDim2.new(1, -180, 0, 12))
+				11, MUTED, UDim2.fromOffset(12, 62), UDim2.new(1, -250, 0, 12))
 		end
 
 		-- scrap is always available; levelling only when it would succeed
-		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
+		local recOre, recDust = 0, 0
+		if C.toolRecycle then
+			recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
+		end
 		local scrapText = (recOre > 0 or recDust > 0)
 			and ("SCRAP  +" .. num(recOre) .. " / +" .. num(recDust))
 			or "SCRAP"
-		button(f, scrapText, Color3.fromRGB(150, 70, 70), -168, 160, true, function()
+		--[[
+			EQUIP is the point of the bench.
+
+			It toggles: pressing the tool you are holding puts it away and hands
+			back the ladder pickaxe, so a player is never stuck holding
+			something they would rather not.
+		]]
+		local held = snapshot.oreToolEquipped == tool.uid
+		button(f, held and "EQUIPPED" or "EQUIP",
+			held and GOLD or Color3.fromRGB(64, 104, 168), -240, 68, true, function()
+				if opts.onEquip then opts.onEquip(tool.uid) end
+			end, 74)
+		-- SCRAP keeps the refund figures, so it keeps its full width; EQUIP
+		-- sits to its left and the text column gives up the room.
+		button(f, scrapText, Color3.fromRGB(150, 70, 70), -166, 158, true, function()
 			if opts.onRecycle then opts.onRecycle(tool.uid) end
-		end)
+		end, 74)
 		button(f, "MAX", GREEN, -168, 48, canOne, function()
-			if opts.onUpgrade then opts.onUpgrade(tool.uid, C.TOOL_MAX_LEVEL) end
+			if opts.onUpgrade then opts.onUpgrade(tool.uid, cap) end
 		end)
 		button(f, "+10", GREEN, -116, 48, canOne, function()
 			if opts.onUpgrade then opts.onUpgrade(tool.uid, 10) end
@@ -218,17 +300,48 @@ function MineBenchView.mount(parent, opts)
 			or (#list .. (#list == 1 and " tool" or " tools"))
 		-- deepest investment first: the tool you care about is the one you fed
 		local sorted = table.clone(list)
+		local heldUid = snapshot.oreToolEquipped
 		table.sort(sorted, function(a, b)
+			-- What you are holding goes first: it is what you came to work on.
+			if (a.uid == heldUid) ~= (b.uid == heldUid) then
+				return a.uid == heldUid
+			end
+			-- Shadow above Shiny above plain, then level, then tier: a finish
+			-- is worth more than a few levels and should not be buried.
+			local function rank(t)
+				return (t.nightmare and 3) or (t.shadow and 2) or (t.shiny and 1) or 0
+			end
+			local ra, rb = rank(a), rank(b)
+			if ra ~= rb then
+				return ra > rb
+			end
 			local la, lb = tonumber(a.level) or 1, tonumber(b.level) or 1
 			if la ~= lb then
 				return la > lb
 			end
 			return (tonumber(a.tier) or 0) > (tonumber(b.tier) or 0)
 		end)
+		--[[
+			One row per tool, each in its own pcall.
+
+			row() reads pricing out of MineConfig and rarity out of MineTools,
+			and a single bad tool -- an unknown typeId, a tier past the end of
+			the ore roster -- used to take every other row down with it. A tool
+			that cannot be priced is worth reporting, not worth hiding the nine
+			tools above it.
+		]]
+		local broke = 0
 		for i, tool in ipairs(sorted) do
 			if type(tool) == "table" and tool.uid then
-				row(tool, snapshot, i)
+				local ok, err = pcall(row, tool, snapshot, i)
+				if not ok then
+					broke += 1
+					warn("[MineBenchView] row " .. i .. " (" .. tostring(tool.uid) .. "): " .. tostring(err))
+				end
 			end
+		end
+		if broke > 0 then
+			sub.Text = sub.Text .. "  \u{00B7}  " .. broke .. " could not be priced"
 		end
 	end
 

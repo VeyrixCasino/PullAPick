@@ -4514,6 +4514,11 @@ shopCtl = ShopView.mount(gui, {
 	onRecycleOreTool = function(uid)
 		net:FireServer("recycleOreTool", { uid = uid })
 	end,
+	-- An empty uid unequips; the server treats re-sending the held uid the same
+	-- way, so the button can be a straight toggle.
+	onEquipOreTool = function(uid)
+		net:FireServer("equipOreTool", { uid = uid or "" })
+	end,
 })
 
 depthShopCtl = DepthShopView.mount(gui, {

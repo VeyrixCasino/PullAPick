@@ -516,6 +516,7 @@ function MineShopView.mount(parent, opts)
 					oreTools = state.oreTools or {},
 					ores = state.ores or {},
 					dust = state.dust or 0,
+					oreToolEquipped = state.oreToolEquipped,
 				}
 			end,
 			onUpgrade = function(uid, n)
@@ -526,6 +527,11 @@ function MineShopView.mount(parent, opts)
 			onRecycle = function(uid)
 				if opts.onRecycleOreTool then
 					opts.onRecycleOreTool(uid)
+				end
+			end,
+			onEquip = function(uid)
+				if opts.onEquipOreTool then
+					opts.onEquipOreTool(uid)
 				end
 			end,
 		})
@@ -1826,7 +1832,12 @@ function MineShopView.mount(parent, opts)
 				benchPanel.Visible = true
 			end
 			if benchCtl and benchCtl.refresh then
-				pcall(benchCtl.refresh)
+				-- A bare pcall here is what made a thrown row look like an empty
+				-- bag. If it fails, say so.
+				local okR, errR = pcall(benchCtl.refresh)
+				if not okR then
+					warn("[MineShopView] bench refresh failed: " .. tostring(errR))
+				end
 			end
 			return
 		end
@@ -2120,6 +2131,7 @@ function MineShopView.mount(parent, opts)
 		-- against these two.
 		state.ores = snapshot.ores or {}
 		state.oreTools = snapshot.oreTools or {}
+		state.oreToolEquipped = snapshot.oreToolEquipped
 		state.backpackTier = snapshot.backpackTier or 1
 		state.family = snapshot.tool and snapshot.tool.family or nil
 		state.credits = snapshot.credits or 0

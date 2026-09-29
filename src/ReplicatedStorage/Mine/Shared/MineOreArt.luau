@@ -109,10 +109,21 @@ function MineOreArt.image(index: number)
 	     SCALE x SCALE block leaves the filter almost nothing to smear across. ]]
 	local SCALE = 8
 	local W, H = t.w * SCALE, t.h * SCALE
+	-- The pcall already stops a failure from breaking anything, but Roblox logs
+	-- "EditableImage is not accessible" from inside the call before the pcall can
+	-- catch it -- so one refused attempt per ore face became a wall of identical
+	-- errors. Remember the first refusal and stop asking.
+	if MineOreArt._editableBlocked then
+		return nil
+	end
 	local ok, img = pcall(function()
 		return AssetService:CreateEditableImage({ Size = Vector2.new(W, H) })
 	end)
 	if not ok or not img then
+		MineOreArt._editableBlocked = true
+		-- Says which toggle, once. Ore art falls back to flat colour.
+		warn("[OreArt] EditableImage unavailable -- ore faces use flat colour. "
+			.. "Enable it at Experience Settings > Security > Allow Mesh/Image APIs.")
 		return nil
 	end
 	local px = buffer.create(W * H * 4)
