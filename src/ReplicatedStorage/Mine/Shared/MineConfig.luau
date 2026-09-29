@@ -2077,19 +2077,30 @@ end
 	keeping nine Legendary ores within a hair of each other.
 
 	Solved, not guessed: ServerStorage.OreBalanceSim drives these until every
-	cap and floor in the ore brief passes. Per ore at the deepest main-zone
-	spot they give Legendary 0.35%, Mythic 0.16%, Divine 0.07%, Exotic 0.028%
-	-- a 3x step per band, each inside its cap and above its floor.
+	cap, floor and ladder rule passes.
+
+	The owner asked for the band ladder to hold literally at depth, so the peak
+	was pushed DOWN the list: the deepest main-zone spot now rolls mostly Rare,
+	and every band above it is rarer than the one below, all the way to Exotic.
+	Band totals there are Rare 54.3%, Epic 44.5%, Legendary 0.83%, Mythic
+	0.28%, Divine 0.09%, Exotic 0.031% -- a 3x step across the four rare bands,
+	and Legendary down from one find a minute to one every ten.
+
+	Common and Uncommon read 0.0% at that spot. They are not out-ranked, they
+	are absent: the tail term puts an ore 23 hardness-steps below its home at
+	e^-59, so no weight short of 10^26 would show them there. That is the one
+	part of a literal eight-band ladder the shape cannot express, and the shape
+	is fixed by the brief.
 ]]
 MineConfig.ORE_BAND_WEIGHT = {
 	Common = 1,
 	Uncommon = 1,
 	Rare = 1,
 	Epic = 1,
-	Legendary = 0.11353,
-	Mythic = 0.058313,
-	Divine = 0.032206,
-	Exotic = 0.017189,
+	Legendary = 0.060718,
+	Mythic = 0.0470812,
+	Divine = 0.0358072,
+	Exotic = 0.0239957,
 }
 
 --[[
@@ -2103,7 +2114,7 @@ MineConfig.ORE_BAND_WEIGHT = {
 	shape constants above stay exactly as they were.
 ]]
 MineConfig.ORE_EXOTIC_HOME_ZONE = "primordium"
-MineConfig.ORE_EXOTIC_OFF_ZONE = 0.035
+MineConfig.ORE_EXOTIC_OFF_ZONE = 0.028
 
 --[[
 	Per-zone ore shift (ore brief 4d: every zone surface a different ore).
@@ -2129,94 +2140,94 @@ MineConfig.ORE_PEAK_OFFSET = -4.15
 MineConfig.ORES = {
 	-- COMMON (1-18)
 	{ id = "stone", name = "Stone", tier = 1, band = "Common", home = 0.00, yield = { 3, 6 }, color = Color3.fromRGB(131, 131, 131), material = Enum.Material.Rock, met = 0, rough = .9 },
-	{ id = "clay", name = "Clay", tier = 2, band = "Common", home = 0.35, yield = { 3, 6 }, color = Color3.fromRGB(184, 93, 48), material = Enum.Material.Mud, met = 0, rough = .95 },
-	{ id = "limestone", name = "Limestone", tier = 3, band = "Common", home = 0.71, yield = { 3, 6 }, color = Color3.fromRGB(240, 229, 191), material = Enum.Material.Limestone, met = 0, rough = .9 },
-	{ id = "pumice", name = "Pumice", tier = 4, band = "Common", home = 1.06, yield = { 3, 6 }, color = Color3.fromRGB(200, 195, 185), material = Enum.Material.Concrete, met = 0, rough = 1 },
-	{ id = "halite", name = "Halite", tier = 5, band = "Common", home = 1.42, yield = { 3, 6 }, color = Color3.fromRGB(255, 196, 196), material = Enum.Material.Salt, met = 0, rough = .4 },
-	{ id = "coal", name = "Coal", tier = 6, band = "Common", home = 1.77, yield = { 3, 6 }, color = Color3.fromRGB(40, 40, 46), material = Enum.Material.Slate, met = 0, rough = .7 },
-	{ id = "flint", name = "Flint", tier = 7, band = "Common", home = 2.13, yield = { 3, 6 }, color = Color3.fromRGB(138, 119, 100), material = Enum.Material.Slate, met = 0, rough = .35 },
-	{ id = "basalt", name = "Basalt", tier = 8, band = "Common", home = 2.48, yield = { 3, 6 }, color = Color3.fromRGB(55, 57, 70), material = Enum.Material.Basalt, met = 0, rough = .85 },
-	{ id = "slate", name = "Slate", tier = 9, band = "Common", home = 2.84, yield = { 3, 6 }, color = Color3.fromRGB(41, 81, 138), material = Enum.Material.Slate, met = 0, rough = .6 },
-	{ id = "bone", name = "Bone", tier = 10, band = "Common", home = 3.19, yield = { 3, 6 }, color = Color3.fromRGB(243, 211, 140), material = Enum.Material.Plaster, met = 0, rough = .7 },
-	{ id = "granite", name = "Granite", tier = 11, band = "Common", home = 3.54, yield = { 3, 6 }, color = Color3.fromRGB(189, 131, 128), material = Enum.Material.Granite, met = 0, rough = .5 },
-	{ id = "copper", name = "Copper", tier = 12, band = "Common", home = 3.90, yield = { 3, 6 }, color = Color3.fromRGB(205, 87, 5), material = Enum.Material.Metal, met = 1, rough = .3 },
-	{ id = "tin", name = "Tin", tier = 13, band = "Common", home = 4.25, yield = { 3, 6 }, color = Color3.fromRGB(210, 212, 218), material = Enum.Material.CorrodedMetal, met = 1, rough = .45 },
-	{ id = "ember", name = "Ember", tier = 14, band = "Common", home = 4.61, yield = { 3, 6 }, color = Color3.fromRGB(80, 32, 18), material = Enum.Material.CrackedLava, met = 0, rough = .8, glow = Color3.fromRGB(255, 100, 20), glowBright = 0.5 },
-	{ id = "sulfur", name = "Sulfur", tier = 15, band = "Common", home = 4.96, yield = { 3, 6 }, color = Color3.fromRGB(254, 226, 0), material = Enum.Material.Sand, met = 0, rough = .6 },
-	{ id = "lead", name = "Lead", tier = 16, band = "Common", home = 5.32, yield = { 3, 6 }, color = Color3.fromRGB(71, 91, 138), material = Enum.Material.CorrodedMetal, met = 1, rough = .6 },
-	{ id = "zinc", name = "Zinc", tier = 17, band = "Common", home = 5.67, yield = { 3, 6 }, color = Color3.fromRGB(137, 178, 211), material = Enum.Material.Foil, met = 1, rough = .5 },
-	{ id = "aluminum", name = "Aluminum", tier = 18, band = "Common", home = 6.03, yield = { 3, 6 }, color = Color3.fromRGB(200, 210, 225), material = Enum.Material.Metal, met = 1, rough = .35 },
+	{ id = "clay", name = "Clay", tier = 2, band = "Common", home = 0.44, yield = { 3, 6 }, color = Color3.fromRGB(184, 93, 48), material = Enum.Material.Mud, met = 0, rough = .95 },
+	{ id = "limestone", name = "Limestone", tier = 3, band = "Common", home = 0.87, yield = { 3, 6 }, color = Color3.fromRGB(240, 229, 191), material = Enum.Material.Limestone, met = 0, rough = .9 },
+	{ id = "pumice", name = "Pumice", tier = 4, band = "Common", home = 1.31, yield = { 3, 6 }, color = Color3.fromRGB(200, 195, 185), material = Enum.Material.Concrete, met = 0, rough = 1 },
+	{ id = "halite", name = "Halite", tier = 5, band = "Common", home = 1.74, yield = { 3, 6 }, color = Color3.fromRGB(255, 196, 196), material = Enum.Material.Salt, met = 0, rough = .4 },
+	{ id = "coal", name = "Coal", tier = 6, band = "Common", home = 2.18, yield = { 3, 6 }, color = Color3.fromRGB(40, 40, 46), material = Enum.Material.Slate, met = 0, rough = .7 },
+	{ id = "flint", name = "Flint", tier = 7, band = "Common", home = 2.61, yield = { 3, 6 }, color = Color3.fromRGB(138, 119, 100), material = Enum.Material.Slate, met = 0, rough = .35 },
+	{ id = "basalt", name = "Basalt", tier = 8, band = "Common", home = 3.05, yield = { 3, 6 }, color = Color3.fromRGB(55, 57, 70), material = Enum.Material.Basalt, met = 0, rough = .85 },
+	{ id = "slate", name = "Slate", tier = 9, band = "Common", home = 3.48, yield = { 3, 6 }, color = Color3.fromRGB(41, 81, 138), material = Enum.Material.Slate, met = 0, rough = .6 },
+	{ id = "bone", name = "Bone", tier = 10, band = "Common", home = 3.92, yield = { 3, 6 }, color = Color3.fromRGB(243, 211, 140), material = Enum.Material.Plaster, met = 0, rough = .7 },
+	{ id = "granite", name = "Granite", tier = 11, band = "Common", home = 4.35, yield = { 3, 6 }, color = Color3.fromRGB(189, 131, 128), material = Enum.Material.Granite, met = 0, rough = .5 },
+	{ id = "copper", name = "Copper", tier = 12, band = "Common", home = 4.79, yield = { 3, 6 }, color = Color3.fromRGB(205, 87, 5), material = Enum.Material.Metal, met = 1, rough = .3 },
+	{ id = "tin", name = "Tin", tier = 13, band = "Common", home = 5.22, yield = { 3, 6 }, color = Color3.fromRGB(210, 212, 218), material = Enum.Material.CorrodedMetal, met = 1, rough = .45 },
+	{ id = "ember", name = "Ember", tier = 14, band = "Common", home = 5.66, yield = { 3, 6 }, color = Color3.fromRGB(80, 32, 18), material = Enum.Material.CrackedLava, met = 0, rough = .8, glow = Color3.fromRGB(255, 100, 20), glowBright = 0.5 },
+	{ id = "sulfur", name = "Sulfur", tier = 15, band = "Common", home = 6.09, yield = { 3, 6 }, color = Color3.fromRGB(254, 226, 0), material = Enum.Material.Sand, met = 0, rough = .6 },
+	{ id = "lead", name = "Lead", tier = 16, band = "Common", home = 6.53, yield = { 3, 6 }, color = Color3.fromRGB(71, 91, 138), material = Enum.Material.CorrodedMetal, met = 1, rough = .6 },
+	{ id = "zinc", name = "Zinc", tier = 17, band = "Common", home = 6.96, yield = { 3, 6 }, color = Color3.fromRGB(137, 178, 211), material = Enum.Material.Foil, met = 1, rough = .5 },
+	{ id = "aluminum", name = "Aluminum", tier = 18, band = "Common", home = 7.40, yield = { 3, 6 }, color = Color3.fromRGB(200, 210, 225), material = Enum.Material.Metal, met = 1, rough = .35 },
 	-- UNCOMMON (19-29)
-	{ id = "iron", name = "Iron", tier = 19, band = "Uncommon", home = 6.38, yield = { 3, 7 }, color = Color3.fromRGB(166, 166, 172), material = Enum.Material.Metal, met = 1, rough = .5 },
-	{ id = "graphite", name = "Graphite", tier = 20, band = "Uncommon", home = 6.73, yield = { 3, 7 }, color = Color3.fromRGB(102, 113, 138), material = Enum.Material.Metal, met = .5, rough = .35 },
-	{ id = "pyrite", name = "Pyrite", tier = 21, band = "Uncommon", home = 7.09, yield = { 3, 7 }, color = Color3.fromRGB(227, 206, 75), material = Enum.Material.DiamondPlate, met = 1, rough = .15 },
-	{ id = "marble", name = "Marble", tier = 22, band = "Uncommon", home = 7.44, yield = { 3, 7 }, color = Color3.fromRGB(254, 252, 246), material = Enum.Material.Marble, met = 0, rough = .25 },
-	{ id = "pearl", name = "Pearl", tier = 23, band = "Uncommon", home = 7.80, yield = { 3, 7 }, color = Color3.fromRGB(252, 245, 236), material = Enum.Material.SmoothPlastic, met = .2, rough = .15 },
-	{ id = "rime", name = "Rime", tier = 24, band = "Uncommon", home = 8.15, yield = { 3, 7 }, color = Color3.fromRGB(140, 225, 255), material = Enum.Material.Ice, met = 0, rough = .05, glow = Color3.fromRGB(170, 235, 255), glowBright = 0.4 },
-	{ id = "quartz", name = "Quartz", tier = 25, band = "Uncommon", home = 8.51, yield = { 3, 7 }, color = Color3.fromRGB(249, 249, 255), material = Enum.Material.Glass, met = 0, rough = .05 },
-	{ id = "amber", name = "Amber", tier = 26, band = "Uncommon", home = 8.86, yield = { 3, 7 }, color = Color3.fromRGB(255, 152, 0), material = Enum.Material.Glass, met = 0, rough = .12 },
-	{ id = "petrifact", name = "Petrifact", tier = 27, band = "Uncommon", home = 9.22, yield = { 3, 7 }, color = Color3.fromRGB(151, 79, 45), material = Enum.Material.Wood, met = 0, rough = .4 },
-	{ id = "nickel", name = "Nickel", tier = 28, band = "Uncommon", home = 9.57, yield = { 3, 7 }, color = Color3.fromRGB(227, 195, 131), material = Enum.Material.Foil, met = 1, rough = .3 },
-	{ id = "onyx", name = "Onyx", tier = 29, band = "Uncommon", home = 9.93, yield = { 3, 7 }, color = Color3.fromRGB(15, 15, 15), material = Enum.Material.Marble, met = 0, rough = .04 },
+	{ id = "iron", name = "Iron", tier = 19, band = "Uncommon", home = 7.83, yield = { 3, 7 }, color = Color3.fromRGB(166, 166, 172), material = Enum.Material.Metal, met = 1, rough = .5 },
+	{ id = "graphite", name = "Graphite", tier = 20, band = "Uncommon", home = 8.27, yield = { 3, 7 }, color = Color3.fromRGB(102, 113, 138), material = Enum.Material.Metal, met = .5, rough = .35 },
+	{ id = "pyrite", name = "Pyrite", tier = 21, band = "Uncommon", home = 8.70, yield = { 3, 7 }, color = Color3.fromRGB(227, 206, 75), material = Enum.Material.DiamondPlate, met = 1, rough = .15 },
+	{ id = "marble", name = "Marble", tier = 22, band = "Uncommon", home = 9.14, yield = { 3, 7 }, color = Color3.fromRGB(254, 252, 246), material = Enum.Material.Marble, met = 0, rough = .25 },
+	{ id = "pearl", name = "Pearl", tier = 23, band = "Uncommon", home = 9.57, yield = { 3, 7 }, color = Color3.fromRGB(252, 245, 236), material = Enum.Material.SmoothPlastic, met = .2, rough = .15 },
+	{ id = "rime", name = "Rime", tier = 24, band = "Uncommon", home = 10.01, yield = { 3, 7 }, color = Color3.fromRGB(140, 225, 255), material = Enum.Material.Ice, met = 0, rough = .05, glow = Color3.fromRGB(170, 235, 255), glowBright = 0.4 },
+	{ id = "quartz", name = "Quartz", tier = 25, band = "Uncommon", home = 10.44, yield = { 3, 7 }, color = Color3.fromRGB(249, 249, 255), material = Enum.Material.Glass, met = 0, rough = .05 },
+	{ id = "amber", name = "Amber", tier = 26, band = "Uncommon", home = 10.88, yield = { 3, 7 }, color = Color3.fromRGB(255, 152, 0), material = Enum.Material.Glass, met = 0, rough = .12 },
+	{ id = "petrifact", name = "Petrifact", tier = 27, band = "Uncommon", home = 11.31, yield = { 3, 7 }, color = Color3.fromRGB(151, 79, 45), material = Enum.Material.Wood, met = 0, rough = .4 },
+	{ id = "nickel", name = "Nickel", tier = 28, band = "Uncommon", home = 11.75, yield = { 3, 7 }, color = Color3.fromRGB(227, 195, 131), material = Enum.Material.Foil, met = 1, rough = .3 },
+	{ id = "onyx", name = "Onyx", tier = 29, band = "Uncommon", home = 12.18, yield = { 3, 7 }, color = Color3.fromRGB(15, 15, 15), material = Enum.Material.Marble, met = 0, rough = .04 },
 	-- RARE (30-49)
-	{ id = "bloodstone", name = "Bloodstone", tier = 30, band = "Rare", home = 10.28, yield = { 4, 7 }, color = Color3.fromRGB(20, 95, 50), material = Enum.Material.Marble, met = 0, rough = .3 },
-	{ id = "garnet", name = "Garnet", tier = 31, band = "Rare", home = 10.63, yield = { 4, 7 }, color = Color3.fromRGB(151, 0, 15), material = Enum.Material.Glass, met = 0, rough = .07 },
-	{ id = "citrine", name = "Citrine", tier = 32, band = "Rare", home = 10.99, yield = { 4, 7 }, color = Color3.fromRGB(255, 212, 0), material = Enum.Material.Glass, met = 0, rough = .07 },
-	{ id = "chromium", name = "Chromium", tier = 33, band = "Rare", home = 11.34, yield = { 4, 7 }, color = Color3.fromRGB(171, 201, 255), material = Enum.Material.Metal, met = 1, rough = .04 },
-	{ id = "turquoise", name = "Turquoise", tier = 34, band = "Rare", home = 11.70, yield = { 4, 7 }, color = Color3.fromRGB(11, 216, 201), material = Enum.Material.Marble, met = 0, rough = .4 },
-	{ id = "bismuth", name = "Bismuth", tier = 35, band = "Rare", home = 12.05, yield = { 4, 7 }, color = Color3.fromRGB(188, 156, 238), material = Enum.Material.Foil, met = 1, rough = .1, rainbow = true },
-	{ id = "silver", name = "Silver", tier = 36, band = "Rare", home = 12.41, yield = { 4, 7 }, color = Color3.fromRGB(250, 248, 242), material = Enum.Material.Metal, met = 1, rough = .12 },
-	{ id = "amethyst", name = "Amethyst", tier = 37, band = "Rare", home = 12.76, yield = { 4, 7 }, color = Color3.fromRGB(112, 8, 186), material = Enum.Material.Glass, met = 0, rough = .07 },
-	{ id = "tigereye", name = "Tigereye", tier = 38, band = "Rare", home = 13.12, yield = { 4, 7 }, color = Color3.fromRGB(189, 112, 0), material = Enum.Material.Marble, met = .3, rough = .2 },
-	{ id = "lapis", name = "Lapis", tier = 39, band = "Rare", home = 13.47, yield = { 4, 7 }, color = Color3.fromRGB(0, 39, 184), material = Enum.Material.Marble, met = 0, rough = .3 },
-	{ id = "geode", name = "Geode", tier = 40, band = "Rare", home = 13.82, yield = { 4, 7 }, color = Color3.fromRGB(150, 80, 240), material = Enum.Material.Glass, met = 0, rough = .2 },
-	{ id = "topaz", name = "Topaz", tier = 41, band = "Rare", home = 14.18, yield = { 4, 7 }, color = Color3.fromRGB(255, 113, 57), material = Enum.Material.Glass, met = 0, rough = .05 },
-	{ id = "phosphorus", name = "Phosphorus", tier = 42, band = "Rare", home = 14.53, yield = { 4, 7 }, color = Color3.fromRGB(255, 252, 175), material = Enum.Material.SmoothPlastic, met = 0, rough = .4, glow = Color3.fromRGB(80, 255, 108), glowBright = 0.7 },
-	{ id = "peridot", name = "Peridot", tier = 43, band = "Rare", home = 14.89, yield = { 4, 7 }, color = Color3.fromRGB(176, 229, 0), material = Enum.Material.Glass, met = 0, rough = .07 },
-	{ id = "jade", name = "Jade", tier = 44, band = "Rare", home = 15.24, yield = { 4, 7 }, color = Color3.fromRGB(58, 194, 104), material = Enum.Material.Marble, met = 0, rough = .35 },
-	{ id = "emberglass", name = "Emberglass", tier = 45, band = "Rare", home = 15.60, yield = { 4, 7 }, color = Color3.fromRGB(255, 90, 0), material = Enum.Material.Glass, met = .3, rough = .1, glow = Color3.fromRGB(255, 140, 30), glowBright = 1 },
-	{ id = "tungsten", name = "Tungsten", tier = 46, band = "Rare", home = 15.95, yield = { 4, 7 }, color = Color3.fromRGB(113, 118, 138), material = Enum.Material.Metal, met = 1, rough = .35 },
-	{ id = "lithium", name = "Lithium", tier = 47, band = "Rare", home = 16.31, yield = { 4, 7 }, color = Color3.fromRGB(215, 222, 235), material = Enum.Material.Metal, met = 1, rough = .3, glow = Color3.fromRGB(255, 60, 80), glowBright = 0.2 },
-	{ id = "titanium", name = "Titanium", tier = 48, band = "Rare", home = 16.66, yield = { 4, 7 }, color = Color3.fromRGB(103, 58, 216), material = Enum.Material.Metal, met = 1, rough = .32 },
-	{ id = "obsidian", name = "Obsidian", tier = 49, band = "Rare", home = 17.01, yield = { 4, 7 }, color = Color3.fromRGB(26, 9, 48), material = Enum.Material.Glass, met = 0, rough = .06 },
+	{ id = "bloodstone", name = "Bloodstone", tier = 30, band = "Rare", home = 12.62, yield = { 4, 7 }, color = Color3.fromRGB(20, 95, 50), material = Enum.Material.Marble, met = 0, rough = .3 },
+	{ id = "garnet", name = "Garnet", tier = 31, band = "Rare", home = 13.05, yield = { 4, 7 }, color = Color3.fromRGB(151, 0, 15), material = Enum.Material.Glass, met = 0, rough = .07 },
+	{ id = "citrine", name = "Citrine", tier = 32, band = "Rare", home = 13.49, yield = { 4, 7 }, color = Color3.fromRGB(255, 212, 0), material = Enum.Material.Glass, met = 0, rough = .07 },
+	{ id = "chromium", name = "Chromium", tier = 33, band = "Rare", home = 13.92, yield = { 4, 7 }, color = Color3.fromRGB(171, 201, 255), material = Enum.Material.Metal, met = 1, rough = .04 },
+	{ id = "turquoise", name = "Turquoise", tier = 34, band = "Rare", home = 14.36, yield = { 4, 7 }, color = Color3.fromRGB(11, 216, 201), material = Enum.Material.Marble, met = 0, rough = .4 },
+	{ id = "bismuth", name = "Bismuth", tier = 35, band = "Rare", home = 14.79, yield = { 4, 7 }, color = Color3.fromRGB(188, 156, 238), material = Enum.Material.Foil, met = 1, rough = .1, rainbow = true },
+	{ id = "silver", name = "Silver", tier = 36, band = "Rare", home = 15.23, yield = { 4, 7 }, color = Color3.fromRGB(250, 248, 242), material = Enum.Material.Metal, met = 1, rough = .12 },
+	{ id = "amethyst", name = "Amethyst", tier = 37, band = "Rare", home = 15.66, yield = { 4, 7 }, color = Color3.fromRGB(112, 8, 186), material = Enum.Material.Glass, met = 0, rough = .07 },
+	{ id = "tigereye", name = "Tigereye", tier = 38, band = "Rare", home = 16.10, yield = { 4, 7 }, color = Color3.fromRGB(189, 112, 0), material = Enum.Material.Marble, met = .3, rough = .2 },
+	{ id = "lapis", name = "Lapis", tier = 39, band = "Rare", home = 16.53, yield = { 4, 7 }, color = Color3.fromRGB(0, 39, 184), material = Enum.Material.Marble, met = 0, rough = .3 },
+	{ id = "geode", name = "Geode", tier = 40, band = "Rare", home = 16.97, yield = { 4, 7 }, color = Color3.fromRGB(150, 80, 240), material = Enum.Material.Glass, met = 0, rough = .2 },
+	{ id = "topaz", name = "Topaz", tier = 41, band = "Rare", home = 17.40, yield = { 4, 7 }, color = Color3.fromRGB(255, 113, 57), material = Enum.Material.Glass, met = 0, rough = .05 },
+	{ id = "phosphorus", name = "Phosphorus", tier = 42, band = "Rare", home = 17.84, yield = { 4, 7 }, color = Color3.fromRGB(255, 252, 175), material = Enum.Material.SmoothPlastic, met = 0, rough = .4, glow = Color3.fromRGB(80, 255, 108), glowBright = 0.7 },
+	{ id = "peridot", name = "Peridot", tier = 43, band = "Rare", home = 18.27, yield = { 4, 7 }, color = Color3.fromRGB(176, 229, 0), material = Enum.Material.Glass, met = 0, rough = .07 },
+	{ id = "jade", name = "Jade", tier = 44, band = "Rare", home = 18.71, yield = { 4, 7 }, color = Color3.fromRGB(58, 194, 104), material = Enum.Material.Marble, met = 0, rough = .35 },
+	{ id = "emberglass", name = "Emberglass", tier = 45, band = "Rare", home = 19.14, yield = { 4, 7 }, color = Color3.fromRGB(255, 90, 0), material = Enum.Material.Glass, met = .3, rough = .1, glow = Color3.fromRGB(255, 140, 30), glowBright = 1 },
+	{ id = "tungsten", name = "Tungsten", tier = 46, band = "Rare", home = 19.26, yield = { 4, 7 }, color = Color3.fromRGB(113, 118, 138), material = Enum.Material.Metal, met = 1, rough = .35 },
+	{ id = "lithium", name = "Lithium", tier = 47, band = "Rare", home = 19.37, yield = { 4, 7 }, color = Color3.fromRGB(215, 222, 235), material = Enum.Material.Metal, met = 1, rough = .3, glow = Color3.fromRGB(255, 60, 80), glowBright = 0.2 },
+	{ id = "titanium", name = "Titanium", tier = 48, band = "Rare", home = 19.49, yield = { 4, 7 }, color = Color3.fromRGB(103, 58, 216), material = Enum.Material.Metal, met = 1, rough = .32 },
+	{ id = "obsidian", name = "Obsidian", tier = 49, band = "Rare", home = 19.60, yield = { 4, 7 }, color = Color3.fromRGB(26, 9, 48), material = Enum.Material.Glass, met = 0, rough = .06 },
 	-- EPIC (50-60)
-	{ id = "cobalt", name = "Cobalt", tier = 50, band = "Epic", home = 17.37, yield = { 4, 8 }, color = Color3.fromRGB(0, 73, 248), material = Enum.Material.Metal, met = 1, rough = .28 },
-	{ id = "gold", name = "Gold", tier = 51, band = "Epic", home = 17.72, yield = { 4, 8 }, color = Color3.fromRGB(255, 186, 0), material = Enum.Material.Metal, met = 1, rough = .15 },
-	{ id = "regolith", name = "Regolith", tier = 52, band = "Epic", home = 18.08, yield = { 4, 8 }, color = Color3.fromRGB(175, 175, 188), material = Enum.Material.Pebble, met = 0, rough = .8 },
-	{ id = "sunstone", name = "Sunstone", tier = 53, band = "Epic", home = 18.43, yield = { 5, 8 }, color = Color3.fromRGB(255, 97, 0), material = Enum.Material.Foil, met = .3, rough = .1, glow = Color3.fromRGB(255, 112, 0), glowBright = 0.9 },
-	{ id = "emerald", name = "Emerald", tier = 54, band = "Epic", home = 18.79, yield = { 5, 8 }, color = Color3.fromRGB(0, 173, 86), material = Enum.Material.Glass, met = 0, rough = .05 },
-	{ id = "moonstone", name = "Moonstone", tier = 55, band = "Epic", home = 19.14, yield = { 5, 8 }, color = Color3.fromRGB(132, 168, 255), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(132, 175, 255), glowBright = 0.5 },
-	{ id = "sapphire", name = "Sapphire", tier = 56, band = "Epic", home = 19.25, yield = { 5, 8 }, color = Color3.fromRGB(0, 79, 201), material = Enum.Material.Glass, met = 0, rough = .03 },
-	{ id = "ruby", name = "Ruby", tier = 57, band = "Epic", home = 19.36, yield = { 5, 8 }, color = Color3.fromRGB(242, 0, 91), material = Enum.Material.Glass, met = 0, rough = .03, glow = Color3.fromRGB(255, 0, 68), glowBright = 0.6 },
-	{ id = "palladium", name = "Palladium", tier = 58, band = "Epic", home = 19.48, yield = { 5, 8 }, color = Color3.fromRGB(118, 164, 255), material = Enum.Material.Metal, met = 1, rough = .18 },
-	{ id = "aquamarine", name = "Aquamarine", tier = 59, band = "Epic", home = 19.59, yield = { 5, 8 }, color = Color3.fromRGB(123, 224, 251), material = Enum.Material.Ice, met = 0, rough = .05 },
-	{ id = "opal", name = "Opal", tier = 60, band = "Epic", home = 19.70, yield = { 5, 8 }, color = Color3.fromRGB(240, 240, 255), material = Enum.Material.ForceField, met = 0, rough = .1, rainbow = true },
+	{ id = "cobalt", name = "Cobalt", tier = 50, band = "Epic", home = 19.80, yield = { 4, 8 }, color = Color3.fromRGB(0, 73, 248), material = Enum.Material.Metal, met = 1, rough = .28 },
+	{ id = "gold", name = "Gold", tier = 51, band = "Epic", home = 19.88, yield = { 4, 8 }, color = Color3.fromRGB(255, 186, 0), material = Enum.Material.Metal, met = 1, rough = .15 },
+	{ id = "regolith", name = "Regolith", tier = 52, band = "Epic", home = 19.96, yield = { 4, 8 }, color = Color3.fromRGB(175, 175, 188), material = Enum.Material.Pebble, met = 0, rough = .8 },
+	{ id = "sunstone", name = "Sunstone", tier = 53, band = "Epic", home = 20.04, yield = { 5, 8 }, color = Color3.fromRGB(255, 97, 0), material = Enum.Material.Foil, met = .3, rough = .1, glow = Color3.fromRGB(255, 112, 0), glowBright = 0.9 },
+	{ id = "emerald", name = "Emerald", tier = 54, band = "Epic", home = 20.12, yield = { 5, 8 }, color = Color3.fromRGB(0, 173, 86), material = Enum.Material.Glass, met = 0, rough = .05 },
+	{ id = "moonstone", name = "Moonstone", tier = 55, band = "Epic", home = 20.20, yield = { 5, 8 }, color = Color3.fromRGB(132, 168, 255), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(132, 175, 255), glowBright = 0.5 },
+	{ id = "sapphire", name = "Sapphire", tier = 56, band = "Epic", home = 20.28, yield = { 5, 8 }, color = Color3.fromRGB(0, 79, 201), material = Enum.Material.Glass, met = 0, rough = .03 },
+	{ id = "ruby", name = "Ruby", tier = 57, band = "Epic", home = 20.36, yield = { 5, 8 }, color = Color3.fromRGB(242, 0, 91), material = Enum.Material.Glass, met = 0, rough = .03, glow = Color3.fromRGB(255, 0, 68), glowBright = 0.6 },
+	{ id = "palladium", name = "Palladium", tier = 58, band = "Epic", home = 20.44, yield = { 5, 8 }, color = Color3.fromRGB(118, 164, 255), material = Enum.Material.Metal, met = 1, rough = .18 },
+	{ id = "aquamarine", name = "Aquamarine", tier = 59, band = "Epic", home = 20.52, yield = { 5, 8 }, color = Color3.fromRGB(123, 224, 251), material = Enum.Material.Ice, met = 0, rough = .05 },
+	{ id = "opal", name = "Opal", tier = 60, band = "Epic", home = 20.60, yield = { 5, 8 }, color = Color3.fromRGB(240, 240, 255), material = Enum.Material.ForceField, met = 0, rough = .1, rainbow = true },
 	-- LEGENDARY (61-69)
-	{ id = "platinum", name = "Platinum", tier = 61, band = "Legendary", home = 19.95, yield = { 5, 8 }, color = Color3.fromRGB(232, 223, 185), material = Enum.Material.Metal, met = 1, rough = .1 },
-	{ id = "stormstone", name = "Stormstone", tier = 62, band = "Legendary", home = 19.96, yield = { 7, 10 }, color = Color3.fromRGB(60, 85, 160), material = Enum.Material.Slate, met = .3, rough = .3, glow = Color3.fromRGB(140, 190, 255), glowBright = 0.6 },
-	{ id = "diamond", name = "Diamond", tier = 63, band = "Legendary", home = 19.98, yield = { 4, 6 }, color = Color3.fromRGB(199, 240, 255), material = Enum.Material.Glass, met = 0, rough = 0, glow = Color3.fromRGB(197, 238, 255), glowBright = 0.4 },
-	{ id = "starmetal", name = "Starmetal", tier = 64, band = "Legendary", home = 20.00, yield = { 5, 8 }, color = Color3.fromRGB(55, 65, 130), material = Enum.Material.Metal, met = 1, rough = .1, glow = Color3.fromRGB(200, 220, 255), glowBright = 0.5 },
-	{ id = "aetherite", name = "Aetherite", tier = 65, band = "Legendary", home = 20.01, yield = { 4, 6 }, color = Color3.fromRGB(225, 245, 255), material = Enum.Material.Glass, met = 0, rough = .02, glow = Color3.fromRGB(200, 240, 255), glowBright = 0.9 },
-	{ id = "meteorite", name = "Meteorite", tier = 66, band = "Legendary", home = 20.02, yield = { 8, 11 }, color = Color3.fromRGB(138, 94, 66), material = Enum.Material.CrackedLava, met = .6, rough = .5, glow = Color3.fromRGB(255, 95, 0), glowBright = 0.3 },
-	{ id = "soulstone", name = "Soulstone", tier = 67, band = "Legendary", home = 20.04, yield = { 5, 8 }, color = Color3.fromRGB(70, 255, 200), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(80, 255, 200), glowBright = 0.9 },
-	{ id = "galaxite", name = "Galaxite", tier = 68, band = "Legendary", home = 20.05, yield = { 7, 10 }, color = Color3.fromRGB(40, 20, 90), material = Enum.Material.Basalt, met = .2, rough = .3, glow = Color3.fromRGB(140, 90, 255), glowBright = 0.8 },
-	{ id = "frostfire", name = "Frostfire", tier = 69, band = "Legendary", home = 20.07, yield = { 5, 8 }, color = Color3.fromRGB(120, 200, 255), material = Enum.Material.Glass, met = 0, rough = .03, glow = Color3.fromRGB(255, 120, 60), glowBright = 1 },
+	{ id = "platinum", name = "Platinum", tier = 61, band = "Legendary", home = 20.90, yield = { 5, 8 }, color = Color3.fromRGB(232, 223, 185), material = Enum.Material.Metal, met = 1, rough = .1 },
+	{ id = "stormstone", name = "Stormstone", tier = 62, band = "Legendary", home = 20.91, yield = { 7, 10 }, color = Color3.fromRGB(60, 85, 160), material = Enum.Material.Slate, met = .3, rough = .3, glow = Color3.fromRGB(140, 190, 255), glowBright = 0.6 },
+	{ id = "diamond", name = "Diamond", tier = 63, band = "Legendary", home = 20.92, yield = { 4, 6 }, color = Color3.fromRGB(199, 240, 255), material = Enum.Material.Glass, met = 0, rough = 0, glow = Color3.fromRGB(197, 238, 255), glowBright = 0.4 },
+	{ id = "starmetal", name = "Starmetal", tier = 64, band = "Legendary", home = 20.94, yield = { 5, 8 }, color = Color3.fromRGB(55, 65, 130), material = Enum.Material.Metal, met = 1, rough = .1, glow = Color3.fromRGB(200, 220, 255), glowBright = 0.5 },
+	{ id = "aetherite", name = "Aetherite", tier = 65, band = "Legendary", home = 20.95, yield = { 4, 6 }, color = Color3.fromRGB(225, 245, 255), material = Enum.Material.Glass, met = 0, rough = .02, glow = Color3.fromRGB(200, 240, 255), glowBright = 0.9 },
+	{ id = "meteorite", name = "Meteorite", tier = 66, band = "Legendary", home = 20.96, yield = { 8, 11 }, color = Color3.fromRGB(138, 94, 66), material = Enum.Material.CrackedLava, met = .6, rough = .5, glow = Color3.fromRGB(255, 95, 0), glowBright = 0.3 },
+	{ id = "soulstone", name = "Soulstone", tier = 67, band = "Legendary", home = 20.98, yield = { 5, 8 }, color = Color3.fromRGB(70, 255, 200), material = Enum.Material.Glass, met = 0, rough = .1, glow = Color3.fromRGB(80, 255, 200), glowBright = 0.9 },
+	{ id = "galaxite", name = "Galaxite", tier = 68, band = "Legendary", home = 20.99, yield = { 7, 10 }, color = Color3.fromRGB(40, 20, 90), material = Enum.Material.Basalt, met = .2, rough = .3, glow = Color3.fromRGB(140, 90, 255), glowBright = 0.8 },
+	{ id = "frostfire", name = "Frostfire", tier = 69, band = "Legendary", home = 21.00, yield = { 5, 8 }, color = Color3.fromRGB(120, 200, 255), material = Enum.Material.Glass, met = 0, rough = .03, glow = Color3.fromRGB(255, 120, 60), glowBright = 1 },
 	-- MYTHIC (70-75)
-	{ id = "umbrite", name = "Umbrite", tier = 70, band = "Mythic", home = 20.35, yield = { 5, 8 }, color = Color3.fromRGB(20, 10, 32), material = Enum.Material.Glass, met = .3, rough = .05, glow = Color3.fromRGB(130, 40, 255), glowBright = 1 },
-	{ id = "celestine", name = "Celestine", tier = 71, band = "Mythic", home = 20.37, yield = { 5, 8 }, color = Color3.fromRGB(255, 228, 140), material = Enum.Material.Glass, met = .2, rough = .02, glow = Color3.fromRGB(255, 240, 180), glowBright = 1.2 },
-	{ id = "orichalcum", name = "Orichalcum", tier = 72, band = "Mythic", home = 20.39, yield = { 5, 8 }, color = Color3.fromRGB(255, 145, 0), material = Enum.Material.Metal, met = 1, rough = .15 },
-	{ id = "spectrite", name = "Spectrite", tier = 73, band = "Mythic", home = 20.41, yield = { 4, 6 }, color = Color3.fromRGB(255, 255, 255), material = Enum.Material.ForceField, met = 0, rough = .02, glow = Color3.fromRGB(255, 255, 255), glowBright = 1.2, rainbow = true },
-	{ id = "mythril", name = "Mythril", tier = 74, band = "Mythic", home = 20.43, yield = { 5, 8 }, color = Color3.fromRGB(132, 207, 255), material = Enum.Material.Metal, met = 1, rough = .08, glow = Color3.fromRGB(106, 191, 255), glowBright = 0.8 },
-	{ id = "dragonstone", name = "Dragonstone", tier = 75, band = "Mythic", home = 20.45, yield = { 5, 8 }, color = Color3.fromRGB(185, 10, 20), material = Enum.Material.Slate, met = .4, rough = .15, glow = Color3.fromRGB(255, 60, 0), glowBright = 1.3 },
+	{ id = "umbrite", name = "Umbrite", tier = 70, band = "Mythic", home = 21.20, yield = { 5, 8 }, color = Color3.fromRGB(20, 10, 32), material = Enum.Material.Glass, met = .3, rough = .05, glow = Color3.fromRGB(130, 40, 255), glowBright = 1 },
+	{ id = "celestine", name = "Celestine", tier = 71, band = "Mythic", home = 21.22, yield = { 5, 8 }, color = Color3.fromRGB(255, 228, 140), material = Enum.Material.Glass, met = .2, rough = .02, glow = Color3.fromRGB(255, 240, 180), glowBright = 1.2 },
+	{ id = "orichalcum", name = "Orichalcum", tier = 72, band = "Mythic", home = 21.24, yield = { 5, 8 }, color = Color3.fromRGB(255, 145, 0), material = Enum.Material.Metal, met = 1, rough = .15 },
+	{ id = "spectrite", name = "Spectrite", tier = 73, band = "Mythic", home = 21.26, yield = { 4, 6 }, color = Color3.fromRGB(255, 255, 255), material = Enum.Material.ForceField, met = 0, rough = .02, glow = Color3.fromRGB(255, 255, 255), glowBright = 1.2, rainbow = true },
+	{ id = "mythril", name = "Mythril", tier = 74, band = "Mythic", home = 21.28, yield = { 5, 8 }, color = Color3.fromRGB(132, 207, 255), material = Enum.Material.Metal, met = 1, rough = .08, glow = Color3.fromRGB(106, 191, 255), glowBright = 0.8 },
+	{ id = "dragonstone", name = "Dragonstone", tier = 75, band = "Mythic", home = 21.30, yield = { 5, 8 }, color = Color3.fromRGB(185, 10, 20), material = Enum.Material.Slate, met = .4, rough = .15, glow = Color3.fromRGB(255, 60, 0), glowBright = 1.3 },
 	-- DIVINE (76-79)
-	{ id = "adamantite", name = "Adamantite", tier = 76, band = "Divine", home = 20.75, yield = { 5, 8 }, color = Color3.fromRGB(184, 0, 32), material = Enum.Material.Metal, met = 1, rough = .18 },
-	{ id = "thorium", name = "Thorium", tier = 77, band = "Divine", home = 20.78, yield = { 8, 11 }, color = Color3.fromRGB(191, 191, 181), material = Enum.Material.Metal, met = 1, rough = .3, glow = Color3.fromRGB(171, 171, 255), glowBright = 0.6 },
-	{ id = "uranium", name = "Uranium", tier = 78, band = "Divine", home = 20.80, yield = { 5, 8 }, color = Color3.fromRGB(255, 226, 0), material = Enum.Material.Neon, met = .6, rough = .3, glow = Color3.fromRGB(255, 236, 40), glowBright = 1.2 },
-	{ id = "plutonium", name = "Plutonium", tier = 79, band = "Divine", home = 20.83, yield = { 5, 8 }, color = Color3.fromRGB(222, 150, 105), material = Enum.Material.Metal, met = .85, rough = .25, glow = Color3.fromRGB(255, 120, 30), glowBright = 1.2 },
+	{ id = "adamantite", name = "Adamantite", tier = 76, band = "Divine", home = 21.50, yield = { 5, 8 }, color = Color3.fromRGB(184, 0, 32), material = Enum.Material.Metal, met = 1, rough = .18 },
+	{ id = "thorium", name = "Thorium", tier = 77, band = "Divine", home = 21.52, yield = { 8, 11 }, color = Color3.fromRGB(191, 191, 181), material = Enum.Material.Metal, met = 1, rough = .3, glow = Color3.fromRGB(171, 171, 255), glowBright = 0.6 },
+	{ id = "uranium", name = "Uranium", tier = 78, band = "Divine", home = 21.53, yield = { 5, 8 }, color = Color3.fromRGB(255, 226, 0), material = Enum.Material.Neon, met = .6, rough = .3, glow = Color3.fromRGB(255, 236, 40), glowBright = 1.2 },
+	{ id = "plutonium", name = "Plutonium", tier = 79, band = "Divine", home = 21.55, yield = { 5, 8 }, color = Color3.fromRGB(222, 150, 105), material = Enum.Material.Metal, met = .85, rough = .25, glow = Color3.fromRGB(255, 120, 30), glowBright = 1.2 },
 	-- EXOTIC (80-82)
-	{ id = "fermium", name = "Fermium", tier = 80, band = "Exotic", home = 21.10, yield = { 5, 8 }, color = Color3.fromRGB(255, 2, 70), material = Enum.Material.Metal, met = .8, rough = .12, glow = Color3.fromRGB(255, 15, 97), glowBright = 1.5 },
-	{ id = "lawrencium", name = "Lawrencium", tier = 81, band = "Exotic", home = 21.13, yield = { 5, 8 }, color = Color3.fromRGB(255, 235, 177), material = Enum.Material.Metal, met = 1, rough = .05, glow = Color3.fromRGB(255, 239, 190), glowBright = 1.7 },
-	{ id = "oganesson", name = "Oganesson", tier = 82, band = "Exotic", home = 21.16, yield = { 3, 6 }, color = Color3.fromRGB(17, 0, 42), material = Enum.Material.ForceField, met = 1, rough = .05, glow = Color3.fromRGB(137, 54, 255), glowBright = 2, rainbow = true },
+	{ id = "fermium", name = "Fermium", tier = 80, band = "Exotic", home = 21.75, yield = { 5, 8 }, color = Color3.fromRGB(255, 2, 70), material = Enum.Material.Metal, met = .8, rough = .12, glow = Color3.fromRGB(255, 15, 97), glowBright = 1.5 },
+	{ id = "lawrencium", name = "Lawrencium", tier = 81, band = "Exotic", home = 21.77, yield = { 5, 8 }, color = Color3.fromRGB(255, 235, 177), material = Enum.Material.Metal, met = 1, rough = .05, glow = Color3.fromRGB(255, 239, 190), glowBright = 1.7 },
+	{ id = "oganesson", name = "Oganesson", tier = 82, band = "Exotic", home = 21.80, yield = { 3, 6 }, color = Color3.fromRGB(17, 0, 42), material = Enum.Material.ForceField, met = 1, rough = .05, glow = Color3.fromRGB(137, 54, 255), glowBright = 2, rainbow = true },
 }
 
 --[[

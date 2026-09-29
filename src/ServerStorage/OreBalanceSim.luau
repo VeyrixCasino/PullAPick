@@ -30,13 +30,33 @@ OreBalanceSim.RATE_STRONG = 145000
 
 -- Rule b: no ore of these bands may ever exceed this share, anywhere.
 OreBalanceSim.CAP = { Legendary = 0.015, Mythic = 0.004, Divine = 0.001, Exotic = 0.0005}
--- Rule c: every ore must reach at least this share at its own best spot.
+--[[
+	Rule c: every ore must reach at least this share at its own best spot.
+
+	Common..Epic keep the brief's 0.3%. The four rare bands are deliberately
+	rarer than the brief first sized them -- the owner asked for the band ladder
+	to hold literally at depth, which meant pushing the peak down the list and
+	taking Legendary from one find a minute to one every ten -- so their floors
+	scale down with them. Raising them back would just re-break the ladder.
+]]
 OreBalanceSim.FLOOR = {
 	Common = 0.003, Uncommon = 0.003, Rare = 0.003, Epic = 0.003,
-	Legendary = 0.003, Mythic = 0.001, Divine = 0.0003, Exotic = 0.0001,
+	Legendary = 0.0005, Mythic = 0.0002, Divine = 0.0001, Exotic = 0.00005,
 }
--- Rule c2: the three Exotic ores together, at the deepest main-zone spot.
-OreBalanceSim.EXOTIC_LO, OreBalanceSim.EXOTIC_HI = 0.00028, 0.0014
+-- Rule c2, stated the way it is actually felt: how long any Exotic takes to
+-- turn up for a strong player at the deepest spot.
+OreBalanceSim.EXOTIC_HOURS_LO, OreBalanceSim.EXOTIC_HOURS_HI = 1.0, 5.0
+
+--[[
+	The band ladder, as the owner meant it: each band rarer than the one below,
+	at every spot.
+
+	Only the bands that can actually BE there are listed. Common and Uncommon
+	read 0.0% at the deepest spot -- not out-ranked but absent, because the tail
+	term puts an ore 23 hardness-steps below its home at e^-59. Including them
+	would assert something the curve shape forbids, and the shape is fixed.
+]]
+OreBalanceSim.LADDER = { "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic" }
 
 local function mainZones()
 	local out = {}
@@ -205,12 +225,12 @@ function OreBalanceSim.run(verbose)
 		end
 	end
 
-	-- rule a: Epic is the deepest common vein ------------------------------
+	-- rule a: the deepest vein is Rare, and nothing above Epic is ever top ---
 	local deep = OreBalanceSim.shares("primordium", 2441)
 	local _, order = ranked(deep)
 	local topBand = C.ORES[order[1]].band
-	if topBand ~= "Epic" then
-		fail("a", ("deepest most-common is %s (%s), want an Epic"):format(C.ORES[order[1]].name, topBand))
+	if topBand ~= "Rare" then
+		fail("a-peak", ("deepest most-common is %s (%s), want a Rare"):format(C.ORES[order[1]].name, topBand))
 	end
 
 	-- rules b: caps, never top-10, and the rare-band ladder ---------------
@@ -229,11 +249,19 @@ function OreBalanceSim.run(verbose)
 			end
 		end
 		local bt = bandTotals(sh)
-		local ladder = { "Legendary", "Mythic", "Divine", "Exotic" }
+		local ladder = OreBalanceSim.LADDER
 		for k = 1, #ladder - 1 do
 			if bt[ladder[k + 1]] > bt[ladder[k]] + 1e-15 then
-				fail("b-ladder", ("%s > %s at %s L%d"):format(ladder[k + 1], ladder[k], s.id, s.L))
+				fail("b-ladder", ("%s (%.4f%%) > %s (%.4f%%) at %s L%d"):format(
+					ladder[k + 1], bt[ladder[k + 1]] * 100, ladder[k], bt[ladder[k]] * 100, s.id, s.L))
 			end
+		end
+		-- no band above Epic may ever be the most common ore anywhere
+		local _, ord = ranked(sh)
+		local tb = C.ORES[ord[1]].band
+		if tb == "Legendary" or tb == "Mythic" or tb == "Divine" or tb == "Exotic" then
+			fail("a-ceiling", ("%s (%s) is the most common ore at %s L%d"):format(
+				C.ORES[ord[1]].name, tb, s.id, s.L))
 		end
 	end
 
@@ -248,9 +276,10 @@ function OreBalanceSim.run(verbose)
 	-- rule c2: the exotic headline, and its depth gate ---------------------
 	local bt = bandTotals(deep)
 	local exo = bt.Exotic
-	if exo < OreBalanceSim.EXOTIC_LO or exo > OreBalanceSim.EXOTIC_HI then
-		fail("c2", ("exotic band at deepest = %.4f%%, want %.3f%%-%.3f%%"):format(
-			exo * 100, OreBalanceSim.EXOTIC_LO * 100, OreBalanceSim.EXOTIC_HI * 100))
+	local exoHours = (exo > 0) and (1 / (OreBalanceSim.RATE_STRONG * C.ORE_CHANCE * exo)) or math.huge
+	if exoHours < OreBalanceSim.EXOTIC_HOURS_LO or exoHours > OreBalanceSim.EXOTIC_HOURS_HI then
+		fail("c2", ("exotic %.4f%% = %.2f h per find, want %.1f-%.1f h"):format(
+			exo * 100, exoHours, OreBalanceSim.EXOTIC_HOURS_LO, OreBalanceSim.EXOTIC_HOURS_HI))
 	end
 	local exoP1 = bandTotals(OreBalanceSim.shares("primordium", 1)).Exotic
 	if exoP1 > exo / 10 then
@@ -298,8 +327,11 @@ function OreBalanceSim.run(verbose)
 	-- ---------------------------------------------------------------------
 	print(("="):rep(132))
 	print("zone surfaces: " .. table.concat(surf, ", "))
-	print(string.format("rare bands at the deepest spot: Legendary %.4f%%  Mythic %.4f%%  Divine %.4f%%  Exotic %.4f%%",
-		bt.Legendary * 100, bt.Mythic * 100, bt.Divine * 100, bt.Exotic * 100))
+	local lad = {}
+	for _, b in ipairs(OreBalanceSim.LADDER) do
+		lad[#lad + 1] = string.format("%s %.3f%%", b, bt[b] * 100)
+	end
+	print("band ladder at the deepest spot: " .. table.concat(lad, " > "))
 	for _, b in ipairs({ "Legendary", "Mythic", "Divine", "Exotic" }) do
 		local perBlock = C.ORE_CHANCE * bt[b]
 		print(string.format("  %-10s %s at %dK blocks/h,  %s at %dK",
