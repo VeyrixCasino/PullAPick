@@ -2289,12 +2289,12 @@ MineConfig.ORES = {
 	1.0075 ore, 1.011 dust -- so this is a refactor, not a rebalance. At 10,000
 	they become 1.00198, 1.00075 and 1.00109.
 ]]
-MineConfig.TOOL_MAX_LEVEL = 1000      -- the one line to move
+MineConfig.TOOL_MAX_LEVEL = 100       -- the one line to move
 
 -- What a full 1 -> max climb multiplies by. Cap-independent.
 MineConfig.TOOL_CLIMB_DAMAGE = 3.9e8
-MineConfig.TOOL_CLIMB_ORE = 1747      -- last level costs this many x the first
-MineConfig.TOOL_CLIMB_DUST = 55800
+MineConfig.TOOL_CLIMB_ORE = 1500      -- last level costs this many x the first
+MineConfig.TOOL_CLIMB_DUST = 1000
 
 local function perLevel(total)
 	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
@@ -2321,6 +2321,289 @@ local function clampTier(tier)
 	return math.clamp(n, 1, #MineConfig.ORES)
 end
 
+
+--------------------------------------------------------------------------------
+-- ORE TOOL POWER -- anchored to the rock the ore lives in
+--
+-- A tool made of an ore should open able to work the rock that ore comes out
+-- of. That is the whole idea, and it removes the guesswork: `home` on each ore
+-- already says which hardness it belongs to (see ORE_PEAK_OFFSET), so homeHp is
+-- the HP of dirt there and every number below hangs off it.
+--
+-- The third argument everywhere is RANK: MineTools.RARITY_RANK of the tool
+-- TYPE, 1 for Common to 8 for Exotic. Both callers -- Verbs._oreToolTypeMult and
+-- the bench's typeMultOf -- already pass exactly that, which is why none of
+-- these signatures changed.
+--
+-- Shop and chest tools are NOT affected: their power comes from
+-- MineShopEconomy.toolPower and nothing here touches it.
+--------------------------------------------------------------------------------
+MineConfig.TOOL_POWER_START = 0.10    -- level 1 = this share of home HP, x sqrt(rank)
+
+-- Total growth over the 99 steps. Common 36x, Exotic 216x -- a rarer frame is
+-- worth more per level as well as more at level 1, so the gap widens as you
+-- pour into it rather than being a flat head start.
+function MineConfig.toolPowerClimb(rank)
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	return 6 ^ (2.0 + (r - 1) / 7)
+end
+
+-- What a level is worth, as a percentage. Common +3.69%, Exotic +5.58%.
+function MineConfig.toolLevelPct(rank)
+	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
+	return MineConfig.toolPowerClimb(rank) ^ (1 / steps) - 1
+end
+
+--[[
+	The rock an ore calls home, in HP.
+
+	Derived from `home` rather than stored as a baked table: a constant table is
+	a second copy of the same fact, and the two drift the first time an ore
+	moves. Clamped to the deepest reachable main-zone rock, because an ore whose
+	home sits past that (tiers 46 up) is never actually found in rock that hard
+	-- its real home is the Primordium floor, and sizing its tool for imaginary
+	rock would make it far too strong.
+]]
+function MineConfig.oreHomeHp(tier)
+	local o = MineConfig.ORES[clampTier(tier)]
+	if not o then
+		return 20
+	end
+	local h = math.min(o.home or 0, MineConfig.oreDeepestHardness())
+	return 20 * (6 ^ h)
+end
+
+-- Hardness of the deepest rock a main zone actually reaches, cached.
+local deepestH
+function MineConfig.oreDeepestHardness()
+	if deepestH then
+		return deepestH
+	end
+	local worst = 0
+	for i, z in ipairs(MineConfig.ZONES or {}) do
+		if z.id ~= "bigbang" then
+			worst = math.max(worst, MineConfig.oreDifficulty(z.id, 2500))
+		end
+	end
+	deepestH = worst
+	return worst
+end
+
+--[[
+	Ore tool damage.
+
+	start = homeHp * TOOL_POWER_START * sqrt(rank), then climb^((L-1)/99).
+
+	The maxed multiples are the safety rail: a maxed Common one-shots rock up to
+	3.6x its home HP (0.7 of a zone step) and a maxed Exotic up to 61x (2.3
+	steps). Both fall out of the formula rather than being clamped, so they
+	cannot be broken by tuning one number without the sim noticing.
+]]
+function MineConfig.toolPower(tier, level, rank)
+	local L = clampLevel(level)
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
+	local start = MineConfig.oreHomeHp(tier) * MineConfig.TOOL_POWER_START * math.sqrt(r)
+	return start * (MineConfig.toolPowerClimb(r) ^ ((L - 1) / steps))
+end
+
+--------------------------------------------------------------------------------
+-- WHAT AN ORE TOOL COSTS -- priced in HOURS, not in ore
+--
+-- Pricing per level in ore means the answer changes every time the spawn curve
+-- or a pack yield moves. Pricing in TIME does not: a Common tool is 40 hours of
+-- that ore at its home, an Exotic 80, and the ore number is whatever those
+-- hours happen to be worth. Bigger pack yields then make the numbers bigger
+-- without making the tool cheaper, which is the point -- the old 1-per-pack
+-- endgame supply made forty consecutive levels all round to the same 1 ore.
+--------------------------------------------------------------------------------
+MineConfig.TOOL_HOURS_BASE = 40       -- hours to max a Common
+MineConfig.TOOL_HOURS_SPAN = 40       -- Exotic takes this much longer again
+MineConfig.ORE_RATE_STRONG = 145000   -- blocks/hour the cost curve is sized against
+
+function MineConfig.toolHoursToMax(rank)
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	return MineConfig.TOOL_HOURS_BASE + (r - 1) * MineConfig.TOOL_HOURS_SPAN / 7
+end
+
+--[[
+	What share of the ore roll this ore is at its own best spot.
+
+	Computed from the same weight formula the generator uses, at the difficulty
+	where the ore peaks (clamped to the deepest reachable rock for the ores whose
+	home sits past it). Cached, because it is 82 weights per ore and it never
+	changes at runtime.
+
+	Not a baked constant for the same reason homeHp is not: it would be a second
+	copy of the curve, free to disagree with it.
+]]
+local bestShareCache
+function MineConfig.oreBestShare(tier)
+	if not bestShareCache then
+		bestShareCache = {}
+		local deep = MineConfig.oreDeepestHardness()
+		local X0, K, S, W = MineConfig.ORE_X0, MineConfig.ORE_K, MineConfig.ORE_S, MineConfig.ORE_W
+		local bandW = MineConfig.ORE_BAND_WEIGHT or {}
+		for i, o in ipairs(MineConfig.ORES) do
+			local dl = math.min(o.home or 0, deep)
+			local tot, mine = 0, 0
+			for j, p in ipairs(MineConfig.ORES) do
+				local x = p.d - dl
+				local v = 1 / (1 + math.exp((x - X0) / K))
+				if x < 0 then
+					v = v * math.exp(x / S) * math.exp(-((x / W) ^ 2))
+				end
+				v = v * (bandW[p.band] or 1)
+				tot += v
+				if j == i then
+					mine = v
+				end
+			end
+			bestShareCache[i] = (tot > 0) and (mine / tot) or 0
+		end
+	end
+	return bestShareCache[clampTier(tier)] or 0
+end
+
+-- Ore per hour a strong player gathers of this ore, at its home.
+function MineConfig.oreSupplyPerHour(tier)
+	local o = MineConfig.ORES[clampTier(tier)]
+	if not o then
+		return 1
+	end
+	local ev = (o.yield and ((tonumber(o.yield[1]) or 1) + (tonumber(o.yield[2]) or 1)) / 2) or 1
+	return math.max(0.01, MineConfig.ORE_RATE_STRONG * MineConfig.ORE_CHANCE
+		* MineConfig.oreBestShare(tier) * ev)
+end
+
+
+--[[
+	DUST INCOME, MEASURED RATHER THAN ASSUMED.
+
+	Ore is the flavour on an upgrade; dust is the gate, so its cost has to be
+	sized against what a player actually earns. Two sources are modelled, both
+	read off the live tables rather than estimated:
+
+	  CHESTS   CHEST_CHANCE of blocks are a chest, and CHEST_LOOT gives the dust
+	           roll weight 2.2 out of 99.9 -- about 22 in every 1000 chests. The
+	           roll itself is zoneTier^2 * 120 * (0.6..1.6), so its mean is
+	           zoneTier^2 * 132.
+	  SALVAGE  every chest that pays a pack eventually pays cards, and scrapping
+	           them runs through salvageDust. Weight 70 of 99.9 chests.
+
+	NOT modelled: pulverize and quest payouts. Both are player-initiated rather
+	than per-block, so they do not belong in a per-hour rate that upgrade costs
+	are divided by -- counting them would size dust against income a player can
+	choose not to earn, and then the gate stops being a gate. The sim prints the
+	measured table so the omission is visible rather than buried.
+]]
+MineConfig.DUST_CHEST_ROLL_MEAN = 132  -- zoneTier^2 * 120 * mean(0.6..1.6)
+MineConfig.DUST_SALVAGE_PER_PACK = 0   -- filled in below if salvageDust resolves
+
+function MineConfig.chestLootShare(kind)
+	local tot, mine = 0, 0
+	for _, row in ipairs(MineConfig.CHEST_LOOT or {}) do
+		tot += (tonumber(row.weight) or 0)
+		if row.kind == kind then
+			mine += (tonumber(row.weight) or 0)
+		end
+	end
+	return (tot > 0) and (mine / tot) or 0
+end
+
+--[[
+	Which zone a player is standing in when an ore is its most common find.
+
+	An ore's home is a HARDNESS, and many zone/layer pairs reach it -- meadow
+	just has to go deeper. The home zone is therefore the EARLIEST zone that can
+	reach it, because that is where a player meets the ore first and where the
+	dust they are earning alongside it comes from.
+]]
+function MineConfig.oreHomeZoneIndex(tier)
+	local o = MineConfig.ORES[clampTier(tier)]
+	if not o then
+		return 1
+	end
+	local h = math.min(o.home or 0, MineConfig.oreDeepestHardness())
+	local meadowMax = MineConfig.oreDifficulty("meadow", 2500)
+	if h <= meadowMax then
+		return 1
+	end
+	local zi = math.ceil(h - meadowMax) + 1
+	return math.clamp(zi, 1, 10)
+end
+
+-- Dust per hour a strong player earns in a zone, from the two per-block sources.
+function MineConfig.dustPerHour(zoneIndex)
+	local zi = math.clamp(math.floor(tonumber(zoneIndex) or 1), 1, 10)
+	local chestsPerHour = MineConfig.ORE_RATE_STRONG * (MineConfig.CHEST_CHANCE or 0)
+	local fromRolls = chestsPerHour * MineConfig.chestLootShare("dust")
+		* (zi * zi * MineConfig.DUST_CHEST_ROLL_MEAN)
+	local fromSalvage = chestsPerHour * MineConfig.chestLootShare("pack")
+		* (MineConfig.DUST_SALVAGE_PER_PACK or 0)
+	return math.max(1, fromRolls + fromSalvage)
+end
+
+-- Dust per hour alongside a given ore, at that ore's home.
+function MineConfig.oreDustPerHour(tier)
+	return MineConfig.dustPerHour(MineConfig.oreHomeZoneIndex(tier))
+end
+
+--[[
+	The raw geometric series, and the rounding that makes it climb.
+
+	ceil() per level was what flat-lined the top tiers: once a level's true cost
+	is 0.3 ore, ceil makes it 1, and it stays 1 for dozens of levels while the
+	real curve quietly triples underneath. The cumulative floor fixes that
+	without a milestone hack --
+
+	    cost(L -> L+1) = floor(cum(L+1)) - floor(cum(L))
+
+	-- which is exact (the steps sum to the total, always), never negative, and
+	climbs naturally: a rare top-tier tool opens with a few dust-only levels,
+	then 1, 1, 2, and several ore a level by 100. The bench shows "dust only"
+	when a level's ore cost is 0.
+]]
+local function seriesBase(total, climb, steps)
+	local r = climb ^ (1 / math.max(1, steps - 1))
+	if math.abs(r - 1) < 1e-12 then
+		return total / steps, r
+	end
+	return total * (r - 1) / (r ^ steps - 1), r
+end
+
+local function cumAt(base, r, level)
+	if level <= 1 then
+		return 0
+	end
+	if math.abs(r - 1) < 1e-12 then
+		return base * (level - 1)
+	end
+	return base * (r ^ (level - 1) - 1) / (r - 1)
+end
+
+-- Ore and dust series for one tool, cached per tier+rank.
+local seriesCache = {}
+local function seriesFor(tier, rank)
+	local t = clampTier(tier)
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	local key = t * 16 + r
+	local hit = seriesCache[key]
+	if hit then
+		return hit
+	end
+	local steps = math.max(1, MineConfig.TOOL_MAX_LEVEL - 1)
+	local hours = MineConfig.toolHoursToMax(r)
+	local totalOre = MineConfig.oreSupplyPerHour(t) * hours
+	local totalDust = MineConfig.oreDustPerHour(t) * hours
+	local ob, orr = seriesBase(totalOre, MineConfig.TOOL_CLIMB_ORE, steps)
+	local db, dr = seriesBase(totalDust, MineConfig.TOOL_CLIMB_DUST, steps)
+	local row = { ob = ob, orr = orr, db = db, dr = dr, totalOre = totalOre, totalDust = totalDust }
+	seriesCache[key] = row
+	return row
+end
+MineConfig._oreSeriesFor = seriesFor
+
 -- Both anchor at 1 and only ever go UP. typeMult is the tool type's rarity
 -- weight (1 for a plain pickaxe); a rarer frame costs more per level.
 function MineConfig.toolCostMult(tier, typeMult)
@@ -2329,59 +2612,41 @@ function MineConfig.toolCostMult(tier, typeMult)
 	return (t ^ MineConfig.TOOL_COST_TIER) * (m ^ MineConfig.TOOL_COST_TYPE)
 end
 
--- What tier alone is worth, before any levelling.
+-- What tier alone is worth, before any levelling. Kept for the shop/chest
+-- ladders that still read it; ore tools go through toolPower above, which is
+-- anchored to the ore's home rock instead of a flat 6^(16*(t-1)/120) ramp.
 function MineConfig.toolTierPower(tier)
 	local t = clampTier(tier)
 	return 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / 120)
 end
 
-function MineConfig.toolPower(tier, level, typeMult)
-	local L = clampLevel(level)
-	return MineConfig.TOOL_DMG_BASE
-		* MineConfig.toolTierPower(tier)
-		* math.max(0.01, tonumber(typeMult) or 1)
-		* (MineConfig.TOOL_DMG_STEP ^ (L - 1))
-end
-
 -- Cost of the step from `level` to `level + 1`. Returns nil at the cap so a
 -- caller cannot accidentally charge for a level that does not exist.
-function MineConfig.toolUpgradeCost(tier, level, typeMult)
+function MineConfig.toolUpgradeCost(tier, level, rank)
 	local L = clampLevel(level)
 	if L >= MineConfig.TOOL_MAX_LEVEL then
 		return nil, nil
 	end
-	local mult = MineConfig.toolCostMult(tier, typeMult)
-	local ore = math.ceil(MineConfig.TOOL_ORE_BASE * (MineConfig.TOOL_ORE_GROW ^ (L - 1)) * mult)
-	local dust = math.ceil(MineConfig.TOOL_DUST_BASE * (MineConfig.TOOL_DUST_GROW ^ (L - 1)) * mult)
-	return ore, dust
+	local q = seriesFor(tier, rank)
+	local ore = math.floor(cumAt(q.ob, q.orr, L + 1)) - math.floor(cumAt(q.ob, q.orr, L))
+	local dust = math.floor(cumAt(q.db, q.dr, L + 1)) - math.floor(cumAt(q.db, q.dr, L))
+	return math.max(0, ore), math.max(0, dust)
 end
 
--- Everything poured in to reach `level` from 1. Geometric, so it stays exact
--- at level 1000 instead of drifting the way a loop would.
-function MineConfig.toolSpent(tier, level, typeMult)
+-- Everything poured in to reach `level` from 1. The same floor(cum(L)) the per
+-- level cost is built out of, so spent is exactly the sum of the steps charged
+-- -- which is what keeps toolRecycle honest at 50%.
+function MineConfig.toolSpent(tier, level, rank)
 	local L = clampLevel(level)
 	if L <= 1 then
 		return 0, 0
 	end
-	local mult = MineConfig.toolCostMult(tier, typeMult)
-	local ro, rd = MineConfig.TOOL_ORE_GROW, MineConfig.TOOL_DUST_GROW
-	local ore = math.ceil(MineConfig.TOOL_ORE_BASE * ((ro ^ (L - 1)) - 1) / (ro - 1) * mult)
-	local dust = math.ceil(MineConfig.TOOL_DUST_BASE * ((rd ^ (L - 1)) - 1) / (rd - 1) * mult)
-	return ore, dust
+	local q = seriesFor(tier, rank)
+	return math.floor(cumAt(q.ob, q.orr, L)), math.floor(cumAt(q.db, q.dr, L))
 end
 
---[[
-	Scrapping returns a flat cut of what was actually spent -- no tier falloff,
-	no type falloff, no level tax.
-
-	All of that machinery existed to stop a tool FOUND in a wall from being a
-	payout, because a found tool used to arrive at level 700 with a huge
-	notional build cost behind it. On this scale it arrives at level 1 with
-	nothing behind it, so the exploit is gone by construction and the rate can
-	be generous and legible instead of defensive.
-]]
-function MineConfig.toolRecycle(tier, level, typeMult)
-	local ore, dust = MineConfig.toolSpent(tier, level, typeMult)
+function MineConfig.toolRecycle(tier, level, rank)
+	local ore, dust = MineConfig.toolSpent(tier, level, rank)
 	local pct = MineConfig.TOOL_RECYCLE_PCT
 	return math.floor(ore * pct), math.floor(dust * pct)
 end
