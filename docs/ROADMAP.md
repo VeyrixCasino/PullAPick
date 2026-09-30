@@ -116,7 +116,11 @@ one alone is worse than today. Do not ship them piecemeal.
 
 ## Bugs and removals — cheap, do them in one pass
 
-- [ ] **Remove remote sell.** Broken, and coming back later by decision.
+- [x] ~~**Remove remote sell**~~ **done** — gone from all four sites: the
+  `bagGo` branch and standalone `sell` action, `VIP_REMOTE_SELL_CD` and
+  `remoteSellWait`, the sell-clock row in the client, and both VIP blurbs
+  that advertised it. SELL now always walks to the depot. Coming back later
+  by decision, not because the feature was wrong.
 - [ ] **Remove fossil packs.** 28 references.
 - [ ] **Remove pet slot 4.**
 - [ ] **Fix pet slots 2–3**, and render hats on pets.
