@@ -11,6 +11,23 @@ has to fund its own API bill.
 
 ---
 
+## Standing rule: every UI is mobile-first
+
+Most Roblox players are on a phone. So:
+
+- **Size in scale with a `UISizeConstraint`**, never in raw offsets. A fixed
+  460px panel is wider than a phone's safe area and gets clipped on exactly
+  the devices most players use.
+- **Anchor button rows to the bottom edge**, not a fixed `y`. Narrow screens
+  wrap body text to more lines, and a fixed offset pushes the buttons off.
+- **Give buttons scale widths** so a row always fits, and
+  `TextTruncate.AtEnd` so a long number cannot blow out a label.
+- **Tap targets ≥ 44px** on touch, and drop text a point or two — `UIS.TouchEnabled`
+  is the existing detection used throughout this client.
+- Existing examples to copy: `MineGradeReveal:508`, `MineClient:2117`.
+
+---
+
 ## The one rule that orders this list
 
 An economy dies from **missing sinks**, not from missing content. Coins have
@@ -107,8 +124,51 @@ one alone is worse than today. Do not ship them piecemeal.
   1.0–3.0.** Today the spread is 500×, which is why builds feel pointless: a
   committed skill build is worth 2–4× and a 500× term drowns it.
 - [ ] `shopPower(Z,r) = 5 · 2^(r-1) · 5^(Z-1)`
-- [ ] **Blocks/hour is unmeasured.** Every coin price scales off an assumed
-  2,000. Measure in Studio before any price is final.
+- [x] ~~**Blocks/hour is unmeasured**~~ **MEASURED 2026-09-29, live place,
+  Edit mode.** The real damage model is `dmg = tool.power × mineSpeed ×
+  dirtBreak` (`MineServer:5630`), and `PICKAXES` carries its own `power`
+  field — 1/2/3/5/8 — which is *not* `C.toolPower` (that is the ore curve).
+
+  **A fresh account does 429 blocks/hour, not 2,000.** Meadow layer 1, 20 HP
+  dirt, Wood pick power 1, `SWING_SEC` 0.42 → 20 swings a block.
+
+  | tool (power) | blocks/hr @ L1 |
+  |---|---|
+  | Wood (1) | 429 |
+  | Stone (2) | 857 |
+  | Iron (3) | 1,224 |
+  | Crystal (5) | 2,143 |
+  | Void (8) | 2,857 |
+
+  **And it collapses with depth.** Void pick, the 8,000-coin top rung:
+
+  | layer | block HP | swings | blocks/hr |
+  |---|---|---|---|
+  | 1 | 20 | 3 | 2,857 |
+  | 100 | 94 | 12 | 714 |
+  | 200 | 434 | 55 | 156 |
+  | 300 | 4,400 | 550 | 16 |
+  | 400 | 20,000 | 2,500 | 3 |
+  | 499 | 74,400 | 9,300 | **1** |
+
+  **There is no single honest blocks/hour under the current HP curve** — it
+  spans 2,857 to 1 inside one zone. Picking a number here would be inventing
+  one. The linear curve is what makes 2,000 hold at every depth, so this
+  measurement does not produce a constant to plug in; it produces a
+  precondition.
+
+- [ ] **The seam price is denominated in a currency the game does not use.**
+  Two compounding errors, both measured:
+  1. `seamPrice` assumes 2,000 blocks/hour; the real figure is 429.
+  2. `gateCoinValue` uses the *target* coin curve `(1+0.075L)^0.9`, but the
+     live game pays a **flat 3 coins a block** at every depth
+     (`coinsFor("dirt",1,1) = 3`).
+
+  Net: the first seam reads 14,428 coins, which is **673 minutes** for a
+  fresh account against a 30-minute design. Do not "fix" this by editing
+  `GATE_BLOCKS_PER_HOUR` — the price is derived, so it self-corrects the
+  moment the coin and HP curves land. Repricing it against today's broken
+  economics would mean repricing it twice.
 - [ ] **2⁵³ overflow.** `SECTIONS` authors layer 10040 at `9.3e18` — 1,033×
   over. The linear HP curve removes this; nothing else does.
 

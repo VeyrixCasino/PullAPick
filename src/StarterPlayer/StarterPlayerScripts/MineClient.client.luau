@@ -7398,39 +7398,62 @@ function ClientFns.confirmSeam(payload)
 		return
 	end
 	if not (ClientFns.seamMenu and ClientFns.seamMenu.Parent) then
+		--[[
+			MOBILE. Sized in SCALE with a UISizeConstraint, not in offsets.
+
+			A fixed 460px frame is wider than the safe area on a phone, so it
+			would have been clipped on exactly the devices most of this game's
+			players are on. Scale width plus a Max of 460 keeps the desktop look
+			and lets it shrink; the Min stops it collapsing to unreadable.
+
+			The button row is anchored to the BOTTOM of the frame rather than at
+			a fixed y, so a taller body on a narrow screen -- where the text
+			wraps to more lines -- pushes nothing off the card.
+		]]
+		local touch = UIS.TouchEnabled
 		local f = mk("Frame", {
 			Name = "ConfirmSeam", AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.44), Size = UDim2.fromOffset(460, 260),
+			Position = UDim2.fromScale(0.5, 0.44),
+			Size = UDim2.new(0.88, 0, 0, touch and 292 or 268),
 			BackgroundColor3 = Color3.fromRGB(46, 52, 78), ZIndex = 90,
 		}, gui)
+		mk("UISizeConstraint", {
+			MinSize = Vector2.new(288, 244), MaxSize = Vector2.new(460, 320),
+		}, f)
 		ClientFns.seamMenu = f
 		round(f, 18)
 		stroke(f, 2)
 		ClientFns.seamTitle = mk("TextLabel", {
-			BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 22),
-			Size = UDim2.new(1, 0, 0, 32), Font = FONT, TextSize = 24,
+			BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 20),
+			Size = UDim2.new(1, -24, 0, 34), Font = FONT, TextSize = touch and 21 or 24,
 			TextColor3 = Color3.fromRGB(255, 255, 255), TextStrokeTransparency = 1,
+			TextTruncate = Enum.TextTruncate.AtEnd,
 			Text = "", ZIndex = 91,
 		}, f)
 		ClientFns.seamBody = mk("TextLabel", {
-			BackgroundTransparency = 1, Position = UDim2.fromOffset(24, 62),
-			Size = UDim2.new(1, -48, 0, 86), Font = FONT_M, TextSize = 14,
+			BackgroundTransparency = 1, Position = UDim2.new(0.06, 0, 0, 58),
+			Size = UDim2.new(0.88, 0, 1, -128), Font = FONT_M, TextSize = touch and 13 or 14,
 			TextColor3 = Color3.fromRGB(212, 216, 232), TextWrapped = true,
 			TextYAlignment = Enum.TextYAlignment.Top, Text = "", ZIndex = 91,
 		}, f)
+		-- Anchored to the bottom edge, so wrapping never shoves the buttons off.
 		local row = mk("Frame", {
-			BackgroundTransparency = 1, Position = UDim2.fromOffset(24, 160),
-			Size = UDim2.new(1, -48, 0, 46), ZIndex = 91,
+			BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -18),
+			Size = UDim2.new(0.88, 0, 0, touch and 48 or 44), ZIndex = 91,
 		}, f)
 		mk("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			Padding = UDim.new(0, 12),
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 10),
 		}, row)
+		-- Scale widths: the pair always fits, down to a 288px card.
 		ClientFns.seamBuy = mk("TextButton", {
 			AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(96, 190, 104),
-			Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(12, 24, 16),
-			Text = "", Size = UDim2.fromOffset(200, 42), ZIndex = 92,
+			Font = FONT, TextSize = touch and 15 or 16, TextColor3 = Color3.fromRGB(12, 24, 16),
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Text = "", Size = UDim2.new(0.58, -5, 1, 0), ZIndex = 92,
 		}, row)
 		round(ClientFns.seamBuy, 9)
 		ClientFns.seamBuy.MouseButton1Click:Connect(function()
@@ -7442,8 +7465,9 @@ function ClientFns.confirmSeam(payload)
 		end)
 		local back = mk("TextButton", {
 			AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(70, 74, 96),
-			Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(238, 240, 248),
-			Text = "Not yet", Size = UDim2.fromOffset(160, 42), ZIndex = 92,
+			Font = FONT, TextSize = touch and 15 or 16, TextColor3 = Color3.fromRGB(238, 240, 248),
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Text = "Not yet", Size = UDim2.new(0.42, -5, 1, 0), ZIndex = 92,
 		}, row)
 		round(back, 9)
 		back.MouseButton1Click:Connect(function()
