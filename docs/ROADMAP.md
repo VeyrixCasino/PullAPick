@@ -57,19 +57,47 @@ to the depth axis rewrites every ore's rarity at once. Report numbers and stop.
 
 ## The redesign
 
-### Breaking power — a new axis, not damage
+### Breaking power — a hard wall, not a stat
 
-- [ ] **Breaking power gates WHAT you can break; damage decides HOW FAST.**
-  Two separate numbers on a tool.
-  - Every **layer** has a breaking-power requirement.
-  - Every **ore** has its own breaking-power requirement.
-  - Below the requirement the block does not yield, however much damage you do.
+- [ ] **Breaking power decides WHETHER you can damage a block at all. Damage
+  decides how fast.** They are unrelated numbers.
 
-  Why this matters structurally: it is a *hard* gate on a bounded ladder, so it
-  can carry depth and ore access without the runaway that a multiplicative
-  damage term causes. It also replaces depth-based ore rarity as the thing that
-  stops a new player reaching exotic ore — which is exactly the job `ORE_DMAX`
-  is doing badly above.
+  - Every **block** and every **ore** carries a **strength**.
+  - A tool damages it only if `blockStrength <= tool.breakingPower`.
+  - Otherwise **zero** damage — a tool with 1,000 damage and insufficient
+    breaking power physically cannot scratch the block.
+  - Red text by the hotbar: **"Your tool is too weak to damage this block"**.
+
+- [ ] **Breaking power CANNOT be upgraded.** Only damage can. Breaking power is
+  a property of the tool you crafted — which ore it is made of. That is what
+  forces progression: you cannot grind your way past a wall, you must go and
+  make a better tool out of better ore.
+
+  Why this is the right shape: it is a **step gate on a bounded ladder**, so it
+  can carry depth and ore access with no runaway. Every previous attempt used a
+  *multiplicative* term on an ungated axis, which is what produced the 561×
+  overpowered pickaxe. A wall cannot compound.
+
+  It also takes the gating job away from ore rarity — which is exactly the job
+  `ORE_DMAX` is currently doing badly. **Do breaking power before re-tuning the
+  d-ladder**, so rarity can be retuned to something gentle rather than being
+  the sole gate.
+
+### Runes — total overhaul
+
+The 2%–0.5% per-ore rate moves here. Runes are the ore-specific drop; tools are
+crafted, not found.
+
+- [ ] **Runes are for TOOLS only.** Everything else loses rune sockets — pets,
+  gear, all of it.
+- [ ] **Ore-specific.** Each ore has its own rune, dropping at that ore's own
+  rate, **2% down to 0.5%** across the roster.
+- [ ] **Rarity F → SSS**, a wide spread.
+- [ ] **One rune slot per tool.** Exactly one.
+- [ ] **Binding is permanent.** A bound rune cannot be removed — only destroyed.
+  This is the sink: every rune bound is a rune consumed, and re-rolling a build
+  costs you the rune.
+- [ ] **Presented like charms** in the UI, but the effect is a tool buff.
 
 ### Ore, crafting and upgrades
 
@@ -111,28 +139,35 @@ to the depth axis rewrites every ore's rarity at once. Report numbers and stop.
 
 - [ ] **Your pickaxe and all equipment survive rebirth.** Rebirth stops being a
   wipe.
-- [ ] **Zones become coin-purchased**, not prestige-gated.
-- [ ] **Rebirth grants a coin-value increase** instead.
+- [ ] **Zones become coin-purchased.**
+- [ ] **The nine prestige gates STAY.** Rebirth is not retired.
+- [ ] **Rebirth grants a coin-value increase.**
+- [ ] **The dirt price boost applies only BELOW each zone gate.** The zone's
+  upper reaches pay base rate; the boost starts under the gate. So depth pays
+  because you bought through the gate, not because the layer number is large —
+  which is what keeps depth from substituting for breadth without needing a
+  tuned exponent to hold it back.
 - [ ] **Therefore soften the zone and depth coin multipliers.** Rebirth now
-  carries income growth, so the ×5 zone term and the depth term can both come
-  down. This is the lever that fixes "depth substitutes for breadth" at the
-  root rather than by tuning an exponent.
-  *Note:* zone coin prices and seam prices are derived, so they re-price
-  themselves once the multipliers move. Do not hardcode.
+  carries income growth, so the ×5 zone term and the depth term both come down.
+  *Note:* zone prices and seam prices are derived, so they re-price themselves
+  once the multipliers move. Do not hardcode.
 
----
+### The Forge (was the Blacksmith)
 
-## Open questions — need your answer
-
-1. **Does the 2%–0.5% per-ore tool drop still apply** now that tools are
-   crafted from ore? Crafting and dropping are two different acquisition
-   models; having both is fine, but the drop rate stops being load-bearing.
-2. **Breaking power: what provides it?** Tool tier, a separate upgrade track,
-   or skills? And does it gate the *layer* (cannot mine here at all) or just
-   the *ore* (rock breaks, ore does not yield)?
-3. **Zones coin-priced — what happens to the 9 existing prestige gates?** Are
-   they removed, or does rebirth stay as a parallel track that only sells coin
-   value now?
+- [ ] **Rename Blacksmith → Forge** throughout.
+- [ ] **Keep the 3D display exactly as it is.** The full-screen stage, camera
+  framing and plinth all stay; this is a menu change around them.
+- [ ] **Scroll a vertical recipe list** to pick which tool to craft.
+- [ ] **Only discovered ores appear.** An undiscovered ore must not leak its
+  existence through the recipe list — that is a server-side filter, not a
+  client-side hide.
+- [ ] **Each recipe shows the ore cost** to make that tool.
+- [ ] **A separate Upgrades area**, which is also where **runes and skins** get
+  applied.
+- [ ] **The whole inventory shows here**, bag included.
+- [ ] **Bag upgrades cost gems and are PERMANENT** — they survive rebirth.
+  *Note:* bag rungs already price in gems (`100 × 1.08^x`), so the change is
+  permanence, not currency.
 
 ---
 
