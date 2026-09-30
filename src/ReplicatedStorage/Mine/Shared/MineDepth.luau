@@ -5,7 +5,8 @@
 
 local MineDepth = {}
 
-MineDepth.ZONE_HP_MULT = 6
+MineDepth.ZONE_HP_MULT = 5 -- x5 per zone. Ten zones is a bounded set, so a
+-- geometric zone term is safe; depth is unbounded, so its term is linear.
 -- Outposts every 500 to 3000, then every 1000 to 10000. The widening is
 -- deliberate: 500 layers is a shorter and shorter stretch of progress the deeper
 -- you go, so past 3000 the same effort buys one outpost instead of two.
@@ -287,9 +288,32 @@ function MineDepth.sectionNumber(layer)
 	return MineDepth.sectionIndex(layer) + 1
 end
 
+--[[
+	BLOCK HP IS A STRAIGHT LINE.
+
+	    dirtHp(Z, L) = (HP_BASE + HP_PER_LAYER * L) * ZONE_HP_MULT^(Z-1)
+
+	It used to be read off SECTIONS, which multiplied by 2.1495 every 40 layers
+	-- x432 across 320 layers and roughly 1e80 by layer 10,000. SECTIONS still
+	authors Terminus at 9.3e18, which is 1,033x past 2^53, so damage arithmetic
+	was losing precision inside the reachable game. Linear tops out at 29.3
+	billion in Primordium at layer 10,000, leaving 307,000x of headroom under
+	2^53 and needing no big-number type.
+
+	Depth is unbounded, so nothing indexed by it may be geometric. Zones are a
+	fixed set of ten, so x5 per zone is safe.
+
+	SECTIONS IS NOT DELETED. Its 138 rows keep their names, layer ranges and
+	bands, which is what the depth UI, the desks and the plaza signs read. The
+	bands stay a SIGN CONVENTION -- what the marker at the zone mouth quotes --
+	and stop being the mechanic. Only `dirtHp` moved.
+]]
+MineDepth.HP_BASE = 20
+MineDepth.HP_PER_LAYER = 1.5
+
 function MineDepth.meadowDirtHp(layer)
-	local s = MineDepth.sectionFor(layer)
-	return math.max(1, math.floor(s.dirtHp + 0.5))
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	return MineDepth.HP_BASE + MineDepth.HP_PER_LAYER * layer
 end
 
 function MineDepth.zoneMult(zoneIndex)
@@ -298,15 +322,23 @@ function MineDepth.zoneMult(zoneIndex)
 end
 
 function MineDepth.dirtHp(zoneIndex, layer)
-	-- Every zone is tougher than the old curve (x2), then snapped up
-	-- onto the abbreviation so the label and the block are the same number.
-	local raw = MineDepth.meadowDirtHp(layer) * MineDepth.zoneMult(zoneIndex) * 2
-	local ok, Ab = pcall(function()
-		return require(script.Parent:WaitForChild("MineAbbrev"))
-	end)
-	if ok and Ab and Ab.ceil then
-		return math.max(1, Ab.ceil(raw))
-	end
+	--[[
+		No abbreviation snapping, and no x2.
+
+		The x2 belonged to the old SECTIONS numbers; the linear curve is already
+		stated in final units, so doubling it would just be a fifth constant
+		doing nothing the other four do not.
+
+		The snap is the more important removal. MineAbbrev.ceil rounds to one
+		decimal of the magnitude above 1,000, so HP would sit FLAT for about
+		sixty layers and then jump ten percent. Coin value is smooth per layer,
+		so a stepped HP makes coins-per-HP sawtooth, and the best place in the
+		game becomes the layer just before a step. Smooth per layer is an
+		invariant; matching the on-screen label is a nicety, and the label is
+		still abbreviated for display -- it just rounds the number rather than
+		the number rounding itself to suit the label.
+	]]
+	local raw = MineDepth.meadowDirtHp(layer) * MineDepth.zoneMult(zoneIndex)
 	return math.max(1, math.floor(raw + 0.5))
 end
 
