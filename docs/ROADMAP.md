@@ -62,8 +62,16 @@ to the depth axis rewrites every ore's rarity at once. Report numbers and stop.
 - [x] ~~**Breaking power decides WHETHER you can damage a block at all**~~
   **CORE DONE, unshot** — `MineBreaking.luau`, gated server-side in the swing
   path before damage is computed, red hotbar warning on the client. Shop picks
-  BP 1-5 reach layers 1-500, landing exactly on the first zone gate; forged
-  tools carry BP equal to their ore strength, tier 82 reaching layer 10,000.
+  BP 1-5, and ZONE COSTS A RUNG TOO: Stone (BP 2) works in zones 1-2 and is
+  dead at zone 3, which is the anchor the step of 1 was solved from. Void
+  still reaches layer 500 in zone 1. MAX derives to 109 and Oganesson at BP
+  109 reaches zone 10 layer 10,000 exactly -- the top of the roster IS the
+  mine floor.
+
+  **Consequence:** no shop tool can enter zones 6-10 (surfaces need BP 6+,
+  shop caps at 5), so forging is mandatory past zone 5. A tier-5 ore tool
+  clears it, so the requirement is cheap -- but zone PRICE and tool
+  progression must stay in step or someone buys a zone they cannot swing in.
   A Wood pick cannot touch Oganesson even at layer 1, so breaking power
   BACKSTOPS the ORE_DMAX regression. Still to do: put BP on the tool UI, and
   stamp it at craft time once forging exists.

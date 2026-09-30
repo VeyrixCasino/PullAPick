@@ -41,12 +41,33 @@
 
 local MineBreaking = {}
 
--- 100 rungs across the whole game. Small integers so the number on a tool and
--- the number on a block can be compared by eye, and so "too weak" is legible.
-MineBreaking.MAX = 100
-
--- One rung per this many layers. 10,000 layers / 100 = rung per 100 layers.
+-- One rung per this many layers.
 MineBreaking.LAYERS_PER_RUNG = 100
+
+--[[
+	ZONE COSTS A RUNG. Anchored on one requirement: a Stone pickaxe must be
+	completely unusable by zone 3.
+
+	Stone is BP 2, so zone 3's surface must need at least 3 while zone 2's still
+	needs at most 2. That pins the step to exactly 1 -- there is no other
+	integer that satisfies both.
+
+	The consequence is deliberate and worth stating: entering a zone now needs
+	a TOOL, not just the coins for it. Zone purchase stops being a pure coin
+	gate. That is the point -- it stops a player buying their way sideways past
+	the forge -- but it does mean zone price and tool progression have to stay
+	in step, or someone owns a zone they cannot swing in.
+]]
+MineBreaking.ZONE_STEP = 1
+MineBreaking.ZONES = 10
+MineBreaking.MAX_LAYER = 10000
+
+-- Derived, not hardcoded: the top of the ladder is exactly what the deepest
+-- layer of the last zone demands, so the best ore tool reaches the mine floor
+-- and nothing above it is unreachable or wasted.
+MineBreaking.MAX = 1
+	+ (MineBreaking.ZONES - 1) * MineBreaking.ZONE_STEP
+	+ math.floor((MineBreaking.MAX_LAYER - 1) / MineBreaking.LAYERS_PER_RUNG)
 
 -- Shop picks are the bottom of the ladder. Five rungs, and deliberately only
 -- enough to reach the first few hundred layers: the shop takes you sideways,
@@ -58,15 +79,19 @@ local function clampInt(n, lo, hi)
 	return math.clamp(n, lo, hi)
 end
 
--- Strength of plain rock at a depth. Steps every LAYERS_PER_RUNG layers.
+-- Strength of plain rock at a place. Steps once per zone and once per
+-- LAYERS_PER_RUNG layers, so depth and breadth each cost rungs.
 --
--- Deliberately NOT zone-scaled. Zone difficulty already lives in block HP
--- (x5 per zone); adding it here too would mean a zone-10 surface block was
--- unbreakable by a tool that clears a zone-1 surface block, which would make
--- buying a zone a wall rather than a choice.
-function MineBreaking.layerStrength(layer)
+-- Zone is ADDED, not multiplied. A multiplied zone term would make zone 10's
+-- surface need ~10x zone 1's, so a tool good enough for the last zone would
+-- trivialise every layer of the first; adding keeps one shared ladder where
+-- every rung means the same thing wherever you are standing.
+function MineBreaking.layerStrength(zoneIndex, layer)
+	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
 	layer = math.max(1, math.floor(tonumber(layer) or 1))
-	local rung = 1 + math.floor((layer - 1) / MineBreaking.LAYERS_PER_RUNG)
+	local rung = 1
+		+ (zoneIndex - 1) * MineBreaking.ZONE_STEP
+		+ math.floor((layer - 1) / MineBreaking.LAYERS_PER_RUNG)
 	return clampInt(rung, 1, MineBreaking.MAX)
 end
 
@@ -88,7 +113,7 @@ end
 	and "what it is".
 ]]
 function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
-	local byLayer = MineBreaking.layerStrength(layer)
+	local byLayer = MineBreaking.layerStrength(zoneIndex, layer)
 	if oreTier == nil then
 		return byLayer
 	end
