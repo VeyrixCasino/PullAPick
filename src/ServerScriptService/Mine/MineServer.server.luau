@@ -2636,7 +2636,6 @@ local function snap(plr)
 		equippedBag = p.equippedBag,
 		coinDouble = p.coinDouble and true or false,
 		autoMineLicense = p.autoMineLicense and true or false,
-		remoteSellWait = C.remoteSellWait and C.remoteSellWait(p) or 0,
 		vipSeats = vipSeatsLeft,
 		vipPrice = Packs.VIP_PRICE,
 		vipRobux = Packs.VIP_ROBUX or C.FOUNDERS_ROBUX or 999,
@@ -13813,23 +13812,12 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "throwAt" then throwAt(plr, payload)
 		elseif action == "bagGo" then
-			if payload == "sell" and hasVipPass(plr) then
-				local p = profiles[plr.UserId]
-				local wait = C.remoteSellWait and C.remoteSellWait(p) or 0
-				if wait > 0 then
-					net:FireClient(plr, "toast", "Remote sell ready in " .. math.ceil(wait) .. "s")
-				else
-					if p then p.remoteSellAt = os.clock() end
-					sellAll(plr)
-				end
-			else
-				local go = (payload == "shop") and "shop" or "sell"
-				gotoStation(plr, go)
-				-- A button labelled SELL has to sell. gotoStation only walked you to
-				-- the pad and returned, leaving the prompt still to be pressed.
-				if go == "sell" then
-					sellAll(plr)
-				end
+			local go = (payload == "shop") and "shop" or "sell"
+			gotoStation(plr, go)
+			-- A button labelled SELL has to sell. gotoStation only walked you to
+			-- the pad and returned, leaving the prompt still to be pressed.
+			if go == "sell" then
+				sellAll(plr)
 			end
 		elseif action == "afkStart" then
 			Verbs.Afk.start(plr)
@@ -13841,20 +13829,9 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				Verbs.Afk.refreshSession(plr)
 			end
 		elseif action == "sell" then
-			if hasVipPass(plr) then
-				local p = profiles[plr.UserId]
-				local wait = C.remoteSellWait and C.remoteSellWait(p) or 0
-				if wait > 0 then
-					net:FireClient(plr, "toast", "Remote sell ready in " .. math.ceil(wait) .. "s")
-				else
-					if p then p.remoteSellAt = os.clock() end
-					sellAll(plr)
-				end
-			else
-				gotoStation(plr, "sell")
-				-- Same here: arrive AND sell.
-				sellAll(plr)
-			end
+			gotoStation(plr, "sell")
+			-- Same here: arrive AND sell.
+			sellAll(plr)
 		elseif action == "open" then openFrom(plr)
 		elseif action == "openAt" then openAt(plr, payload)
 		elseif action == "openMany" then openMany(plr, payload)

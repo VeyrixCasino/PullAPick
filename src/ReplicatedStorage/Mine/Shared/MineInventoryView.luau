@@ -5601,7 +5601,7 @@ function MineInventoryView.mount(parent, opts)
 				{ tab = "limited", title = "Lucky Blocks", sub = "Tap to open · grade them up for bigger loot", cta = "SEE", col = Color3.fromRGB(255, 200, 70), icons = { "lucky_block", "super_lucky_block", "godly_lucky_block" } },
 				{ tab = "box", title = "Build a Box", sub = "Any 10 packs you like · 12% off", cta = "BUILD", col = TEAL, icons = { "chest" } },
 				{ tab = "currencies", title = "Credits", sub = "Top up once, spend anywhere in the shop", cta = "TOP UP", col = GREEN, icons = { "credit_crate" } },
-				{ tab = "vip", title = "VIP & Founders", sub = "Remote sell, extra pet seat, Founders bag", cta = "VIEW", col = AMBER, icons = { "logo" } },
+				{ tab = "vip", title = "VIP & Founders", sub = "Extra pet seat, Founders bag", cta = "VIEW", col = AMBER, icons = { "logo" } },
 				{ tools = true, title = "Tools & Backpacks", sub = "The blacksmith's counter", cta = "OPEN", col = T.GOLD or GOLD, icons = { "pickaxe", "backpack" } },
 			}
 			for i, d in ipairs(doors) do
@@ -6429,7 +6429,7 @@ function MineInventoryView.mount(parent, opts)
 				local card = panelRow(body, 120, 0)
 				label(card, vipOwned and "VIP  -  OWNED" or "VIP PASS",
 					18, vipOwned and GREEN or GOLD, UDim2.fromOffset(16, 10), UDim2.new(1, -40, 0, 24), FONT)
-				label(card, "Remote sell (75s)  |  extra pet seat  |  +50% AFK coins  |  1 AFK gem/tick  |  [VIP] name",
+				label(card, "Extra pet seat  |  +50% AFK coins  |  1 AFK gem/tick  |  [VIP] name",
 					12, MUTED, UDim2.fromOffset(16, 38), UDim2.new(1, -40, 0, 36))
 				if not vipOwned then
 					local buy = mk("TextButton", {

@@ -477,7 +477,7 @@ function MineConfig.isProgressionZone(zone)
 	return zone ~= nil and not zone.limited
 end
 MineConfig.POWER_DUST = 25
--- VIP gamepass (Remote Sell): 10% better stardust + credits prices.
+-- VIP gamepass: 10% better stardust + credits prices.
 MineConfig.VIP_GAMEPASS_ID = 1977363670
 MineConfig.VIP_PRICE_MULT = 0.9
 MineConfig.VIP_PAYOUT_MULT = 1.1

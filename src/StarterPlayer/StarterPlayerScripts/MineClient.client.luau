@@ -6146,7 +6146,7 @@ function ClientFns.sellClockText(kind, left, full)
 		return string.format("Auto-sell in %s  -  %s", mmss,
 			full and "bag is full, it will cash" or "only cashes when full")
 	end
-	return (left > 0) and ("Remote sell ready in " .. mmss) or "Sell here (VIP remote sell)"
+	return "Sell at the depot"
 end
 
 function ClientFns.sellClockLoop()
@@ -6186,29 +6186,13 @@ local function refreshBag()
 		return
 	end
 	rowBtn(bagP.Body, string.format("%d / %d slots    %s", snap.load or 0, snap.cap or 12, snap.pickName or "Wood Pickaxe"), function() end)
-	--[[
-		Both sell clocks, where the bag is.
-
-		VIP remote sell has a cooldown and the Wormhole Bag cashes itself on a
-		timer -- neither was visible anywhere, so both read as the button simply
-		not working. The rows hold a deadline rather than a rendered string,
-		because the snapshot is event-driven and a number painted once would sit
-		frozen on whatever second the panel happened to open on.
-	]]
+	-- The sell button always routes to the depot; only auto-sell has a clock.
 	ClientFns.sellClockLoop()
 	local st = { full = (tonumber(snap.load) or 0) >= (tonumber(snap.cap) or math.huge) }
 	ClientFns.sellClock = st
-	if snap.vip then
-		local wait = tonumber(snap.remoteSellWait) or 0
-		st.sellAt = os.clock() + wait
-		st.sellBtn = rowBtn(bagP.Body, ClientFns.sellClockText("vip", wait), function()
-			net:FireServer("sell")
-		end)
-	else
-		rowBtn(bagP.Body, "Walk onto the depot pad to sell", function()
-			net:FireServer("sell")
-		end)
-	end
+	rowBtn(bagP.Body, "Sell at the depot", function()
+		net:FireServer("sell")
+	end)
 	if snap.autoSellSec then
 		st.autoSec = tonumber(snap.autoSellSec)
 		local left = tonumber(snap.autoSellLeft) or st.autoSec

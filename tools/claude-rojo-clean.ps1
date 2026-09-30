@@ -45,13 +45,16 @@ try {
 	if ($useApiKey) {
 		$env:ANTHROPIC_BASE_URL = $apiBaseUrl.TrimEnd('/')
 		$env:ANTHROPIC_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPointer)
+	} else {
+		Remove-Item Env:ANTHROPIC_BASE_URL -ErrorAction SilentlyContinue
+		Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
+		Remove-Item Env:ANTHROPIC_AUTH_TOKEN -ErrorAction SilentlyContinue
 	}
 
 	$exportDirectory = Join-Path $PSScriptRoot "export\in"
 	New-Item -ItemType Directory -Path $exportDirectory -Force | Out-Null
-	$sessionSettings = @{ env = @{ ANTHROPIC_BASE_URL = $apiBaseUrl.TrimEnd('/') } } | ConvertTo-Json -Compress
 
-	claude --settings $sessionSettings --add-dir $exportDirectory
+	claude --add-dir $exportDirectory
 }
 finally {
 	foreach ($name in $anthropicVariables) {

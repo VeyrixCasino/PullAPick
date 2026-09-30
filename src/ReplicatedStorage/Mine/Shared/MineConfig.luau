@@ -565,7 +565,7 @@ function MineConfig.isProgressionZone(zone)
 end
 MineConfig.POWER_DUST = 25
 -- VIP gamepass. No shop discount, bag, walk, or luck.
--- Perks: remote sell (cooldown), +1 pet seat, AFK coins/gems, [VIP] tag.
+-- Perks: +1 pet seat, AFK coins/gems, [VIP] tag.
 MineConfig.VIP_GAMEPASS_ID = 1977363670
 MineConfig.VIP_PRICE_MULT = 1
 MineConfig.VIP_PAYOUT_MULT = 1
@@ -573,7 +573,6 @@ MineConfig.VIP_NAME_PREFIX = "[VIP] "
 MineConfig.FOUNDERS_NAME_PREFIX = "[Founder] "
 MineConfig.VIP_AFK_MULT = 1.50
 MineConfig.VIP_AFK_GEMS = 1
-MineConfig.VIP_REMOTE_SELL_CD = 75
 -- Paste Creator Dashboard ids when the passes exist. 0 = credits-only / hidden Robux.
 MineConfig.COIN_DOUBLE_GAMEPASS_ID = 0
 MineConfig.COIN_DOUBLE_ROBUX = 299
@@ -655,11 +654,6 @@ function MineConfig.itemSlotPrice(p)
 	return math.floor(MineConfig.ITEM_SLOT_GEM_BASE * (MineConfig.ITEM_SLOT_GEM_RATE ^ x) + 0.5)
 end
 
-function MineConfig.remoteSellWait(p)
-	local cd = tonumber(MineConfig.VIP_REMOTE_SELL_CD) or 75
-	local last = tonumber(p and p.remoteSellAt) or 0
-	return math.max(0, cd - (os.clock() - last))
-end
 -- Founders Pack (limited membership). Dashboard: swap list to R$999.
 -- Credits face 1000 — Vault (1200 cr / R$749) leaves ~200 cr after buying Founders.
 MineConfig.FOUNDERS_GAMEPASS_ID = 1982786367
