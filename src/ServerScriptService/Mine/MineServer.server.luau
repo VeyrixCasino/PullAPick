@@ -50,6 +50,7 @@ local Dig = {
 	Auth = require(script.Parent:WaitForChild("MineDigAuth")),
 	Shop = require(shared:WaitForChild("MineDepthShop")),
 	Plazas = require(script.Parent:WaitForChild("MineDepthPlazas")),
+	Breaking = require(shared:WaitForChild("MineBreaking")),
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
@@ -5626,6 +5627,39 @@ local function swingBlock(plr, part)
 		end
 	else
 		p.lastDigAt = nowDig
+	end
+	--[[
+		BREAKING POWER. Zero damage, not reduced damage.
+
+		This sits BEFORE dmg is computed, and returns rather than scaling, on
+		purpose. Anything that let a fraction through would mean a wall could be
+		ground past given enough swings, which is the whole thing breaking power
+		exists to prevent.
+
+		Server-side and attribute-driven: the tier comes off the block the
+		generator stamped (OreTier), never from the client, so a forged request
+		cannot claim a soft block. The tool is the one the server has the player
+		holding, not one they named.
+	]]
+	do
+		local layer = tonumber(part:GetAttribute("CY") or part:GetAttribute("Layer")) or 1
+		local zi = (C.zoneIndex and C.zoneIndex(part:GetAttribute("ZoneId") or p.zoneId)) or 1
+		local oreTier = tonumber(part:GetAttribute("OreTier"))
+		local okBreak, need, have = Dig.Breaking.canBreak(tool, zi, layer, oreTier, #C.ORES)
+		if not okBreak then
+			-- Throttled: a player holding the button swings into the wall ten
+			-- times a second and only needs telling once.
+			local nowWeak = os.clock()
+			if (nowWeak - (tonumber(p._tooWeakAt) or 0)) > 1.2 then
+				p._tooWeakAt = nowWeak
+				net:FireClient(plr, "tooWeak", {
+					need = need,
+					have = have,
+					ore = part:GetAttribute("OreName"),
+				})
+			end
+			return
+		end
 	end
 	local dmg = tool.power or 1
 	do

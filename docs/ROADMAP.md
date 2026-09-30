@@ -59,8 +59,14 @@ to the depth axis rewrites every ore's rarity at once. Report numbers and stop.
 
 ### Breaking power — a hard wall, not a stat
 
-- [ ] **Breaking power decides WHETHER you can damage a block at all. Damage
-  decides how fast.** They are unrelated numbers.
+- [x] ~~**Breaking power decides WHETHER you can damage a block at all**~~
+  **CORE DONE, unshot** — `MineBreaking.luau`, gated server-side in the swing
+  path before damage is computed, red hotbar warning on the client. Shop picks
+  BP 1-5 reach layers 1-500, landing exactly on the first zone gate; forged
+  tools carry BP equal to their ore strength, tier 82 reaching layer 10,000.
+  A Wood pick cannot touch Oganesson even at layer 1, so breaking power
+  BACKSTOPS the ORE_DMAX regression. Still to do: put BP on the tool UI, and
+  stamp it at craft time once forging exists.
 
   - Every **block** and every **ore** carries a **strength**.
   - A tool damages it only if `blockStrength <= tool.breakingPower`.

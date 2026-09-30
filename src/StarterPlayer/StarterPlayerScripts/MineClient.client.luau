@@ -7368,6 +7368,67 @@ function ClientFns.confirmRebirth()
 end
 
 --[[
+	"YOUR TOOL IS TOO WEAK TO DAMAGE THIS BLOCK"
+
+	Breaking power is a wall, and a wall that does not explain itself reads as
+	the game being broken -- you swing, the number never moves, nothing says
+	why. So this has to be immediate and unmissable, and it has to name what
+	would fix it.
+
+	Sits bottom-centre above Roblox's hotbar, since this game has no custom one.
+	One label, reused and re-shown rather than rebuilt: the server throttles to
+	1.2s but a wall is something players hammer at, and churning a frame per
+	swing during a dig loop drops frames.
+
+	Sized in scale with a UISizeConstraint, per the mobile rule -- and lifted
+	further up on touch, where Roblox's hotbar is taller and would cover it.
+]]
+function ClientFns.tooWeak(payload)
+	local need = tonumber(type(payload) == "table" and payload.need) or 0
+	local have = tonumber(type(payload) == "table" and payload.have) or 0
+	local ore = type(payload) == "table" and payload.ore or nil
+	local touch = UIS.TouchEnabled
+	if not (ClientFns.weakLabel and ClientFns.weakLabel.Parent) then
+		local f = mk("Frame", {
+			Name = "TooWeak", AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, touch and -156 or -98),
+			Size = UDim2.new(0.9, 0, 0, touch and 34 or 30),
+			BackgroundColor3 = Color3.fromRGB(28, 10, 12),
+			BackgroundTransparency = 0.25, ZIndex = 88, Visible = false,
+		}, gui)
+		mk("UISizeConstraint", { MinSize = Vector2.new(200, 26), MaxSize = Vector2.new(560, 40) }, f)
+		round(f, 8)
+		ClientFns.weakLabel = f
+		ClientFns.weakText = mk("TextLabel", {
+			BackgroundTransparency = 1, Size = UDim2.new(1, -16, 1, 0),
+			Position = UDim2.fromOffset(8, 0),
+			Font = FONT, TextSize = touch and 14 or 15,
+			TextColor3 = Color3.fromRGB(255, 96, 96), TextStrokeTransparency = 0.4,
+			TextTruncate = Enum.TextTruncate.AtEnd, Text = "", ZIndex = 89,
+		}, f)
+	end
+	-- Name the ore when it is the ore that is blocking, not the depth. Telling
+	-- someone "too weak" while they stand somewhere they can already mine is
+	-- confusing unless it says which rock refused.
+	local msg = "Your tool is too weak to damage this block"
+	if ore and need > have then
+		msg = ("%s needs breaking power %d — yours is %d"):format(tostring(ore), need, have)
+	elseif need > have then
+		msg = ("Too weak: this depth needs breaking power %d — yours is %d"):format(need, have)
+	end
+	ClientFns.weakText.Text = msg
+	ClientFns.weakLabel.Visible = true
+	-- Token so an earlier hide cannot cancel a later show.
+	ClientFns.weakToken = (ClientFns.weakToken or 0) + 1
+	local mine = ClientFns.weakToken
+	task.delay(2.2, function()
+		if ClientFns.weakToken == mine and ClientFns.weakLabel then
+			ClientFns.weakLabel.Visible = false
+		end
+	end)
+end
+
+--[[
 	THE SEAM GATE.
 
 	Depth is bought, and this is where it is bought. It opens on the refusal
@@ -10629,6 +10690,8 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		end
 	elseif action == "seamGate" then
 		ClientFns.confirmSeam(payload)
+	elseif action == "tooWeak" then
+		ClientFns.tooWeak(payload)
 	elseif action == "toast" then
 		showToast(tostring(payload))
 	elseif action == "openElevator" then
