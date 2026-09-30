@@ -41,8 +41,28 @@
 
 local MineBreaking = {}
 
--- One rung per this many layers.
-MineBreaking.LAYERS_PER_RUNG = 100
+-- One rung per this many layers. Halved from 100: depth eats rungs twice as
+-- fast, so any given tool reaches half as deep as it used to.
+MineBreaking.LAYERS_PER_RUNG = 50
+
+--[[
+	ORE STRENGTH IS A POWER CURVE, NOT A LINE.
+
+	Linear mapping made a tier-10 tool reach layer 1,300, which is absurd -- a
+	tenth of the way up the roster should not open an eighth of the mine. The
+	curve puts the payoff at the top: the first half of the roster barely moves
+	the wall, and the last quarter carries almost all of it.
+
+	A POWER curve on a BOUNDED index, deliberately, not a true exponential.
+	The standing instruction here is "never use exponents again", and it is
+	right: base^tier would make tier 82 astronomically strong and every tier
+	below it worthless, which is the same mistake as the 500x ore-power spread
+	that stopped builds mattering. tier is bounded at 82, so t^POW cannot run
+	away, and the shape is what was actually wanted.
+
+	POW is the single dial. Raise it to make low tiers weaker still.
+]]
+MineBreaking.ORE_POW = 2.0
 
 --[[
 	ZONE COSTS A RUNG. Anchored on one requirement: a Stone pickaxe must be
@@ -95,13 +115,16 @@ function MineBreaking.layerStrength(zoneIndex, layer)
 	return clampInt(rung, 1, MineBreaking.MAX)
 end
 
--- Strength of an ore, from its tier. Tier 1 -> 1, tier 82 -> MAX, linear
--- between, so the roster spreads evenly across the ladder.
+-- Strength of an ore, from its tier. Tier 1 -> 1, tier 82 -> MAX, with the
+-- ORE_POW curve between so the top of the roster carries the progression.
+-- Both ends are exact by construction, so the best ore always reaches the mine
+-- floor and the worst always clears the surface.
 function MineBreaking.oreStrength(tier, oreCount)
 	tier = math.max(1, math.floor(tonumber(tier) or 1))
 	oreCount = math.max(2, math.floor(tonumber(oreCount) or 82))
 	local span = (tier - 1) / (oreCount - 1)
-	return clampInt(1 + math.floor(span * (MineBreaking.MAX - 1) + 0.5), 1, MineBreaking.MAX)
+	local curved = span ^ MineBreaking.ORE_POW
+	return clampInt(1 + math.floor(curved * (MineBreaking.MAX - 1) + 0.5), 1, MineBreaking.MAX)
 end
 
 --[[

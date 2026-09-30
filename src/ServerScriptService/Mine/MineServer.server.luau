@@ -4900,48 +4900,55 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 		net:FireClient(plr, "toast", (def and def.name or "Fossil Pack") .. "!")
 	elseif kind == "ore" then
 		--[[
-			An ore block hands over its PACK, not the ore.
+			AN ORE BLOCK HANDS OVER THE ORE. No pack in between.
 
-			Same shape as the fossil branch above: the block is the find, the
-			pack is the reward, and opening it is a separate beat the player
-			chooses. Which ore it is was settled at spawn -- spawnVoxel stamps
-			OreId -- so a block that has been standing since before a rate
-			change still pays out as whatever it looks like.
+			It used to bank a "<id>_ore_pack" that the player opened later. That
+			cost a step for nothing: the pack's ore was already decided (its row
+			carried oreId), so opening it revealed nothing that was not already
+			settled, and a bag of hundreds of single-ore packs was the single
+			most-complained-about screen in the game.
+
+			The dopamine that opening provided does not disappear -- it moves to
+			RUNES, which are the ore-specific F-SSS drop and are genuinely
+			unknown until they land. A reveal should be for something actually
+			random.
+
+			Which ore it is was settled at spawn (spawnVoxel stamps OreId), so a
+			block standing since before a rate change still pays out as whatever
+			it looks like.
+
+			Quantity comes from C.oreYieldFor(tier) -- the band table whose bell
+			peaks on Epic, matching where the cost bell peaks. Rolled here rather
+			than restated, so direct drops and any legacy pack stay identical.
+
+			THE ORE FINDER IS NOT APPLIED HERE, on purpose. It is a quality
+			stat, not a quantity one ("better roll quality, not more loot"), and
+			it already did its work in oreWeights via oreFindShift when this
+			block chose which ore to be. Paying it again as extra material would
+			quietly turn it into a yield multiplier -- and yield multipliers on
+			a flat per-block rate are how the boost stack compounds.
 		]]
 		local ore = C.oreById(part:GetAttribute("OreId"))
 		if ore then
-			p.packs = p.packs or {}
-			local row = {
-				packId = ore.packId,
-				packName = ore.name .. " Ore Pack",
-				kind = "ore",
-				oreId = ore.id,
-				layer = layer,
-			}
-			local stampedLuck = tonumber(bb.luck) or 1
-			if stampedLuck > 1 then
-				row.luck = stampedLuck
-			end
-			--[[
-				THE ORE FINDER IS STAMPED HERE, LIKE LUCK.
-
-				It used to be read from live boosts at OPEN, which meant a pack
-				mined with the finder up paid nothing extra if you unequipped
-				before opening -- and a bag of old packs all cashed in at
-				whatever you happened to be wearing. Stamped at the break, so
-				what a pack is worth is settled by how you were kitted when you
-				earned it.
-
-				(Key is still fossilFind: fossils are gone and ore replaced
-				them, so it IS the ore finder. Renaming the key would orphan
-				every rune, charm and card that writes it.)
-			]]
-			local stampedFind = tonumber(bb.fossilFind) or 0
-			if stampedFind > 0 then
-				row.oreFind = stampedFind
-			end
-			table.insert(p.packs, row)
-			net:FireClient(plr, "toast", ore.name .. " Ore Pack!")
+			local lo, hi = C.oreYieldFor(ore.tier)
+			lo = math.max(1, math.floor(tonumber(lo) or 1))
+			hi = math.max(lo, math.floor(tonumber(hi) or lo))
+			local got = math.random(lo, hi)
+			p.ores = p.ores or {}
+			p.ores[ore.id] = (tonumber(p.ores[ore.id]) or 0) + got
+			-- Discovery drives the Forge recipe list, which only shows ores you
+			-- have actually seen. Recorded server-side so an unseen ore cannot
+			-- leak through the menu.
+			p.oresSeen = p.oresSeen or {}
+			p.oresSeen[ore.id] = true
+			net:FireClient(plr, "toast", ("+%d %s"):format(got, ore.name))
+			net:FireClient(plr, "loot", {
+				text = ("+%d %s"):format(got, ore.name),
+				color = ore.color or Color3.fromRGB(255, 220, 140),
+				pos = part.Position,
+			})
+			-- TODO(runes): roll this ore's rune here, 2% down to 0.5% by tier,
+			-- F-SSS. Needs the rune overhaul; nothing rolls one yet.
 		end
 	elseif kind == "core" then
 		grantChestTool(plr, p, "geothermal_nuke")
