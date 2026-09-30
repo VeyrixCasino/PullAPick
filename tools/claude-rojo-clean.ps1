@@ -1,3 +1,11 @@
+# Anything after the script name is handed straight to `claude`, so
+#   .\claude-rojo-clean.ps1 --continue
+# resumes the last conversation in this folder instead of starting a new one.
+# That matters after adding an MCP server: servers only attach at startup, so
+# the session has to be restarted, and without --continue the restart costs you
+# the conversation as well.
+param([Parameter(ValueFromRemainingArguments = $true)] $ClaudeArgs)
+
 $ErrorActionPreference = "Stop"
 
 $anthropicVariables = @("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL")
@@ -54,7 +62,11 @@ try {
 	$exportDirectory = Join-Path $PSScriptRoot "export\in"
 	New-Item -ItemType Directory -Path $exportDirectory -Force | Out-Null
 
-	claude --add-dir $exportDirectory
+	if ($ClaudeArgs) {
+		claude --add-dir $exportDirectory @ClaudeArgs
+	} else {
+		claude --add-dir $exportDirectory
+	}
 }
 finally {
 	foreach ($name in $anthropicVariables) {
