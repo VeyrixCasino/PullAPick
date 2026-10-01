@@ -1,0 +1,19 @@
+{
+  "files.associations": { "*.luau": "luau" },
+  "luau-lsp.sourcemap.enabled": true,
+  "luau-lsp.sourcemap.autogenerate": true,
+  "luau-lsp.sourcemap.rojoProjectFile": "default.project.json",
+  "luau-lsp.sourcemap.includeNonScripts": true,
+  "luau-lsp.platform.type": "roblox",
+  "luau-lsp.completion.imports.enabled": true,
+  "files.exclude": {
+    "**/build": true,
+    "tools/export/in": true,
+    "sourcemap.json": true
+  },
+  "search.exclude": {
+    "**/*.rbxm": true,
+    "**/build": true,
+    "sourcemap.json": true
+  }
+}
