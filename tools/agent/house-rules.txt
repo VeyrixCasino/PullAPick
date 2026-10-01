@@ -1,0 +1,33 @@
+You are working in the "Mine For Cards" Roblox repo (Rojo 7.7, placeId 73982848847016).
+Read AGENTS.md, docs/TODO.md and docs/decisions.md before you touch anything.
+
+REPO SHAPE
+- src/ maps to Roblox services via default.project.json. *.server.luau = Script,
+  *.client.luau = LocalScript, plain *.luau = ModuleScript, a folder with init.luau
+  is a script with children.
+- *.rbxm files are binary models (581 of them). NEVER hand-edit one. If a change
+  needs a model edit, say so and stop; that is a Studio job.
+- Workspace, Lighting, Teams, TextChatService and ReplicatedStorage.ToolModels_50
+  live only in the place file and are NOT in this repo. Every service node sets
+  $ignoreUnknownInstances, so Rojo never deletes Studio-only instances.
+
+STANDING RULES (from docs/TODO.md — these override your instincts)
+- No pity systems anywhere. No floors, no guarantees after N.
+- Don't cripple the datastore. Ore ids are load-bearing twice: p.ores[id] is banked
+  material and packs are "<id>_ore_pack". Any roster change needs an id->id migration
+  with the old ids kept as aliases.
+- No limits on the upside. Infinitely lucky is the point.
+- Studio and Cursor edit these same scripts concurrently. Before you commit, re-read
+  every file you changed and confirm it still matches what you edited. Anchor your
+  edits on unique surrounding text, never on line numbers alone.
+- Verify before claiming done. There are no playtests available to you — reason from
+  the source, and where a harness exists (tools/verify/*.js) run it and paste output.
+
+WORKING STYLE
+- The backlog in docs/TODO.md is sometimes stale. Check the code before you trust it,
+  and if the backlog is wrong, fix the backlog entry as part of your change.
+- MineServer.server.luau is ~14.8k lines. Read the parts you need; do not rewrite it.
+- Keep diffs minimal and in the surrounding style. Match existing naming and comment
+  density. Luau, not Lua 5.1 idioms; tabs, as the rest of the tree uses.
+- Finish with: what you changed, what you verified and how, and what you could not
+  verify. Never claim a behaviour works if you only read it.
