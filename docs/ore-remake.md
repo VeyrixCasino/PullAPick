@@ -1,6 +1,20 @@
-﻿# Ore chart remake (proposal, not applied)
+# Ore roster
 
-Status: planning only. `MineConfig.ORES` in `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` is unchanged.
+**Status: applied.** The 121-ore roster below is generated from
+`MineConfig.ORES` in `src/ReplicatedStorage/Mine/Shared/MineConfig.luau`,
+which is the source of truth. Landed across `deb8f35` (roster + save
+migration) and `72b81ed` (14 renames, migration regenerated).
+
+Regenerate this section after any roster change:
+
+```
+node tools/gen-ores.js          # roster helpers
+node tools/rename-ores.js       # renames + migration
+node tools/add-ore-migration.js # id -> id aliases
+```
+
+> The Space set at the bottom of this file is **not** applied. It is still
+> queued content; see `docs/TODO.md`.
 
 ## Rules
 
@@ -13,60 +27,184 @@ Status: planning only. `MineConfig.ORES` in `src/ReplicatedStorage/Mine/Shared/M
 
 Bands use the game's full rarity ladder, Exotic on top:
 Common 1-24, Uncommon 25-48, Rare 49-72, Epic 73-96, Legendary 97-108, Mythic 109-114, Divine 115-118, Exotic 119-121.
-The ore reveal grade in `MineServer.server.luau` currently stops at Divine and needs these cutoffs (plus Exotic) when applied.
 
-## Removed (16) and replacements
+## The roster (121, live from `MineConfig.ORES`)
 
-| Removed | Reason | Replacement |
-| --- | --- | --- |
-| Steel | Alloy / iron variant | Bismuth |
-| Damascus Steel | Alloy / iron variant | Labradorite |
-| Cast Iron | Iron variant | Sulfur |
-| Meteoric Iron | Iron variant | Iridium |
-| Bronze | Alloy | Cinnabar |
-| Brass | Alloy | Tiger's Eye |
-| Pewter | Alloy | Lapis Lazuli |
-| Vanadium Steel | Alloy | Osmium |
-| Brick | Man-made | Pumice |
-| Charcoal | Man-made | Halite |
-| Alumina | Lab ceramic | Selenite |
-| Silicon Nitride | Lab ceramic | Rhodochrosite |
-| Boron Nitride | Lab ceramic | Benitoite |
-| Graphene | Lab-made | Grandidierite |
-| Prismarine | Minecraft | Painite |
-| Boron Carbide | Lab ceramic | Musgravite |
+Verified at generation: 121 rows, tiers 1-121 contiguous, no duplicate ids.
 
-Renamed: Silicon Carbide is now **Moissanite** (its natural mineral name). Same look.
+`id` is load-bearing twice over — `p.ores[id]` is banked material and packs are
+`<id>_ore_pack`. Never change one without an id->id migration that keeps the old
+id as an alias.
 
-### Round 2: obscure names swapped for recognizable or fantasy ores
+### Common — tiers 1–24 (24)
 
-| Out | Tier | In |
-| --- | --- | --- |
-| Halite | 7 | Rock Salt (rename) |
-| Lignite | 8 | Coal |
-| Bituminous Coal | 19 | Emberstone |
-| Sphalerite | 24 | Aluminum |
-| Anthracite | 33 | Pearl |
-| Bauxite | 34 | Frost Crystal |
-| Dunite | 50 | Bloodstone |
-| Shungite | 63 | Geode |
-| Wolframite | 68 | Stormstone |
-| Ilmenite | 70 | Lithium |
-| Impactite | 83 | Moon Rock |
-| Musgravite | 98 | Phoenix Stone |
-| Benitoite | 101 | Starmetal |
-| Monazite | 102 | Aether Crystal |
-| Pallasite | 104 | Soulstone |
-| Grandidierite | 106 | Nebula Crystal |
-| Painite | 108 | Heartstone |
-| Coesite | 109 | Shadow Shard |
-| Stishovite | 110 | Celestial Crystal |
-| Ringwoodite | 112 | Rainbow Crystal |
-| Bridgmanite | 114 | Dragonstone |
+| Tier | Name | `id` | Material |
+| ---: | --- | --- | --- |
+| 1 | Stone | `stone` | Rock |
+| 2 | Cobblestone | `cobblestone` | Cobblestone |
+| 3 | Clay | `clay` | Mud |
+| 4 | Sandstone | `sandstone` | Sandstone |
+| 5 | Limestone | `limestone` | Limestone |
+| 6 | Pumice | `pumice` | Concrete |
+| 7 | Halite | `halite` | Salt |
+| 8 | Coal | `coal` | Slate |
+| 9 | Flint | `flint` | Slate |
+| 10 | Chert | `chert` | Limestone |
+| 11 | Basalt | `basalt` | Basalt |
+| 12 | Slate | `slate` | Slate |
+| 13 | Bone | `bone` | Plaster |
+| 14 | Granite | `granite` | Granite |
+| 15 | Copper | `copper` | Metal |
+| 16 | Diorite | `diorite` | Pebble |
+| 17 | Tin | `tin` | CorrodedMetal |
+| 18 | Cassiterite | `cassiterite` | Slate |
+| 19 | Ember | `ember` | CrackedLava |
+| 20 | Sulfur | `sulfur` | Sand |
+| 21 | Lead | `lead` | CorrodedMetal |
+| 22 | Galena | `galena` | DiamondPlate |
+| 23 | Zinc | `zinc` | Foil |
+| 24 | Aluminum | `aluminum` | Metal |
 
-Mythic reordered: Shadow Shard, Celestial Crystal, Orichalcum, Rainbow Crystal, Mythril, Dragonstone.
+### Uncommon — tiers 25–48 (24)
 
-## Final order (generator LOOKS format)
+| Tier | Name | `id` | Material |
+| ---: | --- | --- | --- |
+| 25 | Iron | `iron` | Metal |
+| 26 | Hematite | `hematite` | Metal |
+| 27 | Graphite | `graphite` | Metal |
+| 28 | Pyrite | `pyrite` | DiamondPlate |
+| 29 | Quartzite | `quartzite` | Salt |
+| 30 | Selenite | `selenite` | Glass |
+| 31 | Chalcopyrite | `chalcopyrite` | Foil |
+| 32 | Marble | `marble` | Marble |
+| 33 | Pearl | `pearl` | SmoothPlastic |
+| 34 | Rime | `rime` | Ice |
+| 35 | Quartz | `quartz` | Glass |
+| 36 | Agate | `agate` | Marble |
+| 37 | Jasper | `jasper` | Rock |
+| 38 | Amber | `amber` | Glass |
+| 39 | Petrifact | `petrifact` | Wood |
+| 40 | Nickel | `nickel` | Foil |
+| 41 | Magnetite | `magnetite` | Basalt |
+| 42 | Manganese | `manganese` | Metal |
+| 43 | Malachite | `malachite` | Marble |
+| 44 | Azurite | `azurite` | Marble |
+| 45 | Cinnabar | `cinnabar` | Slate |
+| 46 | Fluorite | `fluorite` | Glass |
+| 47 | Chromite | `chromite` | Rock |
+| 48 | Onyx | `onyx` | Marble |
+
+### Rare — tiers 49–72 (24)
+
+| Tier | Name | `id` | Material |
+| ---: | --- | --- | --- |
+| 49 | Kimberlite | `kimberlite` | Pebble |
+| 50 | Bloodstone | `bloodstone` | Marble |
+| 51 | Garnet | `garnet` | Glass |
+| 52 | Citrine | `citrine` | Glass |
+| 53 | Chromium | `chromium` | Metal |
+| 54 | Turquoise | `turquoise` | Marble |
+| 55 | Rhodochrosite | `rhodochrosite` | Marble |
+| 56 | Bismuth | `bismuth` | Foil |
+| 57 | Silver | `silver` | Metal |
+| 58 | Amethyst | `amethyst` | Glass |
+| 59 | Apatite | `apatite` | Glass |
+| 60 | Moissanite | `moissanite` | Foil |
+| 61 | Tigereye | `tigereye` | Marble |
+| 62 | Lapis | `lapis` | Marble |
+| 63 | Geode | `geode` | Glass |
+| 64 | Topaz | `topaz` | Glass |
+| 65 | Phosphorus | `phosphorus` | SmoothPlastic |
+| 66 | Peridot | `peridot` | Glass |
+| 67 | Jade | `jade` | Marble |
+| 68 | Emberglass | `emberglass` | Glass |
+| 69 | Tungsten | `tungsten` | Metal |
+| 70 | Lithium | `lithium` | Metal |
+| 71 | Titanium | `titanium` | Metal |
+| 72 | Obsidian | `obsidian` | Glass |
+
+### Epic — tiers 73–96 (24)
+
+| Tier | Name | `id` | Material |
+| ---: | --- | --- | --- |
+| 73 | Electrum | `electrum` | Metal |
+| 74 | Cobalt | `cobalt` | Metal |
+| 75 | Labradorite | `labradorite` | Glass |
+| 76 | Zirconium | `zirconium` | Metal |
+| 77 | Beryllium | `beryllium` | Metal |
+| 78 | Niobium | `niobium` | Metal |
+| 79 | Gold | `gold` | Metal |
+| 80 | Fulgurite | `fulgurite` | Glass |
+| 81 | Tektite | `tektite` | Glass |
+| 82 | Moldavite | `moldavite` | Glass |
+| 83 | Regolith | `regolith` | Pebble |
+| 84 | Sunstone | `sunstone` | Foil |
+| 85 | Spinel | `spinel` | Glass |
+| 86 | Emerald | `emerald` | Glass |
+| 87 | Tourmaline | `tourmaline` | Glass |
+| 88 | Zircon | `zircon` | Glass |
+| 89 | Moonstone | `moonstone` | Glass |
+| 90 | Alexandrite | `alexandrite` | Glass |
+| 91 | Sapphire | `sapphire` | Glass |
+| 92 | Ruby | `ruby` | Glass |
+| 93 | Palladium | `palladium` | Metal |
+| 94 | Aquamarine | `aquamarine` | Ice |
+| 95 | Tanzanite | `tanzanite` | Glass |
+| 96 | Opal | `opal` | ForceField |
+
+### Legendary — tiers 97–108 (12)
+
+| Tier | Name | `id` | Material |
+| ---: | --- | --- | --- |
+| 97 | Platinum | `platinum` | Metal |
+| 98 | Stormstone | `stormstone` | Slate |
+| 99 | Rhodium | `rhodium` | Glass |
+| 100 | Diamond | `diamond` | Glass |
+| 101 | Starmetal | `starmetal` | Metal |
+| 102 | Aetherite | `aetherite` | Glass |
+| 103 | Meteorite | `meteorite` | CrackedLava |
+| 104 | Soulstone | `soulstone` | Glass |
+| 105 | Osmium | `osmium` | Metal |
+| 106 | Galaxite | `galaxite` | Basalt |
+| 107 | Iridium | `iridium` | Metal |
+| 108 | Frostfire | `frostfire` | Glass |
+
+### Mythic — tiers 109–114 (6)
+
+| Tier | Name | `id` | Material |
+| ---: | --- | --- | --- |
+| 109 | Umbrite | `umbrite` | Glass |
+| 110 | Celestine | `celestine` | Glass |
+| 111 | Orichalcum | `orichalcum` | Metal |
+| 112 | Spectrite | `spectrite` | ForceField |
+| 113 | Mythril | `mythril` | Metal |
+| 114 | Dragonstone | `dragonstone` | Slate |
+
+### Divine — tiers 115–118 (4)
+
+| Tier | Name | `id` | Material |
+| ---: | --- | --- | --- |
+| 115 | Adamantite | `adamantite` | Metal |
+| 116 | Thorium | `thorium` | Metal |
+| 117 | Uranium | `uranium` | Neon |
+| 118 | Plutonium | `plutonium` | Metal |
+
+### Exotic — tiers 119–121 (3)
+
+| Tier | Name | `id` | Material |
+| ---: | --- | --- | --- |
+| 119 | Fermium | `fermium` | Metal |
+| 120 | Lawrencium | `lawrencium` | Metal |
+| 121 | Oganesson | `oganesson` | ForceField |
+
+## Appearance reference (generator LOOKS format)
+
+The roster above is the order of record. This block is kept because it is the
+only written source for each ore's **glow colour and intensity** — `MineConfig.ORES`
+rows carry `color` / `material` / `met` / `rough` but no `glow` key. The tool
+generator LOOKS table reads from here.
+
+Format: `name: ((r,g,b), met, rough, (glow r,g,b,intensity) or None, material, note)`
 
 ```python
     # ── COMMON (1-24) ──
@@ -207,6 +345,7 @@ Mythic reordered: Shadow Shard, Celestial Crystal, Orichalcum, Rainbow Crystal, 
     "Oganesson"       : ((17, 0, 42), 1.0, 0.05, (137, 54, 255, 2.0), "ForceField", "Void black; cycle the glow through the rainbow"), # 121
 ```
 
+
 ## Space ores (40, separate set)
 
 Own progression, 1-40, same rarity ladder scaled down:
@@ -288,7 +427,8 @@ Names are unique against the main list. Event Horizon Shard and Big Bang Fragmen
 13. Added a separate 40-ore space set.
 14. Reverted Rainbow Crystal (112) and Dragonstone (114) to Mythic; Starmetal back to 101. Heartstone dropped, Frostfire Crystal at 108.
 
-## When this gets applied
+
+## Applying the Space set
 
 - Edit `MineConfig.ORES` (ids, names, tiers, looks). Ore packs and pack art regenerate from it automatically.
 - Old saves: players holding removed ores (`p.ores[id]`) or unopened `<id>_ore_pack` rows need a one-time migration to a replacement id.

@@ -1,98 +1,176 @@
-# TODO
+# TODO — Launch plan
 
-Everything outstanding for Mine For Cards, plus what's already landed.
-Checked after every prompt; items get struck through and marked **done** as
-they finish.
+Mine For Cards is being **remade**, not patched. The goal is a fast path to launch
+with a loop that feels grindy, fair and dopamine-heavy. This file is the backlog of
+record; it is re-checked after every prompt.
+
+Design pillars for the remake:
+
+1. **Ore is the currency of power.** Ore drops directly, crafts tools, upgrades tools,
+   and is the only source of runes. Endgame tools cost *a lot* of ore.
+2. **Breaking power gates progression, damage does not.** A tool with huge damage
+   still cannot touch a block above its breaking power.
+3. **Rebirth keeps your gear.** Progression moves to coins and breaking power.
+4. **Rarity disparity is the dopamine.** Skins and runes swing wide; no case holds
+   everything.
 
 ---
 
 ## Blocked — needs you, not me
 
-- [ ] **Push to GitHub.** 8 commits sit on local `main`; `origin` is
-  `VeyrixCasino/PullAPick`. Not pushed because you said to wait.
-
-- [ ] **Connect Rojo.** `rojo serve` is running but Studio has never attached,
-  so none of the committed source is live. Every Studio-only edit from these
-  sessions is already ported into `src/`, so connecting is safe and will not
-  revert anything. `ServerStorage` survives regardless
-  (`$ignoreUnknownInstances`).
-
----
-
-## Next up
-
-- [ ] **Decide on the duplicate Event Horizon pet module.**
-  `MineEHPets.luau` and `MineEventHorizonPets.luau` are byte-identical (same
-  md5) and both live in the tree. Every consumer reads
-  `FindFirstChild("MineEHPets") or FindFirstChild("MineEventHorizonPets")`, so
-  the short name always wins and the long one is 34 KB that never loads. It
-  looks like a rename that kept the old file as a fallback. Not deleted unasked
-  — removing it makes Rojo drop the instance from Studio, and Cursor works in
-  this tree too.
-
-- [ ] **Ore faces on every block type, in every zone.** Once access lands:
-  confirm the faces read on ore in all 11 zones against each zone's own rock
-  colour and accent material, and against every block kind that can carry ore.
-  Dark zones (Eclipse, Primordium, Event Horizon) are the risk — a dark face on
-  dark rock may vanish.
-- [ ] **Pickaxe models.** None of the pickaxes have one. 2,278 `.obj` tool
-  meshes (119 unique) are merged into `ToolParts_import.obj` ready for Studio's
-  3D importer; `AssetService:CreateEditableMesh` is proven with Pickaxe tier 0.
-- [ ] **Unique item ids across everything owned.** Every owned thing gets its
-  own uid whose FIRST FOUR DIGITS identify which specific thing it is. Applies
-  to tools, packs, charms, hats, pets, bags, runes, tempers -- everything
-  except currency itself. Some of this existed once and was dropped; packs
-  still carry a .
-- [ ] **New enchantments** added.
-- [ ] **Blacksmith bench: the UI.** Server side is done — `upgradeOreTool` and
-  `recycleOreTool` both take a uid and are wired into the dispatch, and the
-  pricing lives in `MineConfig`. What's missing is the panel that lists a
-  player's ore tools and offers +1 / +10 / max. The building already exists.
+- [ ] **The ore icon source is unreachable.** You pointed at
+  `c:\Users\uybuv\Downloads\oreicons\src.txt`. This session runs in a Linux cloud
+  container with no access to your `C:` drive, so I cannot open it. Pick one:
+  copy it into the repo (e.g. `tools/oreart/src.txt`) and commit, or paste its
+  contents into chat. Until then the icon task below cannot start.
+- [ ] **Connect Rojo.** `rojo serve` has never been attached from Studio, so none of
+  the committed source is live. Safe to connect — every service node in
+  `default.project.json` sets `$ignoreUnknownInstances`, so Studio-only instances
+  (Workspace, Lighting, Teams, TextChatService, `ToolModels_50`, `OreShapes`) survive.
+  Syncback first if you have unported Studio edits; see `docs/rojo-connect.md`.
 
 ---
 
-## Economy, queued
+## P0 — the remake core (launch blockers)
 
-- [ ] **Potions and merging move to gems.**
-- [ ] **Runes stay on gems** — confirm nothing moved them.
-- [ ] **Ore → gem sell pad.** Gems are minted from scrap ore; the sell
-  interaction doesn't exist yet. `MineConfig` has the curve
-  (`gemBase 2`, `gemSpan 1.5` → 12 / 45 / 176 gems a find across tiers 1/60/121).
+### Breaking power (new system)
+
+Nothing in `src/` references breaking power today — this is net-new.
+
+- [ ] **Block strength per layer and per ore.** Every layer gets a strength
+  requirement; every ore gets its own, independent of its tier's HP. Strength is a
+  *gate*, not a damage number.
+- [ ] **Tool breaking power.** A stat on the tool, set at craft time by the ore it is
+  made from. **Not upgradeable** — the only way up is crafting a better tool.
+- [ ] **The gate, server-authoritative.** The server rejects any dig where
+  `tool.breakingPower < block.strength`. The client may predict, but the server
+  decides; a spoofed client must gain nothing.
+- [ ] **Feedback.** Red text by the hotbar: "Your tool is too weak to damage this
+  block." Fires on the rejected dig, throttled so it cannot spam.
+- [ ] **Keep damage orthogonal.** `MineConfig.toolCostMult` / the 1–1000 damage scale
+  stay as they are. Document loudly that damage ≠ breaking power.
+
+### Ore drops ore
+
+- [ ] **Ore blocks drop ore directly**, not `<id>_ore_pack`. Packs currently come from
+  `MineConfig.luau:2511` (`o.packId = o.id .. "_ore_pack"`) and
+  `MineZonePacks.luau:244,251`.
+- [ ] **Migration.** Existing saves hold unopened `<id>_ore_pack` rows. They must
+  convert to banked `p.ores[id]` on load, with the pack ids kept as recognised
+  aliases. Do not strand anyone's inventory.
+
+### The Forge (was the Blacksmith)
+
+`MineForgeView.luau` (780 lines) and `MineBenchView.luau` (239) both exist — reconcile
+them into one Forge rather than adding a third view.
+
+- [ ] **Keep the 3D display.** The full-screen stage from `583d9ad` stays.
+- [ ] **Vertical scrolling recipe list.** Scroll recipes to choose what to craft.
+- [ ] **Show only discovered ores**, with the ore amount each recipe needs. An
+  undiscovered ore must not leak its name or stats.
+- [ ] **Separate upgrades area**, where you also apply runes and skins.
+- [ ] **Full inventory in the Forge**, bag included.
+- [ ] **Server owns crafting.** Ore is debited and the tool minted server-side in one
+  transaction. No client-supplied costs, no partial debits on failure.
+
+### Tools craftable and upgradeable with ore
+
+- [ ] **Craft recipes keyed by ore**, which also set the tool's breaking power.
+- [ ] **Upgrades cost ore, a lot of it.** Re-tune so endgame tools are a genuine grind.
+  The existing `upgradeOreTool` / `recycleOreTool` verbs
+  (`MineServer.server.luau:13375,13441`) keep their uid-keyed contract.
+
+### Runes — total overhaul
+
+The F–SSS ladder already exists: `MineTemper.GRADE_ORDER = {F,D,C,B,A,S,SS,SSS}`, and
+`MineRunes.luau:190-219` already draws from `MineTemper.RARITY_WEIGHTS`. Reuse it.
+
+- [ ] **Runes are tool-only and ore-specific.** One rune per ore.
+- [ ] **One rune slot per tool.**
+- [ ] **Binding is permanent.** A bound rune cannot be removed, only destroyed with
+  the tool. Needs an explicit confirm step, and the server must treat the bind as
+  irreversible.
+- [ ] **Presented like charms**, but as a tool buff, graded F–SSS.
+- [ ] **Runes replace the old 2%–0.5% roll.** That odds band now belongs to the ore's
+  rune drop.
+- [ ] **Runes come off gems no longer** — confirm the gem/rune coupling is gone
+  (was "Runes stay on gems").
+
+### Skins (was Tempers)
+
+- [ ] **Rename tempers → skins** across `MineTemper.luau` (537) and its views. Keep
+  `LEGACY_RARITY` / `normalizeRarity` so old saves still load.
+- [ ] **Skins drop from chests**, rarely.
+- [ ] **Drastically bigger buffs, each doing something specific.** No more flat
+  percentage soup.
+- [ ] **Huge rarity disparity** across the F–SSS ladder.
+- [ ] **No case contains every skin.** Each case carries a subset.
+- [ ] **A skin is a wrap.** It changes the tool's look and grants its buff; it does
+  not change the tool's identity or uid.
+
+### Economy inversion: zones on coins, bags on gems
+
+This inverts a rule the code states explicitly. `MineBags.luau:7` reads *"Coin prices
+only. Never gems — zone buyCost is the gem sink."* Both halves flip, so change them
+together or the sinks collide.
+
+- [ ] **Zones become coin-gated**, not rebirth-gated.
+- [ ] **Bags upgrade with gems**, not coins. Rewrite the `MineBags` curve and that
+  comment.
+- [ ] **Rebirth raises coin value** instead of unlocking zones.
+- [ ] **Soften the zone and depth coin multipliers** now that rebirth multiplies coins.
+- [ ] **Dirt price boost only below each zone gate** — keep the boost, scope it to
+  below-gate layers.
+- [ ] **Gear survives rebirth.** Pickaxe and all equipment persist. Audit every
+  rebirth wipe path.
+
+---
+
+## P1 — content and feel
+
+- [ ] **Ore icons for all 121 ores**, drawn on canvas. Blocked on the icon source
+  above. 30 hand-made face tiles already ship as packed pixels; icons are a separate
+  per-ore asset.
+- [ ] **Nerf hats and faces**, and add both as chest drops.
+  `MineHats.luau` (433) is the roster.
+- [ ] **Not all packs spawn all pets.** Give each pack a pet subset in
+  `MinePackConfig.luau` / `MinePetRoster.luau`.
+- [ ] **Zone-1 case rates lower.** `MineZonePacks.cardOdds(zoneIndex, heat)` already
+  takes the zone index and ignores it.
 - [ ] **Chests spawn everywhere but supremely rare**, like ore.
-- [ ] **Zone-1 case rates lower.** `MineZonePacks.cardOdds(zoneIndex, heat)`
-  already takes the zone index and ignores it.
-- [ ] **28 legacy packs onto the ore system** in `MinePackConfig`: anomaly,
-  apex, ashen, cinder, clay, cobalt, crimson, end, heirloom, hopper, iron,
-  loam, magma, night, omen, shadow, shiny, slate, void, plus the gear/rune/
-  fossil families.
-- [ ] **Luck → Treasure Hunter refactor.** 47 `luck` references. Tool-finder
-  names floated: Divining Rod, Loadstone, Assayer's Eye.
-- [ ] **Event Horizon `minRebirth`** is 0 but its surface is now 1.30e9 HP —
-  the gate probably needs raising.
-- [ ] **Coin shop** — you were contemplating removing it entirely. Undecided.
+- [ ] **Event Horizon `minRebirth`** is 0 while its surface is 1.30e9 HP. With zones
+  on coins this gate is re-expressed as a coin price.
 
 ---
 
-## Content, queued
+## P2 — after launch
 
-- [ ] **Space ores** — the separate 40-ore set in `ore-remake.md`, own 1–40
-  ladder, ties into the `eventhorizon` / `bigbang` zones.
-- [ ] **Tool generator LOOKS table** needs the same roster so ore blocks and
-  the tools made from them stay in sync.
-- [ ] **Export `OreShapes` / place-only instances to `.rbxm`** so they're under
-  version control instead of living only in the place file.
+- [ ] **28 legacy packs onto the ore system** in `MinePackConfig`: anomaly, apex,
+  ashen, cinder, clay, cobalt, crimson, end, heirloom, hopper, iron, loam, magma,
+  night, omen, shadow, shiny, slate, void, plus the gear/rune/fossil families.
+- [ ] **Luck → Treasure Hunter refactor.** 47 `luck` references. Names floated:
+  Divining Rod, Loadstone, Assayer's Eye.
+- [ ] **Space ores (40, separate set)** — spec sits in `docs/ore-remake.md`, unapplied.
+- [ ] **Tool generator LOOKS table** needs the live roster so ore blocks and the tools
+  made from them stay in sync.
+- [ ] **Export `OreShapes` / place-only instances to `.rbxm`** so they are under
+  version control.
+- [ ] **Coin shop** — you were contemplating removing it. Undecided.
+- [ ] **Delete the duplicate Event Horizon pet module.** `MineEHPets.luau` and
+  `MineEventHorizonPets.luau` are byte-identical (md5 `0a8c6c66…`); every consumer
+  reads the short name first, so the long one is 34 KB that never loads.
 
 ---
 
 ## Deferred, with a reason
 
-- [ ] **1.5× per 25 layers HP curve.** Not applied. It makes L4921 1.4e23×
-  harder and breaks every hand-tuned chest and fossil tool, so it can only ship
-  alongside tool power. The clean unification on offer: damage-per-level =
-  HP-per-layer (×1.016351), so one level = one layer, cap ~11,000.
-- [ ] **Chests → packs only** (55% card / 25% ore / 20% fossil, chest type adds
-  +D). Designed in the proposal artifact; superseded in part by the chest table
-  rework, needs a decision on whether the rest still applies.
+- [ ] **1.5× per 25 layers HP curve.** Not applied. Makes L4921 1.4e23× harder and
+  breaks every hand-tuned chest and fossil tool, so it ships only alongside tool
+  power. Clean unification on offer: damage-per-level = HP-per-layer (×1.016351), so
+  one level = one layer, cap ~11,000. **Breaking power may replace the need for this
+  entirely** — decide before spending time on it.
+- [ ] **Chests → packs only** (55% card / 25% ore / 20% fossil, chest type adds +D).
+  Superseded in part by the chest table rework and by skins/hats moving into chests.
 
 ---
 
@@ -150,10 +228,17 @@ they finish.
 ## Standing rules
 
 - **No pity systems anywhere.** No floors, no guarantees after N.
-- **Don't cripple the datastore.** Ore ids are load-bearing twice —
-  `p.ores[id]` is banked material and packs are `<id>_ore_pack`. Any roster
-  change needs an id→id migration with old ids kept as aliases.
-- No limits on the upside. Infinitely lucky is the point.
-- Studio and Cursor edit the same scripts concurrently, so every edit anchors
-  and asserts the source is unchanged before committing.
+- **Don't cripple the datastore.** Ore ids are load-bearing twice — `p.ores[id]` is
+  banked material and packs are `<id>_ore_pack`. Any roster change needs an id→id
+  migration with old ids kept as aliases. The ore-drops-ore change above is exactly
+  this kind of change.
+- **No limits on the upside.** Infinitely lucky is the point.
+- **Server decides, client displays.** Every new verb — craft, upgrade, rune bind,
+  skin apply, the breaking-power gate — validates server-side. A modified client must
+  gain nothing but a wrong picture.
+- **Breaking power is not damage.** Say so in every place both appear.
+- **Permanent means permanent.** A bound rune cannot be recovered. Confirm before
+  binding; never add an undo.
+- Studio and Cursor edit the same scripts concurrently, so every edit anchors and
+  asserts the source is unchanged before committing.
 - Verify before claiming done. No playtests — Edit-mode probes.
