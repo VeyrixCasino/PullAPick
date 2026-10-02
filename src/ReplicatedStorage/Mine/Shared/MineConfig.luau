@@ -2329,6 +2329,59 @@ function MineConfig.toolRecycle(tier, level, typeMult)
 end
 
 --[[
+	FORGE: building a tool out of ore.
+
+	Ore builds tools now, not just levels them. A craft is priced off the same
+	toolCostMult the level curve uses, so a rarer frame and a deeper ore cost
+	more here for exactly the reason they cost more there -- one curve, not two
+	that drift apart.
+
+	Crafting mints the tool at level 1. Everything after that is toolUpgradeCost,
+	so the ore poured into a finished endgame tool is CRAFT + the whole climb,
+	which is the grind the design asks for.
+
+	TOOL_CRAFT_BASE is the knob. At 250 a tier-1 plain frame costs 250 ore and a
+	tier-121 one costs ~15.4K of an ore that drops one or two at a time. Tune it
+	here and nowhere else.
+]]
+MineConfig.TOOL_CRAFT_BASE = 250
+
+function MineConfig.toolCraftCost(tier, typeMult)
+	return math.ceil(MineConfig.TOOL_CRAFT_BASE * MineConfig.toolCostMult(tier, typeMult))
+end
+
+--[[
+	The wooden pickaxe is the one tool that levels on COINS.
+
+	It is the free starter handed out at the Forge, and it exists to carry a
+	player who has no ore yet -- charging ore for it would gate the thing whose
+	whole job is ungating. Every other tool levels on its own ore plus stardust.
+
+	Deliberately cheap and deliberately capped low: this is a ramp, not a
+	competitor to a crafted tool.
+]]
+MineConfig.WOOD_PICK_ID = "wood_pick"
+MineConfig.WOOD_PICK_MAX_LEVEL = 25
+MineConfig.WOOD_PICK_COIN_BASE = 35
+MineConfig.WOOD_PICK_COIN_GROW = 1.55
+
+-- Cost of the step from `level` to `level + 1`, in coins. nil at the cap, the
+-- same contract toolUpgradeCost uses, so a caller cannot charge for a level
+-- that does not exist.
+function MineConfig.woodPickCoinCost(level)
+	local L = math.max(1, math.floor(tonumber(level) or 1))
+	if L >= MineConfig.WOOD_PICK_MAX_LEVEL then
+		return nil
+	end
+	return math.ceil(MineConfig.WOOD_PICK_COIN_BASE * (MineConfig.WOOD_PICK_COIN_GROW ^ (L - 1)))
+end
+
+-- True when this tool levels on coins rather than ore + stardust.
+function MineConfig.isCoinTool(tool)
+	return type(tool) == "table" and tool.typeId == MineConfig.WOOD_PICK_ID
+end
+
+--[[
 	Which hand-made ore face each ore wears, by index into MineOreArt.
 
 	Thirty tiles, every one of them used. Matching is on hue first and lightness

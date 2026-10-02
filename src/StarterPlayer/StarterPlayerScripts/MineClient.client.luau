@@ -4508,6 +4508,15 @@ shopCtl = ShopView.mount(gui, {
 		names a different tool by the time the button is pressed. Levels are a
 		count, and the server clamps it to what is left below the cap.
 	]]
+	--[[
+		The Forge. Three ids and nothing else: the server re-derives the recipe
+		and the price from the roster and MineConfig, so a modified client can
+		ask for a different tool but never for a different cost, and never for
+		an ore it is not holding.
+	]]
+	onCraftOreTool = function(familyId, typeId, oreId)
+		net:FireServer("craftOreTool", { familyId = familyId, typeId = typeId, oreId = oreId })
+	end,
 	onUpgradeOreTool = function(uid, count)
 		net:FireServer("upgradeOreTool", { uid = uid, count = count })
 	end,

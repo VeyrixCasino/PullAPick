@@ -13385,6 +13385,15 @@ function Verbs.upgradeOreTool(plr, payload)
 		return
 	end
 	local level = math.max(1, tonumber(tool.level) or 1)
+
+	-- The wooden pickaxe levels on coins and has its own, much lower cap. It
+	-- is the free starter: charging ore for the tool whose job is to win you
+	-- your first ore would deadlock a new save.
+	if C.isCoinTool and C.isCoinTool(tool) then
+		Verbs._upgradeCoinTool(plr, p, tool, level, payload)
+		return
+	end
+
 	if level >= C.TOOL_MAX_LEVEL then
 		net:FireClient(plr, "toast", "That tool is at max level")
 		return
@@ -13439,6 +13448,130 @@ function Verbs.upgradeOreTool(plr, payload)
 	markDirty(plr)
 end
 
+--[[
+	The wooden pickaxe's coin ladder.
+
+	Same shape as the ore path -- walk the steps the player can actually afford,
+	capped by the request and by the ceiling -- so +1 / +10 / MAX cost one round
+	trip rather than one per level. Prices come from MineConfig.woodPickCoinCost
+	and nowhere else.
+]]
+function Verbs._upgradeCoinTool(plr, p, tool, level, payload)
+	if level >= C.WOOD_PICK_MAX_LEVEL then
+		net:FireClient(plr, "toast", "The Wooden Pickaxe is at max level")
+		return
+	end
+
+	local want = math.floor(tonumber(type(payload) == "table" and payload.count) or 1)
+	want = math.clamp(want, 1, C.WOOD_PICK_MAX_LEVEL - level)
+
+	local haveCoins = tonumber(p.coins) or 0
+	local spent, steps = 0, 0
+	for i = 0, want - 1 do
+		local c = C.woodPickCoinCost(level + i)
+		if not c then break end
+		if haveCoins - spent < c then break end
+		spent += c
+		steps += 1
+	end
+
+	if steps == 0 then
+		net:FireClient(plr, "toast", string.format("Needs %s coins",
+			Verbs._benchNum(C.woodPickCoinCost(level) or 0)))
+		return
+	end
+
+	p.coins = haveCoins - spent
+	tool.level = level + steps          -- the uid is untouched, on purpose
+	bumpStat(plr, p, "upgrades")
+	net:FireClient(plr, "toast", string.format("+%d  ->  level %d", steps, tool.level))
+	snap(plr)
+	markDirty(plr)
+end
+
+--[[
+	FORGE: build a tool out of ore.
+
+	payload = { familyId = "pickaxe", typeId = "iron_pick", oreId = "halite" }
+
+	Everything is re-derived here from the roster and MineConfig. The client
+	sends three ids and nothing else -- no cost, no tier, no level -- so a
+	modified client can pick a different recipe but can never pick a different
+	price, and can never mint a tool out of an ore it does not hold.
+
+	The tool is minted at level 1 carrying the ORE's tier, because tier is what
+	the whole level curve and the ore-it-eats lookup key off (_oreToolCost reads
+	C.ORES[tool.tier]). A tool forged from Halite levels on Halite.
+]]
+function Verbs.craftOreTool(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p or type(payload) ~= "table" then
+		return
+	end
+
+	local familyId = tostring(payload.familyId or "pickaxe")
+	local typeId = tostring(payload.typeId or "")
+	local oreId = tostring(payload.oreId or "")
+
+	local def
+	for _, td in ipairs((Tools.TOOLS or {})[familyId] or {}) do
+		if td.id == typeId then
+			def = td
+			break
+		end
+	end
+	if not def then
+		net:FireClient(plr, "toast", "No such tool")
+		return
+	end
+
+	-- The starter is given, not forged. Letting it be crafted from ore would
+	-- put the cheapest frame in the game on the ore economy for no gain.
+	if C.WOOD_PICK_ID and def.id == C.WOOD_PICK_ID then
+		net:FireClient(plr, "toast", "The Wooden Pickaxe is free, not forged")
+		return
+	end
+
+	local oreDef = C.oreById and C.oreById(oreId)
+	if not oreDef or not oreDef.tier then
+		net:FireClient(plr, "toast", "That ore is not in the roster")
+		return
+	end
+
+	p.oreTools = p.oreTools or {}
+	if #p.oreTools >= 200 then
+		net:FireClient(plr, "toast", "Your tool rack is full - scrap something first")
+		return
+	end
+
+	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = typeId })
+	local cost = C.toolCraftCost(oreDef.tier, typeMult)
+
+	p.ores = p.ores or {}
+	local have = tonumber(p.ores[oreId]) or 0
+	if have < cost then
+		net:FireClient(plr, "toast", string.format("Needs %s %s",
+			Verbs._benchNum(cost), oreDef.name or oreId))
+		return
+	end
+
+	p.ores[oreId] = have - cost
+	local row = {
+		uid = instanceHex16(),
+		typeId = def.id,
+		familyId = familyId,
+		tier = oreDef.tier,
+		level = 1,
+	}
+	table.insert(p.oreTools, row)
+
+	bumpStat(plr, p, "crafts")
+	net:FireClient(plr, "toast", string.format("Forged  %s %s",
+		oreDef.name or oreId, def.name or def.id))
+	snap(plr)
+	markDirty(plr)
+end
+
 function Verbs.recycleOreTool(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -13489,6 +13622,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if not profiles[plr.UserId] then load(plr) end
 		if Verbs.policyBlocks(plr, action) then return end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
+		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
 		elseif action == "throwAt" then throwAt(plr, payload)

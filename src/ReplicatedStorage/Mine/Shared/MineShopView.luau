@@ -483,19 +483,22 @@ function MineShopView.mount(parent, opts)
 	end
 
 	----------------------------------------------------------------------------
-	-- THE BENCH
+	-- THE FORGE
 	--
-	-- MineBenchView already draws one row per ore tool with its next-level cost,
-	-- what you are holding against that cost, and +1 / +10 / MAX / SCRAP. It was
-	-- never mounted anywhere, so none of it could be reached. It hangs off the
-	-- shop root at 86 -- above the stage, below the header -- and only the
-	-- Upgrade tab shows it.
+	-- MineForge draws every tool in the game down a rail on the left and, on the
+	-- right, either the CRAFT recipe list (unowned: pick a discovered ore) or the
+	-- UPGRADE panel (owned: level, price, +1 / +10 / MAX, SCRAP). It supersedes
+	-- MineBenchView, which only ever showed tools you already had and so could
+	-- not tell a player what to build next.
+	--
+	-- It hangs off the shop root at 86 -- above the stage, below the header --
+	-- and only the Upgrade tab shows it.
 	--
 	-- Required through pcall: if the module is missing from a build, the tab
 	-- goes quiet instead of taking the whole shop down with it.
 	----------------------------------------------------------------------------
 	local okBench, Bench = pcall(function()
-		return require(shared:WaitForChild("MineBenchView", 5))
+		return require(shared:WaitForChild("MineForge", 5))
 	end)
 	local benchPanel, benchCtl
 	if okBench and Bench and Bench.mount then
@@ -515,8 +518,18 @@ function MineShopView.mount(parent, opts)
 				return {
 					oreTools = state.oreTools or {},
 					ores = state.ores or {},
+					oresSeen = state.oresSeen,
 					dust = state.dust or 0,
+					-- The Forge quotes coins for the wooden pickaxe and shows a
+					-- wallet strip, so it needs both currencies, not just dust.
+					coins = state.coins or 0,
+					gems = state.gems or 0,
 				}
+			end,
+			onCraft = function(familyId, typeId, oreId)
+				if opts.onCraftOreTool then
+					opts.onCraftOreTool(familyId, typeId, oreId)
+				end
 			end,
 			onUpgrade = function(uid, n)
 				if opts.onUpgradeOreTool then

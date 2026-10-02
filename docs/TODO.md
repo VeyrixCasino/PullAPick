@@ -291,20 +291,40 @@ hats, faces, tools, runes, charms, and anything recyclable added later):
 
 ### The Forge (was the Blacksmith)
 
-- [ ] Reconcile `MineForgeView.luau` (780) and `MineBenchView.luau` (239) into one
-      Forge. Do not add a third view.
+- [x] **Forge shell built** — `MineForge.luau`. Vertical rail of **every tool in
+      the game** down the left, detail pane on the right: CRAFT when unowned,
+      UPGRADE when owned. Mounted in place of `MineBenchView` on the shop's
+      Upgrade tab (same `{refresh, root}` contract, same pcall guard).
+      `MineBenchView` is now superseded and can be deleted once the Forge has
+      its own front.
+- [ ] `MineForgeView.luau` (780, temperaments) still needs folding in as the
+      skin/rune application area — see below.
 - [ ] Keep the full-screen 3D display from `583d9ad`.
-- [ ] **Vertical scrolling recipe list.**
-- [ ] **Show only discovered ores**, with the ore amount each recipe needs. An
-      undiscovered ore must not leak its name or stats.
-- [ ] **Separate upgrades area**, where runes and skins are also applied.
-- [ ] **Full inventory shown in the Forge**, bag and ore pouch included.
+- [x] **Vertical scrolling recipe list**, and the tool rail is vertical on the
+      left-hand side as specified.
+- [x] **Show only discovered ores**, with the amount each recipe needs.
+      `discoveredOres()` prefers an explicit `snapshot.oresSeen` set and falls
+      back to ores currently held — which under-reports but can never
+      over-report, so an unseen ore cannot leak its name, tier or colour.
+- [ ] **Server does not send `oresSeen` yet.** Until it does, a recipe vanishes
+      when the player spends their last unit of that ore. Add a seen-set to the
+      profile and the snapshot.
+- [x] **Separate upgrades area** — the detail pane switches to UPGRADE for an
+      owned tool: level, next step's price, +1 / +10 / MAX and SCRAP.
+- [ ] Runes and skins are **not** applied there yet. That is `MineForgeView`'s
+      temperament UI, which still has to move into the Forge's upgrade pane.
+- [ ] **Full inventory shown in the Forge**, bag and ore pouch included. Only a
+      wallet strip (coins / gems / dust) exists so far.
 - [ ] Server owns crafting: ore debited and tool minted in one transaction. No
       client-supplied costs, no partial debits on failure.
 
 ### Tools craftable and upgradeable with ore
 
-- [ ] Craft recipes keyed by ore; the ore also sets the tool's breaking power.
+- [x] Craft recipes keyed by ore. `MineConfig.toolCraftCost(tier, typeMult)`
+      prices off the same `toolCostMult` the level curve uses, so one curve
+      governs both. `TOOL_CRAFT_BASE = 250` is the single knob.
+- [ ] The crafting ore must also set the tool's **breaking power** — blocked on
+      the breaking-power curves (open question 1).
 - [ ] Upgrades cost ore, **a lot of it** — endgame tools are a real grind.
 - [ ] Keep the uid-keyed contract of `upgradeOreTool` / `recycleOreTool`.
 
@@ -495,6 +515,12 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 - [x] `docs/ore-remake.md` replaced with the live 121-ore roster, generated from
       `MineConfig.ORES`; LOOKS/glow block, Space set and change log preserved
 - [x] `docs/TODO.md` rebuilt as this handoff
+- [x] **Forge, first slice.** `MineForge.luau` (view), `MineConfig.toolCraftCost`
+      / `woodPickCoinCost` / `isCoinTool`, server `Verbs.craftOreTool` and
+      `Verbs._upgradeCoinTool`, `craftOreTool` dispatch, client
+      `onCraftOreTool`, and the ShopView mount swapped from `MineBenchView` to
+      `MineForge`. The wooden pickaxe is the only tool that levels on coins
+      (cap 25); every other tool levels on its own ore plus stardust.
 - [x] Removed the two outdated "ore cannot build a tool" claims
       (`MineZonePacks.luau`, `MineServer.server.luau`). Grep for the phrasings
       now returns nothing.
