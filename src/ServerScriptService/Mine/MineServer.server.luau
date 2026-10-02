@@ -3262,8 +3262,8 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		--[==[
 			The ore lives in the face art now, so the block itself is rock.
 
-			It used to be a solid cube of the ore's own colour, which is why 121
-			ores read as 121 coloured cubes -- a Cobalt vein and a Niobium one
+			It used to be a solid cube of the ore's own colour, which is why the
+			ore roster read as a wall of coloured cubes -- a Cobalt vein and a Niobium one
 			were the same blue box. Each ore now wears one of thirty hand-drawn
 			faces (MineConfig.ORE_FACE), and the part underneath takes the
 			zone's own rock, darkened, so the ore reads as sitting IN the wall
@@ -3291,7 +3291,7 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 
 			The server has always stamped OreId / OreName / OreTier onto the
 			part and nothing has ever read them -- the client has no ore
-			awareness at all. So 121 ores share one palette and, in the wall,
+			awareness at all. So every ore shares one palette and, in the wall,
 			a Cobalt vein and a Niobium one are the same blue cube. Colour
 			cannot carry identity at this roster size; the name has to.
 
@@ -6004,20 +6004,12 @@ local function openPack(plr, setId, chestId, pk, collect)
 				bumpStat(plr, p, "packs")
 				-- The reveal needs something to celebrate with, and every ore is
 				-- Common on the card rarity scale. Grade it off its own tier.
-				-- Bands, straight off the roster: Common 1-24, Uncommon 25-48,
-				-- Rare 49-72, Epic 73-96, Legendary 97-108, Mythic 109-114,
-				-- Divine 115-118, Exotic 119-121. These used to stop at Divine
-				-- with the top three ores grading as merely Divine, and the
-				-- Mythic/Divine cuts sat at 110/118 rather than 108/114.
+				-- Bands come from C.oreGrade, which scales them to the live
+				-- roster size (C.ORE_COUNT). They used to be hardcoded against a
+				-- 121-ore roster, so on the real 82-ore roster the deepest ore
+				-- graded as merely Epic and the top four bands were unreachable.
 				local tier = (ore and ore.tier) or 1
-				local grade = (tier > 118 and "Exotic")
-					or (tier > 114 and "Divine")
-					or (tier > 108 and "Mythic")
-					or (tier > 96 and "Legendary")
-					or (tier > 72 and "Epic")
-					or (tier > 48 and "Rare")
-					or (tier > 24 and "Uncommon")
-					or "Common"
+				local grade = C.oreGrade(tier)
 				local loot = { {
 					kind = "ore",
 					name = (ore and ore.name) or zdef.oreName or tostring(zdef.oreId),

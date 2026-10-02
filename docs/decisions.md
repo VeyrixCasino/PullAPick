@@ -12,9 +12,9 @@ and **nothing ever read them** — the client had exactly one ore reference in
 Worse, the block card had a branch-order fault: an ore block carries a
 `SectionName` like every other block, so it hit the *section* branch first and
 read `Clayfall | L312`. The one thing it could not tell you was which of the
-121 ores you were looking at.
+ore you were looking at.
 
-Ore is now checked first, and there is a name tag on the block itself. With 121
+Ore is now checked first, and there is a name tag on the block itself. With 82
 ores sharing a palette, a Cobalt vein and a Niobium one are the same blue cube —
 colour cannot carry identity at this roster size.
 
@@ -23,7 +23,7 @@ colour cannot carry identity at this roster size.
 Every ore uses one of eight procedural shells in `ServerStorage.OreShapes`
 (Vein, Seam, Nugget, Druse, Cluster, Shard, Geode, Massive). Parts carrying a
 `Tint` attribute take the ore's colour and material at spawn; the host rock
-stays grey. That is the whole contract, and it means 121 ores need zero unique
+stays grey. That is the whole contract, and it means the whole roster needs zero unique
 models.
 
 **The trap, learned the hard way:** the first build placed ore features at
@@ -36,7 +36,7 @@ with rock surviving as shell plates over the face centres.
 
 ## Tools run a per-tool 1–1000 scale
 
-Ore tier used to set a tool's **starting level** — a tier-121 tool was born at
+Ore tier used to set a tool's **starting level** — a top-tier tool was born at
 level 700. Finding one was the end of its story rather than the start, and there
 was no reason to spend stardust on something you just pulled out of a wall.
 

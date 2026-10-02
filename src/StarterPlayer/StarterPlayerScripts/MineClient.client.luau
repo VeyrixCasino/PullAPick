@@ -6905,7 +6905,7 @@ local function refreshDust()
 	elseif tab == "packs" then
 		local PacksMod = require(shared:WaitForChild("MinePackConfig"))
 		--[==[
-			Ore packs carry their ore's tier, and at 121 ores the name alone
+			Ore packs carry their ore's tier, and across a roster this size the name alone
 			does not place one: "Magnetite Ore Pack" says nothing about whether
 			that is an early find or a deep one. The tier does, so it rides on
 			the subtitle where the generic "Unopened pack" used to sit.
@@ -8259,7 +8259,7 @@ function ClientFns.paintEnchantExtra()
 			n += 1
 			local def = ZP and ZP.get and ZP.get(offer.id)
 			local name = (def and def.name) or tostring(offer.id)
-			-- 121 ores on the roster: the tier is what places a pack.
+			-- One pack per ore on the roster: the tier is what places a pack.
 			local tierBit = (def and def.kind == "ore" and def.tier)
 				and ("  |  tier " .. tostring(def.tier)) or ""
 			local row = mk("TextButton", {
@@ -9827,7 +9827,7 @@ RunService.Heartbeat:Connect(function(dt)
 		--[[
 			An ore block carries a SectionName like every other block, so it used to
 			fall into the section branch below and the card read "Clayfall | L312" --
-			the one thing it could not tell you was which of the 121 ores you were
+			the one thing it could not tell you was which ore you were
 			standing in front of. Ore is checked FIRST for that reason; the section
 			is still on screen in the depth HUD, the ore's identity was nowhere.
 		]]

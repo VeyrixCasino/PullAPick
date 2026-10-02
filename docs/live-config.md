@@ -65,7 +65,8 @@ radius 6000–9000 and are portals, not walks.
 - `ORE_CHANCE = 0.005` — 1 block in 200
 - `ORE_HP_MULT = 3` — applied at spawn in MineServer, **not** in `blockHp`:
   `maxHp = floor(C.blockHp("dirt", zone, y) * (C.ORE_HP_MULT or 3))`
-- 121 ores, spaced **0.2674 D apart** (D 0 → 32.09)
+- **82 ores** (the roster is 82; this line read 121 when measured on 2026-09-27,
+  from the stale `MineConfig.ORES`). Spacing re-derives from the live count.
 
 ### Spread curve
 

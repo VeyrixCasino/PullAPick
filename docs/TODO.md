@@ -47,7 +47,8 @@ file in `src/`. Syncback first, commit, then connect.
 
 Other docs: `docs/live-config.md` (numbers measured out of the running place),
 `docs/decisions.md` (why things are the way they are), `docs/ore-remake.md` (the live
-121-ore roster + per-ore appearance/glow data + the unapplied 40-ore Space set).
+ore roster (STALE at 121 rows; the real roster is 82) + per-ore appearance/glow
+data + the unapplied 40-ore Space set).
 
 ---
 
@@ -118,13 +119,16 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 
 1. **`docs/ore-remake.md` was stale and is now the roster.** It claimed "planning
    only, `MineConfig.ORES` is unchanged". False — the remake landed in `deb8f35` and
-   `72b81ed`. Replaced with the live 121-ore roster generated from `MineConfig`.
+   `72b81ed`. Replaced with the roster generated from `MineConfig` — which has
+   since turned out to be STALE at 121 rows; the real roster is 82.
    Kept: the LOOKS block (only written record of per-ore glow colour/intensity, since
    `ORES` rows carry no `glow` key), the unapplied 40-ore Space set, the change log.
 
-2. **Ore count is 121, not ~80.** Settled against code and four docs. If ~80 is what
-   you see in game, that is the depth gate: ores are spread across `D 0 → 32.09` and
-   the spread curve only rolls ores near your current `D`.
+2. **Ore count is 82. FINAL.** (Event Horizon ores may be added later.) An earlier
+   pass argued for 121 off `MineConfig.ORES` and four docs that all trace back to
+   it. All of them are stale. `ToolBakers.OreToolBaker` is the authority, and so is
+   the user. `MineConfig.ORE_COUNT = 82` is now the single source of truth, and
+   rarity bands derive from it as fractions so nothing hardcodes a roster size again.
 
 3. **Breaking power is separate from damage.** A tool can have 1000 damage and still
    be unable to scratch a block. Not upgradeable — the only way up is a better tool.
@@ -244,7 +248,7 @@ Inputs are settled. The numeric curves still need sign-off.
 
 ### Charms — one per ore
 
-- [ ] One charm per ore (121 charms).
+- [ ] One charm per ore (82 charms).
 - [ ] **0.5% drop chance**, excluding the first Coal Charm (the starter, guaranteed).
 - [ ] **Mergeable** into higher tiers.
 
@@ -279,7 +283,8 @@ hats, faces, tools, runes, charms, and anything recyclable added later):
 - [ ] Reuse the **existing charm-find animation** (pull-from-pack) for the case drop.
 - [ ] Opening a case yields a **skin that applies to a whole tool family**.
 - [ ] **81 skin cases**, one per tool rarity.
-      *Open question — 81 does not divide into 121 ores; confirm the mapping.*
+      *With the roster at 82, the old "81 cases" figure looks like it was tracking
+      the real ore count all along. Confirm: one case per ore, 82?*
 - [ ] **Drop rates identical to tempers today**: F 50%, D 27.63%, C 12.5%, B 6.75%,
       A 2.5%, S 0.5%, SS 0.1%, SSS 0.02% (`MineTemper.RARITY_WEIGHTS`).
 - [ ] **Naming**: every skin name states which ore it is and what type of skin.
@@ -442,7 +447,7 @@ collide with blast and zap, which is the guardrail asked for:
 
 ## 6.3 P1 — art pipeline
 
-- [ ] **Ore icons for all 121 ores** — `{Ore}` naming.
+- [ ] **Ore icons for all 82 ores** — `{Ore}` naming.
 - [ ] **Ore case art** — `{Ore}Case` naming.
 - [ ] **Ore block textures, rebuilt on canvas.** The supplied images have problems:
   - small specks used as ore chunks
@@ -543,7 +548,7 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 
 # 8. Done
 
-- [x] `docs/ore-remake.md` replaced with the live 121-ore roster, generated from
+- [x] `docs/ore-remake.md` replaced with the roster generated from
       `MineConfig.ORES`; LOOKS/glow block, Space set and change log preserved
 - [x] `docs/TODO.md` rebuilt as this handoff
 - [x] **Forge, first slice.** `MineForge.luau` (view), `MineConfig.toolCraftCost`
@@ -569,8 +574,8 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 - [x] Every owned instance carries a uid. Quantity maps (charms, tempers, eventTools,
       ores, tools) deliberately keep counts — instancing them would grow the save.
 - [x] Echo stripped from every pet, all 140 kept (45 main + 12 Event Horizon)
-- [x] Ore art ships as packed pixels; 30 hand-made face tiles mapped to all 121 ores
-- [x] Ore roster remake, 121 ores, with a save migration; 14 renames regenerated
+- [x] Ore art ships as packed pixels; 30 hand-made face tiles mapped across the roster
+- [x] Ore roster remake with a save migration; 14 renames regenerated
 - [x] Chest tables redone: hats and charms in, gems out
 - [x] Blacksmith upgrade model: per-tool 1–1000 scale, flat 50% recycle
 - [x] Wormhole bag autosell + live-ticking timers
@@ -627,8 +632,8 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
    looser. What is still needed: the actual curve shapes, and the depth band past
    which each enchant stops applying to non-ore rock. Highest-leverage remaining
    unknown — the rest of P0 is paced by these numbers.
-2. **81 skin cases vs 121 ores.** 81 does not divide into 121. Is it 81 tool
-   rarities/families rather than per-ore, and how does `{Ore}Case` naming map onto 81?
+2. **Skin cases vs the 82-ore roster.** The old "81 cases" figure almost certainly
+   tracked the real ore count. Confirm it is one case per ore at 82.
 3. **Recycle bonus curve.** "Decent but not game breaking" needs numbers.
 4. **Element roster.** Needed to assign one native build boost per element type.
 5. **Rebirth coin value.** Does "rebirth raises coin value / soften zone+depth coin

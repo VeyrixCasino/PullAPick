@@ -196,7 +196,7 @@ MineZonePacks.PACKS = MineZonePacks.buildAll()
 	skin cases. Until that lands: breaking an ore block gives its pack, and
 	opening the pack always gives ore.
 
-	121 rows kept in step with MineConfig.ORES by construction. Hand-writing
+	One row per ore, kept in step with MineConfig.ORES by construction. Hand-writing
 	them would guarantee the two drift the first time an ore is renamed.
 
 	Yield falls as the ore gets harder: a common seam hands over a fistful, an
@@ -214,7 +214,7 @@ do
 	if okC and C and C.ORES then
 		local n = #C.ORES
 		for _, ore in ipairs(C.ORES) do
-			-- 6 at tier 1 down to 1 at tier 121, rounded.
+			-- 6 at the first tier down to 1 at the last, rounded.
 			local t = (ore.tier - 1) / math.max(1, n - 1)
 			local hi = math.max(MineZonePacks.ORE_YIELD_LO,
 				math.floor(MineZonePacks.ORE_YIELD_HI

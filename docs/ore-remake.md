@@ -45,174 +45,30 @@ node tools/add-ore-migration.js # id -> id aliases
 Bands use the game's full rarity ladder, Exotic on top:
 Common 1-24, Uncommon 25-48, Rare 49-72, Epic 73-96, Legendary 97-108, Mythic 109-114, Divine 115-118, Exotic 119-121.
 
-## The roster (121, live from `MineConfig.ORES`)
+## The roster
 
-Verified at generation: 121 rows, tiers 1-121 contiguous, no duplicate ids.
+**Removed.** This section held a generated 121-row table. The roster is **82
+ores**, so that table was wrong in its count, its tier numbers and its rarity
+bands, and a wrong roster here is worse than none.
 
-`id` is load-bearing twice over — `p.ores[id]` is banked material and packs are
-`<id>_ore_pack`. Never change one without an id->id migration that keeps the old
-id as an alias.
+The live list is `ReplicatedStorage.Mine.ToolBakers.OreToolBaker`. Sync it back,
+cut `MineConfig.ORES` down to it, then regenerate this section from
+`MineConfig` as before.
 
-### Common — tiers 1–24 (24)
+Roster size is `MineConfig.ORE_COUNT` (82). Rarity bands derive from it as
+fractions via `MineConfig.oreGrade(tier)`, so they rescale with the roster
+instead of being pinned to tier numbers:
 
-| Tier | Name | `id` | Material |
-| ---: | --- | --- | --- |
-| 1 | Stone | `stone` | Rock |
-| 2 | Cobblestone | `cobblestone` | Cobblestone |
-| 3 | Clay | `clay` | Mud |
-| 4 | Sandstone | `sandstone` | Sandstone |
-| 5 | Limestone | `limestone` | Limestone |
-| 6 | Pumice | `pumice` | Concrete |
-| 7 | Halite | `halite` | Salt |
-| 8 | Coal | `coal` | Slate |
-| 9 | Flint | `flint` | Slate |
-| 10 | Chert | `chert` | Limestone |
-| 11 | Basalt | `basalt` | Basalt |
-| 12 | Slate | `slate` | Slate |
-| 13 | Bone | `bone` | Plaster |
-| 14 | Granite | `granite` | Granite |
-| 15 | Copper | `copper` | Metal |
-| 16 | Diorite | `diorite` | Pebble |
-| 17 | Tin | `tin` | CorrodedMetal |
-| 18 | Cassiterite | `cassiterite` | Slate |
-| 19 | Ember | `ember` | CrackedLava |
-| 20 | Sulfur | `sulfur` | Sand |
-| 21 | Lead | `lead` | CorrodedMetal |
-| 22 | Galena | `galena` | DiamondPlate |
-| 23 | Zinc | `zinc` | Foil |
-| 24 | Aluminum | `aluminum` | Metal |
-
-### Uncommon — tiers 25–48 (24)
-
-| Tier | Name | `id` | Material |
-| ---: | --- | --- | --- |
-| 25 | Iron | `iron` | Metal |
-| 26 | Hematite | `hematite` | Metal |
-| 27 | Graphite | `graphite` | Metal |
-| 28 | Pyrite | `pyrite` | DiamondPlate |
-| 29 | Quartzite | `quartzite` | Salt |
-| 30 | Selenite | `selenite` | Glass |
-| 31 | Chalcopyrite | `chalcopyrite` | Foil |
-| 32 | Marble | `marble` | Marble |
-| 33 | Pearl | `pearl` | SmoothPlastic |
-| 34 | Rime | `rime` | Ice |
-| 35 | Quartz | `quartz` | Glass |
-| 36 | Agate | `agate` | Marble |
-| 37 | Jasper | `jasper` | Rock |
-| 38 | Amber | `amber` | Glass |
-| 39 | Petrifact | `petrifact` | Wood |
-| 40 | Nickel | `nickel` | Foil |
-| 41 | Magnetite | `magnetite` | Basalt |
-| 42 | Manganese | `manganese` | Metal |
-| 43 | Malachite | `malachite` | Marble |
-| 44 | Azurite | `azurite` | Marble |
-| 45 | Cinnabar | `cinnabar` | Slate |
-| 46 | Fluorite | `fluorite` | Glass |
-| 47 | Chromite | `chromite` | Rock |
-| 48 | Onyx | `onyx` | Marble |
-
-### Rare — tiers 49–72 (24)
-
-| Tier | Name | `id` | Material |
-| ---: | --- | --- | --- |
-| 49 | Kimberlite | `kimberlite` | Pebble |
-| 50 | Bloodstone | `bloodstone` | Marble |
-| 51 | Garnet | `garnet` | Glass |
-| 52 | Citrine | `citrine` | Glass |
-| 53 | Chromium | `chromium` | Metal |
-| 54 | Turquoise | `turquoise` | Marble |
-| 55 | Rhodochrosite | `rhodochrosite` | Marble |
-| 56 | Bismuth | `bismuth` | Foil |
-| 57 | Silver | `silver` | Metal |
-| 58 | Amethyst | `amethyst` | Glass |
-| 59 | Apatite | `apatite` | Glass |
-| 60 | Moissanite | `moissanite` | Foil |
-| 61 | Tigereye | `tigereye` | Marble |
-| 62 | Lapis | `lapis` | Marble |
-| 63 | Geode | `geode` | Glass |
-| 64 | Topaz | `topaz` | Glass |
-| 65 | Phosphorus | `phosphorus` | SmoothPlastic |
-| 66 | Peridot | `peridot` | Glass |
-| 67 | Jade | `jade` | Marble |
-| 68 | Emberglass | `emberglass` | Glass |
-| 69 | Tungsten | `tungsten` | Metal |
-| 70 | Lithium | `lithium` | Metal |
-| 71 | Titanium | `titanium` | Metal |
-| 72 | Obsidian | `obsidian` | Glass |
-
-### Epic — tiers 73–96 (24)
-
-| Tier | Name | `id` | Material |
-| ---: | --- | --- | --- |
-| 73 | Electrum | `electrum` | Metal |
-| 74 | Cobalt | `cobalt` | Metal |
-| 75 | Labradorite | `labradorite` | Glass |
-| 76 | Zirconium | `zirconium` | Metal |
-| 77 | Beryllium | `beryllium` | Metal |
-| 78 | Niobium | `niobium` | Metal |
-| 79 | Gold | `gold` | Metal |
-| 80 | Fulgurite | `fulgurite` | Glass |
-| 81 | Tektite | `tektite` | Glass |
-| 82 | Moldavite | `moldavite` | Glass |
-| 83 | Regolith | `regolith` | Pebble |
-| 84 | Sunstone | `sunstone` | Foil |
-| 85 | Spinel | `spinel` | Glass |
-| 86 | Emerald | `emerald` | Glass |
-| 87 | Tourmaline | `tourmaline` | Glass |
-| 88 | Zircon | `zircon` | Glass |
-| 89 | Moonstone | `moonstone` | Glass |
-| 90 | Alexandrite | `alexandrite` | Glass |
-| 91 | Sapphire | `sapphire` | Glass |
-| 92 | Ruby | `ruby` | Glass |
-| 93 | Palladium | `palladium` | Metal |
-| 94 | Aquamarine | `aquamarine` | Ice |
-| 95 | Tanzanite | `tanzanite` | Glass |
-| 96 | Opal | `opal` | ForceField |
-
-### Legendary — tiers 97–108 (12)
-
-| Tier | Name | `id` | Material |
-| ---: | --- | --- | --- |
-| 97 | Platinum | `platinum` | Metal |
-| 98 | Stormstone | `stormstone` | Slate |
-| 99 | Rhodium | `rhodium` | Glass |
-| 100 | Diamond | `diamond` | Glass |
-| 101 | Starmetal | `starmetal` | Metal |
-| 102 | Aetherite | `aetherite` | Glass |
-| 103 | Meteorite | `meteorite` | CrackedLava |
-| 104 | Soulstone | `soulstone` | Glass |
-| 105 | Osmium | `osmium` | Metal |
-| 106 | Galaxite | `galaxite` | Basalt |
-| 107 | Iridium | `iridium` | Metal |
-| 108 | Frostfire | `frostfire` | Glass |
-
-### Mythic — tiers 109–114 (6)
-
-| Tier | Name | `id` | Material |
-| ---: | --- | --- | --- |
-| 109 | Umbrite | `umbrite` | Glass |
-| 110 | Celestine | `celestine` | Glass |
-| 111 | Orichalcum | `orichalcum` | Metal |
-| 112 | Spectrite | `spectrite` | ForceField |
-| 113 | Mythril | `mythril` | Metal |
-| 114 | Dragonstone | `dragonstone` | Slate |
-
-### Divine — tiers 115–118 (4)
-
-| Tier | Name | `id` | Material |
-| ---: | --- | --- | --- |
-| 115 | Adamantite | `adamantite` | Metal |
-| 116 | Thorium | `thorium` | Metal |
-| 117 | Uranium | `uranium` | Neon |
-| 118 | Plutonium | `plutonium` | Metal |
-
-### Exotic — tiers 119–121 (3)
-
-| Tier | Name | `id` | Material |
-| ---: | --- | --- | --- |
-| 119 | Fermium | `fermium` | Metal |
-| 120 | Lawrencium | `lawrencium` | Metal |
-| 121 | Oganesson | `oganesson` | ForceField |
+| band | tiers at 82 |
+| --- | --- |
+| Common | 1-16 |
+| Uncommon | 17-33 |
+| Rare | 34-49 |
+| Epic | 50-65 |
+| Legendary | 66-73 |
+| Mythic | 74-77 |
+| Divine | 78-80 |
+| Exotic | 81-82 |
 
 ## Appearance reference (generator LOOKS format)
 

@@ -2007,7 +2007,7 @@ end
 	zone alone would let someone farm deep Meadow and one-shot zone 10.
 
 	So every ore sits on one axis, D = log6(blockHp / 20), running 0 at Meadow
-	Loam to ~23.4 at Primordium Finalite, and the 121 ores spread evenly across
+	Loam to ~23.4 at Primordium Finalite, and the 82 ores spread evenly across
 	it. An ore turns up wherever the rock's D is near its own.
 
 	Nothing is ever gated and nothing is ever zero: Stone at the bottom of
@@ -2188,12 +2188,12 @@ MineConfig.ORES = {
 
 	Every tool runs its own 1..TOOL_MAX_LEVEL scale. Ore tier does not set a
 	tool's starting level any more -- it sets the band the tool plays in, and
-	the level is the whole climb inside it. A tier-121 pick used to be BORN at
+	the level is the whole climb inside it. A top-tier pick used to be BORN at
 	level 700, which made finding one the end of its story rather than the
 	start, and left nothing worth spending stardust on.
 
 	Tier is therefore a multiplier: TOOL_TIER_SPAN says how many x6 steps
-	separate tier 1 from tier 121, the same unit the mine measures depth in.
+	separate the first ore from the last, the same unit the mine measures depth in.
 
 	A level costs ORE and STARDUST. Ore is the real gate -- you cannot level
 	what you cannot dig -- and stardust is the throttle. Both scale with the
@@ -2243,7 +2243,7 @@ local function perLevel(total)
 	return total ^ (1 / steps)
 end
 
-MineConfig.TOOL_TIER_SPAN = 16        -- 6^16 from tier 1 to tier 121
+MineConfig.TOOL_TIER_SPAN = 16        -- 6^16 across the whole ore roster
 MineConfig.TOOL_DMG_BASE = 10
 MineConfig.TOOL_DMG_STEP = perLevel(MineConfig.TOOL_CLIMB_DAMAGE)
 MineConfig.TOOL_ORE_BASE = 4
@@ -2260,7 +2260,10 @@ local function clampLevel(level)
 end
 local function clampTier(tier)
 	local n = math.floor(tonumber(tier) or 1)
-	return math.clamp(n, 1, #MineConfig.ORES)
+	-- ORE_COUNT, not #ORES: the table is stale at 121 rows while the live
+	-- roster is 82, and clamping to the table would let a tier past the end of
+	-- the real roster through.
+	return math.clamp(n, 1, MineConfig.ORE_COUNT or #MineConfig.ORES)
 end
 
 -- Both anchor at 1 and only ever go UP. typeMult is the tool type's rarity
@@ -2272,9 +2275,18 @@ function MineConfig.toolCostMult(tier, typeMult)
 end
 
 -- What tier alone is worth, before any levelling.
+--[[
+	Tool power from its ore tier, spanning 6^TOOL_TIER_SPAN across the roster.
+
+	The divisor was hardcoded to 120 -- one less than a 121-ore roster. On the
+	real 82-ore roster that made the top tier reach only 6^10.8 instead of the
+	designed 6^16, so the best tool in the game landed ~11,000x short of its
+	own ceiling. It now divides by the live roster size.
+]]
 function MineConfig.toolTierPower(tier)
 	local t = clampTier(tier)
-	return 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / 120)
+	local span = math.max(1, (MineConfig.ORE_COUNT or 121) - 1)
+	return 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / span)
 end
 
 function MineConfig.toolPower(tier, level, typeMult)
@@ -2344,6 +2356,52 @@ end
 	tier-121 one costs ~15.4K of an ore that drops one or two at a time. Tune it
 	here and nowhere else.
 ]]
+--[[
+	THE ROSTER IS 82 ORES. This number is the authority, not `#MineConfig.ORES`.
+
+	The ORES table below still carries 121 rows and is stale: the live game runs
+	82. The real list lives in `ReplicatedStorage.Mine.ToolBakers.OreToolBaker`,
+	which is not committed to this repo yet, so the table cannot be cut down
+	without guessing which 39 rows to delete -- and ore ids are load bearing
+	(`p.ores[id]` is banked material), so a wrong guess eats inventories.
+
+	Everything that needs to know how big the roster is reads ORE_COUNT, so when
+	the table is finally cut nothing else has to change. Never hardcode a roster
+	size or a rarity cutoff again.
+]]
+MineConfig.ORE_COUNT = 82
+
+--[[
+	Rarity bands as FRACTIONS of the roster, not fixed tier numbers.
+
+	They were written as hardcoded cutoffs against 121 (Exotic 119-121), which
+	at 82 ores means the deepest ore in the game grades as merely Epic and the
+	top four bands can never be reached at all. Fractions survive a roster
+	resize; fixed numbers do not.
+]]
+MineConfig.ORE_BANDS = {
+	{ name = "Common", upTo = 24 / 121 },
+	{ name = "Uncommon", upTo = 48 / 121 },
+	{ name = "Rare", upTo = 72 / 121 },
+	{ name = "Epic", upTo = 96 / 121 },
+	{ name = "Legendary", upTo = 108 / 121 },
+	{ name = "Mythic", upTo = 114 / 121 },
+	{ name = "Divine", upTo = 118 / 121 },
+	{ name = "Exotic", upTo = 1 },
+}
+
+-- The rarity band an ore tier falls in, scaled to the live roster size.
+function MineConfig.oreGrade(tier)
+	local n = math.max(1, math.floor(tonumber(MineConfig.ORE_COUNT) or 82))
+	local t = math.clamp(math.floor(tonumber(tier) or 1), 1, n)
+	for _, band in ipairs(MineConfig.ORE_BANDS) do
+		if t <= math.floor(band.upTo * n + 0.5) then
+			return band.name
+		end
+	end
+	return "Exotic"
+end
+
 MineConfig.TOOL_CRAFT_BASE = 250
 
 function MineConfig.toolCraftCost(tier, typeMult)
