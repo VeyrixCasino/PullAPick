@@ -2438,6 +2438,49 @@ MineConfig.ORE_COUNT = 82
 	infer anything.
 ]]
 
+--[[
+	BREAKING POWER. The ore a tool is forged from IS its breaking power.
+
+	This is the owner's rule and it is not derived from anything in this repo:
+
+	  - A tool forged from ore tier T has breaking power T.
+	  - It reaches T + ORE_REACH tiers of ore. Tier <= T+15 breaks, above does not.
+	  - Breaking power is NOT upgradeable. Levelling raises damage, never reach.
+	    The only way to reach deeper ore is to forge from a better ore.
+
+	Breaking power is NOT damage, and the two must never be collapsed into one
+	number. A tool can hit for billions and still be unable to scratch an ore
+	fifteen tiers above the rock it was made from.
+
+	Across 82 ores a +15 reach is about six forges from the first tool to the
+	last ore, which is the progression ladder the rule exists to create.
+
+	`roadmap/ORE.md` argues ore should not drive power at all. It is OVERRULED;
+	see docs/TODO.md section 0.
+]]
+MineConfig.ORE_REACH = 15
+
+-- The breaking power of a tool, which is simply the tier of its ore.
+function MineConfig.toolBreakingPower(tool)
+	if type(tool) == "table" then
+		return math.max(1, math.floor(tonumber(tool.tier) or 1))
+	end
+	return math.max(1, math.floor(tonumber(tool) or 1))
+end
+
+-- Can a tool of this breaking power touch an ore of this tier?
+function MineConfig.canBreakOre(breakingPower, oreTier)
+	local bp = math.max(1, math.floor(tonumber(breakingPower) or 1))
+	local t = math.max(1, math.floor(tonumber(oreTier) or 1))
+	return t <= bp + (MineConfig.ORE_REACH or 15)
+end
+
+-- The deepest ore tier a tool can reach, for UI that wants to show the ceiling.
+function MineConfig.oreReachCap(breakingPower)
+	local bp = math.max(1, math.floor(tonumber(breakingPower) or 1))
+	return math.min(bp + (MineConfig.ORE_REACH or 15), MineConfig.ORE_COUNT or 82)
+end
+
 MineConfig.TOOL_CRAFT_BASE = 250
 
 function MineConfig.toolCraftCost(tier, typeMult)

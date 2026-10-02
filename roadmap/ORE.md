@@ -1,3 +1,18 @@
+> # OVERRULED ON POWER — READ THIS FIRST
+>
+> **ORE TIER IS THE TOOL'S BREAKING POWER. This is the owner's decision and it
+> is final.** A tool forged from ore tier T has breaking power T, and reaches
+> **T + 15** tiers of ore.
+>
+> This document argues ore should supply identity and trade value but NOT power
+> ("the zone ladder decides how hard you hit"). That recommendation is **not the
+> direction of this game** and must not be implemented, quoted as rationale, or
+> raised as an open question again.
+>
+> Everything else here — why ore exists, the 82 x 57 tool-identity maths, the
+> history of what went wrong — is still good reading. The power recommendation
+> is dead. Do not relitigate it.
+
 # Ore: what it is for
 
 ## Why ore exists at all

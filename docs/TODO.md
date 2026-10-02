@@ -12,6 +12,38 @@ Last updated: 2026-10-02.
 
 ---
 
+# 0. LOCKED RULES — do not relitigate, do not ask again
+
+These are the owner's decisions. They are not open questions, they are not
+derived from any file in this repo, and no document here overrides them. If a
+file in this repo disagrees, the file is wrong.
+
+1. **ORE TIER = THE TOOL'S BREAKING POWER.** A tool forged from ore tier T has
+   breaking power T. It reaches **T + 15** tiers of ore: any ore of tier <= T+15
+   is mineable by it, anything above is not. Breaking power is NOT upgradeable —
+   the only way up is forging from a better ore.
+   *(`roadmap/ORE.md` argues ore should not drive power. It is OVERRULED.)*
+
+2. **Breaking power is not damage.** A tool with huge damage still cannot touch
+   a block above its breaking power. Two separate gates.
+
+3. **Block strength is a function of layer and zone** — a separate gate from the
+   ore reach rule above.
+
+4. **The roster is 82 ores. FINAL.** Event Horizon ores may be added later.
+
+5. **Charms are a NEW system: a rare drop from ORES.** Not from chests. One
+   charm per ore.
+
+6. **Skin cases: one per ore, 82 of them.** The old system dropped tools from
+   cases. Now an ore case rolls at **2% down to 0.5%** to decide whether you get
+   a tool.
+
+7. **Zones, runes and the ore pouch are gem sinks. Gems come from selling ore.**
+
+
+---
+
 # 1. Orientation — how this repo works
 
 Rojo 7.7 project. `default.project.json` maps folders to services:
