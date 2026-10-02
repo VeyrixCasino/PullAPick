@@ -139,6 +139,47 @@ function MineCharms.zoneDropChance(ownsAny)
 	return 1 / math.max(1, MineCharms.ZONE_DROP_ONE_IN)
 end
 
+--[[
+	YOUR FIRST CHARM IS NEVER A ROLL, whichever source it comes from.
+
+	An ore case pays a charm a quarter of the time and a skin the rest
+	(MineConfig.ORE_CASE_CHARM_SHARE). For a player who owns none, that is three
+	cases in four spent on the half of the build they cannot use yet -- and the
+	first charm is the one that teaches what a charm IS.
+
+	So it is guaranteed until you own one, which is the same rule the zone grant
+	already applied and the same reason. It lives here rather than in the case
+	branch so the two sources cannot drift: one place decides what "your first
+	one" means.
+
+	`ownsAny` is whether the player holds any charm at all. Pass the real answer:
+	a nil here hands out a free charm to somebody who already has a shelf of them.
+]]
+function MineCharms.caseCharmShare(ownsAny, share)
+	if not ownsAny then
+		return 1
+	end
+	return math.clamp(tonumber(share) or 0.25, 0, 1)
+end
+
+-- Does this player hold any charm? One reader, because "do I own one" is asked
+-- by both grant paths and a count of zero must not read as ownership.
+function MineCharms.ownsAnyCharm(p)
+	if type(p) ~= "table" or type(p.charms) ~= "table" then
+		return false
+	end
+	for id, n in pairs(p.charms) do
+		-- A legacy `true` counts, and so does any positive tally; a zero left
+		-- behind by a removal does not.
+		if n == true or (tonumber(n) or 0) > 0 then
+			if MineCharms.byId(id) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 
 --[[
 	ONE CHARM PER ORE, ALL 82 -- AND NOT A LADDER OF ONE NUMBER.
@@ -223,7 +264,76 @@ MineCharms.SHAPES = {
 	{ id = "pact", label = "Pact", mult = 1.75 },
 	{ id = "condition", label = "Condition", mult = 2.00 },
 	{ id = "threshold", label = "Threshold", mult = 2.40 },
+	{ id = "ramp", label = "Ramp", mult = 2.20 },
 }
+
+--[[
+	THE RAMP. Builds while you keep mining, resets when you stop.
+
+	Stacks come from BREAKING BLOCKS -- the thing a player does constantly -- and
+	the payout is the budget times stacks/RAMP_MAX, so a ramp charm pays nothing
+	cold and its full 2.20x only once you have been digging a while. It is the
+	one shape that rewards a long uninterrupted session rather than a state you
+	can set up and then sit in.
+
+	WALL CLOCK, NOT os.clock(). The timestamp is persisted on the profile and
+	read back after a rejoin, and os.clock() is process-relative -- the value
+	saved by one server means nothing to the next. os.time() is comparable
+	across both, so a stale stack correctly reads as expired instead of as
+	freshly earned.
+]]
+MineCharms.RAMP_MAX = 60
+MineCharms.RAMP_IDLE_SEC = 12
+
+--[[
+	How far up the ramp this player is, 0 to 1. READ ONLY -- it never mutates,
+	because applyEquipped calls it and a boost calculation that changes state is
+	a boost calculation that behaves differently depending on how often something
+	happens to ask for it.
+
+	Expiry is computed rather than stored: more than RAMP_IDLE_SEC since the last
+	block and the ramp reads as cold, whether or not anything has got round to
+	clearing it.
+]]
+function MineCharms.rampFraction(p)
+	local ramp = type(p) == "table" and p.charmRamp or nil
+	if type(ramp) ~= "table" then
+		return 0
+	end
+	local n = math.max(0, math.floor(tonumber(ramp.n) or 0))
+	if n <= 0 then
+		return 0
+	end
+	local at = tonumber(ramp.at) or 0
+	local now = os.time()
+	-- A timestamp in the future is a clock that moved; treat it as cold rather
+	-- than as an infinitely fresh stack.
+	if at > now or (now - at) > MineCharms.RAMP_IDLE_SEC then
+		return 0
+	end
+	return math.clamp(n / math.max(1, MineCharms.RAMP_MAX), 0, 1)
+end
+
+--[[
+	One block broken. Call it on every break, equipped ramp charm or not: it is
+	two field writes, and keeping the state coherent regardless means swapping
+	onto a ramp charm does not inherit a stale ramp from whatever was on before.
+]]
+function MineCharms.bumpRamp(p)
+	if type(p) ~= "table" then
+		return
+	end
+	local now = os.time()
+	local ramp = type(p.charmRamp) == "table" and p.charmRamp or nil
+	local n = 0
+	if ramp then
+		local at = tonumber(ramp.at) or 0
+		if at <= now and (now - at) <= MineCharms.RAMP_IDLE_SEC then
+			n = math.max(0, math.floor(tonumber(ramp.n) or 0))
+		end
+	end
+	p.charmRamp = { n = math.min(MineCharms.RAMP_MAX, n + 1), at = now }
+end
 
 --[[
 	THE CONDITIONS. Each is a pure function of the profile, and each is
@@ -429,12 +539,22 @@ do
 		local tier = tonumber(ore.tier) or i
 		local t = math.clamp((tier - 1) / span, 0, 1)
 		--[[
-			Shape and stat advance on DIFFERENT strides -- 5 shapes against 8
-			stats -- so the pair only repeats every 40 ores. Walking them in step
-			would have given every Focus charm the same stat.
+			Shape and stat must not advance in lockstep, or a (shape, stat) pair
+			repeats as soon as their cycles align.
+
+			With 5 shapes that was free: 5 and 8 are coprime, so plain modulo gave
+			40 distinct pairs. Adding the sixth shape broke it -- 6 and 8 share a
+			factor, so the pair would cycle every LCM(6,8) = 24 and the roster
+			would carry 24 kinds of charm instead of 40. Adding variety would have
+			removed it.
+
+			The extra `(tier-1)/6` term advances the stat by one on every full turn
+			of the shape wheel, which makes the pair period 6 x 8 = 48. First
+			repeat is tier 49 against tier 1, verified.
 		]]
 		local shape = shapes[((tier - 1) % #shapes) + 1]
-		local primary = ORE_CHARM_STATS[((tier - 1) % #ORE_CHARM_STATS) + 1]
+		local statStep = (tier - 1) + math.floor((tier - 1) / #shapes)
+		local primary = ORE_CHARM_STATS[(statStep % #ORE_CHARM_STATS) + 1]
 		-- Budget, floored to a hundredth so the number read is the number applied.
 		local budget = math.floor((lo + (hi - lo) * t) * shape.mult * 100 + 1e-9) / 100
 
@@ -444,7 +564,7 @@ do
 			-- The second stat is six along, not adjacent: neighbours in the pool
 			-- are near-synonyms (luck / chestLuck), and pairing those reads as one
 			-- stat written twice.
-			local second = ORE_CHARM_STATS[((tier + 5) % #ORE_CHARM_STATS) + 1]
+			local second = ORE_CHARM_STATS[((statStep + 5) % #ORE_CHARM_STATS) + 1]
 			local a = math.floor(budget * 0.60 * 100 + 1e-9) / 100
 			local b2 = math.floor(budget * 0.40 * 100 + 1e-9) / 100
 			stats[primary] = a
@@ -453,7 +573,7 @@ do
 				pct(a), STAT_LABEL[primary] or primary,
 				pct(b2), STAT_LABEL[second] or second)
 		elseif shape.id == "pact" then
-			local cost = ORE_CHARM_STATS[((tier + 3) % #ORE_CHARM_STATS) + 1]
+			local cost = ORE_CHARM_STATS[((statStep + 3) % #ORE_CHARM_STATS) + 1]
 			local give = math.floor(budget * 100 + 1e-9) / 100
 			--[[
 				THE COST IS BOUNDED, and it has to be.
@@ -486,6 +606,13 @@ do
 			stats[primary] = budget
 			blurb = string.format("+%d%% %s %s",
 				pct(budget), STAT_LABEL[primary] or primary, cond.blurb)
+		elseif shape.id == "ramp" then
+			-- Authored at FULL value; applyEquipped scales it by how far up the
+			-- ramp the player is, so the number on the card is what it pays at
+			-- the top rather than an average nobody ever sees.
+			stats[primary] = budget
+			blurb = string.format("+%d%% %s at full stacks · builds as you mine, resets if you stop",
+				pct(budget), STAT_LABEL[primary] or primary)
 		else
 			stats[primary] = budget
 			blurb = string.format("+%d%% %s", pct(budget), STAT_LABEL[primary] or primary)
@@ -578,8 +705,20 @@ function MineCharms.applyEquipped(b, charmId, p)
 	if def.condition and not MineCharms.conditionMet(def, p) then
 		return
 	end
+	--[[
+		A RAMP charm's stats are authored at full value and scaled by how far up
+		the ramp the player is. Cold, that is zero, and the charm pays nothing --
+		which is the shape working, not a bug.
+	]]
+	local scale = 1
+	if def.shape == "ramp" then
+		scale = MineCharms.rampFraction(p)
+		if scale <= 0 then
+			return
+		end
+	end
 	for stat, amount in pairs(def.stats) do
-		amount = tonumber(amount) or 0
+		amount = (tonumber(amount) or 0) * scale
 		if amount == 0 then
 			-- skip
 		elseif stat == "swingRate" then
@@ -611,6 +750,12 @@ function MineCharms.describe(def, p)
 	end
 	if def.condition and p ~= nil then
 		line = line .. (MineCharms.conditionMet(def, p) and "  ·  ACTIVE" or "  ·  inactive")
+	end
+	-- A ramp says where it is, because "builds as you mine" is not an answer to
+	-- "what is it giving me right now".
+	if def.shape == "ramp" and p ~= nil then
+		line = line .. string.format("  ·  %d%% charged",
+			math.floor(MineCharms.rampFraction(p) * 100 + 0.5))
 	end
 	return line
 end

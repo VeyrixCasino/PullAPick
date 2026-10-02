@@ -489,15 +489,33 @@ beside the Forge.
       profile and snapshot carry identically, so one function serves the live
       boost and the preview. A conditional bonus that looks the same whether or
       not it is paying is the worst thing it can do.
-- [ ] **RAMP, the sixth shape** — grows while something persists, resets when it
-      breaks. Needs a counter on the profile and event hooks to feed it, which is
-      plumbing rather than a table. Not started.
+- [x] **RAMP, the sixth shape.** Builds a stack per block broken, resets after
+      `RAMP_IDLE_SEC` idle, pays budget × stacks/`RAMP_MAX` — so it is the one
+      shape that rewards a long active session rather than a state you set up and
+      sit in. **Fed only by real block breaks, never the AFK block:** an idle
+      source would let a player park there at full stacks forever, which is a
+      permanent bonus wearing a ramp's clothes.
+      Uses `os.time()`, not `os.clock()` — the timestamp is persisted and read
+      back after a rejoin, and a process-relative clock would read a stale stack
+      as freshly earned. `rampFraction` is read-only; `bumpRamp` is the only
+      mutator, because a boost calculation that changes state behaves differently
+      depending on how often something asks for it.
+- [x] **The sixth shape nearly removed variety.** 5 shapes against 8 stats are
+      coprime, giving 40 distinct (shape, stat) pairs; 6 and 8 share a factor, so
+      plain modulo would have cycled every LCM(6,8) = **24**. The stat index now
+      carries an extra `(tier-1)/6` term, making the period 6 × 8 = **48** —
+      verified, first repeat is tier 49 against tier 1.
 - [x] **Echo, zap and blastRadius are excluded from that pool.** A generated
       table is the last place a stat under review should pick up 82 new sources.
 - [x] **A rare drop off ore itself**, via the ore case: 2% case × 25% charm.
 - [x] **0.5% drop chance** — falls out of the above rather than being set twice.
-- [ ] **First charm guaranteed.** The zone grant has this (`zoneDropChance`
-      returns 1 when you own none); the ore-case path does not yet.
+- [x] **First charm guaranteed, from either source.** `MineCharms.caseCharmShare`
+      returns 1 while you own none, so an ore case pays the charm outright rather
+      than spending three cases in four on the half of the build a new player
+      cannot use yet. One function owns the rule so the two sources cannot drift.
+      The zone grant's own check moved to `MineCharms.ownsAnyCharm` on the way —
+      it used `next(p.charms) ~= nil`, which reads a tally left at zero as
+      ownership and would have quietly cancelled the guarantee.
 - [ ] **Mergeable** into higher tiers.
 - [ ] **Decide what happens to the legacy 31.** 15 zone-grant + 15 gem-pack + 1
       limited charm still exist and still drop. §0.5 says charms are an ORE drop;

@@ -2921,6 +2921,9 @@ local function snap(plr)
 		itemSlotCap = C.itemSlotCap and C.itemSlotCap(p) or nil,
 		itemSlotPrice = C.itemSlotPrice and C.itemSlotPrice(p) or nil,
 		charms = p.charms, equippedCharm = p.equippedCharm,
+		-- The RAMP's stacks, so the panel can say how charged a ramp charm is.
+		-- Sent rather than derived: the client has no block-break feed of its own.
+		charmRamp = p.charmRamp,
 		potions = (function()
 			local ok, snapP = pcall(function()
 				return require(shared:WaitForChild("MinePotions")).snapshot(p)
@@ -5089,7 +5092,11 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 				charm still lands outright -- the early game is balanced around
 				wearing one -- and every charm after that has to be found.
 			]]
-			local ownsAny = next(p.charms) ~= nil
+			-- Charms.ownsAnyCharm, not `next(p.charms)`: a tally left at zero by a
+			-- removal is a key with a falsy value, and `next` would read that as
+			-- ownership -- quietly cancelling the first-charm guarantee for
+			-- somebody who owns nothing.
+			local ownsAny = Charms.ownsAnyCharm(p)
 			local chance = (Charms.zoneDropChance and Charms.zoneDropChance(ownsAny)) or 1
 			--[[
 				Charms tally instead of latching. `p.charms[id]` was `true`, so a
@@ -5137,6 +5144,16 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 	awardPassXp(plr, p, 1)
 	introAdvance(plr, p, 1)
 	bumpStat(plr, p, "blocks")
+	--[[
+		One stack up the charm RAMP.
+
+		Only here, and deliberately NOT on the AFK block (which also bumps the
+		"blocks" stat): the ramp exists to reward a long active session, and an
+		idle source feeding it would let a player park on the AFK block and sit at
+		full stacks indefinitely. That is a permanent bonus wearing a ramp's
+		clothes -- the same failure the charm conditions were just fixed for.
+	]]
+	Charms.bumpRamp(p)
 	-- Dig deeper, and the next slice of the mine appears below you.
 	task.spawn(ensureZone, zone, layer + Const.ENSURE_BAND)
 	-- One coin per point of HP -- see MineConfig.coinsFor. This is the whole
@@ -6509,7 +6526,16 @@ local function openPack(plr, setId, chestId, pk, collect)
 				local Temper = require(shared.MineTemper)
 				local ore = C.oreById(zdef.oreId)
 				local crng = Random.new()
-				local share = tonumber(C.ORE_CASE_CHARM_SHARE) or 0.25
+				--[[
+					A quarter charms, three quarters skins -- EXCEPT for a player
+					who owns no charm yet, where the case pays the charm outright.
+					Charms.caseCharmShare owns that rule, the same one the zone
+					grant uses, so the two sources cannot drift apart on what
+					"your first one" means.
+				]]
+				local share = Charms.caseCharmShare(
+					Charms.ownsAnyCharm(p),
+					tonumber(C.ORE_CASE_CHARM_SHARE) or 0.25)
 				local charm = ore and Charms.oreCharm and Charms.oreCharm(ore.id) or nil
 
 				if charm and crng:NextNumber() < share then
