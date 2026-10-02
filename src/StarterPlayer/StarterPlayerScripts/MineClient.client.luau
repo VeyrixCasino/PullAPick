@@ -8445,6 +8445,21 @@ local function refreshEnchanter()
 			if ch.Name == "RunesView" then ch:Destroy() end
 		end
 		runesCtl = RunesView.mount(enchantP, {
+			--[[
+				Bulk recycle, from the rune list. Same two-call path the inventory
+				uses: this is the ASK, and the server's `confirmScrap` reply opens
+				the review (which is drawn by the inventory view but parented to
+				the screen, so it shows over the Enchanter).
+			]]
+			onScrapMany = function(kind, ids, into, confirm)
+				net:FireServer("scrapMany", {
+					kind = kind or "rune",
+					ids = ids,
+					into = into,
+					confirm = confirm and true or nil,
+				})
+			end,
+			onToast = function(msg) showToast(tostring(msg)) end,
 			onRollRune = function(count) net:FireServer("rollRune", { count = count or 1 }) end,
 			onRollGear = function(count) net:FireServer("rollGear", { count = count or 1 }) end,
 			onFuse = function(a, b) net:FireServer("fuseRune", { a = a, b = b }) end,

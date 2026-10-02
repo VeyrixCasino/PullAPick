@@ -623,11 +623,26 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
         the UI could let a player tick a 300-pack stack that the server
         truncates to 200 — a review honest about a list they never chose. One
         number, read by both, and the UI refuses past it with a toast.
-- [ ] **Runes still need it** — they live in the Enchanter (`MineRunesView`),
-      not the inventory, so they need the selection helpers extracted to a
-      shared module rather than copied. `runeGroups()` already carries `g.ids`,
-      and `Runes.looseRunes` is already exactly the selectable set (the server
-      blocks socketed ones), so the wiring itself is small.
+- [x] **RUNES too — all four kinds are wired now.** The control moved out to
+      `MineScrapSelect.luau` rather than being copied into the Enchanter: it was
+      ~100 lines of inline UI, and two copies is how one of them learns about
+      `SCRAP_MAX` or about kinds and the other does not.
+      - **The review screen is parented to the SCREEN now, not to the inventory
+        panel.** It is drawn by `MineInventoryView` and the server's
+        `confirmScrap` is routed there, so under `root` a player recycling runes
+        from the Enchanter would have held RECYCLE and seen *nothing happen* —
+        the review inherited a hidden panel's `Visible`. `ctl.close()` destroys
+        it for the matching reason.
+      - **`sel.prune(keep)`** drops ids that no longer exist. The Enchanter's
+        selection can go stale without it doing anything: the commit clears the
+        INVENTORY's copy of the control, so a rune scrapped, fused or traded
+        away would otherwise stay ticked and turn the next batch into an
+        all-or-nothing refusal.
+      - **Selecting takes the tap on a rune card**, because fusing and recycling
+        are opposites and one gesture must not mean both.
+      - The rune list opens on CAN FUSE, which hides every rune you hold only
+        one of — exactly the ones worth recycling — so the empty-selection hint
+        points at the ALL chip.
 - [ ] Recycle returns **50% in ore and stardust** plus a value-scaled extra. Still
       needs the curve and sign-off; current payouts are the pre-existing scrap
       rates, not this.

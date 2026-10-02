@@ -7,6 +7,7 @@ local Runes = require(shared:WaitForChild("MineRunes"))
 local Stats = require(shared:WaitForChild("MineStats"))
 local Icons = require(shared:WaitForChild("MineIcons"))
 local Gear = require(shared:WaitForChild("MineGear"))
+local ScrapSelect = require(shared:WaitForChild("MineScrapSelect"))
 
 local T = require(game:GetService("ReplicatedStorage").Mine.Shared:WaitForChild("MineTheme"))
 local INK = T.INK
@@ -222,11 +223,48 @@ function MineRunesView.mount(parent, opts)
 		end)
 	end
 
+	--[[
+		A ROW OF ITS OWN for the bulk-recycle bar.
+
+		It cannot go in the top bar -- CAN FUSE / ALL already sit where the bar's
+		buttons anchor -- and it cannot go in the grid, which is a UIGridLayout
+		with fixed 168x132 cells that would crush it into one. So the body starts
+		lower and this sits in the gap.
+	]]
+	local scrapRow = mk("Frame", {
+		Name = "ScrapBar",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(0, 64),
+		Size = UDim2.new(1, 0, 0, 40),
+		ZIndex = 33,
+	}, root)
+
+	--[[
+		Runes scrap to GEMS, and every rune in this list is already loose --
+		state.runes is Runes.looseRunes(snap), and the server blocks a socketed
+		one anyway, so there is nothing here that the review could refuse.
+	]]
+	local scrap = ScrapSelect.new({
+		render = function()
+			view.paint()
+		end,
+		ask = function(kind, ids, into)
+			if opts.onScrapMany then
+				opts.onScrapMany(kind, ids, into, false)
+			end
+		end,
+		toast = function(msg)
+			if opts.onToast then
+				opts.onToast(msg)
+			end
+		end,
+	})
+
 	-- Body split
 	local body = mk("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(0, 64),
-		Size = UDim2.new(1, 0, 1, -64),
+		Position = UDim2.fromOffset(0, 104),
+		Size = UDim2.new(1, 0, 1, -104),
 		ZIndex = 32,
 	}, root)
 
@@ -715,7 +753,24 @@ function MineRunesView.mount(parent, opts)
 
 	local function paintGrid()
 		clear(left)
+		clear(scrapRow)
 		local groups = runeGroups()
+		local runeSel = false
+		if #groups > 0 then
+			--[[
+				The list opens on CAN FUSE, which hides every rune you hold only
+				one of -- and those are exactly the ones worth recycling. So when
+				that filter is on, the empty-selection hint points at ALL rather
+				than letting the player conclude their junk runes are gone.
+			]]
+			runeSel = scrap.bar(scrapRow, "rune", "gems", {
+				off = "SELECT to recycle runes in bulk",
+				some = "RECYCLE to review what you picked",
+				none = (runeFilter ~= "all")
+					and "tap a rune to select  ·  ALL shows the ones you hold one of"
+					or "tap a rune to select  ·  a stack goes in together",
+			})
+		end
 		if #groups == 0 then
 			mk("TextLabel", {
 				BackgroundTransparency = 1,
@@ -755,6 +810,10 @@ function MineRunesView.mount(parent, opts)
 			local g = show[i]
 			local col = tierColor(g.tier)
 			local on = isSelected(g.ids[1])
+			-- A group is a stack of identical runes; the whole stack is ticked
+			-- together, the same as a pack stack.
+			local canSell = runeSel and #g.ids > 0
+			local picked = canSell and scrap.has("rune", g.ids[1]) or false
 			local card = mk("TextButton", {
 				BackgroundColor3 = on and CARD_HI or CARD,
 				Text = "",
@@ -763,7 +822,22 @@ function MineRunesView.mount(parent, opts)
 				ZIndex = 34,
 			}, left)
 			round(card, 12)
-			stroke(card, on and 3 or 2, on and GOLD or col, on and 0.05 or 0.35)
+			if picked then
+				stroke(card, 3, ScrapSelect.EDGE, 0.05)
+			else
+				stroke(card, on and 3 or 2, on and GOLD or col, on and 0.05 or 0.35)
+			end
+			if picked then
+				mk("TextLabel", {
+					BackgroundTransparency = 1, Font = FONT, TextSize = 18,
+					TextColor3 = ScrapSelect.TICK, Text = "✓ " .. #g.ids,
+					AnchorPoint = Vector2.new(0, 1),
+					Position = UDim2.new(0, 10, 1, -8),
+					Size = UDim2.fromOffset(60, 22),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					ZIndex = 38,
+				}, card)
+			end
 
 			-- Tier band: the one thing you should read from across the room.
 			local band = mk("Frame", {
@@ -840,6 +914,11 @@ function MineRunesView.mount(parent, opts)
 			end
 
 			card.MouseButton1Click:Connect(function()
+				-- Selecting takes the tap. Fusing and recycling are opposites,
+				-- so one gesture must not be able to mean both.
+				if scrap.tap("rune", g.ids, canSell) then
+					return
+				end
 				if g.n >= 2 then
 					-- Arm the whole fuse in one click.
 					selected = { g.ids[1], g.ids[2] }
@@ -890,6 +969,16 @@ function MineRunesView.mount(parent, opts)
 			end
 		end
 		selected = keep
+		--[[
+			The same, for the recycle selection. It can go stale without this
+			screen touching it: the review is confirmed on the INVENTORY's copy
+			of the control (that is where the review is drawn), so the commit
+			clears that one and not this one. Pruning here means a rune that is
+			gone -- scrapped, fused, traded -- cannot stay ticked.
+		]]
+		scrap.prune(function(id)
+			return runeById(state.runes, id) ~= nil
+		end)
 		paintGrid()
 		paintDetail()
 	end
