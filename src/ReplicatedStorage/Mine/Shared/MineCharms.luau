@@ -120,23 +120,125 @@ function MineCharms.zoneDropChance(ownsAny)
 	return 1 / math.max(1, MineCharms.ZONE_DROP_ONE_IN)
 end
 
+
+--[[
+	ONE CHARM PER ORE, ALL 82, DERIVED FROM THE ROSTER.
+
+	Charms are an ORE drop now -- the contents of an ore case -- not a zone
+	hand-out and not something a chest pays. So the roster has to cover the
+	roster: every ore that can drop a case must have a charm behind it, or a
+	case rolls a charm and finds nothing there.
+
+	These are GENERATED rather than authored, on purpose. 82 hand-written rows
+	would be 82 chances to leave one out, and the roster is renumbered often
+	enough that it has already happened once to the tool ladder. Deriving them
+	means "one per ore" is a property of the code instead of a thing somebody
+	has to remember. The ore's own tier, band and name are the only inputs.
+
+	MAGNITUDE rides the ore's tier, straight down the band spec: +100% at
+	tier 1 to +320% at tier 82. A shallow charm lands in the +100-140% range
+	and a deep one in +250-320%, which is where the authored charms already
+	sit, so an ore charm never reads as a different class of item from them.
+
+	WHICH STAT cycles through the pool by tier, so neighbouring ores do not all
+	buff the same thing and no stat is left without a charm. Every third ore
+	gets a second, smaller stat -- enough variety that two charms in the same
+	band are worth telling apart, without a second magnitude ladder to balance.
+
+	Deliberately NOT in the pool: echo (barred as a buff), zap and blastRadius
+	(both pending a nerf). A generated table is the last place a stat under
+	review should quietly get 82 new sources.
+]]
+-- Multiplicative stats only. One magnitude scale cannot serve both these and
+-- the additive ones, which are fractions; the additive secondaries below get
+-- their own, much smaller scale.
+local ORE_CHARM_STATS = {
+	"mineSpeed", "dirtBreak", "coinBonus", "gemFind",
+	"luck", "chestLuck", "backpack", "swingRate",
+}
+-- Secondaries are additive, so these are fractions of a whole, not multipliers.
+local ORE_CHARM_SECOND = { "pulverize", "scrap", "fossilFind", "oreYield", "luckyFind" }
+
+MineCharms.ORE_CHARM_MIN = 1.00
+MineCharms.ORE_CHARM_MAX = 3.20
+
+local STAT_LABEL = {
+	mineSpeed = "Mine Speed", dirtBreak = "Dirt Break", coinBonus = "Coin Bonus",
+	gemFind = "Gem Find", luck = "Luck", chestLuck = "Chest Luck",
+	backpack = "Backpack", swingRate = "Swing Rate", pulverize = "Pulverizer",
+	scrap = "Scrap", fossilFind = "Fossil Finder", oreYield = "Omni Blast",
+	luckyFind = "Lucky Find",
+}
+
+-- The charm id for an ore id. One function, so the server and the UI cannot
+-- disagree about what an ore's charm is called.
+function MineCharms.oreCharmId(oreId)
+	return tostring(oreId or "") .. "_charm"
+end
+
+do
+	local C = require(script.Parent:WaitForChild("MineConfig"))
+	local ores = C.ORES or {}
+	local span = math.max(1, (C.ORE_COUNT or #ores) - 1)
+	local lo, hi = MineCharms.ORE_CHARM_MIN, MineCharms.ORE_CHARM_MAX
+	for i, ore in ipairs(ores) do
+		local tier = tonumber(ore.tier) or i
+		local t = math.clamp((tier - 1) / span, 0, 1)
+		local primary = ORE_CHARM_STATS[((tier - 1) % #ORE_CHARM_STATS) + 1]
+		-- Floor to a hundredth so the number a player reads is the number
+		-- applied, rather than a rounded label over a longer float.
+		local mag = math.floor((lo + (hi - lo) * t) * 100 + 1e-9) / 100
+		local stats = { [primary] = mag }
+		local blurb = string.format("+%d%% %s", math.floor(mag * 100 + 1e-9), STAT_LABEL[primary] or primary)
+		if tier % 3 == 0 then
+			local second = ORE_CHARM_SECOND[((tier // 3 - 1) % #ORE_CHARM_SECOND) + 1]
+			local sm = math.floor(mag * 0.25 * 100 + 1e-9) / 100
+			stats[second] = sm
+			blurb = blurb .. string.format(" · +%d%% %s", math.floor(sm * 100 + 1e-9), STAT_LABEL[second] or second)
+		end
+		table.insert(LIST, {
+			id = MineCharms.oreCharmId(ore.id),
+			name = (ore.name or ore.id) .. " Charm",
+			source = "ore",
+			oreId = ore.id,
+			tier = tier,
+			band = ore.band,
+			blurb = blurb,
+			stats = stats,
+		})
+	end
+end
+
 MineCharms.LIST = LIST
 MineCharms.PACK_PRICE_GEMS = 2500
 
 local BY_ID = {}
 local ZONE_BAND = {}
 local PACK = {}
+local BY_ORE = {}
 for _, def in ipairs(LIST) do
 	BY_ID[def.id] = def
 	if def.source == "zone" and def.zoneId and def.band then
 		ZONE_BAND[def.zoneId .. "|" .. def.band] = def
 	elseif def.source == "pack" then
 		table.insert(PACK, def)
+	elseif def.source == "ore" and def.oreId then
+		BY_ORE[tostring(def.oreId)] = def
 	end
 end
 
 function MineCharms.byId(id)
 	return BY_ID[tostring(id or "")]
+end
+
+--[[
+	The charm an ore pays, by ore id.
+
+	Every ore has one, and this is the only way to ask for it: a caller that
+	builds the id by hand would go quietly nil the day the suffix changes.
+]]
+function MineCharms.oreCharm(oreId)
+	return BY_ORE[tostring(oreId or "")]
 end
 
 function MineCharms.zoneBandCharm(zoneId, band)

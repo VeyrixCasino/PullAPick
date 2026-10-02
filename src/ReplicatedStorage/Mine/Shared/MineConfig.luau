@@ -2021,37 +2021,22 @@ MineConfig.ORE_HP_MULT = 3
 MineConfig.ORE_CHANCE = 1 / 200
 
 --[[
-	ORE CASE drop chance, per ore block broken, before luck.
+	ORE CASE. A 2% drop per ore block broken, before luck.
 
-	The case is the rare half of the loot split now that the ore itself drops
-	directly. One case per ore; the 2%-0.5% roll for a tool happens when the
-	case is OPENED, not here, and this number is not that number.
+	The case IS the rare drop, and the whole rare line: tools are not found in
+	walls any more, and the old 0.6%-down-to-0.0012% wall-drop ladder is gone.
 
-	PLACEHOLDER pending the owner's figure. It replaces the old rare-tool wall
-	drop, whose rates ran 0.6% (Rare) down to 0.0012% (Exotic), so 0.5% sits in
-	that neighbourhood without being a decision anyone made.
+	Opening one is GUARANTEED. A case pays a skin or a charm -- never a tool,
+	never ore, never a dud. There is no second roll deciding whether the case
+	was worth picking up; the only question left is which of the two it is.
+
+	The split is a quarter charms, three quarters skins, and the quarter is not
+	a taste call: 2% x 25% = 0.5%, which is exactly the charm drop rate the
+	design asks for. The two numbers are one decision. Move either and the
+	other stops meaning what it was chosen to mean.
 ]]
-MineConfig.ORE_CASE_CHANCE = 0.005
-
---[[
-	The roll INSIDE an ore case: does it hand over a tool?
-
-	2% at the shallow end down to 0.5% at the deep end. It falls as the ore gets
-	rarer because a deeper case pays a better tool when it hits -- the chance
-	drops, the prize climbs. A case that misses still pays ore, so it is never
-	a dud, which is the same contract ore packs had.
-
-	This is NOT ORE_CASE_CHANCE above. That is how often a case drops at all.
-]]
-MineConfig.ORE_CASE_TOOL_HI = 0.02
-MineConfig.ORE_CASE_TOOL_LO = 0.005
-
-function MineConfig.oreCaseToolChance(tier)
-	local n = math.max(1, (MineConfig.ORE_COUNT or 82) - 1)
-	local t = math.clamp((math.floor(tonumber(tier) or 1) - 1) / n, 0, 1)
-	local hi = MineConfig.ORE_CASE_TOOL_HI
-	return hi + (MineConfig.ORE_CASE_TOOL_LO - hi) * t
-end
+MineConfig.ORE_CASE_CHANCE = 0.02
+MineConfig.ORE_CASE_CHARM_SHARE = 0.25
 
 --[[
 	THE SHAPE, in three terms. Each does one job.

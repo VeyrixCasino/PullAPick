@@ -4976,13 +4976,11 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			--[[
 				THE ORE CASE is the rare half of the loot split.
 
-				One case per ore. The case is the find; what is inside it is the
-				2%-0.5% roll for a tool, resolved when the player opens it. That
-				roll replaces the old rare-tool drop entirely -- tools are not
-				found in walls any more, skins are.
-
-				The case's own drop chance is luck-scaled and is NOT the roll
-				inside it. It is a placeholder pending the owner's number.
+				One case per ore, 2% per ore block, luck-scaled. This IS the
+				rare drop -- there is no second roll inside the case. Opening one
+				pays a skin or a charm, guaranteed, which makes this 2% the only
+				number standing between a block and a prize. It replaced the old
+				rare-tool wall drop entirely: tools are forged now, not found.
 			]]
 			local caseChance = (tonumber(C.ORE_CASE_CHANCE) or 0)
 				* math.max(1, tonumber(bb.luck) or 1)
@@ -6221,84 +6219,128 @@ local function openPack(plr, setId, chestId, pk, collect)
 				return
 			elseif zdef.kind == "ore_case" then
 				--[[
-					AN ORE CASE rolls once for a tool, and pays ore when it misses.
+					AN ORE CASE ALWAYS PAYS. A skin, or a charm. Nothing else.
 
-					The chance comes from the ore's tier: 2% shallow, falling to
-					0.5% at the deep end, because a deeper case pays a better
-					tool when it lands. A miss is never a dud -- it still hands
-					over ore, the same contract an ore pack had.
+					There is no roll here deciding whether the case was worth
+					opening -- the 2% that dropped it already was that roll. The
+					only question left is which of the two it is: one quarter
+					charm, three quarters skin, which puts a charm at 0.5% per
+					ore block broken.
 
-					This is the whole rare-drop line now. Tools are not found in
-					walls any more; they come out of cases.
+					This replaced a version that rolled for a TOOL inside the
+					case and paid ore when it missed. Tools are not found any
+					more; they are forged. Ore is not a consolation prize; the
+					block already dropped ore on its own.
+
+					The charm is the one for THIS ore -- every ore has exactly
+					one, generated from the roster, so there is no band lookup to
+					come up empty. A skin is rolled from the same kit catalog and
+					gets the same reel ceremony a bought case gets, because it is
+					the same prize and should not read as a lesser one.
 				]]
+				local Temper = require(shared.MineTemper)
 				local ore = C.oreById(zdef.oreId)
-				local tier = (ore and tonumber(ore.tier)) or 1
-				local rng = Random.new()
-				local luck = math.max(1, tonumber((boosts(p) or {}).luck) or 1)
-				local chance = C.oreCaseToolChance(tier) * luck
+				local crng = Random.new()
+				local share = tonumber(C.ORE_CASE_CHARM_SHARE) or 0.25
+				local charm = ore and Charms.oreCharm and Charms.oreCharm(ore.id) or nil
 
-				if rng:NextNumber() < chance then
+				if charm and crng:NextNumber() < share then
 					--[[
-						The ore's band picks the tool, but CHEST_TOOLS is sparse:
-						every forever tool in it is Mythic, Divine or Exotic.
-
-						So asking for the band directly returns an empty pool for
-						most ores -- including every Common and Uncommon one,
-						which carry the BEST 2% chance. The roll would hit and
-						then silently pay ore, and the highest chance in the game
-						would never once have handed over a tool.
-
-						Walk the ladder from the ore's band upward to the nearest
-						rarity that actually has tools, so a hit is always a hit.
+						Charms tally rather than latch, the same as the zone
+						grant: `p.charms[id]` is a COUNT that stays truthy for
+						every reader asking only "do I own one".
 					]]
-					local pool
-					local order = Tools.TOOL_RARITY_ORDER or Tools.LADDER_RARITY or {}
-					local want = (ore and ore.band) or (Tools.CHEST_RARITY_FLOOR or "Rare")
-					local startAt = 1
-					for i, r in ipairs(order) do
-						if r == want then
-							startAt = i
-							break
-						end
+					p.charms = p.charms or {}
+					p.charms[charm.id] = (tonumber(p.charms[charm.id]) or 0) + 1
+					-- Wearing nothing: put it on. A charm is most of a player's
+					-- power budget, and the first one should be felt rather than
+					-- found in a menu.
+					local wearing = type(p.equippedCharm) == "string" and p.equippedCharm ~= ""
+					if not wearing then
+						p.equippedCharm = charm.id
 					end
-					for i = startAt, #order do
-						local got = Tools.toolsOfRarity and Tools.toolsOfRarity(Tools.CHEST_TOOLS, order[i])
-						if type(got) == "table" and #got > 0 then
-							pool = got
-							break
-						end
+					bumpStat(plr, p, "packs")
+					introAdvance(plr, p, 5)
+					awardPassXp(plr, p, 10)
+					local how = wearing and "equip it in Inventory → Equipment" or "equipped"
+					local loot = { {
+						kind = "charm",
+						name = charm.name,
+						rarityId = (ore and ore.band) or "Rare",
+						blurb = (charm.blurb or "") .. "  ·  " .. how,
+					} }
+					local design = {
+						packId = zdef.id,
+						name = zdef.name,
+						setName = "Ore Case",
+						kind = "charm",
+					}
+					if collect then
+						design.cards = loot
+						table.insert(collect, design)
+						return
 					end
-					local pick = (type(pool) == "table" and #pool > 0)
-						and pool[rng:NextInteger(1, #pool)] or nil
-					if pick then
-						grantChestTool(plr, p, pick.id)
-						snap(plr)
-						net:FireClient(plr, "opened", {}, {
-							name = pick.name, setName = "Ore Case", kind = "tool",
-							rarityId = rarity,
+					snap(plr)
+					net:FireClient(plr, "opened", loot, design)
+					net:FireClient(plr, "toast", "Charm unlocked: " .. charm.name .. " — " .. how)
+					return
+				end
+
+				-- A skin. Same roll and same ceremony as a bought temper case.
+				local kit, rarity = Temper.rollTemperament(crng)
+				if kit then
+					p.tempers = p.tempers or {}
+					local had = p.tempers[kit.id]
+					if had then
+						had.rarity = Temper.betterGrade(had.rarity, rarity)
+						had.n = (tonumber(had.n) or 1) + 1
+					else
+						p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
+					end
+					bumpStat(plr, p, "packs")
+					introAdvance(plr, p, 5)
+					awardPassXp(plr, p, 10)
+					if collect then
+						table.insert(collect, {
+							packId = zdef.id,
+							name = zdef.name,
+							setName = "Ore Case",
+							kind = "skin",
+							cards = { {
+								kind = "skin",
+								name = kit.name,
+								rarityId = Temper.normalizeRarity(rarity),
+							} },
 						})
 						return
 					end
+					local reel, at = Temper.caseReel(crng, kit, rarity)
+					snap(plr)
+					net:FireClient(plr, "temperCase", {
+						reel = reel, at = at, id = kit.id, name = kit.name,
+						rarity = Temper.normalizeRarity(rarity),
+						word = Temper.wordOf(rarity),
+						dupe = had ~= nil,
+						source = "ore_case",
+						oreName = (ore and ore.name) or nil,
+					})
+					return
 				end
 
-				-- Missed, or the band had no tool to give: pay ore.
-				local lo, hi = 1, 1
-				if ore then
-					local OC = require(shared:WaitForChild("MineZonePacks"))
-					lo, hi = OC.oreYield(ore)
+				--[[
+					The kit catalog came up empty, which it cannot do unless
+					MineTemper is broken. Pay the charm rather than eat the case:
+					a guarantee that silently pays nothing is worse than a
+					guarantee that pays the other half of itself.
+				]]
+				if charm then
+					p.charms = p.charms or {}
+					p.charms[charm.id] = (tonumber(p.charms[charm.id]) or 0) + 1
+					snap(plr)
+					net:FireClient(plr, "toast", "Charm unlocked: " .. charm.name)
+				else
+					net:FireClient(plr, "toast", "That case could not be opened -- it is still in your bag")
 				end
-				local got = rng:NextInteger(math.min(lo, hi), math.max(lo, hi))
-				p.ores = p.ores or {}
-				if ore then
-					p.ores[ore.id] = (tonumber(p.ores[ore.id]) or 0) + got
-					p.oresSeen = p.oresSeen or {}
-					p.oresSeen[tostring(ore.id)] = true
-				end
-				snap(plr)
-				net:FireClient(plr, "opened", {}, {
-					name = string.format("+%d %s", got, (ore and ore.name) or "Ore"),
-					setName = "Ore Case", kind = "ore",
-				})
 				return
 			elseif zdef.kind == "ore" then
 				--[[
