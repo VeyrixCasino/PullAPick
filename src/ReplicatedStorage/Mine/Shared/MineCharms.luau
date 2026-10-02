@@ -678,6 +678,9 @@ do
 				variant = variant,
 				tier = tier,
 				band = ore.band,
+				-- Carried as well as the name so a reader can order or ink by
+				-- rarity without a second lookup into the roster.
+				bandIndex = ore.bandIndex,
 				shape = shape.id,
 				shapeLabel = shape.label,
 				condition = condition,
