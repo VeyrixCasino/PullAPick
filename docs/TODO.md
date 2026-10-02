@@ -324,9 +324,13 @@ hats, faces, tools, runes, charms, and anything recyclable added later):
       `discoveredOres()` prefers an explicit `snapshot.oresSeen` set and falls
       back to ores currently held — which under-reports but can never
       over-report, so an unseen ore cannot leak its name, tier or colour.
-- [ ] **Server does not send `oresSeen` yet.** Until it does, a recipe vanishes
-      when the player spends their last unit of that ore. Add a seen-set to the
-      profile and the snapshot.
+- [x] **`oresSeen` ships end to end.** `p.oresSeen` is a grow-only set on the
+      profile, seeded on load from banked `p.ores` so existing saves keep what
+      they already found, marked at both grant sites (mining and recycle),
+      sent in the snapshot, copied in `MineShopView.setState` and read by the
+      Forge. A recipe no longer vanishes when the last unit of that ore is
+      spent. No new top-level locals: `MineServer` sits at 197 of 200 and
+      `Verbs` is declared below the mining grant, so the marks are inlined.
 - [x] **Separate upgrades area** — the detail pane switches to UPGRADE for an
       owned tool: level, next step's price, +1 / +10 / MAX and SCRAP.
 - [ ] Runes and skins are **not** applied there yet. That is `MineForgeView`'s

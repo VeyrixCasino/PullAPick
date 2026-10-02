@@ -214,7 +214,7 @@ end
 ]]
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
-	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oreTools = {}, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
+	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
 	-- Opens on the Forge, not on a shelf of coin-bought picks.
 	local activeTab = "bench"
 	local index = 1
@@ -2152,6 +2152,9 @@ function MineShopView.mount(parent, opts)
 		-- Banked ore and the ore tools themselves: the bench prices every row
 		-- against these two.
 		state.ores = snapshot.ores or {}
+		-- The Forge lists one recipe per ore ever held, not per ore banked, so
+		-- spending your last unit of something does not delete its recipe.
+		state.oresSeen = snapshot.oresSeen or {}
 		state.oreTools = snapshot.oreTools or {}
 		state.backpackTier = snapshot.backpackTier or 1
 		state.family = snapshot.tool and snapshot.tool.family or nil

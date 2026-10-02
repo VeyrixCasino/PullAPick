@@ -547,6 +547,15 @@ local function blank()
 			one pays nothing and the rate can stay a flat half of what went in.
 		]]
 		oreTools = {},
+		--[[
+			Every ore this player has ever held, as a set.
+
+			The Forge lists a recipe per DISCOVERED ore, and holding a count is
+			not the same as having discovered one: spend your last Halite and
+			the Halite recipe would vanish, which reads as the game forgetting
+			something you plainly found. This set only ever grows, within a save.
+		]]
+		oresSeen = {},
 		-- How full the bag is, in block-equivalents. Every point of damage adds
 		-- damage/maxHp, so the bag creeps up as you mine instead of jumping when
 		-- a block dies, and a 41,000 HP crystal fills exactly as much as a clod
@@ -1141,6 +1150,20 @@ local function load(plr)
 	]]
 	if type(p.oreTools) ~= "table" then
 		p.oreTools = {}
+	end
+	--[[
+		Backfill the seen-set for saves that predate it. Anything banked right
+		now was obviously discovered, so seed from the keys of p.ores; ore spent
+		before this shipped is lost to us, but it comes back the next time one
+		drops, and over-reporting here would be worse than under-reporting.
+	]]
+	if type(p.oresSeen) ~= "table" then
+		p.oresSeen = {}
+		for id, n in pairs(p.ores or {}) do
+			if (tonumber(n) or 0) > 0 then
+				p.oresSeen[tostring(id)] = true
+			end
+		end
 	end
 	if p.gotFirstPick == nil then
 		p.gotFirstPick = true
@@ -2464,6 +2487,8 @@ local function snap(plr)
 		deepest = p.deepest, deepestSection = p.deepestSection or {}, backpack = p.backpack,
 		packs = p.packs, cards = p.cards, equipped = p.equipped, cap = cap(p),
 		ores = p.ores or {},
+		-- The Forge keys its recipe list off this, not off what is banked.
+		oresSeen = p.oresSeen or {},
 		oreTools = p.oreTools or {},
 		itemSlotsUsed = C.itemSlotsUsed and C.itemSlotsUsed(p) or nil,
 		itemSlotCap = C.itemSlotCap and C.itemSlotCap(p) or nil,
@@ -5974,6 +5999,8 @@ local function openPack(plr, setId, chestId, pk, collect)
 				got = math.max(1, math.floor(got * (1 + find) + 0.5))
 				p.ores = p.ores or {}
 				p.ores[zdef.oreId] = (tonumber(p.ores[zdef.oreId]) or 0) + got
+				p.oresSeen = p.oresSeen or {}
+				p.oresSeen[tostring(zdef.oreId)] = true
 				bumpStat(plr, p, "packs")
 				-- The reveal needs something to celebrate with, and every ore is
 				-- Common on the card rarity scale. Grade it off its own tier.
@@ -13597,6 +13624,8 @@ function Verbs.recycleOreTool(plr, payload)
 	if oreId and ore > 0 then
 		p.ores = p.ores or {}
 		p.ores[oreId] = (tonumber(p.ores[oreId]) or 0) + ore
+		p.oresSeen = p.oresSeen or {}
+		p.oresSeen[tostring(oreId)] = true
 	end
 	if dust > 0 then
 		p.dust = (tonumber(p.dust) or 0) + dust
