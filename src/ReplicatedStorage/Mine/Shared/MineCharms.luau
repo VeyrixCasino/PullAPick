@@ -520,10 +520,69 @@ local STAT_LABEL = {
 
 MineCharms.STAT_LABEL = STAT_LABEL
 
--- The charm id for an ore id. One function, so the server and the UI cannot
--- disagree about what an ore's charm is called.
-function MineCharms.oreCharmId(oreId)
-	return tostring(oreId or "") .. "_charm"
+--[[
+	TWO CHARMS PER ORE, 164 in all, and each ore's pair are different KINDS of
+	thing rather than a weaker and a stronger copy.
+
+	Variant 1 keeps the id `<ore>_charm` it has always had, so a save holding one
+	still resolves. Variant 2 is `<ore>_charm_2`.
+
+	WHY A PAIR AND NOT A LADDER. The two variants of one ore are guaranteed to
+	differ in both SHAPE and primary STAT, so neither is an upgrade of the other
+	-- picking between Stone Focus and Stone Twin is a question about your build,
+	not about which number is larger. If they shared a shape and a stat the second
+	would just be the first again at a different size, which is the ladder this
+	whole design exists to avoid.
+
+	THE NAME CARRIES THE SHAPE: "<Ore> <Word> Charm", where the word is the shape
+	in charm language (Focus, Twin, Pact, Ward, Brink, Surge). Every one of the
+	164 names is therefore distinct by construction, and a player can tell what a
+	charm DOES from its name before reading the blurb.
+
+	THE INDEXING, which is the whole trick:
+
+	  slot k    = (tier - 1) * 2 + (variant - 1)     0..163, one per charm
+	  shape     = k mod 6
+	  stat      = (k + k/6) mod 8
+	  condition = (k + k/48) mod 4
+
+	Consecutive k differ by one, so an ore's two variants always land on
+	different shapes and different stats -- that is where the pair guarantee
+	comes from rather than from a check.
+
+	Each divisor term breaks a lockstep. Without `k/6` the (shape, stat) pair
+	would cycle every LCM(6,8) = 24; without `k/48` the condition would ride the
+	same 48-slot cycle as (shape, stat) and the signature count would sit at 48.
+	With both, 86 of the 96 possible (shape, stat, condition) signatures are
+	used across the 164 charms -- verified by tools/verify/charms.js.
+]]
+-- The shape, in charm language. "Stone Condition Charm" reads like a bug report;
+-- "Stone Ward Charm" reads like an item.
+MineCharms.SHAPE_WORD = {
+	focus = "Focus",
+	pair = "Twin",
+	pact = "Pact",
+	condition = "Ward",
+	threshold = "Brink",
+	ramp = "Surge",
+}
+
+MineCharms.ORE_CHARM_VARIANTS = 2
+
+--[[
+	The charm id for an ore, by variant. One function, so the server and the UI
+	cannot disagree about what an ore's charms are called.
+
+	Variant 1 deliberately has NO suffix: that is the id that already exists in
+	saves, and changing it would orphan every charm anyone owns.
+]]
+function MineCharms.oreCharmId(oreId, variant)
+	local v = math.max(1, math.floor(tonumber(variant) or 1))
+	local base = tostring(oreId or "") .. "_charm"
+	if v <= 1 then
+		return base
+	end
+	return base .. "_" .. v
 end
 
 do
@@ -532,105 +591,100 @@ do
 	local span = math.max(1, (C.ORE_COUNT or #ores) - 1)
 	local lo, hi = MineCharms.ORE_CHARM_MIN, MineCharms.ORE_CHARM_MAX
 	local shapes = MineCharms.SHAPES
+	local variants = MineCharms.ORE_CHARM_VARIANTS
 	local function pct(x)
 		return math.floor(x * 100 + 1e-9)
 	end
 	for i, ore in ipairs(ores) do
 		local tier = tonumber(ore.tier) or i
 		local t = math.clamp((tier - 1) / span, 0, 1)
-		--[[
-			Shape and stat must not advance in lockstep, or a (shape, stat) pair
-			repeats as soon as their cycles align.
+		for variant = 1, variants do
+			-- One slot per charm across the whole roster. See the header.
+			local k = (tier - 1) * variants + (variant - 1)
+			local shape = shapes[(k % #shapes) + 1]
+			local statStep = k + math.floor(k / #shapes)
+			local primary = ORE_CHARM_STATS[(statStep % #ORE_CHARM_STATS) + 1]
+			-- Budget, floored to a hundredth so the number read is the number
+			-- applied. Both variants of an ore share the tier budget; only how
+			-- it is SPENT differs.
+			local budget = math.floor((lo + (hi - lo) * t) * shape.mult * 100 + 1e-9) / 100
 
-			With 5 shapes that was free: 5 and 8 are coprime, so plain modulo gave
-			40 distinct pairs. Adding the sixth shape broke it -- 6 and 8 share a
-			factor, so the pair would cycle every LCM(6,8) = 24 and the roster
-			would carry 24 kinds of charm instead of 40. Adding variety would have
-			removed it.
+			local stats, blurb, condition = {}, nil, nil
 
-			The extra `(tier-1)/6` term advances the stat by one on every full turn
-			of the shape wheel, which makes the pair period 6 x 8 = 48. First
-			repeat is tier 49 against tier 1, verified.
-		]]
-		local shape = shapes[((tier - 1) % #shapes) + 1]
-		local statStep = (tier - 1) + math.floor((tier - 1) / #shapes)
-		local primary = ORE_CHARM_STATS[(statStep % #ORE_CHARM_STATS) + 1]
-		-- Budget, floored to a hundredth so the number read is the number applied.
-		local budget = math.floor((lo + (hi - lo) * t) * shape.mult * 100 + 1e-9) / 100
+			if shape.id == "pair" then
+				-- Six along, not adjacent: neighbours in the pool are
+				-- near-synonyms (luck / chestLuck), and pairing those reads as
+				-- one stat written twice.
+				local second = ORE_CHARM_STATS[((statStep + 5) % #ORE_CHARM_STATS) + 1]
+				local a = math.floor(budget * 0.60 * 100 + 1e-9) / 100
+				local b2 = math.floor(budget * 0.40 * 100 + 1e-9) / 100
+				stats[primary] = a
+				stats[second] = b2
+				blurb = string.format("+%d%% %s · +%d%% %s",
+					pct(a), STAT_LABEL[primary] or primary,
+					pct(b2), STAT_LABEL[second] or second)
+			elseif shape.id == "pact" then
+				local cost = ORE_CHARM_STATS[((statStep + 3) % #ORE_CHARM_STATS) + 1]
+				local give = math.floor(budget * 100 + 1e-9) / 100
+				--[[
+					THE COST IS BOUNDED, and it has to be. It was a fraction of
+					the BUDGET, which meant it scaled with the upside: -96% of a
+					stat at tier 1 and -308% at tier 82. A multiplicative penalty
+					past -100% is not a steep cost, it is a broken number -- the
+					stat is gone at -100% and there is nothing left to take.
 
-		local stats, blurb, condition = {}, nil, nil
+					A fraction of the STAT instead, -30% at tier 1 to -60% at the
+					deepest: the cost still grows with the upside, stays readable,
+					and can never erase a stat.
+				]]
+				local take = math.min(PACT_COST_MAX,
+					PACT_COST_MIN + (PACT_COST_MAX - PACT_COST_MIN) * t)
+				take = math.floor(take * 100 + 1e-9) / 100
+				stats[primary] = give
+				stats[cost] = -take
+				blurb = string.format("+%d%% %s · −%d%% %s",
+					pct(give), STAT_LABEL[primary] or primary,
+					pct(take), STAT_LABEL[cost] or cost)
+			elseif shape.id == "condition" or shape.id == "threshold" then
+				-- A CONDITION takes a moderate window, a THRESHOLD a narrow one.
+				-- That is what the threshold's larger budget buys: a window that
+				-- is harder to sit inside, not a gate that opens once.
+				local pool = (shape.id == "threshold") and THRESHOLDS or CONDITIONS
+				-- The /48 term stops the condition riding the same cycle as
+				-- (shape, stat); see the header.
+				local cond = pool[((k + math.floor(k / 48)) % #pool) + 1]
+				condition = cond.id
+				stats[primary] = budget
+				blurb = string.format("+%d%% %s %s",
+					pct(budget), STAT_LABEL[primary] or primary, cond.blurb)
+			elseif shape.id == "ramp" then
+				-- Authored at FULL value; applyEquipped scales it by how far up
+				-- the ramp the player is, so the number on the card is what it
+				-- pays at the top rather than an average nobody ever sees.
+				stats[primary] = budget
+				blurb = string.format("+%d%% %s at full stacks · builds as you mine, resets if you stop",
+					pct(budget), STAT_LABEL[primary] or primary)
+			else
+				stats[primary] = budget
+				blurb = string.format("+%d%% %s", pct(budget), STAT_LABEL[primary] or primary)
+			end
 
-		if shape.id == "pair" then
-			-- The second stat is six along, not adjacent: neighbours in the pool
-			-- are near-synonyms (luck / chestLuck), and pairing those reads as one
-			-- stat written twice.
-			local second = ORE_CHARM_STATS[((statStep + 5) % #ORE_CHARM_STATS) + 1]
-			local a = math.floor(budget * 0.60 * 100 + 1e-9) / 100
-			local b2 = math.floor(budget * 0.40 * 100 + 1e-9) / 100
-			stats[primary] = a
-			stats[second] = b2
-			blurb = string.format("+%d%% %s · +%d%% %s",
-				pct(a), STAT_LABEL[primary] or primary,
-				pct(b2), STAT_LABEL[second] or second)
-		elseif shape.id == "pact" then
-			local cost = ORE_CHARM_STATS[((statStep + 3) % #ORE_CHARM_STATS) + 1]
-			local give = math.floor(budget * 100 + 1e-9) / 100
-			--[[
-				THE COST IS BOUNDED, and it has to be.
-
-				It was a fraction of the BUDGET, which meant it scaled with the
-				upside: -96% of a stat at tier 1 and -308% at tier 82. A
-				multiplicative penalty past -100% is not a steep cost, it is a
-				broken number -- the stat is gone at -100% and nothing is left to
-				take after that.
-
-				It is a fraction of the STAT instead, from -30% at tier 1 to -60%
-				at the deepest. So the cost still grows as the upside does, stays
-				a number a player can read, and can never erase a stat outright.
-			]]
-			local take = math.min(PACT_COST_MAX,
-				PACT_COST_MIN + (PACT_COST_MAX - PACT_COST_MIN) * t)
-			take = math.floor(take * 100 + 1e-9) / 100
-			stats[primary] = give
-			stats[cost] = -take
-			blurb = string.format("+%d%% %s · −%d%% %s",
-				pct(give), STAT_LABEL[primary] or primary,
-				pct(take), STAT_LABEL[cost] or cost)
-		elseif shape.id == "condition" or shape.id == "threshold" then
-			-- A CONDITION takes a moderate window, a THRESHOLD a narrow one. That
-			-- is what the threshold's larger budget buys: a window that is harder
-			-- to sit inside, rather than a gate that opens once and stays open.
-			local pool = (shape.id == "threshold") and THRESHOLDS or CONDITIONS
-			local cond = pool[((tier - 1) % #pool) + 1]
-			condition = cond.id
-			stats[primary] = budget
-			blurb = string.format("+%d%% %s %s",
-				pct(budget), STAT_LABEL[primary] or primary, cond.blurb)
-		elseif shape.id == "ramp" then
-			-- Authored at FULL value; applyEquipped scales it by how far up the
-			-- ramp the player is, so the number on the card is what it pays at
-			-- the top rather than an average nobody ever sees.
-			stats[primary] = budget
-			blurb = string.format("+%d%% %s at full stacks · builds as you mine, resets if you stop",
-				pct(budget), STAT_LABEL[primary] or primary)
-		else
-			stats[primary] = budget
-			blurb = string.format("+%d%% %s", pct(budget), STAT_LABEL[primary] or primary)
+			local word = MineCharms.SHAPE_WORD[shape.id] or shape.label or "Charm"
+			table.insert(LIST, {
+				id = MineCharms.oreCharmId(ore.id, variant),
+				name = string.format("%s %s Charm", ore.name or ore.id, word),
+				source = "ore",
+				oreId = ore.id,
+				variant = variant,
+				tier = tier,
+				band = ore.band,
+				shape = shape.id,
+				shapeLabel = shape.label,
+				condition = condition,
+				blurb = blurb,
+				stats = stats,
+			})
 		end
-
-		table.insert(LIST, {
-			id = MineCharms.oreCharmId(ore.id),
-			name = (ore.name or ore.id) .. " Charm",
-			source = "ore",
-			oreId = ore.id,
-			tier = tier,
-			band = ore.band,
-			shape = shape.id,
-			shapeLabel = shape.label,
-			condition = condition,
-			blurb = blurb,
-			stats = stats,
-		})
 	end
 end
 
@@ -648,7 +702,12 @@ for _, def in ipairs(LIST) do
 	elseif def.source == "pack" then
 		table.insert(PACK, def)
 	elseif def.source == "ore" and def.oreId then
-		BY_ORE[tostring(def.oreId)] = def
+		-- An ore has SEVERAL charms now, so this is a list per ore rather than a
+		-- single entry. Keyed by variant so the order cannot depend on the order
+		-- LIST happens to be walked in.
+		local key = tostring(def.oreId)
+		BY_ORE[key] = BY_ORE[key] or {}
+		BY_ORE[key][math.max(1, math.floor(tonumber(def.variant) or 1))] = def
 	end
 end
 
@@ -657,13 +716,45 @@ function MineCharms.byId(id)
 end
 
 --[[
-	The charm an ore pays, by ore id.
+	The charms an ore pays. Every ore has MineCharms.ORE_CHARM_VARIANTS of them,
+	and these are the only ways to ask: a caller that builds the id by hand goes
+	quietly nil the day the suffix changes.
 
-	Every ore has one, and this is the only way to ask for it: a caller that
-	builds the id by hand would go quietly nil the day the suffix changes.
+	`oreCharms` returns the whole list, variant-indexed. `oreCharm(id)` returns
+	one -- variant 1 by default, so every existing caller keeps working and keeps
+	meaning what it meant.
 ]]
-function MineCharms.oreCharm(oreId)
-	return BY_ORE[tostring(oreId or "")]
+function MineCharms.oreCharms(oreId)
+	return BY_ORE[tostring(oreId or "")] or {}
+end
+
+function MineCharms.oreCharm(oreId, variant)
+	local list = MineCharms.oreCharms(oreId)
+	return list[math.max(1, math.floor(tonumber(variant) or 1))]
+end
+
+--[[
+	One of an ore's charms, picked at random. This is what an ore case rolls.
+
+	Uniform across the variants on purpose: they are different KINDS, not tiers,
+	so weighting one would quietly make the other the consolation prize -- which
+	is the ladder this design exists to avoid. Falls back to whatever the ore has
+	if a variant is somehow missing, so a case can never pay nothing.
+]]
+function MineCharms.rollOreCharm(oreId, rng)
+	local list = MineCharms.oreCharms(oreId)
+	local pool = {}
+	for _, def in pairs(list) do
+		table.insert(pool, def)
+	end
+	if #pool == 0 then
+		return nil
+	end
+	if #pool == 1 then
+		return pool[1]
+	end
+	rng = rng or Random.new()
+	return pool[rng:NextInteger(1, #pool)]
 end
 
 function MineCharms.zoneBandCharm(zoneId, band)

@@ -6536,7 +6536,10 @@ local function openPack(plr, setId, chestId, pk, collect)
 				local share = Charms.caseCharmShare(
 					Charms.ownsAnyCharm(p),
 					tonumber(C.ORE_CASE_CHARM_SHARE) or 0.25)
-				local charm = ore and Charms.oreCharm and Charms.oreCharm(ore.id) or nil
+				-- One of the ore's TWO charms, rolled evenly. They are different
+				-- kinds rather than tiers, so weighting either would quietly make
+				-- the other a consolation prize.
+				local charm = ore and Charms.rollOreCharm and Charms.rollOreCharm(ore.id, crng) or nil
 
 				if charm and crng:NextNumber() < share then
 					--[[

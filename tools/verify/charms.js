@@ -53,9 +53,13 @@ const oreRows = rows
   .join("\n");
 
 const EXPECTED_ORES = rows.length;
-// 6 shapes x 8 stats, with the stat index stepped so the pair period is their
-// product rather than their LCM. If either count changes, this changes with it.
-const EXPECTED_FAMILIES = 48;
+const VARIANTS = 2;
+const EXPECTED_CHARMS = EXPECTED_ORES * VARIANTS;
+// (shape, stat, condition) signatures actually used across the 164 charms, out
+// of 96 possible (8 unconditional per shape x 4, plus 8x4 for each of the two
+// conditional shapes). The divisor terms in the generator's indexing are what
+// get it this high; drop either and it falls to 48.
+const EXPECTED_SIGNATURES = 86;
 
 const harness = `
 Color3 = { fromRGB = function() return {} end, fromHSV = function() return {} end }
@@ -108,13 +112,63 @@ for _, d in ipairs(MineCharms.LIST) do
 	if d.source == "ore" then table.insert(ore, d) end
 end
 
-check(#ore == ${EXPECTED_ORES}, ("one charm per ore: ${EXPECTED_ORES} (got %d)"):format(#ore))
+check(#ore == ${EXPECTED_CHARMS},
+	("${VARIANTS} charms per ore: ${EXPECTED_CHARMS} (got %d)"):format(#ore))
 
-local missing = 0
+-- Every ore has both variants, reachable by the accessors.
+local missing, pairFail, nameClash = 0, 0, 0
+local seenName = {}
 for _, o in ipairs(STUB_CONFIG.ORES) do
-	if not MineCharms.oreCharm(o.id) then missing += 1 end
+	local list = MineCharms.oreCharms(o.id)
+	local a, b = list[1], list[2]
+	if not a or not b then
+		missing += 1
+	else
+		-- The pair guarantee: different SHAPE and different primary stat, so
+		-- neither variant is an upgrade of the other.
+		local function primaryOf(d)
+			local best
+			for stat, amt in pairs(d.stats) do
+				if amt > 0 and (best == nil or amt > d.stats[best]) then best = stat end
+			end
+			return best
+		end
+		if a.shape == b.shape or primaryOf(a) == primaryOf(b) then
+			pairFail += 1
+		end
+	end
 end
-check(missing == 0, ("every ore resolves through oreCharm (missing %d)"):format(missing))
+check(missing == 0, ("every ore has both variants via oreCharms (missing %d)"):format(missing))
+check(pairFail == 0,
+	("an ore's two variants always differ in shape AND stat (%d collide)"):format(pairFail))
+
+for _, d in ipairs(ore) do
+	if seenName[d.name] then nameClash += 1 end
+	seenName[d.name] = true
+end
+check(nameClash == 0, ("every charm name is distinct (%d clashes)"):format(nameClash))
+
+-- Variant 1 keeps the unsuffixed id that already exists in saves.
+local legacyOk = true
+for _, o in ipairs(STUB_CONFIG.ORES) do
+	if MineCharms.oreCharmId(o.id, 1) ~= (o.id .. "_charm") then legacyOk = false end
+end
+check(legacyOk, "variant 1 keeps the legacy <ore>_charm id, so old saves resolve")
+check(MineCharms.oreCharm(STUB_CONFIG.ORES[1].id) ~= nil,
+	"oreCharm with no variant still returns one (back-compatible)")
+
+-- rollOreCharm must be able to return either variant, never nil.
+do
+	local first = STUB_CONFIG.ORES[1].id
+	local got = {}
+	for seed = 1, 40 do
+		local fakeRng = { NextInteger = function(_, a, b) return a + (seed % (b - a + 1)) end }
+		local pick = MineCharms.rollOreCharm(first, fakeRng)
+		if pick then got[pick.variant] = true end
+	end
+	check(got[1] and got[2], "rollOreCharm can return either variant")
+	check(MineCharms.rollOreCharm("no_such_ore") == nil, "rollOreCharm is nil for an unknown ore")
+end
 
 local nShapes = 0
 local seenShape = {}
@@ -124,17 +178,17 @@ end
 check(nShapes == #MineCharms.SHAPES,
 	("every shape is used: %d of %d"):format(nShapes, #MineCharms.SHAPES))
 
-local fams, nFam = {}, 0
+local sigs, nSig = {}, 0
 for _, d in ipairs(ore) do
 	local primary
 	for stat, amt in pairs(d.stats) do
 		if amt > 0 and (primary == nil or amt > d.stats[primary]) then primary = stat end
 	end
-	local key = tostring(d.shape) .. "|" .. tostring(primary)
-	if not fams[key] then fams[key] = true nFam += 1 end
+	local key = tostring(d.shape) .. "|" .. tostring(primary) .. "|" .. tostring(d.condition)
+	if not sigs[key] then sigs[key] = true nSig += 1 end
 end
-check(nFam == ${EXPECTED_FAMILIES},
-	("${EXPECTED_FAMILIES} distinct (shape, stat) families, so that many best-in-family charms (got %d)"):format(nFam))
+check(nSig == ${EXPECTED_SIGNATURES},
+	("${EXPECTED_SIGNATURES} distinct (shape, stat, condition) signatures (got %d)"):format(nSig))
 
 -- A multiplicative penalty at or past -100% erases a stat instead of costing one.
 local worst = 0
