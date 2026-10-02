@@ -8,8 +8,13 @@
 
 	Two readouts, same number:
 
-	  suffix form   1.23 Qa        legible, the default
-	  science form  1.23e^45       exact magnitude, for the deep end
+	  suffix form   999.9 Qa       legible, the default
+	  science form  9.999e^99      exact magnitude, for the deep end
+
+	Both show FOUR significant digits and no more. One leading digit plus three
+	decimals in science form, up to three leading digits plus one decimal in
+	suffix form. Four is what stays readable at a glance; the rest is noise a
+	player cannot act on.
 
 	BASE 30, three digits a step
 	---------------------------
@@ -139,6 +144,8 @@ end
 	The exponent is the true base-10 exponent, not the step, because this
 	readout exists to answer "how big, exactly" rather than "what do I call it".
 ]]
+-- `places` is decimals after the leading digit. Default 3, which with the
+-- leading digit is the four significant figures the readout is capped at.
 function MineBigNum.sci(n, places)
 	n = tonumber(n) or 0
 	if n == 0 then
@@ -152,7 +159,7 @@ function MineBigNum.sci(n, places)
 		exp += 1
 		mant = n / (10 ^ exp)
 	end
-	local p = math.max(0, math.floor(tonumber(places) or 2))
+	local p = math.max(0, math.floor(tonumber(places) or 3))
 	local mult = 10 ^ p
 	mant = math.floor(mant * mult + 1e-9) / mult   -- round down, as everywhere
 	return string.format("%s%se^%d", sign, tostring(mant), exp)
