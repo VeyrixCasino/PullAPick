@@ -2433,8 +2433,6 @@ function ClientFns.socketRoute(item, runeId, index)
 		net:FireServer("socketPetRune", { cardId = item.id, runeId = runeId })
 	elseif item.kind == "chest" then
 		net:FireServer("socketToolRune", { runeId = runeId, chestId = item.id, family = item.family })
-	elseif item.kind == "fossil" then
-		net:FireServer("socketToolRune", { runeId = runeId, fossilId = item.id, family = item.family })
 	elseif item.kind == "shop" then
 		net:FireServer("socketToolRune", { runeId = runeId, shopToolId = item.id, family = item.family })
 	else
@@ -2962,7 +2960,6 @@ invCtl = InventoryView.mount(gui, {
 		net:FireServer("equipTool", { family = family, tier = tier })
 	end,
 	onEquipChestTool = function(id) net:FireServer("equipChestTool", { id = id }) end,
-	onEquipFossilTool = function(id) net:FireServer("equipChestTool", { fossilId = id }) end,
 	-- Inventory -> Equipment. The card has already made the player hold SELL
 	-- for three seconds; the server re-checks everything regardless.
 	onEquipShopTool = function(id)
@@ -3221,7 +3218,7 @@ end
 ]]
 ClientFns.STATION_LABEL = {
 	sell = "SELL", shop = "BLACKSMITH", enchanter = "ENCHANTER", contractor = "JOBS",
-	fossil = "FOSSIL BENCH", prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
+	fossil = "RETIRED", prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
 }
 
 function ClientFns.pitWaypointPos()
@@ -7153,6 +7150,8 @@ local function refreshDust()
 	end
 end
 
+-- Retired with the fossil system. Always zero: a save's pieces were cashed out
+-- to gems on load, and nothing drops a new one.
 function ClientFns.countFossilPieces(fossilId)
 	local n = 0
 	for _, piece in ipairs(snap.fossilPieces or {}) do
@@ -7174,120 +7173,27 @@ end
 	Now it is a grid of the same tiles the rune view uses: one card per recipe,
 	progress on it, and the action it currently supports.
 ]]
+--[[
+	THE FOSSIL BENCH PANEL, retired.
+
+	Fossils are gone, and so is the bench. The panel stays reachable only because
+	an old build's button or a stale waypoint can still open it, and an empty
+	frame reads as a broken screen -- so it says what happened instead.
+
+	Anything a save still held was cashed out to gems on load, server-side.
+]]
 local function refreshFossil()
 	clear(fossilP.Body)
-	if not snap then
-		return
-	end
-	local equipped = snap.fossilTool
-
-	local head = mk("Frame", { BackgroundColor3 = BG2, Size = UDim2.new(1, -8, 0, 46),
-		LayoutOrder = 0 }, fossilP.Body)
-	round(head, 8)
-	mk("TextLabel", { BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT,
-		Text = "Break fossils in the mine for pieces. A full set becomes a tool you keep through rebirths.",
-		Position = UDim2.fromOffset(14, 0), Size = UDim2.new(1, -300, 1, 0),
-		TextXAlignment = Enum.TextXAlignment.Left }, head)
-	if equipped and equipped ~= "" then
-		local eqTool = snap.fossilTools and snap.fossilTools[equipped]
-		local off = mk("TextButton", { AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(74, 78, 100),
-			Font = FONT, TextSize = 13, TextColor3 = TEXT,
-			Text = "Holding " .. ((eqTool and eqTool.name) or equipped) .. "  -  put down",
-			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
-			Size = UDim2.fromOffset(268, 30) }, head)
-		round(off, 7)
-		off.MouseButton1Click:Connect(function()
-			net:FireServer("fossil_equip", "")
-		end)
-	end
-
-	local grid = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -8, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 1 }, fossilP.Body)
-	mk("UIGridLayout", {
-		CellPadding = UDim2.fromOffset(10, 10),
-		CellSize = UDim2.fromOffset(232, 132),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Top,
-	}, grid)
-
-	for i, recipe in ipairs(Fossils.RECIPES) do
-		local have = ClientFns.countFossilPieces(recipe.id)
-		local Econ = require(game:GetService("ReplicatedStorage").Mine.Shared:WaitForChild("MineFossilEconomy"))
-		local need = Econ.needed()
-		local tool = snap.fossilTools and snap.fossilTools[recipe.id]
-		local isOn = tool and (equipped == recipe.id or equipped == tool.id)
-		local ready = have >= need
-		-- Buttons sit on the bottom row; without them, lift the text block so
-		-- empty tiles are not stuck top-left with a big empty gut.
-		local showActs = (ready and not tool) or tool or (have > 0)
-		local y0 = showActs and 10 or 28
-
-		local tile = mk("Frame", { BackgroundColor3 = BG2, LayoutOrder = i }, grid)
-		round(tile, 8)
-		stroke(tile, isOn and 2 or 1, isOn and Color3.fromRGB(120, 216, 150)
-			or (tool and GOLD or (ready and Color3.fromRGB(120, 216, 150) or nil)))
-
-		mk("TextLabel", { BackgroundTransparency = 1, Font = FONT, TextSize = 15,
-			TextColor3 = tool and GOLD or TEXT, Text = recipe.name,
-			Position = UDim2.fromOffset(12, y0), Size = UDim2.new(1, -24, 0, 20),
-			TextXAlignment = Enum.TextXAlignment.Center }, tile)
-		local rarityLabel = tostring(recipe.rarity or "Common")
-		local gradeBit = (tool and tool.grade) and string.format("  |  grade %.0f%%", (tool.grade or 0) * 100) or ""
-		mk("TextLabel", { BackgroundTransparency = 1, Font = FONT_M, TextSize = 12,
-			TextColor3 = MUTED, Text = rarityLabel .. "  |  " .. recipe.family .. "  |  " .. have .. " / " .. need .. " pieces" .. gradeBit,
-			Position = UDim2.fromOffset(12, y0 + 22), Size = UDim2.new(1, -24, 0, 16),
-			TextXAlignment = Enum.TextXAlignment.Center }, tile)
-
-		-- Progress, because "3 / 5" is a number and a bar is a feeling.
-		local track = mk("Frame", { BackgroundColor3 = Color3.fromRGB(24, 24, 29),
-			Position = UDim2.fromOffset(20, y0 + 46), Size = UDim2.new(1, -40, 0, 8) }, tile)
-		round(track, 4)
-		local fill = mk("Frame", { BackgroundColor3 = ready and Color3.fromRGB(120, 216, 150) or GOLD,
-			Size = UDim2.fromScale(math.clamp(have / math.max(need, 1), 0, 1), 1) }, track)
-		round(fill, 4)
-
-		if tool then
-			mk("TextLabel", { BackgroundTransparency = 1, Font = FONT_M, TextSize = 12,
-				TextColor3 = GOLD, Text = string.format("built  |  power %d  |  grade %d%%",
-					tool.power or 0, math.floor((tool.grade or 0) * 100 + 0.5)),
-				Position = UDim2.fromOffset(12, y0 + 58), Size = UDim2.new(1, -24, 0, 16),
-				TextXAlignment = Enum.TextXAlignment.Center }, tile)
-		end
-
-		local function act(text, colour, dark, x, w, fn)
-			local b2 = mk("TextButton", { AutoButtonColor = true, BackgroundColor3 = colour,
-				Font = FONT, TextSize = 13,
-				TextColor3 = dark and Color3.fromRGB(12, 24, 16) or TEXT, Text = text,
-				Position = UDim2.fromOffset(x, 96), Size = UDim2.fromOffset(w, 26) }, tile)
-			round(b2, 6)
-			b2.MouseButton1Click:Connect(fn)
-		end
-
-		if ready and not tool then
-			act("Assemble", Color3.fromRGB(96, 190, 104), true, 64, 104, function()
-				net:FireServer("fossil_assemble", recipe.id)
-			end)
-		elseif tool then
-			local eqX = (have > 0) and 12 or 64
-			act(isOn and "Holding" or "Equip", isOn and Color3.fromRGB(52, 74, 58) or Color3.fromRGB(70, 92, 140),
-				false, eqX, 104, function()
-				if isOn then
-					net:FireServer("fossil_equip", "")
-				else
-					net:FireServer("fossil_equip", tool.id or recipe.id)
-				end
-			end)
-		end
-		if have > 0 then
-			act("Dust", Color3.fromRGB(70, 74, 96), false, 122, 48, function()
-				net:FireServer("fossil_sell", { fossilId = recipe.id, mode = "dust" })
-			end)
-			act("Gems", Color3.fromRGB(70, 74, 96), false, 174, 48, function()
-				net:FireServer("fossil_sell", { fossilId = recipe.id, mode = "gems" })
-			end)
-		end
-	end
+	local box = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -24, 0, 96),
+		Position = UDim2.fromOffset(12, 12), LayoutOrder = 0 }, fossilP.Body)
+	mk("TextLabel", {
+		BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
+		Font = Enum.Font.Gotham, TextSize = 14, TextWrapped = true,
+		TextColor3 = Color3.fromRGB(190, 190, 200),
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Text = "Fossils are retired.\n\nThe pieces and tools you had were paid out in gems. "
+			.. "Your build is CHARMS and SKINS now -- charms drop from ore cases, skins come out of the same cases.",
+	}, box)
 end
 refreshZones = function()
 	if not snap then
@@ -7368,7 +7274,7 @@ function ClientFns.confirmRebirth()
 			local cost = (advice and advice.cost) or (snap and snap.rebirthCost) or 0
 			local early = (snap and (snap.coins or 0) or 0) < minCoins
 			return "You lose coins, the pick ladder, and mine depth.\n"
-				.. "You keep gems, cards, runes, gear, skills, temperaments, fossils.\n\n"
+				.. "You keep gems, cards, runes, gear, skills, skins, charms and your ore pouch.\n\n"
 				.. string.format("Fee %s  |  Minimum bank %s%s\n",
 					shortNum(cost), shortNum(minCoins), early and "  |  early" or "")
 				.. string.format("Rebirth %d grants %d skill points + %d temper tokens + %d gems.",
@@ -7811,7 +7717,7 @@ refreshPrestige = function()
 		}, card)
 	end
 	half(0, "YOU KEEP", Color3.fromRGB(130, 215, 140),
-		"Gems | cards | runes | gear\nSkills | temperaments | fossils\nZones stay unlocked")
+		"Gems | cards | runes | gear\nSkills | skins | charms | ore pouch\nZones stay unlocked")
 	half(0.5, "RESETS", Color3.fromRGB(235, 150, 130),
 		"Coins | pickaxe ladder\nBackpack | mine depth\n(runes stay in their tool slots)")
 
@@ -8595,9 +8501,6 @@ local function refreshEnchanter()
 			-- the Enchanter just never offered them as targets.
 			onSocketChestTool = function(runeId, chestId)
 				net:FireServer("socketToolRune", { runeId = runeId, chestId = chestId })
-			end,
-			onSocketFossilTool = function(runeId, fossilId)
-				net:FireServer("socketToolRune", { runeId = runeId, fossilId = fossilId })
 			end,
 			onEquipGear = function(id, slot) net:FireServer("equipGear", { gearId = id, slot = slot }) end,
 		})

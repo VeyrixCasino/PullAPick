@@ -286,50 +286,79 @@ local function isInstanceHex16(s)
 	return type(s) == "string" and #s == 16 and string.match(s, "^%x+$") ~= nil
 end
 
--- Pieces and assembled tools get stable hex ids. fossilTools stays keyed by
--- recipe id (one tool per recipe); equip uses that key. tool.id is the instance.
-local function reconcileFossilIds(p)
-	p.fossilPieces = p.fossilPieces or {}
-	for _, piece in ipairs(p.fossilPieces) do
-		if type(piece) == "table" and not isInstanceHex16(piece.id) then
-			piece.id = instanceHex16()
+--[[
+	FOSSILS ARE RETIRED, AND THIS IS WHERE A SAVE FINDS OUT.
+
+	This was reconcileFossilIds, which healed fossil ids on load. There is nothing
+	left to heal: no fossil block spawns, no fossil pack drops, the bench is gone.
+	What is left is the problem of a player who banked hundreds of pieces and
+	assembled tools that survived rebirth, and who must not simply lose them.
+
+	So they are CASHED OUT, once, at the game's own price -- MineFossils.sellGems
+	over the recipe and the pieces' own grade, which is exactly what the bench's
+	sell button would have paid. Not a number invented here.
+
+	An assembled tool is paid as the full set of pieces it consumed
+	(MineFossilEconomy.needed), because that is what it cost to make. It is the
+	one place this has to choose, and paying the build cost is the choice that
+	cannot leave anyone worse off than if they had never assembled it.
+
+	Returns the gems paid so the caller can tell the player once. Idempotent: it
+	clears the fields, so a second load finds nothing and pays nothing.
+]]
+local function retireFossils(p)
+	if type(p) ~= "table" then
+		return 0
+	end
+	local gems = 0
+
+	-- Loose pieces, grouped by recipe so grade is computed over the set the way
+	-- the bench computed it rather than per piece.
+	local byRecipe = {}
+	for _, piece in ipairs(p.fossilPieces or {}) do
+		if type(piece) == "table" and piece.fossilId then
+			local key = tostring(piece.fossilId)
+			byRecipe[key] = byRecipe[key] or {}
+			table.insert(byRecipe[key], piece)
 		end
 	end
-	p.fossilTools = p.fossilTools or {}
-	local migrated = {}
-	for key, ft in pairs(p.fossilTools) do
+	for recipeId, pieces in pairs(byRecipe) do
+		local recipe = Fossils.recipe and Fossils.recipe(recipeId)
+		if recipe then
+			local grade = (Fossils.grade and Fossils.grade(pieces)) or 0
+			local per = (Fossils.sellGems and Fossils.sellGems(recipe, grade)) or 0
+			gems += math.max(0, math.floor(per)) * #pieces
+		end
+	end
+
+	-- Assembled tools, at what they cost to build.
+	local needed = 1
+	do
+		local okE, Econ = pcall(function()
+			return require(shared:WaitForChild("MineFossilEconomy"))
+		end)
+		if okE and Econ and Econ.needed then
+			needed = math.max(1, math.floor(Econ.needed() or 1))
+		end
+	end
+	for key, ft in pairs(p.fossilTools or {}) do
 		if type(ft) == "table" then
-			local recipeId = ft.fossilId
-			if type(recipeId) ~= "string" or not Fossils.recipe(recipeId) then
-				if Fossils.recipe(key) then
-					recipeId = key
-				elseif Fossils.recipe(ft.id) then
-					recipeId = ft.id
-				else
-					recipeId = tostring(key)
-				end
+			local recipe = Fossils.recipe and Fossils.recipe(ft.fossilId or key)
+			if recipe then
+				-- Full grade: an assembled tool was the good outcome.
+				local per = (Fossils.sellGems and Fossils.sellGems(recipe, 1)) or 0
+				gems += math.max(0, math.floor(per)) * needed
 			end
-			ft.fossilId = recipeId
-			if not isInstanceHex16(ft.id) then
-				ft.id = instanceHex16()
-			end
-			migrated[recipeId] = ft
 		end
 	end
-	p.fossilTools = migrated
-	if p.fossilTool then
-		if not p.fossilTools[p.fossilTool] then
-			for recipeId, row in pairs(p.fossilTools) do
-				if row.id == p.fossilTool or row.fossilId == p.fossilTool then
-					p.fossilTool = recipeId
-					break
-				end
-			end
-		end
-		if not p.fossilTools[p.fossilTool] then
-			p.fossilTool = nil
-		end
+
+	p.fossilPieces = nil
+	p.fossilTools = nil
+	p.fossilTool = nil
+	if gems > 0 then
+		p.gems = (tonumber(p.gems) or 0) + gems
 	end
+	return gems
 end
 
 -- chestTools shipped as a flat array of id strings, then started carrying a
@@ -520,7 +549,7 @@ local function blank()
 		stats = { blocks = 0, sells = 0, packs = 0, merges = 0, chests = 0, rebirth = 0 },
 		dailyQuests = { day = 0, list = {} },
 		intro = 1,
-		fossilPieces = {}, fossilTools = {}, fossilTool = nil, found = {},
+		found = {},
 		-- Per dev product, how many this player has bought with credits.
 		creditBuys = {},
 		-- How many of each pack id this player has ever opened. `found` next to
@@ -1484,9 +1513,23 @@ local function load(plr)
 			c.createdAt = i
 		end
 	end
-	p.fossilPieces = p.fossilPieces or {}
-	p.fossilTools = p.fossilTools or {}
-	reconcileFossilIds(p)
+	--[[
+		Cash out anything the retired fossil system left behind, once, and tell
+		the player so the gems are not a mystery. Fires only when there was
+		something to pay for, so a profile that never touched fossils is silent.
+	]]
+	do
+		local paid = retireFossils(p)
+		if paid > 0 then
+			task.defer(function()
+				if plr.Parent then
+					net:FireClient(plr, "toast", string.format(
+						"Fossils are retired -- your pieces and tools paid out %s gems",
+						Verbs._benchNum(paid)))
+				end
+			end)
+		end
+	end
 	reconcileChestTools(p)
 	profiles[plr.UserId] = p
 	LeaderboardService.recordRoster(plr.UserId)
@@ -1912,15 +1955,6 @@ local function equippedTool(p)
 		end
 		p.chestTool = nil
 	end
-	if p.fossilTool then
-		p.fossilTools = p.fossilTools or {}
-		local ft = p.fossilTools[p.fossilTool]
-		if ft then
-			local t, fam, rung = withShiny(ft, ft)
-			return clampForeverTool(p, t), fam, rung
-		end
-		p.fossilTool = nil
-	end
 	if p.shopToolId and type(p.shopToolId) == "string" then
 		p.ownedShopTools = p.ownedShopTools or {}
 		if p.ownedShopTools[p.shopToolId] then
@@ -2186,21 +2220,13 @@ local function boosts(p)
 	end
 	if mainId and byRune[mainId] then wear(byRune[mainId]) end
 	if omniId and byRune[omniId] then wear(byRune[omniId]) end
-	-- fossilTools is a dict keyed by recipe fossilId (not an array).
-	-- tool.id is the 16-hex instance; p.fossilTool stores the recipe key.
-	for key, ft in pairs(p.fossilTools or {}) do
-		if type(ft) == "table" and ft.runeId and byRune[ft.runeId]
-			and p.fossilTool == (ft.fossilId or key) then
-			wear(byRune[ft.runeId])
-		end
-	end
 	for _, ct in ipairs(p.chestTools or {}) do
 		if ct.runeId and byRune[ct.runeId] and p.chestTool == ct.id then
 			wear(byRune[ct.runeId])
 		end
 	end
 	-- A coin-shop tool's own socket, while that tool is the one in hand.
-	if p.shopToolId and not p.chestTool and not p.fossilTool and p.shopToolRunes then
+	if p.shopToolId and not p.chestTool and p.shopToolRunes then
 		local rid = p.shopToolRunes[p.shopToolId]
 		if rid and byRune[rid] then
 			wear(byRune[rid])
@@ -2310,9 +2336,6 @@ local function runeBusy(p, id)
 	for fam, _ in pairs(p.toolSockets or {}) do
 		local sock = familySocket(p, fam)
 		if sock.main == id or sock.omni == id then return "tool" end
-	end
-	for _, ft in pairs(p.fossilTools or {}) do
-		if type(ft) == "table" and ft.runeId == id then return "fossil" end
 	end
 	for _, ct in ipairs(p.chestTools or {}) do if ct.runeId == id then return "chest" end end
 	for _, rid in pairs(p.petSockets or {}) do if rid == id then return "pet" end end
@@ -2810,7 +2833,7 @@ local function snap(plr)
 		Runes are skipped on purpose: their `id` is already a 16-hex instance
 		value, so a `uid` next to it would just be the same bytes twice.
 
-		Quantity maps -- charms, tempers, eventTools, fossilTools, ores, tools --
+		Quantity maps -- charms, tempers, eventTools, ores, tools --
 		get nothing. You own three of a charm, not three distinguishable charms,
 		and giving each a row would grow the save rather than shrink it.
 	]]
@@ -2965,7 +2988,6 @@ local function snap(plr)
 		rebirthGems = C.rebirthGems((p.prestige or 0) + 1),
 		relics = p.relics or {}, charter = p.charter or {}, found = p.found or {},
 		chestTools = p.chestTools or {}, chestTool = p.chestTool,
-		fossilPieces = p.fossilPieces or {}, fossilTools = p.fossilTools or {}, fossilTool = p.fossilTool,
 		toolTier = p.toolTier or {},
 		-- Owned once. Pass XP/claims live under Inventory > Pass.
 		battlePass = p.battlePass,
@@ -3112,7 +3134,12 @@ local Intro = {
 		[12] = { text = "NEW ZONE: Greyvein. The bar is how close you are.", panel = "zones" },
 		[13] = { text = "JOBS: dailies and the board pay gems every UTC day. Come back here when you need more.", panel = "jobs", ack = true, waypoint = "contractor" },
 		[14] = { text = "EVENTS: Event Horizon is free while its timer runs — grab it from the portal.", panel = "events", ack = true },
-		[15] = { text = "The FOSSIL BENCH turns dug pieces into forever tools that survive rebirth.", panel = "fossil", ack = true, waypoint = "fossil" },
+		-- Was the FOSSIL BENCH. Fossils are retired, and the step is repurposed
+		-- rather than removed: introAdvance walks these by number, so deleting 15
+		-- would strand every player sitting on it. The ore pouch is the right
+		-- replacement -- it is new, it is where ore turns into gems, and nothing
+		-- else taught it.
+		[15] = { text = "Your ORE POUCH holds everything you dig. Sell ore there for GEMS -- and it is the one thing a rebirth never takes.", panel = "shop", tab = "pouch", ack = true, waypoint = "shop" },
 		[16] = { text = "Last one — SPIN A TEMPERAMENT CASE.", panel = "enchanter", tab = "summon", highlight = "caseRow", waypoint = "enchanter", ack = true },
 		[17] = { text = "Rebirth grants SKILL POINTS for the Clouds skill tree.", ack = true },
 		[18] = { text = "REBIRTH. Reset small, come back way bigger.", panel = "prestige", waypoint = "prestige" },
@@ -3632,13 +3659,9 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	end
 	-- A chest block is a specific chest. Which one is decided at spawn so the
 	-- block can be coloured like it and named when you look at it.
-	local fossilId
-	if kind == "fossil" then
-		fossilId = Fossils.rollIdentity(y, Random.new(), zone.id)
-	end
-	-- Identity is re-rolled here from a fresh Random, the same two-step
-	-- chests and fossils use. oreIdentity picks WHICH ore without re-rolling
-	-- whether it is one -- rollKind already decided that.
+	-- Identity is re-rolled here from a fresh Random, the same two-step chests
+	-- use. oreIdentity picks WHICH ore without re-rolling whether it is one --
+	-- rollKind already decided that.
 	local oreDef
 	if kind == "ore" and C.oreIdentity then
 		-- The finder shifts WHICH ore, not how much; see MineConfig.oreFindShift.
@@ -3772,14 +3795,6 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 				end)
 			end
 		end
-	elseif kind == "fossil" then
-		local look = Fossils.look(section)
-		part.Color = look.color
-		part.Material = look.material
-		if chestDef and chestDef.id == "shiny_chest" then
-			part.Color = Color3.fromRGB(255, 214, 70)
-			part.Material = Enum.Material.Neon
-		end
 	elseif section and (kind == "dirt" or (spec and spec.name == "Dirt")) then
 		part.Color = section.color
 	elseif strata then
@@ -3807,16 +3822,6 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	if section or strata then
 		part:SetAttribute("SectionId", (section or strata).id)
 		part:SetAttribute("SectionName", (section or strata).name)
-	end
-	if fossilId then
-		part:SetAttribute("FossilId", fossilId)
-		-- Six faces of bone, drawn from the identity -- see MineFossils.decorate.
-		-- Guarded: this is decoration, and decoration must never be able to stop
-		-- a block existing. An unguarded nil here killed ensureZone and emptied
-		-- the whole mine.
-		if Fossils.decorate then
-			pcall(Fossils.decorate, part, fossilId)
-		end
 	end
 	if chestDef then
 		-- A chest looks like the chest it is. Colour is the only tell you get
@@ -3847,8 +3852,6 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	elseif kind == "ore" then
 		-- Tougher than the dirt around it: an ore you can see is worth the swing.
 		maxHp = math.floor(C.blockHp("dirt", zone, y) * (C.ORE_HP_MULT or 3))
-	elseif kind == "fossil" then
-		maxHp = math.floor(C.blockHp("dirt", zone, y) * (Fossils.HP_MULT or 2))
 	else
 		maxHp = C.blockHp(kind, zone, y)
 	end
@@ -3869,15 +3872,6 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	elseif luckyId then
 		local ldef = LuckyBlocks.def(luckyId)
 		blockName = (ldef and ldef.name) or "Lucky Block"
-	elseif fossilId then
-		local recipe = Fossils.recipe(fossilId)
-		local nm = recipe and recipe.name
-		if not nm or nm == "" or nm == "UNNAMED" then
-			local band = recipe and recipe.band
-			local bandTitle = ({ shallow = "Shallow", mid = "Mid", deep = "Deep" })[band] or "Shallow"
-			nm = bandTitle .. " Fossil"
-		end
-		blockName = nm
 	elseif section and kind ~= "chest" then
 		blockName = section.name
 	elseif strata then
@@ -4186,22 +4180,18 @@ local function ensureZone(zone, throughLayer)
 					end
 				end
 			end
-			if rng:NextNumber() < (Fossils.FOSSIL_LAYER_CHANCE or C.FOSSIL_LAYER_CHANCE or 0.10) then
-				for _ = 1, 16 do
-					local fx, fz = rng:NextInteger(0, C.GRID - 1), rng:NextInteger(0, C.GRID - 1)
-					local key = keyOf(zone.id, fx, y, fz)
-					local existing = voxels[zone.id][key]
-					if typeof(existing) == "Instance" then
-						local k = existing:GetAttribute("Kind")
-						if k ~= "chest" and k ~= "fossil" and k ~= "core" then
-							existing:Destroy()
-							voxels[zone.id][key] = nil
-							spawnVoxel(zone, fx, y, fz, "fossil")
-							break
-						end
-					end
-				end
-			end
+			--[[
+				FOSSILS ARE GONE. Nothing spawns a fossil block any more.
+
+				A fossil block used to land on one layer in ten and pay a pack of
+				pieces that assembled into a forever tool. The whole line is
+				retired: the build is CHARMS and SKINS now, and a third
+				forever-tool source competing with them was the reason neither
+				felt like the point.
+
+				Deliberately not replaced with anything. The layer keeps the ore
+				and chests it already rolled; nothing is put back in the hole.
+			]]
 		end
 		-- Core-at-maxLayers wall retired for Mine For Cards uncapped mines.
 	end
@@ -4565,7 +4555,7 @@ local function givePickaxe(plr)
 			model, handle, grip = ToolModels.fromNamed(named, "Normal", famId)
 		end
 	end
-	if not handle and named and ToolModels.fromNamed and (p and (p.chestTool or p.fossilTool)) then
+	if not handle and named and ToolModels.fromNamed and (p and p.chestTool) then
 		model, handle, grip = ToolModels.fromNamed(named, "Normal", famId)
 	end
 	if not handle then
@@ -5168,37 +5158,7 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 	-- The haul was already paid, point of HP by point of HP, on the way down --
 	-- see payDamage. Breaking the block owes nothing further; only a chest has
 	-- anything left to resolve, and that is its own loot table.
-	if kind == "fossil" then
-		-- Dig Site / Deep / Abyssal packs — open for pieces (not raw inserts).
-		local packId = "fossil_pack"
-		if (layer or 0) >= 2300 then
-			packId = "fossil_abyss_pack"
-		elseif (layer or 0) >= 1100 then
-			packId = "fossil_deep_pack"
-		end
-		local def = Packs.PACK_BY_ID[packId]
-		p.packs = p.packs or {}
-		local fossilPack = {
-			packId = packId,
-			packName = (def and def.name) or packId,
-			kind = "fossil",
-		}
-		local stampedLuck = tonumber(bb.luck) or 1
-		if stampedLuck > 1 then
-			fossilPack.luck = stampedLuck
-		end
-		table.insert(p.packs, fossilPack)
-		do
-			local ev = C.EVENTS and C.EVENTS[1]
-			local zoneId = ev and (ev.zoneId or "bigbang") or "bigbang"
-			if ev and p.zoneId == zoneId and C.limitedActive and C.limitedActive() then
-				p.stats = p.stats or {}
-				p.stats.eventFossils = (p.stats.eventFossils or 0) + 1
-				EventPass.tick(ev.id, p)
-			end
-		end
-		net:FireClient(plr, "toast", (def and def.name or "Fossil Pack") .. "!")
-	elseif kind == "ore" then
+	if kind == "ore" then
 		--[[
 			AN ORE BLOCK HANDS OVER THE ORE. No pack in between.
 
@@ -6753,58 +6713,44 @@ local function openPack(plr, setId, chestId, pk, collect)
 				net:FireClient(plr, "opened", loot, design)
 				return
 			elseif zdef.kind == "fossil" then
+				--[[
+					A LEGACY FOSSIL PACK PAYS GEMS.
+
+					Fossils are retired, so there is nothing for this to open into
+					-- but a save can still be holding one, and a pack that opens
+					into nothing is indistinguishable from a bug. It cashes out
+					instead.
+
+					The rate is the game's OWN price for the pieces it would have
+					contained (MineFossils.sellGems over the recipes it could have
+					rolled), not a number invented here: a player who banked these
+					gets what the fossil bench would have paid them for the same
+					pack.
+				]]
 				local Econ = require(shared:WaitForChild("MineFossilEconomy"))
-				local frng = Random.new()
 				local pulls = zdef.pulls or Econ.PACK_PULLS or 3
-				local loot = {}
-				p.fossilPieces = p.fossilPieces or {}
-				for _ = 1, pulls do
-					local rarity = Econ.rollRarity(zdef.odds, frng)
-					-- Identity from recipe pool filtered by rarity when possible.
-					local pool = {}
-					for _, recipe in ipairs(Fossils.RECIPES) do
-						if (recipe.rarity or "Common") == rarity then
-							table.insert(pool, recipe)
-						end
-					end
-					if #pool == 0 then
-						pool = Fossils.RECIPES
-					end
-					local recipe = pool[frng:NextInteger(1, #pool)]
-					local find = math.max(0, tonumber((boosts(p) or {}).fossilFind) or 0)
-					local yield = math.max(1, math.floor((Econ.piecesFor(rarity) or 1) * (1 + find) + 0.5))
-					local q = frng:NextNumber()
-					for _ = 1, yield do
-						table.insert(p.fossilPieces, {
-							id = instanceHex16(),
-							fossilId = recipe.id,
-							layer = (pk and pk.layer) or 1,
-							qualityRoll = q,
-							rarity = rarity,
-						})
-					end
-					table.insert(loot, {
-						kind = "fossil",
-						name = recipe.name,
-						rarityId = rarity,
-						sub = string.format("%d pieces · %s", yield, rarity),
-						fossil = { fossilId = recipe.id, rarity = rarity, rarityId = rarity },
-					})
+				local gems = 0
+				for _, recipe in ipairs(Fossils.RECIPES or {}) do
+					gems += (Fossils.sellGems and Fossils.sellGems(recipe, 1)) or 0
 				end
-				table.sort(loot, function(x, y)
-					local rx = (Cards.RARITY_RANK and Cards.RARITY_RANK[x.rarityId or ""]) or 0
-					local ry = (Cards.RARITY_RANK and Cards.RARITY_RANK[y.rarityId or ""]) or 0
-					if rx ~= ry then return rx < ry end
-					return tostring(x.name) < tostring(y.name)
-				end)
+				-- Average over the pool, times the pieces the pack held.
+				local pool = math.max(1, #(Fossils.RECIPES or {}))
+				local per = math.max(1, math.floor(gems / pool))
+				local pieces = math.max(1, math.floor(Econ.piecesFor("Common") or 1))
+				gems = per * pieces * pulls
+				p.gems = (tonumber(p.gems) or 0) + gems
 				bumpStat(plr, p, "packs")
-				introAdvance(plr, p, 5)
-				awardPassXp(plr, p, 15)
+				local loot = { {
+					kind = "gems",
+					name = Verbs._benchNum(gems) .. " gems",
+					rarityId = "Rare",
+					sub = "fossils are retired -- cashed out",
+				} }
 				local design = {
 					packId = zdef.id,
 					name = zdef.name,
-					setName = zdef.deep and "Deep Strata" or "Fossil Dig",
-					kind = "fossil",
+					setName = "Retired",
+					kind = "currency",
 				}
 				if collect then
 					design.cards = loot
@@ -6813,6 +6759,8 @@ local function openPack(plr, setId, chestId, pk, collect)
 				end
 				snap(plr)
 				net:FireClient(plr, "opened", loot, design)
+				net:FireClient(plr, "toast", "Fossils are retired -- that pack paid "
+					.. Verbs._benchNum(gems) .. " gems instead")
 				return
 			elseif zdef.kind == "cards" then
 				-- Prefer zone pack odds; fall through to card open with packDef = zdef.
@@ -6881,32 +6829,6 @@ local function openPack(plr, setId, chestId, pk, collect)
 			elseif item.kind == "rune" and item.rune then
 				p.runes = p.runes or {}
 				table.insert(p.runes, item.rune)
-			elseif item.kind == "fossil" and item.fossil then
-				p.fossilPieces = p.fossilPieces or {}
-				local Econ = require(shared:WaitForChild("MineFossilEconomy"))
-				local rarity = item.rarityId
-					or item.fossil.rarity
-					or item.fossil.rarityId
-					or "Common"
-				rarity = Econ.normalizeRarity and Econ.normalizeRarity(rarity) or rarity
-				local find = math.max(0, tonumber((boosts(p) or {}).fossilFind) or 0)
-				local base = tonumber(Econ.piecesFor and Econ.piecesFor(rarity)) or 1
-				local yield = math.max(1, math.floor(base * (1 + find) + 0.5))
-				-- First piece keeps the minted id from the roll; extras get fresh ids.
-				for i = 1, yield do
-					local piece = {
-						id = (i == 1 and item.fossil.id) or instanceHex16(),
-						fossilId = item.fossil.fossilId,
-						layer = item.fossil.layer,
-						qualityRoll = item.fossil.qualityRoll or Random.new():NextNumber(),
-						rarity = rarity,
-						rarityId = rarity,
-					}
-					table.insert(p.fossilPieces, piece)
-				end
-				item.sub = string.format("%d pieces · %s", yield, rarity)
-				item.fossil.rarity = rarity
-				item.fossil.rarityId = rarity
 			end
 		end
 		-- Best last, exactly as for cards, and for the same reason: the order
@@ -8343,7 +8265,7 @@ local function buyDepthTool(plr, payload)
 	end
 	p.toolFamily = family
 	p.toolEquipped = true
-	p.chestTool, p.fossilTool = nil, nil
+	p.chestTool = nil
 	givePickaxe(plr)
 	giveBackpackModel(plr)
 	net:FireClient(plr, "toast", "Bought " .. row.name .. " (depth)")
@@ -8388,7 +8310,7 @@ local function equipTool(plr, payload)
 	p.toolTier[family] = math.clamp(wantTier or p.toolTier[family] or owned, 1, owned)
 	-- A chest or fossil tool overrides the ladder entirely, so choosing a
 	-- ladder tool has to put those down or nothing appears to change.
-	p.chestTool, p.fossilTool, p.shopToolId = nil, nil, nil
+	p.chestTool, p.shopToolId = nil, nil
 	p.toolFamily = family
 	p.toolEquipped = true
 	givePickaxe(plr)
@@ -9316,8 +9238,6 @@ local function tryPrestige(plr)
 	fresh.relics, fresh.charter = p.relics or {}, p.charter or {}
 	-- Flagships are items you found, not progress you earned; they stay.
 	fresh.chestTools, fresh.chestTool = p.chestTools or {}, p.chestTool
-	fresh.fossilTools, fresh.fossilTool = p.fossilTools or {}, p.fossilTool
-	fresh.fossilPieces = p.fossilPieces or {}
 	fresh.found = p.found or {}
 	fresh.petSlots = p.petSlots
 	fresh.prestige = (p.prestige or 0) + 1
@@ -9441,7 +9361,6 @@ function Verbs.debugGrantRune(plr, payload)
 	p.scrolls = p.scrolls or Scrolls.emptyBag()
 	p.gear = p.gear or {}
 	p.equippedGear = p.equippedGear or {}
-	p.fossilTools = p.fossilTools or {}
 
 	local n = math.clamp(tonumber(payload and payload.count) or 20, 1, 50)
 	local rng = Random.new()
@@ -9469,27 +9388,6 @@ function Verbs.debugGrantRune(plr, payload)
 		})
 	end
 	p.scrolls.white = (p.scrolls.white or 0) + 1
-
-	-- Sinkhole fossil explosive (max-grade pieces).
-	local recipe = Fossils.recipe("sinkhole")
-	if recipe then
-		local pieces = {}
-		for i = 1, (recipe.pieces or 8) do
-			pieces[i] = {
-				fossilId = "sinkhole",
-				layer = Fossils.MAX_LAYER or 2500,
-				qualityRoll = 1,
-				quality = 1,
-			}
-		end
-		local tool = Fossils.toolFromPieces("sinkhole", pieces)
-		if tool then
-			tool.id = instanceHex16()
-			tool.fossilId = "sinkhole"
-			p.fossilTools.sinkhole = tool
-			p.fossilTool = "sinkhole"
-		end
-	end
 
 	-- Full Exotic Inferno (blast) set, equipped.
 	for _, slot in ipairs(Gear.SLOTS) do
@@ -9822,20 +9720,7 @@ function Verbs.socketToolRune(plr, payload)
 		assign()
 		return true
 	end
-	if fossilId then
-		local ft = p.fossilTools and p.fossilTools[fossilId]
-		if type(ft) ~= "table" then
-			for _, row in pairs(p.fossilTools or {}) do
-				if type(row) == "table" and (row.id == fossilId or row.fossilId == fossilId) then
-					ft = row
-					break
-				end
-			end
-		end
-		if not ft then net:FireClient(plr, "toast", "Unknown fossil tool") return end
-		if not Runes.canSocketOnTool(rune, ft.family or family) then net:FireClient(plr, "toast", "Wrong rune kind") return end
-		if not bindDestroyingPrevious(ft.runeId, function() ft.runeId = runeId end) then return end
-	elseif chestId then
+	if chestId then
 		local ct
 		for _, row in ipairs(p.chestTools or {}) do if row.id == chestId then ct = row break end end
 		if not ct then net:FireClient(plr, "toast", "Unknown chest tool") return end
@@ -9885,25 +9770,6 @@ local function destroyToolRune(plr, payload)
 			p.gems -= Runes.RESOCKET_PRICE
 			removeRune(p, rid)
 			p.shopToolRunes[shopToolId] = nil
-			net:FireClient(plr, "toast", "Rune destroyed")
-			snap(plr)
-			walk(plr)
-			return
-		end
-	elseif fossilId then
-		local ft = p.fossilTools and p.fossilTools[fossilId]
-		if type(ft) ~= "table" then
-			for _, row in pairs(p.fossilTools or {}) do
-				if type(row) == "table" and (row.id == fossilId or row.fossilId == fossilId) then
-					ft = row
-					break
-				end
-			end
-		end
-		if type(ft) == "table" and ft.runeId then
-			p.gems -= Runes.RESOCKET_PRICE
-			removeRune(p, ft.runeId)
-			ft.runeId = nil
 			net:FireClient(plr, "toast", "Rune destroyed")
 			snap(plr)
 			walk(plr)
@@ -10965,34 +10831,6 @@ function Verbs.sellTool(plr, payload)
 		return snap(plr)
 	end
 
-	if source == "fossil" then
-		local key = tostring(payload.key or payload.fossilId or payload.id or "")
-		p.fossilTools = p.fossilTools or {}
-		local row = p.fossilTools[key]
-		if not row then
-			for recipeId, r in pairs(p.fossilTools) do
-				if type(r) == "table" and r.id == key then
-					row, key = r, recipeId
-					break
-				end
-			end
-		end
-		if not row then
-			return refuse("You do not own that")
-		end
-		if row.runeId then
-			return refuse("Unsocket its rune first")
-		end
-		local dust, tokens = Tools.foreverSellValue(row, row)
-		p.fossilTools[key] = nil
-		if p.fossilTool == key then
-			p.fossilTool = nil
-		end
-		payDust(dust, tokens, row.name or key)
-		givePickaxe(plr)
-		markDirty(plr)
-		return snap(plr)
-	end
 
 	refuse("Nothing to sell")
 end
@@ -12418,17 +12256,12 @@ Dig.boostSources = function(p)
 			rune("Rune on your " .. tostring(fam), sock.main)
 			rune("Omni rune", sock.omni)
 		end
-		for key, ft in pairs(p.fossilTools or {}) do
-			if type(ft) == "table" and ft.runeId and p.fossilTool == (ft.fossilId or key) then
-				rune("Rune on " .. tostring(ft.name or "fossil tool"), ft.runeId)
-			end
-		end
 		for _, ct in ipairs(p.chestTools or {}) do
 			if ct.runeId and p.chestTool == ct.id then
 				rune("Rune on " .. tostring(ct.name or "tool"), ct.runeId)
 			end
 		end
-		if p.shopToolId and not p.chestTool and not p.fossilTool and p.shopToolRunes then
+		if p.shopToolId and not p.chestTool and p.shopToolRunes then
 			rune("Rune on your tool", p.shopToolRunes[p.shopToolId])
 		end
 		for _, cardId in ipairs(p.equipped or {}) do
@@ -12569,7 +12402,7 @@ function Verbs.grantShopTool(plr, p, id)
 		end
 	end
 	p.ownedShopTools[row.id] = true
-	if not p.chestTool and not p.fossilTool and (p.toolFamily or "pickaxe") == (row.family or "pickaxe") then
+	if not p.chestTool and (p.toolFamily or "pickaxe") == (row.family or "pickaxe") then
 		p.shopToolId = row.id
 		p.toolEquipped = true
 		pcall(givePickaxe, plr)
@@ -14525,7 +14358,6 @@ function Verbs.equipOreTool(plr, payload)
 
 	p.oreToolEquipped = tool.uid
 	p.chestTool = nil
-	p.fossilTool = nil
 	p.shopToolId = nil
 	p.toolFamily = tool.familyId or "pickaxe"
 
@@ -14611,7 +14443,6 @@ function Verbs.craftOreTool(plr, payload)
 	else
 		p.oreToolEquipped = uid
 		p.chestTool = nil
-		p.fossilTool = nil
 	end
 	p.toolEquipped = true
 	givePickaxe(plr)
@@ -14929,150 +14760,33 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 					})
 				end
 			end
-		elseif action == "fossil_assemble" then
-			local pc = profiles[plr.UserId]
-			local fossilId = tostring(payload or "")
-			local recipe = Fossils.recipe(fossilId)
-			if not recipe then return end
-			pc.fossilPieces = pc.fossilPieces or {}
-			pc.fossilTools = pc.fossilTools or {}
-			local Econ = require(shared:WaitForChild("MineFossilEconomy"))
-			local need = Econ.needed()
-			local used = {}
-			for i = #pc.fossilPieces, 1, -1 do
-				local piece = pc.fossilPieces[i]
-				if piece.fossilId == fossilId and #used < need then
-					table.insert(used, table.remove(pc.fossilPieces, i))
-				end
-			end
-			if #used < need then
-				net:FireClient(plr, "toast", "Need " .. need .. " matching pieces")
-				return
-			end
-			local tool = Fossils.toolFromPieces(fossilId, used)
-			if tool then
-				tool.id = instanceHex16()
-				tool.fossilId = fossilId
-				local fshiny, fshadow, fnight = Tools.rollFinish(Random.new(), (function()
-					local layer = 0
-					for _, d in pairs(pc.deepest or {}) do
-						layer = math.max(layer, tonumber(d) or 0)
-					end
-					return (layer < 1) and 1 or layer
-				end)())
-				tool.shiny = fshiny or nil
-				tool.shadow = fshadow or nil
-				tool.nightmare = fnight or nil
-				-- One assembled tool per recipe; overwrites prior craft.
-				pc.fossilTools[fossilId] = tool
-				local label = ((tool.nightmare and "Nightmare ") or (tool.shadow and "Shadow ") or (tool.shiny and "Shiny ") or "") .. tool.name
-				net:FireClient(plr, "toast", "Assembled " .. label .. " [" .. tool.id .. "]")
-				net:FireClient(plr, "foundTool", {
-					name = label,
-					shiny = tool.shiny and true or false,
-					shadow = tool.shadow and true or false,
-					nightmare = tool.nightmare and true or false,
-					kind = "tool",
-					baseName = tool.modelName or tool.name,
-					family = tool.family,
-					power = tool.power,
-					title = "ASSEMBLED",
-					blurb = "Built from its fossil pieces.",
-				})
-				markDirty(plr)
-				snap(plr)
-			end
-		elseif action == "fossil_equip" then
-			local pc = profiles[plr.UserId]
-			local want = tostring(payload or "")
-			if want == "" then
-				pc.fossilTool = nil
-			elseif pc.fossilTools and pc.fossilTools[want] then
-				-- Equip by recipe key (dict).
-				pc.fossilTool = want
-			elseif pc.fossilTools then
-				-- Also accept 16-hex tool instance id.
-				for recipeId, row in pairs(pc.fossilTools) do
-					if type(row) == "table" and row.id == want then
-						pc.fossilTool = recipeId
-						break
-					end
-				end
-			end
-			givePickaxe(plr)
-			snap(plr)
-		elseif action == "fossil_sell" then
-			local pc = profiles[plr.UserId]
-			local fossilId = type(payload) == "table" and payload.fossilId or tostring(payload or "")
-			local mode = type(payload) == "table" and payload.mode or "dust"
-			local pieceId = type(payload) == "table" and payload.pieceId or nil
-			local recipe = Fossils.recipe(fossilId)
-			if not recipe and not pieceId then return end
-			pc.fossilPieces = pc.fossilPieces or {}
-			local sold = {}
-			for i = #pc.fossilPieces, 1, -1 do
-				local piece = pc.fossilPieces[i]
-				local match = false
-				if pieceId then
-					match = piece.id == pieceId
-				elseif piece.fossilId == fossilId then
-					match = true
-				end
-				if match then
-					table.insert(sold, table.remove(pc.fossilPieces, i))
-					if pieceId then break end
-				end
-			end
-			if #sold == 0 then
-				net:FireClient(plr, "toast", "No pieces to sell")
-				return
-			end
-			recipe = recipe or Fossils.recipe(sold[1].fossilId)
-			if not recipe then return end
-			local grade = Fossils.grade(sold)
-			if mode == "gems" then
-				pc.gems = (pc.gems or 0) + Fossils.sellGems(recipe, grade) * #sold
-			else
-				local dustPay = Fossils.sellDust(recipe, grade) * #sold
-				pc.dust = (pc.dust or 0) + C.vipPayout(dustPay, hasVipPass(plr))
-			end
-			net:FireClient(plr, "toast", "Sold " .. #sold .. " piece(s)")
-			markDirty(plr)
-			snap(plr)
+		elseif action == "fossil_assemble" or action == "fossil_equip" or action == "fossil_sell" then
+			--[[
+				FOSSILS ARE RETIRED. The bench is gone, and so are the three verbs
+				that drove it: assemble, equip, sell.
+
+				Answered rather than dropped because an old client still has the
+				buttons, and a button that does nothing at all is the worst of the
+				three outcomes. Anything a save still holds is cashed out on load
+				(see the fossil migration in load) rather than here, so there is
+				nothing for these to act on by the time a player could press them.
+			]]
+			net:FireClient(plr, "toast", "The fossil bench is gone -- what you had was paid out in gems")
 		elseif action == "equipChestTool" then
 			local pc = profiles[plr.UserId]
-			local want, fossilWant = "", nil
+			local want = ""
 			if type(payload) == "table" then
 				want = payload.id or payload.toolId or ""
-				fossilWant = payload.fossilId
 			else
 				want = payload
 			end
 			want = tostring(want or "")
-			-- Fossil forever-tools arrive as { fossilId = recipeKey }.
-			if fossilWant ~= nil and tostring(fossilWant) ~= "" then
-				local key = tostring(fossilWant)
-				pc.fossilTools = pc.fossilTools or {}
-				local ft = pc.fossilTools[key]
-				if not ft then
-					for recipeId, row in pairs(pc.fossilTools) do
-						if type(row) == "table" and (row.id == key or row.fossilId == key) then
-							ft, key = row, recipeId
-							break
-						end
-					end
-				end
-				if not ft then
-					net:FireClient(plr, "toast", "You do not own that fossil tool")
-				else
-					pc.fossilTool = key
-					pc.chestTool = nil
-					pc.shopToolId = nil
-					pc.toolEquipped = true
-					givePickaxe(plr)
-					markDirty(plr)
-					snap(plr)
-				end
+			-- A `fossilId` payload used to equip a fossil forever-tool here.
+			-- Fossils are retired, so an old client sending one gets told rather
+			-- than silently equipping nothing.
+			if type(payload) == "table" and payload.fossilId ~= nil
+				and tostring(payload.fossilId) ~= "" then
+				net:FireClient(plr, "toast", "Fossil tools are gone -- they were paid out in gems")
 			elseif want == "" then
 				pc.chestTool = nil
 				givePickaxe(plr)
@@ -15096,10 +14810,9 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				if not found then
 					net:FireClient(plr, "toast", "You do not own that secret")
 				else
-					-- Secrets override the ladder and fossils; unequipped players
-					-- must be re-armed or givePickaxe no-ops and mining toasts
+					-- A secret overrides the ladder; an unequipped player must be
+					-- re-armed or givePickaxe no-ops and mining toasts
 					-- "Equip a tool first".
-					pc.fossilTool = nil
 					pc.shopToolId = nil
 					pc.toolEquipped = true
 					givePickaxe(plr)
