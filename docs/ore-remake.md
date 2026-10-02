@@ -1,6 +1,23 @@
 # Ore roster
 
-**Status: applied.** The 121-ore roster below is generated from
+> ## STALE — the roster is 82 ores, not 121
+>
+> **82 ores is final** (Event Horizon ores may be added later). The 121-row
+> table below was generated from `MineConfig.ORES`, which has NOT caught up
+> with the live game.
+>
+> The authority is `game.ReplicatedStorage.Mine.ToolBakers.OreToolBaker`, which
+> houses every ore actually in the game and is **not committed to this repo**.
+> Sync it back, diff it against `MineConfig.ORES`, cut `MineConfig` down to the
+> real 82, then regenerate this file.
+>
+> Until that happens, treat every ore count, tier number and rarity band in this
+> file as wrong. The band ladder below (Common 1-24 ... Exotic 119-121) is
+> scaled to 121 and needs rebuilding for 82.
+
+**Status of the tables below: applied to `MineConfig`, but `MineConfig` is stale.**
+
+**Original note.** The 121-ore roster below is generated from
 `MineConfig.ORES` in `src/ReplicatedStorage/Mine/Shared/MineConfig.luau`,
 which is the source of truth. Landed across `deb8f35` (roster + save
 migration) and `72b81ed` (14 renames, migration regenerated).
