@@ -196,30 +196,42 @@ MineZonePacks.PACKS = MineZonePacks.buildAll()
 	skin cases. Until that lands: breaking an ore block gives its pack, and
 	opening the pack always gives ore.
 
-	One row per ore, kept in step with MineConfig.ORES by construction. Hand-writing
+	82 rows kept in step with MineConfig.ORES by construction. Hand-writing
 	them would guarantee the two drift the first time an ore is renamed.
 
-	Yield falls as the ore gets harder: a common seam hands over a fistful, an
-	endgame ore hands over one or two. Combined with how much rarer the block
-	itself is, supply between the ends of the list differs by orders of
-	magnitude, which is what lets upgrade costs climb the same way.
+	Yield is AUTHORED per ore now (`yield = { lo, hi }` in MineConfig.ORES),
+	not derived from tier. The old rule ran 6 at tier 1 down to 1 at tier 121,
+	which meant an endgame ore handed over a single rock -- and once upgrade
+	costs became time-based, a supply of 1 made every high-tier level cost the
+	same rounded 1 ore for dozens of levels in a row. Bigger hauls do not make
+	tools cheaper in hours; they make the ore number climb visibly instead of
+	flat-lining.
+
+	The top 30 ores average 6.6 per pack, most 5-8, with deliberate outliers:
+	Diamond, Aetherite, Spectrite and Oganesson hand over a single perfect
+	find, while Meteorite, Galaxite, Stormstone and Thorium come in chunks.
 ]]
 MineZonePacks.ORE_YIELD_LO = 1
-MineZonePacks.ORE_YIELD_HI = 6
+MineZonePacks.ORE_YIELD_HI = 6   -- fallback only, for an ore with no authored yield
+
+-- Authored yield, or the old falloff if a row somehow lacks one.
+function MineZonePacks.oreYield(ore)
+	local y = ore and ore.yield
+	if type(y) == "table" then
+		local lo = math.max(1, math.floor(tonumber(y[1]) or 1))
+		local hi = math.max(lo, math.floor(tonumber(y[2]) or lo))
+		return lo, hi
+	end
+	return MineZonePacks.ORE_YIELD_LO, MineZonePacks.ORE_YIELD_HI
+end
 
 do
 	local okC, C = pcall(function()
 		return require(script.Parent:WaitForChild("MineConfig"))
 	end)
 	if okC and C and C.ORES then
-		local n = #C.ORES
 		for _, ore in ipairs(C.ORES) do
-			-- 6 at the first tier down to 1 at the last, rounded.
-			local t = (ore.tier - 1) / math.max(1, n - 1)
-			local hi = math.max(MineZonePacks.ORE_YIELD_LO,
-				math.floor(MineZonePacks.ORE_YIELD_HI
-					- (MineZonePacks.ORE_YIELD_HI - MineZonePacks.ORE_YIELD_LO) * t + 0.5))
-			local lo = math.max(MineZonePacks.ORE_YIELD_LO, math.floor(hi * 0.5 + 0.5))
+			local lo, hi = MineZonePacks.oreYield(ore)
 			MineZonePacks.PACKS[ore.packId] = {
 				id = ore.packId,
 				kind = "ore",
@@ -227,6 +239,7 @@ do
 				oreName = ore.name,
 				name = ore.name .. " Ore Pack",
 				tier = ore.tier,
+				band = ore.band,
 				yield = { lo, hi },
 				color = ore.color,
 				-- PackFX.art(packId) builds shades from ore.color.
@@ -247,15 +260,10 @@ function MineZonePacks.get(packId)
 			return require(script.Parent:WaitForChild("MineConfig"))
 		end)
 		if okC and C and C.ORES and not MineZonePacks._orePacksReady then
-			local n = #C.ORES
 			for _, ore in ipairs(C.ORES) do
 				local pid = ore.packId or (ore.id .. "_ore_pack")
 				if not MineZonePacks.PACKS[pid] then
-					local t = (ore.tier - 1) / math.max(1, n - 1)
-					local hi = math.max(MineZonePacks.ORE_YIELD_LO,
-						math.floor(MineZonePacks.ORE_YIELD_HI
-							- (MineZonePacks.ORE_YIELD_HI - MineZonePacks.ORE_YIELD_LO) * t + 0.5))
-					local lo = math.max(MineZonePacks.ORE_YIELD_LO, math.floor(hi * 0.5 + 0.5))
+					local lo, hi = MineZonePacks.oreYield(ore)
 					MineZonePacks.PACKS[pid] = {
 						id = pid,
 						kind = "ore",
@@ -263,6 +271,7 @@ function MineZonePacks.get(packId)
 						oreName = ore.name,
 						name = ore.name .. " Ore Pack",
 						tier = ore.tier,
+						band = ore.band,
 						yield = { lo, hi },
 						color = ore.color,
 						artKey = pid,
