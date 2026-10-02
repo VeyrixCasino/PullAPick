@@ -459,7 +459,26 @@ beside the Forge.
 
 **A NEW system. Charms drop rarely from ORES — not from chests.**
 
-- [x] One charm per ore (82 charms), **generated from the roster**, not authored.
+- [x] **TWO charms per ore — 164**, generated from the roster, not authored.
+      An ore's two variants are guaranteed to differ in both **shape and primary
+      stat**, so neither is an upgrade of the other: picking between Stone Focus
+      and Stone Twin is a question about your build, not about which number is
+      bigger. The guarantee comes from the indexing (`k = (tier-1)*2 + variant-1`,
+      shape `= k mod 6`, stat `= (k + k/6) mod 8` — consecutive k always differ in
+      both), not from a check.
+      **86 of 96 possible (shape, stat, condition) signatures** are used across
+      the 164. Both divisor terms are load-bearing: drop `k/6` and the pair cycles
+      every LCM(6,8)=24; drop `k/48` and the condition rides the same 48-slot
+      cycle and the count falls to 48.
+- [x] **Variant 1 keeps the id `<ore>_charm`** that saves already hold; variant 2
+      is `<ore>_charm_2`. `oreCharm(id)` with no variant still returns variant 1,
+      so every existing caller keeps working. An ore case rolls evenly between the
+      two — weighting either would make the other a consolation prize.
+- [x] **The name carries the shape** — `<Ore> <Word> Charm`, where the word is
+      Focus / Twin / Pact / Ward / Brink / Surge. All 164 names distinct by
+      construction, and you can tell what a charm does before reading the blurb.
+- [x] One charm per ore was the first cut; the roster is **generated from the
+      roster**, not authored.
       `MineCharms.oreCharm(oreId)` is the only way to ask for one. Generated so
       "one per ore" is a property of the code — the tool ladder has already been
       silently mis-pointed once by a roster renumber, and 82 hand-written rows is
@@ -775,6 +794,29 @@ collide with blast and zap, which is the guardrail asked for:
       Helps slow/heavy builds without raising peak damage.
 
 ## 6.3 P1 — art pipeline
+
+### Charm icons — DRAWN, not yet uploaded
+
+- [x] **164 charm icons generated**, 256×256, one per charm.
+      `tools/icons/gen-charm-art.js` draws them; `tools/icons/raster.js` is a
+      dependency-free surface + PNG encoder over built-in zlib (no canvas/sharp
+      /pngjs here, and the native ones need a toolchain).
+- [x] **The read is colour = which ore, glyph = what it does, pips = rarity.**
+      82 ore colours × 6 shape glyphs, so an ore's two variants share a colour and
+      differ in glyph — exactly how they differ in play. Shape and ore come from
+      **running the real MineCharms**, not a JS copy, so the art cannot drift.
+- [x] Checked against the extremes: Onyx (15,15,15) is lifted to a readable dark,
+      near-white Limestone keeps glyph contrast via a dark pool, band 8 fits all
+      eight pips.
+- [ ] **UPLOAD THEM AS THE GROUP (35326298)** — §7 rules, and no agent here can
+      do it. The PNGs are in `build/charm-icons/` (gitignored; rebuild with
+      `node tools/icons/gen-charm-art.js`). Then write
+      `build/charm-icons/ids.json` as `{ "<charmId>": <assetId> }` and run
+      `node tools/gen-charm-icons.js`, which writes `MineCharmIcons.luau` the
+      same way `gen-ore-icons.js` writes the ore one.
+- [ ] **Wire `MineCharmIcons.icon(charmId)` into the charm rows** once ids exist.
+      Nothing reads it yet.
+
 
 - [ ] **Ore icons + case art: APPLY, do not process.** The art lives at
       `C:\Users\uybuv\Downloads\oreicons`, is the owner's, and cannot be
