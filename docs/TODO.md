@@ -329,8 +329,14 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
 
 ### Ore drops ore
 
-- [ ] Ore blocks drop ore directly. Remove the `<id>_ore_pack` drop path
-      (`MineConfig.luau:2511`, `MineZonePacks.luau:244,251`).
+- [x] **Ore blocks drop ore directly**, into the pouch, with a toast. Yield
+      comes from the roster's own `yield` field via `oreYield`, scaled by the
+      `oreYield` boost.
+- [x] **Ore cases are the rare half.** `ORE_CASE_CHANCE` (placeholder 0.5%,
+      luck-scaled) rolls a `<id>_ore_case` on an ore break. The 2%-0.5% tool
+      roll happens when the case is OPENED and is a different number.
+- [ ] **Open an ore case** — the 2%-0.5% roll for a tool. Not built; a case
+      currently drops into packs and has no opener.
 - [ ] **Migration:** existing saves hold unopened `<id>_ore_pack` rows. Convert to
       banked `p.ores[id]` on load, keeping pack ids as recognised aliases. Do not
       strand inventories.

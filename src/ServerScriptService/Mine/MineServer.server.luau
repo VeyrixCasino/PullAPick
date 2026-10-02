@@ -4944,30 +4944,64 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 		net:FireClient(plr, "toast", (def and def.name or "Fossil Pack") .. "!")
 	elseif kind == "ore" then
 		--[[
-			An ore block hands over its PACK, not the ore.
+			An ore block hands over the ORE, directly.
 
-			Same shape as the fossil branch above: the block is the find, the
-			pack is the reward, and opening it is a separate beat the player
-			chooses. Which ore it is was settled at spawn -- spawnVoxel stamps
-			OreId -- so a block that has been standing since before a rate
-			change still pays out as whatever it looks like.
+			It used to hand over a pack you then had to open. Ninety-nine times
+			in a hundred that pack held nothing but the ore, so the extra beat
+			bought a click rather than a moment -- the reveal is worth having
+			only where something rare is actually at stake. So the ore lands in
+			the pouch, and the rare half moves to the ORE CASE below.
+
+			Which ore it is was settled at spawn (spawnVoxel stamps OreId), so a
+			block standing since before a rate change still pays out as whatever
+			it looks like.
 		]]
 		local ore = C.oreById(part:GetAttribute("OreId"))
 		if ore then
-			p.packs = p.packs or {}
-			local row = {
-				packId = ore.packId,
-				packName = ore.name .. " Ore Pack",
-				kind = "ore",
-				oreId = ore.id,
-				layer = layer,
-			}
-			local stampedLuck = tonumber(bb.luck) or 1
-			if stampedLuck > 1 then
-				row.luck = stampedLuck
+			-- Required here, not at file scope: MineServer sits at 197 top-level
+			-- locals against a hard limit of 200.
+			local OrePacks = require(shared:WaitForChild("MineZonePacks"))
+			local lo, hi = OrePacks.oreYield(ore)
+			local got = Random.new():NextInteger(math.min(lo, hi), math.max(lo, hi))
+			local find = math.max(0, tonumber(bb.oreYield) or 0)
+			got = math.max(1, math.floor(got * (1 + find) + 0.5))
+
+			p.ores = p.ores or {}
+			p.ores[ore.id] = (tonumber(p.ores[ore.id]) or 0) + got
+			p.oresSeen = p.oresSeen or {}
+			p.oresSeen[tostring(ore.id)] = true
+
+			net:FireClient(plr, "toast", string.format("+%d %s", got, ore.name))
+
+			--[[
+				THE ORE CASE is the rare half of the loot split.
+
+				One case per ore. The case is the find; what is inside it is the
+				2%-0.5% roll for a tool, resolved when the player opens it. That
+				roll replaces the old rare-tool drop entirely -- tools are not
+				found in walls any more, skins are.
+
+				The case's own drop chance is luck-scaled and is NOT the roll
+				inside it. It is a placeholder pending the owner's number.
+			]]
+			local caseChance = (tonumber(C.ORE_CASE_CHANCE) or 0)
+				* math.max(1, tonumber(bb.luck) or 1)
+			if caseChance > 0 and Random.new():NextNumber() < caseChance then
+				p.packs = p.packs or {}
+				table.insert(p.packs, {
+					packId = ore.id .. "_ore_case",
+					packName = ore.name .. " Case",
+					kind = "ore_case",
+					oreId = ore.id,
+					layer = layer,
+				})
+				net:FireClient(plr, "toast", ore.name .. " CASE!")
+				net:FireClient(plr, "loot", {
+					text = "CASE",
+					color = ore.color or Color3.fromRGB(255, 196, 64),
+					pos = part.Position,
+				})
 			end
-			table.insert(p.packs, row)
-			net:FireClient(plr, "toast", ore.name .. " Ore Pack!")
 		end
 	elseif kind == "core" then
 		grantChestTool(plr, p, "geothermal_nuke")

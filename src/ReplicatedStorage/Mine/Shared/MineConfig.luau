@@ -2021,6 +2021,19 @@ MineConfig.ORE_HP_MULT = 3
 MineConfig.ORE_CHANCE = 1 / 200
 
 --[[
+	ORE CASE drop chance, per ore block broken, before luck.
+
+	The case is the rare half of the loot split now that the ore itself drops
+	directly. One case per ore; the 2%-0.5% roll for a tool happens when the
+	case is OPENED, not here, and this number is not that number.
+
+	PLACEHOLDER pending the owner's figure. It replaces the old rare-tool wall
+	drop, whose rates ran 0.6% (Rare) down to 0.0012% (Exotic), so 0.5% sits in
+	that neighbourhood without being a decision anyone made.
+]]
+MineConfig.ORE_CASE_CHANCE = 0.005
+
+--[[
 	THE SHAPE, in three terms. Each does one job.
 
 	  x = ore.d - localD   (positive = ore is harder than this rock)
