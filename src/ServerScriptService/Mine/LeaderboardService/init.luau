@@ -910,16 +910,16 @@ local function hideBigHeads(folder)
 	end
 end
 
+--[[
+	Board values through the one currency formatter.
+
+	Its own version rounded UP at the boundary and stopped having suffixes past
+	a billion, so the top of a coin board would read "1500.0B" rather than
+	carrying. MineAbbrev.currency floors to four significant figures and carries
+	all the way, which is what the rest of the game shows.
+]]
 local function formatValue(v)
-	local n = tonumber(v) or 0
-	if n >= 1e9 then
-		return string.format("%.2fB", n / 1e9)
-	elseif n >= 1e6 then
-		return string.format("%.2fM", n / 1e6)
-	elseif n >= 1e3 then
-		return string.format("%.1fK", n / 1e3)
-	end
-	return tostring(math.floor(n))
+	return require(shared:WaitForChild("MineAbbrev")).currency(v)
 end
 
 local function headshot(userId)

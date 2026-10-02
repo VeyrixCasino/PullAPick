@@ -54,18 +54,11 @@ local function label(parent, str, size, color, pos, sz, font, align)
 	}, parent)
 end
 
+-- Through the one currency formatter: floored, four significant figures,
+-- suffixed the whole way. Its own version rounded ("%.1fK" on 1.99M reads
+-- 2.0M), which a PRICE must never do, and ran out of suffixes past a trillion.
 local function num(n)
-	n = tonumber(n) or 0
-	if n < 1000 then
-		return tostring(math.floor(n))
-	elseif n < 1e6 then
-		return string.format("%.1fK", n / 1e3)
-	elseif n < 1e9 then
-		return string.format("%.1fM", n / 1e6)
-	elseif n < 1e12 then
-		return string.format("%.1fB", n / 1e9)
-	end
-	return string.format("%.2e", n)
+	return require(shared:WaitForChild("MineAbbrev")).currency(n)
 end
 
 -- The tool's type rarity is what makes a frame dearer to level. Mirrors

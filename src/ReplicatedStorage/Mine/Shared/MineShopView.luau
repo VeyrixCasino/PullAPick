@@ -90,6 +90,7 @@ end
 ]]
 local TABS = {
 	{ id = "bench", label = "Forge", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
+	{ id = "pouch", label = "Ore Pouch", blurb = "What you are carrying, and what it sells for. Ore pays gems; the pouch survives a rebirth." },
 	{ id = "pickaxe", label = "Pickaxes", blurb = "Aim, swing, break. One block at a time." },
 	{ id = "drill", label = "Drills", blurb = "Hold to mine. Wide clears area, narrow melts rock." },
 	{ id = "explosive", label = "Explosives", blurb = "Throw and clear a pattern. Extra bombs split the power." },
@@ -214,7 +215,7 @@ end
 ]]
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
-	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
+	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, oreLocks = {}, orePouch = {}, orePouchTier = 1, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
 	-- Opens on the Forge, not on a shelf of coin-bought picks.
 	local activeTab = "bench"
 	local index = 1
@@ -562,6 +563,79 @@ function MineShopView.mount(parent, opts)
 			end,
 		})
 		benchCtl = okMount and ctl or nil
+	end
+
+	----------------------------------------------------------------------------
+	-- ORE POUCH
+	--
+	-- Mounted the same guarded way as the Forge: a pcall require and a pcall
+	-- mount, so a panel that fails to load goes quiet instead of taking the
+	-- whole shop down with it.
+	----------------------------------------------------------------------------
+	local okPouch, PouchView = pcall(function()
+		return require(shared:WaitForChild("MineOrePouchView", 5))
+	end)
+	local pouchPanel, pouchCtl
+	if okPouch and PouchView and PouchView.mount then
+		pouchPanel = mk("Frame", {
+			Name = "PouchPanel",
+			Visible = false,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 156),
+			Size = UDim2.new(0.86, 0, 1, -236),
+			BackgroundTransparency = 1,
+			ZIndex = 86,
+		}, root)
+		local okMountP, ctlP = pcall(PouchView.mount, pouchPanel, {
+			--[[
+				The pouch reads the same state the rest of the shop does. It is
+				handed `orePouch` as the server computed it rather than deriving
+				capacity and the next rung's price itself -- the price comes off
+				the ore value curve, and a panel that computes its own would
+				quote a number the server then refuses.
+			]]
+			getSnap = function()
+				return {
+					ores = state.ores or {},
+					oreLocks = state.oreLocks or {},
+					orePouch = state.orePouch or {},
+					orePouchTier = state.orePouchTier or 1,
+					gems = state.gems or 0,
+				}
+			end,
+			onUpgradePouch = function()
+				if opts.onUpgradeOrePouch then
+					opts.onUpgradeOrePouch()
+				end
+			end,
+			onToggleLock = function(oreId)
+				if opts.onToggleOreLock then
+					opts.onToggleOreLock(oreId)
+				end
+			end,
+			onSellOre = function(oreId)
+				if opts.onSellOre then
+					opts.onSellOre(oreId)
+				end
+			end,
+			onSellAll = function(confirm)
+				if opts.onSellAllOres then
+					opts.onSellAllOres(confirm)
+				end
+			end,
+		})
+		pouchCtl = okMountP and ctlP or nil
+	end
+
+	--[[
+		The server's answer to a Sell All ask, forwarded in. The dialog is never
+		opened on numbers this panel made up: the host calls this with what the
+		server priced.
+	]]
+	function view.showSellAllConfirm(info)
+		if pouchCtl and pouchCtl.showConfirm then
+			pcall(pouchCtl.showConfirm, info)
+		end
 	end
 
 	----------------------------------------------------------------------------
@@ -1871,6 +1945,24 @@ function MineShopView.mount(parent, opts)
 			end
 			return
 		end
+		if activeTab == "pouch" and pouchPanel then
+			creditsStage.Visible = false
+			card.Visible = false
+			leftBtn.Visible = false
+			rightBtn.Visible = false
+			counter.Visible = false
+			track.Visible = false
+			temperBar.Visible = false
+			vp.Visible = false
+			pouchPanel.Visible = true
+			if pouchCtl and pouchCtl.refresh then
+				pcall(pouchCtl.refresh)
+			end
+			return
+		end
+		if pouchPanel then
+			pouchPanel.Visible = false
+		end
 		if benchPanel then
 			benchPanel.Visible = false
 		end
@@ -2160,6 +2252,9 @@ function MineShopView.mount(parent, opts)
 		-- Banked ore and the ore tools themselves: the bench prices every row
 		-- against these two.
 		state.ores = snapshot.ores or {}
+		state.oreLocks = snapshot.oreLocks or {}
+		state.orePouch = snapshot.orePouch or {}
+		state.orePouchTier = snapshot.orePouchTier or 1
 		-- The Forge lists one recipe per ore ever held, not per ore banked, so
 		-- spending your last unit of something does not delete its recipe.
 		state.oresSeen = snapshot.oresSeen or {}

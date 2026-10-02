@@ -80,19 +80,17 @@ local function label(parent, str, size, color, pos, sz, font, align)
 	}, parent)
 end
 
--- Same abbreviation the bench uses, so a cost reads identically in both panels.
+--[[
+	Every number this panel shows, through the one currency formatter.
+
+	It formatted its own before: "%.1fK" and friends, which ROUND -- so a quoted
+	price could read lower than what is charged, which a price must never do --
+	showed two or three significant figures where the rule is four, and ran out
+	of suffixes past a trillion. MineAbbrev.currency floors, shows four, and is
+	what the server quotes with, so a cost reads identically on both sides.
+]]
 local function num(n)
-	n = tonumber(n) or 0
-	if n < 1000 then
-		return tostring(math.floor(n))
-	elseif n < 1e6 then
-		return string.format("%.1fK", n / 1e3)
-	elseif n < 1e9 then
-		return string.format("%.1fM", n / 1e6)
-	elseif n < 1e12 then
-		return string.format("%.1fB", n / 1e9)
-	end
-	return string.format("%.2e", n)
+	return require(shared:WaitForChild("MineAbbrev")).currency(n)
 end
 
 -- Mirrors oreToolTypeMult on the server; both read MineTools.RARITY_RANK, so a

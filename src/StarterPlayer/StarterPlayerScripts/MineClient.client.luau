@@ -4528,6 +4528,29 @@ shopCtl = ShopView.mount(gui, {
 	onRecycleOreTool = function(uid)
 		net:FireServer("recycleOreTool", { uid = uid })
 	end,
+
+	--[[
+		THE ORE POUCH. Selling ore is the game's only gem tap, so every one of
+		these is server-authoritative: the client names what to do and never how
+		much it is worth.
+
+		Sell All goes out twice. The first call carries no confirm flag and is
+		the ASK -- the server prices the sale and replies with `confirmSellAll`,
+		which opens the dialog on the server's own figures. The second carries
+		confirm and performs it.
+	]]
+	onUpgradeOrePouch = function()
+		net:FireServer("upgradeOrePouch")
+	end,
+	onToggleOreLock = function(oreId)
+		net:FireServer("toggleOreLock", { oreId = oreId })
+	end,
+	onSellOre = function(oreId, count)
+		net:FireServer("sellOre", { oreId = oreId, count = count })
+	end,
+	onSellAllOres = function(confirm)
+		net:FireServer("sellAllOres", { confirm = confirm and true or nil })
+	end,
 })
 
 depthShopCtl = DepthShopView.mount(gui, {
@@ -10989,6 +11012,18 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- Tap-through reveal; the loot is shown at the end of it.
 		Audio.play("lucky")
 		ClientFns.luckyScreen().opened(payload)
+	elseif action == "confirmSellAll" and payload then
+		--[[
+			The server priced a Sell All ask. Hand its figures to the pouch panel,
+			which opens the confirmation on them.
+
+			Routed rather than handled here so the numbers a player agrees to are
+			the server's own. A dialog built from a client-side estimate is a
+			dialog that can quote a total the server then disagrees with.
+		]]
+		if shopCtl and shopCtl.showSellAllConfirm then
+			pcall(shopCtl.showSellAllConfirm, payload)
+		end
 	elseif action == "temperCase" and payload then
 		Audio.play("open")
 		ClientFns.caseScreen().play(payload)
