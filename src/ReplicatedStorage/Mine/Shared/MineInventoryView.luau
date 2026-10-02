@@ -2368,26 +2368,32 @@ function MineInventoryView.mount(parent, opts)
 		three take hats, and which pet is in a seat is whichever pet you are
 		running in that slot.
 	]]
+	--[[
+		THE SEATS. Three hats, a face, a charm, a tool, a backpack.
+
+		The right-hand column used to be "Pet 1 Hat" through "Pet 4 Hat" -- a hat
+		seat per pet, with the fourth locked behind VIP. Pets wear no hats now and
+		there is no fourth pet, so that whole column is gone and the hat seats it
+		was competing with moved to the left where the rest of your own gear is.
+
+		Nothing here is locked any more. That mattered: advanceSlot and several
+		readers walk this list looking for `locked`, and a list with none means
+		every seat is reachable by every player.
+	]]
 	local function EQUIP_SLOTS()
-		local n = math.max(3, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
-		local petN = math.max(4, n)
-		local slots = {
-			{ id = "hat", label = "Your Hat", side = "L" },
-			{ id = "face", label = "Your Face", side = "L" },
-			{ id = "charm", label = "Charm", side = "L" },
-			{ id = "tool", label = "Tool", side = "L" },
-			{ id = "backpack", label = "Backpack", side = "L" },
-		}
-		for i = 1, petN do
-			local locked = i > n
+		local slots = {}
+		for i, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
 			table.insert(slots, {
-				id = "pet" .. i,
-				label = locked and ("Pet " .. i .. " Hat - VIP") or ("Pet " .. i .. " Hat"),
-				side = "R",
-				pet = i,
-				locked = locked,
+				id = slot,
+				label = (i == 1) and "Your Hat" or ("Your Hat " .. i),
+				side = "L",
+				hat = i,
 			})
 		end
+		table.insert(slots, { id = "face", label = "Your Face", side = "L" })
+		table.insert(slots, { id = "charm", label = "Charm", side = "R" })
+		table.insert(slots, { id = "tool", label = "Tool", side = "R" })
+		table.insert(slots, { id = "backpack", label = "Backpack", side = "R" })
 		return slots
 	end
 	-- Which slot is being filled, and the open item card. Outside render() so a
@@ -2417,11 +2423,6 @@ function MineInventoryView.mount(parent, opts)
 		end
 	end
 
-	-- The pet sitting in seat pet1..pet4, if any.
-	local function petCardIdFor(slotId)
-		local i = tonumber(tostring(slotId or ""):match("^pet(%d+)$"))
-		return i and (state.equipped or {})[i] or nil
-	end
 
 	local function cardNamed(cardId)
 		for _, c in ipairs(state.cards or {}) do
@@ -2436,17 +2437,15 @@ function MineInventoryView.mount(parent, opts)
 	-- instead of quietly showing the same hat as available in four places.
 	local function gearWearer(gearId)
 		local g = state.equippedGear or {}
-		if g.hat == gearId or g.hat2 == gearId then
-			return "on your head"
+		for i, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+			if g[slot] == gearId then
+				-- Name the seat, not just "your head": with three of them, "it is
+				-- already on" is not an answer to "where is it".
+				return "in hat seat " .. i
+			end
 		end
 		if g.face == gearId then
 			return "on your face"
-		end
-		for cardId, id in pairs(state.petHats or {}) do
-			if id == gearId then
-				local c = cardNamed(cardId)
-				return "on " .. tostring((c and (c.name or c.setName)) or "a pet")
-			end
 		end
 		return nil
 	end
@@ -2619,44 +2618,26 @@ function MineInventoryView.mount(parent, opts)
 				end
 			end
 		else
-			local lockedSeat = false
-			for _, s in ipairs(EQUIP_SLOTS()) do
-				if s.id == slotId and s.locked then
-					lockedSeat = true
-					break
-				end
-			end
-			if lockedSeat then
-				table.insert(out, {
-					key = "vip|petslot",
-					name = "Fourth pet seat",
-					sub = "VIP unlocks one more team pet",
-					source = "vipSeat",
-					id = "vipSeat",
-					equipped = false,
-				})
-			else
-			local petId = petCardIdFor(slotId)
-			local gearSlot = petId and "hat" or slotId
-			local wornId = petId and (state.petHats or {})[petId]
-				or (not petId and (state.equippedGear or {})[gearSlot])
-				or nil
+			do
+			--[[
+				A hat seat lists every hat you own; the face seat every face.
+
+				There is no locked seat and no pet seat any more, so the branch
+				that put up a "Fourth pet seat -- VIP unlocks one more team pet"
+				card is gone with them.
+			]]
+			local isHatSeat = table.find(Gear.HAT_SLOTS or { "hat" }, slotId) ~= nil
+			local gearSlot = slotId
+			local wornId = (state.equippedGear or {})[gearSlot]
 			for _, g in ipairs(state.gear or {}) do
-				local match = (gearSlot == "hat" and Gear.isHatPiece(g))
+				local match = (isHatSeat and Gear.isHatPiece(g))
 					or (gearSlot == "face" and Gear.isFacePiece(g))
-					or (gearSlot ~= "hat" and gearSlot ~= "face" and Gear.migrateSlot(g.slot) == gearSlot)
+					or ((not isHatSeat) and gearSlot ~= "face" and Gear.migrateSlot(g.slot) == gearSlot)
 				if match then
-					-- A piece is equipped HERE only. Your own hat must not light up
-					-- as EQUIPPED on every pet seat (and vice versa).
-					local on
-					if petId then
-						on = wornId == g.id
-					elseif gearSlot == "hat" then
-						local eqg = state.equippedGear or {}
-						on = eqg.hat == g.id or eqg.hat2 == g.id
-					else
-						on = wornId == g.id
-					end
+					-- A piece is equipped in THIS seat only. A hat in seat 1 must
+					-- not light up as EQUIPPED while you are looking at seat 2 --
+					-- gearWearer says where it actually is instead.
+					local on = wornId == g.id
 					local sub = (Gear.hatEffectLine and Gear.hatEffectLine(g))
 						or ("+" .. math.floor((tonumber(g.pct) or 0) * 100 + 0.5) .. "% " .. eq.statLabel(g.stat))
 					if gearSlot == "face" and sub ~= "" then
@@ -2671,7 +2652,6 @@ function MineInventoryView.mount(parent, opts)
 						name = (g.rarity or "") .. " " .. (g.name or g.setName or ""),
 						sub = sub,
 						rarity = g.rarity, def = g, slot = slotId, source = "gear", id = g.id,
-						petId = petId,
 						equipped = on,
 						sockets = g.sockets, slotCount = g.slotCount,
 						icon = (g.catalogId and NG and NG.icon(g.catalogId))
@@ -3341,18 +3321,18 @@ function MineInventoryView.mount(parent, opts)
 			elseif item.source == "fossil" then
 				if opts.onEquipFossilTool then opts.onEquipFossilTool(item.id) end
 			elseif item.source == "gear" then
-				-- A hat in a pet seat goes on that pet; the server takes it off
-				-- whoever had it, because a piece is only ever in one place.
-				if item.petId then
-					if item.equipped then
-						if opts.onUnequipPetHat then opts.onUnequipPetHat(item.petId) end
-					elseif opts.onEquipPetHat then
-						opts.onEquipPetHat(item.petId, item.id)
-					end
-				elseif item.equipped then
-					if opts.onUnequipGear then opts.onUnequipGear(item.slot) end
+				--[[
+					The seat the player is looking at is the seat the hat goes in.
+					`item.slot` carries it, so tapping a hat while on seat 2 fills
+					seat 2 rather than whichever one happened to be free.
+
+					A hat already in another seat moves: the server clears its old
+					seat, because one owned piece is only ever in one place.
+				]]
+				if item.equipped then
+					if opts.onUnequipGear then opts.onUnequipGear(item.slot, item.id) end
 				elseif opts.onEquipGear then
-					opts.onEquipGear(item.id)
+					opts.onEquipGear(item.id, item.slot)
 				end
 			elseif item.source == "charm" then
 				if item.equipped then
@@ -3833,7 +3813,9 @@ function MineInventoryView.mount(parent, opts)
 			end
 		end
 
-		-- The paperdoll: wear + pack L, you, four pet seats R (4th VIP-gated).
+		-- The paperdoll: three hat seats + face L, you, charm/tool/pack R. (It was
+		-- four pet-hat seats on the right, the fourth VIP-gated; pets wear no
+		-- hats now and there is no fourth pet.)
 		-- cellH is the mobile grid's cell, and it has to match slotTile's own
 		-- height (100) or UIGridLayout clips the tile it is drawing: the grid
 		-- sizes the child, tileH does not. It was 62 against an 84 tile and is
@@ -3860,14 +3842,12 @@ function MineInventoryView.mount(parent, opts)
 		local function slotTile(slot, x, y, w, parent, order)
 			local worn = equippedIn(slot.id)
 			local chosen = (eq.slot == slot.id)
-			-- A seat wears the name of the pet in it.
 			local seatLabel = slot.label
-			local petCard = slot.pet and cardNamed(petCardIdFor(slot.id)) or nil
 			local tileH = 100
 			local tile = mk("TextButton", {
 				-- Named so the tutorial hand can point at this seat.
 				Name = "Seat_" .. tostring(slot.id),
-				BackgroundColor3 = chosen and BG3 or (slot.locked and Color3.fromRGB(18, 18, 24) or BG),
+				BackgroundColor3 = chosen and BG3 or BG,
 				AutoButtonColor = true, Text = "",
 				Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(w, tileH),
 				LayoutOrder = order or 0,
@@ -3896,10 +3876,11 @@ function MineInventoryView.mount(parent, opts)
 			]]
 			local iconPx = narrow and 36 or 60
 			eq.thumb(tile, worn, iconPx, UDim2.fromOffset(8, math.floor((tileH - iconPx) / 2)), false)
-			label(tile, string.upper(seatLabel), 11, chosen and GOLD or (slot.pet and GEM or MUTED),
+			-- Hat seats read in gem ink so the three of them group visually
+			-- against the single face / charm / tool / backpack seats.
+			label(tile, string.upper(seatLabel), 11, chosen and GOLD or (slot.hat and GEM or MUTED),
 				UDim2.fromOffset(76, 7), UDim2.new(1, -84, 0, 13), FONT)
-			local nameLbl = label(tile, (worn and tostring(worn.name))
-				or (slot.locked and "VIP only" or "empty"), 13,
+			local nameLbl = label(tile, (worn and tostring(worn.name)) or "empty", 13,
 				worn and ((worn.rarity and gradeInk(worn.rarity)) or TEXT) or Color3.fromRGB(96, 96, 108),
 				UDim2.fromOffset(76, 21), UDim2.new(1, -84, 0, 30), FONT)
 			nameLbl.TextWrapped = true
@@ -3917,11 +3898,9 @@ function MineInventoryView.mount(parent, opts)
 					end
 				end
 			end
-			if slot.pet then
-				buffs[#buffs + 1] = petCard
-					and ("Pet: " .. tostring(petCard.name or "Pet"))
-					or "no pet in this seat"
-			end
+			-- Buffs used to carry a "Pet: <name>" line here, because the seat
+			-- belonged to a pet. A hat seat is yours; what is in it is the
+			-- whole story.
 			for k = 1, math.min(2, #buffs) do
 				local bl = label(tile, buffs[k], 11, MUTED,
 					UDim2.fromOffset(76, 53 + (k - 1) * 15), UDim2.new(1, -84, 0, 14))
@@ -3997,10 +3976,12 @@ function MineInventoryView.mount(parent, opts)
 			local myPct = math.floor(((mine and mine.pct) or 0) * 100 + 0.5)
 			local facePct = math.floor(((face and face.pct) or 0) * 100 + 0.5)
 			local myStat = mine and eq.statLabel(mine.stat) or nil
-			local hats, seats = 0, 0
-			for _, cardId in ipairs(state.equipped or {}) do
-				seats += 1
-				if byId[(state.petHats or {})[cardId] or ""] then
+			-- How many of your three hat seats are filled, and how many pets they
+			-- are multiplying. Every hat applies to every pet, so these are two
+			-- independent counts rather than a pairing.
+			local hats, seats = 0, #(state.equipped or {})
+			for _, s in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+				if byId[eqg[s] or ""] then
 					hats += 1
 				end
 			end
@@ -4015,7 +3996,8 @@ function MineInventoryView.mount(parent, opts)
 				line = line .. string.format("  ·  Face +%d%%", facePct)
 			end
 			label(row, line, 12, TEXT, UDim2.fromOffset(14, 22), UDim2.new(1, -28, 0, 16))
-			label(row, (hats .. " of " .. math.max(1, seats) .. " pets wearing a hat")
+			label(row, (hats .. " of " .. #(Gear.HAT_SLOTS or { "hat" }) .. " hat seats filled"
+				.. ", on " .. math.max(0, seats) .. (seats == 1 and " pet" or " pets"))
 				.. "   ·   e.g. pet +100% + hat +20% × Face +200% → +160%"
 				.. (face and "" or "   ·   no face yet"),
 				11, MUTED, UDim2.fromOffset(14, 38), UDim2.new(1, -28, 0, 14))
@@ -4029,15 +4011,7 @@ function MineInventoryView.mount(parent, opts)
 		local items = equipItems(eq.slot)
 		local wornHere = equippedIn(eq.slot)
 		do
-			local headTxt = (slotDef and slotDef.label or "Slot") .. "  ·  " .. #items .. " owned"
-			if slotDef and slotDef.pet then
-				local pc = cardNamed(petCardIdFor(eq.slot))
-				local kit = pc and eq.petKitLine(pc)
-				if kit then
-					headTxt = headTxt .. "  ·  " .. kit
-				end
-			end
-			sectionHeader(headTxt, 3)
+			sectionHeader((slotDef and slotDef.label or "Slot") .. "  ·  " .. #items .. " owned", 3)
 		end
 		if #items == 0 then
 			note(body, "Nothing for this seat yet — the + below goes shopping.", 4)
@@ -4272,34 +4246,31 @@ function MineInventoryView.mount(parent, opts)
 		local isFace = kind == "faces"
 		local title = isFace and "Your faces" or "Your hats"
 		sectionHeader(title, 1)
-		-- Two hat slots: show what's on your head.
+		-- Three hat seats: show what is in each one.
 		if not isFace then
 			local eq = state.equippedGear or {}
 			local byId = {}
 			for _, g in ipairs(state.gear or {}) do
 				if g.id then byId[g.id] = g end
 			end
-			local h1, h2 = byId[eq.hat or ""], byId[eq.hat2 or ""]
-			local worn = "Wearing: "
-				.. ((h1 and (h1.name or h1.setName)) or "—")
-				.. "  +  "
-				.. ((h2 and (h2.name or h2.setName)) or "—")
-			sectionHeader(worn, 2)
+			local names = {}
+			for _, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+				local piece = byId[eq[slot] or ""]
+				table.insert(names, (piece and (piece.name or piece.setName)) or "—")
+			end
+			sectionHeader("Wearing: " .. table.concat(names, "  +  "), 2)
 		end
 		--------------------------------------------------------------------
 		-- UPGRADE. Two matching pieces fuse into one of the next grade.
 		--
 		-- MineGear.upgradePairs decides what is offerable and Verbs.upgradeGear
 		-- re-checks with the same MineGear.canUpgrade, so this list can never
-		-- put up a pair the server then refuses. Worn pieces and pet hats are
-		-- excluded by that function, not by anything here.
+		-- put up a pair the server then refuses. Worn pieces are excluded by that
+		-- function, not by anything here.
 		--------------------------------------------------------------------
 		if Gear.upgradePairs then
 			local used = {}
 			for _, id in pairs(state.equippedGear or {}) do
-				if id then used[id] = true end
-			end
-			for _, id in pairs(state.petHats or {}) do
 				if id then used[id] = true end
 			end
 			local pool = {}
@@ -4393,7 +4364,10 @@ function MineInventoryView.mount(parent, opts)
 			if ok and matches(tostring(g.name or "") .. " " .. tostring(g.rarity or "")) then
 				shown += 1
 				local col = Gear.RARITY_COLOR[g.rarity] or MUTED
-				local on = (eq.hat == g.id) or (eq.hat2 == g.id) or (eq.face == g.id)
+				local on = (eq.face == g.id)
+				for _, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+					on = on or (eq[slot] == g.id)
+				end
 				local tile = mk("Frame", { BackgroundColor3 = on and CARD_HI or BG2, LayoutOrder = i }, grid)
 				round(tile, 8)
 				stroke(tile, on and 2 or 1, on and GREEN or col)
@@ -5601,7 +5575,7 @@ function MineInventoryView.mount(parent, opts)
 				{ tab = "limited", title = "Lucky Blocks", sub = "Tap to open · grade them up for bigger loot", cta = "SEE", col = Color3.fromRGB(255, 200, 70), icons = { "lucky_block", "super_lucky_block", "godly_lucky_block" } },
 				{ tab = "box", title = "Build a Box", sub = "Any 10 packs you like · 12% off", cta = "BUILD", col = TEAL, icons = { "chest" } },
 				{ tab = "currencies", title = "Credits", sub = "Top up once, spend anywhere in the shop", cta = "TOP UP", col = GREEN, icons = { "credit_crate" } },
-				{ tab = "vip", title = "VIP & Founders", sub = "Remote sell, extra pet seat, Founders bag", cta = "VIEW", col = AMBER, icons = { "logo" } },
+				{ tab = "vip", title = "VIP & Founders", sub = "Remote sell, AFK earnings, Founders bag", cta = "VIEW", col = AMBER, icons = { "logo" } },
 				{ tools = true, title = "Tools & Backpacks", sub = "The blacksmith's counter", cta = "OPEN", col = T.GOLD or GOLD, icons = { "pickaxe", "backpack" } },
 			}
 			for i, d in ipairs(doors) do
@@ -6429,7 +6403,9 @@ function MineInventoryView.mount(parent, opts)
 				local card = panelRow(body, 120, 0)
 				label(card, vipOwned and "VIP  -  OWNED" or "VIP PASS",
 					18, vipOwned and GREEN or GOLD, UDim2.fromOffset(16, 10), UDim2.new(1, -40, 0, 24), FONT)
-				label(card, "Remote sell (75s)  |  extra pet seat  |  +50% AFK coins  |  1 AFK gem/tick  |  [VIP] name",
+				-- No "extra pet seat": three is everybody's number now, so VIP does
+				-- not add one and must not say it does.
+				label(card, "Remote sell (75s)  |  +50% AFK coins  |  1 AFK gem/tick  |  [VIP] name",
 					12, MUTED, UDim2.fromOffset(16, 38), UDim2.new(1, -40, 0, 36))
 				if not vipOwned then
 					local buy = mk("TextButton", {

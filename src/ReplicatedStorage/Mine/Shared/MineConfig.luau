@@ -50,7 +50,22 @@ MineConfig.REGEN_SEC = 0
 MineConfig.SWING_SEC = 0.42
 MineConfig.MAX_POWER = 25
 MineConfig.STARTER_PET_SLOTS = 3
-MineConfig.MAX_PET_SLOTS = 8
+--[[
+	THREE PET SLOTS, AND THAT IS ALL OF THEM.
+
+	It used to climb to eight -- three free and five sold, the fourth for gems
+	and two for Robux. A fourth pet is not a small thing: every pet's boost is
+	multiplied by every hat you wear, so each seat added is a multiplier on the
+	whole gear stack rather than a flat step, and the ladder to eight was the
+	single largest power gap in the game sitting behind a till.
+
+	Three is now the number for everybody. STARTER and MAX being equal is the
+	point: every clamp in the game already reads MAX, so there is no seat four
+	to buy, no seat four to migrate into, and nothing to hide in the shop. A save
+	that bought its way to eight is clamped back down on load -- the pets are all
+	still owned, only three come out at a time.
+]]
+MineConfig.MAX_PET_SLOTS = 3
 MineConfig.CAMP_RADIUS = 180
 -- Quality of life: the walk from the plaza to the far counters and back
 -- down the mine is the most repeated action in the game.
@@ -139,7 +154,7 @@ function MineConfig.rebirthGems(r)
 end
 
 -- The Charter is the long game for gems: it never resets, so gems stay worth
--- banking after a rebirth wipes your coins. Pet slots still spend gems; backpacks
+-- banking after a rebirth wipes your coins. Backpacks
 -- are a coin ladder again (runes will be the next gem sink).
 MineConfig.CHARTER = {
 	{ id = "survey",  name = "Survey Rights",  stat = "oreYield",  per = 0.04, max = 10, base = 14000, step = 1.62 },
@@ -390,7 +405,10 @@ MineConfig.BARE_HANDS = {
 
 MineConfig.BACKPACKS = require(script.Parent:WaitForChild("MineBags")).LIST
 
-MineConfig.PET_SLOT_PRICE = { 0, 0, 0, 400, 900, 1800, 3200, 5000 }
+-- Kept so an old shop row or an old save resolves rather than erroring. Nothing
+-- is purchasable: MAX_PET_SLOTS is 3, so every price here is for a seat that
+-- cannot exist.
+MineConfig.PET_SLOT_PRICE = { 0, 0, 0 }
 MineConfig.CRATE_PRICE = 200
 --[[
 	Limited event mine (Event Horizon — Matter± / Cosmo / Albert Minestein).
@@ -560,7 +578,8 @@ function MineConfig.isProgressionZone(zone)
 end
 MineConfig.POWER_DUST = 25
 -- VIP gamepass. No shop discount, bag, walk, or luck.
--- Perks: remote sell (cooldown), +1 pet seat, AFK coins/gems, [VIP] tag.
+-- Perks: remote sell (cooldown), AFK coins/gems, [VIP] tag. (It used to add a
+-- pet seat; three seats is everybody's number now, so it no longer can.)
 MineConfig.VIP_GAMEPASS_ID = 1977363670
 MineConfig.VIP_PRICE_MULT = 1
 MineConfig.VIP_PAYOUT_MULT = 1
@@ -576,12 +595,20 @@ MineConfig.AUTO_MINE_GAMEPASS_ID = 0
 MineConfig.AUTO_MINE_ROBUX = 499
 MineConfig.AUTO_MINE_LICENSE_RATE = 1
 
+--[[
+	Three, for everyone, always.
+
+	VIP used to add a fourth seat here and a saved petSlots could climb to eight.
+	Both are gone: a pet seat is a multiplier on the whole gear stack, not a flat
+	step, so selling them was the largest power gap in the game. The clamp is
+	what retires them -- STARTER and MAX are both 3, so a save that bought its
+	way up comes back down on load with every pet still owned.
+
+	Kept as a function because every caller goes through it; when a seat count
+	becomes situational again, this is where it belongs.
+]]
 function MineConfig.effectivePetSlots(p)
-	local n = math.clamp(math.floor(tonumber(p and p.petSlots) or 3), 3, MineConfig.MAX_PET_SLOTS)
-	if p and p.vipPass then
-		n = math.min(MineConfig.MAX_PET_SLOTS, n + 1)
-	end
-	return n
+	return math.clamp(math.floor(tonumber(p and p.petSlots) or 3), 3, MineConfig.MAX_PET_SLOTS)
 end
 
 --[[
@@ -717,7 +744,10 @@ MineConfig.PRODUCTS = {
 	group_wheel_1 = { productId = 0, robuxPrice = 20, creditsPrice = 20, spins = 1, name = "1 Group Wheel Spin" },
 	group_wheel_5 = { productId = 0, robuxPrice = 80, creditsPrice = 80, spins = 5, name = "5 Group Wheel Spins" },
 	group_wheel_10 = { productId = 0, robuxPrice = 150, creditsPrice = 150, spins = 10, name = "10 Group Wheel Spins" },
-	pet_slot = { productId = 0, robuxPrice = 199, creditsPrice = 199, name = "Extra Pet Seat" },
+	-- RETIRED. Three pet seats for everyone, so there is no seat to sell. Kept
+	-- so an old client's row still resolves to a name instead of erroring; the
+	-- buy path refuses it, and productId was never set, so nothing was ever sold.
+	pet_slot = { productId = 0, robuxPrice = 199, creditsPrice = 199, name = "Extra Pet Seat (retired)" },
 	coin_double = { productId = 0, gamePassId = 0, robuxPrice = 299, creditsPrice = 299, name = "2x Coins" },
 	auto_mine = { productId = 0, gamePassId = 0, robuxPrice = 499, creditsPrice = 499, name = "Auto-Mine License" },
 	-- Gamepass path uses FOUNDERS_GAMEPASS_ID; credits path uses creditsPrice.

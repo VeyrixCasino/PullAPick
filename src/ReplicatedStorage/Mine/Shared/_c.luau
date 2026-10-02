@@ -50,7 +50,22 @@ MineConfig.REGEN_SEC = 0
 MineConfig.SWING_SEC = 0.42
 MineConfig.MAX_POWER = 25
 MineConfig.STARTER_PET_SLOTS = 3
-MineConfig.MAX_PET_SLOTS = 8
+--[[
+	THREE PET SLOTS, AND THAT IS ALL OF THEM.
+
+	It used to climb to eight -- three free and five sold, the fourth for gems
+	and two for Robux. A fourth pet is not a small thing: every pet's boost is
+	multiplied by every hat you wear, so each seat added is a multiplier on the
+	whole gear stack rather than a flat step, and the ladder to eight was the
+	single largest power gap in the game sitting behind a till.
+
+	Three is now the number for everybody. STARTER and MAX being equal is the
+	point: every clamp in the game already reads MAX, so there is no seat four
+	to buy, no seat four to migrate into, and nothing to hide in the shop. A save
+	that bought its way to eight is clamped back down on load -- the pets are all
+	still owned, only three come out at a time.
+]]
+MineConfig.MAX_PET_SLOTS = 3
 MineConfig.CAMP_RADIUS = 180
 -- Quality of life: the walk from the plaza to the far counters and back
 -- down the mine is the most repeated action in the game.
@@ -139,7 +154,7 @@ function MineConfig.rebirthGems(r)
 end
 
 -- The Charter is the long game for gems: it never resets, so gems stay worth
--- banking after a rebirth wipes your coins. Pet slots still spend gems; backpacks
+-- banking after a rebirth wipes your coins. Backpacks
 -- are a coin ladder again (runes will be the next gem sink).
 MineConfig.CHARTER = {
 	{ id = "survey",  name = "Survey Rights",  stat = "oreYield",  per = 0.04, max = 10, base = 14000, step = 1.62 },
@@ -310,7 +325,10 @@ MineConfig.PICKAXES = {
 
 MineConfig.BACKPACKS = require(script.Parent:WaitForChild("MineBags")).LIST
 
-MineConfig.PET_SLOT_PRICE = { 0, 0, 0, 400, 900, 1800, 3200, 5000 }
+-- Kept so an old shop row or an old save resolves rather than erroring. Nothing
+-- is purchasable: MAX_PET_SLOTS is 3, so every price here is for a seat that
+-- cannot exist.
+MineConfig.PET_SLOT_PRICE = { 0, 0, 0 }
 MineConfig.CRATE_PRICE = 200
 --[[
 	Limited event mine (Event Horizon — Matter± / Cosmo / Albert Minestein).

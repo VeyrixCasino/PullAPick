@@ -573,8 +573,8 @@ local function blank()
 		-- skillBurned: points destroyed by sacrifice. temperTokens: what they paid.
 		boughtSecond = false, skillBurned = 0, temperTokens = 0,
 		runes = {}, gear = {},
-		equippedGear = { hat = nil, face = nil },
-		petHats = {},
+		-- Three hat seats, all the player's. Pets wear nothing.
+		equippedGear = { hat = nil, hat2 = nil, hat3 = nil, face = nil },
 		toolSockets = { pickaxe = nil, drill = nil, explosive = nil },
 		-- One temperament per tool family. Lives on the family, like its runes.
 		toolTempers = {},
@@ -885,26 +885,75 @@ local function load(plr)
 		p.equippedGear.gloves = nil
 	end
 	--[[
-		Gear became a hat and a face. Every retired slot folds into the hat, and
-		whichever retired piece the player had on becomes the hat they have on --
-		head first, since that is the one that was already a hat.
+		Gear became a hat and a face, and a hat became three seats that are all
+		yours. Everything that is not one of those folds in here.
+
+		This used to nil every slot that was not literally "hat" or "face",
+		which meant it nil'd `hat2` -- the second seat never survived a rejoin.
+		It walks Gear.HAT_SLOTS now, so the seat count can move again without
+		the save quietly eating the new one.
 
 		Nothing is deleted: the pieces themselves are re-priced to the hat sheet
 		by Gear.normalize just below, sockets and all.
 	]]
 	do
 		local eq = p.equippedGear
-		local keep = eq.hat or eq.head
-		for slot in pairs(eq) do
-			if slot ~= "hat" and slot ~= "face" then
-				keep = keep or eq[slot]
+		local hatSlots = Gear.HAT_SLOTS or { "hat" }
+		local live = { face = true }
+		for _, slot in ipairs(hatSlots) do
+			live[slot] = true
+		end
+		--[[
+			Retired slots fold into free seats, head first -- that is the one
+			that was already a hat, so it keeps the seat a player would expect.
+
+			PET HATS FOLD IN THE SAME WAY. A pet wears nothing now, so a hat
+			sitting on one has to land somewhere or it reads as lost. Free seats
+			take as many as they hold; the rest go back to the bag, which is
+			where they already were as far as the gear list is concerned -- only
+			the "worn" marker changes.
+		]]
+		local orphans = {}
+		if type(eq.head) == "string" then
+			table.insert(orphans, eq.head)
+		end
+		for slot, id in pairs(eq) do
+			if not live[slot] then
+				if slot ~= "head" and type(id) == "string" then
+					table.insert(orphans, id)
+				end
 				eq[slot] = nil
 			end
 		end
-		eq.hat = keep
+		for _, id in pairs(p.petHats or {}) do
+			if type(id) == "string" and id ~= "" then
+				table.insert(orphans, id)
+			end
+		end
+		-- The field is gone, not emptied: a reader that still asks for it should
+		-- come up nil rather than find a map that no longer governs anything.
+		p.petHats = nil
+		if #orphans > 0 then
+			local taken = {}
+			for _, slot in ipairs(hatSlots) do
+				if type(eq[slot]) == "string" then
+					taken[eq[slot]] = true
+				end
+			end
+			for _, slot in ipairs(hatSlots) do
+				if eq[slot] == nil then
+					while #orphans > 0 do
+						local id = table.remove(orphans, 1)
+						if not taken[id] then
+							eq[slot] = id
+							taken[id] = true
+							break
+						end
+					end
+				end
+			end
+		end
 	end
-	-- Which pet is wearing which hat: cardId -> gear id.
-	p.petHats = p.petHats or {}
 	for _, g in ipairs(p.gear or {}) do
 		if type(g) == "table" and Gear.normalize then
 			Gear.normalize(g)
@@ -1798,7 +1847,8 @@ function Dig.petRows(p, n)
 				delta = delta,
 				name = tostring(c.name or "Pet"),
 				cardId = id,
-				hat = pieces[(p.petHats or {})[id] or ""],
+				-- No `hat`: a pet wears none. Your three seats apply to all of
+				-- them at once, and stackPets reads them from `eq`.
 				rune = runes[(p.petSockets or {})[id] or ""],
 			})
 		end
@@ -1809,7 +1859,7 @@ end
 function Dig.applyPets(b, p, n)
 	local rows, pieces = Dig.petRows(p, n)
 	local eq = p.equippedGear or {}
-	local total, tailor = Gear.stackPets(rows, pieces[eq.hat or ""], pieces[eq.face or ""], pieces[eq.hat2 or ""])
+	local total, tailor = Gear.stackPets(rows, Gear.wornHats(eq, pieces), pieces[eq.face or ""])
 	for stat, amount in pairs(total) do
 		if stat == "swingRate" then
 			b.swingRate = (b.swingRate or 1) + amount
@@ -2723,7 +2773,8 @@ local function snap(plr)
 		-- Owned once. Pass XP/claims live under Inventory > Pass.
 		battlePass = p.battlePass,
 		runes = p.runes, gear = p.gear, equippedGear = p.equippedGear,
-		toolSockets = p.toolSockets, petSockets = p.petSockets, petHats = p.petHats,
+		toolSockets = p.toolSockets, petSockets = p.petSockets,
+		hatSlots = Gear.HAT_SLOTS,
 		tailorStat = Dig.tailor[p],
 		toolTempers = p.toolTempers or {},
 		tempers = p.tempers or {},
@@ -2879,9 +2930,9 @@ local Intro = {
 			named widget on the client, ClientFns.handTargets) -- "gear" was the
 			system players never found, and a sentence in a banner was why.
 		]]
-		[24] = { text = "A hat goes on a PET, and that is how a card gets stronger. Tap a PET seat, then tap a hat.", panel = "inventory", tab = "tools", highlight = "petSeat", requireAction = "equipPetHat" },
+		[24] = { text = "A HAT is yours -- you have three seats, and every hat you wear makes every pet stronger. Tap a HAT seat, then tap a hat.", panel = "inventory", tab = "tools", highlight = "hatSeat", requireAction = "equipGearPiece" },
 		[25] = { text = "Your FACE is the one piece nobody else wears -- it multiplies your WHOLE team. Fit one here.", panel = "inventory", tab = "tools", highlight = "faceSeat", ack = true },
-		[26] = { text = "Runes fit from your bag now: one per pet, one in your hat, one in your face, one on your tool. Six in the entire game.", panel = "inventory", tab = "runes", highlight = "runesTab", ack = true },
+		[26] = { text = "Runes fit from your bag now: one per pet, one per hat, one in your face, one on your tool. Eight in the entire game.", panel = "inventory", tab = "runes", highlight = "runesTab", ack = true },
 		-- No `ack`: this one only clears when the pickaxe is actually in hand.
 		[27] = { text = "Go to the BLACKSMITH and grab your free pickaxe.", waypoint = "shop" },
 		[28] = { text = "Break the next block. That swing drops your charm." },
@@ -2984,7 +3035,15 @@ local function introSatisfied(p, step)
 	elseif step == 29 then
 		return (tonumber(p.introGearOpened) or 0) >= 3
 	elseif step == 31 then
-		return next(p.petHats or {}) ~= nil
+		-- Wearing a hat in any of the three seats. (It used to ask whether a pet
+		-- had one on, which nothing can satisfy now.)
+		local eq = p.equippedGear or {}
+		for _, s in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+			if type(eq[s]) == "string" and eq[s] ~= "" then
+				return true
+			end
+		end
+		return false
 	elseif step == 33 then
 		return (tonumber(p.introScrapped) or 0) >= 5
 	elseif step == 36 then
@@ -7597,12 +7656,6 @@ local function scrapMany(plr, payload)
 				worn[id] = true
 			end
 		end
-		-- A hat on a pet is being worn just as much as one on your head.
-		for _, id in pairs(p.petHats or {}) do
-			if id then
-				worn[id] = true
-			end
-		end
 		for i = #(p.gear or {}), 1, -1 do
 			local g = p.gear[i]
 			if want[g.id] and not worn[g.id] then
@@ -7774,12 +7827,6 @@ local function scrapItem(plr, payload)
 				if p.equippedGear[g.slot] == id then
 					net:FireClient(plr, "toast", "Take it off first")
 					return
-				end
-				for _, wornId in pairs(p.petHats or {}) do
-					if wornId == id then
-						net:FireClient(plr, "toast", "A pet is wearing that one")
-						return
-					end
 				end
 				local gems = Gear.scrapGems(g)
 				p.gems = (p.gems or 0) + gems
@@ -8556,10 +8603,9 @@ local function buyProductWithCredits(plr, key)
 	elseif key == "weekend_haul" then
 		-- Repeatable crate.
 	elseif key == "pet_slot" then
-		if math.floor(tonumber(p.petSlotRobux) or 0) >= 2 or (p.petSlots or 3) >= C.MAX_PET_SLOTS then
-			net:FireClient(plr, "toast", "No more pet seats to buy")
-			return
-		end
+		-- Retired. Three seats for everyone; nothing to sell.
+		net:FireClient(plr, "toast", "Three pet seats is the limit -- there is no fourth to buy")
+		return
 	elseif key == "coin_double" then
 		if p.coinDouble then
 			net:FireClient(plr, "toast", "2x Coins already active")
@@ -8647,9 +8693,9 @@ local function buyProductWithCredits(plr, key)
 		end
 		net:FireClient(plr, "toast", "Weekend Haul claimed")
 	elseif key == "pet_slot" then
-		p.petSlotRobux = math.floor(tonumber(p.petSlotRobux) or 0) + 1
-		p.petSlots = math.min(C.MAX_PET_SLOTS, (p.petSlots or 3) + 1)
-		net:FireClient(plr, "toast", "Extra pet seat unlocked")
+		-- Retired. Three seats for everyone, so there is nothing to unlock. The
+		-- buy path refuses before this, which is why nothing is refunded here.
+		net:FireClient(plr, "toast", "Pet seats are no longer sold -- everyone has three")
 	elseif key == "coin_double" then
 		p.coinDouble = true
 		net:FireClient(plr, "toast", "2x Coins active")
@@ -8861,12 +8907,15 @@ local function buy(plr, kind)
 		p.backpackTier = want
 		giveBackpackModel(plr)
 	elseif kind == "petSlot" then
-		local nextS = p.petSlots + 1
-		if nextS > C.MAX_PET_SLOTS then return end
-		local price = C.PET_SLOT_PRICE[nextS] or 999999
-		if p.gems < price then net:FireClient(plr, "toast", "Not enough gems") return end
-		p.gems -= price
-		p.petSlots = nextS
+		--[[
+			There is no seat to buy. Three is everybody's number now, so this
+			refuses rather than charging for a clamp that will not move.
+
+			Kept rather than deleted because an old client still has the button;
+			the refusal is what an old build should hear.
+		]]
+		net:FireClient(plr, "toast", "Three pet seats is the limit -- there is no fourth to buy")
+		return
 	elseif kind == "itemSlots" then
 		--[[
 			One rung of the ITEM bag -- the shelf the Inventory screen is a view
@@ -8946,7 +8995,6 @@ local function tryPrestige(plr)
 	fresh.gear = p.gear
 	fresh.equippedGear = p.equippedGear
 	fresh.petSockets = p.petSockets
-	fresh.petHats = p.petHats
 	fresh.charms = p.charms or {}
 	fresh.equippedCharm = p.equippedCharm
 	fresh.persistBags = p.persistBags or {}
@@ -9260,9 +9308,6 @@ function Verbs.mergeHats(plr, payload)
 		for slot, gid in pairs(p.equippedGear or {}) do
 			if gid == id then p.equippedGear[slot] = nil end
 		end
-		for petId, gid in pairs(p.petHats or {}) do
-			if gid == id then p.petHats[petId] = nil end
-		end
 	end
 	strip(aId)
 	strip(bId)
@@ -9309,9 +9354,6 @@ function Verbs.upgradeGear(plr, payload)
 	end
 	local used = {}
 	for _, id in pairs(p.equippedGear or {}) do
-		if id then used[id] = true end
-	end
-	for _, id in pairs(p.petHats or {}) do
 		if id then used[id] = true end
 	end
 	local ok, why = Gear.canUpgrade(a, b, used)
@@ -9564,10 +9606,11 @@ function Verbs.unequipGearPiece(plr, payload)
 	end
 	p.equippedGear = p.equippedGear or {}
 	if type(gearId) == "string" then
-		if p.equippedGear.hat == gearId then p.equippedGear.hat = nil end
-		if p.equippedGear.hat2 == gearId then p.equippedGear.hat2 = nil end
+		for _, s in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+			if p.equippedGear[s] == gearId then p.equippedGear[s] = nil end
+		end
 		if p.equippedGear.face == gearId then p.equippedGear.face = nil end
-	elseif slot == "hat2" or slot == "hat" or slot == "face" then
+	elseif slot == "face" or table.find(Gear.HAT_SLOTS or { "hat" }, slot) then
 		p.equippedGear[slot] = nil
 	elseif not p.equippedGear[slot] then
 		return
@@ -9583,106 +9626,38 @@ function Verbs.unequipGearPiece(plr, payload)
 end
 
 --[[
-	A piece is in exactly one place: on you, or on one pet. Equipping it anywhere
-	takes it off wherever it was, which is the only rule that keeps "my pet is
-	wearing my hat" from being true twice.
-]]
-local function clearGearFromPets(p, gearId)
-	for cardId, id in pairs(p.petHats or {}) do
-		if id == gearId then
-			p.petHats[cardId] = nil
-		end
-	end
-end
+	ONE OWNED PIECE, ONE SEAT.
 
--- One owned instance → one seat. Old saves / Equip Best bugs left the same
--- gearId on you AND every pet; strip duplicates so inventory matches reality.
+	A hat used to be able to sit on your head OR on a pet, so "my pet is wearing
+	my hat" had to be stopped from being true twice and there was a
+	clearGearFromPets to do it. Pets wear nothing now; the only way to double up
+	is the same id in two of your own three seats, which old saves and old Equip
+	Best runs both managed to produce.
+
+	Seats keep FIRST claim in Gear.HAT_SLOTS order, so the primary hat is the one
+	that survives a collision and the loser empties rather than silently sharing.
+]]
 local function sanitizeHatUniqueness(p)
 	if type(p) ~= "table" then
 		return
 	end
 	p.equippedGear = p.equippedGear or {}
-	p.petHats = p.petHats or {}
+	local eq = p.equippedGear
 	local seen = {}
-	local function claim(id)
-		if type(id) ~= "string" or id == "" then
-			return nil
-		end
-		if seen[id] then
-			return nil
-		end
-		seen[id] = true
-		return id
-	end
-	-- Player seats keep first claim; pets keep whatever is left.
-	p.equippedGear.hat = claim(p.equippedGear.hat)
-	p.equippedGear.hat2 = claim(p.equippedGear.hat2)
-	for cardId, id in pairs(p.petHats) do
-		local kept = claim(id)
-		if not kept then
-			p.petHats[cardId] = nil
+	for _, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+		local id = eq[slot]
+		if type(id) ~= "string" or id == "" or seen[id] then
+			eq[slot] = nil
 		else
-			p.petHats[cardId] = kept
+			seen[id] = true
 		end
 	end
-end
-
-function Verbs.equipPetHat(plr, payload)
-	local p = profiles[plr.UserId]
-	if not p then return end
-	local cardId = payload and payload.cardId
-	local card = cardById(p, cardId)
-	local piece = gearById(p, payload and payload.gearId)
-	if not card then net:FireClient(plr, "toast", "Unknown pet") return end
-	if not piece then net:FireClient(plr, "toast", "Unknown hat") return end
-	if Gear.migrateSlot(piece.slot) ~= "hat" then
-		net:FireClient(plr, "toast", "A face is yours alone -- pets wear hats")
-		return
-	end
-	p.petHats = p.petHats or {}
-	p.equippedGear = p.equippedGear or {}
-	-- Take it off your head (both hat seats) and every other pet first.
-	if p.equippedGear.hat == piece.id then
-		p.equippedGear.hat = nil
-	end
-	if p.equippedGear.hat2 == piece.id then
-		p.equippedGear.hat2 = nil
-	end
-	clearGearFromPets(p, piece.id)
-	p.petHats[cardId] = piece.id
-	sanitizeHatUniqueness(p)
-	introAdvance(plr, p, 24)
-	introAdvance(plr, p, 31)
-	Dig.upgradeCache[plr.UserId] = nil
-	net:FireClient(plr, "toast", (piece.name or "Hat") .. " on " .. tostring(card.name or "your pet"))
-	introAdvance(plr, p, 10)
-	markDirty(plr)
-	snap(plr)
-	walk(plr)
-	applyPlayerCosmetics(plr)
-end
-
-function Verbs.unequipPetHat(plr, payload)
-	local p = profiles[plr.UserId]
-	if not p then return end
-	local cardId = payload and payload.cardId
-	p.petHats = p.petHats or {}
-	if type(cardId) ~= "string" or not p.petHats[cardId] then
-		return
-	end
-	p.petHats[cardId] = nil
-	Dig.upgradeCache[plr.UserId] = nil
-	markDirty(plr)
-	snap(plr)
-	walk(plr)
-	net:FireClient(plr, "toast", "Hat off")
 end
 
 function Verbs.equipGearPiece(plr, payload)
 	local p = profiles[plr.UserId]
 	local piece = gearById(p, payload and payload.gearId)
 	if not piece then net:FireClient(plr, "toast", "Unknown gear") return end
-	clearGearFromPets(p, piece.id)
 	Dig.upgradeCache[plr.UserId] = nil
 	p.equippedGear = p.equippedGear or {}
 	local slot = Gear.migrateSlot(piece.slot)
@@ -9690,18 +9665,41 @@ function Verbs.equipGearPiece(plr, payload)
 		p.equippedGear.face = piece.id
 		introAdvance(plr, p, 25)
 	else
-		-- Two hat seats. Same catalog hat is fine only if you own two pieces
-		-- (different ids). One id can never fill both seats.
+		--[[
+			Three hat seats. The same CATALOG hat in two seats is fine as long as
+			they are two owned pieces with different ids; one id can never fill
+			two seats.
+
+			An explicit `slot` in the payload is honoured when it names a real
+			seat, so the UI can put a hat where the player tapped. Without one it
+			takes the first free seat, and replaces the primary when all three
+			are full -- the primary being the one a player watching the first
+			seat would expect to change.
+		]]
 		local eq = p.equippedGear
-		if eq.hat == piece.id or eq.hat2 == piece.id then
+		local slots = Gear.HAT_SLOTS or { "hat" }
+		local want = tostring((payload and payload.slot) or "")
+		local onAlready, firstFree = false, nil
+		for _, s in ipairs(slots) do
+			if eq[s] == piece.id then
+				onAlready = true
+			elseif firstFree == nil and eq[s] == nil then
+				firstFree = s
+			end
+		end
+		local target = nil
+		for _, s in ipairs(slots) do
+			if s == want then
+				target = s
+				break
+			end
+		end
+		if target then
+			eq[target] = piece.id
+		elseif onAlready then
 			-- already on
-		elseif not eq.hat then
-			eq.hat = piece.id
-		elseif not eq.hat2 then
-			eq.hat2 = piece.id
 		else
-			-- Both full: replace primary.
-			eq.hat = piece.id
+			eq[firstFree or slots[1]] = piece.id
 		end
 	end
 	sanitizeHatUniqueness(p)
@@ -11709,9 +11707,8 @@ function Dig.gearScore(g)
 		+ (tonumber(g and g.pct) or 0) * 100 + (tonumber(g and g.slotCount) or 0)
 end
 function Dig.planUpgrades(p)
-	local plan = { gear = {}, petHats = {}, gearCount = 0, pets = nil, petCount = 0 }
+	local plan = { gear = {}, gearCount = 0, pets = nil, petCount = 0 }
 	local worn = p.equippedGear or {}
-	local petHats = p.petHats or {}
 	local byId, hats, faces = {}, {}, {}
 	for _, g in ipairs(p.gear or {}) do
 		if type(g) == "table" and g.id then
@@ -11758,27 +11755,17 @@ function Dig.planUpgrades(p)
 		return Dig.gearScore(cand) > Dig.gearScore(on) + 1e-6
 	end
 	--[[
-		Seats: your hat first (adds to every pet), then pets strongest-first.
-		Greedy assign highest remaining hat that beats what is on that seat.
+		Seats are your three hat seats, in order. Greedy: assign the highest
+		remaining hat that beats what is on that seat.
+
+		This used to walk the pets as seats too, strongest-first, with your one
+		hat at the front as the highest-priority seat because it applied to the
+		whole team. Pets wear nothing now, so the list is just yours -- and all
+		THREE seats are in it, where before only `hat` was and `hat2` was left
+		holding whatever it happened to hold.
 	]]
-	local wearers = {}
-	for _, cardId in ipairs(p.equipped or {}) do
-		local c = cardById(p, cardId)
-		local pw = c and C.cardPower(c) or 0
-		table.insert(wearers, { pet = cardId, on = byId[petHats[cardId] or ""], pw = pw })
-	end
-	table.sort(wearers, function(a, b)
-		return (a.pw or 0) > (b.pw or 0)
-	end)
-	-- Your hat applies to every pet — treat it as the highest-priority seat.
-	table.insert(wearers, 1, {
-		pet = nil,
-		on = byId[worn.hat or ""],
-		pw = 1e9,
-		player = true,
-	})
-	for _, w in ipairs(wearers) do
-		local on = w.on
+	for _, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+		local on = byId[worn[slot] or ""]
 		-- Higher seat already claimed this hat — treat the seat as empty.
 		if on and on.id and used[on.id] then
 			on = nil
@@ -11793,11 +11780,7 @@ function Dig.planUpgrades(p)
 		end
 		if best then
 			used[best.id] = true
-			if w.pet then
-				plan.petHats[w.pet] = best.id
-			else
-				plan.gear.hat = best.id
-			end
+			plan.gear[slot] = best.id
 			plan.gearCount += 1
 		elseif on and on.id then
 			-- Keep current reserved so a later seat cannot steal it.
@@ -11883,12 +11866,8 @@ function Verbs.equipBest(plr)
 	local did = {}
 	if plan.gearCount > 0 then
 		p.equippedGear = p.equippedGear or {}
-		p.petHats = p.petHats or {}
 		for slot, id in pairs(plan.gear) do
 			p.equippedGear[slot] = id
-		end
-		for cardId, id in pairs(plan.petHats) do
-			p.petHats[cardId] = id
 		end
 		sanitizeHatUniqueness(p)
 		table.insert(did, plan.gearCount .. (plan.gearCount == 1 and " piece" or " pieces"))
@@ -14204,8 +14183,6 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "equipGear" then Verbs.equipGearPiece(plr, payload)
 		elseif action == "equipBest" then Verbs.equipBest(plr)
 		elseif action == "unequipGear" then Verbs.unequipGearPiece(plr, payload)
-		elseif action == "equipPetHat" then Verbs.equipPetHat(plr, payload)
-		elseif action == "unequipPetHat" then Verbs.unequipPetHat(plr, payload)
 		elseif action == "socketGearRune" then Verbs.socketGearRune(plr, payload)
 		elseif action == "buyScroll" then Verbs.buyScroll(plr, payload)
 		elseif action == "drinkPotion" then
@@ -15133,19 +15110,14 @@ Verbs.grantReceipt = function(info)
 			return true
 		end
 		if key == "pet_slot" then
-			p.petSlotRobux = math.floor(tonumber(p.petSlotRobux) or 0)
-			if p.petSlotRobux >= 2 then
-				net:FireClient(plr, "toast", "Pet seat Robux cap reached")
-				return true
-			end
-			if (p.petSlots or 3) >= C.MAX_PET_SLOTS then
-				return true
-			end
-			p.petSlotRobux += 1
-			p.petSlots = math.min(C.MAX_PET_SLOTS, (p.petSlots or 3) + 1)
-			markDirty(plr)
-			snap(plr)
-			net:FireClient(plr, "toast", "Extra pet seat unlocked")
+			--[[
+				Retired product. It never had a live Roblox productId (0), and the
+				buy path refuses before any prompt, so this cannot be reached by
+				paying -- it exists so a stray receipt is acknowledged instead of
+				being retried forever. It grants nothing because there is no
+				fourth seat to grant.
+			]]
+			net:FireClient(plr, "toast", "Pet seats are no longer sold -- everyone has three")
 			return true
 		end
 		if key == "coin_double" then

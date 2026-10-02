@@ -2920,9 +2920,11 @@ invCtl = InventoryView.mount(gui, {
 		Audio.play("equip")
 		net:FireServer("upgradeGear", { a = aId, b = bId })
 	end,
-	onEquipGear = function(id)
+	-- `slot` is the seat the player was looking at. The server honours it when it
+	-- names a real seat and takes the first free one otherwise.
+	onEquipGear = function(id, slot)
 		Audio.play("equip")
-		net:FireServer("equipGear", { gearId = id })
+		net:FireServer("equipGear", { gearId = id, slot = slot })
 	end,
 			onSocketGear = function(gearId, runeId, index)
 				net:FireServer("socketGearRune", { gearId = gearId, runeId = runeId, index = index })
@@ -2930,13 +2932,6 @@ invCtl = InventoryView.mount(gui, {
 	onUnequipGear = function(slot, gearId)
 		net:FireServer("unequipGear", { slot = slot, gearId = gearId })
 	end,
-	-- A hat goes on a PET. The server takes it off whoever was wearing it, so
-	-- there is no "unequip first" step to teach.
-	onEquipPetHat = function(cardId, gearId)
-		Audio.play("equip")
-		net:FireServer("equipPetHat", { cardId = cardId, gearId = gearId })
-	end,
-	onUnequipPetHat = function(cardId) net:FireServer("unequipPetHat", { cardId = cardId }) end,
 	onEquipBest = function() net:FireServer("equipBest") end,
 	onSocketAny = function(item, runeId, index) ClientFns.socketRoute(item, runeId, index) end,
 	-- The plus tile at the end of your gear: walk to the machine, open summons.
@@ -5221,7 +5216,12 @@ function ClientFns.petHatPiece(card)
 	if not (snap and card) then
 		return nil
 	end
-	local gearId = (snap.petHats or {})[card.id]
+	--[[
+		Pets wear no hats. Kept as a stub returning nil so an older view that
+		still asks gets "nothing on this pet" rather than an error -- which is
+		also the truth.
+	]]
+	local gearId = nil
 	if not gearId then
 		return nil
 	end
@@ -6314,11 +6314,11 @@ local function refreshShop()
 	else
 		rowBtn(shopP.Body, "Bag maxed", function() end)
 	end
-	if snap.petSlots < 8 then
-		rowBtn(shopP.Body, "Pet slot " .. (snap.petSlots + 1) .. "   " .. (C.PET_SLOT_PRICE[snap.petSlots + 1] or 0) .. " gems", function()
-			net:FireServer("buy", "petSlot")
-		end)
-	end
+	--[[
+		No pet-slot row. Three seats is everybody's number now, so there is no
+		fourth to sell -- and the row used to read the cap as a literal 8, which
+		would have kept offering seats the server refuses.
+	]]
 	rowBtn(shopP.Body, "Crate   " .. C.CRATE_PRICE .. " gems", function()
 		net:FireServer("buy", "crate")
 	end)
@@ -8040,7 +8040,8 @@ ClientFns.handTargets = {
 	cardsTab = { find = function() return ClientFns.handFind(invCtl, { "Tab_cards" }) end },
 	petSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_pet1", "Seat_pet2", "Seat_pet3" }) end },
 	faceSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_face" }) end },
-	hatSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_hat" }) end },
+	-- Three hat seats, any of which satisfies the tutorial's "put a hat on".
+	hatSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_hat", "Seat_hat2", "Seat_hat3" }) end },
 	-- enchanter
 	caseRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_temper", true) or nil end },
 	runeRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_rune", true) or nil end },
@@ -8402,7 +8403,7 @@ local function refreshEnchanter()
 			onSocketFossilTool = function(runeId, fossilId)
 				net:FireServer("socketToolRune", { runeId = runeId, fossilId = fossilId })
 			end,
-			onEquipGear = function(id) net:FireServer("equipGear", { gearId = id }) end,
+			onEquipGear = function(id, slot) net:FireServer("equipGear", { gearId = id, slot = slot }) end,
 		})
 		if runesCtl.root then
 			runesCtl.root.Position = UDim2.fromOffset(12, 96)
@@ -10448,14 +10449,13 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 			refreshEnchanter()
 		end
 		local eq = payload.equipped or {}
-		-- The hats ride this key as well: putting a hat on a pet has to redress
-		-- the pet standing in the world, and the equipped list does not move
-		-- when it happens.
-		local keyParts = { table.concat(eq, ",") }
-		for _, id in ipairs(eq) do
-			keyParts[#keyParts + 1] = tostring((payload.petHats or {})[id])
-		end
-		local key = table.concat(keyParts, "|")
+		--[[
+			Only the equipped list rides this key now. Pet hats used to ride it
+			too, because putting one on a pet had to redress the pet standing in
+			the world without the equipped list moving. Pets wear nothing, so the
+			roster is the whole of what changes their appearance.
+		]]
+		local key = table.concat(eq, ",")
 		if key ~= lastPetEquipKey then
 			lastPetEquipKey = key
 			ClientFns.updatePets()
