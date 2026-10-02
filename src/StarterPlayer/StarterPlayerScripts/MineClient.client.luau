@@ -8607,9 +8607,75 @@ function ClientFns.clearPets()
 end
 
 --[[
-	Trail behind the owner with lag, face travel, soft bob.
-	Framerate-independent spring; snaps only after a big teleport gap.
+	Trail behind the owner: smoothed formation, real spring, continuous gait.
+
+	WHY IT LOOKED JOLTY, in the three places it actually came from:
+
+	1. THE FORMATION BASIS SNAPPED. The whole formation was built off the
+	   owner's instantaneous velocity direction, and `right` came off that same
+	   vector. Strafe, or turn on the spot, and the direction flips in one
+	   frame -- so every pet's target jumps sideways by the full width of its
+	   lateral offset and the spring chases a step function. Smoothing the
+	   POSITION after the fact cannot hide a target that teleports. The basis
+	   is smoothed here instead, so the formation swings around the owner
+	   instead of cutting to the new side.
+
+	2. HARD THRESHOLDS AT speed > 1.15. Crossing it flipped the basis from
+	   facing to velocity, the bob amplitude from 0.09 to 0.16 and the bob rate
+	   from 1.9 to 4.1 -- all on the same frame. Starting and stopping popped
+	   every time, and walking right at the threshold strobed. There is one
+	   continuous `gait` value now, 0 at rest to 1 at a walk, and everything
+	   that used to branch on speed reads it instead.
+
+	3. THE SPRING HAD NO VELOCITY. `pos:Lerp(target, alpha)` always decays
+	   toward the target and can never overshoot it, which is exactly what
+	   "stiff" looks like: no wind-up, no follow-through, a dead stop the
+	   instant the owner stops. This is a proper damped spring with its own
+	   velocity, a little under critical (zeta below 1), so a pet leans into a
+	   stop, drifts a hair past, and settles.
+
+	The bob also advances by GAIT rather than wall-clock, so a pet at rest
+	breathes slowly instead of bobbing at walking cadence, and the cadence
+	cannot visibly change frequency mid-step.
+
+	Framerate-independent throughout; snaps only after a big teleport gap.
 ]]
+--[[
+	The follow's tuning and its two bits of maths, in ONE table.
+
+	One top-level local rather than seven, deliberately: this file sits inside
+	Luau's 200-top-level-local ceiling and a tuning block is the last thing that
+	should spend seven of them.
+]]
+local PF = {
+	-- Seconds for the smoothed values to cover most of the way to a new reading.
+	-- The basis is the slowest on purpose: its jumps are the ones that read worst.
+	DIR_TAU = 0.18,
+	SPEED_TAU = 0.12,
+	ROLL_TAU = 0.12,
+	-- Speeds between these two blend rest into walk. Everything that used to
+	-- test `speed > 1.15` reads the blend instead.
+	GAIT_LO = 0.8,
+	GAIT_HI = 3.0,
+	-- Spring: base rate, how much being left behind stiffens it, and the
+	-- damping. zeta below 1 is the follow-through; at 1 it brakes dead.
+	SPRING_HZ = 3.6,
+	SPRING_HZ_CATCHUP = 2.6,
+	SPRING_ZETA = 0.86,
+}
+
+-- Framerate-independent smoothing factor for a given time constant.
+function PF.smooth(tau, dt)
+	return 1 - math.exp(-dt / math.max(1e-4, tau))
+end
+
+-- 0 below lo, 1 above hi, eased in between. No corners, so nothing pops as a
+-- value crosses it.
+function PF.gait(x, lo, hi)
+	local t = math.clamp((x - lo) / math.max(1e-4, hi - lo), 0, 1)
+	return t * t * (3 - 2 * t)
+end
+
 function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
 	if not (pet and pet.Parent and root) then
 		return
@@ -8618,67 +8684,122 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
 	now = tonumber(now) or os.clock()
 	ClientFns._petFollowState = ClientFns._petFollowState or {}
 	local state = ClientFns._petFollowState[pet]
+	local look0 = root.CFrame.LookVector
+	local flat0 = Vector3.new(look0.X, 0, look0.Z)
+	flat0 = (flat0.Magnitude > 0.05) and flat0.Unit or Vector3.new(0, 0, -1)
 	if not state then
 		local pivot = pet:GetPivot()
 		local _, yaw0, _ = pivot:ToEulerAnglesYXZ()
 		state = {
 			pos = pivot.Position,
+			-- The spring's own velocity. Without this there is no follow-through.
+			vel = Vector3.zero,
 			yaw = yaw0,
+			-- Smoothed basis and speed, so neither can step.
+			dir = flat0,
+			speed = 0,
+			-- Advanced by gait, not by the clock.
 			bobPhase = (tonumber(slotIndex) or 1) * 1.7,
-			prevPos = pivot.Position,
+			roll = 0,
 		}
 		ClientFns._petFollowState[pet] = state
 	end
 
 	local vel = root.AssemblyLinearVelocity
 	local flatVel = Vector3.new(vel.X, 0, vel.Z)
-	local speed = flatVel.Magnitude
-	local look = root.CFrame.LookVector
-	local flatLook = Vector3.new(look.X, 0, look.Z)
-	if flatLook.Magnitude > 0.05 then
-		flatLook = flatLook.Unit
-	else
-		flatLook = Vector3.new(0, 0, -1)
+	local rawSpeed = flatVel.Magnitude
+
+	-- Smoothed speed drives every threshold, so a jittery velocity reading
+	-- cannot make the formation twitch.
+	state.speed += (rawSpeed - state.speed) * PF.smooth(PF.SPEED_TAU, dt)
+	local gait = PF.gait(state.speed, PF.GAIT_LO, PF.GAIT_HI)
+
+	--[[
+		The basis, eased. Where the owner is moving when they are moving, where
+		they are facing when they are not, blended by the same gait -- so
+		standing still and turning on the spot swings the formation around
+		rather than snapping it to a new side.
+	]]
+	local moveDir = (rawSpeed > 0.05) and flatVel.Unit or flat0
+	local wantDir = flat0:Lerp(moveDir, gait)
+	if wantDir.Magnitude > 0.05 then
+		wantDir = wantDir.Unit
+		state.dir = state.dir:Lerp(wantDir, PF.smooth(PF.DIR_TAU, dt))
+		if state.dir.Magnitude > 0.05 then
+			state.dir = state.dir.Unit
+		else
+			state.dir = wantDir
+		end
 	end
-	local moveDir = (speed > 1.15) and flatVel.Unit or flatLook
-	local right = Vector3.new(-moveDir.Z, 0, moveDir.X)
+	local dir = state.dir
+	local right = Vector3.new(-dir.Z, 0, dir.X)
 
 	local slot = tonumber(slotIndex) or 1
 	local lateral = (slot - 2) * 2.15
 	local back = 3.15 + math.abs(slot - 2) * 0.18
-	-- Trail farther when sprinting so they don't glue to your heels.
-	local trail = math.clamp(speed / 16, 0, 1.35)
-	local target = root.Position - moveDir * (back + trail) + right * lateral
+	-- Trail farther when sprinting so they don't glue to your heels. Off the
+	-- smoothed speed, so the spacing opens out instead of jumping.
+	local trail = math.clamp(state.speed / 16, 0, 1.35)
+	local target = root.Position - dir * (back + trail) + right * lateral
 	target = Vector3.new(target.X, root.Position.Y + 0.04, target.Z)
 
 	local delta = target - state.pos
 	local dist = delta.Magnitude
 	if dist > 22 then
+		-- A teleport, not a walk. Nothing to animate through.
 		state.pos = target
-		state.prevPos = target
+		state.vel = Vector3.zero
 	else
-		-- Soft spring; catch up harder when left behind.
-		local hz = 6.2 + math.clamp(dist / 5, 0, 4)
-		local alpha = 1 - math.exp(-hz * dt)
-		state.pos = state.pos:Lerp(target, alpha)
+		--[[
+			Damped spring, semi-implicit: accelerate toward the target, damp the
+			velocity, integrate. Stiffens with distance the way the old lerp did,
+			so a pet left behind still hurries rather than drifting in forever.
+		]]
+		local hz = PF.SPRING_HZ + math.clamp(dist / 5, 0, 1) * PF.SPRING_HZ_CATCHUP
+		local omega = 2 * math.pi * hz
+		local accel = delta * (omega * omega) - state.vel * (2 * PF.SPRING_ZETA * omega)
+		state.vel += accel * dt
+		state.pos += state.vel * dt
 	end
 
-	local travel = Vector3.new(state.pos.X - state.prevPos.X, 0, state.pos.Z - state.prevPos.Z)
-	state.prevPos = state.pos
-	local face = moveDir
-	if travel.Magnitude > 0.012 then
+	--[[
+		Face where you are GOING, which for a pet on a spring is its own
+		velocity -- that is what makes a pet cut a corner nose-first instead of
+		sliding through it sideways. Below walking pace its own velocity is
+		noise, so it falls back to the formation basis.
+	]]
+	local travel = Vector3.new(state.vel.X, 0, state.vel.Z)
+	local face = dir
+	if travel.Magnitude > 0.35 then
 		face = travel.Unit
 	end
 	local wantYaw = math.atan2(-face.X, -face.Z)
-	local yawBlend = 1 - math.exp(-9 * dt)
 	local dy = (wantYaw - state.yaw + math.pi) % (math.pi * 2) - math.pi
-	state.yaw += dy * yawBlend
+	-- Turn faster when moving: a trotting pet whips its head round a corner, a
+	-- standing one drifts to face you.
+	local yawHz = 5.0 + gait * 6.0
+	state.yaw += dy * (1 - math.exp(-yawHz * dt))
 
-	local bobAmp = 0.09 + ((speed > 1.15) and 0.07 or 0)
-	local bobHz = 1.9 + ((speed > 1.15) and 2.2 or 0)
-	local bob = math.sin(now * bobHz + state.bobPhase) * bobAmp
-	local lean = math.clamp(speed / 24, 0, 0.11)
-	pet:PivotTo(CFrame.new(state.pos + Vector3.new(0, bob, 0)) * CFrame.Angles(lean, state.yaw, 0))
+	--[[
+		Bob by DISTANCE, not by the clock. A pet standing still breathes at the
+		idle rate; a moving one steps at a cadence that rises with gait. Because
+		the phase is integrated rather than read off `now`, the rate can change
+		without the waveform jumping, which is what the old
+		`sin(now * bobHz + phase)` did every time bobHz flipped.
+	]]
+	local bobRate = 1.9 + gait * 2.2
+	state.bobPhase += bobRate * dt * math.pi * 2
+	local bobAmp = 0.09 + gait * 0.07
+	local bob = math.sin(state.bobPhase) * bobAmp
+
+	-- Bank into the turn, eased. Reads as weight; a pet that changes heading
+	-- with its body dead level is most of what "stiff" means.
+	local wantRoll = math.clamp(-dy / math.max(1e-4, dt) * 0.012, -0.22, 0.22) * gait
+	state.roll += (wantRoll - state.roll) * PF.smooth(PF.ROLL_TAU, dt)
+
+	local lean = math.clamp(state.speed / 24, 0, 0.11)
+	pet:PivotTo(CFrame.new(state.pos + Vector3.new(0, bob, 0))
+		* CFrame.Angles(lean, state.yaw, state.roll))
 end
 
 function ClientFns.updatePets()
