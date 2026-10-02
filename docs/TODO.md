@@ -292,6 +292,17 @@ hats, faces, tools, runes, charms, and anything recyclable added later):
 
 ### The Forge (was the Blacksmith)
 
+- [x] **CRAFT / UPGRADE tabs** in the Forge detail pane. The first cut inferred
+      the mode from ownership, so craft recipes silently did not exist for any
+      tool already owned and the panel looked like it had no crafting at all.
+      The mode now defaults by ownership but is always switchable.
+- [x] **Notification badges sit on the top-right corner**, half outside the
+      plate, instead of inset two pixels inside it where they read as part of
+      the button's own label. `mkBadge` clears `ClipDescendants` on the plate,
+      since a badge hanging outside is otherwise cropped.
+- [ ] **The Forge needs its own front.** It currently mounts inside the shop's
+      Upgrade tab, which is the real reason crafting was hard to find. Promote
+      it to its own screen with CRAFT / UPGRADE / COIN SHOP tabs.
 - [x] **Forge shell built** — `MineForge.luau`. Vertical rail of **every tool in
       the game** down the left, detail pane on the right: CRAFT when unowned,
       UPGRADE when owned. Mounted in place of `MineBenchView` on the shop's
@@ -442,7 +453,9 @@ collide with blast and zap, which is the guardrail asked for:
 - [ ] Tool generator LOOKS table needs the live roster.
 - [ ] Export `OreShapes` and other place-only instances to `.rbxm`.
 - [ ] Delete the duplicate Event Horizon pet module (34 KB that never loads).
-- [ ] Coin shop — user was contemplating removing it. Undecided.
+- [ ] **Coin shop — move it into the Forge.** It drops to the second line, and
+      the Forge gets a tab that opens it. Still flagged for possible removal
+      altogether, so do not polish it before that call is made.
 - [ ] Event Horizon `minRebirth` is 0 while its surface is 1.30e9 HP.
 
 ## 6.5 Deferred, with a reason
