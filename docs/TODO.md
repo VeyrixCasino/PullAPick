@@ -127,7 +127,7 @@ Checked directly; cite these rather than re-deriving.
 | **The roster is 82 ores. FINAL.** Event Horizon ores may be added later. `MineConfig.ORES` now holds the real 82 rows, merged from the `ore-roster-82` branch, with `ORE_MIGRATION_V2` carrying old saves. Each row carries its own `band`, `home` and `yield`. | User, 2026-10-02 |
 | ~~121 ores~~ (superseded, kept to explain the 121s still in the repo) | `MineConfig.ORES`, `MineConfig.luau:2051-2173`. Also stated in `live-config.md:68`, `decisions.md:17,26`, and three places in this file's Done list. Tier 1 `stone` → tier 121 `oganesson`. |
 | Ore packs exist as `<id>_ore_pack` | `MineConfig.luau:2511` (`o.packId = o.id .. "_ore_pack"`), `MineZonePacks.luau:244,251` |
-| Breaking power does **not** exist | 0 files in `src/` match breaking power / block strength. Net-new system. |
+| Breaking power config EXISTS; the gate does not | `MineConfig.ORE_REACH = 15`, `toolBreakingPower`, `canBreakOre`, `oreReachCap`. The swing gate is unwired because ore tools cannot be equipped — see below. |
 | The F–SSS ladder already exists | `MineTemper.GRADE_ORDER = {F,D,C,B,A,S,SS,SSS}`, `MineTemper.luau:22` |
 | Temper rarity weights (out of 10,000) | `MineTemper.luau:31` — F 5000, D 2763, C 1250, B 675, A 250, S 50, SS 10, SSS 2. So F 50%, D 27.63%, C 12.5%, B 6.75%, A 2.5%, S 0.5%, SS 0.1%, SSS 0.02%. **Skins inherit exactly this.** |
 | Temper magnitude multipliers | `MineTemper.RARITY_MULT` F 0.45 → SSS 7.50; `PROC_RARITY_MULT` F 0.30 → SSS 1.30 |
@@ -246,19 +246,36 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 
 ## 6.1 P0 — launch blockers
 
-### Breaking power (net-new)
+### Breaking power
 
-Inputs are settled. The numeric curves still need sign-off.
+**The rule is locked (§0.1).** Ore tier = breaking power, +15 reach, never
+upgradeable. Config is shipped; the gate is blocked on an equip path.
 
 - [ ] **Tool breaking power is strictly a function of the ore the tool is made
       of.** Nothing else feeds it — not level, not damage, not skins, not runes.
       **Not upgradeable.** The only way up is crafting from a better ore.
 - [ ] **Block strength is a function of layer and zone.** Those two inputs only.
+      The curve is the one number still unspecified.
+- [x] **Big-number system shipped** — `MineBigNum` (server-only), base 30, three
+      digits a step, always floors, science form `9.999e^99`, capped at four
+      significant digits. Wheel verified distinct across 2000 steps.
+- [ ] Wire `MineBigNum` into what the server sends, so the client stops
+      formatting its own numbers. Nothing calls it yet.
 - [x] **Ore reach rule, from the owner: +15 tiers.** A tool forged from ore tier T can
       mine any ore up to tier **T + 15**. Not "looser" in a vague sense — an
       exact, flat reach. Over an 82-ore roster that is ~6 crafting steps from
       the first tool to the last ore.
-- [ ] Implement the +15 reach check server-side, beside the layer+zone gate.
+- [x] **Config shipped** — `MineConfig.ORE_REACH = 15`, `toolBreakingPower(tool)`,
+      `canBreakOre(bp, oreTier)`, `oreReachCap(bp)`.
+- [ ] **BLOCKED — ore tools cannot be equipped.** Verified: `equippedTool()`
+      (`MineServer:1556`) has no ore-tool branch and nothing anywhere equips a
+      `p.oreTools` row. No equipped ore tool means no ore tier to gate on. Order:
+      1. Give `equippedTool()` an ore-tool branch, and the Forge an EQUIP action.
+      2. Stamp the ore tier on the Tool instance. **NOT** the existing `Tier`
+         attribute — that is `lookTier`, a cosmetic ladder value clamped to the
+         shop family's length (`MineServer:4227`). Gating on it is silently wrong.
+      3. Gate `swingBlock` on `C.canBreakOre(bp, part:GetAttribute("OreTier"))`
+         plus the red hotbar text.
 - [ ] Server-authoritative gate: server rejects any dig where
       `tool.breakingPower < block.strength`. Client may predict; server decides.
 - [ ] Red hotbar text: "Your tool is too weak to damage this block." Throttled.
