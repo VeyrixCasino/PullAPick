@@ -82,7 +82,14 @@ local function rarityColor(rar)
 	return (Cards.RARITY_COLOR and Cards.RARITY_COLOR[rar]) or nil
 end
 
+--[[
+	The Forge leads. Crafting a tool out of ore is the main line of progression,
+	so it is the tab the shop opens on; the coin-shop families that follow are
+	the second line. The coin shop may be removed outright later -- until that
+	call is made it stays reachable, just no longer first.
+]]
 local TABS = {
+	{ id = "bench", label = "Forge", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
 	{ id = "pickaxe", label = "Pickaxes", blurb = "Aim, swing, break. One block at a time." },
 	{ id = "drill", label = "Drills", blurb = "Hold to mine. Wide clears area, narrow melts rock." },
 	{ id = "explosive", label = "Explosives", blurb = "Throw and clear a pattern. Extra bombs split the power." },
@@ -96,7 +103,6 @@ local TABS = {
 		forever tools could not be reached from the shop at all.
 	]]
 	{ id = "secrets", label = "Secrets", blurb = "Forever tools. Pulled from chests, never sold on a shelf." },
-	{ id = "bench", label = "Upgrade", blurb = "Level the ore tools you found. Paid in their own ore, plus stardust." },
 }
 
 --------------------------------------------------------------------------------
@@ -209,7 +215,8 @@ end
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
 	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oreTools = {}, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
-	local activeTab = "pickaxe"
+	-- Opens on the Forge, not on a shelf of coin-bought picks.
+	local activeTab = "bench"
 	local index = 1
 	state.tempers, state.toolTempers = {}, {}
 	local view = {}
@@ -525,6 +532,10 @@ function MineShopView.mount(parent, opts)
 					coins = state.coins or 0,
 					gems = state.gems or 0,
 				}
+			end,
+			-- Out of the Forge and down to the second line.
+			onCoinShop = function()
+				view.setTab("pickaxe")
 			end,
 			onCraft = function(familyId, typeId, oreId)
 				if opts.onCraftOreTool then
@@ -1826,6 +1837,15 @@ function MineShopView.mount(parent, opts)
 			you already own, so leaving the pedestal running behind it would show
 			a tool that has nothing to do with the rows.
 		]]
+		--[[
+			The Forge is the tab the shop opens on, so a missing panel is no
+			longer a tab you simply do not click -- it would be a blank screen
+			on open for every player. If the module failed to require, fall back
+			to the first coin-shop family instead.
+		]]
+		if activeTab == "bench" and not benchPanel then
+			activeTab = "pickaxe"
+		end
 		if activeTab == "bench" then
 			creditsStage.Visible = false
 			card.Visible = false

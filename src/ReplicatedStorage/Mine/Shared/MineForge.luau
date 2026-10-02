@@ -186,8 +186,34 @@ function MineForge.mount(parent, opts)
 
 	label(root, "FORGE", 13, MUTED, UDim2.fromOffset(14, 10),
 		UDim2.new(0, RAIL_W, 0, 16), FONT)
+
+	--[[
+		The Forge is the front line; the coin shop is a second line reached from
+		here. The button only exists when the host passes a way to get there, so
+		this file never has to know the shop exists -- requiring MineShopView
+		from inside a panel that MineShopView mounts would be a cycle.
+	]]
+	local shopBtnW = opts.onCoinShop and 118 or 0
 	local wallet = label(root, "", 12, MUTED, UDim2.new(0, RAIL_W + 24, 0, 10),
-		UDim2.new(1, -RAIL_W - 38, 0, 16), FONT_M, Enum.TextXAlignment.Right)
+		UDim2.new(1, -RAIL_W - 38 - shopBtnW, 0, 16), FONT_M, Enum.TextXAlignment.Right)
+
+	if opts.onCoinShop then
+		local shopBtn = mk("TextButton", {
+			BackgroundColor3 = BG3,
+			AutoButtonColor = true,
+			Text = "COIN SHOP",
+			Font = FONT,
+			TextSize = 12,
+			TextColor3 = TEXT,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -14, 0, 6),
+			Size = UDim2.fromOffset(110, 24),
+		}, root)
+		round(shopBtn, 6)
+		shopBtn.MouseButton1Click:Connect(function()
+			opts.onCoinShop()
+		end)
+	end
 
 	-- Left rail: every tool in the game, grouped by family.
 	local rail = mk("ScrollingFrame", {

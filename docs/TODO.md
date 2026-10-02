@@ -300,9 +300,15 @@ hats, faces, tools, runes, charms, and anything recyclable added later):
       plate, instead of inset two pixels inside it where they read as part of
       the button's own label. `mkBadge` clears `ClipDescendants` on the plate,
       since a badge hanging outside is otherwise cropped.
-- [ ] **The Forge needs its own front.** It currently mounts inside the shop's
-      Upgrade tab, which is the real reason crafting was hard to find. Promote
-      it to its own screen with CRAFT / UPGRADE / COIN SHOP tabs.
+- [x] **The Forge is the front line.** It is first in the tab strip, relabelled
+      from "Upgrade" to "Forge", and is the tab the shop now opens on. The
+      coin-shop families are the second line behind it, and a COIN SHOP button
+      in the Forge header routes down to them. The button is only drawn when
+      the host supplies `onCoinShop`, so `MineForge` never requires
+      `MineShopView` — that would be a cycle, since ShopView mounts the Forge.
+      `paint()` falls back to the first coin-shop family if the Forge module
+      ever fails to require, because a missing panel on the default tab would
+      otherwise be a blank shop on open for every player.
 - [x] **Forge shell built** — `MineForge.luau`. Vertical rail of **every tool in
       the game** down the left, detail pane on the right: CRAFT when unowned,
       UPGRADE when owned. Mounted in place of `MineBenchView` on the shop's
@@ -453,9 +459,9 @@ collide with blast and zap, which is the guardrail asked for:
 - [ ] Tool generator LOOKS table needs the live roster.
 - [ ] Export `OreShapes` and other place-only instances to `.rbxm`.
 - [ ] Delete the duplicate Event Horizon pet module (34 KB that never loads).
-- [ ] **Coin shop — move it into the Forge.** It drops to the second line, and
-      the Forge gets a tab that opens it. Still flagged for possible removal
-      altogether, so do not polish it before that call is made.
+- [x] **Coin shop moved to the second line**, reachable from the Forge header.
+- [ ] **Decide whether the coin shop survives at all.** Kept and working for
+      now; flagged for possible removal. Do not polish it before that call.
 - [ ] Event Horizon `minRebirth` is 0 while its surface is 1.30e9 HP.
 
 ## 6.5 Deferred, with a reason
