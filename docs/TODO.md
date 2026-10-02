@@ -532,19 +532,35 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
 - [ ] Plus an extra amount scaled to the item's value — "decent but not game
       breaking". Needs a curve; propose and get sign-off before shipping.
 
-**Bulk recycle UI** — in *every* inventory menu that houses recyclables (pets,
-hats, faces, tools, runes, charms, and anything recyclable added later):
+**Bulk recycle UI** — the flow is built; it is wired into the EQUIPMENT menu so far.
 
-- [ ] A **Select** button that puts the menu into selection mode.
-- [ ] **Bulk select** — go through and tick multiple items.
-      **No select-all.** Every item in a recycle batch is ticked deliberately.
-- [ ] A **Recycle** button that opens a **review screen listing everything about to
-      be recycled**, with the total return.
-- [ ] **Hold 3 seconds to confirm.** Not a click — a hold, so a bulk recycle can
-      never happen by accident.
-- [ ] Server re-validates the whole selection on confirm: every uid is owned,
-      unlocked and recyclable. The client's list is a request, never the authority.
-- [ ] One transaction — all items recycle or none do. No partial payout.
+- [x] A **Select** button that puts the menu into selection mode.
+- [x] **Bulk select** — tick multiple. **No select-all**, as specified.
+- [x] A **Recycle** button that opens a **review screen listing everything about to
+      be recycled**, each item's payout and the total — plus anything that cannot
+      go, with the reason. The hold used to sit on the SELECT bar and fire
+      straight into the scrap, so a player held three seconds over a list they had
+      never seen and a total they had never been quoted.
+- [x] **Hold 3 seconds to confirm**, on the review screen where there is finally
+      something to confirm against. Disabled outright when anything is blocked —
+      holding three seconds for a guaranteed refusal is worse than not offering it.
+- [x] Server re-validates on confirm. `scrapPlan` is read-only and builds both the
+      review and the commit, so the two cannot disagree. **Socketed gear is now
+      blocked**, which the old path did not do: a rune in a piece is permanent, so
+      scrapping the piece strands it.
+- [x] **One transaction — all or none.** The old path scrapped what it could and
+      skipped the rest silently; for a *reviewed* batch that is a broken promise.
+- [x] **Fixed a real bug on the way:** `packScrapDustFor` was declared BELOW
+      `scrapMany`, and a `local function` is not in scope inside a function written
+      earlier in the file — the name compiled as a global read, so the pack arm of
+      bulk scrapping called a nil value and **threw on every use**. Confirmed with
+      a minimal repro under the interpreter.
+- [ ] **Extend selection to the other menus** — pets/cards, runes and packs. The
+      server already handles all four kinds (`scrapPlan` covers card/rune/gear/
+      pack); only the EQUIPMENT tab has the Select UI wired so far.
+- [ ] Recycle returns **50% in ore and stardust** plus a value-scaled extra. Still
+      needs the curve and sign-off; current payouts are the pre-existing scrap
+      rates, not this.
 
 ### Ore cases and skins
 
@@ -875,6 +891,14 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
       Tempers run +45% (F) to **+750%** (SSS) on a primary, so the two are in the
       same league — and the contrast is right: charms progress with depth, skins
       are the chase (SSS is 0.02%). No magnitude change needed, so none made.
+- [x] **`tools/verify/charms.js` is a behavioural check, not another syntax one.**
+      It RUNS the real generator against the real roster under a small Roblox stub
+      and asserts 21 properties — one charm per ore, every shape used, 48 (shape,
+      stat) families, no penalty at or past −100%, no banned stat, conditionals
+      paying nothing while unmet, and a ramp that is cold at zero stacks, scales
+      with them, expires, and cannot be faked forward with a future timestamp.
+      Worth building because the alternative was re-deriving the expected roster in
+      Python, which only proves Python agrees with my intent.
 - [x] **Switched to a real Luau parser for validation.** `tools/verify/luau-balance.js`
       is a brace-counting heuristic; `luau-analyze` actually parses. Worth it for
       surgery this structural — all 206 files verified, and one of my own
