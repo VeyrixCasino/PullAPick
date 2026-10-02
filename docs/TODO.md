@@ -16,10 +16,10 @@ Last updated: 2026-10-02.
 
 **0.12 — FOSSILS DO NOT EXIST.** Owner, 2026-10-02. No block spawns one, no pack
 drops one, the bench is gone from the plaza. Anything a save held was cashed out
-to gems on load at the game's own price. `MineFossils` / `MineFossilEconomy` stay
-on disk, dormant, only because that payout needs their prices to be exact —
-delete them once the migration has run everywhere. `fossilFind` keeps its KEY (it
-was already repurposed to "Ore Finder"); do not rename it.
+to gems on load at the game's own price. Both modules are **deleted** (owner,
+2026-10-02); the payout they priced is frozen into `FossilPay` in MineServer, ~35
+lines that need no module. `fossilFind` keeps its KEY (it was already repurposed
+to "Ore Finder"); do not rename it.
 
 **0.13 — CHARMS AND SKINS ARE THE BUILD.** Owner, 2026-10-02. The two main parts,
 and everything else (pets, hats, faces, runes) is support. Later charms are
@@ -312,9 +312,6 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 - [ ] **Zone and rune gem prices.** Flat tables that the ore value curve will
   outrun. Same fix the pouch rungs got — price as a share of income at the depth
   they gate — but the pacing is an owner call.
-- [ ] **Delete `MineFossils` / `MineFossilEconomy`** once the retirement migration
-  has run for everyone. Dormant, and kept only so the payout uses exact prices.
-  Needs a call on how long to leave the window open.
 - [ ] **The legacy 31 charms.** Zone grant + gem pack + limited. §0.5 makes charms
   an ore drop; these predate it and still drop. Retire them, or keep both sources?
 - [ ] **VIP lost a perk.** It advertised an extra pet seat in three places and can
@@ -926,6 +923,28 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 ---
 
 # 8. Done
+
+**The fossil modules deleted (2026-10-02):**
+
+- [x] **`MineFossils` and `MineFossilEconomy` are gone from disk.** Owner call: the
+      migration window closes now. They had been kept dormant for one reason — the
+      retirement payout had to use the game's own prices — so the payout came first:
+      it was a **formula, not authored data** (`gemMin = zi x band`, `gemMax` a
+      multiple of it, graded by layer and quality), plus 6 legacy ids that predate
+      the `pair_<name>_<band>_<slot>` scheme. That is ~35 lines, now frozen into
+      `FossilPay` in MineServer, and `retireFossils` requires nothing.
+- [x] **Every dependent stripped**, not stubbed: the legacy fossil PACK prices
+      through `FossilPay`, three client loot-card branches are gone, `fossilItem`
+      (57 lines) and its call site are out of `MineLootPacks` and `"fossil"` is no
+      longer an equipment kind, and the zone map lost its fossil section with
+      `fossilsForZone` / `ownsFossil`. No `require` of either module remains.
+- [x] **Fitting the payout back in cost a refactor.** Self-contained `retireFossils`
+      pushed MineServer to **205 top-level locals**, past Luau's hard 200 — eight
+      of them collapsed into the one `FossilPay` table, back to 198.
+- [x] **The one consequence, stated plainly:** `FossilPay` is the last fossil code
+      in the repo and is itself deletable later. Deleting it costs exactly one
+      thing — a player who has not logged in since retirement keeps their pieces as
+      dead state instead of gems.
 
 **Fossils retired + charms given shapes (2026-10-02):**
 

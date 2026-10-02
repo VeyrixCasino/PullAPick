@@ -20,7 +20,6 @@ local Packs = require(shared:WaitForChild("MinePackConfig"))
 local PetFactory = require(shared:WaitForChild("PetModelFactory"))
 -- The pack-open ceremony, ported from TCG Life. Cards do not just appear.
 local PackFX = require(shared:WaitForChild("MinePackFX"))
-local Fossils = require(shared:WaitForChild("MineFossils"))
 local GradeReveal = require(shared:WaitForChild("MineGradeReveal"))
 local Audio = require(shared:WaitForChild("MineAudio"))
 local net = RS:WaitForChild("Mine"):WaitForChild("Remotes"):WaitForChild("MineNet")
@@ -5447,9 +5446,6 @@ function ClientFns.paintLoot(parent, item, w)
 		image = Gear.image(item.gear)
 	elseif item.kind == "rune" and item.rune then
 		image = Icons.image(item.rune.stat)
-	elseif item.kind == "fossil" and item.fossil then
-		local recipe = Fossils.recipe(item.fossil.fossilId)
-		image = Icons.image(recipe and recipe.family)
 	elseif item.kind == "gems" then
 		image = Icons.image("gems")
 	elseif item.kind == "coins" then
@@ -5599,9 +5595,6 @@ function ClientFns.paintLoot(parent, item, w)
 			.. "  " .. tostring(item.gear.rarity or "")
 	elseif item.kind == "rune" and item.rune then
 		pillText = tostring(item.rune.kind or "") .. "  T" .. tostring(item.rune.tier or 1)
-	elseif item.kind == "fossil" and item.fossil then
-		local recipe = Fossils.recipe(item.fossil.fossilId)
-		pillText = (recipe and recipe.family or "piece") .. "  piece"
 	elseif isCurrency then
 		pillText = fam.tag
 	elseif item.kind == "tool" then
@@ -5630,8 +5623,6 @@ function ClientFns.paintLoot(parent, item, w)
 			or socketText
 	elseif item.kind == "rune" and item.rune then
 		right = string.format("+%.2f%%", (item.rune.pct or 0) * 100)
-	elseif item.kind == "fossil" and item.fossil then
-		right = "layer " .. tostring(item.fossil.layer or 1)
 	elseif item.kind == "tool" and tonumber(item.power) then
 		right = "power " .. ClientFns.commas(math.floor(tonumber(item.power)))
 	end

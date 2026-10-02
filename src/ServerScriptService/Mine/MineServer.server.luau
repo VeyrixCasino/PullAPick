@@ -28,7 +28,6 @@ local Patterns = require(script.Parent:WaitForChild("MinePatterns"))
 local MineAntiGear = require(script.Parent:WaitForChild("MineAntiGear"))
 local MineBadges = require(script.Parent:WaitForChild("MineBadges"))
 local Tools = require(shared.MineTools)
-local Fossils = require(shared:WaitForChild("MineFossils"))
 local ChestModel = require(shared:WaitForChild("MineChestModel"))
 local ToolModels = require(game.ReplicatedStorage:WaitForChild("ToolModelFactory"))
 local Stats = require(shared.MineStats)
@@ -287,23 +286,105 @@ local function isInstanceHex16(s)
 end
 
 --[[
-	FOSSILS ARE RETIRED, AND THIS IS WHERE A SAVE FINDS OUT.
+	FOSSILS ARE GONE, AND THIS IS THE LAST OF THEM.
 
-	This was reconcileFossilIds, which healed fossil ids on load. There is nothing
-	left to heal: no fossil block spawns, no fossil pack drops, the bench is gone.
-	What is left is the problem of a player who banked hundreds of pieces and
-	assembled tools that survived rebirth, and who must not simply lose them.
+	MineFossils and MineFossilEconomy are deleted. What is left is the one thing
+	that could not be: a save can still be holding pieces and assembled tools,
+	and those have to be paid for rather than silently dropped.
 
-	So they are CASHED OUT, once, at the game's own price -- MineFossils.sellGems
-	over the recipe and the pieces' own grade, which is exactly what the bench's
-	sell button would have paid. Not a number invented here.
+	THE PRICE IS FROZEN HERE, NOT LOOKED UP. It is the exact formula MineFossils
+	used, copied rather than approximated:
 
-	An assembled tool is paid as the full set of pieces it consumed
-	(MineFossilEconomy.needed), because that is what it cost to make. It is the
-	one place this has to choose, and paying the build cost is the choice that
-	cannot leave anyone worse off than if they had never assembled it.
+	    zi        the pair's zone index: grove 2, tide 4, scarlet 6,
+	              fracture 8, myth 10
+	    per band  shallow x3, mid x12, deep x40
+	    gemMin    = max(1, floor(zi * bandMult))
+	    gemMax    = max(gemMin + 1, floor(gemMin * (deep and 8 or 5)))
+	    value     = floor(gemMin + (gemMax - gemMin) * grade + 0.5)
+	    grade     = mean over the pieces of
+	                clamp01(layer / 2500) * 0.65 + quality * 0.35
 
-	Returns the gems paid so the caller can tell the player once. Idempotent: it
+	A recipe id is `pair_<name>_<band>_<slot>`, so the pair and band read
+	straight off it. Six ids predate that scheme (LEGACY_IDS in the old module,
+	all in pair_grove) and are listed below, because parsing them would give the
+	wrong pair and quietly underpay.
+
+	THIS WHOLE BLOCK IS DELETABLE once enough players have logged in to drain
+	the old saves. Nothing else references it, and deleting it costs exactly one
+	thing: anyone who has not logged in since the retirement keeps their pieces
+	as dead data instead of gems.
+]]
+--[[
+	Everything the payout needs, in ONE top-level local.
+
+	Eight separate ones put this file at 205 against Luau's hard ceiling of 200,
+	and a migration that will be deleted is the last thing that should spend
+	five of the four remaining slots.
+]]
+local FossilPay = {
+	-- The pair's zone index.
+	ZI = { pair_grove = 2, pair_tide = 4, pair_scarlet = 6, pair_fracture = 8, pair_myth = 10 },
+	BAND = { shallow = 3, mid = 12, deep = 40 },
+	-- The six ids minted before the pair_<name>_<band>_<slot> scheme. All grove.
+	LEGACY = {
+		seismic_reaver = { "pair_grove", "shallow" },
+		wraithorebit = { "pair_grove", "shallow" },
+		spikeslicer = { "pair_grove", "mid" },
+		tallurn = { "pair_grove", "mid" },
+		yardspiral = { "pair_grove", "deep" },
+		archcask = { "pair_grove", "deep" },
+	},
+	-- Pieces a full set took (MineFossilEconomy.PIECES_NEEDED).
+	NEEDED = 100,
+	MAX_LAYER = 2500,
+}
+
+-- (pair, band) for a recipe id, or nil if it is not one we can price.
+function FossilPay.where(recipeId)
+	local id = tostring(recipeId or "")
+	local legacy = FossilPay.LEGACY[id]
+	if legacy then
+		return legacy[1], legacy[2]
+	end
+	local pair, band = string.match(id, "^(pair_%a+)_(%a+)_")
+	if pair and FossilPay.ZI[pair] and FossilPay.BAND[band] then
+		return pair, band
+	end
+	return nil
+end
+
+-- Gems one piece of this recipe is worth at this grade. The frozen formula.
+function FossilPay.gems(recipeId, grade)
+	local pair, band = FossilPay.where(recipeId)
+	if not pair then
+		return 0
+	end
+	local gemMin = math.max(1, math.floor(FossilPay.ZI[pair] * FossilPay.BAND[band]))
+	local gemMax = math.max(gemMin + 1, math.floor(gemMin * (band == "deep" and 8 or 5)))
+	local g = math.clamp(tonumber(grade) or 0, 0, 1)
+	return math.floor(gemMin + (gemMax - gemMin) * g + 0.5)
+end
+
+-- Mean quality of a set of pieces, 0..1. Depth counts for most of it.
+function FossilPay.grade(pieces)
+	if type(pieces) ~= "table" or #pieces == 0 then
+		return 0
+	end
+	local sum = 0
+	for _, piece in ipairs(pieces) do
+		local layer = math.max(1, math.floor(tonumber(piece.layer) or 1))
+		local depth = math.clamp(layer / FossilPay.MAX_LAYER, 0, 1)
+		local quality = piece.qualityRoll or piece.quality
+		quality = (quality == nil) and 0.5 or math.clamp(tonumber(quality) or 0.5, 0, 1)
+		sum += depth * 0.65 + quality * 0.35
+	end
+	return math.clamp(sum / #pieces, 0, 1)
+end
+
+--[[
+	Cash out whatever the retired fossil system left on this profile, once.
+
+	Returns the gems paid so the caller can tell the player. Idempotent: it
 	clears the fields, so a second load finds nothing and pays nothing.
 ]]
 local function retireFossils(p)
@@ -323,32 +404,15 @@ local function retireFossils(p)
 		end
 	end
 	for recipeId, pieces in pairs(byRecipe) do
-		local recipe = Fossils.recipe and Fossils.recipe(recipeId)
-		if recipe then
-			local grade = (Fossils.grade and Fossils.grade(pieces)) or 0
-			local per = (Fossils.sellGems and Fossils.sellGems(recipe, grade)) or 0
-			gems += math.max(0, math.floor(per)) * #pieces
-		end
+		gems += FossilPay.gems(recipeId, FossilPay.grade(pieces)) * #pieces
 	end
 
-	-- Assembled tools, at what they cost to build.
-	local needed = 1
-	do
-		local okE, Econ = pcall(function()
-			return require(shared:WaitForChild("MineFossilEconomy"))
-		end)
-		if okE and Econ and Econ.needed then
-			needed = math.max(1, math.floor(Econ.needed() or 1))
-		end
-	end
+	-- Assembled tools, at what they cost to build: a full set at full grade.
+	-- That is the one judgement call here, and the one that cannot leave anyone
+	-- worse off than if they had never assembled the thing.
 	for key, ft in pairs(p.fossilTools or {}) do
 		if type(ft) == "table" then
-			local recipe = Fossils.recipe and Fossils.recipe(ft.fossilId or key)
-			if recipe then
-				-- Full grade: an assembled tool was the good outcome.
-				local per = (Fossils.sellGems and Fossils.sellGems(recipe, 1)) or 0
-				gems += math.max(0, math.floor(per)) * needed
-			end
+			gems += FossilPay.gems(ft.fossilId or key, 1) * FossilPay.NEEDED
 		end
 	end
 
@@ -6756,17 +6820,18 @@ local function openPack(plr, setId, chestId, pk, collect)
 					gets what the fossil bench would have paid them for the same
 					pack.
 				]]
-				local Econ = require(shared:WaitForChild("MineFossilEconomy"))
-				local pulls = zdef.pulls or Econ.PACK_PULLS or 3
-				local gems = 0
-				for _, recipe in ipairs(Fossils.RECIPES or {}) do
-					gems += (Fossils.sellGems and Fossils.sellGems(recipe, 1)) or 0
-				end
-				-- Average over the pool, times the pieces the pack held.
-				local pool = math.max(1, #(Fossils.RECIPES or {}))
-				local per = math.max(1, math.floor(gems / pool))
-				local pieces = math.max(1, math.floor(Econ.piecesFor("Common") or 1))
-				gems = per * pieces * pulls
+				--[[
+					Priced off a MID fossil at full grade -- the frozen formula in
+					FossilPay, the same one the retirement payout uses. It used to
+					average MineFossils.RECIPES, which no longer exists.
+
+					A mid-band grove recipe is the middle of what these packs
+					actually contained, so this is the same answer the average
+					gave without needing the table back.
+				]]
+				local pulls = zdef.pulls or 3
+				local pieces = 3
+				local gems = FossilPay.gems("pair_tide_mid_pick", 1) * pieces * pulls
 				p.gems = (tonumber(p.gems) or 0) + gems
 				bumpStat(plr, p, "packs")
 				local loot = { {

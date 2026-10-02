@@ -26,7 +26,6 @@ local MineLootPacks = {}
 local Gear = require(script.Parent:WaitForChild("MineGear"))
 local ToolGrades = require(script.Parent:WaitForChild("MineToolGrades"))
 local Runes = require(script.Parent:WaitForChild("MineRunes"))
-local Fossils = require(script.Parent:WaitForChild("MineFossils"))
 local Stats = require(script.Parent:WaitForChild("MineStats"))
 
 MineLootPacks.LADDER = {
@@ -39,7 +38,9 @@ for i, id in ipairs(MineLootPacks.LADDER) do
 end
 
 function MineLootPacks.isLoot(kind)
-	return kind == "fossil" or kind == "rune" or kind == "gear"
+	-- "fossil" is gone with the fossil system; kept out of the list rather than
+	-- left in to match a kind nothing produces.
+	return kind == "rune" or kind == "gear"
 end
 
 --[[
@@ -164,62 +165,11 @@ end
 -- -------------------------------------------------------------- fossil ----
 
 --[[
-	Sixteen recipes over eight rungs, two apiece, in the order they are authored
-	-- which is unlock depth, so the ladder is already the difficulty curve.
-
-	A piece needs a `layer` because that is 65% of the grade a finished tool is
-	built from. Taking it from the recipe's own unlock depth (with jitter) means
-	a pack-dropped piece assembles into the same tool a mined one would, instead
-	of a floor-grade version of it. Without this every pack fossil would grade
-	near zero and the tools would come out at their minimum power.
+	A fossil loot item used to be minted here. Fossils are retired and both
+	fossil modules are deleted, so there is nothing to mint: the pack kinds that
+	produced one are gone, and a legacy fossil pack cashes out to gems on the
+	server instead of opening.
 ]]
-local FOSSIL_PER_RUNG = 2
-
-function MineLootPacks.fossilItem(rarityId, mintId, rng, packLayer)
-	rng = rng or Random.new()
-	local rank = MineLootPacks.RANK[rarityId] or 1
-	local list = Fossils.RECIPES or {}
-	local first = (rank - 1) * FOSSIL_PER_RUNG + 1
-	local last = math.min(#list, rank * FOSSIL_PER_RUNG)
-	if first > #list then
-		first, last = #list, #list
-	end
-	local recipe = list[rng:NextInteger(first, math.max(first, last))] or list[1]
-	local unlock = math.max(1, tonumber(recipe and recipe.unlock) or 1)
-	--[[
-		Depth comes from the PACK, not from the recipe.
-
-		Layer is 65% of the grade a finished tool is built from, so taking it
-		from the recipe's own unlock depth made every common recipe out of a
-		pack grade near zero -- a Rustpick from the Abyssal pack would have
-		assembled worse than one chipped out of the wall at layer 40. The pack
-		is a seam: an Abyssal pack holds abyssal pieces, whatever they turn out
-		to be. Floored at the recipe's own unlock so a shallow pack can never
-		hand out a piece from above where that fossil exists.
-	]]
-	local seam = math.max(unlock, tonumber(packLayer) or unlock)
-	local layer = math.clamp(math.floor(seam * rng:NextNumber(0.85, 1.15)), unlock, Fossils.MAX_LAYER or 2500)
-	return {
-		kind = "fossil",
-		rarityId = rarityId,
-		name = (recipe and recipe.name and recipe.name ~= "UNNAMED" and recipe.name) or "Fossil Piece",
-		-- What this piece is a piece OF, and how many it takes. A lone fossil
-		-- fragment is meaningless without the count it is counting toward.
-		sub = string.format("%d pieces make a %s",
-			(require(script.Parent:WaitForChild("MineFossilEconomy")).needed()),
-			(recipe and recipe.name and recipe.name ~= "UNNAMED" and recipe.name) or "equipment"),
-		fossil = {
-			id = mintId,
-			fossilId = recipe and recipe.id,
-			layer = layer,
-			qualityRoll = rng:NextNumber(),
-			-- Pack-rolled rarity (8-tier ladder). Reveal uses item.rarityId;
-			-- inventory / craft reads this field on the piece itself.
-			rarity = rarityId,
-			rarityId = rarityId,
-		},
-	}
-end
 
 --[[
 	Roll a whole pack.
@@ -245,8 +195,6 @@ function MineLootPacks.roll(packDef, rng, mint)
 			item = MineLootPacks.gearItem(rarityId, mint(), rng, { startGrade = "F" })
 		elseif kind == "rune" then
 			item = MineLootPacks.runeItem(rarityId, mint(), rng)
-		else
-			item = MineLootPacks.fossilItem(rarityId, mint(), rng, packDef.layer)
 		end
 		if item then
 			item.packId = packDef.id
