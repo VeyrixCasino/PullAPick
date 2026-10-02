@@ -124,7 +124,7 @@ Checked directly; cite these rather than re-deriving.
 
 | Fact | Evidence |
 | --- | --- |
-| **The roster is 82 ores. FINAL.** Event Horizon ores may be added later. `MineConfig.ORES` still holds 121 and is STALE; `ToolBakers.OreToolBaker` is the authority and is not committed. Cutting `MineConfig` to the real 82 gates the Forge recipes, the icons, the charms (one per ore) and the rarity bands. | User, 2026-10-02 |
+| **The roster is 82 ores. FINAL.** Event Horizon ores may be added later. `MineConfig.ORES` now holds the real 82 rows, merged from the `ore-roster-82` branch, with `ORE_MIGRATION_V2` carrying old saves. Each row carries its own `band`, `home` and `yield`. | User, 2026-10-02 |
 | ~~121 ores~~ (superseded, kept to explain the 121s still in the repo) | `MineConfig.ORES`, `MineConfig.luau:2051-2173`. Also stated in `live-config.md:68`, `decisions.md:17,26`, and three places in this file's Done list. Tier 1 `stone` → tier 121 `oganesson`. |
 | Ore packs exist as `<id>_ore_pack` | `MineConfig.luau:2511` (`o.packId = o.id .. "_ore_pack"`), `MineZonePacks.luau:244,251` |
 | Breaking power does **not** exist | 0 files in `src/` match breaking power / block strength. Net-new system. |
@@ -294,9 +294,14 @@ Inputs are settled. The numeric curves still need sign-off.
 
 ### Charms — one per ore
 
+**A NEW system. Charms drop rarely from ORES — not from chests.**
+
 - [ ] One charm per ore (82 charms).
+- [ ] **A rare drop off ore itself.** Mining ore is what yields charms.
 - [ ] **0.5% drop chance**, excluding the first Coal Charm (the starter, guaranteed).
 - [ ] **Mergeable** into higher tiers.
+- [ ] `roadmap/CHARMS.md` is on disk from the merge. Read it, but §0 wins where
+      it disagrees.
 
 ### Universal recycling
 
@@ -324,12 +329,11 @@ hats, faces, tools, runes, charms, and anything recyclable added later):
 
 - [ ] **Ore packs become Ore cases.** Asset names: `{Ore}` for the icon,
       `{Ore}Case` for the case.
-- [ ] A case drops **only when you find a tool skin**. This replaces the old
-      rare-tool drop entirely.
+- [ ] **82 cases, one per ore.** Not per tool rarity.
+- [ ] **The case rolls 2% down to 0.5% to decide whether you get a tool.** The
+      old system dropped tools from cases directly; that roll is now the case's.
 - [ ] Reuse the **existing charm-find animation** (pull-from-pack) for the case drop.
 - [ ] Opening a case yields a **skin that applies to a whole tool family**.
-- [ ] **81 skin cases**, one per tool rarity.
-      *With the roster at 82, the old "81 cases" figure looks like it was tracking
       the real ore count all along. Confirm: one case per ore, 82?*
 - [ ] **Drop rates identical to tempers today**: F 50%, D 27.63%, C 12.5%, B 6.75%,
       A 2.5%, S 0.5%, SS 0.1%, SSS 0.02% (`MineTemper.RARITY_WEIGHTS`).
@@ -493,8 +497,16 @@ collide with blast and zap, which is the guardrail asked for:
 
 ## 6.3 P1 — art pipeline
 
-- [ ] **Ore icons for all 82 ores** — `{Ore}` naming.
-- [ ] **Ore case art** — `{Ore}Case` naming.
+- [ ] **Ore icons + case art: APPLY, do not process.** The art lives at
+      `C:\Users\uybuv\Downloads\oreicons`, is the owner's, and cannot be
+      dragged in. Do **not** read or transform those images. Upload per §7 and
+      wire the asset ids under `{Ore}` and `{Ore}Case` naming.
+- [ ] **Regenerate the block FACE textures procedurally** rather than using the
+      supplied images: no shadow, every chunk fully on its own face and never
+      across a corner, more visible, and a spectrum of the ore's own colour so
+      it reads against same-coloured rock.
+- [ ] **PR #2 `ore-face-art` does NOT cover this** — owner checked. Do not merge
+      it expecting it to fix the faces.
 - [ ] **Ore block textures, rebuilt on canvas.** The supplied images have problems:
   - small specks used as ore chunks
   - chunks half-off the block, so a 6-sided application does not line up
