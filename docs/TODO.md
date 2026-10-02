@@ -41,6 +41,27 @@ file in this repo disagrees, the file is wrong.
 
 7. **Zones, runes and the ore pouch are gem sinks. Gems come from selling ore.**
 
+8. **Big numbers are SERVER-SIDE and always round DOWN.** `MineBigNum`
+   (`ServerScriptService/Mine`) is the one formatter. Base 30, three digits a
+   step: the 20 named suffixes K..Nod, then the backlog q..z, then positional
+   carry. Science form `9.999e^99`. The client renders the server's string.
+
+9. **All currencies read at FOUR significant figures, floored.**
+   `MineAbbrev.currency` — 1.234K, 12.34K, 123.4K, 1.234M. Deliberately NOT
+   `MineAbbrev.format`, which rounds UP so a block HP label never understates
+   the rock. A wallet that rounds up tells a player they can afford something
+   they cannot.
+
+10. **The wooden pickaxe is a TUTORIAL pick.** It exists to reach the stone
+    pick, handed over in the tutorial, then it is done. Cap 5 levels, coins.
+    `TUTORIAL_GRADUATION_TOOL = "stone_pick"`.
+
+11. **Breaking power comes from a tool's BASE STATS — its tier — for now.**
+    One rule for every tool: an ore tool's tier is its ore, a shop rung's tier
+    is its rung. `BreakPower` is stamped on every Tool instance and the swing
+    gate reads it. `MineConfig.toolBreakingPower` is the only function to
+    change when breaking power gets its own authored curve.
+
 
 ---
 
