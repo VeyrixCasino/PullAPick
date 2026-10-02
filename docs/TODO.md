@@ -103,7 +103,8 @@ Checked directly; cite these rather than re-deriving.
 | Two forge/bench views already exist | `MineForgeView.luau` 780 lines, `MineBenchView.luau` 239 lines. Reconcile; do not add a third. |
 | `MineBags` is coin-only today | `MineBags.luau:7` — "Coin prices only. Never gems — zone buyCost is the gem sink." |
 | **`ToolBakers.OreToolBaker` is NOT committed** | No `ToolBakers` folder under `src/ReplicatedStorage/Mine/`, and **zero references** to `ToolBakers`/`OreToolBaker` anywhere in `src/`. It exists only in the place file. |
-| **Current contract: ore upgrades tools but CANNOT build them** | `MineZonePacks.luau:195` — "Ore cannot build a tool, only upgrade one"; `MineServer.server.luau:524` — "Ore, by id. Never builds a tool; it upgrades one, with stardust." **The new design reverses this** — tools become craftable from ore. Both comments and the contract they describe must be updated together. |
+| Ore builds tools **and** upgrades them | The two comments asserting the opposite (`MineZonePacks.luau:195`, `MineServer.server.luau:524`) were removed. A grep for "ore cannot/never build", "never builds a tool" and "only upgrade one" now returns nothing. The *code* still only upgrades — the build path lands with the Forge. |
+| `ToolBakers.OreToolBaker` **houses every ore currently in the game** | Place-file only; absent from `src/` with zero references. It is an ore data source, not just a baker, so syncing it back may reveal ore rows or fields the repo does not have. |
 | No gem→ore or ore→ore purchase path found | Grep over `src/` found only `gemFind` (`MineSkillData.luau:98`) and a rune-fuse gem penalty (`MineScrolls.luau:11`) |
 | Duplicate pet module | `MineEHPets.luau` and `MineEventHorizonPets.luau` are byte-identical (md5 `0a8c6c6612ba54ae42b9310d450d8059`). Consumers read the short name first, so the long one is 34 KB that never loads. |
 | No CI | Repo has no `.github/` directory; PR #5 shows 0 check runs. |
@@ -158,7 +159,19 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 
 11. **Hat crates do not scale with rebirth.**
 
-12. **Skins replace tempers as the top prize**, at the same drop rates tempers have
+12. **Ore builds tools.** Settled. The two source comments asserting the opposite
+    were deleted rather than annotated, at the user's instruction to remove
+    anything outdated.
+
+13. **The skin system inherits the old tool system.** Whatever the tool system was
+    before — the rarity ladder and the chase — becomes the skin system. Tools are
+    crafted; skins are hunted.
+
+14. **`OreToolBaker` is an ore data source**, not merely a baker: it houses every
+    ore currently in the game. That is why it must be synced back before Forge or
+    roster work, and diffed against `MineConfig.ORES`.
+
+15. **Skins replace tempers as the top prize**, at the same drop rates tempers have
    today. Anything that gets in the way of skins being the most desired buff may be
    nerfed.
 
@@ -171,10 +184,12 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 - [ ] **Ore icon source is unreachable.** `C:\Users\uybuv\Downloads\oreicons` is on a
   local Windows drive. Commit it (suggest `tools/oreart/src/`) or paste it. Nothing in
   the icon/case/texture pipeline can start until then.
-- [ ] **`ToolBakers.OreToolBaker` is uncommitted.** Confirmed absent from `src/` with
-  zero references. Run the syncback (`docs/rojo-connect.md` §"Pulling Studio's state
-  into src/") and commit, or the Forge work will be written against a baker nobody
-  can see.
+- [ ] **`ToolBakers.OreToolBaker` is uncommitted, and it houses every ore in the
+  game.** Confirmed absent from `src/` with zero references anywhere. This is not
+  just a baker — it is an ore data source, so it may hold ore rows or fields that
+  `MineConfig.ORES` does not. **Sync it back and diff it against `MineConfig.ORES`
+  before any Forge, recipe or icon work**, or that work is built on a partial
+  roster. Procedure: `docs/rojo-connect.md` §"Pulling Studio's state into src/".
 - [ ] **Connect Rojo.** Never attached. Safe once the syncback above is done.
 - [ ] **Asset uploads.** No agent here can upload to Roblox. All uploads follow §7.
 
@@ -238,6 +253,19 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
 - [ ] Plus an extra amount scaled to the item's value — "decent but not game
       breaking". Needs a curve; propose and get sign-off before shipping.
 
+**Bulk recycle UI** — in *every* inventory menu that houses recyclables (pets,
+hats, faces, tools, runes, charms, and anything recyclable added later):
+
+- [ ] A **Select** button that puts the menu into selection mode.
+- [ ] **Bulk select** — go through and tick multiple items.
+- [ ] A **Recycle** button that opens a **review screen listing everything about to
+      be recycled**, with the total return.
+- [ ] **Hold 3 seconds to confirm.** Not a click — a hold, so a bulk recycle can
+      never happen by accident.
+- [ ] Server re-validates the whole selection on confirm: every uid is owned,
+      unlocked and recyclable. The client's list is a request, never the authority.
+- [ ] One transaction — all items recycle or none do. No partial payout.
+
 ### Ore cases and skins
 
 - [ ] **Ore packs become Ore cases.** Asset names: `{Ore}` for the icon,
@@ -255,6 +283,10 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
       duplicatable look that canvas can mass-produce.
 - [ ] Rename tempers → skins across `MineTemper.luau` (537) and its views. Keep
       `LEGACY_RARITY` / `normalizeRarity` so old saves load.
+- [ ] **The skin system takes over what the tool system used to be.** The old
+      rare-tool-drop mechanics — rarity ladder, drop pacing, the chase — move onto
+      skins wholesale. Tools stop being the chase item; they are crafted from ore.
+      Skins become the thing you hunt.
 - [ ] Nerf anything that competes with skins for "most desired buff".
 
 ### The Forge (was the Blacksmith)
@@ -463,6 +495,9 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 - [x] `docs/ore-remake.md` replaced with the live 121-ore roster, generated from
       `MineConfig.ORES`; LOOKS/glow block, Space set and change log preserved
 - [x] `docs/TODO.md` rebuilt as this handoff
+- [x] Removed the two outdated "ore cannot build a tool" claims
+      (`MineZonePacks.luau`, `MineServer.server.luau`). Grep for the phrasings
+      now returns nothing.
 - [x] `rokit.toml` pins `rojo-rbx/rojo@7.7.0` (it previously pinned nothing, so
       `rokit install` was a no-op)
 - [x] `.vscode/` — Rojo + Luau LSP + StyLua recommendations, sourcemap autogeneration,
@@ -514,6 +549,9 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 - **Uploads are group-owned.** §7 is not optional.
 - Studio and Cursor edit these same scripts concurrently. Anchor every edit on unique
   surrounding text, never line numbers alone, and re-read before committing.
+- **Kill stale comments on sight.** A comment asserting a contract the design has
+  moved past is worse than no comment. If you change a rule, grep for every place
+  the old rule is written down and fix them in the same commit.
 - **Verify before claiming done.** No playtests — reason from source, run
   `tools/verify/*.js`, paste output.
 

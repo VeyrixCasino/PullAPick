@@ -521,7 +521,8 @@ local function blank()
 			{ setId = "dragons_dawn", packId = "loam_pack", packName = "Loam Pack" },
 		},
 		cards = {}, equipped = {},
-		-- Ore, by id. Never builds a tool; it upgrades one, with stardust.
+		-- Ore, by id. Spent at the Forge to build tools and to upgrade them,
+		-- with stardust. (Build path lands with the Forge -- see docs/TODO.md.)
 		ores = {},
 		--[[
 			Ore tools: one row per tool the player owns, not a count.

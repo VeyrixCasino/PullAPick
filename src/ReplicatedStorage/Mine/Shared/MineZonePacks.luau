@@ -191,9 +191,10 @@ MineZonePacks.PACKS = MineZonePacks.buildAll()
 --[[
 	ORE PACKS -- one per ore, generated, never authored.
 
-	Breaking an ore block gives its pack; opening the pack always gives ore.
-	That is the whole contract. Ore cannot build a tool, only upgrade one, so
-	this is the reliable half of the loot split and chests keep the rare half.
+	BEING REPLACED -- see docs/TODO.md. Ore builds tools as well as upgrading
+	them, ore blocks are moving to dropping ore directly, and these packs become
+	skin cases. Until that lands: breaking an ore block gives its pack, and
+	opening the pack always gives ore.
 
 	121 rows kept in step with MineConfig.ORES by construction. Hand-writing
 	them would guarantee the two drift the first time an ore is renamed.
