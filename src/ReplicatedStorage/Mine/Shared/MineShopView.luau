@@ -526,6 +526,9 @@ function MineShopView.mount(parent, opts)
 					oreTools = state.oreTools or {},
 					ores = state.ores or {},
 					oresSeen = state.oresSeen,
+					-- Which ore tool is in the player's hands, so the Forge can
+					-- mark it rather than offering to equip what is already held.
+					oreToolUid = state.oreToolUid,
 					dust = state.dust or 0,
 					-- The Forge quotes coins for the wooden pickaxe and shows a
 					-- wallet strip, so it needs both currencies, not just dust.
@@ -536,6 +539,11 @@ function MineShopView.mount(parent, opts)
 			-- Out of the Forge and down to the second line.
 			onCoinShop = function()
 				view.setTab("pickaxe")
+			end,
+			onEquip = function(uid)
+				if opts.onEquipOreTool then
+					opts.onEquipOreTool(uid)
+				end
 			end,
 			onCraft = function(familyId, typeId, oreId)
 				if opts.onCraftOreTool then
@@ -2155,6 +2163,7 @@ function MineShopView.mount(parent, opts)
 		-- The Forge lists one recipe per ore ever held, not per ore banked, so
 		-- spending your last unit of something does not delete its recipe.
 		state.oresSeen = snapshot.oresSeen or {}
+		state.oreToolUid = snapshot.oreToolUid
 		state.oreTools = snapshot.oreTools or {}
 		state.backpackTier = snapshot.backpackTier or 1
 		state.family = snapshot.tool and snapshot.tool.family or nil

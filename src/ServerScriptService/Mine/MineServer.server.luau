@@ -1603,6 +1603,62 @@ local function equippedTool(p)
 		end
 		return t, t.family or def.family or "pickaxe", 0
 	end
+	--[[
+		An equipped ore tool overrides the ladder, exactly as a chest flagship
+		does. It is not a rung you bought, it is an object you forged.
+
+		The row carries the ORE tier, and that tier is the tool's breaking power
+		(docs/TODO.md section 0.1). It is returned on the def as `oreTier` so
+		givePickaxe can stamp it on the Tool instance -- the swing gate reads it
+		from there. It deliberately does NOT ride the third return value, which
+		is `lookTier`, a cosmetic ladder rung clamped to the shop family's
+		length; conflating the two is how breaking power would silently become
+		a shop number.
+
+		typeMult is resolved inline rather than through Verbs._oreToolTypeMult,
+		because `local Verbs` is declared thousands of lines below this point.
+	]]
+	if p.oreToolUid then
+		local oreRow
+		for _, row in ipairs(p.oreTools or {}) do
+			if type(row) == "table" and row.uid == p.oreToolUid then
+				oreRow = row
+				break
+			end
+		end
+		if oreRow then
+			local famId = oreRow.familyId or "pickaxe"
+			local typeDef, typeMult = nil, 1
+			for _, td in ipairs((Tools.TOOLS or {})[famId] or {}) do
+				if td.id == oreRow.typeId then
+					typeDef = td
+					local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
+					typeMult = (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
+					break
+				end
+			end
+			local oreDef = C.ORES and C.ORES[tonumber(oreRow.tier) or 1]
+			local level = math.max(1, tonumber(oreRow.level) or 1)
+			local def = {
+				id = "oretool_" .. tostring(oreRow.uid),
+				name = string.format("%s %s",
+					(oreDef and oreDef.name) or ("Tier " .. tostring(oreRow.tier)),
+					(typeDef and typeDef.name) or "Tool"),
+				family = famId,
+				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult))),
+				rate = (typeDef and typeDef.rate) or 2.6,
+				radius = (typeDef and typeDef.radius) or 0,
+				cells = (typeDef and typeDef.cells) or 1,
+				shape = (typeDef and typeDef.shape) or "melee",
+				oreTier = math.max(1, math.floor(tonumber(oreRow.tier) or 1)),
+				oreToolUid = oreRow.uid,
+				level = level,
+			}
+			return def, famId, 0
+		end
+		-- Scrapped or never existed: stop pointing at it.
+		p.oreToolUid = nil
+	end
 	if p.chestTool then
 		-- Pass tools (lunar_pick / bp_eclipse / lunar_eclipse) live in chestTools
 		-- but are defined on PASS_TOOLS, not CHEST_TOOLS — resolve both.
@@ -2587,6 +2643,8 @@ local function snap(plr)
 		ores = p.ores or {},
 		-- The Forge keys its recipe list off this, not off what is banked.
 		oresSeen = p.oresSeen or {},
+		-- Which forged tool is in hand, so the Forge can mark it EQUIPPED.
+		oreToolUid = p.oreToolUid,
 		oreTools = p.oreTools or {},
 		itemSlotsUsed = C.itemSlotsUsed and C.itemSlotsUsed(p) or nil,
 		itemSlotCap = C.itemSlotCap and C.itemSlotCap(p) or nil,
@@ -4285,6 +4343,18 @@ local function givePickaxe(plr)
 
 	tool:SetAttribute("Family", famId)
 	tool:SetAttribute("Tier", lookTier)
+	--[[
+		Breaking power, stamped separately from `Tier` on purpose.
+
+		`Tier` above is lookTier: a cosmetic ladder rung clamped to the shop
+		family's length, used to pick a model. It is NOT the ore tier, and the
+		swing gate must never read it. OreTier is only present on a forged ore
+		tool; its absence is what marks a tool as having no ore behind it.
+	]]
+	if row and tonumber(row.oreTier) then
+		tool:SetAttribute("OreTier", math.floor(tonumber(row.oreTier)))
+		tool:SetAttribute("OreToolUid", tostring(row.oreToolUid or ""))
+	end
 	if p and p.chestTool then
 		tool:SetAttribute("ChestToolId", p.chestTool)
 		tool:SetAttribute("Secret", true)
@@ -5461,6 +5531,34 @@ local function swingBlock(plr, part)
 				net:FireClient(plr, "toast", "Reach the depth plaza to unlock this band")
 			end
 			return
+		end
+	end
+	--[[
+		BREAKING POWER. The ore a tool is forged from is its breaking power, and
+		it reaches ORE_REACH tiers past that (docs/TODO.md section 0.1).
+
+		Only ore blocks carry an OreTier, so plain rock is unaffected here --
+		that is block strength's job, a separate gate still to be built.
+
+		The tool's breaking power is read from the OreTier attribute stamped at
+		give time. NOT the `Tier` attribute, which is a cosmetic ladder rung. A
+		tool with no ore behind it has NO_ORE_BREAKING_POWER, so the rule stays
+		uniform instead of exempting shop tools from it entirely.
+	]]
+	do
+		local oreTier = tonumber(part:GetAttribute("OreTier"))
+		if oreTier then
+			local held = (Dig.heldTool and Dig.heldTool[p])
+				or (plr.Character and plr.Character:FindFirstChildOfClass("Tool"))
+			local bp = tonumber(held and held:GetAttribute("OreTier"))
+				or (C.NO_ORE_BREAKING_POWER or 0)
+			if not C.canBreakOre(bp, oreTier) then
+				net:FireClient(plr, "weakTool", {
+					oreTier = oreTier,
+					reach = C.oreReachCap(bp),
+				})
+				return
+			end
 		end
 	end
 	-- A full bag stops you gaining DIRT. It does not stop you mining: the rock
@@ -13629,6 +13727,50 @@ end
 	the whole level curve and the ore-it-eats lookup key off (_oreToolCost reads
 	C.ORES[tool.tier]). A tool forged from Halite levels on Halite.
 ]]
+--[[
+	Equip a forged ore tool, or unequip back to the ladder.
+
+	Clears the other overrides, because equippedTool checks them in order and a
+	chest flagship left set would silently shadow the tool the player just
+	chose. Passing no uid unequips.
+]]
+function Verbs.equipOreTool(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local uid = (type(payload) == "table") and payload.uid or payload
+
+	if uid == nil or uid == "" then
+		p.oreToolUid = nil
+		givePickaxe(plr)
+		net:FireClient(plr, "toast", "Unequipped")
+		snap(plr)
+		markDirty(plr)
+		return
+	end
+
+	local tool = Verbs._findOreTool(p, uid)
+	if not tool then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+
+	p.oreToolUid = tool.uid
+	p.chestTool = nil
+	p.fossilTool = nil
+	p.shopToolId = nil
+	p.toolFamily = tool.familyId or "pickaxe"
+
+	givePickaxe(plr)
+	local oreDef = C.ORES and C.ORES[tonumber(tool.tier) or 1]
+	net:FireClient(plr, "toast", string.format("Equipped  %s  (breaking power %d)",
+		(oreDef and oreDef.name) or ("Tier " .. tostring(tool.tier)),
+		C.toolBreakingPower(tool)))
+	snap(plr)
+	markDirty(plr)
+end
+
 function Verbs.craftOreTool(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p or type(payload) ~= "table" then
@@ -13719,7 +13861,21 @@ function Verbs.recycleOreTool(plr, payload)
 	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
 	local oreId = oreDef and oreDef.id
 
+	--[[
+		Scrapping the tool in your hands must take it out of them.
+
+		equippedTool clears a dangling oreToolUid on its next call, but nothing
+		re-gives the Tool instance, so without this the player keeps swinging a
+		tool they no longer own -- and keeps its breaking power for free.
+	]]
+	local wasEquipped = (p.oreToolUid ~= nil and p.oreToolUid == tool.uid)
+
 	table.remove(p.oreTools, index)
+
+	if wasEquipped then
+		p.oreToolUid = nil
+		givePickaxe(plr)
+	end
 	if oreId and ore > 0 then
 		p.ores = p.ores or {}
 		p.ores[oreId] = (tonumber(p.ores[oreId]) or 0) + ore
@@ -13751,6 +13907,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if Verbs.policyBlocks(plr, action) then return end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
+		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
 		elseif action == "throwAt" then throwAt(plr, payload)

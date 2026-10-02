@@ -2460,6 +2460,17 @@ MineConfig.ORE_COUNT = 82
 ]]
 MineConfig.ORE_REACH = 15
 
+--[[
+	Breaking power for a tool with no ore behind it -- a shop rung, the starter
+	pickaxe, a chest flagship.
+
+	Zero, so such a tool still reaches ORE_REACH tiers (0 + 15) and the rule
+	stays uniform rather than exempting every non-forged tool from it. If ore
+	should instead be mineable with anything until a player forges their first
+	tool, this is the one line to change.
+]]
+MineConfig.NO_ORE_BREAKING_POWER = 0
+
 -- The breaking power of a tool, which is simply the tier of its ore.
 function MineConfig.toolBreakingPower(tool)
 	if type(tool) == "table" then

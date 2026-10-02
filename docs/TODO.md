@@ -267,7 +267,15 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
       the first tool to the last ore.
 - [x] **Config shipped** — `MineConfig.ORE_REACH = 15`, `toolBreakingPower(tool)`,
       `canBreakOre(bp, oreTier)`, `oreReachCap(bp)`.
-- [ ] **BLOCKED — ore tools cannot be equipped.** Verified: `equippedTool()`
+- [x] **Equip path shipped.** `equippedTool()` has an ore-tool branch above the
+      chest flagship, `Verbs.equipOreTool` equips/unequips and clears the
+      competing overrides, the Forge has an EQUIP button, and scrapping an
+      equipped tool takes it out of your hands.
+- [x] **Gate shipped.** `swingBlock` refuses any ore where
+      `not C.canBreakOre(bp, oreTier)` and fires `weakTool`; the client shows
+      red throttled text by the hotbar. Tool BP reads the `OreTier` attribute
+      stamped at give time — never `Tier`, which is cosmetic.
+- [ ] ~~BLOCKED — ore tools cannot be equipped~~ Verified at the time: `equippedTool()`
       (`MineServer:1556`) has no ore-tool branch and nothing anywhere equips a
       `p.oreTools` row. No equipped ore tool means no ore tier to gate on. Order:
       1. Give `equippedTool()` an ore-tool branch, and the Forge an EQUIP action.

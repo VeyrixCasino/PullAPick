@@ -2050,6 +2050,9 @@ function ClientFns.showSpin(dur)
 	spinBar.Visible = true
 end
 
+-- Last time the breaking-power refusal was shown, so a held swing cannot spam it.
+local weakToolAt = 0
+
 local function showToast(t)
 	toast.Text = t
 	toast.Visible = true
@@ -4514,6 +4517,11 @@ shopCtl = ShopView.mount(gui, {
 		ask for a different tool but never for a different cost, and never for
 		an ore it is not holding.
 	]]
+	-- Equip a forged ore tool, or unequip with no uid. The server re-gives the
+	-- Tool instance and stamps its breaking power.
+	onEquipOreTool = function(uid)
+		net:FireServer("equipOreTool", { uid = uid })
+	end,
 	onCraftOreTool = function(familyId, typeId, oreId)
 		net:FireServer("craftOreTool", { familyId = familyId, typeId = typeId, oreId = oreId })
 	end,
@@ -10522,6 +10530,22 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "depthLive" then
 		if ClientFns.noteDepthLive then
 			ClientFns.noteDepthLive(payload)
+		end
+	elseif action == "weakTool" then
+		--[[
+			Breaking power refusal. Red, by the hotbar, and throttled -- a held
+			swing hits a block it cannot break many times a second, and without
+			a gate this would repaint the label on every one of them.
+		]]
+		local now = os.clock()
+		if (now - (weakToolAt or 0)) >= 1.1 then
+			weakToolAt = now
+			local was = toast.TextColor3
+			toast.TextColor3 = Color3.fromRGB(255, 86, 86)
+			showToast("Your tool is too weak to damage this block")
+			task.delay(2.4, function()
+				toast.TextColor3 = was
+			end)
 		end
 	elseif action == "toast" then
 		showToast(tostring(payload))

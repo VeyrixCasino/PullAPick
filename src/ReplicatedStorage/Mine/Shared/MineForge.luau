@@ -274,6 +274,18 @@ function MineForge.mount(parent, opts)
 		label(host, string.format("level %d / %d", level, cap), 13,
 			maxed and GOLD or MUTED, UDim2.fromOffset(0, 26), UDim2.new(1, 0, 0, 16))
 
+		--[[
+			Breaking power and reach, stated plainly, because they are the whole
+			reason to forge a better tool and they are NOT the damage number
+			above. Levelling moves damage and never moves reach.
+		]]
+		if C.toolBreakingPower and not coinTool then
+			local bp = C.toolBreakingPower(tool)
+			label(host, string.format("breaking power %d  \u{00B7}  reaches ore tier %d",
+				bp, C.oreReachCap(bp)), 12, GOLD,
+				UDim2.fromOffset(0, 42), UDim2.new(1, 0, 0, 14))
+		end
+
 		local canStep, costLine, heldLine
 		if maxed then
 			costLine = "Fully levelled"
@@ -301,12 +313,12 @@ function MineForge.mount(parent, opts)
 		end
 
 		label(host, costLine, 14, (maxed and GOLD) or (canStep and GREEN) or MUTED,
-			UDim2.fromOffset(0, 54), UDim2.new(1, 0, 0, 18))
+			UDim2.fromOffset(0, 62), UDim2.new(1, 0, 0, 18))
 		if heldLine then
-			label(host, heldLine, 12, MUTED, UDim2.fromOffset(0, 74), UDim2.new(1, 0, 0, 14))
+			label(host, heldLine, 12, MUTED, UDim2.fromOffset(0, 82), UDim2.new(1, 0, 0, 14))
 		end
 
-		local y = 102
+		local y = 110
 		button(host, "+1", GREEN, UDim2.fromOffset(0, y), UDim2.fromOffset(56, 28),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, 1) end
@@ -324,8 +336,16 @@ function MineForge.mount(parent, opts)
 		-- player cannot afford anything else.
 		local typeMult = typeMultOf(selFamily, def.id)
 		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
+		-- Equipping is what turns a forged tool into breaking power you actually
+		-- carry, so it sits beside the levelling buttons rather than buried.
+		local equipped = (snapshot.oreToolUid ~= nil and snapshot.oreToolUid == tool.uid)
+		button(host, equipped and "EQUIPPED" or "EQUIP", GOLD,
+			UDim2.fromOffset(0, y + 38), UDim2.fromOffset(110, 26), not equipped, function()
+				if opts.onEquip then opts.onEquip(tool.uid) end
+			end)
+
 		button(host, "SCRAP  +" .. num(recOre) .. " ore / +" .. num(recDust) .. " dust",
-			RED, UDim2.fromOffset(0, y + 38), UDim2.fromOffset(240, 26), true, function()
+			RED, UDim2.fromOffset(116, y + 38), UDim2.fromOffset(224, 26), true, function()
 				if opts.onRecycle then opts.onRecycle(tool.uid) end
 			end)
 	end
