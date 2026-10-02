@@ -1170,6 +1170,20 @@ MineConfig.CHEST_CHANCE = 0.003 -- ~1.3 chests / layer on 21x21; ~20 an hour of 
 MineConfig.MEADOW_SHALLOW_CHEST_MULT = 2
 -- Pit lucky cubes. 1 in 5,000. Mix 80/15/5 gold/diamond/mythic. Not 3× in bigbang.
 MineConfig.LUCKY_BLOCK_CHANCE = 0.00020
+--[[
+	Cap on the ORE FINDER a legacy ore pack may apply when it is banked or
+	opened.
+
+	A pack stamped its finder at break time, so the number it carries can be
+	whatever a pet stack was worth that day -- and upgrade costs are sized in
+	HOURS of supply, so an uncapped multiplier on an old pack is a shortcut past
+	the cost curve rather than a nicer drop. 1.0 holds the best case to 2x
+	unboosted (the payout is `amount * (1 + find)`).
+
+	MineServer read this with an `or 1` fallback while the constant did not
+	exist, so the behaviour is unchanged -- the knob is just real now.
+]]
+MineConfig.ORE_PACK_FIND_CAP = 1.0
 
 
 

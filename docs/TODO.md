@@ -411,9 +411,33 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
       and 1 Mythic, so any band below Divine walked up the ladder to the same
       single Mythic tool. Cases pay skins and charms now and never touch that
       table, which is what §0.6 described all along.
-- [ ] **Migration:** existing saves hold unopened `<id>_ore_pack` rows. Convert to
-      banked `p.ores[id]` on load, keeping pack ids as recognised aliases. Do not
-      strand inventories.
+- [x] **Migration shipped.** `Dig.bankOrePacks(p)` converts unopened
+      `<id>_ore_pack` rows to banked `p.ores[id]` on load, and the `_ore_pack`
+      ids stay registered in `MineZonePacks` so any row that does not convert
+      still resolves and can be opened by hand.
+      - **Capacity decides how many, and nothing is destroyed to tidy up.**
+        `addOre` spills what does not fit and spilled ore is gone, so this
+        checks for room FIRST and converts a pack only when its whole yield
+        lands. The remainder stays a pack and is retried next load.
+      - **No version stamp, deliberately.** A stamp would mark a player with a
+        full pouch as done and strand the rest for good. It is idempotent.
+      - **Pays the band MIDPOINT, not a roll** — the same expectation as
+        opening, and deterministic, so rejoining cannot re-roll it. The pack's
+        stamped ore finder still applies, capped exactly as the open branch
+        caps it.
+      - Does **not** bump the `packs` stat: these were not opened, and counting
+        them would jump every pack quest at once.
+      - Runs after the v1/v2 roster renames, or the old ids would not resolve.
+- [x] **`MineConfig.ORE_PACK_FIND_CAP` is a real constant now.** MineServer read
+      it as `tonumber(C.ORE_PACK_FIND_CAP) or 1` and the constant **did not
+      exist**, so the `or 1` fallback was doing the work the comment credited to
+      the knob. Behaviour is unchanged (1.0 is what the fallback gave); the dial
+      is just real and tunable.
+- [x] **`tools/verify/orepacks.js`** asserts the two things the migration leans
+      on that are not obvious from reading it: no pack can outgrow a tier-1
+      pouch (worst is 27 against 2,000, so stranding is not reachable), and the
+      midpoint always lands inside what opening could have paid. Runs the real
+      `MineOrePouch` against the real roster and yield bands.
 
 ### Ore pouch (net-new)
 

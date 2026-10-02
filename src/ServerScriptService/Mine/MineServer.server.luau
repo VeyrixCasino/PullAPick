@@ -454,6 +454,80 @@ local function retireFossils(p)
 	return gems
 end
 
+--[[
+	BANK UNOPENED ORE PACKS, as many as the pouch will hold.
+
+	An ore block hands over its ore directly now (see the `kind == "ore"` break
+	branch), so an "<id>_ore_pack" sitting in the bag is a legacy row whose
+	contents were already settled when the block broke -- opening it reveals
+	nothing that was not decided then. A bag of hundreds of single-ore packs was
+	the most-complained-about screen in the game, and asking the player to clear
+	it by hand is the same screen with extra steps.
+
+	CAPACITY DECIDES HOW MANY, and nothing is destroyed to make it tidy.
+	Dig.addOre spills whatever does not fit and spilled ore is gone, so this
+	checks for room FIRST and converts a pack only when its whole yield lands.
+	What does not fit STAYS A PACK: it is retried on the next load, and it can
+	still be opened by hand once there is room, because MineZonePacks keeps the
+	"_ore_pack" ids registered.
+
+	That is also why there is NO VERSION STAMP. A stamp would mean a player with
+	a full pouch converts nothing and is marked done, stranding the rest for
+	good; this is idempotent and has to be able to run again.
+
+	THE AMOUNT IS THE BAND MIDPOINT, NOT A ROLL. Opening pays a uniform
+	[lo, hi], so the midpoint is the same in expectation -- and being
+	deterministic means rejoining cannot re-roll a bad result. The pack's
+	STAMPED finder still applies, capped exactly as the open branch caps it:
+	the pack has carried that number since break time, and dropping it here
+	would quietly pay less than opening by hand.
+
+	Returns packs converted and ore banked. It does NOT bump the "packs" stat:
+	these were not opened, and counting them would jump every pack quest.
+]]
+function Dig.bankOrePacks(p)
+	if type(p) ~= "table" or type(p.packs) ~= "table" then
+		return 0, 0
+	end
+	local Pouch = Dig.pouch()
+	local cap = tonumber(C.ORE_PACK_FIND_CAP) or 1
+	local keep, converted, banked = {}, 0, 0
+	for _, pk in ipairs(p.packs) do
+		local id = (type(pk) == "table") and tostring(pk.packId or "") or ""
+		local oreId = (id ~= "") and string.match(id, "^(.*)_ore_pack$") or nil
+		local ore = oreId and C.oreById(oreId) or nil
+		if not ore then
+			table.insert(keep, pk)
+		else
+			local lo, hi = C.oreYieldFor(ore.tier)
+			lo, hi = math.min(lo, hi), math.max(lo, hi)
+			local find = math.min(math.max(0, tonumber(pk.oreFind) or 0), cap)
+			local each = math.max(1, math.floor(((lo + hi) / 2) * (1 + find) + 0.5))
+			-- Rows stack (see the merge in openPack), so one row can be many packs.
+			local left = math.max(1, math.floor(tonumber(pk.count) or 1))
+			while left > 0 do
+				p.ores = p.ores or {}
+				if Pouch.room(p.ores, Dig.pouchTier(p)) < each then
+					break
+				end
+				local got = Dig.addOre(p, ore.id, each)
+				if got <= 0 then
+					break
+				end
+				banked += got
+				converted += 1
+				left -= 1
+			end
+			if left > 0 then
+				pk.count = left
+				table.insert(keep, pk)
+			end
+		end
+	end
+	p.packs = keep
+	return converted, banked
+end
+
 -- chestTools shipped as a flat array of id strings, then started carrying a
 -- socketed rune -- and a string cannot hold a rune. Every entry is a row now.
 local function reconcileChestTools(p)
@@ -1619,6 +1693,24 @@ local function load(plr)
 					net:FireClient(plr, "toast", string.format(
 						"Fossils are retired -- your pieces and tools paid out %s gems",
 						Verbs._benchNum(paid)))
+				end
+			end)
+		end
+	end
+	--[[
+		Convert legacy ore packs to banked ore, and say so -- the bag visibly
+		changes, and a silent change to someone's inventory reads as a bug.
+		Runs after the roster migrations above, which rename "<old>_ore_pack"
+		to "<new>_ore_pack": before them the ids would not resolve.
+	]]
+	do
+		local n, got = Dig.bankOrePacks(p)
+		if n > 0 then
+			task.defer(function()
+				if plr.Parent then
+					net:FireClient(plr, "toast", string.format(
+						"Banked %d legacy ore pack%s -- %s ore went into your pouch",
+						n, n == 1 and "" or "s", Verbs._benchNum(got)))
 				end
 			end)
 		end
