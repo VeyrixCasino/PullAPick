@@ -668,9 +668,20 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
 
 ### Rebirth
 
-- [ ] **Gear survives rebirth** — pickaxe and all equipment. Audit every wipe path.
-      (Runes, gear, `equippedGear`, pet sockets, charms and the equipped charm
-      already carry. The pickaxe itself still needs checking.)
+- [x] **Gear survives rebirth** — audited every carry, and found a real one missing.
+      **`p.oreTools` was not carried, so rebirth destroyed every forged tool.**
+      A forged tool is THE tool now (built from ore, levelled with ore plus
+      stardust, nothing found in walls), so rebirth was deleting the whole tool
+      investment while the ore pouch beside it survived. `fresh.oreTools` and
+      `fresh.oreToolEquipped` now carry; the load path already self-heals a
+      dangling equip, so a missing tool clears the hand rather than erroring.
+      The COIN-LADDER tools still reset deliberately — cheap early rungs rebirth
+      is meant to make you re-buy — and their socketed runes stay on the family.
+      Verified carried: runes, gear, `equippedGear`, pet sockets, charms, the
+      equipped charm, `tempers` and `toolTempers` (so the skin pillar survives),
+      the ore pouch and its locks. Deliberately NOT carried: `charmRamp`, which is
+      a session thing that expires in 12s, and `shopToolRunes`, whose wipe returns
+      those runes to the bag free rather than losing them.
 - [x] Ore pouch contents and upgrade level survive rebirth — plus the ore locks
       and `oresSeen`.
 - [ ] *Needs confirmation:* an earlier pass planned "rebirth raises coin value" and

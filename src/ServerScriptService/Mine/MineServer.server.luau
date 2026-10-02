@@ -9429,6 +9429,24 @@ local function tryPrestige(plr)
 	-- enough to buy back all the skill points that rebirth grants.
 	fresh.skillBurned = p.skillBurned or 0
 	fresh.temperTokens = (p.temperTokens or 0) + Skills.rebirthTokens(fresh.prestige)
+	--[[
+		FORGED ORE TOOLS SURVIVE A REBIRTH. The whole rack, and what is in hand.
+
+		They were not carried, so rebirth destroyed every tool a player had
+		forged and levelled -- and a forged tool is THE tool now: they are built
+		from ore and levelled with ore plus stardust, and nothing is found in a
+		wall any more. Wiping them meant rebirth deleted the entire tool
+		investment while the ore pouch beside it survived, which is incoherent
+		as well as harsh.
+
+		The COIN-LADDER tools (pickaxeTier and the shop rungs) still reset, and
+		that is deliberate and unchanged: those are the cheap early rungs rebirth
+		is meant to make you re-buy quickly, and their socketed runes stay on the
+		family so nothing permanent is lost. Forged tools are the opposite -- paid
+		for in a currency that itself survives.
+	]]
+	fresh.oreTools = p.oreTools or {}
+	fresh.oreToolEquipped = p.oreToolEquipped
 	-- Coin-ladder tools reset; socketed runes stay on the family through rebirth.
 	fresh.runes = p.runes
 	fresh.gear = p.gear
