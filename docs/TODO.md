@@ -264,6 +264,17 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
   roster. Procedure: `docs/rojo-connect.md` §"Pulling Studio's state into src/".
 - [ ] **Connect Rojo.** Never attached. Safe once the syncback above is done.
 - [ ] **Asset uploads.** No agent here can upload to Roblox. All uploads follow §7.
+- [ ] **Ore gem value magnitude.** `MineOrePouch.ORE_GEM_COMPRESS` (0.5) sets the
+  whole gem faucet. The SHAPE is derived from work and defensible; the magnitude is
+  a placeholder, and the user flagged ore balance as the thing that breaks the
+  economy if it is wrong. One dial. See §6.1 "Ore pouch".
+- [ ] **Zone and rune gem prices.** Flat tables that the ore value curve will
+  outrun. Same fix the pouch rungs got — price as a share of income at the depth
+  they gate — but the pacing is an owner call.
+- [ ] **The legacy 31 charms.** Zone grant + gem pack + limited. §0.5 makes charms
+  an ore drop; these predate it and still drop. Retire them, or keep both sources?
+- [ ] **VIP lost a perk.** It advertised an extra pet seat in three places and can
+  no longer deliver one. Replacement perk, or leave it at three?
 
 ## 6.1 P0 — launch blockers
 
@@ -332,46 +343,92 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
 - [x] **Ore blocks drop ore directly**, into the pouch, with a toast. Yield
       comes from the roster's own `yield` field via `oreYield`, scaled by the
       `oreYield` boost.
-- [x] **Ore cases are the rare half.** `ORE_CASE_CHANCE` (placeholder 0.5%,
-      luck-scaled) rolls a `<id>_ore_case` on an ore break. The 2%-0.5% tool
-      roll happens when the case is OPENED and is a different number.
-- [x] **Ore case opener built.** `openPack` has an `ore_case` branch rolling
-      `C.oreCaseToolChance(tier)` — 2% at tier 1 falling to 0.5% at tier 82,
-      luck-scaled. A miss still pays ore, so a case is never a dud. Cases are
-      registered per ore in `MineZonePacks` and the lazy-rebuild path catches
-      the `_ore_case` suffix alongside `_ore_pack`.
-- [ ] **CONTENT GAP: `CHEST_TOOLS` is empty below Divine.** It holds 4 Exotic,
-      4 Divine and 1 Mythic and nothing else, so an ore case from any band
-      Common through Mythic walks up and hands over the same single Mythic
-      tool. The opener walks the ladder so a hit is always a hit, but the
-      roster behind it needs filling — or cases should pay SKINS rather than
-      chest tools, which is what §0.6 actually describes.
+- [x] **Ore cases are THE rare drop. 2%, luck-scaled** (`ORE_CASE_CHANCE`),
+      rolling a `<id>_ore_case` on an ore break. There is no second roll inside
+      it. Cases are registered per ore in `MineZonePacks` and the lazy-rebuild
+      path catches the `_ore_case` suffix alongside `_ore_pack`.
+- [x] **Opening one is GUARANTEED: a skin or a charm.** Never a tool, never ore,
+      never a dud. `ORE_CASE_CHARM_SHARE = 0.25`, and that quarter is not a taste
+      call — 2% × 25% = **0.5%**, exactly the charm rate §0.5 asks for, so the two
+      numbers are one decision. A skin gets the same reel ceremony a bought
+      temper case gets.
+- [x] **Corrected from a wrong first build.** It shipped as a 0.5% drop that then
+      rolled 2%→0.5% for a TOOL and paid ore on a miss — two rolls to clear, with
+      the likely outcome being ore the block had already dropped.
+      `ORE_CASE_TOOL_HI`/`LO` and `oreCaseToolChance` are deleted.
+- [x] **The `CHEST_TOOLS` content gap is moot.** It holds only 4 Exotic, 4 Divine
+      and 1 Mythic, so any band below Divine walked up the ladder to the same
+      single Mythic tool. Cases pay skins and charms now and never touch that
+      table, which is what §0.6 described all along.
 - [ ] **Migration:** existing saves hold unopened `<id>_ore_pack` rows. Convert to
       banked `p.ores[id]` on load, keeping pack ids as recognised aliases. Do not
       strand inventories.
 
 ### Ore pouch (net-new)
 
-- [ ] The main store for a player's ore.
-- [ ] **Upgraded with gems.** Upgrade level and contents **both survive rebirth** —
-      the upgrade process does not reset.
-- [ ] Opening shows all owned ores, **sorted by descending rarity by default**.
-- [ ] **Filter button top-right** with the full set of sort options.
-- [ ] **Lock individual ores** so Sell All skips them.
-- [ ] **Sell All button at the bottom**, with a **confirmation dialog**.
-- [ ] **Selling ore yields GEMS.** This is the gem faucet.
-- [ ] **BALANCE RISK, flagged by the user:** if ore values are not balanced this
-      breaks the economy. Model the gem income curve against the gem sinks (zones,
-      runes, pouch upgrades) before shipping. Do not ship on guessed numbers.
+`MineOrePouch.luau` (rules + prices), `MineOrePouchView.luau` (panel), a shop tab
+beside the Forge.
+
+- [x] The main store for a player's ore. **One way in:** every path that grants
+      ore goes through `Dig.addOre`, so the cap is enforced in one place instead
+      of the five call sites that hand out ore. A full pouch refuses and says so
+      (throttled) rather than silently eating the ore.
+- [x] **Upgraded with gems.** Ten rungs, 2,000 → 1,024,000 units.
+- [x] **Rung level AND contents survive rebirth**, plus the locks and
+      `oresSeen`. The pouch is the only store that crosses a rebirth — that is
+      the point of it.
+- [x] **Descending rarity by default**, ties on depth then name so the order is
+      stable.
+- [x] **Filter button top-right.** Cycles rather than opening a menu, and skips
+      bands you hold nothing of. Sort cycles beside it (rarity / depth / amount /
+      value / name).
+- [x] **Per-ore lock.** Sell All can never touch a locked ore — that is what lets
+      one confirmation stand in for a prompt per row. A single-row sell still
+      works on a locked ore: the lock guards the bulk button, not the row.
+- [x] **Sell All at the bottom, behind a confirmation.** Two calls: the server
+      prices the sale, the panel shows the server's figures, the same verb with
+      `confirm` applies it. Both build the plan from `sellAllPlan`, so the total
+      agreed to is the total paid.
+- [x] **Selling ore yields GEMS.** The only gem faucet.
+- [ ] **STILL THE BALANCE RISK the user flagged. Needs owner numbers.**
+      `MineOrePouch.gemValue` is anchored on work — the home rock's HP over the
+      ore's yield, raised to `ORE_GEM_COMPRESS` (0.5, the square root). That gives
+      6 gems/unit at tier 1 and ~1.9B at tier 82, a 3×10⁸ spread. The SHAPE
+      (deeper pays more, gap = √work) is defensible; **the magnitude is a
+      placeholder.** One dial moves it.
+- [x] **Rung prices are derived, not authored**, and had to be: a flat table
+      topping out at 520,000 gems was my first cut, and one tier-30 ore unit more
+      than covers that. Capacity only grows 512× against income's 3×10⁸. Each rung
+      now costs ¾ of a full pouch valued at the ore for its depth
+      (`RUNG_COST_SHARE`), so every rung costs the same mining TIME and the prices
+      follow `ORE_GEM_COMPRESS` on their own.
+- [ ] **ZONE AND RUNE GEM PRICES ARE STILL FLAT TABLES** and the ore value curve
+      will outrun them the same way it outran my pouch table. They are the other
+      two gem sinks; they need the same treatment (price as a share of income at
+      the depth they gate) or they become free by mid-game. **Not done — flagged.**
 
 ### Charms — one per ore
 
 **A NEW system. Charms drop rarely from ORES — not from chests.**
 
-- [ ] One charm per ore (82 charms).
-- [ ] **A rare drop off ore itself.** Mining ore is what yields charms.
-- [ ] **0.5% drop chance**, excluding the first Coal Charm (the starter, guaranteed).
+- [x] One charm per ore (82 charms). **Generated from the roster**, not authored:
+      tier sets the magnitude (+100% at tier 1 to +320% at tier 82, the band
+      spec's own numbers), tier picks the stat off a cycling pool.
+      `MineCharms.oreCharm(oreId)` is the only way to ask for one. Generated so
+      "one per ore" is a property of the code — the tool ladder has already been
+      silently mis-pointed once by a roster renumber, and 82 hand-written rows is
+      82 chances to repeat it.
+- [x] **Echo, zap and blastRadius are excluded from that pool.** A generated
+      table is the last place a stat under review should pick up 82 new sources.
+- [x] **A rare drop off ore itself**, via the ore case: 2% case × 25% charm.
+- [x] **0.5% drop chance** — falls out of the above rather than being set twice.
+- [ ] **First charm guaranteed.** The zone grant has this (`zoneDropChance`
+      returns 1 when you own none); the ore-case path does not yet.
 - [ ] **Mergeable** into higher tiers.
+- [ ] **Decide what happens to the legacy 31.** 15 zone-grant + 15 gem-pack + 1
+      limited charm still exist and still drop. §0.5 says charms are an ORE drop;
+      these predate it. Left in place deliberately so nobody loses one — **needs
+      an owner call** on whether the zone grant and the gem pack are retired.
 - [ ] `roadmap/CHARMS.md` is on disk from the merge. Read it, but §0 wins where
       it disagrees.
 
@@ -504,7 +561,10 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
 ### Rebirth
 
 - [ ] **Gear survives rebirth** — pickaxe and all equipment. Audit every wipe path.
-- [ ] Ore pouch contents and upgrade level survive rebirth.
+      (Runes, gear, `equippedGear`, pet sockets, charms and the equipped charm
+      already carry. The pickaxe itself still needs checking.)
+- [x] Ore pouch contents and upgrade level survive rebirth — plus the ore locks
+      and `oresSeen`.
 - [ ] *Needs confirmation:* an earlier pass planned "rebirth raises coin value" and
       "soften the zone/depth coin multipliers". That was motivated partly by the
       now-reverted coin-zones plan. Confirm whether it still applies.
@@ -516,8 +576,17 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
 - [ ] **Hats cost rebirth tokens**, not gems. A rebirth-token wallet already exists
       (`MineTemper.luau:1`). **Update the tutorial**, which still teaches gems.
 - [ ] Hats give **1–2 boosts directly to the player**. Same for pets and faces.
-- [ ] **Hats are player-only — remove hats from pets.**
-- [ ] **Reduce to 3 clothing slots.**
+- [x] **Hats are player-only — hats removed from pets.** `p.petHats` is gone, not
+      emptied; hats on pets fold into free seats on load. `Verbs.equipPetHat` /
+      `unequipPetHat`, `clearGearFromPets` and the pet-hat seat column are all
+      removed. Pet rows no longer carry a `hat`, and `Gear.stackPets` takes an
+      array of your worn hats rather than two positional args plus the pet's own.
+- [x] **Three hat slots, all the player's.** `MineGear.HAT_SLOTS` is the one list
+      every reader walks. Tapping a hat fills the seat you are looking at.
+- [x] **Two latent bugs fixed on the way.** The load-time slot collapse nil'd every
+      slot that was not literally `hat` or `face`, so **`hat2` never survived a
+      rejoin**; and Equip Best planned `hat` only, leaving `hat2` holding whatever
+      it held. Both came from spelling the seats out by hand.
 - [ ] Faces work the same way, with a **bigger effect than hats**.
 - [ ] **Hats nerfed substantially.** Re-derive the budget percentages with
       hypothetical tests, not guesses: test each boost alone, then stacked with its
@@ -529,6 +598,25 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
 
 ### Pets and boost balance
 
+- [x] **Three pet slots, and no fourth.** `MAX_PET_SLOTS = 3`, equal to
+      `STARTER_PET_SLOTS`, which retires the ladder through the clamps that were
+      already there. A save that bought its way to eight comes back down on load
+      with every pet still owned. Every seat-four surface is closed, not just the
+      cap: the gem row, the Robux product, the credits grant, the VIP bump and the
+      "Fourth pet seat — VIP unlocks one more team pet" card.
+- [x] **VIP's blurb no longer claims an extra pet seat** (three places). It cannot
+      deliver one, so it must not say so. **VIP is now one perk lighter — an owner
+      call on whether to add a replacement.**
+- [x] **Pets follow naturally.** Three causes of the jolt, none of which more
+      position smoothing would have fixed: the formation basis was built off raw
+      instantaneous velocity (so a strafe jumped every pet sideways by its full
+      lateral offset — the spring was chasing a step function); hard thresholds at
+      `speed > 1.15` flipped the basis, bob amplitude and bob rate on one frame,
+      and strobed when walking right at it; and `pos:Lerp(target, alpha)` has no
+      velocity, so it could never overshoot — no wind-up, no follow-through, a
+      dead stop. Now: smoothed basis, one continuous `gait` value replacing every
+      speed branch, a real damped spring slightly under critical, bob advanced by
+      gait rather than wall-clock, and banking into turns.
 - [ ] **Far fewer pets grant blast on normal pickaxes.** At current strength this is
       game-breaking and makes every other pet stack pointless.
 - [ ] **Fewer pets affect blast radius.**
@@ -677,6 +765,33 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 ---
 
 # 8. Done
+
+**This batch (ore case correction, charm roster, pouch, hats, pet slots, pet motion):**
+
+- [x] **Ore case rebuilt to the user's correction** — 2% drop, and opening it pays a
+      guaranteed skin or charm. The tool roll and the ore consolation are gone.
+      `ORE_CASE_CHARM_SHARE = 0.25` ties the 2% and the 0.5% charm rate into one
+      number instead of two that must be kept in step.
+- [x] **82 ore charms**, generated from the roster, one per ore, with
+      `MineCharms.oreCharm(oreId)` as the only accessor.
+- [x] **The ore pouch**, end to end: `MineOrePouch.luau`, `MineOrePouchView.luau`,
+      a shop tab, `Dig.addOre` as the single way in, four server verbs, rebirth
+      carry, per-ore locks, and Sell All behind a server-priced confirmation.
+      Rung prices derived from the value curve after a flat table proved wrong by
+      eight orders of magnitude.
+- [x] **Hats are the player's, three seats**; pet hats removed entirely. Fixed two
+      latent bugs: `hat2` never surviving a rejoin, and Equip Best ignoring it.
+- [x] **Three pet slots, no fourth**, every purchase surface closed, VIP copy
+      corrected.
+- [x] **Pet follow rewritten** — smoothed basis, continuous gait, real damped
+      spring, gait-driven bob, banking.
+- [x] **Five currency formatters** routed through `MineAbbrev.currency` (server
+      `_benchNum`, Forge, bench view, leaderboard). Each rounded (a price quoting
+      lower than it charges), showed 2–3 significant figures against the rule's
+      four, and ran out of suffixes between a billion and a trillion — which ore
+      values pass well before the end of the ladder.
+
+**Earlier:**
 
 - [x] `docs/ore-remake.md` replaced with the roster generated from
       `MineConfig.ORES`; LOOKS/glow block, Space set and change log preserved

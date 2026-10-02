@@ -75,7 +75,9 @@ The unused scaffolding for one is `REBIRTH_PER_ZONE_B = 10` and
 
 ## Boosts
 
-**322 pets, 13 boost types, 3 slots rising to 8** (`MAX_PET_SLOTS = 8`).
+**322 pets, 13 boost types, 3 slots** (`MAX_PET_SLOTS = 3`). *Superseded: this
+read "3 rising to 8" when the ladder was for sale. Seats are not sold any more —
+see `docs/TODO.md` §6.2.*
 
 | boost | pets carrying it | min | max | mean |
 |---|---|---|---|---|
