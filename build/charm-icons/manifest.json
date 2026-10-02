@@ -1,0 +1,2462 @@
+[
+	{
+		"id": "stone_charm",
+		"name": "Stone Focus Charm",
+		"oreId": "stone",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			131,
+			131,
+			131
+		],
+		"file": "build/charm-icons/stone_charm.png"
+	},
+	{
+		"id": "stone_charm_2",
+		"name": "Stone Twin Charm",
+		"oreId": "stone",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			131,
+			131,
+			131
+		],
+		"file": "build/charm-icons/stone_charm_2.png"
+	},
+	{
+		"id": "clay_charm",
+		"name": "Clay Pact Charm",
+		"oreId": "clay",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			184,
+			93,
+			48
+		],
+		"file": "build/charm-icons/clay_charm.png"
+	},
+	{
+		"id": "clay_charm_2",
+		"name": "Clay Ward Charm",
+		"oreId": "clay",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			184,
+			93,
+			48
+		],
+		"file": "build/charm-icons/clay_charm_2.png"
+	},
+	{
+		"id": "limestone_charm",
+		"name": "Limestone Brink Charm",
+		"oreId": "limestone",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			240,
+			229,
+			191
+		],
+		"file": "build/charm-icons/limestone_charm.png"
+	},
+	{
+		"id": "limestone_charm_2",
+		"name": "Limestone Surge Charm",
+		"oreId": "limestone",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			240,
+			229,
+			191
+		],
+		"file": "build/charm-icons/limestone_charm_2.png"
+	},
+	{
+		"id": "pumice_charm",
+		"name": "Pumice Focus Charm",
+		"oreId": "pumice",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			200,
+			195,
+			185
+		],
+		"file": "build/charm-icons/pumice_charm.png"
+	},
+	{
+		"id": "pumice_charm_2",
+		"name": "Pumice Twin Charm",
+		"oreId": "pumice",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			200,
+			195,
+			185
+		],
+		"file": "build/charm-icons/pumice_charm_2.png"
+	},
+	{
+		"id": "halite_charm",
+		"name": "Halite Pact Charm",
+		"oreId": "halite",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			255,
+			196,
+			196
+		],
+		"file": "build/charm-icons/halite_charm.png"
+	},
+	{
+		"id": "halite_charm_2",
+		"name": "Halite Ward Charm",
+		"oreId": "halite",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			255,
+			196,
+			196
+		],
+		"file": "build/charm-icons/halite_charm_2.png"
+	},
+	{
+		"id": "coal_charm",
+		"name": "Coal Brink Charm",
+		"oreId": "coal",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			40,
+			40,
+			46
+		],
+		"file": "build/charm-icons/coal_charm.png"
+	},
+	{
+		"id": "coal_charm_2",
+		"name": "Coal Surge Charm",
+		"oreId": "coal",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			40,
+			40,
+			46
+		],
+		"file": "build/charm-icons/coal_charm_2.png"
+	},
+	{
+		"id": "flint_charm",
+		"name": "Flint Focus Charm",
+		"oreId": "flint",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			138,
+			119,
+			100
+		],
+		"file": "build/charm-icons/flint_charm.png"
+	},
+	{
+		"id": "flint_charm_2",
+		"name": "Flint Twin Charm",
+		"oreId": "flint",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			138,
+			119,
+			100
+		],
+		"file": "build/charm-icons/flint_charm_2.png"
+	},
+	{
+		"id": "basalt_charm",
+		"name": "Basalt Pact Charm",
+		"oreId": "basalt",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			55,
+			57,
+			70
+		],
+		"file": "build/charm-icons/basalt_charm.png"
+	},
+	{
+		"id": "basalt_charm_2",
+		"name": "Basalt Ward Charm",
+		"oreId": "basalt",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			55,
+			57,
+			70
+		],
+		"file": "build/charm-icons/basalt_charm_2.png"
+	},
+	{
+		"id": "slate_charm",
+		"name": "Slate Brink Charm",
+		"oreId": "slate",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			41,
+			81,
+			138
+		],
+		"file": "build/charm-icons/slate_charm.png"
+	},
+	{
+		"id": "slate_charm_2",
+		"name": "Slate Surge Charm",
+		"oreId": "slate",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			41,
+			81,
+			138
+		],
+		"file": "build/charm-icons/slate_charm_2.png"
+	},
+	{
+		"id": "bone_charm",
+		"name": "Bone Focus Charm",
+		"oreId": "bone",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			243,
+			211,
+			140
+		],
+		"file": "build/charm-icons/bone_charm.png"
+	},
+	{
+		"id": "bone_charm_2",
+		"name": "Bone Twin Charm",
+		"oreId": "bone",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			243,
+			211,
+			140
+		],
+		"file": "build/charm-icons/bone_charm_2.png"
+	},
+	{
+		"id": "granite_charm",
+		"name": "Granite Pact Charm",
+		"oreId": "granite",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			189,
+			131,
+			128
+		],
+		"file": "build/charm-icons/granite_charm.png"
+	},
+	{
+		"id": "granite_charm_2",
+		"name": "Granite Ward Charm",
+		"oreId": "granite",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			189,
+			131,
+			128
+		],
+		"file": "build/charm-icons/granite_charm_2.png"
+	},
+	{
+		"id": "copper_charm",
+		"name": "Copper Brink Charm",
+		"oreId": "copper",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			205,
+			87,
+			5
+		],
+		"file": "build/charm-icons/copper_charm.png"
+	},
+	{
+		"id": "copper_charm_2",
+		"name": "Copper Surge Charm",
+		"oreId": "copper",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			205,
+			87,
+			5
+		],
+		"file": "build/charm-icons/copper_charm_2.png"
+	},
+	{
+		"id": "tin_charm",
+		"name": "Tin Focus Charm",
+		"oreId": "tin",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			210,
+			212,
+			218
+		],
+		"file": "build/charm-icons/tin_charm.png"
+	},
+	{
+		"id": "tin_charm_2",
+		"name": "Tin Twin Charm",
+		"oreId": "tin",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			210,
+			212,
+			218
+		],
+		"file": "build/charm-icons/tin_charm_2.png"
+	},
+	{
+		"id": "ember_charm",
+		"name": "Ember Pact Charm",
+		"oreId": "ember",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			80,
+			32,
+			18
+		],
+		"file": "build/charm-icons/ember_charm.png"
+	},
+	{
+		"id": "ember_charm_2",
+		"name": "Ember Ward Charm",
+		"oreId": "ember",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			80,
+			32,
+			18
+		],
+		"file": "build/charm-icons/ember_charm_2.png"
+	},
+	{
+		"id": "sulfur_charm",
+		"name": "Sulfur Brink Charm",
+		"oreId": "sulfur",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			254,
+			226,
+			0
+		],
+		"file": "build/charm-icons/sulfur_charm.png"
+	},
+	{
+		"id": "sulfur_charm_2",
+		"name": "Sulfur Surge Charm",
+		"oreId": "sulfur",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			254,
+			226,
+			0
+		],
+		"file": "build/charm-icons/sulfur_charm_2.png"
+	},
+	{
+		"id": "lead_charm",
+		"name": "Lead Focus Charm",
+		"oreId": "lead",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			71,
+			91,
+			138
+		],
+		"file": "build/charm-icons/lead_charm.png"
+	},
+	{
+		"id": "lead_charm_2",
+		"name": "Lead Twin Charm",
+		"oreId": "lead",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			71,
+			91,
+			138
+		],
+		"file": "build/charm-icons/lead_charm_2.png"
+	},
+	{
+		"id": "zinc_charm",
+		"name": "Zinc Pact Charm",
+		"oreId": "zinc",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			137,
+			178,
+			211
+		],
+		"file": "build/charm-icons/zinc_charm.png"
+	},
+	{
+		"id": "zinc_charm_2",
+		"name": "Zinc Ward Charm",
+		"oreId": "zinc",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			137,
+			178,
+			211
+		],
+		"file": "build/charm-icons/zinc_charm_2.png"
+	},
+	{
+		"id": "aluminum_charm",
+		"name": "Aluminum Brink Charm",
+		"oreId": "aluminum",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			200,
+			210,
+			225
+		],
+		"file": "build/charm-icons/aluminum_charm.png"
+	},
+	{
+		"id": "aluminum_charm_2",
+		"name": "Aluminum Surge Charm",
+		"oreId": "aluminum",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Common",
+		"bandIndex": 1,
+		"rgb": [
+			200,
+			210,
+			225
+		],
+		"file": "build/charm-icons/aluminum_charm_2.png"
+	},
+	{
+		"id": "iron_charm",
+		"name": "Iron Focus Charm",
+		"oreId": "iron",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			166,
+			166,
+			172
+		],
+		"file": "build/charm-icons/iron_charm.png"
+	},
+	{
+		"id": "iron_charm_2",
+		"name": "Iron Twin Charm",
+		"oreId": "iron",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			166,
+			166,
+			172
+		],
+		"file": "build/charm-icons/iron_charm_2.png"
+	},
+	{
+		"id": "graphite_charm",
+		"name": "Graphite Pact Charm",
+		"oreId": "graphite",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			102,
+			113,
+			138
+		],
+		"file": "build/charm-icons/graphite_charm.png"
+	},
+	{
+		"id": "graphite_charm_2",
+		"name": "Graphite Ward Charm",
+		"oreId": "graphite",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			102,
+			113,
+			138
+		],
+		"file": "build/charm-icons/graphite_charm_2.png"
+	},
+	{
+		"id": "pyrite_charm",
+		"name": "Pyrite Brink Charm",
+		"oreId": "pyrite",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			227,
+			206,
+			75
+		],
+		"file": "build/charm-icons/pyrite_charm.png"
+	},
+	{
+		"id": "pyrite_charm_2",
+		"name": "Pyrite Surge Charm",
+		"oreId": "pyrite",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			227,
+			206,
+			75
+		],
+		"file": "build/charm-icons/pyrite_charm_2.png"
+	},
+	{
+		"id": "marble_charm",
+		"name": "Marble Focus Charm",
+		"oreId": "marble",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			254,
+			252,
+			246
+		],
+		"file": "build/charm-icons/marble_charm.png"
+	},
+	{
+		"id": "marble_charm_2",
+		"name": "Marble Twin Charm",
+		"oreId": "marble",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			254,
+			252,
+			246
+		],
+		"file": "build/charm-icons/marble_charm_2.png"
+	},
+	{
+		"id": "pearl_charm",
+		"name": "Pearl Pact Charm",
+		"oreId": "pearl",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			252,
+			245,
+			236
+		],
+		"file": "build/charm-icons/pearl_charm.png"
+	},
+	{
+		"id": "pearl_charm_2",
+		"name": "Pearl Ward Charm",
+		"oreId": "pearl",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			252,
+			245,
+			236
+		],
+		"file": "build/charm-icons/pearl_charm_2.png"
+	},
+	{
+		"id": "rime_charm",
+		"name": "Rime Brink Charm",
+		"oreId": "rime",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			140,
+			225,
+			255
+		],
+		"file": "build/charm-icons/rime_charm.png"
+	},
+	{
+		"id": "rime_charm_2",
+		"name": "Rime Surge Charm",
+		"oreId": "rime",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			140,
+			225,
+			255
+		],
+		"file": "build/charm-icons/rime_charm_2.png"
+	},
+	{
+		"id": "quartz_charm",
+		"name": "Quartz Focus Charm",
+		"oreId": "quartz",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			249,
+			249,
+			255
+		],
+		"file": "build/charm-icons/quartz_charm.png"
+	},
+	{
+		"id": "quartz_charm_2",
+		"name": "Quartz Twin Charm",
+		"oreId": "quartz",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			249,
+			249,
+			255
+		],
+		"file": "build/charm-icons/quartz_charm_2.png"
+	},
+	{
+		"id": "amber_charm",
+		"name": "Amber Pact Charm",
+		"oreId": "amber",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			255,
+			152,
+			0
+		],
+		"file": "build/charm-icons/amber_charm.png"
+	},
+	{
+		"id": "amber_charm_2",
+		"name": "Amber Ward Charm",
+		"oreId": "amber",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			255,
+			152,
+			0
+		],
+		"file": "build/charm-icons/amber_charm_2.png"
+	},
+	{
+		"id": "petrifact_charm",
+		"name": "Petrifact Brink Charm",
+		"oreId": "petrifact",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			151,
+			79,
+			45
+		],
+		"file": "build/charm-icons/petrifact_charm.png"
+	},
+	{
+		"id": "petrifact_charm_2",
+		"name": "Petrifact Surge Charm",
+		"oreId": "petrifact",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			151,
+			79,
+			45
+		],
+		"file": "build/charm-icons/petrifact_charm_2.png"
+	},
+	{
+		"id": "nickel_charm",
+		"name": "Nickel Focus Charm",
+		"oreId": "nickel",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			227,
+			195,
+			131
+		],
+		"file": "build/charm-icons/nickel_charm.png"
+	},
+	{
+		"id": "nickel_charm_2",
+		"name": "Nickel Twin Charm",
+		"oreId": "nickel",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			227,
+			195,
+			131
+		],
+		"file": "build/charm-icons/nickel_charm_2.png"
+	},
+	{
+		"id": "onyx_charm",
+		"name": "Onyx Pact Charm",
+		"oreId": "onyx",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			15,
+			15,
+			15
+		],
+		"file": "build/charm-icons/onyx_charm.png"
+	},
+	{
+		"id": "onyx_charm_2",
+		"name": "Onyx Ward Charm",
+		"oreId": "onyx",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Uncommon",
+		"bandIndex": 2,
+		"rgb": [
+			15,
+			15,
+			15
+		],
+		"file": "build/charm-icons/onyx_charm_2.png"
+	},
+	{
+		"id": "bloodstone_charm",
+		"name": "Bloodstone Brink Charm",
+		"oreId": "bloodstone",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			20,
+			95,
+			50
+		],
+		"file": "build/charm-icons/bloodstone_charm.png"
+	},
+	{
+		"id": "bloodstone_charm_2",
+		"name": "Bloodstone Surge Charm",
+		"oreId": "bloodstone",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			20,
+			95,
+			50
+		],
+		"file": "build/charm-icons/bloodstone_charm_2.png"
+	},
+	{
+		"id": "garnet_charm",
+		"name": "Garnet Focus Charm",
+		"oreId": "garnet",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			151,
+			0,
+			15
+		],
+		"file": "build/charm-icons/garnet_charm.png"
+	},
+	{
+		"id": "garnet_charm_2",
+		"name": "Garnet Twin Charm",
+		"oreId": "garnet",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			151,
+			0,
+			15
+		],
+		"file": "build/charm-icons/garnet_charm_2.png"
+	},
+	{
+		"id": "citrine_charm",
+		"name": "Citrine Pact Charm",
+		"oreId": "citrine",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			255,
+			212,
+			0
+		],
+		"file": "build/charm-icons/citrine_charm.png"
+	},
+	{
+		"id": "citrine_charm_2",
+		"name": "Citrine Ward Charm",
+		"oreId": "citrine",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			255,
+			212,
+			0
+		],
+		"file": "build/charm-icons/citrine_charm_2.png"
+	},
+	{
+		"id": "chromium_charm",
+		"name": "Chromium Brink Charm",
+		"oreId": "chromium",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			171,
+			201,
+			255
+		],
+		"file": "build/charm-icons/chromium_charm.png"
+	},
+	{
+		"id": "chromium_charm_2",
+		"name": "Chromium Surge Charm",
+		"oreId": "chromium",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			171,
+			201,
+			255
+		],
+		"file": "build/charm-icons/chromium_charm_2.png"
+	},
+	{
+		"id": "turquoise_charm",
+		"name": "Turquoise Focus Charm",
+		"oreId": "turquoise",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			11,
+			216,
+			201
+		],
+		"file": "build/charm-icons/turquoise_charm.png"
+	},
+	{
+		"id": "turquoise_charm_2",
+		"name": "Turquoise Twin Charm",
+		"oreId": "turquoise",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			11,
+			216,
+			201
+		],
+		"file": "build/charm-icons/turquoise_charm_2.png"
+	},
+	{
+		"id": "bismuth_charm",
+		"name": "Bismuth Pact Charm",
+		"oreId": "bismuth",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			188,
+			156,
+			238
+		],
+		"file": "build/charm-icons/bismuth_charm.png"
+	},
+	{
+		"id": "bismuth_charm_2",
+		"name": "Bismuth Ward Charm",
+		"oreId": "bismuth",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			188,
+			156,
+			238
+		],
+		"file": "build/charm-icons/bismuth_charm_2.png"
+	},
+	{
+		"id": "silver_charm",
+		"name": "Silver Brink Charm",
+		"oreId": "silver",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			250,
+			248,
+			242
+		],
+		"file": "build/charm-icons/silver_charm.png"
+	},
+	{
+		"id": "silver_charm_2",
+		"name": "Silver Surge Charm",
+		"oreId": "silver",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			250,
+			248,
+			242
+		],
+		"file": "build/charm-icons/silver_charm_2.png"
+	},
+	{
+		"id": "amethyst_charm",
+		"name": "Amethyst Focus Charm",
+		"oreId": "amethyst",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			112,
+			8,
+			186
+		],
+		"file": "build/charm-icons/amethyst_charm.png"
+	},
+	{
+		"id": "amethyst_charm_2",
+		"name": "Amethyst Twin Charm",
+		"oreId": "amethyst",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			112,
+			8,
+			186
+		],
+		"file": "build/charm-icons/amethyst_charm_2.png"
+	},
+	{
+		"id": "tigereye_charm",
+		"name": "Tigereye Pact Charm",
+		"oreId": "tigereye",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			189,
+			112,
+			0
+		],
+		"file": "build/charm-icons/tigereye_charm.png"
+	},
+	{
+		"id": "tigereye_charm_2",
+		"name": "Tigereye Ward Charm",
+		"oreId": "tigereye",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			189,
+			112,
+			0
+		],
+		"file": "build/charm-icons/tigereye_charm_2.png"
+	},
+	{
+		"id": "lapis_charm",
+		"name": "Lapis Brink Charm",
+		"oreId": "lapis",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			0,
+			39,
+			184
+		],
+		"file": "build/charm-icons/lapis_charm.png"
+	},
+	{
+		"id": "lapis_charm_2",
+		"name": "Lapis Surge Charm",
+		"oreId": "lapis",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			0,
+			39,
+			184
+		],
+		"file": "build/charm-icons/lapis_charm_2.png"
+	},
+	{
+		"id": "geode_charm",
+		"name": "Geode Focus Charm",
+		"oreId": "geode",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			150,
+			80,
+			240
+		],
+		"file": "build/charm-icons/geode_charm.png"
+	},
+	{
+		"id": "geode_charm_2",
+		"name": "Geode Twin Charm",
+		"oreId": "geode",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			150,
+			80,
+			240
+		],
+		"file": "build/charm-icons/geode_charm_2.png"
+	},
+	{
+		"id": "topaz_charm",
+		"name": "Topaz Pact Charm",
+		"oreId": "topaz",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			255,
+			113,
+			57
+		],
+		"file": "build/charm-icons/topaz_charm.png"
+	},
+	{
+		"id": "topaz_charm_2",
+		"name": "Topaz Ward Charm",
+		"oreId": "topaz",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			255,
+			113,
+			57
+		],
+		"file": "build/charm-icons/topaz_charm_2.png"
+	},
+	{
+		"id": "phosphorus_charm",
+		"name": "Phosphorus Brink Charm",
+		"oreId": "phosphorus",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			255,
+			252,
+			175
+		],
+		"file": "build/charm-icons/phosphorus_charm.png"
+	},
+	{
+		"id": "phosphorus_charm_2",
+		"name": "Phosphorus Surge Charm",
+		"oreId": "phosphorus",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			255,
+			252,
+			175
+		],
+		"file": "build/charm-icons/phosphorus_charm_2.png"
+	},
+	{
+		"id": "peridot_charm",
+		"name": "Peridot Focus Charm",
+		"oreId": "peridot",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			176,
+			229,
+			0
+		],
+		"file": "build/charm-icons/peridot_charm.png"
+	},
+	{
+		"id": "peridot_charm_2",
+		"name": "Peridot Twin Charm",
+		"oreId": "peridot",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			176,
+			229,
+			0
+		],
+		"file": "build/charm-icons/peridot_charm_2.png"
+	},
+	{
+		"id": "jade_charm",
+		"name": "Jade Pact Charm",
+		"oreId": "jade",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			58,
+			194,
+			104
+		],
+		"file": "build/charm-icons/jade_charm.png"
+	},
+	{
+		"id": "jade_charm_2",
+		"name": "Jade Ward Charm",
+		"oreId": "jade",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			58,
+			194,
+			104
+		],
+		"file": "build/charm-icons/jade_charm_2.png"
+	},
+	{
+		"id": "emberglass_charm",
+		"name": "Emberglass Brink Charm",
+		"oreId": "emberglass",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			255,
+			90,
+			0
+		],
+		"file": "build/charm-icons/emberglass_charm.png"
+	},
+	{
+		"id": "emberglass_charm_2",
+		"name": "Emberglass Surge Charm",
+		"oreId": "emberglass",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			255,
+			90,
+			0
+		],
+		"file": "build/charm-icons/emberglass_charm_2.png"
+	},
+	{
+		"id": "tungsten_charm",
+		"name": "Tungsten Focus Charm",
+		"oreId": "tungsten",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			113,
+			118,
+			138
+		],
+		"file": "build/charm-icons/tungsten_charm.png"
+	},
+	{
+		"id": "tungsten_charm_2",
+		"name": "Tungsten Twin Charm",
+		"oreId": "tungsten",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			113,
+			118,
+			138
+		],
+		"file": "build/charm-icons/tungsten_charm_2.png"
+	},
+	{
+		"id": "lithium_charm",
+		"name": "Lithium Pact Charm",
+		"oreId": "lithium",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			215,
+			222,
+			235
+		],
+		"file": "build/charm-icons/lithium_charm.png"
+	},
+	{
+		"id": "lithium_charm_2",
+		"name": "Lithium Ward Charm",
+		"oreId": "lithium",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			215,
+			222,
+			235
+		],
+		"file": "build/charm-icons/lithium_charm_2.png"
+	},
+	{
+		"id": "titanium_charm",
+		"name": "Titanium Brink Charm",
+		"oreId": "titanium",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			103,
+			58,
+			216
+		],
+		"file": "build/charm-icons/titanium_charm.png"
+	},
+	{
+		"id": "titanium_charm_2",
+		"name": "Titanium Surge Charm",
+		"oreId": "titanium",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			103,
+			58,
+			216
+		],
+		"file": "build/charm-icons/titanium_charm_2.png"
+	},
+	{
+		"id": "obsidian_charm",
+		"name": "Obsidian Focus Charm",
+		"oreId": "obsidian",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			26,
+			9,
+			48
+		],
+		"file": "build/charm-icons/obsidian_charm.png"
+	},
+	{
+		"id": "obsidian_charm_2",
+		"name": "Obsidian Twin Charm",
+		"oreId": "obsidian",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Rare",
+		"bandIndex": 3,
+		"rgb": [
+			26,
+			9,
+			48
+		],
+		"file": "build/charm-icons/obsidian_charm_2.png"
+	},
+	{
+		"id": "cobalt_charm",
+		"name": "Cobalt Pact Charm",
+		"oreId": "cobalt",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			0,
+			73,
+			248
+		],
+		"file": "build/charm-icons/cobalt_charm.png"
+	},
+	{
+		"id": "cobalt_charm_2",
+		"name": "Cobalt Ward Charm",
+		"oreId": "cobalt",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			0,
+			73,
+			248
+		],
+		"file": "build/charm-icons/cobalt_charm_2.png"
+	},
+	{
+		"id": "gold_charm",
+		"name": "Gold Brink Charm",
+		"oreId": "gold",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			255,
+			186,
+			0
+		],
+		"file": "build/charm-icons/gold_charm.png"
+	},
+	{
+		"id": "gold_charm_2",
+		"name": "Gold Surge Charm",
+		"oreId": "gold",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			255,
+			186,
+			0
+		],
+		"file": "build/charm-icons/gold_charm_2.png"
+	},
+	{
+		"id": "regolith_charm",
+		"name": "Regolith Focus Charm",
+		"oreId": "regolith",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			175,
+			175,
+			188
+		],
+		"file": "build/charm-icons/regolith_charm.png"
+	},
+	{
+		"id": "regolith_charm_2",
+		"name": "Regolith Twin Charm",
+		"oreId": "regolith",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			175,
+			175,
+			188
+		],
+		"file": "build/charm-icons/regolith_charm_2.png"
+	},
+	{
+		"id": "sunstone_charm",
+		"name": "Sunstone Pact Charm",
+		"oreId": "sunstone",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			255,
+			97,
+			0
+		],
+		"file": "build/charm-icons/sunstone_charm.png"
+	},
+	{
+		"id": "sunstone_charm_2",
+		"name": "Sunstone Ward Charm",
+		"oreId": "sunstone",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			255,
+			97,
+			0
+		],
+		"file": "build/charm-icons/sunstone_charm_2.png"
+	},
+	{
+		"id": "emerald_charm",
+		"name": "Emerald Brink Charm",
+		"oreId": "emerald",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			0,
+			173,
+			86
+		],
+		"file": "build/charm-icons/emerald_charm.png"
+	},
+	{
+		"id": "emerald_charm_2",
+		"name": "Emerald Surge Charm",
+		"oreId": "emerald",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			0,
+			173,
+			86
+		],
+		"file": "build/charm-icons/emerald_charm_2.png"
+	},
+	{
+		"id": "moonstone_charm",
+		"name": "Moonstone Focus Charm",
+		"oreId": "moonstone",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			132,
+			168,
+			255
+		],
+		"file": "build/charm-icons/moonstone_charm.png"
+	},
+	{
+		"id": "moonstone_charm_2",
+		"name": "Moonstone Twin Charm",
+		"oreId": "moonstone",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			132,
+			168,
+			255
+		],
+		"file": "build/charm-icons/moonstone_charm_2.png"
+	},
+	{
+		"id": "sapphire_charm",
+		"name": "Sapphire Pact Charm",
+		"oreId": "sapphire",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			0,
+			79,
+			201
+		],
+		"file": "build/charm-icons/sapphire_charm.png"
+	},
+	{
+		"id": "sapphire_charm_2",
+		"name": "Sapphire Ward Charm",
+		"oreId": "sapphire",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			0,
+			79,
+			201
+		],
+		"file": "build/charm-icons/sapphire_charm_2.png"
+	},
+	{
+		"id": "ruby_charm",
+		"name": "Ruby Brink Charm",
+		"oreId": "ruby",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			242,
+			0,
+			91
+		],
+		"file": "build/charm-icons/ruby_charm.png"
+	},
+	{
+		"id": "ruby_charm_2",
+		"name": "Ruby Surge Charm",
+		"oreId": "ruby",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			242,
+			0,
+			91
+		],
+		"file": "build/charm-icons/ruby_charm_2.png"
+	},
+	{
+		"id": "palladium_charm",
+		"name": "Palladium Focus Charm",
+		"oreId": "palladium",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			118,
+			164,
+			255
+		],
+		"file": "build/charm-icons/palladium_charm.png"
+	},
+	{
+		"id": "palladium_charm_2",
+		"name": "Palladium Twin Charm",
+		"oreId": "palladium",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			118,
+			164,
+			255
+		],
+		"file": "build/charm-icons/palladium_charm_2.png"
+	},
+	{
+		"id": "aquamarine_charm",
+		"name": "Aquamarine Pact Charm",
+		"oreId": "aquamarine",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			123,
+			224,
+			251
+		],
+		"file": "build/charm-icons/aquamarine_charm.png"
+	},
+	{
+		"id": "aquamarine_charm_2",
+		"name": "Aquamarine Ward Charm",
+		"oreId": "aquamarine",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			123,
+			224,
+			251
+		],
+		"file": "build/charm-icons/aquamarine_charm_2.png"
+	},
+	{
+		"id": "opal_charm",
+		"name": "Opal Brink Charm",
+		"oreId": "opal",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			240,
+			240,
+			255
+		],
+		"file": "build/charm-icons/opal_charm.png"
+	},
+	{
+		"id": "opal_charm_2",
+		"name": "Opal Surge Charm",
+		"oreId": "opal",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Epic",
+		"bandIndex": 4,
+		"rgb": [
+			240,
+			240,
+			255
+		],
+		"file": "build/charm-icons/opal_charm_2.png"
+	},
+	{
+		"id": "platinum_charm",
+		"name": "Platinum Focus Charm",
+		"oreId": "platinum",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			232,
+			223,
+			185
+		],
+		"file": "build/charm-icons/platinum_charm.png"
+	},
+	{
+		"id": "platinum_charm_2",
+		"name": "Platinum Twin Charm",
+		"oreId": "platinum",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			232,
+			223,
+			185
+		],
+		"file": "build/charm-icons/platinum_charm_2.png"
+	},
+	{
+		"id": "stormstone_charm",
+		"name": "Stormstone Pact Charm",
+		"oreId": "stormstone",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			60,
+			85,
+			160
+		],
+		"file": "build/charm-icons/stormstone_charm.png"
+	},
+	{
+		"id": "stormstone_charm_2",
+		"name": "Stormstone Ward Charm",
+		"oreId": "stormstone",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			60,
+			85,
+			160
+		],
+		"file": "build/charm-icons/stormstone_charm_2.png"
+	},
+	{
+		"id": "diamond_charm",
+		"name": "Diamond Brink Charm",
+		"oreId": "diamond",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			199,
+			240,
+			255
+		],
+		"file": "build/charm-icons/diamond_charm.png"
+	},
+	{
+		"id": "diamond_charm_2",
+		"name": "Diamond Surge Charm",
+		"oreId": "diamond",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			199,
+			240,
+			255
+		],
+		"file": "build/charm-icons/diamond_charm_2.png"
+	},
+	{
+		"id": "starmetal_charm",
+		"name": "Starmetal Focus Charm",
+		"oreId": "starmetal",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			55,
+			65,
+			130
+		],
+		"file": "build/charm-icons/starmetal_charm.png"
+	},
+	{
+		"id": "starmetal_charm_2",
+		"name": "Starmetal Twin Charm",
+		"oreId": "starmetal",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			55,
+			65,
+			130
+		],
+		"file": "build/charm-icons/starmetal_charm_2.png"
+	},
+	{
+		"id": "aetherite_charm",
+		"name": "Aetherite Pact Charm",
+		"oreId": "aetherite",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			225,
+			245,
+			255
+		],
+		"file": "build/charm-icons/aetherite_charm.png"
+	},
+	{
+		"id": "aetherite_charm_2",
+		"name": "Aetherite Ward Charm",
+		"oreId": "aetherite",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			225,
+			245,
+			255
+		],
+		"file": "build/charm-icons/aetherite_charm_2.png"
+	},
+	{
+		"id": "meteorite_charm",
+		"name": "Meteorite Brink Charm",
+		"oreId": "meteorite",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			138,
+			94,
+			66
+		],
+		"file": "build/charm-icons/meteorite_charm.png"
+	},
+	{
+		"id": "meteorite_charm_2",
+		"name": "Meteorite Surge Charm",
+		"oreId": "meteorite",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			138,
+			94,
+			66
+		],
+		"file": "build/charm-icons/meteorite_charm_2.png"
+	},
+	{
+		"id": "soulstone_charm",
+		"name": "Soulstone Focus Charm",
+		"oreId": "soulstone",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			70,
+			255,
+			200
+		],
+		"file": "build/charm-icons/soulstone_charm.png"
+	},
+	{
+		"id": "soulstone_charm_2",
+		"name": "Soulstone Twin Charm",
+		"oreId": "soulstone",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			70,
+			255,
+			200
+		],
+		"file": "build/charm-icons/soulstone_charm_2.png"
+	},
+	{
+		"id": "galaxite_charm",
+		"name": "Galaxite Pact Charm",
+		"oreId": "galaxite",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			40,
+			20,
+			90
+		],
+		"file": "build/charm-icons/galaxite_charm.png"
+	},
+	{
+		"id": "galaxite_charm_2",
+		"name": "Galaxite Ward Charm",
+		"oreId": "galaxite",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			40,
+			20,
+			90
+		],
+		"file": "build/charm-icons/galaxite_charm_2.png"
+	},
+	{
+		"id": "frostfire_charm",
+		"name": "Frostfire Brink Charm",
+		"oreId": "frostfire",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			120,
+			200,
+			255
+		],
+		"file": "build/charm-icons/frostfire_charm.png"
+	},
+	{
+		"id": "frostfire_charm_2",
+		"name": "Frostfire Surge Charm",
+		"oreId": "frostfire",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Legendary",
+		"bandIndex": 5,
+		"rgb": [
+			120,
+			200,
+			255
+		],
+		"file": "build/charm-icons/frostfire_charm_2.png"
+	},
+	{
+		"id": "umbrite_charm",
+		"name": "Umbrite Focus Charm",
+		"oreId": "umbrite",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			20,
+			10,
+			32
+		],
+		"file": "build/charm-icons/umbrite_charm.png"
+	},
+	{
+		"id": "umbrite_charm_2",
+		"name": "Umbrite Twin Charm",
+		"oreId": "umbrite",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			20,
+			10,
+			32
+		],
+		"file": "build/charm-icons/umbrite_charm_2.png"
+	},
+	{
+		"id": "celestine_charm",
+		"name": "Celestine Pact Charm",
+		"oreId": "celestine",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			255,
+			228,
+			140
+		],
+		"file": "build/charm-icons/celestine_charm.png"
+	},
+	{
+		"id": "celestine_charm_2",
+		"name": "Celestine Ward Charm",
+		"oreId": "celestine",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			255,
+			228,
+			140
+		],
+		"file": "build/charm-icons/celestine_charm_2.png"
+	},
+	{
+		"id": "orichalcum_charm",
+		"name": "Orichalcum Brink Charm",
+		"oreId": "orichalcum",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			255,
+			145,
+			0
+		],
+		"file": "build/charm-icons/orichalcum_charm.png"
+	},
+	{
+		"id": "orichalcum_charm_2",
+		"name": "Orichalcum Surge Charm",
+		"oreId": "orichalcum",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			255,
+			145,
+			0
+		],
+		"file": "build/charm-icons/orichalcum_charm_2.png"
+	},
+	{
+		"id": "spectrite_charm",
+		"name": "Spectrite Focus Charm",
+		"oreId": "spectrite",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			255,
+			255,
+			255
+		],
+		"file": "build/charm-icons/spectrite_charm.png"
+	},
+	{
+		"id": "spectrite_charm_2",
+		"name": "Spectrite Twin Charm",
+		"oreId": "spectrite",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			255,
+			255,
+			255
+		],
+		"file": "build/charm-icons/spectrite_charm_2.png"
+	},
+	{
+		"id": "mythril_charm",
+		"name": "Mythril Pact Charm",
+		"oreId": "mythril",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			132,
+			207,
+			255
+		],
+		"file": "build/charm-icons/mythril_charm.png"
+	},
+	{
+		"id": "mythril_charm_2",
+		"name": "Mythril Ward Charm",
+		"oreId": "mythril",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			132,
+			207,
+			255
+		],
+		"file": "build/charm-icons/mythril_charm_2.png"
+	},
+	{
+		"id": "dragonstone_charm",
+		"name": "Dragonstone Brink Charm",
+		"oreId": "dragonstone",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			185,
+			10,
+			20
+		],
+		"file": "build/charm-icons/dragonstone_charm.png"
+	},
+	{
+		"id": "dragonstone_charm_2",
+		"name": "Dragonstone Surge Charm",
+		"oreId": "dragonstone",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Mythic",
+		"bandIndex": 6,
+		"rgb": [
+			185,
+			10,
+			20
+		],
+		"file": "build/charm-icons/dragonstone_charm_2.png"
+	},
+	{
+		"id": "adamantite_charm",
+		"name": "Adamantite Focus Charm",
+		"oreId": "adamantite",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Divine",
+		"bandIndex": 7,
+		"rgb": [
+			184,
+			0,
+			32
+		],
+		"file": "build/charm-icons/adamantite_charm.png"
+	},
+	{
+		"id": "adamantite_charm_2",
+		"name": "Adamantite Twin Charm",
+		"oreId": "adamantite",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Divine",
+		"bandIndex": 7,
+		"rgb": [
+			184,
+			0,
+			32
+		],
+		"file": "build/charm-icons/adamantite_charm_2.png"
+	},
+	{
+		"id": "thorium_charm",
+		"name": "Thorium Pact Charm",
+		"oreId": "thorium",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Divine",
+		"bandIndex": 7,
+		"rgb": [
+			191,
+			191,
+			181
+		],
+		"file": "build/charm-icons/thorium_charm.png"
+	},
+	{
+		"id": "thorium_charm_2",
+		"name": "Thorium Ward Charm",
+		"oreId": "thorium",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Divine",
+		"bandIndex": 7,
+		"rgb": [
+			191,
+			191,
+			181
+		],
+		"file": "build/charm-icons/thorium_charm_2.png"
+	},
+	{
+		"id": "uranium_charm",
+		"name": "Uranium Brink Charm",
+		"oreId": "uranium",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Divine",
+		"bandIndex": 7,
+		"rgb": [
+			255,
+			226,
+			0
+		],
+		"file": "build/charm-icons/uranium_charm.png"
+	},
+	{
+		"id": "uranium_charm_2",
+		"name": "Uranium Surge Charm",
+		"oreId": "uranium",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Divine",
+		"bandIndex": 7,
+		"rgb": [
+			255,
+			226,
+			0
+		],
+		"file": "build/charm-icons/uranium_charm_2.png"
+	},
+	{
+		"id": "plutonium_charm",
+		"name": "Plutonium Focus Charm",
+		"oreId": "plutonium",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Divine",
+		"bandIndex": 7,
+		"rgb": [
+			222,
+			150,
+			105
+		],
+		"file": "build/charm-icons/plutonium_charm.png"
+	},
+	{
+		"id": "plutonium_charm_2",
+		"name": "Plutonium Twin Charm",
+		"oreId": "plutonium",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Divine",
+		"bandIndex": 7,
+		"rgb": [
+			222,
+			150,
+			105
+		],
+		"file": "build/charm-icons/plutonium_charm_2.png"
+	},
+	{
+		"id": "fermium_charm",
+		"name": "Fermium Pact Charm",
+		"oreId": "fermium",
+		"variant": 1,
+		"shape": "pact",
+		"band": "Exotic",
+		"bandIndex": 8,
+		"rgb": [
+			255,
+			2,
+			70
+		],
+		"file": "build/charm-icons/fermium_charm.png"
+	},
+	{
+		"id": "fermium_charm_2",
+		"name": "Fermium Ward Charm",
+		"oreId": "fermium",
+		"variant": 2,
+		"shape": "condition",
+		"band": "Exotic",
+		"bandIndex": 8,
+		"rgb": [
+			255,
+			2,
+			70
+		],
+		"file": "build/charm-icons/fermium_charm_2.png"
+	},
+	{
+		"id": "lawrencium_charm",
+		"name": "Lawrencium Brink Charm",
+		"oreId": "lawrencium",
+		"variant": 1,
+		"shape": "threshold",
+		"band": "Exotic",
+		"bandIndex": 8,
+		"rgb": [
+			255,
+			235,
+			177
+		],
+		"file": "build/charm-icons/lawrencium_charm.png"
+	},
+	{
+		"id": "lawrencium_charm_2",
+		"name": "Lawrencium Surge Charm",
+		"oreId": "lawrencium",
+		"variant": 2,
+		"shape": "ramp",
+		"band": "Exotic",
+		"bandIndex": 8,
+		"rgb": [
+			255,
+			235,
+			177
+		],
+		"file": "build/charm-icons/lawrencium_charm_2.png"
+	},
+	{
+		"id": "oganesson_charm",
+		"name": "Oganesson Focus Charm",
+		"oreId": "oganesson",
+		"variant": 1,
+		"shape": "focus",
+		"band": "Exotic",
+		"bandIndex": 8,
+		"rgb": [
+			17,
+			0,
+			42
+		],
+		"file": "build/charm-icons/oganesson_charm.png"
+	},
+	{
+		"id": "oganesson_charm_2",
+		"name": "Oganesson Twin Charm",
+		"oreId": "oganesson",
+		"variant": 2,
+		"shape": "pair",
+		"band": "Exotic",
+		"bandIndex": 8,
+		"rgb": [
+			17,
+			0,
+			42
+		],
+		"file": "build/charm-icons/oganesson_charm_2.png"
+	}
+]

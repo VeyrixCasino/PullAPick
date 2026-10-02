@@ -55,7 +55,22 @@ MineConfig.REGEN_SEC = 0
 MineConfig.SWING_SEC = 0.42
 MineConfig.MAX_POWER = 25
 MineConfig.STARTER_PET_SLOTS = 3
-MineConfig.MAX_PET_SLOTS = 8
+--[[
+	THREE PET SLOTS, AND THAT IS ALL OF THEM.
+
+	It used to climb to eight -- three free and five sold, the fourth for gems
+	and two for Robux. A fourth pet is not a small thing: every pet's boost is
+	multiplied by every hat you wear, so each seat added is a multiplier on the
+	whole gear stack rather than a flat step, and the ladder to eight was the
+	single largest power gap in the game sitting behind a till.
+
+	Three is now the number for everybody. STARTER and MAX being equal is the
+	point: every clamp in the game already reads MAX, so there is no seat four
+	to buy, no seat four to migrate into, and nothing to hide in the shop. A save
+	that bought its way to eight is clamped back down on load -- the pets are all
+	still owned, only three come out at a time.
+]]
+MineConfig.MAX_PET_SLOTS = 3
 MineConfig.CAMP_RADIUS = 180
 -- Quality of life: the walk from the plaza to the far counters and back
 -- down the mine is the most repeated action in the game.
@@ -144,7 +159,7 @@ function MineConfig.rebirthGems(r)
 end
 
 -- The Charter is the long game for gems: it never resets, so gems stay worth
--- banking after a rebirth wipes your coins. Pet slots still spend gems; backpacks
+-- banking after a rebirth wipes your coins. Backpacks
 -- are a coin ladder again (runes will be the next gem sink).
 MineConfig.CHARTER = {
 	{ id = "survey",  name = "Survey Rights",  stat = "oreYield",  per = 0.04, max = 10, base = 14000, step = 1.62 },
@@ -395,7 +410,10 @@ MineConfig.BARE_HANDS = {
 
 MineConfig.BACKPACKS = require(script.Parent:WaitForChild("MineBags")).LIST
 
-MineConfig.PET_SLOT_PRICE = { 0, 0, 0, 400, 900, 1800, 3200, 5000 }
+-- Kept so an old shop row or an old save resolves rather than erroring. Nothing
+-- is purchasable: MAX_PET_SLOTS is 3, so every price here is for a seat that
+-- cannot exist.
+MineConfig.PET_SLOT_PRICE = { 0, 0, 0 }
 MineConfig.CRATE_PRICE = 200
 --[[
 	Limited event mine (Event Horizon — Matter± / Cosmo / Albert Minestein).
@@ -565,7 +583,8 @@ function MineConfig.isProgressionZone(zone)
 end
 MineConfig.POWER_DUST = 25
 -- VIP gamepass. No shop discount, bag, walk, or luck.
--- Perks: +1 pet seat, AFK coins/gems, [VIP] tag.
+-- Perks: remote sell (cooldown), AFK coins/gems, [VIP] tag. (It used to add a
+-- pet seat; three seats is everybody's number now, so it no longer can.)
 MineConfig.VIP_GAMEPASS_ID = 1977363670
 MineConfig.VIP_PRICE_MULT = 1
 MineConfig.VIP_PAYOUT_MULT = 1
@@ -580,12 +599,20 @@ MineConfig.AUTO_MINE_GAMEPASS_ID = 0
 MineConfig.AUTO_MINE_ROBUX = 499
 MineConfig.AUTO_MINE_LICENSE_RATE = 1
 
+--[[
+	Three, for everyone, always.
+
+	VIP used to add a fourth seat here and a saved petSlots could climb to eight.
+	Both are gone: a pet seat is a multiplier on the whole gear stack, not a flat
+	step, so selling them was the largest power gap in the game. The clamp is
+	what retires them -- STARTER and MAX are both 3, so a save that bought its
+	way up comes back down on load with every pet still owned.
+
+	Kept as a function because every caller goes through it; when a seat count
+	becomes situational again, this is where it belongs.
+]]
 function MineConfig.effectivePetSlots(p)
-	local n = math.clamp(math.floor(tonumber(p and p.petSlots) or 3), 3, MineConfig.MAX_PET_SLOTS)
-	if p and p.vipPass then
-		n = math.min(MineConfig.MAX_PET_SLOTS, n + 1)
-	end
-	return n
+	return math.clamp(math.floor(tonumber(p and p.petSlots) or 3), 3, MineConfig.MAX_PET_SLOTS)
 end
 
 --[[
@@ -716,7 +743,10 @@ MineConfig.PRODUCTS = {
 	group_wheel_1 = { productId = 0, robuxPrice = 20, creditsPrice = 20, spins = 1, name = "1 Group Wheel Spin" },
 	group_wheel_5 = { productId = 0, robuxPrice = 80, creditsPrice = 80, spins = 5, name = "5 Group Wheel Spins" },
 	group_wheel_10 = { productId = 0, robuxPrice = 150, creditsPrice = 150, spins = 10, name = "10 Group Wheel Spins" },
-	pet_slot = { productId = 0, robuxPrice = 199, creditsPrice = 199, name = "Extra Pet Seat" },
+	-- RETIRED. Three pet seats for everyone, so there is no seat to sell. Kept
+	-- so an old client's row still resolves to a name instead of erroring; the
+	-- buy path refuses it, and productId was never set, so nothing was ever sold.
+	pet_slot = { productId = 0, robuxPrice = 199, creditsPrice = 199, name = "Extra Pet Seat (retired)" },
 	coin_double = { productId = 0, gamePassId = 0, robuxPrice = 299, creditsPrice = 299, name = "2x Coins" },
 	auto_mine = { productId = 0, gamePassId = 0, robuxPrice = 499, creditsPrice = 499, name = "Auto-Mine License" },
 	-- Gamepass path uses FOUNDERS_GAMEPASS_ID; credits path uses creditsPrice.
@@ -2052,6 +2082,24 @@ MineConfig.ORE_HP_MULT = 3
 MineConfig.ORE_CHANCE = 1 / 200
 
 --[[
+	ORE CASE. A 2% drop per ore block broken, before luck.
+
+	The case IS the rare drop, and the whole rare line: tools are not found in
+	walls any more, and the old 0.6%-down-to-0.0012% wall-drop ladder is gone.
+
+	Opening one is GUARANTEED. A case pays a skin or a charm -- never a tool,
+	never ore, never a dud. There is no second roll deciding whether the case
+	was worth picking up; the only question left is which of the two it is.
+
+	The split is a quarter charms, three quarters skins, and the quarter is not
+	a taste call: 2% x 25% = 0.5%, which is exactly the charm drop rate the
+	design asks for. The two numbers are one decision. Move either and the
+	other stops meaning what it was chosen to mean.
+]]
+MineConfig.ORE_CASE_CHANCE = 0.02
+MineConfig.ORE_CASE_CHARM_SHARE = 0.25
+
+--[[
 	THE SHAPE, in three terms. Each does one job.
 
 	  x = ore.d - localD   (positive = ore is harder than this rock)
@@ -2548,6 +2596,43 @@ MineConfig.ORE_MIGRATION = {
 	zirconium = "cobalt",
 }
 
+--[[
+	HOW MANY ORES THERE ARE. 82, and this is the number to read rather than
+	`#ORES`, so a caller is never comparing against a stale literal.
+
+	The roster has been renumbered once already (121 down to 82) and it silently
+	re-pointed the tool ladder, because several places had the old count written
+	into them as a constant.
+]]
+MineConfig.ORE_COUNT = #MineConfig.ORES
+
+--[[
+	THE BANDS, and where they end.
+
+	Cutoffs come straight off ORE_YIELD_BANDS rather than being written out
+	again: that table already divides the roster into exactly these eight groups,
+	and two lists of the same eight boundaries is one list that will eventually
+	be wrong. Change a cutoff there and the band names follow.
+]]
+MineConfig.ORE_BAND_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic" }
+MineConfig.ORE_BAND_INDEX = {}
+for i, b in ipairs(MineConfig.ORE_BAND_ORDER) do
+	MineConfig.ORE_BAND_INDEX[b] = i
+end
+
+-- The band a tier falls in. One function, so the panel, the ore case and the
+-- pouch cannot grade the same ore differently.
+function MineConfig.oreBandForTier(tier)
+	local t = math.max(1, math.floor(tonumber(tier) or 1))
+	for i, b in ipairs(MineConfig.ORE_YIELD_BANDS) do
+		if t <= b.upTo then
+			return MineConfig.ORE_BAND_ORDER[i] or "Common", i
+		end
+	end
+	local last = #MineConfig.ORE_YIELD_BANDS
+	return MineConfig.ORE_BAND_ORDER[last] or "Exotic", last
+end
+
 MineConfig.ORE_BY_ID = {}
 do
 	-- D is derived from tier so the ladder cannot drift out of step with it.
@@ -2557,6 +2642,20 @@ do
 	for _, o in ipairs(MineConfig.ORES) do
 		o.d = (o.tier - 1) * MineConfig.ORE_DMAX / (n - 1)
 		o.packId = o.id .. "_ore_pack"
+		--[[
+			Band, and the HP of the rock this ore calls home.
+
+			Both are DERIVED, not authored on the row: `d` is already the ore's
+			depth coordinate, and 20 * 6^d is the rock HP at that coordinate --
+			the same 20 and the same 6 that ORE_DMAX is defined with just above,
+			so homeHp and d cannot drift apart.
+
+			homeHp is what the ore pouch prices gem value off. It is on the row
+			rather than recomputed per call because the pouch asks for it once
+			per row per frame.
+		]]
+		o.band, o.bandIndex = MineConfig.oreBandForTier(o.tier)
+		o.homeHp = 20 * (6 ^ o.d)
 		MineConfig.ORE_BY_ID[o.id] = o
 	end
 end

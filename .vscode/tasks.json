@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Rojo: serve (connect from Studio)",
+      "type": "shell",
+      "command": "rojo serve default.project.json",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "Rojo: sourcemap (watch)",
+      "type": "shell",
+      "command": "rojo sourcemap default.project.json -o sourcemap.json --watch",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "silent" }
+    },
+    {
+      "label": "Rojo: build place file",
+      "type": "shell",
+      "command": "rojo build default.project.json -o build/mine-for-cards.rbxl",
+      "problemMatcher": []
+    },
+    {
+      "label": "Studio -> src: 1. start receiver",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File tools/export/receiver.ps1",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "Studio -> src: 2. syncback",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File tools/export/sync.ps1",
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    }
+  ]
+}

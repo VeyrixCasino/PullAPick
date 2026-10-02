@@ -82,7 +82,15 @@ local function rarityColor(rar)
 	return (Cards.RARITY_COLOR and Cards.RARITY_COLOR[rar]) or nil
 end
 
+--[[
+	The Forge leads. Crafting a tool out of ore is the main line of progression,
+	so it is the tab the shop opens on; the coin-shop families that follow are
+	the second line. The coin shop may be removed outright later -- until that
+	call is made it stays reachable, just no longer first.
+]]
 local TABS = {
+	{ id = "bench", label = "Forge", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
+	{ id = "pouch", label = "Ore Pouch", blurb = "What you are carrying, and what it sells for. Ore pays gems; the pouch survives a rebirth." },
 	{ id = "pickaxe", label = "Pickaxes", blurb = "Aim, swing, break. One block at a time." },
 	{ id = "drill", label = "Drills", blurb = "Hold to mine. Wide clears area, narrow melts rock." },
 	{ id = "explosive", label = "Explosives", blurb = "Throw and clear a pattern. Extra bombs split the power." },
@@ -96,7 +104,6 @@ local TABS = {
 		forever tools could not be reached from the shop at all.
 	]]
 	{ id = "secrets", label = "Secrets", blurb = "Forever tools. Pulled from chests, never sold on a shelf." },
-	{ id = "bench", label = "Upgrade", blurb = "Level the ore tools you found. Paid in their own ore, plus stardust." },
 }
 
 --------------------------------------------------------------------------------
@@ -140,8 +147,8 @@ local function money(n)
 	local ok, Ab = pcall(function()
 		return require(shared:WaitForChild("MineAbbrev"))
 	end)
-	if ok and Ab and Ab.format then
-		return Ab.format(n)
+	if ok and Ab and Ab.currency then
+		return Ab.currency(n)
 	end
 	return tostring(math.floor(tonumber(n) or 0))
 end
@@ -208,8 +215,9 @@ end
 ]]
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
-	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oreTools = {}, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
-	local activeTab = "pickaxe"
+	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, oreLocks = {}, orePouch = {}, orePouchTier = 1, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
+	-- Opens on the Forge, not on a shelf of coin-bought picks.
+	local activeTab = "bench"
 	local index = 1
 	state.tempers, state.toolTempers = {}, {}
 	local view = {}
@@ -483,19 +491,22 @@ function MineShopView.mount(parent, opts)
 	end
 
 	----------------------------------------------------------------------------
-	-- THE BENCH
+	-- THE FORGE
 	--
-	-- MineBenchView already draws one row per ore tool with its next-level cost,
-	-- what you are holding against that cost, and +1 / +10 / MAX / SCRAP. It was
-	-- never mounted anywhere, so none of it could be reached. It hangs off the
-	-- shop root at 86 -- above the stage, below the header -- and only the
-	-- Upgrade tab shows it.
+	-- MineForge draws every tool in the game down a rail on the left and, on the
+	-- right, either the CRAFT recipe list (unowned: pick a discovered ore) or the
+	-- UPGRADE panel (owned: level, price, +1 / +10 / MAX, SCRAP). It supersedes
+	-- MineBenchView, which only ever showed tools you already had and so could
+	-- not tell a player what to build next.
+	--
+	-- It hangs off the shop root at 86 -- above the stage, below the header --
+	-- and only the Upgrade tab shows it.
 	--
 	-- Required through pcall: if the module is missing from a build, the tab
 	-- goes quiet instead of taking the whole shop down with it.
 	----------------------------------------------------------------------------
 	local okBench, Bench = pcall(function()
-		return require(shared:WaitForChild("MineBenchView", 5))
+		return require(shared:WaitForChild("MineForge", 5))
 	end)
 	local benchPanel, benchCtl
 	if okBench and Bench and Bench.mount then
@@ -515,9 +526,31 @@ function MineShopView.mount(parent, opts)
 				return {
 					oreTools = state.oreTools or {},
 					ores = state.ores or {},
+					oresSeen = state.oresSeen,
+					-- Which ore tool is in the player's hands, so the Forge can
+					-- mark it rather than offering to equip what is already held.
+					oreToolEquipped = state.oreToolEquipped,
 					dust = state.dust or 0,
+					-- The Forge quotes coins for the wooden pickaxe and shows a
+					-- wallet strip, so it needs both currencies, not just dust.
+					coins = state.coins or 0,
+					gems = state.gems or 0,
 					oreToolEquipped = state.oreToolEquipped,
 				}
+			end,
+			-- Out of the Forge and down to the second line.
+			onCoinShop = function()
+				view.setTab("pickaxe")
+			end,
+			onEquip = function(uid)
+				if opts.onEquipOreTool then
+					opts.onEquipOreTool(uid)
+				end
+			end,
+			onCraft = function(familyId, typeId, oreId)
+				if opts.onCraftOreTool then
+					opts.onCraftOreTool(familyId, typeId, oreId)
+				end
 			end,
 			onUpgrade = function(uid, n)
 				if opts.onUpgradeOreTool then
@@ -536,6 +569,79 @@ function MineShopView.mount(parent, opts)
 			end,
 		})
 		benchCtl = okMount and ctl or nil
+	end
+
+	----------------------------------------------------------------------------
+	-- ORE POUCH
+	--
+	-- Mounted the same guarded way as the Forge: a pcall require and a pcall
+	-- mount, so a panel that fails to load goes quiet instead of taking the
+	-- whole shop down with it.
+	----------------------------------------------------------------------------
+	local okPouch, PouchView = pcall(function()
+		return require(shared:WaitForChild("MineOrePouchView", 5))
+	end)
+	local pouchPanel, pouchCtl
+	if okPouch and PouchView and PouchView.mount then
+		pouchPanel = mk("Frame", {
+			Name = "PouchPanel",
+			Visible = false,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 156),
+			Size = UDim2.new(0.86, 0, 1, -236),
+			BackgroundTransparency = 1,
+			ZIndex = 86,
+		}, root)
+		local okMountP, ctlP = pcall(PouchView.mount, pouchPanel, {
+			--[[
+				The pouch reads the same state the rest of the shop does. It is
+				handed `orePouch` as the server computed it rather than deriving
+				capacity and the next rung's price itself -- the price comes off
+				the ore value curve, and a panel that computes its own would
+				quote a number the server then refuses.
+			]]
+			getSnap = function()
+				return {
+					ores = state.ores or {},
+					oreLocks = state.oreLocks or {},
+					orePouch = state.orePouch or {},
+					orePouchTier = state.orePouchTier or 1,
+					gems = state.gems or 0,
+				}
+			end,
+			onUpgradePouch = function()
+				if opts.onUpgradeOrePouch then
+					opts.onUpgradeOrePouch()
+				end
+			end,
+			onToggleLock = function(oreId)
+				if opts.onToggleOreLock then
+					opts.onToggleOreLock(oreId)
+				end
+			end,
+			onSellOre = function(oreId)
+				if opts.onSellOre then
+					opts.onSellOre(oreId)
+				end
+			end,
+			onSellAll = function(confirm)
+				if opts.onSellAllOres then
+					opts.onSellAllOres(confirm)
+				end
+			end,
+		})
+		pouchCtl = okMountP and ctlP or nil
+	end
+
+	--[[
+		The server's answer to a Sell All ask, forwarded in. The dialog is never
+		opened on numbers this panel made up: the host calls this with what the
+		server priced.
+	]]
+	function view.showSellAllConfirm(info)
+		if pouchCtl and pouchCtl.showConfirm then
+			pcall(pouchCtl.showConfirm, info)
+		end
 	end
 
 	----------------------------------------------------------------------------
@@ -1819,6 +1925,15 @@ function MineShopView.mount(parent, opts)
 			you already own, so leaving the pedestal running behind it would show
 			a tool that has nothing to do with the rows.
 		]]
+		--[[
+			The Forge is the tab the shop opens on, so a missing panel is no
+			longer a tab you simply do not click -- it would be a blank screen
+			on open for every player. If the module failed to require, fall back
+			to the first coin-shop family instead.
+		]]
+		if activeTab == "bench" and not benchPanel then
+			activeTab = "pickaxe"
+		end
 		if activeTab == "bench" then
 			creditsStage.Visible = false
 			card.Visible = false
@@ -1840,6 +1955,24 @@ function MineShopView.mount(parent, opts)
 				end
 			end
 			return
+		end
+		if activeTab == "pouch" and pouchPanel then
+			creditsStage.Visible = false
+			card.Visible = false
+			leftBtn.Visible = false
+			rightBtn.Visible = false
+			counter.Visible = false
+			track.Visible = false
+			temperBar.Visible = false
+			vp.Visible = false
+			pouchPanel.Visible = true
+			if pouchCtl and pouchCtl.refresh then
+				pcall(pouchCtl.refresh)
+			end
+			return
+		end
+		if pouchPanel then
+			pouchPanel.Visible = false
 		end
 		if benchPanel then
 			benchPanel.Visible = false
@@ -2130,6 +2263,13 @@ function MineShopView.mount(parent, opts)
 		-- Banked ore and the ore tools themselves: the bench prices every row
 		-- against these two.
 		state.ores = snapshot.ores or {}
+		state.oreLocks = snapshot.oreLocks or {}
+		state.orePouch = snapshot.orePouch or {}
+		state.orePouchTier = snapshot.orePouchTier or 1
+		-- The Forge lists one recipe per ore ever held, not per ore banked, so
+		-- spending your last unit of something does not delete its recipe.
+		state.oresSeen = snapshot.oresSeen or {}
+		state.oreToolEquipped = snapshot.oreToolEquipped
 		state.oreTools = snapshot.oreTools or {}
 		state.oreToolEquipped = snapshot.oreToolEquipped
 		state.backpackTier = snapshot.backpackTier or 1

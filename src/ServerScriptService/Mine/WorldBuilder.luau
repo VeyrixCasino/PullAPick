@@ -1319,12 +1319,10 @@ function WorldBuilder.buildLobby(world)
 		{ x = -70, z = -46, style = "spire", title = "Enchanter", verb = "RUNES", npc = "Sable",
 		  role = "Runes, scrap, stardust shop", machine = "enchanter", locked = false,
 		  pal = { brick = Color3.fromRGB(74, 70, 106), roof = Color3.fromRGB(46, 42, 72), trim = Color3.fromRGB(102, 94, 138), accent = Color3.fromRGB(154, 144, 226), mat = Enum.Material.Slate } },
-		-- Moved off the west wall. It sat 36 studs from the Enchanter while the
-		-- east-south arc was empty for 105 degrees, so two stations crowded each
-		-- other and half the ring had nothing on it.
-		{ x = 66, z = -30, style = "board", title = "Fossil Bench", verb = "FOSSIL", npc = "Ossie",
-		  role = "Assemble fossil tools", machine = "fossil", locked = false,
-		  pal = { brick = Color3.fromRGB(168, 140, 96), roof = Color3.fromRGB(110, 88, 58), trim = TIMBER, accent = Color3.fromRGB(210, 180, 120), mat = Enum.Material.Sandstone } },
+		-- The FOSSIL BENCH stood here (x 66, z -30), and it is gone with the
+		-- fossil system. The slot is deliberately left empty rather than filled:
+		-- the build is charms and skins now, and both are opened from the
+		-- Enchanter and the pouch, so nothing needs a building on the ring.
 		-- Job Board / Contractor: rotating contracts (was "coming soon" lean-to).
 		{ x = -48, z = 68, style = "board", title = "Job Board", verb = "JOBS", npc = "Pike",
 		  role = "Daily contracts", machine = "contractor", locked = false,

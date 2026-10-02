@@ -2017,8 +2017,10 @@ local function shortNum(n)
 	local ok, Ab = pcall(function()
 		return require(game.ReplicatedStorage.Mine.Shared:WaitForChild("MineAbbrev"))
 	end)
-	if ok and Ab and Ab.format then
-		return Ab.format(n)
+	-- currency, not format: four significant figures and floored, so a wallet
+	-- never rounds up and tells a player they can afford something they cannot.
+	if ok and Ab and Ab.currency then
+		return Ab.currency(n)
 	end
 	return tostring(math.floor(tonumber(n) or 0))
 end
@@ -2049,6 +2051,8 @@ function ClientFns.showSpin(dur)
 	spinUntil = os.clock() + spinFor
 	spinBar.Visible = true
 end
+
+-- Last time the breaking-power refusal was shown, so a held swing cannot spam it.
 
 local function showToast(t)
 	toast.Text = t
@@ -2429,8 +2433,6 @@ function ClientFns.socketRoute(item, runeId, index)
 		net:FireServer("socketPetRune", { cardId = item.id, runeId = runeId })
 	elseif item.kind == "chest" then
 		net:FireServer("socketToolRune", { runeId = runeId, chestId = item.id, family = item.family })
-	elseif item.kind == "fossil" then
-		net:FireServer("socketToolRune", { runeId = runeId, fossilId = item.id, family = item.family })
 	elseif item.kind == "shop" then
 		net:FireServer("socketToolRune", { runeId = runeId, shopToolId = item.id, family = item.family })
 	else
@@ -2915,9 +2917,11 @@ invCtl = InventoryView.mount(gui, {
 		Audio.play("equip")
 		net:FireServer("upgradeGear", { a = aId, b = bId })
 	end,
-	onEquipGear = function(id)
+	-- `slot` is the seat the player was looking at. The server honours it when it
+	-- names a real seat and takes the first free one otherwise.
+	onEquipGear = function(id, slot)
 		Audio.play("equip")
-		net:FireServer("equipGear", { gearId = id })
+		net:FireServer("equipGear", { gearId = id, slot = slot })
 	end,
 			onSocketGear = function(gearId, runeId, index)
 				net:FireServer("socketGearRune", { gearId = gearId, runeId = runeId, index = index })
@@ -2925,13 +2929,6 @@ invCtl = InventoryView.mount(gui, {
 	onUnequipGear = function(slot, gearId)
 		net:FireServer("unequipGear", { slot = slot, gearId = gearId })
 	end,
-	-- A hat goes on a PET. The server takes it off whoever was wearing it, so
-	-- there is no "unequip first" step to teach.
-	onEquipPetHat = function(cardId, gearId)
-		Audio.play("equip")
-		net:FireServer("equipPetHat", { cardId = cardId, gearId = gearId })
-	end,
-	onUnequipPetHat = function(cardId) net:FireServer("unequipPetHat", { cardId = cardId }) end,
 	onEquipBest = function() net:FireServer("equipBest") end,
 	onSocketAny = function(item, runeId, index) ClientFns.socketRoute(item, runeId, index) end,
 	-- The plus tile at the end of your gear: walk to the machine, open summons.
@@ -2963,7 +2960,6 @@ invCtl = InventoryView.mount(gui, {
 		net:FireServer("equipTool", { family = family, tier = tier })
 	end,
 	onEquipChestTool = function(id) net:FireServer("equipChestTool", { id = id }) end,
-	onEquipFossilTool = function(id) net:FireServer("equipChestTool", { fossilId = id }) end,
 	-- Inventory -> Equipment. The card has already made the player hold SELL
 	-- for three seconds; the server re-checks everything regardless.
 	onEquipShopTool = function(id)
@@ -2972,8 +2968,19 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onSellTool = function(payload) net:FireServer("sellTool", payload) end,
 	onScrapGear = function(id) net:FireServer("scrap", { kind = "gear", id = id }) end,
-	onScrapMany = function(kind, ids)
-		net:FireServer("scrapMany", { kind = kind or "gear", ids = ids })
+	--[[
+		Bulk scrap goes out twice. The first call carries no confirm flag and is
+		the ASK -- the server builds the plan and replies with `confirmScrap`,
+		which opens the review screen on the server's own figures. The second
+		carries confirm and performs it, all or nothing.
+	]]
+	onScrapMany = function(kind, ids, into, confirm)
+		net:FireServer("scrapMany", {
+			kind = kind or "gear",
+			ids = ids,
+			into = into,
+			confirm = confirm and true or nil,
+		})
 	end,
 	-- Shop -> Stardust. The server checks both stocks and the price.
 	onBuyDustPack = function(id, qty) net:FireServer("buyDustPack", { id = id, qty = qty }) end,
@@ -3222,7 +3229,7 @@ end
 ]]
 ClientFns.STATION_LABEL = {
 	sell = "SELL", shop = "BLACKSMITH", enchanter = "ENCHANTER", contractor = "JOBS",
-	fossil = "FOSSIL BENCH", prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
+	fossil = "RETIRED", prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
 }
 
 function ClientFns.pitWaypointPos()
@@ -4508,6 +4515,20 @@ shopCtl = ShopView.mount(gui, {
 		names a different tool by the time the button is pressed. Levels are a
 		count, and the server clamps it to what is left below the cap.
 	]]
+	--[[
+		The Forge. Three ids and nothing else: the server re-derives the recipe
+		and the price from the roster and MineConfig, so a modified client can
+		ask for a different tool but never for a different cost, and never for
+		an ore it is not holding.
+	]]
+	-- Equip a forged ore tool, or unequip with no uid. The server re-gives the
+	-- Tool instance and stamps its breaking power.
+	onEquipOreTool = function(uid)
+		net:FireServer("equipOreTool", { uid = uid })
+	end,
+	onCraftOreTool = function(familyId, typeId, oreId)
+		net:FireServer("craftOreTool", { familyId = familyId, typeId = typeId, oreId = oreId })
+	end,
 	onUpgradeOreTool = function(uid, count)
 		net:FireServer("upgradeOreTool", { uid = uid, count = count })
 	end,
@@ -4518,6 +4539,29 @@ shopCtl = ShopView.mount(gui, {
 	-- way, so the button can be a straight toggle.
 	onEquipOreTool = function(uid)
 		net:FireServer("equipOreTool", { uid = uid or "" })
+	end,
+
+	--[[
+		THE ORE POUCH. Selling ore is the game's only gem tap, so every one of
+		these is server-authoritative: the client names what to do and never how
+		much it is worth.
+
+		Sell All goes out twice. The first call carries no confirm flag and is
+		the ASK -- the server prices the sale and replies with `confirmSellAll`,
+		which opens the dialog on the server's own figures. The second carries
+		confirm and performs it.
+	]]
+	onUpgradeOrePouch = function()
+		net:FireServer("upgradeOrePouch")
+	end,
+	onToggleOreLock = function(oreId)
+		net:FireServer("toggleOreLock", { oreId = oreId })
+	end,
+	onSellOre = function(oreId, count)
+		net:FireServer("sellOre", { oreId = oreId, count = count })
+	end,
+	onSellAllOres = function(confirm)
+		net:FireServer("sellAllOres", { confirm = confirm and true or nil })
 	end,
 })
 
@@ -5207,7 +5251,12 @@ function ClientFns.petHatPiece(card)
 	if not (snap and card) then
 		return nil
 	end
-	local gearId = (snap.petHats or {})[card.id]
+	--[[
+		Pets wear no hats. Kept as a stub returning nil so an older view that
+		still asks gets "nothing on this pet" rather than an error -- which is
+		also the truth.
+	]]
+	local gearId = nil
 	if not gearId then
 		return nil
 	end
@@ -6284,11 +6333,11 @@ local function refreshShop()
 	else
 		rowBtn(shopP.Body, "Bag maxed", function() end)
 	end
-	if snap.petSlots < 8 then
-		rowBtn(shopP.Body, "Pet slot " .. (snap.petSlots + 1) .. "   " .. (C.PET_SLOT_PRICE[snap.petSlots + 1] or 0) .. " gems", function()
-			net:FireServer("buy", "petSlot")
-		end)
-	end
+	--[[
+		No pet-slot row. Three seats is everybody's number now, so there is no
+		fourth to sell -- and the row used to read the cap as a literal 8, which
+		would have kept offering seats the server refuses.
+	]]
 	rowBtn(shopP.Body, "Crate   " .. C.CRATE_PRICE .. " gems", function()
 		net:FireServer("buy", "crate")
 	end)
@@ -6885,7 +6934,7 @@ local function refreshDust()
 	elseif tab == "packs" then
 		local PacksMod = require(shared:WaitForChild("MinePackConfig"))
 		--[==[
-			Ore packs carry their ore's tier, and at 121 ores the name alone
+			Ore packs carry their ore's tier, and across a roster this size the name alone
 			does not place one: "Magnetite Ore Pack" says nothing about whether
 			that is an early find or a deep one. The tier does, so it rides on
 			the subtitle where the generic "Unopened pack" used to sit.
@@ -7112,6 +7161,8 @@ local function refreshDust()
 	end
 end
 
+-- Retired with the fossil system. Always zero: a save's pieces were cashed out
+-- to gems on load, and nothing drops a new one.
 function ClientFns.countFossilPieces(fossilId)
 	local n = 0
 	for _, piece in ipairs(snap.fossilPieces or {}) do
@@ -7133,120 +7184,27 @@ end
 	Now it is a grid of the same tiles the rune view uses: one card per recipe,
 	progress on it, and the action it currently supports.
 ]]
+--[[
+	THE FOSSIL BENCH PANEL, retired.
+
+	Fossils are gone, and so is the bench. The panel stays reachable only because
+	an old build's button or a stale waypoint can still open it, and an empty
+	frame reads as a broken screen -- so it says what happened instead.
+
+	Anything a save still held was cashed out to gems on load, server-side.
+]]
 local function refreshFossil()
 	clear(fossilP.Body)
-	if not snap then
-		return
-	end
-	local equipped = snap.fossilTool
-
-	local head = mk("Frame", { BackgroundColor3 = BG2, Size = UDim2.new(1, -8, 0, 46),
-		LayoutOrder = 0 }, fossilP.Body)
-	round(head, 8)
-	mk("TextLabel", { BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT,
-		Text = "Break fossils in the mine for pieces. A full set becomes a tool you keep through rebirths.",
-		Position = UDim2.fromOffset(14, 0), Size = UDim2.new(1, -300, 1, 0),
-		TextXAlignment = Enum.TextXAlignment.Left }, head)
-	if equipped and equipped ~= "" then
-		local eqTool = snap.fossilTools and snap.fossilTools[equipped]
-		local off = mk("TextButton", { AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(74, 78, 100),
-			Font = FONT, TextSize = 13, TextColor3 = TEXT,
-			Text = "Holding " .. ((eqTool and eqTool.name) or equipped) .. "  -  put down",
-			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
-			Size = UDim2.fromOffset(268, 30) }, head)
-		round(off, 7)
-		off.MouseButton1Click:Connect(function()
-			net:FireServer("fossil_equip", "")
-		end)
-	end
-
-	local grid = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -8, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 1 }, fossilP.Body)
-	mk("UIGridLayout", {
-		CellPadding = UDim2.fromOffset(10, 10),
-		CellSize = UDim2.fromOffset(232, 132),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Top,
-	}, grid)
-
-	for i, recipe in ipairs(Fossils.RECIPES) do
-		local have = ClientFns.countFossilPieces(recipe.id)
-		local Econ = require(game:GetService("ReplicatedStorage").Mine.Shared:WaitForChild("MineFossilEconomy"))
-		local need = Econ.needed()
-		local tool = snap.fossilTools and snap.fossilTools[recipe.id]
-		local isOn = tool and (equipped == recipe.id or equipped == tool.id)
-		local ready = have >= need
-		-- Buttons sit on the bottom row; without them, lift the text block so
-		-- empty tiles are not stuck top-left with a big empty gut.
-		local showActs = (ready and not tool) or tool or (have > 0)
-		local y0 = showActs and 10 or 28
-
-		local tile = mk("Frame", { BackgroundColor3 = BG2, LayoutOrder = i }, grid)
-		round(tile, 8)
-		stroke(tile, isOn and 2 or 1, isOn and Color3.fromRGB(120, 216, 150)
-			or (tool and GOLD or (ready and Color3.fromRGB(120, 216, 150) or nil)))
-
-		mk("TextLabel", { BackgroundTransparency = 1, Font = FONT, TextSize = 15,
-			TextColor3 = tool and GOLD or TEXT, Text = recipe.name,
-			Position = UDim2.fromOffset(12, y0), Size = UDim2.new(1, -24, 0, 20),
-			TextXAlignment = Enum.TextXAlignment.Center }, tile)
-		local rarityLabel = tostring(recipe.rarity or "Common")
-		local gradeBit = (tool and tool.grade) and string.format("  |  grade %.0f%%", (tool.grade or 0) * 100) or ""
-		mk("TextLabel", { BackgroundTransparency = 1, Font = FONT_M, TextSize = 12,
-			TextColor3 = MUTED, Text = rarityLabel .. "  |  " .. recipe.family .. "  |  " .. have .. " / " .. need .. " pieces" .. gradeBit,
-			Position = UDim2.fromOffset(12, y0 + 22), Size = UDim2.new(1, -24, 0, 16),
-			TextXAlignment = Enum.TextXAlignment.Center }, tile)
-
-		-- Progress, because "3 / 5" is a number and a bar is a feeling.
-		local track = mk("Frame", { BackgroundColor3 = Color3.fromRGB(24, 24, 29),
-			Position = UDim2.fromOffset(20, y0 + 46), Size = UDim2.new(1, -40, 0, 8) }, tile)
-		round(track, 4)
-		local fill = mk("Frame", { BackgroundColor3 = ready and Color3.fromRGB(120, 216, 150) or GOLD,
-			Size = UDim2.fromScale(math.clamp(have / math.max(need, 1), 0, 1), 1) }, track)
-		round(fill, 4)
-
-		if tool then
-			mk("TextLabel", { BackgroundTransparency = 1, Font = FONT_M, TextSize = 12,
-				TextColor3 = GOLD, Text = string.format("built  |  power %d  |  grade %d%%",
-					tool.power or 0, math.floor((tool.grade or 0) * 100 + 0.5)),
-				Position = UDim2.fromOffset(12, y0 + 58), Size = UDim2.new(1, -24, 0, 16),
-				TextXAlignment = Enum.TextXAlignment.Center }, tile)
-		end
-
-		local function act(text, colour, dark, x, w, fn)
-			local b2 = mk("TextButton", { AutoButtonColor = true, BackgroundColor3 = colour,
-				Font = FONT, TextSize = 13,
-				TextColor3 = dark and Color3.fromRGB(12, 24, 16) or TEXT, Text = text,
-				Position = UDim2.fromOffset(x, 96), Size = UDim2.fromOffset(w, 26) }, tile)
-			round(b2, 6)
-			b2.MouseButton1Click:Connect(fn)
-		end
-
-		if ready and not tool then
-			act("Assemble", Color3.fromRGB(96, 190, 104), true, 64, 104, function()
-				net:FireServer("fossil_assemble", recipe.id)
-			end)
-		elseif tool then
-			local eqX = (have > 0) and 12 or 64
-			act(isOn and "Holding" or "Equip", isOn and Color3.fromRGB(52, 74, 58) or Color3.fromRGB(70, 92, 140),
-				false, eqX, 104, function()
-				if isOn then
-					net:FireServer("fossil_equip", "")
-				else
-					net:FireServer("fossil_equip", tool.id or recipe.id)
-				end
-			end)
-		end
-		if have > 0 then
-			act("Dust", Color3.fromRGB(70, 74, 96), false, 122, 48, function()
-				net:FireServer("fossil_sell", { fossilId = recipe.id, mode = "dust" })
-			end)
-			act("Gems", Color3.fromRGB(70, 74, 96), false, 174, 48, function()
-				net:FireServer("fossil_sell", { fossilId = recipe.id, mode = "gems" })
-			end)
-		end
-	end
+	local box = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -24, 0, 96),
+		Position = UDim2.fromOffset(12, 12), LayoutOrder = 0 }, fossilP.Body)
+	mk("TextLabel", {
+		BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
+		Font = Enum.Font.Gotham, TextSize = 14, TextWrapped = true,
+		TextColor3 = Color3.fromRGB(190, 190, 200),
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Text = "Fossils are retired.\n\nThe pieces and tools you had were paid out in gems. "
+			.. "Your build is CHARMS and SKINS now -- charms drop from ore cases, skins come out of the same cases.",
+	}, box)
 end
 refreshZones = function()
 	if not snap then
@@ -7327,7 +7285,7 @@ function ClientFns.confirmRebirth()
 			local cost = (advice and advice.cost) or (snap and snap.rebirthCost) or 0
 			local early = (snap and (snap.coins or 0) or 0) < minCoins
 			return "You lose coins, the pick ladder, and mine depth.\n"
-				.. "You keep gems, cards, runes, gear, skills, temperaments, fossils.\n\n"
+				.. "You keep gems, cards, runes, gear, skills, skins, charms and your ore pouch.\n\n"
 				.. string.format("Fee %s  |  Minimum bank %s%s\n",
 					shortNum(cost), shortNum(minCoins), early and "  |  early" or "")
 				.. string.format("Rebirth %d grants %d skill points + %d temper tokens + %d gems.",
@@ -7770,7 +7728,7 @@ refreshPrestige = function()
 		}, card)
 	end
 	half(0, "YOU KEEP", Color3.fromRGB(130, 215, 140),
-		"Gems | cards | runes | gear\nSkills | temperaments | fossils\nZones stay unlocked")
+		"Gems | cards | runes | gear\nSkills | skins | charms | ore pouch\nZones stay unlocked")
 	half(0.5, "RESETS", Color3.fromRGB(235, 150, 130),
 		"Coins | pickaxe ladder\nBackpack | mine depth\n(runes stay in their tool slots)")
 
@@ -8195,7 +8153,8 @@ ClientFns.handTargets = {
 	cardsTab = { find = function() return ClientFns.handFind(invCtl, { "Tab_cards" }) end },
 	petSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_pet1", "Seat_pet2", "Seat_pet3" }) end },
 	faceSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_face" }) end },
-	hatSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_hat" }) end },
+	-- Three hat seats, any of which satisfies the tutorial's "put a hat on".
+	hatSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_hat", "Seat_hat2", "Seat_hat3" }) end },
 	-- enchanter
 	caseRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_temper", true) or nil end },
 	runeRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_rune", true) or nil end },
@@ -8424,7 +8383,7 @@ function ClientFns.paintEnchantExtra()
 			n += 1
 			local def = ZP and ZP.get and ZP.get(offer.id)
 			local name = (def and def.name) or tostring(offer.id)
-			-- 121 ores on the roster: the tier is what places a pack.
+			-- One pack per ore on the roster: the tier is what places a pack.
 			local tierBit = (def and def.kind == "ore" and def.tier)
 				and ("  |  tier " .. tostring(def.tier)) or ""
 			local row = mk("TextButton", {
@@ -8554,10 +8513,7 @@ local function refreshEnchanter()
 			onSocketChestTool = function(runeId, chestId)
 				net:FireServer("socketToolRune", { runeId = runeId, chestId = chestId })
 			end,
-			onSocketFossilTool = function(runeId, fossilId)
-				net:FireServer("socketToolRune", { runeId = runeId, fossilId = fossilId })
-			end,
-			onEquipGear = function(id) net:FireServer("equipGear", { gearId = id }) end,
+			onEquipGear = function(id, slot) net:FireServer("equipGear", { gearId = id, slot = slot }) end,
 		})
 		if runesCtl.root then
 			runesCtl.root.Position = UDim2.fromOffset(12, 96)
@@ -8761,9 +8717,75 @@ function ClientFns.clearPets()
 end
 
 --[[
-	Trail behind the owner with lag, face travel, soft bob.
-	Framerate-independent spring; snaps only after a big teleport gap.
+	Trail behind the owner: smoothed formation, real spring, continuous gait.
+
+	WHY IT LOOKED JOLTY, in the three places it actually came from:
+
+	1. THE FORMATION BASIS SNAPPED. The whole formation was built off the
+	   owner's instantaneous velocity direction, and `right` came off that same
+	   vector. Strafe, or turn on the spot, and the direction flips in one
+	   frame -- so every pet's target jumps sideways by the full width of its
+	   lateral offset and the spring chases a step function. Smoothing the
+	   POSITION after the fact cannot hide a target that teleports. The basis
+	   is smoothed here instead, so the formation swings around the owner
+	   instead of cutting to the new side.
+
+	2. HARD THRESHOLDS AT speed > 1.15. Crossing it flipped the basis from
+	   facing to velocity, the bob amplitude from 0.09 to 0.16 and the bob rate
+	   from 1.9 to 4.1 -- all on the same frame. Starting and stopping popped
+	   every time, and walking right at the threshold strobed. There is one
+	   continuous `gait` value now, 0 at rest to 1 at a walk, and everything
+	   that used to branch on speed reads it instead.
+
+	3. THE SPRING HAD NO VELOCITY. `pos:Lerp(target, alpha)` always decays
+	   toward the target and can never overshoot it, which is exactly what
+	   "stiff" looks like: no wind-up, no follow-through, a dead stop the
+	   instant the owner stops. This is a proper damped spring with its own
+	   velocity, a little under critical (zeta below 1), so a pet leans into a
+	   stop, drifts a hair past, and settles.
+
+	The bob also advances by GAIT rather than wall-clock, so a pet at rest
+	breathes slowly instead of bobbing at walking cadence, and the cadence
+	cannot visibly change frequency mid-step.
+
+	Framerate-independent throughout; snaps only after a big teleport gap.
 ]]
+--[[
+	The follow's tuning and its two bits of maths, in ONE table.
+
+	One top-level local rather than seven, deliberately: this file sits inside
+	Luau's 200-top-level-local ceiling and a tuning block is the last thing that
+	should spend seven of them.
+]]
+local PF = {
+	-- Seconds for the smoothed values to cover most of the way to a new reading.
+	-- The basis is the slowest on purpose: its jumps are the ones that read worst.
+	DIR_TAU = 0.18,
+	SPEED_TAU = 0.12,
+	ROLL_TAU = 0.12,
+	-- Speeds between these two blend rest into walk. Everything that used to
+	-- test `speed > 1.15` reads the blend instead.
+	GAIT_LO = 0.8,
+	GAIT_HI = 3.0,
+	-- Spring: base rate, how much being left behind stiffens it, and the
+	-- damping. zeta below 1 is the follow-through; at 1 it brakes dead.
+	SPRING_HZ = 3.6,
+	SPRING_HZ_CATCHUP = 2.6,
+	SPRING_ZETA = 0.86,
+}
+
+-- Framerate-independent smoothing factor for a given time constant.
+function PF.smooth(tau, dt)
+	return 1 - math.exp(-dt / math.max(1e-4, tau))
+end
+
+-- 0 below lo, 1 above hi, eased in between. No corners, so nothing pops as a
+-- value crosses it.
+function PF.gait(x, lo, hi)
+	local t = math.clamp((x - lo) / math.max(1e-4, hi - lo), 0, 1)
+	return t * t * (3 - 2 * t)
+end
+
 function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
 	if not (pet and pet.Parent and root) then
 		return
@@ -8772,67 +8794,122 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
 	now = tonumber(now) or os.clock()
 	ClientFns._petFollowState = ClientFns._petFollowState or {}
 	local state = ClientFns._petFollowState[pet]
+	local look0 = root.CFrame.LookVector
+	local flat0 = Vector3.new(look0.X, 0, look0.Z)
+	flat0 = (flat0.Magnitude > 0.05) and flat0.Unit or Vector3.new(0, 0, -1)
 	if not state then
 		local pivot = pet:GetPivot()
 		local _, yaw0, _ = pivot:ToEulerAnglesYXZ()
 		state = {
 			pos = pivot.Position,
+			-- The spring's own velocity. Without this there is no follow-through.
+			vel = Vector3.zero,
 			yaw = yaw0,
+			-- Smoothed basis and speed, so neither can step.
+			dir = flat0,
+			speed = 0,
+			-- Advanced by gait, not by the clock.
 			bobPhase = (tonumber(slotIndex) or 1) * 1.7,
-			prevPos = pivot.Position,
+			roll = 0,
 		}
 		ClientFns._petFollowState[pet] = state
 	end
 
 	local vel = root.AssemblyLinearVelocity
 	local flatVel = Vector3.new(vel.X, 0, vel.Z)
-	local speed = flatVel.Magnitude
-	local look = root.CFrame.LookVector
-	local flatLook = Vector3.new(look.X, 0, look.Z)
-	if flatLook.Magnitude > 0.05 then
-		flatLook = flatLook.Unit
-	else
-		flatLook = Vector3.new(0, 0, -1)
+	local rawSpeed = flatVel.Magnitude
+
+	-- Smoothed speed drives every threshold, so a jittery velocity reading
+	-- cannot make the formation twitch.
+	state.speed += (rawSpeed - state.speed) * PF.smooth(PF.SPEED_TAU, dt)
+	local gait = PF.gait(state.speed, PF.GAIT_LO, PF.GAIT_HI)
+
+	--[[
+		The basis, eased. Where the owner is moving when they are moving, where
+		they are facing when they are not, blended by the same gait -- so
+		standing still and turning on the spot swings the formation around
+		rather than snapping it to a new side.
+	]]
+	local moveDir = (rawSpeed > 0.05) and flatVel.Unit or flat0
+	local wantDir = flat0:Lerp(moveDir, gait)
+	if wantDir.Magnitude > 0.05 then
+		wantDir = wantDir.Unit
+		state.dir = state.dir:Lerp(wantDir, PF.smooth(PF.DIR_TAU, dt))
+		if state.dir.Magnitude > 0.05 then
+			state.dir = state.dir.Unit
+		else
+			state.dir = wantDir
+		end
 	end
-	local moveDir = (speed > 1.15) and flatVel.Unit or flatLook
-	local right = Vector3.new(-moveDir.Z, 0, moveDir.X)
+	local dir = state.dir
+	local right = Vector3.new(-dir.Z, 0, dir.X)
 
 	local slot = tonumber(slotIndex) or 1
 	local lateral = (slot - 2) * 2.15
 	local back = 3.15 + math.abs(slot - 2) * 0.18
-	-- Trail farther when sprinting so they don't glue to your heels.
-	local trail = math.clamp(speed / 16, 0, 1.35)
-	local target = root.Position - moveDir * (back + trail) + right * lateral
+	-- Trail farther when sprinting so they don't glue to your heels. Off the
+	-- smoothed speed, so the spacing opens out instead of jumping.
+	local trail = math.clamp(state.speed / 16, 0, 1.35)
+	local target = root.Position - dir * (back + trail) + right * lateral
 	target = Vector3.new(target.X, root.Position.Y + 0.04, target.Z)
 
 	local delta = target - state.pos
 	local dist = delta.Magnitude
 	if dist > 22 then
+		-- A teleport, not a walk. Nothing to animate through.
 		state.pos = target
-		state.prevPos = target
+		state.vel = Vector3.zero
 	else
-		-- Soft spring; catch up harder when left behind.
-		local hz = 6.2 + math.clamp(dist / 5, 0, 4)
-		local alpha = 1 - math.exp(-hz * dt)
-		state.pos = state.pos:Lerp(target, alpha)
+		--[[
+			Damped spring, semi-implicit: accelerate toward the target, damp the
+			velocity, integrate. Stiffens with distance the way the old lerp did,
+			so a pet left behind still hurries rather than drifting in forever.
+		]]
+		local hz = PF.SPRING_HZ + math.clamp(dist / 5, 0, 1) * PF.SPRING_HZ_CATCHUP
+		local omega = 2 * math.pi * hz
+		local accel = delta * (omega * omega) - state.vel * (2 * PF.SPRING_ZETA * omega)
+		state.vel += accel * dt
+		state.pos += state.vel * dt
 	end
 
-	local travel = Vector3.new(state.pos.X - state.prevPos.X, 0, state.pos.Z - state.prevPos.Z)
-	state.prevPos = state.pos
-	local face = moveDir
-	if travel.Magnitude > 0.012 then
+	--[[
+		Face where you are GOING, which for a pet on a spring is its own
+		velocity -- that is what makes a pet cut a corner nose-first instead of
+		sliding through it sideways. Below walking pace its own velocity is
+		noise, so it falls back to the formation basis.
+	]]
+	local travel = Vector3.new(state.vel.X, 0, state.vel.Z)
+	local face = dir
+	if travel.Magnitude > 0.35 then
 		face = travel.Unit
 	end
 	local wantYaw = math.atan2(-face.X, -face.Z)
-	local yawBlend = 1 - math.exp(-9 * dt)
 	local dy = (wantYaw - state.yaw + math.pi) % (math.pi * 2) - math.pi
-	state.yaw += dy * yawBlend
+	-- Turn faster when moving: a trotting pet whips its head round a corner, a
+	-- standing one drifts to face you.
+	local yawHz = 5.0 + gait * 6.0
+	state.yaw += dy * (1 - math.exp(-yawHz * dt))
 
-	local bobAmp = 0.09 + ((speed > 1.15) and 0.07 or 0)
-	local bobHz = 1.9 + ((speed > 1.15) and 2.2 or 0)
-	local bob = math.sin(now * bobHz + state.bobPhase) * bobAmp
-	local lean = math.clamp(speed / 24, 0, 0.11)
-	pet:PivotTo(CFrame.new(state.pos + Vector3.new(0, bob, 0)) * CFrame.Angles(lean, state.yaw, 0))
+	--[[
+		Bob by DISTANCE, not by the clock. A pet standing still breathes at the
+		idle rate; a moving one steps at a cadence that rises with gait. Because
+		the phase is integrated rather than read off `now`, the rate can change
+		without the waveform jumping, which is what the old
+		`sin(now * bobHz + phase)` did every time bobHz flipped.
+	]]
+	local bobRate = 1.9 + gait * 2.2
+	state.bobPhase += bobRate * dt * math.pi * 2
+	local bobAmp = 0.09 + gait * 0.07
+	local bob = math.sin(state.bobPhase) * bobAmp
+
+	-- Bank into the turn, eased. Reads as weight; a pet that changes heading
+	-- with its body dead level is most of what "stiff" means.
+	local wantRoll = math.clamp(-dy / math.max(1e-4, dt) * 0.012, -0.22, 0.22) * gait
+	state.roll += (wantRoll - state.roll) * PF.smooth(PF.ROLL_TAU, dt)
+
+	local lean = math.clamp(state.speed / 24, 0, 0.11)
+	pet:PivotTo(CFrame.new(state.pos + Vector3.new(0, bob, 0))
+		* CFrame.Angles(lean, state.yaw, state.roll))
 end
 
 function ClientFns.updatePets()
@@ -9992,7 +10069,7 @@ RunService.Heartbeat:Connect(function(dt)
 		--[[
 			An ore block carries a SectionName like every other block, so it used to
 			fall into the section branch below and the card read "Clayfall | L312" --
-			the one thing it could not tell you was which of the 121 ores you were
+			the one thing it could not tell you was which ore you were
 			standing in front of. Ore is checked FIRST for that reason; the section
 			is still on screen in the depth HUD, the ore's identity was nowhere.
 		]]
@@ -10603,14 +10680,13 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 			refreshEnchanter()
 		end
 		local eq = payload.equipped or {}
-		-- The hats ride this key as well: putting a hat on a pet has to redress
-		-- the pet standing in the world, and the equipped list does not move
-		-- when it happens.
-		local keyParts = { table.concat(eq, ",") }
-		for _, id in ipairs(eq) do
-			keyParts[#keyParts + 1] = tostring((payload.petHats or {})[id])
-		end
-		local key = table.concat(keyParts, "|")
+		--[[
+			Only the equipped list rides this key now. Pet hats used to ride it
+			too, because putting one on a pet had to redress the pet standing in
+			the world without the equipped list moving. Pets wear nothing, so the
+			roster is the whole of what changes their appearance.
+		]]
+		local key = table.concat(eq, ",")
 		if key ~= lastPetEquipKey then
 			lastPetEquipKey = key
 			ClientFns.updatePets()
@@ -10691,6 +10767,14 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "seamGate" then
 		ClientFns.confirmSeam(payload)
 	elseif action == "tooWeak" then
+		--[[
+			The breaking-power refusal. There were briefly two of these, from
+			parallel work: a "weakTool" message handled inline here, and this one.
+			ClientFns.tooWeak won because it says what you NEED against what you
+			HAVE and names the ore, and because its server-side gate goes through
+			Dig.Breaking.canBreak, which weighs block strength as well as ore
+			tier. The inline branch and its server gate are both gone.
+		]]
 		ClientFns.tooWeak(payload)
 	elseif action == "toast" then
 		showToast(tostring(payload))
@@ -11011,6 +11095,30 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- Tap-through reveal; the loot is shown at the end of it.
 		Audio.play("lucky")
 		ClientFns.luckyScreen().opened(payload)
+	elseif action == "confirmScrap" and payload then
+		--[[
+			The server priced a bulk scrap. Hand its figures to the inventory,
+			which opens the review screen on them.
+
+			Routed rather than computed here for the same reason Sell All is: a
+			review built from a client-side estimate can quote a total the server
+			then disagrees with, and the player has already approved it by then.
+		]]
+		if invCtl and invCtl.showScrapReview then
+			pcall(invCtl.showScrapReview, payload)
+		end
+	elseif action == "confirmSellAll" and payload then
+		--[[
+			The server priced a Sell All ask. Hand its figures to the pouch panel,
+			which opens the confirmation on them.
+
+			Routed rather than handled here so the numbers a player agrees to are
+			the server's own. A dialog built from a client-side estimate is a
+			dialog that can quote a total the server then disagrees with.
+		]]
+		if shopCtl and shopCtl.showSellAllConfirm then
+			pcall(shopCtl.showSellAllConfirm, payload)
+		end
 	elseif action == "temperCase" and payload then
 		Audio.play("open")
 		ClientFns.caseScreen().play(payload)

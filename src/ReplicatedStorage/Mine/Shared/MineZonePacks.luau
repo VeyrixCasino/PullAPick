@@ -192,11 +192,12 @@ MineZonePacks.PACKS = MineZonePacks.buildAll()
 	ORE PACKS -- one per ore, generated, never authored.
 
 	Breaking an ore block gives its pack; opening the pack always gives ore.
-	That is the whole contract. Ore cannot build a tool, only upgrade one, so
-	this is the reliable half of the loot split and chests keep the rare half.
+	LEGACY. Ore drops straight into the pouch now, so nothing creates these any
+	more -- they stay registered so a save still holding one can open it. The
+	live rare drop is the ORE CASE, registered alongside them below.
 
-	121 rows kept in step with MineConfig.ORES by construction. Hand-writing
-	them would guarantee the two drift the first time an ore is renamed.
+	82 rows kept in step with MineConfig.ORES by construction. Hand-writing them
+	would guarantee the two drift the first time an ore is renamed.
 
 	Yield falls as the ore gets harder: a common seam hands over a fistful, an
 	endgame ore hands over one or two. Combined with how much rarer the block
@@ -225,10 +226,32 @@ do
 				oreName = ore.name,
 				name = ore.name .. " Ore Pack",
 				tier = ore.tier,
+				band = ore.band,
 				yield = { lo, hi },
 				color = ore.color,
 				-- PackFX.art(packId) builds shades from ore.color.
 				artKey = ore.packId,
+			}
+			--[[
+				THE ORE CASE, one per ore, alongside the pack.
+
+				This is the live rare drop: a 2% roll on an ore block
+				(MineConfig.ORE_CASE_CHANCE). openPack reads kind == "ore_case"
+				and pays a skin or a charm, guaranteed -- there is no roll inside
+				it, and it never pays ore, because the block already did.
+			]]
+			local caseId = ore.id .. "_ore_case"
+			MineZonePacks.PACKS[caseId] = {
+				id = caseId,
+				kind = "ore_case",
+				oreId = ore.id,
+				oreName = ore.name,
+				name = ore.name .. " Case",
+				tier = ore.tier,
+				band = ore.band,
+				yield = { lo, hi },
+				color = ore.color,
+				artKey = caseId,
 			}
 		end
 	end
@@ -239,17 +262,23 @@ function MineZonePacks.get(packId)
 	if row then
 		return row
 	end
-	-- Ore packs may miss the boot-time pass if MineConfig was still loading.
-	if type(packId) == "string" and string.sub(packId, -9) == "_ore_pack" then
+	--[[
+		Ore rows may miss the boot-time pass if MineConfig was still loading.
+
+		Both suffixes are nine characters, which is the only reason one length
+		check covers them; spelled out rather than measured so a third suffix
+		does not silently ride along on the coincidence.
+	]]
+	if type(packId) == "string"
+		and (string.sub(packId, -9) == "_ore_pack" or string.sub(packId, -9) == "_ore_case") then
 		local okC, C = pcall(function()
 			return require(script.Parent:WaitForChild("MineConfig"))
 		end)
 		if okC and C and C.ORES and not MineZonePacks._orePacksReady then
-			local n = #C.ORES
 			for _, ore in ipairs(C.ORES) do
+				local lo, hi = C.oreYieldFor(ore.tier)
 				local pid = ore.packId or (ore.id .. "_ore_pack")
 				if not MineZonePacks.PACKS[pid] then
-					local lo, hi = C.oreYieldFor(ore.tier)
 					MineZonePacks.PACKS[pid] = {
 						id = pid,
 						kind = "ore",
@@ -257,9 +286,29 @@ function MineZonePacks.get(packId)
 						oreName = ore.name,
 						name = ore.name .. " Ore Pack",
 						tier = ore.tier,
+						band = ore.band,
 						yield = { lo, hi },
 						color = ore.color,
 						artKey = pid,
+					}
+				end
+				-- The case too. Rebuilding only the packs is why this path has to
+				-- know about both: a case asked for before MineConfig finished
+				-- loading would otherwise come back nil forever, since the flag
+				-- below says the rebuild already happened.
+				local cid = ore.id .. "_ore_case"
+				if not MineZonePacks.PACKS[cid] then
+					MineZonePacks.PACKS[cid] = {
+						id = cid,
+						kind = "ore_case",
+						oreId = ore.id,
+						oreName = ore.name,
+						name = ore.name .. " Case",
+						tier = ore.tier,
+						band = ore.band,
+						yield = { lo, hi },
+						color = ore.color,
+						artKey = cid,
 					}
 				end
 			end

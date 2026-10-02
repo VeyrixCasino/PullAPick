@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --delete*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean*)",
+      "Bash(git filter-branch*)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(sudo *)",
+      "Edit(src/**/*.rbxm)",
+      "Edit(**/*.rbxl)",
+      "Edit(**/*.rbxlx)",
+      "Edit(tools/export/in/**)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)"
+    ],
+
+    "allow": [
+      "Read",
+      "Edit(src/**)",
+      "Edit(docs/**)",
+      "Edit(tools/**)",
+      "Edit(.claude/**)",
+      "Bash(node tools/*.js)",
+      "Bash(node tools/verify/*.js)",
+      "Bash(rojo *)",
+      "Bash(rokit *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git checkout*)",
+      "Bash(git switch*)",
+      "Bash(git branch*)",
+      "Bash(git fetch*)",
+      "Bash(git pull*)",
+      "Bash(git push*)",
+      "Bash(ls*)",
+      "Bash(cat*)",
+      "Bash(head*)",
+      "Bash(tail*)",
+      "Bash(wc*)",
+      "Bash(find*)",
+      "Bash(grep*)",
+      "Bash(rg*)",
+      "Bash(md5sum*)",
+      "Bash(diff*)",
+      "Bash(sed -n*)"
+    ]
+  }
+}

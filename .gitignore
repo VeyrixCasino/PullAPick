@@ -4,3 +4,10 @@
 *.rbxlx.lock
 sourcemap.json
 tools/export/in/
+
+# Fetched by tools/verify/syntax.sh (platform-specific, 7 MB)
+.luau-bin/
+
+# Generated charm art: 164 PNGs, rebuilt by tools/icons/gen-charm-art.js.
+# The generator is the source of truth; the manifest and ids.json are tracked.
+build/charm-icons/*.png

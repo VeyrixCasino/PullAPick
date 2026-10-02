@@ -1,6 +1,37 @@
-﻿# Ore chart remake (proposal, not applied)
+# Ore roster
 
-Status: planning only. `MineConfig.ORES` in `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` is unchanged.
+> ## STALE — the roster is 82 ores, not 121
+>
+> **82 ores is final** (Event Horizon ores may be added later). The 121-row
+> table below was generated from `MineConfig.ORES`, which has NOT caught up
+> with the live game.
+>
+> The authority is `game.ReplicatedStorage.Mine.ToolBakers.OreToolBaker`, which
+> houses every ore actually in the game and is **not committed to this repo**.
+> Sync it back, diff it against `MineConfig.ORES`, cut `MineConfig` down to the
+> real 82, then regenerate this file.
+>
+> Until that happens, treat every ore count, tier number and rarity band in this
+> file as wrong. The band ladder below (Common 1-24 ... Exotic 119-121) is
+> scaled to 121 and needs rebuilding for 82.
+
+**Status of the tables below: applied to `MineConfig`, but `MineConfig` is stale.**
+
+**Original note.** The 121-ore roster below is generated from
+`MineConfig.ORES` in `src/ReplicatedStorage/Mine/Shared/MineConfig.luau`,
+which is the source of truth. Landed across `deb8f35` (roster + save
+migration) and `72b81ed` (14 renames, migration regenerated).
+
+Regenerate this section after any roster change:
+
+```
+node tools/gen-ores.js          # roster helpers
+node tools/rename-ores.js       # renames + migration
+node tools/add-ore-migration.js # id -> id aliases
+```
+
+> The Space set at the bottom of this file is **not** applied. It is still
+> queued content; see `docs/TODO.md`.
 
 ## Rules
 
@@ -13,60 +44,40 @@ Status: planning only. `MineConfig.ORES` in `src/ReplicatedStorage/Mine/Shared/M
 
 Bands use the game's full rarity ladder, Exotic on top:
 Common 1-24, Uncommon 25-48, Rare 49-72, Epic 73-96, Legendary 97-108, Mythic 109-114, Divine 115-118, Exotic 119-121.
-The ore reveal grade in `MineServer.server.luau` currently stops at Divine and needs these cutoffs (plus Exotic) when applied.
 
-## Removed (16) and replacements
+## The roster
 
-| Removed | Reason | Replacement |
-| --- | --- | --- |
-| Steel | Alloy / iron variant | Bismuth |
-| Damascus Steel | Alloy / iron variant | Labradorite |
-| Cast Iron | Iron variant | Sulfur |
-| Meteoric Iron | Iron variant | Iridium |
-| Bronze | Alloy | Cinnabar |
-| Brass | Alloy | Tiger's Eye |
-| Pewter | Alloy | Lapis Lazuli |
-| Vanadium Steel | Alloy | Osmium |
-| Brick | Man-made | Pumice |
-| Charcoal | Man-made | Halite |
-| Alumina | Lab ceramic | Selenite |
-| Silicon Nitride | Lab ceramic | Rhodochrosite |
-| Boron Nitride | Lab ceramic | Benitoite |
-| Graphene | Lab-made | Grandidierite |
-| Prismarine | Minecraft | Painite |
-| Boron Carbide | Lab ceramic | Musgravite |
+**Removed.** This section held a generated 121-row table. The roster is **82
+ores**, so that table was wrong in its count, its tier numbers and its rarity
+bands, and a wrong roster here is worse than none.
 
-Renamed: Silicon Carbide is now **Moissanite** (its natural mineral name). Same look.
+The live list is `ReplicatedStorage.Mine.ToolBakers.OreToolBaker`. Sync it back,
+cut `MineConfig.ORES` down to it, then regenerate this section from
+`MineConfig` as before.
 
-### Round 2: obscure names swapped for recognizable or fantasy ores
+Roster size is `MineConfig.ORE_COUNT` (82). Rarity bands derive from it as
+fractions via `MineConfig.oreGrade(tier)`, so they rescale with the roster
+instead of being pinned to tier numbers:
 
-| Out | Tier | In |
-| --- | --- | --- |
-| Halite | 7 | Rock Salt (rename) |
-| Lignite | 8 | Coal |
-| Bituminous Coal | 19 | Emberstone |
-| Sphalerite | 24 | Aluminum |
-| Anthracite | 33 | Pearl |
-| Bauxite | 34 | Frost Crystal |
-| Dunite | 50 | Bloodstone |
-| Shungite | 63 | Geode |
-| Wolframite | 68 | Stormstone |
-| Ilmenite | 70 | Lithium |
-| Impactite | 83 | Moon Rock |
-| Musgravite | 98 | Phoenix Stone |
-| Benitoite | 101 | Starmetal |
-| Monazite | 102 | Aether Crystal |
-| Pallasite | 104 | Soulstone |
-| Grandidierite | 106 | Nebula Crystal |
-| Painite | 108 | Heartstone |
-| Coesite | 109 | Shadow Shard |
-| Stishovite | 110 | Celestial Crystal |
-| Ringwoodite | 112 | Rainbow Crystal |
-| Bridgmanite | 114 | Dragonstone |
+| band | tiers at 82 |
+| --- | --- |
+| Common | 1-16 |
+| Uncommon | 17-33 |
+| Rare | 34-49 |
+| Epic | 50-65 |
+| Legendary | 66-73 |
+| Mythic | 74-77 |
+| Divine | 78-80 |
+| Exotic | 81-82 |
 
-Mythic reordered: Shadow Shard, Celestial Crystal, Orichalcum, Rainbow Crystal, Mythril, Dragonstone.
+## Appearance reference (generator LOOKS format)
 
-## Final order (generator LOOKS format)
+The roster above is the order of record. This block is kept because it is the
+only written source for each ore's **glow colour and intensity** — `MineConfig.ORES`
+rows carry `color` / `material` / `met` / `rough` but no `glow` key. The tool
+generator LOOKS table reads from here.
+
+Format: `name: ((r,g,b), met, rough, (glow r,g,b,intensity) or None, material, note)`
 
 ```python
     # ── COMMON (1-24) ──
@@ -207,6 +218,7 @@ Mythic reordered: Shadow Shard, Celestial Crystal, Orichalcum, Rainbow Crystal, 
     "Oganesson"       : ((17, 0, 42), 1.0, 0.05, (137, 54, 255, 2.0), "ForceField", "Void black; cycle the glow through the rainbow"), # 121
 ```
 
+
 ## Space ores (40, separate set)
 
 Own progression, 1-40, same rarity ladder scaled down:
@@ -288,7 +300,8 @@ Names are unique against the main list. Event Horizon Shard and Big Bang Fragmen
 13. Added a separate 40-ore space set.
 14. Reverted Rainbow Crystal (112) and Dragonstone (114) to Mythic; Starmetal back to 101. Heartstone dropped, Frostfire Crystal at 108.
 
-## When this gets applied
+
+## Applying the Space set
 
 - Edit `MineConfig.ORES` (ids, names, tiers, looks). Ore packs and pack art regenerate from it automatically.
 - Old saves: players holding removed ores (`p.ores[id]`) or unopened `<id>_ore_pack` rows need a one-time migration to a replacement id.

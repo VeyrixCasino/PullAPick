@@ -11,17 +11,16 @@ MineGear.RARITIES = { "F", "D", "C", "B", "A", "S", "SS", "SSS" }
 -- Gear is a HAT and a FACE. Helmet / chestplate / leggings / boots are gone --
 -- four slots on a character the camera barely looks at, that nobody equipped.
 --
---   HAT   goes on a PET (or on you). It multiplies that pet's EXISTING boost
---         of the hat's set stat — it does not add a flat boost. Your own hat
---         does the same for every pet's matching-stat line.
---   FACE  is the only piece that is yours and not a pet's, so it is the broad
---         one: it multiplies your whole team at once, and its tailored half
---         lands on whatever your team already leans on hardest.
+--   HAT   is YOURS, in one of three seats. It multiplies every pet's EXISTING
+--         boost of the hat's set stat — it does not add a flat boost. Pets wear
+--         no hats of their own.
+--   FACE  is the broad one: it multiplies your whole team at once, and its
+--         tailored half lands on whatever your team already leans on hardest.
 --
 -- Both are real Roblox catalog items (MineHats), graded F..SSS off their RAP.
 --
--- ONE rune socket per piece, never more. Three pets + your hat + your face +
--- your tool is six runes in the entire game, which is exactly why a rune is
+-- ONE rune socket per piece, never more. Three pets + three hats + your face +
+-- your tool is eight runes in the entire game, which is exactly why a rune is
 -- allowed to be worth something (see MineRunes.SOCKET_GAIN).
 --
 -- Old saves lose nothing: every retired slot folds into "hat" and is re-priced
@@ -31,28 +30,56 @@ MineGear.RARITIES = { "F", "D", "C", "B", "A", "S", "SS", "SSS" }
 MineGear.SLOTS = { "hat", "face" }
 MineGear.SLOT_LABEL = { hat = "Hat", face = "Face" }
 MineGear.SLOT_BLURB = {
-	hat = "Wear it, or put it on a pet. Your own hat is added to every pet.",
+	hat = "Three hat seats, all yours. Every hat you wear is added to every pet.",
 	face = "Yours alone. Multiplies your whole team.",
 }
-MineGear.PET_SLOT = "hat"
+
+--[[
+	HATS ARE YOURS. THREE SEATS, AND PETS WEAR NONE.
+
+	A hat used to go on your head OR on one pet, which meant the hat budget grew
+	with the pet roster: three pets plus you was four hats in play, and "whose
+	hat is this" was a question the save had to answer. Pets wear nothing now.
+	You have three seats and that is the entire hat budget.
+
+	This is the canonical list. Every reader walks it instead of naming the
+	fields, because the last count change (one seat to two) left `hat2` spelled
+	out by hand in a dozen places and the next one would do the same.
+]]
+MineGear.HAT_SLOTS = { "hat", "hat2", "hat3" }
+MineGear.HAT_SLOT_COUNT = #MineGear.HAT_SLOTS
+
+-- The hats a player is wearing, in seat order, resolved through `pieces`.
+-- Skips empty seats, so the result is a dense array a caller can just walk.
+function MineGear.wornHats(equippedGear, pieces)
+	local out = {}
+	for _, slot in ipairs(MineGear.HAT_SLOTS) do
+		local id = equippedGear and equippedGear[slot]
+		local piece = (type(pieces) == "table") and pieces[id or ""] or nil
+		if piece then
+			table.insert(out, piece)
+		end
+	end
+	return out
+end
 MineGear.SOCKETS_PER_PIECE = 1
 -- Retired slots, kept so old saves and old shop rows still resolve.
 MineGear.LEGACY_SLOTS = {
 	head = true, amulet = true, chestplate = true, leggings = true, boots = true, gloves = true,
 }
 MineGear.BASE_SET_WEIGHT = { hat = 100, face = 100 }
--- Four hats are wearable at once (three pets and you) against one face, so hats
--- are the common drop and a face is the one you go hunting for.
+-- Three hats are wearable at once against one face, so hats are the common drop
+-- and a face is the one you go hunting for. (It was four when a pet could wear
+-- one; the odds stay put, because three-to-one is the same shape of answer.)
 MineGear.SLOT_ODDS = { hat = 78, face = 22 }
 
 --[[
 	What a piece is worth, by grade.
 
-	`pct` is a MULTIPLIER on what the wearer already gives, not a stat of its
-	own: a B hat on a pet is that pet's entire kit again at +30%, and double that
-	on the hat's own stat. The old sheet paid half of one rune's opening roll
-	into a single stat, which is how four pieces of gear ended up worth less
-	than one pet.
+	`pct` is a MULTIPLIER on what the team already gives, not a stat of its own:
+	a B hat is each pet's entire kit again at +30%, and double that on the hat's
+	own stat. The old sheet paid half of one rune's opening roll into a single
+	stat, which is how four pieces of gear ended up worth less than one pet.
 ]]
 MineGear.SHEET = {
 	-- Hat is exactly TWICE face at every grade: a hat carries one specific stat,
@@ -467,12 +494,24 @@ end
 
 --[[
 	STACKING:
-	1) Hats give static +% on set stat(s). Your Hat/Hat2 apply to every pet.
+	1) Hats give static +% on set stat(s). Every hat you wear applies to every pet.
 	2) Face multiplies those hat %s on matching stats.
 	3) Per pet: petBase*(1+rune) + hatPts*(1+facePct). Sum pets.
+
+	`hats` is the array of pieces you are wearing -- MineGear.wornHats builds it
+	from your three seats. It used to be two positional arguments, playerHat and
+	playerHat2, with a third hat living on the pet row itself; a pet wears no hat
+	now and the seat count is free to move without touching this signature.
 ]]
-function MineGear.stackPets(pets, playerHat, face, playerHat2)
+function MineGear.stackPets(pets, hats, face)
 	local total = {}
+	-- A single piece is accepted where an array is expected, because every
+	-- caller that passed one hat kept working when the second seat was added
+	-- and should keep working now.
+	if hats ~= nil and hats.id ~= nil then
+		hats = { hats }
+	end
+	hats = hats or {}
 	local faceByStat = {}
 	for _, line in ipairs(MineGear.boostLines(face)) do
 		faceByStat[line.stat] = (faceByStat[line.stat] or 0) + line.pct
@@ -484,15 +523,16 @@ function MineGear.stackPets(pets, playerHat, face, playerHat2)
 			if stat then seen[stat] = true end
 		end
 		for stat in pairs(row.delta or {}) do touch(stat) end
-		for _, line in ipairs(MineGear.boostLines(row.hat)) do touch(line.stat) end
-		for _, line in ipairs(MineGear.boostLines(playerHat)) do touch(line.stat) end
-		for _, line in ipairs(MineGear.boostLines(playerHat2)) do touch(line.stat) end
+		for _, hat in ipairs(hats) do
+			for _, line in ipairs(MineGear.boostLines(hat)) do touch(line.stat) end
+		end
 		for stat in pairs(seen) do
 			local amount = tonumber((row.delta or {})[stat]) or 0
 			local base = amount * (1 + runeAll)
-			local hatPts = MineGear.pctOnStat(row.hat, stat)
-				+ MineGear.pctOnStat(playerHat, stat)
-				+ MineGear.pctOnStat(playerHat2, stat)
+			local hatPts = 0
+			for _, hat in ipairs(hats) do
+				hatPts += MineGear.pctOnStat(hat, stat)
+			end
 			local effectiveHat = hatPts * (1 + (faceByStat[stat] or 0))
 			local contrib = base + effectiveHat
 			if contrib ~= 0 then
@@ -687,7 +727,7 @@ function MineGear.hatMeansLine(piece)
 	if MineGear.migrateSlot(piece and piece.slot) == "face" then
 		return "Face multiplies matching hat %s on every pet (not a personal flat boost)."
 	end
-	return "Static hat % on pets. Your Hat applies to every pet; Face scales hat %s."
+	return "Static hat % on pets. Every hat you wear applies to every pet; Face scales hat %s."
 end
 
 function MineGear.describe(piece)
@@ -718,7 +758,7 @@ end
 --[[
 	The pieces YOU wear, which means their runes -- a rune's own stat has always
 	landed on you and still does. What is deliberately NOT here any more is the
-	piece percentage: a hat multiplies the pet wearing it and a face multiplies
+	piece percentage: a hat multiplies every pet and a face multiplies
 	the team, and both of those happen in stackPets. Pouring them in here as
 	flat stats is what made gear invisible.
 
@@ -845,8 +885,8 @@ end
 
 	Two pieces fuse when they are the same set, the same slot and the same grade,
 	neither is in use, and neither has a rune in it. `worn` is a set of gear ids
-	that are spoken for -- equipped by the player OR sitting on a pet -- because
-	a hat can be on a pet and a slot map cannot say so. Refusing socketed pieces is
+	that are spoken for -- anything in one of your three hat seats or your face.
+	Refusing socketed pieces is
 	deliberate: a fuse consumes one of the two, and quietly eating a socketed
 	rune is not a trade anyone agreed to. Unsocket it first.
 ]]
