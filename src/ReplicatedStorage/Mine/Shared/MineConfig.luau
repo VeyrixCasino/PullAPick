@@ -1185,6 +1185,16 @@ MineConfig.LUCKY_BLOCK_CHANCE = 0.00020
 ]]
 MineConfig.ORE_PACK_FIND_CAP = 1.0
 
+--[[
+	Most items one bulk-recycle batch may carry.
+
+	Shared because BOTH SIDES need it. The server truncates the id list at this
+	many before pricing, and the Select UI has to clamp to the same number --
+	otherwise a player ticks a stack of 300, is quoted 200, and the two disagree
+	about what they just approved. One number, read by both.
+]]
+MineConfig.SCRAP_MAX = 200
+
 
 
 

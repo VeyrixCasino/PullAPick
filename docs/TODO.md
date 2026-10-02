@@ -605,9 +605,29 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
       earlier in the file — the name compiled as a global read, so the pack arm of
       bulk scrapping called a nil value and **threw on every use**. Confirmed with
       a minimal repro under the interpreter.
-- [ ] **Extend selection to the other menus** — pets/cards, runes and packs. The
-      server already handles all four kinds (`scrapPlan` covers card/rune/gear/
-      pack); only the EQUIPMENT tab has the Select UI wired so far.
+- [x] **CARDS and PACKS have the Select UI now**, on the same server path.
+      - **Selection is one kind-tagged table** (`pick`), shared by every tab.
+        It was two untagged fields on the equipment state, which was fine while
+        EQUIPMENT was the only tab with a button — with three tabs it is a bug
+        waiting to happen: tick gear, switch to PACKS, hit RECYCLE, and the
+        client sends gear ids under kind `pack`. Changing kind clears it.
+      - **A pack tile is a stack**, so ticking one selects every uid in it; the
+        server scraps packs one uid at a time and a half-ticked stack has
+        nowhere to show itself. Lucky blocks are excluded — they have no scrap
+        value, so the review would open on a wall of refusals.
+      - **Open buttons are not drawn while selecting.** Opening a pack and
+        recycling it are opposites; a few pixels apart they are a trap.
+      - **`into` is per kind and passed, not guessed**: cards pay stardust,
+        gear and packs pay gems, matching what `scrapPlan` prices.
+      - **`MineConfig.SCRAP_MAX` is shared now.** The cap was server-only, so
+        the UI could let a player tick a 300-pack stack that the server
+        truncates to 200 — a review honest about a list they never chose. One
+        number, read by both, and the UI refuses past it with a toast.
+- [ ] **Runes still need it** — they live in the Enchanter (`MineRunesView`),
+      not the inventory, so they need the selection helpers extracted to a
+      shared module rather than copied. `runeGroups()` already carries `g.ids`,
+      and `Runes.looseRunes` is already exactly the selectable set (the server
+      blocks socketed ones), so the wiring itself is small.
 - [ ] Recycle returns **50% in ore and stardust** plus a value-scaled extra. Still
       needs the curve and sign-off; current payouts are the pre-existing scrap
       rates, not this.

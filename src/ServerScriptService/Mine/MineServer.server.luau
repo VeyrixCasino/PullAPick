@@ -68,7 +68,8 @@ local Const = {
 	VOXEL_SKIP = { Skip = true },
 	GROUND_Y = 5,
 	OPEN_RUN_MAX = 50,
-	SCRAP_MAX = 200,
+	-- One number, shared with the Select UI that has to clamp to it.
+	SCRAP_MAX = C.SCRAP_MAX,
 	ROLL_MAX = 100,
 	-- Chunk size. Generation runs three layers at a time and the next chunk
 	-- is cut as soon as a block in the current one is touched.
