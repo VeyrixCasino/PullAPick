@@ -524,6 +524,10 @@ local function blank()
 		-- Ore, by id. Spent at the Forge to build tools and to upgrade them,
 		-- with stardust. (Build path lands with the Forge -- see docs/TODO.md.)
 		ores = {},
+		-- The pouch: its rung, and which ores Sell All must not touch. Both
+		-- survive a rebirth, along with everything in the pouch.
+		orePouchTier = 1,
+		oreLocks = {},
 		--[[
 			Ore tools: one row per tool the player owns, not a count.
 
@@ -871,6 +875,22 @@ local function load(plr)
 	p.maxUnlockedZone = math.max(1, tonumber(p.maxUnlockedZone) or 1)
 	p.prestige = math.max(0, tonumber(p.prestige) or 0)
 	p.petSlots = math.clamp(p.petSlots or 3, 3, C.MAX_PET_SLOTS)
+	do
+		--[[
+			The pouch rung, clamped to what exists. Locks are rebuilt as a clean
+			set: a DataStore round-trip turns the map's values into whatever JSON
+			made of them, and a lock is a yes/no, so anything truthy is a yes.
+		]]
+		local Pouch = require(shared:WaitForChild("MineOrePouch"))
+		p.orePouchTier = math.clamp(math.floor(tonumber(p.orePouchTier) or 1), 1, Pouch.MAX_TIER)
+		local locks = {}
+		for id, on in pairs(p.oreLocks or {}) do
+			if on and C.oreById(tostring(id)) then
+				locks[tostring(id)] = true
+			end
+		end
+		p.oreLocks = locks
+	end
 	p.petSlotRobux = math.clamp(math.floor(tonumber(p.petSlotRobux) or 0), 0, 2)
 	p.coinDouble = p.coinDouble and true or false
 	p.autoMineLicense = p.autoMineLicense and true or false
@@ -2691,6 +2711,29 @@ local function snap(plr)
 		deepest = p.deepest, deepestSection = p.deepestSection or {}, backpack = p.backpack,
 		packs = p.packs, cards = p.cards, equipped = p.equipped, cap = cap(p),
 		ores = p.ores or {},
+		--[[
+			The pouch, as the panel needs it. Capacity and the next rung's price
+			are SERVER-COMPUTED and sent, not re-derived on the client: the price
+			comes off the ore value curve, and a client that computes its own
+			would show a number the server then refuses.
+		]]
+		orePouchTier = Dig.pouchTier(p),
+		oreLocks = p.oreLocks or {},
+		orePouch = (function()
+			local Pouch = require(shared:WaitForChild("MineOrePouch"))
+			local t = Dig.pouchTier(p)
+			local def = Pouch.tier(t)
+			return {
+				tier = t,
+				maxTier = Pouch.MAX_TIER,
+				name = def and def.name or "Pouch",
+				cap = Pouch.capacity(t),
+				held = Pouch.held(p.ores),
+				upgradeCost = Pouch.upgradeCost(t),
+				nextName = (t < Pouch.MAX_TIER) and Pouch.TIERS[t + 1].name or nil,
+				nextCap = (t < Pouch.MAX_TIER) and Pouch.capacity(t + 1) or nil,
+			}
+		end)(),
 		-- The Forge keys its recipe list off this, not off what is banked.
 		oresSeen = p.oresSeen or {},
 		-- Which forged tool is in hand, so the Forge can mark it EQUIPPED.
@@ -5025,12 +5068,15 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			local find = math.max(0, tonumber(bb.oreYield) or 0)
 			got = math.max(1, math.floor(got * (1 + find) + 0.5))
 
-			p.ores = p.ores or {}
-			p.ores[ore.id] = (tonumber(p.ores[ore.id]) or 0) + got
-			p.oresSeen = p.oresSeen or {}
-			p.oresSeen[tostring(ore.id)] = true
-
-			net:FireClient(plr, "toast", string.format("+%d %s", got, ore.name))
+			-- Into the pouch, up to what it holds. A full pouch refuses rather
+			-- than silently eating the ore.
+			local kept, spilled = Dig.addOre(p, ore.id, got)
+			if kept > 0 then
+				net:FireClient(plr, "toast", string.format("+%d %s", kept, ore.name))
+			end
+			if spilled > 0 then
+				Dig.pouchFullToast(plr, p)
+			end
 
 			--[[
 				THE ORE CASE is the rare half of the loot split.
@@ -6427,10 +6473,12 @@ local function openPack(plr, setId, chestId, pk, collect)
 				local find = math.max(0, tonumber((boosts(p) or {}).fossilFind) or 0)
 				find = math.min(find, tonumber(C.ORE_PACK_FIND_CAP) or 1)
 				got = math.max(1, math.floor(got * (1 + find) + 0.5))
-				p.ores = p.ores or {}
-				p.ores[zdef.oreId] = (tonumber(p.ores[zdef.oreId]) or 0) + got
-				p.oresSeen = p.oresSeen or {}
-				p.oresSeen[tostring(zdef.oreId)] = true
+				local kept, spilled = Dig.addOre(p, zdef.oreId, got)
+				if spilled > 0 then
+					Dig.pouchFullToast(plr, p)
+				end
+				-- What the reveal shows is what actually went in.
+				got = kept
 				bumpStat(plr, p, "packs")
 				-- The reveal grade is the ore's BAND, read straight off the
 				-- roster. This used to be eight hard-coded tier cutoffs
@@ -8999,6 +9047,19 @@ local function tryPrestige(plr)
 	fresh.equippedCharm = p.equippedCharm
 	fresh.persistBags = p.persistBags or {}
 	fresh.backpackBonus = p.backpackBonus or 0
+	--[[
+		THE POUCH CROSSES THE REBIRTH. All of it: the rung bought with gems, the
+		ore inside, the locks, and the discovered-ore set.
+
+		This is the one store that does, and it is the reason the pouch exists.
+		A rebirth resets the mine and the levels; a run spent deep for ore must
+		not be erased by the button that makes the next run faster, or the
+		correct play becomes "never rebirth while holding anything".
+	]]
+	fresh.orePouchTier = p.orePouchTier or 1
+	fresh.ores = p.ores or {}
+	fresh.oreLocks = p.oreLocks or {}
+	fresh.oresSeen = p.oresSeen or {}
 
 	-- A few gems for every rebirth (MineSkillData.rebirthGemReward).
 	local rebirthGems = Skills.rebirthGemReward and Skills.rebirthGemReward(fresh.prestige, fresh.maxUnlockedZone) or 0
@@ -11697,6 +11758,76 @@ end
 	save() writes whole -- because snap runs ten times a second while digging.
 ]]
 Dig.upgradeCache = {}
+--[[
+	THE ORE POUCH, server side. One way in, one way out.
+
+	Every path that hands a player ore goes through Dig.addOre, so the pouch cap
+	is enforced in one place instead of at each of the five call sites that grant
+	ore today -- a cap checked in five places is a cap missed in one.
+
+	It lives on Dig rather than as a top-level local because MineServer sits at
+	196 of Luau's 200 top-level locals, and a helper is not worth one of the four
+	that are left.
+]]
+function Dig.pouch()
+	return require(shared:WaitForChild("MineOrePouch"))
+end
+
+function Dig.pouchTier(p)
+	local Pouch = Dig.pouch()
+	return math.clamp(math.floor(tonumber(p and p.orePouchTier) or 1), 1, Pouch.MAX_TIER)
+end
+
+--[[
+	Put ore in the pouch, up to what it holds. Returns how much actually went in
+	and how much was turned away.
+
+	OVERFLOW IS REFUSED, NOT DROPPED SILENTLY. A full pouch that quietly eats ore
+	is indistinguishable from a bug, and the one thing a player cannot do about a
+	problem they cannot see is fix it. The caller tells them.
+]]
+function Dig.addOre(p, oreId, amount)
+	if type(p) ~= "table" or type(oreId) ~= "string" or oreId == "" then
+		return 0, 0
+	end
+	local want = math.max(0, math.floor(tonumber(amount) or 0))
+	if want == 0 then
+		return 0, 0
+	end
+	local Pouch = Dig.pouch()
+	p.ores = p.ores or {}
+	local room = Pouch.room(p.ores, Dig.pouchTier(p))
+	local got = math.min(want, room)
+	if got > 0 then
+		p.ores[oreId] = (tonumber(p.ores[oreId]) or 0) + got
+		p.oresSeen = p.oresSeen or {}
+		-- Seen is grow-only and records the ore, not the amount: a pouch sold
+		-- empty must not un-discover anything.
+		p.oresSeen[tostring(oreId)] = true
+	end
+	return got, want - got
+end
+
+--[[
+	Tell the player their pouch is full, at most once every few seconds.
+
+	Without the throttle this fires on every ore block broken, which at depth is
+	several a second -- a toast stream that buries everything else on screen,
+	about a condition one trip to sell fixes.
+]]
+function Dig.pouchFullToast(plr, p)
+	if not (plr and p) then
+		return
+	end
+	local now = os.clock()
+	p._pouchFullAt = tonumber(p._pouchFullAt) or 0
+	if now - p._pouchFullAt < 6 then
+		return
+	end
+	p._pouchFullAt = now
+	net:FireClient(plr, "toast", "Ore pouch is FULL -- sell some, or upgrade it with gems")
+end
+
 Dig.GEAR_GRADE = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 8 }
 function Dig.gearScore(g)
 	-- Prefer MineGear.powerScore (universal-weighted). Fall back to grade+pct.
@@ -13229,6 +13360,169 @@ end
 -- Up to the cloud deck, any time, free. The server moves the character itself,
 -- so its own view of where the player stands is already the deck by the time
 -- the snapshot is built.
+--[[
+	THE POUCH VERBS. Four: upgrade it, lock a row, sell a row, sell everything.
+
+	Selling ore pays GEMS. It is the only gem tap in the game, against three
+	sinks -- zones, runes, and the pouch's own rungs -- so the price per unit is
+	the number the whole gem economy rests on. It lives in MineOrePouch, is
+	derived from the work the rock cost, and is read here rather than recomputed:
+	a server that prices ore differently from the panel that offered the price is
+	a server that lies.
+]]
+function Verbs.upgradeOrePouch(plr)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local Pouch = require(shared:WaitForChild("MineOrePouch"))
+	local tier = Dig.pouchTier(p)
+	local cost = Pouch.upgradeCost(tier)
+	if not cost then
+		net:FireClient(plr, "toast", "Your pouch is the biggest one there is")
+		return
+	end
+	if (tonumber(p.gems) or 0) < cost then
+		net:FireClient(plr, "toast", string.format("Next pouch costs %s gems",
+			Verbs._benchNum(cost)))
+		return
+	end
+	p.gems = (tonumber(p.gems) or 0) - cost
+	p.orePouchTier = math.min(Pouch.MAX_TIER, tier + 1)
+	local def = Pouch.tier(p.orePouchTier)
+	net:FireClient(plr, "toast", string.format("%s  ·  holds %s ore",
+		tostring(def and def.name or "Pouch"),
+		Verbs._benchNum(Pouch.capacity(p.orePouchTier))))
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
+	Lock or unlock one ore. A locked ore is never sold by Sell All.
+
+	This is what lets Sell All be one button behind one confirmation instead of a
+	prompt per row: the ores a player would hate to lose are the ones they
+	locked, and the button cannot reach them.
+]]
+function Verbs.toggleOreLock(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local id = tostring((type(payload) == "table" and payload.oreId) or "")
+	local ore = C.oreById(id)
+	if not ore then
+		net:FireClient(plr, "toast", "That ore is not in the roster")
+		return
+	end
+	p.oreLocks = p.oreLocks or {}
+	if p.oreLocks[id] then
+		p.oreLocks[id] = nil
+		net:FireClient(plr, "toast", (ore.name or id) .. " unlocked")
+	else
+		p.oreLocks[id] = true
+		net:FireClient(plr, "toast", (ore.name or id) .. " locked -- Sell All will skip it")
+	end
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
+	Sell one ore. `count` sells that many, or everything of it when absent.
+
+	A LOCKED ORE STILL SELLS HERE. The lock guards the bulk button, not the row:
+	a player tapping one row and naming an amount has said exactly what they
+	mean, and refusing them would make the lock a thing to undo rather than a
+	safety net.
+]]
+function Verbs.sellOre(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local Pouch = require(shared:WaitForChild("MineOrePouch"))
+	local id = tostring((type(payload) == "table" and payload.oreId) or "")
+	local ore = C.oreById(id)
+	if not ore then
+		net:FireClient(plr, "toast", "That ore is not in the roster")
+		return
+	end
+	p.ores = p.ores or {}
+	local have = math.max(0, math.floor(tonumber(p.ores[id]) or 0))
+	if have <= 0 then
+		net:FireClient(plr, "toast", "You have none of that")
+		return
+	end
+	local want = math.floor(tonumber(type(payload) == "table" and payload.count) or have)
+	want = math.clamp(want, 1, have)
+	local gems = Pouch.stackValue(ore, want)
+	p.ores[id] = have - want
+	if p.ores[id] <= 0 then
+		p.ores[id] = nil
+	end
+	p.gems = (tonumber(p.gems) or 0) + gems
+	net:FireClient(plr, "toast", string.format("Sold %s %s  +%s gems",
+		Verbs._benchNum(want), tostring(ore.name or id), Verbs._benchNum(gems)))
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
+	SELL ALL, behind a confirmation.
+
+	Two calls, not one. Without `confirm` the server prices the sale and sends
+	the numbers back for the panel to show; with it, the sale happens. The plan
+	is built by the same MineOrePouch.sellAllPlan both times, so the figure a
+	player agreed to is the figure they are paid -- rather than a client-side
+	estimate the server then quietly disagrees with.
+
+	Locked ores are excluded by the plan itself, so there is no path through here
+	that can sell one.
+]]
+function Verbs.sellAllOres(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local Pouch = require(shared:WaitForChild("MineOrePouch"))
+	p.ores = p.ores or {}
+	p.oreLocks = p.oreLocks or {}
+	local plan = Pouch.sellAllPlan(p.ores, p.oreLocks)
+	if plan.units <= 0 then
+		local anyLocked = next(p.oreLocks) ~= nil
+		net:FireClient(plr, "toast", anyLocked
+			and "Nothing to sell -- everything you hold is locked"
+			or "Your pouch is empty")
+		return
+	end
+	if not (type(payload) == "table" and payload.confirm) then
+		-- Ask first. The panel shows these numbers and sends the same verb back
+		-- with confirm = true.
+		net:FireClient(plr, "confirmSellAll", {
+			units = plan.units,
+			gems = plan.gems,
+			rows = #plan.rows,
+			locked = (function()
+				local n = 0
+				for _ in pairs(p.oreLocks) do
+					n += 1
+				end
+				return n
+			end)(),
+		})
+		return
+	end
+	for _, row in ipairs(plan.rows) do
+		p.ores[row.id] = nil
+	end
+	p.gems = (tonumber(p.gems) or 0) + plan.gems
+	net:FireClient(plr, "toast", string.format("Sold %s ore  +%s gems",
+		Verbs._benchNum(plan.units), Verbs._benchNum(plan.gems)))
+	markDirty(plr)
+	save(plr)
+	snap(plr)
+end
+
 function Verbs.goClouds(plr)
 	tp(plr, cloudCf())
 	snap(plr)
@@ -13696,18 +13990,21 @@ function Verbs._findOreTool(p, uid)
 	return nil, nil
 end
 
+--[[
+	Every number the server quotes a player, in one place.
+
+	It used to format its own: "%.1fK", "%.1fM", then "%.2e" past a billion.
+	Three problems, all of which matter when the number is a price. It ROUNDED
+	("%.1f" on 1.99M reads 2.0M, so a quote could exceed what is charged, which
+	currencies must never do), it showed two or three significant figures where
+	the rule is four, and its suffixes ran out at a billion -- and ore values at
+	depth pass a billion well before the end of the ladder.
+
+	MineAbbrev.currency floors, shows four, and carries suffixes the whole way,
+	so the server and the client read a price identically.
+]]
 function Verbs._benchNum(n)
-	n = tonumber(n) or 0
-	if n < 1000 then
-		return tostring(math.floor(n))
-	end
-	if n < 1e6 then
-		return string.format("%.1fK", n / 1e3)
-	end
-	if n < 1e9 then
-		return string.format("%.1fM", n / 1e6)
-	end
-	return string.format("%.2e", n)
+	return require(shared:WaitForChild("MineAbbrev")).currency(n)
 end
 
 --[[
@@ -14020,10 +14317,13 @@ function Verbs.recycleOreTool(plr, payload)
 		givePickaxe(plr)
 	end
 	if oreId and ore > 0 then
-		p.ores = p.ores or {}
-		p.ores[oreId] = (tonumber(p.ores[oreId]) or 0) + ore
-		p.oresSeen = p.oresSeen or {}
-		p.oresSeen[tostring(oreId)] = true
+		local kept, spilled = Dig.addOre(p, oreId, ore)
+		if spilled > 0 then
+			Dig.pouchFullToast(plr, p)
+		end
+		-- Report what was banked, not what was owed, so the toast below cannot
+		-- promise ore the pouch had no room for.
+		ore = kept
 	end
 	if dust > 0 then
 		p.dust = (tonumber(p.dust) or 0) + dust
@@ -14180,6 +14480,10 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		-- nothing at all. Verbs.mergeHats itself was complete.
 		elseif action == "mergeHats" then Verbs.mergeHats(plr, payload)
 		elseif action == "upgradeGear" then Verbs.upgradeGear(plr, payload)
+		elseif action == "upgradeOrePouch" then Verbs.upgradeOrePouch(plr)
+		elseif action == "toggleOreLock" then Verbs.toggleOreLock(plr, payload)
+		elseif action == "sellOre" then Verbs.sellOre(plr, payload)
+		elseif action == "sellAllOres" then Verbs.sellAllOres(plr, payload)
 		elseif action == "equipGear" then Verbs.equipGearPiece(plr, payload)
 		elseif action == "equipBest" then Verbs.equipBest(plr)
 		elseif action == "unequipGear" then Verbs.unequipGearPiece(plr, payload)
