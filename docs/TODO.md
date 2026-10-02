@@ -14,6 +14,19 @@ Last updated: 2026-10-02.
 
 # 0. LOCKED RULES — do not relitigate, do not ask again
 
+**0.12 — FOSSILS DO NOT EXIST.** Owner, 2026-10-02. No block spawns one, no pack
+drops one, the bench is gone from the plaza. Anything a save held was cashed out
+to gems on load at the game's own price. `MineFossils` / `MineFossilEconomy` stay
+on disk, dormant, only because that payout needs their prices to be exact —
+delete them once the migration has run everywhere. `fossilFind` keeps its KEY (it
+was already repurposed to "Ore Finder"); do not rename it.
+
+**0.13 — CHARMS AND SKINS ARE THE BUILD.** Owner, 2026-10-02. The two main parts,
+and everything else (pets, hats, faces, runes) is support. Later charms are
+better, **but never because the number is bigger** — a charm has a SHAPE, and a
+shallow charm of the right shape must be able to beat a deep one of the wrong
+shape. A pure magnitude ladder is the thing this rule exists to forbid.
+
 These are the owner's decisions. They are not open questions, they are not
 derived from any file in this repo, and no document here overrides them. If a
 file in this repo disagrees, the file is wrong.
@@ -443,13 +456,39 @@ beside the Forge.
 
 **A NEW system. Charms drop rarely from ORES — not from chests.**
 
-- [x] One charm per ore (82 charms). **Generated from the roster**, not authored:
-      tier sets the magnitude (+100% at tier 1 to +320% at tier 82, the band
-      spec's own numbers), tier picks the stat off a cycling pool.
+- [x] One charm per ore (82 charms), **generated from the roster**, not authored.
       `MineCharms.oreCharm(oreId)` is the only way to ask for one. Generated so
       "one per ore" is a property of the code — the tool ladder has already been
       silently mis-pointed once by a roster renumber, and 82 hand-written rows is
       82 chances to repeat it.
+- [x] **FIVE SHAPES, not a magnitude ladder** (§0.13). My first cut was the exact
+      anti-pattern: one stat, one ramp, so tier 82 strictly beat tier 41 and there
+      was one best charm per stat and 81 obsolete ones. Budget still rises with
+      tier; what changed is how it is spent. The multiplier is the price of
+      reliability — `FOCUS` 1.00× always-on, `PAIR` 1.15× split 60/40, `PACT`
+      1.75× minus a real cost, `CONDITION` 2.00× in a moderate window,
+      `THRESHOLD` 2.40× in a narrow one. Shape strides 5 against 8 stats, so the
+      pair repeats only every 40 ores: **40 (shape, stat) families, each with its
+      own best charm.**
+- [x] **Two bugs in my own first pass at the shapes, fixed.** The PACT cost was a
+      fraction of the BUDGET, so it scaled with the upside: −96% of a stat at
+      tier 1 and **−308%** at tier 82, which is not a steep cost but a broken
+      number. It is a fraction of the STAT now, −30% to −60%, bounded so it can
+      never erase one. And two "conditions" (`deep`, `reborn`) read a high-water
+      mark, so they were **permanent once passed** — a 2.4× budget that never
+      switches off is not conditional. Every condition is revocable now.
+- [x] **Conditions cost something real to hold:** pouch fullness against selling,
+      pet count against the pet pillar, skin/no-skin against the other half of the
+      build, home zone against where you want to stand. A backpack-fullness
+      condition was **dropped rather than shipped broken** — `p.backpack` is the
+      bag-ownership table, not a capacity, so it would have silently never fired.
+- [x] **The UI says ACTIVE or inactive.** Conditions are pure reads of state the
+      profile and snapshot carry identically, so one function serves the live
+      boost and the preview. A conditional bonus that looks the same whether or
+      not it is paying is the worst thing it can do.
+- [ ] **RAMP, the sixth shape** — grows while something persists, resets when it
+      breaks. Needs a counter on the profile and event hooks to feed it, which is
+      plumbing rather than a table. Not started.
 - [x] **Echo, zap and blastRadius are excluded from that pool.** A generated
       table is the last place a stat under review should pick up 82 new sources.
 - [x] **A rare drop off ore itself**, via the ore case: 2% case × 25% charm.
@@ -798,7 +837,30 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 
 # 8. Done
 
-**This batch (ore case correction, charm roster, pouch, hats, pet slots, pet motion):**
+**Fossils retired + charms given shapes (2026-10-02):**
+
+- [x] **Fossils are gone** (§0.12). Generation, the break branch, the three
+      fossil packs, the three bench verbs, the plaza station, the client panel and
+      every dead state read. `reconcileFossilIds` became `retireFossils`, which
+      **cashes out pieces and tools once at the game's own price** and tells the
+      player — nobody loses a bank they spent hours on. A legacy fossil PACK cashes
+      out the same way when opened rather than opening into nothing.
+- [x] **Tutorial step 15 repurposed to the ore pouch**, not deleted: `introAdvance`
+      walks the steps by NUMBER, so removing 15 would strand every player sitting
+      on it.
+- [x] **Charms given five shapes** (see §6.1 Charms). Later is better without
+      "bigger number is better".
+- [x] **Checked that skins are already the other pillar** and left them alone.
+      Tempers run +45% (F) to **+750%** (SSS) on a primary, so the two are in the
+      same league — and the contrast is right: charms progress with depth, skins
+      are the chase (SSS is 0.02%). No magnitude change needed, so none made.
+- [x] **Switched to a real Luau parser for validation.** `tools/verify/luau-balance.js`
+      is a brace-counting heuristic; `luau-analyze` actually parses. Worth it for
+      surgery this structural — all 206 files verified, and one of my own
+      brace-counting scripts had already aborted mid-batch and silently written
+      nothing. **Worth committing a wrapper for this.**
+
+**Earlier batch (ore case correction, charm roster, pouch, hats, pet slots, pet motion):**
 
 - [x] **Ore case rebuilt to the user's correction** — 2% drop, and opening it pays a
       guaranteed skin or charm. The tool roll and the ore consolation are gone.
