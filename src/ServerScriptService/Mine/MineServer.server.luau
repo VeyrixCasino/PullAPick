@@ -6444,6 +6444,17 @@ local function openPack(plr, setId, chestId, pk, collect)
 					snap(plr)
 					net:FireClient(plr, "toast", "Charm unlocked: " .. charm.name)
 				else
+					--[[
+						Neither half could pay, which needs both MineTemper and the
+						charm roster to be broken at once. GIVE THE CASE BACK: the
+						caller removed it from the bag before opening it, so the
+						toast was telling the truth only by accident.
+					]]
+					if pk then
+						p.packs = p.packs or {}
+						table.insert(p.packs, pk)
+					end
+					snap(plr)
 					net:FireClient(plr, "toast", "That case could not be opened -- it is still in your bag")
 				end
 				return
@@ -6476,6 +6487,25 @@ local function openPack(plr, setId, chestId, pk, collect)
 				local kept, spilled = Dig.addOre(p, zdef.oreId, got)
 				if spilled > 0 then
 					Dig.pouchFullToast(plr, p)
+				end
+				--[[
+					Nothing fit. GIVE THE PACK BACK.
+
+					Every caller of openPack table.removes the pack FIRST and then
+					opens it, so returning here without re-inserting would delete
+					it -- the player would lose the pack and get nothing for it.
+					`collect` runs are the ten-pack path and re-insert the same
+					way, since they removed it the same way.
+				]]
+				if kept <= 0 then
+					if pk then
+						p.packs = p.packs or {}
+						table.insert(p.packs, pk)
+					end
+					net:FireClient(plr, "toast",
+						"Pouch is full -- that pack stays in your bag until you make room")
+					snap(plr)
+					return
 				end
 				-- What the reveal shows is what actually went in.
 				got = kept
@@ -11796,14 +11826,22 @@ function Dig.addOre(p, oreId, amount)
 	end
 	local Pouch = Dig.pouch()
 	p.ores = p.ores or {}
+	--[[
+		DISCOVERY DOES NOT DEPEND ON HAVING ROOM. The ore is marked seen whether
+		or not the pouch could take it: the player broke the block and saw what
+		came out, and `oresSeen` drives the Forge's recipe list. Gating it on
+		capacity would mean a full pouch quietly stops you discovering ore, and
+		the recipe you needed stays invisible for a reason nothing tells you.
+
+		Seen is grow-only and records the ORE, not the amount, so selling a pouch
+		empty cannot un-discover anything either.
+	]]
+	p.oresSeen = p.oresSeen or {}
+	p.oresSeen[tostring(oreId)] = true
 	local room = Pouch.room(p.ores, Dig.pouchTier(p))
 	local got = math.min(want, room)
 	if got > 0 then
 		p.ores[oreId] = (tonumber(p.ores[oreId]) or 0) + got
-		p.oresSeen = p.oresSeen or {}
-		-- Seen is grow-only and records the ore, not the amount: a pouch sold
-		-- empty must not un-discover anything.
-		p.oresSeen[tostring(oreId)] = true
 	end
 	return got, want - got
 end
