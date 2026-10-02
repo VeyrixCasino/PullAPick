@@ -258,6 +258,7 @@ hats, faces, tools, runes, charms, and anything recyclable added later):
 
 - [ ] A **Select** button that puts the menu into selection mode.
 - [ ] **Bulk select** — go through and tick multiple items.
+      **No select-all.** Every item in a recycle batch is ticked deliberately.
 - [ ] A **Recycle** button that opens a **review screen listing everything about to
       be recycled**, with the total return.
 - [ ] **Hold 3 seconds to confirm.** Not a click — a hold, so a bulk recycle can

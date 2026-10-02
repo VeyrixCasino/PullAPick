@@ -20,8 +20,17 @@ local function mkBadge(parent)
 	local b = Instance.new("Frame")
 	b.Name = "NotifBadge"
 	b.AnchorPoint = Vector2.new(1, 0)
-	-- Inset from the plate corner so the badge cannot hang into the neighbor above.
-	b.Position = UDim2.new(1, -2, 0, 2)
+	-- Sits ON the top-right corner, half outside the plate, the way a
+	-- notification badge is expected to read. It used to be inset two pixels
+	-- INSIDE the plate, which made it look like part of the button's label
+	-- rather than a badge attached to it.
+	--
+	-- Hanging outside only works if the plate does not clip, so clear that
+	-- here: a button carrying a badge never wants its badge cropped.
+	b.Position = UDim2.new(1, 6, 0, -6)
+	if parent:IsA("GuiObject") and parent.ClipDescendants then
+		parent.ClipDescendants = false
+	end
 	b.Size = UDim2.fromOffset(18, 18)
 	b.BackgroundColor3 = Color3.fromRGB(220, 48, 48)
 	b.BorderSizePixel = 0

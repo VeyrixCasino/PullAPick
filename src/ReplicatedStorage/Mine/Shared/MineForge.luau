@@ -210,6 +210,11 @@ function MineForge.mount(parent, opts)
 	-- reorders or regrows the rail keeps the player on the same tool.
 	local selFamily, selType = "pickaxe", nil
 	local selOre = nil
+	-- CRAFT or UPGRADE, picked by the player rather than inferred from
+	-- ownership. Inferring it meant the craft recipes simply did not exist for
+	-- any tool you already owned, with nothing on screen to say so -- the panel
+	-- looked like it had no crafting at all.
+	local selMode = nil
 	local refresh
 
 	local function button(host, text, colour, pos, size, enabled, onClick)
@@ -233,14 +238,14 @@ function MineForge.mount(parent, opts)
 
 	----------------------------------------------------------------- detail --
 
-	local function drawUpgrade(snapshot, def, tool)
+	local function drawUpgrade(host, snapshot, def, tool)
 		local level = math.max(1, tonumber(tool.level) or 1)
 		local coinTool = C.isCoinTool and C.isCoinTool(tool)
 		local cap = coinTool and C.WOOD_PICK_MAX_LEVEL or C.TOOL_MAX_LEVEL
 		local maxed = level >= cap
 
-		label(detail, def.name, 19, TEXT, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 22), FONT)
-		label(detail, string.format("level %d / %d", level, cap), 13,
+		label(host, def.name, 19, TEXT, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 22), FONT)
+		label(host, string.format("level %d / %d", level, cap), 13,
 			maxed and GOLD or MUTED, UDim2.fromOffset(0, 26), UDim2.new(1, 0, 0, 16))
 
 		local canStep, costLine, heldLine
@@ -269,22 +274,22 @@ function MineForge.mount(parent, opts)
 			heldLine = string.format("held  %s  \u{00B7}  %s", num(haveOre), num(haveDust))
 		end
 
-		label(detail, costLine, 14, (maxed and GOLD) or (canStep and GREEN) or MUTED,
+		label(host, costLine, 14, (maxed and GOLD) or (canStep and GREEN) or MUTED,
 			UDim2.fromOffset(0, 54), UDim2.new(1, 0, 0, 18))
 		if heldLine then
-			label(detail, heldLine, 12, MUTED, UDim2.fromOffset(0, 74), UDim2.new(1, 0, 0, 14))
+			label(host, heldLine, 12, MUTED, UDim2.fromOffset(0, 74), UDim2.new(1, 0, 0, 14))
 		end
 
 		local y = 102
-		button(detail, "+1", GREEN, UDim2.fromOffset(0, y), UDim2.fromOffset(56, 28),
+		button(host, "+1", GREEN, UDim2.fromOffset(0, y), UDim2.fromOffset(56, 28),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, 1) end
 			end)
-		button(detail, "+10", GREEN, UDim2.fromOffset(62, y), UDim2.fromOffset(56, 28),
+		button(host, "+10", GREEN, UDim2.fromOffset(62, y), UDim2.fromOffset(56, 28),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, 10) end
 			end)
-		button(detail, "MAX", GREEN, UDim2.fromOffset(124, y), UDim2.fromOffset(56, 28),
+		button(host, "MAX", GREEN, UDim2.fromOffset(124, y), UDim2.fromOffset(56, 28),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, cap) end
 			end)
@@ -293,20 +298,22 @@ function MineForge.mount(parent, opts)
 		-- player cannot afford anything else.
 		local typeMult = typeMultOf(selFamily, def.id)
 		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
-		button(detail, "SCRAP  +" .. num(recOre) .. " ore / +" .. num(recDust) .. " dust",
+		button(host, "SCRAP  +" .. num(recOre) .. " ore / +" .. num(recDust) .. " dust",
 			RED, UDim2.fromOffset(0, y + 38), UDim2.fromOffset(240, 26), true, function()
 				if opts.onRecycle then opts.onRecycle(tool.uid) end
 			end)
 	end
 
-	local function drawCraft(snapshot, def)
-		label(detail, def.name, 19, TEXT, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 22), FONT)
-		label(detail, "Not forged. Pick an ore to build it from.", 13, MUTED,
+	local function drawCraft(host, snapshot, def)
+		label(host, def.name, 19, TEXT, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 22), FONT)
+		-- Neutral wording on purpose: this pane is also reached from the CRAFT
+		-- tab on a tool you already own, to forge another from a deeper ore.
+		label(host, "Pick an ore to forge it from.", 13, MUTED,
 			UDim2.fromOffset(0, 26), UDim2.new(1, 0, 0, 16))
 
 		local ores = discoveredOres(snapshot)
 		if #ores == 0 then
-			label(detail, "No ore discovered yet. Mine some first.", 13, MUTED,
+			label(host, "No ore discovered yet. Mine some first.", 13, MUTED,
 				UDim2.fromOffset(0, 56), UDim2.new(1, 0, 0, 18))
 			return
 		end
@@ -319,7 +326,7 @@ function MineForge.mount(parent, opts)
 			CanvasSize = UDim2.new(),
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollBarThickness = 4,
-		}, detail)
+		}, host)
 		mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, list)
 
 		for i, ore in ipairs(ores) do
@@ -361,10 +368,56 @@ function MineForge.mount(parent, opts)
 			return
 		end
 		local tool = ownedFor(snapshot, selFamily, def.id)
-		if tool then
-			drawUpgrade(snapshot, def, tool)
+
+		-- Default to UPGRADE once you own one, CRAFT otherwise, but always let
+		-- the player switch: owning one Halite Trueheart is no reason to hide
+		-- the recipe for forging another out of a deeper ore.
+		local mode = selMode or (tool and "upgrade" or "craft")
+		if mode == "upgrade" and not tool then
+			mode = "craft"
+		end
+
+		local tabs = mk("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 0, 30),
+		}, detail)
+		local function tab(text, id, x, enabled)
+			local on = (mode == id)
+			local b = mk("TextButton", {
+				BackgroundColor3 = on and GOLD or BG3,
+				AutoButtonColor = enabled,
+				Text = text,
+				Font = FONT,
+				TextSize = 12,
+				TextColor3 = on and Color3.fromRGB(26, 24, 20)
+					or (enabled and TEXT or MUTED),
+				Position = UDim2.fromOffset(x, 0),
+				Size = UDim2.fromOffset(96, 26),
+				Active = enabled,
+			}, tabs)
+			round(b, 6)
+			if enabled then
+				b.MouseButton1Click:Connect(function()
+					selMode = id
+					refresh()
+				end)
+			end
+			return b
+		end
+		tab("CRAFT", "craft", 0, true)
+		tab("UPGRADE", "upgrade", 102, tool ~= nil)
+
+		-- Everything below the tab strip draws into its own host, so the two
+		-- panes do not have to know the strip is above them.
+		local host = mk("Frame", {
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(0, 36),
+			Size = UDim2.new(1, 0, 1, -36),
+		}, detail)
+		if mode == "upgrade" and tool then
+			drawUpgrade(host, snapshot, def, tool)
 		else
-			drawCraft(snapshot, def)
+			drawCraft(host, snapshot, def)
 		end
 	end
 
@@ -417,6 +470,7 @@ function MineForge.mount(parent, opts)
 
 					b.MouseButton1Click:Connect(function()
 						selFamily, selType, selOre = fam.id, def.id, nil
+						selMode = nil
 						refresh()
 					end)
 				end
