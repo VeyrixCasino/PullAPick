@@ -1262,6 +1262,21 @@ function MineShopView.mount(parent, opts)
 	-- wall, a floor catching the light, and a plinth the tool actually stands on.
 	-- Built once at mount; setModel only ever swaps the model.
 	----------------------------------------------------------------------------
+	-- Where a tool's feet go: the plinth cap's top surface, a hair proud of it
+	-- so the tool sits ON the cap rather than hovering over it. setModel stands
+	-- every tool here and the camera aims here, so the two cannot drift apart.
+	local PLINTH_TOP = -10.75
+
+	--[[
+		The one point the camera both orbits and frames about.
+
+		Fixed in world space, a little above the cap, so the pedestal never moves
+		on screen no matter which tool is standing on it. Both the camera target
+		and the radius that fits it read this, because measuring the subject from
+		one point while orbiting another is what made the old fit overshoot.
+	]]
+	local AIM_Y = PLINTH_TOP + 3.5
+
 	local function buildStage()
 		-- Pedestal only — no workshop room. Clear ViewportFrame shows the shop
 		-- background art around the tool so themes can breathe.
@@ -1319,14 +1334,26 @@ function MineShopView.mount(parent, opts)
 	-- pedestal; painting a colour here is what produced the dark rectangle.
 	vp.BackgroundTransparency = 1
 
-	-- Drag to spin. A shop that shows one fixed angle hides half of what you are
-	-- buying, and these models are asymmetric.
-	local userYaw, dragging, lastX, grabbed = 0, false, 0, false
+	--[[
+		Drag to spin. A shop that shows one fixed angle hides half of what you
+		are buying, and these models are asymmetric.
+
+		Grabbing it used to end the idle sway for good -- one drag and the
+		showcase went dead for the rest of the session, every tool after it
+		sitting stock still. The sway is how the shop shows a tool off, so it
+		comes back: your angle is kept (userYaw is never touched), the drift
+		just eases back in a few seconds after you let go, and a tool you have
+		only just clicked on sways straight away.
+	]]
+	local SWAY_RESUME = 3.0 -- seconds of hands-off before the drift returns
+	local SWAY_EASE = 1.0 -- and how long it takes to come back to full
+	local userYaw, dragging, lastX = 0, false, 0
+	local idle = math.huge -- seconds since the last drag input
 	vp.Active = true
 	vp.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
-			dragging, lastX, grabbed = true, input.Position.X, true
+			dragging, lastX, idle = true, input.Position.X, 0
 		end
 	end)
 	vp.InputChanged:Connect(function(input)
@@ -1334,6 +1361,7 @@ function MineShopView.mount(parent, opts)
 			or input.UserInputType == Enum.UserInputType.Touch) then
 			userYaw += (input.Position.X - lastX) * 0.011
 			lastX = input.Position.X
+			idle = 0
 		end
 	end)
 	local function release(input)
@@ -1538,11 +1566,13 @@ function MineShopView.mount(parent, opts)
 
 		-- Sit it on the plinth rather than through it.
 		local centre, size = model:GetBoundingBox()
-		model:TranslateBy(-centre.Position + Vector3.new(0, size.Y * 0.5 - 10.75, 0))
+		model:TranslateBy(-centre.Position + Vector3.new(0, size.Y * 0.5 + PLINTH_TOP, 0))
 		model.Parent = vp
 		shown = model
 
-		centre, size = model:GetBoundingBox()
+		-- Only the size is wanted now: the camera aims at the plinth, so where
+		-- the tool's own centre landed no longer decides the shot.
+		_, size = model:GetBoundingBox()
 
 		-- The plinth follows the tool. A fixed 16-stud block dwarfed a 4-stud
 		-- pick and read as the subject of the shot.
@@ -1602,7 +1632,9 @@ function MineShopView.mount(parent, opts)
 			the aim point. No magic constants, so a taller plinth or a longer
 			tool reframes itself.
 		]]
-		local aim = centre.Position
+		-- The point the camera orbits, which is NOT the tool's centre. Keeping
+		-- these two the same is the whole reason the fit is honest.
+		local aim = Vector3.new(0, AIM_Y, 0)
 		local function reachFrom(boxCF, boxSize)
 			local h = boxSize * 0.5
 			local worst = 0
@@ -1673,6 +1705,10 @@ function MineShopView.mount(parent, opts)
 		shown:SetAttribute("Cy", centre.Position.Y)
 		shown:SetAttribute("Cz", centre.Position.Z)
 		frameStage()
+
+		-- A fresh tool gets the full show: drift from zero (so it opens square
+		-- on the hero angle) whether or not you were mid-drag on the last one.
+		sway, idle = 0, math.huge
 	end
 
 	RunService.RenderStepped:Connect(function(dt)
@@ -1680,17 +1716,39 @@ function MineShopView.mount(parent, opts)
 			return
 		end
 		sway += dt
+		idle = dragging and 0 or (idle + dt)
 		local hero = HERO[activeTab] or HERO.pickaxe
-		-- Idle drift until you grab it; after that the angle is yours.
-		local drift = grabbed and 0 or math.sin(sway * 0.6) * 0.30
+		-- The little back-and-forth that shows the tool off. It yields to your
+		-- hands and eases back in once they are off it, rather than dying at
+		-- the first drag.
+		local back = math.clamp((idle - SWAY_RESUME) / SWAY_EASE, 0, 1)
+		local drift = math.sin(sway * 0.6) * 0.30 * back
 		local a = (shown:GetAttribute("FaceYaw") or 0) + hero.yaw + userYaw + drift
-		local centre = Vector3.new(shown:GetAttribute("Cx") or 0,
-			shown:GetAttribute("Cy") or 0, shown:GetAttribute("Cz") or 0)
-		-- aimOffsetY slides the subject down the frame so it sits in the gap
-		-- between the header and the name/stats/BUY stack, not the screen middle.
-		cam.CFrame = CFrame.new(centre + Vector3.new(0, aimOffsetY, 0))
+
+		--[[
+			AIM AT THE PLINTH, NOT AT THE TOOL.
+
+			Upstream fixed the radius (measure the sphere about the point the
+			camera orbits) but left that point as the TOOL's box centre, which
+			sits half a tool-height above the cap. So the eye height was a
+			function of how tall the tool happened to be, and the whole stage --
+			plinth, ground disc and all -- hopped up and down as you paged
+			through the shop instead of staying flat.
+
+			AIM_Y is a fixed world height above the cap, so the pedestal lands on
+			the same pixel for every tool in the game. The same constant is what
+			setModel measures the radius about (see `aim` there), which is
+			upstream's own rule: orbit and fit must share a centre. aimOffsetY
+			still does the layout work on top -- it centres the subject in the
+			free band between the header and the BUY stack, which is a better
+			mechanism than a fixed fraction of the distance.
+
+			The trade is deliberate: a taller tool now sits further away and
+			reads smaller, rather than shoving the plinth off the bottom.
+		]]
+		cam.CFrame = CFrame.new(Vector3.new(0, AIM_Y + aimOffsetY, 0))
 			* CFrame.Angles(0, a, 0) * CFrame.Angles(hero.pitch, 0, 0)
-			* CFrame.new(0, 0, shown:GetAttribute("Dist") or 6)
+			* CFrame.new(0, 0, dist)
 	end)
 
 	----------------------------------------------------------------------------
