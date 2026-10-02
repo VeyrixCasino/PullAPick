@@ -116,7 +116,6 @@ function MineRunesView.mount(parent, opts)
 		cards = {},
 		equipped = {},
 		petSockets = {},
-		fossilTools = {},
 		tool = { family = "pickaxe" },
 		runeRollPrice = Runes.ROLL_PRICE,
 		gearRollPrice = 75,
@@ -465,8 +464,8 @@ function MineRunesView.mount(parent, opts)
 			end
 		end
 
-		-- Off-ladder tools. A flagship or a fossil tool holds one rune each, and
-		-- the rune has to match the tool's family the same as anywhere else.
+		-- Off-ladder tools. A flagship holds one rune, and the rune has to match
+		-- the tool's family the same as anywhere else.
 		for _, ct in ipairs(state.chestTools or {}) do
 			if type(ct) == "table" and Runes.canSocketOnTool(a, ct.family) then
 				local worn = ct.runeId and runeById(state.runes, ct.runeId)
@@ -474,17 +473,6 @@ function MineRunesView.mount(parent, opts)
 					.. (worn and "  (replaces a rune)" or ""), GOLD, true, function()
 					if opts.onSocketChestTool then
 						opts.onSocketChestTool(a.id, ct.id)
-					end
-				end)
-			end
-		end
-		for key, ft in pairs(state.fossilTools or {}) do
-			if type(ft) == "table" and Runes.canSocketOnTool(a, ft.family) then
-				local worn = ft.runeId and runeById(state.runes, ft.runeId)
-				detailBtn("Socket → " .. tostring(ft.name)
-					.. (worn and "  (replaces a rune)" or ""), GOLD, true, function()
-					if opts.onSocketFossilTool then
-						opts.onSocketFossilTool(a.id, ft.fossilId or key)
 					end
 				end)
 			end
@@ -921,13 +909,12 @@ function MineRunesView.mount(parent, opts)
 		state.gear = snap.gear or {}
 		state.equippedGear = snap.equippedGear or {}
 		state.toolSockets = snap.toolSockets or {}
-		-- Chest flagships and fossil tools each take one rune. The server has
-		-- always supported it; there was simply nowhere to click.
+		-- Chest flagships each take one rune. The server has always supported
+		-- it; there was simply nowhere to click.
 		state.chestTools = snap.chestTools or {}
 		state.cards = snap.cards or {}
 		state.equipped = snap.equipped or {}
 		state.petSockets = snap.petSockets or {}
-		state.fossilTools = snap.fossilTools or {}
 		state.tool = snap.tool or { family = "pickaxe" }
 		state.runeRollPrice = snap.runeRollPrice or Runes.ROLL_PRICE
 		state.gearRollPrice = snap.gearRollPrice or 75

@@ -182,8 +182,8 @@ function MineToolGrades.canFuse(a, b)
 		return false
 	end
 	if a.id ~= b.id and a.toolId ~= b.toolId then
-		local idA = a.toolId or a.fossilId or a.id
-		local idB = b.toolId or b.fossilId or b.id
+		local idA = a.toolId or a.id
+		local idB = b.toolId or b.id
 		if idA ~= idB then
 			return false
 		end

@@ -2199,8 +2199,6 @@ end
 -- What is currently ticked, and which tab is showing. One table rather than two
 -- locals: this file is near the 200 top-level local ceiling.
 local scrapUI = { sel = {}, tab = "cards" }
-local fossilP = panel("Fossil Bench")
-fossilP.Size = UDim2.fromScale(0.94, 0.92)
 local enchantP = panel("Enchanter")
 enchantP.Size = UDim2.fromScale(0.94, 0.92)
 if enchantP.Body then
@@ -3228,7 +3226,7 @@ end
 ]]
 ClientFns.STATION_LABEL = {
 	sell = "SELL", shop = "BLACKSMITH", enchanter = "ENCHANTER", contractor = "JOBS",
-	fossil = "RETIRED", prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
+	prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
 }
 
 function ClientFns.pitWaypointPos()
@@ -4739,7 +4737,7 @@ end
 -- a card grid and a shop carousel have something to put in it, a list of rows
 -- does not.
 local WIDE = { Cards = true, Merge = true, Inventory = true, ShopPanel = true,
-	["Fossil Bench"] = true, Enchanter = true }
+	Enchanter = true }
 for name, f in pairs(panels) do
 	-- A full-screen overlay is not a window. The skill wheel is a radial menu
 	-- drawn across the whole viewport with its own scrim; capping it to a
@@ -5399,13 +5397,13 @@ end
 local CARD_RATIO = 3.5 / 2.5
 
 --[[
-	The face of a fossil piece, a rune or a gear piece.
+	The face of a rune or a gear piece.
 
 	Same silhouette as a card -- rarity banner, art well, name, stat line -- so
 	a mixed reveal reads as one deck rather than as two systems bolted together.
 	What changes is the art well, and every family has real art to put in it:
 	gear has per-set, per-slot, per-rarity images; a rune borrows the icon of
-	the stat it rolls; a fossil borrows its tool family's.
+	the stat it rolls.
 
 	Gear, Runes and Icons are required here rather than at the top of the file
 	because MineClient is close to Luau's 200 top-level local ceiling and
@@ -5422,7 +5420,6 @@ function ClientFns.paintLoot(parent, item, w)
 	local FAMILY = {
 		gear = { tag = "GEAR", tint = Color3.fromRGB(86, 132, 190) },
 		rune = { tag = "RUNE", tint = Color3.fromRGB(150, 104, 200) },
-		fossil = { tag = "FOSSIL", tint = Color3.fromRGB(196, 146, 72) },
 		gems = { tag = "GEMS", tint = Color3.fromRGB(90, 180, 255) },
 		coins = { tag = "COINS", tint = Color3.fromRGB(240, 200, 90) },
 		stardust = { tag = "STARDUST", tint = Color3.fromRGB(210, 160, 255) },
@@ -5609,8 +5606,8 @@ function ClientFns.paintLoot(parent, item, w)
 		Text = pillText,
 	}, pill)
 
-	-- The right-hand number is the reason to want it: a percentage for gear and
-	-- runes, the seam depth for a fossil piece.
+	-- The right-hand number is the reason to want it: a percentage for gear
+	-- and runes.
 	local right = ""
 	if item.kind == "gear" and item.gear then
 		local slots = item.gear.slotCount or 0
@@ -5660,7 +5657,7 @@ end
 	The same model the hand holds (ToolModelFactory.fromNamed, finish applied
 	live), stood on its handle the way the shop does it, and framed by its own
 	bounding sphere so a stubby bomb and a long lance both fill the well. A tool
-	with no named model (proto, fossil) gets its family's procedural build.
+	with no named model (a proto) gets its family's procedural build.
 ]]
 function ClientFns.toolViewport(parent, item, aspect)
 	local ok, err = pcall(function()
@@ -5767,8 +5764,8 @@ function ClientFns.toolViewport(parent, item, aspect)
 end
 
 paintCard = function(parent, card, w)
-	-- One painter for everything the reveal and the binder can show. A fossil,
-	-- rune or gear item carries `kind`; a card does not.
+	-- One painter for everything the reveal and the binder can show. A rune or
+	-- gear item carries `kind`; a card does not.
 	if type(card) == "table" and card.kind and card.kind ~= "card" then
 		return ClientFns.paintLoot(parent, card, w)
 	end
@@ -7152,51 +7149,13 @@ local function refreshDust()
 	end
 end
 
--- Retired with the fossil system. Always zero: a save's pieces were cashed out
--- to gems on load, and nothing drops a new one.
-function ClientFns.countFossilPieces(fossilId)
-	local n = 0
-	for _, piece in ipairs(snap.fossilPieces or {}) do
-		if piece.fossilId == fossilId then
-			n += 1
-		end
-	end
-	return n
-end
-
 --[[
-	The Fossil Bench, laid out like the Enchanter.
-
-	It was a flat column of buttons -- a header row, then an Assemble row, then
-	an Equip row, then two Sell rows, sixteen times over. You could not see at a
-	glance which fossil you were close to finishing, which is the only question
-	the screen has to answer.
-
-	Now it is a grid of the same tiles the rune view uses: one card per recipe,
-	progress on it, and the action it currently supports.
+	The Fossil Bench panel stood here. It had already been reduced to a single
+	"fossils are retired" notice, kept in case a stale waypoint still opened it.
+	Nothing routes to it any more -- the plaza station is gone and the panel key
+	is out of the router, which no-ops on a key it does not know -- so the panel
+	is gone too rather than sitting unreachable with a fossil name on it.
 ]]
---[[
-	THE FOSSIL BENCH PANEL, retired.
-
-	Fossils are gone, and so is the bench. The panel stays reachable only because
-	an old build's button or a stale waypoint can still open it, and an empty
-	frame reads as a broken screen -- so it says what happened instead.
-
-	Anything a save still held was cashed out to gems on load, server-side.
-]]
-local function refreshFossil()
-	clear(fossilP.Body)
-	local box = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -24, 0, 96),
-		Position = UDim2.fromOffset(12, 12), LayoutOrder = 0 }, fossilP.Body)
-	mk("TextLabel", {
-		BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
-		Font = Enum.Font.Gotham, TextSize = 14, TextWrapped = true,
-		TextColor3 = Color3.fromRGB(190, 190, 200),
-		TextYAlignment = Enum.TextYAlignment.Top,
-		Text = "Fossils are retired.\n\nThe pieces and tools you had were paid out in gems. "
-			.. "Your build is CHARMS and SKINS now -- charms drop from ore cases, skins come out of the same cases.",
-	}, box)
-end
 refreshZones = function()
 	if not snap then
 		return
@@ -8499,8 +8458,8 @@ local function refreshEnchanter()
 				-- cardId was never sent, so the server always answered "Unknown pet".
 				net:FireServer("socketPetRune", { runeId = id, cardId = cardId })
 			end,
-			-- Off-ladder tools. socketToolRune has always taken chestId/fossilId;
-			-- the Enchanter just never offered them as targets.
+			-- Off-ladder tools. socketToolRune has always taken a chestId; the
+			-- Enchanter just never offered them as targets.
 			onSocketChestTool = function(runeId, chestId)
 				net:FireServer("socketToolRune", { runeId = runeId, chestId = chestId })
 			end,
@@ -8584,7 +8543,6 @@ function refreshAll()
 	refreshShop()
 	refreshMerge()
 	refreshDust()
-	refreshFossil()
 	refreshZones()
 	refreshPrestige()
 	if refreshEnchanter then refreshEnchanter() end
@@ -10070,14 +10028,11 @@ RunService.Heartbeat:Connect(function(dt)
 			hoverName.Text = oreTier
 				and string.format("%s  |  tier %d", tostring(oreName), oreTier)
 				or tostring(oreName)
-		elseif section and target:GetAttribute("Kind") ~= "chest" and target:GetAttribute("Kind") ~= "fossil" then
+		elseif section and target:GetAttribute("Kind") ~= "chest" then
 			hoverName.Text = string.format("%s  |  L%d", section, layer or 1)
 		elseif target:GetAttribute("Kind") == "chest" then
 			local flavour = section and ("  |  " .. section) or ""
 			hoverName.Text = blockName .. flavour
-		elseif target:GetAttribute("Kind") == "fossil" then
-			-- BlockName is already "Shallow Fossil Pick" etc - don't prefix another Fossil.
-			hoverName.Text = blockName
 		else
 			hoverName.Text = blockName
 		end
@@ -10284,7 +10239,6 @@ function ClientFns.routePanel(name, tab)
 		end },
 		merge = { mergeP, refreshMerge },
 		dust = { dustP, refreshDust },
-		fossil = { fossilP, refreshFossil },
 		zones = { zoneP, refreshZones },
 		prestige = { presP, refreshPrestige },
 		events = { eventsCtl and eventsCtl.root or nil, function()
@@ -10662,7 +10616,6 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if shopP and shopP.Visible then refreshShop() end
 		if mergeP and mergeP.Visible then refreshMerge() end
 		if dustP and dustP.Visible then refreshDust() end
-		if fossilP and fossilP.Visible then refreshFossil() end
 		if zoneP and zoneP.Visible then refreshZones() end
 		if presP and presP.Visible then refreshPrestige() end
 		if runesCtl then

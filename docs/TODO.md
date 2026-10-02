@@ -18,8 +18,18 @@ Last updated: 2026-10-02.
 drops one, the bench is gone from the plaza. Anything a save held was cashed out
 to gems on load at the game's own price. Both modules are **deleted** (owner,
 2026-10-02); the payout they priced is frozen into `FossilPay` in MineServer, ~35
-lines that need no module. `fossilFind` keeps its KEY (it was already repurposed
-to "Ore Finder"); do not rename it.
+lines that need no module. The fossil PACKS are gone too: the three per-zone
+slots, the three roster rows, their prices, their art, the chest entries that
+dropped them and the "fossils" trade tab. An unopened one is cashed out on load.
+
+Two things deliberately STAY, and neither is open for cleanup:
+
+- **`fossilFind` keeps its KEY.** It was already repurposed to "Ore Finder". Do
+  not rename it.
+- **The 60 fossil-track BAGS stay in `MineBags.LIST`.** A bag id is
+  `bag_<index into LIST>`, so deleting them would renumber every bag above them
+  and hand every player a different backpack. They are unobtainable and hidden
+  from every shelf and count; that is the fix, not deletion.
 
 **0.13 — CHARMS AND SKINS ARE THE BUILD.** Owner, 2026-10-02. The two main parts,
 and everything else (pets, hats, faces, runes) is support. Later charms are
@@ -945,6 +955,61 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
       in the repo and is itself deletable later. Deleting it costs exactly one
       thing — a player who has not logged in since retirement keeps their pieces as
       dead state instead of gems.
+
+**And then the rest of the fossils, which were still live (2026-10-02):**
+
+Deleting the modules turned up a much larger surface than the modules. These were
+not dormant — they were reachable:
+
+- [x] **Fossil PACKS were still obtainable.** `MineZonePacks` authored three of
+      every zone's eight slots (33 registered packs) and ~37 chest loot entries
+      dropped them. Gone: the slots, the `SLOT_META` rows, `fossilOdds`, the
+      `SLOT_ALIAS` table, the three `Mine1PacksData` rows, seven `PACK_PRICE` /
+      `CREDIT_PRICE` entries, the `DUST_EXCLUDE` row, three `MinePackFX` art rows
+      and their lookup, and the five `MineTradeValue` dust rows.
+- [x] **Chest loot kept its shape.** Each fossil slot was REPLACED, not dropped —
+      removing them would have left chests like Rootbox and Hillock with a single
+      pack slot. Each became the same-band card pack at the same chance, stepping
+      up the ladder when that slot was already present, so no chest lost a slot
+      and none rolls the same slot twice.
+- [x] **A "Fossils" tab in the trade window.** A whole trade kind, server and
+      client, over `p.fossilPieces` which is always nil now. Gone from
+      `TradeService` (KINDS, the offer/view/items skeletons, sanitise, peek,
+      take, remove, append, the log line) and `MineTradeView` (the tab, the
+      stack key, the rarity ink, the rank, the inspector lines).
+- [x] **The Fossil Bench PANEL in MineClient.** Already reduced to a notice, kept
+      against a stale waypoint. Nothing routes to it (the plaza station is gone,
+      and the router no-ops on an unknown key), so it went with its refresh
+      function, `countFossilPieces`, the WIDE entry and the `RETIRED` station
+      label.
+- [x] **Fossil tools in two more screens.** `MineSocketsView` and `MineRunesView`
+      both listed them as rune targets (`onSocketFossilTool`), `MineRunes`
+      counted their runes as busy, and `MineInventoryView` had a whole fourth
+      equip source for them (tiles, temper text, equip call, sell confirm).
+- [x] **Dead server plumbing.** The legacy-pack open branch (51 lines), the
+      `kind ~= "fossil"` spawn guards, the `PROC_SKIP` entry, the intro-chest
+      guard, the `setName` map row, the pack-luck guard and two unused
+      `fossilId` locals. `MineConfig` lost `BLOCKS.fossil`,
+      `FOSSIL_LAYER_CHANCE` and the `fossilTools` bag field — and the
+      unknown-kind fallback `C.BLOCKS[kind] or C.BLOCKS.fossil` had to become
+      `C.BLOCKS.dirt` first, or an unrecognised kind would have thrown.
+- [x] **Found a real bug on the way: the event pass had an impossible quest.**
+      Its last quest, "Find a fossil pack in the event mine", read stat
+      `fossils` — which has **no writer anywhere** — and the chest roller
+      excluded Event Horizon from fossil packs regardless. The top 30 xp of the
+      track was unreachable. It is a depth step now, on a stat the server
+      actually bumps, keeping the id so `questIndex` does not shift for anyone
+      part-way through.
+- [x] **Player-facing text that promised fossils.** The `depth1k` quest tip
+      ("Fossils become forever tools"), the Pulverizer stat description, the bag
+      refusal toast ("crafted on the fossil track"), and the "Fossil Bed" block,
+      renamed to "Pressed Bed" with its id kept because saves carry it.
+- [x] **`tools/verify/packs.js`, a new behavioural check.** Grep can prove a word
+      is absent; it cannot prove 89 chest tables still line up after three of
+      eight slots were removed. This RUNS the real `MineZonePacks` and
+      `MineZoneChests` and asserts no fossil pack is registered, 11 zones × 5
+      slots = 55 packs, every chest names a known slot with no duplicates and
+      offers at least one pack, and every rolled id resolves.
 
 **Fossils retired + charms given shapes (2026-10-02):**
 

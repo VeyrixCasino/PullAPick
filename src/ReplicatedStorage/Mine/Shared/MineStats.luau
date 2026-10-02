@@ -43,7 +43,7 @@ MineStats.STATS = {
 	-- Fossils are gone; ore replaced them. The key stays fossilFind so nothing
 	-- that writes it has to be rewritten, but it is the Ore Finder now.
 	fossilFind  = { label = "Ore Finder",       weight = 1.5, unit = "%", desc = "Multiplies how much ore a pack pays. Stamped on the pack when you mine it. Does not change which ore you get." },
-	pulverize   = { label = "Pulverizer",       weight = 4.0, unit = "%", desc = "Chance to drop 1 stardust when dirt/ore dies. Not chests, fossils, or cubes." },
+	pulverize   = { label = "Pulverizer",       weight = 4.0, unit = "%", desc = "Chance to drop 1 stardust when dirt/ore dies. Not chests or cubes." },
 	scrap       = { label = "Scrap",            weight = 1.2, unit = "%", desc = "Extra stardust when a chest dies. Not the Scrapper. Pets only." },
 	coolant     = { label = "Coolant",          weight = 2.5, unit = "%", desc = "Drill spin-up. turn / (1 + coolant). Apex stays 0. Rune only." },
 	shortFuse   = { label = "Short Fuse",       weight = 2.2, unit = "%", desc = "Bomb cooldown / (1 + p), and extra mineSpeed on explosives. Rune only." },

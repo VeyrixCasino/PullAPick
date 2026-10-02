@@ -395,24 +395,15 @@ function MineSocketsView.mount(parent, opts)
 				})
 			end
 		end
-		-- Flagships and fossil tools take a rune each. They are the ones people
-		-- most want to socket, and leaving them out of this list was the whole
-		-- reason the old screen still needed its button soup.
+		-- Flagships take a rune each. They are the ones people most want to
+		-- socket, and leaving them out of this list was the whole reason the old
+		-- screen still needed its button soup.
 		for _, ct in ipairs(state.chestTools or {}) do
 			if type(ct) == "table" then
 				table.insert(tools, {
 					kind = "chest", id = ct.id, family = ct.family,
 					name = tostring(ct.name), sub = "flagship  ·  " .. tostring(ct.family),
 					slots = 1, filled = { ct.runeId }, tint = GOLD,
-				})
-			end
-		end
-		for key, ft in pairs(state.fossilTools or {}) do
-			if type(ft) == "table" then
-				table.insert(tools, {
-					kind = "fossil", id = ft.fossilId or key, family = ft.family,
-					name = tostring(ft.name), sub = "fossil tool  ·  " .. tostring(ft.family),
-					slots = 1, filled = { ft.runeId }, tint = GOLD,
 				})
 			end
 		end
@@ -485,7 +476,7 @@ function MineSocketsView.mount(parent, opts)
 				local k = it.kind
 				local pass = false
 				if filterKind == "tool" then
-					pass = k == "tool" or k == "shop" or k == "chest" or k == "fossil"
+					pass = k == "tool" or k == "shop" or k == "chest"
 				elseif filterKind == "pet" then
 					pass = k == "pet"
 				elseif filterKind == "gear" then

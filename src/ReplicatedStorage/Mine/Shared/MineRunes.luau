@@ -793,7 +793,7 @@ MineRunes.SCRAP_RATE = 0.6
 -- This mirrors MineServer.runeBusy, and it lives here so there is ONE definition
 -- for every screen that lists runes. Each view having its own copy is how the
 -- sockets tray ended up offering runes the server then refused -- it had missed
--- chest and fossil tools.
+-- chest tools.
 --
 -- Takes a snapshot (or a profile: the field names are the same).
 --------------------------------------------------------------------------------
@@ -817,11 +817,6 @@ function MineRunes.socketedIds(snap)
 	end
 	for _, id in pairs(snap.petSockets or {}) do
 		used[id] = true
-	end
-	for _, ft in pairs(snap.fossilTools or {}) do
-		if type(ft) == "table" and ft.runeId then
-			used[ft.runeId] = true
-		end
 	end
 	for _, ct in ipairs(snap.chestTools or {}) do
 		if type(ct) == "table" and ct.runeId then

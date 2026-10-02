@@ -21,8 +21,6 @@ MineTradeValue.GEAR_DUST = {
 	Legendary = 320, Mythic = 700, Divine = 1600, Exotic = 3600,
 }
 MineTradeValue.PACK_DUST = {
-	fossil_pack = 40, fossil_deeprock_pack = 90, fossil_shadowzone_pack = 180,
-	fossil_deep_pack = 90, fossil_abyss_pack = 180, -- legacy aliases
 	rune_pack = 55, gear_pack = 70,
 }
 
@@ -92,23 +90,6 @@ function MineTradeValue.gearValue(entry)
 	return MineTradeValue.GEAR_DUST[r] or 12
 end
 
---[[
-	Fossil pieces. 100 pieces of one recipe assemble into a tool, and rarer
-	identities drop far fewer pieces per pull (Common 25 ... Exotic 1), so a
-	piece has to be priced by its identity rarity or a trade window reads an
-	Exotic piece as a Common one -- the same hole runes had before tiers.
-]]
-MineTradeValue.FOSSIL_PIECE_DUST = {
-	Common = 4, Uncommon = 7, Rare = 14, Epic = 32,
-	Legendary = 75, Mythic = 170, Divine = 380, Exotic = 900,
-}
-
-function MineTradeValue.fossilValue(entry)
-	local r = (type(entry) == "table" and (entry.rarityId or entry.rarity)) or "Common"
-	r = MineTradeValue.GRADE_TO_NAME[r] or r
-	return MineTradeValue.FOSSIL_PIECE_DUST[r] or MineTradeValue.FOSSIL_PIECE_DUST.Common
-end
-
 function MineTradeValue.total(offer, cardLookup)
 	if type(offer) ~= "table" then return 0 end
 	local sum = 0
@@ -127,9 +108,6 @@ function MineTradeValue.total(offer, cardLookup)
 	end
 	for _, g in ipairs(offer.gear or {}) do
 		sum += MineTradeValue.gearValue(g)
-	end
-	for _, f in ipairs(offer.fossils or {}) do
-		sum += MineTradeValue.fossilValue(f)
 	end
 	for _, t in ipairs(offer.potions or {}) do
 		local id = type(t) == "table" and (t.id or t.potionId) or t

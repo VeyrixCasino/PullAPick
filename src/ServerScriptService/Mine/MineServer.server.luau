@@ -416,6 +416,35 @@ local function retireFossils(p)
 		end
 	end
 
+	--[[
+		Held fossil PACKS, too.
+
+		These used to cash out when OPENED, because the pack rows were still
+		registered and an unopenable pack reads as a bug. The rows are gone now
+		(MineZonePacks dropped its three fossil slots, Mine1PacksData its three
+		packs), so an unopened one would be an inventory row with no definition
+		behind it. It pays here instead, at the same rate the open branch used:
+		a mid-band recipe at full grade, three pieces a pull.
+
+		Matched on the substring rather than a list, because the ids came in six
+		shapes -- "fossil_pack", the three zone-prefixed ones, and the two
+		legacy aliases ("fossil_deep_pack", "fossil_abyss_pack").
+	]]
+	if type(p.packs) == "table" then
+		local keep = {}
+		for _, pk in ipairs(p.packs) do
+			local id = type(pk) == "table" and tostring(pk.packId or "") or ""
+			if id ~= "" and string.find(id, "fossil", 1, true) then
+				local pulls = tonumber(type(pk) == "table" and pk.pulls) or 3
+				local count = math.max(1, math.floor(tonumber(type(pk) == "table" and pk.count) or 1))
+				gems += FossilPay.gems("pair_tide_mid_pick", 1) * 3 * pulls * count
+			else
+				table.insert(keep, pk)
+			end
+		end
+		p.packs = keep
+	end
+
 	p.fossilPieces = nil
 	p.fossilTools = nil
 	p.fossilTool = nil
@@ -3750,7 +3779,9 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	part.CFrame = CFrame.new(pos)
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	local spec = C.BLOCKS[kind] or C.BLOCKS.fossil
+	-- Fallback for an unrecognised kind. Was C.BLOCKS.fossil, which no longer
+	-- exists; dirt is the plain rock every zone already starts from.
+	local spec = C.BLOCKS[kind] or C.BLOCKS.dirt
 	local lucky = (C.isLuckyLayer and C.isLuckyLayer(zone.id, y)) or false
 	local section = (zone.id == "meadow" and C.sectionFor) and C.sectionFor(y) or nil
 	-- A zone with strata of its own (MineConfig.ZONE_SECTIONS) paints its rock by depth.
@@ -3871,12 +3902,12 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	else
 		part.Color = spec.color
 	end
-	if kind ~= "fossil" and kind ~= "lucky_block" and kind ~= "ore" then
+	if kind ~= "lucky_block" and kind ~= "ore" then
 		part.Material = (strata and strata.material) or spec.material
 	end
-	-- A lucky seam reads as one solid band from across the shaft. Chests,
-	-- fossils and lucky blocks keep their own look so they stay findable in it.
-	if lucky and kind ~= "chest" and kind ~= "fossil"
+	-- A lucky seam reads as one solid band from across the shaft. Chests and
+	-- lucky blocks keep their own look so they stay findable in it.
+	if lucky and kind ~= "chest"
 		and kind ~= "lucky_block" and kind ~= "core" and kind ~= "ore" then
 		part.Color = C.LUCKY_LAYER_COLOR or Color3.fromRGB(255, 214, 92)
 		part.Material = Enum.Material.Neon
@@ -3903,8 +3934,8 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		local look = C.CHEST_LOOK[chestDef.kind] or C.CHEST_LOOK.native
 		part.Color = look.color
 		part.Material = look.material
-		-- An actual chest, built into the block. Guarded for the same reason the
-		-- fossil art is: decoration must never be able to stop a block existing.
+		-- An actual chest, built into the block. Guarded on principle:
+		-- decoration must never be able to stop a block existing.
 		if ChestModel and ChestModel.build then
 			pcall(ChestModel.build, part, chestDef.kind, part.Size.X)
 		end
@@ -4305,7 +4336,7 @@ local function ensureZone(zone, throughLayer)
 					local existing = voxels[zone.id][key]
 					if typeof(existing) == "Instance" then
 						local k = existing:GetAttribute("Kind")
-						if k ~= "chest" and k ~= "fossil" and k ~= "core" then
+						if k ~= "chest" and k ~= "core" then
 							existing:Destroy()
 							voxels[zone.id][key] = nil
 							stampIntroChest(spawnVoxel(zone, x, y, z, "chest"))
@@ -5607,7 +5638,7 @@ end
 	Echo is deliberately NOT rolled in here. If it were, an echo could echo, and
 	a stacked Echo would turn one swing into a chain with no ceiling.
 ]]
-Dig.PROC_SKIP = { chest = true, crate = true, fossil = true, core = true, lucky_block = true }
+Dig.PROC_SKIP = { chest = true, crate = true, core = true, lucky_block = true }
 Dig.FACE6 = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
 
 function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke, forceBlast)
@@ -5615,7 +5646,7 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		return
 	end
 	local rng = Random.new()
-	-- Omni Blast is a destroy-proc: chest / fossil / core / cube deaths stay
+	-- Omni Blast is a destroy-proc: chest / core / cube deaths stay
 	-- centre-only, both as the source and as a neighbour.
 	if broke and not Dig.PROC_SKIP[kind] then
 		local chance = forceBlast and 1 or (b.oreYield or 0)
@@ -6805,57 +6836,13 @@ local function openPack(plr, setId, chestId, pk, collect)
 				snap(plr)
 				net:FireClient(plr, "opened", loot, design)
 				return
-			elseif zdef.kind == "fossil" then
-				--[[
-					A LEGACY FOSSIL PACK PAYS GEMS.
-
-					Fossils are retired, so there is nothing for this to open into
-					-- but a save can still be holding one, and a pack that opens
-					into nothing is indistinguishable from a bug. It cashes out
-					instead.
-
-					The rate is the game's OWN price for the pieces it would have
-					contained (MineFossils.sellGems over the recipes it could have
-					rolled), not a number invented here: a player who banked these
-					gets what the fossil bench would have paid them for the same
-					pack.
-				]]
-				--[[
-					Priced off a MID fossil at full grade -- the frozen formula in
-					FossilPay, the same one the retirement payout uses. It used to
-					average MineFossils.RECIPES, which no longer exists.
-
-					A mid-band grove recipe is the middle of what these packs
-					actually contained, so this is the same answer the average
-					gave without needing the table back.
-				]]
-				local pulls = zdef.pulls or 3
-				local pieces = 3
-				local gems = FossilPay.gems("pair_tide_mid_pick", 1) * pieces * pulls
-				p.gems = (tonumber(p.gems) or 0) + gems
-				bumpStat(plr, p, "packs")
-				local loot = { {
-					kind = "gems",
-					name = Verbs._benchNum(gems) .. " gems",
-					rarityId = "Rare",
-					sub = "fossils are retired -- cashed out",
-				} }
-				local design = {
-					packId = zdef.id,
-					name = zdef.name,
-					setName = "Retired",
-					kind = "currency",
-				}
-				if collect then
-					design.cards = loot
-					table.insert(collect, design)
-					return
-				end
-				snap(plr)
-				net:FireClient(plr, "opened", loot, design)
-				net:FireClient(plr, "toast", "Fossils are retired -- that pack paid "
-					.. Verbs._benchNum(gems) .. " gems instead")
-				return
+			--[[
+				A legacy fossil PACK used to cash out HERE, on open, because the
+				pack rows were still registered. They are not any more, and an
+				unopened one is cashed out on load instead (see retireFossils),
+				so by the time anyone can open a pack there is no fossil pack
+				left to open.
+			]]
 			elseif zdef.kind == "cards" then
 				-- Prefer zone pack odds; fall through to card open with packDef = zdef.
 				packDef = zdef
@@ -6935,7 +6922,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 			end
 			return tostring(x.name or "") < tostring(y.name or "")
 		end)
-		-- Equipment (fossil) packs count; gear/rune summons do not.
+		-- Equipment packs count; gear/rune summons do not.
 		if packDef.kind ~= "gear" and packDef.kind ~= "rune" then
 			bumpStat(plr, p, "packs")
 		end
@@ -6948,7 +6935,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		local design = {
 			packId = packDef.id,
 			name = (pk and pk.packName) or packDef.name or "Pack",
-			setName = ({ fossil = "Equipment", rune = "Runes", gear = "Gear" })[packDef.kind] or "Loot",
+			setName = ({ rune = "Runes", gear = "Gear" })[packDef.kind] or "Loot",
 			kind = packDef.kind,
 		}
 		if collect then
@@ -7070,7 +7057,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		-- Luck siphons odds (Epic-first into chase). Same card count.
 		-- A sealed row can also stamp its own shiny percent (Shiny Packs).
 		local packLuck = tonumber(pk and pk.luck) or 1
-		if packDef and packDef.kind ~= "fossil" and (packLuck > 1 or rowShiny) then
+		if packDef and (packLuck > 1 or rowShiny) then
 			packDef = table.clone(packDef)
 			if packLuck > 1 then
 				packDef.luck = packLuck
@@ -9358,10 +9345,15 @@ local function buy(plr, kind)
 		local row = C.BACKPACKS[want]
 		if not row then return end
 		if row.fossil then
-			-- Fossil bags are crafted on the fossil track, never sold. They share
-			-- the backpackTier ladder with coin bags, so without this the client
-			-- could name a fossil rung and buy it for coins off the coin shelf.
-			net:FireClient(plr, "toast", string.format("%s is crafted on the fossil track, not sold", tostring(row.name or "That bag")))
+			--[[
+				These rungs were crafted on the fossil track, which is gone. They
+				CANNOT be dropped from the roster: a bag id is "bag_<index into
+				MineBags.LIST>", so removing 60 rows would silently hand every
+				player a different bag. They stay as unreachable index padding,
+				off every shelf and every count, and this refusal stops a client
+				naming one and buying it for coins. See §0.12.
+			]]
+			net:FireClient(plr, "toast", string.format("%s is not for sale", tostring(row.name or "That bag")))
 			return
 		end
 		if row.robux then
@@ -9960,7 +9952,6 @@ function Verbs.socketToolRune(plr, payload)
 	local p = profiles[plr.UserId]
 	local runeId = payload and payload.runeId
 	local family = tostring(payload and payload.family or p.toolFamily or "pickaxe")
-	local fossilId = payload and payload.fossilId
 	local chestId = payload and payload.chestId
 	local shopToolId = payload and payload.shopToolId
 	local rune = runeById(p, runeId)
@@ -10015,7 +10006,6 @@ end
 local function destroyToolRune(plr, payload)
 	local p = profiles[plr.UserId]
 	local family = tostring(payload and payload.family or "")
-	local fossilId = payload and payload.fossilId
 	local chestId = payload and payload.chestId
 	local shopToolId = payload and payload.shopToolId and tostring(payload.shopToolId)
 	if (p.gems or 0) < Runes.RESOCKET_PRICE then
@@ -10964,7 +10954,6 @@ end
 	  ladder   a coin-shop rung          -> coins, top rung only
 	  shop     a depth-desk rung         -> coins
 	  forever  chest / pass / event      -> stardust + temper tokens
-	  fossil   assembled from pieces     -> stardust + temper tokens
 
 	Two refusals worth keeping: a tool with a rune in it goes back with
 	"unsocket it first" rather than quietly eating the rune, and the last rung

@@ -1,5 +1,5 @@
 --[[
-	MineLootPacks -- what comes out of a fossil, rune or gear pack.
+	MineLootPacks -- what comes out of a rune or gear pack.
 
 	The pack rows in Mine1PacksData carry `kind` and an `odds` table over the
 	same eight-name rarity ladder the card packs use. This module is the roller
@@ -7,14 +7,13 @@
 	knows how Common..Exotic maps onto each family's own scale:
 
 		rune    tiers 1..5              -- five tiers, so Mythic+ is unreachable
-		fossil  the sixteen recipes     -- two recipes per rung, in unlock order
 		gear    F→SSS off the shared case ladder — pack odds do NOT set the
 		        final letter; see MineGear.rollRarity
 
-	For fossil, the pack's odds GOVERN. Gear letters and rune tiers both come
-	off MineTemper.RARITY_WEIGHTS, so one ladder decides how rare "rare" is in
-	all three systems: SSS gear and an SSS temperament are both 1 in 5,000, and
-	a T5 rune sits on A at 1 in 40.
+	Gear letters and rune tiers both come off MineTemper.RARITY_WEIGHTS, so one
+	ladder decides how rare "rare" is across these and the temperaments: SSS
+	gear and an SSS temperament are both 1 in 5,000, and a T5 rune sits on A at
+	1 in 40.
 
 	Every item comes back carrying `rarityId` off the shared ladder, which is
 	what lets the reveal treat it exactly like a card: rarity colour, hold
@@ -162,13 +161,11 @@ function MineLootPacks.runeItem(rarityId, mintId, rng)
 	}
 end
 
--- -------------------------------------------------------------- fossil ----
-
 --[[
-	A fossil loot item used to be minted here. Fossils are retired and both
-	fossil modules are deleted, so there is nothing to mint: the pack kinds that
-	produced one are gone, and a legacy fossil pack cashes out to gems on the
-	server instead of opening.
+	A fossil loot item used to be minted here. Fossils are retired, both fossil
+	modules are deleted, and the pack kinds that produced one are gone from
+	MineZonePacks and Mine1PacksData, so there is nothing left to mint. An
+	unopened fossil pack on an old save is cashed out to gems on load.
 ]]
 
 --[[

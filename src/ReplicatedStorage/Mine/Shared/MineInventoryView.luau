@@ -1599,7 +1599,7 @@ function MineInventoryView.mount(parent, opts)
 			end
 		end
 
-		note(body, "Zone packs (5 + fossil + deep) with art keys. Tap one to read odds / currency bands.", 0)
+		note(body, "Zone packs (5 per zone) with art keys. Tap one to read odds / currency bands.", 0)
 
 		local grid = mk("Frame", {
 			BackgroundTransparency = 1,
@@ -1658,8 +1658,6 @@ function MineInventoryView.mount(parent, opts)
 						local c = def.coins or { 0, 0 }
 						local g = def.gems or { 0, 0 }
 						sub = string.format("%s-%s coins  %s-%s gems", tostring(c[1]), tostring(c[2]), tostring(g[1]), tostring(g[2]))
-					elseif def.kind == "fossil" then
-						sub = (def.pulls or 3) .. " equipment" .. (def.deep and " (deep)" or "")
 					else
 						sub = (def.cards or 0) .. " " .. (Packs.unitWord and Packs.unitWord(def.id, def.cards) or "cards")
 					end
@@ -2350,7 +2348,7 @@ function MineInventoryView.mount(parent, opts)
 		The eight are not one system underneath. Six are gear pieces out of the
 		Enchanter, one is a charm, one is a tool -- and a tool is itself four
 		different things depending on where it came from (a coin rung, a depth
-		desk rung, a chest drop, a fossil you assembled). Every one of those has
+		desk rung, a chest drop). Every one of those has
 		its own equip verb on the server already. Rather than unify them, which
 		would mean rewriting four working systems, this screen puts them behind
 		one shape: `item`. Pick a slot, see what fits it, tap one, read the card.
@@ -2497,13 +2495,11 @@ function MineInventoryView.mount(parent, opts)
 		if slotId == "tool" then
 			local famOrder = { "pickaxe", "drill", "explosive" }
 			-- Exactly one tool source is active (matches server equippedTool):
-			-- chest > fossil > shop > ladder. Stale dual flags must not paint
-			-- two tiles EQUIPPED.
+			-- chest > shop > ladder. Stale dual flags must not paint two tiles
+			-- EQUIPPED.
 			local eqSrc, eqId
 			if state.chestTool then
 				eqSrc, eqId = "forever", state.chestTool
-			elseif state.fossilTool then
-				eqSrc, eqId = "fossil", state.fossilTool
 			elseif state.shopToolId then
 				eqSrc, eqId = "shop", state.shopToolId
 			elseif state.tool and state.tool.id then
@@ -2568,21 +2564,6 @@ function MineInventoryView.mount(parent, opts)
 						source = "forever", id = row.id,
 						equipped = eqSrc == "forever" and eqId == row.id,
 						sockets = row.sockets, runeId = row.runeId,
-						sell = { dust = dust, tokens = tokens },
-						why = row.runeId and "Unsocket its rune first" or nil,
-					})
-				end
-			end
-			for key, row in pairs(state.fossilTools or {}) do
-				if type(row) == "table" then
-					local dust, tokens = Tools.foreverSellValue(row, row)
-					table.insert(out, {
-						key = "fossil|" .. tostring(key),
-						name = row.name or tostring(key), sub = "Assembled fossil",
-						rarity = row.rarity or (Tools.rarityForPower and Tools.rarityForPower(row.power)), icon = Icons.image(key) or nil, def = row, owned = row, slot = "tool",
-						source = "fossil", id = key,
-						equipped = eqSrc == "fossil" and eqId == key,
-						runeId = row.runeId,
 						sell = { dust = dust, tokens = tokens },
 						why = row.runeId and "Unsocket its rune first" or nil,
 					})
@@ -3280,8 +3261,6 @@ function MineInventoryView.mount(parent, opts)
 			local temperText, temperInk = "", MUTED
 			if item.source == "gear" or item.source == "charm" then
 				temperText = "Only tools take a temperament"
-			elseif item.source == "fossil" then
-				temperText = "Fossil tools do not take a temperament"
 			else
 				local picks = {}
 				if type(src) == "table" then
@@ -3331,8 +3310,6 @@ function MineInventoryView.mount(parent, opts)
 				if opts.onEquipShopTool then opts.onEquipShopTool(item.id) end
 			elseif item.source == "forever" then
 				if opts.onEquipChestTool then opts.onEquipChestTool(item.id) end
-			elseif item.source == "fossil" then
-				if opts.onEquipFossilTool then opts.onEquipFossilTool(item.id) end
 			elseif item.source == "gear" then
 				--[[
 					The seat the player is looking at is the seat the hat goes in.
@@ -3453,7 +3430,7 @@ function MineInventoryView.mount(parent, opts)
 			eq.cardMode = "confirm"
 			clear(footer)
 			local foreverPay = item.sell and item.sell.dust and item.sell.tokens
-				and (item.source == "forever" or item.source == "fossil")
+				and item.source == "forever"
 			if foreverPay then
 				label(footer, "PICK ONE — FULL VALUE", 11, MUTED, UDim2.fromOffset(0, 0),
 					UDim2.new(1, 0, 0, 14), FONT, Enum.TextXAlignment.Center)

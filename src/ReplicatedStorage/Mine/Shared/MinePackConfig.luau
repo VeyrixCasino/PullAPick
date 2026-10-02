@@ -584,7 +584,9 @@ MinePackConfig.CHESTS = {
 		},
 	},
 	{
-		id = "fossil_bed", name = "Fossil Bed", kind = "shape",
+		-- id kept: saves carry it as a packId. Only the label changed, because
+		-- nothing in the game is a fossil any more (§0.12).
+		id = "fossil_bed", name = "Pressed Bed", kind = "shape",
 		flavour = "Pressed flat between the strata. No commons survive down here.",
 		spawn = { zone = 0, layers = { 30, 46 }, weight = 15, favZone = 3, favMult = 3, luckScale = 0.8 },
 		packChance = 57, cards = 3,
@@ -2029,13 +2031,10 @@ MinePackConfig.PACK_PRICE = {
 	heirloom_pack = 55,
 	apex_pack = 60,
 
-	fossil_pack = 14,
 	rune_pack = 18,
 	gear_pack = 24,
-	fossil_deep_pack = 26,
 	rune_heavy_pack = 40,
 	gear_case_pack = 45,
-	fossil_abyss_pack = 36,
 	rune_sealed_pack = 52,
 	gear_vault_pack = 60,
 }
@@ -2074,13 +2073,10 @@ MinePackConfig.CREDIT_PRICE = {
 	heirloom_pack = 55,
 	apex_pack = 60,
 
-	fossil_pack = 14,
 	rune_pack = 18,
 	gear_pack = 24,
-	fossil_deep_pack = 26,
 	rune_heavy_pack = 40,
 	gear_case_pack = 45,
-	fossil_abyss_pack = 36,
 	rune_sealed_pack = 52,
 	gear_vault_pack = 60,
 }
@@ -2303,7 +2299,7 @@ end
 
 --[[
 	Which roller fills a pack: "card" (the default and the overwhelming
-	majority), or "fossil" / "rune" / "gear".
+	majority), or "rune" / "gear".
 
 	Read from the pack row rather than from an id prefix. A list keyed on
 	`id:find("rune")` looks fine until a card pack is called Runebound.
@@ -2318,7 +2314,6 @@ end
 ]]
 local PACK_UNIT = {
 	card = { "card", "cards" },
-	fossil = { "equipment", "equipment" },
 	rune = { "rune", "runes" },
 	gear = { "piece", "pieces" },
 }
@@ -2380,7 +2375,6 @@ MinePackConfig.DUST_STOCK_MAX = 2
 MinePackConfig.DUST_OFFER_COUNT = 5
 -- Mid packs are the usual shelf. Awesome / shiny inject rarely in dustRotation.
 MinePackConfig.DUST_EXCLUDE = {
-	fossil_abyss_pack = true,
 	rune_heavy_pack = true,
 	gear_case_pack = true,
 	rune_sealed_pack = true,

@@ -72,7 +72,7 @@ MineQuests.CHAIN = {
 	{ id = "merge60",    stat = "merges",   goal = 60,      text = "Merge 60 times",               tip = "High merges before a big rebirth bank pays off.", reward = { pack = "apex_pack", packQty = 3 } },
 	-- Late
 	{ id = "zone5",      stat = "zone",     goal = 4,       text = "Unlock four more zones",       tip = "Event Horizon is free while the event runs — claim via the portal.", reward = { gems = 240 } },
-	{ id = "depth1k",    stat = "depth",    goal = 1000,    text = "Gain 1,000 depth",             tip = "Fossils become forever tools. Pieces keep across rebirths.", reward = { gems = 280 } },
+	{ id = "depth1k",    stat = "depth",    goal = 1000,    text = "Gain 1,000 depth",             tip = "Charms and skins keep across rebirths — depth is what unlocks the later ones.", reward = { gems = 280 } },
 	{ id = "open120",    stat = "packs",    goal = 120,     text = "Open 120 packs",               tip = "Chest luck from skills/runes/temper stacks — dig for chests.", reward = { gems = 220 } },
 	{ id = "sell200",    stat = "sells",    goal = 200,     text = "Sell 200 hauls",               tip = "Coins fund the next rebirth minimum. Don't idle on a full fee.", reward = { gems = 260 } },
 	{ id = "cards500",   stat = "cards",    goal = 500,     text = "Collect 500 more cards",       tip = "Collection milestones pay gems anytime — check Quests.", reward = { pack = "apex_pack", packQty = 4 } },

@@ -636,7 +636,7 @@ MineConfig.ITEM_SLOT_GEM_RATE = 1.08
 -- they are equipment slots, not shelf stock.
 MineConfig.ITEM_BAG_FIELDS = {
 	"cards", "packs", "runes", "tempers",
-	"chestTools", "fossilTools", "eventTools",
+	"chestTools", "eventTools",
 }
 
 function MineConfig.itemSlotsUsed(p)
@@ -648,7 +648,7 @@ function MineConfig.itemSlotsUsed(p)
 		local t = p[field]
 		if type(t) == "table" then
 			-- Three shapes in play: arrays (cards, packs, runes, chestTools),
-			-- id-keyed maps (fossilTools, eventTools) and maps whose value
+			-- id-keyed maps (eventTools) and maps whose value
 			-- carries a copy count (tempers). Length first, then entries.
 			local n = #t
 			if n > 0 then
@@ -814,7 +814,7 @@ end
 -- HP" rule as the single invariant in the economy.
 MineConfig.BLOCKS = {
 	-- Every ore shares one kind; WHICH ore is an attribute, exactly as a
-	-- chest block carries its chest and a fossil block carries its recipe.
+	-- chest block carries which chest it is.
 	-- Colour, material and HP are overridden per ore at spawn.
 	ore = { name = "Ore", rock = true, hp = 3, coins = 3, gems = 0,
 		color = Color3.fromRGB(150, 140, 110), material = Enum.Material.Metal },
@@ -847,8 +847,6 @@ MineConfig.BLOCKS = {
 		color = Color3.fromRGB(196, 140, 62), material = Enum.Material.WoodPlanks },
 	lucky_block = { name = "Lucky Block", noHaul = true, hp = 8, coins = 0, gems = 0,
 		color = Color3.fromRGB(255, 196, 64), material = Enum.Material.Neon },
-	fossil = { name = "Fossil", rock = false, hp = 6, coins = 0, gems = 0,
-		color = Color3.fromRGB(210, 180, 120), material = Enum.Material.Sandstone },
 	-- Bottom-of-mine core. 100 trillion HP; chips grant a core sample, full break
 	-- grants the Geothermal Nuke. Does not fill the haul bag.
 	core = { name = "Geothermal Core", rock = true, hp = 100000000000000, coins = 0, gems = 0,
@@ -1172,7 +1170,6 @@ MineConfig.CHEST_CHANCE = 0.003 -- ~1.3 chests / layer on 21x21; ~20 an hour of 
 MineConfig.MEADOW_SHALLOW_CHEST_MULT = 2
 -- Pit lucky cubes. 1 in 5,000. Mix 80/15/5 gold/diamond/mythic. Not 3× in bigbang.
 MineConfig.LUCKY_BLOCK_CHANCE = 0.00020
-MineConfig.FOSSIL_LAYER_CHANCE = 0.10
 
 
 

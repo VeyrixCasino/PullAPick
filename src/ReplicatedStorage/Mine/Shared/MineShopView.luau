@@ -1883,7 +1883,7 @@ function MineShopView.mount(parent, opts)
 				end
 				t.count.Text = string.format("%d/%d", have, total)
 			else
-				-- BACKPACKS carries fossil, Robux and event bags that are not on
+				-- BACKPACKS carries retired-track, Robux and event bags not on
 				-- the coin shelf, so #BACKPACKS read "60/112" against a shelf of
 				-- 93. Count the rungs a player can actually buy, on both sides.
 				local bagTotal, bagHave = 0, 0
