@@ -103,6 +103,8 @@ Checked directly; cite these rather than re-deriving.
 | Two forge/bench views already exist | `MineForgeView.luau` 780 lines, `MineBenchView.luau` 239 lines. Reconcile; do not add a third. |
 | `MineBags` is coin-only today | `MineBags.luau:7` — "Coin prices only. Never gems — zone buyCost is the gem sink." |
 | **`ToolBakers.OreToolBaker` is NOT committed** | No `ToolBakers` folder under `src/ReplicatedStorage/Mine/`, and **zero references** to `ToolBakers`/`OreToolBaker` anywhere in `src/`. It exists only in the place file. |
+| **Current contract: ore upgrades tools but CANNOT build them** | `MineZonePacks.luau:195` — "Ore cannot build a tool, only upgrade one"; `MineServer.server.luau:524` — "Ore, by id. Never builds a tool; it upgrades one, with stardust." **The new design reverses this** — tools become craftable from ore. Both comments and the contract they describe must be updated together. |
+| No gem→ore or ore→ore purchase path found | Grep over `src/` found only `gemFind` (`MineSkillData.luau:98`) and a rune-fuse gem penalty (`MineScrolls.luau:11`) |
 | Duplicate pet module | `MineEHPets.luau` and `MineEventHorizonPets.luau` are byte-identical (md5 `0a8c6c6612ba54ae42b9310d450d8059`). Consumers read the short name first, so the long one is 34 KB that never loads. |
 | No CI | Repo has no `.github/` directory; PR #5 shows 0 check runs. |
 
@@ -141,7 +143,22 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 7. **Gem sinks are: zones, runes, the ore pouch.** Gems are earned by selling ore from
    the pouch.
 
-8. **Skins replace tempers as the top prize**, at the same drop rates tempers have
+8. **Breaking power inputs fixed.** Tool BP comes strictly from the ore the tool
+   is made of. Block strength comes from layer and zone. Ore strength is
+   predetermined but looser than the surrounding rock, so ores are not the wall.
+   Enchants stop applying to ordinary rock past a depth band, but keep working on
+   ore at any depth.
+
+9. **Ore cannot be bought or upgraded. REVERSED an earlier idea.** The user
+   dropped the ore-upgrade concept: nothing may let gems buy better ore, and
+   nothing may let ore buy or upgrade into better ore. Ore is mined, period.
+   (Tool upgrades paid in ore are unaffected — that is ore spent on tools.)
+
+10. **Skin / temper crates are ore-only purchases.** No gems, no coins.
+
+11. **Hat crates do not scale with rebirth.**
+
+12. **Skins replace tempers as the top prize**, at the same drop rates tempers have
    today. Anything that gets in the way of skins being the most desired buff may be
    nerfed.
 
@@ -165,13 +182,24 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 
 ### Breaking power (net-new)
 
-- [ ] Per-layer block strength requirement.
-- [ ] Per-ore strength requirement, independent of the ore's tier HP.
-- [ ] Tool breaking power, set at craft time by the ore the tool is made from.
-      **Not upgradeable.**
+Inputs are settled. The numeric curves still need sign-off.
+
+- [ ] **Tool breaking power is strictly a function of the ore the tool is made
+      of.** Nothing else feeds it — not level, not damage, not skins, not runes.
+      **Not upgradeable.** The only way up is crafting from a better ore.
+- [ ] **Block strength is a function of layer and zone.** Those two inputs only.
+- [ ] **Ore strength is predetermined per ore, and deliberately looser** than the
+      layer+zone strength of the rock around it. An ore should not be the thing
+      that walls a player — the layer and zone do that.
 - [ ] Server-authoritative gate: server rejects any dig where
       `tool.breakingPower < block.strength`. Client may predict; server decides.
 - [ ] Red hotbar text: "Your tool is too weak to damage this block." Throttled.
+- [ ] **Enchants must not affect blocks in layers that are too deep — ores
+      excepted.** An enchant keeps working on ore at any depth, but stops applying
+      to ordinary rock past its depth band. Needs a depth ceiling per enchant.
+      No enchant/depth coupling exists in `MineConfig` today; enchant code is
+      spread across `MineRunesView`, `MineForgeView`, `MineShopView`,
+      `MineInventoryView`, `WorldBuilder`, `MineShopFronts`, `GroupWheelService`.
 - [ ] Document damage ≠ breaking power everywhere both appear.
 
 ### Ore drops ore
@@ -247,6 +275,23 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
 - [ ] Craft recipes keyed by ore; the ore also sets the tool's breaking power.
 - [ ] Upgrades cost ore, **a lot of it** — endgame tools are a real grind.
 - [ ] Keep the uid-keyed contract of `upgradeOreTool` / `recycleOreTool`.
+
+### Economy removals — ore cannot be bought or upgraded
+
+User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
+
+- [ ] **Remove any path where gems buy better ore.**
+- [ ] **Remove any path where ore buys or upgrades into better ore.**
+      No ore merging, no ore tier-up, no ore trade-up.
+- [ ] *Audit status:* a first grep found **no such path**. The only gem/ore
+      couplings are the `gemFind` skill stat (`MineSkillData.luau:98`) and a
+      rune-fuse gem penalty (`MineScrolls.luau:11`), neither of which buys ore.
+      Confirm exhaustively before closing, and add a standing rule so it does not
+      creep back in.
+- [ ] **Skin / temperament crates are buyable with ORE only.** Not gems, not
+      coins, not anything else.
+- [ ] **Hat crates must not increase on rebirth.** Find and remove any
+      rebirth-scaled hat-crate yield.
 
 ### Rebirth
 
@@ -461,6 +506,11 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
   move zones off gems.
 - **Echo is not a buff.** It must not appear on hats, pets or anything else.
 - **No effect does full pickaxe damage** without its dedicated amplifier.
+- **Ore is mined, never bought.** Nothing may let gems buy ore, or ore buy or
+  upgrade into better ore. Spending ore on tools is fine; spending anything on ore
+  is not.
+- **Skin and temper crates cost ore only.**
+- **Hat crates do not scale with rebirth.**
 - **Uploads are group-owned.** §7 is not optional.
 - Studio and Cursor edit these same scripts concurrently. Anchor every edit on unique
   surrounding text, never line numbers alone, and re-read before committing.
@@ -471,9 +521,11 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 
 # 10. Open questions
 
-1. **Breaking power curves.** Does tool BP derive from the crafting ore's tier, and
-   block strength from layer + ore tier? Both curve shapes are needed. Highest-leverage
-   unknown — everything in P0 downstream depends on the numbers.
+1. **Breaking power — inputs settled, numbers still open.** Tool BP = f(ore the
+   tool is made of); block strength = f(layer, zone); ore strength predetermined and
+   looser. What is still needed: the actual curve shapes, and the depth band past
+   which each enchant stops applying to non-ore rock. Highest-leverage remaining
+   unknown — the rest of P0 is paced by these numbers.
 2. **81 skin cases vs 121 ores.** 81 does not divide into 121. Is it 81 tool
    rarities/families rather than per-ore, and how does `{Ore}Case` naming map onto 81?
 3. **Recycle bonus curve.** "Decent but not game breaking" needs numbers.
