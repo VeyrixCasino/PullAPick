@@ -335,8 +335,17 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
 - [x] **Ore cases are the rare half.** `ORE_CASE_CHANCE` (placeholder 0.5%,
       luck-scaled) rolls a `<id>_ore_case` on an ore break. The 2%-0.5% tool
       roll happens when the case is OPENED and is a different number.
-- [ ] **Open an ore case** — the 2%-0.5% roll for a tool. Not built; a case
-      currently drops into packs and has no opener.
+- [x] **Ore case opener built.** `openPack` has an `ore_case` branch rolling
+      `C.oreCaseToolChance(tier)` — 2% at tier 1 falling to 0.5% at tier 82,
+      luck-scaled. A miss still pays ore, so a case is never a dud. Cases are
+      registered per ore in `MineZonePacks` and the lazy-rebuild path catches
+      the `_ore_case` suffix alongside `_ore_pack`.
+- [ ] **CONTENT GAP: `CHEST_TOOLS` is empty below Divine.** It holds 4 Exotic,
+      4 Divine and 1 Mythic and nothing else, so an ore case from any band
+      Common through Mythic walks up and hands over the same single Mythic
+      tool. The opener walks the ladder so a hit is always a hit, but the
+      roster behind it needs filling — or cases should pay SKINS rather than
+      chest tools, which is what §0.6 actually describes.
 - [ ] **Migration:** existing saves hold unopened `<id>_ore_pack` rows. Convert to
       banked `p.ores[id]` on load, keeping pack ids as recognised aliases. Do not
       strand inventories.

@@ -245,6 +245,27 @@ do
 				-- PackFX.art(packId) builds shades from ore.color.
 				artKey = ore.packId,
 			}
+			--[[
+				THE ORE CASE, one per ore, alongside the pack.
+
+				The pack is legacy -- ore drops straight into the pouch now --
+				but it stays registered so anyone still holding one can open it.
+				The case is the live rare drop: openPack reads kind == "ore_case"
+				and rolls for a tool before falling back to ore.
+			]]
+			local caseId = ore.id .. "_ore_case"
+			MineZonePacks.PACKS[caseId] = {
+				id = caseId,
+				kind = "ore_case",
+				oreId = ore.id,
+				oreName = ore.name,
+				name = ore.name .. " Case",
+				tier = ore.tier,
+				band = ore.band,
+				yield = { lo, hi },
+				color = ore.color,
+				artKey = caseId,
+			}
 		end
 	end
 end
@@ -255,7 +276,8 @@ function MineZonePacks.get(packId)
 		return row
 	end
 	-- Ore packs may miss the boot-time pass if MineConfig was still loading.
-	if type(packId) == "string" and string.sub(packId, -9) == "_ore_pack" then
+	if type(packId) == "string"
+		and (string.sub(packId, -9) == "_ore_pack" or string.sub(packId, -9) == "_ore_case") then
 		local okC, C = pcall(function()
 			return require(script.Parent:WaitForChild("MineConfig"))
 		end)

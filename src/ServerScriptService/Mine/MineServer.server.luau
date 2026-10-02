@@ -6219,6 +6219,87 @@ local function openPack(plr, setId, chestId, pk, collect)
 				snap(plr)
 				net:FireClient(plr, "opened", loot, design)
 				return
+			elseif zdef.kind == "ore_case" then
+				--[[
+					AN ORE CASE rolls once for a tool, and pays ore when it misses.
+
+					The chance comes from the ore's tier: 2% shallow, falling to
+					0.5% at the deep end, because a deeper case pays a better
+					tool when it lands. A miss is never a dud -- it still hands
+					over ore, the same contract an ore pack had.
+
+					This is the whole rare-drop line now. Tools are not found in
+					walls any more; they come out of cases.
+				]]
+				local ore = C.oreById(zdef.oreId)
+				local tier = (ore and tonumber(ore.tier)) or 1
+				local rng = Random.new()
+				local luck = math.max(1, tonumber((boosts(p) or {}).luck) or 1)
+				local chance = C.oreCaseToolChance(tier) * luck
+
+				if rng:NextNumber() < chance then
+					--[[
+						The ore's band picks the tool, but CHEST_TOOLS is sparse:
+						every forever tool in it is Mythic, Divine or Exotic.
+
+						So asking for the band directly returns an empty pool for
+						most ores -- including every Common and Uncommon one,
+						which carry the BEST 2% chance. The roll would hit and
+						then silently pay ore, and the highest chance in the game
+						would never once have handed over a tool.
+
+						Walk the ladder from the ore's band upward to the nearest
+						rarity that actually has tools, so a hit is always a hit.
+					]]
+					local pool
+					local order = Tools.TOOL_RARITY_ORDER or Tools.LADDER_RARITY or {}
+					local want = (ore and ore.band) or (Tools.CHEST_RARITY_FLOOR or "Rare")
+					local startAt = 1
+					for i, r in ipairs(order) do
+						if r == want then
+							startAt = i
+							break
+						end
+					end
+					for i = startAt, #order do
+						local got = Tools.toolsOfRarity and Tools.toolsOfRarity(Tools.CHEST_TOOLS, order[i])
+						if type(got) == "table" and #got > 0 then
+							pool = got
+							break
+						end
+					end
+					local pick = (type(pool) == "table" and #pool > 0)
+						and pool[rng:NextInteger(1, #pool)] or nil
+					if pick then
+						grantChestTool(plr, p, pick.id)
+						snap(plr)
+						net:FireClient(plr, "opened", {}, {
+							name = pick.name, setName = "Ore Case", kind = "tool",
+							rarityId = rarity,
+						})
+						return
+					end
+				end
+
+				-- Missed, or the band had no tool to give: pay ore.
+				local lo, hi = 1, 1
+				if ore then
+					local OC = require(shared:WaitForChild("MineZonePacks"))
+					lo, hi = OC.oreYield(ore)
+				end
+				local got = rng:NextInteger(math.min(lo, hi), math.max(lo, hi))
+				p.ores = p.ores or {}
+				if ore then
+					p.ores[ore.id] = (tonumber(p.ores[ore.id]) or 0) + got
+					p.oresSeen = p.oresSeen or {}
+					p.oresSeen[tostring(ore.id)] = true
+				end
+				snap(plr)
+				net:FireClient(plr, "opened", {}, {
+					name = string.format("+%d %s", got, (ore and ore.name) or "Ore"),
+					setName = "Ore Case", kind = "ore",
+				})
+				return
 			elseif zdef.kind == "ore" then
 				--[[
 					An ore pack ALWAYS pays ore. No rarity roll, no dud.

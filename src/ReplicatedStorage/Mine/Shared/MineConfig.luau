@@ -2034,6 +2034,26 @@ MineConfig.ORE_CHANCE = 1 / 200
 MineConfig.ORE_CASE_CHANCE = 0.005
 
 --[[
+	The roll INSIDE an ore case: does it hand over a tool?
+
+	2% at the shallow end down to 0.5% at the deep end. It falls as the ore gets
+	rarer because a deeper case pays a better tool when it hits -- the chance
+	drops, the prize climbs. A case that misses still pays ore, so it is never
+	a dud, which is the same contract ore packs had.
+
+	This is NOT ORE_CASE_CHANCE above. That is how often a case drops at all.
+]]
+MineConfig.ORE_CASE_TOOL_HI = 0.02
+MineConfig.ORE_CASE_TOOL_LO = 0.005
+
+function MineConfig.oreCaseToolChance(tier)
+	local n = math.max(1, (MineConfig.ORE_COUNT or 82) - 1)
+	local t = math.clamp((math.floor(tonumber(tier) or 1) - 1) / n, 0, 1)
+	local hi = MineConfig.ORE_CASE_TOOL_HI
+	return hi + (MineConfig.ORE_CASE_TOOL_LO - hi) * t
+end
+
+--[[
 	THE SHAPE, in three terms. Each does one job.
 
 	  x = ore.d - localD   (positive = ore is harder than this rock)
