@@ -115,6 +115,20 @@ Checked directly; cite these rather than re-deriving.
 
 # 5. Decision log (transcript)
 
+> **What counts as decided:** only what the owner has stated. Numbers derived
+> from files in this repo are NOT decisions — much of this repo is out of date
+> (it still describes a 121-ore roster when the real one is 82). Where a value
+> was needed to keep code working, it is labelled a placeholder in the source
+> and listed below as awaiting instruction. Do not promote a placeholder to a
+> decision by finding it written down somewhere.
+>
+> **Awaiting the owner's instruction, currently placeholders:**
+> - Rarity band cutoffs at 82 (`MineConfig.ORE_BANDS`) — carried over from the
+>   stale 121 ladder's proportions purely so bands stay reachable.
+> - `TOOL_CRAFT_BASE = 250`, the ore cost to forge a tool.
+> - `WOOD_PICK_*` coin ladder and its level cap of 25.
+> - The 200-row cap on a player's tool rack.
+
 Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 
 1. **`docs/ore-remake.md` was stale and is now the roster.** It claimed "planning
@@ -208,7 +222,7 @@ Inputs are settled. The numeric curves still need sign-off.
       of.** Nothing else feeds it — not level, not damage, not skins, not runes.
       **Not upgradeable.** The only way up is crafting from a better ore.
 - [ ] **Block strength is a function of layer and zone.** Those two inputs only.
-- [x] **Ore reach rule settled: +15 tiers.** A tool forged from ore tier T can
+- [x] **Ore reach rule, from the owner: +15 tiers.** A tool forged from ore tier T can
       mine any ore up to tier **T + 15**. Not "looser" in a vague sense — an
       exact, flat reach. Over an 82-ore roster that is ~6 crafting steps from
       the first tool to the last ore.
@@ -621,7 +635,8 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 
 # 10. Open questions
 
-1. **Breaking power — SETTLED, implement it.** Tool BP = the tier of the ore it
+1. **Breaking power — the +15 reach is the owner's instruction. Everything else
+   about it is NOT decided.** Tool BP = the tier of the ore it
    is made of. A tool reaches **15 ore tiers above its own**: an ore of tier T is
    mineable by any tool forged from tier >= T-15. Across 82 ores that is ~6
    crafting steps end to end. Block strength stays f(layer, zone) and is a

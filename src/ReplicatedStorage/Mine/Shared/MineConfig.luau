@@ -2374,10 +2374,16 @@ MineConfig.ORE_COUNT = 82
 --[[
 	Rarity bands as FRACTIONS of the roster, not fixed tier numbers.
 
-	They were written as hardcoded cutoffs against 121 (Exotic 119-121), which
-	at 82 ores means the deepest ore in the game grades as merely Epic and the
-	top four bands can never be reached at all. Fractions survive a roster
-	resize; fixed numbers do not.
+	WHY the shape changed: they were hardcoded cutoffs against 121 (Exotic
+	119-121), so at 82 ores the deepest ore graded as merely Epic and the top
+	four bands were unreachable. Deriving from ORE_COUNT fixes that.
+
+	THE NUMBERS BELOW ARE A PLACEHOLDER, NOT A DESIGN DECISION. They are the old
+	121 ladder's proportions carried over, and that ladder came from a table
+	that is itself out of date -- so they carry its staleness with them. They
+	exist only so the bands are reachable at all instead of capping at Epic.
+
+	The real ladder is the owner's call. Replace these fractions when it lands.
 ]]
 MineConfig.ORE_BANDS = {
 	{ name = "Common", upTo = 24 / 121 },
