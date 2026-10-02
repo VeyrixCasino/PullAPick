@@ -312,6 +312,9 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 - [ ] **Zone and rune gem prices.** Flat tables that the ore value curve will
   outrun. Same fix the pouch rungs got — price as a share of income at the depth
   they gate — but the pacing is an owner call.
+- [ ] **Delete `MineFossils` / `MineFossilEconomy`** once the retirement migration
+  has run for everyone. Dormant, and kept only so the payout uses exact prices.
+  Needs a call on how long to leave the window open.
 - [ ] **The legacy 31 charms.** Zone grant + gem pack + limited. §0.5 makes charms
   an ore drop; these predate it and still drop. Retire them, or keep both sources?
 - [ ] **VIP lost a perk.** It advertised an extra pet seat in three places and can
