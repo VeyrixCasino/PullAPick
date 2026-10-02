@@ -3721,7 +3721,18 @@ function MineInventoryView.mount(parent, opts)
 
 		local head = panelRow(body, 46, 1)
 		label(head, "EQUIPMENT", 15, TEXT, UDim2.fromOffset(14, 0), UDim2.new(0.28, 0, 1, 0), FONT)
-		-- Quicksell: pick bag pieces, then hold SELL 3s to scrap them all.
+		--[[
+			SELECT -> pick pieces -> RECYCLE -> review -> hold 3s.
+
+			The hold used to sit on this button and fire the scrap directly, with
+			no review in between. It is on the REVIEW screen now, because a hold
+			is a confirmation and there was nothing to confirm against: the
+			player held three seconds over a list they could only see as
+			highlighted tiles and a count, and never saw what it was worth.
+
+			There is deliberately NO select-all. Every item in a recycle batch is
+			ticked on purpose.
+		]]
 		local nSel = 0
 		for _ in pairs(eq.sellSelect or {}) do
 			nSel += 1
@@ -3730,7 +3741,7 @@ function MineInventoryView.mount(parent, opts)
 			local modeB = mk("TextButton", {
 				AutoButtonColor = true,
 				BackgroundColor3 = eq.sellMode and Color3.fromRGB(150, 58, 58) or BG3,
-				Text = eq.sellMode and ("SELL MODE  " .. nSel) or "QUICKSELL",
+				Text = eq.sellMode and ("SELECTING  " .. nSel) or "SELECT",
 				Font = FONT, TextSize = 12,
 				TextColor3 = eq.sellMode and Color3.fromRGB(255, 226, 226) or TEXT,
 				Size = UDim2.fromOffset(118, 28), Position = UDim2.new(1, -270, 0.5, -14),
@@ -3744,63 +3755,28 @@ function MineInventoryView.mount(parent, opts)
 				render()
 			end)
 			local sellB = mk("TextButton", {
-				AutoButtonColor = false,
+				AutoButtonColor = true,
 				BackgroundColor3 = (eq.sellMode and nSel > 0) and Color3.fromRGB(150, 58, 58) or BG3,
-				Text = (eq.sellMode and nSel > 0) and "HOLD SELL" or "SELL",
+				Text = (eq.sellMode and nSel > 0) and ("RECYCLE " .. nSel) or "RECYCLE",
 				Font = FONT, TextSize = 12,
 				TextColor3 = (eq.sellMode and nSel > 0) and Color3.fromRGB(255, 226, 226) or MUTED,
 				Size = UDim2.fromOffset(96, 28), Position = UDim2.new(1, -146, 0.5, -14),
 			}, head)
 			round(sellB, 8)
-			local holdBar = mk("Frame", {
-				BackgroundColor3 = Color3.fromRGB(255, 190, 90), BorderSizePixel = 0,
-				Size = UDim2.new(0, 0, 0, 3), Position = UDim2.new(0, 4, 1, -5), ZIndex = 5,
-			}, sellB)
-			local holding, holdToken = false, 0
-			local function stopHold()
-				holding = false
-				holdToken += 1
-				holdBar.Size = UDim2.new(0, 0, 0, 3)
-				sellB.Text = (eq.sellMode and nSel > 0) and "HOLD SELL" or "SELL"
-			end
-			local function startHold()
+			sellB.MouseButton1Click:Connect(function()
 				if not eq.sellMode or nSel <= 0 then
 					return
 				end
-				holding = true
-				holdToken += 1
-				local my = holdToken
-				local t0 = os.clock()
-				task.spawn(function()
-					while holding and my == holdToken do
-						local u = math.clamp((os.clock() - t0) / 3, 0, 1)
-						holdBar.Size = UDim2.new(u, -8, 0, 3)
-						sellB.Text = string.format("HOLD %.1fs", 3 - u * 3)
-						if u >= 1 then
-							local ids = {}
-							for id in pairs(eq.sellSelect) do
-								table.insert(ids, id)
-							end
-							eq.sellSelect = {}
-							eq.sellMode = false
-							stopHold()
-							if opts.onScrapMany then
-								opts.onScrapMany("gear", ids)
-							elseif opts.onScrapGear then
-								for _, id in ipairs(ids) do
-									opts.onScrapGear(id)
-								end
-							end
-							render()
-							return
-						end
-						task.wait(0.05)
-					end
-				end)
-			end
-			sellB.MouseButton1Down:Connect(startHold)
-			sellB.MouseButton1Up:Connect(stopHold)
-			sellB.MouseLeave:Connect(stopHold)
+				local ids = {}
+				for id in pairs(eq.sellSelect) do
+					table.insert(ids, id)
+				end
+				-- The ASK. No confirm flag: the server prices it and replies with
+				-- confirmScrap, which opens the review.
+				if opts.onScrapMany then
+					opts.onScrapMany("gear", ids, "gems", false)
+				end
+			end)
 		end
 		do
 			local better = tonumber((state.upgrades or {}).gear) or 0
@@ -3818,7 +3794,7 @@ function MineInventoryView.mount(parent, opts)
 				label(head, "tap a seat, then tap what goes in it", 11, MUTED,
 					UDim2.fromOffset(120, 0), UDim2.new(0.4, 0, 1, 0))
 			elseif nSel > 0 then
-				label(head, "hold SELL 3s to scrap selected", 11, GOLD,
+				label(head, "RECYCLE to review what you picked", 11, GOLD,
 					UDim2.fromOffset(120, 0), UDim2.new(0.35, 0, 1, 0))
 			else
 				label(head, "tap unequipped gear to select", 11, MUTED,
@@ -7427,9 +7403,177 @@ function MineInventoryView.mount(parent, opts)
 	local ctl = {}
 	ctl.root = root
 
+	-- The recycle review's backdrop, so a second one replaces the first rather
+	-- than stacking two dialogs that both claim the screen.
+	local scrapVeil = nil
+
 	-- The reveal owns the screen while it plays. setState replaces the whole
 	-- state from the snapshot, so the flag lives outside it and is re-applied.
 	local busy = false
+
+	--[[
+		THE RECYCLE REVIEW. Everything about to go, what it pays, and a 3-second
+		hold to mean it.
+
+		Driven entirely by the server's reply (`confirmScrap`): the rows, the
+		totals and the blocked list are all its figures, so the number the player
+		agrees to is the number they are paid. Nothing here recomputes a price.
+
+		BLOCKED ITEMS STOP THE WHOLE BATCH, and they are listed by name and
+		reason. The server refuses all-or-nothing, so showing them is not a
+		courtesy -- it is the explanation for why the button is disabled.
+
+		A hold rather than a click because a bulk recycle cannot be undone. Three
+		seconds is long enough that it cannot happen by accident and short enough
+		that it is not a punishment.
+	]]
+	function ctl.showScrapReview(info)
+		info = (type(info) == "table") and info or {}
+		local rows = type(info.rows) == "table" and info.rows or {}
+		local blocked = type(info.blocked) == "table" and info.blocked or {}
+
+		if scrapVeil then
+			scrapVeil:Destroy()
+			scrapVeil = nil
+		end
+		local veil = mk("TextButton", {
+			Name = "ScrapReview", BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundTransparency = 0.45, Text = "", AutoButtonColor = false,
+			Size = UDim2.fromScale(1, 1), ZIndex = 120,
+		}, root)
+		scrapVeil = veil
+		local box = round(mk("Frame", {
+			BackgroundColor3 = BG, AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(380, 430), ZIndex = 121,
+		}, veil), 12)
+		mk("UIStroke", { Color = Color3.fromRGB(190, 92, 92), Thickness = 1, Transparency = 0.35 }, box)
+
+		label(box, "RECYCLE THESE?", 15, Color3.fromRGB(255, 150, 150),
+			UDim2.fromOffset(16, 14), UDim2.new(1, -32, 0, 18), FONT)
+
+		local payLine = (tonumber(info.dust) or 0) > 0
+			and (shortNum(info.dust) .. " stardust")
+			or (shortNum(info.gems or 0) .. " gems")
+		label(box, string.format("%d item%s  ·  pays %s",
+			#rows, (#rows == 1) and "" or "s", payLine),
+			12, GOLD, UDim2.fromOffset(16, 36), UDim2.new(1, -32, 0, 16))
+
+		-- The list. Scrolling, because a batch can be long and a review that
+		-- hides half of what it is authorising is not a review.
+		local list = mk("ScrollingFrame", {
+			BackgroundTransparency = 1, ZIndex = 122,
+			Position = UDim2.fromOffset(16, 60), Size = UDim2.new(1, -32, 0, 272),
+			CanvasSize = UDim2.new(), ScrollBarThickness = 4,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		}, box)
+		mk("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }, list)
+
+		local order = 0
+		local function entry(text, right, ink)
+			order += 1
+			local rowF = mk("Frame", {
+				BackgroundColor3 = BG2, Size = UDim2.new(1, 0, 0, 24),
+				LayoutOrder = order, ZIndex = 123,
+			}, list)
+			round(rowF, 6)
+			label(rowF, text, 12, ink or TEXT, UDim2.fromOffset(8, 0),
+				UDim2.new(0.66, -8, 1, 0))
+			label(rowF, right or "", 11, ink or MUTED, UDim2.new(0.66, 0, 0, 0),
+				UDim2.new(0.34, -8, 1, 0), FONT_M, Enum.TextXAlignment.Right)
+		end
+
+		for _, r in ipairs(rows) do
+			local worth = (tonumber(r.dust) or 0) > 0
+				and (shortNum(r.dust) .. " dust")
+				or (shortNum(r.gems or 0) .. " gems")
+			entry(tostring(r.name or r.id), worth, TEXT)
+		end
+		for _, b in ipairs(blocked) do
+			entry(tostring(b.name or b.id), tostring(b.why or "cannot"),
+				Color3.fromRGB(255, 140, 140))
+		end
+		if #rows == 0 and #blocked == 0 then
+			entry("nothing in this selection", "", MUTED)
+		end
+
+		local stop = round(mk("TextButton", {
+			BackgroundColor3 = BG3, AutoButtonColor = true, Text = "KEEP THEM",
+			TextColor3 = TEXT, TextSize = 13, Font = FONT, ZIndex = 123,
+			Position = UDim2.fromOffset(16, 346), Size = UDim2.fromOffset(168, 36),
+		}, box), 8)
+
+		--[[
+			The hold. Disabled outright when anything is blocked, because the
+			server will refuse the batch anyway and letting a player hold three
+			seconds for a guaranteed refusal is worse than not offering it.
+		]]
+		local blockedAny = #blocked > 0
+		local canGo = (#rows > 0) and not blockedAny
+		local go = round(mk("TextButton", {
+			BackgroundColor3 = canGo and Color3.fromRGB(96, 42, 42) or BG3,
+			AutoButtonColor = false,
+			Text = canGo and "HOLD TO RECYCLE" or (blockedAny and "BLOCKED" or "NOTHING TO DO"),
+			TextColor3 = canGo and TEXT or MUTED, TextSize = 13, Font = FONT, ZIndex = 123,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -16, 0, 346), Size = UDim2.fromOffset(168, 36),
+		}, box), 8)
+		local bar = mk("Frame", {
+			BackgroundColor3 = Color3.fromRGB(255, 190, 90), BorderSizePixel = 0,
+			Size = UDim2.new(0, 0, 0, 3), Position = UDim2.new(0, 4, 1, -5), ZIndex = 124,
+		}, go)
+
+		local function close()
+			if scrapVeil == veil then
+				scrapVeil = nil
+			end
+			veil:Destroy()
+		end
+		veil.MouseButton1Click:Connect(close)
+		stop.MouseButton1Click:Connect(close)
+
+		if canGo then
+			local holding, token = false, 0
+			local function release()
+				holding = false
+				token += 1
+				bar.Size = UDim2.new(0, 0, 0, 3)
+				go.Text = "HOLD TO RECYCLE"
+			end
+			go.MouseButton1Down:Connect(function()
+				holding = true
+				token += 1
+				local mine = token
+				local t0 = os.clock()
+				task.spawn(function()
+					while holding and mine == token and veil.Parent do
+						local u = math.clamp((os.clock() - t0) / 3, 0, 1)
+						bar.Size = UDim2.new(u, -8, 0, 3)
+						go.Text = string.format("HOLD %.1fs", 3 - u * 3)
+						if u >= 1 then
+							release()
+							local ids = {}
+							for _, r in ipairs(rows) do
+								table.insert(ids, r.id)
+							end
+							eq.sellSelect = {}
+							eq.sellMode = false
+							close()
+							if opts.onScrapMany then
+								-- The COMMIT, on the same ids the server priced.
+								opts.onScrapMany(info.kind or "gear", ids, info.into, true)
+							end
+							render()
+							return
+						end
+						task.wait(0.05)
+					end
+				end)
+			end)
+			go.MouseButton1Up:Connect(release)
+			go.MouseLeave:Connect(release)
+		end
+	end
 
 	--[[
 		The server has answered a checkout. Only it knows what the cart actually

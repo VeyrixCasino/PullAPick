@@ -2968,8 +2968,19 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onSellTool = function(payload) net:FireServer("sellTool", payload) end,
 	onScrapGear = function(id) net:FireServer("scrap", { kind = "gear", id = id }) end,
-	onScrapMany = function(kind, ids)
-		net:FireServer("scrapMany", { kind = kind or "gear", ids = ids })
+	--[[
+		Bulk scrap goes out twice. The first call carries no confirm flag and is
+		the ASK -- the server builds the plan and replies with `confirmScrap`,
+		which opens the review screen on the server's own figures. The second
+		carries confirm and performs it, all or nothing.
+	]]
+	onScrapMany = function(kind, ids, into, confirm)
+		net:FireServer("scrapMany", {
+			kind = kind or "gear",
+			ids = ids,
+			into = into,
+			confirm = confirm and true or nil,
+		})
 	end,
 	-- Shop -> Stardust. The server checks both stocks and the price.
 	onBuyDustPack = function(id, qty) net:FireServer("buyDustPack", { id = id, qty = qty }) end,
@@ -11084,6 +11095,18 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- Tap-through reveal; the loot is shown at the end of it.
 		Audio.play("lucky")
 		ClientFns.luckyScreen().opened(payload)
+	elseif action == "confirmScrap" and payload then
+		--[[
+			The server priced a bulk scrap. Hand its figures to the inventory,
+			which opens the review screen on them.
+
+			Routed rather than computed here for the same reason Sell All is: a
+			review built from a client-side estimate can quote a total the server
+			then disagrees with, and the player has already approved it by then.
+		]]
+		if invCtl and invCtl.showScrapReview then
+			pcall(invCtl.showScrapReview, payload)
+		end
 	elseif action == "confirmSellAll" and payload then
 		--[[
 			The server priced a Sell All ask. Hand its figures to the pouch panel,

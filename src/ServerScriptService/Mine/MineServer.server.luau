@@ -7840,130 +7840,15 @@ end
 	forty things that are real.
 ]]
 -- Const.SCRAP_MAX on Const
-local function scrapMany(plr, payload)
-	local p = profiles[plr.UserId]
-	if not p or type(payload) ~= "table" then
-		return
-	end
-	local kind = payload.kind
-	local into = (payload.into == "gems") and "gems" or "dust"
-	local ids = type(payload.ids) == "table" and payload.ids or {}
-	if #ids == 0 then
-		return
-	end
+--[[
+	What a pack is worth as scrap.
 
-	local want = {}
-	for i, id in ipairs(ids) do
-		if i > Const.SCRAP_MAX then
-			break
-		end
-		want[id] = true
-	end
-
-	local dust, gems, n = 0, 0, 0
-	if kind == "card" then
-		-- An equipped card is not scrap. Walking backwards keeps the indices
-		-- valid while removing.
-		local equipped = {}
-		for _, id in ipairs(p.equipped or {}) do
-			equipped[id] = true
-		end
-		for i = #(p.cards or {}), 1, -1 do
-			local c = p.cards[i]
-			if want[c.id] and not equipped[c.id] then
-				local d = C.salvageDust(c)
-				if into == "gems" then
-					gems += math.max(1, math.floor(d / 10))
-				else
-					dust += d
-				end
-				table.remove(p.cards, i)
-				n += 1
-			end
-		end
-	elseif kind == "rune" then
-		for i = #(p.runes or {}), 1, -1 do
-			local r = p.runes[i]
-			if want[r.id] and not runeBusy(p, r.id) then
-				gems += Runes.scrapGems(r)
-				table.remove(p.runes, i)
-				n += 1
-			end
-		end
-	elseif kind == "gear" then
-		local worn = {}
-		for _, id in pairs(p.equippedGear or {}) do
-			if id then
-				worn[id] = true
-			end
-		end
-		for i = #(p.gear or {}), 1, -1 do
-			local g = p.gear[i]
-			if want[g.id] and not worn[g.id] then
-				gems += Gear.scrapGems(g)
-				table.remove(p.gear, i)
-				n += 1
-			end
-		end
-	elseif kind == "pack" then
-		-- Each id names one pack by its own uid (see snap). The bag can shift
-		-- between the list being drawn and SCRAP being pressed, and an index
-		-- would then scrap whatever slid into that position. A bare index is
-		-- still honoured for an old client. Everything resolves to the pack
-		-- itself before anything is removed, so the removals cannot disturb
-		-- the lookups.
-		local list = p.packs or {}
-		local targets = {}
-		for id in pairs(want) do
-			local hit
-			for _, pk in ipairs(list) do
-				if pk.uid ~= nil and pk.uid == id then
-					hit = pk
-					break
-				end
-			end
-			if not hit then
-				local idx = tonumber(id)
-				hit = idx and list[idx]
-			end
-			if hit then
-				targets[hit] = true
-			end
-		end
-		for i = #list, 1, -1 do
-			local pk = list[i]
-			if targets[pk] then
-				local d = packScrapDustFor(pk)
-				if d > 0 then
-					if into == "gems" then
-						gems += math.max(1, math.floor(d / 10))
-					else
-						dust += d
-					end
-					table.remove(list, i)
-					n += 1
-				end
-			end
-		end
-	else
-		return
-	end
-
-	if n == 0 then
-		net:FireClient(plr, "toast", "Nothing scrappable in that selection")
-		return
-	end
-	if dust > 0 then
-		dust = C.vipPayout(dust, hasVipPass(plr))
-	end
-	p.dust = (p.dust or 0) + dust
-	p.gems = (p.gems or 0) + gems
-	local paid = (dust > 0) and (dust .. " stardust") or (gems .. " gems")
-	net:FireClient(plr, "toast", string.format("Scrapped %d for %s", n, paid))
-	markDirty(plr)
-	snap(plr)
-end
-
+	DEFINED ABOVE scrapMany, and that matters: it used to sit below it, and a
+	`local function` is not in scope inside a function written earlier in the
+	file -- the name compiles as a global read instead. So the pack arm of bulk
+	scrapping called a nil value and threw on every use. Verified with a minimal
+	repro before moving it.
+]]
 local function packScrapDustFor(pk)
 	if type(pk) ~= "table" then
 		return 0
@@ -7977,6 +7862,267 @@ local function packScrapDustFor(pk)
 		return Packs.packScrapDust(Packs.PACK_BY_ID.loam_pack)
 	end
 	return 0
+end
+
+--[[
+	WHAT A BULK SCRAP WOULD DO -- read only, nothing is removed.
+
+	Split out of scrapMany so the REVIEW screen and the commit are built by the
+	same function. A review that is computed separately from the thing it
+	authorises eventually disagrees with it, and then the player has approved a
+	number they are not paid.
+
+	Returns rows (what goes), blocked (what cannot, and why), and the totals. An
+	id that is equipped, socketed, worn or simply absent lands in `blocked` with a
+	reason rather than being silently dropped: "nothing happened to three of
+	these" is the single most confusing outcome a bulk action can have.
+
+	SOCKETED GEAR IS BLOCKED, which the old partial path did not do. A rune in a
+	piece is permanent, so scrapping the piece strands it -- the same reason
+	MineGear.canUpgrade already refuses to fuse a socketed piece. Quietly eating
+	a rune is not a trade anybody agreed to.
+]]
+local function scrapPlan(p, kind, ids, into)
+	local out = { rows = {}, blocked = {}, dust = 0, gems = 0, n = 0 }
+	if type(p) ~= "table" or type(ids) ~= "table" then
+		return out
+	end
+	into = (into == "gems") and "gems" or "dust"
+
+	local want, order = {}, {}
+	for i, id in ipairs(ids) do
+		if i > Const.SCRAP_MAX then
+			break
+		end
+		if id ~= nil and not want[id] then
+			want[id] = true
+			table.insert(order, id)
+		end
+	end
+
+	local function add(id, name, dust, gems)
+		table.insert(out.rows, { id = id, name = name, dust = dust or 0, gems = gems or 0 })
+		out.dust += dust or 0
+		out.gems += gems or 0
+		out.n += 1
+	end
+	local function block(id, name, why)
+		table.insert(out.blocked, { id = id, name = name or tostring(id), why = why })
+	end
+
+	if kind == "card" then
+		local equipped = {}
+		for _, id in ipairs(p.equipped or {}) do
+			equipped[id] = true
+		end
+		local byId = {}
+		for _, c in ipairs(p.cards or {}) do
+			byId[c.id] = c
+		end
+		for _, id in ipairs(order) do
+			local c = byId[id]
+			if not c then
+				block(id, nil, "not in your bag")
+			elseif equipped[id] then
+				block(id, c.name, "out with you")
+			else
+				local d = C.salvageDust(c)
+				if into == "gems" then
+					add(id, c.name, 0, math.max(1, math.floor(d / 10)))
+				else
+					add(id, c.name, d, 0)
+				end
+			end
+		end
+	elseif kind == "rune" then
+		local byId = {}
+		for _, r in ipairs(p.runes or {}) do
+			byId[r.id] = r
+		end
+		for _, id in ipairs(order) do
+			local r = byId[id]
+			if not r then
+				block(id, nil, "not in your bag")
+			elseif runeBusy(p, id) then
+				block(id, r.name, "socketed")
+			else
+				add(id, r.name, 0, Runes.scrapGems(r))
+			end
+		end
+	elseif kind == "gear" then
+		local worn = {}
+		for _, id in pairs(p.equippedGear or {}) do
+			if id then
+				worn[id] = true
+			end
+		end
+		local byId = {}
+		for _, g in ipairs(p.gear or {}) do
+			byId[g.id] = g
+		end
+		for _, id in ipairs(order) do
+			local g = byId[id]
+			if not g then
+				block(id, nil, "not in your bag")
+			elseif worn[id] then
+				block(id, g.name or g.setName, "worn")
+			else
+				local socketed = false
+				for _, rid in pairs(g.sockets or {}) do
+					if rid then
+						socketed = true
+						break
+					end
+				end
+				if socketed then
+					block(id, g.name or g.setName, "has a rune in it")
+				else
+					add(id, g.name or g.setName, 0, Gear.scrapGems(g))
+				end
+			end
+		end
+	elseif kind == "pack" then
+		--[[
+			Each id names one pack by its own uid. The bag can shift between the
+			list being drawn and the confirm, and an index would then scrap
+			whatever slid into that position; a bare index is still honoured for
+			an old client.
+		]]
+		local list = p.packs or {}
+		for _, id in ipairs(order) do
+			local hit
+			for _, pk in ipairs(list) do
+				if pk.uid ~= nil and pk.uid == id then
+					hit = pk
+					break
+				end
+			end
+			if not hit then
+				local idx = tonumber(id)
+				hit = idx and list[idx] or nil
+			end
+			if not hit then
+				block(id, nil, "not in your bag")
+			else
+				local d = packScrapDustFor(hit)
+				if d <= 0 then
+					block(id, hit.packName or hit.packId, "no scrap value")
+				elseif into == "gems" then
+					add(id, hit.packName or hit.packId, 0, math.max(1, math.floor(d / 10)))
+				else
+					add(id, hit.packName or hit.packId, d, 0)
+				end
+			end
+		end
+	end
+	return out
+end
+
+--[[
+	BULK SCRAP. Two calls: review, then commit.
+
+	Without `payload.confirm` this is the ASK -- the server builds the plan and
+	sends it back for the review screen, having changed nothing. With it, the
+	scrap happens.
+
+	ALL OR NOTHING. If anything in the selection cannot be scrapped, the whole
+	batch is refused and the reason named. The old path scrapped what it could
+	and skipped the rest, which for a REVIEWED batch is a broken promise: the
+	player approved a specific list and a specific total, so paying less than
+	that is worse than paying nothing and saying why.
+]]
+local function scrapMany(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p or type(payload) ~= "table" then
+		return
+	end
+	local kind = payload.kind
+	if kind ~= "card" and kind ~= "rune" and kind ~= "gear" and kind ~= "pack" then
+		return
+	end
+	local into = (payload.into == "gems") and "gems" or "dust"
+	local ids = type(payload.ids) == "table" and payload.ids or {}
+	if #ids == 0 then
+		return
+	end
+
+	local plan = scrapPlan(p, kind, ids, into)
+
+	if not payload.confirm then
+		net:FireClient(plr, "confirmScrap", {
+			kind = kind,
+			into = into,
+			rows = plan.rows,
+			blocked = plan.blocked,
+			dust = plan.dust,
+			gems = plan.gems,
+			n = plan.n,
+		})
+		return
+	end
+
+	if #plan.blocked > 0 then
+		local first = plan.blocked[1]
+		net:FireClient(plr, "toast", string.format(
+			"Nothing scrapped -- %s is %s%s",
+			tostring(first.name), tostring(first.why),
+			(#plan.blocked > 1) and (" (and " .. (#plan.blocked - 1) .. " more)") or ""))
+		snap(plr)
+		return
+	end
+	if plan.n == 0 then
+		net:FireClient(plr, "toast", "Nothing scrappable in that selection")
+		return
+	end
+
+	--[[
+		Removal is by the ids the plan already resolved, walking each list
+		backwards so the indices stay valid as entries come out.
+	]]
+	local go = {}
+	for _, row in ipairs(plan.rows) do
+		go[row.id] = true
+	end
+	if kind == "card" then
+		for i = #(p.cards or {}), 1, -1 do
+			if go[p.cards[i].id] then
+				table.remove(p.cards, i)
+			end
+		end
+	elseif kind == "rune" then
+		for i = #(p.runes or {}), 1, -1 do
+			if go[p.runes[i].id] then
+				table.remove(p.runes, i)
+			end
+		end
+	elseif kind == "gear" then
+		for i = #(p.gear or {}), 1, -1 do
+			if go[p.gear[i].id] then
+				table.remove(p.gear, i)
+			end
+		end
+	elseif kind == "pack" then
+		local list = p.packs or {}
+		for i = #list, 1, -1 do
+			local pk = list[i]
+			local hit = (pk.uid ~= nil and go[pk.uid]) or go[i]
+			if hit then
+				table.remove(list, i)
+			end
+		end
+	end
+
+	local dust, gems = plan.dust, plan.gems
+	if dust > 0 then
+		dust = C.vipPayout(dust, hasVipPass(plr))
+	end
+	p.dust = (p.dust or 0) + dust
+	p.gems = (p.gems or 0) + gems
+	local paid = (dust > 0) and (Verbs._benchNum(dust) .. " stardust")
+		or (Verbs._benchNum(gems) .. " gems")
+	net:FireClient(plr, "toast", string.format("Scrapped %d for %s", plan.n, paid))
+	markDirty(plr)
+	snap(plr)
 end
 
 local function scrapItem(plr, payload)
