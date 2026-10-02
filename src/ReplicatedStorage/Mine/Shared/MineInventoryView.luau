@@ -2282,7 +2282,7 @@ function MineInventoryView.mount(parent, opts)
 		coinBonus = "Coins", gemFind = "Gems", chestLuck = "Chest luck",
 	swingRate = "Swing rate", blastRadius = "Blast radius", autoMine = "Gem Find",
 		echo = "Echo", zap = "Zap", luckyFind = "Lucky Block find",
-		fossilFind = "Fossil Finder", pulverize = "Pulverizer",
+		fossilFind = "Ore Finder", pulverize = "Pulverizer",
 		scrap = "Scrap", coolant = "Coolant", shortFuse = "Short Fuse", reach = "Reach",
 	}
 	----------------------------------------------------------------------------
@@ -5575,7 +5575,7 @@ function MineInventoryView.mount(parent, opts)
 				{ tab = "limited", title = "Lucky Blocks", sub = "Tap to open · grade them up for bigger loot", cta = "SEE", col = Color3.fromRGB(255, 200, 70), icons = { "lucky_block", "super_lucky_block", "godly_lucky_block" } },
 				{ tab = "box", title = "Build a Box", sub = "Any 10 packs you like · 12% off", cta = "BUILD", col = TEAL, icons = { "chest" } },
 				{ tab = "currencies", title = "Credits", sub = "Top up once, spend anywhere in the shop", cta = "TOP UP", col = GREEN, icons = { "credit_crate" } },
-				{ tab = "vip", title = "VIP & Founders", sub = "Remote sell, AFK earnings, Founders bag", cta = "VIEW", col = AMBER, icons = { "logo" } },
+				{ tab = "vip", title = "VIP & Founders", sub = "AFK earnings, Founders bag", cta = "VIEW", col = AMBER, icons = { "logo" } },
 				{ tools = true, title = "Tools & Backpacks", sub = "The blacksmith's counter", cta = "OPEN", col = T.GOLD or GOLD, icons = { "pickaxe", "backpack" } },
 			}
 			for i, d in ipairs(doors) do
@@ -6404,8 +6404,9 @@ function MineInventoryView.mount(parent, opts)
 				label(card, vipOwned and "VIP  -  OWNED" or "VIP PASS",
 					18, vipOwned and GREEN or GOLD, UDim2.fromOffset(16, 10), UDim2.new(1, -40, 0, 24), FONT)
 				-- No "extra pet seat": three is everybody's number now, so VIP does
-				-- not add one and must not say it does.
-				label(card, "Remote sell (75s)  |  +50% AFK coins  |  1 AFK gem/tick  |  [VIP] name",
+				-- not add one and must not say it does. Remote sell is gone too
+				-- (removed on main in 172fe7c), so neither claim is left standing.
+				label(card, "+50% AFK coins  |  1 AFK gem/tick  |  [VIP] name",
 					12, MUTED, UDim2.fromOffset(16, 38), UDim2.new(1, -40, 0, 36))
 				if not vipOwned then
 					local buy = mk("TextButton", {

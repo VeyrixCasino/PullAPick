@@ -50,6 +50,7 @@ local Dig = {
 	Auth = require(script.Parent:WaitForChild("MineDigAuth")),
 	Shop = require(shared:WaitForChild("MineDepthShop")),
 	Plazas = require(script.Parent:WaitForChild("MineDepthPlazas")),
+	Breaking = require(shared:WaitForChild("MineBreaking")),
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
@@ -199,6 +200,30 @@ remotes.Parent = RS.Mine
 local net = remotes:FindFirstChild("MineNet") or Instance.new("RemoteEvent")
 net.Name = "MineNet"
 net.Parent = remotes
+
+-- Admin remotes are created HERE, not in MineAdmin.start().
+--
+-- start() is called at the very bottom of this file (~line 14990 of 15000) with
+-- 100+ yield points ahead of it, so MineAdminClient:19 -- a top-level
+-- WaitForChild("AdminReady") with no timeout -- reached its wait long before the
+-- remote existed and warned "Infinite yield possible". The panel then never
+-- appeared for admins, silently: the fallback at MineAdminClient:861 cannot help
+-- because line 19 never returns.
+--
+-- Creating them up here costs nothing (bare instances, no handlers) and start()
+-- is FindFirstChild-or-create, so it adopts these rather than making new ones.
+-- IIFE so these do not burn main-chunk registers (Luau 200-local cap).
+do
+	local function ensureRemote(name, className)
+		local r = remotes:FindFirstChild(name) or Instance.new(className)
+		r.Name = name
+		r.Parent = remotes
+		return r
+	end
+	ensureRemote("AdminReady", "RemoteEvent")
+	ensureRemote("AdminNotify", "RemoteEvent")
+	ensureRemote("AdminInvoke", "RemoteFunction")
+end
 
 require(shared.MineWorldEvents).bind({
 	C = C,
@@ -512,6 +537,9 @@ local function blank()
 		coreSamples = {},
 		coreRiftOpened = {},
 		deepest = {}, depthUnlock = {}, backpack = {},
+		-- Seams bought, keyed "<zoneIndex>:<seam>". Depth is the one axis nothing
+		-- else gates, and ore tool power rides it.
+		seams = {},
 		-- Four meadow Loam packs so the first Inventory open has something to crack
 		-- before the player finds a chest. Real roster ids, not placeholder wrappers.
 		packs = {
@@ -732,7 +760,21 @@ local function load(plr)
 	local key = "u_" .. plr.UserId
 	local lockTtl = RunService:IsStudio() and 0 or 120
 	local data, read = nil, false
-	for attempt = 1, 8 do
+	-- With API access off, all 8 lock-claim attempts are refused and each one logs
+	-- StudioAccessToApisNotAllowed with backoff between -- the UpdateAsync lines
+	-- scattered through the boot log. The existing Studio fallback below already
+	-- handles the "cannot read" case, so skip straight to it rather than spending
+	-- ~15s failing loudly first.
+	-- LeaderboardService is the local from line 43, well above this function --
+	-- checked, because a local declared BELOW its use site is a nil global to this
+	-- closure and the guard would silently never fire. That trap has bitten this
+	-- file four times (shortNum, invCtl, vipSeatsLeft, SET_IDS).
+	local claimAttempts = 8
+	if RunService:IsStudio() and LeaderboardService.dataStoresUsable
+		and not LeaderboardService.dataStoresUsable() then
+		claimAttempts = 0
+	end
+	for attempt = 1, claimAttempts do
 		local blocked, seen = false, nil
 		local okU = pcall(function()
 			store:UpdateAsync(key, function(old)
@@ -897,6 +939,24 @@ local function load(plr)
 	p.foundersBag = p.foundersBag and true or false
 	p.potions = p.potions or {}
 	p.coins = p.coins or 0
+	--[[
+		GRANDFATHERING THE DEPTH GATE.
+
+		Nobody loses depth they already reached. grantReachedSeams derives the
+		grant from p.deepest, which creditDeepest has been writing all along, so
+		this needs no migration flag and no version stamp -- the evidence was
+		already on the profile before the gate existed.
+
+		It is add-only and therefore safe to run on every load: creditDeepest
+		keeps pushing deepest down as they mine, and re-running must never take a
+		seam away. It runs HERE, inside load and before the first canDigLayer,
+		because a returning player whose first swing is at layer 900 would
+		otherwise eat a refusal for a seam they earned months ago.
+	]]
+	p.seams = p.seams or {}
+	if Dig.Depth.grantReachedSeams then
+		Dig.Depth.grantReachedSeams(p)
+	end
 	p.runes = p.runes or {}
 	p.gear = p.gear or {}
 	p.equippedGear = p.equippedGear or { hat = nil, face = nil }
@@ -1638,6 +1698,100 @@ local function equippedTool(p)
 			return et, et.family or "pickaxe", et.tier or 1
 		end
 	end
+	--[[
+		AN EQUIPPED ORE TOOL OUTRANKS THE LADDER.
+
+		Ore tools are found, not bought. Like a chest flagship they are a
+		separate object rather than a rung, so holding one replaces whatever
+		pickaxe tier the player has climbed to.
+
+		The row is synthesised, not stored. Its `name` is the ORE's name, which
+		is exactly what ToolModels_50 keys the baked head on, so the model
+		resolves through the existing fromNamed path off the same string the
+		bench prints -- no second lookup table to drift.
+
+		A missing uid clears the equip instead of erroring: scrapping the tool
+		in your hand must not leave you swinging a ghost.
+
+		The lookup is inline because Verbs is declared some six thousand lines
+		below this function, so Verbs._findOreTool is not in scope here.
+	]]
+	if p.oreToolEquipped then
+		local held
+		for _, t in ipairs(p.oreTools or {}) do
+			if type(t) == "table" and t.uid == p.oreToolEquipped then
+				held = t
+				break
+			end
+		end
+		if not held then
+			p.oreToolEquipped = nil
+		else
+			local famId = held.familyId or "pickaxe"
+			local oreDef = C.ORES and C.ORES[tonumber(held.tier) or 1]
+			-- Same rarity rank the bench prices against, so what you paid for
+			-- and what you swing agree.
+			local typeMult = 1
+			local famList = Tools.TOOLS and Tools.TOOLS[famId]
+			if famList then
+				for _, td in ipairs(famList) do
+					if td.id == held.typeId then
+						local rr = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
+						typeMult = (Tools.RARITY_RANK and Tools.RARITY_RANK[rr or td.rarity]) or 1
+						break
+					end
+				end
+			end
+			local lvl = math.max(1, tonumber(held.level) or 1)
+			local power = 1
+			if C.toolPower then
+				power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)))
+			end
+			--[[
+				FINISHES RIDE AN ORE TOOL THE SAME WAY THEY RIDE A FLAGSHIP.
+
+				Same two multipliers a chest tool gets, and the same route to
+				the screen: givePickaxe reads row.shiny / row.shadow without
+				caring what kind of tool the row describes, so setting them
+				here is the whole of it -- ToolModelFactory.applyFinish puts the
+				mirror and sparks, or the near-black body and red fire, on the
+				model it already built.
+
+				Shadow wins over shiny rather than stacking, matching withShiny
+				above. A finish never changes what a level COSTS, only what the
+				tool hits for, so the bench prices a shadow tool exactly like a
+				plain one and recycle still returns a flat cut of what went in.
+			]]
+			local shiny = held.shiny and true or nil
+			local shadow = held.shadow and true or nil
+			local nightmare = held.nightmare and true or nil
+			-- Highest finish wins outright; they never stack, same as withShiny.
+			if nightmare then
+				power = math.max(1, math.floor(power * (C.NIGHTMARE_MULT or 4.5)))
+			elseif shadow then
+				power = math.max(1, math.floor(power * (C.SHADOW_MULT or 3)))
+			elseif shiny then
+				power = math.max(1, math.floor(power * (C.SHINY_MULT or 1.5)))
+			end
+			local finish = (nightmare and "Nightmare") or (shadow and "Shadow")
+				or (shiny and "Shiny") or "Normal"
+			return {
+				id = "oretool_" .. tostring(held.uid),
+				uid = held.uid,
+				name = (oreDef and oreDef.name) or "Ore Tool",
+				modelName = (oreDef and oreDef.name) or nil,
+				family = famId,
+				power = power,
+				level = lvl,
+				oreTool = true,
+				shiny = shiny,
+				shadow = shadow,
+				nightmare = nightmare,
+				finish = finish,
+			}, famId, 0
+		end
+	end
+
 	-- A chest flagship overrides the ladder entirely: it is not a rung, it is a
 	-- separate object you found. Held only while the player has it selected.
 	local function withShiny(def, owned)
@@ -1687,10 +1841,10 @@ local function equippedTool(p)
 		typeMult is resolved inline rather than through Verbs._oreToolTypeMult,
 		because `local Verbs` is declared thousands of lines below this point.
 	]]
-	if p.oreToolUid then
+	if p.oreToolEquipped then
 		local oreRow
 		for _, row in ipairs(p.oreTools or {}) do
-			if type(row) == "table" and row.uid == p.oreToolUid then
+			if type(row) == "table" and row.uid == p.oreToolEquipped then
 				oreRow = row
 				break
 			end
@@ -1720,13 +1874,13 @@ local function equippedTool(p)
 				cells = (typeDef and typeDef.cells) or 1,
 				shape = (typeDef and typeDef.shape) or "melee",
 				oreTier = math.max(1, math.floor(tonumber(oreRow.tier) or 1)),
-				oreToolUid = oreRow.uid,
+				oreToolEquipped = oreRow.uid,
 				level = level,
 			}
 			return def, famId, 0
 		end
 		-- Scrapped or never existed: stop pointing at it.
-		p.oreToolUid = nil
+		p.oreToolEquipped = nil
 	end
 	if p.chestTool then
 		-- Pass tools (lunar_pick / bp_eclipse / lunar_eclipse) live in chestTools
@@ -2737,8 +2891,9 @@ local function snap(plr)
 		-- The Forge keys its recipe list off this, not off what is banked.
 		oresSeen = p.oresSeen or {},
 		-- Which forged tool is in hand, so the Forge can mark it EQUIPPED.
-		oreToolUid = p.oreToolUid,
+		oreToolEquipped = p.oreToolEquipped,
 		oreTools = p.oreTools or {},
+		oreToolEquipped = p.oreToolEquipped,
 		itemSlotsUsed = C.itemSlotsUsed and C.itemSlotsUsed(p) or nil,
 		itemSlotCap = C.itemSlotCap and C.itemSlotCap(p) or nil,
 		itemSlotPrice = C.itemSlotPrice and C.itemSlotPrice(p) or nil,
@@ -2757,7 +2912,6 @@ local function snap(plr)
 		equippedBag = p.equippedBag,
 		coinDouble = p.coinDouble and true or false,
 		autoMineLicense = p.autoMineLicense and true or false,
-		remoteSellWait = C.remoteSellWait and C.remoteSellWait(p) or 0,
 		vipSeats = vipSeatsLeft,
 		vipPrice = Packs.VIP_PRICE,
 		vipRobux = Packs.VIP_ROBUX or C.FOUNDERS_ROBUX or 999,
@@ -4459,7 +4613,7 @@ local function givePickaxe(plr)
 	tool:SetAttribute("BreakPower", C.toolBreakingPower(row or {}))
 	if row and tonumber(row.oreTier) then
 		tool:SetAttribute("OreTier", math.floor(tonumber(row.oreTier)))
-		tool:SetAttribute("OreToolUid", tostring(row.oreToolUid or ""))
+		tool:SetAttribute("OreToolUid", tostring(row.oreToolEquipped or ""))
 	end
 	if p and p.chestTool then
 		tool:SetAttribute("ChestToolId", p.chestTool)
@@ -5046,33 +5200,53 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 		net:FireClient(plr, "toast", (def and def.name or "Fossil Pack") .. "!")
 	elseif kind == "ore" then
 		--[[
-			An ore block hands over the ORE, directly.
+			AN ORE BLOCK HANDS OVER THE ORE. No pack in between.
 
-			It used to hand over a pack you then had to open. Ninety-nine times
-			in a hundred that pack held nothing but the ore, so the extra beat
-			bought a click rather than a moment -- the reveal is worth having
-			only where something rare is actually at stake. So the ore lands in
-			the pouch, and the rare half moves to the ORE CASE below.
+			It used to bank a "<id>_ore_pack" that the player opened later. That
+			cost a step for nothing: the pack's ore was already decided (its row
+			carried oreId), so opening it revealed nothing that was not already
+			settled, and a bag of hundreds of single-ore packs was the single
+			most-complained-about screen in the game.
 
-			Which ore it is was settled at spawn (spawnVoxel stamps OreId), so a
-			block standing since before a rate change still pays out as whatever
-			it looks like.
+			The reveal does not disappear, it moves to the ORE CASE below -- a 2%
+			drop whose contents genuinely are unknown until opened. A reveal
+			should be for something actually random.
+
+			Quantity comes from C.oreYieldFor(tier) -- the band table whose bell
+			peaks on Epic, matching where the cost bell peaks. Rolled here rather
+			than restated, so direct drops and any legacy pack stay identical.
+
+			THE ORE FINDER IS NOT APPLIED HERE, on purpose. It is a quality
+			stat, not a quantity one ("better roll quality, not more loot"), and
+			it already did its work in oreWeights via oreFindShift when this
+			block chose which ore to be. Paying it again as extra material would
+			quietly turn it into a yield multiplier -- and yield multipliers on
+			a flat per-block rate are how the boost stack compounds.
 		]]
 		local ore = C.oreById(part:GetAttribute("OreId"))
 		if ore then
-			-- Required here, not at file scope: MineServer sits at 197 top-level
-			-- locals against a hard limit of 200.
-			local OrePacks = require(shared:WaitForChild("MineZonePacks"))
-			local lo, hi = OrePacks.oreYield(ore)
-			local got = Random.new():NextInteger(math.min(lo, hi), math.max(lo, hi))
-			local find = math.max(0, tonumber(bb.oreYield) or 0)
-			got = math.max(1, math.floor(got * (1 + find) + 0.5))
+			local lo, hi = C.oreYieldFor(ore.tier)
+			lo = math.max(1, math.floor(tonumber(lo) or 1))
+			hi = math.max(lo, math.floor(tonumber(hi) or lo))
+			local got = math.random(lo, hi)
+			--[[
+				Into the POUCH, up to what it holds, and through Dig.addOre so the
+				capacity check lives in one place rather than at every site that
+				grants ore. A full pouch refuses rather than silently eating it.
 
-			-- Into the pouch, up to what it holds. A full pouch refuses rather
-			-- than silently eating the ore.
+				Discovery is recorded inside addOre and does NOT depend on having
+				room: it drives the Forge recipe list, and a full pouch quietly
+				blocking discovery would hide the recipe you needed for a reason
+				nothing on screen tells you.
+			]]
 			local kept, spilled = Dig.addOre(p, ore.id, got)
 			if kept > 0 then
-				net:FireClient(plr, "toast", string.format("+%d %s", kept, ore.name))
+				net:FireClient(plr, "toast", ("+%d %s"):format(kept, ore.name))
+				net:FireClient(plr, "loot", {
+					text = ("+%d %s"):format(kept, ore.name),
+					color = ore.color or Color3.fromRGB(255, 220, 140),
+					pos = part.Position,
+				})
 			end
 			if spilled > 0 then
 				Dig.pouchFullToast(plr, p)
@@ -5081,11 +5255,15 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			--[[
 				THE ORE CASE is the rare half of the loot split.
 
-				One case per ore, 2% per ore block, luck-scaled. This IS the
-				rare drop -- there is no second roll inside the case. Opening one
-				pays a skin or a charm, guaranteed, which makes this 2% the only
-				number standing between a block and a prize. It replaced the old
+				One case per ore, 2% per ore block, luck-scaled. This IS the rare
+				drop -- there is no second roll inside the case. Opening one pays
+				a skin or a charm, guaranteed, which makes this 2% the only number
+				standing between a block and a prize. It replaced the old
 				rare-tool wall drop entirely: tools are forged now, not found.
+
+				It is rolled even when the pouch was full. The case is not ore and
+				does not take pouch space, so a full pouch costs you material --
+				it does not cost you the chase.
 			]]
 			local caseChance = (tonumber(C.ORE_CASE_CHANCE) or 0)
 				* math.max(1, tonumber(bb.luck) or 1)
@@ -5105,6 +5283,8 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 					pos = part.Position,
 				})
 			end
+			-- TODO(runes): roll this ore's rune here, 2% down to 0.5% by tier,
+			-- F-SSS. Needs the rune overhaul; nothing rolls one yet.
 		end
 	elseif kind == "core" then
 		grantChestTool(plr, p, "geothermal_nuke")
@@ -5668,41 +5848,31 @@ local function swingBlock(plr, part)
 				local need = (Dig.Depth.rebirthForLayer and Dig.Depth.rebirthForLayer(layer, zi)) or 10
 				net:FireClient(plr, "toast", (Dig.Depth.rebirthToast and Dig.Depth.rebirthToast(need, zi, seam))
 					or string.format("Rebirth %d required", need))
+			elseif why == "need_seam" then
+				-- The seam gate is the one refusal a player can act on immediately,
+				-- so it opens the purchase rather than explaining itself in a toast.
+				--
+				-- Throttled: this fires on every swing into locked rock, and a
+				-- player who keeps swinging would otherwise rebuild the panel ten
+				-- times a second. The client also refuses to reopen while it is up,
+				-- so this is the cheap half of a belt-and-braces guard.
+				local zi = (C.zoneIndex and C.zoneIndex(zoneId or p.zoneId)) or 1
+				local seam = Dig.Depth.gateForLayer and Dig.Depth.gateForLayer(layer)
+				local price = seam and Dig.Depth.seamPrice and Dig.Depth.seamPrice(seam, zi)
+				local now = os.clock()
+				if price and (now - (tonumber(p._seamPromptAt) or 0)) > 1.5 then
+					p._seamPromptAt = now
+					net:FireClient(plr, "seamGate", {
+						seam = seam,
+						price = price,
+						minutes = Dig.Depth.SEAM_MINUTES,
+						coins = math.floor(p.coins or 0),
+					})
+				end
 			elseif why == "need_mid" or why == "need_deep" then
 				net:FireClient(plr, "toast", "Reach the depth plaza to unlock this band")
 			end
 			return
-		end
-	end
-	--[[
-		BREAKING POWER. The ore a tool is forged from is its breaking power, and
-		it reaches ORE_REACH tiers past that (docs/TODO.md section 0.1).
-
-		Only ore blocks carry an OreTier, so plain rock is unaffected here --
-		that is block strength's job, a separate gate still to be built.
-
-		The tool's breaking power is read from the OreTier attribute stamped at
-		give time. NOT the `Tier` attribute, which is a cosmetic ladder rung. A
-		tool with no ore behind it has NO_ORE_BREAKING_POWER, so the rule stays
-		uniform instead of exempting shop tools from it entirely.
-	]]
-	do
-		local oreTier = tonumber(part:GetAttribute("OreTier"))
-		if oreTier then
-			local held = (Dig.heldTool and Dig.heldTool[p])
-				or (plr.Character and plr.Character:FindFirstChildOfClass("Tool"))
-			-- BreakPower, not OreTier: every tool carries it, derived from its
-			-- own base stats, so a shop rung is measured by the same rule as a
-			-- forged pick instead of being exempt.
-			local bp = tonumber(held and held:GetAttribute("BreakPower"))
-				or (C.NO_ORE_BREAKING_POWER or 0)
-			if not C.canBreakOre(bp, oreTier) then
-				net:FireClient(plr, "weakTool", {
-					oreTier = oreTier,
-					reach = C.oreReachCap(bp),
-				})
-				return
-			end
 		end
 	end
 	-- A full bag stops you gaining DIRT. It does not stop you mining: the rock
@@ -5800,6 +5970,39 @@ local function swingBlock(plr, part)
 		end
 	else
 		p.lastDigAt = nowDig
+	end
+	--[[
+		BREAKING POWER. Zero damage, not reduced damage.
+
+		This sits BEFORE dmg is computed, and returns rather than scaling, on
+		purpose. Anything that let a fraction through would mean a wall could be
+		ground past given enough swings, which is the whole thing breaking power
+		exists to prevent.
+
+		Server-side and attribute-driven: the tier comes off the block the
+		generator stamped (OreTier), never from the client, so a forged request
+		cannot claim a soft block. The tool is the one the server has the player
+		holding, not one they named.
+	]]
+	do
+		local layer = tonumber(part:GetAttribute("CY") or part:GetAttribute("Layer")) or 1
+		local zi = (C.zoneIndex and C.zoneIndex(part:GetAttribute("ZoneId") or p.zoneId)) or 1
+		local oreTier = tonumber(part:GetAttribute("OreTier"))
+		local okBreak, need, have = Dig.Breaking.canBreak(tool, zi, layer, oreTier, #C.ORES)
+		if not okBreak then
+			-- Throttled: a player holding the button swings into the wall ten
+			-- times a second and only needs telling once.
+			local nowWeak = os.clock()
+			if (nowWeak - (tonumber(p._tooWeakAt) or 0)) > 1.2 then
+				p._tooWeakAt = nowWeak
+				net:FireClient(plr, "tooWeak", {
+					need = need,
+					have = have,
+					ore = part:GetAttribute("OreName"),
+				})
+			end
+			return
+		end
 	end
 	local dmg = tool.power or 1
 	do
@@ -6472,16 +6675,17 @@ local function openPack(plr, setId, chestId, pk, collect)
 				local orng = Random.new()
 				local got = orng:NextInteger(math.min(lo, hi), math.max(lo, hi))
 				--[[
-					Yield boosts are capped on ore packs.
+					The finder the pack was MINED with, not the one worn now --
+					the pack stamped it at break time, so swapping pets after
+					banking a pack cannot re-price what is already in the bag.
 
-					fossilFind multiplies the haul, and at the top of the boost
-					stack it multiplied it a long way. Upgrade costs are sized in
-					HOURS of supply, so an uncapped multiplier is not "nicer
-					drops", it is a shortcut straight past the cost curve for
-					whoever stacked pets hardest. ORE_PACK_FIND_CAP holds the
-					best case to about 2x an unboosted player.
+					Still CAPPED. An uncapped multiplier on a legacy pack is
+					still an uncapped multiplier: upgrade costs are sized in HOURS
+					of supply, so this is not "nicer drops", it is a shortcut past
+					the cost curve for whoever stacked pets hardest.
+					ORE_PACK_FIND_CAP holds the best case to about 2x unboosted.
 				]]
-				local find = math.max(0, tonumber((boosts(p) or {}).fossilFind) or 0)
+				local find = math.max(0, tonumber(pk and pk.oreFind) or 0)
 				find = math.min(find, tonumber(C.ORE_PACK_FIND_CAP) or 1)
 				got = math.max(1, math.floor(got * (1 + find) + 0.5))
 				local kept, spilled = Dig.addOre(p, zdef.oreId, got)
@@ -6510,12 +6714,23 @@ local function openPack(plr, setId, chestId, pk, collect)
 				-- What the reveal shows is what actually went in.
 				got = kept
 				bumpStat(plr, p, "packs")
-				-- The reveal grade is the ore's BAND, read straight off the
-				-- roster. This used to be eight hard-coded tier cutoffs
-				-- (24/48/72/96/108/114/118), which silently mis-graded every ore
-				-- the moment the roster was renumbered from 121 down to 82.
+				--[[
+					The reveal needs something to celebrate with, and every ore is
+					Common on the card rarity scale, so grade it by BAND.
+
+					`ore.band` is derived once in MineConfig from ORE_YIELD_BANDS,
+					which already divides the roster into exactly these eight
+					groups. Spelling the cutoffs out again here is what broke it
+					last time: they were the 121-ore cuts
+					(24/48/72/96/108/114/118), and after the trim to 82 the top
+					four sat past the end of the roster -- nothing could grade
+					above Epic, and the Legendary, Mythic, Divine and Exotic
+					reveals were dead code.
+				]]
 				local tier = (ore and ore.tier) or 1
-				local grade = (ore and ore.band) or "Common"
+				local grade = (ore and ore.band)
+					or select(1, C.oreBandForTier(tier))
+					or "Common"
 				local loot = { {
 					kind = "ore",
 					name = (ore and ore.name) or zdef.oreName or tostring(zdef.oreId),
@@ -8412,6 +8627,60 @@ function Verbs.bindSellPad(part)
 		Verbs.sellPadAt[plr.UserId] = now
 		pcall(Verbs.sellAtPad, plr, part, part:GetAttribute("ZoneId"))
 	end)
+end
+
+--[[
+	BUY A SEAM. The coin sink the economy is short of.
+
+	Rebirth is nine one-time purchases and then that sink is gone forever; seams
+	repeat in every zone, never run out, and scale at exactly the rate coin income
+	does -- because the price IS income, measured in minutes.
+
+	Nothing here stores a coin figure. seamPrice derives it from the band's own
+	average income every time it is asked, so the ladder self-corrects the moment
+	the block rate or the coin curve moves, and cannot go stale.
+]]
+function Verbs.buySeam(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local Depth = Dig.Depth
+	local seam = payload
+	if type(payload) == "table" then
+		seam = payload.seam or payload.layer
+	end
+	seam = math.floor(tonumber(seam) or 0)
+	local zi = math.max(1, math.floor(tonumber(C.zoneIndex and C.zoneIndex(p.zoneId)) or 1))
+	local price = Depth.seamPrice and Depth.seamPrice(seam, zi)
+	if not price then
+		net:FireClient(plr, "toast", "No seam at that depth")
+		return
+	end
+	if Depth.ownsSeam(p, seam, zi) then
+		net:FireClient(plr, "toast", "That seam is already open")
+		return
+	end
+	-- Seams open in order. Skipping one would skip the band whose income pays for
+	-- the next, and 30 minutes is only honest if the player mined the band below.
+	for _, s in ipairs(Depth.SEAMS) do
+		if s >= seam then
+			break
+		end
+		if not Depth.ownsSeam(p, s, zi) then
+			net:FireClient(plr, "toast", "Open layer " .. tostring(s) .. " first")
+			return
+		end
+	end
+	if (p.coins or 0) < price then
+		net:FireClient(plr, "toast", string.format("Layer %d costs %s coins", seam, tostring(price)))
+		return
+	end
+	p.coins -= price
+	Depth.grantSeam(p, seam, zi)
+	net:FireClient(plr, "toast", string.format("Layer %d open -- dig on", seam))
+	markDirty(plr)
+	snap(plr)
 end
 
 function Verbs.buyCharter(plr, id)
@@ -11033,6 +11302,24 @@ function Verbs.claimPass(plr, payload)
 		return
 	end
 	markDirty(plr)
+	--[[
+		Persist the claim NOW, not on the 45-second autosave.
+
+		markDirty only queues a client snapshot -- it does not save. So a claim
+		whose reward has no lucky block (the `else` branch above, which grants in
+		memory) survived only until the next autosave. Relog inside that window
+		and the ledger was gone while the reward had already been handed over:
+		the tier reads unclaimed again and pays a second time.
+
+		This is the same bug the daily reward already hit and fixed the same way
+		-- see the save(plr) on the daily path and its comment about the popup
+		returning every login as Day 1.
+
+		Claims with lucky blocks were already safe: that path commits the ledger
+		inside the UpdateAsync callback. This makes both paths durable rather
+		than leaving the cheaper one to chance.
+	]]
+	save(plr)
 	net:FireClient(plr, "claimPassResult", { tier = tier, track = trackName, ok = true })
 	net:FireClient(plr, "toast", "Claimed: " .. Scrolls.describeReward(reward))
 	snap(plr)
@@ -14206,11 +14493,15 @@ end
 	C.ORES[tool.tier]). A tool forged from Halite levels on Halite.
 ]]
 --[[
-	Equip a forged ore tool, or unequip back to the ladder.
+	Equip an ore tool, or put it away.
 
-	Clears the other overrides, because equippedTool checks them in order and a
-	chest flagship left set would silently shadow the tool the player just
-	chose. Passing no uid unequips.
+	uid-keyed like the rest of the bench: a row index names a different tool the
+	moment the list reorders. An empty uid unequips, which is how a player gets
+	back to their ladder pickaxe without scrapping anything.
+
+	One object claims the hand at a time. A chest flagship and a fossil tool are
+	both cleared here, because equippedTool checks the ore tool FIRST and would
+	otherwise silently mask a flagship the player thinks they are holding.
 ]]
 function Verbs.equipOreTool(plr, payload)
 	local p = profiles[plr.UserId]
@@ -14218,23 +14509,21 @@ function Verbs.equipOreTool(plr, payload)
 		return
 	end
 	local uid = (type(payload) == "table") and payload.uid or payload
-
-	if uid == nil or uid == "" then
-		p.oreToolUid = nil
+	uid = tostring(uid or "")
+	if uid == "" then
+		p.oreToolEquipped = nil
 		givePickaxe(plr)
-		net:FireClient(plr, "toast", "Unequipped")
-		snap(plr)
 		markDirty(plr)
+		snap(plr)
 		return
 	end
-
 	local tool = Verbs._findOreTool(p, uid)
 	if not tool then
 		net:FireClient(plr, "toast", "That tool is not in your bag")
 		return
 	end
 
-	p.oreToolUid = tool.uid
+	p.oreToolEquipped = tool.uid
 	p.chestTool = nil
 	p.fossilTool = nil
 	p.shopToolId = nil
@@ -14316,6 +14605,18 @@ function Verbs.craftOreTool(plr, payload)
 		oreDef.name or oreId, def.name or def.id))
 	snap(plr)
 	markDirty(plr)
+	if p.oreToolEquipped == uid then
+		-- Tapping the held tool puts it away.
+		p.oreToolEquipped = nil
+	else
+		p.oreToolEquipped = uid
+		p.chestTool = nil
+		p.fossilTool = nil
+	end
+	p.toolEquipped = true
+	givePickaxe(plr)
+	markDirty(plr)
+	snap(plr)
 end
 
 function Verbs.recycleOreTool(plr, payload)
@@ -14339,19 +14640,13 @@ function Verbs.recycleOreTool(plr, payload)
 	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
 	local oreId = oreDef and oreDef.id
 
-	--[[
-		Scrapping the tool in your hands must take it out of them.
-
-		equippedTool clears a dangling oreToolUid on its next call, but nothing
-		re-gives the Tool instance, so without this the player keeps swinging a
-		tool they no longer own -- and keeps its breaking power for free.
-	]]
-	local wasEquipped = (p.oreToolUid ~= nil and p.oreToolUid == tool.uid)
-
+	-- Let go before it stops existing, or the hand keeps a uid that no longer
+	-- resolves. equippedTool self-heals from this, but re-giving the pickaxe
+	-- here is what actually puts the ladder tool back in the player's hand.
+	local wasHeld = (p.oreToolEquipped == tool.uid)
 	table.remove(p.oreTools, index)
-
-	if wasEquipped then
-		p.oreToolUid = nil
+	if wasHeld then
+		p.oreToolEquipped = nil
 		givePickaxe(plr)
 	end
 	if oreId and ore > 0 then
@@ -14391,25 +14686,15 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
+		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "throwAt" then throwAt(plr, payload)
 		elseif action == "bagGo" then
-			if payload == "sell" and hasVipPass(plr) then
-				local p = profiles[plr.UserId]
-				local wait = C.remoteSellWait and C.remoteSellWait(p) or 0
-				if wait > 0 then
-					net:FireClient(plr, "toast", "Remote sell ready in " .. math.ceil(wait) .. "s")
-				else
-					if p then p.remoteSellAt = os.clock() end
-					sellAll(plr)
-				end
-			else
-				local go = (payload == "shop") and "shop" or "sell"
-				gotoStation(plr, go)
-				-- A button labelled SELL has to sell. gotoStation only walked you to
-				-- the pad and returned, leaving the prompt still to be pressed.
-				if go == "sell" then
-					sellAll(plr)
-				end
+			local go = (payload == "shop") and "shop" or "sell"
+			gotoStation(plr, go)
+			-- A button labelled SELL has to sell. gotoStation only walked you to
+			-- the pad and returned, leaving the prompt still to be pressed.
+			if go == "sell" then
+				sellAll(plr)
 			end
 		elseif action == "afkStart" then
 			Verbs.Afk.start(plr)
@@ -14421,20 +14706,9 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				Verbs.Afk.refreshSession(plr)
 			end
 		elseif action == "sell" then
-			if hasVipPass(plr) then
-				local p = profiles[plr.UserId]
-				local wait = C.remoteSellWait and C.remoteSellWait(p) or 0
-				if wait > 0 then
-					net:FireClient(plr, "toast", "Remote sell ready in " .. math.ceil(wait) .. "s")
-				else
-					if p then p.remoteSellAt = os.clock() end
-					sellAll(plr)
-				end
-			else
-				gotoStation(plr, "sell")
-				-- Same here: arrive AND sell.
-				sellAll(plr)
-			end
+			gotoStation(plr, "sell")
+			-- Same here: arrive AND sell.
+			sellAll(plr)
 		elseif action == "open" then openFrom(plr)
 		elseif action == "openAt" then openAt(plr, payload)
 		elseif action == "openMany" then openMany(plr, payload)
@@ -14637,6 +14911,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "applyOmniscroll" then Verbs.applyOmniscroll(plr, payload)
 		elseif action == "buyCreditPack" then Verbs.buyCreditPack(plr, payload)
 		elseif action == "buyCharter" then Verbs.buyCharter(plr, payload)
+		elseif action == "buySeam" then Verbs.buySeam(plr, payload)
 		elseif action == "equipTool" then equipTool(plr, payload)
 		elseif action == "equipShopTool" then
 			local p = profiles[plr.UserId]

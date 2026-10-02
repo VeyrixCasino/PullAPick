@@ -529,12 +529,13 @@ function MineShopView.mount(parent, opts)
 					oresSeen = state.oresSeen,
 					-- Which ore tool is in the player's hands, so the Forge can
 					-- mark it rather than offering to equip what is already held.
-					oreToolUid = state.oreToolUid,
+					oreToolEquipped = state.oreToolEquipped,
 					dust = state.dust or 0,
 					-- The Forge quotes coins for the wooden pickaxe and shows a
 					-- wallet strip, so it needs both currencies, not just dust.
 					coins = state.coins or 0,
 					gems = state.gems or 0,
+					oreToolEquipped = state.oreToolEquipped,
 				}
 			end,
 			-- Out of the Forge and down to the second line.
@@ -559,6 +560,11 @@ function MineShopView.mount(parent, opts)
 			onRecycle = function(uid)
 				if opts.onRecycleOreTool then
 					opts.onRecycleOreTool(uid)
+				end
+			end,
+			onEquip = function(uid)
+				if opts.onEquipOreTool then
+					opts.onEquipOreTool(uid)
 				end
 			end,
 		})
@@ -1941,7 +1947,12 @@ function MineShopView.mount(parent, opts)
 				benchPanel.Visible = true
 			end
 			if benchCtl and benchCtl.refresh then
-				pcall(benchCtl.refresh)
+				-- A bare pcall here is what made a thrown row look like an empty
+				-- bag. If it fails, say so.
+				local okR, errR = pcall(benchCtl.refresh)
+				if not okR then
+					warn("[MineShopView] bench refresh failed: " .. tostring(errR))
+				end
 			end
 			return
 		end
@@ -2258,8 +2269,9 @@ function MineShopView.mount(parent, opts)
 		-- The Forge lists one recipe per ore ever held, not per ore banked, so
 		-- spending your last unit of something does not delete its recipe.
 		state.oresSeen = snapshot.oresSeen or {}
-		state.oreToolUid = snapshot.oreToolUid
+		state.oreToolEquipped = snapshot.oreToolEquipped
 		state.oreTools = snapshot.oreTools or {}
+		state.oreToolEquipped = snapshot.oreToolEquipped
 		state.backpackTier = snapshot.backpackTier or 1
 		state.family = snapshot.tool and snapshot.tool.family or nil
 		state.credits = snapshot.credits or 0

@@ -2053,7 +2053,6 @@ function ClientFns.showSpin(dur)
 end
 
 -- Last time the breaking-power refusal was shown, so a held swing cannot spam it.
-local weakToolAt = 0
 
 local function showToast(t)
 	toast.Text = t
@@ -4528,6 +4527,11 @@ shopCtl = ShopView.mount(gui, {
 	onRecycleOreTool = function(uid)
 		net:FireServer("recycleOreTool", { uid = uid })
 	end,
+	-- An empty uid unequips; the server treats re-sending the held uid the same
+	-- way, so the button can be a straight toggle.
+	onEquipOreTool = function(uid)
+		net:FireServer("equipOreTool", { uid = uid or "" })
+	end,
 
 	--[[
 		THE ORE POUCH. Selling ore is the game's only gem tap, so every one of
@@ -6183,7 +6187,7 @@ function ClientFns.sellClockText(kind, left, full)
 		return string.format("Auto-sell in %s  -  %s", mmss,
 			full and "bag is full, it will cash" or "only cashes when full")
 	end
-	return (left > 0) and ("Remote sell ready in " .. mmss) or "Sell here (VIP remote sell)"
+	return "Sell at the depot"
 end
 
 function ClientFns.sellClockLoop()
@@ -6223,29 +6227,13 @@ local function refreshBag()
 		return
 	end
 	rowBtn(bagP.Body, string.format("%d / %d slots    %s", snap.load or 0, snap.cap or 12, snap.pickName or "Wood Pickaxe"), function() end)
-	--[[
-		Both sell clocks, where the bag is.
-
-		VIP remote sell has a cooldown and the Wormhole Bag cashes itself on a
-		timer -- neither was visible anywhere, so both read as the button simply
-		not working. The rows hold a deadline rather than a rendered string,
-		because the snapshot is event-driven and a number painted once would sit
-		frozen on whatever second the panel happened to open on.
-	]]
+	-- The sell button always routes to the depot; only auto-sell has a clock.
 	ClientFns.sellClockLoop()
 	local st = { full = (tonumber(snap.load) or 0) >= (tonumber(snap.cap) or math.huge) }
 	ClientFns.sellClock = st
-	if snap.vip then
-		local wait = tonumber(snap.remoteSellWait) or 0
-		st.sellAt = os.clock() + wait
-		st.sellBtn = rowBtn(bagP.Body, ClientFns.sellClockText("vip", wait), function()
-			net:FireServer("sell")
-		end)
-	else
-		rowBtn(bagP.Body, "Walk onto the depot pad to sell", function()
-			net:FireServer("sell")
-		end)
-	end
+	rowBtn(bagP.Body, "Sell at the depot", function()
+		net:FireServer("sell")
+	end)
 	if snap.autoSellSec then
 		st.autoSec = tonumber(snap.autoSellSec)
 		local left = tonumber(snap.autoSellLeft) or st.autoSec
@@ -7418,6 +7406,191 @@ function ClientFns.confirmRebirth()
 	choice("Not yet", Color3.fromRGB(70, 74, 96), false, function()
 		f.Visible = false
 	end)
+end
+
+--[[
+	"YOUR TOOL IS TOO WEAK TO DAMAGE THIS BLOCK"
+
+	Breaking power is a wall, and a wall that does not explain itself reads as
+	the game being broken -- you swing, the number never moves, nothing says
+	why. So this has to be immediate and unmissable, and it has to name what
+	would fix it.
+
+	Sits bottom-centre above Roblox's hotbar, since this game has no custom one.
+	One label, reused and re-shown rather than rebuilt: the server throttles to
+	1.2s but a wall is something players hammer at, and churning a frame per
+	swing during a dig loop drops frames.
+
+	Sized in scale with a UISizeConstraint, per the mobile rule -- and lifted
+	further up on touch, where Roblox's hotbar is taller and would cover it.
+]]
+function ClientFns.tooWeak(payload)
+	local need = tonumber(type(payload) == "table" and payload.need) or 0
+	local have = tonumber(type(payload) == "table" and payload.have) or 0
+	local ore = type(payload) == "table" and payload.ore or nil
+	local touch = UIS.TouchEnabled
+	if not (ClientFns.weakLabel and ClientFns.weakLabel.Parent) then
+		local f = mk("Frame", {
+			Name = "TooWeak", AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, touch and -156 or -98),
+			Size = UDim2.new(0.9, 0, 0, touch and 34 or 30),
+			BackgroundColor3 = Color3.fromRGB(28, 10, 12),
+			BackgroundTransparency = 0.25, ZIndex = 88, Visible = false,
+		}, gui)
+		mk("UISizeConstraint", { MinSize = Vector2.new(200, 26), MaxSize = Vector2.new(560, 40) }, f)
+		round(f, 8)
+		ClientFns.weakLabel = f
+		ClientFns.weakText = mk("TextLabel", {
+			BackgroundTransparency = 1, Size = UDim2.new(1, -16, 1, 0),
+			Position = UDim2.fromOffset(8, 0),
+			Font = FONT, TextSize = touch and 14 or 15,
+			TextColor3 = Color3.fromRGB(255, 96, 96), TextStrokeTransparency = 0.4,
+			TextTruncate = Enum.TextTruncate.AtEnd, Text = "", ZIndex = 89,
+		}, f)
+	end
+	-- Name the ore when it is the ore that is blocking, not the depth. Telling
+	-- someone "too weak" while they stand somewhere they can already mine is
+	-- confusing unless it says which rock refused.
+	local msg = "Your tool is too weak to damage this block"
+	if ore and need > have then
+		msg = ("%s needs breaking power %d — yours is %d"):format(tostring(ore), need, have)
+	elseif need > have then
+		msg = ("Too weak: this depth needs breaking power %d — yours is %d"):format(need, have)
+	end
+	ClientFns.weakText.Text = msg
+	ClientFns.weakLabel.Visible = true
+	-- Token so an earlier hide cannot cancel a later show.
+	ClientFns.weakToken = (ClientFns.weakToken or 0) + 1
+	local mine = ClientFns.weakToken
+	task.delay(2.2, function()
+		if ClientFns.weakToken == mine and ClientFns.weakLabel then
+			ClientFns.weakLabel.Visible = false
+		end
+	end)
+end
+
+--[[
+	THE SEAM GATE.
+
+	Depth is bought, and this is where it is bought. It opens on the refusal
+	itself rather than sitting in a menu, because the moment a player learns a
+	seam exists is the moment their pickaxe stops working on it -- sending them
+	to go find a shop would be teaching the rule twice.
+
+	Built once and relabelled, not rebuilt: the server fires this on every swing
+	into locked rock, and tearing down a frame ten times a second to draw the
+	same thing with a different number in it is how a dig loop drops frames.
+]]
+-- Held on ClientFns, not as top-level locals: this script sits a handful of
+-- registers under Luau's 200 top-level local ceiling, and going over fails to
+-- compile the whole client rather than just this panel.
+function ClientFns.confirmSeam(payload)
+	if type(payload) ~= "table" then
+		return
+	end
+	local seam = tonumber(payload.seam) or 0
+	local price = tonumber(payload.price) or 0
+	local coins = tonumber(payload.coins) or (snap and snap.coins) or 0
+	local minutes = tonumber(payload.minutes) or 30
+	if seam <= 0 or price <= 0 then
+		return
+	end
+	-- Already deciding. Do not yank the panel out from under a click.
+	if ClientFns.seamMenu and ClientFns.seamMenu.Parent and ClientFns.seamMenu.Visible then
+		return
+	end
+	if not (ClientFns.seamMenu and ClientFns.seamMenu.Parent) then
+		--[[
+			MOBILE. Sized in SCALE with a UISizeConstraint, not in offsets.
+
+			A fixed 460px frame is wider than the safe area on a phone, so it
+			would have been clipped on exactly the devices most of this game's
+			players are on. Scale width plus a Max of 460 keeps the desktop look
+			and lets it shrink; the Min stops it collapsing to unreadable.
+
+			The button row is anchored to the BOTTOM of the frame rather than at
+			a fixed y, so a taller body on a narrow screen -- where the text
+			wraps to more lines -- pushes nothing off the card.
+		]]
+		local touch = UIS.TouchEnabled
+		local f = mk("Frame", {
+			Name = "ConfirmSeam", AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.44),
+			Size = UDim2.new(0.88, 0, 0, touch and 292 or 268),
+			BackgroundColor3 = Color3.fromRGB(46, 52, 78), ZIndex = 90,
+		}, gui)
+		mk("UISizeConstraint", {
+			MinSize = Vector2.new(288, 244), MaxSize = Vector2.new(460, 320),
+		}, f)
+		ClientFns.seamMenu = f
+		round(f, 18)
+		stroke(f, 2)
+		ClientFns.seamTitle = mk("TextLabel", {
+			BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 20),
+			Size = UDim2.new(1, -24, 0, 34), Font = FONT, TextSize = touch and 21 or 24,
+			TextColor3 = Color3.fromRGB(255, 255, 255), TextStrokeTransparency = 1,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Text = "", ZIndex = 91,
+		}, f)
+		ClientFns.seamBody = mk("TextLabel", {
+			BackgroundTransparency = 1, Position = UDim2.new(0.06, 0, 0, 58),
+			Size = UDim2.new(0.88, 0, 1, -128), Font = FONT_M, TextSize = touch and 13 or 14,
+			TextColor3 = Color3.fromRGB(212, 216, 232), TextWrapped = true,
+			TextYAlignment = Enum.TextYAlignment.Top, Text = "", ZIndex = 91,
+		}, f)
+		-- Anchored to the bottom edge, so wrapping never shoves the buttons off.
+		local row = mk("Frame", {
+			BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -18),
+			Size = UDim2.new(0.88, 0, 0, touch and 48 or 44), ZIndex = 91,
+		}, f)
+		mk("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 10),
+		}, row)
+		-- Scale widths: the pair always fits, down to a 288px card.
+		ClientFns.seamBuy = mk("TextButton", {
+			AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(96, 190, 104),
+			Font = FONT, TextSize = touch and 15 or 16, TextColor3 = Color3.fromRGB(12, 24, 16),
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Text = "", Size = UDim2.new(0.58, -5, 1, 0), ZIndex = 92,
+		}, row)
+		round(ClientFns.seamBuy, 9)
+		ClientFns.seamBuy.MouseButton1Click:Connect(function()
+			-- The server re-prices and re-checks affordability; this only asks.
+			if ClientFns.seamMenu then
+				ClientFns.seamMenu.Visible = false
+			end
+			net:FireServer("buySeam", { seam = tonumber(ClientFns.seamMenu and ClientFns.seamMenu:GetAttribute("Seam")) or 0 })
+		end)
+		local back = mk("TextButton", {
+			AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(70, 74, 96),
+			Font = FONT, TextSize = touch and 15 or 16, TextColor3 = Color3.fromRGB(238, 240, 248),
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Text = "Not yet", Size = UDim2.new(0.42, -5, 1, 0), ZIndex = 92,
+		}, row)
+		round(back, 9)
+		back.MouseButton1Click:Connect(function()
+			ClientFns.seamMenu.Visible = false
+		end)
+	end
+	ClientFns.seamMenu:SetAttribute("Seam", seam)
+	ClientFns.seamTitle.Text = string.format("Layer %d is sealed", seam)
+	local short = shortNum and shortNum(price) or tostring(price)
+	local afford = coins >= price
+	ClientFns.seamBody.Text = string.format(
+		"Buy through the seam to mine below layer %d.\n\nCost %s coins — about %d minutes of mining at this depth.\nYou have %s.%s",
+		seam, short, minutes, shortNum and shortNum(coins) or tostring(coins),
+		afford and "" or "\n\nKeep mining above the seam and come back."
+	)
+	ClientFns.seamBuy.Text = afford and ("Open the seam — " .. short) or ("Need " .. short)
+	ClientFns.seamBuy.BackgroundColor3 = afford and Color3.fromRGB(96, 190, 104) or Color3.fromRGB(88, 92, 112)
+	ClientFns.seamBuy.TextColor3 = afford and Color3.fromRGB(12, 24, 16) or Color3.fromRGB(196, 200, 216)
+	ClientFns.seamBuy.Active = afford
+	ClientFns.seamBuy.AutoButtonColor = afford
+	ClientFns.seamMenu.Visible = true
 end
 
 --[[
@@ -10677,22 +10850,18 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if ClientFns.noteDepthLive then
 			ClientFns.noteDepthLive(payload)
 		end
-	elseif action == "weakTool" then
+	elseif action == "seamGate" then
+		ClientFns.confirmSeam(payload)
+	elseif action == "tooWeak" then
 		--[[
-			Breaking power refusal. Red, by the hotbar, and throttled -- a held
-			swing hits a block it cannot break many times a second, and without
-			a gate this would repaint the label on every one of them.
+			The breaking-power refusal. There were briefly two of these, from
+			parallel work: a "weakTool" message handled inline here, and this one.
+			ClientFns.tooWeak won because it says what you NEED against what you
+			HAVE and names the ore, and because its server-side gate goes through
+			Dig.Breaking.canBreak, which weighs block strength as well as ore
+			tier. The inline branch and its server gate are both gone.
 		]]
-		local now = os.clock()
-		if (now - (weakToolAt or 0)) >= 1.1 then
-			weakToolAt = now
-			local was = toast.TextColor3
-			toast.TextColor3 = Color3.fromRGB(255, 86, 86)
-			showToast("Your tool is too weak to damage this block")
-			task.delay(2.4, function()
-				toast.TextColor3 = was
-			end)
-		end
+		ClientFns.tooWeak(payload)
 	elseif action == "toast" then
 		showToast(tostring(payload))
 	elseif action == "openElevator" then

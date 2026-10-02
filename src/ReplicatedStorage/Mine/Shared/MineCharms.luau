@@ -92,8 +92,27 @@ local LIST = {
 	{ id = "canopy", name = "Canopy", source = "pack",
 		blurb = "+55% Omni Blast", stats = { oreYield = 0.55 } },
 
+	--[[
+		Pot of Gold carries EVERY kind of luck.
+
+		It was one stat -- pack luck -- on an item sold as the luck item. Chest
+		odds, ore quality, ore quantity, gems and lucky blocks are all separate
+		stats and it touched none of them.
+
+		`luck` stays at 2. It is advertised at 200% on a limited item people
+		paid for, and dropping it to 1.00 to make the row tidy would be a nerf
+		to something already bought. Everything else lands at a full 100%.
+	]]
 	{ id = "lucky_charm", name = "Pot of Gold", source = "limited",
-		blurb = "200% Luck. LIMITED TIME. NEVER COMING BACK.", stats = { luck = 2 } },
+		blurb = "200% Luck + 100% of every other luck. LIMITED TIME. NEVER COMING BACK.",
+		stats = {
+			luck = 2,            -- packs / cards
+			chestLuck = 1.00,    -- chests
+			rareOre = 1.00,      -- ore quality
+			fossilFind = 1.00,   -- ore quantity (the ore finder)
+			gemFind = 1.00,      -- gems
+			luckyFind = 1.00,    -- lucky blocks
+		} },
 }
 
 --[[

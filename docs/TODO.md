@@ -65,6 +65,27 @@ file in this repo disagrees, the file is wrong.
 
 ---
 
+## Where the balance design lives (carried over from main's TODO)
+
+The balance design is **not in this repo.** It is `AGENT_PROMPT.md` (the briefing:
+what the game is, what already went wrong, the invariants, the formulas) plus
+`PROMPTS.md` (tasks in dependency order), both kept outside version control. Ask
+for them before starting balance work.
+
+Three corrections to apply when reading them:
+
+- **`roadmap/` DOES exist on this branch.** Main's copy of this note said it did
+  not, and that was true of main — the eleven docs under `roadmap/` came in on
+  this branch. `AGENT_PROMPT.md` §13's reading order resolves here. Note that
+  `roadmap/ORE.md` carries an **OVERRULED** banner, and §0 wins over all of them.
+- **The "Rebalance Numbers" artifact is superseded** by `AGENT_PROMPT.md` on seam
+  placement and `REBIRTH_BASE` (artifact ~1,000, briefing ~3,600).
+- **The briefing prices seams on a doubling ladder**; shipped code gates on
+  `MineDepth.SEAMS`. The pricing *rule* (minutes of local income) is unchanged and
+  is what makes either ladder honest.
+
+---
+
 # 1. Orientation — how this repo works
 
 Rojo 7.7 project. `default.project.json` maps folders to services:
@@ -264,10 +285,17 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
   roster. Procedure: `docs/rojo-connect.md` §"Pulling Studio's state into src/".
 - [ ] **Connect Rojo.** Never attached. Safe once the syncback above is done.
 - [ ] **Asset uploads.** No agent here can upload to Roblox. All uploads follow §7.
-- [ ] **Ore gem value magnitude.** `MineOrePouch.ORE_GEM_COMPRESS` (0.5) sets the
-  whole gem faucet. The SHAPE is derived from work and defensible; the magnitude is
-  a placeholder, and the user flagged ore balance as the thing that breaks the
-  economy if it is wrong. One dial. See §6.1 "Ore pouch".
+- [ ] **A way to BUY a seam — SHIP BLOCKER, from main.** Depth is gated on coins
+  (`MineDepth.SEAMS`, enforced in `MineDigAuth.unlockedForLayer`) and
+  `Verbs.buySeam` is live on the `"buySeam"` action, but **nothing fires it.**
+  Do not ship the gate without a prompt or every player stops dead at layer 500.
+  `MineDepthPlazas` already owns the prompt geometry and is the obvious host;
+  `MineDepth.seamPrice(seam, zi)` gives the figure to show.
+- [ ] **Ore gem value magnitude.** `MineOrePouch.ORE_GEM_SPREAD` (10^6) sets the
+  whole gem faucet: how much more the deepest ore is worth than the shallowest.
+  The SHAPE is derived from work and defensible; the magnitude is a placeholder,
+  and the user flagged ore balance as the thing that breaks the economy if it is
+  wrong. One number, and it is a question with an answer. See §6.1 "Ore pouch".
 - [ ] **Zone and rune gem prices.** Flat tables that the ore value curve will
   outrun. Same fix the pouch rungs got — price as a share of income at the depth
   they gate — but the pacing is an owner call.
@@ -392,16 +420,20 @@ beside the Forge.
 - [x] **Selling ore yields GEMS.** The only gem faucet.
 - [ ] **STILL THE BALANCE RISK the user flagged. Needs owner numbers.**
       `MineOrePouch.gemValue` is anchored on work — the home rock's HP over the
-      ore's yield, raised to `ORE_GEM_COMPRESS` (0.5, the square root). That gives
-      6 gems/unit at tier 1 and ~1.9B at tier 82, a 3×10⁸ spread. The SHAPE
-      (deeper pays more, gap = √work) is defensible; **the magnitude is a
-      placeholder.** One dial moves it.
+      ore's yield (`workOf`). The SHAPE (deeper always pays better per unit) is
+      defensible; **the magnitude is a placeholder.**
+      The dial is `ORE_GEM_SPREAD` — tier-82 worth 10⁶× tier-1 — and the exponent
+      is solved from it. **It used to be the exponent itself, and that broke:** set
+      to 0.5 against a roster whose depth coordinate plateaued at 21.8 it gave a
+      3×10⁸ spread, and on the roster that shipped (coordinate running linearly to
+      32.1) the same 0.5 gave 5.9×10¹² — four thousand times wider, for a number
+      nobody touched. Asking for a spread instead survives the next model change.
 - [x] **Rung prices are derived, not authored**, and had to be: a flat table
       topping out at 520,000 gems was my first cut, and one tier-30 ore unit more
       than covers that. Capacity only grows 512× against income's 3×10⁸. Each rung
       now costs ¾ of a full pouch valued at the ore for its depth
       (`RUNG_COST_SHARE`), so every rung costs the same mining TIME and the prices
-      follow `ORE_GEM_COMPRESS` on their own.
+      follow `ORE_GEM_SPREAD` on their own.
 - [ ] **ZONE AND RUNE GEM PRICES ARE STILL FLAT TABLES** and the ore value curve
       will outrun them the same way it outran my pouch table. They are the other
       two gem sinks; they need the same treatment (price as a share of income at

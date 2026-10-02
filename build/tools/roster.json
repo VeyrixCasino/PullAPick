@@ -1,0 +1,10 @@
+{
+"common":["Stone","Clay","Limestone","Pumice","Halite","Coal","Flint","Basalt","Slate","Bone","Granite","Copper","Tin","Ember","Sulfur","Lead","Zinc","Aluminum"],
+"uncommon":["Iron","Graphite","Pyrite","Marble","Pearl","Rime","Quartz","Amber","Petrifact","Nickel","Onyx"],
+"rare":["Bloodstone","Garnet","Citrine","Chromium","Turquoise","Bismuth","Silver","Amethyst","Tigereye","Lapis","Geode","Topaz","Phosphorus","Peridot","Jade","Emberglass","Tungsten","Lithium","Titanium","Obsidian"],
+"epic":["Cobalt","Gold","Regolith","Sunstone","Emerald","Moonstone","Sapphire","Ruby","Palladium","Aquamarine","Opal"],
+"legendary":["Platinum","Stormstone","Diamond","Starmetal","Aetherite","Meteorite","Soulstone","Galaxite","Frostfire"],
+"mythic":["Umbrite","Celestine","Orichalcum","Spectrite","Mythril","Dragonstone"],
+"divine":["Adamantite","Thorium","Uranium","Plutonium"],
+"exotic":["Fermium","Lawrencium","Oganesson"]
+}

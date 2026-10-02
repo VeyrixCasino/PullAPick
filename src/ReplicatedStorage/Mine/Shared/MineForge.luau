@@ -336,7 +336,7 @@ function MineForge.mount(parent, opts)
 		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
 		-- Equipping is what turns a forged tool into breaking power you actually
 		-- carry, so it sits beside the levelling buttons rather than buried.
-		local equipped = (snapshot.oreToolUid ~= nil and snapshot.oreToolUid == tool.uid)
+		local equipped = (snapshot.oreToolEquipped ~= nil and snapshot.oreToolEquipped == tool.uid)
 		button(host, equipped and "EQUIPPED" or "EQUIP", GOLD,
 			UDim2.fromOffset(0, y + 38), UDim2.fromOffset(110, 26), not equipped, function()
 				if opts.onEquip then opts.onEquip(tool.uid) end

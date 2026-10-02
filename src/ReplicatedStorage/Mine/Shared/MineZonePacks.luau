@@ -191,47 +191,34 @@ MineZonePacks.PACKS = MineZonePacks.buildAll()
 --[[
 	ORE PACKS -- one per ore, generated, never authored.
 
-	BEING REPLACED -- see docs/TODO.md. Ore builds tools as well as upgrading
-	them, ore blocks are moving to dropping ore directly, and these packs become
-	skin cases. Until that lands: breaking an ore block gives its pack, and
-	opening the pack always gives ore.
+	Breaking an ore block gives its pack; opening the pack always gives ore.
+	LEGACY. Ore drops straight into the pouch now, so nothing creates these any
+	more -- they stay registered so a save still holding one can open it. The
+	live rare drop is the ORE CASE, registered alongside them below.
 
-	82 rows kept in step with MineConfig.ORES by construction. Hand-writing
-	them would guarantee the two drift the first time an ore is renamed.
+	82 rows kept in step with MineConfig.ORES by construction. Hand-writing them
+	would guarantee the two drift the first time an ore is renamed.
 
-	Yield is AUTHORED per ore now (`yield = { lo, hi }` in MineConfig.ORES),
-	not derived from tier. The old rule ran 6 at tier 1 down to 1 at tier 121,
-	which meant an endgame ore handed over a single rock -- and once upgrade
-	costs became time-based, a supply of 1 made every high-tier level cost the
-	same rounded 1 ore for dozens of levels in a row. Bigger hauls do not make
-	tools cheaper in hours; they make the ore number climb visibly instead of
-	flat-lining.
-
-	The top 30 ores average 6.6 per pack, most 5-8, with deliberate outliers:
-	Diamond, Aetherite, Spectrite and Oganesson hand over a single perfect
-	find, while Meteorite, Galaxite, Stormstone and Thorium come in chunks.
+	Yield falls as the ore gets harder: a common seam hands over a fistful, an
+	endgame ore hands over one or two. Combined with how much rarer the block
+	itself is, supply between the ends of the list differs by orders of
+	magnitude, which is what lets upgrade costs climb the same way.
 ]]
+-- Kept for callers that still read them. Yield itself comes from
+-- MineConfig.ORE_YIELD_BANDS now, which is a bell rather than this ramp.
 MineZonePacks.ORE_YIELD_LO = 1
-MineZonePacks.ORE_YIELD_HI = 6   -- fallback only, for an ore with no authored yield
-
--- Authored yield, or the old falloff if a row somehow lacks one.
-function MineZonePacks.oreYield(ore)
-	local y = ore and ore.yield
-	if type(y) == "table" then
-		local lo = math.max(1, math.floor(tonumber(y[1]) or 1))
-		local hi = math.max(lo, math.floor(tonumber(y[2]) or lo))
-		return lo, hi
-	end
-	return MineZonePacks.ORE_YIELD_LO, MineZonePacks.ORE_YIELD_HI
-end
+MineZonePacks.ORE_YIELD_HI = 6
 
 do
 	local okC, C = pcall(function()
 		return require(script.Parent:WaitForChild("MineConfig"))
 	end)
 	if okC and C and C.ORES then
+		local n = #C.ORES
 		for _, ore in ipairs(C.ORES) do
-			local lo, hi = MineZonePacks.oreYield(ore)
+			-- Band table in MineConfig, not a ramp: yield peaks on Epic now,
+			-- matching where the cost bell peaks.
+			local lo, hi = C.oreYieldFor(ore.tier)
 			MineZonePacks.PACKS[ore.packId] = {
 				id = ore.packId,
 				kind = "ore",
@@ -248,10 +235,10 @@ do
 			--[[
 				THE ORE CASE, one per ore, alongside the pack.
 
-				The pack is legacy -- ore drops straight into the pouch now --
-				but it stays registered so anyone still holding one can open it.
-				The case is the live rare drop: openPack reads kind == "ore_case"
-				and rolls for a tool before falling back to ore.
+				This is the live rare drop: a 2% roll on an ore block
+				(MineConfig.ORE_CASE_CHANCE). openPack reads kind == "ore_case"
+				and pays a skin or a charm, guaranteed -- there is no roll inside
+				it, and it never pays ore, because the block already did.
 			]]
 			local caseId = ore.id .. "_ore_case"
 			MineZonePacks.PACKS[caseId] = {
@@ -275,7 +262,13 @@ function MineZonePacks.get(packId)
 	if row then
 		return row
 	end
-	-- Ore packs may miss the boot-time pass if MineConfig was still loading.
+	--[[
+		Ore rows may miss the boot-time pass if MineConfig was still loading.
+
+		Both suffixes are nine characters, which is the only reason one length
+		check covers them; spelled out rather than measured so a third suffix
+		does not silently ride along on the coincidence.
+	]]
 	if type(packId) == "string"
 		and (string.sub(packId, -9) == "_ore_pack" or string.sub(packId, -9) == "_ore_case") then
 		local okC, C = pcall(function()
@@ -283,9 +276,9 @@ function MineZonePacks.get(packId)
 		end)
 		if okC and C and C.ORES and not MineZonePacks._orePacksReady then
 			for _, ore in ipairs(C.ORES) do
+				local lo, hi = C.oreYieldFor(ore.tier)
 				local pid = ore.packId or (ore.id .. "_ore_pack")
 				if not MineZonePacks.PACKS[pid] then
-					local lo, hi = MineZonePacks.oreYield(ore)
 					MineZonePacks.PACKS[pid] = {
 						id = pid,
 						kind = "ore",
@@ -297,6 +290,25 @@ function MineZonePacks.get(packId)
 						yield = { lo, hi },
 						color = ore.color,
 						artKey = pid,
+					}
+				end
+				-- The case too. Rebuilding only the packs is why this path has to
+				-- know about both: a case asked for before MineConfig finished
+				-- loading would otherwise come back nil forever, since the flag
+				-- below says the rebuild already happened.
+				local cid = ore.id .. "_ore_case"
+				if not MineZonePacks.PACKS[cid] then
+					MineZonePacks.PACKS[cid] = {
+						id = cid,
+						kind = "ore_case",
+						oreId = ore.id,
+						oreName = ore.name,
+						name = ore.name .. " Case",
+						tier = ore.tier,
+						band = ore.band,
+						yield = { lo, hi },
+						color = ore.color,
+						artKey = cid,
 					}
 				end
 			end

@@ -16,28 +16,23 @@
 	------------------------------
 	Capacity and the gem price of each rung are authored numbers below.
 
-	The gem VALUE of an ore is derived, and it is a PLACEHOLDER pending the
-	owner's figures -- flagged here rather than buried, because the balance of
-	this one function decides whether every gem sink in the game is reachable or
-	trivial. It is anchored on work: an ore's value tracks the HP of the rock it
-	calls home, divided by how many units that rock yields, raised to
-	ORE_GEM_COMPRESS. That exponent is the single dial:
+	The gem VALUE of an ore is derived, and its magnitude is a PLACEHOLDER
+	pending the owner's figures -- flagged here rather than buried, because the
+	balance of this one function decides whether every gem sink in the game is
+	reachable or trivial.
 
-	  1.0  value scales with the full work the rock cost (6^home -- astronomical
-	       by the deep end, and every fixed-price sink becomes free)
-	  0.5  the square root of that work (the placeholder: a tier-82 ore is worth
-	       thousands of a tier-1 ore, not 6^80 of one, and deeper still pays
-	       better per unit than shallower)
-	  0.0  every ore worth the same, and depth stops paying at all
+	The SHAPE is a decision: value tracks the WORK an ore costs -- the HP of the
+	rock it calls home over how many units that rock yields -- so deeper always
+	pays better per unit. That part is not a guess.
 
-	Anything between 0.4 and 0.6 is defensible. The number itself is not a
-	decision anybody made; the SHAPE is, and the shape is "deeper pays more, and
-	the gap is the square root of the work rather than the work".
+	The MAGNITUDE is one number, ORE_GEM_SPREAD: how much more the deepest ore is
+	worth than the shallowest. 10^6 for now. The exponent that gets there is
+	solved from it rather than set by hand, because a hand-set exponent silently
+	stopped meaning anything the first time the ore model changed under it.
 ]]
 local MineOrePouch = {}
 
 local C = require(script.Parent:WaitForChild("MineConfig"))
-local ZonePacks = require(script.Parent:WaitForChild("MineZonePacks"))
 
 --[[
 	THE RUNGS. Capacity is the TOTAL units the pouch holds across every ore, not
@@ -57,7 +52,7 @@ local ZonePacks = require(script.Parent:WaitForChild("MineZonePacks"))
 	Each rung therefore costs a fixed SHARE OF A FULL POUCH, sold at the ore you
 	are plausibly mining when you reach it. One dial, RUNG_COST_SHARE, and every
 	rung costs the same amount of mining time no matter where the value curve
-	ends up. Change ORE_GEM_COMPRESS and the prices follow on their own.
+	ends up. Change ORE_GEM_SPREAD and the prices follow on their own.
 ]]
 MineOrePouch.TIERS = {
 	{ cap = 2000, name = "Canvas Pouch" },
@@ -78,11 +73,53 @@ MineOrePouch.MAX_TIER = #MineOrePouch.TIERS
 -- the capacity it buys; near 1 so it is never an afterthought.
 MineOrePouch.RUNG_COST_SHARE = 0.75
 
--- See the header. This is the dial, and it is a placeholder.
-MineOrePouch.ORE_GEM_COMPRESS = 0.5
+--[[
+	THE DIAL IS A SPREAD, NOT AN EXPONENT.
+
+	It was an exponent on the work term, and that broke the moment the ore model
+	changed underneath it. The exponent was tuned at 0.5 against a roster whose
+	depth coordinate plateaued around 21.8, giving a tier-1-to-tier-82 spread of
+	about 3x10^8. On the roster that shipped -- where the coordinate runs linearly
+	to 32.1 -- the same 0.5 gives 5.9x10^12, four thousand times wider, for a
+	number nobody changed.
+
+	So the knob is the thing a person can actually answer: how much more is the
+	deepest ore worth than the shallowest? The exponent is solved from it, which
+	means the curve holds its shape across any future change to the ore model.
+
+	10^6 is the placeholder: wide enough that depth plainly pays, narrow enough
+	that the flat gem prices elsewhere in the game (zones, runes) are not
+	instantly free. Still a placeholder -- see the header -- but now it is a
+	placeholder for a question with an answer.
+]]
+MineOrePouch.ORE_GEM_SPREAD = 1e6
 -- Scales the whole curve at once without changing its shape. A tier-1 ore is
 -- worth about ORE_GEM_BASE gems, and everything else follows from there.
 MineOrePouch.ORE_GEM_BASE = 3
+
+--[[
+	The exponent that turns the work ratio across the roster into ORE_GEM_SPREAD.
+
+	Solved once and cached: work(top)^k / work(1)^k = spread, so
+	k = log(spread) / log(work(top) / work(1)).
+]]
+function MineOrePouch.gemCompress()
+	if MineOrePouch._compress then
+		return MineOrePouch._compress
+	end
+	local ores = C.ORES or {}
+	local first, last = ores[1], ores[#ores]
+	local k = 0.5
+	if first and last then
+		local w1 = MineOrePouch.workOf(first)
+		local wN = MineOrePouch.workOf(last)
+		if w1 > 0 and wN > w1 then
+			k = math.log(MineOrePouch.ORE_GEM_SPREAD) / math.log(wN / w1)
+		end
+	end
+	MineOrePouch._compress = k
+	return k
+end
 
 --[[
 	The ore a player is plausibly mining when they reach a rung: the rungs are
@@ -147,13 +184,36 @@ function MineOrePouch.gemValue(ore)
 	if type(ore) ~= "table" then
 		return 1
 	end
-	local lo, hi = ZonePacks.oreYield(ore)
-	local yield = math.max(1, (lo + hi) / 2)
-	-- homeHp is the HP of the rock this ore calls home, derived in MineConfig
-	-- from the ore's authored `home`. Work per unit is that over the yield.
-	local work = math.max(1, (tonumber(ore.homeHp) or 20) / yield)
-	local v = MineOrePouch.ORE_GEM_BASE * (work ^ MineOrePouch.ORE_GEM_COMPRESS)
+	local v = MineOrePouch.ORE_GEM_BASE
+		* (MineOrePouch.workOf(ore) ^ MineOrePouch.gemCompress())
 	return math.max(1, math.floor(v))
+end
+
+--[[
+	What one unit of an ore COSTS a player, in rock HP.
+
+	The HP of the home rock over how many units that rock yields. Split out
+	because gemValue and gemCompress both need it and neither should re-derive it.
+
+	Yield comes from MineConfig.oreYieldFor, the band table whose bell peaks on
+	Epic. NOT from `ore.yield`: the roster rows do not carry one, and
+	MineZonePacks.oreYield would hand back its generic default for every ore,
+	which would make all 82 of them cost the same.
+
+	homeHp is 20 * 6^d, derived in MineConfig from the ore's depth coordinate
+	with the same 20 and 6 that ORE_DMAX is defined with, so the two cannot
+	drift apart.
+]]
+function MineOrePouch.workOf(ore)
+	if type(ore) == "string" then
+		ore = C.oreById(ore)
+	end
+	if type(ore) ~= "table" then
+		return 1
+	end
+	local lo, hi = C.oreYieldFor(ore.tier)
+	local yield = math.max(1, ((tonumber(lo) or 1) + (tonumber(hi) or 1)) / 2)
+	return math.max(1, (tonumber(ore.homeHp) or 20) / yield)
 end
 
 -- What a whole stack is worth. Separate so the UI and the server cannot round
