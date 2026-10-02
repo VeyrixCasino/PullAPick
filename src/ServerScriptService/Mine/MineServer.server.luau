@@ -2240,7 +2240,7 @@ local function boosts(p)
 
 	-- One equipped charm (does not take a rune/pet slot).
 	if p.equippedCharm then
-		Charms.applyEquipped(b, p.equippedCharm)
+		Charms.applyEquipped(b, p.equippedCharm, p)
 	end
 
 	-- World Pulse multipliers (eligible players only).
@@ -12330,7 +12330,7 @@ Dig.boostSources = function(p)
 		end
 		if p.equippedCharm then
 			local cb = Cards.emptyBoosts()
-			Charms.applyEquipped(cb, p.equippedCharm)
+			Charms.applyEquipped(cb, p.equippedCharm, p)
 			diff("Charm", cb)
 		end
 		local pb = Cards.emptyBoosts()

@@ -141,53 +141,274 @@ end
 
 
 --[[
-	ONE CHARM PER ORE, ALL 82, DERIVED FROM THE ROSTER.
+	ONE CHARM PER ORE, ALL 82 -- AND NOT A LADDER OF ONE NUMBER.
 
-	Charms are an ORE drop now -- the contents of an ore case -- not a zone
-	hand-out and not something a chest pays. So the roster has to cover the
-	roster: every ore that can drop a case must have a charm behind it, or a
-	case rolls a charm and finds nothing there.
+	Charms are one of the two things a build is made of (the other is skins), so
+	the roster has to cover the roster: every ore that can drop a case needs a
+	charm behind it, or a case rolls a charm and finds nothing there.
 
-	These are GENERATED rather than authored, on purpose. 82 hand-written rows
-	would be 82 chances to leave one out, and the roster is renumbered often
-	enough that it has already happened once to the tool ladder. Deriving them
-	means "one per ore" is a property of the code instead of a thing somebody
-	has to remember. The ore's own tier, band and name are the only inputs.
+	They are GENERATED rather than authored. 82 hand-written rows is 82 chances
+	to leave one out, and the roster has been renumbered before -- it silently
+	mis-pointed the tool ladder once already. Deriving them makes "one per ore" a
+	property of the code instead of something to remember.
 
-	MAGNITUDE rides the ore's tier, straight down the band spec: +100% at
-	tier 1 to +320% at tier 82. A shallow charm lands in the +100-140% range
-	and a deep one in +250-320%, which is where the authored charms already
-	sit, so an ore charm never reads as a different class of item from them.
+	WHAT THIS REPLACED, AND WHY
+	---------------------------
+	The first cut gave every charm one stat and one magnitude, ramped +100% at
+	tier 1 to +320% at tier 82. That is the thing a charm must never be: tier 82
+	strictly beat tier 41 of the same stat, so there was exactly one best charm
+	per stat and 81 obsolete ones. "Higher number, better charm" is not a build.
 
-	WHICH STAT cycles through the pool by tier, so neighbouring ores do not all
-	buff the same thing and no stat is left without a charm. Every third ore
-	gets a second, smaller stat -- enough variety that two charms in the same
-	band are worth telling apart, without a second magnitude ladder to balance.
+	Later charms ARE better here -- budget still rises with tier. What changed is
+	that budget is no longer always spent the same way, so a charm has a SHAPE as
+	well as a size, and a shallow charm of the right shape beats a deep one of
+	the wrong shape for a given build.
 
-	Deliberately NOT in the pool: echo (barred as a buff), zap and blastRadius
-	(both pending a nerf). A generated table is the last place a stat under
-	review should quietly get 82 new sources.
+	THE FIVE SHAPES
+	---------------
+	Each spends the same tier budget differently. The multiplier on budget is the
+	price of reliability -- a charm that asks for a condition, or takes something
+	away, is allowed to pay more:
+
+	  FOCUS      1.00x budget, one stat, always on.  The benchmark.
+	  PAIR       1.15x split 60/40 over two stats.   Flexible, lower ceiling.
+	  PACT       1.75x on one stat, MINUS ~0.55x on  Biggest always-on number
+	             another.                            in the game, and it costs.
+	  CONDITION  2.00x, but only while a condition    Build-defining when your
+	             holds.                               build already holds it.
+	  THRESHOLD  2.40x, and NOTHING until a gate is   Dead weight until it is
+	             met.                                 not. Then enormous.
+
+	A RAMP shape -- grows while something persists, resets when it breaks -- is
+	the obvious sixth and is deliberately absent: it needs a counter on the
+	profile and event hooks to feed it, which is plumbing rather than a table.
+	See docs/TODO.md.
+
+	WHY CONDITIONS CAN BE READ AT ALL
+	---------------------------------
+	`boosts(p)` is recomputed on every swing rather than cached, so a condition
+	may read live state. Every condition here reads the PROFILE and nothing else,
+	which is what keeps this honest: the server owns all of it, there is no new
+	plumbing, and the same function serves the UI preview and the live boost.
+
+	One condition, `skinned`, asks whether a skin is equipped. That is on purpose.
+	Charms and skins are the two halves of a build, and a charm that pays more
+	when the other half is present is the cheapest way to make them feel like
+	halves of one thing rather than two parallel stat sources.
+
+	NOT IN ANY POOL: echo (barred as a buff), zap and blastRadius (both pending a
+	nerf). A generated table is the last place a stat under review should quietly
+	pick up 82 new sources.
 ]]
--- Multiplicative stats only. One magnitude scale cannot serve both these and
--- the additive ones, which are fractions; the additive secondaries below get
--- their own, much smaller scale.
+-- Multiplicative stats. The budget is expressed as "+N% of what you had", which
+-- only means one thing for these; the additive stats are fractions and are
+-- handled separately where they appear.
 local ORE_CHARM_STATS = {
 	"mineSpeed", "dirtBreak", "coinBonus", "gemFind",
 	"luck", "chestLuck", "backpack", "swingRate",
 }
--- Secondaries are additive, so these are fractions of a whole, not multipliers.
-local ORE_CHARM_SECOND = { "pulverize", "scrap", "fossilFind", "oreYield", "luckyFind" }
 
 MineCharms.ORE_CHARM_MIN = 1.00
 MineCharms.ORE_CHARM_MAX = 3.20
+
+-- A PACT's cost, as a fraction of the stat it takes from. Bounded well under 1:
+-- at -100% the stat is gone, and a cost that can erase a stat is not a trade.
+local PACT_COST_MIN = 0.30
+local PACT_COST_MAX = 0.60
+
+-- Budget multiplier per shape. See the header for why they differ.
+MineCharms.SHAPES = {
+	{ id = "focus", label = "Focus", mult = 1.00 },
+	{ id = "pair", label = "Pair", mult = 1.15 },
+	{ id = "pact", label = "Pact", mult = 1.75 },
+	{ id = "condition", label = "Condition", mult = 2.00 },
+	{ id = "threshold", label = "Threshold", mult = 2.40 },
+}
+
+--[[
+	THE CONDITIONS. Each is a pure function of the profile, and each is
+	REVOCABLE -- that is the part that took two attempts.
+
+	The first set included "you have dug past 400m in this zone" and "you have
+	rebirthed at least once". Both read a high-water mark, so both are PERMANENT
+	once passed: a 2.0x or 2.4x budget that never switches off again is not a
+	conditional charm, it is a strictly better charm with a sentence attached.
+	Progress is what TIER already encodes; a condition has to be something you
+	can lose, or it is not paying for the extra budget.
+
+	So every condition below is a state the player moves in and out of while
+	playing, and each one costs something real to hold:
+
+	  pouch fullness   tension with selling -- hold the state or bank the haul,
+	                   not both
+	  pet count        tension with the pet pillar: a seat, or all of them, empty
+	  skin / no skin   tension with the other half of the build
+	  home zone        tension with where you want to be standing
+
+	A backpack-fullness condition was tried and dropped: `p.backpack` is the
+	bag-ownership TABLE, not a capacity, and the real capacity comes from a server
+	local the shared module cannot reach. Both pack conditions would have silently
+	never fired. Everything above reads state that the profile and the snapshot
+	carry identically, which is what lets one function serve the live boost and
+	the UI preview.
+
+	CONDITION charms (2.00x) take the moderate windows. THRESHOLD charms (2.40x)
+	take the NARROW ones -- a 90% pouch, a single pet, no skin at all -- so the
+	larger budget is paid for with a window that is harder to sit inside, rather
+	than with a gate that opens once.
+
+	`test` returns true when the charm is paying. `blurb` says what the player has
+	to do in the fewest words that are still unambiguous, because a conditional
+	charm nobody can read is worse than no charm.
+]]
+local function pouchFrac(p)
+	local okP, Pouch = pcall(function()
+		return require(script.Parent:WaitForChild("MineOrePouch"))
+	end)
+	if not (okP and Pouch) then
+		return 0
+	end
+	local cap = math.max(1, Pouch.capacity(p and p.orePouchTier))
+	return math.clamp(Pouch.held(p and p.ores) / cap, 0, 1)
+end
+
+--[[
+	The zone an ore calls home, by tier, spread evenly across the ladder.
+
+	This is what the `homeZone` condition reads. It is derived rather than
+	authored so it cannot fall out of step with the roster, and it only has to be
+	approximately right: being a zone out changes which charm suits which trip,
+	not whether the game works.
+]]
+local function homeZoneIndexFor(tier)
+	local C = require(script.Parent:WaitForChild("MineConfig"))
+	local zones = math.max(1, #(C.ZONES or {}))
+	local count = math.max(1, tonumber(C.ORE_COUNT) or 82)
+	local t = math.clamp(math.floor(tonumber(tier) or 1), 1, count)
+	return math.clamp(math.ceil(t / count * zones), 1, zones)
+end
+
+local function wearingSkin(p)
+	if type(p) ~= "table" then
+		return false
+	end
+	-- Any of the places a skin can live: the tool family's, a chest tool's, or
+	-- the legacy single field.
+	for _, t in pairs(p.toolTempers or {}) do
+		if t ~= nil and t ~= "" then
+			return true
+		end
+	end
+	for _, ct in ipairs(p.chestTools or {}) do
+		if type(ct) == "table" and (ct.temperId or (ct.tempers and ct.tempers[1])) then
+			return true
+		end
+	end
+	return false
+end
+
+-- MODERATE windows, for CONDITION charms.
+local CONDITIONS = {
+	{
+		id = "skinned",
+		blurb = "while a SKIN is equipped",
+		test = function(p) return wearingSkin(p) end,
+	},
+	{
+		--[[
+			Strongest in its own ore's home zone.
+
+			Revocable by walking, which is the point: it makes a charm a reason to
+			be somewhere rather than a number you set once. `def` is passed so the
+			condition can read the charm's own tier -- it is the only one that
+			needs to know which charm is asking.
+		]]
+		id = "homeZone",
+		blurb = "while you are in its ore's home zone",
+		test = function(p, def)
+			if type(p) ~= "table" or type(def) ~= "table" then
+				return false
+			end
+			local C = require(script.Parent:WaitForChild("MineConfig"))
+			local here = C.zoneIndex and C.zoneIndex(p.zoneId) or 1
+			return here == homeZoneIndexFor(def.tier)
+		end,
+	},
+	{
+		id = "hoard",
+		blurb = "while your ore pouch is over half full",
+		test = function(p) return pouchFrac(p) > 0.5 end,
+	},
+	{
+		id = "lean",
+		blurb = "while you have 2 pets out or fewer",
+		test = function(p)
+			return type(p) == "table" and #(p.equipped or {}) <= 2
+		end,
+	},
+}
+
+-- NARROW windows, for THRESHOLD charms. Same kinds of state, harder to hold.
+local THRESHOLDS = {
+	{
+		id = "brimming",
+		blurb = "while your ore pouch is over 90% full",
+		test = function(p) return pouchFrac(p) > 0.9 end,
+	},
+	{
+		-- The whole pet pillar, given up. The narrowest window there is, and the
+		-- largest payoff for sitting inside it.
+		id = "noPets",
+		blurb = "while you have NO pets out",
+		test = function(p)
+			return type(p) == "table" and #(p.equipped or {}) == 0
+		end,
+	},
+	{
+		id = "soloPet",
+		blurb = "while exactly ONE pet is out",
+		test = function(p)
+			return type(p) == "table" and #(p.equipped or {}) == 1
+		end,
+	},
+	{
+		id = "bare",
+		blurb = "while NO skin is equipped",
+		test = function(p) return not wearingSkin(p) end,
+	},
+}
+
+MineCharms.CONDITIONS = {}
+for _, cond in ipairs(CONDITIONS) do
+	MineCharms.CONDITIONS[cond.id] = cond
+end
+for _, cond in ipairs(THRESHOLDS) do
+	MineCharms.CONDITIONS[cond.id] = cond
+end
+
+-- Is this charm paying right now? True for anything unconditional, so a caller
+-- can ask without checking the shape first.
+function MineCharms.conditionMet(def, p)
+	if type(def) ~= "table" or not def.condition then
+		return true
+	end
+	local cond = MineCharms.CONDITIONS[def.condition]
+	if not cond then
+		return true
+	end
+	local ok, res = pcall(cond.test, p, def)
+	return ok and res == true
+end
 
 local STAT_LABEL = {
 	mineSpeed = "Mine Speed", dirtBreak = "Dirt Break", coinBonus = "Coin Bonus",
 	gemFind = "Gem Find", luck = "Luck", chestLuck = "Chest Luck",
 	backpack = "Backpack", swingRate = "Swing Rate", pulverize = "Pulverizer",
-	scrap = "Scrap", fossilFind = "Fossil Finder", oreYield = "Omni Blast",
+	scrap = "Scrap", fossilFind = "Ore Finder", oreYield = "Omni Blast",
 	luckyFind = "Lucky Find",
 }
+
+MineCharms.STAT_LABEL = STAT_LABEL
 
 -- The charm id for an ore id. One function, so the server and the UI cannot
 -- disagree about what an ore's charm is called.
@@ -200,21 +421,76 @@ do
 	local ores = C.ORES or {}
 	local span = math.max(1, (C.ORE_COUNT or #ores) - 1)
 	local lo, hi = MineCharms.ORE_CHARM_MIN, MineCharms.ORE_CHARM_MAX
+	local shapes = MineCharms.SHAPES
+	local function pct(x)
+		return math.floor(x * 100 + 1e-9)
+	end
 	for i, ore in ipairs(ores) do
 		local tier = tonumber(ore.tier) or i
 		local t = math.clamp((tier - 1) / span, 0, 1)
+		--[[
+			Shape and stat advance on DIFFERENT strides -- 5 shapes against 8
+			stats -- so the pair only repeats every 40 ores. Walking them in step
+			would have given every Focus charm the same stat.
+		]]
+		local shape = shapes[((tier - 1) % #shapes) + 1]
 		local primary = ORE_CHARM_STATS[((tier - 1) % #ORE_CHARM_STATS) + 1]
-		-- Floor to a hundredth so the number a player reads is the number
-		-- applied, rather than a rounded label over a longer float.
-		local mag = math.floor((lo + (hi - lo) * t) * 100 + 1e-9) / 100
-		local stats = { [primary] = mag }
-		local blurb = string.format("+%d%% %s", math.floor(mag * 100 + 1e-9), STAT_LABEL[primary] or primary)
-		if tier % 3 == 0 then
-			local second = ORE_CHARM_SECOND[((tier // 3 - 1) % #ORE_CHARM_SECOND) + 1]
-			local sm = math.floor(mag * 0.25 * 100 + 1e-9) / 100
-			stats[second] = sm
-			blurb = blurb .. string.format(" · +%d%% %s", math.floor(sm * 100 + 1e-9), STAT_LABEL[second] or second)
+		-- Budget, floored to a hundredth so the number read is the number applied.
+		local budget = math.floor((lo + (hi - lo) * t) * shape.mult * 100 + 1e-9) / 100
+
+		local stats, blurb, condition = {}, nil, nil
+
+		if shape.id == "pair" then
+			-- The second stat is six along, not adjacent: neighbours in the pool
+			-- are near-synonyms (luck / chestLuck), and pairing those reads as one
+			-- stat written twice.
+			local second = ORE_CHARM_STATS[((tier + 5) % #ORE_CHARM_STATS) + 1]
+			local a = math.floor(budget * 0.60 * 100 + 1e-9) / 100
+			local b2 = math.floor(budget * 0.40 * 100 + 1e-9) / 100
+			stats[primary] = a
+			stats[second] = b2
+			blurb = string.format("+%d%% %s · +%d%% %s",
+				pct(a), STAT_LABEL[primary] or primary,
+				pct(b2), STAT_LABEL[second] or second)
+		elseif shape.id == "pact" then
+			local cost = ORE_CHARM_STATS[((tier + 3) % #ORE_CHARM_STATS) + 1]
+			local give = math.floor(budget * 100 + 1e-9) / 100
+			--[[
+				THE COST IS BOUNDED, and it has to be.
+
+				It was a fraction of the BUDGET, which meant it scaled with the
+				upside: -96% of a stat at tier 1 and -308% at tier 82. A
+				multiplicative penalty past -100% is not a steep cost, it is a
+				broken number -- the stat is gone at -100% and nothing is left to
+				take after that.
+
+				It is a fraction of the STAT instead, from -30% at tier 1 to -60%
+				at the deepest. So the cost still grows as the upside does, stays
+				a number a player can read, and can never erase a stat outright.
+			]]
+			local take = math.min(PACT_COST_MAX,
+				PACT_COST_MIN + (PACT_COST_MAX - PACT_COST_MIN) * t)
+			take = math.floor(take * 100 + 1e-9) / 100
+			stats[primary] = give
+			stats[cost] = -take
+			blurb = string.format("+%d%% %s · −%d%% %s",
+				pct(give), STAT_LABEL[primary] or primary,
+				pct(take), STAT_LABEL[cost] or cost)
+		elseif shape.id == "condition" or shape.id == "threshold" then
+			-- A CONDITION takes a moderate window, a THRESHOLD a narrow one. That
+			-- is what the threshold's larger budget buys: a window that is harder
+			-- to sit inside, rather than a gate that opens once and stays open.
+			local pool = (shape.id == "threshold") and THRESHOLDS or CONDITIONS
+			local cond = pool[((tier - 1) % #pool) + 1]
+			condition = cond.id
+			stats[primary] = budget
+			blurb = string.format("+%d%% %s %s",
+				pct(budget), STAT_LABEL[primary] or primary, cond.blurb)
+		else
+			stats[primary] = budget
+			blurb = string.format("+%d%% %s", pct(budget), STAT_LABEL[primary] or primary)
 		end
+
 		table.insert(LIST, {
 			id = MineCharms.oreCharmId(ore.id),
 			name = (ore.name or ore.id) .. " Charm",
@@ -222,6 +498,9 @@ do
 			oreId = ore.id,
 			tier = tier,
 			band = ore.band,
+			shape = shape.id,
+			shapeLabel = shape.label,
+			condition = condition,
 			blurb = blurb,
 			stats = stats,
 		})
@@ -274,9 +553,29 @@ local ADDITIVE = {
 	coolant = true, shortFuse = true, reach = true,
 }
 
-function MineCharms.applyEquipped(b, charmId)
+--[[
+	Apply the equipped charm.
+
+	`p` is the profile, and it is what makes a CONDITION charm possible: the
+	condition is a pure function of the profile, and boosts() is recomputed every
+	swing rather than cached, so the charm turns on and off live. Passing no
+	profile applies only the unconditional charms -- which is the right answer for
+	a caller that has no player, and never silently grants a conditional bonus.
+
+	A NEGATIVE amount is a real reduction, not a floor at zero. That is the whole
+	point of a PACT charm: the biggest always-on number in the game, paid for with
+	something. Clamping it away here would make pacts free, so the clamp is only
+	the one that keeps a multiplicative stat from going negative outright
+	(0.05 floor) -- a stat at or below zero stops being a multiplier and starts
+	being a bug.
+]]
+function MineCharms.applyEquipped(b, charmId, p)
 	local def = MineCharms.byId(charmId)
 	if not def or not b or type(def.stats) ~= "table" then
+		return
+	end
+	-- A conditional charm pays nothing while its condition is unmet.
+	if def.condition and not MineCharms.conditionMet(def, p) then
 		return
 	end
 	for stat, amount in pairs(def.stats) do
@@ -284,20 +583,36 @@ function MineCharms.applyEquipped(b, charmId)
 		if amount == 0 then
 			-- skip
 		elseif stat == "swingRate" then
-			b.swingSec = (b.swingSec or 1) / (1 + amount)
+			-- A negative here LENGTHENS the swing, which is the intended cost.
+			b.swingSec = (b.swingSec or 1) / math.max(0.05, 1 + amount)
 		elseif ADDITIVE[stat] then
-			b[stat] = (b[stat] or 0) + amount
+			b[stat] = math.max(0, (b[stat] or 0) + amount)
 		else
-			b[stat] = (b[stat] or 1) + amount
+			b[stat] = math.max(0.05, (b[stat] or 1) + amount)
 		end
 	end
 end
 
-function MineCharms.describe(def)
+--[[
+	The charm's line, with its shape and whether it is live.
+
+	`p` is optional. With it, a conditional charm says whether it is paying right
+	now, because "+240% Mine Speed while a SKIN is equipped" and the same charm
+	doing nothing look identical otherwise, and that is the single most confusing
+	thing a conditional bonus can do.
+]]
+function MineCharms.describe(def, p)
 	if not def then
 		return ""
 	end
-	return def.blurb or def.name or ""
+	local line = def.blurb or def.name or ""
+	if def.shapeLabel then
+		line = line .. "  ·  " .. def.shapeLabel
+	end
+	if def.condition and p ~= nil then
+		line = line .. (MineCharms.conditionMet(def, p) and "  ·  ACTIVE" or "  ·  inactive")
+	end
+	return line
 end
 
 function MineCharms.rollPack(ownedSet, rng)

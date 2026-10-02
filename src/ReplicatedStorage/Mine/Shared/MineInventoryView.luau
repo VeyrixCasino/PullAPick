@@ -2608,9 +2608,22 @@ function MineInventoryView.mount(parent, opts)
 			local Charms = require(shared:WaitForChild("MineCharms"))
 			for _, def in ipairs(Charms.LIST or {}) do
 				if (state.charms or {})[def.id] then
+					--[[
+						`describe(def, state)` rather than the raw blurb: a charm
+						with a condition has to say whether it is PAYING right now.
+						"+352% Luck while a SKIN is equipped" and the same charm
+						doing nothing look identical otherwise, which is the single
+						most confusing thing a conditional bonus can do.
+
+						The condition functions are pure reads of the profile, and
+						the snapshot carries the same fields, so the client reaches
+						the same answer the server does.
+					]]
 					table.insert(out, {
 						key = "charm|" .. def.id,
-						name = def.name, sub = def.blurb or def.source or "Charm",
+						name = def.name,
+						sub = Charms.describe(def, state) ~= "" and Charms.describe(def, state)
+							or (def.source or "Charm"),
 						def = def, slot = "charm", source = "charm", id = def.id,
 						equipped = state.equippedCharm == def.id,
 						why = "Charms are kept, not sold",
