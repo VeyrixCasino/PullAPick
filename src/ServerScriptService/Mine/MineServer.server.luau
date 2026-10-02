@@ -4351,6 +4351,10 @@ local function givePickaxe(plr)
 		swing gate must never read it. OreTier is only present on a forged ore
 		tool; its absence is what marks a tool as having no ore behind it.
 	]]
+	-- BreakPower is stamped on EVERY tool, from its base stats, so the swing
+	-- gate has one thing to read whatever a player is holding. OreTier rides
+	-- alongside it as identity, only on a forged tool.
+	tool:SetAttribute("BreakPower", C.toolBreakingPower(row or {}))
 	if row and tonumber(row.oreTier) then
 		tool:SetAttribute("OreTier", math.floor(tonumber(row.oreTier)))
 		tool:SetAttribute("OreToolUid", tostring(row.oreToolUid or ""))
@@ -5550,7 +5554,10 @@ local function swingBlock(plr, part)
 		if oreTier then
 			local held = (Dig.heldTool and Dig.heldTool[p])
 				or (plr.Character and plr.Character:FindFirstChildOfClass("Tool"))
-			local bp = tonumber(held and held:GetAttribute("OreTier"))
+			-- BreakPower, not OreTier: every tool carries it, derived from its
+			-- own base stats, so a shop rung is measured by the same rule as a
+			-- forged pick instead of being exempt.
+			local bp = tonumber(held and held:GetAttribute("BreakPower"))
 				or (C.NO_ORE_BREAKING_POWER or 0)
 			if not C.canBreakOre(bp, oreTier) then
 				net:FireClient(plr, "weakTool", {

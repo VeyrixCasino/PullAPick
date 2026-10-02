@@ -476,8 +476,14 @@ function MineForge.mount(parent, opts)
 			end
 		end
 		local snapshot = (opts.getSnap and opts.getSnap()) or {}
+		-- Wallet uses the shared currency readout, not the local num(), so the
+		-- Forge cannot disagree with the shop about what a player holds.
+		local okAb, Ab = pcall(function()
+			return require(shared:WaitForChild("MineAbbrev"))
+		end)
+		local cash = (okAb and Ab and Ab.currency) or num
 		wallet.Text = string.format("%s coins  \u{00B7}  %s gems  \u{00B7}  %s dust",
-			num(snapshot.coins), num(snapshot.gems), num(snapshot.dust))
+			cash(snapshot.coins), cash(snapshot.gems), cash(snapshot.dust))
 
 		local order = 0
 		for _, fam in ipairs(Tools.FAMILIES or {}) do

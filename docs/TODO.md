@@ -261,6 +261,17 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
       significant digits. Wheel verified distinct across 2000 steps.
 - [ ] Wire `MineBigNum` into what the server sends, so the client stops
       formatting its own numbers. Nothing calls it yet.
+- [x] **Currencies at 4 significant figures, floored**, everywhere:
+      `MineAbbrev.currency`, with `shortNum` (client), `money` (shop, runes)
+      and the Forge wallet all routed through it.
+- [x] **Wooden pickaxe is a tutorial pick** — cap 5,
+      `TUTORIAL_GRADUATION_TOOL = "stone_pick"`.
+- [x] **Breaking power off base stats, uniform.** `BreakPower` is stamped on
+      every tool from its tier, and the gate reads that rather than `OreTier`,
+      so a shop rung is measured by the same rule instead of being exempt.
+- [ ] **Consequence to check:** shop rungs 1-25 now reach ore tiers 16-40, and
+      a forged tier-67 pick already reaches the top ore, so the real forging
+      ladder is tier 1 -> 67 in about five steps. Confirm that pacing.
 - [x] **Ore reach rule, from the owner: +15 tiers.** A tool forged from ore tier T can
       mine any ore up to tier **T + 15**. Not "looser" in a vague sense — an
       exact, flat reach. Over an 82-ore roster that is ~6 crafting steps from

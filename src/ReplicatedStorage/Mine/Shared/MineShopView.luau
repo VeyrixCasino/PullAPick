@@ -146,8 +146,8 @@ local function money(n)
 	local ok, Ab = pcall(function()
 		return require(shared:WaitForChild("MineAbbrev"))
 	end)
-	if ok and Ab and Ab.format then
-		return Ab.format(n)
+	if ok and Ab and Ab.currency then
+		return Ab.currency(n)
 	end
 	return tostring(math.floor(tonumber(n) or 0))
 end

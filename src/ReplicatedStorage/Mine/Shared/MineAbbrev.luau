@@ -115,4 +115,38 @@ function MineAbbrev.format(n)
 	return text .. suffix(exp)
 end
 
+--[[
+	CURRENCY. Four significant figures, always floored.
+
+	Distinct from MineAbbrev.format above, which rounds UP and shows one
+	decimal. That is right for block HP -- a label smaller than the rock reads
+	as broken -- and wrong for a wallet, where rounding up tells a player they
+	can afford something they cannot.
+
+	Four figures is the readable ceiling: 1.234K, 12.34K, 123.4K, then 1.234M.
+	The decimals shift with the magnitude so the digit count stays constant.
+]]
+function MineAbbrev.currency(n)
+	n = tonumber(n) or 0
+	local sign = n < 0 and "-" or ""
+	n = math.abs(n)
+	if n < 1000 then
+		return sign .. tostring(math.floor(n))
+	end
+	local cap = maxExp()
+	local exp = math.clamp(math.floor(math.log10(n) / 3), 1, cap)
+	local unit = 10 ^ (exp * 3)
+	local shown = n / unit
+	if shown >= 1000 and exp < cap then
+		exp += 1
+		unit = 10 ^ (exp * 3)
+		shown = n / unit
+	end
+	-- Keep four figures total: 3 digits -> .0, 2 digits -> .00, 1 digit -> .000
+	local places = (shown >= 100 and 1) or (shown >= 10 and 2) or 3
+	local mult = 10 ^ places
+	shown = math.floor(shown * mult + 1e-9) / mult   -- floor, never up
+	return sign .. string.format("%." .. places .. "f", shown) .. suffix(exp)
+end
+
 return MineAbbrev

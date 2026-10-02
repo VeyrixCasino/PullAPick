@@ -2471,12 +2471,26 @@ MineConfig.ORE_REACH = 15
 ]]
 MineConfig.NO_ORE_BREAKING_POWER = 0
 
--- The breaking power of a tool, which is simply the tier of its ore.
+--[[
+	Breaking power from a tool's BASE STATS.
+
+	Every tool has a tier, and that tier is its breaking power -- an ore tool's
+	tier is its ore, a shop rung's tier is its rung. One rule, no special case,
+	so the wooden pickaxe and a forged Oganesson pick are measured the same way.
+
+	This is the "for now" shape: base stats, nothing derived and nothing
+	invented. When breaking power gets its own authored curve, this is the only
+	function that has to change.
+]]
 function MineConfig.toolBreakingPower(tool)
 	if type(tool) == "table" then
-		return math.max(1, math.floor(tonumber(tool.tier) or 1))
+		local t = tonumber(tool.oreTier) or tonumber(tool.tier)
+		if t then
+			return math.max(0, math.floor(t))
+		end
+		return MineConfig.NO_ORE_BREAKING_POWER or 0
 	end
-	return math.max(1, math.floor(tonumber(tool) or 1))
+	return math.max(0, math.floor(tonumber(tool) or 0))
 end
 
 -- Can a tool of this breaking power touch an ore of this tier?
@@ -2509,7 +2523,16 @@ end
 	competitor to a crafted tool.
 ]]
 MineConfig.WOOD_PICK_ID = "wood_pick"
-MineConfig.WOOD_PICK_MAX_LEVEL = 25
+--[[
+	The wooden pickaxe is a TUTORIAL pick and nothing else.
+
+	It exists to get a new player to the stone pick, which is handed over in the
+	tutorial, and then it is done. Five levels is the length of that errand; it
+	is not a tool anybody should still be levelling afterwards, and its coin
+	ladder is priced to be finished rather than lived in.
+]]
+MineConfig.WOOD_PICK_MAX_LEVEL = 5
+MineConfig.TUTORIAL_GRADUATION_TOOL = "stone_pick"
 MineConfig.WOOD_PICK_COIN_BASE = 35
 MineConfig.WOOD_PICK_COIN_GROW = 1.55
 
