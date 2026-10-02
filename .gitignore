@@ -4,3 +4,6 @@
 *.rbxlx.lock
 sourcemap.json
 tools/export/in/
+
+# Fetched by tools/verify/syntax.sh (platform-specific, 7 MB)
+.luau-bin/
