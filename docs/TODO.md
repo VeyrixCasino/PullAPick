@@ -373,7 +373,13 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
       `MineAbbrev.currency`, with `shortNum` (client), `money` (shop, runes)
       and the Forge wallet all routed through it.
 - [x] **Wooden pickaxe is a tutorial pick** — cap 5,
-      `TUTORIAL_GRADUATION_TOOL = "stone_pick"`.
+      `TUTORIAL_GRADUATION_TOOL = "stone_pick"`, coin ladder, `isCoinTool`.
+      **Also dropped by `c59bec5` and restored.** The constant exists again, but
+      nothing yet READS `TUTORIAL_GRADUATION_TOOL` — the tutorial does not hand
+      the stone pick over. That part is still open, below.
+- [ ] **The tutorial still does not hand over the stone pick.**
+      `TUTORIAL_GRADUATION_TOOL` is defined and has zero readers. The wooden
+      pick caps at 5 and then the player is simply stuck on it.
 - [x] **Breaking power off base stats, uniform.** `BreakPower` is stamped on
       every tool from its tier, and the gate reads that rather than `OreTier`,
       so a shop rung is measured by the same rule instead of being exempt.
@@ -385,7 +391,9 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
       exact, flat reach. Over an 82-ore roster that is ~6 crafting steps from
       the first tool to the last ore.
 - [x] **Config shipped** — `MineConfig.ORE_REACH = 15`, `toolBreakingPower(tool)`,
-      `canBreakOre(bp, oreTier)`, `oreReachCap(bp)`.
+      `canBreakOre(bp, oreTier)`, `oreReachCap(bp)`. **Dropped by the merge
+      `c59bec5` and restored.** It was marked done here while the code was
+      gone — see the entry in §8 for how that happened and what it broke.
 - [x] **Equip path shipped.** `equippedTool()` has an ore-tool branch above the
       chest flagship, `Verbs.equipOreTool` equips/unequips and clears the
       competing overrides, the Forge has an EQUIP button, and scrapping an

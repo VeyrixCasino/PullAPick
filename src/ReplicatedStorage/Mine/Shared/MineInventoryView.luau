@@ -2982,7 +2982,7 @@ function MineInventoryView.mount(parent, opts)
 		elseif item.slot == "tool" then
 			local o = item.owned
 			local finish = (o and o.nightmare and (C.NIGHTMARE_MULT or 4.5))
-				or (o and o.shadow and (C.SHADOW_MULT or C.SHADOW_TOOL_MULT or 2))
+				or (o and o.shadow and (C.SHADOW_MULT or 2))
 				or (o and o.shiny and (C.SHINY_MULT or 1.5)) or 1
 			return Tools.budget(item.def) * finish
 		elseif item.source == "charm" then

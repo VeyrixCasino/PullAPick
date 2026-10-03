@@ -2048,7 +2048,7 @@ local function equippedTool(p)
 			t.power = math.max(1, math.floor((t.power or 1) * (C.NIGHTMARE_MULT or 4.5)))
 		elseif shadow then
 			t.shadow = true
-			t.power = math.max(1, math.floor((t.power or 1) * (C.SHADOW_MULT or C.SHADOW_TOOL_MULT or 2)))
+			t.power = math.max(1, math.floor((t.power or 1) * (C.SHADOW_MULT or 2)))
 		elseif shiny then
 			t.shiny = true
 			t.power = math.max(1, math.floor((t.power or 1) * (C.SHINY_MULT or 1.5)))
