@@ -58,6 +58,8 @@ MineRunes.INITIAL_MAX_PCT = {
 	shortFuse = 3.0,
 	earthquake = 2.6,
 	ricochet = 2.4,
+	oreLuck = 2.4,
+	packLuck = 2.4,
 }
 
 MineRunes.WHITE_COST_MULT = 5
@@ -120,7 +122,7 @@ MineRunes.FAMILY_STATS = {
 	pet = {
 		"swingRate", "echo", "zap",
 		"oreYield", "rareOre", "gemFind", "coinBonus",
-		"luck", "chestLuck", "fossilFind", "pulverize", "backpack", "walkSpeed", "dirtBreak",
+		"luck", "oreLuck", "chestLuck", "packLuck", "fossilFind", "pulverize", "backpack", "walkSpeed", "dirtBreak",
 	},
 	-- echo stays listed for an already-rolled rune to resolve against; NO_ROLL_STATS
 	-- keeps it out of the pool. earthquake and ricochet are the two new procs.
@@ -193,6 +195,8 @@ MineRunes.TIER1_PCT = {
 	shortFuse = 1.60,
 	earthquake = 1.40,
 	ricochet = 1.30,
+	oreLuck = 1.30,
+	packLuck = 1.30,
 	-- mineSpeed, luckyFind, scrap: pets only, never TIER1.
 }
 
@@ -463,6 +467,10 @@ function MineRunes.applyFraction(b, stat, pct)
 	elseif stat == "shortFuse" then b.shortFuse = (b.shortFuse or 0) + pct
 	elseif stat == "earthquake" then b.earthquake = (b.earthquake or 0) + pct
 	elseif stat == "ricochet" then b.ricochet = (b.ricochet or 0) + pct
+	-- The split lucks are MULTIPLIERS on top of luck, so they compound like
+	-- luck itself rather than adding a flat chance.
+	elseif stat == "oreLuck" then b.oreLuck = (b.oreLuck or 1) * (1 + pct)
+	elseif stat == "packLuck" then b.packLuck = (b.packLuck or 1) * (1 + pct)
 	elseif stat == "reach" then b.reach = (b.reach or 0) + pct
 	elseif stat == "blastRadius" then b.blastRadius = (b.blastRadius or 0) + pct
 	elseif stat == "autoMine" then

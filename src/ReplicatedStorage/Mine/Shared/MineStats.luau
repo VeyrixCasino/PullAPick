@@ -53,6 +53,27 @@ MineStats.STATS = {
 	-- The two new build boosts. Priced near zap (2.5) because they are the
 	-- same shape of thing -- a chance to reach a block you did not swing at --
 	-- and neither multiplies the hit itself.
+	--[[
+		THE THREE LUCKS (TODO 6.2 "Split the hat luck boost").
+
+		Generic `luck` was doing three unrelated jobs at once, which is why the
+		owner asked for it split. Read off its four call sites in MineServer:
+
+		  * it scaled ORE_CASE_CHANCE on an ore break          -> ore luck
+		  * it decided IF a chest spawned, and with chestLuck
+		    WHICH one                                          -> chest luck
+		  * it was stamped onto pack rows as row.luck, which
+		    later siphons that pack's card odds                -> pack luck
+
+		`luck` KEEPS all three, as the shared base, so every existing source --
+		prestige, VIP, the event pass, skills, runes, the Umbra gear set -- goes
+		on working exactly as it did. These two multiply on top of it for one
+		channel each, so a hat can be about ore cases without also being about
+		chests. Chest luck needs no new stat: `luck` x `chestLuck` was already
+		that channel.
+	]]
+	oreLuck     = { label = "Ore Luck",         weight = 2.4, unit = "%", desc = "Chance an ore block drops its ORE CASE. Does not touch chests or packs." },
+	packLuck    = { label = "Pack Luck",        weight = 2.4, unit = "%", desc = "Siphons a pack's card odds toward the chase when it is opened. Stamped on the pack when you get it." },
 	earthquake  = { label = "Earthquake",       weight = 2.6, unit = "%", desc = "Chance a block starts shaking and takes 20% of your tool damage per second. Does not stack; 5 blocks at once." },
 	ricochet    = { label = "Ricochet",         weight = 2.4, unit = "%", desc = "Chance breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
 }
@@ -60,7 +81,7 @@ MineStats.STATS = {
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
 	"oreYield", "rareOre", "gemFind", "coinBonus",
-	"luck", "chestLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
+	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
 	"earthquake", "ricochet",
 	"coolant", "shortFuse", "backpack", "walkSpeed", "dirtBreak",
 }

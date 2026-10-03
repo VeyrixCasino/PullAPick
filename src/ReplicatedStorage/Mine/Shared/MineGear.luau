@@ -206,6 +206,9 @@ MineGear.STAT_WEIGHT = {
 	autoMine = 0.25,
 	earthquake = 0.30,
 	ricochet = 0.28,
+	-- Below generic luck (0.75): each moves one channel where luck moves three.
+	oreLuck = 0.45,
+	packLuck = 0.40,
 }
 
 function MineGear.statWeight(stat)

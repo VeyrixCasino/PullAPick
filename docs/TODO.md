@@ -890,8 +890,26 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
       `MineServer.boosts`, one site that catches every source. Renaming shipped
       content is an owner call. The 4 chest flagships whose `special` is echo
       keep it; that is a named tool's identity, not a rolled buff.
-- [ ] **Split the hat luck boost** into the specific new luck types: **ore luck**,
-      **chest + rare-drop luck**, **pack luck**.
+- [x] **Luck is split into three channels.** Generic `luck` was doing three
+      unrelated jobs at once, which is why a hat that wanted to be about one of
+      them had to be about all three. Read off its four call sites:
+      - it scaled `ORE_CASE_CHANCE` on an ore break → **ore luck** (`oreLuck`)
+      - it decided IF a chest spawned, and with `chestLuck` WHICH one →
+        **chest + rare-drop luck**, which needed no new stat: that pair already
+        was this channel
+      - it was stamped onto pack rows as `row.luck`, which siphons that pack's
+        card odds when opened → **pack luck** (`packLuck`)
+      - **`luck` KEEPS all three as the shared base**, so prestige, VIP, the
+        event pass, skills, runes and the Umbra set all behave exactly as before.
+        The two new stats are MULTIPLIERS on top of it, so one source can move
+        one channel. `Dig.oreLuck` / `Dig.packLuck` are the only readers.
+      - `tools/verify/stats.js` slices both helpers out of MineServer verbatim
+        and asserts the channels are INDEPENDENT — a property invisible in the
+        stat tables.
+- [ ] **No GEAR SET rolls the new lucks yet.** All ten sets have an assigned stat
+      and Umbra is generic `luck`; pointing three of them at the new channels
+      changes three set identities, which is a content call. They are rollable on
+      runes (pet pool) now, so they are reachable and testable.
 
 ### Pets and boost balance
 

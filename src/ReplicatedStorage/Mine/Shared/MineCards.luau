@@ -574,6 +574,9 @@ function MineCards.emptyBoosts()
 	return {
 		-- multipliers
 		mineSpeed = 1, luck = 1, walkSpeed = 1, dirtBreak = 1,
+		-- The two split lucks. MULTIPLIERS on top of `luck`, so 1 means "adds
+		-- nothing of its own" and every existing luck source is untouched.
+		oreLuck = 1, packLuck = 1,
 		backpack = 1, rareOre = 1, coinBonus = 1, gemFind = 1, chestLuck = 1,
 		-- swingSec is a DURATION; kits grant swingRate, folded in by foldSwingRate.
 		swingSec = 1,

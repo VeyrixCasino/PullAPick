@@ -4594,7 +4594,9 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	if chosen.kind == "pack" then
 		-- A run, not a row. Sometimes nothing, sometimes a pile; the count is
 		-- uncapped on purpose (C.chestPackCount).
-		local stampedLuck = tonumber(b and b.luck) or 1
+		-- PACK luck: stamped on the row, and it is what siphons that pack's
+		-- card odds when it is opened. Not the chest channel.
+		local stampedLuck = math.max(1, Dig.packLuck(b))
 		local n = C.chestPackCount and C.chestPackCount(luck, rng) or 1
 		for _ = 1, n do
 			local row = {
@@ -4673,7 +4675,9 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 		if #pool == 0 then
 			local row = { kind = kind, chestId = chest.id, zoneTier = tier,
 				zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) }
-			local stampedLuck = tonumber(b and b.luck) or 1
+			-- PACK luck: stamped on the row, and it is what siphons that pack's
+			-- card odds when it is opened. Not the chest channel.
+			local stampedLuck = math.max(1, Dig.packLuck(b))
 			if stampedLuck > 1 then
 				row.luck = stampedLuck
 			end
@@ -4694,8 +4698,15 @@ local function giveDrop(p, kind, zone, layer, b)
 		-- A crate is the lesser find: same roll, but luck bites less.
 		local luck = b.luck or 1
 		if kind == "crate" then luck = 1 + (luck - 1) * 0.5 end
-		-- `luck` decides IF a chest spawns (rollKind); chestLuck decides WHICH
-		-- one it is, which is exactly what rollChest weighs.
+		--[[
+			THE CHEST CHANNEL, and it needs no new stat.
+
+			`luck` decides IF a chest spawns (rollKind); chestLuck decides WHICH
+			one it is, which is exactly what rollChest weighs. That pair was
+			already the "chest + rare-drop luck" the split asks for, so it is
+			left alone -- the two new stats carve the ORE CASE and the PACK
+			stamp out of generic luck instead. See Dig.oreLuck / Dig.packLuck.
+		]]
 		local chest = Packs.rollChest(tier, layer, Random.new(), { luck = luck * (b.chestLuck or 1) })
 		-- You do not haul a chest home. It is opened where it is found and you
 		-- carry out what was inside, which is what the odds roll is for.
@@ -5109,7 +5120,9 @@ local function openChestBlock(plr, p, chestId, b, part)
 	end
 
 	local packNames, packIds = {}, {}
-	local stampedLuck = tonumber(b.luck) or 1
+	-- PACK luck: stamped on the row, and it is what siphons that pack's
+	-- card odds when it is opened. Not the chest channel.
+	local stampedLuck = math.max(1, Dig.packLuck(b))
 	local setId = (C.setForLayer and C.setForLayer(zone, layer)) or ((zone.sets and zone.sets[1]) or "dragons_dawn")
 	if zone.id == "bigbang" then
 		if not (C.isEventHorizonSet and C.isEventHorizonSet(setId)) then
@@ -5467,8 +5480,10 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 				does not take pouch space, so a full pouch costs you material --
 				it does not cost you the chase.
 			]]
+			-- ORE luck, not generic luck: the case is the rare drop off an ore,
+			-- and a chest hat should not move it.
 			local caseChance = (tonumber(C.ORE_CASE_CHANCE) or 0)
-				* math.max(1, tonumber(bb.luck) or 1)
+				* math.max(1, Dig.oreLuck(bb))
 			if caseChance > 0 and Random.new():NextNumber() < caseChance then
 				p.packs = p.packs or {}
 				table.insert(p.packs, {
@@ -5768,6 +5783,35 @@ end
 	Echo is deliberately NOT rolled in here. If it were, an echo could echo, and
 	a stacked Echo would turn one swing into a chain with no ceiling.
 ]]
+--[[
+	THE THREE LUCK CHANNELS (TODO 6.2).
+
+	Generic `luck` was doing three unrelated jobs at once -- ore cases, chest
+	spawns, and the luck stamped onto pack rows -- so a hat that wanted to be
+	about one of them had to be about all three.
+
+	`luck` stays the shared base, so prestige, VIP, the event pass, skills, runes
+	and the Umbra gear set all behave exactly as before. These read it times the
+	one channel asked for, so a source that only sets oreLuck moves ore cases and
+	nothing else.
+
+	Chest luck needs no helper: `b.luck * b.chestLuck` was already that channel
+	and reads plainly at its one call site.
+]]
+function Dig.oreLuck(b)
+	if type(b) ~= "table" then
+		return 1
+	end
+	return math.max(0, (tonumber(b.luck) or 1)) * math.max(0, (tonumber(b.oreLuck) or 1))
+end
+
+function Dig.packLuck(b)
+	if type(b) ~= "table" then
+		return 1
+	end
+	return math.max(0, (tonumber(b.luck) or 1)) * math.max(0, (tonumber(b.packLuck) or 1))
+end
+
 Dig.PROC_SKIP = { chest = true, crate = true, core = true, lucky_block = true }
 Dig.FACE6 = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
 
@@ -14483,7 +14527,8 @@ function Verbs.Afk.grantPack(plr, p, b)
 		zoneId = zone.id,
 		setId = setId,
 	}
-	local stamped = tonumber(b.luck) or 1
+	-- PACK luck, same as every other row.luck stamp.
+	local stamped = math.max(1, Dig.packLuck(b))
 	if stamped > 1 then
 		row.luck = stamped
 	end

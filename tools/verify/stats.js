@@ -30,6 +30,18 @@ if (!fs.existsSync(LUAU)) {
 
 const read = (n) => fs.readFileSync(path.join(SHARED, n + ".luau"), "utf8");
 
+// Dig.oreLuck / Dig.packLuck are pure, and MineServer cannot be loaded here, so
+// their source is sliced out verbatim -- the real shipped arithmetic, without
+// booting a 15,000-line server script.
+const server = fs.readFileSync(
+  path.join(ROOT, "src/ServerScriptService/Mine/MineServer.server.luau"), "utf8");
+const slice = (name) => {
+  const m = server.match(new RegExp("function Dig\\." + name + "\\(b\\)[\\s\\S]*?\\nend\\n"));
+  return m ? m[0].replace("function Dig." + name, "function " + name.toUpperCase()) : null;
+};
+const oreLuckSrc = slice("oreLuck");
+const packLuckSrc = slice("packLuck");
+
 const harness = `
 Color3 = { fromRGB = function() return {} end }
 Enum = setmetatable({}, { __index = function() return setmetatable({}, { __index = function(_, k) return { Name = k } end }) end })
@@ -48,6 +60,9 @@ local fail = 0
 local function check(ok, msg)
 	if not ok then fail += 1 print("  FAIL  " .. msg) else print("  ok    " .. msg) end
 end
+
+${oreLuckSrc || "local ORELUCK = nil"}
+${packLuckSrc || "local PACKLUCK = nil"}
 
 local b = Cards.emptyBoosts()
 
@@ -116,7 +131,40 @@ for _, s in ipairs({ "earthquake", "ricochet" }) do
 	check(Cards.ADDITIVE_STATS and Cards.ADDITIVE_STATS[s] == true, s .. " is additive")
 end
 
--- 6. withoutAutoMine folds both retired stats and leaves nothing behind.
+--[[
+	6. THE THREE LUCK CHANNELS.
+
+	Generic luck was doing three jobs at once (ore cases, chest spawns, the luck
+	stamped on pack rows). oreLuck and packLuck carve two of them out. They are
+	MULTIPLIERS on top of luck rather than replacements, so every existing luck
+	source keeps working -- which means they must start at 1 and must not be
+	additive, or a player with no luck gear gets zero of everything.
+
+	Dig.oreLuck / Dig.packLuck are sliced out of MineServer verbatim below and
+	run, because the property that matters -- that the channels are INDEPENDENT --
+	is not visible in the stat tables at all.
+]]
+for _, s in ipairs({ "oreLuck", "packLuck" }) do
+	check(Stats.STATS[s] ~= nil, s .. " is a registered stat")
+	check(b[s] == 1, s .. " starts at 1, so it adds nothing of its own")
+	check(not (Cards.ADDITIVE_STATS and Cards.ADDITIVE_STATS[s]),
+		s .. " is a multiplier, not additive")
+end
+if ORELUCK and PACKLUCK then
+	check(ORELUCK({}) == 1 and PACKLUCK({}) == 1, "both channels are 1 on an empty boost table")
+	check(ORELUCK({ luck = 2 }) == 2 and PACKLUCK({ luck = 2 }) == 2,
+		"generic luck still drives both, so nothing existing regressed")
+	-- Independence: the whole point of the split.
+	check(ORELUCK({ luck = 1, oreLuck = 3 }) == 3 and PACKLUCK({ luck = 1, oreLuck = 3 }) == 1,
+		"oreLuck moves ore cases and leaves packs alone")
+	check(PACKLUCK({ luck = 1, packLuck = 3 }) == 3 and ORELUCK({ luck = 1, packLuck = 3 }) == 1,
+		"packLuck moves packs and leaves ore cases alone")
+	check(ORELUCK({ luck = 2, oreLuck = 3 }) == 6, "the channel multiplies on top of luck")
+else
+	check(false, "could not slice Dig.oreLuck / Dig.packLuck out of MineServer")
+end
+
+-- 7. withoutAutoMine folds both retired stats and leaves nothing behind.
 local folded = Stats.withoutAutoMine({ echo = 0.10, autoMine = 0.10, swingRate = 0.05 })
 check(folded.echo == nil and folded.autoMine == nil,
 	"withoutAutoMine clears both retired keys")
