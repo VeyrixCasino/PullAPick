@@ -776,8 +776,21 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
       owned tool: level, next step's price, +1 / +10 / MAX and SCRAP.
 - [ ] Runes and skins are **not** applied there yet. That is `MineForgeView`'s
       temperament UI, which still has to move into the Forge's upgrade pane.
-- [ ] **Full inventory shown in the Forge**, bag and ore pouch included. Only a
-      wallet strip (coins / gems / dust) exists so far.
+- [x] **The ORE POUCH is in the Forge**, along the bottom: every ore you hold,
+      rarest first, with fill against capacity. The wallet strip answered
+      coins/gems/dust and the detail pane quotes the ore cost of whatever is
+      SELECTED — neither answered the question you actually have while browsing a
+      rail of a hundred recipes. Reference, not somewhere to act: nothing in it
+      is clickable.
+      - **Found a bug in the addition itself:** it read `snapshot.orePouchTier`,
+        which the shop's hand-built `getSnap` did not pass, so capacity read as
+        tier 1 for everybody. `tools/verify/forge-snap.js` now fails when the
+        Forge reads a field the shop omits — nil does not throw there, it falls
+        through a `tonumber(…) or 1` and prints a plausible wrong number.
+- [ ] **The BAG is not in the Forge.** Cards, packs, runes and gear are still
+      inventory-only. The pouch was the part that mattered for forging; the rest
+      is a second large panel inside a panel and wants a design call on what it
+      is for.
 - [ ] Server owns crafting: ore debited and tool minted in one transaction. No
       client-supplied costs, no partial debits on failure.
 

@@ -535,7 +535,10 @@ function MineShopView.mount(parent, opts)
 					-- wallet strip, so it needs both currencies, not just dust.
 					coins = state.coins or 0,
 					gems = state.gems or 0,
-					oreToolEquipped = state.oreToolEquipped,
+					-- The ore strip prints fill against CAPACITY, and capacity
+					-- comes off the pouch tier. Without this it defaulted to 1
+					-- and quoted a tier-1 pouch to everybody.
+					orePouchTier = state.orePouchTier or 1,
 				}
 			end,
 			-- Out of the Forge and down to the second line.
