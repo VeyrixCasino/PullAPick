@@ -8,7 +8,7 @@ Place: "MINE FOR CARDS! SEASON ONE", placeId `73982848847016`,
 owned by the **Mine For Cards group, groupId `35326298`**.
 Repo: `VeyrixCasino/PullAPick`. Working branch: `claude/vigilant-fermi-aucqjy`.
 
-Last updated: 2026-10-02.
+Last updated: 2026-10-03.
 
 ---
 
@@ -295,44 +295,50 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 
 # 6. The TODO
 
-## 6.0 Blocked — needs the user, not an agent
+## 6.0 BLOCKED — needs the owner, not an agent
 
-- [ ] **Ore icon source is unreachable.** `C:\Users\uybuv\Downloads\oreicons` is on a
-  local Windows drive. Commit it (suggest `tools/oreart/src/`) or paste it. Nothing in
-  the icon/case/texture pipeline can start until then.
-- [ ] **`ToolBakers.OreToolBaker` is uncommitted, and it houses every ore in the
-  game.** Confirmed absent from `src/` with zero references anywhere. This is not
-  just a baker — it is an ore data source, so it may hold ore rows or fields that
-  `MineConfig.ORES` does not. **Sync it back and diff it against `MineConfig.ORES`
-  before any Forge, recipe or icon work**, or that work is built on a partial
-  roster. Procedure: `docs/rojo-connect.md` §"Pulling Studio's state into src/".
-- [ ] **Connect Rojo.** Never attached. Safe once the syncback above is done.
-- [ ] **Which suffixes past `Nod` (10^63)?** §0.8 gives `MineBigNum` the backlog
-  `q r s t u v w x y z`; §0.9 points currencies at `MineAbbrev.currency`, which
-  carries on `Vg Uvg Dvg Tvg`. Below 10^63 they are byte-identical and
-  `tools/verify/bignum.js` holds them there, so this is not urgent and nothing
-  is blocked on it — but the two locked rules do disagree above it, and only
-  one name can be right. Probably academic (no player reaches 10^63), which is
-  an argument for deciding it cheaply rather than carefully.
-- [ ] **Asset uploads.** No agent here can upload to Roblox. All uploads follow §7.
-- [ ] **A way to BUY a seam — SHIP BLOCKER, from main.** Depth is gated on coins
-  (`MineDepth.SEAMS`, enforced in `MineDigAuth.unlockedForLayer`) and
-  `Verbs.buySeam` is live on the `"buySeam"` action, but **nothing fires it.**
-  Do not ship the gate without a prompt or every player stops dead at layer 500.
-  `MineDepthPlazas` already owns the prompt geometry and is the obvious host;
-  `MineDepth.seamPrice(seam, zi)` gives the figure to show.
-- [ ] **Ore gem value magnitude.** `MineOrePouch.ORE_GEM_SPREAD` (10^6) sets the
-  whole gem faucet: how much more the deepest ore is worth than the shallowest.
-  The SHAPE is derived from work and defensible; the magnitude is a placeholder,
-  and the user flagged ore balance as the thing that breaks the economy if it is
-  wrong. One number, and it is a question with an answer. See §6.1 "Ore pouch".
-- [ ] **Zone and rune gem prices.** Flat tables that the ore value curve will
-  outrun. Same fix the pouch rungs got — price as a share of income at the depth
-  they gate — but the pacing is an owner call.
-- [ ] **The legacy 31 charms.** Zone grant + gem pack + limited. §0.5 makes charms
-  an ore drop; these predate it and still drop. Retire them, or keep both sources?
-- [ ] **VIP lost a perk.** It advertised an extra pet seat in three places and can
-  no longer deliver one. Replacement perk, or leave it at three?
+Terse on purpose: each line is BLOCKED and the one sentence you need to unblock
+it. Nothing here is an agent's to decide.
+
+- [ ] **BLOCKED — Ore icon source.** `C:\Users\uybuv\Downloads\oreicons` is on a
+  local drive. Owner is supplying art.
+- [ ] **BLOCKED — Charm and ore icons.** Owner is making these. The 164 generated
+  charm icons in `build/charm-icons/` are **superseded — owner did not want
+  them**; `tools/icons/*` and `tools/gen-charm-icons.js` stay only as the
+  ids.json → `MineCharmIcons.luau` wiring for whatever art arrives.
+- [ ] **BLOCKED — Asset uploads.** No agent here can upload to Roblox. §7 governs.
+- [ ] **BLOCKED — `ToolBakers.OreToolBaker` syncback.** `src/ServerStorage/OreToolBaker.luau`
+  exists and holds an 82-row roster of its own; diff it against `MineConfig.ORES`
+  before trusting either. Nothing requires it.
+- [ ] **BLOCKED — Rojo syncback.** Owner reported Rojo connected; the Studio-side
+  syncback in `docs/rojo-connect.md` has still not been run.
+- [ ] **BLOCKED (DEFERRED by owner) — `ORE_GEM_SPREAD` magnitude.** 10^6 is a
+  placeholder and sets the whole gem faucet. Owner: "we tackle that later."
+- [ ] **BLOCKED — Seam purchase. SHIP BLOCKER.** `Verbs.buySeam` is live and
+  nothing fires it, so every player stops at layer 500. `MineDepthPlazas` owns
+  the prompt geometry; `MineDepth.seamPrice(seam, zi)` gives the figure.
+- [ ] **BLOCKED — Zone and rune gem prices.** Flat tables the ore curve will
+  outrun. Pacing is an owner call.
+- [ ] **BLOCKED — The legacy 31 charms.** Zone grant + gem pack + limited, all
+  predating §0.5. Retire, or keep both sources?
+- [ ] **BLOCKED — VIP lost a perk.** It can no longer grant a fourth pet seat.
+  Replacement, or leave it at three?
+- [ ] **BLOCKED — Suffixes past `Nod` (10^63).** §0.8 says `q r s t …`, §0.9's
+  formatter says `Vg Uvg Dvg`. Identical below 10^63 and pinned there by
+  `tools/verify/bignum.js`, so nothing waits on it. Academic — decide cheaply.
+- [ ] **BLOCKED — Hat/pet/face boost budget.** "Nerf hats substantially",
+  "nerf zap and blast", "almost no effect should do full pickaxe damage":
+  all of these need target percentages, and a number invented here is a number
+  nobody signed off. Say what a hat should be worth and it is a day's work.
+- [ ] **BLOCKED — The element roster.** The new-boost mapping ("each element type
+  gets one of these as its native boost") cannot be finished without it.
+  Earthquake and Ricochet are BUILT and rollable on runes; what is missing is
+  only which element grants which.
+- [ ] **BLOCKED — `OreBalanceSim` is broken.** It reads five `MineConfig` symbols
+  the `c59bec5` merge removed (`ORE_BAND_WEIGHT`, `ZONE_ORE_SHIFT`,
+  `ORE_EXOTIC_HOME_ZONE`/`OFF_ZONE`, `abbrev`). It is the offline ore-balance
+  sim, so it matters once the gem spread is taken off deferral. Nothing requires
+  it, so it does not break the game.
 
 ## 6.1 P0 — launch blockers
 
@@ -377,9 +383,10 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
       **Also dropped by `c59bec5` and restored.** The constant exists again, but
       nothing yet READS `TUTORIAL_GRADUATION_TOOL` — the tutorial does not hand
       the stone pick over. That part is still open, below.
-- [ ] **The tutorial still does not hand over the stone pick.**
-      `TUTORIAL_GRADUATION_TOOL` is defined and has zero readers. The wooden
-      pick caps at 5 and then the player is simply stuck on it.
+- [x] **The tutorial hands over the stone pick.**
+      `Verbs._graduateTutorialPick` reads `TUTORIAL_GRADUATION_TOOL` (which had
+      zero readers) and grants that coin-ladder rung free on the step that
+      reaches the wooden pick's cap. No-ops if the player already owns it.
 - [x] **Breaking power off base stats, uniform.** `BreakPower` is stamped on
       every tool from its tier, and the gate reads that rather than `OreTier`,
       so a shop rung is measured by the same rule instead of being exempt.
@@ -810,8 +817,12 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
 
 ### Hats and faces
 
-- [ ] **Hats cost rebirth tokens**, not gems. A rebirth-token wallet already exists
-      (`MineTemper.luau:1`). **Update the tutorial**, which still teaches gems.
+- [x] **Hats cost rebirth tokens.** Flat `MineGear.ROLL_TOKEN_COST = 5` against a
+      temperament case's 20, spent from `p.temperTokens`. Deliberately NOT
+      zone-scaled: that existed because gems inflate with depth, and rebirth
+      already paces token supply. Client's gear row joined temper on tokens via
+      one `spendsTokens` predicate (it was four separate `kind == "temper"`
+      tests). Tutorial step 10 fixed — it taught gems AND said hats go on pets.
 - [ ] Hats give **1–2 boosts directly to the player**. Same for pets and faces.
 - [x] **Hats are player-only — hats removed from pets.** `p.petHats` is gone, not
       emptied; hats on pets fold into free seats on load. `Verbs.equipPetHat` /
@@ -829,7 +840,14 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
       hypothetical tests, not guesses: test each boost alone, then stacked with its
       amplifiers (blast with blast-radius and blast-damage; zap with zap boosters).
 - [ ] Add hats and faces as **chest drops**.
-- [ ] **Echo must not appear as a buff** on hats or anything else.
+- [x] **Echo is barred as a buff.** Void gear set rolls Gem Find; `NO_ROLL_STATS`
+      blocks it on runes; the Demolition rune SET took its stat straight from
+      `set.slots`, bypassing that, so slot 2 is Short Fuse. The 14 temperament
+      kits carrying it — 5 NAMED for it — are untouched: echo is retired the way
+      `autoMine` was, converted to Swing Rate at `ECHO_TO_SWING` in
+      `MineServer.boosts`, one site that catches every source. Renaming shipped
+      content is an owner call. The 4 chest flagships whose `special` is echo
+      keep it; that is a named tool's identity, not a rolled buff.
 - [ ] **Split the hat luck boost** into the specific new luck types: **ore luck**,
       **chest + rare-drop luck**, **pack luck**.
 
@@ -864,8 +882,13 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
 - [ ] Make pet and hat buffs **more easily matchable with setups**.
 - [ ] Add **drill-friendly** boosts.
 - [ ] **Guardrails** preventing too many boosts overlapping.
-- [ ] **Not all packs spawn all pets** — give each pack a pet subset
-      (`MinePackConfig.luau` / `MinePetRoster.luau`).
+- [x] **Not all packs spawn all pets.** `MinePackConfig.cardPoolFor` narrows each
+      pack to a contiguous window of its rarity pool, generated from a hash of
+      the pack id rather than authored — a hand-written subset per pack goes
+      stale the first time a card is added and nobody notices which pet became
+      unobtainable. The window SNAPS TO A TILE so two packs cover the pool
+      between them; a free offset orphaned a card at pool size 4, which
+      `tools/verify/packs.js` caught.
 
 ### New build boosts
 
@@ -874,10 +897,15 @@ to finish the mapping.*
 
 User-specified:
 
-- [ ] **Earthquake** — the block tremors/shakes and takes **20% tool damage per
-      second**. Cannot stack. Maximum 5 blocks.
-- [ ] **Ricochet** — after breaking a block the effect jumps to one nearby block.
-      Happens at most once; no chain reactions.
+- [x] **Earthquake — BUILT.** `Dig.startQuake` + one tick loop. Registry keyed on
+      the PART, so "cannot stack" needs no comparison; keyed on the Instance
+      rather than a voxel key because a mine reset destroys parts and a stale
+      coordinate would name a different rock. 20% and 5 blocks are the owner's
+      numbers. **`EARTHQUAKE_SEC = 5` is mine** — a full quake is then 100% of
+      one swing over five seconds. Argue with that one.
+- [x] **Ricochet — BUILT.** Break-only, and `swingNeighbour` is called directly
+      rather than through anything re-entering `procsAt`, so "no chain reactions"
+      is enforced by the call rather than by a counter somebody could raise.
 
 Claude-proposed (need sign-off). Chosen to be mostly non-damage so they do not
 collide with blast and zap, which is the guardrail asked for:
@@ -1025,6 +1053,52 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 ---
 
 # 8. Done
+
+**A merge had silently broken forging, and nothing noticed for four commits
+(2026-10-03):**
+
+- [x] **`c59bec5` took main's `MineConfig` wholesale and dropped ~13 symbols
+      while every caller stayed.** Luau parses a missing field happily, so
+      `syntax.sh` saw nothing and the failures waited for runtime.
+      `C.toolBreakingPower` is called on EVERY tool grant, `C.toolCraftCost` on
+      every craft, `C.woodPickCoinCost` is the starter's whole coin ladder, and
+      `C.WOOD_PICK_MAX_LEVEL` was compared with `>=` so nil threw. Forging,
+      crafting and handing out a tool were all dead on this branch.
+- [x] **`ORE_MIGRATION_V2` was the quiet one.** The lookup came back nil, the
+      `type(map) == "table"` guard skipped the whole 121 → 82 remap, and the
+      stamp at the bottom still wrote `p.oreRosterV = 2` — so it marked itself
+      complete having moved nothing, once, permanently, per save.
+- [x] **Restored from `c59bec5^1`, not reinvented**, and checked against the
+      roster that actually shipped: all 39 v2 targets exist in the current
+      `ORES`, no source id is a live ore, every v1 target lives or chains.
+- [x] **`tools/verify/config-refs.js` is the guard.** Every `MineConfig` symbol a
+      LIVE module reads must exist; modules nothing requires are a note, not a
+      failure. Against the broken config it reports 11 and exits 1.
+- [x] **The TODO had claimed both the breaking-power config and the tutorial pick
+      as shipped while the code was absent.** Corrected.
+
+**Boosts, the tutorial and the ore tools (2026-10-03):**
+
+- [x] Tutorial graduation, hats on rebirth tokens, Echo barred, Earthquake,
+      Ricochet, per-pack pet subsets — see §6.1/§6.2 for each.
+- [x] **Ore tools stopped being "one flat colour, 82 times".** No mesh is named
+      after an ore, so every forged tool took the procedural path, and those
+      builders colour from an eight-step ramp indexed by a COSMETIC shop rung.
+      `ToolModelFactory.oreLook` drives colour, haft, material, gleam and
+      silhouette off the ore row instead. **The authored glow wins:** 27 rows
+      carry a hand-picked `glow`, and deriving one instead got Phosphorus
+      (green glow, pale yellow rock) wrong in the one way a player notices.
+- [x] **`MineBigNum` has a caller, and did not do four significant figures.** It
+      floored to one decimal flat, so 1234 read `1.2 K`. Fixed, then wired into
+      `Verbs._benchNum`; `tools/verify/bignum.js` pins it against
+      `MineAbbrev.currency` below 10^63.
+- [x] **Five new behavioural checks**, each written after a real bug:
+      `config-refs` (missing config symbols), `stats` (a stat with no
+      `emptyBoosts` key is a silent no-op), `bignum`, `oretools`, and the pack
+      subset assertions in `packs`. Three of them also had their own exit-code
+      bug fixed: they printed "N FAILED" and then "all assertions passed" in the
+      same run.
+
 
 **The fossil modules deleted (2026-10-02):**
 
