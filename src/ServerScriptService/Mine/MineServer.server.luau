@@ -2346,6 +2346,7 @@ local function boosts(p)
 	-- procs (echo/zap/Blast/blastRadius/autoMine) add chance or radius instead.
 	local ADDITIVE_BOOST = {
 		echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
+		earthquake = true, ricochet = true,
 	}
 	for _, held in ipairs(p.relics or {}) do
 		local r = C.relicById(held.id)
@@ -5771,6 +5772,53 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 			end
 		end
 	end
+	--[[
+		RICOCHET: breaking a block jumps the hit to ONE block beside it, once.
+
+		Deliberately not a chain. swingNeighbour is called directly rather than
+		through anything that re-enters procsAt, so the block it lands on rolls
+		nothing of its own -- "no chain reactions" is enforced by the call, not
+		by a counter that could be raised later.
+
+		Break-only, like Blast: a ricochet off a block that survived the swing
+		would fire on every tick of a long dig.
+	]]
+	if broke and not Dig.PROC_SKIP[kind] then
+		local ric = tonumber(b.ricochet) or 0
+		if ric > 0 and rng:NextNumber() < ric then
+			local opts = {}
+			for _, d in ipairs(Dig.FACE6) do
+				local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
+				if other and typeof(other) == "Instance" and other.Parent
+					and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+					table.insert(opts, other)
+				end
+			end
+			if #opts > 0 then
+				local hit = opts[rng:NextInteger(1, #opts)]
+				net:FireClient(plr, "loot", { text = "RICOCHET",
+					color = Color3.fromRGB(140, 220, 255), pos = hit.Position })
+				pcall(swingNeighbour, plr, hit, dmg, p)
+			end
+		end
+	end
+
+	--[[
+		EARTHQUAKE: the block starts shaking and bleeds 20% of your tool damage
+		a second until it dies or the quake runs out.
+
+		Marked here and ticked by the loop below, because the damage has to keep
+		landing while the player swings at something else -- that is the whole
+		point of it. Rolled on a hit rather than on a break: a quake on a block
+		that is already gone has nothing to shake.
+	]]
+	if not broke and not Dig.PROC_SKIP[kind] then
+		local eq = tonumber(b.earthquake) or 0
+		if eq > 0 and rng:NextNumber() < eq then
+			Dig.startQuake(plr, p, part, dmg)
+		end
+	end
+
 	-- Chain Zap: one chain from this block. Chance and damage fall off 0.9x a
 	-- hop, it never doubles back into the cell it just left, and chain hits
 	-- re-proc nothing.
@@ -5806,6 +5854,97 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		fromCx, fromCy, fromCz = pick.nx, pick.ny, pick.nz
 	end
 end
+
+--[[
+	THE QUAKE REGISTRY.
+
+	[userId] = { [part] = { dmg = n, dies = clock } }, with the part itself as
+	the key so "cannot stack" needs no comparison: a second proc on a block
+	already shaking finds its own entry and leaves it alone rather than
+	refreshing or adding to it.
+
+	Keyed on the Instance and not on a voxel key on purpose -- a mine reset
+	destroys parts without telling anyone, and a destroyed part's entry is
+	dropped by the liveness check in the tick rather than lingering as a
+	coordinate that now names a different rock.
+
+	On Dig so it costs no top-level local; this script sits at 197 of Luau's 200.
+]]
+Dig.QUAKE = {}
+
+function Dig.startQuake(plr, p, part, dmg)
+	if not (plr and part and part.Parent) then
+		return false
+	end
+	local uid = plr.UserId
+	local mine = Dig.QUAKE[uid]
+	if not mine then
+		mine = {}
+		Dig.QUAKE[uid] = mine
+	end
+	-- Cannot stack: already shaking, so nothing happens.
+	if mine[part] then
+		return false
+	end
+	local n = 0
+	for other in pairs(mine) do
+		if other.Parent then
+			n += 1
+		else
+			mine[other] = nil
+		end
+	end
+	if n >= (tonumber(C.EARTHQUAKE_MAX_BLOCKS) or 5) then
+		return false
+	end
+	mine[part] = {
+		dmg = math.max(1, math.floor(tonumber(dmg) or 1)),
+		dies = os.clock() + (tonumber(C.EARTHQUAKE_SEC) or 5),
+	}
+	-- The client reads this to shake the block; the damage does not depend on it.
+	pcall(function()
+		part:SetAttribute("Quaking", true)
+	end)
+	net:FireClient(plr, "loot", { text = "QUAKE",
+		color = Color3.fromRGB(196, 150, 96), pos = part.Position })
+	return true
+end
+
+--[[
+	One tick a second, for every player's quaking blocks.
+
+	A single loop rather than a task per block: five blocks a player across a
+	full server is a lot of tasks to schedule for one subtraction each, and a
+	task that outlives its block is how a mine reset turns into a leak.
+]]
+task.spawn(function()
+	while true do
+		task.wait(1)
+		local share = tonumber(C.EARTHQUAKE_TICK_SHARE) or 0.20
+		local now = os.clock()
+		for uid, mine in pairs(Dig.QUAKE) do
+			local plr = Players:GetPlayerByUserId(uid)
+			local prof = plr and profiles[uid] or nil
+			if not (plr and prof) then
+				Dig.QUAKE[uid] = nil
+			else
+				for part, q in pairs(mine) do
+					if not part.Parent or now >= q.dies then
+						if part.Parent then
+							pcall(function()
+								part:SetAttribute("Quaking", nil)
+							end)
+						end
+						mine[part] = nil
+					else
+						pcall(swingNeighbour, plr, part,
+							math.max(1, math.floor(q.dmg * share)), prof)
+					end
+				end
+			end
+		end
+	end
+end)
 
 -- One Echo: a full-power hit on a DIFFERENT live block beside the one you swung
 -- at, and then that block rolls its own procs. Returns the block it hit, or nil
@@ -7214,6 +7353,11 @@ local function openPack(plr, setId, chestId, pk, collect)
 			local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, roll.tier) or {}
 			if #pool == 0 and Cards.indicesOfRarity then
 				pool = Cards.indicesOfRarity(setId, "Common") or {}
+			end
+			-- This pack's slice of that rarity, not the whole set: two packs of
+			-- one set used to be the same pack in a different wrapper.
+			if Packs.cardPoolFor then
+				pool = Packs.cardPoolFor(packDef, pool)
 			end
 			local index = (#pool > 0) and pool[rng:NextInteger(1, #pool)] or 1
 			def = Cards.getCard and Cards.getCard(setId, index) or nil
@@ -12544,7 +12688,8 @@ end
 Dig.boostSources = function(p)
 	local out = {}
 	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true,
-		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true }
+		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
+		earthquake = true, ricochet = true }
 	local function add(stat, name, amt)
 		if type(amt) ~= "number" or math.abs(amt) < 0.0005 then
 			return

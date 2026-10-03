@@ -1841,6 +1841,90 @@ function MinePackConfig.siphonOdds(oddsMap, luckMult)
 	return out
 end
 
+--[[
+	NOT EVERY PACK SPAWNS EVERY PET (TODO 6.2).
+
+	A pack picks a RARITY from its own odds, then the card is drawn from every
+	card of that rarity in the set -- so two packs of the same set are the same
+	pack wearing a different wrapper, and "which pack do I open for this pet"
+	has no answer.
+
+	This narrows each pack to a WINDOW of the eligible pool. Generated, not
+	authored: a hand-written subset per pack across the whole roster is a table
+	that goes stale the first time a card is added, and nobody would notice
+	which pet had quietly become unobtainable.
+
+	How it behaves, and why these choices:
+
+	  * The window is a contiguous slice of the rarity pool, offset by a hash of
+	    the pack id. Deterministic, so a pack's pet list is a fact a player can
+	    learn rather than a thing that rerolls per open.
+	  * It WRAPS and snaps to a tile, so two packs cover the whole pool between
+	    them. A subset scheme that can orphan a card is worse than none, and with
+	    a free offset a thin set could. See cardPoolFor for the detail.
+	  * A pool of 1 or 2 is left alone. Narrowing two cards to one makes the
+	    other unobtainable from that pack for no gain.
+	  * The share is deliberately generous (0.6). The point is that packs differ,
+	    not that they are collections to grind -- too narrow and a player hunting
+	    one pet is funnelled into one pack, which is the opposite of choice.
+]]
+MinePackConfig.CARD_SUBSET_SHARE = 0.6
+MinePackConfig.CARD_SUBSET_MIN_POOL = 3
+
+-- FNV-1a, via bit32: Luau has no infix bitwise operators, so `h ~ byte` (Lua
+-- 5.3 syntax) does not parse here.
+local function packHash(id)
+	local h = 2166136261
+	for i = 1, #id do
+		h = bit32.bxor(h, string.byte(id, i))
+		h = (h * 16777619) % 4294967296
+	end
+	return h
+end
+
+--[[
+	The slice of `pool` this pack draws from. Returns `pool` itself when there is
+	nothing to gain by narrowing, so callers can use the result unconditionally.
+]]
+function MinePackConfig.cardPoolFor(pack, pool)
+	if type(pool) ~= "table" or #pool < (MinePackConfig.CARD_SUBSET_MIN_POOL or 3) then
+		return pool
+	end
+	local id = pack and tostring(pack.id or "")
+	if not id or id == "" then
+		return pool
+	end
+	local n = #pool
+	local take = math.max(2, math.ceil(n * (MinePackConfig.CARD_SUBSET_SHARE or 0.6)))
+	if take >= n then
+		return pool
+	end
+	--[[
+		THE WINDOW SNAPS TO A TILE, and that is what makes coverage cheap.
+
+		A free offset (hash % n) gives n possible windows, so covering the pool
+		needs enough packs to land on enough of them -- and with a thin set some
+		card is orphaned, which a test caught at a pool of 4.
+
+		Snapped to multiples of `take` there are only ceil(n / take) windows, and
+		with a share above one half that is TWO. So any set holding two packs
+		whose hashes differ in the low bit shows every card between them. That is
+		a property worth having over a prettier distribution: a pet no pack can
+		produce is strictly worse than two packs sharing some pets.
+
+		Coverage is still a property of the SET, not of this function -- one pack
+		alone cannot show everything, by definition. tools/verify/packs.js checks
+		it against the real roster.
+	]]
+	local tiles = math.ceil(n / take)
+	local start = (packHash(id) % tiles) * take
+	local out = {}
+	for i = 0, take - 1 do
+		out[#out + 1] = pool[((start + i) % n) + 1]
+	end
+	return out
+end
+
 function MinePackConfig.rollCard(pack, rng)
 	rng = rng or Random.new()
 	if not pack then

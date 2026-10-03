@@ -1186,6 +1186,32 @@ MineConfig.LUCKY_BLOCK_CHANCE = 0.00020
 MineConfig.ORE_PACK_FIND_CAP = 1.0
 
 --[[
+	EARTHQUAKE and RICOCHET -- the two new build boosts the owner specified
+	(TODO 6.2 "New build boosts").
+
+	Both are deliberately NOT damage multipliers. The guardrail that section
+	asks for is that almost no effect does full pickaxe damage without a
+	dedicated amplifier, so these two spend their power on reach and time
+	instead of on the hit:
+
+	  EARTHQUAKE  the block shakes and takes 20% of your tool damage per
+	              second. Cannot stack on one block. At most 5 blocks shaking
+	              at once, per player.
+	  RICOCHET    breaking a block jumps the effect to one nearby block. Once.
+	              No chain reactions -- the block it lands on rolls no procs.
+
+	The 20%, the 5 and "once" are the owner's numbers. The DURATION was not
+	specified, and 5 seconds is the choice: a full life is then 100% of one
+	swing spread over five seconds, so a quake is worth starting and is never
+	a substitute for swinging. It is the one number here to argue with.
+]]
+MineConfig.EARTHQUAKE_TICK_SHARE = 0.20
+MineConfig.EARTHQUAKE_SEC = 5
+MineConfig.EARTHQUAKE_MAX_BLOCKS = 5
+-- One jump, never a chain. Raising this turns Ricochet into Zap.
+MineConfig.RICOCHET_HOPS = 1
+
+--[[
 	Most items one bulk-recycle batch may carry.
 
 	Shared because BOTH SIDES need it. The server truncates the id list at this

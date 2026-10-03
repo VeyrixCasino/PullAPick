@@ -56,6 +56,8 @@ MineRunes.INITIAL_MAX_PCT = {
 	reach = 5.0,
 	coolant = 3.0,
 	shortFuse = 3.0,
+	earthquake = 2.6,
+	ricochet = 2.4,
 }
 
 MineRunes.WHITE_COST_MULT = 5
@@ -120,7 +122,9 @@ MineRunes.FAMILY_STATS = {
 		"oreYield", "rareOre", "gemFind", "coinBonus",
 		"luck", "chestLuck", "fossilFind", "pulverize", "backpack", "walkSpeed", "dirtBreak",
 	},
-	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "backpack" },
+	-- echo stays listed for an already-rolled rune to resolve against; NO_ROLL_STATS
+	-- keeps it out of the pool. earthquake and ricochet are the two new procs.
+	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "backpack", "earthquake", "ricochet" },
 	explosive = { "shortFuse", "blastRadius", "dirtBreak", "oreYield" },
 	drill = { "coolant", "reach", "swingRate", "dirtBreak", "oreYield" },
 }
@@ -187,6 +191,8 @@ MineRunes.TIER1_PCT = {
 	reach = 4.00,
 	coolant = 2.00,
 	shortFuse = 1.60,
+	earthquake = 1.40,
+	ricochet = 1.30,
 	-- mineSpeed, luckyFind, scrap: pets only, never TIER1.
 }
 
@@ -455,6 +461,8 @@ function MineRunes.applyFraction(b, stat, pct)
 	elseif stat == "scrap" then b.scrap = (b.scrap or 0) + pct
 	elseif stat == "coolant" then b.coolant = (b.coolant or 0) + pct
 	elseif stat == "shortFuse" then b.shortFuse = (b.shortFuse or 0) + pct
+	elseif stat == "earthquake" then b.earthquake = (b.earthquake or 0) + pct
+	elseif stat == "ricochet" then b.ricochet = (b.ricochet or 0) + pct
 	elseif stat == "reach" then b.reach = (b.reach or 0) + pct
 	elseif stat == "blastRadius" then b.blastRadius = (b.blastRadius or 0) + pct
 	elseif stat == "autoMine" then
@@ -509,7 +517,8 @@ function MineRunes.clampBoosts(b)
 		if stat == "echo" or stat == "zap" or stat == "autoMine" or stat == "oreYield"
 			or stat == "luckyFind" or stat == "fossilFind" or stat == "pulverize"
 			or stat == "blastRadius" or stat == "scrap" or stat == "coolant"
-			or stat == "shortFuse" or stat == "reach" then
+			or stat == "shortFuse" or stat == "reach"
+			or stat == "earthquake" or stat == "ricochet" then
 			b[stat] = math.max(0, b[stat] or 0)
 		elseif stat == "swingRate" then
 			b.swingSec = math.max(0.05, b.swingSec or 1)

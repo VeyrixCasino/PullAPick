@@ -204,6 +204,8 @@ MineGear.STAT_WEIGHT = {
 	fossilFind = 0.18,
 	pulverize = 0.22,
 	autoMine = 0.25,
+	earthquake = 0.30,
+	ricochet = 0.28,
 }
 
 function MineGear.statWeight(stat)

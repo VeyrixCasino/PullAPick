@@ -144,8 +144,9 @@ check(Pouch.room(full, 1) == 0, "an overfull pouch reports no room, not a negati
 
 if fail > 0 then
 	print(">>> orepacks: " .. fail .. " FAILED assertion(s)")
+else
+	print(">>> orepacks: all assertions passed")
 end
-print(">>> orepacks: all assertions passed")
 `;
 
 const script = path.join(ROOT, ".luau-bin/orepacks-check.luau");

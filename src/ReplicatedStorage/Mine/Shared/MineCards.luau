@@ -406,7 +406,17 @@ function MineCards.getKit(setId, index)
 	}
 end
 
-local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true }
+--[[
+	Which stats ADD rather than multiply.
+
+	Exported, because MineServer keeps two more copies of this list (the relic
+	fold's ADDITIVE_BOOST and the proc set in its snapshot builder) and three
+	hand-maintained copies of one list is how one of them ends up missing a
+	stat -- a multiplier starting at 0 zeroes everything it touches, and an
+	additive starting at 1 is a free +100%.
+]]
+local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true }
+MineCards.ADDITIVE_STATS = ADDITIVE_STATS
 
 local function addStat(b, key, amount)
 	local ok, Stats = pcall(require, script.Parent:FindFirstChild("MineStats"))
@@ -570,6 +580,11 @@ function MineCards.emptyBoosts()
 		-- additive (oreYield = Blast % proc)
 		echo = 0, zap = 0, blastRadius = 0, autoMine = 0, oreYield = 0, luckyFind = 0, fossilFind = 0, pulverize = 0,
 		scrap = 0, coolant = 0, shortFuse = 0, reach = 0,
+		-- Earthquake and Ricochet are chances, so additive like the other procs.
+		-- They have to START here: the relic fold skips any stat whose key is
+		-- not already on the table (b[r.stat] ~= nil), so a missing key would be
+		-- a silently ignored boost rather than an error.
+		earthquake = 0, ricochet = 0,
 	}
 end
 

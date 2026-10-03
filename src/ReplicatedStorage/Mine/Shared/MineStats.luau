@@ -50,12 +50,18 @@ MineStats.STATS = {
 	scrap       = { label = "Scrap",            weight = 1.2, unit = "%", desc = "Extra stardust when a chest dies. Not the Scrapper. Pets only." },
 	coolant     = { label = "Coolant",          weight = 2.5, unit = "%", desc = "Drill spin-up. turn / (1 + coolant). Apex stays 0. Rune only." },
 	shortFuse   = { label = "Short Fuse",       weight = 2.2, unit = "%", desc = "Bomb cooldown / (1 + p), and extra mineSpeed on explosives. Rune only." },
+	-- The two new build boosts. Priced near zap (2.5) because they are the
+	-- same shape of thing -- a chance to reach a block you did not swing at --
+	-- and neither multiplies the hit itself.
+	earthquake  = { label = "Earthquake",       weight = 2.6, unit = "%", desc = "Chance a block starts shaking and takes 20% of your tool damage per second. Does not stack; 5 blocks at once." },
+	ricochet    = { label = "Ricochet",         weight = 2.4, unit = "%", desc = "Chance breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
 }
 
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
 	"oreYield", "rareOre", "gemFind", "coinBonus",
 	"luck", "chestLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
+	"earthquake", "ricochet",
 	"coolant", "shortFuse", "backpack", "walkSpeed", "dirtBreak",
 }
 

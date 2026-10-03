@@ -116,9 +116,10 @@ end
 if fail > 0 then
 	print("")
 	print(">>> bignum: " .. fail .. " FAILED assertion(s)")
+else
+	print("")
+	print(">>> bignum: all assertions passed")
 end
-print("")
-print(">>> bignum: all assertions passed")
 `;
 
 const script = path.join(ROOT, ".luau-bin/bignum-check.luau");
