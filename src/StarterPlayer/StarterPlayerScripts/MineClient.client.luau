@@ -4478,6 +4478,18 @@ depthHud.contractor = require(shared:WaitForChild("MineContractor")).mount(gui, 
 
 local Scrolls = require(shared:WaitForChild("MineScrolls"))
 shopCtl = ShopView.mount(gui, {
+	--[[
+		The Forge reports the skin and rune on the selected tool's family and
+		sends you to the Enchanter to change either, rather than growing a second
+		copy of those two screens. routePanel hides the shop on the way, so this
+		is a jump and not an overlay.
+	]]
+	onOpenEnchanter = function(tab)
+		if ClientFns.teleportToEnchanter then
+			ClientFns.teleportToEnchanter()
+		end
+		ClientFns.routePanel("enchanter", tostring(tab or "sockets"))
+	end,
 	onBuyTool = function(family, tier, toolId)
 		if toolId then
 			net:FireServer("buyTool", { toolId = toolId, family = family, tier = tier })

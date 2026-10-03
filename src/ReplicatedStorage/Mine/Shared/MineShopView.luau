@@ -219,7 +219,7 @@ function MineShopView.mount(parent, opts)
 	-- Opens on the Forge, not on a shelf of coin-bought picks.
 	local activeTab = "bench"
 	local index = 1
-	state.tempers, state.toolTempers = {}, {}
+	state.tempers, state.toolTempers, state.toolSockets = {}, {}, {}
 	local view = {}
 	local CARD_HOME = UDim2.new(0.5, 0, 0, 104)
 
@@ -539,11 +539,29 @@ function MineShopView.mount(parent, opts)
 					-- comes off the pouch tier. Without this it defaulted to 1
 					-- and quoted a tier-1 pouch to everybody.
 					orePouchTier = state.orePouchTier or 1,
+					--[[
+						The skin and rune the selected tool's FAMILY is wearing.
+						Both are keyed by family, not by tool -- a forged row
+						cannot hold either -- and the Forge says so rather than
+						implying the fit is per-tool. `runes` is the loose list,
+						used to name a socketed rune when it is still in it.
+					]]
+					toolTempers = state.toolTempers or {},
+					toolSockets = state.toolSockets or {},
+					runes = state.runes or {},
 				}
 			end,
 			-- Out of the Forge and down to the second line.
 			onCoinShop = function()
 				view.setTab("pickaxe")
+			end,
+			-- Fitting a skin or socketing a rune happens at the Enchanter. The
+			-- Forge reports what is fitted and sends you there rather than
+			-- growing a second copy of those two screens.
+			onOpenEnchanter = function(tab)
+				if opts.onOpenEnchanter then
+					opts.onOpenEnchanter(tab)
+				end
 			end,
 			onEquip = function(uid)
 				if opts.onEquipOreTool then
@@ -2299,6 +2317,8 @@ function MineShopView.mount(parent, opts)
 		state.shopToolId = snapshot.shopToolId or (snapshot.tool and snapshot.tool.id)
 		state.tempers = snapshot.tempers or {}
 		state.toolTempers = snapshot.toolTempers or {}
+		-- The Forge shows what the selected tool's FAMILY is wearing.
+		state.toolSockets = snapshot.toolSockets or {}
 		if root.Visible then
 			paint()
 		end

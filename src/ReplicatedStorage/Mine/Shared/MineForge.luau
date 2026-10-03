@@ -466,6 +466,83 @@ function MineForge.mount(parent, opts)
 			RED, UDim2.fromOffset(116, y + 38), UDim2.fromOffset(224, 26), true, function()
 				if opts.onRecycle then opts.onRecycle(tool.uid) end
 			end)
+
+		--[[
+			THE SKIN AND THE RUNE ON THIS TOOL.
+
+			Both were invisible here, which made the Forge a panel about levelling
+			a tool while saying nothing about the two things TODO 0.13 calls the
+			build. You had to go to the Enchanter to find out whether the pick you
+			were pouring ore into even had a skin on it.
+
+			BOTH ARE PER FAMILY, NOT PER TOOL, and that is the fact a reader needs:
+			p.toolSockets and p.toolTempers are keyed "pickaxe" / "drill" /
+			"explosive". A forged tool row carries only uid, typeId, familyId,
+			tier and level -- it cannot hold a rune or a temperament of its own.
+			So this shows what the FAMILY is wearing, which is what this tool
+			swings with, and says so rather than implying the fit is per-tool.
+
+			It REPORTS and ROUTES rather than reimplementing. The Enchanter's
+			Temper and Sockets tabs are several hundred lines each and work;
+			building a second copy here is how two screens start disagreeing
+			about what is fitted. Whether those tabs should eventually live here
+			instead is a design call, not a side effect of this panel.
+		]]
+		local fam = tostring(selFamily or "pickaxe")
+		local ySkin = y + 76
+		label(host, "ON THIS FAMILY", 11, MUTED, UDim2.fromOffset(0, ySkin),
+			UDim2.new(1, 0, 0, 14), FONT)
+
+		local tt = (snapshot.toolTempers or {})[fam] or {}
+		local skinLine, skinInk = "no skin fitted", MUTED
+		if tt.temperId then
+			local okT, Temper = pcall(function()
+				return require(shared:WaitForChild("MineTemper"))
+			end)
+			local kit = okT and Temper and Temper.kit and Temper.kit(tt.temperId) or nil
+			skinLine = string.format("%s%s", tostring((kit and kit.name) or tt.temperId),
+				tt.temperRarity and ("  " .. tostring(tt.temperRarity)) or "")
+			skinInk = GOLD
+		end
+		label(host, "skin   " .. skinLine, 12, skinInk, UDim2.fromOffset(0, ySkin + 16),
+			UDim2.new(1, -120, 0, 16))
+
+		local socket = (snapshot.toolSockets or {})[fam]
+		local runeId = (type(socket) == "table") and (socket.main or socket.omni) or socket
+		local runeLine, runeInk = "no rune socketed", MUTED
+		if runeId then
+			local okR, Runes = pcall(function()
+				return require(shared:WaitForChild("MineRunes"))
+			end)
+			local r
+			for _, row in ipairs(snapshot.runes or {}) do
+				if row.id == runeId then
+					r = row
+					break
+				end
+			end
+			if okR and Runes and Runes.describe and r then
+				runeLine = tostring(Runes.describe(r))
+			else
+				-- The rune is socketed but not in the loose list, which is exactly
+				-- what being socketed means. Say that rather than "none".
+				runeLine = "one socketed"
+			end
+			runeInk = GOLD
+		end
+		label(host, "rune   " .. runeLine, 12, runeInk, UDim2.fromOffset(0, ySkin + 34),
+			UDim2.new(1, -120, 0, 16))
+
+		if opts.onOpenEnchanter then
+			button(host, "FIT A SKIN", BG3, UDim2.new(1, -118, 0, ySkin + 14),
+				UDim2.fromOffset(112, 24), true, function()
+					opts.onOpenEnchanter("temper")
+				end)
+			button(host, "SOCKET A RUNE", BG3, UDim2.new(1, -118, 0, ySkin + 42),
+				UDim2.fromOffset(112, 24), true, function()
+					opts.onOpenEnchanter("sockets")
+				end)
+		end
 	end
 
 	local function drawCraft(host, snapshot, def)

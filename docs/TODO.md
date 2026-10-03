@@ -774,8 +774,20 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
       `Verbs` is declared below the mining grant, so the marks are inlined.
 - [x] **Separate upgrades area** — the detail pane switches to UPGRADE for an
       owned tool: level, next step's price, +1 / +10 / MAX and SCRAP.
-- [ ] Runes and skins are **not** applied there yet. That is `MineForgeView`'s
-      temperament UI, which still has to move into the Forge's upgrade pane.
+- [x] **The skin and rune on a tool are shown in the upgrade pane**, with buttons
+      to the Enchanter's Temper and Sockets tabs.
+      - **Both are PER FAMILY, not per tool** — `p.toolSockets` and
+        `p.toolTempers` are keyed `pickaxe`/`drill`/`explosive`, and a forged row
+        carries only `uid, typeId, familyId, tier, level`. It cannot hold either.
+        The pane says "ON THIS FAMILY" rather than implying the fit is per-tool.
+      - It **reports and routes** rather than reimplementing. The Enchanter's two
+        tabs are several hundred lines each and work; a second copy is how two
+        screens start disagreeing about what is fitted.
+- [ ] **Whether the Temper/Sockets tabs should MOVE here** (so the Enchanter stops
+      owning them) is a design call, not a side effect of this panel. `MineForgeView`
+      already has `mountList(parent, opts)`, which takes a position and size and
+      is embeddable — so the mechanics are cheap once the call is made. What is
+      expensive is deciding whether the Enchanter keeps a Temper tab at all.
 - [x] **The ORE POUCH is in the Forge**, along the bottom: every ore you hold,
       rarest first, with fill against capacity. The wallet strip answered
       coins/gems/dust and the detail pane quotes the ore cost of whatever is
