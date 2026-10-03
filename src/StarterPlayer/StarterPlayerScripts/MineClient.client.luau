@@ -13,6 +13,36 @@ local Debris = game:GetService("Debris")
 local player = Players.LocalPlayer
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared:WaitForChild("MineConfig"))
+
+--[[
+	Which build of src/ is this. First thing in the output window, every Play.
+
+	Twice now a panel has been reported missing when it was in the repo and the
+	Studio serving the place was running ReplicatedStorage from before it was
+	written. The code was never the problem and the output window never said so.
+	Now it does, before anything else has a chance to look broken.
+
+	Guarded both ways: MineBuild going missing is itself the loudest possible
+	staleness signal, so its absence warns rather than throwing and taking the
+	HUD down with it.
+]]
+do
+	local mb = shared:FindFirstChild("MineBuild")
+	if mb then
+		local okB, errB = pcall(function()
+			require(mb).announce(shared)
+		end)
+		if not okB then
+			warn("[MineBuild] announce failed: " .. tostring(errB))
+		end
+	else
+		warn("[MineBuild] THIS STUDIO IS RUNNING OLDER CODE THAN src/: "
+			.. "ReplicatedStorage.Mine.Shared.MineBuild does not exist, and it "
+			.. "has been in the repo since the Forge shipped. Run git pull in "
+			.. "the clone `rojo serve` is serving, reconnect the Rojo plugin, "
+			.. "and Play again.")
+	end
+end
 local Cards = require(shared:WaitForChild("MineCards"))
 local Packs = require(shared:WaitForChild("MinePackConfig"))
 -- The pets. 43 built species with variants, shinies and chroma -- the mine

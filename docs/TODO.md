@@ -31,6 +31,43 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.14 — "THE UI ISN'T THERE" IS A SYNC QUESTION FIRST.** 2026-10-03. Reported
+twice: "still no forge ui", then "THERE'S STILL NO FUCKIN FORGE". Both times the
+Forge was in the repo and had been for days. The screenshot settled it — the
+shop's tab row read `Pickaxes · Drills · Explosives · Backpacks · Secrets ·
+Upgrade` and the subtitle read *"Level the ore tools you found. Paid in their own
+ore, plus stardust."* That string is the `bench` tab blurb **as it was written at
+`0122667` (2026-09-28)**, deleted in `663fbb2` when the Forge took the front
+line. It does not exist anywhere in the current tree. The Studio was running
+`MineShopView` from before the Forge was written — older than `main`, never mind
+the branch.
+
+So, in order, before touching code:
+
+1. Ask what the on-screen tabs say. The current set opens with **Forge** and
+   **Ore Pouch**. An `Upgrade` tab means pre-2026-09-28 code.
+2. `git log --all -S'<a string from the screenshot>'` dates the running build in
+   one command. Screenshot text is the cheapest version stamp there is.
+3. Only then look for a bug.
+
+The fix for this class is never in `src/` — it is `git pull` in the clone
+`rojo serve` is running out of, then reconnect the plugin. Note that every
+service node uses `$ignoreUnknownInstances`, so a Studio that is **not** connected
+keeps serving whatever scripts were last written into the place file, forever,
+with no warning.
+
+What changed in code so this cannot hide again (2026-10-03):
+
+- `MineBuild.luau` — a `STAMP` to eyeball against the repo, and `EXPECT`, the
+  modules this build needs. `announce()` runs first thing in `MineClient` and
+  warns by name when one is absent, since a build older than `src/` is missing
+  `src/`'s newest modules. That is the tell, and it cannot go stale into a lie.
+- `MineShopView` no longer loses the **Forge** or the **Ore Pouch** tab in
+  silence. The guarded require and the guarded mount both `warn` now. The silent
+  version of that guard is most of why this took a week.
+- `tools/verify/build-stamp.js` keeps `EXPECT` honest: every name must be a real
+  module in `src/`, or the warning cries wolf and everyone learns to ignore it.
+
 **0.13 — CHARMS AND SKINS ARE THE BUILD.** Owner, 2026-10-02. The two main parts,
 and everything else (pets, hats, faces, runes) is support. Later charms are
 better, **but never because the number is bigger** — a charm has a SHAPE, and a
