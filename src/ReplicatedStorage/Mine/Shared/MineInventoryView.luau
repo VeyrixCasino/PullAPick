@@ -2737,6 +2737,18 @@ function MineInventoryView.mount(parent, opts)
 						the snapshot carries the same fields, so the client reaches
 						the same answer the server does.
 					]]
+					--[[
+						The COUNT, and what three of them merge into. A legacy
+						charm saved as `true` is one copy, which is how every
+						other reader of this tally treats it.
+					]]
+					local held = (state.charms or {})[def.id]
+					local n = (held == true) and 1 or math.floor(tonumber(held) or 0)
+					local mergeTo, mergeDef, mergeWhy
+					if Charms.mergeTarget then
+						mergeTo, mergeDef, mergeWhy = Charms.mergeTarget(def.id)
+					end
+					local cost = math.max(2, math.floor(tonumber(Charms.MERGE_COST) or 3))
 					table.insert(out, {
 						key = "charm|" .. def.id,
 						name = def.name,
@@ -2744,6 +2756,10 @@ function MineInventoryView.mount(parent, opts)
 							or (def.source or "Charm"),
 						def = def, slot = "charm", source = "charm", id = def.id,
 						equipped = state.equippedCharm == def.id,
+						count = n,
+						mergeTo = mergeTo, mergeName = mergeDef and mergeDef.name or nil,
+						mergeWhy = mergeWhy, mergeCost = cost,
+						canMerge = mergeTo ~= nil and n >= cost,
 						why = "Charms are kept, not sold",
 					})
 				end
@@ -3534,17 +3550,65 @@ function MineInventoryView.mount(parent, opts)
 				eqB.MouseButton1Click:Connect(equipIt)
 			end
 
-			local canSell = item.sell ~= nil and not item.why
+			--[[
+				A CHARM MERGES INSTEAD OF SELLING.
+
+				The right-hand button is SELL for everything else, and for a
+				charm it always read "CAN'T SELL -- Charms are kept, not sold":
+				a button whose only job was to refuse. Merging goes there, which
+				is the one thing you can actually do with a duplicate charm.
+
+				It stays a refusing button when there is nothing to merge, with
+				the reason on it, rather than vanishing -- a control that
+				appears and disappears depending on a count is harder to learn
+				than one that tells you what it wants.
+			]]
+			local isCharm = item.source == "charm"
+			local canSell = (not isCharm) and item.sell ~= nil and not item.why
+			local canMerge = isCharm and item.canMerge == true
+			local rightOn = canSell or canMerge
+			local rightText
+			if isCharm then
+				rightText = canMerge
+					and string.format("MERGE %d", item.mergeCost or 3)
+					or "CAN'T MERGE"
+			else
+				rightText = canSell and "SELL" or "CAN'T SELL"
+			end
 			local sellB = mk("TextButton", {
-				AutoButtonColor = canSell,
-				BackgroundColor3 = canSell and Color3.fromRGB(150, 58, 58) or BG3,
-				Text = canSell and "SELL" or "CAN'T SELL", Font = FONT, TextSize = 16,
-				TextColor3 = canSell and Color3.fromRGB(255, 226, 226) or MUTED,
+				AutoButtonColor = rightOn,
+				BackgroundColor3 = rightOn and Color3.fromRGB(150, 58, 58) or BG3,
+				Text = rightText, Font = FONT, TextSize = 16,
+				TextColor3 = rightOn and Color3.fromRGB(255, 226, 226) or MUTED,
 				Position = UDim2.new(0.52, 6, 0, 66), Size = UDim2.new(0.48, -6, 0, 46),
 				ZIndex = 74,
 			}, footer)
 			round(sellB, 10)
-			if canSell then
+			if canMerge then
+				--[[
+					Say what it BECOMES, not just that it merges. The charm one
+					tier up has a different shape and usually a different stat,
+					so a player who is not told the name has no way to know
+					whether they want the trade.
+				]]
+				label(footer, string.format("%d held  ·  %d become %s",
+					item.count or 0, item.mergeCost or 3, tostring(item.mergeName or "the next charm")),
+					13, GOLD, UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil,
+					Enum.TextXAlignment.Center)
+				sellB.MouseButton1Click:Connect(function()
+					if opts.onMergeCharm then
+						opts.onMergeCharm(item.id)
+					end
+					closeCard()
+				end)
+			elseif isCharm then
+				local line = item.mergeWhy
+					or string.format("%d held  ·  %d needed to merge into %s",
+						item.count or 0, item.mergeCost or 3,
+						tostring(item.mergeName or "the next charm"))
+				label(footer, line, 13, MUTED,
+					UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil, Enum.TextXAlignment.Center)
+			elseif canSell then
 				label(footer, "Sells for " .. payoutText(), 13, GOLD,
 					UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil, Enum.TextXAlignment.Center)
 				sellB.MouseButton1Click:Connect(showConfirm)

@@ -9159,6 +9159,86 @@ local function equipCharm(plr, payload)
 	walk(plr)
 end
 
+--[[
+	MERGE THREE CHARMS INTO ONE A TIER DEEPER.
+
+	The rule and the cost live in MineCharms.mergeTarget / MERGE_COST so the
+	client's button and this cannot disagree about what a merge produces -- and
+	the refusal sentence comes from there too, so "why not" reads the same in
+	both places.
+
+	ALL OR NOTHING, and the spend happens after the target resolves: an earlier
+	shape of this debited first and granted second, which on an unmergeable
+	charm would have eaten three copies for nothing.
+
+	The equipped charm is handled rather than ignored. Merging away the last
+	copy of what you are wearing would leave `p.equippedCharm` pointing at a
+	charm you no longer own, which the load path then silently clears -- so the
+	merge moves you onto the charm you just made instead. That is also just
+	what you wanted.
+]]
+-- On Verbs rather than a local: this script sits at 197 of Luau's 200
+-- top-level locals and a verb does not need to spend one of the last three.
+function Verbs.mergeCharm(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local id = payload
+	if type(payload) == "table" then
+		id = payload.id or payload.charmId or payload.charm
+	end
+	id = tostring(id or "")
+	p.charms = p.charms or {}
+
+	local cost = math.max(2, math.floor(tonumber(Charms.MERGE_COST) or 3))
+	local have = math.floor(tonumber(p.charms[id]) or 0)
+	-- A legacy charm saved as `true` counts as one copy, the same as everywhere
+	-- else that reads this tally.
+	if p.charms[id] == true then
+		have = 1
+	end
+	if have < cost then
+		net:FireClient(plr, "toast", string.format(
+			"Need %d of that charm to merge (you have %d)", cost, have))
+		return
+	end
+
+	local targetId, targetDef, why = Charms.mergeTarget(id)
+	if not targetId then
+		net:FireClient(plr, "toast", why or "That charm cannot be merged")
+		return
+	end
+
+	p.charms[id] = have - cost
+	if p.charms[id] <= 0 then
+		p.charms[id] = nil
+	end
+	local had = p.charms[targetId]
+	if had == true then
+		had = 1
+	end
+	p.charms[targetId] = math.floor(tonumber(had) or 0) + 1
+	-- Mark it seen, the same as a drop would, or the Forge's recipe list and
+	-- anything else reading oresSeen would not know the ore behind it.
+	if targetDef.oreId then
+		p.oresSeen = p.oresSeen or {}
+		p.oresSeen[tostring(targetDef.oreId)] = true
+	end
+
+	if p.equippedCharm == id and not p.charms[id] then
+		p.equippedCharm = targetId
+	end
+
+	bumpStat(plr, p, "merges")
+	net:FireClient(plr, "toast", string.format("%d x %s  ->  %s",
+		cost, tostring(Charms.byId(id) and Charms.byId(id).name or id),
+		tostring(targetDef.name or targetId)))
+	markDirty(plr)
+	snap(plr)
+	walk(plr)
+end
+
 local function equipVfx(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -15181,6 +15261,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "prestige" then tryPrestige(plr)
 		elseif action == "buyZone" then buyZone(plr, payload)
 		elseif action == "equipCharm" then equipCharm(plr, payload)
+		elseif action == "mergeCharm" then Verbs.mergeCharm(plr, payload)
 		elseif action == "equipVfx" then equipVfx(plr, payload)
 		elseif action == "equipBag" then
 			local p = profiles[plr.UserId]

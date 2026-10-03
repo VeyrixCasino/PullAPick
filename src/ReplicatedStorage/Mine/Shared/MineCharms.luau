@@ -727,6 +727,65 @@ end
 	one -- variant 1 by default, so every existing caller keeps working and keeps
 	meaning what it meant.
 ]]
+--[[
+	MERGING A CHARM INTO THE NEXT TIER.
+
+	Three copies of an ore charm become one copy of the charm one ore tier
+	deeper, same variant. Three because the card merge in the inventory is
+	already "MERGE 3 -> UP" and a second merge arithmetic in the same game is a
+	thing players have to learn twice.
+
+	IT IS A TRADE, NOT AN UPGRADE, and that is the point rather than a
+	compromise. A charm's shape and stat come from `k = (tier-1) * variants +
+	(variant-1)` -- shape is `k % 6`, the stat walks a second cycle -- so the
+	charm one tier up has a DIFFERENT shape and usually a different stat. You
+	are converting duplicates into depth and variety, not into a bigger number.
+	That is exactly what TODO 0.13 asks for: "later ones should be better, but
+	never because the number is bigger".
+
+	Only ore charms merge. The legacy 31 (zone grant, gem pack, limited) are
+	deliberately left out -- §6.0 still has an open owner call on whether they
+	are retired at all, and letting them feed a merge ladder would quietly make
+	that decision.
+
+	Returns the target id, the target def, and nil plus a reason when it cannot.
+	The reason is a player-facing sentence, so the server and any UI say the same
+	thing about why a merge is refused.
+]]
+MineCharms.MERGE_COST = 3
+
+function MineCharms.mergeTarget(charmId)
+	local def = MineCharms.byId(charmId)
+	if not def then
+		return nil, nil, "That charm is not in the game"
+	end
+	if def.source ~= "ore" then
+		return nil, nil, "Only ore charms merge"
+	end
+	local C = require(script.Parent:WaitForChild("MineConfig"))
+	local ores = C.ORES or {}
+	local nextTier = (tonumber(def.tier) or 0) + 1
+	-- ORES is ordered by tier and tier == index for all 82 rows, but read the
+	-- row's own tier rather than trusting that: a roster edit that breaks the
+	-- alignment should fail to find a target, not merge into the wrong charm.
+	local target
+	for i, ore in ipairs(ores) do
+		if (tonumber(ore.tier) or i) == nextTier then
+			target = ore
+			break
+		end
+	end
+	if not target then
+		return nil, nil, "This is the deepest charm there is"
+	end
+	local id = MineCharms.oreCharmId(target.id, def.variant)
+	local tdef = MineCharms.byId(id)
+	if not tdef then
+		return nil, nil, "That charm is not in the game"
+	end
+	return id, tdef, nil
+end
+
 function MineCharms.oreCharms(oreId)
 	return BY_ORE[tostring(oreId or "")] or {}
 end

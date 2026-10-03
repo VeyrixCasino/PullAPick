@@ -606,7 +606,24 @@ beside the Forge.
       The zone grant's own check moved to `MineCharms.ownsAnyCharm` on the way —
       it used `next(p.charms) ~= nil`, which reads a tally left at zero as
       ownership and would have quietly cancelled the guarantee.
-- [ ] **Mergeable** into higher tiers.
+- [x] **Mergeable into higher tiers.** Three copies become one of the charm one
+      ore tier deeper, same variant. Three because the card merge is already
+      "MERGE 3 → UP" and a second merge arithmetic is a thing players learn twice.
+      - **It is a TRADE, not an upgrade**, and that is the point. Shape comes
+        from `k = (tier-1) * variants + (variant-1)`, so a merge moves `k` by
+        `variants` and the shape ALWAYS changes — you buy depth and variety, not
+        a bigger number, which is what §0.13 asks for. `tools/verify/charms.js`
+        asserts it across all 162 mergeable charms rather than trusting it.
+      - **Legacy charms do not merge.** §6.0 still has an open owner call on
+        whether they are retired; feeding them into a ladder would decide it
+        quietly.
+      - The card's right-hand button was "CAN'T SELL — charms are kept, not sold",
+        a control whose only job was to refuse. It is MERGE now, and it names
+        what the charm becomes, because the target has a different shape and a
+        player who is not told cannot judge the trade.
+      - Merging away the last copy of the EQUIPPED charm moves you onto the one
+        you just made, rather than leaving `p.equippedCharm` dangling for the
+        load path to clear.
 - [ ] **Decide what happens to the legacy 31.** 15 zone-grant + 15 gem-pack + 1
       limited charm still exist and still drop. §0.5 says charms are an ORE drop;
       these predate it. Left in place deliberately so nobody loses one — **needs

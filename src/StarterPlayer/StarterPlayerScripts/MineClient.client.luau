@@ -2965,6 +2965,9 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onSellTool = function(payload) net:FireServer("sellTool", payload) end,
 	onScrapGear = function(id) net:FireServer("scrap", { kind = "gear", id = id }) end,
+	-- Three charms into one a tier deeper. The server owns the cost and the
+	-- target (MineCharms.MERGE_COST / mergeTarget); this only names the charm.
+	onMergeCharm = function(id) net:FireServer("mergeCharm", { id = id }) end,
 	--[[
 		Bulk scrap goes out twice. The first call carries no confirm flag and is
 		the ASK -- the server builds the plan and replies with `confirmScrap`,
