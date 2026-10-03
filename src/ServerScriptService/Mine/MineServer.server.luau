@@ -4772,7 +4772,27 @@ local function givePickaxe(plr)
 		elseif passId == "bp_eclipse" and ToolModels.buildLunar then
 			model, handle, grip = ToolModels.buildLunar("bp_eclipse")
 		else
-			model, handle, grip = ToolModels.build(famId, lookTier, count)
+			--[[
+				A FORGED TOOL LOOKS LIKE ITS ORE.
+
+				Without the look, build() colours itself from an eight-step ramp
+				indexed by lookTier -- a cosmetic shop rung -- so all 82 ore
+				tools shared eight palettes and the ore was visible nowhere on
+				the thing it made. The ore row already carries a colour, a real
+				material, metalness and roughness; oreLook turns that into the
+				head colour, the haft, the material, the gleam and the
+				silhouette.
+
+				Only for a forged tool: row.oreTier is what marks one, and a shop
+				rung keeps the ramp it was authored against.
+			]]
+			local oreLook
+			local oTier = row and tonumber(row.oreTier)
+			if oTier and ToolModels.oreLook then
+				local oreDef = C.ORES and C.ORES[math.floor(oTier)]
+				oreLook = oreDef and ToolModels.oreLook(oreDef, C.ORE_COUNT or #(C.ORES or {})) or nil
+			end
+			model, handle, grip = ToolModels.build(famId, lookTier, count, oreLook)
 		end
 	end
 	if not handle then
