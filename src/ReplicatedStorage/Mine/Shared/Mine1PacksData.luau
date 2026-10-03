@@ -130,7 +130,7 @@ return {
 	},
 
 	--[[
-		LOOT PACKS -- fossil pieces, runes and gear, sold and opened as packs.
+		LOOT PACKS -- runes and gear, sold and opened as packs.
 
 		Same shape as a card pack on purpose. `cards` is how many ITEMS the pack
 		pays, and `odds` is over the same eight-name rarity ladder, so every
@@ -140,25 +140,12 @@ return {
 
 		`kind` is the only new field. It says which roller builds the item, and
 		MineLootPacks maps the ladder onto that family's own scale --
-		Common..Exotic onto gear F..SSS, onto rune tiers 1..5, onto the sixteen
-		fossil recipes two at a time.
+		Common..Exotic onto gear F..SSS and onto rune tiers 1..5.
 
 		These odds GOVERN. The roller reads this table rather than each family's
 		internal weights, for the same reason the card packs do: two tables that
 		can disagree eventually do, and the one on screen is the one that lies.
 	]]
-	{
-		id = "fossil_pack", name = "Surface Fossil Pack", kind = "fossil", cards = 4, layer = 250,
-		odds = { Common = 42.000, Uncommon = 28.000, Rare = 15.000, Epic = 8.000, Legendary = 4.500, Mythic = 1.800, Divine = 0.550, Exotic = 0.150 },
-	},
-	{
-		id = "fossil_deeprock_pack", name = "Deeprock Fossil Pack", kind = "fossil", cards = 4, layer = 1100,
-		odds = { Common = 20.000, Uncommon = 24.000, Rare = 22.000, Epic = 16.000, Legendary = 10.000, Mythic = 5.500, Divine = 2.000, Exotic = 0.500 },
-	},
-	{
-		id = "fossil_shadowzone_pack", name = "Shadowzone Fossil Pack", kind = "fossil", cards = 4, layer = 2300,
-		odds = { Common = 6.000, Uncommon = 12.000, Rare = 19.000, Epic = 22.000, Legendary = 20.000, Mythic = 13.000, Divine = 6.000, Exotic = 2.000 },
-	},
 	-- Runes stop at tier 5, so Mythic and above are zero here rather than absent:
 	-- a printed 0.00% is a promise, a missing row is a question.
 	{

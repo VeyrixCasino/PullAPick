@@ -31,7 +31,18 @@ MineEventPass.TRACKS = {
 			{ id = "eh_depth80",  stat = "depth",   goal = 80,   xp = 35, text = "Reach layer 80 in Event Horizon" },
 			{ id = "eh_packs2",   stat = "packs",   goal = 2,    xp = 20, text = "Open 2 packs during the event" },
 			{ id = "eh_packs5",   stat = "packs",   goal = 5,    xp = 35, text = "Open 5 packs during the event" },
-			{ id = "eh_fossils",  stat = "fossils", goal = 1,    xp = 30, text = "Find a fossil pack in the event mine" },
+			--[[
+				Was "Find a fossil pack in the event mine", on stat "fossils".
+				That stat had no writer anywhere, and the chest roller excluded
+				Event Horizon from fossil packs, so the last quest on the track
+				could never be completed and the top 30 xp was unreachable. It
+				is a depth step now, on a stat the server actually bumps.
+
+				The ID IS KEPT. questIndex walks this array by position and
+				ep.completed is keyed by id, so renaming it would shift or
+				re-open the track for anyone part-way through.
+			]]
+			{ id = "eh_fossils",  stat = "depth",   goal = 120,  xp = 30, text = "Reach layer 120 in Event Horizon" },
 		},
 	},
 }
@@ -68,7 +79,6 @@ function MineEventPass.liveStats(profile)
 		blocks = tonumber(profile.stats.eventBlocks) or 0,
 		sells = tonumber(profile.stats.eventSells) or 0,
 		packs = tonumber(profile.stats.eventPacks) or 0,
-		fossils = tonumber(profile.stats.eventFossils) or 0,
 		depth = tonumber(profile.deepest and profile.deepest.bigbang) or 0,
 	}
 end

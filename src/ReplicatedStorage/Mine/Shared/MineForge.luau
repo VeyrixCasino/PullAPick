@@ -48,6 +48,8 @@ local FONT = Enum.Font.GothamBold
 local FONT_M = Enum.Font.Gotham
 
 local RAIL_W = 232
+-- Height of the ore strip along the bottom. The detail pane gives this up.
+local POUCH_H = 64
 
 local function mk(class, props, parent)
 	local i = Instance.new(class)
@@ -227,8 +229,126 @@ function MineForge.mount(parent, opts)
 	local detail = mk("Frame", {
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(RAIL_W + 24, 34),
-		Size = UDim2.new(1, -RAIL_W - 38, 1, -44),
+		Size = UDim2.new(1, -RAIL_W - 38, 1, -44 - POUCH_H),
 	}, root)
+
+	--[[
+		THE ORE POUCH, along the bottom.
+
+		The Forge had a wallet strip -- coins, gems, dust -- and the detail pane
+		quotes the ore cost of whatever is SELECTED. Neither answers the question
+		you actually have while browsing a rail of a hundred recipes: what ore do
+		I have? You had to tap through tools one at a time to find out, or leave
+		the Forge for the pouch panel and come back.
+
+		So: every ore you hold, rarest first, with how much. Plus the fill against
+		capacity, because "I have 400 Cobalt" and "my pouch is full and every ore
+		I break is being thrown away" are different problems and the second is
+		urgent.
+
+		A strip rather than a panel because it is reference, not somewhere to
+		act: nothing in it is clickable, and the detail pane keeps the room.
+	]]
+	local pouchRow = mk("Frame", {
+		Name = "PouchStrip",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, RAIL_W + 24, 1, -10),
+		Size = UDim2.new(1, -RAIL_W - 38, 0, POUCH_H),
+	}, root)
+	local pouchHead = label(pouchRow, "ORE POUCH", 11, MUTED, UDim2.fromOffset(0, 0),
+		UDim2.new(1, 0, 0, 14), FONT)
+	local pouchScroll = mk("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(0, 18),
+		Size = UDim2.new(1, 0, 0, POUCH_H - 20),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.X,
+		ScrollingDirection = Enum.ScrollingDirection.X,
+		ScrollBarThickness = 3,
+	}, pouchRow)
+	mk("UIListLayout", {
+		Padding = UDim.new(0, 6),
+		FillDirection = Enum.FillDirection.Horizontal,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+	}, pouchScroll)
+
+	--[[
+		Redrawn on every refresh, like the rail. The pouch changes with every
+		block broken, so a strip built once would be lying within seconds.
+	]]
+	local function paintPouch(snapshot, cash)
+		for _, d in ipairs(pouchScroll:GetChildren()) do
+			if not d:IsA("UIListLayout") then
+				d:Destroy()
+			end
+		end
+		local ores = snapshot.ores or {}
+		-- Rarest first: the order the pouch panel opens on, because the valuable
+		-- rows are the decision and the common ones are noise.
+		local rows = {}
+		for _, ore in ipairs(C.ORES or {}) do
+			local n = math.floor(tonumber(ores[ore.id]) or 0)
+			if n > 0 then
+				table.insert(rows, { ore = ore, n = n })
+			end
+		end
+		table.sort(rows, function(a, b)
+			return (tonumber(a.ore.tier) or 0) > (tonumber(b.ore.tier) or 0)
+		end)
+
+		local held, cap = 0, nil
+		for _, r in ipairs(rows) do
+			held += r.n
+		end
+		local okP, Pouch = pcall(function()
+			return require(shared:WaitForChild("MineOrePouch"))
+		end)
+		if okP and Pouch and Pouch.capacity then
+			local tier = math.max(1, math.floor(tonumber(snapshot.orePouchTier) or 1))
+			cap = Pouch.capacity(tier)
+			if Pouch.held then
+				held = Pouch.held(ores)
+			end
+		end
+		if cap and cap > 0 then
+			local full = held >= cap
+			pouchHead.Text = string.format("ORE POUCH   %s / %s%s",
+				cash(held), cash(cap), full and "   FULL" or "")
+			pouchHead.TextColor3 = full and RED or MUTED
+		else
+			pouchHead.Text = "ORE POUCH"
+			pouchHead.TextColor3 = MUTED
+		end
+
+		if #rows == 0 then
+			local empty = label(pouchScroll, "nothing in the pouch yet - break some ore",
+				12, MUTED, UDim2.fromOffset(0, 0), UDim2.fromOffset(320, 26), FONT_M)
+			empty.LayoutOrder = 1
+			return
+		end
+		for i, r in ipairs(rows) do
+			local chip = mk("Frame", {
+				BackgroundColor3 = BG2,
+				Size = UDim2.fromOffset(132, 26),
+				LayoutOrder = i,
+			}, pouchScroll)
+			round(chip, 6)
+			-- A dot in the ore's own colour, so the strip and the ore itself
+			-- agree about what it looks like without naming it twice.
+			local dot = mk("Frame", {
+				BackgroundColor3 = (typeof(r.ore.color) == "Color3") and r.ore.color or MUTED,
+				Position = UDim2.fromOffset(7, 8),
+				Size = UDim2.fromOffset(10, 10),
+			}, chip)
+			round(dot, 5)
+			label(chip, tostring(r.ore.name or r.ore.id), 11, TEXT,
+				UDim2.fromOffset(22, 0), UDim2.new(1, -70, 1, 0), FONT_M)
+			label(chip, cash(r.n), 11, GOLD, UDim2.new(1, -48, 0, 0),
+				UDim2.fromOffset(42, 26), FONT, Enum.TextXAlignment.Right)
+		end
+	end
 
 	-- Selection is held by identity, not by row index, so a redraw that
 	-- reorders or regrows the rail keeps the player on the same tool.
@@ -346,6 +466,83 @@ function MineForge.mount(parent, opts)
 			RED, UDim2.fromOffset(116, y + 38), UDim2.fromOffset(224, 26), true, function()
 				if opts.onRecycle then opts.onRecycle(tool.uid) end
 			end)
+
+		--[[
+			THE SKIN AND THE RUNE ON THIS TOOL.
+
+			Both were invisible here, which made the Forge a panel about levelling
+			a tool while saying nothing about the two things TODO 0.13 calls the
+			build. You had to go to the Enchanter to find out whether the pick you
+			were pouring ore into even had a skin on it.
+
+			BOTH ARE PER FAMILY, NOT PER TOOL, and that is the fact a reader needs:
+			p.toolSockets and p.toolTempers are keyed "pickaxe" / "drill" /
+			"explosive". A forged tool row carries only uid, typeId, familyId,
+			tier and level -- it cannot hold a rune or a temperament of its own.
+			So this shows what the FAMILY is wearing, which is what this tool
+			swings with, and says so rather than implying the fit is per-tool.
+
+			It REPORTS and ROUTES rather than reimplementing. The Enchanter's
+			Temper and Sockets tabs are several hundred lines each and work;
+			building a second copy here is how two screens start disagreeing
+			about what is fitted. Whether those tabs should eventually live here
+			instead is a design call, not a side effect of this panel.
+		]]
+		local fam = tostring(selFamily or "pickaxe")
+		local ySkin = y + 76
+		label(host, "ON THIS FAMILY", 11, MUTED, UDim2.fromOffset(0, ySkin),
+			UDim2.new(1, 0, 0, 14), FONT)
+
+		local tt = (snapshot.toolTempers or {})[fam] or {}
+		local skinLine, skinInk = "no skin fitted", MUTED
+		if tt.temperId then
+			local okT, Temper = pcall(function()
+				return require(shared:WaitForChild("MineTemper"))
+			end)
+			local kit = okT and Temper and Temper.kit and Temper.kit(tt.temperId) or nil
+			skinLine = string.format("%s%s", tostring((kit and kit.name) or tt.temperId),
+				tt.temperRarity and ("  " .. tostring(tt.temperRarity)) or "")
+			skinInk = GOLD
+		end
+		label(host, "skin   " .. skinLine, 12, skinInk, UDim2.fromOffset(0, ySkin + 16),
+			UDim2.new(1, -120, 0, 16))
+
+		local socket = (snapshot.toolSockets or {})[fam]
+		local runeId = (type(socket) == "table") and (socket.main or socket.omni) or socket
+		local runeLine, runeInk = "no rune socketed", MUTED
+		if runeId then
+			local okR, Runes = pcall(function()
+				return require(shared:WaitForChild("MineRunes"))
+			end)
+			local r
+			for _, row in ipairs(snapshot.runes or {}) do
+				if row.id == runeId then
+					r = row
+					break
+				end
+			end
+			if okR and Runes and Runes.describe and r then
+				runeLine = tostring(Runes.describe(r))
+			else
+				-- The rune is socketed but not in the loose list, which is exactly
+				-- what being socketed means. Say that rather than "none".
+				runeLine = "one socketed"
+			end
+			runeInk = GOLD
+		end
+		label(host, "rune   " .. runeLine, 12, runeInk, UDim2.fromOffset(0, ySkin + 34),
+			UDim2.new(1, -120, 0, 16))
+
+		if opts.onOpenEnchanter then
+			button(host, "FIT A SKIN", BG3, UDim2.new(1, -118, 0, ySkin + 14),
+				UDim2.fromOffset(112, 24), true, function()
+					opts.onOpenEnchanter("temper")
+				end)
+			button(host, "SOCKET A RUNE", BG3, UDim2.new(1, -118, 0, ySkin + 42),
+				UDim2.fromOffset(112, 24), true, function()
+					opts.onOpenEnchanter("sockets")
+				end)
+		end
 	end
 
 	local function drawCraft(host, snapshot, def)
@@ -482,6 +679,7 @@ function MineForge.mount(parent, opts)
 		local cash = (okAb and Ab and Ab.currency) or num
 		wallet.Text = string.format("%s coins  \u{00B7}  %s gems  \u{00B7}  %s dust",
 			cash(snapshot.coins), cash(snapshot.gems), cash(snapshot.dust))
+		paintPouch(snapshot, cash)
 
 		local order = 0
 		for _, fam in ipairs(Tools.FAMILIES or {}) do

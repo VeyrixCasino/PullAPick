@@ -1,12 +1,15 @@
 --[[
-	MineZonePacks — per-zone pack slots (5 card/currency + 3 fossil bands).
+	MineZonePacks — per-zone pack slots (5 card/currency).
 
 	Each permanent zone authors:
 	  currency_common, currency_rare,
-	  pack_common, pack_rare, pack_legendary,
-	  fossil_pack (Surface), fossil_deeprock_pack, fossil_shadowzone_pack
+	  pack_common, pack_rare, pack_legendary
 
-	Pack display names are "{Zone} …". Fossil packs are Surface / Deeprock / Shadowzone.
+	Pack display names are "{Zone} …".
+
+	There were three more slots per zone, the fossil bands, and they are gone
+	with the fossil system (§0.12). Saves holding one are cashed out on load, so
+	nothing needs the rows kept registered.
 ]]
 
 local MineZonePacks = {}
@@ -17,9 +20,6 @@ MineZonePacks.SLOTS = {
 	"pack_common",
 	"pack_rare",
 	"pack_legendary",
-	"fossil_pack", -- Surface Fossil Pack (a)
-	"fossil_deeprock_pack", -- Deeprock Fossil Pack (b)
-	"fossil_shadowzone_pack", -- Shadowzone Fossil Pack (c)
 }
 
 MineZonePacks.SLOT_META = {
@@ -28,15 +28,6 @@ MineZonePacks.SLOT_META = {
 	pack_common = { kind = "cards", label = "Pack", art = "pack_common" },
 	pack_rare = { kind = "cards", label = "Rare Pack", art = "pack_rare" },
 	pack_legendary = { kind = "cards", label = "Legendary Pack", art = "pack_legendary", weaponChance = true },
-	fossil_pack = { kind = "fossil", label = "Surface Fossil Pack", art = "fossil_pack", pulls = 3, allowDupes = true, band = "shallow" },
-	fossil_deeprock_pack = { kind = "fossil", label = "Deeprock Fossil Pack", art = "fossil_deep_pack", pulls = 3, allowDupes = true, band = "mid", deeprock = true },
-	fossil_shadowzone_pack = { kind = "fossil", label = "Shadowzone Fossil Pack", art = "fossil_deep_pack", pulls = 3, allowDupes = true, band = "deep", shadowzone = true },
-}
-
--- Legacy slot aliases (saves / old chest defs).
-MineZonePacks.SLOT_ALIAS = {
-	fossil_deep_pack = "fossil_deeprock_pack",
-	fossil_abyss_pack = "fossil_shadowzone_pack",
 }
 
 MineZonePacks.ZONE_ORDER = {
@@ -69,7 +60,6 @@ MineZonePacks.ZONE_LABEL = {
 MineZonePacks.LIMITED_ZONE = "bigbang"
 
 local function packId(zoneId, slot)
-	slot = MineZonePacks.SLOT_ALIAS[slot] or slot
 	return zoneId .. "_" .. slot
 end
 
@@ -117,20 +107,6 @@ local function cardOdds(zoneIndex, heat)
 	return depthCardOdds(layer, maxL, heat)
 end
 
-local function fossilOdds(zoneIndex, band)
-	local z = math.max(1, zoneIndex)
-	local maxL = 2500
-	local layer = math.floor(1 + ((z - 1) / 10) * (maxL - 1) + 0.5)
-	if band == "deep" or band == "shadowzone" then
-		layer = math.min(maxL, math.floor(layer * 0.55 + maxL * 0.45))
-		return depthCardOdds(layer, maxL, 1.25)
-	elseif band == "mid" or band == "deeprock" then
-		layer = math.min(maxL, math.floor(layer * 0.75 + maxL * 0.25))
-		return depthCardOdds(layer, maxL, 0.6)
-	end
-	return depthCardOdds(layer, maxL, 0)
-end
-
 function MineZonePacks.buildAll()
 	local packs = {}
 	local function addZone(zoneId, zoneIndex, limited)
@@ -169,12 +145,6 @@ function MineZonePacks.buildAll()
 				if meta.weaponChance then
 					row.weaponChance = 0.02 + 0.012 * (z - 1)
 				end
-			elseif meta.kind == "fossil" then
-				row.pulls = 3
-				row.allowDupes = true
-				row.band = meta.band
-				row.odds = fossilOdds(z, meta.band)
-				row.name = label .. " " .. meta.label
 			end
 			packs[id] = row
 		end

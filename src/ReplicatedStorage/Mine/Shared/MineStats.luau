@@ -30,7 +30,10 @@ MineStats.STATS = {
 	backpack    = { label = "Backpack",      weight = 0.5, unit = "%", desc = "Carry capacity." },
 	walkSpeed   = { label = "Walk Speed",    weight = 0.2, unit = "%", desc = "Movement speed." },
 	dirtBreak   = { label = "Dirt Break",    weight = 1.0, unit = "%", desc = "Extra dig damage through blocks." },
-	echo        = { label = "Echo Strike",   weight = 1.5, unit = "%", desc = "Chance a swing fires twice." },
+	-- LEGACY, like autoMine below: barred as a buff and paid out as Swing Rate
+	-- at ECHO_TO_SWING. The entry stays so an old kit or save still resolves a
+	-- weight; it is out of STAT_ORDER so no screen lists it.
+	echo        = { label = "Echo Strike",   weight = 1.5, unit = "%", desc = "Legacy: paid out as Swing Rate.", legacy = true },
 	zap         = { label = "Zap",           weight = 2.5, unit = "%", desc = "Chance dig hits chain to nearby blocks; chance and damage fall off each hop." },
 	-- LEGACY. Auto Mine was replaced by Gem Find: anything still carrying this
 	-- key is converted at AUTO_MINE_TO_GEM before it is paid or printed (see
@@ -43,16 +46,43 @@ MineStats.STATS = {
 	-- Fossils are gone; ore replaced them. The key stays fossilFind so nothing
 	-- that writes it has to be rewritten, but it is the Ore Finder now.
 	fossilFind  = { label = "Ore Finder",       weight = 1.5, unit = "%", desc = "Multiplies how much ore a pack pays. Stamped on the pack when you mine it. Does not change which ore you get." },
-	pulverize   = { label = "Pulverizer",       weight = 4.0, unit = "%", desc = "Chance to drop 1 stardust when dirt/ore dies. Not chests, fossils, or cubes." },
+	pulverize   = { label = "Pulverizer",       weight = 4.0, unit = "%", desc = "Chance to drop 1 stardust when dirt/ore dies. Not chests or cubes." },
 	scrap       = { label = "Scrap",            weight = 1.2, unit = "%", desc = "Extra stardust when a chest dies. Not the Scrapper. Pets only." },
 	coolant     = { label = "Coolant",          weight = 2.5, unit = "%", desc = "Drill spin-up. turn / (1 + coolant). Apex stays 0. Rune only." },
 	shortFuse   = { label = "Short Fuse",       weight = 2.2, unit = "%", desc = "Bomb cooldown / (1 + p), and extra mineSpeed on explosives. Rune only." },
+	-- The two new build boosts. Priced near zap (2.5) because they are the
+	-- same shape of thing -- a chance to reach a block you did not swing at --
+	-- and neither multiplies the hit itself.
+	--[[
+		THE THREE LUCKS (TODO 6.2 "Split the hat luck boost").
+
+		Generic `luck` was doing three unrelated jobs at once, which is why the
+		owner asked for it split. Read off its four call sites in MineServer:
+
+		  * it scaled ORE_CASE_CHANCE on an ore break          -> ore luck
+		  * it decided IF a chest spawned, and with chestLuck
+		    WHICH one                                          -> chest luck
+		  * it was stamped onto pack rows as row.luck, which
+		    later siphons that pack's card odds                -> pack luck
+
+		`luck` KEEPS all three, as the shared base, so every existing source --
+		prestige, VIP, the event pass, skills, runes, the Umbra gear set -- goes
+		on working exactly as it did. These two multiply on top of it for one
+		channel each, so a hat can be about ore cases without also being about
+		chests. Chest luck needs no new stat: `luck` x `chestLuck` was already
+		that channel.
+	]]
+	oreLuck     = { label = "Ore Luck",         weight = 2.4, unit = "%", desc = "Chance an ore block drops its ORE CASE. Does not touch chests or packs." },
+	packLuck    = { label = "Pack Luck",        weight = 2.4, unit = "%", desc = "Siphons a pack's card odds toward the chase when it is opened. Stamped on the pack when you get it." },
+	earthquake  = { label = "Earthquake",       weight = 2.6, unit = "%", desc = "Chance a block starts shaking and takes 20% of your tool damage per second. Does not stack; 5 blocks at once." },
+	ricochet    = { label = "Ricochet",         weight = 2.4, unit = "%", desc = "Chance breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
 }
 
 MineStats.STAT_ORDER = {
-	"mineSpeed", "swingRate", "reach", "blastRadius", "echo", "zap",
+	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
 	"oreYield", "rareOre", "gemFind", "coinBonus",
-	"luck", "chestLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
+	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
+	"earthquake", "ricochet",
 	"coolant", "shortFuse", "backpack", "walkSpeed", "dirtBreak",
 }
 
@@ -192,17 +222,49 @@ end
 -- Auto Mine is 2.5 points per +1%. Gem Find is 1.6. Same budget, higher percent.
 MineStats.AUTO_MINE_TO_GEM = 2.5 / 1.8
 
+--[[
+	ECHO IS BARRED AS A BUFF (TODO 6.2), and pays out as Swing Rate.
+
+	A swing that happens twice multiplies every damage source at once, which is
+	the build collapse the boost guardrails exist to prevent -- so nothing mints
+	it any more: the Void gear set rolls Gem Find, NO_ROLL_STATS blocks it on
+	runes, and the Demolition rune set's slot 2 is Short Fuse.
+
+	What it does NOT do is delete it from the fourteen temperament kits that
+	carry it, five of which are NAMED for it. Renaming shipped content is the
+	owner's call, not a side effect of a balance rule, so echo is RETIRED the
+	way autoMine was: converted at a budget-preserving rate wherever it is paid,
+	entry kept so old saves still resolve a weight, and out of STAT_ORDER so no
+	screen lists it.
+
+	Swing Rate is the honest destination -- "your swing happens twice" and
+	"you swing faster" are the same fantasy, and it is the only tempo stat that
+	is not itself a damage multiplier. 1.5 points per +1% against Swing Rate's
+	1.4, so a kit keeps the budget it was priced with.
+]]
+MineStats.ECHO_TO_SWING = 1.5 / 1.4
+
+-- Folds BOTH retired stats. The name is kept because every caller uses it and
+-- the job is the same: hand back a kit with nothing legacy left in it, so a
+-- card prints exactly what the server will pay.
 function MineStats.withoutAutoMine(kit)
 	if type(kit) ~= "table" then
 		return kit
 	end
 	local auto = tonumber(kit.autoMine) or 0
-	if auto == 0 then
+	local ech = tonumber(kit.echo) or 0
+	if auto == 0 and ech == 0 then
 		return kit
 	end
 	local copy = table.clone(kit)
-	copy.autoMine = nil
-	copy.gemFind = (tonumber(copy.gemFind) or 0) + auto * MineStats.AUTO_MINE_TO_GEM
+	if auto ~= 0 then
+		copy.autoMine = nil
+		copy.gemFind = (tonumber(copy.gemFind) or 0) + auto * MineStats.AUTO_MINE_TO_GEM
+	end
+	if ech ~= 0 then
+		copy.echo = nil
+		copy.swingRate = (tonumber(copy.swingRate) or 0) + ech * MineStats.ECHO_TO_SWING
+	end
 	return copy
 end
 

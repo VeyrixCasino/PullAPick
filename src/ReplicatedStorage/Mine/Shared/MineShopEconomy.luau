@@ -14,7 +14,7 @@ MineShopEconomy.BAND_FLOOR_HP = { shallow = 15, mid = 45000, deep = 2625000, kil
 
 -- Combat power vs shop price: picks hit ~25% softer; prices still use raw power.
 MineShopEconomy.PICK_COMBAT_MULT = 0.75
--- Kept at 1. Early-zone chest and fossil tools were the overpowered ones.
+-- Kept at 1. Early-zone chest tools were the overpowered ones.
 -- This dial only softens 500/1500 shop damage in later zones if it is below 1.
 MineShopEconomy.DESK_ZONE_FALLOFF = 1
 

@@ -13,6 +13,36 @@ local Debris = game:GetService("Debris")
 local player = Players.LocalPlayer
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared:WaitForChild("MineConfig"))
+
+--[[
+	Which build of src/ is this. First thing in the output window, every Play.
+
+	Twice now a panel has been reported missing when it was in the repo and the
+	Studio serving the place was running ReplicatedStorage from before it was
+	written. The code was never the problem and the output window never said so.
+	Now it does, before anything else has a chance to look broken.
+
+	Guarded both ways: MineBuild going missing is itself the loudest possible
+	staleness signal, so its absence warns rather than throwing and taking the
+	HUD down with it.
+]]
+do
+	local mb = shared:FindFirstChild("MineBuild")
+	if mb then
+		local okB, errB = pcall(function()
+			require(mb).announce(shared)
+		end)
+		if not okB then
+			warn("[MineBuild] announce failed: " .. tostring(errB))
+		end
+	else
+		warn("[MineBuild] THIS STUDIO IS RUNNING OLDER CODE THAN src/: "
+			.. "ReplicatedStorage.Mine.Shared.MineBuild does not exist, and it "
+			.. "has been in the repo since the Forge shipped. Run git pull in "
+			.. "the clone `rojo serve` is serving, reconnect the Rojo plugin, "
+			.. "and Play again.")
+	end
+end
 local Cards = require(shared:WaitForChild("MineCards"))
 local Packs = require(shared:WaitForChild("MinePackConfig"))
 -- The pets. 43 built species with variants, shinies and chroma -- the mine
@@ -20,7 +50,6 @@ local Packs = require(shared:WaitForChild("MinePackConfig"))
 local PetFactory = require(shared:WaitForChild("PetModelFactory"))
 -- The pack-open ceremony, ported from TCG Life. Cards do not just appear.
 local PackFX = require(shared:WaitForChild("MinePackFX"))
-local Fossils = require(shared:WaitForChild("MineFossils"))
 local GradeReveal = require(shared:WaitForChild("MineGradeReveal"))
 local Audio = require(shared:WaitForChild("MineAudio"))
 local net = RS:WaitForChild("Mine"):WaitForChild("Remotes"):WaitForChild("MineNet")
@@ -2200,8 +2229,6 @@ end
 -- What is currently ticked, and which tab is showing. One table rather than two
 -- locals: this file is near the 200 top-level local ceiling.
 local scrapUI = { sel = {}, tab = "cards" }
-local fossilP = panel("Fossil Bench")
-fossilP.Size = UDim2.fromScale(0.94, 0.92)
 local enchantP = panel("Enchanter")
 enchantP.Size = UDim2.fromScale(0.94, 0.92)
 if enchantP.Body then
@@ -2968,6 +2995,9 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onSellTool = function(payload) net:FireServer("sellTool", payload) end,
 	onScrapGear = function(id) net:FireServer("scrap", { kind = "gear", id = id }) end,
+	-- Three charms into one a tier deeper. The server owns the cost and the
+	-- target (MineCharms.MERGE_COST / mergeTarget); this only names the charm.
+	onMergeCharm = function(id) net:FireServer("mergeCharm", { id = id }) end,
 	--[[
 		Bulk scrap goes out twice. The first call carries no confirm flag and is
 		the ASK -- the server builds the plan and replies with `confirmScrap`,
@@ -3229,7 +3259,7 @@ end
 ]]
 ClientFns.STATION_LABEL = {
 	sell = "SELL", shop = "BLACKSMITH", enchanter = "ENCHANTER", contractor = "JOBS",
-	fossil = "RETIRED", prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
+	prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
 }
 
 function ClientFns.pitWaypointPos()
@@ -4478,6 +4508,18 @@ depthHud.contractor = require(shared:WaitForChild("MineContractor")).mount(gui, 
 
 local Scrolls = require(shared:WaitForChild("MineScrolls"))
 shopCtl = ShopView.mount(gui, {
+	--[[
+		The Forge reports the skin and rune on the selected tool's family and
+		sends you to the Enchanter to change either, rather than growing a second
+		copy of those two screens. routePanel hides the shop on the way, so this
+		is a jump and not an overlay.
+	]]
+	onOpenEnchanter = function(tab)
+		if ClientFns.teleportToEnchanter then
+			ClientFns.teleportToEnchanter()
+		end
+		ClientFns.routePanel("enchanter", tostring(tab or "sockets"))
+	end,
 	onBuyTool = function(family, tier, toolId)
 		if toolId then
 			net:FireServer("buyTool", { toolId = toolId, family = family, tier = tier })
@@ -4740,7 +4782,7 @@ end
 -- a card grid and a shop carousel have something to put in it, a list of rows
 -- does not.
 local WIDE = { Cards = true, Merge = true, Inventory = true, ShopPanel = true,
-	["Fossil Bench"] = true, Enchanter = true }
+	Enchanter = true }
 for name, f in pairs(panels) do
 	-- A full-screen overlay is not a window. The skill wheel is a radial menu
 	-- drawn across the whole viewport with its own scrim; capping it to a
@@ -5400,13 +5442,13 @@ end
 local CARD_RATIO = 3.5 / 2.5
 
 --[[
-	The face of a fossil piece, a rune or a gear piece.
+	The face of a rune or a gear piece.
 
 	Same silhouette as a card -- rarity banner, art well, name, stat line -- so
 	a mixed reveal reads as one deck rather than as two systems bolted together.
 	What changes is the art well, and every family has real art to put in it:
 	gear has per-set, per-slot, per-rarity images; a rune borrows the icon of
-	the stat it rolls; a fossil borrows its tool family's.
+	the stat it rolls.
 
 	Gear, Runes and Icons are required here rather than at the top of the file
 	because MineClient is close to Luau's 200 top-level local ceiling and
@@ -5423,7 +5465,6 @@ function ClientFns.paintLoot(parent, item, w)
 	local FAMILY = {
 		gear = { tag = "GEAR", tint = Color3.fromRGB(86, 132, 190) },
 		rune = { tag = "RUNE", tint = Color3.fromRGB(150, 104, 200) },
-		fossil = { tag = "FOSSIL", tint = Color3.fromRGB(196, 146, 72) },
 		gems = { tag = "GEMS", tint = Color3.fromRGB(90, 180, 255) },
 		coins = { tag = "COINS", tint = Color3.fromRGB(240, 200, 90) },
 		stardust = { tag = "STARDUST", tint = Color3.fromRGB(210, 160, 255) },
@@ -5447,9 +5488,6 @@ function ClientFns.paintLoot(parent, item, w)
 		image = Gear.image(item.gear)
 	elseif item.kind == "rune" and item.rune then
 		image = Icons.image(item.rune.stat)
-	elseif item.kind == "fossil" and item.fossil then
-		local recipe = Fossils.recipe(item.fossil.fossilId)
-		image = Icons.image(recipe and recipe.family)
 	elseif item.kind == "gems" then
 		image = Icons.image("gems")
 	elseif item.kind == "coins" then
@@ -5599,9 +5637,6 @@ function ClientFns.paintLoot(parent, item, w)
 			.. "  " .. tostring(item.gear.rarity or "")
 	elseif item.kind == "rune" and item.rune then
 		pillText = tostring(item.rune.kind or "") .. "  T" .. tostring(item.rune.tier or 1)
-	elseif item.kind == "fossil" and item.fossil then
-		local recipe = Fossils.recipe(item.fossil.fossilId)
-		pillText = (recipe and recipe.family or "piece") .. "  piece"
 	elseif isCurrency then
 		pillText = fam.tag
 	elseif item.kind == "tool" then
@@ -5616,8 +5651,8 @@ function ClientFns.paintLoot(parent, item, w)
 		Text = pillText,
 	}, pill)
 
-	-- The right-hand number is the reason to want it: a percentage for gear and
-	-- runes, the seam depth for a fossil piece.
+	-- The right-hand number is the reason to want it: a percentage for gear
+	-- and runes.
 	local right = ""
 	if item.kind == "gear" and item.gear then
 		local slots = item.gear.slotCount or 0
@@ -5630,8 +5665,6 @@ function ClientFns.paintLoot(parent, item, w)
 			or socketText
 	elseif item.kind == "rune" and item.rune then
 		right = string.format("+%.2f%%", (item.rune.pct or 0) * 100)
-	elseif item.kind == "fossil" and item.fossil then
-		right = "layer " .. tostring(item.fossil.layer or 1)
 	elseif item.kind == "tool" and tonumber(item.power) then
 		right = "power " .. ClientFns.commas(math.floor(tonumber(item.power)))
 	end
@@ -5669,7 +5702,7 @@ end
 	The same model the hand holds (ToolModelFactory.fromNamed, finish applied
 	live), stood on its handle the way the shop does it, and framed by its own
 	bounding sphere so a stubby bomb and a long lance both fill the well. A tool
-	with no named model (proto, fossil) gets its family's procedural build.
+	with no named model (a proto) gets its family's procedural build.
 ]]
 function ClientFns.toolViewport(parent, item, aspect)
 	local ok, err = pcall(function()
@@ -5776,8 +5809,8 @@ function ClientFns.toolViewport(parent, item, aspect)
 end
 
 paintCard = function(parent, card, w)
-	-- One painter for everything the reveal and the binder can show. A fossil,
-	-- rune or gear item carries `kind`; a card does not.
+	-- One painter for everything the reveal and the binder can show. A rune or
+	-- gear item carries `kind`; a card does not.
 	if type(card) == "table" and card.kind and card.kind ~= "card" then
 		return ClientFns.paintLoot(parent, card, w)
 	end
@@ -7161,51 +7194,13 @@ local function refreshDust()
 	end
 end
 
--- Retired with the fossil system. Always zero: a save's pieces were cashed out
--- to gems on load, and nothing drops a new one.
-function ClientFns.countFossilPieces(fossilId)
-	local n = 0
-	for _, piece in ipairs(snap.fossilPieces or {}) do
-		if piece.fossilId == fossilId then
-			n += 1
-		end
-	end
-	return n
-end
-
 --[[
-	The Fossil Bench, laid out like the Enchanter.
-
-	It was a flat column of buttons -- a header row, then an Assemble row, then
-	an Equip row, then two Sell rows, sixteen times over. You could not see at a
-	glance which fossil you were close to finishing, which is the only question
-	the screen has to answer.
-
-	Now it is a grid of the same tiles the rune view uses: one card per recipe,
-	progress on it, and the action it currently supports.
+	The Fossil Bench panel stood here. It had already been reduced to a single
+	"fossils are retired" notice, kept in case a stale waypoint still opened it.
+	Nothing routes to it any more -- the plaza station is gone and the panel key
+	is out of the router, which no-ops on a key it does not know -- so the panel
+	is gone too rather than sitting unreachable with a fossil name on it.
 ]]
---[[
-	THE FOSSIL BENCH PANEL, retired.
-
-	Fossils are gone, and so is the bench. The panel stays reachable only because
-	an old build's button or a stale waypoint can still open it, and an empty
-	frame reads as a broken screen -- so it says what happened instead.
-
-	Anything a save still held was cashed out to gems on load, server-side.
-]]
-local function refreshFossil()
-	clear(fossilP.Body)
-	local box = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -24, 0, 96),
-		Position = UDim2.fromOffset(12, 12), LayoutOrder = 0 }, fossilP.Body)
-	mk("TextLabel", {
-		BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
-		Font = Enum.Font.Gotham, TextSize = 14, TextWrapped = true,
-		TextColor3 = Color3.fromRGB(190, 190, 200),
-		TextYAlignment = Enum.TextYAlignment.Top,
-		Text = "Fossils are retired.\n\nThe pieces and tools you had were paid out in gems. "
-			.. "Your build is CHARMS and SKINS now -- charms drop from ore cases, skins come out of the same cases.",
-	}, box)
-end
 refreshZones = function()
 	if not snap then
 		return
@@ -7906,6 +7901,17 @@ function rollsTab.build(parent)
 		used to be, and a shop where every product looks the same is a list, not
 		a shop.
 	]]
+	--[[
+		Which wallet a row spends. Hats joined temperaments on rebirth TOKENS
+		(TODO 6.2), and this was four separate `kind == "temper"` tests -- the
+		chip, the button, the currency id and the affordability check. One
+		predicate, so adding the next token row cannot leave one of them
+		paying gems.
+	]]
+	local function spendsTokens(kind)
+		return kind == "temper" or kind == "gear"
+	end
+
 	local function row(title, sub, art, unit, y, tint, fire, counts, kind)
 		counts = counts or { 1, 10, 100 }
 		local card = mk("Frame", {
@@ -7954,7 +7960,7 @@ function rollsTab.build(parent)
 		unitLay.Padding = UDim.new(0, 6)
 		unitLay.SortOrder = Enum.SortOrder.LayoutOrder
 		unitLay.Parent = unitHost
-		local unitChip = Icons.priceChip(unitHost, (kind == "temper") and "tokens" or "gems", shortNum(unit), {
+		local unitChip = Icons.priceChip(unitHost, spendsTokens(kind) and "tokens" or "gems", shortNum(unit), {
 			iconSize = 16,
 			textSize = 13,
 			textColor = MUTED,
@@ -7993,7 +7999,7 @@ function rollsTab.build(parent)
 				Position = UDim2.fromOffset(10, 30), Size = UDim2.new(1, -20, 0, 18),
 				ZIndex = 37,
 			}, b)
-			local currencyId = (kind == "temper") and "tokens" or "gems"
+			local currencyId = spendsTokens(kind) and "tokens" or "gems"
 			Icons.priceChip(costHost, currencyId, shortNum(unit * n), {
 				iconSize = 14,
 				textSize = 14,
@@ -8025,10 +8031,10 @@ function rollsTab.build(parent)
 			net:FireServer("rollRune", { count = n or 1 })
 		end, { 1, 10, 100 }, "rune")
 	-- Crates land in the bag and open at your own pace, so a 100x buy is not
-	-- 100 ceremonies -- same as runes.
-	row("Gear Case", "Pet-boost hats and faces only. Graded F to SSS.",
+	-- 100 ceremonies -- same as runes. Priced in REBIRTH TOKENS now, not gems.
+	row("Gear Case", "Hats and faces, worn by YOU. Graded F to SSS. Costs rebirth tokens.",
 		art("gear", Hats.thumb and Hats.thumb(1016143686) or nil),
-		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_PRICE, 136,
+		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_TOKEN_COST or 5, 136,
 		Color3.fromRGB(168, 140, 255), function(n)
 			net:FireServer("rollGear", { count = n or 1 })
 		end, { 1, 10, 100 }, "gear")
@@ -8057,7 +8063,8 @@ function rollsTab.paint()
 	for _, c in ipairs(rollsTab.have:GetChildren()) do
 		c:Destroy()
 	end
-	-- Summon tab wallet is gems (rune/gear). Temper spends tokens on its own row.
+	-- The header chip is the GEM purse (the rune row). The gear and temper rows
+	-- price themselves in tokens and check haveTokens, via spendsTokens above.
 	rollsTab.haveChip = Icons.priceChip(rollsTab.have, "gems", shortNum(haveGems), {
 		iconSize = 18,
 		textSize = 17,
@@ -8079,7 +8086,7 @@ function rollsTab.paint()
 		return nil
 	end
 	local function currencyOf(kind)
-		return (kind == "temper") and "tokens" or "gems"
+		return spendsTokens(kind) and "tokens" or "gems"
 	end
 	for _, u in pairs(rollsTab.unitChips or {}) do
 		local want = priceOf(u.kind)
@@ -8111,7 +8118,7 @@ function rollsTab.paint()
 	for _, r in ipairs(rollsTab.buttons) do
 		local total = r.unit * r.n
 		-- The first gear roll is free (server: Verbs.rollGearBanner).
-		local freeGear = snap.freeGear and r.unit == (tonumber(snap.gearRollPrice) or 75) and r.n == 1
+		local freeGear = snap.freeGear and r.unit == (tonumber(snap.gearRollPrice) or 5) and r.n == 1
 		local tag = r.b:FindFirstChild("FreeTag")
 		if freeGear and not tag then
 			tag = mk("TextLabel", {
@@ -8124,7 +8131,7 @@ function rollsTab.paint()
 		if tag then
 			tag.Visible = freeGear and true or false
 		end
-		local purse = (r.kind == "temper") and haveTokens or haveGems
+		local purse = spendsTokens(r.kind) and haveTokens or haveGems
 		local can = freeGear or purse >= total
 		r.b.BackgroundColor3 = can and r.tint or Color3.fromRGB(58, 52, 48)
 		r.b.AutoButtonColor = can
@@ -8495,6 +8502,21 @@ local function refreshEnchanter()
 			if ch.Name == "RunesView" then ch:Destroy() end
 		end
 		runesCtl = RunesView.mount(enchantP, {
+			--[[
+				Bulk recycle, from the rune list. Same two-call path the inventory
+				uses: this is the ASK, and the server's `confirmScrap` reply opens
+				the review (which is drawn by the inventory view but parented to
+				the screen, so it shows over the Enchanter).
+			]]
+			onScrapMany = function(kind, ids, into, confirm)
+				net:FireServer("scrapMany", {
+					kind = kind or "rune",
+					ids = ids,
+					into = into,
+					confirm = confirm and true or nil,
+				})
+			end,
+			onToast = function(msg) showToast(tostring(msg)) end,
 			onRollRune = function(count) net:FireServer("rollRune", { count = count or 1 }) end,
 			onRollGear = function(count) net:FireServer("rollGear", { count = count or 1 }) end,
 			onFuse = function(a, b) net:FireServer("fuseRune", { a = a, b = b }) end,
@@ -8508,8 +8530,8 @@ local function refreshEnchanter()
 				-- cardId was never sent, so the server always answered "Unknown pet".
 				net:FireServer("socketPetRune", { runeId = id, cardId = cardId })
 			end,
-			-- Off-ladder tools. socketToolRune has always taken chestId/fossilId;
-			-- the Enchanter just never offered them as targets.
+			-- Off-ladder tools. socketToolRune has always taken a chestId; the
+			-- Enchanter just never offered them as targets.
 			onSocketChestTool = function(runeId, chestId)
 				net:FireServer("socketToolRune", { runeId = runeId, chestId = chestId })
 			end,
@@ -8593,7 +8615,6 @@ function refreshAll()
 	refreshShop()
 	refreshMerge()
 	refreshDust()
-	refreshFossil()
 	refreshZones()
 	refreshPrestige()
 	if refreshEnchanter then refreshEnchanter() end
@@ -10079,14 +10100,11 @@ RunService.Heartbeat:Connect(function(dt)
 			hoverName.Text = oreTier
 				and string.format("%s  |  tier %d", tostring(oreName), oreTier)
 				or tostring(oreName)
-		elseif section and target:GetAttribute("Kind") ~= "chest" and target:GetAttribute("Kind") ~= "fossil" then
+		elseif section and target:GetAttribute("Kind") ~= "chest" then
 			hoverName.Text = string.format("%s  |  L%d", section, layer or 1)
 		elseif target:GetAttribute("Kind") == "chest" then
 			local flavour = section and ("  |  " .. section) or ""
 			hoverName.Text = blockName .. flavour
-		elseif target:GetAttribute("Kind") == "fossil" then
-			-- BlockName is already "Shallow Fossil Pick" etc - don't prefix another Fossil.
-			hoverName.Text = blockName
 		else
 			hoverName.Text = blockName
 		end
@@ -10293,7 +10311,6 @@ function ClientFns.routePanel(name, tab)
 		end },
 		merge = { mergeP, refreshMerge },
 		dust = { dustP, refreshDust },
-		fossil = { fossilP, refreshFossil },
 		zones = { zoneP, refreshZones },
 		prestige = { presP, refreshPrestige },
 		events = { eventsCtl and eventsCtl.root or nil, function()
@@ -10671,7 +10688,6 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if shopP and shopP.Visible then refreshShop() end
 		if mergeP and mergeP.Visible then refreshMerge() end
 		if dustP and dustP.Visible then refreshDust() end
-		if fossilP and fossilP.Visible then refreshFossil() end
 		if zoneP and zoneP.Visible then refreshZones() end
 		if presP and presP.Visible then refreshPrestige() end
 		if runesCtl then

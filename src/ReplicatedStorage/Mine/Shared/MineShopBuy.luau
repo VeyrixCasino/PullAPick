@@ -46,7 +46,7 @@ function MineShopBuy.buyEvent(plr, p, toolId, deps)
 	p.eventTools[tool.id] = true
 	p.eventToolId = tool.id
 	p.toolEquipped = true
-	p.chestTool, p.fossilTool = nil, nil
+	p.chestTool = nil
 	net:FireClient(plr, "toast", "Bought " .. tool.name .. " — Event Horizon only")
 	if givePickaxe then givePickaxe(plr) end
 	if snap then snap(plr) end
@@ -95,7 +95,7 @@ function MineShopBuy.buySurface(plr, p, payload, deps)
 	p.shopToolId = toolId
 	p.toolFamily = row.family or "pickaxe"
 	p.toolEquipped = true
-	p.chestTool, p.fossilTool = nil, nil
+	p.chestTool = nil
 	givePickaxe(plr)
 	giveBackpackModel(plr)
 	if introAdvance then introAdvance(plr, p, 3) end
@@ -130,7 +130,7 @@ function MineShopBuy.equip(plr, p, payload, deps)
 		return
 	end
 	p.shopToolId = id
-	p.chestTool, p.fossilTool = nil, nil
+	p.chestTool = nil
 	p.toolFamily = row.family or "pickaxe"
 	p.toolEquipped = true
 	givePickaxe(plr)

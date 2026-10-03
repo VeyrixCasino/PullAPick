@@ -58,11 +58,10 @@ TradeService.COINFLIP_ENABLED = false -- off for launch: gems/packs trace back t
 -- The currencies on the table: offer key -> profile field.
 local CURRENCY = { gems = "gems", dust = "dust", tokens = "temperTokens" }
 local CURRENCY_ORDER = { "gems", "dust", "tokens" }
--- Fossil pieces trade like runes and gear: p.fossilPieces is a flat list and
--- reconcileFossilIds guarantees every piece carries a stable hex16 id, so a
--- piece is named by its own id and never by where it sits in the bag.
-local KINDS = { "cards", "packs", "runes", "gear", "potions", "fossils" }
-local KIND_OK = { cards = true, packs = true, runes = true, gear = true, potions = true, fossils = true }
+-- A "fossils" kind traded here too. Fossils are retired (§0.12) and every
+-- piece was cashed out, so the kind is gone rather than left as an empty tab.
+local KINDS = { "cards", "packs", "runes", "gear", "potions" }
+local KIND_OK = { cards = true, packs = true, runes = true, gear = true, potions = true }
 
 local sessions = {} -- [sessionId] = session
 local byPlayer = {} -- [userId] = sessionId
@@ -100,7 +99,7 @@ local function commas(n)
 end
 
 local function emptyOffer()
-	return { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {}, fossils = {} }
+	return { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {} }
 end
 
 local function emptyAsks()
@@ -108,7 +107,7 @@ local function emptyAsks()
 end
 
 local function countOf(o)
-	return #o.cards + #o.packs + #o.runes + #o.gear + #(o.potions or {}) + #(o.fossils or {})
+	return #o.cards + #o.packs + #o.runes + #o.gear + #(o.potions or {})
 end
 
 local function hasAnything(o)
@@ -154,7 +153,7 @@ end
 -- The rows behind an offer, so the other window can draw them. Only what the
 -- offer names; never the rest of the inventory.
 local function expand(p, o)
-	local out = { gems = o.gems, dust = o.dust, tokens = o.tokens, cards = {}, packs = {}, runes = {}, gear = {}, potions = {}, fossils = {} }
+	local out = { gems = o.gems, dust = o.dust, tokens = o.tokens, cards = {}, packs = {}, runes = {}, gear = {}, potions = {} }
 	if not p then
 		return out
 	end
@@ -177,10 +176,6 @@ local function expand(p, o)
 	for _, id in ipairs(o.potions or {}) do
 		table.insert(out.potions, { id = id, name = id })
 	end
-	for _, id in ipairs(o.fossils or {}) do
-		local _, f = findBy(p.fossilPieces, "id", id)
-		if f then table.insert(out.fossils, f) end
-	end
 	return out
 end
 
@@ -198,7 +193,6 @@ local function lootValue(view)
 		end)
 		sum += (ok and tonumber(v) or 40)
 	end
-	for _, f in ipairs(view.fossils or {}) do sum += TradeValue.fossilValue(f) end
 	return sum
 end
 
@@ -465,15 +459,6 @@ function TradeService.setOffer(net, profiles, plr, offer, deps)
 			end
 		end
 	end
-	for _, id in ipairs(type(offer.fossils) == "table" and offer.fossils or {}) do
-		if type(id) == "string" and not seen["f" .. id] and room() then
-			local _, f = findBy(p.fossilPieces, "id", id)
-			if f then
-				seen["f" .. id] = true
-				table.insert(clean.fossils, id)
-			end
-		end
-	end
 	clean.potions = {}
 	for _, id in ipairs(type(offer.potions) == "table" and offer.potions or {}) do
 		if type(id) == "string" and room() then
@@ -583,7 +568,7 @@ function TradeService.peek(net, profiles, plr, deps)
 	if not p then
 		return
 	end
-	local out = { owner = theirId, cards = {}, packs = {}, runes = {}, gear = {}, fossils = {} }
+	local out = { owner = theirId, cards = {}, packs = {}, runes = {}, gear = {} }
 	local left = TradeService.PEEK_MAX
 	for _, c in ipairs(p.cards or {}) do
 		local serial = type(c) == "table" and (c.serial or c.id)
@@ -607,12 +592,6 @@ function TradeService.peek(net, profiles, plr, deps)
 	for _, g in ipairs(p.gear or {}) do
 		if left > 0 and type(g) == "table" and g.id and not gearWorn(p, g) then
 			table.insert(out.gear, g)
-			left -= 1
-		end
-	end
-	for _, f in ipairs(p.fossilPieces or {}) do
-		if left > 0 and type(f) == "table" and f.id then
-			table.insert(out.fossils, f)
 			left -= 1
 		end
 	end
@@ -651,7 +630,7 @@ local function gather(p, o, deps)
 			return nil, "not enough " .. (k == "dust" and "stardust" or k)
 		end
 	end
-	local items = { cards = {}, packs = {}, runes = {}, gear = {}, potions = {}, fossils = {} }
+	local items = { cards = {}, packs = {}, runes = {}, gear = {}, potions = {} }
 	for _, serial in ipairs(o.cards) do
 		local _, c = findCard(p, serial)
 		if not c then return nil, "a card is no longer there" end
@@ -675,11 +654,6 @@ local function gather(p, o, deps)
 			return nil, "a gear piece is gone or being worn"
 		end
 		table.insert(items.gear, g)
-	end
-	for _, id in ipairs(o.fossils or {}) do
-		local _, f = findBy(p.fossilPieces, "id", id)
-		if not f then return nil, "a fossil piece is no longer there" end
-		table.insert(items.fossils, f)
 	end
 	do
 		local need = {}
@@ -708,7 +682,6 @@ local function escrow(p, items, o)
 	p.packs = removeRows(p.packs, items.packs)
 	p.runes = removeRows(p.runes, items.runes)
 	p.gear = removeRows(p.gear, items.gear)
-	p.fossilPieces = removeRows(p.fossilPieces, items.fossils or {})
 	do
 		local bag = p.potions or {}
 		for _, row in ipairs(items.potions or {}) do
@@ -748,8 +721,6 @@ local function deliver(p, items, o)
 	append(p.packs, items.packs)
 	append(p.runes, items.runes)
 	append(p.gear, items.gear)
-	p.fossilPieces = p.fossilPieces or {}
-	append(p.fossilPieces, items.fossils or {})
 	p.potions = p.potions or {}
 	for _, row in ipairs(items.potions or {}) do
 		local id = row.id or row
@@ -904,8 +875,8 @@ local function commit(net, profiles, sess, deps)
 	-- 4. Deliver, save both, and tell them.
 	for _, m in ipairs(moves) do
 		deliver(profiles[m.to], m.items, m.offer)
-		print(string.format("[Trade] %d -> %d: %d cards %d packs %d runes %d gear %d fossils, %d gems %d dust %d tokens%s",
-			m.from, m.to, #m.items.cards, #m.items.packs, #m.items.runes, #m.items.gear, #(m.items.fossils or {}),
+		print(string.format("[Trade] %d -> %d: %d cards %d packs %d runes %d gear, %d gems %d dust %d tokens%s",
+			m.from, m.to, #m.items.cards, #m.items.packs, #m.items.runes, #m.items.gear,
 			m.offer.gems, m.offer.dust, m.offer.tokens, sess.mode == "coinflip" and " (coinflip)" or ""))
 	end
 	if sess.mode == "coinflip" then

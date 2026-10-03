@@ -158,7 +158,7 @@ MineTools.CHEST_TOOLS = {
 	{ id = "blightashcan", name = "BlightAshcan", family = "explosive", power = 10000, rate = 1, bombs = 1, pattern = "blackhole", radius = 3, cooldown = 0.1, tick = 1.0, ticks = 3, special = "blackhole", chest = "__core_break__", drop = 0, blurb = "Torn from a geothermal core. Fast throws, still a speck against the core." },
 }
 
--- Eight-tier rarity on found/chest tools (same ladder as cards / fossil packs).
+-- Eight-tier rarity on found/chest tools (same ladder as cards / loot packs).
 -- Derived from drop rate so new entries get a label without hand-authoring.
 local LADDER_RARITY = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic" }
 MineTools.LADDER_RARITY = LADDER_RARITY
@@ -917,7 +917,7 @@ end
 -- coins, and only the TOP rung you own can go -- owning tier 9 is what makes
 -- tiers 1-8 yours, so there is no pulling one out of the middle.
 --
--- A FOREVER tool came out of a chest, a fossil, an event or the pass. Never
+-- A FOREVER tool came out of a chest, an event or the pass. Never
 -- from a pack open. There is
 -- no shelf to refund against, so it pays in the two things coins cannot buy:
 -- stardust for the tool, temper tokens for its rarity. Both price themselves off

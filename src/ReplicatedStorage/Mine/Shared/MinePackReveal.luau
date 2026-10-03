@@ -155,7 +155,7 @@ local AUTO_LOOK = 2.4
 local AUTO_LOOK_RARE = 3.6
 
 -- What a rarity is usually worth in odds (Loam's own table), for loot that
--- carries no odds of its own -- gear, runes, fossils, packs from old saves --
+-- carries no odds of its own -- gear, runes, packs from old saves --
 -- so one sort can rank everything by the same measure.
 local RANK_ODDS = { 2.9, 3.9, 6.4, 14.5, 36, 175, 950, 3800 }
 local function pullKey(card)

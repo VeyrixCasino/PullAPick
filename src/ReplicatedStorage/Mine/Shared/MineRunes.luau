@@ -56,6 +56,10 @@ MineRunes.INITIAL_MAX_PCT = {
 	reach = 5.0,
 	coolant = 3.0,
 	shortFuse = 3.0,
+	earthquake = 2.6,
+	ricochet = 2.4,
+	oreLuck = 2.4,
+	packLuck = 2.4,
 }
 
 MineRunes.WHITE_COST_MULT = 5
@@ -107,15 +111,22 @@ MineRunes.DROP_TABLE = {
 -- Stick jobs never roll on pet runes.
 -- autoMine joins them: the stat was replaced by Gem Find, so rolling one would
 -- mint a rune that prints one thing and pays another.
-MineRunes.NO_ROLL_STATS = { luckyFind = true, mineSpeed = true, scrap = true, autoMine = true }
+-- echo joins them for a different reason: it is barred as a buff outright
+-- (TODO 6.2 -- "Echo must not appear as a buff on hats or anything else"),
+-- because a swing that happens twice multiplies every damage source at
+-- once. The four chest flagships whose SPECIAL is echo keep it: that is a
+-- named tool's identity, not a stat anybody rolls onto a build.
+MineRunes.NO_ROLL_STATS = { luckyFind = true, mineSpeed = true, scrap = true, autoMine = true, echo = true }
 
 MineRunes.FAMILY_STATS = {
 	pet = {
 		"swingRate", "echo", "zap",
 		"oreYield", "rareOre", "gemFind", "coinBonus",
-		"luck", "chestLuck", "fossilFind", "pulverize", "backpack", "walkSpeed", "dirtBreak",
+		"luck", "oreLuck", "chestLuck", "packLuck", "fossilFind", "pulverize", "backpack", "walkSpeed", "dirtBreak",
 	},
-	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "backpack" },
+	-- echo stays listed for an already-rolled rune to resolve against; NO_ROLL_STATS
+	-- keeps it out of the pool. earthquake and ricochet are the two new procs.
+	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "backpack", "earthquake", "ricochet" },
 	explosive = { "shortFuse", "blastRadius", "dirtBreak", "oreYield" },
 	drill = { "coolant", "reach", "swingRate", "dirtBreak", "oreYield" },
 }
@@ -182,6 +193,10 @@ MineRunes.TIER1_PCT = {
 	reach = 4.00,
 	coolant = 2.00,
 	shortFuse = 1.60,
+	earthquake = 1.40,
+	ricochet = 1.30,
+	oreLuck = 1.30,
+	packLuck = 1.30,
 	-- mineSpeed, luckyFind, scrap: pets only, never TIER1.
 }
 
@@ -450,6 +465,12 @@ function MineRunes.applyFraction(b, stat, pct)
 	elseif stat == "scrap" then b.scrap = (b.scrap or 0) + pct
 	elseif stat == "coolant" then b.coolant = (b.coolant or 0) + pct
 	elseif stat == "shortFuse" then b.shortFuse = (b.shortFuse or 0) + pct
+	elseif stat == "earthquake" then b.earthquake = (b.earthquake or 0) + pct
+	elseif stat == "ricochet" then b.ricochet = (b.ricochet or 0) + pct
+	-- The split lucks are MULTIPLIERS on top of luck, so they compound like
+	-- luck itself rather than adding a flat chance.
+	elseif stat == "oreLuck" then b.oreLuck = (b.oreLuck or 1) * (1 + pct)
+	elseif stat == "packLuck" then b.packLuck = (b.packLuck or 1) * (1 + pct)
 	elseif stat == "reach" then b.reach = (b.reach or 0) + pct
 	elseif stat == "blastRadius" then b.blastRadius = (b.blastRadius or 0) + pct
 	elseif stat == "autoMine" then
@@ -504,7 +525,8 @@ function MineRunes.clampBoosts(b)
 		if stat == "echo" or stat == "zap" or stat == "autoMine" or stat == "oreYield"
 			or stat == "luckyFind" or stat == "fossilFind" or stat == "pulverize"
 			or stat == "blastRadius" or stat == "scrap" or stat == "coolant"
-			or stat == "shortFuse" or stat == "reach" then
+			or stat == "shortFuse" or stat == "reach"
+			or stat == "earthquake" or stat == "ricochet" then
 			b[stat] = math.max(0, b[stat] or 0)
 		elseif stat == "swingRate" then
 			b.swingSec = math.max(0.05, b.swingSec or 1)
@@ -578,8 +600,16 @@ MineRunes.SETS = {
 		slots = { "backpack", "walkSpeed", "oreYield" } },
 	{ id = "coinwright", name = "Coinwright", bonus = "coinBonus",
 		slots = { "coinBonus", "gemFind", "luck" } },
+	--[[
+		Slot 2 was `echo`, and a SET rune takes its stat straight from this list
+		(see rollSetRune) rather than through rollPool -- so NO_ROLL_STATS alone
+		would not have stopped Demolition minting the one stat that is barred
+		as a buff. shortFuse replaces it: already explosives' own stat, already
+		priced in TIER1_PCT, and it reads as the same fantasy without doubling
+		anybody's damage.
+	]]
 	{ id = "demolition", name = "Demolition", bonus = "blastRadius",
-		slots = { "blastRadius", "echo", "mineSpeed" } },
+		slots = { "blastRadius", "shortFuse", "mineSpeed" } },
 	{ id = "deepdriver", name = "Deepdriver", bonus = "swingRate",
 		slots = { "swingRate", "gemFind", "mineSpeed" } },
 	{ id = "lapidary", name = "Lapidary", bonus = "gemFind",
@@ -793,7 +823,7 @@ MineRunes.SCRAP_RATE = 0.6
 -- This mirrors MineServer.runeBusy, and it lives here so there is ONE definition
 -- for every screen that lists runes. Each view having its own copy is how the
 -- sockets tray ended up offering runes the server then refused -- it had missed
--- chest and fossil tools.
+-- chest tools.
 --
 -- Takes a snapshot (or a profile: the field names are the same).
 --------------------------------------------------------------------------------
@@ -817,11 +847,6 @@ function MineRunes.socketedIds(snap)
 	end
 	for _, id in pairs(snap.petSockets or {}) do
 		used[id] = true
-	end
-	for _, ft in pairs(snap.fossilTools or {}) do
-		if type(ft) == "table" and ft.runeId then
-			used[ft.runeId] = true
-		end
 	end
 	for _, ct in ipairs(snap.chestTools or {}) do
 		if type(ct) == "table" and ct.runeId then

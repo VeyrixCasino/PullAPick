@@ -8,7 +8,7 @@ Place: "MINE FOR CARDS! SEASON ONE", placeId `73982848847016`,
 owned by the **Mine For Cards group, groupId `35326298`**.
 Repo: `VeyrixCasino/PullAPick`. Working branch: `claude/vigilant-fermi-aucqjy`.
 
-Last updated: 2026-10-02.
+Last updated: 2026-10-03.
 
 ---
 
@@ -16,10 +16,57 @@ Last updated: 2026-10-02.
 
 **0.12 — FOSSILS DO NOT EXIST.** Owner, 2026-10-02. No block spawns one, no pack
 drops one, the bench is gone from the plaza. Anything a save held was cashed out
-to gems on load at the game's own price. `MineFossils` / `MineFossilEconomy` stay
-on disk, dormant, only because that payout needs their prices to be exact —
-delete them once the migration has run everywhere. `fossilFind` keeps its KEY (it
-was already repurposed to "Ore Finder"); do not rename it.
+to gems on load at the game's own price. Both modules are **deleted** (owner,
+2026-10-02); the payout they priced is frozen into `FossilPay` in MineServer, ~35
+lines that need no module. The fossil PACKS are gone too: the three per-zone
+slots, the three roster rows, their prices, their art, the chest entries that
+dropped them and the "fossils" trade tab. An unopened one is cashed out on load.
+
+Two things deliberately STAY, and neither is open for cleanup:
+
+- **`fossilFind` keeps its KEY.** It was already repurposed to "Ore Finder". Do
+  not rename it.
+- **The 60 fossil-track BAGS stay in `MineBags.LIST`.** A bag id is
+  `bag_<index into LIST>`, so deleting them would renumber every bag above them
+  and hand every player a different backpack. They are unobtainable and hidden
+  from every shelf and count; that is the fix, not deletion.
+
+**0.14 — "THE UI ISN'T THERE" IS A SYNC QUESTION FIRST.** 2026-10-03. Reported
+twice: "still no forge ui", then "THERE'S STILL NO FUCKIN FORGE". Both times the
+Forge was in the repo and had been for days. The screenshot settled it — the
+shop's tab row read `Pickaxes · Drills · Explosives · Backpacks · Secrets ·
+Upgrade` and the subtitle read *"Level the ore tools you found. Paid in their own
+ore, plus stardust."* That string is the `bench` tab blurb **as it was written at
+`0122667` (2026-09-28)**, deleted in `663fbb2` when the Forge took the front
+line. It does not exist anywhere in the current tree. The Studio was running
+`MineShopView` from before the Forge was written — older than `main`, never mind
+the branch.
+
+So, in order, before touching code:
+
+1. Ask what the on-screen tabs say. The current set opens with **Forge** and
+   **Ore Pouch**. An `Upgrade` tab means pre-2026-09-28 code.
+2. `git log --all -S'<a string from the screenshot>'` dates the running build in
+   one command. Screenshot text is the cheapest version stamp there is.
+3. Only then look for a bug.
+
+The fix for this class is never in `src/` — it is `git pull` in the clone
+`rojo serve` is running out of, then reconnect the plugin. Note that every
+service node uses `$ignoreUnknownInstances`, so a Studio that is **not** connected
+keeps serving whatever scripts were last written into the place file, forever,
+with no warning.
+
+What changed in code so this cannot hide again (2026-10-03):
+
+- `MineBuild.luau` — a `STAMP` to eyeball against the repo, and `EXPECT`, the
+  modules this build needs. `announce()` runs first thing in `MineClient` and
+  warns by name when one is absent, since a build older than `src/` is missing
+  `src/`'s newest modules. That is the tell, and it cannot go stale into a lie.
+- `MineShopView` no longer loses the **Forge** or the **Ore Pouch** tab in
+  silence. The guarded require and the guarded mount both `warn` now. The silent
+  version of that guard is most of why this took a week.
+- `tools/verify/build-stamp.js` keeps `EXPECT` honest: every name must be a real
+  module in `src/`, or the warning cries wolf and everyone learns to ignore it.
 
 **0.13 — CHARMS AND SKINS ARE THE BUILD.** Owner, 2026-10-02. The two main parts,
 and everything else (pets, hats, faces, runes) is support. Later charms are
@@ -285,40 +332,50 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
 
 # 6. The TODO
 
-## 6.0 Blocked — needs the user, not an agent
+## 6.0 BLOCKED — needs the owner, not an agent
 
-- [ ] **Ore icon source is unreachable.** `C:\Users\uybuv\Downloads\oreicons` is on a
-  local Windows drive. Commit it (suggest `tools/oreart/src/`) or paste it. Nothing in
-  the icon/case/texture pipeline can start until then.
-- [ ] **`ToolBakers.OreToolBaker` is uncommitted, and it houses every ore in the
-  game.** Confirmed absent from `src/` with zero references anywhere. This is not
-  just a baker — it is an ore data source, so it may hold ore rows or fields that
-  `MineConfig.ORES` does not. **Sync it back and diff it against `MineConfig.ORES`
-  before any Forge, recipe or icon work**, or that work is built on a partial
-  roster. Procedure: `docs/rojo-connect.md` §"Pulling Studio's state into src/".
-- [ ] **Connect Rojo.** Never attached. Safe once the syncback above is done.
-- [ ] **Asset uploads.** No agent here can upload to Roblox. All uploads follow §7.
-- [ ] **A way to BUY a seam — SHIP BLOCKER, from main.** Depth is gated on coins
-  (`MineDepth.SEAMS`, enforced in `MineDigAuth.unlockedForLayer`) and
-  `Verbs.buySeam` is live on the `"buySeam"` action, but **nothing fires it.**
-  Do not ship the gate without a prompt or every player stops dead at layer 500.
-  `MineDepthPlazas` already owns the prompt geometry and is the obvious host;
-  `MineDepth.seamPrice(seam, zi)` gives the figure to show.
-- [ ] **Ore gem value magnitude.** `MineOrePouch.ORE_GEM_SPREAD` (10^6) sets the
-  whole gem faucet: how much more the deepest ore is worth than the shallowest.
-  The SHAPE is derived from work and defensible; the magnitude is a placeholder,
-  and the user flagged ore balance as the thing that breaks the economy if it is
-  wrong. One number, and it is a question with an answer. See §6.1 "Ore pouch".
-- [ ] **Zone and rune gem prices.** Flat tables that the ore value curve will
-  outrun. Same fix the pouch rungs got — price as a share of income at the depth
-  they gate — but the pacing is an owner call.
-- [ ] **Delete `MineFossils` / `MineFossilEconomy`** once the retirement migration
-  has run for everyone. Dormant, and kept only so the payout uses exact prices.
-  Needs a call on how long to leave the window open.
-- [ ] **The legacy 31 charms.** Zone grant + gem pack + limited. §0.5 makes charms
-  an ore drop; these predate it and still drop. Retire them, or keep both sources?
-- [ ] **VIP lost a perk.** It advertised an extra pet seat in three places and can
-  no longer deliver one. Replacement perk, or leave it at three?
+Terse on purpose: each line is BLOCKED and the one sentence you need to unblock
+it. Nothing here is an agent's to decide.
+
+- [ ] **BLOCKED — Ore icon source.** `C:\Users\uybuv\Downloads\oreicons` is on a
+  local drive. Owner is supplying art.
+- [ ] **BLOCKED — Charm and ore icons.** Owner is making these. The 164 generated
+  charm icons in `build/charm-icons/` are **superseded — owner did not want
+  them**; `tools/icons/*` and `tools/gen-charm-icons.js` stay only as the
+  ids.json → `MineCharmIcons.luau` wiring for whatever art arrives.
+- [ ] **BLOCKED — Asset uploads.** No agent here can upload to Roblox. §7 governs.
+- [ ] **BLOCKED — `ToolBakers.OreToolBaker` syncback.** `src/ServerStorage/OreToolBaker.luau`
+  exists and holds an 82-row roster of its own; diff it against `MineConfig.ORES`
+  before trusting either. Nothing requires it.
+- [ ] **BLOCKED — Rojo syncback.** Owner reported Rojo connected; the Studio-side
+  syncback in `docs/rojo-connect.md` has still not been run.
+- [ ] **BLOCKED (DEFERRED by owner) — `ORE_GEM_SPREAD` magnitude.** 10^6 is a
+  placeholder and sets the whole gem faucet. Owner: "we tackle that later."
+- [ ] **BLOCKED — Seam purchase. SHIP BLOCKER.** `Verbs.buySeam` is live and
+  nothing fires it, so every player stops at layer 500. `MineDepthPlazas` owns
+  the prompt geometry; `MineDepth.seamPrice(seam, zi)` gives the figure.
+- [ ] **BLOCKED — Zone and rune gem prices.** Flat tables the ore curve will
+  outrun. Pacing is an owner call.
+- [ ] **BLOCKED — The legacy 31 charms.** Zone grant + gem pack + limited, all
+  predating §0.5. Retire, or keep both sources?
+- [ ] **BLOCKED — VIP lost a perk.** It can no longer grant a fourth pet seat.
+  Replacement, or leave it at three?
+- [ ] **BLOCKED — Suffixes past `Nod` (10^63).** §0.8 says `q r s t …`, §0.9's
+  formatter says `Vg Uvg Dvg`. Identical below 10^63 and pinned there by
+  `tools/verify/bignum.js`, so nothing waits on it. Academic — decide cheaply.
+- [ ] **BLOCKED — Hat/pet/face boost budget.** "Nerf hats substantially",
+  "nerf zap and blast", "almost no effect should do full pickaxe damage":
+  all of these need target percentages, and a number invented here is a number
+  nobody signed off. Say what a hat should be worth and it is a day's work.
+- [ ] **BLOCKED — The element roster.** The new-boost mapping ("each element type
+  gets one of these as its native boost") cannot be finished without it.
+  Earthquake and Ricochet are BUILT and rollable on runes; what is missing is
+  only which element grants which.
+- [ ] **BLOCKED — `OreBalanceSim` is broken.** It reads five `MineConfig` symbols
+  the `c59bec5` merge removed (`ORE_BAND_WEIGHT`, `ZONE_ORE_SHIFT`,
+  `ORE_EXOTIC_HOME_ZONE`/`OFF_ZONE`, `abbrev`). It is the offline ore-balance
+  sim, so it matters once the gem spread is taken off deferral. Nothing requires
+  it, so it does not break the game.
 
 ## 6.1 P0 — launch blockers
 
@@ -335,13 +392,38 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
 - [x] **Big-number system shipped** — `MineBigNum` (server-only), base 30, three
       digits a step, always floors, science form `9.999e^99`, capped at four
       significant digits. Wheel verified distinct across 2000 steps.
-- [ ] Wire `MineBigNum` into what the server sends, so the client stops
-      formatting its own numbers. Nothing calls it yet.
+- [x] **`MineBigNum` has a caller.** `Verbs._benchNum` — the server's one
+      number-to-string, behind every toast a player reads — went through
+      `MineAbbrev.currency`, the *client* formatter, which left MineBigNum with
+      no callers at all. It is `MineBigNum.auto` now.
+      - **The swap is invisible, by design rather than by luck.** The two
+        produce byte-identical output for every magnitude below 10^63.
+      - **Getting there needed a real fix: MineBigNum did not do four
+        significant figures.** It floored to one decimal flat, so 1234 read
+        `1.2 K` — two figures, against the four its own header, §0.8 and §0.9
+        all call for. It also printed `1 K` for 1000 where the shipping
+        formatter prints `1.000K`. Now adaptive, like `MineAbbrev.currency`.
+      - **`MineAbbrev` stays.** It is in ReplicatedStorage because the client
+        needs a formatter for numbers it works out itself (a preview, a running
+        total), and MineBigNum is deliberately server-only. The guarantee that
+        matters is not that the client never formats — it is that when it does
+        it cannot disagree with the server, and `tools/verify/bignum.js` now
+        makes that a checked property rather than a hope.
+      - Still client-formatted: every number the server does not send as a
+        string. Sending one per field is a bigger change and is only worth it
+        once something actually disagrees — which the check would catch.
 - [x] **Currencies at 4 significant figures, floored**, everywhere:
       `MineAbbrev.currency`, with `shortNum` (client), `money` (shop, runes)
       and the Forge wallet all routed through it.
 - [x] **Wooden pickaxe is a tutorial pick** — cap 5,
-      `TUTORIAL_GRADUATION_TOOL = "stone_pick"`.
+      `TUTORIAL_GRADUATION_TOOL = "stone_pick"`, coin ladder, `isCoinTool`.
+      **Also dropped by `c59bec5` and restored.** The constant exists again, but
+      nothing yet READS `TUTORIAL_GRADUATION_TOOL` — the tutorial does not hand
+      the stone pick over. That part is still open, below.
+- [x] **The tutorial hands over the stone pick.**
+      `Verbs._graduateTutorialPick` reads `TUTORIAL_GRADUATION_TOOL` (which had
+      zero readers) and grants that coin-ladder rung free on the step that
+      reaches the wooden pick's cap. No-ops if the player already owns it.
 - [x] **Breaking power off base stats, uniform.** `BreakPower` is stamped on
       every tool from its tier, and the gate reads that rather than `OreTier`,
       so a shop rung is measured by the same rule instead of being exempt.
@@ -353,7 +435,9 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
       exact, flat reach. Over an 82-ore roster that is ~6 crafting steps from
       the first tool to the last ore.
 - [x] **Config shipped** — `MineConfig.ORE_REACH = 15`, `toolBreakingPower(tool)`,
-      `canBreakOre(bp, oreTier)`, `oreReachCap(bp)`.
+      `canBreakOre(bp, oreTier)`, `oreReachCap(bp)`. **Dropped by the merge
+      `c59bec5` and restored.** It was marked done here while the code was
+      gone — see the entry in §8 for how that happened and what it broke.
 - [x] **Equip path shipped.** `equippedTool()` has an ore-tool branch above the
       chest flagship, `Verbs.equipOreTool` equips/unequips and clears the
       competing overrides, the Forge has an EQUIP button, and scrapping an
@@ -404,9 +488,33 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
       and 1 Mythic, so any band below Divine walked up the ladder to the same
       single Mythic tool. Cases pay skins and charms now and never touch that
       table, which is what §0.6 described all along.
-- [ ] **Migration:** existing saves hold unopened `<id>_ore_pack` rows. Convert to
-      banked `p.ores[id]` on load, keeping pack ids as recognised aliases. Do not
-      strand inventories.
+- [x] **Migration shipped.** `Dig.bankOrePacks(p)` converts unopened
+      `<id>_ore_pack` rows to banked `p.ores[id]` on load, and the `_ore_pack`
+      ids stay registered in `MineZonePacks` so any row that does not convert
+      still resolves and can be opened by hand.
+      - **Capacity decides how many, and nothing is destroyed to tidy up.**
+        `addOre` spills what does not fit and spilled ore is gone, so this
+        checks for room FIRST and converts a pack only when its whole yield
+        lands. The remainder stays a pack and is retried next load.
+      - **No version stamp, deliberately.** A stamp would mark a player with a
+        full pouch as done and strand the rest for good. It is idempotent.
+      - **Pays the band MIDPOINT, not a roll** — the same expectation as
+        opening, and deterministic, so rejoining cannot re-roll it. The pack's
+        stamped ore finder still applies, capped exactly as the open branch
+        caps it.
+      - Does **not** bump the `packs` stat: these were not opened, and counting
+        them would jump every pack quest at once.
+      - Runs after the v1/v2 roster renames, or the old ids would not resolve.
+- [x] **`MineConfig.ORE_PACK_FIND_CAP` is a real constant now.** MineServer read
+      it as `tonumber(C.ORE_PACK_FIND_CAP) or 1` and the constant **did not
+      exist**, so the `or 1` fallback was doing the work the comment credited to
+      the knob. Behaviour is unchanged (1.0 is what the fallback gave); the dial
+      is just real and tunable.
+- [x] **`tools/verify/orepacks.js`** asserts the two things the migration leans
+      on that are not obvious from reading it: no pack can outgrow a tier-1
+      pouch (worst is 27 against 2,000, so stranding is not reachable), and the
+      midpoint always lands inside what opening could have paid. Runs the real
+      `MineOrePouch` against the real roster and yield bands.
 
 ### Ore pouch (net-new)
 
@@ -535,7 +643,24 @@ beside the Forge.
       The zone grant's own check moved to `MineCharms.ownsAnyCharm` on the way —
       it used `next(p.charms) ~= nil`, which reads a tally left at zero as
       ownership and would have quietly cancelled the guarantee.
-- [ ] **Mergeable** into higher tiers.
+- [x] **Mergeable into higher tiers.** Three copies become one of the charm one
+      ore tier deeper, same variant. Three because the card merge is already
+      "MERGE 3 → UP" and a second merge arithmetic is a thing players learn twice.
+      - **It is a TRADE, not an upgrade**, and that is the point. Shape comes
+        from `k = (tier-1) * variants + (variant-1)`, so a merge moves `k` by
+        `variants` and the shape ALWAYS changes — you buy depth and variety, not
+        a bigger number, which is what §0.13 asks for. `tools/verify/charms.js`
+        asserts it across all 162 mergeable charms rather than trusting it.
+      - **Legacy charms do not merge.** §6.0 still has an open owner call on
+        whether they are retired; feeding them into a ladder would decide it
+        quietly.
+      - The card's right-hand button was "CAN'T SELL — charms are kept, not sold",
+        a control whose only job was to refuse. It is MERGE now, and it names
+        what the charm becomes, because the target has a different shape and a
+        player who is not told cannot judge the trade.
+      - Merging away the last copy of the EQUIPPED charm moves you onto the one
+        you just made, rather than leaving `p.equippedCharm` dangling for the
+        load path to clear.
 - [ ] **Decide what happens to the legacy 31.** 15 zone-grant + 15 gem-pack + 1
       limited charm still exist and still drop. §0.5 says charms are an ORE drop;
       these predate it. Left in place deliberately so nobody loses one — **needs
@@ -574,9 +699,44 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
       earlier in the file — the name compiled as a global read, so the pack arm of
       bulk scrapping called a nil value and **threw on every use**. Confirmed with
       a minimal repro under the interpreter.
-- [ ] **Extend selection to the other menus** — pets/cards, runes and packs. The
-      server already handles all four kinds (`scrapPlan` covers card/rune/gear/
-      pack); only the EQUIPMENT tab has the Select UI wired so far.
+- [x] **CARDS and PACKS have the Select UI now**, on the same server path.
+      - **Selection is one kind-tagged table** (`pick`), shared by every tab.
+        It was two untagged fields on the equipment state, which was fine while
+        EQUIPMENT was the only tab with a button — with three tabs it is a bug
+        waiting to happen: tick gear, switch to PACKS, hit RECYCLE, and the
+        client sends gear ids under kind `pack`. Changing kind clears it.
+      - **A pack tile is a stack**, so ticking one selects every uid in it; the
+        server scraps packs one uid at a time and a half-ticked stack has
+        nowhere to show itself. Lucky blocks are excluded — they have no scrap
+        value, so the review would open on a wall of refusals.
+      - **Open buttons are not drawn while selecting.** Opening a pack and
+        recycling it are opposites; a few pixels apart they are a trap.
+      - **`into` is per kind and passed, not guessed**: cards pay stardust,
+        gear and packs pay gems, matching what `scrapPlan` prices.
+      - **`MineConfig.SCRAP_MAX` is shared now.** The cap was server-only, so
+        the UI could let a player tick a 300-pack stack that the server
+        truncates to 200 — a review honest about a list they never chose. One
+        number, read by both, and the UI refuses past it with a toast.
+- [x] **RUNES too — all four kinds are wired now.** The control moved out to
+      `MineScrapSelect.luau` rather than being copied into the Enchanter: it was
+      ~100 lines of inline UI, and two copies is how one of them learns about
+      `SCRAP_MAX` or about kinds and the other does not.
+      - **The review screen is parented to the SCREEN now, not to the inventory
+        panel.** It is drawn by `MineInventoryView` and the server's
+        `confirmScrap` is routed there, so under `root` a player recycling runes
+        from the Enchanter would have held RECYCLE and seen *nothing happen* —
+        the review inherited a hidden panel's `Visible`. `ctl.close()` destroys
+        it for the matching reason.
+      - **`sel.prune(keep)`** drops ids that no longer exist. The Enchanter's
+        selection can go stale without it doing anything: the commit clears the
+        INVENTORY's copy of the control, so a rune scrapped, fused or traded
+        away would otherwise stay ticked and turn the next batch into an
+        all-or-nothing refusal.
+      - **Selecting takes the tap on a rune card**, because fusing and recycling
+        are opposites and one gesture must not mean both.
+      - The rune list opens on CAN FUSE, which hides every rune you hold only
+        one of — exactly the ones worth recycling — so the empty-selection hint
+        points at the ALL chip.
 - [ ] Recycle returns **50% in ore and stardust** plus a value-scaled extra. Still
       needs the curve and sign-off; current payouts are the pre-existing scrap
       rates, not this.
@@ -651,10 +811,35 @@ Applies to tools, pets, runes, charms, and anything recyclable added later.
       `Verbs` is declared below the mining grant, so the marks are inlined.
 - [x] **Separate upgrades area** — the detail pane switches to UPGRADE for an
       owned tool: level, next step's price, +1 / +10 / MAX and SCRAP.
-- [ ] Runes and skins are **not** applied there yet. That is `MineForgeView`'s
-      temperament UI, which still has to move into the Forge's upgrade pane.
-- [ ] **Full inventory shown in the Forge**, bag and ore pouch included. Only a
-      wallet strip (coins / gems / dust) exists so far.
+- [x] **The skin and rune on a tool are shown in the upgrade pane**, with buttons
+      to the Enchanter's Temper and Sockets tabs.
+      - **Both are PER FAMILY, not per tool** — `p.toolSockets` and
+        `p.toolTempers` are keyed `pickaxe`/`drill`/`explosive`, and a forged row
+        carries only `uid, typeId, familyId, tier, level`. It cannot hold either.
+        The pane says "ON THIS FAMILY" rather than implying the fit is per-tool.
+      - It **reports and routes** rather than reimplementing. The Enchanter's two
+        tabs are several hundred lines each and work; a second copy is how two
+        screens start disagreeing about what is fitted.
+- [ ] **Whether the Temper/Sockets tabs should MOVE here** (so the Enchanter stops
+      owning them) is a design call, not a side effect of this panel. `MineForgeView`
+      already has `mountList(parent, opts)`, which takes a position and size and
+      is embeddable — so the mechanics are cheap once the call is made. What is
+      expensive is deciding whether the Enchanter keeps a Temper tab at all.
+- [x] **The ORE POUCH is in the Forge**, along the bottom: every ore you hold,
+      rarest first, with fill against capacity. The wallet strip answered
+      coins/gems/dust and the detail pane quotes the ore cost of whatever is
+      SELECTED — neither answered the question you actually have while browsing a
+      rail of a hundred recipes. Reference, not somewhere to act: nothing in it
+      is clickable.
+      - **Found a bug in the addition itself:** it read `snapshot.orePouchTier`,
+        which the shop's hand-built `getSnap` did not pass, so capacity read as
+        tier 1 for everybody. `tools/verify/forge-snap.js` now fails when the
+        Forge reads a field the shop omits — nil does not throw there, it falls
+        through a `tonumber(…) or 1` and prints a plausible wrong number.
+- [ ] **The BAG is not in the Forge.** Cards, packs, runes and gear are still
+      inventory-only. The pouch was the part that mattered for forging; the rest
+      is a second large panel inside a panel and wants a design call on what it
+      is for.
 - [ ] Server owns crafting: ore debited and tool minted in one transaction. No
       client-supplied costs, no partial debits on failure.
 
@@ -711,8 +896,12 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
 
 ### Hats and faces
 
-- [ ] **Hats cost rebirth tokens**, not gems. A rebirth-token wallet already exists
-      (`MineTemper.luau:1`). **Update the tutorial**, which still teaches gems.
+- [x] **Hats cost rebirth tokens.** Flat `MineGear.ROLL_TOKEN_COST = 5` against a
+      temperament case's 20, spent from `p.temperTokens`. Deliberately NOT
+      zone-scaled: that existed because gems inflate with depth, and rebirth
+      already paces token supply. Client's gear row joined temper on tokens via
+      one `spendsTokens` predicate (it was four separate `kind == "temper"`
+      tests). Tutorial step 10 fixed — it taught gems AND said hats go on pets.
 - [ ] Hats give **1–2 boosts directly to the player**. Same for pets and faces.
 - [x] **Hats are player-only — hats removed from pets.** `p.petHats` is gone, not
       emptied; hats on pets fold into free seats on load. `Verbs.equipPetHat` /
@@ -730,9 +919,34 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
       hypothetical tests, not guesses: test each boost alone, then stacked with its
       amplifiers (blast with blast-radius and blast-damage; zap with zap boosters).
 - [ ] Add hats and faces as **chest drops**.
-- [ ] **Echo must not appear as a buff** on hats or anything else.
-- [ ] **Split the hat luck boost** into the specific new luck types: **ore luck**,
-      **chest + rare-drop luck**, **pack luck**.
+- [x] **Echo is barred as a buff.** Void gear set rolls Gem Find; `NO_ROLL_STATS`
+      blocks it on runes; the Demolition rune SET took its stat straight from
+      `set.slots`, bypassing that, so slot 2 is Short Fuse. The 14 temperament
+      kits carrying it — 5 NAMED for it — are untouched: echo is retired the way
+      `autoMine` was, converted to Swing Rate at `ECHO_TO_SWING` in
+      `MineServer.boosts`, one site that catches every source. Renaming shipped
+      content is an owner call. The 4 chest flagships whose `special` is echo
+      keep it; that is a named tool's identity, not a rolled buff.
+- [x] **Luck is split into three channels.** Generic `luck` was doing three
+      unrelated jobs at once, which is why a hat that wanted to be about one of
+      them had to be about all three. Read off its four call sites:
+      - it scaled `ORE_CASE_CHANCE` on an ore break → **ore luck** (`oreLuck`)
+      - it decided IF a chest spawned, and with `chestLuck` WHICH one →
+        **chest + rare-drop luck**, which needed no new stat: that pair already
+        was this channel
+      - it was stamped onto pack rows as `row.luck`, which siphons that pack's
+        card odds when opened → **pack luck** (`packLuck`)
+      - **`luck` KEEPS all three as the shared base**, so prestige, VIP, the
+        event pass, skills, runes and the Umbra set all behave exactly as before.
+        The two new stats are MULTIPLIERS on top of it, so one source can move
+        one channel. `Dig.oreLuck` / `Dig.packLuck` are the only readers.
+      - `tools/verify/stats.js` slices both helpers out of MineServer verbatim
+        and asserts the channels are INDEPENDENT — a property invisible in the
+        stat tables.
+- [ ] **No GEAR SET rolls the new lucks yet.** All ten sets have an assigned stat
+      and Umbra is generic `luck`; pointing three of them at the new channels
+      changes three set identities, which is a content call. They are rollable on
+      runes (pet pool) now, so they are reachable and testable.
 
 ### Pets and boost balance
 
@@ -765,8 +979,13 @@ User reversed the ore-upgrade idea entirely. Ore is earned by mining, full stop.
 - [ ] Make pet and hat buffs **more easily matchable with setups**.
 - [ ] Add **drill-friendly** boosts.
 - [ ] **Guardrails** preventing too many boosts overlapping.
-- [ ] **Not all packs spawn all pets** — give each pack a pet subset
-      (`MinePackConfig.luau` / `MinePetRoster.luau`).
+- [x] **Not all packs spawn all pets.** `MinePackConfig.cardPoolFor` narrows each
+      pack to a contiguous window of its rarity pool, generated from a hash of
+      the pack id rather than authored — a hand-written subset per pack goes
+      stale the first time a card is added and nobody notices which pet became
+      unobtainable. The window SNAPS TO A TILE so two packs cover the pool
+      between them; a free offset orphaned a card at pool size 4, which
+      `tools/verify/packs.js` caught.
 
 ### New build boosts
 
@@ -775,10 +994,15 @@ to finish the mapping.*
 
 User-specified:
 
-- [ ] **Earthquake** — the block tremors/shakes and takes **20% tool damage per
-      second**. Cannot stack. Maximum 5 blocks.
-- [ ] **Ricochet** — after breaking a block the effect jumps to one nearby block.
-      Happens at most once; no chain reactions.
+- [x] **Earthquake — BUILT.** `Dig.startQuake` + one tick loop. Registry keyed on
+      the PART, so "cannot stack" needs no comparison; keyed on the Instance
+      rather than a voxel key because a mine reset destroys parts and a stale
+      coordinate would name a different rock. 20% and 5 blocks are the owner's
+      numbers. **`EARTHQUAKE_SEC = 5` is mine** — a full quake is then 100% of
+      one swing over five seconds. Argue with that one.
+- [x] **Ricochet — BUILT.** Break-only, and `swingNeighbour` is called directly
+      rather than through anything re-entering `procsAt`, so "no chain reactions"
+      is enforced by the call rather than by a counter somebody could raise.
 
 Claude-proposed (need sign-off). Chosen to be mostly non-damage so they do not
 collide with blast and zap, which is the guardrail asked for:
@@ -926,6 +1150,129 @@ Creator = Mine For Cards.** Do not ship personal-owned ids.
 ---
 
 # 8. Done
+
+**A merge had silently broken forging, and nothing noticed for four commits
+(2026-10-03):**
+
+- [x] **`c59bec5` took main's `MineConfig` wholesale and dropped ~13 symbols
+      while every caller stayed.** Luau parses a missing field happily, so
+      `syntax.sh` saw nothing and the failures waited for runtime.
+      `C.toolBreakingPower` is called on EVERY tool grant, `C.toolCraftCost` on
+      every craft, `C.woodPickCoinCost` is the starter's whole coin ladder, and
+      `C.WOOD_PICK_MAX_LEVEL` was compared with `>=` so nil threw. Forging,
+      crafting and handing out a tool were all dead on this branch.
+- [x] **`ORE_MIGRATION_V2` was the quiet one.** The lookup came back nil, the
+      `type(map) == "table"` guard skipped the whole 121 → 82 remap, and the
+      stamp at the bottom still wrote `p.oreRosterV = 2` — so it marked itself
+      complete having moved nothing, once, permanently, per save.
+- [x] **Restored from `c59bec5^1`, not reinvented**, and checked against the
+      roster that actually shipped: all 39 v2 targets exist in the current
+      `ORES`, no source id is a live ore, every v1 target lives or chains.
+- [x] **`tools/verify/config-refs.js` is the guard.** Every `MineConfig` symbol a
+      LIVE module reads must exist; modules nothing requires are a note, not a
+      failure. Against the broken config it reports 11 and exits 1.
+- [x] **The TODO had claimed both the breaking-power config and the tutorial pick
+      as shipped while the code was absent.** Corrected.
+
+**Boosts, the tutorial and the ore tools (2026-10-03):**
+
+- [x] Tutorial graduation, hats on rebirth tokens, Echo barred, Earthquake,
+      Ricochet, per-pack pet subsets — see §6.1/§6.2 for each.
+- [x] **Ore tools stopped being "one flat colour, 82 times".** No mesh is named
+      after an ore, so every forged tool took the procedural path, and those
+      builders colour from an eight-step ramp indexed by a COSMETIC shop rung.
+      `ToolModelFactory.oreLook` drives colour, haft, material, gleam and
+      silhouette off the ore row instead. **The authored glow wins:** 27 rows
+      carry a hand-picked `glow`, and deriving one instead got Phosphorus
+      (green glow, pale yellow rock) wrong in the one way a player notices.
+- [x] **`MineBigNum` has a caller, and did not do four significant figures.** It
+      floored to one decimal flat, so 1234 read `1.2 K`. Fixed, then wired into
+      `Verbs._benchNum`; `tools/verify/bignum.js` pins it against
+      `MineAbbrev.currency` below 10^63.
+- [x] **Five new behavioural checks**, each written after a real bug:
+      `config-refs` (missing config symbols), `stats` (a stat with no
+      `emptyBoosts` key is a silent no-op), `bignum`, `oretools`, and the pack
+      subset assertions in `packs`. Three of them also had their own exit-code
+      bug fixed: they printed "N FAILED" and then "all assertions passed" in the
+      same run.
+
+
+**The fossil modules deleted (2026-10-02):**
+
+- [x] **`MineFossils` and `MineFossilEconomy` are gone from disk.** Owner call: the
+      migration window closes now. They had been kept dormant for one reason — the
+      retirement payout had to use the game's own prices — so the payout came first:
+      it was a **formula, not authored data** (`gemMin = zi x band`, `gemMax` a
+      multiple of it, graded by layer and quality), plus 6 legacy ids that predate
+      the `pair_<name>_<band>_<slot>` scheme. That is ~35 lines, now frozen into
+      `FossilPay` in MineServer, and `retireFossils` requires nothing.
+- [x] **Every dependent stripped**, not stubbed: the legacy fossil PACK prices
+      through `FossilPay`, three client loot-card branches are gone, `fossilItem`
+      (57 lines) and its call site are out of `MineLootPacks` and `"fossil"` is no
+      longer an equipment kind, and the zone map lost its fossil section with
+      `fossilsForZone` / `ownsFossil`. No `require` of either module remains.
+- [x] **Fitting the payout back in cost a refactor.** Self-contained `retireFossils`
+      pushed MineServer to **205 top-level locals**, past Luau's hard 200 — eight
+      of them collapsed into the one `FossilPay` table, back to 198.
+- [x] **The one consequence, stated plainly:** `FossilPay` is the last fossil code
+      in the repo and is itself deletable later. Deleting it costs exactly one
+      thing — a player who has not logged in since retirement keeps their pieces as
+      dead state instead of gems.
+
+**And then the rest of the fossils, which were still live (2026-10-02):**
+
+Deleting the modules turned up a much larger surface than the modules. These were
+not dormant — they were reachable:
+
+- [x] **Fossil PACKS were still obtainable.** `MineZonePacks` authored three of
+      every zone's eight slots (33 registered packs) and ~37 chest loot entries
+      dropped them. Gone: the slots, the `SLOT_META` rows, `fossilOdds`, the
+      `SLOT_ALIAS` table, the three `Mine1PacksData` rows, seven `PACK_PRICE` /
+      `CREDIT_PRICE` entries, the `DUST_EXCLUDE` row, three `MinePackFX` art rows
+      and their lookup, and the five `MineTradeValue` dust rows.
+- [x] **Chest loot kept its shape.** Each fossil slot was REPLACED, not dropped —
+      removing them would have left chests like Rootbox and Hillock with a single
+      pack slot. Each became the same-band card pack at the same chance, stepping
+      up the ladder when that slot was already present, so no chest lost a slot
+      and none rolls the same slot twice.
+- [x] **A "Fossils" tab in the trade window.** A whole trade kind, server and
+      client, over `p.fossilPieces` which is always nil now. Gone from
+      `TradeService` (KINDS, the offer/view/items skeletons, sanitise, peek,
+      take, remove, append, the log line) and `MineTradeView` (the tab, the
+      stack key, the rarity ink, the rank, the inspector lines).
+- [x] **The Fossil Bench PANEL in MineClient.** Already reduced to a notice, kept
+      against a stale waypoint. Nothing routes to it (the plaza station is gone,
+      and the router no-ops on an unknown key), so it went with its refresh
+      function, `countFossilPieces`, the WIDE entry and the `RETIRED` station
+      label.
+- [x] **Fossil tools in two more screens.** `MineSocketsView` and `MineRunesView`
+      both listed them as rune targets (`onSocketFossilTool`), `MineRunes`
+      counted their runes as busy, and `MineInventoryView` had a whole fourth
+      equip source for them (tiles, temper text, equip call, sell confirm).
+- [x] **Dead server plumbing.** The legacy-pack open branch (51 lines), the
+      `kind ~= "fossil"` spawn guards, the `PROC_SKIP` entry, the intro-chest
+      guard, the `setName` map row, the pack-luck guard and two unused
+      `fossilId` locals. `MineConfig` lost `BLOCKS.fossil`,
+      `FOSSIL_LAYER_CHANCE` and the `fossilTools` bag field — and the
+      unknown-kind fallback `C.BLOCKS[kind] or C.BLOCKS.fossil` had to become
+      `C.BLOCKS.dirt` first, or an unrecognised kind would have thrown.
+- [x] **Found a real bug on the way: the event pass had an impossible quest.**
+      Its last quest, "Find a fossil pack in the event mine", read stat
+      `fossils` — which has **no writer anywhere** — and the chest roller
+      excluded Event Horizon from fossil packs regardless. The top 30 xp of the
+      track was unreachable. It is a depth step now, on a stat the server
+      actually bumps, keeping the id so `questIndex` does not shift for anyone
+      part-way through.
+- [x] **Player-facing text that promised fossils.** The `depth1k` quest tip
+      ("Fossils become forever tools"), the Pulverizer stat description, the bag
+      refusal toast ("crafted on the fossil track"), and the "Fossil Bed" block,
+      renamed to "Pressed Bed" with its id kept because saves carry it.
+- [x] **`tools/verify/packs.js`, a new behavioural check.** Grep can prove a word
+      is absent; it cannot prove 89 chest tables still line up after three of
+      eight slots were removed. This RUNS the real `MineZonePacks` and
+      `MineZoneChests` and asserts no fossil pack is registered, 11 zones × 5
+      slots = 55 packs, every chest names a known slot with no duplicates and
+      offers at least one pack, and every rolled id resolves.
 
 **Fossils retired + charms given shapes (2026-10-02):**
 

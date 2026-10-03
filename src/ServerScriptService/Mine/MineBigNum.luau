@@ -95,10 +95,28 @@ function MineBigNum.suffix(step)
 	return out
 end
 
--- Floor to one decimal. 1.29 -> 1.2, never 1.3: the player is never told they
--- hold more than they hold.
-local function floorTenth(x)
-	return math.floor(x * 10 + 1e-9) / 10
+--[[
+	Floor a mantissa to FOUR SIGNIFICANT FIGURES, as a string.
+
+	The places move with the leading digits -- 3 digits take one decimal, 2 take
+	two, 1 takes three -- so 1.234 K, 12.34 K and 123.4 K all read four figures.
+	This used to floor to one decimal flat, which gave four figures only when
+	the mantissa happened to have three leading digits: 1234 rendered "1.2 K",
+	two figures, against the four this module's own header and TODO 0.8/0.9 all
+	call for. It also disagreed with MineAbbrev.currency, which has always done
+	the adaptive thing -- and two formatters that disagree about the same number
+	is the whole reason there is meant to be one.
+
+	Always DOWN. 1.29 -> 1.2, never 1.3: a player is never told they hold more
+	than they hold. string.format is used rather than tostring so the trailing
+	zeros survive -- tostring(1.0) is "1", which would print 1000 as "1 K" next
+	to 1234 as "1.234 K".
+]]
+local function floorFour(x)
+	local places = (x >= 100 and 1) or (x >= 10 and 2) or 3
+	local mult = 10 ^ places
+	local floored = math.floor(x * mult + 1e-9) / mult
+	return string.format("%." .. places .. "f", floored)
 end
 
 --[[
@@ -128,14 +146,22 @@ function MineBigNum.split(n)
 	return step, mant * sign
 end
 
--- Suffix form: "1.2 Qa". The default readout.
+--[[
+	Suffix form: "1.234Qa". The default readout.
+
+	NO SPACE by default. Every currency on screen today comes from
+	MineAbbrev.currency, which writes "1.234Qa", so matching it means this can
+	take over a readout without the number visibly changing under the player.
+	Pass space = true for the spaced form.
+]]
 function MineBigNum.format(n, space)
 	local step, mant = MineBigNum.split(n)
 	if step <= 0 then
 		return tostring(math.floor(mant))
 	end
-	local sep = (space == false) and "" or " "
-	return string.format("%s%s%s", tostring(floorTenth(mant)), sep, MineBigNum.suffix(step))
+	local sign = (mant < 0) and "-" or ""
+	local sep = (space == true) and " " or ""
+	return string.format("%s%s%s%s", sign, floorFour(math.abs(mant)), sep, MineBigNum.suffix(step))
 end
 
 --[[

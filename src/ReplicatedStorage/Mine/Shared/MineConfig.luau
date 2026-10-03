@@ -636,7 +636,7 @@ MineConfig.ITEM_SLOT_GEM_RATE = 1.08
 -- they are equipment slots, not shelf stock.
 MineConfig.ITEM_BAG_FIELDS = {
 	"cards", "packs", "runes", "tempers",
-	"chestTools", "fossilTools", "eventTools",
+	"chestTools", "eventTools",
 }
 
 function MineConfig.itemSlotsUsed(p)
@@ -648,7 +648,7 @@ function MineConfig.itemSlotsUsed(p)
 		local t = p[field]
 		if type(t) == "table" then
 			-- Three shapes in play: arrays (cards, packs, runes, chestTools),
-			-- id-keyed maps (fossilTools, eventTools) and maps whose value
+			-- id-keyed maps (eventTools) and maps whose value
 			-- carries a copy count (tempers). Length first, then entries.
 			local n = #t
 			if n > 0 then
@@ -814,7 +814,7 @@ end
 -- HP" rule as the single invariant in the economy.
 MineConfig.BLOCKS = {
 	-- Every ore shares one kind; WHICH ore is an attribute, exactly as a
-	-- chest block carries its chest and a fossil block carries its recipe.
+	-- chest block carries which chest it is.
 	-- Colour, material and HP are overridden per ore at spawn.
 	ore = { name = "Ore", rock = true, hp = 3, coins = 3, gems = 0,
 		color = Color3.fromRGB(150, 140, 110), material = Enum.Material.Metal },
@@ -847,8 +847,6 @@ MineConfig.BLOCKS = {
 		color = Color3.fromRGB(196, 140, 62), material = Enum.Material.WoodPlanks },
 	lucky_block = { name = "Lucky Block", noHaul = true, hp = 8, coins = 0, gems = 0,
 		color = Color3.fromRGB(255, 196, 64), material = Enum.Material.Neon },
-	fossil = { name = "Fossil", rock = false, hp = 6, coins = 0, gems = 0,
-		color = Color3.fromRGB(210, 180, 120), material = Enum.Material.Sandstone },
 	-- Bottom-of-mine core. 100 trillion HP; chips grant a core sample, full break
 	-- grants the Geothermal Nuke. Does not fill the haul bag.
 	core = { name = "Geothermal Core", rock = true, hp = 100000000000000, coins = 0, gems = 0,
@@ -1172,7 +1170,56 @@ MineConfig.CHEST_CHANCE = 0.003 -- ~1.3 chests / layer on 21x21; ~20 an hour of 
 MineConfig.MEADOW_SHALLOW_CHEST_MULT = 2
 -- Pit lucky cubes. 1 in 5,000. Mix 80/15/5 gold/diamond/mythic. Not 3× in bigbang.
 MineConfig.LUCKY_BLOCK_CHANCE = 0.00020
-MineConfig.FOSSIL_LAYER_CHANCE = 0.10
+--[[
+	Cap on the ORE FINDER a legacy ore pack may apply when it is banked or
+	opened.
+
+	A pack stamped its finder at break time, so the number it carries can be
+	whatever a pet stack was worth that day -- and upgrade costs are sized in
+	HOURS of supply, so an uncapped multiplier on an old pack is a shortcut past
+	the cost curve rather than a nicer drop. 1.0 holds the best case to 2x
+	unboosted (the payout is `amount * (1 + find)`).
+
+	MineServer read this with an `or 1` fallback while the constant did not
+	exist, so the behaviour is unchanged -- the knob is just real now.
+]]
+MineConfig.ORE_PACK_FIND_CAP = 1.0
+
+--[[
+	EARTHQUAKE and RICOCHET -- the two new build boosts the owner specified
+	(TODO 6.2 "New build boosts").
+
+	Both are deliberately NOT damage multipliers. The guardrail that section
+	asks for is that almost no effect does full pickaxe damage without a
+	dedicated amplifier, so these two spend their power on reach and time
+	instead of on the hit:
+
+	  EARTHQUAKE  the block shakes and takes 20% of your tool damage per
+	              second. Cannot stack on one block. At most 5 blocks shaking
+	              at once, per player.
+	  RICOCHET    breaking a block jumps the effect to one nearby block. Once.
+	              No chain reactions -- the block it lands on rolls no procs.
+
+	The 20%, the 5 and "once" are the owner's numbers. The DURATION was not
+	specified, and 5 seconds is the choice: a full life is then 100% of one
+	swing spread over five seconds, so a quake is worth starting and is never
+	a substitute for swinging. It is the one number here to argue with.
+]]
+MineConfig.EARTHQUAKE_TICK_SHARE = 0.20
+MineConfig.EARTHQUAKE_SEC = 5
+MineConfig.EARTHQUAKE_MAX_BLOCKS = 5
+-- One jump, never a chain. Raising this turns Ricochet into Zap.
+MineConfig.RICOCHET_HOPS = 1
+
+--[[
+	Most items one bulk-recycle batch may carry.
+
+	Shared because BOTH SIDES need it. The server truncates the id list at this
+	many before pricing, and the Select UI has to clamp to the same number --
+	otherwise a player ticks a stack of 300, is quoted 200, and the two disagree
+	about what they just approved. One number, read by both.
+]]
+MineConfig.SCRAP_MAX = 200
 
 
 
@@ -2394,6 +2441,125 @@ function MineConfig.toolUpgradeCost(tier, level, typeMult)
 	return ore, dust
 end
 
+--[[
+	RESTORED AFTER A BAD MERGE. c59bec5 took main's MineConfig wholesale and
+	dropped this whole block, but every caller of it stayed. The result was not
+	a quiet regression -- `C.toolBreakingPower` is called on EVERY tool grant
+	(MineServer, "BreakPower" attribute) and `C.toolCraftCost` on every craft,
+	so forging and handing out tools both threw on a nil call. Four commits
+	shipped over the top of it.
+
+	It is restored here rather than reinvented, with one change: nothing in it
+	re-enforces the swing gate. Main's `Dig.Breaking.canBreak` does that now and
+	weighs zone and layer as well as ore tier; the merge was right to keep one
+	gate. These are the RULE and the numbers behind it, which main never had.
+
+	BREAKING POWER. The ore a tool is forged from IS its breaking power.
+
+	Owner's rule (TODO 0.1), not derived from anything in this repo:
+
+	  - A tool forged from ore tier T has breaking power T.
+	  - It reaches T + ORE_REACH tiers of ore.
+	  - Breaking power is NOT upgradeable. Levelling raises damage, never reach.
+	    The only way to reach deeper ore is to forge from a better ore.
+
+	Breaking power is NOT damage, and the two must never be collapsed into one
+	number. A tool can hit for billions and still be unable to scratch an ore
+	fifteen tiers above the rock it was made from.
+
+	Across 82 ores a +15 reach is about six forges from the first tool to the
+	last ore, which is the progression ladder the rule exists to create.
+]]
+MineConfig.ORE_REACH = 15
+
+--[[
+	Breaking power for a tool with no ore behind it -- a shop rung, the starter
+	pickaxe, a chest flagship.
+
+	Zero, so such a tool still reaches ORE_REACH tiers (0 + 15) and the rule
+	stays uniform rather than exempting every non-forged tool from it. If ore
+	should instead be mineable with anything until a player forges their first
+	tool, this is the one line to change.
+]]
+MineConfig.NO_ORE_BREAKING_POWER = 0
+
+--[[
+	Breaking power from a tool's BASE STATS.
+
+	Every tool has a tier, and that tier is its breaking power -- an ore tool's
+	tier is its ore, a shop rung's tier is its rung. One rule, no special case,
+	so the wooden pickaxe and a forged Oganesson pick are measured the same way.
+
+	Reads `oreTier` before `tier` on purpose: `tier` on a given Tool instance is
+	`lookTier`, a cosmetic ladder value clamped to the shop family's length, and
+	gating on it is silently wrong.
+]]
+function MineConfig.toolBreakingPower(tool)
+	if type(tool) == "table" then
+		local t = tonumber(tool.oreTier) or tonumber(tool.tier)
+		if t then
+			return math.max(0, math.floor(t))
+		end
+		return MineConfig.NO_ORE_BREAKING_POWER or 0
+	end
+	return math.max(0, math.floor(tonumber(tool) or 0))
+end
+
+-- The rule, stated. The live refusal is main's Dig.Breaking.canBreak, which
+-- also weighs zone and layer; this is here so the reach rule has one home and
+-- the UI below can show the same ceiling the rule implies.
+function MineConfig.canBreakOre(breakingPower, oreTier)
+	local bp = math.max(1, math.floor(tonumber(breakingPower) or 1))
+	local t = math.max(1, math.floor(tonumber(oreTier) or 1))
+	return t <= bp + (MineConfig.ORE_REACH or 15)
+end
+
+-- The deepest ore tier a tool can reach, for UI that wants to show the ceiling.
+function MineConfig.oreReachCap(breakingPower)
+	local bp = math.max(1, math.floor(tonumber(breakingPower) or 1))
+	return math.min(bp + (MineConfig.ORE_REACH or 15), MineConfig.ORE_COUNT or 82)
+end
+
+MineConfig.TOOL_CRAFT_BASE = 250
+
+function MineConfig.toolCraftCost(tier, typeMult)
+	return math.ceil(MineConfig.TOOL_CRAFT_BASE * MineConfig.toolCostMult(tier, typeMult))
+end
+
+--[[
+	The wooden pickaxe is a TUTORIAL pick and nothing else.
+
+	It exists to get a new player to the stone pick, which is handed over in the
+	tutorial, and then it is done. Five levels is the length of that errand; it
+	is not a tool anybody should still be levelling afterwards, and its coin
+	ladder is priced to be finished rather than lived in.
+
+	It is also the one tool that levels on COINS. Charging ore for the thing
+	whose whole job is to carry a player who has no ore yet would gate the
+	ungating.
+]]
+MineConfig.WOOD_PICK_ID = "wood_pick"
+MineConfig.WOOD_PICK_MAX_LEVEL = 5
+MineConfig.TUTORIAL_GRADUATION_TOOL = "stone_pick"
+MineConfig.WOOD_PICK_COIN_BASE = 35
+MineConfig.WOOD_PICK_COIN_GROW = 1.55
+
+-- Cost of the step from `level` to `level + 1`, in coins. nil at the cap, the
+-- same contract toolUpgradeCost uses, so a caller cannot charge for a level
+-- that does not exist.
+function MineConfig.woodPickCoinCost(level)
+	local L = math.max(1, math.floor(tonumber(level) or 1))
+	if L >= MineConfig.WOOD_PICK_MAX_LEVEL then
+		return nil
+	end
+	return math.ceil(MineConfig.WOOD_PICK_COIN_BASE * (MineConfig.WOOD_PICK_COIN_GROW ^ (L - 1)))
+end
+
+-- True when this tool levels on coins rather than ore + stardust.
+function MineConfig.isCoinTool(tool)
+	return type(tool) == "table" and tool.typeId == MineConfig.WOOD_PICK_ID
+end
+
 -- Everything poured in to reach `level` from 1. Geometric, so it stays exact
 -- at level 1000 instead of drifting the way a loop would.
 function MineConfig.toolSpent(tier, level, typeMult)
@@ -2594,6 +2760,103 @@ MineConfig.ORE_MIGRATION = {
 	wolframite = "stormstone",
 	zircon = "moonstone",
 	zirconium = "cobalt",
+}
+
+--[[
+	RESTORED AFTER THE SAME BAD MERGE as the breaking-power block below.
+	c59bec5 dropped all three of these while MineServer's load path kept
+	reading them, and the failure mode was the quiet kind: the lookup came back
+	nil, the type(map) == "table" guard skipped the whole remap, and the stamp
+	at the bottom still wrote p.oreRosterV = 2.
+	So the 121 -> 82 migration marked itself done having moved nothing, once,
+	permanently, for every save that loaded.
+
+	Restored verbatim, after checking it against the roster that actually
+	shipped from the merge rather than the one it was written for: all 39
+	targets exist in the current MineConfig.ORES, no source id is a live ore,
+	and every v1 target either lives or chains through v2.
+]]
+--[[
+	Second roster pass: the 121 became 82 and 39 ids went away.
+
+	v1 above still has to work for a save that never ran it, so this is a
+	separate table and a separate stamp rather than an edit: v0 goes 0 -> 1 -> 2,
+	v1 goes 1 -> 2. Every v1 target that pointed at one of the 39 has been
+	re-pointed to its final home, so no chain ends on an id that no longer
+	exists even if only one pass runs.
+
+	Each removed ore goes to the nearest KEPT ore at or below it in the old
+	121 order -- downhill, so nobody is handed something they had not earned.
+]]
+MineConfig.ORE_ROSTER_V = 2
+MineConfig.ORE_MIGRATION_V2 = {
+	agate = "quartz",
+	alexandrite = "moonstone",
+	apatite = "amethyst",
+	azurite = "nickel",
+	beryllium = "cobalt",
+	cassiterite = "tin",
+	chalcopyrite = "pyrite",
+	chert = "flint",
+	chromite = "nickel",
+	cinnabar = "nickel",
+	cobblestone = "stone",
+	diorite = "copper",
+	electrum = "obsidian",
+	fluorite = "nickel",
+	fulgurite = "gold",
+	galena = "lead",
+	hematite = "iron",
+	iridium = "galaxite",
+	jasper = "quartz",
+	kimberlite = "onyx",
+	labradorite = "cobalt",
+	magnetite = "nickel",
+	malachite = "nickel",
+	manganese = "nickel",
+	moissanite = "amethyst",
+	moldavite = "gold",
+	niobium = "cobalt",
+	osmium = "soulstone",
+	quartzite = "pyrite",
+	rhodium = "stormstone",
+	rhodochrosite = "turquoise",
+	sandstone = "clay",
+	selenite = "pyrite",
+	spinel = "sunstone",
+	tanzanite = "aquamarine",
+	tektite = "gold",
+	tourmaline = "emerald",
+	zircon = "emerald",
+	zirconium = "cobalt",
+}
+
+--[[
+	Old ore INDEX -> new ore INDEX, for p.oreTools.
+
+	A saved ore tool stores `tier` as a position in MineConfig.ORES, not an id,
+	so renumbering 121 rows down to 82 silently re-points every tool a player
+	owns. This is the explicit map: 121 entries, one per old position, each
+	landing on the new position of whatever that ore became (itself if it was
+	kept, its migration target if it was removed).
+
+	Generated alongside ORE_MIGRATION_V2 and printed by the balance sim. Two old
+	positions can share a new one -- Stone and Cobblestone both end up at 1.
+]]
+MineConfig.ORE_TIER_REMAP_V2 = {
+	[1] = 1, [2] = 1, [3] = 2, [4] = 2, [5] = 3, [6] = 4, [7] = 5, [8] = 6, [9] = 7, [10] = 7,
+	[11] = 8, [12] = 9, [13] = 10, [14] = 11, [15] = 12, [16] = 12, [17] = 13, [18] = 13, [19] = 14, [20] = 15,
+	[21] = 16, [22] = 16, [23] = 17, [24] = 18, [25] = 19, [26] = 19, [27] = 20, [28] = 21, [29] = 21, [30] = 21,
+	[31] = 21, [32] = 22, [33] = 23, [34] = 24, [35] = 25, [36] = 25, [37] = 25, [38] = 26, [39] = 27, [40] = 28,
+	[41] = 28, [42] = 28, [43] = 28, [44] = 28, [45] = 28, [46] = 28, [47] = 28, [48] = 29, [49] = 29, [50] = 30,
+	[51] = 31, [52] = 32, [53] = 33, [54] = 34, [55] = 34, [56] = 35, [57] = 36, [58] = 37, [59] = 37, [60] = 37,
+	[61] = 38, [62] = 39, [63] = 40, [64] = 41, [65] = 42, [66] = 43, [67] = 44, [68] = 45, [69] = 46, [70] = 47,
+	[71] = 48, [72] = 49, [73] = 49, [74] = 50, [75] = 50, [76] = 50, [77] = 50, [78] = 50, [79] = 51, [80] = 51,
+	[81] = 51, [82] = 51, [83] = 52, [84] = 53, [85] = 53, [86] = 54, [87] = 54, [88] = 54, [89] = 55, [90] = 55,
+	[91] = 56, [92] = 57, [93] = 58, [94] = 59, [95] = 59, [96] = 60, [97] = 61, [98] = 62, [99] = 62, [100] = 63,
+	[101] = 64, [102] = 65, [103] = 66, [104] = 67, [105] = 67, [106] = 68, [107] = 68, [108] = 69, [109] = 70, [110] = 71,
+	[111] = 72, [112] = 73, [113] = 74, [114] = 75, [115] = 76, [116] = 77, [117] = 78, [118] = 79, [119] = 80, [120] = 81,
+	[121] = 82,
 }
 
 --[[
