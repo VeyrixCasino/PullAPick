@@ -31,6 +31,43 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.15 — A FORGED TOOL *IS* ITS ORE.** Owner, 2026-10-03, on first seeing the
+Forge working: *"everything in forge should be called {ore} {tool}"*, *"i want
+crafting to be sorted by the actual ore"*, *"i dont want different tools to cost
+different ores. If i want to upgrade my stone pick, it should cost stone, at an
+increasing amount each time."*
+
+The data model already agreed; the PANEL was the liar. A forged row is
+`{uid, typeId, familyId, tier, level}` and `tier` has always been the **ore's**
+tier, with `upgradeOreTool` charging `C.ORES[tool.tier]` — the tool's own ore —
+growing by `TOOL_ORE_GROW` per level. What was wrong: the rail listed tool TYPES
+under the coin shop's invented names ("Chipped Crown", "Widow's Notch"), then
+asked you to pick any ore to forge one from. So the thing you selected had no ore
+in its name and one name could be made of 82 ores at 82 prices.
+
+Now, and not open for re-litigation:
+
+- **Name is `{Ore} {Noun}`** — "Stone Pickaxe", "Clay Drill". `MineOreTools.name`.
+- **The frame is DERIVED, never picked.** `frameForTier` maps ore tier 1..82
+  proportionally onto a family's priced rungs (24 / 16 / 16). Proportional, not
+  nearest: nearest parks every ore past rung 24 on the top frame.
+- **`craftOreTool` ignores `payload.typeId`** and re-derives. The panel quotes
+  with the same pure function, so they cannot drift and a modified client cannot
+  ask for a deep ore in a cheap frame.
+- **The free starter never enters the pool** — filtered on `price > 0`, so
+  `wood_pick` (price 0) and the unpriced chest flagships are out by construction.
+- **CRAFT / UPGRADE / SHOP are modes of the panel**, on a left rail, with the
+  family picker under them. The owner drew a box in that empty gutter and wrote
+  *"all tabs should be there (crafting, upgrade, shop, shit like that)"*.
+
+Guarded by `tools/verify/oreforge.js`.
+
+**Bug found doing it:** `craftOreTool` ended with a copy of `equipOreTool`'s
+toggle that read `uid` — not a local in that function, so Luau compiled it as a
+global read and it was **nil in both branches**. Forging never equipped the new
+tool, and if you were already holding one it silently put it away. Now
+`p.oreToolEquipped = row.uid`.
+
 **0.14 — "THE UI ISN'T THERE" IS A SYNC QUESTION FIRST.** 2026-10-03. Reported
 twice: "still no forge ui", then "THERE'S STILL NO FUCKIN FORGE". Both times the
 Forge was in the repo and had been for days. The screenshot settled it — the

@@ -34,7 +34,7 @@ local MineBuild = {}
 	the point is that a human can eyeball it against the repo, not that it
 	parses. It is a hint: EXPECT below is what actually proves anything.
 ]]
-MineBuild.STAMP = "2026-10-03 forge + ore pouch + luck split"
+MineBuild.STAMP = "2026-10-03 ore-first forge"
 
 --[[
 	Modules this build requires to be in ReplicatedStorage.Mine.Shared, with the
@@ -47,6 +47,7 @@ MineBuild.STAMP = "2026-10-03 forge + ore pouch + luck split"
 MineBuild.EXPECT = {
 	{ name = "MineForge", lost = "the Forge tab -- no crafting or levelling ore tools" },
 	{ name = "MineOrePouchView", lost = "the Ore Pouch tab -- no selling ore" },
+	{ name = "MineOreTools", lost = "the Forge -- tool names, frames and craft prices" },
 	{ name = "MineScrapSelect", lost = "multi-select scrapping" },
 	{ name = "MineForgeView", lost = "the Enchanter's temper and socket panes" },
 	{ name = "MineCharms", lost = "charms -- every charm row reads as empty" },

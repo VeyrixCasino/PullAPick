@@ -15109,31 +15109,41 @@ function Verbs.craftOreTool(plr, payload)
 	end
 
 	local familyId = tostring(payload.familyId or "pickaxe")
-	local typeId = tostring(payload.typeId or "")
 	local oreId = tostring(payload.oreId or "")
 
-	local def
-	for _, td in ipairs((Tools.TOOLS or {})[familyId] or {}) do
-		if td.id == typeId then
-			def = td
-			break
-		end
-	end
-	if not def then
-		net:FireClient(plr, "toast", "No such tool")
-		return
-	end
+	--[[
+		THE ORE IS THE TOOL.
 
-	-- The starter is given, not forged. Letting it be crafted from ore would
-	-- put the cheapest frame in the game on the ore economy for no gain.
-	if C.WOOD_PICK_ID and def.id == C.WOOD_PICK_ID then
-		net:FireClient(plr, "toast", "The Wooden Pickaxe is free, not forged")
-		return
-	end
+		Owner, 2026-10-03: "i dont want different tools to cost different ores."
 
+		This verb used to take a typeId AND an oreId from the client and trust
+		the pair, so one frame could be forged out of any ore at any price --
+		which is exactly what made the Forge read as nonsense. The frame is
+		DERIVED from the ore's tier now, by the same pure function the panel
+		quotes with, so the two cannot drift and a modified client cannot ask
+		for a deep ore in a cheap frame. payload.typeId is ignored on purpose.
+
+		MineOreTools is required here rather than at the top of the file: this
+		script is at 197 of Luau's 200 top-level locals, and a forge is not a
+		hot path.
+	]]
 	local oreDef = C.oreById and C.oreById(oreId)
 	if not oreDef or not oreDef.tier then
 		net:FireClient(plr, "toast", "That ore is not in the roster")
+		return
+	end
+
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	local def = OreTools.frameForTier(familyId, oreDef.tier)
+	if not def then
+		net:FireClient(plr, "toast", "Nothing in that family can be forged")
+		return
+	end
+
+	-- The starter is given, not forged. frameForTier already filters it out by
+	-- price, so this is belt and braces rather than the only guard.
+	if C.WOOD_PICK_ID and def.id == C.WOOD_PICK_ID then
+		net:FireClient(plr, "toast", "The Wooden Pickaxe is free, not forged")
 		return
 	end
 
@@ -15143,7 +15153,7 @@ function Verbs.craftOreTool(plr, payload)
 		return
 	end
 
-	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = typeId })
+	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = def.id })
 	local cost = C.toolCraftCost(oreDef.tier, typeMult)
 
 	p.ores = p.ores or {}
@@ -15165,17 +15175,25 @@ function Verbs.craftOreTool(plr, payload)
 	table.insert(p.oreTools, row)
 
 	bumpStat(plr, p, "crafts")
-	net:FireClient(plr, "toast", string.format("Forged  %s %s",
-		oreDef.name or oreId, def.name or def.id))
+	net:FireClient(plr, "toast", "Forged  " .. OreTools.name(oreDef, familyId))
 	snap(plr)
 	markDirty(plr)
-	if p.oreToolEquipped == uid then
-		-- Tapping the held tool puts it away.
-		p.oreToolEquipped = nil
-	else
-		p.oreToolEquipped = uid
-		p.chestTool = nil
-	end
+	--[[
+		Equip what was just forged.
+
+		This was a copy of equipOreTool's TOGGLE pasted into craft, and it read
+		`uid` -- a local that does not exist in this function. Luau compiles an
+		undeclared name as a GLOBAL read, so `uid` was nil in both branches:
+		`p.oreToolEquipped == nil` took the first branch whenever nothing was
+		held and the second assigned nil anyway. Either way the field ended up
+		nil, so forging never equipped the new tool and, if you were holding
+		one, silently put it away. The row's id is `row.uid`.
+
+		There is no toggle to do here: you cannot be holding a tool that did
+		not exist a line ago.
+	]]
+	p.oreToolEquipped = row.uid
+	p.chestTool = nil
 	p.toolEquipped = true
 	givePickaxe(plr)
 	markDirty(plr)
