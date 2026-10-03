@@ -1205,11 +1205,80 @@ MineConfig.ORE_PACK_FIND_CAP = 1.0
 	swing spread over five seconds, so a quake is worth starting and is never
 	a substitute for swinging. It is the one number here to argue with.
 ]]
-MineConfig.EARTHQUAKE_TICK_SHARE = 0.20
 MineConfig.EARTHQUAKE_SEC = 5
 MineConfig.EARTHQUAKE_MAX_BLOCKS = 5
 -- One jump, never a chain. Raising this turns Ricochet into Zap.
 MineConfig.RICOCHET_HOPS = 1
+
+--[[
+	PROC DAMAGE IS A SEPARATE STAT FROM PROC CHANCE.
+
+	Owner, 2026-10-03: "almost no effect should do full pickaxe damage" and
+	"Just make damage and chance 2 different stats."
+
+	Every proc used to hand the neighbour `dmg` -- the WHOLE swing. One stat
+	bought both how often it fired and how hard, so the only way to make a proc
+	feel good was to make it fire constantly, and the only way to balance it
+	was to make it rare. Zap was the worst of it: 32 hops at 0.9^hop is 9.7x a
+	swing off one roll, and at a high chance the chain barely decayed.
+
+	Split in two:
+
+	  CHANCE   the existing per-proc stat -- oreYield (Blast), zap,
+	           earthquake, ricochet. How OFTEN. Unchanged, still rollable.
+	  DAMAGE   PROC_SHARE below, scaled by the new `procPower` stat. How HARD.
+
+	The shares are what one proc is worth against a plain swing, before
+	procPower. They are deliberately under 1.0: a proc is a bonus on top of
+	mining, never a replacement for it.
+
+	  blast     0.35 x 6 faces = 2.10 per proc. The widest, so the lowest rate.
+	  zap       0.45 on the first hop, then ZAP_FALLOFF a hop.
+	  ricochet  0.60 into exactly one block. Highest, because it is the
+	            narrowest and cannot chain.
+	  quake     0.12 a second for EARTHQUAKE_SEC, so 0.60 over a full life --
+	            worth starting, never a substitute for swinging.
+
+	procPower scales all four together. A proc build is then a real build: at
+	the +300% cap a blast is 1.4 x 6 = 8.4x a swing, which is enormous and
+	cost a whole stat budget to reach.
+]]
+MineConfig.PROC_SHARE = {
+	blast = 0.35,
+	zap = 0.45,
+	ricochet = 0.60,
+	quake = 0.12,
+}
+
+--[[
+	ZAP, with a real end to it.
+
+	Was 32 hops with chance AND damage decaying 0.9x. 0.9 is almost no decay --
+	at zap = 0.8 the chain still has a 0.38 continue chance on hop 9 -- so the
+	cap was doing all the work and the falloff none. Six hops and 0.75 makes
+	the tail short and the first hops matter.
+]]
+MineConfig.ZAP_MAX_HOPS = 6
+MineConfig.ZAP_FALLOFF = 0.75
+
+-- How far procPower can be stacked. A ceiling, not a target.
+MineConfig.PROC_POWER_CAP = 3.0
+
+--[[
+	What one proc actually lands.
+
+	The one place this is computed. A caller passing its own multiplier is how
+	Blast and Zap ended up disagreeing about what "full damage" meant.
+]]
+function MineConfig.procDamage(dmg, which, procPower)
+	local base = math.max(0, tonumber(dmg) or 0)
+	local share = (MineConfig.PROC_SHARE or {})[which]
+	if not share then
+		return 0
+	end
+	local pp = math.clamp(tonumber(procPower) or 0, 0, MineConfig.PROC_POWER_CAP or 3)
+	return math.max(1, math.floor(base * share * (1 + pp)))
+end
 
 --[[
 	Most items one bulk-recycle batch may carry.

@@ -21,7 +21,7 @@ MineStats.STATS = {
 	swingRate   = { label = "Swing Rate",    weight = 1.4, unit = "%", desc = "Swings per second." },
 	reach       = { label = "Reach",         weight = 1.4, unit = "%", desc = "Pick/drill aim distance. 26 × (1 + reach). Rune only." },
 	blastRadius = { label = "Blast Radius",  weight = 6.0, unit = "%", desc = "Tool pattern size. Rune only — pets never wear this." },
-	oreYield    = { label = "Blast",         weight = 4.0, unit = "%", desc = "Destroy-proc: chance the aimed block's death also hits 6 neighbors. Chests stay centre-only." },
+	oreYield    = { label = "Blast Chance",  weight = 4.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
 	coinBonus   = { label = "Coin Bonus",    weight = 0.8, unit = "%", desc = "Coins from selling." },
 	gemFind     = { label = "Gem Find",      weight = 1.8, unit = "%", desc = "Gems dropped by ore." },
 	luck        = { label = "Luck",          weight = 2, unit = "%", desc = "Pack yield and tool finds; mined packs show a luck badge." },
@@ -34,7 +34,7 @@ MineStats.STATS = {
 	-- at ECHO_TO_SWING. The entry stays so an old kit or save still resolves a
 	-- weight; it is out of STAT_ORDER so no screen lists it.
 	echo        = { label = "Echo Strike",   weight = 1.5, unit = "%", desc = "Legacy: paid out as Swing Rate.", legacy = true },
-	zap         = { label = "Zap",           weight = 2.5, unit = "%", desc = "Chance dig hits chain to nearby blocks; chance and damage fall off each hop." },
+	zap         = { label = "Zap Chance",    weight = 2.5, unit = "%", desc = "CHANCE a dig chains to nearby blocks, up to 6 hops. How hard each hop lands is Proc Power." },
 	-- LEGACY. Auto Mine was replaced by Gem Find: anything still carrying this
 	-- key is converted at AUTO_MINE_TO_GEM before it is paid or printed (see
 	-- MineStats.withoutAutoMine, MineTemper.magnitudes, MineServer.boosts). The
@@ -74,15 +74,29 @@ MineStats.STATS = {
 	]]
 	oreLuck     = { label = "Ore Luck",         weight = 2.4, unit = "%", desc = "Chance an ore block drops its ORE CASE. Does not touch chests or packs." },
 	packLuck    = { label = "Pack Luck",        weight = 2.4, unit = "%", desc = "Siphons a pack's card odds toward the chase when it is opened. Stamped on the pack when you get it." },
-	earthquake  = { label = "Earthquake",       weight = 2.6, unit = "%", desc = "Chance a block starts shaking and takes 20% of your tool damage per second. Does not stack; 5 blocks at once." },
-	ricochet    = { label = "Ricochet",         weight = 2.4, unit = "%", desc = "Chance breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
+	earthquake  = { label = "Earthquake Chance", weight = 2.6, unit = "%", desc = "CHANCE a block starts shaking and bleeds damage every second for 5s. Does not stack; 5 blocks at once." },
+	ricochet    = { label = "Ricochet Chance",  weight = 2.4, unit = "%", desc = "CHANCE breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
+	--[[
+		PROC DAMAGE, and the only stat that moves it.
+
+		Owner, 2026-10-03: "Just make damage and chance 2 different stats."
+		Every proc used to land a FULL swing, so its chance stat bought both
+		how often it fired and how hard. Now each proc has a share of a swing
+		(MineConfig.PROC_SHARE) and this scales all four together.
+
+		Weighted 3.0 -- above any single proc chance, below Blast's 4.0. It is
+		worth more than one chance stat because it multiplies all of them, and
+		less than Blast because it does nothing at all on a build with no proc
+		chance to scale.
+	]]
+	procPower   = { label = "Proc Power",       weight = 3.0, unit = "%", desc = "How hard Blast, Zap, Earthquake and Ricochet hit. Does nothing without a proc chance to scale." },
 }
 
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
 	"oreYield", "rareOre", "gemFind", "coinBonus",
 	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
-	"earthquake", "ricochet",
+	"earthquake", "ricochet", "procPower",
 	"coolant", "shortFuse", "backpack", "walkSpeed", "dirtBreak",
 }
 

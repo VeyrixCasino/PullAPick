@@ -120,15 +120,24 @@ MineRunes.NO_ROLL_STATS = { luckyFind = true, mineSpeed = true, scrap = true, au
 
 MineRunes.FAMILY_STATS = {
 	pet = {
-		"swingRate", "echo", "zap",
+		"swingRate", "echo", "zap", "procPower",
 		"oreYield", "rareOre", "gemFind", "coinBonus",
 		"luck", "oreLuck", "chestLuck", "packLuck", "fossilFind", "pulverize", "backpack", "walkSpeed", "dirtBreak",
 	},
 	-- echo stays listed for an already-rolled rune to resolve against; NO_ROLL_STATS
 	-- keeps it out of the pool. earthquake and ricochet are the two new procs.
-	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "backpack", "earthquake", "ricochet" },
-	explosive = { "shortFuse", "blastRadius", "dirtBreak", "oreYield" },
-	drill = { "coolant", "reach", "swingRate", "dirtBreak", "oreYield" },
+	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "backpack", "earthquake", "ricochet", "procPower" },
+	explosive = { "shortFuse", "blastRadius", "dirtBreak", "oreYield", "procPower" },
+	--[[
+		DRILLS GET PROC POWER TOO.
+
+		Owner's standing ask for drill-friendly boosts: a drill holds to mine,
+		so swingRate is close to dead weight on one, and half its pool was
+		stats built for a swing. Procs fire on a drill's digs like anything
+		else, so procPower and the two new chances give a drill something to
+		build into that is actually about drilling.
+	]]
+	drill = { "coolant", "reach", "swingRate", "dirtBreak", "oreYield", "procPower", "earthquake" },
 }
 
 -- Old saves may still hold kind="ranged" runes from before the cut.

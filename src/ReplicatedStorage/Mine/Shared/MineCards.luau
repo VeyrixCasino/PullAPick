@@ -415,7 +415,7 @@ end
 	stat -- a multiplier starting at 0 zeroes everything it touches, and an
 	additive starting at 1 is a free +100%.
 ]]
-local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true }
+local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, procPower = true }
 MineCards.ADDITIVE_STATS = ADDITIVE_STATS
 
 local function addStat(b, key, amount)
@@ -583,6 +583,10 @@ function MineCards.emptyBoosts()
 		-- additive (oreYield = Blast % proc)
 		echo = 0, zap = 0, blastRadius = 0, autoMine = 0, oreYield = 0, luckyFind = 0, fossilFind = 0, pulverize = 0,
 		scrap = 0, coolant = 0, shortFuse = 0, reach = 0,
+		-- PROC DAMAGE, separate from every proc CHANCE above it. Additive, and
+		-- it has to start here or the relic fold skips it the way it would any
+		-- key that is not already present.
+		procPower = 0,
 		-- Earthquake and Ricochet are chances, so additive like the other procs.
 		-- They have to START here: the relic fold skips any stat whose key is
 		-- not already on the table (b[r.stat] ~= nil), so a missing key would be

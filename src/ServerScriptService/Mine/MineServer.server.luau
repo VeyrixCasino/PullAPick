@@ -5820,6 +5820,12 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		return
 	end
 	local rng = Random.new()
+	--[[
+		Proc DAMAGE comes from procPower; proc CHANCE from each proc's own
+		stat. Read once here so the four procs below cannot disagree about
+		what a player's proc damage is mid-swing.
+	]]
+	local pp = tonumber(b.procPower) or 0
 	-- Omni Blast is a destroy-proc: chest / core / cube deaths stay
 	-- centre-only, both as the source and as a neighbour.
 	if broke and not Dig.PROC_SKIP[kind] then
@@ -5830,7 +5836,8 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 				local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
 				if other and typeof(other) == "Instance" and other.Parent then
 					if not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-						pcall(swingNeighbour, plr, other, dmg, p)
+						pcall(swingNeighbour, plr, other,
+							C.procDamage(dmg, "blast", pp), p)
 					end
 				end
 			end
@@ -5862,7 +5869,7 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 				local hit = opts[rng:NextInteger(1, #opts)]
 				net:FireClient(plr, "loot", { text = "RICOCHET",
 					color = Color3.fromRGB(140, 220, 255), pos = hit.Position })
-				pcall(swingNeighbour, plr, hit, dmg, p)
+				pcall(swingNeighbour, plr, hit, C.procDamage(dmg, "ricochet", pp), p)
 			end
 		end
 	end
@@ -5879,21 +5886,36 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 	if not broke and not Dig.PROC_SKIP[kind] then
 		local eq = tonumber(b.earthquake) or 0
 		if eq > 0 and rng:NextNumber() < eq then
-			Dig.startQuake(plr, p, part, dmg)
+			-- The PER-TICK figure is stored, not the swing: the tick loop then
+			-- subtracts what it was given rather than re-deriving a share, so
+			-- the quake a player started keeps its damage even if the stat
+			-- changes under it mid-shake.
+			Dig.startQuake(plr, p, part, C.procDamage(dmg, "quake", pp))
 		end
 	end
 
-	-- Chain Zap: one chain from this block. Chance and damage fall off 0.9x a
-	-- hop, it never doubles back into the cell it just left, and chain hits
-	-- re-proc nothing.
+	--[[
+		Chain Zap: one chain from this block, now with an end to it.
+
+		Was 32 hops at 0.9x on both chance and damage -- 9.7x a swing off one
+		roll, and at a high zap the chain barely decayed, so the hop cap was
+		doing all the balancing and the falloff none. C.ZAP_MAX_HOPS hops at
+		C.ZAP_FALLOFF, starting from PROC_SHARE.zap rather than a full swing.
+
+		It still never doubles back into the cell it just left, and chain hits
+		still re-proc nothing.
+	]]
 	local startZap = b.zap or 0
 	if startZap <= 0 or rng:NextNumber() >= startZap then
 		return
 	end
+	local falloff = tonumber(C.ZAP_FALLOFF) or 0.75
+	local maxHops = math.max(1, math.floor(tonumber(C.ZAP_MAX_HOPS) or 6))
+	local zapBase = C.procDamage(dmg, "zap", pp)
 	local chance = startZap
 	local fromCx, fromCy, fromCz = cx, cy, cz
 	local prevDx, prevDy, prevDz = 0, 0, 0
-	for hops = 1, 32 do
+	for hops = 1, maxHops do
 		local opts = {}
 		for _, d in ipairs(Dig.FACE6) do
 			if not (d[1] == -prevDx and d[2] == -prevDy and d[3] == -prevDz) then
@@ -5909,8 +5931,9 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		end
 		local pick = opts[rng:NextInteger(1, #opts)]
 		net:FireClient(plr, "loot", { text = "ZAP", color = Color3.fromRGB(250, 220, 80), pos = pick.part.Position })
-		pcall(swingNeighbour, plr, pick.part, math.max(1, math.floor(dmg * (0.9 ^ hops))), p)
-		chance *= 0.9
+		pcall(swingNeighbour, plr, pick.part,
+			math.max(1, math.floor(zapBase * (falloff ^ (hops - 1)))), p)
+		chance *= falloff
 		if rng:NextNumber() >= chance then
 			break
 		end
@@ -5984,7 +6007,6 @@ end
 task.spawn(function()
 	while true do
 		task.wait(1)
-		local share = tonumber(C.EARTHQUAKE_TICK_SHARE) or 0.20
 		local now = os.clock()
 		for uid, mine in pairs(Dig.QUAKE) do
 			local plr = Players:GetPlayerByUserId(uid)
@@ -6001,8 +6023,9 @@ task.spawn(function()
 						end
 						mine[part] = nil
 					else
-						pcall(swingNeighbour, plr, part,
-							math.max(1, math.floor(q.dmg * share)), prof)
+						-- q.dmg is already the per-tick figure (C.procDamage at
+						-- start time), so this is a straight application.
+						pcall(swingNeighbour, plr, part, q.dmg, prof)
 					end
 				end
 			end

@@ -206,6 +206,9 @@ MineGear.STAT_WEIGHT = {
 	autoMine = 0.25,
 	earthquake = 0.30,
 	ricochet = 0.28,
+	-- Proc DAMAGE. Above any one proc chance because it multiplies all four,
+	-- below Blast because it is worth nothing without a chance to scale.
+	procPower = 0.38,
 	-- Below generic luck (0.75): each moves one channel where luck moves three.
 	oreLuck = 0.45,
 	packLuck = 0.40,

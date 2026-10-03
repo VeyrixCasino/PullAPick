@@ -31,6 +31,29 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.16 — PROC DAMAGE AND PROC CHANCE ARE TWO STATS.** Owner, 2026-10-03:
+*"almost no effect should do full pickaxe damage"*, *"Just make damage and chance
+2 different stats."*
+
+Every proc used to hand its neighbour the player's WHOLE swing, so one stat
+bought both how often it fired and how hard. Zap was 9.7x a swing off one roll.
+
+- CHANCE stays on `oreYield` / `zap` / `earthquake` / `ricochet`.
+- DAMAGE is `MineConfig.PROC_SHARE` scaled by the new `procPower` stat, through
+  `MineConfig.procDamage` and nowhere else.
+- Every share is **under 1.0**. Blast 0.35 (x6 faces), Zap 0.45, Ricochet 0.60,
+  Quake 0.12/s. Zap capped at 6 hops at 0.75 falloff, was 32 at 0.9.
+- `procPower` weight 3.0, capped +300%, rollable on gear and on pet / pickaxe /
+  explosive / **drill** runes — the last being the drill-friendly ask.
+
+Guarded by `tools/verify/procs.js`. Full numbers and the before/after table are
+in `docs/BALANCE-PROPOSAL.md` §1.
+
+**STILL BLOCKED, now written up with numbers to approve** — see
+`docs/BALANCE-PROPOSAL.md` §2-§4: the hat sheet nerf (+1225% -> +420%),
+`TOOL_CRAFT_BASE` 250 -> 150, `WOOD_PICK_COIN_GROW` 1.55 -> 1.40,
+`EARTHQUAKE_SEC`, and whether `oreYield` should be renamed to a blast key.
+
 **0.15 — A FORGED TOOL *IS* ITS ORE.** Owner, 2026-10-03, on first seeing the
 Forge working: *"everything in forge should be called {ore} {tool}"*, *"i want
 crafting to be sorted by the actual ore"*, *"i dont want different tools to cost
