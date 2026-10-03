@@ -107,7 +107,12 @@ MineRunes.DROP_TABLE = {
 -- Stick jobs never roll on pet runes.
 -- autoMine joins them: the stat was replaced by Gem Find, so rolling one would
 -- mint a rune that prints one thing and pays another.
-MineRunes.NO_ROLL_STATS = { luckyFind = true, mineSpeed = true, scrap = true, autoMine = true }
+-- echo joins them for a different reason: it is barred as a buff outright
+-- (TODO 6.2 -- "Echo must not appear as a buff on hats or anything else"),
+-- because a swing that happens twice multiplies every damage source at
+-- once. The four chest flagships whose SPECIAL is echo keep it: that is a
+-- named tool's identity, not a stat anybody rolls onto a build.
+MineRunes.NO_ROLL_STATS = { luckyFind = true, mineSpeed = true, scrap = true, autoMine = true, echo = true }
 
 MineRunes.FAMILY_STATS = {
 	pet = {
@@ -578,8 +583,16 @@ MineRunes.SETS = {
 		slots = { "backpack", "walkSpeed", "oreYield" } },
 	{ id = "coinwright", name = "Coinwright", bonus = "coinBonus",
 		slots = { "coinBonus", "gemFind", "luck" } },
+	--[[
+		Slot 2 was `echo`, and a SET rune takes its stat straight from this list
+		(see rollSetRune) rather than through rollPool -- so NO_ROLL_STATS alone
+		would not have stopped Demolition minting the one stat that is barred
+		as a buff. shortFuse replaces it: already explosives' own stat, already
+		priced in TIER1_PCT, and it reads as the same fantasy without doubling
+		anybody's damage.
+	]]
 	{ id = "demolition", name = "Demolition", bonus = "blastRadius",
-		slots = { "blastRadius", "echo", "mineSpeed" } },
+		slots = { "blastRadius", "shortFuse", "mineSpeed" } },
 	{ id = "deepdriver", name = "Deepdriver", bonus = "swingRate",
 		slots = { "swingRate", "gemFind", "mineSpeed" } },
 	{ id = "lapidary", name = "Lapidary", bonus = "gemFind",

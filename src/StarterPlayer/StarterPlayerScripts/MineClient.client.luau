@@ -7856,6 +7856,17 @@ function rollsTab.build(parent)
 		used to be, and a shop where every product looks the same is a list, not
 		a shop.
 	]]
+	--[[
+		Which wallet a row spends. Hats joined temperaments on rebirth TOKENS
+		(TODO 6.2), and this was four separate `kind == "temper"` tests -- the
+		chip, the button, the currency id and the affordability check. One
+		predicate, so adding the next token row cannot leave one of them
+		paying gems.
+	]]
+	local function spendsTokens(kind)
+		return kind == "temper" or kind == "gear"
+	end
+
 	local function row(title, sub, art, unit, y, tint, fire, counts, kind)
 		counts = counts or { 1, 10, 100 }
 		local card = mk("Frame", {
@@ -7904,7 +7915,7 @@ function rollsTab.build(parent)
 		unitLay.Padding = UDim.new(0, 6)
 		unitLay.SortOrder = Enum.SortOrder.LayoutOrder
 		unitLay.Parent = unitHost
-		local unitChip = Icons.priceChip(unitHost, (kind == "temper") and "tokens" or "gems", shortNum(unit), {
+		local unitChip = Icons.priceChip(unitHost, spendsTokens(kind) and "tokens" or "gems", shortNum(unit), {
 			iconSize = 16,
 			textSize = 13,
 			textColor = MUTED,
@@ -7943,7 +7954,7 @@ function rollsTab.build(parent)
 				Position = UDim2.fromOffset(10, 30), Size = UDim2.new(1, -20, 0, 18),
 				ZIndex = 37,
 			}, b)
-			local currencyId = (kind == "temper") and "tokens" or "gems"
+			local currencyId = spendsTokens(kind) and "tokens" or "gems"
 			Icons.priceChip(costHost, currencyId, shortNum(unit * n), {
 				iconSize = 14,
 				textSize = 14,
@@ -7975,10 +7986,10 @@ function rollsTab.build(parent)
 			net:FireServer("rollRune", { count = n or 1 })
 		end, { 1, 10, 100 }, "rune")
 	-- Crates land in the bag and open at your own pace, so a 100x buy is not
-	-- 100 ceremonies -- same as runes.
-	row("Gear Case", "Pet-boost hats and faces only. Graded F to SSS.",
+	-- 100 ceremonies -- same as runes. Priced in REBIRTH TOKENS now, not gems.
+	row("Gear Case", "Hats and faces, worn by YOU. Graded F to SSS. Costs rebirth tokens.",
 		art("gear", Hats.thumb and Hats.thumb(1016143686) or nil),
-		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_PRICE, 136,
+		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_TOKEN_COST or 5, 136,
 		Color3.fromRGB(168, 140, 255), function(n)
 			net:FireServer("rollGear", { count = n or 1 })
 		end, { 1, 10, 100 }, "gear")
@@ -8007,7 +8018,8 @@ function rollsTab.paint()
 	for _, c in ipairs(rollsTab.have:GetChildren()) do
 		c:Destroy()
 	end
-	-- Summon tab wallet is gems (rune/gear). Temper spends tokens on its own row.
+	-- The header chip is the GEM purse (the rune row). The gear and temper rows
+	-- price themselves in tokens and check haveTokens, via spendsTokens above.
 	rollsTab.haveChip = Icons.priceChip(rollsTab.have, "gems", shortNum(haveGems), {
 		iconSize = 18,
 		textSize = 17,
@@ -8029,7 +8041,7 @@ function rollsTab.paint()
 		return nil
 	end
 	local function currencyOf(kind)
-		return (kind == "temper") and "tokens" or "gems"
+		return spendsTokens(kind) and "tokens" or "gems"
 	end
 	for _, u in pairs(rollsTab.unitChips or {}) do
 		local want = priceOf(u.kind)
@@ -8061,7 +8073,7 @@ function rollsTab.paint()
 	for _, r in ipairs(rollsTab.buttons) do
 		local total = r.unit * r.n
 		-- The first gear roll is free (server: Verbs.rollGearBanner).
-		local freeGear = snap.freeGear and r.unit == (tonumber(snap.gearRollPrice) or 75) and r.n == 1
+		local freeGear = snap.freeGear and r.unit == (tonumber(snap.gearRollPrice) or 5) and r.n == 1
 		local tag = r.b:FindFirstChild("FreeTag")
 		if freeGear and not tag then
 			tag = mk("TextLabel", {
@@ -8074,7 +8086,7 @@ function rollsTab.paint()
 		if tag then
 			tag.Visible = freeGear and true or false
 		end
-		local purse = (r.kind == "temper") and haveTokens or haveGems
+		local purse = spendsTokens(r.kind) and haveTokens or haveGems
 		local can = freeGear or purse >= total
 		r.b.BackgroundColor3 = can and r.tint or Color3.fromRGB(58, 52, 48)
 		r.b.AutoButtonColor = can

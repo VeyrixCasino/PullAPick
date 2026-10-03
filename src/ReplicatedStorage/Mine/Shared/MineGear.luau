@@ -165,7 +165,16 @@ MineGear.SETS = {
 	{ id = "storm", name = "Storm", stat = "zap", fantasy = "Electric chain zap" },
 	{ id = "prism", name = "Prism", stat = "rareOre", fantasy = "Crystal prospect" },
 	{ id = "umbra", name = "Umbra", stat = "luck", fantasy = "Shadow fortune" },
-	{ id = "void", name = "Void", stat = "echo", fantasy = "Space echo" },
+	--[[
+		ECHO IS BARRED AS A BUFF (TODO 6.2). Void rolled it, which made the one
+		set whose whole identity was "your swing happens twice" -- a damage
+		doubler on a hat, stacking with every other damage source, which is the
+		collapse the guardrail exists to stop.
+
+		It pays Gem Find instead: unclaimed by any other set, universal enough
+		to be worth wearing, and it does not touch damage at all.
+	]]
+	{ id = "void", name = "Void", stat = "gemFind", fantasy = "Void prospect" },
 }
 MineGear.SETS_BY_ID = {}
 for _, s in ipairs(MineGear.SETS) do MineGear.SETS_BY_ID[s.id] = s end
@@ -188,6 +197,8 @@ MineGear.STAT_WEIGHT = {
 	blastRadius = 0.28,
 	rareOre = 0.22,
 	zap = 0.18,
+	-- Kept so an already-rolled piece still scores rather than falling to the
+	-- 0.15 default. Nothing mints a new one.
 	echo = 0.18,
 	luckyFind = 0.20,
 	fossilFind = 0.18,
@@ -221,6 +232,21 @@ end
 -- one temperaments and rune tiers come off. SSS is 1 in 5,000 there.
 MineGear.RARITY_WEIGHTS = ToolGrades.FINAL_ODDS_FROM_F
 MineGear.ROLL_PRICE = 75
+
+--[[
+	HATS COST REBIRTH TOKENS, NOT GEMS (TODO 6.2).
+
+	Flat, and deliberately not zone-scaled the way the gem price was. That
+	scaling existed because gems inflate with depth; tokens do not -- they come
+	from rebirth, so rebirth count already paces how many hats a player can
+	buy. Scaling the price by zone on top of that would gate the same purchase
+	twice.
+
+	Five against a temperament case's twenty (MineSkillData.TEMPER_ROLL_COST),
+	so the price says what the design says: skins are a pillar, hats are
+	support, and the wallet they now share makes you choose between them.
+]]
+MineGear.ROLL_TOKEN_COST = 5
 --[[
 	A gentle climb with the deepest zone owned, and no cliff anywhere in it.
 

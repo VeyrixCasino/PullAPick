@@ -2476,6 +2476,19 @@ local function boosts(p)
 		exactly the pace those two tables intend.
 	]]
 
+	--[[
+		Echo is barred as a buff and pays as Swing Rate. Folded HERE, after every
+		source has summed, because that is the one place that catches all of
+		them -- gear, runes, temperaments, charms, pets and skills -- rather
+		than fourteen temperament kits and counting.
+	]]
+	local echoLeft = tonumber(b.echo) or 0
+	if echoLeft ~= 0 then
+		local eRatio = (Stats and Stats.ECHO_TO_SWING) or (1.5 / 1.4)
+		b.swingRate = (tonumber(b.swingRate) or 1) + echoLeft * eRatio
+		b.echo = 0
+	end
+
 	local autoLeft = tonumber(b.autoMine) or 0
 	if autoLeft ~= 0 then
 		local ratio = (Stats and Stats.AUTO_MINE_TO_GEM) or (2.5 / 1.8)
@@ -3187,7 +3200,7 @@ local function snap(plr)
 		toolTempers = p.toolTempers or {},
 		tempers = p.tempers or {},
 		temperCasePrice = require(shared.MineTemper).CASE_PRICE_TOKENS,
-		runeRollPrice = Runes.rollPriceFor(p.maxUnlockedZone), gearRollPrice = Gear.rollPriceFor(p.maxUnlockedZone),
+		runeRollPrice = Runes.rollPriceFor(p.maxUnlockedZone), gearRollPrice = tonumber(Gear.ROLL_TOKEN_COST) or 5,
 		credits = p.credits or 0, scrolls = p.scrolls or Scrolls.emptyBag(),
 		quest = questState(p),
 		dailyQuests = dailyQuestState(p, plr.UserId),
@@ -3318,7 +3331,10 @@ local Intro = {
 		[7] = { text = "Free gems, top-left. CLAIM IT.", highlight = "questClaim" },
 		[8] = { text = "Now the good stuff: ROLL A RUNE.", panel = "summon", grantGems = "runeRoll", waypoint = "enchanter" },
 		[9] = { text = "Jam it into your pick. Yours forever, even through rebirth.", panel = "enchanter", tab = "sockets", requireAction = "socketToolRune", waypoint = "enchanter", bonusGems = 25 },
-		[10] = { text = "Summon a HAT — your first roll is FREE. Hats are real Roblox items, and they go on your PETS.", panel = "summon", highlight = "gearRow", waypoint = "enchanter" },
+		-- Two things wrong here before: it said hats go on your PETS (they are
+		-- player-only now, three seats, TODO 6.2) and it taught gems (they cost
+		-- rebirth tokens).
+		[10] = { text = "Summon a HAT — your first roll is FREE. Hats are real Roblox items, you wear them yourself, and after the free one they cost REBIRTH TOKENS.", panel = "summon", highlight = "gearRow", waypoint = "enchanter" },
 		[11] = { text = "Your runes live at the Enchanter, on its RUNES tab. Fuse spares there later (50%, no pity).", panel = "enchanter", tab = "runes", ack = true, waypoint = "enchanter" },
 		[12] = { text = "NEW ZONE: Greyvein. The bar is how close you are.", panel = "zones" },
 		[13] = { text = "JOBS: dailies and the board pay gems every UTC day. Come back here when you need more.", panel = "jobs", ack = true, waypoint = "contractor" },
@@ -9851,13 +9867,15 @@ end
 function Verbs.rollGearBanner(plr, payload)
 	local p = profiles[plr.UserId]
 	local want = rollCount(payload)
-	local price = Gear.rollPriceFor(p.maxUnlockedZone)
+	-- Hats are bought with REBIRTH TOKENS now, not gems (TODO 6.2). Flat price;
+	-- see MineGear.ROLL_TOKEN_COST for why it is not zone-scaled.
+	local price = tonumber(Gear.ROLL_TOKEN_COST) or 5
 	-- The first gear roll a player ever makes is free (the tutorial's gear
 	-- step). It is the FIRST draw only: charging per iteration is what keeps
 	-- a 100x click from handing out a hundred free crates.
 	local freeOne = (not p.freeGearUsed) and #(p.gear or {}) == 0
-	if not freeOne and (p.gems or 0) < price then
-		net:FireClient(plr, "toast", "Need " .. price .. " gems")
+	if not freeOne and (tonumber(p.temperTokens) or 0) < price then
+		net:FireClient(plr, "toast", "Need " .. price .. " tokens")
 		return
 	end
 	local def = Packs.PACK_BY_ID.gear_pack
@@ -9865,8 +9883,8 @@ function Verbs.rollGearBanner(plr, payload)
 	local done, spent = 0, 0
 	for i = 1, want do
 		local cost = (i == 1 and freeOne) and 0 or price
-		if (p.gems or 0) < cost then break end
-		p.gems -= cost
+		if (tonumber(p.temperTokens) or 0) < cost then break end
+		p.temperTokens = (tonumber(p.temperTokens) or 0) - cost
 		spent += cost
 		if i == 1 and freeOne then
 			p.freeGearUsed = true
@@ -9881,11 +9899,11 @@ function Verbs.rollGearBanner(plr, payload)
 	if done == 1 then
 		net:FireClient(plr, "toast", (def and def.name or "Gear Crate") .. "!")
 	elseif done > 1 then
-		net:FireClient(plr, "toast", string.format("%d× %s  (-%s gems)",
+		net:FireClient(plr, "toast", string.format("%d× %s  (-%s tokens)",
 			done, (def and def.name) or "Gear Crate", tostring(spent)))
 	end
 	if done < want then
-		net:FireClient(plr, "toast", string.format("Ran out of gems after %d of %d", done, want))
+		net:FireClient(plr, "toast", string.format("Ran out of tokens after %d of %d", done, want))
 	end
 	if done > 0 then
 		net:FireClient(plr, "purchaseFx", { kind = "pack", packId = "gear_pack", count = done,
@@ -14639,8 +14657,66 @@ end
 	trip rather than one per level. Prices come from MineConfig.woodPickCoinCost
 	and nowhere else.
 ]]
+--[[
+	GRADUATION. The wooden pickaxe exists to reach the stone pick (TODO 0.10),
+	and this is the handover.
+
+	`C.TUTORIAL_GRADUATION_TOOL` has existed as a constant with no reader, so
+	the rule was written down and never implemented: the wooden pick capped at
+	five levels and the player was simply stuck on it, holding a tool that
+	could not improve and had not bought them anything.
+
+	It hands over a COIN-LADDER rung (Tools.TOOLS.pickaxe), which is a different
+	roster from the Forge tool being levelled -- that is the point. The wooden
+	pick is a Forge tool with typeId wood_pick; the stone pick is rung 2 of the
+	shop ladder. p.tools.pickaxe is a highest-rung marker rather than a list of
+	receipts, so setting it grants that rung and everything under it, exactly as
+	buyTool does when someone buys ahead.
+
+	Free, and only once: it no-ops if the player already owns that rung or
+	better, so a player who bought their way past it is not handed anything and
+	nobody can re-trigger it.
+
+	Returns true when it actually granted, so the caller can say so.
+]]
+function Verbs._graduateTutorialPick(plr, p)
+	local id = C.TUTORIAL_GRADUATION_TOOL
+	if type(id) ~= "string" or id == "" then
+		return false
+	end
+	local list = Tools.TOOLS and Tools.TOOLS.pickaxe
+	if type(list) ~= "table" then
+		return false
+	end
+	local tier, row
+	for i, r in ipairs(list) do
+		if r.id == id then
+			tier, row = i, r
+			break
+		end
+	end
+	if not tier then
+		return false
+	end
+	p.tools = p.tools or {}
+	if (tonumber(p.tools.pickaxe) or 0) >= tier then
+		return false
+	end
+	p.tools.pickaxe = tier
+	net:FireClient(plr, "toast", string.format(
+		"The %s is yours -- the Wooden Pickaxe has done its job", tostring(row.name or id)))
+	return true
+end
+
 function Verbs._upgradeCoinTool(plr, p, tool, level, payload)
 	if level >= C.WOOD_PICK_MAX_LEVEL then
+		-- At the cap and still on the starter: hand the graduation tool over
+		-- rather than repeating "at max level" at someone with nowhere to go.
+		if Verbs._graduateTutorialPick(plr, p) then
+			snap(plr)
+			markDirty(plr)
+			return
+		end
 		net:FireClient(plr, "toast", "The Wooden Pickaxe is at max level")
 		return
 	end
@@ -14668,6 +14744,11 @@ function Verbs._upgradeCoinTool(plr, p, tool, level, payload)
 	tool.level = level + steps          -- the uid is untouched, on purpose
 	bumpStat(plr, p, "upgrades")
 	net:FireClient(plr, "toast", string.format("+%d  ->  level %d", steps, tool.level))
+	-- Reaching the cap IS the graduation, so it happens on the step that gets
+	-- there rather than on a second click the player has no reason to make.
+	if tool.level >= C.WOOD_PICK_MAX_LEVEL then
+		Verbs._graduateTutorialPick(plr, p)
+	end
 	snap(plr)
 	markDirty(plr)
 end
