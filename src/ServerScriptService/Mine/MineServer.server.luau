@@ -14501,8 +14501,29 @@ end
 	MineAbbrev.currency floors, shows four, and carries suffixes the whole way,
 	so the server and the client read a price identically.
 ]]
+--[[
+	The one number -> string the SERVER uses for anything a player reads.
+
+	It is MineBigNum now, which is what TODO 0.8 always said it should be:
+	"big numbers are SERVER-SIDE", and this is where the server turns one into
+	text. It used to call MineAbbrev.currency, the client-side formatter, which
+	left MineBigNum with no callers at all.
+
+	THE SWAP IS INVISIBLE, and that is the point rather than a happy accident.
+	The two produce byte-identical output for every magnitude below 10^63 --
+	pinned by tools/verify/bignum.js, which also records where they part company
+	above it. Getting there needed a real fix: MineBigNum floored to one decimal
+	flat, so 1234 read "1.2 K", two significant figures against the four its own
+	header and 0.8/0.9 all call for.
+
+	MineAbbrev stays where it is. It is in ReplicatedStorage because the client
+	needs a formatter for numbers it works out itself (a preview, a running
+	total), and MineBigNum is deliberately server-only. The guarantee that
+	matters is not that the client never formats -- it is that when it does, it
+	cannot disagree with the server, and that is now a checked property.
+]]
 function Verbs._benchNum(n)
-	return require(shared:WaitForChild("MineAbbrev")).currency(n)
+	return require(script.Parent:WaitForChild("MineBigNum")).auto(n)
 end
 
 --[[

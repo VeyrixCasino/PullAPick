@@ -143,18 +143,26 @@ for _, ore in ipairs(C.ORES) do full[ore.id] = cap1 end
 check(Pouch.room(full, 1) == 0, "an overfull pouch reports no room, not a negative")
 
 if fail > 0 then
-	print(">>> orepacks: " .. fail .. " failing assertion(s)")
-	os.exit(1)
+	print(">>> orepacks: " .. fail .. " FAILED assertion(s)")
 end
 print(">>> orepacks: all assertions passed")
 `;
 
-const out = path.join(ROOT, ".luau-bin/orepacks-check.luau");
-fs.writeFileSync(out, harness);
+const script = path.join(ROOT, ".luau-bin/orepacks-check.luau");
+fs.writeFileSync(script, harness);
+// The exit code is decided HERE, from the output, not by the Lua.
+// This luau build has no os.exit, so a check that called it failed only by
+// erroring on a nil value -- which happens to be non-zero today and would go
+// silent the moment it did not. A verify script that can pass when it should
+// fail is worse than no verify script.
+let out = "";
 try {
-  process.stdout.write(execFileSync(LUAU, [out], { encoding: "utf8" }));
+  out = execFileSync(LUAU, [script], { encoding: "utf8" });
+  process.stdout.write(out);
 } catch (e) {
+  out = (e.stdout || "") + (e.stderr || "");
   process.stdout.write(e.stdout || "");
   process.stderr.write(e.stderr || "");
   process.exit(1);
 }
+process.exit(/FAILED|FAIL /.test(out) ? 1 : 0);

@@ -141,18 +141,26 @@ end
 check(unresolved == 0, "every rolled pack id resolves to a real pack")
 
 if fail > 0 then
-	print(">>> packs: " .. fail .. " failing assertion(s)")
-	os.exit(1)
+	print(">>> packs: " .. fail .. " FAILED assertion(s)")
 end
 print(">>> packs: all assertions passed")
 `;
 
-const out = path.join(ROOT, ".luau-bin/packs-check.luau");
-fs.writeFileSync(out, harness);
+const script = path.join(ROOT, ".luau-bin/packs-check.luau");
+fs.writeFileSync(script, harness);
+// The exit code is decided HERE, from the output, not by the Lua.
+// This luau build has no os.exit, so a check that called it failed only by
+// erroring on a nil value -- which happens to be non-zero today and would go
+// silent the moment it did not. A verify script that can pass when it should
+// fail is worse than no verify script.
+let out = "";
 try {
-  process.stdout.write(execFileSync(LUAU, [out], { encoding: "utf8" }));
+  out = execFileSync(LUAU, [script], { encoding: "utf8" });
+  process.stdout.write(out);
 } catch (e) {
+  out = (e.stdout || "") + (e.stderr || "");
   process.stdout.write(e.stdout || "");
   process.stderr.write(e.stderr || "");
   process.exit(1);
 }
+process.exit(/FAILED|FAIL /.test(out) ? 1 : 0);

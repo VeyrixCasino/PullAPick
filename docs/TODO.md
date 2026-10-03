@@ -307,6 +307,13 @@ Newest last. Includes reversals, so an agent does not re-litigate settled calls.
   before any Forge, recipe or icon work**, or that work is built on a partial
   roster. Procedure: `docs/rojo-connect.md` §"Pulling Studio's state into src/".
 - [ ] **Connect Rojo.** Never attached. Safe once the syncback above is done.
+- [ ] **Which suffixes past `Nod` (10^63)?** §0.8 gives `MineBigNum` the backlog
+  `q r s t u v w x y z`; §0.9 points currencies at `MineAbbrev.currency`, which
+  carries on `Vg Uvg Dvg Tvg`. Below 10^63 they are byte-identical and
+  `tools/verify/bignum.js` holds them there, so this is not urgent and nothing
+  is blocked on it — but the two locked rules do disagree above it, and only
+  one name can be right. Probably academic (no player reaches 10^63), which is
+  an argument for deciding it cheaply rather than carefully.
 - [ ] **Asset uploads.** No agent here can upload to Roblox. All uploads follow §7.
 - [ ] **A way to BUY a seam — SHIP BLOCKER, from main.** Depth is gated on coins
   (`MineDepth.SEAMS`, enforced in `MineDigAuth.unlockedForLayer`) and
@@ -342,8 +349,26 @@ upgradeable. Config is shipped; the gate is blocked on an equip path.
 - [x] **Big-number system shipped** — `MineBigNum` (server-only), base 30, three
       digits a step, always floors, science form `9.999e^99`, capped at four
       significant digits. Wheel verified distinct across 2000 steps.
-- [ ] Wire `MineBigNum` into what the server sends, so the client stops
-      formatting its own numbers. Nothing calls it yet.
+- [x] **`MineBigNum` has a caller.** `Verbs._benchNum` — the server's one
+      number-to-string, behind every toast a player reads — went through
+      `MineAbbrev.currency`, the *client* formatter, which left MineBigNum with
+      no callers at all. It is `MineBigNum.auto` now.
+      - **The swap is invisible, by design rather than by luck.** The two
+        produce byte-identical output for every magnitude below 10^63.
+      - **Getting there needed a real fix: MineBigNum did not do four
+        significant figures.** It floored to one decimal flat, so 1234 read
+        `1.2 K` — two figures, against the four its own header, §0.8 and §0.9
+        all call for. It also printed `1 K` for 1000 where the shipping
+        formatter prints `1.000K`. Now adaptive, like `MineAbbrev.currency`.
+      - **`MineAbbrev` stays.** It is in ReplicatedStorage because the client
+        needs a formatter for numbers it works out itself (a preview, a running
+        total), and MineBigNum is deliberately server-only. The guarantee that
+        matters is not that the client never formats — it is that when it does
+        it cannot disagree with the server, and `tools/verify/bignum.js` now
+        makes that a checked property rather than a hope.
+      - Still client-formatted: every number the server does not send as a
+        string. Sending one per field is a bigger change and is only worth it
+        once something actually disagrees — which the check would catch.
 - [x] **Currencies at 4 significant figures, floored**, everywhere:
       `MineAbbrev.currency`, with `shortNum` (client), `money` (shop, runes)
       and the Forge wallet all routed through it.
