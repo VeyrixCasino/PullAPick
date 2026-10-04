@@ -24,24 +24,46 @@ first version of this doc got that wrong:
   placeholder meaning "your path here"
 - Paths with spaces need quotes
 
-**PowerShell, one line at a time:**
+### THE NO-SCRIPT VERSION — you do not need to know your path
+
+Owner, 2026-10-04: *"i dont know my path"*. You do not have to. Paste these four
+lines into PowerShell; the first one finds the repo by looking for
+`default.project.json`, which only exists at the repo root.
+
+```powershell
+$p = (Get-ChildItem $HOME -Filter default.project.json -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).Directory.FullName
+echo $p
+cd $p
+git pull
+```
+
+`echo $p` prints the folder so you can check it found the right one. Then:
 
 ```powershell
 npm install -g @anthropic-ai/claude-code
-cd "C:\path\to\PullAPick"
-git pull
 claude
 ```
 
-Replace `C:\path\to\PullAPick` with the real folder — the one holding
-`default.project.json`. If you do not know it, open the terminal Rojo is running
-in and type `pwd`.
+### OR: run the bootstrap script, which does all of the above
 
-If `npm` is not recognised, install Node LTS from https://nodejs.org and reopen
-the terminal.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\start-local-agent.ps1
+```
 
-If `claude` is not recognised after install, close and reopen PowerShell so the
-new PATH is picked up.
+It finds the repo, pulls, checks for Node, installs Claude Code if missing,
+fixes PATH in the current window, and launches. Right-click → Run with
+PowerShell works too.
+
+**First thing to say to it:** `read docs/HANDOFF.md and continue`
+
+### If something goes wrong
+
+- `npm` not recognised → install Node **LTS** from https://nodejs.org, reopen PowerShell.
+- `claude` not recognised right after install → close and reopen PowerShell; a
+  new npm global is not on PATH until the shell restarts.
+- The search finds the wrong folder (you have more than one clone) → open GitHub
+  Desktop, right-click the repo, **Show in Explorer**, copy the path from the
+  address bar, and `cd "that path"` instead.
 
 That agent has your disk, your Rojo, your Studio. It reads this repo, including
 this file, and picks up exactly where I am. **It can do everything I can and

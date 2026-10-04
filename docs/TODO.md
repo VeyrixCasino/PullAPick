@@ -31,6 +31,31 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.32 — THE OWNER DOES NOT KNOW THEIR REPO PATH, AND SHOULD NOT NEED TO.**
+2026-10-04: *"i dont know my path and id rather get a local agent anyways"*.
+
+`tools/start-local-agent.ps1` finds the repo itself by searching `$HOME` for
+`default.project.json` (it only exists at the repo root), pulls, checks for Node,
+installs Claude Code if missing, **fixes PATH in the current window** so the
+owner is not told to reopen the terminal, and launches. `docs/HANDOFF.md` carries
+a four-line no-script version of the same thing for when the script cannot be
+found either.
+
+**Never hand this owner a command containing a path placeholder again.**
+
+**A BUILD IS NOT THE ANSWER, and cannot be.** The owner asked for one. `rojo
+build` from this repo would produce a place that OPENS but has no game in it:
+Workspace (the map), Lighting, Teams, TextChatService and
+`ReplicatedStorage.ToolModels_50` live only in the place file — AGENTS.md says
+so and `$ignoreUnknownInstances` is why Rojo never deletes them. The place file
+is the source of truth for the world; the repo is the source of truth for the
+code. Only a machine with both can make a playable build, which is a local
+agent, not this one.
+
+**LUCKY BLOCKS: FIXED AND CONFIRMED IN ENGINE** — the first thing this session
+has ever had confirmed by someone actually running it. DisplayOrder 110 → 120 to
+match `MinePackReveal`; owner after pulling: *"inventory is under"*.
+
 **0.31 — THE OWNER IS ON WINDOWS POWERSHELL.** 2026-10-04. Every command handed
 to them must be PowerShell, not bash. `&&` is not a statement separator in
 Windows PowerShell 5.1, `<angle brackets>` are a reserved operator and must never
