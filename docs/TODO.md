@@ -31,6 +31,13 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.31 — THE OWNER IS ON WINDOWS POWERSHELL.** 2026-10-04. Every command handed
+to them must be PowerShell, not bash. `&&` is not a statement separator in
+Windows PowerShell 5.1, `<angle brackets>` are a reserved operator and must never
+appear even as a placeholder, and paths with spaces need quotes. The first
+version of `docs/HANDOFF.md` got this wrong and the owner pasted it into a wall
+of parser errors. Fixed there, with the Node/PATH gotchas alongside it.
+
 **0.27 — THE OWNER'S 2026-10-04 LIST, FACT-CHECKED.** Full detail in
 `docs/HANDOFF.md` §2.6. Checked against the code, not taken at face value:
 
@@ -48,11 +55,14 @@ Two things deliberately STAY, and neither is open for cleanup:
 - **"Packs make you say DONE"** — true. **FIXED**: tap anywhere closes, DONE kept
   as an affordance. Built below `local finish` on purpose — a closure written
   beside the prompt frame would have been a global read and done nothing.
-- **"Lucky blocks don't close/reopen the inventory"** — reproduced in code,
-  **NOT fixed**. The inventory deliberately stays open under pack reveals (opening
-  six packs must not mean reopening the bag six times). Lucky is DisplayOrder
-  110, packs 120, HUD 80. Which half is wrong cannot be told from the code.
-  **Needs an in-engine repro.**
+- **"Lucky blocks don't close/reopen the inventory"** — **FIXED**, after the
+  owner supplied the missing fact: *"the inventory stays OVER the lucky block."*
+  The lucky screen was DisplayOrder 110. By number alone that should already
+  have beaten the inventory (which mounts into the HUD gui at 80), so the number
+  was not the whole story and the code could not say which layer was winning.
+  It now matches `MinePackReveal` at **120** — the layer the owner already
+  signed off on, where "the menu stays open" underneath a reveal. One number,
+  one pattern, both reveals. Overridable via `opts.displayOrder`.
 - **Charm icon direction** — owner supplied a reference: ornate **jewellery**.
   Amulets, pendants, beaded strings, brooches, gem-set lockets; aged brass,
   enamel, cut stones. Replaces the superseded 164 generated icons.

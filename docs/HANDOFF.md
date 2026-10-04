@@ -16,14 +16,32 @@ cloud container is just a machine that ran `git push`.
 
 ## Option A — run Claude Code locally (what you want)
 
-In a terminal, in the folder Rojo serves:
+**The owner is on Windows PowerShell.** Bash syntax does not work there, and the
+first version of this doc got that wrong:
 
-```
+- `&&` is not a statement separator in Windows PowerShell 5.1 — use a newline or `;`
+- `<angle brackets>` are a reserved operator — never type them, they were a
+  placeholder meaning "your path here"
+- Paths with spaces need quotes
+
+**PowerShell, one line at a time:**
+
+```powershell
 npm install -g @anthropic-ai/claude-code
-cd <your PullAPick folder>
+cd "C:\path\to\PullAPick"
 git pull
 claude
 ```
+
+Replace `C:\path\to\PullAPick` with the real folder — the one holding
+`default.project.json`. If you do not know it, open the terminal Rojo is running
+in and type `pwd`.
+
+If `npm` is not recognised, install Node LTS from https://nodejs.org and reopen
+the terminal.
+
+If `claude` is not recognised after install, close and reopen PowerShell so the
+new PATH is picked up.
 
 That agent has your disk, your Rojo, your Studio. It reads this repo, including
 this file, and picks up exactly where I am. **It can do everything I can and
@@ -32,12 +50,12 @@ screenshots, edit the place file.
 
 ## Option B — link this session to your machine
 
-```
+```powershell
+cd "C:\path\to\PullAPick"
 claude remote-control
 ```
 
-run in a terminal **inside the repo folder**. Then a cloud session can reach your
-disk.
+Run it **inside the repo folder**. Then a cloud session can reach your disk.
 
 ## What is NOT in the repo, and never was
 
@@ -129,7 +147,7 @@ Several are not what they look like.
 | "Potions don't exist" | **They do, end to end.** 289-line module, `drinkPotion` verb, client callback, UI at `MineInventoryView:4812`, granted by packs/quests/offers/scrolls. The real problem is they are buried and weightless — a DESIGN gap, not a missing feature. |
 | "Depth leaderboard doesn't track deepest block / anti-cheat?" | **Server-side tracking exists**: `p.deepest`, `creditDeepest`, normalized on load. Whether the leaderboard reads it live is unverified. |
 | "Packs make you say DONE" | **True, fixed.** Tap-anywhere added; DONE kept as an affordance. |
-| "Lucky blocks don't close/reopen the inventory" | **Reproduced in code, NOT fixed.** The inventory deliberately stays open under pack reveals (a documented decision — opening six packs should not mean reopening the bag six times). Lucky screen is DisplayOrder 110, pack reveal 120, HUD 80. I could not tell from the code which half is wrong without running it. **Needs an in-engine repro.** |
+| "Lucky blocks don't close/reopen the inventory" | **FIXED.** Owner clarified: "the inventory stays OVER the lucky block". The lucky screen was DisplayOrder 110 and now matches MinePackReveal at 120 — the layer the owner already signed off on. Older note: **Reproduced in code, NOT fixed.** The inventory deliberately stays open under pack reveals (a documented decision — opening six packs should not mean reopening the bag six times). Lucky screen is DisplayOrder 110, pack reveal 120, HUD 80. I could not tell from the code which half is wrong without running it. **Needs an in-engine repro.** |
 | "Charm icons are hideous" | Owner supplied a reference: ornate **jewellery** — amulets, pendants, beaded strings, brooches, gem-set lockets, aged brass and enamel. The 164 generated icons are already marked SUPERSEDED. |
 | "Group wheel sucks" / "battle pass is lazy" | Both are on the ARCHIVE list in `docs/AUDIT.md`. Do not polish them; cut them until there is a game. |
 
