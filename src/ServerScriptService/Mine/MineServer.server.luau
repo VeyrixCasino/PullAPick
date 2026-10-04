@@ -15255,50 +15255,37 @@ function Verbs.craftOreTool(plr, payload)
 end
 
 --[[
-	ENCHANT A TOOL. One verb, because there is one thing to do here.
+	ENCHANT A TOOL. One verb, one flat price, one roll.
 
-	Owner, 2026-10-04: "Pretty much just walk to the enchanter and its a prefix
-	too your tool". No rolling, no fusing, no gacha: you NAME the enchantment
-	you want and pay for it. Sending the same one again levels it; sending a
-	different one replaces it at level 1, and says so rather than silently
-	throwing away what was there.
+	Owner, 2026-10-04: enchanting is "the same rarity as rune/temperment/skins",
+	Exotic at 1/1000 and Exotic V at 1/5000, level random 1-5, and the price
+	"stays the same with rebirths (broke players arent going to try to get
+	exotic V, endgame players will.)".
 
-	Server-authoritative in the way that matters: the client names a uid and an
-	enchant id and nothing else. The level, the price and the magnitude are all
-	re-derived here, so a modified client can ask for a different enchantment
-	but never for a cheaper one.
+	So this is a GACHA, not a purchase: you pay MineEnchants.ROLL_PRICE and get
+	what the table gives you. The price reads no prestige, no rebirth count, no
+	zone and no tool tier -- tools/verify/enchants.js asserts that, because a
+	price that quietly scaled with rebirth would break the one sentence the
+	owner was most specific about.
+
+	Server-authoritative in the way that matters: the client names a uid and
+	nothing else. The rarity, the enchantment and the level are all rolled here
+	with a server rng.
 ]]
 function Verbs.enchantTool(plr, payload)
 	local p = profiles[plr.UserId]
-	if not p or type(payload) ~= "table" then
+	if not p then
 		return
 	end
 	local Ench = Dig.Ench
-	local tool = Verbs._findOreTool(p, payload.uid)
+	local uid = (type(payload) == "table") and payload.uid or payload
+	local tool = Verbs._findOreTool(p, uid)
 	if not tool then
 		net:FireClient(plr, "toast", "That tool is not in your bag")
 		return
 	end
-	local def = Ench.byId(payload.enchantId)
-	if not def then
-		net:FireClient(plr, "toast", "No such enchantment")
-		return
-	end
 
-	-- Same enchantment -> next level. Different one -> start again at 1.
-	local cur = type(tool.ench) == "table" and tool.ench or nil
-	local same = cur and cur.id == def.id
-	local target = same and (math.floor(tonumber(cur.level) or 1) + 1) or 1
-	if target > Ench.MAX_LEVEL then
-		net:FireClient(plr, "toast", "That enchantment is at max level")
-		return
-	end
-
-	local cost = Ench.gemCost(target)
-	if not cost then
-		net:FireClient(plr, "toast", "That enchantment cannot go further")
-		return
-	end
+	local cost = Ench.ROLL_PRICE
 	local have = tonumber(p.gems) or 0
 	if have < cost then
 		net:FireClient(plr, "toast", string.format("Needs %s gems",
@@ -15306,16 +15293,28 @@ function Verbs.enchantTool(plr, payload)
 		return
 	end
 
-	p.gems = have - cost
-	tool.ench = { id = def.id, level = target }
+	local rolled = Ench.roll(Random.new())
+	if not rolled then
+		net:FireClient(plr, "toast", "The enchanter has nothing to give")
+		return
+	end
 
-	-- The toast names the TOOL, prefix and all, because the prefix is the
-	-- whole point of the feature and seeing it is the reward.
+	p.gems = have - cost
+	--[[
+		A roll REPLACES what was there. There is no "keep the better one"
+		prompt: that turns every roll into a dialog, and the gamble is the
+		feature. The old one is named in the toast so a player who just lost
+		something good sees what it was.
+	]]
+	local had = type(tool.ench) == "table" and Ench.label(tool.ench) or nil
+	tool.ench = rolled
+
 	local OreTools = require(shared:WaitForChild("MineOreTools"))
-	net:FireClient(plr, "toast", string.format("%s  \u{00B7}  level %d",
-		OreTools.toolName(tool), target))
+	net:FireClient(plr, "toast", string.format("%s  \u{00B7}  %s%s",
+		OreTools.toolName(tool), Ench.label(rolled),
+		had and ("   (was " .. had .. ")") or ""))
 	bumpStat(plr, p, "enchants")
-	-- Re-give the tool so its name and stats both follow the enchantment.
+	-- Re-give the tool so its name and its stats both follow the roll.
 	if p.oreToolEquipped == tool.uid then
 		givePickaxe(plr)
 	end

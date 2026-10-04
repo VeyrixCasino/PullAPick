@@ -31,6 +31,36 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.18 — ENCHANTMENT ODDS, AND GEAR IS DELETED NOT NERFED.** Owner, 2026-10-04.
+
+- **Gear powering pets: "get rid of this."** The each-pet x its-rune x (its-hat +
+  your-hat) x your-face stack is DELETED, not replaced. Pets do not get an
+  enchantment of their own. This also makes the hat-sheet nerf in
+  `docs/BALANCE-PROPOSAL.md` §2 moot.
+- **Rarity rides the skins ladder.** Exotic **1/1000**, Exotic V **1/5000**,
+  levels 1-5 **uniform**. Each enchantment has a fixed rarity; the roll picks a
+  tier by weight, then an enchantment inside it, then a level.
+- **The condense rule**, owner's words: *"the rarity is the chance to get a the V
+  level, for all the rarest ones (over 1-200)"*. Enchant weights put SS at
+  exactly 1/200 and SSS at 1/1000, so **SS V = 1/1000 and SSS V = 1/5000 — the
+  skins table's own SS and SSS odds.** Asserted against `MineTemper`, not against
+  a copied number.
+- **Price is FLAT across rebirths.** `ROLL_PRICE = 500` gems, constant. The verb
+  reads no prestige, rebirth, zone or tool tier, and the check enforces that.
+- Magnitude scales by rarity on MineTemper's own two ladders; CHANCE stats take
+  `PROC_RARITY_MULT` or a Divine Blasting would be +75 points of blast chance.
+
+Guarded by `tools/verify/enchants.js`.
+
+**STILL TO DO from the same message:** craft cost variable on (a) ore drop
+amount, (b) ore rarity, (c) progression depth; pack "open all"; buy-N packs with
+a typed amount (default 1); the new drop tables. And stages 2-3 of the
+enchantment work: the Enchanter screen, then ripping out runes and gear.
+
+**`docs/BLOCKED.md`** now explains every BLOCKED item in detail — what it is, why
+it is the owner's, the exact sentence that unblocks it, and my default if they
+say "just pick".
+
 **0.17 — ENCHANTMENTS REPLACE RUNES *AND* GEAR.** Owner, 2026-10-04: *"replace
 runes with enchantments. Pretty much just walk to the enchanter and its a prefix
 too your tool (Sharp Stone Pickaxe, Lucky Stone Drill)"*, then *"and gear
