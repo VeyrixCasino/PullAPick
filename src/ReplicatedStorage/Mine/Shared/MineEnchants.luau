@@ -172,8 +172,15 @@ MineEnchants.LIST = {
 	{ id = "sharp",       prefix = "Sharp",       stat = "mineSpeed",   rarity = "F" },
 	{ id = "churning",    prefix = "Churning",    stat = "dirtBreak",   rarity = "F" },
 	{ id = "golden",      prefix = "Golden",      stat = "coinBonus",   rarity = "F" },
-	{ id = "deep",        prefix = "Deep",        stat = "backpack",    rarity = "F" },
-	{ id = "fleet",       prefix = "Fleet",       stat = "walkSpeed",   rarity = "F" },
+	--[[
+		Deep (backpack) and Fleet (walkSpeed) retired 2026-10-04 with the stats
+		themselves. An enchantment whose stat no longer moves is a dead prefix.
+
+		They were NOT replaced. Every remaining live stat already has exactly
+		one enchantment, so inventing two more would mean two prefixes sharing
+		a stat -- and the check forbids that for good reason: two differently
+		named tools would read identically. Common is simply three now.
+	]]
 }
 
 

@@ -116,17 +116,19 @@ MineRunes.DROP_TABLE = {
 -- because a swing that happens twice multiplies every damage source at
 -- once. The four chest flagships whose SPECIAL is echo keep it: that is a
 -- named tool's identity, not a stat anybody rolls onto a build.
-MineRunes.NO_ROLL_STATS = { luckyFind = true, mineSpeed = true, scrap = true, autoMine = true, echo = true }
+-- backpack and walkSpeed joined this list 2026-10-04 when they were retired:
+-- the keys stay resolvable for an already-rolled rune, and nothing mints a new one.
+MineRunes.NO_ROLL_STATS = { luckyFind = true, mineSpeed = true, scrap = true, autoMine = true, echo = true, backpack = true, walkSpeed = true }
 
 MineRunes.FAMILY_STATS = {
 	pet = {
 		"swingRate", "echo", "zap", "procPower",
 		"oreYield", "rareOre", "gemFind", "coinBonus",
-		"luck", "oreLuck", "chestLuck", "packLuck", "fossilFind", "pulverize", "backpack", "walkSpeed", "dirtBreak",
+		"luck", "oreLuck", "chestLuck", "packLuck", "fossilFind", "pulverize", "dirtBreak",
 	},
 	-- echo stays listed for an already-rolled rune to resolve against; NO_ROLL_STATS
 	-- keeps it out of the pool. earthquake and ricochet are the two new procs.
-	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "backpack", "earthquake", "ricochet", "procPower" },
+	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "earthquake", "ricochet", "procPower" },
 	explosive = { "shortFuse", "blastRadius", "dirtBreak", "oreYield", "procPower" },
 	--[[
 		DRILLS GET PROC POWER TOO.
@@ -605,8 +607,17 @@ MineRunes.SETS = {
 		slots = { "luck", "chestLuck", "rareOre" } },
 	{ id = "quarry", name = "Quarryman", bonus = "mineSpeed",
 		slots = { "mineSpeed", "dirtBreak", "swingRate" } },
-	{ id = "longhaul", name = "Longhauler", bonus = "backpack",
-		slots = { "backpack", "walkSpeed", "oreYield" } },
+	--[[
+		Longhauler was backpack / walkSpeed / oreYield, and two of those three
+		retired on 2026-10-04. A SET rune takes its stat straight from this
+		list rather than through rollPool -- see the note under Demolition --
+		so NO_ROLL_STATS alone would NOT have stopped it minting dead runes.
+
+		Id kept (save data). It is still the hauling set: Ore Finder multiplies
+		what a pack pays out, which is the same fantasy backpack was serving.
+	]]
+	{ id = "longhaul", name = "Longhauler", bonus = "fossilFind",
+		slots = { "fossilFind", "oreYield", "coinBonus" } },
 	{ id = "coinwright", name = "Coinwright", bonus = "coinBonus",
 		slots = { "coinBonus", "gemFind", "luck" } },
 	--[[

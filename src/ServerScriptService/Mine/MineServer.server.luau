@@ -2398,6 +2398,31 @@ local function boosts(p)
 	if sk.blastRadius then
 		b.blastRadius += sk.blastRadius
 	end
+	--[[
+		THE REST OF THE TREE'S STATS, for exactly the same reason.
+
+		blastRadius was not alone -- it was just the one whose element was most
+		obviously broken. Once the 2026-10-04 remap put earthquake, ricochet,
+		procPower, oreLuck, packLuck, coolant, reach and shortFuse on elements,
+		every one of them was granted by nodes and read by nobody.
+
+		tools/verify/skilltree.js now fails if the tree grants a stat the server
+		does not apply, so this list cannot fall behind the roster again.
+
+		Additive ones are chances or flat adds; oreLuck and packLuck are
+		MULTIPLIERS and sit at 1 when they give nothing.
+	]]
+	for _, key in ipairs({ "earthquake", "ricochet", "procPower",
+		"coolant", "shortFuse", "reach" }) do
+		if sk[key] then
+			b[key] = (tonumber(b[key]) or 0) + sk[key]
+		end
+	end
+	for _, key in ipairs({ "oreLuck", "packLuck" }) do
+		if sk[key] then
+			b[key] = (tonumber(b[key]) or 1) * (1 + sk[key])
+		end
+	end
 	if sk.echo then
 		b.echo += sk.echo
 	end

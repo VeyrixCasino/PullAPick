@@ -31,6 +31,51 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.21 — BLAST RADIUS IS CUBIC; BACKPACK AND WALKSPEED ARE RETIRED; THE TREE IS
+REGENERATED.** Owner, 2026-10-04: *"Can we remove backpack and walkspeed as
+boost, and balance fire.. i agree with your changes but lets try to reblance a
+little because rn fire is just way to over powered"*.
+
+**Why Fire was overpowered — found, not guessed.** `MinePatterns` builds the
+pattern with `sphere(out, cx, cy, cz, radius)` where
+`radius = tool.radius * (1 + blastRadius)`. A sphere's cell count goes as **r³**,
+so +50% radius is ~**3.4×** the blocks, not 1.5×. Every system that spends a
+MineStats budget divides by the stat's weight, so at `6.0` the tree, the
+enchanter, gear and runes were all handing out roughly **three times** the power
+they thought. It got worse the instant the missing `sk.blastRadius` line was
+restored and Fire's nine nodes started paying at all.
+
+**Fix: `blastRadius` weight 6.0 → 18.0** (6 × 3, the derivative of r³ at the
+margin). One number; every system corrects together. Fire's nodes fell 3.0–3.6×.
+
+**`backpack` and `walkSpeed` retired**, by the `echo`/`autoMine` precedent: the
+entries STAY so old saves, old kits and the two live `boosts(p).x` reads still
+resolve, and they leave `STAT_ORDER` and every roll pool. Capacity now comes
+only from the backpack ladder and the ore pouch tier.
+`MineRunes.SETS.longhaul` had to be repointed by hand — **a set rune takes its
+stat straight from that list and bypasses `NO_ROLL_STATS` entirely.**
+
+**THE TREE IS REGENERATED.** `tools/skills/gen.js` is the missing generator,
+rebuilt from the rule the file states. Topology is untouched — ids, names,
+angles, rows, costs, prereqs, xor groups, rivals and cross-links are written
+back unchanged — and only each node's `stats = { … }` is re-priced. Run
+`node tools/skills/gen.js --check` to see if it has gone stale again.
+
+    best road / worst road:   2.44x  ->  1.001x
+
+**The five element swaps are applied**, plus Water rebuilt (its primary AND
+secondary were the two retired stats): Space `echo`→`procPower`, Ground
+2nd→`earthquake`, Electric 2nd→`ricochet`, Crystal 3rd→`oreLuck`, Shadow
+3rd→`packLuck`, Water → `coolant`/`reach`/`coinBonus`, verb *Flow* — the drill
+wedge. Grass 2nd→`pulverize`, Metal 3rd→`shortFuse`.
+
+**EIGHT MORE DROPPED STATS, same bug as blastRadius.** Once the remap put the
+new stats on elements, the tree granted `coolant`, `reach`, `earthquake`,
+`shortFuse`, `ricochet`, `oreLuck`, `packLuck` and `procPower` and the server
+read none of them. All eight wired. `tools/verify/skilltree.js` now fails if the
+tree grants a stat the server does not apply, so the list cannot fall behind
+the roster again.
+
 **0.20 — THE ELEMENTS ARE `MineSkillData.ENERGIES`, AND THE TREE IS UNEVEN.**
 Owner, 2026-10-04: *"elements should be on skill tree. check skill tree and
 gather whatever info you can find"*.

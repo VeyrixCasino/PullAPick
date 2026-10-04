@@ -20,15 +20,46 @@ MineStats.STATS = {
 	mineSpeed   = { label = "Mine Speed",    weight = 1.0, unit = "%", desc = "Damage on every tool (pick, drill, bomb). Pets only — never a gem rune. Short Fuse rune adds more on explosives." },
 	swingRate   = { label = "Swing Rate",    weight = 1.4, unit = "%", desc = "Swings per second." },
 	reach       = { label = "Reach",         weight = 1.4, unit = "%", desc = "Pick/drill aim distance. 26 × (1 + reach). Rune only." },
-	blastRadius = { label = "Blast Radius",  weight = 6.0, unit = "%", desc = "Tool pattern size. Rune only — pets never wear this." },
+	--[[
+		BLAST RADIUS IS CUBIC, AND WAS PRICED LINEAR. Owner, 2026-10-04:
+		"balance fire.. rn fire is just way to over powered".
+
+		MinePatterns builds the pattern with `sphere(out, cx, cy, cz, radius)`
+		where `radius = tool.radius * (1 + blastRadius)`. A sphere's cell count
+		goes as r^3, so +50% radius is about 3.4x the blocks destroyed, not
+		1.5x. Every system that spends a MineStats budget -- the skill tree,
+		enchantments, gear, runes -- divides by this weight, so at 6.0 they were
+		all handing out roughly THREE TIMES the power they thought they were.
+
+		18.0 is 6.0 x 3: the derivative of r^3 at the margin. One number, and
+		the tree, the enchanter and the gear roller all correct together.
+
+		Fire is the wedge that felt it, because blastRadius is its primary and
+		nine nodes grant it -- and it got worse the moment the missing
+		sk.blastRadius line was restored and those nodes started paying at all.
+	]]
+	blastRadius = { label = "Blast Radius",  weight = 18.0, unit = "%", desc = "Tool pattern size. A sphere, so +50% radius is ~3.4x the blocks." },
 	oreYield    = { label = "Blast Chance",  weight = 4.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
 	coinBonus   = { label = "Coin Bonus",    weight = 0.8, unit = "%", desc = "Coins from selling." },
 	gemFind     = { label = "Gem Find",      weight = 1.8, unit = "%", desc = "Gems dropped by ore." },
 	luck        = { label = "Luck",          weight = 2, unit = "%", desc = "Pack yield and tool finds; mined packs show a luck badge." },
 	chestLuck   = { label = "Chest Luck",    weight = 2.2, unit = "%", desc = "Higher chance of packs, tools, and other rare chest drops." },
 	rareOre     = { label = "Rare Ore",      weight = 1.8, unit = "%", desc = "Weighting toward deeper, richer ore." },
-	backpack    = { label = "Backpack",      weight = 0.5, unit = "%", desc = "Carry capacity." },
-	walkSpeed   = { label = "Walk Speed",    weight = 0.2, unit = "%", desc = "Movement speed." },
+	--[[
+		RETIRED, 2026-10-04. Owner: "Can we remove backpack and walkspeed as
+		boost".
+
+		Same treatment echo and autoMine got: the entry STAYS so an old save,
+		an old kit and the two server reads still resolve, and it leaves
+		STAT_ORDER so no screen lists it and no pool rolls it. Deleting the key
+		outright would break `boosts(p).backpack` and `boosts(p).walkSpeed`,
+		which are live reads -- they now simply never move off 1.
+
+		Carry capacity was always two systems arguing anyway: this stat, and
+		the purchased backpack ladder plus the ore pouch tier. The ladder wins.
+	]]
+	backpack    = { label = "Backpack",      weight = 0.5, unit = "%", desc = "Retired: capacity comes from the backpack ladder and the ore pouch.", legacy = true },
+	walkSpeed   = { label = "Walk Speed",    weight = 0.2, unit = "%", desc = "Retired: no longer rollable or granted.", legacy = true },
 	dirtBreak   = { label = "Dirt Break",    weight = 1.0, unit = "%", desc = "Extra dig damage through blocks." },
 	-- LEGACY, like autoMine below: barred as a buff and paid out as Swing Rate
 	-- at ECHO_TO_SWING. The entry stays so an old kit or save still resolves a
@@ -97,7 +128,8 @@ MineStats.STAT_ORDER = {
 	"oreYield", "rareOre", "gemFind", "coinBonus",
 	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
 	"earthquake", "ricochet", "procPower",
-	"coolant", "shortFuse", "backpack", "walkSpeed", "dirtBreak",
+	-- backpack and walkSpeed retired 2026-10-04; see their entries above.
+	"coolant", "shortFuse", "dirtBreak",
 }
 
 MineStats.RUNE_ONLY = {

@@ -34,7 +34,7 @@ local MineBuild = {}
 	the point is that a human can eyeball it against the repo, not that it
 	parses. It is a hint: EXPECT below is what actually proves anything.
 ]]
-MineBuild.STAMP = "2026-10-04 enchantments + two-layer boosts"
+MineBuild.STAMP = "2026-10-04 regenerated skill tree"
 
 --[[
 	Modules this build requires to be in ReplicatedStorage.Mine.Shared, with the
