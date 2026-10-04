@@ -31,6 +31,41 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.17 — ENCHANTMENTS REPLACE RUNES *AND* GEAR.** Owner, 2026-10-04: *"replace
+runes with enchantments. Pretty much just walk to the enchanter and its a prefix
+too your tool (Sharp Stone Pickaxe, Lucky Stone Drill)"*, then *"and gear
+aswell"*.
+
+One enchantment, worn on the TOOL (by uid, not by family — a prefix names a
+specific pickaxe), applied at the Enchanter by **naming** it and paying gems. No
+rolling, no fusing, no sockets, no three hat slots and a face.
+
+- `MineEnchants.LIST` — 25 prefixes, one per stat, every id/prefix/stat unique.
+- **Magnitudes are DERIVED**: per level is `BUDGET / MineStats.weight`, clamped
+  to [0.02, 0.20]. Nobody maintains a second opinion about what a stat is worth.
+  At `BUDGET = 0.12`: Sharp (mineSpeed, w1.0) reaches +120% at level 10, Blasting
+  (oreYield, w4.0) +30%, Wide (blastRadius, w6.0) +20%.
+- Price is gems, `GEM_BASE 150 × 1.75^(level-1)`, nil past the cap.
+- Only the tool **in your hands** pays out.
+- The prefix lives in `MineOreTools.name`, so there is nowhere an unprefixed
+  name can leak out. The level is NOT in the name.
+
+Guarded by `tools/verify/enchants.js`.
+
+**NOT YET DONE, and deliberately so:** runes and gear are still in place and
+still paying out. Ripping out ~5,000 lines across `MineRunes`, `MineGear`,
+`MineHats` and three screens, plus five save fields (`p.runes`, `p.gear`,
+`p.equippedGear`, `p.toolSockets`, `p.petSockets`), **before the Enchanter UI
+exists** would leave the game unplayable between commits. Order: (1) data model
++ naming + fold + verb [DONE], (2) the Enchanter screen, (3) migrate old runes
+and gear into enchantments and retire the old modules.
+
+**The one real open question:** gear currently powers PETS — the stack is each
+pet × its rune × (its hat + your hat), all × your face. Removing gear removes
+that, so pets need either an enchantment of their own ("Lucky Emberfox") or a
+different power source. `MineEnchants.fromStatAmount` / `bestOf` exist for the
+migration either way. This needs the owner.
+
 **0.16 — PROC DAMAGE AND PROC CHANCE ARE TWO STATS.** Owner, 2026-10-03:
 *"almost no effect should do full pickaxe damage"*, *"Just make damage and chance
 2 different stats."*

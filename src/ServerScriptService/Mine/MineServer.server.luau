@@ -45,6 +45,11 @@ local TradeService = require(script.Parent:WaitForChild("TradeService"))
 local SocialService = require(script.Parent:WaitForChild("SocialService"))
 -- Mine For Cards modules packed as one local to spare the 200-register main-chunk cap.
 local Dig = {
+	-- Enchantments: the prefix on a forged tool, and the one thing runes and
+	-- gear were replaced by. On Dig rather than a top-level local because this
+	-- script sits at 197 of Luau's 200, and boosts() reads it per swing so a
+	-- require-per-call is not an option either.
+	Ench = require(shared:WaitForChild("MineEnchants")),
 	Depth = C.Depth or require(shared:WaitForChild("MineDepth")),
 	Auth = require(script.Parent:WaitForChild("MineDigAuth")),
 	Shop = require(shared:WaitForChild("MineDepthShop")),
@@ -2291,6 +2296,32 @@ local function boosts(p)
 			if bonus.ore then b.oreYield = (b.oreYield or 0) + (bonus.ore - 1) end
 		end
 	end
+	--[[
+		THE EQUIPPED TOOL'S ENCHANTMENT.
+
+		One enchantment, on the tool you are holding, and nothing else: no
+		slots, no per-family sockets, no three hats and a face. A tool that is
+		not in your hands gives nothing, which is what makes the prefix on the
+		one you ARE holding mean something.
+
+		Folded through MineCards.ADDITIVE_STATS rather than a second opinion
+		about which stats add and which multiply -- the two drifting apart
+		would quietly pay a chance stat as a multiplier.
+	]]
+	do
+		local uid = p.oreToolEquipped
+		if uid then
+			for _, t in ipairs(p.oreTools or {}) do
+				if t.uid == uid then
+					if type(t.ench) == "table" then
+						Dig.Ench.apply(b, t.ench, Cards.ADDITIVE_STATS)
+					end
+					break
+				end
+			end
+		end
+	end
+
 	-- prestigeYield used to dump +15% Blast per rebirth. Blast is Omni now; prestige
 	-- does not ride it. Luck still scales with rebirth.
 
@@ -15223,6 +15254,75 @@ function Verbs.craftOreTool(plr, payload)
 	snap(plr)
 end
 
+--[[
+	ENCHANT A TOOL. One verb, because there is one thing to do here.
+
+	Owner, 2026-10-04: "Pretty much just walk to the enchanter and its a prefix
+	too your tool". No rolling, no fusing, no gacha: you NAME the enchantment
+	you want and pay for it. Sending the same one again levels it; sending a
+	different one replaces it at level 1, and says so rather than silently
+	throwing away what was there.
+
+	Server-authoritative in the way that matters: the client names a uid and an
+	enchant id and nothing else. The level, the price and the magnitude are all
+	re-derived here, so a modified client can ask for a different enchantment
+	but never for a cheaper one.
+]]
+function Verbs.enchantTool(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p or type(payload) ~= "table" then
+		return
+	end
+	local Ench = Dig.Ench
+	local tool = Verbs._findOreTool(p, payload.uid)
+	if not tool then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+	local def = Ench.byId(payload.enchantId)
+	if not def then
+		net:FireClient(plr, "toast", "No such enchantment")
+		return
+	end
+
+	-- Same enchantment -> next level. Different one -> start again at 1.
+	local cur = type(tool.ench) == "table" and tool.ench or nil
+	local same = cur and cur.id == def.id
+	local target = same and (math.floor(tonumber(cur.level) or 1) + 1) or 1
+	if target > Ench.MAX_LEVEL then
+		net:FireClient(plr, "toast", "That enchantment is at max level")
+		return
+	end
+
+	local cost = Ench.gemCost(target)
+	if not cost then
+		net:FireClient(plr, "toast", "That enchantment cannot go further")
+		return
+	end
+	local have = tonumber(p.gems) or 0
+	if have < cost then
+		net:FireClient(plr, "toast", string.format("Needs %s gems",
+			Verbs._benchNum(cost)))
+		return
+	end
+
+	p.gems = have - cost
+	tool.ench = { id = def.id, level = target }
+
+	-- The toast names the TOOL, prefix and all, because the prefix is the
+	-- whole point of the feature and seeing it is the reward.
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	net:FireClient(plr, "toast", string.format("%s  \u{00B7}  level %d",
+		OreTools.toolName(tool), target))
+	bumpStat(plr, p, "enchants")
+	-- Re-give the tool so its name and stats both follow the enchantment.
+	if p.oreToolEquipped == tool.uid then
+		givePickaxe(plr)
+	end
+	markDirty(plr)
+	snap(plr)
+end
+
 function Verbs.recycleOreTool(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -15287,6 +15387,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if Verbs.policyBlocks(plr, action) then return end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
+		elseif action == "enchantTool" then Verbs.enchantTool(plr, payload)
 		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
