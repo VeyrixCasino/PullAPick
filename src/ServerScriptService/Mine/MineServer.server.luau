@@ -76,6 +76,14 @@ local Const = {
 	VOXEL_SKIP = { Skip = true },
 	GROUND_Y = 5,
 	OPEN_RUN_MAX = 50,
+	--[[
+		Most of one item a player may buy in a single typed request.
+
+		Owner, 2026-10-03: "a custom amoujt of packs to buy (the player can
+		write the number themselves [default 1])". A text box needs a ceiling
+		or a fat-fingered 999999 is one request that spends a whole bank.
+	]]
+	BUY_QTY_MAX = 100,
 	-- One number, shared with the Select UI that has to clamp to it.
 	SCRAP_MAX = C.SCRAP_MAX,
 	ROLL_MAX = 100,
@@ -88,7 +96,18 @@ local Const = {
 	-- Layers below the server-wide dug depth before a dig is worth a look.
 	FLAG_DEPTH_SLACK = 250,
 	CART_MAX_LINES = 24,
-	CART_MAX_QTY = 25,
+	--[[
+		Most of one line the cart will buy. RAISED 25 -> 100 on 2026-10-04 to
+		match BUY_QTY_MAX below and the typed quantity box in
+		MineInventoryView, which allows the same number.
+
+		These three have to agree. A box that accepts 60 above a server that
+		silently clamps to 25 is a box that lies, which is the exact failure
+		the pack tile's own comment warns about ("a button that says x10 above
+		a stack of six is a button that lies"). tools/verify/buyqty.js pins
+		them together.
+	]]
+	CART_MAX_QTY = 100,
 }
 local mineResetState = { at = {}, warned = {} }
 -- VIP gamepass ownership cache (server-authoritative). Keyed by userId.
@@ -10816,6 +10835,33 @@ function Verbs.buyScroll(plr, payload)
 		grant = item.bundleQty
 	end
 	cost = C.vipPrice(cost, hasVipPass(plr))
+
+	--[[
+		A TYPED QUANTITY. Owner: "a custom amoujt of packs to buy (the player
+		can write the number themselves [default 1])".
+
+		Multiplies whatever one unit costs -- so it stacks on a bundle too, and
+		the VIP discount is applied before the multiply rather than after, or
+		buying ten would round the discount away ten times.
+
+		Short on credits pays out what you CAN afford rather than refusing,
+		which is the same contract openMany documents for "open 10" off a stack
+		of six. Refusing a 50-pack request because you can afford 49 is the
+		behaviour that makes people stop using the box.
+	]]
+	local qty = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
+		1, Const.BUY_QTY_MAX)
+	local unit, unitGrant = cost, grant
+	local have = tonumber(p.credits) or 0
+	if unit > 0 then
+		qty = math.min(qty, math.floor(have / unit))
+	end
+	if qty < 1 then
+		net:FireClient(plr, "toast", "Need " .. unit .. " credits")
+		return
+	end
+	cost, grant = unit * qty, unitGrant * qty
+
 	if (p.credits or 0) < cost then
 		net:FireClient(plr, "toast", "Need " .. cost .. " credits")
 		return
@@ -10829,6 +10875,16 @@ function Verbs.buyScroll(plr, payload)
 		grantScrolls(p, id, grant)
 	end
 	net:FireClient(plr, "toast", "Bought " .. item.name .. (grant > 1 and (" x" .. grant) or ""))
+	-- Say so when the box asked for more than the wallet could cover, or a
+	-- short fill looks like the number was ignored.
+	do
+		local asked = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
+			1, Const.BUY_QTY_MAX)
+		if asked > qty then
+			net:FireClient(plr, "toast", string.format(
+				"Only %d of %d - that is what %d credits covered", qty, asked, have))
+		end
+	end
 	snap(plr)
 end
 

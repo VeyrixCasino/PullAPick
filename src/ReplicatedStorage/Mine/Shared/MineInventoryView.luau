@@ -1168,6 +1168,13 @@ function MineInventoryView.mount(parent, opts)
 
 	local refreshCart
 
+	--[[
+		Most of one line a cart may hold. Matches Const.BUY_QTY_MAX on the
+		server, which clamps the same number again -- the box is a convenience,
+		the server is the rule.
+	]]
+	local CART_QTY_MAX = 100
+
 	local function cartAdd(kind, id, bundle, qty, packs)
 		if kind == "box" and type(packs) == "table" then
 			table.insert(cart, { kind = "box", id = "custom", bundle = false, qty = qty or 1, packs = packs })
@@ -1177,7 +1184,7 @@ function MineInventoryView.mount(parent, opts)
 		local key = cartKey(kind, id, bundle)
 		for _, line in ipairs(cart) do
 			if cartKey(line.kind, line.id, line.bundle) == key then
-				line.qty = math.min(25, line.qty + (qty or 1))
+				line.qty = math.min(CART_QTY_MAX, line.qty + (qty or 1))
 				refreshCart()
 				return
 			end
@@ -5476,11 +5483,51 @@ function MineInventoryView.mount(parent, opts)
 				showCart()
 				refreshCart()
 			end)
-			local q = label(row, "x" .. line.qty, 14, TEXT, UDim2.new(1, -64, 0, 0),
-				UDim2.fromOffset(28, 56), FONT)
-			q.ZIndex = 73
+			--[[
+				TYPE THE NUMBER. Owner, 2026-10-03: "a custom amoujt of packs
+				to buy (the player can write the number themselves [default 1])".
+
+				This was a read-only "x3" between two steppers, so buying fifty
+				of something meant forty-seven taps. It is a TextBox now; the
+				steppers stay because they are still the fastest way to nudge
+				by one.
+
+				ClearTextOnFocus is off so tapping it to change 12 to 15 does
+				not wipe the 12 first. On FocusLost anything unparseable snaps
+				back to what the line actually holds rather than to 1 -- a
+				fat-fingered keystroke should not silently empty the cart line.
+			]]
+			local q = mk("TextBox", {
+				BackgroundColor3 = BG3,
+				BackgroundTransparency = 0.35,
+				Font = FONT,
+				TextSize = 14,
+				TextColor3 = TEXT,
+				Text = tostring(line.qty),
+				ClearTextOnFocus = false,
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -38, 0.5, 0),
+				Size = UDim2.fromOffset(34, 26),
+				ZIndex = 73,
+			}, row)
+			round(q, 6)
+			q.FocusLost:Connect(function()
+				local want = tonumber((q.Text or ""):match("%d+"))
+				if not want then
+					q.Text = tostring(line.qty)
+					return
+				end
+				local next = math.clamp(math.floor(want), 1, CART_QTY_MAX)
+				if next == line.qty then
+					q.Text = tostring(line.qty)
+					return
+				end
+				line.qty = next
+				showCart()
+				refreshCart()
+			end)
 			stepper("+", -8, function()
-				line.qty = math.min(25, line.qty + 1)
+				line.qty = math.min(CART_QTY_MAX, line.qty + 1)
 				showCart()
 				refreshCart()
 			end)
