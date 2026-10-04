@@ -50,6 +50,9 @@ local Dig = {
 	-- script sits at 197 of Luau's 200, and boosts() reads it per swing so a
 	-- require-per-call is not an option either.
 	Ench = require(shared:WaitForChild("MineEnchants")),
+	-- Two layers, and the second multiplies the first. See MineBoostLayers
+	-- for the owner's worked example (100 -> 300, not 250).
+	Layers = require(shared:WaitForChild("MineBoostLayers")),
 	Depth = C.Depth or require(shared:WaitForChild("MineDepth")),
 	Auth = require(script.Parent:WaitForChild("MineDigAuth")),
 	Shop = require(shared:WaitForChild("MineDepthShop")),
@@ -2255,28 +2258,49 @@ function Dig.petRows(p, n)
 	return rows, pieces, runes
 end
 
-function Dig.applyPets(b, p, n)
+--[[
+	LAYER 2: equipment and pets, summed flat.
+
+	Owner, 2026-10-04: "Gear powers pets. Should just be a boost." and
+	"equipment+pets are #2".
+
+	Used to mutate the boost table directly, and gear used to be counted once
+	PER PET and then multiplied by your face -- so a fourth pet made your hat
+	33% better without the hat changing. Now both just add, once, into a layer
+	that MineBoostLayers multiplies over layer 1.
+
+	Returns the layer table and the stat the face tailored itself to.
+]]
+function Dig.layer2(p, n)
 	local rows, pieces = Dig.petRows(p, n)
 	local eq = p.equippedGear or {}
-	local total, tailor = Gear.stackPets(rows, Gear.wornHats(eq, pieces), pieces[eq.face or ""])
-	for stat, amount in pairs(total) do
-		if stat == "swingRate" then
-			b.swingRate = (b.swingRate or 1) + amount
-		elseif b[stat] ~= nil then
-			b[stat] += amount
-		else
-			b[stat] = amount
-		end
+	local t2 = {}
+	for stat, amount in pairs(Gear.stackPets(rows)) do
+		Dig.Layers.add(t2, stat, amount)
 	end
-	return tailor
+	local gear, tailor = Gear.flatBoost(Gear.wornHats(eq, pieces), pieces[eq.face or ""])
+	for stat, amount in pairs(gear) do
+		Dig.Layers.add(t2, stat, amount)
+	end
+	return t2, tailor
 end
 
 local function boosts(p)
 	local b = Cards.emptyBoosts()
 	local n = #(p.equipped or {})
-	-- Each pet x its rune x (its hat + your hat), the three added up, x your face.
-	Dig.tailor[p] = Dig.applyPets(b, p, n)
-	Cards.foldSwingRate(b)
+	--[[
+		THE TWO LAYERS. Owner, 2026-10-04:
+
+		  "skills+skins+tools+enchantments are the very bottom ... equipment+
+		   pets are #2 [if skin has +50% damage, and pet says +100% damage, and
+		   the tools base is 100, then it turns to 300, rather than 250]"
+
+		Everything inside a layer adds; the layers multiply. Collected here and
+		combined once, below, after every source has had its say -- combining
+		early would make the result depend on the order sources were read in.
+	]]
+	local T1, T2 = {}, {}
+	T2, Dig.tailor[p] = Dig.layer2(p, n)
 	b.luck *= C.prestigeLuck(p.prestige)
 	if (tonumber(p.sellHasteUntil) or 0) > os.clock() then
 		b.mineSpeed *= 1.08
@@ -2314,7 +2338,13 @@ local function boosts(p)
 			for _, t in ipairs(p.oreTools or {}) do
 				if t.uid == uid then
 					if type(t.ench) == "table" then
-						Dig.Ench.apply(b, t.ench, Cards.ADDITIVE_STATS)
+						-- Layer 1: the tool's own enchantment, beside skills
+						-- and skins rather than on top of them.
+						local def = Dig.Ench.byId(t.ench.id)
+						if def then
+							Dig.Layers.add(T1, def.stat,
+								Dig.Ench.amount(t.ench.id, t.ench.level))
+						end
 					end
 					break
 				end
@@ -2332,9 +2362,22 @@ local function boosts(p)
 	for stat, key in pairs({ mineSpeed = "mineSpeed", dirtBreak = "dirtBreak",
 		walkSpeed = "walkSpeed", luck = "luck", rareOre = "rareOre" }) do
 		if sk[stat] then
-			b[key] *= (1 + sk[stat])
+			-- Layer 1. Rebirth skills are the floor the rest is built on.
+			Dig.Layers.add(T1, key, sk[stat])
 		end
 	end
+
+	--[[
+		COMBINE. base x (1 + layer1) x (1 + layer2), once, for every stat
+		either layer touched.
+
+		Chance stats are handed through untouched -- MineCards.ADDITIVE_STATS
+		is the list -- because "1 + x" on a blast chance is meaningless and two
+		layers of it is twice as meaningless.
+	]]
+	Dig.Layers.apply(b, T1, T2, Cards.ADDITIVE_STATS)
+	Cards.foldSwingRate(b)
+
 	-- Swing seconds are a DURATION, so a faster swing rate divides it.
 	if sk.swingRate then
 		b.swingSec /= (1 + sk.swingRate)
@@ -13017,13 +13060,27 @@ Dig.boostSources = function(p)
 					emit("Rune on " .. row.name .. " (spread)", Gear.stackPets(variant(false, true, i), nil, nil))
 				end
 			end
+			--[[
+				Gear is ONE flat row now, not "your hat (all pets)" and "your
+				face (whole team)". Those two lines described the old stack,
+				where a hat was counted once per pet and the face multiplied
+				it; leaving them would be a breakdown of arithmetic that no
+				longer happens.
+			]]
 			local myHat = pieces[eq.hat or ""]
-			if myHat then
-				emit("Your " .. (myHat.name or "hat") .. " (all pets)", Gear.stackPets(variant(false, false), myHat, nil))
-			end
 			local myFace = pieces[eq.face or ""]
-			if myFace then
-				emit("Your " .. (myFace.name or "face") .. " (whole team)", Gear.stackPets(variant(false, false), nil, myFace))
+			do
+				local flat = Gear.flatBoost(Gear.wornHats(eq, pieces), myFace)
+				local gearOnly = Cards.emptyBoosts()
+				for stat, amount in pairs(flat) do
+					if stat == "swingRate" then
+						gearOnly.swingRate = (gearOnly.swingRate or 1) + amount
+					elseif gearOnly[stat] ~= nil then
+						gearOnly[stat] += amount
+					end
+				end
+				Cards.foldSwingRate(gearOnly)
+				diff("Your gear (flat, layer 2)", gearOnly)
 			end
 			local gb = Cards.emptyBoosts()
 			Gear.applyEquipped(gb, { hat = myHat, face = myFace }, byRune)

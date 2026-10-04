@@ -19,6 +19,31 @@ Three kinds of blocked, and they are not the same thing:
 
 ---
 
+# Copy-paste answers
+
+Owner asked for *"an example/suggested answer"* per item. Here is the whole set
+as one block. **Paste it back with the lines you disagree with changed, delete
+the rest** — anything you leave untouched I will take as the suggested answer and
+build.
+
+```
+1.  craft base      yes — TOOL_CRAFT_BASE 250 -> 150, WOOD_PICK_COIN_GROW 1.55 -> 1.40
+2.  earthquake      leave EARTHQUAKE_SEC at 5
+3.  oreYield key    leave the key, keep the "Blast Chance" label
+4.  big suffixes    keep the formatter's (Vg Uvg Dvg), delete the §0.8 line
+5.  legacy charms   keep the items, kill the three sources
+6.  VIP             leave it at three seats, delete the dead "4th seat" copy
+7.  gem prices      scale zone and rune prices with zone index
+8.  forge bag       don't build it — the ore strip already answers it
+9.  elements        <I OWE YOU A LIST: element -> which boost it grants>
+10. seam prompt     wire it to <NAME THE PLAZA PART> / I'll place it in Studio
+11. prestige+VIP+pass -> layer 1 / layer 2 / neither (currently: neither)
+```
+
+Line 11 is new and comes out of today's layering work — see below.
+
+---
+
 ## TASTE — I have a default, say the word
 
 ### 1. `TOOL_CRAFT_BASE` 250 → 150, `WOOD_PICK_COIN_GROW` 1.55 → 1.40
@@ -132,6 +157,26 @@ inventory screen with extra steps.
 
 **My default:** do not build it. The ore strip already answers "what can I
 afford", which was the real question.
+
+---
+
+### 8b. Which layer prestige, VIP and the event pass belong to  *(new today)*
+
+**What:** You named the layers as *skills + skins + tools + enchantments* (layer
+1) and *equipment + pets* (layer 2). Prestige luck, the VIP luck bonus and the
+event-pass bonuses were in neither list.
+
+**Why yours:** Right now they apply outside both layers, exactly as they always
+have. Moving them into layer 1 makes them part of the base everything multiplies
+— which would make every rebirth worth substantially more than it is today. That
+is a rebirth-curve change, not a refactor.
+
+**Unblock:** "layer 1", "layer 2", or "leave them outside".
+
+**Copy-paste answer:** `11. prestige+VIP+pass -> neither (leave outside)`
+
+**My default:** leave them outside. It is what ships today, and it is the only
+option that changes nobody's power.
 
 ---
 

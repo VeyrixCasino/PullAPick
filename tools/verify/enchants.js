@@ -249,8 +249,13 @@ src(!/prestige|rebirth|p\.zoneId|tool\.tier/i.test(verb),
 src(/elseif action == "enchantTool" then/.test(server), "enchantTool is wired to the net dispatch");
 
 const boosts = code((server.match(/local function boosts\(p\)[\s\S]*?\n^end$/m) || [""])[0]);
-src(/Dig\.Ench\.apply\(b, t\.ench, Cards\.ADDITIVE_STATS\)/.test(boosts),
-  "boosts folds the equipped tool's enchantment through ADDITIVE_STATS");
+// The enchantment is LAYER 1 now (MineBoostLayers), beside skills and skins,
+// rather than being multiplied straight into the boost table. tools/verify/
+// layers.js owns the layering rule; this only checks the enchantment reaches it.
+src(/Dig\.Layers\.add\(T1, def\.stat,/.test(boosts),
+  "boosts puts the equipped tool's enchantment into layer 1");
+src(/Dig\.Ench\.amount\(t\.ench\.id, t\.ench\.level\)/.test(boosts),
+  "...at the magnitude MineEnchants derives, rarity and all");
 src(/p\.oreToolEquipped/.test(boosts), "...and only the tool actually in your hands");
 
 console.log("");

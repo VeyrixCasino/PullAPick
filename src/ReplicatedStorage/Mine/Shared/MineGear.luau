@@ -537,47 +537,60 @@ end
 	playerHat2, with a third hat living on the pet row itself; a pet wears no hat
 	now and the seat count is free to move without touching this signature.
 ]]
-function MineGear.stackPets(pets, hats, face)
+--[[
+	WHAT YOUR PETS ADD. Just the pets.
+
+	Owner, 2026-10-04: "Gear powers pets. Should just be a boost."
+
+	This used to be the most complicated arithmetic in the game: for EVERY pet,
+	its delta x (1 + its rune), PLUS your hat points x (1 + your face) -- so the
+	hats were counted once per pet and the face multiplied them, and a fourth
+	pet made your hat 33% better without the hat changing. Nothing on screen
+	ever explained it, and it is why gear ended up the single largest multiplier
+	in the game at +1225%.
+
+	Now: a pet contributes its own delta, scaled by its own rune, and that is
+	all. Gear is counted ONCE, by flatBoost below, and both land in layer 2 --
+	see MineBoostLayers for what that means.
+]]
+function MineGear.stackPets(pets)
 	local total = {}
-	-- A single piece is accepted where an array is expected, because every
-	-- caller that passed one hat kept working when the second seat was added
-	-- and should keep working now.
+	for _, row in ipairs(pets or {}) do
+		-- A pet's own rune still rides its own delta. That is a property of the
+		-- pet, not of your hat, and it was never the part that was broken.
+		local runeAll = MineRunes.wearBroad(row.rune)
+		for stat, amount in pairs(row.delta or {}) do
+			local n = (tonumber(amount) or 0) * (1 + runeAll)
+			if n ~= 0 then
+				total[stat] = (total[stat] or 0) + n
+			end
+		end
+	end
+	return total
+end
+
+--[[
+	WHAT YOUR GEAR ADDS. Once, flat, whatever is wearing it.
+
+	Three hats and a face, summed. No per-pet multiplication, no face
+	multiplying the hats: "should just be a boost".
+
+	Returns the stat the face carries as a second value, which the HUD reads to
+	show what the face tailored itself to.
+]]
+function MineGear.flatBoost(hats, face)
+	local total, tailor = {}, nil
 	if hats ~= nil and hats.id ~= nil then
 		hats = { hats }
 	end
-	hats = hats or {}
-	local faceByStat = {}
+	for _, piece in ipairs(hats or {}) do
+		for _, line in ipairs(MineGear.boostLines(piece)) do
+			total[line.stat] = (total[line.stat] or 0) + (tonumber(line.pct) or 0)
+		end
+	end
 	for _, line in ipairs(MineGear.boostLines(face)) do
-		faceByStat[line.stat] = (faceByStat[line.stat] or 0) + line.pct
-	end
-	for _, row in ipairs(pets or {}) do
-		local runeAll = MineRunes.wearBroad(row.rune)
-		local seen = {}
-		local function touch(stat)
-			if stat then seen[stat] = true end
-		end
-		for stat in pairs(row.delta or {}) do touch(stat) end
-		for _, hat in ipairs(hats) do
-			for _, line in ipairs(MineGear.boostLines(hat)) do touch(line.stat) end
-		end
-		for stat in pairs(seen) do
-			local amount = tonumber((row.delta or {})[stat]) or 0
-			local base = amount * (1 + runeAll)
-			local hatPts = 0
-			for _, hat in ipairs(hats) do
-				hatPts += MineGear.pctOnStat(hat, stat)
-			end
-			local effectiveHat = hatPts * (1 + (faceByStat[stat] or 0))
-			local contrib = base + effectiveHat
-			if contrib ~= 0 then
-				total[stat] = (total[stat] or 0) + contrib
-			end
-		end
-	end
-	local tailor = nil
-	for stat in pairs(faceByStat) do
-		tailor = stat
-		break
+		total[line.stat] = (total[line.stat] or 0) + (tonumber(line.pct) or 0)
+		tailor = tailor or line.stat
 	end
 	return total, tailor
 end

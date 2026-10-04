@@ -31,6 +31,43 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.19 — TWO BOOST LAYERS, AND THE SECOND MULTIPLIES THE FIRST.** Owner,
+2026-10-04:
+
+> "skills+skins+tools+enchantments are the very bottom ... (all multipliers go
+> ontop of that, as if it was default), equipment+pets are #2 [if skin has +50%
+> damage, and pet says +100% damage, and the tools base is 100, then it turns to
+> 300, rather than 250 (if it was all the same)]"
+
+**LAYER 1 (the base):** skills, skins, tools, enchantments.
+**LAYER 2 (on top):** equipment, pets.
+Everything inside a layer **adds**; the layers **multiply**.
+
+    100 x (1 + 0.5 + 1.0)       = 250   <- rejected
+    100 x (1 + 0.5) x (1 + 1.0) = 300   <- this
+
+The property this buys, beyond the arithmetic: a +100% pet is worth exactly
+double **whatever your skin is**. In one pile its marginal value shrinks as you
+get stronger, so each layer is worth building independently only under this rule.
+
+- **"Gear powers pets. Should just be a boost."** `MineGear.stackPets` took
+  `(pets, hats, face)` and counted your hats **once per pet**, with the face
+  multiplying them — a fourth pet made your hat 33% better without the hat
+  changing. It now takes `pets` only. `MineGear.flatBoost(hats, face)` sums gear
+  **once**, and both land in layer 2.
+- **Gear is NOT deleted** (0.18 said it would be). The owner's layer list names
+  "equipment" in layer 2, so it stays — as a flat boost.
+- **Chance stats are never layered.** `1 + x` on a blast chance is meaningless;
+  `MineCards.ADDITIVE_STATS` are summed straight through.
+
+**NOT in either layer, on purpose:** prestige, VIP and the event pass. The owner
+named four sources and two, and those three were in neither list. Moving them
+into layer 1 would make every rebirth worth substantially more. Left exactly as
+they were and raised in `docs/BLOCKED.md` 8b.
+
+Guarded by `tools/verify/layers.js`, whose first assertion is the owner's own
+100 -> 300.
+
 **0.18 — ENCHANTMENT ODDS, AND GEAR IS DELETED NOT NERFED.** Owner, 2026-10-04.
 
 - **Gear powering pets: "get rid of this."** The each-pet x its-rune x (its-hat +
