@@ -2382,6 +2382,22 @@ local function boosts(p)
 	if sk.swingRate then
 		b.swingSec /= (1 + sk.swingRate)
 	end
+	--[[
+		BLAST RADIUS FROM SKILLS. This line did not exist.
+
+		Nine nodes in MineSkillData grant blastRadius and it is FIRE'S PRIMARY
+		STAT -- the headline buff of the first wedge on the tree, deg 0. The
+		server read sk.mineSpeed, sk.dirtBreak, sk.walkSpeed, sk.luck,
+		sk.rareOre, sk.swingRate, sk.echo, sk.zap, sk.oreYield, sk.luckyFind,
+		sk.fossilFind, sk.pulverize, sk.scrap, sk.backpack, sk.chestLuck,
+		sk.coinBonus and sk.gemFind -- and never sk.blastRadius. So every point
+		a player put into the Fire road's primary stat was silently discarded.
+
+		Additive, like the other procs: MineCards.ADDITIVE_STATS lists it.
+	]]
+	if sk.blastRadius then
+		b.blastRadius += sk.blastRadius
+	end
 	if sk.echo then
 		b.echo += sk.echo
 	end

@@ -35,7 +35,7 @@ build.
 6.  VIP             leave it at three seats, delete the dead "4th seat" copy
 7.  gem prices      scale zone and rune prices with zone index
 8.  forge bag       don't build it — the ore strip already answers it
-9.  elements        <I OWE YOU A LIST: element -> which boost it grants>
+9.  elements        regenerate the skill tree + apply the 5 swaps (docs/SKILL-TREE.md)
 10. seam prompt     wire it to <NAME THE PLAZA PART> / I'll place it in Studio
 11. prestige+VIP+pass -> layer 1 / layer 2 / neither (currently: neither)
 ```
@@ -182,14 +182,29 @@ option that changes nobody's power.
 
 ## FACT — I need information only you have
 
-### 9. The element roster
+### 9. The skill tree — ~~the element roster~~  *(I was wrong about this one)*
 
-**What:** "Each element type gets one of these as its native boost." Earthquake
-and Ricochet are built and rollable. What is missing is the mapping.
+**What I said:** "the element list does not exist in this repo in a form I can
+read."
 
-**Why yours:** The element list does not exist in this repo in a form I can read.
+**What is true:** it has been here all along as `MineSkillData.ENERGIES` — ten
+elements, 36° apart, 75 nodes, each with a verb and a primary/secondary/tertiary
+stat. I was looking for the word "element" and the file says "energy".
 
-**Unblock:** the list of elements, and which boost each one grants.
+**What is actually blocked** is bigger than the roster, and it is in
+`docs/SKILL-TREE.md`:
+
+- Fire's primary stat was never applied by the server — **fixed**, 9 nodes' worth.
+- The ten roads are **not** equal any more: Grass is **2.44×** Water, against a
+  file whose stated purpose is that all ten are 1.00×. The tree is generated and
+  the generator is not in the repo; the weights it baked against have moved.
+- Space's primary is `echo`, a retired stat.
+- All five stats I built this week are on no element.
+
+**Unblock:** `docs/SKILL-TREE.md` ends with three yes/no lines.
+
+**My default:** regenerate. A 2.44× spread on a tree built to be even is worse
+than the one-time rebalance of fixing it.
 
 ---
 
