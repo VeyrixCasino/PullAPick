@@ -42,16 +42,22 @@ const stripLua = (t) => t
   .replace(/MineStats\.LEGACY_STAT = \{[\s\S]*?\n\}/, "");
 const stragglers = [];
 for (const f of walk("src")) {
-  if (stripLua(read(f)).match(/oreYield(?!For)/)) stragglers.push(f);
+  // \b on BOTH sides. The first version used /oreYield(?!For)/, which then
+  // flagged MineConfig.oreYieldMid -- a genuine ore-quantity helper added with
+  // the variable craft cost. The rule is "the bare stat key", not "any
+  // identifier starting with oreYield".
+  if (stripLua(read(f)).match(/\boreYield\b/)) stragglers.push(f);
 }
 check(stragglers.length === 0,
   "no bare oreYield left in src/" +
     (stragglers.length ? "  — " + [...new Set(stragglers)].join(", ") : ""));
 
 // ...and the one that stays, stays. Renaming it would have been the real bug.
-check(/function MineConfig\.oreYieldFor\(tier\)/.test(
-  read("src/ReplicatedStorage/Mine/Shared/MineConfig.luau")),
+const cfgSrc = read("src/ReplicatedStorage/Mine/Shared/MineConfig.luau");
+check(/function MineConfig\.oreYieldFor\(tier\)/.test(cfgSrc),
   "MineConfig.oreYieldFor survives — it really is about ore quantity");
+check(/function MineConfig\.oreYieldMid\(tier\)/.test(cfgSrc),
+  "...as does oreYieldMid, which the craft cost reads");
 
 check(/blastChance\s*=\s*\{ label = "Blast Chance"/.test(stats),
   "blastChance is a real stat with the honest label");
