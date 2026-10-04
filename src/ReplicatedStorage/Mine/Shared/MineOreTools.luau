@@ -45,9 +45,9 @@ local RS = game:GetService("ReplicatedStorage")
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared:WaitForChild("MineConfig"))
 local Tools = require(shared:WaitForChild("MineTools"))
--- The enchantment prefix. Loaded here so every caller that names a tool
+-- The trait prefix. Loaded here so every caller that names a tool
 -- gets the prefix for free rather than remembering to add it.
-local Ench = require(shared:WaitForChild("MineEnchants"))
+local Traits = require(shared:WaitForChild("MineTraits"))
 
 -- What one of these is called. Singular, because it names one tool.
 MineOreTools.NOUN = {
@@ -157,25 +157,25 @@ function MineOreTools.oreOf(tool)
 end
 
 --[[
-	"Stone Pickaxe", or "Sharp Stone Pickaxe" with an enchantment on it.
+	"Stone Pickaxe", or "Sharp Stone Pickaxe" with an trait on it.
 
 	The prefix is part of the name and not a decoration added by whichever
 	screen remembered to: owner, 2026-10-04, "its a prefix too your tool
 	(Sharp Stone Pickaxe, Lucky Stone Drill)". Every caller that names a tool
 	goes through here, so there is nowhere for an unprefixed name to leak out.
 ]]
-function MineOreTools.name(oreDef, familyId, ench)
+function MineOreTools.name(oreDef, familyId, trait)
 	local ore = (type(oreDef) == "table" and (oreDef.name or oreDef.id)) or "Unknown"
-	return Ench.decorate(tostring(ore) .. " " .. MineOreTools.familyNoun(familyId), ench)
+	return Traits.decorate(tostring(ore) .. " " .. MineOreTools.familyNoun(familyId), trait)
 end
 
--- The same, from a forged row. The row carries its own enchantment, so a tool
+-- The same, from a forged row. The row carries its own trait, so a tool
 -- cannot be named without it.
 function MineOreTools.toolName(tool)
 	if type(tool) ~= "table" then
 		return "Unknown Tool"
 	end
-	return MineOreTools.name(MineOreTools.oreOf(tool), tool.familyId, tool.ench)
+	return MineOreTools.name(MineOreTools.oreOf(tool), tool.familyId, tool.trait)
 end
 
 return MineOreTools

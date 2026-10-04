@@ -31,6 +31,36 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.23 — THEY ARE CALLED TRAITS.** Owner, 2026-10-04: *"Rename runes/traits to
+traits, enchants will come later."*
+
+`MineEnchants` → **`MineTraits`**, `MineEnchantView` → **`MineTraitView`**,
+`tool.ench` → `tool.trait`, the verb `enchantTool` → **`rollTrait`**, the stat
+`bumpStat("enchants")` → `"traits"`, the boost layer `enchantments` → `traits`,
+the Enchanter's tab **Enchant → Traits**, and the button **ROLL TRAIT**.
+
+**The Enchanter keeps its name.** It is a building, and the owner says enchants
+are coming later — so the word is being freed, not retired. `enchantP`,
+`showEnchantTab`, `enchantTabs` and `onOpenEnchanter` are all the PANEL and were
+deliberately left alone.
+
+The owner's own quotes in `MineTraits` are left **verbatim** and still say
+"enchantment", with a header note saying to read them as "trait". Rewriting a
+quote so it matches the new name would make the record wrong.
+
+**0.24 — PET AND HAT SEATS, AND THE FORMATION.** Owner, 2026-10-04.
+
+- **The 4th pet seat and the 4th hat seat were already gone.** `MAX_PET_SLOTS`
+  and `STARTER_PET_SLOTS` are both 3, `effectivePetSlots` clamps to 3..3, and
+  `MineGear.HAT_SLOTS` is `{ hat, hat2, hat3 }`. Verified, not assumed; VIP's
+  fourth seat was removed earlier and the comment at `MineConfig:605` records it.
+- **FIXED — pets were never centred.** `stepPetFollow` positioned a pet at
+  `(slot - 2) * 2.15`, which only centres when there are exactly three. With one
+  pet out it walked 2.15 studs to your LEFT and never behind you; with two, both
+  sat off-centre. It centres on `(total + 1) / 2` now, so one pet is directly
+  behind you and any count is symmetrical. The spawn-in pivot uses the same
+  centring, or a pet popped in off-formation and slid across.
+
 **0.22 — THE ENCHANTER HAS AN ENCHANT TAB, AND IT OPENS ON IT.** 2026-10-04,
 stage 2 of 0.17.
 
@@ -1351,6 +1381,59 @@ collide with blast and zap, which is the guardrail asked for:
       hats moving into chests.
 
 ---
+
+# 6.6 LONG-GAME ROADMAP — owner asked for it, 2026-10-04
+
+> *"we need to make packs funner, and adjust the game to be fun long term, with
+> a roadmap for first 1-15 mins, 15-1h, 1h-2h 3-4h 4-6h 6-12h 12-24 24-48-96 etc"*
+
+**This is a PROPOSAL and nothing here is built.** It is written as bands because
+that is how it was asked for, and because the honest question at every band is
+the same one: *what is the player reaching for in the next ten minutes, and can
+they see it?* A band with no visible next thing is where people quit.
+
+What the game currently HAS at each band is marked ✅; what is missing is the
+work.
+
+| band | what it should feel like | has | missing |
+|---|---|---|---|
+| **0–15 min** | Break rock, watch numbers move, forge your FIRST tool. | ✅ wooden pick, coin ladder, ore drops | First forge is ~30 blocks of one ore — needs a playtest. Tutorial hands over the stone pick ✅ |
+| **15 min–1 h** | First real choice: which ore, which family. First pack. First trait. | ✅ Forge, packs, Traits tab | Nothing teaches that traits exist. A first free trait roll would do it |
+| **1–2 h** | A build starts to exist. First charm, first skin, a second tool family. | ✅ charms, skins, 3 families | The three systems never meet on one screen |
+| **2–4 h** | First rebirth in sight. The skill tree opens and a road gets picked. | ✅ 10 roads, 75 nodes | No in-game explanation of what a road DOES before you buy into it |
+| **4–6 h** | Rebirth. Tokens. The tree starts paying. Deeper zones. | ✅ rebirth, tokens, zones | **SHIP BLOCKER: seam purchase is unreachable, everyone stops at layer 500** |
+| **6–12 h** | Chasing a specific tier of ore for a specific tool. Trait rerolling. | ✅ 82 ores, trait gacha | 1-in-1000 Exotic with no pity and no collection view |
+| **12–24 h** | Second and third rebirth. A second road. Deep ore. | ✅ | Nothing marks "you have seen everything in this band" |
+| **24–48 h** | Mastery: the right trait on the right ore on the right family. | partial | No endgame goal that is not just a bigger number |
+| **48–96 h+** | Social, trading, leaderboards, prestige identity. | ✅ trading | No leaderboard, no prestige cosmetic, no reason to be seen |
+
+**The three biggest holes, in order:**
+
+1. **The seam blocker (4–6 h).** Nothing else on this list matters if everyone
+   stops at layer 500. See `docs/BLOCKED.md` item 10.
+2. **Nothing teaches the systems (15 min – 2 h).** The Forge, traits, charms and
+   skins all exist and none of them announces itself.
+3. **No endgame that is not a bigger number (24 h+).** Needs an owner decision
+   about what mastery looks like.
+
+## Making packs funner
+
+Current: you open a pack, cards come out, the rare ones get a tap-through. The
+ceremony is good. What is thin:
+
+- **No pity.** A 1-in-400 chase with no floor is the single most common reason
+  people put a game down. A counter that guarantees the band after N opens costs
+  very little and changes how the whole loop feels.
+- **No collection pressure.** Duplicates roll at `DUPE_DROP_WEIGHT = 0.25` so
+  collection leads, but nothing shows you *what you are missing* at the moment
+  you open.
+- **Open-all is a summary screen.** It skips the filler and tap-throughs the
+  hits, which is right — but a 50-pack run ends on a static list. It should end
+  on what CHANGED: new cards, completed sets, a better pull than last time.
+- **Every pack feels the same.** `MinePackConfig.cardPoolFor` already gives each
+  pack a subset of the pool; nothing on the tile says so.
+
+None of this is started. All of it is cheap next to the roadmap holes above.
 
 # 7. Asset upload rules (group-owned game)
 

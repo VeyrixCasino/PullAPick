@@ -28,7 +28,7 @@ MineStats.STATS = {
 		where `radius = tool.radius * (1 + blastRadius)`. A sphere's cell count
 		goes as r^3, so +50% radius is about 3.4x the blocks destroyed, not
 		1.5x. Every system that spends a MineStats budget -- the skill tree,
-		enchantments, gear, runes -- divides by this weight, so at 6.0 they were
+		traits, gear, runes -- divides by this weight, so at 6.0 they were
 		all handing out roughly THREE TIMES the power they thought they were.
 
 		18.0 is 6.0 x 3: the derivative of r^3 at the margin. One number, and

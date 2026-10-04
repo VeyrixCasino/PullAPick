@@ -1,6 +1,6 @@
 // Two layers, and the second multiplies the first.
 //
-// Owner, 2026-10-04: "skills+skins+tools+enchantments are the very bottom ...
+// Owner, 2026-10-04: "skills+skins+tools+traits are the very bottom ...
 // equipment+pets are #2 [if skin has +50% damage, and pet says +100% damage,
 // and the tools base is 100, then it turns to 300, rather than 250 (if it was
 // all the same)]" and "Gear powers pets. Should just be a boost."
@@ -91,7 +91,7 @@ check(z.luck == 1, "no contributions, no change")
 
 check(#L.LAYER1 == 4 and #L.LAYER2 == 2,
 	"layer 1 names four sources and layer 2 names two")
-for _, name in ipairs({ "skills", "skins", "tools", "enchantments" }) do
+for _, name in ipairs({ "skills", "skins", "tools", "traits" }) do
 	check(L.TIER_OF[name] == 1, name .. " is layer 1")
 end
 for _, name in ipairs({ "equipment", "pets" }) do
@@ -137,7 +137,7 @@ const boosts = code((server.match(/local function boosts\(p\)[\s\S]*?\n^end$/m) 
 src(/local T1, T2 = \{\}, \{\}/.test(boosts), "boosts collects two layers");
 src(/Dig\.Layers\.apply\(b, T1, T2, Cards\.ADDITIVE_STATS\)/.test(boosts),
   "...and combines them once, through ADDITIVE_STATS");
-src(/Dig\.Layers\.add\(T1, def\.stat/.test(boosts), "the tool's enchantment is layer 1");
+src(/Dig\.Layers\.add\(T1, def\.stat/.test(boosts), "the tool's trait is layer 1");
 src(/Dig\.Layers\.add\(T1, key, sk\[stat\]\)/.test(boosts), "rebirth skills are layer 1");
 src(/T2, Dig\.tailor\[p\] = Dig\.layer2\(p, n\)/.test(boosts), "pets and gear are layer 2");
 src(!/Dig\.applyPets/.test(boosts), "the old applyPets mutation is gone");

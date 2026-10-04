@@ -1,16 +1,16 @@
-// An enchantment is a prefix on your tool, rolled on the skins ladder.
+// An trait is a prefix on your tool, rolled on the skins ladder.
 //
-// Owner, 2026-10-04: "replace runes with enchantments ... its a prefix too your
+// Owner, 2026-10-04: "replace runes with traits ... its a prefix too your
 // tool (Sharp Stone Pickaxe, Lucky Stone Drill)", "and gear aswell", "the same
 // rarity as rune/temperment/skins", "exotic should be 1 in 1000, exotic V 1 in
-// 5000", "random 1-5 to determine level", "Make each enchantment have its own
-// rarity", "Make enchantment price stay the [same] with rebirths".
+// 5000", "random 1-5 to determine level", "Make each trait have its own
+// rarity", "Make trait price stay the [same] with rebirths".
 //
 // Every one of those is an assertion below, checked against the REAL modules --
 // the odds against MineTemper's own skins table rather than a number copied
 // into a comment, so a skins rebalance that breaks the rule gets caught here.
 //
-//   node tools/verify/enchants.js
+//   node tools/verify/traits.js
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
@@ -23,7 +23,7 @@ if (!fs.existsSync(LUAU)) {
   process.exit(0);
 }
 
-const mod = read("src/ReplicatedStorage/Mine/Shared/MineEnchants.luau");
+const mod = read("src/ReplicatedStorage/Mine/Shared/MineTraits.luau");
 const statsSrc = read("src/ReplicatedStorage/Mine/Shared/MineStats.luau");
 const temperSrc = read("src/ReplicatedStorage/Mine/Shared/MineTemper.luau");
 const oretools = read("src/ReplicatedStorage/Mine/Shared/MineOreTools.luau");
@@ -54,9 +54,9 @@ console.log(`  ${Object.keys(weights).length} stat weights; skins ladder sums to
 const body = mod
   .replace(/local RS = game:GetService\("ReplicatedStorage"\)[\s\S]*?local Temper = require\(shared:WaitForChild\("MineTemper"\)\)/,
     "local Stats = STATS_STUB\nlocal Temper = TEMPER_STUB")
-  .replace(/\nreturn MineEnchants\s*$/, "\n");
+  .replace(/\nreturn MineTraits\s*$/, "\n");
 if (/require\(/.test(body)) {
-  console.error("FAIL MineEnchants still has a require after stubbing — update this check");
+  console.error("FAIL MineTraits still has a require after stubbing — update this check");
   process.exit(1);
 }
 
@@ -92,10 +92,10 @@ local fail = 0
 local function check(ok, msg)
 	if not ok then fail += 1 print("  FAIL  " .. msg) else print("  ok    " .. msg) end
 end
-local E = MineEnchants
+local E = MineTraits
 
 ------------------------------------------------------------------ roster --
-check(#E.LIST >= 20, ("the roster has %d enchantments"):format(#E.LIST))
+check(#E.LIST >= 20, ("the roster has %d traits"):format(#E.LIST))
 local ids, prefixes, stats, dupe = {}, {}, {}, {}
 for _, e in ipairs(E.LIST) do
 	if ids[e.id] then table.insert(dupe, "id " .. e.id) end
@@ -108,12 +108,12 @@ end
 check(#dupe == 0, "every id, prefix and stat is unique and real" ..
 	(#dupe > 0 and ("  — " .. table.concat(dupe, ", ")) or ""))
 
--- Owner: "Make each enchantment have its own rarity."
+-- Owner: "Make each trait have its own rarity."
 local missingTier = {}
 for _, g in ipairs(E.RARITY_ORDER) do
 	if #(E.BY_RARITY[g] or {}) == 0 then table.insert(missingTier, g) end
 end
-check(#missingTier == 0, "every rarity tier has at least one enchantment" ..
+check(#missingTier == 0, "every rarity tier has at least one trait" ..
 	(#missingTier > 0 and ("  — empty: " .. table.concat(missingTier, ", ")) or ""))
 
 ------------------------------------------------------------------- odds --
@@ -170,9 +170,9 @@ check(math.abs(E.amount("sharp", 3) - 3 * E.amount("sharp", 1)) < 1e-9,
 -- Rarity scales magnitude, and a CHANCE stat takes the gentle ladder or a
 -- Divine Blasting would be +75 points of blast chance, which is not a proc.
 check(E.rarityMult("blasting") == TEMPER_STUB.PROC_RARITY_MULT.SS,
-	"a chance enchantment uses PROC_RARITY_MULT")
+	"a chance trait uses PROC_RARITY_MULT")
 check(E.rarityMult("sharp") == TEMPER_STUB.RARITY_MULT.F,
-	"a non-chance enchantment uses RARITY_MULT")
+	"a non-chance trait uses RARITY_MULT")
 check(E.amount("blasting", 5) < 0.30,
 	("Blasting V adds %.3f blast chance, not most of a certainty"):format(E.amount("blasting", 5)))
 
@@ -187,19 +187,19 @@ for _ = 1, 20000 do
 	end
 	if r then seen[r.id] = (seen[r.id] or 0) + 1 end
 end
-check(badId == 0, "every roll returns a real enchantment")
+check(badId == 0, "every roll returns a real trait")
 check(badLevel == 0, "every roll returns a whole level in 1..MAX_LEVEL")
 -- The commonest tier must actually dominate; a uniform roll would be a bug.
-check((seen.sharp or 0) > (seen.wide or 0), "common enchantments roll far more often than Exotic")
+check((seen.sharp or 0) > (seen.wide or 0), "common traits roll far more often than Exotic")
 
 ------------------------------------------------------------------ prefix --
 check(E.decorate("Stone Pickaxe", { id = "sharp", level = 1 }) == "Sharp Stone Pickaxe",
 	'decorate -> "Sharp Stone Pickaxe"')
 check(E.decorate("Stone Drill", { id = "lucky", level = 4 }) == "Lucky Stone Drill",
 	'decorate -> "Lucky Stone Drill"')
-check(E.decorate("Stone Pickaxe", nil) == "Stone Pickaxe", "no enchantment, no prefix")
+check(E.decorate("Stone Pickaxe", nil) == "Stone Pickaxe", "no trait, no prefix")
 check(E.decorate("Stone Pickaxe", { id = "nonsense" }) == "Stone Pickaxe",
-	"an unknown enchantment adds no prefix rather than a nil one")
+	"an unknown trait adds no prefix rather than a nil one")
 check(not string.find(E.decorate("Stone Pickaxe", { id = "sharp", level = 5 }), "V"),
 	"the level stays out of the tool's name")
 check(E.label({ id = "wide", level = 5 }) == "Exotic Wide V",
@@ -211,10 +211,10 @@ check(type(E.ROLL_PRICE) == "number" and E.ROLL_PRICE > 0,
 
 if fail > 0 then
 	print("")
-	print(">>> enchants: " .. fail .. " FAILED assertion(s)")
+	print(">>> traits: " .. fail .. " FAILED assertion(s)")
 else
 	print("")
-	print(">>> enchants: all assertions passed")
+	print(">>> traits: all assertions passed")
 end
 `;
 
@@ -232,58 +232,58 @@ let fail = /FAILED|FAIL /.test(out) ? 1 : 0;
 const src = (ok, msg) => { console.log((ok ? "  ok    " : "  FAIL  ") + msg); if (!ok) fail++; };
 const code = (lua) => lua.replace(/--\[\[[\s\S]*?\]\]/g, "").replace(/--[^\n]*/g, "");
 
-src(/function MineOreTools\.name\(oreDef, familyId, ench\)/.test(oretools),
-  "MineOreTools.name takes the enchantment");
-src(/MineOreTools\.name\(MineOreTools\.oreOf\(tool\), tool\.familyId, tool\.ench\)/.test(oretools),
-  "a forged row carries its own enchantment, so it cannot be named without one");
+src(/function MineOreTools\.name\(oreDef, familyId, trait\)/.test(oretools),
+  "MineOreTools.name takes the trait");
+src(/MineOreTools\.name\(MineOreTools\.oreOf\(tool\), tool\.familyId, tool\.trait\)/.test(oretools),
+  "a forged row carries its own trait, so it cannot be named without one");
 
-const verb = code((server.match(/function Verbs\.enchantTool[\s\S]*?\n^end$/m) || [""])[0]);
-src(verb.length > 300, "found Verbs.enchantTool");
-src(/Ench\.roll\(Random\.new\(\)\)/.test(verb), "the verb rolls with a server rng");
-src(!/payload\.level/.test(verb) && !/payload\.enchantId/.test(verb),
+const verb = code((server.match(/function Verbs\.rollTrait[\s\S]*?\n^end$/m) || [""])[0]);
+src(verb.length > 300, "found Verbs.rollTrait");
+src(/Traits\.roll\(Random\.new\(\)\)/.test(verb), "the verb rolls with a server rng");
+src(!/payload\.level/.test(verb) && !/payload\.traitId/.test(verb),
   "...and takes nothing from the client but a uid");
 // Owner: the price "stays the same with rebirths".
-src(/Ench\.ROLL_PRICE/.test(verb), "the price is MineEnchants.ROLL_PRICE");
+src(/Traits\.ROLL_PRICE/.test(verb), "the price is MineTraits.ROLL_PRICE");
 src(!/prestige|rebirth|p\.zoneId|tool\.tier/i.test(verb),
   "...and reads no prestige, rebirth, zone or tool tier");
-src(/elseif action == "enchantTool" then/.test(server), "enchantTool is wired to the net dispatch");
+src(/elseif action == "rollTrait" then/.test(server), "rollTrait is wired to the net dispatch");
 
 const boosts = code((server.match(/local function boosts\(p\)[\s\S]*?\n^end$/m) || [""])[0]);
-// The enchantment is LAYER 1 now (MineBoostLayers), beside skills and skins,
+// The trait is LAYER 1 now (MineBoostLayers), beside skills and skins,
 // rather than being multiplied straight into the boost table. tools/verify/
-// layers.js owns the layering rule; this only checks the enchantment reaches it.
+// layers.js owns the layering rule; this only checks the trait reaches it.
 src(/Dig\.Layers\.add\(T1, def\.stat,/.test(boosts),
-  "boosts puts the equipped tool's enchantment into layer 1");
-src(/Dig\.Ench\.amount\(t\.ench\.id, t\.ench\.level\)/.test(boosts),
-  "...at the magnitude MineEnchants derives, rarity and all");
+  "boosts puts the equipped tool's trait into layer 1");
+src(/Dig\.Traits\.amount\(t\.trait\.id, t\.trait\.level\)/.test(boosts),
+  "...at the magnitude MineTraits derives, rarity and all");
 src(/p\.oreToolEquipped/.test(boosts), "...and only the tool actually in your hands");
 
 // --- the front door -------------------------------------------------------
-// An enchantment system with no screen is unreachable, which is what stages 1
+// A trait system with no screen is unreachable, which is what stages 1
 // and 2 of TODO 0.17 were about.
-const view = read("src/ReplicatedStorage/Mine/Shared/MineEnchantView.luau");
+const view = read("src/ReplicatedStorage/Mine/Shared/MineTraitView.luau");
 const client = read("src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau");
 
-src(/function MineEnchantView\.mount\(parent, opts\)/.test(view),
-  "MineEnchantView mounts like the Enchanter's other tabs");
+src(/function MineTraitView\.mount\(parent, opts\)/.test(view),
+  "MineTraitView mounts like the Enchanter's other tabs");
 src(/setVisible = function\(on\)/.test(view), "...and exposes setVisible");
 // Every number on screen must come from the module, or the screen and the roll
 // drift apart the moment the weights move.
-src(/Ench\.odds\(/.test(view), "the panel derives its odds from MineEnchants.odds");
-src(/Ench\.ROLL_PRICE/.test(view), "...and its price from MineEnchants.ROLL_PRICE");
+src(/Traits\.odds\(/.test(view), "the panel derives its odds from MineTraits.odds");
+src(/Traits\.ROLL_PRICE/.test(view), "...and its price from MineTraits.ROLL_PRICE");
 // Comments stripped: the file's own header explains that this is a 1-in-1000
 // chase, which is prose, not a label a player reads.
 src(!/1 in 1000|1 in 5000/.test(code(view)),
   "...with no odds written into a label by hand");
-src(/Ench\.label\(cur\)/.test(view), "it names what a roll would replace");
+src(/Traits\.label\(cur\)/.test(view), "it names what a roll would replace");
 
-src(/\{ "enchant", "Enchant" \}/.test(client), "the Enchanter has an Enchant tab");
-src(/local enchantTab = "enchant"/.test(client), "...and opens on it");
-src(/net:FireServer\("enchantTool", \{ uid = uid \}\)/.test(client),
+src(/\{ "trait", "Traits" \}/.test(client), "the Enchanter has a Traits tab");
+src(/local enchantTab = "trait"/.test(client), "...and opens on it");
+src(/net:FireServer\("rollTrait", \{ uid = uid \}\)/.test(client),
   "the client sends a uid and nothing else");
-src(/NO ENCHANT TAB/.test(client),
-  "a missing MineEnchantView warns instead of losing the tab in silence");
+src(/NO TRAIT TAB/.test(client),
+  "a missing MineTraitView warns instead of losing the tab in silence");
 
 console.log("");
-console.log(fail > 0 ? `>>> enchants: ${fail} FAILED` : ">>> enchants: all assertions passed");
+console.log(fail > 0 ? `>>> traits: ${fail} FAILED` : ">>> traits: all assertions passed");
 process.exit(fail > 0 ? 1 : 0);

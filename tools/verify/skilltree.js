@@ -75,8 +75,8 @@ console.log(deadPrimary.length
 // stat straight from MineRunes.SETS and bypasses NO_ROLL_STATS entirely, which
 // is how Longhauler would have gone on minting dead runes.
 const pools = {
-  "MineEnchants.LIST": read("src/ReplicatedStorage/Mine/Shared/MineEnchants.luau")
-    .match(/MineEnchants\.LIST = \{[\s\S]*?\n\}/)[0],
+  "MineTraits.LIST": read("src/ReplicatedStorage/Mine/Shared/MineTraits.luau")
+    .match(/MineTraits\.LIST = \{[\s\S]*?\n\}/)[0],
   "MineGear.STAT_WEIGHT": read("src/ReplicatedStorage/Mine/Shared/MineGear.luau")
     .match(/MineGear\.STAT_WEIGHT = \{[\s\S]*?\n\}/)[0],
   "MineRunes.FAMILY_STATS": read("src/ReplicatedStorage/Mine/Shared/MineRunes.luau")

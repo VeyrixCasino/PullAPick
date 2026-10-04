@@ -45,11 +45,11 @@ local TradeService = require(script.Parent:WaitForChild("TradeService"))
 local SocialService = require(script.Parent:WaitForChild("SocialService"))
 -- Mine For Cards modules packed as one local to spare the 200-register main-chunk cap.
 local Dig = {
-	-- Enchantments: the prefix on a forged tool, and the one thing runes and
+	-- Traits: the prefix on a forged tool, and the one thing runes and
 	-- gear were replaced by. On Dig rather than a top-level local because this
 	-- script sits at 197 of Luau's 200, and boosts() reads it per swing so a
 	-- require-per-call is not an option either.
-	Ench = require(shared:WaitForChild("MineEnchants")),
+	Traits = require(shared:WaitForChild("MineTraits")),
 	-- Two layers, and the second multiplies the first. See MineBoostLayers
 	-- for the owner's worked example (100 -> 300, not 250).
 	Layers = require(shared:WaitForChild("MineBoostLayers")),
@@ -2310,7 +2310,7 @@ local function boosts(p)
 	--[[
 		THE TWO LAYERS. Owner, 2026-10-04:
 
-		  "skills+skins+tools+enchantments are the very bottom ... equipment+
+		  "skills+skins+tools+traits are the very bottom ... equipment+
 		   pets are #2 [if skin has +50% damage, and pet says +100% damage, and
 		   the tools base is 100, then it turns to 300, rather than 250]"
 
@@ -2342,7 +2342,7 @@ local function boosts(p)
 	--[[
 		THE EQUIPPED TOOL'S ENCHANTMENT.
 
-		One enchantment, on the tool you are holding, and nothing else: no
+		One trait, on the tool you are holding, and nothing else: no
 		slots, no per-family sockets, no three hats and a face. A tool that is
 		not in your hands gives nothing, which is what makes the prefix on the
 		one you ARE holding mean something.
@@ -2356,13 +2356,13 @@ local function boosts(p)
 		if uid then
 			for _, t in ipairs(p.oreTools or {}) do
 				if t.uid == uid then
-					if type(t.ench) == "table" then
-						-- Layer 1: the tool's own enchantment, beside skills
+					if type(t.trait) == "table" then
+						-- Layer 1: the tool's own trait, beside skills
 						-- and skins rather than on top of them.
-						local def = Dig.Ench.byId(t.ench.id)
+						local def = Dig.Traits.byId(t.trait.id)
 						if def then
 							Dig.Layers.add(T1, def.stat,
-								Dig.Ench.amount(t.ench.id, t.ench.level))
+								Dig.Traits.amount(t.trait.id, t.trait.level))
 						end
 					end
 					break
@@ -15411,27 +15411,27 @@ end
 --[[
 	ENCHANT A TOOL. One verb, one flat price, one roll.
 
-	Owner, 2026-10-04: enchanting is "the same rarity as rune/temperment/skins",
+	Owner, 2026-10-04: applying a trait is "the same rarity as rune/temperment/skins",
 	Exotic at 1/1000 and Exotic V at 1/5000, level random 1-5, and the price
 	"stays the same with rebirths (broke players arent going to try to get
 	exotic V, endgame players will.)".
 
-	So this is a GACHA, not a purchase: you pay MineEnchants.ROLL_PRICE and get
+	So this is a GACHA, not a purchase: you pay MineTraits.ROLL_PRICE and get
 	what the table gives you. The price reads no prestige, no rebirth count, no
-	zone and no tool tier -- tools/verify/enchants.js asserts that, because a
+	zone and no tool tier -- tools/verify/traits.js asserts that, because a
 	price that quietly scaled with rebirth would break the one sentence the
 	owner was most specific about.
 
 	Server-authoritative in the way that matters: the client names a uid and
-	nothing else. The rarity, the enchantment and the level are all rolled here
+	nothing else. The rarity, the trait and the level are all rolled here
 	with a server rng.
 ]]
-function Verbs.enchantTool(plr, payload)
+function Verbs.rollTrait(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
 		return
 	end
-	local Ench = Dig.Ench
+	local Traits = Dig.Traits
 	local uid = (type(payload) == "table") and payload.uid or payload
 	local tool = Verbs._findOreTool(p, uid)
 	if not tool then
@@ -15439,7 +15439,7 @@ function Verbs.enchantTool(plr, payload)
 		return
 	end
 
-	local cost = Ench.ROLL_PRICE
+	local cost = Traits.ROLL_PRICE
 	local have = tonumber(p.gems) or 0
 	if have < cost then
 		net:FireClient(plr, "toast", string.format("Needs %s gems",
@@ -15447,7 +15447,7 @@ function Verbs.enchantTool(plr, payload)
 		return
 	end
 
-	local rolled = Ench.roll(Random.new())
+	local rolled = Traits.roll(Random.new())
 	if not rolled then
 		net:FireClient(plr, "toast", "The enchanter has nothing to give")
 		return
@@ -15460,14 +15460,14 @@ function Verbs.enchantTool(plr, payload)
 		feature. The old one is named in the toast so a player who just lost
 		something good sees what it was.
 	]]
-	local had = type(tool.ench) == "table" and Ench.label(tool.ench) or nil
-	tool.ench = rolled
+	local had = type(tool.trait) == "table" and Traits.label(tool.trait) or nil
+	tool.trait = rolled
 
 	local OreTools = require(shared:WaitForChild("MineOreTools"))
 	net:FireClient(plr, "toast", string.format("%s  \u{00B7}  %s%s",
-		OreTools.toolName(tool), Ench.label(rolled),
+		OreTools.toolName(tool), Traits.label(rolled),
 		had and ("   (was " .. had .. ")") or ""))
-	bumpStat(plr, p, "enchants")
+	bumpStat(plr, p, "traits")
 	-- Re-give the tool so its name and its stats both follow the roll.
 	if p.oreToolEquipped == tool.uid then
 		givePickaxe(plr)
@@ -15540,7 +15540,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if Verbs.policyBlocks(plr, action) then return end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
-		elseif action == "enchantTool" then Verbs.enchantTool(plr, payload)
+		elseif action == "rollTrait" then Verbs.rollTrait(plr, payload)
 		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)

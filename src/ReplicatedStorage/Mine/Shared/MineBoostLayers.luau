@@ -3,7 +3,7 @@
 
 	Owner, 2026-10-04:
 
-	  "skills+skins+tools+enchantments are the very bottom skills (all
+	  "skills+skins+tools+traits are the very bottom skills (all
 	   multipliers go ontop of that, as if it was default), equipment+pets are
 	   #2 [if skin has +50% damage, and pet says +100% damage, and the tools
 	   base is 100, then it turns to 300, rather than 250 (if it was all the
@@ -22,7 +22,7 @@
 	new "default" that layer 2 is applied on top of, which is what "as if it was
 	default" means.
 
-	  LAYER 1, the base      skills, skins (temperaments), tools, enchantments
+	  LAYER 1, the base      skills, skins (temperaments), tools, traits
 	  LAYER 2, on top        equipment, pets
 
 	WHY THIS MATTERS, beyond the arithmetic: in one pile, the marginal value of
@@ -47,11 +47,11 @@ local MineBoostLayers = {}
 
 -- Who is in which layer. Names, not modules: this is the design statement, and
 -- the server maps its own sources onto it.
-MineBoostLayers.LAYER1 = { "skills", "skins", "tools", "enchantments" }
+MineBoostLayers.LAYER1 = { "skills", "skins", "tools", "traits" }
 MineBoostLayers.LAYER2 = { "equipment", "pets" }
 
 MineBoostLayers.TIER_OF = {
-	skills = 1, skins = 1, tools = 1, enchantments = 1,
+	skills = 1, skins = 1, tools = 1, traits = 1,
 	equipment = 2, pets = 2,
 }
 

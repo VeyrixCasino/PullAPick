@@ -1,23 +1,23 @@
 --[[
-	MineEnchantView: the Enchanter's Enchant tab.
+	MineTraitView: the Enchanter's Trait tab.
 
-	Owner, 2026-10-04: "replace runes with enchantments. Pretty much just walk
+	Owner, 2026-10-04: "replace runes with traits. Pretty much just walk
 	to the enchanter and its a prefix too your tool (Sharp Stone Pickaxe, Lucky
 	Stone Drill)".
 
 	So this is the whole feature's front door, and it is deliberately small:
 	pick one of your forged tools on the left, see what it is wearing, pay a
-	flat price, roll. No fusing, no sockets, no inventory of loose enchantments
-	to manage -- an enchantment only ever exists ON a tool.
+	flat price, roll. No fusing, no sockets, no inventory of loose traits
+	to manage -- an trait only ever exists ON a tool.
 
 	Two things it refuses to do:
 
 	1. QUOTE ITS OWN ODDS OR PRICES. Every number on screen comes from
-	   MineEnchants -- the odds come out of `odds()`, which derives them from
+	   MineTraits -- the odds come out of `odds()`, which derives them from
 	   the weight table, so the screen cannot drift from the roll the way a
 	   hand-written "1 in 1000" in a label would.
 
-	2. DECIDE ANYTHING. It sends a uid. The rarity, the enchantment and the
+	2. DECIDE ANYTHING. It sends a uid. The rarity, the trait and the
 	   level are rolled server-side, and the panel only redraws what comes back
 	   in the next snapshot.
 
@@ -25,11 +25,11 @@
 	That is the one piece of friction worth keeping: the gamble is the feature,
 	but silently eating an Exotic V is not.
 ]]
-local MineEnchantView = {}
+local MineTraitView = {}
 
 local RS = game:GetService("ReplicatedStorage")
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
-local Ench = require(shared:WaitForChild("MineEnchants"))
+local Traits = require(shared:WaitForChild("MineTraits"))
 local OreTools = require(shared:WaitForChild("MineOreTools"))
 local Stats = require(shared:WaitForChild("MineStats"))
 local Temper = require(shared:WaitForChild("MineTemper"))
@@ -74,7 +74,7 @@ local function label(parent, str, size, colour, pos, sz, font, z)
 	}, parent)
 end
 
--- The rarity's own colour, off MineTemper's ladder, so an Exotic enchantment
+-- The rarity's own colour, off MineTemper's ladder, so an Exotic trait
 -- reads the same cyan an Exotic skin does.
 local function rarityColour(rarity)
 	return (Temper.RARITY_COLOR and Temper.RARITY_COLOR[rarity]) or MUTED
@@ -94,12 +94,12 @@ end
 	mount(parent, opts)
 
 	opts.getSnap()        -> the latest server snapshot
-	opts.onEnchant(uid)   -> fire enchantTool
+	opts.onRollTrait(uid) -> fire rollTrait
 
 	Returns { setVisible, paint, root } to match how the Enchanter's other
 	tabs are driven.
 ]]
-function MineEnchantView.mount(parent, opts)
+function MineTraitView.mount(parent, opts)
 	opts = opts or {}
 	local selUid = nil
 
@@ -136,24 +136,24 @@ function MineEnchantView.mount(parent, opts)
 		label(detail, OreTools.toolName(tool), 22, TEXT, UDim2.fromOffset(0, 0),
 			UDim2.new(1, 0, 0, 26), FONT)
 
-		local cur = type(tool.ench) == "table" and tool.ench or nil
-		local def = cur and Ench.byId(cur.id) or nil
+		local cur = type(tool.trait) == "table" and tool.trait or nil
+		local def = cur and Traits.byId(cur.id) or nil
 		if def then
-			label(detail, Ench.label(cur), 15, rarityColour(def.rarity),
+			label(detail, Traits.label(cur), 15, rarityColour(def.rarity),
 				UDim2.fromOffset(0, 30), UDim2.new(1, 0, 0, 18), FONT)
 			local st = (Stats.STATS or {})[def.stat]
-			label(detail, string.format("+%.1f%%  %s", Ench.amount(cur.id, cur.level) * 100,
+			label(detail, string.format("+%.1f%%  %s", Traits.amount(cur.id, cur.level) * 100,
 				(st and st.label) or def.stat), 13, GOLD,
 				UDim2.fromOffset(0, 50), UDim2.new(1, 0, 0, 16))
-			label(detail, oneIn(Ench.odds(cur.id, cur.level)) .. " to roll this exact result",
+			label(detail, oneIn(Traits.odds(cur.id, cur.level)) .. " to roll this exact result",
 				12, MUTED, UDim2.fromOffset(0, 68), UDim2.new(1, 0, 0, 16))
 		else
-			label(detail, "Unenchanted", 15, MUTED, UDim2.fromOffset(0, 30),
+			label(detail, "No trait", 15, MUTED, UDim2.fromOffset(0, 30),
 				UDim2.new(1, 0, 0, 18), FONT)
 		end
 
 		--[[
-			THE ODDS, from MineEnchants.odds rather than a written-down table.
+			THE ODDS, from MineTraits.odds rather than a written-down table.
 
 			Worth the room: this is a 1-in-1000 chase, and a gacha that does not
 			show its rates is the kind players stop trusting.
@@ -162,10 +162,10 @@ function MineEnchantView.mount(parent, opts)
 		label(detail, "WHAT A ROLL CAN GIVE", 11, MUTED, UDim2.fromOffset(0, y),
 			UDim2.new(1, 0, 0, 14), FONT)
 		y += 18
-		for _, grade in ipairs(Ench.RARITY_ORDER) do
-			local pool = Ench.BY_RARITY[grade] or {}
+		for _, grade in ipairs(Traits.RARITY_ORDER) do
+			local pool = Traits.BY_RARITY[grade] or {}
 			if #pool > 0 then
-				local chance = Ench.RARITY_TOTAL / (Ench.RARITY_WEIGHTS[grade] or 1)
+				local chance = Traits.RARITY_TOTAL / (Traits.RARITY_WEIGHTS[grade] or 1)
 				local names = {}
 				for _, e in ipairs(pool) do
 					names[#names + 1] = e.prefix
@@ -176,7 +176,7 @@ function MineEnchantView.mount(parent, opts)
 					ZIndex = 35,
 				}, detail)
 				round(rowF, 5)
-				label(rowF, Ench.RARITY_NAME[grade] or grade, 12, rarityColour(grade),
+				label(rowF, Traits.RARITY_NAME[grade] or grade, 12, rarityColour(grade),
 					UDim2.fromOffset(8, 0), UDim2.fromOffset(78, 22), FONT)
 				label(rowF, oneIn(chance), 11, MUTED, UDim2.fromOffset(90, 0),
 					UDim2.fromOffset(72, 22))
@@ -190,27 +190,27 @@ function MineEnchantView.mount(parent, opts)
 			11, MUTED, UDim2.fromOffset(0, y + 2), UDim2.new(1, -8, 0, 16))
 		y += 24
 
-		local price = Ench.ROLL_PRICE
+		local price = Traits.ROLL_PRICE
 		local gems = math.floor(tonumber(snapshot.gems) or 0)
 		local afford = gems >= price
 		local btn = mk("TextButton", {
 			BackgroundColor3 = afford and GREEN or BG3, AutoButtonColor = afford,
 			Font = FONT, TextSize = 15, TextColor3 = afford and Color3.new(1, 1, 1) or MUTED,
-			Text = string.format("ENCHANT   %d gems", price),
+			Text = string.format("ROLL TRAIT   %d gems", price),
 			Position = UDim2.fromOffset(0, y + 6), Size = UDim2.fromOffset(210, 36),
 			Active = afford, ZIndex = 36,
 		}, detail)
 		round(btn, 8)
 		if afford then
 			btn.MouseButton1Click:Connect(function()
-				if opts.onEnchant then
-					opts.onEnchant(tool.uid)
+				if opts.onTrait then
+					opts.onRollTrait(tool.uid)
 				end
 			end)
 		end
 		-- The one piece of friction worth keeping.
 		label(detail, cur
-				and ("Replaces " .. Ench.label(cur) .. ". There is no undo.")
+				and ("Replaces " .. Traits.label(cur) .. ". There is no undo.")
 				or ("You hold " .. tostring(gems) .. " gems."),
 			11, cur and GOLD or MUTED,
 			UDim2.fromOffset(220, y + 16), UDim2.new(1, -228, 0, 18))
@@ -259,8 +259,8 @@ function MineEnchantView.mount(parent, opts)
 			if t.uid == selUid then
 				chosen = t
 			end
-			local cur = type(t.ench) == "table" and t.ench or nil
-			local def = cur and Ench.byId(cur.id) or nil
+			local cur = type(t.trait) == "table" and t.trait or nil
+			local def = cur and Traits.byId(cur.id) or nil
 			local b = mk("TextButton", {
 				BackgroundColor3 = (t.uid == selUid) and BG2 or BG3, AutoButtonColor = true,
 				Text = "", Size = UDim2.new(1, -6, 0, 40), LayoutOrder = i, ZIndex = 36,
@@ -268,7 +268,7 @@ function MineEnchantView.mount(parent, opts)
 			round(b, 6)
 			label(b, OreTools.toolName(t), 13, TEXT, UDim2.fromOffset(10, 5),
 				UDim2.new(1, -20, 0, 15), FONT, 37)
-			label(b, def and Ench.label(cur) or "unenchanted", 11,
+			label(b, def and Traits.label(cur) or "no trait", 11,
 				def and rarityColour(def.rarity) or MUTED,
 				UDim2.fromOffset(10, 22), UDim2.new(1, -20, 0, 13), nil, 37)
 			b.MouseButton1Click:Connect(function()
@@ -292,4 +292,4 @@ function MineEnchantView.mount(parent, opts)
 	}
 end
 
-return MineEnchantView
+return MineTraitView
