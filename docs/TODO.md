@@ -31,6 +31,34 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.25 — CHARMS MERGE ON GEMS, NOT ON COPIES.** Owner, 2026-10-04: *"rather
+than merging it should cost gems."*
+
+`MERGE_COST` 3 → **1**. One charm in, one charm out; `MineCharms.mergeGemCost`
+charges gems for the step, priced off the TARGET's tier and charged only after
+`mergeTarget` resolves, so a charm that cannot merge never takes the gems.
+
+Eating three copies to make one was the "everything is worthless" problem in its
+purest form: if three of a thing are worth one of a thing, each is worth a third
+of a thing. `tools/verify/charms.js` asserted `MERGE_COST >= 2` — it was
+asserting the bad design — and now asserts the new rule instead.
+
+**0.26 — THE AUDIT, AND THE CUT.** See `docs/AUDIT.md`. Owner proposed archiving
+the unfinished, deleting the useless, and shipping in 2-3 weeks. **I agree.** The
+numbers: 120,662 lines across 180 modules, of which **70 modules / 20,633 lines
+are referenced by nothing**. One line in six is unreachable.
+
+Headline findings:
+- **The charm family breaks locked rule 0.13.** 164 charms are GENERATED in a
+  loop (`for each ore, for each variant`), so a Diamond Surge Charm is a Coal
+  Surge Charm with a bigger number. 0.13 forbids exactly that. Proposal: cut
+  164 → ~24 hand-authored charms that are rules, not percentages.
+- **Gear, backpacks and coin-shop tools are pure ladders** — each rung strictly
+  obsoletes the last. Cut or give them a kind-difference.
+- **The seam blocker is still the only true ship blocker.**
+- `_c.luau` is a **stale 1,710-line duplicate of MineConfig** that nothing
+  requires. A trap, not just dead weight.
+
 **0.23 — THEY ARE CALLED TRAITS.** Owner, 2026-10-04: *"Rename runes/traits to
 traits, enchants will come later."*
 

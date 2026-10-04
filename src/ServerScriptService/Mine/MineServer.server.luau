@@ -9392,7 +9392,8 @@ function Verbs.mergeCharm(plr, payload)
 	id = tostring(id or "")
 	p.charms = p.charms or {}
 
-	local cost = math.max(2, math.floor(tonumber(Charms.MERGE_COST) or 3))
+	-- One copy, not three. The gems are the price now; see MineCharms.
+	local cost = math.max(1, math.floor(tonumber(Charms.MERGE_COST) or 1))
 	local have = math.floor(tonumber(p.charms[id]) or 0)
 	-- A legacy charm saved as `true` counts as one copy, the same as everywhere
 	-- else that reads this tally.
@@ -9410,6 +9411,22 @@ function Verbs.mergeCharm(plr, payload)
 		net:FireClient(plr, "toast", why or "That charm cannot be merged")
 		return
 	end
+
+	--[[
+		THE GEMS. Owner, 2026-10-04: "rather than merging it should cost gems."
+
+		Priced off the TARGET's tier, not the source's, so the step you are
+		buying is what you pay for. Charged AFTER mergeTarget resolves -- a
+		charm that cannot merge must not take the gems first.
+	]]
+	local gemCost = Charms.mergeGemCost and Charms.mergeGemCost(targetDef.tier) or 0
+	local gems = math.floor(tonumber(p.gems) or 0)
+	if gemCost > 0 and gems < gemCost then
+		net:FireClient(plr, "toast", string.format(
+			"Needs %s gems to merge", Verbs._benchNum(gemCost)))
+		return
+	end
+	p.gems = gems - gemCost
 
 	p.charms[id] = have - cost
 	if p.charms[id] <= 0 then
