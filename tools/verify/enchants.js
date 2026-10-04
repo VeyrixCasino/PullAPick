@@ -258,6 +258,32 @@ src(/Dig\.Ench\.amount\(t\.ench\.id, t\.ench\.level\)/.test(boosts),
   "...at the magnitude MineEnchants derives, rarity and all");
 src(/p\.oreToolEquipped/.test(boosts), "...and only the tool actually in your hands");
 
+// --- the front door -------------------------------------------------------
+// An enchantment system with no screen is unreachable, which is what stages 1
+// and 2 of TODO 0.17 were about.
+const view = read("src/ReplicatedStorage/Mine/Shared/MineEnchantView.luau");
+const client = read("src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau");
+
+src(/function MineEnchantView\.mount\(parent, opts\)/.test(view),
+  "MineEnchantView mounts like the Enchanter's other tabs");
+src(/setVisible = function\(on\)/.test(view), "...and exposes setVisible");
+// Every number on screen must come from the module, or the screen and the roll
+// drift apart the moment the weights move.
+src(/Ench\.odds\(/.test(view), "the panel derives its odds from MineEnchants.odds");
+src(/Ench\.ROLL_PRICE/.test(view), "...and its price from MineEnchants.ROLL_PRICE");
+// Comments stripped: the file's own header explains that this is a 1-in-1000
+// chase, which is prose, not a label a player reads.
+src(!/1 in 1000|1 in 5000/.test(code(view)),
+  "...with no odds written into a label by hand");
+src(/Ench\.label\(cur\)/.test(view), "it names what a roll would replace");
+
+src(/\{ "enchant", "Enchant" \}/.test(client), "the Enchanter has an Enchant tab");
+src(/local enchantTab = "enchant"/.test(client), "...and opens on it");
+src(/net:FireServer\("enchantTool", \{ uid = uid \}\)/.test(client),
+  "the client sends a uid and nothing else");
+src(/NO ENCHANT TAB/.test(client),
+  "a missing MineEnchantView warns instead of losing the tab in silence");
+
 console.log("");
 console.log(fail > 0 ? `>>> enchants: ${fail} FAILED` : ">>> enchants: all assertions passed");
 process.exit(fail > 0 ? 1 : 0);

@@ -31,6 +31,25 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.22 — THE ENCHANTER HAS AN ENCHANT TAB, AND IT OPENS ON IT.** 2026-10-04,
+stage 2 of 0.17.
+
+`MineEnchantView` is the front door: pick a forged tool on the left, see what it
+is wearing, pay `ROLL_PRICE`, roll. Every number on screen comes from
+`MineEnchants` — odds from `odds()`, price from `ROLL_PRICE` — so the screen
+cannot drift from the roll the way a hand-written "1 in 1000" would, and the
+check forbids writing one.
+
+The tab leads the strip and is the landing tab: enchantments replaced runes as
+the reason to walk here, so the retiring bench must not sit in front of its
+replacement. Mounted through a guarded require that **warns** on failure, per
+0.14.
+
+The confirm line names what a roll would replace. The gamble is the feature;
+silently eating an Exotic V is not.
+
+**Stage 3 — retiring runes and gear — is the only part of 0.17 left.**
+
 **0.21 — BLAST RADIUS IS CUBIC; BACKPACK AND WALKSPEED ARE RETIRED; THE TREE IS
 REGENERATED.** Owner, 2026-10-04: *"Can we remove backpack and walkspeed as
 boost, and balance fire.. i agree with your changes but lets try to reblance a

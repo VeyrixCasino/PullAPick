@@ -7850,8 +7850,15 @@ end
 	previously a list of buttons reading "Socket -> pickaxe main": pick the gear
 	or tool, see its sockets laid out around it, pick a rune, click the socket.
 ]]
-local socketsCtl, enchantTabs
-local enchantTab = "runes"
+local socketsCtl, enchantTabs, enchantCtl
+--[[
+	The Enchanter opens on ENCHANT now, not on the rune bench.
+
+	Enchantments replaced runes as the thing you come here to do (TODO 0.17),
+	so the bench being the landing tab would put the retiring system in front
+	of the one that replaced it.
+]]
+local enchantTab = "enchant"
 
 --[[
 	SUMMON -- its own tab.
@@ -8429,6 +8436,9 @@ function ClientFns.showEnchantTab(id)
 	if socketsCtl then
 		socketsCtl.setVisible(id == "sockets")
 	end
+	if enchantCtl then
+		enchantCtl.setVisible(id == "enchant")
+	end
 	if rollsTab.root then
 		rollsTab.root.Visible = (id == "summon")
 		if id == "summon" then
@@ -8458,6 +8468,36 @@ end
 
 local function refreshEnchanter()
 	if not snap then return end
+	if not enchantCtl then
+		--[[
+			Guarded like the Forge's panels: a module missing from a build
+			should cost this one tab, not the whole Enchanter. And LOUDLY --
+			the silent version of this guard is what hid the Forge for a week.
+		]]
+		local okE, EnchantView = pcall(function()
+			return require(shared:WaitForChild("MineEnchantView", 5))
+		end)
+		if okE and EnchantView and EnchantView.mount then
+			local okM, ctl = pcall(EnchantView.mount, enchantP, {
+				getSnap = function()
+					return snap or {}
+				end,
+				-- A uid and nothing else. The rarity, the enchantment and the
+				-- level are all rolled on the server.
+				onEnchant = function(uid)
+					net:FireServer("enchantTool", { uid = uid })
+				end,
+			})
+			if okM then
+				enchantCtl = ctl
+			else
+				warn("[MineClient] NO ENCHANT TAB: MineEnchantView.mount threw: " .. tostring(ctl))
+			end
+		else
+			warn("[MineClient] NO ENCHANT TAB: ReplicatedStorage.Mine.Shared."
+				.. "MineEnchantView did not resolve (" .. tostring(EnchantView) .. ").")
+		end
+	end
 	if not socketsCtl then
 		socketsCtl = RunesSockets.mount(enchantP, {
 			onSocket = ClientFns.socketRoute,
@@ -8477,7 +8517,10 @@ local function refreshEnchanter()
 			FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, strip)
-		for i, t in ipairs({ { "runes", "Merge" }, { "sockets", "Sockets" }, { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
+		-- Enchant leads: it is the prefix on your tool, and the reason to walk
+		-- here at all. Merge/Sockets/Summon are the rune bench, which is being
+		-- retired behind it.
+		for i, t in ipairs({ { "enchant", "Enchant" }, { "runes", "Merge" }, { "sockets", "Sockets" }, { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
 			local b = mk("TextButton", {
 				AutoButtonColor = true, BackgroundColor3 = BG2, Font = FONT, TextSize = 13,
 				TextColor3 = TEXT, Text = t[2], Size = UDim2.fromOffset(96, 36),
@@ -8493,6 +8536,11 @@ local function refreshEnchanter()
 	end
 	rollsTab.build(enchantP)
 	rollsTab.paint()
+	-- Repaint the enchant tab on every open: the tool list, the prefixes and
+	-- the gem count all move while the panel is shut.
+	if enchantCtl then
+		enchantCtl.setVisible(enchantTab == "enchant")
+	end
 	socketsCtl.setState(snap)
 	if not runesCtl then
 		if enchantP.Body then
