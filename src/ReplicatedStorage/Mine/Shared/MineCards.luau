@@ -123,7 +123,7 @@ local THEME_TYPES = {
 MineCards.STAT_LABEL = {
 	mineSpeed = "Damage",
 	swingRate = "Swing rate",
-	oreYield = "Blast",
+	blastChance = "Blast",
 	luck = "Luck",
 	walkSpeed = "Walk speed",
 	dirtBreak = "Dirt break",
@@ -201,7 +201,7 @@ MineCards.RARITY_LABEL = {
 MineCards.STAT_ICON = {
 	mineSpeed = "rbxassetid://77002713804879",
 	swingRate = "rbxassetid://77002713804879",
-	oreYield = "rbxassetid://86399574737815",
+	blastChance = "rbxassetid://86399574737815",
 	luck = "rbxassetid://139097260161094",
 	walkSpeed = "rbxassetid://76003180742188",
 	dirtBreak = "rbxassetid://87394125218094",
@@ -223,12 +223,12 @@ local ROLES = {
 	{ id = "striker", name = "Striker", p = "mineSpeed", s = "dirtBreak" },
 	{ id = "hauler", name = "Hauler", p = "backpack", s = "coinBonus" },
 	{ id = "seer", name = "Seer", p = "luck", s = "rareOre" },
-	{ id = "smelter", name = "Smelter", p = "oreYield", s = "mineSpeed" },
+	{ id = "smelter", name = "Smelter", p = "blastChance", s = "mineSpeed" },
 	{ id = "courier", name = "Courier", p = "walkSpeed", s = "swingRate" },
 	{ id = "burrower", name = "Burrower", p = "dirtBreak", s = "mineSpeed" },
 	{ id = "prospector", name = "Prospector", p = "rareOre", s = "luck" },
-	{ id = "titan", name = "Titan", p = "oreYield", s = "backpack" },
-	{ id = "broker", name = "Broker", p = "coinBonus", s = "oreYield" },
+	{ id = "titan", name = "Titan", p = "blastChance", s = "backpack" },
+	{ id = "broker", name = "Broker", p = "coinBonus", s = "blastChance" },
 	{ id = "assayer", name = "Assayer", p = "gemFind", s = "luck" },
 	{ id = "keyfinder", name = "Keyfinder", p = "chestLuck", s = "luck" },
 	{ id = "quickhand", name = "Quickhand", p = "swingRate", s = "mineSpeed" },
@@ -269,7 +269,7 @@ local FAMILY = {
 	Fire     = { name = "Forge Heart",  desc = "+22% Damage · +10% Dirt Break",   stats = { mineSpeed = 0.22, dirtBreak = 0.10 } },
 	Earth    = { name = "Deep Roots",   desc = "+34% Dirt Break · +12% Backpack", stats = { dirtBreak = 0.34, backpack = 0.12 } },
 	Water    = { name = "Undertow",     desc = "+8% Pulverizer · +20% Backpack",  stats = { pulverize = 0.08, backpack = 0.20 } },
-	Rock     = { name = "Quarry Born",  desc = "+10% Blast · +18% Coin Bonus",    stats = { oreYield = 0.10, coinBonus = 0.18 } },
+	Rock     = { name = "Quarry Born",  desc = "+10% Blast · +18% Coin Bonus",    stats = { blastChance = 0.10, coinBonus = 0.18 } },
 	Metal    = { name = "Forge Tempo",  desc = "+12% Swing Rate · +14% Damage",   stats = { swingRate = 0.12, mineSpeed = 0.14 } },
 	Electric = { name = "Live Wire",    desc = "+9% Zap · +12% Swing Rate",       stats = { zap = 0.09, swingRate = 0.12 } },
 	Crystal  = { name = "Facet Eye",    desc = "+28% Gem Find · +16% Luck",       stats = { gemFind = 0.28, luck = 0.16 } },
@@ -297,9 +297,9 @@ local TRAITS = {
 	{ id = "afterimage", name = "Afterimage", desc = "+22% Walk Speed", stats = { walkSpeed = 0.22 } },
 	{ id = "loneWolf", name = "Lone Wolf", desc = "+50% Damage while this is your only pet", solo = true, stats = { mineSpeed = 0.50 } },
 	{ id = "squadBond", name = "Squad Bond", desc = "+9% Damage, Dirt Break, Luck, Blast and Rare Ore per other pet", squad = true,
-		stats = { mineSpeed = 0.09, dirtBreak = 0.09, luck = 0.09, oreYield = 0.09, rareOre = 0.09 } },
+		stats = { mineSpeed = 0.09, dirtBreak = 0.09, luck = 0.09, blastChance = 0.09, rareOre = 0.09 } },
 	{ id = "veinSense", name = "Vein Sense", desc = "+28% Rare Ore", stats = { rareOre = 0.28 } },
-	{ id = "heavyYield", name = "Heavy Yield", desc = "+12% Blast · -6% Walk Speed", stats = { oreYield = 0.12, walkSpeed = -0.06 } },
+	{ id = "heavyYield", name = "Heavy Yield", desc = "+12% Blast · -6% Walk Speed", stats = { blastChance = 0.12, walkSpeed = -0.06 } },
 	{ id = "cartPush", name = "Cart Push", desc = "+18% Walk Speed · +16% Backpack", stats = { walkSpeed = 0.18, backpack = 0.16 } },
 	{ id = "emberTempo", name = "Ember Tempo", desc = "+25% Damage · +12% Dirt Break", stats = { mineSpeed = 0.25, dirtBreak = 0.12 } },
 }
@@ -415,7 +415,7 @@ end
 	stat -- a multiplier starting at 0 zeroes everything it touches, and an
 	additive starting at 1 is a free +100%.
 ]]
-local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, procPower = true }
+local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, procPower = true }
 MineCards.ADDITIVE_STATS = ADDITIVE_STATS
 
 local function addStat(b, key, amount)
@@ -580,8 +580,8 @@ function MineCards.emptyBoosts()
 		backpack = 1, rareOre = 1, coinBonus = 1, gemFind = 1, chestLuck = 1,
 		-- swingSec is a DURATION; kits grant swingRate, folded in by foldSwingRate.
 		swingSec = 1,
-		-- additive (oreYield = Blast % proc)
-		echo = 0, zap = 0, blastRadius = 0, autoMine = 0, oreYield = 0, luckyFind = 0, fossilFind = 0, pulverize = 0,
+		-- additive (blastChance = Blast % proc)
+		echo = 0, zap = 0, blastRadius = 0, autoMine = 0, blastChance = 0, luckyFind = 0, fossilFind = 0, pulverize = 0,
 		scrap = 0, coolant = 0, shortFuse = 0, reach = 0,
 		-- PROC DAMAGE, separate from every proc CHANCE above it. Additive, and
 		-- it has to start here or the relic fold skips it the way it would any

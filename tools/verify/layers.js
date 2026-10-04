@@ -67,10 +67,10 @@ check(math.abs(poorSkin - richSkin) < 1e-9,
 	("a +100%% pet doubles your damage at any skin (%.3fx vs %.3fx)"):format(poorSkin, richSkin))
 
 -- CHANCE stats are not layered: "1 + x" on a blast chance is meaningless.
-local c = { oreYield = 0.1 }
-L.apply(c, { oreYield = 0.2 }, { oreYield = 0.3 }, { oreYield = true })
-check(math.abs(c.oreYield - 0.6) < 1e-9,
-	("a chance stat sums to %.2f instead of being multiplied"):format(c.oreYield))
+local c = { blastChance = 0.1 }
+L.apply(c, { blastChance = 0.2 }, { blastChance = 0.3 }, { blastChance = true })
+check(math.abs(c.blastChance - 0.6) < 1e-9,
+	("a chance stat sums to %.2f instead of being multiplied"):format(c.blastChance))
 
 -- A stat the table has never heard of starts at 1, not 0, or the first layer
 -- that touches it would zero the stat out.

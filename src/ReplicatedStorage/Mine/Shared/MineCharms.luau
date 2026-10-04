@@ -38,7 +38,7 @@ local LIST = {
 	{ id = "tideglass", name = "Tideglass Charm", source = "zone", zoneId = "mistreef", band = "mid",
 		blurb = "+200% Mine Speed · +40% Swing Rate", stats = { mineSpeed = 2.00, swingRate = 0.40 } },
 	{ id = "abyss_latch", name = "Abyss Latch", source = "zone", zoneId = "mistreef", band = "deep",
-		blurb = "+55% Omni Blast · +90% Scrap", stats = { oreYield = 0.55, scrap = 0.90 } },
+		blurb = "+55% Omni Blast · +90% Scrap", stats = { blastChance = 0.55, scrap = 0.90 } },
 
 	{ id = "emberseal", name = "Emberseal Charm", source = "zone", zoneId = "bloodmoon", band = "shallow",
 		blurb = "+140% Dirt Break", stats = { dirtBreak = 1.40 } },
@@ -59,7 +59,7 @@ local LIST = {
 	{ id = "catacomb_key", name = "Catacomb Key", source = "zone", zoneId = "mythral", band = "mid",
 		blurb = "+100% Chest Luck · +100% Scrap", stats = { chestLuck = 1.00, scrap = 1.00 } },
 	{ id = "aether_seal", name = "Aether Seal", source = "zone", zoneId = "mythral", band = "deep",
-		blurb = "+75% Omni Blast · +250% Mine Speed", stats = { oreYield = 0.75, mineSpeed = 2.50 } },
+		blurb = "+75% Omni Blast · +250% Mine Speed", stats = { blastChance = 0.75, mineSpeed = 2.50 } },
 
 	{ id = "jackhammer", name = "Jackhammer", source = "pack",
 		blurb = "+160% Dirt Break · +50% Swing Rate", stats = { dirtBreak = 1.60, swingRate = 0.50 } },
@@ -90,7 +90,7 @@ local LIST = {
 	{ id = "cubit_pin", name = "Cubit Pin", source = "pack",
 		blurb = "+50% Lucky Find", stats = { luckyFind = 0.50 } },
 	{ id = "canopy", name = "Canopy", source = "pack",
-		blurb = "+55% Omni Blast", stats = { oreYield = 0.55 } },
+		blurb = "+55% Omni Blast", stats = { blastChance = 0.55 } },
 
 	--[[
 		Pot of Gold carries EVERY kind of luck.
@@ -514,7 +514,7 @@ local STAT_LABEL = {
 	mineSpeed = "Mine Speed", dirtBreak = "Dirt Break", coinBonus = "Coin Bonus",
 	gemFind = "Gem Find", luck = "Luck", chestLuck = "Chest Luck",
 	backpack = "Backpack", swingRate = "Swing Rate", pulverize = "Pulverizer",
-	scrap = "Scrap", fossilFind = "Ore Finder", oreYield = "Omni Blast",
+	scrap = "Scrap", fossilFind = "Ore Finder", blastChance = "Omni Blast",
 	luckyFind = "Lucky Find",
 }
 
@@ -828,7 +828,7 @@ function MineCharms.packPool()
 end
 
 local ADDITIVE = {
-	echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true,
+	echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true,
 	luckyFind = true, fossilFind = true, pulverize = true, scrap = true,
 	coolant = true, shortFuse = true, reach = true,
 }

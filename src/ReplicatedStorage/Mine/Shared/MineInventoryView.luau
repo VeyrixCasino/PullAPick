@@ -2410,7 +2410,7 @@ function MineInventoryView.mount(parent, opts)
 	end
 	-- running right now rather than an empty grid with a coming-soon label on it.
 	local BOOST_LABEL = {
-		mineSpeed = "Damage", oreYield = "Blast", luck = "Luck", walkSpeed = "Walk speed",
+		mineSpeed = "Damage", blastChance = "Blast", luck = "Luck", walkSpeed = "Walk speed",
 		dirtBreak = "Dirt Break", backpack = "Backpack", rareOre = "Rare find",
 		coinBonus = "Coins", gemFind = "Gems", chestLuck = "Chest luck",
 	swingRate = "Swing rate", blastRadius = "Blast radius", autoMine = "Gem Find",
@@ -2858,14 +2858,14 @@ function MineInventoryView.mount(parent, opts)
 
 	-- Compact dig-kit line for equipment seats: "Pet: +40% luck · +22% bag"
 	local PET_KIT_SHORT = {
-		mineSpeed = "dmg", oreYield = "blast", luck = "luck", walkSpeed = "walk",
+		mineSpeed = "dmg", blastChance = "blast", luck = "luck", walkSpeed = "walk",
 		dirtBreak = "dirt", backpack = "bag", rareOre = "rare", coinBonus = "coins",
 		gemFind = "gems", chestLuck = "chest", swingRate = "swing", blastRadius = "boom",
 		echo = "echo", zap = "zap", autoMine = "gems", luckyFind = "lucky",
 		fossilFind = "fossil", pulverize = "pulverize",
 	}
 	local PET_KIT_ADD = {
-		echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true,
+		echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true,
 		luckyFind = true, fossilFind = true, pulverize = true, scrap = true,
 		coolant = true, shortFuse = true, reach = true,
 	}
@@ -4812,7 +4812,7 @@ function MineInventoryView.mount(parent, opts)
 		end
 		table.sort(keys)
 		local any = false
-		local ADDITIVE_SHOW = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true }
+		local ADDITIVE_SHOW = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true }
 		for _, k in ipairs(keys) do
 			local v = tonumber(b[k])
 			local pct = nil

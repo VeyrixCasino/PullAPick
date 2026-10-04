@@ -157,7 +157,7 @@ end
 -- banking after a rebirth wipes your coins. Backpacks
 -- are a coin ladder again (runes will be the next gem sink).
 MineConfig.CHARTER = {
-	{ id = "survey",  name = "Survey Rights",  stat = "oreYield",  per = 0.04, max = 10, base = 14000, step = 1.62 },
+	{ id = "survey",  name = "Survey Rights",  stat = "blastChance",  per = 0.04, max = 10, base = 14000, step = 1.62 },
 	{ id = "assay",   name = "Assay Licence",  stat = "gemFind",   per = 0.05, max = 10, base = 20000, step = 1.66 },
 	{ id = "salvage", name = "Salvage Writ",   stat = "chestLuck", per = 0.06, max = 8,  base = 34000, step = 1.74 },
 	{ id = "haulage", name = "Haulage Permit", stat = "backpack",  per = 0.05, max = 8,  base = 27000, step = 1.7 },
@@ -179,7 +179,7 @@ end
 MineConfig.RELICS = {
 	{ id = "ironheart",  name = "Ironheart Core",   stat = "power",     amount = 0.06, tint = Color3.fromRGB(206, 122, 84) },
 	{ id = "lodestone",  name = "Miner's Lodestone", stat = "luck",     amount = 0.08, tint = Color3.fromRGB(150, 200, 255) },
-	{ id = "deepvein",   name = "Deepvein Shard",   stat = "oreYield",  amount = 0.07, tint = Color3.fromRGB(140, 226, 168) },
+	{ id = "deepvein",   name = "Deepvein Shard",   stat = "blastChance",  amount = 0.07, tint = Color3.fromRGB(140, 226, 168) },
 	{ id = "coffer",     name = "Bottomless Coffer", stat = "backpack", amount = 0.09, tint = Color3.fromRGB(226, 190, 96) },
 	{ id = "tallytoken", name = "Tally Token",      stat = "coinBonus", amount = 0.07, tint = Color3.fromRGB(255, 214, 120) },
 	{ id = "gemglass",   name = "Gemglass Lens",    stat = "gemFind",   amount = 0.08, tint = Color3.fromRGB(184, 140, 255) },
@@ -293,8 +293,8 @@ MineConfig.RARITY_DUST = {
 }
 MineConfig.TYPE_BOOST = {
 	Fire = "mineSpeed",
-	Rock = "oreYield",
-	Metal = "oreYield",
+	Rock = "blastChance",
+	Metal = "blastChance",
 	Crystal = "luck",
 	Mystic = "luck", -- legacy alias for Crystal
 	Electric = "zap",
@@ -304,7 +304,7 @@ MineConfig.TYPE_BOOST = {
 }
 MineConfig.BOOST_LABELS = {
 	mineSpeed = "Mine speed",
-	oreYield = "Blast",
+	blastChance = "Blast",
 	luck = "Luck",
 	walkSpeed = "Walk speed",
 	dirtBreak = "Dirt break",

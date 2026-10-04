@@ -107,7 +107,7 @@ MineEnchants.PER_MAX = 0.20
 	and skins already use it the same way.
 ]]
 MineEnchants.CHANCE_STATS = {
-	oreYield = true, zap = true, earthquake = true, ricochet = true,
+	blastChance = true, zap = true, earthquake = true, ricochet = true,
 	luckyFind = true, pulverize = true,
 }
 
@@ -137,7 +137,7 @@ MineEnchants.LIST = {
 	{ id = "wide",        prefix = "Wide",        stat = "blastRadius", rarity = "SSS" },
 
 	-- Divine, 1/200.
-	{ id = "blasting",    prefix = "Blasting",    stat = "oreYield",    rarity = "SS" },
+	{ id = "blasting",    prefix = "Blasting",    stat = "blastChance",    rarity = "SS" },
 	{ id = "grinding",    prefix = "Grinding",    stat = "pulverize",   rarity = "SS" },
 
 	-- Mythic.

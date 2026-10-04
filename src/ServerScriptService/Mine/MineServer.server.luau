@@ -2317,7 +2317,7 @@ local function boosts(p)
 			if bonus.luck then b.luck *= bonus.luck end
 			if bonus.sell then b.sell = (b.sell or 1) * bonus.sell end
 			if bonus.gems then b.gems = (b.gems or 1) * bonus.gems end
-			if bonus.ore then b.oreYield = (b.oreYield or 0) + (bonus.ore - 1) end
+			if bonus.ore then b.blastChance = (b.blastChance or 0) + (bonus.ore - 1) end
 		end
 	end
 	--[[
@@ -2357,7 +2357,7 @@ local function boosts(p)
 
 	-- Rebirth skills. MineStats amounts are fractions (0.62 = +62%); the boost
 	-- table is multiplicative for everything except echo/zap/blastRadius/autoMine/
-	-- oreYield (Blast %), which are additive.
+	-- blastChance (Blast %), which are additive.
 	local sk = Skills.totalStats(skillState(p), Stats)
 	for stat, key in pairs({ mineSpeed = "mineSpeed", dirtBreak = "dirtBreak",
 		walkSpeed = "walkSpeed", luck = "luck", rareOre = "rareOre" }) do
@@ -2388,7 +2388,7 @@ local function boosts(p)
 		Nine nodes in MineSkillData grant blastRadius and it is FIRE'S PRIMARY
 		STAT -- the headline buff of the first wedge on the tree, deg 0. The
 		server read sk.mineSpeed, sk.dirtBreak, sk.walkSpeed, sk.luck,
-		sk.rareOre, sk.swingRate, sk.echo, sk.zap, sk.oreYield, sk.luckyFind,
+		sk.rareOre, sk.swingRate, sk.echo, sk.zap, sk.blastChance, sk.luckyFind,
 		sk.fossilFind, sk.pulverize, sk.scrap, sk.backpack, sk.chestLuck,
 		sk.coinBonus and sk.gemFind -- and never sk.blastRadius. So every point
 		a player put into the Fire road's primary stat was silently discarded.
@@ -2429,8 +2429,8 @@ local function boosts(p)
 	if sk.zap then
 		b.zap += sk.zap
 	end
-	if sk.oreYield then
-		b.oreYield += sk.oreYield
+	if sk.blastChance then
+		b.blastChance += sk.blastChance
 	end
 	if sk.luckyFind then
 		b.luckyFind += sk.luckyFind
@@ -2460,7 +2460,7 @@ local function boosts(p)
 	-- Relics and Charter levels outlive a rebirth. Multipliers compound; additive
 	-- procs (echo/zap/Blast/blastRadius/autoMine) add chance or radius instead.
 	local ADDITIVE_BOOST = {
-		echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
+		echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
 		earthquake = true, ricochet = true,
 	}
 	for _, held in ipairs(p.relics or {}) do
@@ -5944,7 +5944,7 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 	-- Omni Blast is a destroy-proc: chest / core / cube deaths stay
 	-- centre-only, both as the source and as a neighbour.
 	if broke and not Dig.PROC_SKIP[kind] then
-		local chance = forceBlast and 1 or (b.oreYield or 0)
+		local chance = forceBlast and 1 or (b.blastChance or 0)
 		if chance > 0 and rng:NextNumber() < chance then
 			net:FireClient(plr, "loot", { text = "BLAST", color = Color3.fromRGB(255, 140, 70), pos = part.Position })
 			for _, d in ipairs(Dig.FACE6) do
@@ -12969,7 +12969,7 @@ end
 
 Dig.boostSources = function(p)
 	local out = {}
-	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true,
+	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true,
 		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
 		earthquake = true, ricochet = true }
 	local function add(stat, name, amt)

@@ -46,7 +46,7 @@ MineRunes.INITIAL_MAX_PCT = {
 	luck = 5.0,
 	swingRate = 5.0,
 	walkSpeed = 5.0,
-	oreYield = 7.0,
+	blastChance = 7.0,
 	mineSpeed = 8.0,
 	coinBonus = 10.0,
 	backpack = 10.0,
@@ -123,13 +123,13 @@ MineRunes.NO_ROLL_STATS = { luckyFind = true, mineSpeed = true, scrap = true, au
 MineRunes.FAMILY_STATS = {
 	pet = {
 		"swingRate", "echo", "zap", "procPower",
-		"oreYield", "rareOre", "gemFind", "coinBonus",
+		"blastChance", "rareOre", "gemFind", "coinBonus",
 		"luck", "oreLuck", "chestLuck", "packLuck", "fossilFind", "pulverize", "dirtBreak",
 	},
 	-- echo stays listed for an already-rolled rune to resolve against; NO_ROLL_STATS
 	-- keeps it out of the pool. earthquake and ricochet are the two new procs.
-	pickaxe = { "reach", "blastRadius", "dirtBreak", "oreYield", "echo", "earthquake", "ricochet", "procPower" },
-	explosive = { "shortFuse", "blastRadius", "dirtBreak", "oreYield", "procPower" },
+	pickaxe = { "reach", "blastRadius", "dirtBreak", "blastChance", "echo", "earthquake", "ricochet", "procPower" },
+	explosive = { "shortFuse", "blastRadius", "dirtBreak", "blastChance", "procPower" },
 	--[[
 		DRILLS GET PROC POWER TOO.
 
@@ -139,7 +139,7 @@ MineRunes.FAMILY_STATS = {
 		else, so procPower and the two new chances give a drill something to
 		build into that is actually about drilling.
 	]]
-	drill = { "coolant", "reach", "swingRate", "dirtBreak", "oreYield", "procPower", "earthquake" },
+	drill = { "coolant", "reach", "swingRate", "dirtBreak", "blastChance", "procPower", "earthquake" },
 }
 
 -- Old saves may still hold kind="ranged" runes from before the cut.
@@ -195,7 +195,7 @@ MineRunes.TIER1_PCT = {
 	swingRate = 6.00,
 	-- T5 walk used to cap ~32% and felt dead; T1 10% → T5 160%.
 	walkSpeed = 10.00,
-	oreYield = 5.00,
+	blastChance = 5.00,
 	backpack = 8.00,
 	coinBonus = 8.00,
 	dirtBreak = 8.00,
@@ -298,8 +298,16 @@ function MineRunes.tierFromPct(stat, pct)
 end
 
 -- Fill in anything a rune is missing. Safe to call on every rune on every load.
+--[[
+	Called on every saved rune at load. Besides tiers, this is where a renamed
+	stat key is brought forward -- a rune saved before 2026-10-04 carries
+	`stat = "oreYield"`, which no longer resolves to anything.
+]]
 function MineRunes.normalize(rune)
 	if type(rune) ~= "table" then
+	if type(rune) == "table" then
+		rune.stat = MineStats.canonStat(rune.stat)
+	end
 		return rune
 	end
 	rune.kind = MineRunes.migrateKind(rune.kind)
@@ -469,7 +477,7 @@ function MineRunes.applyFraction(b, stat, pct)
 	if not b or not stat or not pct or pct == 0 then return end
 	if stat == "echo" then b.echo = (b.echo or 0) + pct
 	elseif stat == "zap" then b.zap = (b.zap or 0) + pct
-	elseif stat == "oreYield" then b.oreYield = (b.oreYield or 0) + pct
+	elseif stat == "blastChance" then b.blastChance = (b.blastChance or 0) + pct
 	elseif stat == "luckyFind" then b.luckyFind = (b.luckyFind or 0) + pct
 	elseif stat == "fossilFind" then b.fossilFind = (b.fossilFind or 0) + pct
 	elseif stat == "pulverize" then b.pulverize = (b.pulverize or 0) + pct
@@ -533,7 +541,7 @@ end
 function MineRunes.clampBoosts(b)
 	if not b then return b end
 	for stat, _ in pairs(MineStats.STATS) do
-		if stat == "echo" or stat == "zap" or stat == "autoMine" or stat == "oreYield"
+		if stat == "echo" or stat == "zap" or stat == "autoMine" or stat == "blastChance"
 			or stat == "luckyFind" or stat == "fossilFind" or stat == "pulverize"
 			or stat == "blastRadius" or stat == "scrap" or stat == "coolant"
 			or stat == "shortFuse" or stat == "reach"
@@ -608,7 +616,7 @@ MineRunes.SETS = {
 	{ id = "quarry", name = "Quarryman", bonus = "mineSpeed",
 		slots = { "mineSpeed", "dirtBreak", "swingRate" } },
 	--[[
-		Longhauler was backpack / walkSpeed / oreYield, and two of those three
+		Longhauler was backpack / walkSpeed / blastChance, and two of those three
 		retired on 2026-10-04. A SET rune takes its stat straight from this
 		list rather than through rollPool -- see the note under Demolition --
 		so NO_ROLL_STATS alone would NOT have stopped it minting dead runes.
@@ -617,7 +625,7 @@ MineRunes.SETS = {
 		what a pack pays out, which is the same fantasy backpack was serving.
 	]]
 	{ id = "longhaul", name = "Longhauler", bonus = "fossilFind",
-		slots = { "fossilFind", "oreYield", "coinBonus" } },
+		slots = { "fossilFind", "blastChance", "coinBonus" } },
 	{ id = "coinwright", name = "Coinwright", bonus = "coinBonus",
 		slots = { "coinBonus", "gemFind", "luck" } },
 	--[[

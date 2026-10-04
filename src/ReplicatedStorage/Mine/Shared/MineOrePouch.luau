@@ -197,7 +197,7 @@ end
 
 	Yield comes from MineConfig.oreYieldFor, the band table whose bell peaks on
 	Epic. NOT from `ore.yield`: the roster rows do not carry one, and
-	MineZonePacks.oreYield would hand back its generic default for every ore,
+	MineZonePacks would hand back its generic default for every ore,
 	which would make all 82 of them cost the same.
 
 	homeHp is 20 * 6^d, derived in MineConfig from the ore's depth coordinate

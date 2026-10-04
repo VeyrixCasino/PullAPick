@@ -159,7 +159,7 @@ MineGear.SETS = {
 	{ id = "inferno", name = "Inferno", stat = "blastRadius", fantasy = "Fire / blast" },
 	{ id = "glacier", name = "Glacier", stat = "swingRate", fantasy = "Frost tempo" },
 	{ id = "tide", name = "Tide", stat = "backpack", fantasy = "Water haul" },
-	{ id = "canopy", name = "Canopy", stat = "oreYield", fantasy = "Grass harvest" },
+	{ id = "canopy", name = "Canopy", stat = "blastChance", fantasy = "Grass harvest" },
 	{ id = "bedrock", name = "Bedrock", stat = "dirtBreak", fantasy = "Ground excavate" },
 	{ id = "foundry", name = "Foundry", stat = "coinBonus", fantasy = "Metal refine" },
 	{ id = "storm", name = "Storm", stat = "zap", fantasy = "Electric chain zap" },
@@ -189,7 +189,7 @@ MineGear.STAT_WEIGHT = {
 	dirtBreak = 0.90,
 	coinBonus = 0.80,
 	luck = 0.75,
-	oreYield = 0.50,
+	blastChance = 0.50,
 	gemFind = 0.40,
 	chestLuck = 0.35,
 	blastRadius = 0.28,
@@ -398,12 +398,34 @@ function MineGear.shopName(piece)
 	return string.format("%s %s", tostring(piece.setName or piece.setId or ""), MineGear.SLOT_LABEL[MineGear.migrateSlot(piece.slot)] or tostring(piece.slot or ""))
 end
 
+-- The rename map lives in MineStats; this is the reach-through, so MineGear
+-- does not grow a second opinion about which keys are legacy. Resolved once at
+-- module load rather than per piece -- normalize() runs over every saved piece.
+local Stats = require(script.Parent:WaitForChild("MineStats"))
+function MineGear.canonStat(stat)
+	return Stats.canonStat(stat)
+end
+
 function MineGear.normalize(piece)
 	if type(piece) ~= "table" then
 		return piece
 	end
 	piece.rarity = MineGear.migrateRarity(piece.rarity)
 	piece.slot = MineGear.migrateSlot(piece.slot)
+	--[[
+		Renamed stat keys, brought forward. A piece saved before 2026-10-04
+		carries `oreYield`, which resolves to nothing now. Both shapes have to
+		be covered: the single `piece.stat`, and every row of `piece.stats`,
+		which is what boostLines reads first when it is present.
+	]]
+	piece.stat = MineGear.canonStat(piece.stat)
+	if type(piece.stats) == "table" then
+		for _, row in ipairs(piece.stats) do
+			if type(row) == "table" then
+				row.stat = MineGear.canonStat(row.stat)
+			end
+		end
+	end
 	-- Admin-forged customs (id prefix "adm_" / adminForged flag) keep their
 	-- authored piece.stats / pct. Do NOT re-price them off the live sheet.
 	local isAdminForge = piece.adminForged == true

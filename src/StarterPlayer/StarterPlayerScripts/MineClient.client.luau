@@ -6086,7 +6086,7 @@ refreshBinder = function()
 		#(snap.equipped or {}),
 		snap.petSlotsEffective or snap.petSlots or 3,
 		math.floor(((b.mineSpeed or 1) - 1) * 100 + 0.5),
-		math.floor((b.oreYield or 0) * 100 + 0.5),
+		math.floor((b.blastChance or 0) * 100 + 0.5),
 		math.floor(((b.luck or 1) - 1) * 100 + 0.5),
 		math.floor(((b.walkSpeed or 1) - 1) * 100 + 0.5),
 		math.floor(((b.dirtBreak or 1) - 1) * 100 + 0.5),

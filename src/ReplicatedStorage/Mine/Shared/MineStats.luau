@@ -39,7 +39,7 @@ MineStats.STATS = {
 		sk.blastRadius line was restored and those nodes started paying at all.
 	]]
 	blastRadius = { label = "Blast Radius",  weight = 18.0, unit = "%", desc = "Tool pattern size. A sphere, so +50% radius is ~3.4x the blocks." },
-	oreYield    = { label = "Blast Chance",  weight = 4.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
+	blastChance    = { label = "Blast Chance",  weight = 4.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
 	coinBonus   = { label = "Coin Bonus",    weight = 0.8, unit = "%", desc = "Coins from selling." },
 	gemFind     = { label = "Gem Find",      weight = 1.8, unit = "%", desc = "Gems dropped by ore." },
 	luck        = { label = "Luck",          weight = 2, unit = "%", desc = "Pack yield and tool finds; mined packs show a luck badge." },
@@ -125,12 +125,38 @@ MineStats.STATS = {
 
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
-	"oreYield", "rareOre", "gemFind", "coinBonus",
+	"blastChance", "rareOre", "gemFind", "coinBonus",
 	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
 	"earthquake", "ricochet", "procPower",
 	-- backpack and walkSpeed retired 2026-10-04; see their entries above.
 	"coolant", "shortFuse", "dirtBreak",
 }
+
+--[[
+	RENAMED KEYS, and how a save written before the rename still reads.
+
+	`oreYield` -> `blastChance`, 2026-10-04. Owner: "rename it". The key was
+	named for ore QUANTITY and had meant blast CHANCE for a long time, so every
+	reader had to know that. 403 occurrences moved.
+
+	NOT renamed: MineConfig.oreYieldFor, which really is the ore-quantity band
+	table. Two different things finally have two different names.
+
+	A stat key is stored on a saved rune (`rune.stat`) and on a saved gear piece
+	(`piece.stat`, and every row of `piece.stats`), so those are migrated
+	through MineStats.canonStat in their normalize() functions on load. Anything
+	else holding one is a static definition and was renamed with the code.
+]]
+MineStats.LEGACY_STAT = {
+	oreYield = "blastChance",
+}
+
+function MineStats.canonStat(stat)
+	if type(stat) ~= "string" then
+		return stat
+	end
+	return MineStats.LEGACY_STAT[stat] or stat
+end
 
 MineStats.RUNE_ONLY = {
 	blastRadius = true, reach = true, coolant = true, shortFuse = true,
