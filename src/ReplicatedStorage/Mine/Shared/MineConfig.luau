@@ -1520,9 +1520,24 @@ function MineConfig.nextVariant(variant)
 	return nil
 end
 
-function MineConfig.prestigeYield(prestige)
-	return 1 + 0.15 * (prestige or 0)
-end
+--[[
+	REBIRTH DOES NOT MULTIPLY INCOME. Owner, 2026-10-04: "REMOVE THE BASE 2X
+	COINS FROM REBIRTHS BECAUSE THATS A GOOD WAY TO MAKE SURE COINS ARE ALWAYS
+	WORTH NOTHING".
+
+	`MineConfig.prestigeYield` lived here, returning 1 + 0.15R. It was already
+	DEAD -- the only things naming it were a comment in MineServer saying
+	prestige no longer rides Blast, a line in MineSkillData's prose, and the
+	stale `_c.luau` duplicate. Nothing read it.
+
+	It is deleted rather than left lying around, because a one-line income
+	multiplier is exactly the kind of thing that gets wired back in by someone
+	who finds it and assumes it is meant to be used. If rebirth should ever pay
+	income again, that is a decision someone makes on purpose, not a function
+	they rediscover.
+
+	prestigeLuck stays: luck is a CHANCE, not a faucet, so it does not inflate.
+]]
 
 function MineConfig.prestigeLuck(prestige)
 	return 1 + 0.05 * (prestige or 0)

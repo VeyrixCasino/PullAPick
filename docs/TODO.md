@@ -31,6 +31,66 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.27 — THE OWNER'S 2026-10-04 LIST, FACT-CHECKED.** Full detail in
+`docs/HANDOFF.md` §2.6. Checked against the code, not taken at face value:
+
+- **"Remove the base 2x coins from rebirths"** — **already gone.**
+  `prestigeYield` was `1 + 0.15R` (not 2x) and **nothing read it**. Deleted the
+  function outright so it cannot be rewired by someone who finds it.
+  `prestigeLuck` stays: luck is a chance, not a faucet.
+- **"Potions don't exist"** — **they do, end to end.** 289-line module,
+  `drinkPotion` verb, client callback, UI at `MineInventoryView:4812`, granted by
+  packs, quests, rotating offers and scrolls. The gap is DESIGN: they are buried
+  and weightless. They are also the obvious coin sink (see below).
+- **"Depth leaderboard / anti-cheat"** — server-side deepest tracking **exists**
+  (`p.deepest`, `creditDeepest`, normalized on load). Whether the leaderboard
+  reads it live is unverified.
+- **"Packs make you say DONE"** — true. **FIXED**: tap anywhere closes, DONE kept
+  as an affordance. Built below `local finish` on purpose — a closure written
+  beside the prompt frame would have been a global read and done nothing.
+- **"Lucky blocks don't close/reopen the inventory"** — reproduced in code,
+  **NOT fixed**. The inventory deliberately stays open under pack reveals (opening
+  six packs must not mean reopening the bag six times). Lucky is DisplayOrder
+  110, packs 120, HUD 80. Which half is wrong cannot be told from the code.
+  **Needs an in-engine repro.**
+- **Charm icon direction** — owner supplied a reference: ornate **jewellery**.
+  Amulets, pendants, beaded strings, brooches, gem-set lockets; aged brass,
+  enamel, cut stones. Replaces the superseded 164 generated icons.
+- **Group wheel, battle pass** — both on the ARCHIVE list in `docs/AUDIT.md`.
+  Do not polish them; cut them until there is a game.
+
+**0.28 — THE COIN PROBLEM.** Owner: *"now that coins are basically useless,
+theres no point... I want the economy to be stable, and a type of economy where
+everyone has a chance to contribute."*
+
+**Diagnosis:** coins have exactly ONE sink — the coin-shop tool ladder — and that
+ladder was superseded by the Forge, which runs on ore. Coins are a faucet with no
+drain. A rebirth income multiplier would have made it strictly worse, which is
+why removing it was right.
+
+**Proposed shape, NOT agreed, do not build without the owner:**
+- Coins buy **consumables and access, never power**. Power is ore.
+- The underground outposts are the home for it: each seam's outpost sells things
+  *for coins* that help you mine the NEXT seam.
+- **Potions are the obvious coin sink and already exist.** Give them weight,
+  price them in coins, and coins have a job from minute one.
+- Three currencies, three jobs, no overlap: **ore = power, gems = gambling,
+  coins = consumables and access.**
+
+**0.29 — SEAMS ARE UNDERGROUND OUTPOSTS.** Owner: 1:1 with the surface outpost
+(shop, sell), themed underground, **visibly deeper and darker each seam**,
+following the mine's theme.
+
+This is also the **SHIP BLOCKER**: `Verbs.buySeam` is live and nothing fires it,
+so every player stops at layer 500. `MineDepthPlazas` owns the prompt geometry,
+`MineDepth.seamPrice(seam, zi)` gives the figure. A LOCAL agent can place the
+prompt in Studio and wire it in an afternoon. **Highest-value task in the project.**
+
+**0.30 — `docs/HANDOFF.md` IS THE BIBLE.** Owner asked for a way off the cloud
+client or a handover doc. It is both: how to run Claude Code locally (nothing is
+trapped — everything is in git), what is NOT in the repo, the five traps that
+have already cost days, the house style, and where to start.
+
 **0.25 — CHARMS MERGE ON GEMS, NOT ON COPIES.** Owner, 2026-10-04: *"rather
 than merging it should cost gems."*
 
