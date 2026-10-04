@@ -2589,10 +2589,63 @@ function MineConfig.oreReachCap(breakingPower)
 	return math.min(bp + (MineConfig.ORE_REACH or 15), MineConfig.ORE_COUNT or 82)
 end
 
-MineConfig.TOOL_CRAFT_BASE = 250
+--[[
+	WHAT A CRAFT COSTS, AND WHY IT IS DIFFERENT FOR EVERY ORE.
+
+	Owner, 2026-10-03: "for the craft tool, i want it to be variable, dependent
+	on a) ore drop amount, b) Rarity of the ore, c) how far into progression".
+
+	It was a flat 250 x a tier curve, which ignored all three. The honest unit
+	is not "ore" at all -- it is BLOCKS BROKEN, because that is what the player
+	actually spends. So the cost is priced in blocks and converted to ore:
+
+	    blocks = CRAFT_BLOCKS x bandFactor x depthFactor
+	    cost   = blocks x (how much that ore drops per block) x typeMult
+
+	(a) DROP AMOUNT, from MineConfig.oreYieldFor -- the real band table, whose
+	    bell peaks at Epic (12-15 a block) and falls to 2-4 at Exotic. An ore
+	    that drops nine a block needs a bigger number than one that drops three
+	    for the same work, and this is the only reason the numbers differ as
+	    much as they do.
+
+	(b) RARITY, from oreBandForTier's 1..8 index. Rarer ore needs FEWER blocks,
+	    not more: an Exotic block is already far harder to find, so charging the
+	    same block count would multiply two scarcities together. CRAFT_BAND_EASE
+	    gives back part of what rarity already took.
+
+	(c) PROGRESSION, straight off the tier. CRAFT_DEPTH_SLOPE stretches the
+	    block count from 1x at tier 1 to 1 + slope at tier 82, so a late tool is
+	    a real commitment on top of (b).
+
+	End to end: a tier-1 common tool is about 30 blocks, a tier-82 exotic one
+	about 66 -- before scarcity, which is what actually makes the late ones
+	take an evening.
+]]
+MineConfig.CRAFT_BLOCKS = 30
+MineConfig.CRAFT_BAND_EASE = 0.18
+MineConfig.CRAFT_DEPTH_SLOPE = 4
+
+-- How many blocks of this ore a craft is worth. Exposed so the Forge can say
+-- "about N blocks" instead of only a number the player cannot weigh.
+function MineConfig.craftBlocks(tier)
+	local t = math.max(1, math.floor(tonumber(tier) or 1))
+	local _, bandIndex = MineConfig.oreBandForTier(t)
+	local band = 1 / (1 + MineConfig.CRAFT_BAND_EASE * ((bandIndex or 1) - 1))
+	local span = math.max(1, (MineConfig.ORE_COUNT or 82) - 1)
+	local depth = 1 + MineConfig.CRAFT_DEPTH_SLOPE * ((t - 1) / span)
+	return MineConfig.CRAFT_BLOCKS * band * depth
+end
+
+-- The mid of the ore's own drop band. Averaging lo and hi is right because the
+-- server rolls uniformly between them.
+function MineConfig.oreYieldMid(tier)
+	local lo, hi = MineConfig.oreYieldFor(tier)
+	return ((tonumber(lo) or 1) + (tonumber(hi) or 1)) / 2
+end
 
 function MineConfig.toolCraftCost(tier, typeMult)
-	return math.ceil(MineConfig.TOOL_CRAFT_BASE * MineConfig.toolCostMult(tier, typeMult))
+	local mult = math.max(0.01, tonumber(typeMult) or 1)
+	return math.ceil(MineConfig.craftBlocks(tier) * MineConfig.oreYieldMid(tier) * mult)
 end
 
 --[[

@@ -615,8 +615,18 @@ function MineForge.mount(parent, opts)
 
 		label(host, string.format("%s %s", num(cost), row.name), 15,
 			afford and GREEN or MUTED, UDim2.fromOffset(0, 68), UDim2.new(1, 0, 0, 18))
-		label(host, string.format("held  %s %s", num(row.have or 0), row.name), 12, MUTED,
-			UDim2.fromOffset(0, 88), UDim2.new(1, 0, 0, 14))
+		--[[
+			...and what that is in BLOCKS, which is the thing a player can
+			actually weigh. The ore number alone is unreadable across the
+			roster: a craft costs 965 Epic ore but only 200 Exotic, purely
+			because Exotic drops three a block and Epic drops thirteen. In
+			blocks they are 71 and 66 -- almost the same errand, which is the
+			truth the raw number hides.
+		]]
+		label(host, string.format("held  %s %s   \u{00B7}   about %d blocks",
+			num(row.have or 0), row.name,
+			math.max(1, math.floor((C.craftBlocks and C.craftBlocks(row.tier) or 0) + 0.5))),
+			12, MUTED, UDim2.fromOffset(0, 88), UDim2.new(1, 0, 0, 14))
 
 		button(host, afford and "FORGE" or "NEED ORE", GREEN,
 			UDim2.fromOffset(0, 114), UDim2.fromOffset(150, 30), afford, function()
