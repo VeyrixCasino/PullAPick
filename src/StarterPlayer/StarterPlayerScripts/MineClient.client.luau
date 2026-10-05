@@ -9113,6 +9113,70 @@ function PF.gait(x, lo, hi)
 end
 
 --[[
+	ONE STEP OF A DAMPED SPRING, SOLVED IMPLICITLY.
+
+	Owner, 2026-10-05: pets "kinda just fly around the screen like crazy", on a
+	session measured at 15 fps. Those are the same bug.
+
+	The old step was EXPLICIT Euler:
+
+	    accel = delta * omega^2 - vel * (2 * zeta * omega)
+	    vel  += accel * dt
+	    pos  += vel * dt
+
+	which is only CONDITIONALLY stable -- it needs roughly omega * dt < 2, and
+	past that each step amplifies the last instead of damping it. SPRING_HZ 3.6
+	stiffens to 6.2 while catching up, so omega reaches 2*pi*6.2 = 39. At 60 fps
+	omega*dt is 0.65 and fine. At the 0.05 dt clamp it is 1.95 -- right on the
+	edge -- and the pet oscillates, overshoots further each frame, and flies.
+
+	The feedback loop is the nasty part: a pet thrown far from its target raises
+	`dist`, which raises hz, which raises omega, which makes the next step even
+	less stable. Low framerate starts it and the catch-up term runs away with it.
+
+	This is the EXACT solution of that equation over the frame, not an
+	approximation of it. Backward Euler was the first fix and it is stable, but
+	it is stable by adding numerical damping that grows with dt -- measured, a
+	10-stud settle took 0.150s at 120 fps and 0.233s at 30 fps, so a pet behaved
+	like a different pet on a slower machine.
+
+	An underdamped spring has a closed form. Writing e = pos - target and
+	wd = omega*sqrt(1 - zeta^2):
+
+	    e(h) = exp(-zeta*omega*h) * (e0*cos(wd*h) + B*sin(wd*h))
+	    B    = (v0 + zeta*omega*e0) / wd
+
+	Both stable and framerate-independent, because exp(-zeta*omega*h) is below 1
+	for every positive h -- there is no step size that can amplify anything -- and
+	because h appears only as real elapsed time. 30 fps and 240 fps now trace the
+	same curve. The cost is one exp and two trig calls per pet per frame.
+
+	zeta is clamped under 1 because the formula divides by wd, which is zero at
+	critical damping. Nothing here passes 1 -- SPRING_ZETA is 0.86, deliberately
+	underdamped so a pet leans into a stop and drifts a hair past -- but the
+	clamp means a future tweak degrades smoothly instead of returning NaN.
+
+	Pure, and typed by nothing: it runs on Vector3 in the game and on plain
+	numbers in tools/verify/pet-spring.js, which is how the claims above are
+	checked rather than asserted.
+]]
+function PF.spring(pos, vel, target, h, hz, zeta)
+	if h <= 0 then
+		return pos, vel
+	end
+	local omega = 2 * math.pi * math.max(1e-4, hz)
+	local z = math.clamp(zeta, 0, 0.9999)
+	local wd = omega * math.sqrt(1 - z * z)
+	local e0 = pos - target
+	local decay = math.exp(-z * omega * h)
+	local c, s = math.cos(wd * h), math.sin(wd * h)
+	local b = (vel + e0 * (z * omega)) / wd
+	local e1 = (e0 * c + b * s) * decay
+	local v1 = (vel * c - (e0 * (omega * omega) + vel * (z * omega)) * (s / wd)) * decay
+	return target + e1, v1
+end
+
+--[[
 	`total` is how many pets are actually out, and it is why this takes it.
 
 	The formation used to be hardcoded around slot 2 -- `(slot - 2) * 2.15` --
@@ -9128,7 +9192,18 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt, total)
 	if not (pet and pet.Parent and root) then
 		return
 	end
-	dt = math.clamp(tonumber(dt) or (1 / 60), 0.001, 0.05)
+	--[[
+		The ceiling was 0.05, which is 20 fps. On the owner's 15 fps session the
+		real frame was 0.067, so every step advanced the pets 75% of a frame:
+		they fell behind real time, `dist` grew, the catch-up term stiffened the
+		spring, and the explicit integrator went unstable -- the clamp was feeding
+		the runaway it was meant to guard against.
+
+		0.1 lets a slow frame be a slow frame. It is safe to raise only because
+		PF.spring is stable at any dt; a genuine hitch longer than this is a
+		teleport, and the `dist > 22` branch below catches that.
+	]]
+	dt = math.clamp(tonumber(dt) or (1 / 60), 0.001, 0.1)
 	now = tonumber(now) or os.clock()
 	ClientFns._petFollowState = ClientFns._petFollowState or {}
 	local state = ClientFns._petFollowState[pet]
@@ -9202,16 +9277,11 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt, total)
 		state.pos = target
 		state.vel = Vector3.zero
 	else
-		--[[
-			Damped spring, semi-implicit: accelerate toward the target, damp the
-			velocity, integrate. Stiffens with distance the way the old lerp did,
-			so a pet left behind still hurries rather than drifting in forever.
-		]]
+		-- Stiffens with distance the way the old lerp did, so a pet left behind
+		-- still hurries rather than drifting in forever. Safe to keep now that
+		-- the integrator cannot be destabilised by a high omega -- see PF.spring.
 		local hz = PF.SPRING_HZ + math.clamp(dist / 5, 0, 1) * PF.SPRING_HZ_CATCHUP
-		local omega = 2 * math.pi * hz
-		local accel = delta * (omega * omega) - state.vel * (2 * PF.SPRING_ZETA * omega)
-		state.vel += accel * dt
-		state.pos += state.vel * dt
+		state.pos, state.vel = PF.spring(state.pos, state.vel, target, dt, hz, PF.SPRING_ZETA)
 	end
 
 	--[[
