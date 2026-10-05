@@ -58,6 +58,14 @@ It lives in `MineBreaking.luau`: `LAYERS_PER_RUNG 50`, `ZONE_STEP 1`,
       sat `ORE_REACH` tiers lower; depth is untouched. The constant is
       duplicated into `MineBreaking` (that module has no requires by design) and
       `tools/verify/breaking.js` fails if the two ever drift apart.
+- [x] **Reach split by zone progress, 2026-10-05** (owner: *"make the ore
+      requirement elevated until they go to next zone"*). `ORE_REACH_HOME 5`
+      in the zone you are working, `ORE_REACH 15` once you have unlocked past
+      it; `MineBreaking.reachFor` picks, and the server passes
+      `p.maxUnlockedZone`. The Forge now quotes the **home** number, so it
+      under-promises rather than repeating the promise/gate mismatch.
+      **Do not set the home reach to 0** — measured, it deadlocks progression
+      at tier 4, and `breaking.js` asserts that.
 - [ ] Block strength as a function of layer and zone, and nothing else — done
       as above; confirm the dials, do not re-derive them.
 - [ ] Tool breaking power strictly a function of the ore the tool is made of —

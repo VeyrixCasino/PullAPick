@@ -138,6 +138,78 @@ MineBreaking.ORE_REACH = 15
 	ore, by construction rather than by tuning.
 ]]
 MineBreaking.ZONE_STEP = 100
+
+--[[
+	WHICH ZONE_STEP, AND THE TENSION IN IT.
+
+	The owner's two statements on this do not agree, and the disagreement is
+	worth recording rather than silently resolving:
+
+	  to another agent: "unlocking zone 3 is like zone 1 3 down (1000), zone 2
+	  1 down (500) ... zone 10 would be 9 down" -- that is ZONE_STEP 10, a zone
+	  worth 500 layers.
+
+	  to this one: "breaking power should make you need to get a new pick from
+	  next zone to come back to 501-1000 depth, and so on" -- read as each zone
+	  being worth a whole mine, which is ZONE_STEP 100.
+
+	Shown both ladders measured side by side, the owner chose 100 (2026-10-05).
+	The deciding figure was what zone 1 costs: at 10 it still swallows tiers
+	1-49, 60% of the roster, and the finish/enter boundary jumps 33 tiers; at
+	100 zone 1 is tiers 1-9 and every boundary is continuous.
+
+	If the 500-layer mapping is the one that matters more, this is the single
+	line to change back, and tools/zone-gate-fix.js prints both tables.
+]]
+
+--[[
+	THE SAME RULE, TIGHTER IN THE ZONE YOU ARE STANDING IN.
+
+	Owner, 2026-10-05: "maybe just make the ore requirement elevated until they
+	go to next zone".
+
+	So reach is not one number, it is two. In the zone you are currently
+	working, ore is asked for nearly straight -- you have to forge up to meet
+	it. Once you have unlocked the zone ABOVE it, that zone's ore drops to the
+	full reach and you can mop up everything you outgrew.
+
+	WHY THIS IS NOT ZERO, which is the thing to know before anyone "tightens"
+	it further: reach is load-bearing for progression, not generosity. A tier-T
+	tool has breaking power oreStrength(T), so with reach 0 it breaks ore up to
+	tier T and no further -- and the ore you need to forge T+1 is tier T+1.
+	Measured against this exact curve, reach 0 deadlocks at TIER 4: a tier-4
+	tool can never break anything above tier 4, forever.
+
+	Headroom each setting actually buys, measured, at tiers 20 / 50 / 80:
+
+	    reach  0   0 / 0 / 0      deadlocks at tier 4
+	    reach  3   3 / 3 / 2
+	    reach  5   5 / 5 / 2      <- ORE_REACH_HOME
+	    reach 15  15 / 15 / 2     <- ORE_REACH, zones you have cleared
+
+	The taper to 2 at tier 80 is the ORE_POW curve steepening, not a cap: near
+	the top, one tier is worth ~5 rungs, so even a generous reach buys little.
+	That is the intended shape -- the last stretch is meant to be forged.
+]]
+MineBreaking.ORE_REACH_HOME = 5
+
+--[[
+	Which reach applies. `maxUnlockedZone` is the player's progress; nil means
+	"caller does not know", and that takes the full reach so nothing that has
+	not been taught about zones silently gets harder.
+]]
+function MineBreaking.reachFor(zoneIndex, maxUnlockedZone)
+	local unlocked = tonumber(maxUnlockedZone)
+	if unlocked == nil then
+		return MineBreaking.ORE_REACH
+	end
+	local zi = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	if math.floor(unlocked) > zi then
+		return MineBreaking.ORE_REACH
+	end
+	return MineBreaking.ORE_REACH_HOME
+end
+
 MineBreaking.ZONES = 10
 --[[
 	5000, DOWN FROM 10000 -- the LIVE floor.
@@ -215,18 +287,22 @@ end
 	about; a max means an ore is exactly as hard as the harder of "where it is"
 	and "what it is".
 ]]
-function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
+function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
 	local byLayer = MineBreaking.layerStrength(zoneIndex, layer)
 	if oreTier == nil then
 		return byLayer
 	end
-	-- ORE_REACH, applied where the refusal actually happens: an ore is asked
-	-- for as if it sat ORE_REACH tiers lower, so a tier-T tool clears ore up
-	-- to tier T + ORE_REACH. Depth is untouched -- byLayer still gates how deep
-	-- the rock YIELDS, which is the half that must not be loosened. Nothing here
-	-- gates movement: a player may walk to any depth, and failing this check
-	-- means the swing lands for zero on that block, not that they are kept out.
-	local reach = math.max(0, math.floor(tonumber(MineBreaking.ORE_REACH) or 0))
+	-- Reach, applied where the refusal actually happens: an ore is asked for as
+	-- if it sat `reach` tiers lower, so a tier-T tool clears ore up to tier
+	-- T + reach -- ORE_REACH_HOME in the zone you are standing in, the full
+	-- ORE_REACH once you have unlocked the one above.
+	--
+	-- Depth is untouched: byLayer still gates how deep the rock YIELDS, which is
+	-- the half that must not be loosened. Nothing here gates movement -- a player
+	-- may walk to any depth, and failing this check means the swing lands for
+	-- zero on that block, not that they are kept out.
+	local reach = math.max(0,
+		math.floor(MineBreaking.reachFor(zoneIndex, maxUnlockedZone)))
 	local asked = math.max(1, (tonumber(oreTier) or 1) - reach)
 	return math.max(byLayer, MineBreaking.oreStrength(asked, oreCount))
 end
@@ -266,8 +342,8 @@ MineBreaking.TOO_WEAK = "Your tool is too weak to damage this block"
 	chip would let a player grind through a wall given enough swings, which is
 	the entire thing this exists to prevent.
 ]]
-function MineBreaking.canBreak(tool, zoneIndex, layer, oreTier, oreCount)
-	local need = MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
+function MineBreaking.canBreak(tool, zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
+	local need = MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
 	local have = MineBreaking.toolBreakingPower(tool, oreCount)
 	return have >= need, need, have
 end

@@ -15,6 +15,25 @@ Every number below is derived from the live modules, with the arithmetic shown.
 > — depth is already gated by breaking power, so a coin price was a second gate
 > on the same axis, and it is the half that only makes you wait.
 >
+> **Line 14 was also changed after the sign-off.** Owner: *"maybe just make the
+> ore requirement elevated until they go to next zone."* Reach is now two
+> numbers — `ORE_REACH_HOME 5` in the zone you are still working,
+> `ORE_REACH 15` in a zone you have already unlocked past. You forge up to meet
+> the ore in front of you, and mop up what you outgrew once you move on.
+>
+> **It cannot go to zero, and that is measured, not cautious.** A tier-T tool
+> has breaking power `oreStrength(T)`, so at reach 0 it clears ore up to tier T
+> — and the ore needed to forge T+1 is tier T+1. Against this exact curve reach
+> 0 **deadlocks at tier 4**. `tools/verify/breaking.js` asserts the home reach
+> never deadlocks and that reach 0 would, so nobody can tighten it into a dead
+> game. Headroom at tiers 20/50/80: home **5/5/2**, cleared **15/15/2** — the
+> taper is `ORE_POW` steepening near the top, where a tier is worth ~5 rungs.
+>
+> **Confirmed by the owner, and the ladder is measured.** Reach 5 is a
+> **16-forge climb** from Stone to Oganesson — one +8 at the start, fourteen
+> clean +5 steps, one +3 at the end. A cleared zone at reach 15 is 6 forges.
+> Full table and the reach-vs-climb-length curve in `docs/BALANCE-MEASURED.md`.
+>
 > **It costs the coin economy its biggest sink.** Seams, rebirth and shop tools
 > were the three; seams are now gone. That makes line 23 (potions priced in
 > coins) the load-bearing sink, and §7 of `docs/OPEN.md` — what coins are

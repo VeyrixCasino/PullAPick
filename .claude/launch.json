@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tools",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/serve.js"],
+      "port": 7421
+    }
+  ]
+}
