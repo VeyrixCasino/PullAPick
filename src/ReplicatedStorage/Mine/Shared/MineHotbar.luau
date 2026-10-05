@@ -296,8 +296,14 @@ function MineHotbar.mount(parent, opts)
 				used = i
 			end
 			if t then
-				local fam = tostring(t.familyId or "pickaxe")
-				s.img.Image = IMG[fam] or IMG.pickaxe or ""
+				-- The ore's own skin for a forged pickaxe, the family icon for
+				-- anything else. Icons.forTool owns that rule so the bar, the
+				-- Forge and the inventory cannot disagree about one tool.
+				if t.uid == BASE_UID then
+					s.img.Image = Icons.ORE_PICK_STARTER or IMG.pickaxe or ""
+				else
+					s.img.Image = Icons.forTool(t) or ""
+				end
 				s.img.ImageTransparency = 0
 				--[[
 					THE INNER BLOCK CARRIES THE EQUIPPED STATE.

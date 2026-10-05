@@ -2335,6 +2335,32 @@ MineConfig.ORE_W = 3.0
 ]]
 MineConfig.ORE_MIN_SHARE = 1e-6
 
+--[[
+	FAMILIES THAT ARE FORGED, NEVER SOLD.
+
+	Owner, 2026-10-05: "i think its time to get rid of all coin bought tools".
+
+	Every tool family in the game is now made at the Forge out of ore. The coin
+	shop keeps Backpacks (haul capacity, not a tool) and the Ore Pouch, and
+	Secrets are still pulled from chests.
+
+	It lives in the config rather than beside the buy verbs because THREE doors
+	have to agree -- the surface shop, the depth-plaza desks, and the legacy
+	`buy "pickaxe"` action -- and a rule copied into three places is three rules.
+	It is also why this is not a top-level local in MineServer: that script is at
+	Luau's 200-register ceiling and one more broke the whole server.
+
+	The MineTools roster is NOT emptied to match. MineOreTools.frames() filters
+	it on `price > 0` to pick each forged tool's frame and cost multiplier, so
+	those prices are a forge input now rather than a shelf price.
+]]
+MineConfig.FORGE_ONLY_FAMILIES = {
+	pickaxe = true,
+	drill = true,
+	explosive = true,
+	weapon = true,
+}
+
 MineConfig.ORES = {
 	{ id = "stone", name = "Stone", tier = 1, color = Color3.fromRGB(131, 131, 131), material = Enum.Material.Rock, met = 0, rough = .9 },
 	{ id = "clay", name = "Clay", tier = 2, color = Color3.fromRGB(184, 93, 48), material = Enum.Material.Mud, met = 0, rough = .95 },
