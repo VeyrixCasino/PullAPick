@@ -5,8 +5,9 @@ Paste this as the PR body. Open the PR here:
 
 ---
 
-Three things the owner asked for, one structural bug found on the way, and one
-blocker that has to be cleared before this is safe to ship.
+Five things the owner asked for, and the structural bugs found underneath each.
+The one blocker this branch opened with — that 53 of 82 ores could never spawn —
+is closed; see §4.
 
 ## 1. Levelling stopped mattering at level 34
 
@@ -117,34 +118,70 @@ a 33-tier jump). One line to change back.
 Failing the gate is **a hard block, not a barrier**: nothing gates where a player
 may walk, and `canBreak` false means the swing lands for zero on that block.
 
-## 🚨 Blocker: 53 of 82 ores never spawn
+## 4. The ore ladder was calibrated to a curve that no longer exists
 
-Found while verifying the new ladder is climbable. **This is pre-existing and not
-caused by anything here**, but the new ladder makes it load-bearing.
+Found while verifying the new gate is climbable. **Pre-existing, not caused by
+anything else here**, but the new gate made it load-bearing.
 
-`MineConfig` derives `ORE_DMAX` from `Depth.SECTIONS`' **last row** — Terminus,
-`dirtHp = 9.30735e+18`. But `SECTIONS` is the retired HP table; `MineDepth.dirtHp`
+`MineConfig` derived `ORE_DMAX` from `Depth.SECTIONS`' **last row** — Terminus,
+`dirtHp = 9.30735e+18`. `SECTIONS` is the retired HP table; `MineDepth.dirtHp`
 does not read it and tops out at **14,687,500,000**. SECTIONS' top is ~1.2
 quadrillion times the deepest block a player can hit.
 
-So the ore d-ladder runs 0 → 32.09 while the deepest `oreDifficulty` in the game
-is **11.39**. Everything past that exists on the roster and no depth ever rolls
-it. Confirmed against the live module in Studio:
+So the ore d-ladder ran 0 → 32.09 while the deepest `oreDifficulty` in the game
+is **11.39**. Measured against the live module: at the deepest point in the game
+**62 of 82 ores rolled under 0.05%**, the hardest ore appearing anywhere was tier
+26, and **the forge ladder deadlocked at tier 8** — nobody could climb past it.
+The old gate wanted tier 60 at the mine floor and could not get it either.
+
+Anchored to the live curve instead, at the deepest *normal* mine (Event Horizon
+is not on the ore-tool ladder) minus a margin:
 
 ```
-zone  1  peak t1  (39.9%)   highest >=0.5%: t8
-zone  5  peak t8  (16.6%)   highest >=0.5%: t15
-zone 10  peak t19 (16.4%)   highest >=0.5%: t26
-
-At the DEEPEST point in the game, 62 of 82 ores roll under 0.05%.
+ORE_LADDER_ZONES = 10
+ORE_DMAX_MARGIN  = 0.4
+ORE_DMAX = oreDifficulty(10, LAYERS) - MARGIN = 10.9936
 ```
 
-The old gate wanted tier 60 at the mine floor and could not get it either. The
-new gate wants tier 82. **The drop tables have to be recut before this ships** —
-the owner has asked for that and it is the next task.
+The margin is the whole balance, and it is a tug-of-war — climbability pulls it
+down, rarity pushes it up:
 
-`tools/verify/ladder-climbable.js` measures it and is in `KNOWN_FAIL` until it is
-fixed. It changes nothing about spawning; it only reports.
+| margin | Exotic at the deepest spot | forge ladder |
+| --- | --- | --- |
+| 0.0 | 0.08% | stalls at t75 |
+| **0.4** | **0.17%** | **completes to t82** |
+| 2.4 | 3.59% | completes to t82 |
+| 4.2 | 21.7% | completes — and is the 2026-10-04 mistake, an exotic a minute |
+
+0.4 is the largest margin inside the owner's 0.02–0.2% band that still lets the
+ladder finish. The forge walk now completes:
+`1 → 16 → 31 → 44 → 53 → 61 → 68 → 73 → 77 → 81 → 82`.
+
+## 5. Every rarity is possible in every zone
+
+Owner: *"every rarity should be POSSIBLE in every zone, just super highly
+unlikely (even 1 in a million zone one)."* It was not unlikely, it was
+impossible — the logistic put Oganesson at 3e-11 in Dirt Meadow, one find per
+187,000 years.
+
+`ORE_MIN_SHARE = 1e-6`, applied **after** the natural total is known, as a
+minimum share of the roll, **and as a fixed point** — lifting ore raises the
+total, which raises the floor, so a single pass lands each ore at
+`minShare × totBefore/totAfter`, which differs by depth. Iterating puts every
+floored ore on exactly `ORE_MIN_SHARE`.
+
+That flatness is what makes it monotonic, which was the second bug: flooring the
+raw *weight* made the top ore 1 in 985k at zone 1 but 1 in 4.3M at zone 5 — a long
+shot that got *longer* as you dug.
+
+| zone | 1–6 | 7 | 8 | 9 | 10 |
+| --- | --- | --- | --- | --- | --- |
+| Oganesson | **1 in 1,000,000** | 1 in 809,273 | 1 in 109,965 | 1 in 14,938 | 1 in 2,281 |
+
+Impossible ore/zone combinations: **0**. Zone 10 Exotic band: **0.173%**,
+unchanged by the floor. A gentler `ORE_K` would reach the same odds and drag the
+whole distribution with it — zone 10 falls from 55% Epic to 52% Rare — whereas
+the floor only lifts what was already beneath it.
 
 ## Harnesses
 
@@ -155,7 +192,13 @@ Every existing damage check reimplemented the formula in JS and none executed it
 - **`verify/dmg-live.js`** — runs the real `toolTierPower` through `luau.exe`,
   slices kept in file order, because it now calls `ORE_COUNT` and
   `oreBandForTier` declared ~500 lines further down.
-- **`verify/ladder-climbable.js`** — the ore-reachability measurement above.
+- **`verify/ladder-climbable.js`** — guards both ends of §4 and §5 at once: the
+  forge ladder must reach tier 82, the Exotic band must stay between 0.002% and
+  0.2% at the deepest spot, every ore must be able to roll in every zone, and the
+  top ore must never get *rarer* with depth. It prints the per-zone curve on every
+  run, because its own first pass after the monotonicity fix still reported the
+  bug — an earlier edit to strip its stale in-loop floor had silently failed to
+  match, so it was modelling the broken version and agreeing with the broken game.
 
 Three harnesses were passing **vacuously** and are fixed:
 
@@ -196,13 +239,16 @@ require cleanly. `TOOL_MAX_LEVEL=30`, `CLIMB=350`, `SPAN=7`,
 `6.27057e+10` — the same figure `check.js` and `dmg-live.js` assert.
 `canBreak(stone, zone 1, layer 1000)` = **false**, layer 50 = **true**.
 
-`suite.sh`: **24 passed**. `procs`, `zones` and `trap` fail as they did before this
-branch; `ladder-climbable` is the known blocker above.
+`suite.sh`: **25 passed**. `procs`, `zones` and `trap` fail as they did before this
+branch and are untouched by it.
+
+One note on verifying in Studio: `require()` caches per ModuleScript **instance**,
+so a Rojo source update does not invalidate a module already required that
+session. Three probes came back stale before the module was cloned and required
+fresh. Worth knowing before trusting any in-Studio reading taken after an edit.
 
 ## Still open
 
-- **Recut the ore drop tables** — the blocker. `ORE_DMAX` must come off the live
-  depth curve, not `SECTIONS`.
 - **Carry the level across the forge.** A freshly forged next-tier tool is
   **×0.003** of the maxed tool in your hand and must reach level 30 of 30 to break
   even. It is cap-independent and cannot be tuned away: a fresh tool only wins if
