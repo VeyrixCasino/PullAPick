@@ -73,10 +73,12 @@ Claude.ai cannot write to the repo. There are two ways to close the loop:
 
 - **Small:** copy the chat's "File to wiki:" note into Claude Code and say
   `/wiki ingest` followed by the note.
-- **Big:** export the conversation, put it in `tools/export/in/` (gitignored),
-  and tell Claude Code to `/wiki ingest tools/export/in`. Claude Code then
-  summarises the decisions into wiki pages. It never commits the raw export
-  (`CLAUDE.md`).
+- **Big:** export the conversation, put it in `transcripts/` (gitignored), and
+  tell Claude Code to `/wiki ingest transcripts`. Claude Code then summarises
+  the decisions into wiki pages. It never commits the raw export (`CLAUDE.md`).
+  **Do not use `tools/export/in/` for this.** `tools/export/sync.ps1` ends with
+  `Remove-Item $in -Recurse -Force`, so running a Studio syncback deletes
+  everything in that folder.
 
 ## See also
 

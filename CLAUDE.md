@@ -75,8 +75,10 @@ Details are in `wiki/owner.md` and `docs/START-HERE.md` §6.
 
 ## Claude.ai chat export
 
-Claude.ai exports may be placed in the ignored `tools/export/in/` folder. They
-are user data, not training data. Only inspect them when the user asks; extract
+Claude.ai exports may be placed in the ignored `tools/export/in/` folder. **Prefer
+`transcripts/` (also ignored):** `tools/export/sync.ps1` ends with
+`Remove-Item $in -Recurse -Force`, so a Studio syncback deletes everything in
+`tools/export/in/`. They are user data, not training data. Only inspect them when the user asks; extract
 durable project decisions and preferences into a concise, reviewable summary
 instead of repeatedly sending entire transcripts to the API. Never move raw
 exports into tracked files or commit them.

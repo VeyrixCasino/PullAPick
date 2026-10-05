@@ -79,8 +79,8 @@ them.
 - [charms](systems/charms.md): ore drops; each one has a *shape*.
 - [skins](systems/skins-cases-and-temper.md): the top prize, hunted from ore
   cases.
-- **Traits**: a rolled prefix on your tool, such as "Lucky Stone Drill".
-- [pets](systems/pets-and-traits.md) and [hats](systems/hats-and-faces.md): support.
+- [traits](systems/traits.md): a rolled prefix on your tool, such as "Lucky Stone Drill".
+- [pets](systems/pets.md) and [hats](systems/hats-and-faces.md): support.
 - [skill tree](systems/rebirth-and-skill-tree.md): bought with rebirth tokens.
 
 Bonuses combine in **two layers**: within a layer they add, and the layers

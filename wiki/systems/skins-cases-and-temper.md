@@ -16,7 +16,7 @@ sources:
   - docs/TODO.md §6.1
   - docs/OPEN.md P1 #9
   - docs/ROADMAP.md
-related: [tools, ores, charms, boosts-and-stats, enchantments-runes-and-gear, chests-and-lucky-blocks, forge-and-recycling]
+related: [tools, ores, charms, boosts-and-stats, traits, chests-and-lucky-blocks, forge-and-recycling]
 ---
 
 # Skins, cases and temper
@@ -52,7 +52,7 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
 - **Old saves.** `LEGACY_RARITY` and `normalizeRarity` map the old names
   Common…Exotic to F…SSS so old saves still load.
 - **Traits** reuse these same odds (TODO §0.18,
-  [enchantments](enchantments-runes-and-gear.md)).
+  [enchantments](traits.md)).
 
 **Owning and fitting.**
 - `p.tempers[kitId] = {rarity, n}` keeps the best grade seen and a copy count.

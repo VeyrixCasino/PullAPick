@@ -33,7 +33,7 @@ rediscovering the game from scratch.
 | say | what happens |
 |---|---|
 | `/wiki ingest docs/OPEN.md` | Claude reads the source, updates every page it affects, and logs it. |
-| `/wiki ingest transcripts` | Claude summarises your decisions from the gitignored transcripts into the wiki. Raw text is never committed. |
+| `/wiki ingest transcripts` | Claude summarises your decisions from the gitignored `transcripts/` folder (your owner messages and Claude.ai exports) into the wiki. Raw text is never committed. |
 | `/wiki query how does breaking power work?` | Claude answers from the wiki plus the code, with citations. If the answer is durable, it files it back. |
 | `/wiki lint` | Claude runs `node tools/verify/wiki.js`, then checks for contradictions and stale pages. |
 | `/wiki status` | Shows recent activity and which pages are out of date. |

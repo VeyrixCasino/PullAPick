@@ -16,7 +16,7 @@ sources:
   - docs/TODO.md §6.1
   - docs/PROPOSAL.md §0
   - docs/OPEN.md P0 #4
-related: [tools, ores, ore-pouch-and-backpack, skins-cases-and-temper, rebirth-and-skill-tree, client-and-ui, enchantments-runes-and-gear]
+related: [tools, ores, ore-pouch-and-backpack, skins-cases-and-temper, rebirth-and-skill-tree, client-and-ui, traits]
 ---
 
 # Forge and recycling

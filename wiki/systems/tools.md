@@ -18,7 +18,7 @@ sources:
   - docs/TODO.md §0.13
   - docs/TODO.md §0.15
   - docs/PR-BALANCE-PASS.md
-related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, enchantments-runes-and-gear, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads]
+related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, traits, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads]
 ---
 
 # Tools
@@ -163,5 +163,5 @@ held tools (see below). Nothing here has run in the engine.
 ## See also
 
 [ores](ores.md) · [forge-and-recycling](forge-and-recycling.md) ·
-[enchantments-runes-and-gear](enchantments-runes-and-gear.md) ·
+[traits](traits.md) ·
 [chests-and-lucky-blocks](chests-and-lucky-blocks.md)
