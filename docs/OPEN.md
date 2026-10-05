@@ -264,7 +264,35 @@ with changed** and most of these clear at once.
       chunk passed as `argv[2]` and crashes on `readFileSync(undefined)` when run
       bare. Give it an arg guard so it prints usage instead. `suite.sh` excludes
       it.
-- [ ] **`check.js` reads a deleted design.** `tools/verify/check.js:3` loads
+- [x] **`check.js` was reading a deleted design — fixed 2026-10-05.** The
+      calculator is now generated from `MineConfig` by
+      `tools/gen/upgrade-calculator.js` (82 ores, cap 100, down from a
+      hand-written 121/1000 that priced Sandstone, Electrum and Zircon).
+      `--check` fails if it goes stale. `check.js` now derives `TOP` and `CAP`
+      from the data instead of hardcoding 121 and 1000, and its two frozen
+      thresholds were replaced with live ones: the "levelling is a real climb"
+      floor is now one tier step read off `tierPower` (maxing a tool is worth
+      **8.2 tiers**), and the deepest-block floor is computed from
+      `MineDepth.dirtHp` rather than the `2e20` that came from the formula
+      MineConfig labels *"Dead constants. Do not revive"*. Real hardest block is
+      **1.47e11**, cleared in **2.04 raw swings**.
+- [ ] **`zones.js` is the same bug a third time, and it is RED on this branch.**
+      Its header says "ore spread vs live MineConfig.oreWeights" but it has one
+      `readFileSync` (the HTML), never opens a `.luau`, and never computes
+      `oreWeights` — the "game" column is a **hardcoded `SPREAD` table**. With
+      the roster current, 9 of its 10 rows agree exactly and one diverges:
+      `bigbang` layer 5000, top share 11.1 game / 12.1 page, n95 17 / 13.
+      The live game's expectation is identical at bigbang layer 1 and layer 5000
+      (11.1 / 17) despite D going 10.04 → 24.41, so the game plateaus and the
+      page does not. **Not a constant:** `DMAX` was the obvious suspect and
+      sweeping it over 23.41 / 28 / 32.09 / 40 changes nothing, so the page's
+      own documented "DMAX is stale" note is a red herring for this row. Fixing
+      it means porting MineConfig's `oreWeights` clamp into the page, or better,
+      making `zones.js` actually read the Luau it claims to.
+      **Deliberately not added to `suite.sh`'s `KNOWN_FAIL`** — it is a real
+      disagreement, newly visible, and hiding it is how `trap.js` taught
+      everyone to ignore red.
+- [ ] ~~`check.js` reads a deleted design.~~ `tools/verify/check.js:3` loads
       `upgrade-calculator.html` and runs its embedded tables — still the
       121-ore/1000-level roster, pricing Sandstone, Electrum and Zircon, none of
       which exist. Live `MineConfig.ORES` is 82, Stone → Oganesson. Point the

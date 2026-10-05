@@ -252,7 +252,7 @@
 
 <footer>
   Ore tiers and hardness from <code>MineConfig.ORES</code>; tool multipliers from
-  <code>ToolCatalog.Types</code>. Proposal &mdash; nothing committed.
+  <code>ToolCatalog.Types</code>. Generated from MineConfig by tools/gen/upgrade-calculator.js &mdash; 82 ores, level cap 100. Do not hand-edit the data block.
 </footer>
 </div>
 
@@ -270,7 +270,7 @@
     ["Quickcharge","Explosive","Legendary",43,0.7,0.10],["Breacher","Explosive","Legendary",43,2.0,0.09],
     ["Bore","Drill","Legendary",49,1.0,0.08],["Frack","Drill","Legendary",49,4.0,0.07]
   ];
-  var ORES="Stone,Cobblestone,Flint,Chert,Obsidian,Basalt,Sandstone,Limestone,Slate,Marble,Quartzite,Clay,Brick,Bone,Amber,Petrified Wood,Lignite,Bituminous Coal,Anthracite,Charcoal,Graphite,Granite,Diorite,Shungite,Fulgurite,Copper,Tin,Lead,Zinc,Bronze,Brass,Iron,Steel,Damascus Steel,Cast Iron,Meteoric Iron,Nickel,Cobalt,Chromium,Manganese,Pewter,Electrum,Phosphorus,Silver,Palladium,Rhodium,Gold,Platinum,Titanium,Orichalcum,Adamantite,Vanadium Steel,Tungsten,Niobium,Zirconium,Beryllium,Silicon Carbide,Boron Carbide,Graphene,Boron Nitride,Alumina,Silicon Nitride,Bauxite,Cassiterite,Chalcopyrite,Galena,Sphalerite,Pyrite,Hematite,Magnetite,Ilmenite,Chromite,Wolframite,Quartz,Amethyst,Citrine,Agate,Jasper,Onyx,Malachite,Azurite,Turquoise,Fluorite,Garnet,Peridot,Topaz,Diamond,Ruby,Sapphire,Emerald,Tourmaline,Tanzanite,Alexandrite,Jade,Moonstone,Meteorite,Spinel,Zircon,Opal,Aquamarine,Mythril,Sunstone,Prismarine,Kimberlite,Moldavite,Tektite,Impactite,Coesite,Stishovite,Ringwoodite,Bridgmanite,Apatite,Monazite,Pallasite,Dunite,Thorium,Uranium,Plutonium,Fermium,Lawrencium,Oganesson".split(",");
+  var ORES="Stone,Clay,Limestone,Pumice,Halite,Coal,Flint,Basalt,Slate,Bone,Granite,Copper,Tin,Ember,Sulfur,Lead,Zinc,Aluminum,Iron,Graphite,Pyrite,Marble,Pearl,Rime,Quartz,Amber,Petrifact,Nickel,Onyx,Bloodstone,Garnet,Citrine,Chromium,Turquoise,Bismuth,Silver,Amethyst,Tigereye,Lapis,Geode,Topaz,Phosphorus,Peridot,Jade,Emberglass,Tungsten,Lithium,Titanium,Obsidian,Cobalt,Gold,Regolith,Sunstone,Emerald,Moonstone,Sapphire,Ruby,Palladium,Aquamarine,Opal,Platinum,Stormstone,Diamond,Starmetal,Aetherite,Meteorite,Soulstone,Galaxite,Frostfire,Umbrite,Celestine,Orichalcum,Spectrite,Mythril,Dragonstone,Adamantite,Thorium,Uranium,Plutonium,Fermium,Lawrencium,Oganesson".split(",");
 
   //[[ Every tool runs its OWN 1-1000 scale. Ore tier no longer sets a tool's
   //   starting level -- a tier-121 tool used to be BORN at level 700, so
@@ -282,8 +282,8 @@
   //   level 1, so it has had nothing put into it and gives nothing back. The
   //   rate can be a flat cut of what you actually spent, and nothing about it
   //   is exploitable. ]]
-  var DMAX=23.41, NORE=121, MAXLVL=1000;
-  function oreD(t){ return (t-1)*DMAX/120; }
+  var DMAX=23.41, NORE=82, MAXLVL=100;
+  function oreD(t){ return (t-1)*DMAX/(NORE-1); }
   function homeHp(t){ return 20*Math.pow(6,oreD(t))*3; }
 
   //[[ LIVE GAME DATA, read out of MineConfig on 2026-09-27. Everything below
