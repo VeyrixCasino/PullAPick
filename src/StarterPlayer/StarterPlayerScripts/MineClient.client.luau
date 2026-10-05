@@ -164,7 +164,33 @@ uiScale.Name = "MineUiScale"
 uiScale.Scale = 1
 uiScale.Parent = gui
 
+--[[
+	IT ONLY EVER SCALED DOWN, AND ONLY ON TOUCH.
+
+	Every panel in this game lays out in fixed pixels, so the HUD has one size
+	it was drawn for -- roughly an 820px short side. Below that it dominates a
+	phone, which is what the touch tiers below fix. ABOVE it, nothing happened:
+	on a 2714 x 1026 desktop the scale stayed at 1 and a panel drawn for 820
+	occupied two thirds of the height and a third of the width, which reads as a
+	debug menu floating in a dark field. Owner, 2026-10-05, comparing the shop
+	with a reference screen: "better scaling".
+
+	So the desktop case scales UP toward the same apparent size, against the
+	same 820 baseline the layouts were drawn against.
+
+	Capped at 1.45 on purpose. Past that, fixed-width columns inside the panels
+	start colliding with their own edges -- the cap is the honest limit of
+	pixel layouts, and the real fix for the very largest displays is panels that
+	lay out in scale rather than offset.
+]]
+	-- The baseline and the cap are INSIDE the function on purpose. This script
+	-- sits on Luau's ceiling of 200 top-level locals, and hoisting these two out
+	-- as constants put it over: the whole client failed to compile with "Out of
+	-- local registers when trying to allocate layoutTopbar", so no MineUI
+	-- ScreenGui was ever created and every panel in the game vanished at once.
+	-- Two names cost the entire UI. Do not add top-level locals to this file.
 local function refreshMineUiScale()
+	local BASELINE, SCALE_MAX = 820, 1.45
 	local cam = workspace.CurrentCamera
 	local v = cam and cam.ViewportSize or Vector2.new(1280, 720)
 	local short = math.min(v.X, v.Y)
@@ -179,6 +205,8 @@ local function refreshMineUiScale()
 		else
 			scale = 1
 		end
+	else
+		scale = math.clamp(short / BASELINE, 0.85, SCALE_MAX)
 	end
 	uiScale.Scale = scale
 end
@@ -4773,6 +4801,38 @@ forgeCtl = ForgeView.mount(gui, {
 	onFitTemper = function(payload) net:FireServer("equipTemper", payload) end,
 	onScrapTemper = function(payload) net:FireServer("scrapTemper", payload) end,
 })
+
+--[[
+	THE GAME'S OWN HOTBAR, in place of Roblox's.
+
+	Owner, 2026-10-05: "remove the real pickaxe from my hotbar. and make a
+	fake/custom hotbar, that allows me to equip and unequip as i please, without
+	having that weird grey cube".
+
+	The grey cube is the core Backpack UI drawing a Tool that has no TextureId.
+	MineHotbar switches that UI off and draws the bar out of MineIcons instead,
+	so the slots carry the same art as every other panel. Equip and unequip are
+	one verb: equipOreTool already reads an empty uid as "put it away", so
+	clicking the slot you are holding IS the unequip.
+]]
+do
+	local okHB, HB = pcall(function()
+		return require(shared:WaitForChild("MineHotbar"))
+	end)
+	if okHB and HB and HB.mount then
+		local okM, ctl = pcall(HB.mount, gui, {
+			getSnap = function()
+				return snap or {}
+			end,
+			onEquip = function(uid)
+				net:FireServer("equipOreTool", { uid = uid })
+			end,
+		})
+		if okM then
+			ClientFns.hotbarCtl = ctl
+		end
+	end
+end
 
 eventsCtl = require(shared:WaitForChild("MineEventsView")).mount(gui, {
 	config = C,
@@ -10731,6 +10791,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		end
 		if not ClientFns.othersPetsOn then
 			ClientFns.othersPets()
+		end
+		-- The hotbar is cheap to repaint -- eight slots, no layout -- so it can
+		-- ride the snapshot directly rather than needing its own dirty flag.
+		if ClientFns.hotbarCtl and ClientFns.hotbarCtl.refresh then
+			pcall(ClientFns.hotbarCtl.refresh)
 		end
 		ClientFns.syncPlaytime(payload)
 		pcall(ClientFns.paintDailyBox, payload and payload.dailyQuests)
