@@ -11,3 +11,7 @@ tools/export/in/
 # Generated charm art: 164 PNGs, rebuilt by tools/icons/gen-charm-art.js.
 # The generator is the source of truth; the manifest and ids.json are tracked.
 build/charm-icons/*.png
+
+# Conversation history handed over outside git (see docs/START-HERE.md section 9).
+# CLAUDE.md forbids raw exports in tracked files; this is where they land instead.
+transcripts/

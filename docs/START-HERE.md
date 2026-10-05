@@ -24,10 +24,14 @@ Before you write a single line of code, do all of this, in this order:
    decision the owner already made and does not want reopened. Treat a
    locked rule as settled fact, not a suggestion.
 4. Read docs/HANDOFF.md section 2 ("the bible"), then docs/AUDIT.md.
-5. Ask me for OWNER-MESSAGES.md and I will hand you the file. It is every
-   message I have sent, verbatim, in order -- the real requirements
-   document. It is deliberately not in the repo; see section 9.
-6. Run: bash tools/verify/syntax.sh ; node tools/verify/check.js
+5. Read transcripts/OWNER-MESSAGES.md -- a folder in the repo root that is
+   gitignored on purpose, so it is on my disk and not on GitHub. It is
+   every message I have sent, verbatim, in order: the real requirements
+   document. Also in there: TRANSCRIPT.md (the full exchange), images/
+   (screenshots I pasted), session-raw.jsonl.gz (the unprocessed log).
+   If that folder is missing, STOP and ask me for it before continuing.
+6. Read docs/OPEN.md -- every open task in one place, prioritised.
+7. Run: bash tools/verify/syntax.sh ; node tools/verify/check.js
    Confirm the suite passes before you change anything, so you know any
    later failure is yours. tools/verify/trap.js fails on clean main --
    that one is pre-existing and is not your fault.
@@ -208,7 +212,8 @@ Learned the hard way over about a week. None of this is optional.
 | 3 | `docs/TODO.md` §0 | the locked rules — settled decisions |
 | 4 | `docs/HANDOFF.md` §2 | the bible |
 | 5 | `docs/AUDIT.md` | what the game is and what is worth keeping |
-| 6 | `OWNER-MESSAGES.md` *(ask the owner for the file)* | every owner message, verbatim — the real spec |
+| 6 | `transcripts/OWNER-MESSAGES.md` *(gitignored, on the owner's disk)* | every owner message, verbatim — the real spec |
+| 6b | `docs/OPEN.md` | every unfinished task in one place, prioritised |
 | 7 | `docs/BLOCKED.md` | the eleven open questions |
 | 8 | `docs/ROADMAP.md` | the 1-min to 96-hour progression plan |
 | 9 | `docs/BALANCE-PROPOSAL.md`, `docs/SKILL-TREE.md` | the numbers |
@@ -247,16 +252,21 @@ API billing rather than a subscription.
 # 9. The conversation history — handed over as files, not in this repo
 
 `CLAUDE.md` forbids committing raw conversation exports into tracked files, and
-the tooling enforces that. So the record of how this branch came to exist is
-handed to you **as files, separately from git**:
+the tooling enforces that. So the record of how this branch came to exist lives
+in a **`transcripts/` folder at the repo root, which is in `.gitignore`** — on
+the owner's disk, never pushed.
 
-| file | what it is |
+**Owner:** unzip `mine-for-cards-transcripts.zip` into the repo root so the path
+is `PullAPick/transcripts/`. That is the one place the prompt in §1 tells the
+agent to look. Nothing in it can be committed by accident.
+
+| `transcripts/…` | what it is |
 |---|---|
 | `OWNER-MESSAGES.md` | every message the owner sent, verbatim, in order — 79 of them. The requirements document. |
 | `TRANSCRIPT.md` | the full exchange, owner and agent. Tool *calls* appear as one-line markers; tool *output* and internal reasoning are stripped out. |
 | `images/1`–`images/8` | the screenshots the owner pasted — Forge UI, the inventory layering bug, a jewellery reference for charm icons. |
-| `session-raw.jsonl` | the unprocessed session log, if anything above looks wrong. |
+| `session-raw.jsonl.gz` | the unprocessed session log, if anything above looks wrong. |
 
-**Agent: if you have not been given these, ask for them before you start.**
-Everything in `docs/` is one agent's interpretation of what the owner wanted.
+**Agent: if that folder is not there, stop and ask for it.** Everything in
+`docs/` is one agent's interpretation of what the owner wanted.
 `OWNER-MESSAGES.md` is what they actually said. Where the two disagree, they win.
