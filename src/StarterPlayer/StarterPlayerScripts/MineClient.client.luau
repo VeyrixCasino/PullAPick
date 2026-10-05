@@ -110,6 +110,39 @@ gui.IgnoreGuiInset = true
 gui.DisplayOrder = 80
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = playerGui
+
+--[[
+	THE HOUSE STYLE, APPLIED TO EVERY PANEL IN THE GAME, FROM ONE LINE.
+
+	Owner, 2026-10-05: "I WANT ALL UIS TO HAVE THAT STYLE".
+
+	Every view in this game mounts into THIS ScreenGui, and each one builds its
+	chrome with its own private mk() -- twenty-five of them, each with its own
+	padding, radius and idea of whether a surface gets a stroke. MineUI.watch
+	walks what they build and normalises the four things that carry the style:
+	theme surface colours, one corner radius per size class, the lit hairline,
+	and the theme type faces.
+
+	It deliberately refuses to touch anything SATURATED, because a coloured fill
+	is carrying meaning -- rarity, a currency, affordable versus blocked -- and
+	repainting it would delete information rather than style it. Layout, size and
+	position are never touched either; this is paint, not surgery.
+
+	It WATCHES rather than runs once, because panels build lazily: a view creates
+	its rows the first time it opens, long after this line runs.
+
+	A panel that genuinely needs to look different sets the NoAdopt attribute on
+	itself. That is the escape hatch, and it should stay rare -- "every screen
+	invented its own" is the problem MineTheme and MineUI exist to end.
+]]
+do
+	local okUI, UI = pcall(function()
+		return require(shared:WaitForChild("MineUI"))
+	end)
+	if okUI and UI and UI.watch then
+		pcall(UI.watch, gui)
+	end
+end
 --[[
 	Audio must never be able to stop the client.
 

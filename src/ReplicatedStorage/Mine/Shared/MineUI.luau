@@ -243,6 +243,149 @@ function MineUI.icon(parent, image, px, pos, tint)
 	}, parent)
 end
 
+-- ------------------------------------------------------------- retrofit --
+--[[
+	ADOPT: make a panel that was NOT built with this kit look like it was.
+
+	Owner, 2026-10-05: "I WANT ALL UIS TO HAVE THAT STYLE". Twenty-five modules
+	build their own chrome with their own private mk(), and rewriting all of them
+	by hand is a week of work and twenty-five chances to break a working panel.
+	This is the other way: walk what a view already built and normalise the four
+	things that carry the house style, leaving layout and meaning untouched.
+
+	WHAT IT CHANGES
+	  * a neutral surface gets the nearest theme surface colour
+	  * every surface gets the kit's corner radius, if it has none
+	  * every surface gets the lit hairline, if it has none
+	  * default fonts become the theme faces
+	  * near-white / near-grey text becomes TEXT / MUTED
+
+	WHAT IT REFUSES TO TOUCH, and this is the important half:
+	  * anything SATURATED. A coloured fill is carrying meaning -- rarity, a
+	    currency, a progress bar, an affordable/blocked state -- and repainting
+	    it would destroy information rather than style it. Saturation is measured,
+	    not guessed at from a list of names that would go stale.
+	  * size, position, layout, ZIndex. Style only; nothing moves.
+	  * images. Icon art is MineIcons' job.
+	  * anything tagged with the NoAdopt attribute, for the one-off that genuinely
+	    needs to look different.
+
+	Idempotent: an adopted instance is stamped, so re-running over a live tree is
+	free and cannot double-stroke.
+]]
+local ADOPTED = "MineUIAdopted"
+
+local function saturation(c)
+	local mx = math.max(c.R, c.G, c.B)
+	local mn = math.min(c.R, c.G, c.B)
+	if mx <= 0 then
+		return 0
+	end
+	return (mx - mn) / mx
+end
+
+-- Nearest theme surface by brightness, so a view's own three-step greyscale
+-- lands on the theme's three-step indigo in the same order.
+local function nearestSurface(c)
+	local l = (c.R + c.G + c.B) / 3
+	if l < 0.10 then
+		return T.INK
+	elseif l < 0.22 then
+		return T.PANEL
+	elseif l < 0.40 then
+		return T.CARD
+	end
+	return T.CARD_HI
+end
+
+local DEFAULT_FONTS = {
+	[Enum.Font.SourceSans] = true, [Enum.Font.SourceSansBold] = true,
+	[Enum.Font.SourceSansSemibold] = true, [Enum.Font.SourceSansLight] = true,
+	[Enum.Font.Legacy] = true, [Enum.Font.Arial] = true, [Enum.Font.ArialBold] = true,
+	[Enum.Font.Gotham] = true, [Enum.Font.GothamMedium] = true,
+	[Enum.Font.GothamBold] = true, [Enum.Font.GothamBlack] = true,
+}
+
+function MineUI.adoptOne(inst)
+	if inst:GetAttribute(ADOPTED) or inst:GetAttribute("NoAdopt") then
+		return false
+	end
+	local isSurface = inst:IsA("Frame") or inst:IsA("ScrollingFrame")
+		or inst:IsA("TextButton") or inst:IsA("ImageButton")
+	local isText = inst:IsA("TextLabel") or inst:IsA("TextButton")
+
+	if isSurface and inst.BackgroundTransparency < 0.95 then
+		local bg = inst.BackgroundColor3
+		-- Saturated means it is carrying meaning. Leave it entirely alone.
+		if saturation(bg) < 0.22 then
+			inst.BackgroundColor3 = nearestSurface(bg)
+		end
+		if inst.BorderSizePixel ~= 0 then
+			inst.BorderSizePixel = 0
+		end
+		if not inst:FindFirstChildOfClass("UICorner") then
+			MineUI.round(inst, inst.AbsoluteSize.Y >= 90 and T.RADIUS_LG or T.RADIUS)
+		end
+		if not inst:FindFirstChildOfClass("UIStroke") then
+			MineUI.edge(inst, T.LINE)
+		end
+	end
+
+	if isText then
+		if DEFAULT_FONTS[inst.Font] then
+			inst.Font = inst.TextSize >= 18 and T.FONT or T.FONT_M
+		end
+		local tc = inst.TextColor3
+		if saturation(tc) < 0.18 then
+			local l = (tc.R + tc.G + tc.B) / 3
+			inst.TextColor3 = (l > 0.72 and T.TEXT) or (l > 0.40 and T.MUTED) or T.FAINT
+		end
+	end
+
+	inst:SetAttribute(ADOPTED, true)
+	return true
+end
+
+function MineUI.adopt(root)
+	if not root then
+		return 0
+	end
+	local n = 0
+	if MineUI.adoptOne(root) then
+		n += 1
+	end
+	for _, d in ipairs(root:GetDescendants()) do
+		if MineUI.adoptOne(d) then
+			n += 1
+		end
+	end
+	return n
+end
+
+--[[
+	Adopt now, and keep adopting.
+
+	Panels build lazily -- a view creates its rows the first time it opens -- so
+	a single pass at startup would style the shell and miss everything inside it.
+	DescendantAdded is deferred by a frame because a view typically creates a
+	Frame and THEN sets its colours and children; adopting on the same frame
+	would read values the view has not written yet.
+]]
+function MineUI.watch(root)
+	if not root or root:GetAttribute("MineUIWatched") then
+		return
+	end
+	root:SetAttribute("MineUIWatched", true)
+	MineUI.adopt(root)
+	root.DescendantAdded:Connect(function(d)
+		task.defer(function()
+			if d.Parent then
+				MineUI.adoptOne(d)
+			end
+		end)
+	end)
+end
+
 -- Horizontal or vertical flow with the kit's standard gap.
 function MineUI.flow(parent, vertical, gap)
 	return MineUI.new("UIListLayout", {
