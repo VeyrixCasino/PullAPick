@@ -171,10 +171,19 @@ So treat the branch as **plausible but unproven**. The highest-value thing anyon
 with Studio access can do is not write code. It is open the place, sync, and play
 through it.
 
-**The ship blocker:** `Verbs.buySeam` exists and works on the server. Nothing in
-the client ever calls it. Every player therefore reaches layer 500 and stops,
-permanently. Wiring the prompt needs Studio, because the prompt is a Workspace
-object and Workspace is not in git.
+**A correction worth reading, because it shows how this repo bites.** This file
+previously said the seam purchase was an unwired ship blocker — that
+`Verbs.buySeam` existed and nothing called it, so every player stopped at layer
+500 forever. **That was wrong.** The chain is complete: the server fires a
+`seamGate` event, the client's handler opens the panel, the panel fires
+`buySeam` back. See `docs/OPEN.md` P0 item 1 for the six-line call chain.
+
+The mistake was grepping for `buySeam` and finding only the server half. The
+client reaches it through a *different* name — the event — so one grep looked
+like proof of absence. **Client/server round-trips here are named differently on
+each side. Grep both the verb and the event name before you conclude anything is
+unwired.** There is no `Remotes` type system to lean on; the router is a string
+compare on `action`.
 
 ---
 

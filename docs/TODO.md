@@ -45,7 +45,8 @@ work with this owner.
 
 **Two things that file must keep saying, because they are the expensive truths:**
 the branch is 101 commits of *unproven* work — only one change all session was
-ever confirmed in-engine — and the seam prompt is the ship blocker.
+ever confirmed in-engine. (The seam prompt was wrongly called the ship
+blocker; it is wired. Corrected 2026-10-05 — see `docs/OPEN.md` P0 item 1.)
 
 The conversation history (`OWNER-MESSAGES.md`, `TRANSCRIPT.md`, the screenshots,
 the raw log) is handed over **as files, not committed** — `CLAUDE.md` forbids
@@ -143,7 +144,9 @@ why removing it was right.
 (shop, sell), themed underground, **visibly deeper and darker each seam**,
 following the mine's theme.
 
-This is also the **SHIP BLOCKER**: `Verbs.buySeam` is live and nothing fires it,
+**CORRECTED 2026-10-05 — NOT A BLOCKER.** The seam chain is wired end to end: server fires `seamGate` (`MineServer:6406`), client opens the panel (`MineClient:10859` -> `7415`), the panel fires `buySeam` (`7489`), `Verbs.buySeam` handles it (`9266`). The earlier claim came from grepping only `buySeam`, which finds the server half alone. What remains is confirming it in-game. See `docs/OPEN.md` P0 item 1.
+
+~~Formerly the SHIP BLOCKER:~~
 so every player stops at layer 500. `MineDepthPlazas` owns the prompt geometry,
 `MineDepth.seamPrice(seam, zi)` gives the figure. A LOCAL agent can place the
 prompt in Studio and wire it in an afternoon. **Highest-value task in the project.**
@@ -677,9 +680,9 @@ Checked directly; cite these rather than re-deriving.
 | Bench verbs exist, uid-keyed | `Verbs.upgradeOreTool` `MineServer.server.luau:13375`, `Verbs.recycleOreTool` :13441, dispatch :13491-13492, client fires `MineClient.client.luau:4512,4515` |
 | Two forge/bench views already exist | `MineForgeView.luau` 780 lines, `MineBenchView.luau` 239 lines. Reconcile; do not add a third. |
 | `MineBags` is coin-only today | `MineBags.luau:7` — "Coin prices only. Never gems — zone buyCost is the gem sink." |
-| **`ToolBakers.OreToolBaker` is NOT committed** | No `ToolBakers` folder under `src/ReplicatedStorage/Mine/`, and **zero references** to `ToolBakers`/`OreToolBaker` anywhere in `src/`. It exists only in the place file. |
+| ~~**`ToolBakers.OreToolBaker` is NOT committed**~~ **CORRECTED 2026-10-05** | It **is** committed, at `src/ServerStorage/OreToolBaker.luau`, 29 KB, landed in `0a91d6a`. The original row was right only about `ReplicatedStorage.Mine.ToolBakers` — there is no such folder, and nothing references the name `ToolBakers`. But the module itself is in git, so "exists only in the place file" is wrong and §6.0's syncback entry (which cites the real path) is the accurate one. |
 | Ore builds tools **and** upgrades them | The two comments asserting the opposite (`MineZonePacks.luau:195`, `MineServer.server.luau:524`) were removed. A grep for "ore cannot/never build", "never builds a tool" and "only upgrade one" now returns nothing. The *code* still only upgrades — the build path lands with the Forge. |
-| `ToolBakers.OreToolBaker` **houses every ore currently in the game** | Place-file only; absent from `src/` with zero references. It is an ore data source, not just a baker, so syncing it back may reveal ore rows or fields the repo does not have. |
+| `ToolBakers.OreToolBaker` **houses every ore currently in the game** | Partly stale, see the row above: the module is at `src/ServerStorage/OreToolBaker.luau`. Nothing references it, so it is an **unread** ore data source rather than an absent one. Diff its roster against `MineConfig.ORES` (82, Stone → Oganesson) before trusting either. |
 | No gem→ore or ore→ore purchase path found | Grep over `src/` found only `gemFind` (`MineSkillData.luau:98`) and a rune-fuse gem penalty (`MineScrolls.luau:11`) |
 | Duplicate pet module | `MineEHPets.luau` and `MineEventHorizonPets.luau` are byte-identical (md5 `0a8c6c6612ba54ae42b9310d450d8059`). Consumers read the short name first, so the long one is 34 KB that never loads. |
 | No CI | Repo has no `.github/` directory; PR #5 shows 0 check runs. |
@@ -790,7 +793,7 @@ it. Nothing here is an agent's to decide.
   syncback in `docs/rojo-connect.md` has still not been run.
 - [ ] **BLOCKED (DEFERRED by owner) — `ORE_GEM_SPREAD` magnitude.** 10^6 is a
   placeholder and sets the whole gem faucet. Owner: "we tackle that later."
-- [ ] **BLOCKED — Seam purchase. SHIP BLOCKER.** `Verbs.buySeam` is live and
+- [x] **CLEARED 2026-10-05 — Seam purchase was never unwired.** **CORRECTED 2026-10-05 — NOT A BLOCKER.** The seam chain is wired end to end: server fires `seamGate` (`MineServer:6406`), client opens the panel (`MineClient:10859` -> `7415`), the panel fires `buySeam` (`7489`), `Verbs.buySeam` handles it (`9266`). The earlier claim came from grepping only `buySeam`, which finds the server half alone. What remains is confirming it in-game. See `docs/OPEN.md` P0 item 1. Formerly: `Verbs.buySeam` is live and
   nothing fires it, so every player stops at layer 500. `MineDepthPlazas` owns
   the prompt geometry; `MineDepth.seamPrice(seam, zi)` gives the figure.
 - [ ] **BLOCKED — Zone and rune gem prices.** Flat tables the ore curve will
@@ -1551,7 +1554,7 @@ work.
 | **15 min–1 h** | First real choice: which ore, which family. First pack. First trait. | ✅ Forge, packs, Traits tab | Nothing teaches that traits exist. A first free trait roll would do it |
 | **1–2 h** | A build starts to exist. First charm, first skin, a second tool family. | ✅ charms, skins, 3 families | The three systems never meet on one screen |
 | **2–4 h** | First rebirth in sight. The skill tree opens and a road gets picked. | ✅ 10 roads, 75 nodes | No in-game explanation of what a road DOES before you buy into it |
-| **4–6 h** | Rebirth. Tokens. The tree starts paying. Deeper zones. | ✅ rebirth, tokens, zones | **SHIP BLOCKER: seam purchase is unreachable, everyone stops at layer 500** |
+| **4–6 h** | Rebirth. Tokens. The tree starts paying. Deeper zones. | ✅ rebirth, tokens, zones | ~~SHIP BLOCKER~~ seam purchase is wired (corrected 2026-10-05); confirm in-game |
 | **6–12 h** | Chasing a specific tier of ore for a specific tool. Trait rerolling. | ✅ 82 ores, trait gacha | 1-in-1000 Exotic with no pity and no collection view |
 | **12–24 h** | Second and third rebirth. A second road. Deep ore. | ✅ | Nothing marks "you have seen everything in this band" |
 | **24–48 h** | Mastery: the right trait on the right ore on the right family. | partial | No endgame goal that is not just a bigger number |

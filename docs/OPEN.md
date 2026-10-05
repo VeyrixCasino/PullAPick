@@ -13,11 +13,28 @@ the order it matters. Each entry says where the detail lives.
 
 # P0 — the game cannot launch without these
 
-### 1. Seam purchase — THE SHIP BLOCKER
-`Verbs.buySeam` is live on the server. **Nothing in the client ever calls it.**
-Every player reaches layer 500 and stops there, permanently. `MineDepthPlazas`
-owns the prompt geometry and that geometry is in the place file, not in git —
-**so this needs Studio.** It is the single highest-value task in the project.
+### 1. Seam purchase — CORRECTED 2026-10-05: wired, needs in-game confirmation
+**This was wrongly recorded as an unwired ship blocker. It is wired end to end.**
+The local agent caught it and the chain verifies:
+
+| step | where |
+|---|---|
+| `swingBlock` refuses with `why == "need_seam"` | `MineServer.server.luau:6392` |
+| server fires `seamGate` with seam, price, minutes, coins (throttled 1.5s) | `MineServer.server.luau:6406` |
+| client routes it to `ClientFns.confirmSeam(payload)` | `MineClient.client.luau:10859` |
+| panel is built and shown | `MineClient.client.luau:7415`–`7516` |
+| buy button fires `buySeam` | `MineClient.client.luau:7489` |
+| `Verbs.buySeam` handles it | `MineServer.server.luau:9266` |
+
+So the task is **not** "write the missing call". It is **swing into locked rock at
+layer 500 and confirm the panel appears, the price is right, and the purchase
+lands.** That is a playthrough task, not a code task — it folds into item 2.
+
+Why the error happened, so it is not repeated: the search was for callers of
+`buySeam`, which found only the server. The client reaches it through the
+`seamGate` event name, so a grep for one name missed the other half of the
+round-trip. **When tracing a client/server chain here, grep the event names on
+both sides, not just the verb.**
 
 ### 2. Play the branch
 101 commits, essentially none of which have ever run in Roblox. The Forge
@@ -206,7 +223,7 @@ with changed** and most of these clear at once.
 | 4 | `ToolBakers.OreToolBaker` syncback — 82-row roster needs diffing against `MineConfig` | REACH |
 | 5 | Rojo syncback — reported connected, never actually run | REACH |
 | 6 | `ORE_GEM_SPREAD` magnitude — deferred by the owner | TASTE |
-| 7 | **Seam purchase — the ship blocker** | REACH |
+| 7 | ~~Seam purchase~~ **CLEARED** — wired end to end, see P0 item 1. Confirm in-game. | — |
 | 8 | Zone and rune gem prices — flat tables the ore curve will outrun | TASTE |
 | 9 | The legacy 31 charms — retire, or keep both sources? | TASTE |
 | 10 | VIP lost a perk when the 4th pet seat went. Replace, or leave at three? | TASTE |

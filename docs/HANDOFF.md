@@ -221,7 +221,9 @@ Owner's words: a seam should open an **underground outpost, 1:1 with the surface
 one** (shop, sell), themed underground, and **visibly deeper and darker each
 time**, following the mine's theme.
 
-**This is also the ship blocker.** `Verbs.buySeam` is live and nothing fires it,
+**CORRECTED 2026-10-05 — NOT A BLOCKER.** The seam chain is wired end to end: server fires `seamGate` (`MineServer:6406`), client opens the panel (`MineClient:10859` -> `7415`), the panel fires `buySeam` (`7489`), `Verbs.buySeam` handles it (`9266`). The earlier claim came from grepping only `buySeam`, which finds the server half alone. What remains is confirming it in-game. See `docs/OPEN.md` P0 item 1.
+
+~~This was recorded as the ship blocker.~~ Formerly:
 so every player stops at layer 500. `MineDepthPlazas` owns the prompt geometry
 and `MineDepth.seamPrice(seam, zi)` gives the figure. A local agent can place the
 prompt in Studio and wire it in an afternoon. **This is the single highest-value

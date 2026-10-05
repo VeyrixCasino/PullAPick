@@ -36,7 +36,7 @@ build.
 7.  gem prices      scale zone and rune prices with zone index
 8.  forge bag       don't build it — the ore strip already answers it
 9.  elements        regenerate the skill tree + apply the 5 swaps (docs/SKILL-TREE.md)
-10. seam prompt     wire it to <NAME THE PLAZA PART> / I'll place it in Studio
+10. seam prompt     ANSWERED BY THE CODE: already wired. Just confirm in-game.
 11. prestige+VIP+pass -> layer 1 / layer 2 / neither (currently: neither)
 ```
 
@@ -208,9 +208,11 @@ than the one-time rebalance of fixing it.
 
 ---
 
-### 10. Seam purchase — **SHIP BLOCKER**
+### 10. Seam purchase — **CLEARED, was never a blocker**
 
-**What:** `Verbs.buySeam` is live and **nothing fires it**, so every player stops
+**CORRECTED 2026-10-05: it is wired end to end — see `docs/OPEN.md` P0 item 1.**
+
+**What it used to say:** `Verbs.buySeam` is live and nothing fires it, so every player stops
 at layer 500. `MineDepthPlazas` owns the prompt geometry, `MineDepth.seamPrice`
 gives the figure.
 
