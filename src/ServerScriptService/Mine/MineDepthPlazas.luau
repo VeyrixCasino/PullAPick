@@ -10,7 +10,8 @@ local C = require(shared:WaitForChild("MineConfig"))
 local MineDepthPlazas = {}
 
 -- 6: station bay behind every outpost, and the ladder is every 500 again.
-local LAYOUT_VER = 6
+-- 7: outposts darken and warm with depth (depthLook).
+local LAYOUT_VER = 7
 local opened = {}
 local boardsStarted = false
 local surfaceDone = false
@@ -561,7 +562,92 @@ end
 ]]
 local BAY_DEPTH = 28
 
-local function wallOutpost(folder, zone)
+--[[
+	DEEPER OUTPOSTS LOOK DEEPER.
+
+	Owner, 2026-10-05: "do each outpost from 1-10 look deeper and deeper".
+	Measured before answering: they did not. Seam 500, 2500 and 5000 were
+	byte-identical -- same eleven PointLights, same twenty-one neon parts, same
+	wall colour -- because every outpost is the same surface template cloned to a
+	different Y and every colour in this file is a constant. docs/OPEN.md item 6
+	has asked for "underground-themed, deeper and darker at every seam" the whole
+	time.
+
+	One function drives it, from a single 0..1 across the reachable ladder, so
+	the progression cannot drift between the pieces that use it:
+
+	  WALLS AND FLOOR darken toward rock. The top outpost keeps today's colour so
+	  nothing regresses; only the deeper ones move.
+
+	  LIGHT dims and warms. 500 is lantern-lit and legible; 5000 is a hole with
+	  embers in it. Dimming bottoms out at 55% rather than going dark -- an
+	  outpost is somewhere you read prices and press buttons, so atmosphere stops
+	  where usability starts.
+
+	Deliberately NOT touched: neon. The cyan ring and the signage are wayfinding,
+	and a player who cannot find the elevator at 5000 is not being immersed, they
+	are lost.
+]]
+local function depthLook(seam)
+	local first = (Depth.SEAMS and Depth.SEAMS[1]) or 500
+	local floor = tonumber(C.LAYERS) or 5000
+	local span = math.max(1, floor - first)
+	local t = math.clamp(((tonumber(seam) or first) - first) / span, 0, 1)
+	-- ease toward the deep end so the first few steps are not all the change
+	local e = t * t * (3 - 2 * t)
+	local function mix(a, b)
+		return a + (b - a) * e
+	end
+	return {
+		t = t,
+		wall = Color3.fromRGB(
+			math.floor(mix(48, 20)), math.floor(mix(42, 18)), math.floor(mix(36, 17))),
+		deck = Color3.fromRGB(
+			math.floor(mix(58, 26)), math.floor(mix(52, 23)), math.floor(mix(45, 21))),
+		lightMul = mix(1, 0.55),
+		rangeMul = mix(1, 0.82),
+		-- daylight-ish lantern at the top, ember at the bottom
+		lightTint = Color3.fromRGB(
+			255, math.floor(mix(244, 186)), math.floor(mix(224, 128))),
+	}
+end
+
+--[[
+	Push the look onto whatever the surface clone brought with it.
+
+	The lights are not ours -- they arrive inside SurfaceClone -- so this walks
+	them after dressing rather than trying to build them. Multiplicative against
+	each light's own authored values, so a lamp that was always dim stays
+	relatively dim instead of every light collapsing onto one number.
+]]
+local function tintOutpostLights(folder, look)
+	local clone = folder and folder:FindFirstChild("SurfaceClone")
+	if not (clone and look) then
+		return 0
+	end
+	local n = 0
+	for _, d in ipairs(clone:GetDescendants()) do
+		if d:IsA("PointLight") or d:IsA("SpotLight") or d:IsA("SurfaceLight") then
+			local baseB = d:GetAttribute("BaseBrightness")
+			local baseR = d:GetAttribute("BaseRange")
+			if not baseB then
+				baseB = d.Brightness
+				d:SetAttribute("BaseBrightness", baseB)
+			end
+			if not baseR then
+				baseR = d.Range
+				d:SetAttribute("BaseRange", baseR)
+			end
+			d.Brightness = baseB * look.lightMul
+			d.Range = baseR * look.rangeMul
+			d.Color = look.lightTint
+			n += 1
+		end
+	end
+	return n
+end
+
+local function wallOutpost(folder, zone, seam)
 	if not folder then
 		return
 	end
@@ -609,7 +695,8 @@ local function wallOutpost(folder, zone)
 	local thick = 4
 	local floorY = cy - square.Size.Y * 0.5
 	local midY = floorY + wallH * 0.5
-	local col = Color3.fromRGB(48, 42, 36)
+	local look = depthLook(seam)
+	local col = look.wall
 	local function wall(name, size, cf)
 		local p = Instance.new("Part")
 		p.Name = name
@@ -654,7 +741,7 @@ local function wallOutpost(folder, zone)
 	deck.Anchored = true
 	deck.CanCollide = true
 	deck.Material = Enum.Material.Slate
-	deck.Color = Color3.fromRGB(58, 52, 45)
+	deck.Color = look.deck
 	deck.Size = Vector3.new(
 		(bx ~= 0) and BAY_DEPTH - 4 or bayW - 8,
 		1,
@@ -712,7 +799,8 @@ function buildDeck(zone, seam, desk)
 			existing = nil
 		else
 			dressOutpostFromSurface(existing, zone, seam, desk)
-			wallOutpost(existing, zone)
+			wallOutpost(existing, zone, seam)
+			tintOutpostLights(existing, depthLook(seam))
 			return existing
 		end
 	end
@@ -778,7 +866,8 @@ function buildDeck(zone, seam, desk)
 	end
 
 	dressOutpostFromSurface(folder, zone, seam, desk)
-	wallOutpost(folder, zone)
+	wallOutpost(folder, zone, seam)
+	tintOutpostLights(folder, depthLook(seam))
 	CollectionService:AddTag(folder, "MineDepthPlaza")
 	return folder
 end
