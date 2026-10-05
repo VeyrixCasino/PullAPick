@@ -36,6 +36,21 @@ const last = (re) => { let v = null, x; const g = new RegExp(re, "g");
 const LAYERS = Number(last("MineConfig\\.LAYERS\\s*=\\s*(\\d+)"));
 const MINE1 = Number(last("MineConfig\\.MINE1_LAYERS\\s*=\\s*(\\d+)"));
 const ZONE_MULT = Number((depth.match(/MineDepth\.ZONE_HP_MULT\s*=\s*([\d.]+)/) || [])[1]);
+
+// THE CURVE THE GAME ACTUALLY USES.
+//
+// SECTIONS above is labelled "the real block-HP staircase" and it is not. It is
+// a stale table from an older curve, carrying an obsolete x2 and a rounding
+// snap: it puts Finalite at 1,639,071,525,950 where MineDepth.dirtHp gives
+// 7,520 for the same layer. MineDepth.dirtHp does not read SECTIONS at all --
+//
+//   dirtHp(zone, layer) = (HP_BASE + HP_PER_LAYER * layer) * ZONE_HP_MULT^(zone-1)
+//
+// so anything that charts HP off SECTIONS is charting a curve the game retired.
+// SECTIONS stays in the payload because the map uses its NAMES for the depth
+// ribbon, which are still correct; its dirtHp must not be used for arithmetic.
+const HP_BASE = Number((depth.match(/MineDepth\.HP_BASE\s*=\s*([\d.]+)/) || [])[1]);
+const HP_PER_LAYER = Number((depth.match(/MineDepth\.HP_PER_LAYER\s*=\s*([\d.]+)/) || [])[1]);
 const SEAMS = (depth.match(/MineDepth\.SEAMS\s*=\s*\{([^}]*)\}/) || [])[1]
   .split(",").map((s) => Number(s.trim())).filter(Boolean);
 const ORE_HP_MULT = Number((cfg.match(/MineConfig\.ORE_HP_MULT\s*=\s*([\d.]+)/) || [])[1]);
@@ -65,5 +80,6 @@ for (const s of sections.filter((_, i) => i % 12 === 0 || _.to === deepest)) {
 
 fs.mkdirSync("build", { recursive: true });
 fs.writeFileSync("build/depth-sheet.json", JSON.stringify(
-  { sections, zones, LAYERS, MINE1, ZONE_MULT, SEAMS, ORE_HP_MULT, deepest }, null, 1));
+  { sections, zones, LAYERS, MINE1, ZONE_MULT, SEAMS, ORE_HP_MULT, deepest,
+    HP_BASE, HP_PER_LAYER }, null, 1));
 console.log("\nwrote build/depth-sheet.json");

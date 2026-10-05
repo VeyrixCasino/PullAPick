@@ -53,24 +53,37 @@ const dmgStep = perLevel(CLIMB_DMG);
 const oreStep = perLevel(CLIMB_ORE);
 const dustStep = perLevel(CLIMB_DUST);
 
-// LIVE: toolTierPower divides by a hardcoded 120 -- #ORES-1 back when the
-// roster was 121. INTENDED is what TOOL_TIER_SPAN is meant to buy.
-const tierPowLive = (t) => Math.pow(6, TIER_SPAN * (t - 1) / 120);
-const tierPowWant = (t) => Math.pow(6, TIER_SPAN * (t - 1) / (NORE - 1));
+// FIXED 2026-10-05. toolTierPower used to divide by a hardcoded 120 -- #ORES-1
+// back when the roster was 121 -- so this file carried a tierPowLive/tierPowWant
+// pair to show the gap. The divisor now reads ORE_COUNT, so live IS intended and
+// there is one curve again.
+//
+// What there IS now is the per-band step: the four bands above tier 60 multiply
+// on top of the smooth curve, because ORE_REACH 15 means a tier-67 tool already
+// reaches every ore and forging higher buys no new access.
+const BAND_DMG = { Common: 1, Uncommon: 1, Rare: 1, Epic: 1,
+  Legendary: 2, Mythic: 4, Divine: 8, Exotic: 16 };
 
 const BANDS = [["Common",1,18],["Uncommon",19,29],["Rare",30,49],["Epic",50,60],
                ["Legendary",61,69],["Mythic",70,75],["Divine",76,79],["Exotic",80,82]];
+
+const bandOf = (t) => (BANDS.find((b) => t >= b[1] && t <= b[2]) || BANDS[0])[0];
+const tierPow = (t) => Math.pow(6, TIER_SPAN * (t - 1) / (NORE - 1)) * (BAND_DMG[bandOf(t)] || 1);
 
 const out = { MAXLVL, NORE, ORE_REACH, CRAFT_BLOCKS, TIER_SPAN, DMG_BASE,
   dmgStepPct: (dmgStep - 1) * 100, oreStepPct: (oreStep - 1) * 100,
   dustStepPct: (dustStep - 1) * 100, bands: [] };
 
 for (const [name, lo, hi] of BANDS) {
-  const l1 = DMG_BASE * tierPowLive(hi);
+  const l1 = DMG_BASE * tierPow(hi);
   const cap = l1 * Math.pow(dmgStep, MAXLVL - 1);
-  const want = DMG_BASE * tierPowWant(hi) * Math.pow(dmgStep, MAXLVL - 1);
+  // `want` and `ratio` survive for the board's existing columns; with the
+  // divisor fixed they are the same curve, so the ratio is 1 by construction
+  // and the column now reads as "no gap" rather than being deleted from under
+  // the page.
   out.bands.push({ name, lo, hi, reach: Math.min(hi + ORE_REACH, NORE),
-    l1: big(l1), cap: big(cap), want: big(want), ratio: want / cap });
+    bandStep: BAND_DMG[name] || 1,
+    l1: big(l1), cap: big(cap), want: big(cap), ratio: 1 });
 }
 
 console.log("cap " + MAXLVL + " | roster " + NORE + " | reach +" + ORE_REACH +

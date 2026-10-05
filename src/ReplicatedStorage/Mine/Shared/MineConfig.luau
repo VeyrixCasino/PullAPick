@@ -2414,7 +2414,9 @@ MineConfig.ORES = {
 	start, and left nothing worth spending stardust on.
 
 	Tier is therefore a multiplier: TOOL_TIER_SPAN says how many x6 steps
-	separate tier 1 from tier 121, the same unit the mine measures depth in.
+	separate tier 1 from the top of the roster, the same unit the mine measures
+	depth in. "tier 121" here used to be literal and is now ORE_COUNT -- see
+	toolTierPower, where the matching 120 survived the roster cut as a bug.
 
 	A level costs ORE and STARDUST. Ore is the real gate -- you cannot level
 	what you cannot dig -- and stardust is the throttle. Both scale with the
@@ -2436,10 +2438,16 @@ MineConfig.ORES = {
 	So the per-level rates are DERIVED from what a whole climb is worth instead
 	of being stated directly. Move the cap and the curve restretches:
 
-	  DAMAGE holds exactly. A full climb is worth 3.9e8 at any cap, so a maxed
-	  tool lands 222x over the deepest block whether that took 1,000 levels or
-	  10,000. This is the property that matters, because it is what keeps tools
-	  in step with the mine.
+	  DAMAGE holds exactly. A full climb is worth TOOL_CLIMB_DAMAGE at any cap,
+	  whether that took 1,000 levels or 10,000. This is the property that
+	  matters, because it is what keeps tools in step with the mine.
+
+	  This block used to read "a maxed tool lands 222x over the deepest block",
+	  stated as the goal. It was the bug. Landing 222x over the deepest block in
+	  the game means every block in the game is a one-shot long before max, and
+	  that is what killed levelling past 34. A full climb is now worth one
+	  ZONE's HP growth (350), so a maxed tool is in step with the seam it was
+	  forged for instead of 222x past the bottom of the mine.
 
 	  COST scales with the cap, roughly linearly -- about 1.5e10 stardust for a
 	  full climb at 1,000 and 1.5e11 at 10,000. That is not a leak, it is
@@ -2454,8 +2462,30 @@ MineConfig.ORES = {
 ]]
 MineConfig.TOOL_MAX_LEVEL = 100       -- the one line to move
 
--- What a full 1 -> max climb multiplies by. Cap-independent.
-MineConfig.TOOL_CLIMB_DAMAGE = 3.9e8
+--[[
+	What a full 1 -> max climb multiplies by. Cap-independent.
+
+	350, DOWN FROM 3.9e8. Owner, 2026-10-05: "fix the damage curve so levelling
+	matters past 34".
+
+	It did not matter past 34 because of this number. A tool got 390 MILLION
+	times stronger over 99 levels while the content in front of it never moved,
+	so it one-shot its own seam around level 34 and the remaining two thirds of
+	the ladder changed nothing a player could see. Damage can only ever buy
+	fewer swings, and below one swing there is nothing left to buy.
+
+	350 is not fitted, it is measured. It is the HP growth a tool has to chew
+	through during its actual working life: a tool is forged at the top of a
+	zone and carries the player to the bottom of it, and within one zone dirtHp
+	goes from (20 + 1.5*1) to (20 + 1.5*5000) -- a factor of 350. So a full
+	climb is worth exactly one zone of depth, which is the one span the levels
+	have to cover.
+
+	Measured over all 82 tiers at the depth each ore spawns, this moves the
+	levels that still change the swing count from 24-30 out of 100 to 55-99.
+	See tools/damage-fix.js, which models it tier by tier.
+]]
+MineConfig.TOOL_CLIMB_DAMAGE = 350
 MineConfig.TOOL_CLIMB_ORE = 1747      -- last level costs this many x the first
 MineConfig.TOOL_CLIMB_DUST = 55800
 
@@ -2464,8 +2494,71 @@ local function perLevel(total)
 	return total ^ (1 / steps)
 end
 
-MineConfig.TOOL_TIER_SPAN = 16        -- 6^16 from tier 1 to tier 121
+--[[
+	6^7 from tier 1 to tier ORE_COUNT. Was 16 against the stale /120 divisor,
+	which delivered 6^10.8.
+
+	7 and not 10, because two multipliers sit on top of this that the first pass
+	left out and the harnesses caught:
+
+	  TYPE. toolPower takes a typeMult, and the Frack is x4. The best tool in
+	  the game is a tier-82 Frack, not a tier-82 pickaxe.
+	  BAND. TOOL_BAND_DMG multiplies Exotic by a further 16.
+
+	So the top of the ladder carries x64 that this constant does not show. With
+	span 10 the best tool did 1.35e13 against a deepest block of 1.47e11 --
+	90x overkill, and tools/verify/check.js refuses that outright ("the top tool
+	does not trivialise it either").
+
+	The window is narrow and both ends are real: span must stay under 7.47 so
+	the maxed Frack cannot one-shot the deepest rock, and over 6.58 so a maxed
+	pickaxe can still clear the deepest ore in a sane number of swings. 7 sits
+	in it with room either side.
+]]
+MineConfig.TOOL_TIER_SPAN = 7
 MineConfig.TOOL_DMG_BASE = 10
+
+--[[
+	PER-BAND DAMAGE STEP, and why the top four bands need one.
+
+	Owner, 2026-10-05: "fix it for all tools so theres still purpose to get a
+	pick abive teir 60", then "if need be dissect them individually".
+
+	The reason there was no purpose is structural, and it is not in this file.
+	ORE_REACH is 15 and the roster ends at 82, so a tool forged from tier 67 ore
+	already reaches EVERY ore in the game; the deepest dirt only asks for
+	breaking power 109 against a MineBreaking scale that runs to 209. Tiers
+	68-82 are access-identical by construction -- forging up buys literally no
+	new block. PROPOSAL 0 line 14 keeps ORE_REACH at 15, so the breaking gate is
+	not the lever here. Damage has to carry those tiers on its own.
+
+	A smooth exponential cannot. Spread over 82 tiers it gives the step from one
+	ore to the next about 13%, which is invisible, and that is the same whether
+	the step is Copper -> Tin or Livermorium -> Oganesson.
+
+	So the four bands ABOVE tier 60 -- the four where breaking power has stopped
+	buying anything -- get a multiplier on top of the smooth curve, doubling per
+	band. Forging into Legendary, Mythic, Divine or Exotic is then a visible
+	jump instead of another 13%, and the four jumps are the reward for the part
+	of the ladder the reach rule had flattened.
+
+	Bands below 60 are deliberately 1.0: down there breaking power is still
+	buying real access every few tiers, so the smooth curve is already doing the
+	work and a step would just inflate the mid game.
+
+	Keyed by band NAME and read through oreBandForTier, so the cutoffs stay in
+	ORE_YIELD_BANDS and cannot drift out of step with the roster.
+]]
+MineConfig.TOOL_BAND_DMG = {
+	Common = 1,
+	Uncommon = 1,
+	Rare = 1,
+	Epic = 1,
+	Legendary = 2,
+	Mythic = 4,
+	Divine = 8,
+	Exotic = 16,
+}
 MineConfig.TOOL_DMG_STEP = perLevel(MineConfig.TOOL_CLIMB_DAMAGE)
 MineConfig.TOOL_ORE_BASE = 4
 MineConfig.TOOL_ORE_GROW = perLevel(MineConfig.TOOL_CLIMB_ORE)
@@ -2548,10 +2641,35 @@ function MineConfig.toolCostMult(tier, typeMult)
 	return (bell or 1) * (m ^ MineConfig.TOOL_COST_TYPE)
 end
 
--- What tier alone is worth, before any levelling.
+--[[
+	What tier alone is worth, before any levelling.
+
+	THE DIVISOR WAS HARDCODED 120. That was #ORES-1 back when the roster held
+	121 ores, and it was left behind when the roster was cut to 82. The exponent
+	then only travelled 81/120 of its range, so TOOL_TIER_SPAN = 16 was
+	delivering 6^10.8 and not the 6^16 it claimed -- the top of the roster was
+	short by a factor of 11,000, and the shortfall GREW with tier, which is
+	exactly the half of the ladder the owner was asking about.
+
+	It reads ORE_COUNT now, with #MineConfig.ORES behind it for the same reason
+	clampTier uses that directly: ORE_COUNT is assigned further down this file,
+	so a load-time caller would see nil. Nothing calls this at load today; the
+	fallback is there so that stays true if something ever does.
+
+	TOOL_TIER_SPAN came down 16 -> 10 in the same pass. With the divisor fixed,
+	16 would have made the top tiers one-shot everything again at level 1 --
+	fixing the divisor alone takes the live-level count DOWN, to 8 out of 100,
+	because it hands the overshoot to tier instead of level. The two constants
+	only make sense together.
+]]
 function MineConfig.toolTierPower(tier)
 	local t = clampTier(tier)
-	return 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / 120)
+	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
+	local smooth = 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / (n - 1))
+	-- Band step, for the tiers where ORE_REACH has stopped buying access.
+	local band = MineConfig.oreBandForTier and (MineConfig.oreBandForTier(t)) or nil
+	local step = band and MineConfig.TOOL_BAND_DMG[band] or 1
+	return smooth * step
 end
 
 function MineConfig.toolPower(tier, level, typeMult)

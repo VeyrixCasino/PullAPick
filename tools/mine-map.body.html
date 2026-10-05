@@ -192,8 +192,16 @@
     }
     return M.sections[M.sections.length-1];
   }
-  // Zone index multiplies the whole staircase: x5 a zone (MineDepth.ZONE_HP_MULT).
-  function dirtHp(zi, layer){ return sectionAt(layer).dirtHp * Math.pow(M.ZONE_MULT, zi-1); }
+  // THE LIVE CURVE. This read sectionAt(layer).dirtHp, which is MineDepth's
+  // SECTIONS table -- a retired curve carrying an obsolete x2 and a rounding
+  // snap, which put Finalite at 1.64 TRILLION where the live dirtHp gives
+  // 7,520 for the same layer. MineDepth.dirtHp never reads SECTIONS:
+  //   (HP_BASE + HP_PER_LAYER * layer) * ZONE_HP_MULT^(zone-1)
+  // SECTIONS is still used for the depth ribbon's NAMES, which are fine; only
+  // its HP was wrong, and every swing count on this page came off it.
+  function dirtHp(zi, layer){
+    return (M.HP_BASE + M.HP_PER_LAYER * layer) * Math.pow(M.ZONE_MULT, zi-1);
+  }
   function oreHp(zi, layer){ return dirtHp(zi, layer) * M.ORE_HP_MULT; }
   function nextSeam(layer){
     for(var i=0;i<M.seams.length;i++) if(M.seams[i] > layer) return M.seams[i];
@@ -201,7 +209,18 @@
   }
 
   var dmgStep = Math.pow(M.CLIMB_DMG, 1/(M.MAXLVL-1));
-  function tierPower(t){ return Math.pow(6, M.TIER_SPAN*(t-1)/M.TIER_DIV_LIVE); }
+  // Band a tier falls in, off the game's own ORE_YIELD_BANDS cutoffs.
+  function bandOf(t){
+    for(var i=0;i<M.BAND_CUTS.length;i++) if(t <= M.BAND_CUTS[i]) return M.BAND_ORDER[i];
+    return M.BAND_ORDER[M.BAND_ORDER.length-1];
+  }
+  // Smooth curve x the per-band step. The step is 1.0 up to tier 60 and doubles
+  // per band above it, because ORE_REACH 15 means a tier-67 tool already
+  // reaches every ore -- past that, damage is the only thing forging up buys.
+  function tierPower(t){
+    var step = (M.BAND_DMG && M.BAND_DMG[bandOf(t)]) || 1;
+    return Math.pow(6, M.TIER_SPAN*(t-1)/M.TIER_DIV_LIVE) * step;
+  }
   function dmgAt(t, L){ return M.DMG_BASE * tierPower(t) * Math.pow(dmgStep, L-1); }
   function reachOf(t){ return Math.min(t + M.ORE_REACH, M.ores.length); }
 

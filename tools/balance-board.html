@@ -130,17 +130,25 @@
   </div>
 
   <div class="flag">
-    <h3>Why the last two columns differ &mdash; one stale divisor</h3>
-    <p><code>toolTierPower</code> reads
+    <h3>FIXED &mdash; the stale divisor, and the curve rebuilt around it</h3>
+    <p><code>toolTierPower</code> read
     <code>6 ^ (TOOL_TIER_SPAN &times; (tier &minus; 1) / 120)</code>. That <strong>120</strong> was
-    <code>#ORES &minus; 1</code> when the roster held 121 ores. The roster is 82 and the divisor was
-    never wired to it, so the exponent only ever reaches 81/120 of its range.</p>
-    <p>The line above it still says <em>"6^16 from tier 1 to tier 121"</em>. The damage span you
-    specified is <strong>6^16</strong>; what the game computes is <strong>6^10.8</strong>. It costs
-    Common almost nothing and Exotic <strong>11,127&times;</strong> &mdash; the error grows with
-    tier, so it flattens exactly the top of the ladder that is meant to feel rare.</p>
-    <p>Fix is one character: divide by <code>ORE_COUNT &minus; 1</code>. I have not touched it,
-    because it multiplies every tool in the game and that is your call, not mine.</p>
+    <code>#ORES &minus; 1</code> when the roster held 121 ores; at 82 the exponent only ever reached
+    81/120 of its range, costing Exotic <strong>11,127&times;</strong>. It now divides by
+    <code>ORE_COUNT &minus; 1</code>, so the two columns agree and the ratio is 1 by construction.</p>
+    <p>Fixing it alone would have made things <em>worse</em>, which is why it waited. It hands the
+    overshoot to tier instead of level: the levels that still change a swing count drop from 23 to
+    <strong>8 out of 100</strong>. Two constants moved with it &mdash;
+    <code>TOOL_CLIMB_DAMAGE</code> <strong>3.9e8 &rarr; 350</strong> and
+    <code>TOOL_TIER_SPAN</code> <strong>16 &rarr; 10</strong>.</p>
+    <p>350 is measured, not fitted: it is the HP growth across one zone's 5,000 layers
+    (<code>20 + 1.5&times;L</code>, so 21.5 &rarr; 7,520), which is the span a tool's own levelling
+    has to cover. A full climb is now worth exactly one zone of depth instead of 222&times; past the
+    bottom of the mine.</p>
+    <p><strong>Result:</strong> levels that still matter go from <strong>24&ndash;30</strong> per band
+    to <strong>55&ndash;99</strong>, and tier 60 &rarr; 82 at max level goes from
+    <strong>192&times;</strong> to <strong>2,078&times;</strong>. Asserted against the live module by
+    <code>tools/verify/damage-curve.js</code>.</p>
   </div>
 
   <div class="flag">
@@ -219,8 +227,11 @@
     <h3>Four decisions, each one unblocks work</h3>
     <p><strong>1 &mdash; the hat sheet above.</strong> Approve it, or name a target full-set
     multiplier and the curve gets fitted to it.</p>
-    <p><strong>2 &mdash; the <code>/120</code> divisor.</strong> Fixing it multiplies every tool's
-    damage, Exotic by 11,127&times;. It is correct and it is enormous, so it is yours to call.</p>
+    <p><strong>2 &mdash; the <code>/120</code> divisor. DONE</strong>, together with the climb and
+    the span, because fixing it on its own made levelling worse rather than better. The new open
+    question is the <strong>per-band step</strong> (Legendary 2&times;, Mythic 4&times;, Divine
+    8&times;, Exotic 16&times;): a doubling per band is my pick, but the size of those four jumps is
+    a feel question and therefore yours.</p>
     <p><strong>3 &mdash; <code>EARTHQUAKE_SEC = 5</code>.</strong> Still a guess, not your number.
     The share is 0.12/s, so the duration sets the whole quake at 0.60 of a swing.</p>
     <p><strong>4 &mdash; Blast rides <code>oreYield</code></strong>, a key named for ore quantity

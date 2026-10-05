@@ -326,7 +326,7 @@
   var ORE_SPACING=0.2674, ORE_HP_MULT=3;
 
   var T={
-    dmgBase:10, dmgStep:1.02, tierSpan:16,
+    dmgBase:10, dmgStep:1.060957, tierSpan:7,
     oreBase:4,  oreGrow:1.0075,
     dustBase:25, dustGrow:1.011,
     recPct:0.50,
@@ -404,7 +404,16 @@
   //   x6 steps separate tier 1 from tier 121, which is the same unit the mine
   //   measures depth in, so "this tool is 4 zones better" is a thing you can
   //   read straight off the slider. ]]
-  function tierPower(tier){ return Math.pow(6, T.tierSpan*(tier-1)/120); }
+  var BAND_DMG={"Common":1,"Uncommon":1,"Rare":1,"Epic":1,"Legendary":2,"Mythic":4,"Divine":8,"Exotic":16};
+  var BAND_CUTS=[18,29,49,60,69,75,79,82];
+  var BAND_ORDER=["Common","Uncommon","Rare","Epic","Legendary","Mythic","Divine","Exotic"];
+  // Per-band damage step. 1.0 up to tier 60; above it ORE_REACH buys no
+  // new access, so damage is the only thing forging up is worth.
+  function bandDmg(t){
+    for(var i=0;i<BAND_CUTS.length;i++) if(t<=BAND_CUTS[i]) return BAND_DMG[BAND_ORDER[i]]||1;
+    return BAND_DMG[BAND_ORDER[BAND_ORDER.length-1]]||1;
+  }
+  function tierPower(tier){ return Math.pow(6, T.tierSpan*(tier-1)/(NORE-1))*bandDmg(tier); }
   function dmgAt(L,tier,ti){
     return T.dmgBase*tierPower(tier)*TYPES[ti][4]*Math.pow(T.dmgStep,Math.max(0,L-1));
   }

@@ -53,9 +53,51 @@ function readNumber(src, key) {
   return Number(m[1]);
 }
 
+// readNumber only matches \d+, which silently misses 3.9e8 and 1.5. Takes the
+// LAST assignment, because MineConfig assigns some keys twice and the last one
+// is the one the module exports.
+function readFloat(src, key) {
+  const g = new RegExp("MineConfig\\." + key + "\\s*=\\s*([0-9.eE+-]+)", "g");
+  let v = null, m;
+  while ((m = g.exec(src))) v = Number(m[1]);
+  if (v === null || !isFinite(v)) throw new Error("MineConfig." + key + " not found");
+  return v;
+}
+
 const src = luauSource(CONFIG);
 const ores = readOres(src);
 const maxLevel = readNumber(src, "TOOL_MAX_LEVEL");
+
+// THE DAMAGE MODEL WAS NEVER SYNCED, AND THAT HID A REAL BUG.
+//
+// This generator kept ORES, NORE and MAXLVL in step with MineConfig and left
+// the T block's damage numbers hand-written. They drifted:
+//
+//   dmgStep was 1.02, which is the per-level rate for a 1000-LEVEL cap. The
+//   game has been at 100 for a long time, where the rate is 1.0609. So the
+//   calculator showed a full climb as 1.02^99 = 7.1x while the game applied
+//   350x, and tools/verify/check.js asserted on the 7.1 and passed.
+//
+// A harness that reads a stale copy of the formula is not testing the game, so
+// the damage constants are derived here now, the same way the roster is.
+const dmgBase = readFloat(src, "TOOL_DMG_BASE");
+const tierSpan = readFloat(src, "TOOL_TIER_SPAN");
+const climbDmg = readFloat(src, "TOOL_CLIMB_DAMAGE");
+const dmgStep = Math.pow(climbDmg, 1 / Math.max(1, maxLevel - 1));
+
+// Per-band step and the band cutoffs, so the page grades ore the way the game
+// does rather than restating two tables that can disagree.
+const bandBody = (src.match(/MineConfig\.TOOL_BAND_DMG\s*=\s*\{([\s\S]*?)\n\}/) || [, ""])[1];
+const bandDmg = {};
+for (const m of bandBody.matchAll(/(\w+)\s*=\s*([\d.]+)/g)) bandDmg[m[1]] = Number(m[2]);
+const bandOrder = (src.match(/MineConfig\.ORE_BAND_ORDER\s*=\s*\{([^}]*)\}/) || [, ""])[1]
+  .split(",").map((s) => s.trim().replace(/"/g, "")).filter(Boolean);
+const bandCuts = [...(src.match(/MineConfig\.ORE_YIELD_BANDS\s*=\s*\{([\s\S]*?)\n\}/) || [, ""])[1]
+  .matchAll(/upTo\s*=\s*(\d+)/g)].map((m) => Number(m[1]));
+if (Object.keys(bandDmg).length === 0 || bandCuts.length === 0) {
+  console.error("FAIL could not read TOOL_BAND_DMG / ORE_YIELD_BANDS from MineConfig");
+  process.exit(1);
+}
 
 if (ores.length === 0) {
   console.error("FAIL read 0 ores from MineConfig -- refusing to write an empty roster");
@@ -84,6 +126,35 @@ html = html.replace(/MAXLVL=\d+/, "MAXLVL=" + maxLevel);
 // which is what made the page disagree with the live game at bigbang/5000.
 // Expressed structurally so it follows the roster from here on.
 html = html.replace(/\(t-1\)\*DMAX\/\d+/, "(t-1)*DMAX/(NORE-1)");
+
+// The damage constants, from MineConfig rather than hand-written.
+html = html.replace(/dmgBase:\s*[\d.]+\s*,\s*dmgStep:\s*[\d.]+\s*,\s*tierSpan:\s*[\d.]+\s*,/,
+  "dmgBase:" + dmgBase + ", dmgStep:" + Number(dmgStep.toFixed(6)) +
+  ", tierSpan:" + tierSpan + ",");
+
+// tierPower's divisor, the same stale 120 that was live in MineConfig until
+// 2026-10-05, plus the per-band step that now rides on top of it.
+html = html.replace(/function tierPower\(tier\)\{[^}]*\}/,
+  "function tierPower(tier){ return Math.pow(6, T.tierSpan*(tier-1)/(NORE-1))*bandDmg(tier); }");
+
+// Inject the band tables and the lookup, once, just above tierPower.
+if (!/function bandDmg/.test(html)) {
+  html = html.replace(/(\s*)function tierPower\(tier\)\{/,
+    "$1var BAND_DMG=" + JSON.stringify(bandDmg) + ";" +
+    "$1var BAND_CUTS=" + JSON.stringify(bandCuts) + ";" +
+    "$1var BAND_ORDER=" + JSON.stringify(bandOrder) + ";" +
+    "$1// Per-band damage step. 1.0 up to tier 60; above it ORE_REACH buys no" +
+    "$1// new access, so damage is the only thing forging up is worth." +
+    "$1function bandDmg(t){" +
+    "$1  for(var i=0;i<BAND_CUTS.length;i++) if(t<=BAND_CUTS[i]) return BAND_DMG[BAND_ORDER[i]]||1;" +
+    "$1  return BAND_DMG[BAND_ORDER[BAND_ORDER.length-1]]||1;" +
+    "$1}" +
+    "$1function tierPower(tier){");
+} else {
+  html = html.replace(/var BAND_DMG=\{[^}]*\};/, "var BAND_DMG=" + JSON.stringify(bandDmg) + ";");
+  html = html.replace(/var BAND_CUTS=\[[^\]]*\];/, "var BAND_CUTS=" + JSON.stringify(bandCuts) + ";");
+  html = html.replace(/var BAND_ORDER=\[[^\]]*\];/, "var BAND_ORDER=" + JSON.stringify(bandOrder) + ";");
+}
 
 // Say where the numbers came from, on the page itself.
 html = html.replace(/Proposal &mdash; nothing committed\./,
