@@ -33,8 +33,28 @@ local OreTools = require(shared:WaitForChild("MineOreTools"))
 
 local MineHotbar = {}
 
+--[[
+	FIVE SLOTS, AND ONLY THE ONES IN USE.
+
+	Owner, 2026-10-05: "make the hotbar only scale to how many tools are
+	currently active. (MAX 5 [slot one is for tools{vip you CAN have 2 tools, but
+	you only need one} slots 2-5 is for other shit like potions and or whatever
+	else we decide to add{maybe a fish rod, stupid stuff like that}])".
+
+	So the bar is not a fixed rack of eight empties. Slot 1 is the TOOL slot --
+	two of them for VIP, who may carry a second -- and the rest are for
+	consumables and whatever else lands later. The strip measures itself to the
+	slots actually in use, so a player holding one pickaxe sees one slot, not one
+	pickaxe and seven grey holes.
+
+	A minimum of one slot is kept even when nothing is equipped. A bar that
+	vanishes entirely reads as a bug, and the empty slot is where the tool goes
+	back to.
+]]
 local SLOT = 68
-local SLOTS = 8
+local MAX_SLOTS = 5
+local TOOL_SLOTS = 1
+local TOOL_SLOTS_VIP = 2
 local IMG = Icons.IMAGES or {}
 
 function MineHotbar.mount(parent, opts)
@@ -61,13 +81,23 @@ function MineHotbar.mount(parent, opts)
 		end
 	end)
 
+	--[[
+		ZIndex 12, not 60.
+
+		Owner: "make it so the shop ui goes over the hotbar". The ScreenGui runs
+		ZIndexBehavior.Sibling, so what covers what among top-level frames is
+		decided by their own ZIndex -- the hotbar at 60 was winning against the
+		shop at 80's CHILDREN but fighting the panels it should sit under. At 12
+		it stays above the world and below every panel (quests are 20, the shop
+		is 80), which is where a hotbar belongs: always there, never in the way.
+	]]
 	local root = UI.new("Frame", {
 		Name = "Hotbar",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -14),
-		Size = UDim2.fromOffset(SLOT * SLOTS + 10 * (SLOTS - 1) + 24, SLOT + 20),
+		Size = UDim2.fromOffset(SLOT + 24, SLOT + 20),
 		BackgroundTransparency = 1,
-		ZIndex = 60,
+		ZIndex = 12,
 	}, parent)
 
 	local strip = UI.new("Frame", {
@@ -93,7 +123,7 @@ function MineHotbar.mount(parent, opts)
 	UI.flow(row, false, 10)
 
 	local slots = {}
-	for i = 1, SLOTS do
+	for i = 1, MAX_SLOTS do
 		local b = UI.new("TextButton", {
 			Name = "Slot" .. i,
 			Text = "",
@@ -102,6 +132,7 @@ function MineHotbar.mount(parent, opts)
 			BorderSizePixel = 0,
 			Size = UDim2.fromOffset(SLOT, SLOT),
 			LayoutOrder = i,
+			Visible = i == 1,
 			ZIndex = 62,
 		}, row)
 		UI.round(b, T.RADIUS)
@@ -118,12 +149,49 @@ function MineHotbar.mount(parent, opts)
 
 	local function refresh()
 		local snap = getSnap() or {}
-		local tools = snap.oreTools or {}
 		local held = snap.oreToolEquipped
-		for i = 1, SLOTS do
+		--[[
+			WHAT GOES IN SLOT ONE.
+
+			The tool slot shows what you are HOLDING, not the whole rack -- the
+			rack is the bench's job, and a hotbar that lists every tool you own
+			is the Roblox backpack again with different paint. VIP gets a second
+			tool slot; everyone else needs exactly one.
+
+			Slots past the tool slots are reserved for consumables and the rest
+			of what lands later. They stay hidden until something fills them,
+			which is what makes the bar measure itself.
+		]]
+		local isVip = snap.vip == true or snap.isVip == true or snap.gamepassVip == true
+		local toolSlots = isVip and TOOL_SLOTS_VIP or TOOL_SLOTS
+		local tools = {}
+		local all = snap.oreTools or {}
+		-- the held tool first, so it always occupies slot one
+		for _, t in ipairs(all) do
+			if held and t.uid == held then
+				table.insert(tools, t)
+			end
+		end
+		if isVip then
+			for _, t in ipairs(all) do
+				if #tools < toolSlots and (not held or t.uid ~= held) then
+					table.insert(tools, t)
+				end
+			end
+		end
+
+		local used = 0
+		for i = 1, MAX_SLOTS do
 			local s = slots[i]
-			local t = tools[i]
+			local t = (i <= toolSlots) and tools[i] or nil
 			s.uid = t and t.uid or nil
+			-- A slot shows if it holds something, or if it is the first tool
+			-- slot, which is where a tool returns to when you put it away.
+			local show = (t ~= nil) or (i == 1)
+			s.btn.Visible = show
+			if show then
+				used = i
+			end
 			if t then
 				local fam = tostring(t.familyId or "pickaxe")
 				s.img.Image = IMG[fam] or IMG.pickaxe or ""
@@ -148,9 +216,14 @@ function MineHotbar.mount(parent, opts)
 				s.key.TextColor3 = T.FAINT
 			end
 		end
+
+		-- The strip measures itself to the slots in use, so one tool is one
+		-- slot wide rather than one tool and four grey holes.
+		used = math.clamp(used, 1, MAX_SLOTS)
+		root.Size = UDim2.fromOffset(SLOT * used + 10 * (used - 1) + 24, SLOT + 20)
 	end
 
-	for i = 1, SLOTS do
+	for i = 1, MAX_SLOTS do
 		local s = slots[i]
 		s.btn.MouseButton1Click:Connect(function()
 			if not s.uid then

@@ -1319,8 +1319,21 @@ function ClientFns.questDrawerTabW()
 	return ClientFns.questIsPhone() and 28 or 24
 end
 
+--[[
+	How far the drawer "ear" tucks back into the card.
+
+	It was 20, and the ear is drawn ON TOP of the card at ZIndex 45. Measured
+	live, that put the tab over the last 25 scaled pixels of the card while every
+	right-aligned label stops 15px short of the edge -- so the tab covered the
+	quest counter, the daily counter, the reset timer and all three gem rewards.
+	Every number on both cards sat underneath it.
+
+	6 is enough overlap to hide the seam where the ear meets the card, and clears
+	the labels by nine pixels. If this is ever raised again, the labels have to
+	move with it.
+]]
 function ClientFns.questDrawerTuck()
-	return 20
+	return 6
 end
 
 function ClientFns.questDrawerEnsure()
