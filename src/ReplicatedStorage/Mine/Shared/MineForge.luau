@@ -39,6 +39,8 @@ local Tools = require(shared:WaitForChild("MineTools"))
 -- from one place so the panel and the craft verb cannot disagree.
 local OreTools = require(shared:WaitForChild("MineOreTools"))
 local T = require(shared:WaitForChild("MineTheme"))
+local UI = require(shared:WaitForChild("MineUI"))
+local Icons = require(shared:WaitForChild("MineIcons"))
 
 local BG2 = T.BG2
 local BG3 = T.BG3
@@ -47,8 +49,14 @@ local MUTED = T.MUTED
 local GOLD = T.GOLD
 local GREEN = T.GREEN
 local RED = T.RED or Color3.fromRGB(190, 92, 92)
-local FONT = Enum.Font.GothamBold
-local FONT_M = Enum.Font.Gotham
+--[[
+	The faces come from MineTheme now. They were Gotham, hardcoded here, which
+	is the "every view invents its own" problem in one line -- the panel next to
+	this one used a different pair and the game read as two games.
+]]
+local FONT = T.FONT
+local FONT_M = T.FONT_M
+local IMG = Icons.IMAGES or {}
 
 local RAIL_W = 232
 --[[
@@ -226,8 +234,17 @@ function MineForge.mount(parent, opts)
 	local selUid = nil
 	local refresh
 
-	label(root, "FORGE", 13, MUTED, UDim2.fromOffset(RAIL_X + 4, 10),
-		UDim2.new(0, RAIL_W, 0, 16), FONT)
+	--[[
+		THE TITLE.
+
+		This was "FORGE" at 13px in MUTED -- the same size as a caption, in the
+		colour reserved for text you are not meant to read. The reference puts a
+		34px gold word and its mark at the top of the panel, and a title that
+		small is most of why the live screen read as a debug menu beside it.
+	]]
+	UI.icon(root, IMG.logo, 38, UDim2.fromOffset(RAIL_X + 2, 10))
+	label(root, "FORGE", 30, GOLD, UDim2.fromOffset(RAIL_X + 46, 8),
+		UDim2.fromOffset(240, 40), FONT)
 
 	--[[
 		THE MODE RAIL, down the far left.
@@ -259,8 +276,10 @@ function MineForge.mount(parent, opts)
 	-- discovered in CRAFT, every tool you have forged in UPGRADE.
 	local rail = mk("ScrollingFrame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(RAIL_X, 34),
-		Size = UDim2.new(0, RAIL_W, 1, -44),
+		-- y=62 clears the title band. The title was a 13px caption sharing this
+		-- row; at 30px it needs the strip to itself or it lands on the list.
+		Position = UDim2.fromOffset(RAIL_X, 62),
+		Size = UDim2.new(0, RAIL_W, 1, -72),
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollBarThickness = 4,
@@ -269,8 +288,8 @@ function MineForge.mount(parent, opts)
 
 	local detail = mk("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(RAIL_X + RAIL_W + 24, 34),
-		Size = UDim2.new(1, -RAIL_X - RAIL_W - 38, 1, -44 - POUCH_H),
+		Position = UDim2.fromOffset(RAIL_X + RAIL_W + 24, 62),
+		Size = UDim2.new(1, -RAIL_X - RAIL_W - 38, 1, -72 - POUCH_H),
 	}, root)
 
 	--[[
@@ -418,10 +437,50 @@ function MineForge.mount(parent, opts)
 		local cap = coinTool and C.WOOD_PICK_MAX_LEVEL or C.TOOL_MAX_LEVEL
 		local maxed = level >= cap
 
-		label(host, OreTools.toolName(tool), 19, TEXT, UDim2.fromOffset(0, 0),
-			UDim2.new(1, 0, 0, 22), FONT)
-		label(host, string.format("level %d / %d", level, cap), 13,
-			maxed and GOLD or MUTED, UDim2.fromOffset(0, 26), UDim2.new(1, 0, 0, 16))
+		--[[
+			THE HERO BLOCK.
+
+			This was a 19px name over a 13px level line, flush against the left
+			edge of the pane, with the rest of the tool's identity spread out
+			underneath as more 12px lines. Owner, 2026-10-05, comparing it with
+			the reference: "still extremely far off".
+
+			The reference leads with a large circular PORTRAIT of the tool, then
+			the name at roughly thirty, then rarity and tier as chips. That
+			portrait is most of the difference: the live panel showed no picture
+			of the thing you were about to spend on.
+
+			Everything below is positioned off HERO_X, so the text column starts
+			clear of the portrait rather than being hand-offset in ten places.
+		]]
+		local PORTRAIT = 150
+		local HERO_X = PORTRAIT + 28
+
+		local orb = mk("Frame", {
+			BackgroundColor3 = T.CARD_HI,
+			Size = UDim2.fromOffset(PORTRAIT, PORTRAIT),
+			Position = UDim2.fromOffset(0, 0),
+		}, host)
+		UI.round(orb, 999)
+		UI.edge(orb, T.ACCENT, 2)
+		local fam = tostring(tool.familyId or "pickaxe")
+		UI.icon(orb, IMG[fam] or IMG.pickaxe or IMG.merge, math.floor(PORTRAIT * 0.6),
+			UDim2.fromOffset(math.floor(PORTRAIT * 0.2), math.floor(PORTRAIT * 0.2)))
+
+		label(host, OreTools.toolName(tool), 28, TEXT, UDim2.fromOffset(HERO_X, 0),
+			UDim2.new(1, -HERO_X, 0, 34), FONT)
+
+		-- Rarity as a chip and the tier beside it, the way the reference reads
+		-- them: what it is, then how deep it goes.
+		local band = C.oreBandForTier and C.oreBandForTier(tool.tier) or nil
+		if band then
+			UI.pill(host, string.upper(band), T.ACCENT, UDim2.fromOffset(HERO_X, 38))
+		end
+		label(host, string.format("Tier %s", tostring(tool.tier or "?")), 15, T.GEM,
+			UDim2.fromOffset(HERO_X + (band and 118 or 0), 38), UDim2.fromOffset(110, 26), FONT)
+
+		label(host, string.format("level %d / %d", level, cap), 14,
+			maxed and GOLD or MUTED, UDim2.fromOffset(HERO_X, 68), UDim2.new(1, -HERO_X, 0, 18))
 
 		--[[
 			Breaking power and reach, stated plainly, because they are the whole
@@ -432,7 +491,7 @@ function MineForge.mount(parent, opts)
 			local bp = C.toolBreakingPower(tool)
 			label(host, string.format("breaking power %d  \u{00B7}  reaches ore tier %d",
 				bp, C.oreReachCap(bp)), 12, GOLD,
-				UDim2.fromOffset(0, 42), UDim2.new(1, 0, 0, 14))
+				UDim2.fromOffset(HERO_X, 92), UDim2.new(1, -HERO_X, 0, 16))
 		end
 
 		local canStep, costLine, heldLine
@@ -483,12 +542,13 @@ function MineForge.mount(parent, opts)
 		end
 
 		label(host, costLine, 14, (maxed and GOLD) or (canStep and GREEN) or MUTED,
-			UDim2.fromOffset(0, 62), UDim2.new(1, 0, 0, 18))
+			UDim2.fromOffset(HERO_X, 114), UDim2.new(1, -HERO_X, 0, 20))
 		if heldLine then
-			label(host, heldLine, 12, MUTED, UDim2.fromOffset(0, 82), UDim2.new(1, 0, 0, 14))
+			label(host, heldLine, 13, MUTED, UDim2.fromOffset(HERO_X, 136), UDim2.new(1, -HERO_X, 0, 16))
 		end
 
-		local y = 110
+		-- Clear of the 150px portrait, so nothing sits on top of it.
+		local y = 172
 		button(host, "+1", GREEN, UDim2.fromOffset(0, y), UDim2.fromOffset(56, 28),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, 1) end

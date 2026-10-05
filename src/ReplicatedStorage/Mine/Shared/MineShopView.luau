@@ -275,13 +275,23 @@ function MineShopView.mount(parent, opts)
 		Rotation = 90,
 	}, backdrop)
 
+	--[[
+		The ambience behind the panel.
+
+		It was ORANGE (255,152,64) at 0.8 across 92% x 66% of the screen. On a
+		small window that reads as forge-light; on a 2714px display it is a
+		brown ellipse the size of the viewport, and it was the single thing that
+		made the shop look broken rather than unstyled.
+
+		Theme accent now, and much fainter -- ambience should be felt, not seen.
+	]]
 	local glow = mk("Frame", {
 		Name = "ForgeGlow",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.76),
 		Size = UDim2.fromScale(0.92, 0.66),
-		BackgroundColor3 = Color3.fromRGB(255, 152, 64),
-		BackgroundTransparency = 0.8,
+		BackgroundColor3 = T.ACCENT or Color3.fromRGB(168, 85, 247),
+		BackgroundTransparency = 0.93,
 		ZIndex = 2,
 		BorderSizePixel = 0,
 	}, root)
@@ -519,6 +529,19 @@ function MineShopView.mount(parent, opts)
 	end
 	local benchPanel, benchCtl
 	if okBench and Bench and Bench.mount then
+		--[[
+			A CONTAINED CARD, not a full-bleed pane.
+
+			This was 86% of the window with no ceiling. On a 2714px display that
+			is 2334px wide, and MineForge lays out in fixed pixels -- a 232px
+			rail, fixed label widths -- so its content clustered into the left
+			thousand pixels and the remaining 1300 were empty. That emptiness,
+			not the colours, is what read as "extremely far off" against the
+			reference, which is a contained card with its content filling it.
+
+			The size constraint caps it so the card stays card-shaped on any
+			monitor; the anchor already centres it.
+		]]
 		benchPanel = mk("Frame", {
 			Name = "BenchPanel",
 			Visible = false,
@@ -528,6 +551,7 @@ function MineShopView.mount(parent, opts)
 			BackgroundTransparency = 1,
 			ZIndex = 86,
 		}, root)
+		mk("UISizeConstraint", { MaxSize = Vector2.new(1480, math.huge) }, benchPanel)
 		local okMount, ctl = pcall(Bench.mount, benchPanel, {
 			-- The bench reads the same state the rest of the shop does, so a
 			-- price it quotes cannot drift from the wallet shown above it.
