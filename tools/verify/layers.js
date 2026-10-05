@@ -15,11 +15,14 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "../..");
-const LUAU = path.join(ROOT, ".luau-bin/luau");
+const Luau = require("./_luau");
+const LUAU = Luau.LUAU;
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
-if (!fs.existsSync(LUAU)) {
-  console.log("luau not present (.luau-bin/luau) — run tools/verify/syntax.sh first; skipping");
-  process.exit(0);
+if (!Luau.ready) {
+  // Names the platform and the fix, instead of "skipping" with no reason --
+  // and exits 1, because a check that cannot run is not a check that passed.
+  console.log(Luau.missing("luau") + "; skipping");
+  process.exit(1);
 }
 
 const mod = read("src/ReplicatedStorage/Mine/Shared/MineBoostLayers.luau");

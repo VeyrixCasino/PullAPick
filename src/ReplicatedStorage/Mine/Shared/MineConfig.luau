@@ -1205,7 +1205,23 @@ MineConfig.ORE_PACK_FIND_CAP = 1.0
 	swing spread over five seconds, so a quake is worth starting and is never
 	a substitute for swinging. It is the one number here to argue with.
 ]]
+--[[
+	EARTHQUAKE STACKS. Owner, 2026-10-04.
+
+	It was a flat bleed on up to five blocks for five seconds, 0.60 of one swing
+	in total. Everything else in the proc list is instant and an endgame player
+	breaks ten or more blocks a second, so a trickle that small was never worth
+	a slot.
+
+	It accumulates now: every proc adds a stack and refreshes the window, and
+	the stack only falls off after EARTHQUAKE_SEC seconds with no quake at all.
+	At the cap that is QUAKE_STACK_SHARE x QUAKE_MAX_STACKS = 10x a swing per
+	second -- the one proc that pays for sustained digging rather than a lucky
+	hit.
+]]
 MineConfig.EARTHQUAKE_SEC = 5
+MineConfig.QUAKE_STACK_SHARE = 0.1   -- of one swing, per stack, per second
+MineConfig.QUAKE_MAX_STACKS = 100    -- 10x a swing per second at the ceiling
 MineConfig.EARTHQUAKE_MAX_BLOCKS = 5
 -- One jump, never a chain. Raising this turns Ricochet into Zap.
 MineConfig.RICOCHET_HOPS = 1
@@ -1247,6 +1263,9 @@ MineConfig.PROC_SHARE = {
 	blast = 0.35,
 	zap = 0.45,
 	ricochet = 0.60,
+	-- Superseded by the stack model, which prices a quake as
+	-- QUAKE_STACK_SHARE per stack per second. Kept so procDamage("quake")
+	-- still answers for any caller that has not moved across.
 	quake = 0.12,
 }
 
@@ -1258,8 +1277,26 @@ MineConfig.PROC_SHARE = {
 	cap was doing all the work and the falloff none. Six hops and 0.75 makes
 	the tail short and the first hops matter.
 ]]
-MineConfig.ZAP_MAX_HOPS = 6
-MineConfig.ZAP_FALLOFF = 0.75
+MineConfig.ZAP_MAX_HOPS = 16
+--[[
+	0.75 -> 0.89, with the cap raised to 16 hops.
+
+	The chain continues while rng < chance, where chance starts at the zap stat
+	and is multiplied by this each hop. A stat above 1 therefore buys guaranteed
+	EARLY hops, and the falloff decides where certainty ends.
+
+	Solved against the owner's target -- 250% should be borderline -- in
+	tools/zap-solve.js:
+
+	    zap 100%   averages  4.7 blocks,  0.000% reach 16
+	    zap 150%   averages  8.2 blocks,  0.084% reach 16
+	    zap 250%   averages 12.5 blocks,  7.7%   reach 16
+	    zap 400%   averages 16.0 blocks,   68%   reach 16
+
+	At 0.75 even 400% reached sixteen essentially never, so the hop cap did all
+	the work and the stat bought nothing past the first few hops.
+]]
+MineConfig.ZAP_FALLOFF = 0.89
 
 -- How far procPower can be stacked. A ceiling, not a target.
 MineConfig.PROC_POWER_CAP = 3.0

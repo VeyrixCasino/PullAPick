@@ -5990,20 +5990,47 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 	]]
 	if broke and not Dig.PROC_SKIP[kind] then
 		local ric = tonumber(b.ricochet) or 0
+		if Dig.RICO_LOCK[plr.UserId] then
+			ric = 0   -- already inside a ricochet's reroll; never chain
+		end
 		if ric > 0 and rng:NextNumber() < ric then
 			local opts = {}
 			for _, d in ipairs(Dig.FACE6) do
-				local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
+				local nx, ny, nz = cx + d[1], cy + d[2], cz + d[3]
+				local other = cells[keyOf(zone.id, nx, ny, nz)]
 				if other and typeof(other) == "Instance" and other.Parent
 					and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-					table.insert(opts, other)
+					-- Coords travel with the part: procsAt needs the cell, and a
+					-- block carries no Cx/Cy/Cz attribute to read them back off.
+					table.insert(opts, { part = other, cx = nx, cy = ny, cz = nz })
 				end
 			end
 			if #opts > 0 then
-				local hit = opts[rng:NextInteger(1, #opts)]
+				local pick = opts[rng:NextInteger(1, #opts)]
+				local hit = pick.part
+				local ricDmg = C.procDamage(dmg, "ricochet", pp)
 				net:FireClient(plr, "loot", { text = "RICOCHET",
 					color = Color3.fromRGB(140, 220, 255), pos = hit.Position })
-				pcall(swingNeighbour, plr, hit, C.procDamage(dmg, "ricochet", pp), p)
+				pcall(swingNeighbour, plr, hit, ricDmg, p)
+				--[[
+					AND THE LANDING BLOCK ROLLS YOUR OTHER PROCS.
+
+					Owner, 2026-10-04: a ricochet that only lands one flat hit is
+					the weakest slot in the game. Blast, zap and earthquake all
+					get a roll where it lands, so taking ricochet is worth
+					something to every other proc on the build.
+
+					Ricochet itself is locked out for the duration, so the second
+					block cannot ricochet again: one jump, carrying the rest of
+					the kit with it. broke=false, because the block was not
+					necessarily destroyed by the ricochet -- the break-only procs
+					decide that for themselves.
+				]]
+				Dig.RICO_LOCK[plr.UserId] = true
+				pcall(Dig.procsAt, plr, p, b, zone, cells, hit,
+					pick.cx, pick.cy, pick.cz, ricDmg,
+					hit:GetAttribute("Kind"), false, false)
+				Dig.RICO_LOCK[plr.UserId] = nil
 			end
 		end
 	end
@@ -6091,7 +6118,24 @@ end
 
 	On Dig so it costs no top-level local; this script sits at 197 of Luau's 200.
 ]]
+-- Set for the moment a ricochet is rerolling procs on the block it landed on,
+-- so that block cannot ricochet again. One jump, never a chain.
+Dig.RICO_LOCK = {}
+
 Dig.QUAKE = {}
+
+--[[
+	The quake stack bank, per player.
+
+	  n      how many stacks are up, capped at QUAKE_MAX_STACKS
+	  dies   when the whole bank expires, pushed out by every fresh proc
+	  swing  the player's swing damage as of the last proc, so the bleed
+	         tracks the tool they are actually holding
+
+	Separate from Dig.QUAKE, which stays a set of the blocks currently shaking:
+	that is what the client reads and what keeps the damage off rubble.
+]]
+Dig.QUAKE_STACK = {}
 
 function Dig.startQuake(plr, p, part, dmg)
 	if not (plr and part and part.Parent) then
@@ -6103,9 +6147,25 @@ function Dig.startQuake(plr, p, part, dmg)
 		mine = {}
 		Dig.QUAKE[uid] = mine
 	end
-	-- Cannot stack: already shaking, so nothing happens.
+	--[[
+		A proc always feeds the bank, even on a block already shaking.
+
+		The old code returned early here, which is what made a second quake on
+		the same block worth nothing. The STACK is the reward now; the block set
+		below is only about which blocks are visibly shaking.
+	]]
+	local bank = Dig.QUAKE_STACK[uid]
+	if not bank or os.clock() >= (bank.dies or 0) then
+		bank = { n = 0 }
+		Dig.QUAKE_STACK[uid] = bank
+	end
+	bank.n = math.min(bank.n + 1, math.max(1, math.floor(tonumber(C.QUAKE_MAX_STACKS) or 100)))
+	bank.dies = os.clock() + (tonumber(C.EARTHQUAKE_SEC) or 5)
+	bank.swing = math.max(1, math.floor(tonumber(dmg) or 1))
+
 	if mine[part] then
-		return false
+		-- Already shaking: the stack above is the whole effect.
+		return true
 	end
 	local n = 0
 	for other in pairs(mine) do
@@ -6118,10 +6178,9 @@ function Dig.startQuake(plr, p, part, dmg)
 	if n >= (tonumber(C.EARTHQUAKE_MAX_BLOCKS) or 5) then
 		return false
 	end
-	mine[part] = {
-		dmg = math.max(1, math.floor(tonumber(dmg) or 1)),
-		dies = os.clock() + (tonumber(C.EARTHQUAKE_SEC) or 5),
-	}
+	-- No frozen dmg: the bank decides what a tick is worth, so a block that
+	-- started shaking early keeps up with a stack that has since grown.
+	mine[part] = { dies = os.clock() + (tonumber(C.EARTHQUAKE_SEC) or 5) }
 	-- The client reads this to shake the block; the damage does not depend on it.
 	pcall(function()
 		part:SetAttribute("Quaking", true)
@@ -6147,7 +6206,23 @@ task.spawn(function()
 			local prof = plr and profiles[uid] or nil
 			if not (plr and prof) then
 				Dig.QUAKE[uid] = nil
+				Dig.QUAKE_STACK[uid] = nil
 			else
+				--[[
+					One tick is stacks x share x swing, to every shaking block.
+
+					The bank expires as a whole: five seconds with no quake and
+					the stack count is gone, which is what stops a player
+					banking 100 stacks and carrying them between veins.
+				]]
+				local bank = Dig.QUAKE_STACK[uid]
+				if bank and now >= (bank.dies or 0) then
+					Dig.QUAKE_STACK[uid] = nil
+					bank = nil
+				end
+				local share = tonumber(C.QUAKE_STACK_SHARE) or 0.1
+				local tick = bank and math.max(1,
+					math.floor((bank.swing or 1) * share * (bank.n or 0))) or 0
 				for part, q in pairs(mine) do
 					if not part.Parent or now >= q.dies then
 						if part.Parent then
@@ -6156,10 +6231,8 @@ task.spawn(function()
 							end)
 						end
 						mine[part] = nil
-					else
-						-- q.dmg is already the per-tick figure (C.procDamage at
-						-- start time), so this is a straight application.
-						pcall(swingNeighbour, plr, part, q.dmg, prof)
+					elseif tick > 0 then
+						pcall(swingNeighbour, plr, part, tick, prof)
 					end
 				end
 			end
