@@ -235,7 +235,31 @@ with changed** and most of these clear at once.
 
 # Housekeeping
 
-- [ ] `tools/verify/trap.js` **fails on clean main.** Pre-existing. Either fix it
+- [x] **A skip was being reported as a pass — fixed 2026-10-05 by
+      `tools/verify/suite.sh`.** 11 of the 23 checks shell out to the luau
+      binary; without it they print "skipping" and exit 0. Measured with the
+      binary removed: 10 passed, 11 did not run, and the old hand-run reported
+      that as clean. The runner now separates DID NOT RUN from pass and exits
+      non-zero. **Always run `syntax.sh` before `suite.sh`.**
+- [ ] **Three negative assertions still need a non-zero floor.**
+      `check(x.length === 0)` passes when the regex finds nothing, so these
+      assert over an empty slice if their pattern ever stops matching:
+      `skilltree.js:48`, `skilltree.js:100`, `forge-snap.js:63`. The roster
+      parsers (`charms`, `orepacks`, `build-stamp`) already floor their counts
+      and are fine.
+- [ ] `tools/verify/luau-balance.js` is a **utility, not a check** — it scans one
+      chunk passed as `argv[2]` and crashes on `readFileSync(undefined)` when run
+      bare. Give it an arg guard so it prints usage instead. `suite.sh` excludes
+      it.
+- [ ] **`check.js` reads a deleted design.** `tools/verify/check.js:3` loads
+      `upgrade-calculator.html` and runs its embedded tables — still the
+      121-ore/1000-level roster, pricing Sandstone, Electrum and Zircon, none of
+      which exist. Live `MineConfig.ORES` is 82, Stone → Oganesson. Point the
+      check at `MineConfig`; keep the HTML only as a generated view if it is
+      wanted at all. **Until then the one check with "ore" and "gems" in its
+      output is measuring a design that was deleted.**
+- [ ] `tools/verify/trap.js` **fails on clean main.** Pre-existing, and listed in
+      `suite.sh`'s `KNOWN_FAIL` so it does not mask a new failure. Either fix it
       or delete it — right now it trains everyone to ignore a red suite.
 - [ ] `roadmap/CHARMS.md` is on disk from a merge. Read it, but TODO §0 wins
       wherever it disagrees.
