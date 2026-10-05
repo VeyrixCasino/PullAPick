@@ -5975,6 +5975,35 @@ local function swingNeighbour(plr, part, dmg, p)
 	end
 	local Matter = require(shared.MineSpaceMatter)
 	local tool = Dig.heldTool and Dig.heldTool[p]
+
+	--[[
+		PROCS OBEY THE BREAKING GATE TOO.
+
+		They did not, and it was an omission rather than a decision.
+		Dig.Breaking.canBreak was wired in on 2026-10-05 and only into the main
+		swing -- swingNeighbour predates it and never got the check, so until now
+		`canBreak` had exactly ONE call site in the whole codebase while TWO
+		paths deal damage. Blast, zap, ricochet, earthquake and echo all arrive
+		here, so any of them chipped rock the tool itself could not scratch.
+
+		That matters more since ZONE_STEP went to 100: the gate is the backbone
+		of progression now, and a proc that routes around it routes around the
+		whole ladder. Owner, 2026-10-05, asked for the full rule -- if canBreak
+		is false the hit lands for zero, ore included.
+
+		Silent on purpose. The main swing fires a throttled "tooWeak" toast
+		because the player aimed at that block; a proc lands wherever the chain
+		took it, and a toast for every neighbour the chain brushed would be
+		noise for something nobody targeted.
+	]]
+	do
+		local zi = (C.zoneIndex and C.zoneIndex(part:GetAttribute("ZoneId") or (zone and zone.id))) or 1
+		local okBreak = Dig.Breaking.canBreak(
+			tool, zi, layer, tonumber(part:GetAttribute("OreTier")), #C.ORES, p.maxUnlockedZone)
+		if not okBreak then
+			return
+		end
+	end
 	local chip = Matter.chip(part, tool, dmg)
 	if not chip.ok then
 		return
