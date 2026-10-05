@@ -61,22 +61,17 @@ const K = n1(cfg, "MineConfig\\.ORE_K", 0.45);
 const S = n1(cfg, "MineConfig\\.ORE_S", 4.0);
 const W = n1(cfg, "MineConfig\\.ORE_W", 3.0);
 
-// ORE_DMAX, exactly as MineConfig derives it (off the SECTIONS table's last row).
+// ORE_DMAX, exactly as MineConfig derives it NOW: off the LIVE depth curve,
+// anchored to the deepest normal mine minus ORE_DMAX_MARGIN.
 //
-// The first version of this matched /dirtHp = (\d+)/ over the whole MineDepth
-// file and took the last hit, which is NOT the last SECTIONS row -- it landed on
-// a small number elsewhere and produced ORE_DMAX 8.941 against the real 32.092.
-// Every conclusion drawn from that was wrong. Anchored to the SECTIONS block
-// only, and asserted against the live value below.
-// Taking the LARGEST dirtHp in the file rather than "the last one": the
-// SECTIONS table is a staircase so its final row is its maximum, and a
-// non-greedy block match stops at the first inner "}" and truncates the table.
-// ([0-9.eE+-]+), not (\d+): the last section is written `dirtHp = 9.30735e+18`
-// and \d+ captured just the "9", which silently made ORE_DMAX 23.41 instead of
-// 32.09 and inverted every conclusion drawn from it.
-const secs = [...dep.matchAll(/dirtHp = ([0-9.eE+-]+)/g)].map((m) => Number(m[1]));
-const topDirt = secs.length ? Math.max(...secs) : 1639071525950;
-const ORE_DMAX = Math.log((topDirt * 2 * Math.pow(6, 9)) / 20) / Math.log(6);
+// It used to come off Depth.SECTIONS' last row (Terminus, 9.30735e+18) times 2
+// times 6^9, which is the retired table -- that produced 32.09 against a deepest
+// reachable difficulty of 11.39 and deadlocked the forge ladder at tier 8.
+const LADDER_ZONES = n1(cfg, "MineConfig\.ORE_LADDER_ZONES", 10);
+const DMAX_MARGIN = n1(cfg, "MineConfig\.ORE_DMAX_MARGIN", 0.4);
+const deepHpForOre = dirtHp(LADDER_ZONES, LAYERS);
+const ORE_DMAX = Math.max(1,
+  Math.log(Math.max(20, deepHpForOre) / 20) / Math.log(6) - DMAX_MARGIN);
 const dOf = (tier) => (tier - 1) * ORE_DMAX / (NORE - 1);
 
 const clampInt = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(v)));
@@ -116,8 +111,8 @@ function deepestBreakable(t) {
 console.log("ladder-climbable: ZONE_STEP " + ZONE_STEP + ", ORE_POW " + ORE_POW +
   ", MAX " + MAXP + ", reach +" + ORE_REACH);
 console.log("  ORE_DMAX " + ORE_DMAX.toFixed(3) + "  (ore d runs 0 -> " + ORE_DMAX.toFixed(1) + ")");
-ok(Math.abs(ORE_DMAX - 32.0916881992669) < 1e-6,
-  "ORE_DMAX matches the live module", ORE_DMAX.toFixed(6) + " vs 32.091688 read from Studio");
+ok(Math.abs(ORE_DMAX - 10.9936) < 1e-3,
+  "ORE_DMAX matches the live module", ORE_DMAX.toFixed(4) + " vs 10.9936 read from Studio");
 
 //[[ THE D-LADDER IS CALIBRATED TO A CURVE THAT NO LONGER EXISTS ]]
 // ORE_DMAX is derived from Depth.SECTIONS' last row (1.639e12) times 2 times
@@ -141,7 +136,11 @@ ok(topReachableTier >= NORE,
 // Start with the starter tool and repeat: go as deep as your tool allows, see
 // what ore is actually on offer there, forge the best of it you may break, and
 // check that you got strictly stronger.
-const MIN_SHARE = 0.005;   // an ore worth 0.5% of rolls is obtainable in practice
+// 0.02% of ore rolls. At ORE_CHANCE 1/200 and 10 blocks/s that is one find
+// per ~13 hours of solid mining -- rare, but a real drop rather than a rounding
+// error. The old 0.5% floor was far too strict and made the top of the roster
+// look unobtainable even when it was merely rare.
+const MIN_SHARE = 0.0002;
 let tier = 1;
 const path_ = [1];
 let stalledAt = null;
@@ -184,21 +183,64 @@ for (let zi = 1; zi < ZONES; zi++) {
   // the deepest rock you can break while still only holding the tier that
   // finishes THIS zone
   const holding = minTier(layerStrength(zi, LAYERS));
-  const spot = deepestBreakable(holding);
-  const { w, tot } = oreShares(spot.zi, spot.L);
-  let best = 0;
-  for (let t = NORE; t >= 1; t--) {
-    if (t - ORE_REACH > holding) continue;
-    if (w[t] / tot >= MIN_SHARE) { best = t; break; }
+  // EVERY spot that tool can break, not just the deepest zone it can enter.
+  // The richest ore within reach is usually the FLOOR of the zone below the
+  // deepest one, because a zone's surface is poorer than the previous zone's
+  // bottom -- scoring only the deepest zone reported deadlocks that are not
+  // there, which is how this check disagreed with the forge walk above it.
+  const P = oreStrength(holding);
+  let best = 0, at = null;
+  for (let z = 1; z <= ZONES; z++) {
+    for (let L = LAYERS; L >= 1; L -= 50) {
+      if (layerStrength(z, L) > P) continue;
+      const { w, tot } = oreShares(z, L);
+      for (let t = NORE; t > best; t--) {
+        if (t - ORE_REACH > holding) continue;
+        if (oreStrength(Math.max(1, t - ORE_REACH)) > P) continue;
+        if (w[t] / tot >= MIN_SHARE) { best = t; at = { z, L }; break; }
+      }
+      break;   // the deepest layer reachable in this zone is its richest
+    }
   }
   const good = best >= needTier;
   if (!good) deadlock++;
   console.log("  " + String(zi + 1).padEnd(7) + ("t" + needTier).padEnd(11) +
-    "t" + best + " (holding t" + holding + ", at z" + spot.zi + " L" + spot.L + ")" +
-    (good ? "   ok" : "   <- DEADLOCK"));
+    "t" + best + " (holding t" + holding + ", at z" + (at ? at.z : "-") +
+    " L" + (at ? at.L : "-") + ")" + (good ? "   ok" : "   <- DEADLOCK"));
 }
 ok(deadlock === 0, "no zone is locked behind ore that only spawns inside it",
   deadlock === 0 ? "every zone opens from the one before" : deadlock + " deadlocked");
+
+// --- and the top of the roster must stay RARE --------------------------------
+//
+// Climbability pulls ORE_DMAX down; rarity pushes it up. This is the other end
+// of that, and it is the one with history: on 2026-10-04 a smaller DMAX made
+// Oganesson the commonest ore in the game at 31.7%, an exotic a minute. Owner,
+// 2026-10-05, on a 21% Exotic band: "21% exotic is like 100-1000x rare" -- so
+// the band belongs around 0.02-0.2% of ore rolls at the deepest spot.
+const BANDS = [["Common", 1, 18], ["Uncommon", 19, 29], ["Rare", 30, 49],
+  ["Epic", 50, 60], ["Legendary", 61, 69], ["Mythic", 70, 75],
+  ["Divine", 76, 79], ["Exotic", 80, NORE]];
+{
+  const { w, tot } = oreShares(ZONES, LAYERS);
+  let exotic = 0;
+  for (let t = 80; t <= NORE; t++) exotic += w[t] / tot;
+  ok(exotic <= 0.002,
+    "the Exotic band stays rare at the deepest spot",
+    (exotic * 100).toFixed(3) + "% of ore rolls (ceiling 0.2%)");
+  ok(exotic >= 0.00002,
+    "...but is still obtainable there",
+    (exotic * 100).toFixed(3) + "% (floor 0.002%)");
+  const ORE_CHANCE = 1 / 200, BPS = 10;
+  const hrs = 1 / (ORE_CHANCE * (w[NORE] / tot)) / BPS / 3600;
+  console.log("\n  share by band at the deepest spot:");
+  for (const [nm, lo, hi] of BANDS) {
+    let s = 0;
+    for (let t = lo; t <= hi; t++) s += w[t] / tot;
+    console.log("    " + nm.padEnd(11) + (s * 100).toFixed(2) + "%");
+  }
+  console.log("  top ore: one per " + hrs.toFixed(1) + " hours at " + BPS + " blocks/s");
+}
 
 console.log(fails === 0 ? "\n>>> ladder-climbable: all " + checks + " checks passed"
   : "\n>>> ladder-climbable: " + fails + " of " + checks + " FAILED");

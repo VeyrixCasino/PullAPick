@@ -3260,9 +3260,59 @@ end
 
 MineConfig.ORE_BY_ID = {}
 do
-	-- D is derived from tier so the ladder cannot drift out of step with it.
-	local top = Depth.SECTIONS[#Depth.SECTIONS]
-	MineConfig.ORE_DMAX = math.log((top.dirtHp * 2 * 6 ^ 9) / 20) / math.log(6)
+	--[[
+		D is derived from tier so the ladder cannot drift out of step with it.
+
+		THE TOP OF THE LADDER NOW COMES OFF THE LIVE DEPTH CURVE.
+
+		It used to be Depth.SECTIONS[#Depth.SECTIONS] -- Terminus, dirtHp
+		9.30735e+18 -- times 2 times 6^9. SECTIONS is the RETIRED table:
+		Depth.dirtHp does not read it and tops out at 14,687,500,000 for zone 10
+		layer 5000. SECTIONS' last row is about 1.2 QUADRILLION times the
+		deepest block a player can actually hit.
+
+		So ORE_DMAX came out at 32.09 while the deepest oreDifficulty in the game
+		is 11.39, and every ore above that coordinate existed on the roster while
+		no depth ever rolled it. Measured against the live module: at the deepest
+		point in the game 62 of 82 ores rolled under 0.05%, the hardest ore that
+		appeared anywhere was tier 26, and the forge ladder DEADLOCKED AT TIER 8 --
+		nobody could climb past it at all.
+
+		Anchored to the deepest NORMAL mine instead (Event Horizon is not on the
+		ore-tool ladder), minus a small margin so the top of the roster sits just
+		under the hardest rock rather than on top of it. That margin is what
+		makes Oganesson an endgame chase instead of the common drop:
+
+		    margin   Exotic share at the deepest spot   forge ladder
+		    0.0      0.08%                              stalls at t75
+		    0.4      0.17%                              completes to t82
+		    2.4      3.59%                              completes to t82
+		    4.2      21.7%                              completes, and is the
+		                                                2026-10-04 mistake -- an
+		                                                exotic a minute
+
+		Owner, 2026-10-05: "21% exotic is like 100-1000x rare", i.e. the band
+		belongs around 0.02-0.2%. 0.4 is the largest margin that lands inside
+		that and still lets the ladder reach tier 82; at 0.8 the climb stalls at
+		t75. Both properties are asserted by tools/verify/ladder-climbable.js, so
+		this cannot quietly drift back.
+	]]
+	--[[
+		How many zones the ORE ladder spans. Ten, not eleven.
+
+		Event Horizon is zone 11 and does not use ore tools -- owner, 2026-10-05:
+		"horizon is different... doesnt use normal tools" -- so the roster is
+		calibrated to the deepest NORMAL mine. MineBreaking.ZONES is 10 for the
+		same reason and the two must agree; tools/verify/ladder-climbable.js
+		checks the ladder against that assumption.
+	]]
+	MineConfig.ORE_LADDER_ZONES = 10
+	MineConfig.ORE_DMAX_MARGIN = 0.4
+	do
+		local deepHp = Depth.dirtHp(MineConfig.ORE_LADDER_ZONES, MineConfig.LAYERS)
+		local deepD = math.log(math.max(20, deepHp) / 20) / math.log(6)
+		MineConfig.ORE_DMAX = math.max(1, deepD - MineConfig.ORE_DMAX_MARGIN)
+	end
 	local n = #MineConfig.ORES
 	for _, o in ipairs(MineConfig.ORES) do
 		o.d = (o.tier - 1) * MineConfig.ORE_DMAX / (n - 1)

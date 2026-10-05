@@ -23,12 +23,12 @@ QUIET=0
 # instead of being lost in the noise of an old one. Shrink this list; never
 # grow it to make a run look clean.
 #
-# ladder-climbable is red on purpose and is NOT a harness bug: it reports that
-# ORE_DMAX is derived from Depth.SECTIONS' retired last row (9.3e18) while the
-# live dirtHp curve tops out at 1.47e10, so ore tiers 30-82 sit past any depth
-# the game can reach -- 53 of 82 ores never roll. It goes green when the ore
-# drop tables are recut. Until then it is the standing record of that gap.
-KNOWN_FAIL="trap ladder-climbable"
+# ladder-climbable was listed here while ORE_DMAX still came off Depth.SECTIONS'
+# retired last row and 53 of 82 ores could never roll. That is fixed, so it is
+# OFF the list and is expected to stay green -- it now guards both ends at once:
+# the forge ladder must reach tier 82, and the Exotic band must stay rare while
+# doing it.
+KNOWN_FAIL="trap"
 
 # Not checks. luau-balance.js is a utility that balance-scans ONE chunk given
 # as argv[2] -- run it as `node tools/verify/luau-balance.js <file.luau>`.
