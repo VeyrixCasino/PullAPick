@@ -44,9 +44,14 @@ and the whole traits system were written, statically verified, and pushed
 confirmed working in-game. Until someone plays it, every item below is built on
 an unproven base.
 
-### 3. Breaking power — the curve is unspecified
-- [ ] Block strength as a function of layer and zone, and nothing else. **The
-      curve is the one number still unspecified** and it gates items 4, 5 and 20.
+### 3. Breaking power — CORRECTED 2026-10-05: the curve IS specified
+It lives in `MineBreaking.luau`: `LAYERS_PER_RUNG 50`, `ZONE_STEP 1`,
+`ORE_POW 2.0`, `MAX 209`. The reach table is in `docs/PROPOSAL.md` §F0.
+- [ ] **Real bug:** `ORE_REACH = 15` is the owner's rule and the UI shows it,
+      but `MineBreaking.blockStrength` never reads it — a tier-T tool breaks ore
+      up to tier T only. Wire `oreStrength(max(1, oreTier − ORE_REACH))`.
+- [ ] Block strength as a function of layer and zone, and nothing else — done
+      as above; confirm the dials, do not re-derive them.
 - [ ] Tool breaking power strictly a function of the ore the tool is made of —
       not level, not damage, not skins, not runes, and not upgradeable.
 - [ ] Server-authoritative gate: reject any dig where
@@ -82,6 +87,18 @@ an unproven base.
 Each seam gets an outpost **1:1 with the surface one** — same shop, same sell —
 underground-themed, deeper and darker at every seam. Owner's spec, 2026-10-04.
 Needs Studio for the geometry.
+
+### 7a. Coin economy — TWO BUGS FOUND 2026-10-05, both P0
+- [ ] **Chest coin reward crashes.** `MineServer:4726` calls
+      `C.coinsFor("dirt", zone, layer)` with a zone *table*; `coinsFor(kind, mult)`
+      does `base × mult` and this Luau throws on `number × table` (reproduced).
+      Every chest that rolls the `coins` kind errors before paying. Fix:
+      `Depth.dirtHp(zoneTierOf(zone), layer)`. Likely one of the owner's
+      reported lucky-block/chest bugs.
+- [ ] **Seams cost 5–60× their stated 30 minutes.** Dig pays 1 coin per HP on
+      `dirtHp`; seam price is computed on `gateCoinValue`, a different curve.
+      Seam 500 = 2.4 h, seam 5000 = 31.5 h at live payout. Price seams off
+      `dirtHp`. Table in `docs/PROPOSAL.md` §H1.
 
 ### 7. Coin economy
 Coins are currently near-useless. Proposal on the table and **not yet agreed**:
@@ -170,7 +187,9 @@ Owner, 2026-10-04. Open-all and buy-N already ship. Still open:
 
 ### 14. Rebirth
 - [ ] Multiple rebirths at once.
-- [ ] Remove the base 2× coin multiplier (see item 7).
+- [x] ~~Remove the base 2× coin multiplier~~ **It does not exist.** Searched
+      every prestige/rebirth/coinMult/`2 ^` path server and shared, 2026-10-05.
+      Prestige grants +5% luck per rebirth and skill points, nothing on coins.
 - [ ] Confirm: an earlier pass planned "rebirth raises coin value" and "soften
       the zone/depth coin multipliers". Partly motivated by a since-reverted
       change — re-decide rather than inherit.
@@ -247,6 +266,12 @@ with changed** and most of these clear at once.
 ---
 
 # Housekeeping
+
+- [ ] **Delete `src/ReplicatedStorage/Mine/Shared/_c.luau`** — a 1,710-line copy
+      of MineConfig, required by nothing, with its own `ORES` and `coinsFor`.
+- [ ] **193 pets carry a retired stat line** (182 `backpack`, 11 `walkSpeed`),
+      because `MineStats.TYPE_KITS` still lists them. Regenerate from `ENERGIES`.
+      Numbers in `docs/PROPOSAL.md` §B and §K.
 
 - [x] **A skip was being reported as a pass — fixed 2026-10-05 by
       `tools/verify/suite.sh`.** 11 of the 23 checks shell out to the luau
