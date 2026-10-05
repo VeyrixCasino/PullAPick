@@ -26,6 +26,7 @@
       "Read",
       "Edit(src/**)",
       "Edit(docs/**)",
+      "Edit(wiki/**)",
       "Edit(tools/**)",
       "Edit(.claude/**)",
       "Bash(node tools/*.js)",
@@ -55,6 +56,20 @@
       "Bash(md5sum*)",
       "Bash(diff*)",
       "Bash(sed -n*)"
+    ]
+  },
+
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Clarify-first rule (standing instruction from the owner): if this request is broad, ambiguous, uses a word from wiki/ambiguous-terms.md without context, or needs a number or taste call the owner has not made, ask 1-4 short questions with options and your recommended default BEFORE doing the work. If it is clear and small, just do it. Use wiki/index.md for context first.'",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
