@@ -53,9 +53,11 @@ an unproven base.
 ### 3. Breaking power — CORRECTED 2026-10-05: the curve IS specified
 It lives in `MineBreaking.luau`: `LAYERS_PER_RUNG 50`, `ZONE_STEP 1`,
 `ORE_POW 2.0`, `MAX 209`. The reach table is in `docs/PROPOSAL.md` §F0.
-- [ ] **Real bug:** `ORE_REACH = 15` is the owner's rule and the UI shows it,
-      but `MineBreaking.blockStrength` never reads it — a tier-T tool breaks ore
-      up to tier T only. Wire `oreStrength(max(1, oreTier − ORE_REACH))`.
+- [x] ~~`ORE_REACH = 15` shown in the UI, never read by the gate.~~ **Wired
+      2026-10-05.** `blockStrength` now asks `oreStrength` for the ore as if it
+      sat `ORE_REACH` tiers lower; depth is untouched. The constant is
+      duplicated into `MineBreaking` (that module has no requires by design) and
+      `tools/verify/breaking.js` fails if the two ever drift apart.
 - [ ] Block strength as a function of layer and zone, and nothing else — done
       as above; confirm the dials, do not re-derive them.
 - [ ] Tool breaking power strictly a function of the ore the tool is made of —
@@ -95,16 +97,24 @@ underground-themed, deeper and darker at every seam. Owner's spec, 2026-10-04.
 Needs Studio for the geometry.
 
 ### 7a. Coin economy — TWO BUGS FOUND 2026-10-05, both P0
-- [ ] **Chest coin reward crashes.** `MineServer:4726` calls
+- [x] ~~**Chest coin reward crashes.**~~ **Fixed 2026-10-05** — now
+      `Dig.Depth.dirtHp(zoneTierOf(zone), layer)`, the same one-coin-per-HP rule
+      the dig path uses. Was: `MineServer:4726` calls
       `C.coinsFor("dirt", zone, layer)` with a zone *table*; `coinsFor(kind, mult)`
       does `base × mult` and this Luau throws on `number × table` (reproduced).
       Every chest that rolls the `coins` kind errors before paying. Fix:
       `Depth.dirtHp(zoneTierOf(zone), layer)`. Likely one of the owner's
       reported lucky-block/chest bugs.
-- [ ] **Seams cost 5–60× their stated 30 minutes.** Dig pays 1 coin per HP on
-      `dirtHp`; seam price is computed on `gateCoinValue`, a different curve.
-      Seam 500 = 2.4 h, seam 5000 = 31.5 h at live payout. Price seams off
-      `dirtHp`. Table in `docs/PROPOSAL.md` §H1.
+- [x] ~~Seams cost 5–60× their stated 30 minutes.~~ **Resolved 2026-10-05 by
+      making seams free** (owner: *"buy seams shouldnt cost anything"*).
+      `seamPrice` returns 0, `Verbs.buySeam` charges nothing, and the client
+      panel reads "Break the seam". Depth is still gated by breaking power and
+      seams still open in order. **Watch for:** the client used to bail on
+      `price <= 0`, which would have swallowed every seam panel — that guard
+      was changed in the same commit, so the chain stays live.
+- [ ] **Coins lost their biggest sink.** Seams were one of three (with rebirth
+      and shop tools). Potions priced in coins (PROPOSAL line 23) is now the
+      load-bearing sink, and §7 below is more open than before, not less.
 
 ### 7. Coin economy
 Coins are currently near-useless. Proposal on the table and **not yet agreed**:

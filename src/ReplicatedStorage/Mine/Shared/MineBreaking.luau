@@ -78,6 +78,22 @@ MineBreaking.ORE_POW = 2.0
 	the forge -- but it does mean zone price and tool progression have to stay
 	in step, or someone owns a zone they cannot swing in.
 ]]
+--[[
+	ORE REACH. Owner's rule: "A tool forged from ore tier T reaches T + 15
+	tiers of ore."
+
+	This lived only in MineConfig (ORE_REACH, canBreakOre, oreReachCap), which
+	is what the Forge UI reads -- so the UI promised +15 and the live gate below
+	gave +0, because blockStrength asked oreStrength for the ore's OWN tier.
+	Wired into the gate 2026-10-05.
+
+	It is duplicated from MineConfig.ORE_REACH rather than required, because
+	this module has no requires and is pure arithmetic on its own dials. The
+	two are asserted equal by tools/verify/breaking.js -- if you change one,
+	that check fails until you change the other.
+]]
+MineBreaking.ORE_REACH = 15
+
 MineBreaking.ZONE_STEP = 1
 MineBreaking.ZONES = 10
 MineBreaking.MAX_LAYER = 10000
@@ -140,7 +156,13 @@ function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
 	if oreTier == nil then
 		return byLayer
 	end
-	return math.max(byLayer, MineBreaking.oreStrength(oreTier, oreCount))
+	-- ORE_REACH, applied where the refusal actually happens: an ore is asked
+	-- for as if it sat ORE_REACH tiers lower, so a tier-T tool clears ore up
+	-- to tier T + ORE_REACH. Depth is untouched -- byLayer still gates how
+	-- deep you can stand, which is the half that must not be loosened.
+	local reach = math.max(0, math.floor(tonumber(MineBreaking.ORE_REACH) or 0))
+	local asked = math.max(1, (tonumber(oreTier) or 1) - reach)
+	return math.max(byLayer, MineBreaking.oreStrength(asked, oreCount))
 end
 
 --[[

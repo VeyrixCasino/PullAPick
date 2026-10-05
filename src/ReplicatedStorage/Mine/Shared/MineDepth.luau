@@ -459,14 +459,32 @@ function MineDepth.seamPrice(seam, zoneIndex)
 	if not lo then
 		return nil
 	end
-	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
-	local sum = 0
-	for L = lo, hi do
-		sum += MineDepth.gateCoinValue(zoneIndex, L)
-	end
-	local avgCoinPerBlock = sum / (hi - lo + 1)
-	local coinsPerHour = avgCoinPerBlock * MineDepth.GATE_BLOCKS_PER_HOUR
-	return math.floor(coinsPerHour * (MineDepth.SEAM_MINUTES / 60) + 0.5)
+	--[[
+		SEAMS ARE FREE. Owner, 2026-10-05: "buy seams shouldnt cost anything".
+
+		They used to cost SEAM_MINUTES of the band's income, priced off
+		gateCoinValue. Two things were wrong with that and the owner's call
+		settles both:
+
+		  * Depth is ALREADY gated, by breaking power. MineBreaking refuses any
+		    block whose strength beats your tool, one rung per 50 layers. A coin
+		    price on top was a second gate on the same axis -- pay AND be strong
+		    enough -- and the coin half is the one that just makes you wait.
+		  * The price was computed on gateCoinValue while digging pays one coin
+		    per point of dirtHp, a different curve. Seam 500 was priced as 30
+		    minutes and cost 2.4 hours; seam 5000 cost 31.5. Nobody was getting
+		    the 30 minutes the constant promised.
+
+		Zero, not "removed": every caller already handles a number, the client
+		panel is still the moment you break through, and the ORDER check in
+		Verbs.buySeam still makes you open seams one at a time. What is gone is
+		the bill.
+
+		SEAM_MINUTES and GATE_BLOCKS_PER_HOUR are left alone -- gateCoinValue
+		still has other readers, and deleting a constant this one no longer uses
+		is a separate change.
+	]]
+	return 0
 end
 
 -- The deepest gate a layer sits at or below, or nil if it is above the first one.

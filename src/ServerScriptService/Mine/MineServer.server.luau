@@ -4723,7 +4723,20 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	-- Scale the currency rows off the blocks the chest was buried in, so a
 	-- zone-6 chest never pays zone-1 money and nothing needs re-tuning when a
 	-- zone is added. A chest is meant to feel like a seam, not like a block.
-	local dirtValue = math.max(1, C.coinsFor and C.coinsFor("dirt", zone, layer) or 1)
+	--[[
+		CRASHED until 2026-10-05. This read
+		`C.coinsFor("dirt", zone, layer)`, but coinsFor's signature is
+		(kind, mult) and it evaluates `base * mult` -- and `zone` here is the
+		zone TABLE, as zoneTierOf(zone) reading zone.id a few lines up shows.
+		This Luau build throws on `number * table`, so every chest that rolled
+		the `coins` reward errored out before paying anything.
+
+		Dirt is one coin per point of HP (see the dig path, "One coin per point
+		of HP"), so the value of the dirt a chest was buried in IS its HP.
+		Asking Depth for it directly is both correct and the same rule the rest
+		of the coin economy runs on.
+	]]
+	local dirtValue = math.max(1, Dig.Depth.dirtHp(zoneTierOf(zone), layer))
 
 	if chosen.kind == "pack" then
 		-- A run, not a row. Sometimes nothing, sometimes a pile; the count is
@@ -9284,8 +9297,9 @@ function Verbs.buySeam(plr, payload)
 		net:FireClient(plr, "toast", "That seam is already open")
 		return
 	end
-	-- Seams open in order. Skipping one would skip the band whose income pays for
-	-- the next, and 30 minutes is only honest if the player mined the band below.
+	-- Seams open in order. Free does not mean skippable: the bands are the
+	-- progression, and opening 5000 before 500 would drop a player into rock
+	-- their tool cannot scratch.
 	for _, s in ipairs(Depth.SEAMS) do
 		if s >= seam then
 			break
@@ -9295,11 +9309,17 @@ function Verbs.buySeam(plr, payload)
 			return
 		end
 	end
-	if (p.coins or 0) < price then
+	-- Free since 2026-10-05 (owner: "buy seams shouldnt cost anything").
+	-- Breaking power already gates depth; charging coins for it as well was a
+	-- second gate on the same axis. The price is still read above so a seam
+	-- that does not exist is still refused, and the order check still stands.
+	if price > 0 and (p.coins or 0) < price then
 		net:FireClient(plr, "toast", string.format("Layer %d costs %s coins", seam, tostring(price)))
 		return
 	end
-	p.coins -= price
+	if price > 0 then
+		p.coins -= price
+	end
 	Depth.grantSeam(p, seam, zi)
 	net:FireClient(plr, "toast", string.format("Layer %d open -- dig on", seam))
 	markDirty(plr)

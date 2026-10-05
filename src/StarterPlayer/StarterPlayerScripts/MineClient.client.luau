@@ -7415,7 +7415,13 @@ function ClientFns.confirmSeam(payload)
 	local price = tonumber(payload.price) or 0
 	local coins = tonumber(payload.coins) or (snap and snap.coins) or 0
 	local minutes = tonumber(payload.minutes) or 30
-	if seam <= 0 or price <= 0 then
+	--[[
+		`price <= 0` used to bail here. Seams are free as of 2026-10-05, so that
+		guard would have swallowed every seam panel in the game and recreated
+		the exact "everyone stops at layer 500" blocker this chain was fixed
+		for. Only a missing seam is a reason not to open.
+	]]
+	if seam <= 0 or price < 0 then
 		return
 	end
 	-- Already deciding. Do not yank the panel out from under a click.
@@ -7502,13 +7508,24 @@ function ClientFns.confirmSeam(payload)
 	ClientFns.seamMenu:SetAttribute("Seam", seam)
 	ClientFns.seamTitle.Text = string.format("Layer %d is sealed", seam)
 	local short = shortNum and shortNum(price) or tostring(price)
-	local afford = coins >= price
-	ClientFns.seamBody.Text = string.format(
-		"Buy through the seam to mine below layer %d.\n\nCost %s coins — about %d minutes of mining at this depth.\nYou have %s.%s",
-		seam, short, minutes, shortNum and shortNum(coins) or tostring(coins),
-		afford and "" or "\n\nKeep mining above the seam and come back."
-	)
-	ClientFns.seamBuy.Text = afford and ("Open the seam — " .. short) or ("Need " .. short)
+	local free = price <= 0
+	local afford = free or coins >= price
+	if free then
+		-- Free seams: the panel is the moment you break through, not a till.
+		-- No price, no coin balance, no "come back when you can afford it".
+		ClientFns.seamBody.Text = string.format(
+			"The rock below layer %d is sealed. Break the seam and the mine keeps going.\n\nNo cost — just bring a tool strong enough for what is down there.",
+			seam
+		)
+	else
+		ClientFns.seamBody.Text = string.format(
+			"Buy through the seam to mine below layer %d.\n\nCost %s coins — about %d minutes of mining at this depth.\nYou have %s.%s",
+			seam, short, minutes, shortNum and shortNum(coins) or tostring(coins),
+			afford and "" or "\n\nKeep mining above the seam and come back."
+		)
+	end
+	ClientFns.seamBuy.Text = free and "Break the seam"
+		or (afford and ("Open the seam — " .. short) or ("Need " .. short))
 	ClientFns.seamBuy.BackgroundColor3 = afford and Color3.fromRGB(96, 190, 104) or Color3.fromRGB(88, 92, 112)
 	ClientFns.seamBuy.TextColor3 = afford and Color3.fromRGB(12, 24, 16) or Color3.fromRGB(196, 200, 216)
 	ClientFns.seamBuy.Active = afford

@@ -8,6 +8,18 @@ Every number below is derived from the live modules, with the arithmetic shown.
 
 # APPROVED 2026-10-05 — these are decisions, not proposals
 
+> **Line 24 was changed after the sign-off.** Owner: *"buy seams shouldnt cost
+> anything."* Seams are now **free** — `MineDepth.seamPrice` returns 0 and
+> `Verbs.buySeam` takes nothing. This supersedes line 24 as written and all of
+> §H1's seam repricing: there is nothing left to reprice. The reasoning is good
+> — depth is already gated by breaking power, so a coin price was a second gate
+> on the same axis, and it is the half that only makes you wait.
+>
+> **It costs the coin economy its biggest sink.** Seams, rebirth and shop tools
+> were the three; seams are now gone. That makes line 23 (potions priced in
+> coins) the load-bearing sink, and §7 of `docs/OPEN.md` — what coins are
+> actually *for* — more open than it was, not less.
+
 The owner pasted §0 back **unchanged**. Every line is signed off and is to be
 built as written. Do not reopen one without the owner saying so; the reasoning
 for each is in the section under it.
@@ -221,6 +233,10 @@ decent but not game breaking": `0.50 + 0.10 × (tier−1)/81`, cap 0.60. Stone
 tool 50%, Oganesson 60%.
 
 # H1. Coins — the crash, and the multiplier that doesn't exist
+
+> **The seam half of this section is superseded.** Seams are free as of
+> 2026-10-05; the mispricing below is recorded because it is *why* the owner's
+> call is right, not as work to do. The crash and the missing multiplier stand.
 
 **The crash.** `rollChestLoot` (`MineServer:4726`) calls
 `C.coinsFor("dirt", zone, layer)`. `MineConfig.coinsFor` takes `(kind, mult)`
