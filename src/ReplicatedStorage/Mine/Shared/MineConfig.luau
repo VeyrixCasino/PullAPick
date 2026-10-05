@@ -2309,21 +2309,31 @@ MineConfig.ORE_S = 4.0
 MineConfig.ORE_W = 3.0
 
 --[[
-	The floor under every ore's spawn weight, before normalising.
+	The minimum SHARE of the roll every ore keeps, everywhere.
 
 	Owner, 2026-10-05: "every rarity should be POSSIBLE in every zone, just
-	super highly unlikely (even 1 in a million zone one)". 1e-7 lands that
-	almost exactly -- Oganesson at the floor of Dirt Meadow comes out at 1 in
-	984,973 -- while leaving the tuned curve alone: zone 10's Exotic share stays
-	0.173%, its peak stays tier 54, and zone 1 stays 98% Common.
+	super highly unlikely (even 1 in a million zone one)". 1e-6 is that, read
+	literally: one in a million, for any ore, at any depth.
 
-	Raising it makes the long shot commoner EVERYWHERE at once and is the one
-	dial here that cannot be undone by depth, so move it in powers of ten and
-	read tools/verify/ladder-climbable.js afterwards -- it asserts both that
-	every ore can roll in every zone and that the Exotic band stays rare at the
-	bottom.
+	A SHARE AND NOT A WEIGHT, and that distinction is the whole bug it replaces.
+	The first version floored the raw weight at 1e-7 before normalising, which
+	gave the right headline number at zone 1 and then went BACKWARDS: Oganesson
+	came out at 1 in 985k in Dirt Meadow and 1 in 4.3M in zone 5. A fixed weight
+	is a smaller slice of a bigger pie, and zone 5's table is far more crowded,
+	so the same floor bought a third as much there. Owner: "It should always go
+	up". Quite right -- a long shot that gets LONGER as you dig is not a rarity
+	curve, it is a bug with a plausible shape.
+
+	Floored against the natural total instead, so the guarantee is the same
+	fraction of the roll wherever it is applied, and depth can only ever improve
+	on it. The result is flat at 1 in ~1,000,000 through the shallow zones and
+	then climbs as the natural curve overtakes the floor -- monotonic by
+	construction, which tools/verify/ladder-climbable.js asserts.
+
+	Raising this makes every long shot commoner at once and is the one dial here
+	that depth cannot undo, so move it in powers of ten and re-read that harness.
 ]]
-MineConfig.ORE_WEIGHT_FLOOR = 1e-7
+MineConfig.ORE_MIN_SHARE = 1e-6
 
 MineConfig.ORES = {
 	{ id = "stone", name = "Stone", tier = 1, color = Color3.fromRGB(131, 131, 131), material = Enum.Material.Rock, met = 0, rough = .9 },
@@ -3415,37 +3425,65 @@ function MineConfig.oreWeights(zoneId, layer, rareOre)
 		if x < 0 then
 			v = v * math.exp(x / S) * math.exp(-((x / W) ^ 2))
 		end
-		--[[
-			NOTHING IS EVER IMPOSSIBLE, ONLY ABSURD.
-
-			Owner, 2026-10-05: "every rarity should be POSSIBLE in every zone,
-			just super highly unlikely (even 1 in a million zone one)".
-
-			The logistic above falls off so hard that it stopped being a rarity
-			and became a wall: Oganesson at the floor of Dirt Meadow scored
-			3e-11, which is one find per 187,000 YEARS at ten blocks a second.
-			That is not a lottery ticket, it is a locked door with no key.
-
-			A floor under every ore's weight fixes it in one line and costs
-			nothing anywhere else, which is why it is a floor and not a gentler
-			curve. Flattening ORE_K to reach the same odds would have dragged the
-			whole distribution with it -- zone 10 goes from 55% Epic to 52% RARE
-			-- whereas the floor only ever lifts ore that was already below it:
-
-			    floor    t82 at the zone 1 floor   zone 10 Exotic   zone 1 Common
-			    none     1 in 29,000,000,000       0.173%           98.01%
-			    1e-7     1 in 984,973              0.173%           98.00%
-
-			Same curve, same endgame, and the one-in-a-million the owner asked
-			for. Applied before the cache and before normalising, so the share a
-			player actually sees is floor/tot and scales with how crowded the
-			table is at that depth.
-		]]
-		if v < MineConfig.ORE_WEIGHT_FLOOR then
-			v = MineConfig.ORE_WEIGHT_FLOOR
-		end
 		w[i] = v
 		tot += v
+	end
+	--[[
+		NOTHING IS EVER IMPOSSIBLE, ONLY ABSURD.
+
+		Owner, 2026-10-05: "every rarity should be POSSIBLE in every zone, just
+		super highly unlikely (even 1 in a million zone one)".
+
+		The logistic above falls off hard enough to stop being a rarity and
+		become a wall: Oganesson at the floor of Dirt Meadow scored 3e-11, one
+		find per 187,000 YEARS at ten blocks a second.
+
+		The floor is applied HERE, after the natural total is known, so it is a
+		minimum share of the roll rather than a minimum weight. Flooring the raw
+		weight instead made the odds go backwards with depth -- 1 in 985k at zone
+		1 but 1 in 4.3M at zone 5, because a fixed weight is a smaller slice of a
+		more crowded table. Against `tot` the guarantee is the same fraction
+		everywhere, so depth can only improve on it.
+
+		A gentler ORE_K would reach the same odds and drag the whole
+		distribution with it (zone 10 falls from 55% Epic to 52% Rare). The floor
+		only lifts what was already beneath it, so the tuned curve, the endgame
+		mix and the forge ladder all survive intact.
+	]]
+	local minShare = tonumber(MineConfig.ORE_MIN_SHARE) or 0
+	if minShare > 0 and tot > 0 then
+		--[[
+			A FIXED POINT, not one pass.
+
+			The floor is a share of the FINAL total, but lifting ore raises that
+			total, which raises the floor again. Doing it once leaves each
+			floored ore at minShare * totBefore / totAfter -- close to minShare,
+			but off by however much was lifted, and that differs by depth. Zone 1
+			lifts far more than zone 5 because far more of its roster sits under
+			the floor, so a single pass still drifted and zone 6 came out rarer
+			than zone 5.
+
+			Iterating converges on floorW = minShare * tot, where every floored
+			ore sits at EXACTLY minShare. That is what makes the guarantee flat
+			across depth, and flat is what makes the curve monotonic: the floor
+			never moves, so depth can only add. Converges in two or three passes
+			because the lift is on the order of #ORES * minShare -- about 8e-5 --
+			and the loop bails the moment nothing moves.
+		]]
+		for _ = 1, 8 do
+			local floorW = minShare * tot
+			local lifted = 0
+			for i = 1, #w do
+				if w[i] < floorW then
+					lifted += floorW - w[i]
+					w[i] = floorW
+				end
+			end
+			if lifted <= 0 then
+				break
+			end
+			tot += lifted
+		end
 	end
 	local row = { w = w, tot = tot }
 	oreWeightCache[key] = row

@@ -331,6 +331,16 @@
       if(v<M.ORE.FLOOR) v=M.ORE.FLOOR;   // MineConfig.ORE_WEIGHT_FLOOR: nothing is impossible
       w[t]=v; tot+=v;
     }
+    // Fixed point: the floor is a share of the FINAL total, so lifting raises
+    // the total which raises the floor. See MineConfig.ORE_MIN_SHARE.
+    if(M.ORE.FLOOR>0&&tot>0){
+      for(var pass=0;pass<8;pass++){
+        var fw=M.ORE.FLOOR*tot, lifted=0;
+        for(var q=1;q<=n;q++) if(w[q]<fw){lifted+=fw-w[q];w[q]=fw;}
+        if(lifted<=0) break;
+        tot+=lifted;
+      }
+    }
     var peak=1,pv=-1,hi=1;
     for(var t2=1;t2<=n;t2++){
       if(w[t2]>pv){pv=w[t2];peak=t2;}

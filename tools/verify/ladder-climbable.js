@@ -60,7 +60,7 @@ const X0 = n1(cfg, "MineConfig\\.ORE_X0", -4.2);
 const K = n1(cfg, "MineConfig\\.ORE_K", 0.45);
 const S = n1(cfg, "MineConfig\\.ORE_S", 4.0);
 const W = n1(cfg, "MineConfig\\.ORE_W", 3.0);
-const FLOOR = n1(cfg, "MineConfig\\.ORE_WEIGHT_FLOOR", 0);
+const FLOOR = n1(cfg, "MineConfig\\.ORE_MIN_SHARE", 0);
 
 // ORE_DMAX, exactly as MineConfig derives it NOW: off the LIVE depth curve,
 // anchored to the deepest normal mine minus ORE_DMAX_MARGIN.
@@ -90,9 +90,27 @@ function oreShares(zi, L) {
     const x = dOf(t) - dl;
     let v = 1 / (1 + Math.exp((x - X0) / K));
     if (x < 0) v *= Math.exp(x / S) * Math.exp(-Math.pow(x / W, 2));
-    if (v < FLOOR) v = FLOOR;   // MineConfig.ORE_WEIGHT_FLOOR
     w[t] = v;
     tot += v;
+  }
+  // MineConfig.ORE_MIN_SHARE, as a minimum SHARE and as a FIXED POINT.
+  //
+  // Flooring the raw weight inside the loop above is the bug this replaces: a
+  // fixed weight is a smaller slice of a more crowded table, so the guarantee
+  // shrank with depth and the top ore went from 1 in 98k at zone 1 to 1 in 437k
+  // at zone 7 -- rarer the deeper you dug. Lifting also raises the total, which
+  // raises the floor, so one pass is not enough either; iterating lands every
+  // floored ore on exactly ORE_MIN_SHARE, which is flat and therefore monotonic.
+  if (FLOOR > 0 && tot > 0) {
+    for (let pass = 0; pass < 8; pass++) {
+      const floorW = FLOOR * tot;
+      let lifted = 0;
+      for (let t = 1; t <= NORE; t++) {
+        if (w[t] < floorW) { lifted += floorW - w[t]; w[t] = floorW; }
+      }
+      if (lifted <= 0) break;
+      tot += lifted;
+    }
   }
   return { w, tot };
 }
@@ -235,7 +253,7 @@ const BANDS = [["Common", 1, 18], ["Uncommon", 19, 29], ["Rare", 30, 49],
     (exotic * 100).toFixed(3) + "% (floor 0.002%)");
   // EVERY rarity must be possible in EVERY zone. Owner, 2026-10-05: "every
   // rarity should be POSSIBLE in every zone, just super highly unlikely (even 1
-  // in a million zone one)". Before ORE_WEIGHT_FLOOR the logistic put Oganesson
+  // in a million zone one)". Before ORE_MIN_SHARE the logistic put Oganesson
   // at 3e-11 in Dirt Meadow -- one find per 187,000 years, which is a wall
   // wearing a probability's clothes.
   let zeroAt = null, worstOdds = 0;
@@ -254,6 +272,33 @@ const BANDS = [["Common", 1, 18], ["Uncommon", 19, 29], ["Rare", 30, 49],
   ok(worstOdds <= 5e6,
     "the longest odds are still a lottery ticket",
     "1 in " + Math.round(worstOdds).toLocaleString("en-US") + " (ceiling 1 in 5,000,000)");
+
+  // DEPTH MUST NEVER MAKE AN ORE RARER. Owner, 2026-10-05, on the top ore being
+  // 1 in 985k at zone 1 and 1 in 4.3M at zone 5: "It should always go up".
+  //
+  // That came from flooring the raw WEIGHT: a fixed weight is a smaller slice of
+  // a more crowded table, so the guarantee shrank as the roster filled in. The
+  // floor is a share of the natural total now, which makes this monotonic by
+  // construction -- so it is asserted, not assumed.
+  const TOP = NORE;
+  let brokeAt = null, prevShare = -1;
+  const curve = [];
+  for (let z = 1; z <= ZONES; z++) {
+    const s = oreShares(z, LAYERS);
+    const share = s.w[TOP] / s.tot;
+    curve.push(share);
+    // a hair of tolerance for float noise on the flat stretch
+    if (prevShare > 0 && share < prevShare * 0.999) brokeAt = z;
+    prevShare = share;
+  }
+  console.log("  top ore by zone:  " +
+    curve.map((s, i) => "z" + (i + 1) + " 1in" + Math.round(1 / s).toLocaleString("en-US")).join("  "));
+  ok(brokeAt === null,
+    "the top ore never gets rarer as you go deeper",
+    brokeAt === null
+      ? "1 in " + Math.round(1 / curve[0]).toLocaleString("en-US") + " at zone 1 -> 1 in " +
+        Math.round(1 / curve[ZONES - 1]).toLocaleString("en-US") + " at zone " + ZONES
+      : "zone " + brokeAt + " is rarer than zone " + (brokeAt - 1));
 
   const ORE_CHANCE = 1 / 200, BPS = 10;
   const hrs = 1 / (ORE_CHANCE * (w[NORE] / tot)) / BPS / 3600;
