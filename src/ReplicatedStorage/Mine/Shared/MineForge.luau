@@ -456,7 +456,28 @@ function MineForge.mount(parent, opts)
 			local haveOre = (oreId and tonumber((snapshot.ores or {})[oreId])) or 0
 			local haveDust = tonumber(snapshot.dust) or 0
 			canStep = ore ~= nil and haveOre >= ore and haveDust >= dust
-			costLine = string.format("%s %s  \u{00B7}  %s dust",
+			--[[
+				WHAT THE LEVEL BUYS, LEADING WHAT IT COSTS.
+
+				Owner, 2026-10-05: "something i could advertise when people
+				crafting a new tool by each level UP%X". This is the panel that
+				builds a tool and then levels it, so it is the place the number
+				has to appear. A price on its own is a bill; the gain in front of
+				it is the reason to pay.
+
+				Read off C.TOOL_DMG_STEP rather than written out. That is
+				perLevel(TOOL_CLIMB_DAMAGE), so it tracks TOOL_MAX_LEVEL -- +22%
+				at the current cap of 30 -- and a cap change moves this line with
+				it instead of leaving the forge advertising a number the game no
+				longer applies. Same rule this panel already follows for price.
+			]]
+			local gain = ""
+			local step = tonumber(C.TOOL_DMG_STEP)
+			if step and step > 1 then
+				gain = string.format("+%d%% damage  \u{00B7}  ",
+					math.floor((step - 1) * 100 + 0.5))
+			end
+			costLine = gain .. string.format("%s %s  \u{00B7}  %s dust",
 				num(ore or 0), (oreDef and oreDef.name) or "ore", num(dust or 0))
 			heldLine = string.format("held  %s  \u{00B7}  %s", num(haveOre), num(haveDust))
 		end
