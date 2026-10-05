@@ -31,89 +31,68 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 
 ## How it works
 
-**What you are holding.** `equippedTool(p)` in MineServer resolves the tool in
-this order:
-1. **Event Horizon tool.** In zone `bigbang`, the tool comes from
-   `MineHorizonTools` (one per dirt section, paid in space coins).
-2. **Forged ore tool.** `p.oreToolEquipped` holds a uid, which points at a row in
-   `p.oreTools`: `{uid, typeId, familyId, tier, level, trait?}`. Here `tier` is
-   the **ore's index** in `MineConfig.ORES`. The rack holds at most 200.
-3. **Chest flagship ("forever tool", the shop's "Secrets" tab).** This is
-   `p.chestTool`, looked up in `MineTools.CHEST_TOOLS`, `MineBandTools` (80 band
-   tools) or `MineTools.PASS_TOOLS` (3). Flagships are never sold on a shelf.
-4. **Zone shop tool.** `p.shopToolId`, from `MineShopLadders`: 19 per zone, 190
-   in total.
-5. **Coin ladder.** `MineTools.TOOLS` has 25 pickaxes (including `wood_pick`),
-   16 drills and 16 explosives. `p.tools[fam]` is the highest rung owned and
-   `p.toolTier[fam]` is the rung held. These rows also serve as the **frames**
-   for forged tools.
-6. `MineConfig.BARE_HANDS`, if no pickaxe has been collected yet.
+**What you are holding.** `equippedTool(p)` in MineServer checks, in order:
+1. **Event Horizon tool** (zone `bigbang`): `MineHorizonTools`, one per dirt
+   section, paid in space coins.
+2. **Forged ore tool**: `p.oreToolEquipped` (a uid) → a `p.oreTools` row
+   `{uid, typeId, familyId, tier, level, trait?}`. `tier` is the **ore's index**
+   in `MineConfig.ORES`. Rack cap 200.
+3. **Chest flagship / "forever tool"** (shop "Secrets" tab): `p.chestTool` in
+   `MineTools.CHEST_TOOLS`, `MineBandTools` (80) or `MineTools.PASS_TOOLS` (3).
+4. **Zone shop tool**: `p.shopToolId`, `MineShopLadders` (19 per zone, 190).
+5. **Coin ladder**: `MineTools.TOOLS` — 25 pickaxes (incl. `wood_pick`), 16
+   drills, 16 explosives; `p.tools[fam]` = highest rung owned, `p.toolTier[fam]`
+   = rung held. These rows are also the **frames** for forged tools.
+6. `MineConfig.BARE_HANDS` if no pickaxe was ever collected.
 
-**Families.** Pickaxe (aim and swing), drill (hold to mine), explosive (throw,
-with a cooldown). A weapon family is planned (`MineTools.FAMILIES`). You can
-forge in the order given by `MineOreTools.FAMILY_ORDER`.
+Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
+weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`.
 
-**Forged tools.** "A forged tool IS its ore" (TODO §0.15):
-- **Name** is `{Ore} {Noun}`, plus a trait prefix (`MineOreTools.name` →
-  `MineTraits.decorate`).
-- **Frame** is never picked. `MineOreTools.frameForTier` derives it by mapping
-  ore tier 1..82 proportionally onto the family's priced rungs (24 pickaxe, 16
-  drill, 16 explosive).
-- **`typeMult`** is the frame's `RARITY_RANK`, which `MineTools.rarityForTier`
-  stamps from the rung position.
-- **Levelling and recycling** happen at the [Forge](forge-and-recycling.md).
+**Forged tools** ("a forged tool IS its ore", TODO §0.15). Name `{Ore} {Noun}`
+plus a trait prefix (`MineOreTools.name` → `MineTraits.decorate`). The frame is
+never picked: `MineOreTools.frameForTier` maps ore tier 1..82 proportionally
+onto the family's priced rungs (24 / 16 / 16). `typeMult` = the frame's
+`RARITY_RANK` (stamped by `MineTools.rarityForTier`). Craft, level and scrap at
+the [Forge](forge-and-recycling.md).
 
-**Levels.** The cap is `MineConfig.TOOL_MAX_LEVEL = 30`, cut from 100 in
-commit `d505d6c`. The owner wanted a per-level gain they could advertise (*"each
-level UP%X"*). All per-level rates come from `perLevel(total)`:
-- **Damage:** `TOOL_DMG_STEP = 350^(1/29) ≈ +22.4%` per level. The whole climb
-  is worth `TOOL_CLIMB_DAMAGE 350`, which is one zone's HP growth.
-- **Upgrade cost:** `MineConfig.toolUpgradeCost` charges the tool's own ore
-  (`TOOL_ORE_BASE 4 × TOOL_ORE_GROW^(L-1)`) plus stardust (`25 ×
-  TOOL_DUST_GROW^(L-1)`). Both are multiplied by `toolCostMult`: a bell curve
-  peaking at Epic ×18 and lowest at Exotic ×1 (`TOOL_COST_BANDS`), times
-  `typeMult^0.5`.
-- **Inheritance:** a newly forged tool takes the best level on your rack
-  (`12b528a`).
-- **Old saves:** levels above the cap are clamped on load under the
-  `TOOL_CAP_V` stamp, with no refund.
+**Levels.** `MineConfig.TOOL_MAX_LEVEL = 30` (commit `d505d6c`, was 100; owner
+wanted an advertisable *"each level UP%X"*). Rates come from `perLevel(total)`:
+`TOOL_DMG_STEP = 350^(1/29) ≈ +22.4%`/level; a full climb is
+`TOOL_CLIMB_DAMAGE 350` (one zone's HP growth). `MineConfig.toolUpgradeCost` =
+own ore `TOOL_ORE_BASE 4 × TOOL_ORE_GROW^(L-1)` + stardust `25 ×
+TOOL_DUST_GROW^(L-1)`, both × `toolCostMult` (bell `TOOL_COST_BANDS`, Epic ×18
+peak, Exotic ×1 floor, × `typeMult^0.5`). A new forge inherits the best level on
+the rack (`12b528a`). Over-cap saves are clamped on load (`TOOL_CAP_V`), no refund.
 
 **Damage.** `MineConfig.toolPower = TOOL_DMG_BASE 10 × toolTierPower(tier) ×
-typeMult × STEP^(L-1)`.
-- `toolTierPower = 6^(TOOL_TIER_SPAN 7 × (t-1)/81) × TOOL_BAND_DMG[band]`.
-- The band bonus is Legendary ×2, Mythic ×4, Divine ×8 and Exotic ×16. It exists
-  because tiers 68–82 gain no new ore access at reach 15.
-- Finishes on a row multiply power: Shiny ×1.5, Shadow ×3, Nightmare ×4.5
-  (`SHINY_MULT` and so on).
+typeMult × STEP^(L-1)`; `toolTierPower = 6^(TOOL_TIER_SPAN 7 × (t-1)/81) ×
+TOOL_BAND_DMG` (Legendary ×2, Mythic ×4, Divine ×8, Exotic ×16 — because tiers
+68–82 buy no new ore access at reach 15). Row finishes: Shiny ×1.5, Shadow ×3,
+Nightmare ×4.5 (`SHINY_MULT` etc.).
 
-**Breaking power** (TODO §0.13 rules 1, 2, 11). Breaking power is never damage.
-`MineBreaking.toolBreakingPower` checks, in order:
-1. a stamped `breakingPower` or `bp`;
-2. otherwise, if the tool has `oreId` or `ore`, it returns `oreStrength(oreTier)`
-   on a 1..1000 scale;
-3. otherwise it returns `SHOP_POWER[rung]`, where `SHOP_POWER` is `{1,2,3,4,5}`.
+**Breaking power** (§0.13 rules 1, 2, 11) is never damage.
+`MineBreaking.toolBreakingPower`: a stamped `breakingPower`/`bp`; else, if the
+tool has `oreId`/`ore`, `oreStrength(oreTier)` on a 1..1000 scale; else
+`SHOP_POWER[rung]` (`{1,2,3,4,5}`).
 
 **Tutorial wooden pickaxe** (§0.13 rule 10). `Verbs.grantFirstPick` sets
-`p.tools.pickaxe = 1` (coin rung `wood_pick`). The constants are
-`WOOD_PICK_MAX_LEVEL 5` and `WOOD_PICK_COIN_BASE 35 × WOOD_PICK_COIN_GROW 1.55^(L-1)`.
-At the cap, `Verbs._graduateTutorialPick` grants `TUTORIAL_GRADUATION_TOOL =
-"stone_pick"`.
+`p.tools.pickaxe = 1` (coin rung `wood_pick`). `WOOD_PICK_MAX_LEVEL 5`, cost
+`WOOD_PICK_COIN_BASE 35 × WOOD_PICK_COIN_GROW 1.55^(L-1)` coins; at the cap
+`Verbs._graduateTutorialPick` grants `TUTORIAL_GRADUATION_TOOL = "stone_pick"`.
 
-**Models and icons.** `givePickaxe` builds the Roblox Tool. Forged tools resolve
-their mesh by ore name through `ToolModelFactory.fromNamed`, using
-`ReplicatedStorage.ToolModels_50`. That folder is Studio-only, about 80 MB, and
-not in git (AGENTS.md). Anything else is procedural, coloured by
-`ToolModelFactory.oreLook`. `src/ServerStorage/OreToolBaker.luau` bakes the 82
-heads. `MineToolIcons` is a spritesheet atlas for named tools.
+**Models and icons.** `givePickaxe` builds the Roblox Tool. Forged tools look up
+their mesh by ore name via `ToolModelFactory.fromNamed` in
+`ReplicatedStorage.ToolModels_50` (Studio-only, ~80 MB, not in git — AGENTS.md);
+otherwise procedural, coloured by `ToolModelFactory.oreLook`.
+`src/ServerStorage/OreToolBaker.luau` bakes the 82 heads. `MineToolIcons` is a
+spritesheet atlas for named tools.
 
-**Hotbar and equip.** `MineHotbar` turns off Roblox's Backpack CoreGui (the "grey
-cube"). It has up to 5 slots: 1 tool slot (2 for VIP), and the rest for
-consumables. Clicking the held slot calls `equipOreTool` with an empty uid,
-which unequips. `Verbs.equipOreTool(uid)` sets `p.oreToolEquipped`, clears the
-flagship and shop-tool selections, and calls `givePickaxe`.
-
-**Rebirth.** Forged tools, their levels and the equipped one survive. The coin
-ladder resets.
+**Hotbar and equip.** `MineHotbar` switches off Roblox's Backpack CoreGui (the
+"grey cube"): max 5 slots, 1 tool slot (2 for VIP), the rest for consumables;
+clicking the held slot sends `equipOreTool` with an empty uid (unequip).
+`Verbs.equipOreTool(uid)` sets `p.oreToolEquipped`, clears flagship and shop-tool
+picks, and calls `givePickaxe`. **Rebirth** keeps forged tools, levels and the
+equip; the coin ladder resets.
 
 ## Where it lives
 
@@ -133,7 +112,7 @@ ladder resets.
   the tool's own ore (§0.15). The wooden pickaxe is a 5-level tutorial pick paid
   in coins (§0.13 rule 10).
 - Cap 30 (owner, 2026-10-05; `docs/PR-BALANCE-PASS.md` §2).
-- **Approved, not applied:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line
+- **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line
   12).
 
 ## State right now
@@ -166,8 +145,9 @@ held tools (see below). Nothing here has run in the engine.
   row it is the rung. On the Tool instance, the attribute `Tier` is
   `lookTier`, which is cosmetic.
 - **"grade" is not a tool grade.** `MineToolGrades` is the F→SSS Clash-Royale
-  climb (`UPGRADE_P 1/3`, `MISS_LIMIT 3`) used by lucky blocks and gear. Forged
-  tools have no grade.
+  climb (`UPGRADE_P 1/3`, `MISS_LIMIT 3`); its one live server caller is the
+  lucky-block grade-up (gear now rolls letters from the temper weights, per its
+  header). Forged tools have no grade.
 - **Raising the cap above 100 fails silently.** MineServer and OreBalanceSim
   read `math.min(100, TOOL_MAX_LEVEL)`.
 - **The coin ladder's generator is missing.** The `MineTools` header says

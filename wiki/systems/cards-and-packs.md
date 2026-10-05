@@ -16,7 +16,7 @@ sources:
   - tools/verify/orepacks.js
   - docs/TODO.md §0, §9
   - docs/PROPOSAL.md §0, §I
-related: [pets-and-traits, chests-and-lucky-blocks, shops-and-monetisation, skins-cases-and-temper, charms, ore-pouch-and-backpack, trading]
+related: [pets, chests-and-lucky-blocks, shops-and-monetisation, skins-cases-and-temper, charms, ore-pouch-and-backpack, trading]
 ---
 
 # Cards and packs
@@ -24,7 +24,7 @@ related: [pets-and-traits, chests-and-lucky-blocks, shops-and-monetisation, skin
 > The game is *Mine For Cards*: a **card is a pet**. Packs are sealed bags of
 > cards (or runes, gear, coins) that you find in chests, earn, or buy with
 > credits, then rip open in a tap-through reveal. The pet's power is covered in
-> [pets-and-traits](pets-and-traits.md); this page covers where cards come from.
+> [pets](pets.md); this page covers where cards come from.
 
 `MineServer` below means `src/ServerScriptService/Mine/MineServer.server.luau`.
 
@@ -83,14 +83,11 @@ the last. Cards of Rare or better that rolled rarer than 1 in 200 carry an
 | `ore` (legacy) | `<ore>_ore_pack` | ore; converted on load (below) |
 | `lucky_block` | stored in `p.packs` | see [chests-and-lucky-blocks](chests-and-lucky-blocks.md) |
 
-**Where packs come from:**
-- zone chests ([chests-and-lucky-blocks](chests-and-lucky-blocks.md));
-- the credits shop ([shops-and-monetisation](shops-and-monetisation.md));
-- quest rewards (`MineQuests.CHAIN`);
-- invites (`Verbs.INVITE_REWARD`) and codes (`Verbs.CODES`);
-- the day-4 surprise pack (`Verbs.claimDailySurprise`);
-- AFK (`Verbs.Afk.grantPack`): 20% of packs come from your top zone (`Const.AFK_TOP_ZONE_SHARE`), the rest from zones below it;
-- lucky blocks, and the Weekend Haul product.
+**Where packs come from:** zone chests ([chests-and-lucky-blocks](chests-and-lucky-blocks.md)),
+the credits shop ([shops-and-monetisation](shops-and-monetisation.md)), quests
+(`MineQuests.CHAIN`), invites and codes (`Verbs.INVITE_REWARD`, `Verbs.CODES`),
+the day-4 surprise (`Verbs.claimDailySurprise`), AFK (`Verbs.Afk.grantPack`; 20%
+from your top zone, `Const.AFK_TOP_ZONE_SHARE`), lucky blocks and Weekend Haul.
 
 **Opening and buying.** Three verbs open packs: `open`, `openAt` and `openMany`.
 `openMany` opens up to `Const.OPEN_RUN_MAX` = 50 packs, but only 3 gear or rune
@@ -114,13 +111,13 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
 ## Where it lives
 | file | role | key symbols |
 |---|---|---|
-| `MineCards.luau` | card sets, identity, fallback odds, colours | `SETS`, `getCard`, `HIT`, `slotOdds`, `rollPack` |
-| `MinePackConfig.luau` | pack odds helpers, prices, God Pack, card pools, stardust shop | `rollCard`, `siphonOdds`, `cardPoolFor`, `variantOdds`, `PACK_PRICE` |
-| `Mine1PacksData.luau` | 25 authored pack rows | `odds`, `cards`, `shiny`, `kind` |
-| `MineZonePacks.luau` | 5 generated slots × 11 zones, plus ore packs and cases | `buildAll`, `get`, `SLOTS` |
-| `MineLootPacks.luau` | rune and gear pack roller | `rollRarity`, `isLoot` |
+| `src/ReplicatedStorage/Mine/Shared/MineCards.luau` | card sets, identity, fallback odds, colours | `SETS`, `getCard`, `HIT`, `slotOdds`, `rollPack` |
+| `src/ReplicatedStorage/Mine/Shared/MinePackConfig.luau` | pack odds helpers, prices, God Pack, card pools, stardust shop | `rollCard`, `siphonOdds`, `cardPoolFor`, `variantOdds`, `PACK_PRICE` |
+| `src/ReplicatedStorage/Mine/Shared/Mine1PacksData.luau` | 25 authored pack rows | `odds`, `cards`, `shiny`, `kind` |
+| `src/ReplicatedStorage/Mine/Shared/MineZonePacks.luau` | 5 generated slots × 11 zones, plus ore packs and cases | `buildAll`, `get`, `SLOTS` |
+| `src/ReplicatedStorage/Mine/Shared/MineLootPacks.luau` | rune and gear pack roller | `rollRarity`, `isLoot` |
 | MineServer | minting, opening, legacy banking | `mint`, `openPack`, `openMany`, `Dig.bankOrePacks` |
-| `MinePackReveal.luau` / `MinePackFX.luau` | the reveal, and the 1.4 s tear (ported from TCG Life) | `mount`, `ART`, `BAND_ORDER`, `pullScore` |
+| `src/ReplicatedStorage/Mine/Shared/MinePackReveal.luau`, `src/ReplicatedStorage/Mine/Shared/MinePackFX.luau` | the reveal, and the 1.4 s tear (ported from TCG Life) | `mount`, `ART`, `BAND_ORDER`, `pullScore` |
 
 ## Decided by the owner
 - **Packs close on a tap anywhere**, and DONE is kept as a button. Owner, 2026-10-04: *"PACKS MAKE YOU SAY DONE"* (TODO §0.27, `MinePackReveal`).
@@ -129,18 +126,15 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
 - **Ore ids and `<id>_ore_pack` ids are load-bearing.** Renaming one is a migration (TODO §9).
 - **Pity is a CONTRADICTION.** PROPOSAL §0 line 26, approved 2026-10-05, says:
   *"pack pity: Mythic+ guaranteed by pull 25, Divine+ by pull 150"*. Line 28
-  raises the Exotic floor. Older text says the opposite: TODO §9 and
-  `docs/decisions.md` both say **"No pity systems anywhere"**, and so does the
-  `MinePackConfig` header rule 1. **Neither line 26 nor line 28 is built**: no
+  raises the Exotic floor. Older text says the opposite: TODO §9 (*"No pity
+  systems. No floors, no guarantees after N."*), `docs/decisions.md` (*"No pity
+  systems anywhere."*) and the `MinePackConfig` header rule 1. **Neither line 26 nor line 28 is built**: no
   pull counter exists in `src/`. Ask the owner before building either.
 
 ## State right now
 - **Shipped and inherited.** Most of this code dates from the import (`566eecf`).
-- **Recent branch work:**
-  - typed buy quantity (`4368c03`);
-  - per-pack card pools (`c62ba47`);
-  - legacy ore-pack banking (`873ba45`);
-  - fossil removal (`ba345b7`).
+- **Recent branch work:** typed buy quantity (`4368c03`), per-pack card pools
+  (`c62ba47`), legacy ore-pack banking (`873ba45`), fossil removal (`ba345b7`).
 - **Never confirmed in engine**, like the rest of the branch (START-HERE §5).
 
 ## Gotchas
@@ -171,4 +165,4 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
 - Should the X/Y roster be wired into minting?
 
 ## See also
-[pets-and-traits](pets-and-traits.md) · [chests-and-lucky-blocks](chests-and-lucky-blocks.md) · [shops-and-monetisation](shops-and-monetisation.md) · [trading](trading.md) · [ore-pouch-and-backpack](ore-pouch-and-backpack.md) · [glossary](../glossary.md)
+[pets](pets.md) · [chests-and-lucky-blocks](chests-and-lucky-blocks.md) · [shops-and-monetisation](shops-and-monetisation.md) · [trading](trading.md) · [ore-pouch-and-backpack](ore-pouch-and-backpack.md) · [glossary](../glossary.md)

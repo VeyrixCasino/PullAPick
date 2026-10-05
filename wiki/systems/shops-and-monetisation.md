@@ -77,7 +77,7 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     a 28-day season, `PASS_SEASON_ID` "2026-10".
   - XP comes from digging (+1), selling (+25) and packs (+10 to +25).
   - The free track pays at most 100 credits in total; the premium track pays at most 1,200.
-  - `TCGServer/BattlePass.luau` is an unrelated AFK-place stub.
+  - `src/ServerScriptService/TCGServer/BattlePass.luau` is an unrelated AFK-place stub.
 - **`MineConfig.PRODUCTS`** lists: patron_rig, lucky_charm, lucky_block_pet, two
   deals, starter_bundle 129, weekend_haul 349, group_wheel_1/5/10, coin_double
   299, auto_mine 499, founders, and pet_slot (retired). **Every one has
@@ -102,8 +102,8 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
   - **Price:** 799 credits, or the Founders gamepass.
   - **What it gives:** a White Scroll, the Founder tag VFX, and +5% luck in `boosts`.
   - **Seats:** `VIP_SEATS` 500 per *server*, reset whenever that server restarts.
-  - **The name clash.** MineServer's `isVip(p)` and `MinePackConfig.VIP_*`
-    (VIP_PRICE, VIP_SEATS, VIP_DISCOUNT) mean **Founders**, not the VIP gamepass.
+  - **The name clash.** MineServer's `isVip(p)` and `MinePackConfig.VIP_PRICE`,
+    `MinePackConfig.VIP_SEATS` and `MinePackConfig.VIP_DISCOUNT` mean **Founders**, not the VIP gamepass.
 
 ## Decided by the owner
 - **The Forge leads the Shop panel.** The coin shop stays reachable, but not first (TODO §0.14, `MineShopView.TABS` comment).

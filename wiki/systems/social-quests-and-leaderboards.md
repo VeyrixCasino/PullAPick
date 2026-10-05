@@ -120,12 +120,12 @@ perks. See [shops-and-monetisation](shops-and-monetisation.md).
 ## Where it lives
 | file | role |
 |---|---|
-| `SocialService.luau`, `MineSocialView.luau`, `MineProfileView.luau` | friends, chat and profile; the views are unmounted |
-| `MineQuests.luau`, `MineContractor.luau` | quest data and the Job Board UI |
-| `LeaderboardService/init.luau` | boards, pedestals, depth boards (`_Bak/` holds old copies) |
-| `MineBadges.luau`, `MineFounders.luau` | badges; Founders membership |
-| `GroupWheelService.luau`, `MineGroupWheel.luau`, `MineGroupWheelView.luau` | wheel: live copies, plus the parked copy under `ServerStorage/MineParked` |
-| `MineDiscordLink.luau` and the `MineDiscordLink*` / `MineDiscordBridge` scripts | Discord link and flags |
+| `src/ServerScriptService/Mine/SocialService.luau`, `src/ReplicatedStorage/Mine/Shared/MineSocialView.luau`, `src/ReplicatedStorage/Mine/Shared/MineProfileView.luau` | friends, chat and profile; the views are unmounted |
+| `src/ReplicatedStorage/Mine/Shared/MineQuests.luau`, `src/ReplicatedStorage/Mine/Shared/MineContractor.luau` | quest data and the Job Board UI |
+| `src/ServerScriptService/Mine/LeaderboardService/init.luau` | boards, pedestals, depth boards (`_Bak/` holds old copies) |
+| `src/ServerScriptService/Mine/MineBadges.luau`, `src/ReplicatedStorage/Mine/Shared/MineFounders.luau` | badges; Founders membership |
+| `src/ServerScriptService/Mine/GroupWheelService.luau`, `src/ReplicatedStorage/Mine/Shared/MineGroupWheel.luau`, `src/ReplicatedStorage/Mine/Shared/MineGroupWheelView.luau` | wheel: live copies, plus the parked copy under `ServerStorage/MineParked` |
+| `src/ReplicatedStorage/Mine/Shared/MineDiscordLink.luau`, `src/ServerScriptService/Mine/MineDiscordLinkServer.server.luau`, `src/ServerScriptService/Mine/MineDiscordBridge.server.luau`, `src/StarterPlayer/StarterPlayerScripts/MineDiscordLinkClient.client.luau` | Discord link and flags |
 
 ## Decided by the owner
 - **Depth leaderboard.** The owner asked for one in the 2026-10-04 list (TODO

@@ -54,7 +54,7 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
     - The same check then rebuilds the file, so a second run passes. Confirmed
       by re-running.
   - `wiki` FAIL. `tools/verify/wiki.js` arrived with the wiki itself, in the
-    commit after `26036a0`. It fails until `wiki/index.md` and `wiki/log.md` exist.
+    commit after `26036a0`. It fails until the wiki index and log pages exist.
   - `trap` **passes**. `suite.sh` still lists it in `KNOWN_FAIL`, and START-HERE
     §1, §5, HANDOFF §2.4 and OPEN Housekeeping all still say it fails. Those
     notes are stale; `5a85c73` fixed it. `zones` also passes, although OPEN

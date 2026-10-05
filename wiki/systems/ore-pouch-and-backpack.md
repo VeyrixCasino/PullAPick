@@ -109,14 +109,14 @@ runs on every load, after the roster migrations:
   Deleting them would renumber every `bag_<index>` (TODO §0.12).
 - **`ORE_GEM_SPREAD` 1e6 → 1e4** (PROPOSAL §0 line 16), and the gemvault/warren
   prices should become 60 × the gem value of the zone's top ore (line 17).
-  **Approved, but neither is applied:** the code still has 1e6.
+  **Decided, not shipped:** the code still has 1e6.
 - `backpack` is retired as a boost. Capacity comes only from the bag ladder and
   the pouch (TODO §0.21).
 
 ## State right now
 
 The pouch, its verbs and its UI are shipped, and so is legacy pack banking. The
-gem-spread retune is approved but not built. None of this has been tested in
+gem-spread retune is decided but not shipped. None of this has been tested in
 the engine.
 
 ## Gotchas

@@ -231,6 +231,8 @@ for (const [p, f] of parsed) {
   const body = f.body.replace(/```[\s\S]*?```/g, "");
   for (const m of body.matchAll(/`([^`\n]+)`/g)) {
     for (const s of m[1].matchAll(/\b([A-Z][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
+      // `MineCharms.luau` is a file name, not a claim about a symbol.
+      if (/^(luau|lua|server|client|md|js|json|txt|html|ps1|sh|rbxm)$/.test(s[2])) continue;
       const file = moduleFiles.get(s[1]);
       if (!file) continue;
       symbolsChecked++;

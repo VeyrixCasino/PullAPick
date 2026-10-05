@@ -107,8 +107,9 @@ related: [skins-cases-and-temper, boosts-and-stats, ores, chests-and-lucky-block
   (`PACK_PRICE_GEMS` 2500, never a duplicate), the chest `charm` row (weight 1.1,
   draws from `packPool`), and Pot of Gold via `MineRotatingOffers` / Robux.
 - **Proposed, not built:** cut 164 generated charms to about 24 hand-authored rule-charms
-  (AUDIT §4, OPEN §8). AUDIT's reason: about 78 charms share a signature with another
-  and differ only in magnitude, which is the clone family §0.13 forbids.
+  (AUDIT §4, OPEN §8). AUDIT's reason is that "a Diamond Surge Charm is a Coal Surge
+  Charm with a bigger number". In numbers: there are only 86 signatures across 164 charms, so 78
+  repeat an earlier signature at a different size (derived from `EXPECTED_SIGNATURES`; not stated in AUDIT).
 - **Charm icons: blocked on the owner.** `tools/icons/gen-charm-art.js` drew 164
   PNGs into the gitignored `build/charm-icons/`. The owner rejected them; their reference is
   jewellery (TODO §0.27, BLOCKED #11). This checkout has only `manifest.json`

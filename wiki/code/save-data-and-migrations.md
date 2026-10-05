@@ -14,7 +14,7 @@ sources:
   - docs/TODO.md §9
   - tools/verify/statkeys.js
   - tools/verify/orepacks.js
-related: [server, luau-traps, ores, ore-pouch-and-backpack, tools, enchantments-runes-and-gear, retired-and-parked]
+related: [server, luau-traps, ores, ore-pouch-and-backpack, tools, traits, retired-and-parked]
 ---
 
 # Save data and migrations

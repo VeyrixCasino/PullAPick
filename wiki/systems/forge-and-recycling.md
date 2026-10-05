@@ -105,7 +105,7 @@ The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
 - **A forged tool is its ore** (TODO §0.15). Owner: *"If i want to upgrade my
   stone pick, it should cost stone, at an increasing amount each time."* CRAFT,
   UPGRADE and SHOP are modes on the left rail.
-- **Approved but not applied** (PROPOSAL §0):
+- **Decided, not shipped** (PROPOSAL §0):
   - `CRAFT_BLOCKS` 30 → **25**, and `CRAFT_DEPTH_SLOPE` 4 → **10** (lines 9–10).
     Tier 82 would then cost 122 blocks.
   - `TOOL_RECYCLE_PCT` flat 0.50 → **0.50 + 0.10 × (tier-1)/81, capped at 0.60**

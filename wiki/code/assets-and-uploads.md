@@ -58,14 +58,14 @@ The owner said so (START-HERE §6, BLOCKED #11). Do not generate icon art.
   (HANDOFF §2.6).
 - The pipeline is built and waiting for art. The steps are: upload as the
   group; write the ids file (`build/charm-icons/ids.json`, which does not exist yet);
-  then run `node tools/gen-charm-icons.js`. That writes `MineCharmIcons.luau`,
+  then run `node tools/gen-charm-icons.js`. That writes `MineCharmIcons`,
   which does not exist yet either, so nothing reads charm icons today.
 
 ## What is in `build/`
 
 | path | tracked? | what |
 |---|---|---|
-| `build/icons/ids.json`, `build/icons/roster.txt` | yes | ore name → asset id for **82 ore icons and 82 case icons**, uploaded 2026-09-30 (`f5b6c34`). `tools/gen-ore-icons.js` turns them into `MineOreIcons.luau`. |
+| `build/icons/ids.json`, `build/icons/roster.txt` | yes | ore name → asset id for **82 ore icons and 82 case icons**, uploaded 2026-09-30 (`f5b6c34`). `tools/gen-ore-icons.js` turns them into `MineOreIcons`. |
 | `build/charm-icons/manifest.json` | yes | metadata for the 164 generated charm icons |
 | `build/charm-icons/*.png` | no (gitignored) | rebuilt by `gen-charm-art.js` |
 | `build/ore-sheet/` | yes | 30 hand-made ore faces (`ore_NN.png`), the source sheet, `tiles.json`, `ORE_FACE.lua`, and `ASSETS.md`, which explains why the uploaded faces did not render |

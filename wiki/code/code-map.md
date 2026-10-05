@@ -57,14 +57,14 @@ children (AGENTS.md).
 
 | module | lines | note |
 |---|---|---|
-| `MineInventoryView.luau` | 7,867 | the one big window for packs, cards, chests, shop and passes |
-| `MineConfig.luau` | 3,805 | zones, ores (`MineConfig.ORES`, 82 rows), tools, the migration tables, the DataStore name |
-| `PetModelFactory.luau` | 3,241 | the procedural pet builder |
-| `MinePackConfig.luau` | 2,725 | packs |
-| `MineShopView.luau` | 2,483 | the shop. It hosts the Forge and Ore Pouch tabs. |
-| `MineToolIcons.luau`, `MineOreArt.luau` | 106 KB, 133 KB | data blobs. `MineOreArt` is packed pixels for block faces. |
+| `MineInventoryView` | 7,867 | the one big window for packs, cards, chests, shop and passes |
+| `MineConfig` | 3,805 | zones, ores (`MineConfig.ORES`, 82 rows), tools, the migration tables, the DataStore name |
+| `PetModelFactory` | 3,241 | the procedural pet builder |
+| `MinePackConfig` | 2,725 | packs |
+| `MineShopView` | 2,483 | the shop. It hosts the Forge and Ore Pouch tabs. |
+| `MineToolIcons`, `MineOreArt` | 106 KB, 133 KB | data blobs. `MineOreArt` is packed pixels for block faces. |
 
-`MineSkillData.luau` and `MineTools.luau` carry a GENERATED header. The skill tree
+`MineSkillData` and `MineTools` carry a GENERATED header. The skill tree
 is rebuilt by `tools/skills/gen.js`. The generator for `MineTools` is missing (HANDOFF §2.3).
 
 Other ReplicatedStorage contents:
@@ -116,7 +116,7 @@ Nearly everything below came in with the first Studio import, `566eecf`
 | `src/ReplicatedStorage/MineGear_AdminTest.luau`, `MineBags_NameCheck.luau` | old copies of the modules, at the RS root. They require siblings that do not exist there. | AUDIT §5, file headers |
 | `src/ReplicatedStorage/MineGear.luau`, `MineBagNames.luau` (RS root) | stale or byte-identical copies of the `Mine/Shared` modules. **Not on AUDIT's list.** | md5sum |
 | `src/ServerStorage/chk_824649944.luau`, `rig_545528744.luau` | numbered scratch copies of PetModelFactory | AUDIT §5 |
-| `CaptureToolIcons.luau`, `CaptureToolIconsFresh.luau`, `CaptureToolIcons_Live.luau` | three byte-identical Studio scripts | md5sum, AUDIT §5 |
+| `CaptureToolIcons`, `CaptureToolIconsFresh`, `CaptureToolIcons_Live` | three byte-identical Studio scripts | md5sum, AUDIT §5 |
 | `ServerStorage/Wave13Batches`, `Wave14Batches`, `Wave14Existing`, `Wave12*.luau` | batches from mesh-generation jobs (GenerationService prompts) | file contents |
 | `ServerStorage/_AgentDump`, `_ToolRenameMap`, `_ToolFolderNames`, `_Icon*`, `_HQInstall*`, `_UniqueInstallProgress*` | state files and dumps from Studio agents | names, contents |
 | `ServerStorage/ToolGenerationQueue.rbxm`, `ToolGenerationLeftovers.rbxm` | 2.4 MB and 5.7 MB of models | sizes |
@@ -125,7 +125,7 @@ Nearly everything below came in with the first Studio import, `566eecf`
 | `src/ServerStorage/OreToolBaker.luau` | committed, but nothing requires it. It has its own 82-row roster. | TODO §4 (corrected 2026-10-05), BLOCKED #14 |
 | `src/ServerStorage/OreBalanceSim.luau` | an offline sim. It reads five MineConfig symbols that no longer exist. | BLOCKED, "Broken, not blocked" |
 | `src/ServerStorage/MineParked/GroupWheel/` | the parked group wheel. The live `GroupWheelService` is still routed (`spin`), but the lobby build call is commented out in MineServer. | README.txt, grep |
-| `MineBenchView.luau` | superseded by the Forge (AUDIT says "already unmounted") | AUDIT §5 |
+| `MineBenchView` | superseded by the Forge (AUDIT says "already unmounted") | AUDIT §5 |
 
 The Studio bakers in ServerStorage (`OreToolBaker`, `UniqueToolBaker`,
 `ExplosiveMeshBaker`, `ToolKitProceduralBake`, `BagMeshPrompts`) are tools, not

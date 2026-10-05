@@ -11,7 +11,7 @@ sources:
   - roadmap/PRINCIPLES.md §3, §5, §8
   - docs/AUDIT.md §5
   - docs/TODO.md §0.12, §0.17
-related: [cards-and-packs, currencies-and-economy, enchantments-runes-and-gear, pets-and-traits, forge-and-recycling]
+related: [cards-and-packs, currencies-and-economy, traits, hats-and-faces, pets, forge-and-recycling]
 ---
 
 # Trading
@@ -24,7 +24,7 @@ related: [cards-and-packs, currencies-and-economy, enchantments-runes-and-gear, 
 
 ## How it works
 
-The flow is written out in the header of `TradeService.luau`:
+The flow is written out in the header of `TradeService`:
 
 1. **Invite.** One player invites the other with `tradeAsk`. The invite lives
    `INVITE_TTL` 30 s, a player can send one every `INVITE_COOLDOWN` 4 s, and nobody
@@ -90,9 +90,9 @@ just returns a toast.
 ## Where it lives
 | file | role | key symbols |
 |---|---|---|
-| `TradeService.luau` | sessions, offers, escrow, commit | `invite`, `setOffer`, `confirm`, `commit`, `COINFLIP_ENABLED`, `MAX_ITEMS` |
-| `MineTradeValue.luau` | stardust-equivalent prices | `cardValue`, `packValue`, `runeValue`, `gearValue`, `total` |
-| `MineTradeView.luau` | the trade window, mounted in MineClient as `ClientFns.tradeCtl` | `mount` |
+| `src/ServerScriptService/Mine/TradeService.luau` | sessions, offers, escrow, commit | `invite`, `setOffer`, `confirm`, `commit`, `COINFLIP_ENABLED`, `MAX_ITEMS` |
+| `src/ReplicatedStorage/Mine/Shared/MineTradeValue.luau` | stardust-equivalent prices | `cardValue`, `packValue`, `runeValue`, `gearValue`, `total` |
+| `src/ReplicatedStorage/Mine/Shared/MineTradeView.luau` | the trade window, mounted in MineClient as `ClientFns.tradeCtl` | `mount` |
 | MineServer | action router (`tradeAsk` … `tradeConfirm`), serial registry, policy | `transferSerial`, `isCardSerial`, `runeBusy`, `Verbs.fetchPolicy` |
 
 There is a second, broken entry point. `MineProfileView` has a trade button, but
@@ -143,4 +143,4 @@ nothing mounts that view ([social-quests-and-leaderboards](social-quests-and-lea
 - Should pet and gear runes be detached and returned on trade?
 
 ## See also
-[cards-and-packs](cards-and-packs.md) · [currencies-and-economy](currencies-and-economy.md) · [enchantments-runes-and-gear](enchantments-runes-and-gear.md) · [forge-and-recycling](forge-and-recycling.md) · [save-data-and-migrations](../code/save-data-and-migrations.md)
+[cards-and-packs](cards-and-packs.md) · [currencies-and-economy](currencies-and-economy.md) · [traits](traits.md) (runes) · [hats-and-faces](hats-and-faces.md) (gear) · [pets](pets.md) · [forge-and-recycling](forge-and-recycling.md) · [save-data-and-migrations](../code/save-data-and-migrations.md)

@@ -16,7 +16,7 @@ sources:
   - docs/PROPOSAL.md §0, §A, §C
   - docs/OPEN.md §10
   - docs/BALANCE-MEASURED.md
-related: [mining-and-breaking, rebirth-and-skill-tree, pets-and-traits, hats-and-faces, enchantments-runes-and-gear, charms, skins-cases-and-temper, save-data-and-migrations]
+related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-faces, charms, skins-cases-and-temper, save-data-and-migrations]
 ---
 
 # Boosts and stats
@@ -105,7 +105,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets-and-traits, hats-and
   - hats 16…80 and faces 20…100;
   - pets 34…150, with the variant stack bringing a perfect Exotic to 375;
   - blast chance on at most 15% of pets.
-  - **Not yet built** (Layer 2 tables still differ; see [hats-and-faces](hats-and-faces.md), [pets-and-traits](pets-and-traits.md)).
+  - **Not yet built.** `MineGear.SHEET` is still hat 30%…350% and face 15%…175%. See [hats-and-faces](hats-and-faces.md) and [pets](pets.md).
 - **Line 30 is not done either.** It said to regenerate `MineStats.TYPE_KITS` from the elements. The table still lists `backpack`, `walkSpeed` and `fossilFind`, which leaves 193 pets with a dead stat.
 
 ## State right now
@@ -122,11 +122,11 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets-and-traits, hats-and
 - **Stale descriptions.**
   - `MineStats` descriptions: zap "up to 6 hops" (it is 16), earthquake "Does not stack" (it does), gemFind "dropped by ore" (it only applies to chests).
   - The `MineSkillData` header promises caps that do not exist.
-- **Additive-stat lists are duplicated** in `MineCards.ADDITIVE_STATS`, an inline `ADDITIVE_BOOST` in `boosts`, `MineRunes.clampBoosts` and `MinePotions.applyBoosts`. They have drifted: the potions list lacks `procPower` and `earthquake`.
+- **The list of additive stats is copied in four places:** `MineCards.ADDITIVE_STATS`, the inline `ADDITIVE_BOOST` in `boosts` (used for relics and charter), `MineRunes.clampBoosts` and `MinePotions.applyBoosts`. The copies have drifted. `ADDITIVE_BOOST` lacks `procPower`, so a relic or charter row granting it would multiply 0. Nothing grants it there today.
 
 ## Open questions
 - Wire skins and tools into `T1`, and widen the skill filter (`docs/OPEN.md` §10).
 - Hats as chest drops, drill-friendly boosts and overlap guardrails (§10). Gear sets on the new luck channels (PROPOSAL line 29).
 
 ## See also
-[pets-and-traits](pets-and-traits.md) · [hats-and-faces](hats-and-faces.md) · [enchantments-runes-and-gear](enchantments-runes-and-gear.md) · [charms](charms.md) · [skins-cases-and-temper](skins-cases-and-temper.md) · [rebirth-and-skill-tree](rebirth-and-skill-tree.md) · [save-data-and-migrations](../code/save-data-and-migrations.md)
+[pets](pets.md) · [traits](traits.md) · [hats-and-faces](hats-and-faces.md) · [charms](charms.md) · [skins-cases-and-temper](skins-cases-and-temper.md) · [rebirth-and-skill-tree](rebirth-and-skill-tree.md) · [save-data-and-migrations](../code/save-data-and-migrations.md)

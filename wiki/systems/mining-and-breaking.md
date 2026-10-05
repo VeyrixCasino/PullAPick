@@ -50,7 +50,12 @@ related: [zones-layers-and-seams, boosts-and-stats, tools, ores, forge-and-recyc
 | Zap | `zap`, **not clamped** | any swing | 0.25 per hop, up to `ZAP_MAX_HOPS 16`. The chance to continue is multiplied by `ZAP_FALLOFF 0.89` each hop. |
 | Echo | only a tool with `special == "echo"` (the `echo` stat is folded into swing rate) | any swing | A full hit on a different neighbour. That neighbour rolls its own procs, but never its own echo. |
 
-`Dig.PROC_SKIP` keeps chests, crates, cores and lucky blocks out of procs. Proc damage is computed in `MineConfig.procDamage` and nowhere else.
+`Dig.PROC_SKIP` covers chests, crates, cores and lucky blocks:
+- They never *start* Blast, Ricochet or Earthquake.
+- Blast and Ricochet also never *land on* them.
+- **Zap's target list does not check `PROC_SKIP`**, so a zap hop can hit one.
+
+Proc damage is computed in `MineConfig.procDamage` and nowhere else.
 
 **Pay while digging.** `payDamage` turns every point of HP landed into one dirt in the bag and one coin (× `coinBonus`). The coins are priced into `haulMix` at the moment you mine, and are paid out when you sell at an outpost. With a full bag the rock still breaks and the ore still drops; you just stop being paid. See [currencies](currencies-and-economy.md).
 

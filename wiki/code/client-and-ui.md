@@ -33,16 +33,11 @@ related: [server, code-map, luau-traps, rojo-and-studio, tools]
   - The workaround is the client's version of `Dig`: **`local ClientFns = {}`**,
     with about 130 `ClientFns.x` functions hung off it. New helpers go there.
     **Do not add top-level locals to this file** (its own comment says so).
-- What happens at startup, in order:
-  1. `MineBuild.announce` prints the build stamp (next section).
-  2. Requires. `net` is set to `ReplicatedStorage.Mine.Remotes.MineNet`.
-  3. Any stale `MineUI` ScreenGui is destroyed, and a fresh one is made:
-     `gui.Name = "MineUI"`, DisplayOrder 80, `IgnoreGuiInset`.
-  4. `MineUI.watch(gui)` runs under `pcall`.
-  5. Audio starts under `pcall`.
-  6. HUD scaling is set up.
-  7. The views are mounted.
-  8. The `net.OnClientEvent` ladder is connected.
+- **Startup order:** `MineBuild.announce` (next section); requires, with `net` set
+  to `ReplicatedStorage.Mine.Remotes.MineNet`; a fresh `MineUI` ScreenGui
+  (DisplayOrder 80, `IgnoreGuiInset`) replacing any stale one; `MineUI.watch(gui)`
+  and audio, each under `pcall`; HUD scaling; the views; then the
+  `net.OnClientEvent` ladder.
 - **Talking to the server.** Requests go out as `net:FireServer(action, payload)`.
   Replies come back through one `net.OnClientEvent:Connect(function(action, payload, extra))`,
   a 52-branch `if action == …` ladder. Names often differ from the server's side
@@ -88,11 +83,9 @@ the shop does not pass arrives as nil, and nothing errors.
 - **`MineTheme`** holds the palette and fonts. It was rethemed in `44a1d5f`
   (2026-10-05) from warm brown to cool indigo, with every value sampled from a
   reference screen the owner supplied.
-  - Tokens include GOLD (title and the single primary action), GEM (cyan, for
-    tier and gems), ACCENT (violet, for selection and rarity) and EDGE (the lit
-    hairline).
-  - The display font is BuilderSansBold.
-  - 23 files read MineTheme.
+  Tokens include GOLD (title and the one primary action), GEM (cyan: tier,
+  gems), ACCENT (violet: selection, rarity) and EDGE (the lit hairline). The
+  display font is BuilderSansBold. 23 files read MineTheme.
 - **`MineUI`** is a set of constructors: `panel`, `card`, `tile`, `pill`, `button`,
   `icon`, `text`, `title`, `muted`, `flow`. Each one applies the same radius,
   hairline, padding and gradient. New UI should be built with these, never with
@@ -123,11 +116,9 @@ the shop does not pass arrives as nil, and nothing errors.
 - The default Roblox Backpack is switched off
   (`SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)`), which removes the
   "grey cube".
-- In its place, a strip of at most 5 square slots is drawn with MineUI and
-  MineIcons.
-  - Slot 1 is the tool slot. VIP players get 2 tool slots.
-  - The other slots are for consumables.
-  - The bar is only as wide as the slots in use.
+- In its place, at most 5 square slots are drawn with MineUI and MineIcons:
+  slot 1 holds the tool (VIP players get 2 tool slots), the rest hold
+  consumables, and the bar is only as wide as the slots in use.
 - It renders from the snapshot and reports clicks. The server's `equipOreTool`
   treats an empty uid as "unequip".
 - Owner requests from 2026-10-05 are quoted in the module header.
@@ -141,7 +132,7 @@ the shop does not pass arrives as nil, and nothing errors.
   that threw an error on every client load.
 - **Layering by DisplayOrder**: HUD `MineUI` is 80, `MineGradeReveal` defaults to
   95, and `MinePackReveal` and the lucky-block screen are both 120. The lucky
-  screen moving from 110 to 120 is the one change confirmed in-engine (TODO §0.33).
+  screen moving from 110 to 120 was the first change the owner confirmed in-engine (TODO §0.32).
 - **Loading screen**: `src/ReplicatedFirst/MineLoadingScreen.client.luau` removes
   the default loader and shows a splash image asset.
 

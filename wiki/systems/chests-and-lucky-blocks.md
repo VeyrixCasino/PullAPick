@@ -100,11 +100,11 @@ is injected from `S_QUEUE`.
 ## Where it lives
 | file | role | key symbols |
 |---|---|---|
-| `MineZoneChests.luau` | zone chest defs, pools, exclusives, payouts | `DEFS`, `POOLS`, `rollSpawn`, `exclusiveFor`, `rollPackDrops`, `GEM_MULT` |
-| `Mine1ChestsData.luau` | 80-row catalog of chests with layer bands | `layers`, `weight`, `packs` |
-| `MineChestRanks.luau` | S..F ladder and aging | `WEIGHT`, `agePool`, `roll` |
-| `MineChestModel.luau` | the visible chest | `PALETTE` |
-| `MineLuckyBlocks.luau` | types, shop rows, grade-up, loot | `TYPES`, `SHOP`, `UPGRADE_P`, `rollLoot` |
+| `src/ReplicatedStorage/Mine/Shared/MineZoneChests.luau` | zone chest defs, pools, exclusives, payouts | `DEFS`, `POOLS`, `rollSpawn`, `exclusiveFor`, `rollPackDrops`, `GEM_MULT` |
+| `src/ReplicatedStorage/Mine/Shared/Mine1ChestsData.luau` | 80-row catalog of chests with layer bands | `layers`, `weight`, `packs` |
+| `src/ReplicatedStorage/Mine/Shared/MineChestRanks.luau` | S..F ladder and aging | `WEIGHT`, `agePool`, `roll` |
+| `src/ReplicatedStorage/Mine/Shared/MineChestModel.luau` | the visible chest | `PALETTE` |
+| `src/ReplicatedStorage/Mine/Shared/MineLuckyBlocks.luau` | types, shop rows, grade-up, loot | `TYPES`, `SHOP`, `UPGRADE_P`, `rollLoot` |
 | MineServer | spawn, break, open | `rollKind`, `openChestBlock`, `Verbs.openLucky`, `Verbs.luckyGradeUp` |
 
 ## Decided by the owner
