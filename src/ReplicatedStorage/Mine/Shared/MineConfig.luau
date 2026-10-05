@@ -1261,7 +1261,20 @@ MineConfig.RICOCHET_HOPS = 1
 ]]
 MineConfig.PROC_SHARE = {
 	blast = 0.35,
-	zap = 0.45,
+	--[[
+		0.45 -> 0.25. Owner, 2026-10-05: nerf the zap proc.
+
+		Falloff is odds-only now, so every one of up to sixteen hops lands for
+		the full share instead of fading to 17% by the end. That roughly doubled
+		what a chain is worth: at 250% zap the expected total went to 5.63
+		swings against blast's 2.10 ceiling.
+
+		Cutting the share rather than the odds keeps the chain long -- 250% still
+		reaches all sixteen 7.7% of the time -- while the expected total lands at
+		3.13 swings and the absolute worst case at 4.00. Beside blast, not on top
+		of it.
+	]]
+	zap = 0.25,
 	ricochet = 0.60,
 	-- Superseded by the stack model, which prices a quake as
 	-- QUAKE_STACK_SHARE per stack per second. Kept so procDamage("quake")

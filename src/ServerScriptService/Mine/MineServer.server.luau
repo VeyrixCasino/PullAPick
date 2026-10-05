@@ -6092,8 +6092,19 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		end
 		local pick = opts[rng:NextInteger(1, #opts)]
 		net:FireClient(plr, "loot", { text = "ZAP", color = Color3.fromRGB(250, 220, 80), pos = pick.part.Position })
-		pcall(swingNeighbour, plr, pick.part,
-			math.max(1, math.floor(zapBase * (falloff ^ (hops - 1)))), p)
+		--[[
+			FALLOFF IS ODDS ONLY. Owner, 2026-10-05.
+
+			Every hop hits for the same zapBase. The decay lives entirely in
+			`chance` below, so a long chain is rare rather than weak -- the
+			sixteenth block takes exactly what the first did.
+
+			It used to decay both, which meant the far end of a chain was
+			simultaneously unlikely AND nearly worthless: at hop 16 it dealt
+			0.89^15 = 17% of a hop. Paying twice for the same falloff is what
+			made the tail of the chain not worth reaching.
+		]]
+		pcall(swingNeighbour, plr, pick.part, zapBase, p)
 		chance *= falloff
 		if rng:NextNumber() >= chance then
 			break
