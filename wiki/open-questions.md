@@ -2,7 +2,7 @@
 title: Open questions, contradictions and probable bugs
 type: meta
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-05 @ b19c4c2
 sources:
   - docs/OPEN.md
   - docs/BLOCKED.md
@@ -19,6 +19,11 @@ related: [owner, sources-of-truth, overview, mining-and-breaking, save-data-and-
 > asking the owner something, and the first place to add a question you
 > cannot answer. Each entry names where the detail lives.
 >
+> **Bugs 1 and 2 were fixed upstream the same day** (`b19c4c2` on PR #6, which
+> credits the wiki research pass). They stay in the table, struck as fixed, as a
+> record of how the loop works: the wiki finds, the owner's session fixes, the
+> wiki re-ingests.
+>
 > **Confidence labels.** *Read* means I (Claude, in the wiki-building session)
 > checked the cited code myself. *Reported* means a research pass found it and I
 > did not independently check it. **Nothing here has been run in Roblox.**
@@ -30,8 +35,8 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 
 | # | what | confidence | where |
 |---|---|---|---|
-| 1 | **Every held tool seems to have breaking power 1.** The row `equippedTool` builds for a forged ore tool has `id = "oretool_<uid>"` and no `oreId`, `oreTier`, `tier` or `breakingPower`. `MineBreaking.toolBreakingPower` then falls through to `SHOP_POWER[1]`. Two research passes also simulated it in standalone Luau and report a stall at zone 1, layer 50. The `BreakPower` attribute stamped on tools is never read by the gate. No check in `tools/verify/` covers this. | *Read*, plus two simulations (reported) | [mining-and-breaking](systems/mining-and-breaking.md); `MineServer.equippedTool`, `MineBreaking.toolBreakingPower` |
-| 2 | **The ore-roster migration re-runs on every load.** The v1 block is guarded by `p.oreRosterV ~= 1`, so a save stamped 2 enters it, is re-stamped to 1, and then fails `~= 2` and enters v2 again. The comment says "v2 -> nothing". Per the ore pass, v2 re-points every forged tool through `ORE_TIER_REMAP_V2` each time (82 → 51 → 31 …). The guard is *Read*; the effect on tools is *reported* (node simulation). | *Read* (guard), *reported* (effect) | [save-data-and-migrations](code/save-data-and-migrations.md); `MineServer` `p.oreRosterV` |
+| 1 | **FIXED in `b19c4c2`: every forged tool had breaking power 1.** The row `equippedTool` built for a forged tool had no `oreId`, `oreTier`, `tier` or `breakingPower`, so `MineBreaking.toolBreakingPower` fell through to `SHOP_POWER[1]`. The fix commit measured it in a live session: before, every tool from Stone to Oganesson stopped at zone 1, layer 50. The row now carries `oreTier` and `oreId`, derived per swing so no migration is needed. `tools/verify/heldtool.js` pins it. This was the wiki's first catch. | *Read* in code; the commit message reports the live before/after | [mining-and-breaking](systems/mining-and-breaking.md); `MineServer.equippedTool` |
+| 2 | **FIXED in `b19c4c2`: the ore-roster migrations re-ran on every load.** The v1 and v2 guards used `~=`, so a save stamped 2 re-entered v1, stamped itself back to 1, and then re-entered v2. Both guards now test `< version` (monotonic). **Not stated in the commit: whether saves already damaged by earlier re-runs were repaired.** The live log showed 0 changes, so any damage would only show on a save that held old-roster tools. | *Read* (guards); damage to saves unverified | [save-data-and-migrations](code/save-data-and-migrations.md); `MineServer` `load()` |
 | 3 | **Recycling pays for levels the tool never bought.** A new forge inherits your best level, and `toolRecycle` refunds 50% of `toolSpent(level)`, so forge, scrap and repeat pays out. | *Reported* (arithmetic) | [forge-and-recycling](systems/forge-and-recycling.md) |
 | 4 | **Event Horizon cannot be mined**: it counts as zone 11 (strength 1000) and event tools get breaking power 1. | *Reported* | [world-events](systems/world-events.md) |
 | 5 | **Depth desks pay hundreds of times too much.** `MineDepth.depthSellMult` is ×487.5 at the seam-500 desk and ×12,187.5 at seam 1500; every other seam pays ×0.78. The multiplier dates from the old HP curve. | *Reported* | [zones-layers-and-seams](systems/zones-layers-and-seams.md) |
@@ -43,7 +48,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 11 | **24 ore charms carry `luck`**, which raises the ore-case chance that drops them. This breaks the "no reward boosts its own acquisition" rule. **24 carry the retired `backpack` stat.** | *Reported* | [charms](systems/charms.md) |
 | 12 | **Meadow zone packs can never pay Mythic, Divine or Exotic** (computed from `cardOdds`). | *Reported* | [cards-and-packs](systems/cards-and-packs.md) |
 | 13 | **Bag prices show in coins; the server charges gems.** | *Reported* | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
-| 14 | **Running Studio syncback deletes `tools/export/in/`.** `tools/export/sync.ps1` ends with `Remove-Item $in -Recurse -Force`, and `CLAUDE.md` names that folder as a place for Claude.ai exports. Anything dropped there is lost on the next syncback. The wiki docs now say to use the gitignored `transcripts/` folder instead; the script itself is unchanged. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
+| 14 | **`tools/export/sync.ps1` deletes `tools/export/in/`** (`Remove-Item $in -Recurse -Force`). **Not a bug in the script**: that folder is a gitignored scratch directory the Studio export flow fills and consumes, and deleting it is the documented last step (the `b19c4c2` author checked and dismissed it). The only hazard was `CLAUDE.md` naming that folder as a place for Claude.ai exports. `CLAUDE.md` and the wiki now point exports at the gitignored `transcripts/` folder. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
 | 15 | **Nothing checks Luau's 200-top-level-local ceiling.** `luau-analyze` accepted 205 locals; `luau-compile` rejected them. Both big scripts compile today, but the next local added to `MineServer` may not. The `9733a05` commit comments say exactly this broke the whole server once on 2026-10-05, before a fix moved a list into `MineConfig`. | *Reported*, corroborated by `9733a05` | [luau-traps](code/luau-traps.md) |
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
 
@@ -54,7 +59,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | **TODO §0.13.5: "one charm per ore"** | Two per ore (164 generated). That was an agent design (TODO §6.1), never confirmed. | [charms](systems/charms.md) |
 | **TODO §0.13.6: "ore case rolls … to decide whether you get a tool"** | A case never pays a tool; it pays a skin (75%) or a charm (25%). | [skins-cases-and-temper](systems/skins-cases-and-temper.md) |
 | **TODO §9: "skin and temper crates cost ore only"** | Temper cases cost **temper tokens**. | same page |
-| **TODO §0.13.11: "the swing gate reads `BreakPower`"** | It does not (see bug 1). | [mining-and-breaking](systems/mining-and-breaking.md) |
+| **TODO §0.13.11: "the swing gate reads `BreakPower`"** | The gate reads the tool row (`oreTier` / `oreId`, derived per swing since `b19c4c2`). Per the research pass the `BreakPower` *attribute* is not read by the gate (not rechecked). | [mining-and-breaking](systems/mining-and-breaking.md) |
 | **Standing rule "no pity systems"** | PROPOSAL §0 lines 26 and 28 (**approved**) add pack pity and an Exotic floor. Neither is built. | [cards-and-packs](systems/cards-and-packs.md) |
 | **PROPOSAL line 27: "trait pity: NONE"** | OPEN §12 still lists trait pity. | [traits](systems/traits.md) |
 | **PROPOSAL line 37: "keep the `oreYield` key"** | It was renamed to `blastChance` in `eb973f6`, the day before. | [boosts-and-stats](systems/boosts-and-stats.md) |

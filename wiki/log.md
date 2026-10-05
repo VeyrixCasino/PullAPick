@@ -45,3 +45,18 @@ tools-and-generators (new `tools/icons` scripts), luau-traps (the 200-local
 ceiling broke the server again). Re-checked that `equippedTool` and the
 `oreRosterV` guard are untouched by it, so probable bugs 1 and 2 still stand.
 Pages not touched by that commit keep their `26036a0` stamp.
+
+## [2026-10-05] ingest | commit b19c4c2 (PR #6): the wiki's first two bugs, fixed
+Found by the 50-minute drift check. PR #6 gained "Forged tools can break rock
+again, and migrations stop re-running", which fixes probable bugs 1 and 2 from
+[open-questions](open-questions.md): the held-tool row now carries `oreTier` and
+`oreId` (before, every forged tool stalled at zone 1, layer 50, measured live),
+and both roster-migration guards are `< version`. Read the diff to confirm both.
+It also records that the `sync.ps1` deletion of `tools/export/in/` is **not a
+bug** (a gitignored scratch folder, deleted by design); I reworded that entry,
+keeping the advice to put Claude.ai exports in `transcripts/`. New check
+`heldtool.js` (36 checks now) and new `extract-svg-icons.js` / `_png.js`.
+Updated: open-questions, tools, mining-and-breaking, ores,
+save-data-and-migrations, verify-suite, tools-and-generators, index. Not
+rechecked: Event Horizon tools' breaking power, and whether saves hit by the
+migration re-runs need repair.

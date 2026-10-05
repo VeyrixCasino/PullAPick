@@ -2,7 +2,7 @@
 title: Mining and breaking
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ b19c4c2
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineBreaking.luau
@@ -94,11 +94,17 @@ Checks: `tools/verify/breaking.js`, `tools/verify/gate-coverage.js`, `tools/veri
 
 ## State right now
 - Shipped in code, but **never run in engine** (`docs/START-HERE.md` §5).
-- **Suspected blocker.** Found by reading the code and simulating `MineBreaking` with luau; not tested in engine.
-  - **The gate cannot see breaking power.** For a forged ore tool, `equippedTool` returns `{id = "oretool_<uid>", power, level, …}`. That table has no `oreTier`, no `oreId` and no `bp`. A second branch below it does set `oreTier`, but that branch is unreachable and has no `oreId` either.
-  - **So every tool gets breaking power 1.** `toolBreakingPower` falls through to `SHOP_POWER[1] = 1`, and shop-ladder and Event Horizon tools land in the same place.
-  - **What breaks.** A tool at breaking power 1 is refused below zone 1 layer 50, and on any ore above tier 6. Event Horizon is zone index 11, so all of its rock needs 1000.
-  - **No check catches it.** The `BreakPower` attribute that `givePickaxe` stamps is never read by the gate, and no verify check tests the shape of the tool table.
+- **Was a blocker, fixed in `b19c4c2`.** The row `equippedTool` built for a forged
+  ore tool had no `oreTier`, `oreId` or `bp`, so the gate read every forged tool
+  as breaking power 1 and walled players at zone 1, layer 50. The fix's author
+  measured it live (Stone to Oganesson all stopped at layer 50 before the fix,
+  and at 5000 after). The row now carries `oreTier` and `oreId`, derived per swing.
+  `tools/verify/heldtool.js` pins it.
+  - **Still unchecked:** Event Horizon tools (a different path) and coin-ladder
+    rows. The earlier note that Event Horizon rock needs 1000 (zone index 11) and
+    its tools got power 1 is *reported*, and `b19c4c2` does not address it.
+  - The `BreakPower` attribute that `givePickaxe` stamps is, per the research
+    pass, not read by the gate (not rechecked).
 
 ## Gotchas
 - **Two scales are both called "breaking power".** The Forge UI (`MineForge`) shows `MineConfig.toolBreakingPower`, which is the ore tier (1–82). `tooWeak` shows strength (1–1000).

@@ -2,7 +2,7 @@
 title: Ores
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ b19c4c2
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineBreaking.luau
@@ -119,11 +119,10 @@ split, ore dropping straight into the pouch. **None of it has run in Roblox**
   migration: `ORE_MIGRATION` (v1), `ORE_MIGRATION_V2` (121→82, 39 ids),
   `ORE_TIER_REMAP_V2` — because `p.oreTools[].tier` is an **index** into `ORES`,
   not an id. Stamp `p.oreRosterV`, `ORE_ROSTER_V = 2`.
-- **Probable P0 bug — the roster migration re-runs every load.** `load()` guards
-  v1 with `if p.oreRosterV ~= 1` (not `< 1`), so a profile stamped 2 re-enters
-  v1, is re-stamped 1, then re-enters v2 and applies `ORE_TIER_REMAP_V2` to every
-  forged tool **again**: tier 82 → 51 → 31 → 21 … per rejoin (simulated in node
-  from the real table; not run in engine). See
+- **Fixed in `b19c4c2`: the roster migrations used to re-run on every load.**
+  The v1 and v2 guards were `~=`, so a profile stamped 2 re-entered v1, was
+  re-stamped 1, then re-entered v2. Both are now `< version`. Whether saves
+  already touched by the re-runs were repaired is not stated (unverified). See
   [save-data-and-migrations](../code/save-data-and-migrations.md).
 - **`tools/gen-ores.js` is stale — never `--write`.** It parses 121 rows from
   `docs/ore-remake.md`. The `--force-stale` staleness guard described by

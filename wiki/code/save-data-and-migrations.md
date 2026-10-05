@@ -2,7 +2,7 @@
 title: Save data and migrations
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ b19c4c2
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
@@ -91,8 +91,8 @@ A roster change needs an id→id map that keeps the old ids as aliases (TODO §9
 | Dropped fields | none | sets `fusePity`, `toolMastery` and `petHats` to nil. Ranged sockets fold into the pickaxe. |
 | Intro and quest ladders | `introVer` 2→4, `questVer` 2 | moves saved step numbers onto the new ladders (`Quests.remapV1`) |
 | Backpack ladder | `backpackCoinV2`, `backpackCatalogV3` | the old 6-rung gem ladder becomes the 30-rung coin ladder, matched by capacity |
-| **Ore roster v1** | `oreRosterV = 1` | `MineConfig.ORE_MIGRATION`: 33 retired ids. Sums `p.ores` and renames packs. |
-| **Ore roster v2 (121 → 82)** | `oreRosterV = MineConfig.ORE_ROSTER_V` (2) | `MineConfig.ORE_MIGRATION_V2`, and `MineConfig.ORE_TIER_REMAP_V2` for `oreTools[].tier`. Clamps levels. Its 50 % refund **has never paid out**; the comment in the code explains why and says not to copy it. |
+| **Ore roster v1** | `oreRosterV < 1` (was `~= 1`, which re-ran it on every load; fixed in `b19c4c2`) → stamps 1 | `MineConfig.ORE_MIGRATION`: 33 retired ids. Sums `p.ores` and renames packs. |
+| **Ore roster v2 (121 → 82)** | `oreRosterV < MineConfig.ORE_ROSTER_V` (2; also `~=` before `b19c4c2`) → stamps 2 | `MineConfig.ORE_MIGRATION_V2`, and `MineConfig.ORE_TIER_REMAP_V2` for `oreTools[].tier`. Clamps levels. Its 50 % refund **has never paid out**; the comment in the code explains why and says not to copy it. |
 | **Tool level cap** | `toolCapV < MineConfig.TOOL_CAP_V` (1) | clamps `oreTools` levels to `TOOL_MAX_LEVEL` (30). Deliberately no refund, because the clamped tool comes back maxed. **Bump the stamp whenever the cap goes DOWN.** |
 | Drill and explosive ladder | `_drillBombLadderV2` | adds 1 to owned drill and explosive rungs after new tier-1 tools were inserted |
 | **Fossils cash-out** | none (it clears the fields) | `retireFossils(p)` pays gems for pieces and tools, then toasts the player. Fossil verbs now only answer with a toast ([retired-and-parked](../systems/retired-and-parked.md)). |

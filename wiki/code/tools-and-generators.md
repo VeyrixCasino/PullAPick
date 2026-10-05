@@ -2,7 +2,7 @@
 title: Tools and generators
 type: code
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-05 @ b19c4c2
 sources:
   - tools/serve.js
   - .claude/launch.json
@@ -47,6 +47,7 @@ calculator page drifts from the config.
 | `tools/icons/gen-charm-art.js` (+ `charm-data.js`, `raster.js`) | It draws 164 charm PNGs into the gitignored `build/charm-icons/` and writes the tracked `manifest.json`. The owner rejected this art (HANDOFF §2.6), and **icons are the owner's job** (START-HERE §6). |
 | `tools/gen-charm-icons.js` | It would write `MineCharmIcons` from `build/charm-icons/ids.json`. Neither file exists yet, because no charm icons have been uploaded. |
 | `tools/icons/svg-icon-extract.js`, `match-icons-to-ores.js` (+ `ore-map.json`, `asset-ids.json`) | Added in `9733a05`. The first pulls 88 pickaxe icons out of an SVG that is really paired base64 PNGs (content plus mask). The second matches icons to the 82 ores by colour with an optimal (Hungarian) assignment and writes `ore-map.json`. **The matching is not final**: the roster wants about 17 grey picks and the sheet has 9, and every pair is printed with its distance. `asset-ids.json` maps icon files to uploaded asset ids; `MineIcons.ORE_PICK` is what the game reads. |
+| `tools/extract-svg-icons.js` (+ `tools/_png.js`) | Added in `b19c4c2`. It saves every icon in a Canva-exported SVG sheet as its own transparent PNG (colour image plus its matte folded into RGBA), numbered in reading order. `_png.js` is a zero-dependency PNG codec shared by the sheet tools; `slice-ore-sheet.js` still carries its own copy. The 88 pickaxe icons it produced are tracked in `build/pickaxe-sheet/`. Usage: `node tools/extract-svg-icons.js` followed by the sheet path. |
 | `tools/map-ores-to-tiles.js`, `tools/slice-ore-sheet.js`, `tools/pack-ore-art.js` | The 2026-09-28 ore-face pipeline: hand-made tiles become `build/ore-sheet/` files, which become `MineOreArt` packed pixels. It was built for 121 ores. |
 | `tools/balance-board-data.js` | It writes `build/balance-board.json` (gitignored). `tools/balance-board.html` does not fetch that file *(how the page gets its data is unverified)*. |
 

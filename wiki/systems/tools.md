@@ -2,7 +2,7 @@
 title: Tools
 type: system
 status: partial
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-05 @ b19c4c2
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
@@ -137,24 +137,22 @@ held tools (see below). Nothing here has run in the engine.
 
 ## Gotchas
 
-- **Probable P0 bug: every held tool has breaking power 1 at the gate.** The
-  table that `equippedTool` returns for a forged tool has no `oreId`, `oreTier`
-  or `breakingPower`, and coin-ladder rows have string ids. For both,
-  `MineBreaking.toolBreakingPower` falls through to `SHOP_POWER[1] = 1`.
-  - I confirmed this by running `MineBreaking` in standalone Luau.
-  - Zone 1 needs strength 2 from layer 51, so in the engine everyone would stall
-    at layer 50.
-  - A second `if p.oreToolEquipped` block later in `equippedTool` does set
-    `oreTier`, but it is unreachable, and it still lacks `oreId`.
-  - There are three different "breaking power" numbers: the `BreakPower`
-    attribute (`MineConfig.toolBreakingPower`, the raw ore tier, which is 0 for
-    the synthesized row), the equip toast (the raw tier) and the gate
-    (`oreStrength`, 1..1000).
+- **Fixed in `b19c4c2`: forged tools used to have breaking power 1 at the gate.**
+  The row `equippedTool` synthesised for a forged tool had no `oreId`, `oreTier`
+  or `breakingPower`, so `MineBreaking.toolBreakingPower` fell through to
+  `SHOP_POWER[1] = 1` and every tool stalled at zone 1, layer 50 (measured live
+  by the fix's author). The row now carries `oreTier` and `oreId`, derived per
+  swing. `tools/verify/heldtool.js` runs the real function against the real row
+  shape. **Event Horizon tools and coin-ladder rows take a different path and
+  that commit does not mention them**, so their breaking power is not rechecked.
+  - There are still three different "breaking power" numbers: the `BreakPower`
+    attribute (`MineConfig.toolBreakingPower`, the raw ore tier), the equip toast
+    (the raw tier) and the gate (`oreStrength`, 1..1000).
 - **The wooden pickaxe's coin path looks unreachable** (found before `9733a05`,
-  not re-checked since; that commit says the owner kept the coin path on purpose).
-   `_upgradeCoinTool` and the
-  graduation step run only for a `p.oreTools` row with `typeId wood_pick`, and
-  nothing on this branch creates one. The starter is coin rung 1 instead.
+  not re-checked since; that commit says the owner kept the coin path on
+  purpose). `_upgradeCoinTool` and the graduation step run only for a
+  `p.oreTools` row with `typeId wood_pick`, and nothing on this branch creates
+  one. The starter is coin rung 1 instead.
 - **The family skin skips forged tools.** `equippedTool` returns rung `0` for a
   forged tool, so the family temperament never applies while you hold one
   ([skins](skins-cases-and-temper.md)).

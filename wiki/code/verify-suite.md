@@ -2,7 +2,7 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-05 @ b19c4c2
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
@@ -63,7 +63,7 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
 ## Every check
 
 **L** marks the 14 checks that execute the `luau` binary. Without the binary they
-DID NOT RUN. The docs say "11 of 23", which is stale: there are 35 checks now (`oreskins` arrived in `9733a05`).
+DID NOT RUN. The docs say "11 of 23", which is stale: there are 36 checks now (`oreskins` arrived in `9733a05`, `heldtool` in `b19c4c2`).
 
 | check | asserts |
 |---|---|
@@ -82,6 +82,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 35 checks now (`
 | `gate-coverage` | every function that deals block damage consults the breaking gate |
 | `generated-fresh` | `mine-map.html` and `upgrade-calculator.html` regenerate byte-for-byte (`--check`) |
 | `ladder-climbable` | the ore ladder reaches tier 82 with no zone deadlock, and the Exotic band stays rare |
+| `heldtool` | the held forged-tool row carries `oreTier` and `oreId`, so `MineBreaking.toolBreakingPower` resolves it from its ore, not as 1. **Executes** the real function against the real row shape, keeps the old broken row to prove it resolves to 1, and asserts both roster-migration guards are `<` not `~=`. |
 | `layers` **L** | two boost layers, and the second multiplies the first. The owner's 100 → 300 example. |
 | `minemap-runs` | `mine-map.html` actually executes under a DOM stub |
 | `oreforge` **L** | a forged tool IS its ore: the frame is derived from the ore's tier |
