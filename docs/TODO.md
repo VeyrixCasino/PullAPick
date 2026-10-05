@@ -31,6 +31,448 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.33 — `docs/START-HERE.md` IS THE COLD-START DOOR.** Owner, 2026-10-05:
+*"update the goddamn handoff with a prompt to get it knowing exactly what its
+doing 100% with absolutely no prior knowledge."*
+
+§1 of that file is a prompt the owner pastes verbatim into a fresh agent. It
+forces a read of AGENTS.md, CLAUDE.md, the locked rules, the bible and the
+audit, then makes the agent **state its understanding and stop** before writing
+code. The rest of the file is what that agent reads: what the game is, where the
+code lives, the four traps (the 200-local ceiling, the global-read trap, the
+missing stdlib, stat keys as data), the honest state of the branch, and how to
+work with this owner.
+
+**Two things that file must keep saying, because they are the expensive truths:**
+the branch is 101 commits of *unproven* work — only one change all session was
+ever confirmed in-engine. (The seam prompt was wrongly called the ship
+blocker; it is wired. Corrected 2026-10-05 — see `docs/OPEN.md` P0 item 1.)
+
+The conversation history (`OWNER-MESSAGES.md`, `TRANSCRIPT.md`, the screenshots,
+the raw log) is handed over **as files, not committed** — `CLAUDE.md` forbids
+raw exports in tracked files and the tooling enforces it. §9 of START-HERE tells
+the next agent to ask for them.
+
+**0.32 — THE OWNER DOES NOT KNOW THEIR REPO PATH, AND SHOULD NOT NEED TO.**
+2026-10-04: *"i dont know my path and id rather get a local agent anyways"*.
+
+Addendum, 2026-10-05: the local agent then failed with **"Credit balance too
+low"**. That is an auth-source problem, not a billing one — Claude Code bills API
+credits whenever `ANTHROPIC_API_KEY` is set, because a key outranks a
+subscription login. The fix (clear the key, `/login`) is in HANDOFF §1 and
+START-HERE §8. **Do not tell this owner to add funds.**
+
+`tools/start-local-agent.ps1` finds the repo itself by searching `$HOME` for
+`default.project.json` (it only exists at the repo root), pulls, checks for Node,
+installs Claude Code if missing, **fixes PATH in the current window** so the
+owner is not told to reopen the terminal, and launches. `docs/HANDOFF.md` carries
+a four-line no-script version of the same thing for when the script cannot be
+found either.
+
+**Never hand this owner a command containing a path placeholder again.**
+
+**A BUILD IS NOT THE ANSWER, and cannot be.** The owner asked for one. `rojo
+build` from this repo would produce a place that OPENS but has no game in it:
+Workspace (the map), Lighting, Teams, TextChatService and
+`ReplicatedStorage.ToolModels_50` live only in the place file — AGENTS.md says
+so and `$ignoreUnknownInstances` is why Rojo never deletes them. The place file
+is the source of truth for the world; the repo is the source of truth for the
+code. Only a machine with both can make a playable build, which is a local
+agent, not this one.
+
+**LUCKY BLOCKS: FIXED AND CONFIRMED IN ENGINE** — the first thing this session
+has ever had confirmed by someone actually running it. DisplayOrder 110 → 120 to
+match `MinePackReveal`; owner after pulling: *"inventory is under"*.
+
+**0.31 — THE OWNER IS ON WINDOWS POWERSHELL.** 2026-10-04. Every command handed
+to them must be PowerShell, not bash. `&&` is not a statement separator in
+Windows PowerShell 5.1, `<angle brackets>` are a reserved operator and must never
+appear even as a placeholder, and paths with spaces need quotes. The first
+version of `docs/HANDOFF.md` got this wrong and the owner pasted it into a wall
+of parser errors. Fixed there, with the Node/PATH gotchas alongside it.
+
+**0.27 — THE OWNER'S 2026-10-04 LIST, FACT-CHECKED.** Full detail in
+`docs/HANDOFF.md` §2.6. Checked against the code, not taken at face value:
+
+- **"Remove the base 2x coins from rebirths"** — **already gone.**
+  `prestigeYield` was `1 + 0.15R` (not 2x) and **nothing read it**. Deleted the
+  function outright so it cannot be rewired by someone who finds it.
+  `prestigeLuck` stays: luck is a chance, not a faucet.
+- **"Potions don't exist"** — **they do, end to end.** 289-line module,
+  `drinkPotion` verb, client callback, UI at `MineInventoryView:4812`, granted by
+  packs, quests, rotating offers and scrolls. The gap is DESIGN: they are buried
+  and weightless. They are also the obvious coin sink (see below).
+- **"Depth leaderboard / anti-cheat"** — server-side deepest tracking **exists**
+  (`p.deepest`, `creditDeepest`, normalized on load). Whether the leaderboard
+  reads it live is unverified.
+- **"Packs make you say DONE"** — true. **FIXED**: tap anywhere closes, DONE kept
+  as an affordance. Built below `local finish` on purpose — a closure written
+  beside the prompt frame would have been a global read and done nothing.
+- **"Lucky blocks don't close/reopen the inventory"** — **FIXED**, after the
+  owner supplied the missing fact: *"the inventory stays OVER the lucky block."*
+  The lucky screen was DisplayOrder 110. By number alone that should already
+  have beaten the inventory (which mounts into the HUD gui at 80), so the number
+  was not the whole story and the code could not say which layer was winning.
+  It now matches `MinePackReveal` at **120** — the layer the owner already
+  signed off on, where "the menu stays open" underneath a reveal. One number,
+  one pattern, both reveals. Overridable via `opts.displayOrder`.
+- **Charm icon direction** — owner supplied a reference: ornate **jewellery**.
+  Amulets, pendants, beaded strings, brooches, gem-set lockets; aged brass,
+  enamel, cut stones. Replaces the superseded 164 generated icons.
+- **Group wheel, battle pass** — both on the ARCHIVE list in `docs/AUDIT.md`.
+  Do not polish them; cut them until there is a game.
+
+**0.28 — THE COIN PROBLEM.** Owner: *"now that coins are basically useless,
+theres no point... I want the economy to be stable, and a type of economy where
+everyone has a chance to contribute."*
+
+**Diagnosis:** coins have exactly ONE sink — the coin-shop tool ladder — and that
+ladder was superseded by the Forge, which runs on ore. Coins are a faucet with no
+drain. A rebirth income multiplier would have made it strictly worse, which is
+why removing it was right.
+
+**Proposed shape, NOT agreed, do not build without the owner:**
+- Coins buy **consumables and access, never power**. Power is ore.
+- The underground outposts are the home for it: each seam's outpost sells things
+  *for coins* that help you mine the NEXT seam.
+- **Potions are the obvious coin sink and already exist.** Give them weight,
+  price them in coins, and coins have a job from minute one.
+- Three currencies, three jobs, no overlap: **ore = power, gems = gambling,
+  coins = consumables and access.**
+
+**0.29 — SEAMS ARE UNDERGROUND OUTPOSTS.** Owner: 1:1 with the surface outpost
+(shop, sell), themed underground, **visibly deeper and darker each seam**,
+following the mine's theme.
+
+**CORRECTED 2026-10-05 — NOT A BLOCKER.** The seam chain is wired end to end: server fires `seamGate` (`MineServer:6406`), client opens the panel (`MineClient:10859` -> `7415`), the panel fires `buySeam` (`7489`), `Verbs.buySeam` handles it (`9266`). The earlier claim came from grepping only `buySeam`, which finds the server half alone. What remains is confirming it in-game. See `docs/OPEN.md` P0 item 1.
+
+~~Formerly the SHIP BLOCKER:~~
+so every player stops at layer 500. `MineDepthPlazas` owns the prompt geometry,
+`MineDepth.seamPrice(seam, zi)` gives the figure. A LOCAL agent can place the
+prompt in Studio and wire it in an afternoon. **Highest-value task in the project.**
+
+**0.30 — `docs/HANDOFF.md` IS THE BIBLE.** Owner asked for a way off the cloud
+client or a handover doc. It is both: how to run Claude Code locally (nothing is
+trapped — everything is in git), what is NOT in the repo, the five traps that
+have already cost days, the house style, and where to start.
+
+**0.25 — CHARMS MERGE ON GEMS, NOT ON COPIES.** Owner, 2026-10-04: *"rather
+than merging it should cost gems."*
+
+`MERGE_COST` 3 → **1**. One charm in, one charm out; `MineCharms.mergeGemCost`
+charges gems for the step, priced off the TARGET's tier and charged only after
+`mergeTarget` resolves, so a charm that cannot merge never takes the gems.
+
+Eating three copies to make one was the "everything is worthless" problem in its
+purest form: if three of a thing are worth one of a thing, each is worth a third
+of a thing. `tools/verify/charms.js` asserted `MERGE_COST >= 2` — it was
+asserting the bad design — and now asserts the new rule instead.
+
+**0.26 — THE AUDIT, AND THE CUT.** See `docs/AUDIT.md`. Owner proposed archiving
+the unfinished, deleting the useless, and shipping in 2-3 weeks. **I agree.** The
+numbers: 120,662 lines across 180 modules, of which **70 modules / 20,633 lines
+are referenced by nothing**. One line in six is unreachable.
+
+Headline findings:
+- **The charm family breaks locked rule 0.13.** 164 charms are GENERATED in a
+  loop (`for each ore, for each variant`), so a Diamond Surge Charm is a Coal
+  Surge Charm with a bigger number. 0.13 forbids exactly that. Proposal: cut
+  164 → ~24 hand-authored charms that are rules, not percentages.
+- **Gear, backpacks and coin-shop tools are pure ladders** — each rung strictly
+  obsoletes the last. Cut or give them a kind-difference.
+- **The seam blocker is still the only true ship blocker.**
+- `_c.luau` is a **stale 1,710-line duplicate of MineConfig** that nothing
+  requires. A trap, not just dead weight.
+
+**0.23 — THEY ARE CALLED TRAITS.** Owner, 2026-10-04: *"Rename runes/traits to
+traits, enchants will come later."*
+
+`MineEnchants` → **`MineTraits`**, `MineEnchantView` → **`MineTraitView`**,
+`tool.ench` → `tool.trait`, the verb `enchantTool` → **`rollTrait`**, the stat
+`bumpStat("enchants")` → `"traits"`, the boost layer `enchantments` → `traits`,
+the Enchanter's tab **Enchant → Traits**, and the button **ROLL TRAIT**.
+
+**The Enchanter keeps its name.** It is a building, and the owner says enchants
+are coming later — so the word is being freed, not retired. `enchantP`,
+`showEnchantTab`, `enchantTabs` and `onOpenEnchanter` are all the PANEL and were
+deliberately left alone.
+
+The owner's own quotes in `MineTraits` are left **verbatim** and still say
+"enchantment", with a header note saying to read them as "trait". Rewriting a
+quote so it matches the new name would make the record wrong.
+
+**0.24 — PET AND HAT SEATS, AND THE FORMATION.** Owner, 2026-10-04.
+
+- **The 4th pet seat and the 4th hat seat were already gone.** `MAX_PET_SLOTS`
+  and `STARTER_PET_SLOTS` are both 3, `effectivePetSlots` clamps to 3..3, and
+  `MineGear.HAT_SLOTS` is `{ hat, hat2, hat3 }`. Verified, not assumed; VIP's
+  fourth seat was removed earlier and the comment at `MineConfig:605` records it.
+- **FIXED — pets were never centred.** `stepPetFollow` positioned a pet at
+  `(slot - 2) * 2.15`, which only centres when there are exactly three. With one
+  pet out it walked 2.15 studs to your LEFT and never behind you; with two, both
+  sat off-centre. It centres on `(total + 1) / 2` now, so one pet is directly
+  behind you and any count is symmetrical. The spawn-in pivot uses the same
+  centring, or a pet popped in off-formation and slid across.
+
+**0.22 — THE ENCHANTER HAS AN ENCHANT TAB, AND IT OPENS ON IT.** 2026-10-04,
+stage 2 of 0.17.
+
+`MineEnchantView` is the front door: pick a forged tool on the left, see what it
+is wearing, pay `ROLL_PRICE`, roll. Every number on screen comes from
+`MineEnchants` — odds from `odds()`, price from `ROLL_PRICE` — so the screen
+cannot drift from the roll the way a hand-written "1 in 1000" would, and the
+check forbids writing one.
+
+The tab leads the strip and is the landing tab: enchantments replaced runes as
+the reason to walk here, so the retiring bench must not sit in front of its
+replacement. Mounted through a guarded require that **warns** on failure, per
+0.14.
+
+The confirm line names what a roll would replace. The gamble is the feature;
+silently eating an Exotic V is not.
+
+**Stage 3 — retiring runes and gear — is the only part of 0.17 left.**
+
+**0.21 — BLAST RADIUS IS CUBIC; BACKPACK AND WALKSPEED ARE RETIRED; THE TREE IS
+REGENERATED.** Owner, 2026-10-04: *"Can we remove backpack and walkspeed as
+boost, and balance fire.. i agree with your changes but lets try to reblance a
+little because rn fire is just way to over powered"*.
+
+**Why Fire was overpowered — found, not guessed.** `MinePatterns` builds the
+pattern with `sphere(out, cx, cy, cz, radius)` where
+`radius = tool.radius * (1 + blastRadius)`. A sphere's cell count goes as **r³**,
+so +50% radius is ~**3.4×** the blocks, not 1.5×. Every system that spends a
+MineStats budget divides by the stat's weight, so at `6.0` the tree, the
+enchanter, gear and runes were all handing out roughly **three times** the power
+they thought. It got worse the instant the missing `sk.blastRadius` line was
+restored and Fire's nine nodes started paying at all.
+
+**Fix: `blastRadius` weight 6.0 → 18.0** (6 × 3, the derivative of r³ at the
+margin). One number; every system corrects together. Fire's nodes fell 3.0–3.6×.
+
+**`backpack` and `walkSpeed` retired**, by the `echo`/`autoMine` precedent: the
+entries STAY so old saves, old kits and the two live `boosts(p).x` reads still
+resolve, and they leave `STAT_ORDER` and every roll pool. Capacity now comes
+only from the backpack ladder and the ore pouch tier.
+`MineRunes.SETS.longhaul` had to be repointed by hand — **a set rune takes its
+stat straight from that list and bypasses `NO_ROLL_STATS` entirely.**
+
+**THE TREE IS REGENERATED.** `tools/skills/gen.js` is the missing generator,
+rebuilt from the rule the file states. Topology is untouched — ids, names,
+angles, rows, costs, prereqs, xor groups, rivals and cross-links are written
+back unchanged — and only each node's `stats = { … }` is re-priced. Run
+`node tools/skills/gen.js --check` to see if it has gone stale again.
+
+    best road / worst road:   2.44x  ->  1.001x
+
+**The five element swaps are applied**, plus Water rebuilt (its primary AND
+secondary were the two retired stats): Space `echo`→`procPower`, Ground
+2nd→`earthquake`, Electric 2nd→`ricochet`, Crystal 3rd→`oreLuck`, Shadow
+3rd→`packLuck`, Water → `coolant`/`reach`/`coinBonus`, verb *Flow* — the drill
+wedge. Grass 2nd→`pulverize`, Metal 3rd→`shortFuse`.
+
+**EIGHT MORE DROPPED STATS, same bug as blastRadius.** Once the remap put the
+new stats on elements, the tree granted `coolant`, `reach`, `earthquake`,
+`shortFuse`, `ricochet`, `oreLuck`, `packLuck` and `procPower` and the server
+read none of them. All eight wired. `tools/verify/skilltree.js` now fails if the
+tree grants a stat the server does not apply, so the list cannot fall behind
+the roster again.
+
+**0.20 — THE ELEMENTS ARE `MineSkillData.ENERGIES`, AND THE TREE IS UNEVEN.**
+Owner, 2026-10-04: *"elements should be on skill tree. check skill tree and
+gather whatever info you can find"*.
+
+They already are. Ten energies 36° apart, 75 nodes, each with a verb and a
+primary/secondary/tertiary stat. §6.0's "BLOCKED — the element roster" was
+**wrong**: I was grepping for "element" and the file says "energy".
+
+Found while checking, full detail in `docs/SKILL-TREE.md`:
+
+1. **FIXED — Fire's primary did nothing.** Nine nodes grant `blastRadius`; the
+   server read seventeen `sk.*` stats and never `sk.blastRadius`. Every point
+   spent on the Fire road's headline stat was discarded in silence.
+   `tools/verify/skilltree.js` now asserts every stat the tree GRANTS is a stat
+   the server APPLIES, guarding the whole class.
+2. **The ten roads are no longer equal.** Scored against current MineStats
+   weights: Grass 2.03×, Water 0.83× — **best road is 2.44× the worst**, against
+   a header that promises 1.00×. The tree is GENERATED by `skills/gen.js` +
+   `skills/emit.js`, **neither of which is in the repo**, and the weights it
+   baked against have since moved. The rule is recoverable (budget `points/100`,
+   split 50/30/20, each ÷ its stat weight — verified exactly on `fire.root`).
+3. **Space's primary is `echo`**, a retired stat. Not dropped — converted to
+   swing rate — but it means Space and Frost both grant swing rate and Space has
+   no identity.
+4. **12 of 25 stats are on no element**, including all five built this week:
+   `earthquake`, `ricochet`, `procPower`, `oreLuck`, `packLuck`.
+
+**Proposed, needs the owner:** five swaps — Space primary → `procPower`, Ground
+secondary → `earthquake`, Electric secondary → `ricochet`, Crystal tertiary →
+`oreLuck`, Shadow tertiary → `packLuck`. Applying them means regenerating the
+baked node stats, which is the same job as fixing (2) and rebalances every
+existing tree.
+
+**0.19 — TWO BOOST LAYERS, AND THE SECOND MULTIPLIES THE FIRST.** Owner,
+2026-10-04:
+
+> "skills+skins+tools+enchantments are the very bottom ... (all multipliers go
+> ontop of that, as if it was default), equipment+pets are #2 [if skin has +50%
+> damage, and pet says +100% damage, and the tools base is 100, then it turns to
+> 300, rather than 250 (if it was all the same)]"
+
+**LAYER 1 (the base):** skills, skins, tools, enchantments.
+**LAYER 2 (on top):** equipment, pets.
+Everything inside a layer **adds**; the layers **multiply**.
+
+    100 x (1 + 0.5 + 1.0)       = 250   <- rejected
+    100 x (1 + 0.5) x (1 + 1.0) = 300   <- this
+
+The property this buys, beyond the arithmetic: a +100% pet is worth exactly
+double **whatever your skin is**. In one pile its marginal value shrinks as you
+get stronger, so each layer is worth building independently only under this rule.
+
+- **"Gear powers pets. Should just be a boost."** `MineGear.stackPets` took
+  `(pets, hats, face)` and counted your hats **once per pet**, with the face
+  multiplying them — a fourth pet made your hat 33% better without the hat
+  changing. It now takes `pets` only. `MineGear.flatBoost(hats, face)` sums gear
+  **once**, and both land in layer 2.
+- **Gear is NOT deleted** (0.18 said it would be). The owner's layer list names
+  "equipment" in layer 2, so it stays — as a flat boost.
+- **Chance stats are never layered.** `1 + x` on a blast chance is meaningless;
+  `MineCards.ADDITIVE_STATS` are summed straight through.
+
+**NOT in either layer, on purpose:** prestige, VIP and the event pass. The owner
+named four sources and two, and those three were in neither list. Moving them
+into layer 1 would make every rebirth worth substantially more. Left exactly as
+they were and raised in `docs/BLOCKED.md` 8b.
+
+Guarded by `tools/verify/layers.js`, whose first assertion is the owner's own
+100 -> 300.
+
+**0.18 — ENCHANTMENT ODDS, AND GEAR IS DELETED NOT NERFED.** Owner, 2026-10-04.
+
+- **Gear powering pets: "get rid of this."** The each-pet x its-rune x (its-hat +
+  your-hat) x your-face stack is DELETED, not replaced. Pets do not get an
+  enchantment of their own. This also makes the hat-sheet nerf in
+  `docs/BALANCE-PROPOSAL.md` §2 moot.
+- **Rarity rides the skins ladder.** Exotic **1/1000**, Exotic V **1/5000**,
+  levels 1-5 **uniform**. Each enchantment has a fixed rarity; the roll picks a
+  tier by weight, then an enchantment inside it, then a level.
+- **The condense rule**, owner's words: *"the rarity is the chance to get a the V
+  level, for all the rarest ones (over 1-200)"*. Enchant weights put SS at
+  exactly 1/200 and SSS at 1/1000, so **SS V = 1/1000 and SSS V = 1/5000 — the
+  skins table's own SS and SSS odds.** Asserted against `MineTemper`, not against
+  a copied number.
+- **Price is FLAT across rebirths.** `ROLL_PRICE = 500` gems, constant. The verb
+  reads no prestige, rebirth, zone or tool tier, and the check enforces that.
+- Magnitude scales by rarity on MineTemper's own two ladders; CHANCE stats take
+  `PROC_RARITY_MULT` or a Divine Blasting would be +75 points of blast chance.
+
+Guarded by `tools/verify/enchants.js`.
+
+**STILL TO DO from the same message:** craft cost variable on (a) ore drop
+amount, (b) ore rarity, (c) progression depth; pack "open all"; buy-N packs with
+a typed amount (default 1); the new drop tables. And stages 2-3 of the
+enchantment work: the Enchanter screen, then ripping out runes and gear.
+
+**`docs/BLOCKED.md`** now explains every BLOCKED item in detail — what it is, why
+it is the owner's, the exact sentence that unblocks it, and my default if they
+say "just pick".
+
+**0.17 — ENCHANTMENTS REPLACE RUNES *AND* GEAR.** Owner, 2026-10-04: *"replace
+runes with enchantments. Pretty much just walk to the enchanter and its a prefix
+too your tool (Sharp Stone Pickaxe, Lucky Stone Drill)"*, then *"and gear
+aswell"*.
+
+One enchantment, worn on the TOOL (by uid, not by family — a prefix names a
+specific pickaxe), applied at the Enchanter by **naming** it and paying gems. No
+rolling, no fusing, no sockets, no three hat slots and a face.
+
+- `MineEnchants.LIST` — 25 prefixes, one per stat, every id/prefix/stat unique.
+- **Magnitudes are DERIVED**: per level is `BUDGET / MineStats.weight`, clamped
+  to [0.02, 0.20]. Nobody maintains a second opinion about what a stat is worth.
+  At `BUDGET = 0.12`: Sharp (mineSpeed, w1.0) reaches +120% at level 10, Blasting
+  (oreYield, w4.0) +30%, Wide (blastRadius, w6.0) +20%.
+- Price is gems, `GEM_BASE 150 × 1.75^(level-1)`, nil past the cap.
+- Only the tool **in your hands** pays out.
+- The prefix lives in `MineOreTools.name`, so there is nowhere an unprefixed
+  name can leak out. The level is NOT in the name.
+
+Guarded by `tools/verify/enchants.js`.
+
+**NOT YET DONE, and deliberately so:** runes and gear are still in place and
+still paying out. Ripping out ~5,000 lines across `MineRunes`, `MineGear`,
+`MineHats` and three screens, plus five save fields (`p.runes`, `p.gear`,
+`p.equippedGear`, `p.toolSockets`, `p.petSockets`), **before the Enchanter UI
+exists** would leave the game unplayable between commits. Order: (1) data model
++ naming + fold + verb [DONE], (2) the Enchanter screen, (3) migrate old runes
+and gear into enchantments and retire the old modules.
+
+**The one real open question:** gear currently powers PETS — the stack is each
+pet × its rune × (its hat + your hat), all × your face. Removing gear removes
+that, so pets need either an enchantment of their own ("Lucky Emberfox") or a
+different power source. `MineEnchants.fromStatAmount` / `bestOf` exist for the
+migration either way. This needs the owner.
+
+**0.16 — PROC DAMAGE AND PROC CHANCE ARE TWO STATS.** Owner, 2026-10-03:
+*"almost no effect should do full pickaxe damage"*, *"Just make damage and chance
+2 different stats."*
+
+Every proc used to hand its neighbour the player's WHOLE swing, so one stat
+bought both how often it fired and how hard. Zap was 9.7x a swing off one roll.
+
+- CHANCE stays on `oreYield` / `zap` / `earthquake` / `ricochet`.
+- DAMAGE is `MineConfig.PROC_SHARE` scaled by the new `procPower` stat, through
+  `MineConfig.procDamage` and nowhere else.
+- Every share is **under 1.0**. Blast 0.35 (x6 faces), Zap 0.45, Ricochet 0.60,
+  Quake 0.12/s. Zap capped at 6 hops at 0.75 falloff, was 32 at 0.9.
+- `procPower` weight 3.0, capped +300%, rollable on gear and on pet / pickaxe /
+  explosive / **drill** runes — the last being the drill-friendly ask.
+
+Guarded by `tools/verify/procs.js`. Full numbers and the before/after table are
+in `docs/BALANCE-PROPOSAL.md` §1.
+
+**STILL BLOCKED, now written up with numbers to approve** — see
+`docs/BALANCE-PROPOSAL.md` §2-§4: the hat sheet nerf (+1225% -> +420%),
+`TOOL_CRAFT_BASE` 250 -> 150, `WOOD_PICK_COIN_GROW` 1.55 -> 1.40,
+`EARTHQUAKE_SEC`, and whether `oreYield` should be renamed to a blast key.
+
+**0.15 — A FORGED TOOL *IS* ITS ORE.** Owner, 2026-10-03, on first seeing the
+Forge working: *"everything in forge should be called {ore} {tool}"*, *"i want
+crafting to be sorted by the actual ore"*, *"i dont want different tools to cost
+different ores. If i want to upgrade my stone pick, it should cost stone, at an
+increasing amount each time."*
+
+The data model already agreed; the PANEL was the liar. A forged row is
+`{uid, typeId, familyId, tier, level}` and `tier` has always been the **ore's**
+tier, with `upgradeOreTool` charging `C.ORES[tool.tier]` — the tool's own ore —
+growing by `TOOL_ORE_GROW` per level. What was wrong: the rail listed tool TYPES
+under the coin shop's invented names ("Chipped Crown", "Widow's Notch"), then
+asked you to pick any ore to forge one from. So the thing you selected had no ore
+in its name and one name could be made of 82 ores at 82 prices.
+
+Now, and not open for re-litigation:
+
+- **Name is `{Ore} {Noun}`** — "Stone Pickaxe", "Clay Drill". `MineOreTools.name`.
+- **The frame is DERIVED, never picked.** `frameForTier` maps ore tier 1..82
+  proportionally onto a family's priced rungs (24 / 16 / 16). Proportional, not
+  nearest: nearest parks every ore past rung 24 on the top frame.
+- **`craftOreTool` ignores `payload.typeId`** and re-derives. The panel quotes
+  with the same pure function, so they cannot drift and a modified client cannot
+  ask for a deep ore in a cheap frame.
+- **The free starter never enters the pool** — filtered on `price > 0`, so
+  `wood_pick` (price 0) and the unpriced chest flagships are out by construction.
+- **CRAFT / UPGRADE / SHOP are modes of the panel**, on a left rail, with the
+  family picker under them. The owner drew a box in that empty gutter and wrote
+  *"all tabs should be there (crafting, upgrade, shop, shit like that)"*.
+
+Guarded by `tools/verify/oreforge.js`.
+
+**Bug found doing it:** `craftOreTool` ended with a copy of `equipOreTool`'s
+toggle that read `uid` — not a local in that function, so Luau compiled it as a
+global read and it was **nil in both branches**. Forging never equipped the new
+tool, and if you were already holding one it silently put it away. Now
+`p.oreToolEquipped = row.uid`.
+
 **0.14 — "THE UI ISN'T THERE" IS A SYNC QUESTION FIRST.** 2026-10-03. Reported
 twice: "still no forge ui", then "THERE'S STILL NO FUCKIN FORGE". Both times the
 Forge was in the repo and had been for days. The screenshot settled it — the
@@ -238,9 +680,9 @@ Checked directly; cite these rather than re-deriving.
 | Bench verbs exist, uid-keyed | `Verbs.upgradeOreTool` `MineServer.server.luau:13375`, `Verbs.recycleOreTool` :13441, dispatch :13491-13492, client fires `MineClient.client.luau:4512,4515` |
 | Two forge/bench views already exist | `MineForgeView.luau` 780 lines, `MineBenchView.luau` 239 lines. Reconcile; do not add a third. |
 | `MineBags` is coin-only today | `MineBags.luau:7` — "Coin prices only. Never gems — zone buyCost is the gem sink." |
-| **`ToolBakers.OreToolBaker` is NOT committed** | No `ToolBakers` folder under `src/ReplicatedStorage/Mine/`, and **zero references** to `ToolBakers`/`OreToolBaker` anywhere in `src/`. It exists only in the place file. |
+| ~~**`ToolBakers.OreToolBaker` is NOT committed**~~ **CORRECTED 2026-10-05** | It **is** committed, at `src/ServerStorage/OreToolBaker.luau`, 29 KB, landed in `0a91d6a`. The original row was right only about `ReplicatedStorage.Mine.ToolBakers` — there is no such folder, and nothing references the name `ToolBakers`. But the module itself is in git, so "exists only in the place file" is wrong and §6.0's syncback entry (which cites the real path) is the accurate one. |
 | Ore builds tools **and** upgrades them | The two comments asserting the opposite (`MineZonePacks.luau:195`, `MineServer.server.luau:524`) were removed. A grep for "ore cannot/never build", "never builds a tool" and "only upgrade one" now returns nothing. The *code* still only upgrades — the build path lands with the Forge. |
-| `ToolBakers.OreToolBaker` **houses every ore currently in the game** | Place-file only; absent from `src/` with zero references. It is an ore data source, not just a baker, so syncing it back may reveal ore rows or fields the repo does not have. |
+| `ToolBakers.OreToolBaker` **houses every ore currently in the game** | Partly stale, see the row above: the module is at `src/ServerStorage/OreToolBaker.luau`. Nothing references it, so it is an **unread** ore data source rather than an absent one. Diff its roster against `MineConfig.ORES` (82, Stone → Oganesson) before trusting either. |
 | No gem→ore or ore→ore purchase path found | Grep over `src/` found only `gemFind` (`MineSkillData.luau:98`) and a rune-fuse gem penalty (`MineScrolls.luau:11`) |
 | Duplicate pet module | `MineEHPets.luau` and `MineEventHorizonPets.luau` are byte-identical (md5 `0a8c6c6612ba54ae42b9310d450d8059`). Consumers read the short name first, so the long one is 34 KB that never loads. |
 | No CI | Repo has no `.github/` directory; PR #5 shows 0 check runs. |
@@ -351,7 +793,7 @@ it. Nothing here is an agent's to decide.
   syncback in `docs/rojo-connect.md` has still not been run.
 - [ ] **BLOCKED (DEFERRED by owner) — `ORE_GEM_SPREAD` magnitude.** 10^6 is a
   placeholder and sets the whole gem faucet. Owner: "we tackle that later."
-- [ ] **BLOCKED — Seam purchase. SHIP BLOCKER.** `Verbs.buySeam` is live and
+- [x] **CLEARED 2026-10-05 — Seam purchase was never unwired.** **CORRECTED 2026-10-05 — NOT A BLOCKER.** The seam chain is wired end to end: server fires `seamGate` (`MineServer:6406`), client opens the panel (`MineClient:10859` -> `7415`), the panel fires `buySeam` (`7489`), `Verbs.buySeam` handles it (`9266`). The earlier claim came from grepping only `buySeam`, which finds the server half alone. What remains is confirming it in-game. See `docs/OPEN.md` P0 item 1. Formerly: `Verbs.buySeam` is live and
   nothing fires it, so every player stops at layer 500. `MineDepthPlazas` owns
   the prompt geometry; `MineDepth.seamPrice(seam, zi)` gives the figure.
 - [ ] **BLOCKED — Zone and rune gem prices.** Flat tables the ore curve will
@@ -1092,6 +1534,59 @@ collide with blast and zap, which is the guardrail asked for:
       hats moving into chests.
 
 ---
+
+# 6.6 LONG-GAME ROADMAP — owner asked for it, 2026-10-04
+
+> *"we need to make packs funner, and adjust the game to be fun long term, with
+> a roadmap for first 1-15 mins, 15-1h, 1h-2h 3-4h 4-6h 6-12h 12-24 24-48-96 etc"*
+
+**This is a PROPOSAL and nothing here is built.** It is written as bands because
+that is how it was asked for, and because the honest question at every band is
+the same one: *what is the player reaching for in the next ten minutes, and can
+they see it?* A band with no visible next thing is where people quit.
+
+What the game currently HAS at each band is marked ✅; what is missing is the
+work.
+
+| band | what it should feel like | has | missing |
+|---|---|---|---|
+| **0–15 min** | Break rock, watch numbers move, forge your FIRST tool. | ✅ wooden pick, coin ladder, ore drops | First forge is ~30 blocks of one ore — needs a playtest. Tutorial hands over the stone pick ✅ |
+| **15 min–1 h** | First real choice: which ore, which family. First pack. First trait. | ✅ Forge, packs, Traits tab | Nothing teaches that traits exist. A first free trait roll would do it |
+| **1–2 h** | A build starts to exist. First charm, first skin, a second tool family. | ✅ charms, skins, 3 families | The three systems never meet on one screen |
+| **2–4 h** | First rebirth in sight. The skill tree opens and a road gets picked. | ✅ 10 roads, 75 nodes | No in-game explanation of what a road DOES before you buy into it |
+| **4–6 h** | Rebirth. Tokens. The tree starts paying. Deeper zones. | ✅ rebirth, tokens, zones | ~~SHIP BLOCKER~~ seam purchase is wired (corrected 2026-10-05); confirm in-game |
+| **6–12 h** | Chasing a specific tier of ore for a specific tool. Trait rerolling. | ✅ 82 ores, trait gacha | 1-in-1000 Exotic with no pity and no collection view |
+| **12–24 h** | Second and third rebirth. A second road. Deep ore. | ✅ | Nothing marks "you have seen everything in this band" |
+| **24–48 h** | Mastery: the right trait on the right ore on the right family. | partial | No endgame goal that is not just a bigger number |
+| **48–96 h+** | Social, trading, leaderboards, prestige identity. | ✅ trading | No leaderboard, no prestige cosmetic, no reason to be seen |
+
+**The three biggest holes, in order:**
+
+1. **The seam blocker (4–6 h).** Nothing else on this list matters if everyone
+   stops at layer 500. See `docs/BLOCKED.md` item 10.
+2. **Nothing teaches the systems (15 min – 2 h).** The Forge, traits, charms and
+   skins all exist and none of them announces itself.
+3. **No endgame that is not a bigger number (24 h+).** Needs an owner decision
+   about what mastery looks like.
+
+## Making packs funner
+
+Current: you open a pack, cards come out, the rare ones get a tap-through. The
+ceremony is good. What is thin:
+
+- **No pity.** A 1-in-400 chase with no floor is the single most common reason
+  people put a game down. A counter that guarantees the band after N opens costs
+  very little and changes how the whole loop feels.
+- **No collection pressure.** Duplicates roll at `DUPE_DROP_WEIGHT = 0.25` so
+  collection leads, but nothing shows you *what you are missing* at the moment
+  you open.
+- **Open-all is a summary screen.** It skips the filler and tap-throughs the
+  hits, which is right — but a 50-pack run ends on a static list. It should end
+  on what CHANGED: new cards, completed sets, a better pull than last time.
+- **Every pack feels the same.** `MinePackConfig.cardPoolFor` already gives each
+  pack a subset of the pool; nothing on the tile says so.
+
+None of this is started. All of it is cheap next to the roadmap holes above.
 
 # 7. Asset upload rules (group-owned game)
 

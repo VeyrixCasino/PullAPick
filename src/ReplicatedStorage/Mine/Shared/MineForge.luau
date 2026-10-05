@@ -35,6 +35,9 @@ local RS = game:GetService("ReplicatedStorage")
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared:WaitForChild("MineConfig"))
 local Tools = require(shared:WaitForChild("MineTools"))
+-- A forged tool IS its ore: the name, the frame and the price all come
+-- from one place so the panel and the craft verb cannot disagree.
+local OreTools = require(shared:WaitForChild("MineOreTools"))
 local T = require(shared:WaitForChild("MineTheme"))
 
 local BG2 = T.BG2
@@ -48,6 +51,15 @@ local FONT = Enum.Font.GothamBold
 local FONT_M = Enum.Font.Gotham
 
 local RAIL_W = 232
+--[[
+	The mode rail down the far left. The owner drew a box in this gutter and
+	wrote "all tabs should be there (crafting, upgrade, shop, shit like that)";
+	it was empty, and the three modes were scattered -- craft and upgrade buried
+	at the top of the detail pane where they read as a property of the selected
+	tool, and the coin shop a small grey button in the opposite corner.
+]]
+local TAB_W = 104
+local RAIL_X = TAB_W + 20
 -- Height of the ore strip along the bottom. The detail pane gives this up.
 local POUCH_H = 64
 
@@ -95,21 +107,6 @@ local function num(n)
 	return require(shared:WaitForChild("MineAbbrev")).currency(n)
 end
 
--- Mirrors oreToolTypeMult on the server; both read MineTools.RARITY_RANK, so a
--- rarer frame costs the same extra in the panel as it does in the verb.
-local function typeMultOf(familyId, typeId)
-	local fam = Tools.TOOLS and Tools.TOOLS[familyId or "pickaxe"]
-	if fam then
-		for _, td in ipairs(fam) do
-			if td.id == typeId then
-				local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-				return (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1, td
-			end
-		end
-	end
-	return 1, nil
-end
-
 --[[
 	Which ores the player may forge with.
 
@@ -148,19 +145,47 @@ local function discoveredOres(snapshot)
 	return out
 end
 
--- The owned ore tool for a catalogue entry, if the player has one. Deepest
--- investment wins when several exist, which is the one the player means.
-local function ownedFor(snapshot, familyId, typeId)
+--[[
+	The owned tool for an ore, if the player has one.
+
+	Keyed on the ORE now, not on a frame id. One ore, one tool: that is the
+	whole rule the owner asked for, and matching on typeId was what let the
+	same name exist at forty different prices.
+
+	Deepest investment wins when several exist, which is the one the player
+	means.
+]]
+local function ownedForOre(snapshot, familyId, oreTier)
+	local want = math.floor(tonumber(oreTier) or 0)
 	local best
 	for _, t in ipairs(snapshot.oreTools or {}) do
-		if type(t) == "table" and t.uid and t.typeId == typeId
-			and (t.familyId or "pickaxe") == familyId then
+		if type(t) == "table" and t.uid
+			and (t.familyId or "pickaxe") == familyId
+			and math.floor(tonumber(t.tier) or -1) == want then
 			if not best or (tonumber(t.level) or 1) > (tonumber(best.level) or 1) then
 				best = t
 			end
 		end
 	end
 	return best
+end
+
+-- Every forged tool of a family, deepest ore first: the UPGRADE rail.
+local function ownedOf(snapshot, familyId)
+	local out = {}
+	for _, t in ipairs(snapshot.oreTools or {}) do
+		if type(t) == "table" and t.uid and (t.familyId or "pickaxe") == familyId then
+			out[#out + 1] = t
+		end
+	end
+	table.sort(out, function(a, b)
+		local at, bt = tonumber(a.tier) or 0, tonumber(b.tier) or 0
+		if at ~= bt then
+			return at > bt
+		end
+		return tostring(a.uid) < tostring(b.uid)
+	end)
+	return out
 end
 
 --[[
@@ -184,41 +209,57 @@ function MineForge.mount(parent, opts)
 		Size = UDim2.fromScale(1, 1),
 	}, parent)
 
-	label(root, "FORGE", 13, MUTED, UDim2.fromOffset(14, 10),
+	--[[
+		STATE, AND IT IS DECLARED UP HERE ON PURPOSE.
+
+		The mode buttons below close over `refresh`, and a Luau local referenced
+		above its declaration compiles as a GLOBAL read -- nil at call time, so
+		every tab would do nothing and say nothing. That trap has already cost
+		this project two bugs. Declare first, assign later.
+
+		Selection is held by identity -- an ore id, a tool uid -- never by row
+		index, because the rail reorders the moment anything is forged.
+	]]
+	local selFamily = "pickaxe"
+	local selMode = "craft"
+	local selOreId = nil
+	local selUid = nil
+	local refresh
+
+	label(root, "FORGE", 13, MUTED, UDim2.fromOffset(RAIL_X + 4, 10),
 		UDim2.new(0, RAIL_W, 0, 16), FONT)
 
 	--[[
-		The Forge is the front line; the coin shop is a second line reached from
-		here. The button only exists when the host passes a way to get there, so
-		this file never has to know the shop exists -- requiring MineShopView
-		from inside a panel that MineShopView mounts would be a cycle.
+		THE MODE RAIL, down the far left.
+
+		CRAFT, UPGRADE and the coin SHOP are the three things a player comes
+		here to do, and all three used to be somewhere else. The family picker
+		rides underneath it: an ore makes a pickaxe, a drill or an explosive,
+		so the family is a mode of this panel too, not a header in the list.
+
+		SHOP is a ROUTE, not a pane. It hands off to the host and the Forge
+		never learns the coin shop exists, because requiring MineShopView from
+		inside a panel MineShopView mounts would be a cycle.
 	]]
-	local shopBtnW = opts.onCoinShop and 118 or 0
-	local wallet = label(root, "", 12, MUTED, UDim2.new(0, RAIL_W + 24, 0, 10),
-		UDim2.new(1, -RAIL_W - 38 - shopBtnW, 0, 16), FONT_M, Enum.TextXAlignment.Right)
-
-	if opts.onCoinShop then
-		local shopBtn = mk("TextButton", {
-			BackgroundColor3 = BG3,
-			AutoButtonColor = true,
-			Text = "COIN SHOP",
-			Font = FONT,
-			TextSize = 12,
-			TextColor3 = TEXT,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -14, 0, 6),
-			Size = UDim2.fromOffset(110, 24),
-		}, root)
-		round(shopBtn, 6)
-		shopBtn.MouseButton1Click:Connect(function()
-			opts.onCoinShop()
-		end)
-	end
-
-	-- Left rail: every tool in the game, grouped by family.
-	local rail = mk("ScrollingFrame", {
+	local modeCol = mk("Frame", {
+		Name = "ModeRail",
 		BackgroundTransparency = 1,
 		Position = UDim2.fromOffset(10, 34),
+		Size = UDim2.new(0, TAB_W, 1, -44),
+	}, root)
+	mk("UIListLayout", {
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, modeCol)
+
+	local wallet = label(root, "", 12, MUTED, UDim2.new(0, RAIL_X + RAIL_W + 24, 0, 10),
+		UDim2.new(1, -RAIL_X - RAIL_W - 38, 0, 16), FONT_M, Enum.TextXAlignment.Right)
+
+	-- The catalogue. What it lists depends on the mode: every ore you have
+	-- discovered in CRAFT, every tool you have forged in UPGRADE.
+	local rail = mk("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(RAIL_X, 34),
 		Size = UDim2.new(0, RAIL_W, 1, -44),
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
@@ -228,8 +269,8 @@ function MineForge.mount(parent, opts)
 
 	local detail = mk("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(RAIL_W + 24, 34),
-		Size = UDim2.new(1, -RAIL_W - 38, 1, -44 - POUCH_H),
+		Position = UDim2.fromOffset(RAIL_X + RAIL_W + 24, 34),
+		Size = UDim2.new(1, -RAIL_X - RAIL_W - 38, 1, -44 - POUCH_H),
 	}, root)
 
 	--[[
@@ -253,8 +294,8 @@ function MineForge.mount(parent, opts)
 		Name = "PouchStrip",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, RAIL_W + 24, 1, -10),
-		Size = UDim2.new(1, -RAIL_W - 38, 0, POUCH_H),
+		Position = UDim2.new(0, RAIL_X + RAIL_W + 24, 1, -10),
+		Size = UDim2.new(1, -RAIL_X - RAIL_W - 38, 0, POUCH_H),
 	}, root)
 	local pouchHead = label(pouchRow, "ORE POUCH", 11, MUTED, UDim2.fromOffset(0, 0),
 		UDim2.new(1, 0, 0, 14), FONT)
@@ -350,17 +391,6 @@ function MineForge.mount(parent, opts)
 		end
 	end
 
-	-- Selection is held by identity, not by row index, so a redraw that
-	-- reorders or regrows the rail keeps the player on the same tool.
-	local selFamily, selType = "pickaxe", nil
-	local selOre = nil
-	-- CRAFT or UPGRADE, picked by the player rather than inferred from
-	-- ownership. Inferring it meant the craft recipes simply did not exist for
-	-- any tool you already owned, with nothing on screen to say so -- the panel
-	-- looked like it had no crafting at all.
-	local selMode = nil
-	local refresh
-
 	local function button(host, text, colour, pos, size, enabled, onClick)
 		local b = mk("TextButton", {
 			BackgroundColor3 = enabled and colour or BG3,
@@ -382,13 +412,14 @@ function MineForge.mount(parent, opts)
 
 	----------------------------------------------------------------- detail --
 
-	local function drawUpgrade(host, snapshot, def, tool)
+	local function drawUpgrade(host, snapshot, tool)
 		local level = math.max(1, tonumber(tool.level) or 1)
 		local coinTool = C.isCoinTool and C.isCoinTool(tool)
 		local cap = coinTool and C.WOOD_PICK_MAX_LEVEL or C.TOOL_MAX_LEVEL
 		local maxed = level >= cap
 
-		label(host, def.name, 19, TEXT, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 22), FONT)
+		label(host, OreTools.toolName(tool), 19, TEXT, UDim2.fromOffset(0, 0),
+			UDim2.new(1, 0, 0, 22), FONT)
 		label(host, string.format("level %d / %d", level, cap), 13,
 			maxed and GOLD or MUTED, UDim2.fromOffset(0, 26), UDim2.new(1, 0, 0, 16))
 
@@ -415,7 +446,7 @@ function MineForge.mount(parent, opts)
 			costLine = num(coins or 0) .. " coins"
 			heldLine = "held  " .. num(have) .. " coins"
 		else
-			local typeMult = typeMultOf(selFamily, def.id)
+			local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.typeId)
 			local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
 			-- C.ORES[tool.tier] is what the server's _oreToolCost uses. Resolve
 			-- it the same way or the panel quotes a different ore than the verb
@@ -452,7 +483,7 @@ function MineForge.mount(parent, opts)
 
 		-- Scrapping is always offered; it is the one action that works when the
 		-- player cannot afford anything else.
-		local typeMult = typeMultOf(selFamily, def.id)
+		local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.typeId)
 		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
 		-- Equipping is what turns a forged tool into breaking power you actually
 		-- carry, so it sits beside the levelling buttons rather than buried.
@@ -488,7 +519,7 @@ function MineForge.mount(parent, opts)
 			about what is fitted. Whether those tabs should eventually live here
 			instead is a design call, not a side effect of this panel.
 		]]
-		local fam = tostring(selFamily or "pickaxe")
+		local fam = tostring(tool.familyId or selFamily or "pickaxe")
 		local ySkin = y + 76
 		label(host, "ON THIS FAMILY", 11, MUTED, UDim2.fromOffset(0, ySkin),
 			UDim2.new(1, 0, 0, 14), FONT)
@@ -545,120 +576,187 @@ function MineForge.mount(parent, opts)
 		end
 	end
 
-	local function drawCraft(host, snapshot, def)
-		label(host, def.name, 19, TEXT, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 22), FONT)
-		-- Neutral wording on purpose: this pane is also reached from the CRAFT
-		-- tab on a tool you already own, to forge another from a deeper ore.
-		label(host, "Pick an ore to forge it from.", 13, MUTED,
-			UDim2.fromOffset(0, 26), UDim2.new(1, 0, 0, 16))
+	--[[
+		CRAFT: one ore, one tool, and no frame to pick.
 
-		local ores = discoveredOres(snapshot)
-		if #ores == 0 then
-			label(host, "No ore discovered yet. Mine some first.", 13, MUTED,
-				UDim2.fromOffset(0, 56), UDim2.new(1, 0, 0, 18))
+		This pane used to show a tool type and then a list of EVERY discovered
+		ore you could forge it out of -- so "Wooden Pickaxe" quoted 500 Clay,
+		and the same name could be made of forty ores at forty prices. The ore
+		is the tool now: you pick the ore on the rail, and the frame it wears
+		comes from MineOreTools.frameForTier, which the craft verb re-derives
+		rather than trusting what this pane sends.
+	]]
+	local function drawCraft(host, snapshot, row)
+		if not row then
+			label(host, "Pick an ore on the left.", 13, MUTED,
+				UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 18))
 			return
 		end
+		local fam = selFamily
+		local frame = OreTools.frameForTier(fam, row.tier)
+		local typeMult = frame and OreTools.typeMult(fam, frame.id) or 1
+		local cost = C.toolCraftCost(row.tier, typeMult)
+		local afford = (row.have or 0) >= cost
 
-		local typeMult = typeMultOf(selFamily, def.id)
-		local list = mk("ScrollingFrame", {
-			BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(0, 54),
-			Size = UDim2.new(1, 0, 1, -54),
-			CanvasSize = UDim2.new(),
-			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			ScrollBarThickness = 4,
-		}, host)
-		mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, list)
+		label(host, OreTools.name(row.def, fam), 19, TEXT,
+			UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 22), FONT)
+		-- The frame is named but never offered: it is a consequence of the ore,
+		-- and saying so beats letting it look like a hidden choice.
+		label(host, string.format("ore tier %d  \u{00B7}  %s frame", row.tier,
+			tostring((frame and frame.name) or "default")), 13, MUTED,
+			UDim2.fromOffset(0, 26), UDim2.new(1, 0, 0, 16))
 
-		for i, ore in ipairs(ores) do
-			local cost = C.toolCraftCost(ore.tier, typeMult)
-			local afford = ore.have >= cost
-			local picked = (selOre == ore.id)
+		if C.toolBreakingPower then
+			local bp = C.toolBreakingPower(row.tier)
+			label(host, string.format("breaking power %d  \u{00B7}  reaches ore tier %d",
+				bp, C.oreReachCap(bp)), 12, GOLD,
+				UDim2.fromOffset(0, 46), UDim2.new(1, 0, 0, 14))
+		end
 
-			local rowF = mk("Frame", {
-				BackgroundColor3 = picked and BG2 or BG3,
-				Size = UDim2.new(1, -6, 0, 50),
-				LayoutOrder = i,
-			}, list)
-			round(rowF, 8)
+		label(host, string.format("%s %s", num(cost), row.name), 15,
+			afford and GREEN or MUTED, UDim2.fromOffset(0, 68), UDim2.new(1, 0, 0, 18))
+		--[[
+			...and what that is in BLOCKS, which is the thing a player can
+			actually weigh. The ore number alone is unreadable across the
+			roster: a craft costs 965 Epic ore but only 200 Exotic, purely
+			because Exotic drops three a block and Epic drops thirteen. In
+			blocks they are 71 and 66 -- almost the same errand, which is the
+			truth the raw number hides.
+		]]
+		label(host, string.format("held  %s %s   \u{00B7}   about %d blocks",
+			num(row.have or 0), row.name,
+			math.max(1, math.floor((C.craftBlocks and C.craftBlocks(row.tier) or 0) + 0.5))),
+			12, MUTED, UDim2.fromOffset(0, 88), UDim2.new(1, 0, 0, 14))
 
-			label(rowF, string.format("%s  \u{00B7}  tier %d", ore.name, ore.tier), 14, TEXT,
-				UDim2.fromOffset(10, 8), UDim2.new(1, -140, 0, 16), FONT)
-			label(rowF, string.format("%s %s   (held %s)", num(cost), ore.name, num(ore.have)),
-				12, afford and GREEN or MUTED,
-				UDim2.fromOffset(10, 28), UDim2.new(1, -140, 0, 14))
+		button(host, afford and "FORGE" or "NEED ORE", GREEN,
+			UDim2.fromOffset(0, 114), UDim2.fromOffset(150, 30), afford, function()
+				if opts.onCraft then
+					opts.onCraft(fam, frame and frame.id or "", row.id)
+				end
+			end)
 
-			button(rowF, afford and "FORGE" or "NEED ORE", GREEN,
-				UDim2.new(1, -124, 0, 12), UDim2.fromOffset(112, 26), afford, function()
-					selOre = ore.id
-					if opts.onCraft then opts.onCraft(selFamily, def.id, ore.id) end
-				end)
+		-- Forging a second one is allowed -- the rack holds 200 -- but saying
+		-- you already have one stops an accidental duplicate costing an ore
+		-- bank the player was saving.
+		local owned = ownedForOre(snapshot, fam, row.tier)
+		if owned then
+			label(host, string.format("you already have one, at level %d",
+				math.max(1, tonumber(owned.level) or 1)), 12, GOLD,
+				UDim2.fromOffset(160, 120), UDim2.new(1, -160, 0, 16))
 		end
 	end
 
+	--[[
+		The detail pane no longer carries a tab strip of its own. CRAFT and
+		UPGRADE are modes of the whole panel now and live on the left rail, so
+		what is drawn here follows the mode rather than being inferred from
+		whether the selected row happens to be owned.
+	]]
 	local function drawDetail(snapshot)
 		for _, d in ipairs(detail:GetChildren()) do
 			if not d:IsA("UIListLayout") then
 				d:Destroy()
 			end
 		end
-		local _, def = typeMultOf(selFamily, selType)
-		if not def then
-			label(detail, "Pick a tool on the left.", 13, MUTED,
-				UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 18))
-			return
-		end
-		local tool = ownedFor(snapshot, selFamily, def.id)
-
-		-- Default to UPGRADE once you own one, CRAFT otherwise, but always let
-		-- the player switch: owning one Halite Trueheart is no reason to hide
-		-- the recipe for forging another out of a deeper ore.
-		local mode = selMode or (tool and "upgrade" or "craft")
-		if mode == "upgrade" and not tool then
-			mode = "craft"
-		end
-
-		local tabs = mk("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 0, 30),
-		}, detail)
-		local function tab(text, id, x, enabled)
-			local on = (mode == id)
-			local b = mk("TextButton", {
-				BackgroundColor3 = on and GOLD or BG3,
-				AutoButtonColor = enabled,
-				Text = text,
-				Font = FONT,
-				TextSize = 12,
-				TextColor3 = on and Color3.fromRGB(26, 24, 20)
-					or (enabled and TEXT or MUTED),
-				Position = UDim2.fromOffset(x, 0),
-				Size = UDim2.fromOffset(96, 26),
-				Active = enabled,
-			}, tabs)
-			round(b, 6)
-			if enabled then
-				b.MouseButton1Click:Connect(function()
-					selMode = id
-					refresh()
-				end)
-			end
-			return b
-		end
-		tab("CRAFT", "craft", 0, true)
-		tab("UPGRADE", "upgrade", 102, tool ~= nil)
-
-		-- Everything below the tab strip draws into its own host, so the two
-		-- panes do not have to know the strip is above them.
 		local host = mk("Frame", {
 			BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(0, 36),
-			Size = UDim2.new(1, 0, 1, -36),
+			Size = UDim2.fromScale(1, 1),
 		}, detail)
-		if mode == "upgrade" and tool then
-			drawUpgrade(host, snapshot, def, tool)
-		else
-			drawCraft(host, snapshot, def)
+
+		if selMode == "upgrade" then
+			local tool
+			for _, t in ipairs(ownedOf(snapshot, selFamily)) do
+				if t.uid == selUid then
+					tool = t
+					break
+				end
+			end
+			if not tool then
+				label(host, "Pick a forged tool on the left.", 13, MUTED,
+					UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 18))
+				return
+			end
+			drawUpgrade(host, snapshot, tool)
+			return
+		end
+
+		local row
+		for _, o in ipairs(discoveredOres(snapshot)) do
+			if o.id == selOreId then
+				row = o
+				break
+			end
+		end
+		drawCraft(host, snapshot, row)
+	end
+
+	------------------------------------------------------------- mode  rail --
+
+	--[[
+		The left column: the three modes, then the three families.
+
+		Rebuilt on every refresh like everything else here. It is nine small
+		buttons; keeping them live and mutating their colours would save
+		nothing and give the panel a second source of truth about what is
+		selected.
+	]]
+	local function colButton(text, order, on, enabled, onClick)
+		local b = mk("TextButton", {
+			BackgroundColor3 = on and GOLD or BG3,
+			AutoButtonColor = enabled,
+			Text = text,
+			Font = FONT,
+			TextSize = 12,
+			TextColor3 = on and Color3.fromRGB(26, 24, 20) or (enabled and TEXT or MUTED),
+			Size = UDim2.new(1, 0, 0, 30),
+			LayoutOrder = order,
+			Active = enabled,
+		}, modeCol)
+		round(b, 6)
+		if enabled then
+			b.MouseButton1Click:Connect(onClick)
+		end
+		return b
+	end
+
+	local function paintModes()
+		for _, d in ipairs(modeCol:GetChildren()) do
+			if not d:IsA("UIListLayout") then
+				d:Destroy()
+			end
+		end
+		colButton("CRAFT", 1, selMode == "craft", true, function()
+			selMode = "craft"
+			refresh()
+		end)
+		colButton("UPGRADE", 2, selMode == "upgrade", true, function()
+			selMode = "upgrade"
+			refresh()
+		end)
+		if opts.onCoinShop then
+			-- A route, not a mode: it never reads as selected because the panel
+			-- it opens is not this one.
+			colButton("SHOP", 3, false, true, function()
+				opts.onCoinShop()
+			end)
+		end
+
+		label(modeCol, "FAMILY", 10, MUTED, nil, UDim2.new(1, 0, 0, 20), FONT).LayoutOrder = 4
+		local order = 4
+		for _, famId in ipairs(OreTools.FAMILY_ORDER or {}) do
+			local defs = (Tools.TOOLS or {})[famId]
+			-- A family with no roster yet (weapons are flagged planned) would
+			-- otherwise be a button that selects nothing.
+			if defs and #defs > 0 then
+				order += 1
+				local id = famId
+				colButton(string.upper(OreTools.familyNoun(id) .. "s"), order,
+					selFamily == id, true, function()
+						selFamily = id
+						selUid = nil
+						refresh()
+					end)
+			end
 		end
 	end
 
@@ -680,48 +778,93 @@ function MineForge.mount(parent, opts)
 		wallet.Text = string.format("%s coins  \u{00B7}  %s gems  \u{00B7}  %s dust",
 			cash(snapshot.coins), cash(snapshot.gems), cash(snapshot.dust))
 		paintPouch(snapshot, cash)
+		paintModes()
 
-		local order = 0
-		for _, fam in ipairs(Tools.FAMILIES or {}) do
-			local defs = (Tools.TOOLS or {})[fam.id]
-			-- A family with no roster yet (weapons are flagged planned) would
-			-- otherwise draw a header over nothing.
-			if defs and #defs > 0 then
-				order += 1
-				label(rail, string.upper(fam.name or fam.id), 11, MUTED, nil,
-					UDim2.new(1, -6, 0, 18), FONT).LayoutOrder = order
+		local function row(order, title, sub, titleInk, subInk, picked, onClick)
+			local b = mk("TextButton", {
+				BackgroundColor3 = picked and BG2 or BG3,
+				AutoButtonColor = true,
+				Text = "",
+				Size = UDim2.new(1, -6, 0, 38),
+				LayoutOrder = order,
+			}, rail)
+			round(b, 6)
+			label(b, title, 13, titleInk, UDim2.fromOffset(10, 5),
+				UDim2.new(1, -20, 0, 15), FONT)
+			label(b, sub, 11, subInk, UDim2.fromOffset(10, 21), UDim2.new(1, -20, 0, 12))
+			b.MouseButton1Click:Connect(onClick)
+			return b
+		end
 
-				for _, def in ipairs(defs) do
-					order += 1
-					local tool = ownedFor(snapshot, fam.id, def.id)
-					local picked = (selFamily == fam.id and selType == def.id)
-					if selType == nil then
-						selFamily, selType, picked = fam.id, def.id, true
-					end
-
-					local b = mk("TextButton", {
-						BackgroundColor3 = picked and BG2 or BG3,
-						AutoButtonColor = true,
-						Text = "",
-						Size = UDim2.new(1, -6, 0, 38),
-						LayoutOrder = order,
-					}, rail)
-					round(b, 6)
-
-					label(b, def.name, 13, tool and TEXT or MUTED,
-						UDim2.fromOffset(10, 5), UDim2.new(1, -20, 0, 15), FONT)
-					label(b, tool
-							and ("level " .. tostring(tool.level or 1))
-							or "not forged",
-						11, tool and GREEN or MUTED,
-						UDim2.fromOffset(10, 21), UDim2.new(1, -20, 0, 12))
-
-					b.MouseButton1Click:Connect(function()
-						selFamily, selType, selOre = fam.id, def.id, nil
-						selMode = nil
+		if selMode == "upgrade" then
+			------------------------------------------------ what you have --
+			local mine = ownedOf(snapshot, selFamily)
+			if #mine == 0 then
+				label(rail, "Nothing forged in this family yet.", 12, MUTED, nil,
+					UDim2.new(1, -6, 0, 32), FONT_M).LayoutOrder = 1
+			end
+			-- Keep the player on the same tool across a redraw; fall back to
+			-- the deepest one when the selection is gone (scrapped, usually).
+			local still = false
+			for _, t in ipairs(mine) do
+				if t.uid == selUid then
+					still = true
+					break
+				end
+			end
+			if not still then
+				selUid = mine[1] and mine[1].uid or nil
+			end
+			for i, t in ipairs(mine) do
+				local equipped = snapshot.oreToolEquipped ~= nil
+					and snapshot.oreToolEquipped == t.uid
+				row(i, OreTools.toolName(t),
+					string.format("level %d%s", math.max(1, tonumber(t.level) or 1),
+						equipped and "   \u{00B7}   equipped" or ""),
+					TEXT, equipped and GOLD or GREEN, selUid == t.uid, function()
+						selUid = t.uid
 						refresh()
 					end)
+			end
+		else
+			--------------------------------------------- what you can make --
+			--[[
+				Sorted by the ore, deepest first -- the owner's ask, and the
+				same order the pouch strip below uses, so the two halves of the
+				screen agree about what "top of the list" means.
+			]]
+			local ores = discoveredOres(snapshot)
+			if #ores == 0 then
+				label(rail, "No ore discovered yet. Mine some first.", 12, MUTED, nil,
+					UDim2.new(1, -6, 0, 32), FONT_M).LayoutOrder = 1
+			end
+			local still = false
+			for _, o in ipairs(ores) do
+				if o.id == selOreId then
+					still = true
+					break
 				end
+			end
+			if not still then
+				selOreId = ores[1] and ores[1].id or nil
+			end
+			for i, o in ipairs(ores) do
+				local frame = OreTools.frameForTier(selFamily, o.tier)
+				local cost = C.toolCraftCost(o.tier,
+					frame and OreTools.typeMult(selFamily, frame.id) or 1)
+				local owned = ownedForOre(snapshot, selFamily, o.tier)
+				local afford = (o.have or 0) >= cost
+				row(i, OreTools.name(o.def, selFamily),
+					owned
+						and string.format("forged  \u{00B7}  level %d",
+							math.max(1, tonumber(owned.level) or 1))
+						or string.format("%s %s   (held %s)", num(cost), o.name, num(o.have or 0)),
+					owned and TEXT or (afford and TEXT or MUTED),
+					owned and GOLD or (afford and GREEN or MUTED),
+					selOreId == o.id, function()
+						selOreId = o.id
+						refresh()
+					end)
 			end
 		end
 

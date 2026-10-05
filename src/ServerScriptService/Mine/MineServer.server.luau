@@ -45,6 +45,14 @@ local TradeService = require(script.Parent:WaitForChild("TradeService"))
 local SocialService = require(script.Parent:WaitForChild("SocialService"))
 -- Mine For Cards modules packed as one local to spare the 200-register main-chunk cap.
 local Dig = {
+	-- Traits: the prefix on a forged tool, and the one thing runes and
+	-- gear were replaced by. On Dig rather than a top-level local because this
+	-- script sits at 197 of Luau's 200, and boosts() reads it per swing so a
+	-- require-per-call is not an option either.
+	Traits = require(shared:WaitForChild("MineTraits")),
+	-- Two layers, and the second multiplies the first. See MineBoostLayers
+	-- for the owner's worked example (100 -> 300, not 250).
+	Layers = require(shared:WaitForChild("MineBoostLayers")),
 	Depth = C.Depth or require(shared:WaitForChild("MineDepth")),
 	Auth = require(script.Parent:WaitForChild("MineDigAuth")),
 	Shop = require(shared:WaitForChild("MineDepthShop")),
@@ -68,6 +76,14 @@ local Const = {
 	VOXEL_SKIP = { Skip = true },
 	GROUND_Y = 5,
 	OPEN_RUN_MAX = 50,
+	--[[
+		Most of one item a player may buy in a single typed request.
+
+		Owner, 2026-10-03: "a custom amoujt of packs to buy (the player can
+		write the number themselves [default 1])". A text box needs a ceiling
+		or a fat-fingered 999999 is one request that spends a whole bank.
+	]]
+	BUY_QTY_MAX = 100,
 	-- One number, shared with the Select UI that has to clamp to it.
 	SCRAP_MAX = C.SCRAP_MAX,
 	ROLL_MAX = 100,
@@ -80,7 +96,18 @@ local Const = {
 	-- Layers below the server-wide dug depth before a dig is worth a look.
 	FLAG_DEPTH_SLACK = 250,
 	CART_MAX_LINES = 24,
-	CART_MAX_QTY = 25,
+	--[[
+		Most of one line the cart will buy. RAISED 25 -> 100 on 2026-10-04 to
+		match BUY_QTY_MAX below and the typed quantity box in
+		MineInventoryView, which allows the same number.
+
+		These three have to agree. A box that accepts 60 above a server that
+		silently clamps to 25 is a box that lies, which is the exact failure
+		the pack tile's own comment warns about ("a button that says x10 above
+		a stack of six is a button that lies"). tools/verify/buyqty.js pins
+		them together.
+	]]
+	CART_MAX_QTY = 100,
 }
 local mineResetState = { at = {}, warned = {} }
 -- VIP gamepass ownership cache (server-authoritative). Keyed by userId.
@@ -2250,28 +2277,49 @@ function Dig.petRows(p, n)
 	return rows, pieces, runes
 end
 
-function Dig.applyPets(b, p, n)
+--[[
+	LAYER 2: equipment and pets, summed flat.
+
+	Owner, 2026-10-04: "Gear powers pets. Should just be a boost." and
+	"equipment+pets are #2".
+
+	Used to mutate the boost table directly, and gear used to be counted once
+	PER PET and then multiplied by your face -- so a fourth pet made your hat
+	33% better without the hat changing. Now both just add, once, into a layer
+	that MineBoostLayers multiplies over layer 1.
+
+	Returns the layer table and the stat the face tailored itself to.
+]]
+function Dig.layer2(p, n)
 	local rows, pieces = Dig.petRows(p, n)
 	local eq = p.equippedGear or {}
-	local total, tailor = Gear.stackPets(rows, Gear.wornHats(eq, pieces), pieces[eq.face or ""])
-	for stat, amount in pairs(total) do
-		if stat == "swingRate" then
-			b.swingRate = (b.swingRate or 1) + amount
-		elseif b[stat] ~= nil then
-			b[stat] += amount
-		else
-			b[stat] = amount
-		end
+	local t2 = {}
+	for stat, amount in pairs(Gear.stackPets(rows)) do
+		Dig.Layers.add(t2, stat, amount)
 	end
-	return tailor
+	local gear, tailor = Gear.flatBoost(Gear.wornHats(eq, pieces), pieces[eq.face or ""])
+	for stat, amount in pairs(gear) do
+		Dig.Layers.add(t2, stat, amount)
+	end
+	return t2, tailor
 end
 
 local function boosts(p)
 	local b = Cards.emptyBoosts()
 	local n = #(p.equipped or {})
-	-- Each pet x its rune x (its hat + your hat), the three added up, x your face.
-	Dig.tailor[p] = Dig.applyPets(b, p, n)
-	Cards.foldSwingRate(b)
+	--[[
+		THE TWO LAYERS. Owner, 2026-10-04:
+
+		  "skills+skins+tools+traits are the very bottom ... equipment+
+		   pets are #2 [if skin has +50% damage, and pet says +100% damage, and
+		   the tools base is 100, then it turns to 300, rather than 250]"
+
+		Everything inside a layer adds; the layers multiply. Collected here and
+		combined once, below, after every source has had its say -- combining
+		early would make the result depend on the order sources were read in.
+	]]
+	local T1, T2 = {}, {}
+	T2, Dig.tailor[p] = Dig.layer2(p, n)
 	b.luck *= C.prestigeLuck(p.prestige)
 	if (tonumber(p.sellHasteUntil) or 0) > os.clock() then
 		b.mineSpeed *= 1.08
@@ -2288,25 +2336,111 @@ local function boosts(p)
 			if bonus.luck then b.luck *= bonus.luck end
 			if bonus.sell then b.sell = (b.sell or 1) * bonus.sell end
 			if bonus.gems then b.gems = (b.gems or 1) * bonus.gems end
-			if bonus.ore then b.oreYield = (b.oreYield or 0) + (bonus.ore - 1) end
+			if bonus.ore then b.blastChance = (b.blastChance or 0) + (bonus.ore - 1) end
 		end
 	end
+	--[[
+		THE EQUIPPED TOOL'S ENCHANTMENT.
+
+		One trait, on the tool you are holding, and nothing else: no
+		slots, no per-family sockets, no three hats and a face. A tool that is
+		not in your hands gives nothing, which is what makes the prefix on the
+		one you ARE holding mean something.
+
+		Folded through MineCards.ADDITIVE_STATS rather than a second opinion
+		about which stats add and which multiply -- the two drifting apart
+		would quietly pay a chance stat as a multiplier.
+	]]
+	do
+		local uid = p.oreToolEquipped
+		if uid then
+			for _, t in ipairs(p.oreTools or {}) do
+				if t.uid == uid then
+					if type(t.trait) == "table" then
+						-- Layer 1: the tool's own trait, beside skills
+						-- and skins rather than on top of them.
+						local def = Dig.Traits.byId(t.trait.id)
+						if def then
+							Dig.Layers.add(T1, def.stat,
+								Dig.Traits.amount(t.trait.id, t.trait.level))
+						end
+					end
+					break
+				end
+			end
+		end
+	end
+
 	-- prestigeYield used to dump +15% Blast per rebirth. Blast is Omni now; prestige
 	-- does not ride it. Luck still scales with rebirth.
 
 	-- Rebirth skills. MineStats amounts are fractions (0.62 = +62%); the boost
 	-- table is multiplicative for everything except echo/zap/blastRadius/autoMine/
-	-- oreYield (Blast %), which are additive.
+	-- blastChance (Blast %), which are additive.
 	local sk = Skills.totalStats(skillState(p), Stats)
 	for stat, key in pairs({ mineSpeed = "mineSpeed", dirtBreak = "dirtBreak",
 		walkSpeed = "walkSpeed", luck = "luck", rareOre = "rareOre" }) do
 		if sk[stat] then
-			b[key] *= (1 + sk[stat])
+			-- Layer 1. Rebirth skills are the floor the rest is built on.
+			Dig.Layers.add(T1, key, sk[stat])
 		end
 	end
+
+	--[[
+		COMBINE. base x (1 + layer1) x (1 + layer2), once, for every stat
+		either layer touched.
+
+		Chance stats are handed through untouched -- MineCards.ADDITIVE_STATS
+		is the list -- because "1 + x" on a blast chance is meaningless and two
+		layers of it is twice as meaningless.
+	]]
+	Dig.Layers.apply(b, T1, T2, Cards.ADDITIVE_STATS)
+	Cards.foldSwingRate(b)
+
 	-- Swing seconds are a DURATION, so a faster swing rate divides it.
 	if sk.swingRate then
 		b.swingSec /= (1 + sk.swingRate)
+	end
+	--[[
+		BLAST RADIUS FROM SKILLS. This line did not exist.
+
+		Nine nodes in MineSkillData grant blastRadius and it is FIRE'S PRIMARY
+		STAT -- the headline buff of the first wedge on the tree, deg 0. The
+		server read sk.mineSpeed, sk.dirtBreak, sk.walkSpeed, sk.luck,
+		sk.rareOre, sk.swingRate, sk.echo, sk.zap, sk.blastChance, sk.luckyFind,
+		sk.fossilFind, sk.pulverize, sk.scrap, sk.backpack, sk.chestLuck,
+		sk.coinBonus and sk.gemFind -- and never sk.blastRadius. So every point
+		a player put into the Fire road's primary stat was silently discarded.
+
+		Additive, like the other procs: MineCards.ADDITIVE_STATS lists it.
+	]]
+	if sk.blastRadius then
+		b.blastRadius += sk.blastRadius
+	end
+	--[[
+		THE REST OF THE TREE'S STATS, for exactly the same reason.
+
+		blastRadius was not alone -- it was just the one whose element was most
+		obviously broken. Once the 2026-10-04 remap put earthquake, ricochet,
+		procPower, oreLuck, packLuck, coolant, reach and shortFuse on elements,
+		every one of them was granted by nodes and read by nobody.
+
+		tools/verify/skilltree.js now fails if the tree grants a stat the server
+		does not apply, so this list cannot fall behind the roster again.
+
+		Additive ones are chances or flat adds; oreLuck and packLuck are
+		MULTIPLIERS and sit at 1 when they give nothing.
+	]]
+	for _, key in ipairs({ "earthquake", "ricochet", "procPower",
+		"coolant", "shortFuse", "reach" }) do
+		if sk[key] then
+			b[key] = (tonumber(b[key]) or 0) + sk[key]
+		end
+	end
+	for _, key in ipairs({ "oreLuck", "packLuck" }) do
+		if sk[key] then
+			b[key] = (tonumber(b[key]) or 1) * (1 + sk[key])
+		end
 	end
 	if sk.echo then
 		b.echo += sk.echo
@@ -2314,8 +2448,8 @@ local function boosts(p)
 	if sk.zap then
 		b.zap += sk.zap
 	end
-	if sk.oreYield then
-		b.oreYield += sk.oreYield
+	if sk.blastChance then
+		b.blastChance += sk.blastChance
 	end
 	if sk.luckyFind then
 		b.luckyFind += sk.luckyFind
@@ -2345,7 +2479,7 @@ local function boosts(p)
 	-- Relics and Charter levels outlive a rebirth. Multipliers compound; additive
 	-- procs (echo/zap/Blast/blastRadius/autoMine) add chance or radius instead.
 	local ADDITIVE_BOOST = {
-		echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
+		echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
 		earthquake = true, ricochet = true,
 	}
 	for _, held in ipairs(p.relics or {}) do
@@ -5820,17 +5954,24 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		return
 	end
 	local rng = Random.new()
+	--[[
+		Proc DAMAGE comes from procPower; proc CHANCE from each proc's own
+		stat. Read once here so the four procs below cannot disagree about
+		what a player's proc damage is mid-swing.
+	]]
+	local pp = tonumber(b.procPower) or 0
 	-- Omni Blast is a destroy-proc: chest / core / cube deaths stay
 	-- centre-only, both as the source and as a neighbour.
 	if broke and not Dig.PROC_SKIP[kind] then
-		local chance = forceBlast and 1 or (b.oreYield or 0)
+		local chance = forceBlast and 1 or (b.blastChance or 0)
 		if chance > 0 and rng:NextNumber() < chance then
 			net:FireClient(plr, "loot", { text = "BLAST", color = Color3.fromRGB(255, 140, 70), pos = part.Position })
 			for _, d in ipairs(Dig.FACE6) do
 				local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
 				if other and typeof(other) == "Instance" and other.Parent then
 					if not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-						pcall(swingNeighbour, plr, other, dmg, p)
+						pcall(swingNeighbour, plr, other,
+							C.procDamage(dmg, "blast", pp), p)
 					end
 				end
 			end
@@ -5862,7 +6003,7 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 				local hit = opts[rng:NextInteger(1, #opts)]
 				net:FireClient(plr, "loot", { text = "RICOCHET",
 					color = Color3.fromRGB(140, 220, 255), pos = hit.Position })
-				pcall(swingNeighbour, plr, hit, dmg, p)
+				pcall(swingNeighbour, plr, hit, C.procDamage(dmg, "ricochet", pp), p)
 			end
 		end
 	end
@@ -5879,21 +6020,36 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 	if not broke and not Dig.PROC_SKIP[kind] then
 		local eq = tonumber(b.earthquake) or 0
 		if eq > 0 and rng:NextNumber() < eq then
-			Dig.startQuake(plr, p, part, dmg)
+			-- The PER-TICK figure is stored, not the swing: the tick loop then
+			-- subtracts what it was given rather than re-deriving a share, so
+			-- the quake a player started keeps its damage even if the stat
+			-- changes under it mid-shake.
+			Dig.startQuake(plr, p, part, C.procDamage(dmg, "quake", pp))
 		end
 	end
 
-	-- Chain Zap: one chain from this block. Chance and damage fall off 0.9x a
-	-- hop, it never doubles back into the cell it just left, and chain hits
-	-- re-proc nothing.
+	--[[
+		Chain Zap: one chain from this block, now with an end to it.
+
+		Was 32 hops at 0.9x on both chance and damage -- 9.7x a swing off one
+		roll, and at a high zap the chain barely decayed, so the hop cap was
+		doing all the balancing and the falloff none. C.ZAP_MAX_HOPS hops at
+		C.ZAP_FALLOFF, starting from PROC_SHARE.zap rather than a full swing.
+
+		It still never doubles back into the cell it just left, and chain hits
+		still re-proc nothing.
+	]]
 	local startZap = b.zap or 0
 	if startZap <= 0 or rng:NextNumber() >= startZap then
 		return
 	end
+	local falloff = tonumber(C.ZAP_FALLOFF) or 0.75
+	local maxHops = math.max(1, math.floor(tonumber(C.ZAP_MAX_HOPS) or 6))
+	local zapBase = C.procDamage(dmg, "zap", pp)
 	local chance = startZap
 	local fromCx, fromCy, fromCz = cx, cy, cz
 	local prevDx, prevDy, prevDz = 0, 0, 0
-	for hops = 1, 32 do
+	for hops = 1, maxHops do
 		local opts = {}
 		for _, d in ipairs(Dig.FACE6) do
 			if not (d[1] == -prevDx and d[2] == -prevDy and d[3] == -prevDz) then
@@ -5909,8 +6065,9 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		end
 		local pick = opts[rng:NextInteger(1, #opts)]
 		net:FireClient(plr, "loot", { text = "ZAP", color = Color3.fromRGB(250, 220, 80), pos = pick.part.Position })
-		pcall(swingNeighbour, plr, pick.part, math.max(1, math.floor(dmg * (0.9 ^ hops))), p)
-		chance *= 0.9
+		pcall(swingNeighbour, plr, pick.part,
+			math.max(1, math.floor(zapBase * (falloff ^ (hops - 1)))), p)
+		chance *= falloff
 		if rng:NextNumber() >= chance then
 			break
 		end
@@ -5984,7 +6141,6 @@ end
 task.spawn(function()
 	while true do
 		task.wait(1)
-		local share = tonumber(C.EARTHQUAKE_TICK_SHARE) or 0.20
 		local now = os.clock()
 		for uid, mine in pairs(Dig.QUAKE) do
 			local plr = Players:GetPlayerByUserId(uid)
@@ -6001,8 +6157,9 @@ task.spawn(function()
 						end
 						mine[part] = nil
 					else
-						pcall(swingNeighbour, plr, part,
-							math.max(1, math.floor(q.dmg * share)), prof)
+						-- q.dmg is already the per-tick figure (C.procDamage at
+						-- start time), so this is a straight application.
+						pcall(swingNeighbour, plr, part, q.dmg, prof)
 					end
 				end
 			end
@@ -9235,7 +9392,8 @@ function Verbs.mergeCharm(plr, payload)
 	id = tostring(id or "")
 	p.charms = p.charms or {}
 
-	local cost = math.max(2, math.floor(tonumber(Charms.MERGE_COST) or 3))
+	-- One copy, not three. The gems are the price now; see MineCharms.
+	local cost = math.max(1, math.floor(tonumber(Charms.MERGE_COST) or 1))
 	local have = math.floor(tonumber(p.charms[id]) or 0)
 	-- A legacy charm saved as `true` counts as one copy, the same as everywhere
 	-- else that reads this tally.
@@ -9253,6 +9411,22 @@ function Verbs.mergeCharm(plr, payload)
 		net:FireClient(plr, "toast", why or "That charm cannot be merged")
 		return
 	end
+
+	--[[
+		THE GEMS. Owner, 2026-10-04: "rather than merging it should cost gems."
+
+		Priced off the TARGET's tier, not the source's, so the step you are
+		buying is what you pay for. Charged AFTER mergeTarget resolves -- a
+		charm that cannot merge must not take the gems first.
+	]]
+	local gemCost = Charms.mergeGemCost and Charms.mergeGemCost(targetDef.tier) or 0
+	local gems = math.floor(tonumber(p.gems) or 0)
+	if gemCost > 0 and gems < gemCost then
+		net:FireClient(plr, "toast", string.format(
+			"Needs %s gems to merge", Verbs._benchNum(gemCost)))
+		return
+	end
+	p.gems = gems - gemCost
 
 	p.charms[id] = have - cost
 	if p.charms[id] <= 0 then
@@ -10678,6 +10852,33 @@ function Verbs.buyScroll(plr, payload)
 		grant = item.bundleQty
 	end
 	cost = C.vipPrice(cost, hasVipPass(plr))
+
+	--[[
+		A TYPED QUANTITY. Owner: "a custom amoujt of packs to buy (the player
+		can write the number themselves [default 1])".
+
+		Multiplies whatever one unit costs -- so it stacks on a bundle too, and
+		the VIP discount is applied before the multiply rather than after, or
+		buying ten would round the discount away ten times.
+
+		Short on credits pays out what you CAN afford rather than refusing,
+		which is the same contract openMany documents for "open 10" off a stack
+		of six. Refusing a 50-pack request because you can afford 49 is the
+		behaviour that makes people stop using the box.
+	]]
+	local qty = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
+		1, Const.BUY_QTY_MAX)
+	local unit, unitGrant = cost, grant
+	local have = tonumber(p.credits) or 0
+	if unit > 0 then
+		qty = math.min(qty, math.floor(have / unit))
+	end
+	if qty < 1 then
+		net:FireClient(plr, "toast", "Need " .. unit .. " credits")
+		return
+	end
+	cost, grant = unit * qty, unitGrant * qty
+
 	if (p.credits or 0) < cost then
 		net:FireClient(plr, "toast", "Need " .. cost .. " credits")
 		return
@@ -10691,6 +10892,16 @@ function Verbs.buyScroll(plr, payload)
 		grantScrolls(p, id, grant)
 	end
 	net:FireClient(plr, "toast", "Bought " .. item.name .. (grant > 1 and (" x" .. grant) or ""))
+	-- Say so when the box asked for more than the wallet could cover, or a
+	-- short fill looks like the number was ignored.
+	do
+		local asked = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
+			1, Const.BUY_QTY_MAX)
+		if asked > qty then
+			net:FireClient(plr, "toast", string.format(
+				"Only %d of %d - that is what %d credits covered", qty, asked, have))
+		end
+	end
 	snap(plr)
 end
 
@@ -12831,7 +13042,7 @@ end
 
 Dig.boostSources = function(p)
 	local out = {}
-	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true,
+	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true,
 		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
 		earthquake = true, ricochet = true }
 	local function add(stat, name, amt)
@@ -12963,13 +13174,27 @@ Dig.boostSources = function(p)
 					emit("Rune on " .. row.name .. " (spread)", Gear.stackPets(variant(false, true, i), nil, nil))
 				end
 			end
+			--[[
+				Gear is ONE flat row now, not "your hat (all pets)" and "your
+				face (whole team)". Those two lines described the old stack,
+				where a hat was counted once per pet and the face multiplied
+				it; leaving them would be a breakdown of arithmetic that no
+				longer happens.
+			]]
 			local myHat = pieces[eq.hat or ""]
-			if myHat then
-				emit("Your " .. (myHat.name or "hat") .. " (all pets)", Gear.stackPets(variant(false, false), myHat, nil))
-			end
 			local myFace = pieces[eq.face or ""]
-			if myFace then
-				emit("Your " .. (myFace.name or "face") .. " (whole team)", Gear.stackPets(variant(false, false), nil, myFace))
+			do
+				local flat = Gear.flatBoost(Gear.wornHats(eq, pieces), myFace)
+				local gearOnly = Cards.emptyBoosts()
+				for stat, amount in pairs(flat) do
+					if stat == "swingRate" then
+						gearOnly.swingRate = (gearOnly.swingRate or 1) + amount
+					elseif gearOnly[stat] ~= nil then
+						gearOnly[stat] += amount
+					end
+				end
+				Cards.foldSwingRate(gearOnly)
+				diff("Your gear (flat, layer 2)", gearOnly)
 			end
 			local gb = Cards.emptyBoosts()
 			Gear.applyEquipped(gb, { hat = myHat, face = myFace }, byRune)
@@ -15109,31 +15334,41 @@ function Verbs.craftOreTool(plr, payload)
 	end
 
 	local familyId = tostring(payload.familyId or "pickaxe")
-	local typeId = tostring(payload.typeId or "")
 	local oreId = tostring(payload.oreId or "")
 
-	local def
-	for _, td in ipairs((Tools.TOOLS or {})[familyId] or {}) do
-		if td.id == typeId then
-			def = td
-			break
-		end
-	end
-	if not def then
-		net:FireClient(plr, "toast", "No such tool")
-		return
-	end
+	--[[
+		THE ORE IS THE TOOL.
 
-	-- The starter is given, not forged. Letting it be crafted from ore would
-	-- put the cheapest frame in the game on the ore economy for no gain.
-	if C.WOOD_PICK_ID and def.id == C.WOOD_PICK_ID then
-		net:FireClient(plr, "toast", "The Wooden Pickaxe is free, not forged")
-		return
-	end
+		Owner, 2026-10-03: "i dont want different tools to cost different ores."
 
+		This verb used to take a typeId AND an oreId from the client and trust
+		the pair, so one frame could be forged out of any ore at any price --
+		which is exactly what made the Forge read as nonsense. The frame is
+		DERIVED from the ore's tier now, by the same pure function the panel
+		quotes with, so the two cannot drift and a modified client cannot ask
+		for a deep ore in a cheap frame. payload.typeId is ignored on purpose.
+
+		MineOreTools is required here rather than at the top of the file: this
+		script is at 197 of Luau's 200 top-level locals, and a forge is not a
+		hot path.
+	]]
 	local oreDef = C.oreById and C.oreById(oreId)
 	if not oreDef or not oreDef.tier then
 		net:FireClient(plr, "toast", "That ore is not in the roster")
+		return
+	end
+
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	local def = OreTools.frameForTier(familyId, oreDef.tier)
+	if not def then
+		net:FireClient(plr, "toast", "Nothing in that family can be forged")
+		return
+	end
+
+	-- The starter is given, not forged. frameForTier already filters it out by
+	-- price, so this is belt and braces rather than the only guard.
+	if C.WOOD_PICK_ID and def.id == C.WOOD_PICK_ID then
+		net:FireClient(plr, "toast", "The Wooden Pickaxe is free, not forged")
 		return
 	end
 
@@ -15143,7 +15378,7 @@ function Verbs.craftOreTool(plr, payload)
 		return
 	end
 
-	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = typeId })
+	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = def.id })
 	local cost = C.toolCraftCost(oreDef.tier, typeMult)
 
 	p.ores = p.ores or {}
@@ -15165,19 +15400,95 @@ function Verbs.craftOreTool(plr, payload)
 	table.insert(p.oreTools, row)
 
 	bumpStat(plr, p, "crafts")
-	net:FireClient(plr, "toast", string.format("Forged  %s %s",
-		oreDef.name or oreId, def.name or def.id))
+	net:FireClient(plr, "toast", "Forged  " .. OreTools.name(oreDef, familyId))
 	snap(plr)
 	markDirty(plr)
-	if p.oreToolEquipped == uid then
-		-- Tapping the held tool puts it away.
-		p.oreToolEquipped = nil
-	else
-		p.oreToolEquipped = uid
-		p.chestTool = nil
-	end
+	--[[
+		Equip what was just forged.
+
+		This was a copy of equipOreTool's TOGGLE pasted into craft, and it read
+		`uid` -- a local that does not exist in this function. Luau compiles an
+		undeclared name as a GLOBAL read, so `uid` was nil in both branches:
+		`p.oreToolEquipped == nil` took the first branch whenever nothing was
+		held and the second assigned nil anyway. Either way the field ended up
+		nil, so forging never equipped the new tool and, if you were holding
+		one, silently put it away. The row's id is `row.uid`.
+
+		There is no toggle to do here: you cannot be holding a tool that did
+		not exist a line ago.
+	]]
+	p.oreToolEquipped = row.uid
+	p.chestTool = nil
 	p.toolEquipped = true
 	givePickaxe(plr)
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
+	ENCHANT A TOOL. One verb, one flat price, one roll.
+
+	Owner, 2026-10-04: applying a trait is "the same rarity as rune/temperment/skins",
+	Exotic at 1/1000 and Exotic V at 1/5000, level random 1-5, and the price
+	"stays the same with rebirths (broke players arent going to try to get
+	exotic V, endgame players will.)".
+
+	So this is a GACHA, not a purchase: you pay MineTraits.ROLL_PRICE and get
+	what the table gives you. The price reads no prestige, no rebirth count, no
+	zone and no tool tier -- tools/verify/traits.js asserts that, because a
+	price that quietly scaled with rebirth would break the one sentence the
+	owner was most specific about.
+
+	Server-authoritative in the way that matters: the client names a uid and
+	nothing else. The rarity, the trait and the level are all rolled here
+	with a server rng.
+]]
+function Verbs.rollTrait(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local Traits = Dig.Traits
+	local uid = (type(payload) == "table") and payload.uid or payload
+	local tool = Verbs._findOreTool(p, uid)
+	if not tool then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+
+	local cost = Traits.ROLL_PRICE
+	local have = tonumber(p.gems) or 0
+	if have < cost then
+		net:FireClient(plr, "toast", string.format("Needs %s gems",
+			Verbs._benchNum(cost)))
+		return
+	end
+
+	local rolled = Traits.roll(Random.new())
+	if not rolled then
+		net:FireClient(plr, "toast", "The enchanter has nothing to give")
+		return
+	end
+
+	p.gems = have - cost
+	--[[
+		A roll REPLACES what was there. There is no "keep the better one"
+		prompt: that turns every roll into a dialog, and the gamble is the
+		feature. The old one is named in the toast so a player who just lost
+		something good sees what it was.
+	]]
+	local had = type(tool.trait) == "table" and Traits.label(tool.trait) or nil
+	tool.trait = rolled
+
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	net:FireClient(plr, "toast", string.format("%s  \u{00B7}  %s%s",
+		OreTools.toolName(tool), Traits.label(rolled),
+		had and ("   (was " .. had .. ")") or ""))
+	bumpStat(plr, p, "traits")
+	-- Re-give the tool so its name and its stats both follow the roll.
+	if p.oreToolEquipped == tool.uid then
+		givePickaxe(plr)
+	end
 	markDirty(plr)
 	snap(plr)
 end
@@ -15246,6 +15557,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if Verbs.policyBlocks(plr, action) then return end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
+		elseif action == "rollTrait" then Verbs.rollTrait(plr, payload)
 		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)

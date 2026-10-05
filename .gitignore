@@ -12,9 +12,15 @@ tools/export/in/
 # The generator is the source of truth; the manifest and ids.json are tracked.
 build/charm-icons/*.png
 
+<<<<<<< HEAD
 # Owner transcripts: the requirements document, plus the raw session log and
 # pasted screenshots. Local on purpose -- 15 MB and private. The onboarding
 # brief says these are gitignored; until now they were merely untracked, so
 # one `git add -A` would have pushed them.
 mine-for-cards-transcripts/
 mine-for-cards-transcripts.zip
+=======
+# Conversation history handed over outside git (see docs/START-HERE.md section 9).
+# CLAUDE.md forbids raw exports in tracked files; this is where they land instead.
+transcripts/
+>>>>>>> origin/claude/vigilant-fermi-aucqjy

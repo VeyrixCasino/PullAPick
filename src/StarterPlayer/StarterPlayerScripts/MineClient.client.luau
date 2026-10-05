@@ -4437,9 +4437,20 @@ function ClientFns.othersPets()
 						if st then
 							st[m] = nil
 						end
-						m:PivotTo(root.CFrame * CFrame.new((i - 2) * 2.15, 0.04, 3.2))
+						-- Same centring as the follow step, or a pet pops in
+						-- off-formation and then slides across to its place.
+						local n = 0
+						for _ in pairs(rec.models) do
+							n += 1
+						end
+						m:PivotTo(root.CFrame
+							* CFrame.new((i - (math.max(1, n) + 1) / 2) * 2.15, 0.04, 3.2))
 					end
-					ClientFns.stepPetFollow(m, root, i, now, dt)
+					local n = 0
+					for _ in pairs(rec.models) do
+						n += 1
+					end
+					ClientFns.stepPetFollow(m, root, i, now, dt, n)
 					if m:GetAttribute("Variant") == "Rainbow" then
 						PetFactory.animateChroma(m, now)
 					end
@@ -6086,7 +6097,7 @@ refreshBinder = function()
 		#(snap.equipped or {}),
 		snap.petSlotsEffective or snap.petSlots or 3,
 		math.floor(((b.mineSpeed or 1) - 1) * 100 + 0.5),
-		math.floor((b.oreYield or 0) * 100 + 0.5),
+		math.floor((b.blastChance or 0) * 100 + 0.5),
 		math.floor(((b.luck or 1) - 1) * 100 + 0.5),
 		math.floor(((b.walkSpeed or 1) - 1) * 100 + 0.5),
 		math.floor(((b.dirtBreak or 1) - 1) * 100 + 0.5),
@@ -7850,8 +7861,15 @@ end
 	previously a list of buttons reading "Socket -> pickaxe main": pick the gear
 	or tool, see its sockets laid out around it, pick a rune, click the socket.
 ]]
-local socketsCtl, enchantTabs
-local enchantTab = "runes"
+local socketsCtl, enchantTabs, traitCtl
+--[[
+	The Enchanter opens on ENCHANT now, not on the rune bench.
+
+	Traits replaced runes as the thing you come here to do (TODO 0.17),
+	so the bench being the landing tab would put the retiring system in front
+	of the one that replaced it.
+]]
+local enchantTab = "trait"
 
 --[[
 	SUMMON -- its own tab.
@@ -8429,6 +8447,9 @@ function ClientFns.showEnchantTab(id)
 	if socketsCtl then
 		socketsCtl.setVisible(id == "sockets")
 	end
+	if traitCtl then
+		traitCtl.setVisible(id == "trait")
+	end
 	if rollsTab.root then
 		rollsTab.root.Visible = (id == "summon")
 		if id == "summon" then
@@ -8458,6 +8479,36 @@ end
 
 local function refreshEnchanter()
 	if not snap then return end
+	if not traitCtl then
+		--[[
+			Guarded like the Forge's panels: a module missing from a build
+			should cost this one tab, not the whole Enchanter. And LOUDLY --
+			the silent version of this guard is what hid the Forge for a week.
+		]]
+		local okE, EnchantView = pcall(function()
+			return require(shared:WaitForChild("MineTraitView", 5))
+		end)
+		if okE and EnchantView and EnchantView.mount then
+			local okM, ctl = pcall(EnchantView.mount, enchantP, {
+				getSnap = function()
+					return snap or {}
+				end,
+				-- A uid and nothing else. The rarity, the trait and the
+				-- level are all rolled on the server.
+				onTrait = function(uid)
+					net:FireServer("rollTrait", { uid = uid })
+				end,
+			})
+			if okM then
+				traitCtl = ctl
+			else
+				warn("[MineClient] NO TRAIT TAB: MineTraitView.mount threw: " .. tostring(ctl))
+			end
+		else
+			warn("[MineClient] NO TRAIT TAB: ReplicatedStorage.Mine.Shared."
+				.. "MineTraitView did not resolve (" .. tostring(EnchantView) .. ").")
+		end
+	end
 	if not socketsCtl then
 		socketsCtl = RunesSockets.mount(enchantP, {
 			onSocket = ClientFns.socketRoute,
@@ -8477,7 +8528,10 @@ local function refreshEnchanter()
 			FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, strip)
-		for i, t in ipairs({ { "runes", "Merge" }, { "sockets", "Sockets" }, { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
+		-- Trait leads: it is the prefix on your tool, and the reason to walk
+		-- here at all. Merge/Sockets/Summon are the rune bench, which is being
+		-- retired behind it.
+		for i, t in ipairs({ { "trait", "Traits" }, { "runes", "Merge" }, { "sockets", "Sockets" }, { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
 			local b = mk("TextButton", {
 				AutoButtonColor = true, BackgroundColor3 = BG2, Font = FONT, TextSize = 13,
 				TextColor3 = TEXT, Text = t[2], Size = UDim2.fromOffset(96, 36),
@@ -8493,6 +8547,11 @@ local function refreshEnchanter()
 	end
 	rollsTab.build(enchantP)
 	rollsTab.paint()
+	-- Repaint the trait tab on every open: the tool list, the prefixes and
+	-- the gem count all move while the panel is shut.
+	if traitCtl then
+		traitCtl.setVisible(enchantTab == "trait")
+	end
 	socketsCtl.setState(snap)
 	if not runesCtl then
 		if enchantP.Body then
@@ -8807,7 +8866,19 @@ function PF.gait(x, lo, hi)
 	return t * t * (3 - 2 * t)
 end
 
-function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
+--[[
+	`total` is how many pets are actually out, and it is why this takes it.
+
+	The formation used to be hardcoded around slot 2 -- `(slot - 2) * 2.15` --
+	which only centres when there are exactly three. With one pet out it walked
+	2.15 studs to your LEFT and never behind you; with two, both sat off-centre.
+	Owner, 2026-10-04: "make pets centre no matter how many are there."
+
+	Centring on (total + 1) / 2 puts one pet directly behind you, two evenly
+	either side, three in the old arrangement, and so on for any count without
+	another magic number.
+]]
+function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt, total)
 	if not (pet and pet.Parent and root) then
 		return
 	end
@@ -8866,8 +8937,12 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
 	local right = Vector3.new(-dir.Z, 0, dir.X)
 
 	local slot = tonumber(slotIndex) or 1
-	local lateral = (slot - 2) * 2.15
-	local back = 3.15 + math.abs(slot - 2) * 0.18
+	-- Defaults to 3 so a caller that forgets keeps the old formation rather
+	-- than collapsing every pet onto one spot.
+	local n = math.max(1, math.floor(tonumber(total) or 3))
+	local centre = (n + 1) / 2
+	local lateral = (slot - centre) * 2.15
+	local back = 3.15 + math.abs(slot - centre) * 0.18
 	-- Trail farther when sprinting so they don't glue to your heels. Off the
 	-- smoothed speed, so the spacing opens out instead of jumping.
 	local trail = math.clamp(state.speed / 16, 0, 1.35)
@@ -8987,9 +9062,10 @@ RunService.RenderStepped:Connect(function(dt)
 		return
 	end
 	local now = os.clock()
+	local petCount = #pets
 	for i, pet in ipairs(pets) do
 		if pet and pet.Parent then
-			ClientFns.stepPetFollow(pet, root, i, now, dt)
+			ClientFns.stepPetFollow(pet, root, i, now, dt, petCount)
 			PetFactory.animateChroma(pet, now)
 		end
 	end

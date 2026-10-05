@@ -162,7 +162,7 @@ end
 -- banking after a rebirth wipes your coins. Backpacks
 -- are a coin ladder again (runes will be the next gem sink).
 MineConfig.CHARTER = {
-	{ id = "survey",  name = "Survey Rights",  stat = "oreYield",  per = 0.04, max = 10, base = 14000, step = 1.62 },
+	{ id = "survey",  name = "Survey Rights",  stat = "blastChance",  per = 0.04, max = 10, base = 14000, step = 1.62 },
 	{ id = "assay",   name = "Assay Licence",  stat = "gemFind",   per = 0.05, max = 10, base = 20000, step = 1.66 },
 	{ id = "salvage", name = "Salvage Writ",   stat = "chestLuck", per = 0.06, max = 8,  base = 34000, step = 1.74 },
 	{ id = "haulage", name = "Haulage Permit", stat = "backpack",  per = 0.05, max = 8,  base = 27000, step = 1.7 },
@@ -184,7 +184,7 @@ end
 MineConfig.RELICS = {
 	{ id = "ironheart",  name = "Ironheart Core",   stat = "power",     amount = 0.06, tint = Color3.fromRGB(206, 122, 84) },
 	{ id = "lodestone",  name = "Miner's Lodestone", stat = "luck",     amount = 0.08, tint = Color3.fromRGB(150, 200, 255) },
-	{ id = "deepvein",   name = "Deepvein Shard",   stat = "oreYield",  amount = 0.07, tint = Color3.fromRGB(140, 226, 168) },
+	{ id = "deepvein",   name = "Deepvein Shard",   stat = "blastChance",  amount = 0.07, tint = Color3.fromRGB(140, 226, 168) },
 	{ id = "coffer",     name = "Bottomless Coffer", stat = "backpack", amount = 0.09, tint = Color3.fromRGB(226, 190, 96) },
 	{ id = "tallytoken", name = "Tally Token",      stat = "coinBonus", amount = 0.07, tint = Color3.fromRGB(255, 214, 120) },
 	{ id = "gemglass",   name = "Gemglass Lens",    stat = "gemFind",   amount = 0.08, tint = Color3.fromRGB(184, 140, 255) },
@@ -351,8 +351,8 @@ MineConfig.RARITY_DUST = {
 }
 MineConfig.TYPE_BOOST = {
 	Fire = "mineSpeed",
-	Rock = "oreYield",
-	Metal = "oreYield",
+	Rock = "blastChance",
+	Metal = "blastChance",
 	Crystal = "luck",
 	Mystic = "luck", -- legacy alias for Crystal
 	Electric = "zap",
@@ -362,7 +362,7 @@ MineConfig.TYPE_BOOST = {
 }
 MineConfig.BOOST_LABELS = {
 	mineSpeed = "Mine speed",
-	oreYield = "Blast",
+	blastChance = "Blast",
 	luck = "Luck",
 	walkSpeed = "Walk speed",
 	dirtBreak = "Dirt break",
@@ -1205,11 +1205,80 @@ MineConfig.ORE_PACK_FIND_CAP = 1.0
 	swing spread over five seconds, so a quake is worth starting and is never
 	a substitute for swinging. It is the one number here to argue with.
 ]]
-MineConfig.EARTHQUAKE_TICK_SHARE = 0.20
 MineConfig.EARTHQUAKE_SEC = 5
 MineConfig.EARTHQUAKE_MAX_BLOCKS = 5
 -- One jump, never a chain. Raising this turns Ricochet into Zap.
 MineConfig.RICOCHET_HOPS = 1
+
+--[[
+	PROC DAMAGE IS A SEPARATE STAT FROM PROC CHANCE.
+
+	Owner, 2026-10-03: "almost no effect should do full pickaxe damage" and
+	"Just make damage and chance 2 different stats."
+
+	Every proc used to hand the neighbour `dmg` -- the WHOLE swing. One stat
+	bought both how often it fired and how hard, so the only way to make a proc
+	feel good was to make it fire constantly, and the only way to balance it
+	was to make it rare. Zap was the worst of it: 32 hops at 0.9^hop is 9.7x a
+	swing off one roll, and at a high chance the chain barely decayed.
+
+	Split in two:
+
+	  CHANCE   the existing per-proc stat -- blastChance (Blast), zap,
+	           earthquake, ricochet. How OFTEN. Unchanged, still rollable.
+	  DAMAGE   PROC_SHARE below, scaled by the new `procPower` stat. How HARD.
+
+	The shares are what one proc is worth against a plain swing, before
+	procPower. They are deliberately under 1.0: a proc is a bonus on top of
+	mining, never a replacement for it.
+
+	  blast     0.35 x 6 faces = 2.10 per proc. The widest, so the lowest rate.
+	  zap       0.45 on the first hop, then ZAP_FALLOFF a hop.
+	  ricochet  0.60 into exactly one block. Highest, because it is the
+	            narrowest and cannot chain.
+	  quake     0.12 a second for EARTHQUAKE_SEC, so 0.60 over a full life --
+	            worth starting, never a substitute for swinging.
+
+	procPower scales all four together. A proc build is then a real build: at
+	the +300% cap a blast is 1.4 x 6 = 8.4x a swing, which is enormous and
+	cost a whole stat budget to reach.
+]]
+MineConfig.PROC_SHARE = {
+	blast = 0.35,
+	zap = 0.45,
+	ricochet = 0.60,
+	quake = 0.12,
+}
+
+--[[
+	ZAP, with a real end to it.
+
+	Was 32 hops with chance AND damage decaying 0.9x. 0.9 is almost no decay --
+	at zap = 0.8 the chain still has a 0.38 continue chance on hop 9 -- so the
+	cap was doing all the work and the falloff none. Six hops and 0.75 makes
+	the tail short and the first hops matter.
+]]
+MineConfig.ZAP_MAX_HOPS = 6
+MineConfig.ZAP_FALLOFF = 0.75
+
+-- How far procPower can be stacked. A ceiling, not a target.
+MineConfig.PROC_POWER_CAP = 3.0
+
+--[[
+	What one proc actually lands.
+
+	The one place this is computed. A caller passing its own multiplier is how
+	Blast and Zap ended up disagreeing about what "full damage" meant.
+]]
+function MineConfig.procDamage(dmg, which, procPower)
+	local base = math.max(0, tonumber(dmg) or 0)
+	local share = (MineConfig.PROC_SHARE or {})[which]
+	if not share then
+		return 0
+	end
+	local pp = math.clamp(tonumber(procPower) or 0, 0, MineConfig.PROC_POWER_CAP or 3)
+	return math.max(1, math.floor(base * share * (1 + pp)))
+end
 
 --[[
 	Most items one bulk-recycle batch may carry.
@@ -1451,9 +1520,24 @@ function MineConfig.nextVariant(variant)
 	return nil
 end
 
-function MineConfig.prestigeYield(prestige)
-	return 1 + 0.15 * (prestige or 0)
-end
+--[[
+	REBIRTH DOES NOT MULTIPLY INCOME. Owner, 2026-10-04: "REMOVE THE BASE 2X
+	COINS FROM REBIRTHS BECAUSE THATS A GOOD WAY TO MAKE SURE COINS ARE ALWAYS
+	WORTH NOTHING".
+
+	`MineConfig.prestigeYield` lived here, returning 1 + 0.15R. It was already
+	DEAD -- the only things naming it were a comment in MineServer saying
+	prestige no longer rides Blast, a line in MineSkillData's prose, and the
+	stale `_c.luau` duplicate. Nothing read it.
+
+	It is deleted rather than left lying around, because a one-line income
+	multiplier is exactly the kind of thing that gets wired back in by someone
+	who finds it and assumes it is meant to be used. If rebirth should ever pay
+	income again, that is a decision someone makes on purpose, not a function
+	they rediscover.
+
+	prestigeLuck stays: luck is a CHANCE, not a faucet, so it does not inflate.
+]]
 
 function MineConfig.prestigeLuck(prestige)
 	return 1 + 0.05 * (prestige or 0)
@@ -2520,10 +2604,63 @@ function MineConfig.oreReachCap(breakingPower)
 	return math.min(bp + (MineConfig.ORE_REACH or 15), MineConfig.ORE_COUNT or 82)
 end
 
-MineConfig.TOOL_CRAFT_BASE = 250
+--[[
+	WHAT A CRAFT COSTS, AND WHY IT IS DIFFERENT FOR EVERY ORE.
+
+	Owner, 2026-10-03: "for the craft tool, i want it to be variable, dependent
+	on a) ore drop amount, b) Rarity of the ore, c) how far into progression".
+
+	It was a flat 250 x a tier curve, which ignored all three. The honest unit
+	is not "ore" at all -- it is BLOCKS BROKEN, because that is what the player
+	actually spends. So the cost is priced in blocks and converted to ore:
+
+	    blocks = CRAFT_BLOCKS x bandFactor x depthFactor
+	    cost   = blocks x (how much that ore drops per block) x typeMult
+
+	(a) DROP AMOUNT, from MineConfig.oreYieldFor -- the real band table, whose
+	    bell peaks at Epic (12-15 a block) and falls to 2-4 at Exotic. An ore
+	    that drops nine a block needs a bigger number than one that drops three
+	    for the same work, and this is the only reason the numbers differ as
+	    much as they do.
+
+	(b) RARITY, from oreBandForTier's 1..8 index. Rarer ore needs FEWER blocks,
+	    not more: an Exotic block is already far harder to find, so charging the
+	    same block count would multiply two scarcities together. CRAFT_BAND_EASE
+	    gives back part of what rarity already took.
+
+	(c) PROGRESSION, straight off the tier. CRAFT_DEPTH_SLOPE stretches the
+	    block count from 1x at tier 1 to 1 + slope at tier 82, so a late tool is
+	    a real commitment on top of (b).
+
+	End to end: a tier-1 common tool is about 30 blocks, a tier-82 exotic one
+	about 66 -- before scarcity, which is what actually makes the late ones
+	take an evening.
+]]
+MineConfig.CRAFT_BLOCKS = 30
+MineConfig.CRAFT_BAND_EASE = 0.18
+MineConfig.CRAFT_DEPTH_SLOPE = 4
+
+-- How many blocks of this ore a craft is worth. Exposed so the Forge can say
+-- "about N blocks" instead of only a number the player cannot weigh.
+function MineConfig.craftBlocks(tier)
+	local t = math.max(1, math.floor(tonumber(tier) or 1))
+	local _, bandIndex = MineConfig.oreBandForTier(t)
+	local band = 1 / (1 + MineConfig.CRAFT_BAND_EASE * ((bandIndex or 1) - 1))
+	local span = math.max(1, (MineConfig.ORE_COUNT or 82) - 1)
+	local depth = 1 + MineConfig.CRAFT_DEPTH_SLOPE * ((t - 1) / span)
+	return MineConfig.CRAFT_BLOCKS * band * depth
+end
+
+-- The mid of the ore's own drop band. Averaging lo and hi is right because the
+-- server rolls uniformly between them.
+function MineConfig.oreYieldMid(tier)
+	local lo, hi = MineConfig.oreYieldFor(tier)
+	return ((tonumber(lo) or 1) + (tonumber(hi) or 1)) / 2
+end
 
 function MineConfig.toolCraftCost(tier, typeMult)
-	return math.ceil(MineConfig.TOOL_CRAFT_BASE * MineConfig.toolCostMult(tier, typeMult))
+	local mult = math.max(0.01, tonumber(typeMult) or 1)
+	return math.ceil(MineConfig.craftBlocks(tier) * MineConfig.oreYieldMid(tier) * mult)
 end
 
 --[[

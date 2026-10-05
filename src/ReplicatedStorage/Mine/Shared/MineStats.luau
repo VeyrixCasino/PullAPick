@@ -20,21 +20,52 @@ MineStats.STATS = {
 	mineSpeed   = { label = "Mine Speed",    weight = 1.0, unit = "%", desc = "Damage on every tool (pick, drill, bomb). Pets only — never a gem rune. Short Fuse rune adds more on explosives." },
 	swingRate   = { label = "Swing Rate",    weight = 1.4, unit = "%", desc = "Swings per second." },
 	reach       = { label = "Reach",         weight = 1.4, unit = "%", desc = "Pick/drill aim distance. 26 × (1 + reach). Rune only." },
-	blastRadius = { label = "Blast Radius",  weight = 6.0, unit = "%", desc = "Tool pattern size. Rune only — pets never wear this." },
-	oreYield    = { label = "Blast",         weight = 4.0, unit = "%", desc = "Destroy-proc: chance the aimed block's death also hits 6 neighbors. Chests stay centre-only." },
+	--[[
+		BLAST RADIUS IS CUBIC, AND WAS PRICED LINEAR. Owner, 2026-10-04:
+		"balance fire.. rn fire is just way to over powered".
+
+		MinePatterns builds the pattern with `sphere(out, cx, cy, cz, radius)`
+		where `radius = tool.radius * (1 + blastRadius)`. A sphere's cell count
+		goes as r^3, so +50% radius is about 3.4x the blocks destroyed, not
+		1.5x. Every system that spends a MineStats budget -- the skill tree,
+		traits, gear, runes -- divides by this weight, so at 6.0 they were
+		all handing out roughly THREE TIMES the power they thought they were.
+
+		18.0 is 6.0 x 3: the derivative of r^3 at the margin. One number, and
+		the tree, the enchanter and the gear roller all correct together.
+
+		Fire is the wedge that felt it, because blastRadius is its primary and
+		nine nodes grant it -- and it got worse the moment the missing
+		sk.blastRadius line was restored and those nodes started paying at all.
+	]]
+	blastRadius = { label = "Blast Radius",  weight = 18.0, unit = "%", desc = "Tool pattern size. A sphere, so +50% radius is ~3.4x the blocks." },
+	blastChance    = { label = "Blast Chance",  weight = 4.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
 	coinBonus   = { label = "Coin Bonus",    weight = 0.8, unit = "%", desc = "Coins from selling." },
 	gemFind     = { label = "Gem Find",      weight = 1.8, unit = "%", desc = "Gems dropped by ore." },
 	luck        = { label = "Luck",          weight = 2, unit = "%", desc = "Pack yield and tool finds; mined packs show a luck badge." },
 	chestLuck   = { label = "Chest Luck",    weight = 2.2, unit = "%", desc = "Higher chance of packs, tools, and other rare chest drops." },
 	rareOre     = { label = "Rare Ore",      weight = 1.8, unit = "%", desc = "Weighting toward deeper, richer ore." },
-	backpack    = { label = "Backpack",      weight = 0.5, unit = "%", desc = "Carry capacity." },
-	walkSpeed   = { label = "Walk Speed",    weight = 0.2, unit = "%", desc = "Movement speed." },
+	--[[
+		RETIRED, 2026-10-04. Owner: "Can we remove backpack and walkspeed as
+		boost".
+
+		Same treatment echo and autoMine got: the entry STAYS so an old save,
+		an old kit and the two server reads still resolve, and it leaves
+		STAT_ORDER so no screen lists it and no pool rolls it. Deleting the key
+		outright would break `boosts(p).backpack` and `boosts(p).walkSpeed`,
+		which are live reads -- they now simply never move off 1.
+
+		Carry capacity was always two systems arguing anyway: this stat, and
+		the purchased backpack ladder plus the ore pouch tier. The ladder wins.
+	]]
+	backpack    = { label = "Backpack",      weight = 0.5, unit = "%", desc = "Retired: capacity comes from the backpack ladder and the ore pouch.", legacy = true },
+	walkSpeed   = { label = "Walk Speed",    weight = 0.2, unit = "%", desc = "Retired: no longer rollable or granted.", legacy = true },
 	dirtBreak   = { label = "Dirt Break",    weight = 1.0, unit = "%", desc = "Extra dig damage through blocks." },
 	-- LEGACY, like autoMine below: barred as a buff and paid out as Swing Rate
 	-- at ECHO_TO_SWING. The entry stays so an old kit or save still resolves a
 	-- weight; it is out of STAT_ORDER so no screen lists it.
 	echo        = { label = "Echo Strike",   weight = 1.5, unit = "%", desc = "Legacy: paid out as Swing Rate.", legacy = true },
-	zap         = { label = "Zap",           weight = 2.5, unit = "%", desc = "Chance dig hits chain to nearby blocks; chance and damage fall off each hop." },
+	zap         = { label = "Zap Chance",    weight = 2.5, unit = "%", desc = "CHANCE a dig chains to nearby blocks, up to 6 hops. How hard each hop lands is Proc Power." },
 	-- LEGACY. Auto Mine was replaced by Gem Find: anything still carrying this
 	-- key is converted at AUTO_MINE_TO_GEM before it is paid or printed (see
 	-- MineStats.withoutAutoMine, MineTemper.magnitudes, MineServer.boosts). The
@@ -74,17 +105,58 @@ MineStats.STATS = {
 	]]
 	oreLuck     = { label = "Ore Luck",         weight = 2.4, unit = "%", desc = "Chance an ore block drops its ORE CASE. Does not touch chests or packs." },
 	packLuck    = { label = "Pack Luck",        weight = 2.4, unit = "%", desc = "Siphons a pack's card odds toward the chase when it is opened. Stamped on the pack when you get it." },
-	earthquake  = { label = "Earthquake",       weight = 2.6, unit = "%", desc = "Chance a block starts shaking and takes 20% of your tool damage per second. Does not stack; 5 blocks at once." },
-	ricochet    = { label = "Ricochet",         weight = 2.4, unit = "%", desc = "Chance breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
+	earthquake  = { label = "Earthquake Chance", weight = 2.6, unit = "%", desc = "CHANCE a block starts shaking and bleeds damage every second for 5s. Does not stack; 5 blocks at once." },
+	ricochet    = { label = "Ricochet Chance",  weight = 2.4, unit = "%", desc = "CHANCE breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
+	--[[
+		PROC DAMAGE, and the only stat that moves it.
+
+		Owner, 2026-10-03: "Just make damage and chance 2 different stats."
+		Every proc used to land a FULL swing, so its chance stat bought both
+		how often it fired and how hard. Now each proc has a share of a swing
+		(MineConfig.PROC_SHARE) and this scales all four together.
+
+		Weighted 3.0 -- above any single proc chance, below Blast's 4.0. It is
+		worth more than one chance stat because it multiplies all of them, and
+		less than Blast because it does nothing at all on a build with no proc
+		chance to scale.
+	]]
+	procPower   = { label = "Proc Power",       weight = 3.0, unit = "%", desc = "How hard Blast, Zap, Earthquake and Ricochet hit. Does nothing without a proc chance to scale." },
 }
 
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
-	"oreYield", "rareOre", "gemFind", "coinBonus",
+	"blastChance", "rareOre", "gemFind", "coinBonus",
 	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
-	"earthquake", "ricochet",
-	"coolant", "shortFuse", "backpack", "walkSpeed", "dirtBreak",
+	"earthquake", "ricochet", "procPower",
+	-- backpack and walkSpeed retired 2026-10-04; see their entries above.
+	"coolant", "shortFuse", "dirtBreak",
 }
+
+--[[
+	RENAMED KEYS, and how a save written before the rename still reads.
+
+	`oreYield` -> `blastChance`, 2026-10-04. Owner: "rename it". The key was
+	named for ore QUANTITY and had meant blast CHANCE for a long time, so every
+	reader had to know that. 403 occurrences moved.
+
+	NOT renamed: MineConfig.oreYieldFor, which really is the ore-quantity band
+	table. Two different things finally have two different names.
+
+	A stat key is stored on a saved rune (`rune.stat`) and on a saved gear piece
+	(`piece.stat`, and every row of `piece.stats`), so those are migrated
+	through MineStats.canonStat in their normalize() functions on load. Anything
+	else holding one is a static definition and was renamed with the code.
+]]
+MineStats.LEGACY_STAT = {
+	oreYield = "blastChance",
+}
+
+function MineStats.canonStat(stat)
+	if type(stat) ~= "string" then
+		return stat
+	end
+	return MineStats.LEGACY_STAT[stat] or stat
+end
 
 MineStats.RUNE_ONLY = {
 	blastRadius = true, reach = true, coolant = true, shortFuse = true,

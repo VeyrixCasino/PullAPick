@@ -1245,7 +1245,25 @@ function MineGradeReveal.caseSpin(parent)
 		sg.Name = "CaseSpinGui"
 		sg.IgnoreGuiInset = true
 		sg.ResetOnSpawn = false
-		sg.DisplayOrder = 110
+		--[[
+			120, THE SAME LAYER THE PACK REVEAL USES.
+
+			Owner, 2026-10-04: "the inventory stays OVER the lucky block".
+
+			This was 110. By DisplayOrder alone that should already have beaten
+			the inventory, which mounts into the main HUD gui at 80 -- so the
+			number was not the whole story, and I could not tell from the code
+			which layer was actually winning.
+
+			So this stops being its own guess and matches MinePackReveal, which
+			is at 120 and demonstrably renders over the open inventory: that is
+			the behaviour the owner already signed off on ("the menu stays open"
+			under a pack reveal). One number, one pattern, both reveals.
+
+			Overridable by opts.displayOrder for anything that needs to sit
+			above or below it.
+		]]
+		sg.DisplayOrder = tonumber(opts and opts.displayOrder) or 120
 		sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 		sg.Enabled = false
 		sg.Parent = host

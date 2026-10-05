@@ -38,7 +38,7 @@ local LIST = {
 	{ id = "tideglass", name = "Tideglass Charm", source = "zone", zoneId = "mistreef", band = "mid",
 		blurb = "+200% Mine Speed · +40% Swing Rate", stats = { mineSpeed = 2.00, swingRate = 0.40 } },
 	{ id = "abyss_latch", name = "Abyss Latch", source = "zone", zoneId = "mistreef", band = "deep",
-		blurb = "+55% Omni Blast · +90% Scrap", stats = { oreYield = 0.55, scrap = 0.90 } },
+		blurb = "+55% Omni Blast · +90% Scrap", stats = { blastChance = 0.55, scrap = 0.90 } },
 
 	{ id = "emberseal", name = "Emberseal Charm", source = "zone", zoneId = "bloodmoon", band = "shallow",
 		blurb = "+140% Dirt Break", stats = { dirtBreak = 1.40 } },
@@ -59,7 +59,7 @@ local LIST = {
 	{ id = "catacomb_key", name = "Catacomb Key", source = "zone", zoneId = "mythral", band = "mid",
 		blurb = "+100% Chest Luck · +100% Scrap", stats = { chestLuck = 1.00, scrap = 1.00 } },
 	{ id = "aether_seal", name = "Aether Seal", source = "zone", zoneId = "mythral", band = "deep",
-		blurb = "+75% Omni Blast · +250% Mine Speed", stats = { oreYield = 0.75, mineSpeed = 2.50 } },
+		blurb = "+75% Omni Blast · +250% Mine Speed", stats = { blastChance = 0.75, mineSpeed = 2.50 } },
 
 	{ id = "jackhammer", name = "Jackhammer", source = "pack",
 		blurb = "+160% Dirt Break · +50% Swing Rate", stats = { dirtBreak = 1.60, swingRate = 0.50 } },
@@ -90,7 +90,7 @@ local LIST = {
 	{ id = "cubit_pin", name = "Cubit Pin", source = "pack",
 		blurb = "+50% Lucky Find", stats = { luckyFind = 0.50 } },
 	{ id = "canopy", name = "Canopy", source = "pack",
-		blurb = "+55% Omni Blast", stats = { oreYield = 0.55 } },
+		blurb = "+55% Omni Blast", stats = { blastChance = 0.55 } },
 
 	--[[
 		Pot of Gold carries EVERY kind of luck.
@@ -514,7 +514,7 @@ local STAT_LABEL = {
 	mineSpeed = "Mine Speed", dirtBreak = "Dirt Break", coinBonus = "Coin Bonus",
 	gemFind = "Gem Find", luck = "Luck", chestLuck = "Chest Luck",
 	backpack = "Backpack", swingRate = "Swing Rate", pulverize = "Pulverizer",
-	scrap = "Scrap", fossilFind = "Ore Finder", oreYield = "Omni Blast",
+	scrap = "Scrap", fossilFind = "Ore Finder", blastChance = "Omni Blast",
 	luckyFind = "Lucky Find",
 }
 
@@ -752,7 +752,34 @@ end
 	The reason is a player-facing sentence, so the server and any UI say the same
 	thing about why a merge is refused.
 ]]
-MineCharms.MERGE_COST = 3
+--[[
+	MERGING COSTS GEMS, NOT CHARMS. Owner, 2026-10-04: "rather than merging it
+	should cost gems."
+
+	It used to eat THREE copies of a charm to make one of the next tier, which
+	is the economy that makes every charm feel like fodder: if three of a thing
+	are worth one of a thing, then one of them is worth a third of a thing. That
+	is the "everything is worthless because better stuff exists" problem in its
+	purest form, and it was built in on purpose.
+
+	Now: one charm in, one charm out, and you pay gems for the step. A charm you
+	own is never consumed to feed another.
+
+	Priced off the TARGET's tier so a deep merge costs deep money. The curve is
+	gentle on purpose -- gems are already the pouch's only sink and the trait
+	roller's only sink, and a third steep one would starve both.
+]]
+MineCharms.MERGE_GEM_BASE = 1200
+MineCharms.MERGE_GEM_GROW = 1.14
+
+function MineCharms.mergeGemCost(targetTier)
+	local t = math.max(1, math.floor(tonumber(targetTier) or 1))
+	return math.ceil(MineCharms.MERGE_GEM_BASE
+		* (MineCharms.MERGE_GEM_GROW ^ (t - 1)) / 50) * 50
+end
+
+-- Copies consumed. ONE: the charm being upgraded, and nothing else.
+MineCharms.MERGE_COST = 1
 
 function MineCharms.mergeTarget(charmId)
 	local def = MineCharms.byId(charmId)
@@ -828,7 +855,7 @@ function MineCharms.packPool()
 end
 
 local ADDITIVE = {
-	echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true,
+	echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true,
 	luckyFind = true, fossilFind = true, pulverize = true, scrap = true,
 	coolant = true, shortFuse = true, reach = true,
 }

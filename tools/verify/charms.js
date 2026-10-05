@@ -271,8 +271,29 @@ print("")
 	merge moves k by exactly "variants". If that ever stops changing the shape,
 	merging silently becomes a pure power ladder and this fails.
 ]]
-check(math.floor(tonumber(MineCharms.MERGE_COST) or 0) >= 2,
-	("MERGE_COST is a real cost (%s)"):format(tostring(MineCharms.MERGE_COST)))
+--[[
+	MERGING COSTS GEMS, NOT CHARMS. Owner, 2026-10-04: "rather than merging it
+	should cost gems."
+
+	This used to assert MERGE_COST >= 2 -- that eating copies was "a real
+	cost". That WAS the design, and it is exactly the design the owner threw
+	out: if three of a thing make one of a thing, each one is worth a third of
+	a thing, which is the "everything feels worthless" problem in its purest
+	form. One charm in, one charm out, and gems pay for the step.
+]]
+check(math.floor(tonumber(MineCharms.MERGE_COST) or 0) == 1,
+	("merging consumes exactly one charm (%s)"):format(tostring(MineCharms.MERGE_COST)))
+check(type(MineCharms.mergeGemCost) == "function", "merging has a gem price")
+if type(MineCharms.mergeGemCost) == "function" then
+	local lo, hi = MineCharms.mergeGemCost(1), MineCharms.mergeGemCost(60)
+	check(lo > 0, ("a tier-1 merge costs %d gems"):format(lo))
+	check(hi > lo, ("...and a deep one costs more (%d at tier 60)"):format(hi))
+	local rising = true
+	for t = 2, 82 do
+		if MineCharms.mergeGemCost(t) < MineCharms.mergeGemCost(t - 1) then rising = false end
+	end
+	check(rising, "the gem price never steps backwards with tier")
+end
 
 local topTier, merged, sameShape, wrongVariant, wrongTier = 0, 0, 0, 0, 0
 for _, o in ipairs(STUB_CONFIG.ORES) do

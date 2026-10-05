@@ -145,7 +145,7 @@ function MinePotions.applyBoosts(b, p)
 		local top = type(q) == "table" and q[1]
 		local add = top and tonumber(top.add) or 0
 		if add > 0 and b[stat] ~= nil then
-			if stat == "echo" or stat == "zap" or stat == "oreYield" or stat == "luckyFind"
+			if stat == "echo" or stat == "zap" or stat == "blastChance" or stat == "luckyFind"
 				or stat == "fossilFind" or stat == "pulverize" or stat == "autoMine" then
 				b[stat] = (b[stat] or 0) + add
 			else

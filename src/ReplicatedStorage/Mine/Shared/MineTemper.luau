@@ -55,9 +55,9 @@ MineTemper.RARITY_COLOR = {
 }
 
 -- SSS bases after x5, then multiplied by grade. echo/zap/autoMine/blastRadius/
--- oreYield (Blast %) use the abs primary-style numbers from the lock, scaled by slot share.
+-- blastChance (Blast %) use the abs primary-style numbers from the lock, scaled by slot share.
 MineTemper.BASE = { primary = 1.00, secondary = 0.60, tertiary = 0.35 }
-MineTemper.ABS_PRIMARY = { echo = 0.35, zap = 0.25, autoMine = 0.50, blastRadius = 0.50, oreYield = 0.50 }
+MineTemper.ABS_PRIMARY = { echo = 0.35, zap = 0.25, autoMine = 0.50, blastRadius = 0.50, blastChance = 0.50 }
 
 MineTemper.POOL_COUNTS = {
 	F = 7, D = 9, C = 9, B = 24,
@@ -86,13 +86,13 @@ MineTemper.KITS = {
 	kit("break_speed", "Break Speed", "F", { "dirtBreak" }),
 	kit("coins", "Coins", "F", { "coinBonus" }),
 	kit("gems", "Gems", "F", { "gemFind" }),
-	kit("ore", "Blast", "F", { "oreYield" }),
+	kit("ore", "Blast", "F", { "blastChance" }),
 	kit("luck", "Luck", "F", { "luck" }),
 
 	-- D (9) - duals
 	kit("dig_pace", "Dig Pace", "D", { "mineSpeed", "swingRate" }),
 	kit("clear_lane", "Clear Lane", "D", { "dirtBreak", "swingRate" }),
-	kit("paydirt", "Paydirt", "D", { "oreYield", "coinBonus" }),
+	kit("paydirt", "Paydirt", "D", { "blastChance", "coinBonus" }),
 	kit("facet", "Facet", "D", { "gemFind", "rareOre" }),
 	kit("fortune", "Fortune", "D", { "luck", "chestLuck" }),
 	kit("hauler", "Hauler", "D", { "backpack", "walkSpeed" }),
@@ -103,8 +103,8 @@ MineTemper.KITS = {
 	-- C (9)
 	kit("brutal", "Brutal", "C", { "mineSpeed", "swingRate", "dirtBreak" }),
 	kit("excavator", "Excavator", "C", { "dirtBreak", "swingRate", "mineSpeed" }),
-	kit("lode", "Lode", "C", { "oreYield", "rareOre", "gemFind" }),
-	kit("vault", "Vault", "C", { "coinBonus", "backpack", "oreYield" }),
+	kit("lode", "Lode", "C", { "blastChance", "rareOre", "gemFind" }),
+	kit("vault", "Vault", "C", { "coinBonus", "backpack", "blastChance" }),
 	kit("hex", "Hex", "C", { "luck", "chestLuck", "rareOre" }),
 	kit("crater", "Crater", "C", { "blastRadius", "mineSpeed" }),
 	kit("specter", "Specter", "C", { "autoMine", "echo" }),
@@ -124,8 +124,8 @@ MineTemper.KITS = {
 	kit("caravan", "Caravan", "B", { "backpack", "walkSpeed", "coinBonus" }),
 	kit("nova", "Nova", "B", { "blastRadius", "swingRate", "mineSpeed" }),
 	kit("aurora", "Aurora", "B", { "gemFind", "echo", "luck" }),
-	kit("tycoon", "Tycoon", "B", { "coinBonus", "backpack", "oreYield" }),
-	kit("motherlode", "Motherlode", "B", { "oreYield", "rareOre", "gemFind" }),
+	kit("tycoon", "Tycoon", "B", { "coinBonus", "backpack", "blastChance" }),
+	kit("motherlode", "Motherlode", "B", { "blastChance", "rareOre", "gemFind" }),
 	kit("razorfuse", "Razorfuse", "B", { "swingRate", "echo", "mineSpeed" }),
 	kit("blackcat", "Black Cat", "B", { "chestLuck", "luck", "gemFind" }),
 	kit("drone_crew", "Drone Crew", "B", { "autoMine", "swingRate", "dirtBreak" }),
@@ -133,9 +133,9 @@ MineTemper.KITS = {
 	kit("gem_strip", "Gem Strip", "B", { "gemFind", "dirtBreak", "swingRate" }),
 	kit("omen_dig", "Omen Dig", "B", { "luck", "mineSpeed", "rareOre" }),
 	kit("blast_purse", "Blast Purse", "B", { "blastRadius", "coinBonus", "swingRate" }),
-	kit("echo_ore", "Echo Ore", "B", { "echo", "oreYield", "mineSpeed" }),
+	kit("echo_ore", "Echo Ore", "B", { "echo", "blastChance", "mineSpeed" }),
 	kit("haul_gem", "Haul Gem", "B", { "backpack", "gemFind", "walkSpeed" }),
-	kit("deep_assay", "Deep Assay", "B", { "rareOre", "oreYield", "mineSpeed" }),
+	kit("deep_assay", "Deep Assay", "B", { "rareOre", "blastChance", "mineSpeed" }),
 
 	-- A (18)
 	kit("executioner", "Executioner", "A", { "mineSpeed", "swingRate", "dirtBreak" }),
@@ -148,30 +148,30 @@ MineTemper.KITS = {
 	kit("relicmap", "Relic Map", "A", { "chestLuck", "luck", "rareOre" }),
 	kit("singularity", "Singularity", "A", { "echo", "autoMine", "mineSpeed" }),
 	kit("horizon", "Horizon", "A", { "blastRadius", "swingRate", "walkSpeed" }),
-	kit("leviathan", "Leviathan", "A", { "backpack", "oreYield", "coinBonus" }),
+	kit("leviathan", "Leviathan", "A", { "backpack", "blastChance", "coinBonus" }),
 	kit("wildcard", "Wildcard", "A", { "luck", "gemFind", "swingRate" }),
 	kit("blood_contract", "Blood Contract", "A", { "mineSpeed", "coinBonus", "echo" }),
 	kit("crystal_siege", "Crystal Siege", "A", { "blastRadius", "gemFind", "rareOre" }),
 	kit("freight_king", "Freight King", "A", { "backpack", "walkSpeed", "dirtBreak", "coinBonus" }),
 	kit("pace_empire", "Pace Empire", "A", { "swingRate", "coinBonus", "gemFind" }),
-	kit("vein_blitz", "Vein Blitz", "A", { "oreYield", "swingRate", "mineSpeed" }),
+	kit("vein_blitz", "Vein Blitz", "A", { "blastChance", "swingRate", "mineSpeed" }),
 	kit("omen_echo", "Omen Echo", "A", { "luck", "echo", "chestLuck" }),
 
 	-- S (14)
 	kit("worldnail", "Worldnail", "S", { "mineSpeed", "swingRate", "dirtBreak", "echo" }),
 	kit("empire", "Empire", "S", { "coinBonus", "backpack", "mineSpeed", "luck" }),
-	kit("astral_cut", "Astral Cut", "S", { "gemFind", "rareOre", "oreYield", "mineSpeed" }),
+	kit("astral_cut", "Astral Cut", "S", { "gemFind", "rareOre", "blastChance", "mineSpeed" }),
 	kit("redline", "Redline", "S", { "dirtBreak", "swingRate", "mineSpeed", "coinBonus" }),
 	kit("mantle", "Mantle", "S", { "mineSpeed", "dirtBreak", "blastRadius" }),
 	kit("omenlord", "Omenlord", "S", { "chestLuck", "luck", "echo" }),
 	kit("cataclysm", "Cataclysm", "S", { "blastRadius", "mineSpeed", "dirtBreak" }),
 	kit("echoqueen", "Echo Queen", "S", { "echo", "autoMine", "swingRate" }),
 	kit("gilded", "Gilded", "S", { "coinBonus", "chestLuck", "luck" }),
-	kit("crownore", "Crown Ore", "S", { "oreYield", "rareOre", "gemFind" }),
+	kit("crownore", "Crown Ore", "S", { "blastChance", "rareOre", "gemFind" }),
 	kit("war_contractor", "War Contractor", "S", { "mineSpeed", "coinBonus", "swingRate", "dirtBreak" }),
 	kit("gilded_bore", "Gilded Bore", "S", { "dirtBreak", "coinBonus", "gemFind", "backpack" }),
 	kit("blood_facet", "Blood Facet", "S", { "mineSpeed", "gemFind", "swingRate", "rareOre" }),
-	kit("strip_tycoon", "Strip Tycoon", "S", { "dirtBreak", "coinBonus", "backpack", "oreYield" }),
+	kit("strip_tycoon", "Strip Tycoon", "S", { "dirtBreak", "coinBonus", "backpack", "blastChance" }),
 
 	-- SS (12)
 	kit("godnail", "Godnail", "SS", { "mineSpeed", "swingRate", "dirtBreak", "gemFind" }),
@@ -180,7 +180,7 @@ MineTemper.KITS = {
 	kit("godstrip", "Godstrip", "SS", { "dirtBreak", "swingRate", "coinBonus", "blastRadius" }),
 	kit("fateforge", "Fateforge", "SS", { "chestLuck", "luck", "coinBonus", "gemFind" }),
 	kit("eternalecho", "Eternal Echo", "SS", { "echo", "autoMine", "swingRate", "mineSpeed" }),
-	kit("astralvein", "Astral Vein", "SS", { "oreYield", "rareOre", "gemFind", "luck" }),
+	kit("astralvein", "Astral Vein", "SS", { "blastChance", "rareOre", "gemFind", "luck" }),
 	kit("worldsplit_t", "Worldsplit Temper", "SS", { "mineSpeed", "swingRate", "dirtBreak", "blastRadius" }),
 	kit("throne_dig", "Throne Dig", "SS", { "mineSpeed", "coinBonus", "swingRate", "dirtBreak" }),
 	kit("throne_shine", "Throne Shine", "SS", { "mineSpeed", "gemFind", "dirtBreak", "swingRate" }),
@@ -190,7 +190,7 @@ MineTemper.KITS = {
 	-- SSS (7)
 	kit("absolute_dig", "Absolute Dig", "SSS", { "mineSpeed", "swingRate", "dirtBreak", "blastRadius" }),
 	kit("absolute_fortune", "Absolute Fortune", "SSS", { "luck", "chestLuck", "rareOre", "gemFind" }),
-	kit("absolute_yield", "Absolute Yield", "SSS", { "oreYield", "rareOre", "coinBonus", "backpack" }),
+	kit("absolute_yield", "Absolute Yield", "SSS", { "blastChance", "rareOre", "coinBonus", "backpack" }),
 	kit("absolute_pulse", "Absolute Pulse", "SSS", { "echo", "autoMine", "swingRate", "walkSpeed" }),
 	kit("absolute_payroll", "Absolute Payroll", "SSS", { "mineSpeed", "coinBonus", "swingRate", "dirtBreak" }),
 	kit("absolute_treasury", "Absolute Treasury", "SSS", { "gemFind", "coinBonus", "mineSpeed", "rareOre" }),
@@ -334,7 +334,7 @@ function MineTemper.applyTemper(boosts, foreverTool)
 		for stat, amount in pairs(mag) do
 			if stat == "swingRate" then
 				boosts.swingSec = (boosts.swingSec or 1) / (1 + amount)
-			elseif stat == "echo" or stat == "zap" or stat == "autoMine" or stat == "blastRadius" or stat == "oreYield" then
+			elseif stat == "echo" or stat == "zap" or stat == "autoMine" or stat == "blastRadius" or stat == "blastChance" then
 				boosts[stat] = (boosts[stat] or 0) + amount
 			else
 				boosts[stat] = (boosts[stat] or 1) * (1 + amount)
