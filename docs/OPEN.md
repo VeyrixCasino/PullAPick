@@ -50,9 +50,27 @@ and the whole traits system were written, statically verified, and pushed
 confirmed working in-game. Until someone plays it, every item below is built on
 an unproven base.
 
-### 3. Breaking power — CORRECTED 2026-10-05: the curve IS specified
-It lives in `MineBreaking.luau`: `LAYERS_PER_RUNG 50`, `ZONE_STEP 1`,
-`ORE_POW 2.0`, `MAX 209`. The reach table is in `docs/PROPOSAL.md` §F0.
+### 3. Breaking power — RE-CUT 2026-10-05: the zone is the gate now
+It lives in `MineBreaking.luau`: `LAYERS_PER_RUNG 50`, **`ZONE_STEP 100`**,
+**`ORE_POW 1.0`**, **`MAX_LAYER 5000`**, **`MAX 1000`**. The reach table is in
+`docs/PROPOSAL.md` §F0.
+
+**What changed and why.** At `ZONE_STEP 1` the zone was not a gate at all:
+measured at layer 2500, zone 1 demanded ore tier 41 and zone 11 demanded tier
+44 — *three tiers for ×9.77 million HP*. It also ate the roster, since reaching
+the bottom of zone 1 needed tier 57 of 82, leaving nine zones to share three
+tiers. `MAX_LAYER` read 10000 while `MineConfig.LAYERS` exports 5000, so the
+ladder pointed 100 rungs past anything reachable.
+
+The ladder is continuous now — finishing a zone *is* entering the next, eight
+tiers apiece, tier 82 landing exactly on zone 10's floor:
+
+| zone | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| enter | t1 | t10 | t18 | t26 | t34 | t42 | t50 | t58 | t66 | t74 |
+| finish | t9 | t18 | t26 | t34 | t42 | t50 | t58 | t66 | t74 | **t82** |
+
+Event Horizon is off this ladder — it does not use ore tools.
 - [x] ~~`ORE_REACH = 15` shown in the UI, never read by the gate.~~ **Wired
       2026-10-05.** `blockStrength` now asks `oreStrength` for the ore as if it
       sat `ORE_REACH` tiers lower; depth is untouched. The constant is
@@ -66,18 +84,32 @@ It lives in `MineBreaking.luau`: `LAYERS_PER_RUNG 50`, `ZONE_STEP 1`,
       under-promises rather than repeating the promise/gate mismatch.
       **Do not set the home reach to 0** — measured, it deadlocks progression
       at tier 4, and `breaking.js` asserts that.
-- [ ] Block strength as a function of layer and zone, and nothing else — done
-      as above; confirm the dials, do not re-derive them.
-- [ ] Tool breaking power strictly a function of the ore the tool is made of —
-      not level, not damage, not skins, not runes, and not upgradeable.
-- [ ] Server-authoritative gate: reject any dig where
-      `tool.breakingPower < block.strength`. Client may predict; server decides.
-- [ ] Red hotbar text, throttled: "Your tool is too weak to damage this block."
-- [ ] Enchants must not affect blocks in layers that are too deep — **ore
-      excepted**. An enchant keeps working on ore at any depth.
+- [x] **Block strength as a function of layer and zone, and nothing else.**
+      `blockStrength` takes the *harder* of `layerStrength` and
+      `oreStrength(tier − reach)`, never a sum. Dials re-cut above.
+- [x] **Tool breaking power strictly a function of the ore.** Verified
+      2026-10-05: `MineBreaking.toolBreakingPower` reads a stamped value first
+      (so a forged tool never silently re-derives if the roster moves), then
+      falls back to `oreStrength(oreTier)`. Level, damage, skins and runes do
+      not reach it.
+- [x] **Server-authoritative gate.** `MineServer.server.luau:6769` — `canBreak`
+      is checked server-side and returns *before* any damage. Client may predict;
+      the server decides.
+- [x] **Red hotbar text, throttled.** Both halves confirmed, per this file's own
+      rule about greping event names on both sides: server fires `tooWeak` with
+      `need`/`have`/`ore` on a 1.2 s throttle, and `ClientFns.tooWeak`
+      (`MineClient.client.luau:7350`) renders it in red (255, 96, 96).
+- [x] **Procs no longer route around the gate.** `canBreak` had exactly ONE call
+      site while TWO functions dealt damage — `swingNeighbour` predates the gate
+      and never got it, so blast, zap, ricochet, earthquake and echo all chipped
+      rock the tool could not scratch. Gated 2026-10-05 (owner: full rule, ore
+      included). `tools/verify/gate-coverage.js` fails if a third damage path
+      appears ungated.
+- [x] **Re-derive the real ladder.** Done above — and the consequence this item
+      asked about is now measured: `ORE_REACH 15` means a tier-67 tool reaches
+      every ore in the game, so tiers 68–82 buy no new *access* and damage has to
+      carry them. That is what `MineConfig.TOOL_BAND_DMG` is for.
 - [ ] Document damage ≠ breaking power everywhere both appear.
-- [ ] Check the consequence: shop rungs 1–25 now reach ore tiers 16–40, and a
-      forged tier-67 pick already reaches the top ore. Re-derive the real ladder.
 
 ### 4. Crafting transaction integrity
 - [ ] Server owns crafting: ore debited and tool minted in **one** transaction.
@@ -99,10 +131,47 @@ It lives in `MineBreaking.luau`: `LAYERS_PER_RUNG 50`, `ZONE_STEP 1`,
 
 # P1 — launch quality
 
-### 6. Underground outposts
+### 6. Underground outposts — DONE 2026-10-05
 Each seam gets an outpost **1:1 with the surface one** — same shop, same sell —
 underground-themed, deeper and darker at every seam. Owner's spec, 2026-10-04.
-Needs Studio for the geometry.
+
+~~Needs Studio for the geometry.~~ **It never did.** The geometry was already
+there and had been for a long time: `dressOutpostFromSurface` clones the surface
+template down to the seam Y, so "1:1 with the surface one" is literally how every
+outpost is built — `SurfaceClone` (56 parts), `sell_depth`, `shop_depth`,
+`OutpostWalls`, sign, mineshaft, return pad, in all eleven zones. This entry read
+as unstarted work for weeks because nobody looked in `Workspace.MineWorld.Pits`.
+
+Three things were genuinely missing and are now done:
+
+- [x] **Every 500, all the way down.** `SEAMS` widened to every 1000 past 3000;
+      it is every 500 to the floor now (owner, 2026-10-05). **3500 and 4500 were
+      not new geometry** — the ladder ran every 500 once before and the world
+      still carried `DepthPlaza_<zone>_3500` / `_4500`, dressed and walled, for
+      all eleven zones. Every loop in `MineDepthPlazas` iterates `SEAMS`, so when
+      the ladder widened the builder stopped maintaining them, the elevator
+      stopped giving them a floor, and no gate landed on them. Putting them back
+      on the ladder **adopts** that geometry. `MineDepthShop.DESK_SEAM` never
+      lost its `outpost_3500` / `outpost_4500` keys either. Ten per zone now.
+- [x] **A reserved station bay behind each one** (owner: "extra space behind it
+      for another station… high tier enchanters, pack recyclers"). `wallOutpost`
+      grows the room by `BAY_DEPTH` along `zoneAxes`' `back` axis — the one wall
+      the elevator is not using — and leaves a `StationBay` folder holding a deck
+      and a RESERVED sign. One room, not an alcove behind a door: a walled-off
+      annexe reads as a locked area a player should be trying to get into, and
+      this is not content yet. Dropping a station in later means parenting into
+      `StationBay`, with no change to `wallOutpost`.
+- [x] **Deeper outposts look deeper.** They did not: seams 500, 2500 and 5000
+      measured byte-identical — same eleven lights, same twenty-one neon parts,
+      same wall colour — because every colour in the file was a constant.
+      `depthLook(seam)` drives wall, deck, light brightness, range and tint off
+      one clamped 0..1. Outpost 1 keeps its current look; 10 is 20,18,17 walls at
+      55% brightness with an ember tint. Neon is untouched (wayfinding), and the
+      dimming bottoms out rather than going dark. Guarded by
+      `tools/verify/outpost-depth.js`.
+
+Still open here: **what actually goes in the bay.** That is a design decision,
+not geometry — the space, the floor and the sign are built.
 
 ### 7a. Coin economy — TWO BUGS FOUND 2026-10-05, both P0
 - [x] ~~**Chest coin reward crashes.**~~ **Fixed 2026-10-05** — now
