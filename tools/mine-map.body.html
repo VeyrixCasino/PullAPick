@@ -136,6 +136,10 @@
         <div class="s">HP</div></div>
       <div class="st"><div class="k">Ore block</div><div class="v n" id="mOre" style="color:var(--ore)">&mdash;</div>
         <div class="s" id="mOreSub">&mdash;</div></div>
+      <!-- Which ore is actually here, zone included. Was never shown, which is
+           how the verdict could quote a tier nobody could sanity-check. -->
+      <div class="st"><div class="k">Ore here</div><div class="v n" id="mOreTier" style="color:var(--ore)">&mdash;</div>
+        <div class="s" id="mOreTierSub">&mdash;</div></div>
       <div class="st"><div class="k">Next seam</div><div class="v n" id="mSeam" style="color:var(--time)">&mdash;</div>
         <div class="s" id="mSeamSub">&mdash;</div></div>
     </div>
@@ -302,6 +306,40 @@
   // Deepest layer whose ROCK a tier-t tool can actually dent in a given zone,
   // 0 if none of it. Nothing here is about movement -- a player may walk to any
   // depth; the block is what refuses, by taking zero damage.
+  // WHICH ORE IS ACTUALLY HERE, mirroring MineConfig.oreWeights.
+  //
+  // The page used round(layer / LAYERS * #ores), which is a function of LAYER
+  // ALONE. It therefore claimed the same ore at layer 4249 in Dirt Meadow and
+  // in zone 6 -- tier 70 in both -- when the real peak in Dirt Meadow is tier 1.
+  // Zone is most of the answer: difficulty is log(dirtHp/20)/log(6) and dirtHp
+  // carries ZONE_HP_MULT^(zone-1), so a zone is worth ~0.9 of a d-step and a
+  // whole mine's depth is worth ~3.3.
+  //
+  // Returns the PEAK tier (what you mostly pull here) and the highest tier that
+  // still rolls at all, which is the one a tool has to be able to break.
+  var oreHereCache = {};
+  function oreHere(zi,layer){
+    var key=zi+"|"+layer;
+    if(oreHereCache[key]) return oreHereCache[key];
+    var dl=Math.log(Math.max(20,dirtHp(zi,layer))/20)/Math.log(6);
+    var n=M.ores.length, w=[], tot=0;
+    for(var t=1;t<=n;t++){
+      var d=(t-1)*M.ORE.DMAX/(n-1);
+      var x=d-dl;
+      var v=1/(1+Math.exp((x-M.ORE.X0)/M.ORE.K));
+      if(x<0) v*=Math.exp(x/M.ORE.S)*Math.exp(-Math.pow(x/M.ORE.W,2));
+      w[t]=v; tot+=v;
+    }
+    var peak=1,pv=-1,hi=1;
+    for(var t2=1;t2<=n;t2++){
+      if(w[t2]>pv){pv=w[t2];peak=t2;}
+      if(w[t2]/tot>=0.005) hi=t2;
+    }
+    var r={peak:peak,hi:hi,share:pv/tot};
+    oreHereCache[key]=r;
+    return r;
+  }
+
   function deepestLayerFor(t,zi){
     var P=oreStrength(t);
     for(var L=M.LAYERS;L>=1;L--) if(layerStrength(zi,L)<=P) return L;
@@ -449,6 +487,10 @@
     $("mDirt").textContent=big(d);
     $("mOre").textContent=big(o);
     $("mOreSub").textContent=M.ORE_HP_MULT+"x dirt";
+    var oh=oreHere(zi,layer);
+    $("mOreTier").textContent="t"+oh.peak+(oh.hi>oh.peak?" – t"+oh.hi:"");
+    $("mOreTierSub").textContent=(M.ores[oh.peak-1]||"")+" mostly"+
+      (oh.hi>oh.peak?", up to "+(M.ores[oh.hi-1]||""):"");
     $("mSeam").textContent=sm?commas(sm):"none";
     $("mSeamSub").textContent=sm?(sm>M.LAYERS?"past the floor":commas(sm-layer)+" layers down"):"deepest";
 
@@ -503,8 +545,11 @@
     // "Callers must treat `false` as ZERO damage, not reduced damage." The copy
     // below says so, because an earlier version said "cannot stand this deep"
     // and read like a movement restriction, which the game does not have.
-    var oreTierHere=Math.max(1,Math.min(M.ores.length,
-      Math.round((layer/M.LAYERS)*M.ores.length)));
+    // The ore actually on offer here, zone included. `hi` is the hardest ore
+    // that still rolls, which is the one a tool has to be able to break; `peak`
+    // is what you mostly pull.
+    var here=oreHere(zi,layer);
+    var oreTierHere=here.hi;
     var hits=Math.ceil(o/Math.max(1,dm));
     var v=$("verdict");
 

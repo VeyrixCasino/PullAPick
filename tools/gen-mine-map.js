@@ -57,6 +57,21 @@ const brk = {
 brk.MAX = 1 + (brk.ZONES - 1) * brk.ZONE_STEP
   + Math.floor((brk.MAX_LAYER - 1) / brk.LAYERS_PER_RUNG);
 
+// ---- the ore spawn dials --------------------------------------------------
+const cnum = (k, dflt) => {
+  const g = new RegExp("MineConfig\\." + k + "\\s*=\\s*(-?[0-9.eE+-]+)", "g");
+  let v = null, m;
+  while ((m = g.exec(cfg))) v = Number(m[1]);
+  return v === null ? dflt : v;
+};
+// ORE_DMAX exactly as MineConfig derives it: off Depth.SECTIONS' LAST row,
+// which is written in scientific notation, so the capture has to allow it --
+// a (\d+) here silently reads `9.30735e+18` as 9.
+const depSrc = read("src/ReplicatedStorage/Mine/Shared/MineDepth.luau");
+const secHp = [...depSrc.matchAll(/dirtHp = ([0-9.eE+-]+)/g)].map((m) => Number(m[1]));
+const topSecHp = secHp.length ? Math.max(...secHp) : 9.30735e18;
+const oreDmax = Math.log((topSecHp * 2 * Math.pow(6, 9)) / 20) / Math.log(6);
+
 const MODEL = {
   sections: d.sections,
   zones: d.zones,
@@ -90,6 +105,19 @@ const MODEL = {
   // depth" off reach alone, which told a tier-1 pick it could mine tier-16 ore
   // at layer 992 -- rock that deep takes zero from a tier-1 swing.
   BRK: brk,
+  // The ORE SPAWN curve, so the page can say which ore is actually at a spot
+  // instead of guessing from the layer. It was using
+  // round(layer / LAYERS * #ores), which ignores the zone entirely -- so it
+  // claimed tier-70 ore at layer 4249 in Dirt Meadow and in zone 6 alike, when
+  // the real peak in Dirt Meadow is tier 1. Zone is most of the answer: ore
+  // difficulty is log(dirtHp/20)/log(6) and dirtHp carries ZONE_HP_MULT^(z-1).
+  ORE: {
+    DMAX: oreDmax,
+    X0: cnum("ORE_X0", -4.2),
+    K: cnum("ORE_K", 0.45),
+    S: cnum("ORE_S", 4.0),
+    W: cnum("ORE_W", 3.0),
+  },
 };
 
 const BODY = read("tools/mine-map.body.html");
