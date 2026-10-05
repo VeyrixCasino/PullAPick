@@ -118,6 +118,19 @@ would each be different and special in their own way."*
 - [ ] Nerf anything competing with skins for "most desired buff".
 
 ### 10. Boost balance — the big one
+**Anchor settled 2026-10-05, measured not guessed — see `docs/BALANCE-MEASURED.md`.**
+SSS hat +80%, face +100%, pet +375% → Layer 2 ceiling ×15.65, against a measured
+Layer 1 ceiling of ×17.55 on `dirtBreak`. Near parity. Three implementation gaps
+make the Layer 1 figure an under-count: skins bypass the layers
+(`MineServer:2578`), tools never enter `T1` at all, and the Layer 1 skill filter
+passes 5 keys while the tree grants 20 (`swingRate` at +698% is outside the
+system). Closing those raises Layer 1, so these Layer 2 numbers get more
+conservative over time, not less.
+- [ ] Wire skins into `T1` — the owner named them in layer 1 and they bypass it
+- [ ] Wire tools into `T1` — same
+- [ ] Widen the `T1` skill filter past its five keys, and drop the dead
+      `walkSpeed` entry (no node grants it)
+
 - [ ] Far fewer pets grant blast on normal pickaxes. At current strength this is
       game-breaking and makes every other pet stack pointless.
 - [ ] Fewer pets affect blast radius.
