@@ -39,26 +39,78 @@ ok("blockStrength applies ORE_REACH",
    /oreStrength\(\s*math\.max\(1,[^)]*ORE_REACH/.test(brk),
    "the gate subtracts reach before asking oreStrength");
 
-const dials = {
-  LAYERS_PER_RUNG: 50,
-  ZONE_STEP: 1,
-  ZONES: 10,
-  MAX_LAYER: 10000,
-};
-for (const [k, want] of Object.entries(dials)) {
-  const got = num(brk, new RegExp("MineBreaking\\." + k + "\\s*=\\s*(\\d+)"), k);
-  ok(`${k} is ${want}`, got === want, String(got));
+//[[ READ THE DIALS, DO NOT RESTATE THEM ]]
+// This block used to hardcode the four dials as the EXPECTED values and then
+// derive MAX from its own copy. That made the most important assertion below
+// vacuous: when ZONE_STEP moved 1 -> 100 and MAX_LAYER 10000 -> 5000, "the top
+// ore reaches the mine floor" went on comparing 209 against 209 and PASSED,
+// because both sides came from the hardcoded table rather than the module.
+//
+// The dials are read live now, and what is asserted is the RELATIONSHIPS the
+// design depends on, not four literals that have to be edited in two places
+// every time the balance moves.
+const dials = {};
+for (const k of ["LAYERS_PER_RUNG", "ZONE_STEP", "ZONES", "MAX_LAYER"]) {
+  dials[k] = num(brk, new RegExp("MineBreaking\\." + k + "\\s*=\\s*(\\d+)"), k);
 }
 const pow = num(brk, /MineBreaking\.ORE_POW\s*=\s*([\d.]+)/, "ORE_POW");
-ok("ORE_POW is 2.0", pow === 2, String(pow));
+const LAYERS = 5000;   // MineConfig.LAYERS, the live mine floor
 
 // MAX is derived, and the top ore must reach the mine floor exactly.
 const MAX = 1 + (dials.ZONES - 1) * dials.ZONE_STEP
   + Math.floor((dials.MAX_LAYER - 1) / dials.LAYERS_PER_RUNG);
 const oreStrength = (t, n) => 1 + Math.round(Math.pow((t - 1) / (n - 1), pow) * (MAX - 1));
+const layerStrength = (zi, L) => Math.min(MAX,
+  1 + (zi - 1) * dials.ZONE_STEP + Math.floor((L - 1) / dials.LAYERS_PER_RUNG));
+const minTier = (need) => { for (let t = 1; t <= 82; t++) if (oreStrength(t, 82) >= need) return t; return null; };
+
 ok("the top ore reaches the mine floor", oreStrength(82, 82) === MAX,
    `tier 82 -> ${oreStrength(82, 82)}, floor needs ${MAX}`);
 ok("the first ore is the bottom rung", oreStrength(1, 82) === 1, String(oreStrength(1, 82)));
+
+// The breaking scale must END where the game does. MAX_LAYER fed only this
+// derivation and read 10000 while MineConfig.LAYERS exports 5000, so the ladder
+// used to point a hundred rungs past anything a player can stand on.
+ok("the scale ends at the live mine floor",
+   dials.MAX_LAYER === LAYERS,
+   `MAX_LAYER ${dials.MAX_LAYER} vs MineConfig.LAYERS ${LAYERS}`);
+ok("the deepest normal block demands exactly the top ore",
+   layerStrength(dials.ZONES, LAYERS) === MAX,
+   `zone ${dials.ZONES} layer ${LAYERS} needs ${layerStrength(dials.ZONES, LAYERS)}, top ore gives ${MAX}`);
+
+//[[ THE OWNER'S RULE, ASSERTED ]]
+// 2026-10-05: "breaking power should make you need to get a new pick from next
+// zone to come back to 501-1000 depth, and so on". That means the ladder has to
+// be CONTINUOUS -- the tier that finishes a zone is the tier that opens the
+// next. With ZONE_STEP at 1 this was wildly false: zone 1 demanded tier 57 of
+// 82 and the remaining nine zones shared three tiers between them.
+let worstGap = 0, worstAt = 0;
+for (let zi = 1; zi < dials.ZONES; zi++) {
+  const finish = minTier(layerStrength(zi, LAYERS));
+  const next = minTier(layerStrength(zi + 1, 1));
+  const gap = Math.abs((next ?? 82) - (finish ?? 82));
+  if (gap > worstGap) { worstGap = gap; worstAt = zi; }
+}
+ok("finishing a zone is the same tier as entering the next",
+   worstGap <= 1,
+   worstGap === 0 ? "exact at every boundary"
+     : `worst gap ${worstGap} tiers, at the zone ${worstAt} -> ${worstAt + 1} border`);
+
+// And every zone must be worth a real slice of the roster, so no single zone
+// swallows the ladder the way zone 1 did.
+let thinnest = 82, thinnestZone = 0;
+for (let zi = 1; zi <= dials.ZONES; zi++) {
+  const span = (minTier(layerStrength(zi, LAYERS)) ?? 82) - (minTier(layerStrength(zi, 1)) ?? 1);
+  if (span < thinnest) { thinnest = span; thinnestZone = zi; }
+}
+ok("no zone is a throwaway -- each spans several tiers",
+   thinnest >= 4,
+   `thinnest is zone ${thinnestZone} at ${thinnest} tiers`);
+
+// A starter pick must not be able to walk into the mid game.
+ok("a stone pick cannot reach layer 1000",
+   layerStrength(1, 1000) > oreStrength(1, 82),
+   `layer 1000 needs ${layerStrength(1, 1000)}, a tier-1 tool has ${oreStrength(1, 82)}`);
 
 // Shop picks must not open the forge's territory.
 const shop = (brk.match(/MineBreaking\.SHOP_POWER\s*=\s*\{([^}]*)\}/) || [])[1];

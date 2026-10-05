@@ -38,6 +38,25 @@ const bandOrder = (cfg.match(/MineConfig\.ORE_BAND_ORDER\s*=\s*\{([^}]*)\}/) || 
 const bandCuts = [...(cfg.match(/MineConfig\.ORE_YIELD_BANDS\s*=\s*\{([\s\S]*?)\n\}/) || [, ""])[1]
   .matchAll(/upTo\s*=\s*(\d+)/g)].map((m) => Number(m[1]));
 
+// ---- the breaking dials, straight off MineBreaking ------------------------
+// Parsed rather than restated: these decide who may stand where, and a second
+// copy of them here is a copy that will disagree with the game.
+const brkSrc = read("src/ReplicatedStorage/Mine/Shared/MineBreaking.luau");
+const bnum = (k, dflt) => {
+  const m = brkSrc.match(new RegExp("MineBreaking\\." + k + "\\s*=\\s*([\\d.]+)"));
+  return m ? Number(m[1]) : dflt;
+};
+const brk = {
+  LAYERS_PER_RUNG: bnum("LAYERS_PER_RUNG", 50),
+  ZONE_STEP: bnum("ZONE_STEP", 100),
+  ZONES: bnum("ZONES", 10),
+  MAX_LAYER: bnum("MAX_LAYER", 5000),
+  ORE_POW: bnum("ORE_POW", 1.0),
+  ORE_REACH: bnum("ORE_REACH", 15),
+};
+brk.MAX = 1 + (brk.ZONES - 1) * brk.ZONE_STEP
+  + Math.floor((brk.MAX_LAYER - 1) / brk.LAYERS_PER_RUNG);
+
 const MODEL = {
   sections: d.sections,
   zones: d.zones,
@@ -66,10 +85,42 @@ const MODEL = {
   // retired table -- see the note in depth-sheet-data.js.
   HP_BASE: d.HP_BASE,
   HP_PER_LAYER: d.HP_PER_LAYER,
+  // The BREAKING dials, so the page can run the real gate instead of only the
+  // ORE_REACH half of it. The verdict used to say "reaches the ore at this
+  // depth" off reach alone, which told a tier-1 pick it could mine tier-16 ore
+  // at layer 992 -- it cannot even stand there.
+  BRK: brk,
 };
 
 const BODY = read("tools/mine-map.body.html");
 const html = BODY.replace("/*__MODEL__*/", JSON.stringify(MODEL));
+
+// --check
+//
+// A generated page that nobody regenerates is worse than no page: it keeps
+// answering, in the game's own voice, with the old game's numbers.
+//
+// This is not hypothetical. TOOL_TIER_SPAN went 16 -> 10 -> 7 on 2026-10-05 and
+// the map was regenerated after the first move and not the second, so it spent
+// the afternoon showing span 10 -- a tier-30 pick at 6,109 damage where the
+// game said 892. The page looked perfectly healthy and every figure on it was
+// wrong. Same class as upgrade-calculator.html sitting on 121 ores.
+//
+// So: --check regenerates into memory and diffs. It does not write.
+if (process.argv.includes("--check")) {
+  const current = fs.existsSync("tools/mine-map.html") ? read("tools/mine-map.html") : "";
+  if (current !== html) {
+    console.error("FAIL tools/mine-map.html is stale -- MineConfig/MineDepth have moved" +
+      " since it was generated (span " + MODEL.TIER_SPAN + ", climb " + MODEL.CLIMB_DMG +
+      ", " + MODEL.ores.length + " ores, cap " + MODEL.MAXLVL + ")." +
+      "\n     Run: node tools/depth-sheet-data.js  then  node tools/gen-mine-map.js");
+    process.exit(1);
+  }
+  console.log("ok  mine-map.html matches MineConfig: span " + MODEL.TIER_SPAN +
+    ", climb " + MODEL.CLIMB_DMG + ", " + MODEL.ores.length + " ores, cap " + MODEL.MAXLVL);
+  process.exit(0);
+}
+
 fs.writeFileSync("tools/mine-map.html", html);
 console.log("wrote tools/mine-map.html  (" +
   MODEL.sections.length + " sections, " + MODEL.zones.length + " zones, " +

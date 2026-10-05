@@ -288,6 +288,25 @@
   function dmgAt(t, L){ return M.DMG_BASE * tierPower(t) * Math.pow(dmgStep, L-1); }
   function reachOf(t){ return Math.min(t + M.ORE_REACH, M.ores.length); }
 
+  // THE REAL BREAKING GATE, mirroring MineBreaking.
+  // Arithmetic only, on dials parsed out of MineBreaking by gen-mine-map.js, so
+  // the page refuses exactly what the game refuses.
+  function clampInt(v,lo,hi){ return Math.max(lo,Math.min(hi,Math.round(v))); }
+  function layerStrength(zi,L){
+    return clampInt(1+(zi-1)*M.BRK.ZONE_STEP+Math.floor((L-1)/M.BRK.LAYERS_PER_RUNG),1,M.BRK.MAX);
+  }
+  function oreStrength(t){
+    var span=(Math.max(1,t)-1)/(M.ores.length-1);
+    return clampInt(1+Math.floor(Math.pow(span,M.BRK.ORE_POW)*(M.BRK.MAX-1)+0.5),1,M.BRK.MAX);
+  }
+  // Deepest layer a tier-t tool may stand at in a given zone, 0 if it cannot
+  // even enter. This is what turns "too weak" into something actionable.
+  function deepestLayerFor(t,zi){
+    var P=oreStrength(t);
+    for(var L=M.LAYERS;L>=1;L--) if(layerStrength(zi,L)<=P) return L;
+    return 0;
+  }
+
   var $ = function(id){ return document.getElementById(id); };
   var zoneSel=$("zone"), layerSl=$("layer"), tierSl=$("tier"), lvlSl=$("lvl");
 
@@ -462,26 +481,58 @@
         "  ·  "+(be?("even at level "+be+" of "+M.MAXLVL):("still behind at "+M.MAXLVL));
     }
 
-    // the verdict: breaking power first, then damage
+    // THE VERDICT, RUNNING THE WHOLE GATE.
+    // This asked `reach >= oreTierHere` and nothing else, so it judged on
+    // ORE_REACH alone and never on depth. It told a tier-1 stone pick it
+    // "reaches the ore at this depth" at layer 992 -- a layer it cannot stand
+    // at, by a factor of twenty. MineBreaking.blockStrength takes the HARDER of
+    // where the block is and what it is, so the page has to do the same:
+    //
+    //   need = max(layerStrength(zone, layer), oreStrength(oreTier - ORE_REACH))
+    //   have = oreStrength(yourTier)
+    //
+    // Depth is the half that bites first and it is the half the owner asked
+    // for: "breaking power should make you need to get a new pick from next
+    // zone to come back to 501-1000 depth, and so on".
     var oreTierHere=Math.max(1,Math.min(M.ores.length,
       Math.round((layer/M.LAYERS)*M.ores.length)));
-    var canBreak = t >= 1;   // dirt is always breakable; ore is the gated case
     var hits=Math.ceil(o/Math.max(1,dm));
     var v=$("verdict");
-    if(reach >= oreTierHere){
+
+    var needLayer=layerStrength(zi,layer);
+    var needOre=oreStrength(Math.max(1,oreTierHere-M.BRK.ORE_REACH));
+    var need=Math.max(needLayer,needOre);
+    var have=oreStrength(t);
+    var deepest=deepestLayerFor(t,zi);
+
+    if(have>=need){
       v.className="verdict yes";
-      $("vBig").textContent="Reaches the ore at this depth";
+      $("vBig").textContent="Can break this block";
       $("vWhy").textContent=
-        "Breaking power "+t+" reaches tier "+reach+", and ore around layer "+commas(layer)+
-        " sits near tier "+oreTierHere+". An ore block here is "+big(o)+" HP, so at "+big(dm)+
-        " damage that is "+commas(hits)+" swing"+(hits===1?"":"s")+".";
+        "Breaking power "+have+" against the "+need+" this block asks for — "+
+        needLayer+" for standing at zone "+zi+" layer "+commas(layer)+", "+needOre+
+        " for tier-"+oreTierHere+" ore with the +"+M.BRK.ORE_REACH+" reach. "+
+        "An ore block here is "+big(o)+" HP, so at "+big(dm)+" damage that is "+
+        commas(hits)+" swing"+(hits===1?"":"s")+".";
+    } else if(have<needLayer){
+      v.className="verdict no";
+      $("vBig").textContent="Cannot stand this deep";
+      $("vWhy").textContent=
+        "Depth is the gate here, not the ore. Zone "+zi+" layer "+commas(layer)+
+        " demands breaking power "+needLayer+" and a tier-"+t+" tool has "+have+
+        ". "+(deepest>0
+          ? "It bottoms out at layer "+commas(deepest)+" in this zone."
+          : "It cannot enter this zone at all — even the surface here asks "+
+            layerStrength(zi,1)+".")+
+        " Damage is irrelevant — forge from deeper ore to go deeper.";
     } else {
       v.className="verdict no";
-      $("vBig").textContent="Too weak to damage ore at this depth";
+      $("vBig").textContent="Too weak for the ore here";
       $("vWhy").textContent=
-        "Breaking power "+t+" reaches tier "+reach+", but ore around layer "+commas(layer)+
-        " sits near tier "+oreTierHere+". Damage does not help: levelling raises "+big(dm)+
-        " as far as you like and the block still cannot be touched. Forge from a better ore.";
+        "You can stand at zone "+zi+" layer "+commas(layer)+" (that needs "+needLayer+
+        " and you have "+have+"), but tier-"+oreTierHere+" ore asks "+needOre+
+        " even after the +"+M.BRK.ORE_REACH+" reach. Levelling raises "+big(dm)+
+        " as far as you like and the block still cannot be touched.";
     }
 
     $("foot").textContent =

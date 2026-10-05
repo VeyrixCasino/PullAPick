@@ -61,8 +61,23 @@ MineBreaking.LAYERS_PER_RUNG = 50
 	away, and the shape is what was actually wanted.
 
 	POW is the single dial. Raise it to make low tiers weaker still.
+
+	1.0, DOWN FROM 2.0, alongside the ZONE_STEP change below.
+
+	Quadratic made the bottom half of the roster worth almost nothing: tier 20
+	landed at 13 of a 209 scale, so the first seventeen ores could not clear even
+	the opening 500 layers and the whole gate was carried by the top third.
+
+	Linear spreads 82 tiers evenly across the scale, which is what makes "about
+	seven tiers per zone" FALL OUT of 82 tiers over 11 zones instead of having to
+	be tuned in. With ZONE_STEP at 100 the two together give a ladder where
+	finishing a zone and entering the next are the same tier, at every boundary.
+
+	Raising it again re-weights the gate toward the top of the roster and will
+	re-break that continuity -- tools/zone-gate-fix.js models both dials and
+	prints the boundary table.
 ]]
-MineBreaking.ORE_POW = 2.0
+MineBreaking.ORE_POW = 1.0
 
 --[[
 	ZONE COSTS A RUNG. Anchored on one requirement: a Stone pickaxe must be
@@ -94,9 +109,58 @@ MineBreaking.ORE_POW = 2.0
 ]]
 MineBreaking.ORE_REACH = 15
 
-MineBreaking.ZONE_STEP = 1
+--[[
+	ZONE_STEP: 100, UP FROM 1.
+
+	Owner, 2026-10-05: "breaking power should make you need to get a new pick
+	from next zone to come back to 501-1000 depth, and so on".
+
+	At 1 the zone was not a gate at all. A full 5000-layer mine is worth +99
+	rungs (one per LAYERS_PER_RUNG), so stepping to the next zone cost ONE rung
+	while MineDepth multiplied block HP by ZONE_HP_MULT = 5. Measured end to end
+	(tools/depth-gate.js): at layer 2500, zone 1 demanded ore tier 41 and zone 11
+	demanded tier 44 -- three tiers for 9.77 MILLION times the HP. Clear layer
+	2500 in the first mine and you could stand at layer 2500 in Event Horizon.
+
+	It also ate the roster. Reaching the bottom of zone 1 needed tier 57 of 82 --
+	an ore whose own home is zone 8 -- leaving zones 2 through 11 to share three
+	tiers between them. One zone spent 70% of the ladder and ten zones spent
+	almost none.
+
+	100 is LAYERS / LAYERS_PER_RUNG: a zone is now worth exactly one mine's
+	depth. Finishing a zone and entering the next then cost the same, so the
+	ladder is continuous instead of front-loaded -- finish zone N at tier X and
+	enter zone N+1 at tier X, at all ten boundaries, about seven tiers a zone.
+
+	Event Horizon is outside ZONES (which counts the ten normal mines) and lands
+	on top of it: MAX is 1 + 9*100 + 199 = 1100, and zone 11's floor computes to
+	1 + 10*100 + 99 = 1100 exactly. The deepest block in the game demands the top
+	ore, by construction rather than by tuning.
+]]
+MineBreaking.ZONE_STEP = 100
 MineBreaking.ZONES = 10
-MineBreaking.MAX_LAYER = 10000
+--[[
+	5000, DOWN FROM 10000 -- the LIVE floor.
+
+	MineConfig assigns LAYERS twice and the second one, 5000, is what the module
+	exports; MINE1_LAYERS still says 10000 and the seams past 5000 sit below the
+	floor unreachable. This constant was reading the 10000 and it is used for
+	exactly one thing: deriving MAX. So MAX was 100 rungs taller than anything a
+	player can stand on, and the top of the ore ladder pointed at layers that do
+	not exist.
+
+	At 5000 the ladder TERMINATES where the game does. MAX becomes
+	1 + 9*100 + 99 = 1000, and zone 10 layer 5000 computes to exactly 1000 -- so
+	the deepest normal block demands precisely the top ore, tier 82, with nothing
+	wasted above it and nothing unreachable below.
+
+	EVENT HORIZON IS NOT ON THIS LADDER. Owner, 2026-10-05: "horizon is
+	different... doesnt use normal tools". Zone 11 has its own progression, so
+	the ore ladder is calibrated to the ten normal mines and zone 11's computed
+	strength simply clamps at MAX. If the seams past 5000 are ever opened, this
+	is the line to move with them.
+]]
+MineBreaking.MAX_LAYER = 5000
 
 -- Derived, not hardcoded: the top of the ladder is exactly what the deepest
 -- layer of the last zone demands, so the best ore tool reaches the mine floor
