@@ -1,0 +1,171 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Forge mockup</title>
+<style>
+  :root{
+    --bg:#0b0a1a; --panel:#13112a; --panel2:#171433; --line:#2d2a55;
+    --line2:#3a3570; --ink:#eceaff; --mute:#9a95c9; --gold:#ffc24d;
+    --violet:#a855f7; --violet2:#7c3aed; --cyan:#48d6ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 500px at 50% -10%,#241b4a 0%,var(--bg) 60%);
+       font-family:"Segoe UI",system-ui,sans-serif;color:var(--ink);padding:18px}
+  .wrap{max-width:1960px;margin:0 auto}
+  .top{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .logo{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;
+        background:linear-gradient(160deg,#3a2f6b,#1b1640);border:1px solid var(--line2)}
+  h1{font-size:38px;letter-spacing:.14em;margin:0;color:var(--gold);font-weight:700}
+  .purses{margin-left:auto;display:flex;gap:14px}
+  .purse{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:14px;
+         background:rgba(28,24,62,.85);border:1px solid var(--line2);font-size:17px}
+  .purse b{font-weight:600}
+  .plus{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+        border:1px solid var(--line2);color:var(--mute);font-size:14px;line-height:1}
+  .main{display:grid;grid-template-columns:300px 1fr;gap:18px}
+  .rail{display:flex;flex-direction:column;gap:12px}
+  .tab{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:14px;
+       background:rgba(22,19,48,.8);border:1px solid var(--line);font-size:17px;
+       letter-spacing:.06em;color:#cfcaf2}
+  .tab.on{background:linear-gradient(90deg,rgba(124,58,237,.55),rgba(124,58,237,.18));
+          border-color:#8b5cf6;color:#fff}
+  .tab .chev{margin-left:auto;color:#d7cffb}
+  .right{display:flex;flex-direction:column;gap:16px}
+  .card{background:rgba(19,16,44,.92);border:1px solid #4b3f93;border-radius:18px;padding:22px}
+  .hero{display:grid;grid-template-columns:200px 1fr 330px;gap:26px;align-items:start}
+  .orb{width:190px;height:190px;border-radius:50%;display:grid;place-items:center;
+       background:radial-gradient(circle at 50% 45%,#4b2d8f 0%,#2a1a5c 55%,#1a1140 100%);
+       border:1px solid #6b4fd0}
+  .name{font-size:36px;margin:0 0 10px;font-weight:700}
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:999px;
+        background:rgba(168,85,247,.22);border:1px solid #9b6bf5;color:#dcc9ff;
+        font-size:14px;letter-spacing:.08em;font-weight:600}
+  .tier{color:var(--cyan);font-size:18px;margin-left:12px}
+  .desc{color:#cdc8ef;font-size:17px;line-height:1.5;margin:14px 0 16px}
+  .statline{display:flex;align-items:center;gap:10px;font-size:19px;margin:6px 0}
+  .btns{display:flex;gap:16px;margin-top:18px}
+  .btn{padding:14px 30px;border-radius:999px;font-size:18px;font-weight:600;
+       display:flex;align-items:center;gap:10px}
+  .btn.gold{border:2px solid var(--gold);color:var(--gold);background:rgba(255,194,77,.07)}
+  .btn.vio{border:2px solid #a855f7;color:#d9c2ff;background:rgba(168,85,247,.1)}
+  .slots{display:flex;gap:10px;justify-content:flex-end;margin-bottom:16px}
+  .slot{width:88px;height:62px;border-radius:14px;display:grid;place-items:center;
+        background:rgba(24,20,54,.9);border:1px solid var(--line2)}
+  .slot.on{border-color:#a855f7;background:rgba(124,58,237,.28)}
+  .slot.lock{color:#5d5790}
+  .statbox{background:rgba(24,20,54,.75);border:1px solid var(--line2);border-radius:16px;padding:16px 18px}
+  .srow{display:flex;align-items:center;gap:14px;padding:9px 0;font-size:18px}
+  .srow .v{margin-left:auto;font-weight:700;font-size:20px}
+  .pouch{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .plabel{display:flex;align-items:center;gap:10px;color:var(--gold);font-size:17px;
+          letter-spacing:.08em;font-weight:600}
+  .pcount{color:#cfcaf2;font-size:17px;margin-right:6px}
+  .ore{display:flex;align-items:center;gap:9px;padding:8px 16px;border-radius:12px;
+       background:rgba(26,22,58,.9);border:1px solid var(--line2);font-size:16px}
+  .ore b{margin-left:4px;color:#fff}
+  .tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:16px}
+  .tile{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;
+        background:rgba(22,18,50,.9);border:1px solid var(--line2)}
+  .tile .t{font-size:18px;font-weight:600}
+  .tile .s{font-size:15px;color:var(--mute)}
+  .ic{width:34px;height:34px;flex:0 0 34px}
+</style>
+<div class="wrap">
+  <div class="top">
+    <div class="logo">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffc24d" stroke-width="1.7">
+        <path d="M7 4h10l-1.5 5h-7L7 4Z"/><path d="M12 9v6"/><path d="M8 20h8"/><path d="M10 15h4l1 5h-6l1-5Z"/>
+      </svg>
+    </div>
+    <h1>FORGE</h1>
+    <div class="purses">
+      <div class="purse"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#d6a86a" stroke-width="1.6"><path d="M3 8l9-4 9 4-9 4-9-4Z"/><path d="M3 8v8l9 4 9-4V8"/></svg><b>197.5K Coins</b><span class="plus">+</span></div>
+      <div class="purse"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#48d6ff" stroke-width="1.6"><path d="M6 3h12l3 6-9 12L3 9l3-6Z"/></svg><b>96.38K Gems</b><span class="plus">+</span></div>
+      <div class="purse"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="1.6"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></svg><b>5.98K Dust</b><span class="plus">+</span></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="rail">
+      <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><path d="M4 7l5-3 5 3-5 3-5-3Z"/><path d="M14 13l6 4-4 4-6-4"/></svg>CRAFT</div>
+      <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><path d="M7 8V6a5 5 0 0110 0v2"/><rect x="4" y="8" width="16" height="12" rx="3"/></svg>LOADOUT</div>
+      <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3Z"/></svg>INVENTORY</div>
+      <div class="tab on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><path d="M4 20l5-1 9-9-4-4-9 9-1 5Z"/><path d="M14 6l4 4"/></svg>SKINS<span class="chev">›</span></div>
+      <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M12 8v12"/><path d="M12 8s-3-5-6-3 2 3 6 3Zm0 0s3-5 6-3-2 3-6 3Z"/></svg>PACKS</div>
+      <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><path d="M12 20V6"/><path d="M6 12l6-6 6 6"/></svg>UPGRADES</div>
+      <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.5 12h11L21 7H6"/></svg>SHOP</div>
+      <div class="tab"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><path d="M12 3l1.8 4.6L18 9l-3.4 2.6L15.4 16 12 13.6 8.6 16l.8-4.4L6 9l4.2-1.4L12 3Z"/><path d="M6 19h12"/></svg>ENCHANTER</div>
+    </div>
+
+    <div class="right">
+      <div class="card">
+        <div class="hero">
+          <div class="orb">
+            <svg width="118" height="118" viewBox="0 0 24 24" fill="none" stroke="#dcd6ff" stroke-width="1.3">
+              <path d="M4 7c3-2 13-2 16 0l-2 2c-3-1.5-9-1.5-12 0L4 7Z"/>
+              <rect x="10.6" y="8" width="2.8" height="12" rx="1" fill="#6d4fd6" stroke="#b9a6ff"/>
+              <path d="M9 4.5c2-1 4-1 6 0"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="name">Clay Pickaxe</h2>
+            <span class="pill">◈ UNCOMMON</span><span class="tier">| Tier 2</span>
+            <p class="desc">A reliable pickaxe made from clay.<br>Not the strongest, but it gets the job done.</p>
+            <div class="statline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><path d="M4 7c3-2 13-2 16 0l-2 2c-3-1.5-9-1.5-12 0L4 7Z"/><path d="M12 9v11"/></svg>11</div>
+            <div class="statline"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#cfcaf2" stroke-width="1.6"><path d="M3 8l9-4 9 4-9 4-9-4Z"/><path d="M3 8v8l9 4 9-4V8"/></svg>284 Clay &nbsp;<span style="color:var(--mute)">|</span>&nbsp; Held: 61 Clay</div>
+            <div class="btns">
+              <div class="btn gold"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffc24d" stroke-width="1.6"><path d="M3 8l9-4 9 4-9 4-9-4Z"/><path d="M3 8v8l9 4 9-4V8"/></svg>NEED ORE</div>
+              <div class="btn vio"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#d9c2ff" stroke-width="1.6"><path d="M12 4a2 2 0 110 4 2 2 0 010-4Z"/><path d="M12 8v3l-8 7h16l-8-7Z"/></svg>SKINS</div>
+            </div>
+          </div>
+          <div>
+            <div class="slots">
+              <div class="slot on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#e9ddff" stroke-width="1.6"><path d="M4 7c3-2 13-2 16 0l-2 2c-3-1.5-9-1.5-12 0L4 7Z"/><path d="M12 9v11"/></svg></div>
+              <div class="slot"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b9b3e4" stroke-width="1.6"><path d="M4 7c3-2 13-2 16 0l-2 2c-3-1.5-9-1.5-12 0L4 7Z"/><path d="M12 9v11"/></svg></div>
+              <div class="slot"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#b9b3e4" stroke-width="1.6"><path d="M4 7c3-2 13-2 16 0l-2 2c-3-1.5-9-1.5-12 0L4 7Z"/><path d="M12 9v11"/></svg></div>
+              <div class="slot lock"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5d5790" stroke-width="1.6"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></div>
+              <div class="slot lock"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5d5790" stroke-width="1.6"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></div>
+            </div>
+            <div class="statbox">
+              <div class="srow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#c9b6ff" stroke-width="1.6"><path d="M4 7c3-2 13-2 16 0l-2 2c-3-1.5-9-1.5-12 0L4 7Z"/><path d="M12 9v11"/></svg>Mining Damage<span class="v">11</span></div>
+              <div class="srow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffd36b" stroke-width="1.6"><path d="M13 3L5 13h6l-1 8 8-10h-6l1-8Z"/></svg>Speed<span class="v">10.x</span></div>
+              <div class="srow"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#7fd6ff" stroke-width="1.6"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3Z"/></svg>Breaking Power<span class="v">12</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:#4b3f93">
+        <div class="pouch">
+          <span class="plabel"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffc24d" stroke-width="1.6"><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 8V6a3 3 0 016 0v2"/></svg>ORE POUCH</span>
+          <span class="pcount">1237 / 2,000KG</span>
+          <span class="ore"><svg class="ic" viewBox="0 0 24 24" fill="#f3a0b6" stroke="none"><path d="M12 4l7 5-3 9H8L5 9l7-5Z"/></svg>Halite <b>9</b></span>
+          <span class="ore"><svg class="ic" viewBox="0 0 24 24" fill="#e6e2d2" stroke="none"><path d="M12 4l7 5-3 9H8L5 9l7-5Z"/></svg>Limestone <b>6</b></span>
+          <span class="ore"><svg class="ic" viewBox="0 0 24 24" fill="#e2762c" stroke="none"><path d="M12 4l7 5-3 9H8L5 9l7-5Z"/></svg>Clay <b>61</b></span>
+          <span class="ore"><svg class="ic" viewBox="0 0 24 24" fill="#b9b6c9" stroke="none"><path d="M12 4l7 5-3 9H8L5 9l7-5Z"/></svg>Stone <b>44</b></span>
+        </div>
+        <div class="tiles">
+          <div class="tile" style="border-color:#8a6a1f;background:rgba(60,44,12,.5)">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffc24d" stroke-width="1.6"><path d="M4 7c3-2 13-2 16 0l-2 2c-3-1.5-9-1.5-12 0L4 7Z"/><path d="M12 9v11"/></svg>
+            <div><div class="t">Pickaxes</div><div class="s">0/100</div></div>
+          </div>
+          <div class="tile" style="border-color:#6b3f9e;background:rgba(48,24,76,.5)">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#d08bff" stroke-width="1.6"><path d="M5 4h14l-5 7v7l-4 2v-9L5 4Z"/></svg>
+            <div><div class="t">Drills</div><div class="s">0/100</div></div>
+          </div>
+          <div class="tile" style="border-color:#9e3340;background:rgba(74,18,28,.5)">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ff6b7d" stroke-width="1.6"><path d="M12 3l2 5 5-2-2 5 5 2-5 2 2 5-5-2-2 5-2-5-5 2 2-5-5-2 5-2-2-5 5 2 2-5Z"/></svg>
+            <div><div class="t">Explosives</div><div class="s">0/100</div></div>
+          </div>
+          <div class="tile" style="border-color:#2f7a4a;background:rgba(14,52,32,.5)">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5fe39a" stroke-width="1.6"><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 8V6a3 3 0 016 0v2"/></svg>
+            <div><div class="t">Backpacks</div><div class="s">51/400</div></div>
+          </div>
+          <div class="tile" style="border-color:#5a3f93;background:rgba(36,26,72,.5)">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#c3b4ff" stroke-width="1.6"><circle cx="8" cy="14" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg>
+            <div><div class="t">Secrets</div><div class="s">9/373</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
