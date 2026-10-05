@@ -2,7 +2,7 @@
 title: Shops and monetisation
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ 9733a05
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopBuy.luau
@@ -40,7 +40,7 @@ related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tool
 ## How it works — the shops
 | shop | where | paid in | code |
 |---|---|---|---|
-| **Shop panel** | world shop pad | ore (Forge), coins (tools, backpacks) | `MineShopView`, with tabs Forge (`bench`), Ore Pouch, Pickaxes, Drills, Explosives, Backpacks, Secrets |
+| **Shop panel** | world shop pad | ore (Forge), coins (backpacks) | `MineShopView`, with tabs Forge (`bench`), Ore Pouch, Backpacks, Secrets. The Pickaxes, Drills and Explosives tabs were removed in `9733a05`. |
 | **Depth desks** | seam outposts (`Machine=depth_shop`) | coins | `MineDepthShop`, `MineDepthShopView` (Deeprock and Shadowzone themes) |
 | **Event Horizon tools** | `bigbang` shop | space coins | `MineHorizonTools` via `MineShopBuy.buyEvent` |
 | **Inventory → Shop** | menu | credits; stardust for the Stardust tab | `MineInventoryView` tabs home, box, limited, packs, dust, currencies, vip |
@@ -106,13 +106,13 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     `MinePackConfig.VIP_SEATS` and `MinePackConfig.VIP_DISCOUNT` mean **Founders**, not the VIP gamepass.
 
 ## Decided by the owner
-- **The Forge leads the Shop panel.** The coin shop stays reachable, but not first (TODO §0.14, `MineShopView.TABS` comment).
+- **The coin shop no longer sells tools** (owner, 2026-10-05, `9733a05`): *"i think its time to get rid of all coin bought tools"*. `MineShopView.TABS` lost the tool tabs, and the server refuses the buy verbs independently of the rail (`MineConfig.FORGE_ONLY_FAMILIES`, `buyTool`, `buyDepthTool`). The depth desks sell off the same ladders, so they are guarded too. Backpacks, the Ore Pouch and Secrets stay. The Forge leads because it is the only tool line.
 - **VIP's fourth seat: leave it at three.** PROPOSAL §0 line 34: *"leave at three,
   delete the dead copy"*. This answers BLOCKED §6.
 - **Potions get a coin price** (PROPOSAL line 23): dust × 40. **Not built**:
   `MinePotions` is still dust-only.
 - **Proposed, not agreed** (TODO §0.28): *"ore = power, gems = gambling, coins =
-  consumables and access"*. OPEN §7 still asks whether the coin shop survives at all.
+  consumables and access"*. The coin shop's tool sales are gone (above), which leaves backpacks as its main coin sink. OPEN §7 (what coins are *for*) is more open than before.
 - **Direction only** (roadmap): *"A free path must never outperform a paid one"*
   (PRINCIPLES §8, and the ECONOMY checklist). It is not a locked rule.
 
@@ -142,7 +142,7 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
   reset ([admin-and-debug](admin-and-debug.md)).
 
 ## Open questions
-- Does the coin shop survive, and what are coins for (OPEN §7)?
+- What are coins for now that tools are not sold for them (OPEN §7)?
 - Product ids for every `MineConfig.PRODUCTS` row, or should the unsold rows be cut?
 - Keep or archive the battle pass (AUDIT §5)?
 - Should Founders seats be per server, or global?

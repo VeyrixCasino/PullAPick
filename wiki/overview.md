@@ -2,7 +2,7 @@
 title: Mine For Cards — the game in one page
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ 9733a05
 sources:
   - docs/START-HERE.md §2, §5
   - docs/HANDOFF.md §2.1, §2.5
@@ -66,8 +66,9 @@ to an axis that nothing gated. `roadmap/PRINCIPLES.md` §1–§2 tells the
 - **Gems** are for gambling and access: traits, charm merges, cases, zones,
   pouch upgrades. They are minted by selling ore.
 - **Coins** are for consumables and access. **This is not solved yet.** Coins
-  have almost nothing to buy now that the Forge runs on ore and seams are free
-  (TODO §0.28, PROPOSAL line 23).
+  have almost nothing to buy now that the Forge runs on ore, seams are free, and
+  tools are no longer sold for coins (TODO §0.28, PROPOSAL line 23, commit
+  `9733a05`).
 
 See [currencies-and-economy](systems/currencies-and-economy.md).
 

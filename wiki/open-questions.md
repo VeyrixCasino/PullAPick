@@ -2,7 +2,7 @@
 title: Open questions, contradictions and probable bugs
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ 9733a05
 sources:
   - docs/OPEN.md
   - docs/BLOCKED.md
@@ -44,7 +44,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 12 | **Meadow zone packs can never pay Mythic, Divine or Exotic** (computed from `cardOdds`). | *Reported* | [cards-and-packs](systems/cards-and-packs.md) |
 | 13 | **Bag prices show in coins; the server charges gems.** | *Reported* | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
 | 14 | **Running Studio syncback deletes `tools/export/in/`.** `tools/export/sync.ps1` ends with `Remove-Item $in -Recurse -Force`, and `CLAUDE.md` names that folder as a place for Claude.ai exports. Anything dropped there is lost on the next syncback. The wiki docs now say to use the gitignored `transcripts/` folder instead; the script itself is unchanged. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
-| 15 | **Nothing checks Luau's 200-top-level-local ceiling.** `luau-analyze` accepted 205 locals; `luau-compile` rejected them. Both big scripts compile today, but the next local added to `MineServer` may not. | *Reported* | [luau-traps](code/luau-traps.md) |
+| 15 | **Nothing checks Luau's 200-top-level-local ceiling.** `luau-analyze` accepted 205 locals; `luau-compile` rejected them. Both big scripts compile today, but the next local added to `MineServer` may not. The `9733a05` commit comments say exactly this broke the whole server once on 2026-10-05, before a fix moved a list into `MineConfig`. | *Reported*, corroborated by `9733a05` | [luau-traps](code/luau-traps.md) |
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
 
 ## 2. Where the owner's rules and the code disagree
@@ -73,8 +73,9 @@ Check `docs/BLOCKED.md` and TODO §0 first. These are not answered anywhere.
 Ask them with options and a recommended default (see `CLAUDE.md`).
 
 **Design**
-- **Coins: what are they for?** Seams are free, the Forge runs on ore, and the
-  proposed shape (potions, consumables, outpost shops) is unsigned.
+- **Coins: what are they for?** Seams are free, the Forge runs on ore, tools are
+  no longer sold for coins (`9733a05`), and the proposed shape (potions,
+  consumables, outpost shops) is unsigned.
 - **Are skins cosmetic or a power source?** Docs disagree; today they are
   tempers (stat kits).
 - **One charm per ore, or two?** Is the ~24 hand-authored charm rewrite (AUDIT)
@@ -89,7 +90,7 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
 **Ship or cut** (AUDIT §5 asked for a yes that was never recorded)
 - Trading, lucky blocks, leaderboards, group wheel, event pass, battle pass,
   and the social UI (`SocialView`, `ProfileView` are mounted nowhere).
-- Does the coin shop survive? The wooden-pick coin path is unreachable.
+- **Coins: what are they for now?** The coin shop stopped selling tools in `9733a05` (owner, 2026-10-05), which leaves backpacks as the main coin sink. Is the wooden-pick coin path reachable? It looked unreachable before that commit, and the commit says it is kept on purpose.
 - Is `NewGear` meant to replace the current hat catalog? Should faces drop
   from chests?
 - Product ids in `MineConfig.PRODUCTS` are all 0: set them, or cut the unsold rows.
@@ -108,7 +109,7 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
 
 **Reach (only the owner can do these)**
 - Play the branch in Studio. Nothing from the last week has run.
-- Charm and ore icons (`MineOreIcons`, 164 assets): wired in? Uploaded to the group?
+- Charm and ore icons: 164 ore icons (`MineOreIcons`) and the new 88 pickaxe skins (`MineIcons.ORE_PICK`, `9733a05`) are uploaded, but which account owns them is unverified (they must be group-owned). The pickaxe-to-ore matching is by colour and not final.
 - Export or delete `OreShapes`. Sync `ToolBakers.OreToolBaker` back.
 
 ## 4. Stale docs and comments

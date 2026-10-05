@@ -34,3 +34,14 @@ session) re-checked three findings against the code myself: the held-tool
 breaking-power fallback, the roster-migration guard, and the `sync.ps1`
 deletion of `tools/export/in/`. Everything else in open-questions is marked
 *reported*.
+
+## [2026-10-05] ingest | commit 9733a05 (PR #6): tools are forged, not bought
+PR #6 gained a commit after the wiki's `26036a0` baseline. It removes every
+coin-bought tool path (owner, 2026-10-05), keeps Backpacks, the Ore Pouch and
+Secrets, and gives each ore tier its own pickaxe icon. Merged into this branch.
+Updated: tools, shops-and-monetisation, currencies-and-economy, owner, glossary,
+overview, open-questions, verify-suite (35 checks; `oreskins`),
+tools-and-generators (new `tools/icons` scripts), luau-traps (the 200-local
+ceiling broke the server again). Re-checked that `equippedTool` and the
+`oreRosterV` guard are untouched by it, so probable bugs 1 and 2 still stand.
+Pages not touched by that commit keep their `26036a0` stamp.

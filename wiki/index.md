@@ -61,7 +61,7 @@ related: [README, overview, owner, SCHEMA, log]
 - [client-and-ui](code/client-and-ui.md): MineClient, view modules, house style, layering
 - [save-data-and-migrations](code/save-data-and-migrations.md): DataStores, save shape, every migration
 - [rojo-and-studio](code/rojo-and-studio.md): the Rojo mapping, place-only content, syncback, the loss matrix
-- [verify-suite](code/verify-suite.md): all 34 checks, `suite.sh`, `syntax.sh`, how to add one
+- [verify-suite](code/verify-suite.md): all 35 checks, `suite.sh`, `syntax.sh`, how to add one
 - [tools-and-generators](code/tools-and-generators.md): generators, one-off scripts, calculators
 - [assets-and-uploads](code/assets-and-uploads.md): group upload rules, icons, `build/`
 - [luau-traps](code/luau-traps.md): nine traps that have cost days. **Read before editing Luau.**

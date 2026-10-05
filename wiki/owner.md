@@ -91,6 +91,7 @@ reopen it.
   show 4 significant figures, floored.
 - **0.10** The wooden pick is only a tutorial pick. The tutorial hands over the
   stone pick.
+- **2026-10-05, after TODO §0 was written** (commit `9733a05`): **no tool is bought with coins**; every tool is forged from ore. Backpacks, the pouch and chest Secrets stay. Every forged ore tier gets its own pickaxe skin. Source: the comments on `MineConfig.FORGE_ONLY_FAMILIES`.
 - **0.12** **Fossils do not exist.** The modules are deleted. The `fossilFind`
   key and the 60 fossil bags stay, because removing them would break saves.
 - **0.13** Charms and skins are the build: shape, not magnitude.

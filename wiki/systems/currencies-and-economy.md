@@ -2,7 +2,7 @@
 title: Currencies and economy
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ 9733a05
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineOrePouch.luau
@@ -76,7 +76,7 @@ related: [mining-and-breaking, zones-layers-and-seams, rebirth-and-skill-tree, o
 
 ## State right now — the coin problem
 - **The owner's complaint**, `docs/TODO.md` §0.28: *"now that coins are basically useless, theres no point... I want the economy to be stable"*.
-- **The diagnosis** (`docs/HANDOFF.md` §2.7): coins are a faucet with almost no drain. The coin-shop ladder was superseded by the Forge, which runs on ore. Making seams free removed one of the three sinks (seams, rebirth, shop tools) (`docs/OPEN.md` §7a).
+- **The diagnosis** (`docs/HANDOFF.md` §2.7): coins are a faucet with almost no drain. The coin-shop ladder was superseded by the Forge, which runs on ore, and since `9733a05` the server no longer sells tools for coins at all (owner, 2026-10-05). Making seams free removed one of the three sinks (seams, rebirth, shop tools) (`docs/OPEN.md` §7a).
 - **The shape proposed but NOT agreed** (§0.28, OPEN §7): *ore = power, gems = gambling, coins = consumables and access*. Potions would become the load-bearing coin sink, and each outpost would sell for coins the things that help with the next seam. **Do not build it without the owner.** Whether the coin shop survives is also open.
 
 ## Gotchas

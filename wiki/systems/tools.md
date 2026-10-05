@@ -2,10 +2,11 @@
 title: Tools
 type: system
 status: partial
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ 9733a05
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineIcons.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineBreaking.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopLadders.luau
@@ -24,8 +25,9 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 # Tools
 
 > Pickaxes, drills and explosives. The main tool is now **forged from ore** and
-> named after it, for example "Stone Pickaxe". Several older rosters (the coin
-> shop, chest flagships, zone shops, Event Horizon) still exist alongside it.
+> named after it, for example "Stone Pickaxe". **The coin shop no longer sells
+> tools** (`9733a05`, below). Chest flagships, zone shops and Event Horizon
+> tools still exist alongside it.
 > A tool has **damage**, which grows with level, and **breaking power**, which
 > is fixed by its ore. These are two separate gates.
 
@@ -43,6 +45,11 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 5. **Coin ladder**: `MineTools.TOOLS` — 25 pickaxes (incl. `wood_pick`), 16
    drills, 16 explosives; `p.tools[fam]` = highest rung owned, `p.toolTier[fam]`
    = rung held. These rows are also the **frames** for forged tools.
+   **Since `9733a05` nothing sells them for coins**: `MineConfig.FORGE_ONLY_FAMILIES`
+   (pickaxe, drill, explosive, weapon) is refused at the surface shop, the depth
+   desks and the legacy `buy "pickaxe"` action (`buyTool`, `buyDepthTool`). The
+   roster is kept because `MineOreTools.frames()` filters it on `price > 0`: the
+   prices are now a forge input, not a shelf price.
 6. `MineConfig.BARE_HANDS` if no pickaxe was ever collected.
 
 Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
@@ -112,6 +119,14 @@ equip; the coin ladder resets.
   the tool's own ore (§0.15). The wooden pickaxe is a 5-level tutorial pick paid
   in coins (§0.13 rule 10).
 - Cap 30 (owner, 2026-10-05; `docs/PR-BALANCE-PASS.md` §2).
+- **No coin-bought tools** (owner, 2026-10-05, quoted in the `9733a05` comments:
+  *"i think its time to get rid of all coin bought tools"*). Every tool family is
+  forged from ore. Backpacks, the Ore Pouch and chest Secrets stay. The wooden
+  pickaxe is given, never sold, and the commit says it **still levels on coins**
+  (`MineConfig.isCoinTool`), kept on purpose as the on-ramp to the Forge.
+- **Every ore tier has its own pickaxe skin** (`MineIcons.ORE_PICK`, one asset id
+  per tier; `Icons.forTool(tool)` is the one rule the hotbar, Forge and inventory
+  share). `tools/verify/oreskins.js` asserts the ids are distinct.
 - **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line
   12).
 
@@ -135,7 +150,9 @@ held tools (see below). Nothing here has run in the engine.
     attribute (`MineConfig.toolBreakingPower`, the raw ore tier, which is 0 for
     the synthesized row), the equip toast (the raw tier) and the gate
     (`oreStrength`, 1..1000).
-- **The wooden pickaxe's coin path is unreachable.** `_upgradeCoinTool` and the
+- **The wooden pickaxe's coin path looks unreachable** (found before `9733a05`,
+  not re-checked since; that commit says the owner kept the coin path on purpose).
+   `_upgradeCoinTool` and the
   graduation step run only for a `p.oreTools` row with `typeId wood_pick`, and
   nothing on this branch creates one. The starter is coin rung 1 instead.
 - **The family skin skips forged tools.** `equippedTool` returns rung `0` for a
@@ -155,8 +172,8 @@ held tools (see below). Nothing here has run in the engine.
 
 ## Open questions
 
-- Does the coin shop survive (OPEN #7)? The wood-pick graduation design depends
-  on it.
+- The coin shop no longer sells tools (`9733a05`). What are coins for now? OPEN #7
+  is still open, and the wood-pick graduation design depends on the answer.
 - Should the `MineBreaking` scale (1..1000) or the raw-tier scale be the one a
   player sees? See [mining-and-breaking](mining-and-breaking.md).
 

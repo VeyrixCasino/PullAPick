@@ -30,7 +30,7 @@ related: [ambiguous-terms, overview, index]
 - **Vein** — a 1–8 block cluster of one ore. [ores](systems/ores.md)
 - **Band** — a Common…Exotic group of ore tiers. [ores](systems/ores.md)
 - **Ore finder** (`rareOre`, `fossilFind`) — shifts *which* ore you roll, not how much. The `fossilFind` key is a fossil-era leftover kept on purpose. [ores](systems/ores.md), [retired-and-parked](systems/retired-and-parked.md)
-- **Frame** — the coin-ladder rung a forged tool wears. **Coin ladder** — `MineTools.TOOLS`. [tools](systems/tools.md)
+- **Frame** — the coin-ladder rung a forged tool wears. **Coin ladder** — `MineTools.TOOLS`; no longer sold for coins, kept as the source of forged-tool frames. [tools](systems/tools.md)
 - **Flagship tool** — a chest-dropped tool that is never sold. [tools](systems/tools.md)
 - **Finish** (Shiny / Shadow / Nightmare) — a power multiplier on a tool. [tools](systems/tools.md)
 - **Recycle / scrap** — returns about half of a tool's level spend. [forge-and-recycling](systems/forge-and-recycling.md)

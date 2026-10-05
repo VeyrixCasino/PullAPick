@@ -2,7 +2,7 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ 9733a05
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
@@ -63,7 +63,7 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
 ## Every check
 
 **L** marks the 14 checks that execute the `luau` binary. Without the binary they
-DID NOT RUN. The docs say "11 of 23", which is stale: there are 34 checks now.
+DID NOT RUN. The docs say "11 of 23", which is stale: there are 35 checks now (`oreskins` arrived in `9733a05`).
 
 | check | asserts |
 |---|---|
@@ -86,6 +86,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 34 checks now.
 | `minemap-runs` | `mine-map.html` actually executes under a DOM stub |
 | `oreforge` **L** | a forged tool IS its ore: the frame is derived from the ore's tier |
 | `orepacks` **L** | the preconditions for `Dig.bankOrePacks`: no pack bigger than a tier-1 pouch, and the midpoint pays fairly |
+| `oreskins` | no tool is sold for coins, and every ore tier has its own distinct pickaxe icon. The refusal is asserted on the **server**, at the surface and depth doors, not on the shop rail. |
 | `oretools` **L** | `ToolModelFactory.oreLook` gives the 82 ore tools distinct looks |
 | `outpost-depth` | outpost colours are wired to depth, not constants |
 | `packs` **L** | fossil packs are gone, and the chest loot tables are still well formed |

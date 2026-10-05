@@ -2,7 +2,7 @@
 title: Luau and workflow traps
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-05 @ 9733a05
 sources:
   - docs/START-HERE.md §4, §5
   - docs/HANDOFF.md §2.3
@@ -28,7 +28,11 @@ related: [server, client-and-ui, verify-suite, save-data-and-migrations, rojo-an
   limit 200". For the client that means no HUD and no panels at all. For the
   server it means the game does nothing.
 - **Where we stand.**
-  - `MineServer` has 197 top-level `local` lines.
+  - `MineServer` has 197 top-level `local` lines. **It happened again on
+    2026-10-05** (`9733a05`): one extra top-level local broke the whole server
+    ("Out of local registers when trying to allocate id"). `MineNet` was never
+    created and every client hung on `WaitForChild("MineNet")`, with no other
+    symptom. The fix moved the list to `MineConfig.FORGE_ONLY_FAMILIES`.
   - `MineClient` has 176 lines, but several declare more than one name. It once
     hit 207, and later broke again when two constants were hoisted (see the
     comment above `refreshMineUiScale`).
