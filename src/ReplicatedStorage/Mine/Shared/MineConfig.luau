@@ -3178,6 +3178,22 @@ MineConfig.ORE_MIGRATION = {
 	121 order -- downhill, so nobody is handed something they had not earned.
 ]]
 MineConfig.ORE_ROSTER_V = 2
+
+--[[
+	The tool LEVEL CAP migration stamp, separate from the roster's.
+
+	The roster migration clamps over-cap levels and refunds half their cost, but
+	it is gated on ORE_ROSTER_V and so runs once. Profiles stamped while
+	TOOL_MAX_LEVEL was 100 never re-enter it and still hold tools stored at level
+	80 against a live cap of 30 -- clampLevel makes them behave correctly but the
+	stored number is wrong and the dead levels are never refunded.
+
+	BUMP THIS whenever TOOL_MAX_LEVEL comes DOWN. Raising the cap needs no
+	migration: nothing is above it. The two stamps are separate because the
+	roster and the cap move for different reasons and will move again at
+	different times.
+]]
+MineConfig.TOOL_CAP_V = 1
 MineConfig.ORE_MIGRATION_V2 = {
 	agate = "quartz",
 	alexandrite = "moonstone",

@@ -1622,10 +1622,26 @@ local function load(plr)
 			end
 		end
 		--[[
-			Ore tools. The cap drops to 100, so a tool saved above it is set to
-			100 and handed back half of what the levels above 100 cost -- the
-			same 50% the bench already refunds on a recycle, so nobody can farm
-			the migration by having over-levelled first.
+			Ore tools. A tool saved above the cap is set to the cap and meant to
+			be handed back half of what the levels above it cost -- the same 50%
+			the bench refunds on a recycle, so nobody can farm the migration by
+			having over-levelled first.
+
+			THE REFUND BELOW HAS NEVER PAID OUT. MineConfig.toolSpent runs its
+			level through clampLevel, so toolSpent(t, savedLevel) is literally
+			toolSpent(t, cap) once savedLevel is over the cap, and the difference
+			is always zero. Dead since it was written, in every case it exists
+			for.
+
+			Left in place rather than deleted because it is gated on
+			ORE_ROSTER_V and has already run for every live profile, so changing
+			it now changes nothing for anyone -- but it must not be copied. The
+			cap migration further down does the same job without pretending to
+			pay, and says why: the cost curve is restretched by perLevel()
+			whenever the cap moves, so what was actually spent is not
+			recoverable from the save.
+
+			The comment also said "the cap drops to 100". It is 30.
 		]]
 		local remap = C.ORE_TIER_REMAP_V2
 		local cap = math.min(100, tonumber(C.TOOL_MAX_LEVEL) or 100)
@@ -1668,6 +1684,70 @@ local function load(plr)
 			"[oreRosterV2] %s: %d ore piles merged, %d packs renamed, %d tools re-tiered, %d levels clamped",
 			tostring(p.userId or p.name or "?"), moved, packed, retiered, clamped))
 		p.oreRosterV = C.ORE_ROSTER_V or 2
+	end
+
+	--[[
+		THE TOOL LEVEL CAP, ON ITS OWN VERSION STAMP.
+
+		The roster migration above already clamps levels to the live cap and
+		refunds half of what the excess cost -- but it is gated on
+		`p.oreRosterV`, so it runs ONCE. Every profile that passed through it
+		while the cap was 100 is stamped and will never re-enter it, and
+		TOOL_MAX_LEVEL is 30 now. Those saves still hold tools stored at level
+		80. `clampLevel` makes them BEHAVE as 30 wherever damage is computed, so
+		nothing is broken, but the stored number is a lie, the bench shows a
+		level the game will not honour, and the player is never handed back what
+		the dead levels cost them.
+
+		So the cap gets its own stamp rather than a bump of the roster's: the two
+		move for different reasons and will move again at different times.
+		Idempotent -- a second run finds nothing above the cap and does nothing.
+
+		WHY CLAMP AND NOT RESCALE. Rescaling proportionally (level 80 of 100 ->
+		24 of 30) keeps the player at the same FRACTION of the ladder and looks
+		fairer, and it cannot be done safely: nothing in the save records which
+		cap a level was earned under, so a stored 80 is "80 of 100" or "80 of
+		1000" with no way to tell. Clamping needs no such knowledge.
+
+		AND WHY NO REFUND, which is the part worth reading before adding one.
+		The roster migration above tries to hand back half of what the dead
+		levels cost, and that code has never paid out a single ore:
+		MineConfig.toolSpent runs its level through clampLevel, so
+		toolSpent(t, 80) IS toolSpent(t, cap) and the difference is always zero.
+		Dead since it was written.
+
+		It cannot be repaired by unclamping either, because the cost CURVE moved
+		underneath it: TOOL_CLIMB_ORE and TOOL_CLIMB_DUST are restretched by
+		perLevel() over the new cap, so the geometric series that priced level 80
+		when it was bought no longer exists anywhere in the config. What a player
+		actually spent is not reconstructible from the save.
+
+		Clamping is its own compensation and that is the honest framing: on this
+		curve the cap IS the full x350 climb, so a tool that comes back as level
+		30 arrives MAXED. The player skips the whole ~12-hour climb rather than
+		being paid off for it.
+	]]
+	do
+		local capV = tonumber(C.TOOL_CAP_V) or 1
+		if (tonumber(p.toolCapV) or 0) < capV and type(p.oreTools) == "table" then
+			local cap = math.max(1, math.floor(tonumber(C.TOOL_MAX_LEVEL) or 30))
+			local cut = 0
+			for _, t in ipairs(p.oreTools) do
+				if type(t) == "table" then
+					local lv = math.max(1, math.floor(tonumber(t.level) or 1))
+					if lv > cap then
+						t.level = cap
+						cut += 1
+					end
+				end
+			end
+			if cut > 0 then
+				print(string.format(
+					"[toolCapV%d] %s: %d tool level(s) clamped to %d (maxed on the current curve)",
+					capV, tostring(p.userId or p.name or "?"), cut, cap))
+			end
+			p.toolCapV = capV
+		end
 	end
 	if type(p.tools) ~= "table" then
 		p.tools = { pickaxe = math.max(1, tonumber(p.pickaxeTier) or 1), drill = 0, explosive = 0 }
@@ -15526,12 +15606,48 @@ function Verbs.craftOreTool(plr, payload)
 	end
 
 	p.ores[oreId] = have - cost
+
+	--[[
+		A FORGED TOOL INHERITS YOUR LEVELLING.
+
+		It used to arrive at level 1, and that made forging up a DOWNGRADE at
+		every single tier. Measured (tools/forge-feel.js): a fresh tier-(T+1)
+		tool is x0.003 of the maxed tier-T tool already in your hand, and has to
+		be levelled to 30 of 30 just to break even. Every tier, all the way up.
+
+		It cannot be tuned away either. A fresh tool only wins if one tier step
+		is worth a whole climb, and with 81 tier steps inside the damage budget
+		the best possible case is tier step = climb = x1.265 -- which makes
+		levelling worth nothing at all. 82 tiers is what forces the step small,
+		so the fix has to be mechanical rather than numerical.
+
+		Carrying the level makes forging an upgrade the moment you pay for it
+		(x1.167, the honest tier step) and recasts the two axes: LEVELS are an
+		early ramp you climb once and keep, TIER is the progression. That is
+		already how ORE_REACH and the breaking gate treat the game.
+
+		Inherited from the best tool on the rack, not from a tool of the same
+		family, because the levels were paid for in ore and dust once and the
+		player does not owe them twice for choosing a different frame. Clamped,
+		so a profile carrying a pre-cap level cannot smuggle it past the cap.
+	]]
+	local inherited = 1
+	for _, t in ipairs(p.oreTools) do
+		if type(t) == "table" then
+			local lv = math.floor(tonumber(t.level) or 1)
+			if lv > inherited then
+				inherited = lv
+			end
+		end
+	end
+	inherited = math.clamp(inherited, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
+
 	local row = {
 		uid = instanceHex16(),
 		typeId = def.id,
 		familyId = familyId,
 		tier = oreDef.tier,
-		level = 1,
+		level = inherited,
 	}
 	table.insert(p.oreTools, row)
 
