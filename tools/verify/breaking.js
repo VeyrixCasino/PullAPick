@@ -57,7 +57,7 @@ ok("canBreak forwards the player's zone progress",
 
 const dials = {
   LAYERS_PER_RUNG: 50,
-  ZONE_STEP: 1,
+  ZONE_STEP: 10,   // a zone is worth 500 layers (owner, 2026-10-05)
   ZONES: 10,
   MAX_LAYER: 10000,
 };

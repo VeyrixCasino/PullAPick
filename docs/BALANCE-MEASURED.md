@@ -195,3 +195,133 @@ four or five forges in the first couple of hours and a widening gap after.
 
 That shape is intended. Flagged here so nobody reads the sparse late game as a
 bug and "fixes" the reach.
+
+---
+
+# ZONE_STEP 10, and what it exposes about damage and HP
+
+Applied 2026-10-05. A zone is worth **500 layers**, not 50. Zone N is as hard as
+depth `(N-1) × 500` in zone 1 — the owner's mapping. `MAX` is derived, so it
+moved **209 → 290** on its own and the top ore still lands exactly on the floor.
+
+| zone | ≡ depth | rebirth | enter with | bottom out with |
+|---|---|---|---|---|
+| 1 | 0 | 0 | t1 Stone | t69 Frostfire |
+| 2 | 500 | 0 | t16 Lead | t70 Umbrite |
+| 3 | 1,000 | 1 | t23 Pearl | t72 Orichalcum |
+| 5 | 2,000 | 3 | t31 Garnet | t75 Dragonstone |
+| 7 | 3,000 | 5 | t38 Tigereye | t78 Uranium |
+| 10 | 4,500 | 8 | t47 Lithium | **t82 Oganesson** |
+
+Two things fall out that were not designed: the tool ladder and the rebirth
+ladder now walk together (zone 10 opens at rebirth 8 and needs forge 10 of 16),
+and zone 1 bottoms out at Frostfire rather than Oganesson, so each zone is its
+own stretch instead of secretly being the whole game again.
+
+## The mismatch it exposed
+
+Three different shapes were being applied to one axis:
+
+| thing | how it treats a zone |
+|---|---|
+| breaking power | **+10 rungs** (additive) |
+| block HP | **×5** (multiplicative) |
+| tool damage | neither — `6^(SPAN×(t−1)/120)` on ore tier |
+
+Measured swings to break the deepest block each tool unlocks, plain pickaxe at
+max level, no boosts:
+
+| tool | z1 | z5 | z7 | z10 |
+|---|---|---|---|---|
+| t34 | 0.0 | 2.3 | — | — |
+| t44 | 0.0 | 1.0 | 12.7 | — |
+| t49 | 0.0 | 0.4 | 7.3 | **264.8** |
+| t69 | 0.0 | 0.0 | 0.2 | 20.9 |
+| t82 | 0.0 | 0.0 | 0.0 | 1.6 |
+
+Zone 1 is free from t29 on. Zone 10 is a 265-swing wall at the tool that just
+entered it, collapsing to 1.6 by the end. HP growth per rung is not even one
+number: **78.9%** at zone 1 layer 50, **9.7%** at layer 500, **1.0%** at layer
+5000, and **17.5%** across a zone boundary.
+
+## A STALE DIVISOR IN THE LIVE DAMAGE CURVE
+
+`MineConfig.luau:2504`, and the comment says it outright:
+
+```lua
+MineConfig.TOOL_TIER_SPAN = 16        -- 6^16 from tier 1 to tier 121
+return 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / 120)
+```
+
+**The roster is 82.** `120` was `ORE_COUNT − 1` when there were 121 ores, so the
+damage ladder spans `6^(16×81/120) = 6^10.8 ≈ 2.5e8` instead of the `6^16 ≈
+2.8e12` it claims — about **one eleven-thousandth** of its intended range. Same
+class as the `oreD` divisor already fixed in the calculator, but this one is
+live game code.
+
+Per-forge damage jump (+5 tiers, the real ladder step):
+
+| divisor | SPAN 10 | SPAN 16 | SPAN 20 |
+|---|---|---|---|
+| `/120` (today) | ×2.11 | **×3.30** | ×4.45 |
+| `/81` (fixed) | ×3.02 | **×5.87** | ×9.13 |
+
+## PROPOSAL — one axis, constant swings
+
+**Block HP stops being its own curve and becomes a statement about the tool:**
+
+> `HP(rung) = TARGET_SWINGS × damage(the tool that just unlocked that rung)`
+
+The rung is continuous for HP (`1 + (z−1)×STEP + (L−1)/LAYERS_PER_RUNG`, no
+floor) so HP stays smooth per layer — the existing invariant that stops
+coins-per-HP sawtoothing. The gate keeps using the floored integer rung.
+
+With `/81`, `SPAN 16`, `TARGET 3`:
+
+| rung | zone/layer | HP | tool | damage | swings |
+|---|---|---|---|---|---|
+| 1 | z1 L1 | 2.13e2 | t1.0 | 7.10e1 | **3.00** |
+| 11 | z2 L1 | 4.41e4 | t16.1 | 1.47e4 | **3.00** |
+| 51 | z6 L1 | 3.22e7 | t34.7 | 1.07e7 | **3.00** |
+| 101 | z10 L501 | 4.49e9 | t48.6 | 1.50e9 | **3.00** |
+| 201 | z10 L5501 | 4.85e12 | t68.4 | 1.62e12 | **3.00** |
+| 290 | z10 L9951 | 6.01e14 | t82.0 | 2.00e14 | **3.00** |
+
+Constant by construction, not by fitting. (A geometric HP curve was tried first
+and sags to 0.03 swings mid-ladder, because damage is not geometric in rung.)
+
+**Two dials, and that is all:**
+
+- `TOOL_TIER_SPAN` — how big a forge feels. 16 gives ×5.87 per forge once the
+  divisor is fixed.
+- `TARGET_SWINGS` — 3 for plain rock. Ore blocks are `ORE_HP_MULT 3` on top, so
+  an ore block is ~9 swings, which is the right "this one is worth it" beat.
+
+**THE COST, and it is not small: coins are 1 per HP.** The top block would pay
+`6.01e14` against today's `1.47e11` — a **~4,000× rescale of the whole coin
+economy**. Rebirth costs (`7500 × 2.08^n`) and shop tool prices (`power × 800`)
+would have to move with it. Two ways out, owner's call:
+
+1. **Rescale coins with HP.** Keeps "one coin per point of HP", which is a rule
+   the codebase states plainly and players can feel. Needs the rebirth curve and
+   shop ladder re-derived in the same pass.
+2. **Decouple coins from HP.** Pay coins off the *rung* instead, on whatever
+   curve the coin economy wants. More freedom, loses a rule that is currently
+   one line and easy to reason about.
+
+## Ore drop
+
+Current `ORE_YIELD_BANDS` peak in the middle and fall off at the top:
+
+| band | tiers | yield |
+|---|---|---|
+| common | 1–18 | 8–10 |
+| rare | 30–49 | 11–13 |
+| **epic** | **50–60** | **12–15 (peak)** |
+| mythic | 70–75 | 6–8 |
+| exotic | 80–82 | **2–4** |
+
+That shape is deliberate — top ore is precious per block. Against approved craft
+costs (25 blocks at tier 1, 122 at tier 82) it means a tier-1 craft is ~3 ore
+blocks and a tier-82 craft is ~41. **Left alone pending the owner**, because it
+is already tuned and the HP change above does not disturb it.

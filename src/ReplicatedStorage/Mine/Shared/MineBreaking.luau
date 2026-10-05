@@ -142,7 +142,32 @@ function MineBreaking.reachFor(zoneIndex, maxUnlockedZone)
 	return MineBreaking.ORE_REACH_HOME
 end
 
-MineBreaking.ZONE_STEP = 1
+--[[
+	A ZONE IS WORTH 500 LAYERS. Owner, 2026-10-05: "unlocking zone 3 is like
+	zone 1 3 down (1000), zone 2 1 down (500) ... zone 10 would be 9 down".
+
+	Was 1, which is 50 layers -- derived from one anchor (a Stone pickaxe must
+	be unusable by zone 3) that a step of 1 satisfies but only barely. The cost
+	of that was that zones did almost nothing: a tier-24 tool reached layer 900
+	in zone 1 and 450 in zone 10, so the whole ten-zone ladder bought 450
+	layers and zone choice was close to decorative.
+
+	At 10, zone N is as hard as depth (N-1) x 500 in zone 1 -- the owner's
+	mapping, to within one rung -- and two things line up that previously
+	drifted:
+
+	  * Zone 10 opens at rebirth 8 and needs forge 10 of 16. The tool ladder
+	    and the rebirth ladder now walk together instead of apart.
+	  * Zone 1 bottoms out at t69 Frostfire, not t82. Each zone is its own
+	    stretch rather than secretly being the whole game again.
+
+	The original anchor still holds: Stone is still unusable by zone 3, now by
+	a wide margin rather than by one rung.
+
+	MAX is derived from this, so it moves 209 -> 290 on its own and the top ore
+	still lands exactly on the mine floor by construction.
+]]
+MineBreaking.ZONE_STEP = 10
 MineBreaking.ZONES = 10
 MineBreaking.MAX_LAYER = 10000
 
