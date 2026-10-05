@@ -31,8 +31,35 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.33 — `docs/START-HERE.md` IS THE COLD-START DOOR.** Owner, 2026-10-05:
+*"update the goddamn handoff with a prompt to get it knowing exactly what its
+doing 100% with absolutely no prior knowledge."*
+
+§1 of that file is a prompt the owner pastes verbatim into a fresh agent. It
+forces a read of AGENTS.md, CLAUDE.md, the locked rules, the bible and the
+audit, then makes the agent **state its understanding and stop** before writing
+code. The rest of the file is what that agent reads: what the game is, where the
+code lives, the four traps (the 200-local ceiling, the global-read trap, the
+missing stdlib, stat keys as data), the honest state of the branch, and how to
+work with this owner.
+
+**Two things that file must keep saying, because they are the expensive truths:**
+the branch is 101 commits of *unproven* work — only one change all session was
+ever confirmed in-engine — and the seam prompt is the ship blocker.
+
+The conversation history (`OWNER-MESSAGES.md`, `TRANSCRIPT.md`, the screenshots,
+the raw log) is handed over **as files, not committed** — `CLAUDE.md` forbids
+raw exports in tracked files and the tooling enforces it. §9 of START-HERE tells
+the next agent to ask for them.
+
 **0.32 — THE OWNER DOES NOT KNOW THEIR REPO PATH, AND SHOULD NOT NEED TO.**
 2026-10-04: *"i dont know my path and id rather get a local agent anyways"*.
+
+Addendum, 2026-10-05: the local agent then failed with **"Credit balance too
+low"**. That is an auth-source problem, not a billing one — Claude Code bills API
+credits whenever `ANTHROPIC_API_KEY` is set, because a key outranks a
+subscription login. The fix (clear the key, `/login`) is in HANDOFF §1 and
+START-HERE §8. **Do not tell this owner to add funds.**
 
 `tools/start-local-agent.ps1` finds the repo itself by searching `$HOME` for
 `default.project.json` (it only exists at the repo root), pulls, checks for Node,

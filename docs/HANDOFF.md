@@ -1,4 +1,9 @@
-# HANDOFF — read this first
+# HANDOFF
+
+> **New agent with no context? Read [`START-HERE.md`](START-HERE.md) instead.**
+> It carries the cold-start prompt the owner pastes, what the game is, the
+> traps that cost this project days, and the honest state of the branch.
+> This file is the deeper reference you read second.
 
 Owner, 2026-10-04: *"YOUR A FUCKING CLOUD CLIENT SO ALL YOUR SHIT IS IN A PLACE
 I CANT ACCESS.. I NEED AN EASY WAY TO YOU TO TRANSFER YOURSELF OVER TO A NORMAL
@@ -54,10 +59,25 @@ It finds the repo, pulls, checks for Node, installs Claude Code if missing,
 fixes PATH in the current window, and launches. Right-click → Run with
 PowerShell works too.
 
-**First thing to say to it:** `read docs/HANDOFF.md and continue`
+**First thing to say to it:** paste §1 of [`START-HERE.md`](START-HERE.md).
+That prompt makes it read itself in before it touches anything.
 
 ### If something goes wrong
 
+- **"Credit balance too low · Add funds"** → Claude Code is billing **API
+  credits**, not your subscription, because `ANTHROPIC_API_KEY` is set in the
+  environment and an API key always outranks a subscription login. Adding funds
+  is not the fix unless you actually want pay-as-you-go billing. Clear the key
+  and log in with the Claude account instead:
+
+  ```powershell
+  Remove-Item Env:\ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
+  [Environment]::SetEnvironmentVariable('ANTHROPIC_API_KEY', $null, 'User')
+  claude
+  ```
+
+  Then pick the Claude-account option at the prompt. `/login` switches accounts
+  inside a running session.
 - `npm` not recognised → install Node **LTS** from https://nodejs.org, reopen PowerShell.
 - `claude` not recognised right after install → close and reopen PowerShell; a
   new npm global is not on PATH until the shell restarts.
