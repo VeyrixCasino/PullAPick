@@ -1531,8 +1531,18 @@ local function load(plr)
 		Runs once per profile and stamps oreRosterV so it never runs twice. The
 		merge is additive: a save holding both the old id and its replacement
 		keeps the sum rather than whichever the loop happened to reach last.
+
+		LESS-THAN, NOT NOT-EQUAL. This read `~= 1`, which is only "has not run"
+		while 1 is the newest version. The V2 pass below stamps 2, so every
+		already-migrated profile came back here with oreRosterV == 2, failed
+		`~= 1`, re-ran the whole V1 merge AND stamped itself back DOWN to 1 --
+		which then made the V2 guard fire too. Both passes re-ran on every single
+		load, forever, for every player past the migration.
+
+		A version stamp is monotonic, so the test is "older than this pass", and
+		a profile from a future build is left alone rather than downgraded.
 	]]
-	if p.oreRosterV ~= 1 then
+	if (tonumber(p.oreRosterV) or 0) < 1 then
 		local map = C.ORE_MIGRATION
 		if type(map) == "table" then
 			if type(p.ores) == "table" then
@@ -1588,7 +1598,9 @@ local function load(plr)
 		               what every button in the bench sends
 		  level        clamped to the new cap, with the overspend refunded
 	]]
-	if p.oreRosterV ~= (C.ORE_ROSTER_V or 2) then
+	-- Monotonic, for the same reason as the V1 guard above: `~=` would re-run
+	-- this pass on any profile stamped past it rather than only on older ones.
+	if (tonumber(p.oreRosterV) or 0) < (C.ORE_ROSTER_V or 2) then
 		local map = C.ORE_MIGRATION_V2
 		local moved, packed, retiered, clamped = 0, 0, 0, 0
 		if type(map) == "table" then
@@ -2111,12 +2123,35 @@ local function equippedTool(p)
 			end
 			local finish = (nightmare and "Nightmare") or (shadow and "Shadow")
 				or (shiny and "Shiny") or "Normal"
+			--[[
+				THE ROW MUST CARRY ITS ORE, OR THE BREAKING GATE READS IT AS 1.
+
+				MineBreaking.toolBreakingPower tries three things in order: a
+				stamped `breakingPower`, then `oreId`/`ore` (derive from the ore),
+				then a shop rung off `rung`/`id`. This row had NONE of them --
+				no stamped power, no ore id, no `tier`, and an `id` of
+				"oretool_<uid>" that tonumber cannot parse -- so every forged
+				tool in the game fell through to SHOP_POWER[1], which is 1.
+
+				Breaking power 1 is the weakest pick in the game. With ZONE_STEP
+				at 100 that walls a player a few hundred layers into zone 1 no
+				matter what they forged, so the entire ore ladder was unusable
+				the moment the gate started being enforced. Nothing said so: a
+				blocked swing is silent by design, it just does no damage.
+
+				oreTier and oreId are set here rather than stamped at craft time
+				because the row is synthesised per swing from the stored one --
+				deriving keeps a tool honest if the roster moves, and needs no
+				migration for the tools players already hold.
+			]]
 			return {
 				id = "oretool_" .. tostring(held.uid),
 				uid = held.uid,
 				name = (oreDef and oreDef.name) or "Ore Tool",
 				modelName = (oreDef and oreDef.name) or nil,
 				family = famId,
+				oreTier = tonumber(held.tier) or 1,
+				oreId = (oreDef and oreDef.id) or nil,
 				power = power,
 				level = lvl,
 				oreTool = true,
