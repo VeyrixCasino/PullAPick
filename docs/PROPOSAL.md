@@ -3,15 +3,37 @@
 Owner, 2026-10-05: *"do all things i have to do.. propose numbers, thats it.."*
 
 Every number below is derived from the live modules, with the arithmetic shown.
-**Paste §0 back with the lines you disagree with changed. Anything you leave
-alone gets built as written.**
-
-Three things this pass found that are not numbers, and matter more than any of
-them, are in §H1, §F0 and §P.
 
 ---
 
-# 0. PASTE-BACK BLOCK
+# APPROVED 2026-10-05 — these are decisions, not proposals
+
+The owner pasted §0 back **unchanged**. Every line is signed off and is to be
+built as written. Do not reopen one without the owner saying so; the reasoning
+for each is in the section under it.
+
+**Two lines came back truncated by the paste, not edited.** The `PITY / DROPS`
+header, all of line 26, and line 27's label were lost, leaving an orphaned
+`NONE (your own rule); optional soft-pity OFF` — which is line 27's value,
+intact. Since every other line matched character-for-character, 26 and 27 stand
+as written. Flagged to the owner; correct here if that reading is wrong.
+
+Implementation order, hardest constraint first:
+
+1. **The three code bugs** — 21 (chest coin crash), 14 (`ORE_REACH` unwired),
+   and seam pricing from §H1. Bugs, not balance; no regeneration needed.
+2. **The generated rosters** — 3–8 and 30. `MinePetBoosts` is generated from
+   `roster/pets.txt` + `tiers.txt`, and `MineStats.TYPE_KITS` has to be
+   regenerated first or the 193 dead stat lines come straight back.
+3. **The flat tables** — 1–2 (`MineGear.SHEET`), 29 (gear sets), 9–12, 15–20,
+   23–25, 28.
+4. **New systems** — 26 (pack pity) is the only line that needs state that does
+   not exist yet: a per-player pull counter.
+5. **38** (`_c.luau` delete) last, so nothing is chasing a moving file.
+
+---
+
+# 0. THE APPROVED BLOCK
 
 ```
 BOOSTS

@@ -31,6 +31,21 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.34 — THE NUMBERS ARE SIGNED OFF. `docs/PROPOSAL.md` §0 IS LAW.**
+Owner, 2026-10-05, pasted the 38-line block back unchanged after asking for
+*"all things i have to do.. propose numbers, thats it."*
+
+Every boost ladder, craft constant, gem spread, coin price, pity rule, gear set
+and cleanup item in that block is a DECISION. Do not re-propose one, do not
+"improve" one while implementing it, and do not treat the arithmetic under it as
+an invitation to re-derive. If a number turns out to be wrong in engine, say so
+with the measurement and let the owner change it.
+
+Three of those lines are bugs rather than balance, and they are the ones to do
+first: 21 (chest coin reward crashes on `number × table`), 14 (`ORE_REACH 15`
+is shown in the UI and never read by the gate), and seam pricing computed on a
+different curve than the one players are paid on.
+
 **0.33 — `docs/START-HERE.md` IS THE COLD-START DOOR.** Owner, 2026-10-05:
 *"update the goddamn handoff with a prompt to get it knowing exactly what its
 doing 100% with absolutely no prior knowledge."*

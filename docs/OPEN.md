@@ -9,6 +9,12 @@ the order it matters. Each entry says where the detail lives.
 
 **Read `docs/START-HERE.md` first if you have no context.**
 
+> **2026-10-05 — every open NUMBER is now decided and signed off.**
+> `docs/PROPOSAL.md` §0 is 38 approved lines covering boosts, craft, breaking,
+> gems, coins, pity, sets and cleanup. Those are decisions, not suggestions, and
+> the implementation order is at the top of that file. What remains open below
+> is work, not choices — plus the three code bugs the proposal turned up.
+
 ---
 
 # P0 — the game cannot launch without these
