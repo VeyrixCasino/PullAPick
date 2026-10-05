@@ -51,7 +51,21 @@ local MineHotbar = {}
 	vanishes entirely reads as a bug, and the empty slot is where the tool goes
 	back to.
 ]]
-local SLOT = 68
+--[[
+	SLOT IS SQUARE AND THE BAR IS EXACTLY ITS SLOTS.
+
+	Owner, 2026-10-05: "the block above looks super big and messy and
+	unnessacry, not to mention its a rectangle".
+
+	It was a rectangle because the root was SLOT + 24 wide by SLOT + 20 tall --
+	padding for a wrapper panel that no longer exists. With the wrapper gone the
+	root measures exactly the slots and the gaps between them, so one slot is
+	one square and nothing is padded around it.
+
+	MineClient's UIScale handles device size, so these stay in design pixels.
+]]
+local SLOT = 60
+local GAP = 8
 local MAX_SLOTS = 5
 local TOOL_SLOTS = 1
 local TOOL_SLOTS_VIP = 2
@@ -61,6 +75,31 @@ function MineHotbar.mount(parent, opts)
 	opts = opts or {}
 	local getSnap = opts.getSnap or function() return {} end
 	local onEquip = opts.onEquip or function() end
+
+	--[[
+		THE BASE PICKAXE, and how we know whether it is in your hands.
+
+		A Roblox Tool is "equipped" by living in the Character and "put away" by
+		living in the Backpack -- that IS the state, so it is read rather than
+		tracked. Nothing here mirrors it into a variable that could drift.
+
+		BASE_UID cannot collide with a real tool uid: those are server-generated
+		strings and this one starts with a NUL.
+	]]
+	local Players = game:GetService("Players")
+	local player = Players.LocalPlayer
+	local BASE_UID = "\0base"
+
+	local function baseTool()
+		local ch = player and player.Character
+		local t = ch and ch:FindFirstChildOfClass("Tool")
+		if t then
+			return t, true
+		end
+		local bp = player and player:FindFirstChildOfClass("Backpack")
+		t = bp and bp:FindFirstChildOfClass("Tool")
+		return t, false
+	end
 
 	--[[
 		Roblox's hotbar goes away here rather than in MineClient, so the module
@@ -95,32 +134,33 @@ function MineHotbar.mount(parent, opts)
 		Name = "Hotbar",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -14),
-		Size = UDim2.fromOffset(SLOT + 24, SLOT + 20),
+		Size = UDim2.fromOffset(SLOT, SLOT),
 		BackgroundTransparency = 1,
 		ZIndex = 12,
 	}, parent)
 
-	local strip = UI.new("Frame", {
-		Name = "Strip",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = T.PANEL,
-		BackgroundTransparency = 0.12,
-		BorderSizePixel = 0,
-		ZIndex = 60,
-	}, root)
-	UI.round(strip, T.RADIUS_LG)
-	UI.edge(strip, T.EDGE)
-	UI.lit(strip, 0.06)
+	--[[
+		ONE FRAME PER SLOT, NOT A PANEL CONTAINING A FRAME.
 
+		The first pass wrapped the slots in a Strip panel, so a single slot drew
+		as a rounded panel with a rounded button inside it -- two edges, two
+		radii, 92 x 88, and the owner read it exactly right: "looks super big and
+		messy and unnessacry, not to mention its a rectangle".
+
+		The slots sit straight in the root now. Each one is a SQUARE button with
+		an inner fill, because the inner block is what the owner asked to carry
+		the equipped state: "if you click it to equip it highlights the inner
+		block, and when you go to unequip it it stops highlighting".
+	]]
 	local row = UI.new("Frame", {
 		Name = "Row",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -24, 0, SLOT),
+		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
-		ZIndex = 61,
-	}, strip)
-	UI.flow(row, false, 10)
+		ZIndex = 12,
+	}, root)
+	UI.flow(row, false, GAP)
 
 	local slots = {}
 	for i = 1, MAX_SLOTS do
@@ -128,23 +168,44 @@ function MineHotbar.mount(parent, opts)
 			Name = "Slot" .. i,
 			Text = "",
 			AutoButtonColor = false,
-			BackgroundColor3 = T.CARD,
+			BackgroundColor3 = T.PANEL,
+			BackgroundTransparency = 0.1,
 			BorderSizePixel = 0,
 			Size = UDim2.fromOffset(SLOT, SLOT),
 			LayoutOrder = i,
 			Visible = i == 1,
-			ZIndex = 62,
+			ZIndex = 12,
 		}, row)
 		UI.round(b, T.RADIUS)
 		local edge = UI.edge(b, T.LINE)
-		local img = UI.icon(b, "", 40, UDim2.fromOffset(14, 10))
-		img.ZIndex = 63
-		local key = UI.text(b, tostring(i), 12, T.FAINT, T.FONT_M)
-		key.Position = UDim2.new(0, 0, 1, -16)
-		key.Size = UDim2.new(1, 0, 0, 14)
+
+		-- The inner block. This is what lights up, so the slot keeps its own
+		-- outline and the state lands inside it rather than on the border.
+		local inner = UI.new("Frame", {
+			Name = "Inner",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, -10, 1, -10),
+			BackgroundColor3 = T.CARD,
+			BorderSizePixel = 0,
+			ZIndex = 13,
+		}, b)
+		UI.round(inner, T.RADIUS_SM)
+
+		-- Anchored rather than offset, so the icon stays centred whatever SLOT
+		-- is and however MineClient's UIScale stretches it. Sat at 0.44 to
+		-- leave the bottom strip for the key number.
+		local img = UI.icon(inner, "", math.floor(SLOT * 0.52))
+		img.AnchorPoint = Vector2.new(0.5, 0.5)
+		img.Position = UDim2.fromScale(0.5, 0.44)
+		img.ZIndex = 14
+		local key = UI.text(inner, tostring(i), 11, T.FAINT, T.FONT_M)
+		key.AnchorPoint = Vector2.new(0.5, 1)
+		key.Position = UDim2.new(0.5, 0, 1, -2)
+		key.Size = UDim2.new(1, 0, 0, 12)
 		key.TextXAlignment = Enum.TextXAlignment.Center
-		key.ZIndex = 63
-		slots[i] = { btn = b, edge = edge, img = img, key = key, uid = nil }
+		key.ZIndex = 14
+		slots[i] = { btn = b, edge = edge, inner = inner, img = img, key = key, uid = nil }
 	end
 
 	local function refresh()
@@ -153,10 +214,17 @@ function MineHotbar.mount(parent, opts)
 		--[[
 			WHAT GOES IN SLOT ONE.
 
-			The tool slot shows what you are HOLDING, not the whole rack -- the
-			rack is the bench's job, and a hotbar that lists every tool you own
-			is the Roblox backpack again with different paint. VIP gets a second
-			tool slot; everyone else needs exactly one.
+			YOUR TOOL SITS THERE WHETHER OR NOT IT IS EQUIPPED.
+
+			The first pass only filled the slot with what you were HOLDING, so
+			putting a tool away emptied the bar and left you nothing to click to
+			get it back. Owner, 2026-10-05: "put your tool in there by default,
+			and if you click it to equip it highlights the inner block, and when
+			you go to unequip it it stops highlighting".
+
+			So the slot is a PLACE, not a readout. It shows your best tool, held
+			or not; the highlight is what tells you it is equipped. VIP gets a
+			second slot; everyone else needs exactly one.
 
 			Slots past the tool slots are reserved for consumables and the rest
 			of what lands later. They stay hidden until something fills them,
@@ -166,17 +234,52 @@ function MineHotbar.mount(parent, opts)
 		local toolSlots = isVip and TOOL_SLOTS_VIP or TOOL_SLOTS
 		local tools = {}
 		local all = snap.oreTools or {}
-		-- the held tool first, so it always occupies slot one
+		-- Held first, so the tool you are carrying keeps slot one and does not
+		-- jump along the bar as the rack changes under it.
 		for _, t in ipairs(all) do
 			if held and t.uid == held then
 				table.insert(tools, t)
 			end
 		end
-		if isVip then
-			for _, t in ipairs(all) do
-				if #tools < toolSlots and (not held or t.uid ~= held) then
-					table.insert(tools, t)
-				end
+		-- Then fill the remaining tool slots from the rack, best tier first, so
+		-- an unequipped player still has something to click.
+		local rest = {}
+		for _, t in ipairs(all) do
+			if not held or t.uid ~= held then
+				table.insert(rest, t)
+			end
+		end
+		table.sort(rest, function(a, b)
+			local at, bt = tonumber(a.tier) or 0, tonumber(b.tier) or 0
+			if at ~= bt then
+				return at > bt
+			end
+			return (tonumber(a.level) or 0) > (tonumber(b.level) or 0)
+		end)
+		for _, t in ipairs(rest) do
+			if #tools >= toolSlots then
+				break
+			end
+			table.insert(tools, t)
+		end
+
+		--[[
+			THE BASE PICKAXE COUNTS AS YOUR TOOL.
+
+			Measured in a live session: the slot was empty, because the profile owns
+			no FORGED tool yet and `tools` is built from snap.oreTools. The player
+			was holding a pickaxe the whole time -- the ladder pickaxe the server
+			hands out when no ore tool is equipped -- and the bar showed nothing.
+
+			That is the same bug the owner reported from the other direction, and
+			the same fix: the slot is a PLACE. If you are carrying a pickaxe, the
+			pickaxe is in the bar, forged or not. Every new player starts here, so
+			this is what the hotbar looks like for most of them.
+		]]
+		if #tools == 0 then
+			local base = baseTool()
+			if base then
+				table.insert(tools, { uid = BASE_UID, familyId = "pickaxe", name = base.Name })
 			end
 		end
 
@@ -196,31 +299,55 @@ function MineHotbar.mount(parent, opts)
 				local fam = tostring(t.familyId or "pickaxe")
 				s.img.Image = IMG[fam] or IMG.pickaxe or ""
 				s.img.ImageTransparency = 0
-				local on = (held ~= nil and t.uid == held)
-				-- The equipped slot lights in the theme accent. Roblox's own
-				-- hotbar marks the held slot with a white outline, which is the
-				-- one piece of its chrome worth keeping and the easiest to
-				-- restate in the house style.
-				s.btn.BackgroundColor3 = on and T.CARD_HI or T.CARD
+				--[[
+					THE INNER BLOCK CARRIES THE EQUIPPED STATE.
+
+					Owner: "if you click it to equip it highlights the inner
+					block, and when you go to unequip it it stops highlighting".
+
+					So the fill that changes is the Inner frame, not the slot.
+					The slot's own edge picks up the accent with it -- Roblox's
+					hotbar marks the held slot with a white outline, which is the
+					one piece of its chrome worth keeping and the easiest thing
+					to restate in the house style.
+				]]
+				local on
+				if t.uid == BASE_UID then
+					local _, worn = baseTool()
+					on = worn
+				else
+					on = (held ~= nil and t.uid == held)
+				end
+				s.inner.BackgroundColor3 = on and T.ACCENT_DIM or T.CARD
+				s.inner.BackgroundTransparency = 0
+				s.btn.BackgroundTransparency = 0.1
 				s.edge.Color = on and T.ACCENT or T.LINE
 				s.edge.Thickness = on and 2 or 1
-				s.key.TextColor3 = on and T.ACCENT or T.FAINT
-				local okName, nm = pcall(OreTools.toolName, t)
-				s.btn.Name = okName and tostring(nm) or ("Slot" .. i)
+				s.key.TextColor3 = on and T.TEXT or T.FAINT
+				if t.uid == BASE_UID then
+					s.btn.Name = tostring(t.name or "Pickaxe")
+				else
+					local okName, nm = pcall(OreTools.toolName, t)
+					s.btn.Name = okName and tostring(nm) or ("Slot" .. i)
+				end
 			else
+				-- Every property the filled branch sets is reset here. The first
+				-- pass faded an empty slot's button and never restored it, so a
+				-- slot that had once been empty stayed faded after it filled.
 				s.img.Image = ""
-				s.btn.BackgroundColor3 = T.CARD
-				s.btn.BackgroundTransparency = 0.45
+				s.inner.BackgroundColor3 = T.CARD
+				s.inner.BackgroundTransparency = 0.5
+				s.btn.BackgroundTransparency = 0.35
 				s.edge.Color = T.LINE
 				s.edge.Thickness = 1
 				s.key.TextColor3 = T.FAINT
 			end
 		end
 
-		-- The strip measures itself to the slots in use, so one tool is one
-		-- slot wide rather than one tool and four grey holes.
+		-- The bar measures itself to the slots in use, so one tool is one
+		-- square rather than one tool and four grey holes.
 		used = math.clamp(used, 1, MAX_SLOTS)
-		root.Size = UDim2.fromOffset(SLOT * used + 10 * (used - 1) + 24, SLOT + 20)
+		root.Size = UDim2.fromOffset(SLOT * used + GAP * (used - 1), SLOT)
 	end
 
 	for i = 1, MAX_SLOTS do
@@ -229,11 +356,56 @@ function MineHotbar.mount(parent, opts)
 			if not s.uid then
 				return
 			end
+			if s.uid == BASE_UID then
+				-- The base pickaxe is a plain Tool, so equipping it is the
+				-- Humanoid's job rather than the server's. EquipTool and
+				-- UnequipTools both replicate from the owning client.
+				local tool, worn = baseTool()
+				local ch = player and player.Character
+				local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+				if not (tool and hum) then
+					return
+				end
+				if worn then
+					hum:UnequipTools()
+				else
+					hum:EquipTool(tool)
+				end
+				task.defer(refresh)
+				return
+			end
 			local snap = getSnap() or {}
 			-- Clicking what you already hold puts it away. equipOreTool reads an
 			-- empty uid as unequip, so this needs no second verb.
 			onEquip(snap.oreToolEquipped == s.uid and "" or s.uid)
 		end)
+	end
+
+	--[[
+		The highlight follows the real tool, and the real tool moves without a
+		snapshot: respawning, dying, or the server handing the ladder pickaxe back
+		after an ore tool is put away. Watching the Character for Tool children is
+		watching the state itself.
+	]]
+	local function watchCharacter(ch)
+		if not ch then
+			return
+		end
+		ch.ChildAdded:Connect(function(c)
+			if c:IsA("Tool") then
+				task.defer(refresh)
+			end
+		end)
+		ch.ChildRemoved:Connect(function(c)
+			if c:IsA("Tool") then
+				task.defer(refresh)
+			end
+		end)
+		task.defer(refresh)
+	end
+	if player then
+		watchCharacter(player.Character)
+		player.CharacterAdded:Connect(watchCharacter)
 	end
 
 	refresh()

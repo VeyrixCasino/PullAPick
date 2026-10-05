@@ -4028,7 +4028,16 @@ local function keyOf(z, x, y, zz)
 	return string.format("%s:%d:%d:%d", z, x, y, zz)
 end
 
-local function rollKind(zone, layer, b, rng)
+--[[
+	x and z joined the signature because ore is a VEIN now, and a vein is a
+	function of where the block is. See MineConfig.veinOreAt: there is no moment
+	at which a vein could be grown outward into its neighbours, because the
+	generator spawns one key at a time in dig order and a broken block comes back
+	through here minutes later. Every block works out its own membership instead,
+	and neighbours agree because they are asking the same question of the same
+	lattice.
+]]
+local function rollKind(zone, x, layer, z, b, rng)
 	-- There is no ore. What you hope to see in the wall is a chest, and which
 	-- chest it is gets decided here so the block can look like that chest.
 	local strata = C.strataFor(zone.id)
@@ -4060,7 +4069,17 @@ local function rollKind(zone, layer, b, rng)
 		one loot table carried the whole game. Each ore states its own 1-in-N
 		and MineConfig.rollOre sums the pool available at this depth.
 	]]
-	if C.rollOre and C.rollOre(zone.id, layer, rng, b and b.rareOre) then
+	--[[
+		Veins, not noise. veinOreAt spends exactly the budget rollOre used to --
+		ORE_CHANCE per block, per ore, at every depth -- but spends it in clumps,
+		so the expected ore count is unchanged and only its arrangement differs.
+		It takes no rng for the same reason it takes x and z.
+	]]
+	if C.veinOreAt then
+		if C.veinOreAt(zone.id, x, layer, z, b and b.rareOre) then
+			return "ore"
+		end
+	elseif C.rollOre and C.rollOre(zone.id, layer, rng, b and b.rareOre) then
 		return "ore"
 	end
 	return strata.rock
@@ -4083,9 +4102,26 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	-- use. oreIdentity picks WHICH ore without re-rolling whether it is one --
 	-- rollKind already decided that.
 	local oreDef
-	if kind == "ore" and C.oreIdentity then
-		-- The finder shifts WHICH ore, not how much; see MineConfig.oreFindShift.
-		oreDef = C.oreIdentity(zone.id, y, Random.new(), b and b.rareOre)
+	if kind == "ore" then
+		--[[
+			THE IDENTITY COMES FROM THE VEIN, NOT FROM A SECOND ROLL.
+
+			This used to re-roll with oreIdentity(Random.new()), which is why ore
+			could never form a seam even by accident: rollKind said "ore here" and
+			then this picked a DIFFERENT ore for every block, so four touching ore
+			blocks were four unrelated minerals.
+
+			veinOreAt is a pure function of position, so asking it again here
+			returns the same ore rollKind already matched -- the vein's ore, for
+			every block in it. The finder still shifts WHICH ore, because it is
+			part of the lattice key; see MineConfig.oreFindShift.
+		]]
+		if C.veinOreAt then
+			oreDef = C.veinOreAt(zone.id, x, y, z, b and b.rareOre)
+		end
+		if not oreDef and C.oreIdentity then
+			oreDef = C.oreIdentity(zone.id, y, Random.new(), b and b.rareOre)
+		end
 	end
 	local luckyId
 	if kind == "lucky_block" then
@@ -4596,7 +4632,7 @@ local function ensureZone(zone, throughLayer)
 			for x = 0, C.GRID - 1 do
 				for z = 0, C.GRID - 1 do
 					if not voxels[zone.id][keyOf(zone.id, x, y, z)] then
-						spawnVoxel(zone, x, y, z, rollKind(zone, y, { luck = 1, rareOre = 1 }, rng), { rareOre = 1 })
+						spawnVoxel(zone, x, y, z, rollKind(zone, x, y, z, { luck = 1, rareOre = 1 }, rng), { rareOre = 1 })
 						made += 1
 						if made % 400 == 0 then task.wait() end
 					end
@@ -5801,7 +5837,7 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			local live = profiles[plr.UserId]
 			local key = keyOf(zone.id, cx, layer, cz)
 			if voxels[zone.id] then voxels[zone.id][key] = nil end
-			spawnVoxel(zone, cx, layer, cz, rollKind(zone, layer, live and boosts(live) or { luck = 1, rareOre = 1 }, Random.new()), live and boosts(live) or { rareOre = 1 })
+			spawnVoxel(zone, cx, layer, cz, rollKind(zone, cx, layer, cz, live and boosts(live) or { luck = 1, rareOre = 1 }, Random.new()), live and boosts(live) or { rareOre = 1 })
 		end
 	end)
 end

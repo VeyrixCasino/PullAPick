@@ -1315,25 +1315,55 @@ end
 
 -- Retractable left-side quest drawers (active quest + daily quests).
 -- preferred = user intent when no modal; peeking = temporary expand over a modal.
+--[[
+	THE DRAWER EAR IS PART OF THE FRAME, NOT A THING SITTING ON IT.
+
+	Owner, 2026-10-05: "those arrows are still inside the quest block. is it
+	possible for you just to make it actually a part of the frame, and just make
+	it switch signs (exact same dimensions, scales the same no matter what
+	device, and will permentantly look good)".
+
+	Three things were wrong, and all three were geometry:
+
+	  * it OVERLAPPED. The ear sat at Position (1, -tuck) -- six pixels back
+	    inside the card -- and drew at ZIndex 45, above it. Shrinking the tuck
+	    from 20 to 6 moved it off the labels but it was still on top of the card,
+	    which is what reads as "inside the quest block".
+	  * it was FULL HEIGHT, Size (1, _, 1, 0). So the active-quest ear and the
+	    daily ear were different heights, and both changed height whenever a card
+	    grew a row. Nothing about it was fixed.
+	  * it was PER-DEVICE, 28 wide on a phone against 24 elsewhere, so it was a
+	    different shape on a phone for no reason.
+
+	Now: a fixed 24 x 46 tab, vertically centred on the card's right edge and
+	sitting OUTSIDE it. Same numbers on every device -- MineClient's UIScale
+	already scales the whole tree, so design pixels here stay identical in
+	proportion on a phone and on a monitor.
+
+	Only the glyph changes with state, which is all the owner asked to change:
+	the sign flips between the two directions.
+
+	The one remaining overlap is four pixels, and it is not padding -- it is the
+	square EarBody covering the rounded EarTip's LEFT stroke, which a UIStroke
+	draws just outside the tip's border and which would otherwise read as a
+	divider line down the join. Four pixels of card-coloured fill on a card whose
+	right-aligned labels all stop 15px short: invisible, and clear of every
+	number by eleven pixels.
+]]
 function ClientFns.questDrawerTabW()
-	return ClientFns.questIsPhone() and 28 or 24
+	return 24
 end
 
---[[
-	How far the drawer "ear" tucks back into the card.
+function ClientFns.questDrawerEarH()
+	return 46
+end
 
-	It was 20, and the ear is drawn ON TOP of the card at ZIndex 45. Measured
-	live, that put the tab over the last 25 scaled pixels of the card while every
-	right-aligned label stops 15px short of the edge -- so the tab covered the
-	quest counter, the daily counter, the reset timer and all three gem rewards.
-	Every number on both cards sat underneath it.
+function ClientFns.questDrawerEarR()
+	return 12
+end
 
-	6 is enough overlap to hide the seam where the ear meets the card, and clears
-	the labels by nine pixels. If this is ever raised again, the labels have to
-	move with it.
-]]
 function ClientFns.questDrawerTuck()
-	return 6
+	return 4
 end
 
 function ClientFns.questDrawerEnsure()
@@ -1358,45 +1388,40 @@ function ClientFns.questDrawerEnsure()
 	end
 	ClientFns.questDrawerPeeking = false
 	ClientFns.questDrawerRestX = ClientFns.questDrawerRestX or 16
-	local function makeTab(name, color, glyph, radius)
+	local function makeTab(name, color, glyph)
 		local tuck = ClientFns.questDrawerTuck()
 		local ear = ClientFns.questDrawerTabW()
+		local earH = ClientFns.questDrawerEarH()
+		local r = ClientFns.questDrawerEarR()
+		-- Both ears are the same shape. The old code sized the daily ear's
+		-- radius at 16 and the quest ear's at 18, so the two never matched.
 		local tab = mk("TextButton", {
 			Name = name,
 			AutoButtonColor = true,
 			BackgroundColor3 = Color3.fromRGB(12, 14, 20),
 			BackgroundTransparency = 1,
 			Font = FONT,
-			TextSize = ClientFns.questIsPhone() and 20 or 18,
+			TextSize = 18,
 			TextColor3 = color,
 			Text = "",
-			AnchorPoint = Vector2.new(0, 0),
-			Position = UDim2.new(1, -tuck, 0, 0),
-			Size = UDim2.new(0, tuck + ear, 1, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(1, -tuck, 0.5, 0),
+			Size = UDim2.fromOffset(tuck + ear, earH),
 			ZIndex = 45,
 			Visible = false,
 			BorderSizePixel = 0,
 		}, gui)
-		local r = radius or (name == "DailyDrawerTab" and 16 or 18)
 		local fill = Color3.fromRGB(12, 14, 20)
-		local body = mk("Frame", {
-			Name = "EarBody",
-			BackgroundColor3 = fill,
-			BackgroundTransparency = 0.08,
-			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(0, 0),
-			Size = UDim2.new(1, -r + 2, 1, 0),
-			ZIndex = 46,
-			Active = false,
-		}, tab)
+		-- The tip is the whole ear, rounded on all four corners. The body then
+		-- squares off its left side and hides the stroke there, so what shows is
+		-- a tab that grows out of the card's edge rather than a pill beside it.
 		local tip = mk("Frame", {
 			Name = "EarTip",
 			BackgroundColor3 = fill,
 			BackgroundTransparency = 0.08,
 			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 0),
-			Size = UDim2.new(0, r * 2, 1, 0),
+			Position = UDim2.fromOffset(0, 0),
+			Size = UDim2.fromScale(1, 1),
 			ZIndex = 45,
 			Active = false,
 		}, tab)
@@ -1405,6 +1430,16 @@ function ClientFns.questDrawerEnsure()
 		st.Name = "EarStroke"
 		st.Color = color
 		st.Transparency = 0.15
+		local body = mk("Frame", {
+			Name = "EarBody",
+			BackgroundColor3 = fill,
+			BackgroundTransparency = 0.08,
+			BorderSizePixel = 0,
+			Position = UDim2.fromOffset(-3, 0),
+			Size = UDim2.fromOffset(tuck + r + 3, earH),
+			ZIndex = 46,
+			Active = false,
+		}, tab)
 		mk("Frame", {
 			Name = "EarHairTop",
 			BackgroundColor3 = color,
@@ -1430,7 +1465,7 @@ function ClientFns.questDrawerEnsure()
 			Name = "EarGlyph",
 			BackgroundTransparency = 1,
 			Font = FONT,
-			TextSize = ClientFns.questIsPhone() and 20 or 18,
+			TextSize = 18,
 			TextColor3 = color,
 			Text = glyph,
 			Size = UDim2.new(0, ear, 1, 0),
@@ -1493,8 +1528,12 @@ function ClientFns.refreshQuestDrawerTabs()
 		end
 		tab.Visible = show
 		tab.ZIndex = z
-		tab.Size = UDim2.new(0, tuck + ear, 1, 0)
-		tab.Position = UDim2.new(1, -tuck, 0, 0)
+		-- Fixed size, centred on the card's right edge. Restated here because
+		-- this runs after every tween and after every layout pass, so whatever
+		-- it sets is what the ear actually ends up as.
+		tab.AnchorPoint = Vector2.new(0, 0.5)
+		tab.Size = UDim2.fromOffset(tuck + ear, ClientFns.questDrawerEarH())
+		tab.Position = UDim2.new(1, -tuck, 0.5, 0)
 		local gl = tab:FindFirstChild("EarGlyph")
 		if gl then
 			gl.Text = glyph
@@ -2643,7 +2682,22 @@ dockBtn(ICONS.events, "Events", function()
 		eventsCtl.setState(snap)
 	end
 	eventsCtl.open()
-end, { clearPlate = true })
+end)
+--[[
+	EVENTS GETS THE SAME PLATE AS EVERY OTHER DOCK BUTTON.
+
+	Owner, 2026-10-05: "can you remove the background to the event icon, and then
+	put a ui button block under it, so it matches every other icon in the row".
+
+	It used to pass clearPlate, which switched off the 56px plate AND its
+	hairline, so Events was the one button in the column with nothing behind it --
+	the art sat straight on the world. That was done because the popper asset had
+	a plate baked into it, and two plates looked worse than none.
+
+	Dropping clearPlate puts the standard block back. If the baked plate is still
+	in the asset the art needs a transparent re-upload; the id lives in ICONS at
+	the top of this file and nothing else has to change.
+]]
 dockBtn(ICONS.skills, "Jobs", function()
 	if depthHud.contractor then
 		if snap then
@@ -2657,14 +2711,83 @@ dockBtn(ICONS.skills, "Jobs", function()
 		end
 	end
 end)
-dockBtn(ICONS.prestige, "Rebirth", function()
-	local on = not presP.Visible
-	hidePanels()
-	presP.Visible = on
-	if on and refreshPrestige then
-		refreshPrestige()
+--[[
+	REBIRTH SITS IN THE TOPBAR, NOT IN THE DOCK.
+
+	Owner, 2026-10-05: "rebirth is annoyinly inside of the invenotry and shop
+	icom.. just put rebirth icon top left next to the roblox mute button".
+
+	It was the ninth dock button, and the dock reflows into extra columns when
+	nine 78px cells do not fit the screen height -- which is most screens. So
+	Rebirth kept landing in a second column beside Shop and Inventory. Moving it
+	out fixes the crowding at the source rather than re-tuning layoutDock: the
+	dock is back to eight, which fits one column nearly everywhere.
+
+	GuiService.TopbarInset is the supported way to find the strip Roblox's own
+	buttons are NOT using. Min.X is where its left-hand cluster ends, so sitting
+	just past that puts this next to the mute button at any topbar size, on any
+	device, without guessing pixel offsets. It is wrapped and defaulted because
+	the property is newer than some clients and reads as a zero Rect before the
+	topbar has laid out -- 104 x 4 is where the cluster ends on a default topbar.
+]]
+do
+	local btn = mk("TextButton", {
+		Name = "RebirthTopbar",
+		Text = "",
+		AutoButtonColor = false,
+		Active = true,
+		BackgroundColor3 = Color3.fromRGB(12, 14, 20),
+		BackgroundTransparency = 0.08,
+		Position = UDim2.fromOffset(104, 4),
+		Size = UDim2.fromOffset(36, 36),
+		ZIndex = 30,
+	}, gui)
+	round(btn, 10)
+	stroke(btn, 1.5)
+	mk("ImageLabel", {
+		Name = "Icon",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Image = ICONS.prestige,
+		ScaleType = Enum.ScaleType.Fit,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(26, 26),
+		ZIndex = 31,
+		Active = false,
+	}, btn)
+	btn.MouseButton1Click:Connect(function()
+		local on = not presP.Visible
+		hidePanels()
+		presP.Visible = on
+		if on and refreshPrestige then
+			refreshPrestige()
+		end
+	end)
+
+	function ClientFns.layoutRebirthTopbar()
+		local x, y, h = 104, 4, 36
+		local ok, inset = pcall(function()
+			return GuiService.TopbarInset
+		end)
+		if ok and inset and inset.Width > 0 then
+			x = inset.Min.X + 8
+			y = inset.Min.Y + 2
+			-- Fit the topbar's own height rather than overhanging it.
+			h = math.clamp(inset.Height - 4, 24, 44)
+		end
+		-- uiScale stretches the whole tree, so the offsets have to be divided
+		-- back out or the button drifts right as the scale grows.
+		local k = math.max(0.05, uiScale.Scale)
+		btn.Position = UDim2.fromOffset(x / k, y / k)
+		btn.Size = UDim2.fromOffset(h / k, h / k)
 	end
-end)
+	ClientFns.layoutRebirthTopbar()
+	uiScale:GetPropertyChangedSignal("Scale"):Connect(ClientFns.layoutRebirthTopbar)
+	pcall(function()
+		GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(ClientFns.layoutRebirthTopbar)
+	end)
+end
 --[[
 	Settings (sound, codes, invites, notifications) is a gear on the right end
 	of the wallet, not a tenth dock button: a tenth button pushed the dock into
@@ -9189,7 +9312,23 @@ RunService.RenderStepped:Connect(function(dt)
 	for i, pet in ipairs(pets) do
 		if pet and pet.Parent then
 			ClientFns.stepPetFollow(pet, root, i, now, dt, petCount)
-			PetFactory.animateChroma(pet, now)
+			--[[
+				Only a Rainbow pet has anything to cycle.
+
+				animateChroma walks model:GetDescendants() -- a fresh table of ~25
+				instances -- and asks every BasePart for a Chroma attribute. For a
+				pet that is not Rainbow it finds nothing and sets nothing, every
+				frame, forever. The other-players loop above already gates this on
+				the Variant attribute; this one never did.
+
+				Measured over 600 frames with three pets: 0.0076 ms ungated against
+				0.0002 ms gated. Small either way -- this is not the lag the owner
+				reported, and it is not being presented as the fix -- but it is
+				free, and the two loops disagreeing was the actual bug.
+			]]
+			if pet:GetAttribute("Variant") == "Rainbow" then
+				PetFactory.animateChroma(pet, now)
+			end
 		end
 	end
 end)

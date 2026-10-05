@@ -3525,12 +3525,275 @@ end
 
 -- Is this block ore, and which. A flat 1 in 200 everywhere; the curve only
 -- decides WHICH ore, never how much ore there is.
+--
+-- Superseded in the mine by MineConfig.veinOreAt, which spends the same budget
+-- in clusters instead of singles. Kept because the balance sim and the verify
+-- harnesses measure the DISTRIBUTION, which veins do not change.
 function MineConfig.rollOre(zoneId, layer, rng, rareOre)
 	local roll = (rng and rng.NextNumber) and rng:NextNumber() or math.random()
 	if roll >= MineConfig.ORE_CHANCE then
 		return nil
 	end
 	return MineConfig.oreIdentity(zoneId, layer, rng, rareOre)
+end
+
+-- ------------------------------------------------------------------ veins --
+--[[
+	ORE COMES IN VEINS.
+
+	Owner, 2026-10-05: "can you add veins of ores (8 MAXIUM OF ALL ORES[2-3 ores
+	TOTAL will group in 6-8s], but most will group in 3-4. The vein count should
+	a) show to its rarity [something that spawns in 6-8s should have much less
+	veins spawning, than something that groups in 1s or 2s])".
+
+	WHY THERE WERE NO VEINS. rollOre ran per block against its own fresh Random,
+	and spawnVoxel then re-rolled the identity from ANOTHER fresh Random. Two
+	blocks touching each other shared nothing, so ore was uniform noise: a
+	hundred lone cubes rather than a seam worth following.
+
+	WHY THIS IS A FIELD AND NOT A FLOOD FILL. Blocks are spawned lazily, one key
+	at a time, in whatever order players dig, and a broken block respawns through
+	the same path minutes later (see REGEN_SEC). There is no moment when a vein
+	could be "grown" into its neighbours, because the neighbours may not exist
+	yet and the grower would not be there when they do. So a vein is a pure
+	function of position: every block works out on its own whether it is in one,
+	and two neighbours necessarily agree because they are asking the same
+	question of the same lattice. Regen agrees with generation for free.
+
+	THE DENSITY IS UNCHANGED, which is the part the owner asked for with "fuck
+	with ore spawn rates to account for this". A cell hosts a vein of ore o with
+	probability ORE_CHANCE * CELL^3 * share_o / size_o. Multiply that by the
+	size_o blocks the vein contains and the size cancels: expected ore per block
+	is still ORE_CHANCE * share_o, for every ore, at every depth. So the ladder,
+	the rarity floor and every tuned number downstream are untouched -- the same
+	ore is simply delivered in lumps. ORE_CHANCE itself is NOT edited.
+
+	THE COUNT FALLS OUT OF THE SAME LINE. Veins per unit volume carries 1/size_o,
+	so an ore that comes in sixes has a quarter the veins of one that comes in
+	ones and a half of one that comes in threes. That is requirement (a), and it
+	is arithmetic rather than a second table that could drift out of step.
+]]
+MineConfig.VEIN_CELL = 4
+MineConfig.VEIN_BIG_TIERS = 3
+MineConfig.VEIN_SOLO_FRAC = 0.18
+
+--[[
+	THE SHAPE, AND THE CEILING.
+
+	Owner: "8 MAXIUM OF ALL ORES". A vein is the first N offsets of a 2x2x2 cube,
+	so eight is the ceiling by construction rather than by a clamp someone can
+	edit around. The order fills the bottom layer before starting the top, so the
+	sizes read as: 1 a single, 2 a pair, 3 an L, 4 a flat plate, 6 a plate and a
+	pair above it, 8 the full cube.
+]]
+local VEIN_ORDER = {
+	{ 0, 0, 0 }, { 1, 0, 0 }, { 0, 0, 1 }, { 1, 0, 1 },
+	{ 0, 1, 0 }, { 1, 1, 0 }, { 0, 1, 1 }, { 1, 1, 1 },
+}
+MineConfig.VEIN_MAX = #VEIN_ORDER
+
+--[[
+	A 32-BIT MULTIPLY THAT IS ACTUALLY EXACT.
+
+	bit32 has no multiply, and the obvious `h * 0x85EBCA6B` is wrong rather than
+	slow: Luau numbers are doubles, so a product needing 56 bits of mantissa gets
+	53 and the low bits are silently garbage. Murmur's whole avalanche lives in
+	those low bits.
+
+	Splitting both operands at 16 bits fixes it exactly. a*b is
+	ah*bh*2^32 + (ah*bl + al*bh)*2^16 + al*bl; the first term vanishes mod 2^32,
+	al*bl is under 2^32, and ah*bl + al*bh is under 2^33 -- every intermediate
+	inside the 2^53 doubles hold exactly. mul32(0xFFFFFFFF, 0xFFFFFFFF) == 1,
+	which is the one-line proof that the wraparound is right.
+]]
+local function mul32(a, b)
+	local ah, al = bit32.rshift(a, 16), bit32.band(a, 0xFFFF)
+	local bh, bl = bit32.rshift(b, 16), bit32.band(b, 0xFFFF)
+	local mid = bit32.band(ah * bl + al * bh, 0xFFFF) * 65536
+	return bit32.band(al * bl + mid, 0xFFFFFFFF)
+end
+
+-- murmur3's body round and its finalizer, verbatim. Both are needed: the body
+-- folds a coordinate in, the finalizer is what makes one changed bit change half
+-- the output.
+local function veinMix(h, v)
+	local k = mul32(bit32.band(v, 0xFFFFFFFF), 0xCC9E2D51)
+	k = mul32(bit32.lrotate(k, 15), 0x1B873593)
+	h = bit32.lrotate(bit32.bxor(h, k), 13)
+	return bit32.band(mul32(h, 5) + 0xE6546B64, 0xFFFFFFFF)
+end
+
+local function veinFinal(h)
+	h = mul32(bit32.bxor(h, bit32.rshift(h, 16)), 0x85EBCA6B)
+	h = mul32(bit32.bxor(h, bit32.rshift(h, 13)), 0xC2B2AE35)
+	return bit32.bxor(h, bit32.rshift(h, 16))
+end
+
+--[[
+	SIX INDEPENDENT NUMBERS OUT OF ONE CELL HASH, and independence is the whole
+	job.
+
+	veinOreAt derives the host roll, the ore pick, the size jitter and three
+	anchor axes from one cell hash. If those streams correlate, the game breaks in
+	a way that still looks statistically fine at a glance, which is exactly what
+	the first two attempts did.
+
+	Attempt one was `veinMix(h, salt)` over salts 1..6 -- inputs differing in two
+	low bits, through one weak round. Attempt two added a second round and
+	full-width salts. tools/verify/veins.js measured both:
+
+	  * a cell hosts only when u1 < host (at most ~0.09), and u3 tracked u1, so
+	    floor(u3 * 3) was always 0. EVERY big vein was exactly 6 blocks and every
+	    mid vein exactly 3; sizes 4, 7 and 8 never occurred in 1.15M blocks.
+	  * u2 tracked u1 too, so the weighted ore walk always landed in the same part
+	    of the table. Attempt one gave the three commonest ores 57% of all ore
+	    against their 21%; attempt two gave them 0%.
+
+	Both passed a marginal uniformity test -- each stream on its own was a flat
+	10% per decile. Independence is the property that matters and it has to be
+	measured jointly: of the cells that host, roughly half must have u3 above a
+	half. Attempt two scored 10 in 1565. This scores 49.3%.
+
+	Distinct full-width salts through murmur's body AND its finalizer.
+]]
+local VEIN_SALT = { 0x85EBCA6B, 0xC2B2AE35, 0x27D4EB2F, 0x165667B1, 0x9E3779B1, 0x7F4A7C15 }
+
+local function veinUnit(h, salt)
+	return veinFinal(veinMix(h, VEIN_SALT[salt] or 0x9E3779B1)) / 4294967296
+end
+
+local veinZoneSeed = {}
+local function zoneSeed(zoneId)
+	local s = veinZoneSeed[zoneId]
+	if s then
+		return s
+	end
+	s = 0x811C9DC5
+	local str = tostring(zoneId)
+	for i = 1, #str do
+		s = veinMix(s, string.byte(str, i))
+	end
+	veinZoneSeed[zoneId] = s
+	return s
+end
+
+--[[
+	How many blocks this ore comes in.
+
+	Owner: "2-3 ores TOTAL will group in 6-8s... but most will group in 3-4".
+
+	The three biggest veins go to the three commonest ores, which is both what
+	the owner asked for and how rock actually behaves -- stone, clay and
+	limestone are bedding, not finds. The rarest fifth comes in ones and twos, so
+	an Exotic stays a single gleam in the wall and never a windfall. Everything
+	between, which is most of the roster, is the threes and fours.
+]]
+function MineConfig.veinSizeFor(tier, jitter)
+	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
+	local t = math.clamp(tonumber(tier) or 1, 1, n)
+	local u = jitter or 0
+	if t <= (MineConfig.VEIN_BIG_TIERS or 3) then
+		return 6 + math.floor(u * 3)
+	end
+	if t > n * (1 - (MineConfig.VEIN_SOLO_FRAC or 0.18)) then
+		return 1 + math.floor(u * 2)
+	end
+	return 3 + math.floor(u * 2)
+end
+
+-- The mean of the band above, which is what the density correction has to
+-- divide by. Stated as its own function so the two cannot drift apart.
+function MineConfig.veinSizeMean(tier)
+	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
+	local t = math.clamp(tonumber(tier) or 1, 1, n)
+	if t <= (MineConfig.VEIN_BIG_TIERS or 3) then
+		return 7
+	end
+	if t > n * (1 - (MineConfig.VEIN_SOLO_FRAC or 0.18)) then
+		return 1.5
+	end
+	return 3.5
+end
+
+--[[
+	Per-ore vein frequency for this spot, cached exactly like oreWeights.
+
+	q_i is share_i / meanSize_i -- how often a vein of ore i starts, rather than
+	how often ore i appears. Q is the total, so ORE_CHANCE * CELL^3 * Q is the
+	chance that a given cell hosts anything at all.
+]]
+local veinWeightCache = {}
+function MineConfig.veinWeights(zoneId, layer, rareOre)
+	local sec = Depth.sectionFor and Depth.sectionFor(layer)
+	local bucket = math.floor(MineConfig.oreFindShift(rareOre) * 20 + 0.5)
+	local key = tostring(zoneId) .. "|" .. tostring((sec and sec.id) or math.floor(layer / 40))
+		.. "|" .. tostring(bucket)
+	local hit = veinWeightCache[key]
+	if hit then
+		return hit
+	end
+	local row = MineConfig.oreWeights(zoneId, layer, rareOre)
+	local list = MineConfig.ORES
+	local q, Q = table.create(#list), 0
+	for i = 1, #list do
+		local share = (row.tot > 0) and (row.w[i] / row.tot) or 0
+		local v = share / MineConfig.veinSizeMean(i)
+		q[i] = v
+		Q += v
+	end
+	local cell = MineConfig.VEIN_CELL or 4
+	local out = { q = q, Q = Q, host = math.min(1, MineConfig.ORE_CHANCE * cell * cell * cell * Q) }
+	veinWeightCache[key] = out
+	return out
+end
+
+--[[
+	Is this exact block ore, and which one.
+
+	Deterministic in (zone, x, y, z): no rng argument, by design. Two neighbours
+	asking about the same cell get the same answer, and a block that regenerates
+	an hour later gets the answer it had before.
+
+	The anchor is clamped to the cell's lower corner so the 2x2x2 shape cannot
+	leave the cell -- a vein that straddled two cells would be two veins, both
+	the wrong size, and the density correction would be wrong with it.
+]]
+function MineConfig.veinOreAt(zoneId, x, y, z, rareOre)
+	local cell = MineConfig.VEIN_CELL or 4
+	local cx, cy, cz = math.floor(x / cell), math.floor(y / cell), math.floor(z / cell)
+	local h = veinMix(veinMix(veinMix(veinMix(zoneSeed(zoneId), cx), cy), cz),
+		math.floor(MineConfig.oreFindShift(rareOre) * 20 + 0.5))
+
+	local row = MineConfig.veinWeights(zoneId, y, rareOre)
+	if row.Q <= 0 or veinUnit(h, 1) >= row.host then
+		return nil
+	end
+
+	-- Which ore the vein is. Same weighted walk as oreIdentity, over q.
+	local pick = veinUnit(h, 2) * row.Q
+	local list = MineConfig.ORES
+	local ore, idx = list[#list], #list
+	for i = 1, #list do
+		pick -= row.q[i]
+		if pick <= 0 then
+			ore, idx = list[i], i
+			break
+		end
+	end
+
+	local size = math.clamp(MineConfig.veinSizeFor(idx, veinUnit(h, 3)), 1, #VEIN_ORDER)
+	local span = math.max(1, cell - 1)
+	local ax = cx * cell + math.floor(veinUnit(h, 4) * span)
+	local ay = cy * cell + math.floor(veinUnit(h, 5) * span)
+	local az = cz * cell + math.floor(veinUnit(h, 6) * span)
+
+	for i = 1, size do
+		local o = VEIN_ORDER[i]
+		if x == ax + o[1] and y == ay + o[2] and z == az + o[3] then
+			return ore
+		end
+	end
+	return nil
 end
 
 -- Kept for callers that want the roster; ore is no longer filtered by zone.
