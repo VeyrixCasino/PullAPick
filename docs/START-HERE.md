@@ -31,10 +31,14 @@ Before you write a single line of code, do all of this, in this order:
    (screenshots I pasted), session-raw.jsonl.gz (the unprocessed log).
    If that folder is missing, STOP and ask me for it before continuing.
 6. Read docs/OPEN.md -- every open task in one place, prioritised.
-7. Run: bash tools/verify/syntax.sh ; node tools/verify/check.js
-   Confirm the suite passes before you change anything, so you know any
-   later failure is yours. tools/verify/trap.js fails on clean main --
-   that one is pre-existing and is not your fault.
+7. Run: bash tools/verify/syntax.sh
+   then:  bash tools/verify/suite.sh
+   Confirm it before you change anything, so any later failure is yours.
+   Run syntax.sh FIRST and never skip it: 11 of the 23 checks shell out to
+   the luau binary it fetches, and without it they print "skipping" and
+   exit 0. suite.sh exists to catch exactly that -- it reports DID NOT RUN
+   separately from pass and fails the run. trap.js fails on clean main;
+   that one is pre-existing and is listed as a known failure.
 
 Then tell me, in plain language and before doing any work:
   - what you understand the game to be
@@ -227,12 +231,30 @@ Learned the hard way over about a week. None of this is optional.
 | 8 | `docs/ROADMAP.md` | the 1-min to 96-hour progression plan |
 | 9 | `docs/BALANCE-PROPOSAL.md`, `docs/SKILL-TREE.md` | the numbers |
 
-Then run the suite:
+Then run the suite, in this order:
 
 ```
-bash tools/verify/syntax.sh
-node tools/verify/check.js
+bash tools/verify/syntax.sh     # fetches the luau binary -- do not skip
+bash tools/verify/suite.sh      # runs all 23 checks, PASS / FAIL / DID NOT RUN
 ```
+
+**4.6 — a skip is not a pass, and the suite used to say it was.** Eleven of the
+twenty-three checks shell out to the luau binary that `syntax.sh` fetches into
+the gitignored `.luau-bin/`. When that binary is missing they print
+`luau not present — skipping` and **exit 0**. There was no runner, so checks
+were run by hand and eleven silent greens looked exactly like eleven real ones.
+
+Measured 2026-10-05 on this branch, binary removed: **10 passed, 11 did not
+run** — and the old way of running them reported that as a clean suite.
+`suite.sh` now counts DID NOT RUN separately and exits non-zero for it.
+
+The related worry — that a regex matching nothing leaves a check asserting over
+an empty slice and passing — is real in principle but was **not** what was
+happening here. The checks that parse rosters (`charms`, `orepacks`,
+`build-stamp`) do floor their row counts and fail loudly on zero. The ones to
+watch are negative assertions of the form `check(x.length === 0)`, which pass
+when the regex finds nothing: `skilltree.js:48` and `:100`, and
+`forge-snap.js:63`. Those three want a non-zero floor on their source set.
 
 ---
 

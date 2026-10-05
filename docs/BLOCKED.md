@@ -21,24 +21,15 @@ Three kinds of blocked, and they are not the same thing:
 
 # Copy-paste answers
 
-Owner asked for *"an example/suggested answer"* per item. Here is the whole set
-as one block. **Paste it back with the lines you disagree with changed, delete
-the rest** — anything you leave untouched I will take as the suggested answer and
-build.
+**Superseded 2026-10-05 by `docs/PROPOSAL.md`**, which decides every open
+number in one paste-back block (38 lines) with the arithmetic behind each.
+Paste §0 of that file back with the lines you disagree with changed.
 
-```
-1.  craft base      yes — TOOL_CRAFT_BASE 250 -> 150, WOOD_PICK_COIN_GROW 1.55 -> 1.40
-2.  earthquake      leave EARTHQUAKE_SEC at 5
-3.  oreYield key    leave the key, keep the "Blast Chance" label
-4.  big suffixes    keep the formatter's (Vg Uvg Dvg), delete the §0.8 line
-5.  legacy charms   keep the items, kill the three sources
-6.  VIP             leave it at three seats, delete the dead "4th seat" copy
-7.  gem prices      scale zone and rune prices with zone index
-8.  forge bag       don't build it — the ore strip already answers it
-9.  elements        regenerate the skill tree + apply the 5 swaps (docs/SKILL-TREE.md)
-10. seam prompt     ANSWERED BY THE CODE: already wired. Just confirm in-game.
-11. prestige+VIP+pass -> layer 1 / layer 2 / neither (currently: neither)
-```
+Of the eleven items that used to sit here: #1's `TOOL_CRAFT_BASE` no longer
+exists (craft cost is `CRAFT_BLOCKS × band × depth` now — PROPOSAL §D), #9 the
+elements are **done** (Ground=earthquake, Electric=ricochet are live — PROPOSAL
+§K), #10 the seam prompt was never a blocker, and the rest carry over unchanged
+as PROPOSAL lines 33–37.
 
 Line 11 is new and comes out of today's layering work — see below.
 

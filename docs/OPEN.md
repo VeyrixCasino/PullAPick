@@ -9,6 +9,12 @@ the order it matters. Each entry says where the detail lives.
 
 **Read `docs/START-HERE.md` first if you have no context.**
 
+> **2026-10-05 — every open NUMBER is now decided and signed off.**
+> `docs/PROPOSAL.md` §0 is 38 approved lines covering boosts, craft, breaking,
+> gems, coins, pity, sets and cleanup. Those are decisions, not suggestions, and
+> the implementation order is at the top of that file. What remains open below
+> is work, not choices — plus the three code bugs the proposal turned up.
+
 ---
 
 # P0 — the game cannot launch without these
@@ -44,9 +50,16 @@ and the whole traits system were written, statically verified, and pushed
 confirmed working in-game. Until someone plays it, every item below is built on
 an unproven base.
 
-### 3. Breaking power — the curve is unspecified
-- [ ] Block strength as a function of layer and zone, and nothing else. **The
-      curve is the one number still unspecified** and it gates items 4, 5 and 20.
+### 3. Breaking power — CORRECTED 2026-10-05: the curve IS specified
+It lives in `MineBreaking.luau`: `LAYERS_PER_RUNG 50`, `ZONE_STEP 1`,
+`ORE_POW 2.0`, `MAX 209`. The reach table is in `docs/PROPOSAL.md` §F0.
+- [x] ~~`ORE_REACH = 15` shown in the UI, never read by the gate.~~ **Wired
+      2026-10-05.** `blockStrength` now asks `oreStrength` for the ore as if it
+      sat `ORE_REACH` tiers lower; depth is untouched. The constant is
+      duplicated into `MineBreaking` (that module has no requires by design) and
+      `tools/verify/breaking.js` fails if the two ever drift apart.
+- [ ] Block strength as a function of layer and zone, and nothing else — done
+      as above; confirm the dials, do not re-derive them.
 - [ ] Tool breaking power strictly a function of the ore the tool is made of —
       not level, not damage, not skins, not runes, and not upgradeable.
 - [ ] Server-authoritative gate: reject any dig where
@@ -83,6 +96,26 @@ Each seam gets an outpost **1:1 with the surface one** — same shop, same sell 
 underground-themed, deeper and darker at every seam. Owner's spec, 2026-10-04.
 Needs Studio for the geometry.
 
+### 7a. Coin economy — TWO BUGS FOUND 2026-10-05, both P0
+- [x] ~~**Chest coin reward crashes.**~~ **Fixed 2026-10-05** — now
+      `Dig.Depth.dirtHp(zoneTierOf(zone), layer)`, the same one-coin-per-HP rule
+      the dig path uses. Was: `MineServer:4726` calls
+      `C.coinsFor("dirt", zone, layer)` with a zone *table*; `coinsFor(kind, mult)`
+      does `base × mult` and this Luau throws on `number × table` (reproduced).
+      Every chest that rolls the `coins` kind errors before paying. Fix:
+      `Depth.dirtHp(zoneTierOf(zone), layer)`. Likely one of the owner's
+      reported lucky-block/chest bugs.
+- [x] ~~Seams cost 5–60× their stated 30 minutes.~~ **Resolved 2026-10-05 by
+      making seams free** (owner: *"buy seams shouldnt cost anything"*).
+      `seamPrice` returns 0, `Verbs.buySeam` charges nothing, and the client
+      panel reads "Break the seam". Depth is still gated by breaking power and
+      seams still open in order. **Watch for:** the client used to bail on
+      `price <= 0`, which would have swallowed every seam panel — that guard
+      was changed in the same commit, so the chain stays live.
+- [ ] **Coins lost their biggest sink.** Seams were one of three (with rebirth
+      and shop tools). Potions priced in coins (PROPOSAL line 23) is now the
+      load-bearing sink, and §7 below is more open than before, not less.
+
 ### 7. Coin economy
 Coins are currently near-useless. Proposal on the table and **not yet agreed**:
 *ore = power, gems = gambling, coins = consumables and access*, with potions as
@@ -118,6 +151,19 @@ would each be different and special in their own way."*
 - [ ] Nerf anything competing with skins for "most desired buff".
 
 ### 10. Boost balance — the big one
+**Anchor settled 2026-10-05, measured not guessed — see `docs/BALANCE-MEASURED.md`.**
+SSS hat +80%, face +100%, pet +375% → Layer 2 ceiling ×15.65, against a measured
+Layer 1 ceiling of ×17.55 on `dirtBreak`. Near parity. Three implementation gaps
+make the Layer 1 figure an under-count: skins bypass the layers
+(`MineServer:2578`), tools never enter `T1` at all, and the Layer 1 skill filter
+passes 5 keys while the tree grants 20 (`swingRate` at +698% is outside the
+system). Closing those raises Layer 1, so these Layer 2 numbers get more
+conservative over time, not less.
+- [ ] Wire skins into `T1` — the owner named them in layer 1 and they bypass it
+- [ ] Wire tools into `T1` — same
+- [ ] Widen the `T1` skill filter past its five keys, and drop the dead
+      `walkSpeed` entry (no node grants it)
+
 - [ ] Far fewer pets grant blast on normal pickaxes. At current strength this is
       game-breaking and makes every other pet stack pointless.
 - [ ] Fewer pets affect blast radius.
@@ -157,7 +203,9 @@ Owner, 2026-10-04. Open-all and buy-N already ship. Still open:
 
 ### 14. Rebirth
 - [ ] Multiple rebirths at once.
-- [ ] Remove the base 2× coin multiplier (see item 7).
+- [x] ~~Remove the base 2× coin multiplier~~ **It does not exist.** Searched
+      every prestige/rebirth/coinMult/`2 ^` path server and shared, 2026-10-05.
+      Prestige grants +5% luck per rebirth and skill points, nothing on coins.
 - [ ] Confirm: an earlier pass planned "rebirth raises coin value" and "soften
       the zone/depth coin multipliers". Partly motivated by a since-reverted
       change — re-decide rather than inherit.
@@ -235,7 +283,65 @@ with changed** and most of these clear at once.
 
 # Housekeeping
 
-- [ ] `tools/verify/trap.js` **fails on clean main.** Pre-existing. Either fix it
+- [ ] **Delete `src/ReplicatedStorage/Mine/Shared/_c.luau`** — a 1,710-line copy
+      of MineConfig, required by nothing, with its own `ORES` and `coinsFor`.
+- [ ] **193 pets carry a retired stat line** (182 `backpack`, 11 `walkSpeed`),
+      because `MineStats.TYPE_KITS` still lists them. Regenerate from `ENERGIES`.
+      Numbers in `docs/PROPOSAL.md` §B and §K.
+
+- [x] **A skip was being reported as a pass — fixed 2026-10-05 by
+      `tools/verify/suite.sh`.** 11 of the 23 checks shell out to the luau
+      binary; without it they print "skipping" and exit 0. Measured with the
+      binary removed: 10 passed, 11 did not run, and the old hand-run reported
+      that as clean. The runner now separates DID NOT RUN from pass and exits
+      non-zero. **Always run `syntax.sh` before `suite.sh`.**
+- [ ] **Three negative assertions still need a non-zero floor.**
+      `check(x.length === 0)` passes when the regex finds nothing, so these
+      assert over an empty slice if their pattern ever stops matching:
+      `skilltree.js:48`, `skilltree.js:100`, `forge-snap.js:63`. The roster
+      parsers (`charms`, `orepacks`, `build-stamp`) already floor their counts
+      and are fine.
+- [ ] `tools/verify/luau-balance.js` is a **utility, not a check** — it scans one
+      chunk passed as `argv[2]` and crashes on `readFileSync(undefined)` when run
+      bare. Give it an arg guard so it prints usage instead. `suite.sh` excludes
+      it.
+- [x] **`check.js` was reading a deleted design — fixed 2026-10-05.** The
+      calculator is now generated from `MineConfig` by
+      `tools/gen/upgrade-calculator.js` (82 ores, cap 100, down from a
+      hand-written 121/1000 that priced Sandstone, Electrum and Zircon).
+      `--check` fails if it goes stale. `check.js` now derives `TOP` and `CAP`
+      from the data instead of hardcoding 121 and 1000, and its two frozen
+      thresholds were replaced with live ones: the "levelling is a real climb"
+      floor is now one tier step read off `tierPower` (maxing a tool is worth
+      **8.2 tiers**), and the deepest-block floor is computed from
+      `MineDepth.dirtHp` rather than the `2e20` that came from the formula
+      MineConfig labels *"Dead constants. Do not revive"*. Real hardest block is
+      **1.47e11**, cleared in **2.04 raw swings**.
+- [ ] **`zones.js` is the same bug a third time, and it is RED on this branch.**
+      Its header says "ore spread vs live MineConfig.oreWeights" but it has one
+      `readFileSync` (the HTML), never opens a `.luau`, and never computes
+      `oreWeights` — the "game" column is a **hardcoded `SPREAD` table**. With
+      the roster current, 9 of its 10 rows agree exactly and one diverges:
+      `bigbang` layer 5000, top share 11.1 game / 12.1 page, n95 17 / 13.
+      The live game's expectation is identical at bigbang layer 1 and layer 5000
+      (11.1 / 17) despite D going 10.04 → 24.41, so the game plateaus and the
+      page does not. **Not a constant:** `DMAX` was the obvious suspect and
+      sweeping it over 23.41 / 28 / 32.09 / 40 changes nothing, so the page's
+      own documented "DMAX is stale" note is a red herring for this row. Fixing
+      it means porting MineConfig's `oreWeights` clamp into the page, or better,
+      making `zones.js` actually read the Luau it claims to.
+      **Deliberately not added to `suite.sh`'s `KNOWN_FAIL`** — it is a real
+      disagreement, newly visible, and hiding it is how `trap.js` taught
+      everyone to ignore red.
+- [ ] ~~`check.js` reads a deleted design.~~ `tools/verify/check.js:3` loads
+      `upgrade-calculator.html` and runs its embedded tables — still the
+      121-ore/1000-level roster, pricing Sandstone, Electrum and Zircon, none of
+      which exist. Live `MineConfig.ORES` is 82, Stone → Oganesson. Point the
+      check at `MineConfig`; keep the HTML only as a generated view if it is
+      wanted at all. **Until then the one check with "ore" and "gems" in its
+      output is measuring a design that was deleted.**
+- [ ] `tools/verify/trap.js` **fails on clean main.** Pre-existing, and listed in
+      `suite.sh`'s `KNOWN_FAIL` so it does not mask a new failure. Either fix it
       or delete it — right now it trains everyone to ignore a red suite.
 - [ ] `roadmap/CHARMS.md` is on disk from a merge. Read it, but TODO §0 wins
       wherever it disagrees.
