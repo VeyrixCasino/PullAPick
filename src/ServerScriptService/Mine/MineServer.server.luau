@@ -9067,11 +9067,48 @@ local function powerUp(plr, id)
 	c.powerLevel = (c.powerLevel or 1) + 1
 	snap(plr)
 end
--- Buy the next tier in a family. Tools are priced in COINS -- coins are
--- payment for work, and tools are what work buys.
+--[[
+	TOOLS ARE NOT BOUGHT ANY MORE. THEY ARE FORGED.
+
+	Owner, 2026-10-05: "i think its time to get rid of all coin bought tools".
+
+	The tabs are gone from the shop rail, but a rail is a client drawing and this
+	is the rule. Every path that used to sell a tool for coins stops here, so a
+	modified client firing `buyTool` by hand gets the same answer as one that
+	cannot see the button.
+
+	What still comes through: BACKPACKS, which are haul capacity rather than a
+	tool, and the `eh_` event items, which are their own economy. Both are
+	reached by toolId through MineShopBuy below and neither is in Tools.TOOLS,
+	so the family check is what separates them -- not a list of exceptions that
+	would drift as items are added.
+
+	The wooden pickaxe is unaffected: it is GIVEN, never sold, and it still
+	levels on coins (MineConfig.isCoinTool). That is the one place coins still
+	touch a tool, and the owner kept it deliberately as the on-ramp to the Forge.
+
+	THE LIST LIVES IN MineConfig, NOT HERE. It was briefly a top-level local in
+	this script, and that one register broke the entire server: MineServer sits
+	at Luau's 200-local ceiling, so the compile failed with "Out of local
+	registers when trying to allocate id", MineNet was never created, and every
+	client hung on WaitForChild("MineNet") with no other symptom. Same ceiling
+	MineClient has, same failure mode. Do not add top-level locals to either file.
+]]
 local function buyTool(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then return end
+	--[[
+		A toolId buy is resolved against the surface ladder, which carries the
+		row's family, so the refusal has to happen after the row is known -- see
+		the guard inside the toolId branch. A bare family string is refused here.
+	]]
+	if type(payload) ~= "table" or not payload.toolId then
+		local fam = tostring((type(payload) == "table" and payload.family) or payload or "pickaxe")
+		if (C.FORGE_ONLY_FAMILIES or {})[fam] then
+			net:FireClient(plr, "toast", "Tools are forged from ore now - open the Forge")
+			return
+		end
+	end
 	-- New surface ladder: buy by toolId from MineShopLadders (desk == surface only).
 	if type(payload) == "table" and payload.toolId then
 		local okBuy, ShopBuy = pcall(function()
@@ -9081,6 +9118,14 @@ local function buyTool(plr, payload)
 			return require(shared:WaitForChild("MineShopLadders"))
 		end)
 		if okBuy and ShopBuy and okL and Ladders then
+			-- The ladder row carries its family, so the refusal lands here --
+			-- after the id resolves and before any coins move. Backpacks and
+			-- event items resolve to rows with no tool family and pass through.
+			local row = Ladders.byId and Ladders.byId(tostring(payload.toolId))
+			if row and (C.FORGE_ONLY_FAMILIES or {})[tostring(row.family or "")] then
+				net:FireClient(plr, "toast", "Tools are forged from ore now - open the Forge")
+				return
+			end
 			ShopBuy.buySurface(plr, p, payload, {
 				ShopLadders = Ladders, C = C, net = net,
 				givePickaxe = givePickaxe, giveBackpackModel = giveBackpackModel,
@@ -9156,6 +9201,24 @@ local function buyDepthTool(plr, payload)
 			ShopBuy.buyEvent(plr, p, toolId, { net = net, snap = snap, givePickaxe = givePickaxe })
 		end
 		return
+	end
+	--[[
+		The depth desks sell off the SAME ladders the surface shop did, so
+		refusing only at the surface would have left every outpost below 500m
+		still selling pickaxes. Same rule, same message, second door.
+
+		Event items (`eh_`) returned above before reaching this, and backpacks
+		carry no tool family, so both still sell.
+	]]
+	do
+		local okL, Ladders = pcall(function()
+			return require(shared:WaitForChild("MineShopLadders"))
+		end)
+		local row = okL and Ladders and Ladders.byId and Ladders.byId(toolId)
+		if row and (C.FORGE_ONLY_FAMILIES or {})[tostring(row.family or "")] then
+			net:FireClient(plr, "toast", "Tools are forged from ore now - open the Forge")
+			return
+		end
 	end
 	local desk = tostring(payload.desk or "")
 	local seam = tonumber(payload.seam) or Dig.Shop.deskSeam(desk)

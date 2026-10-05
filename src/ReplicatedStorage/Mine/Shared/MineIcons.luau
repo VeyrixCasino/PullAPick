@@ -368,4 +368,141 @@ function MineIcons.list()
 	return out
 end
 
+
+-- ----------------------------------------------------- forged pickaxes --
+--[[
+	ONE PICKAXE SKIN PER ORE TIER.
+
+	Owner, 2026-10-05: "apply the skins to each tool".
+
+	Every forged pickaxe used to draw IMAGES.pickaxe -- one picture for all 82
+	tiers -- so a Stone Pickaxe and an Oganesson Pickaxe were the same icon and
+	the whole ladder looked identical in the bar, the Forge and the inventory.
+
+	These are 88 renders the owner supplied as one SVG sheet, cut out and
+	uploaded individually. The sheet is NOT in ore order, so the pairing below
+	was matched on COLOUR: each icon is measured (dominant hue bin, sampled at
+	the lit face rather than the shadow) and assigned against the ore colours in
+	MineConfig.ORES by optimal assignment, minimising total distance across all
+	82 at once. The comment on each row carries the ore colour, the source file
+	and the match distance, so a pair that looks wrong can be found and swapped
+	without re-deriving anything.
+
+	Mean distance 0.251; the worst is Oganesson at 0.96, because the roster wants
+	a near-black pick and the sheet has none left by then. tools/match-icons.js
+	regenerates this if the sheet or the roster changes.
+
+	DRILLS AND EXPLOSIVES ARE NOT SKINNED. Every render here is a pickaxe, so
+	dressing a drill in one would be a lie about what you are holding. They keep
+	their family icon until their own art exists -- see MineIcons.forTool.
+]]
+
+MineIcons.ORE_PICK_STARTER = "rbxassetid://98610765134701"
+
+MineIcons.ORE_PICK = {
+	[1] = "rbxassetid://134894347234819", -- Stone #838383  (icon-32.png, d=0.02)
+	[2] = "rbxassetid://87023340483575", -- Clay #B85D30  (icon-03.png, d=0.10)
+	[3] = "rbxassetid://107747633974918", -- Limestone #F0E5BF  (icon-20.png, d=0.26)
+	[4] = "rbxassetid://132380390933636", -- Pumice #C8C3B9  (icon-13.png, d=0.17)
+	[5] = "rbxassetid://96858046972249", -- Halite #FFC4C4  (icon-79.png, d=0.28)
+	[6] = "rbxassetid://96993390989632", -- Coal #28282E  (icon-23.png, d=0.47)
+	[7] = "rbxassetid://110798556724543", -- Flint #8A7764  (icon-26.png, d=0.08)
+	[8] = "rbxassetid://135011365505725", -- Basalt #373946  (icon-18.png, d=0.21)
+	[9] = "rbxassetid://135217555227023", -- Slate #29518A  (icon-75.png, d=0.13)
+	[10] = "rbxassetid://102812815707429", -- Bone #F3D38C  (icon-04.png, d=0.15)
+	[11] = "rbxassetid://85734782312989", -- Granite #BD8380  (icon-82.png, d=0.10)
+	[12] = "rbxassetid://134527992319534", -- Copper #CD5705  (icon-47.png, d=0.15)
+	[13] = "rbxassetid://100414819777944", -- Tin #D2D4DA  (icon-07.png, d=0.24)
+	[14] = "rbxassetid://123264380099667", -- Ember #502012  (icon-66.png, d=0.31)
+	[15] = "rbxassetid://103251285291784", -- Sulfur #FEE200  (icon-44.png, d=0.40)
+	[16] = "rbxassetid://107514144968474", -- Lead #475B8A  (icon-71.png, d=0.42)
+	[17] = "rbxassetid://130746747865517", -- Zinc #89B2D3  (icon-83.png, d=0.07)
+	[18] = "rbxassetid://71305325337795", -- Aluminum #C8D2E1  (icon-15.png, d=0.25)
+	[19] = "rbxassetid://119957782425139", -- Iron #A6A6AC  (icon-48.png, d=0.17)
+	[20] = "rbxassetid://108570852640343", -- Graphite #66718A  (icon-50.png, d=0.10)
+	[21] = "rbxassetid://115632325741628", -- Pyrite #E3CE4B  (icon-51.png, d=0.09)
+	[22] = "rbxassetid://73345295432252", -- Marble #FEFCF6  (icon-06.png, d=0.27)
+	[23] = "rbxassetid://110340353671748", -- Pearl #FCF5EC  (icon-21.png, d=0.32)
+	[24] = "rbxassetid://88344210945434", -- Rime #8CE1FF  (icon-78.png, d=0.06)
+	[25] = "rbxassetid://137094577015206", -- Quartz #F9F9FF  (icon-60.png, d=0.18)
+	[26] = "rbxassetid://131235283576756", -- Amber #FF9800  (icon-29.png, d=0.09)
+	[27] = "rbxassetid://140017449624338", -- Petrifact #974F2D  (icon-09.png, d=0.27)
+	[28] = "rbxassetid://85287991061700", -- Nickel #E3C383  (icon-24.png, d=0.13)
+	[29] = "rbxassetid://129809603083825", -- Onyx #0F0F0F  (icon-11.png, d=0.47)
+	[30] = "rbxassetid://124963517308323", -- Bloodstone #145F32  (icon-54.png, d=0.22)
+	[31] = "rbxassetid://137588081988982", -- Garnet #97000F  (icon-33.png, d=0.33)
+	[32] = "rbxassetid://94077389511737", -- Citrine #FFD400  (icon-17.png, d=0.15)
+	[33] = "rbxassetid://84046578485770", -- Chromium #ABC9FF  (icon-55.png, d=0.21)
+	[34] = "rbxassetid://116899246377619", -- Turquoise #0BD8C9  (icon-37.png, d=0.14)
+	[35] = "rbxassetid://110777379859220", -- Bismuth #BC9CEE  (icon-52.png, d=0.30)
+	[36] = "rbxassetid://127899556168922", -- Silver #FAF8F2  (icon-28.png, d=0.27)
+	[37] = "rbxassetid://110362030679168", -- Amethyst #7008BA  (icon-74.png, d=0.12)
+	[38] = "rbxassetid://133050099108110", -- Tigereye #BD7000  (icon-40.png, d=0.14)
+	[39] = "rbxassetid://100733410715820", -- Lapis #0027B8  (icon-41.png, d=0.14)
+	[40] = "rbxassetid://116447627664295", -- Geode #9650F0  (icon-87.png, d=0.27)
+	[41] = "rbxassetid://139387469669750", -- Topaz #FF7139  (icon-76.png, d=0.10)
+	[42] = "rbxassetid://127675266137182", -- Phosphorus #FFFCAF  (icon-30.png, d=0.36)
+	[43] = "rbxassetid://99674497696050", -- Peridot #B0E500  (icon-45.png, d=0.26)
+	[44] = "rbxassetid://82019191062925", -- Jade #3AC268  (icon-46.png, d=0.39)
+	[45] = "rbxassetid://102926547170936", -- Emberglass #FF5A00  (icon-53.png, d=0.31)
+	[46] = "rbxassetid://77908705916683", -- Tungsten #71768A  (icon-36.png, d=0.19)
+	[47] = "rbxassetid://79642663736668", -- Lithium #D7DEEB  (icon-63.png, d=0.13)
+	[48] = "rbxassetid://134933634734091", -- Titanium #673AD8  (icon-88.png, d=0.33)
+	[49] = "rbxassetid://91880726697205", -- Obsidian #1A0930  (icon-67.png, d=0.42)
+	[50] = "rbxassetid://139639882098042", -- Cobalt #0049F8  (icon-56.png, d=0.19)
+	[51] = "rbxassetid://106835899308606", -- Gold #FFBA00  (icon-43.png, d=0.33)
+	[52] = "rbxassetid://106935593251013", -- Regolith #AFAFBC  (icon-61.png, d=0.06)
+	[53] = "rbxassetid://70818849501344", -- Sunstone #FF6100  (icon-73.png, d=0.20)
+	[54] = "rbxassetid://117801019157026", -- Emerald #00AD56  (icon-59.png, d=0.48)
+	[55] = "rbxassetid://100386193490019", -- Moonstone #84A8FF  (icon-62.png, d=0.20)
+	[56] = "rbxassetid://90117792609378", -- Sapphire #004FC9  (icon-72.png, d=0.10)
+	[57] = "rbxassetid://140460162040368", -- Ruby #F2005B  (icon-34.png, d=0.54)
+	[58] = "rbxassetid://126891091840172", -- Palladium #76A4FF  (icon-38.png, d=0.19)
+	[59] = "rbxassetid://118058651920075", -- Aquamarine #7BE0FB  (icon-65.png, d=0.28)
+	[60] = "rbxassetid://124270462844329", -- Opal #F0F0FF  (icon-31.png, d=0.51)
+	[61] = "rbxassetid://132607286176916", -- Platinum #E8DFB9  (icon-05.png, d=0.24)
+	[62] = "rbxassetid://86604191493562", -- Stormstone #3C55A0  (icon-64.png, d=0.05)
+	[63] = "rbxassetid://90427275435834", -- Diamond #C7F0FF  (icon-27.png, d=0.10)
+	[64] = "rbxassetid://111758813047333", -- Starmetal #374182  (icon-77.png, d=0.45)
+	[65] = "rbxassetid://84833810311629", -- Aetherite #E1F5FF  (icon-80.png, d=0.92)
+	[66] = "rbxassetid://125336404290523", -- Meteorite #8A5E42  (icon-10.png, d=0.13)
+	[67] = "rbxassetid://74563839907439", -- Soulstone #46FFC8  (icon-81.png, d=0.37)
+	[68] = "rbxassetid://112354482805382", -- Galaxite #28145A  (icon-39.png, d=0.36)
+	[69] = "rbxassetid://139178943970322", -- Frostfire #78C8FF  (icon-68.png, d=0.18)
+	[70] = "rbxassetid://74461067186168", -- Umbrite #140A20  (icon-42.png, d=0.49)
+	[71] = "rbxassetid://72432295550263", -- Celestine #FFE48C  (icon-84.png, d=0.10)
+	[72] = "rbxassetid://102972745138318", -- Orichalcum #FF9100  (icon-35.png, d=0.20)
+	[73] = "rbxassetid://75602567664926", -- Spectrite #FFFFFF  (icon-58.png, d=0.28)
+	[74] = "rbxassetid://137453805851417", -- Mythril #84CFFF  (icon-70.png, d=0.06)
+	[75] = "rbxassetid://132506919832021", -- Dragonstone #B90A14  (icon-69.png, d=0.28)
+	[76] = "rbxassetid://70881670144830", -- Adamantite #B80020  (icon-57.png, d=0.31)
+	[77] = "rbxassetid://71263091232585", -- Thorium #BFBFB5  (icon-19.png, d=0.11)
+	[78] = "rbxassetid://73087429300317", -- Uranium #FFE200  (icon-86.png, d=0.38)
+	[79] = "rbxassetid://122433742897435", -- Plutonium #DE9669  (icon-14.png, d=0.06)
+	[80] = "rbxassetid://80190150821064", -- Fermium #FF0246  (icon-16.png, d=0.51)
+	[81] = "rbxassetid://140166711748633", -- Lawrencium #FFEBB1  (icon-12.png, d=0.17)
+	[82] = "rbxassetid://131095103915727", -- Oganesson #11002A  (icon-49.png, d=0.96)
+}
+
+--[[
+	The icon for a forged tool row.
+
+	Pickaxes get their ore's skin; everything else gets its family icon. One
+	function so the hotbar, the Forge and anything added later cannot disagree
+	about what a tool looks like.
+]]
+function MineIcons.forTool(tool)
+	if type(tool) ~= "table" then
+		return MineIcons.IMAGES.pickaxe
+	end
+	local fam = tostring(tool.familyId or "pickaxe")
+	if fam == "pickaxe" then
+		local skin = MineIcons.ORE_PICK[math.floor(tonumber(tool.tier) or 0)]
+		if skin then
+			return skin
+		end
+	end
+	return MineIcons.IMAGES[fam] or MineIcons.IMAGES.pickaxe
+end
+
 return MineIcons

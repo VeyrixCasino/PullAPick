@@ -463,8 +463,11 @@ function MineForge.mount(parent, opts)
 		}, host)
 		UI.round(orb, 999)
 		UI.edge(orb, T.ACCENT, 2)
-		local fam = tostring(tool.familyId or "pickaxe")
-		UI.icon(orb, IMG[fam] or IMG.pickaxe or IMG.merge, math.floor(PORTRAIT * 0.6),
+		-- The ore's own skin for a forged pickaxe. This is the hero portrait, so
+		-- it is the one place a player studies the tool they are about to spend
+		-- on -- showing the same generic pickaxe for all 82 tiers here was the
+		-- worst of the places it showed.
+		UI.icon(orb, Icons.forTool(tool) or IMG.merge, math.floor(PORTRAIT * 0.6),
 			UDim2.fromOffset(math.floor(PORTRAIT * 0.2), math.floor(PORTRAIT * 0.2)))
 
 		label(host, OreTools.toolName(tool), 28, TEXT, UDim2.fromOffset(HERO_X, 0),

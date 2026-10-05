@@ -83,17 +83,32 @@ local function rarityColor(rar)
 end
 
 --[[
-	The Forge leads. Crafting a tool out of ore is the main line of progression,
-	so it is the tab the shop opens on; the coin-shop families that follow are
-	the second line. The coin shop may be removed outright later -- until that
-	call is made it stays reachable, just no longer first.
+	THE COIN SHOP NO LONGER SELLS TOOLS.
+
+	Owner, 2026-10-05: "i think its time to get rid of all coin bought tools".
+	The note that used to sit here said the coin shop "may be removed outright
+	later -- until that call is made it stays reachable, just no longer first".
+	That call is made.
+
+	Pickaxes, Drills and Explosives are gone from this rail. Every tool in the
+	game is forged out of ore now, which makes ore the single currency of
+	progression rather than one of two parallel ladders that each ended
+	somewhere different. The Forge leads because it is the only line.
+
+	What STAYS: Backpacks (haul capacity, not a tool), the Ore Pouch, and
+	Secrets, which are pulled from chests and were never sold.
+
+	The roster in MineTools is NOT deleted with the tabs. MineOreTools reads it
+	for each forged tool's frame and cost multiplier -- `frames()` filters on
+	`price > 0` -- so those prices are now a forge input rather than a shelf
+	price. Removing them would blank every forged tool's silhouette.
+
+	The server refuses the buy verbs independently of this list; a tab removed
+	from a client rail is a UI change, not a rule. See buyTool in MineServer.
 ]]
 local TABS = {
 	{ id = "bench", label = "Forge", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
 	{ id = "pouch", label = "Ore Pouch", blurb = "What you are carrying, and what it sells for. Ore pays gems; the pouch survives a rebirth." },
-	{ id = "pickaxe", label = "Pickaxes", blurb = "Aim, swing, break. One block at a time." },
-	{ id = "drill", label = "Drills", blurb = "Hold to mine. Wide clears area, narrow melts rock." },
-	{ id = "explosive", label = "Explosives", blurb = "Throw and clear a pattern. Extra bombs split the power." },
 	{ id = "backpack", label = "Backpacks", blurb = "Haul capacity. Coins for most rungs; the top pack is Robux." },
 	--[[
 		Secrets was wired everywhere and never given a button.
