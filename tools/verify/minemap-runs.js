@@ -98,7 +98,8 @@ ok("the page script runs without throwing", !threw,
 if (!threw) {
   // Every readout the page promises must hold a real value, not its dash.
   const readouts = ["mSec", "mDirt", "mOre", "mSeam", "tDmg", "tBp", "tReach", "tCap",
-    "layerLab", "lvlLab", "tierLab", "vBig", "vWhy", "foot", "mineSub", "toolSub"];
+    "tStep", "tForge", "layerLab", "lvlLab", "lvlCap", "tierLab",
+    "vBig", "vWhy", "foot", "mineSub", "toolSub"];
   const dead = readouts.filter((id) => {
     const t = nodes[id] && nodes[id].textContent;
     return !t || t === "—" || t === "-";
@@ -116,6 +117,15 @@ if (!threw) {
   ok("the tier slider covers the roster",
     nodes.tier && Number(nodes.tier.max) >= 80,
     nodes.tier ? "max=" + nodes.tier.max : "no slider");
+
+  // The level slider must match the LIVE cap, not its markup. Its max was
+  // hardcoded 100 and stayed there when TOOL_MAX_LEVEL moved to 30, so the page
+  // offered twenty-three levels the game clamps away -- and nothing here
+  // noticed, because the only slider assertions were ">" bounds.
+  const liveCap = Number((html.match(/"MAXLVL":(\d+)/) || [])[1]);
+  ok("the level slider matches the live cap exactly",
+    nodes.lvl && liveCap && Number(nodes.lvl.max) === liveCap,
+    nodes.lvl ? "slider max=" + nodes.lvl.max + ", MAXLVL=" + liveCap : "no slider");
 }
 
 console.log("");

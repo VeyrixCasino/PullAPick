@@ -157,9 +157,17 @@ if (!/function bandDmg/.test(html)) {
 }
 
 // Say where the numbers came from, on the page itself.
-html = html.replace(/Proposal &mdash; nothing committed\./,
-  `Generated from MineConfig by tools/gen/upgrade-calculator.js &mdash; ` +
-  `${ores.length} ores, level cap ${maxLevel}. Do not hand-edit the data block.`);
+//
+// This matched only the ORIGINAL "Proposal -- nothing committed." text, so it
+// fired once and never again: the caption then froze at whatever roster and cap
+// were live that day and went on claiming "level cap 100" after the cap moved to
+// 30. The pattern matches its own output too now, so the caption re-stamps on
+// every run.
+const CAPTION = `Generated from MineConfig by tools/gen/upgrade-calculator.js &mdash; ` +
+  `${ores.length} ores, level cap ${maxLevel}. Do not hand-edit the data block.`;
+html = html.replace(
+  /Proposal &mdash; nothing committed\.|Generated from MineConfig by tools\/gen\/upgrade-calculator\.js &mdash; \d+ ores, level cap \d+\. Do not hand-edit the data block\./,
+  CAPTION);
 
 const stale = html !== before;
 

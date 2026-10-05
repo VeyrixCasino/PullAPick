@@ -252,7 +252,7 @@
 
 <footer>
   Ore tiers and hardness from <code>MineConfig.ORES</code>; tool multipliers from
-  <code>ToolCatalog.Types</code>. Generated from MineConfig by tools/gen/upgrade-calculator.js &mdash; 82 ores, level cap 100. Do not hand-edit the data block.
+  <code>ToolCatalog.Types</code>. Generated from MineConfig by tools/gen/upgrade-calculator.js &mdash; 82 ores, level cap 30. Do not hand-edit the data block.
 </footer>
 </div>
 
@@ -561,6 +561,10 @@
 
   var typeSel=document.getElementById("type"), oreSel=document.getElementById("ore"),
       lvl=document.getElementById("lvl");
+  // The level slider's markup said max=10000 step=10, from the old 10,000-level
+  // cap. It is driven off MAXLVL now, so the cap lives in MineConfig only.
+  lvl.max=String(MAXLVL); lvl.step="1";
+  if(+lvl.value>MAXLVL) lvl.value=String(MAXLVL);
   TYPES.forEach(function(t,i){
     var o=document.createElement("option"); o.value=String(i);
     o.textContent=t[0]; typeSel.appendChild(o);
@@ -757,14 +761,20 @@
     document.getElementById("rbNote").textContent=
       "×"+T.rbGrow.toFixed(2)+" each · numbers run out at rebirth "+ovf;
 
-    // clean numbers only: x00 to 1000, then x000 to 10000
-    var rows=[0];
-    for(var h=100;h<=1000;h+=100) rows.push(h);
-    for(var k=200;k<=MAXLVL;k+=100) rows.push(k);
+    // Rows derived from the cap. This read `for(h=100;h<=1000;h+=100)` plus a
+    // second loop stepping by 100 -- written for a 1000/10,000-level cap. At a
+    // cap of 30 every value it produced was out of range, so the ladder came out
+    // empty. Ten or so clean steps, always ending exactly on the cap.
+    var rows=[0], stride=Math.max(1,Math.round(MAXLVL/10));
+    for(var h=stride;h<MAXLVL;h+=stride) rows.push(h);
+    rows.push(MAXLVL);
     document.getElementById("ladder").innerHTML=rows.map(function(l){
       var d=dmgAt(l,tier,ti), last=(l>=MAXLVL);
-      var band=(l>=2000)?" style='background:color-mix(in srgb, var(--dust) 7%, transparent)'":"";
-      var near=(Math.abs(l-L)<=(l>=2000?500:50));
+      // These thresholds were absolute levels (2000, 500, 50) from the old cap,
+      // so at 30 nothing ever shaded and "near" matched every row at once.
+      // Expressed against the cap instead.
+      var band=(l>=MAXLVL*0.667)?" style='background:color-mix(in srgb, var(--dust) 7%, transparent)'":"";
+      var near=(Math.abs(l-L)<=Math.max(1,stride/2));
       return "<tr"+(near?" class='here'":"")+band+">"+
         "<td class='n'>"+l.toLocaleString("en-US")+"</td>"+
         "<td class='n' style='color:var(--ink-3)'>"+l.toLocaleString("en-US")+"</td>"+

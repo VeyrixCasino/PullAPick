@@ -73,6 +73,25 @@
     border:1px solid var(--line);border-radius:4px;padding:7px 9px;margin-top:7px;min-height:52px;
     white-space:pre-line;line-height:1.45}
 
+  /* The per-tier ladder. 82 rows, so the header sticks and the body scrolls. */
+  .tblwrap{max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:5px;
+    margin-top:11px}
+  .tbl{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:11.5px;
+    font-variant-numeric:tabular-nums}
+  .tbl th{position:sticky;top:0;z-index:1;background:var(--surface-2);text-align:left;
+    padding:7px 9px;border-bottom:1px solid var(--line);font-size:9.5px;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--ink-3);font-weight:600;line-height:1.25}
+  .tbl td{padding:5px 9px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+  .tbl th.r,.tbl td.r{text-align:right}
+  .tbl tbody tr:hover{background:var(--surface-2)}
+  /* The row the tier slider is on. */
+  .tbl tr.here td{background:color-mix(in srgb,var(--ore) 15%,transparent);font-weight:700}
+  /* First tier of a band that takes a step -- the thing the owner asked to see. */
+  .tbl tr.jump td{border-top:2px solid var(--ore)}
+  .tbl td.step{color:var(--dmg);font-weight:700}
+  .tbl td.bigstep{color:var(--ore);font-weight:700}
+  .tbl td.ore{font-family:var(--sans);white-space:nowrap}
+  .tbl td.dim{color:var(--ink-3)}
   .verdict{margin-top:16px;border-radius:6px;padding:14px 16px;border:1px solid var(--line);
     background:var(--surface)}
   .verdict .big{font-family:var(--disp);font-size:21px;font-weight:800;letter-spacing:-.02em}
@@ -128,7 +147,11 @@
     <div class="ctl"><label for="tier">Ore tier &mdash; <span class="n" id="tierLab">1</span>
       <span id="tierName" style="text-transform:none;letter-spacing:0;color:var(--ink-2)"></span></label>
       <input id="tier" type="range" min="1" max="82" value="30" step="1"></div>
-    <div class="ctl"><label for="lvl">Level &mdash; <span class="n" id="lvlLab">1</span></label>
+    <!-- max is set from M.MAXLVL at init. It was hardcoded 100 and went stale
+         the moment the cap moved to 30, which let you drag to a level the game
+         clamps away. The model is the only place the cap should live. -->
+    <div class="ctl"><label for="lvl">Level &mdash; <span class="n" id="lvlLab">1</span>
+      <span id="lvlCap" style="text-transform:none;letter-spacing:0;color:var(--ink-2)"></span></label>
       <input id="lvl" type="range" min="1" max="100" value="1" step="1"></div>
     <canvas id="toolChart" width="900" height="300"></canvas>
     <p class="clab">damage by level, log scale &mdash; line is your level, band is this block's HP</p>
@@ -142,6 +165,14 @@
         <div class="s" id="tReachSub">&mdash;</div></div>
       <div class="st"><div class="k">At cap</div><div class="v n" id="tCap" style="color:var(--dmg)">&mdash;</div>
         <div class="s" id="tCapSub">&mdash;</div></div>
+      <!-- The advertisable number. TOOL_CLIMB_DAMAGE^(1/(cap-1)), which is what
+           the forge would print on the upgrade button. -->
+      <div class="st"><div class="k">Per level</div><div class="v n" id="tStep" style="color:var(--dmg)">&mdash;</div>
+        <div class="s" id="tStepSub">&mdash;</div></div>
+      <!-- And the number that says how forging UP actually feels: a fresh
+           next-tier tool against the maxed one already in your hand. -->
+      <div class="st"><div class="k">Forge next tier</div><div class="v n" id="tForge">&mdash;</div>
+        <div class="s" id="tForgeSub">&mdash;</div></div>
     </div>
   </div>
 </div>
@@ -149,6 +180,39 @@
 <div class="verdict" id="verdict">
   <div class="big" id="vBig">&mdash;</div>
   <div class="why" id="vWhy">&mdash;</div>
+</div>
+
+<!--
+  EVERY TIER, ONE ROW.
+  Owner: "donr group 'common' into one thing. i want to see each individuak
+  steps". Band averages hide the thing worth looking at -- the step from one
+  ore to the next, and the four places that step jumps.
+-->
+<div class="panel" id="ladder" style="margin-top:16px">
+  <div class="phead"><h2>Every tier, one step at a time</h2>
+    <span class="sub" id="ladderSub">&mdash;</span></div>
+  <div class="ctl" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    <label style="display:flex;gap:7px;align-items:center;margin:0">
+      <span>Chart</span>
+      <select id="ladderMode" style="padding:5px 8px">
+        <option value="step">the step from each tier to the next</option>
+        <option value="dmg">damage at max level</option>
+      </select></label>
+    <label style="display:flex;gap:7px;align-items:center;margin:0">
+      <input type="checkbox" id="ladderOnlyJumps"> <span>only the band jumps</span></label>
+    <label style="display:flex;gap:7px;align-items:center;margin:0">
+      <input type="checkbox" id="ladderCompare"> <span>compare with the old curve</span></label>
+    <span class="clab" style="margin:0">row highlights follow the tier slider above</span>
+  </div>
+  <canvas id="ladderChart" width="1240" height="260"></canvas>
+  <div class="clab" id="ladderCap">&mdash;</div>
+  <div class="tip" id="ladderTip">Hover the chart.</div>
+  <div class="tblwrap">
+    <table class="tbl" id="ladderTbl">
+      <thead><tr id="ladderHead"></tr></thead>
+      <tbody id="ladderBody"></tbody>
+    </table>
+  </div>
 </div>
 
 <div class="flag" id="layerFlag">
@@ -234,6 +298,10 @@
   zoneSel.value="1";
   layerSl.max = String(M.LAYERS);
   tierSl.max = String(M.ores.length);
+  // The level cap, from the model. Its markup said 100 and stayed there when
+  // TOOL_MAX_LEVEL moved to 30, so the slider offered levels the game clamps.
+  lvlSl.max = String(M.MAXLVL);
+  if (+lvlSl.value > M.MAXLVL) lvlSl.value = String(M.MAXLVL);
   lvlSl.max = String(M.MAXLVL);
 
   // ---------- charts ----------
@@ -352,6 +420,7 @@
     $("tierLab").textContent=t;
     $("tierName").textContent=" \· "+(M.ores[t-1]||"");
     $("lvlLab").textContent=L;
+    $("lvlCap").textContent=" · of "+M.MAXLVL;
 
     var s=sectionAt(layer), d=dirtHp(zi,layer), o=oreHp(zi,layer), sm=nextSeam(layer);
     $("mineSub").textContent=M.zones[zi-1].name+"  \·  floor "+commas(M.LAYERS);
@@ -372,6 +441,26 @@
     $("tReachSub").textContent=(t+M.ORE_REACH>M.ores.length)?"capped at the roster":"tier + "+M.ORE_REACH;
     $("tCap").textContent=big(cap);
     $("tCapSub").textContent="level "+M.MAXLVL;
+
+    // The advertisable per-level step.
+    $("tStep").textContent="+"+((dmgStep-1)*100).toFixed(1)+"%";
+    $("tStepSub").textContent=M.MAXLVL+" levels, x"+commas(Math.round(M.CLIMB_DMG))+" in total";
+
+    // Forging up, honestly. A fresh tier+1 tool arrives at level 1 while the
+    // tool in your hand is maxed, so the comparison is tierStep / climb -- about
+    // 1/300, and independent of the cap because the cap cancels out of both
+    // sides. The break-even level is what you have to grind to get back to even.
+    if(t >= M.ores.length){
+      $("tForge").textContent="—";
+      $("tForgeSub").textContent="tier "+t+" is the top of the roster";
+    } else {
+      var mine=dmgAt(t,M.MAXLVL), fresh=dmgAt(t+1,1), be=null;
+      for(var L=1;L<=M.MAXLVL;L++){ if(dmgAt(t+1,L)>=mine){ be=L; break; } }
+      $("tForge").textContent="x"+(fresh/mine).toFixed(3);
+      $("tForge").style.color=(fresh>=mine)?"var(--dmg)":themeCol("--bad","#9a3412");
+      $("tForgeSub").textContent="fresh tier "+(t+1)+" vs your maxed tier "+t+
+        "  ·  "+(be?("even at level "+be+" of "+M.MAXLVL):("still behind at "+M.MAXLVL));
+    }
 
     // the verdict: breaking power first, then damage
     var oreTierHere=Math.max(1,Math.min(M.ores.length,
@@ -401,8 +490,216 @@
       "  ore "+M.ORE_HP_MULT+"x dirt  cap "+M.MAXLVL+
       "  |  regenerate: node tools/depth-sheet-data.js then node tools/gen-mine-map.js";
 
-    drawMine(); drawTool();
+    drawMine(); drawTool(); buildLadder(); drawLadder();
   }
+
+  // ---------- the per-tier ladder -----------------------------------------
+  //
+  // Owner: "donr group 'common' into one thing. i want to see each individuak
+  // steps". So: 82 rows, and the column that matters is the step from one tier
+  // to the next, because that is where the four band jumps become visible.
+
+  // THE OLD CURVE, for the compare toggle. Span 16 over a hardcoded 120, climb
+  // 3.9e8, no band step -- what shipped before 2026-10-05.
+  var OLD = { span:16, div:120, climb:3.9e8 };
+  var oldStep = Math.pow(OLD.climb, 1/(M.MAXLVL-1));
+  function oldDmg(t,L){
+    return M.DMG_BASE * Math.pow(6, OLD.span*(t-1)/OLD.div) * Math.pow(oldStep, L-1);
+  }
+
+  // Where a player holding tier t is mining. Across ELEVEN zones, because
+  // Event Horizon is real content and the top of the roster spawns in it --
+  // scoring tier 82 against zone 10 flatters it by a factor of five.
+  function homeOf(t){
+    var zc = M.zones.length;
+    var abs = ((t-1)/(M.ores.length-1)) * (zc*M.LAYERS);
+    var zi = Math.min(zc, Math.floor(abs/M.LAYERS)+1);
+    var L  = Math.max(1, Math.min(M.LAYERS, Math.round(abs-(zi-1)*M.LAYERS)));
+    return { zi:zi, layer:L, hp:oreHp(zi,L) };
+  }
+  // Levels that still change the swing count: everything up to the one-shot.
+  function liveLevels(t, dmgFn){
+    var hp = homeOf(t).hp;
+    for(var L=1; L<=M.MAXLVL; L++) if(Math.ceil(hp/dmgFn(t,L)) <= 1) return L;
+    return M.MAXLVL;
+  }
+  // First tier of each band, so a row can be marked as a jump.
+  function isBandStart(t){
+    if(t===1) return false;
+    return bandOf(t) !== bandOf(t-1);
+  }
+
+  function buildLadder(){
+    var onlyJumps = $("ladderOnlyJumps").checked;
+    var compare   = $("ladderCompare").checked;
+    var here = +tierSl.value;
+    // Addressed by id and written with innerHTML only. getElementsByTagName /
+    // rows / cells would work in a browser and not in tools/verify/
+    // minemap-runs.js, whose DOM stub is deliberately small -- and a check
+    // that cannot run is worth more than a slightly shorter line here.
+    var tb = $("ladderBody");
+    var rows = [];
+    for(var t=1; t<=M.ores.length; t++){
+      var jump = isBandStart(t);
+      if(onlyJumps && !jump && t!==1 && t!==M.ores.length) continue;
+      var band = bandOf(t);
+      var h = homeOf(t);
+      var d1 = dmgAt(t,1), d100 = dmgAt(t,M.MAXLVL);
+      var prev = t>1 ? tierPower(t-1) : null;
+      var stepOver = prev ? tierPower(t)/prev : null;
+      var live = liveLevels(t, dmgAt);
+      var cls = (t===here ? "here " : "") + (jump ? "jump" : "");
+      var stepCls = stepOver == null ? "dim" : (stepOver > 1.5 ? "bigstep" : "step");
+      var cmp = "";
+      if(compare){
+        cmp = "<td class='r dim'>" + big(oldDmg(t,M.MAXLVL)) + "</td>" +
+              "<td class='r dim'>" + liveLevels(t, oldDmg) + "</td>";
+      }
+      rows.push(
+        "<tr class='"+cls+"'>" +
+        "<td class='r'>"+t+"</td>" +
+        "<td class='ore'>"+(M.ores[t-1]||"")+"</td>" +
+        "<td class='ore'>"+band+"</td>" +
+        "<td class='r'>x"+(M.BAND_DMG[band]||1)+"</td>" +
+        "<td class='r "+stepCls+"'>"+(stepOver==null?"&mdash;":"x"+stepOver.toFixed(3))+"</td>" +
+        "<td class='r'>"+t+"</td>" +
+        "<td class='r'>"+Math.min(t+M.ORE_REACH, M.ores.length)+"</td>" +
+        "<td class='r'>"+big(d1)+"</td>" +
+        "<td class='r'>"+big(d100)+"</td>" +
+        "<td class='r'>"+commas(Math.ceil(h.hp/d1))+"</td>" +
+        "<td class='r'>"+commas(Math.ceil(h.hp/d100))+"</td>" +
+        "<td class='r'>"+live+(live>=M.MAXLVL?"":"")+"</td>" +
+        cmp + "</tr>");
+    }
+    tb.innerHTML = rows.join("");
+
+    // Header, rewritten whole so the compare columns come and go as a pair and
+    // can never drift out of step with the body.
+    $("ladderHead").innerHTML =
+      "<th class='r'>Tier</th><th>Ore</th><th>Band</th><th class='r'>Band step</th>" +
+      "<th class='r'>Step over<br>previous tier</th><th class='r'>Break<br>power</th>" +
+      // "L100" was written into these headers while the columns underneath
+      // already used M.MAXLVL, so when the cap moved to 30 the table showed
+      // level-30 numbers under a heading that said 100. The cap goes in once.
+      "<th class='r'>Reaches<br>ore</th><th class='r'>Damage L1</th>" +
+      "<th class='r'>Damage L"+M.MAXLVL+"</th><th class='r'>Home ore<br>swings L1</th>" +
+      "<th class='r'>Home ore<br>swings L"+M.MAXLVL+"</th><th class='r'>Live<br>levels</th>" +
+      (compare ? "<th class='r'>Old curve<br>damage L"+M.MAXLVL+"</th>" +
+                 "<th class='r'>Old curve<br>live levels</th>" : "");
+
+    var avg=0; for(var k=1;k<=M.ores.length;k++) avg+=liveLevels(k,dmgAt);
+    avg/=M.ores.length;
+    $("ladderSub").textContent =
+      M.ores.length+" tiers  ·  average live levels "+avg.toFixed(1)+" of "+M.MAXLVL+
+      "  ·  smooth step x"+Math.pow(6, M.TIER_SPAN/(M.ores.length-1)).toFixed(3)+" a tier";
+  }
+
+  function drawLadder(){
+    var c=$("ladderChart"), g=c.getContext("2d");
+    var W=c.width,H=c.height,pad=14;
+    g.clearRect(0,0,W,H); grid(g,W,H,pad);
+    var n=M.ores.length, compare=$("ladderCompare").checked;
+    var mode=$("ladderMode").value;
+    var colX=function(t){ return pad+(W-pad*2)*((t-1)/n); };
+    var barW=Math.max(1,(W-pad*2)/n-1.5);
+
+    if(mode==="step"){
+      // THE STEP CHART.
+      // Damage at max level is a near-straight line on a log scale, so the band
+      // jumps read as a gentle ramp and the thing the owner asked to see is the
+      // one thing that does not show. Plotted as the step from tier t-1 to tier
+      // t on a LINEAR scale, the four jumps are unmissable: everything sits at
+      // the smooth 1.167 and four bars stand at 2.335.
+      var smooth=Math.pow(6, M.TIER_SPAN/(n-1));
+      var maxStep=smooth;
+      for(var q=2;q<=n;q++) maxStep=Math.max(maxStep, tierPower(q)/tierPower(q-1));
+      var base=1, top1=maxStep*1.08;
+      var yOf=function(v){ return H-pad-(H-pad*2)*((v-base)/(top1-base)); };
+
+      // the smooth-step reference line
+      g.strokeStyle=themeCol("--ink-3","#78848e"); g.lineWidth=1; g.setLineDash([3,3]);
+      g.beginPath(); g.moveTo(pad,yOf(smooth)); g.lineTo(W-pad,yOf(smooth)); g.stroke();
+      g.setLineDash([]);
+      g.font="10px ui-monospace,monospace"; g.fillStyle=themeCol("--ink-3","#78848e");
+      g.fillText("smooth step x"+smooth.toFixed(3), pad+4, yOf(smooth)-4);
+
+      for(var t=2;t<=n;t++){
+        var st=tierPower(t)/tierPower(t-1);
+        var isJump = st > smooth*1.05;
+        g.fillStyle = isJump ? themeCol("--ore","#a4531a") : themeCol("--dmg","#1d6b5d");
+        var y=yOf(st);
+        g.fillRect(colX(t), y, barW, (H-pad)-y);
+        if(isJump){
+          g.fillStyle=themeCol("--ore","#a4531a");
+          g.fillText("x"+st.toFixed(2), colX(t)-6, y-5);
+        }
+      }
+    } else {
+      var top=Math.log(dmgAt(n,M.MAXLVL)+1);
+      if(compare) top=Math.max(top, Math.log(oldDmg(n,M.MAXLVL)+1));
+      g.fillStyle=themeCol("--dmg","#1d6b5d");
+      for(var t2=1;t2<=n;t2++){
+        var h=(H-pad*2)*(Math.log(dmgAt(t2,M.MAXLVL)+1)/top);
+        g.fillRect(colX(t2),H-pad-h,barW,h);
+      }
+      if(compare){
+        g.strokeStyle=themeCol("--ink-3","#78848e"); g.lineWidth=1.5;
+        g.setLineDash([4,3]); g.beginPath();
+        for(var t3=1;t3<=n;t3++){
+          var x3=colX(t3)+barW/2;
+          var y3=H-pad-(H-pad*2)*(Math.log(oldDmg(t3,M.MAXLVL)+1)/top);
+          if(t3===1) g.moveTo(x3,y3); else g.lineTo(x3,y3);
+        }
+        g.stroke(); g.setLineDash([]);
+      }
+      // band risers, labels staggered so Divine and Exotic do not collide
+      g.lineWidth=1; g.font="10px ui-monospace,monospace";
+      var slot=0;
+      for(var t4=2;t4<=n;t4++){
+        if(!isBandStart(t4)) continue;
+        if((M.BAND_DMG[bandOf(t4)]||1) <= (M.BAND_DMG[bandOf(t4-1)]||1)) continue;
+        var x4=colX(t4);
+        g.strokeStyle=themeCol("--ore","#a4531a");
+        g.beginPath(); g.moveTo(x4,pad); g.lineTo(x4,H-pad); g.stroke();
+        var lab=bandOf(t4)+" x"+M.BAND_DMG[bandOf(t4)];
+        var lw=g.measureText(lab).width;
+        var lx=Math.min(x4+3, W-pad-lw-2);
+        g.fillStyle=themeCol("--ore","#a4531a");
+        g.fillText(lab, lx, pad+11+(slot%2)*13);
+        slot++;
+      }
+    }
+
+    $("ladderCap").textContent = mode==="step"
+      ? "the step from each tier to the next, linear scale — four bars stand above the rest, "
+        + "and they are the four bands past tier 60 where breaking power has stopped buying access"
+      : "damage at max level, every tier, log scale — the four risers are the band steps "
+        + "above tier 60";
+
+    // where the tier slider is
+    g.strokeStyle=themeCol("--ink","#11161b"); g.lineWidth=2;
+    var hx=colX(+tierSl.value)+barW/2;
+    g.beginPath(); g.moveTo(hx,pad); g.lineTo(hx,H-pad); g.stroke();
+  }
+
+  hookHover($("ladderChart"), $("ladderTip"), function(frac){
+    var n=M.ores.length;
+    var t=Math.max(1,Math.min(n,Math.round(frac*n)+1));
+    var h=homeOf(t), band=bandOf(t);
+    var prev=t>1?(tierPower(t)/tierPower(t-1)):null;
+    return "tier "+t+"   "+(M.ores[t-1]||"")+"   "+band+"   band step x"+(M.BAND_DMG[band]||1)+"\n"+
+      "damage  L1 "+big(dmgAt(t,1))+"   L"+M.MAXLVL+" "+big(dmgAt(t,M.MAXLVL))+
+      (prev?("   step over tier "+(t-1)+" x"+prev.toFixed(3)):"")+"\n"+
+      "home ore  zone "+h.zi+" layer "+commas(h.layer)+"  "+big(h.hp)+" HP  ->  "+
+      commas(Math.ceil(h.hp/dmgAt(t,1)))+" swings at L1, "+
+      commas(Math.ceil(h.hp/dmgAt(t,M.MAXLVL)))+" at L"+M.MAXLVL+"\n"+
+      "live levels "+liveLevels(t,dmgAt)+" of "+M.MAXLVL+
+      "   (old curve: "+liveLevels(t,oldDmg)+")";
+  });
+
+  [$("ladderOnlyJumps"),$("ladderCompare"),$("ladderMode")].forEach(function(el){
+    el.addEventListener("change", function(){ buildLadder(); drawLadder(); });
+  });
 
   [zoneSel,layerSl,tierSl,lvlSl].forEach(function(el){
     el.addEventListener("input",render); el.addEventListener("change",render);

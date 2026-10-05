@@ -147,7 +147,11 @@
     <div class="ctl"><label for="tier">Ore tier &mdash; <span class="n" id="tierLab">1</span>
       <span id="tierName" style="text-transform:none;letter-spacing:0;color:var(--ink-2)"></span></label>
       <input id="tier" type="range" min="1" max="82" value="30" step="1"></div>
-    <div class="ctl"><label for="lvl">Level &mdash; <span class="n" id="lvlLab">1</span></label>
+    <!-- max is set from M.MAXLVL at init. It was hardcoded 100 and went stale
+         the moment the cap moved to 30, which let you drag to a level the game
+         clamps away. The model is the only place the cap should live. -->
+    <div class="ctl"><label for="lvl">Level &mdash; <span class="n" id="lvlLab">1</span>
+      <span id="lvlCap" style="text-transform:none;letter-spacing:0;color:var(--ink-2)"></span></label>
       <input id="lvl" type="range" min="1" max="100" value="1" step="1"></div>
     <canvas id="toolChart" width="900" height="300"></canvas>
     <p class="clab">damage by level, log scale &mdash; line is your level, band is this block's HP</p>
@@ -161,6 +165,14 @@
         <div class="s" id="tReachSub">&mdash;</div></div>
       <div class="st"><div class="k">At cap</div><div class="v n" id="tCap" style="color:var(--dmg)">&mdash;</div>
         <div class="s" id="tCapSub">&mdash;</div></div>
+      <!-- The advertisable number. TOOL_CLIMB_DAMAGE^(1/(cap-1)), which is what
+           the forge would print on the upgrade button. -->
+      <div class="st"><div class="k">Per level</div><div class="v n" id="tStep" style="color:var(--dmg)">&mdash;</div>
+        <div class="s" id="tStepSub">&mdash;</div></div>
+      <!-- And the number that says how forging UP actually feels: a fresh
+           next-tier tool against the maxed one already in your hand. -->
+      <div class="st"><div class="k">Forge next tier</div><div class="v n" id="tForge">&mdash;</div>
+        <div class="s" id="tForgeSub">&mdash;</div></div>
     </div>
   </div>
 </div>
@@ -286,6 +298,10 @@
   zoneSel.value="1";
   layerSl.max = String(M.LAYERS);
   tierSl.max = String(M.ores.length);
+  // The level cap, from the model. Its markup said 100 and stayed there when
+  // TOOL_MAX_LEVEL moved to 30, so the slider offered levels the game clamps.
+  lvlSl.max = String(M.MAXLVL);
+  if (+lvlSl.value > M.MAXLVL) lvlSl.value = String(M.MAXLVL);
   lvlSl.max = String(M.MAXLVL);
 
   // ---------- charts ----------
@@ -404,6 +420,7 @@
     $("tierLab").textContent=t;
     $("tierName").textContent=" \· "+(M.ores[t-1]||"");
     $("lvlLab").textContent=L;
+    $("lvlCap").textContent=" · of "+M.MAXLVL;
 
     var s=sectionAt(layer), d=dirtHp(zi,layer), o=oreHp(zi,layer), sm=nextSeam(layer);
     $("mineSub").textContent=M.zones[zi-1].name+"  \·  floor "+commas(M.LAYERS);
@@ -424,6 +441,26 @@
     $("tReachSub").textContent=(t+M.ORE_REACH>M.ores.length)?"capped at the roster":"tier + "+M.ORE_REACH;
     $("tCap").textContent=big(cap);
     $("tCapSub").textContent="level "+M.MAXLVL;
+
+    // The advertisable per-level step.
+    $("tStep").textContent="+"+((dmgStep-1)*100).toFixed(1)+"%";
+    $("tStepSub").textContent=M.MAXLVL+" levels, x"+commas(Math.round(M.CLIMB_DMG))+" in total";
+
+    // Forging up, honestly. A fresh tier+1 tool arrives at level 1 while the
+    // tool in your hand is maxed, so the comparison is tierStep / climb -- about
+    // 1/300, and independent of the cap because the cap cancels out of both
+    // sides. The break-even level is what you have to grind to get back to even.
+    if(t >= M.ores.length){
+      $("tForge").textContent="—";
+      $("tForgeSub").textContent="tier "+t+" is the top of the roster";
+    } else {
+      var mine=dmgAt(t,M.MAXLVL), fresh=dmgAt(t+1,1), be=null;
+      for(var L=1;L<=M.MAXLVL;L++){ if(dmgAt(t+1,L)>=mine){ be=L; break; } }
+      $("tForge").textContent="x"+(fresh/mine).toFixed(3);
+      $("tForge").style.color=(fresh>=mine)?"var(--dmg)":themeCol("--bad","#9a3412");
+      $("tForgeSub").textContent="fresh tier "+(t+1)+" vs your maxed tier "+t+
+        "  ·  "+(be?("even at level "+be+" of "+M.MAXLVL):("still behind at "+M.MAXLVL));
+    }
 
     // the verdict: breaking power first, then damage
     var oreTierHere=Math.max(1,Math.min(M.ores.length,
@@ -541,10 +578,13 @@
     $("ladderHead").innerHTML =
       "<th class='r'>Tier</th><th>Ore</th><th>Band</th><th class='r'>Band step</th>" +
       "<th class='r'>Step over<br>previous tier</th><th class='r'>Break<br>power</th>" +
+      // "L100" was written into these headers while the columns underneath
+      // already used M.MAXLVL, so when the cap moved to 30 the table showed
+      // level-30 numbers under a heading that said 100. The cap goes in once.
       "<th class='r'>Reaches<br>ore</th><th class='r'>Damage L1</th>" +
-      "<th class='r'>Damage L100</th><th class='r'>Home ore<br>swings L1</th>" +
-      "<th class='r'>Home ore<br>swings L100</th><th class='r'>Live<br>levels</th>" +
-      (compare ? "<th class='r'>Old curve<br>damage L100</th>" +
+      "<th class='r'>Damage L"+M.MAXLVL+"</th><th class='r'>Home ore<br>swings L1</th>" +
+      "<th class='r'>Home ore<br>swings L"+M.MAXLVL+"</th><th class='r'>Live<br>levels</th>" +
+      (compare ? "<th class='r'>Old curve<br>damage L"+M.MAXLVL+"</th>" +
                  "<th class='r'>Old curve<br>live levels</th>" : "");
 
     var avg=0; for(var k=1;k<=M.ores.length;k++) avg+=liveLevels(k,dmgAt);
@@ -648,11 +688,11 @@
     var h=homeOf(t), band=bandOf(t);
     var prev=t>1?(tierPower(t)/tierPower(t-1)):null;
     return "tier "+t+"   "+(M.ores[t-1]||"")+"   "+band+"   band step x"+(M.BAND_DMG[band]||1)+"\n"+
-      "damage  L1 "+big(dmgAt(t,1))+"   L100 "+big(dmgAt(t,M.MAXLVL))+
+      "damage  L1 "+big(dmgAt(t,1))+"   L"+M.MAXLVL+" "+big(dmgAt(t,M.MAXLVL))+
       (prev?("   step over tier "+(t-1)+" x"+prev.toFixed(3)):"")+"\n"+
       "home ore  zone "+h.zi+" layer "+commas(h.layer)+"  "+big(h.hp)+" HP  ->  "+
       commas(Math.ceil(h.hp/dmgAt(t,1)))+" swings at L1, "+
-      commas(Math.ceil(h.hp/dmgAt(t,M.MAXLVL)))+" at L100\n"+
+      commas(Math.ceil(h.hp/dmgAt(t,M.MAXLVL)))+" at L"+M.MAXLVL+"\n"+
       "live levels "+liveLevels(t,dmgAt)+" of "+M.MAXLVL+
       "   (old curve: "+liveLevels(t,oldDmg)+")";
   });
