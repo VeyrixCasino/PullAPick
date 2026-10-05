@@ -60,6 +60,7 @@ const X0 = n1(cfg, "MineConfig\\.ORE_X0", -4.2);
 const K = n1(cfg, "MineConfig\\.ORE_K", 0.45);
 const S = n1(cfg, "MineConfig\\.ORE_S", 4.0);
 const W = n1(cfg, "MineConfig\\.ORE_W", 3.0);
+const FLOOR = n1(cfg, "MineConfig\\.ORE_WEIGHT_FLOOR", 0);
 
 // ORE_DMAX, exactly as MineConfig derives it NOW: off the LIVE depth curve,
 // anchored to the deepest normal mine minus ORE_DMAX_MARGIN.
@@ -89,6 +90,7 @@ function oreShares(zi, L) {
     const x = dOf(t) - dl;
     let v = 1 / (1 + Math.exp((x - X0) / K));
     if (x < 0) v *= Math.exp(x / S) * Math.exp(-Math.pow(x / W, 2));
+    if (v < FLOOR) v = FLOOR;   // MineConfig.ORE_WEIGHT_FLOOR
     w[t] = v;
     tot += v;
   }
@@ -231,6 +233,28 @@ const BANDS = [["Common", 1, 18], ["Uncommon", 19, 29], ["Rare", 30, 49],
   ok(exotic >= 0.00002,
     "...but is still obtainable there",
     (exotic * 100).toFixed(3) + "% (floor 0.002%)");
+  // EVERY rarity must be possible in EVERY zone. Owner, 2026-10-05: "every
+  // rarity should be POSSIBLE in every zone, just super highly unlikely (even 1
+  // in a million zone one)". Before ORE_WEIGHT_FLOOR the logistic put Oganesson
+  // at 3e-11 in Dirt Meadow -- one find per 187,000 years, which is a wall
+  // wearing a probability's clothes.
+  let zeroAt = null, worstOdds = 0;
+  for (let z = 1; z <= ZONES && zeroAt === null; z++) {
+    const s = oreShares(z, LAYERS);
+    for (let t = 1; t <= NORE; t++) {
+      const share = s.w[t] / s.tot;
+      if (!(share > 0)) { zeroAt = "zone " + z + " tier " + t; break; }
+      if (1 / share > worstOdds) worstOdds = 1 / share;
+    }
+  }
+  ok(zeroAt === null, "every ore can roll in every zone",
+    zeroAt === null ? "longest odds anywhere: 1 in " +
+      Math.round(worstOdds).toLocaleString("en-US") : "impossible at " + zeroAt);
+  // ...and the longest odds should be a lottery, not a geological age.
+  ok(worstOdds <= 5e6,
+    "the longest odds are still a lottery ticket",
+    "1 in " + Math.round(worstOdds).toLocaleString("en-US") + " (ceiling 1 in 5,000,000)");
+
   const ORE_CHANCE = 1 / 200, BPS = 10;
   const hrs = 1 / (ORE_CHANCE * (w[NORE] / tot)) / BPS / 3600;
   console.log("\n  share by band at the deepest spot:");

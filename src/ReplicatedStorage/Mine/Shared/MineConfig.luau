@@ -2308,6 +2308,23 @@ MineConfig.ORE_K = 0.45
 MineConfig.ORE_S = 4.0
 MineConfig.ORE_W = 3.0
 
+--[[
+	The floor under every ore's spawn weight, before normalising.
+
+	Owner, 2026-10-05: "every rarity should be POSSIBLE in every zone, just
+	super highly unlikely (even 1 in a million zone one)". 1e-7 lands that
+	almost exactly -- Oganesson at the floor of Dirt Meadow comes out at 1 in
+	984,973 -- while leaving the tuned curve alone: zone 10's Exotic share stays
+	0.173%, its peak stays tier 54, and zone 1 stays 98% Common.
+
+	Raising it makes the long shot commoner EVERYWHERE at once and is the one
+	dial here that cannot be undone by depth, so move it in powers of ten and
+	read tools/verify/ladder-climbable.js afterwards -- it asserts both that
+	every ore can roll in every zone and that the Exotic band stays rare at the
+	bottom.
+]]
+MineConfig.ORE_WEIGHT_FLOOR = 1e-7
+
 MineConfig.ORES = {
 	{ id = "stone", name = "Stone", tier = 1, color = Color3.fromRGB(131, 131, 131), material = Enum.Material.Rock, met = 0, rough = .9 },
 	{ id = "clay", name = "Clay", tier = 2, color = Color3.fromRGB(184, 93, 48), material = Enum.Material.Mud, met = 0, rough = .95 },
@@ -3397,6 +3414,35 @@ function MineConfig.oreWeights(zoneId, layer, rareOre)
 		local v = 1 / (1 + math.exp((x - X0) / K))
 		if x < 0 then
 			v = v * math.exp(x / S) * math.exp(-((x / W) ^ 2))
+		end
+		--[[
+			NOTHING IS EVER IMPOSSIBLE, ONLY ABSURD.
+
+			Owner, 2026-10-05: "every rarity should be POSSIBLE in every zone,
+			just super highly unlikely (even 1 in a million zone one)".
+
+			The logistic above falls off so hard that it stopped being a rarity
+			and became a wall: Oganesson at the floor of Dirt Meadow scored
+			3e-11, which is one find per 187,000 YEARS at ten blocks a second.
+			That is not a lottery ticket, it is a locked door with no key.
+
+			A floor under every ore's weight fixes it in one line and costs
+			nothing anywhere else, which is why it is a floor and not a gentler
+			curve. Flattening ORE_K to reach the same odds would have dragged the
+			whole distribution with it -- zone 10 goes from 55% Epic to 52% RARE
+			-- whereas the floor only ever lifts ore that was already below it:
+
+			    floor    t82 at the zone 1 floor   zone 10 Exotic   zone 1 Common
+			    none     1 in 29,000,000,000       0.173%           98.01%
+			    1e-7     1 in 984,973              0.173%           98.00%
+
+			Same curve, same endgame, and the one-in-a-million the owner asked
+			for. Applied before the cache and before normalising, so the share a
+			player actually sees is floor/tot and scales with how crowded the
+			table is at that depth.
+		]]
+		if v < MineConfig.ORE_WEIGHT_FLOOR then
+			v = MineConfig.ORE_WEIGHT_FLOOR
 		end
 		w[i] = v
 		tot += v

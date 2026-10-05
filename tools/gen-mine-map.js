@@ -117,6 +117,7 @@ const MODEL = {
     K: cnum("ORE_K", 0.45),
     S: cnum("ORE_S", 4.0),
     W: cnum("ORE_W", 3.0),
+    FLOOR: cnum("ORE_WEIGHT_FLOOR", 0),
   },
 };
 

@@ -328,6 +328,7 @@
       var x=d-dl;
       var v=1/(1+Math.exp((x-M.ORE.X0)/M.ORE.K));
       if(x<0) v*=Math.exp(x/M.ORE.S)*Math.exp(-Math.pow(x/M.ORE.W,2));
+      if(v<M.ORE.FLOOR) v=M.ORE.FLOOR;   // MineConfig.ORE_WEIGHT_FLOOR: nothing is impossible
       w[t]=v; tot+=v;
     }
     var peak=1,pv=-1,hi=1;
