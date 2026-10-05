@@ -6,6 +6,7 @@
   "luau-lsp.sourcemap.includeNonScripts": true,
   "luau-lsp.platform.type": "roblox",
   "luau-lsp.completion.imports.enabled": true,
+  "[luau]": { "editor.defaultFormatter": "JohnnyMorganz.stylua" },
   "files.exclude": {
     "**/build": true,
     "tools/export/in": true,
@@ -14,6 +15,8 @@
   "search.exclude": {
     "**/*.rbxm": true,
     "**/build": true,
-    "sourcemap.json": true
+    "sourcemap.json": true,
+    ".luau-bin": true,
+    "mine-for-cards-transcripts": true
   }
 }

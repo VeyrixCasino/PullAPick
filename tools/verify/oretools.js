@@ -23,14 +23,16 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "../..");
-const LUAU = path.join(ROOT, ".luau-bin/luau");
-if (!fs.existsSync(LUAU)) {
-  console.log("luau not present (.luau-bin/luau) — run tools/verify/syntax.sh first; skipping");
+const Luau = require("./_luau");
+const LUAU = Luau.LUAU;
+if (!Luau.ready) {
+  // Names the platform and the fix, rather than "skipping" with no reason.
+  console.log(Luau.missing("luau") + "; skipping");
   process.exit(0);
 }
 
-const cfg = fs.readFileSync(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineConfig.luau"), "utf8");
-const factory = fs.readFileSync(path.join(ROOT, "src/ReplicatedStorage/ToolModelFactory.luau"), "utf8");
+const cfg = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineConfig.luau"));
+const factory = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/ToolModelFactory.luau"));
 
 //[[ The real rows, verbatim.
 //

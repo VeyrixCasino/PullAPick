@@ -11,3 +11,10 @@ tools/export/in/
 # Generated charm art: 164 PNGs, rebuilt by tools/icons/gen-charm-art.js.
 # The generator is the source of truth; the manifest and ids.json are tracked.
 build/charm-icons/*.png
+
+# Owner transcripts: the requirements document, plus the raw session log and
+# pasted screenshots. Local on purpose -- 15 MB and private. The onboarding
+# brief says these are gitignored; until now they were merely untracked, so
+# one `git add -A` would have pushed them.
+mine-for-cards-transcripts/
+mine-for-cards-transcripts.zip

@@ -22,19 +22,21 @@ const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "../..");
 const SHARED = path.join(ROOT, "src/ReplicatedStorage/Mine/Shared");
-const LUAU = path.join(ROOT, ".luau-bin/luau");
-if (!fs.existsSync(LUAU)) {
-  console.log("luau not present (.luau-bin/luau) — run tools/verify/syntax.sh first; skipping");
+const Luau = require("./_luau");
+const LUAU = Luau.LUAU;
+if (!Luau.ready) {
+  // Names the platform and the fix, rather than "skipping" with no reason.
+  console.log(Luau.missing("luau") + "; skipping");
   process.exit(0);
 }
 
-const read = (n) => fs.readFileSync(path.join(SHARED, n + ".luau"), "utf8");
+const read = (n) => Luau.readSrc(path.join(SHARED, n + ".luau"));
 
 // Dig.oreLuck / Dig.packLuck are pure, and MineServer cannot be loaded here, so
 // their source is sliced out verbatim -- the real shipped arithmetic, without
 // booting a 15,000-line server script.
-const server = fs.readFileSync(
-  path.join(ROOT, "src/ServerScriptService/Mine/MineServer.server.luau"), "utf8");
+const server = Luau.readSrc(
+  path.join(ROOT, "src/ServerScriptService/Mine/MineServer.server.luau"));
 const slice = (name) => {
   const m = server.match(new RegExp("function Dig\\." + name + "\\(b\\)[\\s\\S]*?\\nend\\n"));
   return m ? m[0].replace("function Dig." + name, "function " + name.toUpperCase()) : null;
