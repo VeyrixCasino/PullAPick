@@ -5963,7 +5963,17 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 	-- Omni Blast is a destroy-proc: chest / core / cube deaths stay
 	-- centre-only, both as the source and as a neighbour.
 	if broke and not Dig.PROC_SKIP[kind] then
-		local chance = forceBlast and 1 or (b.blastChance or 0)
+		--[[
+			CLAMPED. Blast fires once or not at all, so anything over 1.0 was
+			discarded by the comparison below -- 156 of 504 pets roll this stat
+			and three of them already total 204%, which is why blast reads as
+			ambient rather than as a build.
+
+			Clamping does not nerf anyone who was at 100%: it makes the points
+			ABOVE 100% visible as waste, so the curve can be re-cut to cost
+			something.
+		]]
+		local chance = forceBlast and 1 or math.min(1, b.blastChance or 0)
 		if chance > 0 and rng:NextNumber() < chance then
 			net:FireClient(plr, "loot", { text = "BLAST", color = Color3.fromRGB(255, 140, 70), pos = part.Position })
 			for _, d in ipairs(Dig.FACE6) do
@@ -5978,21 +5988,34 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		end
 	end
 	--[[
-		RICOCHET: breaking a block jumps the hit to ONE block beside it, once.
+		RICOCHET: the hit jumps to one block beside it AND BOUNCES BACK.
 
-		Deliberately not a chain. swingNeighbour is called directly rather than
-		through anything that re-enters procsAt, so the block it lands on rolls
-		nothing of its own -- "no chain reactions" is enforced by the call, not
-		by a counter that could be raised later.
+		This is the only proc that returns. Blast spreads to six neighbours, zap
+		wanders up to sixteen blocks away, echo lands a full hit on a neighbour
+		which then rolls its own procs -- all three move damage AWAY from what
+		you are aiming at, which is waste when the valuable block is the one in
+		front of you.
 
-		Break-only, like Blast: a ricochet off a block that survived the swing
-		would fire on every tick of a long dig.
+		Ricochet concentrates instead: one hit out, one hit back into the
+		original block. It is the proc you take when you care about the ore you
+		are swinging at rather than the dirt around it, and that is a build
+		identity rather than a damage number.
+
+		It briefly rerolled the other procs where it landed, which made it a
+		copy of Dig.echoAt -- and echo is already being wound down (MineStats:
+		"Legacy: paid out as Swing Rate"). Two procs doing one job is worse than
+		a weak proc.
+
+		Still break-only, like Blast: a ricochet off a block that survived the
+		swing would fire on every tick of a long dig. Still not a chain: the
+		return hit goes through swingNeighbour, which re-enters nothing.
 	]]
 	if broke and not Dig.PROC_SKIP[kind] then
-		local ric = tonumber(b.ricochet) or 0
-		if Dig.RICO_LOCK[plr.UserId] then
-			ric = 0   -- already inside a ricochet's reroll; never chain
-		end
+		-- Clamped for the same reason as blast: one jump, so over 1.0 is a
+		-- boolean rather than a rate.
+		-- Clamped like blast: one jump out and one back, so a value over 1.0 is
+		-- a boolean rather than a rate.
+		local ric = math.min(1, tonumber(b.ricochet) or 0)
 		if ric > 0 and rng:NextNumber() < ric then
 			local opts = {}
 			for _, d in ipairs(Dig.FACE6) do
@@ -6013,24 +6036,22 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 					color = Color3.fromRGB(140, 220, 255), pos = hit.Position })
 				pcall(swingNeighbour, plr, hit, ricDmg, p)
 				--[[
-					AND THE LANDING BLOCK ROLLS YOUR OTHER PROCS.
+					AND BACK.
 
-					Owner, 2026-10-04: a ricochet that only lands one flat hit is
-					the weakest slot in the game. Blast, zap and earthquake all
-					get a roll where it lands, so taking ricochet is worth
-					something to every other proc on the build.
-
-					Ricochet itself is locked out for the duration, so the second
-					block cannot ricochet again: one jump, carrying the rest of
-					the kit with it. broke=false, because the block was not
-					necessarily destroyed by the ricochet -- the break-only procs
-					decide that for themselves.
+					The return lands on the block that was swung at. It has
+					already broken -- this branch is break-only -- so the bounce
+					goes to whatever is standing there now, which on a deep seam
+					is the next block the generator has pushed up into the cell.
+					When the cell is empty the bounce is simply lost, which is
+					the honest outcome: you cleared what you were aiming at.
 				]]
-				Dig.RICO_LOCK[plr.UserId] = true
-				pcall(Dig.procsAt, plr, p, b, zone, cells, hit,
-					pick.cx, pick.cy, pick.cz, ricDmg,
-					hit:GetAttribute("Kind"), false, false)
-				Dig.RICO_LOCK[plr.UserId] = nil
+				local home = cells[keyOf(zone.id, cx, cy, cz)]
+				if home and typeof(home) == "Instance" and home.Parent
+					and not Dig.PROC_SKIP[home:GetAttribute("Kind")] then
+					net:FireClient(plr, "loot", { text = "RICOCHET",
+						color = Color3.fromRGB(140, 220, 255), pos = home.Position })
+					pcall(swingNeighbour, plr, home, ricDmg, p)
+				end
 			end
 		end
 	end
@@ -6045,7 +6066,9 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		that is already gone has nothing to shake.
 	]]
 	if not broke and not Dig.PROC_SKIP[kind] then
-		local eq = tonumber(b.earthquake) or 0
+		-- Clamped: a quake either starts on this swing or it does not. The
+		-- STACK is where the depth lives now, not the roll.
+		local eq = math.min(1, tonumber(b.earthquake) or 0)
 		if eq > 0 and rng:NextNumber() < eq then
 			-- The PER-TICK figure is stored, not the swing: the tick loop then
 			-- subtracts what it was given rather than re-deriving a share, so
@@ -6065,6 +6088,15 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 
 		It still never doubles back into the cell it just left, and chain hits
 		still re-proc nothing.
+	]]
+	--[[
+		NOT clamped, and that is the point. Owner, 2026-10-05: "zap over 100 CAN
+		make sense because its a chance decay".
+
+		`chance` is multiplied by ZAP_FALLOFF every hop, so a stat above 1.0 is
+		not thrown away -- it buys guaranteed early hops and moves the point
+		where the chain starts failing. Zap is the only one of the four where a
+		value over 1.0 is a curve rather than a boolean.
 	]]
 	local startZap = b.zap or 0
 	if startZap <= 0 or rng:NextNumber() >= startZap then
@@ -6129,10 +6161,6 @@ end
 
 	On Dig so it costs no top-level local; this script sits at 197 of Luau's 200.
 ]]
--- Set for the moment a ricochet is rerolling procs on the block it landed on,
--- so that block cannot ricochet again. One jump, never a chain.
-Dig.RICO_LOCK = {}
-
 Dig.QUAKE = {}
 
 --[[
