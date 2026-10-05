@@ -120,7 +120,7 @@ MineBreaking.ORE_REACH = 15
 	while MineDepth multiplied block HP by ZONE_HP_MULT = 5. Measured end to end
 	(tools/depth-gate.js): at layer 2500, zone 1 demanded ore tier 41 and zone 11
 	demanded tier 44 -- three tiers for 9.77 MILLION times the HP. Clear layer
-	2500 in the first mine and you could stand at layer 2500 in Event Horizon.
+	2500 in the first mine and you could BREAK layer 2500 in Event Horizon.
 
 	It also ate the roster. Reaching the bottom of zone 1 needed tier 57 of 82 --
 	an ore whose own home is zone 8 -- leaving zones 2 through 11 to share three
@@ -146,7 +146,7 @@ MineBreaking.ZONES = 10
 	exports; MINE1_LAYERS still says 10000 and the seams past 5000 sit below the
 	floor unreachable. This constant was reading the 10000 and it is used for
 	exactly one thing: deriving MAX. So MAX was 100 rungs taller than anything a
-	player can stand on, and the top of the ore ladder pointed at layers that do
+	player can ever break, and the top of the ore ladder pointed at layers that do
 	not exist.
 
 	At 5000 the ladder TERMINATES where the game does. MAX becomes
@@ -222,8 +222,10 @@ function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
 	end
 	-- ORE_REACH, applied where the refusal actually happens: an ore is asked
 	-- for as if it sat ORE_REACH tiers lower, so a tier-T tool clears ore up
-	-- to tier T + ORE_REACH. Depth is untouched -- byLayer still gates how
-	-- deep you can stand, which is the half that must not be loosened.
+	-- to tier T + ORE_REACH. Depth is untouched -- byLayer still gates how deep
+	-- the rock YIELDS, which is the half that must not be loosened. Nothing here
+	-- gates movement: a player may walk to any depth, and failing this check
+	-- means the swing lands for zero on that block, not that they are kept out.
 	local reach = math.max(0, math.floor(tonumber(MineBreaking.ORE_REACH) or 0))
 	local asked = math.max(1, (tonumber(oreTier) or 1) - reach)
 	return math.max(byLayer, MineBreaking.oreStrength(asked, oreCount))

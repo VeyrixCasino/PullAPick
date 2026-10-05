@@ -39,7 +39,7 @@ const bandCuts = [...(cfg.match(/MineConfig\.ORE_YIELD_BANDS\s*=\s*\{([\s\S]*?)\
   .matchAll(/upTo\s*=\s*(\d+)/g)].map((m) => Number(m[1]));
 
 // ---- the breaking dials, straight off MineBreaking ------------------------
-// Parsed rather than restated: these decide who may stand where, and a second
+// Parsed rather than restated: these decide which BLOCKS refuse a swing, and a second
 // copy of them here is a copy that will disagree with the game.
 const brkSrc = read("src/ReplicatedStorage/Mine/Shared/MineBreaking.luau");
 const bnum = (k, dflt) => {
@@ -88,7 +88,7 @@ const MODEL = {
   // The BREAKING dials, so the page can run the real gate instead of only the
   // ORE_REACH half of it. The verdict used to say "reaches the ore at this
   // depth" off reach alone, which told a tier-1 pick it could mine tier-16 ore
-  // at layer 992 -- it cannot even stand there.
+  // at layer 992 -- rock that deep takes zero from a tier-1 swing.
   BRK: brk,
 };
 

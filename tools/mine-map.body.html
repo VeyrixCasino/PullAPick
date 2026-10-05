@@ -299,8 +299,9 @@
     var span=(Math.max(1,t)-1)/(M.ores.length-1);
     return clampInt(1+Math.floor(Math.pow(span,M.BRK.ORE_POW)*(M.BRK.MAX-1)+0.5),1,M.BRK.MAX);
   }
-  // Deepest layer a tier-t tool may stand at in a given zone, 0 if it cannot
-  // even enter. This is what turns "too weak" into something actionable.
+  // Deepest layer whose ROCK a tier-t tool can actually dent in a given zone,
+  // 0 if none of it. Nothing here is about movement -- a player may walk to any
+  // depth; the block is what refuses, by taking zero damage.
   function deepestLayerFor(t,zi){
     var P=oreStrength(t);
     for(var L=M.LAYERS;L>=1;L--) if(layerStrength(zi,L)<=P) return L;
@@ -494,6 +495,14 @@
     // Depth is the half that bites first and it is the half the owner asked
     // for: "breaking power should make you need to get a new pick from next
     // zone to come back to 501-1000 depth, and so on".
+    //
+    // FAILING IT IS A HARD BLOCK, NOT A BARRIER. Owner, 2026-10-05: "it should
+    // be a hard block trying to mine something that has a high breaking power,
+    // not a teleport away". Nothing gates where a player may walk. canBreak
+    // false means the swing lands for ZERO on that block -- MineBreaking:
+    // "Callers must treat `false` as ZERO damage, not reduced damage." The copy
+    // below says so, because an earlier version said "cannot stand this deep"
+    // and read like a movement restriction, which the game does not have.
     var oreTierHere=Math.max(1,Math.min(M.ores.length,
       Math.round((layer/M.LAYERS)*M.ores.length)));
     var hits=Math.ceil(o/Math.max(1,dm));
@@ -516,23 +525,26 @@
         commas(hits)+" swing"+(hits===1?"":"s")+".";
     } else if(have<needLayer){
       v.className="verdict no";
-      $("vBig").textContent="Cannot stand this deep";
+      $("vBig").textContent="This rock is too hard — the swing does nothing";
       $("vWhy").textContent=
-        "Depth is the gate here, not the ore. Zone "+zi+" layer "+commas(layer)+
-        " demands breaking power "+needLayer+" and a tier-"+t+" tool has "+have+
-        ". "+(deepest>0
-          ? "It bottoms out at layer "+commas(deepest)+" in this zone."
-          : "It cannot enter this zone at all — even the surface here asks "+
+        "Nothing stops you walking down here; the BLOCK refuses. Rock at zone "+zi+
+        " layer "+commas(layer)+" asks breaking power "+needLayer+" and a tier-"+t+
+        " tool has "+have+", so canBreak is false and the hit lands for ZERO — "+
+        "not reduced, zero. "+(deepest>0
+          ? "The deepest rock this tool can actually dent in this zone is layer "+
+            commas(deepest)+"."
+          : "It cannot dent anything in this zone — even the surface asks "+
             layerStrength(zi,1)+".")+
-        " Damage is irrelevant — forge from deeper ore to go deeper.";
+        " Damage is irrelevant — forge from deeper ore.";
     } else {
       v.className="verdict no";
-      $("vBig").textContent="Too weak for the ore here";
+      $("vBig").textContent="This ore is too hard — the swing does nothing";
       $("vWhy").textContent=
-        "You can stand at zone "+zi+" layer "+commas(layer)+" (that needs "+needLayer+
-        " and you have "+have+"), but tier-"+oreTierHere+" ore asks "+needOre+
-        " even after the +"+M.BRK.ORE_REACH+" reach. Levelling raises "+big(dm)+
-        " as far as you like and the block still cannot be touched.";
+        "The plain rock here is fine (it asks "+needLayer+" and you have "+have+
+        "), but tier-"+oreTierHere+" ORE asks "+needOre+" even after the +"+
+        M.BRK.ORE_REACH+" reach. You can dig the dirt around it and the ore itself "+
+        "will not budge. Levelling raises "+big(dm)+" as far as you like and the "+
+        "block still takes zero.";
     }
 
     $("foot").textContent =
