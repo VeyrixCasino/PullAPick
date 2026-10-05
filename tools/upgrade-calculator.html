@@ -282,7 +282,7 @@
   //   level 1, so it has had nothing put into it and gives nothing back. The
   //   rate can be a flat cut of what you actually spent, and nothing about it
   //   is exploitable. ]]
-  var DMAX=23.41, NORE=82, MAXLVL=30;
+  var DMAX=10.9936, NORE=82, MAXLVL=30;
   function oreD(t){ return (t-1)*DMAX/(NORE-1); }
   function homeHp(t){ return 20*Math.pow(6,oreD(t))*3; }
 
@@ -323,18 +323,20 @@
     ["Riftmarch Scarps","riftmarch",5],["Starfall Barrens","starfall",6],
     ["Mythral Catacombs","mythral",7],["Primordium Heart","primordium",8],
     ["Event Horizon","bigbang",0]];
-  var ORE_SPACING=0.2674, ORE_HP_MULT=3;
+  var ORE_SPACING=0.135723, ORE_HP_MULT=3;
+  // MineConfig.ORE_MIN_SHARE -- written by tools/gen/upgrade-calculator.js.
+  var ORE_MIN_SHARE=0.000001;
 
   var T={
     dmgBase:10, dmgStep:1.223845, tierSpan:7,
-    oreBase:4,  oreGrow:1.0075,
-    dustBase:25, dustGrow:1.011,
-    recPct:0.50,
+    oreBase:4,  oreGrow:1.29361,
+    dustBase:25, dustGrow:1.45773,
+    recPct:0.5,
     dropBase:8,  dropFall:6.0,
     yieldBase:6, yieldFall:1.0,
     costTier:0.85, costType:0.5,
     rbBase:7500, rbGrow:2.08,
-    oreChance:0.005, oreX0:-4.2, oreK:0.45, oreS:4.0, oreW:3.0,
+    oreChance:0.005, oreX0:-4.2, oreK:0.45, oreS:4, oreW:3,
     gemBase:2, gemSpan:1.5, bulkEvery:7, bulkMult:8
   };
   var GROUPS=[
@@ -516,8 +518,23 @@
   //   nudge abbrevCeil rounds a second time and the panel reads 3.4B where the
   //   game says 3.3B. 1e-4 is below the resolution of the stored D and well
   //   under one snap step, so it cannot move a genuine value. ]]
+  //[[ THE LIVE HP CURVE ]]
+  // This was abbrevCeil(20 * 6^(dMeadow(layer) + zone-1)) -- a x6 zone step on
+  // top of a section staircase, both from the RETIRED MineDepth.SECTIONS table.
+  // MineDepth.dirtHp does not read SECTIONS and never has a x6 zone step:
+  //
+  //     dirtHp(zone, layer) = (HP_BASE + HP_PER_LAYER * layer) * ZONE_HP_MULT^(zone-1)
+  //
+  // Linear in layer, x5 a zone. The constants are written in by
+  // tools/gen/upgrade-calculator.js so they cannot drift again, and the same
+  // fix was already applied to tools/mine-map.body.html.
+  var HP_BASE=20, HP_PER_LAYER=1.5, ZONE_HP_MULT=5;
   function zoneDirtHp(zi,layer){
-    return abbrevCeil(20*Math.pow(6,dMeadow(layer)+(zi-1))*(1-1e-4));
+    // math.max(1, math.floor(raw + 0.5)) -- MineDepth.dirtHp rounds to a whole
+    // number of HP. Without this the page sits half a point under the game at
+    // shallow layers, where 20 + 1.5*1 = 21.5 and the game stores 22.
+    var raw=(HP_BASE + HP_PER_LAYER*layer) * Math.pow(ZONE_HP_MULT, zi-1);
+    return Math.max(1, Math.floor(raw + 0.5));
   }
   // D is read back OFF the snapped health, exactly as MineConfig.oreDifficulty does
   function zoneD(zi,layer){ return Math.log(Math.max(20,zoneDirtHp(zi,layer))/20)/Math.log(6); }
@@ -528,6 +545,19 @@
       var x=oreDg(i)-D, v=1/(1+Math.exp((x-T.oreX0)/T.oreK));
       if(x<0) v=v*Math.exp(x/T.oreS)*Math.exp(-Math.pow(x/T.oreW,2));
       w.push(v); tot+=v;
+    }
+    // MineConfig.ORE_MIN_SHARE, as a minimum SHARE and as a FIXED POINT: every
+    // ore stays possible in every zone, and lifting raises the total which
+    // raises the floor, so this iterates until nothing moves. A single pass
+    // leaves the floored ores at minShare*totBefore/totAfter, which differs by
+    // depth and is what made the odds go BACKWARDS as you dug.
+    if(ORE_MIN_SHARE>0 && tot>0){
+      for(var pass=0;pass<8;pass++){
+        var fw=ORE_MIN_SHARE*tot, lifted=0;
+        for(var q=0;q<w.length;q++) if(w[q]<fw){ lifted+=fw-w[q]; w[q]=fw; }
+        if(lifted<=0) break;
+        tot+=lifted;
+      }
     }
     if(!(tot>0)) return {list:[],tot:0,n95:0,n999:0};
     var list=w.map(function(v,i){ return {tier:i+1,share:v/tot}; })

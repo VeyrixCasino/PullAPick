@@ -49,15 +49,17 @@ function readOres(src) {
 
 function readNumber(src, key) {
   const m = src.match(new RegExp("MineConfig\\." + key + "\\s*=\\s*(\\d+)"));
-  if (!m) throw new Error("MineConfig." + key + " not found");
+  if (!m) throw new Error((ns || "MineConfig") + "." + key + " not found");
   return Number(m[1]);
 }
 
 // readNumber only matches \d+, which silently misses 3.9e8 and 1.5. Takes the
 // LAST assignment, because MineConfig assigns some keys twice and the last one
 // is the one the module exports.
-function readFloat(src, key) {
-  const g = new RegExp("MineConfig\\." + key + "\\s*=\\s*([0-9.eE+-]+)", "g");
+// `ns` lets this read MineDepth.* as well as MineConfig.* -- the zone panel
+// needs HP_BASE / HP_PER_LAYER / ZONE_HP_MULT, which live in MineDepth.
+function readFloat(src, key, ns) {
+  const g = new RegExp((ns || "MineConfig") + "\\." + key + "\\s*=\\s*([0-9.eE+-]+)", "g");
   let v = null, m;
   while ((m = g.exec(src))) v = Number(m[1]);
   if (v === null || !isFinite(v)) throw new Error("MineConfig." + key + " not found");
@@ -131,6 +133,58 @@ html = html.replace(/\(t-1\)\*DMAX\/\d+/, "(t-1)*DMAX/(NORE-1)");
 html = html.replace(/dmgBase:\s*[\d.]+\s*,\s*dmgStep:\s*[\d.]+\s*,\s*tierSpan:\s*[\d.]+\s*,/,
   "dmgBase:" + dmgBase + ", dmgStep:" + Number(dmgStep.toFixed(6)) +
   ", tierSpan:" + tierSpan + ",");
+
+//[[ THE COST DIALS DRIFTED THE SAME WAY dmgStep DID ]]
+// oreGrow and dustGrow sat at 1.0075 and 1.011 -- the per-level rates for a
+// 1000-LEVEL cap -- while the game has been at 30, where they are about 1.292
+// and 1.458. They come out of the same perLevel() as dmgStep, so leaving them
+// hand-written meant tools/verify/trap.js computed the refund trap against a
+// curve the game retired: it reported a scrap refund re-buying 63 levels of a
+// 30-level ladder, 211% of the whole climb, which would be a live exploit if it
+// were true. It is not; the constant was.
+const oreBase = readFloat(src, "TOOL_ORE_BASE");
+const dustBase = readFloat(src, "TOOL_DUST_BASE");
+const oreGrow = Math.pow(readFloat(src, "TOOL_CLIMB_ORE"), 1 / Math.max(1, maxLevel - 1));
+const dustGrow = Math.pow(readFloat(src, "TOOL_CLIMB_DUST"), 1 / Math.max(1, maxLevel - 1));
+const recPct = readFloat(src, "TOOL_RECYCLE_PCT");
+html = html.replace(/oreBase:\s*[\d.]+\s*,\s*oreGrow:\s*[\d.]+\s*,/,
+  "oreBase:" + oreBase + ",  oreGrow:" + Number(oreGrow.toFixed(6)) + ",");
+html = html.replace(/dustBase:\s*[\d.]+\s*,\s*dustGrow:\s*[\d.]+\s*,/,
+  "dustBase:" + dustBase + ", dustGrow:" + Number(dustGrow.toFixed(6)) + ",");
+html = html.replace(/recPct:\s*[\d.]+\s*,/, "recPct:" + recPct + ",");
+
+//[[ AND THE ORE SPAWN INPUTS ]]
+// ORE_SPACING was 0.2674 -- 121 ores spanning D 0..32.09 -- against a live
+// ORE_DMAX/(NORE-1). DMAX itself was 23.41 against a live value derived from the
+// depth curve. The page's logistic and its oreX0/K/S/W defaults already match
+// MineConfig exactly; only these inputs were stale, which is why zones.js kept
+// reporting the panel a point or two off the game.
+// ORE_DMAX is DERIVED at module load, not written down, so it is recomputed
+// here the same way MineConfig does it rather than parsed.
+const oreLadderZones = readFloat(src, "ORE_LADDER_ZONES");
+const dmaxMargin = readFloat(src, "ORE_DMAX_MARGIN");
+const depSrc2 = luauSource(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineDepth.luau"));
+const hpBase = readFloat(depSrc2, "HP_BASE", "MineDepth");
+const hpPer = readFloat(depSrc2, "HP_PER_LAYER", "MineDepth");
+const zoneMult = readFloat(depSrc2, "ZONE_HP_MULT", "MineDepth");
+const layersLive = readFloat(src, "LAYERS");
+const deepHp = (hpBase + hpPer * layersLive) * Math.pow(zoneMult, oreLadderZones - 1);
+const DMAX = Math.max(1, Math.log(Math.max(20, deepHp) / 20) / Math.log(6) - dmaxMargin);
+const minShare = readFloat(src, "ORE_MIN_SHARE");
+
+html = html.replace(/var DMAX=[\d.]+,/, "var DMAX=" + Number(DMAX.toFixed(4)) + ",");
+html = html.replace(/var ORE_SPACING=[\d.]+,/,
+  "var ORE_SPACING=" + Number((DMAX / (ores.length - 1)).toFixed(6)) + ",");
+// oreChance is left alone: MineConfig writes it as `1 / 200`, which readFloat
+// would capture as the "1". The page's 0.005 is already that value.
+html = html.replace(/oreX0:[-\d.]+, oreK:[\d.]+, oreS:[\d.]+, oreW:[\d.]+,/,
+  "oreX0:" + readFloat(src, "ORE_X0") + ", oreK:" + readFloat(src, "ORE_K") +
+  ", oreS:" + readFloat(src, "ORE_S") + ", oreW:" + readFloat(src, "ORE_W") + ",");
+html = html.replace(/var ORE_MIN_SHARE=[\d.eE+-]+;/, "var ORE_MIN_SHARE=" + minShare + ";");
+// The live depth curve, so the zone panel stops running the retired SECTIONS
+// staircase and its x6 zone step.
+html = html.replace(/var HP_BASE=[\d.]+, HP_PER_LAYER=[\d.]+, ZONE_HP_MULT=[\d.]+;/,
+  "var HP_BASE=" + hpBase + ", HP_PER_LAYER=" + hpPer + ", ZONE_HP_MULT=" + zoneMult + ";");
 
 // tierPower's divisor, the same stale 120 that was live in MineConfig until
 // 2026-10-05, plus the per-band step that now rides on top of it.

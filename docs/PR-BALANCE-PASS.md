@@ -5,7 +5,7 @@ Paste this as the PR body. Open the PR here:
 
 ---
 
-Five things the owner asked for, and the structural bugs found underneath each.
+Six things the owner asked for, and the structural bugs found underneath each.
 The one blocker this branch opened with — that 53 of 82 ores could never spawn —
 is closed; see §4.
 
@@ -239,25 +239,81 @@ require cleanly. `TOOL_MAX_LEVEL=30`, `CLIMB=350`, `SPAN=7`,
 `6.27057e+10` — the same figure `check.js` and `dmg-live.js` assert.
 `canBreak(stone, zone 1, layer 1000)` = **false**, layer 50 = **true**.
 
-`suite.sh`: **25 passed**. `procs`, `zones` and `trap` fail as they did before this
-branch and are untouched by it.
+`suite.sh`: **26 passed**. `procs`, `zones` and `trap` fail as they did before this
+branch and are untouched by it — all three are harness bugs rather than balance
+problems; see **Still open**.
 
 One note on verifying in Studio: `require()` caches per ModuleScript **instance**,
 so a Rojo source update does not invalidate a module already required that
 session. Three probes came back stale before the module was cloned and required
 fresh. Worth knowing before trusting any in-Studio reading taken after an edit.
 
+## 6. Forging up was a downgrade at every tier
+
+`craftOreTool` built the tool row with `level = 1`, so a freshly forged
+tier-(T+1) tool was **×0.003** of the maxed tier-T tool already in your hand and
+had to be levelled to 30 of 30 just to break even — at every tier, all the way up
+the roster.
+
+It is not tunable. A fresh tool only wins if **one tier step is worth a whole
+climb**, and with 81 tier steps inside the damage budget the best possible case is
+`tierStep == climb == ×1.265`, which makes levelling a tool worth nothing at all.
+The roster being 82 long is what forces the step small, so the fix has to be
+mechanical rather than numerical.
+
+A forged tool now inherits the best level on the rack:
+
+| | at level 1 | inheriting |
+| --- | --- | --- |
+| tier 40 → 41 | ×0.0033 | **×1.1675** |
+| at a band border (60 → 61) | ×0.0067 | **×2.335** |
+
+Inherited from the *best* tool rather than one of the same family, because those
+levels were paid for in ore and dust once and the player does not owe them again
+for choosing a different frame. This recasts the two axes rather than softening a
+number: **levels are an early ramp you climb once and keep, tier is the
+progression** — which is already how `ORE_REACH` and the breaking gate treat the
+game.
+
+### The cap migration needed its own stamp
+
+The roster migration clamps over-cap levels but is gated on `ORE_ROSTER_V` and
+runs **once**. Every profile stamped while `TOOL_MAX_LEVEL` was 100 never
+re-enters it, and the cap is 30 now — those saves still hold tools stored at
+level 80. `clampLevel` makes them *behave* as 30 wherever damage is computed, so
+nothing is broken, but the stored number is a lie and the bench shows a level the
+game will not honour. `MineConfig.TOOL_CAP_V` + `p.toolCapV` fixes that,
+separately from the roster stamp because the two move for different reasons.
+
+**A pre-existing bug found doing it:** the roster migration's refund has never
+paid out a single ore. It computes `toolSpent(saved) − toolSpent(cap)`, and
+`MineConfig.toolSpent` runs its level through `clampLevel` — so once the saved
+level is over the cap both terms are identical and the difference is always zero.
+Dead since it was written, in every case it exists for.
+
+It cannot be repaired by unclamping either: `TOOL_CLIMB_ORE` and
+`TOOL_CLIMB_DUST` are restretched by `perLevel()` whenever the cap moves, so the
+series that priced level 80 when it was bought no longer exists anywhere in the
+config. What a player actually spent is not recoverable from the save. So the new
+migration does not pretend to refund — and clamping is its own compensation,
+because on this curve the cap **is** the full ×350 climb: a tool comes back
+**maxed**, skipping the whole ~12-hour climb.
+
+`verify/forge-upgrade.js` asserts the mechanism stays wired — it is one line in a
+15,000-line server file — and keeps the level-1 counterfactual in its output so
+the number justifying the change lives in the harness, not only in a commit
+message.
+
 ## Still open
 
-- **Carry the level across the forge.** A freshly forged next-tier tool is
-  **×0.003** of the maxed tool in your hand and must reach level 30 of 30 to break
-  even. It is cap-independent and cannot be tuned away: a fresh tool only wins if
-  one tier step is worth a whole climb, and with 81 tier steps inside the damage
-  budget the best case is tier step = climb = ×1.265, which makes levelling worth
-  nothing. Full inheritance is the only thing that works (×1.167).
-- **Rescale saved tool levels on load** after the 100 → 30 cap change.
-  `clampLevel` pins a level-80 tool to 30, which makes it *stronger* (×350 vs
-  ×109) — a silent 3.2× buff to every existing tool. `round(saved / 100 * 30)`
-  preserves what the player actually earned.
-- `procs.js` zap assertions predate the odds-only design; `zones` ore-share is in
-  the spawn area and untouched by request; `trap.js` known.
+- `zones.js` validates `upgrade-calculator.html`'s zone panel, which still runs
+  the **retired** depth and ore models: `ORE_SPACING = 0.2674` (121 ores over
+  D 0–32.09) against a live `ORE_DMAX/(NORE-1)` of 0.13572, `DMAX = 23.41`
+  against a live 10.9936, zone HP as `20 × 6^(d+zone−1)` against a live
+  `(20 + 1.5·L) × 5^(zone−1)`, and no `ORE_MIN_SHARE` floor. Same class of bug
+  already fixed in the mine map; the page's logistic and its `oreX0/K/S/W`
+  defaults are already correct, so only the inputs need syncing.
+- `trap.js` crashes before asserting anything: it exports `toolLevel` out of the
+  calculator and that function no longer exists.
+- `procs.js` asserts `hops <= 8` and `fall < 0.85`; the live values are 16 and
+  0.89, both set deliberately. The thresholds are stale, not the game.

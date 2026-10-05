@@ -140,26 +140,34 @@ MineBreaking.ORE_REACH = 15
 MineBreaking.ZONE_STEP = 100
 
 --[[
-	WHICH ZONE_STEP, AND THE TENSION IN IT.
+	WHY 100 AND NOT 10. SETTLED, 2026-10-05.
 
-	The owner's two statements on this do not agree, and the disagreement is
-	worth recording rather than silently resolving:
+	Two readings of the owner's intent were live at once and they disagreed:
 
-	  to another agent: "unlocking zone 3 is like zone 1 3 down (1000), zone 2
-	  1 down (500) ... zone 10 would be 9 down" -- that is ZONE_STEP 10, a zone
-	  worth 500 layers.
+	  "unlocking zone 3 is like zone 1 3 down (1000), zone 2 1 down (500) ...
+	  zone 10 would be 9 down" -- a zone worth 500 layers, which is ZONE_STEP 10.
 
-	  to this one: "breaking power should make you need to get a new pick from
-	  next zone to come back to 501-1000 depth, and so on" -- read as each zone
-	  being worth a whole mine, which is ZONE_STEP 100.
+	  "breaking power should make you need to get a new pick from next zone to
+	  come back to 501-1000 depth, and so on" -- a zone worth a whole mine,
+	  which is ZONE_STEP 100.
 
-	Shown both ladders measured side by side, the owner chose 100 (2026-10-05).
-	The deciding figure was what zone 1 costs: at 10 it still swallows tiers
-	1-49, 60% of the roster, and the finish/enter boundary jumps 33 tiers; at
-	100 zone 1 is tiers 1-9 and every boundary is continuous.
+	Both ladders were measured side by side and the owner chose 100. What decided
+	it was the cost of zone 1:
 
-	If the 500-layer mapping is the one that matters more, this is the single
-	line to change back, and tools/zone-gate-fix.js prints both tables.
+	            ZONE_STEP 10            ZONE_STEP 100
+	  zone 1    tiers 1-49, 60% of      tiers 1-9, 11% of
+	            the whole roster        the whole roster
+	  boundary  jumps 33 tiers          continuous, <= 1 tier
+	  shape     one mine is secretly    eight tiers a zone, ten
+	            the whole game          times over
+
+	ORE_DMAX is fitted against THIS ladder -- its margin was chosen as the
+	largest that keeps the forge walk reaching tier 82 -- so the two move
+	together. Changing this constant means re-running
+	tools/verify/ladder-climbable.js, which asserts the walk completes and that
+	the Exotic band stays rare while it does.
+
+	tools/zone-gate-fix.js prints both tables if it is ever reopened.
 ]]
 
 --[[

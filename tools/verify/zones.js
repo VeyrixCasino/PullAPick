@@ -31,13 +31,21 @@ const X = sb.__EXPORT;
 let fails = 0;
 const ok = (n, c, d) => { console.log((c ? "PASS  " : "FAIL  ") + n + (d ? "   " + d : "")); if (!c) fails++; };
 
-// --- dirt HP, straight off the Studio probe ---
+//[[ dirt HP, re-probed off the LIVE module 2026-10-05 ]]
+// The previous table was the RETIRED curve: it had Meadow layer 5000 at 3.3e12
+// and zone 11 layer 5000 at 1.983e20. MineDepth.dirtHp gives 7,520 and 7.34e10
+// for those -- the old numbers came from the SECTIONS staircase with a x6 zone
+// step, which the module stopped reading. The page was checked against them and
+// agreed, because the page ran the same retired model.
+//
+// Live: dirtHp(zone, layer) = (HP_BASE + HP_PER_LAYER * layer) * ZONE_HP_MULT^(zone-1)
+// -- linear in layer, x5 a zone. Exact integers, so these are exact.
 const HP = {
   // zone index -> { layer: hp }
-  1: { 1: 20, 100: 94, 500: 74400, 1000: 1.43e7, 5000: 3.3e12 },
-  2: { 1: 120, 500: 446000, 1000: 8.58e7, 5000: 1.97e13 },
-  5: { 1: 26000, 500: 9.64e7, 1000: 1.86e10, 5000: 4.3e15 },
-  11: { 1: 1.3e9, 500: 4.5e12, 1000: 8.643e14, 5000: 1.983e20 }
+  1: { 1: 22, 500: 770, 1000: 1520, 5000: 7520 },
+  5: { 1: 13438, 500: 481250, 1000: 950000, 5000: 4700000 },
+  10: { 1: 41992188, 500: 1503906250, 1000: 2968750000, 5000: 14687500000 },
+  11: { 1: 209960938, 500: 7519531250, 1000: 14843750000, 5000: 73437500000 }
 };
 console.log("--- dirt HP vs live MineConfig.blockHp ---");
 console.log("zone".padEnd(6) + "layer".padEnd(8) + "game".padEnd(13) + "page".padEnd(13) + "err");
@@ -63,12 +71,21 @@ ok("other zones within one snap step", worstHp < 0.01,
   "worst error " + (worstHp * 100).toFixed(2) + "% (one tenth-step is ~5%)");
 
 // --- ore spread, straight off the Studio probe ---
+//[[ ore spread, re-probed off the LIVE module 2026-10-05 ]]
+// Also a snapshot of the retired curve: it had Meadow layer 1 at D 0.0 with a
+// 44.8% top ore, and bigbang 5000 at D 24.41. Live D only reaches 11.39, because
+// ORE_DMAX now comes off the depth curve instead of SECTIONS' 9.3e18 last row.
+//
+// bigbang (zone 11) is dropped for primordium (zone 10): Event Horizon is not on
+// the ore-tool ladder -- "horizon is different... doesnt use normal tools" -- so
+// the roster is calibrated to the deepest NORMAL mine and that is the spot worth
+// pinning.
 const SPREAD = [
-  ["meadow", 1, 1, 0.0, 44.8, 6], ["meadow", 1, 500, 4.59, 15.1, 10],
-  ["meadow", 1, 2500, 10.16, 11.0, 17], ["meadow", 1, 5000, 14.42, 11.1, 17],
-  ["sunscar", 2, 1, 1.0, 39.6, 6], ["bloodmoon", 5, 1, 4.0, 21.8, 9],
-  ["eclipse", 6, 1, 5.0, 13.2, 11], ["riftmarch", 7, 500, 10.59, 11.1, 17],
-  ["bigbang", 11, 1, 10.04, 11.1, 17], ["bigbang", 11, 5000, 24.41, 11.1, 17]
+  ["meadow", 1, 1, 0.05, 25.8, 10], ["meadow", 1, 500, 2.04, 20.0, 13],
+  ["meadow", 1, 2500, 2.92, 17.5, 14], ["meadow", 1, 5000, 3.31, 16.0, 15],
+  ["sunscar", 2, 1, 0.94, 22.7, 11], ["bloodmoon", 5, 1, 3.63, 14.3, 16],
+  ["eclipse", 6, 1, 4.53, 8.2, 19], ["riftmarch", 7, 500, 7.43, 5.7, 32],
+  ["primordium", 10, 1, 8.12, 5.7, 33], ["primordium", 10, 5000, 11.39, 5.7, 33]
 ];
 console.log("\n--- ore spread vs live MineConfig.oreWeights ---");
 console.log("zone".padEnd(12) + "layer".padEnd(7) + "D game/page".padEnd(16) +

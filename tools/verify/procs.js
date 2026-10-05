@@ -66,9 +66,26 @@ check(S.quake * sec < 1,
 	("a whole quake is under one swing: %.2f x %d = %.2f"):format(S.quake, sec, S.quake * sec))
 
 -- Zap's chain terminates, and its total is bounded even if every hop lands.
+--[[
+	The thresholds here were hops <= 8 and fall < 0.85, from before the owner set
+	the chain himself: "make the chain maximum of 16", with ZAP_FALLOFF at 0.89.
+	So the test was red against values that were deliberately chosen, which is
+	the test being wrong rather than the game.
+
+	What actually has to hold is that the chain TERMINATES and that its total is
+	bounded -- a hop count that cannot run away, a falloff that genuinely decays,
+	and the chain-total check below, which is the real guard and already passes
+	at 16 / 0.89. The exact pair is a feel decision and belongs to the owner.
+]]
 local hops, fall = ${num("ZAP_MAX_HOPS")}, ${num("ZAP_FALLOFF")}
-check(hops <= 8, "zap is capped at " .. hops .. " hops (was 32)")
-check(fall < 0.85, "zap falls off " .. fall .. "x a hop, steeply enough to matter")
+check(hops <= 16, "zap's chain is capped at " .. hops .. " hops (was 32)")
+-- Wording note: do NOT put the phrase "cannot run" in an assertion label here.
+-- suite.sh decides a check "DID NOT RUN" by grepping its output for
+-- 'luau not present|skipping|cannot run|not runnable', so a passing assertion
+-- that happens to contain that phrase gets counted as a skip -- which the suite
+-- then treats as a failure, for the good reason that a silent skip is worse
+-- than a red test.
+check(fall < 1, "zap decays " .. fall .. "x a hop, so the chain always terminates")
 local total = 0
 for h = 1, hops do total += S.zap * (fall ^ (h - 1)) end
 check(total < 2.0, ("a whole zap chain is %.2f swings, even if every hop lands"):format(total))
