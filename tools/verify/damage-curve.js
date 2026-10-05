@@ -85,17 +85,36 @@ function liveLevels(t) {
 console.log("damage-curve: span " + SPAN + ", climb " + CLIMB +
   " (+" + ((STEP - 1) * 100).toFixed(2) + "%/lvl), " + NORE + " tiers");
 
-// --- ASK 1: levelling matters past 34 ----------------------------------------
-// The owner's number. Every tier must still be gaining past level 34, and the
-// starter tier is allowed to be the one exception -- it is the tutorial tool.
-let worst = MAXLVL + 1, worstT = 0;
+// --- ASK 1: most of the ladder has to stay live -------------------------------
+//
+// The owner's words were "levelling matters past 34", against a 100-level cap --
+// so 34 was never the real number, "two thirds of my ladder is dead" was. This
+// asserted `worst > 34` literally, and went red the moment TOOL_MAX_LEVEL moved
+// to 30 even though the curve had got BETTER: tier 16 gaining to level 28 of 30
+// is 93% of the ladder live, where level 34 of 100 was 34%.
+//
+// Expressed as a SHARE of the cap, so it measures the property the owner cares
+// about at any cap instead of re-breaking every time the cap moves.
+const LIVE_SHARE = 0.8;
+let worst = Infinity, worstT = 0;
 for (let t = 2; t <= NORE; t++) {
   const lv = liveLevels(t);
   if (lv < worst) { worst = lv; worstT = t; }
 }
-ok(worst > 34, "tier " + worstT + " stops gaining at level " + worst +
-  " -- levelling must matter past 34 for every tier");
-console.log("  worst tier is " + worstT + ", still gaining to level " + worst);
+ok(worst / MAXLVL >= LIVE_SHARE,
+  "tier " + worstT + " stops gaining at level " + worst + " of " + MAXLVL +
+  " (" + (worst / MAXLVL * 100).toFixed(0) + "% of the ladder) -- at least " +
+  (LIVE_SHARE * 100) + "% must stay live");
+console.log("  worst tier is " + worstT + ", gaining to level " + worst + " of " + MAXLVL +
+  "  (" + (worst / MAXLVL * 100).toFixed(0) + "% live)");
+
+// The advertisable number, since that is now a design requirement rather than a
+// side effect: a per-level step too small to print is a failure.
+const perLevelPct = (STEP - 1) * 100;
+ok(perLevelPct >= 15, "the per-level step is +" + perLevelPct.toFixed(1) +
+  "%, too small to advertise on the forge (want +15% or better)");
+console.log("  advertisable: +" + perLevelPct.toFixed(1) + "% damage per level, " +
+  MAXLVL + " levels to max");
 
 // --- ASK 2: purpose above tier 60 --------------------------------------------
 // Each band above 60 must be a real step over the band below it, at max level.

@@ -282,7 +282,7 @@
   //   level 1, so it has had nothing put into it and gives nothing back. The
   //   rate can be a flat cut of what you actually spent, and nothing about it
   //   is exploitable. ]]
-  var DMAX=23.41, NORE=82, MAXLVL=100;
+  var DMAX=23.41, NORE=82, MAXLVL=30;
   function oreD(t){ return (t-1)*DMAX/(NORE-1); }
   function homeHp(t){ return 20*Math.pow(6,oreD(t))*3; }
 
@@ -326,7 +326,7 @@
   var ORE_SPACING=0.2674, ORE_HP_MULT=3;
 
   var T={
-    dmgBase:10, dmgStep:1.060957, tierSpan:7,
+    dmgBase:10, dmgStep:1.223845, tierSpan:7,
     oreBase:4,  oreGrow:1.0075,
     dustBase:25, dustGrow:1.011,
     recPct:0.50,
@@ -340,10 +340,13 @@
   var GROUPS=[
     ["Damage","what a level is worth",[
       ["dmgBase","Base damage at level 1",1,100,1,function(v){return Math.round(v);}],
-      ["dmgStep","Per level",1.002,1.05,0.0005,function(v){
-        return "+"+((v-1)*100).toFixed(2)+"% ("+fmt(Math.pow(v,MAXLVL-1))+"x over 1000)";}],
+      // These two said "over 1000" and "tier 1 to 121" as literals, from the
+      // 1000-level cap and the 121-ore roster. Both read the live constants now,
+      // so the generator's NORE/MAXLVL rewrite keeps them honest by itself.
+      ["dmgStep","Per level",1.002,1.08,0.0005,function(v){
+        return "+"+((v-1)*100).toFixed(2)+"% ("+fmt(Math.pow(v,MAXLVL-1))+"x over "+MAXLVL+")";}],
       ["tierSpan","Tier band",4,28,0.5,function(v){
-        return "6^"+v.toFixed(1)+" ("+fmt(Math.pow(6,v))+"x, tier 1 to 121)";}]]],
+        return "6^"+v.toFixed(1)+" ("+fmt(Math.pow(6,v))+"x, tier 1 to "+NORE+")";}]]],
     ["Ore cost","what a level costs in ore",[
       ["oreBase","Base",1,50,1,function(v){return Math.round(v);}],
       ["oreGrow","Growth",1.001,1.02,0.0005,function(v){return "+"+((v-1)*100).toFixed(2)+"%";}]]],
@@ -360,7 +363,7 @@
     ["Ore to gems","scrap ore is where gems come from",[
       ["gemBase","Gems per tier-1 ore",0.2,20,0.2,function(v){return v.toFixed(1);}],
       ["gemSpan","Deeper-zone edge",0,4,0.1,function(v){
-        return Math.pow(6,v).toFixed(1)+"x from tier 1 to 121";}],
+        return Math.pow(6,v).toFixed(1)+"x from tier 1 to "+NORE;}],
       ["bulkEvery","Bulk ore every",0,12,1,function(v){
         return v<1 ? "off" : "every "+Math.round(v)+"th tier";}],
       ["bulkMult","Bulk drop size",2,20,1,function(v){
@@ -566,7 +569,16 @@
     var o=document.createElement("option"); o.value=String(i+1);
     o.textContent=(i+1)+"  "+nm; oreSel.appendChild(o);
   });
-  typeSel.value="0"; oreSel.value="100";
+  typeSel.value="0";
+  // THE BENCH OPENED ON NOTHING. This was oreSel.value="100" -- tier 100 of the
+  // old 121-ore roster. The roster is 82, so no option matched, selectedIndex
+  // stayed -1, and every ore-derived figure on the page read 0 or dashes. It
+  // has been broken since the cut.
+  //
+  // Clamped to the roster and then checked, because a value that does not match
+  // an option fails SILENTLY -- which is exactly how it went unnoticed.
+  oreSel.value = String(Math.min(100, NORE));
+  if (oreSel.selectedIndex < 0) oreSel.selectedIndex = oreSel.options.length - 1;
 
   // each rack gets the groups that belong beside its chart
   var RACKS={ toolTuners:["Damage","Ore cost","Stardust cost","Cost disparity","Recycle"],

@@ -2458,9 +2458,47 @@ MineConfig.ORES = {
 
 	At 1000 these reproduce the hand-tuned originals exactly -- 1.02 damage,
 	1.0075 ore, 1.011 dust -- so this is a refactor, not a rebalance. At 10,000
-	they become 1.00198, 1.00075 and 1.00109.
+	they become 1.00198, 1.00075 and 1.00109. At the live cap of 30 they are
+	1.224 damage, 1.292 ore and 1.467 dust.
+
+	One caveat on raising it: MineServer and OreBalanceSim both read this as
+	`math.min(100, C.TOOL_MAX_LEVEL)`. Lowering the cap is safe there; raising
+	it above 100 would be silently clamped in those two places and nowhere else.
 ]]
-MineConfig.TOOL_MAX_LEVEL = 100       -- the one line to move
+--[[
+	30, DOWN FROM 100. Owner, 2026-10-05: "it makes sense once everything is lv
+	100 but thats 10s of hours of grinding", and "even if the levels were
+	steeper, something i could advertise when people crafting a new tool by each
+	level UP%X".
+
+	The advertisable number is TOOL_DMG_STEP, and it is arithmetic:
+
+	    per level = TOOL_CLIMB_DAMAGE ^ (1 / (TOOL_MAX_LEVEL - 1))
+
+	At climb 350 over 99 steps that is +6.1%, which is not a number anyone puts
+	on a button. The climb cannot grow to fix it -- it is pinned to one zone's
+	HP growth, and check.js refuses a maxed tool that trivialises the deepest
+	rock. So the only lever on the per-level number is FEWER LEVELS.
+
+	This is the move the block above was written for: every per-level rate is
+	DERIVED from perLevel(), so the cap restretches all three at once and NEITHER
+	END POINT MOVES. A maxed tool is exactly as strong at 30 as it was at 100,
+	and a level-1 tool is unchanged. What changes is the step between them:
+
+	    cap 100   +6.1% a level    89.2K ore for a full climb   ~45 hours
+	    cap 30   +22.4% a level    23.8K ore for a full climb   ~12 hours
+
+	and the share of levels that still change a swing count stays at 99% either
+	way, measured per tier at the depth each ore spawns -- so the shorter ladder
+	costs nothing in whether levelling matters. See tools/level-steepness.js.
+
+	NOTE FOR SAVED TOOLS: clampLevel pins stored levels to this cap, so a tool
+	saved at level 80 now reads 30. It gets STRONGER, not weaker -- level 30 on
+	this curve is the full x350 where level 80 of 100 was only x109 -- but the
+	number on it drops. If that matters for live saves, rescale on load
+	(round(saved / 100 * 30)) rather than raising this back.
+]]
+MineConfig.TOOL_MAX_LEVEL = 30        -- the one line to move
 
 --[[
 	What a full 1 -> max climb multiplies by. Cap-independent.
