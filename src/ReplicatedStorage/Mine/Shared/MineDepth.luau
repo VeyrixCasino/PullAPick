@@ -7,14 +7,38 @@ local MineDepth = {}
 
 MineDepth.ZONE_HP_MULT = 5 -- x5 per zone. Ten zones is a bounded set, so a
 -- geometric zone term is safe; depth is unbounded, so its term is linear.
--- Outposts every 500 to 3000, then every 1000 to 10000. The widening is
--- deliberate: 500 layers is a shorter and shorter stretch of progress the deeper
--- you go, so past 3000 the same effort buys one outpost instead of two.
---
--- 10000 is the LAST seam, not the bottom of the mine. gateForLayer returns the
--- deepest seam at or below a layer, so buying 10000 opens everything beneath it
--- and depth carries on by the same formula with no further gate or outpost.
-MineDepth.SEAMS = { 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000 }
+--[[
+	OUTPOSTS EVERY 500, ALL THE WAY TO THE FLOOR.
+
+	Owner, 2026-10-05: "make outposts at every 500 depth".
+
+	This used to widen to every 1000 past 3000, on the reasoning that 500 layers
+	is a shorter stretch of progress the deeper you go. The widening is dropped:
+	a fixed rhythm is the point, and the band's own income still prices each gate
+	at SEAM_MINUTES, so a narrower band is simply a cheaper gate rather than a
+	worse deal.
+
+	3500 and 4500 ARE NOT NEW. The ladder ran every 500 once before, and the
+	world still carries DepthPlaza_<zone>_3500 and _4500 folders in Pits --
+	dressed, walled, 8 children each -- for all eleven zones. They were orphaned
+	when the ladder widened: every loop in MineDepthPlazas iterates SEAMS, so the
+	builder stopped maintaining them, the elevator stopped giving them a floor
+	and no gate ever landed on them. MineDepthShop's DESK_SEAM never lost its
+	outpost_3500 / outpost_4500 keys either. Putting them back on the ladder
+	adopts that geometry rather than building anything.
+
+	10000 is the LAST seam, not the bottom of the mine. gateForLayer returns the
+	deepest seam at or below a layer, so buying 10000 opens everything beneath it
+	and depth carries on by the same formula with no further gate or outpost.
+
+	NOTE: MineConfig.LAYERS is 5000, so every seam past it is currently
+	unreachable. They are left on the ladder because the ladder is not the thing
+	that decides the floor.
+]]
+MineDepth.SEAMS = {
+	500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000,
+	6000, 7000, 8000, 9000, 10000,
+}
 MineDepth.AIR_GAP = 5 -- layers of air ending at seam (e.g. 496-500)
 MineDepth.DEPTH_SELL_FRAC = 0.78
 MineDepth.COMING_SOON_SEAM = 99999

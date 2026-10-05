@@ -9,7 +9,8 @@ local C = require(shared:WaitForChild("MineConfig"))
 
 local MineDepthPlazas = {}
 
-local LAYOUT_VER = 5
+-- 6: station bay behind every outpost, and the ladder is every 500 again.
+local LAYOUT_VER = 6
 local opened = {}
 local boardsStarted = false
 local surfaceDone = false
@@ -537,13 +538,40 @@ local function dressOutpostFromSurface(folder, zone, seam, desk)
 end
 
 -- Seal the depth outpost in a rock shell so exploit TPs into open air don't "load" free mine.
-local function wallOutpost(folder)
+--[[
+	THE STATION BAY.
+
+	Owner, 2026-10-05: outposts want "extra space behind it for another station
+	incase we use it for something special (High teir enchanters, pack recyclers
+	shit like that idk)".
+
+	So the room is built deeper than it needs to be and the extra depth is left
+	EMPTY, with a floor and a sign and nothing else. It is one room rather than
+	an alcove behind a doorway: a walled-off annexe reads as a locked area a
+	player should be trying to get into, and this is not content yet.
+
+	Which way is "behind": zoneAxes already defines `back` as pointing at the
+	world origin, and the elevator shaft sits on the `side` axis, so the back is
+	the one wall nothing else is using. The walls here are world-axis aligned, so
+	the bay extends along whichever world axis `back` leans hardest on.
+
+	BAY_DEPTH is the only dial. It buys floor, not features -- when a station
+	does land here it needs no change to this function, only something parented
+	into the StationBay folder.
+]]
+local BAY_DEPTH = 28
+
+local function wallOutpost(folder, zone)
 	if not folder then
 		return
 	end
 	local old = folder:FindFirstChild("OutpostWalls")
 	if old then
 		old:Destroy()
+	end
+	local oldBay = folder:FindFirstChild("StationBay")
+	if oldBay then
+		oldBay:Destroy()
 	end
 	local clone = folder:FindFirstChild("SurfaceClone")
 	local square = clone and clone:FindFirstChild("Square")
@@ -553,9 +581,30 @@ local function wallOutpost(folder)
 	local walls = Instance.new("Folder")
 	walls.Name = "OutpostWalls"
 	walls.Parent = folder
+
+	-- Which world axis the bay grows along, and which way down it.
+	local bx, bz = 0, 1
+	if zone then
+		local _o, _d, _s, back = zoneAxes(zone)
+		if math.abs(back.X) >= math.abs(back.Z) then
+			bx, bz = (back.X >= 0 and 1 or -1), 0
+		else
+			bx, bz = 0, (back.Z >= 0 and 1 or -1)
+		end
+	end
+
 	local cx, cy, cz = square.Position.X, square.Position.Y, square.Position.Z
 	local sx = square.Size.X + 20
 	local sz = square.Size.Z + 20
+	-- Grow the room along the back axis and push its centre half that far the
+	-- same way, so every extra stud lands BEHIND the shop rather than around it.
+	if bx ~= 0 then
+		sx += BAY_DEPTH
+		cx += bx * BAY_DEPTH * 0.5
+	else
+		sz += BAY_DEPTH
+		cz += bz * BAY_DEPTH * 0.5
+	end
 	local wallH = 32
 	local thick = 4
 	local floorY = cy - square.Size.Y * 0.5
@@ -583,6 +632,70 @@ local function wallOutpost(folder)
 	wall("Ceiling", Vector3.new(sx + thick * 2, thick, sz + thick * 2), CFrame.new(cx, floorY + wallH, cz))
 	-- Floor plate under square so you never drop through streaming gaps.
 	wall("Floor", Vector3.new(sx, thick, sz), CFrame.new(cx, floorY - thick * 0.5, cz))
+
+	--[[
+		The reserved floor itself: a deck the player can stand on, a sign saying
+		what it is for, and nothing else. Parented to StationBay rather than
+		OutpostWalls so that dropping a station in later means adding a child
+		here, not editing this function.
+	]]
+	local bay = Instance.new("Folder")
+	bay.Name = "StationBay"
+	bay.Parent = folder
+	-- Centre of the extra depth, measured from the ORIGINAL square outward.
+	local halfOld = (bx ~= 0) and (square.Size.X + 20) * 0.5 or (square.Size.Z + 20) * 0.5
+	local bayMid = halfOld + BAY_DEPTH * 0.5
+	local bcx = square.Position.X + (bx ~= 0 and bx * bayMid or 0)
+	local bcz = square.Position.Z + (bx == 0 and bz * bayMid or 0)
+	local bayW = (bx ~= 0) and sz or sx
+
+	local deck = Instance.new("Part")
+	deck.Name = "BayDeck"
+	deck.Anchored = true
+	deck.CanCollide = true
+	deck.Material = Enum.Material.Slate
+	deck.Color = Color3.fromRGB(58, 52, 45)
+	deck.Size = Vector3.new(
+		(bx ~= 0) and BAY_DEPTH - 4 or bayW - 8,
+		1,
+		(bx ~= 0) and bayW - 8 or BAY_DEPTH - 4)
+	deck.CFrame = CFrame.new(bcx, floorY + 0.5, bcz)
+	deck.TopSurface = Enum.SurfaceType.Smooth
+	deck.BottomSurface = Enum.SurfaceType.Smooth
+	deck.Parent = bay
+
+	local sign = Instance.new("Part")
+	sign.Name = "BaySign"
+	sign.Anchored = true
+	sign.CanCollide = false
+	sign.Material = Enum.Material.Metal
+	sign.Color = Color3.fromRGB(38, 34, 30)
+	sign.Size = Vector3.new(
+		(bx ~= 0) and 0.4 or 10,
+		3,
+		(bx ~= 0) and 10 or 0.4)
+	-- Flat against the far wall, facing back into the room.
+	local wallIn = bayMid + BAY_DEPTH * 0.5 - 2
+	sign.CFrame = CFrame.new(
+		square.Position.X + (bx ~= 0 and bx * wallIn or 0),
+		floorY + 5,
+		square.Position.Z + (bx == 0 and bz * wallIn or 0))
+	sign.Parent = bay
+
+	local sg = Instance.new("SurfaceGui")
+	sg.Face = (bx ~= 0) and (bx > 0 and Enum.NormalId.Left or Enum.NormalId.Right)
+		or (bz > 0 and Enum.NormalId.Front or Enum.NormalId.Back)
+	sg.AlwaysOnTop = false
+	sg.PixelsPerStud = 40
+	sg.Parent = sign
+	local lbl = Instance.new("TextLabel")
+	lbl.BackgroundTransparency = 1
+	lbl.Size = UDim2.fromScale(1, 1)
+	lbl.Font = Enum.Font.GothamMedium
+	lbl.TextScaled = true
+	lbl.TextColor3 = Color3.fromRGB(150, 140, 125)
+	lbl.Text = "RESERVED"
+	lbl.Parent = sg
 end
 
 function buildDeck(zone, seam, desk)
@@ -599,7 +712,7 @@ function buildDeck(zone, seam, desk)
 			existing = nil
 		else
 			dressOutpostFromSurface(existing, zone, seam, desk)
-			wallOutpost(existing)
+			wallOutpost(existing, zone)
 			return existing
 		end
 	end
@@ -665,7 +778,7 @@ function buildDeck(zone, seam, desk)
 	end
 
 	dressOutpostFromSurface(folder, zone, seam, desk)
-	wallOutpost(folder)
+	wallOutpost(folder, zone)
 	CollectionService:AddTag(folder, "MineDepthPlaza")
 	return folder
 end
