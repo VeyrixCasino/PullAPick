@@ -1309,7 +1309,7 @@ MineConfig.ZAP_MAX_HOPS = 16
 	At 0.75 even 400% reached sixteen essentially never, so the hop cap did all
 	the work and the stat bought nothing past the first few hops.
 ]]
-MineConfig.ZAP_FALLOFF = 0.89
+MineConfig.ZAP_FALLOFF = 0.90
 
 -- How far procPower can be stacked. A ceiling, not a target.
 MineConfig.PROC_POWER_CAP = 3.0
