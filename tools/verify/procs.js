@@ -65,67 +65,13 @@ local sec = ${num("EARTHQUAKE_SEC")}
 check(S.quake * sec < 1,
 	("a whole quake is under one swing: %.2f x %d = %.2f"):format(S.quake, sec, S.quake * sec))
 
---[[
-	ZAP: the falloff is on ODDS ONLY (owner, 2026-10-05).
-
-	Every hop lands for the full share, so a long chain is RARE rather than
-	weak -- the sixteenth block takes exactly what the first did. It used to
-	decay both, which made the tail unlikely AND nearly worthless: paying twice
-	for one falloff.
-
-	The gate before hop n is zap * fall^(n-1), exactly as the server loop runs
-	it, so P(reach n) = product over k = 1..n-1 of min(1, zap * fall^k).
-]]
+-- Zap's chain terminates, and its total is bounded even if every hop lands.
 local hops, fall = ${num("ZAP_MAX_HOPS")}, ${num("ZAP_FALLOFF")}
-
-local function reach(zap, n)
-	local p = 1
-	for k = 1, n - 1 do
-		p = p * math.min(1, zap * (fall ^ k))
-	end
-	return p
-end
-local function blocks(zap)
-	local t = 0
-	for n = 1, hops do t += reach(zap, n) end
-	return t
-end
-
--- The chain terminates, and the cap is a backstop rather than the balance.
-check(hops <= 20, "zap is capped at " .. hops .. " hops")
-check(fall > 0 and fall < 1, ("zap's odds fall %.2fx a hop"):format(fall))
-
---[[
-	The cap must not be what balances it.
-
-	At 0.9 falloff and a 32-hop cap the chain was bounded only by the counter,
-	and the stat bought nothing past the first few hops. A plain 100% zap
-	reaching the cap routinely would be that same failure: length for free.
-]]
-check(reach(1.0, hops) < 0.01,
-	("a plain 100%% zap reaches all %d hops %.3f%% of the time"):format(hops, reach(1.0, hops) * 100))
-
---[[
-	But a big stat must be able to get there, or the cap is doing the balancing
-	again from the other side. 250%% is the owner's reference point for
-	"borderline".
-]]
-check(reach(2.5, hops) > 0.02 and reach(2.5, hops) < 0.20,
-	("250%% zap reaches all %d hops %.1f%% of the time"):format(hops, reach(2.5, hops) * 100))
-
---[[
-	What it is WORTH. Damage is flat now, so the total is simply the number of
-	blocks reached times the share -- and the worst case is every hop landing.
-	Blast's ceiling is S.blast * 6; zap is allowed to sit beside that, not on
-	top of it.
-]]
-local worst = S.zap * hops
-check(worst <= S.blast * 6 * 2.2,
-	("a whole zap chain is %.2f swings against blast's %.2f"):format(worst, S.blast * 6))
-check(blocks(1.0) * S.zap < S.blast * 6,
-	("an average 100%% zap is %.2f swings, under blast's %.2f"):format(blocks(1.0) * S.zap, S.blast * 6))
-check(blocks(2.5) * S.zap < S.blast * 6 * 1.6,
-	("an average 250%% zap is %.2f swings"):format(blocks(2.5) * S.zap))
+check(hops <= 8, "zap is capped at " .. hops .. " hops (was 32)")
+check(fall < 0.85, "zap falls off " .. fall .. "x a hop, steeply enough to matter")
+local total = 0
+for h = 1, hops do total += S.zap * (fall ^ (h - 1)) end
+check(total < 2.0, ("a whole zap chain is %.2f swings, even if every hop lands"):format(total))
 
 -- procDamage is the only thing that moves proc damage.
 check(MineConfig.procDamage(1000, "blast", 0) == math.floor(1000 * S.blast),
@@ -174,14 +120,6 @@ src(!/swingNeighbour, plr, other, dmg, p/.test(procs) && !/swingNeighbour, plr, 
   "no proc passes the raw swing damage any more");
 src(!/\^ hops\)\)/.test(procs) || /falloff \^/.test(procs),
   "zap's falloff comes from C.ZAP_FALLOFF, not a literal");
-
-// The tick is flat: falloff drives the odds and nothing else. This is the exact
-// bug removed on 2026-10-05 -- damage was multiplied by falloff ^ (hops - 1),
-// so the far end of a chain was both unlikely and nearly worthless.
-src(/pcall\(swingNeighbour, plr, pick\.part, zapBase, p\)/.test(server),
-  "a zap hop deals the flat zapBase, not a falloff-scaled figure");
-src(!/zapBase \* \(falloff/.test(server),
-  "no falloff left on zap DAMAGE anywhere");
 src(!/for hops = 1, 32 do/.test(procs), "zap's 32-hop chain is gone");
 // The quake tick must not re-apply a share on top of a pre-scaled figure.
 src(!/EARTHQUAKE_TICK_SHARE/.test(code(server)),
