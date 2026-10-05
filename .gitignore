@@ -21,3 +21,7 @@ transcripts/
 # `git add -A` would have pushed 15 MB including session-raw.jsonl.gz.
 mine-for-cards-transcripts/
 mine-for-cards-transcripts.zip
+
+# Generated intermediates: regenerate with
+#   node tools/depth-sheet-data.js ; node tools/gen-mine-map.js
+build/*.json
