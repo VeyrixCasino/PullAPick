@@ -2556,6 +2556,13 @@ end
 ]]
 MineConfig.ORE_REACH = 15
 
+-- The reach that applies in the zone you are STILL WORKING. Owner, 2026-10-05:
+-- "make the ore requirement elevated until they go to next zone". Mirrors
+-- MineBreaking.ORE_REACH_HOME, which is the live gate; tools/verify/breaking.js
+-- fails if the two drift. Not zero: reach 0 deadlocks progression at tier 4,
+-- measured -- the reasoning is on MineBreaking.ORE_REACH_HOME.
+MineConfig.ORE_REACH_HOME = 5
+
 --[[
 	Breaking power for a tool with no ore behind it -- a shop rung, the starter
 	pickaxe, a chest flagship.
@@ -2592,16 +2599,28 @@ end
 -- The rule, stated. The live refusal is main's Dig.Breaking.canBreak, which
 -- also weighs zone and layer; this is here so the reach rule has one home and
 -- the UI below can show the same ceiling the rule implies.
-function MineConfig.canBreakOre(breakingPower, oreTier)
+function MineConfig.canBreakOre(breakingPower, oreTier, cleared)
 	local bp = math.max(1, math.floor(tonumber(breakingPower) or 1))
 	local t = math.max(1, math.floor(tonumber(oreTier) or 1))
-	return t <= bp + (MineConfig.ORE_REACH or 15)
+	return t <= bp + (cleared and (MineConfig.ORE_REACH or 15)
+		or (MineConfig.ORE_REACH_HOME or 5))
 end
 
 -- The deepest ore tier a tool can reach, for UI that wants to show the ceiling.
-function MineConfig.oreReachCap(breakingPower)
+--[[
+	What the Forge should PROMISE. Defaults to the home reach, deliberately.
+
+	This is the number the player reads on a tool, and until 2026-10-05 it
+	quoted +15 while the gate gave +0. Quoting the home reach means the Forge
+	under-promises -- a cleared zone is kinder than the label -- which is the
+	only direction a promise is allowed to be wrong in. Pass cleared = true to
+	show what a zone you have already passed will allow.
+]]
+function MineConfig.oreReachCap(breakingPower, cleared)
 	local bp = math.max(1, math.floor(tonumber(breakingPower) or 1))
-	return math.min(bp + (MineConfig.ORE_REACH or 15), MineConfig.ORE_COUNT or 82)
+	local reach = cleared and (MineConfig.ORE_REACH or 15)
+		or (MineConfig.ORE_REACH_HOME or 5)
+	return math.min(bp + reach, MineConfig.ORE_COUNT or 82)
 end
 
 --[[

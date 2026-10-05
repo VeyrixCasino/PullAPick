@@ -6542,7 +6542,11 @@ local function swingBlock(plr, part)
 		local layer = tonumber(part:GetAttribute("CY") or part:GetAttribute("Layer")) or 1
 		local zi = (C.zoneIndex and C.zoneIndex(part:GetAttribute("ZoneId") or p.zoneId)) or 1
 		local oreTier = tonumber(part:GetAttribute("OreTier"))
-		local okBreak, need, have = Dig.Breaking.canBreak(tool, zi, layer, oreTier, #C.ORES)
+		-- maxUnlockedZone decides which reach applies: ore in the zone you are
+		-- still working is asked for nearly straight, ore in a zone you have
+		-- already passed drops to the full reach. See MineBreaking.reachFor.
+		local okBreak, need, have = Dig.Breaking.canBreak(
+			tool, zi, layer, oreTier, #C.ORES, p.maxUnlockedZone)
 		if not okBreak then
 			-- Throttled: a player holding the button swings into the wall ten
 			-- times a second and only needs telling once.

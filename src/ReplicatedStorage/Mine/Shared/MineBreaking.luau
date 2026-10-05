@@ -94,6 +94,54 @@ MineBreaking.ORE_POW = 2.0
 ]]
 MineBreaking.ORE_REACH = 15
 
+--[[
+	THE SAME RULE, TIGHTER IN THE ZONE YOU ARE STANDING IN.
+
+	Owner, 2026-10-05: "maybe just make the ore requirement elevated until they
+	go to next zone".
+
+	So reach is not one number, it is two. In the zone you are currently
+	working, ore is asked for nearly straight -- you have to forge up to meet
+	it. Once you have unlocked the zone ABOVE it, that zone's ore drops to the
+	full reach and you can mop up everything you outgrew.
+
+	WHY THIS IS NOT ZERO, which is the thing to know before anyone "tightens"
+	it further: reach is load-bearing for progression, not generosity. A tier-T
+	tool has breaking power oreStrength(T), so with reach 0 it breaks ore up to
+	tier T and no further -- and the ore you need to forge T+1 is tier T+1.
+	Measured against this exact curve, reach 0 deadlocks at TIER 4: a tier-4
+	tool can never break anything above tier 4, forever.
+
+	Headroom each setting actually buys, measured, at tiers 20 / 50 / 80:
+
+	    reach  0   0 / 0 / 0      deadlocks at tier 4
+	    reach  3   3 / 3 / 2
+	    reach  5   5 / 5 / 2      <- ORE_REACH_HOME
+	    reach 15  15 / 15 / 2     <- ORE_REACH, zones you have cleared
+
+	The taper to 2 at tier 80 is the ORE_POW curve steepening, not a cap: near
+	the top, one tier is worth ~5 rungs, so even a generous reach buys little.
+	That is the intended shape -- the last stretch is meant to be forged.
+]]
+MineBreaking.ORE_REACH_HOME = 5
+
+--[[
+	Which reach applies. `maxUnlockedZone` is the player's progress; nil means
+	"caller does not know", and that takes the full reach so nothing that has
+	not been taught about zones silently gets harder.
+]]
+function MineBreaking.reachFor(zoneIndex, maxUnlockedZone)
+	local unlocked = tonumber(maxUnlockedZone)
+	if unlocked == nil then
+		return MineBreaking.ORE_REACH
+	end
+	local zi = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	if math.floor(unlocked) > zi then
+		return MineBreaking.ORE_REACH
+	end
+	return MineBreaking.ORE_REACH_HOME
+end
+
 MineBreaking.ZONE_STEP = 1
 MineBreaking.ZONES = 10
 MineBreaking.MAX_LAYER = 10000
@@ -151,16 +199,17 @@ end
 	about; a max means an ore is exactly as hard as the harder of "where it is"
 	and "what it is".
 ]]
-function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
+function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
 	local byLayer = MineBreaking.layerStrength(zoneIndex, layer)
 	if oreTier == nil then
 		return byLayer
 	end
-	-- ORE_REACH, applied where the refusal actually happens: an ore is asked
-	-- for as if it sat ORE_REACH tiers lower, so a tier-T tool clears ore up
-	-- to tier T + ORE_REACH. Depth is untouched -- byLayer still gates how
-	-- deep you can stand, which is the half that must not be loosened.
-	local reach = math.max(0, math.floor(tonumber(MineBreaking.ORE_REACH) or 0))
+	-- Reach, applied where the refusal actually happens: an ore is asked for as
+	-- if it sat `reach` tiers lower, so a tier-T tool clears ore up to tier
+	-- T + reach. Depth is untouched -- byLayer still gates how deep you can
+	-- stand, which is the half that must not be loosened.
+	local reach = math.max(0,
+		math.floor(MineBreaking.reachFor(zoneIndex, maxUnlockedZone)))
 	local asked = math.max(1, (tonumber(oreTier) or 1) - reach)
 	return math.max(byLayer, MineBreaking.oreStrength(asked, oreCount))
 end
@@ -200,8 +249,8 @@ MineBreaking.TOO_WEAK = "Your tool is too weak to damage this block"
 	chip would let a player grind through a wall given enough swings, which is
 	the entire thing this exists to prevent.
 ]]
-function MineBreaking.canBreak(tool, zoneIndex, layer, oreTier, oreCount)
-	local need = MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
+function MineBreaking.canBreak(tool, zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
+	local need = MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
 	local have = MineBreaking.toolBreakingPower(tool, oreCount)
 	return have >= need, need, have
 end

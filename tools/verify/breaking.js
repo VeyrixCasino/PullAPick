@@ -33,11 +33,27 @@ const cReach = num(cfg, /MineConfig\.ORE_REACH\s*=\s*(\d+)/, "MineConfig.ORE_REA
 ok("ORE_REACH agrees across the gate and the UI", bReach !== null && bReach === cReach,
    `MineBreaking ${bReach} vs MineConfig ${cReach}`);
 
-// The bug this file exists for: the gate must actually subtract the reach.
-ok("blockStrength applies ORE_REACH",
-   /ORE_REACH[\s\S]{0,200}?oreStrength\(\s*asked/.test(brk) ||
-   /oreStrength\(\s*math\.max\(1,[^)]*ORE_REACH/.test(brk),
-   "the gate subtracts reach before asking oreStrength");
+const bHome = num(brk, /MineBreaking\.ORE_REACH_HOME\s*=\s*(\d+)/, "MineBreaking.ORE_REACH_HOME");
+const cHome = num(cfg, /MineConfig\.ORE_REACH_HOME\s*=\s*(\d+)/, "MineConfig.ORE_REACH_HOME");
+ok("ORE_REACH_HOME agrees across the gate and the UI", bHome !== null && bHome === cHome,
+   `MineBreaking ${bHome} vs MineConfig ${cHome}`);
+ok("the home reach is tighter than the cleared one", bHome < bReach,
+   `home ${bHome} < cleared ${bReach}`);
+
+// The bug this file exists for: the gate must actually subtract the reach,
+// and must pick it per-zone rather than using one flat number.
+const gate = (brk.match(/function MineBreaking\.blockStrength[\s\S]*?\nend/) || [""])[0];
+ok("blockStrength picks the reach per zone", /reachFor\s*\(/.test(gate),
+   "goes through MineBreaking.reachFor");
+ok("blockStrength subtracts the reach before asking oreStrength",
+   /oreStrength\(\s*asked/.test(gate) && /asked\s*=[\s\S]*?-\s*reach/.test(gate),
+   "ore is asked for `reach` tiers lower");
+ok("blockStrength still gates depth separately", /math\.max\(\s*byLayer/.test(gate),
+   "byLayer is not loosened by reach");
+ok("canBreak forwards the player's zone progress",
+   /function MineBreaking\.canBreak\([^)]*maxUnlockedZone/.test(brk) &&
+   /blockStrength\([^)]*maxUnlockedZone/.test(brk),
+   "maxUnlockedZone reaches blockStrength");
 
 const dials = {
   LAYERS_PER_RUNG: 50,
@@ -61,6 +77,27 @@ ok("the top ore reaches the mine floor", oreStrength(82, 82) === MAX,
 ok("the first ore is the bottom rung", oreStrength(1, 82) === 1, String(oreStrength(1, 82)));
 
 // Shop picks must not open the forge's territory.
+//[DEADLOCK] Reach is load-bearing, not generosity. A tier-T tool has breaking
+// power oreStrength(T), so with reach R it clears ore up to T+R; the ore needed
+// to forge T+1 is tier T+1. At reach 0 that is a wall at tier 4. This asserts
+// every tier below the top can still reach SOME higher ore at the home reach,
+// so nobody can tighten ORE_REACH_HOME into a dead game.
+{
+  const topBreakable = (T, R) => {
+    for (let o = T + 1; o <= 82; o++) if (oreStrength(Math.max(1, o - R), 82) <= oreStrength(T, 82)) return o;
+    return T;
+  };
+  let stuck = null;
+  for (let T = 1; T < 82 && stuck === null; T++) if (topBreakable(T, bHome) <= T) stuck = T;
+  ok("the home reach never deadlocks progression", stuck === null,
+     stuck === null ? `every tier 1-81 can reach higher ore at reach ${bHome}`
+                    : `tier ${stuck} can break nothing above itself at reach ${bHome}`);
+  let stuck0 = null;
+  for (let T = 1; T < 82 && stuck0 === null; T++) if (topBreakable(T, 0) <= T) stuck0 = T;
+  ok("...and reach 0 would, which is why it is not zero", stuck0 === 4,
+     `reach 0 walls at tier ${stuck0}`);
+}
+
 const shop = (brk.match(/MineBreaking\.SHOP_POWER\s*=\s*\{([^}]*)\}/) || [])[1];
 const rungs = shop ? shop.split(",").map((x) => Number(x.trim())).filter((n) => !isNaN(n)) : [];
 ok("shop picks are 5 rungs at the bottom",
