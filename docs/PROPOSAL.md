@@ -29,6 +29,11 @@ Every number below is derived from the live modules, with the arithmetic shown.
 > game. Headroom at tiers 20/50/80: home **5/5/2**, cleared **15/15/2** — the
 > taper is `ORE_POW` steepening near the top, where a tier is worth ~5 rungs.
 >
+> **Confirmed by the owner, and the ladder is measured.** Reach 5 is a
+> **16-forge climb** from Stone to Oganesson — one +8 at the start, fourteen
+> clean +5 steps, one +3 at the end. A cleared zone at reach 15 is 6 forges.
+> Full table and the reach-vs-climb-length curve in `docs/BALANCE-MEASURED.md`.
+>
 > **It costs the coin economy its biggest sink.** Seams, rebirth and shop tools
 > were the three; seams are now gone. That makes line 23 (potions priced in
 > coins) the load-bearing sink, and §7 of `docs/OPEN.md` — what coins are

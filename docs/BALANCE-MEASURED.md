@@ -129,3 +129,69 @@ grep -n 'Layers.add' src/ServerScriptService/Mine/MineServer.server.luau
   0.60 over its 5s life). The 8.4× blast exists only at the `procPower` cap, and
   that cap is the dedicated amplifier the owner asked for. The blast problem is
   **how many pets grant it**, not how hard it hits.
+
+---
+
+# The forge ladder — how far reach 5 actually takes you
+
+Owner, 2026-10-05: *"how far can this pattern take us"*. Measured by walking the
+climb: hold a tier-T tool, take the best ore it can break, forge that, repeat.
+
+**Reach 5 is a 16-forge climb from Stone to Oganesson**, and the steps are
+almost perfectly even:
+
+| # | forge | unlocks up to | gain |
+|---|---|---|---|
+| 1 | t1 Stone | t9 Slate | **+8** |
+| 2 | t9 Slate | t14 Ember | +5 |
+| 3 | t14 Ember | t19 Iron | +5 |
+| 4 | t19 Iron | t24 Rime | +5 |
+| 5 | t24 Rime | t29 Onyx | +5 |
+| 6 | t29 Onyx | t34 Turquoise | +5 |
+| 7 | t34 Turquoise | t39 Lapis | +5 |
+| 8 | t39 Lapis | t44 Jade | +5 |
+| 9 | t44 Jade | t49 Obsidian | +5 |
+| 10 | t49 Obsidian | t54 Emerald | +5 |
+| 11 | t54 Emerald | t59 Aquamarine | +5 |
+| 12 | t59 Aquamarine | t64 Starmetal | +5 |
+| 13 | t64 Starmetal | t69 Frostfire | +5 |
+| 14 | t69 Frostfire | t74 Mythril | +5 |
+| 15 | t74 Mythril | t79 Plutonium | +5 |
+| 16 | t79 Plutonium | t82 Oganesson | **+3** |
+
+The +8 at the start is the bottom of the `ORE_POW` curve being flat — several
+early ores need the same breaking power, so the first forge is a free jump. The
++3 at the end is the same curve steepening: near the top one tier is worth ~5
+rungs, so the reach stops buying much. Neither is a special case in the code.
+
+**The same climb in a zone you have already cleared (reach 15) is 6 forges** —
+Stone → Iron → Turquoise → Obsidian → Starmetal → Plutonium → Oganesson. That
+is the point of the split: forward is sixteen deliberate steps, backward is a
+mop-up.
+
+## Reach against climb length
+
+| reach | forges | |
+|---|---|---|
+| 0 | **deadlocks at tier 4** | not a setting |
+| 1 | 73 | |
+| 2 | 38 | |
+| 3 | 26 | tighter, if 16 milestones feels thin |
+| 4 | 19 | |
+| **5** | **16** | **chosen** — round number, dead-even steps |
+| 6 | 13 | |
+| 8 | 10 | |
+| 10 | 8 | |
+| 15 | 6 | cleared zones |
+| 20 | 4 | |
+
+## Calibration
+
+16 forges is the entire tool progression. Against `docs/ROADMAP.md` (first 15
+minutes out to 96 hours) that is **roughly one major tool upgrade every 5–6
+hours**, and it front-loads: the first step is +8 and low-tier ore is cheap
+(25 blocks at tier 1 against 122 at tier 82, approved lines 9–10), so expect
+four or five forges in the first couple of hours and a widening gap after.
+
+That shape is intended. Flagged here so nobody reads the sparse late game as a
+bug and "fixes" the reach.
