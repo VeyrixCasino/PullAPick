@@ -13024,9 +13024,17 @@ end)
 -- whole server compiling. tools/verify/compile.js caught it. A function body
 -- gets its own budget.
 ;(function()
+	--[[
+		NAMED EXPLICITLY, and LaneBodies is deliberately NOT here.
+
+		It was, on my guess that it was scaffolding. `LaneTips` sits beside it in
+		the workspace and the pair reads as real geometry, not a showcase -- so
+		the guess comes out. Everything in this list is a rack of art with a name
+		that says so; anything ambiguous stays in the world.
+	]]
 	local SHOWCASE = {
 		PetShowcase = true, OreShowcase = true, ToolModels_HQ = true,
-		ToolKit_Showcase = true, IconPoseExamples = true, LaneBodies = true,
+		ToolKit_Showcase = true, IconPoseExamples = true,
 		["Gem-N-Eye Preview"] = true,
 	}
 	local removed, parts = 0, 0
