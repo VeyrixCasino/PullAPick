@@ -68,7 +68,12 @@ const parts = [
   block("local function zoneSeed(", "end"),
   block("function MineConfig.veinSizeFor(", "end"),
   block("function MineConfig.veinSizeMean(", "end"),
+  // The memo locals the two functions below read. Sliced explicitly because
+  // they are module state, not constants, and omitting them made veinOreAt
+  // index a nil `veinCell`.
+  line("local vwZone, vwSec, vwBucket, vwRow ="),
   block("function MineConfig.veinWeights(", "end"),
+  line("local veinCell ="),
   block("function MineConfig.veinOreAt(", "end"),
 ];
 parts.sort((a, b) => a.i - b.i);
