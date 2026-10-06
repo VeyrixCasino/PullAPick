@@ -161,6 +161,144 @@ MineOreTools.TYPE_MULT_STEPS = {
 	explosive = { 9, 19, 30, 41, 52, 63, 73, 82 },
 }
 
+--[[
+	THE FRAME'S STATS, BAKED THE SAME WAY AND FOR THE SAME REASON.
+
+	A frame carried far more than a cost multiplier: equippedTool read `rate`,
+	`radius`, `cells`, `shape`, `width`, `axis`, `turn` and -- for explosives --
+	`bombs`, `pattern` and `cooldown` straight off it. Delete the roster without
+	these and every forged DRILL and EXPLOSIVE falls to the defaults, which are
+	rate 2.6, cells 1, radius 0, shape "melee": a single-block melee pickaxe.
+	The area clear and the blast would be gone, silently, with nothing erroring.
+
+	Like typeMult, these were already pure functions of ore tier, because
+	frameForTier is. They are run-length encoded as {upTo, value} and were
+	EMITTED from the live roster rather than typed out, so nothing is a
+	transcription. tools/verify/oreframes.js re-derives them and fails on any
+	difference.
+
+	Pickaxes barely vary -- always melee, one cell, only the swing rate moves.
+	Drills and explosives are where the real shape is: a drill's cells go
+	1 -> 9 -> 4 -> 1 -> 4 -> 1 -> 9 across the roster and its axis flips between
+	`down` and `aim` four times, which is exactly the sort of detail that would
+	not survive being re-invented by hand.
+]]
+MineOreTools.FRAME_STATS = {
+	pickaxe = {
+		rate = {
+			{2,3}, {6,2.7}, {9,2.5}, {13,2.6}, {16,2.4}, {20,2.5},
+			{23,2.3}, {27,2.6}, {30,2.4}, {34,2.7}, {37,2.5}, {41,2.8},
+			{45,2.6}, {48,2.9}, {52,2.7}, {55,2.5}, {59,3}, {62,2.8},
+			{66,3.1}, {69,2.9}, {73,3.2}, {76,3}, {80,3.1}, {82,3.2},
+		},
+		cells = { {82,1} },
+		radius = { {82,0} },
+		shape = { {82,"melee"} },
+		width = { {82,false} },
+		axis = { {82,false} },
+		turn = { {82,false} },
+		bombs = { {82,false} },
+		pattern = { {82,false} },
+		cooldown = { {82,false} },
+	},
+	drill = {
+		rate = {
+			{3,2.6}, {14,4}, {19,3.5}, {30,4}, {57,2.5}, {63,3},
+			{68,3.5}, {73,3}, {79,4}, {82,2.2},
+		},
+		cells = {
+			{30,1}, {57,9}, {63,4}, {68,1}, {73,4}, {79,1},
+			{82,9},
+		},
+		radius = { {82,0} },
+		shape = {
+			{14,"down"}, {19,"dir"}, {63,"down"}, {68,"dir"}, {79,"down"}, {82,"dir"},
+		},
+		width = {
+			{30,1}, {57,3}, {63,2}, {68,1}, {73,2}, {79,1},
+			{82,3},
+		},
+		axis = {
+			{14,"down"}, {19,"aim"}, {63,"down"}, {68,"aim"}, {79,"down"}, {82,"aim"},
+		},
+		turn = {
+			{3,1.4}, {82,1.2},
+		},
+		bombs = { {82,false} },
+		pattern = { {82,false} },
+		cooldown = { {82,false} },
+	},
+	explosive = {
+		rate = { {82,1} },
+		cells = {
+			{46,7}, {52,33}, {57,9}, {63,11}, {82,33},
+		},
+		radius = {
+			{41,1}, {46,0}, {52,2}, {63,0}, {82,2},
+		},
+		shape = { {82,false} },
+		width = { {82,false} },
+		axis = { {82,false} },
+		turn = { {82,false} },
+		bombs = {
+			{25,1}, {30,3}, {46,1}, {52,3}, {68,1}, {82,3},
+		},
+		pattern = {
+			{25,"sphere"}, {30,"cluster"}, {41,"sphere"}, {46,"line"}, {52,"cluster"}, {63,"line"},
+			{68,"splash"}, {82,"cluster"},
+		},
+		cooldown = {
+			{3,2.05}, {9,1.15}, {14,1.25}, {19,1.4}, {25,1.6}, {30,1.95},
+			{36,1.75}, {41,1.9}, {46,2.15}, {52,2.45}, {57,2.3}, {63,2.6},
+			{68,2.75}, {73,3.15}, {79,3.65}, {82,4.25},
+		},
+	},
+}
+
+--[[
+	`false` means the frame had NOTHING here, and that is not the same as 0.
+
+	The first bake wrote a default in place of a missing key -- 0 for numbers,
+	"" for strings -- and 738 of 2,460 values came back wrong against the
+	roster. It matters because 0 is TRUTHY in Lua: a caller reading
+	`typeDef.turn or 1.2` gets 1.2 from nil but 0 from a baked zero, so a
+	pickaxe would have been handed a turn rate of zero instead of the default.
+
+	And 0 is a real value elsewhere -- an explosive's radius is genuinely 0 at
+	tiers 42-46 -- so "treat 0 as absent" would have been wrong in the other
+	direction. A marker that cannot collide with any real value is the only
+	thing that works.
+]]
+local function statValue(steps, tier)
+	for _, pair in ipairs(steps) do
+		if tier <= pair[1] then
+			local v = pair[2]
+			if v == false then
+				return nil
+			end
+			return v
+		end
+	end
+	return nil
+end
+
+--[[
+	Every stat a forged tool of this family and ore tier carries.
+
+	Returns a fresh table, because callers write finish multipliers onto what
+	they get back and a shared one would leak between tools.
+]]
+function MineOreTools.frameStats(familyId, oreTier)
+	local fam = MineOreTools.FRAME_STATS[tostring(familyId or "pickaxe")]
+		or MineOreTools.FRAME_STATS.pickaxe
+	local t = math.clamp(math.floor(tonumber(oreTier) or 1), 1, 82)
+	local out = {}
+	for key, steps in pairs(fam) do
+		out[key] = statValue(steps, t)
+	end
+	return out
+end
+
 function MineOreTools.typeMult(familyId, oreTier)
 	local steps = MineOreTools.TYPE_MULT_STEPS[tostring(familyId or "pickaxe")]
 		or MineOreTools.TYPE_MULT_STEPS.pickaxe

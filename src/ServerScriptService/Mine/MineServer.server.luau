@@ -2239,29 +2239,50 @@ local function equippedTool(p)
 			end
 		end
 		if oreRow then
+			--[[
+				THE STATS COME FROM THE ORE, NOT FROM A FRAME.
+
+				This walked Tools.TOOLS for the row's typeId and took `rate`,
+				`radius`, `cells` and `shape` off whatever frame it found. That
+				roster is gone, so the stats are read from MineOreTools instead,
+				where they are baked per family per ore tier -- the same values,
+				verified 2,460 for 2,460 against the roster before it was removed.
+
+				Without this the fallbacks below would have taken over and every
+				forged DRILL and EXPLOSIVE would quietly become a one-cell melee
+				pickaxe: no area clear, no blast, and nothing to error on.
+
+				The name is the family's noun now. It used to be the FRAME's
+				name, so a forged tool read "Stone Chipped Crown" -- an ore and
+				an invented frame title, which is the exact confusion
+				MineOreTools was written to end.
+			]]
 			local famId = oreRow.familyId or "pickaxe"
-			local typeDef, typeMult = nil, 1
-			for _, td in ipairs((Tools.TOOLS or {})[famId] or {}) do
-				if td.id == oreRow.typeId then
-					typeDef = td
-					local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-					typeMult = (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
-					break
-				end
-			end
+			local OreToolsM = require(shared:WaitForChild("MineOreTools"))
+			local stats = OreToolsM.frameStats(famId, oreRow.tier)
+			local typeMult = OreToolsM.typeMult(famId, oreRow.tier)
 			local oreDef = C.ORES and C.ORES[tonumber(oreRow.tier) or 1]
 			local level = math.max(1, tonumber(oreRow.level) or 1)
 			local def = {
 				id = "oretool_" .. tostring(oreRow.uid),
 				name = string.format("%s %s",
 					(oreDef and oreDef.name) or ("Tier " .. tostring(oreRow.tier)),
-					(typeDef and typeDef.name) or "Tool"),
+					OreToolsM.familyNoun(famId)),
 				family = famId,
 				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult))),
-				rate = (typeDef and typeDef.rate) or 2.6,
-				radius = (typeDef and typeDef.radius) or 0,
-				cells = (typeDef and typeDef.cells) or 1,
-				shape = (typeDef and typeDef.shape) or "melee",
+				rate = stats.rate or 2.6,
+				radius = stats.radius or 0,
+				cells = stats.cells or 1,
+				shape = stats.shape or "melee",
+				-- Carried through for the families that use them. A drill needs
+				-- its width and axis to clear more than one block; an explosive
+				-- needs its bomb count, pattern and cooldown to be a bomb.
+				width = stats.width,
+				axis = stats.axis,
+				turn = stats.turn,
+				bombs = stats.bombs,
+				pattern = stats.pattern,
+				cooldown = stats.cooldown,
 				oreTier = math.max(1, math.floor(tonumber(oreRow.tier) or 1)),
 				oreToolEquipped = oreRow.uid,
 				level = level,
