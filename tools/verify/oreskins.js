@@ -34,11 +34,14 @@ const ok = (c, msg, detail) => {
 console.log("oreskins: no tool is sold for coins, and every ore tier has its own pickaxe");
 
 // ------------------------------------------------------------ the skins --
-const block = /MineIcons\.ORE_PICK = \{([\s\S]*?)\n\}/.exec(ICONS);
-ok(!!block, "MineIcons.ORE_PICK exists");
-const entries = block ? [...block[1].matchAll(/\[(\d+)\]\s*=\s*"rbxassetid:\/\/(\d+)"/g)] : [];
-const byTier = new Map();
-for (const e of entries) byTier.set(+e[1], e[2]);
+const tableOf = (name) => {
+  const b = new RegExp("MineIcons\\." + name + " = \\{([\\s\\S]*?)\\n\\}").exec(ICONS);
+  const m = new Map();
+  if (b) for (const e of b[1].matchAll(/\[(\d+)\]\s*=\s*"rbxassetid:\/\/(\d+)"/g)) m.set(+e[1], e[2]);
+  return b ? m : null;
+};
+const byTier = tableOf("ORE_PICK");
+ok(!!byTier, "MineIcons.ORE_PICK exists");
 
 // The roster length comes from the config, not from a number restated here.
 const oreStart = CFG.split(/\r?\n/).findIndex((l) => l.startsWith("MineConfig.ORES = {"));
@@ -61,6 +64,29 @@ const dupes = ids.filter((v, i) => ids.indexOf(v) !== i);
 ok(dupes.length === 0, "no two ores share a pickaxe",
   dupes.length ? [...new Set(dupes)].join(", ") : ids.length + " distinct asset ids");
 
+//[[ Drills and explosives get the same treatment, and the same scrutiny: a
+// family whose table is short or has a repeat is a family where some ores
+// silently share a picture, which reads as a coincidence rather than a bug. ]]
+for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
+  const t = tableOf(name);
+  ok(!!t, `MineIcons.${name} exists`);
+  if (!t) continue;
+  ok(t.size === oreCount, `${name} covers every ore tier`, `${t.size} of ${oreCount}`);
+  const v = [...t.values()];
+  const d = v.filter((x, i) => v.indexOf(x) !== i);
+  ok(d.length === 0, `${name} has no two ores sharing a skin`,
+    d.length ? [...new Set(d)].join(", ") : v.length + " distinct");
+  // And no family may share art with another family.
+  const shared = v.filter((x) => ids.includes(x));
+  ok(shared.length === 0, `${name} shares no asset with ORE_PICK`,
+    shared.length ? shared.length + " shared ids" : "disjoint");
+}
+
+for (const n of ["ADMIN_PICK", "ADMIN_DRILL", "ADMIN_BOMB"]) {
+  ok(new RegExp("MineIcons\\." + n + ' = "rbxassetid://\\d+"').test(ICONS),
+    `${n} is set`, "the last icon of each sheet is the admin tool");
+}
+
 ok(/MineIcons\.ORE_PICK_STARTER = "rbxassetid:\/\/\d+"/.test(ICONS),
   "the given wooden pickaxe has its own skin too");
 const starter = /MineIcons\.ORE_PICK_STARTER = "rbxassetid:\/\/(\d+)"/.exec(ICONS);
@@ -70,11 +96,24 @@ ok(starter && !ids.includes(starter[1]),
 
 // ---------------------------------------------------- one lookup, used --
 ok(/function MineIcons\.forTool\(/.test(ICONS), "MineIcons.forTool is the single lookup");
-// Drills and explosives must NOT get pickaxe art -- every render is a pickaxe.
+
+//[[ All three forged families have their own art now. This check used to assert
+// the OPPOSITE -- "only skins the pickaxe family" -- which was right while every
+// render was a pickaxe and dressing a drill in one would have been a lie about
+// what you are holding. The owner supplied drill and explosive sheets, so the
+// rule inverted: each family uses its own table, and a family with NO table
+// falls back to its flat family icon rather than borrowing another's art. ]]
 const fn = /function MineIcons\.forTool\(([\s\S]*?)\nend/.exec(ICONS);
-ok(fn && /fam == "pickaxe"/.test(fn[1]),
-  "forTool only skins the pickaxe family",
-  "drills and explosives keep their family icon until their own art exists");
+ok(fn && /ORE_SKINS\[fam\]/.test(fn[1]),
+  "forTool picks the skin table by family",
+  "so a family without art cannot borrow another family's");
+ok(fn && /MineIcons\.IMAGES\[fam\]/.test(fn[1]),
+  "forTool falls back to the flat family icon when a family has no skins");
+for (const [fam, tbl] of [["pickaxe", "ORE_PICK"], ["drill", "ORE_DRILL"], ["explosive", "ORE_BOMB"]]) {
+  const b = /MineIcons\.ORE_SKINS = \{([\s\S]*?)\n\}/.exec(ICONS);
+  ok(b && new RegExp(fam + "\\s*=\\s*MineIcons\\." + tbl).test(b[1]),
+    `${fam} maps to ${tbl}`);
+}
 
 ok(/Icons\.forTool\(/.test(HOTBAR), "the hotbar draws through forTool");
 ok(/Icons\.forTool\(/.test(FORGE), "the Forge hero draws through forTool");
