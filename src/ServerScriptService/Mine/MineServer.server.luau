@@ -1,13 +1,31 @@
 -- MineServer compact: AFK mining TCG. Original city place is not modified.
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local CollectionService = game:GetService("CollectionService")
-local DSS = game:GetService("DataStoreService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local RS = game:GetService("ReplicatedStorage")
+--[[
+	ONE TABLE FOR THE SERVICES, AND IT IS NOT TIDINESS.
 
-local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
+	Luau gives a function 200 registers, and a script's main chunk IS a
+	function, so every top-level local spends one. This script had ZERO left:
+	tools/verify/compile.js measures headroom by appending live locals until
+	the compile fails, and the answer here was 0. The next top-level local
+	added by anyone would have stopped the whole script compiling -- which does
+	not fail loudly. It happened on 2026-10-05: the server script never ran, so
+	MineNet was never created and every client hung on WaitForChild, with one
+	line in the output to explain it.
+
+	Seven service locals become one, buying back six registers. Services are
+	the cheapest place to find them: referenced often, declared once, so the
+	saving is structural rather than a rewrite of any logic.
+]]
+local Svc = {
+	Players = game:GetService("Players"),
+	Run = game:GetService("RunService"),
+	Teleport = game:GetService("TeleportService"),
+	Collection = game:GetService("CollectionService"),
+	DSS = game:GetService("DataStoreService"),
+	Marketplace = game:GetService("MarketplaceService"),
+	RS = game:GetService("ReplicatedStorage"),
+}
+
+local shared = Svc.RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared.MineConfig)
 local Cards = require(shared.MineCards)
 local Packs = require(shared.MinePackConfig)
@@ -61,9 +79,9 @@ local Dig = {
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
-local store = DSS:GetDataStore(C.DATASTORE)
+local store = Svc.DSS:GetDataStore(C.DATASTORE)
 -- Per-card ownership ledger: key = 16-hex serial, value = userId.
-local serialStore = DSS:GetDataStore(tostring(C.DATASTORE) .. "_card_serials")
+local serialStore = Svc.DSS:GetDataStore(tostring(C.DATASTORE) .. "_card_serials")
 local profiles, busy, voxels, swingBudget = {}, {}, {}, {}
 -- In-flight battle-pass claims: [userId] = { ["free_3"|"premium_3"] = true }
 local claimPassLocks = {}
@@ -177,7 +195,7 @@ local function refreshVipPass(plr)
 		return false
 	end
 	local ok, owns = pcall(function()
-		return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, C.VIP_GAMEPASS_ID or 1977363670)
+		return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, C.VIP_GAMEPASS_ID or 1977363670)
 	end)
 	local valued = (ok and owns == true) or false
 	vipPassOwned[plr.UserId] = valued
@@ -190,7 +208,7 @@ local function refreshVipPass(plr)
 				return false
 			end
 			local ok2, owns2 = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, gid)
+				return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, gid)
 			end)
 			return ok2 and owns2 == true
 		end
@@ -221,9 +239,9 @@ local function hasVipPass(plr)
 	return refreshVipPass(plr)
 end
 
-local remotes = RS.Mine:FindFirstChild("Remotes") or Instance.new("Folder")
+local remotes = Svc.RS.Mine:FindFirstChild("Remotes") or Instance.new("Folder")
 remotes.Name = "Remotes"
-remotes.Parent = RS.Mine
+remotes.Parent = Svc.RS.Mine
 local net = remotes:FindFirstChild("MineNet") or Instance.new("RemoteEvent")
 net.Name = "MineNet"
 net.Parent = remotes
@@ -255,7 +273,7 @@ end
 require(shared.MineWorldEvents).bind({
 	C = C,
 	Gear = Gear,
-	Players = Players,
+	Players = Svc.Players,
 	profiles = profiles,
 	net = net,
 })
@@ -617,7 +635,7 @@ local function claimSerial(serial, userId)
 	end
 	-- Studio DataStore queues stall join when every card claims on load.
 	-- Trust the local profile in Studio; live servers still hit the ledger.
-	if RunService:IsStudio() then
+	if Svc.Run:IsStudio() then
 		return "won"
 	end
 	local status = "error"
@@ -702,7 +720,7 @@ local function nukeSerialEverywhere(serial, reason)
 	end
 	clearSerialLedger(serial)
 	local hit = 0
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		local p = profiles[plr.UserId]
 		if p then
 			local n = stripSerialFromProfile(p, serial)
@@ -941,7 +959,7 @@ local function load(plr)
 		running again on any server. Nobody else is touched. Studio has its own
 		stores now (MineConfig.DATASTORE_SUFFIX) and never gets here.
 	]]
-	if plr.UserId == 465369561 and not RunService:IsStudio() then
+	if plr.UserId == 465369561 and not Svc.Run:IsStudio() then
 		local key = "u_" .. plr.UserId
 		local backupKey = key .. "_prelaunch_backup"
 		local okB, already = pcall(function()
@@ -982,7 +1000,7 @@ local function load(plr)
 		so a stale copy can never land over a newer one.
 	]]
 	local key = "u_" .. plr.UserId
-	local lockTtl = RunService:IsStudio() and 0 or 120
+	local lockTtl = Svc.Run:IsStudio() and 0 or 120
 	local data, read = nil, false
 	-- With API access off, all 8 lock-claim attempts are refused and each one logs
 	-- StudioAccessToApisNotAllowed with backoff between -- the UpdateAsync lines
@@ -994,7 +1012,7 @@ local function load(plr)
 	-- closure and the guard would silently never fire. That trap has bitten this
 	-- file four times (shortNum, invCtl, vipSeatsLeft, SET_IDS).
 	local claimAttempts = 8
-	if RunService:IsStudio() and LeaderboardService.dataStoresUsable
+	if Svc.Run:IsStudio() and LeaderboardService.dataStoresUsable
 		and not LeaderboardService.dataStoresUsable() then
 		claimAttempts = 0
 	end
@@ -1023,7 +1041,7 @@ local function load(plr)
 	if not read then
 		-- Studio: UpdateAsync can fail on API blips / leftover locks. Fall back to
 		-- GetAsync so we still play on the real save and keep writing.
-		if RunService:IsStudio() then
+		if Svc.Run:IsStudio() then
 			local okG, got = pcall(function()
 				return store:GetAsync(key)
 			end)
@@ -1034,7 +1052,7 @@ local function load(plr)
 		end
 	end
 	if not read then
-		if RunService:IsStudio() then
+		if Svc.Run:IsStudio() then
 			-- Studio without API access: play on a throwaway profile.
 			error("datastore unavailable in Studio")
 		end
@@ -1846,7 +1864,7 @@ local function load(plr)
 			local Founders = require(shared.MineFounders)
 			if Founders.isMember(p) then return end
 			local ok, owns = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
+				return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
 			end)
 			if ok and owns then
 				local seatsRef = { left = vipSeatsLeft }
@@ -1898,7 +1916,7 @@ local function save(plr)
 	-- A final save (leaving, shutdown) hands the lock back so the next server
 	-- can load this player straight away instead of waiting for it to expire.
 	local final = p._releasing and true or false
-	local lockTtl = RunService:IsStudio() and 0 or 120
+	local lockTtl = Svc.Run:IsStudio() and 0 or 120
 	for attempt = 1, 3 do
 		local lost = false
 		local ok, err = pcall(function()
@@ -4371,7 +4389,7 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		blockName = strata.name
 	end
 	part:SetAttribute("BlockName", blockName)
-	CollectionService:AddTag(part, "MineVoxel")
+	Svc.Collection:AddTag(part, "MineVoxel")
 	local folder = workspace.MineWorld.Pits:FindFirstChild("Vox_" .. zone.id)
 	if not folder then
 		folder = Instance.new("Folder")
@@ -6434,7 +6452,7 @@ task.spawn(function()
 		task.wait(1)
 		local now = os.clock()
 		for uid, mine in pairs(Dig.QUAKE) do
-			local plr = Players:GetPlayerByUserId(uid)
+			local plr = Svc.Players:GetPlayerByUserId(uid)
 			local prof = plr and profiles[uid] or nil
 			if not (plr and prof) then
 				Dig.QUAKE[uid] = nil
@@ -9607,7 +9625,7 @@ function Verbs.bindSellPad(part)
 	end
 	Verbs.sellPadBound[part] = true
 	part.Touched:Connect(function(hit)
-		local plr = hit and hit.Parent and Players:GetPlayerFromCharacter(hit.Parent)
+		local plr = hit and hit.Parent and Svc.Players:GetPlayerFromCharacter(hit.Parent)
 		if not plr then
 			return
 		end
@@ -10554,7 +10572,7 @@ local function tryPrestige(plr)
 end
 
 function Verbs.debugGrantRune(plr, payload)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.runes = p.runes or {}
@@ -10607,7 +10625,7 @@ function Verbs.debugGrantRune(plr, payload)
 end
 
 function Verbs.debugGrantBlastSet(plr)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.gear = p.gear or {}
@@ -10627,7 +10645,7 @@ function Verbs.debugGrantBlastSet(plr)
 end
 
 function Verbs.debugGrantL99Blast(plr, payload)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.runes = p.runes or {}
@@ -11319,7 +11337,7 @@ local function joinVip(plr)
 	end
 	do
 		local ok, owns = pcall(function()
-			return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
+			return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
 		end)
 		if ok and owns then
 			local seatsRef = { left = vipSeatsLeft }
@@ -11457,7 +11475,7 @@ local function ensureDustShop()
 		DUST_SHOP.fetchedAt = os.clock()
 		task.spawn(function()
 			pcall(function()
-				local ds = DSS:GetDataStore(C.storeName("DustShopGlobal_v1"))
+				local ds = Svc.DSS:GetDataStore(C.storeName("DustShopGlobal_v1"))
 				local saved = ds:GetAsync(key)
 				if DUST_SHOP.key == key and type(saved) == "table" and type(saved.sold) == "table" then
 					for id, n in pairs(saved.sold) do
@@ -11506,7 +11524,7 @@ local function takeDustStock(packId, qty)
 	end
 	local key, granted = shop.key, false
 	local ok = pcall(function()
-		DSS:GetDataStore(C.storeName("DustShopGlobal_v1")):UpdateAsync(key, function(old)
+		Svc.DSS:GetDataStore(C.storeName("DustShopGlobal_v1")):UpdateAsync(key, function(old)
 			old = (type(old) == "table") and old or { sold = {} }
 			old.sold = (type(old.sold) == "table") and old.sold or {}
 			local cur = tonumber(old.sold[packId]) or 0
@@ -12849,7 +12867,7 @@ function Verbs.buyCreditPack(plr, payload)
 		return
 	end
 	local pid = tonumber(pack.productId) or 0
-	if pid > 0 and not RunService:IsStudio() then
+	if pid > 0 and not Svc.Run:IsStudio() then
 		net:FireClient(plr, "toast", "Buy credits with Robux from the shop prompt")
 		return
 	end
@@ -12863,7 +12881,7 @@ function Verbs.scrubLobbyMineBlocks()
 	-- Leftover dirt from an earlier generate. Only MineBlock / MineVoxel parts.
 	local n = 0
 	for _, d in ipairs(workspace:GetDescendants()) do
-		if d:IsA("BasePart") and (d.Name == "MineBlock" or CollectionService:HasTag(d, "MineVoxel")) then
+		if d:IsA("BasePart") and (d.Name == "MineBlock" or Svc.Collection:HasTag(d, "MineVoxel")) then
 			if C.blockOverlapsLobby and C.blockOverlapsLobby(d.Position, math.max(d.Size.X, d.Size.Y, d.Size.Z) * 0.5) then
 				d:Destroy()
 				n += 1
@@ -12959,7 +12977,7 @@ function Verbs.playersInShaft(zone)
 	local half = (C.GRID * C.BLOCK) * 0.5 + 2
 	local surfaceY = origin.Y + 2
 	local out = {}
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 		if root then
 			local pos = root.Position
@@ -12992,7 +13010,7 @@ function Verbs.resetMineZone(zone)
 	local nextAt = os.clock() + (C.MINE_RESET_SEC or 1200)
 	mineResetState.at[zone.id] = nextAt
 	mineResetState.warned[zone.id] = {}
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		net:FireClient(plr, "mineReset", {
 			zoneId = zone.id,
 			nextAt = nextAt,
@@ -13025,14 +13043,14 @@ task.spawn(function()
 		mineResetState.warned[zone.id] = warned
 		if left <= 60 and not warned[60] then
 			warned[60] = true
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "toast", "Mine resets in 60s")
 				net:FireClient(plr, "mineReset", { zoneId = zone.id, remaining = math.max(0, left), resetSec = period, warn = 60 })
 			end
 		end
 		if left <= 10 and not warned[10] then
 			warned[10] = true
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "toast", "Mine resets in 10s")
 				net:FireClient(plr, "mineReset", { zoneId = zone.id, remaining = math.max(0, left), resetSec = period, warn = 10 })
 			end
@@ -13051,7 +13069,7 @@ task.spawn(function()
 			left = period - (workspace:GetServerTimeNow() % period)
 		end
 		if math.floor(left) % 5 == 0 then
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "mineReset", {
 					zoneId = zone.id,
 					remaining = math.max(0, left),
@@ -13083,7 +13101,7 @@ end
 task.spawn(function()
 	while true do
 		task.wait(0.4)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			pcall(Verbs.rescueIfBelowShaft, plr)
 		end
 	end
@@ -13731,7 +13749,7 @@ end
 task.spawn(function()
 	while true do
 		task.wait(15)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			pcall(Verbs.tickPlaytime, plr, 15)
 		end
 	end
@@ -13899,7 +13917,7 @@ function Verbs.handleJoin(plr)
 			game:GetService("AnalyticsService"):LogOnboardingStepEvent(plr, 1, "Joined")
 		end)
 	end
-	local inviteStore = DSS:GetDataStore(C.storeName("InviteRewards_v1"))
+	local inviteStore = Svc.DSS:GetDataStore(C.storeName("InviteRewards_v1"))
 	-- Joined through a friend's invite?
 	local join = plr:GetJoinData()
 	local ref = join and tonumber(join.ReferredByPlayerId)
@@ -13911,7 +13929,7 @@ function Verbs.handleJoin(plr)
 		pcall(function()
 			game:GetService("AnalyticsService"):LogCustomEvent(plr, "JoinedFromInvite", 1)
 		end)
-		local inviter = Players:GetPlayerByUserId(ref)
+		local inviter = Svc.Players:GetPlayerByUserId(ref)
 		if inviter and profiles[ref] then
 			Verbs.rewardInviter(inviter, 1)
 		else
@@ -13958,7 +13976,7 @@ Verbs.PAID_RANDOM = {
 
 function Verbs.fetchPolicy(plr)
 	local PolicyService = game:GetService("PolicyService")
-	if not RunService:IsStudio() then
+	if not Svc.Run:IsStudio() then
 		plr:SetAttribute("PolicyNoRandom", true)
 		plr:SetAttribute("PolicyNoTrade", true)
 		plr:SetAttribute("PolicyDiscord", false)
@@ -14118,10 +14136,10 @@ function Verbs.hookPlayer(plr)
 end
 
 MineAntiGear.start()
-Players.PlayerAdded:Connect(Verbs.hookPlayer)
+Svc.Players.PlayerAdded:Connect(Verbs.hookPlayer)
 -- IIFE: top-level `for _` would exceed Luau's 200 main-chunk register cap.
 ;(function()
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		Verbs.hookPlayer(plr)
 	end
 end)()
@@ -14131,7 +14149,7 @@ end)()
 		SAVE ON LEAVE, AND WAIT FOR IT ON SHUTDOWN.
 
 		PlayerRemoving started a save and cleared the profile in the same
-		breath, and BindToClose only saved players still in Players -- which,
+		breath, and BindToClose only saved players still in Svc.Players -- which,
 		during a shutdown, the leaving players already are not. Nothing waited
 		for the save already running, so the server could close underneath it
 		and everything since the last 45-second autosave was gone: a finished
@@ -14157,7 +14175,7 @@ end)()
 		end
 	end
 
-	Players.PlayerRemoving:Connect(function(plr)
+	Svc.Players.PlayerRemoving:Connect(function(plr)
 		local p = profiles[plr.UserId]
 		if p then
 			LeaderboardService.queueUpdate(plr.UserId, p.prestige, p.gems, LeaderboardService.profileStardustValue(p))
@@ -14174,7 +14192,7 @@ end)()
 	end)
 
 	game:BindToClose(function()
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			if profiles[plr.UserId] then
 				profiles[plr.UserId]._releasing = true
 				task.spawn(saveTracked, plr)
@@ -14191,7 +14209,7 @@ end)()
 task.spawn(function()
 	while true do
 		task.wait(45)
-		for _, plr in ipairs(Players:GetPlayers()) do save(plr) end
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do save(plr) end
 	end
 end)
 
@@ -14213,7 +14231,7 @@ task.spawn(function()
 	while true do
 		task.wait(2)
 		local now = os.clock()
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			local p = profiles[plr.UserId]
 			local row = p and C.BACKPACKS[p.backpackTier]
 			local every = row and tonumber(row.autoSellSec)
@@ -15235,7 +15253,7 @@ function Verbs.Afk.refreshSession(plr)
 	-- Soft reset of Roblox's client idle clock: leave and rejoin the same place
 	-- while staying AFK. Profile.afk is already true and will resume on boot.
 	-- Teleports cannot work in Studio; skip instead of erroring every refresh.
-	if RunService:IsStudio() then
+	if Svc.Run:IsStudio() then
 		return
 	end
 	local p = profiles[plr.UserId]
@@ -15270,14 +15288,14 @@ function Verbs.Afk.refreshSession(plr)
 
 	local function attempt(opts)
 		local ok, err = pcall(function()
-			TeleportService:TeleportAsync(game.PlaceId, { plr }, opts)
+			Svc.Teleport:TeleportAsync(game.PlaceId, { plr }, opts)
 		end)
 		if ok then
 			return true
 		end
 		warn("[Mine] AFK refresh teleport failed", err)
 		local ok2 = pcall(function()
-			TeleportService:Teleport(game.PlaceId, plr, { mineAfkResume = true })
+			Svc.Teleport:Teleport(game.PlaceId, plr, { mineAfkResume = true })
 		end)
 		return ok2
 	end
@@ -15335,10 +15353,10 @@ task.spawn(function()
 		-- Re-enter chill after refresh teleport / reconnect while profile.afk is set.
 		for uid, p in pairs(profiles) do
 			if p and p.afk and not Verbs.Afk.active[uid] then
-				if RunService:IsStudio() then
+				if Svc.Run:IsStudio() then
 					p.afk = false
 				else
-					local plr = Players:GetPlayerByUserId(uid)
+					local plr = Svc.Players:GetPlayerByUserId(uid)
 					if plr and plr.Character then
 						Verbs.Afk.start(plr)
 					end
@@ -15346,7 +15364,7 @@ task.spawn(function()
 			end
 		end
 		for uid, _ in pairs(Verbs.Afk.active) do
-			local plr = Players:GetPlayerByUserId(uid)
+			local plr = Svc.Players:GetPlayerByUserId(uid)
 			if not plr or not profiles[uid] then
 				Verbs.Afk.active[uid] = nil
 				Verbs.Afk.nextAt[uid] = nil
@@ -16307,7 +16325,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			local seam = math.max(0, math.floor(tonumber(payload.seam) or 0))
 			local z = C.zoneById(payload.zoneId or p.zoneId) or C.ZONES[1]
 			Dig.Plazas.ride(plr, nil, p, tp, ensureZone, net, snap, seam)
-		elseif action == "devGrant" and RunService:IsStudio() then
+		elseif action == "devGrant" and Svc.Run:IsStudio() then
 			-- Studio only. Never reachable on a live server.
 			if type(payload) == "table" then
 				if payload.coins then
@@ -16756,7 +16774,7 @@ task.defer(function()
 
 	while true do
 		task.wait(0.35)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			local p = profiles[plr.UserId]
 			local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 			local carrying = p and (
@@ -16793,7 +16811,7 @@ task.defer(function()
 end)
 
 Verbs.grantReceipt = function(info)
-	local plr = Players:GetPlayerByUserId(info.PlayerId)
+	local plr = Svc.Players:GetPlayerByUserId(info.PlayerId)
 	if not plr then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
@@ -17010,8 +17028,8 @@ end
 	save means the grant never reached the datastore, so the retry delivers it
 	again, exactly once.
 ]]
-MarketplaceService.ProcessReceipt = function(info)
-	local plr = Players:GetPlayerByUserId(info.PlayerId)
+Svc.Marketplace.ProcessReceipt = function(info)
+	local plr = Svc.Players:GetPlayerByUserId(info.PlayerId)
 	local p = plr and profiles[plr.UserId]
 	if not p or p._ephemeral then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
@@ -17052,7 +17070,7 @@ MarketplaceService.ProcessReceipt = function(info)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
-MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId, wasPurchased)
+Svc.Marketplace.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId, wasPurchased)
 	if not plr or not wasPurchased then
 		return
 	end
