@@ -15465,17 +15465,15 @@ end
 	to 8 for Exotic. toolCostMult raises it to TOOL_COST_TYPE (0.5), so a rarer
 	frame costs about 2.8x a Common one to level, never less.
 ]]
+-- One rule, in MineOreTools. This was a third copy of the frame-rarity lookup
+-- (MineForge had one, equippedTool has another), and all three computed the
+-- same function of ore tier by different routes. See MineOreTools.typeMult.
 function Verbs._oreToolTypeMult(tool)
-	local fam = Tools.TOOLS and Tools.TOOLS[tool.familyId or "pickaxe"]
-	if fam then
-		for _, td in ipairs(fam) do
-			if td.id == tool.typeId then
-				local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-				return (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
-			end
-		end
-	end
-	return 1
+	-- Required here, not at the top: this script is on Luau's 200-local ceiling,
+	-- and `OreTools` is a local inside two other functions rather than a file
+	-- global. Writing the bare name would compile to a GLOBAL read and be nil.
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	return OreTools.typeMult(tool.familyId or "pickaxe", tool.tier)
 end
 
 function Verbs._oreToolCost(tool)

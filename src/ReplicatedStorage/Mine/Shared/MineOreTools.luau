@@ -131,20 +131,46 @@ function MineOreTools.frameOf(tool)
 end
 
 --[[
-	The cost multiplier a frame carries.
+	THE COST MULTIPLIER, AS A FUNCTION OF THE ORE AND NOTHING ELSE.
 
-	Both MineForge and MineServer had their own copy of this, with a comment on
-	each saying it mirrored the other. Two copies of one rule is one rule and
-	one bug waiting; this is the copy.
+	Owner, 2026-10-06: "delete all tools in the game besides for chest
+	tools... and ore tools". The priced roster is gone, and this used to read
+	it: it found the frame an ore wore, took that frame's rarity, and returned
+	its rank.
+
+	But frameForTier is deterministic in ore tier, so this was ALREADY a pure
+	function of tier -- it just reached through a table to compute it. Measured
+	across all 82 tiers before the roster was removed, it is a clean step
+	function, and the steps are baked here exactly as they were:
+
+	    pickaxe   1-6=1 7-16=2 17-27=3 28-37=4 38-48=5 49-59=6 60-69=7 70-82=8
+	    drill     1-9=1 10-19=2 20-30=3 31-41=4 42-52=5 53-63=6 64-73=7 74-82=8
+	    explosive (same as drill)
+
+	They differ because a family's rungs were spread across the roster and the
+	families had different rung counts -- 24 for pickaxes, 16 for the others.
+
+	WHY NOT THE ORE'S RARITY BAND, which was the obvious replacement: measured,
+	it drops the roster mean from 4.80 to 3.38 and cuts some tiers to a third,
+	with nothing going up. That is a 30% cut to forge costs nobody asked for.
+	Baking the real curve removes the dependency and changes no number at all.
 ]]
-function MineOreTools.typeMult(familyId, typeId)
-	for _, td in ipairs((Tools.TOOLS or {})[tostring(familyId or "pickaxe")] or {}) do
-		if td.id == typeId then
-			local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-			return (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
+MineOreTools.TYPE_MULT_STEPS = {
+	pickaxe = { 6, 16, 27, 37, 48, 59, 69, 82 },
+	drill = { 9, 19, 30, 41, 52, 63, 73, 82 },
+	explosive = { 9, 19, 30, 41, 52, 63, 73, 82 },
+}
+
+function MineOreTools.typeMult(familyId, oreTier)
+	local steps = MineOreTools.TYPE_MULT_STEPS[tostring(familyId or "pickaxe")]
+		or MineOreTools.TYPE_MULT_STEPS.pickaxe
+	local t = math.max(1, math.floor(tonumber(oreTier) or 1))
+	for i, upTo in ipairs(steps) do
+		if t <= upTo then
+			return i
 		end
 	end
-	return 1
+	return #steps
 end
 
 -- The ore a forged row is made of. `tier` is the ore's tier and always has

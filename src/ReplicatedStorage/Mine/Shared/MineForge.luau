@@ -508,7 +508,7 @@ function MineForge.mount(parent, opts)
 			costLine = num(coins or 0) .. " coins"
 			heldLine = "held  " .. num(have) .. " coins"
 		else
-			local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.typeId)
+			local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
 			local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
 			-- C.ORES[tool.tier] is what the server's _oreToolCost uses. Resolve
 			-- it the same way or the panel quotes a different ore than the verb
@@ -567,7 +567,7 @@ function MineForge.mount(parent, opts)
 
 		-- Scrapping is always offered; it is the one action that works when the
 		-- player cannot afford anything else.
-		local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.typeId)
+		local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
 		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
 		-- Equipping is what turns a forged tool into breaking power you actually
 		-- carry, so it sits beside the levelling buttons rather than buried.
@@ -677,8 +677,10 @@ function MineForge.mount(parent, opts)
 			return
 		end
 		local fam = selFamily
-		local frame = OreTools.frameForTier(fam, row.tier)
-		local typeMult = frame and OreTools.typeMult(fam, frame.id) or 1
+		-- The multiplier is the ore's, not a frame's. See MineOreTools.typeMult:
+		-- it was always a function of tier, and the frame lookup it reached
+		-- through is gone with the priced roster.
+		local typeMult = OreTools.typeMult(fam, row.tier)
 		local cost = C.toolCraftCost(row.tier, typeMult)
 		local afford = (row.have or 0) >= cost
 
@@ -933,9 +935,7 @@ function MineForge.mount(parent, opts)
 				selOreId = ores[1] and ores[1].id or nil
 			end
 			for i, o in ipairs(ores) do
-				local frame = OreTools.frameForTier(selFamily, o.tier)
-				local cost = C.toolCraftCost(o.tier,
-					frame and OreTools.typeMult(selFamily, frame.id) or 1)
+				local cost = C.toolCraftCost(o.tier, OreTools.typeMult(selFamily, o.tier))
 				local owned = ownedForOre(snapshot, selFamily, o.tier)
 				local afford = (o.have or 0) >= cost
 				row(i, OreTools.name(o.def, selFamily),
