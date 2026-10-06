@@ -3718,8 +3718,9 @@ end
 	is arithmetic rather than a second table that could drift out of step.
 ]]
 MineConfig.VEIN_CELL = 4
-MineConfig.VEIN_BIG_TIERS = 3
-MineConfig.VEIN_SOLO_FRAC = 0.18
+-- VEIN_BIG_TIERS and VEIN_SOLO_FRAC are gone. They were the two thresholds of
+-- the retired three-band design, which sorted ores by their index on the roster;
+-- size now comes from cost, drop count and rarity through veinSizeMean.
 
 --[[
 	THE SHAPE, AND THE CEILING.
@@ -3730,11 +3731,73 @@ MineConfig.VEIN_SOLO_FRAC = 0.18
 	sizes read as: 1 a single, 2 a pair, 3 an L, 4 a flat plate, 6 a plate and a
 	pair above it, 8 the full cube.
 ]]
-local VEIN_ORDER = {
-	{ 0, 0, 0 }, { 1, 0, 0 }, { 0, 0, 1 }, { 1, 0, 1 },
-	{ 0, 1, 0 }, { 1, 1, 0 }, { 0, 1, 1 }, { 1, 1, 1 },
-}
-MineConfig.VEIN_MAX = #VEIN_ORDER
+--[[
+	WHAT A VEIN LOOKS LIKE, AND WHY THERE IS MORE THAN ONE ANSWER.
+
+	Owner, 2026-10-06: veins should "spawn any which way, (4 ores in a vertical
+	line to horiontial line 3 and one in the middle 4 flat, 2 on 2 all that
+	shiut)".
+
+	This was one fixed list -- the eight corners of a 2x2x2 cube, always taken in
+	the same order -- and a vein of size N took entries 1..N of it. So every size
+	in the game had exactly ONE shape: a pair was always two blocks side by side
+	heading east, and a four was always a flat 2x2 slab lying in the XZ plane.
+	Never a vertical line, never three in a row with one on the middle, never two
+	stacked on two. The field was random about WHERE a vein went and completely
+	deterministic about what it looked like when it got there.
+
+	Now each size carries several shapes and the cell picks between them, so size
+	and silhouette are rolled independently. Grouped by block count because that
+	count is load-bearing: the density correction in veinWeights divides by the
+	mean size, so a shape list may only ever offer shapes of exactly its own key.
+	Adding a five-block shape under [4] would quietly inflate that ore's share.
+
+	ex/ey/ez are the extents, stated rather than derived so the table costs no
+	setup pass and no top-level locals (this module sits near Luau's 200-register
+	main-chunk cap). veinOreAt clamps the anchor by them so a shape always fits
+	inside its own cell -- see the note there about what clipping would cost.
+]]
+--[[
+	VEIN GEOMETRY IS GROWN, NOT PICKED FROM A LIST.
+
+	Owner, 2026-10-06, in three steps: veins should "spawn any which way, (4 ores
+	in a vertical line to horiontial line 3 and one in the middle 4 flat, 2 on 2
+	all that shiut)", then "NO LIMIT ON VEINS.. MAKE AN EQUATION, BUT LETS SAY THE
+	HIGHEST AVERAGE SHOULD BE 12-14", then "EACH ORE SHOULD BE UNIQUE HOW THEY
+	SPAWN".
+
+	This started as the eight corners of a 2x2x2 cube taken in a fixed order, so a
+	vein of size N was the first N of them and every size had exactly ONE
+	silhouette -- a four was always a flat 2x2 slab. The first fix was a table of
+	hand-authored shapes per size, which answered "any which way" but not the rest:
+	sizes now run to 14, a table would need every shape for every size up to 14,
+	and a fixed table cannot give each of 82 ores its own character.
+
+	So the shape is GROWN from the anchor instead. Start with one block and
+	repeatedly bolt a neighbour onto a block already in the vein. Three properties
+	fall out of that for free:
+
+	  CONTIGUOUS, always, because growth only ever extends what is already there.
+	  A template table has to be checked by eye for this; growth cannot get it
+	  wrong.
+
+	  ANY SIZE, so VEIN_MAX is a number rather than a table length.
+
+	  PER-ORE CHARACTER, because the ore index seeds the growth and sets an axis
+	  bias. One ore grows in vertical ribbons, another in flat sheets, another in
+	  blobs -- the same ore the same way everywhere, a different way from its
+	  neighbour on the roster.
+
+	Grown inside a box of VEIN_CELL per side, which is what keeps a vein inside its
+	own cell. A vein that straddled two cells would be two short veins and the
+	density correction would be dividing by a size that was never placed.
+
+	Runs once per CELL, memoised, not once per block -- see the note on veinCell.
+	The offsets live in three flat arrays reused across cells so resolving a cell
+	allocates nothing.
+]]
+MineConfig.VEIN_AXIS_BIAS = 0.62
+MineConfig.VEIN_MAX = 14
 
 --[[
 	A 32-BIT MULTIPLY THAT IS ACTUALLY EXACT.
@@ -3800,10 +3863,86 @@ end
 
 	Distinct full-width salts through murmur's body AND its finalizer.
 ]]
-local VEIN_SALT = { 0x85EBCA6B, 0xC2B2AE35, 0x27D4EB2F, 0x165667B1, 0x9E3779B1, 0x7F4A7C15 }
+--[[
+	Seven, not six. veinUnit falls back to 0x9E3779B1 for an unknown index, which
+	is entry 5's own constant -- so asking for salt 7 would hand back exactly the
+	stream the Y anchor already used, and the shape roll would be locked to the
+	height of the vein it was shaping. Index 7 is the shape pick.
+]]
+local VEIN_SALT = { 0x85EBCA6B, 0xC2B2AE35, 0x27D4EB2F, 0x165667B1, 0x9E3779B1, 0x7F4A7C15, 0xB5297A4D }
 
 local function veinUnit(h, salt)
 	return veinFinal(veinMix(h, VEIN_SALT[salt] or 0x9E3779B1)) / 4294967296
+end
+
+-- The six face neighbours, as flat triples. Faces only: a vein that grew
+-- diagonally would look like two veins that happen to touch at a corner.
+local VEIN_DIRS = { 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1 }
+
+--[[
+	Grow `want` blocks out from the origin, inside a box `cell` on a side.
+
+	Writes into the caller's three arrays and returns how many blocks were
+	actually placed plus the shape's extents. Fewer than `want` is possible when
+	the box fills up, and the count returned is the honest one -- veinWeights
+	divides by the mean size, so reporting a size that was not placed would move
+	that ore's share.
+
+	`oreIdx` sets the axis bias, which is what makes an ore recognisable: the
+	preferred axis is the ore index mod 3, so consecutive ores on the roster
+	differ, and VEIN_AXIS_BIAS decides how often growth follows it. At 0.62 a
+	vertical-biased ore reads as a ribbon without ever being a straight line.
+
+	Deterministic in (h, oreIdx, want): the same cell grows the same vein after a
+	server restart or a released chunk coming back.
+]]
+local function veinGrow(h, oreIdx, want, cell, ox, oy, oz)
+	ox[1], oy[1], oz[1] = 0, 0, 0
+	local n = 1
+	local exx, exy, exz = 1, 1, 1
+	if want <= 1 then
+		return 1, 1, 1, 1
+	end
+	local axis = oreIdx % 3
+	local bias = MineConfig.VEIN_AXIS_BIAS or 0.62
+	local s = veinMix(h, 0x27D4EB2F + oreIdx * 2654435761 % 4294967296)
+	-- Bounded rather than while-true: a full box must end the loop, and a
+	-- spin here would hang world generation rather than merely look wrong.
+	for step = 1, want * 16 do
+		if n >= want then
+			break
+		end
+		s = veinMix(s, step)
+		local r = veinFinal(s)
+		local from = r % n + 1
+		local d
+		if (bit32.rshift(r, 8) % 1024) / 1024 < bias then
+			-- Follow this ore's axis, either way along it.
+			d = axis * 2 + (bit32.rshift(r, 18) % 2)
+		else
+			d = bit32.rshift(r, 20) % 6
+		end
+		local nx = ox[from] + VEIN_DIRS[d * 3 + 1]
+		local ny = oy[from] + VEIN_DIRS[d * 3 + 2]
+		local nz = oz[from] + VEIN_DIRS[d * 3 + 3]
+		if nx >= 0 and nx < cell and ny >= 0 and ny < cell and nz >= 0 and nz < cell then
+			local dup = false
+			for i = 1, n do
+				if ox[i] == nx and oy[i] == ny and oz[i] == nz then
+					dup = true
+					break
+				end
+			end
+			if not dup then
+				n += 1
+				ox[n], oy[n], oz[n] = nx, ny, nz
+				exx = math.max(exx, nx + 1)
+				exy = math.max(exy, ny + 1)
+				exz = math.max(exz, nz + 1)
+			end
+		end
+	end
+	return n, exx, exy, exz
 end
 
 --[[
@@ -3874,31 +4013,182 @@ end
 	an Exotic stays a single gleam in the wall and never a windfall. Everything
 	between, which is most of the roster, is the threes and fours.
 ]]
-function MineConfig.veinSizeFor(tier, jitter)
+--[[
+	HOW BIG AN ORE'S VEINS ARE, FROM WHAT IT COSTS TO TURN INTO A TOOL.
+
+	Owner, 2026-10-06: "each ore should spawn a different amount (dertemined by
+	avergae drop count and most importantly pickaxe cost)", plus "ore to gem sell
+	price aswell" and "ALSO RARITY (SUPER RARE ORES MIGHT NEED A LITTLE LESS
+	ORE/CHANCE OF GETTING ORE TO MAKE THE FULL TOOL)".
+
+	This was three hard bands on the tier INDEX: tiers 1-3 got 6-8 blocks a vein,
+	the last 18% got 1-2, everything between got 3-4. The index is the one thing
+	that says nothing about how hard an ore is to collect, so halite at tier 5 sat
+	in the same bracket as stone and came out of the ground in slabs -- which is
+	the "dont be making so many chunks of teir 5 ores" complaint.
+
+	The question a vein size should answer is: HOW HARD IS THIS ORE TO GET. Three
+	drivers, combined into one 0..1 "effort" position on the roster:
+
+	  COST, weighted heaviest as asked. Read through log, because toolCraftCost
+	  spans an order of magnitude and a linear read would let the dearest few ores
+	  own the whole range.
+
+	  DROP COUNT, inverted -- an ore yielding fifteen a block is easy to amass,
+	  one yielding two is not.
+
+	  RARITY, from the ore's band index.
+
+	DIRECTION, owner 2026-10-06: "RARER ORES -> SMALLER VEINS BUT MAYBE A LITTLE
+	TINY HIGHER DROP ///////// OVERALL STILL WAYYYYY HARDER TO GET". So effort
+	runs DOWN: the commonest, cheapest, fattest-dropping ore clumps hardest, and
+	the rare expensive ore is scattered in ones and twos. That is also what gets
+	"most in 3-4" -- the mapping is linear from 7 down to 1.25, so the middle of
+	the roster lands near 4 and only the handful of easiest ores reach 6-8.
+
+	NOTHING HERE MOVES SPAWN RATES. veinWeights divides each ore's share by this
+	mean (q_i = share_i / mean_i), so making a vein twice as big makes it half as
+	frequent, and both the per-ore share and the overall ore density come out
+	exactly where they were. Vein size is a clustering knob and only that --
+	verified in tools/verify/veins.js, which measures the density either side.
+
+	Swap the two MEAN constants to reverse the direction; nothing else encodes it.
+]]
+MineConfig.VEIN_MEAN_AT_EASY = 13.0   -- commonest, cheapest, fattest-dropping ore
+MineConfig.VEIN_MEAN_TYPICAL = 3.5    -- where the bulk of the roster sits
+MineConfig.VEIN_MEAN_AT_HARD = 1.25   -- rarest, dearest, thinnest-dropping ore
+MineConfig.VEIN_W_COST = 0.60         -- "most importantly pickaxe cost"
+MineConfig.VEIN_W_YIELD = 0.25
+MineConfig.VEIN_W_RARITY = 0.15
+--[[
+	How sharply each end pulls away from VEIN_MEAN_TYPICAL. Two powers, because
+	the two ends are answering different instructions.
+
+	BIG is steep. Owner: the highest average should be 12-14 "WITH *MAYBE* ONE OR
+	2 ORES.. 90% SHOULD BE SUB 8". A straight line from 13 to 1.25 puts roughly a
+	quarter of an 82-ore roster at 8 or above, so the big end needs a curve that
+	only the extreme few ores climb.
+
+	SMALL is gentle. Owner: "RARER ORES -> SMALLER VEINS [...] OVERALL STILL
+	WAYYYYY HARDER TO GET". That has to be a visible gradient across the back half
+	of the roster rather than a cliff at the very end, so this end stays near
+	quadratic.
+]]
+MineConfig.VEIN_TAIL_POWER_BIG = 12
+-- Measured at 2 this dragged 40 of 82 ores down to ones and twos, which is not
+-- "most in 3-4". The effort blend is weighted toward the back of the roster, so
+-- the small end needs to be steeper than a plain quadratic to stay a tail.
+MineConfig.VEIN_TAIL_POWER_SMALL = 5
+
+--[[
+	The min and max of each driver across the whole roster, so each can be read as
+	a 0..1 position rather than a raw number. Computed once and parked on
+	MineConfig rather than in a top-level local, because this module runs close to
+	Luau's 200-register main-chunk cap.
+]]
+function MineConfig._veinSpans()
+	local s = MineConfig._veinSpanCache
+	if s then
+		return s
+	end
 	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
-	local t = math.clamp(tonumber(tier) or 1, 1, n)
-	local u = jitter or 0
-	if t <= (MineConfig.VEIN_BIG_TIERS or 3) then
-		return 6 + math.floor(u * 3)
+	s = { n = n, cLo = math.huge, cHi = -math.huge, yLo = math.huge, yHi = -math.huge, bHi = 1 }
+	for t = 1, n do
+		local c = math.log(math.max(1, MineConfig.toolCraftCost(t, 1)))
+		s.cLo, s.cHi = math.min(s.cLo, c), math.max(s.cHi, c)
+		local y = MineConfig.oreYieldMid(t)
+		s.yLo, s.yHi = math.min(s.yLo, y), math.max(s.yHi, y)
+		local _, bi = MineConfig.oreBandForTier(t)
+		s.bHi = math.max(s.bHi, tonumber(bi) or 1)
 	end
-	if t > n * (1 - (MineConfig.VEIN_SOLO_FRAC or 0.18)) then
-		return 1 + math.floor(u * 2)
+	--[[
+		Then rescale the blend itself, in a second pass.
+
+		Averaging three normalised drivers is a regression to the mean: each one
+		spans 0..1 but their weighted sum only reaches an extreme where ALL THREE
+		agree, and across this roster they never do. Measured, the raw blend spanned
+		roughly 0.2..0.75, so the easiest ore came out at mean 4.7 and the hardest
+		at 2.7 -- no ore anywhere near 1-2 or 7-8, and the whole roster squeezed
+		into two sizes. Recording the blend's own min and max and stretching it is
+		what makes the ends of the roster actually reach the ends of the range.
+	]]
+	s.rLo, s.rHi = math.huge, -math.huge
+	for t = 1, n do
+		local r = MineConfig._veinRaw(t, s)
+		s.rLo, s.rHi = math.min(s.rLo, r), math.max(s.rHi, r)
 	end
-	return 3 + math.floor(u * 2)
+	MineConfig._veinSpanCache = s
+	return s
 end
 
--- The mean of the band above, which is what the density correction has to
--- divide by. Stated as its own function so the two cannot drift apart.
+-- The weighted blend, before it is stretched. Takes the spans it needs so
+-- _veinSpans can call it while still building them.
+function MineConfig._veinRaw(tier, s)
+	local t = math.clamp(math.floor(tonumber(tier) or 1), 1, s.n)
+	local function norm(v, lo, hi)
+		if not (hi > lo) then
+			return 0
+		end
+		return math.clamp((v - lo) / (hi - lo), 0, 1)
+	end
+	local cost = norm(math.log(math.max(1, MineConfig.toolCraftCost(t, 1))), s.cLo, s.cHi)
+	local thin = 1 - norm(MineConfig.oreYieldMid(t), s.yLo, s.yHi)
+	local _, bi = MineConfig.oreBandForTier(t)
+	local rare = norm(tonumber(bi) or 1, 1, s.bHi)
+	local wc = MineConfig.VEIN_W_COST or 0.6
+	local wy = MineConfig.VEIN_W_YIELD or 0.25
+	local wr = MineConfig.VEIN_W_RARITY or 0.15
+	return (cost * wc + thin * wy + rare * wr) / math.max(1e-6, wc + wy + wr)
+end
+
+-- 0 for the ore that is easiest to collect enough of, 1 for the hardest.
+function MineConfig.veinEffort(tier)
+	local s = MineConfig._veinSpans()
+	local raw = MineConfig._veinRaw(tier, s)
+	if not (s.rHi > s.rLo) then
+		return 0.5
+	end
+	return math.clamp((raw - s.rLo) / (s.rHi - s.rLo), 0, 1)
+end
+
+-- The mean the density correction divides by. veinSizeFor is derived FROM this
+-- rather than stated alongside it, so the two cannot drift apart.
 function MineConfig.veinSizeMean(tier)
-	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
-	local t = math.clamp(tonumber(tier) or 1, 1, n)
-	if t <= (MineConfig.VEIN_BIG_TIERS or 3) then
-		return 7
+	local easy = MineConfig.VEIN_MEAN_AT_EASY or 13
+	local mid = MineConfig.VEIN_MEAN_TYPICAL or 3.5
+	local hard = MineConfig.VEIN_MEAN_AT_HARD or 1.25
+	local e = MineConfig.veinEffort(tier)
+	local m
+	if e <= 0.5 then
+		local t = 1 - e * 2                                      -- 1 at easiest, 0 at typical
+		m = mid + (easy - mid) * t ^ (MineConfig.VEIN_TAIL_POWER_BIG or 12)
+	else
+		local t = (e - 0.5) * 2                                  -- 0 at typical, 1 at hardest
+		m = mid - (mid - hard) * t ^ (MineConfig.VEIN_TAIL_POWER_SMALL or 2)
 	end
-	if t > n * (1 - (MineConfig.VEIN_SOLO_FRAC or 0.18)) then
-		return 1.5
-	end
-	return 3.5
+	return math.clamp(m, 1, MineConfig.VEIN_MAX or 14)
+end
+
+--[[
+	A whole number of blocks whose EXPECTED value is exactly veinSizeMean.
+
+	Stochastic rounding: a mean of 3.7 is three blocks 30% of the time and four
+	blocks 70%, so E[size] = 3.7 with no rounding bias at all. The old pair of
+	functions stated the mean by hand next to the sizes that produced it, which
+	was correct but one edit away from silently not being -- and if the stated
+	mean ever drifts from the real one, veinWeights' density correction divides by
+	the wrong number and that ore's share moves. Deriving one from the other makes
+	the invariant structural instead of remembered.
+
+	`jitter` is a uniform 0..1 from veinUnit.
+]]
+function MineConfig.veinSizeFor(tier, jitter)
+	local m = MineConfig.veinSizeMean(tier)
+	local base = math.floor(m)
+	local frac = m - base
+	local u = tonumber(jitter) or 0
+	local n = base + ((u < frac) and 1 or 0)
+	return math.clamp(n, 1, MineConfig.VEIN_MAX or 8)
 end
 
 --[[
@@ -3963,11 +4253,14 @@ end
 
 	Deterministic in (zone, x, y, z): no rng argument, by design. Two neighbours
 	asking about the same cell get the same answer, and a block that regenerates
-	an hour later gets the answer it had before.
+	an hour later gets the answer it had before. That is also what lets a released
+	chunk grow back as the mine it was.
 
-	The anchor is clamped to the cell's lower corner so the 2x2x2 shape cannot
-	leave the cell -- a vein that straddled two cells would be two veins, both
-	the wrong size, and the density correction would be wrong with it.
+	The anchor is clamped per axis by the chosen shape's extent so a vein cannot
+	leave its own cell -- a vein that straddled two cells would be two veins, both
+	short, and the density correction would be dividing by a size that was never
+	placed. See the note at the clamp itself; this used to be claimed here and not
+	actually done.
 ]]
 --[[
 	RESOLVED PER CELL, NOT PER BLOCK.
@@ -3989,7 +4282,9 @@ end
 	One entry rather than a table on purpose: a cache keyed by position would
 	outlive the blocks it describes and grow for the whole mine.
 ]]
-local veinCell = { has = false }
+-- ox/oy/oz are the grown shape, reused across cells so resolving one allocates
+-- nothing. Sized to VEIN_MAX once; veinGrow only ever writes 1..size.
+local veinCell = { has = false, ox = table.create(16, 0), oy = table.create(16, 0), oz = table.create(16, 0) }
 
 -- Dropping the remembered cell is how setVeinSalt makes a new layout take
 -- effect immediately rather than one cell later.
@@ -4034,22 +4329,41 @@ function MineConfig.veinOreAt(zoneId, x, y, z, rareOre)
 					break
 				end
 			end
-			local span = math.max(1, cell - 1)
 			c.hosts = true
 			c.ore = ore
-			c.size = math.clamp(MineConfig.veinSizeFor(idx, veinUnit(h, 3)), 1, #VEIN_ORDER)
-			c.ax = cx * cell + math.floor(veinUnit(h, 4) * span)
-			c.ay = cy * cell + math.floor(veinUnit(h, 5) * span)
-			c.az = cz * cell + math.floor(veinUnit(h, 6) * span)
+			local want = math.clamp(MineConfig.veinSizeFor(idx, veinUnit(h, 3)), 1, MineConfig.VEIN_MAX or 14)
+			--[[
+				Grow the silhouette, then place it so it FITS.
+
+				veinGrow returns the count it actually placed, which can be short of
+				`want` when the box fills, and that count is what c.size becomes --
+				veinWeights divides by the mean size, so claiming a size that never
+				reached the ground would move this ore's share.
+
+				The anchor range is cell - extent + 1 per axis, which is what keeps
+				the vein inside its own cell. The previous code used a flat
+				`cell - 1` on every axis and the comment above claimed that stopped
+				a vein leaving the cell -- it did not: a 2-wide shape anchored at
+				offset 3 of a 4-cell put half itself at offset 4, which belongs to
+				the next cell and resolves that cell's own vein instead. Those
+				blocks came back rock, so the vein was quietly short and the density
+				correction was dividing by a size that was never placed.
+			]]
+			local n, ex, ey, ez = veinGrow(h, idx, want, cell, c.ox, c.oy, c.oz)
+			c.size = n
+			c.ax = cx * cell + math.floor(veinUnit(h, 4) * math.max(1, cell - ex + 1))
+			c.ay = cy * cell + math.floor(veinUnit(h, 5) * math.max(1, cell - ey + 1))
+			c.az = cz * cell + math.floor(veinUnit(h, 6) * math.max(1, cell - ez + 1))
 		end
 	end
 
 	if not c.hosts then
 		return nil
 	end
+	local ox, oy, oz = c.ox, c.oy, c.oz
+	local ax, ay, az = c.ax, c.ay, c.az
 	for i = 1, c.size do
-		local o = VEIN_ORDER[i]
-		if x == c.ax + o[1] and y == c.ay + o[2] and z == c.az + o[3] then
+		if x == ax + ox[i] and y == ay + oy[i] and z == az + oz[i] then
 			return c.ore
 		end
 	end

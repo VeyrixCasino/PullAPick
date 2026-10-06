@@ -371,6 +371,64 @@ function MineDigAuth.canCreditDepth(p, zoneId, layer)
 	return true, nil
 end
 
+--[[
+	HOW DEEP THE MINE IS ALLOWED TO EXIST, given how deep anyone has reached.
+
+	Owner, 2026-10-06: "load only 1 chunk.. once the top chunk is loaded, as soon
+	as it is touched, then load chunk 2 [...] once that is loaded then load a
+	chunk below that and so on" -- and separately, "chunks are for performance
+	aswell".
+
+	This is the generation side of DIG_CHUNK_LAYERS; canCreditDepth is the
+	entitlement side. They answer different questions and must not be merged:
+	canCreditDepth asks "may THIS PLAYER bank this depth", which is per-profile,
+	while this asks "may the mine have rock down there at all", which is
+	server-wide because one `voxels` table is shared by everyone in the server.
+
+	Chunk N spans layers (N-1)*CHUNK+1 .. N*CHUNK. The open chunk is the one
+	holding the frontier, so generation may fill it to its floor and no further.
+	Reaching that floor opens the next chunk. With CHUNK=50: reached 0 or 49
+	allows layers up to 50, reached 50 allows up to 100.
+
+	`reached` is the deepest anyone has got, counting depth passes -- a player who
+	legitimately owns a pass to seam 2500 opens generation down there, which is
+	what makes elevators and depth plazas land on rock instead of in a void.
+]]
+function MineDigAuth.chunkCeiling(reached)
+	local chunk = math.max(1, math.floor(tonumber(C.DIG_CHUNK_LAYERS) or 50))
+	reached = math.max(0, math.floor(tonumber(reached) or 0))
+	-- The frontier is the first layer not yet reached, so the open chunk is the
+	-- one containing reached+1. Using `reached` alone would close the chunk one
+	-- layer early and leave its floor ungeneratable, which is a deadlock: the
+	-- floor must be mined to open the next chunk.
+	local openChunk = math.ceil((reached + 1) / chunk)
+	return openChunk * chunk
+end
+
+--[[
+	The deepest layer reached by anyone in `profileList`, for one zone.
+
+	Kept here rather than in MineServer because that script sits a handful of
+	top-level locals under Luau's 200-register main-chunk cap, and because it
+	belongs next to the two rules it feeds.
+]]
+function MineDigAuth.deepestReachedAcross(profileList, zoneId)
+	if type(profileList) ~= "table" or not zoneId then
+		return 0
+	end
+	zoneId = tostring(zoneId)
+	local best = 0
+	for _, p in pairs(profileList) do
+		if type(p) == "table" then
+			local r = math.max(deepestOf(p, zoneId), MineDigAuth.depthPassOf(p, zoneId))
+			if r > best then
+				best = r
+			end
+		end
+	end
+	return best
+end
+
 function MineDigAuth.noteDig(p, zoneId, layer, cx, cz)
 	if type(p) ~= "table" or not zoneId then
 		return

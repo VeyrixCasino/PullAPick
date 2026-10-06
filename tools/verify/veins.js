@@ -60,15 +60,45 @@ const parts = [
   block("function MineConfig.oreFindShift(", "end"),
   block("function MineConfig.oreWeights(", "end"),
   line("MineConfig.VEIN_CELL ="),
-  line("MineConfig.VEIN_BIG_TIERS ="),
-  line("MineConfig.VEIN_SOLO_FRAC ="),
-  block("local VEIN_ORDER = {", "}"),
+  // Vein size is driven by cost/yield/rarity now, not two index thresholds, and
+  // the shape is GROWN per cell rather than chosen from a table.
+  line("MineConfig.VEIN_AXIS_BIAS ="),
   line("MineConfig.VEIN_MAX ="),
+  line("MineConfig.VEIN_MEAN_AT_EASY ="),
+  line("MineConfig.VEIN_MEAN_TYPICAL ="),
+  line("MineConfig.VEIN_MEAN_AT_HARD ="),
+  line("MineConfig.VEIN_W_COST ="),
+  line("MineConfig.VEIN_W_YIELD ="),
+  line("MineConfig.VEIN_W_RARITY ="),
+  line("MineConfig.VEIN_TAIL_POWER_BIG ="),
+  line("MineConfig.VEIN_TAIL_POWER_SMALL ="),
+  // veinSizeMean reads the craft cost and the yield band, so the whole cost
+  // chain comes with it. Sliced from the real file so the harness measures the
+  // shipped prices rather than a restatement of them.
+  line("MineConfig.CRAFT_BLOCKS ="),
+  line("MineConfig.CRAFT_BAND_EASE ="),
+  line("MineConfig.CRAFT_DEPTH_SLOPE ="),
+  block("MineConfig.ORE_YIELD_BANDS = {", "}"),
+  // ORE_BAND_ORDER is a ONE-LINER. block() searches forward for a line that is
+  // exactly "}", so asking for it as a block swallowed another 90 lines --
+  // including the do-block that derives ORE_DMAX from MineDepth, which then
+  // died on a Depth stub that has no dirtHp. Same trap as MineDepth.SEAMS.
+  line("MineConfig.ORE_BAND_ORDER ="),
+  block("function MineConfig.oreBandForTier(", "end"),
+  block("function MineConfig.oreYieldFor(", "end"),
+  block("function MineConfig.craftBlocks(", "end"),
+  block("function MineConfig.oreYieldMid(", "end"),
+  block("function MineConfig.toolCraftCost(", "end"),
+  block("function MineConfig._veinSpans(", "end"),
+  block("function MineConfig._veinRaw(", "end"),
+  block("function MineConfig.veinEffort(", "end"),
   block("local function mul32(", "end"),
   block("local function veinMix(", "end"),
   block("local function veinFinal(", "end"),
   line("local VEIN_SALT ="),
   block("local function veinUnit(", "end"),
+  line("local VEIN_DIRS ="),
+  block("local function veinGrow(", "end"),
   // zoneSeed reads the per-zone layout salt, so its table comes too. Without
   // it the sheet hashes against a nil salt and the harness errors rather than
   // quietly measuring a different mine.
@@ -171,8 +201,16 @@ do
 end
 
 -- ---------------------------------------------------------------- shape --
-check("VEIN_MAX is 8, the owner's ceiling for all ores",
-	MineConfig.VEIN_MAX == 8, tostring(MineConfig.VEIN_MAX))
+--[[
+	The ceiling was 8 and is now 14. Owner, 2026-10-06: "NO LIMIT ON VEINS.. MAKE
+	AN EQUATION, BUT LETS SAY THE HIGHEST AVERAGE SHOULD BE 12-14 [WITH *MAYBE*
+	ONE OR 2 ORES.. 90% SHOULD BE SUB 8]". So the ceiling itself is no longer the
+	interesting property -- the SHAPE OF THE DISTRIBUTION is, and that is what the
+	checks below pin: one or two ores up at 12-14, nine tenths of the roster under
+	8, and the bulk still at 3-4.
+]]
+check("VEIN_MAX leaves room for a 12-14 average",
+	MineConfig.VEIN_MAX >= 14, tostring(MineConfig.VEIN_MAX))
 
 -- Every size the band function can return, over the whole roster and the whole
 -- jitter range. Nothing may exceed the ceiling or fall below one block.
@@ -192,8 +230,16 @@ check("no ore can ever exceed VEIN_MAX blocks", worst <= MineConfig.VEIN_MAX,
 check("no ore can vein to zero blocks", least >= 1, "smallest " .. tostring(least))
 
 local big, mid, solo = {}, 0, 0
+local huge, sub8 = {}, 0
 for t = 1, n do
 	local b = bands[t]
+	local m = MineConfig.veinSizeMean(t)
+	if m >= 12 then
+		table.insert(huge, t)
+	end
+	if m < 8 then
+		sub8 += 1
+	end
 	if b.hi >= 6 then
 		table.insert(big, t)
 	elseif b.lo <= 2 then
@@ -202,17 +248,27 @@ for t = 1, n do
 		mid += 1
 	end
 end
-check("2-3 ores TOTAL group in 6-8s", #big >= 2 and #big <= 3,
+-- "THE HIGHEST AVERAGE SHOULD BE 12-14 [WITH *MAYBE* ONE OR 2 ORES"
+check("one or two ores average 12-14", #huge >= 1 and #huge <= 2,
+	string.format("%d ores: tiers %s", #huge, table.concat(huge, ",")))
+do
+	local top = 0
+	for t = 1, n do top = math.max(top, MineConfig.veinSizeMean(t)) end
+	check("the biggest average lands in 12-14", top >= 12 and top <= 14,
+		string.format("%.2f", top))
+end
+-- "90% SHOULD BE SUB 8"
+check("at least 90% of the roster averages under 8", sub8 >= n * 0.9,
+	string.format("%d of %d (%.0f%%)", sub8, n, sub8 / n * 100))
+check("a handful of ores reach 6+, not a band", #big >= 2 and #big <= 8,
 	string.format("%d ores: tiers %s", #big, table.concat(big, ",")))
+-- The bulk still has to sit at 3-4; without this the gentle end of the curve
+-- quietly drags half the roster down to ones and twos, which it did at
+-- VEIN_TAIL_POWER_SMALL = 2.
 check("most of the roster groups in 3-4", mid > n / 2,
 	string.format("%d of %d ores in 3-4", mid, n))
-check("the rarest ores come in ones and twos", solo > 0,
+check("the rarest ores still come in ones and twos", solo > 0,
 	string.format("%d ores in 1-2", solo))
-for _, t in ipairs(big) do
-	check("tier " .. t .. " spans exactly 6-8",
-		bands[t].lo == 6 and bands[t].hi == 8,
-		string.format("%d-%d", bands[t].lo, bands[t].hi))
-end
 
 -- veinSizeMean must be the real mean of veinSizeFor, or the density correction
 -- divides by the wrong number and every conservation check below drifts.
@@ -305,7 +361,10 @@ print("  cluster sizes: " .. table.concat(line, " "))
 
 check("ore is actually clustered, not noise", (oreN / math.max(1, clusters)) > 1.8,
 	string.format("%.2f blocks per cluster across %d clusters", oreN / math.max(1, clusters), clusters))
-check("clusters larger than 8 are rare (touching veins of the same ore)",
+-- Larger than VEIN_MAX, not larger than 8: a 13-block vein is deliberate now, so
+-- the only suspicious cluster is one bigger than any single vein can be, which
+-- means two veins of the same ore grew into each other.
+check("clusters larger than VEIN_MAX are rare (touching veins of the same ore)",
 	over / math.max(1, clusters) < 0.05,
 	string.format("%d of %d clusters (%.2f%%)", over, clusters, over / math.max(1, clusters) * 100))
 
@@ -322,12 +381,29 @@ check("clusters larger than 8 are rare (touching veins of the same ore)",
 	did, across 1.15 million blocks. The density was still right, the clustering
 	was still right, and the bug was invisible to every other check here.
 ]]
-local sawBig, sawMid = {}, {}
-for s = 6, 8 do sawBig[s] = sizes[s] or 0 end
+local sawMid = {}
 for s = 3, 4 do sawMid[s] = sizes[s] or 0 end
-check("all three big-vein sizes (6, 7, 8) occur",
-	sawBig[6] > 0 and sawBig[7] > 0 and sawBig[8] > 0,
-	string.format("6:%d 7:%d 8:%d", sawBig[6], sawBig[7], sawBig[8]))
+--[[
+	Sizes past the old eight-block ceiling must actually reach the ground.
+
+	This replaces a check that 6, 7 AND 8 each occur, which encoded the retired
+	three-band design where the big ores spanned exactly 6-8. The big end is a
+	12-14 average now, so the question is whether anything above 8 is placed at
+	all -- if veinGrow's box were too small, or the anchor clamp wrong, big veins
+	would be silently truncated into mid ones and every density check here would
+	still pass. That is exactly the failure mode the note above describes.
+]]
+do
+	local over8, biggest = 0, 0
+	for s, k in pairs(sizes) do
+		if s > 8 then over8 += k end
+		if k > 0 then biggest = math.max(biggest, s) end
+	end
+	check("veins larger than 8 blocks actually get placed", over8 > 0,
+		string.format("%d clusters over 8, biggest %d", over8, biggest))
+	check("and they are not truncated well short of the 12-14 average",
+		biggest >= 10, "biggest placed " .. tostring(biggest))
+end
 check("both mid-vein sizes (3, 4) occur",
 	sawMid[3] > 0 and sawMid[4] > 0,
 	string.format("3:%d 4:%d", sawMid[3], sawMid[4]))

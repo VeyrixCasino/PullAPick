@@ -4654,6 +4654,20 @@ local function ensureZone(zone, throughLayer)
 	local uncapped = zone.id == "meadow" or (tonumber(maxLayers) or 0) >= (C.MINE1_LAYERS or 2500)
 	local want = math.max(1, math.floor(throughLayer or (C.LAYER_WINDOW or 8)))
 	local target = uncapped and want or math.clamp(want, 1, maxLayers)
+	--[[
+		ONE CHUNK AT A TIME, AND NEVER BELOW THE OPEN ONE.
+
+		Every caller asks for `deepest + LAYER_WINDOW`, which is the right ask for
+		a player walking down and the wrong one for everything else: nothing
+		stopped the mine existing below what anyone had earned. Clamping here
+		rather than at the five call sites because this is the only place that
+		turns a request into rock, so a new caller cannot forget it.
+
+		The ceiling moves only when someone reaches a chunk floor, which is the
+		owner's rule: chunk two does not exist until the bottom of chunk one has
+		been mined. canCreditDepth refuses the depth; this refuses the rock.
+	]]
+	target = math.min(target, Dig.Auth.chunkCeiling(Dig.Auth.deepestReachedAcross(profiles, zone.id)))
 	local from = (builtTo[zone.id] or 0) + 1
 	if from > target then
 		syncPitWalls(zone)
@@ -4685,7 +4699,8 @@ local function ensureZone(zone, throughLayer)
 		missing -- a hole in the top of the mine.
 	]]
 	local band = math.max(1, Const.ENSURE_BAND)
-	if (target - from) >= Const.ENSURE_FAR then
+	local far = (target - from) >= Const.ENSURE_FAR
+	if far then
 		from = math.max(1, target - band + 1)
 	else
 		target = math.min(target, from + band - 1)
@@ -4819,8 +4834,22 @@ local function ensureZone(zone, throughLayer)
 			end
 		end
 	end
-	-- builtTo already claimed at start; keep max in case of concurrent raises.
-	builtTo[zone.id] = math.max(builtTo[zone.id] or 0, target)
+	--[[
+		The far path must NOT advance the frontier, and used to.
+
+		The block comment above says so already -- "builtTo is NOT advanced,
+		because those layers genuinely are not built" -- but this line read
+		`max(builtTo, target)` unconditionally, so arriving at seam 2500 with a
+		frontier of 3 built layers 2506-2508 and then claimed 2508. Every later
+		call starts at builtTo+1, so layers 4-2505 could never be built by
+		anything: ride back up and you are standing in a void that no amount of
+		digging fills. Only the near path, which is contiguous with the frontier,
+		may move it.
+	]]
+	if not far then
+		-- keep max in case of concurrent raises
+		builtTo[zone.id] = math.max(builtTo[zone.id] or 0, target)
+	end
 	syncPitWalls(zone)
 end
 
