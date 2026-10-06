@@ -38,6 +38,7 @@ local Tools = require(shared:WaitForChild("MineTools"))
 -- A forged tool IS its ore: the name, the frame and the price all come
 -- from one place so the panel and the craft verb cannot disagree.
 local OreTools = require(shared:WaitForChild("MineOreTools"))
+local OreIcons = require(shared:WaitForChild("MineOreIcons"))
 local T = require(shared:WaitForChild("MineTheme"))
 local UI = require(shared:WaitForChild("MineUI"))
 local Icons = require(shared:WaitForChild("MineIcons"))
@@ -395,14 +396,29 @@ function MineForge.mount(parent, opts)
 				LayoutOrder = i,
 			}, pouchScroll)
 			round(chip, 6)
-			-- A dot in the ore's own colour, so the strip and the ore itself
-			-- agree about what it looks like without naming it twice.
+			--[[
+				The ore's own render, with its colour behind as the fallback.
+
+				This was a 10px dot in `ore.color`, which told you an ore was
+				greenish and nothing else -- and the roster has several greens.
+				The art is unambiguous at a glance, which is the whole job of a
+				strip you read while deciding what to forge.
+			]]
 			local dot = mk("Frame", {
 				BackgroundColor3 = (typeof(r.ore.color) == "Color3") and r.ore.color or MUTED,
-				Position = UDim2.fromOffset(7, 8),
-				Size = UDim2.fromOffset(10, 10),
+				Position = UDim2.fromOffset(5, 4),
+				Size = UDim2.fromOffset(18, 18),
 			}, chip)
 			round(dot, 5)
+			local dotArt = OreIcons.icon(r.ore.id)
+			if dotArt then
+				mk("ImageLabel", {
+					BackgroundTransparency = 1,
+					Image = dotArt,
+					ScaleType = Enum.ScaleType.Fit,
+					Size = UDim2.fromScale(1, 1),
+				}, dot)
+			end
 			label(chip, tostring(r.ore.name or r.ore.id), 11, TEXT,
 				UDim2.fromOffset(22, 0), UDim2.new(1, -70, 1, 0), FONT_M)
 			label(chip, cash(r.n), 11, GOLD, UDim2.new(1, -48, 0, 0),

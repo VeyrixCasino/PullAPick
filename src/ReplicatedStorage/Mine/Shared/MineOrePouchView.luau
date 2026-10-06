@@ -471,6 +471,11 @@ function MineOrePouchView.mount(parent, opts)
 			row.frame.LayoutOrder = i
 			row.frame.Visible = true
 			row.swatch.BackgroundColor3 = (ore and ore.color) or Color3.fromRGB(120, 120, 120)
+			-- The ore's own render. The colour square stays behind it as the
+			-- fallback, so an ore with no art still reads as itself.
+			local art = ore and OreIcons.icon(ore.id)
+			row.swatchArt.Image = art or ""
+			row.swatchArt.BackgroundTransparency = 1
 			row.name.Text = r.name
 			row.name.TextColor3 = BAND_INK[r.band or ""] or TEXT
 			row.sub.Text = string.format("%s · tier %d · %s gems each",
