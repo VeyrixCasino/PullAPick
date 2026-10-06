@@ -1,0 +1,327 @@
+# Measured boost ceilings — 2026-10-05
+
+Read off the live modules, not estimated. Reproduce with the commands at the
+bottom. **Everything here is `dirtBreak`**, because that is this game's damage
+stat — there is no stat called `damage` anywhere in the codebase.
+
+---
+
+# The headline
+
+| layer | sources measured | ceiling on `dirtBreak` |
+|---|---|---|
+| **Layer 1** | skill tree (all 75 nodes maxed, xor-aware) + the equipped tool's trait | **+1655% → ×17.55** |
+| **Layer 2** | 3 hats @ +80%, 1 face @ +100%, 3 pets @ +375% (owner, 2026-10-05) | **+1465% → ×15.65** |
+
+`final = base × (1 + L1) × (1 + L2)` → **×274.7** at both ceilings.
+
+**The two layers are at near parity, tilted slightly toward Layer 1.** The owner's
+80/100/375 budget is sound. An earlier recommendation of a ×3.0 Layer-2 ceiling
+was wrong — it assumed Layer 1 topped out near ×4 without measuring it.
+
+Both figures are theoretical maxima. Layer 1 assumes every node maxed, which the
+skill-point budget does not allow; Layer 2 assumes three SSS pets, three SSS hats
+and an SSS face. Ceiling-against-ceiling is still the fair comparison.
+
+---
+
+# Layer 1, broken down
+
+### Skill tree — `MineSkillData.luau`, 75 nodes
+Summed as `stat × maxLevel` per node. "xor-aware" takes only the better road in
+each `xorGroup`, since those are mutually exclusive.
+
+| stat | all nodes maxed | xor-aware |
+|---|---|---|
+| `dirtBreak` | +1253.0% | **+1205.4%** |
+| `mineSpeed` | +634.9% | +587.3% |
+| `luck` | +398.8% | +398.8% |
+| `rareOre` | +343.4% | +343.4% |
+| `walkSpeed` | +0.0% | +0.0% |
+
+### The equipped tool's trait — `MineTraits.luau`
+`amount = perLevel × level × rarityMult`, and `perLevel = BUDGET / weight`
+clamped to `[PER_MIN, PER_MAX]`.
+
+```
+BUDGET 0.12  /  dirtBreak weight 1.0  = 0.12 per level
+0.12 × level 5 × SSS 7.50             = 4.50  → +450%
+```
+
+`Churning` is the only `dirtBreak` trait of the 23. One trait, on the tool in
+your hands, so this is not multiplied by anything.
+
+**Layer 1 total: 1205.4 + 450 = +1655.4% → ×17.55**
+
+---
+
+# Three gaps that make this an UNDER-count
+
+The owner's spec was *"skills+skins+tools+traits are the very bottom"*. Only two
+of those four reach Layer 1.
+
+**1. Skins do not enter Layer 1.** `MineTemper.applyTemper(b, ct)` writes
+straight onto the boost table (`MineServer:2578` and `:2593`), outside both
+layers. A skin therefore multiplies the base directly instead of adding into L1.
+
+**2. Tools do not enter Layer 1 either.** Nothing adds a tool's own contribution
+to `T1`. There are exactly four `Layers.add` calls in the whole server:
+
+| line | layer | source |
+|---|---|---|
+| `MineServer:2298` | 2 | pets (`Gear.stackPets`) |
+| `MineServer:2302` | 2 | hats + face (`Gear.flatBoost`) |
+| `MineServer:2364` | 1 | the equipped tool's trait |
+| `MineServer:2385` | 1 | skills, filtered to five keys |
+
+**3. The Layer-1 skill filter passes five keys and the tree grants twenty.**
+`MineServer:2383` filters to `mineSpeed, dirtBreak, walkSpeed, luck, rareOre`.
+These sixteen bypass both layers and multiply on the base:
+
+| stat | tree total | stat | tree total |
+|---|---|---|---|
+| `coinBonus` | +996.8% | `reach` | +325.4% |
+| `swingRate` | +697.8% | `blastChance` | +313.3% |
+| `gemFind` | +506.0% | `coolant` | +247.3% |
+| `zap` | +247.3% | `chestLuck` | +207.1% |
+| `procPower` | +206.0% | `ricochet` | +189.8% |
+| `earthquake` | +175.2% | `pulverize` | +113.9% |
+| `shortFuse` | +81.5% | `oreLuck` | +74.8% |
+| `packLuck` | +74.8% | `blastRadius` | +34.4% |
+
+`swingRate` at +698% is the biggest throughput stat in the game and it is
+outside the layer system entirely. `procPower` at +206% sits under its
+`PROC_POWER_CAP` of 3.0, so proc builds are reachable but not maxed by the tree
+alone.
+
+**`walkSpeed` is a dead key in that filter** — it is listed, and no skill node
+grants it (+0.0%). Consistent with the owner's "remove walkspeed as a boost";
+the filter entry is vestigial and can go.
+
+---
+
+# Reproduce it
+
+```bash
+# Layer 1 skill sums, xor-aware, and the bypass list
+node -e '<the script in this commit message>'
+
+# trait magnitude
+grep -n 'BUDGET\|PER_MIN\|PER_MAX' src/ReplicatedStorage/Mine/Shared/MineTraits.luau
+grep -n 'dirtBreak' src/ReplicatedStorage/Mine/Shared/MineStats.luau   # weight 1.0
+grep -n 'RARITY_MULT' -A4 src/ReplicatedStorage/Mine/Shared/MineTemper.luau
+
+# every write into a layer
+grep -n 'Layers.add' src/ServerScriptService/Mine/MineServer.server.luau
+```
+
+---
+
+# What follows from this
+
+- **Approve 80 / 100 / 375.** It lands Layer 2 at ×15.65 against a measured
+  Layer 1 of ×17.55.
+- **Closing the three gaps raises Layer 1, not Layer 2.** Wiring skins and tools
+  into `T1` and widening the five-key filter all push L1 above ×17.55, which
+  makes the owner's Layer-2 numbers *more* conservative over time, not less.
+- **Do not renumber `PROC_SHARE` or `EARTHQUAKE_SEC`.** At `procPower` 0 every
+  proc is already under one swing (blast 0.35, zap 0.45, ricochet 0.60, quake
+  0.60 over its 5s life). The 8.4× blast exists only at the `procPower` cap, and
+  that cap is the dedicated amplifier the owner asked for. The blast problem is
+  **how many pets grant it**, not how hard it hits.
+
+---
+
+# The forge ladder — how far reach 5 actually takes you
+
+Owner, 2026-10-05: *"how far can this pattern take us"*. Measured by walking the
+climb: hold a tier-T tool, take the best ore it can break, forge that, repeat.
+
+**Reach 5 is a 16-forge climb from Stone to Oganesson**, and the steps are
+almost perfectly even:
+
+| # | forge | unlocks up to | gain |
+|---|---|---|---|
+| 1 | t1 Stone | t9 Slate | **+8** |
+| 2 | t9 Slate | t14 Ember | +5 |
+| 3 | t14 Ember | t19 Iron | +5 |
+| 4 | t19 Iron | t24 Rime | +5 |
+| 5 | t24 Rime | t29 Onyx | +5 |
+| 6 | t29 Onyx | t34 Turquoise | +5 |
+| 7 | t34 Turquoise | t39 Lapis | +5 |
+| 8 | t39 Lapis | t44 Jade | +5 |
+| 9 | t44 Jade | t49 Obsidian | +5 |
+| 10 | t49 Obsidian | t54 Emerald | +5 |
+| 11 | t54 Emerald | t59 Aquamarine | +5 |
+| 12 | t59 Aquamarine | t64 Starmetal | +5 |
+| 13 | t64 Starmetal | t69 Frostfire | +5 |
+| 14 | t69 Frostfire | t74 Mythril | +5 |
+| 15 | t74 Mythril | t79 Plutonium | +5 |
+| 16 | t79 Plutonium | t82 Oganesson | **+3** |
+
+The +8 at the start is the bottom of the `ORE_POW` curve being flat — several
+early ores need the same breaking power, so the first forge is a free jump. The
++3 at the end is the same curve steepening: near the top one tier is worth ~5
+rungs, so the reach stops buying much. Neither is a special case in the code.
+
+**The same climb in a zone you have already cleared (reach 15) is 6 forges** —
+Stone → Iron → Turquoise → Obsidian → Starmetal → Plutonium → Oganesson. That
+is the point of the split: forward is sixteen deliberate steps, backward is a
+mop-up.
+
+## Reach against climb length
+
+| reach | forges | |
+|---|---|---|
+| 0 | **deadlocks at tier 4** | not a setting |
+| 1 | 73 | |
+| 2 | 38 | |
+| 3 | 26 | tighter, if 16 milestones feels thin |
+| 4 | 19 | |
+| **5** | **16** | **chosen** — round number, dead-even steps |
+| 6 | 13 | |
+| 8 | 10 | |
+| 10 | 8 | |
+| 15 | 6 | cleared zones |
+| 20 | 4 | |
+
+## Calibration
+
+16 forges is the entire tool progression. Against `docs/ROADMAP.md` (first 15
+minutes out to 96 hours) that is **roughly one major tool upgrade every 5–6
+hours**, and it front-loads: the first step is +8 and low-tier ore is cheap
+(25 blocks at tier 1 against 122 at tier 82, approved lines 9–10), so expect
+four or five forges in the first couple of hours and a widening gap after.
+
+That shape is intended. Flagged here so nobody reads the sparse late game as a
+bug and "fixes" the reach.
+
+---
+
+# ZONE_STEP 10, and what it exposes about damage and HP
+
+Applied 2026-10-05. A zone is worth **500 layers**, not 50. Zone N is as hard as
+depth `(N-1) × 500` in zone 1 — the owner's mapping. `MAX` is derived, so it
+moved **209 → 290** on its own and the top ore still lands exactly on the floor.
+
+| zone | ≡ depth | rebirth | enter with | bottom out with |
+|---|---|---|---|---|
+| 1 | 0 | 0 | t1 Stone | t69 Frostfire |
+| 2 | 500 | 0 | t16 Lead | t70 Umbrite |
+| 3 | 1,000 | 1 | t23 Pearl | t72 Orichalcum |
+| 5 | 2,000 | 3 | t31 Garnet | t75 Dragonstone |
+| 7 | 3,000 | 5 | t38 Tigereye | t78 Uranium |
+| 10 | 4,500 | 8 | t47 Lithium | **t82 Oganesson** |
+
+Two things fall out that were not designed: the tool ladder and the rebirth
+ladder now walk together (zone 10 opens at rebirth 8 and needs forge 10 of 16),
+and zone 1 bottoms out at Frostfire rather than Oganesson, so each zone is its
+own stretch instead of secretly being the whole game again.
+
+## The mismatch it exposed
+
+Three different shapes were being applied to one axis:
+
+| thing | how it treats a zone |
+|---|---|
+| breaking power | **+10 rungs** (additive) |
+| block HP | **×5** (multiplicative) |
+| tool damage | neither — `6^(SPAN×(t−1)/120)` on ore tier |
+
+Measured swings to break the deepest block each tool unlocks, plain pickaxe at
+max level, no boosts:
+
+| tool | z1 | z5 | z7 | z10 |
+|---|---|---|---|---|
+| t34 | 0.0 | 2.3 | — | — |
+| t44 | 0.0 | 1.0 | 12.7 | — |
+| t49 | 0.0 | 0.4 | 7.3 | **264.8** |
+| t69 | 0.0 | 0.0 | 0.2 | 20.9 |
+| t82 | 0.0 | 0.0 | 0.0 | 1.6 |
+
+Zone 1 is free from t29 on. Zone 10 is a 265-swing wall at the tool that just
+entered it, collapsing to 1.6 by the end. HP growth per rung is not even one
+number: **78.9%** at zone 1 layer 50, **9.7%** at layer 500, **1.0%** at layer
+5000, and **17.5%** across a zone boundary.
+
+## A STALE DIVISOR IN THE LIVE DAMAGE CURVE
+
+`MineConfig.luau:2504`, and the comment says it outright:
+
+```lua
+MineConfig.TOOL_TIER_SPAN = 16        -- 6^16 from tier 1 to tier 121
+return 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / 120)
+```
+
+**The roster is 82.** `120` was `ORE_COUNT − 1` when there were 121 ores, so the
+damage ladder spans `6^(16×81/120) = 6^10.8 ≈ 2.5e8` instead of the `6^16 ≈
+2.8e12` it claims — about **one eleven-thousandth** of its intended range. Same
+class as the `oreD` divisor already fixed in the calculator, but this one is
+live game code.
+
+Per-forge damage jump (+5 tiers, the real ladder step):
+
+| divisor | SPAN 10 | SPAN 16 | SPAN 20 |
+|---|---|---|---|
+| `/120` (today) | ×2.11 | **×3.30** | ×4.45 |
+| `/81` (fixed) | ×3.02 | **×5.87** | ×9.13 |
+
+## PROPOSAL — one axis, constant swings
+
+**Block HP stops being its own curve and becomes a statement about the tool:**
+
+> `HP(rung) = TARGET_SWINGS × damage(the tool that just unlocked that rung)`
+
+The rung is continuous for HP (`1 + (z−1)×STEP + (L−1)/LAYERS_PER_RUNG`, no
+floor) so HP stays smooth per layer — the existing invariant that stops
+coins-per-HP sawtoothing. The gate keeps using the floored integer rung.
+
+With `/81`, `SPAN 16`, `TARGET 3`:
+
+| rung | zone/layer | HP | tool | damage | swings |
+|---|---|---|---|---|---|
+| 1 | z1 L1 | 2.13e2 | t1.0 | 7.10e1 | **3.00** |
+| 11 | z2 L1 | 4.41e4 | t16.1 | 1.47e4 | **3.00** |
+| 51 | z6 L1 | 3.22e7 | t34.7 | 1.07e7 | **3.00** |
+| 101 | z10 L501 | 4.49e9 | t48.6 | 1.50e9 | **3.00** |
+| 201 | z10 L5501 | 4.85e12 | t68.4 | 1.62e12 | **3.00** |
+| 290 | z10 L9951 | 6.01e14 | t82.0 | 2.00e14 | **3.00** |
+
+Constant by construction, not by fitting. (A geometric HP curve was tried first
+and sags to 0.03 swings mid-ladder, because damage is not geometric in rung.)
+
+**Two dials, and that is all:**
+
+- `TOOL_TIER_SPAN` — how big a forge feels. 16 gives ×5.87 per forge once the
+  divisor is fixed.
+- `TARGET_SWINGS` — 3 for plain rock. Ore blocks are `ORE_HP_MULT 3` on top, so
+  an ore block is ~9 swings, which is the right "this one is worth it" beat.
+
+**THE COST, and it is not small: coins are 1 per HP.** The top block would pay
+`6.01e14` against today's `1.47e11` — a **~4,000× rescale of the whole coin
+economy**. Rebirth costs (`7500 × 2.08^n`) and shop tool prices (`power × 800`)
+would have to move with it. Two ways out, owner's call:
+
+1. **Rescale coins with HP.** Keeps "one coin per point of HP", which is a rule
+   the codebase states plainly and players can feel. Needs the rebirth curve and
+   shop ladder re-derived in the same pass.
+2. **Decouple coins from HP.** Pay coins off the *rung* instead, on whatever
+   curve the coin economy wants. More freedom, loses a rule that is currently
+   one line and easy to reason about.
+
+## Ore drop
+
+Current `ORE_YIELD_BANDS` peak in the middle and fall off at the top:
+
+| band | tiers | yield |
+|---|---|---|
+| common | 1–18 | 8–10 |
+| rare | 30–49 | 11–13 |
+| **epic** | **50–60** | **12–15 (peak)** |
+| mythic | 70–75 | 6–8 |
+| exotic | 80–82 | **2–4** |
+
+That shape is deliberate — top ore is precious per block. Against approved craft
+costs (25 blocks at tier 1, 122 at tier 82) it means a tier-1 craft is ~3 ore
+blocks and a tier-82 craft is ~41. **Left alone pending the owner**, because it
+is already tuned and the HP change above does not disturb it.

@@ -1,13 +1,31 @@
 -- MineServer compact: AFK mining TCG. Original city place is not modified.
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local CollectionService = game:GetService("CollectionService")
-local DSS = game:GetService("DataStoreService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local RS = game:GetService("ReplicatedStorage")
+--[[
+	ONE TABLE FOR THE SERVICES, AND IT IS NOT TIDINESS.
 
-local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
+	Luau gives a function 200 registers, and a script's main chunk IS a
+	function, so every top-level local spends one. This script had ZERO left:
+	tools/verify/compile.js measures headroom by appending live locals until
+	the compile fails, and the answer here was 0. The next top-level local
+	added by anyone would have stopped the whole script compiling -- which does
+	not fail loudly. It happened on 2026-10-05: the server script never ran, so
+	MineNet was never created and every client hung on WaitForChild, with one
+	line in the output to explain it.
+
+	Seven service locals become one, buying back six registers. Services are
+	the cheapest place to find them: referenced often, declared once, so the
+	saving is structural rather than a rewrite of any logic.
+]]
+local Svc = {
+	Players = game:GetService("Players"),
+	Run = game:GetService("RunService"),
+	Teleport = game:GetService("TeleportService"),
+	Collection = game:GetService("CollectionService"),
+	DSS = game:GetService("DataStoreService"),
+	Marketplace = game:GetService("MarketplaceService"),
+	RS = game:GetService("ReplicatedStorage"),
+}
+
+local shared = Svc.RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared.MineConfig)
 local Cards = require(shared.MineCards)
 local Packs = require(shared.MinePackConfig)
@@ -28,7 +46,6 @@ local Patterns = require(script.Parent:WaitForChild("MinePatterns"))
 local MineAntiGear = require(script.Parent:WaitForChild("MineAntiGear"))
 local MineBadges = require(script.Parent:WaitForChild("MineBadges"))
 local Tools = require(shared.MineTools)
-local Fossils = require(shared:WaitForChild("MineFossils"))
 local ChestModel = require(shared:WaitForChild("MineChestModel"))
 local ToolModels = require(game.ReplicatedStorage:WaitForChild("ToolModelFactory"))
 local Stats = require(shared.MineStats)
@@ -46,6 +63,14 @@ local TradeService = require(script.Parent:WaitForChild("TradeService"))
 local SocialService = require(script.Parent:WaitForChild("SocialService"))
 -- Mine For Cards modules packed as one local to spare the 200-register main-chunk cap.
 local Dig = {
+	-- Traits: the prefix on a forged tool, and the one thing runes and
+	-- gear were replaced by. On Dig rather than a top-level local because this
+	-- script sits at 197 of Luau's 200, and boosts() reads it per swing so a
+	-- require-per-call is not an option either.
+	Traits = require(shared:WaitForChild("MineTraits")),
+	-- Two layers, and the second multiplies the first. See MineBoostLayers
+	-- for the owner's worked example (100 -> 300, not 250).
+	Layers = require(shared:WaitForChild("MineBoostLayers")),
 	Depth = C.Depth or require(shared:WaitForChild("MineDepth")),
 	Auth = require(script.Parent:WaitForChild("MineDigAuth")),
 	Shop = require(shared:WaitForChild("MineDepthShop")),
@@ -54,9 +79,9 @@ local Dig = {
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
-local store = DSS:GetDataStore(C.DATASTORE)
+local store = Svc.DSS:GetDataStore(C.DATASTORE)
 -- Per-card ownership ledger: key = 16-hex serial, value = userId.
-local serialStore = DSS:GetDataStore(tostring(C.DATASTORE) .. "_card_serials")
+local serialStore = Svc.DSS:GetDataStore(tostring(C.DATASTORE) .. "_card_serials")
 local profiles, busy, voxels, swingBudget = {}, {}, {}, {}
 -- In-flight battle-pass claims: [userId] = { ["free_3"|"premium_3"] = true }
 local claimPassLocks = {}
@@ -69,7 +94,16 @@ local Const = {
 	VOXEL_SKIP = { Skip = true },
 	GROUND_Y = 5,
 	OPEN_RUN_MAX = 50,
-	SCRAP_MAX = 200,
+	--[[
+		Most of one item a player may buy in a single typed request.
+
+		Owner, 2026-10-03: "a custom amoujt of packs to buy (the player can
+		write the number themselves [default 1])". A text box needs a ceiling
+		or a fat-fingered 999999 is one request that spends a whole bank.
+	]]
+	BUY_QTY_MAX = 100,
+	-- One number, shared with the Select UI that has to clamp to it.
+	SCRAP_MAX = C.SCRAP_MAX,
 	ROLL_MAX = 100,
 	-- Chunk size. Generation runs three layers at a time and the next chunk
 	-- is cut as soon as a block in the current one is touched.
@@ -80,7 +114,18 @@ local Const = {
 	-- Layers below the server-wide dug depth before a dig is worth a look.
 	FLAG_DEPTH_SLACK = 250,
 	CART_MAX_LINES = 24,
-	CART_MAX_QTY = 25,
+	--[[
+		Most of one line the cart will buy. RAISED 25 -> 100 on 2026-10-04 to
+		match BUY_QTY_MAX below and the typed quantity box in
+		MineInventoryView, which allows the same number.
+
+		These three have to agree. A box that accepts 60 above a server that
+		silently clamps to 25 is a box that lies, which is the exact failure
+		the pack tile's own comment warns about ("a button that says x10 above
+		a stack of six is a button that lies"). tools/verify/buyqty.js pins
+		them together.
+	]]
+	CART_MAX_QTY = 100,
 }
 local mineResetState = { at = {}, warned = {} }
 -- VIP gamepass ownership cache (server-authoritative). Keyed by userId.
@@ -150,7 +195,7 @@ local function refreshVipPass(plr)
 		return false
 	end
 	local ok, owns = pcall(function()
-		return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, C.VIP_GAMEPASS_ID or 1977363670)
+		return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, C.VIP_GAMEPASS_ID or 1977363670)
 	end)
 	local valued = (ok and owns == true) or false
 	vipPassOwned[plr.UserId] = valued
@@ -163,7 +208,7 @@ local function refreshVipPass(plr)
 				return false
 			end
 			local ok2, owns2 = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, gid)
+				return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, gid)
 			end)
 			return ok2 and owns2 == true
 		end
@@ -194,9 +239,9 @@ local function hasVipPass(plr)
 	return refreshVipPass(plr)
 end
 
-local remotes = RS.Mine:FindFirstChild("Remotes") or Instance.new("Folder")
+local remotes = Svc.RS.Mine:FindFirstChild("Remotes") or Instance.new("Folder")
 remotes.Name = "Remotes"
-remotes.Parent = RS.Mine
+remotes.Parent = Svc.RS.Mine
 local net = remotes:FindFirstChild("MineNet") or Instance.new("RemoteEvent")
 net.Name = "MineNet"
 net.Parent = remotes
@@ -228,7 +273,7 @@ end
 require(shared.MineWorldEvents).bind({
 	C = C,
 	Gear = Gear,
-	Players = Players,
+	Players = Svc.Players,
 	profiles = profiles,
 	net = net,
 })
@@ -287,23 +332,105 @@ local function isInstanceHex16(s)
 end
 
 --[[
-	FOSSILS ARE RETIRED, AND THIS IS WHERE A SAVE FINDS OUT.
+	FOSSILS ARE GONE, AND THIS IS THE LAST OF THEM.
 
-	This was reconcileFossilIds, which healed fossil ids on load. There is nothing
-	left to heal: no fossil block spawns, no fossil pack drops, the bench is gone.
-	What is left is the problem of a player who banked hundreds of pieces and
-	assembled tools that survived rebirth, and who must not simply lose them.
+	MineFossils and MineFossilEconomy are deleted. What is left is the one thing
+	that could not be: a save can still be holding pieces and assembled tools,
+	and those have to be paid for rather than silently dropped.
 
-	So they are CASHED OUT, once, at the game's own price -- MineFossils.sellGems
-	over the recipe and the pieces' own grade, which is exactly what the bench's
-	sell button would have paid. Not a number invented here.
+	THE PRICE IS FROZEN HERE, NOT LOOKED UP. It is the exact formula MineFossils
+	used, copied rather than approximated:
 
-	An assembled tool is paid as the full set of pieces it consumed
-	(MineFossilEconomy.needed), because that is what it cost to make. It is the
-	one place this has to choose, and paying the build cost is the choice that
-	cannot leave anyone worse off than if they had never assembled it.
+	    zi        the pair's zone index: grove 2, tide 4, scarlet 6,
+	              fracture 8, myth 10
+	    per band  shallow x3, mid x12, deep x40
+	    gemMin    = max(1, floor(zi * bandMult))
+	    gemMax    = max(gemMin + 1, floor(gemMin * (deep and 8 or 5)))
+	    value     = floor(gemMin + (gemMax - gemMin) * grade + 0.5)
+	    grade     = mean over the pieces of
+	                clamp01(layer / 2500) * 0.65 + quality * 0.35
 
-	Returns the gems paid so the caller can tell the player once. Idempotent: it
+	A recipe id is `pair_<name>_<band>_<slot>`, so the pair and band read
+	straight off it. Six ids predate that scheme (LEGACY_IDS in the old module,
+	all in pair_grove) and are listed below, because parsing them would give the
+	wrong pair and quietly underpay.
+
+	THIS WHOLE BLOCK IS DELETABLE once enough players have logged in to drain
+	the old saves. Nothing else references it, and deleting it costs exactly one
+	thing: anyone who has not logged in since the retirement keeps their pieces
+	as dead data instead of gems.
+]]
+--[[
+	Everything the payout needs, in ONE top-level local.
+
+	Eight separate ones put this file at 205 against Luau's hard ceiling of 200,
+	and a migration that will be deleted is the last thing that should spend
+	five of the four remaining slots.
+]]
+local FossilPay = {
+	-- The pair's zone index.
+	ZI = { pair_grove = 2, pair_tide = 4, pair_scarlet = 6, pair_fracture = 8, pair_myth = 10 },
+	BAND = { shallow = 3, mid = 12, deep = 40 },
+	-- The six ids minted before the pair_<name>_<band>_<slot> scheme. All grove.
+	LEGACY = {
+		seismic_reaver = { "pair_grove", "shallow" },
+		wraithorebit = { "pair_grove", "shallow" },
+		spikeslicer = { "pair_grove", "mid" },
+		tallurn = { "pair_grove", "mid" },
+		yardspiral = { "pair_grove", "deep" },
+		archcask = { "pair_grove", "deep" },
+	},
+	-- Pieces a full set took (MineFossilEconomy.PIECES_NEEDED).
+	NEEDED = 100,
+	MAX_LAYER = 2500,
+}
+
+-- (pair, band) for a recipe id, or nil if it is not one we can price.
+function FossilPay.where(recipeId)
+	local id = tostring(recipeId or "")
+	local legacy = FossilPay.LEGACY[id]
+	if legacy then
+		return legacy[1], legacy[2]
+	end
+	local pair, band = string.match(id, "^(pair_%a+)_(%a+)_")
+	if pair and FossilPay.ZI[pair] and FossilPay.BAND[band] then
+		return pair, band
+	end
+	return nil
+end
+
+-- Gems one piece of this recipe is worth at this grade. The frozen formula.
+function FossilPay.gems(recipeId, grade)
+	local pair, band = FossilPay.where(recipeId)
+	if not pair then
+		return 0
+	end
+	local gemMin = math.max(1, math.floor(FossilPay.ZI[pair] * FossilPay.BAND[band]))
+	local gemMax = math.max(gemMin + 1, math.floor(gemMin * (band == "deep" and 8 or 5)))
+	local g = math.clamp(tonumber(grade) or 0, 0, 1)
+	return math.floor(gemMin + (gemMax - gemMin) * g + 0.5)
+end
+
+-- Mean quality of a set of pieces, 0..1. Depth counts for most of it.
+function FossilPay.grade(pieces)
+	if type(pieces) ~= "table" or #pieces == 0 then
+		return 0
+	end
+	local sum = 0
+	for _, piece in ipairs(pieces) do
+		local layer = math.max(1, math.floor(tonumber(piece.layer) or 1))
+		local depth = math.clamp(layer / FossilPay.MAX_LAYER, 0, 1)
+		local quality = piece.qualityRoll or piece.quality
+		quality = (quality == nil) and 0.5 or math.clamp(tonumber(quality) or 0.5, 0, 1)
+		sum += depth * 0.65 + quality * 0.35
+	end
+	return math.clamp(sum / #pieces, 0, 1)
+end
+
+--[[
+	Cash out whatever the retired fossil system left on this profile, once.
+
+	Returns the gems paid so the caller can tell the player. Idempotent: it
 	clears the fields, so a second load finds nothing and pays nothing.
 ]]
 local function retireFossils(p)
@@ -323,33 +450,45 @@ local function retireFossils(p)
 		end
 	end
 	for recipeId, pieces in pairs(byRecipe) do
-		local recipe = Fossils.recipe and Fossils.recipe(recipeId)
-		if recipe then
-			local grade = (Fossils.grade and Fossils.grade(pieces)) or 0
-			local per = (Fossils.sellGems and Fossils.sellGems(recipe, grade)) or 0
-			gems += math.max(0, math.floor(per)) * #pieces
+		gems += FossilPay.gems(recipeId, FossilPay.grade(pieces)) * #pieces
+	end
+
+	-- Assembled tools, at what they cost to build: a full set at full grade.
+	-- That is the one judgement call here, and the one that cannot leave anyone
+	-- worse off than if they had never assembled the thing.
+	for key, ft in pairs(p.fossilTools or {}) do
+		if type(ft) == "table" then
+			gems += FossilPay.gems(ft.fossilId or key, 1) * FossilPay.NEEDED
 		end
 	end
 
-	-- Assembled tools, at what they cost to build.
-	local needed = 1
-	do
-		local okE, Econ = pcall(function()
-			return require(shared:WaitForChild("MineFossilEconomy"))
-		end)
-		if okE and Econ and Econ.needed then
-			needed = math.max(1, math.floor(Econ.needed() or 1))
-		end
-	end
-	for key, ft in pairs(p.fossilTools or {}) do
-		if type(ft) == "table" then
-			local recipe = Fossils.recipe and Fossils.recipe(ft.fossilId or key)
-			if recipe then
-				-- Full grade: an assembled tool was the good outcome.
-				local per = (Fossils.sellGems and Fossils.sellGems(recipe, 1)) or 0
-				gems += math.max(0, math.floor(per)) * needed
+	--[[
+		Held fossil PACKS, too.
+
+		These used to cash out when OPENED, because the pack rows were still
+		registered and an unopenable pack reads as a bug. The rows are gone now
+		(MineZonePacks dropped its three fossil slots, Mine1PacksData its three
+		packs), so an unopened one would be an inventory row with no definition
+		behind it. It pays here instead, at the same rate the open branch used:
+		a mid-band recipe at full grade, three pieces a pull.
+
+		Matched on the substring rather than a list, because the ids came in six
+		shapes -- "fossil_pack", the three zone-prefixed ones, and the two
+		legacy aliases ("fossil_deep_pack", "fossil_abyss_pack").
+	]]
+	if type(p.packs) == "table" then
+		local keep = {}
+		for _, pk in ipairs(p.packs) do
+			local id = type(pk) == "table" and tostring(pk.packId or "") or ""
+			if id ~= "" and string.find(id, "fossil", 1, true) then
+				local pulls = tonumber(type(pk) == "table" and pk.pulls) or 3
+				local count = math.max(1, math.floor(tonumber(type(pk) == "table" and pk.count) or 1))
+				gems += FossilPay.gems("pair_tide_mid_pick", 1) * 3 * pulls * count
+			else
+				table.insert(keep, pk)
 			end
 		end
+		p.packs = keep
 	end
 
 	p.fossilPieces = nil
@@ -359,6 +498,80 @@ local function retireFossils(p)
 		p.gems = (tonumber(p.gems) or 0) + gems
 	end
 	return gems
+end
+
+--[[
+	BANK UNOPENED ORE PACKS, as many as the pouch will hold.
+
+	An ore block hands over its ore directly now (see the `kind == "ore"` break
+	branch), so an "<id>_ore_pack" sitting in the bag is a legacy row whose
+	contents were already settled when the block broke -- opening it reveals
+	nothing that was not decided then. A bag of hundreds of single-ore packs was
+	the most-complained-about screen in the game, and asking the player to clear
+	it by hand is the same screen with extra steps.
+
+	CAPACITY DECIDES HOW MANY, and nothing is destroyed to make it tidy.
+	Dig.addOre spills whatever does not fit and spilled ore is gone, so this
+	checks for room FIRST and converts a pack only when its whole yield lands.
+	What does not fit STAYS A PACK: it is retried on the next load, and it can
+	still be opened by hand once there is room, because MineZonePacks keeps the
+	"_ore_pack" ids registered.
+
+	That is also why there is NO VERSION STAMP. A stamp would mean a player with
+	a full pouch converts nothing and is marked done, stranding the rest for
+	good; this is idempotent and has to be able to run again.
+
+	THE AMOUNT IS THE BAND MIDPOINT, NOT A ROLL. Opening pays a uniform
+	[lo, hi], so the midpoint is the same in expectation -- and being
+	deterministic means rejoining cannot re-roll a bad result. The pack's
+	STAMPED finder still applies, capped exactly as the open branch caps it:
+	the pack has carried that number since break time, and dropping it here
+	would quietly pay less than opening by hand.
+
+	Returns packs converted and ore banked. It does NOT bump the "packs" stat:
+	these were not opened, and counting them would jump every pack quest.
+]]
+function Dig.bankOrePacks(p)
+	if type(p) ~= "table" or type(p.packs) ~= "table" then
+		return 0, 0
+	end
+	local Pouch = Dig.pouch()
+	local cap = tonumber(C.ORE_PACK_FIND_CAP) or 1
+	local keep, converted, banked = {}, 0, 0
+	for _, pk in ipairs(p.packs) do
+		local id = (type(pk) == "table") and tostring(pk.packId or "") or ""
+		local oreId = (id ~= "") and string.match(id, "^(.*)_ore_pack$") or nil
+		local ore = oreId and C.oreById(oreId) or nil
+		if not ore then
+			table.insert(keep, pk)
+		else
+			local lo, hi = C.oreYieldFor(ore.tier)
+			lo, hi = math.min(lo, hi), math.max(lo, hi)
+			local find = math.min(math.max(0, tonumber(pk.oreFind) or 0), cap)
+			local each = math.max(1, math.floor(((lo + hi) / 2) * (1 + find) + 0.5))
+			-- Rows stack (see the merge in openPack), so one row can be many packs.
+			local left = math.max(1, math.floor(tonumber(pk.count) or 1))
+			while left > 0 do
+				p.ores = p.ores or {}
+				if Pouch.room(p.ores, Dig.pouchTier(p)) < each then
+					break
+				end
+				local got = Dig.addOre(p, ore.id, each)
+				if got <= 0 then
+					break
+				end
+				banked += got
+				converted += 1
+				left -= 1
+			end
+			if left > 0 then
+				pk.count = left
+				table.insert(keep, pk)
+			end
+		end
+	end
+	p.packs = keep
+	return converted, banked
 end
 
 -- chestTools shipped as a flat array of id strings, then started carrying a
@@ -422,7 +635,7 @@ local function claimSerial(serial, userId)
 	end
 	-- Studio DataStore queues stall join when every card claims on load.
 	-- Trust the local profile in Studio; live servers still hit the ledger.
-	if RunService:IsStudio() then
+	if Svc.Run:IsStudio() then
 		return "won"
 	end
 	local status = "error"
@@ -507,7 +720,7 @@ local function nukeSerialEverywhere(serial, reason)
 	end
 	clearSerialLedger(serial)
 	local hit = 0
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		local p = profiles[plr.UserId]
 		if p then
 			local n = stripSerialFromProfile(p, serial)
@@ -746,7 +959,7 @@ local function load(plr)
 		running again on any server. Nobody else is touched. Studio has its own
 		stores now (MineConfig.DATASTORE_SUFFIX) and never gets here.
 	]]
-	if plr.UserId == 465369561 and not RunService:IsStudio() then
+	if plr.UserId == 465369561 and not Svc.Run:IsStudio() then
 		local key = "u_" .. plr.UserId
 		local backupKey = key .. "_prelaunch_backup"
 		local okB, already = pcall(function()
@@ -787,7 +1000,7 @@ local function load(plr)
 		so a stale copy can never land over a newer one.
 	]]
 	local key = "u_" .. plr.UserId
-	local lockTtl = RunService:IsStudio() and 0 or 120
+	local lockTtl = Svc.Run:IsStudio() and 0 or 120
 	local data, read = nil, false
 	-- With API access off, all 8 lock-claim attempts are refused and each one logs
 	-- StudioAccessToApisNotAllowed with backoff between -- the UpdateAsync lines
@@ -799,7 +1012,7 @@ local function load(plr)
 	-- closure and the guard would silently never fire. That trap has bitten this
 	-- file four times (shortNum, invCtl, vipSeatsLeft, SET_IDS).
 	local claimAttempts = 8
-	if RunService:IsStudio() and LeaderboardService.dataStoresUsable
+	if Svc.Run:IsStudio() and LeaderboardService.dataStoresUsable
 		and not LeaderboardService.dataStoresUsable() then
 		claimAttempts = 0
 	end
@@ -828,7 +1041,7 @@ local function load(plr)
 	if not read then
 		-- Studio: UpdateAsync can fail on API blips / leftover locks. Fall back to
 		-- GetAsync so we still play on the real save and keep writing.
-		if RunService:IsStudio() then
+		if Svc.Run:IsStudio() then
 			local okG, got = pcall(function()
 				return store:GetAsync(key)
 			end)
@@ -839,7 +1052,7 @@ local function load(plr)
 		end
 	end
 	if not read then
-		if RunService:IsStudio() then
+		if Svc.Run:IsStudio() then
 			-- Studio without API access: play on a throwaway profile.
 			error("datastore unavailable in Studio")
 		end
@@ -1336,8 +1549,18 @@ local function load(plr)
 		Runs once per profile and stamps oreRosterV so it never runs twice. The
 		merge is additive: a save holding both the old id and its replacement
 		keeps the sum rather than whichever the loop happened to reach last.
+
+		LESS-THAN, NOT NOT-EQUAL. This read `~= 1`, which is only "has not run"
+		while 1 is the newest version. The V2 pass below stamps 2, so every
+		already-migrated profile came back here with oreRosterV == 2, failed
+		`~= 1`, re-ran the whole V1 merge AND stamped itself back DOWN to 1 --
+		which then made the V2 guard fire too. Both passes re-ran on every single
+		load, forever, for every player past the migration.
+
+		A version stamp is monotonic, so the test is "older than this pass", and
+		a profile from a future build is left alone rather than downgraded.
 	]]
-	if p.oreRosterV ~= 1 then
+	if (tonumber(p.oreRosterV) or 0) < 1 then
 		local map = C.ORE_MIGRATION
 		if type(map) == "table" then
 			if type(p.ores) == "table" then
@@ -1393,7 +1616,9 @@ local function load(plr)
 		               what every button in the bench sends
 		  level        clamped to the new cap, with the overspend refunded
 	]]
-	if p.oreRosterV ~= (C.ORE_ROSTER_V or 2) then
+	-- Monotonic, for the same reason as the V1 guard above: `~=` would re-run
+	-- this pass on any profile stamped past it rather than only on older ones.
+	if (tonumber(p.oreRosterV) or 0) < (C.ORE_ROSTER_V or 2) then
 		local map = C.ORE_MIGRATION_V2
 		local moved, packed, retiered, clamped = 0, 0, 0, 0
 		if type(map) == "table" then
@@ -1427,10 +1652,26 @@ local function load(plr)
 			end
 		end
 		--[[
-			Ore tools. The cap drops to 100, so a tool saved above it is set to
-			100 and handed back half of what the levels above 100 cost -- the
-			same 50% the bench already refunds on a recycle, so nobody can farm
-			the migration by having over-levelled first.
+			Ore tools. A tool saved above the cap is set to the cap and meant to
+			be handed back half of what the levels above it cost -- the same 50%
+			the bench refunds on a recycle, so nobody can farm the migration by
+			having over-levelled first.
+
+			THE REFUND BELOW HAS NEVER PAID OUT. MineConfig.toolSpent runs its
+			level through clampLevel, so toolSpent(t, savedLevel) is literally
+			toolSpent(t, cap) once savedLevel is over the cap, and the difference
+			is always zero. Dead since it was written, in every case it exists
+			for.
+
+			Left in place rather than deleted because it is gated on
+			ORE_ROSTER_V and has already run for every live profile, so changing
+			it now changes nothing for anyone -- but it must not be copied. The
+			cap migration further down does the same job without pretending to
+			pay, and says why: the cost curve is restretched by perLevel()
+			whenever the cap moves, so what was actually spent is not
+			recoverable from the save.
+
+			The comment also said "the cap drops to 100". It is 30.
 		]]
 		local remap = C.ORE_TIER_REMAP_V2
 		local cap = math.min(100, tonumber(C.TOOL_MAX_LEVEL) or 100)
@@ -1473,6 +1714,70 @@ local function load(plr)
 			"[oreRosterV2] %s: %d ore piles merged, %d packs renamed, %d tools re-tiered, %d levels clamped",
 			tostring(p.userId or p.name or "?"), moved, packed, retiered, clamped))
 		p.oreRosterV = C.ORE_ROSTER_V or 2
+	end
+
+	--[[
+		THE TOOL LEVEL CAP, ON ITS OWN VERSION STAMP.
+
+		The roster migration above already clamps levels to the live cap and
+		refunds half of what the excess cost -- but it is gated on
+		`p.oreRosterV`, so it runs ONCE. Every profile that passed through it
+		while the cap was 100 is stamped and will never re-enter it, and
+		TOOL_MAX_LEVEL is 30 now. Those saves still hold tools stored at level
+		80. `clampLevel` makes them BEHAVE as 30 wherever damage is computed, so
+		nothing is broken, but the stored number is a lie, the bench shows a
+		level the game will not honour, and the player is never handed back what
+		the dead levels cost them.
+
+		So the cap gets its own stamp rather than a bump of the roster's: the two
+		move for different reasons and will move again at different times.
+		Idempotent -- a second run finds nothing above the cap and does nothing.
+
+		WHY CLAMP AND NOT RESCALE. Rescaling proportionally (level 80 of 100 ->
+		24 of 30) keeps the player at the same FRACTION of the ladder and looks
+		fairer, and it cannot be done safely: nothing in the save records which
+		cap a level was earned under, so a stored 80 is "80 of 100" or "80 of
+		1000" with no way to tell. Clamping needs no such knowledge.
+
+		AND WHY NO REFUND, which is the part worth reading before adding one.
+		The roster migration above tries to hand back half of what the dead
+		levels cost, and that code has never paid out a single ore:
+		MineConfig.toolSpent runs its level through clampLevel, so
+		toolSpent(t, 80) IS toolSpent(t, cap) and the difference is always zero.
+		Dead since it was written.
+
+		It cannot be repaired by unclamping either, because the cost CURVE moved
+		underneath it: TOOL_CLIMB_ORE and TOOL_CLIMB_DUST are restretched by
+		perLevel() over the new cap, so the geometric series that priced level 80
+		when it was bought no longer exists anywhere in the config. What a player
+		actually spent is not reconstructible from the save.
+
+		Clamping is its own compensation and that is the honest framing: on this
+		curve the cap IS the full x350 climb, so a tool that comes back as level
+		30 arrives MAXED. The player skips the whole ~12-hour climb rather than
+		being paid off for it.
+	]]
+	do
+		local capV = tonumber(C.TOOL_CAP_V) or 1
+		if (tonumber(p.toolCapV) or 0) < capV and type(p.oreTools) == "table" then
+			local cap = math.max(1, math.floor(tonumber(C.TOOL_MAX_LEVEL) or 30))
+			local cut = 0
+			for _, t in ipairs(p.oreTools) do
+				if type(t) == "table" then
+					local lv = math.max(1, math.floor(tonumber(t.level) or 1))
+					if lv > cap then
+						t.level = cap
+						cut += 1
+					end
+				end
+			end
+			if cut > 0 then
+				print(string.format(
+					"[toolCapV%d] %s: %d tool level(s) clamped to %d (maxed on the current curve)",
+					capV, tostring(p.userId or p.name or "?"), cut, cap))
+			end
+			p.toolCapV = capV
+		end
 	end
 	if type(p.tools) ~= "table" then
 		p.tools = { pickaxe = math.max(1, tonumber(p.pickaxeTier) or 1), drill = 0, explosive = 0 }
@@ -1530,6 +1835,24 @@ local function load(plr)
 			end)
 		end
 	end
+	--[[
+		Convert legacy ore packs to banked ore, and say so -- the bag visibly
+		changes, and a silent change to someone's inventory reads as a bug.
+		Runs after the roster migrations above, which rename "<old>_ore_pack"
+		to "<new>_ore_pack": before them the ids would not resolve.
+	]]
+	do
+		local n, got = Dig.bankOrePacks(p)
+		if n > 0 then
+			task.defer(function()
+				if plr.Parent then
+					net:FireClient(plr, "toast", string.format(
+						"Banked %d legacy ore pack%s -- %s ore went into your pouch",
+						n, n == 1 and "" or "s", Verbs._benchNum(got)))
+				end
+			end)
+		end
+	end
 	reconcileChestTools(p)
 	profiles[plr.UserId] = p
 	LeaderboardService.recordRoster(plr.UserId)
@@ -1541,7 +1864,7 @@ local function load(plr)
 			local Founders = require(shared.MineFounders)
 			if Founders.isMember(p) then return end
 			local ok, owns = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
+				return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
 			end)
 			if ok and owns then
 				local seatsRef = { left = vipSeatsLeft }
@@ -1593,7 +1916,7 @@ local function save(plr)
 	-- A final save (leaving, shutdown) hands the lock back so the next server
 	-- can load this player straight away instead of waiting for it to expire.
 	local final = p._releasing and true or false
-	local lockTtl = RunService:IsStudio() and 0 or 120
+	local lockTtl = Svc.Run:IsStudio() and 0 or 120
 	for attempt = 1, 3 do
 		local lost = false
 		local ok, err = pcall(function()
@@ -1818,12 +2141,35 @@ local function equippedTool(p)
 			end
 			local finish = (nightmare and "Nightmare") or (shadow and "Shadow")
 				or (shiny and "Shiny") or "Normal"
+			--[[
+				THE ROW MUST CARRY ITS ORE, OR THE BREAKING GATE READS IT AS 1.
+
+				MineBreaking.toolBreakingPower tries three things in order: a
+				stamped `breakingPower`, then `oreId`/`ore` (derive from the ore),
+				then a shop rung off `rung`/`id`. This row had NONE of them --
+				no stamped power, no ore id, no `tier`, and an `id` of
+				"oretool_<uid>" that tonumber cannot parse -- so every forged
+				tool in the game fell through to SHOP_POWER[1], which is 1.
+
+				Breaking power 1 is the weakest pick in the game. With ZONE_STEP
+				at 100 that walls a player a few hundred layers into zone 1 no
+				matter what they forged, so the entire ore ladder was unusable
+				the moment the gate started being enforced. Nothing said so: a
+				blocked swing is silent by design, it just does no damage.
+
+				oreTier and oreId are set here rather than stamped at craft time
+				because the row is synthesised per swing from the stored one --
+				deriving keeps a tool honest if the roster moves, and needs no
+				migration for the tools players already hold.
+			]]
 			return {
 				id = "oretool_" .. tostring(held.uid),
 				uid = held.uid,
 				name = (oreDef and oreDef.name) or "Ore Tool",
 				modelName = (oreDef and oreDef.name) or nil,
 				family = famId,
+				oreTier = tonumber(held.tier) or 1,
+				oreId = (oreDef and oreDef.id) or nil,
 				power = power,
 				level = lvl,
 				oreTool = true,
@@ -1862,7 +2208,7 @@ local function equippedTool(p)
 			t.power = math.max(1, math.floor((t.power or 1) * (C.NIGHTMARE_MULT or 4.5)))
 		elseif shadow then
 			t.shadow = true
-			t.power = math.max(1, math.floor((t.power or 1) * (C.SHADOW_MULT or C.SHADOW_TOOL_MULT or 2)))
+			t.power = math.max(1, math.floor((t.power or 1) * (C.SHADOW_MULT or 2)))
 		elseif shiny then
 			t.shiny = true
 			t.power = math.max(1, math.floor((t.power or 1) * (C.SHINY_MULT or 1.5)))
@@ -1893,29 +2239,50 @@ local function equippedTool(p)
 			end
 		end
 		if oreRow then
+			--[[
+				THE STATS COME FROM THE ORE, NOT FROM A FRAME.
+
+				This walked Tools.TOOLS for the row's typeId and took `rate`,
+				`radius`, `cells` and `shape` off whatever frame it found. That
+				roster is gone, so the stats are read from MineOreTools instead,
+				where they are baked per family per ore tier -- the same values,
+				verified 2,460 for 2,460 against the roster before it was removed.
+
+				Without this the fallbacks below would have taken over and every
+				forged DRILL and EXPLOSIVE would quietly become a one-cell melee
+				pickaxe: no area clear, no blast, and nothing to error on.
+
+				The name is the family's noun now. It used to be the FRAME's
+				name, so a forged tool read "Stone Chipped Crown" -- an ore and
+				an invented frame title, which is the exact confusion
+				MineOreTools was written to end.
+			]]
 			local famId = oreRow.familyId or "pickaxe"
-			local typeDef, typeMult = nil, 1
-			for _, td in ipairs((Tools.TOOLS or {})[famId] or {}) do
-				if td.id == oreRow.typeId then
-					typeDef = td
-					local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-					typeMult = (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
-					break
-				end
-			end
+			local OreToolsM = require(shared:WaitForChild("MineOreTools"))
+			local stats = OreToolsM.frameStats(famId, oreRow.tier)
+			local typeMult = OreToolsM.typeMult(famId, oreRow.tier)
 			local oreDef = C.ORES and C.ORES[tonumber(oreRow.tier) or 1]
 			local level = math.max(1, tonumber(oreRow.level) or 1)
 			local def = {
 				id = "oretool_" .. tostring(oreRow.uid),
 				name = string.format("%s %s",
 					(oreDef and oreDef.name) or ("Tier " .. tostring(oreRow.tier)),
-					(typeDef and typeDef.name) or "Tool"),
+					OreToolsM.familyNoun(famId)),
 				family = famId,
 				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult))),
-				rate = (typeDef and typeDef.rate) or 2.6,
-				radius = (typeDef and typeDef.radius) or 0,
-				cells = (typeDef and typeDef.cells) or 1,
-				shape = (typeDef and typeDef.shape) or "melee",
+				rate = stats.rate or 2.6,
+				radius = stats.radius or 0,
+				cells = stats.cells or 1,
+				shape = stats.shape or "melee",
+				-- Carried through for the families that use them. A drill needs
+				-- its width and axis to clear more than one block; an explosive
+				-- needs its bomb count, pattern and cooldown to be a bomb.
+				width = stats.width,
+				axis = stats.axis,
+				turn = stats.turn,
+				bombs = stats.bombs,
+				pattern = stats.pattern,
+				cooldown = stats.cooldown,
 				oreTier = math.max(1, math.floor(tonumber(oreRow.tier) or 1)),
 				oreToolEquipped = oreRow.uid,
 				level = level,
@@ -2064,28 +2431,49 @@ function Dig.petRows(p, n)
 	return rows, pieces, runes
 end
 
-function Dig.applyPets(b, p, n)
+--[[
+	LAYER 2: equipment and pets, summed flat.
+
+	Owner, 2026-10-04: "Gear powers pets. Should just be a boost." and
+	"equipment+pets are #2".
+
+	Used to mutate the boost table directly, and gear used to be counted once
+	PER PET and then multiplied by your face -- so a fourth pet made your hat
+	33% better without the hat changing. Now both just add, once, into a layer
+	that MineBoostLayers multiplies over layer 1.
+
+	Returns the layer table and the stat the face tailored itself to.
+]]
+function Dig.layer2(p, n)
 	local rows, pieces = Dig.petRows(p, n)
 	local eq = p.equippedGear or {}
-	local total, tailor = Gear.stackPets(rows, Gear.wornHats(eq, pieces), pieces[eq.face or ""])
-	for stat, amount in pairs(total) do
-		if stat == "swingRate" then
-			b.swingRate = (b.swingRate or 1) + amount
-		elseif b[stat] ~= nil then
-			b[stat] += amount
-		else
-			b[stat] = amount
-		end
+	local t2 = {}
+	for stat, amount in pairs(Gear.stackPets(rows)) do
+		Dig.Layers.add(t2, stat, amount)
 	end
-	return tailor
+	local gear, tailor = Gear.flatBoost(Gear.wornHats(eq, pieces), pieces[eq.face or ""])
+	for stat, amount in pairs(gear) do
+		Dig.Layers.add(t2, stat, amount)
+	end
+	return t2, tailor
 end
 
 local function boosts(p)
 	local b = Cards.emptyBoosts()
 	local n = #(p.equipped or {})
-	-- Each pet x its rune x (its hat + your hat), the three added up, x your face.
-	Dig.tailor[p] = Dig.applyPets(b, p, n)
-	Cards.foldSwingRate(b)
+	--[[
+		THE TWO LAYERS. Owner, 2026-10-04:
+
+		  "skills+skins+tools+traits are the very bottom ... equipment+
+		   pets are #2 [if skin has +50% damage, and pet says +100% damage, and
+		   the tools base is 100, then it turns to 300, rather than 250]"
+
+		Everything inside a layer adds; the layers multiply. Collected here and
+		combined once, below, after every source has had its say -- combining
+		early would make the result depend on the order sources were read in.
+	]]
+	local T1, T2 = {}, {}
+	T2, Dig.tailor[p] = Dig.layer2(p, n)
 	b.luck *= C.prestigeLuck(p.prestige)
 	if (tonumber(p.sellHasteUntil) or 0) > os.clock() then
 		b.mineSpeed *= 1.08
@@ -2102,25 +2490,111 @@ local function boosts(p)
 			if bonus.luck then b.luck *= bonus.luck end
 			if bonus.sell then b.sell = (b.sell or 1) * bonus.sell end
 			if bonus.gems then b.gems = (b.gems or 1) * bonus.gems end
-			if bonus.ore then b.oreYield = (b.oreYield or 0) + (bonus.ore - 1) end
+			if bonus.ore then b.blastChance = (b.blastChance or 0) + (bonus.ore - 1) end
 		end
 	end
+	--[[
+		THE EQUIPPED TOOL'S ENCHANTMENT.
+
+		One trait, on the tool you are holding, and nothing else: no
+		slots, no per-family sockets, no three hats and a face. A tool that is
+		not in your hands gives nothing, which is what makes the prefix on the
+		one you ARE holding mean something.
+
+		Folded through MineCards.ADDITIVE_STATS rather than a second opinion
+		about which stats add and which multiply -- the two drifting apart
+		would quietly pay a chance stat as a multiplier.
+	]]
+	do
+		local uid = p.oreToolEquipped
+		if uid then
+			for _, t in ipairs(p.oreTools or {}) do
+				if t.uid == uid then
+					if type(t.trait) == "table" then
+						-- Layer 1: the tool's own trait, beside skills
+						-- and skins rather than on top of them.
+						local def = Dig.Traits.byId(t.trait.id)
+						if def then
+							Dig.Layers.add(T1, def.stat,
+								Dig.Traits.amount(t.trait.id, t.trait.level))
+						end
+					end
+					break
+				end
+			end
+		end
+	end
+
 	-- prestigeYield used to dump +15% Blast per rebirth. Blast is Omni now; prestige
 	-- does not ride it. Luck still scales with rebirth.
 
 	-- Rebirth skills. MineStats amounts are fractions (0.62 = +62%); the boost
 	-- table is multiplicative for everything except echo/zap/blastRadius/autoMine/
-	-- oreYield (Blast %), which are additive.
+	-- blastChance (Blast %), which are additive.
 	local sk = Skills.totalStats(skillState(p), Stats)
 	for stat, key in pairs({ mineSpeed = "mineSpeed", dirtBreak = "dirtBreak",
 		walkSpeed = "walkSpeed", luck = "luck", rareOre = "rareOre" }) do
 		if sk[stat] then
-			b[key] *= (1 + sk[stat])
+			-- Layer 1. Rebirth skills are the floor the rest is built on.
+			Dig.Layers.add(T1, key, sk[stat])
 		end
 	end
+
+	--[[
+		COMBINE. base x (1 + layer1) x (1 + layer2), once, for every stat
+		either layer touched.
+
+		Chance stats are handed through untouched -- MineCards.ADDITIVE_STATS
+		is the list -- because "1 + x" on a blast chance is meaningless and two
+		layers of it is twice as meaningless.
+	]]
+	Dig.Layers.apply(b, T1, T2, Cards.ADDITIVE_STATS)
+	Cards.foldSwingRate(b)
+
 	-- Swing seconds are a DURATION, so a faster swing rate divides it.
 	if sk.swingRate then
 		b.swingSec /= (1 + sk.swingRate)
+	end
+	--[[
+		BLAST RADIUS FROM SKILLS. This line did not exist.
+
+		Nine nodes in MineSkillData grant blastRadius and it is FIRE'S PRIMARY
+		STAT -- the headline buff of the first wedge on the tree, deg 0. The
+		server read sk.mineSpeed, sk.dirtBreak, sk.walkSpeed, sk.luck,
+		sk.rareOre, sk.swingRate, sk.echo, sk.zap, sk.blastChance, sk.luckyFind,
+		sk.fossilFind, sk.pulverize, sk.scrap, sk.backpack, sk.chestLuck,
+		sk.coinBonus and sk.gemFind -- and never sk.blastRadius. So every point
+		a player put into the Fire road's primary stat was silently discarded.
+
+		Additive, like the other procs: MineCards.ADDITIVE_STATS lists it.
+	]]
+	if sk.blastRadius then
+		b.blastRadius += sk.blastRadius
+	end
+	--[[
+		THE REST OF THE TREE'S STATS, for exactly the same reason.
+
+		blastRadius was not alone -- it was just the one whose element was most
+		obviously broken. Once the 2026-10-04 remap put earthquake, ricochet,
+		procPower, oreLuck, packLuck, coolant, reach and shortFuse on elements,
+		every one of them was granted by nodes and read by nobody.
+
+		tools/verify/skilltree.js now fails if the tree grants a stat the server
+		does not apply, so this list cannot fall behind the roster again.
+
+		Additive ones are chances or flat adds; oreLuck and packLuck are
+		MULTIPLIERS and sit at 1 when they give nothing.
+	]]
+	for _, key in ipairs({ "earthquake", "ricochet", "procPower",
+		"coolant", "shortFuse", "reach" }) do
+		if sk[key] then
+			b[key] = (tonumber(b[key]) or 0) + sk[key]
+		end
+	end
+	for _, key in ipairs({ "oreLuck", "packLuck" }) do
+		if sk[key] then
+			b[key] = (tonumber(b[key]) or 1) * (1 + sk[key])
+		end
 	end
 	if sk.echo then
 		b.echo += sk.echo
@@ -2128,8 +2602,8 @@ local function boosts(p)
 	if sk.zap then
 		b.zap += sk.zap
 	end
-	if sk.oreYield then
-		b.oreYield += sk.oreYield
+	if sk.blastChance then
+		b.blastChance += sk.blastChance
 	end
 	if sk.luckyFind then
 		b.luckyFind += sk.luckyFind
@@ -2159,7 +2633,8 @@ local function boosts(p)
 	-- Relics and Charter levels outlive a rebirth. Multipliers compound; additive
 	-- procs (echo/zap/Blast/blastRadius/autoMine) add chance or radius instead.
 	local ADDITIVE_BOOST = {
-		echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
+		echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
+		earthquake = true, ricochet = true,
 	}
 	for _, held in ipairs(p.relics or {}) do
 		local r = C.relicById(held.id)
@@ -2289,6 +2764,19 @@ local function boosts(p)
 		priced against it (MineShopLadders), so a stronger swing buys
 		exactly the pace those two tables intend.
 	]]
+
+	--[[
+		Echo is barred as a buff and pays as Swing Rate. Folded HERE, after every
+		source has summed, because that is the one place that catches all of
+		them -- gear, runes, temperaments, charms, pets and skills -- rather
+		than fourteen temperament kits and counting.
+	]]
+	local echoLeft = tonumber(b.echo) or 0
+	if echoLeft ~= 0 then
+		local eRatio = (Stats and Stats.ECHO_TO_SWING) or (1.5 / 1.4)
+		b.swingRate = (tonumber(b.swingRate) or 1) + echoLeft * eRatio
+		b.echo = 0
+	end
 
 	local autoLeft = tonumber(b.autoMine) or 0
 	if autoLeft ~= 0 then
@@ -3001,7 +3489,7 @@ local function snap(plr)
 		toolTempers = p.toolTempers or {},
 		tempers = p.tempers or {},
 		temperCasePrice = require(shared.MineTemper).CASE_PRICE_TOKENS,
-		runeRollPrice = Runes.rollPriceFor(p.maxUnlockedZone), gearRollPrice = Gear.rollPriceFor(p.maxUnlockedZone),
+		runeRollPrice = Runes.rollPriceFor(p.maxUnlockedZone), gearRollPrice = tonumber(Gear.ROLL_TOKEN_COST) or 5,
 		credits = p.credits or 0, scrolls = p.scrolls or Scrolls.emptyBag(),
 		quest = questState(p),
 		dailyQuests = dailyQuestState(p, plr.UserId),
@@ -3132,7 +3620,10 @@ local Intro = {
 		[7] = { text = "Free gems, top-left. CLAIM IT.", highlight = "questClaim" },
 		[8] = { text = "Now the good stuff: ROLL A RUNE.", panel = "summon", grantGems = "runeRoll", waypoint = "enchanter" },
 		[9] = { text = "Jam it into your pick. Yours forever, even through rebirth.", panel = "enchanter", tab = "sockets", requireAction = "socketToolRune", waypoint = "enchanter", bonusGems = 25 },
-		[10] = { text = "Summon a HAT — your first roll is FREE. Hats are real Roblox items, and they go on your PETS.", panel = "summon", highlight = "gearRow", waypoint = "enchanter" },
+		-- Two things wrong here before: it said hats go on your PETS (they are
+		-- player-only now, three seats, TODO 6.2) and it taught gems (they cost
+		-- rebirth tokens).
+		[10] = { text = "Summon a HAT — your first roll is FREE. Hats are real Roblox items, you wear them yourself, and after the free one they cost REBIRTH TOKENS.", panel = "summon", highlight = "gearRow", waypoint = "enchanter" },
 		[11] = { text = "Your runes live at the Enchanter, on its RUNES tab. Fuse spares there later (50%, no pity).", panel = "enchanter", tab = "runes", ack = true, waypoint = "enchanter" },
 		[12] = { text = "NEW ZONE: Greyvein. The bar is how close you are.", panel = "zones" },
 		[13] = { text = "JOBS: dailies and the board pay gems every UTC day. Come back here when you need more.", panel = "jobs", ack = true, waypoint = "contractor" },
@@ -3611,7 +4102,16 @@ local function keyOf(z, x, y, zz)
 	return string.format("%s:%d:%d:%d", z, x, y, zz)
 end
 
-local function rollKind(zone, layer, b, rng)
+--[[
+	x and z joined the signature because ore is a VEIN now, and a vein is a
+	function of where the block is. See MineConfig.veinOreAt: there is no moment
+	at which a vein could be grown outward into its neighbours, because the
+	generator spawns one key at a time in dig order and a broken block comes back
+	through here minutes later. Every block works out its own membership instead,
+	and neighbours agree because they are asking the same question of the same
+	lattice.
+]]
+local function rollKind(zone, x, layer, z, b, rng)
 	-- There is no ore. What you hope to see in the wall is a chest, and which
 	-- chest it is gets decided here so the block can look like that chest.
 	local strata = C.strataFor(zone.id)
@@ -3643,7 +4143,17 @@ local function rollKind(zone, layer, b, rng)
 		one loot table carried the whole game. Each ore states its own 1-in-N
 		and MineConfig.rollOre sums the pool available at this depth.
 	]]
-	if C.rollOre and C.rollOre(zone.id, layer, rng, b and b.rareOre) then
+	--[[
+		Veins, not noise. veinOreAt spends exactly the budget rollOre used to --
+		ORE_CHANCE per block, per ore, at every depth -- but spends it in clumps,
+		so the expected ore count is unchanged and only its arrangement differs.
+		It takes no rng for the same reason it takes x and z.
+	]]
+	if C.veinOreAt then
+		if C.veinOreAt(zone.id, x, layer, z, b and b.rareOre) then
+			return "ore"
+		end
+	elseif C.rollOre and C.rollOre(zone.id, layer, rng, b and b.rareOre) then
 		return "ore"
 	end
 	return strata.rock
@@ -3666,9 +4176,26 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	-- use. oreIdentity picks WHICH ore without re-rolling whether it is one --
 	-- rollKind already decided that.
 	local oreDef
-	if kind == "ore" and C.oreIdentity then
-		-- The finder shifts WHICH ore, not how much; see MineConfig.oreFindShift.
-		oreDef = C.oreIdentity(zone.id, y, Random.new(), b and b.rareOre)
+	if kind == "ore" then
+		--[[
+			THE IDENTITY COMES FROM THE VEIN, NOT FROM A SECOND ROLL.
+
+			This used to re-roll with oreIdentity(Random.new()), which is why ore
+			could never form a seam even by accident: rollKind said "ore here" and
+			then this picked a DIFFERENT ore for every block, so four touching ore
+			blocks were four unrelated minerals.
+
+			veinOreAt is a pure function of position, so asking it again here
+			returns the same ore rollKind already matched -- the vein's ore, for
+			every block in it. The finder still shifts WHICH ore, because it is
+			part of the lattice key; see MineConfig.oreFindShift.
+		]]
+		if C.veinOreAt then
+			oreDef = C.veinOreAt(zone.id, x, y, z, b and b.rareOre)
+		end
+		if not oreDef and C.oreIdentity then
+			oreDef = C.oreIdentity(zone.id, y, Random.new(), b and b.rareOre)
+		end
 	end
 	local luckyId
 	if kind == "lucky_block" then
@@ -3686,7 +4213,32 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	part.CFrame = CFrame.new(pos)
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	local spec = C.BLOCKS[kind] or C.BLOCKS.fossil
+	--[[
+		THE MINE IS THOUSANDS OF PARTS, SO EVERY PER-PART COST IS MULTIPLIED BY
+		THOUSANDS.
+
+		Owner, 2026-10-06, with the microprofiler open: GPU averages ~50 ms while
+		MOVING and spikes to 80, against a 33 ms target, on a 5070 Ti. Measured
+		live, the mine holds about 4,900 parts.
+
+		CastShadow was never set, so every one of them cast a shadow. Shadow maps
+		are re-rendered as the camera moves, which is exactly the "when I move"
+		shape of the spike, and underground there is no sun to cast them from --
+		the cost bought nothing. The rest of this codebase already knows this:
+		chests, pets and portal FX all set CastShadow = false.
+
+		CanTouch was also left on, so all 4,900 took part in touch resolution as
+		the character walked through the shaft. The only Touched handler in the
+		game is on the sell pad (Machine == "sell"), so blocks never needed it.
+
+		CanQuery STAYS TRUE. Mining is a raycast against these parts; turning it
+		off would make the mine unclickable.
+	]]
+	part.CastShadow = false
+	part.CanTouch = false
+	-- Fallback for an unrecognised kind. Was C.BLOCKS.fossil, which no longer
+	-- exists; dirt is the plain rock every zone already starts from.
+	local spec = C.BLOCKS[kind] or C.BLOCKS.dirt
 	local lucky = (C.isLuckyLayer and C.isLuckyLayer(zone.id, y)) or false
 	local section = (zone.id == "meadow" and C.sectionFor) and C.sectionFor(y) or nil
 	-- A zone with strata of its own (MineConfig.ZONE_SECTIONS) paints its rock by depth.
@@ -3807,12 +4359,12 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	else
 		part.Color = spec.color
 	end
-	if kind ~= "fossil" and kind ~= "lucky_block" and kind ~= "ore" then
+	if kind ~= "lucky_block" and kind ~= "ore" then
 		part.Material = (strata and strata.material) or spec.material
 	end
-	-- A lucky seam reads as one solid band from across the shaft. Chests,
-	-- fossils and lucky blocks keep their own look so they stay findable in it.
-	if lucky and kind ~= "chest" and kind ~= "fossil"
+	-- A lucky seam reads as one solid band from across the shaft. Chests and
+	-- lucky blocks keep their own look so they stay findable in it.
+	if lucky and kind ~= "chest"
 		and kind ~= "lucky_block" and kind ~= "core" and kind ~= "ore" then
 		part.Color = C.LUCKY_LAYER_COLOR or Color3.fromRGB(255, 214, 92)
 		part.Material = Enum.Material.Neon
@@ -3839,8 +4391,8 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		local look = C.CHEST_LOOK[chestDef.kind] or C.CHEST_LOOK.native
 		part.Color = look.color
 		part.Material = look.material
-		-- An actual chest, built into the block. Guarded for the same reason the
-		-- fossil art is: decoration must never be able to stop a block existing.
+		-- An actual chest, built into the block. Guarded on principle:
+		-- decoration must never be able to stop a block existing.
 		if ChestModel and ChestModel.build then
 			pcall(ChestModel.build, part, chestDef.kind, part.Size.X)
 		end
@@ -3881,7 +4433,7 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		blockName = strata.name
 	end
 	part:SetAttribute("BlockName", blockName)
-	CollectionService:AddTag(part, "MineVoxel")
+	Svc.Collection:AddTag(part, "MineVoxel")
 	local folder = workspace.MineWorld.Pits:FindFirstChild("Vox_" .. zone.id)
 	if not folder then
 		folder = Instance.new("Folder")
@@ -4160,6 +4712,18 @@ local function ensureZone(zone, throughLayer)
 		salt = Random.new():NextInteger(1, 1073741823)
 		mineResetState.seed[zone.id] = salt
 	end
+	--[[
+		The ore field needs this salt too, or it is the same mine forever.
+
+		`rng` below only decides where the CHESTS go. Ore moved to
+		MineConfig.veinOreAt, which is positional by design -- that is what lets a
+		vein agree with itself across blocks spawned minutes apart -- and until
+		now the only thing seeding it was a hash of the zone's name. Owner,
+		2026-10-06: "every time i join 4 halite on top of the line".
+	]]
+	if C.setVeinSalt then
+		C.setVeinSalt(zone.id, salt)
+	end
 	local rng = Random.new(salt + from)
 	local made = 0
 	local Depth = Dig.Depth
@@ -4177,7 +4741,7 @@ local function ensureZone(zone, throughLayer)
 			for x = 0, C.GRID - 1 do
 				for z = 0, C.GRID - 1 do
 					if not voxels[zone.id][keyOf(zone.id, x, y, z)] then
-						spawnVoxel(zone, x, y, z, rollKind(zone, y, { luck = 1, rareOre = 1 }, rng), { rareOre = 1 })
+						spawnVoxel(zone, x, y, z, rollKind(zone, x, y, z, { luck = 1, rareOre = 1 }, rng), { rareOre = 1 })
 						made += 1
 						if made % 400 == 0 then task.wait() end
 					end
@@ -4241,7 +4805,7 @@ local function ensureZone(zone, throughLayer)
 					local existing = voxels[zone.id][key]
 					if typeof(existing) == "Instance" then
 						local k = existing:GetAttribute("Kind")
-						if k ~= "chest" and k ~= "fossil" and k ~= "core" then
+						if k ~= "chest" and k ~= "core" then
 							existing:Destroy()
 							voxels[zone.id][key] = nil
 							stampIntroChest(spawnVoxel(zone, x, y, z, "chest"))
@@ -4384,12 +4948,27 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 	-- Scale the currency rows off the blocks the chest was buried in, so a
 	-- zone-6 chest never pays zone-1 money and nothing needs re-tuning when a
 	-- zone is added. A chest is meant to feel like a seam, not like a block.
-	local dirtValue = math.max(1, C.coinsFor and C.coinsFor("dirt", zone, layer) or 1)
+	--[[
+		CRASHED until 2026-10-05. This read
+		`C.coinsFor("dirt", zone, layer)`, but coinsFor's signature is
+		(kind, mult) and it evaluates `base * mult` -- and `zone` here is the
+		zone TABLE, as zoneTierOf(zone) reading zone.id a few lines up shows.
+		This Luau build throws on `number * table`, so every chest that rolled
+		the `coins` reward errored out before paying anything.
+
+		Dirt is one coin per point of HP (see the dig path, "One coin per point
+		of HP"), so the value of the dirt a chest was buried in IS its HP.
+		Asking Depth for it directly is both correct and the same rule the rest
+		of the coin economy runs on.
+	]]
+	local dirtValue = math.max(1, Dig.Depth.dirtHp(zoneTierOf(zone), layer))
 
 	if chosen.kind == "pack" then
 		-- A run, not a row. Sometimes nothing, sometimes a pile; the count is
 		-- uncapped on purpose (C.chestPackCount).
-		local stampedLuck = tonumber(b and b.luck) or 1
+		-- PACK luck: stamped on the row, and it is what siphons that pack's
+		-- card odds when it is opened. Not the chest channel.
+		local stampedLuck = math.max(1, Dig.packLuck(b))
 		local n = C.chestPackCount and C.chestPackCount(luck, rng) or 1
 		for _ = 1, n do
 			local row = {
@@ -4468,7 +5047,9 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 		if #pool == 0 then
 			local row = { kind = kind, chestId = chest.id, zoneTier = tier,
 				zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) }
-			local stampedLuck = tonumber(b and b.luck) or 1
+			-- PACK luck: stamped on the row, and it is what siphons that pack's
+			-- card odds when it is opened. Not the chest channel.
+			local stampedLuck = math.max(1, Dig.packLuck(b))
 			if stampedLuck > 1 then
 				row.luck = stampedLuck
 			end
@@ -4489,8 +5070,15 @@ local function giveDrop(p, kind, zone, layer, b)
 		-- A crate is the lesser find: same roll, but luck bites less.
 		local luck = b.luck or 1
 		if kind == "crate" then luck = 1 + (luck - 1) * 0.5 end
-		-- `luck` decides IF a chest spawns (rollKind); chestLuck decides WHICH
-		-- one it is, which is exactly what rollChest weighs.
+		--[[
+			THE CHEST CHANNEL, and it needs no new stat.
+
+			`luck` decides IF a chest spawns (rollKind); chestLuck decides WHICH
+			one it is, which is exactly what rollChest weighs. That pair was
+			already the "chest + rare-drop luck" the split asks for, so it is
+			left alone -- the two new stats carve the ORE CASE and the PACK
+			stamp out of generic luck instead. See Dig.oreLuck / Dig.packLuck.
+		]]
 		local chest = Packs.rollChest(tier, layer, Random.new(), { luck = luck * (b.chestLuck or 1) })
 		-- You do not haul a chest home. It is opened where it is found and you
 		-- carry out what was inside, which is what the odds roll is for.
@@ -4567,7 +5155,27 @@ local function givePickaxe(plr)
 		elseif passId == "bp_eclipse" and ToolModels.buildLunar then
 			model, handle, grip = ToolModels.buildLunar("bp_eclipse")
 		else
-			model, handle, grip = ToolModels.build(famId, lookTier, count)
+			--[[
+				A FORGED TOOL LOOKS LIKE ITS ORE.
+
+				Without the look, build() colours itself from an eight-step ramp
+				indexed by lookTier -- a cosmetic shop rung -- so all 82 ore
+				tools shared eight palettes and the ore was visible nowhere on
+				the thing it made. The ore row already carries a colour, a real
+				material, metalness and roughness; oreLook turns that into the
+				head colour, the haft, the material, the gleam and the
+				silhouette.
+
+				Only for a forged tool: row.oreTier is what marks one, and a shop
+				rung keeps the ramp it was authored against.
+			]]
+			local oreLook
+			local oTier = row and tonumber(row.oreTier)
+			if oTier and ToolModels.oreLook then
+				local oreDef = C.ORES and C.ORES[math.floor(oTier)]
+				oreLook = oreDef and ToolModels.oreLook(oreDef, C.ORE_COUNT or #(C.ORES or {})) or nil
+			end
+			model, handle, grip = ToolModels.build(famId, lookTier, count, oreLook)
 		end
 	end
 	if not handle then
@@ -4884,7 +5492,9 @@ local function openChestBlock(plr, p, chestId, b, part)
 	end
 
 	local packNames, packIds = {}, {}
-	local stampedLuck = tonumber(b.luck) or 1
+	-- PACK luck: stamped on the row, and it is what siphons that pack's
+	-- card odds when it is opened. Not the chest channel.
+	local stampedLuck = math.max(1, Dig.packLuck(b))
 	local setId = (C.setForLayer and C.setForLayer(zone, layer)) or ((zone.sets and zone.sets[1]) or "dragons_dawn")
 	if zone.id == "bigbang" then
 		if not (C.isEventHorizonSet and C.isEventHorizonSet(setId)) then
@@ -5242,8 +5852,10 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 				does not take pouch space, so a full pouch costs you material --
 				it does not cost you the chase.
 			]]
+			-- ORE luck, not generic luck: the case is the rare drop off an ore,
+			-- and a chest hat should not move it.
 			local caseChance = (tonumber(C.ORE_CASE_CHANCE) or 0)
-				* math.max(1, tonumber(bb.luck) or 1)
+				* math.max(1, Dig.oreLuck(bb))
 			if caseChance > 0 and Random.new():NextNumber() < caseChance then
 				p.packs = p.packs or {}
 				table.insert(p.packs, {
@@ -5334,7 +5946,7 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			local live = profiles[plr.UserId]
 			local key = keyOf(zone.id, cx, layer, cz)
 			if voxels[zone.id] then voxels[zone.id][key] = nil end
-			spawnVoxel(zone, cx, layer, cz, rollKind(zone, layer, live and boosts(live) or { luck = 1, rareOre = 1 }, Random.new()), live and boosts(live) or { rareOre = 1 })
+			spawnVoxel(zone, cx, layer, cz, rollKind(zone, cx, layer, cz, live and boosts(live) or { luck = 1, rareOre = 1 }, Random.new()), live and boosts(live) or { rareOre = 1 })
 		end
 	end)
 end
@@ -5508,6 +6120,35 @@ local function swingNeighbour(plr, part, dmg, p)
 	end
 	local Matter = require(shared.MineSpaceMatter)
 	local tool = Dig.heldTool and Dig.heldTool[p]
+
+	--[[
+		PROCS OBEY THE BREAKING GATE TOO.
+
+		They did not, and it was an omission rather than a decision.
+		Dig.Breaking.canBreak was wired in on 2026-10-05 and only into the main
+		swing -- swingNeighbour predates it and never got the check, so until now
+		`canBreak` had exactly ONE call site in the whole codebase while TWO
+		paths deal damage. Blast, zap, ricochet, earthquake and echo all arrive
+		here, so any of them chipped rock the tool itself could not scratch.
+
+		That matters more since ZONE_STEP went to 100: the gate is the backbone
+		of progression now, and a proc that routes around it routes around the
+		whole ladder. Owner, 2026-10-05, asked for the full rule -- if canBreak
+		is false the hit lands for zero, ore included.
+
+		Silent on purpose. The main swing fires a throttled "tooWeak" toast
+		because the player aimed at that block; a proc lands wherever the chain
+		took it, and a toast for every neighbour the chain brushed would be
+		noise for something nobody targeted.
+	]]
+	do
+		local zi = (C.zoneIndex and C.zoneIndex(part:GetAttribute("ZoneId") or (zone and zone.id))) or 1
+		local okBreak = Dig.Breaking.canBreak(
+			tool, zi, layer, tonumber(part:GetAttribute("OreTier")), #C.ORES, p.maxUnlockedZone)
+		if not okBreak then
+			return
+		end
+	end
 	local chip = Matter.chip(part, tool, dmg)
 	if not chip.ok then
 		return
@@ -5543,7 +6184,36 @@ end
 	Echo is deliberately NOT rolled in here. If it were, an echo could echo, and
 	a stacked Echo would turn one swing into a chain with no ceiling.
 ]]
-Dig.PROC_SKIP = { chest = true, crate = true, fossil = true, core = true, lucky_block = true }
+--[[
+	THE THREE LUCK CHANNELS (TODO 6.2).
+
+	Generic `luck` was doing three unrelated jobs at once -- ore cases, chest
+	spawns, and the luck stamped onto pack rows -- so a hat that wanted to be
+	about one of them had to be about all three.
+
+	`luck` stays the shared base, so prestige, VIP, the event pass, skills, runes
+	and the Umbra gear set all behave exactly as before. These read it times the
+	one channel asked for, so a source that only sets oreLuck moves ore cases and
+	nothing else.
+
+	Chest luck needs no helper: `b.luck * b.chestLuck` was already that channel
+	and reads plainly at its one call site.
+]]
+function Dig.oreLuck(b)
+	if type(b) ~= "table" then
+		return 1
+	end
+	return math.max(0, (tonumber(b.luck) or 1)) * math.max(0, (tonumber(b.oreLuck) or 1))
+end
+
+function Dig.packLuck(b)
+	if type(b) ~= "table" then
+		return 1
+	end
+	return math.max(0, (tonumber(b.luck) or 1)) * math.max(0, (tonumber(b.packLuck) or 1))
+end
+
+Dig.PROC_SKIP = { chest = true, crate = true, core = true, lucky_block = true }
 Dig.FACE6 = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
 
 function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke, forceBlast)
@@ -5551,33 +6221,161 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		return
 	end
 	local rng = Random.new()
-	-- Omni Blast is a destroy-proc: chest / fossil / core / cube deaths stay
+	--[[
+		Proc DAMAGE comes from procPower; proc CHANCE from each proc's own
+		stat. Read once here so the four procs below cannot disagree about
+		what a player's proc damage is mid-swing.
+	]]
+	local pp = tonumber(b.procPower) or 0
+	-- Omni Blast is a destroy-proc: chest / core / cube deaths stay
 	-- centre-only, both as the source and as a neighbour.
 	if broke and not Dig.PROC_SKIP[kind] then
-		local chance = forceBlast and 1 or (b.oreYield or 0)
+		--[[
+			CLAMPED. Blast fires once or not at all, so anything over 1.0 was
+			discarded by the comparison below -- 156 of 504 pets roll this stat
+			and three of them already total 204%, which is why blast reads as
+			ambient rather than as a build.
+
+			Clamping does not nerf anyone who was at 100%: it makes the points
+			ABOVE 100% visible as waste, so the curve can be re-cut to cost
+			something.
+		]]
+		local chance = forceBlast and 1 or math.min(1, b.blastChance or 0)
 		if chance > 0 and rng:NextNumber() < chance then
 			net:FireClient(plr, "loot", { text = "BLAST", color = Color3.fromRGB(255, 140, 70), pos = part.Position })
 			for _, d in ipairs(Dig.FACE6) do
 				local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
 				if other and typeof(other) == "Instance" and other.Parent then
 					if not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-						pcall(swingNeighbour, plr, other, dmg, p)
+						pcall(swingNeighbour, plr, other,
+							C.procDamage(dmg, "blast", pp), p)
 					end
 				end
 			end
 		end
 	end
-	-- Chain Zap: one chain from this block. Chance and damage fall off 0.9x a
-	-- hop, it never doubles back into the cell it just left, and chain hits
-	-- re-proc nothing.
+	--[[
+		RICOCHET: the hit jumps to one block beside it AND BOUNCES BACK.
+
+		This is the only proc that returns. Blast spreads to six neighbours, zap
+		wanders up to sixteen blocks away, echo lands a full hit on a neighbour
+		which then rolls its own procs -- all three move damage AWAY from what
+		you are aiming at, which is waste when the valuable block is the one in
+		front of you.
+
+		Ricochet concentrates instead: one hit out, one hit back into the
+		original block. It is the proc you take when you care about the ore you
+		are swinging at rather than the dirt around it, and that is a build
+		identity rather than a damage number.
+
+		It briefly rerolled the other procs where it landed, which made it a
+		copy of Dig.echoAt -- and echo is already being wound down (MineStats:
+		"Legacy: paid out as Swing Rate"). Two procs doing one job is worse than
+		a weak proc.
+
+		Still break-only, like Blast: a ricochet off a block that survived the
+		swing would fire on every tick of a long dig. Still not a chain: the
+		return hit goes through swingNeighbour, which re-enters nothing.
+	]]
+	if broke and not Dig.PROC_SKIP[kind] then
+		-- Clamped for the same reason as blast: one jump, so over 1.0 is a
+		-- boolean rather than a rate.
+		-- Clamped like blast: one jump out and one back, so a value over 1.0 is
+		-- a boolean rather than a rate.
+		local ric = math.min(1, tonumber(b.ricochet) or 0)
+		if ric > 0 and rng:NextNumber() < ric then
+			local opts = {}
+			for _, d in ipairs(Dig.FACE6) do
+				local nx, ny, nz = cx + d[1], cy + d[2], cz + d[3]
+				local other = cells[keyOf(zone.id, nx, ny, nz)]
+				if other and typeof(other) == "Instance" and other.Parent
+					and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+					-- Coords travel with the part: procsAt needs the cell, and a
+					-- block carries no Cx/Cy/Cz attribute to read them back off.
+					table.insert(opts, { part = other, cx = nx, cy = ny, cz = nz })
+				end
+			end
+			if #opts > 0 then
+				local pick = opts[rng:NextInteger(1, #opts)]
+				local hit = pick.part
+				local ricDmg = C.procDamage(dmg, "ricochet", pp)
+				net:FireClient(plr, "loot", { text = "RICOCHET",
+					color = Color3.fromRGB(140, 220, 255), pos = hit.Position })
+				pcall(swingNeighbour, plr, hit, ricDmg, p)
+				--[[
+					AND BACK.
+
+					The return lands on the block that was swung at. It has
+					already broken -- this branch is break-only -- so the bounce
+					goes to whatever is standing there now, which on a deep seam
+					is the next block the generator has pushed up into the cell.
+					When the cell is empty the bounce is simply lost, which is
+					the honest outcome: you cleared what you were aiming at.
+				]]
+				local home = cells[keyOf(zone.id, cx, cy, cz)]
+				if home and typeof(home) == "Instance" and home.Parent
+					and not Dig.PROC_SKIP[home:GetAttribute("Kind")] then
+					net:FireClient(plr, "loot", { text = "RICOCHET",
+						color = Color3.fromRGB(140, 220, 255), pos = home.Position })
+					pcall(swingNeighbour, plr, home, ricDmg, p)
+				end
+			end
+		end
+	end
+
+	--[[
+		EARTHQUAKE: the block starts shaking and bleeds 20% of your tool damage
+		a second until it dies or the quake runs out.
+
+		Marked here and ticked by the loop below, because the damage has to keep
+		landing while the player swings at something else -- that is the whole
+		point of it. Rolled on a hit rather than on a break: a quake on a block
+		that is already gone has nothing to shake.
+	]]
+	if not broke and not Dig.PROC_SKIP[kind] then
+		-- Clamped: a quake either starts on this swing or it does not. The
+		-- STACK is where the depth lives now, not the roll.
+		local eq = math.min(1, tonumber(b.earthquake) or 0)
+		if eq > 0 and rng:NextNumber() < eq then
+			-- The PER-TICK figure is stored, not the swing: the tick loop then
+			-- subtracts what it was given rather than re-deriving a share, so
+			-- the quake a player started keeps its damage even if the stat
+			-- changes under it mid-shake.
+			Dig.startQuake(plr, p, part, C.procDamage(dmg, "quake", pp))
+		end
+	end
+
+	--[[
+		Chain Zap: one chain from this block, now with an end to it.
+
+		Was 32 hops at 0.9x on both chance and damage -- 9.7x a swing off one
+		roll, and at a high zap the chain barely decayed, so the hop cap was
+		doing all the balancing and the falloff none. C.ZAP_MAX_HOPS hops at
+		C.ZAP_FALLOFF, starting from PROC_SHARE.zap rather than a full swing.
+
+		It still never doubles back into the cell it just left, and chain hits
+		still re-proc nothing.
+	]]
+	--[[
+		NOT clamped, and that is the point. Owner, 2026-10-05: "zap over 100 CAN
+		make sense because its a chance decay".
+
+		`chance` is multiplied by ZAP_FALLOFF every hop, so a stat above 1.0 is
+		not thrown away -- it buys guaranteed early hops and moves the point
+		where the chain starts failing. Zap is the only one of the four where a
+		value over 1.0 is a curve rather than a boolean.
+	]]
 	local startZap = b.zap or 0
 	if startZap <= 0 or rng:NextNumber() >= startZap then
 		return
 	end
+	local falloff = tonumber(C.ZAP_FALLOFF) or 0.75
+	local maxHops = math.max(1, math.floor(tonumber(C.ZAP_MAX_HOPS) or 6))
+	local zapBase = C.procDamage(dmg, "zap", pp)
 	local chance = startZap
 	local fromCx, fromCy, fromCz = cx, cy, cz
 	local prevDx, prevDy, prevDz = 0, 0, 0
-	for hops = 1, 32 do
+	for hops = 1, maxHops do
 		local opts = {}
 		for _, d in ipairs(Dig.FACE6) do
 			if not (d[1] == -prevDx and d[2] == -prevDy and d[3] == -prevDz) then
@@ -5593,8 +6391,20 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		end
 		local pick = opts[rng:NextInteger(1, #opts)]
 		net:FireClient(plr, "loot", { text = "ZAP", color = Color3.fromRGB(250, 220, 80), pos = pick.part.Position })
-		pcall(swingNeighbour, plr, pick.part, math.max(1, math.floor(dmg * (0.9 ^ hops))), p)
-		chance *= 0.9
+		--[[
+			FALLOFF IS ODDS ONLY. Owner, 2026-10-05.
+
+			Every hop hits for the same zapBase. The decay lives entirely in
+			`chance` below, so a long chain is rare rather than weak -- the
+			sixteenth block takes exactly what the first did.
+
+			It used to decay both, which meant the far end of a chain was
+			simultaneously unlikely AND nearly worthless: at hop 16 it dealt
+			0.89^15 = 17% of a hop. Paying twice for the same falloff is what
+			made the tail of the chain not worth reaching.
+		]]
+		pcall(swingNeighbour, plr, pick.part, zapBase, p)
+		chance *= falloff
 		if rng:NextNumber() >= chance then
 			break
 		end
@@ -5602,6 +6412,139 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		fromCx, fromCy, fromCz = pick.nx, pick.ny, pick.nz
 	end
 end
+
+--[[
+	THE QUAKE REGISTRY.
+
+	[userId] = { [part] = { dmg = n, dies = clock } }, with the part itself as
+	the key so "cannot stack" needs no comparison: a second proc on a block
+	already shaking finds its own entry and leaves it alone rather than
+	refreshing or adding to it.
+
+	Keyed on the Instance and not on a voxel key on purpose -- a mine reset
+	destroys parts without telling anyone, and a destroyed part's entry is
+	dropped by the liveness check in the tick rather than lingering as a
+	coordinate that now names a different rock.
+
+	On Dig so it costs no top-level local; this script sits at 197 of Luau's 200.
+]]
+Dig.QUAKE = {}
+
+--[[
+	The quake stack bank, per player.
+
+	  n      how many stacks are up, capped at QUAKE_MAX_STACKS
+	  dies   when the whole bank expires, pushed out by every fresh proc
+	  swing  the player's swing damage as of the last proc, so the bleed
+	         tracks the tool they are actually holding
+
+	Separate from Dig.QUAKE, which stays a set of the blocks currently shaking:
+	that is what the client reads and what keeps the damage off rubble.
+]]
+Dig.QUAKE_STACK = {}
+
+function Dig.startQuake(plr, p, part, dmg)
+	if not (plr and part and part.Parent) then
+		return false
+	end
+	local uid = plr.UserId
+	local mine = Dig.QUAKE[uid]
+	if not mine then
+		mine = {}
+		Dig.QUAKE[uid] = mine
+	end
+	--[[
+		A proc always feeds the bank, even on a block already shaking.
+
+		The old code returned early here, which is what made a second quake on
+		the same block worth nothing. The STACK is the reward now; the block set
+		below is only about which blocks are visibly shaking.
+	]]
+	local bank = Dig.QUAKE_STACK[uid]
+	if not bank or os.clock() >= (bank.dies or 0) then
+		bank = { n = 0 }
+		Dig.QUAKE_STACK[uid] = bank
+	end
+	bank.n = math.min(bank.n + 1, math.max(1, math.floor(tonumber(C.QUAKE_MAX_STACKS) or 100)))
+	bank.dies = os.clock() + (tonumber(C.EARTHQUAKE_SEC) or 5)
+	bank.swing = math.max(1, math.floor(tonumber(dmg) or 1))
+
+	if mine[part] then
+		-- Already shaking: the stack above is the whole effect.
+		return true
+	end
+	local n = 0
+	for other in pairs(mine) do
+		if other.Parent then
+			n += 1
+		else
+			mine[other] = nil
+		end
+	end
+	if n >= (tonumber(C.EARTHQUAKE_MAX_BLOCKS) or 5) then
+		return false
+	end
+	-- No frozen dmg: the bank decides what a tick is worth, so a block that
+	-- started shaking early keeps up with a stack that has since grown.
+	mine[part] = { dies = os.clock() + (tonumber(C.EARTHQUAKE_SEC) or 5) }
+	-- The client reads this to shake the block; the damage does not depend on it.
+	pcall(function()
+		part:SetAttribute("Quaking", true)
+	end)
+	net:FireClient(plr, "loot", { text = "QUAKE",
+		color = Color3.fromRGB(196, 150, 96), pos = part.Position })
+	return true
+end
+
+--[[
+	One tick a second, for every player's quaking blocks.
+
+	A single loop rather than a task per block: five blocks a player across a
+	full server is a lot of tasks to schedule for one subtraction each, and a
+	task that outlives its block is how a mine reset turns into a leak.
+]]
+task.spawn(function()
+	while true do
+		task.wait(1)
+		local now = os.clock()
+		for uid, mine in pairs(Dig.QUAKE) do
+			local plr = Svc.Players:GetPlayerByUserId(uid)
+			local prof = plr and profiles[uid] or nil
+			if not (plr and prof) then
+				Dig.QUAKE[uid] = nil
+				Dig.QUAKE_STACK[uid] = nil
+			else
+				--[[
+					One tick is stacks x share x swing, to every shaking block.
+
+					The bank expires as a whole: five seconds with no quake and
+					the stack count is gone, which is what stops a player
+					banking 100 stacks and carrying them between veins.
+				]]
+				local bank = Dig.QUAKE_STACK[uid]
+				if bank and now >= (bank.dies or 0) then
+					Dig.QUAKE_STACK[uid] = nil
+					bank = nil
+				end
+				local share = tonumber(C.QUAKE_STACK_SHARE) or 0.1
+				local tick = bank and math.max(1,
+					math.floor((bank.swing or 1) * share * (bank.n or 0))) or 0
+				for part, q in pairs(mine) do
+					if not part.Parent or now >= q.dies then
+						if part.Parent then
+							pcall(function()
+								part:SetAttribute("Quaking", nil)
+							end)
+						end
+						mine[part] = nil
+					elseif tick > 0 then
+						pcall(swingNeighbour, plr, part, tick, prof)
+					end
+				end
+			end
+		end
+	end
+end)
 
 -- One Echo: a full-power hit on a DIFFERENT live block beside the one you swung
 -- at, and then that block rolls its own procs. Returns the block it hit, or nil
@@ -5965,7 +6908,11 @@ local function swingBlock(plr, part)
 		local layer = tonumber(part:GetAttribute("CY") or part:GetAttribute("Layer")) or 1
 		local zi = (C.zoneIndex and C.zoneIndex(part:GetAttribute("ZoneId") or p.zoneId)) or 1
 		local oreTier = tonumber(part:GetAttribute("OreTier"))
-		local okBreak, need, have = Dig.Breaking.canBreak(tool, zi, layer, oreTier, #C.ORES)
+		-- maxUnlockedZone decides which reach applies: ore in the zone you are
+		-- still working is asked for nearly straight, ore in a zone you have
+		-- already passed drops to the full reach. See MineBreaking.reachFor.
+		local okBreak, need, have = Dig.Breaking.canBreak(
+			tool, zi, layer, oreTier, #C.ORES, p.maxUnlockedZone)
 		if not okBreak then
 			-- Throttled: a player holding the button swings into the wall ten
 			-- times a second and only needs telling once.
@@ -6741,56 +7688,13 @@ local function openPack(plr, setId, chestId, pk, collect)
 				snap(plr)
 				net:FireClient(plr, "opened", loot, design)
 				return
-			elseif zdef.kind == "fossil" then
-				--[[
-					A LEGACY FOSSIL PACK PAYS GEMS.
-
-					Fossils are retired, so there is nothing for this to open into
-					-- but a save can still be holding one, and a pack that opens
-					into nothing is indistinguishable from a bug. It cashes out
-					instead.
-
-					The rate is the game's OWN price for the pieces it would have
-					contained (MineFossils.sellGems over the recipes it could have
-					rolled), not a number invented here: a player who banked these
-					gets what the fossil bench would have paid them for the same
-					pack.
-				]]
-				local Econ = require(shared:WaitForChild("MineFossilEconomy"))
-				local pulls = zdef.pulls or Econ.PACK_PULLS or 3
-				local gems = 0
-				for _, recipe in ipairs(Fossils.RECIPES or {}) do
-					gems += (Fossils.sellGems and Fossils.sellGems(recipe, 1)) or 0
-				end
-				-- Average over the pool, times the pieces the pack held.
-				local pool = math.max(1, #(Fossils.RECIPES or {}))
-				local per = math.max(1, math.floor(gems / pool))
-				local pieces = math.max(1, math.floor(Econ.piecesFor("Common") or 1))
-				gems = per * pieces * pulls
-				p.gems = (tonumber(p.gems) or 0) + gems
-				bumpStat(plr, p, "packs")
-				local loot = { {
-					kind = "gems",
-					name = Verbs._benchNum(gems) .. " gems",
-					rarityId = "Rare",
-					sub = "fossils are retired -- cashed out",
-				} }
-				local design = {
-					packId = zdef.id,
-					name = zdef.name,
-					setName = "Retired",
-					kind = "currency",
-				}
-				if collect then
-					design.cards = loot
-					table.insert(collect, design)
-					return
-				end
-				snap(plr)
-				net:FireClient(plr, "opened", loot, design)
-				net:FireClient(plr, "toast", "Fossils are retired -- that pack paid "
-					.. Verbs._benchNum(gems) .. " gems instead")
-				return
+			--[[
+				A legacy fossil PACK used to cash out HERE, on open, because the
+				pack rows were still registered. They are not any more, and an
+				unopened one is cashed out on load instead (see retireFossils),
+				so by the time anyone can open a pack there is no fossil pack
+				left to open.
+			]]
 			elseif zdef.kind == "cards" then
 				-- Prefer zone pack odds; fall through to card open with packDef = zdef.
 				packDef = zdef
@@ -6870,7 +7774,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 			end
 			return tostring(x.name or "") < tostring(y.name or "")
 		end)
-		-- Equipment (fossil) packs count; gear/rune summons do not.
+		-- Equipment packs count; gear/rune summons do not.
 		if packDef.kind ~= "gear" and packDef.kind ~= "rune" then
 			bumpStat(plr, p, "packs")
 		end
@@ -6883,7 +7787,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		local design = {
 			packId = packDef.id,
 			name = (pk and pk.packName) or packDef.name or "Pack",
-			setName = ({ fossil = "Equipment", rune = "Runes", gear = "Gear" })[packDef.kind] or "Loot",
+			setName = ({ rune = "Runes", gear = "Gear" })[packDef.kind] or "Loot",
 			kind = packDef.kind,
 		}
 		if collect then
@@ -7005,7 +7909,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		-- Luck siphons odds (Epic-first into chase). Same card count.
 		-- A sealed row can also stamp its own shiny percent (Shiny Packs).
 		local packLuck = tonumber(pk and pk.luck) or 1
-		if packDef and packDef.kind ~= "fossil" and (packLuck > 1 or rowShiny) then
+		if packDef and (packLuck > 1 or rowShiny) then
 			packDef = table.clone(packDef)
 			if packLuck > 1 then
 				packDef.luck = packLuck
@@ -7053,6 +7957,11 @@ local function openPack(plr, setId, chestId, pk, collect)
 			local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, roll.tier) or {}
 			if #pool == 0 and Cards.indicesOfRarity then
 				pool = Cards.indicesOfRarity(setId, "Common") or {}
+			end
+			-- This pack's slice of that rarity, not the whole set: two packs of
+			-- one set used to be the same pack in a different wrapper.
+			if Packs.cardPoolFor then
+				pool = Packs.cardPoolFor(packDef, pool)
 			end
 			local index = (#pool > 0) and pool[rng:NextInteger(1, #pool)] or 1
 			def = Cards.getCard and Cards.getCard(setId, index) or nil
@@ -8267,11 +9176,48 @@ local function powerUp(plr, id)
 	c.powerLevel = (c.powerLevel or 1) + 1
 	snap(plr)
 end
--- Buy the next tier in a family. Tools are priced in COINS -- coins are
--- payment for work, and tools are what work buys.
+--[[
+	TOOLS ARE NOT BOUGHT ANY MORE. THEY ARE FORGED.
+
+	Owner, 2026-10-05: "i think its time to get rid of all coin bought tools".
+
+	The tabs are gone from the shop rail, but a rail is a client drawing and this
+	is the rule. Every path that used to sell a tool for coins stops here, so a
+	modified client firing `buyTool` by hand gets the same answer as one that
+	cannot see the button.
+
+	What still comes through: BACKPACKS, which are haul capacity rather than a
+	tool, and the `eh_` event items, which are their own economy. Both are
+	reached by toolId through MineShopBuy below and neither is in Tools.TOOLS,
+	so the family check is what separates them -- not a list of exceptions that
+	would drift as items are added.
+
+	The wooden pickaxe is unaffected: it is GIVEN, never sold, and it still
+	levels on coins (MineConfig.isCoinTool). That is the one place coins still
+	touch a tool, and the owner kept it deliberately as the on-ramp to the Forge.
+
+	THE LIST LIVES IN MineConfig, NOT HERE. It was briefly a top-level local in
+	this script, and that one register broke the entire server: MineServer sits
+	at Luau's 200-local ceiling, so the compile failed with "Out of local
+	registers when trying to allocate id", MineNet was never created, and every
+	client hung on WaitForChild("MineNet") with no other symptom. Same ceiling
+	MineClient has, same failure mode. Do not add top-level locals to either file.
+]]
 local function buyTool(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then return end
+	--[[
+		A toolId buy is resolved against the surface ladder, which carries the
+		row's family, so the refusal has to happen after the row is known -- see
+		the guard inside the toolId branch. A bare family string is refused here.
+	]]
+	if type(payload) ~= "table" or not payload.toolId then
+		local fam = tostring((type(payload) == "table" and payload.family) or payload or "pickaxe")
+		if (C.FORGE_ONLY_FAMILIES or {})[fam] then
+			net:FireClient(plr, "toast", "Tools are forged from ore now - open the Forge")
+			return
+		end
+	end
 	-- New surface ladder: buy by toolId from MineShopLadders (desk == surface only).
 	if type(payload) == "table" and payload.toolId then
 		local okBuy, ShopBuy = pcall(function()
@@ -8281,6 +9227,14 @@ local function buyTool(plr, payload)
 			return require(shared:WaitForChild("MineShopLadders"))
 		end)
 		if okBuy and ShopBuy and okL and Ladders then
+			-- The ladder row carries its family, so the refusal lands here --
+			-- after the id resolves and before any coins move. Backpacks and
+			-- event items resolve to rows with no tool family and pass through.
+			local row = Ladders.byId and Ladders.byId(tostring(payload.toolId))
+			if row and (C.FORGE_ONLY_FAMILIES or {})[tostring(row.family or "")] then
+				net:FireClient(plr, "toast", "Tools are forged from ore now - open the Forge")
+				return
+			end
 			ShopBuy.buySurface(plr, p, payload, {
 				ShopLadders = Ladders, C = C, net = net,
 				givePickaxe = givePickaxe, giveBackpackModel = giveBackpackModel,
@@ -8356,6 +9310,24 @@ local function buyDepthTool(plr, payload)
 			ShopBuy.buyEvent(plr, p, toolId, { net = net, snap = snap, givePickaxe = givePickaxe })
 		end
 		return
+	end
+	--[[
+		The depth desks sell off the SAME ladders the surface shop did, so
+		refusing only at the surface would have left every outpost below 500m
+		still selling pickaxes. Same rule, same message, second door.
+
+		Event items (`eh_`) returned above before reaching this, and backpacks
+		carry no tool family, so both still sell.
+	]]
+	do
+		local okL, Ladders = pcall(function()
+			return require(shared:WaitForChild("MineShopLadders"))
+		end)
+		local row = okL and Ladders and Ladders.byId and Ladders.byId(toolId)
+		if row and (C.FORGE_ONLY_FAMILIES or {})[tostring(row.family or "")] then
+			net:FireClient(plr, "toast", "Tools are forged from ore now - open the Forge")
+			return
+		end
 	end
 	local desk = tostring(payload.desk or "")
 	local seam = tonumber(payload.seam) or Dig.Shop.deskSeam(desk)
@@ -8709,7 +9681,7 @@ function Verbs.bindSellPad(part)
 	end
 	Verbs.sellPadBound[part] = true
 	part.Touched:Connect(function(hit)
-		local plr = hit and hit.Parent and Players:GetPlayerFromCharacter(hit.Parent)
+		local plr = hit and hit.Parent and Svc.Players:GetPlayerFromCharacter(hit.Parent)
 		if not plr then
 			return
 		end
@@ -8758,8 +9730,9 @@ function Verbs.buySeam(plr, payload)
 		net:FireClient(plr, "toast", "That seam is already open")
 		return
 	end
-	-- Seams open in order. Skipping one would skip the band whose income pays for
-	-- the next, and 30 minutes is only honest if the player mined the band below.
+	-- Seams open in order. Free does not mean skippable: the bands are the
+	-- progression, and opening 5000 before 500 would drop a player into rock
+	-- their tool cannot scratch.
 	for _, s in ipairs(Depth.SEAMS) do
 		if s >= seam then
 			break
@@ -8769,11 +9742,17 @@ function Verbs.buySeam(plr, payload)
 			return
 		end
 	end
-	if (p.coins or 0) < price then
+	-- Free since 2026-10-05 (owner: "buy seams shouldnt cost anything").
+	-- Breaking power already gates depth; charging coins for it as well was a
+	-- second gate on the same axis. The price is still read above so a seam
+	-- that does not exist is still refused, and the order check still stands.
+	if price > 0 and (p.coins or 0) < price then
 		net:FireClient(plr, "toast", string.format("Layer %d costs %s coins", seam, tostring(price)))
 		return
 	end
-	p.coins -= price
+	if price > 0 then
+		p.coins -= price
+	end
 	Depth.grantSeam(p, seam, zi)
 	net:FireClient(plr, "toast", string.format("Layer %d open -- dig on", seam))
 	markDirty(plr)
@@ -8829,6 +9808,103 @@ local function equipCharm(plr, payload)
 	p.equippedCharm = id
 	local def = Charms.byId(id)
 	net:FireClient(plr, "toast", "Equipped " .. def.name)
+	markDirty(plr)
+	snap(plr)
+	walk(plr)
+end
+
+--[[
+	MERGE THREE CHARMS INTO ONE A TIER DEEPER.
+
+	The rule and the cost live in MineCharms.mergeTarget / MERGE_COST so the
+	client's button and this cannot disagree about what a merge produces -- and
+	the refusal sentence comes from there too, so "why not" reads the same in
+	both places.
+
+	ALL OR NOTHING, and the spend happens after the target resolves: an earlier
+	shape of this debited first and granted second, which on an unmergeable
+	charm would have eaten three copies for nothing.
+
+	The equipped charm is handled rather than ignored. Merging away the last
+	copy of what you are wearing would leave `p.equippedCharm` pointing at a
+	charm you no longer own, which the load path then silently clears -- so the
+	merge moves you onto the charm you just made instead. That is also just
+	what you wanted.
+]]
+-- On Verbs rather than a local: this script sits at 197 of Luau's 200
+-- top-level locals and a verb does not need to spend one of the last three.
+function Verbs.mergeCharm(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local id = payload
+	if type(payload) == "table" then
+		id = payload.id or payload.charmId or payload.charm
+	end
+	id = tostring(id or "")
+	p.charms = p.charms or {}
+
+	-- One copy, not three. The gems are the price now; see MineCharms.
+	local cost = math.max(1, math.floor(tonumber(Charms.MERGE_COST) or 1))
+	local have = math.floor(tonumber(p.charms[id]) or 0)
+	-- A legacy charm saved as `true` counts as one copy, the same as everywhere
+	-- else that reads this tally.
+	if p.charms[id] == true then
+		have = 1
+	end
+	if have < cost then
+		net:FireClient(plr, "toast", string.format(
+			"Need %d of that charm to merge (you have %d)", cost, have))
+		return
+	end
+
+	local targetId, targetDef, why = Charms.mergeTarget(id)
+	if not targetId then
+		net:FireClient(plr, "toast", why or "That charm cannot be merged")
+		return
+	end
+
+	--[[
+		THE GEMS. Owner, 2026-10-04: "rather than merging it should cost gems."
+
+		Priced off the TARGET's tier, not the source's, so the step you are
+		buying is what you pay for. Charged AFTER mergeTarget resolves -- a
+		charm that cannot merge must not take the gems first.
+	]]
+	local gemCost = Charms.mergeGemCost and Charms.mergeGemCost(targetDef.tier) or 0
+	local gems = math.floor(tonumber(p.gems) or 0)
+	if gemCost > 0 and gems < gemCost then
+		net:FireClient(plr, "toast", string.format(
+			"Needs %s gems to merge", Verbs._benchNum(gemCost)))
+		return
+	end
+	p.gems = gems - gemCost
+
+	p.charms[id] = have - cost
+	if p.charms[id] <= 0 then
+		p.charms[id] = nil
+	end
+	local had = p.charms[targetId]
+	if had == true then
+		had = 1
+	end
+	p.charms[targetId] = math.floor(tonumber(had) or 0) + 1
+	-- Mark it seen, the same as a drop would, or the Forge's recipe list and
+	-- anything else reading oresSeen would not know the ore behind it.
+	if targetDef.oreId then
+		p.oresSeen = p.oresSeen or {}
+		p.oresSeen[tostring(targetDef.oreId)] = true
+	end
+
+	if p.equippedCharm == id and not p.charms[id] then
+		p.equippedCharm = targetId
+	end
+
+	bumpStat(plr, p, "merges")
+	net:FireClient(plr, "toast", string.format("%d x %s  ->  %s",
+		cost, tostring(Charms.byId(id) and Charms.byId(id).name or id),
+		tostring(targetDef.name or targetId)))
 	markDirty(plr)
 	snap(plr)
 	walk(plr)
@@ -9293,10 +10369,15 @@ local function buy(plr, kind)
 		local row = C.BACKPACKS[want]
 		if not row then return end
 		if row.fossil then
-			-- Fossil bags are crafted on the fossil track, never sold. They share
-			-- the backpackTier ladder with coin bags, so without this the client
-			-- could name a fossil rung and buy it for coins off the coin shelf.
-			net:FireClient(plr, "toast", string.format("%s is crafted on the fossil track, not sold", tostring(row.name or "That bag")))
+			--[[
+				These rungs were crafted on the fossil track, which is gone. They
+				CANNOT be dropped from the roster: a bag id is "bag_<index into
+				MineBags.LIST>", so removing 60 rows would silently hand every
+				player a different bag. They stay as unreachable index padding,
+				off every shelf and every count, and this refusal stops a client
+				naming one and buying it for coins. See §0.12.
+			]]
+			net:FireClient(plr, "toast", string.format("%s is not for sale", tostring(row.name or "That bag")))
 			return
 		end
 		if row.robux then
@@ -9547,7 +10628,7 @@ local function tryPrestige(plr)
 end
 
 function Verbs.debugGrantRune(plr, payload)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.runes = p.runes or {}
@@ -9600,7 +10681,7 @@ function Verbs.debugGrantRune(plr, payload)
 end
 
 function Verbs.debugGrantBlastSet(plr)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.gear = p.gear or {}
@@ -9620,7 +10701,7 @@ function Verbs.debugGrantBlastSet(plr)
 end
 
 function Verbs.debugGrantL99Blast(plr, payload)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.runes = p.runes or {}
@@ -9701,13 +10782,15 @@ end
 function Verbs.rollGearBanner(plr, payload)
 	local p = profiles[plr.UserId]
 	local want = rollCount(payload)
-	local price = Gear.rollPriceFor(p.maxUnlockedZone)
+	-- Hats are bought with REBIRTH TOKENS now, not gems (TODO 6.2). Flat price;
+	-- see MineGear.ROLL_TOKEN_COST for why it is not zone-scaled.
+	local price = tonumber(Gear.ROLL_TOKEN_COST) or 5
 	-- The first gear roll a player ever makes is free (the tutorial's gear
 	-- step). It is the FIRST draw only: charging per iteration is what keeps
 	-- a 100x click from handing out a hundred free crates.
 	local freeOne = (not p.freeGearUsed) and #(p.gear or {}) == 0
-	if not freeOne and (p.gems or 0) < price then
-		net:FireClient(plr, "toast", "Need " .. price .. " gems")
+	if not freeOne and (tonumber(p.temperTokens) or 0) < price then
+		net:FireClient(plr, "toast", "Need " .. price .. " tokens")
 		return
 	end
 	local def = Packs.PACK_BY_ID.gear_pack
@@ -9715,8 +10798,8 @@ function Verbs.rollGearBanner(plr, payload)
 	local done, spent = 0, 0
 	for i = 1, want do
 		local cost = (i == 1 and freeOne) and 0 or price
-		if (p.gems or 0) < cost then break end
-		p.gems -= cost
+		if (tonumber(p.temperTokens) or 0) < cost then break end
+		p.temperTokens = (tonumber(p.temperTokens) or 0) - cost
 		spent += cost
 		if i == 1 and freeOne then
 			p.freeGearUsed = true
@@ -9731,11 +10814,11 @@ function Verbs.rollGearBanner(plr, payload)
 	if done == 1 then
 		net:FireClient(plr, "toast", (def and def.name or "Gear Crate") .. "!")
 	elseif done > 1 then
-		net:FireClient(plr, "toast", string.format("%d× %s  (-%s gems)",
+		net:FireClient(plr, "toast", string.format("%d× %s  (-%s tokens)",
 			done, (def and def.name) or "Gear Crate", tostring(spent)))
 	end
 	if done < want then
-		net:FireClient(plr, "toast", string.format("Ran out of gems after %d of %d", done, want))
+		net:FireClient(plr, "toast", string.format("Ran out of tokens after %d of %d", done, want))
 	end
 	if done > 0 then
 		net:FireClient(plr, "purchaseFx", { kind = "pack", packId = "gear_pack", count = done,
@@ -9895,7 +10978,6 @@ function Verbs.socketToolRune(plr, payload)
 	local p = profiles[plr.UserId]
 	local runeId = payload and payload.runeId
 	local family = tostring(payload and payload.family or p.toolFamily or "pickaxe")
-	local fossilId = payload and payload.fossilId
 	local chestId = payload and payload.chestId
 	local shopToolId = payload and payload.shopToolId
 	local rune = runeById(p, runeId)
@@ -9950,7 +11032,6 @@ end
 local function destroyToolRune(plr, payload)
 	local p = profiles[plr.UserId]
 	local family = tostring(payload and payload.family or "")
-	local fossilId = payload and payload.fossilId
 	local chestId = payload and payload.chestId
 	local shopToolId = payload and payload.shopToolId and tostring(payload.shopToolId)
 	if (p.gems or 0) < Runes.RESOCKET_PRICE then
@@ -10224,6 +11305,33 @@ function Verbs.buyScroll(plr, payload)
 		grant = item.bundleQty
 	end
 	cost = C.vipPrice(cost, hasVipPass(plr))
+
+	--[[
+		A TYPED QUANTITY. Owner: "a custom amoujt of packs to buy (the player
+		can write the number themselves [default 1])".
+
+		Multiplies whatever one unit costs -- so it stacks on a bundle too, and
+		the VIP discount is applied before the multiply rather than after, or
+		buying ten would round the discount away ten times.
+
+		Short on credits pays out what you CAN afford rather than refusing,
+		which is the same contract openMany documents for "open 10" off a stack
+		of six. Refusing a 50-pack request because you can afford 49 is the
+		behaviour that makes people stop using the box.
+	]]
+	local qty = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
+		1, Const.BUY_QTY_MAX)
+	local unit, unitGrant = cost, grant
+	local have = tonumber(p.credits) or 0
+	if unit > 0 then
+		qty = math.min(qty, math.floor(have / unit))
+	end
+	if qty < 1 then
+		net:FireClient(plr, "toast", "Need " .. unit .. " credits")
+		return
+	end
+	cost, grant = unit * qty, unitGrant * qty
+
 	if (p.credits or 0) < cost then
 		net:FireClient(plr, "toast", "Need " .. cost .. " credits")
 		return
@@ -10237,6 +11345,16 @@ function Verbs.buyScroll(plr, payload)
 		grantScrolls(p, id, grant)
 	end
 	net:FireClient(plr, "toast", "Bought " .. item.name .. (grant > 1 and (" x" .. grant) or ""))
+	-- Say so when the box asked for more than the wallet could cover, or a
+	-- short fill looks like the number was ignored.
+	do
+		local asked = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
+			1, Const.BUY_QTY_MAX)
+		if asked > qty then
+			net:FireClient(plr, "toast", string.format(
+				"Only %d of %d - that is what %d credits covered", qty, asked, have))
+		end
+	end
 	snap(plr)
 end
 
@@ -10275,7 +11393,7 @@ local function joinVip(plr)
 	end
 	do
 		local ok, owns = pcall(function()
-			return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
+			return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
 		end)
 		if ok and owns then
 			local seatsRef = { left = vipSeatsLeft }
@@ -10413,7 +11531,7 @@ local function ensureDustShop()
 		DUST_SHOP.fetchedAt = os.clock()
 		task.spawn(function()
 			pcall(function()
-				local ds = DSS:GetDataStore(C.storeName("DustShopGlobal_v1"))
+				local ds = Svc.DSS:GetDataStore(C.storeName("DustShopGlobal_v1"))
 				local saved = ds:GetAsync(key)
 				if DUST_SHOP.key == key and type(saved) == "table" and type(saved.sold) == "table" then
 					for id, n in pairs(saved.sold) do
@@ -10462,7 +11580,7 @@ local function takeDustStock(packId, qty)
 	end
 	local key, granted = shop.key, false
 	local ok = pcall(function()
-		DSS:GetDataStore(C.storeName("DustShopGlobal_v1")):UpdateAsync(key, function(old)
+		Svc.DSS:GetDataStore(C.storeName("DustShopGlobal_v1")):UpdateAsync(key, function(old)
 			old = (type(old) == "table") and old or { sold = {} }
 			old.sold = (type(old.sold) == "table") and old.sold or {}
 			local cur = tonumber(old.sold[packId]) or 0
@@ -10899,7 +12017,6 @@ end
 	  ladder   a coin-shop rung          -> coins, top rung only
 	  shop     a depth-desk rung         -> coins
 	  forever  chest / pass / event      -> stardust + temper tokens
-	  fossil   assembled from pieces     -> stardust + temper tokens
 
 	Two refusals worth keeping: a tool with a rune in it goes back with
 	"unsocket it first" rather than quietly eating the rune, and the last rung
@@ -11806,7 +12923,7 @@ function Verbs.buyCreditPack(plr, payload)
 		return
 	end
 	local pid = tonumber(pack.productId) or 0
-	if pid > 0 and not RunService:IsStudio() then
+	if pid > 0 and not Svc.Run:IsStudio() then
 		net:FireClient(plr, "toast", "Buy credits with Robux from the shop prompt")
 		return
 	end
@@ -11820,7 +12937,7 @@ function Verbs.scrubLobbyMineBlocks()
 	-- Leftover dirt from an earlier generate. Only MineBlock / MineVoxel parts.
 	local n = 0
 	for _, d in ipairs(workspace:GetDescendants()) do
-		if d:IsA("BasePart") and (d.Name == "MineBlock" or CollectionService:HasTag(d, "MineVoxel")) then
+		if d:IsA("BasePart") and (d.Name == "MineBlock" or Svc.Collection:HasTag(d, "MineVoxel")) then
 			if C.blockOverlapsLobby and C.blockOverlapsLobby(d.Position, math.max(d.Size.X, d.Size.Y, d.Size.Z) * 0.5) then
 				d:Destroy()
 				n += 1
@@ -11834,6 +12951,102 @@ function Verbs.scrubLobbyMineBlocks()
 end
 
 WorldBuilder.build()
+--[[
+	NOTHING IN THE WORLD CASTS A SHADOW.
+
+	Owner, 2026-10-06, microprofiler open on a 5070 Ti: GPU averages ~50 ms while
+	moving and spikes to 80, against a 33 ms target. Measured live straight
+	after: workspace holds 14,559 parts and 10,408 of them cast shadows, 9,610 of
+	those inside MineWorld.
+
+	Shadow maps are re-rendered as the camera moves, which is exactly the
+	"when I move" shape of the spike, and the cost is per shadow-casting part.
+	Underground there is no sun to cast them from, so for the great majority of
+	them it bought nothing at all.
+
+	Swept here rather than at each creation site because MineWorld is built by
+	WorldBuilder, the plaza builders, the barrier builder and the voxel
+	generator, and a rule spread over five files is a rule that will be missed by
+	the sixth. New blocks set CastShadow = false as they spawn (see spawnVoxel);
+	this catches everything that already exists.
+
+	If a specific prop ever needs its shadow back, set CastShadow on it after
+	this runs -- this is a floor, not a lock.
+]]
+--[[
+	NO SHADOWS. AT ALL.
+
+	Owner, 2026-10-06: "remove shadows peroid.. not point they dont do anything
+	helpful". With the microprofiler open on a 5070 Ti the GPU was averaging
+	~50 ms while moving and spiking to 80, against a 33 ms target.
+
+	Measured live: 14,559 parts in the workspace, 10,408 of them casting
+	shadows. Shadow maps re-render as the camera moves, which is exactly the
+	"when I move" shape of the spike -- and the game is almost entirely
+	underground, where there is no sun to cast them from. The cost bought
+	nothing.
+
+	GlobalShadows off is the whole thing in one property. The route I tried
+	first -- clearing CastShadow per part -- took it from 10,408 to 5,149 and
+	left 4,465 still casting, because the edge barriers and the depth plazas
+	build after that point and the plazas build lazily as players reach them. A
+	sweep can only catch what already exists, and a DescendantAdded watcher to
+	catch the rest is a connection firing for every part in a voxel mine to do
+	what one property does for free.
+
+	spawnVoxel still sets CastShadow = false on blocks. That is now redundant
+	while this line stands, and deliberately kept: if anyone ever turns
+	GlobalShadows back on, the mine itself should not be what drags it down.
+]]
+pcall(function()
+	game:GetService("Lighting").GlobalShadows = false
+end)
+
+--[[
+	DEV SCAFFOLDING DOES NOT SHIP.
+
+	Measured in a live session: twelve folders of editor scaffolding sit in the
+	workspace holding 2,492 parts between them -- pet and ore showcases, tool
+	model racks, icon pose references, a mass-review grid. They are built in the
+	place file for authoring art and nothing in the game reads them, but every
+	player loads, replicates and renders them.
+
+	Removed on the server at startup, so it costs nothing in the place file and
+	cannot be forgotten when a new showcase is added: the list is matched by
+	name and by the leading-underscore convention this project already uses for
+	scratch folders.
+
+	This touches the RUNNING session only. The place file is untouched, so the
+	folders are still there next time it is opened in Studio for authoring.
+]]
+-- IIFE, not a do-block: a do-block's locals share the MAIN CHUNK's 200
+-- registers and this script has five left, so three names here stopped the
+-- whole server compiling. tools/verify/compile.js caught it. A function body
+-- gets its own budget.
+;(function()
+	local SHOWCASE = {
+		PetShowcase = true, OreShowcase = true, ToolModels_HQ = true,
+		ToolKit_Showcase = true, IconPoseExamples = true, LaneBodies = true,
+		["Gem-N-Eye Preview"] = true,
+	}
+	local removed, parts = 0, 0
+	for _, d in ipairs(workspace:GetChildren()) do
+		-- `_Name` is this project's scratch convention; the rest are named above.
+		if SHOWCASE[d.Name] or string.sub(d.Name, 1, 1) == "_" then
+			for _, k in ipairs(d:GetDescendants()) do
+				if k:IsA("BasePart") then
+					parts += 1
+				end
+			end
+			removed += 1
+			d:Destroy()
+		end
+	end
+	if removed > 0 then
+		print(("[Mine] stripped %d dev showcase folders (%d parts) from the live world")
+			:format(removed, parts))
+	end
+end)()
 pcall(function()
 	require(script.Parent:WaitForChild("MineEdgeBarriers")).buildAll()
 end)
@@ -11916,7 +13129,7 @@ function Verbs.playersInShaft(zone)
 	local half = (C.GRID * C.BLOCK) * 0.5 + 2
 	local surfaceY = origin.Y + 2
 	local out = {}
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 		if root then
 			local pos = root.Position
@@ -11940,6 +13153,10 @@ function Verbs.resetMineZone(zone)
 	-- A new salt, so the refreshed mine is not the one that was just cleared.
 	mineResetState.seed = mineResetState.seed or {}
 	mineResetState.seed[zone.id] = Random.new():NextInteger(1, 1073741823)
+	-- The ore field reseeds with it, so a refreshed mine really is a new one.
+	if C.setVeinSalt then
+		C.setVeinSalt(zone.id, mineResetState.seed[zone.id])
+	end
 	ensureZone(zone, C.LAYER_WINDOW or 8)
 	syncPitWalls(zone)
 	for _, plr in ipairs(Verbs.playersInShaft(zone)) do
@@ -11949,7 +13166,7 @@ function Verbs.resetMineZone(zone)
 	local nextAt = os.clock() + (C.MINE_RESET_SEC or 1200)
 	mineResetState.at[zone.id] = nextAt
 	mineResetState.warned[zone.id] = {}
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		net:FireClient(plr, "mineReset", {
 			zoneId = zone.id,
 			nextAt = nextAt,
@@ -11982,14 +13199,14 @@ task.spawn(function()
 		mineResetState.warned[zone.id] = warned
 		if left <= 60 and not warned[60] then
 			warned[60] = true
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "toast", "Mine resets in 60s")
 				net:FireClient(plr, "mineReset", { zoneId = zone.id, remaining = math.max(0, left), resetSec = period, warn = 60 })
 			end
 		end
 		if left <= 10 and not warned[10] then
 			warned[10] = true
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "toast", "Mine resets in 10s")
 				net:FireClient(plr, "mineReset", { zoneId = zone.id, remaining = math.max(0, left), resetSec = period, warn = 10 })
 			end
@@ -12008,7 +13225,7 @@ task.spawn(function()
 			left = period - (workspace:GetServerTimeNow() % period)
 		end
 		if math.floor(left) % 5 == 0 then
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "mineReset", {
 					zoneId = zone.id,
 					remaining = math.max(0, left),
@@ -12040,7 +13257,7 @@ end
 task.spawn(function()
 	while true do
 		task.wait(0.4)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			pcall(Verbs.rescueIfBelowShaft, plr)
 		end
 	end
@@ -12378,8 +13595,9 @@ end
 
 Dig.boostSources = function(p)
 	local out = {}
-	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true,
-		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true }
+	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true,
+		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
+		earthquake = true, ricochet = true }
 	local function add(stat, name, amt)
 		if type(amt) ~= "number" or math.abs(amt) < 0.0005 then
 			return
@@ -12509,13 +13727,27 @@ Dig.boostSources = function(p)
 					emit("Rune on " .. row.name .. " (spread)", Gear.stackPets(variant(false, true, i), nil, nil))
 				end
 			end
+			--[[
+				Gear is ONE flat row now, not "your hat (all pets)" and "your
+				face (whole team)". Those two lines described the old stack,
+				where a hat was counted once per pet and the face multiplied
+				it; leaving them would be a breakdown of arithmetic that no
+				longer happens.
+			]]
 			local myHat = pieces[eq.hat or ""]
-			if myHat then
-				emit("Your " .. (myHat.name or "hat") .. " (all pets)", Gear.stackPets(variant(false, false), myHat, nil))
-			end
 			local myFace = pieces[eq.face or ""]
-			if myFace then
-				emit("Your " .. (myFace.name or "face") .. " (whole team)", Gear.stackPets(variant(false, false), nil, myFace))
+			do
+				local flat = Gear.flatBoost(Gear.wornHats(eq, pieces), myFace)
+				local gearOnly = Cards.emptyBoosts()
+				for stat, amount in pairs(flat) do
+					if stat == "swingRate" then
+						gearOnly.swingRate = (gearOnly.swingRate or 1) + amount
+					elseif gearOnly[stat] ~= nil then
+						gearOnly[stat] += amount
+					end
+				end
+				Cards.foldSwingRate(gearOnly)
+				diff("Your gear (flat, layer 2)", gearOnly)
 			end
 			local gb = Cards.emptyBoosts()
 			Gear.applyEquipped(gb, { hat = myHat, face = myFace }, byRune)
@@ -12673,7 +13905,7 @@ end
 task.spawn(function()
 	while true do
 		task.wait(15)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			pcall(Verbs.tickPlaytime, plr, 15)
 		end
 	end
@@ -12841,7 +14073,7 @@ function Verbs.handleJoin(plr)
 			game:GetService("AnalyticsService"):LogOnboardingStepEvent(plr, 1, "Joined")
 		end)
 	end
-	local inviteStore = DSS:GetDataStore(C.storeName("InviteRewards_v1"))
+	local inviteStore = Svc.DSS:GetDataStore(C.storeName("InviteRewards_v1"))
 	-- Joined through a friend's invite?
 	local join = plr:GetJoinData()
 	local ref = join and tonumber(join.ReferredByPlayerId)
@@ -12853,7 +14085,7 @@ function Verbs.handleJoin(plr)
 		pcall(function()
 			game:GetService("AnalyticsService"):LogCustomEvent(plr, "JoinedFromInvite", 1)
 		end)
-		local inviter = Players:GetPlayerByUserId(ref)
+		local inviter = Svc.Players:GetPlayerByUserId(ref)
 		if inviter and profiles[ref] then
 			Verbs.rewardInviter(inviter, 1)
 		else
@@ -12900,7 +14132,7 @@ Verbs.PAID_RANDOM = {
 
 function Verbs.fetchPolicy(plr)
 	local PolicyService = game:GetService("PolicyService")
-	if not RunService:IsStudio() then
+	if not Svc.Run:IsStudio() then
 		plr:SetAttribute("PolicyNoRandom", true)
 		plr:SetAttribute("PolicyNoTrade", true)
 		plr:SetAttribute("PolicyDiscord", false)
@@ -13060,10 +14292,10 @@ function Verbs.hookPlayer(plr)
 end
 
 MineAntiGear.start()
-Players.PlayerAdded:Connect(Verbs.hookPlayer)
+Svc.Players.PlayerAdded:Connect(Verbs.hookPlayer)
 -- IIFE: top-level `for _` would exceed Luau's 200 main-chunk register cap.
 ;(function()
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		Verbs.hookPlayer(plr)
 	end
 end)()
@@ -13073,7 +14305,7 @@ end)()
 		SAVE ON LEAVE, AND WAIT FOR IT ON SHUTDOWN.
 
 		PlayerRemoving started a save and cleared the profile in the same
-		breath, and BindToClose only saved players still in Players -- which,
+		breath, and BindToClose only saved players still in Svc.Players -- which,
 		during a shutdown, the leaving players already are not. Nothing waited
 		for the save already running, so the server could close underneath it
 		and everything since the last 45-second autosave was gone: a finished
@@ -13099,7 +14331,7 @@ end)()
 		end
 	end
 
-	Players.PlayerRemoving:Connect(function(plr)
+	Svc.Players.PlayerRemoving:Connect(function(plr)
 		local p = profiles[plr.UserId]
 		if p then
 			LeaderboardService.queueUpdate(plr.UserId, p.prestige, p.gems, LeaderboardService.profileStardustValue(p))
@@ -13116,7 +14348,7 @@ end)()
 	end)
 
 	game:BindToClose(function()
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			if profiles[plr.UserId] then
 				profiles[plr.UserId]._releasing = true
 				task.spawn(saveTracked, plr)
@@ -13133,7 +14365,7 @@ end)()
 task.spawn(function()
 	while true do
 		task.wait(45)
-		for _, plr in ipairs(Players:GetPlayers()) do save(plr) end
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do save(plr) end
 	end
 end)
 
@@ -13155,7 +14387,7 @@ task.spawn(function()
 	while true do
 		task.wait(2)
 		local now = os.clock()
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			local p = profiles[plr.UserId]
 			local row = p and C.BACKPACKS[p.backpackTier]
 			local every = row and tonumber(row.autoSellSec)
@@ -14073,7 +15305,8 @@ function Verbs.Afk.grantPack(plr, p, b)
 		zoneId = zone.id,
 		setId = setId,
 	}
-	local stamped = tonumber(b.luck) or 1
+	-- PACK luck, same as every other row.luck stamp.
+	local stamped = math.max(1, Dig.packLuck(b))
 	if stamped > 1 then
 		row.luck = stamped
 	end
@@ -14176,7 +15409,7 @@ function Verbs.Afk.refreshSession(plr)
 	-- Soft reset of Roblox's client idle clock: leave and rejoin the same place
 	-- while staying AFK. Profile.afk is already true and will resume on boot.
 	-- Teleports cannot work in Studio; skip instead of erroring every refresh.
-	if RunService:IsStudio() then
+	if Svc.Run:IsStudio() then
 		return
 	end
 	local p = profiles[plr.UserId]
@@ -14211,14 +15444,14 @@ function Verbs.Afk.refreshSession(plr)
 
 	local function attempt(opts)
 		local ok, err = pcall(function()
-			TeleportService:TeleportAsync(game.PlaceId, { plr }, opts)
+			Svc.Teleport:TeleportAsync(game.PlaceId, { plr }, opts)
 		end)
 		if ok then
 			return true
 		end
 		warn("[Mine] AFK refresh teleport failed", err)
 		local ok2 = pcall(function()
-			TeleportService:Teleport(game.PlaceId, plr, { mineAfkResume = true })
+			Svc.Teleport:Teleport(game.PlaceId, plr, { mineAfkResume = true })
 		end)
 		return ok2
 	end
@@ -14276,10 +15509,10 @@ task.spawn(function()
 		-- Re-enter chill after refresh teleport / reconnect while profile.afk is set.
 		for uid, p in pairs(profiles) do
 			if p and p.afk and not Verbs.Afk.active[uid] then
-				if RunService:IsStudio() then
+				if Svc.Run:IsStudio() then
 					p.afk = false
 				else
-					local plr = Players:GetPlayerByUserId(uid)
+					local plr = Svc.Players:GetPlayerByUserId(uid)
 					if plr and plr.Character then
 						Verbs.Afk.start(plr)
 					end
@@ -14287,7 +15520,7 @@ task.spawn(function()
 			end
 		end
 		for uid, _ in pairs(Verbs.Afk.active) do
-			local plr = Players:GetPlayerByUserId(uid)
+			local plr = Svc.Players:GetPlayerByUserId(uid)
 			if not plr or not profiles[uid] then
 				Verbs.Afk.active[uid] = nil
 				Verbs.Afk.nextAt[uid] = nil
@@ -14354,8 +15587,29 @@ end
 	MineAbbrev.currency floors, shows four, and carries suffixes the whole way,
 	so the server and the client read a price identically.
 ]]
+--[[
+	The one number -> string the SERVER uses for anything a player reads.
+
+	It is MineBigNum now, which is what TODO 0.8 always said it should be:
+	"big numbers are SERVER-SIDE", and this is where the server turns one into
+	text. It used to call MineAbbrev.currency, the client-side formatter, which
+	left MineBigNum with no callers at all.
+
+	THE SWAP IS INVISIBLE, and that is the point rather than a happy accident.
+	The two produce byte-identical output for every magnitude below 10^63 --
+	pinned by tools/verify/bignum.js, which also records where they part company
+	above it. Getting there needed a real fix: MineBigNum floored to one decimal
+	flat, so 1234 read "1.2 K", two significant figures against the four its own
+	header and 0.8/0.9 all call for.
+
+	MineAbbrev stays where it is. It is in ReplicatedStorage because the client
+	needs a formatter for numbers it works out itself (a preview, a running
+	total), and MineBigNum is deliberately server-only. The guarantee that
+	matters is not that the client never formats -- it is that when it does, it
+	cannot disagree with the server, and that is now a checked property.
+]]
 function Verbs._benchNum(n)
-	return require(shared:WaitForChild("MineAbbrev")).currency(n)
+	return require(script.Parent:WaitForChild("MineBigNum")).auto(n)
 end
 
 --[[
@@ -14367,17 +15621,15 @@ end
 	to 8 for Exotic. toolCostMult raises it to TOOL_COST_TYPE (0.5), so a rarer
 	frame costs about 2.8x a Common one to level, never less.
 ]]
+-- One rule, in MineOreTools. This was a third copy of the frame-rarity lookup
+-- (MineForge had one, equippedTool has another), and all three computed the
+-- same function of ore tier by different routes. See MineOreTools.typeMult.
 function Verbs._oreToolTypeMult(tool)
-	local fam = Tools.TOOLS and Tools.TOOLS[tool.familyId or "pickaxe"]
-	if fam then
-		for _, td in ipairs(fam) do
-			if td.id == tool.typeId then
-				local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-				return (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
-			end
-		end
-	end
-	return 1
+	-- Required here, not at the top: this script is on Luau's 200-local ceiling,
+	-- and `OreTools` is a local inside two other functions rather than a file
+	-- global. Writing the bare name would compile to a GLOBAL read and be nil.
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	return OreTools.typeMult(tool.familyId or "pickaxe", tool.tier)
 end
 
 function Verbs._oreToolCost(tool)
@@ -14471,8 +15723,66 @@ end
 	trip rather than one per level. Prices come from MineConfig.woodPickCoinCost
 	and nowhere else.
 ]]
+--[[
+	GRADUATION. The wooden pickaxe exists to reach the stone pick (TODO 0.10),
+	and this is the handover.
+
+	`C.TUTORIAL_GRADUATION_TOOL` has existed as a constant with no reader, so
+	the rule was written down and never implemented: the wooden pick capped at
+	five levels and the player was simply stuck on it, holding a tool that
+	could not improve and had not bought them anything.
+
+	It hands over a COIN-LADDER rung (Tools.TOOLS.pickaxe), which is a different
+	roster from the Forge tool being levelled -- that is the point. The wooden
+	pick is a Forge tool with typeId wood_pick; the stone pick is rung 2 of the
+	shop ladder. p.tools.pickaxe is a highest-rung marker rather than a list of
+	receipts, so setting it grants that rung and everything under it, exactly as
+	buyTool does when someone buys ahead.
+
+	Free, and only once: it no-ops if the player already owns that rung or
+	better, so a player who bought their way past it is not handed anything and
+	nobody can re-trigger it.
+
+	Returns true when it actually granted, so the caller can say so.
+]]
+function Verbs._graduateTutorialPick(plr, p)
+	local id = C.TUTORIAL_GRADUATION_TOOL
+	if type(id) ~= "string" or id == "" then
+		return false
+	end
+	local list = Tools.TOOLS and Tools.TOOLS.pickaxe
+	if type(list) ~= "table" then
+		return false
+	end
+	local tier, row
+	for i, r in ipairs(list) do
+		if r.id == id then
+			tier, row = i, r
+			break
+		end
+	end
+	if not tier then
+		return false
+	end
+	p.tools = p.tools or {}
+	if (tonumber(p.tools.pickaxe) or 0) >= tier then
+		return false
+	end
+	p.tools.pickaxe = tier
+	net:FireClient(plr, "toast", string.format(
+		"The %s is yours -- the Wooden Pickaxe has done its job", tostring(row.name or id)))
+	return true
+end
+
 function Verbs._upgradeCoinTool(plr, p, tool, level, payload)
 	if level >= C.WOOD_PICK_MAX_LEVEL then
+		-- At the cap and still on the starter: hand the graduation tool over
+		-- rather than repeating "at max level" at someone with nowhere to go.
+		if Verbs._graduateTutorialPick(plr, p) then
+			snap(plr)
+			markDirty(plr)
+			return
+		end
 		net:FireClient(plr, "toast", "The Wooden Pickaxe is at max level")
 		return
 	end
@@ -14500,6 +15810,11 @@ function Verbs._upgradeCoinTool(plr, p, tool, level, payload)
 	tool.level = level + steps          -- the uid is untouched, on purpose
 	bumpStat(plr, p, "upgrades")
 	net:FireClient(plr, "toast", string.format("+%d  ->  level %d", steps, tool.level))
+	-- Reaching the cap IS the graduation, so it happens on the step that gets
+	-- there rather than on a second click the player has no reason to make.
+	if tool.level >= C.WOOD_PICK_MAX_LEVEL then
+		Verbs._graduateTutorialPick(plr, p)
+	end
 	snap(plr)
 	markDirty(plr)
 end
@@ -14570,31 +15885,41 @@ function Verbs.craftOreTool(plr, payload)
 	end
 
 	local familyId = tostring(payload.familyId or "pickaxe")
-	local typeId = tostring(payload.typeId or "")
 	local oreId = tostring(payload.oreId or "")
 
-	local def
-	for _, td in ipairs((Tools.TOOLS or {})[familyId] or {}) do
-		if td.id == typeId then
-			def = td
-			break
-		end
-	end
-	if not def then
-		net:FireClient(plr, "toast", "No such tool")
-		return
-	end
+	--[[
+		THE ORE IS THE TOOL.
 
-	-- The starter is given, not forged. Letting it be crafted from ore would
-	-- put the cheapest frame in the game on the ore economy for no gain.
-	if C.WOOD_PICK_ID and def.id == C.WOOD_PICK_ID then
-		net:FireClient(plr, "toast", "The Wooden Pickaxe is free, not forged")
-		return
-	end
+		Owner, 2026-10-03: "i dont want different tools to cost different ores."
 
+		This verb used to take a typeId AND an oreId from the client and trust
+		the pair, so one frame could be forged out of any ore at any price --
+		which is exactly what made the Forge read as nonsense. The frame is
+		DERIVED from the ore's tier now, by the same pure function the panel
+		quotes with, so the two cannot drift and a modified client cannot ask
+		for a deep ore in a cheap frame. payload.typeId is ignored on purpose.
+
+		MineOreTools is required here rather than at the top of the file: this
+		script is at 197 of Luau's 200 top-level locals, and a forge is not a
+		hot path.
+	]]
 	local oreDef = C.oreById and C.oreById(oreId)
 	if not oreDef or not oreDef.tier then
 		net:FireClient(plr, "toast", "That ore is not in the roster")
+		return
+	end
+
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	local def = OreTools.frameForTier(familyId, oreDef.tier)
+	if not def then
+		net:FireClient(plr, "toast", "Nothing in that family can be forged")
+		return
+	end
+
+	-- The starter is given, not forged. frameForTier already filters it out by
+	-- price, so this is belt and braces rather than the only guard.
+	if C.WOOD_PICK_ID and def.id == C.WOOD_PICK_ID then
+		net:FireClient(plr, "toast", "The Wooden Pickaxe is free, not forged")
 		return
 	end
 
@@ -14604,7 +15929,7 @@ function Verbs.craftOreTool(plr, payload)
 		return
 	end
 
-	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = typeId })
+	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = def.id })
 	local cost = C.toolCraftCost(oreDef.tier, typeMult)
 
 	p.ores = p.ores or {}
@@ -14616,29 +15941,150 @@ function Verbs.craftOreTool(plr, payload)
 	end
 
 	p.ores[oreId] = have - cost
+
+	--[[
+		A FORGED TOOL INHERITS YOUR LEVELLING.
+
+		It used to arrive at level 1, and that made forging up a DOWNGRADE at
+		every single tier. Measured (tools/forge-feel.js): a fresh tier-(T+1)
+		tool is x0.003 of the maxed tier-T tool already in your hand, and has to
+		be levelled to 30 of 30 just to break even. Every tier, all the way up.
+
+		It cannot be tuned away either. A fresh tool only wins if one tier step
+		is worth a whole climb, and with 81 tier steps inside the damage budget
+		the best possible case is tier step = climb = x1.265 -- which makes
+		levelling worth nothing at all. 82 tiers is what forces the step small,
+		so the fix has to be mechanical rather than numerical.
+
+		Carrying the level makes forging an upgrade the moment you pay for it
+		(x1.167, the honest tier step) and recasts the two axes: LEVELS are an
+		early ramp you climb once and keep, TIER is the progression. That is
+		already how ORE_REACH and the breaking gate treat the game.
+
+		Inherited from the best tool on the rack, not from a tool of the same
+		family, because the levels were paid for in ore and dust once and the
+		player does not owe them twice for choosing a different frame. Clamped,
+		so a profile carrying a pre-cap level cannot smuggle it past the cap.
+	]]
+	local inherited = 1
+	for _, t in ipairs(p.oreTools) do
+		if type(t) == "table" then
+			local lv = math.floor(tonumber(t.level) or 1)
+			if lv > inherited then
+				inherited = lv
+			end
+		end
+	end
+	inherited = math.clamp(inherited, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
+
+	--[[
+		`base` is what makes the inheritance safe to scrap.
+
+		The row records the level it was FORGED at, so recycling can refund the
+		levels this tool actually bought rather than the levels it was handed.
+		Without it, forge -> scrap -> repeat paid out half a full climb each time
+		for the price of one craft. See MineConfig.toolRecycle.
+	]]
 	local row = {
 		uid = instanceHex16(),
 		typeId = def.id,
 		familyId = familyId,
 		tier = oreDef.tier,
-		level = 1,
+		level = inherited,
+		base = inherited,
 	}
 	table.insert(p.oreTools, row)
 
 	bumpStat(plr, p, "crafts")
-	net:FireClient(plr, "toast", string.format("Forged  %s %s",
-		oreDef.name or oreId, def.name or def.id))
+	net:FireClient(plr, "toast", "Forged  " .. OreTools.name(oreDef, familyId))
 	snap(plr)
 	markDirty(plr)
-	if p.oreToolEquipped == uid then
-		-- Tapping the held tool puts it away.
-		p.oreToolEquipped = nil
-	else
-		p.oreToolEquipped = uid
-		p.chestTool = nil
-	end
+	--[[
+		Equip what was just forged.
+
+		This was a copy of equipOreTool's TOGGLE pasted into craft, and it read
+		`uid` -- a local that does not exist in this function. Luau compiles an
+		undeclared name as a GLOBAL read, so `uid` was nil in both branches:
+		`p.oreToolEquipped == nil` took the first branch whenever nothing was
+		held and the second assigned nil anyway. Either way the field ended up
+		nil, so forging never equipped the new tool and, if you were holding
+		one, silently put it away. The row's id is `row.uid`.
+
+		There is no toggle to do here: you cannot be holding a tool that did
+		not exist a line ago.
+	]]
+	p.oreToolEquipped = row.uid
+	p.chestTool = nil
 	p.toolEquipped = true
 	givePickaxe(plr)
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
+	ENCHANT A TOOL. One verb, one flat price, one roll.
+
+	Owner, 2026-10-04: applying a trait is "the same rarity as rune/temperment/skins",
+	Exotic at 1/1000 and Exotic V at 1/5000, level random 1-5, and the price
+	"stays the same with rebirths (broke players arent going to try to get
+	exotic V, endgame players will.)".
+
+	So this is a GACHA, not a purchase: you pay MineTraits.ROLL_PRICE and get
+	what the table gives you. The price reads no prestige, no rebirth count, no
+	zone and no tool tier -- tools/verify/traits.js asserts that, because a
+	price that quietly scaled with rebirth would break the one sentence the
+	owner was most specific about.
+
+	Server-authoritative in the way that matters: the client names a uid and
+	nothing else. The rarity, the trait and the level are all rolled here
+	with a server rng.
+]]
+function Verbs.rollTrait(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local Traits = Dig.Traits
+	local uid = (type(payload) == "table") and payload.uid or payload
+	local tool = Verbs._findOreTool(p, uid)
+	if not tool then
+		net:FireClient(plr, "toast", "That tool is not in your bag")
+		return
+	end
+
+	local cost = Traits.ROLL_PRICE
+	local have = tonumber(p.gems) or 0
+	if have < cost then
+		net:FireClient(plr, "toast", string.format("Needs %s gems",
+			Verbs._benchNum(cost)))
+		return
+	end
+
+	local rolled = Traits.roll(Random.new())
+	if not rolled then
+		net:FireClient(plr, "toast", "The enchanter has nothing to give")
+		return
+	end
+
+	p.gems = have - cost
+	--[[
+		A roll REPLACES what was there. There is no "keep the better one"
+		prompt: that turns every roll into a dialog, and the gamble is the
+		feature. The old one is named in the toast so a player who just lost
+		something good sees what it was.
+	]]
+	local had = type(tool.trait) == "table" and Traits.label(tool.trait) or nil
+	tool.trait = rolled
+
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	net:FireClient(plr, "toast", string.format("%s  \u{00B7}  %s%s",
+		OreTools.toolName(tool), Traits.label(rolled),
+		had and ("   (was " .. had .. ")") or ""))
+	bumpStat(plr, p, "traits")
+	-- Re-give the tool so its name and its stats both follow the roll.
+	if p.oreToolEquipped == tool.uid then
+		givePickaxe(plr)
+	end
 	markDirty(plr)
 	snap(plr)
 end
@@ -14661,7 +16107,16 @@ function Verbs.recycleOreTool(plr, payload)
 
 	local _, _, oreDef, typeMult = Verbs._oreToolCost(tool)
 	local level = math.max(1, tonumber(tool.level) or 1)
-	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
+	--[[
+		The level this tool was FORGED at. Levels it inherited cost nothing, so
+		they refund nothing; only the climb bought on this tool comes back.
+
+		Rows saved before `base` existed fall back to 1 and refund on the old
+		terms, which is the generous direction and affects only tools already in
+		a profile.
+	]]
+	local base = math.clamp(math.floor(tonumber(tool.base) or 1), 1, level)
+	local ore, dust = C.toolRecycle(tool.tier, level, typeMult, base)
 	local oreId = oreDef and oreDef.id
 
 	-- Let go before it stops existing, or the hand keeps a uid that no longer
@@ -14707,6 +16162,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if Verbs.policyBlocks(plr, action) then return end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
+		elseif action == "rollTrait" then Verbs.rollTrait(plr, payload)
 		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
@@ -14767,6 +16223,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "prestige" then tryPrestige(plr)
 		elseif action == "buyZone" then buyZone(plr, payload)
 		elseif action == "equipCharm" then equipCharm(plr, payload)
+		elseif action == "mergeCharm" then Verbs.mergeCharm(plr, payload)
 		elseif action == "equipVfx" then equipVfx(plr, payload)
 		elseif action == "equipBag" then
 			local p = profiles[plr.UserId]
@@ -15022,7 +16479,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			local seam = math.max(0, math.floor(tonumber(payload.seam) or 0))
 			local z = C.zoneById(payload.zoneId or p.zoneId) or C.ZONES[1]
 			Dig.Plazas.ride(plr, nil, p, tp, ensureZone, net, snap, seam)
-		elseif action == "devGrant" and RunService:IsStudio() then
+		elseif action == "devGrant" and Svc.Run:IsStudio() then
 			-- Studio only. Never reachable on a live server.
 			if type(payload) == "table" then
 				if payload.coins then
@@ -15471,7 +16928,7 @@ task.defer(function()
 
 	while true do
 		task.wait(0.35)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			local p = profiles[plr.UserId]
 			local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 			local carrying = p and (
@@ -15508,7 +16965,7 @@ task.defer(function()
 end)
 
 Verbs.grantReceipt = function(info)
-	local plr = Players:GetPlayerByUserId(info.PlayerId)
+	local plr = Svc.Players:GetPlayerByUserId(info.PlayerId)
 	if not plr then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
@@ -15725,8 +17182,8 @@ end
 	save means the grant never reached the datastore, so the retry delivers it
 	again, exactly once.
 ]]
-MarketplaceService.ProcessReceipt = function(info)
-	local plr = Players:GetPlayerByUserId(info.PlayerId)
+Svc.Marketplace.ProcessReceipt = function(info)
+	local plr = Svc.Players:GetPlayerByUserId(info.PlayerId)
 	local p = plr and profiles[plr.UserId]
 	if not p or p._ephemeral then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
@@ -15767,7 +17224,7 @@ MarketplaceService.ProcessReceipt = function(info)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
-MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId, wasPurchased)
+Svc.Marketplace.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId, wasPurchased)
 	if not plr or not wasPurchased then
 		return
 	end

@@ -228,6 +228,83 @@ end
 local DARK = C3(26, 26, 32)
 
 --------------------------------------------------------------------------------
+-- THE ORE LOOK
+--
+-- A forged tool used to look like nothing in particular. The procedural
+-- builders colour themselves from an eight-step ramp indexed by `lookTier` -- a
+-- COSMETIC shop-ladder rung -- so all 82 ore tools shared eight palettes, two
+-- ores at the same rung came out identical, and the ore a tool was made of was
+-- visible nowhere on it. One flat colour off a ramp, 82 times.
+--
+-- Every ore row already carries what is needed to fix that: a colour, a real
+-- Enum.Material, metalness and roughness. This turns a row into an override the
+-- builders use in place of their ramps.
+--
+-- What each piece is, and why:
+--
+--   metal   the ore's own colour, on the head where it reads.
+--   haft    mostly charcoal with a QUARTER of the ore in it. A haft in the same
+--           colour as the head makes the whole tool one silhouette-less block;
+--           a pure neutral haft on every tool throws the ore away again.
+--   mat     the ore's own material, so obsidian is glassy and pumice is not.
+--   refl    met * (1 - rough): a polished metal gleams, a rough rock does not.
+--           Scaled to 0.65 because a mirror finish is reserved for Shiny.
+--   lit     a glowing rune, and ONLY for ores that have any business glowing --
+--           Neon or Glass materials, or a smooth non-metal (a cut gem). A
+--           glowing vein on a lump of limestone is the kind of detail that
+--           makes everything look cheap.
+--   shapeT  silhouette across the WHOLE roster rather than eight rungs, so a
+--           tier-1 tool is stubby and a tier-82 one is long and shallow. This
+--           is what stops two different-coloured tools being the same tool.
+--------------------------------------------------------------------------------
+function ToolModelFactory.oreLook(ore, oreCount)
+	if type(ore) ~= "table" or typeof(ore.color) ~= "Color3" then
+		return nil
+	end
+	local met = math.clamp(tonumber(ore.met) or 0, 0, 1)
+	local rough = math.clamp(tonumber(ore.rough) or 0.9, 0, 1)
+	local mat = (typeof(ore.material) == "EnumItem") and ore.material or Enum.Material.Rock
+	--[[
+		THE AUTHORED GLOW WINS.
+
+		29 of the 82 rows carry `glow` (a Color3) and `glowBright`, hand-picked
+		per ore -- Ember glows orange out of a near-black rock, Phosphorus glows
+		GREEN out of a pale yellow one. Deriving a glow from the ore's own colour
+		instead, as this first did, throws that away and gets Phosphorus wrong in
+		the one way a player would notice.
+
+		So: use what is authored, and only guess for the rows that author
+		nothing. The guess stays conservative -- Neon and Glass materials, or a
+		smooth non-metal (a cut gem) -- because a glowing vein on limestone is
+		the detail that makes a whole set look cheap.
+
+		`rainbow` (Bismuth) is iridescent, which a flat Color3 cannot be. It gets
+		a bright accent so it is not dull, and real iridescence is left for a
+		texture or a shader rather than faked here.
+	]]
+	local lit
+	if typeof(ore.glow) == "Color3" then
+		local bright = math.clamp(tonumber(ore.glowBright) or 0.5, 0, 1)
+		lit = ore.glow:Lerp(C3(255, 255, 255), bright * 0.35)
+	elseif ore.rainbow then
+		lit = ore.color:Lerp(C3(255, 255, 255), 0.5)
+	elseif mat == Enum.Material.Neon or mat == Enum.Material.Glass
+		or (met <= 0.05 and rough <= 0.3) then
+		lit = ore.color:Lerp(C3(255, 255, 255), 0.45)
+	end
+	local n = math.max(2, math.floor(tonumber(oreCount) or 82))
+	local tier = math.clamp(math.floor(tonumber(ore.tier) or 1), 1, n)
+	return {
+		shapeT = (tier - 1) / (n - 1),
+		metal = ore.color,
+		haft = ore.color:Lerp(C3(44, 36, 32), 0.75),
+		mat = mat,
+		refl = met * (1 - rough) * 0.65,
+		lit = lit,
+	}
+end
+
+--------------------------------------------------------------------------------
 -- PICKAXE
 --
 -- A swept double-pick. Each arm is a chain of tapering plates that turns a few
@@ -235,7 +312,7 @@ local DARK = C3(26, 26, 32)
 -- flat. Low tiers are stubby with a hard hook; high tiers are long and shallow.
 --------------------------------------------------------------------------------
 
-local function pickArm(model, root, t, col, mat, lit)
+local function pickArm(model, root, t, col, mat, lit, refl)
 	-- Roughly 45 degrees of sweep, spread over more links the higher the tier:
 	-- enough for a hooked pick, well short of the crescent you get if each link
 	-- turns as far as it wants to.
@@ -257,14 +334,15 @@ local function pickArm(model, root, t, col, mat, lit)
 			Size = Vector3.new(len + 0.02, thick * (1 - f * 0.40), depth * (1 - f * 0.28)),
 			CFrame = root * cur * CFrame.new(len * 0.5, 0, 0),
 			Color = col:Lerp(C3(255, 255, 255), f * 0.14),
-			Material = mat, Reflectance = 0.04 + t * 0.22,
+			Material = mat, Reflectance = refl or (0.04 + t * 0.22),
 		}, model)
 		cur = cur * CFrame.new(len, 0, 0) * CFrame.Angles(0, 0, -turn)
 	end
 	edge({
 		Name = "Tip", Length = 0.36 + t * 0.12, Width = depth * 0.62, Height = thick * 0.6,
 		CFrame = root * cur,
-		Color = col:Lerp(C3(255, 255, 255), 0.34), Material = mat, Reflectance = 0.1 + t * 0.3,
+		Color = col:Lerp(C3(255, 255, 255), 0.34), Material = mat,
+		Reflectance = refl and (refl + 0.08) or (0.1 + t * 0.3),
 	}, model)
 	if lit then
 		box({
@@ -276,11 +354,11 @@ local function pickArm(model, root, t, col, mat, lit)
 	end
 end
 
-local function buildPickaxe(t, model)
-	local metal = ramp(PICK_METAL, t)
-	local haft = ramp(PICK_HAFT, t)
-	local mat = metalFor(t)
-	local lit = t > 0.66 and ramp(CELL, t) or nil
+local function buildPickaxe(t, model, look)
+	local metal = (look and look.metal) or ramp(PICK_METAL, t)
+	local haft = (look and look.haft) or ramp(PICK_HAFT, t)
+	local mat = (look and look.mat) or metalFor(t)
+	local lit = look and look.lit or (not look and t > 0.66 and ramp(CELL, t)) or nil
 
 	-- Haft: a real shaft, tapered, with a flared pommel so it does not read as
 	-- a broom handle.
@@ -326,8 +404,8 @@ local function buildPickaxe(t, model)
 	end
 
 	local head = CFrame.new(0, 1.32, 0)
-	pickArm(model, head, t, metal, mat, lit)
-	pickArm(model, head * CFrame.Angles(0, math.pi, 0), t, metal, mat, lit)
+	pickArm(model, head, t, metal, mat, lit, look and look.refl)
+	pickArm(model, head * CFrame.Angles(0, math.pi, 0), t, metal, mat, lit, look and look.refl)
 
 	-- A gem set in the eye from mid-ladder, a lit crown near the top.
 	if t > 0.30 then
@@ -357,11 +435,11 @@ end
 -- read as a drill rather than a stack of discs.
 --------------------------------------------------------------------------------
 
-local function buildDrill(t, model)
-	local body = ramp(DRILL_BODY, t)
-	local bit = ramp(DRILL_BIT, t)
-	local mat = metalFor(t)
-	local lit = ramp(CELL, t)
+local function buildDrill(t, model, look)
+	local body = (look and look.haft) or ramp(DRILL_BODY, t)
+	local bit = (look and look.metal) or ramp(DRILL_BIT, t)
+	local mat = (look and look.mat) or metalFor(t)
+	local lit = (look and look.lit) or ((not look) and ramp(CELL, t)) or ramp(CELL, t)
 
 	-- Everything is authored pointing along -Z, so the bit leads.
 	local handle = box({
@@ -488,10 +566,10 @@ end
 -- magazine cell, scope on a rail, and a stock. Authored down -Z.
 --------------------------------------------------------------------------------
 
-local function buildRanged(t, model)
-	local body = ramp(GUN_BODY, t)
-	local lit = ramp(CELL, t)
-	local mat = metalFor(t)
+local function buildRanged(t, model, look)
+	local body = (look and look.metal) or ramp(GUN_BODY, t)
+	local lit = (look and look.lit) or ramp(CELL, t)
+	local mat = (look and look.mat) or metalFor(t)
 
 	local handle = box({
 		Name = "Handle", Size = Vector3.new(0.34, 1.05, 0.44),
@@ -644,11 +722,12 @@ end
 -- of the ladder, a finned detonator with an antenna at the top.
 --------------------------------------------------------------------------------
 
-local function buildExplosive(t, model)
-	local body = ramp(BOMB_BODY, t)
-	local trim = ramp(BOMB_TRIM, t)
-	local mat = t < 0.5 and Enum.Material.Metal or Enum.Material.DiamondPlate
-	local lit = ramp(CELL, t)
+local function buildExplosive(t, model, look)
+	local body = (look and look.metal) or ramp(BOMB_BODY, t)
+	local trim = (look and look.haft) or ramp(BOMB_TRIM, t)
+	local mat = (look and look.mat)
+		or (t < 0.5 and Enum.Material.Metal or Enum.Material.DiamondPlate)
+	local lit = (look and look.lit) or ramp(CELL, t)
 
 	-- The charge is the object; the haft is just something to hold it by. Keep
 	-- the stick short or the whole thing reads as a lollipop.
@@ -1822,18 +1901,31 @@ local function tryToolKitMesh(family, tier, count)
 	return model, handle, GRIPS[family] or GRIPS.pickaxe
 end
 
-function ToolModelFactory.build(family, tier, count)
+--[[
+	`look` is optional and comes from ToolModelFactory.oreLook: a forged tool's
+	colours, material and silhouette taken from the ore it was made of rather
+	than from the eight-step ramp a cosmetic lookTier indexes.
+
+	A baked kit mesh still wins when one exists -- look only overrides the
+	PROCEDURAL build, which is the path every ore tool actually takes today
+	because no mesh is named after an ore.
+]]
+function ToolModelFactory.build(family, tier, count, look)
 	family = BUILDERS[family] and family or "pickaxe"
 	count = math.max(2, count or 15)
 	do
 		local km, kh, kg = tryToolKitMesh(family, tier, count)
 		if kh then return km, kh, kg end
 	end
-	local t = (math.clamp(tier or 1, 1, count) - 1) / (count - 1)
+	-- The ore's own position in the roster shapes it, so a tier-1 tool is stubby
+	-- and a tier-82 one is long. Without this two ore tools of different colours
+	-- are the same tool.
+	local t = (look and look.shapeT)
+		or ((math.clamp(tier or 1, 1, count) - 1) / (count - 1))
 
 	local model = Instance.new("Model")
 	model.Name = string.format("%s_%d", family, tier or 1)
-	local handle = BUILDERS[family](t, model)
+	local handle = BUILDERS[family](t, model, look)
 	handle.Name = "Handle"
 
 	-- Scale before welding, or the welds freeze the unscaled offsets.

@@ -43,7 +43,6 @@ function MineStudioGrant.playtestReset(plr, profiles, blankFn)
 	p.shopToolId = nil
 	p.ownedShopTools = {}
 	p.chestTool = nil
-	p.fossilTool = nil
 	p.coins = 0
 	p.gems = 0
 	p.maxUnlockedZone = 1

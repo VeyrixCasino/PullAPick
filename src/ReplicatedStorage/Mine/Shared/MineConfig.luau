@@ -162,7 +162,7 @@ end
 -- banking after a rebirth wipes your coins. Backpacks
 -- are a coin ladder again (runes will be the next gem sink).
 MineConfig.CHARTER = {
-	{ id = "survey",  name = "Survey Rights",  stat = "oreYield",  per = 0.04, max = 10, base = 14000, step = 1.62 },
+	{ id = "survey",  name = "Survey Rights",  stat = "blastChance",  per = 0.04, max = 10, base = 14000, step = 1.62 },
 	{ id = "assay",   name = "Assay Licence",  stat = "gemFind",   per = 0.05, max = 10, base = 20000, step = 1.66 },
 	{ id = "salvage", name = "Salvage Writ",   stat = "chestLuck", per = 0.06, max = 8,  base = 34000, step = 1.74 },
 	{ id = "haulage", name = "Haulage Permit", stat = "backpack",  per = 0.05, max = 8,  base = 27000, step = 1.7 },
@@ -184,7 +184,7 @@ end
 MineConfig.RELICS = {
 	{ id = "ironheart",  name = "Ironheart Core",   stat = "power",     amount = 0.06, tint = Color3.fromRGB(206, 122, 84) },
 	{ id = "lodestone",  name = "Miner's Lodestone", stat = "luck",     amount = 0.08, tint = Color3.fromRGB(150, 200, 255) },
-	{ id = "deepvein",   name = "Deepvein Shard",   stat = "oreYield",  amount = 0.07, tint = Color3.fromRGB(140, 226, 168) },
+	{ id = "deepvein",   name = "Deepvein Shard",   stat = "blastChance",  amount = 0.07, tint = Color3.fromRGB(140, 226, 168) },
 	{ id = "coffer",     name = "Bottomless Coffer", stat = "backpack", amount = 0.09, tint = Color3.fromRGB(226, 190, 96) },
 	{ id = "tallytoken", name = "Tally Token",      stat = "coinBonus", amount = 0.07, tint = Color3.fromRGB(255, 214, 120) },
 	{ id = "gemglass",   name = "Gemglass Lens",    stat = "gemFind",   amount = 0.08, tint = Color3.fromRGB(184, 140, 255) },
@@ -351,8 +351,8 @@ MineConfig.RARITY_DUST = {
 }
 MineConfig.TYPE_BOOST = {
 	Fire = "mineSpeed",
-	Rock = "oreYield",
-	Metal = "oreYield",
+	Rock = "blastChance",
+	Metal = "blastChance",
 	Crystal = "luck",
 	Mystic = "luck", -- legacy alias for Crystal
 	Electric = "zap",
@@ -362,7 +362,7 @@ MineConfig.TYPE_BOOST = {
 }
 MineConfig.BOOST_LABELS = {
 	mineSpeed = "Mine speed",
-	oreYield = "Blast",
+	blastChance = "Blast",
 	luck = "Luck",
 	walkSpeed = "Walk speed",
 	dirtBreak = "Dirt break",
@@ -636,7 +636,7 @@ MineConfig.ITEM_SLOT_GEM_RATE = 1.08
 -- they are equipment slots, not shelf stock.
 MineConfig.ITEM_BAG_FIELDS = {
 	"cards", "packs", "runes", "tempers",
-	"chestTools", "fossilTools", "eventTools",
+	"chestTools", "eventTools",
 }
 
 function MineConfig.itemSlotsUsed(p)
@@ -648,7 +648,7 @@ function MineConfig.itemSlotsUsed(p)
 		local t = p[field]
 		if type(t) == "table" then
 			-- Three shapes in play: arrays (cards, packs, runes, chestTools),
-			-- id-keyed maps (fossilTools, eventTools) and maps whose value
+			-- id-keyed maps (eventTools) and maps whose value
 			-- carries a copy count (tempers). Length first, then entries.
 			local n = #t
 			if n > 0 then
@@ -814,7 +814,7 @@ end
 -- HP" rule as the single invariant in the economy.
 MineConfig.BLOCKS = {
 	-- Every ore shares one kind; WHICH ore is an attribute, exactly as a
-	-- chest block carries its chest and a fossil block carries its recipe.
+	-- chest block carries which chest it is.
 	-- Colour, material and HP are overridden per ore at spawn.
 	ore = { name = "Ore", rock = true, hp = 3, coins = 3, gems = 0,
 		color = Color3.fromRGB(150, 140, 110), material = Enum.Material.Metal },
@@ -847,8 +847,6 @@ MineConfig.BLOCKS = {
 		color = Color3.fromRGB(196, 140, 62), material = Enum.Material.WoodPlanks },
 	lucky_block = { name = "Lucky Block", noHaul = true, hp = 8, coins = 0, gems = 0,
 		color = Color3.fromRGB(255, 196, 64), material = Enum.Material.Neon },
-	fossil = { name = "Fossil", rock = false, hp = 6, coins = 0, gems = 0,
-		color = Color3.fromRGB(210, 180, 120), material = Enum.Material.Sandstone },
 	-- Bottom-of-mine core. 100 trillion HP; chips grant a core sample, full break
 	-- grants the Geothermal Nuke. Does not fill the haul bag.
 	core = { name = "Geothermal Core", rock = true, hp = 100000000000000, coins = 0, gems = 0,
@@ -1172,7 +1170,175 @@ MineConfig.CHEST_CHANCE = 0.003 -- ~1.3 chests / layer on 21x21; ~20 an hour of 
 MineConfig.MEADOW_SHALLOW_CHEST_MULT = 2
 -- Pit lucky cubes. 1 in 5,000. Mix 80/15/5 gold/diamond/mythic. Not 3× in bigbang.
 MineConfig.LUCKY_BLOCK_CHANCE = 0.00020
-MineConfig.FOSSIL_LAYER_CHANCE = 0.10
+--[[
+	Cap on the ORE FINDER a legacy ore pack may apply when it is banked or
+	opened.
+
+	A pack stamped its finder at break time, so the number it carries can be
+	whatever a pet stack was worth that day -- and upgrade costs are sized in
+	HOURS of supply, so an uncapped multiplier on an old pack is a shortcut past
+	the cost curve rather than a nicer drop. 1.0 holds the best case to 2x
+	unboosted (the payout is `amount * (1 + find)`).
+
+	MineServer read this with an `or 1` fallback while the constant did not
+	exist, so the behaviour is unchanged -- the knob is just real now.
+]]
+MineConfig.ORE_PACK_FIND_CAP = 1.0
+
+--[[
+	EARTHQUAKE and RICOCHET -- the two new build boosts the owner specified
+	(TODO 6.2 "New build boosts").
+
+	Both are deliberately NOT damage multipliers. The guardrail that section
+	asks for is that almost no effect does full pickaxe damage without a
+	dedicated amplifier, so these two spend their power on reach and time
+	instead of on the hit:
+
+	  EARTHQUAKE  the block shakes and takes 20% of your tool damage per
+	              second. Cannot stack on one block. At most 5 blocks shaking
+	              at once, per player.
+	  RICOCHET    breaking a block jumps the effect to one nearby block. Once.
+	              No chain reactions -- the block it lands on rolls no procs.
+
+	The 20%, the 5 and "once" are the owner's numbers. The DURATION was not
+	specified, and 5 seconds is the choice: a full life is then 100% of one
+	swing spread over five seconds, so a quake is worth starting and is never
+	a substitute for swinging. It is the one number here to argue with.
+]]
+--[[
+	EARTHQUAKE STACKS. Owner, 2026-10-04.
+
+	It was a flat bleed on up to five blocks for five seconds, 0.60 of one swing
+	in total. Everything else in the proc list is instant and an endgame player
+	breaks ten or more blocks a second, so a trickle that small was never worth
+	a slot.
+
+	It accumulates now: every proc adds a stack and refreshes the window, and
+	the stack only falls off after EARTHQUAKE_SEC seconds with no quake at all.
+	At the cap that is QUAKE_STACK_SHARE x QUAKE_MAX_STACKS = 10x a swing per
+	second -- the one proc that pays for sustained digging rather than a lucky
+	hit.
+]]
+MineConfig.EARTHQUAKE_SEC = 5
+MineConfig.QUAKE_STACK_SHARE = 0.1   -- of one swing, per stack, per second
+MineConfig.QUAKE_MAX_STACKS = 100    -- 10x a swing per second at the ceiling
+MineConfig.EARTHQUAKE_MAX_BLOCKS = 5
+-- One jump, never a chain. Raising this turns Ricochet into Zap.
+MineConfig.RICOCHET_HOPS = 1
+
+--[[
+	PROC DAMAGE IS A SEPARATE STAT FROM PROC CHANCE.
+
+	Owner, 2026-10-03: "almost no effect should do full pickaxe damage" and
+	"Just make damage and chance 2 different stats."
+
+	Every proc used to hand the neighbour `dmg` -- the WHOLE swing. One stat
+	bought both how often it fired and how hard, so the only way to make a proc
+	feel good was to make it fire constantly, and the only way to balance it
+	was to make it rare. Zap was the worst of it: 32 hops at 0.9^hop is 9.7x a
+	swing off one roll, and at a high chance the chain barely decayed.
+
+	Split in two:
+
+	  CHANCE   the existing per-proc stat -- blastChance (Blast), zap,
+	           earthquake, ricochet. How OFTEN. Unchanged, still rollable.
+	  DAMAGE   PROC_SHARE below, scaled by the new `procPower` stat. How HARD.
+
+	The shares are what one proc is worth against a plain swing, before
+	procPower. They are deliberately under 1.0: a proc is a bonus on top of
+	mining, never a replacement for it.
+
+	  blast     0.35 x 6 faces = 2.10 per proc. The widest, so the lowest rate.
+	  zap       0.45 on the first hop, then ZAP_FALLOFF a hop.
+	  ricochet  0.60 into exactly one block. Highest, because it is the
+	            narrowest and cannot chain.
+	  quake     0.12 a second for EARTHQUAKE_SEC, so 0.60 over a full life --
+	            worth starting, never a substitute for swinging.
+
+	procPower scales all four together. A proc build is then a real build: at
+	the +300% cap a blast is 1.4 x 6 = 8.4x a swing, which is enormous and
+	cost a whole stat budget to reach.
+]]
+MineConfig.PROC_SHARE = {
+	blast = 0.35,
+	--[[
+		0.45 -> 0.25. Owner, 2026-10-05: nerf the zap proc.
+
+		Falloff is odds-only now, so every one of up to sixteen hops lands for
+		the full share instead of fading to 17% by the end. That roughly doubled
+		what a chain is worth: at 250% zap the expected total went to 5.63
+		swings against blast's 2.10 ceiling.
+
+		Cutting the share rather than the odds keeps the chain long -- 250% still
+		reaches all sixteen 7.7% of the time -- while the expected total lands at
+		3.13 swings and the absolute worst case at 4.00. Beside blast, not on top
+		of it.
+	]]
+	zap = 0.25,
+	ricochet = 0.60,
+	-- Superseded by the stack model, which prices a quake as
+	-- QUAKE_STACK_SHARE per stack per second. Kept so procDamage("quake")
+	-- still answers for any caller that has not moved across.
+	quake = 0.12,
+}
+
+--[[
+	ZAP, with a real end to it.
+
+	Was 32 hops with chance AND damage decaying 0.9x. 0.9 is almost no decay --
+	at zap = 0.8 the chain still has a 0.38 continue chance on hop 9 -- so the
+	cap was doing all the work and the falloff none. Six hops and 0.75 makes
+	the tail short and the first hops matter.
+]]
+MineConfig.ZAP_MAX_HOPS = 16
+--[[
+	0.75 -> 0.89, with the cap raised to 16 hops.
+
+	The chain continues while rng < chance, where chance starts at the zap stat
+	and is multiplied by this each hop. A stat above 1 therefore buys guaranteed
+	EARLY hops, and the falloff decides where certainty ends.
+
+	Solved against the owner's target -- 250% should be borderline -- in
+	tools/zap-solve.js:
+
+	    zap 100%   averages  4.7 blocks,  0.000% reach 16
+	    zap 150%   averages  8.2 blocks,  0.084% reach 16
+	    zap 250%   averages 12.5 blocks,  7.7%   reach 16
+	    zap 400%   averages 16.0 blocks,   68%   reach 16
+
+	At 0.75 even 400% reached sixteen essentially never, so the hop cap did all
+	the work and the stat bought nothing past the first few hops.
+]]
+MineConfig.ZAP_FALLOFF = 0.89
+
+-- How far procPower can be stacked. A ceiling, not a target.
+MineConfig.PROC_POWER_CAP = 3.0
+
+--[[
+	What one proc actually lands.
+
+	The one place this is computed. A caller passing its own multiplier is how
+	Blast and Zap ended up disagreeing about what "full damage" meant.
+]]
+function MineConfig.procDamage(dmg, which, procPower)
+	local base = math.max(0, tonumber(dmg) or 0)
+	local share = (MineConfig.PROC_SHARE or {})[which]
+	if not share then
+		return 0
+	end
+	local pp = math.clamp(tonumber(procPower) or 0, 0, MineConfig.PROC_POWER_CAP or 3)
+	return math.max(1, math.floor(base * share * (1 + pp)))
+end
+
+--[[
+	Most items one bulk-recycle batch may carry.
+
+	Shared because BOTH SIDES need it. The server truncates the id list at this
+	many before pricing, and the Select UI has to clamp to the same number --
+	otherwise a player ticks a stack of 300, is quoted 200, and the two disagree
+	about what they just approved. One number, read by both.
+]]
+MineConfig.SCRAP_MAX = 200
 
 
 
@@ -1404,9 +1570,24 @@ function MineConfig.nextVariant(variant)
 	return nil
 end
 
-function MineConfig.prestigeYield(prestige)
-	return 1 + 0.15 * (prestige or 0)
-end
+--[[
+	REBIRTH DOES NOT MULTIPLY INCOME. Owner, 2026-10-04: "REMOVE THE BASE 2X
+	COINS FROM REBIRTHS BECAUSE THATS A GOOD WAY TO MAKE SURE COINS ARE ALWAYS
+	WORTH NOTHING".
+
+	`MineConfig.prestigeYield` lived here, returning 1 + 0.15R. It was already
+	DEAD -- the only things naming it were a comment in MineServer saying
+	prestige no longer rides Blast, a line in MineSkillData's prose, and the
+	stale `_c.luau` duplicate. Nothing read it.
+
+	It is deleted rather than left lying around, because a one-line income
+	multiplier is exactly the kind of thing that gets wired back in by someone
+	who finds it and assumes it is meant to be used. If rebirth should ever pay
+	income again, that is a decision someone makes on purpose, not a function
+	they rediscover.
+
+	prestigeLuck stays: luck is a CHANCE, not a faucet, so it does not inflate.
+]]
 
 function MineConfig.prestigeLuck(prestige)
 	return 1 + 0.05 * (prestige or 0)
@@ -2123,9 +2304,137 @@ MineConfig.ORE_CASE_CHARM_SHARE = 0.25
 	Finalite.
 ]]
 MineConfig.ORE_X0 = -4.2
+--[[
+	HOW TIGHTLY THE ORE MIX SITS AROUND THE DEPTH YOU ARE AT.
+
+	Owner, 2026-10-06: "dont be making so many chunks of teir 5 ores.. first few
+	layers should be pridominantly stone, and you should hve to go to next zone
+	to get ores strong enough to break into sub 50".
+
+	The zone part of that already worked. Measured, difficulty (dl) climbs 0.59
+	-> 8.67 across the ten ZONES but only 0.31 -> 3.31 across all 5,000 layers of
+	zone 1, so which ores exist is set by the zone you are in, not how deep you
+	dig inside it. That is the intended shape and it is untouched.
+
+	What was wrong was the SPREAD. At 0.45 the logistic was so wide that eight
+	ore types made up 90% of the roll in zone 1, Stone was only 24% of it, and
+	Halite -- tier 5 -- was a fat 8.4%. The first layers of the game looked like
+	a sampler of the whole shallow roster instead of a stone mine.
+
+	0.22 narrows it without changing the peak or the zone ladder:
+
+	                      0.45                 0.22
+	    zone 1  L25   Stone 24%, 8 types   Stone 44%, 4 types
+	    zone 1  L1    Stone 26%            Stone ~47%
+	    zone 5  L25   Stone 10%, 14 types  Stone 24%, 7 types
+	    zone 10 L25   top tier 34, 27      top tier 32, 19 types
+
+	Deep zones still reach the same part of the roster -- the top ore at zone 10
+	moves by two tiers -- so this concentrates the mix rather than shortening the
+	ladder. ORE_X0 (-4.2) still decides WHERE the peak sits; this is only its
+	width.
+]]
 MineConfig.ORE_K = 0.45
+
+--[[
+	THE FIRST LAYERS ARE A STONE MINE, AND ONLY THE FIRST LAYERS.
+
+	Owner, 2026-10-06: "dont be making so many chunks of teir 5 ores.. first few
+	layers should be pridominantly stone, and you should hve to go to next zone
+	to get ores strong enough to break into sub 50".
+
+	The zone half of that already worked. Measured, difficulty (dl) climbs
+	0.59 -> 8.67 across the ten ZONES but only 0.31 -> 3.31 across all 5,000
+	layers of zone 1: which ores exist is set by the zone, not by depth within
+	it. Untouched.
+
+	The spread was the problem. At K 0.45 eight ore types made 90% of the roll in
+	zone 1, Stone was 24% of it and Halite -- tier 5 -- was 8.4%.
+
+	TIGHTENING K GLOBALLY BREAKS THE GAME, which tools/verify/ladder-climbable.js
+	caught and I would not have:
+
+	    K 0.45  all 10 checks pass
+	    K 0.40  2 fail
+	    K 0.36  3 fail
+	    K 0.22  4 fail -- the forge walk stalls at tier 16 and EIGHT zones end
+	            up locked behind ore that only spawns inside them
+
+	The ladder needs a wide mix, because crafting the tool that opens the next
+	zone means finding ore from well past where you are standing. 0.45 is not a
+	loose number, it is the edge of a cliff.
+
+	So the width ramps with depth instead. At the surface it is K_TOP and stone
+	dominates; by K_RAMP difficulty units down -- about layer 150 of zone 1, and
+	immediately in every later zone -- it is the full 0.45 and the ladder is
+	exactly as it was. The narrowing is confined to the stretch the owner was
+	talking about and cannot reach the part that has to stay wide.
+]]
+MineConfig.ORE_K_TOP = 0.22
+MineConfig.ORE_K_RAMP = 1.5
+
+-- The spread at a given difficulty: tight at the top, full depth-ward.
+function MineConfig.oreSpreadK(dl)
+	local top = MineConfig.ORE_K_TOP or MineConfig.ORE_K
+	local ramp = math.max(1e-6, MineConfig.ORE_K_RAMP or 1.5)
+	local t = math.clamp((tonumber(dl) or 0) / ramp, 0, 1)
+	return top + (MineConfig.ORE_K - top) * t
+end
 MineConfig.ORE_S = 4.0
 MineConfig.ORE_W = 3.0
+
+--[[
+	The minimum SHARE of the roll every ore keeps, everywhere.
+
+	Owner, 2026-10-05: "every rarity should be POSSIBLE in every zone, just
+	super highly unlikely (even 1 in a million zone one)". 1e-6 is that, read
+	literally: one in a million, for any ore, at any depth.
+
+	A SHARE AND NOT A WEIGHT, and that distinction is the whole bug it replaces.
+	The first version floored the raw weight at 1e-7 before normalising, which
+	gave the right headline number at zone 1 and then went BACKWARDS: Oganesson
+	came out at 1 in 985k in Dirt Meadow and 1 in 4.3M in zone 5. A fixed weight
+	is a smaller slice of a bigger pie, and zone 5's table is far more crowded,
+	so the same floor bought a third as much there. Owner: "It should always go
+	up". Quite right -- a long shot that gets LONGER as you dig is not a rarity
+	curve, it is a bug with a plausible shape.
+
+	Floored against the natural total instead, so the guarantee is the same
+	fraction of the roll wherever it is applied, and depth can only ever improve
+	on it. The result is flat at 1 in ~1,000,000 through the shallow zones and
+	then climbs as the natural curve overtakes the floor -- monotonic by
+	construction, which tools/verify/ladder-climbable.js asserts.
+
+	Raising this makes every long shot commoner at once and is the one dial here
+	that depth cannot undo, so move it in powers of ten and re-read that harness.
+]]
+MineConfig.ORE_MIN_SHARE = 1e-6
+
+--[[
+	FAMILIES THAT ARE FORGED, NEVER SOLD.
+
+	Owner, 2026-10-05: "i think its time to get rid of all coin bought tools".
+
+	Every tool family in the game is now made at the Forge out of ore. The coin
+	shop keeps Backpacks (haul capacity, not a tool) and the Ore Pouch, and
+	Secrets are still pulled from chests.
+
+	It lives in the config rather than beside the buy verbs because THREE doors
+	have to agree -- the surface shop, the depth-plaza desks, and the legacy
+	`buy "pickaxe"` action -- and a rule copied into three places is three rules.
+	It is also why this is not a top-level local in MineServer: that script is at
+	Luau's 200-register ceiling and one more broke the whole server.
+
+	The MineTools roster is NOT emptied to match. MineOreTools.frames() filters
+	it on `price > 0` to pick each forged tool's frame and cost multiplier, so
+	those prices are a forge input now rather than a shelf price.
+]]
+MineConfig.FORGE_ONLY_FAMILIES = {
+	pickaxe = true,
+	drill = true,
+	explosive = true,
+	weapon = true,
+}
 
 MineConfig.ORES = {
 	{ id = "stone", name = "Stone", tier = 1, color = Color3.fromRGB(131, 131, 131), material = Enum.Material.Rock, met = 0, rough = .9 },
@@ -2233,7 +2542,9 @@ MineConfig.ORES = {
 	start, and left nothing worth spending stardust on.
 
 	Tier is therefore a multiplier: TOOL_TIER_SPAN says how many x6 steps
-	separate tier 1 from tier 121, the same unit the mine measures depth in.
+	separate tier 1 from the top of the roster, the same unit the mine measures
+	depth in. "tier 121" here used to be literal and is now ORE_COUNT -- see
+	toolTierPower, where the matching 120 survived the roster cut as a bug.
 
 	A level costs ORE and STARDUST. Ore is the real gate -- you cannot level
 	what you cannot dig -- and stardust is the throttle. Both scale with the
@@ -2255,10 +2566,16 @@ MineConfig.ORES = {
 	So the per-level rates are DERIVED from what a whole climb is worth instead
 	of being stated directly. Move the cap and the curve restretches:
 
-	  DAMAGE holds exactly. A full climb is worth 3.9e8 at any cap, so a maxed
-	  tool lands 222x over the deepest block whether that took 1,000 levels or
-	  10,000. This is the property that matters, because it is what keeps tools
-	  in step with the mine.
+	  DAMAGE holds exactly. A full climb is worth TOOL_CLIMB_DAMAGE at any cap,
+	  whether that took 1,000 levels or 10,000. This is the property that
+	  matters, because it is what keeps tools in step with the mine.
+
+	  This block used to read "a maxed tool lands 222x over the deepest block",
+	  stated as the goal. It was the bug. Landing 222x over the deepest block in
+	  the game means every block in the game is a one-shot long before max, and
+	  that is what killed levelling past 34. A full climb is now worth one
+	  ZONE's HP growth (350), so a maxed tool is in step with the seam it was
+	  forged for instead of 222x past the bottom of the mine.
 
 	  COST scales with the cap, roughly linearly -- about 1.5e10 stardust for a
 	  full climb at 1,000 and 1.5e11 at 10,000. That is not a leak, it is
@@ -2269,12 +2586,72 @@ MineConfig.ORES = {
 
 	At 1000 these reproduce the hand-tuned originals exactly -- 1.02 damage,
 	1.0075 ore, 1.011 dust -- so this is a refactor, not a rebalance. At 10,000
-	they become 1.00198, 1.00075 and 1.00109.
-]]
-MineConfig.TOOL_MAX_LEVEL = 100       -- the one line to move
+	they become 1.00198, 1.00075 and 1.00109. At the live cap of 30 they are
+	1.224 damage, 1.292 ore and 1.467 dust.
 
--- What a full 1 -> max climb multiplies by. Cap-independent.
-MineConfig.TOOL_CLIMB_DAMAGE = 3.9e8
+	One caveat on raising it: MineServer and OreBalanceSim both read this as
+	`math.min(100, C.TOOL_MAX_LEVEL)`. Lowering the cap is safe there; raising
+	it above 100 would be silently clamped in those two places and nowhere else.
+]]
+--[[
+	30, DOWN FROM 100. Owner, 2026-10-05: "it makes sense once everything is lv
+	100 but thats 10s of hours of grinding", and "even if the levels were
+	steeper, something i could advertise when people crafting a new tool by each
+	level UP%X".
+
+	The advertisable number is TOOL_DMG_STEP, and it is arithmetic:
+
+	    per level = TOOL_CLIMB_DAMAGE ^ (1 / (TOOL_MAX_LEVEL - 1))
+
+	At climb 350 over 99 steps that is +6.1%, which is not a number anyone puts
+	on a button. The climb cannot grow to fix it -- it is pinned to one zone's
+	HP growth, and check.js refuses a maxed tool that trivialises the deepest
+	rock. So the only lever on the per-level number is FEWER LEVELS.
+
+	This is the move the block above was written for: every per-level rate is
+	DERIVED from perLevel(), so the cap restretches all three at once and NEITHER
+	END POINT MOVES. A maxed tool is exactly as strong at 30 as it was at 100,
+	and a level-1 tool is unchanged. What changes is the step between them:
+
+	    cap 100   +6.1% a level    89.2K ore for a full climb   ~45 hours
+	    cap 30   +22.4% a level    23.8K ore for a full climb   ~12 hours
+
+	and the share of levels that still change a swing count stays at 99% either
+	way, measured per tier at the depth each ore spawns -- so the shorter ladder
+	costs nothing in whether levelling matters. See tools/level-steepness.js.
+
+	NOTE FOR SAVED TOOLS: clampLevel pins stored levels to this cap, so a tool
+	saved at level 80 now reads 30. It gets STRONGER, not weaker -- level 30 on
+	this curve is the full x350 where level 80 of 100 was only x109 -- but the
+	number on it drops. If that matters for live saves, rescale on load
+	(round(saved / 100 * 30)) rather than raising this back.
+]]
+MineConfig.TOOL_MAX_LEVEL = 30        -- the one line to move
+
+--[[
+	What a full 1 -> max climb multiplies by. Cap-independent.
+
+	350, DOWN FROM 3.9e8. Owner, 2026-10-05: "fix the damage curve so levelling
+	matters past 34".
+
+	It did not matter past 34 because of this number. A tool got 390 MILLION
+	times stronger over 99 levels while the content in front of it never moved,
+	so it one-shot its own seam around level 34 and the remaining two thirds of
+	the ladder changed nothing a player could see. Damage can only ever buy
+	fewer swings, and below one swing there is nothing left to buy.
+
+	350 is not fitted, it is measured. It is the HP growth a tool has to chew
+	through during its actual working life: a tool is forged at the top of a
+	zone and carries the player to the bottom of it, and within one zone dirtHp
+	goes from (20 + 1.5*1) to (20 + 1.5*5000) -- a factor of 350. So a full
+	climb is worth exactly one zone of depth, which is the one span the levels
+	have to cover.
+
+	Measured over all 82 tiers at the depth each ore spawns, this moves the
+	levels that still change the swing count from 24-30 out of 100 to 55-99.
+	See tools/damage-fix.js, which models it tier by tier.
+]]
+MineConfig.TOOL_CLIMB_DAMAGE = 350
 MineConfig.TOOL_CLIMB_ORE = 1747      -- last level costs this many x the first
 MineConfig.TOOL_CLIMB_DUST = 55800
 
@@ -2283,8 +2660,71 @@ local function perLevel(total)
 	return total ^ (1 / steps)
 end
 
-MineConfig.TOOL_TIER_SPAN = 16        -- 6^16 from tier 1 to tier 121
+--[[
+	6^7 from tier 1 to tier ORE_COUNT. Was 16 against the stale /120 divisor,
+	which delivered 6^10.8.
+
+	7 and not 10, because two multipliers sit on top of this that the first pass
+	left out and the harnesses caught:
+
+	  TYPE. toolPower takes a typeMult, and the Frack is x4. The best tool in
+	  the game is a tier-82 Frack, not a tier-82 pickaxe.
+	  BAND. TOOL_BAND_DMG multiplies Exotic by a further 16.
+
+	So the top of the ladder carries x64 that this constant does not show. With
+	span 10 the best tool did 1.35e13 against a deepest block of 1.47e11 --
+	90x overkill, and tools/verify/check.js refuses that outright ("the top tool
+	does not trivialise it either").
+
+	The window is narrow and both ends are real: span must stay under 7.47 so
+	the maxed Frack cannot one-shot the deepest rock, and over 6.58 so a maxed
+	pickaxe can still clear the deepest ore in a sane number of swings. 7 sits
+	in it with room either side.
+]]
+MineConfig.TOOL_TIER_SPAN = 7
 MineConfig.TOOL_DMG_BASE = 10
+
+--[[
+	PER-BAND DAMAGE STEP, and why the top four bands need one.
+
+	Owner, 2026-10-05: "fix it for all tools so theres still purpose to get a
+	pick abive teir 60", then "if need be dissect them individually".
+
+	The reason there was no purpose is structural, and it is not in this file.
+	ORE_REACH is 15 and the roster ends at 82, so a tool forged from tier 67 ore
+	already reaches EVERY ore in the game; the deepest dirt only asks for
+	breaking power 109 against a MineBreaking scale that runs to 209. Tiers
+	68-82 are access-identical by construction -- forging up buys literally no
+	new block. PROPOSAL 0 line 14 keeps ORE_REACH at 15, so the breaking gate is
+	not the lever here. Damage has to carry those tiers on its own.
+
+	A smooth exponential cannot. Spread over 82 tiers it gives the step from one
+	ore to the next about 13%, which is invisible, and that is the same whether
+	the step is Copper -> Tin or Livermorium -> Oganesson.
+
+	So the four bands ABOVE tier 60 -- the four where breaking power has stopped
+	buying anything -- get a multiplier on top of the smooth curve, doubling per
+	band. Forging into Legendary, Mythic, Divine or Exotic is then a visible
+	jump instead of another 13%, and the four jumps are the reward for the part
+	of the ladder the reach rule had flattened.
+
+	Bands below 60 are deliberately 1.0: down there breaking power is still
+	buying real access every few tiers, so the smooth curve is already doing the
+	work and a step would just inflate the mid game.
+
+	Keyed by band NAME and read through oreBandForTier, so the cutoffs stay in
+	ORE_YIELD_BANDS and cannot drift out of step with the roster.
+]]
+MineConfig.TOOL_BAND_DMG = {
+	Common = 1,
+	Uncommon = 1,
+	Rare = 1,
+	Epic = 1,
+	Legendary = 2,
+	Mythic = 4,
+	Divine = 8,
+	Exotic = 16,
+}
 MineConfig.TOOL_DMG_STEP = perLevel(MineConfig.TOOL_CLIMB_DAMAGE)
 MineConfig.TOOL_ORE_BASE = 4
 MineConfig.TOOL_ORE_GROW = perLevel(MineConfig.TOOL_CLIMB_ORE)
@@ -2367,10 +2807,35 @@ function MineConfig.toolCostMult(tier, typeMult)
 	return (bell or 1) * (m ^ MineConfig.TOOL_COST_TYPE)
 end
 
--- What tier alone is worth, before any levelling.
+--[[
+	What tier alone is worth, before any levelling.
+
+	THE DIVISOR WAS HARDCODED 120. That was #ORES-1 back when the roster held
+	121 ores, and it was left behind when the roster was cut to 82. The exponent
+	then only travelled 81/120 of its range, so TOOL_TIER_SPAN = 16 was
+	delivering 6^10.8 and not the 6^16 it claimed -- the top of the roster was
+	short by a factor of 11,000, and the shortfall GREW with tier, which is
+	exactly the half of the ladder the owner was asking about.
+
+	It reads ORE_COUNT now, with #MineConfig.ORES behind it for the same reason
+	clampTier uses that directly: ORE_COUNT is assigned further down this file,
+	so a load-time caller would see nil. Nothing calls this at load today; the
+	fallback is there so that stays true if something ever does.
+
+	TOOL_TIER_SPAN came down 16 -> 10 in the same pass. With the divisor fixed,
+	16 would have made the top tiers one-shot everything again at level 1 --
+	fixing the divisor alone takes the live-level count DOWN, to 8 out of 100,
+	because it hands the overshoot to tier instead of level. The two constants
+	only make sense together.
+]]
 function MineConfig.toolTierPower(tier)
 	local t = clampTier(tier)
-	return 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / 120)
+	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
+	local smooth = 6 ^ (MineConfig.TOOL_TIER_SPAN * (t - 1) / (n - 1))
+	-- Band step, for the tiers where ORE_REACH has stopped buying access.
+	local band = MineConfig.oreBandForTier and (MineConfig.oreBandForTier(t)) or nil
+	local step = band and MineConfig.TOOL_BAND_DMG[band] or 1
+	return smooth * step
 end
 
 function MineConfig.toolPower(tier, level, typeMult)
@@ -2392,6 +2857,197 @@ function MineConfig.toolUpgradeCost(tier, level, typeMult)
 	local ore = math.ceil(MineConfig.TOOL_ORE_BASE * (MineConfig.TOOL_ORE_GROW ^ (L - 1)) * mult)
 	local dust = math.ceil(MineConfig.TOOL_DUST_BASE * (MineConfig.TOOL_DUST_GROW ^ (L - 1)) * mult)
 	return ore, dust
+end
+
+--[[
+	RESTORED AFTER A BAD MERGE. c59bec5 took main's MineConfig wholesale and
+	dropped this whole block, but every caller of it stayed. The result was not
+	a quiet regression -- `C.toolBreakingPower` is called on EVERY tool grant
+	(MineServer, "BreakPower" attribute) and `C.toolCraftCost` on every craft,
+	so forging and handing out tools both threw on a nil call. Four commits
+	shipped over the top of it.
+
+	It is restored here rather than reinvented, with one change: nothing in it
+	re-enforces the swing gate. Main's `Dig.Breaking.canBreak` does that now and
+	weighs zone and layer as well as ore tier; the merge was right to keep one
+	gate. These are the RULE and the numbers behind it, which main never had.
+
+	BREAKING POWER. The ore a tool is forged from IS its breaking power.
+
+	Owner's rule (TODO 0.1), not derived from anything in this repo:
+
+	  - A tool forged from ore tier T has breaking power T.
+	  - It reaches T + ORE_REACH tiers of ore.
+	  - Breaking power is NOT upgradeable. Levelling raises damage, never reach.
+	    The only way to reach deeper ore is to forge from a better ore.
+
+	Breaking power is NOT damage, and the two must never be collapsed into one
+	number. A tool can hit for billions and still be unable to scratch an ore
+	fifteen tiers above the rock it was made from.
+
+	Across 82 ores a +15 reach is about six forges from the first tool to the
+	last ore, which is the progression ladder the rule exists to create.
+]]
+MineConfig.ORE_REACH = 15
+
+-- The reach that applies in the zone you are STILL WORKING. Owner, 2026-10-05:
+-- "make the ore requirement elevated until they go to next zone". Mirrors
+-- MineBreaking.ORE_REACH_HOME, which is the live gate; tools/verify/breaking.js
+-- fails if the two drift. Not zero: reach 0 deadlocks progression at tier 4,
+-- measured -- the reasoning is on MineBreaking.ORE_REACH_HOME.
+MineConfig.ORE_REACH_HOME = 5
+
+--[[
+	Breaking power for a tool with no ore behind it -- a shop rung, the starter
+	pickaxe, a chest flagship.
+
+	Zero, so such a tool still reaches ORE_REACH tiers (0 + 15) and the rule
+	stays uniform rather than exempting every non-forged tool from it. If ore
+	should instead be mineable with anything until a player forges their first
+	tool, this is the one line to change.
+]]
+MineConfig.NO_ORE_BREAKING_POWER = 0
+
+--[[
+	Breaking power from a tool's BASE STATS.
+
+	Every tool has a tier, and that tier is its breaking power -- an ore tool's
+	tier is its ore, a shop rung's tier is its rung. One rule, no special case,
+	so the wooden pickaxe and a forged Oganesson pick are measured the same way.
+
+	Reads `oreTier` before `tier` on purpose: `tier` on a given Tool instance is
+	`lookTier`, a cosmetic ladder value clamped to the shop family's length, and
+	gating on it is silently wrong.
+]]
+function MineConfig.toolBreakingPower(tool)
+	if type(tool) == "table" then
+		local t = tonumber(tool.oreTier) or tonumber(tool.tier)
+		if t then
+			return math.max(0, math.floor(t))
+		end
+		return MineConfig.NO_ORE_BREAKING_POWER or 0
+	end
+	return math.max(0, math.floor(tonumber(tool) or 0))
+end
+
+-- The rule, stated. The live refusal is main's Dig.Breaking.canBreak, which
+-- also weighs zone and layer; this is here so the reach rule has one home and
+-- the UI below can show the same ceiling the rule implies.
+function MineConfig.canBreakOre(breakingPower, oreTier, cleared)
+	local bp = math.max(1, math.floor(tonumber(breakingPower) or 1))
+	local t = math.max(1, math.floor(tonumber(oreTier) or 1))
+	return t <= bp + (cleared and (MineConfig.ORE_REACH or 15)
+		or (MineConfig.ORE_REACH_HOME or 5))
+end
+
+-- The deepest ore tier a tool can reach, for UI that wants to show the ceiling.
+--[[
+	What the Forge should PROMISE. Defaults to the home reach, deliberately.
+
+	This is the number the player reads on a tool, and until 2026-10-05 it
+	quoted +15 while the gate gave +0. Quoting the home reach means the Forge
+	under-promises -- a cleared zone is kinder than the label -- which is the
+	only direction a promise is allowed to be wrong in. Pass cleared = true to
+	show what a zone you have already passed will allow.
+]]
+function MineConfig.oreReachCap(breakingPower, cleared)
+	local bp = math.max(1, math.floor(tonumber(breakingPower) or 1))
+	local reach = cleared and (MineConfig.ORE_REACH or 15)
+		or (MineConfig.ORE_REACH_HOME or 5)
+	return math.min(bp + reach, MineConfig.ORE_COUNT or 82)
+end
+
+--[[
+	WHAT A CRAFT COSTS, AND WHY IT IS DIFFERENT FOR EVERY ORE.
+
+	Owner, 2026-10-03: "for the craft tool, i want it to be variable, dependent
+	on a) ore drop amount, b) Rarity of the ore, c) how far into progression".
+
+	It was a flat 250 x a tier curve, which ignored all three. The honest unit
+	is not "ore" at all -- it is BLOCKS BROKEN, because that is what the player
+	actually spends. So the cost is priced in blocks and converted to ore:
+
+	    blocks = CRAFT_BLOCKS x bandFactor x depthFactor
+	    cost   = blocks x (how much that ore drops per block) x typeMult
+
+	(a) DROP AMOUNT, from MineConfig.oreYieldFor -- the real band table, whose
+	    bell peaks at Epic (12-15 a block) and falls to 2-4 at Exotic. An ore
+	    that drops nine a block needs a bigger number than one that drops three
+	    for the same work, and this is the only reason the numbers differ as
+	    much as they do.
+
+	(b) RARITY, from oreBandForTier's 1..8 index. Rarer ore needs FEWER blocks,
+	    not more: an Exotic block is already far harder to find, so charging the
+	    same block count would multiply two scarcities together. CRAFT_BAND_EASE
+	    gives back part of what rarity already took.
+
+	(c) PROGRESSION, straight off the tier. CRAFT_DEPTH_SLOPE stretches the
+	    block count from 1x at tier 1 to 1 + slope at tier 82, so a late tool is
+	    a real commitment on top of (b).
+
+	End to end: a tier-1 common tool is about 30 blocks, a tier-82 exotic one
+	about 66 -- before scarcity, which is what actually makes the late ones
+	take an evening.
+]]
+MineConfig.CRAFT_BLOCKS = 30
+MineConfig.CRAFT_BAND_EASE = 0.18
+MineConfig.CRAFT_DEPTH_SLOPE = 4
+
+-- How many blocks of this ore a craft is worth. Exposed so the Forge can say
+-- "about N blocks" instead of only a number the player cannot weigh.
+function MineConfig.craftBlocks(tier)
+	local t = math.max(1, math.floor(tonumber(tier) or 1))
+	local _, bandIndex = MineConfig.oreBandForTier(t)
+	local band = 1 / (1 + MineConfig.CRAFT_BAND_EASE * ((bandIndex or 1) - 1))
+	local span = math.max(1, (MineConfig.ORE_COUNT or 82) - 1)
+	local depth = 1 + MineConfig.CRAFT_DEPTH_SLOPE * ((t - 1) / span)
+	return MineConfig.CRAFT_BLOCKS * band * depth
+end
+
+-- The mid of the ore's own drop band. Averaging lo and hi is right because the
+-- server rolls uniformly between them.
+function MineConfig.oreYieldMid(tier)
+	local lo, hi = MineConfig.oreYieldFor(tier)
+	return ((tonumber(lo) or 1) + (tonumber(hi) or 1)) / 2
+end
+
+function MineConfig.toolCraftCost(tier, typeMult)
+	local mult = math.max(0.01, tonumber(typeMult) or 1)
+	return math.ceil(MineConfig.craftBlocks(tier) * MineConfig.oreYieldMid(tier) * mult)
+end
+
+--[[
+	The wooden pickaxe is a TUTORIAL pick and nothing else.
+
+	It exists to get a new player to the stone pick, which is handed over in the
+	tutorial, and then it is done. Five levels is the length of that errand; it
+	is not a tool anybody should still be levelling afterwards, and its coin
+	ladder is priced to be finished rather than lived in.
+
+	It is also the one tool that levels on COINS. Charging ore for the thing
+	whose whole job is to carry a player who has no ore yet would gate the
+	ungating.
+]]
+MineConfig.WOOD_PICK_ID = "wood_pick"
+MineConfig.WOOD_PICK_MAX_LEVEL = 5
+MineConfig.TUTORIAL_GRADUATION_TOOL = "stone_pick"
+MineConfig.WOOD_PICK_COIN_BASE = 35
+MineConfig.WOOD_PICK_COIN_GROW = 1.55
+
+-- Cost of the step from `level` to `level + 1`, in coins. nil at the cap, the
+-- same contract toolUpgradeCost uses, so a caller cannot charge for a level
+-- that does not exist.
+function MineConfig.woodPickCoinCost(level)
+	local L = math.max(1, math.floor(tonumber(level) or 1))
+	if L >= MineConfig.WOOD_PICK_MAX_LEVEL then
+		return nil
+	end
+	return math.ceil(MineConfig.WOOD_PICK_COIN_BASE * (MineConfig.WOOD_PICK_COIN_GROW ^ (L - 1)))
+end
+
+-- True when this tool levels on coins rather than ore + stardust.
+function MineConfig.isCoinTool(tool)
+	return type(tool) == "table" and tool.typeId == MineConfig.WOOD_PICK_ID
 end
 
 -- Everything poured in to reach `level` from 1. Geometric, so it stays exact
@@ -2418,10 +3074,36 @@ end
 	nothing behind it, so the exploit is gone by construction and the rate can
 	be generous and legible instead of defensive.
 ]]
-function MineConfig.toolRecycle(tier, level, typeMult)
+--[[
+	REFUND THE LEVELS THIS TOOL BOUGHT, NOT THE LEVELS IT ARRIVED WITH.
+
+	The note above says the exploit is "gone by construction" because a tool
+	arrives at level 1 with nothing behind it. That stopped being true on
+	2026-10-05, when craftOreTool began inheriting your best level so a player
+	changing frame would not pay for the same climb twice. A forged tool now
+	arrives at level 30 with nothing behind it, and this refunded 50% of a
+	level-30 climb for it:
+
+	    forge (costs craft ore) -> arrives at your best level
+	    scrap                   -> 50% of toolSpent(level) back
+	    repeat
+
+	The craft cost is far smaller than half a full climb, so that loop printed
+	ore and dust. Inheriting a level is free, so scrapping it must refund
+	nothing: the refund is the DIFFERENCE between where the tool ended and where
+	it started.
+
+	baseLevel is the level the row was forged at. Omitted or 1 gives exactly the
+	old arithmetic, which is what rows saved before this change fall back to --
+	generous to the handful of tools already in profiles, and closed for every
+	tool forged from here on.
+]]
+function MineConfig.toolRecycle(tier, level, typeMult, baseLevel)
 	local ore, dust = MineConfig.toolSpent(tier, level, typeMult)
+	local baseOre, baseDust = MineConfig.toolSpent(tier, baseLevel or 1, typeMult)
 	local pct = MineConfig.TOOL_RECYCLE_PCT
-	return math.floor(ore * pct), math.floor(dust * pct)
+	return math.floor(math.max(0, ore - baseOre) * pct),
+		math.floor(math.max(0, dust - baseDust) * pct)
 end
 
 --[[
@@ -2597,6 +3279,119 @@ MineConfig.ORE_MIGRATION = {
 }
 
 --[[
+	RESTORED AFTER THE SAME BAD MERGE as the breaking-power block below.
+	c59bec5 dropped all three of these while MineServer's load path kept
+	reading them, and the failure mode was the quiet kind: the lookup came back
+	nil, the type(map) == "table" guard skipped the whole remap, and the stamp
+	at the bottom still wrote p.oreRosterV = 2.
+	So the 121 -> 82 migration marked itself done having moved nothing, once,
+	permanently, for every save that loaded.
+
+	Restored verbatim, after checking it against the roster that actually
+	shipped from the merge rather than the one it was written for: all 39
+	targets exist in the current MineConfig.ORES, no source id is a live ore,
+	and every v1 target either lives or chains through v2.
+]]
+--[[
+	Second roster pass: the 121 became 82 and 39 ids went away.
+
+	v1 above still has to work for a save that never ran it, so this is a
+	separate table and a separate stamp rather than an edit: v0 goes 0 -> 1 -> 2,
+	v1 goes 1 -> 2. Every v1 target that pointed at one of the 39 has been
+	re-pointed to its final home, so no chain ends on an id that no longer
+	exists even if only one pass runs.
+
+	Each removed ore goes to the nearest KEPT ore at or below it in the old
+	121 order -- downhill, so nobody is handed something they had not earned.
+]]
+MineConfig.ORE_ROSTER_V = 2
+
+--[[
+	The tool LEVEL CAP migration stamp, separate from the roster's.
+
+	The roster migration clamps over-cap levels and refunds half their cost, but
+	it is gated on ORE_ROSTER_V and so runs once. Profiles stamped while
+	TOOL_MAX_LEVEL was 100 never re-enter it and still hold tools stored at level
+	80 against a live cap of 30 -- clampLevel makes them behave correctly but the
+	stored number is wrong and the dead levels are never refunded.
+
+	BUMP THIS whenever TOOL_MAX_LEVEL comes DOWN. Raising the cap needs no
+	migration: nothing is above it. The two stamps are separate because the
+	roster and the cap move for different reasons and will move again at
+	different times.
+]]
+MineConfig.TOOL_CAP_V = 1
+MineConfig.ORE_MIGRATION_V2 = {
+	agate = "quartz",
+	alexandrite = "moonstone",
+	apatite = "amethyst",
+	azurite = "nickel",
+	beryllium = "cobalt",
+	cassiterite = "tin",
+	chalcopyrite = "pyrite",
+	chert = "flint",
+	chromite = "nickel",
+	cinnabar = "nickel",
+	cobblestone = "stone",
+	diorite = "copper",
+	electrum = "obsidian",
+	fluorite = "nickel",
+	fulgurite = "gold",
+	galena = "lead",
+	hematite = "iron",
+	iridium = "galaxite",
+	jasper = "quartz",
+	kimberlite = "onyx",
+	labradorite = "cobalt",
+	magnetite = "nickel",
+	malachite = "nickel",
+	manganese = "nickel",
+	moissanite = "amethyst",
+	moldavite = "gold",
+	niobium = "cobalt",
+	osmium = "soulstone",
+	quartzite = "pyrite",
+	rhodium = "stormstone",
+	rhodochrosite = "turquoise",
+	sandstone = "clay",
+	selenite = "pyrite",
+	spinel = "sunstone",
+	tanzanite = "aquamarine",
+	tektite = "gold",
+	tourmaline = "emerald",
+	zircon = "emerald",
+	zirconium = "cobalt",
+}
+
+--[[
+	Old ore INDEX -> new ore INDEX, for p.oreTools.
+
+	A saved ore tool stores `tier` as a position in MineConfig.ORES, not an id,
+	so renumbering 121 rows down to 82 silently re-points every tool a player
+	owns. This is the explicit map: 121 entries, one per old position, each
+	landing on the new position of whatever that ore became (itself if it was
+	kept, its migration target if it was removed).
+
+	Generated alongside ORE_MIGRATION_V2 and printed by the balance sim. Two old
+	positions can share a new one -- Stone and Cobblestone both end up at 1.
+]]
+MineConfig.ORE_TIER_REMAP_V2 = {
+	[1] = 1, [2] = 1, [3] = 2, [4] = 2, [5] = 3, [6] = 4, [7] = 5, [8] = 6, [9] = 7, [10] = 7,
+	[11] = 8, [12] = 9, [13] = 10, [14] = 11, [15] = 12, [16] = 12, [17] = 13, [18] = 13, [19] = 14, [20] = 15,
+	[21] = 16, [22] = 16, [23] = 17, [24] = 18, [25] = 19, [26] = 19, [27] = 20, [28] = 21, [29] = 21, [30] = 21,
+	[31] = 21, [32] = 22, [33] = 23, [34] = 24, [35] = 25, [36] = 25, [37] = 25, [38] = 26, [39] = 27, [40] = 28,
+	[41] = 28, [42] = 28, [43] = 28, [44] = 28, [45] = 28, [46] = 28, [47] = 28, [48] = 29, [49] = 29, [50] = 30,
+	[51] = 31, [52] = 32, [53] = 33, [54] = 34, [55] = 34, [56] = 35, [57] = 36, [58] = 37, [59] = 37, [60] = 37,
+	[61] = 38, [62] = 39, [63] = 40, [64] = 41, [65] = 42, [66] = 43, [67] = 44, [68] = 45, [69] = 46, [70] = 47,
+	[71] = 48, [72] = 49, [73] = 49, [74] = 50, [75] = 50, [76] = 50, [77] = 50, [78] = 50, [79] = 51, [80] = 51,
+	[81] = 51, [82] = 51, [83] = 52, [84] = 53, [85] = 53, [86] = 54, [87] = 54, [88] = 54, [89] = 55, [90] = 55,
+	[91] = 56, [92] = 57, [93] = 58, [94] = 59, [95] = 59, [96] = 60, [97] = 61, [98] = 62, [99] = 62, [100] = 63,
+	[101] = 64, [102] = 65, [103] = 66, [104] = 67, [105] = 67, [106] = 68, [107] = 68, [108] = 69, [109] = 70, [110] = 71,
+	[111] = 72, [112] = 73, [113] = 74, [114] = 75, [115] = 76, [116] = 77, [117] = 78, [118] = 79, [119] = 80, [120] = 81,
+	[121] = 82,
+}
+
+--[[
 	HOW MANY ORES THERE ARE. 82, and this is the number to read rather than
 	`#ORES`, so a caller is never comparing against a stale literal.
 
@@ -2635,9 +3430,59 @@ end
 
 MineConfig.ORE_BY_ID = {}
 do
-	-- D is derived from tier so the ladder cannot drift out of step with it.
-	local top = Depth.SECTIONS[#Depth.SECTIONS]
-	MineConfig.ORE_DMAX = math.log((top.dirtHp * 2 * 6 ^ 9) / 20) / math.log(6)
+	--[[
+		D is derived from tier so the ladder cannot drift out of step with it.
+
+		THE TOP OF THE LADDER NOW COMES OFF THE LIVE DEPTH CURVE.
+
+		It used to be Depth.SECTIONS[#Depth.SECTIONS] -- Terminus, dirtHp
+		9.30735e+18 -- times 2 times 6^9. SECTIONS is the RETIRED table:
+		Depth.dirtHp does not read it and tops out at 14,687,500,000 for zone 10
+		layer 5000. SECTIONS' last row is about 1.2 QUADRILLION times the
+		deepest block a player can actually hit.
+
+		So ORE_DMAX came out at 32.09 while the deepest oreDifficulty in the game
+		is 11.39, and every ore above that coordinate existed on the roster while
+		no depth ever rolled it. Measured against the live module: at the deepest
+		point in the game 62 of 82 ores rolled under 0.05%, the hardest ore that
+		appeared anywhere was tier 26, and the forge ladder DEADLOCKED AT TIER 8 --
+		nobody could climb past it at all.
+
+		Anchored to the deepest NORMAL mine instead (Event Horizon is not on the
+		ore-tool ladder), minus a small margin so the top of the roster sits just
+		under the hardest rock rather than on top of it. That margin is what
+		makes Oganesson an endgame chase instead of the common drop:
+
+		    margin   Exotic share at the deepest spot   forge ladder
+		    0.0      0.08%                              stalls at t75
+		    0.4      0.17%                              completes to t82
+		    2.4      3.59%                              completes to t82
+		    4.2      21.7%                              completes, and is the
+		                                                2026-10-04 mistake -- an
+		                                                exotic a minute
+
+		Owner, 2026-10-05: "21% exotic is like 100-1000x rare", i.e. the band
+		belongs around 0.02-0.2%. 0.4 is the largest margin that lands inside
+		that and still lets the ladder reach tier 82; at 0.8 the climb stalls at
+		t75. Both properties are asserted by tools/verify/ladder-climbable.js, so
+		this cannot quietly drift back.
+	]]
+	--[[
+		How many zones the ORE ladder spans. Ten, not eleven.
+
+		Event Horizon is zone 11 and does not use ore tools -- owner, 2026-10-05:
+		"horizon is different... doesnt use normal tools" -- so the roster is
+		calibrated to the deepest NORMAL mine. MineBreaking.ZONES is 10 for the
+		same reason and the two must agree; tools/verify/ladder-climbable.js
+		checks the ladder against that assumption.
+	]]
+	MineConfig.ORE_LADDER_ZONES = 10
+	MineConfig.ORE_DMAX_MARGIN = 0.4
+	do
+		local deepHp = Depth.dirtHp(MineConfig.ORE_LADDER_ZONES, MineConfig.LAYERS)
+		local deepD = math.log(math.max(20, deepHp) / 20) / math.log(6)
+		MineConfig.ORE_DMAX = math.max(1, deepD - MineConfig.ORE_DMAX_MARGIN)
+	end
 	local n = #MineConfig.ORES
 	for _, o in ipairs(MineConfig.ORES) do
 		o.d = (o.tier - 1) * MineConfig.ORE_DMAX / (n - 1)
@@ -2714,7 +3559,10 @@ function MineConfig.oreWeights(zoneId, layer, rareOre)
 		return hit
 	end
 	local dl = MineConfig.oreDifficulty(zoneId, layer) + bucket / 20
-	local X0, K, S, W = MineConfig.ORE_X0, MineConfig.ORE_K, MineConfig.ORE_S, MineConfig.ORE_W
+	-- Width ramps with depth: a stone mine at the surface, the full spread by
+	-- the time the forge ladder needs it. See MineConfig.oreSpreadK.
+	local X0, S, W = MineConfig.ORE_X0, MineConfig.ORE_S, MineConfig.ORE_W
+	local K = MineConfig.oreSpreadK(dl)
 	local list = MineConfig.ORES
 	local w, tot = table.create(#list), 0
 	for i, o in ipairs(list) do
@@ -2725,6 +3573,63 @@ function MineConfig.oreWeights(zoneId, layer, rareOre)
 		end
 		w[i] = v
 		tot += v
+	end
+	--[[
+		NOTHING IS EVER IMPOSSIBLE, ONLY ABSURD.
+
+		Owner, 2026-10-05: "every rarity should be POSSIBLE in every zone, just
+		super highly unlikely (even 1 in a million zone one)".
+
+		The logistic above falls off hard enough to stop being a rarity and
+		become a wall: Oganesson at the floor of Dirt Meadow scored 3e-11, one
+		find per 187,000 YEARS at ten blocks a second.
+
+		The floor is applied HERE, after the natural total is known, so it is a
+		minimum share of the roll rather than a minimum weight. Flooring the raw
+		weight instead made the odds go backwards with depth -- 1 in 985k at zone
+		1 but 1 in 4.3M at zone 5, because a fixed weight is a smaller slice of a
+		more crowded table. Against `tot` the guarantee is the same fraction
+		everywhere, so depth can only improve on it.
+
+		A gentler ORE_K would reach the same odds and drag the whole
+		distribution with it (zone 10 falls from 55% Epic to 52% Rare). The floor
+		only lifts what was already beneath it, so the tuned curve, the endgame
+		mix and the forge ladder all survive intact.
+	]]
+	local minShare = tonumber(MineConfig.ORE_MIN_SHARE) or 0
+	if minShare > 0 and tot > 0 then
+		--[[
+			A FIXED POINT, not one pass.
+
+			The floor is a share of the FINAL total, but lifting ore raises that
+			total, which raises the floor again. Doing it once leaves each
+			floored ore at minShare * totBefore / totAfter -- close to minShare,
+			but off by however much was lifted, and that differs by depth. Zone 1
+			lifts far more than zone 5 because far more of its roster sits under
+			the floor, so a single pass still drifted and zone 6 came out rarer
+			than zone 5.
+
+			Iterating converges on floorW = minShare * tot, where every floored
+			ore sits at EXACTLY minShare. That is what makes the guarantee flat
+			across depth, and flat is what makes the curve monotonic: the floor
+			never moves, so depth can only add. Converges in two or three passes
+			because the lift is on the order of #ORES * minShare -- about 8e-5 --
+			and the loop bails the moment nothing moves.
+		]]
+		for _ = 1, 8 do
+			local floorW = minShare * tot
+			local lifted = 0
+			for i = 1, #w do
+				if w[i] < floorW then
+					lifted += floorW - w[i]
+					w[i] = floorW
+				end
+			end
+			if lifted <= 0 then
+				break
+			end
+			tot += lifted
+		end
 	end
 	local row = { w = w, tot = tot }
 	oreWeightCache[key] = row
@@ -2750,12 +3655,391 @@ end
 
 -- Is this block ore, and which. A flat 1 in 200 everywhere; the curve only
 -- decides WHICH ore, never how much ore there is.
+--
+-- Superseded in the mine by MineConfig.veinOreAt, which spends the same budget
+-- in clusters instead of singles. Kept because the balance sim and the verify
+-- harnesses measure the DISTRIBUTION, which veins do not change.
 function MineConfig.rollOre(zoneId, layer, rng, rareOre)
 	local roll = (rng and rng.NextNumber) and rng:NextNumber() or math.random()
 	if roll >= MineConfig.ORE_CHANCE then
 		return nil
 	end
 	return MineConfig.oreIdentity(zoneId, layer, rng, rareOre)
+end
+
+-- ------------------------------------------------------------------ veins --
+--[[
+	ORE COMES IN VEINS.
+
+	Owner, 2026-10-05: "can you add veins of ores (8 MAXIUM OF ALL ORES[2-3 ores
+	TOTAL will group in 6-8s], but most will group in 3-4. The vein count should
+	a) show to its rarity [something that spawns in 6-8s should have much less
+	veins spawning, than something that groups in 1s or 2s])".
+
+	WHY THERE WERE NO VEINS. rollOre ran per block against its own fresh Random,
+	and spawnVoxel then re-rolled the identity from ANOTHER fresh Random. Two
+	blocks touching each other shared nothing, so ore was uniform noise: a
+	hundred lone cubes rather than a seam worth following.
+
+	WHY THIS IS A FIELD AND NOT A FLOOD FILL. Blocks are spawned lazily, one key
+	at a time, in whatever order players dig, and a broken block respawns through
+	the same path minutes later (see REGEN_SEC). There is no moment when a vein
+	could be "grown" into its neighbours, because the neighbours may not exist
+	yet and the grower would not be there when they do. So a vein is a pure
+	function of position: every block works out on its own whether it is in one,
+	and two neighbours necessarily agree because they are asking the same
+	question of the same lattice. Regen agrees with generation for free.
+
+	THE DENSITY IS UNCHANGED, which is the part the owner asked for with "fuck
+	with ore spawn rates to account for this". A cell hosts a vein of ore o with
+	probability ORE_CHANCE * CELL^3 * share_o / size_o. Multiply that by the
+	size_o blocks the vein contains and the size cancels: expected ore per block
+	is still ORE_CHANCE * share_o, for every ore, at every depth. So the ladder,
+	the rarity floor and every tuned number downstream are untouched -- the same
+	ore is simply delivered in lumps. ORE_CHANCE itself is NOT edited.
+
+	THE COUNT FALLS OUT OF THE SAME LINE. Veins per unit volume carries 1/size_o,
+	so an ore that comes in sixes has a quarter the veins of one that comes in
+	ones and a half of one that comes in threes. That is requirement (a), and it
+	is arithmetic rather than a second table that could drift out of step.
+]]
+MineConfig.VEIN_CELL = 4
+MineConfig.VEIN_BIG_TIERS = 3
+MineConfig.VEIN_SOLO_FRAC = 0.18
+
+--[[
+	THE SHAPE, AND THE CEILING.
+
+	Owner: "8 MAXIUM OF ALL ORES". A vein is the first N offsets of a 2x2x2 cube,
+	so eight is the ceiling by construction rather than by a clamp someone can
+	edit around. The order fills the bottom layer before starting the top, so the
+	sizes read as: 1 a single, 2 a pair, 3 an L, 4 a flat plate, 6 a plate and a
+	pair above it, 8 the full cube.
+]]
+local VEIN_ORDER = {
+	{ 0, 0, 0 }, { 1, 0, 0 }, { 0, 0, 1 }, { 1, 0, 1 },
+	{ 0, 1, 0 }, { 1, 1, 0 }, { 0, 1, 1 }, { 1, 1, 1 },
+}
+MineConfig.VEIN_MAX = #VEIN_ORDER
+
+--[[
+	A 32-BIT MULTIPLY THAT IS ACTUALLY EXACT.
+
+	bit32 has no multiply, and the obvious `h * 0x85EBCA6B` is wrong rather than
+	slow: Luau numbers are doubles, so a product needing 56 bits of mantissa gets
+	53 and the low bits are silently garbage. Murmur's whole avalanche lives in
+	those low bits.
+
+	Splitting both operands at 16 bits fixes it exactly. a*b is
+	ah*bh*2^32 + (ah*bl + al*bh)*2^16 + al*bl; the first term vanishes mod 2^32,
+	al*bl is under 2^32, and ah*bl + al*bh is under 2^33 -- every intermediate
+	inside the 2^53 doubles hold exactly. mul32(0xFFFFFFFF, 0xFFFFFFFF) == 1,
+	which is the one-line proof that the wraparound is right.
+]]
+local function mul32(a, b)
+	local ah, al = bit32.rshift(a, 16), bit32.band(a, 0xFFFF)
+	local bh, bl = bit32.rshift(b, 16), bit32.band(b, 0xFFFF)
+	local mid = bit32.band(ah * bl + al * bh, 0xFFFF) * 65536
+	return bit32.band(al * bl + mid, 0xFFFFFFFF)
+end
+
+-- murmur3's body round and its finalizer, verbatim. Both are needed: the body
+-- folds a coordinate in, the finalizer is what makes one changed bit change half
+-- the output.
+local function veinMix(h, v)
+	local k = mul32(bit32.band(v, 0xFFFFFFFF), 0xCC9E2D51)
+	k = mul32(bit32.lrotate(k, 15), 0x1B873593)
+	h = bit32.lrotate(bit32.bxor(h, k), 13)
+	return bit32.band(mul32(h, 5) + 0xE6546B64, 0xFFFFFFFF)
+end
+
+local function veinFinal(h)
+	h = mul32(bit32.bxor(h, bit32.rshift(h, 16)), 0x85EBCA6B)
+	h = mul32(bit32.bxor(h, bit32.rshift(h, 13)), 0xC2B2AE35)
+	return bit32.bxor(h, bit32.rshift(h, 16))
+end
+
+--[[
+	SIX INDEPENDENT NUMBERS OUT OF ONE CELL HASH, and independence is the whole
+	job.
+
+	veinOreAt derives the host roll, the ore pick, the size jitter and three
+	anchor axes from one cell hash. If those streams correlate, the game breaks in
+	a way that still looks statistically fine at a glance, which is exactly what
+	the first two attempts did.
+
+	Attempt one was `veinMix(h, salt)` over salts 1..6 -- inputs differing in two
+	low bits, through one weak round. Attempt two added a second round and
+	full-width salts. tools/verify/veins.js measured both:
+
+	  * a cell hosts only when u1 < host (at most ~0.09), and u3 tracked u1, so
+	    floor(u3 * 3) was always 0. EVERY big vein was exactly 6 blocks and every
+	    mid vein exactly 3; sizes 4, 7 and 8 never occurred in 1.15M blocks.
+	  * u2 tracked u1 too, so the weighted ore walk always landed in the same part
+	    of the table. Attempt one gave the three commonest ores 57% of all ore
+	    against their 21%; attempt two gave them 0%.
+
+	Both passed a marginal uniformity test -- each stream on its own was a flat
+	10% per decile. Independence is the property that matters and it has to be
+	measured jointly: of the cells that host, roughly half must have u3 above a
+	half. Attempt two scored 10 in 1565. This scores 49.3%.
+
+	Distinct full-width salts through murmur's body AND its finalizer.
+]]
+local VEIN_SALT = { 0x85EBCA6B, 0xC2B2AE35, 0x27D4EB2F, 0x165667B1, 0x9E3779B1, 0x7F4A7C15 }
+
+local function veinUnit(h, salt)
+	return veinFinal(veinMix(h, VEIN_SALT[salt] or 0x9E3779B1)) / 4294967296
+end
+
+--[[
+	THE MINE MUST NOT BE THE SAME MINE EVERY TIME.
+
+	Owner, 2026-10-06: "the mine isnt random anymore... i bet it tries to load in
+	the same exact mine every single load... every time i join 4 halite on top of
+	the line".
+
+	Correct, and it was this. veinOreAt is a pure function of position, which is
+	what makes a vein agree with itself across lazily spawned blocks -- but the
+	only thing seeding it was a hash of the zone's NAME, which never changes. So
+	every server, every rejoin, every player got a byte-identical ore layout.
+
+	The old rollOre did not have this problem: the generator drew from an rng
+	seeded with a per-zone salt that resetMineZone re-picks, so a layout held
+	still while you dug through it and changed when the mine refreshed. That salt
+	still exists (mineResetState.seed) and is simply not reaching here.
+
+	Mixing it into the zone seed restores the randomness WITHOUT losing the
+	determinism veins need: every block in a zone hashes against the same salt,
+	so neighbours still agree, and a block that regenerates an hour later still
+	resolves to what it was. The salt changes only when the mine does.
+]]
+local veinZoneSeed = {}
+local veinZoneSalt = {}
+
+-- Called by the server once it has picked (or reloaded) a zone's layout salt.
+-- Clears the derived caches, because a new salt means a different mine.
+function MineConfig.setVeinSalt(zoneId, salt)
+	local key = tostring(zoneId)
+	local n = math.floor(tonumber(salt) or 0)
+	if veinZoneSalt[key] == n then
+		return
+	end
+	veinZoneSalt[key] = n
+	veinZoneSeed[key] = nil
+	-- The one-entry cell memo may be holding an answer from the old layout.
+	if MineConfig._veinCellReset then
+		MineConfig._veinCellReset()
+	end
+end
+
+local function zoneSeed(zoneId)
+	local key = tostring(zoneId)
+	local s = veinZoneSeed[key]
+	if s then
+		return s
+	end
+	s = 0x811C9DC5
+	for i = 1, #key do
+		s = veinMix(s, string.byte(key, i))
+	end
+	-- Salt last, so two zones with the same salt still differ by name.
+	s = veinMix(s, veinZoneSalt[key] or 0)
+	veinZoneSeed[key] = s
+	return s
+end
+
+--[[
+	How many blocks this ore comes in.
+
+	Owner: "2-3 ores TOTAL will group in 6-8s... but most will group in 3-4".
+
+	The three biggest veins go to the three commonest ores, which is both what
+	the owner asked for and how rock actually behaves -- stone, clay and
+	limestone are bedding, not finds. The rarest fifth comes in ones and twos, so
+	an Exotic stays a single gleam in the wall and never a windfall. Everything
+	between, which is most of the roster, is the threes and fours.
+]]
+function MineConfig.veinSizeFor(tier, jitter)
+	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
+	local t = math.clamp(tonumber(tier) or 1, 1, n)
+	local u = jitter or 0
+	if t <= (MineConfig.VEIN_BIG_TIERS or 3) then
+		return 6 + math.floor(u * 3)
+	end
+	if t > n * (1 - (MineConfig.VEIN_SOLO_FRAC or 0.18)) then
+		return 1 + math.floor(u * 2)
+	end
+	return 3 + math.floor(u * 2)
+end
+
+-- The mean of the band above, which is what the density correction has to
+-- divide by. Stated as its own function so the two cannot drift apart.
+function MineConfig.veinSizeMean(tier)
+	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
+	local t = math.clamp(tonumber(tier) or 1, 1, n)
+	if t <= (MineConfig.VEIN_BIG_TIERS or 3) then
+		return 7
+	end
+	if t > n * (1 - (MineConfig.VEIN_SOLO_FRAC or 0.18)) then
+		return 1.5
+	end
+	return 3.5
+end
+
+--[[
+	Per-ore vein frequency for this spot, cached exactly like oreWeights.
+
+	q_i is share_i / meanSize_i -- how often a vein of ore i starts, rather than
+	how often ore i appears. Q is the total, so ORE_CHANCE * CELL^3 * Q is the
+	chance that a given cell hosts anything at all.
+]]
+--[[
+	THE ONE-ENTRY MEMO IS NOT AN OPTIMISATION, IT IS THE DIFFERENCE BETWEEN
+	THIS RUNNING PER ORE AND RUNNING PER BLOCK.
+
+	oreWeights is reached through oreIdentity, which the old rollOre called only
+	for the ~0.5% of blocks that turned out to be ore. veinOreAt has to know the
+	weights BEFORE it can decide whether a cell hosts anything, so it asks on
+	every block -- two hundred times more often -- and each ask built a string
+	cache key out of three tostring() calls.
+
+	Measured over 200,000 blocks: the old path cost 0.217 us/block and the vein
+	path cost 2.282 us/block, 10.5x, which is paid during world generation while
+	the player is digging.
+
+	Consecutive blocks are overwhelmingly in the same zone, section and finder
+	bucket, so one remembered row turns the common case into three comparisons
+	and no allocation. The string key and the full table stay underneath for the
+	moment the section changes.
+]]
+local veinWeightCache = {}
+local vwZone, vwSec, vwBucket, vwRow = nil, nil, nil, nil
+function MineConfig.veinWeights(zoneId, layer, rareOre)
+	local sec = Depth.sectionFor and Depth.sectionFor(layer)
+	local secId = (sec and sec.id) or math.floor(layer / 40)
+	local bucket = math.floor(MineConfig.oreFindShift(rareOre) * 20 + 0.5)
+	if vwRow ~= nil and zoneId == vwZone and secId == vwSec and bucket == vwBucket then
+		return vwRow
+	end
+	local key = tostring(zoneId) .. "|" .. tostring(secId) .. "|" .. tostring(bucket)
+	local hit = veinWeightCache[key]
+	if hit then
+		vwZone, vwSec, vwBucket, vwRow = zoneId, secId, bucket, hit
+		return hit
+	end
+	local row = MineConfig.oreWeights(zoneId, layer, rareOre)
+	local list = MineConfig.ORES
+	local q, Q = table.create(#list), 0
+	for i = 1, #list do
+		local share = (row.tot > 0) and (row.w[i] / row.tot) or 0
+		local v = share / MineConfig.veinSizeMean(i)
+		q[i] = v
+		Q += v
+	end
+	local cell = MineConfig.VEIN_CELL or 4
+	local out = { q = q, Q = Q, host = math.min(1, MineConfig.ORE_CHANCE * cell * cell * cell * Q) }
+	veinWeightCache[key] = out
+	vwZone, vwSec, vwBucket, vwRow = zoneId, secId, bucket, out
+	return out
+end
+
+--[[
+	Is this exact block ore, and which one.
+
+	Deterministic in (zone, x, y, z): no rng argument, by design. Two neighbours
+	asking about the same cell get the same answer, and a block that regenerates
+	an hour later gets the answer it had before.
+
+	The anchor is clamped to the cell's lower corner so the 2x2x2 shape cannot
+	leave the cell -- a vein that straddled two cells would be two veins, both
+	the wrong size, and the density correction would be wrong with it.
+]]
+--[[
+	RESOLVED PER CELL, NOT PER BLOCK.
+
+	Owner, 2026-10-06: the game is "unplayably laggy". Measured over 200,000
+	blocks, this path cost 2.282 us/block against the old rollOre's 0.217 --
+	10.5x, paid during world generation while the player is digging.
+
+	Two reasons, both structural. rollKind asks "is this ore?" and spawnVoxel
+	immediately asks "which ore?" of the SAME block, so the generator pays twice
+	over. And everything expensive here -- the cell hash, the host roll, the
+	weighted ore walk, the size and anchor -- is a function of the CELL, which is
+	64 blocks, yet it was being recomputed for every one of them.
+
+	One remembered cell answers both. The generator walks z fastest inside a
+	layer, so consecutive blocks share a cell most of the time and the hash runs
+	about once every four blocks instead of twice per block.
+
+	One entry rather than a table on purpose: a cache keyed by position would
+	outlive the blocks it describes and grow for the whole mine.
+]]
+local veinCell = { has = false }
+
+-- Dropping the remembered cell is how setVeinSalt makes a new layout take
+-- effect immediately rather than one cell later.
+function MineConfig._veinCellReset()
+	veinCell.has = false
+end
+
+function MineConfig.veinOreAt(zoneId, x, y, z, rareOre)
+	local cell = MineConfig.VEIN_CELL or 4
+	local cx, cy, cz = math.floor(x / cell), math.floor(y / cell), math.floor(z / cell)
+
+	local c = veinCell
+	if not (c.has and c.cx == cx and c.cy == cy and c.cz == cz
+		and c.zone == zoneId and c.rare == rareOre) then
+		--[[
+			Resolve the whole CELL once: whether it hosts, which ore, how big and
+			where the vein is anchored. Everything here is a function of the cell,
+			not of the block, so doing it per block was 64x the work it needed.
+
+			The weights are read at this block's layer. A cell is four layers and
+			a section is far more, so a cell straddling a section boundary now
+			takes one section's mix for all of it rather than changing mid-cell.
+			That is both cheaper and more coherent -- a vein that changed ore
+			halfway through itself was never intended -- and it moves the
+			measured distribution by far less than the harness's tolerances.
+		]]
+		local h = veinMix(veinMix(veinMix(veinMix(zoneSeed(zoneId), cx), cy), cz),
+			math.floor(MineConfig.oreFindShift(rareOre) * 20 + 0.5))
+		local row = MineConfig.veinWeights(zoneId, y, rareOre)
+		c.has, c.cx, c.cy, c.cz, c.zone, c.rare = true, cx, cy, cz, zoneId, rareOre
+		if row.Q <= 0 or veinUnit(h, 1) >= row.host then
+			c.hosts = false
+		else
+			-- Which ore the vein is. Same weighted walk as oreIdentity, over q.
+			local pick = veinUnit(h, 2) * row.Q
+			local list = MineConfig.ORES
+			local ore, idx = list[#list], #list
+			for i = 1, #list do
+				pick -= row.q[i]
+				if pick <= 0 then
+					ore, idx = list[i], i
+					break
+				end
+			end
+			local span = math.max(1, cell - 1)
+			c.hosts = true
+			c.ore = ore
+			c.size = math.clamp(MineConfig.veinSizeFor(idx, veinUnit(h, 3)), 1, #VEIN_ORDER)
+			c.ax = cx * cell + math.floor(veinUnit(h, 4) * span)
+			c.ay = cy * cell + math.floor(veinUnit(h, 5) * span)
+			c.az = cz * cell + math.floor(veinUnit(h, 6) * span)
+		end
+	end
+
+	if not c.hosts then
+		return nil
+	end
+	for i = 1, c.size do
+		local o = VEIN_ORDER[i]
+		if x == c.ax + o[1] and y == c.ay + o[2] and z == c.az + o[3] then
+			return c.ore
+		end
+	end
+	return nil
 end
 
 -- Kept for callers that want the roster; ore is no longer filtered by zone.

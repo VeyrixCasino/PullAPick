@@ -9,7 +9,9 @@ local C = require(shared:WaitForChild("MineConfig"))
 
 local MineDepthPlazas = {}
 
-local LAYOUT_VER = 5
+-- 6: station bay behind every outpost, and the ladder is every 500 again.
+-- 7: outposts darken and warm with depth (depthLook).
+local LAYOUT_VER = 7
 local opened = {}
 local boardsStarted = false
 local surfaceDone = false
@@ -537,13 +539,125 @@ local function dressOutpostFromSurface(folder, zone, seam, desk)
 end
 
 -- Seal the depth outpost in a rock shell so exploit TPs into open air don't "load" free mine.
-local function wallOutpost(folder)
+--[[
+	THE STATION BAY.
+
+	Owner, 2026-10-05: outposts want "extra space behind it for another station
+	incase we use it for something special (High teir enchanters, pack recyclers
+	shit like that idk)".
+
+	So the room is built deeper than it needs to be and the extra depth is left
+	EMPTY, with a floor and a sign and nothing else. It is one room rather than
+	an alcove behind a doorway: a walled-off annexe reads as a locked area a
+	player should be trying to get into, and this is not content yet.
+
+	Which way is "behind": zoneAxes already defines `back` as pointing at the
+	world origin, and the elevator shaft sits on the `side` axis, so the back is
+	the one wall nothing else is using. The walls here are world-axis aligned, so
+	the bay extends along whichever world axis `back` leans hardest on.
+
+	BAY_DEPTH is the only dial. It buys floor, not features -- when a station
+	does land here it needs no change to this function, only something parented
+	into the StationBay folder.
+]]
+local BAY_DEPTH = 28
+
+--[[
+	DEEPER OUTPOSTS LOOK DEEPER.
+
+	Owner, 2026-10-05: "do each outpost from 1-10 look deeper and deeper".
+	Measured before answering: they did not. Seam 500, 2500 and 5000 were
+	byte-identical -- same eleven PointLights, same twenty-one neon parts, same
+	wall colour -- because every outpost is the same surface template cloned to a
+	different Y and every colour in this file is a constant. docs/OPEN.md item 6
+	has asked for "underground-themed, deeper and darker at every seam" the whole
+	time.
+
+	One function drives it, from a single 0..1 across the reachable ladder, so
+	the progression cannot drift between the pieces that use it:
+
+	  WALLS AND FLOOR darken toward rock. The top outpost keeps today's colour so
+	  nothing regresses; only the deeper ones move.
+
+	  LIGHT dims and warms. 500 is lantern-lit and legible; 5000 is a hole with
+	  embers in it. Dimming bottoms out at 55% rather than going dark -- an
+	  outpost is somewhere you read prices and press buttons, so atmosphere stops
+	  where usability starts.
+
+	Deliberately NOT touched: neon. The cyan ring and the signage are wayfinding,
+	and a player who cannot find the elevator at 5000 is not being immersed, they
+	are lost.
+]]
+local function depthLook(seam)
+	local first = (Depth.SEAMS and Depth.SEAMS[1]) or 500
+	local floor = tonumber(C.LAYERS) or 5000
+	local span = math.max(1, floor - first)
+	local t = math.clamp(((tonumber(seam) or first) - first) / span, 0, 1)
+	-- ease toward the deep end so the first few steps are not all the change
+	local e = t * t * (3 - 2 * t)
+	local function mix(a, b)
+		return a + (b - a) * e
+	end
+	return {
+		t = t,
+		wall = Color3.fromRGB(
+			math.floor(mix(48, 20)), math.floor(mix(42, 18)), math.floor(mix(36, 17))),
+		deck = Color3.fromRGB(
+			math.floor(mix(58, 26)), math.floor(mix(52, 23)), math.floor(mix(45, 21))),
+		lightMul = mix(1, 0.55),
+		rangeMul = mix(1, 0.82),
+		-- daylight-ish lantern at the top, ember at the bottom
+		lightTint = Color3.fromRGB(
+			255, math.floor(mix(244, 186)), math.floor(mix(224, 128))),
+	}
+end
+
+--[[
+	Push the look onto whatever the surface clone brought with it.
+
+	The lights are not ours -- they arrive inside SurfaceClone -- so this walks
+	them after dressing rather than trying to build them. Multiplicative against
+	each light's own authored values, so a lamp that was always dim stays
+	relatively dim instead of every light collapsing onto one number.
+]]
+local function tintOutpostLights(folder, look)
+	local clone = folder and folder:FindFirstChild("SurfaceClone")
+	if not (clone and look) then
+		return 0
+	end
+	local n = 0
+	for _, d in ipairs(clone:GetDescendants()) do
+		if d:IsA("PointLight") or d:IsA("SpotLight") or d:IsA("SurfaceLight") then
+			local baseB = d:GetAttribute("BaseBrightness")
+			local baseR = d:GetAttribute("BaseRange")
+			if not baseB then
+				baseB = d.Brightness
+				d:SetAttribute("BaseBrightness", baseB)
+			end
+			if not baseR then
+				baseR = d.Range
+				d:SetAttribute("BaseRange", baseR)
+			end
+			d.Brightness = baseB * look.lightMul
+			d.Range = baseR * look.rangeMul
+			d.Color = look.lightTint
+			n += 1
+		end
+	end
+	return n
+end
+
+local function wallOutpost(folder, zone, seam)
 	if not folder then
 		return
 	end
 	local old = folder:FindFirstChild("OutpostWalls")
 	if old then
 		old:Destroy()
+	end
+	local oldBay = folder:FindFirstChild("StationBay")
+	if oldBay then
+		oldBay:Destroy()
 	end
 	local clone = folder:FindFirstChild("SurfaceClone")
 	local square = clone and clone:FindFirstChild("Square")
@@ -553,14 +667,36 @@ local function wallOutpost(folder)
 	local walls = Instance.new("Folder")
 	walls.Name = "OutpostWalls"
 	walls.Parent = folder
+
+	-- Which world axis the bay grows along, and which way down it.
+	local bx, bz = 0, 1
+	if zone then
+		local _o, _d, _s, back = zoneAxes(zone)
+		if math.abs(back.X) >= math.abs(back.Z) then
+			bx, bz = (back.X >= 0 and 1 or -1), 0
+		else
+			bx, bz = 0, (back.Z >= 0 and 1 or -1)
+		end
+	end
+
 	local cx, cy, cz = square.Position.X, square.Position.Y, square.Position.Z
 	local sx = square.Size.X + 20
 	local sz = square.Size.Z + 20
+	-- Grow the room along the back axis and push its centre half that far the
+	-- same way, so every extra stud lands BEHIND the shop rather than around it.
+	if bx ~= 0 then
+		sx += BAY_DEPTH
+		cx += bx * BAY_DEPTH * 0.5
+	else
+		sz += BAY_DEPTH
+		cz += bz * BAY_DEPTH * 0.5
+	end
 	local wallH = 32
 	local thick = 4
 	local floorY = cy - square.Size.Y * 0.5
 	local midY = floorY + wallH * 0.5
-	local col = Color3.fromRGB(48, 42, 36)
+	local look = depthLook(seam)
+	local col = look.wall
 	local function wall(name, size, cf)
 		local p = Instance.new("Part")
 		p.Name = name
@@ -583,6 +719,70 @@ local function wallOutpost(folder)
 	wall("Ceiling", Vector3.new(sx + thick * 2, thick, sz + thick * 2), CFrame.new(cx, floorY + wallH, cz))
 	-- Floor plate under square so you never drop through streaming gaps.
 	wall("Floor", Vector3.new(sx, thick, sz), CFrame.new(cx, floorY - thick * 0.5, cz))
+
+	--[[
+		The reserved floor itself: a deck the player can stand on, a sign saying
+		what it is for, and nothing else. Parented to StationBay rather than
+		OutpostWalls so that dropping a station in later means adding a child
+		here, not editing this function.
+	]]
+	local bay = Instance.new("Folder")
+	bay.Name = "StationBay"
+	bay.Parent = folder
+	-- Centre of the extra depth, measured from the ORIGINAL square outward.
+	local halfOld = (bx ~= 0) and (square.Size.X + 20) * 0.5 or (square.Size.Z + 20) * 0.5
+	local bayMid = halfOld + BAY_DEPTH * 0.5
+	local bcx = square.Position.X + (bx ~= 0 and bx * bayMid or 0)
+	local bcz = square.Position.Z + (bx == 0 and bz * bayMid or 0)
+	local bayW = (bx ~= 0) and sz or sx
+
+	local deck = Instance.new("Part")
+	deck.Name = "BayDeck"
+	deck.Anchored = true
+	deck.CanCollide = true
+	deck.Material = Enum.Material.Slate
+	deck.Color = look.deck
+	deck.Size = Vector3.new(
+		(bx ~= 0) and BAY_DEPTH - 4 or bayW - 8,
+		1,
+		(bx ~= 0) and bayW - 8 or BAY_DEPTH - 4)
+	deck.CFrame = CFrame.new(bcx, floorY + 0.5, bcz)
+	deck.TopSurface = Enum.SurfaceType.Smooth
+	deck.BottomSurface = Enum.SurfaceType.Smooth
+	deck.Parent = bay
+
+	local sign = Instance.new("Part")
+	sign.Name = "BaySign"
+	sign.Anchored = true
+	sign.CanCollide = false
+	sign.Material = Enum.Material.Metal
+	sign.Color = Color3.fromRGB(38, 34, 30)
+	sign.Size = Vector3.new(
+		(bx ~= 0) and 0.4 or 10,
+		3,
+		(bx ~= 0) and 10 or 0.4)
+	-- Flat against the far wall, facing back into the room.
+	local wallIn = bayMid + BAY_DEPTH * 0.5 - 2
+	sign.CFrame = CFrame.new(
+		square.Position.X + (bx ~= 0 and bx * wallIn or 0),
+		floorY + 5,
+		square.Position.Z + (bx == 0 and bz * wallIn or 0))
+	sign.Parent = bay
+
+	local sg = Instance.new("SurfaceGui")
+	sg.Face = (bx ~= 0) and (bx > 0 and Enum.NormalId.Left or Enum.NormalId.Right)
+		or (bz > 0 and Enum.NormalId.Front or Enum.NormalId.Back)
+	sg.AlwaysOnTop = false
+	sg.PixelsPerStud = 40
+	sg.Parent = sign
+	local lbl = Instance.new("TextLabel")
+	lbl.BackgroundTransparency = 1
+	lbl.Size = UDim2.fromScale(1, 1)
+	lbl.Font = Enum.Font.GothamMedium
+	lbl.TextScaled = true
+	lbl.TextColor3 = Color3.fromRGB(150, 140, 125)
+	lbl.Text = "RESERVED"
+	lbl.Parent = sg
 end
 
 function buildDeck(zone, seam, desk)
@@ -599,7 +799,8 @@ function buildDeck(zone, seam, desk)
 			existing = nil
 		else
 			dressOutpostFromSurface(existing, zone, seam, desk)
-			wallOutpost(existing)
+			wallOutpost(existing, zone, seam)
+			tintOutpostLights(existing, depthLook(seam))
 			return existing
 		end
 	end
@@ -665,7 +866,8 @@ function buildDeck(zone, seam, desk)
 	end
 
 	dressOutpostFromSurface(folder, zone, seam, desk)
-	wallOutpost(folder)
+	wallOutpost(folder, zone, seam)
+	tintOutpostLights(folder, depthLook(seam))
 	CollectionService:AddTag(folder, "MineDepthPlaza")
 	return folder
 end

@@ -236,7 +236,28 @@ function MineBenchView.mount(parent, opts)
 			]]
 			local okOre = haveOre >= (costOre or 0)
 			local okDust = haveDust >= (costDust or 0)
-			local line = string.format("%s %s  \u{00B7}  %s dust",
+			--[[
+				WHAT THE LEVEL BUYS, IN FRONT OF WHAT IT COSTS.
+
+				Owner, 2026-10-05: "something i could advertise when people
+				crafting a new tool by each level UP%X". A price with no gain
+				beside it is a bill; the gain is the reason to pay it, so it
+				leads the line.
+
+				Derived from C.TOOL_DMG_STEP, never written out. That constant is
+				perLevel(TOOL_CLIMB_DAMAGE) and so moves with TOOL_MAX_LEVEL --
+				at the current cap of 30 it reads +22%, and if the cap moves this
+				line follows it instead of advertising a number the game stopped
+				applying. Pricing is already never computed in this file; the
+				same rule holds for the damage it quotes.
+			]]
+			local gain = ""
+			local step = tonumber(C.TOOL_DMG_STEP)
+			if step and step > 1 then
+				gain = string.format("+%d%% damage  \u{00B7}  ",
+					math.floor((step - 1) * 100 + 0.5))
+			end
+			local line = gain .. string.format("%s %s  \u{00B7}  %s dust",
 				num(costOre or 0), (oreDef and oreDef.name) or "ore", num(costDust or 0))
 			label(f, line, 12, (okOre and okDust) and GREEN or MUTED,
 				UDim2.fromOffset(12, 48), UDim2.new(1, -250, 0, 14))

@@ -62,7 +62,7 @@ MineGear.SETS = {
 	{ id = "inferno", name = "Inferno", stat = "blastRadius", fantasy = "Fire / blast" },
 	{ id = "glacier", name = "Glacier", stat = "swingRate", fantasy = "Frost tempo" },
 	{ id = "tide", name = "Tide", stat = "backpack", fantasy = "Water haul" },
-	{ id = "canopy", name = "Canopy", stat = "oreYield", fantasy = "Grass harvest" },
+	{ id = "canopy", name = "Canopy", stat = "blastChance", fantasy = "Grass harvest" },
 	{ id = "bedrock", name = "Bedrock", stat = "dirtBreak", fantasy = "Ground excavate" },
 	{ id = "foundry", name = "Foundry", stat = "coinBonus", fantasy = "Metal refine" },
 	{ id = "storm", name = "Storm", stat = "zap", fantasy = "Electric chain zap" },

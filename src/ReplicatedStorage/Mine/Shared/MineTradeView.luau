@@ -142,22 +142,15 @@ local function rarityInk(row, kind)
 	if kind == "cards" then
 		return (Cards.RARITY_COLOR and Cards.RARITY_COLOR[row.rarityId or ""]) or T.MUTED
 	end
-	if kind == "fossils" then
-		-- Fossil identities use the card rarity words, so they share the ramp.
-		return (Cards.RARITY_COLOR and Cards.RARITY_COLOR[row.rarityId or row.rarity or ""]) or T.GOLD
-	end
 	return T.GOLD
 end
 
-local KINDS = { "cards", "packs", "runes", "gear", "potions", "fossils" }
-local KIND_LABEL = { cards = "Cards", packs = "Packs", runes = "Runes", gear = "Gear", potions = "Potions", fossils = "Fossils" }
+local KINDS = { "cards", "packs", "runes", "gear", "potions" }
+local KIND_LABEL = { cards = "Cards", packs = "Packs", runes = "Runes", gear = "Gear", potions = "Potions" }
 
--- The profile stores fossil pieces as p.fossilPieces; the trade window calls
--- the tab "fossils" like every other kind, so map the one name that differs.
+-- There was a sixth tab, "fossils", reading p.fossilPieces. Fossils are retired
+-- (§0.12) and every piece was cashed out, so the tab is gone with the kind.
 local function bagSource(snap, bagKind)
-	if bagKind == "fossils" then
-		return snap.fossilPieces or {}
-	end
 	return snap[bagKind] or {}
 end
 local CURRENCIES = {
@@ -213,12 +206,6 @@ local function stackKey(kind, row)
 			.. "|" .. tostring(row.rarity or "")
 			.. "|" .. tostring(row.slot or "")
 	end
-	if kind == "fossils" then
-		-- 100 pieces of one recipe assemble into a tool, so a bag holds piles of
-		-- identical pieces. Stack by what they are, never by piece id.
-		return "fossil:" .. tostring(row.fossilId or "?")
-			.. "|" .. tostring(row.rarityId or row.rarity or "")
-	end
 	return kind .. ":" .. tostring(idOf(kind, row))
 end
 
@@ -233,9 +220,6 @@ local function rarityRank(kind, row)
 	end
 	if kind == "runes" then
 		return tonumber(row.tier) or 0
-	end
-	if kind == "fossils" then
-		return (Cards.RARITY_RANK and Cards.RARITY_RANK[row.rarityId or row.rarity or ""]) or 0
 	end
 	if kind == "packs" then
 		if row.kind == "lucky_block" or row.blockId then
@@ -621,7 +605,7 @@ function MineTradeView.mount(gui, opts)
 	-- State
 	----------------------------------------------------------------------------
 	local session = nil -- the last sync, exactly as the server sent it
-	local mine = { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {}, fossils = {} } -- ids
+	local mine = { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {} } -- ids
 	local confirmUntil = 0
 	local peek = nil -- the other bag, when asked for
 	local noteUntil, noteText = 0, nil
@@ -751,12 +735,6 @@ function MineTradeView.mount(gui, opts)
 				tostring(row.setName or row.name or "Gear"),
 				tostring(row.slot or ""),
 			}
-		elseif kind == "fossils" then
-			lines = {
-				tostring(row.rarityId or row.rarity or ""),
-				tostring(row.fossilId or "Fossil piece"),
-				"100 matching pieces assemble into a tool",
-			}
 		elseif kind == "packs" then
 			lines = {
 				tostring(row.packId or ""),
@@ -815,7 +793,7 @@ function MineTradeView.mount(gui, opts)
 			end
 		end
 		if #free > 0 then
-			local total = #mine.cards + #mine.packs + #mine.runes + #mine.gear + #(mine.potions or {}) + #(mine.fossils or {})
+			local total = #mine.cards + #mine.packs + #mine.runes + #mine.gear + #(mine.potions or {})
 			if total >= ((session and session.maxItems) or 16) then
 				return
 			end
@@ -984,9 +962,6 @@ function MineTradeView.mount(gui, opts)
 		end
 		for _, ct in ipairs(snap.chestTools or {}) do
 			if type(ct) == "table" and ct.runeId then busy[ct.runeId] = true end
-		end
-		for _, ft in pairs(snap.fossilTools or {}) do
-			if type(ft) == "table" and ft.runeId then busy[ft.runeId] = true end
 		end
 		for _, id in pairs(snap.petSockets or {}) do busy[id] = true end
 		return busy
@@ -1460,7 +1435,7 @@ function MineTradeView.mount(gui, opts)
 		end
 		-- Your offer is whatever the server kept: rebuild the ids from it.
 		local view = S("offer") or {}
-		mine = { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {}, fossils = {} }
+		mine = { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {} }
 		for _, c in ipairs(CURRENCIES) do
 			mine[c.key] = tonumber(view[c.key]) or 0
 			local box = myBoxes[c.key]

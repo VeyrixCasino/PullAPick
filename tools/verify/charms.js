@@ -20,10 +20,12 @@ const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "../..");
 const SHARED = path.join(ROOT, "src/ReplicatedStorage/Mine/Shared");
-const LUAU = path.join(ROOT, ".luau-bin/luau");
+const Luau = require("./_luau");
+const LUAU = Luau.LUAU;
 
-if (!fs.existsSync(LUAU)) {
-  console.log("luau not present (.luau-bin/luau) — run tools/verify/syntax.sh first; skipping");
+if (!Luau.ready) {
+  // Names the platform and the fix, rather than "skipping" with no reason.
+  console.log(Luau.missing("luau") + "; skipping");
   process.exit(0);
 }
 
@@ -68,7 +70,7 @@ Random = { new = function() return { NextNumber = function() return 0.5 end, Nex
 
 local STUB_CONFIG = {
 	ORE_COUNT = ${EXPECTED_ORES},
-	ORE_BAND_ORDER = { ${BANDS.map((b) => `"${b}"`).join(", ")} },
+	ORE_BAND_ORDER = { ${BANDS.map((b) => JSON.stringify(b)).join(", ")} },
 	ZONES = { {id="z1"},{id="z2"},{id="z3"},{id="z4"},{id="z5"},{id="z6"},{id="z7"},{id="z8"},{id="z9"},{id="z10"},{id="z11"} },
 	ORES = {
 ${oreRows}
@@ -258,6 +260,104 @@ check(MineCharms.ownsAnyCharm({ charms = { [ore[1].id] = 1 } }) == true, "a tall
 check(MineCharms.ownsAnyCharm({ charms = { [ore[1].id] = true } }) == true, "a legacy true is ownership")
 
 print("")
+--[[
+	MERGING: three copies into one a tier deeper.
+
+	The claim the implementation makes is that a merge is a TRADE rather than an
+	upgrade -- the charm one tier up has a different shape, so you are buying
+	depth and variety rather than a bigger number (TODO 0.13). That is an
+	arithmetic consequence of how charms are indexed, not a hope, so it is
+	checked: k = (tier-1) * variants + (variant-1), shape = k % #SHAPES, and a
+	merge moves k by exactly "variants". If that ever stops changing the shape,
+	merging silently becomes a pure power ladder and this fails.
+]]
+--[[
+	MERGING COSTS GEMS, NOT CHARMS. Owner, 2026-10-04: "rather than merging it
+	should cost gems."
+
+	This used to assert MERGE_COST >= 2 -- that eating copies was "a real
+	cost". That WAS the design, and it is exactly the design the owner threw
+	out: if three of a thing make one of a thing, each one is worth a third of
+	a thing, which is the "everything feels worthless" problem in its purest
+	form. One charm in, one charm out, and gems pay for the step.
+]]
+check(math.floor(tonumber(MineCharms.MERGE_COST) or 0) == 1,
+	("merging consumes exactly one charm (%s)"):format(tostring(MineCharms.MERGE_COST)))
+check(type(MineCharms.mergeGemCost) == "function", "merging has a gem price")
+if type(MineCharms.mergeGemCost) == "function" then
+	local lo, hi = MineCharms.mergeGemCost(1), MineCharms.mergeGemCost(60)
+	check(lo > 0, ("a tier-1 merge costs %d gems"):format(lo))
+	check(hi > lo, ("...and a deep one costs more (%d at tier 60)"):format(hi))
+	local rising = true
+	for t = 2, 82 do
+		if MineCharms.mergeGemCost(t) < MineCharms.mergeGemCost(t - 1) then rising = false end
+	end
+	check(rising, "the gem price never steps backwards with tier")
+end
+
+local topTier, merged, sameShape, wrongVariant, wrongTier = 0, 0, 0, 0, 0
+for _, o in ipairs(STUB_CONFIG.ORES) do
+	topTier = math.max(topTier, o.tier)
+end
+for _, o in ipairs(STUB_CONFIG.ORES) do
+	for v = 1, ${VARIANTS} do
+		local id = MineCharms.oreCharmId(o.id, v)
+		local srcDef = MineCharms.byId(id)
+		local tgtId, tgtDef, why = MineCharms.mergeTarget(id)
+		if o.tier >= topTier then
+			if tgtId ~= nil then
+				wrongTier += 1
+				print("          the deepest charm " .. id .. " still offers a merge")
+			end
+			if not why then
+				wrongTier += 1
+				print("          " .. id .. " refuses without saying why")
+			end
+		elseif not tgtId then
+			wrongTier += 1
+			print("          " .. id .. " cannot merge: " .. tostring(why))
+		else
+			merged += 1
+			if tgtDef.variant ~= v then wrongVariant += 1 end
+			if tgtDef.tier ~= o.tier + 1 then wrongTier += 1 end
+			-- The property that makes it a trade.
+			local function shapeOf(d)
+				return d and d.shape or (d and d.shapeId) or nil
+			end
+			local a, b = shapeOf(srcDef), shapeOf(tgtDef)
+			if a ~= nil and a == b then
+				sameShape += 1
+			end
+		end
+	end
+end
+check(merged > 0, ("every ore charm below the top merges (%d of them)"):format(merged))
+check(wrongTier == 0, "a merge goes exactly one tier up, and the top tier refuses with a reason")
+check(wrongVariant == 0, "a merge keeps its variant")
+check(sameShape == 0,
+	("a merge always changes the SHAPE, so it is a trade not an upgrade (%d kept it)"):format(sameShape))
+
+-- Legacy charms must not feed the ladder: §6.0 still has an open owner call on
+-- whether they are retired at all, and merging them would decide it quietly.
+local legacyChecked, legacyMergeable = 0, 0
+for _, d in ipairs(MineCharms.LIST) do
+	if d.source ~= "ore" then
+		legacyChecked += 1
+		if (MineCharms.mergeTarget(d.id)) ~= nil then legacyMergeable += 1 end
+	end
+end
+check(legacyChecked > 0 and legacyMergeable == 0,
+	("the %d legacy charms do not merge"):format(legacyChecked))
+
+-- A chain has to terminate, or a client walking it to show the ladder hangs.
+local walk, steps = MineCharms.oreCharmId(STUB_CONFIG.ORES[1].id, 1), 0
+while walk and steps < 500 do
+	walk = (MineCharms.mergeTarget(walk))
+	steps += 1
+end
+check(steps < 500 and steps == topTier,
+	("the merge chain terminates, in %d steps for %d tiers"):format(steps, topTier))
+
 if fail == 0 then
 	print(">>> charms: all assertions passed")
 else

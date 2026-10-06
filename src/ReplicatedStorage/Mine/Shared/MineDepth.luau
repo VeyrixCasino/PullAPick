@@ -7,16 +7,82 @@ local MineDepth = {}
 
 MineDepth.ZONE_HP_MULT = 5 -- x5 per zone. Ten zones is a bounded set, so a
 -- geometric zone term is safe; depth is unbounded, so its term is linear.
--- Outposts every 500 to 3000, then every 1000 to 10000. The widening is
--- deliberate: 500 layers is a shorter and shorter stretch of progress the deeper
--- you go, so past 3000 the same effort buys one outpost instead of two.
---
--- 10000 is the LAST seam, not the bottom of the mine. gateForLayer returns the
--- deepest seam at or below a layer, so buying 10000 opens everything beneath it
--- and depth carries on by the same formula with no further gate or outpost.
-MineDepth.SEAMS = { 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000 }
+--[[
+	OUTPOSTS EVERY 500, ALL THE WAY TO THE FLOOR.
+
+	Owner, 2026-10-05: "make outposts at every 500 depth".
+
+	This used to widen to every 1000 past 3000, on the reasoning that 500 layers
+	is a shorter stretch of progress the deeper you go. The widening is dropped:
+	a fixed rhythm is the point, and the band's own income still prices each gate
+	at SEAM_MINUTES, so a narrower band is simply a cheaper gate rather than a
+	worse deal.
+
+	3500 and 4500 ARE NOT NEW. The ladder ran every 500 once before, and the
+	world still carries DepthPlaza_<zone>_3500 and _4500 folders in Pits --
+	dressed, walled, 8 children each -- for all eleven zones. They were orphaned
+	when the ladder widened: every loop in MineDepthPlazas iterates SEAMS, so the
+	builder stopped maintaining them, the elevator stopped giving them a floor
+	and no gate ever landed on them. MineDepthShop's DESK_SEAM never lost its
+	outpost_3500 / outpost_4500 keys either. Putting them back on the ladder
+	adopts that geometry rather than building anything.
+
+	10000 is the LAST seam, not the bottom of the mine. gateForLayer returns the
+	deepest seam at or below a layer, so buying 10000 opens everything beneath it
+	and depth carries on by the same formula with no further gate or outpost.
+
+	NOTE: MineConfig.LAYERS is 5000, so every seam past it is currently
+	unreachable. They are left on the ladder because the ladder is not the thing
+	that decides the floor.
+]]
+MineDepth.SEAMS = {
+	500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000,
+	6000, 7000, 8000, 9000, 10000,
+}
 MineDepth.AIR_GAP = 5 -- layers of air ending at seam (e.g. 496-500)
-MineDepth.DEPTH_SELL_FRAC = 0.78
+
+--[[
+	HOW MUCH MORE A DESK PAYS, PER 500m OF DEPTH.
+
+	Owner, 2026-10-05: "make seams sell for more not less".
+
+	Compounding per seam step, so the ladder is smooth and always upward:
+
+	    seam   500 -> x1.05      seam  3000 -> x1.34
+	    seam  1000 -> x1.10      seam  5000 -> x1.63
+	    seam  1500 -> x1.16      seam 10000 -> x2.65
+
+	Surface stays x1.00, and every desk beats it, so hauling your ore back up
+	is never the better play -- which is the whole point of an outpost.
+
+	WHAT THIS REPLACES. The old curve was not a curve. It read
+
+	    steps = equivZoneIndex(zone, seam) - zone
+	    mult  = ZONE_HP_MULT ^ steps * DEPTH_SELL_FRAC
+
+	and equivZoneIndex only special-cased two seams: +4 at 500 and +6 at 1500.
+	So seam 500 paid 5^4 x 0.78 = x487.5, seam 1500 paid 5^6 x 0.78 = x12,187.5,
+	and EVERY OTHER SEAM paid x0.78 -- less than the surface. Two spikes with a
+	trough between them: the 1500 desk paid about 15,600 times what the 2000 desk
+	paid for identical ore, so the only correct way to sell anything was to walk
+	to seam 1500. That is a currency printer, and it would have been found within
+	hours of launch.
+
+	It came from the old HP curve, where ZONE_HP_MULT ^ steps stood in for "this
+	rock is really zone N". Ore value already scales with tier, so the desk does
+	not need to restate it -- and restating it compounded a x5-per-zone term into
+	a sell multiplier, which is where the four zeroes came from.
+
+	DEPTH_SELL_FRAC (0.78) is gone rather than retuned. It was a haircut for the
+	convenience of not walking up, and the owner has reversed that: depth is now
+	rewarded, not taxed. Leaving a 0.78 constant lying around would invite
+	someone to reapply it on top of this.
+
+	zoneIndex is no longer read. It never actually mattered: `steps` was
+	(zoneIndex + k) - zoneIndex, so the zone cancelled and the old multiplier was
+	already depth-only. The parameter stays for the two call sites.
+]]
+MineDepth.DEPTH_SELL_PER_SEAM = 1.05
 MineDepth.COMING_SOON_SEAM = 99999
 MineDepth.COMING_SOON_PLAYERS = 50
 MineDepth.DIG_LEAD = 8
@@ -383,15 +449,18 @@ function MineDepth.equivZoneIndex(zoneIndex, seam)
 	return zoneIndex
 end
 
-function MineDepth.depthSellMult(zoneIndex, seam)
-	-- Surface / missing seam: full payout. Depth desks only take the frac haircut.
+-- Surface is the x1 reference; every desk below it pays more, compounding per
+-- 500m. See DEPTH_SELL_PER_SEAM for the table and for what this replaced.
+function MineDepth.depthSellMult(_zoneIndex, seam)
 	if seam == false or seam == nil or seam == 0 then
 		return 1
 	end
-	local equiv = MineDepth.equivZoneIndex(zoneIndex, seam)
-	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
-	local steps = math.max(0, equiv - zoneIndex)
-	return (MineDepth.ZONE_HP_MULT ^ steps) * (MineDepth.DEPTH_SELL_FRAC or 0.78)
+	local depth = math.max(0, tonumber(seam) or 0)
+	local rate = tonumber(MineDepth.DEPTH_SELL_PER_SEAM) or 1.05
+	-- Continuous in `seam`, so a desk added at an unlisted depth still lands on
+	-- the curve instead of needing a new branch -- which is how the old version
+	-- ended up special-casing two seams and forgetting the rest.
+	return rate ^ (depth / 500)
 end
 
 function MineDepth.bandUnlockKey(seam)
@@ -459,14 +528,32 @@ function MineDepth.seamPrice(seam, zoneIndex)
 	if not lo then
 		return nil
 	end
-	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
-	local sum = 0
-	for L = lo, hi do
-		sum += MineDepth.gateCoinValue(zoneIndex, L)
-	end
-	local avgCoinPerBlock = sum / (hi - lo + 1)
-	local coinsPerHour = avgCoinPerBlock * MineDepth.GATE_BLOCKS_PER_HOUR
-	return math.floor(coinsPerHour * (MineDepth.SEAM_MINUTES / 60) + 0.5)
+	--[[
+		SEAMS ARE FREE. Owner, 2026-10-05: "buy seams shouldnt cost anything".
+
+		They used to cost SEAM_MINUTES of the band's income, priced off
+		gateCoinValue. Two things were wrong with that and the owner's call
+		settles both:
+
+		  * Depth is ALREADY gated, by breaking power. MineBreaking refuses any
+		    block whose strength beats your tool, one rung per 50 layers. A coin
+		    price on top was a second gate on the same axis -- pay AND be strong
+		    enough -- and the coin half is the one that just makes you wait.
+		  * The price was computed on gateCoinValue while digging pays one coin
+		    per point of dirtHp, a different curve. Seam 500 was priced as 30
+		    minutes and cost 2.4 hours; seam 5000 cost 31.5. Nobody was getting
+		    the 30 minutes the constant promised.
+
+		Zero, not "removed": every caller already handles a number, the client
+		panel is still the moment you break through, and the ORDER check in
+		Verbs.buySeam still makes you open seams one at a time. What is gone is
+		the bill.
+
+		SEAM_MINUTES and GATE_BLOCKS_PER_HOUR are left alone -- gateCoinValue
+		still has other readers, and deleting a constant this one no longer uses
+		is a separate change.
+	]]
+	return 0
 end
 
 -- The deepest gate a layer sits at or below, or nil if it is above the first one.

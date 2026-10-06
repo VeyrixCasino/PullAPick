@@ -13,6 +13,36 @@ local Debris = game:GetService("Debris")
 local player = Players.LocalPlayer
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared:WaitForChild("MineConfig"))
+
+--[[
+	Which build of src/ is this. First thing in the output window, every Play.
+
+	Twice now a panel has been reported missing when it was in the repo and the
+	Studio serving the place was running ReplicatedStorage from before it was
+	written. The code was never the problem and the output window never said so.
+	Now it does, before anything else has a chance to look broken.
+
+	Guarded both ways: MineBuild going missing is itself the loudest possible
+	staleness signal, so its absence warns rather than throwing and taking the
+	HUD down with it.
+]]
+do
+	local mb = shared:FindFirstChild("MineBuild")
+	if mb then
+		local okB, errB = pcall(function()
+			require(mb).announce(shared)
+		end)
+		if not okB then
+			warn("[MineBuild] announce failed: " .. tostring(errB))
+		end
+	else
+		warn("[MineBuild] THIS STUDIO IS RUNNING OLDER CODE THAN src/: "
+			.. "ReplicatedStorage.Mine.Shared.MineBuild does not exist, and it "
+			.. "has been in the repo since the Forge shipped. Run git pull in "
+			.. "the clone `rojo serve` is serving, reconnect the Rojo plugin, "
+			.. "and Play again.")
+	end
+end
 local Cards = require(shared:WaitForChild("MineCards"))
 local Packs = require(shared:WaitForChild("MinePackConfig"))
 -- The pets. 43 built species with variants, shinies and chroma -- the mine
@@ -20,7 +50,6 @@ local Packs = require(shared:WaitForChild("MinePackConfig"))
 local PetFactory = require(shared:WaitForChild("PetModelFactory"))
 -- The pack-open ceremony, ported from TCG Life. Cards do not just appear.
 local PackFX = require(shared:WaitForChild("MinePackFX"))
-local Fossils = require(shared:WaitForChild("MineFossils"))
 local GradeReveal = require(shared:WaitForChild("MineGradeReveal"))
 local Audio = require(shared:WaitForChild("MineAudio"))
 local net = RS:WaitForChild("Mine"):WaitForChild("Remotes"):WaitForChild("MineNet")
@@ -81,6 +110,39 @@ gui.IgnoreGuiInset = true
 gui.DisplayOrder = 80
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = playerGui
+
+--[[
+	THE HOUSE STYLE, APPLIED TO EVERY PANEL IN THE GAME, FROM ONE LINE.
+
+	Owner, 2026-10-05: "I WANT ALL UIS TO HAVE THAT STYLE".
+
+	Every view in this game mounts into THIS ScreenGui, and each one builds its
+	chrome with its own private mk() -- twenty-five of them, each with its own
+	padding, radius and idea of whether a surface gets a stroke. MineUI.watch
+	walks what they build and normalises the four things that carry the style:
+	theme surface colours, one corner radius per size class, the lit hairline,
+	and the theme type faces.
+
+	It deliberately refuses to touch anything SATURATED, because a coloured fill
+	is carrying meaning -- rarity, a currency, affordable versus blocked -- and
+	repainting it would delete information rather than style it. Layout, size and
+	position are never touched either; this is paint, not surgery.
+
+	It WATCHES rather than runs once, because panels build lazily: a view creates
+	its rows the first time it opens, long after this line runs.
+
+	A panel that genuinely needs to look different sets the NoAdopt attribute on
+	itself. That is the escape hatch, and it should stay rare -- "every screen
+	invented its own" is the problem MineTheme and MineUI exist to end.
+]]
+do
+	local okUI, UI = pcall(function()
+		return require(shared:WaitForChild("MineUI"))
+	end)
+	if okUI and UI and UI.watch then
+		pcall(UI.watch, gui)
+	end
+end
 --[[
 	Audio must never be able to stop the client.
 
@@ -102,7 +164,67 @@ uiScale.Name = "MineUiScale"
 uiScale.Scale = 1
 uiScale.Parent = gui
 
+--[[
+	IT ONLY EVER SCALED DOWN, AND ONLY ON TOUCH.
+
+	Every panel in this game lays out in fixed pixels, so the HUD has one size
+	it was drawn for -- roughly an 820px short side. Below that it dominates a
+	phone, which is what the touch tiers below fix. ABOVE it, nothing happened:
+	on a 2714 x 1026 desktop the scale stayed at 1 and a panel drawn for 820
+	occupied two thirds of the height and a third of the width, which reads as a
+	debug menu floating in a dark field. Owner, 2026-10-05, comparing the shop
+	with a reference screen: "better scaling".
+
+	So the desktop case scales UP toward the same apparent size, against the
+	same 820 baseline the layouts were drawn against.
+
+	Capped at 1.45 on purpose. Past that, fixed-width columns inside the panels
+	start colliding with their own edges -- the cap is the honest limit of
+	pixel layouts, and the real fix for the very largest displays is panels that
+	lay out in scale rather than offset.
+]]
+	-- The baseline and the cap are INSIDE the function on purpose. This script
+	-- sits on Luau's ceiling of 200 top-level locals, and hoisting these two out
+	-- as constants put it over: the whole client failed to compile with "Out of
+	-- local registers when trying to allocate layoutTopbar", so no MineUI
+	-- ScreenGui was ever created and every panel in the game vanished at once.
+	-- Two names cost the entire UI. Do not add top-level locals to this file.
+--[[
+	THE UI IS AUTHORED AT 1080p, AND NOTHING MAY GROW PAST THE SCREEN.
+
+	Owner, 2026-10-06: "all the scaling is super fucked up... rescale to a
+	comfortable scale".
+
+	It was, and it was mine. The previous line was
+
+	    scale = clamp(short / 820, 0.85, 1.45)
+
+	where `short` is the SHORTER side of the viewport -- which on a landscape
+	monitor is its height. So a 1920x1080 desktop scored 1080/820 = x1.32 and a
+	1440p one hit the x1.45 cap: every panel in the game was a third larger than
+	it was drawn. 820 was never a real baseline, it was a number that made a
+	phone look right and quietly inflated everything else.
+
+	Measured on the owner's window (2714x1026) at the old numbers, the group
+	wheel came out 1476x1206 inside a 1026-tall viewport -- a panel taller than
+	the screen it is drawn on.
+
+	1080 is the real baseline: the tallest fixed panel is 964 and the chrome
+	around it needs the rest, so the layout was authored for a 1080-tall screen.
+	At 1080 the scale is exactly 1.
+
+	THE FIT GUARD IS THE PART THAT MATTERS. Whatever the branches below decide,
+	the tallest panel must still fit with a margin, so the last line clamps
+	against the viewport rather than trusting the ladder. Height only: a panel
+	wider than a phone is a RESPONSIVE problem for that panel to solve, and
+	letting width drive this would crush the whole UI to a third of its size on
+	a portrait screen to accommodate one wheel nobody has open.
+
+	PANEL_H is checked by tools/verify/ui-scale.js against the real panels, so a
+	panel that outgrows it fails there instead of overflowing in someone's game.
+]]
 local function refreshMineUiScale()
+	local DESIGN, LO, HI, PANEL_H = 1080, 0.80, 1.25, 964
 	local cam = workspace.CurrentCamera
 	local v = cam and cam.ViewportSize or Vector2.new(1280, 720)
 	local short = math.min(v.X, v.Y)
@@ -117,8 +239,12 @@ local function refreshMineUiScale()
 		else
 			scale = 1
 		end
+	else
+		scale = math.clamp(short / DESIGN, LO, HI)
 	end
-	uiScale.Scale = scale
+	-- The tallest panel, plus a 6% margin, must fit the viewport height.
+	local fit = (v.Y * 0.94) / PANEL_H
+	uiScale.Scale = math.max(0.5, math.min(scale, fit))
 end
 refreshMineUiScale()
 
@@ -1225,12 +1351,55 @@ end
 
 -- Retractable left-side quest drawers (active quest + daily quests).
 -- preferred = user intent when no modal; peeking = temporary expand over a modal.
+--[[
+	THE DRAWER EAR IS PART OF THE FRAME, NOT A THING SITTING ON IT.
+
+	Owner, 2026-10-05: "those arrows are still inside the quest block. is it
+	possible for you just to make it actually a part of the frame, and just make
+	it switch signs (exact same dimensions, scales the same no matter what
+	device, and will permentantly look good)".
+
+	Three things were wrong, and all three were geometry:
+
+	  * it OVERLAPPED. The ear sat at Position (1, -tuck) -- six pixels back
+	    inside the card -- and drew at ZIndex 45, above it. Shrinking the tuck
+	    from 20 to 6 moved it off the labels but it was still on top of the card,
+	    which is what reads as "inside the quest block".
+	  * it was FULL HEIGHT, Size (1, _, 1, 0). So the active-quest ear and the
+	    daily ear were different heights, and both changed height whenever a card
+	    grew a row. Nothing about it was fixed.
+	  * it was PER-DEVICE, 28 wide on a phone against 24 elsewhere, so it was a
+	    different shape on a phone for no reason.
+
+	Now: a fixed 24 x 46 tab, vertically centred on the card's right edge and
+	sitting OUTSIDE it. Same numbers on every device -- MineClient's UIScale
+	already scales the whole tree, so design pixels here stay identical in
+	proportion on a phone and on a monitor.
+
+	Only the glyph changes with state, which is all the owner asked to change:
+	the sign flips between the two directions.
+
+	The one remaining overlap is four pixels, and it is not padding -- it is the
+	square EarBody covering the rounded EarTip's LEFT stroke, which a UIStroke
+	draws just outside the tip's border and which would otherwise read as a
+	divider line down the join. Four pixels of card-coloured fill on a card whose
+	right-aligned labels all stop 15px short: invisible, and clear of every
+	number by eleven pixels.
+]]
 function ClientFns.questDrawerTabW()
-	return ClientFns.questIsPhone() and 28 or 24
+	return 24
+end
+
+function ClientFns.questDrawerEarH()
+	return 46
+end
+
+function ClientFns.questDrawerEarR()
+	return 12
 end
 
 function ClientFns.questDrawerTuck()
-	return 20
+	return 4
 end
 
 function ClientFns.questDrawerEnsure()
@@ -1255,45 +1424,40 @@ function ClientFns.questDrawerEnsure()
 	end
 	ClientFns.questDrawerPeeking = false
 	ClientFns.questDrawerRestX = ClientFns.questDrawerRestX or 16
-	local function makeTab(name, color, glyph, radius)
+	local function makeTab(name, color, glyph)
 		local tuck = ClientFns.questDrawerTuck()
 		local ear = ClientFns.questDrawerTabW()
+		local earH = ClientFns.questDrawerEarH()
+		local r = ClientFns.questDrawerEarR()
+		-- Both ears are the same shape. The old code sized the daily ear's
+		-- radius at 16 and the quest ear's at 18, so the two never matched.
 		local tab = mk("TextButton", {
 			Name = name,
 			AutoButtonColor = true,
 			BackgroundColor3 = Color3.fromRGB(12, 14, 20),
 			BackgroundTransparency = 1,
 			Font = FONT,
-			TextSize = ClientFns.questIsPhone() and 20 or 18,
+			TextSize = 18,
 			TextColor3 = color,
 			Text = "",
-			AnchorPoint = Vector2.new(0, 0),
-			Position = UDim2.new(1, -tuck, 0, 0),
-			Size = UDim2.new(0, tuck + ear, 1, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(1, -tuck, 0.5, 0),
+			Size = UDim2.fromOffset(tuck + ear, earH),
 			ZIndex = 45,
 			Visible = false,
 			BorderSizePixel = 0,
 		}, gui)
-		local r = radius or (name == "DailyDrawerTab" and 16 or 18)
 		local fill = Color3.fromRGB(12, 14, 20)
-		local body = mk("Frame", {
-			Name = "EarBody",
-			BackgroundColor3 = fill,
-			BackgroundTransparency = 0.08,
-			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(0, 0),
-			Size = UDim2.new(1, -r + 2, 1, 0),
-			ZIndex = 46,
-			Active = false,
-		}, tab)
+		-- The tip is the whole ear, rounded on all four corners. The body then
+		-- squares off its left side and hides the stroke there, so what shows is
+		-- a tab that grows out of the card's edge rather than a pill beside it.
 		local tip = mk("Frame", {
 			Name = "EarTip",
 			BackgroundColor3 = fill,
 			BackgroundTransparency = 0.08,
 			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 0),
-			Size = UDim2.new(0, r * 2, 1, 0),
+			Position = UDim2.fromOffset(0, 0),
+			Size = UDim2.fromScale(1, 1),
 			ZIndex = 45,
 			Active = false,
 		}, tab)
@@ -1302,6 +1466,16 @@ function ClientFns.questDrawerEnsure()
 		st.Name = "EarStroke"
 		st.Color = color
 		st.Transparency = 0.15
+		local body = mk("Frame", {
+			Name = "EarBody",
+			BackgroundColor3 = fill,
+			BackgroundTransparency = 0.08,
+			BorderSizePixel = 0,
+			Position = UDim2.fromOffset(-3, 0),
+			Size = UDim2.fromOffset(tuck + r + 3, earH),
+			ZIndex = 46,
+			Active = false,
+		}, tab)
 		mk("Frame", {
 			Name = "EarHairTop",
 			BackgroundColor3 = color,
@@ -1327,7 +1501,7 @@ function ClientFns.questDrawerEnsure()
 			Name = "EarGlyph",
 			BackgroundTransparency = 1,
 			Font = FONT,
-			TextSize = ClientFns.questIsPhone() and 20 or 18,
+			TextSize = 18,
 			TextColor3 = color,
 			Text = glyph,
 			Size = UDim2.new(0, ear, 1, 0),
@@ -1390,8 +1564,12 @@ function ClientFns.refreshQuestDrawerTabs()
 		end
 		tab.Visible = show
 		tab.ZIndex = z
-		tab.Size = UDim2.new(0, tuck + ear, 1, 0)
-		tab.Position = UDim2.new(1, -tuck, 0, 0)
+		-- Fixed size, centred on the card's right edge. Restated here because
+		-- this runs after every tween and after every layout pass, so whatever
+		-- it sets is what the ear actually ends up as.
+		tab.AnchorPoint = Vector2.new(0, 0.5)
+		tab.Size = UDim2.fromOffset(tuck + ear, ClientFns.questDrawerEarH())
+		tab.Position = UDim2.new(1, -tuck, 0.5, 0)
 		local gl = tab:FindFirstChild("EarGlyph")
 		if gl then
 			gl.Text = glyph
@@ -2200,8 +2378,6 @@ end
 -- What is currently ticked, and which tab is showing. One table rather than two
 -- locals: this file is near the 200 top-level local ceiling.
 local scrapUI = { sel = {}, tab = "cards" }
-local fossilP = panel("Fossil Bench")
-fossilP.Size = UDim2.fromScale(0.94, 0.92)
 local enchantP = panel("Enchanter")
 enchantP.Size = UDim2.fromScale(0.94, 0.92)
 if enchantP.Body then
@@ -2542,7 +2718,22 @@ dockBtn(ICONS.events, "Events", function()
 		eventsCtl.setState(snap)
 	end
 	eventsCtl.open()
-end, { clearPlate = true })
+end)
+--[[
+	EVENTS GETS THE SAME PLATE AS EVERY OTHER DOCK BUTTON.
+
+	Owner, 2026-10-05: "can you remove the background to the event icon, and then
+	put a ui button block under it, so it matches every other icon in the row".
+
+	It used to pass clearPlate, which switched off the 56px plate AND its
+	hairline, so Events was the one button in the column with nothing behind it --
+	the art sat straight on the world. That was done because the popper asset had
+	a plate baked into it, and two plates looked worse than none.
+
+	Dropping clearPlate puts the standard block back. If the baked plate is still
+	in the asset the art needs a transparent re-upload; the id lives in ICONS at
+	the top of this file and nothing else has to change.
+]]
 dockBtn(ICONS.skills, "Jobs", function()
 	if depthHud.contractor then
 		if snap then
@@ -2556,14 +2747,83 @@ dockBtn(ICONS.skills, "Jobs", function()
 		end
 	end
 end)
-dockBtn(ICONS.prestige, "Rebirth", function()
-	local on = not presP.Visible
-	hidePanels()
-	presP.Visible = on
-	if on and refreshPrestige then
-		refreshPrestige()
+--[[
+	REBIRTH SITS IN THE TOPBAR, NOT IN THE DOCK.
+
+	Owner, 2026-10-05: "rebirth is annoyinly inside of the invenotry and shop
+	icom.. just put rebirth icon top left next to the roblox mute button".
+
+	It was the ninth dock button, and the dock reflows into extra columns when
+	nine 78px cells do not fit the screen height -- which is most screens. So
+	Rebirth kept landing in a second column beside Shop and Inventory. Moving it
+	out fixes the crowding at the source rather than re-tuning layoutDock: the
+	dock is back to eight, which fits one column nearly everywhere.
+
+	GuiService.TopbarInset is the supported way to find the strip Roblox's own
+	buttons are NOT using. Min.X is where its left-hand cluster ends, so sitting
+	just past that puts this next to the mute button at any topbar size, on any
+	device, without guessing pixel offsets. It is wrapped and defaulted because
+	the property is newer than some clients and reads as a zero Rect before the
+	topbar has laid out -- 104 x 4 is where the cluster ends on a default topbar.
+]]
+do
+	local btn = mk("TextButton", {
+		Name = "RebirthTopbar",
+		Text = "",
+		AutoButtonColor = false,
+		Active = true,
+		BackgroundColor3 = Color3.fromRGB(12, 14, 20),
+		BackgroundTransparency = 0.08,
+		Position = UDim2.fromOffset(104, 4),
+		Size = UDim2.fromOffset(36, 36),
+		ZIndex = 30,
+	}, gui)
+	round(btn, 10)
+	stroke(btn, 1.5)
+	mk("ImageLabel", {
+		Name = "Icon",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Image = ICONS.prestige,
+		ScaleType = Enum.ScaleType.Fit,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(26, 26),
+		ZIndex = 31,
+		Active = false,
+	}, btn)
+	btn.MouseButton1Click:Connect(function()
+		local on = not presP.Visible
+		hidePanels()
+		presP.Visible = on
+		if on and refreshPrestige then
+			refreshPrestige()
+		end
+	end)
+
+	function ClientFns.layoutRebirthTopbar()
+		local x, y, h = 104, 4, 36
+		local ok, inset = pcall(function()
+			return GuiService.TopbarInset
+		end)
+		if ok and inset and inset.Width > 0 then
+			x = inset.Min.X + 8
+			y = inset.Min.Y + 2
+			-- Fit the topbar's own height rather than overhanging it.
+			h = math.clamp(inset.Height - 4, 24, 44)
+		end
+		-- uiScale stretches the whole tree, so the offsets have to be divided
+		-- back out or the button drifts right as the scale grows.
+		local k = math.max(0.05, uiScale.Scale)
+		btn.Position = UDim2.fromOffset(x / k, y / k)
+		btn.Size = UDim2.fromOffset(h / k, h / k)
 	end
-end)
+	ClientFns.layoutRebirthTopbar()
+	uiScale:GetPropertyChangedSignal("Scale"):Connect(ClientFns.layoutRebirthTopbar)
+	pcall(function()
+		GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(ClientFns.layoutRebirthTopbar)
+	end)
+end
 --[[
 	Settings (sound, codes, invites, notifications) is a gear on the right end
 	of the wallet, not a tenth dock button: a tenth button pushed the dock into
@@ -2968,6 +3228,9 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onSellTool = function(payload) net:FireServer("sellTool", payload) end,
 	onScrapGear = function(id) net:FireServer("scrap", { kind = "gear", id = id }) end,
+	-- Three charms into one a tier deeper. The server owns the cost and the
+	-- target (MineCharms.MERGE_COST / mergeTarget); this only names the charm.
+	onMergeCharm = function(id) net:FireServer("mergeCharm", { id = id }) end,
 	--[[
 		Bulk scrap goes out twice. The first call carries no confirm flag and is
 		the ASK -- the server builds the plan and replies with `confirmScrap`,
@@ -3229,7 +3492,7 @@ end
 ]]
 ClientFns.STATION_LABEL = {
 	sell = "SELL", shop = "BLACKSMITH", enchanter = "ENCHANTER", contractor = "JOBS",
-	fossil = "RETIRED", prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
+	prestige = "REBIRTH", chest = "CHEST", mine = "MINE", pit = "MINE",
 }
 
 function ClientFns.pitWaypointPos()
@@ -4407,9 +4670,20 @@ function ClientFns.othersPets()
 						if st then
 							st[m] = nil
 						end
-						m:PivotTo(root.CFrame * CFrame.new((i - 2) * 2.15, 0.04, 3.2))
+						-- Same centring as the follow step, or a pet pops in
+						-- off-formation and then slides across to its place.
+						local n = 0
+						for _ in pairs(rec.models) do
+							n += 1
+						end
+						m:PivotTo(root.CFrame
+							* CFrame.new((i - (math.max(1, n) + 1) / 2) * 2.15, 0.04, 3.2))
 					end
-					ClientFns.stepPetFollow(m, root, i, now, dt)
+					local n = 0
+					for _ in pairs(rec.models) do
+						n += 1
+					end
+					ClientFns.stepPetFollow(m, root, i, now, dt, n)
 					if m:GetAttribute("Variant") == "Rainbow" then
 						PetFactory.animateChroma(m, now)
 					end
@@ -4478,6 +4752,18 @@ depthHud.contractor = require(shared:WaitForChild("MineContractor")).mount(gui, 
 
 local Scrolls = require(shared:WaitForChild("MineScrolls"))
 shopCtl = ShopView.mount(gui, {
+	--[[
+		The Forge reports the skin and rune on the selected tool's family and
+		sends you to the Enchanter to change either, rather than growing a second
+		copy of those two screens. routePanel hides the shop on the way, so this
+		is a jump and not an overlay.
+	]]
+	onOpenEnchanter = function(tab)
+		if ClientFns.teleportToEnchanter then
+			ClientFns.teleportToEnchanter()
+		end
+		ClientFns.routePanel("enchanter", tostring(tab or "sockets"))
+	end,
 	onBuyTool = function(family, tier, toolId)
 		if toolId then
 			net:FireServer("buyTool", { toolId = toolId, family = family, tier = tier })
@@ -4688,6 +4974,38 @@ forgeCtl = ForgeView.mount(gui, {
 	onScrapTemper = function(payload) net:FireServer("scrapTemper", payload) end,
 })
 
+--[[
+	THE GAME'S OWN HOTBAR, in place of Roblox's.
+
+	Owner, 2026-10-05: "remove the real pickaxe from my hotbar. and make a
+	fake/custom hotbar, that allows me to equip and unequip as i please, without
+	having that weird grey cube".
+
+	The grey cube is the core Backpack UI drawing a Tool that has no TextureId.
+	MineHotbar switches that UI off and draws the bar out of MineIcons instead,
+	so the slots carry the same art as every other panel. Equip and unequip are
+	one verb: equipOreTool already reads an empty uid as "put it away", so
+	clicking the slot you are holding IS the unequip.
+]]
+do
+	local okHB, HB = pcall(function()
+		return require(shared:WaitForChild("MineHotbar"))
+	end)
+	if okHB and HB and HB.mount then
+		local okM, ctl = pcall(HB.mount, gui, {
+			getSnap = function()
+				return snap or {}
+			end,
+			onEquip = function(uid)
+				net:FireServer("equipOreTool", { uid = uid })
+			end,
+		})
+		if okM then
+			ClientFns.hotbarCtl = ctl
+		end
+	end
+end
+
 eventsCtl = require(shared:WaitForChild("MineEventsView")).mount(gui, {
 	config = C,
 	onClaim = function(zoneId)
@@ -4740,7 +5058,7 @@ end
 -- a card grid and a shop carousel have something to put in it, a list of rows
 -- does not.
 local WIDE = { Cards = true, Merge = true, Inventory = true, ShopPanel = true,
-	["Fossil Bench"] = true, Enchanter = true }
+	Enchanter = true }
 for name, f in pairs(panels) do
 	-- A full-screen overlay is not a window. The skill wheel is a radial menu
 	-- drawn across the whole viewport with its own scrim; capping it to a
@@ -5400,13 +5718,13 @@ end
 local CARD_RATIO = 3.5 / 2.5
 
 --[[
-	The face of a fossil piece, a rune or a gear piece.
+	The face of a rune or a gear piece.
 
 	Same silhouette as a card -- rarity banner, art well, name, stat line -- so
 	a mixed reveal reads as one deck rather than as two systems bolted together.
 	What changes is the art well, and every family has real art to put in it:
 	gear has per-set, per-slot, per-rarity images; a rune borrows the icon of
-	the stat it rolls; a fossil borrows its tool family's.
+	the stat it rolls.
 
 	Gear, Runes and Icons are required here rather than at the top of the file
 	because MineClient is close to Luau's 200 top-level local ceiling and
@@ -5423,7 +5741,6 @@ function ClientFns.paintLoot(parent, item, w)
 	local FAMILY = {
 		gear = { tag = "GEAR", tint = Color3.fromRGB(86, 132, 190) },
 		rune = { tag = "RUNE", tint = Color3.fromRGB(150, 104, 200) },
-		fossil = { tag = "FOSSIL", tint = Color3.fromRGB(196, 146, 72) },
 		gems = { tag = "GEMS", tint = Color3.fromRGB(90, 180, 255) },
 		coins = { tag = "COINS", tint = Color3.fromRGB(240, 200, 90) },
 		stardust = { tag = "STARDUST", tint = Color3.fromRGB(210, 160, 255) },
@@ -5447,9 +5764,6 @@ function ClientFns.paintLoot(parent, item, w)
 		image = Gear.image(item.gear)
 	elseif item.kind == "rune" and item.rune then
 		image = Icons.image(item.rune.stat)
-	elseif item.kind == "fossil" and item.fossil then
-		local recipe = Fossils.recipe(item.fossil.fossilId)
-		image = Icons.image(recipe and recipe.family)
 	elseif item.kind == "gems" then
 		image = Icons.image("gems")
 	elseif item.kind == "coins" then
@@ -5599,9 +5913,6 @@ function ClientFns.paintLoot(parent, item, w)
 			.. "  " .. tostring(item.gear.rarity or "")
 	elseif item.kind == "rune" and item.rune then
 		pillText = tostring(item.rune.kind or "") .. "  T" .. tostring(item.rune.tier or 1)
-	elseif item.kind == "fossil" and item.fossil then
-		local recipe = Fossils.recipe(item.fossil.fossilId)
-		pillText = (recipe and recipe.family or "piece") .. "  piece"
 	elseif isCurrency then
 		pillText = fam.tag
 	elseif item.kind == "tool" then
@@ -5616,8 +5927,8 @@ function ClientFns.paintLoot(parent, item, w)
 		Text = pillText,
 	}, pill)
 
-	-- The right-hand number is the reason to want it: a percentage for gear and
-	-- runes, the seam depth for a fossil piece.
+	-- The right-hand number is the reason to want it: a percentage for gear
+	-- and runes.
 	local right = ""
 	if item.kind == "gear" and item.gear then
 		local slots = item.gear.slotCount or 0
@@ -5630,8 +5941,6 @@ function ClientFns.paintLoot(parent, item, w)
 			or socketText
 	elseif item.kind == "rune" and item.rune then
 		right = string.format("+%.2f%%", (item.rune.pct or 0) * 100)
-	elseif item.kind == "fossil" and item.fossil then
-		right = "layer " .. tostring(item.fossil.layer or 1)
 	elseif item.kind == "tool" and tonumber(item.power) then
 		right = "power " .. ClientFns.commas(math.floor(tonumber(item.power)))
 	end
@@ -5669,7 +5978,7 @@ end
 	The same model the hand holds (ToolModelFactory.fromNamed, finish applied
 	live), stood on its handle the way the shop does it, and framed by its own
 	bounding sphere so a stubby bomb and a long lance both fill the well. A tool
-	with no named model (proto, fossil) gets its family's procedural build.
+	with no named model (a proto) gets its family's procedural build.
 ]]
 function ClientFns.toolViewport(parent, item, aspect)
 	local ok, err = pcall(function()
@@ -5776,8 +6085,8 @@ function ClientFns.toolViewport(parent, item, aspect)
 end
 
 paintCard = function(parent, card, w)
-	-- One painter for everything the reveal and the binder can show. A fossil,
-	-- rune or gear item carries `kind`; a card does not.
+	-- One painter for everything the reveal and the binder can show. A rune or
+	-- gear item carries `kind`; a card does not.
 	if type(card) == "table" and card.kind and card.kind ~= "card" then
 		return ClientFns.paintLoot(parent, card, w)
 	end
@@ -6053,7 +6362,7 @@ refreshBinder = function()
 		#(snap.equipped or {}),
 		snap.petSlotsEffective or snap.petSlots or 3,
 		math.floor(((b.mineSpeed or 1) - 1) * 100 + 0.5),
-		math.floor((b.oreYield or 0) * 100 + 0.5),
+		math.floor((b.blastChance or 0) * 100 + 0.5),
 		math.floor(((b.luck or 1) - 1) * 100 + 0.5),
 		math.floor(((b.walkSpeed or 1) - 1) * 100 + 0.5),
 		math.floor(((b.dirtBreak or 1) - 1) * 100 + 0.5),
@@ -7161,51 +7470,13 @@ local function refreshDust()
 	end
 end
 
--- Retired with the fossil system. Always zero: a save's pieces were cashed out
--- to gems on load, and nothing drops a new one.
-function ClientFns.countFossilPieces(fossilId)
-	local n = 0
-	for _, piece in ipairs(snap.fossilPieces or {}) do
-		if piece.fossilId == fossilId then
-			n += 1
-		end
-	end
-	return n
-end
-
 --[[
-	The Fossil Bench, laid out like the Enchanter.
-
-	It was a flat column of buttons -- a header row, then an Assemble row, then
-	an Equip row, then two Sell rows, sixteen times over. You could not see at a
-	glance which fossil you were close to finishing, which is the only question
-	the screen has to answer.
-
-	Now it is a grid of the same tiles the rune view uses: one card per recipe,
-	progress on it, and the action it currently supports.
+	The Fossil Bench panel stood here. It had already been reduced to a single
+	"fossils are retired" notice, kept in case a stale waypoint still opened it.
+	Nothing routes to it any more -- the plaza station is gone and the panel key
+	is out of the router, which no-ops on a key it does not know -- so the panel
+	is gone too rather than sitting unreachable with a fossil name on it.
 ]]
---[[
-	THE FOSSIL BENCH PANEL, retired.
-
-	Fossils are gone, and so is the bench. The panel stays reachable only because
-	an old build's button or a stale waypoint can still open it, and an empty
-	frame reads as a broken screen -- so it says what happened instead.
-
-	Anything a save still held was cashed out to gems on load, server-side.
-]]
-local function refreshFossil()
-	clear(fossilP.Body)
-	local box = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -24, 0, 96),
-		Position = UDim2.fromOffset(12, 12), LayoutOrder = 0 }, fossilP.Body)
-	mk("TextLabel", {
-		BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
-		Font = Enum.Font.Gotham, TextSize = 14, TextWrapped = true,
-		TextColor3 = Color3.fromRGB(190, 190, 200),
-		TextYAlignment = Enum.TextYAlignment.Top,
-		Text = "Fossils are retired.\n\nThe pieces and tools you had were paid out in gems. "
-			.. "Your build is CHARMS and SKINS now -- charms drop from ore cases, skins come out of the same cases.",
-	}, box)
-end
 refreshZones = function()
 	if not snap then
 		return
@@ -7409,7 +7680,13 @@ function ClientFns.confirmSeam(payload)
 	local price = tonumber(payload.price) or 0
 	local coins = tonumber(payload.coins) or (snap and snap.coins) or 0
 	local minutes = tonumber(payload.minutes) or 30
-	if seam <= 0 or price <= 0 then
+	--[[
+		`price <= 0` used to bail here. Seams are free as of 2026-10-05, so that
+		guard would have swallowed every seam panel in the game and recreated
+		the exact "everyone stops at layer 500" blocker this chain was fixed
+		for. Only a missing seam is a reason not to open.
+	]]
+	if seam <= 0 or price < 0 then
 		return
 	end
 	-- Already deciding. Do not yank the panel out from under a click.
@@ -7496,13 +7773,24 @@ function ClientFns.confirmSeam(payload)
 	ClientFns.seamMenu:SetAttribute("Seam", seam)
 	ClientFns.seamTitle.Text = string.format("Layer %d is sealed", seam)
 	local short = shortNum and shortNum(price) or tostring(price)
-	local afford = coins >= price
-	ClientFns.seamBody.Text = string.format(
-		"Buy through the seam to mine below layer %d.\n\nCost %s coins — about %d minutes of mining at this depth.\nYou have %s.%s",
-		seam, short, minutes, shortNum and shortNum(coins) or tostring(coins),
-		afford and "" or "\n\nKeep mining above the seam and come back."
-	)
-	ClientFns.seamBuy.Text = afford and ("Open the seam — " .. short) or ("Need " .. short)
+	local free = price <= 0
+	local afford = free or coins >= price
+	if free then
+		-- Free seams: the panel is the moment you break through, not a till.
+		-- No price, no coin balance, no "come back when you can afford it".
+		ClientFns.seamBody.Text = string.format(
+			"The rock below layer %d is sealed. Break the seam and the mine keeps going.\n\nNo cost — just bring a tool strong enough for what is down there.",
+			seam
+		)
+	else
+		ClientFns.seamBody.Text = string.format(
+			"Buy through the seam to mine below layer %d.\n\nCost %s coins — about %d minutes of mining at this depth.\nYou have %s.%s",
+			seam, short, minutes, shortNum and shortNum(coins) or tostring(coins),
+			afford and "" or "\n\nKeep mining above the seam and come back."
+		)
+	end
+	ClientFns.seamBuy.Text = free and "Break the seam"
+		or (afford and ("Open the seam — " .. short) or ("Need " .. short))
 	ClientFns.seamBuy.BackgroundColor3 = afford and Color3.fromRGB(96, 190, 104) or Color3.fromRGB(88, 92, 112)
 	ClientFns.seamBuy.TextColor3 = afford and Color3.fromRGB(12, 24, 16) or Color3.fromRGB(196, 200, 216)
 	ClientFns.seamBuy.Active = afford
@@ -7855,8 +8143,15 @@ end
 	previously a list of buttons reading "Socket -> pickaxe main": pick the gear
 	or tool, see its sockets laid out around it, pick a rune, click the socket.
 ]]
-local socketsCtl, enchantTabs
-local enchantTab = "runes"
+local socketsCtl, enchantTabs, traitCtl
+--[[
+	The Enchanter opens on ENCHANT now, not on the rune bench.
+
+	Traits replaced runes as the thing you come here to do (TODO 0.17),
+	so the bench being the landing tab would put the retiring system in front
+	of the one that replaced it.
+]]
+local enchantTab = "trait"
 
 --[[
 	SUMMON -- its own tab.
@@ -7906,6 +8201,17 @@ function rollsTab.build(parent)
 		used to be, and a shop where every product looks the same is a list, not
 		a shop.
 	]]
+	--[[
+		Which wallet a row spends. Hats joined temperaments on rebirth TOKENS
+		(TODO 6.2), and this was four separate `kind == "temper"` tests -- the
+		chip, the button, the currency id and the affordability check. One
+		predicate, so adding the next token row cannot leave one of them
+		paying gems.
+	]]
+	local function spendsTokens(kind)
+		return kind == "temper" or kind == "gear"
+	end
+
 	local function row(title, sub, art, unit, y, tint, fire, counts, kind)
 		counts = counts or { 1, 10, 100 }
 		local card = mk("Frame", {
@@ -7954,7 +8260,7 @@ function rollsTab.build(parent)
 		unitLay.Padding = UDim.new(0, 6)
 		unitLay.SortOrder = Enum.SortOrder.LayoutOrder
 		unitLay.Parent = unitHost
-		local unitChip = Icons.priceChip(unitHost, (kind == "temper") and "tokens" or "gems", shortNum(unit), {
+		local unitChip = Icons.priceChip(unitHost, spendsTokens(kind) and "tokens" or "gems", shortNum(unit), {
 			iconSize = 16,
 			textSize = 13,
 			textColor = MUTED,
@@ -7993,7 +8299,7 @@ function rollsTab.build(parent)
 				Position = UDim2.fromOffset(10, 30), Size = UDim2.new(1, -20, 0, 18),
 				ZIndex = 37,
 			}, b)
-			local currencyId = (kind == "temper") and "tokens" or "gems"
+			local currencyId = spendsTokens(kind) and "tokens" or "gems"
 			Icons.priceChip(costHost, currencyId, shortNum(unit * n), {
 				iconSize = 14,
 				textSize = 14,
@@ -8025,10 +8331,10 @@ function rollsTab.build(parent)
 			net:FireServer("rollRune", { count = n or 1 })
 		end, { 1, 10, 100 }, "rune")
 	-- Crates land in the bag and open at your own pace, so a 100x buy is not
-	-- 100 ceremonies -- same as runes.
-	row("Gear Case", "Pet-boost hats and faces only. Graded F to SSS.",
+	-- 100 ceremonies -- same as runes. Priced in REBIRTH TOKENS now, not gems.
+	row("Gear Case", "Hats and faces, worn by YOU. Graded F to SSS. Costs rebirth tokens.",
 		art("gear", Hats.thumb and Hats.thumb(1016143686) or nil),
-		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_PRICE, 136,
+		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_TOKEN_COST or 5, 136,
 		Color3.fromRGB(168, 140, 255), function(n)
 			net:FireServer("rollGear", { count = n or 1 })
 		end, { 1, 10, 100 }, "gear")
@@ -8057,7 +8363,8 @@ function rollsTab.paint()
 	for _, c in ipairs(rollsTab.have:GetChildren()) do
 		c:Destroy()
 	end
-	-- Summon tab wallet is gems (rune/gear). Temper spends tokens on its own row.
+	-- The header chip is the GEM purse (the rune row). The gear and temper rows
+	-- price themselves in tokens and check haveTokens, via spendsTokens above.
 	rollsTab.haveChip = Icons.priceChip(rollsTab.have, "gems", shortNum(haveGems), {
 		iconSize = 18,
 		textSize = 17,
@@ -8079,7 +8386,7 @@ function rollsTab.paint()
 		return nil
 	end
 	local function currencyOf(kind)
-		return (kind == "temper") and "tokens" or "gems"
+		return spendsTokens(kind) and "tokens" or "gems"
 	end
 	for _, u in pairs(rollsTab.unitChips or {}) do
 		local want = priceOf(u.kind)
@@ -8111,7 +8418,7 @@ function rollsTab.paint()
 	for _, r in ipairs(rollsTab.buttons) do
 		local total = r.unit * r.n
 		-- The first gear roll is free (server: Verbs.rollGearBanner).
-		local freeGear = snap.freeGear and r.unit == (tonumber(snap.gearRollPrice) or 75) and r.n == 1
+		local freeGear = snap.freeGear and r.unit == (tonumber(snap.gearRollPrice) or 5) and r.n == 1
 		local tag = r.b:FindFirstChild("FreeTag")
 		if freeGear and not tag then
 			tag = mk("TextLabel", {
@@ -8124,7 +8431,7 @@ function rollsTab.paint()
 		if tag then
 			tag.Visible = freeGear and true or false
 		end
-		local purse = (r.kind == "temper") and haveTokens or haveGems
+		local purse = spendsTokens(r.kind) and haveTokens or haveGems
 		local can = freeGear or purse >= total
 		r.b.BackgroundColor3 = can and r.tint or Color3.fromRGB(58, 52, 48)
 		r.b.AutoButtonColor = can
@@ -8422,6 +8729,9 @@ function ClientFns.showEnchantTab(id)
 	if socketsCtl then
 		socketsCtl.setVisible(id == "sockets")
 	end
+	if traitCtl then
+		traitCtl.setVisible(id == "trait")
+	end
 	if rollsTab.root then
 		rollsTab.root.Visible = (id == "summon")
 		if id == "summon" then
@@ -8451,6 +8761,36 @@ end
 
 local function refreshEnchanter()
 	if not snap then return end
+	if not traitCtl then
+		--[[
+			Guarded like the Forge's panels: a module missing from a build
+			should cost this one tab, not the whole Enchanter. And LOUDLY --
+			the silent version of this guard is what hid the Forge for a week.
+		]]
+		local okE, EnchantView = pcall(function()
+			return require(shared:WaitForChild("MineTraitView", 5))
+		end)
+		if okE and EnchantView and EnchantView.mount then
+			local okM, ctl = pcall(EnchantView.mount, enchantP, {
+				getSnap = function()
+					return snap or {}
+				end,
+				-- A uid and nothing else. The rarity, the trait and the
+				-- level are all rolled on the server.
+				onTrait = function(uid)
+					net:FireServer("rollTrait", { uid = uid })
+				end,
+			})
+			if okM then
+				traitCtl = ctl
+			else
+				warn("[MineClient] NO TRAIT TAB: MineTraitView.mount threw: " .. tostring(ctl))
+			end
+		else
+			warn("[MineClient] NO TRAIT TAB: ReplicatedStorage.Mine.Shared."
+				.. "MineTraitView did not resolve (" .. tostring(EnchantView) .. ").")
+		end
+	end
 	if not socketsCtl then
 		socketsCtl = RunesSockets.mount(enchantP, {
 			onSocket = ClientFns.socketRoute,
@@ -8470,7 +8810,10 @@ local function refreshEnchanter()
 			FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, strip)
-		for i, t in ipairs({ { "runes", "Merge" }, { "sockets", "Sockets" }, { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
+		-- Trait leads: it is the prefix on your tool, and the reason to walk
+		-- here at all. Merge/Sockets/Summon are the rune bench, which is being
+		-- retired behind it.
+		for i, t in ipairs({ { "trait", "Traits" }, { "runes", "Merge" }, { "sockets", "Sockets" }, { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
 			local b = mk("TextButton", {
 				AutoButtonColor = true, BackgroundColor3 = BG2, Font = FONT, TextSize = 13,
 				TextColor3 = TEXT, Text = t[2], Size = UDim2.fromOffset(96, 36),
@@ -8486,6 +8829,11 @@ local function refreshEnchanter()
 	end
 	rollsTab.build(enchantP)
 	rollsTab.paint()
+	-- Repaint the trait tab on every open: the tool list, the prefixes and
+	-- the gem count all move while the panel is shut.
+	if traitCtl then
+		traitCtl.setVisible(enchantTab == "trait")
+	end
 	socketsCtl.setState(snap)
 	if not runesCtl then
 		if enchantP.Body then
@@ -8495,6 +8843,21 @@ local function refreshEnchanter()
 			if ch.Name == "RunesView" then ch:Destroy() end
 		end
 		runesCtl = RunesView.mount(enchantP, {
+			--[[
+				Bulk recycle, from the rune list. Same two-call path the inventory
+				uses: this is the ASK, and the server's `confirmScrap` reply opens
+				the review (which is drawn by the inventory view but parented to
+				the screen, so it shows over the Enchanter).
+			]]
+			onScrapMany = function(kind, ids, into, confirm)
+				net:FireServer("scrapMany", {
+					kind = kind or "rune",
+					ids = ids,
+					into = into,
+					confirm = confirm and true or nil,
+				})
+			end,
+			onToast = function(msg) showToast(tostring(msg)) end,
 			onRollRune = function(count) net:FireServer("rollRune", { count = count or 1 }) end,
 			onRollGear = function(count) net:FireServer("rollGear", { count = count or 1 }) end,
 			onFuse = function(a, b) net:FireServer("fuseRune", { a = a, b = b }) end,
@@ -8508,8 +8871,8 @@ local function refreshEnchanter()
 				-- cardId was never sent, so the server always answered "Unknown pet".
 				net:FireServer("socketPetRune", { runeId = id, cardId = cardId })
 			end,
-			-- Off-ladder tools. socketToolRune has always taken chestId/fossilId;
-			-- the Enchanter just never offered them as targets.
+			-- Off-ladder tools. socketToolRune has always taken a chestId; the
+			-- Enchanter just never offered them as targets.
 			onSocketChestTool = function(runeId, chestId)
 				net:FireServer("socketToolRune", { runeId = runeId, chestId = chestId })
 			end,
@@ -8593,7 +8956,6 @@ function refreshAll()
 	refreshShop()
 	refreshMerge()
 	refreshDust()
-	refreshFossil()
 	refreshZones()
 	refreshPrestige()
 	if refreshEnchanter then refreshEnchanter() end
@@ -8786,11 +9148,98 @@ function PF.gait(x, lo, hi)
 	return t * t * (3 - 2 * t)
 end
 
-function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
+--[[
+	ONE STEP OF A DAMPED SPRING, SOLVED IMPLICITLY.
+
+	Owner, 2026-10-05: pets "kinda just fly around the screen like crazy", on a
+	session measured at 15 fps. Those are the same bug.
+
+	The old step was EXPLICIT Euler:
+
+	    accel = delta * omega^2 - vel * (2 * zeta * omega)
+	    vel  += accel * dt
+	    pos  += vel * dt
+
+	which is only CONDITIONALLY stable -- it needs roughly omega * dt < 2, and
+	past that each step amplifies the last instead of damping it. SPRING_HZ 3.6
+	stiffens to 6.2 while catching up, so omega reaches 2*pi*6.2 = 39. At 60 fps
+	omega*dt is 0.65 and fine. At the 0.05 dt clamp it is 1.95 -- right on the
+	edge -- and the pet oscillates, overshoots further each frame, and flies.
+
+	The feedback loop is the nasty part: a pet thrown far from its target raises
+	`dist`, which raises hz, which raises omega, which makes the next step even
+	less stable. Low framerate starts it and the catch-up term runs away with it.
+
+	This is the EXACT solution of that equation over the frame, not an
+	approximation of it. Backward Euler was the first fix and it is stable, but
+	it is stable by adding numerical damping that grows with dt -- measured, a
+	10-stud settle took 0.150s at 120 fps and 0.233s at 30 fps, so a pet behaved
+	like a different pet on a slower machine.
+
+	An underdamped spring has a closed form. Writing e = pos - target and
+	wd = omega*sqrt(1 - zeta^2):
+
+	    e(h) = exp(-zeta*omega*h) * (e0*cos(wd*h) + B*sin(wd*h))
+	    B    = (v0 + zeta*omega*e0) / wd
+
+	Both stable and framerate-independent, because exp(-zeta*omega*h) is below 1
+	for every positive h -- there is no step size that can amplify anything -- and
+	because h appears only as real elapsed time. 30 fps and 240 fps now trace the
+	same curve. The cost is one exp and two trig calls per pet per frame.
+
+	zeta is clamped under 1 because the formula divides by wd, which is zero at
+	critical damping. Nothing here passes 1 -- SPRING_ZETA is 0.86, deliberately
+	underdamped so a pet leans into a stop and drifts a hair past -- but the
+	clamp means a future tweak degrades smoothly instead of returning NaN.
+
+	Pure, and typed by nothing: it runs on Vector3 in the game and on plain
+	numbers in tools/verify/pet-spring.js, which is how the claims above are
+	checked rather than asserted.
+]]
+function PF.spring(pos, vel, target, h, hz, zeta)
+	if h <= 0 then
+		return pos, vel
+	end
+	local omega = 2 * math.pi * math.max(1e-4, hz)
+	local z = math.clamp(zeta, 0, 0.9999)
+	local wd = omega * math.sqrt(1 - z * z)
+	local e0 = pos - target
+	local decay = math.exp(-z * omega * h)
+	local c, s = math.cos(wd * h), math.sin(wd * h)
+	local b = (vel + e0 * (z * omega)) / wd
+	local e1 = (e0 * c + b * s) * decay
+	local v1 = (vel * c - (e0 * (omega * omega) + vel * (z * omega)) * (s / wd)) * decay
+	return target + e1, v1
+end
+
+--[[
+	`total` is how many pets are actually out, and it is why this takes it.
+
+	The formation used to be hardcoded around slot 2 -- `(slot - 2) * 2.15` --
+	which only centres when there are exactly three. With one pet out it walked
+	2.15 studs to your LEFT and never behind you; with two, both sat off-centre.
+	Owner, 2026-10-04: "make pets centre no matter how many are there."
+
+	Centring on (total + 1) / 2 puts one pet directly behind you, two evenly
+	either side, three in the old arrangement, and so on for any count without
+	another magic number.
+]]
+function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt, total)
 	if not (pet and pet.Parent and root) then
 		return
 	end
-	dt = math.clamp(tonumber(dt) or (1 / 60), 0.001, 0.05)
+	--[[
+		The ceiling was 0.05, which is 20 fps. On the owner's 15 fps session the
+		real frame was 0.067, so every step advanced the pets 75% of a frame:
+		they fell behind real time, `dist` grew, the catch-up term stiffened the
+		spring, and the explicit integrator went unstable -- the clamp was feeding
+		the runaway it was meant to guard against.
+
+		0.1 lets a slow frame be a slow frame. It is safe to raise only because
+		PF.spring is stable at any dt; a genuine hitch longer than this is a
+		teleport, and the `dist > 22` branch below catches that.
+	]]
+	dt = math.clamp(tonumber(dt) or (1 / 60), 0.001, 0.1)
 	now = tonumber(now) or os.clock()
 	ClientFns._petFollowState = ClientFns._petFollowState or {}
 	local state = ClientFns._petFollowState[pet]
@@ -8845,8 +9294,12 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
 	local right = Vector3.new(-dir.Z, 0, dir.X)
 
 	local slot = tonumber(slotIndex) or 1
-	local lateral = (slot - 2) * 2.15
-	local back = 3.15 + math.abs(slot - 2) * 0.18
+	-- Defaults to 3 so a caller that forgets keeps the old formation rather
+	-- than collapsing every pet onto one spot.
+	local n = math.max(1, math.floor(tonumber(total) or 3))
+	local centre = (n + 1) / 2
+	local lateral = (slot - centre) * 2.15
+	local back = 3.15 + math.abs(slot - centre) * 0.18
 	-- Trail farther when sprinting so they don't glue to your heels. Off the
 	-- smoothed speed, so the spacing opens out instead of jumping.
 	local trail = math.clamp(state.speed / 16, 0, 1.35)
@@ -8860,16 +9313,11 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
 		state.pos = target
 		state.vel = Vector3.zero
 	else
-		--[[
-			Damped spring, semi-implicit: accelerate toward the target, damp the
-			velocity, integrate. Stiffens with distance the way the old lerp did,
-			so a pet left behind still hurries rather than drifting in forever.
-		]]
+		-- Stiffens with distance the way the old lerp did, so a pet left behind
+		-- still hurries rather than drifting in forever. Safe to keep now that
+		-- the integrator cannot be destabilised by a high omega -- see PF.spring.
 		local hz = PF.SPRING_HZ + math.clamp(dist / 5, 0, 1) * PF.SPRING_HZ_CATCHUP
-		local omega = 2 * math.pi * hz
-		local accel = delta * (omega * omega) - state.vel * (2 * PF.SPRING_ZETA * omega)
-		state.vel += accel * dt
-		state.pos += state.vel * dt
+		state.pos, state.vel = PF.spring(state.pos, state.vel, target, dt, hz, PF.SPRING_ZETA)
 	end
 
 	--[[
@@ -8897,8 +9345,26 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt)
 		without the waveform jumping, which is what the old
 		`sin(now * bobHz + phase)` did every time bobHz flipped.
 	]]
-	local bobRate = 1.9 + gait * 2.2
-	state.bobPhase += bobRate * dt * math.pi * 2
+	--[[
+		SLOWER, AND IT CANNOT ALIAS.
+
+		Owner, 2026-10-06: pets are "bobing up and down super fucking fast".
+
+		Two causes, both mine. The rate was 1.9 Hz at rest rising to 4.1 Hz at a
+		walk -- nearly four bobs a second, a twitch rather than a gait. And
+		raising the dt clamp to 0.1 for the spring let one frame advance the
+		phase by 4.1 * 0.1 * 2pi = 2.6 radians, past the half cycle at which a
+		sine stops being sampled and starts being ALIASED: the pet then appears
+		to jump at a frequency with no relation to the wave. At the 10 fps the
+		owner was seeing, that is exactly what happened.
+
+		0.55 Hz at rest to 1.65 Hz walking reads as breathing, then stepping.
+		The per-frame cap is the belt: no frame may advance more than a quarter
+		cycle, so a slow frame SLOWS the bob rather than scrambling it. Only this
+		cosmetic wave is clamped -- the pet's position still tracks real time.
+	]]
+	local bobRate = 0.55 + gait * 1.1
+	state.bobPhase += math.min(bobRate * dt * math.pi * 2, math.pi * 0.5)
 	local bobAmp = 0.09 + gait * 0.07
 	local bob = math.sin(state.bobPhase) * bobAmp
 
@@ -8966,10 +9432,27 @@ RunService.RenderStepped:Connect(function(dt)
 		return
 	end
 	local now = os.clock()
+	local petCount = #pets
 	for i, pet in ipairs(pets) do
 		if pet and pet.Parent then
-			ClientFns.stepPetFollow(pet, root, i, now, dt)
-			PetFactory.animateChroma(pet, now)
+			ClientFns.stepPetFollow(pet, root, i, now, dt, petCount)
+			--[[
+				Only a Rainbow pet has anything to cycle.
+
+				animateChroma walks model:GetDescendants() -- a fresh table of ~25
+				instances -- and asks every BasePart for a Chroma attribute. For a
+				pet that is not Rainbow it finds nothing and sets nothing, every
+				frame, forever. The other-players loop above already gates this on
+				the Variant attribute; this one never did.
+
+				Measured over 600 frames with three pets: 0.0076 ms ungated against
+				0.0002 ms gated. Small either way -- this is not the lag the owner
+				reported, and it is not being presented as the fix -- but it is
+				free, and the two loops disagreeing was the actual bug.
+			]]
+			if pet:GetAttribute("Variant") == "Rainbow" then
+				PetFactory.animateChroma(pet, now)
+			end
 		end
 	end
 end)
@@ -10079,14 +10562,11 @@ RunService.Heartbeat:Connect(function(dt)
 			hoverName.Text = oreTier
 				and string.format("%s  |  tier %d", tostring(oreName), oreTier)
 				or tostring(oreName)
-		elseif section and target:GetAttribute("Kind") ~= "chest" and target:GetAttribute("Kind") ~= "fossil" then
+		elseif section and target:GetAttribute("Kind") ~= "chest" then
 			hoverName.Text = string.format("%s  |  L%d", section, layer or 1)
 		elseif target:GetAttribute("Kind") == "chest" then
 			local flavour = section and ("  |  " .. section) or ""
 			hoverName.Text = blockName .. flavour
-		elseif target:GetAttribute("Kind") == "fossil" then
-			-- BlockName is already "Shallow Fossil Pick" etc - don't prefix another Fossil.
-			hoverName.Text = blockName
 		else
 			hoverName.Text = blockName
 		end
@@ -10293,7 +10773,6 @@ function ClientFns.routePanel(name, tab)
 		end },
 		merge = { mergeP, refreshMerge },
 		dust = { dustP, refreshDust },
-		fossil = { fossilP, refreshFossil },
 		zones = { zoneP, refreshZones },
 		prestige = { presP, refreshPrestige },
 		events = { eventsCtl and eventsCtl.root or nil, function()
@@ -10589,6 +11068,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if not ClientFns.othersPetsOn then
 			ClientFns.othersPets()
 		end
+		-- The hotbar is cheap to repaint -- eight slots, no layout -- so it can
+		-- ride the snapshot directly rather than needing its own dirty flag.
+		if ClientFns.hotbarCtl and ClientFns.hotbarCtl.refresh then
+			pcall(ClientFns.hotbarCtl.refresh)
+		end
 		ClientFns.syncPlaytime(payload)
 		pcall(ClientFns.paintDailyBox, payload and payload.dailyQuests)
 		pcall(ClientFns.upgradeNudge)
@@ -10671,7 +11155,6 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if shopP and shopP.Visible then refreshShop() end
 		if mergeP and mergeP.Visible then refreshMerge() end
 		if dustP and dustP.Visible then refreshDust() end
-		if fossilP and fossilP.Visible then refreshFossil() end
 		if zoneP and zoneP.Visible then refreshZones() end
 		if presP and presP.Visible then refreshPrestige() end
 		if runesCtl then

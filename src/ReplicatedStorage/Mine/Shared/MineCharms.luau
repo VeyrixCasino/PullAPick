@@ -38,7 +38,7 @@ local LIST = {
 	{ id = "tideglass", name = "Tideglass Charm", source = "zone", zoneId = "mistreef", band = "mid",
 		blurb = "+200% Mine Speed · +40% Swing Rate", stats = { mineSpeed = 2.00, swingRate = 0.40 } },
 	{ id = "abyss_latch", name = "Abyss Latch", source = "zone", zoneId = "mistreef", band = "deep",
-		blurb = "+55% Omni Blast · +90% Scrap", stats = { oreYield = 0.55, scrap = 0.90 } },
+		blurb = "+55% Omni Blast · +90% Scrap", stats = { blastChance = 0.55, scrap = 0.90 } },
 
 	{ id = "emberseal", name = "Emberseal Charm", source = "zone", zoneId = "bloodmoon", band = "shallow",
 		blurb = "+140% Dirt Break", stats = { dirtBreak = 1.40 } },
@@ -59,7 +59,7 @@ local LIST = {
 	{ id = "catacomb_key", name = "Catacomb Key", source = "zone", zoneId = "mythral", band = "mid",
 		blurb = "+100% Chest Luck · +100% Scrap", stats = { chestLuck = 1.00, scrap = 1.00 } },
 	{ id = "aether_seal", name = "Aether Seal", source = "zone", zoneId = "mythral", band = "deep",
-		blurb = "+75% Omni Blast · +250% Mine Speed", stats = { oreYield = 0.75, mineSpeed = 2.50 } },
+		blurb = "+75% Omni Blast · +250% Mine Speed", stats = { blastChance = 0.75, mineSpeed = 2.50 } },
 
 	{ id = "jackhammer", name = "Jackhammer", source = "pack",
 		blurb = "+160% Dirt Break · +50% Swing Rate", stats = { dirtBreak = 1.60, swingRate = 0.50 } },
@@ -90,7 +90,7 @@ local LIST = {
 	{ id = "cubit_pin", name = "Cubit Pin", source = "pack",
 		blurb = "+50% Lucky Find", stats = { luckyFind = 0.50 } },
 	{ id = "canopy", name = "Canopy", source = "pack",
-		blurb = "+55% Omni Blast", stats = { oreYield = 0.55 } },
+		blurb = "+55% Omni Blast", stats = { blastChance = 0.55 } },
 
 	--[[
 		Pot of Gold carries EVERY kind of luck.
@@ -514,7 +514,7 @@ local STAT_LABEL = {
 	mineSpeed = "Mine Speed", dirtBreak = "Dirt Break", coinBonus = "Coin Bonus",
 	gemFind = "Gem Find", luck = "Luck", chestLuck = "Chest Luck",
 	backpack = "Backpack", swingRate = "Swing Rate", pulverize = "Pulverizer",
-	scrap = "Scrap", fossilFind = "Ore Finder", oreYield = "Omni Blast",
+	scrap = "Scrap", fossilFind = "Ore Finder", blastChance = "Omni Blast",
 	luckyFind = "Lucky Find",
 }
 
@@ -727,6 +727,92 @@ end
 	one -- variant 1 by default, so every existing caller keeps working and keeps
 	meaning what it meant.
 ]]
+--[[
+	MERGING A CHARM INTO THE NEXT TIER.
+
+	Three copies of an ore charm become one copy of the charm one ore tier
+	deeper, same variant. Three because the card merge in the inventory is
+	already "MERGE 3 -> UP" and a second merge arithmetic in the same game is a
+	thing players have to learn twice.
+
+	IT IS A TRADE, NOT AN UPGRADE, and that is the point rather than a
+	compromise. A charm's shape and stat come from `k = (tier-1) * variants +
+	(variant-1)` -- shape is `k % 6`, the stat walks a second cycle -- so the
+	charm one tier up has a DIFFERENT shape and usually a different stat. You
+	are converting duplicates into depth and variety, not into a bigger number.
+	That is exactly what TODO 0.13 asks for: "later ones should be better, but
+	never because the number is bigger".
+
+	Only ore charms merge. The legacy 31 (zone grant, gem pack, limited) are
+	deliberately left out -- §6.0 still has an open owner call on whether they
+	are retired at all, and letting them feed a merge ladder would quietly make
+	that decision.
+
+	Returns the target id, the target def, and nil plus a reason when it cannot.
+	The reason is a player-facing sentence, so the server and any UI say the same
+	thing about why a merge is refused.
+]]
+--[[
+	MERGING COSTS GEMS, NOT CHARMS. Owner, 2026-10-04: "rather than merging it
+	should cost gems."
+
+	It used to eat THREE copies of a charm to make one of the next tier, which
+	is the economy that makes every charm feel like fodder: if three of a thing
+	are worth one of a thing, then one of them is worth a third of a thing. That
+	is the "everything is worthless because better stuff exists" problem in its
+	purest form, and it was built in on purpose.
+
+	Now: one charm in, one charm out, and you pay gems for the step. A charm you
+	own is never consumed to feed another.
+
+	Priced off the TARGET's tier so a deep merge costs deep money. The curve is
+	gentle on purpose -- gems are already the pouch's only sink and the trait
+	roller's only sink, and a third steep one would starve both.
+]]
+MineCharms.MERGE_GEM_BASE = 1200
+MineCharms.MERGE_GEM_GROW = 1.14
+
+function MineCharms.mergeGemCost(targetTier)
+	local t = math.max(1, math.floor(tonumber(targetTier) or 1))
+	return math.ceil(MineCharms.MERGE_GEM_BASE
+		* (MineCharms.MERGE_GEM_GROW ^ (t - 1)) / 50) * 50
+end
+
+-- Copies consumed. ONE: the charm being upgraded, and nothing else.
+MineCharms.MERGE_COST = 1
+
+function MineCharms.mergeTarget(charmId)
+	local def = MineCharms.byId(charmId)
+	if not def then
+		return nil, nil, "That charm is not in the game"
+	end
+	if def.source ~= "ore" then
+		return nil, nil, "Only ore charms merge"
+	end
+	local C = require(script.Parent:WaitForChild("MineConfig"))
+	local ores = C.ORES or {}
+	local nextTier = (tonumber(def.tier) or 0) + 1
+	-- ORES is ordered by tier and tier == index for all 82 rows, but read the
+	-- row's own tier rather than trusting that: a roster edit that breaks the
+	-- alignment should fail to find a target, not merge into the wrong charm.
+	local target
+	for i, ore in ipairs(ores) do
+		if (tonumber(ore.tier) or i) == nextTier then
+			target = ore
+			break
+		end
+	end
+	if not target then
+		return nil, nil, "This is the deepest charm there is"
+	end
+	local id = MineCharms.oreCharmId(target.id, def.variant)
+	local tdef = MineCharms.byId(id)
+	if not tdef then
+		return nil, nil, "That charm is not in the game"
+	end
+	return id, tdef, nil
+end
+
 function MineCharms.oreCharms(oreId)
 	return BY_ORE[tostring(oreId or "")] or {}
 end
@@ -769,7 +855,7 @@ function MineCharms.packPool()
 end
 
 local ADDITIVE = {
-	echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true,
+	echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true,
 	luckyFind = true, fossilFind = true, pulverize = true, scrap = true,
 	coolant = true, shortFuse = true, reach = true,
 }

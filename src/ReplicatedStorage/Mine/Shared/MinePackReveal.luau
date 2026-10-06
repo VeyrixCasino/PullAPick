@@ -155,7 +155,7 @@ local AUTO_LOOK = 2.4
 local AUTO_LOOK_RARE = 3.6
 
 -- What a rarity is usually worth in odds (Loam's own table), for loot that
--- carries no odds of its own -- gear, runes, fossils, packs from old saves --
+-- carries no odds of its own -- gear, runes, packs from old saves --
 -- so one sort can rank everything by the same measure.
 local RANK_ODDS = { 2.9, 3.9, 6.4, 14.5, 36, 175, 950, 3800 }
 local function pullKey(card)
@@ -1420,6 +1420,41 @@ function MinePackReveal.mount(playerGui, opts)
 	-- keep-tapping waiter below captures it and refuses to act if it has moved.
 	local promptGen = 0
 
+	--[[
+		TAP ANYWHERE TO CLOSE. Owner, 2026-10-04: "PACKS MAKE YOU SAY DONE
+		RATHER THAN AUTOMATICALLY CLOSING OUT AFTER YOU CLICK ANYWHERE ON THE
+		SCREEN".
+
+		A full-screen button behind the prompt row. ZIndex 24 against the
+		prompt's 25, so OPEN ANOTHER and GET MORE PACKS still take the tap that
+		lands on them -- this only catches the ones that miss, which is most of
+		them.
+
+		Built HERE and not beside the prompt frame itself, because `finish` is a
+		local declared on the line above. A closure written further up the file
+		would compile as a global read and be nil when tapped, which is the trap
+		this project has already paid for twice.
+	]]
+	local dismiss = mk("TextButton", {
+		Name = "TapAnywhere",
+		BackgroundTransparency = 1,
+		Text = "",
+		AutoButtonColor = false,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		ZIndex = 24,
+	}, screen)
+	dismiss.MouseButton1Click:Connect(function()
+		if finish then
+			finish()
+		end
+	end)
+	-- The prompt is the only thing that turns this on, so it can never eat a
+	-- tap during the reveal itself.
+	prompt:GetPropertyChangedSignal("Visible"):Connect(function()
+		dismiss.Visible = prompt.Visible
+	end)
+
 	local function showPrompt(meta)
 		promptGen += 1
 		local gen = promptGen
@@ -1477,6 +1512,8 @@ function MinePackReveal.mount(playerGui, opts)
 			end)
 			subL.Text = "None left"
 		end
+		-- Kept as a visible affordance: tapping anywhere works, but a player
+		-- who is looking for a button should find one.
 		button("DONE", BG2, TEXT, function()
 			finish()
 		end)

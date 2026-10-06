@@ -204,7 +204,7 @@ MineIcons.ALIAS = {
 	swingRate = "pickaxe",
 	dirtBreak = "drill",
 	blastRadius = "explosive",
-	oreYield = "chest",
+	blastChance = "chest",
 	rareOre = "gems",
 	gemFind = "gems",
 	coinBonus = "coins",
@@ -366,6 +366,325 @@ function MineIcons.list()
 	end
 	table.sort(out)
 	return out
+end
+
+
+-- ------------------------------------------------ forged tool skins --
+--[[
+	ONE SKIN PER ORE TIER, FOR ALL THREE FORGED FAMILIES.
+
+	Owner, 2026-10-05: "apply the skins to each tool", and on the sheets:
+	"1st is wooden, then its in order, last one is admin drill, hand gernade
+	and pickaxe".
+
+	Every forged tool used to draw ONE picture per family, so a Stone Pickaxe
+	and an Oganesson Pickaxe were the same icon and the whole ladder looked
+	identical in the bar, the Forge and the inventory.
+
+	THE ORDER IS THE OWNER'S, NOT A GUESS. An earlier pass matched an older
+	sheet to ores by measuring each icon's colour and solving an assignment
+	problem against MineConfig.ORES. That was replaced wholesale the moment the
+	owner stated the sheets are in roster order -- the art is a designed ladder
+	and does not track the ore palette (measured mean colour distance 1.1,
+	where a real colour match scores 0.25), so matching on colour would have
+	been confidently wrong. Position is authoritative; colour was a proxy.
+
+	Picks carry a wooden starter at index 1 and then the 82 ores; drills and
+	bombs start at the first ore. The last icon of each sheet is the admin tool.
+	The spare cells between the last ore and the admin icon are the artist
+	filling out the grid and are left unused in build/.
+
+	tools/icons/ holds the extractor and the manifest, so if a sheet is redrawn
+	this table is regenerated rather than hand-edited.
+]]
+MineIcons.ORE_PICK_STARTER = "rbxassetid://108275179429292"
+MineIcons.ADMIN_PICK = "rbxassetid://75053884636170"
+MineIcons.ADMIN_DRILL = "rbxassetid://122925603465750"
+MineIcons.ADMIN_BOMB = "rbxassetid://86189079658223"
+
+MineIcons.ORE_PICK = {
+	[1] = "rbxassetid://111856077539108", -- Stone
+	[2] = "rbxassetid://81138165754921", -- Clay
+	[3] = "rbxassetid://133592053579018", -- Limestone
+	[4] = "rbxassetid://116586330516743", -- Pumice
+	[5] = "rbxassetid://75227545832532", -- Halite
+	[6] = "rbxassetid://129141946824513", -- Coal
+	[7] = "rbxassetid://104754326792249", -- Flint
+	[8] = "rbxassetid://123037947146628", -- Basalt
+	[9] = "rbxassetid://110165926910937", -- Slate
+	[10] = "rbxassetid://82280156345124", -- Bone
+	[11] = "rbxassetid://134098332796521", -- Granite
+	[12] = "rbxassetid://98804694624996", -- Copper
+	[13] = "rbxassetid://117815058234129", -- Tin
+	[14] = "rbxassetid://83858594832277", -- Ember
+	[15] = "rbxassetid://79695351326457", -- Sulfur
+	[16] = "rbxassetid://102128441036647", -- Lead
+	[17] = "rbxassetid://79932961484671", -- Zinc
+	[18] = "rbxassetid://139098777024428", -- Aluminum
+	[19] = "rbxassetid://92335497767300", -- Iron
+	[20] = "rbxassetid://137465929370392", -- Graphite
+	[21] = "rbxassetid://93581788871268", -- Pyrite
+	[22] = "rbxassetid://96935838229858", -- Marble
+	[23] = "rbxassetid://116446761796598", -- Pearl
+	[24] = "rbxassetid://87410864583497", -- Rime
+	[25] = "rbxassetid://136966013409128", -- Quartz
+	[26] = "rbxassetid://97842372386527", -- Amber
+	[27] = "rbxassetid://130057184254350", -- Petrifact
+	[28] = "rbxassetid://83227984769411", -- Nickel
+	[29] = "rbxassetid://118119406393783", -- Onyx
+	[30] = "rbxassetid://136131762481975", -- Bloodstone
+	[31] = "rbxassetid://80603147922145", -- Garnet
+	[32] = "rbxassetid://122354321894513", -- Citrine
+	[33] = "rbxassetid://107573152620267", -- Chromium
+	[34] = "rbxassetid://120766465367813", -- Turquoise
+	[35] = "rbxassetid://108663013576497", -- Bismuth
+	[36] = "rbxassetid://124190374678282", -- Silver
+	[37] = "rbxassetid://128115369925654", -- Amethyst
+	[38] = "rbxassetid://131924421437747", -- Tigereye
+	[39] = "rbxassetid://124802642563975", -- Lapis
+	[40] = "rbxassetid://76206751355912", -- Geode
+	[41] = "rbxassetid://74190230564504", -- Topaz
+	[42] = "rbxassetid://71881894350188", -- Phosphorus
+	[43] = "rbxassetid://76480972009534", -- Peridot
+	[44] = "rbxassetid://92048117238269", -- Jade
+	[45] = "rbxassetid://73499649172334", -- Emberglass
+	[46] = "rbxassetid://124233114922846", -- Tungsten
+	[47] = "rbxassetid://86219699164531", -- Lithium
+	[48] = "rbxassetid://106724987458494", -- Titanium
+	[49] = "rbxassetid://91284677462521", -- Obsidian
+	[50] = "rbxassetid://139350063238442", -- Cobalt
+	[51] = "rbxassetid://110016498389900", -- Gold
+	[52] = "rbxassetid://70428464393450", -- Regolith
+	[53] = "rbxassetid://100510816599135", -- Sunstone
+	[54] = "rbxassetid://114474644317785", -- Emerald
+	[55] = "rbxassetid://91100900503924", -- Moonstone
+	[56] = "rbxassetid://96250557654076", -- Sapphire
+	[57] = "rbxassetid://98255153754499", -- Ruby
+	[58] = "rbxassetid://101848740374076", -- Palladium
+	[59] = "rbxassetid://91981574314270", -- Aquamarine
+	[60] = "rbxassetid://111012715777725", -- Opal
+	[61] = "rbxassetid://99192191465864", -- Platinum
+	[62] = "rbxassetid://72080686176802", -- Stormstone
+	[63] = "rbxassetid://137760012605926", -- Diamond
+	[64] = "rbxassetid://94103143257239", -- Starmetal
+	[65] = "rbxassetid://104383707172031", -- Aetherite
+	[66] = "rbxassetid://111642325921022", -- Meteorite
+	[67] = "rbxassetid://92808632514130", -- Soulstone
+	[68] = "rbxassetid://82068255980074", -- Galaxite
+	[69] = "rbxassetid://82869623933221", -- Frostfire
+	[70] = "rbxassetid://77175763343125", -- Umbrite
+	[71] = "rbxassetid://127111652569742", -- Celestine
+	[72] = "rbxassetid://107075360353039", -- Orichalcum
+	[73] = "rbxassetid://109991791098924", -- Spectrite
+	[74] = "rbxassetid://88075969600855", -- Mythril
+	[75] = "rbxassetid://81469067385923", -- Dragonstone
+	[76] = "rbxassetid://96052661911414", -- Adamantite
+	[77] = "rbxassetid://126949456240985", -- Thorium
+	[78] = "rbxassetid://121793583592181", -- Uranium
+	[79] = "rbxassetid://127734156675516", -- Plutonium
+	[80] = "rbxassetid://111628531557256", -- Fermium
+	[81] = "rbxassetid://138162712801362", -- Lawrencium
+	[82] = "rbxassetid://132108642211634", -- Oganesson
+}
+
+MineIcons.ORE_DRILL = {
+	[1] = "rbxassetid://99123341100679", -- Stone
+	[2] = "rbxassetid://110386850824682", -- Clay
+	[3] = "rbxassetid://131682472981930", -- Limestone
+	[4] = "rbxassetid://77342420285535", -- Pumice
+	[5] = "rbxassetid://100713943858287", -- Halite
+	[6] = "rbxassetid://114098726769833", -- Coal
+	[7] = "rbxassetid://102666557174202", -- Flint
+	[8] = "rbxassetid://76239359560248", -- Basalt
+	[9] = "rbxassetid://132144493288229", -- Slate
+	[10] = "rbxassetid://100356539936241", -- Bone
+	[11] = "rbxassetid://109854185103627", -- Granite
+	[12] = "rbxassetid://93321856016506", -- Copper
+	[13] = "rbxassetid://139609447523332", -- Tin
+	[14] = "rbxassetid://79272952586116", -- Ember
+	[15] = "rbxassetid://116111610571663", -- Sulfur
+	[16] = "rbxassetid://101400015689578", -- Lead
+	[17] = "rbxassetid://125686067229786", -- Zinc
+	[18] = "rbxassetid://137447160517321", -- Aluminum
+	[19] = "rbxassetid://85651963260047", -- Iron
+	[20] = "rbxassetid://122796922729123", -- Graphite
+	[21] = "rbxassetid://125201166750994", -- Pyrite
+	[22] = "rbxassetid://135691398512155", -- Marble
+	[23] = "rbxassetid://130968695622494", -- Pearl
+	[24] = "rbxassetid://110535561190033", -- Rime
+	[25] = "rbxassetid://104838959164308", -- Quartz
+	[26] = "rbxassetid://121488344749952", -- Amber
+	[27] = "rbxassetid://72747121560691", -- Petrifact
+	[28] = "rbxassetid://93128312299419", -- Nickel
+	[29] = "rbxassetid://88590076514288", -- Onyx
+	[30] = "rbxassetid://136177670817090", -- Bloodstone
+	[31] = "rbxassetid://124434077535738", -- Garnet
+	[32] = "rbxassetid://71165946404276", -- Citrine
+	[33] = "rbxassetid://122981010369519", -- Chromium
+	[34] = "rbxassetid://74285218988334", -- Turquoise
+	[35] = "rbxassetid://95307374776151", -- Bismuth
+	[36] = "rbxassetid://96047517197782", -- Silver
+	[37] = "rbxassetid://79448355862604", -- Amethyst
+	[38] = "rbxassetid://72681742334592", -- Tigereye
+	[39] = "rbxassetid://101952630897706", -- Lapis
+	[40] = "rbxassetid://79762553812941", -- Geode
+	[41] = "rbxassetid://108888315192784", -- Topaz
+	[42] = "rbxassetid://135740381144185", -- Phosphorus
+	[43] = "rbxassetid://128170167456749", -- Peridot
+	[44] = "rbxassetid://133025169765221", -- Jade
+	[45] = "rbxassetid://121310780269581", -- Emberglass
+	[46] = "rbxassetid://76784417084242", -- Tungsten
+	[47] = "rbxassetid://87099590540987", -- Lithium
+	[48] = "rbxassetid://90087504193698", -- Titanium
+	[49] = "rbxassetid://108002807235210", -- Obsidian
+	[50] = "rbxassetid://109760215646091", -- Cobalt
+	[51] = "rbxassetid://91899813687857", -- Gold
+	[52] = "rbxassetid://123840393537118", -- Regolith
+	[53] = "rbxassetid://94847115962511", -- Sunstone
+	[54] = "rbxassetid://135232429637373", -- Emerald
+	[55] = "rbxassetid://83141923586197", -- Moonstone
+	[56] = "rbxassetid://92372873650320", -- Sapphire
+	[57] = "rbxassetid://119887313393134", -- Ruby
+	[58] = "rbxassetid://125091601709699", -- Palladium
+	[59] = "rbxassetid://109104655629789", -- Aquamarine
+	[60] = "rbxassetid://111329599619538", -- Opal
+	[61] = "rbxassetid://95082741033359", -- Platinum
+	[62] = "rbxassetid://79764044710955", -- Stormstone
+	[63] = "rbxassetid://93881274000381", -- Diamond
+	[64] = "rbxassetid://103298780812385", -- Starmetal
+	[65] = "rbxassetid://117416855204382", -- Aetherite
+	[66] = "rbxassetid://133385183176173", -- Meteorite
+	[67] = "rbxassetid://72754040614556", -- Soulstone
+	[68] = "rbxassetid://79028654999422", -- Galaxite
+	[69] = "rbxassetid://125397905634787", -- Frostfire
+	[70] = "rbxassetid://76494866446072", -- Umbrite
+	[71] = "rbxassetid://111889889885732", -- Celestine
+	[72] = "rbxassetid://99112838234015", -- Orichalcum
+	[73] = "rbxassetid://108332928509108", -- Spectrite
+	[74] = "rbxassetid://139902285204896", -- Mythril
+	[75] = "rbxassetid://94422949862368", -- Dragonstone
+	[76] = "rbxassetid://139554646072737", -- Adamantite
+	[77] = "rbxassetid://137121253747418", -- Thorium
+	[78] = "rbxassetid://75338986817454", -- Uranium
+	[79] = "rbxassetid://129317333190011", -- Plutonium
+	[80] = "rbxassetid://75811284621162", -- Fermium
+	[81] = "rbxassetid://124064660508744", -- Lawrencium
+	[82] = "rbxassetid://121681258484716", -- Oganesson
+}
+
+MineIcons.ORE_BOMB = {
+	[1] = "rbxassetid://94734785294833", -- Stone
+	[2] = "rbxassetid://129852641720865", -- Clay
+	[3] = "rbxassetid://102803794260587", -- Limestone
+	[4] = "rbxassetid://112066486700628", -- Pumice
+	[5] = "rbxassetid://109820096565694", -- Halite
+	[6] = "rbxassetid://105989361549929", -- Coal
+	[7] = "rbxassetid://107517358083213", -- Flint
+	[8] = "rbxassetid://78953366755016", -- Basalt
+	[9] = "rbxassetid://75819138809860", -- Slate
+	[10] = "rbxassetid://92684847732190", -- Bone
+	[11] = "rbxassetid://126499126177735", -- Granite
+	[12] = "rbxassetid://135706151709272", -- Copper
+	[13] = "rbxassetid://126151990296602", -- Tin
+	[14] = "rbxassetid://140412957279836", -- Ember
+	[15] = "rbxassetid://110297691956803", -- Sulfur
+	[16] = "rbxassetid://81594479047775", -- Lead
+	[17] = "rbxassetid://123904939783585", -- Zinc
+	[18] = "rbxassetid://92591026095511", -- Aluminum
+	[19] = "rbxassetid://127760328054977", -- Iron
+	[20] = "rbxassetid://126630496307327", -- Graphite
+	[21] = "rbxassetid://134820138072861", -- Pyrite
+	[22] = "rbxassetid://111054542796061", -- Marble
+	[23] = "rbxassetid://72231098125683", -- Pearl
+	[24] = "rbxassetid://124330155882502", -- Rime
+	[25] = "rbxassetid://138129262373998", -- Quartz
+	[26] = "rbxassetid://82689852730402", -- Amber
+	[27] = "rbxassetid://132775352446011", -- Petrifact
+	[28] = "rbxassetid://76742968881156", -- Nickel
+	[29] = "rbxassetid://109457900578940", -- Onyx
+	[30] = "rbxassetid://104649293061911", -- Bloodstone
+	[31] = "rbxassetid://87074289776162", -- Garnet
+	[32] = "rbxassetid://112974606262889", -- Citrine
+	[33] = "rbxassetid://99919962564528", -- Chromium
+	[34] = "rbxassetid://124654966108070", -- Turquoise
+	[35] = "rbxassetid://101079519839960", -- Bismuth
+	[36] = "rbxassetid://117435388548861", -- Silver
+	[37] = "rbxassetid://140151317255976", -- Amethyst
+	[38] = "rbxassetid://130275706593522", -- Tigereye
+	[39] = "rbxassetid://72139380205184", -- Lapis
+	[40] = "rbxassetid://100394580236879", -- Geode
+	[41] = "rbxassetid://84008255410839", -- Topaz
+	[42] = "rbxassetid://76759650641229", -- Phosphorus
+	[43] = "rbxassetid://128953640908652", -- Peridot
+	[44] = "rbxassetid://120463018879664", -- Jade
+	[45] = "rbxassetid://135203134942173", -- Emberglass
+	[46] = "rbxassetid://92277863465597", -- Tungsten
+	[47] = "rbxassetid://116377668720173", -- Lithium
+	[48] = "rbxassetid://127006673182612", -- Titanium
+	[49] = "rbxassetid://91534235053340", -- Obsidian
+	[50] = "rbxassetid://101612886786994", -- Cobalt
+	[51] = "rbxassetid://103521138126383", -- Gold
+	[52] = "rbxassetid://127692130549704", -- Regolith
+	[53] = "rbxassetid://136037677234272", -- Sunstone
+	[54] = "rbxassetid://122507058260712", -- Emerald
+	[55] = "rbxassetid://84982402478557", -- Moonstone
+	[56] = "rbxassetid://119350275212529", -- Sapphire
+	[57] = "rbxassetid://104826883166707", -- Ruby
+	[58] = "rbxassetid://82092462047664", -- Palladium
+	[59] = "rbxassetid://130422151991202", -- Aquamarine
+	[60] = "rbxassetid://115803787448829", -- Opal
+	[61] = "rbxassetid://75476005352131", -- Platinum
+	[62] = "rbxassetid://94666442998186", -- Stormstone
+	[63] = "rbxassetid://127329788610387", -- Diamond
+	[64] = "rbxassetid://71880524504230", -- Starmetal
+	[65] = "rbxassetid://94051645125290", -- Aetherite
+	[66] = "rbxassetid://130713434832043", -- Meteorite
+	[67] = "rbxassetid://105450986489199", -- Soulstone
+	[68] = "rbxassetid://118878323820293", -- Galaxite
+	[69] = "rbxassetid://126124499400581", -- Frostfire
+	[70] = "rbxassetid://134818732269217", -- Umbrite
+	[71] = "rbxassetid://134440953152623", -- Celestine
+	[72] = "rbxassetid://86902936660656", -- Orichalcum
+	[73] = "rbxassetid://132810651380611", -- Spectrite
+	[74] = "rbxassetid://127725241464216", -- Mythril
+	[75] = "rbxassetid://103344664269992", -- Dragonstone
+	[76] = "rbxassetid://129931970820708", -- Adamantite
+	[77] = "rbxassetid://122524961162749", -- Thorium
+	[78] = "rbxassetid://121848729311454", -- Uranium
+	[79] = "rbxassetid://120034637953379", -- Plutonium
+	[80] = "rbxassetid://129298424509914", -- Fermium
+	[81] = "rbxassetid://138156278119755", -- Lawrencium
+	[82] = "rbxassetid://71519154408925", -- Oganesson
+}
+
+-- The skin table for a forged family. Nil for a family with no art, which is
+-- how forTool knows to fall back rather than draw a pickaxe on a fishing rod.
+MineIcons.ORE_SKINS = {
+	pickaxe = MineIcons.ORE_PICK,
+	drill = MineIcons.ORE_DRILL,
+	explosive = MineIcons.ORE_BOMB,
+}
+
+--[[
+	The icon for a forged tool row.
+
+	One lookup, so the hotbar, the Forge and the inventory cannot disagree about
+	what a tool looks like. A family with no skin set falls back to its flat
+	family icon rather than borrowing another family's art.
+]]
+function MineIcons.forTool(tool)
+	if type(tool) ~= "table" then
+		return MineIcons.IMAGES.pickaxe
+	end
+	local fam = tostring(tool.familyId or tool.family or "pickaxe")
+	local skins = MineIcons.ORE_SKINS[fam]
+	if skins then
+		local skin = skins[math.floor(tonumber(tool.oreTier or tool.tier) or 0)]
+		if skin then
+			return skin
+		end
+	end
+	return MineIcons.IMAGES[fam] or MineIcons.IMAGES.pickaxe
 end
 
 return MineIcons

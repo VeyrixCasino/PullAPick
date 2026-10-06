@@ -273,11 +273,12 @@ function GroupWheelService.build(lobby)
 		is why the plaza read as "big yellow thing in front of the building I
 		was walking to".
 
-		The lobby's landmarks sit at 40 (Depot), 62 (Blacksmith), 114 (Fossil),
-		237 (Enchanter), 295 (Rebirth) and 325 (Jobs). Bearing 88 is the middle
-		of the widest gap -- 26 degrees clear of Blacksmith and Fossil either
-		side -- and 40 studs out, close enough to read from spawn. It faces the
-		fountain so you meet its face, not its back.
+		The lobby's landmarks sit at 40 (Depot), 62 (Blacksmith), 237
+		(Enchanter), 295 (Rebirth) and 325 (Jobs). Bearing 88 is the middle of
+		the widest gap -- it was 26 degrees clear of Blacksmith and of the fossil
+		bench that used to stand at 114, and with that slot now empty it has more
+		room, not less -- and 40 studs out, close enough to read from spawn. It
+		faces the fountain so you meet its face, not its back.
 	]]
 	local foot = Vector3.new(40, 6.2, 0)
 	local center = foot + Vector3.new(0, 7.2, 0)

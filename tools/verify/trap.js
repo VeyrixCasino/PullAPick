@@ -20,10 +20,22 @@ const sb = { console, Math, Number, String, Object, Array, JSON, isFinite, parse
     querySelectorAll() { return []; }, addEventListener() {} },
   window: { addEventListener() {} }, requestAnimationFrame() {}, setTimeout() {} };
 vm.createContext(sb);
+//[[ toolLevel is GONE, and this file crashed on it ]]
+// The export list asked the calculator for `toolLevel`, which no longer exists
+// -- a tool's level IS its upgrade level now, where it used to be derived from
+// tier ("a tier-121 pick is BORN at level 700"). Luau is forgiving about unknown
+// globals; this vm context is not, so the whole file threw a ReferenceError
+// before a single assertion ran. It has been counted as a "known failure" ever
+// since, which is how a crash gets mistaken for a red test.
 vm.runInContext("var __EXPORT;" + m[1].replace(/\}\)\(\);\s*$/,
-  "__EXPORT={T:T,recycleBuysBack:recycleBuysBack,toolLevel:toolLevel,TYPES:TYPES," +
+  "__EXPORT={T:T,recycleBuysBack:recycleBuysBack,TYPES:TYPES,ORES:ORES,MAXLVL:MAXLVL," +
   "cumDust:cumDust,dustAt:dustAt,recycleAt:recycleAt,recRate:recRate,dmgAt:dmgAt};\n})();"), sb);
 const X = sb.__EXPORT, T = X.T, TYPES = X.TYPES;
+// Derived from the page, never restated -- the same rule check.js follows. This
+// file used to probe tier 121 and level 5000, from the 121-ore roster and the
+// 1000-level cap, and would have gone on "passing" against tiers and levels the
+// game no longer has.
+const TOP = X.ORES.length, CAP = X.MAXLVL;
 
 // closed form: top-n levels = p * cumDust(N)  =>  1 - g^-n = p
 const predict = (p, g) => Math.log(1 / (1 - p)) / Math.log(g);
@@ -34,10 +46,14 @@ console.log("prediction at defaults: " + predict(T.recPct, T.dustGrow).toFixed(1
 console.log("observed, across wildly different tools (recDisp makes the RATE differ):");
 console.log("tier".padEnd(6) + "type".padEnd(16) + "level".padEnd(8) +
             "rate".padEnd(8) + "re-buys");
-for (const [t, k, L] of [[121, 15, 0], [121, 15, 5000], [100, 0, 500],
-                          [60, 7, 0], [30, 3, 2000], [12, 9, 100]]) {
+const mid = Math.max(1, Math.round(CAP / 2));
+for (const [t, k, L] of [[TOP, TYPES.length - 1, 1], [TOP, TYPES.length - 1, CAP],
+                         [Math.round(TOP * 0.75), 0, mid],
+                         [Math.round(TOP * 0.5), 7, 1],
+                         [Math.round(TOP * 0.3), 3, CAP],
+                         [Math.max(1, Math.round(TOP * 0.12)), 9, mid]]) {
   console.log(String(t).padEnd(6) + TYPES[k][0].padEnd(16) +
-    String(X.toolLevel(t, L, k)).padEnd(8) +
+    String(L).padEnd(8) +
     (X.recRate(t, L, k) * 100).toFixed(0).padEnd(8) +
     X.recycleBuysBack(t, L, k));
 }
@@ -56,14 +72,22 @@ for (const p of ps) {
 }
 console.log("\nrows = refund share, cols = dust cost growth per level");
 
-// the user's actual number
-console.log("\n=== the case pasted: level 50, 6,344 dust ===");
-console.log("damage at level 50: " + X.dmgAt(50).toFixed(0) +
-  "  (dmgBase " + T.dmgBase + " x " + T.dmgStep + "^50)");
-for (const mult of [1, 2, 4]) {
-  const cm = mult;
-  const c = T.dustBase * (Math.pow(T.dustGrow, 50) - 1) / (T.dustGrow - 1) * cm;
-  console.log("  cumDust(50) at costMult " + cm + " = " + Math.ceil(c).toLocaleString("en-US"));
+//[[ worked example, against the LIVE cap ]]
+// This used to be "the case pasted: level 50, 6,344 dust" -- a one-off from the
+// 1000-level era, calling X.dmgAt(50) with ONE argument when dmgAt takes
+// (L, tier, typeIndex). TYPES[undefined][4] threw, so even once the export list
+// was fixed this file still died before finishing. Anchored to the cap now, so
+// the example is always a tool the game can actually produce.
+console.log("\n=== a worked example at the cap ===");
+const exTier = Math.round(TOP * 0.5), exType = 0;
+console.log("tier " + exTier + " " + TYPES[exType][0] + " at level " + CAP + ": damage " +
+  X.dmgAt(CAP, exTier, exType).toFixed(0) +
+  "  (dmgBase " + T.dmgBase + " x " + T.dmgStep.toFixed(4) + "^" + (CAP - 1) + ")");
+for (const cm of [1, 2, 4]) {
+  const c = T.dustBase * (Math.pow(T.dustGrow, CAP) - 1) / (T.dustGrow - 1) * cm;
+  console.log("  cumDust(" + CAP + ") at costMult " + cm + " = " +
+    Math.ceil(c).toLocaleString("en-US"));
 }
-console.log("refund on that tool re-buys " + predict(T.recPct, T.dustGrow).toFixed(0) +
-  " of its 50 levels = " + (predict(T.recPct, T.dustGrow) / 50 * 100).toFixed(0) + "% of the climb");
+const rebought = predict(T.recPct, T.dustGrow);
+console.log("refund on that tool re-buys " + rebought.toFixed(1) +
+  " of its " + CAP + " levels = " + (rebought / CAP * 100).toFixed(0) + "% of the climb");

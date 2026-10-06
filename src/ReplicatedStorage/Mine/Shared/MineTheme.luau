@@ -9,9 +9,22 @@
 	once. One click moved you between what looked like different games, and
 	that is most of what "it doesn't look professional" means.
 
-	The house style is warm dark with a gold accent -- the workshop look, which
-	is the screen that already worked -- with FredokaOne carrying every number
-	and title and BuilderSans carrying prose.
+	THE HOUSE STYLE IS COOL DARK INDIGO WITH GOLD AND VIOLET.
+
+	It was warm brown with a single gold accent -- the workshop look. Owner,
+	2026-10-05, supplied a reference shop screen and asked for it to become the
+	game's style: a deep indigo page, violet-lit panels, gold reserved for the
+	title and the one primary action, cyan for tier and gems, violet for
+	selection and rarity.
+
+	Every value below is sampled from that reference rather than invented, which
+	is the point -- the previous palette was five screens inventing their own and
+	this is the one place that stops happening again.
+
+	WHAT THIS FILE CAN AND CANNOT DO. Twenty-five modules read it, so a colour
+	change here restyles the whole game at once. It does NOT restyle LAYOUT --
+	the reference's left rail, hero card and tile row are view work on top of
+	this, screen by screen.
 
 	Add a colour here, not in a view. If a view needs a one-off, it should be a
 	tint applied over a token, not a new constant.
@@ -21,18 +34,31 @@ local MineTheme = {}
 
 -- TYPE. Display face for anything you read at a glance: titles, prices,
 -- counts, button captions. Body face for anything you actually read.
-MineTheme.FONT = Enum.Font.FredokaOne
+--
+-- The display face was FredokaOne -- rounded and bubbly. The reference is a
+-- clean geometric sans, so the display weight is BuilderSansBold now and the
+-- rounding is carried by the CORNERS instead of the letterforms. Roblox has no
+-- Poppins/Outfit, and BuilderSans is the closest thing it ships.
+MineTheme.FONT = Enum.Font.BuilderSansBold
 MineTheme.FONT_M = Enum.Font.BuilderSansMedium
 MineTheme.FONT_B = Enum.Font.BuilderSansBold
 
 -- SURFACES, darkest to lightest. INK is the page, PANEL is a window on it,
 -- CARD is a row or tile, CARD_HI is that tile under the cursor or selected.
-MineTheme.INK = Color3.fromRGB(26, 21, 18)
-MineTheme.PANEL = Color3.fromRGB(38, 30, 25)
-MineTheme.CARD = Color3.fromRGB(54, 42, 34)
-MineTheme.CARD_HI = Color3.fromRGB(78, 60, 46)
-MineTheme.LINE = Color3.fromRGB(92, 72, 56)
-MineTheme.DEAD = Color3.fromRGB(58, 52, 48)
+MineTheme.INK = Color3.fromRGB(11, 10, 26)
+MineTheme.PANEL = Color3.fromRGB(23, 19, 51)
+MineTheme.CARD = Color3.fromRGB(34, 28, 78)
+MineTheme.CARD_HI = Color3.fromRGB(58, 42, 124)
+MineTheme.LINE = Color3.fromRGB(58, 53, 112)
+MineTheme.DEAD = Color3.fromRGB(45, 42, 85)
+
+-- The violet the reference lights every panel edge and selection with. GOLD is
+-- still the primary accent -- the title and the one call to action -- and this
+-- is the SECONDARY: selection, rarity, focus, the glow on an active tab.
+MineTheme.ACCENT = Color3.fromRGB(168, 85, 247)
+MineTheme.ACCENT_DIM = Color3.fromRGB(124, 58, 237)
+-- Panel edges in the reference are a lit hairline, not a neutral grey.
+MineTheme.EDGE = Color3.fromRGB(75, 63, 147)
 
 -- INK-adjacent aliases, so a view that thinks in BG/BG2/BG3 can map straight
 -- across without renaming every use site.
@@ -40,16 +66,16 @@ MineTheme.BG = MineTheme.PANEL
 MineTheme.BG2 = MineTheme.CARD
 MineTheme.BG3 = MineTheme.INK
 
--- TEXT.
-MineTheme.TEXT = Color3.fromRGB(248, 240, 228)
-MineTheme.MUTED = Color3.fromRGB(186, 168, 148)
-MineTheme.FAINT = Color3.fromRGB(126, 112, 98)
+-- TEXT. Cool now, to sit on indigo rather than brown.
+MineTheme.TEXT = Color3.fromRGB(236, 234, 255)
+MineTheme.MUTED = Color3.fromRGB(154, 149, 201)
+MineTheme.FAINT = Color3.fromRGB(106, 100, 150)
 
 -- CURRENCIES. These are the only colours allowed to mean a specific thing, and
 -- they must match the icons and the floating pickup text.
-MineTheme.GOLD = Color3.fromRGB(255, 206, 92)   -- coins, and the primary accent
-MineTheme.GEM = Color3.fromRGB(122, 226, 255)
-MineTheme.DUST = Color3.fromRGB(210, 160, 255)
+MineTheme.GOLD = Color3.fromRGB(255, 194, 77)   -- coins, and the primary accent
+MineTheme.GEM = Color3.fromRGB(72, 214, 255)
+MineTheme.DUST = Color3.fromRGB(192, 132, 252)
 MineTheme.CREDIT = Color3.fromRGB(196, 162, 255)
 
 -- STATE.

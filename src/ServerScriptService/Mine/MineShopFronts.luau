@@ -589,8 +589,8 @@ function MineShopFronts.build(kit, parent, cf, spec, W, D, H)
 
 	local builder = BUILDERS[spec.style] or buildDepot
 	-- The style draws the building; the SPEC names it. A style used by a station
-	-- it was not designed for used to keep its own sign, which is why the Fossil
-	-- Bench stood under a board reading JOB BOARD.
+	-- it was not designed for used to keep its own sign, which is how a bench
+	-- once ended up standing under a board reading JOB BOARD.
 	builder(kit, f, cf, spec.pal, W, D, H, spec.title)
 
 	-- Face the pad (customer approach). Blind yaw-180 put Look·toPad at -1.

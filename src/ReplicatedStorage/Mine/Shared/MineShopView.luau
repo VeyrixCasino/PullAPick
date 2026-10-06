@@ -83,17 +83,32 @@ local function rarityColor(rar)
 end
 
 --[[
-	The Forge leads. Crafting a tool out of ore is the main line of progression,
-	so it is the tab the shop opens on; the coin-shop families that follow are
-	the second line. The coin shop may be removed outright later -- until that
-	call is made it stays reachable, just no longer first.
+	THE COIN SHOP NO LONGER SELLS TOOLS.
+
+	Owner, 2026-10-05: "i think its time to get rid of all coin bought tools".
+	The note that used to sit here said the coin shop "may be removed outright
+	later -- until that call is made it stays reachable, just no longer first".
+	That call is made.
+
+	Pickaxes, Drills and Explosives are gone from this rail. Every tool in the
+	game is forged out of ore now, which makes ore the single currency of
+	progression rather than one of two parallel ladders that each ended
+	somewhere different. The Forge leads because it is the only line.
+
+	What STAYS: Backpacks (haul capacity, not a tool), the Ore Pouch, and
+	Secrets, which are pulled from chests and were never sold.
+
+	The roster in MineTools is NOT deleted with the tabs. MineOreTools reads it
+	for each forged tool's frame and cost multiplier -- `frames()` filters on
+	`price > 0` -- so those prices are now a forge input rather than a shelf
+	price. Removing them would blank every forged tool's silhouette.
+
+	The server refuses the buy verbs independently of this list; a tab removed
+	from a client rail is a UI change, not a rule. See buyTool in MineServer.
 ]]
 local TABS = {
 	{ id = "bench", label = "Forge", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
 	{ id = "pouch", label = "Ore Pouch", blurb = "What you are carrying, and what it sells for. Ore pays gems; the pouch survives a rebirth." },
-	{ id = "pickaxe", label = "Pickaxes", blurb = "Aim, swing, break. One block at a time." },
-	{ id = "drill", label = "Drills", blurb = "Hold to mine. Wide clears area, narrow melts rock." },
-	{ id = "explosive", label = "Explosives", blurb = "Throw and clear a pattern. Extra bombs split the power." },
 	{ id = "backpack", label = "Backpacks", blurb = "Haul capacity. Coins for most rungs; the top pack is Robux." },
 	--[[
 		Secrets was wired everywhere and never given a button.
@@ -219,7 +234,7 @@ function MineShopView.mount(parent, opts)
 	-- Opens on the Forge, not on a shelf of coin-bought picks.
 	local activeTab = "bench"
 	local index = 1
-	state.tempers, state.toolTempers = {}, {}
+	state.tempers, state.toolTempers, state.toolSockets = {}, {}, {}
 	local view = {}
 	local CARD_HOME = UDim2.new(0.5, 0, 0, 104)
 
@@ -275,13 +290,23 @@ function MineShopView.mount(parent, opts)
 		Rotation = 90,
 	}, backdrop)
 
+	--[[
+		The ambience behind the panel.
+
+		It was ORANGE (255,152,64) at 0.8 across 92% x 66% of the screen. On a
+		small window that reads as forge-light; on a 2714px display it is a
+		brown ellipse the size of the viewport, and it was the single thing that
+		made the shop look broken rather than unstyled.
+
+		Theme accent now, and much fainter -- ambience should be felt, not seen.
+	]]
 	local glow = mk("Frame", {
 		Name = "ForgeGlow",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.76),
 		Size = UDim2.fromScale(0.92, 0.66),
-		BackgroundColor3 = Color3.fromRGB(255, 152, 64),
-		BackgroundTransparency = 0.8,
+		BackgroundColor3 = T.ACCENT or Color3.fromRGB(168, 85, 247),
+		BackgroundTransparency = 0.93,
 		ZIndex = 2,
 		BorderSizePixel = 0,
 	}, root)
@@ -502,14 +527,36 @@ function MineShopView.mount(parent, opts)
 	-- It hangs off the shop root at 86 -- above the stage, below the header --
 	-- and only the Upgrade tab shows it.
 	--
-	-- Required through pcall: if the module is missing from a build, the tab
-	-- goes quiet instead of taking the whole shop down with it.
+	-- Required through pcall so a module missing from a build cannot take the
+	-- whole shop down with it -- but LOUDLY. The silent version of this guard
+	-- is why "there is still no Forge" went a week without an answer: a Studio
+	-- running pre-Forge code dropped the tab and printed nothing, which reads
+	-- exactly like a Forge that was never written.
 	----------------------------------------------------------------------------
 	local okBench, Bench = pcall(function()
 		return require(shared:WaitForChild("MineForge", 5))
 	end)
+	if not (okBench and Bench and Bench.mount) then
+		warn("[MineShopView] NO FORGE: ReplicatedStorage.Mine.Shared.MineForge "
+			.. "did not resolve (" .. tostring(Bench) .. "). The shop will open "
+			.. "on Pickaxes instead. If Rojo is connected this means Studio is "
+			.. "running older code than the file on disk.")
+	end
 	local benchPanel, benchCtl
 	if okBench and Bench and Bench.mount then
+		--[[
+			A CONTAINED CARD, not a full-bleed pane.
+
+			This was 86% of the window with no ceiling. On a 2714px display that
+			is 2334px wide, and MineForge lays out in fixed pixels -- a 232px
+			rail, fixed label widths -- so its content clustered into the left
+			thousand pixels and the remaining 1300 were empty. That emptiness,
+			not the colours, is what read as "extremely far off" against the
+			reference, which is a contained card with its content filling it.
+
+			The size constraint caps it so the card stays card-shaped on any
+			monitor; the anchor already centres it.
+		]]
 		benchPanel = mk("Frame", {
 			Name = "BenchPanel",
 			Visible = false,
@@ -519,6 +566,7 @@ function MineShopView.mount(parent, opts)
 			BackgroundTransparency = 1,
 			ZIndex = 86,
 		}, root)
+		mk("UISizeConstraint", { MaxSize = Vector2.new(1480, math.huge) }, benchPanel)
 		local okMount, ctl = pcall(Bench.mount, benchPanel, {
 			-- The bench reads the same state the rest of the shop does, so a
 			-- price it quotes cannot drift from the wallet shown above it.
@@ -535,12 +583,33 @@ function MineShopView.mount(parent, opts)
 					-- wallet strip, so it needs both currencies, not just dust.
 					coins = state.coins or 0,
 					gems = state.gems or 0,
-					oreToolEquipped = state.oreToolEquipped,
+					-- The ore strip prints fill against CAPACITY, and capacity
+					-- comes off the pouch tier. Without this it defaulted to 1
+					-- and quoted a tier-1 pouch to everybody.
+					orePouchTier = state.orePouchTier or 1,
+					--[[
+						The skin and rune the selected tool's FAMILY is wearing.
+						Both are keyed by family, not by tool -- a forged row
+						cannot hold either -- and the Forge says so rather than
+						implying the fit is per-tool. `runes` is the loose list,
+						used to name a socketed rune when it is still in it.
+					]]
+					toolTempers = state.toolTempers or {},
+					toolSockets = state.toolSockets or {},
+					runes = state.runes or {},
 				}
 			end,
 			-- Out of the Forge and down to the second line.
 			onCoinShop = function()
 				view.setTab("pickaxe")
+			end,
+			-- Fitting a skin or socketing a rune happens at the Enchanter. The
+			-- Forge reports what is fitted and sends you there rather than
+			-- growing a second copy of those two screens.
+			onOpenEnchanter = function(tab)
+				if opts.onOpenEnchanter then
+					opts.onOpenEnchanter(tab)
+				end
 			end,
 			onEquip = function(uid)
 				if opts.onEquipOreTool then
@@ -568,6 +637,9 @@ function MineShopView.mount(parent, opts)
 				end
 			end,
 		})
+		if not okMount then
+			warn("[MineShopView] NO FORGE: MineForge.mount threw: " .. tostring(ctl))
+		end
 		benchCtl = okMount and ctl or nil
 	end
 
@@ -575,12 +647,17 @@ function MineShopView.mount(parent, opts)
 	-- ORE POUCH
 	--
 	-- Mounted the same guarded way as the Forge: a pcall require and a pcall
-	-- mount, so a panel that fails to load goes quiet instead of taking the
-	-- whole shop down with it.
+	-- mount so a panel that fails to load cannot take the whole shop down --
+	-- and, like the Forge, it says so rather than just losing its tab.
 	----------------------------------------------------------------------------
 	local okPouch, PouchView = pcall(function()
 		return require(shared:WaitForChild("MineOrePouchView", 5))
 	end)
+	if not (okPouch and PouchView and PouchView.mount) then
+		warn("[MineShopView] NO ORE POUCH: "
+			.. "ReplicatedStorage.Mine.Shared.MineOrePouchView did not resolve ("
+			.. tostring(PouchView) .. ").")
+	end
 	local pouchPanel, pouchCtl
 	if okPouch and PouchView and PouchView.mount then
 		pouchPanel = mk("Frame", {
@@ -630,6 +707,10 @@ function MineShopView.mount(parent, opts)
 				end
 			end,
 		})
+		if not okMountP then
+			warn("[MineShopView] NO ORE POUCH: MineOrePouchView.mount threw: "
+				.. tostring(ctlP))
+		end
 		pouchCtl = okMountP and ctlP or nil
 	end
 
@@ -1883,7 +1964,7 @@ function MineShopView.mount(parent, opts)
 				end
 				t.count.Text = string.format("%d/%d", have, total)
 			else
-				-- BACKPACKS carries fossil, Robux and event bags that are not on
+				-- BACKPACKS carries retired-track, Robux and event bags not on
 				-- the coin shelf, so #BACKPACKS read "60/112" against a shelf of
 				-- 93. Count the rungs a player can actually buy, on both sides.
 				local bagTotal, bagHave = 0, 0
@@ -2296,6 +2377,8 @@ function MineShopView.mount(parent, opts)
 		state.shopToolId = snapshot.shopToolId or (snapshot.tool and snapshot.tool.id)
 		state.tempers = snapshot.tempers or {}
 		state.toolTempers = snapshot.toolTempers or {}
+		-- The Forge shows what the selected tool's FAMILY is wearing.
+		state.toolSockets = snapshot.toolSockets or {}
 		if root.Visible then
 			paint()
 		end

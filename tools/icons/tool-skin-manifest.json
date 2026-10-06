@@ -1,0 +1,1998 @@
+[
+ {
+  "family": "pick",
+  "kind": "starter",
+  "tier": 0,
+  "file": "pick_00_starter.png",
+  "src": "icon-01.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 1,
+  "oreId": "stone",
+  "file": "pick_01_stone.png",
+  "src": "icon-02.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 2,
+  "oreId": "clay",
+  "file": "pick_02_clay.png",
+  "src": "icon-03.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 3,
+  "oreId": "limestone",
+  "file": "pick_03_limestone.png",
+  "src": "icon-04.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 4,
+  "oreId": "pumice",
+  "file": "pick_04_pumice.png",
+  "src": "icon-05.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 5,
+  "oreId": "halite",
+  "file": "pick_05_halite.png",
+  "src": "icon-06.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 6,
+  "oreId": "coal",
+  "file": "pick_06_coal.png",
+  "src": "icon-07.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 7,
+  "oreId": "flint",
+  "file": "pick_07_flint.png",
+  "src": "icon-08.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 8,
+  "oreId": "basalt",
+  "file": "pick_08_basalt.png",
+  "src": "icon-09.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 9,
+  "oreId": "slate",
+  "file": "pick_09_slate.png",
+  "src": "icon-10.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 10,
+  "oreId": "bone",
+  "file": "pick_10_bone.png",
+  "src": "icon-11.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 11,
+  "oreId": "granite",
+  "file": "pick_11_granite.png",
+  "src": "icon-12.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 12,
+  "oreId": "copper",
+  "file": "pick_12_copper.png",
+  "src": "icon-13.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 13,
+  "oreId": "tin",
+  "file": "pick_13_tin.png",
+  "src": "icon-14.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 14,
+  "oreId": "ember",
+  "file": "pick_14_ember.png",
+  "src": "icon-15.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 15,
+  "oreId": "sulfur",
+  "file": "pick_15_sulfur.png",
+  "src": "icon-16.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 16,
+  "oreId": "lead",
+  "file": "pick_16_lead.png",
+  "src": "icon-17.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 17,
+  "oreId": "zinc",
+  "file": "pick_17_zinc.png",
+  "src": "icon-18.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 18,
+  "oreId": "aluminum",
+  "file": "pick_18_aluminum.png",
+  "src": "icon-19.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 19,
+  "oreId": "iron",
+  "file": "pick_19_iron.png",
+  "src": "icon-20.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 20,
+  "oreId": "graphite",
+  "file": "pick_20_graphite.png",
+  "src": "icon-21.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 21,
+  "oreId": "pyrite",
+  "file": "pick_21_pyrite.png",
+  "src": "icon-22.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 22,
+  "oreId": "marble",
+  "file": "pick_22_marble.png",
+  "src": "icon-23.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 23,
+  "oreId": "pearl",
+  "file": "pick_23_pearl.png",
+  "src": "icon-24.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 24,
+  "oreId": "rime",
+  "file": "pick_24_rime.png",
+  "src": "icon-25.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 25,
+  "oreId": "quartz",
+  "file": "pick_25_quartz.png",
+  "src": "icon-26.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 26,
+  "oreId": "amber",
+  "file": "pick_26_amber.png",
+  "src": "icon-27.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 27,
+  "oreId": "petrifact",
+  "file": "pick_27_petrifact.png",
+  "src": "icon-28.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 28,
+  "oreId": "nickel",
+  "file": "pick_28_nickel.png",
+  "src": "icon-29.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 29,
+  "oreId": "onyx",
+  "file": "pick_29_onyx.png",
+  "src": "icon-30.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 30,
+  "oreId": "bloodstone",
+  "file": "pick_30_bloodstone.png",
+  "src": "icon-31.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 31,
+  "oreId": "garnet",
+  "file": "pick_31_garnet.png",
+  "src": "icon-32.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 32,
+  "oreId": "citrine",
+  "file": "pick_32_citrine.png",
+  "src": "icon-33.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 33,
+  "oreId": "chromium",
+  "file": "pick_33_chromium.png",
+  "src": "icon-34.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 34,
+  "oreId": "turquoise",
+  "file": "pick_34_turquoise.png",
+  "src": "icon-35.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 35,
+  "oreId": "bismuth",
+  "file": "pick_35_bismuth.png",
+  "src": "icon-36.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 36,
+  "oreId": "silver",
+  "file": "pick_36_silver.png",
+  "src": "icon-37.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 37,
+  "oreId": "amethyst",
+  "file": "pick_37_amethyst.png",
+  "src": "icon-38.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 38,
+  "oreId": "tigereye",
+  "file": "pick_38_tigereye.png",
+  "src": "icon-39.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 39,
+  "oreId": "lapis",
+  "file": "pick_39_lapis.png",
+  "src": "icon-40.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 40,
+  "oreId": "geode",
+  "file": "pick_40_geode.png",
+  "src": "icon-41.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 41,
+  "oreId": "topaz",
+  "file": "pick_41_topaz.png",
+  "src": "icon-42.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 42,
+  "oreId": "phosphorus",
+  "file": "pick_42_phosphorus.png",
+  "src": "icon-43.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 43,
+  "oreId": "peridot",
+  "file": "pick_43_peridot.png",
+  "src": "icon-44.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 44,
+  "oreId": "jade",
+  "file": "pick_44_jade.png",
+  "src": "icon-45.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 45,
+  "oreId": "emberglass",
+  "file": "pick_45_emberglass.png",
+  "src": "icon-46.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 46,
+  "oreId": "tungsten",
+  "file": "pick_46_tungsten.png",
+  "src": "icon-47.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 47,
+  "oreId": "lithium",
+  "file": "pick_47_lithium.png",
+  "src": "icon-48.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 48,
+  "oreId": "titanium",
+  "file": "pick_48_titanium.png",
+  "src": "icon-49.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 49,
+  "oreId": "obsidian",
+  "file": "pick_49_obsidian.png",
+  "src": "icon-50.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 50,
+  "oreId": "cobalt",
+  "file": "pick_50_cobalt.png",
+  "src": "icon-51.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 51,
+  "oreId": "gold",
+  "file": "pick_51_gold.png",
+  "src": "icon-52.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 52,
+  "oreId": "regolith",
+  "file": "pick_52_regolith.png",
+  "src": "icon-53.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 53,
+  "oreId": "sunstone",
+  "file": "pick_53_sunstone.png",
+  "src": "icon-54.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 54,
+  "oreId": "emerald",
+  "file": "pick_54_emerald.png",
+  "src": "icon-55.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 55,
+  "oreId": "moonstone",
+  "file": "pick_55_moonstone.png",
+  "src": "icon-56.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 56,
+  "oreId": "sapphire",
+  "file": "pick_56_sapphire.png",
+  "src": "icon-57.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 57,
+  "oreId": "ruby",
+  "file": "pick_57_ruby.png",
+  "src": "icon-58.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 58,
+  "oreId": "palladium",
+  "file": "pick_58_palladium.png",
+  "src": "icon-59.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 59,
+  "oreId": "aquamarine",
+  "file": "pick_59_aquamarine.png",
+  "src": "icon-60.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 60,
+  "oreId": "opal",
+  "file": "pick_60_opal.png",
+  "src": "icon-61.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 61,
+  "oreId": "platinum",
+  "file": "pick_61_platinum.png",
+  "src": "icon-62.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 62,
+  "oreId": "stormstone",
+  "file": "pick_62_stormstone.png",
+  "src": "icon-63.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 63,
+  "oreId": "diamond",
+  "file": "pick_63_diamond.png",
+  "src": "icon-64.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 64,
+  "oreId": "starmetal",
+  "file": "pick_64_starmetal.png",
+  "src": "icon-65.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 65,
+  "oreId": "aetherite",
+  "file": "pick_65_aetherite.png",
+  "src": "icon-66.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 66,
+  "oreId": "meteorite",
+  "file": "pick_66_meteorite.png",
+  "src": "icon-67.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 67,
+  "oreId": "soulstone",
+  "file": "pick_67_soulstone.png",
+  "src": "icon-68.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 68,
+  "oreId": "galaxite",
+  "file": "pick_68_galaxite.png",
+  "src": "icon-69.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 69,
+  "oreId": "frostfire",
+  "file": "pick_69_frostfire.png",
+  "src": "icon-70.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 70,
+  "oreId": "umbrite",
+  "file": "pick_70_umbrite.png",
+  "src": "icon-71.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 71,
+  "oreId": "celestine",
+  "file": "pick_71_celestine.png",
+  "src": "icon-72.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 72,
+  "oreId": "orichalcum",
+  "file": "pick_72_orichalcum.png",
+  "src": "icon-73.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 73,
+  "oreId": "spectrite",
+  "file": "pick_73_spectrite.png",
+  "src": "icon-74.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 74,
+  "oreId": "mythril",
+  "file": "pick_74_mythril.png",
+  "src": "icon-75.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 75,
+  "oreId": "dragonstone",
+  "file": "pick_75_dragonstone.png",
+  "src": "icon-76.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 76,
+  "oreId": "adamantite",
+  "file": "pick_76_adamantite.png",
+  "src": "icon-77.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 77,
+  "oreId": "thorium",
+  "file": "pick_77_thorium.png",
+  "src": "icon-78.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 78,
+  "oreId": "uranium",
+  "file": "pick_78_uranium.png",
+  "src": "icon-79.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 79,
+  "oreId": "plutonium",
+  "file": "pick_79_plutonium.png",
+  "src": "icon-80.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 80,
+  "oreId": "fermium",
+  "file": "pick_80_fermium.png",
+  "src": "icon-81.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 81,
+  "oreId": "lawrencium",
+  "file": "pick_81_lawrencium.png",
+  "src": "icon-82.png"
+ },
+ {
+  "family": "pick",
+  "kind": "ore",
+  "tier": 82,
+  "oreId": "oganesson",
+  "file": "pick_82_oganesson.png",
+  "src": "icon-83.png"
+ },
+ {
+  "family": "pick",
+  "kind": "admin",
+  "tier": 99,
+  "file": "pick_99_admin.png",
+  "src": "icon-88.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 1,
+  "oreId": "stone",
+  "file": "drill_01_stone.png",
+  "src": "icon-01.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 2,
+  "oreId": "clay",
+  "file": "drill_02_clay.png",
+  "src": "icon-02.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 3,
+  "oreId": "limestone",
+  "file": "drill_03_limestone.png",
+  "src": "icon-03.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 4,
+  "oreId": "pumice",
+  "file": "drill_04_pumice.png",
+  "src": "icon-04.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 5,
+  "oreId": "halite",
+  "file": "drill_05_halite.png",
+  "src": "icon-05.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 6,
+  "oreId": "coal",
+  "file": "drill_06_coal.png",
+  "src": "icon-06.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 7,
+  "oreId": "flint",
+  "file": "drill_07_flint.png",
+  "src": "icon-07.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 8,
+  "oreId": "basalt",
+  "file": "drill_08_basalt.png",
+  "src": "icon-08.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 9,
+  "oreId": "slate",
+  "file": "drill_09_slate.png",
+  "src": "icon-09.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 10,
+  "oreId": "bone",
+  "file": "drill_10_bone.png",
+  "src": "icon-10.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 11,
+  "oreId": "granite",
+  "file": "drill_11_granite.png",
+  "src": "icon-11.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 12,
+  "oreId": "copper",
+  "file": "drill_12_copper.png",
+  "src": "icon-12.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 13,
+  "oreId": "tin",
+  "file": "drill_13_tin.png",
+  "src": "icon-13.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 14,
+  "oreId": "ember",
+  "file": "drill_14_ember.png",
+  "src": "icon-14.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 15,
+  "oreId": "sulfur",
+  "file": "drill_15_sulfur.png",
+  "src": "icon-15.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 16,
+  "oreId": "lead",
+  "file": "drill_16_lead.png",
+  "src": "icon-16.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 17,
+  "oreId": "zinc",
+  "file": "drill_17_zinc.png",
+  "src": "icon-17.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 18,
+  "oreId": "aluminum",
+  "file": "drill_18_aluminum.png",
+  "src": "icon-18.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 19,
+  "oreId": "iron",
+  "file": "drill_19_iron.png",
+  "src": "icon-19.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 20,
+  "oreId": "graphite",
+  "file": "drill_20_graphite.png",
+  "src": "icon-20.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 21,
+  "oreId": "pyrite",
+  "file": "drill_21_pyrite.png",
+  "src": "icon-21.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 22,
+  "oreId": "marble",
+  "file": "drill_22_marble.png",
+  "src": "icon-22.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 23,
+  "oreId": "pearl",
+  "file": "drill_23_pearl.png",
+  "src": "icon-23.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 24,
+  "oreId": "rime",
+  "file": "drill_24_rime.png",
+  "src": "icon-24.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 25,
+  "oreId": "quartz",
+  "file": "drill_25_quartz.png",
+  "src": "icon-25.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 26,
+  "oreId": "amber",
+  "file": "drill_26_amber.png",
+  "src": "icon-26.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 27,
+  "oreId": "petrifact",
+  "file": "drill_27_petrifact.png",
+  "src": "icon-27.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 28,
+  "oreId": "nickel",
+  "file": "drill_28_nickel.png",
+  "src": "icon-28.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 29,
+  "oreId": "onyx",
+  "file": "drill_29_onyx.png",
+  "src": "icon-29.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 30,
+  "oreId": "bloodstone",
+  "file": "drill_30_bloodstone.png",
+  "src": "icon-30.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 31,
+  "oreId": "garnet",
+  "file": "drill_31_garnet.png",
+  "src": "icon-31.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 32,
+  "oreId": "citrine",
+  "file": "drill_32_citrine.png",
+  "src": "icon-32.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 33,
+  "oreId": "chromium",
+  "file": "drill_33_chromium.png",
+  "src": "icon-33.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 34,
+  "oreId": "turquoise",
+  "file": "drill_34_turquoise.png",
+  "src": "icon-34.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 35,
+  "oreId": "bismuth",
+  "file": "drill_35_bismuth.png",
+  "src": "icon-35.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 36,
+  "oreId": "silver",
+  "file": "drill_36_silver.png",
+  "src": "icon-36.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 37,
+  "oreId": "amethyst",
+  "file": "drill_37_amethyst.png",
+  "src": "icon-37.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 38,
+  "oreId": "tigereye",
+  "file": "drill_38_tigereye.png",
+  "src": "icon-38.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 39,
+  "oreId": "lapis",
+  "file": "drill_39_lapis.png",
+  "src": "icon-39.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 40,
+  "oreId": "geode",
+  "file": "drill_40_geode.png",
+  "src": "icon-40.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 41,
+  "oreId": "topaz",
+  "file": "drill_41_topaz.png",
+  "src": "icon-41.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 42,
+  "oreId": "phosphorus",
+  "file": "drill_42_phosphorus.png",
+  "src": "icon-42.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 43,
+  "oreId": "peridot",
+  "file": "drill_43_peridot.png",
+  "src": "icon-43.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 44,
+  "oreId": "jade",
+  "file": "drill_44_jade.png",
+  "src": "icon-44.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 45,
+  "oreId": "emberglass",
+  "file": "drill_45_emberglass.png",
+  "src": "icon-45.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 46,
+  "oreId": "tungsten",
+  "file": "drill_46_tungsten.png",
+  "src": "icon-46.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 47,
+  "oreId": "lithium",
+  "file": "drill_47_lithium.png",
+  "src": "icon-47.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 48,
+  "oreId": "titanium",
+  "file": "drill_48_titanium.png",
+  "src": "icon-48.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 49,
+  "oreId": "obsidian",
+  "file": "drill_49_obsidian.png",
+  "src": "icon-49.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 50,
+  "oreId": "cobalt",
+  "file": "drill_50_cobalt.png",
+  "src": "icon-50.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 51,
+  "oreId": "gold",
+  "file": "drill_51_gold.png",
+  "src": "icon-51.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 52,
+  "oreId": "regolith",
+  "file": "drill_52_regolith.png",
+  "src": "icon-52.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 53,
+  "oreId": "sunstone",
+  "file": "drill_53_sunstone.png",
+  "src": "icon-53.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 54,
+  "oreId": "emerald",
+  "file": "drill_54_emerald.png",
+  "src": "icon-54.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 55,
+  "oreId": "moonstone",
+  "file": "drill_55_moonstone.png",
+  "src": "icon-55.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 56,
+  "oreId": "sapphire",
+  "file": "drill_56_sapphire.png",
+  "src": "icon-56.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 57,
+  "oreId": "ruby",
+  "file": "drill_57_ruby.png",
+  "src": "icon-57.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 58,
+  "oreId": "palladium",
+  "file": "drill_58_palladium.png",
+  "src": "icon-58.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 59,
+  "oreId": "aquamarine",
+  "file": "drill_59_aquamarine.png",
+  "src": "icon-59.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 60,
+  "oreId": "opal",
+  "file": "drill_60_opal.png",
+  "src": "icon-60.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 61,
+  "oreId": "platinum",
+  "file": "drill_61_platinum.png",
+  "src": "icon-61.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 62,
+  "oreId": "stormstone",
+  "file": "drill_62_stormstone.png",
+  "src": "icon-62.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 63,
+  "oreId": "diamond",
+  "file": "drill_63_diamond.png",
+  "src": "icon-63.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 64,
+  "oreId": "starmetal",
+  "file": "drill_64_starmetal.png",
+  "src": "icon-64.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 65,
+  "oreId": "aetherite",
+  "file": "drill_65_aetherite.png",
+  "src": "icon-65.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 66,
+  "oreId": "meteorite",
+  "file": "drill_66_meteorite.png",
+  "src": "icon-66.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 67,
+  "oreId": "soulstone",
+  "file": "drill_67_soulstone.png",
+  "src": "icon-67.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 68,
+  "oreId": "galaxite",
+  "file": "drill_68_galaxite.png",
+  "src": "icon-68.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 69,
+  "oreId": "frostfire",
+  "file": "drill_69_frostfire.png",
+  "src": "icon-69.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 70,
+  "oreId": "umbrite",
+  "file": "drill_70_umbrite.png",
+  "src": "icon-70.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 71,
+  "oreId": "celestine",
+  "file": "drill_71_celestine.png",
+  "src": "icon-71.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 72,
+  "oreId": "orichalcum",
+  "file": "drill_72_orichalcum.png",
+  "src": "icon-72.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 73,
+  "oreId": "spectrite",
+  "file": "drill_73_spectrite.png",
+  "src": "icon-73.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 74,
+  "oreId": "mythril",
+  "file": "drill_74_mythril.png",
+  "src": "icon-74.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 75,
+  "oreId": "dragonstone",
+  "file": "drill_75_dragonstone.png",
+  "src": "icon-75.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 76,
+  "oreId": "adamantite",
+  "file": "drill_76_adamantite.png",
+  "src": "icon-76.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 77,
+  "oreId": "thorium",
+  "file": "drill_77_thorium.png",
+  "src": "icon-77.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 78,
+  "oreId": "uranium",
+  "file": "drill_78_uranium.png",
+  "src": "icon-78.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 79,
+  "oreId": "plutonium",
+  "file": "drill_79_plutonium.png",
+  "src": "icon-79.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 80,
+  "oreId": "fermium",
+  "file": "drill_80_fermium.png",
+  "src": "icon-80.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 81,
+  "oreId": "lawrencium",
+  "file": "drill_81_lawrencium.png",
+  "src": "icon-81.png"
+ },
+ {
+  "family": "drill",
+  "kind": "ore",
+  "tier": 82,
+  "oreId": "oganesson",
+  "file": "drill_82_oganesson.png",
+  "src": "icon-82.png"
+ },
+ {
+  "family": "drill",
+  "kind": "admin",
+  "tier": 99,
+  "file": "drill_99_admin.png",
+  "src": "icon-96.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 1,
+  "oreId": "stone",
+  "file": "bomb_01_stone.png",
+  "src": "icon-01.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 2,
+  "oreId": "clay",
+  "file": "bomb_02_clay.png",
+  "src": "icon-02.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 3,
+  "oreId": "limestone",
+  "file": "bomb_03_limestone.png",
+  "src": "icon-03.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 4,
+  "oreId": "pumice",
+  "file": "bomb_04_pumice.png",
+  "src": "icon-04.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 5,
+  "oreId": "halite",
+  "file": "bomb_05_halite.png",
+  "src": "icon-05.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 6,
+  "oreId": "coal",
+  "file": "bomb_06_coal.png",
+  "src": "icon-06.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 7,
+  "oreId": "flint",
+  "file": "bomb_07_flint.png",
+  "src": "icon-07.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 8,
+  "oreId": "basalt",
+  "file": "bomb_08_basalt.png",
+  "src": "icon-08.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 9,
+  "oreId": "slate",
+  "file": "bomb_09_slate.png",
+  "src": "icon-09.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 10,
+  "oreId": "bone",
+  "file": "bomb_10_bone.png",
+  "src": "icon-10.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 11,
+  "oreId": "granite",
+  "file": "bomb_11_granite.png",
+  "src": "icon-11.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 12,
+  "oreId": "copper",
+  "file": "bomb_12_copper.png",
+  "src": "icon-12.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 13,
+  "oreId": "tin",
+  "file": "bomb_13_tin.png",
+  "src": "icon-13.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 14,
+  "oreId": "ember",
+  "file": "bomb_14_ember.png",
+  "src": "icon-14.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 15,
+  "oreId": "sulfur",
+  "file": "bomb_15_sulfur.png",
+  "src": "icon-15.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 16,
+  "oreId": "lead",
+  "file": "bomb_16_lead.png",
+  "src": "icon-16.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 17,
+  "oreId": "zinc",
+  "file": "bomb_17_zinc.png",
+  "src": "icon-17.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 18,
+  "oreId": "aluminum",
+  "file": "bomb_18_aluminum.png",
+  "src": "icon-18.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 19,
+  "oreId": "iron",
+  "file": "bomb_19_iron.png",
+  "src": "icon-19.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 20,
+  "oreId": "graphite",
+  "file": "bomb_20_graphite.png",
+  "src": "icon-20.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 21,
+  "oreId": "pyrite",
+  "file": "bomb_21_pyrite.png",
+  "src": "icon-21.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 22,
+  "oreId": "marble",
+  "file": "bomb_22_marble.png",
+  "src": "icon-22.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 23,
+  "oreId": "pearl",
+  "file": "bomb_23_pearl.png",
+  "src": "icon-23.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 24,
+  "oreId": "rime",
+  "file": "bomb_24_rime.png",
+  "src": "icon-24.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 25,
+  "oreId": "quartz",
+  "file": "bomb_25_quartz.png",
+  "src": "icon-25.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 26,
+  "oreId": "amber",
+  "file": "bomb_26_amber.png",
+  "src": "icon-26.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 27,
+  "oreId": "petrifact",
+  "file": "bomb_27_petrifact.png",
+  "src": "icon-27.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 28,
+  "oreId": "nickel",
+  "file": "bomb_28_nickel.png",
+  "src": "icon-28.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 29,
+  "oreId": "onyx",
+  "file": "bomb_29_onyx.png",
+  "src": "icon-29.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 30,
+  "oreId": "bloodstone",
+  "file": "bomb_30_bloodstone.png",
+  "src": "icon-30.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 31,
+  "oreId": "garnet",
+  "file": "bomb_31_garnet.png",
+  "src": "icon-31.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 32,
+  "oreId": "citrine",
+  "file": "bomb_32_citrine.png",
+  "src": "icon-32.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 33,
+  "oreId": "chromium",
+  "file": "bomb_33_chromium.png",
+  "src": "icon-33.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 34,
+  "oreId": "turquoise",
+  "file": "bomb_34_turquoise.png",
+  "src": "icon-34.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 35,
+  "oreId": "bismuth",
+  "file": "bomb_35_bismuth.png",
+  "src": "icon-35.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 36,
+  "oreId": "silver",
+  "file": "bomb_36_silver.png",
+  "src": "icon-36.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 37,
+  "oreId": "amethyst",
+  "file": "bomb_37_amethyst.png",
+  "src": "icon-37.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 38,
+  "oreId": "tigereye",
+  "file": "bomb_38_tigereye.png",
+  "src": "icon-38.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 39,
+  "oreId": "lapis",
+  "file": "bomb_39_lapis.png",
+  "src": "icon-39.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 40,
+  "oreId": "geode",
+  "file": "bomb_40_geode.png",
+  "src": "icon-40.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 41,
+  "oreId": "topaz",
+  "file": "bomb_41_topaz.png",
+  "src": "icon-41.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 42,
+  "oreId": "phosphorus",
+  "file": "bomb_42_phosphorus.png",
+  "src": "icon-42.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 43,
+  "oreId": "peridot",
+  "file": "bomb_43_peridot.png",
+  "src": "icon-43.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 44,
+  "oreId": "jade",
+  "file": "bomb_44_jade.png",
+  "src": "icon-44.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 45,
+  "oreId": "emberglass",
+  "file": "bomb_45_emberglass.png",
+  "src": "icon-45.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 46,
+  "oreId": "tungsten",
+  "file": "bomb_46_tungsten.png",
+  "src": "icon-46.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 47,
+  "oreId": "lithium",
+  "file": "bomb_47_lithium.png",
+  "src": "icon-47.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 48,
+  "oreId": "titanium",
+  "file": "bomb_48_titanium.png",
+  "src": "icon-48.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 49,
+  "oreId": "obsidian",
+  "file": "bomb_49_obsidian.png",
+  "src": "icon-49.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 50,
+  "oreId": "cobalt",
+  "file": "bomb_50_cobalt.png",
+  "src": "icon-50.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 51,
+  "oreId": "gold",
+  "file": "bomb_51_gold.png",
+  "src": "icon-51.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 52,
+  "oreId": "regolith",
+  "file": "bomb_52_regolith.png",
+  "src": "icon-52.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 53,
+  "oreId": "sunstone",
+  "file": "bomb_53_sunstone.png",
+  "src": "icon-53.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 54,
+  "oreId": "emerald",
+  "file": "bomb_54_emerald.png",
+  "src": "icon-54.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 55,
+  "oreId": "moonstone",
+  "file": "bomb_55_moonstone.png",
+  "src": "icon-55.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 56,
+  "oreId": "sapphire",
+  "file": "bomb_56_sapphire.png",
+  "src": "icon-56.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 57,
+  "oreId": "ruby",
+  "file": "bomb_57_ruby.png",
+  "src": "icon-57.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 58,
+  "oreId": "palladium",
+  "file": "bomb_58_palladium.png",
+  "src": "icon-58.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 59,
+  "oreId": "aquamarine",
+  "file": "bomb_59_aquamarine.png",
+  "src": "icon-59.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 60,
+  "oreId": "opal",
+  "file": "bomb_60_opal.png",
+  "src": "icon-60.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 61,
+  "oreId": "platinum",
+  "file": "bomb_61_platinum.png",
+  "src": "icon-61.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 62,
+  "oreId": "stormstone",
+  "file": "bomb_62_stormstone.png",
+  "src": "icon-62.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 63,
+  "oreId": "diamond",
+  "file": "bomb_63_diamond.png",
+  "src": "icon-63.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 64,
+  "oreId": "starmetal",
+  "file": "bomb_64_starmetal.png",
+  "src": "icon-64.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 65,
+  "oreId": "aetherite",
+  "file": "bomb_65_aetherite.png",
+  "src": "icon-65.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 66,
+  "oreId": "meteorite",
+  "file": "bomb_66_meteorite.png",
+  "src": "icon-66.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 67,
+  "oreId": "soulstone",
+  "file": "bomb_67_soulstone.png",
+  "src": "icon-67.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 68,
+  "oreId": "galaxite",
+  "file": "bomb_68_galaxite.png",
+  "src": "icon-68.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 69,
+  "oreId": "frostfire",
+  "file": "bomb_69_frostfire.png",
+  "src": "icon-69.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 70,
+  "oreId": "umbrite",
+  "file": "bomb_70_umbrite.png",
+  "src": "icon-70.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 71,
+  "oreId": "celestine",
+  "file": "bomb_71_celestine.png",
+  "src": "icon-71.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 72,
+  "oreId": "orichalcum",
+  "file": "bomb_72_orichalcum.png",
+  "src": "icon-72.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 73,
+  "oreId": "spectrite",
+  "file": "bomb_73_spectrite.png",
+  "src": "icon-73.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 74,
+  "oreId": "mythril",
+  "file": "bomb_74_mythril.png",
+  "src": "icon-74.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 75,
+  "oreId": "dragonstone",
+  "file": "bomb_75_dragonstone.png",
+  "src": "icon-75.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 76,
+  "oreId": "adamantite",
+  "file": "bomb_76_adamantite.png",
+  "src": "icon-76.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 77,
+  "oreId": "thorium",
+  "file": "bomb_77_thorium.png",
+  "src": "icon-77.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 78,
+  "oreId": "uranium",
+  "file": "bomb_78_uranium.png",
+  "src": "icon-78.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 79,
+  "oreId": "plutonium",
+  "file": "bomb_79_plutonium.png",
+  "src": "icon-79.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 80,
+  "oreId": "fermium",
+  "file": "bomb_80_fermium.png",
+  "src": "icon-80.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 81,
+  "oreId": "lawrencium",
+  "file": "bomb_81_lawrencium.png",
+  "src": "icon-81.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "ore",
+  "tier": 82,
+  "oreId": "oganesson",
+  "file": "bomb_82_oganesson.png",
+  "src": "icon-82.png"
+ },
+ {
+  "family": "bomb",
+  "kind": "admin",
+  "tier": 99,
+  "file": "bomb_99_admin.png",
+  "src": "icon-96.png"
+ }
+]

@@ -9,7 +9,6 @@ local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared:WaitForChild("MineConfig"))
 local ZoneChests = require(shared:WaitForChild("MineZoneChests"))
 local ZonePacks = require(shared:WaitForChild("MineZonePacks"))
-local Fossils = require(shared:WaitForChild("MineFossils"))
 local Tools = require(shared:WaitForChild("MineTools"))
 local PetRoster = require(shared:WaitForChild("MinePetRoster"))
 local PetBoosts = require(shared:WaitForChild("MinePetBoosts"))
@@ -87,17 +86,6 @@ local function foundChest(snap, chestId)
 	return false
 end
 
-local function ownsFossil(snap, recipeId)
-	if not snap then return false end
-	if snap.fossilTools and snap.fossilTools[recipeId] then return true end
-	for _, piece in ipairs(snap.fossilPieces or {}) do
-		if type(piece) == "table" and (piece.fossilId == recipeId or piece.id == recipeId) then
-			return true
-		end
-	end
-	return false
-end
-
 local function boostFor(name)
 	local bag = PetBoosts.PET_BOOSTS
 	if type(bag) ~= "table" then return nil end
@@ -149,18 +137,6 @@ local function secretToolsForZone(zoneId)
 			if d and d.id and not seen[d.id] then
 				seen[d.id] = true
 				table.insert(out, d)
-			end
-		end
-	end
-	return out
-end
-
-local function fossilsForZone(zoneId)
-	local out = {}
-	for _, r in ipairs(Fossils.RECIPES or {}) do
-		if type(r.zones) == "table" then
-			for _, z in ipairs(r.zones) do
-				if z == zoneId then table.insert(out, r) break end
 			end
 		end
 	end
@@ -703,25 +679,8 @@ function MineZoneMapView.render(body, opts)
 			order += 1
 		end
 
-		section("Fossils · layer " .. pct((Fossils.FOSSIL_LAYER_CHANCE or 0.1) * 100), 40)
-		order = 41
-		local fos = {}
-		for _, r in ipairs(Fossils.RECIPES or {}) do
-			if type(r.zones) == "table" then
-				for _, z in ipairs(r.zones) do
-					if z == zone.id then table.insert(fos, r) break end
-				end
-			end
-		end
-		for _, f in ipairs(fos) do
-			row(order, f.name or f.id,
-				string.format("%s · %s", f.rarity or "?", f.band or "?"),
-				not ownsFossil(snap, f.id),
-				string.format("Rarity %s\nBand %s\nLayer roll %s",
-					f.rarity or "?", f.band or "?",
-					pct((Fossils.FOSSIL_LAYER_CHANCE or 0.1) * 100)))
-			order += 1
-		end
+		-- The zone panel listed which fossils a zone could drop. Fossils are
+		-- retired and both modules are deleted, so there is nothing to list.
 	end
 
 local function selectZone(zone, index)

@@ -28,8 +28,12 @@ local function mkBadge(parent)
 	-- Hanging outside only works if the plate does not clip, so clear that
 	-- here: a button carrying a badge never wants its badge cropped.
 	b.Position = UDim2.new(1, 6, 0, -6)
-	if parent:IsA("GuiObject") and parent.ClipDescendants then
-		parent.ClipDescendants = false
+	-- ClipsDescendants, with the s. It was ClipDescendants here and nowhere
+	-- else in the codebase, so every badge threw "ClipDescendants is not a
+	-- valid member of TextButton" on creation -- a real error on every client
+	-- load, which meant the badge never got its clipping cleared either.
+	if parent:IsA("GuiObject") and parent.ClipsDescendants then
+		parent.ClipsDescendants = false
 	end
 	b.Size = UDim2.fromOffset(18, 18)
 	b.BackgroundColor3 = Color3.fromRGB(220, 48, 48)

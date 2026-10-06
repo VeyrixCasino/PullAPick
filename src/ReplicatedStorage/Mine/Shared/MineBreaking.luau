@@ -61,8 +61,23 @@ MineBreaking.LAYERS_PER_RUNG = 50
 	away, and the shape is what was actually wanted.
 
 	POW is the single dial. Raise it to make low tiers weaker still.
+
+	1.0, DOWN FROM 2.0, alongside the ZONE_STEP change below.
+
+	Quadratic made the bottom half of the roster worth almost nothing: tier 20
+	landed at 13 of a 209 scale, so the first seventeen ores could not clear even
+	the opening 500 layers and the whole gate was carried by the top third.
+
+	Linear spreads 82 tiers evenly across the scale, which is what makes "about
+	seven tiers per zone" FALL OUT of 82 tiers over 11 zones instead of having to
+	be tuned in. With ZONE_STEP at 100 the two together give a ladder where
+	finishing a zone and entering the next are the same tier, at every boundary.
+
+	Raising it again re-weights the gate toward the top of the roster and will
+	re-break that continuity -- tools/zone-gate-fix.js models both dials and
+	prints the boundary table.
 ]]
-MineBreaking.ORE_POW = 2.0
+MineBreaking.ORE_POW = 1.0
 
 --[[
 	ZONE COSTS A RUNG. Anchored on one requirement: a Stone pickaxe must be
@@ -78,9 +93,154 @@ MineBreaking.ORE_POW = 2.0
 	the forge -- but it does mean zone price and tool progression have to stay
 	in step, or someone owns a zone they cannot swing in.
 ]]
-MineBreaking.ZONE_STEP = 1
+--[[
+	ORE REACH. Owner's rule: "A tool forged from ore tier T reaches T + 15
+	tiers of ore."
+
+	This lived only in MineConfig (ORE_REACH, canBreakOre, oreReachCap), which
+	is what the Forge UI reads -- so the UI promised +15 and the live gate below
+	gave +0, because blockStrength asked oreStrength for the ore's OWN tier.
+	Wired into the gate 2026-10-05.
+
+	It is duplicated from MineConfig.ORE_REACH rather than required, because
+	this module has no requires and is pure arithmetic on its own dials. The
+	two are asserted equal by tools/verify/breaking.js -- if you change one,
+	that check fails until you change the other.
+]]
+MineBreaking.ORE_REACH = 15
+
+--[[
+	ZONE_STEP: 100, UP FROM 1.
+
+	Owner, 2026-10-05: "breaking power should make you need to get a new pick
+	from next zone to come back to 501-1000 depth, and so on".
+
+	At 1 the zone was not a gate at all. A full 5000-layer mine is worth +99
+	rungs (one per LAYERS_PER_RUNG), so stepping to the next zone cost ONE rung
+	while MineDepth multiplied block HP by ZONE_HP_MULT = 5. Measured end to end
+	(tools/depth-gate.js): at layer 2500, zone 1 demanded ore tier 41 and zone 11
+	demanded tier 44 -- three tiers for 9.77 MILLION times the HP. Clear layer
+	2500 in the first mine and you could BREAK layer 2500 in Event Horizon.
+
+	It also ate the roster. Reaching the bottom of zone 1 needed tier 57 of 82 --
+	an ore whose own home is zone 8 -- leaving zones 2 through 11 to share three
+	tiers between them. One zone spent 70% of the ladder and ten zones spent
+	almost none.
+
+	100 is LAYERS / LAYERS_PER_RUNG: a zone is now worth exactly one mine's
+	depth. Finishing a zone and entering the next then cost the same, so the
+	ladder is continuous instead of front-loaded -- finish zone N at tier X and
+	enter zone N+1 at tier X, at all ten boundaries, about seven tiers a zone.
+
+	Event Horizon is outside ZONES (which counts the ten normal mines) and lands
+	on top of it: MAX is 1 + 9*100 + 199 = 1100, and zone 11's floor computes to
+	1 + 10*100 + 99 = 1100 exactly. The deepest block in the game demands the top
+	ore, by construction rather than by tuning.
+]]
+MineBreaking.ZONE_STEP = 100
+
+--[[
+	WHY 100 AND NOT 10. SETTLED, 2026-10-05.
+
+	Two readings of the owner's intent were live at once and they disagreed:
+
+	  "unlocking zone 3 is like zone 1 3 down (1000), zone 2 1 down (500) ...
+	  zone 10 would be 9 down" -- a zone worth 500 layers, which is ZONE_STEP 10.
+
+	  "breaking power should make you need to get a new pick from next zone to
+	  come back to 501-1000 depth, and so on" -- a zone worth a whole mine,
+	  which is ZONE_STEP 100.
+
+	Both ladders were measured side by side and the owner chose 100. What decided
+	it was the cost of zone 1:
+
+	            ZONE_STEP 10            ZONE_STEP 100
+	  zone 1    tiers 1-49, 60% of      tiers 1-9, 11% of
+	            the whole roster        the whole roster
+	  boundary  jumps 33 tiers          continuous, <= 1 tier
+	  shape     one mine is secretly    eight tiers a zone, ten
+	            the whole game          times over
+
+	ORE_DMAX is fitted against THIS ladder -- its margin was chosen as the
+	largest that keeps the forge walk reaching tier 82 -- so the two move
+	together. Changing this constant means re-running
+	tools/verify/ladder-climbable.js, which asserts the walk completes and that
+	the Exotic band stays rare while it does.
+
+	tools/zone-gate-fix.js prints both tables if it is ever reopened.
+]]
+
+--[[
+	THE SAME RULE, TIGHTER IN THE ZONE YOU ARE STANDING IN.
+
+	Owner, 2026-10-05: "maybe just make the ore requirement elevated until they
+	go to next zone".
+
+	So reach is not one number, it is two. In the zone you are currently
+	working, ore is asked for nearly straight -- you have to forge up to meet
+	it. Once you have unlocked the zone ABOVE it, that zone's ore drops to the
+	full reach and you can mop up everything you outgrew.
+
+	WHY THIS IS NOT ZERO, which is the thing to know before anyone "tightens"
+	it further: reach is load-bearing for progression, not generosity. A tier-T
+	tool has breaking power oreStrength(T), so with reach 0 it breaks ore up to
+	tier T and no further -- and the ore you need to forge T+1 is tier T+1.
+	Measured against this exact curve, reach 0 deadlocks at TIER 4: a tier-4
+	tool can never break anything above tier 4, forever.
+
+	Headroom each setting actually buys, measured, at tiers 20 / 50 / 80:
+
+	    reach  0   0 / 0 / 0      deadlocks at tier 4
+	    reach  3   3 / 3 / 2
+	    reach  5   5 / 5 / 2      <- ORE_REACH_HOME
+	    reach 15  15 / 15 / 2     <- ORE_REACH, zones you have cleared
+
+	The taper to 2 at tier 80 is the ORE_POW curve steepening, not a cap: near
+	the top, one tier is worth ~5 rungs, so even a generous reach buys little.
+	That is the intended shape -- the last stretch is meant to be forged.
+]]
+MineBreaking.ORE_REACH_HOME = 5
+
+--[[
+	Which reach applies. `maxUnlockedZone` is the player's progress; nil means
+	"caller does not know", and that takes the full reach so nothing that has
+	not been taught about zones silently gets harder.
+]]
+function MineBreaking.reachFor(zoneIndex, maxUnlockedZone)
+	local unlocked = tonumber(maxUnlockedZone)
+	if unlocked == nil then
+		return MineBreaking.ORE_REACH
+	end
+	local zi = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	if math.floor(unlocked) > zi then
+		return MineBreaking.ORE_REACH
+	end
+	return MineBreaking.ORE_REACH_HOME
+end
+
 MineBreaking.ZONES = 10
-MineBreaking.MAX_LAYER = 10000
+--[[
+	5000, DOWN FROM 10000 -- the LIVE floor.
+
+	MineConfig assigns LAYERS twice and the second one, 5000, is what the module
+	exports; MINE1_LAYERS still says 10000 and the seams past 5000 sit below the
+	floor unreachable. This constant was reading the 10000 and it is used for
+	exactly one thing: deriving MAX. So MAX was 100 rungs taller than anything a
+	player can ever break, and the top of the ore ladder pointed at layers that do
+	not exist.
+
+	At 5000 the ladder TERMINATES where the game does. MAX becomes
+	1 + 9*100 + 99 = 1000, and zone 10 layer 5000 computes to exactly 1000 -- so
+	the deepest normal block demands precisely the top ore, tier 82, with nothing
+	wasted above it and nothing unreachable below.
+
+	EVENT HORIZON IS NOT ON THIS LADDER. Owner, 2026-10-05: "horizon is
+	different... doesnt use normal tools". Zone 11 has its own progression, so
+	the ore ladder is calibrated to the ten normal mines and zone 11's computed
+	strength simply clamps at MAX. If the seams past 5000 are ever opened, this
+	is the line to move with them.
+]]
+MineBreaking.MAX_LAYER = 5000
 
 -- Derived, not hardcoded: the top of the ladder is exactly what the deepest
 -- layer of the last zone demands, so the best ore tool reaches the mine floor
@@ -135,12 +295,24 @@ end
 	about; a max means an ore is exactly as hard as the harder of "where it is"
 	and "what it is".
 ]]
-function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
+function MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
 	local byLayer = MineBreaking.layerStrength(zoneIndex, layer)
 	if oreTier == nil then
 		return byLayer
 	end
-	return math.max(byLayer, MineBreaking.oreStrength(oreTier, oreCount))
+	-- Reach, applied where the refusal actually happens: an ore is asked for as
+	-- if it sat `reach` tiers lower, so a tier-T tool clears ore up to tier
+	-- T + reach -- ORE_REACH_HOME in the zone you are standing in, the full
+	-- ORE_REACH once you have unlocked the one above.
+	--
+	-- Depth is untouched: byLayer still gates how deep the rock YIELDS, which is
+	-- the half that must not be loosened. Nothing here gates movement -- a player
+	-- may walk to any depth, and failing this check means the swing lands for
+	-- zero on that block, not that they are kept out.
+	local reach = math.max(0,
+		math.floor(MineBreaking.reachFor(zoneIndex, maxUnlockedZone)))
+	local asked = math.max(1, (tonumber(oreTier) or 1) - reach)
+	return math.max(byLayer, MineBreaking.oreStrength(asked, oreCount))
 end
 
 --[[
@@ -178,8 +350,8 @@ MineBreaking.TOO_WEAK = "Your tool is too weak to damage this block"
 	chip would let a player grind through a wall given enough swings, which is
 	the entire thing this exists to prevent.
 ]]
-function MineBreaking.canBreak(tool, zoneIndex, layer, oreTier, oreCount)
-	local need = MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount)
+function MineBreaking.canBreak(tool, zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
+	local need = MineBreaking.blockStrength(zoneIndex, layer, oreTier, oreCount, maxUnlockedZone)
 	local have = MineBreaking.toolBreakingPower(tool, oreCount)
 	return have >= need, need, have
 end

@@ -8,11 +8,11 @@ local Tools = require(shared:WaitForChild("MineTools"))
 
 local MineDepthShop = {}
 
-MineDepthShop.DEPTH_SELL_FRAC = Depth.DEPTH_SELL_FRAC or 0.78
-
 local DESK_SEAM = {
-	-- false = surface pad: no depth sell haircut (1:1 HP→coins).
-	-- Was `1`, which is truthy, so every meadow sell ate DEPTH_SELL_FRAC (0.78).
+	-- false = surface pad: the x1 reference. Was `1`, which is truthy, so every
+	-- meadow sell went through the depth multiplier instead of selling at par.
+	-- Depth now pays MORE than the surface, so a desk that wrongly reads as
+	-- `false` short-changes the player rather than overpaying them.
 	surface = false, shallow = false, surface_band = false, a = false,
 	mid = 500, deeprock = 500, b = 500, thousand = 1000,
 	deep = 1500, shadowzone = 1500, c = 1500, twothou = 2000,

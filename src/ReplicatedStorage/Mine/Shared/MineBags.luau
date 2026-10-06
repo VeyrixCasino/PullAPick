@@ -157,7 +157,19 @@ for _, z in ipairs(ZONE_ORDER) do
 	end
 end
 
--- 6 fossil bags / zone.
+--[[
+	6 FOSSIL-TRACK BAGS / ZONE -- UNOBTAINABLE, AND THEY STAY.
+
+	These were crafted on the fossil bench. Fossils are retired (§0.12) and the
+	bench is gone, so nothing can grant one any more.
+
+	They are NOT deleted, and must not be. A bag's id is "bag_<index into LIST>"
+	(see shopRows and byId), so dropping 60 rows would renumber every bag above
+	them and silently hand every player a different backpack than the one they
+	bought. They stay as index padding: `fossil = true` keeps them off the coin
+	shelf (sellable), out of shopRows, and out of the owned/total count the shop
+	header prints, so no player ever sees one. The buy verb refuses them too.
+]]
 local FOSSIL_N = 6
 local FOSSIL_SPAN = { 90, 8000000 }
 for _, z in ipairs(ZONE_ORDER) do
@@ -277,8 +289,9 @@ function MineBags.coinPrice(slots)
 	return math.floor(MineBags.COIN_A * (slots ^ MineBags.COIN_B) + 0.5)
 end
 
--- Fossil bags are crafted on the fossil track, never bought. They stay in LIST
--- (backpackTier indexes it) but the coin shelf and the buy verb both skip them.
+-- The retired fossil-track bags are unobtainable and stay in LIST only so the
+-- "bag_<index>" ids above them do not shift (see the block that builds them).
+-- The coin shelf and the buy verb both skip them.
 function MineBags.sellable(row)
 	if type(row) ~= "table" then return false end
 	return not (row.fossil or row.robux or row.limited)

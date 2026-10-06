@@ -252,7 +252,7 @@
 
 <footer>
   Ore tiers and hardness from <code>MineConfig.ORES</code>; tool multipliers from
-  <code>ToolCatalog.Types</code>. Proposal &mdash; nothing committed.
+  <code>ToolCatalog.Types</code>. Generated from MineConfig by tools/gen/upgrade-calculator.js &mdash; 82 ores, level cap 30. Do not hand-edit the data block.
 </footer>
 </div>
 
@@ -270,7 +270,7 @@
     ["Quickcharge","Explosive","Legendary",43,0.7,0.10],["Breacher","Explosive","Legendary",43,2.0,0.09],
     ["Bore","Drill","Legendary",49,1.0,0.08],["Frack","Drill","Legendary",49,4.0,0.07]
   ];
-  var ORES="Stone,Cobblestone,Flint,Chert,Obsidian,Basalt,Sandstone,Limestone,Slate,Marble,Quartzite,Clay,Brick,Bone,Amber,Petrified Wood,Lignite,Bituminous Coal,Anthracite,Charcoal,Graphite,Granite,Diorite,Shungite,Fulgurite,Copper,Tin,Lead,Zinc,Bronze,Brass,Iron,Steel,Damascus Steel,Cast Iron,Meteoric Iron,Nickel,Cobalt,Chromium,Manganese,Pewter,Electrum,Phosphorus,Silver,Palladium,Rhodium,Gold,Platinum,Titanium,Orichalcum,Adamantite,Vanadium Steel,Tungsten,Niobium,Zirconium,Beryllium,Silicon Carbide,Boron Carbide,Graphene,Boron Nitride,Alumina,Silicon Nitride,Bauxite,Cassiterite,Chalcopyrite,Galena,Sphalerite,Pyrite,Hematite,Magnetite,Ilmenite,Chromite,Wolframite,Quartz,Amethyst,Citrine,Agate,Jasper,Onyx,Malachite,Azurite,Turquoise,Fluorite,Garnet,Peridot,Topaz,Diamond,Ruby,Sapphire,Emerald,Tourmaline,Tanzanite,Alexandrite,Jade,Moonstone,Meteorite,Spinel,Zircon,Opal,Aquamarine,Mythril,Sunstone,Prismarine,Kimberlite,Moldavite,Tektite,Impactite,Coesite,Stishovite,Ringwoodite,Bridgmanite,Apatite,Monazite,Pallasite,Dunite,Thorium,Uranium,Plutonium,Fermium,Lawrencium,Oganesson".split(",");
+  var ORES="Stone,Clay,Limestone,Pumice,Halite,Coal,Flint,Basalt,Slate,Bone,Granite,Copper,Tin,Ember,Sulfur,Lead,Zinc,Aluminum,Iron,Graphite,Pyrite,Marble,Pearl,Rime,Quartz,Amber,Petrifact,Nickel,Onyx,Bloodstone,Garnet,Citrine,Chromium,Turquoise,Bismuth,Silver,Amethyst,Tigereye,Lapis,Geode,Topaz,Phosphorus,Peridot,Jade,Emberglass,Tungsten,Lithium,Titanium,Obsidian,Cobalt,Gold,Regolith,Sunstone,Emerald,Moonstone,Sapphire,Ruby,Palladium,Aquamarine,Opal,Platinum,Stormstone,Diamond,Starmetal,Aetherite,Meteorite,Soulstone,Galaxite,Frostfire,Umbrite,Celestine,Orichalcum,Spectrite,Mythril,Dragonstone,Adamantite,Thorium,Uranium,Plutonium,Fermium,Lawrencium,Oganesson".split(",");
 
   //[[ Every tool runs its OWN 1-1000 scale. Ore tier no longer sets a tool's
   //   starting level -- a tier-121 tool used to be BORN at level 700, so
@@ -282,8 +282,8 @@
   //   level 1, so it has had nothing put into it and gives nothing back. The
   //   rate can be a flat cut of what you actually spent, and nothing about it
   //   is exploitable. ]]
-  var DMAX=23.41, NORE=121, MAXLVL=1000;
-  function oreD(t){ return (t-1)*DMAX/120; }
+  var DMAX=10.9936, NORE=82, MAXLVL=30;
+  function oreD(t){ return (t-1)*DMAX/(NORE-1); }
   function homeHp(t){ return 20*Math.pow(6,oreD(t))*3; }
 
   //[[ LIVE GAME DATA, read out of MineConfig on 2026-09-27. Everything below
@@ -323,27 +323,32 @@
     ["Riftmarch Scarps","riftmarch",5],["Starfall Barrens","starfall",6],
     ["Mythral Catacombs","mythral",7],["Primordium Heart","primordium",8],
     ["Event Horizon","bigbang",0]];
-  var ORE_SPACING=0.2674, ORE_HP_MULT=3;
+  var ORE_SPACING=0.135723, ORE_HP_MULT=3;
+  // MineConfig.ORE_MIN_SHARE -- written by tools/gen/upgrade-calculator.js.
+  var ORE_MIN_SHARE=0.000001;
 
   var T={
-    dmgBase:10, dmgStep:1.02, tierSpan:16,
-    oreBase:4,  oreGrow:1.0075,
-    dustBase:25, dustGrow:1.011,
-    recPct:0.50,
+    dmgBase:10, dmgStep:1.223845, tierSpan:7,
+    oreBase:4,  oreGrow:1.29361,
+    dustBase:25, dustGrow:1.45773,
+    recPct:0.5,
     dropBase:8,  dropFall:6.0,
     yieldBase:6, yieldFall:1.0,
     costTier:0.85, costType:0.5,
     rbBase:7500, rbGrow:2.08,
-    oreChance:0.005, oreX0:-4.2, oreK:0.45, oreS:4.0, oreW:3.0,
+    oreChance:0.005, oreX0:-4.2, oreK:0.45, oreS:4, oreW:3,
     gemBase:2, gemSpan:1.5, bulkEvery:7, bulkMult:8
   };
   var GROUPS=[
     ["Damage","what a level is worth",[
       ["dmgBase","Base damage at level 1",1,100,1,function(v){return Math.round(v);}],
-      ["dmgStep","Per level",1.002,1.05,0.0005,function(v){
-        return "+"+((v-1)*100).toFixed(2)+"% ("+fmt(Math.pow(v,MAXLVL-1))+"x over 1000)";}],
+      // These two said "over 1000" and "tier 1 to 121" as literals, from the
+      // 1000-level cap and the 121-ore roster. Both read the live constants now,
+      // so the generator's NORE/MAXLVL rewrite keeps them honest by itself.
+      ["dmgStep","Per level",1.002,1.08,0.0005,function(v){
+        return "+"+((v-1)*100).toFixed(2)+"% ("+fmt(Math.pow(v,MAXLVL-1))+"x over "+MAXLVL+")";}],
       ["tierSpan","Tier band",4,28,0.5,function(v){
-        return "6^"+v.toFixed(1)+" ("+fmt(Math.pow(6,v))+"x, tier 1 to 121)";}]]],
+        return "6^"+v.toFixed(1)+" ("+fmt(Math.pow(6,v))+"x, tier 1 to "+NORE+")";}]]],
     ["Ore cost","what a level costs in ore",[
       ["oreBase","Base",1,50,1,function(v){return Math.round(v);}],
       ["oreGrow","Growth",1.001,1.02,0.0005,function(v){return "+"+((v-1)*100).toFixed(2)+"%";}]]],
@@ -360,7 +365,7 @@
     ["Ore to gems","scrap ore is where gems come from",[
       ["gemBase","Gems per tier-1 ore",0.2,20,0.2,function(v){return v.toFixed(1);}],
       ["gemSpan","Deeper-zone edge",0,4,0.1,function(v){
-        return Math.pow(6,v).toFixed(1)+"x from tier 1 to 121";}],
+        return Math.pow(6,v).toFixed(1)+"x from tier 1 to "+NORE;}],
       ["bulkEvery","Bulk ore every",0,12,1,function(v){
         return v<1 ? "off" : "every "+Math.round(v)+"th tier";}],
       ["bulkMult","Bulk drop size",2,20,1,function(v){
@@ -404,7 +409,16 @@
   //   x6 steps separate tier 1 from tier 121, which is the same unit the mine
   //   measures depth in, so "this tool is 4 zones better" is a thing you can
   //   read straight off the slider. ]]
-  function tierPower(tier){ return Math.pow(6, T.tierSpan*(tier-1)/120); }
+  var BAND_DMG={"Common":1,"Uncommon":1,"Rare":1,"Epic":1,"Legendary":2,"Mythic":4,"Divine":8,"Exotic":16};
+  var BAND_CUTS=[18,29,49,60,69,75,79,82];
+  var BAND_ORDER=["Common","Uncommon","Rare","Epic","Legendary","Mythic","Divine","Exotic"];
+  // Per-band damage step. 1.0 up to tier 60; above it ORE_REACH buys no
+  // new access, so damage is the only thing forging up is worth.
+  function bandDmg(t){
+    for(var i=0;i<BAND_CUTS.length;i++) if(t<=BAND_CUTS[i]) return BAND_DMG[BAND_ORDER[i]]||1;
+    return BAND_DMG[BAND_ORDER[BAND_ORDER.length-1]]||1;
+  }
+  function tierPower(tier){ return Math.pow(6, T.tierSpan*(tier-1)/(NORE-1))*bandDmg(tier); }
   function dmgAt(L,tier,ti){
     return T.dmgBase*tierPower(tier)*TYPES[ti][4]*Math.pow(T.dmgStep,Math.max(0,L-1));
   }
@@ -504,8 +518,23 @@
   //   nudge abbrevCeil rounds a second time and the panel reads 3.4B where the
   //   game says 3.3B. 1e-4 is below the resolution of the stored D and well
   //   under one snap step, so it cannot move a genuine value. ]]
+  //[[ THE LIVE HP CURVE ]]
+  // This was abbrevCeil(20 * 6^(dMeadow(layer) + zone-1)) -- a x6 zone step on
+  // top of a section staircase, both from the RETIRED MineDepth.SECTIONS table.
+  // MineDepth.dirtHp does not read SECTIONS and never has a x6 zone step:
+  //
+  //     dirtHp(zone, layer) = (HP_BASE + HP_PER_LAYER * layer) * ZONE_HP_MULT^(zone-1)
+  //
+  // Linear in layer, x5 a zone. The constants are written in by
+  // tools/gen/upgrade-calculator.js so they cannot drift again, and the same
+  // fix was already applied to tools/mine-map.body.html.
+  var HP_BASE=20, HP_PER_LAYER=1.5, ZONE_HP_MULT=5;
   function zoneDirtHp(zi,layer){
-    return abbrevCeil(20*Math.pow(6,dMeadow(layer)+(zi-1))*(1-1e-4));
+    // math.max(1, math.floor(raw + 0.5)) -- MineDepth.dirtHp rounds to a whole
+    // number of HP. Without this the page sits half a point under the game at
+    // shallow layers, where 20 + 1.5*1 = 21.5 and the game stores 22.
+    var raw=(HP_BASE + HP_PER_LAYER*layer) * Math.pow(ZONE_HP_MULT, zi-1);
+    return Math.max(1, Math.floor(raw + 0.5));
   }
   // D is read back OFF the snapped health, exactly as MineConfig.oreDifficulty does
   function zoneD(zi,layer){ return Math.log(Math.max(20,zoneDirtHp(zi,layer))/20)/Math.log(6); }
@@ -516,6 +545,19 @@
       var x=oreDg(i)-D, v=1/(1+Math.exp((x-T.oreX0)/T.oreK));
       if(x<0) v=v*Math.exp(x/T.oreS)*Math.exp(-Math.pow(x/T.oreW,2));
       w.push(v); tot+=v;
+    }
+    // MineConfig.ORE_MIN_SHARE, as a minimum SHARE and as a FIXED POINT: every
+    // ore stays possible in every zone, and lifting raises the total which
+    // raises the floor, so this iterates until nothing moves. A single pass
+    // leaves the floored ores at minShare*totBefore/totAfter, which differs by
+    // depth and is what made the odds go BACKWARDS as you dug.
+    if(ORE_MIN_SHARE>0 && tot>0){
+      for(var pass=0;pass<8;pass++){
+        var fw=ORE_MIN_SHARE*tot, lifted=0;
+        for(var q=0;q<w.length;q++) if(w[q]<fw){ lifted+=fw-w[q]; w[q]=fw; }
+        if(lifted<=0) break;
+        tot+=lifted;
+      }
     }
     if(!(tot>0)) return {list:[],tot:0,n95:0,n999:0};
     var list=w.map(function(v,i){ return {tier:i+1,share:v/tot}; })
@@ -549,6 +591,10 @@
 
   var typeSel=document.getElementById("type"), oreSel=document.getElementById("ore"),
       lvl=document.getElementById("lvl");
+  // The level slider's markup said max=10000 step=10, from the old 10,000-level
+  // cap. It is driven off MAXLVL now, so the cap lives in MineConfig only.
+  lvl.max=String(MAXLVL); lvl.step="1";
+  if(+lvl.value>MAXLVL) lvl.value=String(MAXLVL);
   TYPES.forEach(function(t,i){
     var o=document.createElement("option"); o.value=String(i);
     o.textContent=t[0]; typeSel.appendChild(o);
@@ -557,7 +603,16 @@
     var o=document.createElement("option"); o.value=String(i+1);
     o.textContent=(i+1)+"  "+nm; oreSel.appendChild(o);
   });
-  typeSel.value="0"; oreSel.value="100";
+  typeSel.value="0";
+  // THE BENCH OPENED ON NOTHING. This was oreSel.value="100" -- tier 100 of the
+  // old 121-ore roster. The roster is 82, so no option matched, selectedIndex
+  // stayed -1, and every ore-derived figure on the page read 0 or dashes. It
+  // has been broken since the cut.
+  //
+  // Clamped to the roster and then checked, because a value that does not match
+  // an option fails SILENTLY -- which is exactly how it went unnoticed.
+  oreSel.value = String(Math.min(100, NORE));
+  if (oreSel.selectedIndex < 0) oreSel.selectedIndex = oreSel.options.length - 1;
 
   // each rack gets the groups that belong beside its chart
   var RACKS={ toolTuners:["Damage","Ore cost","Stardust cost","Cost disparity","Recycle"],
@@ -736,14 +791,20 @@
     document.getElementById("rbNote").textContent=
       "×"+T.rbGrow.toFixed(2)+" each · numbers run out at rebirth "+ovf;
 
-    // clean numbers only: x00 to 1000, then x000 to 10000
-    var rows=[0];
-    for(var h=100;h<=1000;h+=100) rows.push(h);
-    for(var k=200;k<=MAXLVL;k+=100) rows.push(k);
+    // Rows derived from the cap. This read `for(h=100;h<=1000;h+=100)` plus a
+    // second loop stepping by 100 -- written for a 1000/10,000-level cap. At a
+    // cap of 30 every value it produced was out of range, so the ladder came out
+    // empty. Ten or so clean steps, always ending exactly on the cap.
+    var rows=[0], stride=Math.max(1,Math.round(MAXLVL/10));
+    for(var h=stride;h<MAXLVL;h+=stride) rows.push(h);
+    rows.push(MAXLVL);
     document.getElementById("ladder").innerHTML=rows.map(function(l){
       var d=dmgAt(l,tier,ti), last=(l>=MAXLVL);
-      var band=(l>=2000)?" style='background:color-mix(in srgb, var(--dust) 7%, transparent)'":"";
-      var near=(Math.abs(l-L)<=(l>=2000?500:50));
+      // These thresholds were absolute levels (2000, 500, 50) from the old cap,
+      // so at 30 nothing ever shaded and "near" matched every row at once.
+      // Expressed against the cap instead.
+      var band=(l>=MAXLVL*0.667)?" style='background:color-mix(in srgb, var(--dust) 7%, transparent)'":"";
+      var near=(Math.abs(l-L)<=Math.max(1,stride/2));
       return "<tr"+(near?" class='here'":"")+band+">"+
         "<td class='n'>"+l.toLocaleString("en-US")+"</td>"+
         "<td class='n' style='color:var(--ink-3)'>"+l.toLocaleString("en-US")+"</td>"+

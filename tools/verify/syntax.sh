@@ -19,13 +19,22 @@ set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 1
 
 BIN_DIR=".luau-bin"
-ANALYZE="$BIN_DIR/luau-analyze"
+
+# Which release asset, and what the binary is called once unzipped. Windows
+# ships .exe; an ELF binary sitting at the extensionless name is what a Linux
+# container left behind, and it exists without being runnable here.
+case "$(uname -s 2>/dev/null || echo unknown)" in
+  MINGW*|MSYS*|CYGWIN*|Windows_NT) LUAU_ZIP="luau-windows.zip"; EXE=".exe" ;;
+  Darwin)                          LUAU_ZIP="luau-macos.zip";   EXE=""     ;;
+  *)                               LUAU_ZIP="luau-ubuntu.zip";  EXE=""     ;;
+esac
+ANALYZE="$BIN_DIR/luau-analyze$EXE"
 
 if [ ! -x "$ANALYZE" ]; then
-  echo "luau-analyze not present; fetching it into $BIN_DIR/ ..."
+  echo "luau-analyze not present; fetching $LUAU_ZIP into $BIN_DIR/ ..."
   mkdir -p "$BIN_DIR" || exit 1
   if ! curl -sSL -o "$BIN_DIR/luau.zip" \
-      "https://github.com/luau-lang/luau/releases/latest/download/luau-ubuntu.zip"; then
+      "https://github.com/luau-lang/luau/releases/latest/download/$LUAU_ZIP"; then
     echo "could not download luau; skipping the syntax check" >&2
     exit 0   # soft-fail: never block work because a download failed
   fi
@@ -34,7 +43,8 @@ if [ ! -x "$ANALYZE" ]; then
 fi
 
 if [ ! -x "$ANALYZE" ]; then
-  echo "luau-analyze still not runnable; skipping" >&2
+  echo "luau-analyze still not runnable after fetching $LUAU_ZIP; skipping" >&2
+  echo "  (if .luau-bin holds binaries for another OS, delete it and re-run)" >&2
   exit 0
 fi
 

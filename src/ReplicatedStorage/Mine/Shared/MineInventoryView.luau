@@ -50,6 +50,7 @@ end)
 
 local T = require(game:GetService("ReplicatedStorage").Mine.Shared:WaitForChild("MineTheme"))
 local Scrolls = require(game:GetService("ReplicatedStorage").Mine.Shared:WaitForChild("MineScrolls"))
+local ScrapSelect = require(game:GetService("ReplicatedStorage").Mine.Shared:WaitForChild("MineScrapSelect"))
 local FONT = T.FONT
 local FONT_M = T.FONT_M
 local BG = T.BG
@@ -730,6 +731,7 @@ function MineInventoryView.mount(parent, opts)
 	local cardSort = (type(opts.cardSort) == "string" and SORT_OK[opts.cardSort] and opts.cardSort) or "rarity"
 	local render
 
+
 	local root = mk("Frame", {
 		Name = "Inventory",
 		Visible = false,
@@ -898,6 +900,43 @@ function MineInventoryView.mount(parent, opts)
 		Active = true,
 	}, root)
 	mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, body)
+
+	--[[
+		Bulk recycle: the SELECT / RECYCLE control lives in MineScrapSelect, so
+		the Enchanter's rune list and these three tabs share one implementation
+		rather than two that drift.
+
+		Three tabs here ask for it -- EQUIPMENT (gear), CARDS & PETS (card) and
+		PACKS (pack) -- which is exactly why the selection is kind-tagged: see
+		the module header.
+	]]
+	local pick = ScrapSelect.new({
+		render = function()
+			render()
+		end,
+		ask = function(kind, ids, into)
+			if opts.onScrapMany then
+				opts.onScrapMany(kind, ids, into, false)
+			end
+		end,
+		toast = function(msg)
+			if opts.onToast then
+				opts.onToast(msg)
+			end
+		end,
+	})
+
+	--[[
+		A header row of its own, carrying a title on the left and the Select pair
+		on the right. The EQUIPMENT tab draws the bar into a row it already had;
+		CARDS and PACKS have no spare room on theirs (EQUIP BEST and the filters
+		sit where the bar goes), so they get this.
+	]]
+	local function scrapHead(title, kind, into, hints)
+		local row = panelRow(body, 46, 0)
+		label(row, title, 15, TEXT, UDim2.fromOffset(14, 0), UDim2.new(0.28, 0, 1, 0), FONT)
+		return pick.bar(row, kind, into, hints)
+	end
 
 	--[[
 		Fit the window to the screen it is on. The offsets here are in MineUI's
@@ -1129,6 +1168,13 @@ function MineInventoryView.mount(parent, opts)
 
 	local refreshCart
 
+	--[[
+		Most of one line a cart may hold. Matches Const.BUY_QTY_MAX on the
+		server, which clamps the same number again -- the box is a convenience,
+		the server is the rule.
+	]]
+	local CART_QTY_MAX = 100
+
 	local function cartAdd(kind, id, bundle, qty, packs)
 		if kind == "box" and type(packs) == "table" then
 			table.insert(cart, { kind = "box", id = "custom", bundle = false, qty = qty or 1, packs = packs })
@@ -1138,7 +1184,7 @@ function MineInventoryView.mount(parent, opts)
 		local key = cartKey(kind, id, bundle)
 		for _, line in ipairs(cart) do
 			if cartKey(line.kind, line.id, line.bundle) == key then
-				line.qty = math.min(25, line.qty + (qty or 1))
+				line.qty = math.min(CART_QTY_MAX, line.qty + (qty or 1))
 				refreshCart()
 				return
 			end
@@ -1599,7 +1645,7 @@ function MineInventoryView.mount(parent, opts)
 			end
 		end
 
-		note(body, "Zone packs (5 + fossil + deep) with art keys. Tap one to read odds / currency bands.", 0)
+		note(body, "Zone packs (5 per zone) with art keys. Tap one to read odds / currency bands.", 0)
 
 		local grid = mk("Frame", {
 			BackgroundTransparency = 1,
@@ -1658,8 +1704,6 @@ function MineInventoryView.mount(parent, opts)
 						local c = def.coins or { 0, 0 }
 						local g = def.gems or { 0, 0 }
 						sub = string.format("%s-%s coins  %s-%s gems", tostring(c[1]), tostring(c[2]), tostring(g[1]), tostring(g[2]))
-					elseif def.kind == "fossil" then
-						sub = (def.pulls or 3) .. " equipment" .. (def.deep and " (deep)" or "")
 					else
 						sub = (def.cards or 0) .. " " .. (Packs.unitWord and Packs.unitWord(def.id, def.cards) or "cards")
 					end
@@ -1840,6 +1884,19 @@ function MineInventoryView.mount(parent, opts)
 			CellSize = UDim2.fromOffset(152, 226),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, grid)
+		--[[
+			A PACK TILE IS A STACK, so ticking one selects every pack in it: the
+			server scraps packs one uid at a time, and a half-ticked stack has
+			nowhere to show itself on a single tile.
+
+			Lucky blocks are left out. They are not packs to the scrap path --
+			packScrapDustFor gives them no scrap value, so the server would block
+			every one and the review would open on a wall of refusals.
+		]]
+		local packSel = scrapHead("PACKS", "pack", "gems", {
+			some = "RECYCLE to review what you picked",
+			none = "tap a stack to select all of it",
+		})
 		local shown = 0
 		for i, g in ipairs(order) do
 			if matches(g.tierName .. " " .. g.setName) then
@@ -2014,7 +2071,47 @@ function MineInventoryView.mount(parent, opts)
 					end
 				end
 
-				local open = mk("TextButton", {
+				--[[
+					WHILE SELECTING, the whole tile is one button and the OPEN
+					buttons are not drawn at all.
+
+					Leaving them live next to a tick would mean one tap opens a
+					pack you were about to recycle -- the two actions are
+					opposites and they would be a few pixels apart.
+				]]
+				local uids = {}
+				if g.kind ~= "lucky_block" then
+					for _, uid in ipairs(g.uids or {}) do
+						if uid ~= nil then
+							table.insert(uids, uid)
+						end
+					end
+				end
+				local canSell = packSel and #uids > 0
+				local picked = canSell and pick.has("pack", uids[1]) or false
+				if packSel then
+					if picked then
+						stroke(tile, 2.5, ScrapSelect.EDGE)
+					end
+					local hit = mk("TextButton", {
+						BackgroundColor3 = ScrapSelect.VEIL,
+						BackgroundTransparency = canSell and (picked and 0.75 or 0.9) or 0.55,
+						Text = canSell and (picked and ("✓ " .. #uids) or ("SELECT " .. #uids))
+							or "cannot be recycled",
+						Font = FONT, TextSize = 13,
+						TextColor3 = picked and ScrapSelect.TICK
+							or (canSell and TEXT or MUTED),
+						Size = UDim2.fromScale(1, 1), ZIndex = 20,
+						AutoButtonColor = canSell,
+					}, tile)
+					round(hit, 8)
+					hit.TextYAlignment = Enum.TextYAlignment.Bottom
+					hit.MouseButton1Click:Connect(function()
+						pick.tap("pack", uids, canSell)
+					end)
+				end
+
+				local open = not packSel and mk("TextButton", {
 					AutoButtonColor = true,
 					BackgroundColor3 = GREEN,
 					Font = FONT,
@@ -2023,13 +2120,15 @@ function MineInventoryView.mount(parent, opts)
 					Text = "OPEN",
 					Position = UDim2.fromOffset(10, 156),
 					Size = UDim2.new(1, -20, 0, 32),
-				}, tile)
-				round(open, 7)
-				open.MouseButton1Click:Connect(function()
-					fire(1)
-				end)
+				}, tile) or nil
+				if open then
+					round(open, 7)
+					open.MouseButton1Click:Connect(function()
+						fire(1)
+					end)
+				end
 
-				if g.count > 1 then
+				if g.count > 1 and not packSel then
 					local row = mk("Frame", {
 						BackgroundTransparency = 1,
 						Position = UDim2.fromOffset(10, 192),
@@ -2077,6 +2176,18 @@ function MineInventoryView.mount(parent, opts)
 		for _, id in ipairs(state.equipped or {}) do
 			eq[id] = true
 		end
+		--[[
+			Cards scrap to STARDUST, not gems. That is the server's own split
+			(scrapPlan pays `dust` for a card unless asked otherwise), and it is
+			passed rather than guessed so the quote and the payout agree.
+
+			A card that is out with you is blocked server-side; blocking the tap
+			here too means the review never opens on a refusal.
+		]]
+		local cardSel = scrapHead("CARDS & PETS", "card", "dust", {
+			some = "RECYCLE to review what you picked",
+			none = "tap a card that is not on your team",
+		})
 		--[[
 			EQUIP BEST, here with the pets. It was a button on the dock, which is
 			a strange place for it -- the dock is how you open things, not how you
@@ -2155,6 +2266,32 @@ function MineInventoryView.mount(parent, opts)
 					opts.paintCard(slot, card, CW)
 				end
 				local onTeam = eq[card.id] or eq[card.serial]
+				-- `scrapId` is what the server scraps by: c.id, never the serial.
+				-- Deliberately not called cardId -- the equip path below has its
+				-- own `cardId` that falls back to the serial, and one name for
+				-- two different values in one closure is how they get swapped.
+				local scrapId = card.id
+				local canSell = cardSel and scrapId ~= nil and not onTeam
+				local picked = canSell and pick.has("card", scrapId) or false
+				if picked then
+					stroke(slot, 2, ScrapSelect.EDGE)
+					label(slot, "✓", 18, ScrapSelect.TICK,
+						UDim2.new(1, -28, 0, 4), UDim2.fromOffset(22, 22), FONT).ZIndex = 9
+				elseif cardSel and not canSell then
+					--[[
+						A SCRIM, not a transparency change. The slot's own
+						background is already fully transparent and the card art is
+						painted into it, so dialling BackgroundTransparency would
+						fade a box in rather than fade the card out.
+					]]
+					local veil = mk("Frame", {
+						BackgroundColor3 = ScrapSelect.VEIL,
+						BackgroundTransparency = 0.55,
+						Size = UDim2.fromScale(1, 1),
+						ZIndex = 9,
+					}, slot)
+					round(veil, 8)
+				end
 				if onTeam then
 					local tag = mk("Frame", {
 						BackgroundColor3 = GREEN,
@@ -2189,6 +2326,9 @@ function MineInventoryView.mount(parent, opts)
 					end)
 				end
 				slot.MouseButton1Click:Connect(function()
+					if pick.tap("card", { scrapId }, canSell) then
+						return
+					end
 					local cardId = card.id or card.serial
 					if not cardId then
 						return
@@ -2277,7 +2417,7 @@ function MineInventoryView.mount(parent, opts)
 	end
 	-- running right now rather than an empty grid with a coming-soon label on it.
 	local BOOST_LABEL = {
-		mineSpeed = "Damage", oreYield = "Blast", luck = "Luck", walkSpeed = "Walk speed",
+		mineSpeed = "Damage", blastChance = "Blast", luck = "Luck", walkSpeed = "Walk speed",
 		dirtBreak = "Dirt Break", backpack = "Backpack", rareOre = "Rare find",
 		coinBonus = "Coins", gemFind = "Gems", chestLuck = "Chest luck",
 	swingRate = "Swing rate", blastRadius = "Blast radius", autoMine = "Gem Find",
@@ -2350,7 +2490,7 @@ function MineInventoryView.mount(parent, opts)
 		The eight are not one system underneath. Six are gear pieces out of the
 		Enchanter, one is a charm, one is a tool -- and a tool is itself four
 		different things depending on where it came from (a coin rung, a depth
-		desk rung, a chest drop, a fossil you assembled). Every one of those has
+		desk rung, a chest drop). Every one of those has
 		its own equip verb on the server already. Rather than unify them, which
 		would mean rewriting four working systems, this screen puts them behind
 		one shape: `item`. Pick a slot, see what fits it, tap one, read the card.
@@ -2398,7 +2538,9 @@ function MineInventoryView.mount(parent, opts)
 	end
 	-- Which slot is being filled, and the open item card. Outside render() so a
 	-- snapshot arriving mid-decision does not throw you back to the tool slot.
-	local eq = { slot = "hat", card = nil, sellMode = false, sellSelect = {} }
+	-- Selection moved to the shared `pick` table above: every tab needs it, and
+	-- it has to carry its kind so one tab's ids cannot be sent as another's.
+	local eq = { slot = "hat", card = nil }
 
 	function eq.advanceSlot()
 		local slots = EQUIP_SLOTS()
@@ -2497,13 +2639,11 @@ function MineInventoryView.mount(parent, opts)
 		if slotId == "tool" then
 			local famOrder = { "pickaxe", "drill", "explosive" }
 			-- Exactly one tool source is active (matches server equippedTool):
-			-- chest > fossil > shop > ladder. Stale dual flags must not paint
-			-- two tiles EQUIPPED.
+			-- chest > shop > ladder. Stale dual flags must not paint two tiles
+			-- EQUIPPED.
 			local eqSrc, eqId
 			if state.chestTool then
 				eqSrc, eqId = "forever", state.chestTool
-			elseif state.fossilTool then
-				eqSrc, eqId = "fossil", state.fossilTool
 			elseif state.shopToolId then
 				eqSrc, eqId = "shop", state.shopToolId
 			elseif state.tool and state.tool.id then
@@ -2573,21 +2713,6 @@ function MineInventoryView.mount(parent, opts)
 					})
 				end
 			end
-			for key, row in pairs(state.fossilTools or {}) do
-				if type(row) == "table" then
-					local dust, tokens = Tools.foreverSellValue(row, row)
-					table.insert(out, {
-						key = "fossil|" .. tostring(key),
-						name = row.name or tostring(key), sub = "Assembled fossil",
-						rarity = row.rarity or (Tools.rarityForPower and Tools.rarityForPower(row.power)), icon = Icons.image(key) or nil, def = row, owned = row, slot = "tool",
-						source = "fossil", id = key,
-						equipped = eqSrc == "fossil" and eqId == key,
-						runeId = row.runeId,
-						sell = { dust = dust, tokens = tokens },
-						why = row.runeId and "Unsocket its rune first" or nil,
-					})
-				end
-			end
 		elseif slotId == "backpack" then
 			local packs = C.BACKPACKS or {}
 			local have = math.clamp(math.floor(tonumber(state.backpackTier) or 1), 1, math.max(1, #packs))
@@ -2619,6 +2744,18 @@ function MineInventoryView.mount(parent, opts)
 						the snapshot carries the same fields, so the client reaches
 						the same answer the server does.
 					]]
+					--[[
+						The COUNT, and what three of them merge into. A legacy
+						charm saved as `true` is one copy, which is how every
+						other reader of this tally treats it.
+					]]
+					local held = (state.charms or {})[def.id]
+					local n = (held == true) and 1 or math.floor(tonumber(held) or 0)
+					local mergeTo, mergeDef, mergeWhy
+					if Charms.mergeTarget then
+						mergeTo, mergeDef, mergeWhy = Charms.mergeTarget(def.id)
+					end
+					local cost = math.max(2, math.floor(tonumber(Charms.MERGE_COST) or 3))
 					table.insert(out, {
 						key = "charm|" .. def.id,
 						name = def.name,
@@ -2626,6 +2763,10 @@ function MineInventoryView.mount(parent, opts)
 							or (def.source or "Charm"),
 						def = def, slot = "charm", source = "charm", id = def.id,
 						equipped = state.equippedCharm == def.id,
+						count = n,
+						mergeTo = mergeTo, mergeName = mergeDef and mergeDef.name or nil,
+						mergeWhy = mergeWhy, mergeCost = cost,
+						canMerge = mergeTo ~= nil and n >= cost,
 						why = "Charms are kept, not sold",
 					})
 				end
@@ -2724,14 +2865,14 @@ function MineInventoryView.mount(parent, opts)
 
 	-- Compact dig-kit line for equipment seats: "Pet: +40% luck · +22% bag"
 	local PET_KIT_SHORT = {
-		mineSpeed = "dmg", oreYield = "blast", luck = "luck", walkSpeed = "walk",
+		mineSpeed = "dmg", blastChance = "blast", luck = "luck", walkSpeed = "walk",
 		dirtBreak = "dirt", backpack = "bag", rareOre = "rare", coinBonus = "coins",
 		gemFind = "gems", chestLuck = "chest", swingRate = "swing", blastRadius = "boom",
 		echo = "echo", zap = "zap", autoMine = "gems", luckyFind = "lucky",
 		fossilFind = "fossil", pulverize = "pulverize",
 	}
 	local PET_KIT_ADD = {
-		echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true,
+		echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true,
 		luckyFind = true, fossilFind = true, pulverize = true, scrap = true,
 		coolant = true, shortFuse = true, reach = true,
 	}
@@ -2864,7 +3005,7 @@ function MineInventoryView.mount(parent, opts)
 		elseif item.slot == "tool" then
 			local o = item.owned
 			local finish = (o and o.nightmare and (C.NIGHTMARE_MULT or 4.5))
-				or (o and o.shadow and (C.SHADOW_MULT or C.SHADOW_TOOL_MULT or 2))
+				or (o and o.shadow and (C.SHADOW_MULT or 2))
 				or (o and o.shiny and (C.SHINY_MULT or 1.5)) or 1
 			return Tools.budget(item.def) * finish
 		elseif item.source == "charm" then
@@ -3280,8 +3421,6 @@ function MineInventoryView.mount(parent, opts)
 			local temperText, temperInk = "", MUTED
 			if item.source == "gear" or item.source == "charm" then
 				temperText = "Only tools take a temperament"
-			elseif item.source == "fossil" then
-				temperText = "Fossil tools do not take a temperament"
 			else
 				local picks = {}
 				if type(src) == "table" then
@@ -3331,8 +3470,6 @@ function MineInventoryView.mount(parent, opts)
 				if opts.onEquipShopTool then opts.onEquipShopTool(item.id) end
 			elseif item.source == "forever" then
 				if opts.onEquipChestTool then opts.onEquipChestTool(item.id) end
-			elseif item.source == "fossil" then
-				if opts.onEquipFossilTool then opts.onEquipFossilTool(item.id) end
 			elseif item.source == "gear" then
 				--[[
 					The seat the player is looking at is the seat the hat goes in.
@@ -3420,17 +3557,65 @@ function MineInventoryView.mount(parent, opts)
 				eqB.MouseButton1Click:Connect(equipIt)
 			end
 
-			local canSell = item.sell ~= nil and not item.why
+			--[[
+				A CHARM MERGES INSTEAD OF SELLING.
+
+				The right-hand button is SELL for everything else, and for a
+				charm it always read "CAN'T SELL -- Charms are kept, not sold":
+				a button whose only job was to refuse. Merging goes there, which
+				is the one thing you can actually do with a duplicate charm.
+
+				It stays a refusing button when there is nothing to merge, with
+				the reason on it, rather than vanishing -- a control that
+				appears and disappears depending on a count is harder to learn
+				than one that tells you what it wants.
+			]]
+			local isCharm = item.source == "charm"
+			local canSell = (not isCharm) and item.sell ~= nil and not item.why
+			local canMerge = isCharm and item.canMerge == true
+			local rightOn = canSell or canMerge
+			local rightText
+			if isCharm then
+				rightText = canMerge
+					and string.format("MERGE %d", item.mergeCost or 3)
+					or "CAN'T MERGE"
+			else
+				rightText = canSell and "SELL" or "CAN'T SELL"
+			end
 			local sellB = mk("TextButton", {
-				AutoButtonColor = canSell,
-				BackgroundColor3 = canSell and Color3.fromRGB(150, 58, 58) or BG3,
-				Text = canSell and "SELL" or "CAN'T SELL", Font = FONT, TextSize = 16,
-				TextColor3 = canSell and Color3.fromRGB(255, 226, 226) or MUTED,
+				AutoButtonColor = rightOn,
+				BackgroundColor3 = rightOn and Color3.fromRGB(150, 58, 58) or BG3,
+				Text = rightText, Font = FONT, TextSize = 16,
+				TextColor3 = rightOn and Color3.fromRGB(255, 226, 226) or MUTED,
 				Position = UDim2.new(0.52, 6, 0, 66), Size = UDim2.new(0.48, -6, 0, 46),
 				ZIndex = 74,
 			}, footer)
 			round(sellB, 10)
-			if canSell then
+			if canMerge then
+				--[[
+					Say what it BECOMES, not just that it merges. The charm one
+					tier up has a different shape and usually a different stat,
+					so a player who is not told the name has no way to know
+					whether they want the trade.
+				]]
+				label(footer, string.format("%d held  ·  %d become %s",
+					item.count or 0, item.mergeCost or 3, tostring(item.mergeName or "the next charm")),
+					13, GOLD, UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil,
+					Enum.TextXAlignment.Center)
+				sellB.MouseButton1Click:Connect(function()
+					if opts.onMergeCharm then
+						opts.onMergeCharm(item.id)
+					end
+					closeCard()
+				end)
+			elseif isCharm then
+				local line = item.mergeWhy
+					or string.format("%d held  ·  %d needed to merge into %s",
+						item.count or 0, item.mergeCost or 3,
+						tostring(item.mergeName or "the next charm"))
+				label(footer, line, 13, MUTED,
+					UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil, Enum.TextXAlignment.Center)
+			elseif canSell then
 				label(footer, "Sells for " .. payoutText(), 13, GOLD,
 					UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil, Enum.TextXAlignment.Center)
 				sellB.MouseButton1Click:Connect(showConfirm)
@@ -3453,7 +3638,7 @@ function MineInventoryView.mount(parent, opts)
 			eq.cardMode = "confirm"
 			clear(footer)
 			local foreverPay = item.sell and item.sell.dust and item.sell.tokens
-				and (item.source == "forever" or item.source == "fossil")
+				and item.source == "forever"
 			if foreverPay then
 				label(footer, "PICK ONE — FULL VALUE", 11, MUTED, UDim2.fromOffset(0, 0),
 					UDim2.new(1, 0, 0, 14), FONT, Enum.TextXAlignment.Center)
@@ -3721,66 +3906,16 @@ function MineInventoryView.mount(parent, opts)
 
 		local head = panelRow(body, 46, 1)
 		label(head, "EQUIPMENT", 15, TEXT, UDim2.fromOffset(14, 0), UDim2.new(0.28, 0, 1, 0), FONT)
-		--[[
-			SELECT -> pick pieces -> RECYCLE -> review -> hold 3s.
-
-			The hold used to sit on this button and fire the scrap directly, with
-			no review in between. It is on the REVIEW screen now, because a hold
-			is a confirmation and there was nothing to confirm against: the
-			player held three seconds over a list they could only see as
-			highlighted tiles and a count, and never saw what it was worth.
-
-			There is deliberately NO select-all. Every item in a recycle batch is
-			ticked on purpose.
-		]]
-		local nSel = 0
-		for _ in pairs(eq.sellSelect or {}) do
-			nSel += 1
-		end
-		do
-			local modeB = mk("TextButton", {
-				AutoButtonColor = true,
-				BackgroundColor3 = eq.sellMode and Color3.fromRGB(150, 58, 58) or BG3,
-				Text = eq.sellMode and ("SELECTING  " .. nSel) or "SELECT",
-				Font = FONT, TextSize = 12,
-				TextColor3 = eq.sellMode and Color3.fromRGB(255, 226, 226) or TEXT,
-				Size = UDim2.fromOffset(118, 28), Position = UDim2.new(1, -270, 0.5, -14),
-			}, head)
-			round(modeB, 8)
-			modeB.MouseButton1Click:Connect(function()
-				eq.sellMode = not eq.sellMode
-				if not eq.sellMode then
-					eq.sellSelect = {}
-				end
-				render()
-			end)
-			local sellB = mk("TextButton", {
-				AutoButtonColor = true,
-				BackgroundColor3 = (eq.sellMode and nSel > 0) and Color3.fromRGB(150, 58, 58) or BG3,
-				Text = (eq.sellMode and nSel > 0) and ("RECYCLE " .. nSel) or "RECYCLE",
-				Font = FONT, TextSize = 12,
-				TextColor3 = (eq.sellMode and nSel > 0) and Color3.fromRGB(255, 226, 226) or MUTED,
-				Size = UDim2.fromOffset(96, 28), Position = UDim2.new(1, -146, 0.5, -14),
-			}, head)
-			round(sellB, 8)
-			sellB.MouseButton1Click:Connect(function()
-				if not eq.sellMode or nSel <= 0 then
-					return
-				end
-				local ids = {}
-				for id in pairs(eq.sellSelect) do
-					table.insert(ids, id)
-				end
-				-- The ASK. No confirm flag: the server prices it and replies with
-				-- confirmScrap, which opens the review.
-				if opts.onScrapMany then
-					opts.onScrapMany("gear", ids, "gems", false)
-				end
-			end)
-		end
+		-- SELECT -> pick pieces -> RECYCLE -> review -> hold 3s. The why of all
+		-- of that (no select-all, and the hold living on the review screen
+		-- rather than here) is in MineScrapSelect, which every list now shares.
+		local selOn = pick.bar(head, "gear", "gems", {
+			some = "RECYCLE to review what you picked",
+			none = "tap unequipped gear to select",
+		})
 		do
 			local better = tonumber((state.upgrades or {}).gear) or 0
-			if better > 0 and not eq.sellMode then
+			if better > 0 and not selOn then
 				local b = mk("TextButton", {
 					AutoButtonColor = true, BackgroundColor3 = GREEN, Text = "EQUIP BEST",
 					Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(16, 38, 20),
@@ -3790,15 +3925,9 @@ function MineInventoryView.mount(parent, opts)
 				b.MouseButton1Click:Connect(function()
 					if opts.onEquipBest then opts.onEquipBest() end
 				end)
-			elseif not eq.sellMode then
+			elseif not selOn then
 				label(head, "tap a seat, then tap what goes in it", 11, MUTED,
 					UDim2.fromOffset(120, 0), UDim2.new(0.4, 0, 1, 0))
-			elseif nSel > 0 then
-				label(head, "RECYCLE to review what you picked", 11, GOLD,
-					UDim2.fromOffset(120, 0), UDim2.new(0.35, 0, 1, 0))
-			else
-				label(head, "tap unequipped gear to select", 11, MUTED,
-					UDim2.fromOffset(120, 0), UDim2.new(0.35, 0, 1, 0))
 			end
 		end
 
@@ -4168,15 +4297,15 @@ function MineInventoryView.mount(parent, opts)
 			for order, entry in ipairs(bag) do
 				local item = entry.item
 				local ink = (item.rarity and gradeInk(item.rarity)) or TEXT
-				local canSell = eq.sellMode and item.source == "gear" and item.id
+				local canSell = pick.on("gear") and item.source == "gear" and item.id
 					and not item.equipped and not item.why
-				local picked = canSell and eq.sellSelect[item.id] or false
+				local picked = canSell and pick.has("gear", item.id) or false
 				local tile = mk("TextButton", {
 					BackgroundColor3 = picked and Color3.fromRGB(72, 36, 36) or BG2, Text = "",
 					AutoButtonColor = true, LayoutOrder = order,
 				}, bagRow)
 				round(tile, 8)
-				stroke(tile, picked and 2 or 1, picked and Color3.fromRGB(255, 120, 100) or ink)
+				stroke(tile, picked and 2 or 1, picked and ScrapSelect.EDGE or ink)
 				local nameLbl = label(tile, tostring(item.name), 12, ink, UDim2.fromOffset(6, 4),
 					UDim2.new(1, -12, 0, 28), FONT, Enum.TextXAlignment.Center)
 				nameLbl.TextWrapped = true
@@ -4185,20 +4314,11 @@ function MineInventoryView.mount(parent, opts)
 				nameLbl.TextYAlignment = Enum.TextYAlignment.Top
 				eq.thumb(tile, item, 88, UDim2.new(0.5, -44, 0, 36), entry.up)
 				if picked then
-					label(tile, "✓", 18, Color3.fromRGB(255, 200, 160),
+					label(tile, "✓", 18, ScrapSelect.TICK,
 						UDim2.new(1, -28, 0, 4), UDim2.fromOffset(22, 22), FONT)
 				end
 				tile.MouseButton1Click:Connect(function()
-					if eq.sellMode then
-						if not canSell then
-							return
-						end
-						if eq.sellSelect[item.id] then
-							eq.sellSelect[item.id] = nil
-						else
-							eq.sellSelect[item.id] = true
-						end
-						render()
+					if pick.tap("gear", { item.id }, canSell) then
 						return
 					end
 					showItemCard(item)
@@ -4699,7 +4819,7 @@ function MineInventoryView.mount(parent, opts)
 		end
 		table.sort(keys)
 		local any = false
-		local ADDITIVE_SHOW = { echo = true, zap = true, blastRadius = true, autoMine = true, oreYield = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true }
+		local ADDITIVE_SHOW = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true }
 		for _, k in ipairs(keys) do
 			local v = tonumber(b[k])
 			local pct = nil
@@ -5363,11 +5483,51 @@ function MineInventoryView.mount(parent, opts)
 				showCart()
 				refreshCart()
 			end)
-			local q = label(row, "x" .. line.qty, 14, TEXT, UDim2.new(1, -64, 0, 0),
-				UDim2.fromOffset(28, 56), FONT)
-			q.ZIndex = 73
+			--[[
+				TYPE THE NUMBER. Owner, 2026-10-03: "a custom amoujt of packs
+				to buy (the player can write the number themselves [default 1])".
+
+				This was a read-only "x3" between two steppers, so buying fifty
+				of something meant forty-seven taps. It is a TextBox now; the
+				steppers stay because they are still the fastest way to nudge
+				by one.
+
+				ClearTextOnFocus is off so tapping it to change 12 to 15 does
+				not wipe the 12 first. On FocusLost anything unparseable snaps
+				back to what the line actually holds rather than to 1 -- a
+				fat-fingered keystroke should not silently empty the cart line.
+			]]
+			local q = mk("TextBox", {
+				BackgroundColor3 = BG3,
+				BackgroundTransparency = 0.35,
+				Font = FONT,
+				TextSize = 14,
+				TextColor3 = TEXT,
+				Text = tostring(line.qty),
+				ClearTextOnFocus = false,
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -38, 0.5, 0),
+				Size = UDim2.fromOffset(34, 26),
+				ZIndex = 73,
+			}, row)
+			round(q, 6)
+			q.FocusLost:Connect(function()
+				local want = tonumber((q.Text or ""):match("%d+"))
+				if not want then
+					q.Text = tostring(line.qty)
+					return
+				end
+				local next = math.clamp(math.floor(want), 1, CART_QTY_MAX)
+				if next == line.qty then
+					q.Text = tostring(line.qty)
+					return
+				end
+				line.qty = next
+				showCart()
+				refreshCart()
+			end)
 			stepper("+", -8, function()
-				line.qty = math.min(25, line.qty + 1)
+				line.qty = math.min(CART_QTY_MAX, line.qty + 1)
 				showCart()
 				refreshCart()
 			end)
@@ -7436,11 +7596,24 @@ function MineInventoryView.mount(parent, opts)
 			scrapVeil:Destroy()
 			scrapVeil = nil
 		end
+		--[[
+			PARENTED TO THE SCREEN, NOT TO THIS PANEL.
+
+			The ask can come from a screen that is not this one: the Enchanter's
+			rune list uses the same server path, and the server's reply is routed
+			here because this is where the review is drawn. Under `root` the
+			review would inherit this panel's Visible -- so a player recycling
+			runes from the Enchanter would hold RECYCLE and see nothing happen.
+
+			ctl.close() destroys it for the same reason: a review floating over
+			the screen after the panel that owns it has closed is worse than no
+			review.
+		]]
 		local veil = mk("TextButton", {
 			Name = "ScrapReview", BackgroundColor3 = Color3.new(0, 0, 0),
 			BackgroundTransparency = 0.45, Text = "", AutoButtonColor = false,
 			Size = UDim2.fromScale(1, 1), ZIndex = 120,
-		}, root)
+		}, root:FindFirstAncestorOfClass("ScreenGui") or root)
 		scrapVeil = veil
 		local box = round(mk("Frame", {
 			BackgroundColor3 = BG, AnchorPoint = Vector2.new(0.5, 0.5),
@@ -7556,8 +7729,7 @@ function MineInventoryView.mount(parent, opts)
 							for _, r in ipairs(rows) do
 								table.insert(ids, r.id)
 							end
-							eq.sellSelect = {}
-							eq.sellMode = false
+							pick.clear()
 							close()
 							if opts.onScrapMany then
 								-- The COMMIT, on the same ids the server priced.
@@ -7665,6 +7837,12 @@ function MineInventoryView.mount(parent, opts)
 
 	function ctl.close()
 		root.Visible = false
+		-- The review is parented to the screen now, so closing this panel has to
+		-- take it down rather than leave it floating.
+		if scrapVeil then
+			scrapVeil:Destroy()
+			scrapVeil = nil
+		end
 	end
 
 	function ctl.toggle(sec, t)

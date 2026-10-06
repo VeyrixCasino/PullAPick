@@ -35,6 +35,7 @@ local MineOrePouchView = {}
 local RS = game:GetService("ReplicatedStorage")
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared:WaitForChild("MineConfig"))
+local OreIcons = require(shared:WaitForChild("MineOreIcons"))
 local Pouch = require(shared:WaitForChild("MineOrePouch"))
 local Abbrev = require(shared:WaitForChild("MineAbbrev"))
 local T = require(shared:WaitForChild("MineTheme"))
@@ -333,11 +334,27 @@ function MineOrePouchView.mount(parent, opts)
 				BackgroundColor3 = BG2,
 				Size = UDim2.new(1, 0, 0, ROW_H),
 			}, list), 8)
+			--[[
+				THE ORE'S OWN ART, NOT A COLOURED SQUARE.
+
+				Owner, 2026-10-06, on the two ore images per ore: "dont use those,
+				only use the cases". So the row carries the CASE render.
+
+				The frame stays underneath as the fallback tint: an ore with no
+				uploaded art, or art still clearing moderation, shows the colour
+				square this row used to be rather than a blank hole.
+			]]
 			local swatch = round(mk("Frame", {
 				BackgroundColor3 = Color3.fromRGB(120, 120, 120),
 				Position = UDim2.fromOffset(10, 11),
 				Size = UDim2.fromOffset(24, 24),
 			}, btn), 6)
+			local swatchArt = mk("ImageLabel", {
+				BackgroundTransparency = 1,
+				Image = "",
+				ScaleType = Enum.ScaleType.Fit,
+				Size = UDim2.fromScale(1, 1),
+			}, swatch)
 			local name = label(btn, "", 13, TEXT, UDim2.fromOffset(44, 6),
 				UDim2.new(0.42, -44, 0, 16), FONT)
 			local sub = label(btn, "", 11, MUTED, UDim2.fromOffset(44, 24),
@@ -362,7 +379,7 @@ function MineOrePouchView.mount(parent, opts)
 				Size = UDim2.fromOffset(88, 30),
 			}, btn), 7)
 			row = {
-				frame = btn, swatch = swatch, name = name, sub = sub,
+				frame = btn, swatch = swatch, swatchArt = swatchArt, name = name, sub = sub,
 				amount = amount, worth = worth,
 				lockBtn = lockBtn, lockLbl = lockLbl, sellBtn = sellBtn,
 			}
@@ -454,6 +471,11 @@ function MineOrePouchView.mount(parent, opts)
 			row.frame.LayoutOrder = i
 			row.frame.Visible = true
 			row.swatch.BackgroundColor3 = (ore and ore.color) or Color3.fromRGB(120, 120, 120)
+			-- The ore's own render. The colour square stays behind it as the
+			-- fallback, so an ore with no art still reads as itself.
+			local art = ore and OreIcons.icon(ore.id)
+			row.swatchArt.Image = art or ""
+			row.swatchArt.BackgroundTransparency = 1
 			row.name.Text = r.name
 			row.name.TextColor3 = BAND_INK[r.band or ""] or TEXT
 			row.sub.Text = string.format("%s · tier %d · %s gems each",

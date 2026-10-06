@@ -54,14 +54,11 @@ MinePackFX.ART = {
 	heirloom_pack = { primary = Color3.fromRGB(44, 40, 22),  accent = Color3.fromRGB(226, 198, 116), secondary = Color3.fromRGB(122, 112, 62),  image = "rbxassetid://106597079706450" },
 
 	--[[
-		The three loot families, each a ladder so the cheap one and the dear one
-		read apart on the shelf as well as in the price: amber for fossil, violet
-		for rune, steel for gear. A player should be able to tell what family a
-		wrapper belongs to before reading its name.
+		The loot families, each a ladder so the cheap one and the dear one read
+		apart on the shelf as well as in the price: violet for rune, steel for
+		gear. A player should be able to tell what family a wrapper belongs to
+		before reading its name.
 	]]
-	fossil_pack       = { primary = Color3.fromRGB(74, 50, 22),  accent = Color3.fromRGB(214, 160, 74),  secondary = Color3.fromRGB(140, 100, 44), image = "rbxassetid://89465075108341" },
-	fossil_deep_pack  = { primary = Color3.fromRGB(52, 34, 16),  accent = Color3.fromRGB(238, 186, 96),  secondary = Color3.fromRGB(122, 82, 36), image = "rbxassetid://89291064456627" },
-	fossil_abyss_pack = { primary = Color3.fromRGB(26, 18, 12),  accent = Color3.fromRGB(248, 232, 196), secondary = Color3.fromRGB(126, 96, 54), image = "rbxassetid://88586083380814" },
 
 	rune_pack         = { primary = Color3.fromRGB(46, 28, 72),  accent = Color3.fromRGB(178, 132, 240), secondary = Color3.fromRGB(98, 66, 152), image = "rbxassetid://113565242847795" },
 	rune_heavy_pack   = { primary = Color3.fromRGB(34, 18, 62),  accent = Color3.fromRGB(200, 146, 255), secondary = Color3.fromRGB(112, 70, 180), image = "rbxassetid://119839016362746" },
@@ -176,7 +173,7 @@ local function ensureOrePackArt()
 	for _, ore in ipairs(C.ORES) do
 		local pid = ore.packId or (ore.id .. "_ore_pack")
 		if ore.color then
-			-- Always (re)build so a prior fossil-sack image does not stick.
+			-- Always (re)build so a previously cached image does not stick.
 			MinePackFX.ART[pid] = orePackArtFromColor(ore.color)
 		end
 	end
@@ -206,12 +203,6 @@ function MinePackFX.art(packId)
 			MinePackFX.ART[packId] = row
 			return row
 		end
-	end
-	if string.find(packId, "_fossil_deep_pack", 1, true) then
-		return MinePackFX.ART.fossil_deep_pack or MinePackFX.DEFAULT
-	end
-	if string.find(packId, "_fossil_pack", 1, true) then
-		return MinePackFX.ART.fossil_pack or MinePackFX.DEFAULT
 	end
 	return MinePackFX.DEFAULT
 end
