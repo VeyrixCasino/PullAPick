@@ -40,7 +40,49 @@ MineDepth.SEAMS = {
 	6000, 7000, 8000, 9000, 10000,
 }
 MineDepth.AIR_GAP = 5 -- layers of air ending at seam (e.g. 496-500)
-MineDepth.DEPTH_SELL_FRAC = 0.78
+
+--[[
+	HOW MUCH MORE A DESK PAYS, PER 500m OF DEPTH.
+
+	Owner, 2026-10-05: "make seams sell for more not less".
+
+	Compounding per seam step, so the ladder is smooth and always upward:
+
+	    seam   500 -> x1.05      seam  3000 -> x1.34
+	    seam  1000 -> x1.10      seam  5000 -> x1.63
+	    seam  1500 -> x1.16      seam 10000 -> x2.65
+
+	Surface stays x1.00, and every desk beats it, so hauling your ore back up
+	is never the better play -- which is the whole point of an outpost.
+
+	WHAT THIS REPLACES. The old curve was not a curve. It read
+
+	    steps = equivZoneIndex(zone, seam) - zone
+	    mult  = ZONE_HP_MULT ^ steps * DEPTH_SELL_FRAC
+
+	and equivZoneIndex only special-cased two seams: +4 at 500 and +6 at 1500.
+	So seam 500 paid 5^4 x 0.78 = x487.5, seam 1500 paid 5^6 x 0.78 = x12,187.5,
+	and EVERY OTHER SEAM paid x0.78 -- less than the surface. Two spikes with a
+	trough between them: the 1500 desk paid about 15,600 times what the 2000 desk
+	paid for identical ore, so the only correct way to sell anything was to walk
+	to seam 1500. That is a currency printer, and it would have been found within
+	hours of launch.
+
+	It came from the old HP curve, where ZONE_HP_MULT ^ steps stood in for "this
+	rock is really zone N". Ore value already scales with tier, so the desk does
+	not need to restate it -- and restating it compounded a x5-per-zone term into
+	a sell multiplier, which is where the four zeroes came from.
+
+	DEPTH_SELL_FRAC (0.78) is gone rather than retuned. It was a haircut for the
+	convenience of not walking up, and the owner has reversed that: depth is now
+	rewarded, not taxed. Leaving a 0.78 constant lying around would invite
+	someone to reapply it on top of this.
+
+	zoneIndex is no longer read. It never actually mattered: `steps` was
+	(zoneIndex + k) - zoneIndex, so the zone cancelled and the old multiplier was
+	already depth-only. The parameter stays for the two call sites.
+]]
+MineDepth.DEPTH_SELL_PER_SEAM = 1.05
 MineDepth.COMING_SOON_SEAM = 99999
 MineDepth.COMING_SOON_PLAYERS = 50
 MineDepth.DIG_LEAD = 8
@@ -407,15 +449,18 @@ function MineDepth.equivZoneIndex(zoneIndex, seam)
 	return zoneIndex
 end
 
-function MineDepth.depthSellMult(zoneIndex, seam)
-	-- Surface / missing seam: full payout. Depth desks only take the frac haircut.
+-- Surface is the x1 reference; every desk below it pays more, compounding per
+-- 500m. See DEPTH_SELL_PER_SEAM for the table and for what this replaced.
+function MineDepth.depthSellMult(_zoneIndex, seam)
 	if seam == false or seam == nil or seam == 0 then
 		return 1
 	end
-	local equiv = MineDepth.equivZoneIndex(zoneIndex, seam)
-	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
-	local steps = math.max(0, equiv - zoneIndex)
-	return (MineDepth.ZONE_HP_MULT ^ steps) * (MineDepth.DEPTH_SELL_FRAC or 0.78)
+	local depth = math.max(0, tonumber(seam) or 0)
+	local rate = tonumber(MineDepth.DEPTH_SELL_PER_SEAM) or 1.05
+	-- Continuous in `seam`, so a desk added at an unlisted depth still lands on
+	-- the curve instead of needing a new branch -- which is how the old version
+	-- ended up special-casing two seams and forgetting the rest.
+	return rate ^ (depth / 500)
 end
 
 function MineDepth.bandUnlockKey(seam)

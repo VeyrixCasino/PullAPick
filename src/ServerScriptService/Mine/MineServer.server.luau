@@ -15805,12 +15805,21 @@ function Verbs.craftOreTool(plr, payload)
 	end
 	inherited = math.clamp(inherited, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
 
+	--[[
+		`base` is what makes the inheritance safe to scrap.
+
+		The row records the level it was FORGED at, so recycling can refund the
+		levels this tool actually bought rather than the levels it was handed.
+		Without it, forge -> scrap -> repeat paid out half a full climb each time
+		for the price of one craft. See MineConfig.toolRecycle.
+	]]
 	local row = {
 		uid = instanceHex16(),
 		typeId = def.id,
 		familyId = familyId,
 		tier = oreDef.tier,
 		level = inherited,
+		base = inherited,
 	}
 	table.insert(p.oreTools, row)
 
@@ -15926,7 +15935,16 @@ function Verbs.recycleOreTool(plr, payload)
 
 	local _, _, oreDef, typeMult = Verbs._oreToolCost(tool)
 	local level = math.max(1, tonumber(tool.level) or 1)
-	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
+	--[[
+		The level this tool was FORGED at. Levels it inherited cost nothing, so
+		they refund nothing; only the climb bought on this tool comes back.
+
+		Rows saved before `base` existed fall back to 1 and refund on the old
+		terms, which is the generous direction and affects only tools already in
+		a profile.
+	]]
+	local base = math.clamp(math.floor(tonumber(tool.base) or 1), 1, level)
+	local ore, dust = C.toolRecycle(tool.tier, level, typeMult, base)
 	local oreId = oreDef and oreDef.id
 
 	-- Let go before it stops existing, or the hand keeps a uid that no longer

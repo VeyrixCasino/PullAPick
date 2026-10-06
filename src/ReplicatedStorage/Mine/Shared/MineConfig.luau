@@ -2999,10 +2999,36 @@ end
 	nothing behind it, so the exploit is gone by construction and the rate can
 	be generous and legible instead of defensive.
 ]]
-function MineConfig.toolRecycle(tier, level, typeMult)
+--[[
+	REFUND THE LEVELS THIS TOOL BOUGHT, NOT THE LEVELS IT ARRIVED WITH.
+
+	The note above says the exploit is "gone by construction" because a tool
+	arrives at level 1 with nothing behind it. That stopped being true on
+	2026-10-05, when craftOreTool began inheriting your best level so a player
+	changing frame would not pay for the same climb twice. A forged tool now
+	arrives at level 30 with nothing behind it, and this refunded 50% of a
+	level-30 climb for it:
+
+	    forge (costs craft ore) -> arrives at your best level
+	    scrap                   -> 50% of toolSpent(level) back
+	    repeat
+
+	The craft cost is far smaller than half a full climb, so that loop printed
+	ore and dust. Inheriting a level is free, so scrapping it must refund
+	nothing: the refund is the DIFFERENCE between where the tool ended and where
+	it started.
+
+	baseLevel is the level the row was forged at. Omitted or 1 gives exactly the
+	old arithmetic, which is what rows saved before this change fall back to --
+	generous to the handful of tools already in profiles, and closed for every
+	tool forged from here on.
+]]
+function MineConfig.toolRecycle(tier, level, typeMult, baseLevel)
 	local ore, dust = MineConfig.toolSpent(tier, level, typeMult)
+	local baseOre, baseDust = MineConfig.toolSpent(tier, baseLevel or 1, typeMult)
 	local pct = MineConfig.TOOL_RECYCLE_PCT
-	return math.floor(ore * pct), math.floor(dust * pct)
+	return math.floor(math.max(0, ore - baseOre) * pct),
+		math.floor(math.max(0, dust - baseDust) * pct)
 end
 
 --[[
