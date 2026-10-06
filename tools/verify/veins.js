@@ -52,6 +52,10 @@ const parts = [
   line("MineConfig.ORE_S ="),
   line("MineConfig.ORE_W ="),
   line("MineConfig.ORE_MIN_SHARE ="),
+  // oreWeights asks oreSpreadK for the width now, so the ramp comes with it.
+  line("MineConfig.ORE_K_TOP ="),
+  line("MineConfig.ORE_K_RAMP ="),
+  block("function MineConfig.oreSpreadK(", "end"),
   block("MineConfig.ORES = {", "}"),
   block("function MineConfig.oreFindShift(", "end"),
   block("function MineConfig.oreWeights(", "end"),
@@ -65,6 +69,12 @@ const parts = [
   block("local function veinFinal(", "end"),
   line("local VEIN_SALT ="),
   block("local function veinUnit(", "end"),
+  // zoneSeed reads the per-zone layout salt, so its table comes too. Without
+  // it the sheet hashes against a nil salt and the harness errors rather than
+  // quietly measuring a different mine.
+  line("local veinZoneSeed ="),
+  line("local veinZoneSalt ="),
+  block("function MineConfig.setVeinSalt(", "end"),
   block("local function zoneSeed(", "end"),
   block("function MineConfig.veinSizeFor(", "end"),
   block("function MineConfig.veinSizeMean(", "end"),
@@ -400,6 +410,44 @@ for _, nameB in ipairs({ "big", "mid", "solo" }) do
 	local okB = math.abs(actual - expect) < 0.05
 	check(nameB .. " ores keep their share of the ore roll", okB,
 		string.format("%.3f%% measured vs %.3f%% from oreWeights", actual * 100, expect * 100))
+end
+
+--[[
+	THE MINE MUST NOT BE THE SAME MINE EVERY TIME.
+
+	Owner, 2026-10-06: "the mine isnt random anymore... every time i join 4
+	halite on top of the line". It was exactly that: veinOreAt is positional by
+	design, and the only thing seeding it was a hash of the zone's NAME, which
+	never changes. Every server and every rejoin produced a byte-identical ore
+	layout.
+
+	The per-zone layout salt reaches it now. Two salts must give two different
+	mines -- and the same salt must still give the same mine, because that is
+	what lets a block regenerate into what it was an hour later.
+]]
+do
+	local function layout(salt)
+		MineConfig.setVeinSalt("meadow", salt)
+		local hits = {}
+		for y = 1, 120 do
+			for x = 0, 11 do
+				for z = 0, 11 do
+					local o = MineConfig.veinOreAt("meadow", x, y, z, 1)
+					if o then
+						table.insert(hits, x .. ":" .. y .. ":" .. z .. "=" .. o.id)
+					end
+				end
+			end
+		end
+		return table.concat(hits, ","), #hits
+	end
+	local a, naa = layout(12345)
+	local b, nbb = layout(987654321)
+	local a2 = layout(12345)
+	check("a different layout salt gives a different mine", a ~= b,
+		string.format("%d vs %d ore blocks in the same volume", naa, nbb))
+	check("the same salt gives the same mine, so regen is stable", a == a2)
+	check("both layouts still produce ore", naa > 0 and nbb > 0)
 end
 
 print(fails == 0 and ">>> veins OK" or (">>> " .. fails .. " FAILED"))

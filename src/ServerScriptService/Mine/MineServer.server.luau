@@ -4213,6 +4213,29 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	part.CFrame = CFrame.new(pos)
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
+	--[[
+		THE MINE IS THOUSANDS OF PARTS, SO EVERY PER-PART COST IS MULTIPLIED BY
+		THOUSANDS.
+
+		Owner, 2026-10-06, with the microprofiler open: GPU averages ~50 ms while
+		MOVING and spikes to 80, against a 33 ms target, on a 5070 Ti. Measured
+		live, the mine holds about 4,900 parts.
+
+		CastShadow was never set, so every one of them cast a shadow. Shadow maps
+		are re-rendered as the camera moves, which is exactly the "when I move"
+		shape of the spike, and underground there is no sun to cast them from --
+		the cost bought nothing. The rest of this codebase already knows this:
+		chests, pets and portal FX all set CastShadow = false.
+
+		CanTouch was also left on, so all 4,900 took part in touch resolution as
+		the character walked through the shaft. The only Touched handler in the
+		game is on the sell pad (Machine == "sell"), so blocks never needed it.
+
+		CanQuery STAYS TRUE. Mining is a raycast against these parts; turning it
+		off would make the mine unclickable.
+	]]
+	part.CastShadow = false
+	part.CanTouch = false
 	-- Fallback for an unrecognised kind. Was C.BLOCKS.fossil, which no longer
 	-- exists; dirt is the plain rock every zone already starts from.
 	local spec = C.BLOCKS[kind] or C.BLOCKS.dirt
@@ -4688,6 +4711,18 @@ local function ensureZone(zone, throughLayer)
 	if not salt then
 		salt = Random.new():NextInteger(1, 1073741823)
 		mineResetState.seed[zone.id] = salt
+	end
+	--[[
+		The ore field needs this salt too, or it is the same mine forever.
+
+		`rng` below only decides where the CHESTS go. Ore moved to
+		MineConfig.veinOreAt, which is positional by design -- that is what lets a
+		vein agree with itself across blocks spawned minutes apart -- and until
+		now the only thing seeding it was a hash of the zone's name. Owner,
+		2026-10-06: "every time i join 4 halite on top of the line".
+	]]
+	if C.setVeinSalt then
+		C.setVeinSalt(zone.id, salt)
 	end
 	local rng = Random.new(salt + from)
 	local made = 0
@@ -12916,6 +12951,102 @@ function Verbs.scrubLobbyMineBlocks()
 end
 
 WorldBuilder.build()
+--[[
+	NOTHING IN THE WORLD CASTS A SHADOW.
+
+	Owner, 2026-10-06, microprofiler open on a 5070 Ti: GPU averages ~50 ms while
+	moving and spikes to 80, against a 33 ms target. Measured live straight
+	after: workspace holds 14,559 parts and 10,408 of them cast shadows, 9,610 of
+	those inside MineWorld.
+
+	Shadow maps are re-rendered as the camera moves, which is exactly the
+	"when I move" shape of the spike, and the cost is per shadow-casting part.
+	Underground there is no sun to cast them from, so for the great majority of
+	them it bought nothing at all.
+
+	Swept here rather than at each creation site because MineWorld is built by
+	WorldBuilder, the plaza builders, the barrier builder and the voxel
+	generator, and a rule spread over five files is a rule that will be missed by
+	the sixth. New blocks set CastShadow = false as they spawn (see spawnVoxel);
+	this catches everything that already exists.
+
+	If a specific prop ever needs its shadow back, set CastShadow on it after
+	this runs -- this is a floor, not a lock.
+]]
+--[[
+	NO SHADOWS. AT ALL.
+
+	Owner, 2026-10-06: "remove shadows peroid.. not point they dont do anything
+	helpful". With the microprofiler open on a 5070 Ti the GPU was averaging
+	~50 ms while moving and spiking to 80, against a 33 ms target.
+
+	Measured live: 14,559 parts in the workspace, 10,408 of them casting
+	shadows. Shadow maps re-render as the camera moves, which is exactly the
+	"when I move" shape of the spike -- and the game is almost entirely
+	underground, where there is no sun to cast them from. The cost bought
+	nothing.
+
+	GlobalShadows off is the whole thing in one property. The route I tried
+	first -- clearing CastShadow per part -- took it from 10,408 to 5,149 and
+	left 4,465 still casting, because the edge barriers and the depth plazas
+	build after that point and the plazas build lazily as players reach them. A
+	sweep can only catch what already exists, and a DescendantAdded watcher to
+	catch the rest is a connection firing for every part in a voxel mine to do
+	what one property does for free.
+
+	spawnVoxel still sets CastShadow = false on blocks. That is now redundant
+	while this line stands, and deliberately kept: if anyone ever turns
+	GlobalShadows back on, the mine itself should not be what drags it down.
+]]
+pcall(function()
+	game:GetService("Lighting").GlobalShadows = false
+end)
+
+--[[
+	DEV SCAFFOLDING DOES NOT SHIP.
+
+	Measured in a live session: twelve folders of editor scaffolding sit in the
+	workspace holding 2,492 parts between them -- pet and ore showcases, tool
+	model racks, icon pose references, a mass-review grid. They are built in the
+	place file for authoring art and nothing in the game reads them, but every
+	player loads, replicates and renders them.
+
+	Removed on the server at startup, so it costs nothing in the place file and
+	cannot be forgotten when a new showcase is added: the list is matched by
+	name and by the leading-underscore convention this project already uses for
+	scratch folders.
+
+	This touches the RUNNING session only. The place file is untouched, so the
+	folders are still there next time it is opened in Studio for authoring.
+]]
+-- IIFE, not a do-block: a do-block's locals share the MAIN CHUNK's 200
+-- registers and this script has five left, so three names here stopped the
+-- whole server compiling. tools/verify/compile.js caught it. A function body
+-- gets its own budget.
+;(function()
+	local SHOWCASE = {
+		PetShowcase = true, OreShowcase = true, ToolModels_HQ = true,
+		ToolKit_Showcase = true, IconPoseExamples = true, LaneBodies = true,
+		["Gem-N-Eye Preview"] = true,
+	}
+	local removed, parts = 0, 0
+	for _, d in ipairs(workspace:GetChildren()) do
+		-- `_Name` is this project's scratch convention; the rest are named above.
+		if SHOWCASE[d.Name] or string.sub(d.Name, 1, 1) == "_" then
+			for _, k in ipairs(d:GetDescendants()) do
+				if k:IsA("BasePart") then
+					parts += 1
+				end
+			end
+			removed += 1
+			d:Destroy()
+		end
+	end
+	if removed > 0 then
+		print(("[Mine] stripped %d dev showcase folders (%d parts) from the live world")
+			:format(removed, parts))
+	end
+end)()
 pcall(function()
 	require(script.Parent:WaitForChild("MineEdgeBarriers")).buildAll()
 end)
@@ -13022,6 +13153,10 @@ function Verbs.resetMineZone(zone)
 	-- A new salt, so the refreshed mine is not the one that was just cleared.
 	mineResetState.seed = mineResetState.seed or {}
 	mineResetState.seed[zone.id] = Random.new():NextInteger(1, 1073741823)
+	-- The ore field reseeds with it, so a refreshed mine really is a new one.
+	if C.setVeinSalt then
+		C.setVeinSalt(zone.id, mineResetState.seed[zone.id])
+	end
 	ensureZone(zone, C.LAYER_WINDOW or 8)
 	syncPitWalls(zone)
 	for _, plr in ipairs(Verbs.playersInShaft(zone)) do

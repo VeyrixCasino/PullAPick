@@ -2304,7 +2304,82 @@ MineConfig.ORE_CASE_CHARM_SHARE = 0.25
 	Finalite.
 ]]
 MineConfig.ORE_X0 = -4.2
+--[[
+	HOW TIGHTLY THE ORE MIX SITS AROUND THE DEPTH YOU ARE AT.
+
+	Owner, 2026-10-06: "dont be making so many chunks of teir 5 ores.. first few
+	layers should be pridominantly stone, and you should hve to go to next zone
+	to get ores strong enough to break into sub 50".
+
+	The zone part of that already worked. Measured, difficulty (dl) climbs 0.59
+	-> 8.67 across the ten ZONES but only 0.31 -> 3.31 across all 5,000 layers of
+	zone 1, so which ores exist is set by the zone you are in, not how deep you
+	dig inside it. That is the intended shape and it is untouched.
+
+	What was wrong was the SPREAD. At 0.45 the logistic was so wide that eight
+	ore types made up 90% of the roll in zone 1, Stone was only 24% of it, and
+	Halite -- tier 5 -- was a fat 8.4%. The first layers of the game looked like
+	a sampler of the whole shallow roster instead of a stone mine.
+
+	0.22 narrows it without changing the peak or the zone ladder:
+
+	                      0.45                 0.22
+	    zone 1  L25   Stone 24%, 8 types   Stone 44%, 4 types
+	    zone 1  L1    Stone 26%            Stone ~47%
+	    zone 5  L25   Stone 10%, 14 types  Stone 24%, 7 types
+	    zone 10 L25   top tier 34, 27      top tier 32, 19 types
+
+	Deep zones still reach the same part of the roster -- the top ore at zone 10
+	moves by two tiers -- so this concentrates the mix rather than shortening the
+	ladder. ORE_X0 (-4.2) still decides WHERE the peak sits; this is only its
+	width.
+]]
 MineConfig.ORE_K = 0.45
+
+--[[
+	THE FIRST LAYERS ARE A STONE MINE, AND ONLY THE FIRST LAYERS.
+
+	Owner, 2026-10-06: "dont be making so many chunks of teir 5 ores.. first few
+	layers should be pridominantly stone, and you should hve to go to next zone
+	to get ores strong enough to break into sub 50".
+
+	The zone half of that already worked. Measured, difficulty (dl) climbs
+	0.59 -> 8.67 across the ten ZONES but only 0.31 -> 3.31 across all 5,000
+	layers of zone 1: which ores exist is set by the zone, not by depth within
+	it. Untouched.
+
+	The spread was the problem. At K 0.45 eight ore types made 90% of the roll in
+	zone 1, Stone was 24% of it and Halite -- tier 5 -- was 8.4%.
+
+	TIGHTENING K GLOBALLY BREAKS THE GAME, which tools/verify/ladder-climbable.js
+	caught and I would not have:
+
+	    K 0.45  all 10 checks pass
+	    K 0.40  2 fail
+	    K 0.36  3 fail
+	    K 0.22  4 fail -- the forge walk stalls at tier 16 and EIGHT zones end
+	            up locked behind ore that only spawns inside them
+
+	The ladder needs a wide mix, because crafting the tool that opens the next
+	zone means finding ore from well past where you are standing. 0.45 is not a
+	loose number, it is the edge of a cliff.
+
+	So the width ramps with depth instead. At the surface it is K_TOP and stone
+	dominates; by K_RAMP difficulty units down -- about layer 150 of zone 1, and
+	immediately in every later zone -- it is the full 0.45 and the ladder is
+	exactly as it was. The narrowing is confined to the stretch the owner was
+	talking about and cannot reach the part that has to stay wide.
+]]
+MineConfig.ORE_K_TOP = 0.22
+MineConfig.ORE_K_RAMP = 1.5
+
+-- The spread at a given difficulty: tight at the top, full depth-ward.
+function MineConfig.oreSpreadK(dl)
+	local top = MineConfig.ORE_K_TOP or MineConfig.ORE_K
+	local ramp = math.max(1e-6, MineConfig.ORE_K_RAMP or 1.5)
+	local t = math.clamp((tonumber(dl) or 0) / ramp, 0, 1)
+	return top + (MineConfig.ORE_K - top) * t
+end
 MineConfig.ORE_S = 4.0
 MineConfig.ORE_W = 3.0
 
@@ -3484,7 +3559,10 @@ function MineConfig.oreWeights(zoneId, layer, rareOre)
 		return hit
 	end
 	local dl = MineConfig.oreDifficulty(zoneId, layer) + bucket / 20
-	local X0, K, S, W = MineConfig.ORE_X0, MineConfig.ORE_K, MineConfig.ORE_S, MineConfig.ORE_W
+	-- Width ramps with depth: a stone mine at the surface, the full spread by
+	-- the time the forge ladder needs it. See MineConfig.oreSpreadK.
+	local X0, S, W = MineConfig.ORE_X0, MineConfig.ORE_S, MineConfig.ORE_W
+	local K = MineConfig.oreSpreadK(dl)
 	local list = MineConfig.ORES
 	local w, tot = table.create(#list), 0
 	for i, o in ipairs(list) do
@@ -3714,18 +3792,60 @@ local function veinUnit(h, salt)
 	return veinFinal(veinMix(h, VEIN_SALT[salt] or 0x9E3779B1)) / 4294967296
 end
 
+--[[
+	THE MINE MUST NOT BE THE SAME MINE EVERY TIME.
+
+	Owner, 2026-10-06: "the mine isnt random anymore... i bet it tries to load in
+	the same exact mine every single load... every time i join 4 halite on top of
+	the line".
+
+	Correct, and it was this. veinOreAt is a pure function of position, which is
+	what makes a vein agree with itself across lazily spawned blocks -- but the
+	only thing seeding it was a hash of the zone's NAME, which never changes. So
+	every server, every rejoin, every player got a byte-identical ore layout.
+
+	The old rollOre did not have this problem: the generator drew from an rng
+	seeded with a per-zone salt that resetMineZone re-picks, so a layout held
+	still while you dug through it and changed when the mine refreshed. That salt
+	still exists (mineResetState.seed) and is simply not reaching here.
+
+	Mixing it into the zone seed restores the randomness WITHOUT losing the
+	determinism veins need: every block in a zone hashes against the same salt,
+	so neighbours still agree, and a block that regenerates an hour later still
+	resolves to what it was. The salt changes only when the mine does.
+]]
 local veinZoneSeed = {}
+local veinZoneSalt = {}
+
+-- Called by the server once it has picked (or reloaded) a zone's layout salt.
+-- Clears the derived caches, because a new salt means a different mine.
+function MineConfig.setVeinSalt(zoneId, salt)
+	local key = tostring(zoneId)
+	local n = math.floor(tonumber(salt) or 0)
+	if veinZoneSalt[key] == n then
+		return
+	end
+	veinZoneSalt[key] = n
+	veinZoneSeed[key] = nil
+	-- The one-entry cell memo may be holding an answer from the old layout.
+	if MineConfig._veinCellReset then
+		MineConfig._veinCellReset()
+	end
+end
+
 local function zoneSeed(zoneId)
-	local s = veinZoneSeed[zoneId]
+	local key = tostring(zoneId)
+	local s = veinZoneSeed[key]
 	if s then
 		return s
 	end
 	s = 0x811C9DC5
-	local str = tostring(zoneId)
-	for i = 1, #str do
-		s = veinMix(s, string.byte(str, i))
+	for i = 1, #key do
+		s = veinMix(s, string.byte(key, i))
 	end
-	veinZoneSeed[zoneId] = s
+	-- Salt last, so two zones with the same salt still differ by name.
+	s = veinMix(s, veinZoneSalt[key] or 0)
+	veinZoneSeed[key] = s
 	return s
 end
 
@@ -3856,6 +3976,13 @@ end
 	outlive the blocks it describes and grow for the whole mine.
 ]]
 local veinCell = { has = false }
+
+-- Dropping the remembered cell is how setVeinSalt makes a new layout take
+-- effect immediately rather than one cell later.
+function MineConfig._veinCellReset()
+	veinCell.has = false
+end
+
 function MineConfig.veinOreAt(zoneId, x, y, z, rareOre)
 	local cell = MineConfig.VEIN_CELL or 4
 	local cx, cy, cz = math.floor(x / cell), math.floor(y / cell), math.floor(z / cell)
