@@ -5660,8 +5660,19 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 		end)
 	end
 	do
-		-- deepest / plaza only if dig was allowed; break loot still resolves.
-		if Dig.Auth.canDigLayer(p, zone.id, layer) then
+		--[[
+			Deepest / plaza only if the dig was allowed; break loot still
+			resolves either way.
+
+			canCreditDepth is the gate that actually holds. canDigLayer ends in
+			an unconditional `return true` on purpose -- refusing a SWING only
+			means standing in rock that will not break -- so on its own it let a
+			single block broken at layer 5000 credit depth 5000. Owner,
+			2026-10-06: the chunk gate is "to ensure hackers dont break one block
+			in every chunk and unlock the depth points".
+		]]
+		if Dig.Auth.canDigLayer(p, zone.id, layer)
+			and Dig.Auth.canCreditDepth(p, zone.id, layer) then
 			Dig.Auth.noteDig(p, zone.id, layer, part:GetAttribute("CX"), part:GetAttribute("CZ"))
 			if Dig.Auth.creditDeepest(p, zone.id, layer) then
 				local zid = tostring(zone.id)

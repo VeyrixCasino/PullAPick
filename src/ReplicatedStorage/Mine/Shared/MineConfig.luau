@@ -38,6 +38,20 @@ MineConfig.LAYERS = 5000
 -- at once: 50 layers x 13 x 13 is 8,450 parts per zone, and building that in
 -- one synchronous loop freezes the server for seconds.
 MineConfig.LAYER_WINDOW = 8
+
+--[[
+	How tall a depth chunk is, for the anti-skip gate.
+
+	Owner, 2026-10-06: the chunk gate exists "to ensure hackers dont break one
+	block in every chunk and unlock the depth points". A credit inside chunk k is
+	refused until the floor of chunk k-1 has actually been reached, so every
+	fiftieth layer has to be genuinely touched rather than flown past.
+
+	50 and not 500: the seam ladder already works in 500s, and a gate that
+	coarse would let someone skip 499 layers at a time, which is most of the
+	exploit still standing. See MineDigAuth.canCreditDepth.
+]]
+MineConfig.DIG_CHUNK_LAYERS = 50
 -- Seconds before a broken block grows back. **0 means never**, which is the
 -- default, because the game is about digging DOWN.
 --

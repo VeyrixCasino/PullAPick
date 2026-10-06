@@ -313,6 +313,64 @@ function MineDigAuth.canDigLayer(p, zoneId, layer)
 	return true, nil
 end
 
+--[[
+	WHETHER A DUG LAYER MAY ADVANCE YOUR RECORDED DEPTH.
+
+	Owner, 2026-10-06: the chunk gate is "to ensure hackers dont break one block
+	in every chunk and unlock the depth points".
+
+	THIS IS NOT canDigLayer, and the difference is the whole point. canDigLayer
+	ends in an unconditional `return true`, deliberately: refusing to let someone
+	MINE a block only means they stand in rock that will not break, which is a
+	bad experience and stops no exploit, because the exploit is not about
+	breaking blocks -- it is about the DEPTH NUMBER that breaking one awards.
+
+	So mining stays permissive and crediting gets strict. Two rules, both on the
+	server, both cheap:
+
+	  STEP. A credit may advance depth by at most DIG_LEAD layers past what you
+	  have already reached. Without this, breaking a single block at layer 5000
+	  credits depth 5000 outright -- which is what the code does today, because
+	  every check in canDigLayer sits above a `return true` that always runs.
+
+	  CHUNK. Layer L sits in chunk ceil(L / DIG_CHUNK_LAYERS). You may not credit
+	  inside a chunk until you have reached the FLOOR of the one above it, which
+	  is the owner's rule stated directly: get to the bottom of chunk one before
+	  chunk two counts for anything.
+
+	The step rule alone would stop the jump; the chunk rule is what stops the
+	patient version of the same trick, where someone advances DIG_LEAD at a time
+	and still skips most of the mine. Together the floor of every chunk has to be
+	genuinely touched.
+
+	`reached` counts a depth PASS as well as blocks dug, so riding an elevator or
+	a depth plaza is not punished -- those grant the pass precisely so the player
+	is allowed to be down there.
+]]
+function MineDigAuth.canCreditDepth(p, zoneId, layer)
+	if type(p) ~= "table" or not zoneId then
+		return false, "no_profile"
+	end
+	zoneId = tostring(zoneId)
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	local reached = math.max(deepestOf(p, zoneId), MineDigAuth.depthPassOf(p, zoneId))
+	if layer <= reached then
+		-- Re-digging ground already reached credits nothing new, and must never
+		-- be refused: it is the most normal thing a player does.
+		return true, nil
+	end
+	local lead = math.max(1, tonumber(Depth.DIG_LEAD) or 8)
+	if layer > reached + lead then
+		return false, "too_deep", reached + lead
+	end
+	local chunk = math.max(1, math.floor(tonumber(C.DIG_CHUNK_LAYERS) or 50))
+	local floorAbove = (math.ceil(layer / chunk) - 1) * chunk
+	if reached < floorAbove then
+		return false, "chunk_locked", floorAbove
+	end
+	return true, nil
+end
+
 function MineDigAuth.noteDig(p, zoneId, layer, cx, cz)
 	if type(p) ~= "table" or not zoneId then
 		return
