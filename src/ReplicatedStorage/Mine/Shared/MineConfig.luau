@@ -4094,7 +4094,7 @@ function MineConfig._veinSpans()
 	local n = math.max(2, MineConfig.ORE_COUNT or #MineConfig.ORES)
 	s = { n = n, cLo = math.huge, cHi = -math.huge, yLo = math.huge, yHi = -math.huge, bHi = 1 }
 	for t = 1, n do
-		local c = math.log(math.max(1, MineConfig.toolCraftCost(t, 1)))
+		local c = math.log(math.max(1, MineConfig.craftBlocks(t)))
 		s.cLo, s.cHi = math.min(s.cLo, c), math.max(s.cHi, c)
 		local y = MineConfig.oreYieldMid(t)
 		s.yLo, s.yHi = math.min(s.yLo, y), math.max(s.yHi, y)
@@ -4131,7 +4131,23 @@ function MineConfig._veinRaw(tier, s)
 		end
 		return math.clamp((v - lo) / (hi - lo), 0, 1)
 	end
-	local cost = norm(math.log(math.max(1, MineConfig.toolCraftCost(t, 1))), s.cLo, s.cHi)
+	--[[
+		COST IS MEASURED IN BLOCKS, NOT IN ORE UNITS, and the difference is a bug
+		this had for one revision.
+
+		toolCraftCost IS craftBlocks x oreYieldMid. Reading it here while the term
+		below separately reads oreYieldMid counts yield TWICE, with opposite signs,
+		so the two partly cancel -- and the ores where they cancel hardest are the
+		ones the owner most wanted moved. Measured with the cost term on
+		toolCraftCost, the three Exotic ores came out at mean 3.50 with effort 0.40,
+		mid-roster, because their tiny 2-4 drop makes their cost in UNITS look
+		cheap even though they are the dearest ore in the game to actually mine.
+
+		craftBlocks is the work -- how many blocks the craft is worth -- and carries
+		no yield at all, so it and the drop term are independent and each is counted
+		once. Stone 30 blocks against Exotic 65.
+	]]
+	local cost = norm(math.log(math.max(1, MineConfig.craftBlocks(t))), s.cLo, s.cHi)
 	local thin = 1 - norm(MineConfig.oreYieldMid(t), s.yLo, s.yHi)
 	local _, bi = MineConfig.oreBandForTier(t)
 	local rare = norm(tonumber(bi) or 1, 1, s.bHi)
