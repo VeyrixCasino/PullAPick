@@ -72,6 +72,14 @@ const parts = [
   line("MineConfig.VEIN_W_RARITY ="),
   line("MineConfig.VEIN_TAIL_POWER_BIG ="),
   line("MineConfig.VEIN_TAIL_POWER_SMALL ="),
+  // These three MUST be sliced. veinSizeMean reads them as `MineConfig.X or
+  // <default>`, so leaving them out does not error -- the harness silently
+  // measures the fallback instead of the shipped value. Caught exactly that way:
+  // the cluster histogram came back byte-identical after the constants changed.
+  line("MineConfig.VEIN_SPREAD_LO ="),
+  line("MineConfig.VEIN_SPREAD_GAIN ="),
+  line("MineConfig.VEIN_SPREAD_POWER ="),
+  line("MineConfig.ORE_DL_STEP ="),
   // veinSizeMean reads the craft cost and the yield band, so the whole cost
   // chain comes with it. Sliced from the real file so the harness measures the
   // shipped prices rather than a restatement of them.
@@ -260,15 +268,68 @@ end
 -- "90% SHOULD BE SUB 8"
 check("at least 90% of the roster averages under 8", sub8 >= n * 0.9,
 	string.format("%d of %d (%.0f%%)", sub8, n, sub8 / n * 100))
-check("a handful of ores reach 6+, not a band", #big >= 2 and #big <= 8,
-	string.format("%d ores: tiers %s", #big, table.concat(big, ",")))
--- The bulk still has to sit at 3-4; without this the gentle end of the curve
--- quietly drags half the roster down to ones and twos, which it did at
--- VEIN_TAIL_POWER_SMALL = 2.
-check("most of the roster groups in 3-4", mid > n / 2,
-	string.format("%d of %d ores in 3-4", mid, n))
+--[[
+	"most of the roster groups in 3-4" USED TO BE HERE and is deliberately gone.
+
+	It came from the first spec ("2-3 ores group in 6-8, most in 3-4") and the
+	owner has since superseded it: 2026-10-07, "make more 5 and 8 veins", on top of
+	"EACH ORE SHOULD BE UNIQUE HOW THEY SPAWN". Those cannot both hold -- a roster
+	where most ores sit at 3-4 is a roster where 67 of 82 ores are identical and
+	nothing can produce a 5. What survives from that spec is the 90%-sub-8 bound
+	above and the 12-14 top, both still checked.
+
+	So the shape is pinned from the other direction instead: the spread must reach
+	the sizes that were unreachable, must not turn the whole mine into slabs, and
+	must give ores distinguishable means.
+]]
+check("the roster is spread, not piled on one mean", #big >= 8,
+	string.format("%d ores reach 6+", #big))
+check("but the mine is not mostly slabs -- the median ore is still small",
+	(function()
+		local ms = {}
+		for t = 1, n do table.insert(ms, MineConfig.veinSizeMean(t)) end
+		table.sort(ms)
+		return ms[math.floor(n / 2)] < 5
+	end)(),
+	(function()
+		local ms = {}
+		for t = 1, n do table.insert(ms, MineConfig.veinSizeMean(t)) end
+		table.sort(ms)
+		return string.format("median mean %.2f", ms[math.floor(n / 2)])
+	end)())
 check("the rarest ores still come in ones and twos", solo > 0,
 	string.format("%d ores in 1-2", solo))
+--[[
+	Uniqueness, as the owner asked -- but measured as "not piled up", not as
+	"all distinct".
+
+	Counting ores that share a mean to within 0.1 cannot work and was wrong when I
+	wrote it: 82 ores spread over a few blocks is ~55 buckets at that resolution,
+	so pigeonhole forces dozens of collisions no matter how well spread the roster
+	is. It failed at 40 of 81 on a roster that is in fact well spread.
+
+	The failure this is actually guarding against is the one the per-ore spread
+	exists to fix: 67 of 82 ores sitting at a mean of 3.48-3.50, all veining
+	identically. That is a PILE, and a pile is what the biggest single bucket
+	measures.
+]]
+check("no single mean holds a pile of the roster", (function()
+	local b, worst = {}, 0
+	for t = 1, n do
+		local k = math.floor(MineConfig.veinSizeMean(t) * 10 + 0.5)
+		b[k] = (b[k] or 0) + 1
+		worst = math.max(worst, b[k])
+	end
+	return worst <= n * 0.15
+end)(), (function()
+	local b, worst = {}, 0
+	for t = 1, n do
+		local k = math.floor(MineConfig.veinSizeMean(t) * 10 + 0.5)
+		b[k] = (b[k] or 0) + 1
+		worst = math.max(worst, b[k])
+	end
+	return string.format("biggest single 0.1 bucket holds %d of %d (was 67 of 82)", worst, n)
+end)())
 
 -- veinSizeMean must be the real mean of veinSizeFor, or the density correction
 -- divides by the wrong number and every conservation check below drifts.
@@ -403,6 +464,33 @@ do
 		string.format("%d clusters over 8, biggest %d", over8, biggest))
 	check("and they are not truncated well short of the 12-14 average",
 		biggest >= 10, "biggest placed " .. tostring(biggest))
+end
+--[[
+	5 THROUGH 8 MUST BE ORDINARY, not freak events.
+
+	Owner, 2026-10-07: "make more 5 and 8 veins". Before the per-ore spread the
+	measured counts over 1.15M blocks were 5x57, 6x0, 7x64, 8x5 -- sizes 6 and 8
+	effectively did not exist, because no ore had a mean anywhere near them. This
+	is the check that says they do. Counted as a share of all clusters so it does
+	not quietly pass on one lucky sample.
+]]
+do
+	local mids, total = 0, 0
+	for _, k in pairs(sizes) do total += k end
+	local missing = {}
+	for s = 5, 8 do
+		local k = sizes[s] or 0
+		mids += k
+		if k == 0 then table.insert(missing, tostring(s)) end
+	end
+	check("every size from 5 to 8 occurs", #missing == 0,
+		#missing > 0 and ("never saw " .. table.concat(missing, ", "))
+			or string.format("5:%d 6:%d 7:%d 8:%d", sizes[5] or 0, sizes[6] or 0,
+				sizes[7] or 0, sizes[8] or 0))
+	check("sizes 5-8 are a real share of the mine, not a rounding artefact",
+		total > 0 and mids / total >= 0.08,
+		string.format("%d of %d clusters (%.1f%%)", mids, total,
+			total > 0 and mids / total * 100 or 0))
 end
 check("both mid-vein sizes (3, 4) occur",
 	sawMid[3] > 0 and sawMid[4] > 0,

@@ -2384,7 +2384,27 @@ MineConfig.ORE_K = 0.45
 	exactly as it was. The narrowing is confined to the stretch the owner was
 	talking about and cannot reach the part that has to stay wide.
 ]]
-MineConfig.ORE_K_TOP = 0.22
+--[[
+	How narrow the ore mix is at the very top of a zone.
+
+	Owner, 2026-10-07: "Stone should be a little more common (1 per 3k at top 4
+	layers of z1)", which with stone's 13-block veins is a VEIN rate -- 1 stone
+	vein per 3,000 blocks broken. Measured, 0.22 gave 1 per 6,018 and this gives
+	1 per 3,010, so stone goes from 43% of the surface ore to 85%. That is the
+	same instruction as "first few layers should be pridominantly stone".
+
+	Only the TOP is this narrow. oreSpreadK ramps from here to ORE_K over
+	ORE_K_RAMP in D, so by layer 40 of zone 1 the spread is already back to ~0.25
+	and the deep mix is untouched -- which is what keeps the forge ladder intact.
+	tools/verify/ladder-climbable.js is the check that says so; an earlier attempt
+	to tighten ORE_K itself (rather than just its top) stalled the ladder at tier
+	16 and deadlocked 8 zones.
+]]
+MineConfig.ORE_K_TOP = 0.040
+-- Depth resolution of the ore mix, in D. The weight row is cached per step, so
+-- this trades cache rows for how finely the mix can change with depth. See the
+-- note in oreWeights about what keying on the SECTION instead did.
+MineConfig.ORE_DL_STEP = 0.05
 MineConfig.ORE_K_RAMP = 1.5
 
 -- The spread at a given difficulty: tight at the top, full depth-ward.
@@ -3562,17 +3582,36 @@ end
 ]]
 local oreWeightCache = {}
 function MineConfig.oreWeights(zoneId, layer, rareOre)
-	local sec = Depth.sectionFor and Depth.sectionFor(layer)
 	-- Finder power is bucketed to 1/20 of a D-step before it reaches the key,
 	-- so two players a hair apart still share a cached table.
 	local bucket = math.floor(MineConfig.oreFindShift(rareOre) * 20 + 0.5)
-	local key = tostring(zoneId) .. "|" .. tostring((sec and sec.id) or math.floor(layer / 40))
-		.. "|" .. tostring(bucket)
+	--[[
+		KEYED ON DEPTH, NOT ON THE SECTION THE DEPTH FALLS IN.
+
+		This keyed on Depth.sectionFor(layer).id while computing `dl` from the
+		`layer` it was handed, and the two disagree: a section is tens of layers, so
+		the FIRST layer anyone happened to ask about decided the ore mix for all of
+		them. Measured in zone 1, layers 1 through 49 are all section `loam_1`, and
+		every one of them reported the stone share of whichever layer populated the
+		cache -- 44.5% flat from layer 1 to 20 even though dl really runs 0.053 to
+		0.511 across them. Two servers with different dig orders got different
+		mines at the same depth, and no depth inside a section could be tuned
+		separately from the rest of it.
+
+		Quantising dl itself fixes both. The key is the rounded dl and the row is
+		computed FROM that rounded value, so the key and the mix it caches always
+		agree no matter who asks first, and the mix now moves with depth at the
+		resolution of ORE_DL_STEP. At 0.05 over a 0..11 range that is ~220 rows per
+		zone per finder bucket, which is nothing.
+	]]
+	local step = math.max(1e-4, tonumber(MineConfig.ORE_DL_STEP) or 0.05)
+	local dq = math.floor((MineConfig.oreDifficulty(zoneId, layer) + bucket / 20) / step + 0.5)
+	local key = tostring(zoneId) .. "|" .. tostring(dq) .. "|" .. tostring(bucket)
 	local hit = oreWeightCache[key]
 	if hit then
 		return hit
 	end
-	local dl = MineConfig.oreDifficulty(zoneId, layer) + bucket / 20
+	local dl = dq * step
 	-- Width ramps with depth: a stone mine at the surface, the full spread by
 	-- the time the forge ladder needs it. See MineConfig.oreSpreadK.
 	local X0, S, W = MineConfig.ORE_X0, MineConfig.ORE_S, MineConfig.ORE_W
@@ -4079,6 +4118,36 @@ MineConfig.VEIN_TAIL_POWER_BIG = 12
 -- "most in 3-4". The effort blend is weighted toward the back of the roster, so
 -- the small end needs to be steeper than a plain quadratic to stay a tail.
 MineConfig.VEIN_TAIL_POWER_SMALL = 5
+--[[
+	PER-ORE SPREAD, so no two ores on the roster vein the same way.
+
+	Owner, 2026-10-07: "make more 5 and 8 veins", and earlier "EACH ORE SHOULD BE
+	UNIQUE HOW THEY SPAWN".
+
+	The effort curve is deliberately flat across its middle, which put 67 of 82
+	ores at a mean of 3.48-3.50. veinSizeFor stochastically rounds the mean, so a
+	mean in [3,4) can only ever produce a 3 or a 4 -- sizes 5 through 8 were
+	almost unreachable (measured 5x57 and 8x5 across 1.15M blocks, and NOTHING at
+	6), not because the geometry could not make them but because no ore had a mean
+	anywhere near them.
+
+	So each ore takes a stable multiplier on its curve mean, from a hash of its
+	tier. Skewed by SPREAD_POWER rather than uniform: squaring keeps most ores
+	near their curve value and lets a few climb, which is what holds "90% SHOULD
+	BE SUB 8" while still making 5s through 8s ordinary. Measured mean factor is
+	about 1.13, so this clumps the mine slightly overall; it does not change any
+	spawn rate, because veinWeights divides by whatever this returns.
+
+	Deterministic in the tier alone: the same ore veins the same way on every
+	server and after every regen.
+]]
+-- LO 0.55 / GAIN 1.75 reached 8 but pulled 38 of 82 ores down to ones and twos,
+-- because the factor bottoms out at 0.55x. Lifting the floor and trimming the
+-- gain keeps the same top (7.7 on a 3.5 mean, so 8s still round up) while the
+-- bottom of the spread lands at 2.45 instead of 1.9.
+MineConfig.VEIN_SPREAD_LO = 0.70
+MineConfig.VEIN_SPREAD_GAIN = 1.50
+MineConfig.VEIN_SPREAD_POWER = 2
 
 --[[
 	The min and max of each driver across the whole roster, so each can be read as
@@ -4181,6 +4250,18 @@ function MineConfig.veinSizeMean(tier)
 	else
 		local t = (e - 0.5) * 2                                  -- 0 at typical, 1 at hardest
 		m = mid - (mid - hard) * t ^ (MineConfig.VEIN_TAIL_POWER_SMALL or 2)
+	end
+	--[[
+		Then this ore's own character, from a hash of its tier. Not applied to the
+		single biggest ore: the top of the curve is deliberately pinned at
+		VEIN_MEAN_AT_EASY so "the highest average should be 12-14" is a statement
+		about a number rather than about a number times a random factor.
+	]]
+	if m < easy - 1e-9 then
+		local u = veinFinal(veinMix(0x9E3779B1, math.floor(tonumber(tier) or 1))) / 4294967296
+		local lo = MineConfig.VEIN_SPREAD_LO or 0.55
+		local gain = MineConfig.VEIN_SPREAD_GAIN or 1.75
+		m = m * (lo + gain * u ^ (MineConfig.VEIN_SPREAD_POWER or 2))
 	end
 	return math.clamp(m, 1, MineConfig.VEIN_MAX or 14)
 end
