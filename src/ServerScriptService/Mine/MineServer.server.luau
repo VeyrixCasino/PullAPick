@@ -5603,6 +5603,52 @@ local function openChestBlock(plr, p, chestId, b, part)
 	if rollChestTool then
 		pcall(rollChestTool, plr, p, def.id, b, { layer = layer, zoneId = zone and zone.id, setId = setId })
 	end
+	--[[
+		A GRADED CHARM, 0.5% OF CHESTS. Owner, 2026-10-07: charms "can be found in
+		chests (0.5%) or bought with tokens".
+
+		The 0.5% decides only WHETHER a charm drops; rollChestCharm then draws which
+		one against MineTemper's rarity weights, so the half-percent is spent mostly
+		on F and D and the single SSS is rare twice over.
+
+		`Charms` is the module upvalue from the top of this file, deliberately --
+		the `rollChestTool` call directly above reads a LOCAL declared ~2,600 lines
+		below, which makes it a global read that is always nil, so that branch never
+		runs (open-questions #7). Writing this against the upvalue is what keeps it
+		from being the same silent no-op.
+
+		Chest luck scales it, like the persist-bag roll below. No first-charm
+		guarantee here: that rule belongs to the zone grant and the ore case, which
+		is where a new player meets their first charm.
+	]]
+	do
+		local roll = Charms.rollChestCharm and (tonumber(Charms.CHARM_CHEST_CHANCE) or 0) > 0
+		if roll and Random.new():NextNumber() < Charms.CHARM_CHEST_CHANCE * ((b and b.chestLuck) or 1) then
+			local cdef = Charms.rollChestCharm(Random.new())
+			if cdef then
+				p.charms = p.charms or {}
+				-- A tally, not a latch: see the note on the zone grant.
+				p.charms[cdef.id] = (tonumber(p.charms[cdef.id]) or 0) + 1
+				local wearing = type(p.equippedCharm) == "string" and p.equippedCharm ~= ""
+				if not wearing then
+					p.equippedCharm = cdef.id
+				end
+				local how = wearing and "equip it in Inventory → Equipment" or "equipped"
+				net:FireClient(plr, "toast", "Charm found: " .. cdef.name .. " — " .. how)
+				net:FireClient(plr, "foundTool", {
+					kind = "charm",
+					charmId = cdef.id,
+					name = cdef.name,
+					title = "CHARM FOUND",
+					-- The grade IS the rarity here, unlike the zone grant where the
+					-- depth band stands in for one.
+					rarityId = Charms.RARITY_LABEL and Charms.RARITY_LABEL[cdef.rarity] or "Legendary",
+					blurb = (cdef.blurb or "") .. "  ·  " .. how,
+				})
+				markDirty(plr)
+			end
+		end
+	end
 	-- Mid/deep: small chance at a zone persist bag (even zones 1/band, odd share the tool bands).
 	do
 		local band = (C.depthBand and C.depthBand(layer)) or "shallow"
@@ -9871,6 +9917,72 @@ end
 	merge moves you onto the charm you just made instead. That is also just
 	what you wanted.
 ]]
+--[[
+	BUY A GRADED CHARM WITH TEMPER TOKENS.
+
+	Owner, 2026-10-07: charms "can be found in chests (0.5%) or bought with
+	tokens". This is the second half; the chest roll lives in openChestBlock.
+
+	The price comes from MineCharms.charmTokenPrice rather than from the payload,
+	which is the whole point of having it there: a client that asks to buy an SSS
+	for 15 tokens is quoted 2500 by the same table the shop panel reads.
+
+	Only `source == "charm"` rows are buyable. Zone grants, ore charms and the
+	gem pack are not on sale here, and checking the price is not enough on its
+	own -- charmTokenPrice keys off `rarity`, so any future row that gains a
+	rarity would quietly become purchasable. The source check is the gate.
+
+	Debits before granting, and re-reads the balance inside the loop, so a 10x
+	buy cannot overdraw on its last iteration.
+]]
+function Verbs.buyCharm(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local id = tostring((type(payload) == "table" and payload.charmId) or "")
+	local def = Charms.byId(id)
+	if not def or def.source ~= "charm" then
+		net:FireClient(plr, "toast", "That charm is not for sale")
+		return
+	end
+	local price = Charms.charmTokenPrice(def)
+	if not price or price <= 0 then
+		net:FireClient(plr, "toast", "That charm has no price")
+		return
+	end
+	local want = math.clamp(math.floor(tonumber(type(payload) == "table" and payload.count) or 1), 1, 10)
+	local have = tonumber(p.temperTokens) or 0
+	if have < price then
+		net:FireClient(plr, "toast", ("Need %d token%s"):format(price, price == 1 and "" or "s"))
+		return
+	end
+	p.charms = p.charms or {}
+	local bought, spent = 0, 0
+	for _ = 1, want do
+		if (tonumber(p.temperTokens) or 0) < price then
+			break
+		end
+		p.temperTokens = (tonumber(p.temperTokens) or 0) - price
+		spent += price
+		-- A tally, like every other charm grant; a legacy `true` reads as one.
+		p.charms[def.id] = (tonumber(p.charms[def.id]) or 0) + 1
+		bought += 1
+	end
+	if bought <= 0 then
+		return
+	end
+	-- Wear it if nothing is on, so a first purchase is a boost rather than a
+	-- menu to go and find. Same rule as the chest and zone grants.
+	if not (type(p.equippedCharm) == "string" and p.equippedCharm ~= "") then
+		p.equippedCharm = def.id
+	end
+	net:FireClient(plr, "toast", ("Bought %s%s for %d tokens"):format(
+		def.name, bought > 1 and (" x" .. bought) or "", spent))
+	markDirty(plr)
+	snap(plr)
+end
+
 -- On Verbs rather than a local: this script sits at 197 of Luau's 200
 -- top-level locals and a verb does not need to spend one of the last three.
 function Verbs.mergeCharm(plr, payload)
@@ -16323,6 +16435,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "upgradeGear" then Verbs.upgradeGear(plr, payload)
 		elseif action == "upgradeOrePouch" then Verbs.upgradeOrePouch(plr)
 		elseif action == "toggleOreLock" then Verbs.toggleOreLock(plr, payload)
+		elseif action == "buyCharm" then Verbs.buyCharm(plr, payload)
 		elseif action == "sellOre" then Verbs.sellOre(plr, payload)
 		elseif action == "sellAllOres" then Verbs.sellAllOres(plr, payload)
 		elseif action == "equipGear" then Verbs.equipGearPiece(plr, payload)

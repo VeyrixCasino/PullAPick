@@ -325,6 +325,16 @@ MineCharms.CHARM_TOKEN_PRICE = {
 }
 
 --[[
+	Grade to the word a player sees. Built by INVERTING MineTemper.LEGACY_RARITY
+	rather than retyping the eight names, so the two cannot drift: the reveal
+	panel and the temper UI call the same grade the same thing.
+]]
+MineCharms.RARITY_LABEL = {}
+for word, grade in pairs(Temper.LEGACY_RARITY or {}) do
+	MineCharms.RARITY_LABEL[grade] = word
+end
+
+--[[
 	Which charm a chest pays, weighted by grade.
 
 	`rng` is passed in rather than taken from math.random so the server can seed

@@ -516,12 +516,68 @@ else
 end
 `;
 
+//[[ ------------------------------------------------- the server wiring ----
+// A charm the server cannot hand out is a charm that does not exist, so the two
+// ways in are checked here as well as in the module. Static, against the real
+// MineServer source: the drop sits inside openChestBlock and the purchase inside
+// a verb, neither of which this harness can call.
+//
+// The failure these guard against is specific and has already happened once in
+// this file's neighbourhood: `rollChestTool` is read ~2,600 lines above its
+// `local` declaration, which makes it a nil GLOBAL, so that whole branch is dead
+// and nothing reports it (open-questions #7). A charm drop written the same way
+// would look correct and never fire.
+let wiringFails = 0;
+function wire(ok, msg, detail) {
+  console.log((ok ? "  ok    " : "  FAIL  ") + msg + (detail ? "   " + detail : ""));
+  if (!ok) wiringFails++;
+}
+{
+  const SRV = fs.readFileSync(
+    path.join(__dirname, "..", "..", "src/ServerScriptService/Mine/MineServer.server.luau"), "utf8");
+  console.log("");
+
+  wire(/Charms\.rollChestCharm\(Random\.new\(\)\)/.test(SRV),
+    "the chest path calls rollChestCharm");
+  wire(/Charms\.CHARM_CHEST_CHANCE \* \(\(b and b\.chestLuck\) or 1\)/.test(SRV),
+    "the chest roll uses the module's chance and scales with chest luck",
+    "a hard-coded 0.005 here would drift from the module silently");
+
+  // `Charms` must be the upvalue from the top of the file, not a near-by local.
+  const decl = SRV.indexOf("local Charms = require(");
+  const use = SRV.indexOf("Charms.rollChestCharm(");
+  wire(decl > -1 && use > decl,
+    "the charm drop reads Charms declared ABOVE it, so it is an upvalue not a nil global",
+    decl > -1 ? `declared at char ${decl}, used at ${use}` : "no declaration found");
+
+  wire(/elseif action == "buyCharm" then Verbs\.buyCharm\(plr, payload\)/.test(SRV),
+    "buyCharm is reachable from the net dispatch",
+    "a verb nothing routes to is a button that does nothing");
+
+  const verb = SRV.slice(SRV.indexOf("function Verbs.buyCharm("),
+    SRV.indexOf("function Verbs.mergeCharm("));
+  wire(verb.length > 0, "Verbs.buyCharm exists");
+  // The money checks. Each of these is an exploit if it is missing.
+  wire(/def\.source ~= "charm"/.test(verb),
+    "buyCharm refuses anything that is not a graded charm",
+    "otherwise a zone grant or an ore charm could be bought for tokens");
+  wire(/Charms\.charmTokenPrice\(def\)/.test(verb) && !/payload\.price/.test(verb),
+    "the price comes from the module, never from the payload");
+  wire(/if \(tonumber\(p\.temperTokens\) or 0\) < price then\s*\n\s*break/.test(verb),
+    "the balance is re-read inside the loop, so a bulk buy cannot overdraw");
+  // Matched loosely on purpose: the expression wraps payload.count in
+  // type(payload) == "table", so a character class that cannot cross a ")" will
+  // not reach the clamp. Assert the clamp and the count are on one line.
+  wire(/local want = math\.clamp\([\s\S]{0,120}?payload\.count[\s\S]{0,40}?, 1, 10\)/.test(verb),
+    "the quantity is clamped to 10, so one request cannot drain the wallet in a loop");
+}
+
 const tmp = path.join(require("os").tmpdir(), `charms-check-${process.pid}.luau`);
 fs.writeFileSync(tmp, harness);
 try {
   const out = execFileSync(LUAU, [tmp], { encoding: "utf8" });
   process.stdout.write(out);
-  process.exit(/FAILED/.test(out) ? 1 : 0);
+  process.exit(/FAILED/.test(out) || wiringFails > 0 ? 1 : 0);
 } catch (e) {
   process.stdout.write((e.stdout || "") + (e.stderr || ""));
   process.exit(1);
