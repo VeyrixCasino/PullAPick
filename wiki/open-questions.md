@@ -2,7 +2,7 @@
 title: Open questions, contradictions and probable bugs
 type: meta
 status: current
-verified: 2026-10-05 @ b19c4c2
+verified: 2026-10-07 @ 41d8f3a
 sources:
   - docs/OPEN.md
   - docs/BLOCKED.md
@@ -37,9 +37,9 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 |---|---|---|---|
 | 1 | **FIXED in `b19c4c2`: every forged tool had breaking power 1.** The row `equippedTool` built for a forged tool had no `oreId`, `oreTier`, `tier` or `breakingPower`, so `MineBreaking.toolBreakingPower` fell through to `SHOP_POWER[1]`. The fix commit measured it in a live session: before, every tool from Stone to Oganesson stopped at zone 1, layer 50. The row now carries `oreTier` and `oreId`, derived per swing so no migration is needed. `tools/verify/heldtool.js` pins it. This was the wiki's first catch. | *Read* in code; the commit message reports the live before/after | [mining-and-breaking](systems/mining-and-breaking.md); `MineServer.equippedTool` |
 | 2 | **FIXED in `b19c4c2`: the ore-roster migrations re-ran on every load.** The v1 and v2 guards used `~=`, so a save stamped 2 re-entered v1, stamped itself back to 1, and then re-entered v2. Both guards now test `< version` (monotonic). **Not stated in the commit: whether saves already damaged by earlier re-runs were repaired.** The live log showed 0 changes, so any damage would only show on a save that held old-roster tools. | *Read* (guards); damage to saves unverified | [save-data-and-migrations](code/save-data-and-migrations.md); `MineServer` `load()` |
-| 3 | **Recycling pays for levels the tool never bought.** A new forge inherits your best level, and `toolRecycle` refunds 50% of `toolSpent(level)`, so forge, scrap and repeat pays out. | *Reported* (arithmetic) | [forge-and-recycling](systems/forge-and-recycling.md) |
+| 3 | **FIXED 2026-10-06: recycling paid for levels the tool never bought.** `MineConfig.toolRecycle` now takes a `baseLevel` and refunds a **differential** — `max(0, toolSpent(level) - toolSpent(baseLevel))` — so an inherited level refunds nothing. Measured in `tools/verify/economy-exploits.js`: a freshly forged tool went from 145,022 ore of profit to 0. | *Read* in code, pinned by harness | [forge-and-recycling](systems/forge-and-recycling.md) |
 | 4 | **Event Horizon cannot be mined**: it counts as zone 11 (strength 1000) and event tools get breaking power 1. | *Reported* | [world-events](systems/world-events.md) |
-| 5 | **Depth desks pay hundreds of times too much.** `MineDepth.depthSellMult` is ×487.5 at the seam-500 desk and ×12,187.5 at seam 1500; every other seam pays ×0.78. The multiplier dates from the old HP curve. | *Reported* | [zones-layers-and-seams](systems/zones-layers-and-seams.md) |
+| 5 | **FIXED 2026-10-06: depth desks paid hundreds of times too much.** `DEPTH_SELL_FRAC` (the 0.78 haircut) is deleted and `depthSellMult` is now `DEPTH_SELL_PER_SEAM 1.05 ^ (depth/500)` — a smooth curve instead of ×487.5 at seam 500 and ×12,187.5 at seam 1500. Owner asked for seams to sell for **more**, not less, so the ramp rises gently rather than being clamped down. | *Read* in code | [zones-layers-and-seams](systems/zones-layers-and-seams.md) |
 | 6 | **The chest coin crash fix landed in dead code.** The `e77d84e` fix is in `rollChestLoot`, reached only by `giveDrop`, which nothing calls. Live chests use `MineZoneChests.rollCurrency`. | *Reported* | [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md) |
 | 7 | **Chest flagship tools never drop** (static read): `openChestBlock` reads `rollChestTool` about 2,600 lines above its declaration, so it is a global read and nil. | *Reported* | same page; see the global-read trap in [luau-traps](code/luau-traps.md) |
 | 8 | **Tutorial step 29 hands a new player SSS hats**, worth +1050% in layer 2. | *Reported* | [hats-and-faces](systems/hats-and-faces.md) |
@@ -49,8 +49,21 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 12 | **Meadow zone packs can never pay Mythic, Divine or Exotic** (computed from `cardOdds`). | *Reported* | [cards-and-packs](systems/cards-and-packs.md) |
 | 13 | **Bag prices show in coins; the server charges gems.** | *Reported* | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
 | 14 | **`tools/export/sync.ps1` deletes `tools/export/in/`** (`Remove-Item $in -Recurse -Force`). **Not a bug in the script**: that folder is a gitignored scratch directory the Studio export flow fills and consumes, and deleting it is the documented last step (the `b19c4c2` author checked and dismissed it). The only hazard was `CLAUDE.md` naming that folder as a place for Claude.ai exports. `CLAUDE.md` and the wiki now point exports at the gitignored `transcripts/` folder. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
-| 15 | **Nothing checks Luau's 200-top-level-local ceiling.** `luau-analyze` accepted 205 locals; `luau-compile` rejected them. Both big scripts compile today, but the next local added to `MineServer` may not. The `9733a05` commit comments say exactly this broke the whole server once on 2026-10-05, before a fix moved a list into `MineConfig`. | *Reported*, corroborated by `9733a05` | [luau-traps](code/luau-traps.md) |
+| 15 | **FIXED 2026-10-06: nothing checked Luau's 200-top-level-local ceiling.** `tools/verify/compile.js` now runs `luau-compile` over all 212 files and asserts at least 4 locals of headroom in both big scripts. It found `MineServer` sitting at **0 headroom** on arrival; collapsing seven service locals into one `Svc` table bought 5 back. It has since caught the same break twice more — a `do` block for the dev-scaffolding strip (fixed by making it an IIFE, since `do` shares the main chunk's budget while an IIFE gets its own). | *Read*, pinned by harness | [luau-traps](code/luau-traps.md) |
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
+
+## 1b. Found 2026-10-06/07, measured, not yet decided
+
+These were found while doing other work and are **recorded rather than fixed**,
+because each moves the economy in more than one place. Measured figures are in
+`docs/ore-yield-and-vein-balance.md`.
+
+| # | what | confidence | where |
+|---|---|---|---|
+| 17 | **Nothing multiplies ore quantity, and the owner expects enchants to.** `MineServer` rolls ore as `math.random(lo, hi)` straight off `oreYieldFor` — no boost, enchant, luck or finder is applied, and the comment there says the finder is deliberately a *quality* stat. Owner, 2026-10-06: *"REMEMBER ESPICALLY ENDGAME ENCHANTS BUFF THAT SO KEEP IT HIGH"*. So the measured **12 million blocks for an Exotic tool is the real figure, not a pre-multiplier one**. Three options written up in the doc §4: a quantity multiplier, raising the top-rarity bands, or lifting `ORE_CHANCE` for deep zones. Each ripples: `toolCraftCost` and gem value both derive from the drop band. | *Read* in code, measured | [ores](systems/ores.md), `docs/ore-yield-and-vein-balance.md` §4 |
+| 18 | **The legacy ore-pack path and the live drop path disagree about the ore finder.** Pack conversion does `each = mid * (1 + oreFind)` — a straight quantity multiplier — while the live drop deliberately does not. One of the two is wrong about the design rule. | *Read* in code | [ores](systems/ores.md), [boosts-and-stats](systems/boosts-and-stats.md) |
+| 19 | **`MineDigAuth.canDigLayer` ends in an unconditional `return true`**, so every entitlement check above it is unreachable. This is deliberate for mining and was silently load-bearing for crediting; `canCreditDepth` now carries the strict half (see [zones-layers-and-seams](systems/zones-layers-and-seams.md)). **The dead checks in `canDigLayer` are still dead** — worth deciding whether they should be deleted or re-enabled, because right now they read as protection that does not exist. | *Read* in code | `MineDigAuth.canDigLayer` |
+| 20 | **A 6,500-block first tool.** With stone's surface share raised to hit the owner's 1-vein-per-3,000 target, the cheapest craftable tool costs ~6,500 blocks broken (was 13,500). Not obviously wrong, but it is the first number a new player meets and nobody has signed off on it. | measured | `docs/ore-yield-and-vein-balance.md` §2 |
 
 ## 2. Where the owner's rules and the code disagree
 

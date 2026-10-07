@@ -60,3 +60,38 @@ Updated: open-questions, tools, mining-and-breaking, ores,
 save-data-and-migrations, verify-suite, tools-and-generators, index. Not
 rechecked: Event Horizon tools' breaking power, and whether saves hit by the
 migration re-runs need repair.
+
+## [2026-10-07] ingest | the owner's session: chunking, veins, the ToolModels archive
+Ingested from the working branch (`8d5c230`..`41d8f3a`) and from live Studio
+measurements, because most of this was measured rather than reasoned.
+
+**Chunking.** `MineDigAuth.canCreditDepth` splits depth CREDIT from digging:
+`canDigLayer` ends in an unconditional `return true`, so one block at layer 5000
+credited depth 5000 to anyone. `chunkCeiling` is the generation twin, clamped
+inside `ensureZone`. Also fixed `ensureZone`'s far path claiming `builtTo`, which
+left layers 4–2505 permanently ungeneratable after a plaza arrival. New checks
+`depthgate.js` and `chunkload.js`.
+
+**Veins, rebuilt.** `VEIN_ORDER` gave every size exactly one silhouette (a four
+was always a flat 2×2 slab; 6 and 8 never occurred). Shapes are grown per cell
+now, seeded per ore. Size comes from cost/drop/rarity plus a per-ore spread
+instead of three tier-index bands. Density and per-ore shares are conserved
+throughout — `veinWeights` divides by the mean — and `veins.js` measures both
+sides. Two of my own errors are recorded: pricing cost with `toolCraftCost`
+double-counted yield, and an unsliced constant with an `or` fallback made the
+harness measure defaults silently.
+
+**`oreWeights` cached per section while computing `dl` per layer**, so the first
+layer asked set the mix for 49 layers and two servers disagreed at the same
+depth. Now keyed on quantised `dl`.
+
+**`ToolModels_50`** was 58% of every client's datamodel; 2,060 unreferenced models
+(70,040 instances) moved to `ServerStorage.ToolModels_50_Unreferenced`. Client
+`InstanceCount` 137,444 → 67,537, shop resolution unchanged.
+
+Marked probable bugs 3, 5 and 15 **fixed** with their measured before/after. Added
+§1b with four new entries, the first being that **nothing multiplies ore
+quantity** although the owner expects endgame enchants to.
+
+Updated: ores, zones-layers-and-seams, tools, verify-suite, open-questions, log.
+Not rechecked: bugs 4, 6–14, 16, and every rule/code disagreement in §2.

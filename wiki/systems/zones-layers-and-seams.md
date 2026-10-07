@@ -2,10 +2,12 @@
 title: Zones, layers and seams
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-07 @ 41d8f3a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineDepth.luau
+  - tools/verify/depthgate.js
+  - tools/verify/chunkload.js
   - src/ReplicatedStorage/Mine/Shared/MineDepthShop.luau
   - src/ServerScriptService/Mine/MineDigAuth.luau
   - src/ServerScriptService/Mine/MineDepthPlazas.luau
@@ -45,7 +47,20 @@ related: [mining-and-breaking, currencies-and-economy, rebirth-and-skill-tree, o
 
 **Layers and sections.**
 - **Layer size.** A layer is `GRID 21` × 21 = 441 blocks, each `BLOCK 5` studs.
-- **Generation.** Layers are generated on demand by `ensureZone`, `LAYER_WINDOW 8` below the deepest point reached.
+- **Generation.** Layers are generated on demand by `ensureZone`, `LAYER_WINDOW 8` below the deepest point reached, `Const.ENSURE_BAND 3` layers at a time.
+- **Generation stops at the open chunk** (2026-10-07). `ensureZone` clamps its
+  target to `MineDigAuth.chunkCeiling(MineDigAuth.deepestReachedAcross(profiles, zone))`.
+  A chunk is `MineConfig.DIG_CHUNK_LAYERS 50`; the open one holds the frontier, so
+  generation may fill it to its floor and no further, and reaching that floor opens
+  the next. Clamped **in `ensureZone`, not at the five call sites**, because that is
+  the only place a request becomes rock. `reached` counts a depth pass, so elevators
+  and plazas still land on rock rather than in a void.
+- **The far path must not claim the frontier.** `ensureZone` has two modes: digging
+  down extends contiguously, while arriving deep (`Const.ENSURE_FAR 64`) builds one
+  detached band at the target. The latter used to run `builtTo = max(builtTo, target)`
+  unconditionally, so riding to seam 2500 with 3 layers built claimed 2508 and left
+  layers 4–2505 ungeneratable by anything — ride back up and you stood in a void no
+  amount of digging filled. Only the near path advances `builtTo` now.
 - **The floor is 5000** (`MineConfig.LAYERS`; the second assignment wins). **But Dirt Meadow is uncapped:** in `ensureZone`, `uncapped = zone.id == "meadow"`, and `MineConfig.zoneLayers` gives meadow `MINE1_LAYERS 10000`.
 - **Block HP is a straight line.** `MineDepth.dirtHp = (HP_BASE 20 + HP_PER_LAYER 1.5 · layer) × ZONE_HP_MULT 5^(zone−1)`. Since 2026-09-29 it no longer comes from the section table.
 - **`MineDepth.SECTIONS`** has 138 named rows, from Loam (layers 1–40) to Terminus (9961–10040). They now carry names, signs and colours only. Their own `dirtHp` column is dead.
@@ -65,6 +80,30 @@ related: [mining-and-breaking, currencies-and-economy, rebirth-and-skill-tree, o
 - **Grandfathering.** `MineDepth.grantReachedSeams` re-grants every seam whose depth is ≤ `p.deepest` on load.
 - **Rebirth wipes `seams` and `deepest`.** Both come back from `blank()`, so seams must be re-opened. They are free.
 - **Depth is not rebirth-gated.** `MineDepth.rebirthForSeam` and `MineDepth.rebirthForLayer` return 0. The `need_rebirth` and `REBIRTH_PER_ZONE_B` paths are effectively dead.
+
+**Depth credit is gated separately from digging** (2026-10-07, owner: the chunk
+gate is *"to ensure hackers dont break one block in every chunk and unlock the
+depth points"*).
+
+- **`MineDigAuth.canDigLayer` ends in an unconditional `return true`.** Every
+  entitlement check above it is therefore unreachable, and that is deliberate for
+  *mining*: refusing a swing only leaves someone standing in rock that will not
+  break, which stops no exploit. It was **not** deliberate for *crediting* — one
+  block broken at layer 5000 credited depth 5000 to anyone who could reach it.
+- **`MineDigAuth.canCreditDepth(p, zoneId, layer)`** is the strict half, and
+  `MineServer` calls it alongside `canDigLayer` on the branch that awards
+  `p.deepest`. Two rules:
+  - **STEP** — a credit advances depth by at most `MineDepth.DIG_LEAD` past what
+    you reached (`too_deep`).
+  - **CHUNK** — layer L is in chunk `ceil(L / DIG_CHUNK_LAYERS)`, and nothing in a
+    chunk credits until the floor above is reached (`chunk_locked`).
+- **Why both.** The step rule alone permits the patient version indefinitely:
+  measured, hopping `DIG_LEAD` at a time bought **8 layers of depth per block
+  broken, forever**. With the chunk rule, 6 blocks buy 48 layers and then dead-end
+  until layer 50 is genuinely mined.
+- `reached = max(deepest, depthPass)`, so elevator and plaza passes still credit
+  where they put you. Pinned both directions by `tools/verify/depthgate.js` — the
+  cheat must fail *and* digging layer-by-layer to 600 must never be refused.
 
 **Underground outposts (depth plazas).** `MineDepthPlazas` builds one per seam, per zone, under `workspace.MineWorld.Pits.DepthPlaza_<zone>_<seam>`:
 - **The building.** `dressOutpostFromSurface` clones the surface outpost (`SurfaceClone`, with shop and sell). `wallOutpost` adds a reserved `StationBay`. `depthLook(seam)` darkens and warms deeper outposts.

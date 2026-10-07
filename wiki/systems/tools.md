@@ -91,6 +91,34 @@ tool has `oreId`/`ore`, `oreStrength(oreTier)` on a 1..1000 scale; else
 their mesh by ore name via `ToolModelFactory.fromNamed` in
 `ReplicatedStorage.ToolModels_50` (Studio-only, ~80 MB, not in git — AGENTS.md);
 otherwise procedural, coloured by `ToolModelFactory.oreLook`.
+
+**2026-10-07: 2,060 of those models were archived to `ServerStorage`.** Measured
+in a live client, `ToolModels_50` held 4,148 models / 80,797 instances and was
+**58% of every client's datamodel** (137,444 instances, replicated to every player
+on join). Only **196** were referenced by anything live — they match
+`MineShopLadders.LIST` names; the other 3,952 appeared in no live module, only in
+the `Wave13Batches` generator scripts that produced them. The 2,060 heaviest
+(70,040 instances, ~33 each: 6 real meshes plus a particle/trail/highlight/light
+rig sitting in cold storage) moved to
+`ServerStorage.ToolModels_50_Unreferenced`. Client `InstanceCount` went
+**137,444 → 67,537**, and shop resolution was unchanged at 196 resolved / 54
+procedural / 0 errors.
+
+- **It is named `_Unreferenced` deliberately.** `ToolModelFactory.toolModelsRoot()`
+  returns the **first** container it finds (ReplicatedStorage → ServerStorage →
+  workspace) and does not search across them, so a `ServerStorage` folder sharing
+  the name would silently become the live roster if the ReplicatedStorage one were
+  ever removed.
+- **`git` cannot revert this.** `ToolModels_50` lives in the place file, not the
+  Rojo-synced tree. Reversing it means dragging the folder back in Studio; the
+  owner chose moving over deleting to keep that option.
+- A `fromNamed` miss degrades to a procedural model, so a wrongly-archived tool
+  shows up as a plain mesh rather than an error. Verify any change here by
+  counting shop resolution: `MineShopLadders.LIST` must stay 196 resolved / 54
+  procedural.
+- **Measuring the client in Studio play-solo:** trust `Stats.InstanceCount`, not
+  `GetTotalMemoryUsageMb()`. Play-solo shares one process with the server, so the
+  archive still occupies memory there and the memory figure hides the win.
 `src/ServerStorage/OreToolBaker.luau` bakes the 82 heads. `MineToolIcons` is a
 spritesheet atlas for named tools.
 
