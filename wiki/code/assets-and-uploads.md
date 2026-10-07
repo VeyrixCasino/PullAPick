@@ -1,0 +1,104 @@
+---
+title: Assets and uploads
+type: code
+status: current
+verified: 2026-10-05 @ 26036a0
+sources:
+  - docs/TODO.md §2, §6.3, §7, §9
+  - docs/START-HERE.md §6
+  - docs/BLOCKED.md #11, #12
+  - build/ore-sheet/ASSETS.md
+  - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
+  - tools/gen-ore-icons.js
+  - tools/gen-charm-icons.js
+related: [tools-and-generators, rojo-and-studio, owner, charms, ores, open-questions]
+---
+
+# Assets and uploads
+
+> The game is owned by a **group**, so every image, mesh, model, sound and decal
+> that ships must be created **as the group**. An asset in a personal inventory
+> cannot be moved, and a group experience may not be able to load it. Icon art
+> is the owner's job.
+
+## The rules (TODO §7, decided by the owner)
+
+- **Creator = the Mine For Cards group, id `35326298`.** This matches
+  `MineConfig.GROUP_ID`.
+  - Open Cloud: `creationContext.creator.groupId = "35326298"`, never `userId`.
+    The API key must be a **group** key.
+  - Asset Manager or the 3D Importer: open the group place (`73982848847016`)
+    first, and set Creator to Mine For Cards.
+  - The uploading account needs the group role "Create and configure development
+    items".
+- **The personal-account warning.** If an upload shows the creator as the owner's
+  personal account (named in TODO §7), **stop and upload again as the group**.
+  Roblox cannot move assets between user and group inventories, so an upload to
+  "My Inventory for now" is permanent.
+- **Naming:** `mfc_<feature>_<name>_vN`, for example `mfc_pack_loam_v2`. Use
+  feature folders in the group inventory (`packs/`, `tools/`, `ui/`, `audio/`).
+  Version the name, or replace the id in code. Never re-upload under a generic name.
+- **In code:** use stable `rbxassetid://…`, not `rbxgameasset://`. Write the ids
+  into the real modules and record them in the feature's handoff file. An
+  uploaded id that nothing references is as good as lost.
+- **Before shipping:**
+  1. Asset Manager, filtered to the group, lists the asset with the group as creator.
+  2. The id loads in a fresh session.
+  3. The code points at the new id.
+- **Studio MCP `upload_image`** uploads as the signed-in **user**, and cannot
+  target a group (`build/ore-sheet/ASSETS.md`). Confirm the creator after every
+  upload.
+
+## Icons are the owner's job
+
+The owner said so (START-HERE §6, BLOCKED #11). Do not generate icon art.
+
+- The 164 generated charm icons (`tools/icons/gen-charm-art.js`) are **superseded**.
+  The owner wants ornate jewellery instead, from a reference they supplied
+  (HANDOFF §2.6).
+- The pipeline is built and waiting for art. The steps are: upload as the
+  group; write the ids file (`build/charm-icons/ids.json`, which does not exist yet);
+  then run `node tools/gen-charm-icons.js`. That writes `MineCharmIcons`,
+  which does not exist yet either, so nothing reads charm icons today.
+
+## What is in `build/`
+
+| path | tracked? | what |
+|---|---|---|
+| `build/icons/ids.json`, `build/icons/roster.txt` | yes | ore name → asset id for **82 ore icons and 82 case icons**, uploaded 2026-09-30 (`f5b6c34`). `tools/gen-ore-icons.js` turns them into `MineOreIcons`. |
+| `build/charm-icons/manifest.json` | yes | metadata for the 164 generated charm icons |
+| `build/charm-icons/*.png` | no (gitignored) | rebuilt by `gen-charm-art.js` |
+| `build/ore-sheet/` | yes | 30 hand-made ore faces (`ore_NN.png`), the source sheet, `tiles.json`, `ORE_FACE.lua`, and `ASSETS.md`, which explains why the uploaded faces did not render |
+| `build/tools/roster.json`, `build/tools/roster-plan.json` | yes | a tool roster snapshot and plan *(contents not reviewed)* |
+| `build/*.json` at the top level | no (gitignored) | generated intermediates: `depth-sheet.json`, `balance-board.json` |
+
+## Lessons already paid for (`build/ore-sheet/ASSETS.md`)
+
+- **Moderation delay.** A new upload resolves through `GetProductInfo`
+  immediately, but draws **nothing** until it clears moderation, and raises no error.
+- **Ownership.** The 30 ore faces were uploaded as the user, so the group place
+  rendered nothing, again silently. Check the owner first:
+  `MarketplaceService:GetProductInfo(id).Creator`.
+- **The workaround** was `tools/pack-ore-art.js`. It packs the pixels into Luau
+  (`MineOreArt`), so block faces need no uploaded asset at all.
+
+## What a cloud container cannot do (TODO §2, BLOCKED #12–#13)
+
+- read the owner's disk (the original art lives in the owner's Downloads folder)
+- connect to Studio, run Rojo against the live place, or run the game
+- **upload anything to Roblox**
+
+Uploads must be done by the owner in Studio, or by a local agent that genuinely
+has Studio MCP, following §7. See [local-setup](local-setup.md).
+
+## Open questions
+
+- `build/ore-sheet/ASSETS.md` names the group as `7706885185`. TODO §7 and
+  `MineConfig.GROUP_ID` say `35326298`. Which is that other number? It might be
+  a universe or creator id *(unverified)*. See [open-questions](../open-questions.md).
+- **Who owns the 164 ore and case icons** in `build/icons/ids.json`?
+  - The `f5b6c34` message says they "resolve" and preload in the live place.
+  - `upload_image` can only upload as the user.
+  - TODO §6.3 and BLOCKED #11 still describe that ore art as not yet applied.
+- `build/ore-sheet/ASSETS.md` still says `MineConfig.ORE_FACE` maps "all 121" ores.
+  The roster is 82.
