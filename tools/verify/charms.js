@@ -81,7 +81,17 @@ function STUB_CONFIG.zoneIndex(id)
 	return 1
 end
 
-local MODULES = { MineConfig = STUB_CONFIG }
+-- The graded charms read MineTemper's rarity ladder rather than inventing a
+-- second one, so the stub carries the real weights: rollChestCharm draws against
+-- them, and a stub with flat weights would make the draw test meaningless.
+local STUB_TEMPER = {
+	GRADE_ORDER = { "F", "D", "C", "B", "A", "S", "SS", "SSS" },
+	RARITY_WEIGHTS = { F = 5000, D = 2763, C = 1250, B = 675, A = 250, S = 50, SS = 10, SSS = 2 },
+	RARITY_MULT = { F = 0.45, D = 0.70, C = 1.05, B = 1.55, A = 2.30, S = 3.40, SS = 5.00, SSS = 7.50 },
+}
+STUB_TEMPER.RARITY_ORDER = STUB_TEMPER.GRADE_ORDER
+
+local MODULES = { MineConfig = STUB_CONFIG, MineTemper = STUB_TEMPER }
 local SHARED = { WaitForChild = function(_, n) return { Name = n } end }
 script = { Name = "MineCharms", Parent = SHARED }
 function require(t)
@@ -357,6 +367,123 @@ while walk and steps < 500 do
 end
 check(steps < 500 and steps == topTier,
 	("the merge chain terminates, in %d steps for %d tiers"):format(steps, topTier))
+
+--[[
+	THE 36 GRADED CHARMS (owner, 2026-10-07).
+
+	"make 36 charms. make them all unique, and each come in their own rarity. they
+	can be found in chests (0.5%) or bought with tokens."
+
+	Each clause of that is a check below. The one that matters most is the LAST:
+	a graded charm must never also be a zone grant. ZONE_BAND indexes on
+	zoneId|band, so a row that carried both would quietly become a free zone drop
+	as well as a 0.5% chest prize, and nothing else here would notice.
+]]
+print("")
+do
+	local graded = MineCharms.GRADED or {}
+	check(#graded == 36, ("there are 36 graded charms (%d)"):format(#graded))
+
+	local byRarity, ids, names, dupId, dupName = {}, {}, {}, 0, 0
+	for _, def in ipairs(graded) do
+		byRarity[def.rarity] = (byRarity[def.rarity] or 0) + 1
+		if ids[def.id] then dupId += 1 end
+		if names[def.name] then dupName += 1 end
+		ids[def.id], names[def.name] = true, true
+	end
+	check(dupId == 0 and dupName == 0,
+		("every graded charm is unique (%d id clashes, %d name clashes)"):format(dupId, dupName))
+
+	-- "each come in their own rarity": every grade on the ladder is represented,
+	-- and the spread thins toward SSS rather than piling on one grade.
+	local missing, order = {}, STUB_TEMPER.GRADE_ORDER
+	for _, g in ipairs(order) do
+		if not byRarity[g] then table.insert(missing, g) end
+	end
+	check(#missing == 0, ("every rarity F..SSS has at least one charm (missing %s)")
+		:format(#missing > 0 and table.concat(missing, ",") or "none"))
+
+	local monotone = true
+	for i = 2, #order do
+		if (byRarity[order[i]] or 0) > (byRarity[order[i - 1]] or 0) then monotone = false end
+	end
+	local shape = {}
+	for _, g in ipairs(order) do table.insert(shape, g .. ":" .. tostring(byRarity[g] or 0)) end
+	check(monotone, ("the ladder never widens as it gets rarer (%s)"):format(table.concat(shape, " ")))
+
+	-- Magnitude has to follow the grade, or the rarity is decoration.
+	local worstPair = nil
+	local function biggest(def)
+		local m = 0
+		for _, v in pairs(def.stats or {}) do m = math.max(m, v) end
+		return m
+	end
+	local bestOf = {}
+	for _, def in ipairs(graded) do
+		bestOf[def.rarity] = math.max(bestOf[def.rarity] or 0, biggest(def))
+	end
+	for i = 2, #order do
+		local lo, hi = bestOf[order[i - 1]], bestOf[order[i]]
+		if lo and hi and hi <= lo then worstPair = order[i - 1] .. ">=" .. order[i] end
+	end
+	check(worstPair == nil,
+		("a rarer charm always peaks higher (%s)"):format(worstPair or "monotone F..SSS"))
+
+	-- Every one must be buyable, and the price must climb with the grade.
+	local noPrice, priceBad = 0, nil
+	for _, def in ipairs(graded) do
+		if not MineCharms.charmTokenPrice(def) then noPrice += 1 end
+	end
+	check(noPrice == 0, ("every graded charm has a token price (%d without)"):format(noPrice))
+	for i = 2, #order do
+		local a = MineCharms.CHARM_TOKEN_PRICE[order[i - 1]]
+		local b = MineCharms.CHARM_TOKEN_PRICE[order[i]]
+		if a and b and b <= a then priceBad = order[i - 1] .. ">=" .. order[i] end
+	end
+	check(priceBad == nil, ("token price climbs with rarity (%s)"):format(priceBad or "monotone"))
+
+	check(math.abs((MineCharms.CHARM_CHEST_CHANCE or 0) - 0.005) < 1e-9,
+		("the chest chance is 0.5%% (%s)"):format(tostring(MineCharms.CHARM_CHEST_CHANCE)))
+
+	-- The roll must be able to reach both ends, and must favour the common end.
+	do
+		local seen, lowN, highN = {}, 0, 0
+		local seeded = { NextNumber = function(self) self.i = (self.i or 0) + 1; return ((self.i * 0.0007919) % 1) end }
+		for _ = 1, 4000 do
+			local d = MineCharms.rollChestCharm(seeded)
+			if d then
+				seen[d.rarity] = (seen[d.rarity] or 0) + 1
+				if d.rarity == "F" or d.rarity == "D" then lowN += 1 end
+				if d.rarity == "SS" or d.rarity == "SSS" then highN += 1 end
+			end
+		end
+		check(lowN > highN * 10,
+			("the chest roll lands on the common end far more often (%d low vs %d top)"):format(lowN, highN))
+		check(MineCharms.rollChestCharm(nil) ~= nil, "rollChestCharm works without an rng")
+	end
+
+	-- The one that would be invisible: graded charms must not also be zone grants.
+	local alsoZone = 0
+	for _, def in ipairs(graded) do
+		if def.zoneId or def.band then alsoZone += 1 end
+	end
+	check(alsoZone == 0,
+		("no graded charm is also a zone grant (%d would be free as well as 0.5%%)"):format(alsoZone))
+
+	-- The retired stat must not come back in on new content.
+	local retired = 0
+	for _, def in ipairs(graded) do
+		if (def.stats or {}).backpack then retired += 1 end
+	end
+	check(retired == 0, ("no graded charm carries the retired backpack stat (%d do)"):format(retired))
+
+	-- The drawn six lead the list and are the ones carrying art.
+	local drawn = 0
+	for i = 1, 6 do
+		if graded[i] and graded[i].icon == i then drawn += 1 end
+	end
+	check(drawn == 6, ("the first six charms carry sheet icons 1-6 (%d do)"):format(drawn))
+end
 
 if fail == 0 then
 	print(">>> charms: all assertions passed")
