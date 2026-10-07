@@ -325,6 +325,28 @@ print(fails == 0 and ">>> trader OK" or (">>> " .. fails .. " FAILED"))
     "spots come from the plazas that were actually built, not from the seam ladder");
   ok(/p\.CanQuery = false/.test(NPC) && /p\.CastShadow = false/.test(NPC),
     "trader parts are non-query and non-shadow, like the rest of the mine");
+
+  // The client half. A prompt that opens nothing is the state this shipped in
+  // once already, so the round trip is checked end to end: server fires
+  // traderShop, client routes it, panel fires buyTraderCase back.
+  const CLI = Luau.readSrc(path.join(ROOT, "src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau"));
+  ok(/net:FireClient\(plr, "traderShop", Dig\.TraderNPC\.offer\(/.test(SRV),
+    "the stall prompt fires traderShop with the server's own offer");
+  ok(/elseif action == "traderShop" and payload then\s*\n\s*ClientFns\.showTraderShop\(payload\)/.test(CLI),
+    "the client routes traderShop to the shop panel",
+    "without this the prompt opens nothing, which is how it first shipped");
+  const panel = CLI.slice(CLI.indexOf("function ClientFns.showTraderShop("),
+    CLI.indexOf("\tThe Rebirth screen is ONE decision"));
+  ok(panel.length > 0, "ClientFns.showTraderShop exists");
+  ok(/net:FireServer\("buyTraderCase", \{/.test(panel),
+    "the buy button asks the server, and sends the caseId it was given");
+  ok(/tonumber\(row\.tokens\)/.test(panel) && !/MineTrader|priceFor/.test(panel),
+    "the panel displays the server's price and never computes one",
+    "a client that could price a case could disagree with the till");
+  // RunService, not RS: in MineClient `RS` is ReplicatedStorage, so RS.Heartbeat
+  // is nil and the countdown would error on open.
+  ok(/RunService\.Heartbeat:Connect/.test(panel) && !/\bRS\.Heartbeat/.test(panel),
+    "the countdown ticks on RunService.Heartbeat, not on RS");
 }
 
 const tmp = path.join(require("os").tmpdir(), "trader-harness.luau");
