@@ -477,12 +477,35 @@ do
 	end
 	check(retired == 0, ("no graded charm carries the retired backpack stat (%d do)"):format(retired))
 
-	-- The drawn six lead the list and are the ones carrying art.
-	local drawn = 0
-	for i = 1, 6 do
-		if graded[i] and graded[i].icon == i then drawn += 1 end
+	--[[
+		Every one is drawn, and no two share a picture.
+
+		The whole set came from one 36-icon sheet, so a duplicate icon index or
+		asset id means two charms silently wear the same amulet -- which looks like
+		a bug to a player and is invisible to every other check here. The second
+		sheet replaced the first, so a stale id from the old upload would also show
+		up here as a duplicate.
+	]]
+	local noArt, seenIcon, seenArt, dupIcon, dupArt = 0, {}, {}, 0, 0
+	for _, def in ipairs(graded) do
+		if not def.art or not def.icon then
+			noArt += 1
+		else
+			if seenIcon[def.icon] then dupIcon += 1 end
+			if seenArt[def.art] then dupArt += 1 end
+			seenIcon[def.icon], seenArt[def.art] = true, true
+		end
 	end
-	check(drawn == 6, ("the first six charms carry sheet icons 1-6 (%d do)"):format(drawn))
+	check(noArt == 0, ("every graded charm is skinned (%d without art)"):format(noArt))
+	check(dupIcon == 0 and dupArt == 0,
+		("no two charms share a picture (%d icon, %d asset)"):format(dupIcon, dupArt))
+
+	-- The art has to match the grade, or the rarity is invisible until you read it.
+	local topArt = {}
+	for _, def in ipairs(graded) do
+		if def.rarity == "SSS" then table.insert(topArt, def.name) end
+	end
+	check(#topArt == 1, ("exactly one SSS charm (%s)"):format(table.concat(topArt, ", ")))
 end
 
 if fail == 0 then

@@ -69,8 +69,12 @@ local LIST = {
 		THE THIRTY-SIX GRADED CHARMS, 2026-10-07.
 
 		Owner: "make 36 charms. make them all unique, and each come in their own
-		rarity. they can be found in chests (0.5%) or bought with tokens. skin the
-		first 6 charms in the .svg file, and i will the the rest momentairly".
+		rarity. they can be found in chests (0.5%) or bought with tokens", then the
+		art for all thirty-six (`charms2.svg`, extracted to
+		`build/charm-sheet2.png`). Every row is one icon: the picture came first and
+		the name and stat line follow what it actually shows, which is why a lotus
+		carries Luck and an anchor carries Chest Luck. `icon` is the sheet index, so
+		the pairing survives a re-export.
 
 		So, unlike every other charm in this file:
 
@@ -79,119 +83,149 @@ local LIST = {
 		  the charm was found: primary is about RARITY_MULT x 1.15, secondary about
 		  x 0.35, which keeps an S charm meaningfully above a B without inventing a
 		  second scale to maintain. The spread is 8/7/6/5/4/3/2/1 from F to SSS, so
-		  the ladder thins the way the roster does.
+		  the ladder thins the way the ore roster does.
 
 		  TWO WAYS IN, neither of them a zone drop. A chest pays one at
-		  CHARM_CHEST_ONE_IN, and every charm has a token price. That is why there
+		  CHARM_CHEST_CHANCE, and every charm has a token price. That is why there
 		  is no `zoneId` or `band` here -- ZONE_BAND indexes on those, and a row
-		  with both would also become a zone drop by accident.
+		  with both would also become a free zone grant by accident.
 
-		  ORDERED FOR THE ART. The first six are the six the charm sheet is drawn
-		  for and carry an `icon`; the owner is sending the rest. They deliberately
-		  run F, D, C, B, A, S so the drawn set shows the whole ladder rather than
-		  six commons. Everything after them has no icon yet and falls back to the
-		  generated art, so an unskinned charm looks plain rather than broken.
+		  RARITY FOLLOWS THE ART. The grandest pictures take the top grades: the
+		  galaxy in a locket is the one SSS, the winged blade and the hourglass are
+		  the two SS. The humble ones -- a leaf, an acorn, a feather -- are F. A
+		  player should be able to guess roughly what they found before reading it.
 
-		`backpack` appears on none of them: it is retired (`MineStats` marks it
-		`legacy = true`), though 24 generated ore charms still carry it -- see
-		open-questions #11.
+		`backpack` appears on none of them. It is retired (`MineStats` marks it
+		`legacy = true`; capacity comes from the bag ladder and the pouch), though
+		24 of the generated ore charms still carry it -- see open-questions #11.
+
+		`luck` is fine here: the rule it would break -- no reward boosts its own
+		acquisition -- bites on ore-case charms, where luck raises the case chance
+		that pays the charm. A chest charm is not rolled off luck.
 	]]
 
-	-- The six drawn on the charm sheet. `icon` is the sheet index until the
-	-- uploaded asset ids land; see tools/icons/charm-sheet.js.
-	{ id = "sunmark", name = "Sunmark Charm", source = "charm", rarity = "F", icon = 1, art = "rbxassetid://105404320819931",
-		-- gold ring on a white field, amber crystal at the crossing of a compass
-		blurb = "+52% Coin Bonus", stats = { coinBonus = 0.52 } },
-	{ id = "truenorth", name = "Truenorth Charm", source = "charm", rarity = "D", icon = 2, art = "rbxassetid://88795870639245",
-		-- concentric steel rings holding a blue crystal on the axis
-		blurb = "+80% Mine Speed", stats = { mineSpeed = 0.80 } },
-	{ id = "nightwreath", name = "Nightwreath Charm", source = "charm", rarity = "C", icon = 3, art = "rbxassetid://77407505645756",
-		-- a dark orb wreathed in jagged purple crystal
-		blurb = "+120% Gem Find · +35% Luck", stats = { gemFind = 1.20, luck = 0.35 } },
-	{ id = "frostcage", name = "Frostcage Charm", source = "charm", rarity = "B", icon = 4, art = "rbxassetid://81900855011907",
-		-- a cyan crystal inside a white-blue cage of light
-		blurb = "+100% Pulverizer · +55% Dirt Break", stats = { pulverize = 1.00, dirtBreak = 0.55 } },
-	{ id = "cinderheart", name = "Cinderheart Charm", source = "charm", rarity = "A", icon = 5, art = "rbxassetid://102573403990770",
-		-- a gothic gold frame clamped around a deep red crystal
-		blurb = "+265% Dirt Break · +80% Coin Bonus", stats = { dirtBreak = 2.65, coinBonus = 0.80 } },
-	{ id = "veridian_lens", name = "Veridian Lens", source = "charm", rarity = "S", icon = 6, art = "rbxassetid://77451744781936",
-		-- a bronze lens held open around a long emerald bar
-		blurb = "+390% Ore Finder · +120% Gem Find", stats = { fossilFind = 3.90, gemFind = 1.20 } },
-
-	-- F: plain working charms, one honest stat each.
-	{ id = "gritband", name = "Gritband Charm", source = "charm", rarity = "F",
-		blurb = "+52% Mine Speed", stats = { mineSpeed = 0.52 } },
-	{ id = "tinhook", name = "Tinhook Charm", source = "charm", rarity = "F",
-		blurb = "+52% Chest Luck", stats = { chestLuck = 0.52 } },
-	{ id = "chalkstep", name = "Chalkstep Charm", source = "charm", rarity = "F",
-		blurb = "+52% Dirt Break", stats = { dirtBreak = 0.52 } },
-	{ id = "pebblelace", name = "Pebblelace Charm", source = "charm", rarity = "F",
-		blurb = "+52% Gem Find", stats = { gemFind = 0.52 } },
-	{ id = "ragknot", name = "Ragknot Charm", source = "charm", rarity = "F",
+	-- F: humble things. One honest stat each.
+	{ id = "greenleaf", name = "Greenleaf Charm", source = "charm", rarity = "F", icon = 4,
+		art = "rbxassetid://92876185206702", -- a single green leaf on a gold stem
 		blurb = "+52% Scrap", stats = { scrap = 0.52 } },
-	{ id = "flintnick", name = "Flintnick Charm", source = "charm", rarity = "F",
+	{ id = "acorn_charm", name = "Acorn Charm", source = "charm", rarity = "F", icon = 27,
+		art = "rbxassetid://100555623479933", -- an acorn with a green light inside it
+		blurb = "+52% Mine Speed", stats = { mineSpeed = 0.52 } },
+	{ id = "gilt_quill", name = "Gilt Quill", source = "charm", rarity = "F", icon = 20,
+		art = "rbxassetid://133744953770197", -- a gold feather, a quill for counting takings
+		blurb = "+52% Coin Bonus", stats = { coinBonus = 0.52 } },
+	{ id = "silverplume", name = "Silverplume Charm", source = "charm", rarity = "F", icon = 32,
+		art = "rbxassetid://87693502882956", -- a silver feather set with small violet gems
 		blurb = "+18% Swing Rate", stats = { swingRate = 0.18 } },
-	{ id = "dusthollow", name = "Dusthollow Charm", source = "charm", rarity = "F",
+	{ id = "runestone_tablet", name = "Runestone Tablet", source = "charm", rarity = "F", icon = 22,
+		art = "rbxassetid://125991194910265", -- a carved stone tablet with blue gems at its ends
+		blurb = "+52% Dirt Break", stats = { dirtBreak = 0.52 } },
+	{ id = "anchor_charm", name = "Anchor Charm", source = "charm", rarity = "F", icon = 31,
+		art = "rbxassetid://123782673754717", -- a bronze anchor on a teal disc
+		blurb = "+52% Chest Luck", stats = { chestLuck = 0.52 } },
+	{ id = "green_flask", name = "Green Flask", source = "charm", rarity = "F", icon = 33,
+		art = "rbxassetid://118350563234345", -- a glass flask of bubbling green liquid
 		blurb = "+30% Pulverizer", stats = { pulverize = 0.30 } },
+	{ id = "wirewrap_shard", name = "Wirewrap Shard", source = "charm", rarity = "F", icon = 10,
+		art = "rbxassetid://80537908381100", -- a purple shard bound in silver wire
+		blurb = "+52% Gem Find", stats = { gemFind = 0.52 } },
 
-	-- D: a second stat appears.
-	{ id = "coppercoil", name = "Coppercoil Charm", source = "charm", rarity = "D",
-		blurb = "+80% Mine Speed · +25% Scrap", stats = { mineSpeed = 0.80, scrap = 0.25 } },
-	{ id = "saltglass", name = "Saltglass Charm", source = "charm", rarity = "D",
+	-- D: a second stat starts to appear.
+	{ id = "darkmoon", name = "Darkmoon Charm", source = "charm", rarity = "D", icon = 5,
+		art = "rbxassetid://77918516274651", -- a black crescent moon chased with violet
 		blurb = "+80% Gem Find", stats = { gemFind = 0.80 } },
-	{ id = "emberchip", name = "Emberchip Charm", source = "charm", rarity = "D",
-		blurb = "+80% Dirt Break · +25% Coin Bonus", stats = { dirtBreak = 0.80, coinBonus = 0.25 } },
-	{ id = "rootbind", name = "Rootbind Charm", source = "charm", rarity = "D",
-		blurb = "+80% Scrap", stats = { scrap = 0.80 } },
-	{ id = "tidemark", name = "Tidemark Charm", source = "charm", rarity = "D",
+	{ id = "pearlmoon", name = "Pearlmoon Charm", source = "charm", rarity = "D", icon = 7,
+		art = "rbxassetid://96590520795154", -- a silver filigree crescent cradling a pearl
 		blurb = "+80% Chest Luck", stats = { chestLuck = 0.80 } },
-	{ id = "slagpin", name = "Slagpin Charm", source = "charm", rarity = "D",
+	{ id = "wayfinder", name = "Wayfinder Compass", source = "charm", rarity = "D", icon = 8,
+		art = "rbxassetid://93612266081022", -- a gold compass rose around a teal centre
+		blurb = "+80% Mine Speed", stats = { mineSpeed = 0.80 } },
+	{ id = "gilded_scarab", name = "Gilded Scarab", source = "charm", rarity = "D", icon = 6,
+		art = "rbxassetid://131044491383735", -- a gold scarab on a coin-like disc
+		blurb = "+80% Coin Bonus", stats = { coinBonus = 0.80 } },
+	{ id = "emberrune", name = "Emberrune Stone", source = "charm", rarity = "D", icon = 16,
+		art = "rbxassetid://113724525530167", -- a dark stone split by a burning orange rune
+		blurb = "+80% Dirt Break · +25% Coin Bonus", stats = { dirtBreak = 0.80, coinBonus = 0.25 } },
+	{ id = "cogwheel", name = "Cogwheel Charm", source = "charm", rarity = "D", icon = 24,
+		art = "rbxassetid://102518470630814", -- a bronze gear turning inside a ring
+		blurb = "+60% Mine Speed · +25% Swing Rate", stats = { mineSpeed = 0.60, swingRate = 0.25 } },
+	{ id = "keenedge", name = "Keenedge Charm", source = "charm", rarity = "D", icon = 28,
+		art = "rbxassetid://120837991541927", -- a silver rhombus plate honed to a point
 		blurb = "+45% Pulverizer", stats = { pulverize = 0.45 } },
 
-	-- C: the middle of the ladder, where a charm starts to be worth a slot.
-	{ id = "verdant_coil", name = "Verdant Coil", source = "charm", rarity = "C",
-		blurb = "+120% Mine Speed · +37% Scrap", stats = { mineSpeed = 1.20, scrap = 0.37 } },
-	{ id = "clockward", name = "Clockward Charm", source = "charm", rarity = "C",
-		blurb = "+100% Mine Speed · +40% Swing Rate", stats = { mineSpeed = 1.00, swingRate = 0.40 } },
-	{ id = "sporebloom", name = "Sporebloom Charm", source = "charm", rarity = "C",
-		blurb = "+120% Ore Finder · +37% Scrap", stats = { fossilFind = 1.20, scrap = 0.37 } },
-	{ id = "glasswing", name = "Glasswing Charm", source = "charm", rarity = "C",
-		blurb = "+120% Gem Find · +37% Luck", stats = { gemFind = 1.20, luck = 0.37 } },
-	{ id = "cairnlight", name = "Cairnlight Charm", source = "charm", rarity = "C",
+	-- C: the middle of the ladder, where a charm earns its slot.
+	{ id = "sunface", name = "Sunface Medallion", source = "charm", rarity = "C", icon = 1,
+		art = "rbxassetid://133396769823189", -- a gold sun disc with a face at its centre
+		blurb = "+120% Coin Bonus", stats = { coinBonus = 1.20 } },
+	{ id = "rimefall", name = "Rimefall Charm", source = "charm", rarity = "C", icon = 2,
+		art = "rbxassetid://128223123383806", -- a silver snowflake set with a blue gem
+		blurb = "+100% Pulverizer · +37% Dirt Break", stats = { pulverize = 1.00, dirtBreak = 0.37 } },
+	{ id = "tidecaller", name = "Tidecaller Shell", source = "charm", rarity = "C", icon = 15,
+		art = "rbxassetid://109020345612119", -- a blue scallop shell holding a teal gem and pearls
 		blurb = "+120% Chest Luck", stats = { chestLuck = 1.20 } },
+	{ id = "lotus_charm", name = "Lotus Charm", source = "charm", rarity = "C", icon = 17,
+		art = "rbxassetid://111155701156001", -- a white lotus opened around a pearl
+		blurb = "+120% Luck", stats = { luck = 1.20 } },
+	{ id = "vivid_shard", name = "Vivid Shard", source = "charm", rarity = "C", icon = 23,
+		art = "rbxassetid://112927184530004", -- a magenta crystal in a bright silver frame
+		blurb = "+120% Gem Find · +37% Luck", stats = { gemFind = 1.20, luck = 0.37 } },
+	{ id = "helmsman", name = "Helmsman Charm", source = "charm", rarity = "C", icon = 12,
+		art = "rbxassetid://77444360783899", -- a copper ship's wheel on a watch case
+		blurb = "+120% Mine Speed · +37% Scrap", stats = { mineSpeed = 1.20, scrap = 0.37 } },
 
-	-- B: built things, with a clear specialism.
-	{ id = "forgecore", name = "Forgecore Charm", source = "charm", rarity = "B",
-		blurb = "+178% Dirt Break · +54% Pulverizer", stats = { dirtBreak = 1.78, pulverize = 0.54 } },
-	{ id = "meridian", name = "Meridian Charm", source = "charm", rarity = "B",
+	-- B: a clear specialism, and the first charms worth building around.
+	{ id = "stormbolt", name = "Stormbolt Charm", source = "charm", rarity = "B", icon = 11,
+		art = "rbxassetid://121481914621315", -- a white lightning bolt on a storm-blue disc
 		blurb = "+178% Mine Speed · +54% Swing Rate", stats = { mineSpeed = 1.78, swingRate = 0.54 } },
-	{ id = "eclipse_sigil", name = "Eclipse Sigil", source = "charm", rarity = "B",
-		blurb = "+178% Scrap · +65% Omni Blast", stats = { scrap = 1.78, blastChance = 0.65 } },
-	{ id = "hollowtide", name = "Hollowtide Charm", source = "charm", rarity = "B",
-		blurb = "+178% Chest Luck · +54% Luck", stats = { chestLuck = 1.78, luck = 0.54 } },
+	{ id = "heartfrost", name = "Heartfrost Charm", source = "charm", rarity = "B", icon = 21,
+		art = "rbxassetid://103023219746855", -- an ice crystal with a fire burning inside it
+		blurb = "+178% Dirt Break · +54% Pulverizer", stats = { dirtBreak = 1.78, pulverize = 0.54 } },
+	{ id = "magma_ring", name = "Magma Ring", source = "charm", rarity = "B", icon = 29,
+		art = "rbxassetid://105028895633143", -- a cracked black sphere with a molten ring through it
+		blurb = "+178% Dirt Break · +65% Omni Blast", stats = { dirtBreak = 1.78, blastChance = 0.65 } },
+	{ id = "coilfang", name = "Coilfang Charm", source = "charm", rarity = "B", icon = 13,
+		art = "rbxassetid://126986534765173", -- a green serpent coiled back through itself
+		blurb = "+178% Scrap · +54% Luck", stats = { scrap = 1.78, luck = 0.54 } },
+	{ id = "scarabright", name = "Scarabright Charm", source = "charm", rarity = "B", icon = 35,
+		art = "rbxassetid://104052421120518", -- a beetle shelled in iridescent green and blue
+		blurb = "+178% Gem Find · +54% Coin Bonus", stats = { gemFind = 1.78, coinBonus = 0.54 } },
 
-	-- A: the point where one charm changes how a run feels.
-	{ id = "circuit_sigil", name = "Circuit Sigil", source = "charm", rarity = "A",
+	-- A: one of these changes how a run feels.
+	{ id = "thunderheart", name = "Thunderheart Amethyst", source = "charm", rarity = "A", icon = 26,
+		art = "rbxassetid://115676544738828", -- a great amethyst with lightning caught inside
 		blurb = "+265% Mine Speed · +80% Swing Rate", stats = { mineSpeed = 2.65, swingRate = 0.80 } },
-	{ id = "astrolabe", name = "Astrolabe Charm", source = "charm", rarity = "A",
-		blurb = "+265% Chest Luck · +80% Luck", stats = { chestLuck = 2.65, luck = 0.80 } },
-	{ id = "geodeburst", name = "Geodeburst Charm", source = "charm", rarity = "A",
-		blurb = "+265% Gem Find · +80% Pulverizer", stats = { gemFind = 2.65, pulverize = 0.80 } },
+	{ id = "thornset_ruby", name = "Thornset Ruby", source = "charm", rarity = "A", icon = 18,
+		art = "rbxassetid://94133030814441", -- a red gem held in a crown of black thorns
+		blurb = "+265% Dirt Break · +80% Omni Blast", stats = { dirtBreak = 2.65, blastChance = 0.80 } },
+	{ id = "sovereign_heart", name = "Sovereign Heart", source = "charm", rarity = "A", icon = 9,
+		art = "rbxassetid://133379738679371", -- a crowned gold heart around a red stone
+		blurb = "+265% Coin Bonus · +80% Chest Luck", stats = { coinBonus = 2.65, chestLuck = 0.80 } },
+	{ id = "northstar", name = "Northstar Diamond", source = "charm", rarity = "A", icon = 14,
+		art = "rbxassetid://101191514110672", -- an eight-pointed gold star around a white diamond
+		blurb = "+265% Luck · +80% Gem Find", stats = { luck = 2.65, gemFind = 0.80 } },
 
-	-- S: rare enough to build around.
-	{ id = "pyre_reliquary", name = "Pyre Reliquary", source = "charm", rarity = "S",
-		blurb = "+390% Mine Speed · +119% Omni Blast", stats = { mineSpeed = 3.90, blastChance = 1.19 } },
-	{ id = "prism_cluster", name = "Prism Cluster", source = "charm", rarity = "S",
-		blurb = "+390% Luck · +119% Gem Find", stats = { luck = 3.90, gemFind = 1.19 } },
+	-- S: three charms, each the best in the game at one thing.
+	{ id = "prism_cluster", name = "Prism Cluster", source = "charm", rarity = "S", icon = 25,
+		art = "rbxassetid://98345534847092", -- a cluster of crystal throwing every colour at once
+		blurb = "+390% Gem Find · +119% Luck", stats = { gemFind = 3.90, luck = 1.19 } },
+	{ id = "lionheart_crest", name = "Lionheart Crest", source = "charm", rarity = "S", icon = 34,
+		art = "rbxassetid://91264778981667", -- a crowned red shield bearing a gold lion
+		blurb = "+390% Dirt Break · +119% Coin Bonus", stats = { dirtBreak = 3.90, coinBonus = 1.19 } },
+	{ id = "dragoneye", name = "Dragoneye Charm", source = "charm", rarity = "S", icon = 3,
+		art = "rbxassetid://105995325088619", -- a scaled orb with a slit red eye that watches back
+		blurb = "+390% Ore Finder · +119% Luck", stats = { fossilFind = 3.90, luck = 1.19 } },
 
-	-- SS: two of them, and you will remember finding either.
-	{ id = "riftshard", name = "Riftshard Charm", source = "charm", rarity = "SS",
-		blurb = "+575% Mine Speed · +175% Omni Blast", stats = { mineSpeed = 5.75, blastChance = 1.75 } },
-	{ id = "starforge_crown", name = "Starforge Crown", source = "charm", rarity = "SS",
-		blurb = "+575% Coin Bonus · +175% Chest Luck", stats = { coinBonus = 5.75, chestLuck = 1.75 } },
+	-- SS: two, and you will remember finding either.
+	{ id = "seraph_edge", name = "Seraph Edge", source = "charm", rarity = "SS", icon = 30,
+		art = "rbxassetid://131609907456467", -- a white wing folded around a blade of light
+		blurb = "+575% Mine Speed · +175% Swing Rate", stats = { mineSpeed = 5.75, swingRate = 1.75 } },
+	{ id = "hourglass_ages", name = "Hourglass of Ages", source = "charm", rarity = "SS", icon = 36,
+		art = "rbxassetid://86200992977682", -- a gold hourglass running with violet starlight
+		blurb = "+575% Chest Luck · +175% Coin Bonus", stats = { chestLuck = 5.75, coinBonus = 1.75 } },
 
-	-- SSS: one charm, the rarest thing on the ladder.
-	{ id = "singularity_seal", name = "Singularity Seal", source = "charm", rarity = "SSS",
+	-- SSS: one charm. A galaxy, in a locket.
+	{ id = "galaxy_core", name = "Galaxy Core", source = "charm", rarity = "SSS", icon = 19,
+		art = "rbxassetid://136713205644319", -- a whole spiral galaxy turning behind gold glass
 		blurb = "+860% Mine Speed · +260% Omni Blast", stats = { mineSpeed = 8.60, blastChance = 2.60 } },
 
 	{ id = "jackhammer", name = "Jackhammer", source = "pack",
