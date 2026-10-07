@@ -272,6 +272,61 @@ end
 print(fails == 0 and ">>> trader OK" or (">>> " .. fails .. " FAILED"))
 `;
 
+//[[ ------------------------------------------------- the server wiring ----
+// The rules above are pure and provable. The spend is not: it happens inside a
+// verb, against a profile, in a script this harness cannot run. So the checks
+// that matter most are static, and each one is an exploit if it goes missing.
+//
+// The shape of the exploit is always the same: the prompt is in the WORLD, so a
+// client can fire the buy verb naming any outpost it likes without walking to
+// one. Every check below exists because the client controls that payload.
+{
+  const SRV = Luau.readSrc(path.join(ROOT, "src/ServerScriptService/Mine/MineServer.server.luau"));
+  const NPC = Luau.readSrc(path.join(ROOT, "src/ServerScriptService/Mine/MineTraderNPC.luau"));
+  console.log("");
+
+  ok(/elseif action == "buyTraderCase" then Verbs\.buyTraderCase\(plr, payload\)/.test(SRV),
+    "buyTraderCase is reachable from the net dispatch");
+
+  const verb = SRV.slice(SRV.indexOf("function Verbs.buyTraderCase("),
+    SRV.indexOf("--[[\n\tBUY A GRADED CHARM"));
+  ok(verb.length > 0, "Verbs.buyTraderCase exists");
+  ok(/Dig\.TraderNPC\.canTrade\(p, zoneId, seam, Dig\.Auth\)/.test(verb),
+    "it re-checks that a trader is actually at that outpost",
+    "otherwise a surface player buys the deep stock by sending a different seam");
+  ok(/for _, r in ipairs\(offer\.stock or \{\}\) do/.test(verb) && /if not row then/.test(verb),
+    "it refuses a case that is not on that trader's shelf",
+    "without this the depth gate in stockFor is decoration");
+  ok(/tonumber\(row\.tokens\)/.test(verb) && !/payload\.(tokens|price)/.test(verb),
+    "the price comes from the shelf row, never from the payload");
+  ok(/p\.temperTokens = \(tonumber\(p\.temperTokens\) or 0\) \+ price/.test(verb),
+    "a case that cannot build its reward refunds instead of charging for nothing");
+  // Debit must come after the roll resolves, or a nil reward still costs.
+  const rollAt = verb.indexOf("Dig.Trader.rollCase("), debitAt = verb.indexOf("- price");
+  ok(rollAt > -1 && debitAt > rollAt,
+    "the reward is rolled before the tokens are taken",
+    "debiting first means a failed roll is a paid-for nothing");
+  // The seam check lives in canTrade, not in the verb -- the verb passes Dig.Auth
+  // down to it. Asserted on both halves, because either one going missing breaks
+  // it: a verb that stops passing auth, or a canTrade that stops using it.
+  ok(/auth and auth\.canAccessSeam and not auth\.canAccessSeam\(p, zoneId, seam\)/.test(NPC),
+    "canTrade refuses a seam the player has not opened",
+    "a trader at 3,000 is not a way to shop past a seam you never bought");
+  ok(/canTrade\(p, zoneId, seam, Dig\.Auth\)/.test(verb),
+    "the verb hands canTrade the real auth module, so that check can run");
+
+  // The spawner's own trap: placement draws from spots() BY INDEX, so an
+  // unsorted list would make two servers disagree about where the traders are --
+  // silently undoing the whole reason the rules are deterministic.
+  ok(/table\.sort\(out, function\(a, b\)/.test(NPC),
+    "the outpost list is sorted before placement draws from it",
+    "GetChildren order is not guaranteed; unsorted means servers disagree");
+  ok(/DepthPlaza_\(\.-\)_\(%d\+\)/.test(NPC),
+    "spots come from the plazas that were actually built, not from the seam ladder");
+  ok(/p\.CanQuery = false/.test(NPC) && /p\.CastShadow = false/.test(NPC),
+    "trader parts are non-query and non-shadow, like the rest of the mine");
+}
+
 const tmp = path.join(require("os").tmpdir(), "trader-harness.luau");
 fs.writeFileSync(tmp, harness);
 let out = "";

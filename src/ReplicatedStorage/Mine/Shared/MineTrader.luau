@@ -102,9 +102,14 @@ MineTrader.STOCK_MAX = 5
 --[[
 	A 32-bit mix, so placement is spread rather than merely varied.
 
-	The same exact-multiply problem as MineConfig.mul32: Luau numbers are doubles,
-	and `h * 0x85EBCA6B` loses the low bits a hash lives in. Split at 16 and the
-	intermediates all fit inside 2^53.
+	Its own copy rather than a shared one: MineConfig's `mul32` is a file-local,
+	not an exported symbol, and reaching for it would mean exporting a hash
+	primitive from the ore config so a shop could place NPCs.
+
+	Same exact-multiply problem it solves, though. Luau numbers are doubles, so
+	`h * 0x85EBCA6B` needs 56 bits of mantissa, gets 53, and silently loses the
+	low bits a hash lives in. Splitting both operands at 16 keeps every
+	intermediate inside 2^53 and the wraparound exact.
 ]]
 local function mul32(a, b)
 	local ah, al = bit32.rshift(a, 16), bit32.band(a, 0xFFFF)

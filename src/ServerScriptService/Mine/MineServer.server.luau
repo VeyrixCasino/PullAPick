@@ -76,6 +76,11 @@ local Dig = {
 	Shop = require(shared:WaitForChild("MineDepthShop")),
 	Plazas = require(script.Parent:WaitForChild("MineDepthPlazas")),
 	Breaking = require(shared:WaitForChild("MineBreaking")),
+	-- The wandering trader: rules in MineTrader (shared, harnessed), bodies in
+	-- MineTraderNPC (server). On Dig for the same reason as the rest -- this
+	-- script has five top-level locals left and these do not need two of them.
+	Trader = require(shared:WaitForChild("MineTrader")),
+	TraderNPC = require(script.Parent:WaitForChild("MineTraderNPC")),
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
@@ -9918,6 +9923,122 @@ end
 	what you wanted.
 ]]
 --[[
+	BUY A CASE FROM A WANDERING TRADER.
+
+	Four things are checked before a token is spent, and each one is an exploit if
+	it is missing:
+
+	  IS A TRADER THERE. The prompt lives in the world, but a client can fire this
+	  verb without ever walking to one. canTrade re-derives the roster from the
+	  rotation, so naming an outpost is not the same as standing at it -- without
+	  this, a surface player buys the deep stock by sending a different seam.
+
+	  IS THAT CASE IN ITS STOCK. The trader's shelf is a function of (rotation,
+	  zone, seam); a caseId that is not on it is refused even though the case
+	  exists. Otherwise the depth gate in MineTrader.stockFor is decoration.
+
+	  CAN THE PLAYER BE THERE AT ALL. canAccessSeam, so a trader at 3,000 is not a
+	  way to shop past a seam you have not opened.
+
+	  THE PRICE IS THE SHELF'S. Taken from the stock row, not from the payload and
+	  not recomputed here, so what the panel quoted is what is charged.
+
+	The reward is rolled server-side with a fresh Random. The client is told what
+	it got, never what it would get.
+]]
+function Verbs.buyTraderCase(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p or type(payload) ~= "table" then
+		return
+	end
+	local zoneId = tostring(payload.zoneId or "")
+	local seam = math.floor(tonumber(payload.seam) or 0)
+	local caseId = tostring(payload.caseId or "")
+	local okHere, why = Dig.TraderNPC.canTrade(p, zoneId, seam, Dig.Auth)
+	if not okHere then
+		net:FireClient(plr, "toast",
+			why == "need_seam" and "You have not opened that seam" or "No trader there right now")
+		return
+	end
+	local offer = Dig.TraderNPC.offer(zoneId, seam)
+	local row
+	for _, r in ipairs(offer.stock or {}) do
+		if r.caseId == caseId then
+			row = r
+			break
+		end
+	end
+	if not row then
+		net:FireClient(plr, "toast", "That trader is not carrying that")
+		return
+	end
+	local price = math.max(1, math.floor(tonumber(row.tokens) or 0))
+	if (tonumber(p.temperTokens) or 0) < price then
+		net:FireClient(plr, "toast", ("Need %d tokens"):format(price))
+		return
+	end
+	local reward = Dig.Trader.rollCase(row.caseId, Random.new())
+	if not reward then
+		net:FireClient(plr, "toast", "That case is empty")
+		return
+	end
+	-- Debit only once the reward resolved, so a case that cannot pay never costs.
+	p.temperTokens = (tonumber(p.temperTokens) or 0) - price
+	local got = nil
+	if reward.kind == "charm" then
+		p.charms = p.charms or {}
+		p.charms[reward.charmId] = (tonumber(p.charms[reward.charmId]) or 0) + 1
+		got = reward.name
+	elseif reward.kind == "hat" then
+		local rng = Random.new()
+		local catalog = Gear.catalogFor and Gear.catalogFor("hat", reward.rarity, nil, rng)
+		local setId = (catalog and catalog.setId)
+			or (Gear.SETS and Gear.SETS[rng:NextInteger(1, #Gear.SETS)].id)
+		local piece = Gear.makePiece and Gear.makePiece(instanceHex16(), setId, "hat", reward.rarity, catalog)
+		if piece then
+			p.gear = p.gear or {}
+			table.insert(p.gear, piece)
+			got = (piece.name or "Hat") .. " (" .. tostring(reward.rarity) .. ")"
+		end
+	elseif reward.kind == "tool" then
+		local oreDef = C.ORES[math.clamp(reward.tier, 1, #C.ORES)]
+		local OreToolsM = require(shared:WaitForChild("MineOreTools"))
+		local familyId = ({ "pickaxe", "drill", "explosive" })[Random.new():NextInteger(1, 3)]
+		local def = oreDef and OreToolsM.frameForTier and OreToolsM.frameForTier(familyId, oreDef.tier)
+		if def and oreDef then
+			p.oreTools = p.oreTools or {}
+			table.insert(p.oreTools, {
+				uid = instanceHex16(),
+				typeId = def.id,
+				familyId = familyId,
+				tier = oreDef.tier,
+				-- A bought tool starts at 1, not at your inherited best: the case
+				-- is the tool, not a free run up the upgrade ladder.
+				level = 1,
+				base = 1,
+			})
+			got = (oreDef.name or "Tool") .. " " .. familyId
+		end
+	end
+	if not got then
+		-- Nothing could be built: refund rather than charge for nothing.
+		p.temperTokens = (tonumber(p.temperTokens) or 0) + price
+		net:FireClient(plr, "toast", "The trader had nothing to give")
+		return
+	end
+	net:FireClient(plr, "toast", ("%s — %s for %d tokens"):format(row.name, got, price))
+	net:FireClient(plr, "foundTool", {
+		kind = reward.kind,
+		name = got,
+		title = "TRADER CASE",
+		rarityId = reward.rarity and (Charms.RARITY_LABEL and Charms.RARITY_LABEL[reward.rarity]) or "Legendary",
+		blurb = row.blurb or "",
+	})
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
 	BUY A GRADED CHARM WITH TEMPER TOKENS.
 
 	Owner, 2026-10-07: charms "can be found in chests (0.5%) or bought with
@@ -13226,6 +13347,24 @@ LeaderboardService.start(net)
 pcall(function()
 	Dig.Plazas.start()
 end)
+--[[
+	The wandering traders, after the plazas: MineTraderNPC.spots() reads the
+	DepthPlaza folders that Plazas.start just built, so starting first would find
+	nowhere to stand and place nobody until the next rotation.
+
+	The prompt only OPENS the shop. Buying goes through Verbs.buyTraderCase, which
+	re-checks that a trader is really there -- a prompt a client can see is not
+	authority to spend.
+]]
+pcall(function()
+	Dig.TraderNPC.start(function(plr, placement)
+		local p = profiles[plr.UserId]
+		if not p then
+			return
+		end
+		net:FireClient(plr, "traderShop", Dig.TraderNPC.offer(placement.zoneId, placement.seam))
+	end)
+end)
 ensureZone(C.ZONES[1], C.LAYER_WINDOW or 8)
 Verbs.scrubLobbyMineBlocks()
 ;(function()
@@ -16436,6 +16575,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "upgradeOrePouch" then Verbs.upgradeOrePouch(plr)
 		elseif action == "toggleOreLock" then Verbs.toggleOreLock(plr, payload)
 		elseif action == "buyCharm" then Verbs.buyCharm(plr, payload)
+		elseif action == "buyTraderCase" then Verbs.buyTraderCase(plr, payload)
 		elseif action == "sellOre" then Verbs.sellOre(plr, payload)
 		elseif action == "sellAllOres" then Verbs.sellAllOres(plr, payload)
 		elseif action == "equipGear" then Verbs.equipGearPiece(plr, payload)
