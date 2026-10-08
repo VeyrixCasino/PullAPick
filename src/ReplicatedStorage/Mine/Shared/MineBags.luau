@@ -24,10 +24,27 @@ local ZONE_ORDER = {
 }
 
 local SURFACE_HP = { 10, 45, 180, 700, 2800, 5500, 12000, 28000 }
--- Meadow early satchels. Slots are ~8× the old 60-slot starter so a loam
--- haul is about a minute, not six blocks. Prices stay put.
+--[[
+	Meadow early satchels. Slots are ~8x the old 60-slot starter so a loam haul
+	is about a minute, not six blocks. Prices stay put.
+
+	THE FREE ONE IS 200, SET DELIBERATELY. Owner, 2026-10-08: "set starter bag
+	to 200 blocks". That is the first bag every new profile gets -- cap() reads
+	C.BACKPACKS[1] when a player has no backpackTier -- so it is the number that
+	decides how long the very first trip lasts.
+
+	It is a cut from 480, against the reasoning in the line above: 200 loam is
+	well under the "about a minute" that 480 was chosen for, and the first sell
+	trip now comes roughly two and a half times sooner. That is the intent --
+	the first walk back to the surface is what teaches the loop -- but it is a
+	deliberate move away from the stated target, not a drift, so it is written
+	down here rather than left looking like the old number.
+
+	The paid rungs are untouched, so the first purchase is now a 6x jump
+	instead of 2.5x and reads as a real upgrade.
+]]
 local MEADOW_SATCHELS = {
-	{ slots = 480, price = 0 },
+	{ slots = 200, price = 0 },
 	{ slots = 1200, price = 100 },
 	{ slots = 2000, price = 350 },
 	{ slots = 4000, price = 800 },
