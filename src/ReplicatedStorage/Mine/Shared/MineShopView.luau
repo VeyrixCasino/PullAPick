@@ -1872,6 +1872,53 @@ function MineShopView.mount(parent, opts)
 	end
 
 	--[[
+		WHAT A BAG ACTUALLY COSTS, from the module the buy verb charges through.
+
+		MineBags.gemPrice(tier) -- 100 * 1.08^rung -- is what the server
+		deducts. `row.price` on the same row is the COIN figure, kept for sell
+		value, shop ordering and the dex, and it is not what anyone pays. This
+		is the single place that resolves it, so the affordability check and
+		the printed label cannot disagree the way they did.
+
+		THE RUNG IS THE LIST INDEX, AND IT IS IN THE ID.
+
+		gemPrice takes the index into MineBags.LIST -- that is what the buy verb
+		passes as `want`, clamped to #C.BACKPACKS. It is NOT row.tier, which is
+		nil on every bag row (checked: all 462), and it is NOT this shelf's loop
+		index either, because shopRows returns a FILTERED subset -- 25 rows for
+		zone 1 out of 462, so position 4 on the shelf is LIST[6].
+
+		shopRows stamps the id as "bag_<index>", which is the only thing on the
+		row that still knows where it came from. Parsed back out here.
+
+		Falls back to row.price only if the module or the function is missing,
+		which keeps a shelf rendering rather than showing every bag at zero.
+	]]
+	local function bagIndex(row, fallback)
+		if type(row) ~= "table" then
+			return fallback
+		end
+		local idx = tonumber(string.match(tostring(row.id or ""), "^bag_(%d+)$"))
+			or tonumber(row.id)
+			or tonumber(row.tier)
+		return idx and math.floor(idx) or fallback
+	end
+
+	local function bagPrice(row)
+		if type(row) ~= "table" then
+			return 0
+		end
+		local okB, Bags = pcall(function()
+			return require(shared:WaitForChild("MineBags"))
+		end)
+		local idx = bagIndex(row, nil)
+		if okB and Bags and Bags.gemPrice and idx then
+			return math.max(0, math.floor(tonumber(Bags.gemPrice(idx)) or 0))
+		end
+		return math.max(0, math.floor(tonumber(row.price) or 0))
+	end
+
+	--[[
 		What this rung is to the player right now.
 
 		"held" you are swinging it · "owned" bought · "buy" the next rung and
@@ -1916,8 +1963,29 @@ function MineShopView.mount(parent, opts)
 			if row.robux then
 				return "buy"
 			end
-			local price = row.price or 0
-			return ((state.coins or 0) >= price) and "buy" or "short"
+			--[[
+				BAGS COST GEMS, AND THIS SHELF WAS PRICING THEM IN COINS.
+
+				Wrong on both halves at once. `row.price` is the COIN figure --
+				MineBags keeps it on the row for sell value, shop ordering and
+				the dex -- while the buy verb charges MineBags.gemPrice(tier),
+				which is 100 * 1.08^rung and a completely different number.
+				This then compared that coin figure against state.coins.
+
+				So a player with coins and no gems saw "buy", clicked, and was
+				told "that bag costs N gems"; a player with the gems but not the
+				coins saw "short" on a bag they could afford. The shelf and the
+				server disagreed about the currency AND the amount.
+
+				MineBags' own file still carries a stale header saying "Coin
+				prices only. Never gems", which is contradicted forty lines
+				below it by the block that defines gemPrice -- that contradiction
+				is most likely how this survived.
+
+				Read through bagPrice below so the status and the label cannot
+				drift apart again.
+			]]
+			return (((state.gems or 0) >= bagPrice(row)) and "buy" or "short")
 		end
 		-- Surface shop ladder (all zones visible).
 		local needZone = math.floor(tonumber(row.zoneIndex) or 1)
@@ -2079,6 +2147,10 @@ function MineShopView.mount(parent, opts)
 		local currency = "coins"
 		if activeTab == "backpack" and row.robux then
 			currency = "Robux"
+		elseif activeTab == "backpack" then
+			-- Everything on this shelf that is not the Robux rig is bought
+			-- with gems; see bagPrice.
+			currency = "gems"
 		elseif row.eventOnly or row.currency == "space" then
 			currency = "space"
 		end
@@ -2201,6 +2273,10 @@ function MineShopView.mount(parent, opts)
 		local price = row.price or 0
 		if row.robux then
 			price = row.robuxPrice or 0
+		elseif activeTab == "backpack" then
+			-- The gem price, not the row's coin figure. Same source as the
+			-- affordability check above and as the server's charge.
+			price = bagPrice(row)
 		end
 		-- The number you scan for. OWNED items have no price to show.
 		if status == "buy" or status == "short" then
@@ -2435,7 +2511,12 @@ function MineShopView.mount(parent, opts)
 					MarketplaceService:PromptProductPurchase(Players.LocalPlayer, pid)
 					return
 				end
-				if opts.onBuyBackpack then opts.onBuyBackpack((row and row.tier) or index) end
+				-- Same reader the price uses, so the rung shown and the rung
+				-- bought cannot drift apart. `row.tier` alone is correct today
+				-- -- shopRows stamps it on all 484 shelf rows, verified -- and
+				-- bagIndex falls back to it; the id is just the more durable
+				-- of the two, since it is what shopRows keys the rung on.
+				if opts.onBuyBackpack then opts.onBuyBackpack(bagIndex(row, index)) end
 			else
 				local row = rows()[index]
 				if opts.onBuyTool then

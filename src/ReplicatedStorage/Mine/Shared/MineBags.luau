@@ -4,7 +4,20 @@
 
 local MineBags = {}
 
--- Coin prices only. Never gems — zone buyCost is the gem sink.
+--[[
+	BAGS ARE BOUGHT WITH GEMS. See MineBags.gemPrice further down, which is
+	what the buy verb actually charges.
+
+	This line used to read "Coin prices only. Never gems -- zone buyCost is the
+	gem sink", which the gemPrice block below has contradicted ever since bags
+	moved onto gems. A file that states the opposite of its own code in its
+	header is how MineShopView came to price this shelf in coins while the
+	server deducted gems -- wrong currency and wrong number, in the one place a
+	reader would go to check.
+
+	The `price` field on each row stays, and stays a COIN figure: sell value,
+	shop ordering and the dex all read it. It is simply not what anyone pays.
+]]
 local Eco = require(script.Parent:WaitForChild("MineShopEconomy"))
 local BagNames = require(script.Parent:WaitForChild("MineBagNames"))
 local PRICE_FRAC = Eco.BAG_PRICE_FRAC or 0.35
