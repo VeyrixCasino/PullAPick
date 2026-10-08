@@ -1009,12 +1009,65 @@ function MineDepthPlazas.openAllForPreview()
 	end
 end
 
+--[[
+	PLAZA GEOMETRY DOES NOT CAST SHADOWS.
+
+	Measured in the live place: Pits holds 176 plazas, 37,805 parts, and 37,345
+	of them -- 99% -- were casting shadows. That is the single biggest render
+	cost the client carries, because Pits is 48,766 of the 62,781 instances a
+	client sees at all, and a shadow caster costs every frame it is on screen
+	rather than once at load.
+
+	It buys almost nothing here. These are underground rooms lit by their own
+	lamps and emissive signs; the sun does not reach them, so nearly every one
+	of those casters is resolving a shadow from a light that is not there.
+
+	The rest of the codebase already treats this as the default -- PetModelFactory,
+	ToolModelFactory, MineChestModel and MinePortalFX all clear CastShadow on
+	every part they build. The plaza builders are the one place that never did.
+
+	Done as ONE connection on Pits rather than an edit in each of the ten part
+	creators in this file: the folders are parented into Pits BEFORE their parts
+	are built, so a pass at parent time would see an empty folder, and a creator
+	added later would silently miss the convention again.
+
+	CanQuery is deliberately left alone. 61% of these parts answer raycasts and
+	the plaza code, the elevator ride and the trader placement all raycast
+	against them to find a surface to stand on -- turning that off would save
+	less and break more.
+]]
+local function noShadows(inst)
+	if inst:IsA("BasePart") then
+		inst.CastShadow = false
+	end
+end
+
+local shadowHookDone = false
+local function hushPitShadows()
+	if shadowHookDone then
+		return
+	end
+	local world = workspace:FindFirstChild("MineWorld")
+	local pits = world and world:FindFirstChild("Pits")
+	if not pits then
+		return
+	end
+	shadowHookDone = true
+	for _, d in ipairs(pits:GetDescendants()) do
+		noShadows(d)
+	end
+	pits.DescendantAdded:Connect(noShadows)
+end
+
 function MineDepthPlazas.start()
 	if boardsStarted then
 		return
 	end
 	boardsStarted = true
 	task.defer(function()
+		-- Before the builders below run, so everything they add is covered by
+		-- the DescendantAdded hook rather than needing a second sweep.
+		pcall(hushPitShadows)
 		MineDepthPlazas.ensureSurfaceBoards()
 		for _, zone in ipairs(C.ZONES or {}) do
 			pcall(buildElevator, zone)
