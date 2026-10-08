@@ -81,6 +81,10 @@ local Dig = {
 	-- script has five top-level locals left and these do not need two of them.
 	Trader = require(shared:WaitForChild("MineTrader")),
 	TraderNPC = require(script.Parent:WaitForChild("MineTraderNPC")),
+	-- The season clock. MineRotatingOffers and MineScrolls already default their
+	-- `now` to Launch.seasonNow(), so this handle exists for the server to LOAD
+	-- and STAMP the flag; nothing reads the time through it.
+	Launch = require(shared:WaitForChild("MineLaunch")),
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
@@ -9923,6 +9927,72 @@ end
 	what you wanted.
 ]]
 --[[
+	LOAD AND STAMP THE LAUNCH FLAG.
+
+	Owner, 2026-10-07: the timer keeps ticking but the season must not START
+	until they say so. MineLaunch holds the rule; this is the persistence and the
+	switch.
+
+	Stored server-wide, NOT per profile: a season that had begun for one player
+	and not another would be incoherent, and it has to survive every server
+	restart or the season silently rewinds to zero on the next one.
+
+	Read once at boot and cached on the module. The read is best-effort -- if the
+	datastore is down, the game stays UNLAUNCHED, which is the safe direction: a
+	failed read must never start the season by accident.
+]]
+function Verbs._loadLaunch()
+	local okRead, saved = pcall(function()
+		return store:GetAsync("launch_v1")
+	end)
+	if okRead and type(saved) == "table" and tonumber(saved.at) and tonumber(saved.at) > 0 then
+		Dig.Launch.launchedAt = math.floor(saved.at)
+		print(("[Mine] season LAUNCHED at %d (%d days in)"):format(
+			Dig.Launch.launchedAt, math.floor(Dig.Launch.elapsed() / 86400)))
+	else
+		Dig.Launch.launchedAt = 0
+		print("[Mine] season NOT launched yet -- clock pinned to season start")
+	end
+end
+
+--[[
+	Throw the switch. Admin only, and deliberately not undoable from here.
+
+	There is no "unlaunch": once players have spent a season's worth of time in
+	it, rewinding would re-lock what they earned. If it is ever thrown by
+	mistake, the fix is a deliberate datastore edit, not a verb anyone can call.
+]]
+function Verbs.launchSeason(plr)
+	local Allow = require(script.Parent:WaitForChild("Admin"):WaitForChild("AdminAllowlist"))
+	if not (Allow.isAdmin and Allow.isAdmin(plr.UserId)) then
+		return
+	end
+	if Dig.Launch.isLaunched() then
+		net:FireClient(plr, "toast", ("Season already launched (%d days in)"):format(
+			math.floor(Dig.Launch.elapsed() / 86400)))
+		return
+	end
+	local at = Dig.Launch.launch(os.time())
+	if not at then
+		net:FireClient(plr, "toast", "Could not launch -- bad server clock")
+		return
+	end
+	-- Persist BEFORE announcing: a launch that was announced and not saved would
+	-- rewind on the next server restart, which is worse than a failed launch.
+	local okSave = pcall(function()
+		store:SetAsync("launch_v1", { at = at, by = plr.UserId })
+	end)
+	if not okSave then
+		Dig.Launch.launchedAt = 0
+		net:FireClient(plr, "toast", "Launch FAILED to save -- still not launched")
+		warn("[Mine] launchSeason could not persist; season left unlaunched")
+		return
+	end
+	print(("[Mine] SEASON LAUNCHED by %s (%d) at %d"):format(plr.Name, plr.UserId, at))
+	net:FireClient(plr, "toast", "Season launched. The clock is running.")
+end
+
+--[[
 	BUY A CASE FROM A WANDERING TRADER.
 
 	Four things are checked before a token is spent, and each one is an exploit if
@@ -13343,6 +13413,10 @@ pcall(function()
 	-- Group wheel removed. Uncomment to bring it back:
 	-- GroupWheelService.build(lobby)
 end)
+-- Before anything season-timed runs: the offers and the pass read
+-- Launch.seasonNow(), and a load after they first ask would have them answer
+-- from an unlaunched clock and then silently disagree with themselves.
+pcall(Verbs._loadLaunch)
 LeaderboardService.start(net)
 pcall(function()
 	Dig.Plazas.start()
@@ -16576,6 +16650,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "toggleOreLock" then Verbs.toggleOreLock(plr, payload)
 		elseif action == "buyCharm" then Verbs.buyCharm(plr, payload)
 		elseif action == "buyTraderCase" then Verbs.buyTraderCase(plr, payload)
+		elseif action == "launchSeason" then Verbs.launchSeason(plr)
 		elseif action == "sellOre" then Verbs.sellOre(plr, payload)
 		elseif action == "sellAllOres" then Verbs.sellAllOres(plr, payload)
 		elseif action == "equipGear" then Verbs.equipGearPiece(plr, payload)

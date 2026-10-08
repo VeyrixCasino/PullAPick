@@ -15,6 +15,14 @@ local MineRotatingOffers = {}
 
 local LuckyBlocks = require(script.Parent:WaitForChild("MineLuckyBlocks"))
 local ZonePacks = require(script.Parent:WaitForChild("MineZonePacks"))
+--[[
+	The season clock, not the wall clock. Before the owner launches,
+	seasonNow() is pinned to SEASON_START, so slot one is live and nothing has
+	expired however long the game sits unlaunched. Defaulted HERE rather than at
+	the call sites so every caller -- client panels included -- gets it without
+	having to know the rule.
+]]
+local Launch = require(script.Parent:WaitForChild("MineLaunch"))
 
 local START = 1790049600
 local WEEK = 604800
@@ -126,7 +134,7 @@ do
 end
 
 function MineRotatingOffers.isLive(offer, now)
-	now = now or os.time()
+	now = now or Launch.seasonNow()
 	if type(offer) ~= "table" then
 		return false
 	end
@@ -218,14 +226,14 @@ function MineRotatingOffers.grant(p, offer)
 end
 
 function MineRotatingOffers.dayKey(now)
-	now = now or os.time()
+	now = now or Launch.seasonNow()
 	local left = math.max(0, ENDS - now)
 	local days = math.floor(left / 86400)
 	return string.format("%dd left in the season", days)
 end
 
 function MineRotatingOffers.active(now)
-	now = now or os.time()
+	now = now or Launch.seasonNow()
 	local out = {}
 	for _, row in ipairs(MineRotatingOffers.OFFERS) do
 		if MineRotatingOffers.isLive(row, now) then
