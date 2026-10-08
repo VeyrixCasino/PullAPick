@@ -1742,6 +1742,47 @@ function ToolModelFactory.fromNamed(toolName, finish, familyHint)
 		return nil
 	end
 
+	--[[
+		A FOLDER IS NOT A MODEL. REFUSE ONE THAT HOLDS NO GEOMETRY.
+
+		Every tool here is a MeshPart whose geometry came from
+		AssetService:CreateMeshPartAsync, and that geometry is SESSION-ONLY: it
+		does not survive the place being saved and reopened. What comes back is
+		the full folder -- right names, right sizes, right finish variants, the
+		HeadTris attribute still sitting there reading 20000 -- and MeshContent
+		set to Content{SourceType=None}. A mesh with nothing in it.
+
+		That is the state the archive in this place is in: measured, 2,058 of
+		2,088 folders are entirely hollow, INCLUDING all 82 named after an ore.
+
+		It matters here more than anywhere else because of the ORDER givePickaxe
+		tries things. fromNamed runs FIRST, on the ore's own name, and only falls
+		through to build() when it returns nil. A hollow folder made it return a
+		perfectly well-formed model instead, so the fallback never ran and the
+		player equipped a tool they could not see -- the exact symptom, and the
+		reason the ore tinting below never reached anyone's hands.
+
+		Checking the mesh rather than the folder, because the folder looks fine.
+	]]
+	do
+		local renderable = false
+		for _, d in ipairs(srcModel:GetDescendants()) do
+			if d:IsA("MeshPart") then
+				if not string.find(tostring(d.MeshContent), "SourceType=None", 1, true) then
+					renderable = true
+					break
+				end
+			elseif d:IsA("BasePart") then
+				-- A part-built model has real geometry by definition.
+				renderable = true
+				break
+			end
+		end
+		if not renderable then
+			return nil
+		end
+	end
+
 	-- The Shiny and Shadow variants are stored already fitted, posed and
 	-- finished (see bakeFinishVariants): hand them over as they are.
 	if srcModel:GetAttribute("Posed") then
@@ -1930,6 +1971,36 @@ local function tryToolKitMesh(family, tier, count, look)
 	if not toolFolder then return nil end
 	local body = toolFolder:FindFirstChild(KIT_BODY_NAMES[bi]) or toolFolder:FindFirstChild("FieldScrap")
 	if not (body and body:IsA("MeshPart")) then return nil end
+
+	--[[
+		A MeshPart WITH NO MESH IN IT IS NOT A TOOL.
+
+		Every one of these 102 kit meshes was produced by
+		AssetService:CreateMeshPartAsync in ToolKitProceduralBake and then saved
+		to .rbxm. That round trip does not keep the geometry: CreateMeshPartAsync
+		builds the mesh in the running session only, there is no uploaded asset
+		behind it, so what the .rbxm stores is a MeshPart with the right Size and
+		MeshId = "". Measured in the live place: 102 of 102 hollow.
+
+		This branch returns before the procedural builders below ever run, so a
+		hollow kit mesh is not a degraded tool -- it is an INVISIBLE one. The
+		player equips a Tool, the Handle is there, the swing works, the damage
+		lands, and there is nothing in their hand. Every mesh archive in this
+		place is in the same state (ToolModels_50 2,058 of 2,088, the
+		_Unreferenced copy 2,060 of 2,060), so there is currently no mesh
+		anywhere that can draw a tool.
+
+		Refusing it falls through to buildPickaxe/buildDrill/buildExplosive,
+		which assemble real Parts -- geometry that lives in the instance and
+		cannot be stripped by a save -- and which take `look`, so the tool is
+		ore-coloured on the way out.
+
+		Checked per call rather than once: the folder is replicated and a later
+		bake can fill these in, and when it does this check simply stops firing.
+	]]
+	if string.find(tostring(body.MeshContent), "SourceType=None", 1, true) then
+		return nil
+	end
 	local model = Instance.new("Model")
 	model.Name = string.format("%s_%d", family, tier)
 	local handle = body:Clone()

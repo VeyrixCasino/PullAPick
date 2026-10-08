@@ -446,8 +446,16 @@ local TOOL_PREWARM_MAX = 240
 local TOOL_MODEL_CACHE_N = 0
 local preparedToolModel
 
-preparedToolModel = function(name, finish, family, tier)
-	local key = table.concat({ name, finish, family, tostring(tier) }, "|")
+--[[
+	`count` and `oreTier` are part of the KEY, not just the build.
+
+	count decides which silhouette a tier maps to -- tryToolKitMesh clamps the
+	tier to it and then spreads the shapes over the range -- so the same tier
+	against a different ladder length is a genuinely different model. Leaving
+	it out of the key let the first caller's count win for every later one.
+]]
+preparedToolModel = function(name, finish, family, tier, count, oreTier)
+	local key = table.concat({ name, finish, family, tostring(tier), tostring(count), tostring(oreTier) }, "|")
 	local model
 	local master = TOOL_MODEL_CACHE[key]
 	if master then
@@ -466,7 +474,33 @@ preparedToolModel = function(name, finish, family, tier)
 			end
 		end
 		if not model and Factory.build then
-			local ok, m = pcall(Factory.build, family, math.max(1, tier))
+			--[[
+				THE TILE MUST BUILD THE TOOL THE SAME WAY THE HAND DOES.
+
+				This passed neither `count` nor `look`. Without count, build
+				falls back to its own default of 15 and clamps the tier to it,
+				so any ladder that is not 15 long showed a different silhouette
+				in the tile than the player was actually holding. Without look,
+				a forged tool lost the colour and material of the ore it was
+				made of and came out in the kit's stock brown.
+
+				Both now come from the same places the server reads them in
+				givePickaxe: the family's own ladder length, and the
+				MineConfig.ORES row for the tool's ore tier.
+			]]
+			local ladder = Tools.TOOLS and Tools.TOOLS[family]
+			local n = (type(ladder) == "table" and #ladder > 1) and #ladder or nil
+			local look
+			local ot = tonumber(oreTier)
+			if ot and Factory.oreLook and C.ORES then
+				local oreDef = C.ORES[math.floor(ot)]
+				if oreDef then
+					look = Factory.oreLook(oreDef, C.ORE_COUNT or #C.ORES)
+					-- An ore tool is placed on the ORE roster, not the shop ladder.
+					n = C.ORE_COUNT or #C.ORES
+				end
+			end
+			local ok, m = pcall(Factory.build, family, math.max(1, tier), n, look)
 			if ok then
 				model = m
 			end
@@ -557,7 +591,16 @@ local function prewarmTools(s)
 				if not seen[key] then
 					seen[key] = true
 					built += 1
-					local ok, m = pcall(preparedToolModel, row.name, finish, fam, 1)
+					--[[
+						Warmed with the SAME count paintToolViewport will ask
+						for. count is part of the cache key now, so warming
+						with nil would fill the cache with entries no tile
+						ever looks up -- the prewarm would still cost its
+						full budget and every tile would still miss.
+					]]
+					local wl = Tools.TOOLS and Tools.TOOLS[fam]
+					local wn = (type(wl) == "table" and #wl > 1) and #wl or nil
+					local ok, m = pcall(preparedToolModel, row.name, finish, fam, 1, wn, nil)
 					if ok and typeof(m) == "Instance" then
 						m:Destroy()
 					end
@@ -605,7 +648,18 @@ local function paintToolViewport(box, item, z)
 		tile, about nine times cheaper.
 	]]
 	local tier = tonumber(item.tier) or tonumber(item.def and item.def.tier) or 1
-	local model = preparedToolModel(name, finish, family, tier)
+	--[[
+		A forged tool carries its ORE tier, and that is what colours it. The
+		row shapes differ by source -- a ladder row has only `tier`, a forged
+		one adds oreTier/oreId -- so read whichever the item happens to have
+		rather than assuming one shape.
+	]]
+	local oreTier = tonumber(item.oreTier)
+		or tonumber(item.def and item.def.oreTier)
+		or tonumber(item.owned and type(item.owned) == "table" and item.owned.tier)
+	local ladder = Tools.TOOLS and Tools.TOOLS[family]
+	local count = (type(ladder) == "table" and #ladder > 1) and #ladder or nil
+	local model = preparedToolModel(name, finish, family, tier, count, oreTier)
 	if not model then
 		return false
 	end
