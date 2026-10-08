@@ -2776,10 +2776,37 @@ local function boosts(p)
 			flagship. A flagship carries its own, above; only one temperament
 			ever applies, the one on the tool actually being swung.
 		]]
-		-- equippedTool resolves what is really in hand; a fossil tool comes back
-		-- as tier 0, and it is a found object with no family temperament.
-		local _, fam, tier = equippedTool(p)
-		local tt = (tier or 0) > 0 and p.toolTempers and p.toolTempers[fam]
+		--[[
+			A FORGED TOOL WEARS ITS FAMILY'S SKIN. IT DID NOT.
+
+			This read `(tier or 0) > 0`, meaning to exclude found objects -- the
+			comment said so: "a fossil tool comes back as tier 0, and it is a
+			found object with no family temperament". But equippedTool returns
+			tier 0 on THREE paths, not one: the two found-tool paths AND the
+			forged-ore-tool path, which returns `famId, 0` because a forged
+			tool's rung is its ORE's tier and deliberately does not ride the
+			third return value (equippedTool says so where it returns).
+
+			So the test excluded exactly the tools the Forge exists to make.
+			Fitting a skin to a pickaxe did nothing the moment the pickaxe you
+			were swinging was one you forged -- which, past the first hour, is
+			every pickaxe. The Forge's own panel reports the fitted skin for the
+			family, so it read as applied while contributing nothing.
+
+			Nothing caught it because both branches are silent: no skin fitted
+			and a skin fitted-but-ignored produce the same boost table.
+
+			Tested positively now. A forged row is the only one carrying
+			`oreTier` (MineTools never sets it on a chest def) and the primary
+			path also stamps `oreTool = true`, so either marker identifies one
+			without having to enumerate what it is not. Found tools still fall
+			through, and a flagship is still handled by the branch above --
+			only one temperament ever applies, the one on the tool in hand.
+		]]
+		local row, fam, tier = equippedTool(p)
+		local forged = type(row) == "table"
+			and (row.oreTool == true or tonumber(row.oreTier) ~= nil)
+		local tt = (forged or (tier or 0) > 0) and p.toolTempers and p.toolTempers[fam]
 		if type(tt) == "table" and tt.temperId then
 			require(shared.MineTemper).applyTemper(b, tt)
 		end
