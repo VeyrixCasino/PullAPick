@@ -303,6 +303,19 @@ function MineForge.mount(parent, opts)
 	local selMode = "craft"
 	local selOreId = nil
 	local selUid = nil
+	--[[
+		SCRAP ARMS BEFORE IT FIRES.
+
+		Scrapping destroys a tool outright and there was no step between the
+		click and the loss. That was survivable only while the button appeared
+		to be paying for it; now that the quote is honest, the common case reads
+		"+0 ore / +0 dust" and a single misclick on a 224px red button throws a
+		tool away for literally nothing.
+
+		Held by UID rather than by a flag, so arming one tool and then selecting
+		a different one does not leave the second one armed.
+	]]
+	local scrapArmed = nil
 	local refresh
 
 	--[[
@@ -708,7 +721,33 @@ function MineForge.mount(parent, opts)
 		-- Scrapping is always offered; it is the one action that works when the
 		-- player cannot afford anything else.
 		local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
-		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
+		--[[
+			PASS `base`. THIS BUTTON QUOTED A REFUND THE SERVER DOES NOT PAY.
+
+			toolRecycle is (spent at `level`) - (spent at `baseLevel`), and
+			baseLevel defaults to 1 when the argument is left off. This call left
+			it off; the server passes the tool's real `base`. So the two sides
+			computed different things from the same function, which is exactly
+			what rule 1 at the top of this file exists to prevent -- and the rule
+			held for the price, which IS shared, while the refund quietly did not.
+
+			It is not a rounding difference. A newly forged tool INHERITS the
+			highest level you own and is stamped base = inherited (see the craft
+			verb), so once anything of yours is level 10 every tool you forge
+			starts at level 10 with base 10. For that tool:
+
+			  server : spent(10) - spent(10) = 0
+			  panel  : spent(10) - spent(1)  = the entire climb
+
+			The button therefore advertised a large ore and dust refund, the
+			server paid nothing, and the tool was destroyed either way -- with no
+			confirmation step in between, because the quote made it look free.
+
+			Reading `base` the same way the server does, clamp and fallback
+			included, so a row saved before `base` existed reads 1 on both sides.
+		]]
+		local recBase = math.clamp(math.floor(tonumber(tool.base) or 1), 1, level)
+		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult, recBase)
 		-- Equipping is what turns a forged tool into breaking power you actually
 		-- carry, so it sits beside the levelling buttons rather than buried.
 		local equipped = (snapshot.oreToolEquipped ~= nil and snapshot.oreToolEquipped == tool.uid)
@@ -717,10 +756,30 @@ function MineForge.mount(parent, opts)
 				if opts.onEquip then opts.onEquip(tool.uid) end
 			end)
 
-		button(host, "SCRAP  +" .. num(recOre) .. " ore / +" .. num(recDust) .. " dust",
+		local armed = (scrapArmed == tool.uid)
+		button(host,
+			armed and "DESTROY IT?  click again"
+				or ("SCRAP  +" .. num(recOre) .. " ore / +" .. num(recDust) .. " dust"),
 			RED, UDim2.fromOffset(116, y + 38), UDim2.fromOffset(224, 26), true, function()
-				if opts.onRecycle then opts.onRecycle(tool.uid) end
+				if armed then
+					scrapArmed = nil
+					if opts.onRecycle then
+						opts.onRecycle(tool.uid)
+					end
+				else
+					scrapArmed = tool.uid
+					refresh()
+				end
 			end)
+		if armed then
+			-- Says what is actually lost, because the refund line above may
+			-- legitimately read zero and "scrap for nothing" needs to be a
+			-- decision rather than a surprise.
+			label(host, recOre > 0
+					and "the tool is gone; only levels you bought come back"
+					or "this tool refunds NOTHING -- it was forged at its level",
+				11, RED, UDim2.fromOffset(116, y + 66), UDim2.new(1, -116, 0, 14), FONT_M)
+		end
 
 		--[[
 			THE SKIN AND THE RUNE ON THIS TOOL.
@@ -1287,6 +1346,10 @@ function MineForge.mount(parent, opts)
 						equipped and "   \u{00B7}   equipped" or ""),
 					TEXT, equipped and GOLD or GREEN, selUid == t.uid, function()
 						selUid = t.uid
+						-- Walking away disarms. Coming back to a tool still
+						-- primed to be destroyed is the kind of surprise this
+						-- confirmation exists to remove.
+						scrapArmed = nil
 						refresh()
 					end)
 			end
