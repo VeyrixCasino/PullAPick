@@ -77,3 +77,20 @@ change), the Rojo stale-sync gotcha, and a correction that the 2026-10-05 upload
 run** (was 36; new checks `compile`, `economy-exploits`, `oreframes`, `ui-scale`).
 Owner's newest decisions are in [owner](owner.md). Still open: bugs 4 and 6-13 and
 16 in [open-questions](open-questions.md). Retargeted PR #7 to `main`.
+
+## [2026-10-08] refactor | ask first, always: a stronger rule for ALL agents
+The owner said: *"from now on i want ALL agents to fucking hound me with questions
+so noithing is EVER unclear"*. That replaces the softer 2026-10-05 rule. Rewrote
+"Ask first, always" in `CLAUDE.md` (no cap on questions, restate before starting,
+ask the moment a new doubt appears, list assumptions at the end, and what to do when
+nobody can answer) and added it to `AGENTS.md`, `tools/agent/house-rules.txt`, the
+pasted prompts in `docs/START-HERE.md` and `docs/FABLE-PROMPT.md`,
+`roadmap/AGENT_PROMPT.md`, `roadmap/PROMPTS.md`, `docs/HANDOFF.md`, TODO §0.35 and
+§9, and the Claude.ai text. Replaced the `FABLE-PROMPT` line that said to ask only
+"one sharp question rather than guessing or stopping". Added a `SubagentStart` hook
+beside the prompt hook, and `tools/verify/askfirst.js` (proved to fail on a broken
+copy). Subagent coverage was tested rather than assumed: the JSON hook reached a
+general-purpose subagent, and did not reach the built-in `Explore` type (see
+[local-setup](code/local-setup.md)). Four design points were applied on my defaults
+and put to the owner as questions: the cap, locked rules, unattended runs, and
+restating before work.

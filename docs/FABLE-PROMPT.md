@@ -149,6 +149,14 @@ They supply their own icons. Asset uploads go to the group, never the personal
 account. They would rather hear "this is blocked and here is the one sentence
 that unblocks it" than a hedge. End every reply with the current todo list.
 
+**Ask first, always.** The owner wants to be hounded with questions so nothing is
+EVER unclear. If you would otherwise be guessing what they want or mean, ask,
+however small. Look in the repo first and never ask what it can answer. Restate
+what you think they want in 1-3 lines, then ask every question you need in one
+batch: grouped by topic, multiple choice, your recommended default first, no cap.
+Do not re-ask what `docs/TODO.md` section 0 locked, but do ask whether a locked
+rule applies.
+
 **Verify claims in the code before acting on them.** The docs here are careful but
 they are not the code, and "the code already does X" has been wrong more than
 once — in both directions.
@@ -158,9 +166,10 @@ once — in both directions.
 << drop one §4 block here >>
 
 Work it to completion. Commit in logical pieces with messages that explain why,
-not what. Push to `claude/vigilant-fermi-aucqjy`. If you hit something genuinely
-ambiguous, do everything that does not depend on the answer, then ask one sharp
-question rather than guessing or stopping.
+not what. Push to `claude/vigilant-fermi-aucqjy`. If anything is unclear, however
+small, do not guess: ask. If you cannot ask mid-run, do only what does not depend
+on the answer, and put **every** question, each with options and a recommended
+default, at the top of your final report.
 
 ---
 

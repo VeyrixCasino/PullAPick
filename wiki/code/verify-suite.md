@@ -64,12 +64,13 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
 **L** marks the 18 checks that execute the `luau` binary (the original 14 plus
 `compile`, `economy-exploits`, `heldtool` and `oreframes`, by a grep for how each
 calls the binary; I did not run the suite with the binary removed). Without the binary they
-DID NOT RUN. The docs say "11 of 23", which is stale: there are 40 now, counting `wiki` (`oreskins` `9733a05`, `heldtool` `b19c4c2`,
+DID NOT RUN. The docs say "11 of 23", which is stale: there are 41 now, counting `wiki` and `askfirst` (`oreskins` `9733a05`, `heldtool` `b19c4c2`,
 `economy-exploits` `4cc82a5`, `compile` `5d59714`, `ui-scale` `39d94bf`,
 `oreframes` `bef7b0d`). The run on 2026-10-08 was **40 passed, 0 failed, 0 did not run**.
 
 | check | asserts |
 |---|---|
+| `askfirst` | the owner's ask-first rule is present at every agent entry point (`CLAUDE.md`, `AGENTS.md`, `house-rules.txt`, the pasted prompts, the Claude.ai text, TODO §0.35); the `UserPromptSubmit` and `SubagentStart` hooks exist, are plain single-quoted `echo`s PowerShell can run, and the subagent one is `additionalContext` JSON; the old soft rule has not come back |
 | `bignum` **L** | `MineBigNum` and `MineAbbrev.currency` agree: 4 significant figures, always floored |
 | `breaking` | the ORE_REACH +15 rule matches in `MineBreaking.blockStrength` (the gate) and `MineConfig.canBreakOre` (the UI) |
 | `build-stamp` | every `MineBuild.EXPECT` module exists and says what the player loses. The client calls `announce()`. |

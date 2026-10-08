@@ -2,7 +2,7 @@
 title: Ambiguous terms — words that mean more than one thing here
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - docs/TODO.md §0
   - docs/OPEN.md
@@ -14,9 +14,11 @@ related: [glossary, owner, open-questions, overview]
 
 # Ambiguous terms
 
-> **This is the list behind the owner's "ask me first" rule.** If a request uses
+> **This is the list behind the owner's "ask first, always" rule** (2026-10-08:
+> hound them with questions so nothing is ever unclear). If a request uses
 > one of these words with no context, **do not guess. Ask which meaning** (see
-> `CLAUDE.md`, "Ask before you assume"). Put the options in your question, in
+> `CLAUDE.md`, "Ask first, always"). The list is a floor, not a ceiling: ask about
+> anything else you would otherwise be guessing. Put the options in your question, in
 > player terms, with your best guess first. Check the page for each system first,
 > so the question is specific.
 >
