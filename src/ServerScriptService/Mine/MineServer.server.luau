@@ -4328,6 +4328,25 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		local rock = (zone and zone.dirt) or Color3.fromRGB(96, 92, 88)
 		part.Color = Color3.new(rock.R * 0.7, rock.G * 0.7, rock.B * 0.7)
 		--[[
+			A PLAIN ORE IS JUST ITS OWN BLOCK. Owner: "make the stone ore, just
+			a grey block".
+
+			The darkened host and the SmoothPlastic below exist to give pixel
+			art a flat surface to itself. An ore in C.ORE_PLAIN gets no art at
+			all -- MineOreFace reads the same list -- so that reasoning
+			inverts: it should wear its own colour and its own material, which
+			for Stone is plain grey Rock.
+
+			Only the two art-host lines are skipped. Everything after this
+			branch -- OreId, HP, the attributes the client and the dig path
+			read -- still runs, because a plain ore is a normal ore in every
+			way except how it is painted.
+		]]
+		local plain = (C.ORE_PLAIN and C.ORE_PLAIN[oreDef.id]) and true or false
+		if plain then
+			part.Color = oreDef.color or part.Color
+		end
+		--[[
 			SmoothPlastic on purpose: flat, textureless, no surface detail.
 
 			Roblox's stone materials carry their own grain, and that grain reads
@@ -4336,7 +4355,8 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 			gives the pixel art the whole surface to itself, which is why every
 			game that draws ore this way keeps the block underneath plain.
 		]]
-		part.Material = Enum.Material.SmoothPlastic
+		part.Material = plain and (oreDef.material or Enum.Material.Rock)
+			or Enum.Material.SmoothPlastic
 		part:SetAttribute("OreId", oreDef.id)
 		part:SetAttribute("OreName", oreDef.name)
 		part:SetAttribute("OreTier", oreDef.tier)

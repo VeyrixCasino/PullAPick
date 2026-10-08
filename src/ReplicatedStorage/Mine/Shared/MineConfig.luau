@@ -2439,6 +2439,25 @@ function MineConfig.oreBlockHp(ore, zone, layer)
 	return math.max(1, math.floor(dirt * MineConfig.oreHardness(ore) + 0.5))
 end
 
+--[[
+	ORES THAT ARE JUST A BLOCK. Owner, 2026-10-08: "make the stone ore, just a
+	grey block".
+
+	Two things follow from being in here, and they live on opposite sides of
+	the wire, so the set has to be somewhere both can read it:
+
+	  server  paints the block the ORE's own colour and material, instead of
+	          the darkened host rock every other ore block gets
+	  client  draws no face on it (MineOreFace.PLAIN reads this)
+
+	The dark SmoothPlastic host exists so pixel art has a flat surface to
+	itself. An ore with no art wants the opposite -- its own colour, its own
+	material -- so the two decisions are the same decision and share a list.
+]]
+MineConfig.ORE_PLAIN = {
+	stone = true,
+}
+
 MineConfig.ORE_CHANCE = 1 / 200
 
 --[[

@@ -12441,9 +12441,19 @@ end)
 	budget, so a plain block of locals here would break the whole client.
 ]]
 task.spawn(function()
+	--[[
+		MineOreFace replaces MineOreArt here. The old path looked the ore up in
+		Cfg.ORE_FACE -- an index into THIRTY hand-packed tiles shared across 82
+		ores, so most ores wore someone else's face -- and hung six tiling
+		Textures per block. The new one draws the ore's own colour and material
+		and hangs Decals, which have no tiling to drift at block edges.
+
+		MineOreArt is left in the tree: it still owns the packed-tile pipeline
+		and nothing else was asked to change about it.
+	]]
 	local okArt, Art = pcall(function()
 		return require(game:GetService("ReplicatedStorage")
-			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineOreArt"))
+			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineOreFace"))
 	end)
 	if not okArt or not Art then
 		return
@@ -12452,7 +12462,7 @@ task.spawn(function()
 		return require(game:GetService("ReplicatedStorage")
 			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineConfig"))
 	end)
-	if not okCfg or not Cfg or type(Cfg.ORE_FACE) ~= "table" then
+	if not okCfg or not Cfg or not Cfg.oreById then
 		return
 	end
 
@@ -12464,12 +12474,14 @@ task.spawn(function()
 		if type(id) ~= "string" then
 			return
 		end
-		local index = Cfg.ORE_FACE[id]
-		if not index then
+		-- The whole roster row, not an index: the face is drawn from the ore's
+		-- own colour, met, rough and glow.
+		local ore = Cfg.oreById(id)
+		if not ore then
 			return
 		end
 		pcall(function()
-			Art.apply(part, index)
+			Art.apply(part, ore)
 		end)
 	end
 
