@@ -115,6 +115,18 @@ MineAudio.IDS = {
 		"rbxassetid://9116394876",
 	},
 	click = "rbxassetid://9113885761", -- every UI button: tiny soft tick
+	--[[
+		A press that did NOTHING needs to say so.
+
+		Clicking a greyed FORGE or an unaffordable buy was silent, which is the
+		one thing a button must never be: silence is what a broken button sounds
+		like, so a player who cannot afford something cannot tell that from a UI
+		that failed. A short dull knock, well under the click in level, reads as
+		"heard you, no" without scolding -- the thing to avoid here is the
+		buzzer, which is the most aggravating sound a UI can make and gets worse
+		every time.
+	]]
+	deny = "rbxassetid://9118596772", -- dull knock, trimmed hard and pitched down
 	equip = "rbxassetid://9119717523", -- switch click
 	rebirth = "rbxassetid://9116395424", -- warm chime cluster
 	tick = "rbxassetid://9119717523",
@@ -184,6 +196,7 @@ local VOL = {
 	lucky_rattle = 0.30,
 	lucky_pop = 0.46,
 	click = 0.24,
+	deny = 0.20,
 	equip = 0.30,
 	rebirth = 0.48,
 	tick = 0.16,
@@ -222,6 +235,7 @@ local CD = {
 	lucky_rattle = 0.05,
 	lucky_pop = 0.35,
 	click = 0.035,
+	deny = 0.10,
 	equip = 0.08,
 	rebirth = 0.80,
 	tick = 0.016,
@@ -243,6 +257,7 @@ local TRIM = {
 	gravel = 0.24,
 	drill = 0.50,
 	click = 0.12,
+	deny = 0.14,
 	equip = 0.26,
 	rebirth = 2.4,
 	tick = 0.08,
@@ -345,14 +360,35 @@ function MineAudio.bindUiClicks(root)
 		return
 	end
 	root:SetAttribute("UiClicksBound", true)
+	--[[
+		Activated does not fire on a button with Active = false, which is how
+		most disabled buttons in this game are built -- so the press that most
+		needs feedback was the one press that made no sound at all. InputBegan
+		still fires there, so the deny knock hangs off that and is gated on the
+		button being inactive, which is exactly the case Activated misses.
+
+		Order matters: a button that IS active gets its click from Activated as
+		before and must not also knock, or every normal press doubles up.
+	]]
 	local function hook(b)
-		if b:IsA("GuiButton") then
-			b.Activated:Connect(function()
-				if not b:GetAttribute("NoClickSfx") then
-					MineAudio.play("click")
-				end
-			end)
+		if not b:IsA("GuiButton") then
+			return
 		end
+		b.Activated:Connect(function()
+			if not b:GetAttribute("NoClickSfx") then
+				MineAudio.play("click")
+			end
+		end)
+		b.InputBegan:Connect(function(input)
+			if input.UserInputType ~= Enum.UserInputType.MouseButton1
+				and input.UserInputType ~= Enum.UserInputType.Touch then
+				return
+			end
+			if b.Active or b:GetAttribute("NoClickSfx") then
+				return
+			end
+			MineAudio.play("deny")
+		end)
 	end
 	for _, d in root:GetDescendants() do
 		hook(d)
@@ -360,14 +396,91 @@ function MineAudio.bindUiClicks(root)
 	root.DescendantAdded:Connect(hook)
 end
 
-local function pick(entry)
-	if type(entry) == "table" then
-		if #entry == 0 then
-			return nil
-		end
-		return entry[math.random(1, #entry)]
+--[[
+	A SHUFFLE BAG, NOT A DICE ROLL. This is the single biggest thing standing
+	between eight pickaxe samples and a sound that grates.
+
+	math.random over a list does not sound random, it sounds BROKEN. With eight
+	variants there is a 1-in-8 chance each swing repeats the last one and a
+	1-in-64 chance of three in a row, so across a few hundred swings -- which is
+	a couple of minutes of mining -- a player hears the same clip back to back
+	dozens of times. A repeat is the exact event the ear flags as "this is a
+	recording", and once it is flagged every later repeat is louder for it. The
+	variants were already there; randomness was wasting them.
+
+	So: draw without replacement. Every variant plays once before any plays
+	twice, and the reshuffle refuses to start a fresh bag with the clip that
+	just ended the last one -- otherwise the seam between bags is the one place
+	an immediate repeat can still happen.
+
+	Keyed per sound name, because the bags must not share state: a drill swing
+	drawing from the pickaxe bag would reintroduce the repeats this removes.
+]]
+local bags = {}
+
+local function pick(entry, key)
+	if type(entry) ~= "table" then
+		return entry
 	end
-	return entry
+	local n = #entry
+	if n == 0 then
+		return nil
+	end
+	if n == 1 then
+		return entry[1]
+	end
+	key = key or tostring(entry)
+	local bag = bags[key]
+	if not bag or #bag.order == 0 or bag.n ~= n then
+		local order = {}
+		for i = 1, n do
+			order[i] = i
+		end
+		-- Fisher-Yates, then push a seam-repeat to the back.
+		for i = n, 2, -1 do
+			local j = math.random(1, i)
+			order[i], order[j] = order[j], order[i]
+		end
+		if bag and bag.last and order[#order] == bag.last and n > 1 then
+			order[#order], order[1] = order[1], order[#order]
+		end
+		bag = { order = order, n = n, last = bag and bag.last }
+		bags[key] = bag
+	end
+	local idx = table.remove(bag.order)
+	bag.last = idx
+	return entry[idx]
+end
+
+--[[
+	SUSTAINED FIRE RECEDES.
+
+	A sound at full volume every 0.3 seconds for an hour is fatiguing however
+	nice the sample is, and mining is exactly that. Holding a swing now walks
+	the level down a little and settles there; stopping for a breath brings it
+	straight back. The player stops noticing the hits while they are mining and
+	still gets the full one when they start again, which is when it carries
+	information.
+
+	Deliberately shallow -- REPEAT_FLOOR is 0.72, so this is a touch under a
+	quarter off and never a fade to nothing. The hit still has to read as a
+	hit; this is the difference between a sound you stop hearing and a sound
+	you turn off.
+]]
+local REPEAT_FLOOR = 0.72
+local REPEAT_STEP = 0.055
+local REPEAT_FORGET = 1.1
+local repeatRun = {}
+
+local function repeatGain(name, now)
+	local r = repeatRun[name]
+	if not r or (now - r.at) > REPEAT_FORGET then
+		repeatRun[name] = { at = now, n = 1 }
+		return 1
+	end
+	r.at = now
+	r.n += 1
+	return math.max(REPEAT_FLOOR, 1 - (r.n - 1) * REPEAT_STEP)
 end
 
 -- `pitch` (optional) sets PlaybackSpeed; case ticks climb as the reel slows.
@@ -378,7 +491,7 @@ function MineAudio.play(name, extraVol, pitch, at, skipCd)
 	if name == "open" then
 		name = "pack"
 	end
-	local id = pick(MineAudio.IDS[name])
+	local id = pick(MineAudio.IDS[name], name)
 	if not validId(id) then
 		return
 	end
@@ -390,6 +503,8 @@ function MineAudio.play(name, extraVol, pitch, at, skipCd)
 		end
 		lastAt[name] = now
 	end
+	-- Held-down repetition eases off; a pause brings it back to full.
+	local run = repeatGain(name, now)
 	local parent = SoundService
 	if typeof(at) == "Vector3" then
 		if not worldEmit or not worldEmit.Parent then
@@ -410,7 +525,7 @@ function MineAudio.play(name, extraVol, pitch, at, skipCd)
 	local s = Instance.new("Sound")
 	s.Name = "MineSfx_" .. tostring(name)
 	s.SoundId = id
-	s.Volume = (VOL[name] or 0.3) * (extraVol or 1)
+	s.Volume = (VOL[name] or 0.3) * (extraVol or 1) * run
 	s.RollOffMode = Enum.RollOffMode.InverseTapered
 	s.RollOffMinDistance = 10
 	s.RollOffMaxDistance = 90
@@ -420,7 +535,17 @@ function MineAudio.play(name, extraVol, pitch, at, skipCd)
 		or name == "lucky_rattle" or name == "pack_tear" or name == "loot" then
 		s.PlaybackSpeed = 0.88 + math.random() * 0.22
 	elseif name == "click" then
-		s.PlaybackSpeed = 0.94 + math.random() * 0.10
+		--[[
+			Widened from 0.94-1.04. `click` is a SINGLE 0.12s sample and the
+			most-played sound in the game by a wide margin, so it is the one
+			that cannot lean on variants the way the eight-sample pickaxe bag
+			does -- drift is all it has. At +/-9% a short tick reads as a
+			different press rather than a detuned one.
+		]]
+		s.PlaybackSpeed = 0.91 + math.random() * 0.18
+	elseif name == "deny" then
+		-- Down an octave-ish and dead short: a knock, not a buzzer.
+		s.PlaybackSpeed = 0.55 + math.random() * 0.06
 	end
 	-- The button already ticked; a second full click on top reads as a stutter.
 	if name == "equip" and lastAt.click and (now - lastAt.click) < 0.15 then
