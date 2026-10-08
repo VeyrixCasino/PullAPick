@@ -439,7 +439,23 @@ local function buildDrill(t, model, look)
 	local body = (look and look.haft) or ramp(DRILL_BODY, t)
 	local bit = (look and look.metal) or ramp(DRILL_BIT, t)
 	local mat = (look and look.mat) or metalFor(t)
-	local lit = (look and look.lit) or ((not look) and ramp(CELL, t)) or ramp(CELL, t)
+	--[[
+		AN ORE THAT DOES NOT GLOW GETS A DARK CELL, NOT A BRIGHT ONE.
+
+		The old line read `(look and look.lit) or ((not look) and ramp(...)) or
+		ramp(...)`, where the trailing `or ramp(...)` made the middle clause
+		dead and handed a Neon cell to EVERY ore -- including the ones oreLook
+		deliberately leaves unlit, which is the case the rule at the top of this
+		file calls out by name: "a glowing vein on a lump of limestone is the
+		kind of detail that makes everything look cheap".
+
+		The cell, gauge and fins are structural, so they stay; they just stop
+		being light sources. Unlit ores get their own colour darkened and the
+		ore's own material instead of Neon.
+	]]
+	local glow = (look and look.lit) or ((not look) and ramp(CELL, t)) or nil
+	local lit = glow or bit:Lerp(DARK, 0.45)
+	local litMat = glow and Enum.Material.Neon or mat
 
 	-- Everything is authored pointing along -Z, so the bit leads.
 	local handle = box({
@@ -525,7 +541,7 @@ local function buildDrill(t, model, look)
 	cyl({
 		Name = "Cell", Length = 0.66, Dia = 0.46,
 		CFrame = CFrame.new(0, 0.06, 1.45) * CFrame.Angles(math.rad(90), 0, 0),
-		Color = lit, Material = Enum.Material.Neon,
+		Color = lit, Material = litMat,
 	}, model)
 	cyl({
 		Name = "CellCap", Length = 0.12, Dia = 0.56,
@@ -544,7 +560,7 @@ local function buildDrill(t, model, look)
 	if t > 0.62 then
 		box({
 			Name = "Gauge", Size = Vector3.new(0.36, 0.18, 0.26),
-			CFrame = CFrame.new(0, 0.76, 0.95), Color = lit, Material = Enum.Material.Neon,
+			CFrame = CFrame.new(0, 0.76, 0.95), Color = lit, Material = litMat,
 		}, model)
 	end
 	if t > 0.80 then
@@ -552,7 +568,7 @@ local function buildDrill(t, model, look)
 			box({
 				Name = "Fin", Size = Vector3.new(0.1, 0.78, 0.78),
 				CFrame = CFrame.new(s * 0.66, 0.34, 0.55) * CFrame.Angles(0, 0, s * math.rad(24)),
-				Color = lit, Material = Enum.Material.Neon,
+				Color = lit, Material = litMat,
 			}, model)
 		end
 	end
@@ -727,7 +743,15 @@ local function buildExplosive(t, model, look)
 	local trim = (look and look.haft) or ramp(BOMB_TRIM, t)
 	local mat = (look and look.mat)
 		or (t < 0.5 and Enum.Material.Metal or Enum.Material.DiamondPlate)
-	local lit = (look and look.lit) or ramp(CELL, t)
+	--[[
+		Same unlit-ore case as buildDrill: `(look and look.lit) or ramp(...)`
+		gave a Neon core to every ore, because an ore oreLook decided should
+		NOT glow returns look.lit = nil and fell straight through to the ramp.
+		Unlit ores keep the part and lose the light.
+	]]
+	local glow = (look and look.lit) or ((not look) and ramp(CELL, t)) or nil
+	local lit = glow or body:Lerp(DARK, 0.45)
+	local litMat = glow and Enum.Material.Neon or mat
 
 	-- The charge is the object; the haft is just something to hold it by. Keep
 	-- the stick short or the whole thing reads as a lollipop.
@@ -813,7 +837,7 @@ local function buildExplosive(t, model, look)
 		}, model)
 		ball({
 			Name = "Beacon", Dia = 0.17,
-			CFrame = CFrame.new(0.23, cy + r * 0.5 + 0.8, 0), Color = lit, Material = Enum.Material.Neon,
+			CFrame = CFrame.new(0.23, cy + r * 0.5 + 0.8, 0), Color = lit, Material = litMat,
 		}, model)
 		for i = 0, 3 do
 			box({
@@ -844,12 +868,12 @@ local function buildExplosive(t, model, look)
 				Name = "Vent", Size = Vector3.new(0.1, r * 0.44, 0.06),
 				CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, math.rad(i * 60 + 30), 0)
 					* CFrame.new(0, 0, r * 0.5) * CFrame.Angles(0, 0, math.rad(18)),
-				Color = lit, Material = Enum.Material.Neon,
+				Color = lit, Material = litMat,
 			}, model)
 		end
 		ball({
 			Name = "Core", Dia = r * 0.34, CFrame = CFrame.new(0, cy, 0),
-			Color = lit, Material = Enum.Material.Neon,
+			Color = lit, Material = litMat,
 		}, model)
 	end
 	return handle
@@ -1860,7 +1884,15 @@ local KIT_SHAPES = {
 	explosive = { "Explosive", { "Grenade", "Quickcharge", "Breacher", "Precision", "Proximity", "Cluster" } },
 }
 
-local function tryToolKitMesh(family, tier, count)
+--[[
+	`look` is applied to the CLONE, never to the source MeshPart.
+
+	ToolKitMeshes is a shared folder under ReplicatedStorage and every tool in
+	the game clones out of it, so tinting `body` instead of `handle` would
+	repaint that shape for every player holding it -- and persist, because the
+	folder is replicated once and never restored.
+]]
+local function tryToolKitMesh(family, tier, count, look)
 	local root = game:GetService("ReplicatedStorage"):FindFirstChild("ToolKitMeshes")
 	if not root then return nil end
 	local entry = KIT_SHAPES[family]
@@ -1871,7 +1903,25 @@ local function tryToolKitMesh(family, tier, count)
 	count = math.max(2, count or 15)
 	tier = math.clamp(tier or 1, 1, count)
 	local t = (tier - 1) / (count - 1)
-	local si = math.clamp(math.floor(t * (#shapes - 1) + 1e-9) + 1, 1, #shapes)
+	--[[
+		SPREAD THE SHAPES OVER THE LADDER, NOT OVER ALL BUT THE LAST RUNG.
+
+		This read `floor(t * (#shapes - 1)) + 1`, which divides the ladder into
+		#shapes - 1 bands and reaches the final shape only when t is EXACTLY 1 --
+		tier 82 and nothing else. Measured across the 82 ores: the last silhouette
+		in every family went to a single ore (Frack 1, Cluster 1, TrenchShovel 1)
+		while the five below it carried about sixteen each.
+
+		That is backwards for the rung players care most about. The endgame tools
+		are meant to look like endgame tools, and instead eighty-one of eighty-two
+		ores stopped one shape short of the best one in the set.
+
+		Dividing by #shapes gives every shape an equal slice of the ladder, with
+		the top slice running from t = (#shapes-1)/#shapes to 1 like all the rest.
+		min() rather than clamp() on the upper end because t = 1 would otherwise
+		index one past the last shape.
+	]]
+	local si = math.min(math.floor(t * #shapes) + 1, #shapes)
 	-- body rarity advances inside each shape band
 	local band = 1 / #shapes
 	local localT = math.clamp((t - (si - 1) * band) / band, 0, 1)
@@ -1893,11 +1943,42 @@ local function tryToolKitMesh(family, tier, count)
 	if k ~= 1 then
 		handle.Size = handle.Size * k
 	end
+
+	--[[
+		THE ORE, NOT THE KIT BODY.
+
+		Without this the kit mesh keeps the colour ToolKitProceduralBake baked
+		into it -- FieldScrap brown through Composite near-black, six shades
+		chosen by TIER -- so every one of the 82 ores in a family came out the
+		same handful of browns and greys. A Gold pickaxe and a Lead one were
+		pixel-identical, and the ore the player spent the grind on was visible
+		nowhere on the tool.
+
+		`look` already carries the answer and already reaches this function's
+		caller: oreLook pulls colour, material, metalness and roughness straight
+		off the MineConfig.ORES row, which is the same row that colours the ore
+		BLOCK -- so a Copper pick now matches the copper the player mined.
+
+		Material carries the glow on its own. Ores that should shine resolve to
+		Neon, Glass or CrackedLava in their own row, and those materials
+		self-illuminate, so none of this needs a PointLight per held tool.
+	]]
+	if look then
+		if typeof(look.metal) == "Color3" then
+			handle.Color = look.metal
+		end
+		if typeof(look.mat) == "EnumItem" then
+			handle.Material = look.mat
+		end
+		handle.Reflectance = math.clamp(tonumber(look.refl) or 0, 0, 1)
+	end
+
 	handle.Parent = model
 	model.PrimaryPart = handle
 	model:SetAttribute("KitMesh", famName .. "/" .. shapes[si] .. "/" .. (body.Name))
 	model:SetAttribute("KitShape", shapes[si])
 	model:SetAttribute("KitBody", body.Name)
+	model:SetAttribute("OreTinted", look ~= nil)
 	return model, handle, GRIPS[family] or GRIPS.pickaxe
 end
 
@@ -1906,15 +1987,25 @@ end
 	colours, material and silhouette taken from the ore it was made of rather
 	than from the eight-step ramp a cosmetic lookTier indexes.
 
-	A baked kit mesh still wins when one exists -- look only overrides the
-	PROCEDURAL build, which is the path every ore tool actually takes today
-	because no mesh is named after an ore.
+	A baked kit mesh still wins when one exists -- but it is now TINTED by the
+	look rather than ignoring it.
+
+	This comment used to end "look only overrides the PROCEDURAL build, which is
+	the path every ore tool actually takes today because no mesh is named after
+	an ore", and that stopped being true when ToolKitMeshes was checked in. The
+	folder is complete -- three families, every shape, all six bodies -- so
+	tryToolKitMesh hits on EVERY call, the procedural branch below is now
+	effectively unreachable for the families that have kit meshes, and `look`
+	was being dropped on the floor for every forged tool in the game.
+
+	Nothing reported it because both paths return a perfectly good model. The
+	only symptom was that all 82 ores in a family looked the same.
 ]]
 function ToolModelFactory.build(family, tier, count, look)
 	family = BUILDERS[family] and family or "pickaxe"
 	count = math.max(2, count or 15)
 	do
-		local km, kh, kg = tryToolKitMesh(family, tier, count)
+		local km, kh, kg = tryToolKitMesh(family, tier, count, look)
 		if kh then return km, kh, kg end
 	end
 	-- The ore's own position in the roster shapes it, so a tier-1 tool is stubby
