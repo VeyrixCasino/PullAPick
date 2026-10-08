@@ -968,9 +968,37 @@ local function load(plr)
 		running again on any server. Nobody else is touched. Studio has its own
 		stores now (MineConfig.DATASTORE_SUFFIX) and never gets here.
 	]]
-	if plr.UserId == 465369561 and not Svc.Run:IsStudio() then
+	--[[
+		RESET_EPOCH IS HOW A SECOND CLEAN START IS AUTHORISED.
+
+		Owner, 2026-10-08: "reset my save, i want to have nothing".
+
+		The block below already does exactly that, correctly -- back the save up
+		first, then remove it -- and already guarantees it happens at most once,
+		because the backup key's existence is the marker that stops it. Which
+		means it had already fired, and asking for a second reset had no way to
+		say so.
+
+		Bumping this number names a NEW backup key, so the marker for that key
+		does not exist yet and the reset runs one more time. It still cannot run
+		twice: the new backup is written before the save is removed, so the very
+		next join sees the marker. Every previous epoch's backup is left intact,
+		so nothing is ever actually lost -- epoch 1's save is still sitting under
+		_prelaunch_backup.
+
+		Raise it by one for each deliberate wipe. Never reuse a number.
+
+		Studio is included from epoch 2 on. Studio runs against its own store
+		(MineConfig.DATASTORE_SUFFIX) so the key is a different key there, and
+		the same once-per-epoch marker applies -- the old `not IsStudio()` guard
+		was there to stop a wipe on EVERY Studio run, which the marker now
+		handles on its own.
+	]]
+	local RESET_EPOCH = 2
+	if plr.UserId == 465369561 then
 		local key = "u_" .. plr.UserId
-		local backupKey = key .. "_prelaunch_backup"
+		local backupKey = (RESET_EPOCH <= 1) and (key .. "_prelaunch_backup")
+			or string.format("%s_reset_backup_%d", key, RESET_EPOCH)
 		local okB, already = pcall(function()
 			return store:GetAsync(backupKey)
 		end)
@@ -985,7 +1013,7 @@ local function load(plr)
 				pcall(function()
 					store:RemoveAsync(key)
 				end)
-				warn("[Mine] launch reset: owner's test save backed up to " .. backupKey .. " and cleared")
+				warn(string.format("[Mine] reset epoch %d: owner's save backed up to %s and cleared", RESET_EPOCH, backupKey))
 			end
 		end
 	end
