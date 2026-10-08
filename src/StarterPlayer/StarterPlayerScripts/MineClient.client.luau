@@ -189,8 +189,42 @@ uiScale.Parent = gui
 	-- local registers when trying to allocate layoutTopbar", so no MineUI
 	-- ScreenGui was ever created and every panel in the game vanished at once.
 	-- Two names cost the entire UI. Do not add top-level locals to this file.
+--[[
+	THE UI IS AUTHORED AT 1080p, AND NOTHING MAY GROW PAST THE SCREEN.
+
+	Owner, 2026-10-06: "all the scaling is super fucked up... rescale to a
+	comfortable scale".
+
+	It was, and it was mine. The previous line was
+
+	    scale = clamp(short / 820, 0.85, 1.45)
+
+	where `short` is the SHORTER side of the viewport -- which on a landscape
+	monitor is its height. So a 1920x1080 desktop scored 1080/820 = x1.32 and a
+	1440p one hit the x1.45 cap: every panel in the game was a third larger than
+	it was drawn. 820 was never a real baseline, it was a number that made a
+	phone look right and quietly inflated everything else.
+
+	Measured on the owner's window (2714x1026) at the old numbers, the group
+	wheel came out 1476x1206 inside a 1026-tall viewport -- a panel taller than
+	the screen it is drawn on.
+
+	1080 is the real baseline: the tallest fixed panel is 964 and the chrome
+	around it needs the rest, so the layout was authored for a 1080-tall screen.
+	At 1080 the scale is exactly 1.
+
+	THE FIT GUARD IS THE PART THAT MATTERS. Whatever the branches below decide,
+	the tallest panel must still fit with a margin, so the last line clamps
+	against the viewport rather than trusting the ladder. Height only: a panel
+	wider than a phone is a RESPONSIVE problem for that panel to solve, and
+	letting width drive this would crush the whole UI to a third of its size on
+	a portrait screen to accommodate one wheel nobody has open.
+
+	PANEL_H is checked by tools/verify/ui-scale.js against the real panels, so a
+	panel that outgrows it fails there instead of overflowing in someone's game.
+]]
 local function refreshMineUiScale()
-	local BASELINE, SCALE_MAX = 820, 1.45
+	local DESIGN, LO, HI, PANEL_H = 1080, 0.80, 1.25, 964
 	local cam = workspace.CurrentCamera
 	local v = cam and cam.ViewportSize or Vector2.new(1280, 720)
 	local short = math.min(v.X, v.Y)
@@ -206,9 +240,11 @@ local function refreshMineUiScale()
 			scale = 1
 		end
 	else
-		scale = math.clamp(short / BASELINE, 0.85, SCALE_MAX)
+		scale = math.clamp(short / DESIGN, LO, HI)
 	end
-	uiScale.Scale = scale
+	-- The tallest panel, plus a 6% margin, must fit the viewport height.
+	local fit = (v.Y * 0.94) / PANEL_H
+	uiScale.Scale = math.max(0.5, math.min(scale, fit))
 end
 refreshMineUiScale()
 
@@ -9309,8 +9345,26 @@ function ClientFns.stepPetFollow(pet, root, slotIndex, now, dt, total)
 		without the waveform jumping, which is what the old
 		`sin(now * bobHz + phase)` did every time bobHz flipped.
 	]]
-	local bobRate = 1.9 + gait * 2.2
-	state.bobPhase += bobRate * dt * math.pi * 2
+	--[[
+		SLOWER, AND IT CANNOT ALIAS.
+
+		Owner, 2026-10-06: pets are "bobing up and down super fucking fast".
+
+		Two causes, both mine. The rate was 1.9 Hz at rest rising to 4.1 Hz at a
+		walk -- nearly four bobs a second, a twitch rather than a gait. And
+		raising the dt clamp to 0.1 for the spring let one frame advance the
+		phase by 4.1 * 0.1 * 2pi = 2.6 radians, past the half cycle at which a
+		sine stops being sampled and starts being ALIASED: the pet then appears
+		to jump at a frequency with no relation to the wave. At the 10 fps the
+		owner was seeing, that is exactly what happened.
+
+		0.55 Hz at rest to 1.65 Hz walking reads as breathing, then stepping.
+		The per-frame cap is the belt: no frame may advance more than a quarter
+		cycle, so a slow frame SLOWS the bob rather than scrambling it. Only this
+		cosmetic wave is clamped -- the pet's position still tracks real time.
+	]]
+	local bobRate = 0.55 + gait * 1.1
+	state.bobPhase += math.min(bobRate * dt * math.pi * 2, math.pi * 0.5)
 	local bobAmp = 0.09 + gait * 0.07
 	local bob = math.sin(state.bobPhase) * bobAmp
 

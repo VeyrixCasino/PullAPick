@@ -1,0 +1,17 @@
+{
+  "_comment": "Design sizes (UDim2 OFFSETS, so scale-independent) of every fixed-size panel in the client UI. Measured from a live Studio session on 2026-10-06 and consumed by ui-scale.js.",
+  "_refresh": "In a Play session, Client datamodel: walk PlayerGui.MineUI to depth 3 and collect every GuiObject whose Size has X.Offset >= 260 and Y.Offset >= 200 and both Scale components < 0.9, recording Name, X.Offset, Y.Offset.",
+  "measured": "2026-10-06",
+  "panels": [
+    { "n": "GroupWheelPanel", "w": 1180, "h": 964 },
+    { "n": "Disc", "w": 702, "h": 702 },
+    { "n": "GroupWheelFrame", "w": 702, "h": 702 },
+    { "n": "ForgePanel", "w": 720, "h": 580 },
+    { "n": "DepthShopShell", "w": 720, "h": 560 },
+    { "n": "TemperPicker", "w": 580, "h": 440 },
+    { "n": "ElevatorPick", "w": 320, "h": 420 },
+    { "n": "Stage", "w": 548, "h": 390 },
+    { "n": "DailySurprise", "w": 440, "h": 280 },
+    { "n": "Daily", "w": 420, "h": 250 }
+  ]
+}

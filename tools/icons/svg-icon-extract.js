@@ -144,19 +144,47 @@ const icons = [];
 const groupRe = /<g mask="url\(#([^)]+)\)">\s*<g transform="matrix\(([^)]+)\)">\s*(<image\b[^>]*>)/g;
 for (const m of svg.matchAll(groupRe)) {
   const [a, , , d, e, f] = m[2].split(",").map((v) => parseFloat(v));
-  icons.push({ maskId: m[1], sx: a, sy: d, x: e, y: f, colour: b64of(m[3]) });
+  // On-canvas height: the image's own height through this group's scale. Used
+  // to derive the row threshold below, so it must come off the same transform.
+  const hAttr = /height="(\d+)"/.exec(m[3]);
+  icons.push({
+    maskId: m[1], sx: a, sy: d, x: e, y: f,
+    h: (hAttr ? parseFloat(hAttr[1]) : 0) * d,
+    colour: b64of(m[3]),
+  });
 }
 
 console.log(`masks ${masks.size}, content groups ${icons.length}`);
 
-// 3. reading order. Rows are found by clustering y, because the transforms are
-//    sub-pixel and no two rows share an exact y.
+//[[ 3. Reading order. Rows are found by clustering y, because transforms are
+//    sub-pixel and no two icons in a row share an exact y.
+//
+//    THE THRESHOLD IS HALF AN ICON. It was hardcoded at 40, which suits a sheet
+//    whose rows sit ~200 apart and fails on one whose rows sit 34 apart with 5px
+//    of jitter inside each row: 40 merged every pair of rows and the ores sheet
+//    read as 19,13,17,20,12,3 instead of a grid.
+//
+//    Inferring it from the GAPS was worse. Splitting the sorted gaps at their
+//    largest jump fixed ores and broke the tool sheets, turning 8 rows of 11
+//    into 22,22,11,22,11 -- the jump landed between two between-row spacings
+//    rather than between jitter and spacing, and nothing in the gaps alone says
+//    which is which.
+//
+//    The icon's own on-canvas height does say. Two icons in a row overlap in y
+//    by far less than their height; two rows are separated by about one. So
+//    half the median height sits cleanly between the two, whatever the sheet's
+//    scale. Verified across all four supplied sheets: ores 9 rows, picks,
+//    drills and explosives 8 each. ]]
 icons.sort((p, q) => p.y - q.y || p.x - q.x);
+const heights = icons.map((i) => i.h).filter((h) => h > 0).sort((a, b) => a - b);
+const medianH = heights.length ? heights[Math.floor(heights.length / 2)] : 80;
+const rowGap = medianH * 0.5;
 let row = 0, rowY = icons.length ? icons[0].y : 0;
 for (const ic of icons) {
-  if (ic.y - rowY > 40) { row++; rowY = ic.y; }
+  if (ic.y - rowY > rowGap) { row++; rowY = ic.y; }
   ic.row = row;
 }
+console.log(`row threshold ${rowGap.toFixed(1)} (half the median icon height ${medianH.toFixed(1)})`);
 for (const ic of icons) ic.key = ic.row * 1e6 + ic.x;
 icons.sort((p, q) => p.key - q.key);
 const perRow = {};

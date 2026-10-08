@@ -38,6 +38,7 @@ local Tools = require(shared:WaitForChild("MineTools"))
 -- A forged tool IS its ore: the name, the frame and the price all come
 -- from one place so the panel and the craft verb cannot disagree.
 local OreTools = require(shared:WaitForChild("MineOreTools"))
+local OreIcons = require(shared:WaitForChild("MineOreIcons"))
 local T = require(shared:WaitForChild("MineTheme"))
 local UI = require(shared:WaitForChild("MineUI"))
 local Icons = require(shared:WaitForChild("MineIcons"))
@@ -395,14 +396,29 @@ function MineForge.mount(parent, opts)
 				LayoutOrder = i,
 			}, pouchScroll)
 			round(chip, 6)
-			-- A dot in the ore's own colour, so the strip and the ore itself
-			-- agree about what it looks like without naming it twice.
+			--[[
+				The ore's own render, with its colour behind as the fallback.
+
+				This was a 10px dot in `ore.color`, which told you an ore was
+				greenish and nothing else -- and the roster has several greens.
+				The art is unambiguous at a glance, which is the whole job of a
+				strip you read while deciding what to forge.
+			]]
 			local dot = mk("Frame", {
 				BackgroundColor3 = (typeof(r.ore.color) == "Color3") and r.ore.color or MUTED,
-				Position = UDim2.fromOffset(7, 8),
-				Size = UDim2.fromOffset(10, 10),
+				Position = UDim2.fromOffset(5, 4),
+				Size = UDim2.fromOffset(18, 18),
 			}, chip)
 			round(dot, 5)
+			local dotArt = OreIcons.icon(r.ore.id)
+			if dotArt then
+				mk("ImageLabel", {
+					BackgroundTransparency = 1,
+					Image = dotArt,
+					ScaleType = Enum.ScaleType.Fit,
+					Size = UDim2.fromScale(1, 1),
+				}, dot)
+			end
 			label(chip, tostring(r.ore.name or r.ore.id), 11, TEXT,
 				UDim2.fromOffset(22, 0), UDim2.new(1, -70, 1, 0), FONT_M)
 			label(chip, cash(r.n), 11, GOLD, UDim2.new(1, -48, 0, 0),
@@ -508,7 +524,7 @@ function MineForge.mount(parent, opts)
 			costLine = num(coins or 0) .. " coins"
 			heldLine = "held  " .. num(have) .. " coins"
 		else
-			local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.typeId)
+			local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
 			local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
 			-- C.ORES[tool.tier] is what the server's _oreToolCost uses. Resolve
 			-- it the same way or the panel quotes a different ore than the verb
@@ -567,7 +583,7 @@ function MineForge.mount(parent, opts)
 
 		-- Scrapping is always offered; it is the one action that works when the
 		-- player cannot afford anything else.
-		local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.typeId)
+		local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
 		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
 		-- Equipping is what turns a forged tool into breaking power you actually
 		-- carry, so it sits beside the levelling buttons rather than buried.
@@ -677,8 +693,10 @@ function MineForge.mount(parent, opts)
 			return
 		end
 		local fam = selFamily
-		local frame = OreTools.frameForTier(fam, row.tier)
-		local typeMult = frame and OreTools.typeMult(fam, frame.id) or 1
+		-- The multiplier is the ore's, not a frame's. See MineOreTools.typeMult:
+		-- it was always a function of tier, and the frame lookup it reached
+		-- through is gone with the priced roster.
+		local typeMult = OreTools.typeMult(fam, row.tier)
 		local cost = C.toolCraftCost(row.tier, typeMult)
 		local afford = (row.have or 0) >= cost
 
@@ -933,9 +951,7 @@ function MineForge.mount(parent, opts)
 				selOreId = ores[1] and ores[1].id or nil
 			end
 			for i, o in ipairs(ores) do
-				local frame = OreTools.frameForTier(selFamily, o.tier)
-				local cost = C.toolCraftCost(o.tier,
-					frame and OreTools.typeMult(selFamily, frame.id) or 1)
+				local cost = C.toolCraftCost(o.tier, OreTools.typeMult(selFamily, o.tier))
 				local owned = ownedForOre(snapshot, selFamily, o.tier)
 				local afford = (o.have or 0) >= cost
 				row(i, OreTools.name(o.def, selFamily),

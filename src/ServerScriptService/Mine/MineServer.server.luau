@@ -1,13 +1,31 @@
 -- MineServer compact: AFK mining TCG. Original city place is not modified.
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local CollectionService = game:GetService("CollectionService")
-local DSS = game:GetService("DataStoreService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local RS = game:GetService("ReplicatedStorage")
+--[[
+	ONE TABLE FOR THE SERVICES, AND IT IS NOT TIDINESS.
 
-local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
+	Luau gives a function 200 registers, and a script's main chunk IS a
+	function, so every top-level local spends one. This script had ZERO left:
+	tools/verify/compile.js measures headroom by appending live locals until
+	the compile fails, and the answer here was 0. The next top-level local
+	added by anyone would have stopped the whole script compiling -- which does
+	not fail loudly. It happened on 2026-10-05: the server script never ran, so
+	MineNet was never created and every client hung on WaitForChild, with one
+	line in the output to explain it.
+
+	Seven service locals become one, buying back six registers. Services are
+	the cheapest place to find them: referenced often, declared once, so the
+	saving is structural rather than a rewrite of any logic.
+]]
+local Svc = {
+	Players = game:GetService("Players"),
+	Run = game:GetService("RunService"),
+	Teleport = game:GetService("TeleportService"),
+	Collection = game:GetService("CollectionService"),
+	DSS = game:GetService("DataStoreService"),
+	Marketplace = game:GetService("MarketplaceService"),
+	RS = game:GetService("ReplicatedStorage"),
+}
+
+local shared = Svc.RS:WaitForChild("Mine"):WaitForChild("Shared")
 local C = require(shared.MineConfig)
 local Cards = require(shared.MineCards)
 local Packs = require(shared.MinePackConfig)
@@ -61,9 +79,9 @@ local Dig = {
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
-local store = DSS:GetDataStore(C.DATASTORE)
+local store = Svc.DSS:GetDataStore(C.DATASTORE)
 -- Per-card ownership ledger: key = 16-hex serial, value = userId.
-local serialStore = DSS:GetDataStore(tostring(C.DATASTORE) .. "_card_serials")
+local serialStore = Svc.DSS:GetDataStore(tostring(C.DATASTORE) .. "_card_serials")
 local profiles, busy, voxels, swingBudget = {}, {}, {}, {}
 -- In-flight battle-pass claims: [userId] = { ["free_3"|"premium_3"] = true }
 local claimPassLocks = {}
@@ -177,7 +195,7 @@ local function refreshVipPass(plr)
 		return false
 	end
 	local ok, owns = pcall(function()
-		return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, C.VIP_GAMEPASS_ID or 1977363670)
+		return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, C.VIP_GAMEPASS_ID or 1977363670)
 	end)
 	local valued = (ok and owns == true) or false
 	vipPassOwned[plr.UserId] = valued
@@ -190,7 +208,7 @@ local function refreshVipPass(plr)
 				return false
 			end
 			local ok2, owns2 = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, gid)
+				return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, gid)
 			end)
 			return ok2 and owns2 == true
 		end
@@ -221,9 +239,9 @@ local function hasVipPass(plr)
 	return refreshVipPass(plr)
 end
 
-local remotes = RS.Mine:FindFirstChild("Remotes") or Instance.new("Folder")
+local remotes = Svc.RS.Mine:FindFirstChild("Remotes") or Instance.new("Folder")
 remotes.Name = "Remotes"
-remotes.Parent = RS.Mine
+remotes.Parent = Svc.RS.Mine
 local net = remotes:FindFirstChild("MineNet") or Instance.new("RemoteEvent")
 net.Name = "MineNet"
 net.Parent = remotes
@@ -255,7 +273,7 @@ end
 require(shared.MineWorldEvents).bind({
 	C = C,
 	Gear = Gear,
-	Players = Players,
+	Players = Svc.Players,
 	profiles = profiles,
 	net = net,
 })
@@ -617,7 +635,7 @@ local function claimSerial(serial, userId)
 	end
 	-- Studio DataStore queues stall join when every card claims on load.
 	-- Trust the local profile in Studio; live servers still hit the ledger.
-	if RunService:IsStudio() then
+	if Svc.Run:IsStudio() then
 		return "won"
 	end
 	local status = "error"
@@ -702,7 +720,7 @@ local function nukeSerialEverywhere(serial, reason)
 	end
 	clearSerialLedger(serial)
 	local hit = 0
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		local p = profiles[plr.UserId]
 		if p then
 			local n = stripSerialFromProfile(p, serial)
@@ -941,7 +959,7 @@ local function load(plr)
 		running again on any server. Nobody else is touched. Studio has its own
 		stores now (MineConfig.DATASTORE_SUFFIX) and never gets here.
 	]]
-	if plr.UserId == 465369561 and not RunService:IsStudio() then
+	if plr.UserId == 465369561 and not Svc.Run:IsStudio() then
 		local key = "u_" .. plr.UserId
 		local backupKey = key .. "_prelaunch_backup"
 		local okB, already = pcall(function()
@@ -982,7 +1000,7 @@ local function load(plr)
 		so a stale copy can never land over a newer one.
 	]]
 	local key = "u_" .. plr.UserId
-	local lockTtl = RunService:IsStudio() and 0 or 120
+	local lockTtl = Svc.Run:IsStudio() and 0 or 120
 	local data, read = nil, false
 	-- With API access off, all 8 lock-claim attempts are refused and each one logs
 	-- StudioAccessToApisNotAllowed with backoff between -- the UpdateAsync lines
@@ -994,7 +1012,7 @@ local function load(plr)
 	-- closure and the guard would silently never fire. That trap has bitten this
 	-- file four times (shortNum, invCtl, vipSeatsLeft, SET_IDS).
 	local claimAttempts = 8
-	if RunService:IsStudio() and LeaderboardService.dataStoresUsable
+	if Svc.Run:IsStudio() and LeaderboardService.dataStoresUsable
 		and not LeaderboardService.dataStoresUsable() then
 		claimAttempts = 0
 	end
@@ -1023,7 +1041,7 @@ local function load(plr)
 	if not read then
 		-- Studio: UpdateAsync can fail on API blips / leftover locks. Fall back to
 		-- GetAsync so we still play on the real save and keep writing.
-		if RunService:IsStudio() then
+		if Svc.Run:IsStudio() then
 			local okG, got = pcall(function()
 				return store:GetAsync(key)
 			end)
@@ -1034,7 +1052,7 @@ local function load(plr)
 		end
 	end
 	if not read then
-		if RunService:IsStudio() then
+		if Svc.Run:IsStudio() then
 			-- Studio without API access: play on a throwaway profile.
 			error("datastore unavailable in Studio")
 		end
@@ -1846,7 +1864,7 @@ local function load(plr)
 			local Founders = require(shared.MineFounders)
 			if Founders.isMember(p) then return end
 			local ok, owns = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
+				return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
 			end)
 			if ok and owns then
 				local seatsRef = { left = vipSeatsLeft }
@@ -1898,7 +1916,7 @@ local function save(plr)
 	-- A final save (leaving, shutdown) hands the lock back so the next server
 	-- can load this player straight away instead of waiting for it to expire.
 	local final = p._releasing and true or false
-	local lockTtl = RunService:IsStudio() and 0 or 120
+	local lockTtl = Svc.Run:IsStudio() and 0 or 120
 	for attempt = 1, 3 do
 		local lost = false
 		local ok, err = pcall(function()
@@ -2221,29 +2239,50 @@ local function equippedTool(p)
 			end
 		end
 		if oreRow then
+			--[[
+				THE STATS COME FROM THE ORE, NOT FROM A FRAME.
+
+				This walked Tools.TOOLS for the row's typeId and took `rate`,
+				`radius`, `cells` and `shape` off whatever frame it found. That
+				roster is gone, so the stats are read from MineOreTools instead,
+				where they are baked per family per ore tier -- the same values,
+				verified 2,460 for 2,460 against the roster before it was removed.
+
+				Without this the fallbacks below would have taken over and every
+				forged DRILL and EXPLOSIVE would quietly become a one-cell melee
+				pickaxe: no area clear, no blast, and nothing to error on.
+
+				The name is the family's noun now. It used to be the FRAME's
+				name, so a forged tool read "Stone Chipped Crown" -- an ore and
+				an invented frame title, which is the exact confusion
+				MineOreTools was written to end.
+			]]
 			local famId = oreRow.familyId or "pickaxe"
-			local typeDef, typeMult = nil, 1
-			for _, td in ipairs((Tools.TOOLS or {})[famId] or {}) do
-				if td.id == oreRow.typeId then
-					typeDef = td
-					local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-					typeMult = (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
-					break
-				end
-			end
+			local OreToolsM = require(shared:WaitForChild("MineOreTools"))
+			local stats = OreToolsM.frameStats(famId, oreRow.tier)
+			local typeMult = OreToolsM.typeMult(famId, oreRow.tier)
 			local oreDef = C.ORES and C.ORES[tonumber(oreRow.tier) or 1]
 			local level = math.max(1, tonumber(oreRow.level) or 1)
 			local def = {
 				id = "oretool_" .. tostring(oreRow.uid),
 				name = string.format("%s %s",
 					(oreDef and oreDef.name) or ("Tier " .. tostring(oreRow.tier)),
-					(typeDef and typeDef.name) or "Tool"),
+					OreToolsM.familyNoun(famId)),
 				family = famId,
 				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult))),
-				rate = (typeDef and typeDef.rate) or 2.6,
-				radius = (typeDef and typeDef.radius) or 0,
-				cells = (typeDef and typeDef.cells) or 1,
-				shape = (typeDef and typeDef.shape) or "melee",
+				rate = stats.rate or 2.6,
+				radius = stats.radius or 0,
+				cells = stats.cells or 1,
+				shape = stats.shape or "melee",
+				-- Carried through for the families that use them. A drill needs
+				-- its width and axis to clear more than one block; an explosive
+				-- needs its bomb count, pattern and cooldown to be a bomb.
+				width = stats.width,
+				axis = stats.axis,
+				turn = stats.turn,
+				bombs = stats.bombs,
+				pattern = stats.pattern,
+				cooldown = stats.cooldown,
 				oreTier = math.max(1, math.floor(tonumber(oreRow.tier) or 1)),
 				oreToolEquipped = oreRow.uid,
 				level = level,
@@ -4174,6 +4213,29 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	part.CFrame = CFrame.new(pos)
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
+	--[[
+		THE MINE IS THOUSANDS OF PARTS, SO EVERY PER-PART COST IS MULTIPLIED BY
+		THOUSANDS.
+
+		Owner, 2026-10-06, with the microprofiler open: GPU averages ~50 ms while
+		MOVING and spikes to 80, against a 33 ms target, on a 5070 Ti. Measured
+		live, the mine holds about 4,900 parts.
+
+		CastShadow was never set, so every one of them cast a shadow. Shadow maps
+		are re-rendered as the camera moves, which is exactly the "when I move"
+		shape of the spike, and underground there is no sun to cast them from --
+		the cost bought nothing. The rest of this codebase already knows this:
+		chests, pets and portal FX all set CastShadow = false.
+
+		CanTouch was also left on, so all 4,900 took part in touch resolution as
+		the character walked through the shaft. The only Touched handler in the
+		game is on the sell pad (Machine == "sell"), so blocks never needed it.
+
+		CanQuery STAYS TRUE. Mining is a raycast against these parts; turning it
+		off would make the mine unclickable.
+	]]
+	part.CastShadow = false
+	part.CanTouch = false
 	-- Fallback for an unrecognised kind. Was C.BLOCKS.fossil, which no longer
 	-- exists; dirt is the plain rock every zone already starts from.
 	local spec = C.BLOCKS[kind] or C.BLOCKS.dirt
@@ -4371,7 +4433,7 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		blockName = strata.name
 	end
 	part:SetAttribute("BlockName", blockName)
-	CollectionService:AddTag(part, "MineVoxel")
+	Svc.Collection:AddTag(part, "MineVoxel")
 	local folder = workspace.MineWorld.Pits:FindFirstChild("Vox_" .. zone.id)
 	if not folder then
 		folder = Instance.new("Folder")
@@ -4649,6 +4711,18 @@ local function ensureZone(zone, throughLayer)
 	if not salt then
 		salt = Random.new():NextInteger(1, 1073741823)
 		mineResetState.seed[zone.id] = salt
+	end
+	--[[
+		The ore field needs this salt too, or it is the same mine forever.
+
+		`rng` below only decides where the CHESTS go. Ore moved to
+		MineConfig.veinOreAt, which is positional by design -- that is what lets a
+		vein agree with itself across blocks spawned minutes apart -- and until
+		now the only thing seeding it was a hash of the zone's name. Owner,
+		2026-10-06: "every time i join 4 halite on top of the line".
+	]]
+	if C.setVeinSalt then
+		C.setVeinSalt(zone.id, salt)
 	end
 	local rng = Random.new(salt + from)
 	local made = 0
@@ -6434,7 +6508,7 @@ task.spawn(function()
 		task.wait(1)
 		local now = os.clock()
 		for uid, mine in pairs(Dig.QUAKE) do
-			local plr = Players:GetPlayerByUserId(uid)
+			local plr = Svc.Players:GetPlayerByUserId(uid)
 			local prof = plr and profiles[uid] or nil
 			if not (plr and prof) then
 				Dig.QUAKE[uid] = nil
@@ -9607,7 +9681,7 @@ function Verbs.bindSellPad(part)
 	end
 	Verbs.sellPadBound[part] = true
 	part.Touched:Connect(function(hit)
-		local plr = hit and hit.Parent and Players:GetPlayerFromCharacter(hit.Parent)
+		local plr = hit and hit.Parent and Svc.Players:GetPlayerFromCharacter(hit.Parent)
 		if not plr then
 			return
 		end
@@ -10554,7 +10628,7 @@ local function tryPrestige(plr)
 end
 
 function Verbs.debugGrantRune(plr, payload)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.runes = p.runes or {}
@@ -10607,7 +10681,7 @@ function Verbs.debugGrantRune(plr, payload)
 end
 
 function Verbs.debugGrantBlastSet(plr)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.gear = p.gear or {}
@@ -10627,7 +10701,7 @@ function Verbs.debugGrantBlastSet(plr)
 end
 
 function Verbs.debugGrantL99Blast(plr, payload)
-	if not RunService:IsStudio() then return end
+	if not Svc.Run:IsStudio() then return end
 	local p = profiles[plr.UserId]
 	if not p then return end
 	p.runes = p.runes or {}
@@ -11319,7 +11393,7 @@ local function joinVip(plr)
 	end
 	do
 		local ok, owns = pcall(function()
-			return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
+			return Svc.Marketplace:UserOwnsGamePassAsync(plr.UserId, Founders.gamePassId(C))
 		end)
 		if ok and owns then
 			local seatsRef = { left = vipSeatsLeft }
@@ -11457,7 +11531,7 @@ local function ensureDustShop()
 		DUST_SHOP.fetchedAt = os.clock()
 		task.spawn(function()
 			pcall(function()
-				local ds = DSS:GetDataStore(C.storeName("DustShopGlobal_v1"))
+				local ds = Svc.DSS:GetDataStore(C.storeName("DustShopGlobal_v1"))
 				local saved = ds:GetAsync(key)
 				if DUST_SHOP.key == key and type(saved) == "table" and type(saved.sold) == "table" then
 					for id, n in pairs(saved.sold) do
@@ -11506,7 +11580,7 @@ local function takeDustStock(packId, qty)
 	end
 	local key, granted = shop.key, false
 	local ok = pcall(function()
-		DSS:GetDataStore(C.storeName("DustShopGlobal_v1")):UpdateAsync(key, function(old)
+		Svc.DSS:GetDataStore(C.storeName("DustShopGlobal_v1")):UpdateAsync(key, function(old)
 			old = (type(old) == "table") and old or { sold = {} }
 			old.sold = (type(old.sold) == "table") and old.sold or {}
 			local cur = tonumber(old.sold[packId]) or 0
@@ -12849,7 +12923,7 @@ function Verbs.buyCreditPack(plr, payload)
 		return
 	end
 	local pid = tonumber(pack.productId) or 0
-	if pid > 0 and not RunService:IsStudio() then
+	if pid > 0 and not Svc.Run:IsStudio() then
 		net:FireClient(plr, "toast", "Buy credits with Robux from the shop prompt")
 		return
 	end
@@ -12863,7 +12937,7 @@ function Verbs.scrubLobbyMineBlocks()
 	-- Leftover dirt from an earlier generate. Only MineBlock / MineVoxel parts.
 	local n = 0
 	for _, d in ipairs(workspace:GetDescendants()) do
-		if d:IsA("BasePart") and (d.Name == "MineBlock" or CollectionService:HasTag(d, "MineVoxel")) then
+		if d:IsA("BasePart") and (d.Name == "MineBlock" or Svc.Collection:HasTag(d, "MineVoxel")) then
 			if C.blockOverlapsLobby and C.blockOverlapsLobby(d.Position, math.max(d.Size.X, d.Size.Y, d.Size.Z) * 0.5) then
 				d:Destroy()
 				n += 1
@@ -12877,6 +12951,102 @@ function Verbs.scrubLobbyMineBlocks()
 end
 
 WorldBuilder.build()
+--[[
+	NOTHING IN THE WORLD CASTS A SHADOW.
+
+	Owner, 2026-10-06, microprofiler open on a 5070 Ti: GPU averages ~50 ms while
+	moving and spikes to 80, against a 33 ms target. Measured live straight
+	after: workspace holds 14,559 parts and 10,408 of them cast shadows, 9,610 of
+	those inside MineWorld.
+
+	Shadow maps are re-rendered as the camera moves, which is exactly the
+	"when I move" shape of the spike, and the cost is per shadow-casting part.
+	Underground there is no sun to cast them from, so for the great majority of
+	them it bought nothing at all.
+
+	Swept here rather than at each creation site because MineWorld is built by
+	WorldBuilder, the plaza builders, the barrier builder and the voxel
+	generator, and a rule spread over five files is a rule that will be missed by
+	the sixth. New blocks set CastShadow = false as they spawn (see spawnVoxel);
+	this catches everything that already exists.
+
+	If a specific prop ever needs its shadow back, set CastShadow on it after
+	this runs -- this is a floor, not a lock.
+]]
+--[[
+	NO SHADOWS. AT ALL.
+
+	Owner, 2026-10-06: "remove shadows peroid.. not point they dont do anything
+	helpful". With the microprofiler open on a 5070 Ti the GPU was averaging
+	~50 ms while moving and spiking to 80, against a 33 ms target.
+
+	Measured live: 14,559 parts in the workspace, 10,408 of them casting
+	shadows. Shadow maps re-render as the camera moves, which is exactly the
+	"when I move" shape of the spike -- and the game is almost entirely
+	underground, where there is no sun to cast them from. The cost bought
+	nothing.
+
+	GlobalShadows off is the whole thing in one property. The route I tried
+	first -- clearing CastShadow per part -- took it from 10,408 to 5,149 and
+	left 4,465 still casting, because the edge barriers and the depth plazas
+	build after that point and the plazas build lazily as players reach them. A
+	sweep can only catch what already exists, and a DescendantAdded watcher to
+	catch the rest is a connection firing for every part in a voxel mine to do
+	what one property does for free.
+
+	spawnVoxel still sets CastShadow = false on blocks. That is now redundant
+	while this line stands, and deliberately kept: if anyone ever turns
+	GlobalShadows back on, the mine itself should not be what drags it down.
+]]
+pcall(function()
+	game:GetService("Lighting").GlobalShadows = false
+end)
+
+--[[
+	DEV SCAFFOLDING DOES NOT SHIP.
+
+	Measured in a live session: twelve folders of editor scaffolding sit in the
+	workspace holding 2,492 parts between them -- pet and ore showcases, tool
+	model racks, icon pose references, a mass-review grid. They are built in the
+	place file for authoring art and nothing in the game reads them, but every
+	player loads, replicates and renders them.
+
+	Removed on the server at startup, so it costs nothing in the place file and
+	cannot be forgotten when a new showcase is added: the list is matched by
+	name and by the leading-underscore convention this project already uses for
+	scratch folders.
+
+	This touches the RUNNING session only. The place file is untouched, so the
+	folders are still there next time it is opened in Studio for authoring.
+]]
+-- IIFE, not a do-block: a do-block's locals share the MAIN CHUNK's 200
+-- registers and this script has five left, so three names here stopped the
+-- whole server compiling. tools/verify/compile.js caught it. A function body
+-- gets its own budget.
+;(function()
+	local SHOWCASE = {
+		PetShowcase = true, OreShowcase = true, ToolModels_HQ = true,
+		ToolKit_Showcase = true, IconPoseExamples = true, LaneBodies = true,
+		["Gem-N-Eye Preview"] = true,
+	}
+	local removed, parts = 0, 0
+	for _, d in ipairs(workspace:GetChildren()) do
+		-- `_Name` is this project's scratch convention; the rest are named above.
+		if SHOWCASE[d.Name] or string.sub(d.Name, 1, 1) == "_" then
+			for _, k in ipairs(d:GetDescendants()) do
+				if k:IsA("BasePart") then
+					parts += 1
+				end
+			end
+			removed += 1
+			d:Destroy()
+		end
+	end
+	if removed > 0 then
+		print(("[Mine] stripped %d dev showcase folders (%d parts) from the live world")
+			:format(removed, parts))
+	end
+end)()
 pcall(function()
 	require(script.Parent:WaitForChild("MineEdgeBarriers")).buildAll()
 end)
@@ -12959,7 +13129,7 @@ function Verbs.playersInShaft(zone)
 	local half = (C.GRID * C.BLOCK) * 0.5 + 2
 	local surfaceY = origin.Y + 2
 	local out = {}
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 		if root then
 			local pos = root.Position
@@ -12983,6 +13153,10 @@ function Verbs.resetMineZone(zone)
 	-- A new salt, so the refreshed mine is not the one that was just cleared.
 	mineResetState.seed = mineResetState.seed or {}
 	mineResetState.seed[zone.id] = Random.new():NextInteger(1, 1073741823)
+	-- The ore field reseeds with it, so a refreshed mine really is a new one.
+	if C.setVeinSalt then
+		C.setVeinSalt(zone.id, mineResetState.seed[zone.id])
+	end
 	ensureZone(zone, C.LAYER_WINDOW or 8)
 	syncPitWalls(zone)
 	for _, plr in ipairs(Verbs.playersInShaft(zone)) do
@@ -12992,7 +13166,7 @@ function Verbs.resetMineZone(zone)
 	local nextAt = os.clock() + (C.MINE_RESET_SEC or 1200)
 	mineResetState.at[zone.id] = nextAt
 	mineResetState.warned[zone.id] = {}
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		net:FireClient(plr, "mineReset", {
 			zoneId = zone.id,
 			nextAt = nextAt,
@@ -13025,14 +13199,14 @@ task.spawn(function()
 		mineResetState.warned[zone.id] = warned
 		if left <= 60 and not warned[60] then
 			warned[60] = true
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "toast", "Mine resets in 60s")
 				net:FireClient(plr, "mineReset", { zoneId = zone.id, remaining = math.max(0, left), resetSec = period, warn = 60 })
 			end
 		end
 		if left <= 10 and not warned[10] then
 			warned[10] = true
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "toast", "Mine resets in 10s")
 				net:FireClient(plr, "mineReset", { zoneId = zone.id, remaining = math.max(0, left), resetSec = period, warn = 10 })
 			end
@@ -13051,7 +13225,7 @@ task.spawn(function()
 			left = period - (workspace:GetServerTimeNow() % period)
 		end
 		if math.floor(left) % 5 == 0 then
-			for _, plr in ipairs(Players:GetPlayers()) do
+			for _, plr in ipairs(Svc.Players:GetPlayers()) do
 				net:FireClient(plr, "mineReset", {
 					zoneId = zone.id,
 					remaining = math.max(0, left),
@@ -13083,7 +13257,7 @@ end
 task.spawn(function()
 	while true do
 		task.wait(0.4)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			pcall(Verbs.rescueIfBelowShaft, plr)
 		end
 	end
@@ -13731,7 +13905,7 @@ end
 task.spawn(function()
 	while true do
 		task.wait(15)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			pcall(Verbs.tickPlaytime, plr, 15)
 		end
 	end
@@ -13899,7 +14073,7 @@ function Verbs.handleJoin(plr)
 			game:GetService("AnalyticsService"):LogOnboardingStepEvent(plr, 1, "Joined")
 		end)
 	end
-	local inviteStore = DSS:GetDataStore(C.storeName("InviteRewards_v1"))
+	local inviteStore = Svc.DSS:GetDataStore(C.storeName("InviteRewards_v1"))
 	-- Joined through a friend's invite?
 	local join = plr:GetJoinData()
 	local ref = join and tonumber(join.ReferredByPlayerId)
@@ -13911,7 +14085,7 @@ function Verbs.handleJoin(plr)
 		pcall(function()
 			game:GetService("AnalyticsService"):LogCustomEvent(plr, "JoinedFromInvite", 1)
 		end)
-		local inviter = Players:GetPlayerByUserId(ref)
+		local inviter = Svc.Players:GetPlayerByUserId(ref)
 		if inviter and profiles[ref] then
 			Verbs.rewardInviter(inviter, 1)
 		else
@@ -13958,7 +14132,7 @@ Verbs.PAID_RANDOM = {
 
 function Verbs.fetchPolicy(plr)
 	local PolicyService = game:GetService("PolicyService")
-	if not RunService:IsStudio() then
+	if not Svc.Run:IsStudio() then
 		plr:SetAttribute("PolicyNoRandom", true)
 		plr:SetAttribute("PolicyNoTrade", true)
 		plr:SetAttribute("PolicyDiscord", false)
@@ -14118,10 +14292,10 @@ function Verbs.hookPlayer(plr)
 end
 
 MineAntiGear.start()
-Players.PlayerAdded:Connect(Verbs.hookPlayer)
+Svc.Players.PlayerAdded:Connect(Verbs.hookPlayer)
 -- IIFE: top-level `for _` would exceed Luau's 200 main-chunk register cap.
 ;(function()
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _, plr in ipairs(Svc.Players:GetPlayers()) do
 		Verbs.hookPlayer(plr)
 	end
 end)()
@@ -14131,7 +14305,7 @@ end)()
 		SAVE ON LEAVE, AND WAIT FOR IT ON SHUTDOWN.
 
 		PlayerRemoving started a save and cleared the profile in the same
-		breath, and BindToClose only saved players still in Players -- which,
+		breath, and BindToClose only saved players still in Svc.Players -- which,
 		during a shutdown, the leaving players already are not. Nothing waited
 		for the save already running, so the server could close underneath it
 		and everything since the last 45-second autosave was gone: a finished
@@ -14157,7 +14331,7 @@ end)()
 		end
 	end
 
-	Players.PlayerRemoving:Connect(function(plr)
+	Svc.Players.PlayerRemoving:Connect(function(plr)
 		local p = profiles[plr.UserId]
 		if p then
 			LeaderboardService.queueUpdate(plr.UserId, p.prestige, p.gems, LeaderboardService.profileStardustValue(p))
@@ -14174,7 +14348,7 @@ end)()
 	end)
 
 	game:BindToClose(function()
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			if profiles[plr.UserId] then
 				profiles[plr.UserId]._releasing = true
 				task.spawn(saveTracked, plr)
@@ -14191,7 +14365,7 @@ end)()
 task.spawn(function()
 	while true do
 		task.wait(45)
-		for _, plr in ipairs(Players:GetPlayers()) do save(plr) end
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do save(plr) end
 	end
 end)
 
@@ -14213,7 +14387,7 @@ task.spawn(function()
 	while true do
 		task.wait(2)
 		local now = os.clock()
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			local p = profiles[plr.UserId]
 			local row = p and C.BACKPACKS[p.backpackTier]
 			local every = row and tonumber(row.autoSellSec)
@@ -15235,7 +15409,7 @@ function Verbs.Afk.refreshSession(plr)
 	-- Soft reset of Roblox's client idle clock: leave and rejoin the same place
 	-- while staying AFK. Profile.afk is already true and will resume on boot.
 	-- Teleports cannot work in Studio; skip instead of erroring every refresh.
-	if RunService:IsStudio() then
+	if Svc.Run:IsStudio() then
 		return
 	end
 	local p = profiles[plr.UserId]
@@ -15270,14 +15444,14 @@ function Verbs.Afk.refreshSession(plr)
 
 	local function attempt(opts)
 		local ok, err = pcall(function()
-			TeleportService:TeleportAsync(game.PlaceId, { plr }, opts)
+			Svc.Teleport:TeleportAsync(game.PlaceId, { plr }, opts)
 		end)
 		if ok then
 			return true
 		end
 		warn("[Mine] AFK refresh teleport failed", err)
 		local ok2 = pcall(function()
-			TeleportService:Teleport(game.PlaceId, plr, { mineAfkResume = true })
+			Svc.Teleport:Teleport(game.PlaceId, plr, { mineAfkResume = true })
 		end)
 		return ok2
 	end
@@ -15335,10 +15509,10 @@ task.spawn(function()
 		-- Re-enter chill after refresh teleport / reconnect while profile.afk is set.
 		for uid, p in pairs(profiles) do
 			if p and p.afk and not Verbs.Afk.active[uid] then
-				if RunService:IsStudio() then
+				if Svc.Run:IsStudio() then
 					p.afk = false
 				else
-					local plr = Players:GetPlayerByUserId(uid)
+					local plr = Svc.Players:GetPlayerByUserId(uid)
 					if plr and plr.Character then
 						Verbs.Afk.start(plr)
 					end
@@ -15346,7 +15520,7 @@ task.spawn(function()
 			end
 		end
 		for uid, _ in pairs(Verbs.Afk.active) do
-			local plr = Players:GetPlayerByUserId(uid)
+			local plr = Svc.Players:GetPlayerByUserId(uid)
 			if not plr or not profiles[uid] then
 				Verbs.Afk.active[uid] = nil
 				Verbs.Afk.nextAt[uid] = nil
@@ -15447,17 +15621,15 @@ end
 	to 8 for Exotic. toolCostMult raises it to TOOL_COST_TYPE (0.5), so a rarer
 	frame costs about 2.8x a Common one to level, never less.
 ]]
+-- One rule, in MineOreTools. This was a third copy of the frame-rarity lookup
+-- (MineForge had one, equippedTool has another), and all three computed the
+-- same function of ore tier by different routes. See MineOreTools.typeMult.
 function Verbs._oreToolTypeMult(tool)
-	local fam = Tools.TOOLS and Tools.TOOLS[tool.familyId or "pickaxe"]
-	if fam then
-		for _, td in ipairs(fam) do
-			if td.id == tool.typeId then
-				local r = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-				return (Tools.RARITY_RANK and Tools.RARITY_RANK[r or td.rarity]) or 1
-			end
-		end
-	end
-	return 1
+	-- Required here, not at the top: this script is on Luau's 200-local ceiling,
+	-- and `OreTools` is a local inside two other functions rather than a file
+	-- global. Writing the bare name would compile to a GLOBAL read and be nil.
+	local OreTools = require(shared:WaitForChild("MineOreTools"))
+	return OreTools.typeMult(tool.familyId or "pickaxe", tool.tier)
 end
 
 function Verbs._oreToolCost(tool)
@@ -15805,12 +15977,21 @@ function Verbs.craftOreTool(plr, payload)
 	end
 	inherited = math.clamp(inherited, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
 
+	--[[
+		`base` is what makes the inheritance safe to scrap.
+
+		The row records the level it was FORGED at, so recycling can refund the
+		levels this tool actually bought rather than the levels it was handed.
+		Without it, forge -> scrap -> repeat paid out half a full climb each time
+		for the price of one craft. See MineConfig.toolRecycle.
+	]]
 	local row = {
 		uid = instanceHex16(),
 		typeId = def.id,
 		familyId = familyId,
 		tier = oreDef.tier,
 		level = inherited,
+		base = inherited,
 	}
 	table.insert(p.oreTools, row)
 
@@ -15926,7 +16107,16 @@ function Verbs.recycleOreTool(plr, payload)
 
 	local _, _, oreDef, typeMult = Verbs._oreToolCost(tool)
 	local level = math.max(1, tonumber(tool.level) or 1)
-	local ore, dust = C.toolRecycle(tool.tier, level, typeMult)
+	--[[
+		The level this tool was FORGED at. Levels it inherited cost nothing, so
+		they refund nothing; only the climb bought on this tool comes back.
+
+		Rows saved before `base` existed fall back to 1 and refund on the old
+		terms, which is the generous direction and affects only tools already in
+		a profile.
+	]]
+	local base = math.clamp(math.floor(tonumber(tool.base) or 1), 1, level)
+	local ore, dust = C.toolRecycle(tool.tier, level, typeMult, base)
 	local oreId = oreDef and oreDef.id
 
 	-- Let go before it stops existing, or the hand keeps a uid that no longer
@@ -16289,7 +16479,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			local seam = math.max(0, math.floor(tonumber(payload.seam) or 0))
 			local z = C.zoneById(payload.zoneId or p.zoneId) or C.ZONES[1]
 			Dig.Plazas.ride(plr, nil, p, tp, ensureZone, net, snap, seam)
-		elseif action == "devGrant" and RunService:IsStudio() then
+		elseif action == "devGrant" and Svc.Run:IsStudio() then
 			-- Studio only. Never reachable on a live server.
 			if type(payload) == "table" then
 				if payload.coins then
@@ -16738,7 +16928,7 @@ task.defer(function()
 
 	while true do
 		task.wait(0.35)
-		for _, plr in ipairs(Players:GetPlayers()) do
+		for _, plr in ipairs(Svc.Players:GetPlayers()) do
 			local p = profiles[plr.UserId]
 			local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 			local carrying = p and (
@@ -16775,7 +16965,7 @@ task.defer(function()
 end)
 
 Verbs.grantReceipt = function(info)
-	local plr = Players:GetPlayerByUserId(info.PlayerId)
+	local plr = Svc.Players:GetPlayerByUserId(info.PlayerId)
 	if not plr then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
@@ -16992,8 +17182,8 @@ end
 	save means the grant never reached the datastore, so the retry delivers it
 	again, exactly once.
 ]]
-MarketplaceService.ProcessReceipt = function(info)
-	local plr = Players:GetPlayerByUserId(info.PlayerId)
+Svc.Marketplace.ProcessReceipt = function(info)
+	local plr = Svc.Players:GetPlayerByUserId(info.PlayerId)
 	local p = plr and profiles[plr.UserId]
 	if not p or p._ephemeral then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
@@ -17034,7 +17224,7 @@ MarketplaceService.ProcessReceipt = function(info)
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
-MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId, wasPurchased)
+Svc.Marketplace.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId, wasPurchased)
 	if not plr or not wasPurchased then
 		return
 	end
