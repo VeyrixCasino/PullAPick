@@ -2,7 +2,7 @@
 title: Luau and workflow traps
 type: code
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-08 @ ea255bb
 sources:
   - docs/START-HERE.md §4, §5
   - docs/HANDOFF.md §2.3
@@ -28,11 +28,13 @@ related: [server, client-and-ui, verify-suite, save-data-and-migrations, rojo-an
   limit 200". For the client that means no HUD and no panels at all. For the
   server it means the game does nothing.
 - **Where we stand.**
-  - `MineServer` has 197 top-level `local` lines. **It happened again on
-    2026-10-05** (`9733a05`): one extra top-level local broke the whole server
-    ("Out of local registers when trying to allocate id"). `MineNet` was never
-    created and every client hung on `WaitForChild("MineNet")`, with no other
-    symptom. The fix moved the list to `MineConfig.FORGE_ONLY_FAMILIES`.
+  - `MineServer` had **no registers left** until `5d59714`; it has **5** now
+    (`MineClient`: 7), measured by `compile.js`. **It broke twice on 2026-10-05**:
+    one extra top-level local stopped the whole server compiling ("Out of local
+    registers when trying to allocate id"). `MineNet` was never created and every
+    client hung on `WaitForChild("MineNet")`, with a single line of output. A
+    `do … end` block does **not** help: its locals share the main chunk's 200
+    registers (the dev-scaffolding strip in `8d68717` is an IIFE for this reason).
   - `MineClient` has 176 lines, but several declare more than one name. It once
     hit 207, and later broke again when two constants were hoisted (see the
     comment above `refreshMineUiScale`).
@@ -45,10 +47,12 @@ related: [server, client-and-ui, verify-suite, save-data-and-migrations, rojo-an
 - **Counting is unreliable.** A local holding a never-reassigned constant is
   folded away by the compiler and takes no register. Tested here: 205
   `local vN = N` lines compile, while 205 `local vN = {}` lines fail.
-- **`syntax.sh` will not catch it.** It runs `luau-analyze`, which accepted the
-  205-table file. To check, run
-  `.luau-bin/luau-compile --binary src/ServerScriptService/Mine/MineServer.server.luau`.
-  Both scripts compile at `26036a0`. No check in the suite does this; it is a gap.
+- **`syntax.sh` still will not catch it, but `compile.js` does** (`5d59714`).
+  `luau-analyze` parses and type-checks without allocating registers (190 locals:
+  both pass; 200: analyze passes, compile fails; 205: "Out of upvalue
+  registers"). `tools/verify/compile.js` runs `luau-compile` on all 212 files and
+  binary-searches headroom by appending live, table-valued locals (an unused or
+  constant local is folded away and measures nothing). It fails below 4 left.
 
 ## 2. The global-read trap (the worst one)
 

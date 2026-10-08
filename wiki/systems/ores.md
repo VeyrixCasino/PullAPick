@@ -2,7 +2,7 @@
 title: Ores
 type: system
 status: current
-verified: 2026-10-05 @ b19c4c2
+verified: 2026-10-08 @ ea255bb
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineBreaking.luau
@@ -64,6 +64,23 @@ related: [ore-pouch-and-backpack, tools, forge-and-recycling, skins-cases-and-te
   (size cancels), so bigger veins are rarer veins. Server `rollKind` and
   `spawnVoxel` both ask `veinOreAt`, so a vein is one ore and regen agrees.
   `rollOre`/`oreIdentity` stay for sims and harnesses.
+  - **The mine is random again** (`8d68717`; owner: *"every time i join 4 halite
+on top of the line"*). `veinOreAt` is positional by design, but the only seed
+  was a hash of the zone's name, so every server and rejoin produced byte-identical
+  ore. A per-zone layout salt that `resetMineZone` re-picks now reaches the ore
+  field through `MineConfig.setVeinSalt`. `veins.js` asserts two salts give two
+  different mines and the same salt gives the same one.
+  - **Veins got cheaper** (`39d94bf`): one remembered 64-block cell now answers the
+  hash, host roll, ore walk, size and anchor, so the per-block cost fell from
+  10.5× to 3.28× the old single roll (0.18 ms a layer), with an identical
+  distribution (1 in 193 blocks). A cell straddling a section boundary takes one
+  section's ore mix for all of it.
+  - **The first layers are mostly stone** (`8d68717`; owner: *"first few layers
+  should be pridominantly stone"*). Tightening the spawn spread globally broke
+  the forge ladder (`ladder-climbable.js` failed at K 0.40 and below), so the
+  width now **ramps with depth**: layer 1 uses K 0.228 (Stone 44.5%, 4 types make
+  90%), layer 50 K 0.353, layer 150 and below K 0.434, and zones 3, 6 and 10
+  are unchanged at 0.45.
 - **An ore block** has dirt HP × `ORE_HP_MULT 3`, is stamped `OreId`/`OreName`/
   `OreTier`, and wears a name tag. Breaking it puts `oreYieldFor(tier)` (uniform
   lo..hi) **straight into the pouch** via `Dig.addOre` (no pack), pays coin haul
@@ -81,7 +98,11 @@ related: [ore-pouch-and-backpack, tools, forge-and-recycling, skins-cases-and-te
   client-side as an EditableImage — not an uploaded asset, so no group-ownership
   problem. Packed by `tools/pack-ore-art.js`, mapped by `tools/map-ores-to-tiles.js`.
   `MineOreIcons.BY_ID` holds 82 icons + 82 case images (164 uploaded assets,
-  `tools/gen-ore-icons.js`) and **nothing reads it yet**. Tool look:
+  `tools/gen-ore-icons.js`). `0da6360` (owner: *"only use the ores i just gave u,
+  and use the cases for the rare drops"*) replaced the flat vector icons with 82
+  rendered 3D ones, wired in as `icon`; `case` is untouched and is what rare
+  drops use. The sheet held 84 for 82, so the owner named the two spares. I did
+  not check where the UI reads these. Tool look:
   `ToolModelFactory.oreLook`, `src/ServerStorage/OreToolBaker.luau`.
 
 ## Where it lives

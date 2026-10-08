@@ -60,3 +60,20 @@ Updated: open-questions, tools, mining-and-breaking, ores,
 save-data-and-migrations, verify-suite, tools-and-generators, index. Not
 rechecked: Event Horizon tools' breaking power, and whether saves hit by the
 migration re-runs need repair.
+
+## [2026-10-08] ingest | main after PR #6 merged (9 commits since b19c4c2)
+Asked "are we good to go?", I found PR #6 merged into `main` on 2026-10-06
+(`ea255bb`) and its branch nine commits past the last ingest, so PR #7 pointed at
+a stale base and the wiki described old code. Merged `main` into this branch (no
+conflicts) and read all nine commit messages. The owner's session had **fixed
+three more of the wiki's findings**: depth desks (bug 5) and the recycle loop
+(bug 3) in `4cc82a5`, and the 200-local ceiling (bug 15) with a new `compile.js`
+check in `5d59714`. I read the new code to confirm each and ran `compile.js`
+(5 and 7 registers left). Other ingests: 246 per-ore tool skins, forge frame
+stats baked so the coin tool roster can be deleted, UI rescale, vein cost and
+random-mine fix, first layers mostly stone, pet bob rate, shadows (a Studio-only
+change), the Rojo stale-sync gotcha, and a correction that the 2026-10-05 upload
+"ownership" problem was moderation latency. Suite: **40 passed, 0 failed, 0 did not
+run** (was 36; new checks `compile`, `economy-exploits`, `oreframes`, `ui-scale`).
+Owner's newest decisions are in [owner](owner.md). Still open: bugs 4 and 6-13 and
+16 in [open-questions](open-questions.md). Retargeted PR #7 to `main`.

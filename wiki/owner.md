@@ -2,7 +2,7 @@
 title: The owner — goals, decisions, and how to work with them
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - docs/TODO.md §0, §9
   - docs/START-HERE.md §1, §6
@@ -92,6 +92,14 @@ reopen it.
 - **0.10** The wooden pick is only a tutorial pick. The tutorial hands over the
   stone pick.
 - **2026-10-05, after TODO §0 was written** (commit `9733a05`): **no tool is bought with coins**; every tool is forged from ore. Backpacks, the pouch and chest Secrets stay. Every forged ore tier gets its own pickaxe skin. Source: the comments on `MineConfig.FORGE_ONLY_FAMILIES`.
+- **2026-10-05 to 06, recorded in commit messages on PR #6** (so after TODO §0 was written; the
+  quoted words are the owner's, as the commits quote them):
+  - *"make seams sell for more not less"*: depth desks pay `1.05 ^ (seam/500)` times the surface (`4cc82a5`).
+  - *"delete all tools in the game besides for chest tools … and ore tools"*: the wooden starter stays (`312721b`).
+  - *"remove shadows peroid"*: `Lighting.GlobalShadows` off, applied in Studio (`8d68717`).
+  - *"first few layers should be pridominantly stone"*, and the mine must be random each load (`8d68717`).
+  - *"only use the ores i just gave u, and use the cases for the rare drops"*: new rendered ore icons (`0da6360`).
+  - *"rescale to a comfortable scale, and recheck every ui in the game on every single display"* (`39d94bf`).
 - **0.12** **Fossils do not exist.** The modules are deleted. The `fossilFind`
   key and the 60 fossil bags stay, because removing them would break saves.
 - **0.13** Charms and skins are the build: shape, not magnitude.

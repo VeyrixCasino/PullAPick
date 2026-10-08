@@ -2,7 +2,7 @@
 title: Currencies and economy
 type: system
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-08 @ ea255bb
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineOrePouch.luau
@@ -38,7 +38,7 @@ related: [mining-and-breaking, zones-layers-and-seams, rebirth-and-skill-tree, o
 - **Bags cost gems, not coins.** The comment in `buy()` explains why: the thing that lets you carry more coins should not be bought with coins.
 - **Rebirth charges `MineSkillData.rebirthCost` in coins only, then resets the wallet to 0** (`blank()`). Gems, ore and the pouch survive ([rebirth](rebirth-and-skill-tree.md)).
 - **Ore's gem value tracks work.** `MineOrePouch.gemValue = ORE_GEM_BASE 3 × workOf(ore)^k`, where k is solved so that the top ore is worth `ORE_GEM_SPREAD 1e6` × the bottom one. Gem Find does **not** apply to ore sales; it applies only to chest gems.
-- **Haul sold at a depth desk is multiplied by `MineDepth.depthSellMult`.** That is ×487.5 at seam 500, ×12,187.5 at seam 1500, and ×0.78 at every other seam. Read from code, not engine-tested; see [zones](zones-layers-and-seams.md).
+- **Haul sold at a depth desk is multiplied by `MineDepth.depthSellMult`**, a smooth curve `1.05 ^ (seam / 500)` since `4cc82a5` (owner, 2026-10-05: *"make seams sell for more not less"*). Every desk beats the surface and deeper pays more: a 10,000 haul sells for 10,500 at seam 500 and 26,532 at seam 10,000 (measured by the fix's author). It used to be ×487.5 and ×12,187.5 at two seams and ×0.78 elsewhere. See [zones](zones-layers-and-seams.md).
 
 **Number formatting:**
 - **`MineAbbrev.currency`.** Four significant figures, **always floored**: 1.234K, 12.34K, 123.4K. Used for every wallet: the client's `shortNum`, `MineForge`, `MineBenchView`, the leaderboards and the pouch view.

@@ -2,7 +2,7 @@
 title: Sources of truth — every doc, and how far to trust it
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - docs/START-HERE.md
   - docs/TODO.md §0
@@ -25,13 +25,16 @@ and last this wiki.
 
 ## Where the newest work is
 
-`main` is **behind**. The newest state is the open draft
-[PR #6](https://github.com/VeyrixCasino/PullAPick/pull/6), branch
-`claude/vigilant-fermi-aucqjy`, about 100 commits ahead of `main`. Other
-branches (`ore-face-art`, `ore-tools-power`, `cursor/slice-gem-sprites-cdbb`) are
-older, with open draft PRs #1, #2 and #4 on them. `ore-tools-power` carries
-the only copy of the `gen-ores.js` `--force-stale` guard, according to the
-ore researcher; it is not on the working branch.
+**`main` is current again.** Draft [PR #6](https://github.com/VeyrixCasino/PullAPick/pull/6)
+(`claude/vigilant-fermi-aucqjy`, 96 commits) was merged into `main` on 2026-10-06
+(merge commit `ea255bb`: balance pass, forged-tool skins, economy fixes,
+performance). That PR page shows "closed" rather than "merged" in the API, but
+the merge commit is on `main`. The old branch still exists and was **one commit
+ahead** of `main` when I last looked (`8d5c230`, a scaffolding-strip tweak).
+Other branches (`ore-face-art`, `ore-tools-power`, `cursor/slice-gem-sprites-cdbb`)
+are older, with open draft PRs #1, #2 and #4 on them. `ore-tools-power` carries
+the only copy of the `gen-ores.js` `--force-stale` guard, according to the ore
+researcher.
 
 **Always `git fetch` and look at open PRs before relying on `main`.**
 

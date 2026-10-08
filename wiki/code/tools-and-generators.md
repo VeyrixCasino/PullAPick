@@ -2,7 +2,7 @@
 title: Tools and generators
 type: code
 status: current
-verified: 2026-10-05 @ b19c4c2
+verified: 2026-10-08 @ ea255bb
 sources:
   - tools/serve.js
   - .claude/launch.json
@@ -46,7 +46,7 @@ calculator page drifts from the config.
 | `tools/gen-depth-sheet.js` | It overwrites `docs/depth-sheet.md` using the **retired** HP curve (`SECTIONS` × 6^(z−1) × 2). `MineDepth.dirtHp` is now linear × 5^(z−1) (`5a85c73`). Fix the script before running it. |
 | `tools/icons/gen-charm-art.js` (+ `charm-data.js`, `raster.js`) | It draws 164 charm PNGs into the gitignored `build/charm-icons/` and writes the tracked `manifest.json`. The owner rejected this art (HANDOFF §2.6), and **icons are the owner's job** (START-HERE §6). |
 | `tools/gen-charm-icons.js` | It would write `MineCharmIcons` from `build/charm-icons/ids.json`. Neither file exists yet, because no charm icons have been uploaded. |
-| `tools/icons/svg-icon-extract.js`, `match-icons-to-ores.js` (+ `ore-map.json`, `asset-ids.json`) | Added in `9733a05`. The first pulls 88 pickaxe icons out of an SVG that is really paired base64 PNGs (content plus mask). The second matches icons to the 82 ores by colour with an optimal (Hungarian) assignment and writes `ore-map.json`. **The matching is not final**: the roster wants about 17 grey picks and the sheet has 9, and every pair is printed with its distance. `asset-ids.json` maps icon files to uploaded asset ids; `MineIcons.ORE_PICK` is what the game reads. |
+| `tools/icons/svg-icon-extract.js` (+ `ore-icon-ids.json`, `ore-icon-manifest.json`, `tool-skin-ids.json`, `tool-skin-manifest.json`) | It pulls icons out of Canva SVG sheets that are really paired base64 PNGs (a colour image with no alpha plus a greyscale matte), recomposites them as RGBA, and writes manifests of uploaded asset ids. `97c42ac` extracted picks 88, drills 96, explosives 96 and charms 18, and `0da6360` the 82 rendered ore icons. **Order is the owner's and positional**, not colour-matched: `match-icons-to-ores.js`, `ore-map.json` and `asset-ids.json` were removed because a colour match scored a mean distance of 1.1 against the stated order. The ore sheet held 84 icons for 82 ores (the owner named the two spares). |
 | `tools/extract-svg-icons.js` (+ `tools/_png.js`) | Added in `b19c4c2`. It saves every icon in a Canva-exported SVG sheet as its own transparent PNG (colour image plus its matte folded into RGBA), numbered in reading order. `_png.js` is a zero-dependency PNG codec shared by the sheet tools; `slice-ore-sheet.js` still carries its own copy. The 88 pickaxe icons it produced are tracked in `build/pickaxe-sheet/`. Usage: `node tools/extract-svg-icons.js` followed by the sheet path. |
 | `tools/map-ores-to-tiles.js`, `tools/slice-ore-sheet.js`, `tools/pack-ore-art.js` | The 2026-09-28 ore-face pipeline: hand-made tiles become `build/ore-sheet/` files, which become `MineOreArt` packed pixels. It was built for 121 ores. |
 | `tools/balance-board-data.js` | It writes `build/balance-board.json` (gitignored). `tools/balance-board.html` does not fetch that file *(how the page gets its data is unverified)*. |

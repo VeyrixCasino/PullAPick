@@ -2,7 +2,7 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-05 @ b19c4c2
+verified: 2026-10-08 @ ea255bb
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
@@ -31,9 +31,8 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
   reports **SyntaxError only**; type errors are ignored.
   - If the download fails it prints "skipping" and **exits 0**, so work is never
     blocked.
-  - It does **not** catch the 200-local overflow. Tested here: `luau-analyze`
-    accepts 205 locals, while `luau-compile` rejects them with "Out of local
-    registers". See [luau-traps](luau-traps.md).
+  - It does **not** catch the 200-local overflow (`luau-analyze` accepts 205
+    locals). `tools/verify/compile.js` does; see [luau-traps](luau-traps.md).
 - **`suite.sh`** runs every `tools/verify/*.js` except helpers (`_*.js`) and the
   `luau-balance` utility.
   - Output containing `luau not present|skipping|cannot run|not runnable` counts
@@ -62,8 +61,12 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
 
 ## Every check
 
-**L** marks the 14 checks that execute the `luau` binary. Without the binary they
-DID NOT RUN. The docs say "11 of 23", which is stale: there are 36 checks now (`oreskins` arrived in `9733a05`, `heldtool` in `b19c4c2`).
+**L** marks the 18 checks that execute the `luau` binary (the original 14 plus
+`compile`, `economy-exploits`, `heldtool` and `oreframes`, by a grep for how each
+calls the binary; I did not run the suite with the binary removed). Without the binary they
+DID NOT RUN. The docs say "11 of 23", which is stale: there are 40 now, counting `wiki` (`oreskins` `9733a05`, `heldtool` `b19c4c2`,
+`economy-exploits` `4cc82a5`, `compile` `5d59714`, `ui-scale` `39d94bf`,
+`oreframes` `bef7b0d`). The run on 2026-10-08 was **40 passed, 0 failed, 0 did not run**.
 
 | check | asserts |
 |---|---|
@@ -73,21 +76,24 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 36 checks now (`
 | `buyqty` | the typed quantity box, the cart and the server clamp share one ceiling |
 | `charms` **L** | runs the real MineCharms generator against the real 82-ore roster |
 | `check` | the tool-level curve behaves, using the tables in `tools/upgrade-calculator.html` (generated from MineConfig) |
+| `compile` **L** | every one of the 212 source files compiles with `luau-compile` (not just `luau-analyze`), and `MineServer` and `MineClient` each have at least 4 top-level locals of headroom (5 and 7 on 2026-10-08) |
 | `config-refs` | every `MineConfig.X` the code reads exists. Strips comments first. |
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |
 | `dmg-live` **L** | runs `toolTierPower` in real declaration order |
+| `economy-exploits` **L** | the depth-desk sell curve never decreases with depth and no desk pays less than the surface, and no (forged-at, scrapped-at) pair beats a full climb. **Executes** the real functions and keeps the pre-fix arithmetic to prove the exploit was real. |
 | `forge-snap` | the Forge reads no snapshot field the shop does not pass it |
 | `forge-upgrade` | forging the next tier carries the level across, so it is an upgrade |
 | `gate-coverage` | every function that deals block damage consults the breaking gate |
 | `generated-fresh` | `mine-map.html` and `upgrade-calculator.html` regenerate byte-for-byte (`--check`) |
 | `ladder-climbable` | the ore ladder reaches tier 82 with no zone deadlock, and the Exotic band stays rare |
-| `heldtool` | the held forged-tool row carries `oreTier` and `oreId`, so `MineBreaking.toolBreakingPower` resolves it from its ore, not as 1. **Executes** the real function against the real row shape, keeps the old broken row to prove it resolves to 1, and asserts both roster-migration guards are `<` not `~=`. |
+| `heldtool` **L** | the held forged-tool row carries `oreTier` and `oreId`, so `MineBreaking.toolBreakingPower` resolves it from its ore, not as 1. **Executes** the real function against the real row shape, keeps the old broken row to prove it resolves to 1, and asserts both roster-migration guards are `<` not `~=`. |
 | `layers` **L** | two boost layers, and the second multiplies the first. The owner's 100 → 300 example. |
 | `minemap-runs` | `mine-map.html` actually executes under a DOM stub |
+| `oreframes` **L** | the baked `MineOreTools.FRAME_STATS` and `typeMult` steps equal what the priced roster supplied (2,460 values, 0 mismatches), so the roster can be deleted |
 | `oreforge` **L** | a forged tool IS its ore: the frame is derived from the ore's tier |
 | `orepacks` **L** | the preconditions for `Dig.bankOrePacks`: no pack bigger than a tier-1 pouch, and the midpoint pays fairly |
-| `oreskins` | no tool is sold for coins, and every ore tier has its own distinct pickaxe icon. The refusal is asserted on the **server**, at the surface and depth doors, not on the shop rail. |
+| `oreskins` | no tool is sold for coins, and every ore tier has its own distinct skin in each family (246 distinct images). The refusal is asserted on the **server**, at the surface and depth doors, not on the shop rail. |
 | `oretools` **L** | `ToolModelFactory.oreLook` gives the 82 ore tools distinct looks |
 | `outpost-depth` | outpost colours are wired to depth, not constants |
 | `packs` **L** | fossil packs are gone, and the chest loot tables are still well formed |
@@ -100,7 +106,8 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 36 checks now (`
 | `traits` **L** | the trait rules: prefix, odds tied to MineTemper's skins table, Exotic 1/1000 |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |
-| `veins` **L** | the vein lattice keeps per-block ore density unchanged |
+| `veins` **L** | the vein lattice keeps per-block ore density unchanged, and two layout salts give two different mines while one salt gives the same mine |
+| `ui-scale` | the shipped `refreshMineUiScale` rule (parsed from the client) fits every fixed panel on twelve displays, and lists the displays where no scale can help as outstanding panel work |
 | `wiki` | wiki frontmatter, links, index coverage, cited paths, `Module.SYMBOL` drift |
 | `zones` | the calculator's zone panel reproduces the live numbers |
 

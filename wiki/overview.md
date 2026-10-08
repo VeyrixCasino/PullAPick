@@ -2,7 +2,7 @@
 title: Mine For Cards — the game in one page
 type: meta
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-08 @ ea255bb
 sources:
   - docs/START-HERE.md §2, §5
   - docs/HANDOFF.md §2.1, §2.5
@@ -96,12 +96,13 @@ multiply ([boosts-and-stats](systems/boosts-and-stats.md)).
 - [social, quests and leaderboards](systems/social-quests-and-leaderboards.md)
 - [shops and Robux](systems/shops-and-monetisation.md)
 
-## State of things (2026-10-05)
+## State of things (2026-10-08)
 
-- The newest work is on `claude/vigilant-fermi-aucqjy`, open as draft PR #6,
-  roughly 100 commits ahead of `main`. **Almost none of it has been run in
-  Roblox.** One change was confirmed in-engine
-  (`docs/START-HERE.md` §5; TODO §0.32).
+- PR #6 (the balance pass, forged-tool skins, economy fixes, performance) was
+  **merged into `main` on 2026-10-06**. The recent commit messages report live
+  Studio verification for many changes, so "has it run in Roblox?" is **unknown
+  per feature**, not "almost none" as `docs/START-HERE.md` §5 says. Ask the owner
+  or check the commit message.
 - The audit found about **1 line in 6 unreachable**. Some features are
   archived or cut ([retired-and-parked](systems/retired-and-parked.md)).
 - What is still undecided lives in [open-questions](open-questions.md) and

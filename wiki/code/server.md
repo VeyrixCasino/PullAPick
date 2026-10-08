@@ -2,7 +2,7 @@
 title: The server — MineServer.server.luau
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/START-HERE.md §4, §5
@@ -22,8 +22,12 @@ related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-a
 - `src/ServerScriptService/Mine/MineServer.server.luau` is **17,050 lines** at
   `26036a0`. Older docs give 16.7k (HANDOFF §2.2) or about 14,800 (TODO §1,
   `tools/agent/house-rules.txt`). Read only the part you need. Never rewrite it.
-- It has **197 top-level `local` lines**, against Luau's limit of 200 local
-  registers per function. See [luau-traps](luau-traps.md).
+- Luau gives it 200 local registers per function, and it was **out of them**: zero
+  left until `5d59714` folded seven services (`Players`, `RunService`,
+  `TeleportService`, `CollectionService`, `DataStoreService`,
+  `MarketplaceService`, `ReplicatedStorage`) into one `Svc` table, buying **5**
+  back (57 references rewritten). `tools/verify/compile.js` now measures the
+  headroom and fails below 4. See [luau-traps](luau-traps.md).
 - The order of the file, top to bottom:
   1. requires
   2. the `Dig` and `Const` tables
@@ -44,7 +48,7 @@ A new module or helper does **not** get a new top-level `local`. It goes on a
 table that already exists:
 
 - `local Dig = { Traits, Layers, Depth, Auth, Shop, Plazas, Breaking }` holds
-  requires. The comment there says the script "sits at 197 of Luau's 200".
+  requires. The comment there said the script "sits at 197 of Luau's 200" (stale; see above).
 - 26 more `Dig.x` fields are added further down: `Dig.bankOrePacks`, `Dig.addOre`,
   `Dig.pouch`, `Dig.QUAKE`, `Dig.echoAt`, `Dig.procsAt`, `Dig.boostSources`, and others.
 - `local Const = { THROW_SPEED, … }` packs scalars into one register.

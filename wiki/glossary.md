@@ -86,7 +86,7 @@ related: [ambiguous-terms, overview, index]
 ## Codebase
 
 - **MineNet** — the one RemoteEvent for all client↔server traffic. **Action router** — the string compare on `action`. **Verbs** — the server's table of request handlers. [server](code/server.md)
-- **`Dig` / `Const` / `ClientFns`** — tables that dodge the 200-local limit. **Global-read trap** — a local used above its declaration is silently nil. [luau-traps](code/luau-traps.md)
+- **`Dig` / `Const` / `ClientFns` / `Svc`** — tables that dodge the 200-local limit (`Svc` holds seven Roblox services since `5d59714`). **Global-read trap** — a local used above its declaration is silently nil. [luau-traps](code/luau-traps.md)
 - **`snap()`** — the player view pushed to the client (at most 10 per second). **Busy lock** — drops a second request from the same player. [server](code/server.md)
 - **Toast** — a text notice event. **House style** (`MineTheme` + `MineUI`), **`NoAdopt`** — [client-and-ui](code/client-and-ui.md)
 - **Migration stamp** (`oreRosterV`, `toolCapV`), **`_lock`** (save session lock, 120 s), **ephemeral profile**, **`_Studio` suffix** — [save-data-and-migrations](code/save-data-and-migrations.md)

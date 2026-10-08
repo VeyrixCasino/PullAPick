@@ -2,7 +2,7 @@
 title: Forge and recycling
 type: system
 status: partial
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineForge.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
@@ -52,12 +52,17 @@ this replaced; nothing mounts it now.
   - Stone Pickaxe: 30 blocks × 9 ore = **270 Stone** (Common frame, typeMult 1).
   - Oganesson Pickaxe: about 66 blocks × 3 = 200 × typeMult 8 for the top
     Exotic frame = **1,600**.
+  - `typeMult` is `MineOreTools.typeMult(family, tier)`, a baked step function
+    of tier (`312721b`). MineForge, `Verbs._oreToolTypeMult` and `equippedTool`
+    each used to compute it by their own route; now it is one function, with
+    0 mismatches against the old lookup over all 246 (family × tier) pairs.
 - **Atomic.** The ore is debited and the row inserted in one synchronous block,
   with no yields, inside the router's per-player `busy` lock. The client
   supplies no costs.
 - **Forging carries your level.** The new row takes the highest level on the
   rack, clamped to the cap (commit `12b528a`; `tools/forge-feel.js`). Without
-  this, every forge was a downgrade.
+  this, every forge was a downgrade. The row also stamps that level as `base`,
+  so scrapping can tell inherited levels from bought ones (`4cc82a5`).
 - **Auto-equip.** The new tool is equipped straight away. This is the fix for
   the `uid` global-read bug (TODO §0.15).
 
@@ -70,8 +75,11 @@ as you can afford, up to `count` (+1, +10 or MAX) and the cap of 30. It pays
 **Recycle a forged tool.** `Verbs.recycleOreTool(uid)` handles one tool at a
 time:
 - It removes the row (unequipping it if it was held), then refunds
-  `MineConfig.toolRecycle = floor(toolSpent(tier, level, typeMult) ×
-  TOOL_RECYCLE_PCT 0.5)`.
+  `MineConfig.toolRecycle(tier, level, typeMult, baseLevel) =
+  floor(max(0, toolSpent(level) − toolSpent(baseLevel)) × TOOL_RECYCLE_PCT 0.5)`.
+  The refund covers only the climb **above the level the tool was forged at**
+  (`4cc82a5`). Tools saved before `base` existed fall back to base 1 and refund
+  on the old terms.
 - The ore goes back through `Dig.addOre`, and the stardust is added to the
   balance.
 - `toolSpent` counts **level spend only**. It does not include the craft cost.
@@ -126,15 +134,14 @@ The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
 
 ## Gotchas
 
-- **Probable exploit: recycle refunds levels the tool never paid for.** A
-  forged tool inherits your best level, but `toolRecycle` refunds 50% of
-  `toolSpent(level)` as if those levels had been bought on it.
-  - Example: with any level-30 tool on the rack, forging a Stone Pickaxe costs
-    270 Stone, and scrapping it returns about **23.8K Stone and 3.05M
-    stardust**. This is my arithmetic from MineConfig; I have not run it.
-  - It can be repeated until the pouch is full, and the stone sells for gems.
-  - Fix: store the amount actually spent on the row, or refund only the levels
-    bought on it. This is a design call for the owner.
+- **Fixed in `4cc82a5`: recycle used to refund levels the tool never paid for.**
+  A forged tool inherits your best level, and `toolRecycle` refunded half of
+  `toolSpent(level)` as if those levels had been bought on it, so forge, scrap
+  and repeat printed ore and dust. The author measured it at tier 40: forged at
+  30 and scrapped at 30 refunded 145,022 ore before and 0 after, while forged at
+  1 and scrapped at 30 (a real climb) still refunds 145,022.
+  `tools/verify/economy-exploits.js` sweeps every forged-at / scrapped-at pair
+  and requires that none beats a full climb.
 - **Recycle is not all-or-nothing (OPEN P0 #4).** The tool is removed first, and
   any ore refund that does not fit in the pouch is lost. The toast reports only
   what landed. Craft and upgrade do meet the "one transaction" bar.
@@ -150,8 +157,7 @@ The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
 
 ## Open questions
 
-- How should the recycle exploit be fixed, and does the refund cover the craft
-  cost?
+- Should scrapping also refund part of the craft cost? Today it refunds none.
 - Does the recycle curve apply to pets, runes and charms too ("universal")?
 - Do the Temper and Sockets tabs move into the Forge?
 

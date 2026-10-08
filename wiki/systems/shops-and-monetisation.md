@@ -2,7 +2,7 @@
 title: Shops and monetisation
 type: system
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-08 @ ea255bb
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopBuy.luau
@@ -50,8 +50,8 @@ related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tool
 plus 3 per depth desk: "19 per zone · 190 shop tools total", per its header.
 `MineShopEconomy` prices them in "hauls". They are bought one rung at a time
 (`MineShopBuy.buySurface`). Backpacks cost coins, except the Robux top rung,
-the Founders Rig (`patron_rig`). At a seam desk, selling pays `DEPTH_SELL_FRAC`
-0.78.
+the Founders Rig (`patron_rig`). At a seam desk, selling pays `MineDepth.depthSellMult` (1.05 per 500 m
+compounding, since `4cc82a5`; the old `DEPTH_SELL_FRAC` 0.78 haircut is deleted).
 
 **The credits store.** It runs through `buyCart`. Payment is `p.credits`, at
 `MinePackConfig.creditPrice`, which takes 10% off for everyone. It sells:
