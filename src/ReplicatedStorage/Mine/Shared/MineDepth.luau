@@ -378,43 +378,58 @@ MineDepth.HP_BASE = 20
 MineDepth.HP_PER_LAYER = 1.5
 
 --[[
-	THE 10,000x PASS. TODO 6.1, owner 2026-10-07: "i want all blocks and ores
-	to be 10000x what they are right now (SAME WITH THE COST OF TOOLS, WITH
-	WHATEVER CUSTOM [currency] THEY ARE USING)".
+	THE 10,000x PASS -- EVENT MINE ONLY. TODO 6.1, owner 2026-10-07: "i want
+	all blocks and ores to be 10000x what they are right now (SAME WITH THE
+	COST OF TOOLS, WITH WHATEVER CUSTOM [currency] THEY ARE USING)", and
+	2026-10-08 when it first went in everywhere: "nooo 10 thousand x in ONLY
+	the event mine. Not in the normal game."
 
-	ONE CONSTANT, APPLIED AT BOUNDARIES. The alternative -- multiplying the
-	forty-odd authored HP, damage and price literals scattered across
-	MineDepth, MineConfig, MineShopEconomy and the tool tables -- is how a pass
-	like this misses three of them and ships a game where one zone is 10,000x
-	harder than the rest. Every number below is DERIVED from this one, so the
-	pass is auditable and `= 1` reverts it exactly.
+	The clue was in the first sentence and I read past it: "whatever custom
+	currency they are using" is SPACE COINS, and the only thing in this game
+	priced in space coins is Event Horizon. The pass was always about the
+	event mine.
 
-	This is a HEADROOM change, not a balance one. The owner's point is that the
-	numbers should read big; the ratio a player experiences must not move at
-	all. Three things therefore scale together and are verified to cancel:
+	So the scale is per ZONE, and it is 1 everywhere except zone 11. The normal
+	game -- ten zones, every shop price, every coin, every ore -- is left
+	exactly as it was, and `veins`, `breaking` and the economy harnesses all
+	measure the unscaled numbers they were written against.
 
-	    block HP        here, so every block derived from dirtHp
-	    swing damage    at the point power becomes damage, NOT on tool.power
-	    ore and costs   MineConfig.ORE_SCALE, kept equal to this
+	WHY EVENT HORIZON CAN TAKE IT AND THE NORMAL GAME CANNOT. Zone 11 is a
+	closed system: its blocks are only ever broken by MineHorizonTools, which
+	are eventOnly and minZone 11, and it is paid in a currency that buys
+	nothing else. Scaling a closed loop moves no number outside it. The normal
+	game's HP is wired to coins, which are wired to shop prices, bag prices,
+	gem value and the ore roster's depth coordinate -- four of which are
+	authored, which is exactly the cascade that makes a global pass a project
+	rather than a constant.
 
-	DAMAGE IS SCALED AT THE SWING, NEVER ON `power`. tool.power is not only a
-	damage number: lookTier reads log10(power) to pick a cosmetic rung, and
-	rarityForPower bands off it. Multiplying power by 10,000 adds four decades
-	to that log, which at 20.25 tiers per decade pushes every tool in the game
-	to tier 82 and collapses the rarity bands. So power stays as authored and
-	the multiply happens where the block is hit.
+	BOTH SIDES OF THE EVENT LOOP MOVE TOGETHER, and they are different tables:
+	block HP comes from the curve below at zone index 11, while Horizon tool
+	power is derived from the authored SECTIONS dirtHp. Scaling one without
+	the other is the whole risk here, so MineHorizonTools reads this same
+	function and tools/verify/megascale.js checks the two cancel.
 
-	COINS NEED NO SCALING: they are one per point of block HP, so they follow
-	automatically. Shop prices are quoted in HAULS (MineShopEconomy) rather
-	than in authored coin amounts, so they follow too. BAND_FLOOR_HP is the one
-	authored HP table outside this file and it scales through the same
-	constant.
+	`= 1` reverts the pass exactly.
 ]]
 MineDepth.HP_SCALE = 10000
+MineDepth.HP_SCALE_ZONE = 11
+
+--[[
+	The scale for a zone index. Everything that produces an Event Horizon
+	number goes through this rather than reading HP_SCALE directly, so there
+	is one place that decides which zone is scaled.
+]]
+function MineDepth.hpScaleFor(zoneIndex)
+	local zi = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	if zi == MineDepth.HP_SCALE_ZONE then
+		return MineDepth.HP_SCALE
+	end
+	return 1
+end
 
 function MineDepth.meadowDirtHp(layer)
 	layer = math.max(1, math.floor(tonumber(layer) or 1))
-	return (MineDepth.HP_BASE + MineDepth.HP_PER_LAYER * layer) * MineDepth.HP_SCALE
+	return MineDepth.HP_BASE + MineDepth.HP_PER_LAYER * layer
 end
 
 function MineDepth.zoneMult(zoneIndex)
@@ -439,7 +454,10 @@ function MineDepth.dirtHp(zoneIndex, layer)
 		still abbreviated for display -- it just rounds the number rather than
 		the number rounding itself to suit the label.
 	]]
-	local raw = MineDepth.meadowDirtHp(layer) * MineDepth.zoneMult(zoneIndex)
+	-- hpScaleFor is 1 for every zone but Event Horizon; see HP_SCALE.
+	local raw = MineDepth.meadowDirtHp(layer)
+		* MineDepth.zoneMult(zoneIndex)
+		* MineDepth.hpScaleFor(zoneIndex)
 	return math.max(1, math.floor(raw + 0.5))
 end
 

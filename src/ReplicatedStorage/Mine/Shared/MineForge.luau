@@ -1032,6 +1032,67 @@ function MineForge.mount(parent, opts)
 		}, recipeView)
 		round(stage, 10)
 
+		--[[
+			A LIVE STAGE, NOT A DARK RECTANGLE. Owner, 2026-10-08: "can we make
+			the packground more active and shit".
+
+			Two things, both cheap and both tinted by the ORE so the backdrop
+			belongs to the tool standing on it rather than being generic chrome:
+
+			  a gradient that slowly turns, so the light on the stage moves
+			  motes that drift upward and recycle, so something is always moving
+
+			Deliberately low contrast. This sits behind a rotating 3D model and
+			under six lines of numbers; a background that competes with either
+			is worse than a flat one. The gradient runs ore-colour to panel at
+			0.55 transparency and the motes are 2-3px.
+
+			Everything here is parented INSIDE the stage, so clearing
+			recipeView on the next draw takes it all with it -- and the
+			Heartbeat below stops itself the moment the stage leaves the tree,
+			which is what keeps a tab change from leaking a connection per
+			recipe viewed.
+		]]
+		local tint = (typeof(r.def and r.def.color) == "Color3") and r.def.color or GOLD
+		local grad = mk("UIGradient", {
+			Color = ColorSequence.new(tint, BG3),
+			Transparency = NumberSequence.new(0.55),
+			Rotation = 0,
+		}, stage)
+
+		local motes = {}
+		for i = 1, 9 do
+			local m = mk("Frame", {
+				BackgroundColor3 = tint,
+				BackgroundTransparency = 0.45 + (i % 3) * 0.15,
+				BorderSizePixel = 0,
+				Size = UDim2.fromOffset(2 + (i % 2), 2 + (i % 2)),
+				Position = UDim2.fromScale(0.08 + (i * 0.1) % 0.86, (i * 0.11) % 1),
+				ZIndex = 0,
+			}, stage)
+			round(m, 2)
+			motes[i] = { f = m, speed = 0.02 + (i % 4) * 0.012, x = 0.08 + (i * 0.1) % 0.86 }
+		end
+
+		local t0 = 0
+		local drift
+		drift = game:GetService("RunService").Heartbeat:Connect(function(dt)
+			if not stage.Parent then
+				drift:Disconnect()
+				return
+			end
+			t0 += dt
+			grad.Rotation = (t0 * 8) % 360
+			for i, mo in ipairs(motes) do
+				local y = mo.f.Position.Y.Scale - mo.speed * dt
+				if y < -0.05 then
+					y = 1.05
+				end
+				-- a slow sideways sway, so they do not read as falling snow
+				mo.f.Position = UDim2.fromScale(mo.x + math.sin(t0 * 0.6 + i) * 0.012, y)
+			end
+		end)
+
 		if Factory and Factory.build then
 			local vp = mk("ViewportFrame", {
 				BackgroundTransparency = 1,
@@ -1155,12 +1216,38 @@ function MineForge.mount(parent, opts)
 				UDim2.new(0.58, 0, 0, 18), FONT)
 		end
 
-		statLine(62, "COSTS", string.format("%s %s", num(r.cost), r.name),
-			r.afford and GREEN or RED)
-		statLine(86, "YOU HAVE", string.format("%s %s", num(r.have), r.name), MUTED)
+		--[[
+			THE COST READS AS A SENTENCE, WITH THE ORE IN IT.
+
+			Owner, 2026-10-08: "can we make the crafting show ore icons, and
+			make it more natural looking than 'have 56', and 'Costs 260'".
+
+			Two labelled rows of "COSTS 270 Stone / YOU HAVE 65 Stone" made the
+			player do the subtraction, repeated the ore's name twice, and named
+			the ore in text when there is already a 512px render of it.
+
+			One row instead: the ore's icon, then "65 / 270", then how much is
+			still missing. The icon says WHICH ore, the fraction says where you
+			are, and the shortfall says what to go and do -- which is the only
+			thing a player actually wants off this screen.
+		]]
+		local art = OreIcons.BY_ID and OreIcons.BY_ID[r.id]
+		if art and art.icon then
+			UI.icon(info, art.icon, 34, UDim2.fromOffset(0, 56))
+		end
+		label(info, string.format("%s / %s", num(r.have), num(r.cost)), 20,
+			r.afford and GREEN or TEXT, UDim2.fromOffset(42, 54),
+			UDim2.new(1, -42, 0, 24), FONT)
+		label(info, r.afford
+				and ("enough " .. r.name .. " to forge it")
+				or string.format("%s more %s needed", num(r.cost - r.have), r.name),
+			12, r.afford and GREEN or MUTED, UDim2.fromOffset(42, 78),
+			UDim2.new(1, -42, 0, 14), FONT_M)
+
 		statLine(116, "DAMAGE", string.format("%s per hit%s", num(math.floor(dmg)),
 			forgeLevel > 1 and (" at level " .. forgeLevel) or ""), GOLD)
-		statLine(140, "PER SECOND", string.format("%s", num(math.floor(dmg * rate * math.max(1, cells)))), GOLD)
+		-- DPS, because that is what it is and what a player already calls it.
+		statLine(140, "DPS", num(math.floor(dmg * rate * math.max(1, cells))), GOLD)
 		statLine(164, "SWING RATE", string.format("%.1f / sec%s", rate,
 			cells > 1 and string.format("  \u{00B7}  %d blocks", cells) or ""), TEXT)
 		-- The gate, labelled as one. It is the ore's tier and says which ore

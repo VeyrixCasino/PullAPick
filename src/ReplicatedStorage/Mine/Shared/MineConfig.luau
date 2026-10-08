@@ -2336,43 +2336,6 @@ end
 
 	Coins are one per point of HP, so a harder ore pays more for being harder.
 	That is already the rule for depth and it stays true across the roster.
-]]
---[[
-	THE 10,000x PASS, ORE AND DAMAGE SIDE. The definition lives on
-	MineDepth.HP_SCALE; these are the same number under names that say where
-	they apply, and the harness fails if they ever differ.
-
-	DMG_SCALE is read at the two places a swing or a charge becomes damage,
-	never on tool.power itself -- power feeds lookTier through log10 and
-	rarityForPower through bands, and four extra decades there would put every
-	tool in the game at cosmetic tier 82.
-
-	ORE_SCALE IS DELIBERATELY 1, AND THAT IS A SCOPE DECISION WORTH READING.
-
-	"all blocks and ores" is satisfied by HP_SCALE on its own: an ore BLOCK's
-	health is oreHardness x dirtHp, so ore blocks read 10,000x bigger along
-	with everything else, and coins -- one per point of HP -- follow for free.
-	Shop prices are quoted in HAULS rather than authored coin amounts, so tool
-	costs follow too, which is the second half of the owner's sentence.
-
-	Scaling the ore COUNT as well is a different change and a much larger one.
-	Ore quantity feeds MineOrePouch.workOf (= homeHp / yield), which feeds
-	gemCompress, which prices every gem in the game; homeHp in turn is derived
-	from ORE_DMAX, which is derived from Depth.dirtHp -- so multiplying drops
-	moves ORE_DMAX, the homeHp curve's STEEPNESS (not just its magnitude), the
-	solved exponent k, and from there bag, rune, trait and charm-merge prices,
-	each of which is authored in gems and would need its own pass. That is a
-	cascade with four authored price tables at the end of it, not a multiply.
-
-	So the quantity half is left for a deliberate pass of its own. Set this to
-	Depth.HP_SCALE when that pass happens; the cost side is already wired to
-	read it, and it is applied to the cost OUTPUT rather than to craftBlocks
-	because veinSizeMean reads craftBlocks (docs/ore-yield-and-vein-balance.md
-	§3) and scaling that would silently move every vein in the game -- the one
-	collision TODO 6.1 names by name.
-]]
-MineConfig.DMG_SCALE = Depth.HP_SCALE or 1
-MineConfig.ORE_SCALE = 1
 
 MineConfig.ORE_HP_MULT = 3        -- legacy flat value; oreHardness replaces it
 MineConfig.ORE_HP_MIN = 0.8       -- tier 1, before character
@@ -3740,23 +3703,20 @@ do
 	MineConfig.ORE_DMAX_MARGIN = 0.4
 	do
 		--[[
-			HP_SCALE IS DIVIDED BACK OUT HERE, ON PURPOSE.
+			Reads the curve raw, and that is now safe BECAUSE the 10,000x pass
+			is Event Horizon only. ORE_LADDER_ZONES is 10 -- the deepest NORMAL
+			mine -- and MineDepth.hpScaleFor returns 1 for every zone but 11,
+			so this coordinate is computed on exactly the numbers it always was.
 
-			`d` is a depth COORDINATE, not an amount of HP. It exists to place
-			an ore on the roster, and homeHp = 20 * 6^d then prices gem value
-			off it. The 10,000x pass multiplies dirtHp, so reading dirtHp raw
-			would add log(10000)/log(6) = 5.14 to ORE_DMAX -- which does not
-			merely scale the homeHp curve, it makes it STEEPER, changing the
-			work ratio across the roster, the exponent gemCompress solves from
-			it, and every gem price in the game.
-
-			The pass is meant to be a headroom change with no balance effect.
-			Dividing the scale out here is what keeps that true for ore: the
-			coordinate is computed on the unscaled curve exactly as before, so
-			d, homeHp, work and gems are all byte-identical to pre-pass values.
+			It is worth saying why that matters, because a global pass broke it:
+			`d` is a depth COORDINATE, not an amount of HP, and homeHp = 20*6^d
+			prices every gem in the game off it. A scaled dirtHp here would add
+			log(scale)/log(6) to ORE_DMAX, which does not merely scale the
+			homeHp curve but makes it STEEPER -- changing the work ratio across
+			the roster, the exponent gemCompress solves from it, and every gem
+			price. If the scale ever goes global, divide it out here.
 		]]
-		local scale = math.max(1, tonumber(Depth.HP_SCALE) or 1)
-		local deepHp = Depth.dirtHp(MineConfig.ORE_LADDER_ZONES, MineConfig.LAYERS) / scale
+		local deepHp = Depth.dirtHp(MineConfig.ORE_LADDER_ZONES, MineConfig.LAYERS)
 		local deepD = math.log(math.max(20, deepHp) / 20) / math.log(6)
 		MineConfig.ORE_DMAX = math.max(1, deepD - MineConfig.ORE_DMAX_MARGIN)
 	end

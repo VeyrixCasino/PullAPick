@@ -45,8 +45,27 @@ local function priceFromPrev()
 	return price
 end
 
+--[[
+	THE 10,000x PASS, TOOL SIDE. Owner, 2026-10-08: "10 thousand x in ONLY the
+	event mine".
+
+	Event Horizon blocks scale through the depth curve at zone index 11
+	(MineDepth.hpScaleFor), and this file prices every Horizon tool off the
+	AUTHORED SECTIONS dirtHp -- a different table. Those are the two halves of
+	a closed loop: zone 11 blocks are only ever broken by these tools, which
+	are eventOnly and minZone 11, so as long as both move by the same factor
+	nothing a player experiences changes and no number outside the event moves.
+
+	Scaling the reference HP here rather than the power below means the hit
+	counts underneath -- PICK_HITS 16, BORE_HITS 40, CHARGE_HITS 70 -- stay
+	exactly what they say they are, and the space-coin prices derived from dps
+	come along on their own, which is the "with whatever custom currency they
+	are using" half of the original ask.
+]]
+local EH_SCALE = (Depth.hpScaleFor and Depth.hpScaleFor(EH_ZI)) or 1
+
 for _, sec in ipairs(Depth.SECTIONS) do
-	local hp = math.max(1, math.floor(tonumber(sec.dirtHp) or 1))
+	local hp = math.max(1, math.floor((tonumber(sec.dirtHp) or 1) * EH_SCALE))
 	local band = sec.band
 	if band == "shallow" then
 		local power = math.max(1, math.floor(hp / PICK_HITS + 0.5))

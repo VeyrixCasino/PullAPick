@@ -847,7 +847,28 @@ it. Nothing here is an agent's to decide.
       pickaxe pairs**, meteorite rock up to a black-hole pick. Build zone 11 its
       own ore roster and tool ladder off that art, on its own strength scale
       above `MineBreaking.MAX`.
-- [ ] **Every block and ore goes up 10,000x, and so does every tool cost.**
+- [x] **Every block and ore goes up 10,000x, and so does every tool cost.**
+      **DONE 2026-10-08 — EVENT MINE ONLY.** Owner clarified on seeing it go in
+      globally: *"nooo 10 thousand x in ONLY the event mine. Not in the normal
+      game."* The clue was in the original sentence — *"whatever custom
+      currency they are using"* is SPACE COINS, and only Event Horizon is
+      priced in those.
+      - `MineDepth.HP_SCALE = 10000` with `HP_SCALE_ZONE = 11`, and
+        `hpScaleFor(zoneIndex)` is the single place that decides. Zones 1-10
+        are byte-identical to the unscaled curve, verified at 50 points.
+      - Zone 11 is a closed loop and that is why it can take it: its blocks are
+        only broken by `MineHorizonTools` (eventOnly, minZone 11) and it is
+        paid in a currency that buys nothing else, so scaling it moves no
+        number outside it. Both halves scale — blocks through the depth curve,
+        tool power through the authored `SECTIONS` table — and `megascale.js`
+        checks they cancel.
+      - A global pass is still a real project, for the reason noted below: ore
+        quantity feeds `workOf` → `gemCompress` → every gem price, and the bag,
+        rune, trait and charm-merge tables are all authored in gems.
+      - Side effect worth keeping: Horizon tools were **86% off** their
+        advertised hit counts, because `power = max(1, floor(refHp/hits+0.5))`
+        clamped to 1 on shallow sections — a sinkcharge rated "about 70 hits"
+        took ten. The scale gives the integer room; now within 1.4%.
       Owner: *"i want all blocks and ores to be 10000x what they are right now
       (SAME WITH THE COST OF TOOLS, WITH WHATEVER CUSTOM [currency] THEY ARE
       USING)"*. Both sides scale together, so the ratio a player experiences is

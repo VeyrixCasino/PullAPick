@@ -38,6 +38,8 @@
 	a view is how the last five looks happened.
 ]]
 
+local TweenService = game:GetService("TweenService")
+
 local shared = script.Parent
 local T = require(shared:WaitForChild("MineTheme"))
 
@@ -45,6 +47,105 @@ local MineUI = {}
 
 MineUI.PAD = 14
 MineUI.GAP = 12
+
+-- ------------------------------------------------------------------ motion --
+-- One tween helper for the whole UI, so "juice" is a one-liner and no view
+-- needs its own TweenService boilerplate. Returns the Tween.
+function MineUI.tween(inst, seconds, props, style, dir)
+	local t = TweenService:Create(inst, TweenInfo.new(
+		seconds or 0.15,
+		style or Enum.EasingStyle.Quad,
+		dir or Enum.EasingDirection.Out
+	), props)
+	t:Play()
+	return t
+end
+
+-- A named UIScale child, created once. Scaling through a UIScale (not Size)
+-- means the pop never fights a layout that owns Size/Position.
+local function scaler(inst, name)
+	local s = inst:FindFirstChild(name)
+	if not s then
+		s = Instance.new("UIScale")
+		s.Name = name
+		s.Parent = inst
+	end
+	return s
+end
+
+--[[
+	POP: a quick overshoot-and-settle. Use it when a number changes, a thing
+	becomes claimable, a toast lands. `amount` is the peak scale (default 1.18).
+]]
+function MineUI.pop(inst, amount)
+	local s = scaler(inst, "PopScale")
+	s.Scale = amount or 1.18
+	MineUI.tween(s, 0.28, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+end
+
+--[[
+	Pop a TextLabel every time its text changes, except the first set. Safe to
+	call twice on the same label.
+]]
+function MineUI.popNumber(label, amount)
+	if label:GetAttribute("PopNumber") then
+		return
+	end
+	label:SetAttribute("PopNumber", true)
+	local last = label.Text
+	label:GetPropertyChangedSignal("Text"):Connect(function()
+		if label.Text ~= last then
+			last = label.Text
+			if label.Visible then
+				MineUI.pop(label, amount)
+			end
+		end
+	end)
+end
+
+--[[
+	JUICE: tactile feedback for any button. Hover grows, press squashes, release
+	bounces back. Touch has no hover, so the press squash is what phones feel.
+	Idempotent.
+]]
+function MineUI.juice(btn, grow)
+	if btn:GetAttribute("Juiced") then
+		return btn
+	end
+	btn:SetAttribute("Juiced", true)
+	local s = scaler(btn, "JuiceScale")
+	local over, down = false, false
+	local function settle()
+		local target = (down and 0.93) or (over and (grow or 1.07)) or 1
+		MineUI.tween(s, down and 0.07 or 0.2, { Scale = target },
+			down and Enum.EasingStyle.Quad or Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	end
+	btn.MouseEnter:Connect(function() over = true settle() end)
+	btn.MouseLeave:Connect(function() over = false down = false settle() end)
+	btn.MouseButton1Down:Connect(function() down = true settle() end)
+	btn.MouseButton1Up:Connect(function() down = false settle() end)
+	return btn
+end
+
+--[[
+	PULSE: a looping "look at me" throb for anything claimable. Returns a stop
+	function; calling it settles the scale back to 1.
+]]
+function MineUI.pulse(inst, amount, period)
+	local s = scaler(inst, "PulseScale")
+	local alive = true
+	task.spawn(function()
+		while alive and inst.Parent do
+			MineUI.tween(s, (period or 0.7) / 2, { Scale = amount or 1.08 }, Enum.EasingStyle.Sine)
+			task.wait((period or 0.7) / 2)
+			if not alive then break end
+			MineUI.tween(s, (period or 0.7) / 2, { Scale = 1 }, Enum.EasingStyle.Sine)
+			task.wait((period or 0.7) / 2)
+		end
+		if s.Parent then s.Scale = 1 end
+	end)
+	return function() alive = false end
+end
 
 --[[
 	The primitive everything else is made of.
@@ -99,6 +200,64 @@ function MineUI.lit(inst, strength)
 			ColorSequenceKeypoint.new(1, Color3.new(1 - s, 1 - s, 1 - s)),
 		}),
 	}, inst)
+end
+
+--[[
+	CANDY: the chunky look. Fat near-black outline, bright top-to-bottom gradient,
+	and a glossy highlight along the top. `key` is a T.CANDY name ("gold",
+	"green", ...) or a Color3, from which a light/dark pair is derived.
+
+	Call it BEFORE adding text children: the gloss is a child Frame and later
+	siblings draw over it.
+]]
+local function shade(c, k)
+	return Color3.new(
+		math.clamp(c.R * k, 0, 1), math.clamp(c.G * k, 0, 1), math.clamp(c.B * k, 0, 1))
+end
+
+function MineUI.candy(inst, key, thickness, gloss)
+	local pair = type(key) == "string" and T.CANDY[key] or nil
+	if not pair then
+		local c = typeof(key) == "Color3" and key or T.ACCENT
+		pair = { shade(c, 1.25), shade(c, 0.78) }
+	end
+	inst.BackgroundColor3 = Color3.new(1, 1, 1)
+	inst.BackgroundTransparency = 0
+	MineUI.new("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new(pair[1], pair[2]),
+	}, inst)
+	MineUI.new("UIStroke", {
+		Color = T.OUTLINE,
+		Thickness = thickness or T.STROKE_CHUNKY,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	}, inst)
+	if gloss ~= false then
+		local g = MineUI.new("Frame", {
+			Name = "Gloss",
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 0.78,
+			BorderSizePixel = 0,
+			Position = UDim2.new(0.06, 0, 0, 3),
+			Size = UDim2.new(0.88, 0, 0.38, 0),
+			Active = false,
+		}, inst)
+		MineUI.round(g, 999)
+	end
+	-- Stamp it so MineUI.adopt neither restyles nor double-strokes this surface.
+	inst:SetAttribute("MineUIAdopted", true)
+	return inst
+end
+
+-- White text with a dark outline: readable on any candy colour, at any size.
+function MineUI.outlineText(label, thickness)
+	MineUI.new("UIStroke", {
+		Color = T.OUTLINE,
+		Thickness = thickness or 2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+	}, label)
+	label.TextColor3 = T.ON_CANDY
+	return label
 end
 
 function MineUI.pad(inst, n)
@@ -189,38 +348,38 @@ end
 ]]
 function MineUI.pill(parent, str, tint, pos)
 	local p = MineUI.new("Frame", {
-		BackgroundColor3 = tint or T.ACCENT,
-		BackgroundTransparency = 0.78,
 		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(math.max(64, #tostring(str) * 9 + 24), 24),
+		Size = UDim2.fromOffset(math.max(72, #tostring(str) * 10 + 28), 28),
 		Position = pos or UDim2.fromOffset(0, 0),
 	}, parent)
 	MineUI.round(p, 999)
-	MineUI.edge(p, tint or T.ACCENT, 1)
-	local l = MineUI.text(p, tostring(str), 13, tint or T.ACCENT, T.FONT)
+	MineUI.candy(p, tint or T.ACCENT, 2)
+	local l = MineUI.text(p, tostring(str), 14, T.ON_CANDY, T.FONT)
 	l.TextXAlignment = Enum.TextXAlignment.Center
+	MineUI.outlineText(l, 1.5)
 	return p
 end
 
 --[[
-	BUTTON: outline style, because the reference has exactly one filled button on
-	screen and everything else is an outline. `primary` fills it in GOLD.
+	BUTTON: a chunky candy button. `primary` is GOLD (the one call to action);
+	otherwise `tint` (a T.CANDY key or Color3), else violet. Juiced: hover grows,
+	press squashes. Returns the button and its label.
 ]]
 function MineUI.button(parent, str, size, pos, primary, tint)
-	local col = tint or (primary and T.GOLD or T.ACCENT)
+	local key = tint or (primary and "gold" or "purple")
 	local b = MineUI.new("TextButton", {
-		BackgroundColor3 = col,
-		BackgroundTransparency = primary and 0.88 or 0.92,
 		BorderSizePixel = 0,
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 		Text = "",
-		Size = size or UDim2.fromOffset(160, 44),
+		Size = size or UDim2.fromOffset(180, 52),
 		Position = pos or UDim2.fromOffset(0, 0),
 	}, parent)
-	MineUI.round(b, 999)
-	MineUI.edge(b, col, 2)
-	local l = MineUI.text(b, tostring(str), 16, col, T.FONT)
+	MineUI.round(b, 16)
+	MineUI.candy(b, key)
+	local l = MineUI.text(b, tostring(str), 20, T.ON_CANDY, T.FONT)
 	l.TextXAlignment = Enum.TextXAlignment.Center
+	MineUI.outlineText(l, 2)
+	MineUI.juice(b)
 	return b, l
 end
 

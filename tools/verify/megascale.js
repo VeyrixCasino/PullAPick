@@ -1,15 +1,23 @@
-// THE 10,000x PASS IS A HEADROOM CHANGE, NOT A BALANCE ONE.
+// THE 10,000x PASS IS EVENT HORIZON ONLY, AND IT CANCELS INSIDE IT.
 //
-// TODO 6.1, owner 2026-10-07: "i want all blocks and ores to be 10000x what
-// they are right now (SAME WITH THE COST OF TOOLS...)". The numbers must read
-// big. What a PLAYER experiences -- swings per block, blocks per tool, hauls
-// per bag -- must not move at all.
+// TODO 6.1. Owner 2026-10-07: "i want all blocks and ores to be 10000x what
+// they are right now (SAME WITH THE COST OF TOOLS, WITH WHATEVER CUSTOM
+// [currency] THEY ARE USING)". Then 2026-10-08, after it first went in
+// globally: "nooo 10 thousand x in ONLY the event mine. Not in the normal
+// game."
 //
-// That is the whole risk of a pass like this, and it is not catchable by
-// reading: multiply one side and forget the other and the game is 10,000x
-// slower, with every individual number looking perfectly reasonable.
+// The clue was in the first sentence: "whatever custom currency they are
+// using" is SPACE COINS, and the only thing priced in space coins is Event
+// Horizon.
 //
-// So this does not check that things got bigger. It checks what CANCELS.
+// So there are two things to prove and they pull in opposite directions:
+//
+//   1. the normal game is UNTOUCHED -- zones 1-10 identical to the unscaled
+//      curve, so every other harness is still measuring what it was written
+//      against
+//   2. inside zone 11, BOTH halves moved -- block HP from the depth curve and
+//      Horizon tool power from the authored SECTIONS table, which are
+//      different tables, so scaling one and not the other is the live risk
 //
 // Run: node tools/verify/megascale.js
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
@@ -18,6 +26,7 @@ const ROOT = path.join(__dirname, "..", "..");
 const DEPTH = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineDepth.luau"));
 const CFG = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineConfig.luau"));
 const SRV = Luau.readSrc(path.join(ROOT, "src/ServerScriptService/Mine/MineServer.server.luau"));
+const EH = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau"));
 const ECON = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineShopEconomy.luau"));
 
 let fails = 0;
@@ -26,48 +35,39 @@ const ok = (c, msg, detail) => {
   if (!c) fails++;
 };
 
-console.log("megascale: the 10,000x pass cancels everywhere it must");
+console.log("megascale: 10,000x in the event mine, and nowhere else");
 
 const scaleM = /MineDepth\.HP_SCALE\s*=\s*([0-9]+)/.exec(DEPTH);
-ok(!!scaleM, "MineDepth.HP_SCALE is the single definition");
+const zoneM = /MineDepth\.HP_SCALE_ZONE\s*=\s*([0-9]+)/.exec(DEPTH);
+ok(!!scaleM && !!zoneM, "HP_SCALE and HP_SCALE_ZONE are both declared");
 const SCALE = scaleM ? Number(scaleM[1]) : 1;
-ok(SCALE === 10000, "it is 10,000", String(SCALE));
+const ZONE = zoneM ? Number(zoneM[1]) : 11;
+ok(SCALE === 10000, "the scale is 10,000", String(SCALE));
+ok(ZONE === 11, "the scaled zone is 11 (Event Horizon)", String(ZONE));
 
-// ------------------------------------------------- one constant, derived --
-ok(/MineConfig\.DMG_SCALE\s*=\s*Depth\.HP_SCALE/.test(CFG),
-  "DMG_SCALE is DERIVED from HP_SCALE, not restated",
-  "two literals is how one of them gets missed");
-ok(/\(tool\.power or 1\) \* \(C\.DMG_SCALE or 1\)/.test(SRV),
-  "the swing scales damage at the hit");
-ok(/\(power or 1\) \* \(C\.DMG_SCALE or 1\)/.test(SRV),
-  "the charge scales damage too",
-  "explosives are a separate damage path and were missed once already");
+ok(/function MineDepth\.hpScaleFor\(/.test(DEPTH),
+  "hpScaleFor is the single place that decides which zone is scaled");
+ok(/MineDepth\.hpScaleFor\(zoneIndex\)/.test(DEPTH), "dirtHp goes through it");
 
-//[[ The trap that would collapse the cosmetic ladder. power feeds lookTier
-// through log10 and rarityForPower through bands; four extra decades there is
-// +81 tiers at 20.25/decade, so every tool clamps to 82. ]]
-ok(!/power\s*=\s*[^\n]*DMG_SCALE/.test(SRV) && !/DMG_SCALE[^\n]*\*\s*power\b/.test(SRV),
-  "tool.power itself is NEVER scaled",
-  "lookTier reads log10(power); scaling it puts every tool at cosmetic tier 82");
+// ------------------------------------- the normal game must be left alone --
+ok(!/DMG_SCALE/.test(SRV), "the swing and the charge carry NO global scale",
+  "a global damage multiply is what made the normal game 10,000x");
+ok(!/MineConfig\.DMG_SCALE|MineConfig\.ORE_SCALE/.test(CFG),
+  "the global DMG_SCALE/ORE_SCALE constants are gone, not left at 1",
+  "a dormant global scale is an invitation to switch it back on");
+ok(/BAND_FLOOR_HP = \{ shallow = 15, /.test(ECON),
+  "BAND_FLOOR_HP is back to its unscaled literals",
+  "those are the normal game's shop bands; Event Horizon has no shop band");
+ok(/local deepHp = Depth\.dirtHp\(MineConfig\.ORE_LADDER_ZONES, MineConfig\.LAYERS\)\s*$/m.test(CFG),
+  "ORE_DMAX reads the curve raw again",
+  "safe only because ORE_LADDER_ZONES is 10 and the scale is zone 11");
 
-// ---------------------------------- ore coordinates must ignore the scale --
-ok(/Depth\.dirtHp\(MineConfig\.ORE_LADDER_ZONES, MineConfig\.LAYERS\) \/ scale/.test(CFG),
-  "ORE_DMAX divides HP_SCALE back out",
-  "d is a coordinate, not HP -- reading dirtHp raw STEEPENS homeHp and moves every gem price");
-ok(/MineConfig\.ORE_SCALE\s*=\s*1/.test(CFG),
-  "ORE_SCALE is 1 and the quantity half is explicitly deferred");
-
-// -------------------------------------- the one authored HP table outside --
-ok(/BAND_FLOOR_HP\s*=\s*\{[^}]*15 \* s/.test(ECON.replace(/\n/g, " ")),
-  "BAND_FLOOR_HP scales through the same constant",
-  "it is the only authored HP outside MineDepth, so derivation cannot reach it");
-
-// -------------------------------------- craftBlocks must NOT have moved --
-//[[ veinSizeMean reads craftBlocks, so scaling it moves every vein in the
-// game. TODO 6.1 names this collision explicitly. ]]
-ok(!/craftBlocks[^\n]*(HP_SCALE|ORE_SCALE|DMG_SCALE)/.test(CFG),
-  "craftBlocks is untouched by the pass",
-  "veinSizeMean reads it; scaling it would silently move every vein");
+// --------------------------------------- both halves of the event loop --
+ok(/Depth\.hpScaleFor and Depth\.hpScaleFor\(EH_ZI\)/.test(EH),
+  "MineHorizonTools scales its reference HP from the same function",
+  "its tools are priced off the authored SECTIONS table, not the depth curve");
+ok(/\(tonumber\(sec\.dirtHp\) or 1\) \* EH_SCALE/.test(EH),
+  "...on the reference HP, so the stated hit counts stay true");
 
 if (!Luau.LUAU || !fs.existsSync(Luau.LUAU) || !Luau.runnableHere(Luau.LUAU)) {
   console.log("  " + Luau.missing("luau"));
@@ -80,17 +80,19 @@ const num = (src, name, dflt) => {
   return m ? m[1] : dflt;
 };
 
-//[[ The curve is rebuilt from the REAL constants at two scales and the two are
-// compared. Not a restatement: HP_BASE, HP_PER_LAYER and ZONE_HP_MULT are read
-// out of MineDepth, so if the curve's SHAPE changes this still measures it. ]]
 const harness = `local HP_BASE = ${num(DEPTH, "MineDepth\\.HP_BASE", "20")}
 local HP_PER_LAYER = ${num(DEPTH, "MineDepth\\.HP_PER_LAYER", "1.5")}
 local ZONE_HP_MULT = ${num(DEPTH, "MineDepth\\.ZONE_HP_MULT", "5")}
-local SCALE = ${SCALE}
+local SCALE, ZONE = ${SCALE}, ${ZONE}
 
-local function dirtHp(zi, layer, scale)
-	local raw = (HP_BASE + HP_PER_LAYER * layer) * scale * (ZONE_HP_MULT ^ (zi - 1))
+local function hpScaleFor(zi) return (zi == ZONE) and SCALE or 1 end
+local function dirtHp(zi, layer)
+	local raw = (HP_BASE + HP_PER_LAYER * layer) * (ZONE_HP_MULT ^ (zi - 1)) * hpScaleFor(zi)
 	return math.max(1, math.floor(raw + 0.5))
+end
+-- the pre-pass curve, for comparison
+local function dirtHpOld(zi, layer)
+	return math.max(1, math.floor((HP_BASE + HP_PER_LAYER * layer) * (ZONE_HP_MULT ^ (zi - 1)) + 0.5))
 end
 
 local fails = 0
@@ -99,90 +101,90 @@ local function check(name, cond, detail)
 	if not cond then fails += 1 end
 end
 
--- --------------------------------------------- the numbers DID get bigger --
+-- ------------------------------------------- the normal game did not move --
 --[[
-	Compared against the UNROUNDED curve, not against the rounded small value.
-
-	dirtHp floors to an integer, and at the shallow end that rounding is a
-	large share of the number: zone 1 layer 1 is 21.5 raw, which rounds to 22,
-	so 22 x 10,000 is 220,000 against a true 215,000 -- a 2% gap that is the
-	ROUNDING, not the scale. Measuring against the raw curve tests the thing
-	this pass actually changed, and the swings check below is what proves the
-	rounding is harmless in play.
+	The assertion the owner actually asked for. Every zone a normal player
+	ever touches must be byte-identical to what it was before the pass, or
+	the ten-zone game silently got 10,000x harder, which is what happened the
+	first time.
 ]]
 do
-	local bad, worst = 0, 0
+	local bad = 0
 	for zi = 1, 10 do
 		for _, L in ipairs({ 1, 50, 500, 2500, 10000 }) do
-			local raw = (HP_BASE + HP_PER_LAYER * L) * (ZONE_HP_MULT ^ (zi - 1))
-			local after = dirtHp(zi, L, SCALE)
-			local err = math.abs(after / (raw * SCALE) - 1)
-			if err > 1e-6 then bad += 1 end
-			worst = math.max(worst, err)
+			if dirtHp(zi, L) ~= dirtHpOld(zi, L) then bad += 1 end
 		end
 	end
-	check("every block is exactly 10,000x the curve", bad == 0,
-		string.format("50 points, worst error %.2e; z1L1 raw 21.5 -> %d", worst, dirtHp(1,1,SCALE)))
+	check("zones 1-10 are byte-identical to the unscaled curve", bad == 0,
+		string.format("50 points; meadow L1 is %d, as it always was", dirtHp(1, 1)))
 end
 
--- ------------------------------------------- and the GAME did not change --
+-- ----------------------------------------------- and the event mine did --
+do
+	local bad, worst = 0, 0
+	for _, L in ipairs({ 1, 25, 50 }) do
+		local raw = (HP_BASE + HP_PER_LAYER * L) * (ZONE_HP_MULT ^ (ZONE - 1))
+		local err = math.abs(dirtHp(ZONE, L) / (raw * SCALE) - 1)
+		if err > 1e-6 then bad += 1 end
+		worst = math.max(worst, err)
+	end
+	check("zone 11 is exactly 10,000x the curve", bad == 0,
+		string.format("worst error %.2e; L1 %d -> %d", worst, dirtHpOld(ZONE,1), dirtHp(ZONE,1)))
+end
+
+-- ------------------------------------ both halves of the loop still cancel --
 --[[
-	The only invariant that matters. A swing deals power * DMG_SCALE into a
-	block of hp * HP_SCALE, so the count must be identical to the unscaled
-	game -- not close, identical, because both sides are the same integer
-	multiple.
+	The real invariant. Horizon tool power is refHp / hits, and refHp scales
+	with the blocks, so the hit count a tool advertises has to be exactly what
+	it was. These are two different tables -- the depth curve and the authored
+	SECTIONS list -- and scaling one without the other is the live risk here.
+]]
+--[[
+	Asserted against the STATED hit count, not against the pre-pass behaviour,
+	because the pre-pass behaviour was wrong at the shallow end.
+
+	power is max(1, floor(refHp / hits + 0.5)). With Loam at refHp 10 and a
+	sinkcharge rated at 70 hits, that floors to 0 and clamps to 1 -- so the
+	tool whose blurb says "about 70 hits" actually took TEN. The integer had
+	no room. Scaling the reference HP gives it room: the same tool comes out
+	at 69 hits against a 70 target.
+
+	So this measures the thing the blurb promises, and the scale is what makes
+	it true rather than something it has to preserve.
 ]]
 do
-	local worst, worstAt = 0, ""
-	for zi = 1, 10 do
-		for _, L in ipairs({ 1, 50, 500, 2500, 10000 }) do
-			for _, power in ipairs({ 1, 10, 569, 24484, 358318080 }) do
-				local before = math.ceil(dirtHp(zi, L, 1) / power)
-				local after = math.ceil(dirtHp(zi, L, SCALE) / (power * SCALE))
-				local d = math.abs(after - before)
-				if d > worst then
-					worst, worstAt = d, string.format("z%d L%d p%d: %d vs %d", zi, L, power, before, after)
-				end
+	local PICK_HITS, BORE_HITS, CHARGE_HITS = 16, 40, 70
+	local worstAfter, worstAt, worstBefore = 0, "", 0
+	for _, secHp in ipairs({ 10, 217, 9980, 23977, 1000000 }) do
+		for _, hits in ipairs({ PICK_HITS, BORE_HITS, CHARGE_HITS }) do
+			local powBefore = math.max(1, math.floor(secHp / hits + 0.5))
+			local powAfter = math.max(1, math.floor(secHp * SCALE / hits + 0.5))
+			local gotBefore = math.max(1, math.floor(secHp / powBefore))
+			local gotAfter = math.max(1, math.floor(secHp * SCALE / powAfter))
+			worstBefore = math.max(worstBefore, math.abs(gotBefore - hits) / hits)
+			local err = math.abs(gotAfter - hits) / hits
+			if err > worstAfter then
+				worstAfter, worstAt = err, string.format("refHp %d, rated %d hits, got %d", secHp, hits, gotAfter)
 			end
 		end
 	end
-	check("swings to break a block are unchanged", worst <= 1,
-		worst == 0 and "identical across 250 combinations" or ("worst " .. worstAt))
-end
-
--- ------------------------------------------------- coins follow for free --
-do
-	-- one coin per point of HP, so the ratio of a block's pay to a tool's
-	-- price is what must hold, and both are in coins.
-	local blockPay = dirtHp(1, 100, SCALE)
-	local blockPayBefore = dirtHp(1, 100, 1)
-	check("a block pays 10,000x more, so coin prices keep pace on their own",
-		math.abs(blockPay / blockPayBefore - SCALE) < 1,
-		string.format("%d -> %d coins", blockPayBefore, blockPay))
+	check("a Horizon tool takes the number of hits it advertises", worstAfter < 0.05,
+		string.format("worst %.1f%% off across 15 combinations", worstAfter * 100))
+	check("...which it did NOT before the scale", worstBefore > 0.5,
+		string.format("worst was %.0f%% off -- power clamped to 1 on shallow sections", worstBefore * 100))
 end
 
 -- ------------------------------------------------------- still printable --
---[[
-	A 64-bit double holds integers exactly to 2^53. The deepest block in the
-	game must stay well under that or the datastore round-trip starts losing
-	units, which is the quiet failure mode of a pass like this.
-]]
 do
-	local deepest = dirtHp(10, 10000, SCALE)
-	check("the deepest block is exact in a double", deepest < 2^53,
-		string.format("%.4g against 2^53 = %.4g", deepest, 2^53))
-	--[[
-		The realistic worst case, not an arbitrary margin: a lucky layer is
-		x10 (LUCKY_LAYER_HP_MULT) and a chest is x2 (CHEST_HP_MULT), and those
-		are the only two multipliers applied to a block's stored HP. Anything
-		above 2^53 stops being an exact integer, and HP round-trips through the
-		datastore -- so this is where the pass would start quietly losing units
-		rather than visibly breaking.
-	]]
-	local worstCase = deepest * 10 * 2
-	check("the hardest block in the game is still an exact integer", worstCase < 2^53,
-		string.format("deepest x lucky10 x chest2 = %.4g, which is %.1f%% of 2^53",
-			worstCase, worstCase / 2^53 * 100))
+	-- Event Horizon is 50 layers deep, not 10,000.
+	local deepest = dirtHp(ZONE, 50)
+	local worstCase = deepest * 10 * 2   -- lucky x10, chest x2
+	check("the hardest event block is an exact integer", worstCase < 2^53,
+		string.format("%.4g, which is %.2f%% of 2^53", worstCase, worstCase / 2^53 * 100))
+	-- and the normal game's deepest, unchanged
+	check("the normal game's deepest block is well clear too",
+		dirtHp(10, 10000) * 10 * 2 < 2^53,
+		string.format("%.4g", dirtHp(10, 10000) * 10 * 2))
 end
 
 print(fails == 0 and ">>> megascale OK" or (">>> " .. fails .. " FAILED"))

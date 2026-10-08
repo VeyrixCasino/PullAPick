@@ -95,9 +95,39 @@ MineTheme.RADIUS_LG = 14
 MineTheme.STROKE = 1.5
 
 -- The smallest text the game is allowed to draw. Below this it is decoration,
--- not a label, and on a phone it is nothing at all.
-MineTheme.TEXT_MIN = 12
-MineTheme.TEXT_BODY = 14
-MineTheme.TEXT_TITLE = 22
+-- not a label, and on a phone it is nothing at all. Raised 12/14/22 -> 14/16/26
+-- in the kid-appeal pass: the audience reads on phones, at arm's length.
+MineTheme.TEXT_MIN = 14
+MineTheme.TEXT_BODY = 16
+MineTheme.TEXT_TITLE = 26
+
+-- CANDY. The kid-appeal pass (2026-10-08): chunky, bright, outlined. The indigo
+-- surfaces above stay the base; these sit on top of them. A candy button is a
+-- fat dark OUTLINE, a bright TOP-to-BOTTOM gradient and a glossy highlight, so
+-- it reads as a pressable object rather than a label with a border.
+--
+-- OUTLINE is the near-black indigo every candy shape is stroked with (same hue
+-- family as MineIcons' #241a33 outline, so art and chrome match).
+MineTheme.OUTLINE = Color3.fromRGB(20, 12, 44)
+MineTheme.STROKE_CHUNKY = 3
+MineTheme.STROKE_THICK = 4
+
+-- Each entry is { top, bottom } for a vertical gradient. Colour = meaning:
+-- gold is the primary action and coins, green is go/claim/ready, cyan gems,
+-- magenta stardust and magic, orange the bag, blue the neutral tile.
+MineTheme.CANDY = {
+	gold    = { Color3.fromRGB(255, 226, 110), Color3.fromRGB(255, 160, 30) },
+	green   = { Color3.fromRGB(140, 245, 110), Color3.fromRGB(40, 190, 90) },
+	cyan    = { Color3.fromRGB(120, 235, 255), Color3.fromRGB(30, 150, 235) },
+	magenta = { Color3.fromRGB(255, 130, 235), Color3.fromRGB(180, 60, 220) },
+	orange  = { Color3.fromRGB(255, 190, 110), Color3.fromRGB(240, 110, 40) },
+	blue    = { Color3.fromRGB(130, 170, 255), Color3.fromRGB(70, 90, 230) },
+	red     = { Color3.fromRGB(255, 130, 130), Color3.fromRGB(220, 50, 70) },
+	purple  = { Color3.fromRGB(190, 130, 255), Color3.fromRGB(120, 60, 220) },
+}
+
+-- Dark text for light candy fills, white for dark ones.
+MineTheme.ON_CANDY = Color3.fromRGB(255, 255, 255)
+MineTheme.ON_CANDY_DARK = Color3.fromRGB(46, 22, 8)
 
 return MineTheme
