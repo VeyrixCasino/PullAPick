@@ -453,12 +453,45 @@ MineConfig.LIMITED_START_UNIX = 1790049600
 -- has to say the same thing the shelf does.
 MineConfig.LIMITED_DAYS = 47
 
+--[[
+	THE EVENT WINDOW RUNS ON THE SEASON CLOCK, NOT THE WALL CLOCK.
+
+	This read os.time() directly, so the 47 days were counted from
+	2026-09-22 whether or not the game had opened -- the window would have
+	closed on 2026-11-08 with nobody having played, and the owner's launch
+	switch could not have stopped it. That is the precise failure MineLaunch
+	exists to prevent, and this function was the last thing still measuring
+	the season against a date.
+
+	MineLaunch.seasonNow() returns SEASON_START exactly until the owner
+	launches, then SEASON_START + however long it has been running. Since
+	LIMITED_START_UNIX IS SEASON_START, before launch this reads zero seconds
+	elapsed and the event sits at its full 47 days; after launch it runs the
+	47 days from the moment the switch was thrown.
+
+	Required lazily rather than at the top of this file: MineConfig is required
+	by nearly everything, MineLaunch is leaf-level today, and keeping the edge
+	out of the load graph means a future require inside MineLaunch cannot turn
+	into a cycle through here.
+]]
+local function launchClock()
+	local ok, L = pcall(function()
+		return require(script.Parent:WaitForChild("MineLaunch"))
+	end)
+	if ok and type(L) == "table" and type(L.seasonNow) == "function" then
+		return L.seasonNow()
+	end
+	-- A missing module must not make a limited zone permanent, nor slam it
+	-- shut: fall back to the wall clock, which is the behaviour this replaced.
+	return os.time()
+end
+
 function MineConfig.limitedActive()
 	local start = MineConfig.LIMITED_START_UNIX or 0
 	if start <= 0 then
 		return true
 	end
-	return os.time() < start + (MineConfig.LIMITED_DAYS or 35) * 86400
+	return launchClock() < start + (MineConfig.LIMITED_DAYS or 35) * 86400
 end
 
 function MineConfig.limitedEndsAt()
@@ -485,7 +518,10 @@ function MineConfig.limitedCountdown()
 	if not ends then
 		return nil
 	end
-	local left = ends - os.time()
+	-- Season clock, for the same reason limitedActive uses it: a countdown
+	-- running off the wall clock would tick down before the game opened and
+	-- greet the first players with "closed".
+	local left = ends - launchClock()
 	if left <= 0 then
 		return "closed"
 	end

@@ -715,11 +715,56 @@ function MineEventsView.mount(parent, opts)
 		return nil
 	end
 
-	local function formatLeft()
-		if C.limitedCountdown then
-			return C.limitedCountdown()
+	--[[
+		BEFORE LAUNCH THE CLOCK TICKS; AFTER IT, IT COUNTS THE REAL EVENT.
+
+		Owner, 2026-10-07: "i want the timer to not actually start until i say
+		launch, and rather just keep ticking down".
+
+		Those are two different clocks and this is where they meet.
+		limitedCountdown now runs on the season clock, which does not move until
+		the owner launches -- correct, but it means a pre-launch screen would
+		show a FROZEN "47d 0h" sitting there, which reads as a broken timer
+		rather than a game that has not started.
+
+		So while unlaunched the label shows MineLaunch.teaserLeft(), which is
+		driven by real os.time() and falls second by second. It is cosmetic by
+		design: it counts toward nothing, nothing watches it, and it rolls over
+		and starts again. Its whole job is to be alive on screen.
+
+		The moment the switch is thrown teaserLeft returns nil and this falls
+		through to the real event countdown, so the handover needs no state of
+		its own.
+	]]
+	local okLaunch, Launch = pcall(function()
+		return require(game:GetService("ReplicatedStorage").Mine.Shared:WaitForChild("MineLaunch"))
+	end)
+
+	local function hms(secs)
+		local d = math.floor(secs / 86400)
+		local h = math.floor((secs % 86400) / 3600)
+		local m = math.floor((secs % 3600) / 60)
+		local s = math.floor(secs % 60)
+		if d >= 1 then
+			return string.format("%dd %dh", d, h)
 		end
-		return nil
+		if h >= 1 then
+			return string.format("%dh %dm", h, m)
+		end
+		return string.format("%dm %02ds", m, s)
+	end
+
+	local function formatLeft()
+		if okLaunch and Launch and Launch.teaserLeft then
+			local teaser = Launch.teaserLeft()
+			if teaser then
+				return hms(teaser), true
+			end
+		end
+		if C.limitedCountdown then
+			return C.limitedCountdown(), false
+		end
+		return nil, false
 	end
 
 	local function paint()
@@ -750,20 +795,22 @@ function MineEventsView.mount(parent, opts)
 		if C.limitedActive then
 			active = C.limitedActive()
 		end
-		local left = formatLeft()
+		local left, teasing = formatLeft()
 
 		detailsBtn.Visible = true
 
 		if owned then
 			timerLbl.Text = (active and left and left ~= "closed")
-				and ("Yours to keep  ·  event closes in " .. left)
+				and ("Yours to keep  \u{00B7}  event " .. (teasing and "starts in " or "closes in ") .. left)
 				or "Yours to keep"
 			cta.Text = "Owned — enter from Zones"
 			cta.BackgroundColor3 = OWNED
 			cta.Active = false
 			empty.Visible = false
 		elseif active and left ~= "closed" then
-			timerLbl.Text = left and ("Closes in " .. left) or "Live now"
+			-- Pre-launch the number is the teaser, so it must not say "closes":
+			-- nothing is closing, the season has not begun.
+			timerLbl.Text = left and ((teasing and "Starts in " or "Closes in ") .. left) or "Live now"
 			cta.Text = "Claim Event Horizon  ·  FREE"
 			cta.BackgroundColor3 = CTA
 			cta.Active = true

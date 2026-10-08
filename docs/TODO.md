@@ -863,14 +863,27 @@ it. Nothing here is an agent's to decide.
         HP going up 10,000x moves gem prices unless it is scaled with them.
       - Datastore: verify a 10,000x number still round-trips through the save
         without precision loss.
-- [ ] **The launch timer must not start until the owner says launch.** Owner:
+- [x] **The launch timer must not start until the owner says launch.** Owner:
       *"i want the timer to not actually start until i say launch, and rather
-      just keep ticking down"*. So the countdown shows and keeps running, but the
-      event it counts toward does not fire and the clock does not begin its real
-      run until an explicit owner switch is thrown. Needs: a server-side
-      `launched` flag (not a date), the visible countdown reading from a rolling
-      display value while unlaunched, and nothing anywhere keying off wall-clock
-      date alone to decide the game has started.
+      just keep ticking down"*. **DONE 2026-10-08.** `MineLaunch` holds the
+      flag (`launchedAt`, 0 = not launched) and `seasonNow()` is the clock every
+      season-timed system reads instead of `os.time()`: it returns
+      `SEASON_START` exactly until launch, then `SEASON_START + (now -
+      launchedAt)`, so a delay of any length costs nothing and the season is
+      still a whole season. `MineRotatingOffers` and `MineScrolls` were already
+      on it.
+      - The last thing still on the wall clock was **`MineConfig.limitedActive`**,
+        which counted Event Horizon's 47 days from 2026-09-22 and would have
+        closed the event on **2026-11-08 with nobody having played**, with no way
+        for the launch switch to stop it. It and `limitedCountdown` now read the
+        season clock. Measured: unlaunched holds the full 47d, launched counts 47d
+        from the switch, day 48 closes.
+      - The **visible countdown** is wired. `teaserLeft()` existed and was
+        referenced by nothing; `MineEventsView` now shows it while unlaunched
+        (live, falling second by second off real `os.time()`, rolling over — it
+        counts toward nothing by design) and hands over to the real event
+        countdown the moment the switch is thrown, saying "Starts in" rather than
+        "Closes in" while it is teasing.
 
 ### Breaking power
 
