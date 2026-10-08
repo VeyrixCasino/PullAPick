@@ -209,4 +209,32 @@ do
 		end)
 	end
 end
+
+--[[
+	STAMP EACH ROW WITH ITS OWN LADDER LENGTH.
+
+	`tier` here is per FAMILY, not global -- it is assigned as
+	`#TOOLS.<family> + 1` as each row is built -- and the three families are
+	nothing like the same length: 12 pickaxes, 38 drills, 88 explosives.
+
+	MineBreaking.eventStrength spreads a tool's tier across the event's strength
+	range, so it needs to know how many rungs that tool's ladder has. Without
+	this it has to assume one number for all three, and whichever number it
+	picks is wrong for the other two: at 20, every drill past tier 20 and every
+	explosive past tier 20 clamps to the same strength, so two thirds of the
+	explosive ladder would be identical.
+
+	Stamped on the data rather than looked up from MineBreaking, so the module
+	that owns the ladder owns its length and MineBreaking needs no dependency on
+	this file. Done after the rename pass because that pass may rebuild rows.
+]]
+for _, fam in ipairs({ "pickaxe", "drill", "explosive" }) do
+	local list = MineHorizonTools.TOOLS and MineHorizonTools.TOOLS[fam]
+	if type(list) == "table" then
+		for _, row in ipairs(list) do
+			row.rungs = #list
+		end
+	end
+end
+
 return MineHorizonTools
