@@ -2309,7 +2309,99 @@ function MineConfig.oreYieldFor(tier)
 	return last.lo, last.hi
 end
 
-MineConfig.ORE_HP_MULT = 3
+--[[
+	EVERY ORE HAD THE SAME HEALTH. Owner, 2026-10-08: "make it so all ores
+	arent same health (should be a base health, and is multiplied by layer
+	health multi)".
+
+	ORE_HP_MULT was a flat 3 applied to every ore in the game, so a Stone block
+	and an Oganesson block at the same layer took exactly the same number of
+	swings. The only thing that varied was the dirt curve underneath, which is
+	the LAYER's difficulty and says nothing about what is in the rock.
+
+	The shape the owner asked for is the shape this now has:
+
+	    ore block HP = oreHardness(ore)  x  dirtHp(zone, layer)
+
+	The second term is untouched -- it is the existing layer curve and every
+	other block still reads it directly, so nothing outside ore moves. The
+	first is the per-ore base, and it is a MULTIPLIER rather than an absolute
+	HP so an ore keeps its character at every depth instead of being trivial
+	deep down and impossible early.
+
+	STONE IS DELIBERATELY UNDER 1. Owner, same message: "make stone a little
+	weaker". At tier 1 with rock character it lands near 0.75, so the first ore
+	a player ever swings at is softer than the dirt around it rather than three
+	times harder, which is what the flat 3 made it.
+
+	Coins are one per point of HP, so a harder ore pays more for being harder.
+	That is already the rule for depth and it stays true across the roster.
+]]
+MineConfig.ORE_HP_MULT = 3        -- legacy flat value; oreHardness replaces it
+MineConfig.ORE_HP_MIN = 0.8       -- tier 1, before character
+MineConfig.ORE_HP_MAX = 4.0       -- tier 82, before character
+--[[
+	Above 1 so the curve stays low across most of the roster and climbs late.
+	Linear would make the middle of the game uniformly grindy; the interesting
+	jump belongs where the ore is actually rare.
+]]
+MineConfig.ORE_HP_POW = 1.35
+
+--[[
+	CHARACTER, FROM WHAT THE ORE IS MADE OF.
+
+	`met` and `rough` are already on every roster row -- they drive the block's
+	colour and material -- so the hardness can read the same two numbers rather
+	than needing a third table that would drift away from them.
+
+	    metal    tough: it deforms before it breaks
+	    crystal  smooth and non-metallic, so dense and hard
+	    rock     rough and non-metallic, so brittle
+
+	The spread is deliberately narrow. This is meant to make two ores of the
+	same tier feel different, not to overrule the tier curve above it.
+]]
+MineConfig.ORE_HP_METAL = 1.12
+MineConfig.ORE_HP_CRYSTAL = 1.06
+MineConfig.ORE_HP_ROCK = 0.94
+
+function MineConfig.oreHardness(ore)
+	if type(ore) == "string" then
+		ore = MineConfig.oreById(ore)
+	end
+	if type(ore) ~= "table" then
+		return MineConfig.ORE_HP_MULT or 3
+	end
+	local n = math.max(2, #MineConfig.ORES)
+	local tier = math.clamp(math.floor(tonumber(ore.tier) or 1), 1, n)
+	local f = ((tier - 1) / (n - 1)) ^ (MineConfig.ORE_HP_POW or 1)
+	local base = MineConfig.ORE_HP_MIN + (MineConfig.ORE_HP_MAX - MineConfig.ORE_HP_MIN) * f
+
+	local met = math.clamp(tonumber(ore.met) or 0, 0, 1)
+	local rough = math.clamp(tonumber(ore.rough) or 0.9, 0, 1)
+	local character
+	if met >= 0.5 then
+		character = MineConfig.ORE_HP_METAL
+	elseif rough <= 0.45 then
+		character = MineConfig.ORE_HP_CRYSTAL
+	else
+		character = MineConfig.ORE_HP_ROCK
+	end
+	return math.max(0.1, base * character)
+end
+
+--[[
+	What an ore block is actually worth in HP at a given place in the mine.
+
+	One function so the server that stamps the block and anything that quotes
+	it cannot disagree -- the flat multiply used to be written out at the one
+	call site, which is how it stayed flat without anyone noticing.
+]]
+function MineConfig.oreBlockHp(ore, zone, layer)
+	local dirt = MineConfig.blockHp("dirt", zone, layer)
+	return math.max(1, math.floor(dirt * MineConfig.oreHardness(ore) + 0.5))
+end
+
 MineConfig.ORE_CHANCE = 1 / 200
 
 --[[

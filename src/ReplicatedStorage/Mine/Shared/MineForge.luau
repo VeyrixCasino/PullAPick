@@ -1065,14 +1065,37 @@ function MineForge.mount(parent, opts)
 				local dist = math.max(size.Magnitude * 1.1, 3)
 				cam.CFrame = CFrame.lookAt(cf.Position + Vector3.new(dist * 0.6, dist * 0.42, dist * 0.78),
 					cf.Position)
-				-- Turn it. A still render of a 3D tool reads as a flat icon.
+				--[[
+					TURN IT ABOUT WORLD Y, NOT ABOUT THE PIVOT'S OWN Y.
+
+					This read `model:PivotTo(model:GetPivot() * CFrame.Angles(0,
+					dt, 0))`, which spins about the PIVOT's local Y -- and the
+					pivot here is not upright. build() sets PrimaryPart to the
+					Handle, and the Handle is a cyl(), which bakes
+					CFrame.Angles(0, 0, rad(90)) into the part so the Roblox
+					cylinder (long on its own X) stands up. So the Handle's
+					local Y points along world -X, and spinning about it
+					tumbled the tool end over end -- which is why it was seen
+					lying on its side with the head at the bottom.
+
+					The MODEL is authored upright in world space already: the
+					pommel sits at y = -1.8 and the head's eye at y = +1.26.
+					Only the pivot's orientation is rotated. So the fix is to
+					rotate about world Y through the model's centre and leave
+					its orientation alone, rather than to re-orient anything.
+				]]
+				local cf0 = model:GetPivot()
+				local centre = select(1, model:GetBoundingBox()).Position
+				local angle = 0
 				local spin
 				spin = game:GetService("RunService").RenderStepped:Connect(function(dt)
 					if not vp.Parent or not model.Parent then
 						spin:Disconnect()
 						return
 					end
-					model:PivotTo(model:GetPivot() * CFrame.Angles(0, dt * 0.6, 0))
+					angle += dt * 0.6
+					local about = CFrame.new(centre) * CFrame.Angles(0, angle, 0) * CFrame.new(-centre)
+					model:PivotTo(about * cf0)
 				end)
 			end
 		end
@@ -1098,6 +1121,33 @@ function MineForge.mount(parent, opts)
 		local bp = C.toolBreakingPower and C.toolBreakingPower(r.tier) or 0
 		local rate = tonumber(stats.rate) or 0
 		local cells = tonumber(stats.cells) or 1
+		--[[
+			DAMAGE IS toolPower, NOT BREAKING POWER.
+
+			This printed `bp * cells` under a DAMAGE label, which made a Stone
+			pick read as "1 damage" -- the same as the free wooden one -- and
+			that is not what it does. Breaking power is the GATE: which ore a
+			tool is allowed to touch at all, and it is the ore's tier by
+			definition, so tier 1 is 1. Damage is C.toolPower, which is
+			TOOL_DMG_BASE x toolTierPower(tier) x typeMult x step^(level-1).
+
+			A Stone pick is 10 and the wooden one is 1, so it is ten times the
+			starter, not equal to it.
+
+			Shown at the level this tool will ACTUALLY be forged at, not 1: the
+			craft verb stamps a new tool with the highest level you already own
+			(and bases it there). Quoting level 1 would understate every tool
+			after the first by the whole climb.
+		]]
+		local forgeLevel = 1
+		for _, t in ipairs(snapshot.oreTools or {}) do
+			if type(t) == "table" then
+				forgeLevel = math.max(forgeLevel, math.floor(tonumber(t.level) or 1))
+			end
+		end
+		forgeLevel = math.clamp(forgeLevel, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
+		local typeMult = OreTools.typeMult(selFamily, r.tier)
+		local dmg = C.toolPower and C.toolPower(r.tier, forgeLevel, typeMult) or 0
 
 		local function statLine(y, key, value, ink)
 			label(info, key, 12, MUTED, UDim2.fromOffset(0, y), UDim2.new(0.42, 0, 0, 16), FONT_M)
@@ -1108,11 +1158,15 @@ function MineForge.mount(parent, opts)
 		statLine(62, "COSTS", string.format("%s %s", num(r.cost), r.name),
 			r.afford and GREEN or RED)
 		statLine(86, "YOU HAVE", string.format("%s %s", num(r.have), r.name), MUTED)
-		statLine(116, "BREAKING POWER", num(bp), GOLD)
-		statLine(140, "DAMAGE", string.format("%s per hit", num(bp * math.max(1, cells))), GOLD)
-		statLine(164, "SWING RATE", string.format("%.1f / sec", rate), TEXT)
-		statLine(188, "REACHES", string.format("ore tier %d",
-			C.oreReachCap and C.oreReachCap(bp) or r.tier), TEXT)
+		statLine(116, "DAMAGE", string.format("%s per hit%s", num(math.floor(dmg)),
+			forgeLevel > 1 and (" at level " .. forgeLevel) or ""), GOLD)
+		statLine(140, "PER SECOND", string.format("%s", num(math.floor(dmg * rate * math.max(1, cells)))), GOLD)
+		statLine(164, "SWING RATE", string.format("%.1f / sec%s", rate,
+			cells > 1 and string.format("  \u{00B7}  %d blocks", cells) or ""), TEXT)
+		-- The gate, labelled as one. It is the ore's tier and says which ore
+		-- the tool may touch -- not how hard it hits.
+		statLine(188, "BREAKS UP TO", string.format("ore tier %d  (power %s)",
+			C.oreReachCap and C.oreReachCap(bp) or r.tier, num(bp)), TEXT)
 
 		local owned = ownedForOre(snapshot, selFamily, r.tier)
 		button(info, r.afford and "FORGE" or "NEED ORE", GREEN,

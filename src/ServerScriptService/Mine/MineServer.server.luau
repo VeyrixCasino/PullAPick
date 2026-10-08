@@ -4469,8 +4469,20 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	elseif kind == "lucky_block" and C.chestHp then
 		maxHp = C.chestHp(y)
 	elseif kind == "ore" then
-		-- Tougher than the dirt around it: an ore you can see is worth the swing.
-		maxHp = math.floor(C.blockHp("dirt", zone, y) * (C.ORE_HP_MULT or 3))
+		--[[
+			Per ORE, not a flat multiple. This was
+			blockHp("dirt") * ORE_HP_MULT with ORE_HP_MULT = 3, so a Stone
+			block and an Oganesson block at the same layer took the same
+			number of swings -- the only thing that ever varied was the dirt
+			curve underneath, which describes the LAYER and not what is in it.
+
+			C.oreBlockHp is hardness x the same dirt curve, so the layer term
+			is unchanged and only the ore's own base moves. Falls back to the
+			old flat multiple when the ore is unknown, which keeps a block
+			breakable rather than giving it 1 HP.
+		]]
+		maxHp = oreDef and C.oreBlockHp and C.oreBlockHp(oreDef, zone, y)
+			or math.floor(C.blockHp("dirt", zone, y) * (C.ORE_HP_MULT or 3))
 	else
 		maxHp = C.blockHp(kind, zone, y)
 	end
