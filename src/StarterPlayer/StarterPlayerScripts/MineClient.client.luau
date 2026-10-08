@@ -7799,6 +7799,183 @@ function ClientFns.confirmSeam(payload)
 end
 
 --[[
+	THE WANDERING TRADER'S SHELF.
+
+	Opened by the server firing "traderShop" when the stall prompt is used. The
+	payload is the whole offer -- rotation, where, how long left, and the stock
+	rows with their prices -- so this panel never computes a price or decides
+	what is on sale. It cannot: MineTrader.stockFor is the authority and
+	Verbs.buyTraderCase re-derives all of it anyway, so anything worked out here
+	could only ever disagree.
+
+	REBUILT EVERY OPEN rather than cached like the seam panel. A trader's shelf
+	is 3-5 rows that change with the rotation and differ per outpost, so a cached
+	frame would have to be diffed against a new shelf every time -- more code than
+	just making five rows, and one more thing to get wrong when a row vanishes.
+
+	The countdown is cosmetic. It ticks from `secondsLeft` so a player can see the
+	roster is about to change, but nothing is gated on it here; if it runs out
+	mid-purchase the server simply says there is no trader there.
+]]
+function ClientFns.showTraderShop(payload)
+	if type(payload) ~= "table" or type(payload.stock) ~= "table" then
+		return
+	end
+	if ClientFns.traderMenu and ClientFns.traderMenu.Parent then
+		ClientFns.traderMenu:Destroy()
+		ClientFns.traderMenu = nil
+	end
+	if ClientFns.traderTick then
+		ClientFns.traderTick:Disconnect()
+		ClientFns.traderTick = nil
+	end
+	local touch = UIS.TouchEnabled
+	local stock = payload.stock
+	local rows = math.max(1, #stock)
+	-- Height follows the shelf: a 3-row trader should not open a 5-row card with
+	-- a hole in it.
+	local rowH = touch and 62 or 58
+	local f = mk("Frame", {
+		Name = "TraderShop", AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.46),
+		Size = UDim2.new(0.9, 0, 0, 132 + rows * (rowH + 8)),
+		BackgroundColor3 = Color3.fromRGB(44, 40, 60), ZIndex = 90,
+	}, gui)
+	mk("UISizeConstraint", {
+		MinSize = Vector2.new(300, 240), MaxSize = Vector2.new(520, 560),
+	}, f)
+	ClientFns.traderMenu = f
+	round(f, 18)
+	stroke(f, 2)
+
+	mk("TextLabel", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 16),
+		Size = UDim2.new(1, -24, 0, 30), Font = FONT, TextSize = touch and 20 or 23,
+		TextColor3 = Color3.fromRGB(255, 226, 150), TextStrokeTransparency = 1,
+		Text = "WANDERING TRADER", ZIndex = 91,
+	}, f)
+	local where = mk("TextLabel", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 46),
+		Size = UDim2.new(1, -24, 0, 20), Font = FONT_M, TextSize = touch and 12 or 13,
+		TextColor3 = Color3.fromRGB(198, 202, 220), TextStrokeTransparency = 1,
+		Text = "", ZIndex = 91,
+	}, f)
+
+	local list = mk("Frame", {
+		BackgroundTransparency = 1, Position = UDim2.new(0.05, 0, 0, 74),
+		Size = UDim2.new(0.9, 0, 0, rows * (rowH + 8)), ZIndex = 91,
+	}, f)
+	mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, list)
+
+	local buys = {}
+	for i, row in ipairs(stock) do
+		local card = mk("Frame", {
+			BackgroundColor3 = Color3.fromRGB(32, 30, 46), LayoutOrder = i,
+			Size = UDim2.new(1, 0, 0, rowH), ZIndex = 91,
+		}, list)
+		round(card, 10)
+		mk("TextLabel", {
+			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 6),
+			Size = UDim2.new(0.58, 0, 0, 20), Font = FONT, TextSize = touch and 14 or 15,
+			TextColor3 = Color3.fromRGB(255, 255, 255), TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd, Text = tostring(row.name or row.caseId),
+			ZIndex = 92,
+		}, card)
+		mk("TextLabel", {
+			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 26),
+			Size = UDim2.new(0.58, 0, 0, rowH - 32), Font = FONT_M, TextSize = touch and 11 or 12,
+			TextColor3 = Color3.fromRGB(186, 190, 210), TextXAlignment = Enum.TextXAlignment.Left,
+			TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top,
+			Text = tostring(row.blurb or ""), ZIndex = 92,
+		}, card)
+		local price = math.max(0, math.floor(tonumber(row.tokens) or 0))
+		local buy = mk("TextButton", {
+			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
+			Size = UDim2.new(0, touch and 104 or 112, 0, touch and 40 or 38),
+			BackgroundColor3 = Color3.fromRGB(96, 190, 104), Font = FONT,
+			TextSize = touch and 13 or 14, TextColor3 = Color3.fromRGB(12, 24, 16),
+			Text = price .. " tokens", ZIndex = 92,
+		}, card)
+		round(buy, 9)
+		buys[#buys + 1] = { btn = buy, price = price }
+		buy.MouseButton1Click:Connect(function()
+			--[[
+				Fire and close. The server re-checks that a trader is there, that
+				this case is on its shelf, and what it costs -- so there is nothing
+				useful to do here but ask, and leaving the panel open would invite
+				a second click on a case already bought.
+			]]
+			net:FireServer("buyTraderCase", {
+				zoneId = payload.zoneId, seam = payload.seam, caseId = row.caseId,
+			})
+			if ClientFns.traderMenu then
+				ClientFns.traderMenu:Destroy()
+				ClientFns.traderMenu = nil
+			end
+			if ClientFns.traderTick then
+				ClientFns.traderTick:Disconnect()
+				ClientFns.traderTick = nil
+			end
+		end)
+	end
+
+	local close = mk("TextButton", {
+		AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -14),
+		Size = UDim2.new(0.5, 0, 0, touch and 40 or 36),
+		BackgroundColor3 = Color3.fromRGB(70, 66, 92), Font = FONT,
+		TextSize = touch and 14 or 15, TextColor3 = Color3.fromRGB(226, 228, 240),
+		Text = "Close", ZIndex = 92,
+	}, f)
+	round(close, 9)
+	close.MouseButton1Click:Connect(function()
+		if ClientFns.traderMenu then
+			ClientFns.traderMenu:Destroy()
+			ClientFns.traderMenu = nil
+		end
+		if ClientFns.traderTick then
+			ClientFns.traderTick:Disconnect()
+			ClientFns.traderTick = nil
+		end
+	end)
+
+	-- Header line and affordability, repainted on a tick so the countdown runs
+	-- and a purchase elsewhere greys the buttons out.
+	local left = math.max(0, math.floor(tonumber(payload.secondsLeft) or 0))
+	local at = os.clock()
+	local function repaint()
+		local remain = math.max(0, left - math.floor(os.clock() - at))
+		local have = tonumber(snap and snap.temperTokens) or 0
+		where.Text = ("%s · depth %s · %d:%02d left · %d tokens"):format(
+			tostring(payload.zoneId or "?"), tostring(payload.seam or 0),
+			math.floor(remain / 60), remain % 60, have)
+		for _, b in ipairs(buys) do
+			local afford = have >= b.price
+			b.btn.BackgroundColor3 = afford and Color3.fromRGB(96, 190, 104) or Color3.fromRGB(70, 74, 92)
+			b.btn.TextColor3 = afford and Color3.fromRGB(12, 24, 16) or Color3.fromRGB(196, 200, 216)
+			b.btn.Active = afford
+			b.btn.AutoButtonColor = afford
+		end
+	end
+	repaint()
+	-- RunService, not RS: in this file `RS` is ReplicatedStorage.
+	ClientFns.traderTick = RunService.Heartbeat:Connect(function()
+		if not (ClientFns.traderMenu and ClientFns.traderMenu.Parent) then
+			if ClientFns.traderTick then
+				ClientFns.traderTick:Disconnect()
+				ClientFns.traderTick = nil
+			end
+			return
+		end
+		-- Once a second is enough for a countdown and an affordability tint.
+		if os.clock() - (ClientFns.traderPaintAt or 0) < 1 then
+			return
+		end
+		ClientFns.traderPaintAt = os.clock()
+		repaint()
+	end)
+end
+
+--[[
 	The Rebirth screen is ONE decision: "should I press the button yet?"
 	Everything on it serves that question, in reading order: what rebirth is,
 	how close your bank is (one bar, two marked lines), what stays vs what
@@ -11249,6 +11426,8 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		end
 	elseif action == "seamGate" then
 		ClientFns.confirmSeam(payload)
+	elseif action == "traderShop" and payload then
+		ClientFns.showTraderShop(payload)
 	elseif action == "tooWeak" then
 		--[[
 			The breaking-power refusal. There were briefly two of these, from

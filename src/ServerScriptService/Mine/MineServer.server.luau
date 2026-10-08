@@ -76,6 +76,15 @@ local Dig = {
 	Shop = require(shared:WaitForChild("MineDepthShop")),
 	Plazas = require(script.Parent:WaitForChild("MineDepthPlazas")),
 	Breaking = require(shared:WaitForChild("MineBreaking")),
+	-- The wandering trader: rules in MineTrader (shared, harnessed), bodies in
+	-- MineTraderNPC (server). On Dig for the same reason as the rest -- this
+	-- script has five top-level locals left and these do not need two of them.
+	Trader = require(shared:WaitForChild("MineTrader")),
+	TraderNPC = require(script.Parent:WaitForChild("MineTraderNPC")),
+	-- The season clock. MineRotatingOffers and MineScrolls already default their
+	-- `now` to Launch.seasonNow(), so this handle exists for the server to LOAD
+	-- and STAMP the flag; nothing reads the time through it.
+	Launch = require(shared:WaitForChild("MineLaunch")),
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
@@ -4654,6 +4663,20 @@ local function ensureZone(zone, throughLayer)
 	local uncapped = zone.id == "meadow" or (tonumber(maxLayers) or 0) >= (C.MINE1_LAYERS or 2500)
 	local want = math.max(1, math.floor(throughLayer or (C.LAYER_WINDOW or 8)))
 	local target = uncapped and want or math.clamp(want, 1, maxLayers)
+	--[[
+		ONE CHUNK AT A TIME, AND NEVER BELOW THE OPEN ONE.
+
+		Every caller asks for `deepest + LAYER_WINDOW`, which is the right ask for
+		a player walking down and the wrong one for everything else: nothing
+		stopped the mine existing below what anyone had earned. Clamping here
+		rather than at the five call sites because this is the only place that
+		turns a request into rock, so a new caller cannot forget it.
+
+		The ceiling moves only when someone reaches a chunk floor, which is the
+		owner's rule: chunk two does not exist until the bottom of chunk one has
+		been mined. canCreditDepth refuses the depth; this refuses the rock.
+	]]
+	target = math.min(target, Dig.Auth.chunkCeiling(Dig.Auth.deepestReachedAcross(profiles, zone.id)))
 	local from = (builtTo[zone.id] or 0) + 1
 	if from > target then
 		syncPitWalls(zone)
@@ -4685,7 +4708,8 @@ local function ensureZone(zone, throughLayer)
 		missing -- a hole in the top of the mine.
 	]]
 	local band = math.max(1, Const.ENSURE_BAND)
-	if (target - from) >= Const.ENSURE_FAR then
+	local far = (target - from) >= Const.ENSURE_FAR
+	if far then
 		from = math.max(1, target - band + 1)
 	else
 		target = math.min(target, from + band - 1)
@@ -4819,8 +4843,22 @@ local function ensureZone(zone, throughLayer)
 			end
 		end
 	end
-	-- builtTo already claimed at start; keep max in case of concurrent raises.
-	builtTo[zone.id] = math.max(builtTo[zone.id] or 0, target)
+	--[[
+		The far path must NOT advance the frontier, and used to.
+
+		The block comment above says so already -- "builtTo is NOT advanced,
+		because those layers genuinely are not built" -- but this line read
+		`max(builtTo, target)` unconditionally, so arriving at seam 2500 with a
+		frontier of 3 built layers 2506-2508 and then claimed 2508. Every later
+		call starts at builtTo+1, so layers 4-2505 could never be built by
+		anything: ride back up and you are standing in a void that no amount of
+		digging fills. Only the near path, which is contiguous with the frontier,
+		may move it.
+	]]
+	if not far then
+		-- keep max in case of concurrent raises
+		builtTo[zone.id] = math.max(builtTo[zone.id] or 0, target)
+	end
 	syncPitWalls(zone)
 end
 
@@ -5574,6 +5612,52 @@ local function openChestBlock(plr, p, chestId, b, part)
 	if rollChestTool then
 		pcall(rollChestTool, plr, p, def.id, b, { layer = layer, zoneId = zone and zone.id, setId = setId })
 	end
+	--[[
+		A GRADED CHARM, 0.5% OF CHESTS. Owner, 2026-10-07: charms "can be found in
+		chests (0.5%) or bought with tokens".
+
+		The 0.5% decides only WHETHER a charm drops; rollChestCharm then draws which
+		one against MineTemper's rarity weights, so the half-percent is spent mostly
+		on F and D and the single SSS is rare twice over.
+
+		`Charms` is the module upvalue from the top of this file, deliberately --
+		the `rollChestTool` call directly above reads a LOCAL declared ~2,600 lines
+		below, which makes it a global read that is always nil, so that branch never
+		runs (open-questions #7). Writing this against the upvalue is what keeps it
+		from being the same silent no-op.
+
+		Chest luck scales it, like the persist-bag roll below. No first-charm
+		guarantee here: that rule belongs to the zone grant and the ore case, which
+		is where a new player meets their first charm.
+	]]
+	do
+		local roll = Charms.rollChestCharm and (tonumber(Charms.CHARM_CHEST_CHANCE) or 0) > 0
+		if roll and Random.new():NextNumber() < Charms.CHARM_CHEST_CHANCE * ((b and b.chestLuck) or 1) then
+			local cdef = Charms.rollChestCharm(Random.new())
+			if cdef then
+				p.charms = p.charms or {}
+				-- A tally, not a latch: see the note on the zone grant.
+				p.charms[cdef.id] = (tonumber(p.charms[cdef.id]) or 0) + 1
+				local wearing = type(p.equippedCharm) == "string" and p.equippedCharm ~= ""
+				if not wearing then
+					p.equippedCharm = cdef.id
+				end
+				local how = wearing and "equip it in Inventory → Equipment" or "equipped"
+				net:FireClient(plr, "toast", "Charm found: " .. cdef.name .. " — " .. how)
+				net:FireClient(plr, "foundTool", {
+					kind = "charm",
+					charmId = cdef.id,
+					name = cdef.name,
+					title = "CHARM FOUND",
+					-- The grade IS the rarity here, unlike the zone grant where the
+					-- depth band stands in for one.
+					rarityId = Charms.RARITY_LABEL and Charms.RARITY_LABEL[cdef.rarity] or "Legendary",
+					blurb = (cdef.blurb or "") .. "  ·  " .. how,
+				})
+				markDirty(plr)
+			end
+		end
+	end
 	-- Mid/deep: small chance at a zone persist bag (even zones 1/band, odd share the tool bands).
 	do
 		local band = (C.depthBand and C.depthBand(layer)) or "shallow"
@@ -5660,8 +5744,19 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 		end)
 	end
 	do
-		-- deepest / plaza only if dig was allowed; break loot still resolves.
-		if Dig.Auth.canDigLayer(p, zone.id, layer) then
+		--[[
+			Deepest / plaza only if the dig was allowed; break loot still
+			resolves either way.
+
+			canCreditDepth is the gate that actually holds. canDigLayer ends in
+			an unconditional `return true` on purpose -- refusing a SWING only
+			means standing in rock that will not break -- so on its own it let a
+			single block broken at layer 5000 credit depth 5000. Owner,
+			2026-10-06: the chunk gate is "to ensure hackers dont break one block
+			in every chunk and unlock the depth points".
+		]]
+		if Dig.Auth.canDigLayer(p, zone.id, layer)
+			and Dig.Auth.canCreditDepth(p, zone.id, layer) then
 			Dig.Auth.noteDig(p, zone.id, layer, part:GetAttribute("CX"), part:GetAttribute("CZ"))
 			if Dig.Auth.creditDeepest(p, zone.id, layer) then
 				local zid = tostring(zone.id)
@@ -9831,6 +9926,254 @@ end
 	merge moves you onto the charm you just made instead. That is also just
 	what you wanted.
 ]]
+--[[
+	LOAD AND STAMP THE LAUNCH FLAG.
+
+	Owner, 2026-10-07: the timer keeps ticking but the season must not START
+	until they say so. MineLaunch holds the rule; this is the persistence and the
+	switch.
+
+	Stored server-wide, NOT per profile: a season that had begun for one player
+	and not another would be incoherent, and it has to survive every server
+	restart or the season silently rewinds to zero on the next one.
+
+	Read once at boot and cached on the module. The read is best-effort -- if the
+	datastore is down, the game stays UNLAUNCHED, which is the safe direction: a
+	failed read must never start the season by accident.
+]]
+function Verbs._loadLaunch()
+	local okRead, saved = pcall(function()
+		return store:GetAsync("launch_v1")
+	end)
+	if okRead and type(saved) == "table" and tonumber(saved.at) and tonumber(saved.at) > 0 then
+		Dig.Launch.launchedAt = math.floor(saved.at)
+		print(("[Mine] season LAUNCHED at %d (%d days in)"):format(
+			Dig.Launch.launchedAt, math.floor(Dig.Launch.elapsed() / 86400)))
+	else
+		Dig.Launch.launchedAt = 0
+		print("[Mine] season NOT launched yet -- clock pinned to season start")
+	end
+end
+
+--[[
+	Throw the switch. Admin only, and deliberately not undoable from here.
+
+	There is no "unlaunch": once players have spent a season's worth of time in
+	it, rewinding would re-lock what they earned. If it is ever thrown by
+	mistake, the fix is a deliberate datastore edit, not a verb anyone can call.
+]]
+function Verbs.launchSeason(plr)
+	local Allow = require(script.Parent:WaitForChild("Admin"):WaitForChild("AdminAllowlist"))
+	if not (Allow.isAdmin and Allow.isAdmin(plr.UserId)) then
+		return
+	end
+	if Dig.Launch.isLaunched() then
+		net:FireClient(plr, "toast", ("Season already launched (%d days in)"):format(
+			math.floor(Dig.Launch.elapsed() / 86400)))
+		return
+	end
+	local at = Dig.Launch.launch(os.time())
+	if not at then
+		net:FireClient(plr, "toast", "Could not launch -- bad server clock")
+		return
+	end
+	-- Persist BEFORE announcing: a launch that was announced and not saved would
+	-- rewind on the next server restart, which is worse than a failed launch.
+	local okSave = pcall(function()
+		store:SetAsync("launch_v1", { at = at, by = plr.UserId })
+	end)
+	if not okSave then
+		Dig.Launch.launchedAt = 0
+		net:FireClient(plr, "toast", "Launch FAILED to save -- still not launched")
+		warn("[Mine] launchSeason could not persist; season left unlaunched")
+		return
+	end
+	print(("[Mine] SEASON LAUNCHED by %s (%d) at %d"):format(plr.Name, plr.UserId, at))
+	net:FireClient(plr, "toast", "Season launched. The clock is running.")
+end
+
+--[[
+	BUY A CASE FROM A WANDERING TRADER.
+
+	Four things are checked before a token is spent, and each one is an exploit if
+	it is missing:
+
+	  IS A TRADER THERE. The prompt lives in the world, but a client can fire this
+	  verb without ever walking to one. canTrade re-derives the roster from the
+	  rotation, so naming an outpost is not the same as standing at it -- without
+	  this, a surface player buys the deep stock by sending a different seam.
+
+	  IS THAT CASE IN ITS STOCK. The trader's shelf is a function of (rotation,
+	  zone, seam); a caseId that is not on it is refused even though the case
+	  exists. Otherwise the depth gate in MineTrader.stockFor is decoration.
+
+	  CAN THE PLAYER BE THERE AT ALL. canAccessSeam, so a trader at 3,000 is not a
+	  way to shop past a seam you have not opened.
+
+	  THE PRICE IS THE SHELF'S. Taken from the stock row, not from the payload and
+	  not recomputed here, so what the panel quoted is what is charged.
+
+	The reward is rolled server-side with a fresh Random. The client is told what
+	it got, never what it would get.
+]]
+function Verbs.buyTraderCase(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p or type(payload) ~= "table" then
+		return
+	end
+	local zoneId = tostring(payload.zoneId or "")
+	local seam = math.floor(tonumber(payload.seam) or 0)
+	local caseId = tostring(payload.caseId or "")
+	local okHere, why = Dig.TraderNPC.canTrade(p, zoneId, seam, Dig.Auth)
+	if not okHere then
+		net:FireClient(plr, "toast",
+			why == "need_seam" and "You have not opened that seam" or "No trader there right now")
+		return
+	end
+	local offer = Dig.TraderNPC.offer(zoneId, seam)
+	local row
+	for _, r in ipairs(offer.stock or {}) do
+		if r.caseId == caseId then
+			row = r
+			break
+		end
+	end
+	if not row then
+		net:FireClient(plr, "toast", "That trader is not carrying that")
+		return
+	end
+	local price = math.max(1, math.floor(tonumber(row.tokens) or 0))
+	if (tonumber(p.temperTokens) or 0) < price then
+		net:FireClient(plr, "toast", ("Need %d tokens"):format(price))
+		return
+	end
+	local reward = Dig.Trader.rollCase(row.caseId, Random.new())
+	if not reward then
+		net:FireClient(plr, "toast", "That case is empty")
+		return
+	end
+	-- Debit only once the reward resolved, so a case that cannot pay never costs.
+	p.temperTokens = (tonumber(p.temperTokens) or 0) - price
+	local got = nil
+	if reward.kind == "charm" then
+		p.charms = p.charms or {}
+		p.charms[reward.charmId] = (tonumber(p.charms[reward.charmId]) or 0) + 1
+		got = reward.name
+	elseif reward.kind == "hat" then
+		local rng = Random.new()
+		local catalog = Gear.catalogFor and Gear.catalogFor("hat", reward.rarity, nil, rng)
+		local setId = (catalog and catalog.setId)
+			or (Gear.SETS and Gear.SETS[rng:NextInteger(1, #Gear.SETS)].id)
+		local piece = Gear.makePiece and Gear.makePiece(instanceHex16(), setId, "hat", reward.rarity, catalog)
+		if piece then
+			p.gear = p.gear or {}
+			table.insert(p.gear, piece)
+			got = (piece.name or "Hat") .. " (" .. tostring(reward.rarity) .. ")"
+		end
+	elseif reward.kind == "tool" then
+		local oreDef = C.ORES[math.clamp(reward.tier, 1, #C.ORES)]
+		local OreToolsM = require(shared:WaitForChild("MineOreTools"))
+		local familyId = ({ "pickaxe", "drill", "explosive" })[Random.new():NextInteger(1, 3)]
+		local def = oreDef and OreToolsM.frameForTier and OreToolsM.frameForTier(familyId, oreDef.tier)
+		if def and oreDef then
+			p.oreTools = p.oreTools or {}
+			table.insert(p.oreTools, {
+				uid = instanceHex16(),
+				typeId = def.id,
+				familyId = familyId,
+				tier = oreDef.tier,
+				-- A bought tool starts at 1, not at your inherited best: the case
+				-- is the tool, not a free run up the upgrade ladder.
+				level = 1,
+				base = 1,
+			})
+			got = (oreDef.name or "Tool") .. " " .. familyId
+		end
+	end
+	if not got then
+		-- Nothing could be built: refund rather than charge for nothing.
+		p.temperTokens = (tonumber(p.temperTokens) or 0) + price
+		net:FireClient(plr, "toast", "The trader had nothing to give")
+		return
+	end
+	net:FireClient(plr, "toast", ("%s — %s for %d tokens"):format(row.name, got, price))
+	net:FireClient(plr, "foundTool", {
+		kind = reward.kind,
+		name = got,
+		title = "TRADER CASE",
+		rarityId = reward.rarity and (Charms.RARITY_LABEL and Charms.RARITY_LABEL[reward.rarity]) or "Legendary",
+		blurb = row.blurb or "",
+	})
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
+	BUY A GRADED CHARM WITH TEMPER TOKENS.
+
+	Owner, 2026-10-07: charms "can be found in chests (0.5%) or bought with
+	tokens". This is the second half; the chest roll lives in openChestBlock.
+
+	The price comes from MineCharms.charmTokenPrice rather than from the payload,
+	which is the whole point of having it there: a client that asks to buy an SSS
+	for 15 tokens is quoted 2500 by the same table the shop panel reads.
+
+	Only `source == "charm"` rows are buyable. Zone grants, ore charms and the
+	gem pack are not on sale here, and checking the price is not enough on its
+	own -- charmTokenPrice keys off `rarity`, so any future row that gains a
+	rarity would quietly become purchasable. The source check is the gate.
+
+	Debits before granting, and re-reads the balance inside the loop, so a 10x
+	buy cannot overdraw on its last iteration.
+]]
+function Verbs.buyCharm(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local id = tostring((type(payload) == "table" and payload.charmId) or "")
+	local def = Charms.byId(id)
+	if not def or def.source ~= "charm" then
+		net:FireClient(plr, "toast", "That charm is not for sale")
+		return
+	end
+	local price = Charms.charmTokenPrice(def)
+	if not price or price <= 0 then
+		net:FireClient(plr, "toast", "That charm has no price")
+		return
+	end
+	local want = math.clamp(math.floor(tonumber(type(payload) == "table" and payload.count) or 1), 1, 10)
+	local have = tonumber(p.temperTokens) or 0
+	if have < price then
+		net:FireClient(plr, "toast", ("Need %d token%s"):format(price, price == 1 and "" or "s"))
+		return
+	end
+	p.charms = p.charms or {}
+	local bought, spent = 0, 0
+	for _ = 1, want do
+		if (tonumber(p.temperTokens) or 0) < price then
+			break
+		end
+		p.temperTokens = (tonumber(p.temperTokens) or 0) - price
+		spent += price
+		-- A tally, like every other charm grant; a legacy `true` reads as one.
+		p.charms[def.id] = (tonumber(p.charms[def.id]) or 0) + 1
+		bought += 1
+	end
+	if bought <= 0 then
+		return
+	end
+	-- Wear it if nothing is on, so a first purchase is a boost rather than a
+	-- menu to go and find. Same rule as the chest and zone grants.
+	if not (type(p.equippedCharm) == "string" and p.equippedCharm ~= "") then
+		p.equippedCharm = def.id
+	end
+	net:FireClient(plr, "toast", ("Bought %s%s for %d tokens"):format(
+		def.name, bought > 1 and (" x" .. bought) or "", spent))
+	markDirty(plr)
+	snap(plr)
+end
+
 -- On Verbs rather than a local: this script sits at 197 of Luau's 200
 -- top-level locals and a verb does not need to spend one of the last three.
 function Verbs.mergeCharm(plr, payload)
@@ -13024,9 +13367,17 @@ end)
 -- whole server compiling. tools/verify/compile.js caught it. A function body
 -- gets its own budget.
 ;(function()
+	--[[
+		NAMED EXPLICITLY, and LaneBodies is deliberately NOT here.
+
+		It was, on my guess that it was scaffolding. `LaneTips` sits beside it in
+		the workspace and the pair reads as real geometry, not a showcase -- so
+		the guess comes out. Everything in this list is a rack of art with a name
+		that says so; anything ambiguous stays in the world.
+	]]
 	local SHOWCASE = {
 		PetShowcase = true, OreShowcase = true, ToolModels_HQ = true,
-		ToolKit_Showcase = true, IconPoseExamples = true, LaneBodies = true,
+		ToolKit_Showcase = true, IconPoseExamples = true,
 		["Gem-N-Eye Preview"] = true,
 	}
 	local removed, parts = 0, 0
@@ -13062,9 +13413,31 @@ pcall(function()
 	-- Group wheel removed. Uncomment to bring it back:
 	-- GroupWheelService.build(lobby)
 end)
+-- Before anything season-timed runs: the offers and the pass read
+-- Launch.seasonNow(), and a load after they first ask would have them answer
+-- from an unlaunched clock and then silently disagree with themselves.
+pcall(Verbs._loadLaunch)
 LeaderboardService.start(net)
 pcall(function()
 	Dig.Plazas.start()
+end)
+--[[
+	The wandering traders, after the plazas: MineTraderNPC.spots() reads the
+	DepthPlaza folders that Plazas.start just built, so starting first would find
+	nowhere to stand and place nobody until the next rotation.
+
+	The prompt only OPENS the shop. Buying goes through Verbs.buyTraderCase, which
+	re-checks that a trader is really there -- a prompt a client can see is not
+	authority to spend.
+]]
+pcall(function()
+	Dig.TraderNPC.start(function(plr, placement)
+		local p = profiles[plr.UserId]
+		if not p then
+			return
+		end
+		net:FireClient(plr, "traderShop", Dig.TraderNPC.offer(placement.zoneId, placement.seam))
+	end)
 end)
 ensureZone(C.ZONES[1], C.LAYER_WINDOW or 8)
 Verbs.scrubLobbyMineBlocks()
@@ -16275,6 +16648,9 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "upgradeGear" then Verbs.upgradeGear(plr, payload)
 		elseif action == "upgradeOrePouch" then Verbs.upgradeOrePouch(plr)
 		elseif action == "toggleOreLock" then Verbs.toggleOreLock(plr, payload)
+		elseif action == "buyCharm" then Verbs.buyCharm(plr, payload)
+		elseif action == "buyTraderCase" then Verbs.buyTraderCase(plr, payload)
+		elseif action == "launchSeason" then Verbs.launchSeason(plr)
 		elseif action == "sellOre" then Verbs.sellOre(plr, payload)
 		elseif action == "sellAllOres" then Verbs.sellAllOres(plr, payload)
 		elseif action == "equipGear" then Verbs.equipGearPiece(plr, payload)

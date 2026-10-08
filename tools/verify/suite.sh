@@ -28,7 +28,11 @@ QUIET=0
 # OFF the list and is expected to stay green -- it now guards both ends at once:
 # the forge ladder must reach tier 82, and the Exotic band must stay rare while
 # doing it.
-KNOWN_FAIL="trap"
+#
+# 2026-10-06: emptied. trap was the last entry and it now passes, so a clean run
+# is 0 failed AND 0 known. Anything in this list again is a regression someone
+# decided to live with, and it needs the reason written next to it.
+KNOWN_FAIL=""
 
 # Not checks. luau-balance.js is a utility that balance-scans ONE chunk given
 # as argv[2] -- run it as `node tools/verify/luau-balance.js <file.luau>`.

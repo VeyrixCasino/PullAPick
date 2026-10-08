@@ -2,7 +2,7 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-08 @ bae3c5b
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
@@ -38,11 +38,23 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
   - Output containing `luau not present|skipping|cannot run|not runnable` counts
     as **DID NOT RUN**. That fails the run, because a skip is not a pass
     (START-HERE §4.6).
-  - `KNOWN_FAIL="trap"` is reported as `FAIL (known)`.
+  - `KNOWN_FAIL` is **empty** since 2026-10-06. `trap` was the last entry and it
+    passes, so a clean run is 0 failed *and* 0 known. Anything back in that list is
+    a regression someone decided to live with, and needs its reason written beside it.
   - Exit code: 0 only if everything ran and passed.
 - Single check: `node tools/verify/<name>.js`. Utility: `node tools/verify/luau-balance.js FILE`.
 
-## Result at `26036a0` (run 2026-10-05 in a Linux cloud container)
+## Result at `41d8f3a` (run 2026-10-07 on the owner's Windows machine)
+
+**42 passed, 0 failed, 0 did not run, 0 known failures**, with
+`syntax.sh` at 212 files clean and `compile.js` reporting 5 top-level locals of
+headroom in `MineServer` and 7 in `MineClient`.
+
+Three checks arrived after the run below: `compile` (the register ceiling,
+2026-10-06), `depthgate` (depth credit, 2026-10-06) and `chunkload` (the chunk
+generation ceiling plus per-server randomness, 2026-10-07).
+
+## Earlier result at `26036a0` (run 2026-10-05 in a Linux cloud container)
 
 - `syntax.sh`: fetched `luau-ubuntu.zip`, so the network was available. Result:
   **212 files, no syntax errors.**
@@ -107,7 +119,9 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 41 now, counting
 | `traits` **L** | the trait rules: prefix, odds tied to MineTemper's skins table, Exotic 1/1000 |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |
-| `veins` **L** | the vein lattice keeps per-block ore density unchanged, and two layout salts give two different mines while one salt gives the same mine |
+| `veins` **L** | the vein lattice keeps per-block ore density unchanged, the size distribution matches the owner's spec, and the field is re-rolled per server (two layout salts give two different mines; one salt gives the same mine) |
+| `chunkload` **L** | generation stops at the open chunk, the far path does not claim the frontier, and layer 1 differs per server cell by cell |
+| `depthgate` **L** | depth credit is earned: the one-block jump and the patient `DIG_LEAD` hop both fail, and ordinary digging never does |
 | `ui-scale` | the shipped `refreshMineUiScale` rule (parsed from the client) fits every fixed panel on twelve displays, and lists the displays where no scale can help as outstanding panel work |
 | `wiki` | wiki frontmatter, links, index coverage, cited paths, `Module.SYMBOL` drift |
 | `zones` | the calculator's zone panel reproduces the live numbers |
@@ -123,6 +137,20 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 41 now, counting
   failure still exits non-zero, but only because calling nil errors.
   `bignum.js` explains why that is fragile.
 - `luau-balance.js` crashes when run without an argument (OPEN Housekeeping).
+- **A sliced constant with an `or` fallback is invisible when you forget to slice
+  it.** The checks that run real Luau rebuild a module by slicing named lines out
+  of the source. `MineConfig.veinSizeMean` reads its dials as
+  `MineConfig.X or <default>`, so when `VEIN_SPREAD_LO/GAIN` were added and
+  `veins.js`'s slice list was not updated, the harness silently measured the
+  **defaults** and returned a byte-identical histogram after the shipped values
+  changed. Nothing failed. If a tuning change appears to do nothing, check the
+  slice list before believing the measurement (2026-10-07).
+- **`block(head, "}")` runs past a one-line table.** It scans forward for a line
+  that is exactly `}`, so asking for `MineConfig.ORE_BAND_ORDER = { ... }` — a
+  one-liner — swallowed 90 further lines, including the `do` block that derives
+  `ORE_DMAX` from `MineDepth`, and the harness then died on a `Depth` stub with no
+  `dirtHp`. Use `line()` for one-liners. Same trap as `MineDepth.SEAMS` and
+  `MineBreaking.MAX`.
 
 ## How to add a check
 

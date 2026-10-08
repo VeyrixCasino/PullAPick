@@ -2,9 +2,11 @@
 title: Ores
 type: system
 status: current
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
+  - docs/ore-yield-and-vein-balance.md
+  - tools/verify/veins.js
   - src/ReplicatedStorage/Mine/Shared/MineBreaking.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineZonePacks.luau
@@ -48,6 +50,16 @@ related: [ore-pouch-and-backpack, tools, forge-and-recycling, skins-cases-and-te
   below (`ORE_S 4`, `ORE_W 3`). It peaks ~21 tiers under local hardness.
   `ORE_MIN_SHARE = 1e-6` floors each ore's **share** of the final total (fixed
   point), so every ore is possible everywhere and odds never fall with depth.
+  The spread is **narrow at the top and widens with depth** (`oreSpreadK`):
+  `ORE_K_TOP 0.040` ramps to `ORE_K 0.45` over `ORE_K_RAMP 1.5` in D, which is
+  what makes the first layers predominantly stone.
+- **The weight row is cached per depth, not per section** (`ORE_DL_STEP 0.05`).
+  It used to key on `Depth.sectionFor(layer).id` while computing `dl` from the
+  layer it was handed, so the **first layer anyone asked about fixed the mix for
+  the whole section** — zone 1 layers 1–49 all reported one stone share (44.5%
+  flat) though `dl` runs 0.053→0.511 across them, and two servers with different
+  dig orders got different mines at the same depth. Fixed 2026-10-07; the key is
+  the quantised `dl` and the row is computed from that same value.
 - **Zone dependence is only through block HP.** No per-zone ore lists
   (`MineConfig.oresFor` returns all 82). `ORE_DMAX` = log6 of
   `Depth.dirtHp(10, LAYERS)` minus `ORE_DMAX_MARGIN 0.4`, so Oganesson sits just
@@ -55,32 +67,60 @@ related: [ore-pouch-and-backpack, tools, forge-and-recycling, skins-cases-and-te
 - **Ore finder** (`rareOre` stat): `MineConfig.oreFindShift` = `log6(rareOre)`
   raises the hardness the roll thinks it is at. Better ore, not more ore; it is
   not applied again at break.
-- **Veins** (commit `219d0ab`; owner 2026-10-05: *"8 MAXIUM OF ALL ORES[2-3 ores
-  TOTAL will group in 6-8s], but most will group in 3-4"*). `MineConfig.veinOreAt`
-  is a pure function of `(zone, x, y, z, rareOre)`: 4×4×4 cells (`VEIN_CELL`),
-  murmur3 hash per zone. `veinSizeFor`: tiers 1–3 in 6–8; the rarest 18%
-  (`VEIN_SOLO_FRAC`, tiers 68–82) in 1–2; everything else 3–4. Max 8 by
-  construction (`VEIN_ORDER` fills a 2×2×2). Expected ore per block is unchanged
-  (size cancels), so bigger veins are rarer veins. Server `rollKind` and
-  `spawnVoxel` both ask `veinOreAt`, so a vein is one ore and regen agrees.
-  `rollOre`/`oreIdentity` stay for sims and harnesses.
-  - **The mine is random again** (`8d68717`; owner: *"every time i join 4 halite
-on top of the line"*). `veinOreAt` is positional by design, but the only seed
-  was a hash of the zone's name, so every server and rejoin produced byte-identical
-  ore. A per-zone layout salt that `resetMineZone` re-picks now reaches the ore
-  field through `MineConfig.setVeinSalt`. `veins.js` asserts two salts give two
-  different mines and the same salt gives the same one.
-  - **Veins got cheaper** (`39d94bf`): one remembered 64-block cell now answers the
-  hash, host roll, ore walk, size and anchor, so the per-block cost fell from
-  10.5× to 3.28× the old single roll (0.18 ms a layer), with an identical
-  distribution (1 in 193 blocks). A cell straddling a section boundary takes one
-  section's ore mix for all of it.
-  - **The first layers are mostly stone** (`8d68717`; owner: *"first few layers
-  should be pridominantly stone"*). Tightening the spawn spread globally broke
-  the forge ladder (`ladder-climbable.js` failed at K 0.40 and below), so the
-  width now **ramps with depth**: layer 1 uses K 0.228 (Stone 44.5%, 4 types make
-  90%), layer 50 K 0.353, layer 150 and below K 0.434, and zones 3, 6 and 10
-  are unchanged at 0.45.
+- **Veins** (rebuilt 2026-10-07; measured tables in
+  `docs/ore-yield-and-vein-balance.md`). `MineConfig.veinOreAt` is a pure function
+  of `(zone, x, y, z, rareOre)`: 4×4×4 cells (`VEIN_CELL`), murmur3 hash per zone,
+  re-salted per server by `setVeinSalt`. Server `rollKind` and `spawnVoxel` both
+  ask `veinOreAt`, so a vein is one ore and regen agrees. `rollOre`/`oreIdentity`
+  stay for sims and harnesses.
+  - **Size** is `veinSizeMean(tier)`, no longer the tier index. An "effort"
+    position blends `craftBlocks` (0.60), drop count inverted (0.25) and rarity
+    band (0.15), maps through a curve with separate tail powers
+    (`VEIN_TAIL_POWER_BIG 12`, `_SMALL 5`), then multiplies by that ore's own
+    spread factor `VEIN_SPREAD_LO + GAIN·u²` = 0.70×–2.20×, `u` hashed from the
+    tier. Owner's shape (2026-10-07): highest average 12–14 for one or two ores,
+    90% under 8, rarer ore smaller. Measured: stone 13.0, clay 14.0, 80 of 82
+    under 8, median 3.57, Exotic 1.00–1.74.
+    **Cost is priced in `craftBlocks`, not `toolCraftCost`** — the latter *is*
+    `craftBlocks × oreYieldMid`, so reading it double-counted yield and pulled the
+    Exotic ores back to mid-roster.
+  - **`veinSizeFor` is derived from the mean** by stochastic rounding, so
+    `E[size]` equals `veinSizeMean` by construction. The two used to sit side by
+    side, correct only by inspection; if they drift, `veinWeights` divides by the
+    wrong number and that ore's share moves.
+  - **Shape is grown, not stamped.** `veinGrow` starts at the anchor and bolts on
+    face neighbours, seeded per ore with an axis bias (`VEIN_AXIS_BIAS 0.62`):
+    contiguous by construction, any size to `VEIN_MAX 14`, and each ore has its
+    own habit. The retired `VEIN_ORDER` was the eight corners of a 2×2×2 in fixed
+    order, so **every size had exactly one silhouette** — a four was always a flat
+    2×2 slab, and sizes 6 and 8 never appeared at all.
+  - **The anchor is clamped per axis by the shape's extent**, so a vein cannot
+    leave its cell. A flat `cell - 1` used to let a 2-wide vein anchored at offset
+    3 lose half itself to the next cell, and the density correction then divided
+    by a size that was never placed.
+  - **Size never moves a spawn rate.** `veinWeights` sets `q_i = share_i / mean_i`,
+    so twice the size is half the frequency; measured density holds at 1 in ~208
+    against `ORE_CHANCE`'s 1 in 200.
+  - **The mine is random per server** (`8d68717`; owner: *"every time i join 4 halite
+    on top of the line"*). `veinOreAt` is positional by design, but its only seed was a
+    hash of the zone's name, so every server produced byte-identical ore. A per-zone
+    layout salt that `resetMineZone` re-picks now reaches the ore field through
+    `MineConfig.setVeinSalt`, which also drops the remembered cell. `veins.js` asserts
+    two salts give two different mines and one salt gives the same one.
+  - **Cost per block.** A vein's cell is generated once and remembered (`veinCell`),
+    not recomputed per block (`39d94bf`, then reworked by the chunked rebuild `8b44418`).
+    The 10.5× → 3.28× figures in `39d94bf` describe the *old* design and were not
+    re-measured on the rebuilt one.
+  - **The first layers are mostly stone** (owner: *"first few layers should be
+    pridominantly stone"*, then *"Stone should be a little more common (1 per 3k at
+    top 4 layers of z1)"*). Tightening the spread globally stalls the forge ladder
+    (`ladder-climbable.js` failed at K 0.40 and below), so only the **top** narrows:
+    `ORE_K_TOP 0.040` ramps back to `ORE_K 0.45` over `ORE_K_RAMP 1.5` in difficulty
+    units (`MineConfig.oreSpreadK`, `41d8f3a`). By that commit's own measurement Stone
+    goes from 43% to 86% of surface ore, one vein per 3,011 blocks in layers 1–4,
+    tapering to one per 9,689 by layer 100, and **the cheapest craftable tool halves
+    (13.5k blocks → 6.5k)**. (My earlier K 0.228 / 0.353 / 0.434 figures from
+    `8d68717` were superseded and are gone.)
 - **An ore block** has dirt HP × `ORE_HP_MULT 3`, is stamped `OreId`/`OreName`/
   `OreTier`, and wears a name tag. Breaking it puts `oreYieldFor(tier)` (uniform
   lo..hi) **straight into the pouch** via `Dig.addOre` (no pack), pays coin haul

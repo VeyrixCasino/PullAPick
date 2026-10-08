@@ -313,6 +313,122 @@ function MineDigAuth.canDigLayer(p, zoneId, layer)
 	return true, nil
 end
 
+--[[
+	WHETHER A DUG LAYER MAY ADVANCE YOUR RECORDED DEPTH.
+
+	Owner, 2026-10-06: the chunk gate is "to ensure hackers dont break one block
+	in every chunk and unlock the depth points".
+
+	THIS IS NOT canDigLayer, and the difference is the whole point. canDigLayer
+	ends in an unconditional `return true`, deliberately: refusing to let someone
+	MINE a block only means they stand in rock that will not break, which is a
+	bad experience and stops no exploit, because the exploit is not about
+	breaking blocks -- it is about the DEPTH NUMBER that breaking one awards.
+
+	So mining stays permissive and crediting gets strict. Two rules, both on the
+	server, both cheap:
+
+	  STEP. A credit may advance depth by at most DIG_LEAD layers past what you
+	  have already reached. Without this, breaking a single block at layer 5000
+	  credits depth 5000 outright -- which is what the code does today, because
+	  every check in canDigLayer sits above a `return true` that always runs.
+
+	  CHUNK. Layer L sits in chunk ceil(L / DIG_CHUNK_LAYERS). You may not credit
+	  inside a chunk until you have reached the FLOOR of the one above it, which
+	  is the owner's rule stated directly: get to the bottom of chunk one before
+	  chunk two counts for anything.
+
+	The step rule alone would stop the jump; the chunk rule is what stops the
+	patient version of the same trick, where someone advances DIG_LEAD at a time
+	and still skips most of the mine. Together the floor of every chunk has to be
+	genuinely touched.
+
+	`reached` counts a depth PASS as well as blocks dug, so riding an elevator or
+	a depth plaza is not punished -- those grant the pass precisely so the player
+	is allowed to be down there.
+]]
+function MineDigAuth.canCreditDepth(p, zoneId, layer)
+	if type(p) ~= "table" or not zoneId then
+		return false, "no_profile"
+	end
+	zoneId = tostring(zoneId)
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	local reached = math.max(deepestOf(p, zoneId), MineDigAuth.depthPassOf(p, zoneId))
+	if layer <= reached then
+		-- Re-digging ground already reached credits nothing new, and must never
+		-- be refused: it is the most normal thing a player does.
+		return true, nil
+	end
+	local lead = math.max(1, tonumber(Depth.DIG_LEAD) or 8)
+	if layer > reached + lead then
+		return false, "too_deep", reached + lead
+	end
+	local chunk = math.max(1, math.floor(tonumber(C.DIG_CHUNK_LAYERS) or 50))
+	local floorAbove = (math.ceil(layer / chunk) - 1) * chunk
+	if reached < floorAbove then
+		return false, "chunk_locked", floorAbove
+	end
+	return true, nil
+end
+
+--[[
+	HOW DEEP THE MINE IS ALLOWED TO EXIST, given how deep anyone has reached.
+
+	Owner, 2026-10-06: "load only 1 chunk.. once the top chunk is loaded, as soon
+	as it is touched, then load chunk 2 [...] once that is loaded then load a
+	chunk below that and so on" -- and separately, "chunks are for performance
+	aswell".
+
+	This is the generation side of DIG_CHUNK_LAYERS; canCreditDepth is the
+	entitlement side. They answer different questions and must not be merged:
+	canCreditDepth asks "may THIS PLAYER bank this depth", which is per-profile,
+	while this asks "may the mine have rock down there at all", which is
+	server-wide because one `voxels` table is shared by everyone in the server.
+
+	Chunk N spans layers (N-1)*CHUNK+1 .. N*CHUNK. The open chunk is the one
+	holding the frontier, so generation may fill it to its floor and no further.
+	Reaching that floor opens the next chunk. With CHUNK=50: reached 0 or 49
+	allows layers up to 50, reached 50 allows up to 100.
+
+	`reached` is the deepest anyone has got, counting depth passes -- a player who
+	legitimately owns a pass to seam 2500 opens generation down there, which is
+	what makes elevators and depth plazas land on rock instead of in a void.
+]]
+function MineDigAuth.chunkCeiling(reached)
+	local chunk = math.max(1, math.floor(tonumber(C.DIG_CHUNK_LAYERS) or 50))
+	reached = math.max(0, math.floor(tonumber(reached) or 0))
+	-- The frontier is the first layer not yet reached, so the open chunk is the
+	-- one containing reached+1. Using `reached` alone would close the chunk one
+	-- layer early and leave its floor ungeneratable, which is a deadlock: the
+	-- floor must be mined to open the next chunk.
+	local openChunk = math.ceil((reached + 1) / chunk)
+	return openChunk * chunk
+end
+
+--[[
+	The deepest layer reached by anyone in `profileList`, for one zone.
+
+	Kept here rather than in MineServer because that script sits a handful of
+	top-level locals under Luau's 200-register main-chunk cap, and because it
+	belongs next to the two rules it feeds.
+]]
+function MineDigAuth.deepestReachedAcross(profileList, zoneId)
+	if type(profileList) ~= "table" or not zoneId then
+		return 0
+	end
+	zoneId = tostring(zoneId)
+	local best = 0
+	for _, p in pairs(profileList) do
+		if type(p) == "table" then
+			local r = math.max(deepestOf(p, zoneId), MineDigAuth.depthPassOf(p, zoneId))
+			if r > best then
+				best = r
+			end
+		end
+	end
+	return best
+end
+
 function MineDigAuth.noteDig(p, zoneId, layer, cx, cz)
 	if type(p) ~= "table" or not zoneId then
 		return

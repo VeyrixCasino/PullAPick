@@ -1,3 +1,4 @@
+local Launch = require(script.Parent:WaitForChild("MineLaunch"))
 -- MineScrolls: white / black / omni consumables bought with credits.
 -- Credits track ~1 Robux = 1 credit at face value (passes & limiteds cost the
 -- same number either way). Bigger packs add bonus credits — that is the deal,
@@ -356,7 +357,7 @@ MineScrolls.PASS_SEASON_END = 1793505600
 MineScrolls.PASS_SEASON_LABEL = "through Oct 31, midnight ET"
 
 function MineScrolls.passSecondsLeft(now)
-	return math.max(0, MineScrolls.PASS_SEASON_END - (now or os.time()))
+	return math.max(0, MineScrolls.PASS_SEASON_END - (now or Launch.seasonNow()))
 end
 
 -- Live clock, always down to the second so the pass header visibly ticks.
@@ -390,7 +391,7 @@ function MineScrolls.reconcilePass(pass, now)
 	if type(pass) ~= "table" then
 		return pass
 	end
-	now = now or os.time()
+	now = now or Launch.seasonNow()
 	pass.free = pass.free or {}
 	pass.prem = pass.prem or {}
 	pass.xp = tonumber(pass.xp) or 0

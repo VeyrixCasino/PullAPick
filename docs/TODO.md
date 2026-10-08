@@ -855,6 +855,42 @@ it. Nothing here is an agent's to decide.
 
 ## 6.1 P0 — launch blockers
 
+### Owner, 2026-10-07 — the 10,000x pass and the launch timer
+
+- [ ] **Event Horizon tools must be EXTREMELY strong.** Owner's word. Zone 11
+      has always been off the normal ladder (`MineBreaking` says so: *"horizon is
+      different... doesnt use normal tools"*), and its own progression was never
+      built — which is the real reason Event Horizon reads as unmineable
+      (open-questions #4), not a breaking-power bug to patch. The art for it
+      arrived 2026-10-07 as `charms2`-style sheet `EVENT.SVG`: **38 ore +
+      pickaxe pairs**, meteorite rock up to a black-hole pick. Build zone 11 its
+      own ore roster and tool ladder off that art, on its own strength scale
+      above `MineBreaking.MAX`.
+- [ ] **Every block and ore goes up 10,000x, and so does every tool cost.**
+      Owner: *"i want all blocks and ores to be 10000x what they are right now
+      (SAME WITH THE COST OF TOOLS, WITH WHATEVER CUSTOM [currency] THEY ARE
+      USING)"*. Both sides scale together, so the ratio a player experiences is
+      unchanged — this is a headroom and big-number change, not a balance one.
+      Before touching it, note what it collides with:
+      - `MineBigNum` already exists for display (§6.1, base 30, science form at
+        `9.999e^99`). Check the cap holds at 10,000x the top of the ore ladder.
+      - `toolCraftCost` is `craftBlocks x oreYieldMid`, and **`veinSizeMean` now
+        reads `craftBlocks`** (see `docs/ore-yield-and-vein-balance.md` §3). A
+        blanket multiply must not silently move vein sizes; scale the cost, not
+        the block count, or re-measure `veins.js` after.
+      - Gem value derives from work-per-unit (`MineOrePouch.workOf`), so ore
+        HP going up 10,000x moves gem prices unless it is scaled with them.
+      - Datastore: verify a 10,000x number still round-trips through the save
+        without precision loss.
+- [ ] **The launch timer must not start until the owner says launch.** Owner:
+      *"i want the timer to not actually start until i say launch, and rather
+      just keep ticking down"*. So the countdown shows and keeps running, but the
+      event it counts toward does not fire and the clock does not begin its real
+      run until an explicit owner switch is thrown. Needs: a server-side
+      `launched` flag (not a date), the visible countdown reading from a rolling
+      display value while unlaunched, and nothing anywhere keying off wall-clock
+      date alone to decide the game has started.
+
 ### Breaking power
 
 **The rule is locked (§0.1).** Ore tier = breaking power, +15 reach, never

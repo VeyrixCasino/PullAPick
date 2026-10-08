@@ -81,7 +81,17 @@ function STUB_CONFIG.zoneIndex(id)
 	return 1
 end
 
-local MODULES = { MineConfig = STUB_CONFIG }
+-- The graded charms read MineTemper's rarity ladder rather than inventing a
+-- second one, so the stub carries the real weights: rollChestCharm draws against
+-- them, and a stub with flat weights would make the draw test meaningless.
+local STUB_TEMPER = {
+	GRADE_ORDER = { "F", "D", "C", "B", "A", "S", "SS", "SSS" },
+	RARITY_WEIGHTS = { F = 5000, D = 2763, C = 1250, B = 675, A = 250, S = 50, SS = 10, SSS = 2 },
+	RARITY_MULT = { F = 0.45, D = 0.70, C = 1.05, B = 1.55, A = 2.30, S = 3.40, SS = 5.00, SSS = 7.50 },
+}
+STUB_TEMPER.RARITY_ORDER = STUB_TEMPER.GRADE_ORDER
+
+local MODULES = { MineConfig = STUB_CONFIG, MineTemper = STUB_TEMPER }
 local SHARED = { WaitForChild = function(_, n) return { Name = n } end }
 script = { Name = "MineCharms", Parent = SHARED }
 function require(t)
@@ -358,6 +368,146 @@ end
 check(steps < 500 and steps == topTier,
 	("the merge chain terminates, in %d steps for %d tiers"):format(steps, topTier))
 
+--[[
+	THE 36 GRADED CHARMS (owner, 2026-10-07).
+
+	"make 36 charms. make them all unique, and each come in their own rarity. they
+	can be found in chests (0.5%) or bought with tokens."
+
+	Each clause of that is a check below. The one that matters most is the LAST:
+	a graded charm must never also be a zone grant. ZONE_BAND indexes on
+	zoneId|band, so a row that carried both would quietly become a free zone drop
+	as well as a 0.5% chest prize, and nothing else here would notice.
+]]
+print("")
+do
+	local graded = MineCharms.GRADED or {}
+	check(#graded == 36, ("there are 36 graded charms (%d)"):format(#graded))
+
+	local byRarity, ids, names, dupId, dupName = {}, {}, {}, 0, 0
+	for _, def in ipairs(graded) do
+		byRarity[def.rarity] = (byRarity[def.rarity] or 0) + 1
+		if ids[def.id] then dupId += 1 end
+		if names[def.name] then dupName += 1 end
+		ids[def.id], names[def.name] = true, true
+	end
+	check(dupId == 0 and dupName == 0,
+		("every graded charm is unique (%d id clashes, %d name clashes)"):format(dupId, dupName))
+
+	-- "each come in their own rarity": every grade on the ladder is represented,
+	-- and the spread thins toward SSS rather than piling on one grade.
+	local missing, order = {}, STUB_TEMPER.GRADE_ORDER
+	for _, g in ipairs(order) do
+		if not byRarity[g] then table.insert(missing, g) end
+	end
+	check(#missing == 0, ("every rarity F..SSS has at least one charm (missing %s)")
+		:format(#missing > 0 and table.concat(missing, ",") or "none"))
+
+	local monotone = true
+	for i = 2, #order do
+		if (byRarity[order[i]] or 0) > (byRarity[order[i - 1]] or 0) then monotone = false end
+	end
+	local shape = {}
+	for _, g in ipairs(order) do table.insert(shape, g .. ":" .. tostring(byRarity[g] or 0)) end
+	check(monotone, ("the ladder never widens as it gets rarer (%s)"):format(table.concat(shape, " ")))
+
+	-- Magnitude has to follow the grade, or the rarity is decoration.
+	local worstPair = nil
+	local function biggest(def)
+		local m = 0
+		for _, v in pairs(def.stats or {}) do m = math.max(m, v) end
+		return m
+	end
+	local bestOf = {}
+	for _, def in ipairs(graded) do
+		bestOf[def.rarity] = math.max(bestOf[def.rarity] or 0, biggest(def))
+	end
+	for i = 2, #order do
+		local lo, hi = bestOf[order[i - 1]], bestOf[order[i]]
+		if lo and hi and hi <= lo then worstPair = order[i - 1] .. ">=" .. order[i] end
+	end
+	check(worstPair == nil,
+		("a rarer charm always peaks higher (%s)"):format(worstPair or "monotone F..SSS"))
+
+	-- Every one must be buyable, and the price must climb with the grade.
+	local noPrice, priceBad = 0, nil
+	for _, def in ipairs(graded) do
+		if not MineCharms.charmTokenPrice(def) then noPrice += 1 end
+	end
+	check(noPrice == 0, ("every graded charm has a token price (%d without)"):format(noPrice))
+	for i = 2, #order do
+		local a = MineCharms.CHARM_TOKEN_PRICE[order[i - 1]]
+		local b = MineCharms.CHARM_TOKEN_PRICE[order[i]]
+		if a and b and b <= a then priceBad = order[i - 1] .. ">=" .. order[i] end
+	end
+	check(priceBad == nil, ("token price climbs with rarity (%s)"):format(priceBad or "monotone"))
+
+	check(math.abs((MineCharms.CHARM_CHEST_CHANCE or 0) - 0.005) < 1e-9,
+		("the chest chance is 0.5%% (%s)"):format(tostring(MineCharms.CHARM_CHEST_CHANCE)))
+
+	-- The roll must be able to reach both ends, and must favour the common end.
+	do
+		local seen, lowN, highN = {}, 0, 0
+		local seeded = { NextNumber = function(self) self.i = (self.i or 0) + 1; return ((self.i * 0.0007919) % 1) end }
+		for _ = 1, 4000 do
+			local d = MineCharms.rollChestCharm(seeded)
+			if d then
+				seen[d.rarity] = (seen[d.rarity] or 0) + 1
+				if d.rarity == "F" or d.rarity == "D" then lowN += 1 end
+				if d.rarity == "SS" or d.rarity == "SSS" then highN += 1 end
+			end
+		end
+		check(lowN > highN * 10,
+			("the chest roll lands on the common end far more often (%d low vs %d top)"):format(lowN, highN))
+		check(MineCharms.rollChestCharm(nil) ~= nil, "rollChestCharm works without an rng")
+	end
+
+	-- The one that would be invisible: graded charms must not also be zone grants.
+	local alsoZone = 0
+	for _, def in ipairs(graded) do
+		if def.zoneId or def.band then alsoZone += 1 end
+	end
+	check(alsoZone == 0,
+		("no graded charm is also a zone grant (%d would be free as well as 0.5%%)"):format(alsoZone))
+
+	-- The retired stat must not come back in on new content.
+	local retired = 0
+	for _, def in ipairs(graded) do
+		if (def.stats or {}).backpack then retired += 1 end
+	end
+	check(retired == 0, ("no graded charm carries the retired backpack stat (%d do)"):format(retired))
+
+	--[[
+		Every one is drawn, and no two share a picture.
+
+		The whole set came from one 36-icon sheet, so a duplicate icon index or
+		asset id means two charms silently wear the same amulet -- which looks like
+		a bug to a player and is invisible to every other check here. The second
+		sheet replaced the first, so a stale id from the old upload would also show
+		up here as a duplicate.
+	]]
+	local noArt, seenIcon, seenArt, dupIcon, dupArt = 0, {}, {}, 0, 0
+	for _, def in ipairs(graded) do
+		if not def.art or not def.icon then
+			noArt += 1
+		else
+			if seenIcon[def.icon] then dupIcon += 1 end
+			if seenArt[def.art] then dupArt += 1 end
+			seenIcon[def.icon], seenArt[def.art] = true, true
+		end
+	end
+	check(noArt == 0, ("every graded charm is skinned (%d without art)"):format(noArt))
+	check(dupIcon == 0 and dupArt == 0,
+		("no two charms share a picture (%d icon, %d asset)"):format(dupIcon, dupArt))
+
+	-- The art has to match the grade, or the rarity is invisible until you read it.
+	local topArt = {}
+	for _, def in ipairs(graded) do
+		if def.rarity == "SSS" then table.insert(topArt, def.name) end
+	end
+	check(#topArt == 1, ("exactly one SSS charm (%s)"):format(table.concat(topArt, ", ")))
+end
+
 if fail == 0 then
 	print(">>> charms: all assertions passed")
 else
@@ -366,12 +516,68 @@ else
 end
 `;
 
+//[[ ------------------------------------------------- the server wiring ----
+// A charm the server cannot hand out is a charm that does not exist, so the two
+// ways in are checked here as well as in the module. Static, against the real
+// MineServer source: the drop sits inside openChestBlock and the purchase inside
+// a verb, neither of which this harness can call.
+//
+// The failure these guard against is specific and has already happened once in
+// this file's neighbourhood: `rollChestTool` is read ~2,600 lines above its
+// `local` declaration, which makes it a nil GLOBAL, so that whole branch is dead
+// and nothing reports it (open-questions #7). A charm drop written the same way
+// would look correct and never fire.
+let wiringFails = 0;
+function wire(ok, msg, detail) {
+  console.log((ok ? "  ok    " : "  FAIL  ") + msg + (detail ? "   " + detail : ""));
+  if (!ok) wiringFails++;
+}
+{
+  const SRV = fs.readFileSync(
+    path.join(__dirname, "..", "..", "src/ServerScriptService/Mine/MineServer.server.luau"), "utf8");
+  console.log("");
+
+  wire(/Charms\.rollChestCharm\(Random\.new\(\)\)/.test(SRV),
+    "the chest path calls rollChestCharm");
+  wire(/Charms\.CHARM_CHEST_CHANCE \* \(\(b and b\.chestLuck\) or 1\)/.test(SRV),
+    "the chest roll uses the module's chance and scales with chest luck",
+    "a hard-coded 0.005 here would drift from the module silently");
+
+  // `Charms` must be the upvalue from the top of the file, not a near-by local.
+  const decl = SRV.indexOf("local Charms = require(");
+  const use = SRV.indexOf("Charms.rollChestCharm(");
+  wire(decl > -1 && use > decl,
+    "the charm drop reads Charms declared ABOVE it, so it is an upvalue not a nil global",
+    decl > -1 ? `declared at char ${decl}, used at ${use}` : "no declaration found");
+
+  wire(/elseif action == "buyCharm" then Verbs\.buyCharm\(plr, payload\)/.test(SRV),
+    "buyCharm is reachable from the net dispatch",
+    "a verb nothing routes to is a button that does nothing");
+
+  const verb = SRV.slice(SRV.indexOf("function Verbs.buyCharm("),
+    SRV.indexOf("function Verbs.mergeCharm("));
+  wire(verb.length > 0, "Verbs.buyCharm exists");
+  // The money checks. Each of these is an exploit if it is missing.
+  wire(/def\.source ~= "charm"/.test(verb),
+    "buyCharm refuses anything that is not a graded charm",
+    "otherwise a zone grant or an ore charm could be bought for tokens");
+  wire(/Charms\.charmTokenPrice\(def\)/.test(verb) && !/payload\.price/.test(verb),
+    "the price comes from the module, never from the payload");
+  wire(/if \(tonumber\(p\.temperTokens\) or 0\) < price then\s*\n\s*break/.test(verb),
+    "the balance is re-read inside the loop, so a bulk buy cannot overdraw");
+  // Matched loosely on purpose: the expression wraps payload.count in
+  // type(payload) == "table", so a character class that cannot cross a ")" will
+  // not reach the clamp. Assert the clamp and the count are on one line.
+  wire(/local want = math\.clamp\([\s\S]{0,120}?payload\.count[\s\S]{0,40}?, 1, 10\)/.test(verb),
+    "the quantity is clamped to 10, so one request cannot drain the wallet in a loop");
+}
+
 const tmp = path.join(require("os").tmpdir(), `charms-check-${process.pid}.luau`);
 fs.writeFileSync(tmp, harness);
 try {
   const out = execFileSync(LUAU, [tmp], { encoding: "utf8" });
   process.stdout.write(out);
-  process.exit(/FAILED/.test(out) ? 1 : 0);
+  process.exit(/FAILED/.test(out) || wiringFails > 0 ? 1 : 0);
 } catch (e) {
   process.stdout.write((e.stdout || "") + (e.stderr || ""));
   process.exit(1);

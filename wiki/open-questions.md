@@ -2,7 +2,7 @@
 title: Open questions, contradictions and probable bugs
 type: meta
 status: current
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-08 @ bae3c5b
 sources:
   - docs/OPEN.md
   - docs/BLOCKED.md
@@ -50,8 +50,21 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 12 | **Meadow zone packs can never pay Mythic, Divine or Exotic** (computed from `cardOdds`). | *Reported* | [cards-and-packs](systems/cards-and-packs.md) |
 | 13 | **Bag prices show in coins; the server charges gems.** | *Reported* | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
 | 14 | **`tools/export/sync.ps1` deletes `tools/export/in/`** (`Remove-Item $in -Recurse -Force`). **Not a bug in the script**: that folder is a gitignored scratch directory the Studio export flow fills and consumes, and deleting it is the documented last step (the `b19c4c2` author checked and dismissed it). The only hazard was `CLAUDE.md` naming that folder as a place for Claude.ai exports. `CLAUDE.md` and the wiki now point exports at the gitignored `transcripts/` folder. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
-| 15 | **FIXED in `5d59714`: nothing checked Luau's 200-top-level-local ceiling.** `MineServer` had **zero** registers left; `luau-analyze` accepts what `luau-compile` rejects. New `tools/verify/compile.js` compiles every file with `luau-compile` and measures headroom (it fails below 4). Seven services became fields of one `Svc` table, buying `MineServer` 5 registers (MineClient has 7). I ran it on 2026-10-08: **all 212 files compile; 5 and 7 left.** A new top-level local in either file will soon fail the suite again, which is the point. | *Read* (I ran the check) | [luau-traps](code/luau-traps.md) |
+| 15 | **FIXED in `5d59714`: nothing checked Luau's 200-top-level-local ceiling.** `MineServer` had **zero** registers left; `luau-analyze` accepts what `luau-compile` rejects. New `tools/verify/compile.js` compiles every file with `luau-compile` and measures headroom (it fails below 4). Seven services became fields of one `Svc` table, buying `MineServer` 5 registers (MineClient has 7). I ran it on 2026-10-08: **all 212 files compile; 5 and 7 left.** It has since caught the same break twice more (per the owner's session), once from a `do` block for the dev-scaffolding strip, fixed by making it an IIFE: `do` shares the main chunk's register budget, an IIFE gets its own. A new top-level local in either file will soon fail the suite again, which is the point. | *Read* (I ran the check) | [luau-traps](code/luau-traps.md) |
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
+
+## 1b. Found 2026-10-06/07, measured, not yet decided
+
+These were found while doing other work and are **recorded rather than fixed**,
+because each moves the economy in more than one place. Measured figures are in
+`docs/ore-yield-and-vein-balance.md`.
+
+| # | what | confidence | where |
+|---|---|---|---|
+| 17 | **Nothing multiplies ore quantity, and the owner expects enchants to.** `MineServer` rolls ore as `math.random(lo, hi)` straight off `oreYieldFor` — no boost, enchant, luck or finder is applied, and the comment there says the finder is deliberately a *quality* stat. Owner, 2026-10-06: *"REMEMBER ESPICALLY ENDGAME ENCHANTS BUFF THAT SO KEEP IT HIGH"*. So the measured **12 million blocks for an Exotic tool is the real figure, not a pre-multiplier one**. Three options written up in the doc §4: a quantity multiplier, raising the top-rarity bands, or lifting `ORE_CHANCE` for deep zones. Each ripples: `toolCraftCost` and gem value both derive from the drop band. | *Read* in code, measured | [ores](systems/ores.md), `docs/ore-yield-and-vein-balance.md` §4 |
+| 18 | **The legacy ore-pack path and the live drop path disagree about the ore finder.** Pack conversion does `each = mid * (1 + oreFind)` — a straight quantity multiplier — while the live drop deliberately does not. One of the two is wrong about the design rule. | *Read* in code | [ores](systems/ores.md), [boosts-and-stats](systems/boosts-and-stats.md) |
+| 19 | **`MineDigAuth.canDigLayer` ends in an unconditional `return true`**, so every entitlement check above it is unreachable. This is deliberate for mining and was silently load-bearing for crediting; `canCreditDepth` now carries the strict half (see [zones-layers-and-seams](systems/zones-layers-and-seams.md)). **The dead checks in `canDigLayer` are still dead** — worth deciding whether they should be deleted or re-enabled, because right now they read as protection that does not exist. | *Read* in code | `MineDigAuth.canDigLayer` |
+| 20 | **A 6,500-block first tool.** With stone's surface share raised to hit the owner's 1-vein-per-3,000 target, the cheapest craftable tool costs ~6,500 blocks broken (was 13,500). Not obviously wrong, but it is the first number a new player meets and nobody has signed off on it. | measured | `docs/ore-yield-and-vein-balance.md` §2 |
 
 ## 2. Where the owner's rules and the code disagree
 
