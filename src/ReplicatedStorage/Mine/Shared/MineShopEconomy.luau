@@ -10,7 +10,20 @@ MineShopEconomy.TOOL_HAUL_MULT = 3.5
 MineShopEconomy.TOOL_RUNG_CURVE = 1.72
 
 MineShopEconomy.COMFORT = { shallow = 8, mid = 4, deep = 2, kilo = 3, abyss = 2 }
-MineShopEconomy.BAND_FLOOR_HP = { shallow = 15, mid = 45000, deep = 2625000, kilo = 350000, abyss = 20000000 }
+--[[
+	The only authored HP table outside MineDepth, so it is the one thing the
+	10,000x pass cannot reach by derivation. Scaled through the same constant
+	rather than by rewriting the five literals, so the numbers still read as
+	the band floors they were chosen as and `HP_SCALE = 1` reverts the pass
+	here too. See MineDepth.HP_SCALE.
+]]
+do
+	local s = math.max(1, tonumber(Depth.HP_SCALE) or 1)
+	MineShopEconomy.BAND_FLOOR_HP = {
+		shallow = 15 * s, mid = 45000 * s, deep = 2625000 * s,
+		kilo = 350000 * s, abyss = 20000000 * s,
+	}
+end
 
 -- Combat power vs shop price: picks hit ~25% softer; prices still use raw power.
 MineShopEconomy.PICK_COMBAT_MULT = 0.75

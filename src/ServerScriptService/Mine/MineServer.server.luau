@@ -7110,7 +7110,16 @@ local function swingBlock(plr, part)
 			return
 		end
 	end
-	local dmg = tool.power or 1
+	--[[
+		THE 10,000x PASS, DAMAGE SIDE. See MineDepth.HP_SCALE.
+
+		Block HP went up 10,000x so the numbers read big; a swing has to come
+		with it or every block takes 10,000 times as long. The multiply is HERE,
+		on the damage about to be dealt, and deliberately NOT on tool.power --
+		power also feeds lookTier (which reads log10(power) and would gain four
+		decades, pushing every tool to cosmetic tier 82) and rarityForPower.
+	]]
+	local dmg = (tool.power or 1) * (C.DMG_SCALE or 1)
 	do
 		-- No one-shot rule lives here any more. "Dirt always breaks in one
 		-- swing" ignored the block's HP outright, and block HP is the one thing
@@ -7295,8 +7304,11 @@ local function throwAt(plr, dir)
 	p.lastThrow = now
 
 	-- Rounded by chance like a swing (see swingBlock), so small boosts count.
+	-- DMG_SCALE is the 10,000x pass, applied here for the same reason it is
+	-- applied at the swing: block HP moved and a charge has to move with it.
 	local function boosted(power)
-		local raw = (power or 1) * (b.mineSpeed or 1) * fuseMult * (b.dirtBreak or 1)
+		local raw = (power or 1) * (C.DMG_SCALE or 1)
+			* (b.mineSpeed or 1) * fuseMult * (b.dirtBreak or 1)
 		local whole = math.floor(raw)
 		if math.random() < (raw - whole) then
 			whole += 1
