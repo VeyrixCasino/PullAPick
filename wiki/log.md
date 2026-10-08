@@ -138,3 +138,34 @@ and TODO §0.35. Found while checking the branches: the owner's working branch
 `claude/vigilant-fermi-aucqjy` holds an older merge of this wiki (`c04adad`) plus its
 own ingest (`c9b93c6`), and does not have the ask-first rule or hooks. Reconciling
 the two lines is an open question for the owner (5 wiki files would conflict).
+
+## [2026-10-08] refactor | the wiki now follows the owner's working branch
+The owner chose (asked twice) that the wiki follows `claude/vigilant-fermi-aucqjy`,
+that the ask-first rule reaches their branch through a PR their other session merges
+(never a push from here), and that conflicts resolve as "merge both; theirs wins on
+code facts". Merged that branch (`bae3c5b`) into this one (`06b5f89`). Five pages
+conflicted: `ores` (their rebuilt Veins block won; my K 0.228/0.353/0.434 figures were
+stale because `ORE_K_TOP` is now 0.040 after `41d8f3a`, so I replaced them), `open-questions`
+(kept my rows 3, 5 and 15 for the commit hashes and measurements, added their "caught the
+same break twice more"), `verify-suite`, `zones-layers-and-seams` and this log. After the
+merge: `wiki.js`, `askfirst.js` and `syntax.sh` clean, and the suite is **45 passed, 0
+failed, 0 did not run**, with `compile.js` at 5 and 7 registers left (215 files).
+
+## [2026-10-08] ingest | the owner's session: 36 charms, traders, season hold (`b09cc4a`..`bae3c5b`)
+Eight commits the other session's own ingest (`c9b93c6`) predates. Read the code, not only
+the messages. New pages: [wandering-traders](systems/wandering-traders.md) and
+[season-and-launch](systems/season-and-launch.md). Updated: charms (the 36 graded charms,
+their two ways in, prices), chests-and-lucky-blocks (the 0.5% drop), shops-and-monetisation,
+skins-cases-and-temper (new temper-token sinks), world-events (the season-end gotcha was
+stale: offers now end 11-08), tools, glossary, ambiguous-terms (`launch`, `trader`,
+`charm`, `tokens`), index, overview, owner, sources-of-truth, server, client-and-ui,
+code-map, tools-and-generators, verify-suite (`launch`, `trader`; 45 checks, 22 run the luau
+binary) and open-questions.
+
+**Four findings from reading the code, none fixed** ([open-questions](open-questions.md)
+§1b, #21–#24): nothing in `src/` sends `buyCharm`, so the token half of the graded charms
+has no shop; nothing sends `launchSeason`, so the owner has no launch button; the battle
+pass ends 2026-11-01 while the offers end 11-08; and Chest Luck raises the chest charm drop
+though a code comment says it does not. Also reframed bug 4 (Event Horizon) as the owner
+did in TODO §6.1: a missing progression, not a breaking-power bug. Not rechecked: the
+`ToolModels` archive move and anything not in the eight commits.

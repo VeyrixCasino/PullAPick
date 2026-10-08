@@ -2,7 +2,7 @@
 title: The server — MineServer.server.luau
 type: code
 status: current
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/START-HERE.md §4, §5
@@ -19,8 +19,8 @@ related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-a
 
 ## Size and shape
 
-- `src/ServerScriptService/Mine/MineServer.server.luau` is **17,050 lines** at
-  `26036a0`. Older docs give 16.7k (HANDOFF §2.2) or about 14,800 (TODO §1,
+- `src/ServerScriptService/Mine/MineServer.server.luau` is **17,714 lines** at
+  `bae3c5b` (17,050 at `26036a0`). Older docs give 16.7k (HANDOFF §2.2) or about 14,800 (TODO §1,
   `tools/agent/house-rules.txt`). Read only the part you need. Never rewrite it.
 - Luau gives it 200 local registers per function, and it was **out of them**: zero
   left until `5d59714` folded seven services (`Players`, `RunService`,
@@ -67,7 +67,8 @@ declaration-order trap (HANDOFF §2.3).
 - Every client request arrives as `net:FireServer(action, payload)` and is handled
   by **one** `net.OnServerEvent:Connect(function(plr, action, payload)`. That
   handler is one long `if action == "…" elseif …` **string compare**. At
-  `26036a0` it has **142 distinct action strings**. There is no Remotes type system
+  `26036a0` it had **142 distinct action strings**; `bae3c5b` added `buyCharm`,
+  `buyTraderCase` and `launchSeason`, and the router has 145 `action ==` branches. There is no Remotes type system
   (START-HERE §5).
 - Handler order:
   1. `swing` takes a fast path: no lock, `pcall(swingBlock, …)`.
@@ -110,6 +111,9 @@ event names. The client handles them in a single `net.OnClientEvent` ladder.
 |---|---|---|---|
 | `seamGate` | the seam panel | `buySeam` | `Verbs.buySeam` |
 | `openElevator` | `elevCtl.open` | `rideElevator` | `Dig.Plazas.ride` |
+| `traderShop` (fired by the trader's `ProximityPrompt`) | `ClientFns.showTraderShop` | `buyTraderCase` | `Verbs.buyTraderCase` |
+| (none: **no client sends it**) | none | `buyCharm` | `Verbs.buyCharm` |
+| (none: **no client sends it**) | none | `launchSeason` | `Verbs.launchSeason` (admin-gated) |
 
 So a grep for one name finds only half the chain. HANDOFF §2.8 and OPEN P0 #1
 record that the seam purchase was wrongly declared "unwired" this way. **Grep the

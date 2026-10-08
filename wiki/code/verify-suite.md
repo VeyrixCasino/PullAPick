@@ -44,7 +44,15 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
   - Exit code: 0 only if everything ran and passed.
 - Single check: `node tools/verify/<name>.js`. Utility: `node tools/verify/luau-balance.js FILE`.
 
-## Result at `41d8f3a` (run 2026-10-07 on the owner's Windows machine)
+## Result at `bae3c5b` (run 2026-10-08 in a Linux cloud container, after merging the owner's working branch)
+
+**45 passed, 0 failed, 0 did not run, 0 known failures.** `syntax.sh`: 215 files, no
+syntax errors. `compile.js`: all 215 compile, `MineServer` 5 and `MineClient` 7
+top-level locals left. New since `41d8f3a`: `launch` (`bae3c5b`), `trader`
+(`a1f4cc1`, extended by `31df92e` and `d38b65e`) and a much larger `charms` block for
+the 36 graded charms (`b09cc4a`, `c1795ea`, `fd5c432`).
+
+## Earlier result at `41d8f3a` (run 2026-10-07 on the owner's Windows machine)
 
 **42 passed, 0 failed, 0 did not run, 0 known failures**, with
 `syntax.sh` at 212 files clean and `compile.js` reporting 5 top-level locals of
@@ -73,12 +81,13 @@ generation ceiling plus per-server randomness, 2026-10-07).
 
 ## Every check
 
-**L** marks the 18 checks that execute the `luau` binary (the original 14 plus
-`compile`, `economy-exploits`, `heldtool` and `oreframes`, by a grep for how each
+**L** marks the 22 checks that execute the `luau` binary (the original 14 plus
+`compile`, `economy-exploits`, `heldtool`, `oreframes`, `chunkload`, `depthgate`,
+`launch` and `trader`, by a grep for how each
 calls the binary; I did not run the suite with the binary removed). Without the binary they
-DID NOT RUN. The docs say "11 of 23", which is stale: there are 41 now, counting `wiki` and `askfirst` (`oreskins` `9733a05`, `heldtool` `b19c4c2`,
+DID NOT RUN. The docs say "11 of 23", which is stale: there are 45 now, counting `wiki` and `askfirst` (`oreskins` `9733a05`, `heldtool` `b19c4c2`,
 `economy-exploits` `4cc82a5`, `compile` `5d59714`, `ui-scale` `39d94bf`,
-`oreframes` `bef7b0d`). The run on 2026-10-08 was **40 passed, 0 failed, 0 did not run**.
+`oreframes` `bef7b0d`). The run on 2026-10-08 after the merge was **45 passed, 0 failed, 0 did not run**.
 
 | check | asserts |
 |---|---|
@@ -101,6 +110,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 41 now, counting
 | `generated-fresh` | `mine-map.html` and `upgrade-calculator.html` regenerate byte-for-byte (`--check`) |
 | `ladder-climbable` | the ore ladder reaches tier 82 with no zone deadlock, and the Exotic band stays rare |
 | `heldtool` **L** | the held forged-tool row carries `oreTier` and `oreId`, so `MineBreaking.toolBreakingPower` resolves it from its ore, not as 1. **Executes** the real function against the real row shape, keeps the old broken row to prove it resolves to 1, and asserts both roster-migration guards are `<` not `~=`. |
+| `launch` **L** | the season is a duration: before launch `seasonNow()` is pinned to `SEASON_START`, after launch it advances from `launchedAt` (a year-late launch gives the same first week), the cosmetic teaser falls and rolls over, the three `SEASON_START` constants agree, the save happens before the announcement, a failed read or save leaves it unlaunched, and `launchSeason` is reachable from the dispatch. **It does not check the two season *ends*, which differ** ([season-and-launch](../systems/season-and-launch.md)) |
 | `layers` **L** | two boost layers, and the second multiplies the first. The owner's 100 → 300 example. |
 | `minemap-runs` | `mine-map.html` actually executes under a DOM stub |
 | `oreframes` **L** | the baked `MineOreTools.FRAME_STATS` and `typeMult` steps equal what the priced roster supplied (2,460 values, 0 mismatches), so the roster can be deleted |
@@ -116,6 +126,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 41 now, counting
 | `skilltree` | every stat the tree grants is applied by the server |
 | `statkeys` | renamed stat keys (`oreYield`) still read in old saves |
 | `stats` **L** | `MineStats.STATS`, `STAT_ORDER`, `emptyBoosts` and `ADDITIVE_STATS` agree |
+| `trader` **L** | the wandering-trader rules: 5 distinct placements and no collisions over thousands of rotations, flat visit spread, a trader cannot stock a case outside its depth gate (and the deep spot can), prices rise with depth and zone and never fall below base, the charm and hat cases follow the chest/temper ladders; statically, that the outpost list is **sorted** before placement, `buyTraderCase` re-derives the roster, checks the shelf and takes the price from the shelf row, trader parts are non-query and non-shadow, and the panel's countdown ticks on `RunService.Heartbeat` |
 | `traits` **L** | the trait rules: prefix, odds tied to MineTemper's skins table, Exotic 1/1000 |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |

@@ -2,7 +2,7 @@
 title: Tools
 type: system
 status: partial
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
@@ -64,6 +64,11 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 
 Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
 weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`.
+
+**Other ways a tool arrives (2026-10-07).** A **wandering trader's tool case** pays a
+forged-style tool of a tier inside the case's band, in a random family, at level 1 with
+`base = 1`, for temper tokens ([wandering-traders](wandering-traders.md)). It is not
+bought with coins, so the 2026-10-05 rule still holds.
 
 **Forged tools** ("a forged tool IS its ore", TODO §0.15). Name `{Ore} {Noun}`
 plus a trait prefix (`MineOreTools.name` → `MineTraits.decorate`). The frame is

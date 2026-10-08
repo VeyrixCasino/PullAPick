@@ -2,7 +2,7 @@
 title: The owner — goals, decisions, and how to work with them
 type: meta
 status: current
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-08 @ bae3c5b
 sources:
   - docs/TODO.md §0, §9
   - docs/START-HERE.md §1, §6
@@ -120,6 +120,25 @@ reopen it.
   - *"remove shadows peroid"*: `Lighting.GlobalShadows` off, applied in Studio (`8d68717`).
   - *"first few layers should be pridominantly stone"*, and the mine must be random each load (`8d68717`).
   - *"only use the ores i just gave u, and use the cases for the rare drops"*: new rendered ore icons (`0da6360`).
+- **2026-10-07, recorded in commit messages and TODO §6.1 on the working branch** (after
+  PR #6; the quoted words are the owner's):
+  - *"Stone should be a little more common (1 per 3k at top 4 layers of z1)"* and *"first few
+    layers should be pridominantly stone"*: the top-layer ore spread narrows
+    (`41d8f3a`, [ores](systems/ores.md)).
+  - *"make 36 charms. make them all unique, and each come in their own rarity. they can be
+    found in chests (0.5%) or bought with tokens"*: the 36 graded charms
+    (`b09cc4a`, `c1795ea`, `fd5c432`, [charms](systems/charms.md)). **This conflicts with
+    §0.13.5 ("not chests")**; I treat the newer words as winning and have asked.
+  - *"make a rotating shop with tokens with a wandering trader that spawns at random depth
+    outposts in random zones … (5 different cases (random tool), custom hats case, random
+    charm case)"* and *"5 different traders at once"*; static part-built NPCs were the
+    owner's choice ([wandering-traders](systems/wandering-traders.md)).
+  - *"i want the timer to not actually start until i say launch, and rather just keep ticking
+    down"* ([season-and-launch](systems/season-and-launch.md)).
+  - **Open P0 asks, not built** (TODO §6.1): Event Horizon tools "EXTREMELY strong";
+    *"i want all blocks and ores to be 10000x what they are right now (SAME WITH THE COST OF
+    TOOLS …)"* (see the collisions TODO lists: `MineBigNum`, `veinSizeMean` reading
+    `craftBlocks`, gem value from work-per-unit, DataStore round-trip).
   - *"rescale to a comfortable scale, and recheck every ui in the game on every single display"* (`39d94bf`).
 - **0.12** **Fossils do not exist.** The modules are deleted. The `fossilFind`
   key and the 60 fossil bags stay, because removing them would break saves.

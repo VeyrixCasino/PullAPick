@@ -2,7 +2,7 @@
 title: Ambiguous terms — words that mean more than one thing here
 type: meta
 status: current
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-08 @ bae3c5b
 sources:
   - docs/TODO.md §0
   - docs/OPEN.md
@@ -53,10 +53,11 @@ related: [glossary, owner, open-questions, overview]
 | **layer** | a depth row of the mine, or one of the two **boost layers** | Mine or boosts? |
 | **slot / seat** | pet seats (3), hat seats (3), rune sockets, `SHEET.slots` (a socket count), or bag capacity | Which? |
 | **merge** | charm merge (gems), hat merge (two into one), card "MERGE 3", or rune fuse | Which? |
+| **charm** | one of 164 ore charms, 31 legacy charms, or one of the **36 graded charms** (chest or tokens, F…SSS) | Which family? See [charms](systems/charms.md) |
 | **build** | the player's charms-and-skins build, the `MineBuild` stamp, or `rojo build` | Which? |
 | **echo** | a retired stat, a tool special, or the Space element's verb | Which? |
 | **oreYield** | the old key for blast chance (now `blastChance`), or `MineConfig.oreYieldFor` (ore quantity) | Chance or quantity? |
-| **tokens** | skill-tree tokens (`skillState.tokens`) or temper tokens (hats, cases, traits) | Which? Rename one? |
+| **tokens** | skill-tree tokens (`skillState.tokens`) or temper tokens (`p.temperTokens`: skin cases, hats, traits, **graded charms, wandering-trader cases**) | Which? Rename one? |
 
 ## Ore, packs and loot
 
@@ -89,6 +90,8 @@ related: [glossary, owner, open-questions, overview]
 | **VIP** | the VIP gamepass, or **Founders** membership (the code's `isVip()` means Founders) | Which? |
 | **pass** | Battle Pass, Event Pass, or a gamepass | Which? |
 | **event** | Event Horizon, World Pulse (disabled), or a limited season/offer | Which? See [world-events](systems/world-events.md) |
+| **launch** | the owner's **season-start switch** (`MineLaunch`, `Verbs.launchSeason`), the Robux "launch limiteds" (Lucky Charm / Lucky Block pet), or the game opening to the public | Which? See [season-and-launch](systems/season-and-launch.md) |
+| **trader** | the five **wandering traders** (token cases at depth outposts), the Job Board contractor, or player-to-player trading | Which? See [wandering-traders](systems/wandering-traders.md), [trading](systems/trading.md) |
 
 ## Workflow words
 

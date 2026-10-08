@@ -2,7 +2,7 @@
 title: The client and the UI kit
 type: code
 status: current
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau
   - src/ReplicatedStorage/Mine/Shared/MineUI.luau
@@ -23,8 +23,11 @@ related: [server, code-map, luau-traps, rojo-and-studio, tools]
 
 ## `MineClient.client.luau`
 
-- `src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau` is **12,255
-  lines**. HANDOFF §2.2 says 11.9k.
+- `src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau` is **12,488
+  lines** (12,255 at `26036a0`). HANDOFF §2.2 says 11.9k.
+- **The trader shop panel lives on `ClientFns`** (`showTraderShop`, `d38b65e`), not in
+  new top-level locals: the script had 7 registers left and a panel does not need
+  four of them. It renders the server's offer and computes nothing.
 - It has 176 top-level `local` lines, and several of them declare more than one
   name. It sits at the 200-register ceiling.
   - Twice it stopped compiling entirely: "Out of local registers when trying to
