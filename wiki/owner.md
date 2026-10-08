@@ -89,6 +89,12 @@ hound me with questions so noithing is EVER unclear"*. This replaced the softer
 - At the end of any piece of work: say what you assumed, and ask what is still
   unclear.
 
+**Confirmed by the owner, 2026-10-08**, when asked four design points (each answer
+was the recommended default, so nothing changed): (1) **no cap** on questions, batched
+by topic; (2) locked rules are **not re-asked, but agents ask whether one applies**;
+(3) when nobody can answer, **safe reversible steps only, and queue the questions**;
+(4) **restate before any non-trivial work**.
+
 ## Locked decisions: one line each
 
 These come from `docs/TODO.md` §0. Each is settled: build on it and do not

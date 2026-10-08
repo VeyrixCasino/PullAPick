@@ -43,6 +43,9 @@ prompt and one on every subagent (`.claude/settings.json`), to other agents by
 `wiki/claude-ai-setup.md`. `tools/verify/askfirst.js` fails if any of them loses the
 rule.
 
+Confirmed 2026-10-08: no cap on questions; restate before any non-trivial work; with
+nobody to answer, safe reversible steps only and queue the questions.
+
 It does **not** reopen the other locked rules in this section: those stay settled,
 and agents should not re-ask them. It does mean asking whether one *applies* when that
 is unclear.

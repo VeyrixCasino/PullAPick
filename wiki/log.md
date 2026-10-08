@@ -94,3 +94,12 @@ general-purpose subagent, and did not reach the built-in `Explore` type (see
 [local-setup](code/local-setup.md)). Four design points were applied on my defaults
 and put to the owner as questions: the cap, locked rules, unattended runs, and
 restating before work.
+
+## [2026-10-08] query | owner confirms the four ask-first design points
+Asked the owner four open design points about the ask-first rule (question cap,
+locked rules, unattended runs, restating first). Every answer was the recommended
+default, which was already live, so no rule changed. Recorded in [owner](owner.md)
+and TODO §0.35. Found while checking the branches: the owner's working branch
+`claude/vigilant-fermi-aucqjy` holds an older merge of this wiki (`c04adad`) plus its
+own ingest (`c9b93c6`), and does not have the ask-first rule or hooks. Reconciling
+the two lines is an open question for the owner (5 wiki files would conflict).
