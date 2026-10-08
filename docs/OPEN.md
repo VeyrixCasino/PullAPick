@@ -329,8 +329,12 @@ Owner, 2026-10-04. Open-all and buy-N already ship. Still open:
   power may remove the need for it entirely** — settle item 3 first.
 - **Chests → packs only.** Superseded by the chest table rework and by skins and
   hats moving into chests.
-- **`ORE_GEM_SPREAD` magnitude.** 10^6 is a placeholder that sets the entire gem
-  faucet. Owner deferred it explicitly: *"we tackle that later."*
+- ~~**`ORE_GEM_SPREAD` magnitude.**~~ **SETTLED 2026-10-08.** The deferral
+  (*"we tackle that later"*) was superseded by `docs/PROPOSAL.md` §0 line 16,
+  which the owner approved on 2026-10-05 — 1e6 → **1e4**. Applied. This note
+  outliving the sign-off is why it sat unimplemented for three days, so it is
+  struck rather than deleted. `tools/verify/gem-spread.js` now pins the code to
+  the approved line, in both directions.
 
 ---
 

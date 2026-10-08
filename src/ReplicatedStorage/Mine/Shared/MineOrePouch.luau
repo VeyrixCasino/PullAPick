@@ -87,12 +87,29 @@ MineOrePouch.RUNG_COST_SHARE = 0.75
 	deepest ore worth than the shallowest? The exponent is solved from it, which
 	means the curve holds its shape across any future change to the ore model.
 
-	10^6 is the placeholder: wide enough that depth plainly pays, narrow enough
-	that the flat gem prices elsewhere in the game (zones, runes) are not
-	instantly free. Still a placeholder -- see the header -- but now it is a
-	placeholder for a question with an answer.
+	10^4, SIGNED OFF. docs/PROPOSAL.md §0 line 16, approved by the owner
+	2026-10-05 and law under TODO §0.34. It was 10^6, which the comment here
+	called a placeholder and OPEN.md recorded as deferred -- that deferral is
+	older than the sign-off.
+
+	1e6 did not merely run hot, it ended the gem economy at the top of the
+	roster: an Oganesson was worth 3,000,000 gems, and ONE BLOCK of it bought
+	the 2,500,000-gem Gem Vault outright. That is the real reason every flat
+	gem price in the game "gets outrun" -- not that the prices are low, but
+	that the faucet above them is unbounded.
+
+	                tier 1   tier 41   tier 82
+	    1e6 (was)        3    ~3,000   3,000,000
+	    1e4 (now)        3      ~300      30,000
+
+	At 1e4 the sinks read sanely, which is the test: a 500-gem trait roll is
+	170 Stone or 2% of an Oganesson, a T6 rune fuse is about one Oganesson, a
+	t24 charm merge about one.
+
+	The exponent below is SOLVED from this number rather than tuned beside it,
+	so the curve keeps its shape -- only its magnitude moves.
 ]]
-MineOrePouch.ORE_GEM_SPREAD = 1e6
+MineOrePouch.ORE_GEM_SPREAD = 1e4
 -- Scales the whole curve at once without changing its shape. A tier-1 ore is
 -- worth about ORE_GEM_BASE gems, and everything else follows from there.
 MineOrePouch.ORE_GEM_BASE = 3
