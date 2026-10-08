@@ -77,6 +77,32 @@ MineStats.STATS = {
 	-- Fossils are gone; ore replaced them. The key stays fossilFind so nothing
 	-- that writes it has to be rewritten, but it is the Ore Finder now.
 	fossilFind  = { label = "Ore Finder",       weight = 1.5, unit = "%", desc = "Multiplies how much ore a pack pays. Stamped on the pack when you mine it. Does not change which ore you get." },
+	--[[
+		ORE HAUL -- the one stat that multiplies ore OUT OF A BLOCK.
+
+		Owner, 2026-10-06: "REMEMBER ESPICALLY ENDGAME ENCHANTS BUFF THAT SO KEEP
+		IT HIGH". Measured in docs/ore-yield-and-vein-balance.md: nothing did.
+		The drop was math.random(lo, hi) straight off oreYieldFor with no boost,
+		enchant, luck or finder applied anywhere, so an Exotic tool cost ~12
+		MILLION blocks broken and no gear could move that number.
+
+		A NEW KEY, NOT fossilFind, deliberately. fossilFind is already spent
+		twice: it is the `rareOre` shift inside oreWeights, which decides WHICH
+		ore a block becomes, and it multiplies what a legacy pack pays. Hanging
+		quantity on it a third time would mean one stat silently doing quality
+		and quantity at once -- which is exactly what the comment at the drop
+		site refuses, and it is right to.
+
+		So Ore Finder stays a QUALITY stat (better ore), and Ore Haul is the
+		QUANTITY one (more of it). Two stats, two jobs, both legible on a
+		tooltip.
+
+		Weighted 1.0 rather than near zap's 2.5: it multiplies a payout that
+		already happens on every ore block, which is the shape of thing that
+		compounds hardest. The cap in MineConfig.ORE_HAUL_CAP is what actually
+		holds it; the weight only prices it on a roll.
+	]]
+	oreHaul     = { label = "Ore Haul",         weight = 1.0, unit = "%", desc = "Multiplies how much ore a block drops. Does not change which ore you get." },
 	pulverize   = { label = "Pulverizer",       weight = 4.0, unit = "%", desc = "Chance to drop 1 stardust when dirt/ore dies. Not chests or cubes." },
 	scrap       = { label = "Scrap",            weight = 1.2, unit = "%", desc = "Extra stardust when a chest dies. Not the Scrapper. Pets only." },
 	coolant     = { label = "Coolant",          weight = 2.5, unit = "%", desc = "Drill spin-up. turn / (1 + coolant). Apex stays 0. Rune only." },
@@ -126,7 +152,7 @@ MineStats.STATS = {
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
 	"blastChance", "rareOre", "gemFind", "coinBonus",
-	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
+	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "oreHaul", "pulverize", "scrap",
 	"earthquake", "ricochet", "procPower",
 	-- backpack and walkSpeed retired 2026-10-04; see their entries above.
 	"coolant", "shortFuse", "dirtBreak",

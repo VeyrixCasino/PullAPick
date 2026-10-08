@@ -5898,19 +5898,39 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			peaks on Epic, matching where the cost bell peaks. Rolled here rather
 			than restated, so direct drops and any legacy pack stay identical.
 
-			THE ORE FINDER IS NOT APPLIED HERE, on purpose. It is a quality
-			stat, not a quantity one ("better roll quality, not more loot"), and
-			it already did its work in oreWeights via oreFindShift when this
-			block chose which ore to be. Paying it again as extra material would
-			quietly turn it into a yield multiplier -- and yield multipliers on
-			a flat per-block rate are how the boost stack compounds.
+			THE ORE FINDER IS STILL NOT APPLIED HERE, on purpose. It is a
+			quality stat, not a quantity one ("better roll quality, not more
+			loot"), and it already did its work in oreWeights via oreFindShift
+			when this block chose which ore to be. Paying it again as extra
+			material would be spending one stat twice.
+
+			ORE HAUL IS, and it is the only thing that multiplies this roll.
+			Owner, 2026-10-06: endgame enchants are meant to buff ore, and
+			measurement showed nothing did -- an Exotic tool came to ~12 MILLION
+			blocks broken with no gear able to move it (see
+			docs/ore-yield-and-vein-balance.md §4). Ore Haul is the stat that
+			moves it, and it is a separate key from the finder precisely so
+			quality and quantity stay two different things.
+
+			CAPPED, because the warning this comment used to carry is correct:
+			yield multipliers on a flat per-block rate are how the boost stack
+			compounds. MineConfig.oreHaulMult clamps it at ORE_HAUL_CAP however
+			tall the stack gets.
 		]]
 		local ore = C.oreById(part:GetAttribute("OreId"))
 		if ore then
 			local lo, hi = C.oreYieldFor(ore.tier)
 			lo = math.max(1, math.floor(tonumber(lo) or 1))
 			hi = math.max(lo, math.floor(tonumber(hi) or lo))
+			-- Roll first, multiply after: multiplying the band ends would lose
+			-- the low end to flooring and quietly narrow the spread.
 			local got = math.random(lo, hi)
+			local haul = C.oreHaulMult(b and b.oreHaul)
+			if haul > 1 then
+				-- Floored, like every other payout here, and never below the
+				-- unboosted roll -- a boost must not be able to cost you ore.
+				got = math.max(got, math.floor(got * haul))
+			end
 			--[[
 				Into the POUCH, up to what it holds, and through Dig.addOre so the
 				capacity check lives in one place rather than at every site that

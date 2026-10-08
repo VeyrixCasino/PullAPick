@@ -3040,6 +3040,48 @@ end
 
 -- The mid of the ore's own drop band. Averaging lo and hi is right because the
 -- server rolls uniformly between them.
+--[[
+	HOW MUCH THE ORE HAUL STAT CAN ACTUALLY MULTIPLY A DROP.
+
+	Owner approved adding a quantity multiplier so endgame gear is what makes the
+	deep tools reachable. The existing comment at the drop site warns exactly why
+	this needs a ceiling: "yield multipliers on a flat per-block rate are how the
+	boost stack compounds". It is right. Ore drops on every ore block, forever,
+	and this game stacks boosts multiplicatively across pets, charms, gear, runes
+	and skills -- so an uncapped multiplier on a per-block payout is the one shape
+	that runs away fastest.
+
+	ORE_HAUL_CAP is therefore a hard clamp on the MULTIPLIER, not a soft curve: no
+	stack of anything can pay more than this many times the base roll. At 25x, the
+	measured 12 million blocks for an Exotic tool becomes about 480,000 -- still a
+	serious grind, still the longest chase in the game, but a number a determined
+	player can actually reach with full gear.
+
+	The floor is 1: the stat may only ever ADD ore. A negative or corrupt boost
+	must not silently take drops away from someone.
+]]
+MineConfig.ORE_HAUL_CAP = 25
+
+--[[
+	The multiplier a given Ore Haul boost is worth, clamped.
+
+	`haul` arrives as the usual boost fraction -- 0 means no bonus, 1.5 means
+	+150%. Returns the multiplier to apply to the rolled quantity.
+
+	Tolerant of nil and of nonsense: an absent boost table, a NaN out of a bad
+	save, or a negative all read as "no bonus" rather than erroring at the drop
+	site, because this runs on every single ore block and a throw there would
+	stop the player mining at all.
+]]
+function MineConfig.oreHaulMult(haul)
+	local h = tonumber(haul) or 0
+	-- NaN fails every comparison, so test it rather than relying on clamp.
+	if h ~= h or h < 0 then
+		h = 0
+	end
+	return math.min(1 + h, math.max(1, tonumber(MineConfig.ORE_HAUL_CAP) or 25))
+end
+
 function MineConfig.oreYieldMid(tier)
 	local lo, hi = MineConfig.oreYieldFor(tier)
 	return ((tonumber(lo) or 1) + (tonumber(hi) or 1)) / 2

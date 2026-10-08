@@ -415,7 +415,12 @@ end
 	stat -- a multiplier starting at 0 zeroes everything it touches, and an
 	additive starting at 1 is a free +100%.
 ]]
-local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, procPower = true }
+-- oreHaul is ADDITIVE: sources contribute fractions that sum, and
+-- MineConfig.oreHaulMult turns the total into 1 + haul at the one place it is
+-- spent. Listing it here is what makes addStat accumulate from 0 instead of
+-- from 1 -- without it, a single +50% roll would read as 1.5 and then be spent
+-- as a 2.5x multiplier.
+local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, oreHaul = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, procPower = true }
 MineCards.ADDITIVE_STATS = ADDITIVE_STATS
 
 local function addStat(b, key, amount)
@@ -581,6 +586,11 @@ function MineCards.emptyBoosts()
 		-- swingSec is a DURATION; kits grant swingRate, folded in by foldSwingRate.
 		swingSec = 1,
 		-- additive (blastChance = Blast % proc)
+		-- oreHaul multiplies ore OUT OF a block, where fossilFind decides WHICH
+		-- ore it is. It has to start here for the same reason as the two below:
+		-- the relic fold skips any key not already present, so leaving it out
+		-- would make every Ore Haul boost in the game silently do nothing.
+		oreHaul = 0,
 		echo = 0, zap = 0, blastRadius = 0, autoMine = 0, blastChance = 0, luckyFind = 0, fossilFind = 0, pulverize = 0,
 		scrap = 0, coolant = 0, shortFuse = 0, reach = 0,
 		-- PROC DAMAGE, separate from every proc CHANCE above it. Additive, and
