@@ -42,6 +42,18 @@ local OreIcons = require(shared:WaitForChild("MineOreIcons"))
 local T = require(shared:WaitForChild("MineTheme"))
 local UI = require(shared:WaitForChild("MineUI"))
 local Icons = require(shared:WaitForChild("MineIcons"))
+--[[
+	The recipe detail shows the actual tool, turning, not a picture of one.
+	ToolModelFactory lives at the ReplicatedStorage root rather than under
+	Mine/Shared, and it is loaded with pcall because a ViewportFrame is a nicety
+	-- if the factory is missing the panel must still open and still forge.
+]]
+local okFactory, Factory = pcall(function()
+	return require(RS:WaitForChild("ToolModelFactory"))
+end)
+if not okFactory then
+	Factory = nil
+end
 
 local BG2 = T.BG2
 local BG3 = T.BG3
@@ -150,6 +162,64 @@ local function discoveredOres(snapshot)
 	end
 	table.sort(out, function(a, b)
 		return a.tier > b.tier
+	end)
+	return out
+end
+
+--[[
+	EVERY RECIPE IN THE GAME, CRAFTABLE ONES FIRST.
+
+	Owner, 2026-10-08: "SHOW ALL RECIPLES, the ones can you craft should
+	automatically be at the top".
+
+	discoveredOres above returns only what the player has seen, which is right
+	for a rail you pick an ore out of and wrong for a catalogue: a grid that
+	shows eleven squares tells a player the game has eleven tools in it.
+
+	So this returns all 82, and carries `locked` for the ones not yet
+	discovered. Rule 3 at the top of this file still holds -- an undiscovered
+	ore must not leak its name, tier or colour -- so a locked square is drawn
+	as a blank, and nothing on it is read from the ore row. Showing that a
+	recipe EXISTS is not the same as showing what it is, and the count is the
+	part the owner asked for.
+
+	Sort is craftable, then owned, then everything else, each by tier. Craftable
+	first is the ask and it is also the only ordering that answers the question
+	a player opens this screen with. `tier` breaks ties so the order is stable
+	across redraws -- a grid that reshuffles under the cursor while ore comes in
+	is worse than one that is merely long.
+]]
+local function allRecipes(snapshot, familyId)
+	local held = snapshot.ores or {}
+	local seen = snapshot.oresSeen
+	local out = {}
+	for _, def in ipairs(C.ORES or {}) do
+		local have = tonumber(held[def.id]) or 0
+		local discovered
+		if type(seen) == "table" then
+			discovered = seen[def.id] and true or false
+		else
+			discovered = have > 0
+		end
+		local cost = C.toolCraftCost(def.tier, OreTools.typeMult(familyId, def.tier))
+		out[#out + 1] = {
+			id = def.id,
+			def = def,
+			tier = def.tier,
+			name = def.name,
+			have = have,
+			cost = cost,
+			locked = not discovered,
+			afford = discovered and have >= cost,
+		}
+	end
+	table.sort(out, function(a, b)
+		local ra = a.afford and 0 or (a.locked and 2 or 1)
+		local rb = b.afford and 0 or (b.locked and 2 or 1)
+		if ra ~= rb then
+			return ra < rb
+		end
+		return a.tier < b.tier
 	end)
 	return out
 end
@@ -292,6 +362,60 @@ function MineForge.mount(parent, opts)
 		Position = UDim2.fromOffset(RAIL_X + RAIL_W + 24, 62),
 		Size = UDim2.new(1, -RAIL_X - RAIL_W - 38, 1, -72 - POUCH_H),
 	}, root)
+
+	--[[
+		THE CRAFT PANE: A GRID OF RECIPES, NOT A RAIL AND A FORM.
+
+		Owner, 2026-10-08, on the old craft screen: "rn so so shit and i fucking
+		hate it .. make it like how the shop used to be, expect when you looking
+		for something to craft theres a bunch of recipe squares (5 recipes per
+		row, it should have the name icon what it needs)".
+
+		CRAFT gets the whole panel instead of a 232px rail and a text form in the
+		gutter beside it. The rail and the detail frame above are still used --
+		by UPGRADE, which genuinely is a list of a few owned tools and a pile of
+		numbers -- and are simply hidden while crafting.
+
+		Two screens, one at a time, switched on selOreId:
+
+		  nil -> THE GRID. Every recipe in the game as a square.
+		  set -> THE RECIPE. The tool in 3D, its cost and what it does.
+
+		Five per row comes from the CellSize scale: 0.2 of the pane width, so it
+		stays five across at any window size rather than reflowing to four on a
+		laptop and six on a monitor. The offset in the X term is the gutter, which
+		is why it is negative.
+	]]
+	local craftPane = mk("Frame", {
+		Name = "CraftPane",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(RAIL_X, 62),
+		Size = UDim2.new(1, -RAIL_X - 14, 1, -72 - POUCH_H),
+		Visible = false,
+	}, root)
+
+	local grid = mk("ScrollingFrame", {
+		Name = "RecipeGrid",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 5,
+		Visible = false,
+	}, craftPane)
+	mk("UIGridLayout", {
+		CellSize = UDim2.new(0.2, -10, 0, 124),
+		CellPadding = UDim2.fromOffset(10, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+	}, grid)
+
+	local recipeView = mk("Frame", {
+		Name = "RecipeView",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+	}, craftPane)
 
 	--[[
 		THE ORE POUCH, along the bottom.
@@ -749,6 +873,203 @@ function MineForge.mount(parent, opts)
 	end
 
 	--[[
+		ONE RECIPE SQUARE: icon, name, what it needs.
+
+		A locked square reads nothing off the ore row -- no name, no tier, no
+		colour -- because rule 3 at the top of this file says an undiscovered
+		ore must not leak through a recipe. It still occupies its place in the
+		grid, so the catalogue is honest about its own size.
+	]]
+	local function recipeCell(host, r, order, onPick)
+		local b = mk("TextButton", {
+			BackgroundColor3 = r.locked and BG3 or BG2,
+			BackgroundTransparency = r.locked and 0.35 or 0,
+			AutoButtonColor = not r.locked,
+			Text = "",
+			LayoutOrder = order,
+		}, host)
+		round(b, 8)
+		-- Affordable is the state worth finding at a glance, so it is the only
+		-- one that gets an outline.
+		if r.afford then
+			local s = Instance.new("UIStroke")
+			s.Color = GREEN
+			s.Thickness = 2
+			s.Parent = b
+		end
+
+		if r.locked then
+			label(b, "?", 30, MUTED, UDim2.fromOffset(0, 24), UDim2.new(1, 0, 0, 36),
+				FONT, Enum.TextXAlignment.Center)
+			label(b, "undiscovered", 11, MUTED, UDim2.fromOffset(0, 70),
+				UDim2.new(1, 0, 0, 14), FONT_M, Enum.TextXAlignment.Center)
+			return b
+		end
+
+		local art = OreIcons.BY_ID and OreIcons.BY_ID[r.id]
+		if art and art.icon then
+			UI.icon(b, art.icon, 44, UDim2.new(0.5, -22, 0, 10))
+		end
+		label(b, OreTools.name(r.def, selFamily), 12, TEXT, UDim2.fromOffset(4, 58),
+			UDim2.new(1, -8, 0, 28), FONT, Enum.TextXAlignment.Center).TextWrapped = true
+		-- What it NEEDS, which is the whole reason the square is readable at a
+		-- glance: the ore, the amount, and whether you are there yet.
+		label(b, string.format("%s / %s", num(r.have), num(r.cost)), 12,
+			r.afford and GREEN or MUTED, UDim2.fromOffset(4, 92),
+			UDim2.new(1, -8, 0, 14), FONT_M, Enum.TextXAlignment.Center)
+		label(b, r.name, 10, MUTED, UDim2.fromOffset(4, 106),
+			UDim2.new(1, -8, 0, 12), FONT_M, Enum.TextXAlignment.Center)
+		b.MouseButton1Click:Connect(onPick)
+		return b
+	end
+
+	local function drawGrid(snapshot)
+		for _, d in ipairs(grid:GetChildren()) do
+			if not d:IsA("UIGridLayout") then
+				d:Destroy()
+			end
+		end
+		local rows = allRecipes(snapshot, selFamily)
+		for i, r in ipairs(rows) do
+			recipeCell(grid, r, i, function()
+				selOreId = r.id
+				refresh()
+			end)
+		end
+	end
+
+	--[[
+		THE RECIPE: the tool itself, then what it costs and what it does.
+
+		"when you click a recipe it should bring you into a 3d view of the tool,
+		with how much ore it takes, how much breaking power, how much damage."
+
+		The model is built the same way the server builds the one that ends up
+		in the player's hand -- ToolModelFactory.build with the ore's own look --
+		so the preview is the tool, not an impression of it.
+
+		No "about N blocks" line. The owner called it unprofessional and it is
+		gone; the ore cost is the number, and the pouch strip along the bottom
+		already says how close you are to it.
+	]]
+	local function drawRecipe(snapshot, r)
+		for _, d in ipairs(recipeView:GetChildren()) do
+			d:Destroy()
+		end
+
+		mk("TextButton", {
+			BackgroundColor3 = BG3, AutoButtonColor = true, Text = "\u{2190}  ALL RECIPES",
+			TextColor3 = TEXT, TextSize = 12, Font = FONT,
+			Size = UDim2.fromOffset(140, 26), Position = UDim2.fromOffset(0, 0),
+		}, recipeView).MouseButton1Click:Connect(function()
+			selOreId = nil
+			refresh()
+		end)
+
+		local stage = mk("Frame", {
+			BackgroundColor3 = BG3,
+			Position = UDim2.fromOffset(0, 36),
+			Size = UDim2.new(0.46, -8, 1, -44),
+		}, recipeView)
+		round(stage, 10)
+
+		if Factory and Factory.build then
+			local vp = mk("ViewportFrame", {
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+			}, stage)
+			local okBuild, model = pcall(function()
+				local look = Factory.oreLook and Factory.oreLook(r.def, C.ORE_COUNT or #C.ORES)
+				local m = Factory.build(selFamily, r.tier, C.ORE_COUNT or #C.ORES, look)
+				return m
+			end)
+			if okBuild and model then
+				--[[
+					A ViewportFrame renders neither lights nor particles, so the
+					FX folder is dead weight in here -- and an unanchored part
+					inside one falls. Strip and anchor before parenting.
+				]]
+				local fx = model:FindFirstChild("FX")
+				if fx then
+					fx:Destroy()
+				end
+				for _, d in ipairs(model:GetDescendants()) do
+					if d:IsA("BasePart") then
+						d.Anchored = true
+					end
+				end
+				model.Parent = vp
+				local cam = Instance.new("Camera")
+				cam.Parent = vp
+				vp.CurrentCamera = cam
+				local cf, size = model:GetBoundingBox()
+				local dist = math.max(size.Magnitude * 1.1, 3)
+				cam.CFrame = CFrame.lookAt(cf.Position + Vector3.new(dist * 0.6, dist * 0.42, dist * 0.78),
+					cf.Position)
+				-- Turn it. A still render of a 3D tool reads as a flat icon.
+				local spin
+				spin = game:GetService("RunService").RenderStepped:Connect(function(dt)
+					if not vp.Parent or not model.Parent then
+						spin:Disconnect()
+						return
+					end
+					model:PivotTo(model:GetPivot() * CFrame.Angles(0, dt * 0.6, 0))
+				end)
+			end
+		end
+
+		local info = mk("Frame", {
+			BackgroundTransparency = 1,
+			Position = UDim2.new(0.46, 12, 0, 36),
+			Size = UDim2.new(0.54, -12, 1, -44),
+		}, recipeView)
+
+		label(info, OreTools.name(r.def, selFamily), 24, TEXT,
+			UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 30), FONT)
+		label(info, string.format("ore tier %d", r.tier), 12, MUTED,
+			UDim2.fromOffset(0, 32), UDim2.new(1, 0, 0, 14))
+
+		--[[
+			The three numbers the owner asked for, each on its own line and each
+			labelled, rather than packed into a sentence. Breaking power and
+			damage come from the same functions the server uses, so the recipe
+			cannot promise a tool the forge will not deliver.
+		]]
+		local stats = OreTools.frameStats(selFamily, r.tier) or {}
+		local bp = C.toolBreakingPower and C.toolBreakingPower(r.tier) or 0
+		local rate = tonumber(stats.rate) or 0
+		local cells = tonumber(stats.cells) or 1
+
+		local function statLine(y, key, value, ink)
+			label(info, key, 12, MUTED, UDim2.fromOffset(0, y), UDim2.new(0.42, 0, 0, 16), FONT_M)
+			label(info, value, 15, ink or TEXT, UDim2.new(0.42, 0, 0, y - 2),
+				UDim2.new(0.58, 0, 0, 18), FONT)
+		end
+
+		statLine(62, "COSTS", string.format("%s %s", num(r.cost), r.name),
+			r.afford and GREEN or RED)
+		statLine(86, "YOU HAVE", string.format("%s %s", num(r.have), r.name), MUTED)
+		statLine(116, "BREAKING POWER", num(bp), GOLD)
+		statLine(140, "DAMAGE", string.format("%s per hit", num(bp * math.max(1, cells))), GOLD)
+		statLine(164, "SWING RATE", string.format("%.1f / sec", rate), TEXT)
+		statLine(188, "REACHES", string.format("ore tier %d",
+			C.oreReachCap and C.oreReachCap(bp) or r.tier), TEXT)
+
+		local owned = ownedForOre(snapshot, selFamily, r.tier)
+		button(info, r.afford and "FORGE" or "NEED ORE", GREEN,
+			UDim2.fromOffset(0, 224), UDim2.fromOffset(170, 34), r.afford, function()
+				if opts.onCraft then
+					opts.onCraft(selFamily, "", r.id)
+				end
+			end)
+		if owned then
+			label(info, string.format("you already have one, at level %d",
+				math.max(1, tonumber(owned.level) or 1)), 12, GOLD,
+				UDim2.fromOffset(180, 232), UDim2.new(1, -180, 0, 16))
+		end
+	end
+
+	--[[
 		The detail pane no longer carries a tab strip of its own. CRAFT and
 		UPGRADE are modes of the whole panel now and live on the left rail, so
 		what is drawn here follows the mode rather than being inferred from
@@ -829,6 +1150,9 @@ function MineForge.mount(parent, opts)
 		end
 		colButton("CRAFT", 1, selMode == "craft", true, function()
 			selMode = "craft"
+			-- CRAFT always opens on the catalogue. Returning to a recipe the
+			-- player opened some tabs ago hides the grid they came back for.
+			selOreId = nil
 			refresh()
 		end)
 		colButton("UPGRADE", 2, selMode == "upgrade", true, function()
@@ -896,6 +1220,44 @@ function MineForge.mount(parent, opts)
 			label(b, sub, 11, subInk, UDim2.fromOffset(10, 21), UDim2.new(1, -20, 0, 12))
 			b.MouseButton1Click:Connect(onClick)
 			return b
+		end
+
+		--[[
+			CRAFT owns the whole panel; UPGRADE keeps the rail and detail pane.
+
+			Visibility is set here rather than at each click so there is exactly
+			one place that decides which of the two layouts is on screen. The
+			rail is still FILLED below in craft mode -- it costs nothing while
+			hidden and leaving the branch intact keeps upgrade's selection logic
+			in one piece -- but nothing in craft reads it any more.
+		]]
+		local crafting = selMode ~= "upgrade"
+		craftPane.Visible = crafting
+		rail.Visible = not crafting
+		detail.Visible = not crafting
+		if crafting then
+			local pick
+			if selOreId then
+				for _, r in ipairs(allRecipes(snapshot, selFamily)) do
+					if r.id == selOreId then
+						pick = r
+						break
+					end
+				end
+				-- A recipe that vanished (family switched under the selection)
+				-- drops back to the grid rather than showing an empty stage.
+				if not pick then
+					selOreId = nil
+				end
+			end
+			grid.Visible = pick == nil
+			recipeView.Visible = pick ~= nil
+			if pick then
+				drawRecipe(snapshot, pick)
+			else
+				drawGrid(snapshot)
+			end
+			return
 		end
 
 		if selMode == "upgrade" then
