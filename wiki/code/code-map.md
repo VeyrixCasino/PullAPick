@@ -2,7 +2,7 @@
 title: Code map
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ bae3c5b
 sources:
   - default.project.json
   - AGENTS.md
@@ -83,7 +83,12 @@ Other ReplicatedStorage contents:
 ## ServerScriptService
 
 - `src/ServerScriptService/Mine/MineServer.server.luau`: **the whole game server**,
-  17,050 lines and about 600 KB. See [server](server.md).
+  17,714 lines (17,050 at `26036a0`). See [server](server.md).
+- **New 2026-10-07:** `MineTraderNPC` (the five wandering traders' bodies, prompt and
+  roster check: [wandering-traders](../systems/wandering-traders.md)). Shared:
+  `MineTrader` (the rules), `MineLaunch` (the season clock:
+  [season-and-launch](../systems/season-and-launch.md)). `MineDigAuth` gained
+  `canCreditDepth` and `chunkCeiling` ([zones-layers-and-seams](../systems/zones-layers-and-seams.md)).
 - Other modules in `Mine/`: `MineDigAuth`, `MineDepthPlazas` (outposts, elevator
   rides), `MineDepthLive`, `WorldBuilder` (builds the map at boot), the zone themes
   `MineHarbor`, `MineBloodLake` and `MineEventHorizon` (loaded by `WorldBuilder` per
@@ -97,7 +102,7 @@ Other ReplicatedStorage contents:
 
 ## StarterPlayerScripts
 
-`MineClient.client.luau` (12,255 lines) is the client; see [client-and-ui](client-and-ui.md).
+`MineClient.client.luau` (12,488 lines) is the client; see [client-and-ui](client-and-ui.md).
 Alongside it: `MineAdminClient` (the admin panel), `MineAmbience` (client-side bobbing
 and other motion), `MineDiscordLinkClient`, and `LoadPlayerModule` (boots the default
 PlayerModule so WASD and the camera work). `TCGAfkClient` is disabled by its

@@ -31,6 +31,25 @@ Two things deliberately STAY, and neither is open for cleanup:
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
 
+**0.35 — ASK FIRST, ALWAYS. HOUND THE OWNER.** Owner, 2026-10-08: *"from now on i want
+ALL agents to fucking hound me with questions so noithing is EVER unclear"*.
+
+This replaces the softer "ask when it is broad" rule from earlier the same week. Every
+agent, every tool, every subagent. The test is: **if you would otherwise be guessing
+what the owner wants or means, ask, however small it looks.** Rules, with the exact
+wording: `CLAUDE.md` ("Ask first, always"). Carried to Claude Code by a hook on every
+prompt and one on every subagent (`.claude/settings.json`), to other agents by
+`AGENTS.md` and `tools/agent/house-rules.txt`, and to Claude.ai by
+`wiki/claude-ai-setup.md`. `tools/verify/askfirst.js` fails if any of them loses the
+rule.
+
+Confirmed 2026-10-08: no cap on questions; restate before any non-trivial work; with
+nobody to answer, safe reversible steps only and queue the questions.
+
+It does **not** reopen the other locked rules in this section: those stay settled,
+and agents should not re-ask them. It does mean asking whether one *applies* when that
+is unclear.
+
 **0.34 — THE NUMBERS ARE SIGNED OFF. `docs/PROPOSAL.md` §0 IS LAW.**
 Owner, 2026-10-05, pasted the 38-line block back unchanged after asking for
 *"all things i have to do.. propose numbers, thats it."*
@@ -1920,6 +1939,7 @@ not dormant — they were reachable:
 
 # 9. Standing rules
 
+- **Ask first, always.** Hound the owner with questions so nothing is EVER unclear (§0.35).
 - **No pity systems.** No floors, no guarantees after N.
 - **Don't cripple the datastore.** Ore ids are load-bearing twice — `p.ores[id]` is
   banked material and packs are `<id>_ore_pack`. Any roster change needs an id→id

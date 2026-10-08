@@ -2,7 +2,7 @@
 title: Chests and lucky blocks
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineZoneChests.luau
   - src/ReplicatedStorage/Mine/Shared/Mine1ChestsData.luau
@@ -69,6 +69,12 @@ steal the aim raycast.
 - **Tutorial chests** force how many packs drop through the `PackQty` attribute.
 - **Persist bag.** Mid and deep layers have a small chance (0.8% / 0.4%, times
   `chestLuck`) at a one-off bag that adds `backpackBonus`.
+- **A graded charm, 0.5%** (2026-10-07, `fd5c432`). `MineCharms.CHARM_CHEST_CHANCE
+  0.005 × chestLuck`, rolled in `openChestBlock` on every chest. `rollChestCharm`
+  then picks which of the 36 graded charms by `MineTemper` rarity weights, so it is
+  mostly F and D. It is written against the `Charms` upvalue, **not** the
+  `rollChestTool` local that open-questions #7 says reads as nil, and `charms.js`
+  asserts the declaration comes before the use. See [charms](charms.md).
 
 **Rank aging.** Unlocking a zone runs `MineZoneChests.onPermanentZoneUnlocked`.
 Every earlier zone's pool ages one rank (S→A→…→D→F, extinct) and the next S chest

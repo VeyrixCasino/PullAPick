@@ -4,41 +4,60 @@ This repository is a Roblox experience source tree synced to Studio with Rojo.
 Read `AGENTS.md` first; it defines the Rojo mapping, file conventions, and
 Studio sync workflow.
 
-## Ask before you assume — standing instruction from the owner
+## Ask first, always — standing instruction from the owner (2026-10-08)
 
-The owner wants Claude to **always ask follow-up questions when a request is
-broad, or when Claude is not sure what they mean**. Guessing has cost this
-project days (see `wiki/owner.md`). A good question is cheaper than a wrong
-change.
+The owner wants **every agent to hound them with questions so nothing is EVER
+unclear.** This replaces the softer rule that used to sit here. Guessing has cost
+this project days (see `wiki/owner.md`); a question costs them seconds.
 
-Stop and ask before doing the work when any of these is true:
+**The test: if you would otherwise be guessing what the owner wants or means,
+ask. However small it looks.** Being wrong quietly is the failure, not asking too
+much.
 
-- **The request is broad.** Examples: "fix the economy", "make packs fun",
-  "rebalance", "redo the UI", "clean it up", "make it better". Ask what outcome
-  they want, how far the change should reach, and which systems it should touch.
-- **The request uses an ambiguous word with no context.** Examples: tool, pack,
-  level, tier, shop, gear, boost, chest, case, rune. `wiki/ambiguous-terms.md`
-  lists them; ask which meaning they intend.
-- **The change needs a number or a taste call the owner has not made.** Check
-  `docs/TODO.md` §0, `docs/PROPOSAL.md` §0 and `docs/BLOCKED.md` first. If the
-  answer is not there, ask, and offer your default.
-- **The request conflicts with a locked rule, a doc or the code.** Say so plainly
-  and ask. Do not quietly pick a side.
-- **Two reasonable readings would produce different work.**
-- **You hit any of the above partway through.** Stop and ask before guessing,
-  and always before anything hard to undo.
+**Before you start any non-trivial work:**
 
-How to ask:
+1. **Look first.** Read the wiki page, the code, `docs/TODO.md` §0,
+   `docs/PROPOSAL.md` §0 and `docs/BLOCKED.md`. Never ask what the repo can
+   answer. Put what you found *in* the question, so they only have to decide.
+2. **Restate it.** In 1–3 lines: what you think they want, what you will change,
+   what you will leave alone, and every assumption you are making.
+3. **Ask every question you need, in one batch.** Group by topic, most important
+   first. Make each one multiple choice with your recommended default first, and
+   leave room for their own words. There is **no cap** on how many; use
+   `AskUserQuestion` when available (it takes 4 at a time, so make several calls
+   or list the rest in text). Plain language: they are not always reading code.
+4. **Wait for the answers** before doing the work. If an answer opens a new doubt,
+   ask again. Keep going until nothing is unclear.
 
-- **Do the cheap homework first.** Read the wiki page and the code, so the
-  question is specific. Never ask something the repo can answer.
-- **Ask 1–4 short questions at once.** Give each one concrete options, with your
-  recommended default first. Use `AskUserQuestion` when it is available. Use
-  plain language, since the owner is not always looking at code.
-- **If the owner says "just do it" or "you decide", go ahead** with your
-  defaults, then list every assumption you made at the end.
-- **Do not ask when the request is clear and small.** Never re-ask a locked rule
-  in TODO §0; those are marked "do not ask again".
+**Always ask when:** the request is broad ("fix the economy", "make packs fun",
+"rebalance", "clean it up"); it uses a word from `wiki/ambiguous-terms.md` with no
+context; it needs a number or a taste call they have not made; it conflicts with a
+locked rule, a doc or the code; two readings would produce different work; the
+scope could grow; anything is hard to undo or outward-facing (push, merge, delete,
+post, spend); or **you catch yourself assuming something**.
+
+**While you work:** the moment a new doubt appears, stop and ask. Do not push
+through on a guess.
+
+**When you finish:** list what you assumed, what you verified and how, and what
+you could not verify, then ask what is still unclear.
+
+**What not to ask:**
+
+- Facts the repo can answer (look, then cite).
+- Decisions already locked in `docs/TODO.md` §0, which says "do not relitigate".
+  But **do ask** when it is unclear whether a locked rule applies, or when new
+  work might conflict with one.
+
+**When nobody can answer** (scheduled check-ins, background runs, PR babysitting,
+subagents): do not guess on anything non-trivial. Take only safe, reversible
+steps, write the questions down (in your report, the PR, or
+`wiki/open-questions.md`), and ask at the next chance. **Subagents cannot reach the
+owner:** put your questions at the top of your final report, with options and a
+default, so the parent agent asks them.
+
+**"Just do it"** counts only when the owner says it for that task. Then go ahead on
+your defaults and list every assumption at the end.
 
 ## Project wiki (`wiki/`)
 

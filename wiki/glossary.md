@@ -2,7 +2,7 @@
 title: Glossary
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ bae3c5b
 sources:
   - docs/TODO.md §0
   - docs/START-HERE.md
@@ -46,7 +46,7 @@ related: [ambiguous-terms, overview, index]
 
 ## Money
 
-- **Coins** — the haul currency, paid at a sell pad. **Gems** — minted by selling ore; the sink for zones, trait rolls, charm merges. **Stardust** (`p.dust`) — upgrade currency. **Temper tokens** — the rebirth-token currency for hats and cases. **Credits** — Robux-bought. [currencies-and-economy](systems/currencies-and-economy.md)
+- **Coins** — the haul currency, paid at a sell pad. **Gems** — minted by selling ore; the sink for zones, trait rolls, charm merges. **Stardust** (`p.dust`) — upgrade currency. **Temper tokens** — the rebirth-token currency for hats, skin cases, **graded charms and wandering-trader cases**. **Credits** — Robux-bought. [currencies-and-economy](systems/currencies-and-economy.md)
 - **Haul / `haulMix`** — coins priced while mining, paid at a sell desk. [currencies-and-economy](systems/currencies-and-economy.md)
 - **Ore pouch** — the gem-sellable ore store. **Backpack** — the haul bag. **Item bag** — the inventory shelf. [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md)
 - **`ORE_GEM_SPREAD`** — how much more the top ore sells for than the bottom one. [currencies-and-economy](systems/currencies-and-economy.md)
@@ -64,6 +64,7 @@ related: [ambiguous-terms, overview, index]
 - **Potion** — a timed consumable; the proposed coin sink. [boosts-and-stats](systems/boosts-and-stats.md)
 - **Charm** — an equipped item; 164 ore charms (2 per ore, `<ore>_charm`, `<ore>_charm_2`) plus 31 legacy. [charms](systems/charms.md)
 - **Charm shape** — Focus, Twin, Pact, Ward, Brink or Surge: how a charm spends its budget. **Charm merge** — 1 copy plus gems gives the same variant one ore tier deeper. [charms](systems/charms.md)
+- **Graded charm** — one of 36 charms with an F…SSS `rarity`, 0.5% from chests or bought with temper tokens. **Wandering trader** — one of five rotating token shops at depth outposts. **Season launch** — the owner's switch that starts the season clock. [charms](systems/charms.md), [wandering-traders](systems/wandering-traders.md), [season-and-launch](systems/season-and-launch.md)
 - **Ore case** — a 2% per-ore-block drop that pays a skin (75%) or a charm (25%). [skins-cases-and-temper](systems/skins-cases-and-temper.md)
 - **Temper / temperament** — an F…SSS stat kit (what the code calls a skin). **Temper case** — a roll for one. [skins-cases-and-temper](systems/skins-cases-and-temper.md)
 - **Trait** — the prefix on one forged tool, rolled at the Enchanter (500 gems; Exotic V is 1 in 5,000). [traits](systems/traits.md)
@@ -86,7 +87,7 @@ related: [ambiguous-terms, overview, index]
 ## Codebase
 
 - **MineNet** — the one RemoteEvent for all client↔server traffic. **Action router** — the string compare on `action`. **Verbs** — the server's table of request handlers. [server](code/server.md)
-- **`Dig` / `Const` / `ClientFns`** — tables that dodge the 200-local limit. **Global-read trap** — a local used above its declaration is silently nil. [luau-traps](code/luau-traps.md)
+- **`Dig` / `Const` / `ClientFns` / `Svc`** — tables that dodge the 200-local limit (`Svc` holds seven Roblox services since `5d59714`). **Global-read trap** — a local used above its declaration is silently nil. [luau-traps](code/luau-traps.md)
 - **`snap()`** — the player view pushed to the client (at most 10 per second). **Busy lock** — drops a second request from the same player. [server](code/server.md)
 - **Toast** — a text notice event. **House style** (`MineTheme` + `MineUI`), **`NoAdopt`** — [client-and-ui](code/client-and-ui.md)
 - **Migration stamp** (`oreRosterV`, `toolCapV`), **`_lock`** (save session lock, 120 s), **ephemeral profile**, **`_Studio` suffix** — [save-data-and-migrations](code/save-data-and-migrations.md)

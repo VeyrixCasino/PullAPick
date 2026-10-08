@@ -2,7 +2,7 @@
 title: Tools
 type: system
 status: partial
-verified: 2026-10-05 @ b19c4c2
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
@@ -50,16 +50,33 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
    desks and the legacy `buy "pickaxe"` action (`buyTool`, `buyDepthTool`). The
    roster is kept because `MineOreTools.frames()` filters it on `price > 0`: the
    prices are now a forge input, not a shelf price.
+   **Owner, 2026-10-06** (`312721b`, `bef7b0d`): *"delete all tools in the game
+   besides for chest tools (if they still even exist) and ore tools"*. The chest
+   flagships (`MineTools.CHEST_TOOLS`, about 52, never sold) stay, and so does the
+   given wooden starter (without it a new player spawns with no tool and needs
+   about 2,800 blocks to forge one). To make deletion safe, the forge no longer
+   reads the roster: `MineOreTools.typeMult(family, tier)` and
+   `MineOreTools.FRAME_STATS` / `frameStats` are baked step tables, compared
+   against the roster for all 2,460 values by `tools/verify/oreframes.js`
+   (0 mismatches). **`MineTools.TOOLS` is still in the tree**; I did not check
+   whether a later commit deletes it.
 6. `MineConfig.BARE_HANDS` if no pickaxe was ever collected.
 
 Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
 weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`.
 
+**Other ways a tool arrives (2026-10-07).** A **wandering trader's tool case** pays a
+forged-style tool of a tier inside the case's band, in a random family, at level 1 with
+`base = 1`, for temper tokens ([wandering-traders](wandering-traders.md)). It is not
+bought with coins, so the 2026-10-05 rule still holds.
+
 **Forged tools** ("a forged tool IS its ore", TODO §0.15). Name `{Ore} {Noun}`
 plus a trait prefix (`MineOreTools.name` → `MineTraits.decorate`). The frame is
 never picked: `MineOreTools.frameForTier` maps ore tier 1..82 proportionally
-onto the family's priced rungs (24 / 16 / 16). `typeMult` = the frame's
-`RARITY_RANK` (stamped by `MineTools.rarityForTier`). Craft, level and scrap at
+onto the family's priced rungs (24 / 16 / 16). `typeMult` is a baked step
+function of tier per family (`312721b`; pickaxe 1–6 = 1 … 70–82 = 8, drills and
+explosives 1–9 = 1 … 74–82 = 8), identical to the old frame lookup. A forged
+tool's name is the family noun (`bef7b0d`), no longer the frame's invented title. Craft, level and scrap at
 the [Forge](forge-and-recycling.md).
 
 **Levels.** `MineConfig.TOOL_MAX_LEVEL = 30` (commit `d505d6c`, was 100; owner
@@ -69,7 +86,8 @@ wanted an advertisable *"each level UP%X"*). Rates come from `perLevel(total)`:
 own ore `TOOL_ORE_BASE 4 × TOOL_ORE_GROW^(L-1)` + stardust `25 ×
 TOOL_DUST_GROW^(L-1)`, both × `toolCostMult` (bell `TOOL_COST_BANDS`, Epic ×18
 peak, Exotic ×1 floor, × `typeMult^0.5`). A new forge inherits the best level on
-the rack (`12b528a`). Over-cap saves are clamped on load (`TOOL_CAP_V`), no refund.
+the rack (`12b528a`); the row stamps the level it was forged at (`base`), and
+scrapping refunds only the climb above it (`4cc82a5`). Over-cap saves are clamped on load (`TOOL_CAP_V`), no refund.
 
 **Damage.** `MineConfig.toolPower = TOOL_DMG_BASE 10 × toolTierPower(tier) ×
 typeMult × STEP^(L-1)`; `toolTierPower = 6^(TOOL_TIER_SPAN 7 × (t-1)/81) ×
@@ -133,7 +151,8 @@ equip; the coin ladder resets.
 
 | file | role | key symbols |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/MineOreTools.luau` | forged naming and frames | `name`, `frameForTier`, `oreOf`, `typeMult` |
+| `src/ReplicatedStorage/Mine/Shared/MineOreTools.luau` | forged naming and frames | `name`, `frameForTier`, `oreOf`, `typeMult`, `FRAME_STATS`, `frameStats` |
+| `src/ReplicatedStorage/Mine/Shared/MineIcons.luau` | per-ore tool skins | `ORE_PICK`, `ORE_DRILL`, `ORE_BOMB`, `forTool` |
 | `src/ReplicatedStorage/Mine/Shared/MineTools.luau` | coin ladder, flagships, pass tools | `TOOLS`, `CHEST_TOOLS`, `PASS_TOOLS`, `RARITY_RANK` |
 | `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | level and damage curve | `TOOL_MAX_LEVEL`, `toolPower`, `toolUpgradeCost`, `TOOL_BAND_DMG` |
 | `src/ReplicatedStorage/Mine/Shared/MineBreaking.luau` | breaking power gate | `toolBreakingPower`, `SHOP_POWER`, `canBreak` |
@@ -152,16 +171,24 @@ equip; the coin ladder resets.
   forged from ore. Backpacks, the Ore Pouch and chest Secrets stay. The wooden
   pickaxe is given, never sold, and the commit says it **still levels on coins**
   (`MineConfig.isCoinTool`), kept on purpose as the on-ramp to the Forge.
-- **Every ore tier has its own pickaxe skin** (`MineIcons.ORE_PICK`, one asset id
-  per tier; `Icons.forTool(tool)` is the one rule the hotbar, Forge and inventory
-  share). `tools/verify/oreskins.js` asserts the ids are distinct.
+- **Every forged tool wears its ore: 246 skins** (`97c42ac`; owner, 2026-10-05:
+  *"apply the skins to each tool"*, and on the sheets: *"1st is wooden, then its
+  in order, last one is admin drill, hand gernade and pickaxe"*). `MineIcons`
+  holds a table per family (`ORE_PICK` with the wooden `ORE_PICK_STARTER` first,
+  `ORE_DRILL`, `ORE_BOMB`) of 82 tiers each, and `MineIcons.forTool(tool)` picks
+  the table by family, falling back to the flat family icon so one family cannot
+  borrow another's art. The sheet order is the owner's and replaced an earlier
+  colour-matching guess (that script was deleted). The author counted 246
+  distinct images live. `tools/verify/oreskins.js` pins it.
 - **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line
   12).
 
 ## State right now
 
-The forged-tool system is shipped, but the breaking-power gate looks broken for
-held tools (see below). Nothing here has run in the engine.
+The forged-tool system is shipped and, per the commit messages, has been exercised
+in live Studio sessions (breaking power fixed in `b19c4c2`; skins wired and
+counted live in `97c42ac`). I have not run it. The coin tool roster is being
+wound down (below).
 
 ## Gotchas
 

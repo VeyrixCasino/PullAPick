@@ -2,7 +2,7 @@
 title: The client and the UI kit
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau
   - src/ReplicatedStorage/Mine/Shared/MineUI.luau
@@ -23,8 +23,11 @@ related: [server, code-map, luau-traps, rojo-and-studio, tools]
 
 ## `MineClient.client.luau`
 
-- `src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau` is **12,255
-  lines**. HANDOFF §2.2 says 11.9k.
+- `src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau` is **12,488
+  lines** (12,255 at `26036a0`). HANDOFF §2.2 says 11.9k.
+- **The trader shop panel lives on `ClientFns`** (`showTraderShop`, `d38b65e`), not in
+  new top-level locals: the script had 7 registers left and a panel does not need
+  four of them. It renders the server's offer and computes nothing.
 - It has 176 top-level `local` lines, and several of them declare more than one
   name. It sits at the 200-register ceiling.
   - Twice it stopped compiling entirely: "Out of local registers when trying to
@@ -106,8 +109,20 @@ the shop does not pass arrives as nil, and nothing errors.
 `refreshMineUiScale` sets the `MineUiScale` UIScale on the ScreenGui.
 
 - **Touch devices** step by the screen's short side: 0.78, 0.88, 0.95, then 1.
-- **Desktop** uses `clamp(short / 820, 0.85, 1.45)`, so big displays scale up.
-  The 1.45 cap exists because fixed-pixel columns start colliding past it.
+- **Desktop** uses `clamp(short / 1080, 0.80, 1.25)` (`39d94bf`). The old rule was
+  `short / 820` capped at 1.45, where `short` is the *shorter* side, i.e. the
+  height on a landscape monitor, so 1920×1080 scored ×1.32 and the UI was a third
+  too big everywhere (owner: *"all the scaling is super fucked up"*; a group wheel
+  came out taller than the screen). 1080 is the real baseline: the layout was
+  authored for a 1080-tall screen.
+- **Fit guard.** Whatever the ladder decides, the scale is clamped to
+  `(viewportHeight × 0.94) / 964` (`PANEL_H`, the tallest fixed panel), floored at
+  0.5, so the tallest panel always fits with a 6% margin. Height only: letting width
+  drive it would crush the UI on a portrait phone.
+- `tools/verify/ui-scale.js` parses the shipped rule out of the client and sweeps
+  twelve real displays against every fixed panel. **Known outstanding:** iPhone
+  landscape cannot fit the 964 px group wheel at a readable scale, so that panel
+  needs a max height or scrolling.
 - The two constants are declared **inside** the function on purpose. Hoisting
   them to the top level broke the client by pushing it over the 200-local limit.
 

@@ -2,7 +2,7 @@
 title: Shops and monetisation
 type: system
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopBuy.luau
@@ -25,7 +25,7 @@ sources:
   - docs/PROPOSAL.md §0 lines 23, 34
   - docs/BLOCKED.md §6
   - docs/TODO.md §0.14, §0.24, §0.28
-related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tools, forge-and-recycling, social-quests-and-leaderboards]
+related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tools, forge-and-recycling, social-quests-and-leaderboards, wandering-traders, season-and-launch, charms]
 ---
 
 # Shops and monetisation
@@ -44,14 +44,16 @@ related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tool
 | **Depth desks** | seam outposts (`Machine=depth_shop`) | coins | `MineDepthShop`, `MineDepthShopView` (Deeprock and Shadowzone themes) |
 | **Event Horizon tools** | `bigbang` shop | space coins | `MineHorizonTools` via `MineShopBuy.buyEvent` |
 | **Inventory → Shop** | menu | credits; stardust for the Stardust tab | `MineInventoryView` tabs home, box, limited, packs, dust, currencies, vip |
-| **Rotating offers** | Shop → Limited | credits or Robux | `MineRotatingOffers` (3 slots, season 2026-09-22 → 2026-11-01 ET) |
+| **Rotating offers** | Shop → Limited | credits or Robux | `MineRotatingOffers` (3 slots, season starts 2026-09-22; ends 2026-11-08 after `EXTEND_SEC`). The season clock now waits for the owner's launch: [season-and-launch](season-and-launch.md) |
+| **Wandering traders** | five random depth outposts, rotating every 15 min | temper tokens | `MineTrader`, `MineTraderNPC`, `Verbs.buyTraderCase`: [wandering-traders](wandering-traders.md) |
+| **Charm token shop** | none yet | temper tokens | `Verbs.buyCharm` exists; **no client panel calls it**: [charms](charms.md) |
 
 **Coin-shop tools.** `MineShopLadders` sells 10 tools per zone on the surface
 plus 3 per depth desk: "19 per zone · 190 shop tools total", per its header.
 `MineShopEconomy` prices them in "hauls". They are bought one rung at a time
 (`MineShopBuy.buySurface`). Backpacks cost coins, except the Robux top rung,
-the Founders Rig (`patron_rig`). At a seam desk, selling pays `DEPTH_SELL_FRAC`
-0.78.
+the Founders Rig (`patron_rig`). At a seam desk, selling pays `MineDepth.depthSellMult` (1.05 per 500 m
+compounding, since `4cc82a5`; the old `DEPTH_SELL_FRAC` 0.78 haircut is deleted).
 
 **The credits store.** It runs through `buyCart`. Payment is `p.credits`, at
 `MinePackConfig.creditPrice`, which takes 10% off for everyone. It sells:
@@ -123,7 +125,12 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
   box is typed (`4368c03`). The 4th pet seat was already gone before the branch
   (TODO §0.24).
 - **Battle pass is live.** It is not parked. AUDIT §5 lists it for archiving,
-  which is a proposal.
+  which is a proposal. Its end date (`MineScrolls.PASS_SEASON_END`, 2026-11-01) is a
+  week before the offers' (11-08); see [season-and-launch](season-and-launch.md).
+- **Two token sinks are new (2026-10-07):** the wandering traders (built end to end)
+  and the 36 graded charms (server verb only). Both spend `p.temperTokens`, the same
+  balance as skin cases. How that balance is earned is in
+  [skins-cases-and-temper](skins-cases-and-temper.md).
 
 ## Gotchas
 - **The VIP purchase toast lies.** It still says *"sell from anywhere, bigger bag,

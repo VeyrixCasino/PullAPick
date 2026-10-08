@@ -2,7 +2,7 @@
 title: Charms
 type: system
 status: partial
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineCharms.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
@@ -10,6 +10,8 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
   - tools/verify/charms.js
   - tools/gen-charm-icons.js
+  - tools/icons/charm-sheet.js
+  - src/ReplicatedStorage/Mine/Shared/MineTemper.luau
   - docs/TODO.md §0.13
   - docs/TODO.md §0.25
   - docs/TODO.md §6.1
@@ -18,7 +20,7 @@ sources:
   - docs/BLOCKED.md
   - roadmap/PRINCIPLES.md §1
   - roadmap/CHARMS.md
-related: [skins-cases-and-temper, boosts-and-stats, ores, chests-and-lucky-blocks, traits, retired-and-parked, assets-and-uploads, currencies-and-economy]
+related: [skins-cases-and-temper, boosts-and-stats, ores, chests-and-lucky-blocks, traits, retired-and-parked, assets-and-uploads, currencies-and-economy, wandering-traders]
 ---
 
 # Charms
@@ -35,12 +37,13 @@ related: [skins-cases-and-temper, boosts-and-stats, ores, chests-and-lucky-block
   charms). See [boosts-and-stats](boosts-and-stats.md).
 - **Owned as a tally.** `p.charms[id]` is a count; a legacy `true` counts as one
   (`MineCharms.ownsAnyCharm`).
-- **Two families in `MineCharms.LIST`:**
+- **Three families in `MineCharms.LIST`:**
   - **164 ore charms**, generated at module load from `MineConfig.ORES`: 82 ores ×
     `ORE_CHARM_VARIANTS` 2. Ids `<ore>_charm` (variant 1, the id old saves hold)
     and `<ore>_charm_2` (`MineCharms.oreCharmId`). Name `<Ore> <Word> Charm`.
   - **31 legacy charms**: 15 zone charms (`CHARM_ZONES` 5 zones × shallow/mid/deep
     by `bandForLayer`), 15 pack charms, and Pot of Gold (id `lucky_charm`, limited).
+  - **36 graded charms** (`source = "charm"`, 2026-10-07; see below).
 - **Ore-charm drop.** Each ore block rolls a case at `MineConfig.ORE_CASE_CHANCE`
   0.02 × `Dig.oreLuck(b)`. An opened case pays a charm with
   `ORE_CASE_CHARM_SHARE` 0.25, else a skin. That is 0.5% per ore block before luck.
@@ -84,12 +87,54 @@ related: [skins-cases-and-temper, boosts-and-stats, ores, chests-and-lucky-block
 | `src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau` | Inventory → Equipment charm rows, MERGE button | `onMergeCharm` |
 | `tools/verify/charms.js` | runs the real generator in luau | needs `syntax.sh` first |
 
+## The 36 graded charms (2026-10-07)
+
+Owner: *"make 36 charms. make them all unique, and each come in their own rarity.
+they can be found in chests (0.5%) or bought with tokens"*, then the art for all
+thirty-six (`charms2.svg`). Commits `b09cc4a`, `c1795ea`, `fd5c432`. They work
+unlike every other charm in the file:
+
+- **Graded, not zoned.** Each row has a `rarity` on `MineTemper`'s F…SSS ladder and
+  **no `zoneId` or `band`** (`ZONE_BAND` indexes on those, so a row with both would
+  also become a free zone grant). Magnitude follows the grade: primary about
+  `RARITY_MULT × 1.15`, secondary about `× 0.35`.
+- **The spread is 8/7/6/5/4/3/2/1 from F to SSS** (36 in all, one SSS: Galaxy Core;
+  two SS: Seraph Edge, Hourglass of Ages). `charms.js` asserts every grade appears,
+  the ladder never widens as it gets rarer, and there is exactly one SSS.
+- **Rarity follows the art.** The grandest pictures take the top grades; a leaf, an
+  acorn, a quill or a flask is F. The icon index is on each row (`icon = n`) so the
+  pairing survives a re-export, and every row carries its uploaded `art` asset id.
+  The first sheet's six charms were **replaced**; their assets were left in place
+  rather than deleted. `tools/icons/charm-sheet.js` tiles the extracted icons into
+  one contact sheet for review.
+- **Two ways in, neither a zone drop:**
+  1. **Chest, 0.5%.** `MineCharms.CHARM_CHEST_CHANCE 0.005`, rolled in
+     `openChestBlock` and **multiplied by `b.chestLuck`**. The half-percent decides
+     *whether*; `MineCharms.rollChestCharm` decides *which*, by `MineTemper`'s
+     rarity weights. The author measured 20,000 rolls: F 11,164, D 5,440, C 2,146,
+     B 928, A 289, S 25, SS 7, SSS 1. There is **no first-charm guarantee** on this
+     path (that belongs to the zone grant and the ore case).
+  2. **Tokens.** `Verbs.buyCharm` charges **temper tokens** from
+     `MineCharms.CHARM_TOKEN_PRICE`: F 15, D 30, C 60, B 120, A 250, S 500, SS 1000,
+     SSS 2500 (priced off `MineTemper.CASE_PRICE_TOKENS`). The server takes the price
+     from the module, not the payload; only `source == "charm"` rows are buyable; it
+     re-reads the balance inside the loop; a buy clamps to 1–10. A first purchase
+     auto-equips if nothing is worn.
+- **Traders sell them too:** the Charm Case in [wandering-traders](wandering-traders.md)
+  uses the same `rollChestCharm` ladder, so a charm is no commoner from a trader.
+- `RARITY_LABEL` (grade → word) is built by **inverting** `MineTemper.LEGACY_RARITY`,
+  so the reveal panel and the temper UI cannot disagree on a grade's name.
+- `backpack` is on none of them (retired). `luck` is allowed here on the author's
+  reading that the no-self-feeding rule bites ore-case charms only.
+
 ## Decided by the owner
 
 - **§0.13 (2026-10-02):** charms + skins are the build. Later charms may be
   better, "but never because the number is bigger": a charm has a shape.
 - **§0.13.5:** charms are a rare drop **from ores, not chests. "One charm per
   ore."** The code ships *two* per ore. That was an agent design (TODO §6.1), not an owner decision. See Open questions.
+  **The 2026-10-07 graded charms say the opposite about chests** (*"found in chests
+  (0.5%)"*). The newer words win, but §0.13.5 has not been edited. See Open questions.
 - **§0.25 (2026-10-04):** "rather than merging it should cost gems." So
   `MERGE_COST` (copies eaten) went from 3 to 1, and gems pay for each step.
 - **PROPOSAL §0 line 20:** merge price stays `1200 × 1.14^(t−1)`.
@@ -110,11 +155,17 @@ related: [skins-cases-and-temper, boosts-and-stats, ores, chests-and-lucky-block
   (AUDIT §4, OPEN §8). AUDIT's reason is that "a Diamond Surge Charm is a Coal Surge
   Charm with a bigger number". In numbers: there are only 86 signatures across 164 charms, so 78
   repeat an earlier signature at a different size (derived from `EXPECTED_SIGNATURES`; not stated in AUDIT).
-- **Charm icons: blocked on the owner.** `tools/icons/gen-charm-art.js` drew 164
-  PNGs into the gitignored `build/charm-icons/`. The owner rejected them; their reference is
-  jewellery (TODO §0.27, BLOCKED #11). This checkout has only `manifest.json`
-  there. `tools/gen-charm-icons.js` turns `ids.json` into a `MineCharmIcons`
-  module that does not exist yet. Nothing reads charm icons.
+- **Charm icons: the 36 graded charms are skinned; the 164 ore charms are not.**
+  `tools/icons/gen-charm-art.js` drew 164 PNGs into the gitignored
+  `build/charm-icons/`. The owner rejected them; their reference is jewellery
+  (TODO §0.27, BLOCKED #11). `tools/gen-charm-icons.js` turns `ids.json` into a
+  `MineCharmIcons` module that does not exist yet. The graded 36 sidestep that: each
+  row carries its own `art = "rbxassetid://…"` from the owner's `charms2.svg`.
+- **Graded charms: built and harnessed, never run in the engine.** The chest drop was
+  verified against the real module in a play session (the 20,000-roll figures above).
+- **No client buys a graded charm.** `Verbs.buyCharm` is dispatched, but I searched
+  `src/` and nothing sends `buyCharm`: there is no token shop panel yet. See
+  [open-questions](../open-questions.md) §1b.
 
 ## Gotchas
 
@@ -137,6 +188,13 @@ related: [skins-cases-and-temper, boosts-and-stats, ores, chests-and-lucky-block
 
 ## Open questions
 
+- **§0.13.5 says "not chests"; the owner's 2026-10-07 words say chests.** Should
+  §0.13.5 be rewritten to allow graded charms from chests?
+- **Chest Luck feeds the chest charm drop.** Five graded charms carry `chestLuck`
+  (Anchor Charm, Pearlmoon, Tidecaller, Sovereign Heart, and the SS Hourglass of Ages at
+  +575%), so wearing one raises the 0.5% charm chance. The
+  comment on `luck` says "a chest charm is not rolled off luck", which is not what
+  the code does. Allowed, or the self-feeding rule applied here too?
 - One charm per ore (§0.13.5) or two (code)? Ask the owner.
 - Rewrite to about 24 authored charms: is it approved, and who authors them?
 - Should charms join a boost layer, or stay outside both?

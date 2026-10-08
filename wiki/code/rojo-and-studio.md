@@ -2,7 +2,7 @@
 title: Rojo and Studio
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - default.project.json
   - rokit.toml
@@ -119,6 +119,19 @@ edits back into `src/`, and it is a one-off.
 
 ## Gotchas
 
+- **Never run a branch checkout in the tree `rojo serve` is serving without
+  re-checking what Studio holds afterwards** (`8d5c230`). `git checkout main`
+  there rewrote every file to PR #5's state, Studio synced it, and the plugin
+  dropped before the tree came forward. Two console errors the author spent time
+  on (`givePickaxe` and `snap` calling nil) were just calls into code Studio did
+  not have yet. This is the "Studio may be running older code" trap above.
+- **Some changes cannot live in the repo.** `Lighting` is place-only, so the
+  shadow removal (`8d68717`: *"remove shadows peroid"*, one property,
+  `Lighting.GlobalShadows = false`) was applied in Studio, not in `src/`. The
+  only `GlobalShadows` in `src/` is a scratch icon-capture script. *(Inferred
+  from that grep; not confirmed with the author.)* Dev scaffolding folders in
+  Workspace (pet and ore showcases, tool racks) are stripped at server start
+  rather than deleted, so the place file keeps them for authoring.
 - `docs/rojo-connect.md` says `rojo serve` "has never been attached". TODO §0.14
   shows that Rojo was being served later. Treat that line as stale.
 - The file counts in `docs/rojo-connect.md` (199 `.luau`) are stale. The current

@@ -49,7 +49,14 @@ Then tell me, in plain language and before doing any work:
 Do not start coding until I answer. After that, work on the branch
 claude/vigilant-fermi-aucqjy and nowhere else.
 
-Three standing rules the last agent worked under, which still apply:
+Four standing rules the last agent worked under, which still apply:
+  - Hound me with questions so nothing is EVER unclear. If you would
+    otherwise be guessing what I want or mean, ask, however small. Look
+    in the repo first, restate what you think I want in 1-3 lines, then
+    ask every question you need in one batch (grouped by topic, multiple
+    choice, your recommended default first, no cap) and wait for the
+    answers. Stop and ask the moment a new doubt appears. If you cannot
+    reach me, do only safe reversible steps and list your questions.
   - Verify a claim in the code before you act on it. The docs are good
     but they are not the code, and "the code already does X" has been
     wrong here more than once.
@@ -195,6 +202,11 @@ compare on `action`.
 
 Learned the hard way over about a week. None of this is optional.
 
+- **Ask first, always (2026-10-08).** *"from now on i want ALL agents to fucking
+  hound me with questions so noithing is EVER unclear"*. If you would otherwise be
+  guessing, ask, however small. The full rule is in `CLAUDE.md`; the reasoning is in
+  `wiki/owner.md`. Do not re-ask what `docs/TODO.md` §0 locked, but do ask whether
+  one applies.
 - **Windows PowerShell.** `&&` is not a statement separator in 5.1. `<angle
   brackets>` are a reserved operator and will throw a parser error. Never use
   either. One command per line, real quoted paths, never a placeholder.

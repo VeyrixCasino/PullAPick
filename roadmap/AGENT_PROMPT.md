@@ -384,6 +384,13 @@ These are properties of *different things*, not a middle setting.
 
 ## 11. How to work
 
+**Ask first, always (owner, 2026-10-08).** They want to be hounded with questions so
+nothing is EVER unclear. If you would otherwise be guessing what they want or
+mean, ask, however small: look in the repo first, restate your understanding in
+1-3 lines, then ask every question you need in one batch (grouped, multiple
+choice, your recommended default first, no cap) and wait. This sits on top of the
+list below, which is about *how* to work once nothing is unclear.
+
 1. **Verify against the code, not against this briefing.** Every number here is
    cited and re-derivable, but code moves. If they disagree, the code is right
    and this document needs a patch — say so.

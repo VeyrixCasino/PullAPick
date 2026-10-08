@@ -2,7 +2,7 @@
 title: Pets
 type: system
 status: partial
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - src/ReplicatedStorage/Mine/Shared/MinePetRoster.luau
   - src/ReplicatedStorage/Mine/Shared/MinePetBoosts.luau
@@ -93,6 +93,12 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
   and `SPRING_ZETA` 0.86. dt is clamped to 0.1, and the pet snaps when `dist > 22`. It replaced explicit
   Euler, which diverged at 30 fps and below (owner: pets *"kinda just fly around the screen
   like crazy"*). `tools/verify/pet-spring.js` sweeps both integrators across framerates.
+- **Bob rate** (`39d94bf`; owner: pets were *"bobing up and down super fucking
+  fast"*). The bob was aliasing, not just fast: 1.9 to 4.1 Hz, and the larger dt
+  clamp let one frame advance the phase past half a cycle. It is now 0.55 Hz at
+  rest to 1.65 Hz walking, and no frame may advance the cosmetic wave more than
+  a quarter cycle. Position still tracks real time. Measured live: 0.50 bobs per
+  second at rest.
 - **Pets wear no hats.** `ClientFns.petHatPiece` is a stub that returns nil, and `p.petHats` is gone.
 
 ## Decided by the owner

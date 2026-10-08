@@ -125,10 +125,13 @@ See [zones-layers-and-seams](zones-layers-and-seams.md).
 - **A stale comment.** MineServer still says *"World Pulse loop: idle 15m →
   random event 1–5m → repeat"* above `startLoop`, but the loop does nothing.
 - **Three different clocks.** The limited window, the rotating-offer season and
-  the group wheel are separate. Offers end 2026-11-01
-  (`MineRotatingOffers.SEASON_END`), but `LIMITED_DAYS` runs to 11-08. The
-  comment on `LIMITED_DAYS` says offers were "extended by a week", but
-  `SEASON_END` still reads 11-01.
+  the group wheel are separate. Offers now end 2026-11-08
+  (`MineRotatingOffers.SEASON_END` = 11-01 + `EXTEND_SEC`, one week), and
+  `LIMITED_DAYS` also runs to 11-08, but the battle pass
+  (`MineScrolls.PASS_SEASON_END`) still ends 11-01. A fourth rule now sits on top:
+  the season clock does not start until the owner launches it, see
+  [season-and-launch](season-and-launch.md). The limited window still runs on
+  real time (`os.time()` in `limitedActive`).
 - **A rebirth mismatch.** Event Horizon's `minRebirth` is 0 while its surface
   rock is 1.30e9 HP (OPEN P2, `docs/live-config.md`).
 - **A possible stray module.** OPEN P2 asks to delete a duplicate Event Horizon

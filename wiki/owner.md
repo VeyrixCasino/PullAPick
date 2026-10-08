@@ -2,7 +2,7 @@
 title: The owner — goals, decisions, and how to work with them
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ bae3c5b
 sources:
   - docs/TODO.md §0, §9
   - docs/START-HERE.md §1, §6
@@ -62,18 +62,38 @@ From `docs/START-HERE.md` §1 and §6, and TODO §0.31–§0.32:
 
 ## Asking them questions
 
-They asked on 2026-10-05 that Claude **always ask when a request is broad or
-unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
+**Standing instruction, 2026-10-08:** *"from now on i want ALL agents to fucking
+hound me with questions so noithing is EVER unclear"*. This replaced the softer
+2026-10-05 rule ("ask when a request is broad or unclear"). The rules are in
+`CLAUDE.md` under "Ask first, always", and recorded as TODO §0.35.
 
-- Ask **few, concrete questions with options and a recommended default**.
-  Their own BLOCKED and PROPOSAL formats work well: numbered lines, a default
-  on each, paste back to approve.
+- **If you would otherwise be guessing what they want or mean, ask. However
+  small.** A wrong guess has cost days; a question costs seconds.
+- Look in the repo first and never ask what it can answer. Put what you found in
+  the question.
+- Before non-trivial work, **restate** what you think they want in 1–3 lines, with
+  your assumptions. Then ask every question you need in **one batch**, grouped by
+  topic, each multiple choice with your recommended default first. **No cap.** Wait
+  for the answers, and ask again if they open new doubts.
+- Their own BLOCKED and PROPOSAL formats work well: numbered lines, a default on
+  each, paste back to approve.
 - Use plain language, because they are not always reading code. Explain a
   trade-off in player terms: what the player feels.
-- **Never re-ask a locked rule.** TODO §0 is titled "do not relitigate, do not
-  ask again".
-- When they say "just do it", proceed on your defaults and list your
-  assumptions afterwards.
+- **Do not re-ask a locked rule** (TODO §0 says "do not relitigate"). Do ask
+  whether one *applies* when that is unclear.
+- When they say "just do it" **for that task**, proceed on your defaults and list
+  your assumptions afterwards.
+- **If nobody can answer** (scheduled run, background agent, subagent): take only
+  safe, reversible steps and write the questions down. A subagent puts its
+  questions at the top of its report so the parent can ask.
+- At the end of any piece of work: say what you assumed, and ask what is still
+  unclear.
+
+**Confirmed by the owner, 2026-10-08**, when asked four design points (each answer
+was the recommended default, so nothing changed): (1) **no cap** on questions, batched
+by topic; (2) locked rules are **not re-asked, but agents ask whether one applies**;
+(3) when nobody can answer, **safe reversible steps only, and queue the questions**;
+(4) **restate before any non-trivial work**.
 
 ## Locked decisions: one line each
 
@@ -92,6 +112,34 @@ reopen it.
 - **0.10** The wooden pick is only a tutorial pick. The tutorial hands over the
   stone pick.
 - **2026-10-05, after TODO §0 was written** (commit `9733a05`): **no tool is bought with coins**; every tool is forged from ore. Backpacks, the pouch and chest Secrets stay. Every forged ore tier gets its own pickaxe skin. Source: the comments on `MineConfig.FORGE_ONLY_FAMILIES`.
+- **2026-10-08, said in chat:** *"from now on i want ALL agents to fucking hound me with questions so noithing is EVER unclear"*. Ask first, always (TODO §0.35). See "Asking them questions" above.
+- **2026-10-05 to 06, recorded in commit messages on PR #6** (so after TODO §0 was written; the
+  quoted words are the owner's, as the commits quote them):
+  - *"make seams sell for more not less"*: depth desks pay `1.05 ^ (seam/500)` times the surface (`4cc82a5`).
+  - *"delete all tools in the game besides for chest tools … and ore tools"*: the wooden starter stays (`312721b`).
+  - *"remove shadows peroid"*: `Lighting.GlobalShadows` off, applied in Studio (`8d68717`).
+  - *"first few layers should be pridominantly stone"*, and the mine must be random each load (`8d68717`).
+  - *"only use the ores i just gave u, and use the cases for the rare drops"*: new rendered ore icons (`0da6360`).
+- **2026-10-07, recorded in commit messages and TODO §6.1 on the working branch** (after
+  PR #6; the quoted words are the owner's):
+  - *"Stone should be a little more common (1 per 3k at top 4 layers of z1)"* and *"first few
+    layers should be pridominantly stone"*: the top-layer ore spread narrows
+    (`41d8f3a`, [ores](systems/ores.md)).
+  - *"make 36 charms. make them all unique, and each come in their own rarity. they can be
+    found in chests (0.5%) or bought with tokens"*: the 36 graded charms
+    (`b09cc4a`, `c1795ea`, `fd5c432`, [charms](systems/charms.md)). **This conflicts with
+    §0.13.5 ("not chests")**; I treat the newer words as winning and have asked.
+  - *"make a rotating shop with tokens with a wandering trader that spawns at random depth
+    outposts in random zones … (5 different cases (random tool), custom hats case, random
+    charm case)"* and *"5 different traders at once"*; static part-built NPCs were the
+    owner's choice ([wandering-traders](systems/wandering-traders.md)).
+  - *"i want the timer to not actually start until i say launch, and rather just keep ticking
+    down"* ([season-and-launch](systems/season-and-launch.md)).
+  - **Open P0 asks, not built** (TODO §6.1): Event Horizon tools "EXTREMELY strong";
+    *"i want all blocks and ores to be 10000x what they are right now (SAME WITH THE COST OF
+    TOOLS …)"* (see the collisions TODO lists: `MineBigNum`, `veinSizeMean` reading
+    `craftBlocks`, gem value from work-per-unit, DataStore round-trip).
+  - *"rescale to a comfortable scale, and recheck every ui in the game on every single display"* (`39d94bf`).
 - **0.12** **Fossils do not exist.** The modules are deleted. The `fossilFind`
   key and the 60 fossil bags stay, because removing them would break saves.
 - **0.13** Charms and skins are the build: shape, not magnitude.

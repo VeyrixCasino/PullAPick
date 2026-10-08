@@ -2,7 +2,7 @@
 title: Zones, layers and seams
 type: system
 status: current
-verified: 2026-10-07 @ 41d8f3a
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineDepth.luau
@@ -110,7 +110,7 @@ depth points"*).
 - **When it opens.** `MineDepthPlazas.tryOpenSeam` runs when you dig within the air gap (`MineDepthPlazas.onDepthCredit`).
 - **The elevator.** The mineshaft elevator (`MineDepthPlazas.ride`) needs `deepest ≥ seam`.
 - **Desk keys.** `MineDepth.bandUnlockKey` names the desk: `deeprock` 500, `thousand` 1000, `shadowzone` 1500, `twothou` 2000, `outpost_<n>` from 2500. `MineDepthShop.DESK_SEAM` maps them back.
-- **Depth desks.** A depth desk sells the haul × `MineDepth.depthSellMult` (`MineDepthShop.sellPayout`) and stocks the depth tool catalogue (`MineDepthShop.catalog`). It is gated by `MineDigAuth.clampDesk` and `MineDigAuth.canAccessSeam`, which use your earned depth, never your Y position.
+- **Depth desks.** A depth desk sells the haul × `MineDepth.depthSellMult` (1.05 per 500 m, compounding) (`MineDepthShop.sellPayout`) and stocks the depth tool catalogue (`MineDepthShop.catalog`). It is gated by `MineDigAuth.clampDesk` and `MineDigAuth.canAccessSeam`, which use your earned depth, never your Y position.
 
 **World and portals.**
 - **The world is rebuilt at boot.** `WorldBuilder.build()` runs when the server starts. It destroys and rebuilds `workspace.MineWorld`: lobby, `Camp`, biome plates, surface outposts, `Pits`, portals. It also clears Terrain.
@@ -142,7 +142,7 @@ depth points"*).
 - Ten outposts per zone are wired, and the station bay content is undecided.
 
 ## Gotchas
-- **Huge depth-desk payouts (found by reading the code).** `MineDepth.equivZoneIndex` treats seam 500 as "zone + 4" and seam 1500 as "zone + 6". So `depthSellMult` pays **×487.5** (5⁴ × 0.78) at the seam-500 desk and **×12,187.5** at the seam-1500 desk. Every other seam pays ×0.78, which is *worse* than the surface's ×1. The `MineServer` comment saying "depth desks stay strictly better" is only true for 500 and 1500. The equivalence dates from the old geometric HP curve. See [currencies](currencies-and-economy.md).
+- **Depth-desk payouts: fixed in `4cc82a5`.** They used to be ×487.5 at seam 500, ×12,187.5 at seam 1500 and ×0.78 everywhere else, because `MineDepth.equivZoneIndex` special-cased two seams. `depthSellMult` is now `DEPTH_SELL_PER_SEAM ^ (seam / 500)` with a rate of 1.05, continuous in `seam`, so a desk added at an unlisted depth lands on the curve. See [currencies](currencies-and-economy.md).
 - **Seams below 5000 are only reachable in Dirt Meadow** (seams 6000–10000 sit under the 5000 floor elsewhere). The meadow pit generates without a floor. `MineBreaking.MAX_LAYER 5000` calls 5000 "the live floor", and in meadow that is not true.
 - **The world is code-built, not place-only.** `AGENTS.md` and START-HERE §3 say Workspace lives only in the place file. But `WorldBuilder.build()` rebuilds `MineWorld` at boot, so the lobby, outposts and portals come from code. `docs/OPEN.md` §6 describes plaza folders found in the place file; at runtime `MineDepthPlazas` builds its own.
 - **Stale descriptions.**

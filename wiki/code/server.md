@@ -2,7 +2,7 @@
 title: The server — MineServer.server.luau
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/START-HERE.md §4, §5
@@ -19,11 +19,15 @@ related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-a
 
 ## Size and shape
 
-- `src/ServerScriptService/Mine/MineServer.server.luau` is **17,050 lines** at
-  `26036a0`. Older docs give 16.7k (HANDOFF §2.2) or about 14,800 (TODO §1,
+- `src/ServerScriptService/Mine/MineServer.server.luau` is **17,714 lines** at
+  `bae3c5b` (17,050 at `26036a0`). Older docs give 16.7k (HANDOFF §2.2) or about 14,800 (TODO §1,
   `tools/agent/house-rules.txt`). Read only the part you need. Never rewrite it.
-- It has **197 top-level `local` lines**, against Luau's limit of 200 local
-  registers per function. See [luau-traps](luau-traps.md).
+- Luau gives it 200 local registers per function, and it was **out of them**: zero
+  left until `5d59714` folded seven services (`Players`, `RunService`,
+  `TeleportService`, `CollectionService`, `DataStoreService`,
+  `MarketplaceService`, `ReplicatedStorage`) into one `Svc` table, buying **5**
+  back (57 references rewritten). `tools/verify/compile.js` now measures the
+  headroom and fails below 4. See [luau-traps](luau-traps.md).
 - The order of the file, top to bottom:
   1. requires
   2. the `Dig` and `Const` tables
@@ -44,7 +48,7 @@ A new module or helper does **not** get a new top-level `local`. It goes on a
 table that already exists:
 
 - `local Dig = { Traits, Layers, Depth, Auth, Shop, Plazas, Breaking }` holds
-  requires. The comment there says the script "sits at 197 of Luau's 200".
+  requires. The comment there said the script "sits at 197 of Luau's 200" (stale; see above).
 - 26 more `Dig.x` fields are added further down: `Dig.bankOrePacks`, `Dig.addOre`,
   `Dig.pouch`, `Dig.QUAKE`, `Dig.echoAt`, `Dig.procsAt`, `Dig.boostSources`, and others.
 - `local Const = { THROW_SPEED, … }` packs scalars into one register.
@@ -63,7 +67,8 @@ declaration-order trap (HANDOFF §2.3).
 - Every client request arrives as `net:FireServer(action, payload)` and is handled
   by **one** `net.OnServerEvent:Connect(function(plr, action, payload)`. That
   handler is one long `if action == "…" elseif …` **string compare**. At
-  `26036a0` it has **142 distinct action strings**. There is no Remotes type system
+  `26036a0` it had **142 distinct action strings**; `bae3c5b` added `buyCharm`,
+  `buyTraderCase` and `launchSeason`, and the router has 145 `action ==` branches. There is no Remotes type system
   (START-HERE §5).
 - Handler order:
   1. `swing` takes a fast path: no lock, `pcall(swingBlock, …)`.
@@ -106,6 +111,9 @@ event names. The client handles them in a single `net.OnClientEvent` ladder.
 |---|---|---|---|
 | `seamGate` | the seam panel | `buySeam` | `Verbs.buySeam` |
 | `openElevator` | `elevCtl.open` | `rideElevator` | `Dig.Plazas.ride` |
+| `traderShop` (fired by the trader's `ProximityPrompt`) | `ClientFns.showTraderShop` | `buyTraderCase` | `Verbs.buyTraderCase` |
+| (none: **no client sends it**) | none | `buyCharm` | `Verbs.buyCharm` |
+| (none: **no client sends it**) | none | `launchSeason` | `Verbs.launchSeason` (admin-gated) |
 
 So a grep for one name finds only half the chain. HANDOFF §2.8 and OPEN P0 #1
 record that the seam purchase was wrongly declared "unwired" this way. **Grep the

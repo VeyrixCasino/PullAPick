@@ -2,7 +2,7 @@
 title: Skins, cases and temper
 type: system
 status: partial
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ bae3c5b
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTemper.luau
   - src/ReplicatedStorage/Mine/Shared/MineForgeView.luau
@@ -16,7 +16,7 @@ sources:
   - docs/TODO.md §6.1
   - docs/OPEN.md P1 #9
   - docs/ROADMAP.md
-related: [tools, ores, charms, boosts-and-stats, traits, chests-and-lucky-blocks, forge-and-recycling]
+related: [tools, ores, charms, boosts-and-stats, traits, chests-and-lucky-blocks, forge-and-recycling, wandering-traders]
 ---
 
 # Skins, cases and temper
@@ -86,6 +86,15 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
    A 177, S 555, SS 1,515, SSS 6,312. That is aimed at about 65% return on a
    case. Temper tokens also come from rebirth (`MineSkillData.rebirthTokens`)
    and from selling forever tools.
+
+**Where temper tokens are spent (2026-10-07 additions).** Temper tokens are the
+currency of three more things now, all on the same `p.temperTokens` balance:
+the **graded charms** (`Verbs.buyCharm`, 15 tokens at F up to 2,500 at SSS, priced off
+`CASE_PRICE_TOKENS` as the unit), the **wandering traders' cases** (25 to 750 base,
+scaled by depth and zone) and the Temperament Case itself. See [charms](charms.md)
+and [wandering-traders](wandering-traders.md). The trader's hat case also draws its
+grade from `MineTemper.RARITY_WEIGHTS`, and `MineCharms.RARITY_LABEL` is built by
+inverting `MineTemper.LEGACY_RARITY`, so this ladder is now the shared rarity scale.
 
 **Grade reveal and iridescence.**
 - `MineGradeReveal` plays the step-by-step F→SSS animation that the server

@@ -2,7 +2,7 @@
 title: Mine For Cards — the game in one page
 type: meta
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-08 @ bae3c5b
 sources:
   - docs/START-HERE.md §2, §5
   - docs/HANDOFF.md §2.1, §2.5
@@ -96,12 +96,24 @@ multiply ([boosts-and-stats](systems/boosts-and-stats.md)).
 - [social, quests and leaderboards](systems/social-quests-and-leaderboards.md)
 - [shops and Robux](systems/shops-and-monetisation.md)
 
-## State of things (2026-10-05)
+## State of things (2026-10-08)
 
-- The newest work is on `claude/vigilant-fermi-aucqjy`, open as draft PR #6,
-  roughly 100 commits ahead of `main`. **Almost none of it has been run in
-  Roblox.** One change was confirmed in-engine
-  (`docs/START-HERE.md` §5; TODO §0.32).
+- PR #6 (the balance pass, forged-tool skins, economy fixes, performance) was
+  **merged into `main` on 2026-10-06**. The recent commit messages report live
+  Studio verification for many changes, so "has it run in Roblox?" is **unknown
+  per feature**, not "almost none" as `docs/START-HERE.md` §5 says. Ask the owner
+  or check the commit message.
+- **The owner's working branch is ahead of `main`** (this wiki follows it). Since PR #6
+  it has added chunked mine generation and rebuilt veins ([ores](systems/ores.md),
+  [zones-layers-and-seams](systems/zones-layers-and-seams.md)), 36 graded charms from
+  chests and tokens ([charms](systems/charms.md)), five wandering token traders
+  ([wandering-traders](systems/wandering-traders.md)) and a season clock that waits
+  for the owner's launch ([season-and-launch](systems/season-and-launch.md)). **Two of
+  those cannot be used yet:** nothing in `src/` calls `buyCharm` or `launchSeason`
+  ([open-questions](open-questions.md) §1b).
+- The owner's open P0 asks (TODO §6.1, 2026-10-07): Event Horizon tools "EXTREMELY
+  strong", every block, ore and tool cost ×10,000, and the launch timer. None is built
+  except the last (the clock; the button is missing).
 - The audit found about **1 line in 6 unreachable**. Some features are
   archived or cut ([retired-and-parked](systems/retired-and-parked.md)).
 - What is still undecided lives in [open-questions](open-questions.md) and
