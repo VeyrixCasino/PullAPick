@@ -93,18 +93,31 @@ MineOrePouch.RUNG_COST_SHARE = 0.75
 	older than the sign-off.
 
 	1e6 did not merely run hot, it ended the gem economy at the top of the
-	roster: an Oganesson was worth 3,000,000 gems, and ONE BLOCK of it bought
-	the 2,500,000-gem Gem Vault outright. That is the real reason every flat
+	roster: an Oganesson was worth 5,099,169 gems, so ONE BLOCK of it bought
+	the 2,500,000-gem Gem Vault TWICE OVER. That is the real reason every flat
 	gem price in the game "gets outrun" -- not that the prices are low, but
 	that the faucet above them is unbounded.
 
-	                tier 1   tier 41   tier 82
-	    1e6 (was)        3    ~3,000   3,000,000
-	    1e4 (now)        3      ~300      30,000
+	                 tier 1   tier 41     tier 82
+	    1e6 (was)         5     2,697   5,099,169
+	    1e4 (now)         4       279      42,727
 
-	At 1e4 the sinks read sanely, which is the test: a 500-gem trait roll is
-	170 Stone or 2% of an Oganesson, a T6 rune fuse is about one Oganesson, a
-	t24 charm merge about one.
+	These are MEASURED off the live modules, not the round numbers the
+	proposal estimated (3 / ~300 / 30,000). The proposal's figures were close
+	enough to make the decision with and are wrong enough to mislead anyone
+	pricing a sink against them, so the measured ones are what is written here.
+
+	At 1e4 the derived sinks read sanely, which is the test: the Gem Vault is
+	58 Oganesson, all ten zone portals are 50, a T6 rune fuse is 0.6, and the
+	t82 charm merge is 1,142 -- an endgame number that is meant to look like
+	one.
+
+	WHAT THIS DID NOT FIX, and it is the open half: the change moved the
+	FAUCET down 119x and left the FLOOR PRICES alone. Every flat gem price --
+	trait roll 500, pack crate 200, backpack rung 1 at 100, rune re-socket 10,
+	rune banner 25 -- was pocket change at 1e6 and is still pocket change at
+	1e4. The sinks that track the curve (ore pouch, charm merge) corrected
+	themselves; the authored ones cannot and need their own pass.
 
 	The exponent below is SOLVED from this number rather than tuned beside it,
 	so the curve keeps its shape -- only its magnitude moves.
