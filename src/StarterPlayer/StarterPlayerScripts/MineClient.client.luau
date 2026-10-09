@@ -9139,6 +9139,13 @@ local function refreshEnchanter()
 			onBuyPouch = function(tier)
 				net:FireServer("buyPouch", { tier = tier })
 			end,
+			-- A Set Crate is aimed at one of the seven rune sets. The view
+			-- will not call this without a set picked, and the server refuses
+			-- without one too, so neither side can spend 60,000 gems on a
+			-- crate with no target.
+			onBuyCrate = function(tier, setId)
+				net:FireServer("buyCrate", { tier = tier, setId = tostring(setId or "") })
+			end,
 		})
 		if socketsCtl.root then
 			socketsCtl.root.Position = UDim2.fromOffset(12, 96)

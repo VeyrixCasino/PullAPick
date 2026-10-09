@@ -59,8 +59,8 @@ const KNOWN = {
   profileView: "reached server-side from SocialService.publicProfile",
 
   // KNOWN GAPS, each with the reason it is not simply wired.
-  buyCrate: "GAP: needs a set picker -- buyCrate refuses without a setId, and "
-    + "guessing a set would spend up to 60,000 gems on the wrong one",
+  // (buyCrate was here until the set picker landed; the stale-entry check
+  // below is what caught that its excuse had expired.)
   friendRemove: "GAP: social is half-wired -- create and leave exist, invite/remove/msg do not",
   socialInviteGroup: "GAP: social is half-wired",
   socialGroupMsg: "GAP: social is half-wired",

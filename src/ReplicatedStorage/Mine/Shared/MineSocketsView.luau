@@ -101,6 +101,9 @@ function MineSocketsView.mount(parent, opts)
 	local state = {}
 	local pickedItem = nil      -- { kind = "gear"|"tool", id = , family = }
 	local pickedRune = nil      -- rune id
+	-- Which rune set a Set Crate is aimed at. nil until the player picks one:
+	-- buyCrate refuses without it, and a crate runs to 60,000 gems.
+	local pickedSet = nil
 	local filterKind = "all"    -- all | tool | pet | gear
 	local hintFlash = nil
 	local render
@@ -678,10 +681,12 @@ function MineSocketsView.mount(parent, opts)
 			player is standing when they discover they have no runes, and it
 			is the screen that told them to go and buy one.
 
-			CRATES ARE NOT HERE. Verbs.buyCrate needs a target set
-			(`setId`) and refuses without one, so it needs a set picker --
-			more UI than a row of buttons, and a different job. The three
-			pouches need only a tier.
+			SET CRATES SIT UNDER THEM, behind a set picker. Verbs.buyCrate
+			refuses without a `setId` -- it aims the roll at one of the seven
+			rune sets -- so the chips come first and the three crate buttons
+			stay inert until one is chosen. Nothing is defaulted: a crate is
+			up to 60,000 gems and guessing a set on the player's behalf would
+			spend it on the wrong one.
 		]]
 		if opts.onBuyPouch and type(Runes.POUCHES) == "table" then
 			local shelfY = 110
@@ -707,6 +712,60 @@ function MineSocketsView.mount(parent, opts)
 				b.MouseButton1Click:Connect(function()
 					opts.onBuyPouch(row.tier)
 				end)
+			end
+
+			if opts.onBuyCrate and type(Runes.CRATES) == "table" and type(Runes.SETS) == "table" then
+				local setY = shelfY + 92
+				label(tray, "SET CRATES  \u{00B7}  pick a set first", 12, MUTED,
+					UDim2.fromOffset(0, setY), UDim2.fromOffset(360, 16), FONT)
+				-- Seven chips, two rows of four, so the picker does not run
+				-- wider than the case shelf above it.
+				for i, s in ipairs(Runes.SETS) do
+					local col = (i - 1) % 4
+					local rowN = math.floor((i - 1) / 4)
+					local on = (pickedSet == s.id)
+					local chip = mk("TextButton", {
+						BackgroundColor3 = on and GOLD or CARD,
+						AutoButtonColor = true,
+						Text = "",
+						Position = UDim2.fromOffset(col * 94, setY + 20 + rowN * 28),
+						Size = UDim2.fromOffset(88, 24),
+					}, tray)
+					round(chip, 6)
+					label(chip, tostring(s.name), 11, on and BG or TEXT,
+						UDim2.fromOffset(4, 0), UDim2.new(1, -8, 1, 0), FONT,
+						Enum.TextXAlignment.Center).ZIndex = 35
+					chip.MouseButton1Click:Connect(function()
+						pickedSet = (pickedSet == s.id) and nil or s.id
+						render()
+					end)
+				end
+
+				for i, row in ipairs(Runes.CRATES) do
+					local gems = tonumber(row.gems) or 0
+					-- Inert without a set: the server would refuse, and a
+					-- button that fires a guaranteed refusal is worse than
+					-- one that visibly waits.
+					local ready = (pickedSet ~= nil) and ((tonumber(state.gems) or 0) >= gems)
+					local b = mk("TextButton", {
+						BackgroundColor3 = ready and CARD_HI or CARD,
+						AutoButtonColor = ready,
+						Text = "",
+						Position = UDim2.fromOffset((i - 1) * 124, setY + 80),
+						Size = UDim2.fromOffset(116, 56),
+					}, tray)
+					round(b, 7)
+					label(b, tostring(row.name), 12, ready and TEXT or MUTED,
+						UDim2.fromOffset(8, 5), UDim2.new(1, -16, 0, 16), FONT).ZIndex = 35
+					label(b, pickedSet and string.format("%d gems", gems) or "pick a set",
+						12, ready and GOLD or MUTED,
+						UDim2.fromOffset(8, 32), UDim2.new(1, -16, 0, 14), FONT).ZIndex = 35
+					b.MouseButton1Click:Connect(function()
+						if pickedSet then
+							opts.onBuyCrate(row.tier, pickedSet)
+						end
+					end)
+				end
 			end
 		end
 	end
