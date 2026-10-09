@@ -2884,6 +2884,45 @@ function MineInventoryView.mount(parent, opts)
 					})
 				end
 			end
+
+			--[[
+				CHARMS YOU CAN BUY, WHICH NOTHING COULD.
+
+				Verbs.buyCharm is complete and dispatched and had no caller:
+				the client fires buyCharmsPack (gems) and buyLuckyCharm
+				(Robux), but the single-charm TOKEN buy -- 36 charms, F 15
+				through SSS 2,500 -- was unreachable. Temper tokens have few
+				sinks as it is (cases, rolls, skill buy-back, gear banner),
+				so a whole priced shelf being invisible mattered.
+
+				Listed AFTER everything owned, so the panel still opens on
+				what you have rather than on a catalogue. Only `source ==
+				"charm"` rows appear, which is the same gate the server
+				applies -- a chest-only or legacy charm is not for sale and
+				must not look like it is.
+
+				The price comes from Charms.charmTokenPrice, the function the
+				verb charges through, so the row cannot advertise a number the
+				server will refuse.
+			]]
+			for _, def in ipairs(Charms.LIST or {}) do
+				local owned = (state.charms or {})[def.id]
+				local price = (def.source == "charm") and Charms.charmTokenPrice
+					and Charms.charmTokenPrice(def) or nil
+				if not owned and price and price > 0 then
+					table.insert(out, {
+						key = "charmbuy|" .. def.id,
+						name = def.name,
+						sub = string.format("%s  \u{00B7}  %d token%s",
+							tostring(Charms.RARITY_LABEL and Charms.RARITY_LABEL[def.rarity] or def.rarity or "?"),
+							price, price == 1 and "" or "s"),
+						def = def, slot = "charm", source = "charmbuy", id = def.id,
+						buyTokens = price,
+						canBuy = (tonumber(state.temperTokens) or 0) >= price,
+						why = "Buy with temper tokens",
+					})
+				end
+			end
 		else
 			do
 			--[[
@@ -3456,6 +3495,12 @@ function MineInventoryView.mount(parent, opts)
 			table.insert(rows, { "Sockets", tostring(g.slotCount or 0) })
 		elseif item.source == "charm" then
 			rows = { { "Type", "Charm" }, { "Effect", tostring(item.def.blurb or item.def.source or "-") } }
+		elseif item.source == "charmbuy" then
+			rows = {
+				{ "Type", "Charm -- not owned" },
+				{ "Price", string.format("%d tokens", tonumber(item.buyTokens) or 0) },
+				{ "Effect", tostring(item.def.blurb or "-") },
+			}
 		else
 			rows = toolStats(item.def)
 		end
@@ -3603,6 +3648,13 @@ function MineInventoryView.mount(parent, opts)
 				elseif opts.onEquipCharm then
 					opts.onEquipCharm(item.id)
 				end
+			elseif item.source == "charmbuy" then
+				-- Buying, not equipping: the row is a charm the player does
+				-- not own yet. The server re-derives the price from the def,
+				-- so the count is all that travels.
+				if item.canBuy and opts.onBuyCharm then
+					opts.onBuyCharm(item.id, 1)
+				end
 			elseif item.source == "pet" then
 				if item.equipped then
 					if opts.onUnequip then opts.onUnequip(item.id) end
@@ -3656,10 +3708,19 @@ function MineInventoryView.mount(parent, opts)
 			-- Gear and charms come off; a tool only ever gets swapped for
 			-- another, because a player with nothing in hand cannot mine.
 			local canTakeOff = item.source == "gear" or item.source == "charm" or item.source == "pet"
-			local inert = item.equipped and not canTakeOff
+			-- A charm you do not own has nothing to equip or take off: the
+			-- button buys it, and goes inert when you cannot afford it rather
+			-- than firing a verb that will only refuse.
+			local buying = item.source == "charmbuy"
+			local inert = (item.equipped and not canTakeOff) or (buying and not item.canBuy)
 			local eqB = mk("TextButton", {
 				AutoButtonColor = not inert, BackgroundColor3 = item.equipped and BG3 or GREEN,
-				Text = inert and "EQUIPPED" or (item.equipped and "UNEQUIP" or (item.source == "vipSeat" and "GET VIP" or "EQUIP")),
+				Text = buying
+						and (item.canBuy
+							and string.format("BUY  %d", tonumber(item.buyTokens) or 0)
+							or string.format("NEED %d TOKENS", tonumber(item.buyTokens) or 0))
+					or inert and "EQUIPPED"
+					or (item.equipped and "UNEQUIP" or (item.source == "vipSeat" and "GET VIP" or "EQUIP")),
 				Font = FONT, TextSize = 16,
 				TextColor3 = inert and GREEN or (item.equipped and TEXT or Color3.fromRGB(16, 38, 20)),
 				Position = UDim2.fromOffset(0, 66), Size = UDim2.new(0.48, -6, 0, 46),

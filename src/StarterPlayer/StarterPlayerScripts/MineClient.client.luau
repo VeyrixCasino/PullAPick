@@ -3317,6 +3317,18 @@ invCtl = InventoryView.mount(gui, {
 	onEquipCharm = function(id) net:FireServer("equipCharm", id) end,
 	onUnequipCharm = function() net:FireServer("equipCharm", "") end,
 	onBuyCharmsPack = function() net:FireServer("buyCharmsPack") end,
+	--[[
+		Buy ONE named charm with temper tokens. Verbs.buyCharm has been
+		complete and dispatched with no caller -- 36 purchasable charms, F 15
+		through SSS 2,500, a whole priced shelf that nothing could reach. The
+		gem pack and the Robux charm were the only wired paths.
+
+		Only the id and the count travel: the server looks the price up from
+		the def itself, so a client cannot name its own.
+	]]
+	onBuyCharm = function(charmId, count)
+		net:FireServer("buyCharm", { charmId = tostring(charmId or ""), count = count or 1 })
+	end,
 	onEquipVfx = function(kind, id) net:FireServer("equipVfx", { kind = kind, id = id }) end,
 	onBuyVfx = function(id) net:FireServer("buyVfx", id) end,
 	onBuyLuckyCharm = function() net:FireServer("buyLuckyCharm") end,
