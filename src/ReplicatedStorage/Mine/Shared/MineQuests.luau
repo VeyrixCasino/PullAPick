@@ -36,6 +36,16 @@ MineQuests.CHAIN = {
 	{ id = "chestsL3",   stat = "chestsL3", goal = 3,       text = "Open 3 chests below 100m (Layer 3+)", tip = "Deeper layers hide better chests.", reward = { gems = 150, tool = "meadow_surface_4_pick", toolName = "Coppervine" } },
 	{ id = "cards10",    stat = "cards",    goal = 10,      text = "Collect 10 more cards",        tip = "Equip pets in slots. More slots unlock as you grow.", reward = { pack = "slate_pack" } },
 	{ id = "sell5",      stat = "sells",    goal = 5,       text = "Sell 5 hauls",                 tip = "Coins buy tools. Gems buy zones, runes, and gear.", reward = { gems = 45 } },
+	--[[
+		THE FORGE, FINALLY ON THE LADDER.
+
+		This rung is placed here because it is the first point a player HAS
+		what it needs: they have mined (mine250), sold (sell5), and therefore
+		banked ore in the pouch. Earlier and it asks for ore nobody has; much
+		later and they have spent an hour not knowing the game's main system
+		exists.
+	]]
+	{ id = "forge1",     stat = "oretools", goal = 1,       text = "Forge a tool out of ore",      tip = "The Forge turns ore into a tool. Every ore makes its own pickaxe, drill and charge -- 246 in all.", reward = { gems = 60 } },
 	{ id = "chests10",   stat = "chests",   goal = 10,      text = "Open 10 chests",               tip = "Every tool has a rune slot — runes stay in it through rebirth.", reward = { gems = 200, tool = "meadow_surface_5_pick", toolName = "Ironvine" } },
 	{ id = "zone2",      stat = "zone",     goal = 1,       text = "Unlock the next zone",         tip = "Buy portals with gems. Zones stay unlocked after rebirth.", reward = { gems = 80 } },
 	{ id = "chestsL4",   stat = "chestsL4", goal = 5,       text = "Open 5 chests below 150m (Layer 4+)", tip = "Chest luck from pets, runes and skills stacks.", reward = { gems = 300, tool = "meadow_surface_6_pick", toolName = "Hillforge" } },
@@ -48,8 +58,24 @@ MineQuests.CHAIN = {
 	{ id = "cards50",    stat = "cards",    goal = 50,      text = "Collect 50 more cards",        tip = "Power-up cards with stardust — power survives rebirth.", reward = { gems = 180 } },
 	{ id = "sell25",     stat = "sells",    goal = 25,      text = "Sell 25 hauls",                tip = "Watch the Rebirth tab: farm to the MINIMUM bank, not just the fee.", reward = { gems = 220 } },
 	{ id = "gear3",      stat = "gear",     goal = 3,       text = "Summon 3 gear pieces",         tip = "Equip gear by slot. Matching sets add bonuses.", reward = { gems = 140 } },
+	-- Charms drop from chests at 0.5% and are also bought with temper tokens,
+	-- so by this rung a player has almost certainly seen one and not known
+	-- what it was for.
+	{ id = "charm1",     stat = "charms",   goal = 1,       text = "Get a charm",                  tip = "One charm equips at a time, and it does not take a rune or pet slot. Chests drop them; the token shop sells them.", reward = { gems = 110 } },
 	{ id = "chests25",   stat = "chests",   goal = 25,      text = "Open 25 chests",               tip = "Bombs clear a whole patch at once.", reward = { gems = 500, tool = "meadow_surface_10_bomb", toolName = "Clayfuse" } },
 	{ id = "rune5",      stat = "runes",    goal = 5,       text = "Summon 5 runes",               tip = "Socket runes on tools, pets, and gear. They keep through rebirth.", reward = { pack = "slate_pack" } },
+	--[[
+		SKINS AND TRAITS, THE TWO LEAST-TAUGHT SYSTEMS IN THE GAME.
+
+		Skins (temperaments) are fitted PER FAMILY and were invisible on the
+		ladder; traits are rolled per forged tool and were mentioned exactly
+		zero times across 62 rungs. Both sit after rune5 on purpose -- a
+		player who has socketed a rune already understands "a thing that goes
+		on a tool", so these read as more of a known idea rather than a new
+		one.
+	]]
+	{ id = "skin1",      stat = "skins",    goal = 1,       text = "Fit a skin to a tool family",  tip = "Skins are per FAMILY, not per tool -- fit one and every pickaxe you forge wears it. Ore cases drop them.", reward = { gems = 160 } },
+	{ id = "trait1",     stat = "traits",   goal = 1,       text = "Roll a trait on a forged tool", tip = "A trait is rolled onto one tool and re-rolling replaces it. 500 gems a go.", reward = { gems = 200 } },
 	{ id = "zone3",      stat = "zone",     goal = 2,       text = "Unlock two more zones",        tip = "Higher zones need Rebirth rank + gems. Check the portal plaque.", reward = { pack = "night_pack", packQty = 2 } },
 	{ id = "chestsL6",   stat = "chestsL6", goal = 10,      text = "Open 10 chests below 250m (Layer 6+)", tip = "Greyvein tools hit harder — this one is on the house.", reward = { gems = 800, tool = "sunscar_surface_2_pick", toolName = "Chiselspike" } },
 	{ id = "mine3k",     stat = "blocks",   goal = 3000,    text = "Break 3,000 blocks",           tip = "Fuse runes at 50% success — no pity. White scrolls raise cost ×5.", reward = { gems = 64 } },
@@ -107,6 +133,44 @@ MineQuests.CHAIN_V1 = {
 	"cards500", "rebirth5", "mine75k", "merge150", "depth2k", "gear30", "rune40", "rebirth10", "mine200k", "cards1k",
 	"zone6", "merge400", "rebirth20", "mine500k",
 }
+
+--[[
+	THE ORDER BEFORE THE FOUR TEACHING RUNGS WENT IN (2026-10-09).
+
+	Same contract as CHAIN_V1 above, and the same reason: p.quest is an INDEX,
+	so inserting forge1, charm1, skin1 and trait1 in the middle of the ladder
+	moves every saved index onto a different quest. remapV2 turns a v2 index
+	into the index of the SAME quest in the new chain, so a player mid-ladder
+	stays on the rung they were on.
+
+	The four were inserted rather than appended because the point of them is
+	WHEN they are taught. Appending them past rebirth20 would put "forge a
+	tool out of ore" after 50 hours of play, which is the problem, not a fix
+	for it.
+]]
+MineQuests.CHAIN_V2 = {
+	"mine25", "sell1", "pick2", "mine100", "chests3", "depth20", "chestsL2", "mine250", "open3", "chestsL3",
+	"cards10", "sell5", "chests10", "zone2", "chestsL4", "mine1k", "depth80", "merge1", "open10", "chestsL5",
+	"cards50", "sell25", "gear3", "chests25", "rune5", "zone3", "chestsL6", "mine3k", "merge8", "depth200",
+	"cards100", "pick5", "rebirth1", "mine10k", "sell80", "open40", "merge25", "zone4", "depth500", "gear12",
+	"cards250", "rebirth3", "mine25k", "merge60", "zone5", "depth1k", "open120", "sell200", "cards500", "rebirth5",
+	"mine75k", "merge150", "depth2k", "gear30", "rune40", "rebirth10", "mine200k", "cards1k", "zone6", "merge400",
+	"rebirth20", "mine500k",
+}
+
+function MineQuests.remapV2(index)
+	index = math.max(1, math.floor(tonumber(index) or 1))
+	if index > #MineQuests.CHAIN_V2 then
+		return #MineQuests.CHAIN + 1
+	end
+	local id = MineQuests.CHAIN_V2[index]
+	for i, q in ipairs(MineQuests.CHAIN) do
+		if q.id == id then
+			return i
+		end
+	end
+	return index
+end
 
 function MineQuests.remapV1(index)
 	index = math.max(1, math.floor(tonumber(index) or 1))

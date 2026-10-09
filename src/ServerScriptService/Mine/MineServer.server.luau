@@ -1486,6 +1486,19 @@ local function load(plr)
 		end
 		p.questVer = 2
 	end
+	--[[
+		v3 inserted forge1, charm1, skin1 and trait1 -- the four systems the
+		ladder never taught. Same move as v2: the saved index lands on the
+		same quest it was already on, so nobody is pushed forward or back a
+		rung by the insertion. Runs AFTER the v2 block above, so a very old
+		save migrates v1 -> v2 -> v3 in one login.
+	]]
+	if (math.floor(tonumber(p.questVer) or 1)) < 3 then
+		if Quests.remapV2 then
+			p.quest = Quests.remapV2(p.quest)
+		end
+		p.questVer = 3
+	end
 	-- The short-lived "tool mastery" bonus is gone; drop its ledger.
 	p.toolMastery = nil
 	-- Quest counters. Saves that predate quests have no history for blocks,
@@ -3081,6 +3094,55 @@ local function questValue(p, stat)
 		return #(p.gear or {})
 	elseif stat == "runes" then
 		return #(p.runes or {})
+	--[[
+		THE FOUR SYSTEMS THE LADDER NEVER MENTIONED.
+
+		Counted across the quest chain: rebirth appears 34 times, packs 32,
+		runes 16, gear 13, skills 11 -- and the Forge ONCE, charms once, skins
+		once, traits ZERO. The tutorial teaches the systems this game had two
+		revisions ago and never caught up with the ones it is now built on. A
+		player can reach two hours without being told traits exist, and the
+		Forge is 246 craftable tools and the centrepiece of the game.
+
+		All four are DERIVED from state the profile already keeps, so none of
+		them needs a new counter to be written, migrated or kept in sync:
+
+		  oretools  how many tools you have forged
+		  traits    how many of them carry a trait
+		  charms    how many charms you own (p.charms is a keyed set)
+		  skins     how many families have a temperament fitted
+
+		Derived also means they are correct for existing players on the first
+		login -- someone who already forged twenty tools reads 20, not 0, and
+		questBase then makes the goal count from now rather than retro-
+		crediting the rung.
+	]]
+	elseif stat == "oretools" then
+		return #(p.oreTools or {})
+	elseif stat == "traits" then
+		local n = 0
+		for _, t in ipairs(p.oreTools or {}) do
+			if type(t) == "table" and type(t.trait) == "table" then
+				n += 1
+			end
+		end
+		return n
+	elseif stat == "charms" then
+		local n = 0
+		for _, owned in pairs(p.charms or {}) do
+			if owned then
+				n += 1
+			end
+		end
+		return n
+	elseif stat == "skins" then
+		local n = 0
+		for _, row in pairs(p.toolTempers or {}) do
+			if type(row) == "table" and row.temperId then
+				n += 1
+			end
+		end
+		return n
 	end
 	return 0
 end
