@@ -85,8 +85,35 @@ MineGroupWheel.SEGMENTS = {
 		reward = { tokens = 80 } },
 }
 
+--[[
+	THE SEASON CLOCK, WHICH THE HEADER ABOVE ALREADY CLAIMED.
+
+	These read os.time(). SALE_START is 2026-09-22 and SALE_ENDS a week later,
+	both already in the past -- so isLive() returned FALSE for everyone, the
+	week-long sale having expired before a single player saw it, and the
+	Studio escape hatch only fires BEFORE SALE_START so it was dead there too.
+
+	Reading the launch clock makes the window mean what it says: one week from
+	the moment the owner launches, wherever that lands in real time. Required
+	lazily so this module stays leaf-level -- MineLaunch requires nothing, and
+	keeping the edge out of the load graph means a future require inside it
+	cannot cycle back through here.
+]]
+local function seasonNow(now)
+	if tonumber(now) then
+		return tonumber(now)
+	end
+	local ok, L = pcall(function()
+		return require(script.Parent:WaitForChild("MineLaunch"))
+	end)
+	if ok and type(L) == "table" and type(L.seasonNow) == "function" then
+		return L.seasonNow()
+	end
+	return os.time()
+end
+
 function MineGroupWheel.isLive(now)
-	now = tonumber(now) or os.time()
+	now = seasonNow(now)
 	if now < MineGroupWheel.SALE_START then
 		return game:GetService("RunService"):IsStudio()
 	end
@@ -94,7 +121,7 @@ function MineGroupWheel.isLive(now)
 end
 
 function MineGroupWheel.saleLeft(now)
-	now = tonumber(now) or os.time()
+	now = seasonNow(now)
 	return math.max(0, MineGroupWheel.SALE_ENDS - now)
 end
 
@@ -209,15 +236,27 @@ function MineGroupWheel.paidSpins(p)
 	return math.max(0, math.floor(tonumber(gw.paid) or 0))
 end
 
+--[[
+	TWO CLOCKS, DELIBERATELY.
+
+	`now` is REAL time and stays real: the 6h spin cooldown is a wall-clock
+	promise to the player and must not pause because the season has not
+	started. The SALE WINDOW is season time, so isLive and saleLeft are called
+	with no argument and resolve it themselves.
+
+	Passing `now` into those two is what made the sale read as already over --
+	the callers hand in os.time(), which is years past a window anchored to
+	2026-09-22.
+]]
 function MineGroupWheel.payload(p, now)
 	p = p or {}
 	now = tonumber(now) or os.time()
 	local gw = type(p.groupWheel) == "table" and p.groupWheel or {}
 	local ready, wait = MineGroupWheel.ready(gw.last, now)
-	local live = MineGroupWheel.isLive(now)
+	local live = MineGroupWheel.isLive()
 	return {
 		live = live,
-		saleLeft = MineGroupWheel.saleLeft(now),
+		saleLeft = MineGroupWheel.saleLeft(),
 		saleEnds = MineGroupWheel.SALE_ENDS,
 		tagline = MineGroupWheel.TAGLINE,
 		featuredDivine = MineGroupWheel.FEATURED_DIVINE,

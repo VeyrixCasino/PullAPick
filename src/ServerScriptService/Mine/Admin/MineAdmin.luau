@@ -83,6 +83,9 @@ function MineAdmin.start(deps)
 	local givePickaxe = deps.givePickaxe
 	local giveBackpackModel = deps.giveBackpackModel
 	local equippedTool = deps.equippedTool
+	-- Optional: `/admin launch now` reports a clear error rather than failing
+	-- silently if MineServer ever stops passing it.
+	local launchSeason = deps.launchSeason
 
 	local mineFolder = RS:WaitForChild("Mine")
 	local remotes = mineFolder:FindFirstChild("Remotes") or Instance.new("Folder")
@@ -853,6 +856,62 @@ function MineAdmin.start(deps)
 			notifyAdmin(admin, "/admin give <who> pack <packId> [qty] | zone <n> | tool <family> [tier]")
 			notifyAdmin(admin, "/admin alltools [start] [count]  |  /admin alltools all   -- named tools into YOUR bag")
 			notifyAdmin(admin, "/admin say <message>[|seconds]  -- banner on every player's screen")
+			notifyAdmin(admin, "/admin launch status   -- is the season running, and how far in")
+			notifyAdmin(admin, "/admin launch now      -- THROW THE SWITCH. Starts the season. Not undoable.")
+			return true
+		end
+
+		--[[
+			THE LAUNCH SWITCH. Without this the game could never start.
+
+			MineLaunch pins seasonNow() to SEASON_START until launchedAt is set,
+			and Verbs.launchSeason is the only thing that sets it -- correctly
+			written, admin-gated, persisted. Nothing anywhere fired it. No
+			client file contains the string and MineAdminClient has no
+			FireServer calls at all, so the entire launch design was wired to
+			nothing at the one point that mattered: rotating offers frozen on
+			slot one forever, the battle pass never counting down, the Event
+			Horizon window never opening or closing, the teaser rolling over
+			for eternity.
+
+			It is a chat command rather than a button because it must be hard
+			to hit by accident. There is no unlaunch -- rewinding would re-lock
+			what players earned -- so `now` is required as a second word and
+			the bare `/admin launch` reports status instead of firing.
+		]]
+		if cmd == "launch" then
+			local okL, Launch = pcall(function()
+				return require(game:GetService("ReplicatedStorage")
+					:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineLaunch"))
+			end)
+			if not okL or not Launch then
+				notifyAdmin(admin, "MineLaunch failed to load -- cannot launch")
+				return true
+			end
+			local sub = string.lower(args[2] or "status")
+			if Launch.isLaunched() then
+				notifyAdmin(admin, string.format("Season is LIVE -- %.2f days in (launched at %d)",
+					Launch.elapsed() / 86400, Launch.launchedAt))
+				return true
+			end
+			if sub ~= "now" then
+				notifyAdmin(admin, "Season is NOT launched. Everything seasonal sits at second zero.")
+				notifyAdmin(admin, "Type  /admin launch now  to start it. This cannot be undone.")
+				return true
+			end
+			--[[
+				Through the deps table, not a remote. Verbs.launchSeason owns
+				the whole operation -- the admin re-check, the already-launched
+				guard, the datastore write BEFORE the announcement, and the
+				broadcast -- so this must call it rather than reimplement any
+				part of it. A second copy of "throw the switch" is how a game
+				gets launched twice with two different timestamps.
+			]]
+			if type(launchSeason) ~= "function" then
+				notifyAdmin(admin, "launchSeason was not passed to MineAdmin.start -- cannot launch")
+				return true
+			end
+			launchSeason(admin)
 			return true
 		end
 

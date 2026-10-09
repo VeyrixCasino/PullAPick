@@ -113,7 +113,10 @@ function GroupWheelService.spin(plr, profiles, deps)
 	local now = os.time()
 	p.groupWheel = type(p.groupWheel) == "table" and p.groupWheel or { last = 0, paid = 0 }
 	local paid = math.max(0, math.floor(tonumber(p.groupWheel.paid) or 0))
-	if not Wheel.isLive(now) and paid <= 0 then
+	-- No `now`: the sale window is SEASON time (see MineGroupWheel.payload),
+	-- while `now` above is real time for the 6h cooldown. Passing it here is
+	-- what made the week read as over before anyone played.
+	if not Wheel.isLive() and paid <= 0 then
 		if net then
 			net:FireClient(plr, "groupWheel", {
 				ok = false,

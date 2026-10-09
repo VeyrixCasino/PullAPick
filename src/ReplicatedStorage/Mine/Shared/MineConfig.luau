@@ -820,12 +820,26 @@ function MineConfig.productCredits(key)
 	return tonumber(prod.creditsPrice) or tonumber(prod.robuxPrice)
 end
 
+--[[
+	ON THE SEASON CLOCK, like limitedActive above it.
+
+	This read os.time() against LIMITED_SALE_OPENS_AT (2026-09-22), a date
+	already in the past -- so it returned true today regardless of launch
+	state, while every other season system sat frozen at second zero. It gates
+	REAL ROBUX PURCHASES (MineServer buyProduct, the receipt handler, and the
+	shop shelf), so the effect was a limited sale open for business before the
+	owner had launched the game.
+
+	launchClock() returns SEASON_START until the switch is thrown, and
+	LIMITED_SALE_OPENS_AT equals SEASON_START, so `>=` is true from the moment
+	the season starts and not a second before.
+]]
 function MineConfig.limitedSaleOpen()
 	local t = tonumber(MineConfig.LIMITED_SALE_OPENS_AT) or 0
 	if t <= 0 then
 		return game:GetService("RunService"):IsStudio()
 	end
-	return os.time() >= t
+	return launchClock() >= t
 end
 
 do

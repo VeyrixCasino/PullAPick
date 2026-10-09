@@ -3749,7 +3749,41 @@ local Intro = {
 		run end -- taught at minute three they were noise, taught after a
 		rebirth they are the reason to start the next one.
 	]]
-	order = { 27, 1, 2, 3, 4, 5, 6, 7, 12, 18, 8, 9, 16 },
+	--[[
+		19, 20 AND 14 WERE AUTHORED, GRANTED, HOOKED AND NEVER SHOWN.
+
+		introAdvance only fires when `p.intro == from`, and p.intro can only
+		ever hold a value from THIS list -- so every step not in it is dead,
+		along with its grants and its hook. A launch audit counted 26 of 39
+		steps unreachable and 15 live introAdvance call sites that can never
+		match.
+
+		The three added here are the ones that cost the most by being absent:
+
+		  19  DAILY REWARD  -- claimPlaytime already calls introAdvance(19)
+		  20  FREE GIFTS    -- the gift box, likewise already hooked
+		  14  EVENT HORIZON -- the event the whole limited season is built on
+
+		19 and 20 are the two retention hooks in the game and a player was
+		never told either existed. They go directly after the first rebirth
+		(8), which is the point a player starts thinking in sessions rather
+		than minutes and is when a daily and a gift box start to mean
+		something.
+
+		14 goes last, after runes (9) and the temper case (16): Event Horizon
+		is a whole second mine, and pointing someone at it before they have a
+		build is pointing them at a wall they cannot break.
+
+		The comment above says "eight beats to the loop, then the two systems
+		that keep someone here". That was aspirational -- the two systems were
+		not in the list. Now they are.
+
+		The REST of the dead steps are left dead on purpose. Several grant
+		items (grantGear = 3, grantDust = 500, grantTokens = 15) and turning
+		them on would hand every existing player a payout on their next login;
+		that is a balance decision, not a wiring fix.
+	]]
+	order = { 27, 1, 2, 3, 4, 5, 6, 7, 12, 18, 8, 19, 20, 9, 16, 14 },
 }
 -- Finished. Clear of every step number (the v2 ladder used 19 for done).
 Intro.done = 99
@@ -9718,9 +9752,41 @@ local function zoneIdAtCharacter(plr, fallback)
 	return bestId or fallback
 end
 
+--[[
+	Forward declaration for gotoStation, assigned just after
+	Verbs.grantFirstPick is defined. See the comment inside gotoStation: the
+	`Verbs` table is a local declared below this point, so naming it here
+	would read a nil global rather than the table.
+]]
+local grantFirstPickFn
+
 local function gotoStation(plr, id)
 	id = tostring(id or "sell")
 	local p = profiles[plr.UserId]
+	--[[
+		ARRIVING AT THE BLACKSMITH IS ENOUGH TO GET THE FREE PICKAXE.
+
+		Verbs.grantFirstPick had exactly one caller: the shop's proximity
+		prompt. gotoStation teleports a player onto the same pad and did not
+		grant -- so a new player who used the HUD button instead of walking
+		into the prompt landed there holding nothing, with no coins, unable
+		to swing (swingBlock refuses while gotFirstPick is false), and no
+		indication that a prompt they never saw was the thing standing in
+		their way. It is the first thing anyone does in this game.
+
+		grantFirstPick is idempotent -- it returns early unless gotFirstPick
+		is exactly false -- so calling it on every shop arrival is safe.
+
+		Called through a forward-declared local, NOT through `Verbs`. `local
+		Verbs = {}` is declared a hundred lines BELOW this function, so a
+		reference to it here would not be that upvalue -- it compiles as a
+		GLOBAL read, nil at runtime, and errors on the index. That trap is
+		already documented twice in this file; this is the third place it
+		would have bitten.
+	]]
+	if id == "shop" and p and p.gotFirstPick == false and grantFirstPickFn then
+		pcall(grantFirstPickFn, plr)
+	end
 	local fallbackZone = (p and p.zoneId) or (C.ZONES[1] and C.ZONES[1].id)
 	-- Sell goes to the mine you are standing in, not the last enterZone target.
 	local zoneId = (id == "sell") and zoneIdAtCharacter(plr, fallbackZone) or fallbackZone
@@ -9838,6 +9904,10 @@ function Verbs.grantFirstPick(plr, p)
 	snap(plr)
 	return true
 end
+
+-- Hand it to gotoStation, which is defined above `local Verbs` and therefore
+-- cannot name the table. Assigned here, the moment the verb exists.
+grantFirstPickFn = Verbs.grantFirstPick
 
 -- Must stay BELOW `local Verbs = {}` above. This was first written next to
 -- sellAll, ~1900 lines earlier, where `Verbs` is still a nil global: it threw
@@ -13381,8 +13451,23 @@ function Verbs.buyCreditPack(plr, payload)
 		net:FireClient(plr, "toast", "Unknown credit pack")
 		return
 	end
-	local pid = tonumber(pack.productId) or 0
-	if pid > 0 and not Svc.Run:IsStudio() then
+	--[[
+		STUDIO ONLY, FULL STOP. This guard used to FAIL OPEN.
+
+		It read `if pid > 0 and not IsStudio() then refuse end`, so a pack
+		WITHOUT a product id fell straight through to the grant on a live
+		server -- a client firing buyCreditPack with that id would mint
+		credits, which are the Robux currency, for free. Every pack in
+		CREDIT_PACKS happens to carry a real product id today, so it is not
+		exploitable right now; it becomes exploitable the moment someone adds
+		a pack and fills the id in later.
+
+		Inverted: this verb is a Studio shortcut and nothing else. On a live
+		server it always refuses, whatever the pack looks like, and real
+		purchases go through the receipt handler where Roblox has actually
+		taken the money.
+	]]
+	if not Svc.Run:IsStudio() then
 		net:FireClient(plr, "toast", "Buy credits with Robux from the shop prompt")
 		return
 	end
@@ -14669,6 +14754,16 @@ function Verbs.hookPlayer(plr)
 		profiles[plr.UserId] = blank()
 		profiles[plr.UserId].tools = { pickaxe = 1, drill = 0, explosive = 0 }
 		profiles[plr.UserId].toolEquipped = true
+		--[[
+			AND MARK THE PICKAXE AS COLLECTED, or this profile cannot mine.
+
+			blank() leaves gotFirstPick = false, and swingBlock refuses with
+			"Grab your FREE pickaxe from the Blacksmith first" while that is
+			false -- so the fallback handed the player a visible tier-1
+			pickaxe and then would not let them swing it. The tool is granted
+			two lines up; this says so.
+		]]
+		profiles[plr.UserId].gotFirstPick = true
 		profiles[plr.UserId]._ephemeral = true
 	end
 	pcall(function()
@@ -15136,6 +15231,21 @@ function Verbs.openTemperCase(plr, payload)
 	end
 	local rng = Random.new()
 	p.tempers = p.tempers or {}
+	--[[
+		The reel shows the BEST roll of the batch, not the last. Owner, 2026-10-08,
+		on reveals: "HUGE with the ones that hit". A x10 or x100 that pulled an
+		SSS on roll 3 used to show roll 10, so the hit was granted and never
+		seen. Ties keep the earlier roll. Every roll is still granted below.
+	]]
+	local function gradeRank(g)
+		g = Temper.normalizeRarity(g)
+		for i, x in ipairs(Temper.GRADE_ORDER) do
+			if x == g then
+				return i
+			end
+		end
+		return 0
+	end
 	local done, spent, last = 0, 0, nil
 	for _ = 1, want do
 		if (p.temperTokens or 0) < price then break end
@@ -15152,8 +15262,10 @@ function Verbs.openTemperCase(plr, payload)
 		else
 			p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
 		end
-		local reel, at = Temper.caseReel(rng, kit, rarity)
-		last = { kit = kit, rarity = rarity, reel = reel, at = at, dupe = had ~= nil }
+		if not last or gradeRank(rarity) > gradeRank(last.rarity) then
+			local reel, at = Temper.caseReel(rng, kit, rarity)
+			last = { kit = kit, rarity = rarity, reel = reel, at = at, dupe = had ~= nil }
+		end
 	end
 	if done == 0 then
 		net:FireClient(plr, "toast", "That case came up empty -- nothing was charged")
@@ -15205,6 +15317,16 @@ function Verbs.openTemperCaseBundle(plr)
 	end
 	p.temperTokens -= price
 	p.tempers = p.tempers or {}
+	-- Shows the best of the bundle, like openTemperCase (see gradeRank there).
+	local function gradeRank(g)
+		g = Temper.normalizeRarity(g)
+		for i, x in ipairs(Temper.GRADE_ORDER) do
+			if x == g then
+				return i
+			end
+		end
+		return 0
+	end
 	local last
 	for _ = 1, n do
 		local rng = Random.new()
@@ -15217,8 +15339,10 @@ function Verbs.openTemperCaseBundle(plr)
 			else
 				p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
 			end
-			local reel, at = Temper.caseReel(rng, kit, rarity)
-			last = { kit = kit, rarity = rarity, reel = reel, at = at }
+			if not last or gradeRank(rarity) > gradeRank(last.rarity) then
+				local reel, at = Temper.caseReel(rng, kit, rarity)
+				last = { kit = kit, rarity = rarity, reel = reel, at = at }
+			end
 		end
 	end
 	if last then
@@ -16570,6 +16694,22 @@ function Verbs.rollTrait(plr, payload)
 		OreTools.toolName(tool), Traits.label(rolled),
 		had and ("   (was " .. had .. ")") or ""))
 	bumpStat(plr, p, "traits")
+	--[[
+		The result, for the client to celebrate. The toast alone made a
+		1-in-1000 SSS look exactly like an F. The grade is the trait's REAL
+		rarity, so the celebration size is honest (see MineCelebrate).
+	]]
+	do
+		local def = Traits.byId(rolled.id)
+		net:FireClient(plr, "traitRolled", {
+			uid = tool.uid,
+			id = rolled.id,
+			level = rolled.level,
+			grade = def and def.rarity or "F",
+			label = Traits.label(rolled),
+			oneIn = Traits.odds(rolled.id, rolled.level),
+		})
+	end
 	-- Re-give the tool so its name and its stats both follow the roll.
 	if p.oreToolEquipped == tool.uid then
 		givePickaxe(plr)
@@ -17768,6 +17908,12 @@ require(script.Parent.Admin.MineAdmin).start({
 	equippedTool = equippedTool,
 	blank = blank,
 	save = save,
+	-- `/admin launch now`. Verbs.launchSeason was complete, admin-gated and
+	-- persisted, and NOTHING fired it -- so the season could never start and
+	-- every seasonal system sat frozen at second zero. Passed as a dep rather
+	-- than reimplemented in MineAdmin, so there is exactly one place that
+	-- throws the switch.
+	launchSeason = Verbs.launchSeason,
 })
 
 -- Ensure AFK chill exists even if the world was built before this pad shipped.
