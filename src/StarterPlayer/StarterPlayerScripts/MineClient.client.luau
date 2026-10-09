@@ -3445,6 +3445,10 @@ function ClientFns.luckyScreen()
 	end
 	local LuckyBlocks = require(shared:WaitForChild("MineLuckyBlocks"))
 	ClientFns.luckyCtl = GradeReveal.lucky(player:WaitForChild("PlayerGui"), {
+		-- The same layer as every other reveal (packs, the case reel). It was
+		-- the module default, 95: bca50ca meant to move this screen to 120 but
+		-- changed caseSpin instead.
+		displayOrder = 120,
 		shortNum = shortNum,
 		gems = function()
 			return (snap and snap.gems) or 0
@@ -11477,6 +11481,16 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if presP and presP.Visible then refreshPrestige() end
 		if runesCtl then
 			runesCtl.setState(payload)
+			-- The trait tab never repainted while the rune bench existed, so a
+			-- roll (gems, the tool's new prefix) stayed stale until reopened.
+			-- Rolls are rare, so repaint only when gems or the rack change.
+			if traitCtl and enchantP and enchantP.Visible then
+				local key = tostring(payload.gems) .. ":" .. tostring(payload.oreTools and #payload.oreTools)
+				if key ~= ClientFns.traitPaintKey then
+					ClientFns.traitPaintKey = key
+					pcall(traitCtl.paint)
+				end
+			end
 		elseif enchantP and enchantP.Visible and refreshEnchanter then
 			refreshEnchanter()
 		end
@@ -11925,6 +11939,17 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "temperCase" and payload then
 		Audio.play("open")
 		ClientFns.caseScreen().play(payload)
+	elseif action == "traitRolled" and type(payload) == "table" then
+		-- The Enchanter's trait roll: celebrated by the trait's real grade, so
+		-- an SSS (1 in 1000) is a party and an F is a soft pop.
+		pcall(function()
+			local Celebrate = require(shared:WaitForChild("MineCelebrate"))
+			local tier = Celebrate.fromGrade(payload.grade)
+			Celebrate.burst(tier, { title = tier >= 2 and tostring(payload.label or "") or nil })
+		end)
+		if traitCtl and enchantP and enchantP.Visible then
+			pcall(traitCtl.paint)
+		end
 	elseif action == "luckyGraded" then
 		ClientFns.luckyScreen().graded(payload)
 	elseif action == "luckyGone" then

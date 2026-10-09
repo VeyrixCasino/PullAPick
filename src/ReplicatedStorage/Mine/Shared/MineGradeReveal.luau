@@ -828,6 +828,22 @@ function MineGradeReveal.lucky(parent, opts)
 			if loot.temperTokens then
 				table.insert(rows, { icon = "tokens", text = fmt(loot.temperTokens) .. "  Temper tokens" })
 			end
+			--[[
+				Pets and potions were granted by the server but never listed here,
+				so they only showed through the lootText fallback, and only when
+				nothing else dropped. A godly block always adds dust, so a pet out
+				of one was never shown at all. A pet is Legendary or better, so it
+				goes FIRST. No pet or potion art exists yet (icons are the owner's
+				job): pets use the card album, potions an emoji until art lands.
+			]]
+			if loot.petTier then
+				local name = loot.petName and tostring(loot.petName) or (tostring(loot.petTier) .. " Pet")
+				table.insert(rows, 1, { icon = "binder", text = name .. "  (" .. tostring(loot.petTier) .. " pet)" })
+			end
+			if loot.potionId then
+				local qty = math.max(1, math.floor(tonumber(loot.potionQty) or 1))
+				table.insert(rows, { emoji = "🧪", text = (qty > 1 and (qty .. "x  ") or "") .. pretty(loot.potionId) })
+			end
 		end
 		if #rows == 0 then
 			table.insert(rows, { icon = "chest", text = tostring(lootText or "--") })
@@ -858,6 +874,11 @@ function MineGradeReveal.lucky(parent, opts)
 			mk("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height }, art)
 			if row.packId and PackFX and PackFX.drawSealed then
 				pcall(PackFX.drawSealed, art, row.packId, 36, 46)
+			elseif row.emoji then
+				mk("TextLabel", {
+					BackgroundTransparency = 1, Text = row.emoji, TextScaled = true,
+					Font = Enum.Font.GothamMedium, Size = UDim2.fromScale(1, 1), ZIndex = 24,
+				}, art)
 			elseif Icons and Icons.draw then
 				pcall(Icons.draw, art, row.icon, 1)
 			end
@@ -1574,6 +1595,12 @@ function MineGradeReveal.caseSpin(parent)
 				if Audio and Audio.play then pcall(Audio.play, "thud") end
 				sub.Text = payload.dupe and "another copy -- your collection keeps the better grade"
 					or "yours to fit on any tool"
+				-- A batch shows its best roll (the server picks it), so say so;
+				-- otherwise a x10 reads as one case and the other nine vanish.
+				local nBundle = tonumber(payload.bundle)
+				if nBundle and nBundle > 1 then
+					sub.Text = string.format("BEST OF %d  -  all %d are in your collection", nBundle, nBundle)
+				end
 				resultName.Text = string.upper(tostring(payload.word or Temper.wordOf(grade)))
 					.. "   " .. tostring((kit and kit.name) or payload.id or "")
 				resultName.TextColor3 = Temper.colorOf(grade)

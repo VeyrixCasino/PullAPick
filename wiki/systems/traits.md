@@ -47,6 +47,13 @@ related: [tools, forge-and-recycling, hats-and-faces, boosts-and-stats, skins-ca
   `RARITY_WEIGHTS` (F 4200 · D 2700 · C 1600 · B 900 · A 400 · S 140 · SS 50 ·
   SSS 10, out of 10,000), then a trait uniformly within that tier, then a level 1–5
   (`MAX_LEVEL`). A new roll **replaces** the old trait with no undo; the toast names what was lost.
+- **The ROLL button was dead until 2026-10-08.** `MineTraitView` checked
+  `opts.onTrait` and then called `opts.onRollTrait`, which nothing passes, so
+  no roll ever reached the server from the UI. It calls `onTrait` now. The
+  server also sends a `traitRolled` result (`id`, `level`, `grade`, `label`,
+  `oneIn`), and the client celebrates it with `MineCelebrate` by the trait's
+  real grade. The trait tab now repaints on the snapshot after a roll, which
+  it never did while the rune bench was mounted.
 - **Odds.** Wide is the only SSS trait, so Wide is 1/1000 and Wide V is 1/5000. An SS
   tier is 1/200, so an SS V is 1/1000. Those are the skins table's own SS and SSS
   odds (`MineTemper.RARITY_WEIGHTS`), and `traits.js` checks the match against MineTemper.

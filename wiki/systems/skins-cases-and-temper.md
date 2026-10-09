@@ -44,6 +44,14 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
 
 - **The roll.** `rollTemperament` picks a grade, then picks a kit uniformly
   within that grade.
+- **Batches show their best.** A ×10/×100 buy (`Verbs.openTemperCase`) or the
+  3-case bundle grants every roll but plays one reel. Since 2026-10-08 that
+  reel shows the **best** grade of the batch, not the last roll. Before, an SSS
+  on roll 3 of 10 was granted and never shown. The reveal says "BEST OF N".
+- **Skins in a pack run.** Ore-case skins ride an open-10 or open-all as cards
+  whose `rarityId` is a grade letter. `MinePackFX.rankOf` reads F…SSS on the
+  same 1–8 ladder, so a skin of A or better is a bulk hit. Before, every skin
+  scored as a DUD and an SSS was folded into "N cleared".
 - **Stat size.** Each stat is its slot share (1.00 / 0.60 / 0.35, from
   `MineTemper.BASE`) × `RARITY_MULT`. Chance stats use `ABS_PRIMARY` ×
   `PROC_RARITY_MULT` instead.

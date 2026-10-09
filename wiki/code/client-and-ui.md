@@ -218,8 +218,10 @@ The tier mappers take the real result:
   that threw an error on every client load.
 - **Layering by DisplayOrder**:
   - HUD `MineUI`: 80.
-  - The lucky-block screen (`LuckyReveal`): 95.
-  - `MinePackReveal` and the case reel (`CaseSpinGui`): 120. The case reel
+  - `MineGradeReveal.lucky` defaults to 95. `MineClient` passes 120 since
+    2026-10-08.
+  - `MinePackReveal`, the case reel (`CaseSpinGui`) and the lucky-block
+    screen (`LuckyReveal`): 120. The case reel
     moving from 110 to 120 (`bca50ca`) was the first change the owner
     confirmed in-engine (TODO §0.32). That commit's message calls it "the
     lucky screen", but the diff is `caseSpin`.

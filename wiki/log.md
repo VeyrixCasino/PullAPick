@@ -129,3 +129,18 @@ fell back to literal defaults when a constant was missing. `7b06a55` now strips
 comments before asserting that a constant exists.
 
 Updated: client-and-ui, log.
+
+## [2026-10-08] ingest | the reveal fixes ("fix all")
+
+The owner said "fix all/continue" to the list from the candy pass. Fixed:
+
+- The dead trait ROLL button, plus a new `traitRolled` result and the trait
+  tab's missing repaint. See [traits](systems/traits.md).
+- Temper-case batches now reveal their best roll.
+- Ore-case skins in open-all are now counted by grade. See
+  [skins-cases-and-temper](systems/skins-cases-and-temper.md).
+- Lucky-block pets and potions now appear on the loot card, and the lucky
+  screen moves to layer 120. See
+  [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md).
+
+Updated: traits, skins-cases-and-temper, chests-and-lucky-blocks, client-and-ui, log.

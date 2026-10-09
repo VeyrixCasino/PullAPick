@@ -683,12 +683,26 @@ local VARIANT_FALLBACK = { Normal = 1, Shiny = 2, Golden = 3, Prism = 4, Void = 
 -- reveal celebrates them (MineServer.openPack, MinePackReveal bulk hits).
 MinePackFX.BAND_ORDER = { DUD = 1, NICE = 2, HIT = 3, CHASE = 4, GOD = 5 }
 
+--[[
+	A card's rarity rank, 1..8. Ore-case skins ride a pack run as cards whose
+	rarityId is a temper GRADE letter (MineServer openPack). Cards.RARITY_RANK
+	has no F..SSS keys, so every skin scored rank 1 (DUD). An SSS skin from an
+	open-all was counted in "N cleared" and never shown. Grades sit on the same
+	1..8 ladder the case reel uses: F=1 ... A=5 (Legendary-equivalent) ... SSS=8.
+]]
+local GRADE_RANK = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 8 }
+function MinePackFX.rankOf(card, Cards, default)
+	local id = (card and card.rarityId) or ""
+	Cards = Cards or require(script.Parent:FindFirstChild("MineCards"))
+	return (Cards and Cards.RARITY_RANK and Cards.RARITY_RANK[id]) or GRADE_RANK[id] or default or 1
+end
+
 function MinePackFX.pullScore(card, Cards)
 	if not card then
 		return 1, "DUD"
 	end
 	Cards = Cards or require(script.Parent:FindFirstChild("MineCards"))
-	local base = (Cards and Cards.RARITY_RANK and Cards.RARITY_RANK[card.rarityId or ""]) or 1
+	local base = MinePackFX.rankOf(card, Cards)
 	local variant = card.variant or "Normal"
 	local var = (Cards and Cards.VARIANT_RANK and Cards.VARIANT_RANK[variant])
 		or VARIANT_FALLBACK[variant] or 1

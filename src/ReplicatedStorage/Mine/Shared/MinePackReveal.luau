@@ -93,7 +93,7 @@ local HOLD_BY_RANK = {
 local HOLD_BY_BAND = { CHASE = 0.25, GOD = 0.50 }
 
 local function holdFor(card, band)
-	local rank = (Cards.RARITY_RANK and Cards.RARITY_RANK[(card and card.rarityId) or ""]) or 0
+	local rank = PackFX.rankOf(card, Cards, 0)
 	return math.max(HOLD_BY_RANK[rank] or 0, HOLD_BY_BAND[band] or 0)
 end
 
@@ -163,7 +163,7 @@ local function pullKey(card)
 	if f then
 		return f
 	end
-	local r = (Cards.RARITY_RANK and Cards.RARITY_RANK[(card and card.rarityId) or ""]) or 1
+	local r = PackFX.rankOf(card, Cards)
 	return RANK_ODDS[math.clamp(r, 1, #RANK_ODDS)]
 end
 
@@ -1253,7 +1253,7 @@ function MinePackReveal.mount(playerGui, opts)
 				titleL.Text = string.upper(tostring(card.name or ""))
 				titleL.TextColor3 = col
 				-- Legendary and up, or anything the odds call a god pull.
-				local rank = (Cards.RARITY_RANK and Cards.RARITY_RANK[card.rarityId or ""]) or 1
+				local rank = PackFX.rankOf(card, Cards)
 				if band == "GOD" or rank >= 5 then
 					showCrazy(col, band)
 				end
@@ -1671,7 +1671,7 @@ function MinePackReveal.mount(playerGui, opts)
 		Epic+ hits for tap-through like a normal pack.
 	]]
 	local function cardRank(card)
-		return (Cards.RARITY_RANK and Cards.RARITY_RANK[(card and card.rarityId) or ""]) or 1
+		return PackFX.rankOf(card, Cards)
 	end
 
 	--[[

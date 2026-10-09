@@ -93,13 +93,17 @@ is injected from `S_QUEUE`.
   end the climb. SSS lands about 0.85% of the time, per the comment on
   `UPGRADE_P`.
 - **Loot.** `MineLuckyBlocks.rollLoot(blockId, finalGrade)` picks the kind from
-  the block type and the grade band: pack, gems, dust, tool, scroll or pet.
+  the block type and the grade band: pack, gems, dust, tool, scroll, potion
+  or pet. Until 2026-10-08 the loot card listed only packs, gems, dust, tools,
+  scrolls and tokens. Pets and potions were granted but only appeared through
+  the `lootText` fallback, and a godly block always adds dust, so its pet
+  never showed. Both are rows now, with the pet first.
 - **The lucky screen** is the lucky path in `MineGradeReveal` (`LuckyReveal`).
-  It runs at DisplayOrder **95**: `opts.displayOrder or 95`, and `MineClient`
-  passes no override. `bca50ca` says it moved "the lucky screen" to 120, but the
-  diff changed `caseSpin` (the case reel), not this screen. Checked 2026-10-08.
-  It is unknown whether the owner's "inventory stays over the lucky block"
-  report is still live.
+  `MineClient` now passes `displayOrder = 120`, the same layer as the pack
+  reveal and the case reel. It had sat on the module default, 95, because
+  `bca50ca` meant to move it but changed `caseSpin` instead.
+- **The win** plays the tier stinger, and S and up add the `MineCelebrate`
+  title. It had no win sound before.
 
 ## Where it lives
 | file | role | key symbols |

@@ -203,8 +203,22 @@ function MineTraitView.mount(parent, opts)
 		round(btn, 8)
 		if afford then
 			btn.MouseButton1Click:Connect(function()
-				if opts.onTrait then
-					opts.onRollTrait(tool.uid)
+				-- It checked onTrait and then called onRollTrait, which nothing
+				-- passes, so the roll never fired. MineClient passes onTrait.
+				local fn = opts.onTrait or opts.onRollTrait
+				if fn then
+					local idle = btn.Text
+					btn.Active = false
+					btn.Text = "ROLLING..."
+					fn(tool.uid)
+					-- A refused roll sends only a toast and no repaint; never leave
+					-- the button stuck.
+					task.delay(3, function()
+						if btn.Parent and btn.Text == "ROLLING..." then
+							btn.Active = true
+							btn.Text = idle
+						end
+					end)
 				end
 			end)
 		end
