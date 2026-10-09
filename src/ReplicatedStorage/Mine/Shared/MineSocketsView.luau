@@ -661,6 +661,54 @@ function MineSocketsView.mount(parent, opts)
 			label(tray, "No loose runes. Roll one, or open a Rune Case.", 13, MUTED,
 				UDim2.fromOffset(0, 0), UDim2.fromOffset(360, 96))
 		end
+
+		--[[
+			THE RUNE CASES, WHERE THE LINE ABOVE HAS BEEN POINTING.
+
+			"open a Rune Case" named a shop that did not exist anywhere in the
+			UI. MineRunes.POUCHES is three priced SKUs -- 300 / 3,000 / 30,000
+			gems, the first one literally called "Rune Case" -- with a
+			finished server behind them: openRuneBox, Verbs.buyPouch, the
+			dispatch, and an entry in the rate-limit table. Nothing fired it.
+			The header on that verb says "Both pay gems, so there is a
+			non-Robux path to scrolls"; that path did not exist in the shipped
+			game, and scrolls came only from credits or the battle pass.
+
+			Drawn here rather than in a shop panel because this is where the
+			player is standing when they discover they have no runes, and it
+			is the screen that told them to go and buy one.
+
+			CRATES ARE NOT HERE. Verbs.buyCrate needs a target set
+			(`setId`) and refuses without one, so it needs a set picker --
+			more UI than a row of buttons, and a different job. The three
+			pouches need only a tier.
+		]]
+		if opts.onBuyPouch and type(Runes.POUCHES) == "table" then
+			local shelfY = 110
+			label(tray, "RUNE CASES", 12, MUTED, UDim2.fromOffset(0, shelfY),
+				UDim2.fromOffset(360, 16), FONT)
+			for i, row in ipairs(Runes.POUCHES) do
+				local gems = tonumber(row.gems) or 0
+				local afford = (tonumber(state.gems) or 0) >= gems
+				local b = mk("TextButton", {
+					BackgroundColor3 = afford and CARD_HI or CARD,
+					AutoButtonColor = afford,
+					Text = "",
+					Position = UDim2.fromOffset((i - 1) * 124, shelfY + 20),
+					Size = UDim2.fromOffset(116, 62),
+				}, tray)
+				round(b, 7)
+				label(b, tostring(row.name), 12, afford and TEXT or MUTED,
+					UDim2.fromOffset(8, 6), UDim2.new(1, -16, 0, 16), FONT).ZIndex = 35
+				label(b, string.format("%d rune%s", row.runes or 1, (row.runes or 1) == 1 and "" or "s"),
+					11, MUTED, UDim2.fromOffset(8, 24), UDim2.new(1, -16, 0, 14)).ZIndex = 35
+				label(b, string.format("%d gems", gems), 12, afford and GOLD or MUTED,
+					UDim2.fromOffset(8, 42), UDim2.new(1, -16, 0, 14), FONT).ZIndex = 35
+				b.MouseButton1Click:Connect(function()
+					opts.onBuyPouch(row.tier)
+				end)
+			end
+		end
 	end
 
 	local view = {}

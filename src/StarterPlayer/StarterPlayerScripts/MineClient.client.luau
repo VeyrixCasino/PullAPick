@@ -9112,6 +9112,17 @@ local function refreshEnchanter()
 	if not socketsCtl then
 		socketsCtl = RunesSockets.mount(enchantP, {
 			onSocket = ClientFns.socketRoute,
+			--[[
+				Buy a rune case. Verbs.buyPouch has been complete and
+				dispatched with no caller, while this very panel told the
+				player "No loose runes. Roll one, or open a Rune Case" --
+				naming a shop that existed only on the server. Three SKUs at
+				300 / 3,000 / 30,000 gems, and the only non-Robux path to
+				scrolls.
+			]]
+			onBuyPouch = function(tier)
+				net:FireServer("buyPouch", { tier = tier })
+			end,
 		})
 		if socketsCtl.root then
 			socketsCtl.root.Position = UDim2.fromOffset(12, 96)
