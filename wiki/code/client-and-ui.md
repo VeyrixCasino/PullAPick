@@ -139,6 +139,26 @@ The indigo surfaces stay as the base, with bright candy on top.
   - A phone starts collapsed, and modals collapse it.
 - **Window shell.** `panel(name)` (Enchanter, Planets, Rebirth, Merge, Scrapper)
   has a header band, a red candy close button, and pops in when opened.
+- **Every other window, through `MineUI.adoptOne`.** `MineUI.watch` already
+  restyles whatever the views build, so the candy look rides that pass rather
+  than an 8,000-line rewrite:
+  - Big surfaces (90 × 160 px or more) get the fat `OUTLINE`.
+  - A *coloured* button keeps its hue and gains candy shading and an outline.
+  - Buttons up to 90 × 360 px get juice.
+  - Text sizes inside the windows were **not** raised. They use fixed-width
+    labels, and a global bump would clip them.
+- **One UIScale per instance.** Roblox applies only the first UIScale under a
+  GuiObject (measured 2026-10-08). So `pop`, `juice` and `pulse` are channels
+  (NumberValues) under one shared `FxScale` and multiply together. Code that
+  adds its own UIScale to a kit-styled frame will be ignored; use `MineUI.pop`.
+- **Loading screen** (`MineLoadingScreen`) has an indigo backdrop, a bouncy
+  gold title with a fat outline, a chunky outlined bar, and bobbing art. Its
+  colours are inline, because it runs from ReplicatedFirst before MineTheme
+  has replicated.
+- **The reveal screens kept their own art.** That means `MinePackReveal`, the
+  case reel and the lucky screen, which already have strong per-rarity
+  visuals. The candy pass changed their sound, their celebration, their
+  navigation and their odds, not their look.
 
 ## Luck reveals: `MineCelebrate`
 

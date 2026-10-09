@@ -556,18 +556,51 @@ function MineUI.adoptOne(inst)
 
 	if isSurface and inst.BackgroundTransparency < 0.95 then
 		local bg = inst.BackgroundColor3
-		-- Saturated means it is carrying meaning. Leave it entirely alone.
-		if saturation(bg) < 0.22 then
+		local sat = saturation(bg)
+		local size = inst.AbsoluteSize
+		-- Saturated means it is carrying meaning. Its hue is never repainted.
+		if sat < 0.22 then
 			inst.BackgroundColor3 = nearestSurface(bg)
 		end
 		if inst.BorderSizePixel ~= 0 then
 			inst.BorderSizePixel = 0
 		end
 		if not inst:FindFirstChildOfClass("UICorner") then
-			MineUI.round(inst, inst.AbsoluteSize.Y >= 90 and T.RADIUS_LG or T.RADIUS)
+			MineUI.round(inst, size.Y >= 90 and T.RADIUS_LG or T.RADIUS)
 		end
-		if not inst:FindFirstChildOfClass("UIStroke") then
-			MineUI.edge(inst, T.LINE)
+		--[[
+			Candy pass (2026-10-08). Every window the views build gets the
+			chunky look without a rewrite:
+			  * a big surface (a panel, a card) gets the fat dark OUTLINE,
+			    the same edge the HUD and the window shells carry
+			  * a coloured BUTTON keeps its colour (that is its meaning) but
+			    gets candy shading and an outline, so it reads as pressable
+			  * a button up to a normal size gets juice: hover grow, press
+			    squash. Big clickable cards are left still, because a 300px
+			    card jumping on hover is noise.
+			Small surfaces keep the hairline: a fat edge on a progress-bar
+			fill or a dot would swallow it.
+		]]
+		local isButton = inst:IsA("GuiButton")
+		local hasStroke = inst:FindFirstChildOfClass("UIStroke") ~= nil
+		if not hasStroke then
+			if size.Y >= 90 and size.X >= 160 then
+				MineUI.edge(inst, T.OUTLINE, T.STROKE_CHUNKY).Transparency = 0
+			elseif isButton and sat >= 0.22 and size.Y >= 20 then
+				MineUI.edge(inst, T.OUTLINE, 2).Transparency = 0
+			else
+				MineUI.edge(inst, T.LINE)
+			end
+		end
+		if isButton and sat >= 0.22 and size.Y >= 20 and size.Y <= 90
+			and not inst:FindFirstChildOfClass("UIGradient") then
+			MineUI.new("UIGradient", {
+				Rotation = 90,
+				Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(0.76, 0.76, 0.76)),
+			}, inst)
+		end
+		if isButton and size.Y > 0 and size.Y <= 90 and size.X <= 360 then
+			MineUI.juice(inst)
 		end
 	end
 
