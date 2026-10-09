@@ -61,9 +61,9 @@ const KNOWN = {
   // KNOWN GAPS, each with the reason it is not simply wired.
   // (buyCrate was here until the set picker landed; the stale-entry check
   // below is what caught that its excuse had expired.)
-  friendRemove: "GAP: social is half-wired -- create and leave exist, invite/remove/msg do not",
-  socialInviteGroup: "GAP: social is half-wired",
-  socialGroupMsg: "GAP: social is half-wired",
+  friendRemove: "GAP: MineSocialView is PARKED (see DEAD_PANELS) -- the whole panel is unmounted, not just this button",
+  socialInviteGroup: "GAP: MineSocialView is PARKED -- see DEAD_PANELS",
+  socialGroupMsg: "GAP: MineSocialView is PARKED -- see DEAD_PANELS",
 };
 
 const srv = fs.readFileSync(
@@ -103,6 +103,62 @@ ok(unexplained.length === 0,
   unexplained.length > 0
     ? "UNEXPLAINED: " + unexplained.join(", ")
     : "no new orphans");
+
+//[[ A CALLER INSIDE A PANEL NOTHING MOUNTS IS NOT A CALLER.
+//
+// This check had a blind spot, found the hard way: it counted every
+// FireServer in every client file, including files that are never required by
+// anything. MineSocialView is 387 lines with ELEVEN FireServer calls --
+// friends, DMs, global chat, groups -- and nothing mounts it, so all eleven of
+// those verbs looked wired while being unreachable in the shipped game.
+//
+// That is the same both-halves-look-fine shape the whole check exists for, so
+// leaving it would be the joke writing itself.
+//
+// "Mounted" = some OTHER file names the module. A view module is reached by
+// require(... "Name"), so its own basename appearing outside its own file is
+// the signal. Entry-point scripts (.client / .server) are mounted by Roblox. ]]
+const unmounted = [];
+for (const f of files) {
+  if (f.includes("ServerScriptService") || f.includes("ServerStorage")) continue;
+  const base = path.basename(f, ".luau");
+  if (base.endsWith(".client") || base.endsWith(".server") || base.startsWith("_")) continue;
+  const self = fs.readFileSync(f, "utf8");
+  const fires = (self.match(/FireServer\(/g) || []).length;
+  if (fires === 0) continue;
+  let external = 0;
+  for (const g of files) {
+    if (g === f) continue;
+    if (fs.readFileSync(g, "utf8").includes(base)) external++;
+  }
+  if (external === 0) unmounted.push({ base, fires });
+}
+//[[ Panels that are deliberately not mounted, each with a reason -- same
+// contract as KNOWN above, and the same anti-rot rule below. ]]
+const DEAD_PANELS = {
+  MineSocialView: "DECISION OWED: 387 lines, complete, and the service behind it "
+    + "filters text through TextService:FilterStringAsync (fails closed). Mounting it "
+    + "launches friends, DMs, global chat and groups -- a product call, not a bug fix, "
+    + "so it is not switched on unilaterally.",
+  MineProfileView: "DECISION OWED: paired with MineSocialView -- the public profile is "
+    + "opened FROM the social panel, so it has nowhere to be reached from until that ships.",
+};
+const deadNew = unmounted.filter((u) => !DEAD_PANELS[u.base]);
+ok(deadNew.length === 0,
+  "every client panel that fires a verb is mounted, or says why not",
+  deadNew.length > 0
+    ? deadNew.map((u) => `${u.base} (${u.fires} FireServer calls, nothing mounts it)`).join("; ")
+    : `${unmounted.length} parked with a stated reason`);
+
+const stalePanels = Object.keys(DEAD_PANELS)
+  .filter((k) => !unmounted.some((u) => u.base === k)).sort();
+ok(stalePanels.length === 0,
+  "no stale entries in DEAD_PANELS",
+  stalePanels.length > 0 ? "now mounted, so drop them: " + stalePanels.join(", ") : "all still parked");
+
+for (const u of unmounted) {
+  console.log(`  info  PARKED PANEL ${u.base}: ${u.fires} FireServer calls unreachable`);
+}
 
 //[[ The other direction, which is cheaper to get wrong: a client firing a name
 // the dispatcher does not handle is a button that silently does nothing. ]]
