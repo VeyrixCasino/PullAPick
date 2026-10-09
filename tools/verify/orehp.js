@@ -28,7 +28,37 @@ const ok = (c, msg, detail) => {
   if (!c) fails++;
 };
 
+//[[ A CONSTANT INSIDE A COMMENT IS NOT A CONSTANT.
+//
+// This harness used to grep the raw source for `MineConfig.ORE_HP_MIN = ...`,
+// which matches a commented-out line exactly as well as a live one. An awk
+// line-delete in 4d7b8e7 removed the `]]` closing the comment above these
+// three constants, so for two commits all of ORE_HP_MULT/MIN/MAX were comment
+// text, oreHardness threw nil arithmetic on every ore block, and BOTH this
+// file and compile.js passed -- compile.js because the file still parses, and
+// this file because the text was still there to grep.
+//
+// So the source is stripped of block and line comments before anything is
+// asserted about it. "Declared" now means declared, not merely written down.
+//
+// Nested [=[ ]=] forms are not handled; MineConfig uses them (the ore-face
+// block) but never around a constant, and a stripper that tries to be clever
+// about nesting is how you get a stripper with its own bug. ]]
+const strip = (src) =>
+  src
+    .replace(/--\[\[[\s\S]*?\]\]/g, "")
+    .replace(/--\[=\[[\s\S]*?\]=\]/g, "")
+    .replace(/--[^\n]*/g, "");
+const CFG_CODE = strip(CFG);
+const SRV_CODE = strip(SRV);
+
 console.log("orehp: an ore's health is its own, times the layer");
+
+for (const k of ["ORE_HP_MULT", "ORE_HP_MIN", "ORE_HP_MAX", "ORE_HP_POW"]) {
+  ok(new RegExp(`MineConfig\\.${k}\\s*=\\s*[0-9.]`).test(CFG_CODE),
+    `${k} is live code, not comment text`,
+    "oreHardness reads it; nil here throws on every ore block");
+}
 
 ok(/function MineConfig\.oreHardness\(/.test(CFG), "oreHardness exists");
 ok(/function MineConfig\.oreBlockHp\(/.test(CFG), "oreBlockHp exists",
