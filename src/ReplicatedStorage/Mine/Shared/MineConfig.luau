@@ -2336,8 +2336,8 @@ end
 
 	Coins are one per point of HP, so a harder ore pays more for being harder.
 	That is already the rule for depth and it stays true across the roster.
-
-MineConfig.ORE_HP_MULT = 3        -- legacy flat value; oreHardness replaces it
+]]
+MineConfig.ORE_HP_MULT = 3       -- legacy flat value; oreHardness replaces it
 MineConfig.ORE_HP_MIN = 0.8       -- tier 1, before character
 MineConfig.ORE_HP_MAX = 4.0       -- tier 82, before character
 --[[
