@@ -104,6 +104,29 @@ is injected from `S_QUEUE`.
   `bca50ca` meant to move it but changed `caseSpin` instead.
 - **The win** plays the tier stinger, and S and up add the `MineCelebrate`
   title. It had no win sound before.
+- **Odds are shown (since 2026-10-08).** Blocks are sold for credits, which
+  Robux buy, and Roblox requires paid random items to show odds. They showed
+  none. Now:
+  - `MineLuckyBlocks.gradeOdds(start)` computes the final-grade odds
+    **exactly**, by walking the same climb `rollClash` runs.
+  - `oddsSheet` folds in `KIND_TABLES` and `PET_TABLES`. These are the loot
+    rows `rollLoot` now reads, moved out of inline code with the numbers
+    unchanged: 16,000 rolls matched the old code exactly.
+  - `MineLuckyOddsView` draws the sheet in three places: an ODDS button on
+    every credit-shop row, the bag tile's ⓘ (which used to open the unrelated
+    pack inspector), and an ODDS button on the lucky screen, for the grade
+    the block is on now.
+  - `tools/verify/lucky-odds.js` guards all of it.
+  - From F the grade odds are F 12.5%, D 18.8%, C 31.0%, B 23.0%, A 8.8%,
+    S 3.68%, SS 1.45% and SSS 0.85%. That matches the table in the module
+    comment.
+- **The Limited tab drew nothing past its first offer** until 2026-10-08.
+  `iconArt` was a local of the shop's Home branch, so it read as a nil global
+  in Limited and threw. All three lucky rows and the 10× bundle sat below that
+  line. It is module-level now.
+- **Naming, not fixed:** the shop row labels the Mythic block "Goldy Lucky
+  Block" (`MineLuckyBlocks.SHOP`), while its type is named "Mythic Lucky
+  Block". Probably meant "Godly". It is an owner call, so it was left alone.
 
 ## Where it lives
 | file | role | key symbols |

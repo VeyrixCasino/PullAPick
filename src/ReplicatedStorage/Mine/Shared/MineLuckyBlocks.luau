@@ -263,47 +263,150 @@ local function softToolId(rng, loTier, hiTier)
 	return byTier[tiers[rng:NextInteger(1, #tiers)]]
 end
 
+--[[
+	THE LOOT TABLES, AS DATA.
+
+	These were written inline in rollLoot. They are data now so the odds sheet
+	(oddsSheet, shown before you buy) reads the SAME rows the server rolls.
+	Lucky blocks are sold for credits, which are bought with Robux, and Roblox
+	requires paid random items to show their odds. A copy of these numbers in a
+	UI file would drift the day someone rebalances. One table cannot.
+
+	Rows are { weight, kind }. Keys are a grade band -- low (F, D), mid (C, B),
+	high (A, S), top (SS, SSS) -- or an exact grade where that grade has its own
+	row. An exact grade wins over its band (kindTable). The numbers are
+	unchanged from the inline version: tools/verify/lucky-odds.js holds them.
+]]
+MineLuckyBlocks.KIND_TABLES = {
+	lucky_block = {
+		low = { { 70, "pack" }, { 20, "gems" }, { 10, "dust" } },
+		mid = { { 62, "pack" }, { 23, "gems" }, { 15, "dust" } },
+		high = { { 52, "pack" }, { 24, "gems" }, { 19, "dust" }, { 5, "tool" } },
+		top = { { 48, "pack" }, { 22, "gems" }, { 20, "dust" }, { 10, "tool" }, { 2, "pet" } },
+	},
+	super_lucky_block = {
+		low = { { 48, "pack" }, { 18, "gems" }, { 18, "dust" }, { 16, "tool" } },
+		mid = { { 42, "pack" }, { 16, "gems" }, { 16, "dust" }, { 22, "tool" }, { 4, "scroll_white" } },
+		high = { { 36, "pack" }, { 14, "gems" }, { 16, "dust" }, { 26, "tool" }, { 8, "scroll_white" }, { 2, "pet" } },
+		SSS = { { 30, "pack" }, { 12, "gems" }, { 14, "dust" }, { 28, "tool" }, { 8, "scroll_black" }, { 8, "scroll_white" }, { 4, "pet" } },
+		top = { { 32, "pack" }, { 14, "gems" }, { 16, "dust" }, { 28, "tool" }, { 10, "scroll_white" } },
+	},
+	godly_lucky_block = {
+		low = { { 40, "pack" }, { 12, "gems" }, { 14, "dust" }, { 30, "tool" }, { 4, "scroll_omni" } },
+		mid = { { 36, "pack" }, { 10, "gems" }, { 12, "dust" }, { 36, "tool" }, { 6, "scroll_omni" } },
+		high = { { 32, "pack" }, { 8, "gems" }, { 12, "dust" }, { 36, "tool" }, { 12, "scroll_omni" }, { 3, "pet" } },
+		SS = { { 26, "pack" }, { 8, "gems" }, { 16, "dust" }, { 40, "tool" }, { 10, "scroll_omni" }, { 5, "pet" } },
+		top = { { 22, "pack" }, { 8, "gems" }, { 18, "chase" }, { 40, "tool" }, { 12, "scroll_omni" }, { 8, "pet" } },
+	},
+}
+
+-- Which kind rows a block rolls at a final grade. An unknown block id rolls the
+-- godly rows, as the inline version did (its `else` branch).
+function MineLuckyBlocks.kindTable(blockId, finalGrade)
+	local t = MineLuckyBlocks.KIND_TABLES[blockId] or MineLuckyBlocks.KIND_TABLES.godly_lucky_block
+	return t[finalGrade or "F"] or t[bandOf(finalGrade)]
+end
+
+-- The pet tier, once a block has rolled "pet". Legendary is the floor.
+MineLuckyBlocks.PET_TABLES = {
+	SSS = { { 600, "Legendary" }, { 300, "Mythic" }, { 80, "Divine" }, { 20, "Exotic" } },
+	SS = { { 720, "Legendary" }, { 230, "Mythic" }, { 45, "Divine" }, { 5, "Exotic" } },
+	S = { { 840, "Legendary" }, { 150, "Mythic" }, { 10, "Divine" } },
+	-- A and below: a Legendary is already the exception here.
+	default = { { 920, "Legendary" }, { 80, "Mythic" } },
+}
+
+function MineLuckyBlocks.petTable(finalGrade)
+	return MineLuckyBlocks.PET_TABLES[finalGrade or ""] or MineLuckyBlocks.PET_TABLES.default
+end
+
+--[[
+	EXACT final-grade odds for a block starting at `startGrade`.
+
+	The same process MineToolGrades.rollClash runs on the server with
+	UPGRADE_P: each step climbs one rank with that rank's chance, a miss counts,
+	MISS_LIMIT misses or the top rank ends it. That is a small tree, so it is
+	walked exactly rather than simulated. Returns { [grade] = probability }.
+]]
+function MineLuckyBlocks.gradeOdds(startGrade)
+	local order = Grades.ORDER
+	local maxRank = #order
+	local missLimit = Grades.MISS_LIMIT or 3
+	local out = {}
+	for _, g in ipairs(order) do
+		out[g] = 0
+	end
+	local function walk(rank, misses, prob)
+		if rank >= maxRank or misses >= missLimit then
+			out[order[rank]] += prob
+			return
+		end
+		local p = Grades.upgradeChance(rank, MineLuckyBlocks.UPGRADE_P)
+		walk(rank + 1, misses, prob * p)
+		walk(rank, misses + 1, prob * (1 - p))
+	end
+	walk(math.clamp(Grades.rankOf(startGrade or "F"), 1, maxRank), 0, 1)
+	return out
+end
+
+--[[
+	Everything a player should see before buying: the final-grade odds, the
+	chance of each kind of reward, and the pet tier odds. All three come from
+	the tables rollLoot uses. "chase" is paid out as stardust (rollLoot rewrites
+	it), so it is counted as stardust here.
+]]
+function MineLuckyBlocks.oddsSheet(blockId, startGrade)
+	local grades = MineLuckyBlocks.gradeOdds(startGrade)
+	local kinds, pets = {}, {}
+	for grade, pg in pairs(grades) do
+		if pg > 0 then
+			local rows = MineLuckyBlocks.kindTable(blockId, grade)
+			local total = 0
+			for _, r in ipairs(rows) do
+				total += r[1]
+			end
+			for _, r in ipairs(rows) do
+				local kind = (r[2] == "chase") and "dust" or r[2]
+				local share = pg * r[1] / total
+				kinds[kind] = (kinds[kind] or 0) + share
+				if kind == "pet" then
+					local pt = MineLuckyBlocks.petTable(grade)
+					local ptot = 0
+					for _, x in ipairs(pt) do
+						ptot += x[1]
+					end
+					for _, x in ipairs(pt) do
+						pets[x[2]] = (pets[x[2]] or 0) + share * x[1] / ptot
+					end
+				end
+			end
+		end
+	end
+	return {
+		grades = grades,
+		kinds = kinds,
+		pets = pets,
+		-- Mythic blocks add a stardust kicker on EVERY open, on top of the roll.
+		bonusDust = blockId == "godly_lucky_block",
+	}
+end
+
+MineLuckyBlocks.KIND_NAMES = {
+	pack = "Card packs",
+	gems = "Gems",
+	dust = "Stardust",
+	tool = "A pickaxe",
+	pet = "A pet (Legendary or better)",
+	scroll_white = "White scroll",
+	scroll_black = "Black scroll",
+	scroll_omni = "Omni scroll",
+}
+
 function MineLuckyBlocks.rollLoot(blockId, finalGrade, rng)
 	rng = rng or Random.new()
 	local def = MineLuckyBlocks.TYPES[blockId] or MineLuckyBlocks.TYPES.lucky_block
 	local band = bandOf(finalGrade)
-	local kind
-
-	if blockId == "lucky_block" then
-		if band == "low" then
-			kind = weighted(rng, { { 70, "pack" }, { 20, "gems" }, { 10, "dust" } })
-		elseif band == "mid" then
-			kind = weighted(rng, { { 62, "pack" }, { 23, "gems" }, { 15, "dust" } })
-		elseif band == "high" then
-			kind = weighted(rng, { { 52, "pack" }, { 24, "gems" }, { 19, "dust" }, { 5, "tool" } })
-		else
-			kind = weighted(rng, { { 48, "pack" }, { 22, "gems" }, { 20, "dust" }, { 10, "tool" }, { 2, "pet" } })
-		end
-	elseif blockId == "super_lucky_block" then
-		if band == "low" then
-			kind = weighted(rng, { { 48, "pack" }, { 18, "gems" }, { 18, "dust" }, { 16, "tool" } })
-		elseif band == "mid" then
-			kind = weighted(rng, { { 42, "pack" }, { 16, "gems" }, { 16, "dust" }, { 22, "tool" }, { 4, "scroll_white" } })
-		elseif band == "high" then
-			kind = weighted(rng, { { 36, "pack" }, { 14, "gems" }, { 16, "dust" }, { 26, "tool" }, { 8, "scroll_white" }, { 2, "pet" } })
-		elseif finalGrade == "SSS" then
-			kind = weighted(rng, { { 30, "pack" }, { 12, "gems" }, { 14, "dust" }, { 28, "tool" }, { 8, "scroll_black" }, { 8, "scroll_white" }, { 4, "pet" } })
-		else
-			kind = weighted(rng, { { 32, "pack" }, { 14, "gems" }, { 16, "dust" }, { 28, "tool" }, { 10, "scroll_white" } })
-		end
-	else
-		if band == "low" then
-			kind = weighted(rng, { { 40, "pack" }, { 12, "gems" }, { 14, "dust" }, { 30, "tool" }, { 4, "scroll_omni" } })
-		elseif band == "mid" then
-			kind = weighted(rng, { { 36, "pack" }, { 10, "gems" }, { 12, "dust" }, { 36, "tool" }, { 6, "scroll_omni" } })
-		elseif band == "high" then
-			kind = weighted(rng, { { 32, "pack" }, { 8, "gems" }, { 12, "dust" }, { 36, "tool" }, { 12, "scroll_omni" }, { 3, "pet" } })
-		elseif finalGrade == "SS" then
-			kind = weighted(rng, { { 26, "pack" }, { 8, "gems" }, { 16, "dust" }, { 40, "tool" }, { 10, "scroll_omni" }, { 5, "pet" } })
-		else
-			kind = weighted(rng, { { 22, "pack" }, { 8, "gems" }, { 18, "chase" }, { 40, "tool" }, { 12, "scroll_omni" }, { 8, "pet" } })
-		end
-	end
+	local kind = weighted(rng, MineLuckyBlocks.kindTable(blockId, finalGrade))
 
 	local out = { blockId = blockId, blockName = def.name, finalGrade = finalGrade, kind = kind }
 
@@ -436,18 +539,7 @@ function MineLuckyBlocks.rollLoot(blockId, finalGrade, rng)
 			exist at all below SS. Legendary is the bread and butter; Mythic is the
 			good day. The ceiling opens up as the grade climbs.
 		]]
-		local petTable
-		if finalGrade == "SSS" then
-			petTable = { { 600, "Legendary" }, { 300, "Mythic" }, { 80, "Divine" }, { 20, "Exotic" } }
-		elseif finalGrade == "SS" then
-			petTable = { { 720, "Legendary" }, { 230, "Mythic" }, { 45, "Divine" }, { 5, "Exotic" } }
-		elseif finalGrade == "S" then
-			petTable = { { 840, "Legendary" }, { 150, "Mythic" }, { 10, "Divine" } }
-		else
-			-- A and below: a Legendary is already the exception here.
-			petTable = { { 920, "Legendary" }, { 80, "Mythic" } }
-		end
-		out.petTier = weighted(rng, petTable)
+		out.petTier = weighted(rng, MineLuckyBlocks.petTable(finalGrade))
 	elseif kind == "scroll_white" then
 		out.scrolls = { white = 1 }
 	elseif kind == "scroll_black" then

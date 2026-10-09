@@ -96,6 +96,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 36 checks now (`
 | `ladder-climbable` | the ore ladder reaches tier 82 with no zone deadlock, and the Exotic band stays rare |
 | `heldtool` | the held forged-tool row carries `oreTier` and `oreId`, so `MineBreaking.toolBreakingPower` resolves it from its ore, not as 1. **Executes** the real function against the real row shape, keeps the old broken row to prove it resolves to 1, and asserts both roster-migration guards are `<` not `~=`. |
 | `layers` **L** | two boost layers, and the second multiplies the first. The owner's 100 → 300 example. |
+| `lucky-odds` **L** | lucky blocks show their odds, and those odds are the odds rolled. `gradeOdds` sums to 1 from every start and matches 200,000 real `rollClash` rolls. `rollLoot` draws match `KIND_TABLES`. The sheet adds up. The credit shop, the bag's ⓘ and the lucky screen all show `MineLuckyOddsView`, with no percentages typed in by hand. Added 2026-10-08, because blocks are sold for Robux-bought credits and showed no odds. |
 | `minemap-runs` | `mine-map.html` actually executes under a DOM stub |
 | `oreforge` **L** | a forged tool IS its ore: the frame is derived from the ore's tier |
 | `orepacks` **L** | the preconditions for `Dig.bankOrePacks`: no pack bigger than a tier-1 pouch, and the midpoint pays fairly |

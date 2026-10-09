@@ -8514,9 +8514,13 @@ function rollsTab.build(parent)
 		predicate, so adding the next token row cannot leave one of them
 		paying gems.
 	]]
-	local function spendsTokens(kind)
+	-- On rollsTab, not a local of build(): rollsTab.paint calls it too, and as
+	-- a local here it was a nil global there. So the Summon tab threw on every
+	-- repaint (found by luau-analyze, 2026-10-08).
+	function rollsTab.spendsTokens(kind)
 		return kind == "temper" or kind == "gear"
 	end
+	local spendsTokens = rollsTab.spendsTokens
 
 	local function row(title, sub, art, unit, y, tint, fire, counts, kind)
 		counts = counts or { 1, 10, 100 }
@@ -8657,6 +8661,7 @@ function rollsTab.paint()
 	if not rollsTab.root or not snap then
 		return
 	end
+	local spendsTokens = rollsTab.spendsTokens
 	-- Not a top-level local (see rollsTab.build); as a bare global it was nil,
 	-- so this errored on its first line and the buttons never repainted.
 	local Icons = require(shared:WaitForChild("MineIcons"))

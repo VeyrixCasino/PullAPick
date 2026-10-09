@@ -144,3 +144,27 @@ The owner said "fix all/continue" to the list from the candy pass. Fixed:
   [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md).
 
 Updated: traits, skins-cases-and-temper, chests-and-lucky-blocks, client-and-ui, log.
+
+## [2026-10-08] ingest | lucky-block odds, and three crashes luau-analyze found
+
+Lucky blocks are sold for Robux-bought credits and showed no odds. Now:
+
+- The odds are computed exactly from the real climb and loot tables.
+- They are shown in three places: the shop row, the bag's ⓘ and the lucky
+  screen.
+- They are guarded by the new check `lucky-odds`.
+
+The loot rows moved into data unchanged: 16,000 seeded rolls matched the old
+inline code exactly.
+
+Running luau-analyze over the touched files found reads of undefined globals:
+
+- `iconArt`: the shop's whole Limited tab stopped after its first offer.
+- `spendsTokens`: the Enchanter's Summon tab threw on every repaint.
+- `CARD_HI` and `DEAD`: a selected tile showed the wrong colour.
+- `opts`: `caseSpin` read a global. Harmless, now a parameter.
+
+`joint` in MineClient is still an unknown global, but it sits in dead code
+(the comment above it says there is no Motor6D), so it was left alone.
+
+Updated: chests-and-lucky-blocks, verify-suite, log.

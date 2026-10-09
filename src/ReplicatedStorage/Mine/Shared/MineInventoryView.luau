@@ -150,6 +150,25 @@ local function mk(class, props, parent)
 	return o
 end
 
+--[[
+	An icon from MineIcons, centred in `host` and nudged by dx/dy.
+
+	Module-level on purpose. It was a local inside the shop's Home branch, and
+	the Limited branch calls it for offers that carry an icon. There it read a
+	nil global and threw "attempt to call a nil value", which killed the rest
+	of the Limited tab: every lucky-block row and the 10x bundle never drew.
+]]
+local function iconArt(host, key, size, dx, dy, z)
+	local img = Icons.image and Icons.image(key)
+	if img then
+		mk("ImageLabel", {
+			BackgroundTransparency = 1, Image = img, ScaleType = Enum.ScaleType.Fit,
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, dx or 0, 0.5, dy or 0),
+			Size = UDim2.fromOffset(size, size), ZIndex = z or 5,
+		}, host)
+	end
+end
+
 local function round(o, r)
 	local u = Instance.new("UICorner")
 	u.CornerRadius = UDim.new(0, r or 8)
@@ -1571,6 +1590,46 @@ function MineInventoryView.mount(parent, opts)
 	end
 
 	--[[
+		LUCKY BLOCK ODDS, before you buy.
+
+		Lucky blocks are sold for credits, which are bought with Robux, and Roblox
+		requires a paid random item to show its odds. Owner, 2026-10-08: "fix all".
+		The packs had their inspector; the blocks showed nothing.
+
+		Every number here comes from MineLuckyBlocks.oddsSheet, which reads the
+		same tables rollLoot rolls, computed exactly rather than simulated
+		(tools/verify/lucky-odds.js proves both). Nothing is typed in by hand,
+		so a rebalance moves the screen with it.
+	]]
+	local function showLuckyOdds(blockId, startGrade)
+		if inspectP then
+			inspectP:Destroy()
+		end
+		-- The sheet itself is MineLuckyOddsView, shared with the lucky screen.
+		local ok, View = pcall(function()
+			return require(shared:WaitForChild("MineLuckyOddsView"))
+		end)
+		if ok and View then
+			inspectP = View.show(root, blockId, startGrade or "F", {
+				onClose = function()
+					inspectP = nil
+				end,
+			})
+		end
+	end
+
+	-- The ⓘ on a bag stack. A lucky block has no pack odds, and the pack
+	-- inspector would fall back to an unrelated card table, so it gets its own
+	-- sheet at the grade it actually starts on.
+	local function inspectStack(g)
+		if g and g.kind == "lucky_block" then
+			showLuckyOdds(g.blockId or g.packId, g.startGrade or "F")
+			return
+		end
+		showPackInspect(g)
+	end
+
+	--[[
 		The circled i.
 
 		The tile is already clickable anywhere, but a thing that is clickable
@@ -1655,7 +1714,7 @@ function MineInventoryView.mount(parent, opts)
 		end
 
 		b.MouseButton1Click:Connect(function()
-			showPackInspect(g)
+			inspectStack(g)
 		end)
 		return b
 	end
@@ -1808,7 +1867,7 @@ function MineInventoryView.mount(parent, opts)
 					ZIndex = 5,
 				}, tile)
 				hit.MouseButton1Click:Connect(function()
-					showPackInspect(g)
+					inspectStack(g)
 				end)
 				infoBadge(tile, g)
 			end
@@ -2035,7 +2094,7 @@ function MineInventoryView.mount(parent, opts)
 						end
 						return
 					end
-					showPackInspect(g)
+					inspectStack(g)
 				end)
 				infoBadge(tile, g)
 				if (g.luckPct or 0) > 0 then
@@ -4531,7 +4590,7 @@ function MineInventoryView.mount(parent, opts)
 				for _, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
 					on = on or (eq[slot] == g.id)
 				end
-				local tile = mk("Frame", { BackgroundColor3 = on and CARD_HI or BG2, LayoutOrder = i }, grid)
+				local tile = mk("Frame", { BackgroundColor3 = on and T.CARD_HI or BG2, LayoutOrder = i }, grid)
 				round(tile, 8)
 				stroke(tile, on and 2 or 1, on and GREEN or col)
 				local well = mk("Frame", {
@@ -4566,7 +4625,7 @@ function MineInventoryView.mount(parent, opts)
 					UDim2.fromOffset(8, 102), UDim2.new(1, -16, 0, 28), FONT)
 				local btn = mk("TextButton", {
 					AutoButtonColor = true,
-					BackgroundColor3 = on and DEAD or GREEN,
+					BackgroundColor3 = on and T.DEAD or GREEN,
 					Font = FONT,
 					TextSize = 13,
 					TextColor3 = on and TEXT or Color3.fromRGB(10, 26, 16),
@@ -5713,16 +5772,8 @@ function MineInventoryView.mount(parent, opts)
 					pcall(PackFX.drawSealed, slot, pid, w, h)
 				end
 			end
-			local function iconArt(host, key, size, dx, dy, z)
-				local img = Icons.image and Icons.image(key)
-				if img then
-					mk("ImageLabel", {
-						BackgroundTransparency = 1, Image = img, ScaleType = Enum.ScaleType.Fit,
-						AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, dx or 0, 0.5, dy or 0),
-						Size = UDim2.fromOffset(size, size), ZIndex = z or 5,
-					}, host)
-				end
-			end
+			-- iconArt is module-level now (beside round): the Limited tab calls it
+			-- too, and as a local of THIS branch it was a nil global there.
 
 			-- HERO
 			local hero = mk("TextButton", {
@@ -6093,6 +6144,17 @@ function MineInventoryView.mount(parent, opts)
 				buy.MouseButton1Click:Connect(function()
 					cartAdd("lucky_block", b.id, true, 1)
 				end)
+				local oddsB = mk("TextButton", {
+					AutoButtonColor = true, BackgroundColor3 = BG2,
+					Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(255, 196, 64), Text = "ODDS",
+					AnchorPoint = Vector2.new(1, 0.5),
+					Position = UDim2.new(1, -140, 0.5, 0), Size = UDim2.fromOffset(62, 30),
+				}, row)
+				round(oddsB, 7)
+				stroke(oddsB, 1, Color3.fromRGB(255, 196, 64))
+				oddsB.MouseButton1Click:Connect(function()
+					showLuckyOdds(b.id, "F")
+				end)
 			end
 
 			order += 1
@@ -6110,8 +6172,20 @@ function MineInventoryView.mount(parent, opts)
 				if LuckyBlocks.blockStars then
 					local stars = starRow(row, LuckyBlocks.blockStars(rowDef.id, "F"), 8, 13)
 					stars.AnchorPoint = Vector2.new(1, 0)
-					stars.Position = UDim2.new(1, -140, 0, 24)
+					stars.Position = UDim2.new(1, -206, 0, 24)
 				end
+				-- Odds before you buy: a paid random item has to show them.
+				local oddsB = mk("TextButton", {
+					AutoButtonColor = true, BackgroundColor3 = BG2,
+					Font = FONT, TextSize = 13, TextColor3 = col, Text = "ODDS",
+					AnchorPoint = Vector2.new(1, 0.5),
+					Position = UDim2.new(1, -130, 0.5, 0), Size = UDim2.fromOffset(62, 30),
+				}, row)
+				round(oddsB, 7)
+				stroke(oddsB, 1, col)
+				oddsB.MouseButton1Click:Connect(function()
+					showLuckyOdds(rowDef.id, "F")
+				end)
 				local buy = mk("TextButton", {
 					AutoButtonColor = true, BackgroundColor3 = BG3,
 					Font = FONT, TextSize = 13, TextColor3 = TEXT, Text = "",

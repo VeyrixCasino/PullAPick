@@ -484,6 +484,19 @@ function MineGradeReveal.lucky(parent, opts)
 	-- Clear of Roblox's own bottom bar.
 	local gradeBtn = button("GRADE UP", Color3.fromRGB(64, 120, 220), UDim2.fromScale(0.5, 0.9))
 	local skipBtn = button("SKIP", Color3.fromRGB(70, 74, 88), UDim2.fromScale(0.5, 0.9))
+	--[[
+		ODDS, top-left, opposite the close button. A paid random item shows its
+		odds, and Grade Up (gems) changes them, so this sheet is for the grade
+		the block is on RIGHT NOW (st.grade). Only while a block waits to open.
+	]]
+	local oddsBtn = mk("TextButton", {
+		Name = "Odds", BackgroundColor3 = Color3.fromRGB(30, 30, 36), BackgroundTransparency = 0.2,
+		Font = FONT, Text = "ODDS", TextSize = 18, TextColor3 = Color3.new(1, 1, 1),
+		Position = UDim2.fromOffset(16, 16), Size = UDim2.fromOffset(96, 44), ZIndex = 12, Visible = false,
+	}, sg)
+	mk("UICorner", { CornerRadius = UDim.new(0, 12) }, oddsBtn)
+	mk("UIStroke", { Thickness = 2, Transparency = 0.4, Color = Color3.new(1, 1, 1), ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, oddsBtn)
+	local oddsSheet
 	local closeBtn = mk("TextButton", {
 		BackgroundColor3 = Color3.fromRGB(30, 30, 36), BackgroundTransparency = 0.2, BorderSizePixel = 0,
 		Font = FONT, Text = "X", TextScaled = true, TextColor3 = Color3.new(1, 1, 1), AnchorPoint = Vector2.new(1, 0),
@@ -739,6 +752,7 @@ function MineGradeReveal.lucky(parent, opts)
 		local blk = st.block
 		local price = (st.mode == "ready" and blk and opts.priceOf) and opts.priceOf(blk) or nil
 		gradeBtn.Visible = price ~= nil
+		oddsBtn.Visible = st.mode == "ready" and blk ~= nil
 		if price then
 			local afford = ((opts.gems and opts.gems()) or 0) >= price
 			gradeBtn.Text = "GRADE UP  " .. fmt(price) .. " GEMS"
@@ -788,6 +802,8 @@ function MineGradeReveal.lucky(parent, opts)
 		setTitle(payload.blockId, nil)
 		card.Visible = false
 		gradeBtn.Visible = false
+		oddsBtn.Visible = false
+		if oddsSheet then oddsSheet:Destroy() oddsSheet = nil end
 		skipBtn.Visible = true
 		skipBtn.Text = (#st.queue > 0) and ("SKIP ALL  (" .. (#st.queue + 1) .. ")") or "SKIP"
 		local steps = payload.info and payload.info.steps or {}
@@ -1020,6 +1036,8 @@ function MineGradeReveal.lucky(parent, opts)
 		if st.mode == "ready" then
 			st.mode = "waiting"
 			gradeBtn.Visible = false
+			oddsBtn.Visible = false
+			if oddsSheet then oddsSheet:Destroy() oddsSheet = nil end
 			say("OPENING...")
 			anim.punchAt, anim.punch = os.clock(), 0.1
 			sfx("lucky")
@@ -1126,6 +1144,27 @@ function MineGradeReveal.lucky(parent, opts)
 	ctl.collect = collect
 	collectBtn.MouseButton1Click:Connect(collect)
 
+	oddsBtn.MouseButton1Click:Connect(function()
+		local blk = st.block
+		if not blk or st.mode ~= "ready" then
+			return
+		end
+		if oddsSheet then
+			oddsSheet:Destroy()
+		end
+		local okV, View = pcall(function()
+			return require(script.Parent:WaitForChild("MineLuckyOddsView"))
+		end)
+		if okV and View then
+			oddsSheet = View.show(sg, blk.blockId, st.grade, {
+				zIndex = 40,
+				onClose = function()
+					oddsSheet = nil
+				end,
+			})
+		end
+	end)
+
 	gradeBtn.MouseButton1Click:Connect(function()
 		if st.mode ~= "ready" or st.gradeBusy or not st.block then
 			return
@@ -1173,6 +1212,8 @@ function MineGradeReveal.lucky(parent, opts)
 		ctl.show(block)
 		st.mode = "manyWait"
 		gradeBtn.Visible = false
+		oddsBtn.Visible = false
+		if oddsSheet then oddsSheet:Destroy() oddsSheet = nil end
 		say("OPENING " .. count .. "...")
 		if opts.onOpen then
 			opts.onOpen(block, count)
@@ -1240,7 +1281,7 @@ end
 --------------------------------------------------------------------------------
 local TILE_W, TILE_GAP, SPIN_TIME = 132, 8, 5.4
 
-function MineGradeReveal.caseSpin(parent)
+function MineGradeReveal.caseSpin(parent, opts)
 	local INK = Color3.fromRGB(24, 26, 38)
 	local CARD = Color3.fromRGB(46, 50, 68)
 	local CARD_HI = Color3.fromRGB(58, 66, 96)
