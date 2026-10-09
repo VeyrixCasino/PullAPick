@@ -3220,6 +3220,13 @@ local InventoryView = require(shared:WaitForChild("MineInventoryView"))
 invCtl = InventoryView.mount(gui, {
 	-- One rung of the ITEM bag (+100 slots for gems). Not the backpack.
 	onBuyItemSlots = function() net:FireServer("buy", "itemSlots") end,
+	--[[
+		Sign one charter level. Verbs.buyCharter has existed, complete and
+		dispatched, with no caller -- four permanent gem upgrades the currency
+		panel named to the player and nothing could buy. The verb takes a bare
+		id, not a table.
+	]]
+	onBuyCharter = function(id) net:FireServer("buyCharter", tostring(id or "")) end,
 	paintCard = function(parent, card, w) return paintCard(parent, card, w) end,
 	petViewport = function(parent, card, pos, size)
 		return ClientFns.petViewport(parent, card, pos, size)

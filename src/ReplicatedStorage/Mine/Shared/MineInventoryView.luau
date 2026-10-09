@@ -6640,6 +6640,67 @@ function MineInventoryView.mount(parent, opts)
 			label(row2, "Gems", 15, GEM, UDim2.fromOffset(14, 6), UDim2.new(1, -28, 0, 20), FONT)
 			label(row2, shortNum(state.gems or 0) .. " held  --  chests, and the charter spends them", 12, MUTED,
 				UDim2.fromOffset(14, 28), UDim2.new(1, -28, 0, 18))
+
+			--[[
+				THE CHARTER, WHICH THIS PANEL HAS BEEN ADVERTISING WITH NO WAY
+				TO BUY IT.
+
+				The line directly above says "the charter spends them". The
+				server side is complete and has been for a while --
+				Verbs.buyCharter, the dispatch, the bonus fold in boosts(),
+				`charter` in blank() and in the snapshot -- and NOTHING
+				anywhere fired it. Four permanent gem upgrades, 14,000 to
+				34,000 each and 14 million across all of them maxed, named to
+				the player and unreachable.
+
+				It belongs here rather than in the shop because it is the one
+				gem sink that does NOT reset on rebirth (MineConfig: "the
+				designed non-resetting gem sink"), and this is the panel that
+				explains what each currency is for.
+
+				Prices come from C.charterCost, which the server charges
+				through, so the button cannot quote a number the verb will not
+				honour -- the mistake the SCRAP button made.
+			]]
+			local okCh, CharterRows = pcall(function()
+				return C.CHARTER
+			end)
+			if okCh and type(CharterRows) == "table" and #CharterRows > 0 and opts.onBuyCharter then
+				order += 1
+				sectionHeader("THE CHARTER  ·  permanent, survives rebirth", order)
+				local held = (type(state.charter) == "table") and state.charter or {}
+				for _, row in ipairs(CharterRows) do
+					order += 1
+					local lvl = math.floor(tonumber(held[row.id]) or 0)
+					local maxed = lvl >= (tonumber(row.max) or 0)
+					local cost = (not maxed) and C.charterCost(row, lvl) or 0
+					local afford = (tonumber(state.gems) or 0) >= cost
+					local r = panelRow(body, 52, order)
+					label(r, string.format("%s   %d / %d", row.name, lvl, row.max), 15,
+						maxed and GOLD or TEXT, UDim2.fromOffset(14, 6), UDim2.new(1, -150, 0, 20), FONT)
+					label(r, string.format("+%d%% %s per level", math.floor((tonumber(row.per) or 0) * 100 + 0.5),
+						tostring(row.stat)), 12, MUTED,
+						UDim2.fromOffset(14, 28), UDim2.new(1, -150, 0, 18))
+					if not maxed then
+						local btn = mk("TextButton", {
+							AutoButtonColor = afford, BackgroundColor3 = afford and BG3 or BG2,
+							Font = FONT, TextSize = 13, TextColor3 = afford and TEXT or MUTED,
+							Text = "",
+							AnchorPoint = Vector2.new(1, 0.5),
+							Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(124, 32),
+						}, r)
+						round(btn, 7)
+						stroke(btn, 1, afford and GEM or BG3)
+						paintCostButton(btn, "SIGN", cost, "gems", afford and TEXT or MUTED)
+						btn.MouseButton1Click:Connect(function()
+							opts.onBuyCharter(row.id)
+						end)
+					else
+						label(r, "signed", 13, GOLD, UDim2.new(1, -120, 0.5, -9),
+							UDim2.fromOffset(108, 18), FONT, Enum.TextXAlignment.Right)
+					end
+				end
+			end
 		else
 			-- VIP tab (default when activeTab is vip / unknown shop tab)
 			if activeTab == "vfx" then
