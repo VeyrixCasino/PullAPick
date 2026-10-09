@@ -16991,8 +16991,46 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				return
 			end
 			qty = math.min(qty, left)
+			--[[
+				POTIONS MAY BE PAID FOR IN COINS. PROPOSAL §0 line 23.
+
+				The coin economy has two live sinks -- the 306-coin wooden
+				pickaxe ladder and rebirth -- against twelve faucets, one of
+				them a coin per point of block HP. A potion is the repeatable
+				sink: bought, drunk, gone, bought again, and it never closes
+				the way a one-off upgrade does.
+
+				POTIONS ONLY. A pack bought with coins would undercut the
+				credit shop, which is the Robux path, so `coins` is refused on
+				anything that is not a potion rather than silently falling
+				back to dust -- a player who asked to pay coins and was
+				charged dust would be right to be annoyed.
+
+				The price is derived (MinePotions.coinPrice = dust x 40), not
+				read off the offer row, so a client cannot name its own
+				currency and get the dust number charged in coins.
+			]]
+			local wantCoins = (type(payload) == "table") and (payload.currency == "coins")
+			local isPotion = (offer.kind or "pack") == "potion"
+			if wantCoins and not isPotion then
+				net:FireClient(plr, "toast", "Only potions can be bought with coins")
+				return
+			end
 			local pay = offer.price * qty
-			if (p.dust or 0) < pay then
+			if wantCoins then
+				local okP, Pot = pcall(function()
+					return require(shared:WaitForChild("MinePotions"))
+				end)
+				if not okP or not Pot or not Pot.coinPrice then
+					net:FireClient(plr, "toast", "Coin price unavailable right now")
+					return
+				end
+				pay = Pot.coinPrice(id) * qty
+				if (p.coins or 0) < pay then
+					net:FireClient(plr, "toast", "Need " .. pay .. " coins")
+					return
+				end
+			elseif (p.dust or 0) < pay then
 				net:FireClient(plr, "toast", "Need " .. pay .. " stardust")
 				return
 			end
@@ -17002,13 +17040,20 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				snap(plr)
 				return
 			end
-			p.dust -= pay
+			-- Charged AFTER the stock take, so a sold-out shelf cannot bill
+			-- either wallet.
+			if wantCoins then
+				p.coins -= pay
+			else
+				p.dust -= pay
+			end
 			p.dustShop.bought[id] = already + qty
-			if (offer.kind or "pack") == "potion" then
+			if isPotion then
 				pcall(function()
 					require(shared:WaitForChild("MinePotions")).grant(p, id, qty)
 				end)
-				net:FireClient(plr, "toast", "Bought " .. qty .. "x " .. (offer.name or id) .. " for stardust")
+				net:FireClient(plr, "toast", "Bought " .. qty .. "x " .. (offer.name or id)
+					.. (wantCoins and " for coins" or " for stardust"))
 			else
 				p.packs = p.packs or {}
 				local def = Packs.PACK_BY_ID and Packs.PACK_BY_ID[id]
