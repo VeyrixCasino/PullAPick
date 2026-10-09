@@ -5178,6 +5178,10 @@ skillCtl = SkillView.mount(gui, {
 	inCloudsCheck = function() return C.playerInClouds(player) end,
 	onBuy = function(id) net:FireServer("skillBuy", id) end,
 	onPreset = function(i) net:FireServer("skillPreset", i) end,
+	-- Buy the second preset slot, 25 skill points, in the Clouds.
+	-- Verbs.skillBuySlot was complete and dispatched with no caller, so the
+	-- padlock on that button was decorative.
+	onBuyPresetSlot = function() net:FireServer("skillBuySlot") end,
 	onReset = function() net:FireServer("skillReset") end,
 	onSell = function() net:FireServer("skillSell") end,
 	onBuyBack = function() net:FireServer("skillBuyBack") end,
