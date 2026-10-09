@@ -826,16 +826,48 @@ function buildDeck(zone, seam, desk)
 	sell.CanCollide = false
 	addPrompt(sell, "Sell (depth)")
 
-	local shop = makePad(folder, "shop_depth", Vector3.new(size * 3.2, size * 2.2, size * 3.2),
-		CFrame.new(origin.X + offset, y + size, origin.Z - offset), {
-			Machine = "depth_shop",
-			DepthShop = desk,
-			Seam = seam,
-			ZoneId = zone.id,
-		})
-	shop.Transparency = 1
-	shop.CanCollide = false
-	addPrompt(shop, "Depth shop")
+	--[[
+		NO COUNTER WHERE THERE IS NOTHING TO SELL.
+
+		MineDepthShop.catalog returns {} for any desk past seam 2500 -- "sell
+		/ elevator only", by its own comment -- but this built the prompt at
+		every seam regardless, and MineDepth.SEAMS runs to 10,000. So a deep
+		player walked up to TEN counters at 3000, 3500, 4000, 4500, 5000,
+		6000, 7000, 8000, 9000 and 10,000, pressed each one, and got "Empty
+		desk / Nothing in stock here yet".
+
+		The view degrading gracefully is what kept this out of the bug list;
+		it is still ten promises the game does not keep. The sell pad and the
+		elevator above and below stay, because those are what an outpost past
+		2500 is actually for.
+
+		Asked of MineDepthShop rather than hardcoding 2500 here, so the rule
+		lives in one place and a future restock opens these automatically.
+	]]
+	local hasStock = true
+	do
+		-- Required here rather than at the top: this is the only use in the
+		-- file, and a failure to load must leave the counter standing (an
+		-- empty desk beats a missing one) rather than silently removing it.
+		local okCat, cat = pcall(function()
+			local Shop = require(game:GetService("ReplicatedStorage")
+				:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineDepthShop"))
+			return Shop.catalog((C.zoneIndex and C.zoneIndex(zone.id)) or 1, seam, desk)
+		end)
+		hasStock = (not okCat) or (type(cat) == "table" and #cat > 0)
+	end
+	if hasStock then
+		local shop = makePad(folder, "shop_depth", Vector3.new(size * 3.2, size * 2.2, size * 3.2),
+			CFrame.new(origin.X + offset, y + size, origin.Z - offset), {
+				Machine = "depth_shop",
+				DepthShop = desk,
+				Seam = seam,
+				ZoneId = zone.id,
+			})
+		shop.Transparency = 1
+		shop.CanCollide = false
+		addPrompt(shop, "Depth shop")
+	end
 
 	local ret = makePad(folder, "return_surface", Vector3.new(size * 2.2, 1.2, size * 2.2),
 		CFrame.new(origin.X - offset, y + 1.1, origin.Z + offset), {

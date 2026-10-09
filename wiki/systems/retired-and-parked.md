@@ -66,7 +66,7 @@ moved: no `archive/` folder exists, and every file below is still in `src/`.**
 
 | file | lines | note |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/_c.luau` | 1,710 | a stale MineConfig copy with its own `ORES` and `coinsFor`. **PROPOSAL line 38 approves deleting it.** |
+| `src/ReplicatedStorage/Mine/Shared/_c.luau` | 1,710 | a stale MineConfig copy with its own `ORES` and `coinsFor`. **deleted 2026-10-08** per PROPOSAL line 38, after a launch audit found it still held the old wall-clock season functions. |
 | `src/ServerScriptService/Mine/MineDepthPlazas_OLD_pre_v4.luau` | 673 | superseded by `MineDepthPlazas` |
 | `src/ReplicatedStorage/Mine/Shared/MineBenchView.luau` | 366 | unmounted (Forge replaced it), yet edited on 2026-10-05 in `2700164` |
 | `src/ReplicatedStorage/MineGear_AdminTest.luau` | 738 | test scaffold shipped to every client |

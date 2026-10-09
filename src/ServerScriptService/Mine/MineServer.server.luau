@@ -780,6 +780,21 @@ local function blank()
 		-- acquired or opened, so found is opened plus whatever is still in the
 		-- bag, and deriving it cannot drift out of step with reality.
 		packsOpened = {},
+		--[[
+			haulGems IS ALWAYS ZERO, and that is correct -- it is not a bug to
+			go and "fix" by wiring something into it.
+
+			Gems are not banked in the haul the way coins are. Coins are paid
+			per point of block HP and accumulate in haulCoins/haulMix as you
+			dig; gems come from SELLING ORE out of the pouch, priced by
+			MineOrePouch.gemValue at the moment of sale. So nothing ever adds
+			to this field, and the `gems += p.haulGems` at the sell site adds
+			zero by design.
+
+			Kept rather than deleted because it is a persisted profile key and
+			dropping it changes the save shape for no gain. Named here so the
+			next reader does not mistake a permanent zero for a lost payout.
+		]]
 		haulCoins = 0, haulGems = 0,
 		petSlots = C.STARTER_PET_SLOTS, zoneId = "meadow", maxUnlockedZone = 1,
 		-- Item bag rungs bought. Capacity is derived, never stored.

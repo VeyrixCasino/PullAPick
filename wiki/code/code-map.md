@@ -110,7 +110,7 @@ Nearly everything below came in with the first Studio import, `566eecf`
 
 | what | status | evidence |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/_c.luau` | dead 1,710-line copy of MineConfig. Nothing requires it. | AUDIT §5, OPEN Housekeeping |
+| `src/ReplicatedStorage/Mine/Shared/_c.luau` | **deleted 2026-10-08.** Was a dead 1,710-line copy of MineConfig that nothing required, still carrying the pre-launch-clock versions of limitedActive/limitedCountdown -- a grep-driven edit landed there and silently did nothing. | AUDIT §5, OPEN Housekeeping |
 | `src/ServerScriptService/Mine/MineDepthPlazas_OLD_pre_v4.luau` | superseded, and nothing refers to it | AUDIT §5, grep |
 | `src/ServerScriptService/Mine/MineDiscordBridge.server.luau` | a stub that only prints "idle" | file header |
 | `src/ReplicatedStorage/MineGear_AdminTest.luau`, `MineBags_NameCheck.luau` | old copies of the modules, at the RS root. They require siblings that do not exist there. | AUDIT §5, file headers |

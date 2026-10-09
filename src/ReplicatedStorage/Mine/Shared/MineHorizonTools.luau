@@ -27,6 +27,39 @@ MineHorizonTools.ZONE_ID = "bigbang"
 MineHorizonTools.ZONE_INDEX = EH_ZI
 MineHorizonTools.TOOLS = { pickaxe = {}, drill = {}, explosive = {} }
 
+--[[
+	A PRICE MUST STAY AN EXACT INTEGER.
+
+	Luau numbers are doubles: above 2^53 they stop representing consecutive
+	integers, so `p.spaceCoins >= price` and `p.spaceCoins -= price` are no
+	longer reliable and the top of this ladder is not dependably purchasable.
+	An economy audit measured 75 of these prices past that line, topping out
+	at 5.5e25.
+
+	The cause is upstream and is not the 10,000x pass, though the pass made it
+	worse. This file's header says "Twenty tools, one per dirt section" and
+	the loop below walks Depth.SECTIONS -- which is now 138 rows running to a
+	dirtHp of 9.3e18, because it describes the NORMAL mine's full depth.
+	Event Horizon is TWO sections, layers 1-50 (MineConfig: "Event Horizon: 2
+	sections (layers 1-50)"). So the shop has been pricing tools off rock that
+	does not exist in its own zone, and the deepest entries were already
+	unrepresentable before anything was scaled.
+
+	Fixing the ROSTER is a design change -- `tier` here is per family, and
+	MineBreaking.eventStrength spreads a tool's tier across the event's
+	strength range using the row's own `rungs`, so changing the count changes
+	every event tool's breaking power. That belongs to the owner, not to a
+	correctness pass, and it is written up rather than done here.
+
+	What IS fixed: the price can no longer leave exact-integer range. PRICE_MAX
+	is 2^53 / 1024, which leaves three orders of magnitude of headroom for a
+	boosted wallet and still sits far above anything earnable -- zone 11 pays
+	about 2.1e12 per block, so the cap is roughly four thousand blocks' work.
+	Prices plateau at the top instead of running away, which is the honest
+	shape anyway: income plateaus there too.
+]]
+local PRICE_MAX = 2 ^ 53 / 1024
+
 local prevDps = nil
 local prevPrice = 0
 local function priceFromPrev()
@@ -40,6 +73,9 @@ local function priceFromPrev()
 		if price < prevPrice then
 			price = prevPrice
 		end
+	end
+	if price > PRICE_MAX then
+		price = math.floor(PRICE_MAX)
 	end
 	prevPrice = price
 	return price

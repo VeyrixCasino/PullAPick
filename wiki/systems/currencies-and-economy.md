@@ -37,8 +37,8 @@ related: [mining-and-breaking, zones-layers-and-seams, rebirth-and-skill-tree, o
 **Rules that shape the flows:**
 - **Bags cost gems, not coins.** The comment in `buy()` explains why: the thing that lets you carry more coins should not be bought with coins.
 - **Rebirth charges `MineSkillData.rebirthCost` in coins only, then resets the wallet to 0** (`blank()`). Gems, ore and the pouch survive ([rebirth](rebirth-and-skill-tree.md)).
-- **Ore's gem value tracks work.** `MineOrePouch.gemValue = ORE_GEM_BASE 3 × workOf(ore)^k`, where k is solved so that the top ore is worth `ORE_GEM_SPREAD 1e6` × the bottom one. Gem Find does **not** apply to ore sales; it applies only to chest gems.
-- **Haul sold at a depth desk is multiplied by `MineDepth.depthSellMult`.** That is ×487.5 at seam 500, ×12,187.5 at seam 1500, and ×0.78 at every other seam. Read from code, not engine-tested; see [zones](zones-layers-and-seams.md).
+- **Ore's gem value tracks work.** `MineOrePouch.gemValue = ORE_GEM_BASE 3 × workOf(ore)^k`, where k is solved so the top ore is worth `ORE_GEM_SPREAD` × the bottom one. **`ORE_GEM_SPREAD` is `1e4` as of 2026-10-08** (was `1e6`). Measured off the live modules: tier 1 = 4 gems, tier 41 = 279, tier 82 = 42,727. Gem Find does **not** apply to ore sales; it applies only to chest gems.
+- **Haul sold at a depth desk is multiplied by `MineDepth.depthSellMult`.** That is `1.05^(seam/500)` — **×1.05 at seam 500 and ×1.63 at seam 5000**. (This line previously claimed ×487.5 at seam 500, a 464× overstatement from an older formula.) See [zones](zones-layers-and-seams.md).
 
 **Number formatting:**
 - **`MineAbbrev.currency`.** Four significant figures, **always floored**: 1.234K, 12.34K, 123.4K. Used for every wallet: the client's `shortNum`, `MineForge`, `MineBenchView`, the leaderboards and the pouch view.
@@ -69,7 +69,6 @@ related: [mining-and-breaking, zones-layers-and-seams, rebirth-and-skill-tree, o
 - **No coin multiplier on rebirth.** `prestigeYield` was dead and has been deleted (§0.27, PROPOSAL line 22).
 - **Seams are free** (2026-10-05).
 - **Approved in PROPOSAL §0 but not yet in code:**
-  - line 16, `ORE_GEM_SPREAD 1e6 → 1e4` (code still says `1e6`);
   - line 23, potions priced in coins at `dust × 40` (`MinePotions` is dust-only);
   - line 12, `WOOD_PICK_COIN_GROW 1.55 → 1.40` (code: 1.55);
   - line 35, keep MineAbbrev's Vg/Uvg suffixes and delete §0.8's q…z (MineBigNum still uses q…z).
