@@ -424,6 +424,13 @@ function MinePackReveal.mount(playerGui, opts)
 	-- Set by SKIP ALL. awaitTap honours it, so a run in flight races to the end
 	-- instead of being torn down mid-tween.
 	local skipAll = false
+	-- Declared HERE, above the SKIP ALL handler that sets it. It used to be
+	-- declared ~100 lines further down, so `rush = true` in that handler wrote
+	-- a GLOBAL named rush and the reveal never sped up (wiki luau-traps).
+	local rush = false
+	-- Set by SKIP ALL for the whole run, so the end can celebrate the best hit
+	-- once (skipAll itself is reset as the run finishes).
+	local skippedRun = false
 	--[[
 		SKIP ALL -- the lucky-block bargain.
 
@@ -450,6 +457,7 @@ function MinePackReveal.mount(playerGui, opts)
 	mk("UICorner", { CornerRadius = UDim.new(0, 12) }, skipBtn)
 	skipBtn.MouseButton1Click:Connect(function()
 		skipAll = true
+		skippedRun = true
 		rush = true
 	end)
 
@@ -532,7 +540,7 @@ function MinePackReveal.mount(playerGui, opts)
 	local pending = false
 	local busy = false
 	local lastTap = 0
-	local rush = false
+	-- `rush` is declared above, with SKIP ALL.
 	-- A recap card blown back up in the middle (see focusRecap), or nil.
 	local focus = nil
 	-- The run on stage is a forced one (a chest find): it plays itself and a
@@ -1209,7 +1217,10 @@ function MinePackReveal.mount(playerGui, opts)
 			centre.ZIndex = 18
 			local cs = centre:FindFirstChildOfClass("UIScale") or mk("UIScale", {}, centre)
 			cs.Scale = 0.86
-			if Audio.playCard then
+			if skipAll then
+				-- Skipping: just the flip. The best hit's stinger plays once at the end.
+				Audio.play("flip")
+			elseif Audio.playCard then
 				Audio.playCard(band)
 			else
 				Audio.play("flip")
@@ -1232,11 +1243,13 @@ function MinePackReveal.mount(playerGui, opts)
 
 			-- And the screen reacts in proportion to what it actually is.
 			-- Mashing mutes the small stuff so nobody gets strobed for commons.
-			local quiet = rush and (band == "DUD" or band == "NICE")
+			-- SKIP ALL means skip: no per-card flash, banner or hold. The best
+			-- hit gets one celebration when the run lands (see playBulk).
+			local quiet = (rush and (band == "DUD" or band == "NICE")) or skipAll
 			if not quiet then
 				PackFX.playPullHit(fxHost, band, col, stage)
 			end
-			if band == "GOD" or band == "CHASE" then
+			if (band == "GOD" or band == "CHASE") and not skipAll then
 				titleL.Text = string.upper(tostring(card.name or ""))
 				titleL.TextColor3 = col
 				-- Legendary and up, or anything the odds call a god pull.
@@ -1269,7 +1282,7 @@ function MinePackReveal.mount(playerGui, opts)
 				fresh, deliberate one.
 			]]
 			local hold = holdFor(card, band)
-			if hold > 0 then
+			if hold > 0 and not skipAll then
 				task.wait(hold)
 				pending = false
 			end
@@ -1566,7 +1579,15 @@ function MinePackReveal.mount(playerGui, opts)
 			only the empty screen feeds you another.
 		]]
 		if left > 0 then
-			hintL.Text = "TAP FOR ANOTHER"
+			--[[
+				Say what a tap actually does. TapAnywhere (above, ZIndex 24) takes
+				every mouse or touch tap that misses a button and CLOSES, as the
+				owner asked on 2026-10-04. Only Space/Return reach the waiter below
+				and open another. The hint used to say "TAP FOR ANOTHER", so a tap
+				did the opposite of what the screen promised.
+			]]
+			local keys = game:GetService("UserInputService").KeyboardEnabled
+			hintL.Text = keys and "TAP TO CLOSE  -  SPACE FOR ANOTHER" or "TAP TO CLOSE"
 			-- Same reasoning as the protected window: a tap banked while the
 			-- last card was being looked at must not silently buy the next
 			-- pack. The waiter below wants a fresh one.
@@ -1802,6 +1823,7 @@ function MinePackReveal.mount(playerGui, opts)
 			-- Tap through them one at a time; SKIP ALL races to the end.
 			skipBtn.Text = string.format("SKIP ALL  (%d)", #hits)
 			skipBtn.Visible = #hits > 1
+			skippedRun = false
 			pcall(playPack, {
 				cards = hits,
 				name = "Hits",
@@ -1810,6 +1832,17 @@ function MinePackReveal.mount(playerGui, opts)
 			}, 1, 1)
 			skipBtn.Visible = false
 			skipAll = false
+			-- Skipped: one celebration, sized by the best hit (sorted last).
+			if skippedRun then
+				skippedRun = false
+				local _, bestBand = PackFX.pullScore(hits[#hits], Cards)
+				local okC, Celebrate = pcall(function()
+					return require(script.Parent:WaitForChild("MineCelebrate"))
+				end)
+				if okC and Celebrate then
+					pcall(Celebrate.burst, Celebrate.fromBand(bestBand))
+				end
+			end
 			--[[
 				AND IT ALWAYS ENDS ON THE FULL GRID.
 

@@ -12,6 +12,20 @@ local MineNotifs = {}
 -- count as "claimable" or the badge inflates and can never be cleared.
 local Scrolls = require(script.Parent:WaitForChild("MineScrolls"))
 
+-- The candy kit, loaded lazily and pcall'd: a badge must never fail because
+-- the kit did. Weak keys so a destroyed badge's pulse is not kept alive.
+local pulses = setmetatable({}, { __mode = "k" })
+local uiKit
+local function kit()
+	if uiKit == nil then
+		local ok, UI = pcall(function()
+			return require(script.Parent:WaitForChild("MineUI"))
+		end)
+		uiKit = ok and UI or false
+	end
+	return uiKit or nil
+end
+
 local function mkBadge(parent)
 	local existing = parent:FindFirstChild("NotifBadge")
 	if existing then
@@ -44,12 +58,18 @@ local function mkBadge(parent)
 	local c = Instance.new("UICorner")
 	c.CornerRadius = UDim.new(1, 0)
 	c.Parent = b
+	-- Candy pass: a dark outline so the badge reads on any plate colour.
+	local s = Instance.new("UIStroke")
+	s.Color = Color3.fromRGB(20, 12, 44)
+	s.Thickness = 2
+	s.Parent = b
+	b:SetAttribute("MineUIAdopted", true)
 	local lbl = Instance.new("TextLabel")
 	lbl.Name = "Count"
 	lbl.BackgroundTransparency = 1
 	lbl.Size = UDim2.fromScale(1, 1)
 	lbl.Font = Enum.Font.BuilderSansBold
-	lbl.TextSize = 11
+	lbl.TextSize = 14
 	lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
 	lbl.Text = ""
 	lbl.ZIndex = 81
@@ -63,24 +83,42 @@ function MineNotifs.set(parent, count)
 	end
 	count = math.floor(tonumber(count) or 0)
 	local b = mkBadge(parent)
+	local before = b:GetAttribute("Count") or 0
+	b:SetAttribute("Count", count)
 	if count <= 0 then
 		b.Visible = false
+		local stop = pulses[b]
+		if stop then
+			stop()
+			pulses[b] = nil
+		end
 		return
 	end
 	b.Visible = true
 	local lbl = b:FindFirstChild("Count")
 	if count == 1 then
-		b.Size = UDim2.fromOffset(12, 12)
+		b.Size = UDim2.fromOffset(16, 16)
 		if lbl then
 			lbl.Text = ""
 		end
 	else
 		-- Wider for 2 digits so "25" stays inside the cell instead of spilling
 		-- into the dock button below.
-		local w = (count >= 10) and 22 or 18
-		b.Size = UDim2.fromOffset(w, 18)
+		local w = (count >= 10) and 28 or 22
+		b.Size = UDim2.fromOffset(w, 22)
 		if lbl then
 			lbl.Text = count > 99 and "99+" or tostring(count)
+		end
+	end
+	-- Snapshots arrive ~10 a second, so only react to a CHANGE: pop when the
+	-- count goes up, and keep one slow pulse running while anything waits.
+	local UI = kit()
+	if UI then
+		if count > before then
+			UI.pop(b, 1.4)
+		end
+		if not pulses[b] then
+			pulses[b] = UI.pulse(b, 1.12, 1.1)
 		end
 	end
 end

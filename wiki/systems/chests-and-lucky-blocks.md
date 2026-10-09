@@ -94,8 +94,12 @@ is injected from `S_QUEUE`.
   `UPGRADE_P`.
 - **Loot.** `MineLuckyBlocks.rollLoot(blockId, finalGrade)` picks the kind from
   the block type and the grade band: pack, gems, dust, tool, scroll or pet.
-- **The lucky screen** is the lucky path in `MineGradeReveal`. It runs at
-  DisplayOrder **120**, the same as `MinePackReveal`, since `bca50ca`.
+- **The lucky screen** is the lucky path in `MineGradeReveal` (`LuckyReveal`).
+  It runs at DisplayOrder **95**: `opts.displayOrder or 95`, and `MineClient`
+  passes no override. `bca50ca` says it moved "the lucky screen" to 120, but the
+  diff changed `caseSpin` (the case reel), not this screen. Checked 2026-10-08.
+  It is unknown whether the owner's "inventory stays over the lucky block"
+  report is still live.
 
 ## Where it lives
 | file | role | key symbols |

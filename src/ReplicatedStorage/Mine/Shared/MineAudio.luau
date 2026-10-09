@@ -1,9 +1,18 @@
--- MineAudio: licensed SFX (Pro Sound Effects / APM), a nature bed and a quiet
--- music playlist. Tuned to keep players content rather than wound up: warm
--- major-key acoustic music at resting-heart-rate tempos, soft highs, no
--- alarm-like or casino-style escalation, and gaps of silence between tracks.
--- Digs layer a rock thunk with crackle, sit on the block, and run through a
--- gentle compressor so they read over the bed without stacking into noise.
+-- MineAudio: licensed SFX (Pro Sound Effects / APM), a nature bed and a music
+-- playlist. Digs layer a rock thunk with crackle, sit on the block, and run
+-- through a gentle compressor so they read over the bed without stacking into
+-- noise. The sounds heard hundreds of times an hour stay soft and varied.
+--
+-- WINS ESCALATE WITH RARITY. Owner, 2026-10-08: "slot machine wins are fine,
+-- maybe even encouraged ... i just dont want alarms". So a rare hit gets a big,
+-- stacked, celebratory payoff and a common one gets a small pop. That is
+-- design pillar 5, "rarity disparity is the dopamine". What never appears is
+-- an ALARM: no sirens, buzzers, klaxons or harsh repeating beeps.
+--
+-- HONEST BY CONSTRUCTION. The size of a celebration is driven only by the
+-- real result's rarity. Card packs and lucky blocks can be bought with
+-- credits (Robux), and the audience is kids, so: no fake near-misses, and no
+-- big fanfare on a dud. See MineCelebrate.
 local Debris = game:GetService("Debris")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
@@ -19,6 +28,10 @@ MineAudio.MUSIC_GAP = { 18, 40 }
 -- digging is repetitive focus work and lower-arousal music suits it.
 MineAudio.MUSIC = {
 	bright = {
+		-- Candy pass (2026-10-08): two upbeat kids' tracks to match the new look.
+		-- APM library picks, verified loading; swap freely (see docs/AUDIO.md).
+		"rbxassetid://1839153621", -- Planet Kids (126s)
+		"rbxassetid://1839154123", -- Hey Kids (105s)
 		"rbxassetid://1839843882", -- A Welcome Smile: inviting carefree acoustic
 		"rbxassetid://1839844012", -- Feel The Breeze: carefree open-air guitar
 		"rbxassetid://1842285702", -- On the Go: light-hearted easy listening
@@ -150,6 +163,29 @@ MineAudio.IDS = {
 		"rbxassetid://9118597462",
 		"rbxassetid://9118598722",
 	},
+	--[[
+		WIN TIERS, played by MineAudio.playWin(tier) from MineCelebrate. Each tier
+		is clearly bigger than the one below, and none of them is an alarm. All
+		are APM library stings, verified loading 2026-10-08. They are NAMED SLOTS:
+		paste a new id here (e.g. an ElevenLabs render uploaded to the group, see
+		docs/AUDIO.md) and every reveal in the game picks it up.
+	]]
+	win_nice = "rbxassetid://1848287311", -- The Little Things - Hit (plucky, friendly)
+	win_great = {
+		"rbxassetid://1836460730", -- Cartoon Time Sting (4 takes, shuffle-bagged)
+		"rbxassetid://1836460735",
+		"rbxassetid://1836460756",
+		"rbxassetid://1836460761",
+	},
+	win_epic = "rbxassetid://1836860458", -- Elated In Love: euphoric horn riff
+	win_legend = "rbxassetid://9045751375", -- 1812 Overture (sting b): rousing rock-orchestral
+	win_legend_tail = "rbxassetid://9042409054", -- Fanfare Sting, layered under the overture
+	-- Played BEFORE an epic+ result is shown, and only when the result really is
+	-- epic+. It is a true tell, never a tease that resolves to a dud.
+	suspense = {
+		"rbxassetid://1842251033", -- Snare Drum Roll
+		"rbxassetid://1848358941", -- Snare Drum Roll (b)
+	},
 }
 
 -- Per-zone soft beds under the music. Natural sounds only (birds, leaves,
@@ -210,10 +246,19 @@ local VOL = {
 	riser = 0.30,
 	rare = 0.48,
 	crunch = 0.55,
+	win_nice = 0.45,
+	win_great = 0.55,
+	win_epic = 0.62,
+	win_legend = 0.70,
+	win_legend_tail = 0.45,
+	suspense = 0.40,
 }
 
--- Celebrations dip the music briefly instead of shouting over it.
-local DUCK = { jackpot = 2.2, rare = 1.6, rebirth = 2.5, lucky_pop = 1.2, found = 1.0 }
+-- Celebrations dip the music so the win sits on top of it.
+local DUCK = {
+	jackpot = 2.2, rare = 1.6, rebirth = 2.5, lucky_pop = 1.2, found = 1.0,
+	win_great = 2.0, win_epic = 4.0, win_legend = 5.5, suspense = 1.6,
+}
 
 local CD = {
 	pickaxe = 0.06,
@@ -249,6 +294,13 @@ local CD = {
 	riser = 0.70,
 	rare = 0.25,
 	crunch = 0.08,
+	-- A x10 open reveals fast; one sting per tier per beat, not ten stacked.
+	win_nice = 0.12,
+	win_great = 0.35,
+	win_epic = 0.9,
+	win_legend = 1.5,
+	win_legend_tail = 1.5,
+	suspense = 1.0,
 }
 
 -- Cut long library takes so a 3s dirt boom does not linger under the next swing.
@@ -273,6 +325,13 @@ local TRIM = {
 	pack_sparkle = 0.70,
 	pack_burst = 0.55,
 	lucky_rattle = 0.22,
+	-- Library stings run long; cut each to its payoff so a fast x10 stays tight.
+	win_nice = 1.4,
+	win_great = 2.6,
+	win_epic = 4.2,
+	win_legend = 4.6,
+	win_legend_tail = 4.6,
+	suspense = 1.15,
 }
 
 local lastAt = {}
@@ -596,16 +655,24 @@ function MineAudio.playSell(coins, gems)
 	end)
 end
 
+--[[
+	The old per-reveal win sounds below now feed playWin's tiers, so every
+	reveal in the game uses one escalating set of stingers. The tier maps
+	match MineCelebrate.fromOneIn / fromRank / fromBand. They are inlined
+	here because MineCelebrate requires this module, not the other way round.
+]]
+local function tierOfOneIn(n)
+	n = tonumber(n) or 1
+	return (n >= 5000 and 4) or (n >= 1000 and 3) or (n >= 150 and 2) or (n >= 25 and 1) or 0
+end
+local RANK_TIER = { 0, 0, 1, 1, 2, 3, 4, 4 } -- F, D, C, B, A, S, SS, SSS
+local BAND_TIER = { DUD = 0, NICE = 1, HIT = 2, CHASE = 3, GOD = 4 }
+
 function MineAudio.playFound(oneIn)
-	local n = tonumber(oneIn) or 50
-	if n >= 1000 then
-		MineAudio.play("rare", 1.05)
-		MineAudio.play("reveal", 0.6, 1.12, nil, true)
-	elseif n >= 150 then
-		MineAudio.play("found", 1)
-		MineAudio.play("reveal", 0.7, nil, nil, true)
-	else
-		MineAudio.play("found", 0.85)
+	MineAudio.play("found", 0.85)
+	local tier = tierOfOneIn(oneIn or 50)
+	if tier >= 1 then
+		MineAudio.playWin(tier)
 	end
 end
 
@@ -634,58 +701,69 @@ function MineAudio.playLuckyOpen()
 	end)
 end
 
+-- Grade rank 1..8 (F..SSS): the case reel and lucky blocks.
 function MineAudio.playLuckyWin(rank)
-	rank = tonumber(rank) or 1
-	-- One warm chime per tier, no strobe-and-siren stacking: a win should feel
-	-- nice, not like a slot machine paying out.
-	if rank >= 6 then
-		MineAudio.play("jackpot", 1)
-		MineAudio.play("pack_sparkle", 0.6, nil, nil, true)
-	elseif rank >= 4 then
-		MineAudio.play("lucky_pop", 1)
-		MineAudio.play("reveal", 0.85, nil, nil, true)
-	else
-		MineAudio.play("thud", 0.85)
-		MineAudio.play("reveal", 0.6, nil, nil, true)
-	end
+	local r = math.clamp(math.floor(tonumber(rank) or 1), 1, 8)
+	MineAudio.playWin(RANK_TIER[r])
 end
 
 -- Card flip / pull-hit bands from PackReveal + PackFX.
 function MineAudio.playCard(band)
-	band = tostring(band or "HIT")
+	band = string.upper(tostring(band or "HIT"))
 	MineAudio.play("flip")
-	if band == "GOD" then
-		MineAudio.play("jackpot", 1, nil, nil, true)
-		MineAudio.play("pack_sparkle", 0.7, 1.1, nil, true)
-	elseif band == "CHASE" then
-		MineAudio.play("rare", 0.95, nil, nil, true)
-		MineAudio.play("pack_sparkle", 0.5, nil, nil, true)
-	elseif band == "HIT" then
-		MineAudio.play("reveal", 0.85, nil, nil, true)
-		MineAudio.play("pack_foil", 0.55, nil, nil, true)
-	elseif band == "NICE" then
-		MineAudio.play("thud", 0.65)
+	local tier = BAND_TIER[band] or 0
+	if tier >= 1 then
+		MineAudio.playWin(tier)
 	end
 end
 
-function MineAudio.playPull(band)
-	band = tostring(band or "HIT")
-	if band == "DUD" or band == "" then
-		return
-	end
-	if band == "GOD" then
-		MineAudio.play("jackpot", 1)
-	elseif band == "CHASE" then
-		MineAudio.play("rare", 0.95)
-	elseif band == "HIT" then
-		MineAudio.play("reveal", 0.7)
-	else
-		MineAudio.play("thud", 0.5)
-	end
+--[[
+	Kept for its caller (MinePackFX.playPullHit), but silent now: PackReveal
+	calls playCard(band) in the same frame for the same card, and playCard
+	already plays the tier stinger. Two in one frame doubled the sparkle layers.
+]]
+function MineAudio.playPull(_band)
 end
 
 function MineAudio.playLoot()
 	MineAudio.play("loot", 1, 1.12)
+end
+
+--[[
+	The win stinger for a celebration tier (MineCelebrate.TIER: 0 common,
+	1 nice, 2 great, 3 epic, 4 legendary). Each tier stacks on the one below so
+	the jump between them is audible. Tier 0 is deliberately small: a common
+	result gets a soft pop, never a fanfare.
+]]
+function MineAudio.playWin(tier)
+	tier = math.clamp(math.floor(tonumber(tier) or 0), 0, 4)
+	if tier == 0 then
+		MineAudio.play("thud", 0.6)
+		return
+	end
+	if tier == 1 then
+		MineAudio.play("win_nice", 1)
+		MineAudio.play("pack_sparkle", 0.5, nil, nil, true)
+	elseif tier == 2 then
+		MineAudio.play("win_great", 1)
+		MineAudio.play("pack_sparkle", 0.7, 1.1, nil, true)
+	elseif tier == 3 then
+		MineAudio.play("win_epic", 1)
+		MineAudio.play("pack_burst", 0.8, nil, nil, true)
+		MineAudio.play("pack_sparkle", 0.8, 1.15, nil, true)
+	else
+		MineAudio.play("win_legend", 1)
+		MineAudio.play("win_legend_tail", 1, nil, nil, true)
+		MineAudio.play("pack_burst", 0.9, nil, nil, true)
+		task.delay(0.35, function()
+			MineAudio.play("pack_sparkle", 0.9, 1.2, nil, true)
+		end)
+	end
+end
+
+-- The drum-roll lead-in for a result that IS epic or better (see IDS.suspense).
+function MineAudio.playSuspense()
+	MineAudio.play("suspense", 1)
 end
 
 function MineAudio.setZoneResolver(fn)

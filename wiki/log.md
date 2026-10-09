@@ -95,3 +95,37 @@ quantity** although the owner expects endgame enchants to.
 
 Updated: ores, zones-layers-and-seams, tools, verify-suite, open-questions, log.
 Not rechecked: bugs 4, 6–14, 16, and every rule/code disagreement in §2.
+
+## [2026-10-08] ingest | the candy UI pass, the quest panel, MineCelebrate, audio
+
+The owner asked for a UI that appeals to kids. Their choices were a chunky
+candy-game look, juicy motion, bigger text, and a reach of everything. They
+added rarity-scaled "dopamine heavy" reveals that stay easy to navigate, and
+SFX and music to match. Mid-pass they gave three more instructions:
+
+- Remove the gloss "bubble".
+- Make the quest cards and the slide-out arrow one panel.
+- *"slot machine wins are fine, maybe even encouraged ... i just dont want alarms"*.
+
+Filed in [client-and-ui](code/client-and-ui.md):
+
+- The candy kit tokens and helpers.
+- The single `QuestPanel`, which replaces the two cards and their ear tabs.
+- `MineCelebrate`, with its tier table and its honesty rule. Card packs and
+  lucky blocks are reachable with Robux credits, so the celebration size comes
+  only from the real result, with no near-misses and no fanfare on a dud.
+
+Also fixed the page's stale HUD-scaling section, which said `short/820`. The
+code says `short/1080`, 0.80–1.25, plus the panel-fit guard. Sound slots and
+the ElevenLabs prompts went to `docs/AUDIO.md`. The `MineAudio` header's "no
+casino-style escalation" came from an earlier agent, not the owner, and has
+been replaced with the owner's rule.
+
+Found while verifying: `4d7b8e7` deleted the `]]` that closed the doc comment
+above `MineConfig.ORE_HP_MULT`. That commented out `ORE_HP_MULT`, `_MIN` and
+`_MAX`, so every ore block threw in `oreHardness` and no ore spawned. The `]]`
+is restored (committed as `bc2133b`). `orehp.js` did not catch it, because it
+fell back to literal defaults when a constant was missing. `7b06a55` now strips
+comments before asserting that a constant exists.
+
+Updated: client-and-ui, log.

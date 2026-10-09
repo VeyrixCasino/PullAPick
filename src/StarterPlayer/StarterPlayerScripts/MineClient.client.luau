@@ -292,6 +292,16 @@ end
 ]]
 local ClientFns = {}
 
+-- The candy kit (MineUI), reachable from HUD code without a top-level local.
+-- pcall'd like the watch above: a kit error must never kill the client. When
+-- it is nil, every caller below falls back to the plain look.
+do
+	local ok, UI = pcall(function()
+		return require(shared:WaitForChild("MineUI"))
+	end)
+	ClientFns.UI = ok and UI or nil
+end
+
 -- Dig deepest mirror (per zone + section). Mineshaft rides never write this.
 ClientFns.depthLocal = { zones = {}, sections = {}, liveZoneBest = {}, liveSectionBest = {} }
 
@@ -429,9 +439,9 @@ local function layoutWallet()
 	local top = math.max(56, math.floor((inset.Y + 28) / k))
 	local room = gui.AbsoluteSize.X / k
 	-- Wide enough for abbreviated big coins (e.g. 110.8M) without crushing the pill.
-	local w = math.clamp(room - 16, 280, 560)
+	local w = math.clamp(room - 16, 300, 600)
 	wallet.Position = UDim2.fromOffset(10, top)
-	wallet.Size = UDim2.fromOffset(w, 56)
+	wallet.Size = UDim2.fromOffset(w, 64)
 end
 layoutWallet()
 uiScale:GetPropertyChangedSignal("Scale"):Connect(layoutWallet)
@@ -464,34 +474,35 @@ do
 	}, wallet)
 	round(glow, 26)
 	local gs = stroke(glow, 5)
-	gs.Color = Color3.fromRGB(255, 188, 78)
-	gs.Transparency = 0.78
+	gs.Color = T.ACCENT
+	gs.Transparency = 0.7
 end
+--[[
+	Candy pass (2026-10-08): the tray is the theme's deep indigo with a fat dark
+	outline, and each currency is a bright candy pill of its own colour. Kids
+	track their money before anything else, so the numbers are the biggest text
+	on the HUD, and they pop every time they change.
+]]
 local tray = mk("Frame", {
-	-- Deep charcoal with a cool blue-black cast (glass, not warm brown).
-	BackgroundColor3 = Color3.fromRGB(12, 14, 20),
-	BackgroundTransparency = 0.08,
+	BackgroundColor3 = T.PANEL,
+	BackgroundTransparency = 0.05,
 	Size = UDim2.fromScale(1, 1),
 	Active = false,
 	ZIndex = 20,
 	BorderSizePixel = 0,
 }, wallet)
-round(tray, 22)
+round(tray, 24)
 do
 	local grad = Instance.new("UIGradient")
-	grad.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 34, 48)),
-		ColorSequenceKeypoint.new(0.55, Color3.fromRGB(14, 16, 24)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 10, 16)),
-	})
-	grad.Rotation = 110
+	grad.Color = ColorSequence.new(T.CARD, T.INK)
+	grad.Rotation = 90
 	grad.Parent = tray
 end
-stroke(tray, 3.5)
+stroke(tray, T.STROKE_THICK)
 local trayStroke = tray:FindFirstChildOfClass("UIStroke")
 if trayStroke then
-	trayStroke.Color = Color3.fromRGB(255, 196, 88)
-	trayStroke.Transparency = 0.08
+	trayStroke.Color = T.OUTLINE
+	trayStroke.Transparency = 0
 end
 mk("UIListLayout", {
 	FillDirection = Enum.FillDirection.Horizontal,
@@ -507,7 +518,9 @@ mk("UIPadding", {
 	PaddingBottom = UDim.new(0, 10),
 }, tray)
 
-local function walletPill(asset, color, width, clickable)
+-- `candy` is a T.CANDY key: the pill's colour IS the currency's colour.
+local function walletPill(asset, candy, width, clickable)
+	local UI = ClientFns.UI
 	local row
 	if clickable then
 		row = mk("TextButton", {
@@ -516,7 +529,7 @@ local function walletPill(asset, color, width, clickable)
 			BackgroundColor3 = Color3.fromRGB(18, 20, 28),
 			BackgroundTransparency = 0.12,
 			Text = "",
-			Size = UDim2.new(0.25, -12, 0, 40),
+			Size = UDim2.new(0.25, -12, 0, 44),
 			BorderSizePixel = 0,
 			ZIndex = 21,
 		}, tray)
@@ -524,54 +537,61 @@ local function walletPill(asset, color, width, clickable)
 		row = mk("Frame", {
 			BackgroundColor3 = Color3.fromRGB(18, 20, 28),
 			BackgroundTransparency = 0.12,
-			Size = UDim2.new(0.25, -12, 0, 40),
+			Size = UDim2.new(0.25, -12, 0, 44),
 			BorderSizePixel = 0,
 			Active = false,
 			ZIndex = 21,
 		}, tray)
 	end
-	round(row, 16)
-	stroke(row, 1.6)
-	local s = row:FindFirstChildOfClass("UIStroke")
-	if s then
-		s.Color = color
-		s.Transparency = 0.42
+	round(row, 999)
+	if UI then
+		UI.candy(row, candy, 3)
+		local g = row:FindFirstChild("Gloss")
+		if g then g.ZIndex = 21 end
+		if clickable then UI.juice(row) end
+	else
+		stroke(row, 1.6)
 	end
-	-- Icons sit in a dark chip so they pop against the glass tray.
-	ClientFns.hudIcon(row, asset, UDim2.fromOffset(5, 4), 32)
+	-- The icon is a medallion that hangs off the pill's left end, bigger than
+	-- the pill, so the currency reads from across the room.
+	local ic = ClientFns.hudIcon(row, asset, UDim2.fromOffset(-6, -4), 46)
+	ic.BackgroundTransparency = 1
 	local lab = mk("TextLabel", {
 		BackgroundTransparency = 1,
 		Font = FONT,
-		TextSize = 16,
+		TextSize = 21,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
-		Position = UDim2.fromOffset(40, 0),
-		Size = UDim2.new(1, -44, 1, 0),
+		Position = UDim2.fromOffset(42, 0),
+		Size = UDim2.new(1, -48, 1, 0),
 		Text = "0",
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-		TextStrokeTransparency = 0.45,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextScaled = false,
 		ZIndex = 22,
 		Active = false,
 	}, row)
+	if UI then
+		UI.outlineText(lab, 2)
+		UI.popNumber(lab)
+	end
 	return row, lab
 end
 
-local _, coinsL = walletPill(ICONS.coin, Color3.fromRGB(255, 214, 90), 118)
-local _, gemsL = walletPill(ICONS.gem, Color3.fromRGB(90, 210, 255), 96)
-local _, dustL = walletPill(ICONS.stardust, Color3.fromRGB(210, 160, 255), 88)
-local bagBtn, bagCount = walletPill(ICONS.backpack, Color3.fromRGB(220, 170, 110), 96, true)
+local _, coinsL = walletPill(ICONS.coin, "gold", 118)
+local _, gemsL = walletPill(ICONS.gem, "cyan", 96)
+local _, dustL = walletPill(ICONS.stardust, "magenta", 88)
+local bagBtn, bagCount = walletPill(ICONS.backpack, "orange", 96, true)
 -- A bag reads as "how full am I", not as two numbers you have to divide. The
 -- bar sits under the text and turns red the moment the bag stops accepting.
 local bagFill
 do
-	local trackH = 4
+	local trackH = 6
 	local track = mk("Frame", {
 		Name = "BagTrack",
-		BackgroundColor3 = Color3.fromRGB(20, 18, 24),
+		BackgroundColor3 = T.OUTLINE,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 40, 1, -5),
-		Size = UDim2.new(1, -46, 0, trackH),
+		Position = UDim2.new(0, 44, 1, -6),
+		Size = UDim2.new(1, -54, 0, trackH),
 		ZIndex = 22,
 		Active = false,
 	}, bagBtn)
@@ -586,19 +606,19 @@ do
 	}, track)
 	round(bagFill, 3)
 	-- The number moves up to make room for the bar.
-	bagCount.Position = UDim2.fromOffset(40, -3)
-	bagCount.TextSize = 14
+	bagCount.Position = UDim2.fromOffset(42, -4)
+	bagCount.TextSize = 17
 end
 
 local mineResetL = mk("TextLabel", {
-	BackgroundTransparency = 0.35,
-	BackgroundColor3 = Color3.fromRGB(28, 30, 36),
-	Font = FONT_M,
-	TextSize = 12,
-	TextColor3 = Color3.fromRGB(200, 210, 220),
+	BackgroundTransparency = 0.05,
+	BackgroundColor3 = T.PANEL,
+	Font = FONT,
+	TextSize = 15,
+	TextColor3 = TEXT,
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -16, 0, 70),
-	Size = UDim2.fromOffset(128, 28),
+	Size = UDim2.fromOffset(140, 30),
 	Text = "Mine 20:00",
 	TextXAlignment = Enum.TextXAlignment.Center,
 	-- Under the windows (ZIndex 30): at 40 it sat on top of the inventory's
@@ -607,8 +627,13 @@ local mineResetL = mk("TextLabel", {
 }, gui)
 do
 	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 8)
+	c.CornerRadius = UDim.new(0, 12)
 	c.Parent = mineResetL
+	local s = Instance.new("UIStroke")
+	s.Color = T.OUTLINE
+	s.Thickness = 3
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Parent = mineResetL
 end
 --[[
 	First-session guide. Three lines, each cleared by doing the thing it asks.
@@ -628,9 +653,17 @@ local introBanner = mk("Frame", {
 	ZIndex = 26,
 	Active = false,
 }, gui)
-round(introBanner, 12)
-local introStroke = stroke(introBanner, 2)
-introStroke.Transparency = 0.15
+round(introBanner, 16)
+-- Candy pass: the guide is the one gold-rimmed thing on screen, so a new
+-- player's eye lands on it first. Thick rim, lit fill, bigger words.
+local introStroke = stroke(introBanner, 3.5)
+introStroke.Transparency = 0
+do
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new(T.CARD_HI, T.PANEL)
+	g.Rotation = 90
+	g.Parent = introBanner
+end
 local introDot = mk("Frame", {
 	BackgroundColor3 = GOLD,
 	AnchorPoint = Vector2.new(0, 0.5),
@@ -643,7 +676,7 @@ round(introDot, 5)
 local introL = mk("TextLabel", {
 	BackgroundTransparency = 1,
 	Font = FONT,
-	TextSize = 15,
+	TextSize = 18,
 	TextColor3 = TEXT,
 	Text = "",
 	Position = UDim2.fromOffset(36, 0),
@@ -656,23 +689,23 @@ local introL = mk("TextLabel", {
 }, introBanner)
 local introAckHint = mk("TextLabel", {
 	BackgroundTransparency = 1,
-	Font = FONT_M,
-	TextSize = 11,
+	Font = FONT,
+	TextSize = 13,
 	TextColor3 = GOLD,
 	Text = "",
 	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -12, 1, -6),
-	Size = UDim2.fromOffset(280, 14),
+	Position = UDim2.new(1, -12, 1, -5),
+	Size = UDim2.fromOffset(280, 16),
 	TextXAlignment = Enum.TextXAlignment.Right,
 	ZIndex = 28,
 	Active = false,
 }, introBanner)
 local introBarBack = mk("Frame", {
 	Name = "TutBar",
-	BackgroundColor3 = Color3.fromRGB(42, 34, 26),
+	BackgroundColor3 = T.LINE,
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 36, 1, -8),
-	Size = UDim2.new(1, -52, 0, 5),
+	Size = UDim2.new(1, -52, 0, 7),
 	Visible = false,
 	ZIndex = 28,
 }, introBanner)
@@ -1204,73 +1237,116 @@ end)
 	glance away. When it is finished the bar is replaced by the claim button,
 	so "done" and "not done" cannot be confused at a distance.
 ]]
+--[[
+	ONE QUEST PANEL. Owner, 2026-10-08: "fix the quests and the ugly arrow to
+	push the quests out of the way (make it all a part of the same exact ui)".
+
+	The active quest and today's dailies used to be two separate cards, each
+	with an "ear" tab hanging off its right edge that slid the pair off screen.
+	Now there is one panel (QuestPanel) with one outline, one background and
+	one header. The collapse button lives IN that header, and collapsing shrinks
+	the panel into a small "QUESTS" pill in place. It no longer slides out of
+	sight, so there is nothing hanging off its edge.
+
+	questBox and the daily box are still their own frames, because everything
+	that paints them works unchanged. They are just transparent now, and
+	stacked inside the panel by ClientFns.layoutQuestPanel. The panel clips, so
+	collapsing is only a size change.
+]]
 local questBox = mk("Frame", {
 	Name = "Quest",
 	Visible = false,
-	BackgroundColor3 = Color3.fromRGB(12, 14, 20),
-	BackgroundTransparency = 0.08,
-	Position = UDim2.new(0, 16, 0, 300),
-	Size = UDim2.fromOffset(304, 118),
+	BackgroundColor3 = T.PANEL,
+	BackgroundTransparency = 1,
+	Position = UDim2.new(0, 0, 0, 0),
+	Size = UDim2.fromOffset(304, 126),
 	ZIndex = 20,
 	Active = false,
 }, gui)
-round(questBox, 18)
 do
-	local sh = mk("Frame", {
-		Name = "QuestShadow",
-		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		BackgroundTransparency = 0.55,
-		Position = UDim2.fromOffset(4, 7),
-		Size = UDim2.fromScale(1, 1),
+	local HEADER = 40
+	ClientFns.QUEST_HEADER = HEADER
+	local panel = mk("Frame", {
+		Name = "QuestPanel",
+		Visible = false,
+		BackgroundColor3 = T.PANEL,
+		BackgroundTransparency = 0.04,
+		Position = UDim2.new(0, 16, 0, 300),
+		Size = UDim2.fromOffset(304, HEADER),
+		ClipsDescendants = true,
+		ZIndex = 20,
 		Active = false,
-		ZIndex = 18,
-		BorderSizePixel = 0,
-	}, questBox)
-	round(sh, 18)
-	local glow = mk("Frame", {
-		Name = "QuestGlow",
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(-3, -3),
-		Size = UDim2.new(1, 6, 1, 6),
-		Active = false,
-		ZIndex = 19,
-		BorderSizePixel = 0,
-	}, questBox)
-	round(glow, 20)
-	local gs = stroke(glow, 4)
-	gs.Color = Color3.fromRGB(255, 188, 78)
-	gs.Transparency = 0.8
+	}, gui)
+	round(panel, 20)
 	local grad = Instance.new("UIGradient")
-	grad.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 34, 48)),
-		ColorSequenceKeypoint.new(0.55, Color3.fromRGB(14, 16, 24)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 10, 16)),
-	})
-	grad.Rotation = 110
-	grad.Parent = questBox
-	local s = stroke(questBox, 3.5)
-	s.Color = Color3.fromRGB(255, 196, 88)
-	s.Transparency = 0.1
-	-- Left gold accent strip: mobile-quest widget cue, not a debug panel.
-	local accent = mk("Frame", {
-		Name = "Accent",
-		BackgroundColor3 = Color3.fromRGB(255, 196, 88),
-		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(0, 12),
-		Size = UDim2.new(0, 5, 1, -24),
-		ZIndex = 21,
-		Active = false,
-	}, questBox)
-	round(accent, 3)
+	grad.Color = ColorSequence.new(T.CARD, T.INK)
+	grad.Rotation = 90
+	grad.Parent = panel
+	local s = stroke(panel, T.STROKE_THICK)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+	panel:SetAttribute("MineUIAdopted", true)
+	-- The whole header is the toggle, so a thumb cannot miss it.
+	local header = mk("TextButton", {
+		Name = "Header", BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
+		Size = UDim2.new(1, 0, 0, HEADER), ZIndex = 24,
+	}, panel)
+	local title = mk("TextLabel", {
+		Name = "Title", BackgroundTransparency = 1, Font = FONT, TextSize = 19, TextColor3 = GOLD,
+		Text = "QUESTS", TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(16, 0), Size = UDim2.fromOffset(80, HEADER), ZIndex = 25, Active = false,
+	}, panel)
+	-- Green dot: something in here pays out right now. Pulses, open or shut.
+	local dot = mk("Frame", {
+		Name = "ClaimDot", BackgroundColor3 = T.GREEN, Visible = false,
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 96, 0, HEADER / 2),
+		Size = UDim2.fromOffset(14, 14), ZIndex = 25, Active = false,
+	}, panel)
+	round(dot, 7)
+	do
+		local ds = stroke(dot, 2)
+		ds.Color = T.OUTLINE
+		ds.Transparency = 0
+	end
+	local toggle = mk("TextButton", {
+		Name = "Toggle", AutoButtonColor = false, Text = "-", Font = FONT, TextSize = 24,
+		TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = T.CARD_HI,
+		AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0, HEADER / 2),
+		Size = UDim2.fromOffset(30, 28), ZIndex = 26,
+	}, panel)
+	round(toggle, 9)
+	if ClientFns.UI then
+		ClientFns.UI.candy(toggle, "purple", 2.5)
+		ClientFns.UI.outlineText(toggle, 1.5)
+		ClientFns.UI.juice(toggle, 1.12)
+	end
+	-- A hairline under the header, so the open panel reads as title + body.
+	mk("Frame", {
+		Name = "HeaderRule", BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+		Position = UDim2.new(0, 12, 0, HEADER - 1), Size = UDim2.new(1, -24, 0, 2),
+		ZIndex = 21, Active = false,
+	}, panel)
+	header.MouseButton1Click:Connect(function()
+		ClientFns.questDrawerToggle(true)
+	end)
+	toggle.MouseButton1Click:Connect(function()
+		ClientFns.questDrawerToggle(true)
+	end)
+	questBox.Parent = panel
+	questBox.Position = UDim2.fromOffset(0, HEADER)
+	ClientFns.questPanel = panel
+	ClientFns.questPanelParts = { title = title, dot = dot, toggle = toggle }
+end
+do
 	mk("TextLabel", {
 		Name = "RewardHint",
 		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 12,
-		TextColor3 = Color3.fromRGB(198, 168, 108),
+		Font = FONT,
+		TextSize = 15,
+		TextColor3 = GOLD,
 		Text = "",
-		Position = UDim2.fromOffset(18, 66),
-		Size = UDim2.new(1, -36, 0, 16),
+		Position = UDim2.fromOffset(18, 68),
+		Size = UDim2.new(1, -36, 0, 18),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 21,
 		Active = false,
@@ -1279,11 +1355,11 @@ do
 		Name = "QuestTip",
 		BackgroundTransparency = 1,
 		Font = FONT_M,
-		TextSize = 11,
-		TextColor3 = Color3.fromRGB(150, 158, 178),
+		TextSize = 13,
+		TextColor3 = T.MUTED,
 		Text = "",
-		Position = UDim2.fromOffset(18, 84),
-		Size = UDim2.new(1, -36, 0, 28),
+		Position = UDim2.fromOffset(18, 88),
+		Size = UDim2.new(1, -36, 0, 32),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -1293,44 +1369,69 @@ do
 end
 -- Bold objective + progress index; thick gold bar; muted-gold reward hint.
 local questIdx = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT_M, TextSize = 11,
-	TextColor3 = Color3.fromRGB(186, 160, 104),
-	Text = "", Position = UDim2.new(1, -78, 0, 10), Size = UDim2.fromOffset(66, 16),
+	BackgroundTransparency = 1, Font = FONT, TextSize = 14,
+	TextColor3 = T.MUTED,
+	Text = "", Position = UDim2.new(1, -78, 0, 11), Size = UDim2.fromOffset(66, 18),
 	TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 21, Active = false,
 }, questBox)
 local questText = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 17,
+	BackgroundTransparency = 1, Font = FONT, TextSize = 20,
 	TextColor3 = Color3.fromRGB(255, 255, 255),
-	Text = "", Position = UDim2.fromOffset(18, 9), Size = UDim2.new(1, -100, 0, 22),
+	Text = "", Position = UDim2.fromOffset(18, 8), Size = UDim2.new(1, -100, 0, 26),
 	TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21, Active = false,
 }, questBox)
 questText.TextTruncate = Enum.TextTruncate.AtEnd
+-- A fat, outlined bar with a candy-green fill and a shine: a bar that looks
+-- nearly full feels winnable, and that is what pulls the next swing.
 local questTrack = mk("Frame", {
-	BackgroundColor3 = Color3.fromRGB(18, 16, 24), BorderSizePixel = 0,
-	Position = UDim2.fromOffset(18, 38), Size = UDim2.new(1, -92, 0, 16),
+	BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+	Position = UDim2.fromOffset(18, 40), Size = UDim2.new(1, -96, 0, 20),
 	ZIndex = 21, Active = false,
 }, questBox)
-round(questTrack, 8)
+round(questTrack, 10)
+do
+	local ts = stroke(questTrack, 2.5)
+	ts.Color = T.OUTLINE
+	ts.Transparency = 0
+end
 local questFill = mk("Frame", {
-	BackgroundColor3 = Color3.fromRGB(255, 196, 72), BorderSizePixel = 0,
+	BackgroundColor3 = T.GREEN, BorderSizePixel = 0,
 	Size = UDim2.fromScale(0, 1), ZIndex = 22, Active = false,
 }, questTrack)
-round(questFill, 8)
--- Crisp progress count to the right of the bar (mock: white 0/10).
+round(questFill, 10)
+if ClientFns.UI then
+	ClientFns.UI.candy(questFill, "green", 0)
+	local fs = questFill:FindFirstChildOfClass("UIStroke")
+	if fs then fs.Enabled = false end
+	local g = questFill:FindFirstChild("Gloss")
+	if g then g.ZIndex = 23 end
+end
+-- Crisp progress count to the right of the bar.
 local questProg = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 14,
+	BackgroundTransparency = 1, Font = FONT, TextSize = 17,
 	TextColor3 = Color3.fromRGB(255, 255, 255),
-	Text = "", Position = UDim2.new(1, -70, 0, 36), Size = UDim2.fromOffset(56, 20),
+	Text = "", Position = UDim2.new(1, -74, 0, 39), Size = UDim2.fromOffset(60, 22),
 	TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 21, Active = false,
 }, questBox)
-questProg.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-questProg.TextStrokeTransparency = 0.55
+if ClientFns.UI then
+	ClientFns.UI.outlineText(questProg, 2)
+	ClientFns.UI.popNumber(questProg, 1.12)
+end
 local questClaim = mk("TextButton", {
-	Visible = false, AutoButtonColor = true, BackgroundColor3 = GOLD,
-	Font = FONT, TextSize = 15, TextColor3 = T.ON_GOLD, Text = "CLAIM",
-	Position = UDim2.fromOffset(18, 38), Size = UDim2.new(1, -36, 0, 32), ZIndex = 22,
+	Visible = false, AutoButtonColor = false, BackgroundColor3 = T.GREEN,
+	Font = FONT, TextSize = 18, TextColor3 = Color3.fromRGB(255, 255, 255), Text = "CLAIM",
+	Position = UDim2.fromOffset(18, 40), Size = UDim2.new(1, -36, 0, 38), ZIndex = 22,
 }, questBox)
-round(questClaim, 10)
+round(questClaim, 14)
+if ClientFns.UI then
+	ClientFns.UI.candy(questClaim, "green", 3)
+	ClientFns.UI.outlineText(questClaim, 2)
+	ClientFns.UI.juice(questClaim)
+	-- The gloss is a child, so it would draw over the button's own Text. Push
+	-- it under by giving it the button's ZIndex and keeping it faint.
+	local g = questClaim:FindFirstChild("Gloss")
+	if g then g.Visible = false end
+end
 questClaim.MouseButton1Click:Connect(function()
 	questClaim.Active = false
 	questClaim.Text = "..."
@@ -1349,173 +1450,34 @@ function ClientFns.questIsPhone()
 	return math.min(v.X, v.Y) < 700
 end
 
--- Retractable left-side quest drawers (active quest + daily quests).
+-- The quest panel's open/collapsed state (active quest + daily quests).
 -- preferred = user intent when no modal; peeking = temporary expand over a modal.
 --[[
-	THE DRAWER EAR IS PART OF THE FRAME, NOT A THING SITTING ON IT.
+	OPEN OR COLLAPSED, NEVER SLID AWAY.
 
-	Owner, 2026-10-05: "those arrows are still inside the quest block. is it
-	possible for you just to make it actually a part of the frame, and just make
-	it switch signs (exact same dimensions, scales the same no matter what
-	device, and will permentantly look good)".
+	This used to slide both cards off the left edge and leave an "ear" tab
+	behind to pull them back. Owner, 2026-10-08: "fix the quests and the ugly
+	arrow ... make it all a part of the same exact ui". Now the ears are gone.
+	The state below drives one thing, the QuestPanel's size: full when open,
+	a "QUESTS" pill when collapsed. The pill is the same frame and has the same
+	header button, so the way back is always the thing you can see.
 
-	Three things were wrong, and all three were geometry:
-
-	  * it OVERLAPPED. The ear sat at Position (1, -tuck) -- six pixels back
-	    inside the card -- and drew at ZIndex 45, above it. Shrinking the tuck
-	    from 20 to 6 moved it off the labels but it was still on top of the card,
-	    which is what reads as "inside the quest block".
-	  * it was FULL HEIGHT, Size (1, _, 1, 0). So the active-quest ear and the
-	    daily ear were different heights, and both changed height whenever a card
-	    grew a row. Nothing about it was fixed.
-	  * it was PER-DEVICE, 28 wide on a phone against 24 elsewhere, so it was a
-	    different shape on a phone for no reason.
-
-	Now: a fixed 24 x 46 tab, vertically centred on the card's right edge and
-	sitting OUTSIDE it. Same numbers on every device -- MineClient's UIScale
-	already scales the whole tree, so design pixels here stay identical in
-	proportion on a phone and on a monitor.
-
-	Only the glyph changes with state, which is all the owner asked to change:
-	the sign flips between the two directions.
-
-	The one remaining overlap is four pixels, and it is not padding -- it is the
-	square EarBody covering the rounded EarTip's LEFT stroke, which a UIStroke
-	draws just outside the tip's border and which would otherwise read as a
-	divider line down the join. Four pixels of card-coloured fill on a card whose
-	right-aligned labels all stop 15px short: invisible, and clear of every
-	number by eleven pixels.
+	A phone starts collapsed, so the panel stays off the thumbstick until it is
+	asked for. A modal still collapses it (see the QUEST_HIDERS wiring) and the
+	pill stays on top so the player can peek.
 ]]
-function ClientFns.questDrawerTabW()
-	return 24
-end
-
-function ClientFns.questDrawerEarH()
-	return 46
-end
-
-function ClientFns.questDrawerEarR()
-	return 12
-end
-
-function ClientFns.questDrawerTuck()
-	return 4
-end
-
 function ClientFns.questDrawerEnsure()
 	if ClientFns.questDrawerReady then
-		local q = ClientFns.questDrawerTabQ
-		if q and q.Parent and q:FindFirstChild("EarBody") then
-			return
-		end
-		if q then
-			q:Destroy()
-		end
-		if ClientFns.questDrawerTabD then
-			ClientFns.questDrawerTabD:Destroy()
-		end
-		ClientFns.questDrawerReady = false
+		return
 	end
 	if ClientFns.questDrawerPreferred == nil then
-		ClientFns.questDrawerPreferred = true
+		ClientFns.questDrawerPreferred = not ClientFns.questIsPhone()
 	end
 	if ClientFns.questDrawerOpen == nil then
-		ClientFns.questDrawerOpen = true
+		ClientFns.questDrawerOpen = ClientFns.questDrawerPreferred
 	end
 	ClientFns.questDrawerPeeking = false
 	ClientFns.questDrawerRestX = ClientFns.questDrawerRestX or 16
-	local function makeTab(name, color, glyph)
-		local tuck = ClientFns.questDrawerTuck()
-		local ear = ClientFns.questDrawerTabW()
-		local earH = ClientFns.questDrawerEarH()
-		local r = ClientFns.questDrawerEarR()
-		-- Both ears are the same shape. The old code sized the daily ear's
-		-- radius at 16 and the quest ear's at 18, so the two never matched.
-		local tab = mk("TextButton", {
-			Name = name,
-			AutoButtonColor = true,
-			BackgroundColor3 = Color3.fromRGB(12, 14, 20),
-			BackgroundTransparency = 1,
-			Font = FONT,
-			TextSize = 18,
-			TextColor3 = color,
-			Text = "",
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(1, -tuck, 0.5, 0),
-			Size = UDim2.fromOffset(tuck + ear, earH),
-			ZIndex = 45,
-			Visible = false,
-			BorderSizePixel = 0,
-		}, gui)
-		local fill = Color3.fromRGB(12, 14, 20)
-		-- The tip is the whole ear, rounded on all four corners. The body then
-		-- squares off its left side and hides the stroke there, so what shows is
-		-- a tab that grows out of the card's edge rather than a pill beside it.
-		local tip = mk("Frame", {
-			Name = "EarTip",
-			BackgroundColor3 = fill,
-			BackgroundTransparency = 0.08,
-			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(0, 0),
-			Size = UDim2.fromScale(1, 1),
-			ZIndex = 45,
-			Active = false,
-		}, tab)
-		round(tip, r)
-		local st = stroke(tip, 2.5)
-		st.Name = "EarStroke"
-		st.Color = color
-		st.Transparency = 0.15
-		local body = mk("Frame", {
-			Name = "EarBody",
-			BackgroundColor3 = fill,
-			BackgroundTransparency = 0.08,
-			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(-3, 0),
-			Size = UDim2.fromOffset(tuck + r + 3, earH),
-			ZIndex = 46,
-			Active = false,
-		}, tab)
-		mk("Frame", {
-			Name = "EarHairTop",
-			BackgroundColor3 = color,
-			BackgroundTransparency = 0.15,
-			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(0, 0),
-			Size = UDim2.new(1, 0, 0, 2),
-			ZIndex = 47,
-			Active = false,
-		}, body)
-		mk("Frame", {
-			Name = "EarHairBot",
-			BackgroundColor3 = color,
-			BackgroundTransparency = 0.15,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, 0, 1, 0),
-			Size = UDim2.new(1, 0, 0, 2),
-			ZIndex = 47,
-			Active = false,
-		}, body)
-		mk("TextLabel", {
-			Name = "EarGlyph",
-			BackgroundTransparency = 1,
-			Font = FONT,
-			TextSize = 18,
-			TextColor3 = color,
-			Text = glyph,
-			Size = UDim2.new(0, ear, 1, 0),
-			Position = UDim2.new(1, -ear, 0, 0),
-			ZIndex = 50,
-			TextXAlignment = Enum.TextXAlignment.Center,
-		}, tab)
-		tab.MouseButton1Click:Connect(function()
-			ClientFns.questDrawerToggle(true)
-		end)
-		return tab
-	end
-	ClientFns.questDrawerTabQ = makeTab("QuestDrawerTab", Color3.fromRGB(255, 196, 88), "‹")
-	ClientFns.questDrawerTabD = makeTab("DailyDrawerTab", Color3.fromRGB(120, 200, 255), "‹")
 	ClientFns.questDrawerReady = true
 end
 
@@ -1545,99 +1507,93 @@ function ClientFns.syncQuestDrawer()
 	ClientFns.setQuestDrawerOpen(want)
 end
 
+-- Header state: the toggle glyph, and the claim dot. Kept under its old name
+-- because every paint path already calls it.
 function ClientFns.refreshQuestDrawerTabs()
 	ClientFns.questDrawerEnsure()
+	local parts = ClientFns.questPanelParts
+	if not parts then
+		return
+	end
 	local open = ClientFns.questDrawerOpen ~= false
-	local glyph = open and "‹" or "›"
-	local tuck = ClientFns.questDrawerTuck()
-	local ear = ClientFns.questDrawerTabW()
-	local qTab = ClientFns.questDrawerTabQ
-	local dTab = ClientFns.questDrawerTabD
-	local z = (questsCovered or open == false) and 92 or (questBox.ZIndex + 5)
-	local function paint(tab, box)
-		if not tab then
-			return
+	parts.toggle.Text = open and "-" or "+"
+	local claimable = ClientFns.dailyClaimable == true
+		or (snap ~= nil and type(snap.quest) == "table" and snap.quest.ready == true and not snap.quest.done)
+	if parts.dot.Visible ~= claimable then
+		parts.dot.Visible = claimable
+		if ClientFns.questDotPulseStop then
+			ClientFns.questDotPulseStop()
+			ClientFns.questDotPulseStop = nil
 		end
-		local show = box ~= nil and box.Visible == true
-		if show and tab.Parent ~= box then
-			tab.Parent = box
-		end
-		tab.Visible = show
-		tab.ZIndex = z
-		-- Fixed size, centred on the card's right edge. Restated here because
-		-- this runs after every tween and after every layout pass, so whatever
-		-- it sets is what the ear actually ends up as.
-		tab.AnchorPoint = Vector2.new(0, 0.5)
-		tab.Size = UDim2.fromOffset(tuck + ear, ClientFns.questDrawerEarH())
-		tab.Position = UDim2.new(1, -tuck, 0.5, 0)
-		local gl = tab:FindFirstChild("EarGlyph")
-		if gl then
-			gl.Text = glyph
-			gl.ZIndex = z + 5
-		end
-		if box then
-			local fill = box.BackgroundColor3
-			local tr = box.BackgroundTransparency
-			local body = tab:FindFirstChild("EarBody")
-			local tip = tab:FindFirstChild("EarTip")
-			if body then
-				body.BackgroundColor3 = fill
-				body.BackgroundTransparency = tr
-				body.ZIndex = z + 1
-			end
-			if tip then
-				tip.BackgroundColor3 = fill
-				tip.BackgroundTransparency = tr
-				tip.ZIndex = z
-			end
+		if claimable and ClientFns.UI then
+			ClientFns.UI.pop(parts.dot, 1.6)
+			ClientFns.questDotPulseStop = ClientFns.UI.pulse(parts.dot, 1.25, 0.8)
 		end
 	end
-	paint(qTab, questBox)
-	paint(dTab, ClientFns.dailyBox)
 end
 
-function ClientFns.applyQuestDrawerPos(instant)
+--[[
+	Stack the quest card and the daily card inside the panel, and size the panel
+	to them: full when open, a pill when collapsed. Runs on every paint (about
+	ten a second while digging), so it only starts a tween when the target size
+	actually changes.
+]]
+function ClientFns.layoutQuestPanel(instant)
+	local panel = ClientFns.questPanel
+	if not panel then
+		return
+	end
 	ClientFns.questDrawerEnsure()
-	local restX = ClientFns.questDrawerRestX or 16
-	local open = ClientFns.questDrawerOpen ~= false
-	local wide = questBox.Size.X.Offset
-	if ClientFns.dailyBox and ClientFns.dailyBox.Size.X.Offset > wide then
-		wide = ClientFns.dailyBox.Size.X.Offset
+	local H = ClientFns.QUEST_HEADER or 40
+	local d = ClientFns.dailyBox
+	local qVis = questBox.Visible
+	local dVis = d ~= nil and d.Visible
+	local y = H
+	local wide = 0
+	if qVis then
+		questBox.Position = UDim2.fromOffset(0, y)
+		y += questBox.Size.Y.Offset
+		wide = math.max(wide, questBox.Size.X.Offset)
+	end
+	if d then
+		d.Position = UDim2.fromOffset(0, y)
+		local rule = d:FindFirstChild("Divider")
+		if rule then
+			rule.Visible = qVis
+		end
+		if dVis then
+			y += d.Size.Y.Offset
+			wide = math.max(wide, d.Size.X.Offset)
+		end
 	end
 	if wide < 80 then
 		wide = ClientFns.questIsPhone() and 260 or 304
 	end
-	local x = open and restX or (restX - wide)
-	local yQ = questBox.Position.Y.Offset
-	local yD = yQ + ((questBox.Visible and questBox.Size.Y.Offset > 0) and (questBox.Size.Y.Offset + 10) or 0)
-	local info = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local function slide(inst, y, key)
-		if not inst then
-			return
-		end
-		local goal = UDim2.new(0, x, 0, y)
-		local prev = ClientFns[key]
+	panel.Visible = qVis or dVis
+	panel.Position = UDim2.new(0, ClientFns.questDrawerRestX or 16, 0, ClientFns.questPanelY or 300)
+	local open = ClientFns.questDrawerOpen ~= false
+	local goal = open and UDim2.fromOffset(wide, y + 6) or UDim2.fromOffset(150, H)
+	if ClientFns.questPanelGoal ~= goal then
+		ClientFns.questPanelGoal = goal
+		local prev = ClientFns.questPanelTween
 		if prev then
 			pcall(function() prev:Cancel() end)
-			ClientFns[key] = nil
+			ClientFns.questPanelTween = nil
 		end
-		if instant then
-			inst.Position = goal
+		if instant or not panel.Visible then
+			panel.Size = goal
 		else
-			local tw = TweenService:Create(inst, info, { Position = goal })
-			ClientFns[key] = tw
+			local tw = TweenService:Create(panel,
+				TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = goal })
+			ClientFns.questPanelTween = tw
 			tw:Play()
-			tw.Completed:Connect(function()
-				if ClientFns[key] == tw then
-					ClientFns[key] = nil
-				end
-				ClientFns.refreshQuestDrawerTabs()
-			end)
 		end
 	end
-	slide(questBox, yQ, "questDrawerTweenQ")
-	slide(ClientFns.dailyBox, yD, "questDrawerTweenD")
 	ClientFns.refreshQuestDrawerTabs()
+end
+
+function ClientFns.applyQuestDrawerPos(instant)
+	ClientFns.layoutQuestPanel(instant)
 end
 
 function ClientFns.setQuestDrawerOpen(open, instant)
@@ -1737,10 +1693,12 @@ function ClientFns.showQuest(state)
 	if not phone then
 		ClientFns.questFolded = false
 	end
-	local folded = phone and ClientFns.questFolded
+	-- The phone "Quest" pill is retired: collapsing is the QuestPanel's job now
+	-- (one control for every device), so the card itself never folds.
+	local folded = false
 	questBox.Visible = true
 	questBox.Active = false
-	-- Never clip: drawer tabs / chevrons sit on the right edge outside the card.
+	-- The QuestPanel around it does the clipping (that is how it collapses).
 	questBox.ClipsDescendants = false
 	-- "5 / 16" only; the word QUEST does not fit the compact row and the bar
 	-- under a named objective already reads as a quest.
@@ -1782,7 +1740,7 @@ function ClientFns.showQuest(state)
 	chrome.label.Visible = false
 	chrome.tap.Visible = false
 	chrome.dot.Visible = false
-	chrome.collapse.Visible = phone
+	chrome.collapse.Visible = false
 	questIdx.Visible = true
 	questText.Visible = true
 	local sh = questBox:FindFirstChild("QuestShadow")
@@ -1795,7 +1753,7 @@ function ClientFns.showQuest(state)
 		questTip.Visible = tip ~= nil and not state.ready and not phone
 	end
 	local wide = phone and 260 or 304
-	local tall = (tip and not state.ready and not phone) and 118 or 90
+	local tall = (tip and not state.ready and not phone) and 126 or 96
 	questBox.Size = UDim2.fromOffset(wide, tall)
 	if state.ready then
 		questTrack.Visible = false
@@ -1803,11 +1761,23 @@ function ClientFns.showQuest(state)
 		if rewardHint then
 			rewardHint.Visible = false
 		end
+		local was = questClaim.Visible
 		questClaim.Visible = true
 		questClaim.Active = true
-		questClaim.Text = "CLAIM  -  " .. tostring(state.reward)
-		questClaim.TextSize = (#tostring(state.reward) > 16) and 12 or 15
+		questClaim.Text = "CLAIM  " .. tostring(state.reward) .. "!"
+		questClaim.TextSize = (#tostring(state.reward) > 16) and 14 or 18
+		-- Something to claim always throbs: it is the one thing on the HUD that
+		-- pays out right now, so it should be the one thing that moves.
+		if not was and ClientFns.UI then
+			ClientFns.UI.pop(questClaim, 1.2)
+			if ClientFns.questClaimPulseStop then ClientFns.questClaimPulseStop() end
+			ClientFns.questClaimPulseStop = ClientFns.UI.pulse(questClaim, 1.06, 0.9)
+		end
 	else
+		if ClientFns.questClaimPulseStop then
+			ClientFns.questClaimPulseStop()
+			ClientFns.questClaimPulseStop = nil
+		end
 		questClaim.Visible = false
 		questTrack.Visible = true
 		questProg.Visible = true
@@ -1816,6 +1786,7 @@ function ClientFns.showQuest(state)
 		if rewardHint then
 			rewardHint.Visible = true
 			rewardHint.Text = "Reward: " .. tostring(state.reward)
+			rewardHint.TextColor3 = GOLD
 		end
 	end
 	ClientFns.placeDailyBox()
@@ -1832,68 +1803,78 @@ function ClientFns.dailyBoxBuild()
 	if ClientFns.dailyBox then
 		return ClientFns.dailyBox
 	end
+	-- Lives inside the QuestPanel (see questBox): transparent, no chrome of its
+	-- own, with a hairline on top dividing it from the active quest above.
 	local box = mk("Frame", {
-		Name = "DailyQuests", Visible = false, BackgroundColor3 = Color3.fromRGB(12, 14, 20),
-		BackgroundTransparency = 0.08, Position = UDim2.new(0, 16, 0, 420), Size = UDim2.fromOffset(304, 164),
+		Name = "DailyQuests", Visible = false, BackgroundColor3 = T.PANEL,
+		BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, 0), Size = UDim2.fromOffset(304, 178),
 		ZIndex = 20, Active = false,
-	}, gui)
-	round(box, 16)
-	local st = stroke(box, 2.5)
-	st.Color = Color3.fromRGB(120, 200, 255)
-	st.Transparency = 0.2
-	round(mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(120, 200, 255), Position = UDim2.fromOffset(0, 10),
-		Size = UDim2.new(0, 5, 1, -20), ZIndex = 21, Active = false,
-	}, box), 3)
+	}, ClientFns.questPanel or gui)
+	box:SetAttribute("MineUIAdopted", true)
+	mk("Frame", {
+		Name = "Divider", BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+		Position = UDim2.new(0, 12, 0, 0), Size = UDim2.new(1, -24, 0, 2),
+		ZIndex = 21, Active = false,
+	}, box)
 	local header = mk("TextButton", {
-		BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 30), ZIndex = 22,
+		BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 34), ZIndex = 22,
 	}, box)
 	mk("TextLabel", {
-		BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = Color3.fromRGB(150, 214, 255),
+		BackgroundTransparency = 1, Font = FONT, TextSize = 17, TextColor3 = T.GEM,
 		Text = "DAILY QUESTS", TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(16, 6), Size = UDim2.new(0.5, 0, 0, 20), ZIndex = 22, Active = false,
+		Position = UDim2.fromOffset(16, 7), Size = UDim2.new(0.5, 0, 0, 22), ZIndex = 22, Active = false,
 	}, header)
 	local info = mk("TextLabel", {
-		BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextColor3 = MUTED, Text = "",
+		BackgroundTransparency = 1, Font = FONT_M, TextSize = 13, TextColor3 = MUTED, Text = "",
 		TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 8), Size = UDim2.new(0.55, 0, 0, 16), ZIndex = 22, Active = false,
+		Position = UDim2.new(1, -12, 0, 10), Size = UDim2.new(0.55, 0, 0, 18), ZIndex = 22, Active = false,
 	}, header)
 	local rows = {}
 	for i = 1, 3 do
 		local r = mk("Frame", {
-			BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 30 + (i - 1) * 43),
-			Size = UDim2.new(1, -28, 0, 40), ZIndex = 21, Active = false,
+			BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 34 + (i - 1) * 46),
+			Size = UDim2.new(1, -28, 0, 44), ZIndex = 21, Active = false,
 		}, box)
 		local text = mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 13, TextColor3 = TEXT, Text = "",
+			BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-			Size = UDim2.new(1, -70, 0, 18), ZIndex = 22, Active = false,
+			Size = UDim2.new(1, -74, 0, 20), ZIndex = 22, Active = false,
 		}, r)
 		local gems = mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextColor3 = T.GEM, Text = "",
+			BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = T.GEM, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 1), Size = UDim2.fromOffset(70, 16), ZIndex = 22, Active = false,
+			Position = UDim2.new(1, 0, 0, 1), Size = UDim2.fromOffset(74, 18), ZIndex = 22, Active = false,
 		}, r)
 		local track = mk("Frame", {
-			BackgroundColor3 = Color3.fromRGB(18, 16, 24), Position = UDim2.fromOffset(0, 22),
-			Size = UDim2.new(1, -70, 0, 10), ZIndex = 22, Active = false,
+			BackgroundColor3 = T.LINE, Position = UDim2.fromOffset(0, 24),
+			Size = UDim2.new(1, -74, 0, 13), ZIndex = 22, Active = false,
 		}, r)
-		round(track, 5)
+		round(track, 7)
+		do
+			local ts = stroke(track, 2)
+			ts.Color = T.OUTLINE
+			ts.Transparency = 0
+		end
 		local fill = mk("Frame", {
-			BackgroundColor3 = Color3.fromRGB(120, 200, 255), Size = UDim2.fromScale(0, 1), ZIndex = 23, Active = false,
+			BackgroundColor3 = T.GEM, Size = UDim2.fromScale(0, 1), ZIndex = 23, Active = false,
 		}, track)
-		round(fill, 5)
+		round(fill, 7)
 		local count = mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 12, TextColor3 = TEXT, Text = "",
+			BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = TEXT, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 19), Size = UDim2.fromOffset(64, 16), ZIndex = 22, Active = false,
+			Position = UDim2.new(1, 0, 0, 21), Size = UDim2.fromOffset(68, 18), ZIndex = 22, Active = false,
 		}, r)
 		local claim = mk("TextButton", {
-			Visible = false, AutoButtonColor = true, BackgroundColor3 = T.GREEN, Font = FONT, TextSize = 13,
-			TextColor3 = Color3.fromRGB(14, 40, 20), Text = "CLAIM", AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 18), Size = UDim2.fromOffset(64, 20), ZIndex = 24,
+			Visible = false, AutoButtonColor = false, BackgroundColor3 = T.GREEN, Font = FONT, TextSize = 14,
+			TextColor3 = Color3.fromRGB(255, 255, 255), Text = "CLAIM", AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, 18), Size = UDim2.fromOffset(70, 26), ZIndex = 24,
 		}, r)
-		round(claim, 6)
+		round(claim, 9)
+		if ClientFns.UI then
+			ClientFns.UI.candy(claim, "green", 2.5, false)
+			ClientFns.UI.outlineText(claim, 1.5)
+			ClientFns.UI.juice(claim)
+		end
 		claim.MouseButton1Click:Connect(function()
 			if claim.Active then
 				claim.Active = false
@@ -1932,13 +1913,6 @@ function ClientFns.paintDailyBox(list)
 		ClientFns.refreshQuestDrawerTabs()
 		return
 	end
-	-- Phone quest pill: tuck daily rows away until the ladder card is expanded.
-	if ClientFns.questIsPhone() and ClientFns.questFolded then
-		box.Visible = false
-		ClientFns.placeDailyBox()
-		ClientFns.refreshQuestDrawerTabs()
-		return
-	end
 	local done = 0
 	for _, q in ipairs(list) do
 		if q.claimed then
@@ -1959,7 +1933,7 @@ function ClientFns.paintDailyBox(list)
 			r.gems.Text = q.claimed and "DONE" or ("+" .. tostring(q.reward or ""))
 			r.gems.TextColor3 = q.claimed and T.GREEN or T.GEM
 			r.fill.Size = UDim2.fromScale(cur / goal, 1)
-			r.fill.BackgroundColor3 = q.claimed and T.GREEN or Color3.fromRGB(120, 200, 255)
+			r.fill.BackgroundColor3 = q.claimed and T.GREEN or T.GEM
 			r.count.Text = Quests.short(cur) .. "/" .. Quests.short(goal)
 			r.count.Visible = not q.ready
 			r.claim.Visible = q.ready and not q.claimed
@@ -1971,7 +1945,7 @@ function ClientFns.paintDailyBox(list)
 			end
 		end
 	end
-	box.Size = UDim2.fromOffset((ClientFns.questIsPhone() and 260) or 304, ClientFns.dailyFolded and 30 or (30 + #list * 43 + 6))
+	box.Size = UDim2.fromOffset((ClientFns.questIsPhone() and 260) or 304, ClientFns.dailyFolded and 34 or (34 + #list * 46 + 6))
 	box.Visible = true
 	box.ClipsDescendants = false
 	ClientFns.placeDailyBox()
@@ -1980,14 +1954,8 @@ end
 
 -- Right under the quest card, or in its place when the ladder is finished.
 function ClientFns.placeDailyBox()
-	local box = ClientFns.dailyBox
-	if not box then
-		return
-	end
-	local x = questBox.Position.X.Offset
-	local y = questBox.Position.Y.Offset + (questBox.Visible and (questBox.Size.Y.Offset + 10) or 0)
-	box.Position = UDim2.new(0, x, 0, y)
-	ClientFns.refreshQuestDrawerTabs()
+	-- Both cards live in the QuestPanel now; it stacks and sizes them.
+	ClientFns.layoutQuestPanel()
 end
 
 --[[
@@ -2015,16 +1983,23 @@ depthHud.chip = mk("Frame", {
 	BackgroundTransparency = 0.06,
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -16, 0, 104),
-	Size = UDim2.fromOffset(128, 34),
+	Size = UDim2.fromOffset(140, 36),
 	ZIndex = 20,
 	Active = false,
 }, gui)
-round(depthHud.chip, 10)
-stroke(depthHud.chip, 1)
+round(depthHud.chip, 12)
+do
+	local s = stroke(depthHud.chip, 3)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+end
 depthHud.label = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT,
+	BackgroundTransparency = 1, Font = FONT, TextSize = 18, TextColor3 = TEXT,
 	Size = UDim2.fromScale(1, 1), Text = "0m", ZIndex = 21, Active = false,
 }, depthHud.chip)
+if ClientFns.UI then
+	ClientFns.UI.outlineText(depthHud.label, 2)
+end
 
 --[[
 	REBIRTH PROGRESS, ON SCREEN.
@@ -2044,36 +2019,50 @@ depthHud.rb = mk("Frame", {
 	BackgroundColor3 = BG,
 	BackgroundTransparency = 0.06,
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -16, 0, 142),
-	Size = UDim2.fromOffset(128, 38),
+	Position = UDim2.new(1, -16, 0, 146),
+	Size = UDim2.fromOffset(140, 46),
 	ZIndex = 20,
 	Active = false,
 }, gui)
-round(depthHud.rb, 10)
-stroke(depthHud.rb, 1)
+round(depthHud.rb, 12)
+do
+	local s = stroke(depthHud.rb, 3)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+end
 depthHud.rbLabel = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 12, TextColor3 = GOLD,
-	Position = UDim2.fromOffset(8, 4), Size = UDim2.new(1, -16, 0, 14),
+	BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = GOLD,
+	Position = UDim2.fromOffset(9, 4), Size = UDim2.new(1, -18, 0, 17),
 	Text = "REBIRTH 1", TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 21, Active = false,
 }, depthHud.rb)
 depthHud.rbPct = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextColor3 = MUTED,
-	Position = UDim2.fromOffset(8, 4), Size = UDim2.new(1, -16, 0, 14),
+	BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = MUTED,
+	Position = UDim2.fromOffset(9, 4), Size = UDim2.new(1, -18, 0, 17),
 	Text = "0%", TextXAlignment = Enum.TextXAlignment.Right,
 	ZIndex = 21, Active = false,
 }, depthHud.rb)
 depthHud.rbTrack = mk("Frame", {
-	BackgroundColor3 = Color3.fromRGB(36, 34, 42), BorderSizePixel = 0,
-	Position = UDim2.fromOffset(8, 22), Size = UDim2.new(1, -16, 0, 9),
+	BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+	Position = UDim2.fromOffset(9, 25), Size = UDim2.new(1, -18, 0, 13),
 	ZIndex = 21, Active = false,
 }, depthHud.rb)
-round(depthHud.rbTrack, 4)
+round(depthHud.rbTrack, 7)
+do
+	local s = stroke(depthHud.rbTrack, 2)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+end
 depthHud.rbFill = mk("Frame", {
 	BackgroundColor3 = GOLD, BorderSizePixel = 0,
 	Size = UDim2.fromScale(0, 1), ZIndex = 22, Active = false,
 }, depthHud.rbTrack)
-round(depthHud.rbFill, 4)
+round(depthHud.rbFill, 7)
+if ClientFns.UI then
+	ClientFns.UI.candyTint(depthHud.rbFill, 0)
+	ClientFns.UI.outlineText(depthHud.rbLabel, 1.5)
+	depthHud.rbLabel.TextColor3 = GOLD
+end
 
 --[[
 	THE BIG BUTTON.
@@ -2090,10 +2079,10 @@ round(depthHud.rbFill, 4)
 depthHud.button = mk("TextButton", {
 	Name = "BigAction",
 	Visible = false,
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 	BackgroundColor3 = GOLD,
 	Font = FONT,
-	TextSize = 20,
+	TextSize = 24,
 	TextColor3 = T.ON_GOLD,
 	Text = "TO SURFACE",
 	AnchorPoint = Vector2.new(0.5, 1),
@@ -2101,7 +2090,13 @@ depthHud.button = mk("TextButton", {
 	Size = UDim2.fromOffset(280, 68),
 	ZIndex = 22,
 }, gui)
-round(depthHud.button, 16)
+round(depthHud.button, 20)
+if ClientFns.UI then
+	-- Candy tint: the hue stays in BackgroundColor3 (SELL green / SURFACE gold).
+	ClientFns.UI.candyTint(depthHud.button, T.STROKE_THICK)
+	ClientFns.UI.outlineText(depthHud.button, 2.5)
+	ClientFns.UI.juice(depthHud.button)
+end
 depthHud.mode = "surface"
 depthHud.button.MouseButton1Click:Connect(function()
 	if depthHud.mode == "sell" then
@@ -2166,19 +2161,29 @@ local presL = mk("TextLabel", {
 	Active = false,
 }, gui)
 
+-- Candy pass: a chunky outlined bubble with bold text that pops in when shown.
 local toast = mk("TextLabel", {
 	Visible = false,
 	BackgroundColor3 = BG,
-	BackgroundTransparency = 0.08,
-	Font = FONT_M,
-	TextSize = 16,
+	BackgroundTransparency = 0.04,
+	Font = FONT,
+	TextSize = 18,
 	TextColor3 = TEXT,
-	Position = UDim2.new(0.5, -160, 0, 20 + GuiService:GetGuiInset().Y),
-	Size = UDim2.fromOffset(320, 36),
+	Position = UDim2.new(0.5, -190, 0, 20 + GuiService:GetGuiInset().Y),
+	Size = UDim2.fromOffset(380, 44),
+	TextWrapped = true,
 	Text = "",
 }, gui)
-round(toast)
-stroke(toast)
+round(toast, 16)
+do
+	local s = stroke(toast, 3)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new(T.CARD_HI, T.PANEL)
+	g.Rotation = 90
+	g.Parent = toast
+end
 
 -- World Pulse banner (module - MineClient is at the Luau local register cap).
 require(shared:WaitForChild("MineWorldPulseUI")).install(gui, GuiService, BG, FONT_M, TEXT, round, stroke)
@@ -2208,20 +2213,31 @@ end
 local spinBar = mk("Frame", {
 	Name = "SpinUp", Visible = false, AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, -84), Size = UDim2.fromOffset(420, 16),
-	BackgroundColor3 = Color3.fromRGB(26, 24, 30), ZIndex = 20,
+	BackgroundColor3 = T.LINE, ZIndex = 20,
 }, gui)
-round(spinBar, 8)
-stroke(spinBar, 1)
+round(spinBar, 9)
+do
+	local s = stroke(spinBar, 3)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+	spinBar.Size = UDim2.fromOffset(420, 22)
+end
 local spinFill = mk("Frame", {
-	Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.fromRGB(255, 186, 74),
+	Size = UDim2.fromScale(0, 1), BackgroundColor3 = GOLD,
 	ZIndex = 21,
 }, spinBar)
-round(spinFill, 8)
+round(spinFill, 9)
+if ClientFns.UI then
+	ClientFns.UI.candyTint(spinFill, 0)
+end
 local spinText = mk("TextLabel", {
 	BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Font = FONT,
-	TextSize = 12, TextColor3 = Color3.fromRGB(255, 236, 200),
+	TextSize = 15, TextColor3 = Color3.fromRGB(255, 255, 255),
 	Text = "SPINNING UP", ZIndex = 22,
 }, spinBar)
+if ClientFns.UI then
+	ClientFns.UI.outlineText(spinText, 2)
+end
 
 local spinUntil, spinFor = 0, 1
 function ClientFns.showSpin(dur)
@@ -2235,6 +2251,9 @@ end
 local function showToast(t)
 	toast.Text = t
 	toast.Visible = true
+	if ClientFns.UI then
+		ClientFns.UI.pop(toast, 1.12)
+	end
 	task.delay(2.4, function()
 		if toast.Text == t then
 			toast.Visible = false
@@ -2260,6 +2279,9 @@ local function btn(parent, text, pos, size, fn)
 	}, parent)
 	round(b)
 	stroke(b)
+	if ClientFns.UI then
+		ClientFns.UI.juice(b)
+	end
 	b.MouseButton1Click:Connect(fn)
 	return b
 end
@@ -2313,23 +2335,76 @@ local function panel(name)
 		ZIndex = 30,
 		BorderSizePixel = 0,
 	}, gui)
-	round(f, 10)
-	stroke(f)
-	mk("TextLabel", {
+	round(f, 18)
+	--[[
+		Candy pass (2026-10-08): every window built here gets the same chunky
+		chrome. A fat dark outline, a violet header band, a big outlined title,
+		a big red close button, and a springy pop each time it opens.
+	]]
+	do
+		local s = stroke(f, T.STROKE_THICK)
+		s.Color = T.OUTLINE
+		s.Transparency = 0
+		local g = Instance.new("UIGradient")
+		g.Rotation = 90
+		g.Color = ColorSequence.new(T.CARD, T.INK)
+		g.Parent = f
+		-- The band is a rounded bar plus a square filler under its lower half,
+		-- both with the same sideways gradient, so it reads as one shape with
+		-- rounded top corners and a flat bottom.
+		local function band(pos, size, r)
+			local b = mk("Frame", {
+				Name = "HeaderBand", BackgroundColor3 = Color3.new(1, 1, 1),
+				Position = pos, Size = size, ZIndex = 30, Active = false,
+			}, f)
+			if r then
+				round(b, r)
+			end
+			local bg = Instance.new("UIGradient")
+			bg.Color = ColorSequence.new(T.ACCENT_DIM, T.CARD_HI)
+			bg.Parent = b
+			b:SetAttribute("MineUIAdopted", true)
+		end
+		band(UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 50), 18)
+		band(UDim2.fromOffset(0, 25), UDim2.new(1, 0, 0, 25))
+		f:GetPropertyChangedSignal("Visible"):Connect(function()
+			if f.Visible and ClientFns.UI then
+				ClientFns.UI.pop(f, 0.9)
+			end
+		end)
+	end
+	local titleL = mk("TextLabel", {
 		BackgroundTransparency = 1,
 		Font = FONT,
-		TextSize = 22,
+		TextSize = 26,
 		Text = string.upper(name),
-		Size = UDim2.new(1, -72, 0, 36),
-		Position = UDim2.fromOffset(18, 10),
+		Size = UDim2.new(1, -72, 0, 40),
+		Position = UDim2.fromOffset(18, 5),
 		TextColor3 = TEXT,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 31,
 		Active = false,
 	}, f)
-	btn(f, "X", UDim2.new(1, -48, 0, 10), UDim2.fromOffset(36, 36), function()
-		f.Visible = false
-	end)
+	if ClientFns.UI then
+		ClientFns.UI.outlineText(titleL, 2.5)
+	end
+	do
+		local close = mk("TextButton", {
+			Name = "Close", AutoButtonColor = false, Text = "X", Font = FONT, TextSize = 24,
+			TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = T.RED,
+			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 5),
+			Size = UDim2.fromOffset(40, 40), ZIndex = 33,
+		}, f)
+		round(close, 12)
+		if ClientFns.UI then
+			ClientFns.UI.candy(close, "red", 3)
+			ClientFns.UI.outlineText(close, 2)
+			ClientFns.UI.juice(close, 1.12)
+		end
+		close.MouseButton1Click:Connect(function()
+			f.Visible = false
+		end)
+	end
 	local body = mk("ScrollingFrame", {
 		Name = "Body",
 		BackgroundTransparency = 1,
@@ -2518,8 +2593,20 @@ local function dockBtn(asset, label, open, opts)
 		Active = false,
 		ClipsDescendants = true,
 	}, b)
-	round(plate, 12)
-	if not opts.clearPlate then
+	round(plate, 14)
+	--[[
+		Candy pass (2026-10-08): every dock button is its own colour, so a kid
+		finds "the gold one" (Shop) or "the blue one" (Inventory) without reading.
+		Colour is per caption; anything unlisted is violet.
+	]]
+	local candyKey = opts.candy or ({
+		Shop = "gold", Inventory = "blue", Trade = "green", Pass = "purple",
+		Enchanter = "magenta", Planets = "cyan", Events = "orange", Jobs = "red",
+	})[label] or "purple"
+	if ClientFns.UI and not opts.clearPlate then
+		ClientFns.UI.candy(plate, candyKey, 3)
+		ClientFns.UI.juice(b, 1.1)
+	elseif not opts.clearPlate then
 		stroke(plate, 1.5)
 	end
 	local ar = Instance.new("UIAspectRatioConstraint")
@@ -2536,16 +2623,19 @@ local function dockBtn(asset, label, open, opts)
 		Size = UDim2.fromOffset(40, 40),
 		Active = false,
 	}, plate)
-	mk("TextLabel", {
+	local cap = mk("TextLabel", {
 		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 13,
+		Font = FONT,
+		TextSize = 15,
 		TextColor3 = TEXT,
 		Text = label,
 		Position = UDim2.fromOffset(0, 56),
 		Size = UDim2.new(1, 0, 0, 22),
 		Active = false,
 	}, b)
+	if ClientFns.UI then
+		ClientFns.UI.outlineText(cap, 2)
+	end
 	b.MouseButton1Click:Connect(open)
 	return b, plate
 end
@@ -2834,11 +2924,16 @@ end
 do
 	local gear = mk("TextButton", {
 		Name = "SettingsGear", Text = "", AutoButtonColor = false, Active = true,
-		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, 10, 0.5, 0), Size = UDim2.fromOffset(48, 48),
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, 10, 0.5, 0), Size = UDim2.fromOffset(52, 52),
 		BackgroundColor3 = Color3.fromRGB(12, 14, 20), BackgroundTransparency = 0.08, ZIndex = 21,
 	}, wallet)
-	round(gear, 24)
-	stroke(gear, 1.5)
+	round(gear, 26)
+	if ClientFns.UI then
+		ClientFns.UI.candy(gear, "blue", 3, false)
+		ClientFns.UI.juice(gear, 1.1)
+	else
+		stroke(gear, 1.5)
+	end
 	for i = 0, 3 do
 		round(mk("Frame", {
 			BackgroundColor3 = GOLD, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
@@ -2850,7 +2945,7 @@ do
 		Size = UDim2.fromOffset(22, 22), ZIndex = 23, Active = false,
 	}, gear), 11)
 	round(mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(12, 14, 20), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+		BackgroundColor3 = T.OUTLINE, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(9, 9), ZIndex = 24, Active = false,
 	}, gear), 5)
 	gear.MouseButton1Click:Connect(function()
@@ -2861,11 +2956,16 @@ end
 do
 	local btn = mk("TextButton", {
 		Name = "GiftsButton", Text = "", AutoButtonColor = false, Active = true,
-		Position = UDim2.new(1, 10, 1, 8), Size = UDim2.fromOffset(48, 48),
+		Position = UDim2.new(1, 10, 1, 8), Size = UDim2.fromOffset(52, 52),
 		BackgroundColor3 = Color3.fromRGB(12, 14, 20), BackgroundTransparency = 0.08, ZIndex = 21,
 	}, wallet)
-	round(btn, 12)
-	stroke(btn, 1.5)
+	round(btn, 14)
+	if ClientFns.UI then
+		ClientFns.UI.candy(btn, "purple", 3, false)
+		ClientFns.UI.juice(btn, 1.1)
+	else
+		stroke(btn, 1.5)
+	end
 	local red = Color3.fromRGB(214, 70, 82)
 	round(mk("Frame", {
 		BackgroundColor3 = red, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.62, 0),
@@ -2886,15 +2986,23 @@ do
 		}, btn), 2)
 	end
 	local timeL = mk("TextLabel", {
-		BackgroundTransparency = 1, Font = FONT, TextSize = 12, TextColor3 = TEXT, TextStrokeTransparency = 0.4,
-		Text = "", Position = UDim2.new(0, -8, 1, 1), Size = UDim2.new(1, 16, 0, 16), ZIndex = 22, Active = false,
+		BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = TEXT, TextStrokeTransparency = 1,
+		Text = "", Position = UDim2.new(0, -10, 1, 2), Size = UDim2.new(1, 20, 0, 18), ZIndex = 22, Active = false,
 	}, btn)
+	if ClientFns.UI then
+		ClientFns.UI.outlineText(timeL, 2)
+	end
 	local badge = mk("TextLabel", {
-		BackgroundColor3 = red, Font = FONT, TextSize = 12, TextColor3 = TEXT, Text = "", Visible = false,
-		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -2, 0, 2), Size = UDim2.fromOffset(18, 18),
+		BackgroundColor3 = red, Font = FONT, TextSize = 14, TextColor3 = TEXT, Text = "", Visible = false,
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -2, 0, 2), Size = UDim2.fromOffset(22, 22),
 		ZIndex = 25, Active = false,
 	}, btn)
-	round(badge, 9)
+	round(badge, 11)
+	do
+		local s = stroke(badge, 2)
+		s.Color = T.OUTLINE
+		s.Transparency = 0
+	end
 	btn.MouseButton1Click:Connect(function()
 		ClientFns.giftsPanel().toggle()
 	end)
@@ -2934,17 +3042,17 @@ function ClientFns.layoutDock()
 	local bottomRoom = UIS.TouchEnabled and 140 or 48
 	local room = screen.Y - topRoom - bottomRoom
 	local gap = 6
-	local cellW, cellH, plateS, textS = 72, 78, 56, 13
+	local cellW, cellH, plateS, textS = 74, 80, 58, 15
 	local rows, cols = n, 1
 	if n * (cellH + gap) - gap > room then
 		-- A little shorter still fits one column: just tighten the captions.
 		local tight = math.floor((room + gap) / n) - gap
 		if tight >= 66 then
-			cellH, plateS, textS = tight, math.min(56, tight - 14), 12
+			cellH, plateS, textS = tight, math.min(58, tight - 16), 14
 		else
 			-- Otherwise smaller cells, as many columns as it takes, in from the
 			-- right edge.
-			cellW, cellH, plateS, textS = 62, 66, 48, 11
+			cellW, cellH, plateS, textS = 64, 68, 48, 13
 			rows = math.clamp(math.floor((room + gap) / (cellH + gap)), 1, n)
 			cols = math.ceil(n / rows)
 			rows = math.ceil(n / cols) -- even columns rather than one full and one stub
@@ -3453,9 +3561,15 @@ function ClientFns.flyToBag(info)
 		task.wait(0.55)
 		holder:Destroy()
 		if target then
-			local bump = target:FindFirstChild("FlyBump") or mk("UIScale", { Name = "FlyBump", Scale = 1 }, target)
-			bump.Scale = 1.28
-			TS:Create(bump, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+			-- Through the kit's shared FxScale: the dock buttons already carry it
+			-- (juice), and Roblox ignores a second UIScale on the same frame.
+			if ClientFns.UI then
+				ClientFns.UI.pop(target, 1.28)
+			else
+				local bump = target:FindFirstChild("FlyBump") or mk("UIScale", { Name = "FlyBump", Scale = 1 }, target)
+				bump.Scale = 1.28
+				TS:Create(bump, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+			end
 		end
 		Audio.play("equip")
 	end)
@@ -3761,6 +3875,11 @@ function ClientFns.chestPopup(payload)
 	-- Soft entrance: slight ease, no Back punch.
 	sc.Scale = 0.94
 	card.Visible = true
+	-- Owner, 2026-10-08: "less dopamine with the chests". So chests stay quiet,
+	-- and only an S-rank (Ultra Rare) chest gets the small tier-1 pluck.
+	if payload.rank == "S" then
+		pcall(Audio.playWin, 1)
+	end
 	TweenService:Create(sc, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	task.delay(2.1, function()
 		if ClientFns.chestToken ~= token then
@@ -4135,6 +4254,12 @@ end
 function ClientFns.pulseGifts()
 	local b = ClientFns.giftBtn
 	if not b then
+		return
+	end
+	if ClientFns.UI then
+		-- Shared FxScale channel, so it stacks with the button's press squash.
+		local stop = ClientFns.UI.pulse(b.btn, 1.25, 0.9)
+		task.delay(0.9 * 4, stop)
 		return
 	end
 	local sc = b.btn:FindFirstChildOfClass("UIScale") or mk("UIScale", {}, b.btn)
@@ -10679,6 +10804,19 @@ RunService.Heartbeat:Connect(function(dt)
 				depthHud.rbPct.Text = (f >= 1) and "READY" or (math.floor(f * 100) .. "%")
 				depthHud.rbPct.TextColor3 = (f >= 1)
 					and Color3.fromRGB(150, 230, 150) or MUTED
+				-- READY throbs, the same as every other thing that pays out now.
+				local ready = f >= 1
+				if ClientFns.UI and ready ~= (depthHud.rbReady == true) then
+					depthHud.rbReady = ready
+					if depthHud.rbPulseStop then
+						depthHud.rbPulseStop()
+						depthHud.rbPulseStop = nil
+					end
+					if ready then
+						ClientFns.UI.pop(depthHud.rb, 1.15)
+						depthHud.rbPulseStop = ClientFns.UI.pulse(depthHud.rb, 1.05, 1)
+					end
+				end
 			else
 				depthHud.rb.Visible = false
 			end
@@ -10873,16 +11011,19 @@ function ClientFns.pulsePanel(f)
 end
 
 function ClientFns.pulseQuestClaim()
-	-- Intro wants the CLAIM button seen; unfold the phone pill first.
-	if ClientFns.questFolded then
-		ClientFns.questFolded = false
-		if snap then
-			pcall(ClientFns.showQuest, snap.quest)
-		end
+	-- Intro wants the CLAIM button seen; open the quest panel first.
+	if ClientFns.questDrawerOpen == false then
+		ClientFns.questDrawerPreferred = true
+		pcall(ClientFns.syncQuestDrawer)
 	end
 	task.spawn(function()
 		for _ = 1, 8 do
-			if questClaim.Visible then
+			if questClaim.Visible and ClientFns.UI then
+				-- The candy claim colours itself with a gradient, so a colour
+				-- flash would stain it. Pop it instead.
+				ClientFns.UI.pop(questClaim, 1.15)
+				task.wait(0.8)
+			elseif questClaim.Visible then
 				local tw = TweenService:Create(questClaim, TweenInfo.new(0.4), { BackgroundColor3 = Color3.fromRGB(255, 240, 170) })
 				tw:Play()
 				tw.Completed:Wait()
@@ -11974,12 +12115,13 @@ function ClientFns.wireQuestHudHiders()
 	local function raiseQuests(onTop)
 		local z = onTop and 85 or 20
 		if questsCovered then
-			-- Keep drawer tabs above the modal so the player can peek.
+			-- Keep the collapsed QUESTS pill above the modal so the player can peek.
 			z = 90
 		end
-		questBox.ZIndex = z
-		if ClientFns.dailyBox then
-			ClientFns.dailyBox.ZIndex = z
+		-- The QuestPanel is the top-level frame now; the two cards inside it
+		-- only order among themselves.
+		if ClientFns.questPanel then
+			ClientFns.questPanel.ZIndex = z
 		end
 		if dailyHud and dailyHud.card then
 			dailyHud.card.ZIndex = onTop and 86 or 25
@@ -12085,9 +12227,9 @@ local function layoutTopbar()
 	end
 	presL.Position = UDim2.new(0, 22 / s, 0, (top + 10) / s)
 	wallet.Position = UDim2.new(0, 16 / s, 0, (top + 34) / s)
-	-- Wallet capsule is 60px; sit the quest card just under it with a small gap.
+	-- Wallet capsule is 64px (candy pass); sit the quest panel just under it.
 	ClientFns.questDrawerRestX = 16 / s
-	questBox.Position = UDim2.new(0, ClientFns.questDrawerRestX, 0, (top + 104) / s)
+	ClientFns.questPanelY = (top + 112) / s
 	ClientFns.placeDailyBox()
 	ClientFns.applyQuestDrawerPos(true)
 	if mineResetL then

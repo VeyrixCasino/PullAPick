@@ -917,6 +917,26 @@ function MineGradeReveal.lucky(parent, opts)
 				end
 			end
 		end
+		--[[
+			Candy pass (2026-10-08): the lucky block's payoff never played a win
+			sound (playLuckyWin had no caller here). Now the tier stinger always
+			plays, and S and up also get the shared title-and-rays overlay. This
+			screen throws its own confetti, so the overlay doesn't add any.
+			The tier comes straight from the server's final grade.
+		]]
+		local okC, Celebrate = pcall(function()
+			return require(script.Parent:WaitForChild("MineCelebrate"))
+		end)
+		if okC and Celebrate then
+			local tier = Celebrate.fromRank(math.max(rank, 1))
+			if tier >= 3 then
+				pcall(Celebrate.burst, tier, { confetti = false, title = st.grade .. "!" })
+			else
+				pcall(function()
+					Audio.playLuckyWin(math.max(rank, 1))
+				end)
+			end
+		end
 	end
 
 	local function finish()
@@ -1660,6 +1680,18 @@ function MineGradeReveal.caseSpin(parent)
 							pcall(Audio.playLuckyWin, rank)
 						elseif Audio and Audio.play then
 							pcall(Audio.play, rank >= 6 and "jackpot" or "reveal")
+						end
+						-- S and up: the shared title and rays on top of this screen's
+						-- own flash and confetti (so no extra confetti, and the sting
+						-- above already played).
+						if rank >= 6 then
+							local okC, Celebrate = pcall(function()
+								return require(script.Parent:WaitForChild("MineCelebrate"))
+							end)
+							if okC and Celebrate then
+								pcall(Celebrate.burst, Celebrate.fromRank(rank),
+									{ confetti = false, sound = false, title = grade .. "!" })
+							end
 						end
 					elseif Audio and Audio.play then
 						pcall(Audio.play, "reveal")

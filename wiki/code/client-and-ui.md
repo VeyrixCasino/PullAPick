@@ -10,7 +10,10 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineHotbar.luau
   - src/ReplicatedStorage/Mine/Shared/MineBuild.luau
   - src/ReplicatedStorage/Mine/Shared/MineNotifs.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCelebrate.luau
+  - src/ReplicatedStorage/Mine/Shared/MineAudio.luau
   - src/ReplicatedFirst/MineLoadingScreen.client.luau
+  - docs/AUDIO.md
   - docs/TODO.md §0.14, §0.33
 related: [server, code-map, luau-traps, rojo-and-studio, tools]
 ---
@@ -101,14 +104,97 @@ the shop does not pass arrives as nil, and nothing errors.
   `9600e74` (quest cards, shop above the hotbar).
 - Two things are called "MineUI": the module, and the ScreenGui. See [ambiguous-terms](../ambiguous-terms.md).
 
+## The candy pass (2026-10-08)
+
+Owner: *"make the ui look more attractive to kids playing roblox"*. They chose
+a chunky candy-game look, juicy motion, bigger text, and a reach of everything.
+The indigo surfaces stay as the base, with bright candy on top.
+
+- **Theme tokens** (`MineTheme`): `CANDY` (gradient pairs gold, green, cyan,
+  magenta, orange, blue, red, purple), `OUTLINE` (near-black indigo),
+  `STROKE_CHUNKY` 3, `STROKE_THICK` 4. Text floors were raised:
+  `TEXT_MIN` 14, `TEXT_BODY` 16, `TEXT_TITLE` 26.
+- **Kit** (`MineUI`):
+  - Shapes: `candy` (gradient fill + fat outline), `candyTint` (the same, but
+    the hue stays in `BackgroundColor3` for surfaces recoloured at runtime),
+    `outlineText`.
+  - Motion: `tween`, `pop`, `popNumber`, `juice` (hover grow, press squash),
+    and `pulse` (a loop that returns a stop function).
+  - `button` and `pill` are now filled candy shapes.
+  - The gloss highlight is **opt-in** (`gloss = true`). The owner rejected it
+    on the dock: *"get rid of that weird bubble that takes up half the icon"*.
+- **HUD** (`MineClient`). Every piece reaches the kit as `ClientFns.UI`, not as
+  a top-level local.
+  - Wallet: one candy pill per currency, numbers that pop on change.
+  - Dock: one colour per button.
+  - Badges: pop when they rise, and pulse.
+  - Everything else: chunky outlines and bigger type.
+- **One quest panel.** Owner: *"fix the quests and the ugly arrow ... make it
+  all a part of the same exact ui"*.
+  - `QuestPanel` holds the active quest (`questBox`) and the dailies, both
+    transparent and stacked by `ClientFns.layoutQuestPanel`.
+  - The panel has one header with a collapse button. Collapsing shrinks it in
+    place to a "QUESTS" pill.
+  - The old "ear" tabs that slid the cards off screen are deleted.
+  - A phone starts collapsed, and modals collapse it.
+- **Window shell.** `panel(name)` (Enchanter, Planets, Rebirth, Merge, Scrapper)
+  has a header band, a red candy close button, and pops in when opened.
+
+## Luck reveals: `MineCelebrate`
+
+One rarity-scaled celebration for every random reveal, called with a tier.
+The tier mappers take the real result:
+
+- `fromBand` (pack DUD…GOD)
+- `fromGrade` (F…SSS)
+- `fromRank` (lucky blocks 1–6)
+- `fromOneIn` (odds)
+
+| tier | what the player gets |
+|---|---|
+| 0 common | a soft pop sound only. A dud is not a party. |
+| 1 nice | a sparkle burst and a pluck |
+| 2 great | + confetti, light rays, edge glow, a title, a sting |
+| 3 epic | + flash, a gentle shake, a horn riff |
+| 4 legendary | + rainbow title, double confetti, an orchestral sting |
+
+- **Honest by construction.** Card packs and lucky blocks can be bought with
+  credits (Robux), and the players are kids. So there are no fake near-misses
+  and no fanfare on a dud. `suspense()` (a drum roll) plays only when the
+  result really is epic or better.
+- **Never in the way.** The overlay (DisplayOrder 130) sinks no input, and
+  `cancel()` kills it when a reveal is skipped. `skipHint()` adds "TAP TO SKIP".
+  Roblox's Reduced Motion setting drops the shake and the spinning rays.
+- **Sound.** `MineAudio.playWin(tier)` plays the stinger. The slots, the
+  library picks and the ElevenLabs prompts are in `docs/AUDIO.md`. The owner's
+  rule for sound: *"slot machine wins are fine ... i just dont want alarms"*.
+  The old per-reveal sounds all route into `playWin` now: `playCard` (pack
+  bands), `playLuckyWin` (grade rank 1–8) and `playFound` (odds).
+  `playPull` is silent, because `playCard` already fired for the same card.
+- **Where it is wired:**
+  - **Packs** keep their own band FX (MinePackFX) and get the new stingers.
+  - **Lucky blocks** play their win at last. They had no win sound, and S and
+    up add the title-and-rays overlay.
+  - **The case reel** adds the overlay at S and up.
+  - **S-rank chests** get the small tier-1 pluck. Every other chest stays
+    silent, by the owner's request.
+- **Pack navigation fixes:**
+  - SKIP ALL now really skips: no per-hit hold, banner or stinger, then one
+    celebration for the best hit. Its `rush = true` had been writing a global,
+    because `local rush` was declared below the handler.
+  - The end-of-pack hint now says what a tap does (closes), not "TAP FOR ANOTHER".
+
 ## HUD scaling
 
 `refreshMineUiScale` sets the `MineUiScale` UIScale on the ScreenGui.
 
 - **Touch devices** step by the screen's short side: 0.78, 0.88, 0.95, then 1.
-- **Desktop** uses `clamp(short / 820, 0.85, 1.45)`, so big displays scale up.
-  The 1.45 cap exists because fixed-pixel columns start colliding past it.
-- The two constants are declared **inside** the function on purpose. Hoisting
+- **Desktop** uses `clamp(short / 1080, 0.80, 1.25)`. The layout is authored
+  for a 1080-tall screen.
+- **Fit guard.** The tallest panel (`PANEL_H` 964) plus a 6% margin must fit
+  the viewport height, and the scale never drops below 0.5.
+  `tools/verify/ui-scale.js` parses this line, so keep its shape.
+- The constants are declared **inside** the function on purpose. Hoisting
   them to the top level broke the client by pushing it over the 200-local limit.
 
 ## Hotbar (`MineHotbar`)
@@ -130,9 +216,14 @@ the shop does not pass arrives as nil, and nothing errors.
 - **Badges**: `MineNotifs` draws red dots and number badges (`NotifBadge`) on
   buttons that have something to claim. `b83b150` fixed a `ClipDescendants` typo
   that threw an error on every client load.
-- **Layering by DisplayOrder**: HUD `MineUI` is 80, `MineGradeReveal` defaults to
-  95, and `MinePackReveal` and the lucky-block screen are both 120. The lucky
-  screen moving from 110 to 120 was the first change the owner confirmed in-engine (TODO §0.32).
+- **Layering by DisplayOrder**:
+  - HUD `MineUI`: 80.
+  - The lucky-block screen (`LuckyReveal`): 95.
+  - `MinePackReveal` and the case reel (`CaseSpinGui`): 120. The case reel
+    moving from 110 to 120 (`bca50ca`) was the first change the owner
+    confirmed in-engine (TODO §0.32). That commit's message calls it "the
+    lucky screen", but the diff is `caseSpin`.
+  - `MineCelebrate`: 130, above all of them, and it sinks no input.
 - **Loading screen**: `src/ReplicatedFirst/MineLoadingScreen.client.luau` removes
   the default loader and shows a splash image asset.
 

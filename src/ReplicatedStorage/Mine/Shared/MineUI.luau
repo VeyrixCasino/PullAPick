@@ -61,26 +61,63 @@ function MineUI.tween(inst, seconds, props, style, dir)
 	return t
 end
 
--- A named UIScale child, created once. Scaling through a UIScale (not Size)
--- means the pop never fights a layout that owns Size/Position.
-local function scaler(inst, name)
-	local s = inst:FindFirstChild(name)
+--[[
+	ONE UISCALE PER INSTANCE, SHARED BY EVERY EFFECT.
+
+	Roblox applies only the FIRST UIScale under a GuiObject and silently ignores
+	the rest (measured in Studio, 2026-10-08). The first cut of this kit gave
+	pop, juice and pulse a UIScale each, so on a button that had all three only
+	one worked. The claim button's pulse, for example, never moved.
+
+	So each effect is a CHANNEL: a NumberValue under one shared "FxScale". The
+	scale is the product of every channel, so a pulsing button can still squash
+	when pressed and pop when it changes. Scaling through a UIScale rather than
+	Size means none of it ever fights a layout that owns Size or Position.
+
+	If the instance already carries someone else's UIScale, ours would be
+	ignored anyway, so the effect quietly does nothing rather than fight it.
+]]
+local function channel(inst, name)
+	local s = inst:FindFirstChild("FxScale")
 	if not s then
+		if inst:FindFirstChildOfClass("UIScale") then
+			return nil
+		end
 		s = Instance.new("UIScale")
-		s.Name = name
+		s.Name = "FxScale"
 		s.Parent = inst
 	end
-	return s
+	local v = s:FindFirstChild(name)
+	if not v then
+		v = Instance.new("NumberValue")
+		v.Name = name
+		v.Value = 1
+		v.Changed:Connect(function()
+			local p = 1
+			for _, c in ipairs(s:GetChildren()) do
+				if c:IsA("NumberValue") then
+					p *= c.Value
+				end
+			end
+			s.Scale = p
+		end)
+		v.Parent = s
+	end
+	return v
 end
 
 --[[
 	POP: a quick overshoot-and-settle. Use it when a number changes, a thing
-	becomes claimable, a toast lands. `amount` is the peak scale (default 1.18).
+	becomes claimable, a toast lands. `amount` is the peak scale (default 1.18);
+	below 1 it springs IN from smaller, which is how a window opens.
 ]]
 function MineUI.pop(inst, amount)
-	local s = scaler(inst, "PopScale")
-	s.Scale = amount or 1.18
-	MineUI.tween(s, 0.28, { Scale = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	local v = channel(inst, "pop")
+	if not v then
+		return
+	end
+	v.Value = amount or 1.18
+	MineUI.tween(v, 0.28, { Value = 1 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 end
 
 --[[
@@ -113,11 +150,14 @@ function MineUI.juice(btn, grow)
 		return btn
 	end
 	btn:SetAttribute("Juiced", true)
-	local s = scaler(btn, "JuiceScale")
+	local v = channel(btn, "juice")
+	if not v then
+		return btn
+	end
 	local over, down = false, false
 	local function settle()
 		local target = (down and 0.93) or (over and (grow or 1.07)) or 1
-		MineUI.tween(s, down and 0.07 or 0.2, { Scale = target },
+		MineUI.tween(v, down and 0.07 or 0.2, { Value = target },
 			down and Enum.EasingStyle.Quad or Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	end
 	btn.MouseEnter:Connect(function() over = true settle() end)
@@ -132,17 +172,23 @@ end
 	function; calling it settles the scale back to 1.
 ]]
 function MineUI.pulse(inst, amount, period)
-	local s = scaler(inst, "PulseScale")
+	local v = channel(inst, "pulse")
+	if not v then
+		return function() end
+	end
 	local alive = true
+	local half = (period or 0.7) / 2
 	task.spawn(function()
 		while alive and inst.Parent do
-			MineUI.tween(s, (period or 0.7) / 2, { Scale = amount or 1.08 }, Enum.EasingStyle.Sine)
-			task.wait((period or 0.7) / 2)
+			MineUI.tween(v, half, { Value = amount or 1.08 }, Enum.EasingStyle.Sine)
+			task.wait(half)
 			if not alive then break end
-			MineUI.tween(s, (period or 0.7) / 2, { Scale = 1 }, Enum.EasingStyle.Sine)
-			task.wait((period or 0.7) / 2)
+			MineUI.tween(v, half, { Value = 1 }, Enum.EasingStyle.Sine)
+			task.wait(half)
 		end
-		if s.Parent then s.Scale = 1 end
+		if v.Parent then
+			MineUI.tween(v, 0.15, { Value = 1 })
+		end
 	end)
 	return function() alive = false end
 end
@@ -203,12 +249,10 @@ function MineUI.lit(inst, strength)
 end
 
 --[[
-	CANDY: the chunky look. Fat near-black outline, bright top-to-bottom gradient,
-	and a glossy highlight along the top. `key` is a T.CANDY name ("gold",
-	"green", ...) or a Color3, from which a light/dark pair is derived.
-
-	Call it BEFORE adding text children: the gloss is a child Frame and later
-	siblings draw over it.
+	CANDY: the chunky look. Fat near-black outline and a bright top-to-bottom
+	gradient. `key` is a T.CANDY name ("gold", "green", ...) or a Color3, from
+	which a light/dark pair is derived. Pass gloss = true for an optional top
+	highlight (a child Frame, so call this before adding text children).
 ]]
 local function shade(c, k)
 	return Color3.new(
@@ -232,7 +276,9 @@ function MineUI.candy(inst, key, thickness, gloss)
 		Thickness = thickness or T.STROKE_CHUNKY,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	}, inst)
-	if gloss ~= false then
+	-- Gloss is opt-in. Owner, 2026-10-08, on the dock: "get rid of that weird
+	-- bubble that takes up half the icon". The gradient carries the candy look.
+	if gloss == true then
 		local g = MineUI.new("Frame", {
 			Name = "Gloss",
 			BackgroundColor3 = Color3.new(1, 1, 1),
@@ -245,6 +291,41 @@ function MineUI.candy(inst, key, thickness, gloss)
 		MineUI.round(g, 999)
 	end
 	-- Stamp it so MineUI.adopt neither restyles nor double-strokes this surface.
+	inst:SetAttribute("MineUIAdopted", true)
+	return inst
+end
+
+--[[
+	CANDY TINT: the same chunky look, but the hue stays in BackgroundColor3, so
+	code that recolours the surface at runtime (SELL green / SURFACE gold, a bar
+	that turns green when ready) keeps working. The gradient only shades.
+]]
+function MineUI.candyTint(inst, thickness, gloss)
+	inst.BackgroundTransparency = 0
+	MineUI.new("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(0.72, 0.72, 0.72)),
+	}, inst)
+	if thickness ~= 0 then
+		MineUI.new("UIStroke", {
+			Color = T.OUTLINE,
+			Thickness = thickness or T.STROKE_CHUNKY,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		}, inst)
+	end
+	if gloss == true then
+		local g = MineUI.new("Frame", {
+			Name = "Gloss",
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 0.8,
+			BorderSizePixel = 0,
+			Position = UDim2.new(0.05, 0, 0, 3),
+			Size = UDim2.new(0.9, 0, 0.36, 0),
+			Active = false,
+			ZIndex = inst.ZIndex,
+		}, inst)
+		MineUI.round(g, 999)
+	end
 	inst:SetAttribute("MineUIAdopted", true)
 	return inst
 end
@@ -278,8 +359,8 @@ function MineUI.panel(parent, size, pos)
 		Size = size or UDim2.fromScale(1, 1),
 		Position = pos or UDim2.fromOffset(0, 0),
 	}, parent)
-	MineUI.round(f, T.RADIUS_LG)
-	MineUI.edge(f)
+	MineUI.round(f, T.RADIUS_LG + 4)
+	MineUI.edge(f, T.EDGE, 3)
 	MineUI.lit(f)
 	return f
 end
