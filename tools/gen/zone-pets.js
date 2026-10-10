@@ -147,6 +147,16 @@ const EH_MIX = {
   "Zipquark": { zap: 0.2232, swingRate: 0.2443 },
 };
 
+// HOLIDAY PETS ARE NOT IN THE GAME (owner, 2026-10-10: "make sure NO holiday
+// ones are in the game.. only allow it from {Holiday} {year} Pack"). Any pet on
+// a holiday body, plus these holiday-themed ones on ordinary bodies, stays out
+// of every zone pot and every random pet roll. They keep a kit (zone-1 ladder)
+// so a copy someone already owns still pays. Their only future source is a
+// holiday pack, e.g. "Halloween 2026 Pack".
+const HOLIDAY_SPECIES = { pumpkin: "halloween", ghost: "halloween", spider: "halloween", skelehound: "halloween", reaper: "halloween",
+  reindeer: "christmas", snowman: "christmas", gingerbread: "christmas", giftbox: "christmas" };
+const HOLIDAY_NAMED = { Jolly: "christmas", Tinsel: "christmas", Tinseltoe: "christmas" };
+
 // Common to Legendary: a role from the body. "Birds find things, diggers dig,
 // heavies hit hard." Each role has a few stat pairs; a pet's name picks one.
 // Pairs marked rarePlus only go to Rare and better (PROPOSAL §B: blast is a
@@ -301,11 +311,14 @@ function readGame() {
 function build() {
   const G = readGame();
   const zoneIndex = Object.fromEntries(ZONES.map((z, i) => [z.id, i + 1]));
-  const regular = G.roster.filter((r) => !G.ehNames.has(r.name));
-  for (const r of regular) {
+  const nonEH = G.roster.filter((r) => !G.ehNames.has(r.name));
+  for (const r of nonEH) {
     if (!G.animals[r.animal]) throw new Error("roster animal with no ANIMALS row: " + r.animal);
     r.species = G.animals[r.animal].species;
   }
+  const holidayOf = (r) => HOLIDAY_NAMED[r.name] || HOLIDAY_SPECIES[r.species] || null;
+  const holiday = nonEH.filter((r) => holidayOf(r)).map((r) => ({ name: r.name, tier: r.tier, species: r.species, holiday: holidayOf(r) }));
+  const regular = nonEH.filter((r) => !holidayOf(r));
 
   // 1. Deal the existing pets: per tier, sorted by body then name, round robin,
   //    starting one zone later per tier so zone 1 does not get every spare.
@@ -470,7 +483,19 @@ function build() {
     ehPets.push({ name, tier, zone: EVENT_ZONE.id });
   }
 
-  return { G, pets, ehPets, newAnimals, kits, roles, zoneIndex };
+  // 5. Holiday pets: out of every pot, but owned copies keep paying (zone-1 ladder).
+  for (const h of holiday) {
+    const role = ROLE_OF[h.species] || "Mystic";
+    const r = ROLES[role];
+    const pair = r.pairs[fnv(h.name) % r.pairs.length];
+    const P = LADDER[h.tier] / G.rarityMult[h.tier];
+    const kit = {};
+    pair.forEach((stat, i) => { kit[stat] = round4((P * (i === 0 ? 1 : SECONDARY)) / G.stats[stat].weight / 100); });
+    kits[h.name] = kit;
+    roles[h.name] = role;
+  }
+
+  return { G, pets, ehPets, holiday, newAnimals, kits, roles, zoneIndex };
 }
 
 // ---- render ----------------------------------------------------------------
@@ -535,6 +560,12 @@ function renderLuau(B) {
   for (const p of B.ehPets) L.push(`\t[${lq(p.name)}] = ${lq(p.zone)},`);
   L.push("}");
   L.push("");
+  L.push("-- Holiday pets: in NO zone pot and NO random roll. Only a holiday pack");
+  L.push("-- (\"{Holiday} {year} Pack\", owner 2026-10-10) may hand one out.");
+  L.push("M.HOLIDAY = {");
+  for (const h of B.holiday) L.push(`\t[${lq(h.name)}] = ${lq(h.holiday)},`);
+  L.push("}");
+  L.push("");
   L.push("-- New zone pets.");
   L.push("M.PETS = {");
   for (const p of ps.filter((p) => p.isNew)) {
@@ -559,10 +590,10 @@ function renderLuau(B) {
   L.push("");
   L.push("-- Every named pet's kit (PET_BOOSTS.Z), and the role or buff set behind it.");
   L.push("M.KITS = {");
-  for (const p of ps.concat(B.ehPets)) L.push(`\t[${lq(p.name)}] = ${kitLua(B.kits[p.name])},`);
+  for (const p of ps.concat(B.ehPets, B.holiday)) L.push(`\t[${lq(p.name)}] = ${kitLua(B.kits[p.name])},`);
   L.push("}");
   L.push("M.ROLE = {");
-  for (const p of ps.concat(B.ehPets)) L.push(`\t[${lq(p.name)}] = ${lq(B.roles[p.name])},`);
+  for (const p of ps.concat(B.ehPets, B.holiday)) L.push(`\t[${lq(p.name)}] = ${lq(B.roles[p.name])},`);
   L.push("}");
   L.push("");
   L.push("local ZONE_INDEX = {}");
@@ -641,6 +672,15 @@ function renderMd(B) {
   L.push("|---|---|---|");
   const ehSorted = B.ehPets.slice().sort((a, b) => TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier) || a.name.localeCompare(b.name));
   for (const p of ehSorted) L.push(`| ${p.tier} | ${p.name} | ${fmt(B.kits[p.name], p.tier)} |`);
+  L.push("");
+  L.push(`## Holiday pets (${B.holiday.length}): not in the game`);
+  L.push("");
+  L.push("Owner, 2026-10-10: *\"make sure NO holiday ones are in the game.. only allow it from {Holiday} {year} Pack\"*.");
+  L.push("They are in no zone pot and no random roll, and keep a zone-1 kit so an owned copy still pays.");
+  L.push("");
+  L.push("| holiday | tier | name |");
+  L.push("|---|---|---|");
+  for (const h of B.holiday) L.push(`| ${h.holiday} | ${h.tier} | ${h.name} |`);
   return L.join("\n") + "\n";
 }
 

@@ -44,10 +44,24 @@ for (const p of pets) {
 const quotaOk = Gen.ZONES.every((z) => Gen.TIERS.every((t) => (perZone[z.id] || {})[t] === Gen.QUOTA[t]));
 const quotaTotal = Gen.TIERS.reduce((a, t) => a + Gen.QUOTA[t], 0);
 check(quotaTotal === 70 && quotaOk, `every one of ${Gen.ZONES.length} zones holds ${quotaTotal} pets in its quota`);
-const regular = G.roster.filter((r) => !G.ehNames.has(r.name));
+const holidayNames = new Set(B.holiday.map((h) => h.name));
+const regular = G.roster.filter((r) => !G.ehNames.has(r.name) && !holidayNames.has(r.name));
 const existing = pets.filter((p) => !p.isNew);
 check(regular.length > 200 && existing.length === regular.length && new Set(existing.map((p) => p.name)).size === regular.length,
   `all ${regular.length} regular roster pets are in exactly one zone`);
+
+// Holiday pets are NOT in the game (owner, 2026-10-10: "make sure NO holiday
+// ones are in the game.. only allow it from {Holiday} {year} Pack").
+const HOLIDAY_BODIES = new Set(["pumpkin", "ghost", "spider", "skelehound", "reaper", "reindeer", "snowman", "gingerbread", "giftbox"]);
+const onHolidayBody = G.roster.filter((r) => !G.ehNames.has(r.name) && G.animals[r.animal] && HOLIDAY_BODIES.has(G.animals[r.animal].species));
+check(B.holiday.length >= 6 && onHolidayBody.every((r) => holidayNames.has(r.name)),
+  `every pet on a holiday body is a holiday pet (${B.holiday.map((h) => h.name).join(", ")})`);
+check(pets.every((p) => !holidayNames.has(p.name)) && B.holiday.every((h) => B.kits[h.name]),
+  "no holiday pet sits in a zone pot, and each keeps a kit so owned copies still pay");
+const wheelSrc = code(read("src/ReplicatedStorage/Mine/Shared/MineGroupWheel.luau"));
+const roller = wheelSrc.slice(wheelSrc.indexOf("function MineGroupWheel.rollPetOfTier"), wheelSrc.indexOf("function MineGroupWheel.resolvePetName"));
+check(/pet\.holiday/.test(roller) && /not holiday/.test(roller) && /pet\.holiday = zp\.HOLIDAY/.test(code(read("src/ReplicatedStorage/Mine/Shared/MinePetRoster.luau"))),
+  "the random pet roll (wheel and lucky blocks) skips holiday pets");
 const sameTier = existing.every((p) => regular.find((r) => r.name === p.name).tier === p.tier);
 check(sameTier, "no existing pet changed tier");
 

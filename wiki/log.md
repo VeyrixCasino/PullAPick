@@ -461,3 +461,29 @@ Earthquake an animation and a library sound each. Two lessons:
 in the engine.
 
 Updated: mining-and-breaking, boosts-and-stats, pets, glossary, log.
+
+## [2026-10-10] ingest | holiday pets out of the game; handoff page for the queued work
+The owner: *"make sure NO holiday ones are in the game.. only allow it from
+{Holiday} {year} Pack"*.
+
+**Six pets are now listed in `MineZonePets.HOLIDAY`:**
+- three on Halloween bodies: Spindle, Spooky, Wisp;
+- three with Christmas themes on ordinary bodies: Jolly, Tinsel, Tinseltoe.
+
+They left the zone pots, so 6 more new pets keep every zone at 70 (457 new in
+all). The random pet roll that the wheel and lucky blocks use now skips them.
+They keep a zone-1 kit, so owned copies still pay.
+
+**Verified:**
+- 16,000 random rolls in Studio gave no holiday pet;
+- the display shows 10 × 70, Event Horizon's 73 and a Holiday block of 6.
+
+**Display fix.** The builder now stands a fresh copy of the zone data in under
+its real name while it loads. Studio's command-bar cache otherwise left six
+zones showing 69.
+
+**Handoff.** The owner's answers on pet power (300/489), the proc rework and the
+Halloween bodies went into [next-up](next-up.md) with a paste-in prompt. They
+asked for it so they can restart the work from it.
+
+Updated: next-up (new), index, owner, pets, log, `docs/TODO.md`.

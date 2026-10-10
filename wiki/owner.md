@@ -119,6 +119,27 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
 - **Before a big job, they want a model recommendation**, and they switch
   models before the work starts.
 
+## Decided 2026-10-10, late ([next-up](next-up.md) has the full spec and a prompt)
+
+- **Pet power:** an Exotic is worth *"489 at top, 300 at start"*, meaning 300
+  points at zone 1 and 489 at zone 11, with the +5% step kept.
+- **Procs:** Blast's share drops to 12%, below Tidal Wave's 18%. Blast is 3D
+  and stacks with blast range (*"way to OP"*).
+  - Tidal Wave gets its own damage stat and no range modifiers.
+  - The three top Tidal Wave pets top out at about 50–60% together.
+  - Zap gets a start chance and a separate continue formula (*"ensure its balanced"*).
+  - Ricochet becomes **Shatter**: shards in all directions, chaining, at most
+    3 procs per block you break.
+  - Every proc gets a low chance plus a damage %.
+  - The new stats go on hats.
+- **"Equation"** meant the proc damage formula.
+- **Halloween:** 10 new bodies. Bat, Mummy, Zombie, Vampire, Cauldron, Candy
+  Corn, Scarecrow, Haunted Lantern, Frankenstein, Eyeball.
+- **No holiday pets in the game.** They come only from a *"{Holiday} {year}
+  Pack"*. Done for the six existing holiday pets.
+- **Hand-offs:** when the queue is long, they want it written into the wiki
+  with a prompt, then they restart the work.
+
 ## Locked decisions: one line each
 
 These come from `docs/TODO.md` §0. Each is settled: build on it and do not

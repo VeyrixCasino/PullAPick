@@ -67,9 +67,9 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
 | what | count | where |
 |---|---|---|
 | rows in the file | 253 (C 75 · U 34 · R 31 · E 23 · L 19 · M 18 · D 24 · X 29) | `MinePetRoster.PETS` |
-| new zone pets | **451** | `MineZonePets.PETS`, merged into the roster at load |
-| unique names at runtime | **773** = 249 regular + 451 zone + 73 Event Horizon | after `mergeIntoRoster` and the zone merge |
-| kits | **773**, one per named pet (700 zone + 73 Event Horizon) | `MinePetBoosts.PET_BOOSTS.Z` |
+| new zone pets | **457** | `MineZonePets.PETS`, merged into the roster at load |
+| unique names at runtime | **779** = 243 regular + 457 zone + 73 Event Horizon + 6 holiday | after `mergeIntoRoster` and the zone merge |
+| kits | **779**, one per named pet | `MinePetBoosts.PET_BOOSTS.Z` |
 
 ## Zone pots (2026-10-10)
 
@@ -81,9 +81,9 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
   `src/ReplicatedStorage/Mine/Shared/MineZonePets.luau` and the names sheet
   `docs/ZONE-PETS.md`. Edit the generator, not its output.
   `tools/verify/zone-pets.js` fails when either is stale.
-- **Existing pets:** the 249 regular pets were dealt into zones by tier. None
+- **Existing pets:** the 243 regular pets were dealt into zones by tier. None
   was renamed or changed tier, and none changed its look.
-- **New pets:** 451 new ones on everyday bodies, never a holiday body. Each one
+- **New pets:** 457 new ones on everyday bodies, never a holiday body. Each one
   has a colour at least 60 RGB apart from every other pet on the same body
   (relaxing to 30 only if it has to).
 - **Kits** follow the approved ladder (PROPOSAL §0 line 3): the primary stat is
@@ -99,6 +99,14 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
     - Mistreef's Mythic, Divine and Exotic, whose buff set is now Tide
       (tidal wave, pulverize, scrap);
     - Tidecaller pets of Rare and up.
+- **Holiday pets are not in the game** (owner: *"only allow it from {Holiday}
+  {year} Pack"*).
+  - `MineZonePets.HOLIDAY` lists six: Spindle, Spooky and Wisp (Halloween), and
+    Jolly, Tinsel and Tinseltoe (Christmas).
+  - They are in no pot. The roster stamps `pet.holiday`, and
+    `MineGroupWheel.rollPetOfTier` (wheel and lucky blocks) skips them.
+  - They keep a zone-1 kit, so an owned copy still pays.
+  - New pets never use a holiday body, so 457 new pets fill the pots, not 451.
 - **Lookups.** `MinePetRoster.BY_ZONE[zone]` lists a zone's pets, and every
   regular pet has a `zone`. `MineZonePets.zoneOf(name)` and `zoneMult(zone)`
   answer the same questions.

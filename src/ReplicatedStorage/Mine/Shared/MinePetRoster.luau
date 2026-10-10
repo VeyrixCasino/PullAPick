@@ -336,6 +336,8 @@ do
 		end
 		for _, pet in ipairs(MinePetRoster.PETS) do
 			pet.zone = pet.zone or (zp.ZONE_OF and zp.ZONE_OF[pet.name])
+			-- Holiday pets come only from a holiday pack; nothing random rolls them.
+			pet.holiday = zp.HOLIDAY and zp.HOLIDAY[pet.name] or nil
 		end
 	end
 end

@@ -14,6 +14,11 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
 
 # ★ NOW — the owner's 2026-10-10 roadmap. Read this before anything else here.
 
+> **NEWEST (2026-10-10, late): start at [`wiki/next-up.md`](../wiki/next-up.md).**
+> It holds the owner's queued work and a paste-in prompt: the pet ladder at
+> 300/489, the proc rework (Blast 12%, Tidal Wave, Zap, Shatter, hats), 10
+> Halloween bodies and the holiday rule.
+>
 > **LATEST (2026-10-10, evening): PETS FIRST.** The owner: *"Just make the pet
 > models… once all pets are in place I'll get you to re-evaluate rewards."*
 > The full spec is [`docs/PETS-AND-SETS.md`](PETS-AND-SETS.md):

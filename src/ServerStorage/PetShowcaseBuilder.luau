@@ -149,12 +149,37 @@ function M.build(opts)
 	opts = opts or {}
 	local RS = game:GetService("ReplicatedStorage")
 	local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
-	local Roster = fresh(shared.MinePetRoster)
-	local PMF = fresh(shared.PetModelFactory)
-	local Boosts = fresh(shared.MinePetBoosts)
+	--[[
+		The roster, the kits and the factory each require MineZonePets by name,
+		and the command bar would hand them the copy it cached earlier in the
+		session -- so a pet generated since then would be missing, or render as
+		a fox. For the length of the loads, a fresh copy of the zone data stands
+		in under the real name; the original is put back straight after.
+	]]
+	local zoneData = shared:FindFirstChild("MineZonePets")
+	local stand = zoneData and zoneData:Clone()
+	if stand then
+		zoneData.Name = "MineZonePets_held"
+		stand.Parent = shared
+	end
+	local ok, loaded = pcall(function()
+		return {
+			Roster = fresh(shared.MinePetRoster),
+			PMF = fresh(shared.PetModelFactory),
+			Boosts = fresh(shared.MinePetBoosts),
+			Zones = fresh(shared.MineZonePets),
+		}
+	end)
+	if stand then
+		stand:Destroy()
+		zoneData.Name = "MineZonePets"
+	end
+	if not ok then
+		error(loaded)
+	end
+	local Roster, PMF, Boosts, Zones = loaded.Roster, loaded.PMF, loaded.Boosts, loaded.Zones
 	local Stats = require(shared.MineStats)
 	local Cfg = require(shared.MineConfig)
-	local Zones = fresh(shared.MineZonePets)
 
 	local old = workspace:FindFirstChild("PetShowcase")
 	if old then
@@ -185,12 +210,15 @@ function M.build(opts)
 		sub = string.format("Zone 11  ·  power x%.2f  ·  their own 73, each with its own stat mix", Zones.zoneMult(Zones.EVENT_ZONE)),
 		pets = {},
 	}
+	local holidayPets = {}
 	local other = { id = "other", title = "NO ZONE", sub = "Pets with no zone pot (should be empty)", pets = {} }
 	for _, pet in ipairs(Roster.PETS) do
 		-- Ask the zone data directly: it is required fresh above, the roster's own
 		-- copy may be a cached one from earlier in the Studio session.
 		local zone = Zones.zoneOf(pet.name) or pet.zone
-		if zone and byZone[zone] then
+		if Zones.HOLIDAY and Zones.HOLIDAY[pet.name] then
+			table.insert(holidayPets, pet)
+		elseif zone and byZone[zone] then
 			table.insert(byZone[zone].pets, pet)
 		elseif zone == Zones.EVENT_ZONE or pet.tierVia == "eh" then
 			table.insert(eh.pets, pet)
@@ -200,6 +228,13 @@ function M.build(opts)
 	end
 	table.insert(groups, eh)
 	-- Holiday bodies with no roster pet yet: one of each, so they can be judged.
+	-- Holiday pets are in no pot and no random roll; only a {Holiday} {year} Pack gives one.
+	table.insert(groups, {
+		id = "holiday",
+		title = "HOLIDAY PETS",
+		sub = "Not in the game: only from a {Holiday} {year} Pack (owner, 2026-10-10)",
+		pets = holidayPets,
+	})
 	local holiday = { id = "halloween", title = "HALLOWEEN BODIES", sub = "Bodies only, not pets yet", pets = {}, bodies = true }
 	for _, species in ipairs(PMF.HALLOWEEN or {}) do
 		table.insert(holiday.pets, { name = species, species = species, tier = "Epic", animal = "" })

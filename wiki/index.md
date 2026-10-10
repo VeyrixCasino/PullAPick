@@ -19,6 +19,7 @@ related: [README, overview, owner, SCHEMA, log]
 - [README](README.md): what this wiki is and how to talk to it
 - [overview](overview.md): the game in one page
 - [owner](owner.md): the owner's goals, locked decisions and working rules
+- [next-up](next-up.md): **the owner's queued work, with a ready prompt** (pet ladder, proc rework, Halloween bodies, holiday rule)
 - [ambiguous-terms](ambiguous-terms.md): words that mean several things; **ask which**
 - [glossary](glossary.md): every term, one line each
 - [open-questions](open-questions.md): probable bugs, contradictions and unanswered questions

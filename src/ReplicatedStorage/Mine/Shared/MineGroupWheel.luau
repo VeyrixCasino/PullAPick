@@ -203,7 +203,10 @@ function MineGroupWheel.rollPetOfTier(tier, rng)
 	local pool = {}
 	for _, pet in ipairs((PetRoster.BY_TIER or {})[tier] or {}) do
 		local name = (type(pet) == "table") and pet.name or pet
-		if type(name) == "string" and name ~= "" and not MineGroupWheel.EXOTIC_EXCLUDE[name] then
+		-- Holiday pets come only from a holiday pack (owner, 2026-10-10), never
+		-- from a random roll: the wheel and lucky blocks both come through here.
+		local holiday = type(pet) == "table" and pet.holiday
+		if type(name) == "string" and name ~= "" and not holiday and not MineGroupWheel.EXOTIC_EXCLUDE[name] then
 			table.insert(pool, name)
 		end
 	end
