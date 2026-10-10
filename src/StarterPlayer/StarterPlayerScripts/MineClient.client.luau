@@ -1518,6 +1518,7 @@ function ClientFns.refreshQuestDrawerTabs()
 	local open = ClientFns.questDrawerOpen ~= false
 	parts.toggle.Text = open and "-" or "+"
 	local claimable = ClientFns.dailyClaimable == true
+		or ClientFns.todayReady == true
 		or (snap ~= nil and type(snap.quest) == "table" and snap.quest.ready == true and not snap.quest.done)
 	if parts.dot.Visible ~= claimable then
 		parts.dot.Visible = claimable
@@ -1550,6 +1551,18 @@ function ClientFns.layoutQuestPanel(instant)
 	local dVis = d ~= nil and d.Visible
 	local y = H
 	local wide = 0
+	-- TODAY first (MineToday; owner, 2026-10-10: at the top of the panel).
+	local todayBox = ClientFns.todayBox
+	local tVis = todayBox ~= nil and todayBox.Visible
+	if tVis then
+		todayBox.Position = UDim2.fromOffset(0, y)
+		y += todayBox.Size.Y.Offset
+		wide = math.max(wide, todayBox.Size.X.Offset)
+		local below = todayBox:FindFirstChild("Divider")
+		if below then
+			below.Visible = qVis or dVis
+		end
+	end
 	if qVis then
 		questBox.Position = UDim2.fromOffset(0, y)
 		y += questBox.Size.Y.Offset
@@ -1569,7 +1582,7 @@ function ClientFns.layoutQuestPanel(instant)
 	if wide < 80 then
 		wide = ClientFns.questIsPhone() and 260 or 304
 	end
-	panel.Visible = qVis or dVis
+	panel.Visible = qVis or dVis or tVis
 	panel.Position = UDim2.new(0, ClientFns.questDrawerRestX or 16, 0, ClientFns.questPanelY or 300)
 	local open = ClientFns.questDrawerOpen ~= false
 	local goal = open and UDim2.fromOffset(wide, y + 6) or UDim2.fromOffset(150, H)
@@ -1950,6 +1963,154 @@ function ClientFns.paintDailyBox(list)
 	box.ClipsDescendants = false
 	ClientFns.placeDailyBox()
 	ClientFns.syncQuestDrawer()
+end
+
+--[[
+	TODAY (TODO A2; owner, 2026-10-10): at the top of the Quests panel, one row
+	per daily thing with its timer -- the daily reward, the daily quests, gifts,
+	the wheel, the Job Board, the pass, the event pass's quests, the event mines.
+	A row that pays out now goes green and pulses, and lights the panel's dot.
+	Only ACTIVE rows show (owner: "just put active ones"): ready ones, and event
+	mines that are open; with none, the box is hidden (MineToday.active).
+	Tapping a row opens its screen (ClientFns.todayOpen). The rows themselves
+	come from MineToday.rows, which is pure and checked offline
+	(tools/verify/today.js). Folds like the daily box; starts folded on touch.
+]]
+function ClientFns.todayBoxBuild()
+	if ClientFns.todayBox then
+		return ClientFns.todayBox
+	end
+	ClientFns.Today = ClientFns.Today or require(shared:WaitForChild("MineToday"))
+	local ROW = 26
+	local box = mk("Frame", {
+		Name = "Today", Visible = false, BackgroundColor3 = T.PANEL,
+		BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, 0), Size = UDim2.fromOffset(304, 34),
+		ZIndex = 20, Active = false,
+	}, ClientFns.questPanel or gui)
+	box:SetAttribute("MineUIAdopted", true)
+	local header = mk("TextButton", {
+		BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 34), ZIndex = 22,
+	}, box)
+	mk("TextLabel", {
+		BackgroundTransparency = 1, Font = FONT, TextSize = 17, TextColor3 = GOLD,
+		Text = "TODAY", TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(16, 7), Size = UDim2.new(0.4, 0, 0, 22), ZIndex = 22, Active = false,
+	}, header)
+	local info = mk("TextLabel", {
+		BackgroundTransparency = 1, Font = FONT_M, TextSize = 14, TextColor3 = MUTED, Text = "",
+		TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 9), Size = UDim2.new(0.6, 0, 0, 18), ZIndex = 22, Active = false,
+	}, header)
+	local rows = {}
+	for i, def in ipairs(ClientFns.Today.ORDER) do
+		local r = mk("TextButton", {
+			Name = "Row_" .. def.id, BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
+			Position = UDim2.fromOffset(12, 34 + (i - 1) * ROW), Size = UDim2.new(1, -24, 0, ROW - 2), ZIndex = 21,
+		}, box)
+		local dot = mk("Frame", {
+			Visible = false, BackgroundColor3 = T.GREEN, AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 2, 0.5, 0), Size = UDim2.fromOffset(9, 9), ZIndex = 23, Active = false,
+		}, r)
+		round(dot, 5)
+		local name = mk("TextLabel", {
+			BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT, Text = def.label,
+			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
+			Position = UDim2.fromOffset(16, 0), Size = UDim2.new(0.46, -16, 1, 0), ZIndex = 22, Active = false,
+		}, r)
+		local status = mk("TextLabel", {
+			BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = MUTED, Text = "",
+			TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd,
+			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0.56, 0, 1, 0),
+			ZIndex = 22, Active = false,
+		}, r)
+		r.MouseButton1Click:Connect(function()
+			if ClientFns.todayOpen then
+				ClientFns.todayOpen(def.open)
+			end
+		end)
+		rows[def.id] = { frame = r, dot = dot, name = name, status = status }
+	end
+	mk("Frame", {
+		Name = "Divider", Visible = false, BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 12, 1, 0), Size = UDim2.new(1, -24, 0, 2),
+		ZIndex = 21, Active = false,
+	}, box)
+	ClientFns.todayFolded = UIS.TouchEnabled and true or false
+	header.MouseButton1Click:Connect(function()
+		ClientFns.todayFolded = not ClientFns.todayFolded
+		ClientFns.paintTodayBox()
+	end)
+	ClientFns.todayParts = { info = info, rows = rows, ROW = ROW }
+	ClientFns.todayBox = box
+	ClientFns.questDrawerEnsure()
+	return box
+end
+
+function ClientFns.paintTodayBox()
+	if not snap then
+		return
+	end
+	local box = ClientFns.todayBoxBuild()
+	local parts = ClientFns.todayParts
+	local Today = ClientFns.Today
+	local secs, got = ClientFns.playtimeNow()
+	-- The server's clock, so a player's wrong PC clock cannot move the timers.
+	local now = workspace:GetServerTimeNow()
+	local list = Today.rows(snap, now, {
+		giftSecs = secs,
+		giftsGot = got,
+		gifts = Quests.PLAYTIME,
+		crypt = {
+			active = C.limitedActive and C.limitedActive("hallow") or false,
+			countdown = C.limitedCountdown and C.limitedCountdown("hallow") or "closed",
+		},
+	})
+	local shown = Today.active(list)
+	local ready = Today.readyCount(shown)
+	ClientFns.todayReady = ready > 0
+	ClientFns.todayPulses = ClientFns.todayPulses or {}
+	parts.info.Text = ((ready > 0) and (ready .. " ready") or "") .. (ClientFns.todayFolded and "  +" or "")
+	parts.info.TextColor3 = (ready > 0) and T.GREEN or MUTED
+	local slot = {}
+	for i, row in ipairs(shown) do
+		slot[row.id] = i
+	end
+	for _, row in ipairs(list) do
+		local r = parts.rows[row.id]
+		if r then
+			r.frame.Visible = (slot[row.id] ~= nil) and not ClientFns.todayFolded
+			r.frame.Position = UDim2.fromOffset(12, 34 + ((slot[row.id] or 1) - 1) * parts.ROW)
+			r.status.Text = row.text
+			r.status.TextColor3 = (row.ready and T.GREEN) or (row.live and GOLD) or (row.done and MUTED) or TEXT
+			r.name.TextColor3 = row.done and MUTED or TEXT
+			r.dot.Visible = row.ready
+			local stop = ClientFns.todayPulses[row.id]
+			if row.ready and not stop and ClientFns.UI then
+				ClientFns.todayPulses[row.id] = ClientFns.UI.pulse(r.status, 1.08, 0.8)
+			elseif not row.ready and stop then
+				stop()
+				ClientFns.todayPulses[row.id] = nil
+			end
+		end
+	end
+	local h = ClientFns.todayFolded and 34 or (34 + #shown * parts.ROW + 6)
+	box.Size = UDim2.fromOffset((ClientFns.questIsPhone() and 260) or 304, h)
+	box.Visible = #shown > 0
+	ClientFns.layoutQuestPanel()
+end
+
+-- Timers tick between snapshots (an idle player can go a long time without one).
+function ClientFns.todayLoop()
+	if ClientFns.todayLoopOn then
+		return
+	end
+	ClientFns.todayLoopOn = true
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			pcall(ClientFns.paintTodayBox)
+		end
+	end)
 end
 
 -- Right under the quest card, or in its place when the ladder is finished.
@@ -2801,6 +2962,30 @@ end)
 dockBtn(ICONS.enchanter, "Enchanter", function()
 	ClientFns.routePanel("enchanter", "runes")
 end)
+-- A TODAY row's tap (MineToday.ORDER `open`): the same screens the dock opens.
+function ClientFns.todayOpen(where)
+	if where == "daily" or where == "pass" then
+		if invCtl then
+			hidePanels()
+			if snap then
+				invCtl.setState(snap)
+			end
+			invCtl.open(where, where)
+		end
+	elseif where == "wheel" then
+		if groupWheelCtl then
+			hidePanels()
+			groupWheelCtl.open(snap and snap.groupWheel or nil)
+		end
+	elseif where == "gifts" then
+		local g = ClientFns.giftsPanel and ClientFns.giftsPanel()
+		if g and g.toggle then
+			g.toggle(true)
+		end
+	elseif where == "jobs" or where == "events" or where == "zones" then
+		ClientFns.routePanel(where)
+	end
+end
 --[[
 	Planets dock — cute globe emoji on the same plate as every other dock btn.
 ]]
@@ -11469,6 +11654,10 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		end
 		ClientFns.syncPlaytime(payload)
 		pcall(ClientFns.paintDailyBox, payload and payload.dailyQuests)
+		pcall(ClientFns.paintTodayBox)
+		if not ClientFns.todayLoopOn then
+			ClientFns.todayLoop()
+		end
 		pcall(ClientFns.upgradeNudge)
 		if not ClientFns.chestBeaconsOn then
 			ClientFns.chestBeacons()

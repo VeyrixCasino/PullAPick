@@ -138,8 +138,12 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
         and draw on the bag tiles and the opening screen.
   - [ ] See a case drop from a real chest in play. So far the roll has been
         tested on its own.
-- **A2. More daily attractions.** The TODAY checklist goes **inside the Quests
-  panel** (owner, 2026-10-10). First list what exists: the daily reward
+- **A2. More daily attractions.** **Built 2026-10-10:** TODAY sits at the top of
+  the Quests panel and shows only what is active (owner: *"just put active
+  ones"*): rewards ready to claim (daily, gifts, wheel, Job Board, pass) and
+  open event mines; a tap opens its screen (`MineToday`, `tools/verify/today.js`).
+  Still to add: fishing's "catch of the day", once A3 exists. The original brief:
+  the TODAY checklist goes **inside the Quests panel** (owner, 2026-10-10). First list what exists: the daily reward
   calendar, the 3 daily quests, playtime gifts, the daily surprise, Job Board
   contracts and the pass. Then add:
   - The wheel.

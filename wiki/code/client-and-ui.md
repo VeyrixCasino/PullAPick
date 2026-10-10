@@ -131,8 +131,19 @@ The indigo surfaces stay as the base, with bright candy on top.
   - Everything else: chunky outlines and bigger type.
 - **One quest panel.** Owner: *"fix the quests and the ugly arrow ... make it
   all a part of the same exact ui"*.
-  - `QuestPanel` holds the active quest (`questBox`) and the dailies, both
-    transparent and stacked by `ClientFns.layoutQuestPanel`.
+  - `QuestPanel` holds, top to bottom, **TODAY**, the active quest (`questBox`)
+    and the dailies, all transparent and stacked by `ClientFns.layoutQuestPanel`.
+  - **TODAY** (TODO A2, 2026-10-10): one row per daily thing that is ACTIVE now.
+    Owner, on seeing every row: *"to many quests and unneed info.. just put
+    active ones"*. So a row shows only while it pays out (the daily reward,
+    gifts, a free wheel spin, Job Board contracts, pass rewards: green, pulsing,
+    and lighting the panel's dot) or is an open event mine (gold). With nothing
+    active the box hides. Tapping a row opens its screen (`ClientFns.todayOpen`).
+    The rows come from `MineToday.rows` / `MineToday.active`, pure and checked
+    offline by `tools/verify/today.js`; the box repaints on every snapshot and
+    once a second, on the server clock (`workspace:GetServerTimeNow()`).
+    Event Horizon's open/closed comes from the snapshot: the client has no
+    launch clock, so `C.limitedActive("bigbang")` is always true there.
   - The panel has one header with a collapse button. Collapsing shrinks it in
     place to a "QUESTS" pill.
   - The old "ear" tabs that slid the cards off screen are deleted.

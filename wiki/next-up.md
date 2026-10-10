@@ -74,8 +74,10 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
 
 ## 3. Still open from before
 
-- A2 (the TODAY checklist in the Quests panel), A3 (fishing), B tools, C art,
-  D planets ([open-questions](open-questions.md)).
+- **A2 TODAY: DONE 2026-10-10** (active rows only, at the top of the Quests
+  panel; see [client-and-ui](code/client-and-ui.md)). Fishing's "catch of the
+  day" joins it when A3 exists.
+- A3 (fishing), B tools, C art, D planets ([open-questions](open-questions.md)).
 - **BLOCKED:**
   - **The PR:** the owner runs `gh auth login`, or opens it at
     https://github.com/VeyrixCasino/PullAPick/compare/main...claude/vigilant-fermi-aucqjy?expand=1

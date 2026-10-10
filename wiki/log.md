@@ -932,3 +932,16 @@ Every return was checked in Studio and lands within about 1 point of its
 target. Suite 57/57.
 
 Updated: pack-cases (the prices section rewritten), TODO A1c.
+
+## [2026-10-10] ingest | A2: the TODAY checklist
+Built TODAY at the top of the HUD Quests panel (`MineToday`, MineClient
+`paintTodayBox` / `todayOpen`, `tools/verify/today.js`). First pass listed all
+nine dailies with timers; the owner: *"to many quests and unneed info.. just
+put active ones"*, so it now shows only rows that pay out now or open event
+mines, and hides when empty. Studio: rows matched the save (gifts, wheel, Job
+Board, pass ready; Event Horizon open); tapping Wheel opened the Daily Wheel.
+Found while mapping: the wheel is one free spin a day (the 6-hour version only
+lived in an old worktree); the battle pass has no quests (only Event Horizon's
+event pass does); the client cannot read Event Horizon's window.
+
+Updated: client-and-ui, next-up, TODO, log.
