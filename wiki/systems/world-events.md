@@ -2,7 +2,7 @@
 title: World events
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-10 @ 31ecb3d
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ServerScriptService/Mine/MineEventHorizon.luau
@@ -60,6 +60,51 @@ related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-m
   The hole collapses every `MineConfig.MINE_RESET_SEC` (20 min), on the same
   beat the mines reset, and `MineAmbience` plays the blast on clients.
 - **Off the breaking ladder.** Event Horizon does not use ore tools (OPEN P0 §3).
+
+### Candy Crypt (`hallow`, zone index 12) — Halloween 2026
+
+> **Partly built (2026-10-10).** The zone, its window, its claim, the tiny pit,
+> no chests, the candy balance and its strata exist. The candy ores, the
+> 10-layer sections and 3× curve, sell values, the Trick-or-Treat cases and the
+> Halloween tools do not.
+
+A second limited mine, open **alongside** Event Horizon rather than after it.
+Owner's brief: candy ores dropping candy corn, **no chests**, nothing sells for
+much (more the deeper you go), **no hardness gate** so surface tools work, **ten
+layers to a section and about ten blocks to a layer**, 3× per section, and candy
+buys Trick-or-Treat cases, seasonal packs, skin and hat cases, and the Halloween
+bucket. Halloween tools are buyable with candy and must be sold with an explicit
+warning that they are very weak and only for seasonal events.
+
+Adding it forced three things that assumed exactly one limited zone:
+
+| was | now |
+| --- | --- |
+| `limitedActive()` took no argument | `limitedActive(zoneId)`, windows in `MineConfig.LIMITED_WINDOWS`. No argument still means `bigbang`. |
+| `Gate.zoneUnlocked` / `enterZone` read `p.bigbangOwned` for any limited zone | each zone names its own `ownedFlag` (`hallowOwned` here) |
+| `rollKind` named `bigbang` for chest density | reads `zone.chestMult`, so Halloween can set **0** |
+
+- **Windows are day offsets from SEASON START, not real dates.** The clock is
+  `MineLaunch.seasonNow()`, and a wall-clock window is the exact failure
+  MineLaunch exists to prevent — it would count down before the game opened.
+  `hallow = { startDay = 25, days = 21 }` gives the owner's **17 Oct – 7 Nov**
+  if the season starts 2026-09-22 as configured, and slips with launch if not.
+  Verified in Studio.
+- **Blocks per layer is per zone** (`MineConfig.gridFor`). A layer is square, so
+  no grid gives exactly 10: `grid = 3` gives 9 and keeps a true centre block,
+  which the elevator and pit centre are computed from. Applied at the three
+  places that decide what a layer *is* — generation, and `MineDigAuth`'s cell
+  lookup and pit bounds. Zones omitting `grid` read 21 and are unchanged.
+- **`sets` is meadow's, not candy.** It is read as `MineCards` set ids, and
+  `candy_corn` / `gummy_vein` / `sugar_glass` are **not registered** there —
+  using them hands broken set ids to every pack the zone can produce. Limited
+  zones already draw pets from the meadow pot. It becomes the Halloween 2026
+  set once that pack exists, which under the holiday rule is the only legal
+  source of holiday pets anyway.
+- **There is no "hardness gate" to switch off.** The gate is block HP, not a
+  flag. `zone.noStrengthGate` is set on the row but **nothing reads it yet** —
+  making surface tools viable means giving the zone a low HP curve, which is
+  part of the unbuilt work.
 
 ### Event Pass
 - **What it is.** `MineEventPass.TRACKS.event_horizon` has 6 tiers. Event XP

@@ -623,3 +623,40 @@ Filed: [pack-cases](systems/pack-cases.md), with the full pricing table and
 what is still to approve. Updated: shops-and-monetisation,
 social-quests-and-leaderboards, chests-and-lucky-blocks, cards-and-packs,
 assets-and-uploads, index.
+
+## [2026-10-10] query | pack cases: the owner's pricing and shop rules
+The owner answered three questions:
+- **"Better does still cost more [10% more than last]".** `SET_VALUE_STEP` is
+  now 1.10.
+- **"Make it so shops dont carry any sets above b".** Set cases and featured
+  set packs only come from the 9 sets graded F to B. The A to SS sets come out
+  of wild cases only.
+- **Chaos Theory (SSS) is "credits, and 0.5% only".** Only a wild case bought
+  with credits can roll it, at exactly 0.5% of its slots. Its bag row carries
+  `paid`.
+
+Also decided: the case art is a booster box, and wild cases stay in both shops.
+
+Checked in Studio: the cart stamps `paid`, and a set case above B is refused
+for stardust. Over 200k rolls, SSS came from 0.53% of credit-case slots and
+none of the others.
+
+Updated: pack-cases (rules and repriced tables), owner,
+shops-and-monetisation, TODO A1c.
+
+## [2026-10-10] ingest | Candy Crypt: a second limited mine (partly built)
+Owner asked for a Halloween candy mine. Built the foundation and wrote it up in
+[world-events]: the zone (`hallow`, index 12), a per-zone window, a per-zone
+claim flag, a 3x3 pit, no chests, the candy balance and candy strata. Three
+things assumed exactly ONE limited zone and had to be made per-zone first —
+`limitedActive()` took no argument, the claim read `p.bigbangOwned` for any
+limited zone, and `rollKind` named bigbang for chest density. Windows are day
+offsets from SEASON START rather than real dates, because the clock is
+MineLaunch's season clock and a wall-clock window is the failure MineLaunch
+exists to prevent; 25/21 gives the owner's 17 Oct – 7 Nov and slips with launch.
+Also found a trap worth knowing: MineConfig has TWO section builders and the
+first is dead — the second reassigns `ZONE_SECTIONS` and throws it away, so a
+zone added to the first silently gets no strata. Not built yet: candy ores,
+10-layer sections and the 3x curve, sell values, the cases, and the Halloween
+tools. `zone.noStrengthGate` is set but nothing reads it — the hardness gate is
+block HP, not a flag.
