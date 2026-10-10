@@ -821,3 +821,23 @@ season start, but the owner told this session real dates.
 
 Updated: pets, cards-and-packs, world-events, tools-and-generators, owner,
 next-up, log.
+
+## [2026-10-10] query | chest case rates decided: 10%, each grade half as common
+Owner, on the old 0.5–10% by rank: *"WAY to high (look at the value
+difference.. make each rarity 2x as rare as the last.. 10% base drop rate
+for case)"*. They chose "10% get a case, grades halve" and "better chests,
+better grades".
+
+What changed (`MineCases.CHEST_CASE_CHANCE`, `CHEST_GRADE_FALLOFF`,
+`CHEST_RANK_SHIFT`, `chestCaseOdds`):
+- A C chest is ★ 5%, ★½ 2.5% … ★★★★★ 0.02%.
+- Each rank above C starts the ladder a half-star higher; S starts at ★★½.
+- F and D drop a case 2.5% and 5% of the time.
+- Chest luck still multiplies the chance (cap ×3).
+- The old chest-case tables in `MineSetPacks` are no longer read.
+
+Checked over 200k simulated chests. Found while pricing: card power-up costs
+25 × level (7,500 to max any card), and recycling pays +10% per level, which
+makes stardust. The owner wants the Exotic max at 2–3M or more; that is next.
+
+Updated: pack-cases, chests-and-lucky-blocks, TODO A1c.

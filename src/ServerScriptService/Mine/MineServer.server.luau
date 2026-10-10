@@ -5898,7 +5898,7 @@ local function openChestBlock(plr, p, chestId, b, part)
 	--[[
 		A WILD PACK CASE, SOMETIMES. Owner, 2026-10-10: "chest drops can drop pack
 		cases, and with those cases you can win packs". Better chests drop them
-		more often and of more stars (MineCases.chestGradeWeight, PROPOSED); chest
+		of more stars (MineCases.chestCaseOdds: 10%, each grade half as common); chest
 		luck raises the chance, capped (MineCases.CHEST_LUCK_CAP). No pack luck
 		rides on it: owner, a better case is better "by design (Not a % boos[t])".
 	]]

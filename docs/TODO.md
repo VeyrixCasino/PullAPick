@@ -127,7 +127,7 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
         or edit the PROPOSED block in the wiki page:
         - case stardust and credit prices;
         - the featured set packs' prices and star grades;
-        - the chest case rates and the luck cap;
+        - ~~the chest case rates~~ decided: 10% of chests, each grade half as common, better ranks start higher;
         - which star grade each wheel slice pays;
         - the stars a set case shows.
   - [x] The old packs are off the rotating stardust shelf too (owner,

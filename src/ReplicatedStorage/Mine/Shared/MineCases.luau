@@ -97,9 +97,8 @@ M.SET_CASES = {
 }
 
 --[[
-	PROPOSED. A chest's chance of a case is MineSetPacks.CHEST_CASE_CHANCE by
-	the chest's rank, times the chest luck, but never more than this many
-	times the base chance.
+	A chest's chance of a case (M.CHEST_CASE_CHANCE) is multiplied by the
+	player's chest luck, but never by more than this (owner: keep chest luck).
 ]]
 M.CHEST_LUCK_CAP = 3
 
@@ -443,19 +442,55 @@ function M.open(p, pk, rng)
 end
 
 --[[
-	PROPOSED. How likely a chest's case is to be each grade. A whole grade uses
-	MineSetPacks.CHEST_CASE_STARS by the chest's rank. A half grade sits between
-	its two neighbours: the geometric mean of their weights, times this share.
-]]
-M.CHEST_HALF_SHARE = 0.5
+	CHEST CASES. Owner, 2026-10-10, on the old 0.5-10% by rank: "WAY to high
+	(look at the value difference.. make each rarity 2x as rare as the last..
+	10% base drop rate for case)", then chose "10% get a case, grades halve"
+	and "better chests, better grades".
 
-function M.chestGradeWeight(rank, def)
-	local w = SetPacks.CHEST_CASE_STARS[rank] or SetPacks.CHEST_CASE_STARS.C
-	local levels = def.levels or { def.starLevel }
-	if #levels == 1 then
-		return w[levels[1]] or 0
+	  CHEST_CASE_CHANCE  a chest drops a case this often (chest luck raises
+	                     it, capped at CHEST_LUCK_CAP)
+	  CHEST_GRADE_FALLOFF each grade is this much as common as the one below:
+	                     ★ 50% of cases, ★½ 25% ... ★★★★★ about 0.2%
+	  CHEST_RANK_SHIFT   half-star steps the ladder starts above ★: a B chest
+	                     starts at ★½, A at ★★, S at ★★½. F and D start below
+	                     ★, and a grade below ★ is no case at all, so they drop
+	                     one about a quarter and a half as often.
+]]
+M.CHEST_CASE_CHANCE = 0.10
+M.CHEST_GRADE_FALLOFF = 0.5
+M.CHEST_RANK_SHIFT = { F = -2, D = -1, C = 0, native = 0, B = 1, A = 2, S = 3 }
+
+--[[
+	The odds of each outcome when a chest of `rank` rolls its case:
+	{ { def, p }, ... } with p per chest (no chest luck), plus the chance of no
+	case. Used by the roll and by the wiki's numbers.
+]]
+function M.chestCaseOdds(rank)
+	local shift = M.CHEST_RANK_SHIFT[rank or ""] or 0
+	-- Ladder positions k = 0, 1, 2 ... start at grade index 1 + shift and
+	-- run to the best grade; a position below grade 1 is "no case".
+	local rows, total = {}, 0
+	local k = 0
+	while true do
+		local index = 1 + shift + k
+		if index > #M.WILD then
+			break
+		end
+		local w = M.CHEST_GRADE_FALLOFF ^ k
+		total += w
+		table.insert(rows, { def = M.WILD[index], w = w })
+		k += 1
 	end
-	return math.sqrt((w[levels[1]] or 0) * (w[levels[2]] or 0)) * M.CHEST_HALF_SHARE
+	local out, none = {}, 1 - M.CHEST_CASE_CHANCE
+	for _, r in ipairs(rows) do
+		local p = M.CHEST_CASE_CHANCE * r.w / total
+		if r.def then
+			table.insert(out, { def = r.def, p = p })
+		else
+			none += p
+		end
+	end
+	return out, none
 end
 
 --[[
@@ -465,15 +500,22 @@ end
 ]]
 function M.rollChestCase(rank, rng, chestLuck)
 	rng = rng or Random.new()
-	local key = SetPacks.CHEST_CASE_CHANCE[rank or ""] and rank or "C"
 	local luck = math.clamp(tonumber(chestLuck) or 1, 1, M.CHEST_LUCK_CAP)
-	if rng:NextNumber() >= SetPacks.CHEST_CASE_CHANCE[key] * luck then
+	if rng:NextNumber() >= M.CHEST_CASE_CHANCE * luck then
 		return nil
 	end
-	local def = weighted(M.WILD, rng, function(d)
-		return M.chestGradeWeight(key, d)
+	local odds = M.chestCaseOdds(rank)
+	-- The grade, among the case outcomes plus "no case" for the low ranks.
+	local rows, caseShare = {}, 0
+	for _, r in ipairs(odds) do
+		table.insert(rows, r)
+		caseShare += r.p
+	end
+	table.insert(rows, { def = nil, p = math.max(0, M.CHEST_CASE_CHANCE - caseShare) })
+	local pick = weighted(rows, rng, function(r)
+		return r.p
 	end)
-	return def and M.bagRow(def.id)
+	return pick and pick.def and M.bagRow(pick.def.id) or nil
 end
 
 -- -------------------------------------------------------------- prices --

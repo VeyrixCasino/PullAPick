@@ -59,11 +59,24 @@ How a case behaves in the game:
   - The reveal shows one card per pack, with its art, its stars and its set
     and grade.
   - No luck is stamped on the packs.
-- **Chest drops.** In `openChestBlock`, `MineCases.rollChestCase` uses
-  `MineSetPacks.CHEST_CASE_CHANCE` for the chance, by chest rank.
-  - The grade comes from `MineCases.chestGradeWeight`: whole grades take
-    `MineSetPacks.CHEST_CASE_STARS`; a half grade takes half the geometric
-    mean of its neighbours (`CHEST_HALF_SHARE`).
+- **Chest drops** (*decided*, owner 2026-10-10: the old 0.5–10% was "WAY to
+  high … make each rarity 2x as rare as the last.. 10% base drop rate").
+  `MineCases.rollChestCase` and `chestCaseOdds` work like this:
+  - 10% of chests drop a case (`CHEST_CASE_CHANCE`).
+  - Each grade is half as common as the one below (`CHEST_GRADE_FALLOFF`).
+  - A better chest shifts the ladder up one half-star per rank
+    (`CHEST_RANK_SHIFT`): B starts at ★½, A at ★★, S at ★★½.
+  - F and D start below ★, and a grade below ★ is no case, so they drop one
+    2.5% and 5% of the time.
+
+  | chest | any case | ★ | ★★ | ★★★ | ★★★★ | ★★★★★ | value per chest |
+  |---|---|---|---|---|---|---|---|
+  | F | 2.5% | 1.25% | 0.31% | 0.08% | 0.02% | 0.005% | ~18 dust |
+  | C | 10% | 5% | 1.25% | 0.31% | 0.08% | 0.02% | ~73 dust |
+  | S | 10% | – | – | 2.5% | 0.64% | 0.16% | ~373 dust |
+
+  "Value per chest" is what the cases' cards recycle for. A ★★★★★ case
+  comes from about 1 in 5,000 C chests.
   - The player's chest luck multiplies the chance, capped at ×3
     (`CHEST_LUCK_CAP`). The owner chose to keep this; the grade itself is never
     boosted.
@@ -178,11 +191,12 @@ Wild-slot odds by set grade (`MineCases.wildGradeOdds`):
 | SSS | 0.5%, credit-bought cases only |
 
 **Still to price or approve:**
-- every number above;
-- the chest case rates (`MineSetPacks.CHEST_CASE_CHANCE`, `MineSetPacks.CHEST_CASE_STARS`,
-  `MineCases.CHEST_HALF_SHARE`). For example, an S chest's case comes out:
-  - ★ 12%, ★½ 15%, ★★ 17%, ★★½ 9%, ★★★ 18%;
-  - ★★★½ 8%, ★★★★ 14%, ★★★★½ 4%, ★★★★★ 5%;
+- every number above. The chest case rates are *decided* (see How it
+  works). The wild cases are priced about 2× what their cards recycle for,
+  because the ×1.10-per-set value counts the stronger pets as well. Recycling
+  a wild case returns about 32%; a set case returns 65% (Pebblebound) down to
+  about 30% (Royal Reserve). Owner to choose: keep, or price wild cases on
+  recycle value (★★★★★ 44,655 stardust / 102 credits);
 - which star grade each wheel slice pays (jackpot ★★★★★, apex ★★★★, heirloom
   ★★★, anomaly ★★);
 - a set case's shown stars, which are its best pack's.
