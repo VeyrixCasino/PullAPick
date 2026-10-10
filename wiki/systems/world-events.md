@@ -86,8 +86,8 @@ those hold packs and nothing else, and this pays four different kinds of thing.
 
 The **Bucket** is a real bag with a real ability: `candyMult = 2` is a number
 the payout reads, not a line in a blurb. Winning it never demotes a player
-already carrying something bigger. At 2× the top coin bag (the Wormhole is 4×)
-it lands around second best in the game — **a balance call, still PROPOSED**.
+already carrying something bigger. At 1.5× the top coin bag (the Wormhole is 4×)
+it sits clearly above the best bag you can buy and clearly below the one you earn (owner, 2026-10-10: it was 2×).
 
 **Three profile fields do not exist, and each compiles fine if you guess:**
 - `p.hats[id]` — a hat is a **gear piece** appended to `p.gear` (an array).

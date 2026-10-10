@@ -387,8 +387,11 @@ table.insert(LIST, {
 	Smaller than the Wormhole Bag on purpose. That one is the SECOND best bag in
 	the game and is earned by claiming an endgame event; this is won from a case
 	bought with candy in a three-week holiday mine, and it should not quietly
-	become the best bag anyone ever needs. Sized between the top coin bag and
-	the Wormhole Bag.
+	become the best bag anyone ever needs.
+
+	1.5x the top coin bag (owner, 2026-10-10 — it was 2x, which put it close
+	enough to the Wormhole's 4x to read as second best). It is now clearly a
+	step above the best bag you can buy and clearly below the one you earn.
 
 	`limited = "hallow"` is read against the ZONE's ownedFlag now, not against
 	bigbangOwned -- see the bag gate in MineServer.
@@ -399,7 +402,7 @@ nextId += 1
 table.insert(LIST, {
 	id = nextId,
 	name = "Trick-or-Treat Bucket",
-	slots = math.floor(topCoin.slots * 2 + 0.5),
+	slots = math.floor(topCoin.slots * 1.5 + 0.5),
 	price = 0,
 	minZone = 1,
 	band = "deep",
