@@ -11996,6 +11996,28 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if traitCtl and enchantP and enchantP.Visible then
 			pcall(traitCtl.paint)
 		end
+	elseif action == "luckResult" and type(payload) == "table" then
+		--[[
+			Random outcomes that used to be a toast alone: rune fuses (a 50% flip)
+			and temperament rolls (the F..SSS ladder). Celebrated by the REAL
+			result. A failed fuse gets the small "no" sound, never a fanfare.
+		]]
+		pcall(function()
+			if payload.ok == false then
+				Audio.playWin(0)
+				return
+			end
+			local Celebrate = require(shared:WaitForChild("MineCelebrate"))
+			local tier
+			if payload.grade then
+				tier = Celebrate.fromGrade(payload.grade)
+			else
+				-- A fuse succeeded; each rune tier is one more flip on the last.
+				local t = tonumber(payload.runeTier) or 2
+				tier = (t >= 7 and 4) or (t >= 5 and 3) or (t >= 3 and 2) or 1
+			end
+			Celebrate.burst(tier, { title = (tier >= 2) and tostring(payload.title or "") or nil })
+		end)
 	elseif action == "luckyGraded" then
 		ClientFns.luckyScreen().graded(payload)
 	elseif action == "luckyGone" then

@@ -11560,6 +11560,8 @@ function Verbs.fuseRunes(plr, payload)
 			removeRune(p, bId)
 			net:FireClient(plr, "toast", string.format("Fuse failed (%.0f%%). Both runes destroyed.", chance * 100))
 		end
+		-- A miss gets the small "no", never a fanfare (MineCelebrate's honesty rule).
+		net:FireClient(plr, "luckResult", { ok = false, kind = "fuse" })
 		snap(plr)
 		return
 	end
@@ -11576,6 +11578,10 @@ function Verbs.fuseRunes(plr, payload)
 	}
 	table.insert(p.runes, out)
 	net:FireClient(plr, "toast", "Fused! " .. Runes.describe(out))
+	-- For the client to celebrate by what was really made (MineCelebrate). Each
+	-- tier is another coin flip on top of the last, so a deep fuse is rare.
+	net:FireClient(plr, "luckResult", { ok = true, kind = "fuse", runeTier = out.tier,
+		title = "FUSED!  T" .. tostring(out.tier) })
 	snap(plr)
 	walk(plr)
 end
@@ -15624,6 +15630,10 @@ function Verbs.rollTemper(plr, payload)
 	ft.temperSlots = slots
 	ft.temperRolls = (ft.temperRolls or 0) + 1
 	net:FireClient(plr, "toast", string.format("Spent %d tokens on temperament (slot %d): %s %s", cost, slot, rarity, kit.name))
+	-- The roll used to be a toast only, so an SSS read exactly like an F. The
+	-- client celebrates by the real grade (MineCelebrate).
+	net:FireClient(plr, "luckResult", { ok = true, kind = "temper", grade = Temper.normalizeRarity(rarity),
+		title = string.format("%s  %s", Temper.normalizeRarity(rarity), tostring(kit.name)) })
 	introAdvance(plr, p, 16)
 	markDirty(plr)
 	snap(plr)

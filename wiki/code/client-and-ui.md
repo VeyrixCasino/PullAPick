@@ -198,6 +198,23 @@ The tier mappers take the real result:
   - **The case reel** adds the overlay at S and up.
   - **S-rank chests** get the small tier-1 pluck. Every other chest stays
     silent, by the owner's request.
+  - **Trait rolls** send `traitRolled`. They are celebrated by the trait's
+    grade.
+  - **Temperament rolls and rune fuses** were a toast only, so an SSS looked
+    like an F. They now send `luckResult` (`ok`, `grade` or `runeTier`,
+    `title`):
+    - A temperament roll is celebrated by its grade.
+    - A successful fuse is celebrated by its result tier: T2 nice, T3–4 great,
+      T5–6 epic, T7+ legendary. Each tier is another 50% flip.
+    - A failed fuse gets the tier-0 thud and never a fanfare.
+    - Played in Studio on 2026-10-10: F and D rolls gave a thud, C rolls gave
+      the pluck and a sparkle burst.
+  - **Hat merging is not luck.** The better hat always wins (`MineGear.mergeHats`),
+    so it gets no celebration.
+- **Testing note:** Studio's command bar has its own module cache. Wrapping
+  `MineCelebrate` from it does not touch the game's copy. Watch for
+  `MineSfx_*` sounds in SoundService and `Burst` frames under
+  `PlayerGui.MineCelebrate` instead.
 - **Pack navigation fixes:**
   - SKIP ALL now really skips: no per-hit hold, banner or stinger, then one
     celebration for the best hit. Its `rush = true` had been writing a global,

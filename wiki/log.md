@@ -178,3 +178,15 @@ Lucky Block". All of them say Godly now, including the rotating-offer texts.
 confused with a Mythic pull.
 
 Updated: chests-and-lucky-blocks, log.
+
+## [2026-10-10] ingest | toast-only luck gets a celebration
+
+Temperament rolls and rune fuses were the last random outcomes that only
+showed a toast. They now send `luckResult`, and `MineCelebrate` sizes the
+celebration from the real result. A failed fuse gets a thud, never a fanfare.
+Hat merging is deterministic, so it was left alone. A temperament roll was
+played in Studio, and the right sound and overlay fired for F, D and C. Trait
+rolls are still not played in Studio: the test account has no forged ore tool
+to roll on.
+
+Updated: client-and-ui, log.
