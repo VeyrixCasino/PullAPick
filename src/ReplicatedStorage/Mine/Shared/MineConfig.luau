@@ -2252,10 +2252,18 @@ function MineConfig.refreshZoneSections()
 	end
 	MineConfig._zoneSecFrom = 0
 	-- Force the module's initial builder pattern by clearing and copying from Depth again.
+	--[[
+		NOTE: this is the LIVE builder. There is a second, older one above with
+		its own THEME / PLANET_DIRT / PLANET_ROCK that looks identical and is
+		dead -- line 2293 reassigns MineConfig.ZONE_SECTIONS, throwing its work
+		away. A zone added to the one above and not to this one gets no strata
+		at all and reads nil, which is what `hallow` did until it was added here.
+	]]
 	local THEME_WORD = {
 		meadow = "", sunscar = "Sunscar", mistreef = "Tide", arcwork = "Cog",
 		bloodmoon = "Blood", eclipse = "Umbral", riftmarch = "Rift",
 		starfall = "Starfall", mythral = "Myth", primordium = "Primordial", bigbang = "Horizon",
+		hallow = "Candy",
 	}
 	local PLANET_DIRT = {
 		sunscar = {"Blisterloam","Cindersod","Scorchclay","Glassmarl","Duneseam"},
@@ -2268,6 +2276,7 @@ function MineConfig.refreshZoneSections()
 		mythral = {"Boneloam","Relicsod","Tombclay","Ossumarl","Cryptpeat"},
 		primordium = {"Magmaloam","Lavasod","Emberclay","Coremarl","Pyrepeat"},
 		bigbang = {"Protozoam","Sparksod","Nullclay","Aethermarl","Genesispeat"},
+		hallow = {"Sugarloam","Gumsod","Toffeeclay","Caramarl","Liquorpeat"},
 	}
 	local PLANET_ROCK = {
 		sunscar = {"Glassite","Dunestone","Solrock","Scorchite","Mirageflint"},
@@ -2280,6 +2289,7 @@ function MineConfig.refreshZoneSections()
 		mythral = {"Ossistone","Relicite","Tombflint","Boneite","Cryptrock"},
 		primordium = {"Magmite","Lavastone","Emberflint","Coreite","Pyrock"},
 		bigbang = {"Protostone","Nullite","Aetherflint","Horizite","Genesisrock"},
+		hallow = {"Candystone","Gumdropite","Toffeeflint","Nougatrock","Brittleite"},
 	}
 	local THEME_HUE = {
 		meadow = Color3.fromRGB(150, 110, 72), sunscar = Color3.fromRGB(210, 200, 175),
@@ -2288,6 +2298,7 @@ function MineConfig.refreshZoneSections()
 		riftmarch = Color3.fromRGB(120, 80, 160), starfall = Color3.fromRGB(90, 120, 180),
 		mythral = Color3.fromRGB(200, 180, 120), primordium = Color3.fromRGB(180, 70, 30),
 		bigbang = Color3.fromRGB(200, 210, 255),
+		hallow = Color3.fromRGB(255, 142, 44),
 	}
 	local TAIL = { "stone", "rock", "ite", "shale", "basalt", "flint", "ore", "slate", "granite", "vein" }
 	MineConfig.ZONE_SECTIONS = {}
