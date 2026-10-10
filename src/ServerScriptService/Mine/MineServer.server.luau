@@ -5898,17 +5898,14 @@ local function openChestBlock(plr, p, chestId, b, part)
 	--[[
 		A WILD PACK CASE, SOMETIMES. Owner, 2026-10-10: "chest drops can drop pack
 		cases, and with those cases you can win packs". Better chests drop them
-		more often and of more stars (MineSetPacks.CHEST_CASE_*, PROPOSED); chest
-		luck raises the chance, capped (MineCases.CHEST_LUCK_CAP). It rides the
-		chest's pack luck like the packs above.
+		more often and of more stars (MineCases.chestGradeWeight, PROPOSED); chest
+		luck raises the chance, capped (MineCases.CHEST_LUCK_CAP). No pack luck
+		rides on it: owner, a better case is better "by design (Not a % boos[t])".
 	]]
 	do
 		local Cases = require(shared:WaitForChild("MineCases"))
 		local row = Cases.rollChestCase(rank, rng, b and b.chestLuck)
 		if row then
-			if stampedLuck > 1 then
-				row.luck = stampedLuck
-			end
 			table.insert(p.packs, row)
 			table.insert(packNames, row.packName)
 			table.insert(packIds, row.packId)

@@ -110,7 +110,9 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
     pack slices pay wild pack cases (`wiki/systems/pack-cases.md`).
 - **A1c. Pack cases. Built 2026-10-10** (`MineCases`; wiki
   `systems/pack-cases.md`). This covers:
-  - wild cases ★–★★★★★, and Starter, Collector and Vault set cases for every set;
+  - wild cases at nine grades, ★ to ★★★★★ in half steps (a half grade mixes
+    its two neighbours), and Starter, Collector and Vault set cases for every
+    set;
   - chest drops, the wheel, the credit shelf (cases plus 4 featured set packs a
     day, with the old packs taken off) and a Pack Cases tab in the stardust shop.
 

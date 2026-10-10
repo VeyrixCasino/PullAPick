@@ -107,7 +107,35 @@ M.CHEST_LUCK_CAP = 3
 -- chest drops one (a popup, not just a line on the chest card).
 M.CHEST_POPUP_LEVEL = 5
 
-function M.wildId(level)
+--[[
+	THE WILD CASES, ONE PER STAR GRADE: 1★ to 5★ in half steps, nine grades
+	(TODO §NOW, decided; owner 2026-10-10: "I need 2.5, 3.5 and 4.5 stars per
+	case"). A case is better only because the packs in it are: no luck boost.
+
+	`levels` are the pack star levels (MineSetPacks.STARS index 1..6) a slot
+	draws from. The sets have no 2.5, 3.5 or 4.5 packs, so a half-star case
+	mixes its two neighbours, each pack a coin flip (owner: "Mix of both").
+
+	Ids are data: "case_<level>" for a whole grade (case_1..case_6, as shipped),
+	"case_<lo>_<hi>" for a half grade.
+]]
+M.WILD_GRADES = {
+	{ levels = { 1 }, stars = 1, text = "★" },
+	{ levels = { 2 }, stars = 1.5, text = "★½" },
+	{ levels = { 3 }, stars = 2, text = "★★" },
+	{ levels = { 3, 4 }, stars = 2.5, text = "★★½" },
+	{ levels = { 4 }, stars = 3, text = "★★★" },
+	{ levels = { 4, 5 }, stars = 3.5, text = "★★★½" },
+	{ levels = { 5 }, stars = 4, text = "★★★★" },
+	{ levels = { 5, 6 }, stars = 4.5, text = "★★★★½" },
+	{ levels = { 6 }, stars = 5, text = "★★★★★" },
+}
+
+-- The wild case of a pack star level (1..6), or of a pair of them.
+function M.wildId(level, hi)
+	if hi and hi ~= level then
+		return "case_" .. level .. "_" .. hi
+	end
 	return "case_" .. level
 end
 
@@ -117,6 +145,7 @@ end
 
 M.CASES = {}
 M.BY_ID = {}
+M.WILD = {} -- the wild cases, worst to best
 
 local function add(def)
 	def.kind = M.KIND
@@ -124,16 +153,27 @@ local function add(def)
 	M.BY_ID[def.id] = def
 end
 
-for n = 1, #SetPacks.STARS do
-	add({
-		id = M.wildId(n),
-		name = SetPacks.STAR_TEXT[n] .. " Wild Case",
+for _, g in ipairs(M.WILD_GRADES) do
+	local lo, hi = g.levels[1], g.levels[#g.levels]
+	local packText = SetPacks.STAR_TEXT[lo]
+	if hi ~= lo then
+		packText = SetPacks.STAR_TEXT[lo] .. " or " .. SetPacks.STAR_TEXT[hi]
+	end
+	local def = {
+		id = M.wildId(lo, hi),
+		name = g.text .. " Wild Case",
 		caseType = "wild",
-		starLevel = n,
-		stars = SetPacks.STARS[n],
+		levels = g.levels,
+		-- The colour and rank of a half grade are its lower neighbour's, so a
+		-- 2.5★ case never passes for a 3★ one.
+		starLevel = lo,
+		stars = g.stars,
 		cards = 0,
-		blurb = "3-5 random " .. SetPacks.STAR_TEXT[n] .. " packs from any set",
-	})
+		packText = packText,
+		blurb = "3-5 random " .. packText .. " packs from any set",
+	}
+	add(def)
+	table.insert(M.WILD, def)
 end
 
 for _, set in ipairs(M.SETS) do
@@ -316,11 +356,14 @@ function M.contents(id, rng, paid)
 	local size = weighted(SetPacks.CASE_SIZE, rng, function(r)
 		return r.weight
 	end).n
+	local levels = def.levels or { def.starLevel }
 	local out = {}
 	for _ = 1, size do
 		local key = M.rollWildSet(rng, paid)
 		if key then
-			table.insert(out, SetPacks.packId(key, def.starLevel))
+			-- A half grade's coin flip, per pack.
+			local level = levels[(rng and rng:NextInteger(1, #levels)) or math.random(1, #levels)]
+			table.insert(out, SetPacks.packId(key, level))
 		end
 	end
 	return out
@@ -361,8 +404,8 @@ end
 	pack (MineClient paints kind "pack" with the pack's own art) and the
 	design the reveal tears open.
 
-	A case that came out of a lucky chest carries that chest's pack luck
-	(MineServer openChestBlock), and so does every pack inside it.
+	No luck rides into the packs. Owner, 2026-10-10: a higher grade is better
+	"by design (Not a % boos[t])" -- its packs' own odds, nothing stamped on.
 ]]
 function M.open(p, pk, rng)
 	local def = M.get(pk and pk.packId)
@@ -371,13 +414,9 @@ function M.open(p, pk, rng)
 	end
 	rng = rng or Random.new()
 	p.packs = p.packs or {}
-	local luck = tonumber(pk.luck)
 	local loot = {}
 	for _, packId in ipairs(M.contents(def.id, rng, pk.paid == true)) do
 		local row = M.packRow(packId)
-		if luck and luck > 1 then
-			row.luck = luck
-		end
 		table.insert(p.packs, row)
 		local key, level = M.parsePack(packId)
 		local set = key and M.SET_BY_KEY[key]
@@ -404,8 +443,25 @@ function M.open(p, pk, rng)
 end
 
 --[[
+	PROPOSED. How likely a chest's case is to be each grade. A whole grade uses
+	MineSetPacks.CHEST_CASE_STARS by the chest's rank. A half grade sits between
+	its two neighbours: the geometric mean of their weights, times this share.
+]]
+M.CHEST_HALF_SHARE = 0.5
+
+function M.chestGradeWeight(rank, def)
+	local w = SetPacks.CHEST_CASE_STARS[rank] or SetPacks.CHEST_CASE_STARS.C
+	local levels = def.levels or { def.starLevel }
+	if #levels == 1 then
+		return w[levels[1]] or 0
+	end
+	return math.sqrt((w[levels[1]] or 0) * (w[levels[2]] or 0)) * M.CHEST_HALF_SHARE
+end
+
+--[[
 	A chest's case, if it drops one: a bag row, or nil. `rank` is the chest's
-	(MineZoneChests: F..S, or "native" for the meadow and Event Horizon).
+	(MineZoneChests: F..S, or "native" for the meadow and Event Horizon). The
+	chest luck stat raises the chance, capped; the grade is never boosted.
 ]]
 function M.rollChestCase(rank, rng, chestLuck)
 	rng = rng or Random.new()
@@ -414,14 +470,10 @@ function M.rollChestCase(rank, rng, chestLuck)
 	if rng:NextNumber() >= SetPacks.CHEST_CASE_CHANCE[key] * luck then
 		return nil
 	end
-	local rows = {}
-	for n, w in ipairs(SetPacks.CHEST_CASE_STARS[key]) do
-		table.insert(rows, { n = n, w = w })
-	end
-	local level = weighted(rows, rng, function(r)
-		return r.w
-	end).n
-	return M.bagRow(M.wildId(level))
+	local def = weighted(M.WILD, rng, function(d)
+		return M.chestGradeWeight(key, d)
+	end)
+	return def and M.bagRow(def.id)
 end
 
 -- -------------------------------------------------------------- prices --
@@ -488,7 +540,13 @@ function M.expectedDust(id, paid)
 		end
 		return ev * M.setValue(def.setKey)
 	elseif def then
-		return SetPacks.expectedPackDust(def.starLevel, dust) * avgCaseSize() * M.wildValue(paid)
+		-- A half grade's pack is either neighbour, evenly.
+		local levels = def.levels or { def.starLevel }
+		local per = 0
+		for _, level in ipairs(levels) do
+			per += SetPacks.expectedPackDust(level, dust) / #levels
+		end
+		return per * avgCaseSize() * M.wildValue(paid)
 	end
 	local key, level = M.parsePack(id)
 	if key then
@@ -569,8 +627,8 @@ end
 -- What the credit shop sells: the wild cases, then today's featured set packs.
 function M.creditShelf(day)
 	local out = {}
-	for n = 1, #SetPacks.STARS do
-		table.insert(out, M.wildId(n))
+	for _, def in ipairs(M.WILD) do
+		table.insert(out, def.id)
 	end
 	for _, id in ipairs(M.featuredSetPacks(day)) do
 		table.insert(out, id)

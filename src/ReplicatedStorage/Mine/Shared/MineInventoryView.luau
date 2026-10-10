@@ -1379,7 +1379,8 @@ function MineInventoryView.mount(parent, opts)
 			]]
 			local SetPacks = require(shared:WaitForChild("MineSetPacks"))
 			local hdrK = label(inspectP, (caseDef.caseType == "set") and "WHAT'S INSIDE"
-				or ("EACH PACK IS " .. SetPacks.STAR_TEXT[caseDef.starLevel] .. ", FROM A SET OF GRADE"),
+				or ("EACH PACK IS " .. string.upper(caseDef.packText or SetPacks.STAR_TEXT[caseDef.starLevel])
+					.. ((#(caseDef.levels or {}) > 1) and " (50/50)" or "") .. ", FROM A SET OF GRADE"),
 				13, MUTED, UDim2.fromOffset(18, 210), UDim2.new(1, -36, 0, 18), FONT)
 			hdrK.TextXAlignment = Enum.TextXAlignment.Left
 			hdrK.ZIndex = 62

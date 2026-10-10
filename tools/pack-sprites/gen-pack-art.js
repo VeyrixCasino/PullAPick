@@ -142,10 +142,17 @@ function MinePackArt.caseArt(caseId)
 			image = (set.case ~= "" and set.case) or set.icon,
 		}
 	end
-	local level = tonumber(string.match(caseId, "^case_(%d)$"))
+	-- "case_<level>", or "case_<lo>_<hi>" for a half star grade, which takes
+	-- the colour halfway between its two neighbours.
+	local lo, hi = string.match(caseId, "^case_(%d)_(%d)$")
+	local level = tonumber(lo or string.match(caseId, "^case_(%d)$"))
 	local accent = level and MinePackArt.WILD_ACCENT[level]
 	if not accent then
 		return nil
+	end
+	local top = tonumber(hi) and MinePackArt.WILD_ACCENT[tonumber(hi)]
+	if top then
+		accent = accent:Lerp(top, 0.5)
 	end
 	return {
 		primary = scaled(accent, 0.32),

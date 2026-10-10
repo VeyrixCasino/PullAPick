@@ -1954,7 +1954,8 @@ end
 	THE PACK CASES (MineCases) answer pack lookups too, kind "pack_case", so a
 	case in the bag gets a tile, its stars and its sort place like a pack. Out
 	of PACKS for the same reason as the set packs. A case sorts just above the
-	best pack inside it. Opening one never reaches openPack (MineServer).
+	best pack inside it; a half-star wild case, between its two neighbours.
+	Opening one never reaches openPack (MineServer).
 ]]
 do
 	local mod = script.Parent:FindFirstChild("MineCases")
@@ -1967,8 +1968,12 @@ do
 			if MinePackConfig.PACK_BY_ID[def.id] == nil then
 				MinePackConfig.PACK_BY_ID[def.id] = def
 				local key = def.setKey or (M.SETS[1] and M.SETS[1].key) or ""
-				local top = MinePackConfig.PACK_TIER[key .. "_pack_" .. tostring(def.starLevel)]
-				MinePackConfig.PACK_TIER[def.id] = (tonumber(top) or 0) + 0.25
+				local levels = def.levels or { def.starLevel }
+				local tier = 0
+				for _, level in ipairs(levels) do
+					tier += (tonumber(MinePackConfig.PACK_TIER[key .. "_pack_" .. tostring(level)]) or 0) / #levels
+				end
+				MinePackConfig.PACK_TIER[def.id] = tier + 0.25
 			end
 		end
 	elseif not ok and warn then

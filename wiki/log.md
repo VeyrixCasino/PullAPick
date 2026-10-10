@@ -776,3 +776,26 @@ opening screen ("TAP TO RIP"), and the packs inside revealed after it. The
 console was clean.
 
 Updated: assets-and-uploads, pack-cases, TODO A1c.
+
+## [2026-10-10] query | wild cases at nine grades; no luck carry
+The owner corrected and added two things:
+- **"A luck boost per each star/grade"** meant that a higher grade has
+  better drop rates by design, "Not a % boos[t]". A case no longer passes
+  chest luck to its packs. The owner chose to keep chest luck raising the
+  chance of a case dropping.
+- **"I need 2.5, 3.5 and 4.5 stars per case".** There are now nine wild
+  grades (`MineCases.WILD_GRADES`). The half grades are `case_3_4`,
+  `case_4_5` and `case_5_6`. Each pack in one is a coin flip between the two
+  neighbouring levels (owner: "Mix of both").
+  - Prices fall between the neighbours: ★★½ is 38 credits, ★★★½ is 67 and
+    ★★★★½ is 116.
+  - Chests drop the half grades at half the geometric mean of their
+    neighbours' weights.
+
+Checked in Studio:
+- 3.5★ packs split 7,292 / 7,326 between the two levels;
+- an S chest drops all nine grades;
+- opened packs carry no luck;
+- the credit shelf shows the nine cases with the mystery box art.
+
+Updated: pack-cases, TODO A1c.

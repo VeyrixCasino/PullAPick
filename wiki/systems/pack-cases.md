@@ -24,9 +24,16 @@ related: [cards-and-packs, shops-and-monetisation, chests-and-lucky-blocks, soci
 
 There are two kinds (`MineCases.CASES`, kind `pack_case`):
 
-- **Wild cases** `case_1` to `case_6`, one per star grade (`MineSetPacks.STARS`):
-  - each holds 3–5 random packs of that grade, from any set (`MineSetPacks.CASE_SIZE`);
-  - top-graded sets are rarer (`MineSetPacks.GRADE_WEIGHT`).
+- **Wild cases**, nine of them: 1★ to 5★ in half steps (`MineCases.WILD_GRADES`).
+  - The whole grades are `case_1` to `case_6`, one per pack star level
+    (`MineSetPacks.STARS`).
+  - The half grades 2.5★, 3.5★ and 4.5★ are `case_3_4`, `case_4_5` and
+    `case_5_6`. The sets have no half-star packs, so each pack in one is a
+    coin flip between its two neighbours (owner: "Mix of both").
+  - Each case holds 3–5 random packs from any set (`MineSetPacks.CASE_SIZE`),
+    with top-graded sets rarer (`MineSetPacks.GRADE_WEIGHT`).
+  - A better case is better only because of its packs' own odds: no luck
+    boost (owner: "by design (Not a % boos[t])").
   - Chests drop them, the wheel pays them, and both shops sell them.
   - **The SSS set (Chaos Theory)** only comes out of a wild case bought with
     credits, in exactly 0.5% of its slots (`MineCases.PAID_ONLY_GRADES`,
@@ -46,15 +53,21 @@ How a case behaves in the game:
   - The bag tile, stars, sort and shops read a case like a pack.
   - A case sorts just above the best pack inside it.
   - A wild case's set line reads "Any set".
+  - A half-star case sorts between its two neighbours.
 - **Opening.** `openFrom`, `openAt` and `openMany` hand a case to
   `MineCases.open` before `openPack`, the same way lucky blocks are handed off.
   - The reveal shows one card per pack, with its art, its stars and its set
     and grade.
-  - A case from a lucky chest passes that chest's pack luck to every pack inside.
+  - No luck is stamped on the packs.
 - **Chest drops.** In `openChestBlock`, `MineCases.rollChestCase` uses
-  `MineSetPacks.CHEST_CASE_CHANCE` and `CHEST_CASE_STARS` by chest rank.
-  - Chest luck multiplies the chance, capped at ×3 (`CHEST_LUCK_CAP`).
-  - ★★★★ cases and better trigger a "PACK CASE" popup.
+  `MineSetPacks.CHEST_CASE_CHANCE` for the chance, by chest rank.
+  - The grade comes from `MineCases.chestGradeWeight`: whole grades take
+    `MineSetPacks.CHEST_CASE_STARS`; a half grade takes half the geometric
+    mean of its neighbours (`CHEST_HALF_SHARE`).
+  - The player's chest luck multiplies the chance, capped at ×3
+    (`CHEST_LUCK_CAP`). The owner chose to keep this; the grade itself is never
+    boosted.
+  - ★★★★ cases and better (4.5★ included) trigger a "PACK CASE" popup.
 - **Grant paths.** `Verbs.grantPacks`, the cart, the box and the admin grant
   all write a case as `MineCases.bagRow`, never with a random old set.
 - **Art.** Each set has a booster box from Canva, and the wild cases share a
@@ -95,6 +108,11 @@ How a case behaves in the game:
     wild cases bought with credits, at 0.5% of their slots. Everyone else
     trades for it.
   - Wild cases stay in both shops.
+  - **"I need 2.5, 3.5 and 4.5 stars per case".** There are nine wild
+    grades, and a half grade mixes its two neighbours.
+  - **"A luck boost per each star/grade"** meant only that a higher grade
+    has better drop rates by design, "Not a % boos[t]". The luck carry-over
+    was removed. Chest luck still raises the chance of a case dropping.
 
 ## The pricing pass: every number below is PROPOSED
 
@@ -117,8 +135,11 @@ worth"*. Derived numbers, from the code after the owner's later answers:
 | ★ | 369 | 570 | 14 |
 | ★½ | 660 | 1,015 | 19 |
 | ★★ | 1,503 | 2,315 | 27 |
+| ★★½ | 3,184 | 4,900 | 38 |
 | ★★★ | 4,865 | 7,485 | 46 |
+| ★★★½ | 11,375 | 17,500 | 67 |
 | ★★★★ | 17,884 | 27,515 | 82 |
+| ★★★★½ | 38,439 | 59,135 | 116 |
 | ★★★★★ | 58,995 | 90,760 | 141 |
 
 Set cases, in stardust (Starter / Collector / Vault), for the 9 sets the
@@ -155,7 +176,10 @@ Wild-slot odds by set grade (`MineCases.wildGradeOdds`):
 
 **Still to price or approve:**
 - every number above;
-- the chest case rates (`MineSetPacks.CHEST_CASE_CHANCE`, `MineSetPacks.CHEST_CASE_STARS`);
+- the chest case rates (`MineSetPacks.CHEST_CASE_CHANCE`, `MineSetPacks.CHEST_CASE_STARS`,
+  `MineCases.CHEST_HALF_SHARE`). For example, an S chest's case comes out:
+  - ★ 12%, ★½ 15%, ★★ 17%, ★★½ 9%, ★★★ 18%;
+  - ★★★½ 8%, ★★★★ 14%, ★★★★½ 4%, ★★★★★ 5%;
 - which star grade each wheel slice pays (jackpot ★★★★★, apex ★★★★, heirloom
   ★★★, anomaly ★★);
 - the rotating stardust shelf, which still sells the old card packs;
@@ -189,9 +213,6 @@ tested on its own: S-rank chests drop one about 10% of the time.
 
 ## Open questions
 
-- Owner, earlier: *"a luck boost per each star/grade"*. Built as "each star
-  grade is better packs", plus chest luck carried onto the packs. It is not
-  confirmed.
 - Another session reported that the owner has case icons of their own on
   the way. If those replace the Canva boxes, re-point `ids.json` `cases` and
   re-run `gen-pack-art.js`.
