@@ -2,7 +2,7 @@
 title: Pets
 type: system
 status: partial
-verified: 2026-10-10 @ 07b5874
+verified: 2026-10-10 @ 5e90a89
 sources:
   - src/ReplicatedStorage/Mine/Shared/MinePetRoster.luau
   - src/ReplicatedStorage/Mine/Shared/MinePetBoosts.luau
@@ -44,10 +44,13 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
 - **Power.** `MineConfig.cardPower` = `RARITY_MULT` (Common 1 … Exotic 4.4) ×
   `VARIANT_MULT` (Normal 1, Shiny 1.5, Golden 2.25, Prism 3.5, Rainbow 5.5) ×
   (`SHADOW_MULT` 3, or `SHINY_MULT` 1.5) × (1 + 0.04 × (powerLevel − 1)).
-- **Kit.** A named pet reads `MinePetBoosts.boostsFor(name, setKey)` from
-  `PET_BOOSTS.X`, `.Y` or `.EH`. Chest cards roll set X or Y 50/50
-  (`MinePackConfig.SET_SPLIT`), so one name can carry two different kits; 109 names are in
-  both sets. An unnamed print falls back to `MineCards.getKit` (a role's primary and secondary).
+- **Kit.** A named pet reads `MinePetBoosts.boostsFor(name, setKey)`.
+  - **Every regular pet's kit is `PET_BOOSTS.Z`** (zone kits, from
+    `MineZonePets.KITS`). It outranks everything except an Event Horizon set's
+    own `EH` kit.
+  - Event Horizon pets keep `PET_BOOSTS.EH`.
+  - An unnamed print falls back to `MineCards.getKit` (a role's primary and
+    secondary).
 - **Identity: every pet also has a family and a pet trait.** `MineCards.applyIdentity`
   adds a `FAMILY` boost (8 types, for example Fire "Forge Heart" +22% damage) and a
   **pet trait** from `MineCards.TRAITS`. There are 12, hashed from (setId, index) or from the name.
@@ -59,8 +62,49 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
 | what | count | where |
 |---|---|---|
 | rows in the file | 253 (C 75 · U 34 · R 31 · E 23 · L 19 · M 18 · D 24 · X 29) | `MinePetRoster.PETS` |
-| unique names at runtime | **322**, after `MineEHPets.mergeIntoRoster` | matches "322 named pets" in `MineCards.applyIdentity` |
-| boost-kit rows | **431** = X 179 + Y 179 + EH 73 | `MinePetBoosts.PET_BOOSTS` |
+| new zone pets | **451** | `MineZonePets.PETS`, merged into the roster at load |
+| unique names at runtime | **773** = 249 regular + 451 zone + 73 Event Horizon | after `mergeIntoRoster` and the zone merge |
+| zone kits | **700**, one per regular pet; these are what pay | `MinePetBoosts.PET_BOOSTS.Z` |
+
+## Zone pots (2026-10-10)
+
+The owner asked for 70 pets per zone (`docs/PETS-AND-SETS.md`). Each of the 10
+regular zones has its own pot: Common 25, Uncommon 15, Rare 10, Epic 7,
+Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
+
+- **Generated.** `tools/gen/zone-pets.js` writes
+  `src/ReplicatedStorage/Mine/Shared/MineZonePets.luau` and the names sheet
+  `docs/ZONE-PETS.md`. Edit the generator, not its output.
+  `tools/verify/zone-pets.js` fails when either is stale.
+- **Existing pets:** the 249 regular pets were dealt into zones by tier. None
+  was renamed or changed tier, and none changed its look.
+- **New pets:** 451 new ones on everyday bodies, never a holiday body. Each one
+  has a colour at least 60 RGB apart from every other pet on the same body
+  (relaxing to 30 only if it has to).
+- **Kits** follow the approved ladder (PROPOSAL §0 line 3): the primary stat is
+  worth Common 34 … Exotic 150 points at Normal/PL1, the secondary half that,
+  ×1.05 per zone (zone 10 is ×1.55).
+  - **Common to Legendary** get a role from their body: Striker, Bruiser,
+    Digger, Seeker, Prospector, Tidecaller, Trader or Mystic.
+  - **Mythic, Divine and Exotic** carry their zone's own three-stat buff set
+    (meadow Harvest … primordium Primal). A later zone never makes an earlier
+    zone's top pets useless.
+  - Blast is on 25 of 700 pets, Rare or better only.
+- **Lookups.** `MinePetRoster.BY_ZONE[zone]` lists a zone's pets, and every
+  regular pet has a `zone`. `MineZonePets.zoneOf(name)` and `zoneMult(zone)`
+  answer the same questions.
+- **Not wired yet:** nothing drops from a zone pot. Packs still mint from the
+  old card sets, and the wheel and lucky blocks still pick from any tier. Pots
+  become the drop source in the rewards pass.
+
+**The display.** `src/ServerStorage/PetShowcaseBuilder.luau` builds
+`workspace.PetShowcase` at (3000, 0, 0): every pet on a plinth, one block per
+zone, one row per tier, A to Z.
+- **Rebuild it** after any pet change, from Studio's command bar in Edit mode:
+  `require(game.ServerStorage.PetShowcaseBuilder).build()`.
+- **Name tags show only within 22 studs** (owner: "proximity name tags").
+- **It never ships.** MineServer strips it on a live server. The old hand-built
+  rack was deleted in `d57fedc`.
 
 - `MinePetRoster` says it is generated from `roster/pets.txt` + `roster/tiers.txt`, and
   `MinePetBoosts` says `_gen_all_pet_boosts.js`. **Neither input nor generator is in the repo.**
@@ -141,7 +185,7 @@ Three tables, and a pet needs a row in the middle one or it renders as a fox:
 | Table | Holds | Count |
 | --- | --- | --- |
 | `PetModelFactory.SPECIES` | the body builders — one blocky chassis each | 44 |
-| `PetModelFactory.ANIMALS` | `animal` → `{ species, tint, glow?, detail?, transparency? }` | 322 |
+| `PetModelFactory.ANIMALS` | `animal` → `{ species, tint, glow?, detail?, transparency? }` | 322 in the file + 451 from `MineZonePets.ANIMALS` |
 | `PetModelFactory.DETAILS` | prop packs that name the creature (`spots`, `soda`, `discoball`) | 18 |
 
 `build()` reads `opts.animal`, looks it up in `ANIMALS`, and resolves the body

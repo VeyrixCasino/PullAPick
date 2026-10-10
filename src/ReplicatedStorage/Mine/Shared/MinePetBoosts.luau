@@ -452,6 +452,19 @@ M.PET_BOOSTS = {
 	},
 }
 
+--[[
+	ZONE KITS (MineZonePets.KITS): the kit of every regular pet since the zone
+	pots (2026-10-10). On the approved ladder (docs/PROPOSAL.md §0 line 3), +5%
+	per zone. They outrank X and Y, which the owner calls old; those bags stay
+	only so nothing that still reads them breaks.
+]]
+do
+	local ok, zp = pcall(require, script.Parent:FindFirstChild("MineZonePets"))
+	if ok and type(zp) == "table" and zp.KITS then
+		M.PET_BOOSTS.Z = zp.KITS
+	end
+end
+
 function M.resolveName(name)
 	if type(name) ~= "string" then return name end
 	return M.NAME_ALIASES[name] or name
@@ -464,6 +477,9 @@ function M.boostsFor(name, setKey)
 	local ehSets = { genesis_spark = true, first_light = true, proto_ore = true, EH = true, bigbang = true }
 	if setKey and ehSets[setKey] and bags.EH and bags.EH[name] then
 		return bags.EH[name]
+	end
+	if bags.Z and bags.Z[name] then
+		return bags.Z[name]
 	end
 	if setKey and bags[setKey] and bags[setKey][name] then
 		return bags[setKey][name]

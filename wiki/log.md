@@ -368,3 +368,33 @@ element are identical. There are at most 128 generated looks (16 bodies × 8
 elements), before rarity effects and variants.
 
 Updated: pets, log.
+
+## [2026-10-10] ingest | zone pots: 70 pets per zone, and the pet display rebuilt
+Each of the 10 regular zones now has a 70-pet pot, built by
+`tools/gen/zone-pets.js` into `MineZonePets`:
+- 249 existing pets dealt by tier;
+- 451 new ones on everyday bodies.
+
+**Kits** follow the approved PROPOSAL ladder, ×1.05 per zone.
+- Common to Legendary get a role from their body.
+- Mythic, Divine and Exotic carry their zone's own buff set.
+
+**Wiring.** The roster, the kit lookup and the model factory each read the
+module through a small hook. Zone kits (`PET_BOOSTS.Z`) outrank the old X and Y.
+
+**Verified in Studio:** 773 pets build, with no failures and no fox fallbacks;
+70 per zone; every zone pet resolves to its zone kit.
+
+**Not wired:** nothing drops from a pot yet. That is the rewards pass.
+
+**The display.** The old `PetShowcase` was deleted in `d57fedc` along with the
+other authoring racks, so `PetShowcaseBuilder` rebuilds it from code. Name tags
+show within 22 studs, and the zone banners are physical boards.
+
+Two snags along the way:
+- **Billboards flood across distance.** Eleven zone signs at MaxDistance 700
+  read as one smear.
+- **Text caps at 100 px.** A SurfaceGui at 30 px per stud left the title too
+  small to see.
+
+Updated: pets, log.

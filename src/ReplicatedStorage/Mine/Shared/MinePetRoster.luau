@@ -308,12 +308,44 @@ do
 	end
 end
 
+--[[
+	ZONE POTS (MineZonePets, owner 2026-10-10: 70 pets per zone). Every regular
+	pet gets the zone whose pot it belongs to, and the new zone pets join the
+	roster here -- BEFORE the indexes below are built, so BY_NAME, BY_TIER and
+	HEX3_BY_NAME all see them. A name already in the roster is never replaced.
+]]
+do
+	local ok, zp = pcall(require, script.Parent:FindFirstChild("MineZonePets"))
+	if ok and type(zp) == "table" and zp.PETS then
+		local have = {}
+		for _, pet in ipairs(MinePetRoster.PETS) do
+			have[pet.name] = true
+		end
+		for _, row in ipairs(zp.PETS) do
+			if not have[row.name] then
+				table.insert(MinePetRoster.PETS, {
+					name = row.name, hex3 = row.hex3, animal = row.animal, tier = row.tier, tierVia = "zone", zone = row.zone,
+				})
+			end
+		end
+		for _, pet in ipairs(MinePetRoster.PETS) do
+			pet.zone = pet.zone or (zp.ZONE_OF and zp.ZONE_OF[pet.name])
+		end
+	end
+end
+
 MinePetRoster.BY_NAME = {}
 MinePetRoster.BY_TIER = {}
+-- zone id -> its pets. Event Horizon pets carry no zone here; they are bigbang's.
+MinePetRoster.BY_ZONE = {}
 for _, pet in ipairs(MinePetRoster.PETS) do
 	MinePetRoster.BY_NAME[pet.name] = pet
 	MinePetRoster.BY_TIER[pet.tier] = MinePetRoster.BY_TIER[pet.tier] or {}
 	table.insert(MinePetRoster.BY_TIER[pet.tier], pet)
+	if pet.zone then
+		MinePetRoster.BY_ZONE[pet.zone] = MinePetRoster.BY_ZONE[pet.zone] or {}
+		table.insert(MinePetRoster.BY_ZONE[pet.zone], pet)
+	end
 end
 for oldName, newName in pairs(MinePetRoster.NAME_ALIASES) do
 	local pet = MinePetRoster.BY_NAME[newName]
