@@ -56,6 +56,26 @@ M.CASE_RTP = 0.65
 
 M.STAR_TEXT = { "★", "★½", "★★", "★★★", "★★★★", "★★★★★" }
 
+-- The rarity colour a star grade borrows on the reveal and the tiles.
+M.STAR_TIER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
+
+--[[
+	PROPOSED. A chest's chance to also drop a pack case, by the chest's rank
+	(MineZoneChests: F..S; meadow and Event Horizon chests are "native"), and
+	the star grade of that case. Better chests drop cases more often and of
+	higher stars; a five-star case stays rare everywhere.
+]]
+M.CHEST_CASE_CHANCE = { F = 0.005, D = 0.01, C = 0.02, native = 0.02, B = 0.035, A = 0.06, S = 0.10 }
+M.CHEST_CASE_STARS = {
+	F = { 45, 28, 17, 7, 2.5, 0.5 },
+	D = { 45, 28, 17, 7, 2.5, 0.5 },
+	C = { 40, 27, 18, 10, 4, 1 },
+	native = { 40, 27, 18, 10, 4, 1 },
+	B = { 32, 26, 20, 13, 7, 2 },
+	A = { 24, 22, 22, 17, 11, 4 },
+	S = { 15, 18, 22, 22, 16, 7 },
+}
+
 function M.packId(setKey, n)
 	return setKey .. "_pack_" .. n
 end
@@ -100,6 +120,7 @@ for n = 1, 6 do
 		kind = "set_case",
 		starLevel = n,
 		stars = M.STARS[n],
+		blurb = "3-5 random " .. M.STAR_TEXT[n] .. " packs from any set",
 	}
 	table.insert(M.CASES, def)
 	M.CASE_BY_ID[def.id] = def
@@ -174,6 +195,43 @@ function M.rollCase(starLevel, rng)
 		local key = M.rollCaseSet(rng)
 		if key then
 			table.insert(out, M.packId(key, starLevel))
+		end
+	end
+	return out
+end
+
+-- A chest's pack case, if it drops one: a case id, or nil.
+function M.rollChestCase(rank, rng)
+	local key = M.CHEST_CASE_CHANCE[rank or ""] and rank or "C"
+	if (rng and rng:NextNumber() or math.random()) >= M.CHEST_CASE_CHANCE[key] then
+		return nil
+	end
+	local rows = {}
+	for n, w in ipairs(M.CHEST_CASE_STARS[key]) do
+		table.insert(rows, { n = n, w = w })
+	end
+	return M.caseId(weighted(rows, rng, function(r)
+		return r.w
+	end).n)
+end
+
+-- For the inspector: how likely one slot of a case is to come from a set of
+-- each grade, best grade last. { { grade, pct, sets }, ... }
+function M.caseGradeOdds()
+	local byGrade, total = {}, 0
+	for _, set in ipairs(Sets.SETS) do
+		local w = M.GRADE_WEIGHT[set.GRADE] or 1
+		total += w
+		byGrade[set.GRADE] = byGrade[set.GRADE] or { grade = set.GRADE, pct = 0, sets = 0 }
+		byGrade[set.GRADE].pct += w
+		byGrade[set.GRADE].sets += 1
+	end
+	local out = {}
+	for _, g in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
+		local row = byGrade[g]
+		if row then
+			row.pct = (total > 0) and (row.pct / total * 100) or 0
+			table.insert(out, row)
 		end
 	end
 	return out
