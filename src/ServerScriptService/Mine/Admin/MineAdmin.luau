@@ -855,6 +855,7 @@ function MineAdmin.start(deps)
 			notifyAdmin(admin, "/admin give <userId|Username|me> credits|coins|gems|dust|skill|temper <n>")
 			notifyAdmin(admin, "/admin give <who> pack <packId> [qty] | zone <n> | tool <family> [tier]")
 			notifyAdmin(admin, "/admin alltools [start] [count]  |  /admin alltools all   -- named tools into YOUR bag")
+			notifyAdmin(admin, "/admin oretools [all|pickaxe|drill|explosive]  -- forge all 246 ore tools (bypasses the 200 cap)")
 			notifyAdmin(admin, "/admin say <message>[|seconds]  -- banner on every player's screen")
 			notifyAdmin(admin, "/admin launch status   -- is the season running, and how far in")
 			notifyAdmin(admin, "/admin launch now      -- THROW THE SWITCH. Starts the season. Not undoable.")
@@ -1030,6 +1031,88 @@ function MineAdmin.start(deps)
 			return true
 		end
 		
+		--[[
+			EVERY FORGED ORE TOOL, FOR TESTING. Owner, 2026-10-10: "GIVE ME
+			EVERY SINGLE TOOLS TO MY INVENTORY."
+
+			`alltools` above grants CHEST tools -- the named found ones. It
+			does not touch the 246 FORGED tools, which are the real roster:
+			82 ores x pickaxe / drill / explosive. Those only ever existed by
+			crafting one at a time out of ore.
+
+			`/admin oretools [family]` forges one of each. No family means all
+			three.
+
+			IT BYPASSES THE 200 RACK CAP, which normal crafting enforces at
+			MineServer's craft verb. 246 does not fit in 200, and the cap is
+			there to keep a real profile's save small -- an admin asking for
+			the whole roster has said what they want. The count is reported so
+			it is obvious what just landed.
+
+			Rows are built in the same shape the craft verb stamps --
+			uid / typeId / familyId / tier / level / base -- because
+			equippedTool, the Forge and recycle all read those fields by name.
+			`base` equals `level` so these grant tools refund NOTHING on
+			scrap, which is correct: no ore was spent on them.
+		]]
+		if cmd == "oretools" then
+			local p = profiles[admin.UserId]
+			if not p then
+				notifyAdmin(admin, "no profile loaded yet")
+				return true
+			end
+			local okO, OreTools = pcall(function()
+				return require(RS.Mine.Shared.MineOreTools)
+			end)
+			if not okO or not OreTools then
+				notifyAdmin(admin, "MineOreTools failed to load")
+				return true
+			end
+			local want = string.lower(tostring(args[2] or "all"))
+			local fams = (want == "all")
+					and { "pickaxe", "drill", "explosive" }
+				or (want == "pickaxe" or want == "drill" or want == "explosive") and { want }
+				or nil
+			if not fams then
+				notifyAdmin(admin, "usage: /admin oretools [all|pickaxe|drill|explosive]")
+				return true
+			end
+			p.oreTools = p.oreTools or {}
+			-- Do not duplicate what is already racked.
+			local have = {}
+			for _, t in ipairs(p.oreTools) do
+				if type(t) == "table" then
+					have[tostring(t.familyId) .. "#" .. tostring(t.tier)] = true
+				end
+			end
+			local added = 0
+			for _, fam in ipairs(fams) do
+				for _, ore in ipairs(C.ORES or {}) do
+					local key = fam .. "#" .. tostring(ore.tier)
+					if not have[key] then
+						have[key] = true
+						local def = OreTools.frameForTier and OreTools.frameForTier(fam, ore.tier)
+						table.insert(p.oreTools, {
+							uid = string.format("%08x%08x", math.random(0, 2 ^ 31 - 1), math.random(0, 2 ^ 31 - 1)),
+							typeId = (def and def.id) or (fam .. "_" .. tostring(ore.tier)),
+							familyId = fam,
+							tier = ore.tier,
+							level = 1,
+							base = 1,
+						})
+						added += 1
+					end
+				end
+			end
+			if markDirty then
+				markDirty(admin)
+			end
+			snap(admin)
+			notifyAdmin(admin, string.format("oretools: +%d forged. Rack now %d (normal cap is 200).",
+				added, #p.oreTools))
+			return true
+		end
+
 		if cmd == "alltools" then
 			local p = profiles[admin.UserId]
 			if not p then
