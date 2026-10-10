@@ -350,3 +350,9 @@ New owner question: H9, the zone pot size.
 
 Updated: cards-and-packs (set-system status), open-questions (H1–H3 answered,
 H9), owner, log. Also docs/PETS-AND-SETS.md and docs/TODO.md.
+
+## [2026-10-10] ingest | set 17 renamed Eternal Roots
+The owner renamed set 17 from Worldtree to **Eternal Roots**, because the old
+name read as both a set and a pack. Its ★★ pack stays "Sapwood", which fixed
+the duplicate Heartwood, and its ★★★★ pack keeps "Worldtree's Crown" for now.
+Updated: docs/PETS-AND-SETS.md, open-questions, log.

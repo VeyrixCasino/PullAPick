@@ -35,7 +35,9 @@ So the current job is **pets only**:
     1.63× zone 1 (1.05^10).
   - **Each set gets its own pet budget, 5% above the set before it.** Set 19
     ends up about 2.41× set 1 (1.05^18).
-- **Heartwood:** Mosswood ★★★★★ keeps "Heartwood". **Worldtree ★★ becomes
+- **Set 17 is renamed "Eternal Roots"** (was Worldtree; owner, 2026-10-10). Its
+  ★★★★ pack keeps the name "Worldtree's Crown" until the owner says otherwise.
+- **Heartwood:** Mosswood ★★★★★ keeps "Heartwood". **Eternal Roots ★★ (then Worldtree) becomes
   "Sapwood"** (the owner said to rename the other one; the name is Claude's pick).
 - **Universal packs go.** In the rework, no pack draws from a random set out of
   everything. *Direction only: nothing is removed yet* (the owner: "don't nuke
@@ -110,7 +112,7 @@ L Legendary, M Mythic, D Divine, X Exotic.
 | 14 | Atlantis Rising (A) | Tidepool Treasures | Coral Crown | Sunken City | Leviathan's Wake | Atlantean Vault | Throne of the Deep |
 | 15 | Divine Relics (A) | Forgotten Idol | Sacred Fragment | Relic of Ages | Celestial Artifact | Pantheon's Key | Origin of Divinity |
 | 16 | Dragonfall (S) | Scaled Beginnings | Hatchling's Hoard | Drakefire | Wyrm's Treasury | Dragon King's Vault | World Eater |
-| 17 | Worldtree (S) | Seedling | Rootbound | Sapwood *(was Heartwood)* | Verdant Awakening | Worldtree's Crown | Genesis Bloom |
+| 17 | Eternal Roots (S) *(was Worldtree)* | Seedling | Rootbound | Sapwood *(was Heartwood)* | Verdant Awakening | Worldtree's Crown | Genesis Bloom |
 | 18 | Mythic Menagerie (SS) | Tiny Terrors | Wildlings | Beastbound | Apex Predators | Mythical Beasts | Primordial Titans |
 | 19 | Chaos Theory (SSS) | Minor Glitch | Broken Pattern | Fracture Point | Reality Shift | Paradox Engine | Infinite Collapse |
 
@@ -132,7 +134,7 @@ L Legendary, M Mythic, D Divine, X Exotic.
 | 14 | Atlantis Rising | 102 | 40 | 24 | 14 | 9 | 7 | 3 | 2 | 3 | even |
 | 15 | Divine Relics | 101 | 38 | 23 | 14 | 9 | 6 | 2 | 8 | 1 | Divine-heavy |
 | 16 | Dragonfall | 99 | 37 | 23 | 14 | 9 | 6 | 3 | 2 | 5 | Exotic-heavy |
-| 17 | Worldtree | 98 | 36 | 23 | 14 | 9 | 7 | 4 | 3 | 2 | Mythic-leaning |
+| 17 | Eternal Roots | 98 | 36 | 23 | 14 | 9 | 7 | 4 | 3 | 2 | Mythic-leaning |
 | 18 | Mythic Menagerie | 96 | 34 | 22 | 14 | 9 | 6 | 6 | 3 | 2 | Mythic-heavy |
 | 19 | Chaos Theory | 95 | 38 | 22 | 13 | 7 | 5 | 2 | 2 | 6 | Exotic-heavy |
 
@@ -140,7 +142,7 @@ L Legendary, M Mythic, D Divine, X Exotic.
 - Every row adds up to its card count.
 - The sets hold **2,043 cards** in total: 819 C, 482 U, 292 R, 169 E, 114 L, 58 M, 55 D and 54 X.
 - **450 of them are Epic or better.**
-- **"Heartwood" was used twice:** Mosswood ★★★★★ and Worldtree ★★. Worldtree's becomes **"Sapwood"** (decided above).
+- **"Heartwood" was used twice:** Mosswood ★★★★★ and Worldtree (now Eternal Roots) ★★. That one becomes **"Sapwood"** (decided above).
 
 ## Facts that shape the job (code, 2026-10-10)
 
