@@ -1,0 +1,49 @@
+{
+  "key": "shoguns_oath",
+  "bodies": [
+    { "id": "so_samurai", "label": "Samurai", "role": "Bruiser" },
+    { "id": "so_ninja", "label": "Ninja", "role": "Striker" },
+    { "id": "so_daruma", "label": "Daruma", "role": "Seeker" },
+    { "id": "so_luckycat", "label": "Lucky Cat", "role": "Trader" },
+    { "id": "so_koinobori", "label": "Koi Kite", "role": "Tidecaller" }
+  ],
+  "extraBodies": ["fox", "bigcat", "wyrm"],
+  "buffs": ["mineSpeed", "tidalWave", "tideDamage"],
+  "palette": [
+    ["Vermilion", 228, 60, 40], ["Lacquer", 150, 24, 30], ["Sakura", 248, 186, 204], ["Matcha", 110, 150, 60],
+    ["Indigo", 38, 52, 110], ["Sumi", 30, 28, 32], ["Goldleaf", 232, 186, 72], ["Plum", 160, 60, 110],
+    ["Wisteria", 168, 140, 210], ["Bamboo", 170, 196, 110], ["Pine", 30, 90, 60], ["Persimmon", 240, 120, 40],
+    ["Cedar", 140, 80, 50], ["Washi", 244, 238, 222], ["Steel", 150, 158, 170], ["Tea", 176, 140, 90],
+    ["Tide", 60, 130, 200], ["Iris", 100, 70, 170], ["Camellia", 208, 40, 80], ["Moonlit", 210, 216, 236],
+    ["Celadon", 150, 200, 170], ["Ash", 96, 92, 96], ["Ginkgo", 250, 224, 90], ["Peony", 236, 110, 160],
+    ["Bronze", 176, 110, 60]
+  ],
+  "topWords": {
+    "Legendary": ["Honored", "Lacquered", "Gilded", "Noble"],
+    "Mythic": ["Shogun", "Ancestral", "Ronin", "Imperial"],
+    "Divine": ["Sacred", "Enlightened", "Heavenly", "Blessed"],
+    "Exotic": ["Kintsugi", "Goldwave", "Moonblade", "Spirit"]
+  },
+  "names": [
+    "Kaze", "Kumo", "Hoshi", "Tsuki", "Yuki", "Ame", "Hana", "Kiku", "Momiji", "Ume", "Matsu", "Umi", "Kawa",
+    "Yama", "Mori", "Kage", "Tora", "Inu", "Tori", "Tsubame", "Kame", "Koi", "Kingyo", "Hotaru", "Kaeru", "Shika",
+    "Kinu", "Origami", "Shoji", "Tatami", "Noren", "Furin", "Chochin", "Torii", "Taiko", "Koto", "Shamisen",
+    "Kendama", "Kokeshi", "Dango", "Taiyaki", "Onigiri", "Senbei", "Wagashi", "Soba", "Tempura", "Bento", "Takoyaki",
+    "Wakizashi", "Tsuba", "Saya", "Kabuto", "Hakama", "Haori", "Geta", "Zori", "Kunai", "Shuriken", "Bokken",
+    "Naginata", "Yumi", "Kyudo", "Kendo", "Dojo", "Sensei", "Senpai", "Budo", "Bushido", "Daimyo", "Kunoichi",
+    "Hanko", "Haiku", "Fude", "Raku", "Ikebana", "Zen", "Wabi", "Sabi", "Kaizen", "Kodama", "Chibi", "Genki",
+    "Yuhi", "Hinode", "Yoake", "Tasogare", "Hoshizora", "Kaminari", "Nagi", "Kuro", "Aka", "Ao", "Midori",
+    "Momo", "Mikan", "Kaki", "Nashi", "Kuri", "Sakuranbo", "Biwa", "Tsubaki", "Ajisai", "Botan", "Asagao",
+    "Kaede", "Sugi", "Hinoki", "Koke", "Iwa", "Suna", "Kirakira", "Wakuwaku", "Gorogoro", "Fuwafuwa", "Kurukuru",
+    "Pyonpyon", "Pochi", "Tama", "Mame", "Mofu", "Puni", "Tonton", "Koro", "Silk Fan", "Ink Brush", "Tea Leaf",
+    "Wind Chime", "Rice Ball", "Plum Rain", "Pine Wind", "Bamboo Shoot", "Folding Fan", "Koi Pond", "Sun Disc",
+    "Honor", "Loyal", "Resolve", "Steadfast", "Vigil", "Serene", "Hanami", "Sakura Petal", "Paper Lantern",
+    "Shogi", "Go Stone", "Sumo", "Yokozuna", "Edo", "Koban", "Inro", "Netsuke", "Maki-e", "Urushi", "Kinpaku",
+    "Seigaiha", "Asanoha", "Shippo", "Uroko", "Kikko", "Kumiko", "Sashiko", "Tenugui", "Furoshiki", "Hachimaki",
+    "Yukata", "Kimono", "Kanzashi", "Sensu", "Uchiwa", "Iaido", "Aikido", "Judo", "Karate", "Tenshu", "Yagura",
+    "Ishigaki", "Honmaru", "Jinbaori", "Sashimono", "Nobori", "Horagai", "Gunbai", "Tessen", "Jitte", "Kusarigama",
+    "Kama", "Do-maru", "Kote", "Sode", "Suneate", "Maedate", "Kuwagata", "Horo", "Hatamoto", "Ashigaru", "Kiai",
+    "Kata", "Shinai", "Tsuka", "Kissaki", "Hamon", "Tamahagane", "Shirasaya", "Katanakake", "Tachi", "Odachi",
+    "Nodachi", "Kogatana", "Raden", "Nashiji"
+  ]
+}

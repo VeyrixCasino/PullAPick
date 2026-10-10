@@ -1,176 +1,166 @@
 ---
-title: Next up (handoff, 2026-10-10)
+title: Next up (handoff, 2026-10-10, evening)
 type: meta
 status: current
-verified: 2026-10-10 @ 6335086
+verified: 2026-10-10 @ 5f74929
 sources:
   - docs/PETS-AND-SETS.md
-  - docs/ZONE-PETS.md
-  - tools/gen/zone-pets.js
-  - src/ReplicatedStorage/Mine/Shared/MineZonePets.luau
-  - src/ReplicatedStorage/Mine/Shared/MineProcFx.luau
+  - docs/SET-PETS.md
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
+  - src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineZoneChests.luau
+  - src/ReplicatedStorage/Mine/Shared/MineZonePets.luau
+  - src/ReplicatedStorage/Mine/Shared/MineSetPacks.luau
+  - src/ReplicatedStorage/Mine/Shared/PetModelFactory.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
-related: [owner, pets, mining-and-breaking, boosts-and-stats, open-questions]
+related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky-blocks]
 ---
 
 # Next up: the owner's queued work, with a prompt to start it
 
-> The owner asked for this page on 2026-10-10: *"put it in the wiki along with a
-> prompt to do all this then ill get u back to work"*. Everything below is the
-> owner's decision unless it is marked **assumed**. Paste the prompt at the
-> bottom into a new session to start.
+> The owner, 2026-10-10: *"you should finish with pets.. hand this off"*. The
+> pets are finished; this page hands off what is left. Everything below is the
+> owner's decision unless it is marked **assumed** or **ask**. Paste the prompt
+> at the bottom into a new session to start.
 
 ## Where things stand (all pushed to `claude/vigilant-fermi-aucqjy`)
 
-| done | commit |
+| done | where |
 |---|---|
-| Daily wheel | `299dd2c` |
-| Zone pots: 70 pets per zone (451 new), the pet display rebuilt from code | `0aff5e8` |
-| Old pet/card data removed; Event Horizon put on the pet ladder as zone 11 | `d69c6f1` |
-| Tidal Wave proc; every proc has an animation and a sound (`MineProcFx`) | `6335086` |
-| Holiday pets out of the game (this page's commit) | see `wiki/log.md` |
+| Zone pots (70 a zone), pet ladder lifted, procs reworked, Tidal Wave, Shatter | [pets](systems/pets.md), [mining-and-breaking](systems/mining-and-breaking.md) |
+| Holiday pets out of the game; 10 Halloween bodies | [pets](systems/pets.md) |
+| **Packs pay named pets:** set packs draw their set, every other pack a zone pot (`1332e3d`) | [cards-and-packs](systems/cards-and-packs.md) |
+| **The 19 sets: 2,043 named pets on 98 new bodies** (this page's commit) | [pets](systems/pets.md#the-19-sets-2026-10-10), `docs/SET-PETS.md` |
+| Set pack sprites by star band (`5f74929`, the other session) | [assets-and-uploads](code/assets-and-uploads.md) |
 
-## 1. Pet power: a new top and bottom — DONE 2026-10-10
+## Who owns what (two sessions share this checkout)
 
-The owner chose: Commons stay, everything else grows towards Exotic ×4/3
-(see [pets](systems/pets.md)). The rest of this section is the original brief.
+- **The "Collection pack designs" session** is building pack cases, chest case
+  drops, the credit shop, the stardust shop's Cases tab and the daily wheel
+  (in MineServer, MineInventoryView, MinePackConfig, MineRotatingOffers,
+  MineGroupWheel and MineZoneChests). It reads `MineSetPacks` as committed.
+  **Check `git log` and message it before touching those files.**
+- **Nobody** remaps the universal grants (codes, invites, quests, weekend haul,
+  the day-4 surprise, `Verbs.grantPacks` callers) until the owner asks. The
+  owner: universal packs go, but *"don't nuke them"* yet.
 
-Owner: *"make it 489 at top, 300 at start"*. That means an Exotic's whole kit is
-worth **300 points at zone 1 (Meadow)** and **489 at zone 11 (Event Horizon)**,
-at Normal and power level 1. Today those are 225 and 367; 300 × 1.05¹⁰ = 489,
-so the +5% zone step stays.
+## 1. Halloween 2026: an event mine, 60 pets and the pack
 
-- **Assumed: the whole ladder scales by 4/3.** `LADDER` in
-  `tools/gen/zone-pets.js` becomes Common 45.3 … Exotic 200 (primary; the
-  secondary stays half). That puts a zone-1 Common at 68 points. The owner only
-  gave the Exotic numbers, so ask if lower tiers should move differently.
-- After the change, re-run the generator and `tools/verify/zone-pets.js`. Its
-  ladder assertions read `LADDER`, so they follow.
+The owner's answers, 2026-10-10 (also in [owner](owner.md)):
+- **Window: 17 October to 7 November 2026, real dates.** Not the season clock:
+  if the game is not live by then, it does not happen.
+- **A second event mine**, next to Event Horizon (EH keeps running).
+- **The mine:** *"Should be just like EH (same concept, and depth progression;
+  just devided by 10000, and you can bring surface tools there. make there be
+  like 5-10 chests"*.
+- **The pack:** *"make it 60 halloween pets [keep the specaltiy ones as as rare
+  ones, and for the others just make them normal cards with a costume {simple
+  shit like a dog costume on or something}]"*. The Halloween 2026 Pack comes
+  from this mine only.
 
-## 2. Procs: rework (the owner's "equation" meant the damage formula) — DONE 2026-10-10
+What that means to build:
+1. **The zone.** A second `limited` zone in `MineConfig.ZONES`, modelled on
+   `bigbang`: its own spot on the map (`radius`, `angle`), its own portal,
+   and a spooky palette (pumpkin, purple, black).
+   - **The window is per zone.** `MineConfig.limitedActive` is ONE global
+     window today (EH's 47 days, pinned to season start until launch). Give the
+     Halloween zone its own `opensAt`/`closesAt` (UTC) and make every
+     `limited` check ask about the zone. **Ask:** UTC midnight, or the owner's
+     time zone (Newfoundland)?
+   - **"Divided by 10000": assumed reading, ask to confirm.** EH has 20 dirt
+     sections, each with its own Horizon tool bought with Space coins
+     (`MineHorizonTools`, zone index 11 HP). The Halloween mine keeps that
+     shape, but block HP is EH's divided by 10,000, so ordinary surface tools
+     work there and no event-tool shop is needed.
+   - **5–10 chests:** new `MineConfig` chest rows (like `bigbang_cache` …
+     `bigbang_reliq`) and a `MineZoneChests` pool. The other session owns
+     `MineZoneChests`: message it first.
+2. **60 Halloween pets.**
+   - **15 rare ones** on the 15 Halloween bodies (`PetModelFactory.HALLOWEEN`;
+     Spindle, Spooky and Wisp already exist on three of them). **Assumed:** these
+     fill Epic to Exotic.
+   - **45 costume pets:** everyday bodies (dog, cat, bunny…) wearing a simple
+     Halloween costume. **Build a costume as a detail prop** in
+     `PetModelFactory.DETAILS` (a skin's `detail` list), for example a witch
+     hat, pumpkin suit, ghost sheet, devil horns, vampire cape, skeleton bones,
+     bat wings or mummy wraps. A costume pet is a skin: body + colour + costume.
+     **Assumed:** Common to Rare.
+   - Every one is a **holiday pet**: listed in `MineZonePets.HOLIDAY` (or a new
+     Halloween list the roster stamps `holiday` from), in no pot, skipped by
+     every random roll. `tools/verify/zone-pets.js` already fails if a pet on a
+     holiday body is not listed; extend it to costume pets.
+   - Names: like the sets, a JSON of names checked for clashes against the
+     whole game (`tools/gen/sets/README.md` rules). They ship now and the owner
+     reviews them after.
+   - Kits: **assumed** at Event Horizon's level (zone 11 on the ladder).
+3. **The Halloween 2026 Pack.** A pack row (in `MineSetPacks`, or a small
+   `MineHolidayPacks`) that draws only the 60, and drops only from the new
+   zone's chests. `openPack` already mints any pack with a `setKey` from
+   `MinePetRoster.BY_SET[setKey]`, so giving the 60 pets `set = "halloween_2026"`
+   reuses it (check that random rolls still skip them).
+4. **Prove it in Studio:** enter the zone, break blocks with a surface tool,
+   open its chests, open the pack, and screenshot the 60 pets on the display.
 
-The owner chose:
-- one damage stat per proc;
-- Shatter goes to the 6 sides;
-- **no caps**: proc chances are priced high instead (Blast 9, Zap 8, Shatter 9,
-  Earthquake 9, Tidal Wave 10 per +1%).
+## 2. Pets: what is left
 
-Built and measured in Studio; see [mining-and-breaking](systems/mining-and-breaking.md).
-The rest of this section is the original brief.
+- **A full look pass of the 98 set bodies.** Only Atlantis Rising was looked at
+  closely. Rebuild the display, screenshot every set's block, and fix bodies
+  that read wrong. The agents' notes to check:
+  - Satellite is the smallest body (0.83 after the fit).
+  - Hydra Pup has 38 parts.
+  - Riftling is only 1.13 studs deep.
+  - Gummy, Bottle and Sapshell are glass, so a Golden variant may hide it.
+  - Some accent colours never take the tint (gold, lava, the rainbow bands,
+    the ninja's headband).
+- **Pets of one name can fail to merge.** Pack pets use `"<home>:<name>"`;
+  lucky blocks mint `"lucky_block:<name>"` and the group wheel
+  `"group_wheel:<name>"`. Merging needs equal `cardKey`s. **Ask** before
+  re-keying, because it touches saved cards.
+- **Studio Edit caches modules per session.** After a Studio restart the display
+  shows current stat labels; before one, it can show old labels.
 
-Today a proc hit is `PROC_SHARE[proc] × swing damage × (1 + procPower)`
-(`MineConfig.procDamage`). On a weak pick that rounds to 1. The owner's rules:
+## 3. Still open from before
 
-1. **Blast drops below Tidal Wave.** `PROC_SHARE.blast` 0.35 → **0.12**. Blast is
-   three-dimensional and combines with blast range (`blastRadius`), which makes
-   it *"way to OP"*.
-2. **Tidal Wave stays at 0.18 per block**, flat, on its own layer.
-   - **No range modifiers:** nothing may grow `Dig.TIDE_RING`.
-   - It gets **its own damage % stat**, e.g. `tideDamage`, added to its share.
-3. **The three top Tidal Wave pets are capped.** Jumble (Exotic, 41%), Shimmer
-   (Divine, 32%) and Fizzgig (Mythic, 24.5%) are Mistreef's top pets, shown at
-   Normal. Together they reach 98%; the owner wants about **50–60%**.
-   - Lower their tide amounts.
-   - **Assumed:** also hard-cap the Tidal Wave chance at 0.6 in `Dig.procsAt`, so
-     variants (Rainbow ×5.5) cannot blow past it.
-4. **Zap gets two numbers:** a **start chance** and a **continue equation**.
-   - Today one stat does both: it starts if `rng < zap`, then continues while
-     `rng < zap × ZAP_FALLOFF^hop`.
-   - Split it: a low start chance, plus a continue probability per hop with its
-     own formula.
-   - Owner: *"just ensure its balanced"*. Target an expected total near Tidal
-     Wave's at the same chance.
-5. **Ricochet becomes Shatter**, an area proc. When a block breaks, there is a
-   chance to send shards in all directions. If a shard breaks a block, that
-   block rolls Shatter too. **At most 3 Shatter procs per block you break.**
-   - **Keep the stat key `ricochet`.** It is data: the skill tree's Electric
-     secondary, the "Bouncing" trait, `MineGear.STAT_WEIGHT`, kits and saves.
-     Relabel it "Shatter", as `fossilFind` became "Ore Finder".
-   - **Assumed:** shards go to the 6 faces, like Blast.
-6. **Every proc has a low chance and a damage %.** Chances stay around Tidal
-   Wave's level; each proc gets a damage % stat on top of its share.
-   - **Assumed:** these are per-proc stats (`blastDamage`, `tideDamage`,
-     `zapDamage`, `shatterDamage`), and `procPower` stays the global multiplier.
-     Ask if the owner meant one shared stat.
-7. **Hats get the new stats.** Tidal Wave, Shatter and the damage % stats must
-   roll on hats.
-   - Find where a hat's stat is chosen: `MineGear` (`rollPiece`,
-     `STAT_WEIGHT`) and `MineHats`. Add them there.
-   - Also add them to `MineStats.STATS` and `STAT_ORDER`, to
-     `MineCards.ADDITIVE_STATS` and `emptyBoosts`, and to the two additive lists
-     in MineServer (`ADDITIVE_BOOST`, `Dig.boostSources`).
-   - `tools/verify/stats.js` fails if these lists disagree.
-8. **Update the effects.** `MineProcFx` needs Shatter shards flying out and
-   chaining, and a sound. Zap's arcs must follow the new chain.
+- A2 (the TODAY checklist in the Quests panel), A3 (fishing), B tools, C art,
+  D planets ([open-questions](open-questions.md)).
+- **BLOCKED:**
+  - **The PR:** the owner runs `gh auth login`, or opens it at
+    https://github.com/VeyrixCasino/PullAPick/compare/main...claude/vigilant-fermi-aucqjy?expand=1
+  - **The wheel's Robux product ids:** the owner supplies them.
+  - **The wheel's image face:** needs its art uploaded to group 35326298.
 
-## 3. Halloween: 10 new bodies (approved) — DONE 2026-10-10
+## How to test in Studio
 
-Built, rendered in Studio and on the display; see [pets](systems/pets.md). The rest of
-this section is the original brief.
-
-Bat, Mummy, Zombie, Vampire, Cauldron, Candy Corn, Scarecrow, Haunted Lantern,
-Frankenstein, Eyeball.
-
-- Build them as new species builders in `PetModelFactory`, following the body
-  rules in [pets](systems/pets.md) (`shape` profiles, details on the envelope).
-- List them in a new `HALLOWEEN` list on PetModelFactory (create it). The
-  display builder already draws that list as its own block.
-- **They are not in the game** (next section). They come only from a
-  "Halloween 2026 Pack", which is built in the rewards pass.
-
-## 4. Holiday rule (done; keep it true)
-
-Owner: *"make sure NO holiday ones are in the game.. only allow it from {Holiday}
-{year} Pack"*.
-- `MineZonePets.HOLIDAY` lists the six holiday pets:
-  - Halloween: Spindle, Spooky, Wisp;
-  - Christmas: Jolly, Tinsel, Tinseltoe.
-- They are in no zone pot, and `MineGroupWheel.rollPetOfTier` (the wheel and
-  lucky blocks) skips them. Verified with 16,000 rolls in Studio.
-- They keep a zone-1 kit, so an owned copy still pays.
-- **New holiday content goes the same way:** never in a pot or a random roll,
-  only through a "{Holiday} {year} Pack". `tools/verify/zone-pets.js` fails if a
-  pet on a holiday body is not on the list.
-
-## 5. After that
-
-- The rewards pass (`docs/PETS-AND-SETS.md`): pack cases, the stardust shop
-  tab, ★ wheel slices, the 6-hour spin, removing universal packs, and the
-  Halloween 2026 Pack. **Done so far:** set packs open into their set's pets,
-  and zone pots are the drop source for every other pack (2026-10-10).
-- The 19 sets' pets (2,043, every one named) and about 100 new bodies.
-- A2 (the TODAY checklist in the Quests panel), then A3 (fishing).
-
-## How to test a pet or proc in Studio
-
-- `devGrant { pet = "Fizzgig" }` (Studio only) mints a pet and seats it. Fire it
-  from a Client `execute_luau` through `ReplicatedStorage.Mine.Remotes.MineNet`,
-  then swing at blocks with `net:FireServer("swing", block)`.
+- `devGrant { pet = "Fizzgig" }` (Studio only) mints a pet and seats it.
+  `devGrant { packIds = { "atlantis_rising_pack_6" } }` grants exact packs, and
+  `openMany { packId = ..., count = 1 }` opens one. Fire them from a Client
+  `execute_luau` through `ReplicatedStorage.Mine.Remotes.MineNet`; the server
+  answers `openedRun`.
 - The display rebuilds with `require(game.ServerStorage.PetShowcaseBuilder).build()`
-  in Edit mode. It loads fresh module copies itself.
+  in Edit mode (2,837 pets; about 6 seconds). It loads fresh module copies.
 - **Restart play after code changes.** A running session keeps its old modules.
 
 ## The prompt (paste into a new session)
 
 ```
 Read CLAUDE.md, then wiki/index.md, wiki/owner.md and wiki/next-up.md. Do
-wiki/next-up.md sections 1, 2 and 3 in that order, on branch
+wiki/next-up.md section 1 (Halloween 2026), then section 2, on branch
 claude/vigilant-fermi-aucqjy.
 
 Rules:
-- Ask me before acting on anything marked "Assumed" in next-up.md if you are not
-  sure. Give me options with your recommended default first.
-- Ids and stat keys are data: never rename one (Ricochet keeps the key
-  "ricochet").
+- Before building, ask me the questions marked "Ask" in next-up.md, and confirm
+  the "assumed" readings (above all "divided by 10000"). Give me options with
+  your recommended default first.
+- Another session is building cases, shops and the wheel in MineServer,
+  MineInventoryView, MinePackConfig, MineRotatingOffers, MineGroupWheel and
+  MineZoneChests. Check git log, and message it before editing those files.
+  Commit only your own hunks, never git add -A.
+- Ids and stat keys are data: never rename one without an alias.
 - Never add top-level locals to MineServer or MineClient (MineServer has 4 left).
-- Another session may share the checkout: commit only your own hunks, never
-  `git add -A`.
-- After Luau changes run `node tools/verify/compile.js`,
-  `bash tools/verify/suite.sh --quiet` and `node tools/verify/wiki.js`.
-- Prove every change in Studio, not just in tests. Proc chances and damage: break
-  real blocks with devGrant pets and count the procs. Effects and bodies: take
-  screenshots.
+- After Luau changes run node tools/verify/compile.js,
+  bash tools/verify/suite.sh --quiet and node tools/verify/wiki.js.
+- Prove every change in Studio, not just in tests: screenshots for looks, real
+  pack opens and block breaks for drops.
 - Keep the wiki current in the same commit, add a wiki/log.md entry, and push.
 - I am on Windows PowerShell: one command per line, no &&. End every reply with
   the current todo list.

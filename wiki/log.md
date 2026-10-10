@@ -584,3 +584,16 @@ to its set's sprite by star band; `MinePackFX.art` reads it. Verified in Studio:
 that owns the set packs: it owns sets, pets and `openPack`; this one owns pack
 art, cases, chest case drops, the credit shop, the stardust tab and the wheel.
 Updated [assets-and-uploads](code/assets-and-uploads.md).
+
+## [2026-10-10] ingest | the 19 sets: 2,043 named pets, 98 bodies; Halloween handoff
+Five agents wrote each set's bodies (`PetBodies/`) and names, palette and buffs
+(`tools/gen/sets/<key>.json`); `tools/gen/set-pets.js` generated `SetPets/` and
+`docs/SET-PETS.md`. Owner's theme rule (*"DEFINATLY be the prodionent type"*):
+own bodies dress 71–85% of each set, checked by `tools/verify/set-pets.js`.
+Found and fixed: the zone generator read set names, which shifted its
+shuffled name pool and would have renamed committed zone pets; it no longer
+reads the sets. Display: 2,837 pets build in Studio. The owner's Halloween 2026
+answers (window, second event mine, 60 pets, "divided by 10000") are recorded
+in owner and PETS-AND-SETS, and handed off in next-up with a prompt.
+
+Updated: pets, tools-and-generators, owner, next-up, log.

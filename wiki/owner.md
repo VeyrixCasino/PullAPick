@@ -149,6 +149,19 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
   stardust in a new tab of the stardust shop.
 - **The Halloween 2026 Pack** comes from a Halloween event mine only.
 - **Old generated cards stop dropping;** owned ones keep working.
+- **Theme:** a set's theme must be the predominant type of its pets, not every
+  single one.
+
+## Decided 2026-10-10, Halloween 2026
+
+- **Window:** 17 October to 7 November 2026, on real dates. If the game is not
+  live by then, it simply does not happen.
+- **A second event mine**, beside Event Horizon, not instead of it.
+- **The mine:** *"just like EH (same concept, and depth progression; just devided
+  by 10000, and you can bring surface tools there. make there be like 5-10 chests"*.
+- **The pack:** 60 Halloween pets. The 15 Halloween bodies are the rare ones;
+  the other 45 are everyday pets *"with a costume {simple shit like a dog costume
+  on or something}"*.
 
 ## Locked decisions: one line each
 

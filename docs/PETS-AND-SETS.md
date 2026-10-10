@@ -221,6 +221,17 @@ already own keep working.
 - **Every number is PROPOSED until the owner approves it:** pack odds, case
   contents and prices, the 60–70% return, chest case rates and the 6-hour spin.
 
+## Halloween 2026: decided 2026-10-10
+
+- **Open 17 October to 7 November 2026, real dates**, as a second event mine
+  next to Event Horizon.
+- **The mine** is Event Horizon's concept and depth progression, *"just devided by
+  10000"*, and surface tools can be used there. 5–10 kinds of chest.
+- **The Halloween 2026 Pack** drops only there: **60 Halloween pets**. The 15
+  Halloween bodies are the rare ones; the other 45 are everyday pets wearing a
+  simple costume.
+- Built: nothing yet. The brief is in `wiki/next-up.md`.
+
 ## Open, for the owner
 
 See `wiki/open-questions.md`, the section "Help needed: pets and pack sets".

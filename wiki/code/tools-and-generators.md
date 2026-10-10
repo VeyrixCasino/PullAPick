@@ -33,6 +33,8 @@ related: [verify-suite, assets-and-uploads, code-map, rojo-and-studio, local-set
 | `tools/depth-sheet-data.js` then `tools/gen-mine-map.js` | `build/depth-sheet.json` (gitignored), then `tools/mine-map.html` | `MineDepth` and `MineConfig`, plus `tools/mine-map.body.html` | `--check` diffs without writing. Run the data script first on a fresh clone ([verify-suite](verify-suite.md)). |
 | `tools/gen/upgrade-calculator.js` | the data in `tools/upgrade-calculator.html` | `MineConfig` | `--check`. Replaced a hand-written 121-ore, 1000-level copy (OPEN Housekeeping). |
 | `tools/skills/gen.js` | `MineSkillData` node percentages | `MineSkillData.ENERGIES` and `MineStats.weight` | `--check` gives "0 would change" at `26036a0`. Rebuilt because the original was never committed (HANDOFF §2.3). |
+| `tools/gen/zone-pets.js` | `MineZonePets.luau`, `docs/ZONE-PETS.md` | its own name and buff tables, the roster, `PetModelFactory` | `--check`. The zone pots (70 a zone) and every named pet's kit. Never reads the sets. |
+| `tools/gen/set-pets.js` | `SetPets/<Set>.luau` (19), `docs/SET-PETS.md` | `tools/gen/sets/*.json`, `PetBodies/*.luau`, `Zone.build()` | `--check`. The 19 sets' 2,043 pets. Checked by `tools/verify/set-pets.js`. |
 | `tools/gen-ore-icons.js` | `src/ReplicatedStorage/Mine/Shared/MineOreIcons.luau` | `build/icons/ids.json` (tracked) and the live roster | exits non-zero if any ore lacks an icon |
 
 `tools/verify/generated-fresh.js` fails the suite when the mine map or the

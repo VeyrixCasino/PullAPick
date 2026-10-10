@@ -2,9 +2,16 @@
 title: Pets
 type: system
 status: partial
-verified: 2026-10-10 @ 5e90a89
+verified: 2026-10-10 @ 5f74929
 sources:
   - src/ReplicatedStorage/Mine/Shared/MinePetRoster.luau
+  - src/ReplicatedStorage/Mine/Shared/MineSetPets.luau
+  - src/ReplicatedStorage/Mine/Shared/SetPets/
+  - src/ReplicatedStorage/Mine/Shared/PetBodies/
+  - tools/gen/set-pets.js
+  - tools/gen/sets/README.md
+  - tools/verify/set-pets.js
+  - docs/SET-PETS.md
   - src/ReplicatedStorage/Mine/Shared/MinePetBoosts.luau
   - src/ReplicatedStorage/Mine/Shared/MineEHPets.luau
   - src/ReplicatedStorage/Mine/Shared/MineCards.luau
@@ -125,9 +132,47 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
   their set (`MinePetRoster.BY_SET`). The wheel and lucky blocks still pick
   from any tier.
 
+## The 19 sets (2026-10-10)
+
+The owner's 19 exclusive sets, graded F to SSS, each sold only through its own
+six packs ([cards-and-packs](cards-and-packs.md)). **2,043 named pets** on **98
+new bodies**. The full names sheet is `docs/SET-PETS.md` (generated).
+- **Owner:** set 1 (Pebblebound) starts at zone 1's level and each set is +5%,
+  so Chaos Theory is ×2.41. Names ship now and the owner reviews the sheet after.
+- **Counts are the owner's**, per set and rarity (`tools/gen/sets/_sets.json`),
+  from Pebblebound's 120 down to Chaos Theory's 95.
+- **Kits** follow the zone pots' rules: the pet ladder × 1.05 per set. Mythic,
+  Divine and Exotic take the set's own three-stat buff set; the rest take a role
+  from their body. The highest single proc chance is 53.5% (Segfault, Chaos
+  Theory, Shatter), under the 60% line.
+- **Theme is the predominant type** (owner: *"not every single pet in atlantis has
+  to be underwater but it should DEFINATLY be the prodionent type"*). Each set's
+  own themed bodies are weighted double, so they dress 71–85% of its pets; the
+  2–4 `extraBodies` are existing species that also fit (Atlantis: turtle,
+  dolphin, ray, fish). About 85–98% of names are plainly on theme.
+- **Where it lives:**
+  - `tools/gen/sets/<key>.json`: each set's names, palette, buffs and bodies
+    (written by hand, following `tools/gen/sets/README.md`).
+  - `PetBodies/<Set>.luau`: each set's 5 or 6 bodies, as `return function(K)`
+    over `PetModelFactory.KIT`. The factory loads every module in the folder.
+  - `tools/gen/set-pets.js` writes `SetPets/<Set>.luau` and `docs/SET-PETS.md`.
+    `MineSetPets` gathers the modules in the owner's order; the roster, the kit
+    table and the factory merge them.
+- **Serials** live in their own range, 0x400–0xBFF, so a zone pet added later
+  can never collide with a set pet.
+- **The zone pots come first.** The set generator avoids every zone pet's name;
+  the zone generator does not read the sets, so adding a set never renames a
+  zone pet. (Reading them once did: it shifted the shuffled name pool.)
+- **Checked by** `tools/verify/set-pets.js`: counts, unique names and looks,
+  body use, no holiday bodies, kit values, buff sets, proc odds, a luau load
+  of every module, and the wiring.
+- **Seen in Studio:** the display builds all 2,837 pets (794 + 2,043) with no
+  fallback body. Only a sample was looked at closely (Atlantis Rising); a full
+  look pass per set is still to do ([next-up](../next-up.md)).
+
 **The display.** `src/ServerStorage/PetShowcaseBuilder.luau` builds
 `workspace.PetShowcase` at (3000, 0, 0): every pet on a plinth, one block per
-zone, one row per tier, A to Z.
+zone, then one per set, one row per tier, A to Z.
 - **Rebuild it** after any pet change, from Studio's command bar in Edit mode:
   `require(game.ServerStorage.PetShowcaseBuilder).build()`.
 - **Name tags show only within 22 studs** (owner: "proximity name tags").
@@ -141,7 +186,7 @@ body is kept out of every pot without editing a list.
   Haunted Lantern (`lantern`), Frankenstein and Eyeball. `PetModelFactory.HALLOWEEN` lists all
   15 Halloween bodies, and the display draws them as a block.
 - **They are bodies, not pets yet.** A Halloween 2026 Pack is the only way one should ever reach
-  a player (the rewards pass).
+  a player. The owner's brief (60 Halloween pets, an event mine) is in [next-up](../next-up.md).
 - **Penguin lost its Christmas tag** (2026-10-10). It is an everyday animal worn by 22 ordinary
   pets, and the tag would have pulled them all out of the game.
 - **Mind FIT_SIZE.** It scales a model so its LARGEST dimension fits 2.5 studs, so wide wings or
