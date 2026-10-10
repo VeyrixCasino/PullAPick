@@ -198,8 +198,20 @@ src(/local ore, dust, oreDef = Verbs\._oreToolCost\(tool\)/.test(up),
   "upgradeOreTool prices from the tool's own ore");
 src(/p\.ores\[oreId\] = haveOre - spentOre/.test(up),
   "...and spends that same ore");
-src(/C\.toolUpgradeCost\(tool\.tier, level \+ i, typeMult\)/.test(up),
-  "...stepping the price up per level");
+src(/C\.toolUpgradeCost\(tool\.tier, level \+ i, typeMult, tool\.familyId\)/.test(up),
+  "...stepping the price up per level, and passing the family");
+
+// The family is what applies FAMILY_UPGRADE_COST (hammer and jackhammer pay
+// 25% more ore AND stardust to upgrade). Drop the argument and the surcharge
+// vanishes silently -- the quote and the charge would still agree with each
+// other, just both at the wrong price -- so it is asserted rather than assumed.
+//
+// The single-level quote lives in Verbs._oreToolCost, NOT in upgradeOreTool:
+// upgradeOreTool calls it for the price and only loops toolUpgradeCost itself
+// for the multi-level preview.
+const oneLevel = (server.match(/function Verbs\._oreToolCost[\s\S]*?\nend\n/) || [""])[0];
+src(/C\.toolUpgradeCost\(tool\.tier, level, typeMult, tool\.familyId\)/.test(oneLevel),
+  "...and _oreToolCost's single-level quote passes it too");
 
 // The panel says {ore} {tool} everywhere, and lists ores rather than frames.
 src(/OreTools\.toolName\(tool\)/.test(forge), "the Forge titles a forged tool {ore} {tool}");

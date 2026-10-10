@@ -54,6 +54,7 @@ MineOreTools.NOUN = {
 	pickaxe = "Pickaxe",
 	hammer = "Hammer",
 	drill = "Drill",
+	jackhammer = "Jackhammer",
 	explosive = "Explosive",
 	weapon = "Weapon",
 }
@@ -61,7 +62,9 @@ MineOreTools.NOUN = {
 -- The families a player can actually forge in, in rail order.
 -- Hammer sits next to the pickaxe: both are single-target melee, and a player
 -- choosing between "chip fast" and "hit hard" should see them side by side.
-MineOreTools.FAMILY_ORDER = { "pickaxe", "hammer", "drill", "explosive" }
+-- Jackhammer sits next to the drill for the same reason: both clear area, and
+-- the choice between them is "aim anywhere" against "straight down, faster".
+MineOreTools.FAMILY_ORDER = { "pickaxe", "hammer", "drill", "jackhammer", "explosive" }
 
 function MineOreTools.familyNoun(familyId)
 	local id = tostring(familyId or "pickaxe")
@@ -189,6 +192,17 @@ MineOreTools.FAMILY_POWER = {
 	pickaxe = 1,
 	hammer = 2.2,
 	drill = 1,
+	--[[
+		SAME DPS AS A DRILL, PAID FOR BY BEING FASTER.
+
+		Owner, 2026-10-10: a jackhammer goes faster than a drill but lands on
+		the same DPS, because it can only dig DOWN. FRAME_STATS gives it 1.5x
+		the drill's swing rate, so its per-hit power has to come down by the
+		same 1.5 or the extra speed would be free damage. 1 / 1.5 = 0.667.
+
+		Keep this and the rate multiplier in step: they exist to cancel.
+	]]
+	jackhammer = 1 / 1.5,
 	explosive = 1,
 }
 
@@ -202,7 +216,12 @@ MineOreTools.TYPE_MULT_STEPS = {
 	explosive = { 9, 19, 30, 41, 52, 63, 73, 82 },
 	-- Hammers sit on the pickaxe's rung spacing: both are single-target melee,
 	-- so a hammer and a pick of the same ore should cost the same to forge.
+	-- (The hammer's EXTRA ore cost is MineConfig.FAMILY_CRAFT_COST, which is
+	-- cost-only; typeMult here would move power too.)
 	hammer = { 6, 16, 27, 37, 48, 59, 69, 82 },
+	-- Jackhammers are drills that only point down, so they share the drill's
+	-- rungs exactly.
+	jackhammer = { 9, 19, 30, 41, 52, 63, 73, 82 },
 }
 
 --[[
@@ -291,22 +310,68 @@ MineOreTools.FRAME_STATS = {
 			{82,9},
 		},
 		radius = { {82,0} },
-		shape = {
-			{14,"down"}, {19,"dir"}, {63,"down"}, {68,"dir"}, {79,"down"}, {82,"dir"},
-		},
+		--[[
+			NO MORE DOWN DRILLS. Owner, 2026-10-10: drills mine everywhere, and
+			digging straight down is the jackhammer's job now.
+
+			shape and axis both used to flip between down and dir/aim four times
+			across the roster, so whether your drill could aim depended on which
+			ore it was made of -- buy the next rung up and lose the ability. They
+			are now "dir"/"aim" the whole way, which is the "mine everywhere"
+			asked for and also removes that trap.
+		]]
+		shape = { {82,"dir"} },
 		width = {
 			{30,1}, {57,3}, {63,2}, {68,1}, {73,2}, {79,1},
 			{82,3},
 		},
-		axis = {
-			{14,"down"}, {19,"aim"}, {63,"down"}, {68,"aim"}, {79,"down"}, {82,"aim"},
-		},
+		axis = { {82,"aim"} },
 		turn = {
 			{3,1.4}, {82,1.2},
 		},
 		bombs = { {82,false} },
 		pattern = { {82,false} },
 		cooldown = { {82,false} },
+	},
+	--[[
+		THE JACKHAMMER. A drill that only points down, and is faster for it.
+
+		Owner, 2026-10-10: like a drill except AUTO, a 3 second wind, straight
+		down only, faster than a drill but the same DPS.
+
+		rate is the drill's x1.5 and FAMILY_POWER.jackhammer is 1/1.5, so the
+		two cancel and the DPS lands on the drill's. The speed buys you nothing
+		but feel -- what you actually trade for is the ability to aim.
+
+		`auto` and `windSec` are read by the swing path; they are not part of
+		the old frame contract, which is why they are named here rather than
+		left implied.
+	]]
+	jackhammer = {
+		rate = {
+			{3,3.9}, {14,6}, {19,5.25}, {30,6}, {57,3.75}, {63,4.5},
+			{68,5.25}, {73,4.5}, {79,6}, {82,3.3},
+		},
+		cells = {
+			{30,1}, {57,9}, {63,4}, {68,1}, {73,4}, {79,1},
+			{82,9},
+		},
+		radius = { {82,0} },
+		-- Down, always. This is the whole identity of the family.
+		shape = { {82,"down"} },
+		width = {
+			{30,1}, {57,3}, {63,2}, {68,1}, {73,2}, {79,1},
+			{82,3},
+		},
+		axis = { {82,"down"} },
+		turn = { {3,1.4}, {82,1.2} },
+		bombs = { {82,false} },
+		pattern = { {82,false} },
+		cooldown = { {82,false} },
+		-- Holds to dig rather than swinging per click.
+		auto = { {82,true} },
+		-- Three seconds to spin up before the first block gives.
+		windSec = { {82,3} },
 	},
 	explosive = {
 		rate = { {82,1} },

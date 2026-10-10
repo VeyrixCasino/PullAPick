@@ -662,7 +662,7 @@ function MineForge.mount(parent, opts)
 			heldLine = "held  " .. num(have) .. " coins"
 		else
 			local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
-			local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
+			local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult, tool.familyId)
 			-- C.ORES[tool.tier] is what the server's _oreToolCost uses. Resolve
 			-- it the same way or the panel quotes a different ore than the verb
 			-- charges.

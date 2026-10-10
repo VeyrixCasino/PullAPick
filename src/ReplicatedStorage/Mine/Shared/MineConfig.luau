@@ -2908,7 +2908,12 @@ MineConfig.FORGE_ONLY_FAMILIES = {
 	pickaxe = true,
 	hammer = true,
 	drill = true,
+	jackhammer = true,
 	explosive = true,
+	-- `weapon` is a GHOST: it has a noun and sits here, but it is not in
+	-- MineOreTools.FAMILY_ORDER and ToolModelFactory has no builder for it --
+	-- buildRanged is parked with a note that the ranged family was cut. Left in
+	-- place because reviving weapons is still intended; it forges nothing today.
 	weapon = true,
 }
 
@@ -3324,12 +3329,18 @@ end
 
 -- Cost of the step from `level` to `level + 1`. Returns nil at the cap so a
 -- caller cannot accidentally charge for a level that does not exist.
-function MineConfig.toolUpgradeCost(tier, level, typeMult)
+--[[
+	`familyId` is optional and applies FAMILY_UPGRADE_COST to BOTH currencies,
+	because the owner asked for 25% more ore AND 25% more stardust on a hammer
+	or jackhammer upgrade. A caller that passes no family gets exactly the
+	numbers it got before.
+]]
+function MineConfig.toolUpgradeCost(tier, level, typeMult, familyId)
 	local L = clampLevel(level)
 	if L >= MineConfig.TOOL_MAX_LEVEL then
 		return nil, nil
 	end
-	local mult = MineConfig.toolCostMult(tier, typeMult)
+	local mult = MineConfig.toolCostMult(tier, typeMult) * MineConfig.familyUpgradeMult(familyId)
 	local ore = math.ceil(MineConfig.TOOL_ORE_BASE * (MineConfig.TOOL_ORE_GROW ^ (L - 1)) * mult)
 	local dust = math.ceil(MineConfig.TOOL_DUST_BASE * (MineConfig.TOOL_DUST_GROW ^ (L - 1)) * mult)
 	return ore, dust
@@ -3547,7 +3558,31 @@ end
 ]]
 MineConfig.FAMILY_CRAFT_COST = {
 	hammer = 1.25,
+	-- Owner, 2026-10-10: a jackhammer costs more to craft "like hammers do".
+	jackhammer = 1.25,
 }
+
+--[[
+	THE SAME SURCHARGE ON UPGRADES, IN STARDUST.
+
+	Owner, 2026-10-10: hammers and jackhammers also cost "more to upgrade --
+	25% more ore, and 25% more stardust". FAMILY_CRAFT_COST above is the ore at
+	the forge; this is the stardust at the bench, and they are separate numbers
+	because they are separate currencies spent at separate places.
+
+	PROPOSED (2026-10-10): both 1.25.
+]]
+MineConfig.FAMILY_UPGRADE_COST = {
+	hammer = 1.25,
+	jackhammer = 1.25,
+}
+
+function MineConfig.familyUpgradeMult(familyId)
+	if familyId == nil then
+		return 1
+	end
+	return tonumber(MineConfig.FAMILY_UPGRADE_COST[tostring(familyId)]) or 1
+end
 
 function MineConfig.toolCraftCost(tier, typeMult, familyId)
 	local mult = math.max(0.01, tonumber(typeMult) or 1)

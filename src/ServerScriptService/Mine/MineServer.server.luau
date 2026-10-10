@@ -16808,7 +16808,7 @@ function Verbs._oreToolCost(tool)
 	local oreDef = C.ORES and C.ORES[tonumber(tool.tier) or 1]
 	local typeMult = Verbs._oreToolTypeMult(tool)
 	local level = math.max(1, tonumber(tool.level) or 1)
-	local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
+	local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult, tool.familyId)
 	return ore, dust, oreDef, typeMult
 end
 
@@ -16861,7 +16861,7 @@ function Verbs.upgradeOreTool(plr, payload)
 	local typeMult = Verbs._oreToolTypeMult(tool)
 	local spentOre, spentDust, steps = 0, 0, 0
 	for i = 0, want - 1 do
-		local o, d = C.toolUpgradeCost(tool.tier, level + i, typeMult)
+		local o, d = C.toolUpgradeCost(tool.tier, level + i, typeMult, tool.familyId)
 		if not o then break end
 		if haveOre - spentOre < o or haveDust - spentDust < d then break end
 		spentOre += o

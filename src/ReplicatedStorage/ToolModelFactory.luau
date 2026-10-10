@@ -1215,9 +1215,98 @@ local function buildHammer(t, model, look)
 	return handle
 end
 
+--[[
+	THE JACKHAMMER. A pneumatic breaker: body up, chisel straight down.
+
+	Built on its own axis rather than reusing the drill. A drill is authored
+	pointing FORWARD (-Z) because you aim it; a jackhammer only ever points at
+	the floor, and that is the whole read of the family -- so the silhouette is
+	vertical and the working end is at the bottom where the eye expects it.
+
+	Two handles across the top, which is what separates it from a drill at a
+	glance even when both are the same colour.
+]]
+local function buildJackhammer(t, model, look)
+	local metal = (look and look.metal) or ramp(PICK_METAL, t)
+	local haft = (look and look.haft) or ramp(PICK_HAFT, t)
+	local mat = (look and look.mat) or metalFor(t)
+	local lit = look and look.lit or nil
+	local refl = (look and look.refl) or (0.06 + t * 0.24)
+
+	-- The body IS the handle, stood upright.
+	local body = cyl({
+		Name = "Handle", Length = 2.6, Dia = 0.62,
+		CFrame = CFrame.new(0, 0.5, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+
+	-- Air cylinder, fatter, sitting over the body.
+	cyl({
+		Name = "Cylinder", Length = 1.1, Dia = 0.86,
+		CFrame = CFrame.new(0, 1.15, 0),
+		Color = metal:Lerp(DARK, 0.3), Material = mat, Reflectance = refl,
+	}, model)
+	-- Banding, so the cylinder does not read as one smooth tube.
+	for i = 0, 2 do
+		cyl({
+			Name = "Band", Length = 0.12, Dia = 0.94,
+			CFrame = CFrame.new(0, 0.78 + i * 0.36, 0),
+			Color = metal:Lerp(DARK, 0.55), Material = Enum.Material.Metal,
+		}, model)
+	end
+
+	-- Crossbar and two grips: the jackhammer tell.
+	cyl({
+		Name = "Crossbar", Length = 1.5, Dia = 0.2,
+		CFrame = CFrame.new(0, 1.82, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({
+			Name = "Grip", Length = 0.5, Dia = 0.26,
+			CFrame = CFrame.new(0.74 * s, 1.72, 0) * CFrame.Angles(math.rad(90), 0, 0),
+			Color = t < 0.55 and C3(60, 44, 30) or haft,
+			Material = t < 0.55 and Enum.Material.Fabric or Enum.Material.Metal,
+		}, model)
+	end
+
+	-- Hose, hinted with two short segments rather than a curve.
+	cyl({
+		Name = "Hose", Length = 0.7, Dia = 0.16,
+		CFrame = CFrame.new(0.3, 1.3, 0.28) * CFrame.Angles(math.rad(50), 0, math.rad(20)),
+		Color = C3(40, 38, 44), Material = Enum.Material.Fabric,
+	}, model)
+
+	-- Collar, then the chisel: the only part that touches rock.
+	cyl({
+		Name = "Collar", Length = 0.3, Dia = 0.56,
+		CFrame = CFrame.new(0, -0.9, 0),
+		Color = metal:Lerp(DARK, 0.4), Material = mat, Reflectance = refl,
+	}, model)
+	cyl({
+		Name = "Shank", Length = 1.0, Dia = 0.3,
+		CFrame = CFrame.new(0, -1.5, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	cone({
+		Name = "Chisel", Length = 0.8, Dia = 0.42,
+		-- Point DOWN: a cone is authored tip-up, so it is turned over.
+		CFrame = CFrame.new(0, -2.3, 0) * CFrame.Angles(math.rad(180), 0, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	if lit then
+		box({
+			Name = "Glow", Size = Vector3.new(0.2, 0.2, 0.2),
+			CFrame = CFrame.new(0, -0.9, 0.3),
+			Color = lit, Material = Enum.Material.Neon,
+		}, model)
+	end
+	return body
+end
+
 local BUILDERS = {
 	pickaxe = buildPickaxe, drill = buildDrill, explosive = buildExplosive,
-	hammer = buildHammer,
+	hammer = buildHammer, jackhammer = buildJackhammer,
 }
 -- buildRanged is deliberately not in BUILDERS: the ranged family was cut, and
 -- build() falls back to pickaxe for anything it does not recognise. Kept in the
@@ -1243,6 +1332,7 @@ local _ = buildRanged
 -- the fore/aft swing plane so one point leads.
 local HAFT_UP = CFrame.fromMatrix(Vector3.zero, Vector3.new(0, 1, 0), Vector3.new(0, 0, 1))
 
+
 local GRIPS = {
 	-- Hafted tools: stand it up, lean it forward, and slide the grip down the
 	-- haft so the hand sits on the lower third and the head rides at shoulder
@@ -1256,6 +1346,10 @@ local GRIPS = {
 	-- which is already how an identity grip lands them: up is up, forward is
 	-- forward. They only need settling into the palm.
 	drill = CFrame.new(0, -0.25, 0.2),
+	-- The jackhammer is authored UPRIGHT with the chisel at the bottom, so it
+	-- is held like a haft rather than aimed like a machine: stood up, leaned
+	-- back a touch, hand on the crossbar.
+	jackhammer = (HAFT_UP * CFrame.Angles(0, 0, math.rad(-8)) * CFrame.new(-0.9, 0, 0)):Inverse(),
 }
 
 -- Each family is authored at whatever proportions read best on its own, then
@@ -1265,7 +1359,7 @@ local GRIPS = {
 --
 -- Target: a held tool reads at roughly 3.5 studs against a 5-stud character,
 -- with the pickaxe deliberately larger because it is the two-handed one.
-local SCALE = { pickaxe = 1.28, drill = 0.68, explosive = 0.74, hammer = 1.2 }
+local SCALE = { pickaxe = 1.28, drill = 0.68, explosive = 0.74, hammer = 1.2, jackhammer = 0.86 }
 
 --[[
 	NAMED HQ MESHES IN THE HAND.
