@@ -1,12 +1,14 @@
-# Skins — 200 concepts, 8 sets, F to SSS
+# Skins — 200 concepts in 8 sets, plus a bonus set, F to SSS
 
 **Status: PROPOSED (2026-10-10). Nothing is built.** This is the name/set/tier
 roster for approval. Numbers and buffs are in the second half.
 
 ## How a skin works
 
-- **200 concepts.** Each one exists for **all five tool classes**, same name,
-  same set, same tier, same buffs. 200 × 5 = 1,000 skin instances.
+- **200 concepts in the core eight sets**, plus a 25-strong **Halloween bonus
+  set** that sits outside the count — 225 in all. Each concept exists for **all
+  five tool classes**, same name, same set, same tier, same buffs, so 225
+  designs is **1,125 skin instances**.
 - **The skin is the damage BASE.** `damage = skinBase × oreDamage × everything else`.
   Ore tools are the floor; the skin is the ceiling and the chase.
 - **Grades are the game's existing ladder** — `F D C B A S SS SSS`
@@ -18,7 +20,7 @@ roster for approval. Numbers and buffs are in the second half.
   recognisable in someone else's hands at twenty studs.
 
 Per set: 25 concepts, weighted **F 6 · D 5 · C 4 · B 3 · A 3 · S 2 · SS 1 · SSS 1**.
-One SSS per set, eight in the game.
+One SSS per set — eight in the core sets, nine counting Halloween.
 
 ---
 
@@ -127,9 +129,33 @@ One SSS per set, eight in the game.
 | SS | Singularity Drive |
 | SSS | Critical Mass |
 
-## 8. Halloween 2026 *(seasonal — 21 Oct to 7 Nov only)*
+## 8. Arcade
+*Neon tube glow, CRT scanlines, cabinet black, joystick red, coin-slot chrome, pixel edges.*
+*Hammer → mallet off a whack-a-mole. Drill → light gun. Jackhammer → joystick on a pole. Explosive → bomb sprite, pixel fuse and all.*
+
+| Tier | Name |
+| --- | --- |
+| F | Coin Slot · Joystick Red · Pixel Dust · Token Tray · Scanline · Button Mash |
+| D | Insert Coin · Bonus Stage · Power Pellet · Continue Countdown · Cabinet Chrome |
+| C | Combo Breaker · Extra Life · Boss Rush · Free Play |
+| B | Perfect Clear · Hidden Level · Marquee Glow |
+| A | Final Boss · One Credit Clear · Secret Ending |
+| S | Player One · Attract Mode |
+| SS | Kill Screen |
+| SSS | High Score Forever |
+
+## Bonus set — Halloween
 *Pumpkin orange, grave grey, candle wax, cobweb, a green that should not glow.*
 *Hammer → gravedigger's spade. Drill → corkscrew fang. Jackhammer → coffin nail. Explosive → cauldron.*
+
+> **Outside the 200** (owner, 2026-10-10: "halloween doesnt count"). It is a
+> normal set — not seasonally gated, no window, drops like any other. The 25
+> below are on top of the eight sets above, so the roster is 225 concepts of
+> which 200 are the core eight.
+>
+> Note this is a SKIN set and is unrelated to the holiday rule in
+> [pets](../wiki/systems/pets.md), which governs holiday **pets** and still
+> stands: those come only from a "{Holiday} {year} Pack".
 
 | Tier | Name |
 | --- | --- |
@@ -163,8 +189,9 @@ the ore tool multiplies, not a bonus bolted on after.
 on that class. Eight sets, so a completionist caps at +10% on what they
 actually use rather than a stacking global.
 
-**Seasonal.** The Halloween set drops only 21 Oct – 7 Nov. Owned copies keep
-working afterwards, the way the Candy Crypt claim does.
+**No seasonal gate.** Halloween is a normal set and drops year-round like the
+rest (owner, 2026-10-10). The only seasonal thing in the skin system is
+nothing — the Candy Crypt's window governs the mine, not these.
 
 ## Open, and worth deciding before this is built
 
