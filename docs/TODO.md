@@ -75,15 +75,16 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
 
 ## A. Daily loop (P0). Status: in progress (2026-10-10)
 
-- **A1. Daily wheel.**
-  - Reuse `MineGroupWheel`, `GroupWheelService` and `MineGroupWheelView`.
-    `GroupWheelService.build(lobby)` is commented out today, so nobody can
-    reach the wheel.
-  - Spin sources: 1 free a day (day boundary as used elsewhere in the code),
-    +1 for group members, and streak spins.
-  - Paid spins (`group_wheel_1/5/10`) exist, but their `productId` is 0.
-    BLOCKED on the owner's product ids.
-  - Celebrate the prize through `MineCelebrate` by its real rarity.
+- **A1. Daily wheel. DONE 2026-10-10 (`299dd2c`), verified in Studio.**
+  - It is built in the lobby, and the dock has a gold Wheel button whose badge
+    counts the free spins left. Each player gets 1 free spin a UTC day, +1 for
+    group members, and +1 on a claimed 7-day streak day. The odds are printed on
+    every slice, and a prize is celebrated by its real odds.
+  - Owner to approve: the PROPOSED allowances and the slice weights
+    (the two PROPOSED blocks at the top of `MineGroupWheel.luau`).
+  - Paid spins (`group_wheel_1/5/10`) are still `productId = 0`. BLOCKED on
+    the owner's product ids. The buy row stays hidden until they have ids.
+  - Details: `wiki/systems/social-quests-and-leaderboards.md` (Daily wheel).
 - **A2. More daily attractions.** First list what exists: the daily reward
   calendar, the 3 daily quests, playtime gifts, the daily surprise, Job Board
   contracts and the pass. Then add:

@@ -45,6 +45,10 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
   - Exit code: 0 only if everything ran and passed.
 - Single check: `node tools/verify/<name>.js`. Utility: `node tools/verify/luau-balance.js FILE`.
 
+## Result at `299dd2c` (run 2026-10-10 on the owner's Windows machine)
+
+**54 passed, 0 failed, 0 did not run, 0 known failures.** The newest check is `daily-wheel`.
+
 ## Result at `41d8f3a` (run 2026-10-07 on the owner's Windows machine)
 
 **42 passed, 0 failed, 0 did not run, 0 known failures**, with
@@ -87,6 +91,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 36 checks now (`
 | `check` | the tool-level curve behaves, using the tables in `tools/upgrade-calculator.html` (generated from MineConfig) |
 | `config-refs` | every `MineConfig.X` the code reads exists. Strips comments first. |
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
+| `daily-wheel` **L** | the daily wheel: weights sum to 100, the 16 slice ids are unchanged, every slice prints odds, a free spin gives a pet at most 10% of the time, the daily allowance (base, group, streak), a UTC-day reset, and a landing on the rolled slice from any start angle. Source checks: the lobby build is live, rebirth keeps the field, a spin saves, free spins go first and paid spins obey `PolicyNoRandom`, and the world wheel spins on the client. Added 2026-10-10. |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |
 | `dmg-live` **L** | runs `toolTierPower` in real declaration order |
 | `forge-snap` | the Forge reads no snapshot field the shop does not pass it |

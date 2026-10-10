@@ -47,7 +47,7 @@ or **cut**. Anything already fixed is out of this list entirely; see `wiki/log.m
 | # | decision | the shape of it |
 |---|---|---|
 | 5 | **Ship social, or cut it?** `MineSocialView` is 387 lines, complete, **mounted nowhere**, with `MineProfileView` parked beside it. Text IS filtered (`TextService:FilterStringAsync`, fails closed). | One line mounts friends, DMs, global chat and groups together. That is a moderation surface, not a bug fix. |
-| 6 | **Group Wheel: ship or strip?** Clock is fixed (`cc0262f`) but the lobby pad is still commented out, while the view mounts and three Robux products still grant spins. | Shipping needs the pad built. Stripping needs the view mount, the snapshot field and the three product branches removed. |
+| 6 | ~~**Group Wheel: ship or strip?**~~ **Answered 2026-10-10: ship it, as the daily wheel** (`299dd2c`). Still open: approve its PROPOSED allowances and slice weights, and create the three Robux product ids. | See [social-quests-and-leaderboards](systems/social-quests-and-leaderboards.md). |
 | 7 | **Event Horizon's roster.** It builds **138 tools for a 2-section zone** because it walks all of `Depth.SECTIONS`. Prices are capped now (`4f45483`) so nothing overflows 2^53, but **68 of 138 sit at the cap**. | Changing the count moves every event tool's breaking power through `MineBreaking.eventStrength`. |
 | 8 | **A depth-scaled coin sink.** Potions fixed the early game only. | Owner picked the direction: progression-flavoured, repeatable, in the loop. |
 | 9 | **Ore mastery as the endgame.** Owner chose it over ladders/endless/guilds. | Not started. Advised *after* launch — the 2-hour systems only just became visible. |

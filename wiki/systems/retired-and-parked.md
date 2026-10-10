@@ -50,7 +50,7 @@ related: [charms, traits, pets, hats-and-faces, save-data-and-migrations, rojo-a
 |---|---|---|
 | **Runes, scrolls, sockets** (`MineRunes`, `MineRunesView`, `MineSocketsView`, `MineScrolls` rune items) | paying out; the Enchanter tabs Merge, Sockets and Summon. Save fields `p.runes`, `p.toolSockets`, `p.petSockets`, `p.scrolls`. | stage 3 of §0.17 waits until traits are verified in engine (OPEN P2). `boosts()` ends in `MineRunes.clampBoosts`. See [traits](traits.md). |
 | **Legacy 31 charms** | PROPOSAL line 33 decided "keep the items, kill the three sources", but all their sources still fire | not built yet. See [charms](charms.md). |
-| **Group wheel** | parked on 2026-09-23 (`MineParked/GroupWheel/README.txt`). The world wheel build is commented out (`-- GroupWheelService.build(lobby)`), but `groupWheelSpin`, paid spins and the client view are still wired to the **live** copies in `Mine/Shared` and `ServerScriptService/Mine`. | the `MineParked` copy is an older snapshot that **differs** from the live one, so do not edit the wrong one |
+| ~~**Group wheel**~~ | **Un-parked 2026-10-10** as the daily wheel (`299dd2c`, [social-quests-and-leaderboards](social-quests-and-leaderboards.md)). It is built in the lobby again. | the `MineParked/GroupWheel/` copy is a stale snapshot; do not edit it. It can be deleted once the owner says so. |
 
 ## AUDIT §5 cut lists (2026-10-04): status at `26036a0`
 

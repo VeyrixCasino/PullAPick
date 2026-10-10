@@ -2,9 +2,11 @@
 title: Social, quests and leaderboards
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-10 @ 299dd2c
 sources:
   - src/ServerScriptService/Mine/SocialService.luau
+  - src/ReplicatedStorage/Mine/Shared/MineGroupWheelView.luau
+  - tools/verify/daily-wheel.js
   - src/ReplicatedStorage/Mine/Shared/MineSocialView.luau
   - src/ReplicatedStorage/Mine/Shared/MineProfileView.luau
   - src/ReplicatedStorage/Mine/Shared/MineQuests.luau
@@ -93,19 +95,39 @@ blockbuster_i–iv at 1k / 10k / 100k / 1M blocks. They are awarded from
 credits or with the Founders gamepass. It grants a `[Founder]` tag and a few
 perks. See [shops-and-monetisation](shops-and-monetisation.md).
 
-**Group wheel.** A lobby prize wheel.
-- **Spins.** Group members get a free spin every 6 h (`MineGroupWheel.COOLDOWN_SEC`, `MineConfig.GROUP_ID`).
-- **Paid spins.** Products `group_wheel_1/5/10` sell 1, 5 or 10 spins. All have `productId = 0`, so none can be bought yet.
-- **Live copies:**
-  - `src/ServerScriptService/Mine/GroupWheelService.luau`, reached by the `groupWheelSpin` verb;
-  - `MineGroupWheel` and `MineGroupWheelView`, both in `Shared`. The view is mounted on the client.
-- **The world wheel is not built.** The `GroupWheelService.build(lobby)` call is
-  commented out (*"Group wheel removed. Uncomment to bring it back"*). The panel
-  only opens from a `groupWheel` machine prompt, which needs a wheel in the world.
-  Whether the place file has one is unverified.
+**Daily wheel** (was the group wheel; shipped 2026-10-10 in `299dd2c`, TODO NOW A1).
+A 16-slice prize wheel in the lobby, at about (40, 6, 0).
+- **Free spins.** Everyone gets free spins every UTC day, and they reset at
+  midnight without a save write. The rules are in `MineGroupWheel.allowance`:
+  - `FREE_PER_DAY` (1) for everyone;
+  - `GROUP_BONUS` (+1) for members of `MineConfig.GROUP_ID`. The server caches
+    membership per player. In Studio with no group id, everyone counts as a member;
+  - `STREAK_BONUS` (+1) on a claimed day that is a multiple of `STREAK_EVERY` (7).
+
+  These numbers and the slice weights are **PROPOSED**: the owner has not
+  approved them.
+- **Paid spins.** Products `group_wheel_1/5/10` bank 1, 5 or 10 spins. Free spins
+  are spent first. Paid spins are blocked where paid random items are not allowed
+  (`PolicyNoRandom`). All three products have `productId = 0`, so none can be
+  bought yet. The buy row hides itself until they have ids.
+- **Odds are printed on every slice,** on the world wheel and in the panel. Both
+  use `Wheel.oddsText`: `%` at 1% and above, "1 in N" below that.
+- **Where you open it:**
+  - the gold **Wheel** dock button, second from the top; its badge counts the
+    free spins left (`MineNotifs`);
+  - the Spin prompt on the pad in front of the world wheel.
+- **Save:** `p.groupWheel = { day, used, paid, last }`. A spin saves at once.
+  Rebirth keeps the field (`Verbs.KEEP_ON_REBIRTH`). The snapshot carries only
+  `GroupWheelService.snapState`. The prize table travels with `payload` when the
+  panel opens.
+- **The world wheel turns on each client,** in `MineGroupWheelView.mount`, never
+  on the server. It waits until all `PartCount` parts have streamed in, records
+  the pose, and turns the model about its pivot's up axis (the axle) at
+  `SpinSpeed` °/s. It re-records whenever the wheel streams back in. The earlier
+  `AmbSpin` idle spin captured a half-streamed wheel, which turned it edge-on so
+  the face read blank.
 - **The parked copy is older than the live one.** `src/ServerStorage/MineParked/GroupWheel/`
-  (README: *"Parked 2026-09-23"*) predates the live modules, which have since
-  moved the placement and relabelled the slices. Both are on disk.
+  (README: *"Parked 2026-09-23"*) is stale. Edit only the live modules.
 
 **Discord, invites and codes:**
 - **Discord link.** `MineDiscordLink.redeem` takes a `!link` code and pays
@@ -131,15 +153,21 @@ perks. See [shops-and-monetisation](shops-and-monetisation.md).
 - **Depth leaderboard.** The owner asked for one in the 2026-10-04 list (TODO
   §0.27). It became OPEN #16: *"Live update. Deepest-depth tracking already
   exists server-side."*
-- **Group wheel.** *"Group wheel sucks"* (HANDOFF §2.6 table). The agent's answer:
-  it is on the ARCHIVE list, *"do not polish."*
+- **Group wheel → daily wheel.** *"Group wheel sucks"* (HANDOFF §2.6 table) put
+  it on the ARCHIVE list. The owner reversed that on 2026-10-10: *"we need that
+  daily wheel working"*. Their decisions: everyone spins daily, group members get
+  a bonus, streaks add more, it stands in the lobby, and the odds are printed
+  ([owner](../owner.md)).
 - **What AUDIT §5 proposes to archive:** leaderboards (~1,750 lines, "needs a
   player base"), the group wheel and trading. These are proposals; the owner's
   yes to the cut list is not recorded.
 
 ## State right now
-- **Shipped and wired:** quests, the Job Board, leaderboards, badges, Discord link, invites and codes.
-- **Dormant:** the social and profile UI; the world group wheel.
+- **Shipped and wired:** quests, the Job Board, leaderboards, badges, Discord link,
+  invites, codes, and the daily wheel. The wheel was verified in Studio on
+  2026-10-10: a free spin landed on the rolled slice, the pack was granted, the
+  badge counted down, and the used spin survived a restart.
+- **Dormant:** the social and profile UI.
 - **Most of this code is unchanged since the import** (`566eecf`). Quests and the
   wheel only lost their fossil rows (`ba345b7`).
 
@@ -150,15 +178,20 @@ perks. See [shops-and-monetisation](shops-and-monetisation.md).
   - tips mention runes, a "Summon tab" and "Gems buy zones, runes, and gear".
 
   Rewrite before launch (`MineQuests.CHAIN`).
-- **OPEN P2 is half wrong** where it says the group wheel and the battle pass
-  are "both archived in MineParked". Only the wheel is parked, and a live copy
-  still exists. The battle pass is live (see [shops-and-monetisation](shops-and-monetisation.md)).
+- **OPEN P2 is wrong** where it says the group wheel and the battle pass are
+  "both archived in MineParked". Both are live; only a stale copy of the wheel
+  sits in MineParked (see [shops-and-monetisation](shops-and-monetisation.md)).
+- **Never reorder or rename the wheel's slice ids.** Each one is data: the
+  `index` the client lands on, and the `group_wheel` card set.
 - **The allowlist file has an old name in it.** Its header says
   *"Dig for Cards"* (see [admin-and-debug](admin-and-debug.md)).
 
 ## Open questions
 - Ship the social UI, or delete `SocialService` and its two views?
-- Keep or cut the group wheel and the leaderboards (AUDIT §5)?
+- Keep or cut the leaderboards (AUDIT §5)? (The wheel was kept, 2026-10-10.)
+- Approve the daily wheel's PROPOSED numbers: the allowances, and the slice
+  weights in `MineGroupWheel.SEGMENTS`.
+- The Robux product ids for `group_wheel_1/5/10` (BLOCKED until the owner makes them).
 - Who pays leaderboard placement rewards, and when (`rewardForRank`)?
 
 ## See also

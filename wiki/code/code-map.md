@@ -124,7 +124,7 @@ Nearly everything below came in with the first Studio import, `566eecf`
 | empty folders: `_BagProbe`, `_CursorSrc`, `_AudioPush`, `_BakerB64`, `_EMKeep`, `_PB_PUSH`, `BlockLuaScripts`, `ToolKitEditableMeshes`, `Shared/_PetBoostChunks`; zero-byte `IconCaptureRunner.luau`, `_ToolRenameMapMod.luau`, `_MineHatsB64.txt` | placeholders | `ls -la` |
 | `src/ServerStorage/OreToolBaker.luau` | committed, but nothing requires it. It has its own 82-row roster. | TODO §4 (corrected 2026-10-05), BLOCKED #14 |
 | `src/ServerStorage/OreBalanceSim.luau` | an offline sim. It reads five MineConfig symbols that no longer exist. | BLOCKED, "Broken, not blocked" |
-| `src/ServerStorage/MineParked/GroupWheel/` | the parked group wheel. The live `GroupWheelService` is still routed (`spin`), but the lobby build call is commented out in MineServer. | README.txt, grep |
+| `src/ServerStorage/MineParked/GroupWheel/` | a stale copy of the group wheel. The live `GroupWheelService` was rebuilt as the daily wheel and is built in the lobby again (2026-10-10). | README.txt, grep |
 | `MineBenchView` | superseded by the Forge (AUDIT says "already unmounted") | AUDIT §5 |
 
 The Studio bakers in ServerStorage (`OreToolBaker`, `UniqueToolBaker`,

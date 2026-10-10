@@ -75,6 +75,10 @@ related: [server, luau-traps, ores, ore-pouch-and-backpack, tools, traits, retir
   `tempers`, `gear`, `runes`, `relics`, `chestTools`, `vfx`, `potions`, `scrolls`
 - **Progression:** `skillPresets`, `skillSlot`, `stats` (counters), `quest`,
   `dailyQuests`, `intro`, `pass`, `daily`
+- **Daily wheel:** `groupWheel = { day, used, paid, last }`. `day` is the UTC
+  day index, and `used` counts free spins that day. A new day resets the count
+  without a write. `paid` holds banked Robux spins. The field survives rebirth
+  ([social-quests-and-leaderboards](../systems/social-quests-and-leaderboards.md)).
 - **Migration stamps** are fields too: `oreRosterV`, `toolCapV`, `introVer`,
   `questVer`, `backpackCoinV2`, `backpackCatalogV3`, `_drillBombLadderV2`
 

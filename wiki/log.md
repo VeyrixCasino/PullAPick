@@ -275,3 +275,31 @@ face of the envelope, because details are placed on the envelope. `ghost` is
 left out on purpose -- it sets `body.Transparency` and opaque masses would
 break it. Final: 322 built, 0 duplicates, 9 models with floaters and all nine
 are deliberate FX.
+
+## [2026-10-10] ingest | the daily wheel ships (TODO NOW A1)
+The parked group wheel was rebuilt as the **daily wheel** and built in the
+lobby again (`299dd2c`). Rules:
+- 1 free spin per UTC day for everyone;
+- +1 for group members;
+- +1 on a claimed 7-day streak day;
+- banked Robux spins after the free ones, gated by `PolicyNoRandom`.
+
+Odds are printed on every slice. A gold Wheel dock button carries a badge
+counting the free spins left.
+
+Two bugs were found on the way:
+- A paid-spin receipt still called the removed `Wheel.payload`. It would have
+  crashed after a purchase.
+- The world wheel's `AmbSpin` idle spin recorded its pose before
+  StreamingEnabled had delivered all 82 parts, so it turned the wheel edge-on and
+  the face read blank. It now spins on each client, from `MineGroupWheelView`,
+  and only once `PartCount` parts are present.
+
+In the panel, the odds sat where neighbouring slice cards overlap, so they now
+sit in a pill in the outer half of each card. Verified in Studio: a free spin
+landed on the rolled slice, the pack was granted, the badge counted down, and
+the used spin survived a restart. The allowances and weights are PROPOSED and
+await the owner. New check: `daily-wheel`. Suite: 54/54.
+
+Updated: social-quests-and-leaderboards, open-questions (#6 answered),
+retired-and-parked, code-map, save-data-and-migrations, verify-suite, log.
