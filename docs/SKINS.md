@@ -178,10 +178,67 @@ Owner, 2026-10-10: *"f starts at 50% budget (SHOULDN'T ONLY BE ORE DAMAGE..
 THIS SHOULD BE BUFFS AND SHIT)"*.
 
 So a skin carries two things: a **base multiplier** that the ore tool's damage
-multiplies, and a **buff kit** bought with a points budget. The budget is in
-the game's existing currency — `MineStats.valueOf(kit)`, which is
-`amount × 100 × weight` — so a skin is priced by the same scale as runes, gear,
-traits and the skill tree, and cannot quietly outprice them.
+multiplies, and a **buff kit** bought with a points budget.
+
+### Skins price on their OWN curve
+
+Owner, 2026-10-10: *"KEEP IN MIND THESE BOOSTS EFFECT THE TOOL LIKE THEY ARE
+BASE STATS.. SHOULD ALMOST HAVE ITS OWN BUDGET SYSTEM"*. Agreed, and done.
+
+The arithmetic is still **points = `amount × 100 × weight`**, the same shape as
+`MineStats.valueOf`, but the weights are **`MineSkins.WEIGHT`** and nothing
+outside skins reads them. Two reasons; the second is the one that matters:
+
+1. A skin stat lands on the tool like a base stat and applies to **every tool in
+   the class** — a different thing to buy than the same number on one rune.
+2. **It isolates the blast radius.** Retuning skins must not move runes, gear,
+   traits, the skill tree or pets. Editing `MineStats.STATS` moves all of them
+   at once and silently, because every one of those systems divides by those
+   weights. `MineStats` is therefore left completely untouched by this feature.
+
+**What the weights are priced against.** `MineCards.ADDITIVE_STATS` splits every
+stat into two kinds that behave nothing alike once a player stacks sources:
+
+- **Additive** — `procPower`, `blastChance`, `zap`, `tidalWave`, `earthquake`,
+  `ricochet`, `blastDamage`, `tideDamage`, `zapDamage`, `shatterDamage`,
+  `oreHaul`, `pulverize`, `fossilFind`. They accumulate **from 0 and sum**: a
+  skin's +50% and a rune's +50% make +100%, spent once. A skin buying these is
+  buying a slice of a shared pot. **Cheap.**
+- **Multiplicative** — `swingRate`, `gemFind`, `rareOre`, `coinBonus`,
+  `dirtBreak` and the luck sectors. They accumulate **from 1** into a
+  multiplier, and `Dig.oreLuck` / `Dig.packLuck` then multiply that sector pool
+  by the **global luck pool** on top. **Expensive** — and the luck sectors most
+  of all, because they compound with every luck source a grinder already owns.
+
+| stat | skin weight | why |
+| --- | --- | --- |
+| `oreLuck` · `chestLuck` · `packLuck` | **2.6** | multiply with the global luck pool |
+| `swingRate` | **2.4** | multiplies the skin's own base, and every swing source |
+| `rareOre` | 1.6 | multiplicative, single channel |
+| `gemFind` | **1.5** | owner, 2026-10-10: bring gem down to 1.5 |
+| `procPower` | 1.4 | additive, but drives every proc at once |
+| `blastChance` · `zap` · `tidalWave` | 1.3 | additive |
+| `blastDamage` · `tideDamage` · `zapDamage` · `shatterDamage` | 1.2 | additive, one proc each |
+| `earthquake` · `ricochet` · `fossilFind` | 1.2 | additive |
+| `pulverize` | 1.1 | additive |
+| `dirtBreak` · `oreHaul` | 1.0 | narrow, and `oreHaul` is capped by `ORE_HAUL_CAP` |
+| `coinBonus` | 0.9 | multiplicative, weakest currency |
+
+Global `luck` is not on this table at all — skins roll sectors only.
+
+### The spread rule, which is what actually stops the degenerate build
+
+**No stat may take more than 40% of a skin's budget, and no rolled stat less
+than 10%.**
+
+Without it the whole system collapses to one line: every serious player hunts
+the one SSS that dumped all 500 points into `oreLuck`, and nothing else is worth
+equipping. 500 points of pure `oreLuck` is **+192%**, which then multiplies the
+global luck pool — a grinder sitting on +100% global luck would be at **5.8×**
+ore cases from one item. At 40% it is +77%, strong but not the only answer, and
+the remaining 300 points have to go somewhere a different build wants.
+
+This is the rule to break first if skins feel too flat in play.
 
 Owner, 2026-10-10: **F is 80 points, SSS is 500.** The ladder between them is a
 flat ~1.30× per tier, so no rung is a dead step and the whole spread is 6.25×.
