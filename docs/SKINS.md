@@ -234,13 +234,36 @@ on a tool:
 
 - **`RUNE_ONLY`** — `blastRadius`, `reach`, `coolant`, `shortFuse`
 - **`PET_ONLY`** — `mineSpeed`, `luckyFind`, `scrap`
+- **plain `luck`** — see below. Luck is divided into sectors now, and the
+  global is not one of them.
 
 This is not a style preference. `MineCards.addStat` drops restricted keys, which
 is exactly how 26 pets ended up carrying a blastRadius line that paid nothing.
 A skin rolling one would read as a buff on the tile and do nothing in the mine.
 
+**Luck is divided into sectors, and the global multiplies all of them.** This is
+the one that would have done real damage if it had been rolled by mistake:
+
+```
+oreLuck  channel = b.luck × b.oreLuck      MineServer:6700
+packLuck channel = b.luck × b.packLuck     MineServer:6707
+chestLuck        = b.luck × b.chestLuck    MineServer:6693
+```
+
+`luck` is not a fourth sector sitting beside the other three — it is their
+parent. A skin rolling it would buff every luck channel at once and compound
+with each, so it is strictly better than any sector skin and stacks with all of
+them. Skins roll the **sectors** only: `oreLuck`, `chestLuck`, `packLuck`,
+`fossilFind`, `gemFind`, `rareOre`.
+
+> Worth a separate look, not fixed here: `luck` is weight **2.0** while
+> `oreLuck` and `packLuck` are **2.4** — so the stat that multiplies three
+> channels is priced *below* the ones it multiplies. Every system spending a
+> MineStats budget (runes, gear, traits, the tree) is affected, not just skins,
+> which is why this is a note rather than an edit.
+
 That leaves the live pool: `swingRate`, `zap`, `blastChance`, `tidalWave`,
-`rareOre`, `gemFind`, `coinBonus`, `luck`, `oreLuck`, `chestLuck`, `packLuck`,
+`rareOre`, `gemFind`, `coinBonus`, `oreLuck`, `chestLuck`, `packLuck`,
 `fossilFind`, `oreHaul`, `pulverize`, `earthquake`, `ricochet`, `procPower`,
 `blastDamage`, `tideDamage`, `zapDamage`, `shatterDamage`, `dirtBreak`.
 
@@ -249,12 +272,12 @@ spread — and so collecting one is a decision:
 
 | Set | leans |
 | --- | --- |
-| Toybox | `luck`, `packLuck`, `chestLuck` |
+| Toybox | `packLuck`, `chestLuck`, `oreLuck` |
 | Cursed | `procPower`, `shatterDamage`, `rareOre` |
 | Pharaoh's Tomb | `gemFind`, `coinBonus`, `oreLuck` |
 | Wasteland | `oreHaul`, `pulverize`, `dirtBreak` |
 | Clockwork | `swingRate`, `ricochet`, `earthquake` |
-| Carnival | `packLuck`, `luck`, `coinBonus` |
+| Carnival | `packLuck`, `fossilFind`, `coinBonus` |
 | Atomic Age | `blastDamage`, `zap`, `zapDamage` |
 | Arcade | `swingRate`, `procPower`, `blastChance` |
 | Halloween | `tidalWave`, `tideDamage`, `fossilFind` |
