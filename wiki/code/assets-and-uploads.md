@@ -73,12 +73,21 @@ it via personal account, and i just have to share access"*.
   `<setKey>_pack_<n>` id, so every set pack wears its set's sprite, picked by
   the pack's stars: up to 2 -> sprite 1, 2.5 to 3.5 -> 2, 4 and up -> 3.
   It also holds the set icons and rarity icons (`setIcon`, `rarityIcon`).
-- **Pack case art** (`MinePackArt.caseArt`) works like this:
-  - It reads an optional `cases` map in `ids.json`: one image per set, keyed by
-    the set's file name, plus `Wild`.
-  - Until that map exists, a set case wears its set's medallion, and a wild
-    case wears the gem of its star tier.
-  - The 20 images (19 sets plus 1 wild) are still to come from Canva.
+- **Pack case art** (`MinePackArt.caseArt`) reads the `cases` map in
+  `ids.json`: one image per set, keyed by the set's file name, plus `Wild`.
+  - With no image, a set case wears its set's medallion and a wild case wears
+    the gem of its star tier.
+  - **The 20 images were made 2026-10-10.** The owner chose a booster box,
+    lid open, packs peeking out. How they were made:
+    - Canva `generate-image`, then `remove-background`;
+    - laid out on two pages of a working copy of the cover sheet, then
+      exported as transparent PNGs;
+    - cut into 732×1024 by `tools/pack-sprites/slice-cases.ps1`, into
+      `art/case-art/{Set}Case.png`.
+  - The Canva media ids are in `build/case-art/canva-media.json`.
+  - The images were uploaded as the owner's account and listed in
+    `build/case-art/share-list.txt`. **They do not load in the group place
+    until the owner shares them** (`PreloadAsync`: Failure, 2026-10-10).
 - The owner has seen personal assets in the group they never shared by hand.
   Roblox appears to grant an experience use of an asset its owner uses there
   from Studio; *unverified*, so still share explicitly and test.

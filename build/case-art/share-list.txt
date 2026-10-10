@@ -1,0 +1,22 @@
+# Pack-case images uploaded 2026-10-10 by the owner account (iPressBars).
+# Share each with the Mine For Cards group / experience in the Creator Hub, as with the pack art.
+LostAndFoundCase	rbxassetid://108845966058626
+StarfrontCase	rbxassetid://98013387944459
+PebbleboundCase	rbxassetid://106952051010960
+MosswoodCase	rbxassetid://120387298535723
+ArcadeLegendsCase	rbxassetid://85845522253527
+SugarRushCase	rbxassetid://117035143137876
+CrimsonEclipseCase	rbxassetid://94576817613302
+RoyalReserveCase	rbxassetid://113587870598438
+CrystalHollowCase	rbxassetid://79816268035967
+ShogunsOathCase	rbxassetid://115710377764051
+HoloHavocCase	rbxassetid://131906831887761
+RainbowRoadCase	rbxassetid://137609964488739
+InfernalReignCase	rbxassetid://119467017159009
+DragonfallCase	rbxassetid://75115867641643
+DivineRelicsCase	rbxassetid://130806658060890
+AtlantisRisingCase	rbxassetid://115580082885395
+MythicMenagerieCase	rbxassetid://96916059041613
+EternalRootsCase	rbxassetid://78567664583748
+ChaosTheoryCase	rbxassetid://87554174980880
+WildCase	rbxassetid://91379422858285

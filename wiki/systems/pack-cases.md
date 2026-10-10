@@ -57,10 +57,12 @@ How a case behaves in the game:
   - ★★★★ cases and better trigger a "PACK CASE" popup.
 - **Grant paths.** `Verbs.grantPacks`, the cart, the box and the admin grant
   all write a case as `MineCases.bagRow`, never with a random old set.
-- **Art.**
-  - Placeholder: a set case wears its set's medallion; a wild case wears the
-    gem of its star tier (`MinePackArt.caseArt`).
-  - The Canva case art drops in through `ids.json` `cases`.
+- **Art.** Each set has a booster box from Canva, and the wild cases share a
+  mystery box, whatever their star grade (`MinePackArt.caseArt`, from
+  `ids.json` `cases`). The tile's colour says the grade. How the images were
+  made is in [assets-and-uploads](../code/assets-and-uploads.md).
+  **BLOCKED:** the 20 images draw only once the owner shares them
+  (`build/case-art/share-list.txt`).
 
 ## Where it lives
 
@@ -191,8 +193,9 @@ tested on its own: S-rank chests drop one about 10% of the time.
 - Owner, earlier: *"a luck boost per each star/grade"*. Built as "each star
   grade is better packs", plus chest luck carried onto the packs. It is not
   confirmed.
-- Case art is still due from Canva: 19 set images plus 1 wild image, in the
-  booster-box look.
+- Another session reported that the owner has case icons of their own on
+  the way. If those replace the Canva boxes, re-point `ids.json` `cases` and
+  re-run `gen-pack-art.js`.
 - **Bag stacking.** Credit-bought and earned wild cases of the same grade
   stack on one tile, and the server opens whichever comes first. The only
   difference between them is the 0.5% SSS chance.

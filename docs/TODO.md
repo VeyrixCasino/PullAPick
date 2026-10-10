@@ -130,9 +130,11 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
         - the stars a set case shows;
         - what the rotating stardust shelf sells now that the old packs are
           off the credit shelf.
-  - [ ] Case art from Canva: 19 set images plus 1 wild image, uploaded, then
-        the ids go in `build/pack-art/ids.json` under `cases` and
-        `gen-pack-art.js` is re-run.
+  - [x] Case art from Canva: 19 booster boxes plus 1 wild mystery box, made,
+        uploaded and wired 2026-10-10 (`build/pack-art/ids.json` `cases`).
+  - [ ] **BLOCKED on the owner:** share the 20 case images with the
+        group/experience (`build/case-art/share-list.txt`). Until then they
+        do not draw.
   - [ ] See a case drop from a real chest in play. So far the roll has been
         tested on its own.
 - **A2. More daily attractions.** The TODAY checklist goes **inside the Quests

@@ -127,5 +127,27 @@
     "Mythic": "rbxassetid://127002493033384",
     "Rare": "rbxassetid://124039920389690",
     "Uncommon": "rbxassetid://131803616811120"
+  },
+  "cases": {
+    "LostAndFound": "rbxassetid://108845966058626",
+    "Starfront": "rbxassetid://98013387944459",
+    "Pebblebound": "rbxassetid://106952051010960",
+    "Mosswood": "rbxassetid://120387298535723",
+    "ArcadeLegends": "rbxassetid://85845522253527",
+    "SugarRush": "rbxassetid://117035143137876",
+    "CrimsonEclipse": "rbxassetid://94576817613302",
+    "RoyalReserve": "rbxassetid://113587870598438",
+    "CrystalHollow": "rbxassetid://79816268035967",
+    "ShogunsOath": "rbxassetid://115710377764051",
+    "HoloHavoc": "rbxassetid://131906831887761",
+    "RainbowRoad": "rbxassetid://137609964488739",
+    "InfernalReign": "rbxassetid://119467017159009",
+    "Dragonfall": "rbxassetid://75115867641643",
+    "DivineRelics": "rbxassetid://130806658060890",
+    "AtlantisRising": "rbxassetid://115580082885395",
+    "MythicMenagerie": "rbxassetid://96916059041613",
+    "EternalRoots": "rbxassetid://78567664583748",
+    "ChaosTheory": "rbxassetid://87554174980880",
+    "Wild": "rbxassetid://91379422858285"
   }
 }

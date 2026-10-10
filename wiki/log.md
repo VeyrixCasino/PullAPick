@@ -714,3 +714,23 @@ clone in Edit.
 
 Still unbuilt: the Trick-or-Treat case. A case holds packs and the Halloween
 2026 Pack has no id yet.
+
+## [2026-10-10] ingest | pack-case art: 20 booster boxes
+The owner chose the booster-box look ("Booster box") and approved three
+samples with "Yes, do all 20".
+
+How the images were made:
+- Canva `generate-image` drew one themed box per set and one rainbow
+  mystery box for the wild cases.
+- `remove-background` cut each one out.
+- They were laid out on two pages of a working copy of the cover sheet and
+  exported as transparent PNGs.
+- `tools/pack-sprites/slice-cases.ps1` cut those into 732×1024
+  `art/case-art/{Set}Case.png`.
+
+Uploaded as the owner's account; the ids are in `build/pack-art/ids.json`
+`cases`, and `MinePackArt` was regenerated. BLOCKED: the images do not load
+in the group place until the owner shares them
+(`build/case-art/share-list.txt`).
+
+Updated: assets-and-uploads, pack-cases, TODO A1c.
