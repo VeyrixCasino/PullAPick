@@ -361,6 +361,35 @@ function MineEventsView.mount(parent, opts)
 	}, card)
 	round(cta, 10)
 
+	--[[
+		THE TRICK-OR-TREAT SHELF.
+
+		Only ever visible for the Candy Crypt, and only once it is claimed and
+		open -- the server refuses otherwise, and a button that exists to be
+		refused is worse than no button. It sits under the CTA row rather than
+		replacing anything, so the Horizon's layout is untouched.
+	]]
+	local totBtn = mk("TextButton", {
+		Name = "TrickOrTreat",
+		Font = FONT,
+		TextSize = 15,
+		Text = "Trick-or-Treat Case",
+		TextColor3 = Color3.fromRGB(32, 18, 8),
+		BackgroundColor3 = Color3.fromRGB(255, 142, 44),
+		AutoButtonColor = true,
+		Position = UDim2.fromOffset(16, 404),
+		Size = UDim2.new(1, -32, 0, 40),
+		Visible = false,
+		ZIndex = 45,
+	}, card)
+	round(totBtn, 10)
+
+	totBtn.MouseButton1Click:Connect(function()
+		if totBtn.Visible and opts.onTrickOrTreat then
+			opts.onTrickOrTreat()
+		end
+	end)
+
 	local detailsBtn = mk("TextButton", {
 		Name = "Details",
 		Font = FONT,
@@ -707,12 +736,38 @@ function MineEventsView.mount(parent, opts)
 		passLayer.Visible = false
 	end
 
+	--[[
+		The event to SHOW. This returned EVENTS[1] unconditionally, which was
+		right while Event Horizon was the only one; with the Candy Crypt running
+		alongside it, the tab would always have shown the Horizon and the Crypt
+		would have had no screen at all.
+
+		An event whose own window is open wins, so a live event is never hidden
+		behind one that merely sorts first. Falls back to the first entry, which
+		is the old behaviour exactly.
+	]]
 	local function currentEvent()
 		local list = C.EVENTS or {}
+		if C.limitedActive then
+			for _, ev in ipairs(list) do
+				if ev.zoneId and C.limitedActive(ev.zoneId) then
+					return ev
+				end
+			end
+		end
 		for _, ev in ipairs(list) do
 			return ev
 		end
 		return nil
+	end
+
+	-- Has this event been claimed? Per event, from its own flag.
+	local function eventOwned(ev, state)
+		local flag = ev and ev.ownedFlag
+		if not flag then
+			return false
+		end
+		return state[flag] == true
 	end
 
 	--[[
@@ -790,12 +845,35 @@ function MineEventsView.mount(parent, opts)
 			bannerImg.Visible = false
 		end
 
-		local owned = state.bigbangOwned == true
+		-- Per event, not per game: two limited mines now, each with its own
+		-- claim flag and its own window.
+		local owned = eventOwned(ev, state)
 		local active = state.limitedActive == true
 		if C.limitedActive then
-			active = C.limitedActive()
+			active = C.limitedActive(ev and ev.zoneId)
 		end
 		local left, teasing = formatLeft()
+
+		--[[
+			The shelf, priced from the module so the button and the server can
+			never disagree about what a case costs. Shown only when it is
+			actually buyable: the Crypt, claimed, and open.
+		]]
+		if ev and ev.zoneId == "hallow" and owned and active then
+			local price
+			local okT, TT = pcall(function()
+				return require(script.Parent:WaitForChild("MineTrickOrTreat"))
+			end)
+			if okT and type(TT) == "table" then
+				price = tonumber(TT.PRICE)
+			end
+			totBtn.Text = price
+				and ("Trick-or-Treat Case  \u{00B7}  " .. tostring(price) .. " candy")
+				or "Trick-or-Treat Case"
+			totBtn.Visible = true
+		else
+			totBtn.Visible = false
+		end
 
 		detailsBtn.Visible = true
 

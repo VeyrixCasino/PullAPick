@@ -5152,6 +5152,8 @@ local function tp(plr, cf)
 	if root then root.CFrame = cf + Vector3.new(0, 3, 0) end
 end
 
+
+
 -- Digging is gated the same way portals are: limited Event Horizon after the
 -- first free claim (bigbangOwned), everything else only up to maxUnlockedZone.
 -- Stops exploiters who teleport into a top-zone pit and swing.
@@ -6255,6 +6257,12 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 		]]
 		local candyGot = tonumber(part:GetAttribute("Candy"))
 		if candyGot and candyGot > 0 then
+			-- The Trick-or-Treat Bucket's ability, read off the equipped bag.
+			local bagRow = C.BACKPACKS and C.BACKPACKS[p.backpackTier]
+			local candyMult = bagRow and tonumber(bagRow.candyMult)
+			if candyMult and candyMult > 1 then
+				candyGot = math.floor(candyGot * candyMult)
+			end
 			p.candy = math.max(0, math.floor((tonumber(p.candy) or 0) + candyGot))
 			local cname = tostring(part:GetAttribute("CandyName") or "Candy")
 			net:FireClient(plr, "loot", {
@@ -10358,6 +10366,144 @@ function Verbs.buySeam(plr, payload)
 	snap(plr)
 end
 
+--[[
+	BUY AND OPEN A TRICK-OR-TREAT CASE.
+
+	One verb, not two. A case you own but have not opened would need a bag row,
+	an open path and a UI for it, and the owner asked for candy you "trade in"
+	-- so the trade and the open are one action and nothing is left sitting in
+	an inventory.
+
+	MineTrickOrTreat.roll returns a plain description of the prize and performs
+	no side effects, so the granting lives here where the profile is, and the
+	roll itself stays testable.
+]]
+function Verbs.buyTrickOrTreat(plr)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local okT, TT = pcall(function()
+		return require(shared:WaitForChild("MineTrickOrTreat"))
+	end)
+	if not okT or type(TT) ~= "table" then
+		net:FireClient(plr, "toast", "Trick-or-Treat is unavailable")
+		return
+	end
+	-- Sold only while the Crypt is open, and only to someone who claimed it.
+	local zone = C.zoneById("hallow")
+	local flag = zone and zone.ownedFlag
+	if not (flag and p[flag]) then
+		net:FireClient(plr, "toast", "Claim the Candy Crypt first")
+		return
+	end
+	if C.limitedActive and not C.limitedActive("hallow") then
+		net:FireClient(plr, "toast", "The Candy Crypt has closed")
+		return
+	end
+	local price = math.max(1, math.floor(tonumber(TT.PRICE) or 2500))
+	if (tonumber(p.candy) or 0) < price then
+		net:FireClient(plr, "toast", ("Need %d candy"):format(price))
+		return
+	end
+	p.candy = math.max(0, math.floor((tonumber(p.candy) or 0) - price))
+
+	local prize = TT.roll(Random.new())
+	local kind = prize and prize.kind or "candy"
+	local text
+	if kind == "candy" then
+		local amt = math.max(1, math.floor(tonumber(prize.amount) or 1))
+		p.candy = math.floor((tonumber(p.candy) or 0) + amt)
+		text = ("+%d candy back"):format(amt)
+	elseif kind == "hat" then
+		-- Head-slot gear, rolled the one way the chest path rolls it. `p.gear`
+		-- is an ARRAY of pieces; there is no hat-id set on the profile.
+		local piece
+		if Gear and Gear.rollPiece then
+			p.gear = p.gear or {}
+			piece = Gear.rollPiece(instanceHex16(), Random.new(), "head")
+			if piece then
+				table.insert(p.gear, piece)
+			end
+		end
+		if piece then
+			text = piece.name or "a hat"
+		else
+			p.candy = math.floor((tonumber(p.candy) or 0) + price)
+			text = "nothing (refunded)"
+		end
+	elseif kind == "skin" then
+		-- A "skin" IS a temperament here; let the existing roller decide which.
+		-- A "skin" IS a temperament here (wiki: skins-cases-and-temper), and
+		-- MineTemper.rollTemperament is the one roller the rest of the game uses.
+		local Temper = require(shared.MineTemper)
+		local okS, kit, rarity = pcall(function()
+			return Temper.rollTemperament(Random.new())
+		end)
+		if okS and kit and kit.id then
+			--[[
+				p.tempers is a MAP KEYED BY kit.id holding { rarity, n }, not a
+				list. Granted exactly the way the ore cases do it: a duplicate
+				keeps the BETTER grade and bumps the count, because a second
+				copy of a worse roll must not downgrade one you already own.
+			]]
+			p.tempers = p.tempers or {}
+			local had = p.tempers[kit.id]
+			if had then
+				had.rarity = Temper.betterGrade(had.rarity, rarity)
+				had.n = (tonumber(had.n) or 1) + 1
+			else
+				p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
+			end
+			text = "a skin"
+		else
+			p.candy = math.floor((tonumber(p.candy) or 0) + price)
+			text = "nothing (refunded)"
+		end
+	elseif kind == "pack" and prize.id then
+		p.packs = p.packs or {}
+		table.insert(p.packs, { setId = tostring(prize.id) })
+		text = "a seasonal pack"
+	elseif kind == "bucket" then
+		--[[
+			The bucket is a BAG TIER, and owning it must not silently demote a
+			player who already carries something bigger. Granted as an unlock
+			and only equipped when it is an upgrade.
+		]]
+		--[[
+			`backpackTier` is an INDEX into C.BACKPACKS and is clamped to its
+			length -- not a bag id. Limited bags are owned through a dedicated
+			flag, the way the Wormhole Bag uses p.wormholeBag, because there is
+			no per-bag ownership set to put one in.
+		]]
+		local row, idx
+		for i, r in ipairs(C.BACKPACKS or {}) do
+			if r.limited == "hallow" then
+				row, idx = r, i
+				break
+			end
+		end
+		if row and idx then
+			p.trickBucket = true
+			local cur = C.BACKPACKS[p.backpackTier]
+			-- Only equip when it is an upgrade: winning it must never demote
+			-- someone already carrying something bigger.
+			if not cur or (tonumber(row.slots) or 0) > (tonumber(cur.slots) or 0) then
+				p.backpackTier = idx
+			end
+			text = "THE TRICK-OR-TREAT BUCKET"
+		else
+			p.candy = math.floor((tonumber(p.candy) or 0) + price)
+			text = "nothing (refunded)"
+		end
+	else
+		p.candy = math.floor((tonumber(p.candy) or 0) + price)
+		text = "nothing (refunded)"
+	end
+	markDirty(plr)
+	snap(plr)
+	net:FireClient(plr, "toast", "Trick-or-Treat: " .. tostring(text))
+end
 function Verbs.buyCharter(plr, id)
 	local p = profiles[plr.UserId]
 	local row = C.charterById(tostring(id or ""))
@@ -11235,9 +11381,20 @@ local function buy(plr, kind)
 			end
 			return
 		end
-		if row.limited == "bigbang" and not p.bigbangOwned then
-			net:FireClient(plr, "toast", "Claim Event Horizon to unlock the Wormhole Bag")
-			return
+		--[[
+			A limited bag belongs to a limited ZONE, and the zone says which
+			profile flag owns it. This named bigbang and bigbangOwned directly,
+			so the Trick-or-Treat Bucket would have been gated on whether you
+			had claimed Event Horizon.
+		]]
+		if row.limited then
+			local lz = C.zoneById(row.limited)
+			local lflag = lz and lz.ownedFlag
+			if lflag and not p[lflag] then
+				net:FireClient(plr, "toast",
+					("Claim %s to unlock the %s"):format(lz.name or "that event", row.name or "bag"))
+				return
+			end
 		end
 		local needZ = math.floor(tonumber(row.minZone) or 1)
 		if needZ > math.max(1, tonumber(p.maxUnlockedZone) or 1) then
@@ -17268,6 +17425,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			end
 		elseif action == "prestige" then tryPrestige(plr)
 		elseif action == "buyZone" then buyZone(plr, payload)
+		elseif action == "buyTrickOrTreat" then Verbs.buyTrickOrTreat(plr)
 		elseif action == "equipCharm" then equipCharm(plr, payload)
 		elseif action == "mergeCharm" then Verbs.mergeCharm(plr, payload)
 		elseif action == "equipVfx" then equipVfx(plr, payload)

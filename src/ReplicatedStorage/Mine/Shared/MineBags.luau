@@ -377,6 +377,42 @@ table.insert(LIST, {
 	zoneId = "bigbang",
 })
 
+--[[
+	THE TRICK-OR-TREAT BUCKET -- the Candy Crypt's chase.
+
+	Owner, 2026-10-10: candy buys cases, and one of them pays an "extremely rare
+	halloween bucket". This is it, and it is the only thing in the Crypt that is
+	not consumable, which is what makes the case worth opening twice.
+
+	Smaller than the Wormhole Bag on purpose. That one is the SECOND best bag in
+	the game and is earned by claiming an endgame event; this is won from a case
+	bought with candy in a three-week holiday mine, and it should not quietly
+	become the best bag anyone ever needs. Sized between the top coin bag and
+	the Wormhole Bag.
+
+	`limited = "hallow"` is read against the ZONE's ownedFlag now, not against
+	bigbangOwned -- see the bag gate in MineServer.
+
+	PROPOSED (2026-10-10): the slot count and the ability.
+]]
+nextId += 1
+table.insert(LIST, {
+	id = nextId,
+	name = "Trick-or-Treat Bucket",
+	slots = math.floor(topCoin.slots * 2 + 0.5),
+	price = 0,
+	minZone = 1,
+	band = "deep",
+	blurb = "Won from a Trick-or-Treat case. Heavier than it looks.",
+	limited = "hallow",
+	ability = "Candy blocks pay double while it is carried.",
+	-- The ability as a NUMBER the payout reads, not just the sentence above it.
+	-- A bag whose ability exists only in its blurb is a bag with no ability.
+	candyMult = 2,
+	skin = "candy",
+	zoneId = "hallow",
+})
+
 nextId += 1
 table.insert(LIST, {
 	id = nextId,

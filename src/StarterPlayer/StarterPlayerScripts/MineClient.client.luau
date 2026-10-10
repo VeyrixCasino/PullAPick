@@ -5190,6 +5190,12 @@ eventsCtl = require(shared:WaitForChild("MineEventsView")).mount(gui, {
 	onClaim = function(zoneId)
 		net:FireServer("buyZone", zoneId)
 	end,
+	-- Buys AND opens in one action: the owner asked for candy you trade in, so
+	-- nothing is left sitting unopened in an inventory. The server re-checks
+	-- the claim, the window and the price.
+	onTrickOrTreat = function()
+		net:FireServer("buyTrickOrTreat")
+	end,
 })
 
 groupWheelCtl = require(shared:WaitForChild("MineGroupWheelView")).mount(gui, {
