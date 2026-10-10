@@ -66,7 +66,11 @@ it via personal account, and i just have to share access"*.
   leading-zero id before concluding the share did not work.
 - The 84 pack sprites and icons are in `build/pack-art/ids.json`, written by
   `tools/pack-sprites/write-ids.js`; `build/pack-art/share-list.txt` lists them
-  for sharing.
+  for sharing. **All 84 shared and loading in the group place** (2026-10-10,
+  `PreloadAsync` 84/84; spot-checked sizes 732x1024 and 512x512).
+- The owner has seen personal assets in the group they never shared by hand.
+  Roblox appears to grant an experience use of an asset its owner uses there
+  from Studio; *unverified*, so still share explicitly and test.
 
 ## Icons are the owner's job
 
