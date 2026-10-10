@@ -202,3 +202,19 @@ nowhere; coins had two live sinks against twelve faucets; every ore had the same
 health; every tool in a family was one silhouette in 82 colours. All fixed
 except the owner decisions. New harnesses: `orphan-verbs.js`, `orehp.js`,
 `megascale.js`, `recycle-quote.js`, `gem-spread.js`.
+
+## [2026-10-10] ingest | model audit: 197 of 322 pets were duplicates
+Audited every model the game builds, chasing the owner's report of "parts that
+are not even attached". None exist — worst real gap on any tool is −0.024 studs
+(overlapping), and every floating pet part is deliberate FX, proven by building
+each body with and without its skin. The audit found something worse instead:
+fingerprinting all 322 pets by part size, position and colour put **197 in 48
+byte-identical groups**. Three causes, now separated in [pets]: 69 Event
+Horizon animals had no `ANIMALS` row and all rendered as the default fox (the
+`resolveSpecies` → `"fox"` fallback is silent); 64 animals shared a tint with a
+sibling, so 11 dog breeds were one brown and Alien/Fairy/Gremlin were one
+lavender; and 12 groups are two roster rows pointing at one `animal`, which is
+correct factory behaviour and now an owner question. Fixed the first two and
+verified at the model level — 300 skins built, 0 identical. New harness:
+`petskins.js`. Also: `/admin oretools all` had silently skipped hammers since
+they shipped.
