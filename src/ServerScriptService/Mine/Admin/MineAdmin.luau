@@ -161,12 +161,14 @@ function MineAdmin.start(deps)
 		qty = clampInt(qty, 1, MAX_PACK_QTY)
 		local ids = setIds()
 		local rng = Random.new()
+		local Cases = require(RS.Mine.Shared.MineCases)
 		p.packs = p.packs or {}
 		for _ = 1, qty do
-			table.insert(p.packs, {
+			-- A pack case is its own kind of row; a set pack keeps its set.
+			table.insert(p.packs, Cases.bagRow(packId) or {
 				packId = packId,
 				packName = def.name or packId,
-				setId = (#ids > 0) and ids[rng:NextInteger(1, #ids)] or "dragons_dawn",
+				setId = def.setKey or ((#ids > 0) and ids[rng:NextInteger(1, #ids)] or "dragons_dawn"),
 			})
 		end
 		return true, qty

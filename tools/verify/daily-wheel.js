@@ -59,6 +59,14 @@ for _, s in ipairs(W.SEGMENTS) do
 	if s.reward.pet or s.reward.petTier or s.reward.petPool then petOrBetter += s.weight end
 end
 check(petOrBetter <= 10, string.format("a free daily spin gives a pet at most 10%% of the time (%.2f%%)", petOrBetter))
+-- Owner, 2026-10-10: the pack slices pay star-graded wild pack cases, never a
+-- named or zone pack. Gear and rune cases are not card packs and stay.
+for _, s in ipairs(W.SEGMENTS) do
+	for _, row in ipairs(s.reward.packs or {}) do
+		local ok = string.match(row.id, "^case_%d$") ~= nil or row.id == "gear_vault_pack" or row.id == "rune_heavy_pack"
+		check(ok, "slice '" .. s.id .. "' pays a pack case, not a pack (" .. row.id .. ")")
+	end
+end
 
 -- 2. allowance
 check(W.allowance(false, 0, false) == W.FREE_PER_DAY, "everyone gets the base free spin")

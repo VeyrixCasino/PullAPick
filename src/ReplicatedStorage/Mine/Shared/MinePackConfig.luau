@@ -1301,8 +1301,15 @@ MinePackConfig.PACK_PRICE.magpie_pack = MinePackConfig.PACK_PRICE.magma_pack
 MinePackConfig.BUNDLE_QTY = 10
 MinePackConfig.BUNDLE_RATE = 0.70
 
+-- MineCases, required at the bottom of this file (it registers the cases).
+local Cases = nil
+
+-- A pack case or a featured set pack on today's credit shelf is priced by
+-- MineCases (PROPOSED, from expected value), so the cart, the 10x bundle and
+-- the box all read it here like any other pack.
 function MinePackConfig.priceOf(packId)
 	return MinePackConfig.PACK_PRICE[tostring(packId)]
+		or (Cases and Cases.creditPrice and Cases.creditPrice(packId))
 end
 
 -- Shop credit list prices (≈Robux). Wide disparity: filler impulse vs whale chase.
@@ -1583,6 +1590,7 @@ local PACK_UNIT = {
 	card = { "card", "cards" },
 	rune = { "rune", "runes" },
 	gear = { "piece", "pieces" },
+	pack_case = { "pack", "packs" },
 }
 
 function MinePackConfig.unitWord(packId, n)
@@ -1939,6 +1947,32 @@ do
 	elseif not ok and warn then
 		-- (warn is nil in the offline pack checks, which stub the module tree)
 		warn("[MinePackConfig] MineSetPacks: " .. tostring(SetPacks))
+	end
+end
+
+--[[
+	THE PACK CASES (MineCases) answer pack lookups too, kind "pack_case", so a
+	case in the bag gets a tile, its stars and its sort place like a pack. Out
+	of PACKS for the same reason as the set packs. A case sorts just above the
+	best pack inside it. Opening one never reaches openPack (MineServer).
+]]
+do
+	local mod = script.Parent:FindFirstChild("MineCases")
+	local ok, M = pcall(function()
+		return mod and require(mod)
+	end)
+	if ok and type(M) == "table" then
+		Cases = M
+		for _, def in ipairs(M.CASES or {}) do
+			if MinePackConfig.PACK_BY_ID[def.id] == nil then
+				MinePackConfig.PACK_BY_ID[def.id] = def
+				local key = def.setKey or (M.SETS[1] and M.SETS[1].key) or ""
+				local top = MinePackConfig.PACK_TIER[key .. "_pack_" .. tostring(def.starLevel)]
+				MinePackConfig.PACK_TIER[def.id] = (tonumber(top) or 0) + 0.25
+			end
+		end
+	elseif not ok and warn then
+		warn("[MinePackConfig] MineCases: " .. tostring(M))
 	end
 end
 

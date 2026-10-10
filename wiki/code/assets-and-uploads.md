@@ -73,6 +73,12 @@ it via personal account, and i just have to share access"*.
   `<setKey>_pack_<n>` id, so every set pack wears its set's sprite, picked by
   the pack's stars: up to 2 -> sprite 1, 2.5 to 3.5 -> 2, 4 and up -> 3.
   It also holds the set icons and rarity icons (`setIcon`, `rarityIcon`).
+- **Pack case art** (`MinePackArt.caseArt`) works like this:
+  - It reads an optional `cases` map in `ids.json`: one image per set, keyed by
+    the set's file name, plus `Wild`.
+  - Until that map exists, a set case wears its set's medallion, and a wild
+    case wears the gem of its star tier.
+  - The 20 images (19 sets plus 1 wild) are still to come from Canva.
 - The owner has seen personal assets in the group they never shared by hand.
   Roblox appears to grant an experience use of an asset its owner uses there
   from Studio; *unverified*, so still share explicitly and test.

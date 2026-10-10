@@ -1148,14 +1148,20 @@ function MineInventoryView.mount(parent, opts)
 		guaranteed good card, and the prestige pack -- which is a merchandising
 		decision, not something the odds tables can answer.
 	]]
-	-- Hand-picked: which packs are worth leading with is a merchandising call,
-	-- not something the odds tables can answer. One of the three new families
-	-- rides along so they are discoverable without hunting the grid for them.
-	local FEATURED = { "hopper_pack", "magma_pack", "shiny_pack", "apex_pack", "heirloom_pack" }
+	-- Owner, 2026-10-10: the credit shop sells "Cases by star + a few featured
+	-- set packs", and the old packs came off it. The hero leads with the best
+	-- wild case, then today's featured set packs (MineCases.featuredSetPacks).
+	local FEATURED = { "case_6" }
+	for _, id in ipairs(require(shared:WaitForChild("MineCases")).featuredSetPacks()) do
+		table.insert(FEATURED, id)
+	end
 	local heroAt = 1
 	local heroToken = 0
 	-- Custom booster box: up to 10 pack picks (always available).
 	local boxPicks = {}
+	-- The stardust shop's two tabs, and the set whose cases are showing. Kept
+	-- out here so a snapshot re-render does not snap back to the first ones.
+	local dustTab = { view = "cases", set = nil }
 
 	local function cartKey(kind, id, bundle)
 		return tostring(kind) .. "|" .. tostring(id) .. "|" .. (bundle and "10" or "1")
@@ -1353,8 +1359,10 @@ function MineInventoryView.mount(parent, opts)
 
 		local unit = Packs.unitWord and Packs.unitWord(g.packId, g.cards) or "cards"
 		local isCurrencyPack = packDef and packDef.kind == "currency"
-		local cardsL = label(inspectP, (g.cards > 0)
-			and (g.cards .. " " .. unit .. " -- every one rolls the odds below")
+		local Cases = require(shared:WaitForChild("MineCases"))
+		local caseDef = Cases.get(g.packId)
+		local cardsL = label(inspectP, (caseDef and (Cases.countText(g.packId) .. " -- opens into packs, not cards"))
+			or (g.cards > 0) and (g.cards .. " " .. unit .. " -- every one rolls the odds below")
 			or (isCurrencyPack and "Currency pouch -- opens into the rewards below")
 			or "",
 			13, tierCol, UDim2.fromOffset(12, 180), UDim2.new(1, -24, 0, 18), FONT)
@@ -1362,7 +1370,54 @@ function MineInventoryView.mount(parent, opts)
 		cardsL.ZIndex = 62
 
 		local y = 232
-		if isCurrencyPack then
+		if caseDef then
+			--[[
+				A PACK CASE lists what it holds: a set case its exact packs, a
+				wild case how likely each slot is to come from a set of each
+				grade (MineSetPacks.caseGradeOdds), best grade last.
+			]]
+			local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+			local hdrK = label(inspectP, (caseDef.caseType == "set") and "WHAT'S INSIDE"
+				or ("EACH PACK IS " .. SetPacks.STAR_TEXT[caseDef.starLevel] .. ", FROM A SET OF GRADE"),
+				13, MUTED, UDim2.fromOffset(18, 210), UDim2.new(1, -36, 0, 18), FONT)
+			hdrK.TextXAlignment = Enum.TextXAlignment.Left
+			hdrK.ZIndex = 62
+			local function caseRow(left, right, col)
+				local line = mk("Frame", {
+					BackgroundColor3 = BG2,
+					Position = UDim2.fromOffset(18, y),
+					Size = UDim2.new(1, -36, 0, 26),
+					ZIndex = 62,
+				}, inspectP)
+				round(line, 6)
+				mk("Frame", {
+					BackgroundColor3 = col,
+					BorderSizePixel = 0,
+					Size = UDim2.fromOffset(4, 26),
+					ZIndex = 63,
+				}, line)
+				local ll = label(line, left, 13, col, UDim2.fromOffset(12, 0), UDim2.new(1, -110, 0, 26), FONT)
+				ll.TextXAlignment = Enum.TextXAlignment.Left
+				ll.TextTruncate = Enum.TextTruncate.AtEnd
+				ll.ZIndex = 63
+				local rl = label(line, right, 13, TEXT, UDim2.new(1, -96, 0, 0), UDim2.fromOffset(84, 26))
+				rl.TextXAlignment = Enum.TextXAlignment.Right
+				rl.ZIndex = 63
+				y += 30
+			end
+			if caseDef.caseType == "set" then
+				for _, packId in ipairs(caseDef.packs) do
+					local _, level = Cases.parsePack(packId)
+					caseRow(Cases.packName(packId), SetPacks.STAR_TEXT[level or 1] or "",
+						Cards.RARITY_COLOR[SetPacks.STAR_TIER[level or 1]] or TEXT)
+				end
+			else
+				for _, row in ipairs(SetPacks.caseGradeOdds()) do
+					caseRow(string.format("Grade %s  (%d sets)", row.grade, row.sets),
+						string.format("%.1f%%", row.pct), (Gear.RARITY_COLOR and Gear.RARITY_COLOR[row.grade]) or TEXT)
+				end
+			end
+		elseif isCurrencyPack then
 			local hdrC = label(inspectP, "REWARDS", 13, MUTED, UDim2.fromOffset(18, 210),
 				UDim2.new(1, -36, 0, 18), FONT)
 			hdrC.TextXAlignment = Enum.TextXAlignment.Left
@@ -1908,9 +1963,11 @@ function MineInventoryView.mount(parent, opts)
 			local tierName = pk.packName or C.PACK_TIERS[pk.tier or 1] or "Pack"
 			local set = Cards.SETS[pk.setId]
 			local setPack = Packs.PACK_BY_ID and Packs.PACK_BY_ID[pk.packId]
+			-- A wild pack case (MineCases) has no set: it draws from all 19.
+			local wildCase = setPack ~= nil and setPack.kind == "pack_case" and not setPack.setKey
 			setPack = (setPack and setPack.setKey) and setPack or nil
 			local setName = (set and set.displayName) or (setPack and setPack.setName)
-				or tostring(pk.setId or "Unknown set")
+				or (wildCase and "Any set") or tostring(pk.setId or "Unknown set")
 			local luckMult = tonumber(pk.luck) or 1
 			local luckPct = (luckMult > 1) and math.floor((luckMult - 1) * 100 + 0.5) or 0
 			local key
@@ -2184,7 +2241,9 @@ function MineInventoryView.mount(parent, opts)
 				end
 				-- How many cards you get. It was never stated anywhere, and the
 				-- packs do not all pay the same: 1, 3, 6 and 8 all exist.
-				local cardsL = label(tile, (g.cards > 0)
+				-- A pack case says how many packs ("3-5 packs" for a wild one).
+				local caseText = require(shared:WaitForChild("MineCases")).countText(g.packId)
+				local cardsL = label(tile, (caseText ~= "" and caseText) or (g.cards > 0)
 					and (g.cards .. " " .. (Packs.unitWord and Packs.unitWord(g.packId, g.cards) or "cards")) or "",
 					12, tierCol, UDim2.fromOffset(8, 136), UDim2.new(1, -16, 0, 16), FONT)
 				cardsL.TextXAlignment = Enum.TextXAlignment.Center
@@ -5853,20 +5912,9 @@ function MineInventoryView.mount(parent, opts)
 			end
 			local wide = (body.AbsoluteSize.X / kScale) >= 700
 
-			-- Three real packs to show off: the dearest card packs on the shelf.
-			local showcase = {}
-			do
-				local rows = {}
-				for _, def in ipairs(Packs.PACKS or {}) do
-					if Packs.priceOf(def.id) and (not Packs.packKind or Packs.packKind(def.id) == "card") then
-						table.insert(rows, def.id)
-					end
-				end
-				table.sort(rows, function(x, y) return (Packs.priceOf(x) or 0) > (Packs.priceOf(y) or 0) end)
-				for i = 1, math.min(3, #rows) do
-					showcase[i] = rows[i]
-				end
-			end
+			-- Three real things to show off: the best wild pack cases on the
+			-- credit shelf (the middle one sits in front).
+			local showcase = { "case_5", "case_6", "case_4" }
 			local function packFan(host, ids, w, h)
 				-- Overlapped, not rotated: a rotated frame escapes the scroll clip.
 				for i, pid in ipairs(ids) do
@@ -5930,8 +5978,8 @@ function MineInventoryView.mount(parent, opts)
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}, grid)
 			local doors = {
-				{ tab = "packs", title = "Card Packs", sub = "Singles and 10× warehouse boxes", cta = "BROWSE", col = T.CREDIT or GOLD, packs = true },
-				{ tab = "dust", title = "Stardust Shop", sub = "New packs every 6 hours · limited stock", cta = "SHOP", col = T.DUST or GEM, icons = { "stardust" } },
+				{ tab = "packs", title = "Pack Cases", sub = "Wild cases by star · today's featured set packs", cta = "BROWSE", col = T.CREDIT or GOLD, packs = true },
+				{ tab = "dust", title = "Stardust Shop", sub = "Set cases · new packs every 6 hours", cta = "SHOP", col = T.DUST or GEM, icons = { "stardust" } },
 				{ tab = "limited", title = "Lucky Blocks", sub = "Tap to open · grade them up for bigger loot", cta = "SEE", col = Color3.fromRGB(255, 200, 70), icons = { "lucky_block", "super_lucky_block", "godly_lucky_block" } },
 				{ tab = "box", title = "Build a Box", sub = "Any 10 packs you like · 12% off", cta = "BUILD", col = TEAL, icons = { "chest" } },
 				{ tab = "currencies", title = "Credits", sub = "Top up once, spend anywhere in the shop", cta = "TOP UP", col = GREEN, icons = { "credit_crate" } },
@@ -5996,7 +6044,8 @@ function MineInventoryView.mount(parent, opts)
 			end
 			label(head, "STARDUST SHOP", 22, TEXT, UDim2.fromOffset(86, 12), UDim2.new(1, -300, 0, 28), FONT).ZIndex = 4
 			local left = math.max(0, (tonumber(shop.endsAt) or os.time()) - os.time())
-			label(head, string.format("New shelf in %dh %02dm  ·  packs + potions  ·  limited stock", left // 3600, (left % 3600) // 60),
+			label(head, (dustTab.view == "cases") and "Pack cases  ·  always in stock"
+				or string.format("New shelf in %dh %02dm  ·  packs + potions  ·  limited stock", left // 3600, (left % 3600) // 60),
 				13, MUTED, UDim2.fromOffset(86, 44), UDim2.new(1, -300, 0, 20)).ZIndex = 4
 			local bal = mk("Frame", { BackgroundColor3 = BG3, AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -16, 0.5, 0), Size = UDim2.fromOffset(190, 44), ZIndex = 4 }, head)
@@ -6005,11 +6054,127 @@ function MineInventoryView.mount(parent, opts)
 			label(bal, shortNum(state.dust or 0) .. " stardust", 17, DUSTC, UDim2.fromOffset(12, 18),
 				UDim2.new(1, -24, 0, 22), FONT).ZIndex = 5
 
-			if #(shop.offers or {}) == 0 then
-				note(body, "The shelf is being restocked -- check back in a moment.", 1)
+			-- Two tabs (owner, 2026-10-10: pack cases are a new tab inside the
+			-- stardust shop, not a stall of their own).
+			do
+				local bar = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -6, 0, 40), LayoutOrder = 1 }, body)
+				for ti, t in ipairs({ { "cases", "PACK CASES" }, { "shelf", "ROTATING SHELF" } }) do
+					local on = dustTab.view == t[1]
+					local tb = mk("TextButton", {
+						AutoButtonColor = true, BackgroundColor3 = on and DUSTC or BG3, Font = FONT, TextSize = 14,
+						TextColor3 = on and Color3.fromRGB(30, 16, 44) or MUTED, Text = t[2],
+						Position = UDim2.fromOffset((ti - 1) * 176, 2), Size = UDim2.fromOffset(166, 36),
+					}, bar)
+					round(tb, 8)
+					tb.MouseButton1Click:Connect(function()
+						dustTab.view = t[1]
+						render()
+					end)
+				end
+			end
+
+			if dustTab.view == "cases" then
+				--[[
+					PACK CASES FOR STARDUST (MineCases). Always in stock, no
+					limits. A set case holds that set's exact packs; a wild case
+					3-5 random packs of its star grade from any set. Prices are
+					the server's (MineCases.dustPrice, PROPOSED); this only shows
+					them.
+				]]
+				local Cases = require(shared:WaitForChild("MineCases"))
+				local function caseTile(grid, id, order)
+					local def = Cases.get(id)
+					local price = Cases.dustPrice(id)
+					if not (def and price and matches(def.name .. " " .. (def.setName or ""))) then
+						return
+					end
+					local accent = PackFX.art(id).accent
+					local tile = mk("Frame", { BackgroundColor3 = BG2, LayoutOrder = order }, grid)
+					round(tile, 12)
+					stroke(tile, 2, accent)
+					local artHost = mk("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0),
+						Position = UDim2.new(0.5, 0, 0, 10), Size = UDim2.fromOffset(64, 88), ZIndex = 3 }, tile)
+					pcall(PackFX.drawSealed, artHost, id, 64, 88)
+					starRow(tile, def.stars or 1, 102, 12)
+					local nm = label(tile, def.name, 14, TEXT, UDim2.fromOffset(6, 118), UDim2.new(1, -12, 0, 18), FONT,
+						Enum.TextXAlignment.Center)
+					nm.TextTruncate = Enum.TextTruncate.AtEnd
+					label(tile, Cases.countText(id), 12, accent, UDim2.fromOffset(6, 136), UDim2.new(1, -12, 0, 16), FONT,
+						Enum.TextXAlignment.Center)
+					infoBadge(tile, {
+						packId = id, tierName = def.name, setName = def.setName or "Any set",
+						cards = def.cards or 0, count = 0, firstIndex = nil, setId = def.setKey,
+					})
+					local function buyBtn(qty, y)
+						local can = (state.dust or 0) >= price * qty
+						local btn = mk("TextButton", {
+							AutoButtonColor = can,
+							BackgroundColor3 = can and DUSTC or BG3,
+							Font = FONT, TextSize = 14,
+							TextColor3 = can and Color3.fromRGB(30, 16, 44) or MUTED,
+							Text = string.format("BUY %d  ·  %s", qty, shortNum(price * qty)),
+							Position = UDim2.fromOffset(10, y), Size = UDim2.new(1, -20, 0, 30),
+						}, tile)
+						round(btn, 8)
+						if can then
+							btn.MouseButton1Click:Connect(function()
+								if opts.onBuyDustCase then
+									opts.onBuyDustCase(id, qty)
+								end
+							end)
+						end
+					end
+					buyBtn(1, 160)
+					buyBtn(5, 196)
+				end
+				local function caseGrid(order)
+					local grid = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -6, 0, 0),
+						AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = order }, body)
+					mk("UIGridLayout", { CellPadding = UDim2.fromOffset(10, 10), CellSize = UDim2.fromOffset(176, 236),
+						SortOrder = Enum.SortOrder.LayoutOrder }, grid)
+					return grid
+				end
+
+				-- One set at a time: 19 sets x 3 cases is too long a wall.
+				local setKey = dustTab.set or (Cases.SETS[1] and Cases.SETS[1].key)
+				sectionHeader("Set cases  --  that set's exact packs, every time", 2)
+				local chips = stripOf(body, "SetChips", 6)
+				chips.Size = UDim2.new(1, -6, 0, 40)
+				chips.LayoutOrder = 3
+				for si, s in ipairs(Cases.SETS) do
+					local on = s.key == setKey
+					local gradeCol = (Gear.RARITY_COLOR and Gear.RARITY_COLOR[s.grade]) or TEXT
+					local chip = mk("TextButton", {
+						AutoButtonColor = true, BackgroundColor3 = on and gradeCol or BG3, Font = FONT, TextSize = 13,
+						TextColor3 = on and Color3.fromRGB(20, 16, 24) or TEXT,
+						Text = "  " .. s.name .. "  ·  " .. s.grade .. "  ",
+						AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 32), LayoutOrder = si,
+					}, chips)
+					round(chip, 8)
+					stroke(chip, 1, gradeCol)
+					chip.MouseButton1Click:Connect(function()
+						dustTab.set = s.key
+						render()
+					end)
+				end
+				local setGrid = caseGrid(4)
+				for ci, kind in ipairs(Cases.SET_CASES) do
+					caseTile(setGrid, Cases.setCaseId(setKey, kind.key), ci)
+				end
+
+				sectionHeader("Wild cases  --  3-5 random packs of one star grade, from any set", 5)
+				local wildGrid = caseGrid(6)
+				for n = 1, #Cases.CASES do
+					local def = Cases.CASES[n]
+					if def.caseType == "wild" then
+						caseTile(wildGrid, def.id, n)
+					end
+				end
+			elseif #(shop.offers or {}) == 0 then
+				note(body, "The shelf is being restocked -- check back in a moment.", 2)
 			else
 				local grid = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -6, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 1 }, body)
+					AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 2 }, body)
 				mk("UIGridLayout", { CellPadding = UDim2.fromOffset(10, 10), CellSize = UDim2.fromOffset(176, 262),
 					SortOrder = Enum.SortOrder.LayoutOrder }, grid)
 				for i, o in ipairs(shop.offers) do
@@ -6127,17 +6292,15 @@ function MineInventoryView.mount(parent, opts)
 				CellSize = UDim2.fromOffset(156, 168),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}, grid)
-			-- Card packs only, same as the Packs tab: a booster box of rune
-			-- pouches is not a booster box.
+			-- The same shelf as the Packs tab (MineCases.creditShelf): the old
+			-- card packs came off both.
 			local rows = {}
-			for _, def in ipairs(Packs.PACKS or {}) do
-				if Packs.priceOf(def.id) and (not Packs.packKind or Packs.packKind(def.id) == "card") then
+			for _, id in ipairs(require(shared:WaitForChild("MineCases")).creditShelf()) do
+				local def = Packs.PACK_BY_ID[id]
+				if def and Packs.priceOf(id) then
 					table.insert(rows, def)
 				end
 			end
-			table.sort(rows, function(a, b)
-				return (Packs.priceOf(a.id) or 0) < (Packs.priceOf(b.id) or 0)
-			end)
 			for i, def in ipairs(rows) do
 				if matches(def.name or def.id) then
 					local unit = Packs.priceOf(def.id)
@@ -6407,10 +6570,12 @@ function MineInventoryView.mount(parent, opts)
 					-- Shiny is a card finish, so the second half of this line is only
 					-- true for card packs. A gear bundle says what it actually is.
 					local heroUnit = Packs.unitWord and Packs.unitWord(id, (def.cards or 0) * 10) or "cards"
-					blurbL.Text = heroStars .. "   ·   " .. ((def.cards or 0) * 10) .. " " .. heroUnit
+					local caseText = require(shared:WaitForChild("MineCases")).countText(id)
+					blurbL.Text = heroStars .. "   ·   " .. ((caseText ~= "" and ("10 cases, " .. caseText .. " each"))
+						or (((def.cards or 0) * 10) .. " " .. heroUnit
 						.. ((Packs.hasShiny and not Packs.hasShiny(id))
 							and ""
-							or ("  --  " .. (def.shiny or 0) .. "% shiny per card"))
+							or ("  --  " .. (tonumber(def.shiny) or Packs.SHINY_CHANCE or 0) .. "% shiny per card"))))
 					saveL.Text = "save " .. (unit * 10 - bundle) .. " credits on the list price"
 					paintCostButton(cta, "ADD 10x", bundle, "credits", Color3.fromRGB(26, 20, 40))
 					for _, c in ipairs(dots:GetChildren()) do
@@ -6448,7 +6613,7 @@ function MineInventoryView.mount(parent, opts)
 				end)
 			end
 
-			note(body, "Warehouse packs  --  pay with Credits, 10% off at checkout.", 1)
+			note(body, "Wild pack cases by star, and today's featured set packs  --  pay with Credits, 10% off at checkout.", 1)
 
 			local grid = mk("Frame", {
 				BackgroundTransparency = 1,
@@ -6462,24 +6627,22 @@ function MineInventoryView.mount(parent, opts)
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}, grid)
 
-			-- Card packs only. Rune pouches and gear crates are rolled at the
-			-- Enchanter, and listing them here sold the same thing twice in two
-			-- different currencies.
+			--[[
+				THE SHELF IS MineCases.creditShelf. Owner, 2026-10-10: "clear out
+				the credit shop for now, of all the unused packs, and replace them
+				with the new ones" -- the wild cases by star, then today's
+				featured set packs. The old card packs (Hopper to Shiny) are off
+				it. Rune pouches and gear crates were never here: they are rolled
+				at the Enchanter.
+			]]
+			local Cases = require(shared:WaitForChild("MineCases"))
 			local rows = {}
-			for _, def in ipairs(Packs.PACKS or {}) do
-				if Packs.priceOf(def.id) and (not Packs.packKind or Packs.packKind(def.id) == "card") then
+			for _, id in ipairs(Cases.creditShelf()) do
+				local def = Packs.PACK_BY_ID[id]
+				if def and Packs.priceOf(id) then
 					table.insert(rows, def)
 				end
 			end
-			-- Cheapest first: a price list that opens on the 220-credit pack
-			-- reads as expensive, the same list opening on 35 reads as generous.
-			table.sort(rows, function(x, y)
-				local px, py = Packs.priceOf(x.id), Packs.priceOf(y.id)
-				if px ~= py then
-					return px < py
-				end
-				return tostring(x.name) < tostring(y.name)
-			end)
 
 			for i, def in ipairs(rows) do
 				if matches(def.name or def.id) then
@@ -6506,15 +6669,21 @@ function MineInventoryView.mount(parent, opts)
 						UDim2.fromOffset(8, 104), UDim2.new(1, -16, 0, 20), FONT)
 					nameL.TextXAlignment = Enum.TextXAlignment.Center
 					nameL.TextTruncate = Enum.TextTruncate.AtEnd
-					local cardsL = label(tile, ((def.cards or 0) .. " "
+					-- A case says how many packs; a set pack says its set and grade.
+					local caseText = Cases.countText(def.id)
+					if caseText == "" and def.setKey and def.setName then
+						caseText = def.setName .. " · " .. tostring(def.grade or "")
+					end
+					local cardsL = label(tile, (caseText ~= "" and caseText) or ((def.cards or 0) .. " "
 			.. (Packs.unitWord and Packs.unitWord(def.id, def.cards) or "cards")),
 						12, tierCol, UDim2.fromOffset(8, 124), UDim2.new(1, -16, 0, 16), FONT)
 					cardsL.TextXAlignment = Enum.TextXAlignment.Center
 
 					infoBadge(tile, {
-						packId = def.id, tierName = def.name or def.id, setName = "",
+						packId = def.id, tierName = def.name or def.id,
+						setName = def.setName or (def.kind == "pack_case" and "Any set") or "",
 						cards = def.cards or 0, count = 0, firstIndex = nil,
-						setId = "dragons_dawn",
+						setId = def.setKey or "dragons_dawn",
 					})
 
 					local one = mk("TextButton", {

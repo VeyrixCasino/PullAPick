@@ -73,20 +73,26 @@ MineGroupWheel.SEGMENTS = {
 		reward = { petTier = "Legendary" } },
 	{ id = "epic_pet", label = "EPIC PET", sub = "Any Epic", color = Color3.fromRGB(190, 120, 255), weight = 5,
 		reward = { petTier = "Epic" } },
-	{ id = "jackpot", label = "JACKPOT", sub = "15K Gems + Apex", color = Color3.fromRGB(255, 80, 120), weight = 0.8, hype = true,
-		reward = { gems = 15000, packs = { { id = "apex_pack", qty = 1 } } } },
+	{ id = "jackpot", label = "JACKPOT", sub = "15K Gems + 5★ Case", color = Color3.fromRGB(255, 80, 120), weight = 0.8, hype = true,
+		reward = { gems = 15000, packs = { { id = "case_6", qty = 1 } } } },
 	{ id = "gem_storm", label = "5K GEMS", sub = "Gem Storm", color = Color3.fromRGB(80, 200, 255), weight = 3,
 		reward = { gems = 5000 } },
 	{ id = "gear_vault", label = "GEAR CASE", sub = "x1", color = Color3.fromRGB(255, 180, 60), weight = 6,
 		reward = { packs = { { id = "gear_vault_pack", qty = 1 } } } },
 	{ id = "heavy_runes", label = "RUNE CASE", sub = "x1", color = Color3.fromRGB(180, 100, 255), weight = 6,
 		reward = { packs = { { id = "rune_heavy_pack", qty = 1 } } } },
-	{ id = "apex", label = "APEX PACK", sub = "Best pack", color = Color3.fromRGB(255, 220, 80), weight = 6,
-		reward = { packs = { { id = "apex_pack", qty = 1 } } } },
-	{ id = "heirloom", label = "HEIRLOOM", sub = "Pack x1", color = Color3.fromRGB(120, 255, 180), weight = 10,
-		reward = { packs = { { id = "heirloom_pack", qty = 1 } } } },
-	{ id = "anomaly", label = "ANOMALY", sub = "Pack x1", color = Color3.fromRGB(100, 255, 255), weight = 10,
-		reward = { packs = { { id = "anomaly_pack", qty = 1 } } } },
+	--[[
+		The pack slices pay WILD PACK CASES (MineCases "case_<n>": 3-5 random
+		packs of one star grade from any set). Owner, 2026-10-10: the slices
+		become star-graded pack cases and the wheel stops giving zone packs. The
+		ids stay (identity); which star grade each slice pays is PROPOSED.
+	]]
+	{ id = "apex", label = "4★ CASE", sub = "3-5 packs", color = Color3.fromRGB(255, 220, 80), weight = 6,
+		reward = { packs = { { id = "case_5", qty = 1 } } } },
+	{ id = "heirloom", label = "3★ CASE", sub = "3-5 packs", color = Color3.fromRGB(120, 255, 180), weight = 10,
+		reward = { packs = { { id = "case_4", qty = 1 } } } },
+	{ id = "anomaly", label = "2★ CASE", sub = "3-5 packs", color = Color3.fromRGB(100, 255, 255), weight = 10,
+		reward = { packs = { { id = "case_3", qty = 1 } } } },
 	-- id "godly" is kept (identity); the prize is now a grade-C Lucky Block.
 	{ id = "godly", label = "LUCKY BLOCK", sub = "Grade C", color = Color3.fromRGB(255, 120, 40), weight = 6,
 		reward = { blocks = { { id = "lucky_block", grade = "C", qty = 1 } } } },

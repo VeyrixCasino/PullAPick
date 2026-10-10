@@ -140,6 +140,7 @@ the last. Cards of Rare or better that rolled rarer than 1 in 200 carry an
 | `ore_case` | `<ore>_ore_case` | a skin or a charm, see [skins-cases-and-temper](skins-cases-and-temper.md) |
 | `ore` (legacy) | `<ore>_ore_pack` | ore; converted on load (below) |
 | `lucky_block` | stored in `p.packs` | see [chests-and-lucky-blocks](chests-and-lucky-blocks.md) |
+| `pack_case` | `case_<1..6>`, `<set>_case_<starter\|collector\|vault>` | packs, never cards; see [pack-cases](pack-cases.md) |
 
 **Where packs come from:** zone chests ([chests-and-lucky-blocks](chests-and-lucky-blocks.md)),
 the credits shop ([shops-and-monetisation](shops-and-monetisation.md)), quests

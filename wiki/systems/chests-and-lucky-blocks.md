@@ -81,6 +81,13 @@ the five kinds are still separated by tint alone. Open question below.
   a zone pack slot (`rollPackDrops`). A Meadow section chest rolls currency_common
   72, pack_common 18, pack_rare 6, pack_legendary 1 and currency_rare 3. A
   legendary pack fires the "BONKERS PACK" popup.
+- **Pack cases.** A zone chest can also drop a wild pack case
+  (`MineCases.rollChestCase`, 2026-10-10).
+  - The chance depends on the chest's rank: 0.5% for an F chest up to 10% for
+    an S chest.
+  - Chest luck raises it, up to ×3.
+  - The case's star grade is rolled from `MineSetPacks.CHEST_CASE_STARS`.
+  - All of these are PROPOSED. See [pack-cases](pack-cases.md).
 - **Tutorial chests** force how many packs drop through the `PackQty` attribute.
 - **Persist bag.** Mid and deep layers have a small chance (0.8% / 0.4%, times
   `chestLuck`) at a one-off bag that adds `backpackBonus`.

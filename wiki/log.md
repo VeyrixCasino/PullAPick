@@ -597,3 +597,29 @@ answers (window, second event mine, 60 pets, "divided by 10000") are recorded
 in owner and PETS-AND-SETS, and handed off in next-up with a prompt.
 
 Updated: pets, tools-and-generators, owner, next-up, log.
+
+## [2026-10-10] ingest | pack cases: wild and set cases, chests, wheel, both shops
+Owner: two kinds of case. Set cases have exact contents and are sold for
+stardust: Starter, Collector and Vault, three per set. Wild cases are a
+complete random draw. Cases replace the wheel's pack slices. The credit shop
+sells "Cases by star + a few featured set packs", and its old packs came off.
+Prices come from expected value.
+
+New `MineCases` holds both kinds, opening, chest drops, the shelves and the
+PROPOSED prices:
+- stardust = expected value / 0.65, times 1.05 per set;
+- credits come from a curve fitted to the old credit shelf.
+
+Where cases now appear:
+- Cases are registered in `MinePackConfig.PACK_BY_ID`.
+- MineServer hands a case to `MineCases.open` before `openPack`.
+- Chests roll a case by rank.
+- The wheel's apex, heirloom, anomaly and jackpot slices pay wild cases.
+- The stardust shop gained a Pack Cases tab.
+
+Played in Studio: bought, opened (single and run), tiles, inspector, both shelves.
+
+Filed: [pack-cases](systems/pack-cases.md), with the full pricing table and
+what is still to approve. Updated: shops-and-monetisation,
+social-quests-and-leaderboards, chests-and-lucky-blocks, cards-and-packs,
+assets-and-uploads, index.

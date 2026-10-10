@@ -106,7 +106,29 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
 - **A1b. Wheel changes (queued for the rewards pass, `docs/PETS-AND-SETS.md`):**
   - a free spin every 6 h;
   - the face as one generated image;
-  - ★ pack-case slices instead of specific prizes.
+  - ~~★ pack-case slices instead of specific prizes~~ **done 2026-10-10**: the
+    pack slices pay wild pack cases (`wiki/systems/pack-cases.md`).
+- **A1c. Pack cases. Built 2026-10-10** (`MineCases`; wiki
+  `systems/pack-cases.md`). This covers:
+  - wild cases ★–★★★★★, and Starter, Collector and Vault set cases for every set;
+  - chest drops, the wheel, the credit shelf (cases plus 4 featured set packs a
+    day, with the old packs taken off) and a Pack Cases tab in the stardust shop.
+
+  Still open:
+  - [ ] **The pricing pass, "how much everything is worth" (owner).** Approve
+        or edit the PROPOSED block in the wiki page:
+        - case stardust and credit prices, with the ×1.05-per-set value;
+        - the featured set packs' prices and star grades;
+        - the chest case rates and the luck cap;
+        - which star grade each wheel slice pays;
+        - the stars a set case shows;
+        - what the rotating stardust shelf sells now that the old packs are
+          off the credit shelf.
+  - [ ] Case art from Canva: 19 set images plus 1 wild image, uploaded, then
+        the ids go in `build/pack-art/ids.json` under `cases` and
+        `gen-pack-art.js` is re-run.
+  - [ ] See a case drop from a real chest in play. So far the roll has been
+        tested on its own.
 - **A2. More daily attractions.** The TODAY checklist goes **inside the Quests
   panel** (owner, 2026-10-10). First list what exists: the daily reward
   calendar, the 3 daily quests, playtime gifts, the daily surprise, Job Board

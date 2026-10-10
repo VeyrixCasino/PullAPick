@@ -8,7 +8,10 @@
 	card rarity. Uploaded 2026-10-10 by the owner's account and shared with the
 	group experience (wiki: code/assets-and-uploads).
 
-	Keyed by set key (MineSetPacks / MineSetPets), which is save data.
+	Keyed by set key (MineSetPacks / MineSetPets), which is save data. Each row
+	also carries the set's name, grade and place in the owner's order
+	(tools/pack-sprites/sets.js), so the pack cases (MineCases) can list the 19
+	sets without waiting on anything else.
 ]]
 local MinePackArt = {}
 
@@ -42,134 +45,210 @@ end
 
 MinePackArt.SETS = {
 	pebblebound = {
+		name = "Pebblebound",
+		grade = "F",
+		index = 1,
 		sprites = { "rbxassetid://82948183981330", "rbxassetid://127380884753072", "rbxassetid://133505608241674" },
 		icon = "rbxassetid://95522417469691",
+		case = "",
 		accent = Color3.fromRGB(154, 107, 63),
 		secondary = Color3.fromRGB(92, 64, 38),
 		primary = Color3.fromRGB(49, 34, 20),
 	},
 	sugar_rush = {
+		name = "Sugar Rush",
+		grade = "D",
+		index = 2,
 		sprites = { "rbxassetid://130040056308115", "rbxassetid://139684482380754", "rbxassetid://130142637995940" },
 		icon = "rbxassetid://99613699228087",
+		case = "",
 		accent = Color3.fromRGB(255, 111, 174),
 		secondary = Color3.fromRGB(153, 67, 104),
 		primary = Color3.fromRGB(82, 36, 56),
 	},
 	mosswood = {
+		name = "Mosswood",
+		grade = "C",
+		index = 3,
 		sprites = { "rbxassetid://71201640238874", "rbxassetid://112122730237370", "rbxassetid://80560348542626" },
 		icon = "rbxassetid://94463852142568",
+		case = "",
 		accent = Color3.fromRGB(78, 154, 60),
 		secondary = Color3.fromRGB(47, 92, 36),
 		primary = Color3.fromRGB(25, 49, 19),
 	},
 	lost_and_found = {
+		name = "Lost & Found",
+		grade = "C",
+		index = 4,
 		sprites = { "rbxassetid://98788810597186", "rbxassetid://120647209404941", "rbxassetid://127360421208535" },
 		icon = "rbxassetid://140716244857295",
+		case = "",
 		accent = Color3.fromRGB(185, 131, 47),
 		secondary = Color3.fromRGB(111, 79, 28),
 		primary = Color3.fromRGB(59, 42, 15),
 	},
 	starfront = {
+		name = "Starfront",
+		grade = "C",
+		index = 5,
 		sprites = { "rbxassetid://129925786948045", "rbxassetid://101521337323510", "rbxassetid://85670458110114" },
 		icon = "rbxassetid://93813784963182",
+		case = "",
 		accent = Color3.fromRGB(63, 120, 224),
 		secondary = Color3.fromRGB(38, 72, 134),
 		primary = Color3.fromRGB(20, 38, 72),
 	},
 	arcade_legends = {
+		name = "Arcade Legends",
+		grade = "B",
+		index = 6,
 		sprites = { "rbxassetid://125253243082126", "rbxassetid://94947930959082", "rbxassetid://135697924396813" },
 		icon = "rbxassetid://139530704803418",
+		case = "",
 		accent = Color3.fromRGB(194, 60, 255),
 		secondary = Color3.fromRGB(116, 36, 153),
 		primary = Color3.fromRGB(62, 19, 82),
 	},
 	crystal_hollow = {
+		name = "Crystal Hollow",
+		grade = "B",
+		index = 7,
 		sprites = { "rbxassetid://93242116283466", "rbxassetid://76879464767190", "rbxassetid://86975722323353" },
 		icon = "rbxassetid://126503074889949",
+		case = "",
 		accent = Color3.fromRGB(138, 92, 255),
 		secondary = Color3.fromRGB(83, 55, 153),
 		primary = Color3.fromRGB(44, 29, 82),
 	},
 	shoguns_oath = {
+		name = "Shogun's Oath",
+		grade = "B",
+		index = 8,
 		sprites = { "rbxassetid://80402469951898", "rbxassetid://95007379831892", "rbxassetid://133209348875261" },
 		icon = "rbxassetid://132891624846958",
+		case = "",
 		accent = Color3.fromRGB(214, 51, 74),
 		secondary = Color3.fromRGB(128, 31, 44),
 		primary = Color3.fromRGB(68, 16, 24),
 	},
 	royal_reserve = {
+		name = "Royal Reserve",
+		grade = "B",
+		index = 9,
 		sprites = { "rbxassetid://124354737527852", "rbxassetid://126818283543619", "rbxassetid://108405017825695" },
 		icon = "rbxassetid://137543141708363",
+		case = "",
 		accent = Color3.fromRGB(31, 122, 82),
 		secondary = Color3.fromRGB(19, 73, 49),
 		primary = Color3.fromRGB(10, 39, 26),
 	},
 	crimson_eclipse = {
+		name = "Crimson Eclipse",
+		grade = "A",
+		index = 10,
 		sprites = { "rbxassetid://105893376057307", "rbxassetid://99270229568661", "rbxassetid://114344452970774" },
 		icon = "rbxassetid://74759236139321",
+		case = "",
 		accent = Color3.fromRGB(176, 20, 46),
 		secondary = Color3.fromRGB(106, 12, 28),
 		primary = Color3.fromRGB(56, 6, 15),
 	},
 	holo_havoc = {
+		name = "Holo Havoc",
+		grade = "A",
+		index = 11,
 		sprites = { "rbxassetid://119455728900767", "rbxassetid://111764280759637", "rbxassetid://112190060872612" },
 		icon = "rbxassetid://118269776452013",
+		case = "",
 		accent = Color3.fromRGB(143, 179, 255),
 		secondary = Color3.fromRGB(86, 107, 153),
 		primary = Color3.fromRGB(46, 57, 82),
 	},
 	rainbow_road = {
+		name = "Rainbow Road",
+		grade = "A",
+		index = 12,
 		sprites = { "rbxassetid://123891987787389", "rbxassetid://110209197281383", "rbxassetid://93725885226257" },
 		icon = "rbxassetid://83870304171355",
+		case = "",
 		accent = Color3.fromRGB(255, 126, 212),
 		secondary = Color3.fromRGB(153, 76, 127),
 		primary = Color3.fromRGB(82, 40, 68),
 	},
 	infernal_reign = {
+		name = "Infernal Reign",
+		grade = "A",
+		index = 13,
 		sprites = { "rbxassetid://95001680138695", "rbxassetid://94452116749629", "rbxassetid://71878976005936" },
 		icon = "rbxassetid://88678722858665",
+		case = "",
 		accent = Color3.fromRGB(232, 80, 28),
 		secondary = Color3.fromRGB(139, 48, 17),
 		primary = Color3.fromRGB(74, 26, 9),
 	},
 	atlantis_rising = {
+		name = "Atlantis Rising",
+		grade = "A",
+		index = 14,
 		sprites = { "rbxassetid://107573032289976", "rbxassetid://74814537249964", "rbxassetid://121132243117622" },
 		icon = "rbxassetid://110876390764930",
+		case = "",
 		accent = Color3.fromRGB(18, 181, 176),
 		secondary = Color3.fromRGB(11, 109, 106),
 		primary = Color3.fromRGB(6, 58, 56),
 	},
 	divine_relics = {
+		name = "Divine Relics",
+		grade = "A",
+		index = 15,
 		sprites = { "rbxassetid://120232740645798", "rbxassetid://103389165852864", "rbxassetid://73991562574962" },
 		icon = "rbxassetid://118202996329773",
+		case = "",
 		accent = Color3.fromRGB(122, 98, 224),
 		secondary = Color3.fromRGB(73, 59, 134),
 		primary = Color3.fromRGB(39, 31, 72),
 	},
 	dragonfall = {
+		name = "Dragonfall",
+		grade = "S",
+		index = 16,
 		sprites = { "rbxassetid://112352905289779", "rbxassetid://94058377578494", "rbxassetid://92138344662044" },
 		icon = "rbxassetid://127143910665977",
+		case = "",
 		accent = Color3.fromRGB(208, 99, 28),
 		secondary = Color3.fromRGB(125, 59, 17),
 		primary = Color3.fromRGB(67, 32, 9),
 	},
 	eternal_roots = {
+		name = "Eternal Roots",
+		grade = "S",
+		index = 17,
 		sprites = { "rbxassetid://115401761551623", "rbxassetid://124176077520167", "rbxassetid://98193675516075" },
 		icon = "rbxassetid://80673568590539",
+		case = "",
 		accent = Color3.fromRGB(31, 160, 124),
 		secondary = Color3.fromRGB(19, 96, 74),
 		primary = Color3.fromRGB(10, 51, 40),
 	},
 	mythic_menagerie = {
+		name = "Mythic Menagerie",
+		grade = "SS",
+		index = 18,
 		sprites = { "rbxassetid://91189209363602", "rbxassetid://86441260854118", "rbxassetid://132133677019064" },
 		icon = "rbxassetid://114870893701505",
+		case = "",
 		accent = Color3.fromRGB(106, 70, 214),
 		secondary = Color3.fromRGB(64, 42, 128),
 		primary = Color3.fromRGB(34, 22, 68),
 	},
 	chaos_theory = {
+		name = "Chaos Theory",
+		grade = "SSS",
+		index = 19,
 		sprites = { "rbxassetid://131303322365954", "rbxassetid://139923522435279", "rbxassetid://111246627672807" },
 		icon = "rbxassetid://86844550284940",
+		case = "",
 		accent = Color3.fromRGB(25, 200, 255),
 		secondary = Color3.fromRGB(15, 120, 153),
 		primary = Color3.fromRGB(8, 64, 82),
@@ -187,13 +266,72 @@ MinePackArt.RARITY = {
 	Exotic = "rbxassetid://97987897463449",
 }
 
+-- The set keys in the owner's order, 1 (Pebblebound) to 19 (Chaos Theory).
+MinePackArt.ORDER = { "pebblebound", "sugar_rush", "mosswood", "lost_and_found", "starfront", "arcade_legends", "crystal_hollow", "shoguns_oath", "royal_reserve", "crimson_eclipse", "holo_havoc", "rainbow_road", "infernal_reign", "atlantis_rising", "divine_relics", "dragonfall", "eternal_roots", "mythic_menagerie", "chaos_theory" }
+
 --[[
-	The MinePackFX art row for a set pack id ("<setKey>_pack_<1..6>"), or nil.
-	Parsed from the id rather than read from MineSetPacks, so it works before
-	the set pets are generated and for any pack a save already holds.
+	THE WILD CASES ("case_<1..6>", MineCases) share one image at every star
+	grade (owner: "i dont think star amount should change the model"); the
+	colour says the grade, in the rarity a star grade borrows
+	(MineSetPacks.STAR_TIER). Until that image is uploaded each wears the gem
+	of that rarity.
+]]
+MinePackArt.WILD_CASE = ""
+MinePackArt.WILD_TIER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
+MinePackArt.WILD_ACCENT = {
+	Color3.fromRGB(176, 180, 192),
+	Color3.fromRGB(92, 206, 112),
+	Color3.fromRGB(72, 146, 255),
+	Color3.fromRGB(178, 88, 255),
+	Color3.fromRGB(255, 172, 44),
+	Color3.fromRGB(255, 70, 120),
+}
+
+local function scaled(c, k)
+	return Color3.new(c.R * k, c.G * k, c.B * k)
+end
+
+--[[
+	The MinePackFX art row for a pack case, or nil: a set case
+	("<setKey>_case_<kind>") wears its set's case image, else the set icon; a
+	wild case wears the wild image, else its rarity gem.
+]]
+function MinePackArt.caseArt(caseId)
+	caseId = tostring(caseId or "")
+	local set = MinePackArt.SETS[string.match(caseId, "^(.-)_case_%a+$") or ""]
+	if set then
+		return {
+			primary = set.primary,
+			secondary = set.secondary,
+			accent = set.accent,
+			image = (set.case ~= "" and set.case) or set.icon,
+		}
+	end
+	local level = tonumber(string.match(caseId, "^case_(%d)$"))
+	local accent = level and MinePackArt.WILD_ACCENT[level]
+	if not accent then
+		return nil
+	end
+	return {
+		primary = scaled(accent, 0.32),
+		secondary = scaled(accent, 0.6),
+		accent = accent,
+		image = (MinePackArt.WILD_CASE ~= "" and MinePackArt.WILD_CASE)
+			or MinePackArt.RARITY[MinePackArt.WILD_TIER[level]],
+	}
+end
+
+--[[
+	The MinePackFX art row for a set pack id ("<setKey>_pack_<1..6>") or a pack
+	case, or nil. Parsed from the id rather than read from MineSetPacks, so it
+	works for any pack a save already holds.
 ]]
 function MinePackArt.packArt(packId)
 	packId = tostring(packId or "")
+	local case = MinePackArt.caseArt(packId)
+	if case then
+		return case
+	end
 	local setKey, level = string.match(packId, "^(.-)_pack_(%d)$")
 	local set = setKey and MinePackArt.SETS[setKey]
 	level = tonumber(level)

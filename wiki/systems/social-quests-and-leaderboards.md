@@ -106,6 +106,15 @@ A 16-slice prize wheel in the lobby, at about (40, 6, 0).
 
   These numbers and the slice weights are **PROPOSED**: the owner has not
   approved them.
+- **Pack slices pay wild pack cases** (2026-10-10; owner: the slices become
+  star-graded cases, and the wheel stops giving zone packs). The slices are:
+  - jackpot: 15K gems and a ★★★★★ case;
+  - `apex`: a ★★★★ case;
+  - `heirloom`: a ★★★ case;
+  - `anomaly`: a ★★ case.
+
+  The ids are unchanged. The star grade each slice pays is PROPOSED. The gear
+  and rune case slices stay. See [pack-cases](pack-cases.md).
 - **Paid spins.** Products `group_wheel_1/5/10` bank 1, 5 or 10 spins. Free spins
   are spent first. Paid spins are blocked where paid random items are not allowed
   (`PolicyNoRandom`). All three products have `productId = 0`, so none can be

@@ -19,15 +19,23 @@ const scale = (c, k) => c.map(v => Math.round(v * k));
 const color3 = c => `Color3.fromRGB(${c.join(", ")})`;
 
 const missing = [];
-const setLines = SETS.map(s => {
+// Case art is optional: until a set's case image is uploaded, its cases wear
+// the set icon, and the wild cases wear a rarity gem (see caseArt below).
+const cases = ids.cases || {};
+const lua = s => JSON.stringify(s);
+const setLines = SETS.map((s, i) => {
   const packs = ids.packs[s.file] || {};
   const sprites = BANDS.map(b => packs[b] || (missing.push(`${s.file} ${b}`), ""));
   const icon = ids.sets[s.file] || (missing.push(`${s.file} set icon`), "");
   const a = rgb(s.accent);
   return [
     `\t${s.key} = {`,
+    `\t\tname = ${lua(s.name)},`,
+    `\t\tgrade = "${s.grade}",`,
+    `\t\tindex = ${i + 1},`,
     `\t\tsprites = { "${sprites.join('", "')}" },`,
     `\t\ticon = "${icon}",`,
+    `\t\tcase = "${cases[s.file] || ""}",`,
     `\t\taccent = ${color3(a)},`,
     `\t\tsecondary = ${color3(scale(a, 0.6))},`,
     `\t\tprimary = ${color3(scale(a, 0.32))},`,
@@ -50,7 +58,10 @@ const out = `--[[
 	card rarity. Uploaded 2026-10-10 by the owner's account and shared with the
 	group experience (wiki: code/assets-and-uploads).
 
-	Keyed by set key (MineSetPacks / MineSetPets), which is save data.
+	Keyed by set key (MineSetPacks / MineSetPets), which is save data. Each row
+	also carries the set's name, grade and place in the owner's order
+	(tools/pack-sprites/sets.js), so the pack cases (MineCases) can list the 19
+	sets without waiting on anything else.
 ]]
 local MinePackArt = {}
 
@@ -90,13 +101,72 @@ MinePackArt.RARITY = {
 ${rarityLines.join("\n")}
 }
 
+-- The set keys in the owner's order, 1 (Pebblebound) to 19 (Chaos Theory).
+MinePackArt.ORDER = { ${SETS.map(s => `"${s.key}"`).join(", ")} }
+
 --[[
-	The MinePackFX art row for a set pack id ("<setKey>_pack_<1..6>"), or nil.
-	Parsed from the id rather than read from MineSetPacks, so it works before
-	the set pets are generated and for any pack a save already holds.
+	THE WILD CASES ("case_<1..6>", MineCases) share one image at every star
+	grade (owner: "i dont think star amount should change the model"); the
+	colour says the grade, in the rarity a star grade borrows
+	(MineSetPacks.STAR_TIER). Until that image is uploaded each wears the gem
+	of that rarity.
+]]
+MinePackArt.WILD_CASE = "${cases.Wild || ""}"
+MinePackArt.WILD_TIER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
+MinePackArt.WILD_ACCENT = {
+	Color3.fromRGB(176, 180, 192),
+	Color3.fromRGB(92, 206, 112),
+	Color3.fromRGB(72, 146, 255),
+	Color3.fromRGB(178, 88, 255),
+	Color3.fromRGB(255, 172, 44),
+	Color3.fromRGB(255, 70, 120),
+}
+
+local function scaled(c, k)
+	return Color3.new(c.R * k, c.G * k, c.B * k)
+end
+
+--[[
+	The MinePackFX art row for a pack case, or nil: a set case
+	("<setKey>_case_<kind>") wears its set's case image, else the set icon; a
+	wild case wears the wild image, else its rarity gem.
+]]
+function MinePackArt.caseArt(caseId)
+	caseId = tostring(caseId or "")
+	local set = MinePackArt.SETS[string.match(caseId, "^(.-)_case_%a+$") or ""]
+	if set then
+		return {
+			primary = set.primary,
+			secondary = set.secondary,
+			accent = set.accent,
+			image = (set.case ~= "" and set.case) or set.icon,
+		}
+	end
+	local level = tonumber(string.match(caseId, "^case_(%d)$"))
+	local accent = level and MinePackArt.WILD_ACCENT[level]
+	if not accent then
+		return nil
+	end
+	return {
+		primary = scaled(accent, 0.32),
+		secondary = scaled(accent, 0.6),
+		accent = accent,
+		image = (MinePackArt.WILD_CASE ~= "" and MinePackArt.WILD_CASE)
+			or MinePackArt.RARITY[MinePackArt.WILD_TIER[level]],
+	}
+end
+
+--[[
+	The MinePackFX art row for a set pack id ("<setKey>_pack_<1..6>") or a pack
+	case, or nil. Parsed from the id rather than read from MineSetPacks, so it
+	works for any pack a save already holds.
 ]]
 function MinePackArt.packArt(packId)
 	packId = tostring(packId or "")
+	local case = MinePackArt.caseArt(packId)
+	if case then
+		return case
+	end
 	local setKey, level = string.match(packId, "^(.-)_pack_(%d)$")
 	local set = setKey and MinePackArt.SETS[setKey]
 	level = tonumber(level)
@@ -124,4 +194,4 @@ end
 return MinePackArt
 `;
 fs.writeFileSync(OUT, out.replace(/\n/g, "\r\n"));
-console.log(`wrote ${path.relative(ROOT, OUT)}: ${SETS.length} sets, ${SETS.length * 3} sprites, ${RARITIES.length} rarity icons`);
+console.log(`wrote ${path.relative(ROOT, OUT)}: ${SETS.length} sets, ${SETS.length * 3} sprites, ${RARITIES.length} rarity icons, ${Object.keys(cases).length} case images`);

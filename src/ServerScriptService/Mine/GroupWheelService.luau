@@ -130,8 +130,10 @@ function GroupWheelService.applyReward(plr, p, reward, deps)
 	end
 	if type(reward.packs) == "table" and deps.grantPacks then
 		deps.grantPacks(plr, p, reward.packs)
+		local Cases = require(shared:WaitForChild("MineCases"))
 		for _, row in ipairs(reward.packs) do
-			lines[#lines + 1] = string.format("%s x%d", Wheel.prettyId(row.id), tonumber(row.qty) or 1)
+			local case = Cases.get(row.id)
+			lines[#lines + 1] = string.format("%s x%d", (case and case.name) or Wheel.prettyId(row.id), tonumber(row.qty) or 1)
 		end
 	end
 	if type(reward.blocks) == "table" and deps.LuckyBlocks and deps.LuckyBlocks.grant then

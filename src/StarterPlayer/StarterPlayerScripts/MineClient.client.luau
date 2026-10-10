@@ -3404,6 +3404,7 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	-- Shop -> Stardust. The server checks both stocks and the price.
 	onBuyDustPack = function(id, qty) net:FireServer("buyDustPack", { id = id, qty = qty }) end,
+	onBuyDustCase = function(id, qty) net:FireServer("buyDustCase", { id = id, qty = qty }) end,
 	onDrinkPotion = function(id) net:FireServer("drinkPotion", { id = id }) end,
 	onMergePotion = function(id) net:FireServer("mergePotion", { id = id }) end,
 	onEquipBag = function(id) net:FireServer("equipBag", { id = id }) end,
@@ -6141,6 +6142,10 @@ function ClientFns.paintLoot(parent, item, w)
 		right = string.format("+%.2f%%", (item.rune.pct or 0) * 100)
 	elseif item.kind == "tool" and tonumber(item.power) then
 		right = "power " .. ClientFns.commas(math.floor(tonumber(item.power)))
+	elseif item.kind == "pack" and tonumber(item.stars) then
+		-- A pack out of a pack case: its stars, the number that says how good.
+		local n = tonumber(item.stars)
+		right = string.rep("★", math.floor(n)) .. ((n % 1 >= 0.5) and "½" or "")
 	end
 	mk("TextLabel", {
 		BackgroundTransparency = 1,

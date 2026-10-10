@@ -5818,6 +5818,36 @@ local function openChestBlock(plr, p, chestId, b, part)
 			})
 		end
 	end
+	--[[
+		A WILD PACK CASE, SOMETIMES. Owner, 2026-10-10: "chest drops can drop pack
+		cases, and with those cases you can win packs". Better chests drop them
+		more often and of more stars (MineSetPacks.CHEST_CASE_*, PROPOSED); chest
+		luck raises the chance, capped (MineCases.CHEST_LUCK_CAP). It rides the
+		chest's pack luck like the packs above.
+	]]
+	do
+		local Cases = require(shared:WaitForChild("MineCases"))
+		local row = Cases.rollChestCase(rank, rng, b and b.chestLuck)
+		if row then
+			if stampedLuck > 1 then
+				row.luck = stampedLuck
+			end
+			table.insert(p.packs, row)
+			table.insert(packNames, row.packName)
+			table.insert(packIds, row.packId)
+			local def = Cases.get(row.packId)
+			if def and (def.starLevel or 1) >= Cases.CHEST_POPUP_LEVEL then
+				net:FireClient(plr, "foundTool", {
+					name = row.packName,
+					kind = "pack",
+					packId = row.packId,
+					rarityId = Cases.rarityOf(row.packId),
+					title = "PACK CASE",
+					blurb = (def.blurb or "") .. ". It is in your bag.",
+				})
+			end
+		end
+	end
 
 	net:FireClient(plr, "chestOpened", {
 		id = def.id,
@@ -8898,6 +8928,14 @@ local function openFrom(plr)
 	end
 	if #p.packs > 0 then
 		local pk = table.remove(p.packs, 1)
+		-- A pack case opens into packs, never through openPack (MineCases).
+		local loot, design = require(shared:WaitForChild("MineCases")).open(p, pk)
+		if loot then
+			markDirty(plr)
+			snap(plr)
+			net:FireClient(plr, "opened", loot, design)
+			return
+		end
 		openPack(plr, pk.setId, pk.chestId, pk)
 		-- Forever tools never roll from packs — only real chests / fossils / events / pass.
 	else
@@ -8929,6 +8967,14 @@ local function openAt(plr, payload)
 	table.remove(p.packs, at)
 	if pk.kind == "lucky_block" or (pk.blockId and require(shared.MineLuckyBlocks).def(pk.blockId or pk.packId)) then
 		openLuckyBlock(plr, pk)
+		return
+	end
+	-- A pack case opens into packs, never through openPack (MineCases).
+	local loot, design = require(shared:WaitForChild("MineCases")).open(p, pk)
+	if loot then
+		markDirty(plr)
+		snap(plr)
+		net:FireClient(plr, "opened", loot, design)
 		return
 	end
 	openPack(plr, pk.setId, pk.chestId, pk)
@@ -9018,10 +9064,16 @@ local function openMany(plr, payload)
 			break
 		end
 		local pk = table.remove(p.packs, pick)
+		local caseLoot, caseDesign = require(shared:WaitForChild("MineCases")).open(p, pk)
 		if pk.kind == "lucky_block" or (pk.blockId and require(shared.MineLuckyBlocks).def(pk.blockId or pk.packId)) then
 			openLuckyBlock(plr, pk)
 			-- Count as one opened for the run budget; no card reveal payload.
 			table.insert(run, { luckyBlock = true, blockId = pk.blockId or pk.packId })
+		elseif caseLoot then
+			-- A pack case: its packs went into the bag, and the reveal shows them.
+			caseDesign.cards = caseLoot
+			table.insert(run, caseDesign)
+			markDirty(plr)
 		else
 			openPack(plr, pk.setId, pk.chestId, pk, run)
 			-- Forever tools never roll from packs (including open-10).
@@ -12370,6 +12422,7 @@ local function buyCart(plr, payload)
 	end
 	table.sort(setIds)
 	local granted = {}
+	local Cases = require(shared:WaitForChild("MineCases"))
 	for _, line in ipairs(priced) do
 		if line.kind == "pack" then
 			local def = Packs.PACK_BY_ID[line.id]
@@ -12377,10 +12430,12 @@ local function buyCart(plr, payload)
 			for _ = 1, line.grant do
 				-- A random set each time, so a bundle spreads across the
 				-- collection instead of stacking ten of one set nobody needs.
-				table.insert(p.packs, {
+				-- A pack case or a set pack keeps its own (MineCases).
+				table.insert(p.packs, Cases.bagRow(line.id) or {
 					packId = line.id,
 					packName = (def and def.name) or line.id,
-					setId = (#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn",
+					setId = (def and def.setKey)
+						or ((#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn"),
 				})
 			end
 			table.insert(granted, { kind = "pack", id = line.id,
@@ -12422,10 +12477,11 @@ local function buyCart(plr, payload)
 				pid = tostring(pid)
 				local def = Packs.PACK_BY_ID[pid]
 				if def and Packs.priceOf(pid) then
-					table.insert(p.packs, {
+					table.insert(p.packs, Cases.bagRow(pid) or {
 						packId = pid,
 						packName = def.name or pid,
-						setId = (#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn",
+						setId = def.setKey
+							or ((#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn"),
 					})
 					n += 1
 				end
@@ -14707,10 +14763,12 @@ function Verbs.grantPacks(plr, p, list)
 	end
 	table.sort(setIds)
 	p.packs = p.packs or {}
+	local Cases = require(shared:WaitForChild("MineCases"))
 	for _, row in ipairs(list or {}) do
 		local def = Packs.PACK_BY_ID[row.id]
 		for _ = 1, math.max(1, tonumber(row.qty) or 1) do
-			table.insert(p.packs, {
+			-- A pack case is its own kind of bag row (MineCases.bagRow).
+			table.insert(p.packs, Cases.bagRow(row.id) or {
 				packId = row.id,
 				packName = (def and def.name) or row.id,
 				-- A set pack belongs to its own set; anything else picks one.
@@ -14719,6 +14777,46 @@ function Verbs.grantPacks(plr, p, list)
 			})
 		end
 	end
+end
+
+--[[
+	A PACK CASE FOR STARDUST: the stardust shop's Cases tab (owner, 2026-10-10:
+	cases for a set are bought with stardust). Always on sale, no stock: the
+	rotating shelf beside it is the limited one. The price is MineCases.dustPrice
+	(PROPOSED, from expected value), decided here; the client only shows it.
+]]
+function Verbs.buyDustCase(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p or type(payload) ~= "table" then
+		return
+	end
+	local Cases = require(shared:WaitForChild("MineCases"))
+	local id = tostring(payload.id or "")
+	local price = Cases.dustPrice(id)
+	if not price then
+		net:FireClient(plr, "toast", "That case isn't for sale")
+		return
+	end
+	local qty = math.clamp(math.floor(tonumber(payload.qty) or 1), 1, 10)
+	local pay = price * qty
+	if (tonumber(p.dust) or 0) < pay then
+		net:FireClient(plr, "toast", "Need " .. pay .. " stardust")
+		return
+	end
+	p.dust -= pay
+	p.packs = p.packs or {}
+	for _ = 1, qty do
+		table.insert(p.packs, Cases.bagRow(id))
+	end
+	pcall(function()
+		game:GetService("AnalyticsService"):LogEconomyEvent(plr, Enum.AnalyticsEconomyFlowType.Sink,
+			"Stardust", pay, p.dust, Enum.AnalyticsEconomyTransactionType.Shop.Name, "case:" .. id)
+	end)
+	local name = Cases.get(id).name
+	net:FireClient(plr, "toast", "Bought " .. qty .. "x " .. name .. " for stardust")
+	net:FireClient(plr, "purchaseFx", { kind = "pack", packId = id, count = qty, name = name })
+	markDirty(plr)
+	snap(plr)
 end
 
 -- Sound switches from the Settings panel; the client applies them itself.
@@ -14915,7 +15013,7 @@ end
 	lookup is retried with backoff for as long as the player stays.
 ]]
 Verbs.PAID_RANDOM = {
-	buyCart = true, buyScroll = true, buyDustPack = true, luckyGradeUp = true,
+	buyCart = true, buyScroll = true, buyDustPack = true, buyDustCase = true, luckyGradeUp = true,
 	rollRune = true, rollGear = true, rollTemper = true, fuseRune = true,
 	openTemperCase = true, openTemperCaseBundle = true, scrapTemper = true,
 	buyCrate = true, buyCharmsPack = true, buyPouch = true,
@@ -17172,6 +17270,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			snap(plr)
 			net:FireClient(plr, "toast", "Merged into " .. def.name .. "  (-" .. tostring(e or 0) .. " dust)")
 		elseif action == "buyCart" then buyCart(plr, payload)
+		elseif action == "buyDustCase" then Verbs.buyDustCase(plr, payload)
 		elseif action == "buyDustPack" then
 			local p = profiles[plr.UserId]
 			if not p or type(payload) ~= "table" then return end

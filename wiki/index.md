@@ -47,6 +47,7 @@ related: [README, overview, owner, SCHEMA, log]
 **Collecting, money and community**
 - [currencies-and-economy](systems/currencies-and-economy.md): coins, gems, stardust, sinks, number formatting
 - [cards-and-packs](systems/cards-and-packs.md): cards, pack odds, reveal, the pity contradiction
+- [pack-cases](systems/pack-cases.md): wild and set cases, chest drops, wheel, credit and stardust shelves, the pricing pass
 - [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md): section chests, ranks, lucky blocks
 - [world-events](systems/world-events.md): Event Horizon, Event Pass, World Pulse
 - [trading](systems/trading.md): the trade flow, pricing, the "pawning to new players" concern
