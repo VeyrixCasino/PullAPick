@@ -235,3 +235,18 @@ MeshPart floating 40 studs over spawn that **shipped to players** because
 MineServer's strip list only matches named folders and `_` prefixes. It now
 warns about anything unexpected at the workspace root instead of silently
 missing it.
+
+## [2026-10-10] ingest | the owner's roadmap, and the candy style written down
+
+The owner set a new priority order and asked for it to sit at the top of the
+TODO, with instructions any agent can follow cold. Done:
+
+- **`docs/TODO.md` ★ NOW** holds how to work the list, the owner's ask, the
+  decisions and the specs. The phases run in order: A (daily loop, in
+  progress), B (tools), C (art), D (planets).
+- **[candy-style](code/candy-style.md)** is the single brief for the UI house
+  style: rules, the kit, honest wins, sound and a checklist.
+- **[owner](owner.md)** gains the 2026-10-10 decisions, and the "icons are the
+  owner's job" rule is marked lifted for the art pass.
+
+Updated: candy-style (new), owner, index, log.

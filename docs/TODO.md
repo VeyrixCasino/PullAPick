@@ -8,7 +8,147 @@ Place: "MINE FOR CARDS! SEASON ONE", placeId `73982848847016`,
 owned by the **Mine For Cards group, groupId `35326298`**.
 Repo: `VeyrixCasino/PullAPick`. Working branch: `claude/vigilant-fermi-aucqjy`.
 
-Last updated: 2026-10-03.
+Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
+
+---
+
+# ★ NOW — the owner's 2026-10-10 roadmap. Read this before anything else here.
+
+**How to work this list (any agent, cold start):**
+
+1. **Read [`wiki/code/candy-style.md`](../wiki/code/candy-style.md) before you touch
+   any UI.** It is the house style the owner chose: chunky, candy, bubbly, juicy,
+   big text, honest rarity-scaled wins and no alarms. Every new screen follows it.
+   The kit (`MineUI`, `MineTheme`, `MineCelebrate`, `MineAudio`) makes it the
+   default.
+2. Read `CLAUDE.md` ("ask before you assume") and the locked rules in §0 below.
+3. **Work top-down: A, then B, then C, then D.** Finish and verify a phase before
+   starting the next.
+4. **Every number not marked *decided* below is PROPOSED.**
+   - Put proposed numbers in ONE config table per feature, commented `PROPOSED`.
+   - Give the owner a numbered block of them to approve. They answer best by
+     pasting it back with edits (`docs/PROPOSAL.md` §0 style).
+5. **Another session shares this checkout.**
+   - Commit only your own hunks. For a shared file, build a patch of your
+     hunks and stage it with `git apply --cached`.
+   - Never `git add -A`.
+   - Check `git diff` before every commit.
+6. **"Done" means all four:** `bash tools/verify/suite.sh --quiet` passes,
+   `node tools/verify/wiki.js` passes, the feature was played in Studio with
+   a clean console, and a screenshot was taken.
+7. **Models.** Opus is the lead for design, balance and cross-system code.
+   Hand repetitive bulk (hundreds of near-identical items) to cheaper
+   subagents (`model: "sonnet"`).
+
+**The owner's ask, 2026-10-10 (condensed):**
+
+- Fix the ores and tools: icons via Canva, 3D models via the cheapest route.
+  That is about 300 tools.
+- Add the **hammer**.
+- Rebalance speed, damage and range: fast/short/weak against slow/strong,
+  area tools (3×3 drills and explosives), and long-range explosives as the
+  top DPS short of higher-grade tools.
+- **Tool rolls**: rare chest and event drops in 5–6 sets, graded in stars.
+- **Grade everything in stars.**
+- Design every planet with Roblox psychology: *"nothing is ever too far away
+  to lose a player's attention"*.
+- **Higher priority:** a working daily wheel, more daily attractions, and
+  progression that is not only mining (fishing, events, mini-games).
+
+**Decided 2026-10-10:**
+
+- **Order:** daily loop → tools → art → planets.
+- **Daily wheel:** every player gets one free spin a day, group members
+  (`MineConfig.GROUP_ID`) get +1, and login streaks grant extra spins. It is
+  built in the lobby where everyone walks past it, with its odds printed on it.
+- **Second progression track: fishing,** limited by bait. Bait costs **coins**,
+  which finally gives coins a real sink (§0.28).
+- **Grades:** stars from **1★ to 5★ in half steps, 9 grades**.
+  - Tool rolls are graded in stars.
+  - Every other grade (Common–Exotic, F–SSS, tiers) shows a ★ equivalent
+    beside its current name; nothing is renamed.
+  - Compile one reference of every grading system in the game.
+- **The red lucky block is "Godly Lucky Block"** everywhere. Done in `223199f`.
+- **Icons:** the owner now wants them made (Canva). The rule "icons are the
+  owner's job" (START-HERE §6) is **lifted for this work**.
+- Assets still go to the group (§7), never to a personal account.
+
+## A. Daily loop (P0). Status: in progress (2026-10-10)
+
+- **A1. Daily wheel.**
+  - Reuse `MineGroupWheel`, `GroupWheelService` and `MineGroupWheelView`.
+    `GroupWheelService.build(lobby)` is commented out today, so nobody can
+    reach the wheel.
+  - Spin sources: 1 free a day (day boundary as used elsewhere in the code),
+    +1 for group members, and streak spins.
+  - Paid spins (`group_wheel_1/5/10`) exist, but their `productId` is 0.
+    BLOCKED on the owner's product ids.
+  - Celebrate the prize through `MineCelebrate` by its real rarity.
+- **A2. More daily attractions.** First list what exists: the daily reward
+  calendar, the 3 daily quests, playtime gifts, the daily surprise, Job Board
+  contracts and the pass. Then add:
+  - The wheel.
+  - A fishing "catch of the day".
+  - A "TODAY" checklist on the HUD that shows every daily thing with its
+    timer. A ready item pulses (the candy-style rule "what pays out always
+    moves").
+  - The aim: a player never runs out of things to do, and there is always a
+    reason to come back tomorrow.
+- **A3. Fishing.**
+  - A pond on the lobby surface first, then one per planet surface.
+  - Cast → bite → reel, as a short juicy minigame that can be skipped or sped up.
+  - Each cast uses one bait. Bait is bought with coins.
+  - The catch table is graded in ★, and its odds are shown at the bait seller.
+  - A fish collection (album) with set bonuses. Fish sell for coins or gems,
+    or can be traded.
+  - Fishing has its own progression, separate from mining, and never bottlenecks it.
+
+## B. Tools (P1). Not started
+
+- **B1. The hammer** is a 4th forged family (`MineOreTools.FAMILY_ORDER`), with
+  82 ores × 4 = **328 forged tools**. Decide its niche with the owner before
+  building. Proposed: slow, heavy, single-target, the highest hit.
+- **B2. Archetype rebalance.** Every family and frame trades speed, damage,
+  range and area:
+  - fast, short, low damage ↔ slow, long, high damage, with higher overall DPS
+  - drills and explosives get area (3×3 and up)
+  - long-range explosives top the DPS chart, beaten only by higher-grade tools
+  - Build the DPS table as a verify script first, so the ordering is asserted.
+- **B3. Tool rolls.**
+  - Rare drops from chests and events, in 5–6 sets from common to exotic,
+    graded 1★–5★ in half steps.
+  - "Same function": they plug into the existing chest-tool / flagship path
+    (`MineTools.CHEST_TOOLS`, `MineBandTools`).
+  - Show the odds wherever a roll can be bought.
+- **B4. Grade reference.** Every grading system (Common–Exotic, F–SSS, tiers,
+  pack bands, lucky ranks, pass tiers…) goes in one wiki page with its ★
+  equivalent, plus a shared `stars(gradeLike)` helper the UI can show beside
+  any grade.
+
+## C. Art (P1, after B). Not started
+
+- **3D models.**
+  - Today: procedural parts, 5 silhouettes per family, coloured per ore
+    (`ToolModelFactory`). Every uploaded mesh in the place is empty; see
+    [tools](../wiki/systems/tools.md).
+  - The cheapest good route: about 20 high-quality base shapes (5 families ×
+    ~4 styles), recoloured and re-materialed per ore. That is about 20
+    generations, not 328.
+- **Icons.** Render each tool's icon live from its model in a ViewportFrame.
+  That needs no uploads and never mismatches its model. Canva is for hero and
+  shop art and for the base icons.
+- **Ores** get the same treatment.
+
+## D. Planets (P2). Not started
+
+Redesign each planet surface with Roblox retention psychology:
+
+- Nothing worth doing is more than a few seconds' walk away.
+- Every station is visible from spawn.
+- There is a clear next goal in view.
+- The first ten seconds hook.
+
+Research first, then a one-page plan per planet for the owner, then build.
 
 ---
 

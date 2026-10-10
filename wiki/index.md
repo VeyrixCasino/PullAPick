@@ -59,6 +59,7 @@ related: [README, overview, owner, SCHEMA, log]
 - [code-map](code/code-map.md): every `src/` folder, what is live and what is leftover
 - [server](code/server.md): MineServer, the 142-action router, `Verbs`, `Dig`
 - [client-and-ui](code/client-and-ui.md): MineClient, view modules, house style, layering
+- [candy-style](code/candy-style.md): **the UI house style. Read before touching any UI.** Kit, colours, motion, honest wins, checklist.
 - [save-data-and-migrations](code/save-data-and-migrations.md): DataStores, save shape, every migration
 - [rojo-and-studio](code/rojo-and-studio.md): the Rojo mapping, place-only content, syncback, the loss matrix
 - [verify-suite](code/verify-suite.md): all 36 checks, `suite.sh`, `syntax.sh`, how to add one

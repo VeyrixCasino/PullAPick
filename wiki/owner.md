@@ -55,7 +55,7 @@ From `docs/START-HERE.md` §1 and §6, and TODO §0.31–§0.32:
 | **Tell them when they are wrong, with evidence.** | HANDOFF §2.9 |
 | **Nothing is "done" until it has run in Roblox.** Almost nothing on the current branch has. | START-HERE §5 |
 | "The UI isn't there" usually means **Studio is running old code**. Check sync before debugging. | TODO §0.14 |
-| **Icons are the owner's job.** Do not generate any. | START-HERE §6 |
+| ~~**Icons are the owner's job.**~~ **Lifted 2026-10-10:** the owner asked for icons via Canva for the tool and ore art pass (TODO ★ NOW, C). | START-HERE §6; TODO ★ NOW |
 | **Assets are uploaded to the group, never a personal account.** | TODO §7, [assets](code/assets-and-uploads.md) |
 | If they swear, something promised did not work. Fix it; do not manage the tone. | START-HERE §6 |
 | Billing trouble locally ("Credit balance too low") means an API key outranks their subscription. **Never tell them to add funds.** | TODO §0.32, START-HERE §8 |
@@ -74,6 +74,21 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
   ask again".
 - When they say "just do it", proceed on your defaults and list your
   assumptions afterwards.
+
+## Decided 2026-10-10 (TODO ★ NOW)
+
+- **Priority order:** daily loop (wheel, dailies, fishing), then tools (hammer,
+  rebalance, star-graded tool rolls), then art (328 tools), then planets.
+- **The daily wheel:** every player gets one free spin a day, group members
+  get +1, and login streaks grant extra spins. It sits in the lobby with its
+  odds printed.
+- **Fishing is the second progression track.** It is limited by bait, and
+  bait costs coins (a coin sink, §0.28).
+- **Stars:** 1★–5★ in half steps (9 grades). Every other grade shows a ★
+  equivalent beside its name.
+- **"Godly Lucky Block"** is the red block's only name.
+- **The UI follows [candy-style](code/candy-style.md)** (owner, 2026-10-08):
+  chunky and juicy, with honest rarity-scaled wins and *"no alarms"*.
 
 ## Locked decisions: one line each
 
