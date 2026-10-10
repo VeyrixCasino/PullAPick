@@ -908,3 +908,27 @@ grades, A, worn and merged hats all refused).
 
 Updated: hats-and-faces, client-and-ui, cards-and-packs, save-data-and-migrations,
 next-up, log.
+
+## [2026-10-10] query | case prices set by return, pretty numbers
+Owner: *"Make it even, pretty numbers.. 50-70% rtp"*. Wild cases *"should return
+70% stardust value across the board"*. Set cases *"55-65 (Higher teir less rtp,
+but more volitile)"*.
+
+How prices work now (`MineCases`):
+- Recycle value only (`expectedDust`). The "+10% per set" markup
+  (`SET_VALUE_STEP`) and the wild-case set average are gone; they had pushed
+  returns down to about 30%.
+- Stardust = value / return (`rtpOf`):
+  - wild cases 70%;
+  - set cases 65% for Pebblebound, falling evenly to 55% for Royal Reserve.
+- Credits come off the old credit curve, scaled by 70% / return.
+- Everything is rounded by `prettyPrice`.
+
+Examples:
+- ★★★★★ wild case: 41,500 stardust / 100 credits.
+- Pebblebound Vault 19,500 → Royal Reserve Vault 23,000.
+
+Every return was checked in Studio and lands within about 1 point of its
+target. Suite 57/57.
+
+Updated: pack-cases (the prices section rewritten), TODO A1c.

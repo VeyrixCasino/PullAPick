@@ -125,7 +125,7 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
     - case art is a booster box.
   - [ ] **The pricing pass, "how much everything is worth" (owner).** Approve
         or edit the PROPOSED block in the wiki page:
-        - case stardust and credit prices;
+        - ~~case stardust and credit prices~~ decided: priced by return (wild 70%, set cases 65% → 55%), pretty numbers;
         - the featured set packs' prices and star grades;
         - ~~the chest case rates~~ decided: 10% of chests, each grade half as common, better ranks start higher;
         - which star grade each wheel slice pays;

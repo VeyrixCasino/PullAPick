@@ -115,8 +115,9 @@ How a case behaves in the game:
   the model. Each image shows **a booster box**: the set's themed display box
   with its lid open and packs peeking out.
 - Owner, later the same day:
-  - **"Better does still cost more [10% more than last]".** Each set is valued
-    ×1.10 over the set before (`SET_VALUE_STEP`).
+  - **"Better does still cost more [10% more than last]".** This was later
+    replaced by the return rule below: "+10% per set" priced the stronger
+    pets on top of the recycle value and returned as little as 30%.
   - **"Make it so shops dont carry any sets above b".** Set cases and featured
     set packs are sold only for sets graded F to B. The A to SS sets come
     only out of wild cases, which is what makes a wild case the better buy.
@@ -129,51 +130,60 @@ How a case behaves in the game:
   - **"A luck boost per each star/grade"** meant only that a higher grade
     has better drop rates by design, "Not a % boos[t]". The luck carry-over
     was removed. Chest luck still raises the chance of a case dropping.
+  - **"Make it even, pretty numbers.. 50-70% rtp".** Wild cases "should return
+    70% stardust value across the board". Set cases "55-65 (Higher teir less
+    rtp, but more volitile)": 65% for the lowest set the shops carry, down to
+    55% for the highest.
 
-## The pricing pass: every number below is PROPOSED
+## The prices (decided 2026-10-10)
 
-Owner: *"put in the wiki and todolist of determining how much everything is
-worth"*. Derived numbers, from the code after the owner's later answers:
+A case is priced by its **return**: what its cards recycle for, as a share of
+the price (`MineCases.rtpOf`). Prices are rounded to pretty numbers
+(`MineCases.prettyPrice`): under 100 to the nearest 5, otherwise two figures
+with the second a 0 or a 5.
 
-- **Stardust** = expected stardust of the contents / 0.65 (`MineSetPacks.CASE_RTP`).
-  - Expected stardust = `MineSetPacks.expectedPackDust` over
-    `MinePackConfig.RECYCLE_STARDUST`, times the set's value.
-  - Set value = 1.10^(set − 1) (`MineCases.SET_VALUE_STEP`, *decided*: "10%
-    more than last").
-  - A wild case is valued over the sets it can actually roll.
-- **Credits** = 12 × (expected stardust / 250)^0.45 (`MineCases.CREDIT_CURVE`).
-  This is fitted to the old credit shelf: Hopper was 12 credits at about 250
-  expected stardust, Heirloom 55 at about 6,900 and Shiny 95 at about 24,000.
-  A wild case is priced as the credit-bought kind, the one that can roll SSS.
+- **Recycle value** comes from `MineCases.expectedDust`:
+  `MineSetPacks.expectedPackDust` over `MinePackConfig.RECYCLE_STARDUST`.
+  Recycling pays by rarity only, so the set does not change it.
+- **Stardust** = recycle value / return.
+  - Wild cases return 70% (`WILD_RTP`).
+  - Set cases return 65% for Pebblebound, falling evenly to 55% for Royal
+    Reserve (`SET_RTP_TOP`, `SET_RTP_LOW`). A better set costs more because
+    its pets are stronger, which recycling does not pay for.
+- **Credits** use the curve the old credit shelf sat on:
+  12 × (recycle value / 250)^0.45 (`CREDIT_CURVE`).
+  - It is scaled by 70% / the return, so a set pack costs a little more than
+    a wild case of the same value.
+  - The result is rounded pretty.
 
-| wild case | expected stardust | stardust | credits |
-|---|---|---|---|
-| ★ | 369 | 570 | 14 |
-| ★½ | 660 | 1,015 | 19 |
-| ★★ | 1,503 | 2,315 | 27 |
-| ★★½ | 3,184 | 4,900 | 38 |
-| ★★★ | 4,865 | 7,485 | 46 |
-| ★★★½ | 11,375 | 17,500 | 67 |
-| ★★★★ | 17,884 | 27,515 | 82 |
-| ★★★★½ | 38,439 | 59,135 | 116 |
-| ★★★★★ | 58,995 | 90,760 | 141 |
+| wild case | recycle value | stardust | return | credits |
+|---|---|---|---|---|
+| ★ | 182 | 260 | 70% | 10 |
+| ★½ | 325 | 465 | 70% | 15 |
+| ★★ | 740 | 1,050 | 70% | 20 |
+| ★★½ | 1,567 | 2,250 | 70% | 25 |
+| ★★★ | 2,394 | 3,400 | 70% | 35 |
+| ★★★½ | 5,596 | 8,000 | 70% | 50 |
+| ★★★★ | 8,799 | 12,500 | 70% | 60 |
+| ★★★★½ | 18,913 | 27,000 | 70% | 85 |
+| ★★★★★ | 29,026 | 41,500 | 70% | 100 |
 
-Set cases, in stardust (Starter / Collector / Vault), for the 9 sets the
-shops carry:
-
-- Pebblebound (F): 525 / 6,040 / 19,650
-- Sugar Rush (D): 580 / 6,640 / 21,615
-- Starfront (C): 770 / 8,840 / 28,770
-- Arcade Legends (B): 845 / 9,725 / 31,650
-- Royal Reserve (B): 1,125 / 12,945 / 42,125
-
-Every set steps by ×1.10. `MineCases.dustPrice` prints any of them, and it
-returns nil for the sets above B.
+| set case (stardust) | Starter | Collector | Vault | return |
+|---|---|---|---|---|
+| Pebblebound (F) | 525 | 6,050 | 19,500 | 65% |
+| Sugar Rush (D) | 535 | 6,150 | 20,000 | 64% |
+| Mosswood (C) | 545 | 6,300 | 20,500 | 62% |
+| Lost & Found (C) | 555 | 6,400 | 21,000 | 61% |
+| Starfront (C) | 570 | 6,550 | 21,500 | 60% |
+| Arcade Legends (B) | 580 | 6,700 | 21,500 | 59% |
+| Crystal Hollow (B) | 595 | 6,850 | 22,000 | 57% |
+| Shogun's Oath (B) | 605 | 7,000 | 22,500 | 56% |
+| Royal Reserve (B) | 620 | 7,150 | 23,000 | 55% |
 
 Featured set packs in credits (sets F to B only):
-
-- ★★★ costs 19 (Pebblebound) to 26 (Royal Reserve).
-- ★★★★★ costs 57 to about 80.
+- ★★★ is about 25.
+- ★★★★ is 35–40.
+- ★★★★★ is about 70.
 - Four are featured each UTC day, at ★★★, ★★★★, ★★★★ and ★★★★★
   (`FEATURED_LEVELS`).
 
@@ -190,16 +200,12 @@ Wild-slot odds by set grade (`MineCases.wildGradeOdds`):
 | SS | 1.2% |
 | SSS | 0.5%, credit-bought cases only |
 
-**Still to price or approve:**
-- every number above. The chest case rates are *decided* (see How it
-  works). The wild cases are priced about 2× what their cards recycle for,
-  because the ×1.10-per-set value counts the stronger pets as well. Recycling
-  a wild case returns about 32%; a set case returns 65% (Pebblebound) down to
-  about 30% (Royal Reserve). Owner to choose: keep, or price wild cases on
-  recycle value (★★★★★ 44,655 stardust / 102 credits);
+**Still PROPOSED:**
 - which star grade each wheel slice pays (jackpot ★★★★★, apex ★★★★, heirloom
   ★★★, anomaly ★★);
-- a set case's shown stars, which are its best pack's.
+- the featured set packs' star grades (`FEATURED_LEVELS`);
+- the stars a set case shows, which are its best pack's;
+- the credit curve itself.
 
 ## State right now
 

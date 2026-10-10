@@ -521,35 +521,23 @@ end
 -- -------------------------------------------------------------- prices --
 
 --[[
-	A pack from a better set costs more. Owner, 2026-10-10: "Better does still
-	cost more [10% more than last]": a pack from set N is valued 1.10^(N-1) of
-	the same pack from Pebblebound.
+	PRICES ARE SET BY RETURN: what the cards inside recycle for, as a share of
+	the price. Owner, 2026-10-10: "Make it even, pretty numbers.. 50-70% rtp";
+	then wild cases "should return 70% stardust value across the board", and
+	set cases "55-65 (Higher teir less rtp, but more volitile)".
+
+	  WILD_RTP      every wild case, every grade
+	  SET_RTP_TOP   the set cases of the lowest set the shops carry (Pebblebound)
+	  SET_RTP_LOW   ...falling evenly to the highest one (Royal Reserve), so a
+	                better set costs more for the same recycle value: its pets
+	                are stronger, which recycling does not pay for
+
+	This replaced "+10% per better set" (SET_VALUE_STEP), which priced the
+	stronger pets on top of the recycle value and so returned as little as 30%.
 ]]
-M.SET_VALUE_STEP = 1.10
-
-function M.setValue(setKey)
-	local set = M.SET_BY_KEY[setKey]
-	return M.SET_VALUE_STEP ^ (((set and set.index) or 1) - 1)
-end
-
--- The average value of a wild slot, over the set draw that case gets.
-function M.wildValue(paid)
-	local function mean(pool)
-		local sum, total = 0, 0
-		for _, s in ipairs(pool) do
-			local w = SetPacks.GRADE_WEIGHT[s.grade] or 1
-			sum += w * M.setValue(s.key)
-			total += w
-		end
-		return (total > 0) and (sum / total) or 1
-	end
-	local base = mean(wildPool(false))
-	local special = wildPool(true)
-	if paid and #special > 0 then
-		return base * (1 - M.PAID_ONLY_SHARE) + mean(special) * M.PAID_ONLY_SHARE
-	end
-	return base
-end
+M.WILD_RTP = 0.70
+M.SET_RTP_TOP = 0.65
+M.SET_RTP_LOW = 0.55
 
 local function dustOfTier()
 	local Packs = require(script.Parent:WaitForChild("MinePackConfig"))
@@ -566,12 +554,12 @@ local function avgCaseSize()
 end
 
 --[[
-	What a case, or a set pack, is expected to scrap for in stardust: each
+	What a case, or a set pack, is expected to recycle for in stardust: each
 	pack's expected card value (MineSetPacks.expectedPackDust over
-	MinePackConfig.RECYCLE_STARDUST), times its set's value. `paid` prices a
-	wild case as the credit-bought kind.
+	MinePackConfig.RECYCLE_STARDUST). Recycling pays by rarity only, so the set
+	does not change it.
 ]]
-function M.expectedDust(id, paid)
+function M.expectedDust(id)
 	local dust = dustOfTier()
 	local def = M.get(id)
 	if def and def.caseType == "set" then
@@ -580,7 +568,7 @@ function M.expectedDust(id, paid)
 			local _, level = M.parsePack(packId)
 			ev += SetPacks.expectedPackDust(level, dust)
 		end
-		return ev * M.setValue(def.setKey)
+		return ev
 	elseif def then
 		-- A half grade's pack is either neighbour, evenly.
 		local levels = def.levels or { def.starLevel }
@@ -588,24 +576,53 @@ function M.expectedDust(id, paid)
 		for _, level in ipairs(levels) do
 			per += SetPacks.expectedPackDust(level, dust) / #levels
 		end
-		return per * avgCaseSize() * M.wildValue(paid)
+		return per * avgCaseSize()
 	end
 	local key, level = M.parsePack(id)
 	if key then
-		return SetPacks.expectedPackDust(level, dust) * M.setValue(key)
+		return SetPacks.expectedPackDust(level, dust)
 	end
 	return 0
 end
 
--- PROPOSED. Stardust price = expected value / MineSetPacks.CASE_RTP (0.65),
--- to the nearest 5. Nil for anything the stardust shop does not carry.
+-- The return a case or set pack is priced at (see above).
+function M.rtpOf(id)
+	local def = M.get(id)
+	if def and def.caseType == "wild" then
+		return M.WILD_RTP
+	end
+	local key = (def and def.setKey) or M.parsePack(id)
+	local sets = M.shopSets()
+	for i, s in ipairs(sets) do
+		if s.key == key then
+			local t = (#sets > 1) and ((i - 1) / (#sets - 1)) or 0
+			return M.SET_RTP_TOP + (M.SET_RTP_LOW - M.SET_RTP_TOP) * t
+		end
+	end
+	return M.SET_RTP_LOW
+end
+
+--[[
+	A pretty price (owner: "even, pretty numbers"): under 100 to the nearest 5,
+	otherwise two figures with the second a 0 or a 5 (3,683 -> 3,700; 44,655 ->
+	44,500). Close enough that a return never moves more than a couple of points.
+]]
+function M.prettyPrice(n)
+	n = tonumber(n) or 0
+	if n < 100 then
+		return math.max(5, math.floor(n / 5 + 0.5) * 5)
+	end
+	local step = 5 * 10 ^ (math.floor(math.log10(n)) - 2)
+	return math.floor(n / step + 0.5) * step
+end
+
+-- The stardust price, or nil for anything the stardust shop does not carry.
 function M.dustPrice(id)
 	local def = M.get(id)
 	if not def or (def.caseType == "set" and not def.forSale) then
 		return nil
 	end
-	local ev = M.expectedDust(id, false) / (SetPacks.CASE_RTP or 0.65)
-	return math.max(25, math.floor(ev / 5 + 0.5) * 5)
+	return M.prettyPrice(M.expectedDust(id) / M.rtpOf(id))
 end
 
 --[[
@@ -614,12 +631,18 @@ end
 	to the old shelf: Hopper 12 credits at ~250 expected stardust, Heirloom 55
 	at ~6,900, Shiny 95 at ~24,000. Value rises faster than price, as it did
 	there: a better pack is a better deal.
+
+	Read off the case's recycle value, then scaled by its return the way the
+	stardust price is (a wild case at 70% is the curve as-is; a set pack at
+	55-65% costs a little more), and rounded to a pretty number.
 ]]
 M.CREDIT_CURVE = { base = 12, at = 250, power = 0.45 }
 
-local function creditsFor(ev)
+local function creditsFor(id)
 	local c = M.CREDIT_CURVE
-	return math.max(5, math.floor(c.base * (math.max(0, ev) / c.at) ^ c.power + 0.5))
+	local ev = math.max(0, M.expectedDust(id))
+	local credits = c.base * (ev / c.at) ^ c.power * (M.WILD_RTP / M.rtpOf(id))
+	return M.prettyPrice(credits)
 end
 
 -- --------------------------------------------------------------- shops --
@@ -679,8 +702,9 @@ function M.creditShelf(day)
 end
 
 -- The credit price of anything on today's credit shelf, else nil. The server
--- prices a cart line with this, so an item off the shelf cannot be bought. A
--- wild case is priced as the credit-bought kind, which can roll the SSS set.
+-- prices a cart line with this, so an item off the shelf cannot be bought.
+-- (A credit-bought wild case can roll the SSS set, but SSS cards recycle by
+-- rarity like any other, so it does not move the price.)
 function M.creditPrice(id, day)
 	id = tostring(id or "")
 	local listed = false
@@ -693,7 +717,7 @@ function M.creditPrice(id, day)
 	if not listed then
 		return nil
 	end
-	return creditsFor(M.expectedDust(id, true))
+	return creditsFor(id)
 end
 
 -- What the stardust shop's cases tab sells: the wild cases, then the three
