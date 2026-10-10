@@ -17,6 +17,7 @@ sources:
   - src/ServerScriptService/Mine/MineHarbor.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineTrickOrTreat.luau
   - docs/OPEN.md P0 §3, P2
   - docs/PROPOSAL.md §0 line 32
   - docs/AUDIT.md §5
@@ -64,12 +65,37 @@ related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-m
 
 ### Candy Crypt (`hallow`, zone index 12) — Halloween 2026
 
-> **Built (2026-10-10), except the cases.** The zone, window, claim, 3×3 pit,
-> no chests, candy balance, strata, the twelve candy ores, the 10-layer
-> sections, the 3× curve, the sell curve and the twelve candy tools all exist.
-> **The Trick-or-Treat case does not, and cannot yet** — a case holds *packs*
-> (`MineCases`), and the Halloween 2026 Pack is still queued in the rewards
-> pass. The case is a one-file job once that pack has an id.
+> **Built (2026-10-10).** Zone, window, claim, 3×3 pit, no chests, candy
+> balance, strata, twelve candy ores, 10-layer sections, the 3× curve, the sell
+> curve, twelve candy tools, and the Trick-or-Treat case with the Bucket.
+> The only thing outstanding is the **Halloween 2026 Pack**, still queued in
+> the rewards pass — the case already has a slot for it that switches on by
+> itself the day the pack has an id.
+
+**The Trick-or-Treat case** (`MineTrickOrTreat`) is bought with candy and opens
+on the spot — no unopened case sits in a bag. It is **not** a `MineCases` case:
+those hold packs and nothing else, and this pays four different kinds of thing.
+
+| outcome | rate | comes from |
+| --- | --- | --- |
+| candy back | 52.0% | 19.5% of spend returns as candy |
+| hat | 32.8% | `Gear.rollPiece(id, rng, "head")` → `p.gear` |
+| skin | 15.1% | `MineTemper.rollTemperament` → `p.tempers` |
+| seasonal pack | — | conditional; folded into hats while absent |
+| **Trick-or-Treat Bucket** | **0.1%** | 1 in 1,015 over 200,000 rolls |
+
+The **Bucket** is a real bag with a real ability: `candyMult = 2` is a number
+the payout reads, not a line in a blurb. Winning it never demotes a player
+already carrying something bigger. At 2× the top coin bag (the Wormhole is 4×)
+it lands around second best in the game — **a balance call, still PROPOSED**.
+
+**Three profile fields do not exist, and each compiles fine if you guess:**
+- `p.hats[id]` — a hat is a **gear piece** appended to `p.gear` (an array).
+  `MineHats` is the catalogue the roller draws from, not a pool to pick from.
+- `p.tempers` is a **map keyed by `kit.id`** holding `{ rarity, n }`, not a
+  list. `table.insert` corrupts it. A duplicate keeps the **better** grade.
+- `p.bagsOwned` — `backpackTier` is an **index** into `C.BACKPACKS`; limited
+  bags are owned through a dedicated flag, like `p.wormholeBag`.
 
 A second limited mine, open **alongside** Event Horizon rather than after it.
 Owner's brief: candy ores dropping candy corn, **no chests**, nothing sells for

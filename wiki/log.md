@@ -734,3 +734,25 @@ in the group place until the owner shares them
 (`build/case-art/share-list.txt`).
 
 Updated: assets-and-uploads, pack-cases, TODO A1c.
+
+## [2026-10-10] ingest | the Trick-or-Treat case, and three fields that do not exist
+The case is built. I had called it blocked on the Halloween 2026 Pack, but that
+was true of only one of its five outcomes — the other four draw on pools that
+already exist, so the pack slot is conditional instead: `resolvedPack()` looks
+it up at roll time and the weights drop the slot while it is missing, folding
+its chance into hats. 200,000 rolls: candy 52.0%, hat 32.8%, skin 15.1%, bucket
+1 in 1,015, with 19.5% of spend returning as candy.
+
+**Three profile fields I invented compiled cleanly and would each have eaten
+the prize**: `p.hats[id]` (a hat is a gear piece appended to the `p.gear`
+array, rolled by `Gear.rollPiece`), `p.tempers` as a list (it is a map keyed by
+`kit.id` holding `{rarity, n}`, and a duplicate keeps the better grade), and
+`p.bagsOwned` (there is none — `backpackTier` is an index, and limited bags use
+a dedicated flag like `p.wormholeBag`). Written up in [world-events] because
+guessing any of them type-checks.
+
+`orphan-verbs` earned its keep again: it failed with "UNEXPLAINED:
+buyTrickOrTreat" until the button existed. `MineEventsView` only ever rendered
+`EVENTS[1]` and read `bigbangOwned` directly, so with two limited mines the
+Crypt would have had no screen at all; `currentEvent()` now prefers an event
+whose own window is open, and owned/active are per event.
