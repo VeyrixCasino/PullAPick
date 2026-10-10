@@ -1929,6 +1929,29 @@ function MineConfig.blockHp(kind, zone, layer)
 	if zoneId == "bigbang" then
 		zi = 11
 	end
+	--[[
+		THE CANDY CRYPT HAS ITS OWN CURVE, NOT A PLACE ON THE LADDER.
+
+		Being zone 12 would put its rock a step past Primordium, which is the
+		exact opposite of what the owner asked for: no hardness requirement, so
+		a surface tool works. Nothing else stops one -- unlike Event Horizon
+		there is no separate matter pool here, so an ordinary tool can spend
+		this HP; it is only the NUMBER that would have locked everyone out.
+
+		One curve does two jobs, because coins are one per point of HP (see
+		coinsFor): it is both how hard the rock is and what it sells for. So a
+		tiny base gives "sells for almost nothing", and 3x per 10-layer section
+		gives "more the deeper you get" and the exponential in one move. Section
+		1 pays 1, section 10 pays 19,683.
+	]]
+	if zoneId == "hallow" then
+		local hp = (MineConfig.CANDY_SELL_BASE or 1)
+			* (MineConfig.candySectionMult and MineConfig.candySectionMult(layer) or 1)
+		if kind == "chest" or kind == "crate" or kind == "lucky_block" then
+			hp = hp * (MineConfig.CHEST_HP_MULT or 2)
+		end
+		return math.max(1, math.floor(hp + 0.5))
+	end
 	local dirt = Depth.dirtHp(zi, layer)
 	if kind == "chest" or kind == "crate" or kind == "lucky_block" then
 		return math.max(1, math.floor(dirt * (MineConfig.CHEST_HP_MULT or 2) + 0.5))
