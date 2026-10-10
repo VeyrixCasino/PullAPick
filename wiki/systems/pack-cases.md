@@ -60,9 +60,8 @@ How a case behaves in the game:
 - **Art.** Each set has a booster box from Canva, and the wild cases share a
   mystery box, whatever their star grade (`MinePackArt.caseArt`, from
   `ids.json` `cases`). The tile's colour says the grade. How the images were
-  made is in [assets-and-uploads](../code/assets-and-uploads.md).
-  **BLOCKED:** the 20 images draw only once the owner shares them
-  (`build/case-art/share-list.txt`).
+  made is in [assets-and-uploads](../code/assets-and-uploads.md). The owner
+  shared all 20 on 2026-10-10, and they load and draw in the game.
 
 ## Where it lives
 

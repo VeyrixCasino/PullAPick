@@ -767,3 +767,12 @@ ReplicatedStorage.Mine.Shared (newly added files, both copies synced); removed
 the identical extras, and the display builder no longer renames instances.
 
 Updated: luau-traps (§10, §11), pets, next-up, log.
+
+## [2026-10-10] query | pack-case art shared and verified
+The owner shared all 20 case images. `PreloadAsync` loaded 20/20 at 732×1024
+in the group place, using leading-zero ids to get past Studio's cached
+failures. In a play test the boxes drew on the bag tiles and on the case
+opening screen ("TAP TO RIP"), and the packs inside revealed after it. The
+console was clean.
+
+Updated: assets-and-uploads, pack-cases, TODO A1c.

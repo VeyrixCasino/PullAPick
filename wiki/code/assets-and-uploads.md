@@ -86,8 +86,10 @@ it via personal account, and i just have to share access"*.
       `art/case-art/{Set}Case.png`.
   - The Canva media ids are in `build/case-art/canva-media.json`.
   - The images were uploaded as the owner's account and listed in
-    `build/case-art/share-list.txt`. **They do not load in the group place
-    until the owner shares them** (`PreloadAsync`: Failure, 2026-10-10).
+    `build/case-art/share-list.txt`. Unshared, they failed to load. **The
+    owner shared all 20 on 2026-10-10.** After that, `PreloadAsync` loaded
+    20/20 at 732×1024 (checked with leading-zero ids), and the boxes drew on
+    the bag tiles and the opening screen in a play test.
 - The owner has seen personal assets in the group they never shared by hand.
   Roblox appears to grant an experience use of an asset its owner uses there
   from Studio; *unverified*, so still share explicitly and test.

@@ -132,9 +132,8 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
           off the credit shelf.
   - [x] Case art from Canva: 19 booster boxes plus 1 wild mystery box, made,
         uploaded and wired 2026-10-10 (`build/pack-art/ids.json` `cases`).
-  - [ ] **BLOCKED on the owner:** share the 20 case images with the
-        group/experience (`build/case-art/share-list.txt`). Until then they
-        do not draw.
+  - [x] The owner shared the 20 case images (2026-10-10). They load 20/20
+        and draw on the bag tiles and the opening screen.
   - [ ] See a case drop from a real chest in play. So far the roll has been
         tested on its own.
 - **A2. More daily attractions.** The TODAY checklist goes **inside the Quests
