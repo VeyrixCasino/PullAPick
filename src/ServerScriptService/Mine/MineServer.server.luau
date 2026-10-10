@@ -8484,7 +8484,8 @@ local function openPack(plr, setId, chestId, pk, collect)
 					set's hand-named pets at that rarity (MineSetPacks.pickPet).
 				]]
 				local pets = PetRoster.BY_SET and PetRoster.BY_SET[packDef.setKey]
-				local pet, n = SetPacks.pickPet(pets, roll.tier, rng)
+				-- A holiday pack is the one pack allowed to pay holiday pets.
+				local pet, n = SetPacks.pickPet(pets, roll.tier, rng, packDef.holiday ~= nil)
 				if pet then
 					def = SetPacks.petCard(pet, packDef.setKey, packDef.setName)
 					poolN = n

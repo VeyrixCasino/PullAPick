@@ -358,7 +358,16 @@ do
 			if not have[row.name] then
 				table.insert(MinePetRoster.PETS, {
 					name = row.name, hex3 = row.hex3, animal = row.animal, tier = row.tier, tierVia = "set", set = row.set,
+					holiday = row.holiday,
 				})
+			end
+		end
+		-- An older holiday pet (Spindle, Spooky, Wisp) is paid by its holiday
+		-- pack now, so it is filed under that pack's key too.
+		for _, pet in ipairs(MinePetRoster.PETS) do
+			local key = sp.LEGACY_SET and sp.LEGACY_SET[pet.name]
+			if key and pet.set == nil then
+				pet.set = key
 			end
 		end
 	end

@@ -14,6 +14,12 @@
 local M = {}
 
 M.SETS = {} -- in the owner's order (INDEX 1..19)
+-- Holiday packs' pet lists (HolidayPets/, tools/gen/holiday-pets.js). NOT in
+-- SETS: no set pack, case or shop walks them. Their pets join PETS, ANIMALS,
+-- KITS, ROLE and SET_OF like any set's, each row stamped `holiday`.
+M.HOLIDAY_SETS = {}
+-- An older holiday pet a holiday pack also pays: name -> that pack's key.
+M.LEGACY_SET = {}
 M.BY_KEY = {}
 M.PETS = {}
 M.ANIMALS = {}
@@ -53,6 +59,42 @@ if folder then
 		for name, role in pairs(set.ROLE or {}) do
 			M.ROLE[name] = role
 		end
+	end
+end
+
+do
+	local holiday = script.Parent:FindFirstChild("HolidayPets")
+	if holiday then
+		for _, mod in ipairs(holiday:GetChildren()) do
+			if mod:IsA("ModuleScript") then
+				local ok, set = pcall(require, mod)
+				if ok and type(set) == "table" and set.KEY then
+					table.insert(M.HOLIDAY_SETS, set)
+					M.BY_KEY[set.KEY] = set
+					for _, row in ipairs(set.PETS or {}) do
+						table.insert(M.PETS, row)
+						M.SET_OF[row.name] = set.KEY
+					end
+					for animal, skin in pairs(set.ANIMALS or {}) do
+						M.ANIMALS[animal] = skin
+					end
+					for name, kit in pairs(set.KITS or {}) do
+						M.KITS[name] = kit
+					end
+					for name, role in pairs(set.ROLE or {}) do
+						M.ROLE[name] = role
+					end
+					for _, name in ipairs(set.LEGACY or {}) do
+						M.LEGACY_SET[name] = set.KEY
+					end
+				else
+					warn("[MineSetPets] HolidayPets/" .. mod.Name .. ": " .. tostring(set))
+				end
+			end
+		end
+		table.sort(M.HOLIDAY_SETS, function(a, b)
+			return a.KEY < b.KEY
+		end)
 	end
 end
 

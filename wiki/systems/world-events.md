@@ -68,9 +68,9 @@ related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-m
 > **Built (2026-10-10).** Zone, window, claim, 3×3 pit, no chests, candy
 > balance, strata, twelve candy ores, 10-layer sections, the 3× curve, the sell
 > curve, twelve candy tools, and the Trick-or-Treat case with the Bucket.
-> The only thing outstanding is the **Halloween 2026 Pack**, still queued in
-> the rewards pass — the case already has a slot for it that switches on by
-> itself the day the pack has an id.
+> **The Halloween 2026 Pack exists (2026-10-10)**, so the case's pack slot is
+> live: `MineTrickOrTreat.resolvedPack()` returns `halloween_2026` (checked in
+> a Studio play test). Its 60 pets are in [pets](pets.md#holiday-pets-halloween-2026).
 
 **The Trick-or-Treat case** (`MineTrickOrTreat`) is bought with candy and opens
 on the spot — no unopened case sits in a bag. It is **not** a `MineCases` case:

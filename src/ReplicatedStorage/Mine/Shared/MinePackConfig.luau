@@ -1951,6 +1951,20 @@ do
 				MinePackConfig.PACK_TIER[def.id] = below + 0.5
 			end
 		end
+		-- Holiday packs (the Halloween 2026 Pack): answer lookups too, kind
+		-- "holiday", so nothing that walks card packs picks one up.
+		for _, def in ipairs(SetPacks.HOLIDAY_PACKS or {}) do
+			if MinePackConfig.PACK_BY_ID[def.id] == nil then
+				MinePackConfig.PACK_BY_ID[def.id] = def
+				local mine, below = packScore(def), 0
+				for _, sc in ipairs(scores) do
+					if sc <= mine then
+						below += 1
+					end
+				end
+				MinePackConfig.PACK_TIER[def.id] = below + 0.5
+			end
+		end
 	elseif not ok and warn then
 		-- (warn is nil in the offline pack checks, which stub the module tree)
 		warn("[MinePackConfig] MineSetPacks: " .. tostring(SetPacks))

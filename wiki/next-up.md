@@ -44,62 +44,19 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
   the day-4 surprise, `Verbs.grantPacks` callers) until the owner asks. The
   owner: universal packs go, but *"don't nuke them"* yet.
 
-## 1. Halloween 2026: an event mine, 60 pets and the pack
+## 1. Halloween 2026 — DONE 2026-10-10
 
-The owner's answers, 2026-10-10 (also in [owner](owner.md)):
-- **Window: 17 October to 7 November 2026, real dates.** Not the season clock:
-  if the game is not live by then, it does not happen.
-- **A second event mine**, next to Event Horizon (EH keeps running).
-- **The mine:** *"Should be just like EH (same concept, and depth progression;
-  just devided by 10000, and you can bring surface tools there. make there be
-  like 5-10 chests"*.
-- **The pack:** *"make it 60 halloween pets [keep the specaltiy ones as as rare
-  ones, and for the others just make them normal cards with a costume {simple
-  shit like a dog costume on or something}]"*. The Halloween 2026 Pack comes
-  from this mine only.
-
-What that means to build:
-1. **The zone.** A second `limited` zone in `MineConfig.ZONES`, modelled on
-   `bigbang`: its own spot on the map (`radius`, `angle`), its own portal,
-   and a spooky palette (pumpkin, purple, black).
-   - **The window is per zone.** `MineConfig.limitedActive` is ONE global
-     window today (EH's 47 days, pinned to season start until launch). Give the
-     Halloween zone its own `opensAt`/`closesAt` (UTC) and make every
-     `limited` check ask about the zone. **Ask:** UTC midnight, or the owner's
-     time zone (Newfoundland)?
-   - **"Divided by 10000": assumed reading, ask to confirm.** EH has 20 dirt
-     sections, each with its own Horizon tool bought with Space coins
-     (`MineHorizonTools`, zone index 11 HP). The Halloween mine keeps that
-     shape, but block HP is EH's divided by 10,000, so ordinary surface tools
-     work there and no event-tool shop is needed.
-   - **5–10 chests:** new `MineConfig` chest rows (like `bigbang_cache` …
-     `bigbang_reliq`) and a `MineZoneChests` pool. The other session owns
-     `MineZoneChests`: message it first.
-2. **60 Halloween pets.**
-   - **15 rare ones** on the 15 Halloween bodies (`PetModelFactory.HALLOWEEN`;
-     Spindle, Spooky and Wisp already exist on three of them). **Assumed:** these
-     fill Epic to Exotic.
-   - **45 costume pets:** everyday bodies (dog, cat, bunny…) wearing a simple
-     Halloween costume. **Build a costume as a detail prop** in
-     `PetModelFactory.DETAILS` (a skin's `detail` list), for example a witch
-     hat, pumpkin suit, ghost sheet, devil horns, vampire cape, skeleton bones,
-     bat wings or mummy wraps. A costume pet is a skin: body + colour + costume.
-     **Assumed:** Common to Rare.
-   - Every one is a **holiday pet**: listed in `MineZonePets.HOLIDAY` (or a new
-     Halloween list the roster stamps `holiday` from), in no pot, skipped by
-     every random roll. `tools/verify/zone-pets.js` already fails if a pet on a
-     holiday body is not listed; extend it to costume pets.
-   - Names: like the sets, a JSON of names checked for clashes against the
-     whole game (`tools/gen/sets/README.md` rules). They ship now and the owner
-     reviews them after.
-   - Kits: **assumed** at Event Horizon's level (zone 11 on the ladder).
-3. **The Halloween 2026 Pack.** A pack row (in `MineSetPacks`, or a small
-   `MineHolidayPacks`) that draws only the 60, and drops only from the new
-   zone's chests. `openPack` already mints any pack with a `setKey` from
-   `MinePetRoster.BY_SET[setKey]`, so giving the 60 pets `set = "halloween_2026"`
-   reuses it (check that random rolls still skip them).
-4. **Prove it in Studio:** enter the zone, break blocks with a surface tool,
-   open its chests, open the pack, and screenshot the 60 pets on the display.
+- **The mine** is the Candy Crypt, built by another session; see
+  [world-events](systems/world-events.md).
+- **The pack and its 60 pets** are built; see
+  [pets](systems/pets.md#holiday-pets-halloween-2026). The Trick-or-Treat case
+  pays the pack.
+- **Open, for the owner:**
+  - **The window.** The owner said real dates, and *"if the game isn't live by
+    then, it doesn't happen"*. The Crypt counts days from season start, so it
+    moves with launch.
+  - **The pack's odds and the three PROPOSED buffs.**
+  - **Names**, for review in `docs/HOLIDAY-PETS.md`.
 
 ## 2. Pets: what is left
 

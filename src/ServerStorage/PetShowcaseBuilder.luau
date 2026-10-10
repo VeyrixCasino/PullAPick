@@ -218,6 +218,17 @@ function M.build(opts)
 		bySet[set.KEY] = g
 		table.insert(setGroups, g)
 	end
+	-- Holiday packs' pets (the Halloween 2026 Pack): one block each, after the sets.
+	for _, set in ipairs(Sets.HOLIDAY_SETS or {}) do
+		local g = {
+			id = set.KEY,
+			title = string.upper(set.PACK_NAME or set.NAME),
+			sub = string.format("Holiday pack only  ·  power x%.2f  ·  also pays %s", set.POWER or 1, table.concat(set.LEGACY or {}, ", ")),
+			pets = {},
+		}
+		bySet[set.KEY] = g
+		table.insert(setGroups, g)
+	end
 	for _, pet in ipairs(Roster.PETS) do
 		-- Ask the zone data directly: it is required fresh above, the roster's own
 		-- copy may be a cached one from earlier in the Studio session.
@@ -247,7 +258,7 @@ function M.build(opts)
 		sub = "Not in the game: only from a {Holiday} {year} Pack (owner, 2026-10-10)",
 		pets = holidayPets,
 	})
-	local holiday = { id = "halloween", title = "HALLOWEEN BODIES", sub = "Bodies only, not pets yet", pets = {}, bodies = true }
+	local holiday = { id = "halloween", title = "HALLOWEEN BODIES", sub = "The bare bodies; their pets are in the Halloween 2026 Pack block", pets = {}, bodies = true }
 	for _, species in ipairs(PMF.HALLOWEEN or {}) do
 		table.insert(holiday.pets, { name = species, species = species, tier = "Epic", animal = "" })
 	end

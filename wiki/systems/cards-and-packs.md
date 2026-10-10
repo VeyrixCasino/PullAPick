@@ -134,6 +134,7 @@ the last. Cards of Rare or better that rolled rarer than 1 in 200 carry an
 |---|---|---|
 | `cards` | `<zone>_pack_common/rare/legendary` (3/4/5 cards) | odds from `MineZonePacks` `cardOdds(zoneIndex, heat)` |
 | `currency` | `<zone>_currency_common/rare` | coins + gems, no cards |
+| `holiday` | `halloween_2026` (3 cards) | `MineSetPacks.HOLIDAY_ODDS` (PROPOSED); only its holiday pets, the one pack allowed to pay them. Kind `holiday` keeps it out of the day-4 surprise. Paid by the Trick-or-Treat case. |
 | `cards` + `setKey` | `<setkey>_pack_1..6` (★ to ★★★★★; 3, 3, 4, 4, 5, 5 cards) | `MineSetPacks.ODDS` by star grade; only that set's pets |
 | card pack, no kind | 19 in `Mine1PacksData` (loam … heirloom; hopper 6 cards, magma 8, apex 1) | own `odds` table |
 | `rune` / `gear` | `rune_*_pack`, `gear_*_pack` | `MineLootPacks` rolls one item per slot |

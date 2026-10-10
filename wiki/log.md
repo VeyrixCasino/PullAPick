@@ -808,3 +808,16 @@ Pack Cases tab. Checked over 48 rotations (12 days): no pack offers and 4
 potions each time. The shelf text now says potions.
 
 Updated: shops-and-monetisation, pack-cases, TODO A1c.
+
+## [2026-10-10] ingest | the Halloween 2026 Pack: 60 pets, costumes, the holiday rule
+Owner chose the split (costumes C20/U15/R10, Halloween bodies E6/L4/M2/D2/X1) and
+Event Horizon power. Built `tools/gen/holiday-pets.js`, `HolidayPets/`, eight
+`cos_*` costumes, the `halloween_2026` pack (kind `holiday`) and its check. The
+Candy Crypt's Trick-or-Treat case now pays it. Studio: the display builds 2,897
+pets; the pack opened six times into Halloween pets; 3,200 wheel rolls, no
+holiday pet. Found: passing the species to props broke `D.bands` (bees), whose
+third argument was a colour; fixed. Flagged: the Crypt's window counts from
+season start, but the owner told this session real dates.
+
+Updated: pets, cards-and-packs, world-events, tools-and-generators, owner,
+next-up, log.

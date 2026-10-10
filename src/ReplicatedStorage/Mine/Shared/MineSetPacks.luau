@@ -111,6 +111,40 @@ for _, set in ipairs(Sets.SETS) do
 	end
 end
 
+--[[
+	HOLIDAY PACKS: one per holiday pet list (MineSetPets.HOLIDAY_SETS), e.g. the
+	Halloween 2026 Pack. Owner's holiday rule: a holiday pet comes ONLY from its
+	"{Holiday} {year} Pack", so this is the one pack allowed to pay them
+	(pickPet's allowHoliday). Kind "holiday", not "cards": the day-4 surprise and
+	everything else that walks card packs leaves it alone. Kept out of
+	PACK_BY_ID and PACKS here, so no set-pack or case logic ever sees it;
+	MinePackConfig registers it for the bag, the inspector and the opener.
+
+	The Trick-or-Treat case (MineTrickOrTreat.PACK_ID = "halloween_2026") pays it
+	the moment it exists. PROPOSED odds below.
+]]
+M.HOLIDAY_ODDS = { Common = 44, Uncommon = 28, Rare = 16, Epic = 7.5, Legendary = 3.2, Mythic = 0.9, Divine = 0.3, Exotic = 0.1 }
+M.HOLIDAY_CARDS = 3
+M.HOLIDAY_PACKS = {}
+M.HOLIDAY_BY_ID = {}
+for _, set in ipairs(Sets.HOLIDAY_SETS or {}) do
+	if set.PACK_ID then
+		local def = {
+			id = set.PACK_ID,
+			name = set.PACK_NAME or (set.NAME .. " Pack"),
+			kind = "holiday",
+			setPack = true,
+			holiday = set.HOLIDAY,
+			setKey = set.KEY,
+			setName = set.NAME,
+			cards = M.HOLIDAY_CARDS,
+			odds = M.HOLIDAY_ODDS,
+		}
+		table.insert(M.HOLIDAY_PACKS, def)
+		M.HOLIDAY_BY_ID[def.id] = def
+	end
+end
+
 M.CASES = {}
 M.CASE_BY_ID = {}
 for n = 1, 6 do
@@ -158,15 +192,16 @@ end
 
 -- One named pet of `tier` from a list of roster pets (falls back a tier down
 -- when the list has none of that tier, which never happens with the owner's
--- counts). Never a holiday pet: those come only from a holiday pack.
+-- counts). Never a holiday pet -- those come only from a holiday pack, which
+-- passes allowHoliday.
 -- Returns the pet and how many pets it was chosen from (the pull odds need it).
 -- Zone packs use this too, on a zone's pot (MinePetRoster.BY_ZONE).
-function M.pickPet(pets, tier, rng)
+function M.pickPet(pets, tier, rng, allowHoliday)
 	local idx = table.find(M.TIERS, tier) or 1
 	for t = idx, 1, -1 do
 		local pool = {}
 		for _, pet in ipairs(pets or {}) do
-			if pet.tier == M.TIERS[t] and not pet.holiday then
+			if pet.tier == M.TIERS[t] and (allowHoliday or not pet.holiday) then
 				table.insert(pool, pet)
 			end
 		end

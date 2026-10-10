@@ -215,6 +215,36 @@ in the engine; the admin commands cannot grant a pet.
   Matter-, Cosmo and Albert Minestein as names. `NAME_ALIASES` maps Horizon+ to Matter+
   and similar.
 
+## Holiday pets: Halloween 2026
+
+**The Halloween 2026 Pack** (`halloween_2026`) pays **60 new pets** plus the three
+older Halloween pets (Spindle, Spooky, Wisp), which until now had no source.
+The names sheet is `docs/HOLIDAY-PETS.md` (generated).
+- **Owner, 2026-10-10:** *"make it 60 halloween pets [keep the specaltiy ones as
+  as rare ones, and for the others just make them normal cards with a costume]"*.
+  The owner chose the split and the power:
+  - **45 costume pets**, Common 20 / Uncommon 15 / Rare 10: everyday bodies
+    (cat, hound, bunny, bear, fox, pig, owl, toad, sheep) in one of eight
+    costumes (witch hat, pumpkin cap, bedsheet ghost, devil horns and tail,
+    vampire cape, bat wings, skeleton bones, mummy wraps);
+  - **15 specials**, Epic 6 / Legendary 4 / Mythic 2 / Divine 2 / Exotic 1: one
+    on each of the 15 Halloween bodies, the Reaper the Exotic;
+  - **power at Event Horizon's level** (zone 11, ×1.63).
+- **Costumes are props** (`PetModelFactory.DETAILS.cos_*`) placed on the
+  species' own `head` and `back` anchors, so one costume fits every body. A
+  prop now receives the species as a third argument for that.
+- **The holiday rule holds:** every row is stamped `holiday`. The wheel, lucky
+  blocks, zone pots and set packs skip them (`MineSetPacks.pickPet` without
+  `allowHoliday`); only a pack of kind `"holiday"` passes it. Checked in
+  Studio: 3,200 wheel rolls, no holiday pet.
+- **Where it lives:** `tools/gen/holiday/halloween_2026.json` (names, costumes,
+  palettes, buffs) → `tools/gen/holiday-pets.js` → `HolidayPets/Halloween2026.luau`.
+  `MineSetPets` gathers it into `HOLIDAY_SETS`, apart from the 19 sets, so no
+  set pack, case or shop sees it. Serials 0xC00-0xCFF.
+- **Checked by** `tools/verify/holiday-pets.js` (counts, names, looks, bodies,
+  kits, the holiday stamp, the wiring).
+- **Buffs (PROPOSED):** Luck, Lucky Block find and Shatter; every proc is Shatter.
+
 ## Event Horizon pets
 
 - `MineEHPets` (its internal table is still called `MineEventHorizonPets`) has 73 pets, set ids

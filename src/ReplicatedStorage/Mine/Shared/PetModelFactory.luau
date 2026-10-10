@@ -2976,6 +2976,11 @@ end
 
 -- Horizontal bands. Bees, wasps, anything striped front-to-back.
 D.bands = function(c, p, colour)
+	-- A detail's third argument is now the species (costumes read its anchors),
+	-- so only a real colour counts here.
+	if typeof(colour) ~= "Color3" then
+		colour = nil
+	end
 	for i = 0, 2 do
 		c:ovoid(Vector3.new(2.06, 0.34, 1.86), CFrame.new(0, 0.44 - i * 0.52, 0), colour or C3(34, 32, 40))
 	end
@@ -3121,6 +3126,103 @@ D.soda = function(c, p)
 		).Transparency = 0.35
 	end
 	c:sparkle(C3(255, 255, 255), 10, 1.2, 0.20)
+end
+
+--[[
+	HALLOWEEN COSTUMES (owner, 2026-10-10: the Halloween 2026 Pack's everyday
+	pets are "normal cards with a costume {simple shit like a dog costume on or
+	something}"). Each is a prop on an ordinary body, placed on the species' own
+	anchors -- `head` (the top of the head, where hats sit) and `back` -- so
+	one costume fits every body. Ids start "cos_" and are named in a skin's
+	`detail` list (tools/gen/holiday-pets.js).
+]]
+local HEAD0, BACK0 = CFrame.new(0, 1.10, 0.06), CFrame.new(0, 0.20, -0.60)
+local function anchor(def, key, fallback)
+	return (def and typeof(def[key]) == "CFrame") and def[key] or fallback
+end
+
+-- A pointed witch's hat with a purple band, tipped back a little.
+D.cos_witch = function(c, p, def)
+	local h = anchor(def, "head", HEAD0)
+	local hat, band = C3(44, 34, 58), C3(150, 70, 200)
+	c:box(Vector3.new(1.56, 0.10, 1.50), h * CFrame.new(0, 0.05, -0.02), hat)
+	c:box(Vector3.new(0.98, 0.16, 0.96), h * CFrame.new(0, 0.16, -0.04), band)
+	c:cone(Vector3.new(0.94, 1.12, 0.92), h * CFrame.new(0, 0.78, -0.12) * CFrame.Angles(-0.20, 0, 0.12), hat)
+end
+
+-- A carved pumpkin worn as a cap: ribs, a stem and one leaf.
+D.cos_pumpkin = function(c, p, def)
+	local h = anchor(def, "head", HEAD0)
+	local orange, rib = C3(242, 130, 32), C3(206, 94, 20)
+	c:box(Vector3.new(1.40, 0.66, 1.30), h * CFrame.new(0, 0.30, -0.04), orange)
+	for _, x in ipairs({ -0.40, 0, 0.40 }) do
+		c:box(Vector3.new(0.07, 0.68, 1.32), h * CFrame.new(x, 0.30, -0.04), rib)
+	end
+	c:box(Vector3.new(0.16, 0.28, 0.16), h * CFrame.new(0, 0.76, -0.04), C3(76, 116, 44))
+	c:box(Vector3.new(0.36, 0.06, 0.22), h * CFrame.new(0.20, 0.70, -0.04) * CFrame.Angles(0, 0, -0.45), C3(96, 166, 56))
+end
+
+-- A bedsheet ghost: draped over the top and down the back, with a wavy hem.
+D.cos_ghost = function(c, p, def)
+	local h, b = anchor(def, "head", HEAD0), anchor(def, "back", BACK0)
+	local sheet = C3(246, 246, 252)
+	c:box(Vector3.new(2.16, 0.10, 1.40), h * CFrame.new(0, 0.03, -0.46), sheet)
+	c:box(Vector3.new(2.16, 1.46, 0.10), b * CFrame.new(0, 0.08, -0.08), sheet)
+	for _, x in ipairs({ -0.72, 0, 0.72 }) do
+		c:box(Vector3.new(0.52, 0.26, 0.10), b * CFrame.new(x, -0.74, -0.08), sheet)
+	end
+end
+
+-- Little red devil horns and a pointed tail.
+D.cos_devil = function(c, p, def)
+	local h, b = anchor(def, "head", HEAD0), anchor(def, "back", BACK0)
+	local red = C3(214, 34, 46)
+	for _, sgn in ipairs({ -1, 1 }) do
+		c:cone(Vector3.new(0.28, 0.54, 0.28), h * CFrame.new(0.42 * sgn, 0.24, 0.08) * CFrame.Angles(0, 0, -0.30 * sgn), red)
+	end
+	local base = b.Position + Vector3.new(0, -0.20, -0.04)
+	local tip = base + Vector3.new(0, 0.62, -0.52)
+	c:rod(base, tip, 0.06, red, nil, false)
+	c:cone(Vector3.new(0.34, 0.34, 0.12), CFrame.new(tip + Vector3.new(0, 0.12, -0.04)), red)
+end
+
+-- A vampire's cape down the back, with a tall red collar.
+D.cos_vampire = function(c, p, def)
+	local h, b = anchor(def, "head", HEAD0), anchor(def, "back", BACK0)
+	local cape, lining = C3(26, 20, 32), C3(176, 22, 40)
+	c:box(Vector3.new(2.20, 1.66, 0.10), b * CFrame.new(0, -0.08, -0.10), cape)
+	for _, sgn in ipairs({ -1, 1 }) do
+		c:box(Vector3.new(0.10, 0.70, 0.80), h * CFrame.new(1.04 * sgn, -0.28, -0.30) * CFrame.Angles(0, 0, 0.22 * sgn), lining)
+	end
+end
+
+-- Black bat wings on the back.
+D.cos_batwings = function(c, p, def)
+	wings(c, C3(40, 30, 50), 0.20, 0.46, -0.38, 0.62)
+	for _, sgn in ipairs({ -1, 1 }) do
+		c:cone(Vector3.new(0.20, 0.36, 0.20), CFrame.new(1.42 * sgn, 0.96, -0.38) * CFrame.Angles(0, 0, -0.80 * sgn), C3(40, 30, 50))
+	end
+end
+
+-- A skeleton suit: white ribs down both flanks and a spine over the top.
+D.cos_skeleton = function(c, p, def)
+	local h = anchor(def, "head", HEAD0)
+	local bone = C3(240, 236, 222)
+	for _, sgn in ipairs({ -1, 1 }) do
+		for _, y in ipairs({ 0.34, 0.04, -0.26 }) do
+			c:box(Vector3.new(0.06, 0.12, 1.10), CFrame.new(1.09 * sgn, y, -0.12), bone)
+		end
+	end
+	c:box(Vector3.new(0.18, 0.08, 1.30), h * CFrame.new(0, 0.02, -0.56), bone)
+end
+
+-- Mummy wrappings: loose bandages round the body and one over the head.
+D.cos_mummy = function(c, p, def)
+	local h = anchor(def, "head", HEAD0)
+	local wrap = C3(232, 222, 194)
+	c:box(Vector3.new(2.22, 0.16, 2.02), CFrame.new(0, -0.66, 0) * CFrame.Angles(0, 0, 0.05), wrap)
+	c:box(Vector3.new(2.22, 0.14, 2.02), CFrame.new(0, 0.62, -0.10) * CFrame.Angles(0, 0, -0.06), wrap)
+	c:box(Vector3.new(0.18, 0.12, 1.60), h * CFrame.new(0.24, 0.02, -0.30) * CFrame.Angles(0, 0.4, 0), wrap)
 end
 
 --------------------------------------------------------------------------------
@@ -3477,7 +3579,7 @@ function PetModelFactory.build(opts)
 		for _, id in ipairs(skin.detail) do
 			local fn = PetModelFactory.DETAILS[id]
 			if fn then
-				fn(c, pal)
+				fn(c, pal, def)
 			end
 		end
 	end

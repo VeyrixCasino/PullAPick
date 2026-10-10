@@ -174,6 +174,8 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
 - **The pack:** 60 Halloween pets. The 15 Halloween bodies are the rare ones;
   the other 45 are everyday pets *"with a costume {simple shit like a dog costume
   on or something}"*.
+- **Split:** costumes Common 20 / Uncommon 15 / Rare 10; Halloween bodies Epic 6
+  / Legendary 4 / Mythic 2 / Divine 2 / Exotic 1. **Power:** Event Horizon's level.
 
 ## Locked decisions: one line each
 

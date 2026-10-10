@@ -374,5 +374,5 @@ function main() {
   if (check && stale) process.exit(1);
 }
 
-module.exports = { PROC_OF, setProcFamily, build, outputs, renderSet, pascal, HEX_START, SET_STEP, OUT_DIR, OUT_MD };
+module.exports = { PROC_OF, setProcFamily, fitToSet, build, outputs, renderSet, pascal, HEX_START, SET_STEP, OUT_DIR, OUT_MD };
 if (require.main === module) main();

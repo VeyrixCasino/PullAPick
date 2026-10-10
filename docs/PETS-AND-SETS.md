@@ -230,7 +230,11 @@ already own keep working.
 - **The Halloween 2026 Pack** drops only there: **60 Halloween pets**. The 15
   Halloween bodies are the rare ones; the other 45 are everyday pets wearing a
   simple costume.
-- Built: nothing yet. The brief is in `wiki/next-up.md`.
+- **Built (2026-10-10).** The mine is the Candy Crypt (`hallow`, see
+  `wiki/systems/world-events.md`). The pack is `halloween_2026`: 60 pets
+  (costumes C20/U15/R10, Halloween bodies E6/L4/M2/D2/X1, Event Horizon power)
+  plus Spindle, Spooky and Wisp; the Trick-or-Treat case pays it. Names are in
+  `docs/HOLIDAY-PETS.md`, for the owner's review.
 
 ## Open, for the owner
 
