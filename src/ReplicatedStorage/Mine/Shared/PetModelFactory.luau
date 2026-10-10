@@ -2221,6 +2221,31 @@ PetModelFactory.ANIMALS = {
 	["Zip Mite"] = { species = "beetle", tint = Color3.fromRGB(200, 210, 120) },
 	["Zip Puppy"] = { species = "hound", tint = Color3.fromRGB(210, 190, 130) },
 	["Quark Ferret"] = { species = "critter", tint = Color3.fromRGB(196, 170, 200), glow = Color3.fromRGB(220, 190, 255) },
+
+	-- Event Horizon. Added by tools/verify/petskins.js: without a row here
+	-- build() gets no skin and every one of these renders as the default fox.
+	["Fruit Bat"] = { species = "moth", tint = Color3.fromRGB(168, 110, 78) },
+	["Chinchilla"] = { species = "critter", tint = Color3.fromRGB(158, 152, 166) },
+	["Duckling"] = { species = "duck", tint = Color3.fromRGB(250, 226, 140) },
+	["Dormouse"] = { species = "mouse", tint = Color3.fromRGB(214, 166, 112) },
+	["Porpoise"] = { species = "dolphin", tint = Color3.fromRGB(150, 166, 180) },
+	["Stoat"] = { species = "critter", tint = Color3.fromRGB(242, 236, 222) },
+	["Tree Frog"] = { species = "toad", tint = Color3.fromRGB(96, 210, 120) },
+	["Marshmallow Bear"] = { species = "bear", tint = Color3.fromRGB(250, 242, 232) },
+	["Emperor Penguin"] = { species = "penguin", tint = Color3.fromRGB(40, 44, 60) },
+	["Fennec Fox"] = { species = "fox", tint = Color3.fromRGB(238, 214, 172) },
+	["Flying Squirrel"] = { species = "critter", tint = Color3.fromRGB(170, 176, 190) },
+	["Gerbil"] = { species = "mouse", tint = Color3.fromRGB(230, 186, 130) },
+	["Harvest Mouse"] = { species = "mouse", tint = Color3.fromRGB(206, 184, 146) },
+	["Clockwork Mouse"] = { species = "mouse", tint = Color3.fromRGB(190, 160, 96), detail = { "robot" } },
+	["Boxer"] = { species = "hound", tint = Color3.fromRGB(182, 122, 70) },
+	["Doe"] = { species = "stag", tint = Color3.fromRGB(186, 146, 102) },
+	["Angora Rabbit"] = { species = "bunny", tint = Color3.fromRGB(246, 240, 228) },
+	["Cottontail"] = { species = "bunny", tint = Color3.fromRGB(166, 150, 134) },
+	["Tabby Cat"] = { species = "cat", tint = Color3.fromRGB(168, 142, 104) },
+	["Merino Sheep"] = { species = "sheep", tint = Color3.fromRGB(226, 214, 192) },
+	["Carpenter Bee"] = { species = "beetle", tint = Color3.fromRGB(62, 58, 86), detail = { "bands", "bugwings" } },
+	["Jellyfish"] = { species = "slime", tint = Color3.fromRGB(200, 180, 240) },
 }
 
 --------------------------------------------------------------------------------

@@ -13705,6 +13705,42 @@ end)
 		print(("[Mine] stripped %d dev showcase folders (%d parts) from the live world")
 			:format(removed, parts))
 	end
+	--[[
+		The list above only matches NAMED FOLDERS and the `_` convention, so a
+		stray loose part at the workspace root walks straight past it.
+
+		One did: `ToolKit_DemoHandle`, an opaque MeshPart anchored 40 studs over
+		spawn, shipped to every player because it was neither in the list nor
+		underscored. `HQ Preview` sat at (200, 11, 200) the same way. Both are
+		gone from the place file now (2026-10-10).
+
+		So this does NOT destroy anything -- guessing wrong here deletes real
+		world geometry. It names what belongs and warns about the rest, which is
+		enough to catch the next one in the server log before players do.
+	]]
+	local EXPECTED = {
+		MineWorld = true, LaneBodies = true, LaneTips = true,
+		Terrain = true, Camera = true, SpawnLocation = true,
+	}
+	local strays = {}
+	for _, d in ipairs(workspace:GetChildren()) do
+		if not EXPECTED[d.Name] then
+			local n = 0
+			for _, k in ipairs(d:GetDescendants()) do
+				if k:IsA("BasePart") then
+					n += 1
+				end
+			end
+			if d:IsA("BasePart") then
+				n += 1
+			end
+			table.insert(strays, ("%s (%s, %d parts)"):format(d.Name, d.ClassName, n))
+		end
+	end
+	if #strays > 0 then
+		warn(("[Mine] %d unexpected object(s) at the workspace root -- players see these: %s")
+			:format(#strays, table.concat(strays, ", ")))
+	end
 end)()
 pcall(function()
 	require(script.Parent:WaitForChild("MineEdgeBarriers")).buildAll()

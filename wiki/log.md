@@ -218,3 +218,20 @@ correct factory behaviour and now an owner question. Fixed the first two and
 verified at the model level — 300 skins built, 0 identical. New harness:
 `petskins.js`. Also: `/admin oretools all` had silently skipped hammers since
 they shipped.
+
+## [2026-10-10] ingest | roster duplicates, chest audit, workspace strays
+Finished the model sweep. **All 322 pets now render as distinct models** (was
+197 duplicates): reassigned 22 pets off shared animals and added 22 new skins.
+The geometry-based count was wrong — it found 12 duplicate-animal groups where
+there were 19, because it filed each identical group under a single cause and
+hid Boomer/Brisket inside a 12-hound tint collision. `petskins.js` now asserts
+animal uniqueness on the roster directly, plus skin coverage, plus the
+`(species,tint)` rule. Chests audited in engine: sound geometry (23 pieces,
+worst gap −0.040) but **all five kinds are one shape in five palettes**, which
+is the very thing [chests-and-lucky-blocks] says the module existed to fix —
+now an open question with a concrete cheap fix. Also removed 3,020 parts of
+authoring racks from the place file, including `ToolKit_DemoHandle`, an opaque
+MeshPart floating 40 studs over spawn that **shipped to players** because
+MineServer's strip list only matches named folders and `_` prefixes. It now
+warns about anything unexpected at the workspace root instead of silently
+missing it.

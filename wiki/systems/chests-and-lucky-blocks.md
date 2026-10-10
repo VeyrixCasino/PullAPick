@@ -2,7 +2,7 @@
 title: Chests and lucky blocks
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-10 @ 4ac7320
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineZoneChests.luau
   - src/ReplicatedStorage/Mine/Shared/Mine1ChestsData.luau
@@ -50,6 +50,21 @@ roll beats `MineConfig.CHEST_CHANCE` (0.003). That chance is multiplied in a few
 `MineChestModel` builds the visible chest. It has five palettes: native, broad,
 currency, item, chase. The model's parts are `CanQuery` false, so they never
 steal the aim raycast.
+
+**`build(part, kind, scale)` builds INTO a MineBlock — it does not return a
+model.** The pieces become children of the block, so they die with it when it
+breaks. Calling it like a model factory fails; an audit has to pass it a host
+part.
+
+Geometry is sound: 23 pieces per kind, worst gap −0.040 studs (overlapping),
+nothing floating, verified in engine 2026-10-10 across all five kinds.
+
+**All five kinds are the same shape.** Only `Color` differs, plus a `PointLight`
+on currency, item and chase. That leaves the module's own premise unmet — its
+header argues a chest was bad because *"the only thing telling you a Ledger
+Vault from a Topsoil Chest was its tint — and at shaft distance, in shadow,
+that is nothing at all."* The base shape is much better than the old cube, but
+the five kinds are still separated by tint alone. Open question below.
 
 **What a chest pays** (`openChestBlock` in MineServer):
 - **The chest def.**
@@ -180,6 +195,11 @@ is injected from `S_QUEUE`.
   Block" everywhere (see above).
 
 ## Open questions
+- **Give the five chest kinds different silhouettes?** They are one shape in
+  five palettes today (see above), which is the problem `MineChestModel`'s
+  header set out to solve. Cheapest fix that would actually read at shaft
+  distance: vary the lid (flat plank vs ribbed barrel vs domed), the lock plate
+  and the foot count per kind, inside the existing builder — no new assets.
 - Archive lucky blocks or keep them (AUDIT §5)?
 - Should the dead `giveDrop` path be deleted, or should flagship chest tools be
   reconnected? See [open-questions](../open-questions.md).

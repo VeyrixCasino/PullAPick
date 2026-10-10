@@ -14,6 +14,45 @@ const fs = require("fs");
 const path = require("path");
 
 const FILE = path.join(__dirname, "..", "..", "src", "ReplicatedStorage", "Mine", "Shared", "PetModelFactory.luau");
+const ROSTER_FILE = path.join(__dirname, "..", "..", "src", "ReplicatedStorage", "Mine", "Shared", "MinePetRoster.luau");
+
+// ---------------------------------------------------------------------------
+// Roster reassignments. 26 pets in 12 groups pointed at ONE animal, so each
+// group rendered as a single pet -- correct factory behaviour, wrong content.
+// One pet per group keeps the original animal; the rest get their own.
+//
+// None of these rows is `tierVia = "animal"`, so changing the animal cannot
+// move a tier. Checked before writing; the assertion at the bottom re-checks.
+// ---------------------------------------------------------------------------
+const ROSTER = {
+  "Velvet": "Fruit Bat",            // Vesper keeps "Bat" -- a vesper IS a bat
+  "Churro": "Chinchilla",           // Caper keeps "Capybara"; "Guinea Pig" is Squeaky's
+  "Sunny": "Duckling",              // Nugget keeps "Chick"
+  "Pecan": "Dormouse",              // Chippy keeps "Chipmunk"
+  "Skipper": "Porpoise",            // Ripple keeps "Dolphin"
+  "Twix": "Stoat",                  // Snickers keeps "Ferret"
+  "Sproing": "Tree Frog",           // Pickles keeps "Frog"
+  "Mochi": "Marshmallow Bear",      // Bamboo keeps "Panda"
+  "Wobble": "Emperor Penguin",      // Pippa keeps "Penguin"
+  "Roxy": "Fennec Fox",             // Cherry keeps "Red Panda"
+  "Pecan Puff": "Flying Squirrel",  // Acorn keeps "Squirrel"
+  "Button": "Harvest Mouse",        // Pipsqueak keeps "Mouse"
+  "Cheddar": "Gerbil",
+  "Tinker": "Clockwork Mouse",
+
+  // Seven more the geometry audit hid: it labelled each identical group with a
+  // single cause, so these pairs were filed under "different animals, same
+  // tint" and their shared animal never showed. The roster check below is what
+  // actually finds them, which is why it is an assertion and not a report.
+  "Brisket": "Boxer",               // Boomer keeps "Bulldog"
+  "Fawncy": "Doe",                  // Clover keeps "Deer"
+  "Fennel": "Angora Rabbit",        // Binky keeps "Bunny" -- a binky is a rabbit hop
+  "Pebble": "Cottontail",
+  "Marble": "Tabby Cat",            // Munchkin keeps "Kitten" -- it is a cat breed
+  "Oatmeal": "Merino Sheep",        // Cloudy keeps "Sheep"
+  "Rumblebee": "Carpenter Bee",     // Honey keeps "Bee"
+  "Squish": "Jellyfish",            // Bloop keeps "Blobfish" -- a bloop IS a blobfish
+};
 
 // ---------------------------------------------------------------------------
 // (b) Re-tints. Each colliding group keeps its canonical animal on the original
@@ -191,6 +230,31 @@ const NEW = [
   ["Zip Mite",            "beetle",   [200, 210, 120],  null],
   ["Zip Puppy",           "hound",    [210, 190, 130],  null],
   ["Quark Ferret",        "critter",  [196, 170, 200], [220, 190, 255]],
+
+  // Bodies for the 14 pets reassigned in ROSTER above. Every species here
+  // already exists; these are new skins, not new chassis.
+  ["Fruit Bat",           "moth",     [168, 110, 78],   null],
+  ["Chinchilla",          "critter",  [158, 152, 166],  null],
+  ["Duckling",            "duck",     [250, 226, 140],  null],
+  ["Dormouse",            "mouse",    [214, 166, 112],  null],
+  ["Porpoise",            "dolphin",  [150, 166, 180],  null],
+  ["Stoat",               "critter",  [242, 236, 222],  null],
+  ["Tree Frog",           "toad",     [96, 210, 120],   null],
+  ["Marshmallow Bear",    "bear",     [250, 242, 232],  null],
+  ["Emperor Penguin",     "penguin",  [40, 44, 60],     null],
+  ["Fennec Fox",          "fox",      [238, 214, 172],  null],
+  ["Flying Squirrel",     "critter",  [170, 176, 190],  null],
+  ["Gerbil",              "mouse",    [230, 186, 130],  null],
+  ["Harvest Mouse",       "mouse",    [206, 184, 146],  null],
+  ["Clockwork Mouse",     "mouse",    [190, 160, 96],   null, ["robot"]],
+  ["Boxer",               "hound",    [182, 122, 70],   null],
+  ["Doe",                 "stag",     [186, 146, 102],  null],
+  ["Angora Rabbit",       "bunny",    [246, 240, 228],  null],
+  ["Cottontail",          "bunny",    [166, 150, 134],  null],
+  ["Tabby Cat",           "cat",      [168, 142, 104],  null],
+  ["Merino Sheep",        "sheep",    [226, 214, 192],  null],
+  ["Carpenter Bee",       "beetle",   [62, 58, 86],     null, ["bands", "bugwings"]],
+  ["Jellyfish",           "slime",    [200, 180, 240],  null],
 ];
 
 // ---------------------------------------------------------------------------
@@ -245,10 +309,11 @@ const existing = new Set();
 for (const m of table.matchAll(/\t\["([^"]+)"\] = \{/g)) existing.add(m[1]);
 
 const added = [];
-for (const [animal, species, tint, glow] of NEW) {
+for (const [animal, species, tint, glow, detail] of NEW) {
   if (existing.has(animal)) continue; // idempotent: never double-add
   let row = `\t["${animal}"] = { species = "${species}", tint = ${rgb(tint)}`;
   if (glow) row += `, glow = ${rgb(glow)}`;
+  if (detail) row += `, detail = { ${detail.map((d) => `"${d}"`).join(", ")} }`;
   row += ` },`;
   added.push(row);
 }
@@ -270,8 +335,53 @@ for (const line of table.split(nl)) {
   else seen.set(key, m[1]);
 }
 
+// --- reassign the duplicate-animal roster rows ------------------------------
+let roster = fs.readFileSync(ROSTER_FILE, "utf8");
+const rnl = roster.includes("\r\n") ? "\r\n" : "\n";
+let moved = 0;
+for (const [pet, animal] of Object.entries(ROSTER)) {
+  const esc = pet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(\\{ name = "${esc}", hex3 = "[^"]+", animal = ")([^"]+)(")`);
+  const m = roster.match(re);
+  if (!m) { fail.push(`no roster row for "${pet}"`); continue; }
+  if (m[2] === animal) continue; // already reassigned
+  // Changing the animal must not move the tier.
+  const row = roster.slice(roster.indexOf(m[0]), roster.indexOf(m[0]) + 220);
+  if (/tierVia = "animal"/.test(row.split(rnl)[0])) {
+    fail.push(`"${pet}" is tierVia="animal" -- reassigning would change its tier`);
+    continue;
+  }
+  roster = roster.replace(re, `$1${animal}$3`);
+  moved++;
+}
+
+// Every roster animal must be unique, or two pets are the same pet again.
+const byAnimal = new Map();
+const shared = [];
+for (const m of roster.matchAll(/\{ name = "([^"]+)", hex3 = "[^"]+", animal = "([^"]+)"/g)) {
+  if (byAnimal.has(m[2])) { byAnimal.get(m[2]).push(m[1]); shared.push(m[2]); }
+  else byAnimal.set(m[2], [m[1]]);
+}
+const sharedGroups = [...new Set(shared)].map((a) => `${a} -> ${byAnimal.get(a).join(", ")}`);
+
+// Every roster animal must have a skin, or it renders as the fallback fox.
+const skins = new Set();
+for (const m of table.matchAll(/\t\["([^"]+)"\] = \{/g)) skins.add(m[1]);
+const skinless = [...byAnimal.keys()].filter((a) => !skins.has(a));
+
 console.log(`retinted ${retinted}/${Object.keys(TINT).length}  details +${detailed}  new rows +${added.length}`);
+console.log(`roster reassigned: ${moved}/${Object.keys(ROSTER).length}`);
 console.log(`distinct (species,tint) pairs: ${seen.size}`);
+console.log(`roster animals: ${byAnimal.size}  sharing an animal: ${sharedGroups.length}  without a skin: ${skinless.length}`);
+
+if (sharedGroups.length) {
+  console.log(`\n${sharedGroups.length} animal(s) used by more than one pet:`);
+  for (const g of sharedGroups) console.log(`  ${g}`);
+}
+if (skinless.length) {
+  console.log(`\n${skinless.length} roster animal(s) with no ANIMALS row (these render as a fox):`);
+  for (const a of skinless) console.log(`  ${a}`);
+}
 
 if (dupes.length) {
   console.log(`\n${dupes.length} animals still share a body+colour:`);
@@ -282,8 +392,12 @@ if (fail.length) {
   for (const f of fail) console.log(`  FAIL  ${f}`);
 }
 
-if (fail.length || dupes.length) process.exit(1);
+if (fail.length || dupes.length || sharedGroups.length || skinless.length) process.exit(1);
 if (check) { console.log("\nOK (check only, nothing written)"); process.exit(0); }
 
 fs.writeFileSync(FILE, src.slice(0, openIdx) + table + src.slice(closeIdx), "utf8");
 console.log(`\nwrote ${path.relative(process.cwd(), FILE)}`);
+if (moved) {
+  fs.writeFileSync(ROSTER_FILE, roster, "utf8");
+  console.log(`wrote ${path.relative(process.cwd(), ROSTER_FILE)}`);
+}
