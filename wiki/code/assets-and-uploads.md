@@ -68,6 +68,11 @@ it via personal account, and i just have to share access"*.
   `tools/pack-sprites/write-ids.js`; `build/pack-art/share-list.txt` lists them
   for sharing. **All 84 shared and loading in the group place** (2026-10-10,
   `PreloadAsync` 84/84; spot-checked sizes 732x1024 and 512x512).
+- **In the game:** `tools/pack-sprites/gen-pack-art.js` turns `ids.json` into
+  `MinePackArt` (do not hand-edit). `MinePackFX.art` asks it for any
+  `<setKey>_pack_<n>` id, so every set pack wears its set's sprite, picked by
+  the pack's stars: up to 2 -> sprite 1, 2.5 to 3.5 -> 2, 4 and up -> 3.
+  It also holds the set icons and rarity icons (`setIcon`, `rarityIcon`).
 - The owner has seen personal assets in the group they never shared by hand.
   Roblox appears to grant an experience use of an asset its owner uses there
   from Studio; *unverified*, so still share explicitly and test.

@@ -576,3 +576,11 @@ new Studio-only `devGrant { packIds = {...} }`. Found: lucky-block and
 group-wheel pets use their own `cardKey`, so they do not merge with pack copies.
 
 Updated: cards-and-packs, pets, next-up, log.
+
+## [2026-10-10] ingest | set packs wear the uploaded sprites
+`MinePackArt` (generated from `build/pack-art/ids.json`) maps every set pack id
+to its set's sprite by star band; `MinePackFX.art` reads it. Verified in Studio:
+114/114 set pack ids resolve and all 57 sprites load. Split with the session
+that owns the set packs: it owns sets, pets and `openPack`; this one owns pack
+art, cases, chest case drops, the credit shop, the stardust tab and the wheel.
+Updated [assets-and-uploads](code/assets-and-uploads.md).

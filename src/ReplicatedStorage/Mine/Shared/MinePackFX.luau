@@ -6,8 +6,9 @@
 	halves fly apart through a burst of sparks. About 1.4 seconds, and the caller
 	reveals the cards after it returns.
 
-	The art is this game's, not that one's: three tiers, each with its own colours
-	and crest, and the set name printed on the wrapper.
+	The art is this game's, not that one's. A pack with an image is drawn as that
+	image (the 19 sets' packs come from MinePackArt); one without gets the colour
+	wrapper with a band, a crest and the set name.
 
 	Self-contained on purpose -- the original leaned on UITheme/UIShell, and
 	dragging those across would have brought half of another game's UI with them.
@@ -180,10 +181,26 @@ local function ensureOrePackArt()
 	MinePackFX._oreArtReady = true
 end
 
+-- The 19 sets' pack sprites (generated, tools/pack-sprites/gen-pack-art.js).
+local SetArt = nil
+do
+	local mod = script.Parent:FindFirstChild("MinePackArt")
+	local ok, m = pcall(function()
+		return mod and require(mod)
+	end)
+	SetArt = ok and m or nil
+end
+
 function MinePackFX.art(packId)
 	packId = tostring(packId or "")
 	local row = MinePackFX.ART[packId]
 	if row then
+		return row
+	end
+	-- A set pack ("<setKey>_pack_<n>") wears its set's sprite for its star band.
+	row = SetArt and SetArt.packArt and SetArt.packArt(packId)
+	if row then
+		MinePackFX.ART[packId] = row
 		return row
 	end
 	if string.sub(packId, -9) == "_ore_pack" then

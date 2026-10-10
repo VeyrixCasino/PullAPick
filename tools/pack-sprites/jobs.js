@@ -15,19 +15,8 @@ const path = require("path");
 
 const ART = path.join(__dirname, "..", "..", "art");
 
-// [file prefix, seal colour, name printed on the top seal]
-const SETS = [
-  ["Pebblebound", "#9a6b3f", "PEBBLEBOUND"], ["SugarRush", "#ff6fae", "SUGAR RUSH"],
-  ["Mosswood", "#4e9a3c", "MOSSWOOD"], ["LostAndFound", "#b9832f", "LOST & FOUND"],
-  ["Starfront", "#3f78e0", "STARFRONT"], ["ArcadeLegends", "#c23cff", "ARCADE LEGENDS"],
-  ["CrystalHollow", "#8a5cff", "CRYSTAL HOLLOW"], ["ShogunsOath", "#d6334a", "SHOGUN'S OATH"],
-  ["RoyalReserve", "#1f7a52", "ROYAL RESERVE"], ["CrimsonEclipse", "#b0142e", "CRIMSON ECLIPSE"],
-  ["HoloHavoc", "#8fb3ff", "HOLO HAVOC"], ["RainbowRoad", "#ff7ed4", "RAINBOW ROAD"],
-  ["InfernalReign", "#e8501c", "INFERNAL REIGN"], ["AtlantisRising", "#12b5b0", "ATLANTIS RISING"],
-  ["DivineRelics", "#7a62e0", "DIVINE RELICS"], ["Dragonfall", "#d0631c", "DRAGONFALL"],
-  ["EternalRoots", "#1fa07c", "ETERNAL ROOTS"], ["MythicMenagerie", "#6a46d6", "MYTHIC MENAGERIE"],
-  ["ChaosTheory", "#19c8ff", "CHAOS THEORY"],
-];
+// [file prefix, seal colour, name printed on the top seal], from sets.js.
+const SETS = require("./sets.js").map(s => [s.file, s.accent, s.title]);
 const VARIANTS = [
   ["1-2star", 1, "plain"], ["2.5-3.5star", 2, "plain"], ["4-5star", 3, "plain"],
 ];
