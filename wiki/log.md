@@ -356,3 +356,15 @@ The owner renamed set 17 from Worldtree to **Eternal Roots**, because the old
 name read as both a set and a pack. Its ★★ pack stays "Sapwood", which fixed
 the duplicate Heartwood, and its ★★★★ pack keeps "Worldtree's Crown" for now.
 Updated: docs/PETS-AND-SETS.md, open-questions, log.
+
+## [2026-10-10] query | do pets that share a body have different colours?
+**Named pets do.** All 322 have a unique (body, colour) pair, which
+`petskins.js` guards, and many add a glow or props.
+
+**Pack-generated cards do not, in the way the owner expected.** Their colour
+comes from the card's element (`TYPE_TINT`), never from the name prefix. Two
+"Ember Fox" cards can differ, while an Ember Fox and a Storm Fox of the same
+element are identical. There are at most 128 generated looks (16 bodies × 8
+elements), before rarity effects and variants.
+
+Updated: pets, log.

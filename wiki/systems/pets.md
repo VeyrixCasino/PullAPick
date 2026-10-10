@@ -150,6 +150,16 @@ from `skin.species`. **`resolveSpecies` ends in `return "fox"`**
 and falls all the way through to a default fox. That is silent: nothing warns,
 and the pet just looks wrong.
 
+**Pack-generated cards have no `ANIMALS` row** (names like "Ember Fox"). Their
+colour comes from `def.tint` and then `TYPE_TINT[card.typeId]`, and none of the
+16 generated species sets a `def.tint`. So the colour comes from the card's
+**element** (8 types reach cards through `MineCards` `THEME_TYPES`), **not from
+its name**.
+- Two "Ember Fox" cards can differ in colour.
+- An Ember Fox and a Storm Fox of the same element look identical, apart from
+  rarity effects and variants.
+- That caps generated looks at 16 bodies × 8 colours = 128 (checked 2026-10-10).
+
 `opts.tint` overrides `skin.tint`, which is what lets a probe reproduce any
 skin without the roster — useful when Studio is in Play mode and Rojo will not
 sync.
