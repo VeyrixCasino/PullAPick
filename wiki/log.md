@@ -434,3 +434,30 @@ its kit, and three real packs opened.
 retired-and-parked, `docs/OPEN.md`, and `docs/PROPOSAL.md` (lines 3, 5, 6 and 8
 built for every named pet; line 4, the variant stack, is not; line 30
 superseded).
+
+## [2026-10-10] ingest | Tidal Wave, and every proc gets an animation and a sound
+Owner: *"a water theme aoe would be great"*, then *"we also need a little sfx …
+on top of an animation (while your at it a blast and zap and whatever else we
+got needs an anamation too)"*.
+
+**Tidal Wave** (`tidalWave`) is Blast's flat cousin. A break hits the 12 cells
+of `Dig.TIDE_RING` on the same layer for `PROC_SHARE.tide` 0.18 each: 2.16
+swings, against Blast's 2.10. MineStats weight is 4.0, the same as Blast.
+- It is additive like the other chances: `ADDITIVE_STATS`, `emptyBoosts`, the
+  relic fold and boost sources.
+- It is on 15 pets: Mistreef's top pets (buff set Tide) and Rare+ Tidecallers.
+- Verified in Studio with three Tidal Wave pets: 4 breaks gave 4 waves, and all
+  45 diamond cells were hit.
+
+**`MineProcFx`** (new, client) gives Blast, Tidal Wave, Zap, Ricochet and
+Earthquake an animation and a library sound each. Two lessons:
+- **Effects sit on a block's top face.** The server reports centres, and the
+  first build hid every zap arc inside the rock.
+- **A proc hit is a share of a swing,** so a starter pick lands 1 damage. The
+  animation is what tells a player it fired; the damage formula is a separate
+  question for the owner.
+
+`devGrant { pet = … }` (Studio only) was added so pet abilities can be tested
+in the engine.
+
+Updated: mining-and-breaking, boosts-and-stats, pets, glossary, log.

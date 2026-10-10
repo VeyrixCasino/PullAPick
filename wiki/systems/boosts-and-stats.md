@@ -65,7 +65,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 | pack luck | `Dig.packLuck` = luck × packLuck | stamped on a pack row when you get it, then siphons its card odds when you open it |
 
 **Caps.** `MineStats` states "No magnitude caps", and `clampBoosts` only floors. The real limits are applied where each stat is used:
-- blast, ricochet and earthquake chances are clamped to ≤ 1 in `Dig.procsAt`;
+- blast, tidal wave, ricochet and earthquake chances are clamped to ≤ 1 in `Dig.procsAt`;
 - zap is deliberately not clamped;
 - `procPower` ≤ `MineConfig.PROC_POWER_CAP 3.0`;
 - the forever-tool power cap is `foreverPowerCap`;

@@ -2723,7 +2723,7 @@ local function boosts(p)
 	-- procs (echo/zap/Blast/blastRadius/autoMine) add chance or radius instead.
 	local ADDITIVE_BOOST = {
 		echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
-		earthquake = true, ricochet = true,
+		earthquake = true, ricochet = true, tidalWave = true,
 	}
 	for _, held in ipairs(p.relics or {}) do
 		local r = C.relicById(held.id)
@@ -6553,6 +6553,12 @@ end
 
 Dig.PROC_SKIP = { chest = true, crate = true, core = true, lucky_block = true }
 Dig.FACE6 = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
+-- Tidal Wave's reach: the 12 cells within two steps on the SAME layer (x, z).
+Dig.TIDE_RING = {
+	{ 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
+	{ 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 },
+	{ 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 },
+}
 
 function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke, forceBlast)
 	if not (zone and cells and part and cx and cy and cz) then
@@ -6588,6 +6594,30 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 						pcall(swingNeighbour, plr, other,
 							C.procDamage(dmg, "blast", pp), p)
 					end
+				end
+			end
+		end
+	end
+	--[[
+		TIDAL WAVE (owner, 2026-10-10: "a water theme aoe would be great").
+
+		Blast's flat cousin. A broken block sends a wave across its own layer and
+		hits the 12 cells of Dig.TIDE_RING: two out along the level, one on each
+		diagonal. Blast digs a pocket in three dimensions; the wave clears floor,
+		which is what a wide horizontal dig wants. Priced level with blast
+		(PROC_SHARE.tide 0.18 x 12 = 2.16 swings against 2.10), break-only and
+		clamped like blast, and its hits re-proc nothing (swingNeighbour).
+	]]
+	if broke and not Dig.PROC_SKIP[kind] then
+		local tide = math.min(1, tonumber(b.tidalWave) or 0)
+		if tide > 0 and rng:NextNumber() < tide then
+			net:FireClient(plr, "loot", { text = "TIDAL WAVE", color = Color3.fromRGB(70, 170, 255), pos = part.Position })
+			local tideDmg = C.procDamage(dmg, "tide", pp)
+			for _, d in ipairs(Dig.TIDE_RING) do
+				local other = cells[keyOf(zone.id, cx + d[1], cy, cz + d[2])]
+				if other and typeof(other) == "Instance" and other.Parent
+					and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+					pcall(swingNeighbour, plr, other, tideDmg, p)
 				end
 			end
 		end
@@ -14313,7 +14343,7 @@ Dig.boostSources = function(p)
 	local out = {}
 	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true,
 		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
-		earthquake = true, ricochet = true }
+		earthquake = true, ricochet = true, tidalWave = true }
 	local function add(stat, name, amt)
 		if type(amt) ~= "number" or math.abs(amt) < 0.0005 then
 			return
@@ -17417,6 +17447,27 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				if payload.gems then
 					local p_devg = profiles[plr.UserId]
 					p_devg.gems = (p_devg.gems or 0) + payload.gems
+				end
+				--[[
+					Studio only: mint a named pet and put it in seat 1, so a pet's
+					kit (a zone pet's ability, Tidal Wave) can be tried in the
+					engine. devGrant { pet = "Fizzgig" }. Goes through mint, the
+					same path the wheel and lucky blocks use.
+				]]
+				if type(payload.pet) == "string" and PetRoster.BY_NAME[payload.pet] then
+					local p_devpet = profiles[plr.UserId]
+					local row = PetRoster.BY_NAME[payload.pet]
+					local card = mint({
+						setId = "dev", index = 1, cardKey = "dev:" .. row.name, name = row.name,
+						rarityId = row.tier, typeId = "Water", animal = row.animal,
+						roleName = "Studio", kind = "Unit", setName = "Studio",
+					}, plr.UserId)
+					p_devpet.cards = p_devpet.cards or {}
+					table.insert(p_devpet.cards, card)
+					p_devpet.equipped = p_devpet.equipped or {}
+					table.insert(p_devpet.equipped, 1, card.id)
+					walk(plr)
+					net:FireClient(plr, "toast", "Studio: " .. row.name .. " (" .. row.tier .. ") in seat 1")
 				end
 				if payload.credits then
 					local p_devc = profiles[plr.UserId]

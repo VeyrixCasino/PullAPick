@@ -42,6 +42,15 @@ MineStats.STATS = {
 	]]
 	blastRadius = { label = "Blast Radius",  weight = 18.0, unit = "%", desc = "Tool pattern size. A sphere, so +50% radius is ~3.4x the blocks." },
 	blastChance    = { label = "Blast Chance",  weight = 4.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
+	--[[
+		TIDAL WAVE (owner, 2026-10-10: "a water theme aoe would be great").
+		Blast's flat cousin: a broken block sends a wave across ITS OWN LAYER,
+		hitting the 12 blocks in a diamond around it (two out on the level, one
+		on the diagonals). 12 x PROC_SHARE.tide 0.18 = 2.16 swings against
+		blast's 6 x 0.35 = 2.10, so it is priced like blast: a different shape,
+		not a stronger proc. Blast digs a pocket; a wave clears floor.
+	]]
+	tidalWave   = { label = "Tidal Wave",    weight = 4.0, unit = "%", desc = "CHANCE a broken block sends a wave across your layer, hitting the 12 blocks around it. How hard is Proc Power. Chests stay centre-only." },
 	coinBonus   = { label = "Coin Bonus",    weight = 0.8, unit = "%", desc = "Coins from selling." },
 	gemFind     = { label = "Gem Find",      weight = 1.8, unit = "%", desc = "Gems dropped by ore." },
 	luck        = { label = "Luck",          weight = 2, unit = "%", desc = "Pack yield and tool finds; mined packs show a luck badge." },
@@ -153,7 +162,7 @@ MineStats.STATS = {
 
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
-	"blastChance", "rareOre", "gemFind", "coinBonus",
+	"blastChance", "tidalWave", "rareOre", "gemFind", "coinBonus",
 	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "oreHaul", "pulverize", "scrap",
 	"earthquake", "ricochet", "procPower",
 	-- backpack and walkSpeed retired 2026-10-04; see their entries above.

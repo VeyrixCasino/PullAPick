@@ -5768,6 +5768,22 @@ function ClientFns.petHatPiece(card)
 	return nil
 end
 
+--[[
+	A proc's animation and sound (MineProcFx). Loaded on the first proc, and a
+	module that fails to load costs the word on screen nothing.
+]]
+function ClientFns.procFx(text, pos)
+	if ClientFns.procFxMod == nil then
+		local ok, mod = pcall(function()
+			return require(shared:WaitForChild("MineProcFx"))
+		end)
+		ClientFns.procFxMod = ok and mod or false
+	end
+	if ClientFns.procFxMod then
+		ClientFns.procFxMod.play(text, pos)
+	end
+end
+
 function ClientFns.dressPet(model, card, onDone)
 	if not (model and card) then
 		return
@@ -11825,6 +11841,9 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		ClientFns.foundReveal(payload)
 	elseif action == "loot" and payload then
 		floatText(payload.text or "+1", payload.color, payload.pos)
+		-- Procs (BLAST, TIDAL WAVE, ZAP, RICOCHET, QUAKE) get an animation and a
+		-- sound on top of the word: MineProcFx.
+		ClientFns.procFx(payload.text, payload.pos)
 	elseif action == "openPanel" then
 		-- Only live screens are routable; ClientFns.routePanel (above the
 		-- dispatcher) is the one map of what exists and how it fills itself.

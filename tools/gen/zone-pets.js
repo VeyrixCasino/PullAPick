@@ -53,7 +53,7 @@ const TOP_SHARES = [1, 0.35, 0.15]; // M/D/X: same 1.5x total, spread over the z
 const ZONES = [
   { id: "meadow", adj: "Bloom", buff: "Harvest", stats: ["oreHaul", "fossilFind", "coinBonus"], desc: "more ore per block, better ore finds, more coins" },
   { id: "sunscar", adj: "Sunscorch", buff: "Blaze", stats: ["mineSpeed", "swingRate", "dirtBreak"], desc: "raw damage and swing speed" },
-  { id: "mistreef", adj: "Tidal", buff: "Tide", stats: ["pulverize", "scrap", "gemFind"], desc: "stardust from rubble and chests, more gems" },
+  { id: "mistreef", adj: "Tidal", buff: "Tide", stats: ["tidalWave", "pulverize", "scrap"], desc: "tidal waves across your layer, stardust from rubble and chests" },
   { id: "arcwork", adj: "Voltaic", buff: "Volt", stats: ["zap", "swingRate", "ricochet"], desc: "chain lightning and bouncing hits" },
   { id: "bloodmoon", adj: "Crimson", buff: "Fortune", stats: ["luck", "chestLuck", "packLuck"], desc: "luck, better chests, better packs" },
   { id: "eclipse", adj: "Umbral", buff: "Shadow", stats: ["earthquake", "blastChance", "dirtBreak"], desc: "quakes and blasts that clear rock" },
@@ -163,7 +163,7 @@ const ROLES = {
   Prospector: { desc: "finds gems and rarer ore", species: ["lizard", "serpent", "spider"],
     pairs: [["gemFind", "rareOre"], ["rareOre", "gemFind"], ["oreLuck", "gemFind"]] },
   Tidecaller: { desc: "turns rubble into stardust", species: ["fish", "dolphin", "ray", "slime", "otter"],
-    pairs: [["pulverize", "scrap"], ["scrap", "pulverize"], ["gemFind", "pulverize"]] },
+    pairs: [["pulverize", "scrap"], ["scrap", "pulverize"], ["gemFind", "pulverize"]], rarePlus: [["tidalWave", "pulverize"]] },
   Trader: { desc: "earns more coins and ore", species: ["pig", "sheep", "horse"],
     pairs: [["coinBonus", "oreHaul"], ["coinBonus", "luckyFind"], ["oreHaul", "coinBonus"]] },
   Mystic: { desc: "sparks, quakes and ricochets", species: ["sprite", "ghost", "drake", "wyrm"],

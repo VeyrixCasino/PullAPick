@@ -26,7 +26,7 @@ related: [ambiguous-terms, overview, index]
 - **Block strength** — the harder of the depth strength and the ore's strength, minus reach. [mining-and-breaking](systems/mining-and-breaking.md)
 - **Ore reach** — how many tiers above its own a tool can break: 5 at home, 15 once you are past the zone. [mining-and-breaking](systems/mining-and-breaking.md)
 - **`tooWeak`** — the event sent when the gate refuses a swing. [mining-and-breaking](systems/mining-and-breaking.md)
-- **Proc** — a chance effect on a swing: blast, zap, ricochet, earthquake, echo. [mining-and-breaking](systems/mining-and-breaking.md)
+- **Proc** — a chance effect on a swing: blast, tidal wave, zap, ricochet, earthquake, echo. [mining-and-breaking](systems/mining-and-breaking.md)
 - **Vein** — a 1–8 block cluster of one ore. [ores](systems/ores.md)
 - **Band** — a Common…Exotic group of ore tiers. [ores](systems/ores.md)
 - **Ore finder** (`rareOre`, `fossilFind`) — shifts *which* ore you roll, not how much. The `fossilFind` key is a fossil-era leftover kept on purpose. [ores](systems/ores.md), [retired-and-parked](systems/retired-and-parked.md)

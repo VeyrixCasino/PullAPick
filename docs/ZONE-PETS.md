@@ -16,7 +16,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 |---|---|---|
 | meadow | ×1.00 | **Harvest**: more ore per block, better ore finds, more coins |
 | sunscar | ×1.05 | **Blaze**: raw damage and swing speed |
-| mistreef | ×1.10 | **Tide**: stardust from rubble and chests, more gems |
+| mistreef | ×1.10 | **Tide**: tidal waves across your layer, stardust from rubble and chests |
 | arcwork | ×1.16 | **Volt**: chain lightning and bouncing hits |
 | bloodmoon | ×1.22 | **Fortune**: luck, better chests, better packs |
 | eclipse | ×1.28 | **Shadow**: quakes and blasts that clear rock |
@@ -81,8 +81,8 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Uncommon | ★ Twilight | Sapphire Hawk | Seeker | +20% Luck, +8.9% Chest Luck |
 | Uncommon | ★ Ukulele | Aqua Bunny | Digger | +39% Dirt Break, +20% Ore Haul |
 | Rare | ★ Chickpea | Scaled Jade Drake | Mystic | +12% Blast Chance, +9.2% Zap Chance |
-| Rare | ★ Hazel | Iris Fish | Tidecaller | +12% Pulverizer, +19% Scrap |
-| Rare | Jellybean | Slime | Tidecaller | +12% Pulverizer, +19% Scrap |
+| Rare | ★ Hazel | Iris Fish | Tidecaller | +38% Scrap, +5.8% Pulverizer |
+| Rare | Jellybean | Slime | Tidecaller | +38% Scrap, +5.8% Pulverizer |
 | Rare | Pecan Pie | Pie Cat | Striker | +46% Mine Speed, +23% Dirt Break |
 | Rare | Ramen | Tanuki | Striker | +46% Mine Speed, +16% Swing Rate |
 | Rare | ★ Spud | Indigo Lamb | Trader | +57% Coin Bonus, +23% Ore Haul |
@@ -93,14 +93,14 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Epic | ★ Dynamo | Scaled Cobalt Lizard | Prospector | +31% Gem Find, +15% Rare Ore |
 | Epic | ★ Nectar | Glowing Teal Wolf | Striker | +55% Mine Speed, +20% Swing Rate |
 | Epic | ★ Oak | Glowing Mint Wildcat | Striker | +55% Mine Speed, +20% Swing Rate |
-| Epic | Ripple | Dolphin | Tidecaller | +46% Scrap, +6.9% Pulverizer |
+| Epic | Ripple | Dolphin | Tidecaller | +14% Tidal Wave, +6.9% Pulverizer |
 | Epic | ★ Sundown | Glowing Berry Owl | Seeker | +25% Chest Luck, +14% Luck |
 | Epic | ★ Wink | Glowing Emerald Bunny | Digger | +55% Dirt Break, +28% Ore Haul |
 | Epic | Wobble | Emperor Penguin | Seeker | +23% Pack Luck, +14% Luck |
 | Legendary | Blizzard | Ice Wolf | Striker | +49% Swing Rate, +34% Mine Speed |
 | Legendary | ★ Bonbon | Gleaming Fern Critter | Digger | +45% Ore Finder, +34% Dirt Break |
 | Legendary | ★ Ciabatta | Dazzling Fuchsia Deer | Bruiser | +68% Mine Speed, +34% Dirt Break |
-| Legendary | Drift | Shark | Tidecaller | +38% Gem Find, +8.5% Pulverizer |
+| Legendary | Drift | Shark | Tidecaller | +17% Pulverizer, +28% Scrap |
 | Legendary | ★ Zircon | Radiant Lime Fox | Striker | +68% Mine Speed, +34% Dirt Break |
 | Mythic | Chomp | Baby Alligator | Harvest | +89% Ore Haul, +21% Ore Finder, +17% Coin Bonus |
 | Mythic | Cinder | Lava Dragon | Harvest | +59% Ore Finder, +39% Coin Bonus, +13% Ore Haul |
@@ -164,18 +164,18 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Rare | ★ Jam | Ivory Mouse | Digger | +48% Dirt Break, +24% Ore Haul |
 | Rare | ★ Purrcy | Honey Lamb | Trader | +60% Coin Bonus, +6.9% Lucky Block find |
 | Rare | Spooky | Ghost Dog | Mystic | +19% Zap Chance, +10% Ricochet Chance |
-| Rare | ★ Tiptoe | Indigo Slime | Tidecaller | +40% Scrap, +6.0% Pulverizer |
+| Rare | ★ Tiptoe | Indigo Slime | Tidecaller | +27% Gem Find, +6.0% Pulverizer |
 | Epic | Bubba | Baby Hippo | Trader | +72% Coin Bonus, +29% Ore Haul |
 | Epic | ★ Canyon | Scaled Marigold Drake | Mystic | +24% Ricochet Chance, +12% Zap Chance |
 | Epic | ★ Glint | Glowing Iris Fox | Striker | +58% Mine Speed, +21% Swing Rate |
 | Epic | ★ Marzipan | Glowing Indigo Wildcat | Striker | +58% Mine Speed, +21% Swing Rate |
-| Epic | ★ Snowball | Glowing Ash Fish | Tidecaller | +14% Pulverizer, +24% Scrap |
+| Epic | ★ Snowball | Glowing Ash Fish | Tidecaller | +14% Tidal Wave, +7.2% Pulverizer |
 | Epic | ★ Thyme | Glowing Sky Lizard | Prospector | +32% Gem Find, +16% Rare Ore |
 | Epic | Tide | Blue Shark | Tidecaller | +48% Scrap, +7.2% Pulverizer |
 | Legendary | ★ Boysenberry | Shining Lime Bunny | Digger | +71% Ore Haul, +36% Dirt Break |
 | Legendary | ★ Huckleberry | Majestic Iris Wolf | Striker | +71% Mine Speed, +26% Swing Rate |
 | Legendary | ★ Magpie | Lustrous Crimson Turtle | Bruiser | +71% Dirt Break, +36% Ore Haul |
-| Legendary | Riptide | Orca | Tidecaller | +40% Gem Find, +8.9% Pulverizer |
+| Legendary | Riptide | Orca | Tidecaller | +18% Pulverizer, +30% Scrap |
 | Legendary | Sterling | Silver Wolf | Striker | +71% Mine Speed, +26% Swing Rate |
 | Mythic | Drizzle | Rain Cloud Pet | Blaze | +93% Mine Speed, +23% Swing Rate, +14% Dirt Break |
 | Mythic | Fizzlet | Mini Dragon | Blaze | +67% Swing Rate, +33% Dirt Break, +14% Mine Speed |
@@ -233,7 +233,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Rare | ★ Aether | Cherry Duck | Seeker | +21% Pack Luck, +13% Luck |
 | Rare | Cherry | Red Panda | Bruiser | +51% Mine Speed, +25% Dirt Break |
 | Rare | ★ Jangle | Aqua Hawk | Seeker | +25% Luck, +12% Chest Luck |
-| Rare | ★ Kale | Emerald Ray | Tidecaller | +42% Scrap, +6.3% Pulverizer |
+| Rare | ★ Kale | Emerald Ray | Tidecaller | +28% Gem Find, +6.3% Pulverizer |
 | Rare | Moxie | Terrier | Striker | +51% Mine Speed, +25% Dirt Break |
 | Rare | ★ Nibbler | Peach Beetle | Bruiser | +51% Mine Speed, +6.3% Blast Chance |
 | Rare | Pogo | Kangaroo | Digger | +51% Dirt Break, +25% Ore Haul |
@@ -252,14 +252,14 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Legendary | Tundra | Wolf | Striker | +75% Mine Speed, +37% Dirt Break |
 | Legendary | ★ Vega | Dazzling Crimson Golem | Bruiser | +75% Mine Speed, +37% Dirt Break |
 | Legendary | ★ Wick | Noble Gold Lizard | Prospector | +31% Ore Luck, +21% Gem Find |
-| Mythic | Fizzgig | Gremlin | Tide | +25% Pulverizer, +29% Scrap, +8.2% Gem Find |
-| Mythic | Pixel | Cyber Fox | Tide | +82% Scrap, +19% Gem Find, +3.7% Pulverizer |
-| Divine | ★ Paddle | Tidal Spirit Dolphin | Tide | +71% Gem Find, +11% Pulverizer, +16% Scrap |
-| Divine | Shimmer | Mermaid Cat | Tide | +32% Pulverizer, +37% Scrap, +11% Gem Find |
-| Divine | Starlight | Unicorn | Tide | +107% Scrap, +25% Gem Find, +4.8% Pulverizer |
-| Exotic | ★ Helix | Tidal Prism Bird | Tide | +92% Gem Find, +14% Pulverizer, +21% Scrap |
-| Exotic | Jumble | Patchwork Dog | Tide | +41% Pulverizer, +48% Scrap, +14% Gem Find |
-| Exotic | Mallow | Marshmallow Bunny | Tide | +138% Scrap, +32% Gem Find, +6.2% Pulverizer |
+| Mythic | Fizzgig | Gremlin | Tide | +25% Tidal Wave, +8.6% Pulverizer, +12% Scrap |
+| Mythic | Pixel | Cyber Fox | Tide | +25% Pulverizer, +29% Scrap, +3.7% Tidal Wave |
+| Divine | ★ Paddle | Tidal Spirit Dolphin | Tide | +107% Scrap, +11% Tidal Wave, +4.8% Pulverizer |
+| Divine | Shimmer | Mermaid Cat | Tide | +32% Tidal Wave, +11% Pulverizer, +16% Scrap |
+| Divine | Starlight | Unicorn | Tide | +32% Pulverizer, +37% Scrap, +4.8% Tidal Wave |
+| Exotic | ★ Helix | Tidal Prism Bird | Tide | +138% Scrap, +14% Tidal Wave, +6.2% Pulverizer |
+| Exotic | Jumble | Patchwork Dog | Tide | +41% Tidal Wave, +14% Pulverizer, +21% Scrap |
+| Exotic | Mallow | Marshmallow Bunny | Tide | +41% Pulverizer, +48% Scrap, +6.2% Tidal Wave |
 
 ## Arcwork (zone 4, 70 pets, 46 new)
 
@@ -316,7 +316,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Rare | Pipsqueak | Mouse | Digger | +36% Ore Finder, +27% Dirt Break |
 | Rare | Quibble | Quokka | Digger | +36% Ore Finder, +27% Dirt Break |
 | Epic | Blossom | Flower Deer | Bruiser | +64% Dirt Break, +32% Ore Haul |
-| Epic | ★ Flare | Glowing Olive Slime | Tidecaller | +35% Gem Find, +8.0% Pulverizer |
+| Epic | ★ Flare | Glowing Olive Slime | Tidecaller | +16% Tidal Wave, +8.0% Pulverizer |
 | Epic | Paws | Tiger | Striker | +64% Mine Speed, +23% Swing Rate |
 | Epic | Sable | Black Fox | Striker | +45% Swing Rate, +32% Mine Speed |
 | Epic | ★ Taffle | Glowing Teal Moth | Seeker | +27% Pack Luck, +16% Luck |
@@ -385,11 +385,11 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Rare | ★ Daisy | Moss Golem | Bruiser | +56% Dirt Break, +28% Mine Speed |
 | Rare | Dazzle | Peacock | Seeker | +23% Pack Luck, +14% Luck |
 | Rare | Echo | Owl | Seeker | +23% Pack Luck, +14% Luck |
-| Rare | ★ Jay | Cyan Ray | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Rare | ★ Jay | Cyan Ray | Tidecaller | +14% Tidal Wave, +7.0% Pulverizer |
 | Rare | Quill | Porcupine | Digger | +37% Ore Finder, +28% Dirt Break |
 | Rare | ★ Stardust | Caramel Otter | Tidecaller | +47% Scrap, +7.0% Pulverizer |
 | Rare | ★ Trinket | Cinnamon Bunny | Digger | +56% Ore Haul, +28% Dirt Break |
-| Rare | ★ Violet | Fuchsia Dolphin | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Rare | ★ Violet | Fuchsia Dolphin | Tidecaller | +31% Gem Find, +7.0% Pulverizer |
 | Epic | ★ Beignet | Glowing Plum Beetle | Bruiser | +67% Mine Speed, +8.4% Blast Chance |
 | Epic | ★ Butterscotch | Glowing Emerald Duck | Seeker | +28% Pack Luck, +17% Luck |
 | Epic | Cranberry | Red Bird | Seeker | +33% Luck, +15% Chest Luck |
@@ -465,7 +465,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Rare | ★ Tinkle | Fuchsia Beetle | Bruiser | +59% Dirt Break, +29% Ore Haul |
 | Rare | ★ Valor | Tangerine Wyrm | Mystic | +24% Ricochet Chance, +12% Zap Chance |
 | Rare | ★ Willow | Coral Piglet | Trader | +59% Ore Haul, +37% Coin Bonus |
-| Epic | ★ Breeze | Glowing Maroon Otter | Tidecaller | +18% Pulverizer, +29% Scrap |
+| Epic | ★ Breeze | Glowing Maroon Otter | Tidecaller | +39% Gem Find, +8.8% Pulverizer |
 | Epic | Dandelion | Yellow Chick | Seeker | +35% Luck, +16% Chest Luck |
 | Epic | Fable | Griffin | Seeker | +35% Luck, +16% Chest Luck |
 | Epic | ★ Melon | Glowing Bubblegum Moth | Seeker | +32% Chest Luck, +18% Luck |
@@ -533,17 +533,17 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Rare | ★ Chatter | Jade Fox | Striker | +62% Mine Speed, +31% Dirt Break |
 | Rare | ★ Cobbler | Periwinkle Toad | Digger | +62% Ore Haul, +31% Dirt Break |
 | Rare | ★ Elm | Gold Turtle | Bruiser | +62% Mine Speed, +7.7% Blast Chance |
-| Rare | ★ Hum | Ink Fish | Tidecaller | +34% Gem Find, +7.7% Pulverizer |
-| Rare | Lotus | Pink Dolphin | Tidecaller | +34% Gem Find, +7.7% Pulverizer |
+| Rare | ★ Hum | Ink Fish | Tidecaller | +51% Scrap, +7.7% Pulverizer |
+| Rare | Lotus | Pink Dolphin | Tidecaller | +15% Pulverizer, +26% Scrap |
 | Rare | ★ Nomad | Striped Seafoam Pony | Trader | +62% Ore Haul, +39% Coin Bonus |
 | Rare | ★ Pinecone | Cyan Wolf | Striker | +62% Mine Speed, +31% Dirt Break |
 | Rare | Plume | Swan | Seeker | +28% Chest Luck, +15% Luck |
 | Rare | Tater | Potato Penguin | Seeker | +26% Pack Luck, +15% Luck |
-| Rare | ★ Tumbleweed | Pistachio Slime | Tidecaller | +34% Gem Find, +7.7% Pulverizer |
-| Epic | ★ Crunch | Glowing Mint Dolphin | Tidecaller | +41% Gem Find, +9.2% Pulverizer |
+| Rare | ★ Tumbleweed | Pistachio Slime | Tidecaller | +15% Tidal Wave, +7.7% Pulverizer |
+| Epic | ★ Crunch | Glowing Mint Dolphin | Tidecaller | +18% Pulverizer, +31% Scrap |
 | Epic | Gumdrop | Candy Bunny | Digger | +49% Ore Finder, +37% Dirt Break |
 | Epic | Jett | Falcon | Seeker | +37% Luck, +17% Chest Luck |
-| Epic | ★ Plucky | Glowing Fern Ray | Tidecaller | +41% Gem Find, +9.2% Pulverizer |
+| Epic | ★ Plucky | Glowing Fern Ray | Tidecaller | +61% Scrap, +9.2% Pulverizer |
 | Epic | ★ Rowan | Scaled Cyan Drake | Mystic | +29% Zap Chance, +15% Ricochet Chance |
 | Epic | ★ Spire | Glowing Rose Duck | Seeker | +34% Chest Luck, +18% Luck |
 | Epic | ★ Twiggy | Glowing Cyan Serpent | Prospector | +41% Rare Ore, +20% Gem Find |
@@ -612,13 +612,13 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Rare | ★ Plunk | Iris Sprite | Mystic | +16% Blast Chance, +13% Zap Chance |
 | Rare | Poppy | Parrot | Seeker | +32% Luck, +15% Chest Luck |
 | Rare | ★ Seraph | Clay Wyrm | Mystic | +26% Zap Chance, +13% Ricochet Chance |
-| Rare | Squiggle | Octopus | Tidecaller | +16% Pulverizer, +27% Scrap |
+| Rare | Squiggle | Octopus | Tidecaller | +36% Gem Find, +8.1% Pulverizer |
 | Rare | ★ Squirt | Periwinkle Lamb | Trader | +81% Coin Bonus, +32% Ore Haul |
 | Rare | ★ Tuba | Peach Golem | Bruiser | +65% Mine Speed, +8.1% Blast Chance |
 | Epic | Cactus | Desert Lizard | Prospector | +32% Ore Luck, +22% Gem Find |
 | Epic | ★ Dribble | Glowing Berry Bear | Bruiser | +77% Dirt Break, +39% Mine Speed |
 | Epic | ★ Garnet | Glowing Aqua Fox | Striker | +77% Mine Speed, +28% Swing Rate |
-| Epic | ★ Glen | Glowing Bubblegum Otter | Tidecaller | +43% Gem Find, +9.7% Pulverizer |
+| Epic | ★ Glen | Glowing Bubblegum Otter | Tidecaller | +64% Scrap, +9.7% Pulverizer |
 | Epic | ★ Nebula | Glowing Tangerine Crab | Bruiser | +77% Dirt Break, +39% Ore Haul |
 | Epic | Nori | Black Rabbit | Digger | +52% Ore Finder, +39% Dirt Break |
 | Epic | ★ Thorn | Glowing Coral Toad | Digger | +77% Dirt Break, +39% Ore Haul |
@@ -626,7 +626,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Legendary | Rumble | Dinosaur | Prospector | +40% Ore Luck, +27% Gem Find |
 | Legendary | Sol | Sun Lion | Striker | +68% Swing Rate, +48% Mine Speed |
 | Legendary | ★ Sorbet | Regal Lime Moth | Seeker | +40% Pack Luck, +24% Luck |
-| Legendary | ★ Ziti | Dazzling Aqua Fish | Tidecaller | +53% Gem Find, +12% Pulverizer |
+| Legendary | ★ Ziti | Dazzling Aqua Fish | Tidecaller | +24% Tidal Wave, +12% Pulverizer |
 | Mythic | Haze | Misty Panther | Prospect | +70% Gem Find, +24% Rare Ore, +7.8% Ore Luck |
 | Mythic | Twirl | Ribbon Unicorn | Prospect | +70% Rare Ore, +18% Ore Luck, +10% Gem Find |
 | Divine | Lava Lamp | Magma Slime | Prospect | +68% Ore Luck, +32% Gem Find, +14% Rare Ore |
@@ -693,7 +693,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Epic | Chiffon | Persian Cat | Striker | +81% Mine Speed, +41% Dirt Break |
 | Epic | ★ Hail | Glowing Saffron Bear | Bruiser | +81% Mine Speed, +10% Blast Chance |
 | Epic | ★ Heron | Glowing Saffron Critter | Digger | +81% Dirt Break, +41% Ore Haul |
-| Epic | ★ Hollow | Glowing Pearl Ray | Tidecaller | +68% Scrap, +10% Pulverizer |
+| Epic | ★ Hollow | Glowing Pearl Ray | Tidecaller | +45% Gem Find, +10% Pulverizer |
 | Epic | ★ Tortilla | Glowing Cocoa Sprite | Mystic | +33% Zap Chance, +17% Ricochet Chance |
 | Epic | ★ Updraft | Glowing Lime Wyrm | Mystic | +20% Blast Chance, +16% Zap Chance |
 | Epic | Velvet | Fruit Bat | Seeker | +41% Luck, +18% Chest Luck |
@@ -756,9 +756,9 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Uncommon | ★ Sumac | Ink Drake | Mystic | +25% Ricochet Chance, +12% Zap Chance |
 | Uncommon | ★ Waddles | Crimson Sprite | Mystic | +23% Earthquake Chance, +12% Zap Chance |
 | Rare | ★ Cookie | Crimson Owl | Seeker | +32% Chest Luck, +18% Luck |
-| Rare | ★ Crumpet | Lagoon Dolphin | Tidecaller | +18% Pulverizer, +30% Scrap |
+| Rare | ★ Crumpet | Lagoon Dolphin | Tidecaller | +18% Tidal Wave, +8.9% Pulverizer |
 | Rare | ★ Mesa | Gold Golem | Bruiser | +71% Mine Speed, +8.9% Blast Chance |
-| Rare | ★ Peanut | Maroon Slime | Tidecaller | +59% Scrap, +8.9% Pulverizer |
+| Rare | ★ Peanut | Maroon Slime | Tidecaller | +18% Pulverizer, +30% Scrap |
 | Rare | ★ Ravioli | Cyan Otter | Tidecaller | +59% Scrap, +8.9% Pulverizer |
 | Rare | Ruffles | Sheepdog | Trader | +89% Coin Bonus, +10% Lucky Block find |
 | Rare | ★ Satsuma | Cocoa Mouse | Digger | +71% Dirt Break, +36% Ore Haul |

@@ -420,7 +420,7 @@ end
 -- spent. Listing it here is what makes addStat accumulate from 0 instead of
 -- from 1 -- without it, a single +50% roll would read as 1.5 and then be spent
 -- as a 2.5x multiplier.
-local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, oreHaul = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, procPower = true }
+local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, oreHaul = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, tidalWave = true, procPower = true }
 MineCards.ADDITIVE_STATS = ADDITIVE_STATS
 
 local function addStat(b, key, amount)
@@ -602,6 +602,8 @@ function MineCards.emptyBoosts()
 		-- not already on the table (b[r.stat] ~= nil), so a missing key would be
 		-- a silently ignored boost rather than an error.
 		earthquake = 0, ricochet = 0,
+		-- Tidal Wave is a chance like Blast, so additive and present from the start.
+		tidalWave = 0,
 	}
 end
 

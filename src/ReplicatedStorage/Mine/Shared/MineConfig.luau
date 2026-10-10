@@ -1318,6 +1318,8 @@ MineConfig.RICOCHET_HOPS = 1
 	            narrowest and cannot chain.
 	  quake     0.12 a second for EARTHQUAKE_SEC, so 0.60 over a full life --
 	            worth starting, never a substitute for swinging.
+	  tide      0.18 x 12 blocks on your layer = 2.16 per proc, level with
+	            blast's 2.10: Tidal Wave (2026-10-10) is blast's flat cousin.
 
 	procPower scales all four together. A proc build is then a real build: at
 	the +300% cap a blast is 1.4 x 6 = 8.4x a swing, which is enormous and
@@ -1340,6 +1342,7 @@ MineConfig.PROC_SHARE = {
 	]]
 	zap = 0.25,
 	ricochet = 0.60,
+	tide = 0.18,
 	-- Superseded by the stack model, which prices a quake as
 	-- QUAKE_STACK_SHARE per stack per second. Kept so procDamage("quake")
 	-- still answers for any caller that has not moved across.

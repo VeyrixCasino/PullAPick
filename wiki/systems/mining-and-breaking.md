@@ -45,6 +45,7 @@ related: [zones-layers-and-seams, boosts-and-stats, tools, ores, forge-and-recyc
 | proc | chance stat | fires on | damage (× `1 + procPower`, procPower capped at 3.0) |
 |---|---|---|---|
 | Blast | `blastChance`, clamped ≤ 1 | break | `PROC_SHARE.blast` 0.35 to each of the 6 faces |
+| Tidal Wave (2026-10-10) | `tidalWave`, clamped ≤ 1 | break | `PROC_SHARE.tide` 0.18 to each of the 12 cells of `Dig.TIDE_RING`: two out along the layer, one on each diagonal, **same layer only**. Totals 2.16 swings, level with Blast's 2.10. |
 | Ricochet | `ricochet`, clamped ≤ 1 | break | 0.60 to one neighbour, **then back** into the cell you aimed at |
 | Earthquake | `earthquake`, clamped ≤ 1 | hit (not break) | A stack bank. Each tick is `QUAKE_STACK_SHARE 0.1 × stacks × stored dmg` per second. Stacks cap at 100. At most 5 blocks shake at once. The bank dies after 5 s with no new quake. |
 | Zap | `zap`, **not clamped** | any swing | 0.25 per hop, up to `ZAP_MAX_HOPS 16`. The chance to continue is multiplied by `ZAP_FALLOFF 0.89` each hop. |
@@ -56,6 +57,23 @@ related: [zones-layers-and-seams, boosts-and-stats, tools, ores, forge-and-recyc
 - **Zap's target list does not check `PROC_SKIP`**, so a zap hop can hit one.
 
 Proc damage is computed in `MineConfig.procDamage` and nowhere else.
+
+**What a proc looks and sounds like** (2026-10-10, owner: every proc *"needs an
+animation"* and *"a little sfx"*).
+- `MineProcFx` (client) turns each proc's `loot` event into an animation and a sound:
+  - **Blast:** a burst and flying chunks.
+  - **Tidal Wave:** rings rolling to the edge of its diamond, and a splash.
+  - **Zap:** a lightning arc from hop to hop, staggered and climbing in pitch.
+  - **Ricochet:** a spark there and back.
+  - **Earthquake:** a dust ring, hopping stones and a small camera jolt.
+- **Sounds** are Pro Sound Effects library ids in `MineAudio.IDS` (`proc_blast` …
+  `proc_quake`). They are trimmed, cooled down and kept quieter than the dig.
+- **It draws only what the server reported**, on the top face of each block. The
+  server sends block centres, and an arc between two standing blocks would
+  otherwise run hidden inside the rock.
+- **Weak hits are expected.** A proc is a share of a swing, so with a weak tool it
+  lands for 1 damage. Blast and Tidal Wave both do on a starter pick. The
+  animation is what tells a player it fired.
 
 **Pay while digging.** `payDamage` turns every point of HP landed into one dirt in the bag and one coin (× `coinBonus`). The coins are priced into `haulMix` at the moment you mine, and are paid out when you sell at an outpost. With a full bag the rock still breaks and the ore still drops; you just stop being paid. See [currencies](currencies-and-economy.md).
 

@@ -186,6 +186,17 @@ MineAudio.IDS = {
 		"rbxassetid://1842251033", -- Snare Drum Roll
 		"rbxassetid://1848358941", -- Snare Drum Roll (b)
 	},
+	-- PROCS (2026-10-10, MineProcFx). Pro Sound Effects library, like the rest.
+	-- Short and trimmed: a proc can fire on most breaks, so it must stay a
+	-- flourish on the dig, never louder than the work.
+	proc_blast = "rbxassetid://9114086657", -- dirt explosion (same as boom)
+	proc_tide = {
+		"rbxassetid://9125703162", -- shallow water splash 19
+		"rbxassetid://9125702439", -- shallow water splash 6
+	},
+	proc_zap = "rbxassetid://9114277757", -- electric zaps 12
+	proc_ricochet = "rbxassetid://9113634061", -- zingy metallic ricochet
+	proc_quake = "rbxassetid://9113220677", -- rocky rumble, trimmed
 }
 
 -- Per-zone soft beds under the music. Natural sounds only (birds, leaves,
@@ -213,6 +224,11 @@ MineAudio.MINE_Y = -3
 -- Sounds heard hundreds of times an hour (digs, clicks) sit lowest; rewards
 -- are pleasant but only a little louder than the work, never a blast.
 local VOL = {
+	proc_blast = 0.30,
+	proc_tide = 0.32,
+	proc_zap = 0.20,
+	proc_ricochet = 0.16,
+	proc_quake = 0.26,
 	pickaxe = 0.50,
 	gravel = 0.28,
 	drill = 0.40,
@@ -261,6 +277,13 @@ local DUCK = {
 }
 
 local CD = {
+	-- Zap fires once per hop in one frame; MineProcFx staggers the hops, and
+	-- this lets each hop's crackle through without stacking them into a roar.
+	proc_zap = 0.035,
+	proc_blast = 0.12,
+	proc_tide = 0.12,
+	proc_ricochet = 0.1,
+	proc_quake = 0.3,
 	pickaxe = 0.06,
 	gravel = 0.04,
 	drill = 0.12,
@@ -305,6 +328,11 @@ local CD = {
 
 -- Cut long library takes so a 3s dirt boom does not linger under the next swing.
 local TRIM = {
+	proc_blast = 0.6,
+	proc_tide = 0.7,
+	proc_zap = 0.35,
+	proc_ricochet = 0.45,
+	proc_quake = 0.9,
 	pickaxe = 0.38,
 	gravel = 0.24,
 	drill = 0.50,
