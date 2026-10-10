@@ -555,3 +555,11 @@ The display now shows 794: 10 × 70, Event Horizon's 73, 6 holiday pets and 15
 Halloween bodies.
 
 Updated: pets, next-up, log.
+
+## [2026-10-10] ingest | pack art uploaded (personal account, shared)
+The owner allowed personal uploads plus sharing. 84 images (57 pack sprites,
+19 set icons, 8 rarity icons) uploaded as iPressBars via Studio MCP; ids in
+`build/pack-art/ids.json`. One proven to draw in the group place after sharing;
+the other 83 await the owner's share (`build/pack-art/share-list.txt`). Found
+that Studio caches a failed asset load for the session. Updated
+[assets-and-uploads](code/assets-and-uploads.md).

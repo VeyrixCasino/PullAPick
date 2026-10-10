@@ -49,9 +49,30 @@ related: [tools-and-generators, rojo-and-studio, owner, charms, ores, open-quest
   target a group (`build/ore-sheet/ASSETS.md`). Confirm the creator after every
   upload.
 
+## Personal upload, then share (owner, 2026-10-10)
+
+The owner relaxed the group-only rule above for the pack art: *"you can upload
+it via personal account, and i just have to share access"*.
+
+- Studio MCP `upload_image` uploads as the signed-in user (iPressBars,
+  `465369561`). The owner then grants the asset to the experience or group in
+  the Creator Hub. Until that is done the image does **not** draw in the group
+  place.
+- Proven on `rbxassetid://121132243117622`: unshared it failed to load; after
+  sharing it loaded at full size (732x1024) through `AssetService`.
+- **Studio caches a failed load for the session.** After sharing, the same
+  `rbxassetid://N` kept failing in that Studio session, while `rbxassetid://0N`
+  (a leading zero, same asset) loaded. Retest with a fresh session or a
+  leading-zero id before concluding the share did not work.
+- The 84 pack sprites and icons are in `build/pack-art/ids.json`, written by
+  `tools/pack-sprites/write-ids.js`; `build/pack-art/share-list.txt` lists them
+  for sharing.
+
 ## Icons are the owner's job
 
-The owner said so (START-HERE §6, BLOCKED #11). Do not generate icon art.
+The owner said so (START-HERE §6, BLOCKED #11). Do not generate icon art
+unless asked. On 2026-10-10 the owner did ask: pack sprites, set icons and
+rarity icons, made by `tools/pack-sprites/` (see the section above).
 
 - The 164 generated charm icons (`tools/icons/gen-charm-art.js`) are **superseded**.
   The owner wants ornate jewellery instead, from a reference they supplied

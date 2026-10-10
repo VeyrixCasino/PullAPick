@@ -1,0 +1,131 @@
+{
+  "uploadedBy": "user 465369561 (iPressBars), shared with group 35326298",
+  "packs": {
+    "ArcadeLegends": {
+      "1-2star": "rbxassetid://125253243082126",
+      "2.5-3.5star": "rbxassetid://94947930959082",
+      "4-5star": "rbxassetid://135697924396813"
+    },
+    "AtlantisRising": {
+      "1-2star": "rbxassetid://107573032289976",
+      "2.5-3.5star": "rbxassetid://74814537249964",
+      "4-5star": "rbxassetid://121132243117622"
+    },
+    "ChaosTheory": {
+      "1-2star": "rbxassetid://131303322365954",
+      "2.5-3.5star": "rbxassetid://139923522435279",
+      "4-5star": "rbxassetid://111246627672807"
+    },
+    "CrimsonEclipse": {
+      "1-2star": "rbxassetid://105893376057307",
+      "2.5-3.5star": "rbxassetid://99270229568661",
+      "4-5star": "rbxassetid://114344452970774"
+    },
+    "CrystalHollow": {
+      "1-2star": "rbxassetid://93242116283466",
+      "2.5-3.5star": "rbxassetid://76879464767190",
+      "4-5star": "rbxassetid://86975722323353"
+    },
+    "DivineRelics": {
+      "1-2star": "rbxassetid://120232740645798",
+      "2.5-3.5star": "rbxassetid://103389165852864",
+      "4-5star": "rbxassetid://73991562574962"
+    },
+    "Dragonfall": {
+      "1-2star": "rbxassetid://112352905289779",
+      "2.5-3.5star": "rbxassetid://94058377578494",
+      "4-5star": "rbxassetid://92138344662044"
+    },
+    "EternalRoots": {
+      "1-2star": "rbxassetid://115401761551623",
+      "2.5-3.5star": "rbxassetid://124176077520167",
+      "4-5star": "rbxassetid://98193675516075"
+    },
+    "HoloHavoc": {
+      "1-2star": "rbxassetid://119455728900767",
+      "2.5-3.5star": "rbxassetid://111764280759637",
+      "4-5star": "rbxassetid://112190060872612"
+    },
+    "InfernalReign": {
+      "1-2star": "rbxassetid://95001680138695",
+      "2.5-3.5star": "rbxassetid://94452116749629",
+      "4-5star": "rbxassetid://71878976005936"
+    },
+    "LostAndFound": {
+      "1-2star": "rbxassetid://98788810597186",
+      "2.5-3.5star": "rbxassetid://120647209404941",
+      "4-5star": "rbxassetid://127360421208535"
+    },
+    "Mosswood": {
+      "1-2star": "rbxassetid://71201640238874",
+      "2.5-3.5star": "rbxassetid://112122730237370",
+      "4-5star": "rbxassetid://80560348542626"
+    },
+    "MythicMenagerie": {
+      "1-2star": "rbxassetid://91189209363602",
+      "2.5-3.5star": "rbxassetid://86441260854118",
+      "4-5star": "rbxassetid://132133677019064"
+    },
+    "Pebblebound": {
+      "1-2star": "rbxassetid://82948183981330",
+      "2.5-3.5star": "rbxassetid://127380884753072",
+      "4-5star": "rbxassetid://133505608241674"
+    },
+    "RainbowRoad": {
+      "1-2star": "rbxassetid://123891987787389",
+      "2.5-3.5star": "rbxassetid://110209197281383",
+      "4-5star": "rbxassetid://93725885226257"
+    },
+    "RoyalReserve": {
+      "1-2star": "rbxassetid://124354737527852",
+      "2.5-3.5star": "rbxassetid://126818283543619",
+      "4-5star": "rbxassetid://108405017825695"
+    },
+    "ShogunsOath": {
+      "1-2star": "rbxassetid://80402469951898",
+      "2.5-3.5star": "rbxassetid://95007379831892",
+      "4-5star": "rbxassetid://133209348875261"
+    },
+    "Starfront": {
+      "1-2star": "rbxassetid://129925786948045",
+      "2.5-3.5star": "rbxassetid://101521337323510",
+      "4-5star": "rbxassetid://85670458110114"
+    },
+    "SugarRush": {
+      "1-2star": "rbxassetid://130040056308115",
+      "2.5-3.5star": "rbxassetid://139684482380754",
+      "4-5star": "rbxassetid://130142637995940"
+    }
+  },
+  "sets": {
+    "ArcadeLegends": "rbxassetid://139530704803418",
+    "AtlantisRising": "rbxassetid://110876390764930",
+    "ChaosTheory": "rbxassetid://86844550284940",
+    "CrimsonEclipse": "rbxassetid://74759236139321",
+    "CrystalHollow": "rbxassetid://126503074889949",
+    "DivineRelics": "rbxassetid://118202996329773",
+    "Dragonfall": "rbxassetid://127143910665977",
+    "EternalRoots": "rbxassetid://80673568590539",
+    "HoloHavoc": "rbxassetid://118269776452013",
+    "InfernalReign": "rbxassetid://88678722858665",
+    "LostAndFound": "rbxassetid://140716244857295",
+    "Mosswood": "rbxassetid://94463852142568",
+    "MythicMenagerie": "rbxassetid://114870893701505",
+    "Pebblebound": "rbxassetid://95522417469691",
+    "RainbowRoad": "rbxassetid://83870304171355",
+    "RoyalReserve": "rbxassetid://137543141708363",
+    "ShogunsOath": "rbxassetid://132891624846958",
+    "Starfront": "rbxassetid://93813784963182",
+    "SugarRush": "rbxassetid://99613699228087"
+  },
+  "rarity": {
+    "Common": "rbxassetid://87050207632252",
+    "Divine": "rbxassetid://78735149643639",
+    "Epic": "rbxassetid://136143923691738",
+    "Exotic": "rbxassetid://97987897463449",
+    "Legendary": "rbxassetid://118432518313718",
+    "Mythic": "rbxassetid://127002493033384",
+    "Rare": "rbxassetid://124039920389690",
+    "Uncommon": "rbxassetid://131803616811120"
+  }
+}
