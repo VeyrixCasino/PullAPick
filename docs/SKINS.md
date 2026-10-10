@@ -172,12 +172,92 @@ One SSS per set — eight in the core sets, nine counting Halloween.
 
 ## Numbers — all PROPOSED
 
-**Skin base multiplier.** This is the whole point of the system: it is the base
-the ore tool multiplies, not a bonus bolted on after.
+### A skin is a BUDGET, not a damage number
 
-| F | D | C | B | A | S | SS | SSS |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1.0 | 1.3 | 1.7 | 2.2 | 3.0 | 4.2 | 6.5 | **10.0** |
+Owner, 2026-10-10: *"f starts at 50% budget (SHOULDN'T ONLY BE ORE DAMAGE..
+THIS SHOULD BE BUFFS AND SHIT)"*.
+
+So a skin carries two things: a **base multiplier** that the ore tool's damage
+multiplies, and a **buff kit** bought with a points budget. The budget is in
+the game's existing currency — `MineStats.valueOf(kit)`, which is
+`amount × 100 × weight` — so a skin is priced by the same scale as runes, gear,
+traits and the skill tree, and cannot quietly outprice them.
+
+Owner, 2026-10-10: **F is 80 points, SSS is 500.** The ladder between them is a
+flat ~1.30× per tier, so no rung is a dead step and the whole spread is 6.25×.
+
+| Tier | base × | buff budget (pts) | buff slots |
+| --- | --- | --- | --- |
+| F | 1.15 | **80** | 2 |
+| D | 1.35 | 105 | 2 |
+| C | 1.60 | 135 | 3 |
+| B | 1.90 | 175 | 3 |
+| A | 2.30 | 225 | 4 |
+| S | 3.00 | 290 | 4 |
+| SS | 4.00 | 380 | 5 |
+| SSS | **5.50** | **500** | 5 |
+
+**F opens at 80 points**, which is a real kit on its own. Read against the live
+weights in `MineStats.STATS`, 80 points is any of:
+
+| spend | weight | buys |
+| --- | --- | --- |
+| all on Swing Rate | 1.4 | **+57%** |
+| all on Coin Bonus | 0.8 | **+100%** |
+| all on Gem Find | 1.8 | +44% |
+| all on Luck | 2.0 | +40% |
+
+That is the fix for the dead-F problem — an F skin is worth equipping for the
+buffs before its 1.15× base is counted at all.
+
+It also shows why the budget has to be spent in the game's own currency rather
+than in flat percentages: the same 80 points is +100% of a cheap stat or +40%
+of an expensive one, and that difference is the balance work already done in
+`MineStats` weights. A skin system with its own percentages would quietly
+undo it.
+
+**The base ladder came DOWN from the 10× I proposed last time**, to 5.5×,
+because the buff kit now carries part of the load and the two multiply. At 10×
+base *plus* 500 points of buffs an SSS skin would be worth more than the entire
+ore ladder beneath it. Say the word if you want 10× anyway and I will re-table
+the budget down to compensate.
+
+**For scale:** 500 points is roughly a full rune's worth of stats several times
+over, so an SSS skin is a build-defining item rather than an upgrade. That is
+the intent — it is the thing people chase — but it is the number to argue with
+first if the game ends up feeling like skins are the only progression.
+
+### What a skin may roll
+
+Drawn from `MineStats.STAT_ORDER`, minus two groups that would pay **nothing**
+on a tool:
+
+- **`RUNE_ONLY`** — `blastRadius`, `reach`, `coolant`, `shortFuse`
+- **`PET_ONLY`** — `mineSpeed`, `luckyFind`, `scrap`
+
+This is not a style preference. `MineCards.addStat` drops restricted keys, which
+is exactly how 26 pets ended up carrying a blastRadius line that paid nothing.
+A skin rolling one would read as a buff on the tile and do nothing in the mine.
+
+That leaves the live pool: `swingRate`, `zap`, `blastChance`, `tidalWave`,
+`rareOre`, `gemFind`, `coinBonus`, `luck`, `oreLuck`, `chestLuck`, `packLuck`,
+`fossilFind`, `oreHaul`, `pulverize`, `earthquake`, `ricochet`, `procPower`,
+`blastDamage`, `tideDamage`, `zapDamage`, `shatterDamage`, `dirtBreak`.
+
+**Each set leans on its own stats**, so a set reads as a build and not a random
+spread — and so collecting one is a decision:
+
+| Set | leans |
+| --- | --- |
+| Toybox | `luck`, `packLuck`, `chestLuck` |
+| Cursed | `procPower`, `shatterDamage`, `rareOre` |
+| Pharaoh's Tomb | `gemFind`, `coinBonus`, `oreLuck` |
+| Wasteland | `oreHaul`, `pulverize`, `dirtBreak` |
+| Clockwork | `swingRate`, `ricochet`, `earthquake` |
+| Carnival | `packLuck`, `luck`, `coinBonus` |
+| Atomic Age | `blastDamage`, `zap`, `zapDamage` |
+| Arcade | `swingRate`, `procPower`, `blastChance` |
+| Halloween | `tidalWave`, `tideDamage`, `fossilFind` |
 
 **Pull rates from a chest skin case.**
 
