@@ -1913,7 +1913,20 @@ function MineConfig.powerDustCost(level, card)
 	local total = MineConfig.POWER_MAX_EXOTIC
 		* MineConfig.cardBaseDust(card or { rarityId = "Common" }) / MineConfig.RARITY_DUST.Exotic
 	local first = total * (g - 1) / (g ^ steps - 1)
-	return math.max(1, math.floor(first * g ^ (level - 1) + 0.5))
+	return MineConfig.roundPrice(first * g ^ (level - 1))
+end
+
+--[[
+	A clean price (owner: "make it an even number"): under 100 to the nearest
+	5, otherwise two significant figures. 76,436 -> 76,000; 949 -> 950.
+]]
+function MineConfig.roundPrice(n)
+	n = tonumber(n) or 0
+	if n < 100 then
+		return math.max(5, math.floor(n / 5 + 0.5) * 5)
+	end
+	local step = 10 ^ (math.floor(math.log10(n)) - 1)
+	return math.floor(n / step + 0.5) * step
 end
 
 --[[
@@ -3549,9 +3562,35 @@ function MineConfig.oreYieldMid(tier)
 	return ((tonumber(lo) or 1) + (tonumber(hi) or 1)) / 2
 end
 
-function MineConfig.toolCraftCost(tier, typeMult)
+--[[
+	A COST-ONLY lever per family.
+
+	Owner, 2026-10-10: the hammer should cost a little more ore. The obvious
+	move is to raise its typeMult, and that is the wrong one -- typeMult drives
+	tool POWER as well as cost (MineOreTools has the note), so paying more would
+	silently make hammers stronger too. This multiplies the cost and nothing
+	else.
+
+	It lives in MineConfig rather than MineOreTools because MineConfig must not
+	require MineOreTools: MineOreTools already requires this file, and a cycle
+	never returns.
+
+	PROPOSED (2026-10-10): hammer 1.25. Families with no row pay exactly what
+	they paid before.
+]]
+MineConfig.FAMILY_CRAFT_COST = {
+	hammer = 1.25,
+}
+
+function MineConfig.toolCraftCost(tier, typeMult, familyId)
 	local mult = math.max(0.01, tonumber(typeMult) or 1)
-	return math.ceil(MineConfig.craftBlocks(tier) * MineConfig.oreYieldMid(tier) * mult)
+	-- Optional third argument: a caller that does not pass a family gets the
+	-- old number exactly, so no existing call site changes meaning by accident.
+	local fam = 1
+	if familyId ~= nil then
+		fam = tonumber(MineConfig.FAMILY_CRAFT_COST[tostring(familyId)]) or 1
+	end
+	return math.ceil(MineConfig.craftBlocks(tier) * MineConfig.oreYieldMid(tier) * mult * fam)
 end
 
 --[[

@@ -17118,7 +17118,7 @@ function Verbs.craftOreTool(plr, payload)
 	end
 
 	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = def.id })
-	local cost = C.toolCraftCost(oreDef.tier, typeMult)
+	local cost = C.toolCraftCost(oreDef.tier, typeMult, familyId)
 
 	p.ores = p.ores or {}
 	local have = tonumber(p.ores[oreId]) or 0

@@ -201,7 +201,7 @@ local function allRecipes(snapshot, familyId)
 		else
 			discovered = have > 0
 		end
-		local cost = C.toolCraftCost(def.tier, OreTools.typeMult(familyId, def.tier))
+		local cost = C.toolCraftCost(def.tier, OreTools.typeMult(familyId, def.tier), familyId)
 		out[#out + 1] = {
 			id = def.id,
 			def = def,
@@ -880,7 +880,10 @@ function MineForge.mount(parent, opts)
 		-- it was always a function of tier, and the frame lookup it reached
 		-- through is gone with the priced roster.
 		local typeMult = OreTools.typeMult(fam, row.tier)
-		local cost = C.toolCraftCost(row.tier, typeMult)
+		-- `fam`, the same family typeMult just used. `row` carries an ORE, not a
+		-- family, so reading row.familyId here would have passed nil and quoted
+		-- the cheaper pre-hammer price while the server charged the real one.
+		local cost = C.toolCraftCost(row.tier, typeMult, fam)
 		local afford = (row.have or 0) >= cost
 
 		label(host, OreTools.name(row.def, fam), 19, TEXT,
@@ -1517,7 +1520,7 @@ function MineForge.mount(parent, opts)
 				selOreId = ores[1] and ores[1].id or nil
 			end
 			for i, o in ipairs(ores) do
-				local cost = C.toolCraftCost(o.tier, OreTools.typeMult(selFamily, o.tier))
+				local cost = C.toolCraftCost(o.tier, OreTools.typeMult(selFamily, o.tier), selFamily)
 				local owned = ownedForOre(snapshot, selFamily, o.tier)
 				local afford = (o.have or 0) >= cost
 				row(i, OreTools.name(o.def, selFamily),
