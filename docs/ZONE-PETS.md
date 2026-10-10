@@ -785,3 +785,83 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Exotic | Boogie | Disco Duck | Primal | +129% Rare Ore, +81% Mine Speed, +35% Ore Haul |
 | Exotic | Orbit | Alien | Primal | +233% Mine Speed, +81% Ore Haul, +19% Rare Ore |
 | Exotic | Saffron | Golden Tiger | Primal | +233% Ore Haul, +45% Rare Ore, +35% Mine Speed |
+
+## Event Horizon (zone 11, 73 pets, ×1.63)
+
+Their own roster and hand-authored stat mix, rescaled onto the ladder; retired stats dropped.
+
+| tier | name | boost |
+|---|---|---|
+| Common | Barybub | +60% Coin Bonus, +17% Luck |
+| Common | Dustmite | +21% Blast Chance |
+| Common | Glowpuff | +42% Luck |
+| Common | Softphoton | +37% Swing Rate, +32% Dirt Break |
+| Common | Speck | +52% Dirt Break, +32% Mine Speed |
+| Common | Tinyspark | +21% Zap Chance, +23% Swing Rate |
+| Uncommon | Bubbleorb | +69% Coin Bonus, +20% Luck |
+| Uncommon | Chillbit | +42% Swing Rate, +36% Dirt Break |
+| Uncommon | Cloverbit | +24% Blast Chance |
+| Uncommon | Dustnip | +59% Dirt Break, +36% Mine Speed |
+| Uncommon | Gloomouse | +30% Luck, +16% Chest Luck |
+| Uncommon | Peeporbit | +119% Coin Bonus |
+| Uncommon | Shimmerbit | +34% Gem Find, +17% Luck |
+| Uncommon | Sparkitten | +59% Mine Speed, +36% Dirt Break |
+| Uncommon | Tinyclink | +32% Gem Find, +46% Coin Bonus |
+| Uncommon | Zippup | +24% Zap Chance, +26% Swing Rate |
+| Rare | Ashorbit | +70% Mine Speed, +43% Dirt Break |
+| Rare | Boltseed | +28% Zap Chance, +31% Swing Rate |
+| Rare | Coinseed | +140% Coin Bonus |
+| Rare | Crateroo | +66% Dirt Break, +46% Mine Speed |
+| Rare | Dirtmoon | +70% Dirt Break, +43% Mine Speed |
+| Rare | Duskchip | +35% Luck, +19% Chest Luck |
+| Rare | Echopea | +56% Luck |
+| Rare | Emberbit | +58% Mine Speed, +38% Dirt Break, +11% Swing Rate |
+| Rare | Kelporb | +140% Coin Bonus |
+| Rare | Nightbag | +56% Luck |
+| Rare | Petalstar | +28% Blast Chance |
+| Rare | Puddleorb | +82% Coin Bonus, +24% Luck |
+| Rare | Shardlet | +40% Gem Find, +20% Luck |
+| Rare | Snowaxis | +50% Swing Rate, +43% Dirt Break |
+| Rare | Zipmite | +45% Zap Chance |
+| Epic | Bagtide | +98% Coin Bonus, +28% Luck |
+| Epic | Dustwell | +83% Dirt Break, +51% Mine Speed |
+| Epic | Glimore | +48% Gem Find, +24% Luck |
+| Epic | Icering | +60% Swing Rate, +51% Dirt Break |
+| Epic | Leafnova | +34% Blast Chance |
+| Epic | Paralite | +34% Blast Chance |
+| Epic | Shadechip | +42% Luck, +23% Chest Luck |
+| Epic | Smeltbit | +168% Coin Bonus |
+| Epic | Sparkwisp | +83% Mine Speed, +51% Dirt Break |
+| Epic | Zipquark | +33% Zap Chance, +36% Swing Rate |
+| Legendary | Bloomstar | +42% Blast Chance |
+| Legendary | Chillaxis | +74% Swing Rate, +63% Dirt Break |
+| Legendary | Coinbang | +54% Gem Find, +86% Coin Bonus |
+| Legendary | Diskflare | +166% Mine Speed |
+| Legendary | Faultstar | +103% Dirt Break, +63% Mine Speed |
+| Legendary | Prismoon | +60% Gem Find, +29% Luck |
+| Legendary | Sparkorbit | +39% Zap Chance, +49% Swing Rate |
+| Legendary | Tidewell | +121% Coin Bonus, +35% Luck |
+| Legendary | Vantail | +52% Luck, +29% Chest Luck |
+| Legendary | Warpup | +54% Gem Find, +35% Luck |
+| Mythic | Bangcub | +127% Mine Speed, +65% Swing Rate |
+| Mythic | Craterjaw | +98% Dirt Break, +70% Mine Speed, +13% Blast Chance |
+| Mythic | Echoflare | +70% Gem Find, +45% Luck |
+| Mythic | Eventide | +64% Luck, +41% Chest Luck |
+| Mythic | Frosthole | +70% Swing Rate, +70% Dirt Break, +50% Mine Speed |
+| Mythic | Gemnova | +74% Gem Find, +42% Luck |
+| Mythic | Moonshear | +158% Coin Bonus, +45% Luck |
+| Mythic | Oreproto | +180% Coin Bonus, +37% Luck |
+| Mythic | Pulsarina | +51% Zap Chance, +65% Swing Rate |
+| Mythic | Starloom | +36% Blast Chance, +92% Coin Bonus |
+| Divine | Accretia | +165% Mine Speed, +85% Swing Rate |
+| Divine | Crystalith | +75% Gem Find, +43% Luck, +28% Chest Luck |
+| Divine | Gravpaw | +166% Dirt Break, +118% Mine Speed |
+| Divine | Nebulisk | +92% Gem Find, +59% Luck |
+| Divine | Photonna | +34% Blast Chance, +29% Gem Find, +48% Luck |
+| Divine | Quasarin | +66% Zap Chance, +84% Swing Rate |
+| Divine | Relativox | +91% Swing Rate, +91% Dirt Break, +65% Mine Speed |
+| Divine | Singuluna | +62% Luck, +40% Chest Luck, +40% Gem Find |
+| Exotic | Albert Minestein | +108% Gem Find, +86% Luck |
+| Exotic | Cosmo | +71% Luck, +65% Chest Luck, +102% Coin Bonus |
+| Exotic | Matter- | +108% Mine Speed, +108% Dirt Break, +62% Swing Rate, +81% Coin Bonus |
+| Exotic | Matter+ | +49% Luck, +61% Gem Find, +40% Chest Luck, +86% Coin Bonus |

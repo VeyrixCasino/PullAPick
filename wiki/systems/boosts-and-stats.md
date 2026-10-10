@@ -89,7 +89,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 ## Where it lives
 | file | role | key symbols |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/MineStats.luau` | stat roster, weights, migration | `MineStats.STATS`, `MineStats.STAT_ORDER`, `MineStats.LEGACY_STAT`, `MineStats.canonStat`, `MineStats.TYPE_KITS` |
+| `src/ReplicatedStorage/Mine/Shared/MineStats.luau` | stat roster, weights, migration | `MineStats.STATS`, `MineStats.STAT_ORDER`, `MineStats.LEGACY_STAT`, `MineStats.canonStat`, `MineStats.valueOf` |
 | `src/ReplicatedStorage/Mine/Shared/MineBoostLayers.luau` | the two-layer rule | `MineBoostLayers.LAYER1`, `MineBoostLayers.LAYER2`, `MineBoostLayers.apply` |
 | `src/ReplicatedStorage/Mine/Shared/MineCards.luau` | empty table, additive list | `MineCards.emptyBoosts`, `MineCards.ADDITIVE_STATS`, `MineCards.foldSwingRate` |
 | `src/ServerScriptService/Mine/MineServer.server.luau` | the fold | `boosts`, `Dig.layer2`, `Dig.oreLuck`, `Dig.packLuck` |
@@ -106,7 +106,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
   - pets 34…150, with the variant stack bringing a perfect Exotic to 375;
   - blast chance on at most 15% of pets.
   - **Not yet built.** `MineGear.SHEET` is still hat 30%…350% and face 15%…175%. See [hats-and-faces](hats-and-faces.md) and [pets](pets.md).
-- **Line 30 is not done either.** It said to regenerate `MineStats.TYPE_KITS` from the elements. The table still lists `backpack`, `walkSpeed` and `fossilFind`, which leaves 193 pets with a dead stat.
+- **Line 30 is superseded** (2026-10-10). `MineStats.TYPE_KITS` was deleted with the rest of the old X/Y kit generator. Every named pet's kit now comes from `MineZonePets.KITS` on the line-3 ladder, and none carries `backpack` or `walkSpeed` ([pets](pets.md)).
 
 ## State right now
 - The two layers are **only partly wired** (`docs/OPEN.md` §10).

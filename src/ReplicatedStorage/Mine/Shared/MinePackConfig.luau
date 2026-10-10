@@ -15,7 +15,6 @@
 --     from opening an Apex Capsule, not a bigger version of it.
 --  4. Over-levelled players get fewer chests in shallow zones (RELEVANCE), so a
 --     maxed player cannot farm Zone 1. No daily caps anywhere.
---  5. Two sets ship at once, X and Y, with identical rarity counts.
 --
 -- Every card a chest yields rolls that chest's own `odds`. There is no
 -- filler/hit split: a chest's curve already says what shape it is, and the
@@ -35,16 +34,8 @@ MinePackConfig.TIER_COLOR = {
 	Exotic = Color3.fromRGB(255, 55, 55),
 }
 
--- Cards of each tier in ONE set. Both X and Y use this shape.
-MinePackConfig.SET_SHAPE = {
-	Common = 20, Uncommon = 14, Rare = 12, Epic = 9,
-	Legendary = 6, Mythic = 4, Divine = 3, Exotic = 2,
-}
-
--- Defaults. Any chest may override either with its own `variants` / `shiny`.
-MinePackConfig.VARIANT_ODDS = {
-	Normal = 88.00, Golden = 7.00, Prism = 3.50, Rainbow = 1.20, Void = 0.30,
-}
+-- A card's shiny chance: a pack's own `shiny` %, or this. Variant odds are
+-- MinePackConfig.variantOdds, never a pack row.
 MinePackConfig.SHINY_CHANCE = 4.00
 
 -- Power multipliers, matching MineConfig.VARIANT_MULT. Shiny stacks on a base.
@@ -52,28 +43,7 @@ MinePackConfig.VARIANT_MULT = {
 	Normal = 1.0, Shiny = 1.5, Golden = 2.25, Prism = 3.5, Rainbow = 5.5, Void = 4.0,
 }
 
--- Weighting, NOT a guarantee: within a rolled tier, this often prefers a card
--- the player does not own yet. Set to 0 for pure random.
-MinePackConfig.NEW_CARD_BIAS = 0.70
-
--- Default set split. Chests with a `setBias` override it.
-MinePackConfig.SET_SPLIT = { X = 50, Y = 50 }
-
---------------------------------------------------------------------------------
--- SETS X AND Y
---
--- GENERATED from the design lists (roster/xy.txt). Both sets are 70 cards with
--- identical rarity counts and zero overlap, and each carries exactly 7 of every
--- type -- so type is never a reason to prefer one set over the other.
---
--- Sets X/Y are roster partitions only (no player-facing "family" flavour copy).
---
--- `type` belongs to the CARD, not the animal: the same animal appears in both
--- sets under different types on purpose (Bunny is Grass in X, Space in Y).
---------------------------------------------------------------------------------
-
-MinePackConfig.TYPE_ORDER = { "Fire", "Frost", "Water", "Grass", "Ground", "Metal", "Electric", "Crystal", "Shadow", "Space" }
-
+-- A card type's colour (MineCards and the client read it).
 MinePackConfig.TYPE_COLOR = {
 	Fire = Color3.fromRGB(244, 108, 48),
 	Frost = Color3.fromRGB(168, 224, 248),
@@ -86,221 +56,6 @@ MinePackConfig.TYPE_COLOR = {
 	Shadow = Color3.fromRGB(110, 84, 150),
 	Space = Color3.fromRGB(130, 110, 235),
 }
-
--- Default stat a type leans on. Per-pet boosts override this.
-MinePackConfig.TYPE_BOOST = {
-	Fire = "mineSpeed",
-	Frost = "swingSec",
-	Water = "backpack",
-	Grass = "blastChance",
-	Ground = "dirtBreak",
-	Metal = "blastChance",
-	Electric = "zap",
-	Crystal = "luck",
-	Shadow = "rareOre",
-	Space = "rareOre",
-}
-
--- No player-facing set "family" flavour (Cold/Harsh etc). Kits stay numeric-only.
-MinePackConfig.SET_FLAVOUR = {
-	X = "",
-	Y = "",
-}
-
--- setKey -> tier -> { { name, animal, type }, ... }
-MinePackConfig.SET_CARDS = {
-	X = {
-		Common = {
-			{ name = "Binky", animal = "Bunny", type = "Grass" },
-			{ name = "Biscuit", animal = "Corgi", type = "Metal" },
-			{ name = "Bloop", animal = "Blobfish", type = "Water" },
-			{ name = "Boop", animal = "Seal", type = "Frost" },
-			{ name = "Breezy", animal = "Cloud Cat", type = "Space" },
-			{ name = "Buttercup", animal = "Cow", type = "Grass" },
-			{ name = "Button", animal = "Mouse", type = "Metal" },
-			{ name = "Churro Pop", animal = "Alpaca", type = "Ground" },
-			{ name = "Cocoa", animal = "Brown Bear", type = "Ground" },
-			{ name = "Cracker", animal = "Parakeet", type = "Shadow" },
-			{ name = "Crickets", animal = "Cricket", type = "Shadow" },
-			{ name = "Dusk", animal = "Raven", type = "Shadow" },
-			{ name = "Fawncy", animal = "Deer", type = "Frost" },
-			{ name = "Murmur", animal = "Quiet Owl", type = "Space" },
-			{ name = "Pickles", animal = "Frog", type = "Water" },
-			{ name = "Skipper", animal = "Dolphin", type = "Water" },
-			{ name = "Spindle", animal = "Spider", type = "Shadow" },
-			{ name = "Sprout", animal = "Turtle", type = "Grass" },
-			{ name = "Toffee", animal = "Fox", type = "Fire" },
-			{ name = "Vine", animal = "Jungle Snake", type = "Grass" },
-		},
-		Uncommon = {
-			{ name = "Skittles", animal = "Chameleon", type = "Crystal" },
-			{ name = "Acorn", animal = "Squirrel", type = "Ground" },
-			{ name = "Bambi", animal = "Fawn", type = "Space" },
-			{ name = "Bamboo", animal = "Panda", type = "Grass" },
-			{ name = "Bandit", animal = "Raccoon", type = "Shadow" },
-			{ name = "Basil", animal = "Green Parrot", type = "Grass" },
-			{ name = "Bubbles", animal = "Axolotl", type = "Water" },
-			{ name = "Caper", animal = "Capybara", type = "Ground" },
-			{ name = "Chai", animal = "Siamese Cat", type = "Shadow" },
-			{ name = "Cloudy", animal = "Sheep", type = "Frost" },
-			{ name = "Fennel", animal = "Bunny", type = "Space" },
-			{ name = "Freckles", animal = "Dalmatian", type = "Metal" },
-			{ name = "Honey", animal = "Bee", type = "Electric" },
-			{ name = "Noodle", animal = "Snake", type = "Electric" },
-		},
-		Rare = {
-			{ name = "Dandy", animal = "Dandelion Sprite", type = "Crystal" },
-			{ name = "Echo", animal = "Owl", type = "Shadow" },
-			{ name = "Pippa", animal = "Penguin", type = "Frost" },
-			{ name = "Squiggle", animal = "Octopus", type = "Water" },
-			{ name = "Coral", animal = "Seahorse", type = "Crystal" },
-			{ name = "Lotus", animal = "Pink Dolphin", type = "Water" },
-			{ name = "Ramen", animal = "Tanuki", type = "Space" },
-			{ name = "Tater", animal = "Potato Penguin", type = "Ground" },
-			{ name = "Turbo", animal = "Racing Turtle", type = "Metal" },
-			{ name = "Bongo", animal = "Gorilla", type = "Ground" },
-			{ name = "Cherry", animal = "Red Panda", type = "Fire" },
-			{ name = "Dazzle", animal = "Peacock", type = "Electric" },
-		},
-		Epic = {
-			{ name = "Velvet", animal = "Bat", type = "Electric" },
-			{ name = "Cactus", animal = "Desert Lizard", type = "Ground" },
-			{ name = "Jett", animal = "Falcon", type = "Metal" },
-			{ name = "Vesper", animal = "Bat", type = "Fire" },
-			{ name = "Blossom", animal = "Flower Deer", type = "Fire" },
-			{ name = "Bubba", animal = "Baby Hippo", type = "Metal" },
-			{ name = "Chiffon", animal = "Persian Cat", type = "Crystal" },
-			{ name = "Fern", animal = "Forest Fox", type = "Grass" },
-			{ name = "Paws", animal = "Tiger", type = "Fire" },
-		},
-		Legendary = {
-			{ name = "Cobalt", animal = "Blue Dragon", type = "Frost" },
-			{ name = "Opal", animal = "Gem Cat", type = "Crystal" },
-			{ name = "Pizzazz", animal = "Party Pony", type = "Electric" },
-			{ name = "Sterling", animal = "Silver Wolf", type = "Frost" },
-			{ name = "Snowcap", animal = "Arctic Fox", type = "Frost" },
-			{ name = "Drift", animal = "Shark", type = "Water" },
-		},
-		Mythic = {
-			{ name = "Cinder", animal = "Lava Dragon", type = "Fire" },
-			{ name = "Fizzgig", animal = "Gremlin", type = "Fire" },
-			{ name = "Flint", animal = "Rock Golem", type = "Metal" },
-			{ name = "Twirl", animal = "Ribbon Unicorn", type = "Crystal" },
-		},
-		Divine = {
-			{ name = "Galaxy", animal = "Space Dragon", type = "Space" },
-			{ name = "Prism", animal = "Rainbow Unicorn", type = "Crystal" },
-			{ name = "Vortex", animal = "Storm Serpent", type = "Electric" },
-		},
-		Exotic = {
-			{ name = "Orbit", animal = "Alien", type = "Space" },
-			{ name = "Boogie", animal = "Disco Duck", type = "Electric" },
-		},
-	},
-	Y = {
-		Common = {
-			{ name = "Crouton", animal = "Bread Dog", type = "Ground" },
-			{ name = "Fizzle", animal = "Sparkle Fox", type = "Electric" },
-			{ name = "Flapjack", animal = "Pancake Penguin", type = "Fire" },
-			{ name = "Fudge", animal = "Brownie Bear", type = "Fire" },
-			{ name = "Pika", animal = "Electric Mouse", type = "Electric" },
-			{ name = "Gummy", animal = "Gummy Bear", type = "Crystal" },
-			{ name = "Jolly", animal = "Elf Dog", type = "Grass" },
-			{ name = "Teddy", animal = "Teddy Bear", type = "Metal" },
-			{ name = "Churro", animal = "Capybara", type = "Ground" },
-			{ name = "Cotton", animal = "Lamb", type = "Grass" },
-			{ name = "Dottie", animal = "Ladybug", type = "Grass" },
-			{ name = "Flopsy", animal = "Rabbit", type = "Grass" },
-			{ name = "Gingersnap", animal = "Ginger Cat", type = "Fire" },
-			{ name = "Maple", animal = "Beaver", type = "Grass" },
-			{ name = "Nugget", animal = "Chick", type = "Metal" },
-			{ name = "Rook", animal = "Crow", type = "Shadow" },
-			{ name = "Squish", animal = "Blobfish", type = "Water" },
-			{ name = "Waffles", animal = "Duck", type = "Electric" },
-			{ name = "Ziggy", animal = "Zebra", type = "Electric" },
-			{ name = "Cheddar", animal = "Mouse", type = "Ground" },
-		},
-		Uncommon = {
-			{ name = "Opie", animal = "Opossum", type = "Shadow" },
-			{ name = "Clover", animal = "Deer", type = "Grass" },
-			{ name = "Reef", animal = "Sea Turtle", type = "Water" },
-			{ name = "Chirpy", animal = "Canary", type = "Electric" },
-			{ name = "Patches", animal = "Calico Cat", type = "Shadow" },
-			{ name = "Puffer", animal = "Pufferfish", type = "Water" },
-			{ name = "Snoot", animal = "Piglet", type = "Ground" },
-			{ name = "Dusty", animal = "Armadillo", type = "Ground" },
-			{ name = "Koda", animal = "Husky", type = "Frost" },
-			{ name = "Puffle", animal = "Puffin", type = "Water" },
-			{ name = "Smudge", animal = "Gray Kitten", type = "Shadow" },
-			{ name = "Minty", animal = "Koala", type = "Frost" },
-			{ name = "Miso", animal = "Shiba Inu", type = "Metal" },
-			{ name = "Puddle", animal = "Otter", type = "Water" },
-		},
-		Rare = {
-			{ name = "Ember", animal = "Dragon", type = "Fire" },
-			{ name = "Jellybean", animal = "Slime", type = "Crystal" },
-			{ name = "Spooky", animal = "Ghost Dog", type = "Shadow" },
-			{ name = "Pecan Pie", animal = "Pie Cat", type = "Crystal" },
-			{ name = "Frosty", animal = "Polar Bear", type = "Frost" },
-			{ name = "Frizzle", animal = "Llama", type = "Space" },
-			{ name = "Pipsqueak", animal = "Mouse", type = "Metal" },
-			{ name = "Ruffles", animal = "Sheepdog", type = "Grass" },
-			{ name = "Sushi", animal = "Koi Fish", type = "Water" },
-			{ name = "Kiwi", animal = "Green Bird", type = "Space" },
-			{ name = "Moxie", animal = "Terrier", type = "Metal" },
-			{ name = "Plume", animal = "Swan", type = "Space" },
-		},
-		Epic = {
-			{ name = "Fable", animal = "Griffin", type = "Space" },
-			{ name = "Gumdrop", animal = "Candy Bunny", type = "Crystal" },
-			{ name = "Wisp", animal = "Spirit Wolf", type = "Shadow" },
-			{ name = "Ripple", animal = "Dolphin", type = "Water" },
-			{ name = "Sproing", animal = "Frog", type = "Electric" },
-			{ name = "Sable", animal = "Black Fox", type = "Shadow" },
-			{ name = "Tide", animal = "Blue Shark", type = "Frost" },
-			{ name = "Tinsel", animal = "Reindeer", type = "Space" },
-			{ name = "Wobble", animal = "Penguin", type = "Frost" },
-		},
-		Legendary = {
-			{ name = "Blizzard", animal = "Ice Wolf", type = "Frost" },
-			{ name = "Pawsitron", animal = "Robot Cat", type = "Metal" },
-			{ name = "Rumble", animal = "Dinosaur", type = "Metal" },
-			{ name = "Topaz", animal = "Golden Retriever", type = "Crystal" },
-			{ name = "Bramble", animal = "Thorn Bear", type = "Ground" },
-			{ name = "Flash", animal = "Cheetah", type = "Electric" },
-		},
-		Mythic = {
-			{ name = "Brix", animal = "Brick Golem", type = "Ground" },
-			{ name = "Fizzlet", animal = "Mini Dragon", type = "Fire" },
-			{ name = "Spark", animal = "Phoenix", type = "Fire" },
-			{ name = "Yeti", animal = "Snow Monster", type = "Frost" },
-		},
-		Divine = {
-			{ name = "Lava Lamp", animal = "Magma Slime", type = "Fire" },
-			{ name = "Moondust", animal = "Lunar Dragon", type = "Space" },
-			{ name = "Swirl", animal = "Ice Cream Unicorn", type = "Crystal" },
-		},
-		Exotic = {
-			{ name = "Razzle", animal = "Razzberry Dragon", type = "Crystal" },
-			{ name = "Twinkle", animal = "Fairy", type = "Space" },
-		},
-	},
-}
-
--- Flat lookups, built once at require time.
-MinePackConfig.CARD_BY_NAME = {}
-MinePackConfig.SET_OF = {}
-for setKey, tiers in pairs(MinePackConfig.SET_CARDS) do
-	for tier, rows in pairs(tiers) do
-		for _, row in ipairs(rows) do
-			MinePackConfig.CARD_BY_NAME[row.name] = {
-				name = row.name, animal = row.animal, type = row.type,
-				tier = tier, set = setKey,
-			}
-			MinePackConfig.SET_OF[row.name] = setKey
-		end
-	end
-end
 
 --------------------------------------------------------------------------------
 -- CHESTS
@@ -333,7 +88,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 1, layers = { 1, 50 }, weight = 100, luckScale = 0 },
 		packChance = 35, cards = 3,
 		odds = { Common = 34.000, Uncommon = 31.000, Rare = 20.000, Epic = 10.000, Legendary = 4.000, Mythic = 0.850, Divine = 0.130, Exotic = 0.020 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 34, min = 60, max = 140 },
@@ -349,7 +103,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 2, layers = { 1, 50 }, weight = 100, luckScale = 0 },
 		packChance = 39, cards = 3,
 		odds = { Common = 30.866, Uncommon = 30.866, Rare = 20.909, Epic = 11.450, Legendary = 4.580, Mythic = 1.095, Divine = 0.199, Exotic = 0.035 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 32, min = 140, max = 320 },
@@ -365,7 +118,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 3, layers = { 1, 50 }, weight = 100, luckScale = 0 },
 		packChance = 43, cards = 3,
 		odds = { Common = 27.957, Uncommon = 29.954, Rare = 21.966, Epic = 12.980, Legendary = 5.392, Mythic = 1.398, Divine = 0.300, Exotic = 0.055 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -381,7 +133,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 4, layers = { 1, 50 }, weight = 100, luckScale = 0 },
 		packChance = 47, cards = 3,
 		odds = { Common = 24.944, Uncommon = 28.935, Rare = 22.948, Epic = 14.467, Legendary = 6.386, Mythic = 1.796, Divine = 0.439, Exotic = 0.085 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 28, min = 700, max = 1500 },
@@ -397,7 +148,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 5, layers = { 1, 50 }, weight = 100, luckScale = 0 },
 		packChance = 51, cards = 3,
 		odds = { Common = 22.049, Uncommon = 27.060, Rare = 24.053, Epic = 16.035, Legendary = 7.617, Mythic = 2.405, Divine = 0.651, Exotic = 0.130 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 26, min = 1500, max = 3200 },
@@ -413,7 +163,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 6, layers = { 1, 50 }, weight = 100, luckScale = 0 },
 		packChance = 55, cards = 3,
 		odds = { Common = 18.016, Uncommon = 25.023, Rare = 25.023, Epic = 18.016, Legendary = 9.408, Mythic = 3.303, Divine = 1.001, Exotic = 0.210 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 24, min = 3200, max = 7000 },
@@ -429,7 +178,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 40, 50 }, weight = 9, favZone = 6, favMult = 4, luckScale = 1.2 },
 		packChance = 70, cards = 3,
 		odds = { Common = 16.000, Uncommon = 24.000, Rare = 26.000, Epic = 22.000, Legendary = 11.200, Mythic = 0.700, Divine = 0.090, Exotic = 0.010 },
-		variants = { Normal = 72.000, Golden = 8.000, Prism = 5.000, Rainbow = 2.500, Void = 12.500 },
 		shiny = 5.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -445,7 +193,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 18, 38 }, weight = 14, favZone = 4, favMult = 3, luckScale = 1.2 },
 		packChance = 66, cards = 3,
 		odds = { Common = 22.000, Uncommon = 28.000, Rare = 25.000, Epic = 16.000, Legendary = 8.000, Mythic = 0.850, Divine = 0.140, Exotic = 0.010 },
-		variants = { Normal = 62.000, Golden = 30.000, Prism = 5.000, Rainbow = 2.500, Void = 0.500 },
 		shiny = 6.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -461,7 +208,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 24, 44 }, weight = 12, favZone = 3, favMult = 3, luckScale = 1.2 },
 		packChance = 64, cards = 3,
 		odds = { Common = 24.000, Uncommon = 29.000, Rare = 25.000, Epic = 15.000, Legendary = 6.400, Mythic = 0.500, Divine = 0.090, Exotic = 0.010 },
-		variants = { Normal = 66.000, Golden = 8.000, Prism = 22.000, Rainbow = 3.500, Void = 0.500 },
 		shiny = 6.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -477,7 +223,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 34, 50 }, weight = 5, favZone = 5, favMult = 4, luckScale = 1.2 },
 		packChance = 68, cards = 3,
 		odds = { Common = 20.000, Uncommon = 27.000, Rare = 26.000, Epic = 19.000, Legendary = 7.200, Mythic = 0.600, Divine = 0.190, Exotic = 0.010 },
-		variants = { Normal = 72.000, Golden = 8.000, Prism = 7.000, Rainbow = 12.000, Void = 1.000 },
 		shiny = 7.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -493,7 +238,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 12, 30 }, weight = 16, favZone = 2, favMult = 3, luckScale = 1.2 },
 		packChance = 60, cards = 3,
 		odds = { Common = 28.000, Uncommon = 31.000, Rare = 23.000, Epic = 13.000, Legendary = 4.400, Mythic = 0.500, Divine = 0.090, Exotic = 0.010 },
-		variants = { Normal = 86.000, Golden = 8.000, Prism = 4.000, Rainbow = 1.700, Void = 0.300 },
 		shiny = 38.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -509,7 +253,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 1, 14 }, weight = 40, favZone = 1, favMult = 3, luckScale = 0.8 },
 		packChance = 58, cards = 6,
 		odds = { Common = 52.000, Uncommon = 34.000, Rare = 11.000, Epic = 2.600, Legendary = 0.350, Mythic = 0.040, Divine = 0.005, Exotic = 0.005 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 3.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -525,7 +268,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 1, 18 }, weight = 26, favZone = 2, favMult = 3, luckScale = 0.8 },
 		packChance = 62, cards = 8,
 		odds = { Common = 60.000, Uncommon = 31.000, Rare = 8.000, Epic = 0.900, Legendary = 0.090, Mythic = 0.009, Divine = 0.001, Exotic = 0.000 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 3.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -541,7 +283,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 20, 40 }, weight = 18, favZone = 4, favMult = 3, luckScale = 0.8 },
 		packChance = 60, cards = 3,
 		odds = { Common = 2.000, Uncommon = 12.000, Rare = 32.000, Epic = 34.000, Legendary = 17.000, Mythic = 2.400, Divine = 0.550, Exotic = 0.050 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -557,7 +298,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 42, 50 }, weight = 7, favZone = 6, favMult = 3, luckScale = 0.8 },
 		packChance = 78, cards = 1,
 		odds = { Common = 0.000, Uncommon = 4.000, Rare = 16.000, Epic = 30.000, Legendary = 32.000, Mythic = 13.000, Divine = 4.200, Exotic = 0.800 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 6.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -573,7 +313,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 30, 50 }, weight = 8, favZone = 5, favMult = 3, luckScale = 0.8 },
 		packChance = 56, cards = 2,
 		odds = { Common = 58.000, Uncommon = 24.000, Rare = 10.000, Epic = 4.000, Legendary = 2.400, Mythic = 0.800, Divine = 0.400, Exotic = 0.400 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -591,7 +330,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 30, 46 }, weight = 15, favZone = 3, favMult = 3, luckScale = 0.8 },
 		packChance = 57, cards = 3,
 		odds = { Common = 0.000, Uncommon = 22.000, Rare = 40.000, Epic = 26.000, Legendary = 10.000, Mythic = 1.600, Divine = 0.350, Exotic = 0.050 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -606,9 +344,7 @@ MinePackConfig.CHESTS = {
 		flavour = "Pages of nothing but the dark half of the season.",
 		spawn = { zone = 5, layers = { 26, 50 }, weight = 13, luckScale = 1 },
 		packChance = 54, cards = 3,
-		setBias = { X = 85, Y = 15 },
 		odds = { Common = 22.049, Uncommon = 27.060, Rare = 24.053, Epic = 16.035, Legendary = 7.617, Mythic = 2.405, Divine = 0.651, Exotic = 0.130 },
-		variants = { Normal = 80.000, Golden = 6.000, Prism = 4.000, Rainbow = 1.500, Void = 8.500 },
 		shiny = 4.0,
 		loot = {
 			{ kind = "coins", weight = 26, min = 1500, max = 3200 },
@@ -623,9 +359,7 @@ MinePackConfig.CHESTS = {
 		flavour = "The bright half, and it will not shut up about it.",
 		spawn = { zone = 2, layers = { 4, 22 }, weight = 13, luckScale = 1 },
 		packChance = 54, cards = 3,
-		setBias = { X = 15, Y = 85 },
 		odds = { Common = 27.957, Uncommon = 29.954, Rare = 21.966, Epic = 12.980, Legendary = 5.392, Mythic = 1.398, Divine = 0.300, Exotic = 0.055 },
-		variants = { Normal = 82.000, Golden = 11.000, Prism = 5.000, Rainbow = 1.700, Void = 0.300 },
 		shiny = 8.0,
 		loot = {
 			{ kind = "coins", weight = 32, min = 140, max = 320 },
@@ -641,7 +375,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 44, 50 }, weight = 20, luckScale = 1.5 },
 		packChance = 64, cards = 3,
 		odds = { Common = 14.000, Uncommon = 22.000, Rare = 26.000, Epic = 21.000, Legendary = 13.400, Mythic = 2.900, Divine = 0.620, Exotic = 0.080 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 5.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -657,7 +390,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 49, 50 }, weight = 4, luckScale = 1.5 },
 		packChance = 82, cards = 4,
 		odds = { Common = 8.000, Uncommon = 18.000, Rare = 25.000, Epic = 24.000, Legendary = 18.000, Mythic = 5.400, Divine = 1.400, Exotic = 0.200 },
-		variants = { Normal = 84.000, Golden = 8.000, Prism = 4.500, Rainbow = 2.500, Void = 1.000 },
 		shiny = 7.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -673,7 +405,6 @@ MinePackConfig.CHESTS = {
 		spawn = { zone = 0, layers = { 28, 48 }, weight = 11, favZone = 4, favMult = 3, luckScale = 1.5 },
 		packChance = 42, cards = 4,
 		odds = { Common = 10.000, Uncommon = 20.000, Rare = 26.000, Epic = 24.000, Legendary = 15.400, Mythic = 3.600, Divine = 0.900, Exotic = 0.100 },
-		variants = { Normal = 88.000, Golden = 7.000, Prism = 3.500, Rainbow = 1.200, Void = 0.300 },
 		shiny = 5.0,
 		loot = {
 			{ kind = "coins", weight = 30, min = 320, max = 700 },
@@ -796,7 +527,7 @@ function MinePackConfig.recycleValue(tier, variant, shiny)
 end
 
 function MinePackConfig.expectedVariantMult(variants)
-	variants = variants or MinePackConfig.VARIANT_ODDS
+	variants = variants or MinePackConfig.variantOdds()
 	local total = 0
 	for _, w in pairs(variants) do
 		total += w
@@ -812,24 +543,10 @@ function MinePackConfig.expectedVariantMult(variants)
 end
 
 --[[
-	VARIANT SCARCITY.
-
-	Base packs shipped Golden 7 / Prism 3.5 / Rainbow 1.2 / Void 0.3 against
-	Normal 88, so 12% of every card came out special -- about one card in eight.
-	Every variants table in MinePackConfig and Mine1PacksData is multiplied
-	through here rather than rewritten in place, which keeps themed packs (Prism
-	Geode, the Golden pack) worth buying: they stay the same multiple of base
-	that they always were, just against a much rarer floor.
-
-	Void is scaled with the other three even though the brief named only Golden,
-	Prism and Rainbow. Leaving it at 0.3 while Rainbow fell to 0.12 would have
-	made Void commoner than Rainbow and put an inversion in the ladder.
-]]
---[[
 	VARIANT RATES ARE DECIDED HERE, NOT IN THE PACK TABLES.
 
-	Every pack in MinePackConfig and Mine1PacksData carries its own variants row
-	and they disagreed wildly -- base packs paid 12% specials, one card in eight.
+	Every pack in MinePackConfig and Mine1PacksData used to carry its own
+	variants row (removed 2026-10-10), and they disagreed wildly -- base packs paid 12% specials, one card in eight.
 	Set against what a variant is actually WORTH that was absurd: merging up to a
 	Void pet costs 81 normal pets, and a Void falling one card in 333 was nowhere
 	near 81x as hard to come by as a normal one.
@@ -856,21 +573,17 @@ MinePackConfig.VARIANT_HEADLINE = {
 	void_pack = { Void = 2 },
 }
 
-function MinePackConfig.variantOdds(variants, packId)
-	variants = variants or MinePackConfig.VARIANT_ODDS
+-- Percent per variant for a pack, summing to 100. The first argument is a
+-- pack's old variants row; it is ignored (kept so old callers still work).
+function MinePackConfig.variantOdds(_variants, packId)
 	local rates = (packId and MinePackConfig.VARIANT_HEADLINE[packId]) or MinePackConfig.VARIANT_BASE
-	local was = 0
-	for _, pct in pairs(variants) do
-		was += pct
-	end
-	local scale = (was > 0) and (was / 100) or 0
 	local out, spent = {}, 0
 	for id in pairs(MinePackConfig.VARIANT_BASE) do
-		local v = math.max(0, tonumber(rates[id]) or 0) * scale
+		local v = math.max(0, tonumber(rates[id]) or 0)
 		out[id] = v
 		spent += v
 	end
-	out.Normal = math.max(0, was - spent)
+	out.Normal = math.max(0, 100 - spent)
 	return out
 end
 
@@ -1001,513 +714,15 @@ MinePackConfig.ZONES = {
 	},
 }
 
---------------------------------------------------------------------------------
--- SET X / SET Y -- PET STAT BUDGET
---
--- Both sets have identical rarity counts and should average out to the same
--- total benefit. They differ in HOW that benefit is spent:
---
---   X (harsher)  concentrates its budget into 1-2 stats at a higher number, and
---                carries a drawback on one unrelated stat. Spiky, situational,
---                great when it matches what you are doing.
---   Y (lighter)  spreads the same budget across 3-4 stats at lower numbers with
---                no drawback. Consistent, always mildly useful.
---
--- `budget` is an abstract point pool per tier. When the real boosts arrive,
--- check them against this: X should spend `budget` x CONCENTRATION across few
--- stats and give back `budget` x DRAWBACK on one; Y should spend exactly
--- `budget` across many. Same expected value, different texture.
---------------------------------------------------------------------------------
-
-MinePackConfig.PET_BUDGET = {
-	Common = 10, Uncommon = 18, Rare = 30, Epic = 50,
-	Legendary = 85, Mythic = 140, Divine = 230, Exotic = 380,
-}
-
-MinePackConfig.SET_PROFILE = {
-	-- Internal spend shape only — no name/flavour shown on cards.
-	X = { statsPerPet = { 1, 2 }, concentration = 1.35, drawback = 0.15 },
-	Y = { statsPerPet = { 3, 4 }, concentration = 1.00, drawback = 0.00 },
-}
-
--- The stats a pet boost may target. Matches MineCards.STAT_LABEL.
-MinePackConfig.STATS = {
-	"mineSpeed", "blastChance", "luck", "walkSpeed", "dirtBreak", "backpack", "rareOre",
-}
-
--- Filled in once the real per-pet boosts arrive. Shape:
---   MinePackConfig.PET_BOOSTS.X["Toffee"] = { mineSpeed = 0.14, blastChance = -0.05 }
--- Authored kits live in MinePetBoosts (set-in-stone by pet name).
+-- PET KITS live in MinePetBoosts (one table: MineZonePets.KITS). Mirrored here
+-- for the callers that ask MinePackConfig.
 do
 	local ok, Boosts = pcall(require, script.Parent:FindFirstChild("MinePetBoosts"))
-	if ok and Boosts and Boosts.PET_BOOSTS then
-		local function clonePetBoosts(src)
-		local out = {}
-		for setKey, bag in pairs(src) do
-			local copy = {}
-			for name, kit in pairs(bag) do
-				local k = {}
-				for stat, amount in pairs(kit) do k[stat] = amount end
-				copy[name] = k
-			end
-			out[setKey] = copy
-		end
-		return out
-	end
-		MinePackConfig.PET_BOOSTS = clonePetBoosts(Boosts.PET_BOOSTS)
-		MinePackConfig.NAME_ALIASES = Boosts.NAME_ALIASES or MinePackConfig.NAME_ALIASES
-		MinePackConfig.resolveName = Boosts.resolveName or MinePackConfig.resolveName
+	if ok and type(Boosts) == "table" then
+		MinePackConfig.PET_BOOSTS = Boosts.PET_BOOSTS
+		MinePackConfig.NAME_ALIASES = Boosts.NAME_ALIASES
+		MinePackConfig.resolveName = Boosts.resolveName
 		MinePackConfig.boostsFor = Boosts.boostsFor
-	else
-		MinePackConfig.PET_BOOSTS = {
-	X = {
-		["Acorn"] = { dirtBreak = 0.3156, backpack = 0.3287 },
-		["Aquamarine"] = { blastRadius = 0.3098, dirtBreak = 0.891 },
-		["Aurora"] = { dirtBreak = 1.727, backpack = 2.046 },
-		["Bambi"] = { walkSpeed = 0.9101 },
-		["Bamboo"] = { blastChance = 0.0812, backpack = 0.3101 },
-		["Bandit"] = { luck = 0.1633, chestLuck = 0.0697 },
-		["Basil"] = { blastChance = 0.0824, backpack = 0.3009 },
-		["Binky"] = { blastChance = 0.0365, coinBonus = 0.1301 },
-		["Biscuit"] = { coinBonus = 0.1926, backpack = 0.1918 },
-		["Bloop"] = { coinBonus = 0.2181, backpack = 0.151 },
-		["Blossom"] = { mineSpeed = 0.6408, backpack = 0.5184 },
-		["Bolt"] = { zap = 0.3773, mineSpeed = 0.605, swingRate = 0.1964 },
-		["Bongo"] = { dirtBreak = 0.4084, blastChance = 0.0479 },
-		["Boogie"] = { zap = 1.0944, mineSpeed = 1.064 },
-		["Boomer"] = { coinBonus = 0.2208, luck = 0.0367 },
-		["Boop"] = { swingRate = 0.1044, mineSpeed = 0.1039 },
-		["Breezy"] = { walkSpeed = 0.428 },
-		["Brisket"] = { coinBonus = 0.2139, backpack = 0.1578 },
-		["Bubba"] = { coinBonus = 0.6869, backpack = 0.7009 },
-		["Bubbles"] = { coinBonus = 0.3979, pulverize = 0.0404 },
-		["Buttercup"] = { blastChance = 0.0421, coinBonus = 0.1021 },
-		["Button"] = { coinBonus = 0.176, luck = 0.0546 },
-		["Cactus"] = { dirtBreak = 0.5765, blastChance = 0.0809 },
-		["Caper"] = { dirtBreak = 0.3116, mineSpeed = 0.1684 },
-		["Chai"] = { luck = 0.1668, chestLuck = 0.0666 },
-		["Cherry"] = { mineSpeed = 0.4345, dirtBreak = 0.1655 },
-		["Chiffon"] = { gemFind = 0.3561, luck = 0.1652 },
-		["Chippy"] = { dirtBreak = 0.1146, blastChance = 0.0216, backpack = 0.0982 },
-		["Chomp"] = { dirtBreak = 1.1529, mineSpeed = 0.7471 },
-		["Churro Pop"] = { dirtBreak = 0.1838, blastChance = 0.0166 },
-		["Cinder"] = { blastRadius = 0.2157, mineSpeed = 0.6061 },
-		["Cloudy"] = { swingRate = 0.192, dirtBreak = 0.2112 },
-		["Cobalt"] = { swingRate = 0.6093, dirtBreak = 0.397 },
-		["Cocoa"] = { dirtBreak = 0.1708, backpack = 0.1584 },
-		["Comet"] = { walkSpeed = 0.355 },
-		["Coral"] = { gemFind = 0.2354, luck = 0.1118 },
-		["Cracker"] = { luck = 0.0773, chestLuck = 0.0434 },
-		["Cranberry"] = { dirtBreak = 0.6223, mineSpeed = 0.2777 },
-		["Crayon"] = { dirtBreak = 0.1101, mineSpeed = 0.0753, blastChance = 0.0162 },
-		["Crickets"] = { luck = 0.0891, chestLuck = 0.0327 },
-		["Crumble"] = { gemFind = 0.8662, chestLuck = 0.3161, backpack = 1.672, luck = 0.4413 },
-		["Dandelion"] = { blastChance = 0.1569, backpack = 0.545 },
-		["Dandy"] = { gemFind = 0.2192, luck = 0.1247 },
-		["Dapper"] = { dirtBreak = 0.5108, mineSpeed = 0.3892 },
-		["Dazzle"] = { zap = 0.1791, mineSpeed = 0.1522 },
-		["Dingo"] = { dirtBreak = 0.1774, backpack = 0.1452 },
-		["Doodle"] = { dirtBreak = 0.1112, mineSpeed = 0.0608, blastChance = 0.0195 },
-		["Dot"] = { dirtBreak = 0.1125, mineSpeed = 0.056, blastChance = 0.0204 },
-		["Drift"] = { coinBonus = 1.1053, backpack = 0.7315 },
-		["Drizzle"] = { dirtBreak = 1.2684, mineSpeed = 0.6316 },
-		["Dusk"] = { luck = 0.0734, chestLuck = 0.047 },
-		["Echo"] = { luck = 0.1671, gemFind = 0.1662 },
-		["Fawncy"] = { swingRate = 0.124, dirtBreak = 0.0764 },
-		["Fennel"] = { gemFind = 0.1264 },
-		["Fern"] = { blastChance = 0.126, backpack = 0.7916 },
-		["Fizz"] = { gemFind = 0.9114, luck = 0.3648, chestLuck = 0.38, backpack = 1.5522 },
-		["Fizzgig"] = { blastRadius = 0.2003, swingRate = 0.4986 },
-		["Fizzpaw"] = { gemFind = 0.943, chestLuck = 0.4215, backpack = 1.672, luck = 0.264 },
-		["Flint"] = { coinBonus = 1.4963, backpack = 1.406 },
-		["Flintlock"] = { dirtBreak = 1.4103, blastChance = 0.1738, backpack = 1.672, mineSpeed = 0.8583 },
-		["Flurry"] = { swingRate = 0.6433, dirtBreak = 0.5909, mineSpeed = 0.4085 },
-		["Freckles"] = { coinBonus = 0.4418, backpack = 0.2531 },
-		["Galaxy"] = { gemFind = 0.6073 },
-		["Gemma"] = { blastChance = 0.2438, backpack = 1.3805, coinBonus = 0.7563, luck = 0.2398 },
-		["Glaze"] = { gemFind = 0.6892, luck = 0.3987 },
-		["Glimmer"] = { gemFind = 0.8038, chestLuck = 0.24, backpack = 1.872 },
-		["Glitch"] = { blastChance = 0.2656, backpack = 1.452, coinBonus = 0.7563, luck = 0.1783 },
-		["Halo"] = { dirtBreak = 1.2679, backpack = 1.0175, mineSpeed = 0.9734 },
-		["Haze"] = { luck = 0.3582, chestLuck = 0.2617, backpack = 0.836, gemFind = 0.1188 },
-		["Honey"] = { zap = 0.1162, swingRate = 0.1354 },
-		["Huckle"] = { dirtBreak = 0.5855, mineSpeed = 0.35, blastChance = 0.0786 },
-		["Jamboree"] = { dirtBreak = 1.3932, blastChance = 0.2689, backpack = 1.672, mineSpeed = 0.4954 },
-		["Jett"] = { coinBonus = 0.7949, backpack = 0.5281 },
-		["Jinx"] = { luck = 0.8386, gemFind = 0.8954, chestLuck = 0.3137 },
-		["Jumble"] = { dirtBreak = 1.3262, mineSpeed = 1.2578, blastChance = 0.209, backpack = 0.76 },
-		["Juno"] = { blastChance = 0.6299, coinBonus = 1.6007 },
-		["Kettle"] = { dirtBreak = 0.1073, mineSpeed = 0.0723, blastChance = 0.0176 },
-		["Lollipop"] = { gemFind = 0.8653, luck = 0.4029, chestLuck = 0.38, backpack = 1.548 },
-		["Lotus"] = { coinBonus = 0.5123, luck = 0.0951 },
-		["Luna"] = { gemFind = 0.3764, luck = 0.3624 },
-		["Mallow"] = { blastChance = 0.7057, backpack = 1.9547 },
-		["Marble"] = { dirtBreak = 0.1179, blastChance = 0.0224, backpack = 0.0853 },
-		["Meringue"] = { blastChance = 0.0296, backpack = 0.099, coinBonus = 0.1026 },
-		["Midnight"] = { luck = 0.0535, backpack = 0.1815, gemFind = 0.0327 },
-		["Mochi"] = { blastChance = 0.0629, coinBonus = 0.1506, luck = 0.0541 },
-		["Muffin"] = { blastChance = 0.0362, backpack = 0.2106 },
-		["Munchkin"] = { dirtBreak = 0.1339, mineSpeed = 0.0595, blastChance = 0.0142 },
-		["Murmur"] = { walkSpeed = 0.343 },
-		["Nibbles"] = { dirtBreak = 0.1559, mineSpeed = 0.0941 },
-		["Noodle"] = { zap = 0.1356 },
-		["Nori"] = { blastChance = 0.1562, coinBonus = 0.344 },
-		["Nova"] = { gemFind = 0.6098 },
-		["Oatmeal"] = { blastChance = 0.161, backpack = 0.5119 },
-		["Opal"] = { gemFind = 0.5827, luck = 0.1589 },
-		["Orbit"] = { gemFind = 0.8978 },
-		["Orbitz"] = { luck = 0.5239 },
-		["Panko"] = { dirtBreak = 0.3389, mineSpeed = 0.1411 },
-		["Paws"] = { blastRadius = 0.1048, dirtBreak = 0.2714 },
-		["Pebble"] = { blastChance = 0.0415, luck = 0.0421 },
-		["Pecan"] = { dirtBreak = 0.1065, blastChance = 0.0124, backpack = 0.1876 },
-		["Pecan Puff"] = { dirtBreak = 0.7571, mineSpeed = 0.3572, blastChance = 0.1045, backpack = 0.7354 },
-		["Pickles"] = { coinBonus = 0.1853, pulverize = 0.0255 },
-		["Pippa"] = { swingRate = 0.2811, mineSpeed = 0.2065 },
-		["Pips"] = { dirtBreak = 0.1268, blastChance = 0.0233, backpack = 0.06 },
-		["Pixel"] = { gemFind = 0.228, luck = 0.2091, walkSpeed = 2.2443 },
-		["Pizzazz"] = { zap = 0.2973, swingRate = 0.362 },
-		["Pogo"] = { dirtBreak = 0.2568, mineSpeed = 0.2028, blastChance = 0.0351 },
-		["Pollen"] = { blastChance = 0.2195, coinBonus = 0.8265, backpack = 0.722 },
-		["Pompom"] = { dirtBreak = 0.3087, backpack = 0.3425 },
-		["Poppy"] = { dirtBreak = 0.3979, backpack = 0.4042 },
-		["Prism"] = { gemFind = 1.1395, chestLuck = 0.4213 },
-		["Pudding"] = { dirtBreak = 0.187, backpack = 0.126 },
-		["Quasar"] = { luck = 0.426 },
-		["Quibble"] = { dirtBreak = 0.4116, mineSpeed = 0.1884 },
-		["Quill"] = { dirtBreak = 0.3322, backpack = 0.5357 },
-		["Ramen"] = { gemFind = 0.1406 },
-		["Riff"] = { dirtBreak = 2.4822, mineSpeed = 1.3178 },
-		["Ringo"] = { dirtBreak = 0.1338, mineSpeed = 0.0468, blastChance = 0.0174 },
-		["Riptide"] = { coinBonus = 0.7509, luck = 0.1444, pulverize = 0.0901 },
-		["Rocket"] = { dirtBreak = 2.5141, backpack = 2.5718 },
-		["Rollo"] = { dirtBreak = 0.1436, backpack = 0.2128 },
-		["Roxy"] = { blastChance = 0.068, backpack = 0.4159 },
-		["Rumblebee"] = { blastChance = 0.0286, dirtBreak = 0.0923, coinBonus = 0.0541 },
-		["S'more"] = { blastRadius = 0.3994, mineSpeed = 1.4037 },
-		["Saffron"] = { coinBonus = 3.0714, backpack = 2.6858 },
-		["Scout"] = { dirtBreak = 0.1344, mineSpeed = 0.0538, blastChance = 0.0155 },
-		["Shimmer"] = { coinBonus = 1.4088, luck = 0.3685, pulverize = 0.1513, backpack = 0.5619 },
-		["Shiver"] = { blastRadius = 0.2705, swingRate = 0.805 },
-		["Sizzle"] = { blastRadius = 0.2272, dirtBreak = 0.8132, mineSpeed = 0.836, swingRate = 0.5626 },
-		["Sizzlepop"] = { blastRadius = 0.2521, mineSpeed = 1.2375 },
-		["Skipper"] = { coinBonus = 0.1778, backpack = 0.2155 },
-		["Skittles"] = { gemFind = 0.2168, luck = 0.0666 },
-		["Skye"] = { dirtBreak = 0.3415, mineSpeed = 0.2585 },
-		["Snickers"] = { dirtBreak = 0.1196, mineSpeed = 0.0508, blastChance = 0.0199 },
-		["Snoozy"] = { dirtBreak = 0.1116, blastChance = 0.0176, backpack = 0.1357 },
-		["Snowcap"] = { swingRate = 0.5625, mineSpeed = 0.4625 },
-		["Snug"] = { dirtBreak = 0.2698, mineSpeed = 0.1188, blastChance = 0.0529 },
-		["Sol"] = { dirtBreak = 0.7048, blastChance = 0.1363 },
-		["Soot"] = { dirtBreak = 0.1324, blastChance = 0.0219, backpack = 0.06 },
-		["Spindle"] = { luck = 0.062, chestLuck = 0.0584 },
-		["Sprinkles"] = { gemFind = 1.0995, backpack = 1.6112, luck = 0.6176 },
-		["Sprocket"] = { dirtBreak = 1.3884, blastChance = 0.2043, backpack = 1.672, mineSpeed = 0.7586 },
-		["Sprout"] = { blastChance = 0.0425, dirtBreak = 0.0798 },
-		["Squeaky"] = { dirtBreak = 0.1325, blastChance = 0.0114, backpack = 0.144 },
-		["Squiggle"] = { coinBonus = 0.5427, backpack = 0.3317 },
-		["Starlight"] = { gemFind = 0.7594, backpack = 1.32, luck = 0.4375 },
-		["Sterling"] = { swingRate = 0.6148, dirtBreak = 0.3892 },
-		["Stomper"] = { dirtBreak = 0.9305, mineSpeed = 0.3195 },
-		["Stumpy"] = { dirtBreak = 0.2215, blastChance = 0.0283, backpack = 0.2905 },
-		["Sunny"] = { blastChance = 0.0315, coinBonus = 0.1147, luck = 0.0162 },
-		["Swoop"] = { dirtBreak = 0.5347, blastChance = 0.0862, backpack = 0.7405 },
-		["Taffeta"] = { dirtBreak = 1.2992, blastChance = 0.1502 },
-		["Taffy"] = { gemFind = 0.8242, backpack = 2.5308, luck = 0.418, chestLuck = 0.1727 },
-		["Tango"] = { dirtBreak = 2.2884, blastChance = 0.3779 },
-		["Tango Pop"] = { dirtBreak = 0.1649, mineSpeed = 0.0851 },
-		["Tater"] = { dirtBreak = 0.4328, blastChance = 0.0418 },
-		["Tiki"] = { dirtBreak = 0.1594, backpack = 0.1812 },
-		["Tiki Torch"] = { blastRadius = 0.213, swingRate = 0.4443 },
-		["Timber"] = { dirtBreak = 0.5372, blastChance = 0.0869, backpack = 0.7307 },
-		["Tinker"] = { dirtBreak = 0.1271, mineSpeed = 0.046, blastChance = 0.0192 },
-		["Tinseltoe"] = { blastChance = 0.3422, backpack = 1.4364, coinBonus = 1.045, luck = 0.4386 },
-		["Toffee"] = { blastRadius = 0.0308, dirtBreak = 0.0654 },
-		["Tofu"] = { dirtBreak = 0.2051, blastChance = 0.0344, backpack = 0.2743 },
-		["Truffle"] = { dirtBreak = 0.1215, mineSpeed = 0.0745, blastChance = 0.0135 },
-		["Tumble"] = { dirtBreak = 1.4708, mineSpeed = 0.8094, blastChance = 0.209, backpack = 1.3677 },
-		["Tundra"] = { swingRate = 0.6671, mineSpeed = 0.316 },
-		["Turbo"] = { coinBonus = 0.5451, backpack = 0.3278 },
-		["Twirl"] = { gemFind = 0.7389, chestLuck = 0.3263 },
-		["Twix"] = { dirtBreak = 0.1185, blastChance = 0.0226, backpack = 0.0826 },
-		["Vanta"] = { luck = 0.5308, gemFind = 0.5053, chestLuck = 0.275, backpack = 0.55 },
-		["Velvet"] = { zap = 0.2104, swingRate = 0.2672 },
-		["Vesper"] = { blastRadius = 0.0994, dirtBreak = 0.3038 },
-		["Vine"] = { blastChance = 0.0424, dirtBreak = 0.0804 },
-		["Vivid"] = { gemFind = 0.8904, chestLuck = 0.415, backpack = 0.8248 },
-		["Vortex"] = { zap = 0.7161 },
-		["Whiskers"] = { dirtBreak = 0.1345, mineSpeed = 0.0475, blastChance = 0.017 },
-		["Wicket"] = { dirtBreak = 0.1555, mineSpeed = 0.0945 },
-		["Zephyr"] = { dirtBreak = 1.0116, mineSpeed = 0.7618, blastChance = 0.1513, backpack = 0.7434 },
-		["Zest"] = { dirtBreak = 0.4015, mineSpeed = 0.1985 },
-	},
-	Y = {
-		["Aquamarine"] = { blastRadius = 0.3098, dirtBreak = 0.891 },
-		["Aurora"] = { dirtBreak = 1.727, backpack = 2.046 },
-		["Blizzard"] = { swingRate = 0.4341, mineSpeed = 0.3738, dirtBreak = 0.2684 },
-		["Bolt"] = { zap = 0.3773, mineSpeed = 0.605, swingRate = 0.1964 },
-		["Boomer"] = { coinBonus = 0.2208, luck = 0.0367 },
-		["Bramble"] = { dirtBreak = 0.5991, backpack = 0.51, mineSpeed = 0.3959 },
-		["Brisket"] = { coinBonus = 0.2139, backpack = 0.1578 },
-		["Brix"] = { dirtBreak = 0.6783, mineSpeed = 0.6137, blastChance = 0.1045, backpack = 0.38 },
-		["Cheddar"] = { dirtBreak = 0.1123, backpack = 0.124, mineSpeed = 0.0757 },
-		["Chippy"] = { dirtBreak = 0.1146, blastChance = 0.0216, backpack = 0.0982 },
-		["Chirpy"] = { zap = 0.0876, mineSpeed = 0.1762, swingRate = 0.0606 },
-		["Chomp"] = { dirtBreak = 1.1529, mineSpeed = 0.7471 },
-		["Churro"] = { dirtBreak = 0.1144, backpack = 0.1285, mineSpeed = 0.0713 },
-		["Clover"] = { blastChance = 0.0543, coinBonus = 0.1662, luck = 0.0649 },
-		["Comet"] = { walkSpeed = 0.355 },
-		["Cotton"] = { blastChance = 0.0329, backpack = 0.177, coinBonus = 0.0375 },
-		["Cranberry"] = { dirtBreak = 0.6223, mineSpeed = 0.2777 },
-		["Crayon"] = { dirtBreak = 0.1101, mineSpeed = 0.0753, blastChance = 0.0162 },
-		["Crouton"] = { dirtBreak = 0.1231, backpack = 0.134, mineSpeed = 0.0599 },
-		["Crumble"] = { gemFind = 0.8662, chestLuck = 0.3161, backpack = 1.672, luck = 0.4413 },
-		["Dandelion"] = { blastChance = 0.1569, backpack = 0.545 },
-		["Dapper"] = { dirtBreak = 0.5108, mineSpeed = 0.3892 },
-		["Dingo"] = { dirtBreak = 0.1774, backpack = 0.1452 },
-		["Doodle"] = { dirtBreak = 0.1112, mineSpeed = 0.0608, blastChance = 0.0195 },
-		["Dot"] = { dirtBreak = 0.1125, mineSpeed = 0.056, blastChance = 0.0204 },
-		["Dottie"] = { blastChance = 0.0305, backpack = 0.132, coinBonus = 0.0773 },
-		["Drizzle"] = { dirtBreak = 1.2684, mineSpeed = 0.6316 },
-		["Dusty"] = { dirtBreak = 0.2513, mineSpeed = 0.108, blastChance = 0.0302 },
-		["Ember"] = { blastRadius = 0.0455, dirtBreak = 0.1674, mineSpeed = 0.1597 },
-		["Fable"] = { gemFind = 0.2088, luck = 0.0762 },
-		["Fizz"] = { gemFind = 0.9114, luck = 0.3648, chestLuck = 0.38, backpack = 1.5522 },
-		["Fizzle"] = { zap = 0.0493, mineSpeed = 0.0444 },
-		["Fizzlet"] = { blastRadius = 0.1428, dirtBreak = 0.5928, mineSpeed = 0.4504 },
-		["Fizzpaw"] = { gemFind = 0.943, chestLuck = 0.4215, backpack = 1.672, luck = 0.264 },
-		["Flapjack"] = { mineSpeed = 0.1301, backpack = 0.1545, dirtBreak = 0.0426 },
-		["Flash"] = { zap = 0.2468, mineSpeed = 0.2738, swingRate = 0.2565 },
-		["Flintlock"] = { dirtBreak = 1.4103, blastChance = 0.1738, backpack = 1.672, mineSpeed = 0.8583 },
-		["Flopsy"] = { blastChance = 0.0303, luck = 0.0434, backpack = 0.0842 },
-		["Flurry"] = { swingRate = 0.6433, dirtBreak = 0.5909, mineSpeed = 0.4085 },
-		["Frizzle"] = { luck = 0.1056, walkSpeed = 0.5483 },
-		["Frosty"] = { swingRate = 0.1912, dirtBreak = 0.1692, mineSpeed = 0.1632 },
-		["Fudge"] = { blastRadius = 0.0201, mineSpeed = 0.046, swingRate = 0.0594 },
-		["Gemma"] = { blastChance = 0.2438, backpack = 1.3805, coinBonus = 0.7563, luck = 0.2398 },
-		["Gingersnap"] = { mineSpeed = 0.1271, swingRate = 0.033, backpack = 0.1533 },
-		["Glaze"] = { gemFind = 0.6892, luck = 0.3987 },
-		["Glimmer"] = { gemFind = 0.8038, chestLuck = 0.24, backpack = 1.872 },
-		["Glitch"] = { blastChance = 0.2656, backpack = 1.452, coinBonus = 0.7563, luck = 0.1783 },
-		["Gumdrop"] = { gemFind = 0.2415, backpack = 0.4086, luck = 0.1547 },
-		["Gummy"] = { gemFind = 0.0793, chestLuck = 0.0422, backpack = 0.0608 },
-		["Halo"] = { dirtBreak = 1.2679, backpack = 1.0175, mineSpeed = 0.9734 },
-		["Haze"] = { luck = 0.3582, chestLuck = 0.2617, backpack = 0.836, gemFind = 0.1188 },
-		["Huckle"] = { dirtBreak = 0.5855, mineSpeed = 0.35, blastChance = 0.0786 },
-		["Jamboree"] = { dirtBreak = 1.3932, blastChance = 0.2689, backpack = 1.672, mineSpeed = 0.4954 },
-		["Jellybean"] = { gemFind = 0.1701, luck = 0.0834, chestLuck = 0.0732 },
-		["Jinx"] = { luck = 0.8386, gemFind = 0.8954, chestLuck = 0.3137 },
-		["Jolly"] = { blastChance = 0.0324, backpack = 0.141, coinBonus = 0.0625 },
-		["Jumble"] = { dirtBreak = 1.3262, mineSpeed = 1.2578, blastChance = 0.209, backpack = 0.76 },
-		["Juno"] = { blastChance = 0.6299, coinBonus = 1.6007 },
-		["Kettle"] = { dirtBreak = 0.1073, mineSpeed = 0.0723, blastChance = 0.0176 },
-		["Kiwi"] = { gemFind = 0.1238, luck = 0.0605 },
-		["Koda"] = { swingRate = 0.1519, dirtBreak = 0.1694, mineSpeed = 0.098 },
-		["Lava Lamp"] = { blastRadius = 0.2014, dirtBreak = 0.7233, mineSpeed = 0.8183 },
-		["Lollipop"] = { gemFind = 0.8653, luck = 0.4029, chestLuck = 0.38, backpack = 1.548 },
-		["Luna"] = { gemFind = 0.3764, luck = 0.3624 },
-		["Mallow"] = { blastChance = 0.7057, backpack = 1.9547 },
-		["Maple"] = { blastChance = 0.0268, dirtBreak = 0.0723, coinBonus = 0.088 },
-		["Marble"] = { dirtBreak = 0.1179, blastChance = 0.0224, backpack = 0.0853 },
-		["Meringue"] = { blastChance = 0.0296, backpack = 0.099, coinBonus = 0.1026 },
-		["Midnight"] = { luck = 0.0535, backpack = 0.1815, gemFind = 0.0327 },
-		["Minty"] = { swingRate = 0.1639, mineSpeed = 0.1094, dirtBreak = 0.1411 },
-		["Miso"] = { coinBonus = 0.29, backpack = 0.3322, blastChance = 0.0205 },
-		["Mochi"] = { blastChance = 0.0629, coinBonus = 0.1506, luck = 0.0541 },
-		["Moondust"] = { luck = 0.2998, walkSpeed = 3, gemFind = 0.3198 },
-		["Moxie"] = { coinBonus = 0.4, backpack = 0.2232, blastChance = 0.0421 },
-		["Muffin"] = { blastChance = 0.0362, backpack = 0.2106 },
-		["Munchkin"] = { dirtBreak = 0.1339, mineSpeed = 0.0595, blastChance = 0.0142 },
-		["Nibbles"] = { dirtBreak = 0.1559, mineSpeed = 0.0941 },
-		["Nori"] = { blastChance = 0.1562, coinBonus = 0.344 },
-		["Nova"] = { gemFind = 0.6098 },
-		["Nugget"] = { coinBonus = 0.1544, luck = 0.0415, backpack = 0.0869 },
-		["Oatmeal"] = { blastChance = 0.161, backpack = 0.5119 },
-		["Opie"] = { luck = 0.122, chestLuck = 0.0646, backpack = 0.188 },
-		["Orbitz"] = { luck = 0.5239 },
-		["Panko"] = { dirtBreak = 0.3389, mineSpeed = 0.1411 },
-		["Patches"] = { luck = 0.1038, backpack = 0.2813, gemFind = 0.0823 },
-		["Pawsitron"] = { coinBonus = 0.8372, blastChance = 0.1016, luck = 0.087 },
-		["Pebble"] = { blastChance = 0.0415, luck = 0.0421 },
-		["Pecan"] = { dirtBreak = 0.1065, blastChance = 0.0124, backpack = 0.1876 },
-		["Pecan Pie"] = { gemFind = 0.1942, luck = 0.0843, chestLuck = 0.0549 },
-		["Pecan Puff"] = { dirtBreak = 0.7571, mineSpeed = 0.3572, blastChance = 0.1045, backpack = 0.7354 },
-		["Pika"] = { zap = 0.0449, mineSpeed = 0.082 },
-		["Pips"] = { dirtBreak = 0.1268, blastChance = 0.0233, backpack = 0.06 },
-		["Pipsqueak"] = { coinBonus = 0.3407, blastChance = 0.0435, luck = 0.0768 },
-		["Pixel"] = { gemFind = 0.228, luck = 0.2091, walkSpeed = 2.2443 },
-		["Plume"] = { gemFind = 0.1398, luck = 0.036 },
-		["Pogo"] = { dirtBreak = 0.2568, mineSpeed = 0.2028, blastChance = 0.0351 },
-		["Pollen"] = { blastChance = 0.2195, coinBonus = 0.8265, backpack = 0.722 },
-		["Pompom"] = { dirtBreak = 0.3087, backpack = 0.3425 },
-		["Poppy"] = { dirtBreak = 0.3979, backpack = 0.4042 },
-		["Pudding"] = { dirtBreak = 0.187, backpack = 0.126 },
-		["Puddle"] = { coinBonus = 0.2619, luck = 0.0624, pulverize = 0.0364 },
-		["Puffer"] = { coinBonus = 0.2636, luck = 0.0632, pulverize = 0.0357 },
-		["Puffle"] = { coinBonus = 0.3113, backpack = 0.2592, luck = 0.0507 },
-		["Quasar"] = { luck = 0.426 },
-		["Quibble"] = { dirtBreak = 0.4116, mineSpeed = 0.1884 },
-		["Quill"] = { dirtBreak = 0.3322, backpack = 0.5357 },
-		["Razzle"] = { gemFind = 1.2027, luck = 0.703, chestLuck = 0.2135 },
-		["Reef"] = { coinBonus = 0.2687, backpack = 0.2726, luck = 0.0644 },
-		["Riff"] = { dirtBreak = 2.4822, mineSpeed = 1.3178 },
-		["Ringo"] = { dirtBreak = 0.1338, mineSpeed = 0.0468, blastChance = 0.0174 },
-		["Ripple"] = { coinBonus = 0.6045, pulverize = 0.0736, backpack = 0.2442 },
-		["Riptide"] = { coinBonus = 0.7509, luck = 0.1444, pulverize = 0.0901 },
-		["Rocket"] = { dirtBreak = 2.5141, backpack = 2.5718 },
-		["Rollo"] = { dirtBreak = 0.1436, backpack = 0.2128 },
-		["Rook"] = { luck = 0.0675, backpack = 0.1335, gemFind = 0.0303 },
-		["Roxy"] = { blastChance = 0.068, backpack = 0.4159 },
-		["Ruffles"] = { blastChance = 0.0641, backpack = 0.3, coinBonus = 0.2421 },
-		["Rumble"] = { coinBonus = 0.6589, luck = 0.1682, backpack = 0.7733 },
-		["Rumblebee"] = { blastChance = 0.0286, dirtBreak = 0.0923, coinBonus = 0.0541 },
-		["S'more"] = { blastRadius = 0.3994, mineSpeed = 1.4037 },
-		["Sable"] = { luck = 0.2261, gemFind = 0.1913, chestLuck = 0.0645 },
-		["Saffron"] = { coinBonus = 3.0714, backpack = 2.6858 },
-		["Scout"] = { dirtBreak = 0.1344, mineSpeed = 0.0538, blastChance = 0.0155 },
-		["Shimmer"] = { coinBonus = 1.4088, luck = 0.3685, pulverize = 0.1513, backpack = 0.5619 },
-		["Shiver"] = { blastRadius = 0.2705, swingRate = 0.805 },
-		["Sizzle"] = { blastRadius = 0.2272, dirtBreak = 0.8132, mineSpeed = 0.836, swingRate = 0.5626 },
-		["Sizzlepop"] = { blastRadius = 0.2521, mineSpeed = 1.2375 },
-		["Skye"] = { dirtBreak = 0.3415, mineSpeed = 0.2585 },
-		["Smudge"] = { luck = 0.1023, backpack = 0.2986, gemFind = 0.0788 },
-		["Snickers"] = { dirtBreak = 0.1196, mineSpeed = 0.0508, blastChance = 0.0199 },
-		["Snoot"] = { dirtBreak = 0.2415, blastChance = 0.0305, backpack = 0.2331 },
-		["Snoozy"] = { dirtBreak = 0.1116, blastChance = 0.0176, backpack = 0.1357 },
-		["Snug"] = { dirtBreak = 0.2698, mineSpeed = 0.1188, blastChance = 0.0529 },
-		["Sol"] = { dirtBreak = 0.7048, blastChance = 0.1363 },
-		["Soot"] = { dirtBreak = 0.1324, blastChance = 0.0219, backpack = 0.06 },
-		["Spark"] = { blastRadius = 0.1406, mineSpeed = 0.3667, swingRate = 0.4926 },
-		["Spooky"] = { luck = 0.1481, chestLuck = 0.0766, backpack = 0.2707 },
-		["Sprinkles"] = { gemFind = 1.0995, backpack = 1.6112, luck = 0.6176 },
-		["Sprocket"] = { dirtBreak = 1.3884, blastChance = 0.2043, backpack = 1.672, mineSpeed = 0.7586 },
-		["Sproing"] = { zap = 0.1843, mineSpeed = 0.2925, swingRate = 0.1048 },
-		["Squeaky"] = { dirtBreak = 0.1325, blastChance = 0.0114, backpack = 0.144 },
-		["Squish"] = { coinBonus = 0.1559, pulverize = 0.0195, backpack = 0.0945 },
-		["Starlight"] = { gemFind = 0.7594, backpack = 1.32, luck = 0.4375 },
-		["Stomper"] = { dirtBreak = 0.9305, mineSpeed = 0.3195 },
-		["Stumpy"] = { dirtBreak = 0.2215, blastChance = 0.0283, backpack = 0.2905 },
-		["Sunny"] = { blastChance = 0.0315, coinBonus = 0.1147, luck = 0.0162 },
-		["Sushi"] = { coinBonus = 0.3298, backpack = 0.2256, luck = 0.1117 },
-		["Swirl"] = { gemFind = 0.6257, luck = 0.4345, chestLuck = 0.275, backpack = 0.55 },
-		["Swoop"] = { dirtBreak = 0.5347, blastChance = 0.0862, backpack = 0.7405 },
-		["Taffeta"] = { dirtBreak = 1.2992, blastChance = 0.1502 },
-		["Taffy"] = { gemFind = 0.8242, backpack = 2.5308, luck = 0.418, chestLuck = 0.1727 },
-		["Tango"] = { dirtBreak = 2.2884, blastChance = 0.3779 },
-		["Tango Pop"] = { dirtBreak = 0.1649, mineSpeed = 0.0851 },
-		["Teddy"] = { coinBonus = 0.1646, luck = 0.0287, backpack = 0.1221 },
-		["Tide"] = { swingRate = 0.3274, mineSpeed = 0.2349, dirtBreak = 0.2067 },
-		["Tiki"] = { dirtBreak = 0.1594, backpack = 0.1812 },
-		["Tiki Torch"] = { blastRadius = 0.213, swingRate = 0.4443 },
-		["Timber"] = { dirtBreak = 0.5372, blastChance = 0.0869, backpack = 0.7307 },
-		["Tinker"] = { dirtBreak = 0.1271, mineSpeed = 0.046, blastChance = 0.0192 },
-		["Tinsel"] = { gemFind = 0.2053, luck = 0.0708 },
-		["Tinseltoe"] = { blastChance = 0.3422, backpack = 1.4364, coinBonus = 1.045, luck = 0.4386 },
-		["Tofu"] = { dirtBreak = 0.2051, blastChance = 0.0344, backpack = 0.2743 },
-		["Topaz"] = { gemFind = 0.3821, luck = 0.2044, chestLuck = 0.1045 },
-		["Truffle"] = { dirtBreak = 0.1215, mineSpeed = 0.0745, blastChance = 0.0135 },
-		["Tumble"] = { dirtBreak = 1.4708, mineSpeed = 0.8094, blastChance = 0.209, backpack = 1.3677 },
-		["Tundra"] = { swingRate = 0.6671, mineSpeed = 0.316 },
-		["Twinkle"] = { gemFind = 0.6103, luck = 0.418, walkSpeed = 2.1288 },
-		["Twix"] = { dirtBreak = 0.1185, blastChance = 0.0226, backpack = 0.0826 },
-		["Vanta"] = { luck = 0.5308, gemFind = 0.5053, chestLuck = 0.275, backpack = 0.55 },
-		["Vivid"] = { gemFind = 0.8904, chestLuck = 0.415, backpack = 0.8248 },
-		["Waffles"] = { zap = 0.0425, mineSpeed = 0.0942 },
-		["Whiskers"] = { dirtBreak = 0.1345, mineSpeed = 0.0475, blastChance = 0.017 },
-		["Wicket"] = { dirtBreak = 0.1555, mineSpeed = 0.0945 },
-		["Wisp"] = { luck = 0.2256, backpack = 0.4986, gemFind = 0.1247 },
-		["Wobble"] = { swingRate = 0.2962, dirtBreak = 0.3348, mineSpeed = 0.1505 },
-		["Yeti"] = { swingRate = 0.6465, dirtBreak = 0.5244, mineSpeed = 0.4704 },
-		["Zephyr"] = { dirtBreak = 1.0116, mineSpeed = 0.7618, blastChance = 0.1513, backpack = 0.7434 },
-		["Zest"] = { dirtBreak = 0.4015, mineSpeed = 0.1985 },
-		["Ziggy"] = { zap = 0.0472, mineSpeed = 0.0553, swingRate = 0.0549 },
-	},
-	EH = {
-		["Accretia"] = { blastRadius = 0.2063, mineSpeed = 0.88, swingRate = 0.4518 },
-		["Albert Minestein"] = { gemFind = 1.1875, luck = 0.9501 },
-		["Ashorbit"] = { mineSpeed = 0.372, dirtBreak = 0.228 },
-		["Bagtide"] = { backpack = 0.81, coinBonus = 0.36, luck = 0.1035 },
-		["Bangcub"] = { blastRadius = 0.1425, mineSpeed = 0.608, swingRate = 0.3121 },
-		["Barybub"] = { backpack = 0.225, coinBonus = 0.1, luck = 0.0288 },
-		["Bloomstar"] = { blastChance = 0.1938, backpack = 0.95 },
-		["Boltseed"] = { zap = 0.1488, swingRate = 0.1629 },
-		["Bubbleorb"] = { backpack = 0.432, coinBonus = 0.192, luck = 0.0552 },
-		["Chillaxis"] = { swingRate = 0.5536, dirtBreak = 0.475 },
-		["Chillbit"] = { swingRate = 0.2126, dirtBreak = 0.1824 },
-		["Cloverbit"] = { blastChance = 0.0744, backpack = 0.3648 },
-		["Coinbang"] = { gemFind = 0.2533, coinBonus = 0.3989, backpack = 0.95 },
-		["Coinseed"] = { coinBonus = 0.465, backpack = 0.456 },
-		["Cosmo"] = { backpack = 2.128, luck = 0.532, chestLuck = 0.4836, coinBonus = 0.76 },
-		["Craterjaw"] = { dirtBreak = 0.855, mineSpeed = 0.608, blastChance = 0.1093 },
-		["Crateroo"] = { dirtBreak = 0.30, mineSpeed = 0.21, backpack = 0.18 },
-		["Crystalith"] = { gemFind = 0.7734, luck = 0.4401, chestLuck = 0.2875 },
-		["Dirtmoon"] = { dirtBreak = 0.372, mineSpeed = 0.228 },
-		["Diskflare"] = { blastRadius = 0.1292, mineSpeed = 0.475 },
-		["Duskchip"] = { luck = 0.186, chestLuck = 0.1036 },
-		["Dustmite"] = { blastChance = 0.0388, backpack = 0.19 },
-		["Dustnip"] = { dirtBreak = 0.2976, mineSpeed = 0.1824 },
-		["Dustwell"] = { dirtBreak = 0.558, mineSpeed = 0.342 },
-		["Echoflare"] = { gemFind = 0.3378, luck = 0.2185 },
-		["Echopea"] = { luck = 0.114 },
-		["Emberbit"] = { mineSpeed = 0.312, dirtBreak = 0.204, swingRate = 0.06 },
-		["Eventide"] = { luck = 0.4275, chestLuck = 0.2764, backpack = 0.874 },
-		["Faultstar"] = { dirtBreak = 0.775, mineSpeed = 0.475 },
-		["Frosthole"] = { swingRate = 0.6107, dirtBreak = 0.608, mineSpeed = 0.437 },
-		["Gemnova"] = { gemFind = 0.5344, luck = 0.304, backpack = 0.874 },
-		["Glimore"] = { gemFind = 0.3488, luck = 0.171 },
-		["Gloomouse"] = { luck = 0.1488, chestLuck = 0.0829 },
-		["Glowpuff"] = { luck = 0.0475 },
-		["Gravpaw"] = { dirtBreak = 1.2375, mineSpeed = 0.88, backpack = 1.265 },
-		["Icering"] = { swingRate = 0.3986, dirtBreak = 0.342 },
-		["Kelporb"] = { backpack = 0.744, coinBonus = 0.285 },
-		["Leafnova"] = { blastChance = 0.1395, backpack = 0.684 },
-		["Matter+"] = { luck = 0.3801, gemFind = 0.475, chestLuck = 0.3109, backpack = 1.368, coinBonus = 0.665, walkSpeed = 1.9 },
-		["Matter-"] = { blastRadius = 0.114, mineSpeed = 0.76, dirtBreak = 0.76, swingRate = 0.4343, coinBonus = 0.5699 },
-		["Moonshear"] = { backpack = 1.71, coinBonus = 0.76, luck = 0.2185 },
-		["Nebulisk"] = { gemFind = 0.4889, luck = 0.3163 },
-		["Nightbag"] = { luck = 0.186, backpack = 0.456 },
-		["Oreproto"] = { coinBonus = 1.0688, backpack = 1.216, luck = 0.2185 },
-		["Paralite"] = { blastChance = 0.0855 },
-		["Peeporbit"] = { coinBonus = 0.2282 },
-		["Petalstar"] = { blastChance = 0.093, backpack = 0.456 },
-		["Photonna"] = { blastChance = 0.2239, gemFind = 0.19, luck = 0.3163, backpack = 1.76 },
-		["Prismoon"] = { gemFind = 0.4844, luck = 0.2376 },
-		["Puddleorb"] = { backpack = 0.54, coinBonus = 0.24, luck = 0.069 },
-		["Pulsarina"] = { zap = 0.342, swingRate = 0.4343 },
-		["Quasarin"] = { zap = 0.495, swingRate = 0.6286 },
-		["Relativox"] = { swingRate = 0.8839, dirtBreak = 0.88, mineSpeed = 0.6325 },
-		["Shadechip"] = { luck = 0.279, chestLuck = 0.1555 },
-		["Shardlet"] = { gemFind = 0.2325, luck = 0.114 },
-		["Shimmerbit"] = { gemFind = 0.186, luck = 0.0912 },
-		["Singuluna"] = { luck = 0.6188, chestLuck = 0.4, gemFind = 0.3953 },
-		["Smeltbit"] = { coinBonus = 0.6975, backpack = 0.684 },
-		["Snowaxis"] = { swingRate = 0.2657, dirtBreak = 0.228 },
-		["Softphoton"] = { swingRate = 0.1107, dirtBreak = 0.095 },
-		["Sparkitten"] = { mineSpeed = 0.2976, dirtBreak = 0.1824 },
-		["Sparkorbit"] = { zap = 0.225, swingRate = 0.2857 },
-		["Sparkwisp"] = { mineSpeed = 0.558, dirtBreak = 0.342 },
-		["Speck"] = { dirtBreak = 0.155, mineSpeed = 0.095 },
-		["Starloom"] = { blastChance = 0.2138, backpack = 1.216, coinBonus = 0.5463 },
-		["Tidewell"] = { backpack = 1.125, coinBonus = 0.5, luck = 0.1438 },
-		["Tinyclink"] = { gemFind = 0.1014, coinBonus = 0.1438, backpack = 0.3648 },
-		["Tinyspark"] = { zap = 0.062, swingRate = 0.0679 },
-		["Vantail"] = { luck = 0.3876, chestLuck = 0.2159 },
-		["Warpup"] = { gemFind = 0.2222, luck = 0.1438 },
-		["Zipmite"] = { zap = 0.1488 },
-		["Zippup"] = { zap = 0.119, swingRate = 0.1303 },
-		["Zipquark"] = { zap = 0.2232, swingRate = 0.2443 },
-	},
-}
-	end
-end
-
--- Event Horizon named kits (additive). Does not touch X/Y meadow kits.
-do
-	local shared = game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared")
-	local mod = shared:FindFirstChild("MineEHPets") or shared:FindFirstChild("MineEventHorizonPets")
-	local ok, eh = pcall(require, mod)
-	if ok and eh and eh.applyToPackConfig then
-		eh.applyToPackConfig(MinePackConfig)
 	end
 end
 
@@ -1610,50 +825,6 @@ function MinePackConfig.rollChest(zoneTier, layer, rng, boosts)
 		table.insert(rows, { chest = chest, weight = w })
 	end
 	return rollWeighted(rows, rng).chest
-end
-
--- Open a chest. Returns either { cards = {tier=,variant=,shiny=,set=}, ... } or
--- a loot row when the chest holds no cards this time.
-function MinePackConfig.openChest(chest, rng)
-	local r = (rng and rng:NextNumber() or math.random()) * 100
-	if chest.cards > 0 and r < chest.packChance then
-		local cards = {}
-		local split = chest.setBias or MinePackConfig.SET_SPLIT
-		for i = 1, chest.cards do
-			local tier = rollWeighted(fromPercentTable(chest.odds), rng).id
-			local variant = rollWeighted(fromPercentTable(MinePackConfig.variantOdds(chest.variants, chest.id)), rng).id
-			local shinyPct = chest.shiny or MinePackConfig.SHINY_CHANCE
-			local shiny = (rng and rng:NextNumber() or math.random()) * 100 < shinyPct
-			local setRoll = (rng and rng:NextNumber() or math.random()) * 100
-			cards[i] = {
-				tier = tier,
-				variant = variant,
-				shiny = shiny,
-				set = setRoll < split.X and "X" or "Y",
-			}
-		end
-		return { chest = chest.id, cards = cards }
-	end
-	local row = rollWeighted(chest.loot, rng)
-	local lo, hi = row.min or 0, row.max or 0
-	local amount = lo
-	if hi > lo then
-		amount = rng and rng:NextInteger(lo, hi) or math.random(lo, hi)
-	end
-	return { chest = chest.id, kind = row.kind, ore = row.ore, amount = amount }
-end
-
-function MinePackConfig.rollVariant(rng)
-	local rows = {}
-	for id, pct in pairs(MinePackConfig.variantOdds()) do
-		table.insert(rows, { id = id, weight = pct })
-	end
-	table.sort(rows, function(a, b)
-		return a.id < b.id
-	end)
-	local base = rollWeighted(rows, rng).id
-	local shiny = (rng and rng:NextNumber() or math.random()) * 100 < MinePackConfig.SHINY_CHANCE
-	return base, shiny
 end
 
 --------------------------------------------------------------------------------

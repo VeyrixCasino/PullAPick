@@ -179,12 +179,20 @@ function M.build(opts)
 		table.insert(groups, g)
 		byZone[zoneId] = g
 	end
-	local eh = { id = "bigbang", title = "EVENT HORIZON", sub = "Event Horizon's own 73 (bigbang)", pets = {} }
+	local eh = {
+		id = "bigbang",
+		title = "EVENT HORIZON",
+		sub = string.format("Zone 11  ·  power x%.2f  ·  their own 73, each with its own stat mix", Zones.zoneMult(Zones.EVENT_ZONE)),
+		pets = {},
+	}
 	local other = { id = "other", title = "NO ZONE", sub = "Pets with no zone pot (should be empty)", pets = {} }
 	for _, pet in ipairs(Roster.PETS) do
-		if pet.zone and byZone[pet.zone] then
-			table.insert(byZone[pet.zone].pets, pet)
-		elseif pet.tierVia == "eh" or (Boosts.PET_BOOSTS.EH and Boosts.PET_BOOSTS.EH[pet.name]) then
+		-- Ask the zone data directly: it is required fresh above, the roster's own
+		-- copy may be a cached one from earlier in the Studio session.
+		local zone = Zones.zoneOf(pet.name) or pet.zone
+		if zone and byZone[zone] then
+			table.insert(byZone[zone].pets, pet)
+		elseif zone == Zones.EVENT_ZONE or pet.tierVia == "eh" then
 			table.insert(eh.pets, pet)
 		else
 			table.insert(other.pets, pet)
@@ -279,7 +287,7 @@ function M.build(opts)
 					local _, size = model:GetBoundingBox()
 					-- Face the aisle at the front of the block (towards -Z).
 					model:PivotTo(CFrame.new(at + Vector3.new(0, 0.6 + size.Y / 2, 0)) * CFrame.Angles(0, math.pi, 0))
-					local kit = Boosts.boostsFor(pet.name, pet.tierVia == "eh" and "EH" or nil)
+					local kit = Boosts.boostsFor(pet.name)
 					local role = (Zones.ROLE and Zones.ROLE[pet.name]) or ""
 					nameTag(model, pet, g.bodies and "" or kitText(kit, pet.tier, Stats, Cfg), role, colour)
 					model.Parent = block

@@ -761,15 +761,9 @@ function MineCards.displayName(card)
 	local okB, Boosts = pcall(require, script.Parent:FindFirstChild("MinePetBoosts"))
 	local animal = card.animal or card.animalName
 	if (type(animal) ~= "string" or animal == "") and card.name then
-		local ok, Packs = pcall(require, script.Parent:FindFirstChild("MinePackConfig"))
-		if ok and Packs and Packs.CARD_BY_NAME and Packs.CARD_BY_NAME[card.name] then
-			animal = Packs.CARD_BY_NAME[card.name].animal
-		end
-		if (type(animal) ~= "string" or animal == "") then
-			local okR, Roster = pcall(require, script.Parent:FindFirstChild("MinePetRoster"))
-			if okR and Roster and Roster.BY_NAME and Roster.BY_NAME[card.name] then
-				animal = Roster.BY_NAME[card.name].animal
-			end
+		local okR, Roster = pcall(require, script.Parent:FindFirstChild("MinePetRoster"))
+		if okR and Roster and Roster.BY_NAME and Roster.BY_NAME[card.name] then
+			animal = Roster.BY_NAME[card.name].animal
 		end
 	end
 	local view = { name = card.name, animal = animal }

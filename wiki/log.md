@@ -398,3 +398,39 @@ Two snags along the way:
   small to see.
 
 Updated: pets, log.
+
+## [2026-10-10] lint | pet and card legacy removed; Event Horizon on the ladder
+Owner: *"remove all old information, because as long as we keep it there its
+gonna keep tripping up agents"*.
+
+**Code.** Everything below was dead, or contradicted the live data, and was
+removed:
+- `MinePetBoosts`: the X and Y kit bags, plus a second Event Horizon copy that
+  disagreed with the live one on 69 of 73 pets. 528 lines became 86.
+- `MineEHPets`: its stale kits, its budget, and an injector into the dead X/Y bags.
+- `MinePackConfig`: the X/Y card lists and their indexes, set split and bias,
+  the old pet budgets, and the unused `openChest` / `rollVariant`. 865 lines in all.
+- **41 per-pack variant rows** (Golden / Prism / Rainbow / Void). Every one
+  totalled 100 and `variantOdds` already ignored their mix, so no odds moved.
+  Checked in Studio: Golden 1%, Void 2% on the void pack, the same as before.
+- `MineStats`: the X/Y kit generator (`TYPE_KITS`, `TIER_BUDGET`, `kitFor`,
+  `audit`).
+- Two "GENERATED" headers pointed at generators that were never in the repo.
+
+**A live bug found on the way.** `MineZoneMapView`'s pet tooltip read the old X
+bag directly, so it showed the wrong numbers. It now uses `boostsFor`.
+
+**Pet budget.** Event Horizon was the one roster left off the ladder: its
+Exotic was worth about 1,670 points, against about 370 for a top zone Exotic.
+It is now zone 11 (×1.63). Each pet keeps its authored stat mix; dead stats are
+dropped and the rest rescaled.
+
+**Guard.** `tools/verify/zone-pets.js` now fails if any removed table returns.
+
+**Verified:** suite 55/55. In Studio, the server boots clean, every pet resolves
+its kit, and three real packs opened.
+
+**Docs** updated to match: pets, cards-and-packs, boosts-and-stats,
+retired-and-parked, `docs/OPEN.md`, and `docs/PROPOSAL.md` (lines 3, 5, 6 and 8
+built for every named pet; line 4, the variant stack, is not; line 30
+superseded).

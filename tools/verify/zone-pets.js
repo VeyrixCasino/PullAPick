@@ -82,6 +82,14 @@ for (const p of pets) {
   worst = Math.max(worst, Math.abs(got / want - 1));
 }
 check(worst < 0.01, `every kit is worth 1.5 x the ladder x 1.05 per zone, at Normal PL1 (worst ${(worst * 100).toFixed(2)}%)`);
+let ehWorst = 0;
+const ehMult = Math.pow(Gen.ZONE_STEP, Gen.EVENT_ZONE.index - 1);
+for (const p of B.ehPets) {
+  const got = value(B.kits[p.name]) * G.rarityMult[p.tier];
+  ehWorst = Math.max(ehWorst, Math.abs(got / (1.5 * Gen.LADDER[p.tier] * ehMult) - 1));
+}
+check(B.ehPets.length === 73 && ehWorst < 0.01,
+  `Event Horizon's ${B.ehPets.length} sit on the ladder as zone ${Gen.EVENT_ZONE.index} (x${ehMult.toFixed(3)}, worst ${(ehWorst * 100).toFixed(2)}%)`);
 const meadowC = value(B.kits[pets.find((p) => p.zone === "meadow" && p.tier === "Common").name]);
 const primordC = value(B.kits[pets.find((p) => p.zone === "primordium" && p.tier === "Common").name]);
 check(Math.abs(primordC / meadowC - Math.pow(1.05, 9)) < 0.01, `zone 10 is ${(primordC / meadowC).toFixed(3)}x zone 1 (1.05^9 = 1.551)`);
@@ -114,12 +122,13 @@ ${mod}
 end)()
 local n, perZone = 0, {}
 for name, zone in pairs(M.ZONE_OF) do n += 1 perZone[zone] = (perZone[zone] or 0) + 1 end
-local ok = n == ${pets.length}
+local ok = n == ${pets.length + B.ehPets.length} and perZone[M.EVENT_ZONE] == ${B.ehPets.length}
 for _, z in ipairs(M.ZONE_ORDER) do if perZone[z] ~= 70 then ok = false end end
-print(ok and "  ok    luau: ZONE_OF covers ${pets.length} pets, 70 per zone" or "  FAIL  luau: ZONE_OF counts " .. n)
+print(ok and "  ok    luau: ZONE_OF covers ${pets.length + B.ehPets.length} pets: 70 per zone, ${B.ehPets.length} in Event Horizon" or "  FAIL  luau: ZONE_OF counts " .. n)
 local m10 = M.zoneMult("primordium")
-print(math.abs(m10 - 1.05 ^ 9) < 1e-9 and M.zoneMult("meadow") == 1 and M.zoneMult("bigbang") == 1
-	and "  ok    luau: zoneMult meadow 1, primordium 1.05^9, unknown 1" or "  FAIL  luau: zoneMult " .. tostring(m10))
+print(math.abs(m10 - 1.05 ^ 9) < 1e-9 and M.zoneMult("meadow") == 1 and math.abs(M.zoneMult("bigbang") - 1.05 ^ 10) < 1e-9
+	and M.zoneMult("nowhere") == 1
+	and "  ok    luau: zoneMult meadow 1, primordium 1.05^9, bigbang 1.05^10, unknown 1" or "  FAIL  luau: zoneMult " .. tostring(m10))
 local missingKit = 0
 for name in pairs(M.ZONE_OF) do if not M.KITS[name] then missingKit += 1 end end
 for animal, skin in pairs(M.ANIMALS) do if not skin.species or not skin.tint then missingKit += 1 end end
@@ -140,10 +149,27 @@ check(merge > 0 && merge < roster.indexOf("MinePetRoster.BY_NAME = {}") && merge
 check(/BY_ZONE\[pet\.zone\]/.test(roster), "MinePetRoster indexes pets by zone (BY_ZONE)");
 const boosts = code(read("src/ReplicatedStorage/Mine/Shared/MinePetBoosts.luau"));
 const fn = boosts.slice(boosts.indexOf("function M.boostsFor"));
-check(/PET_BOOSTS\.Z = zp\.KITS/.test(boosts) && fn.indexOf("bags.Z") > 0 && fn.indexOf("bags.Z") < fn.indexOf("bags[setKey]"),
-  "a zone kit outranks the old X / Y bags in boostsFor");
+check(/PET_BOOSTS\.Z = zp\.KITS/.test(boosts) && /return z and z\[name\]/.test(fn), "boostsFor answers from the one kit table (PET_BOOSTS.Z)");
 const pmf = code(read("src/ReplicatedStorage/Mine/Shared/PetModelFactory.luau"));
 check(/zp\.ANIMALS[\s\S]{0,200}PetModelFactory\.ANIMALS\[animal\] == nil/.test(pmf), "PetModelFactory adds the zone skins without overwriting any");
+
+// 7. the old information stays gone (owner, 2026-10-10: "remove all old
+//    information, because as long as we keep it there its gonna keep tripping
+//    up agents"). Each of these was dead or contradicted the live data.
+const SHARED = "src/ReplicatedStorage/Mine/Shared/";
+const gone = [
+  ["MinePetBoosts", /\b(X|Y|EH)\s*=\s*\{/, "the X / Y / second-EH kit bags"],
+  ["MineEHPets", /\.(PET_BOOSTS|BUDGET|applyToPackConfig|boostsFor)\b/, "Event Horizon's stale kit copy, budget and X/Y injector"],
+  ["MinePackConfig", /\b(SET_CARDS|SET_SPLIT|SET_SHAPE|SET_OF|CARD_BY_NAME|SET_PROFILE|PET_BUDGET|VARIANT_ODDS|setBias|NEW_CARD_BIAS|openChest|rollVariant)\b/, "the X/Y sets, old pet budgets and per-pack variant odds"],
+  ["MineStats", /\b(TIER_BUDGET|SET_PROFILE|kitFor|TYPE_KITS|NEUTRAL_STATS)\b/, "the old X/Y kit generator"],
+  ["Mine1PacksData", /\bvariants\s*=\s*\{/, "per-pack Golden/Prism/Rainbow/Void rows"],
+  ["MineZoneMapView", /PET_BOOSTS\.X|bag\.X/, "the zone map reading the old X kits"],
+];
+for (const [mod, re, what] of gone) {
+  const text = code(read(SHARED + mod + ".luau"));
+  const m = text.match(re);
+  check(!m, `${mod}: ${what} stay removed${m ? " (found " + m[0] + ")" : ""}`);
+}
 
 console.log("");
 console.log(fail > 0 ? `>>> zone-pets: ${fail} FAILED` : ">>> zone-pets: all assertions passed");

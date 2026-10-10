@@ -366,9 +366,9 @@ with changed** and most of these clear at once.
 
 - [ ] **Delete `src/ReplicatedStorage/Mine/Shared/_c.luau`** — a 1,710-line copy
       of MineConfig, required by nothing, with its own `ORES` and `coinsFor`.
-- [ ] **193 pets carry a retired stat line** (182 `backpack`, 11 `walkSpeed`),
-      because `MineStats.TYPE_KITS` still lists them. Regenerate from `ENERGIES`.
-      Numbers in `docs/PROPOSAL.md` §B and §K.
+- [x] ~~193 pets carry a retired stat line~~ **Done 2026-10-10.** Every named
+      pet's kit was regenerated onto the PROPOSAL ladder (`tools/gen/zone-pets.js`),
+      with no `backpack` or `walkSpeed`. `MineStats.TYPE_KITS` and the X/Y bags are deleted.
 
 - [x] **A skip was being reported as a pass — fixed 2026-10-05 by
       `tools/verify/suite.sh`.** 11 of the 23 checks shell out to the luau

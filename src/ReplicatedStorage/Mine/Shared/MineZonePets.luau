@@ -7,10 +7,14 @@
 	Owner, 2026-10-10: 70 pets per zone, each zone 5% better than the one
 	before, and each zone's Mythic, Divine and Exotic pets carry that zone's
 	own buff set, so a new zone never makes the last one's pets useless.
+	Event Horizon's 73 are zone 11: the same ladder, their own authored mix.
+
+	THIS IS THE ONLY PET KIT TABLE. The old X / Y bags and a second, stale
+	Event Horizon copy were deleted on 2026-10-10.
 
 	What reads this:
 	  MinePetRoster   merges PETS into the roster and stamps every pet's zone
-	  MinePetBoosts   KITS become PET_BOOSTS.Z, which outranks the old X / Y
+	  MinePetBoosts   KITS become PET_BOOSTS.Z, the only kit bag
 	  PetModelFactory ANIMALS adds the new pets' skins (never overwrites one)
 
 	KITS are stored before RARITY_MULT, like every other kit. At Normal and
@@ -22,6 +26,8 @@
 local M = {}
 
 M.ZONE_ORDER = { "meadow", "sunscar", "mistreef", "arcwork", "bloodmoon", "eclipse", "riftmarch", "starfall", "mythral", "primordium" }
+-- Event Horizon's own pets, on the ladder as zone 11.
+M.EVENT_ZONE = "bigbang"
 M.ZONE_STEP = 1.05
 M.QUOTA = { Common = 25, Uncommon = 15, Rare = 10, Epic = 7, Legendary = 5, Mythic = 2, Divine = 3, Exotic = 3 }
 M.LADDER = { Common = 34, Uncommon = 39, Rare = 46, Epic = 55, Legendary = 68, Mythic = 89, Divine = 116, Exotic = 150 }
@@ -52,7 +58,7 @@ M.ROLES = {
 	Mystic = { desc = "sparks, quakes and ricochets" },
 }
 
--- Existing roster pets: name -> zone. Their rows stay in MinePetRoster.
+-- Existing pets: name -> zone. Their rows stay in MinePetRoster / MineEHPets.
 M.ZONE_OF = {
 	["Breezy"] = "meadow",
 	["Cocoa"] = "meadow",
@@ -303,6 +309,79 @@ M.ZONE_OF = {
 	["Boogie"] = "primordium",
 	["Orbit"] = "primordium",
 	["Saffron"] = "primordium",
+	["Accretia"] = "bigbang",
+	["Albert Minestein"] = "bigbang",
+	["Ashorbit"] = "bigbang",
+	["Bagtide"] = "bigbang",
+	["Bangcub"] = "bigbang",
+	["Barybub"] = "bigbang",
+	["Bloomstar"] = "bigbang",
+	["Boltseed"] = "bigbang",
+	["Bubbleorb"] = "bigbang",
+	["Chillaxis"] = "bigbang",
+	["Chillbit"] = "bigbang",
+	["Cloverbit"] = "bigbang",
+	["Coinbang"] = "bigbang",
+	["Coinseed"] = "bigbang",
+	["Cosmo"] = "bigbang",
+	["Craterjaw"] = "bigbang",
+	["Crateroo"] = "bigbang",
+	["Crystalith"] = "bigbang",
+	["Dirtmoon"] = "bigbang",
+	["Diskflare"] = "bigbang",
+	["Duskchip"] = "bigbang",
+	["Dustmite"] = "bigbang",
+	["Dustnip"] = "bigbang",
+	["Dustwell"] = "bigbang",
+	["Echoflare"] = "bigbang",
+	["Echopea"] = "bigbang",
+	["Emberbit"] = "bigbang",
+	["Eventide"] = "bigbang",
+	["Faultstar"] = "bigbang",
+	["Frosthole"] = "bigbang",
+	["Gemnova"] = "bigbang",
+	["Glimore"] = "bigbang",
+	["Gloomouse"] = "bigbang",
+	["Glowpuff"] = "bigbang",
+	["Gravpaw"] = "bigbang",
+	["Icering"] = "bigbang",
+	["Kelporb"] = "bigbang",
+	["Leafnova"] = "bigbang",
+	["Matter+"] = "bigbang",
+	["Matter-"] = "bigbang",
+	["Moonshear"] = "bigbang",
+	["Nebulisk"] = "bigbang",
+	["Nightbag"] = "bigbang",
+	["Oreproto"] = "bigbang",
+	["Paralite"] = "bigbang",
+	["Peeporbit"] = "bigbang",
+	["Petalstar"] = "bigbang",
+	["Photonna"] = "bigbang",
+	["Prismoon"] = "bigbang",
+	["Puddleorb"] = "bigbang",
+	["Pulsarina"] = "bigbang",
+	["Quasarin"] = "bigbang",
+	["Relativox"] = "bigbang",
+	["Shadechip"] = "bigbang",
+	["Shardlet"] = "bigbang",
+	["Shimmerbit"] = "bigbang",
+	["Singuluna"] = "bigbang",
+	["Smeltbit"] = "bigbang",
+	["Snowaxis"] = "bigbang",
+	["Softphoton"] = "bigbang",
+	["Sparkitten"] = "bigbang",
+	["Sparkorbit"] = "bigbang",
+	["Sparkwisp"] = "bigbang",
+	["Speck"] = "bigbang",
+	["Starloom"] = "bigbang",
+	["Tidewell"] = "bigbang",
+	["Tinyclink"] = "bigbang",
+	["Tinyspark"] = "bigbang",
+	["Vantail"] = "bigbang",
+	["Warpup"] = "bigbang",
+	["Zipmite"] = "bigbang",
+	["Zippup"] = "bigbang",
+	["Zipquark"] = "bigbang",
 }
 
 -- New zone pets.
@@ -1215,7 +1294,7 @@ M.ANIMALS = {
 	["Lustrous Teal Duck"] = { species = "duck", tint = Color3.fromRGB(40, 170, 170), glow = Color3.fromRGB(148, 213, 213), reflect = 0.2 },
 }
 
--- Every zone pet's kit (PET_BOOSTS.Z), and the role or buff set behind it.
+-- Every named pet's kit (PET_BOOSTS.Z), and the role or buff set behind it.
 M.KITS = {
 	["Breezy"] = { mineSpeed = 0.34, swingRate = 0.1214 },
 	["Cartwheel"] = { dirtBreak = 0.34, mineSpeed = 0.17 },
@@ -1917,6 +1996,79 @@ M.KITS = {
 	["Boogie"] = { rareOre = 0.2938, mineSpeed = 0.1851, oreHaul = 0.0793 },
 	["Orbit"] = { mineSpeed = 0.5289, oreHaul = 0.1851, rareOre = 0.0441 },
 	["Saffron"] = { oreHaul = 0.5289, rareOre = 0.1028, mineSpeed = 0.0793 },
+	["Accretia"] = { mineSpeed = 0.485, swingRate = 0.249 },
+	["Albert Minestein"] = { gemFind = 0.245, luck = 0.196 },
+	["Ashorbit"] = { mineSpeed = 0.5162, dirtBreak = 0.3164 },
+	["Bagtide"] = { coinBonus = 0.6108, luck = 0.1756 },
+	["Bangcub"] = { mineSpeed = 0.4866, swingRate = 0.2498 },
+	["Barybub"] = { coinBonus = 0.6037, luck = 0.1739 },
+	["Bloomstar"] = { blastChance = 0.2077 },
+	["Boltseed"] = { zap = 0.2065, swingRate = 0.226 },
+	["Bubbleorb"] = { coinBonus = 0.6026, luck = 0.1733 },
+	["Chillaxis"] = { swingRate = 0.3679, dirtBreak = 0.3157 },
+	["Chillbit"] = { swingRate = 0.367, dirtBreak = 0.3148 },
+	["Cloverbit"] = { blastChance = 0.2072 },
+	["Coinbang"] = { gemFind = 0.2715, coinBonus = 0.4276 },
+	["Coinseed"] = { coinBonus = 1.0407 },
+	["Cosmo"] = { luck = 0.162, chestLuck = 0.1472, coinBonus = 0.2314 },
+	["Craterjaw"] = { dirtBreak = 0.3763, mineSpeed = 0.2676, blastChance = 0.0481 },
+	["Crateroo"] = { dirtBreak = 0.4897, mineSpeed = 0.3428 },
+	["Crystalith"] = { gemFind = 0.2219, luck = 0.1263, chestLuck = 0.0825 },
+	["Dirtmoon"] = { dirtBreak = 0.5162, mineSpeed = 0.3164 },
+	["Diskflare"] = { mineSpeed = 0.8307 },
+	["Duskchip"] = { luck = 0.2581, chestLuck = 0.1438 },
+	["Dustmite"] = { blastChance = 0.2077 },
+	["Dustnip"] = { dirtBreak = 0.5137, mineSpeed = 0.3149 },
+	["Dustwell"] = { dirtBreak = 0.5207, mineSpeed = 0.3192 },
+	["Echoflare"] = { gemFind = 0.2704, luck = 0.1749 },
+	["Echopea"] = { luck = 0.4163 },
+	["Emberbit"] = { mineSpeed = 0.4329, dirtBreak = 0.2831, swingRate = 0.0833 },
+	["Eventide"] = { luck = 0.2444, chestLuck = 0.158 },
+	["Faultstar"] = { dirtBreak = 0.5151, mineSpeed = 0.3157 },
+	["Frosthole"] = { swingRate = 0.2688, dirtBreak = 0.2676, mineSpeed = 0.1924 },
+	["Gemnova"] = { gemFind = 0.2847, luck = 0.162 },
+	["Glimore"] = { gemFind = 0.3021, luck = 0.1481 },
+	["Gloomouse"] = { luck = 0.2569, chestLuck = 0.1431 },
+	["Glowpuff"] = { luck = 0.4154 },
+	["Gravpaw"] = { dirtBreak = 0.4872, mineSpeed = 0.3464 },
+	["Icering"] = { swingRate = 0.372, dirtBreak = 0.3191 },
+	["Kelporb"] = { coinBonus = 1.0407 },
+	["Leafnova"] = { blastChance = 0.21 },
+	["Matter+"] = { luck = 0.1118, gemFind = 0.1397, chestLuck = 0.0915, coinBonus = 0.1956 },
+	["Matter-"] = { mineSpeed = 0.245, dirtBreak = 0.245, swingRate = 0.14, coinBonus = 0.1837 },
+	["Moonshear"] = { coinBonus = 0.6083, luck = 0.1749 },
+	["Nebulisk"] = { gemFind = 0.2694, luck = 0.1743 },
+	["Nightbag"] = { luck = 0.4163 },
+	["Oreproto"] = { coinBonus = 0.6919, luck = 0.1414 },
+	["Paralite"] = { blastChance = 0.21 },
+	["Peeporbit"] = { coinBonus = 1.0358 },
+	["Petalstar"] = { blastChance = 0.2081 },
+	["Photonna"] = { blastChance = 0.0998, gemFind = 0.0847, luck = 0.141 },
+	["Prismoon"] = { gemFind = 0.2987, luck = 0.1465 },
+	["Puddleorb"] = { coinBonus = 0.6055, luck = 0.1741 },
+	["Pulsarina"] = { zap = 0.1955, swingRate = 0.2483 },
+	["Quasarin"] = { zap = 0.1949, swingRate = 0.2475 },
+	["Relativox"] = { swingRate = 0.2679, dirtBreak = 0.2668, mineSpeed = 0.1917 },
+	["Shadechip"] = { luck = 0.2603, chestLuck = 0.1451 },
+	["Shardlet"] = { gemFind = 0.2994, luck = 0.1468 },
+	["Shimmerbit"] = { gemFind = 0.298, luck = 0.1461 },
+	["Singuluna"] = { luck = 0.1823, chestLuck = 0.1179, gemFind = 0.1165 },
+	["Smeltbit"] = { coinBonus = 1.0499 },
+	["Snowaxis"] = { swingRate = 0.3687, dirtBreak = 0.3164 },
+	["Softphoton"] = { swingRate = 0.3679, dirtBreak = 0.3157 },
+	["Sparkitten"] = { mineSpeed = 0.5137, dirtBreak = 0.3149 },
+	["Sparkorbit"] = { zap = 0.1942, swingRate = 0.2466 },
+	["Sparkwisp"] = { mineSpeed = 0.5207, dirtBreak = 0.3192 },
+	["Speck"] = { dirtBreak = 0.5151, mineSpeed = 0.3157 },
+	["Starloom"] = { blastChance = 0.1384, coinBonus = 0.3536 },
+	["Tidewell"] = { coinBonus = 0.6041, luck = 0.1737 },
+	["Tinyclink"] = { gemFind = 0.2824, coinBonus = 0.4004 },
+	["Tinyspark"] = { zap = 0.206, swingRate = 0.2256 },
+	["Vantail"] = { luck = 0.2576, chestLuck = 0.1435 },
+	["Warpup"] = { gemFind = 0.2685, luck = 0.1737 },
+	["Zipmite"] = { zap = 0.333 },
+	["Zippup"] = { zap = 0.2055, swingRate = 0.225 },
+	["Zipquark"] = { zap = 0.2083, swingRate = 0.228 },
 }
 M.ROLE = {
 	["Breezy"] = "Striker",
@@ -2619,22 +2771,96 @@ M.ROLE = {
 	["Boogie"] = "Primal",
 	["Orbit"] = "Primal",
 	["Saffron"] = "Primal",
+	["Accretia"] = "Event Horizon",
+	["Albert Minestein"] = "Event Horizon",
+	["Ashorbit"] = "Event Horizon",
+	["Bagtide"] = "Event Horizon",
+	["Bangcub"] = "Event Horizon",
+	["Barybub"] = "Event Horizon",
+	["Bloomstar"] = "Event Horizon",
+	["Boltseed"] = "Event Horizon",
+	["Bubbleorb"] = "Event Horizon",
+	["Chillaxis"] = "Event Horizon",
+	["Chillbit"] = "Event Horizon",
+	["Cloverbit"] = "Event Horizon",
+	["Coinbang"] = "Event Horizon",
+	["Coinseed"] = "Event Horizon",
+	["Cosmo"] = "Event Horizon",
+	["Craterjaw"] = "Event Horizon",
+	["Crateroo"] = "Event Horizon",
+	["Crystalith"] = "Event Horizon",
+	["Dirtmoon"] = "Event Horizon",
+	["Diskflare"] = "Event Horizon",
+	["Duskchip"] = "Event Horizon",
+	["Dustmite"] = "Event Horizon",
+	["Dustnip"] = "Event Horizon",
+	["Dustwell"] = "Event Horizon",
+	["Echoflare"] = "Event Horizon",
+	["Echopea"] = "Event Horizon",
+	["Emberbit"] = "Event Horizon",
+	["Eventide"] = "Event Horizon",
+	["Faultstar"] = "Event Horizon",
+	["Frosthole"] = "Event Horizon",
+	["Gemnova"] = "Event Horizon",
+	["Glimore"] = "Event Horizon",
+	["Gloomouse"] = "Event Horizon",
+	["Glowpuff"] = "Event Horizon",
+	["Gravpaw"] = "Event Horizon",
+	["Icering"] = "Event Horizon",
+	["Kelporb"] = "Event Horizon",
+	["Leafnova"] = "Event Horizon",
+	["Matter+"] = "Event Horizon",
+	["Matter-"] = "Event Horizon",
+	["Moonshear"] = "Event Horizon",
+	["Nebulisk"] = "Event Horizon",
+	["Nightbag"] = "Event Horizon",
+	["Oreproto"] = "Event Horizon",
+	["Paralite"] = "Event Horizon",
+	["Peeporbit"] = "Event Horizon",
+	["Petalstar"] = "Event Horizon",
+	["Photonna"] = "Event Horizon",
+	["Prismoon"] = "Event Horizon",
+	["Puddleorb"] = "Event Horizon",
+	["Pulsarina"] = "Event Horizon",
+	["Quasarin"] = "Event Horizon",
+	["Relativox"] = "Event Horizon",
+	["Shadechip"] = "Event Horizon",
+	["Shardlet"] = "Event Horizon",
+	["Shimmerbit"] = "Event Horizon",
+	["Singuluna"] = "Event Horizon",
+	["Smeltbit"] = "Event Horizon",
+	["Snowaxis"] = "Event Horizon",
+	["Softphoton"] = "Event Horizon",
+	["Sparkitten"] = "Event Horizon",
+	["Sparkorbit"] = "Event Horizon",
+	["Sparkwisp"] = "Event Horizon",
+	["Speck"] = "Event Horizon",
+	["Starloom"] = "Event Horizon",
+	["Tidewell"] = "Event Horizon",
+	["Tinyclink"] = "Event Horizon",
+	["Tinyspark"] = "Event Horizon",
+	["Vantail"] = "Event Horizon",
+	["Warpup"] = "Event Horizon",
+	["Zipmite"] = "Event Horizon",
+	["Zippup"] = "Event Horizon",
+	["Zipquark"] = "Event Horizon",
 }
 
 local ZONE_INDEX = {}
 for i, id in ipairs(M.ZONE_ORDER) do
 	ZONE_INDEX[id] = i
 end
+ZONE_INDEX[M.EVENT_ZONE] = 11
 for _, row in ipairs(M.PETS) do
 	M.ZONE_OF[row.name] = M.ZONE_OF[row.name] or row.zone
 end
 
--- The zone a pet's pot belongs to, or nil (Event Horizon pets, set pets).
+-- The zone a pet's pot belongs to (bigbang for Event Horizon), or nil.
 function M.zoneOf(name)
 	return M.ZONE_OF[name]
 end
 
--- 1 for meadow .. 10 for primordium.
+-- 1 for meadow .. 10 for primordium, 11 for Event Horizon.
 function M.zoneIndex(zoneId)
 	return ZONE_INDEX[zoneId]
 end

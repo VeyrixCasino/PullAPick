@@ -63,6 +63,90 @@ const ZONES = [
   { id: "primordium", adj: "Primeval", buff: "Primal", stats: ["mineSpeed", "oreHaul", "rareOre"], desc: "damage, ore haul and rare ore" },
 ];
 
+// EVENT HORIZON (bigbang) is zone 11: its 73 pets keep their own roster and
+// their hand-authored stat MIX, but sit on the same ladder as everyone else at
+// x1.05^10. Before 2026-10-10 they spent MineEHPets.BUDGET (Common 25 ..
+// Exotic 380) before RARITY_MULT, so an Event Horizon Exotic was worth ~4.5x a
+// top zone Exotic. The mixes below are frozen from the kits live then
+// (MinePetBoosts.PET_BOOSTS.EH). Retired and rune-only stats are dropped and the
+// rest rescaled, so each pet keeps its character and loses only the excess.
+const EVENT_ZONE = { id: "bigbang", index: 11 };
+const EH_MIX = {
+  "Accretia": { blastRadius: 0.2063, mineSpeed: 0.88, swingRate: 0.4518 },
+  "Albert Minestein": { gemFind: 1.1875, luck: 0.9501 },
+  "Ashorbit": { mineSpeed: 0.372, dirtBreak: 0.228 },
+  "Bagtide": { backpack: 0.81, coinBonus: 0.36, luck: 0.1035 },
+  "Bangcub": { blastRadius: 0.1425, mineSpeed: 0.608, swingRate: 0.3121 },
+  "Barybub": { backpack: 0.225, coinBonus: 0.1, luck: 0.0288 },
+  "Bloomstar": { blastChance: 0.1938, backpack: 0.95 },
+  "Boltseed": { zap: 0.1488, swingRate: 0.1629 },
+  "Bubbleorb": { backpack: 0.432, coinBonus: 0.192, luck: 0.0552 },
+  "Chillaxis": { swingRate: 0.5536, dirtBreak: 0.475 },
+  "Chillbit": { swingRate: 0.2126, dirtBreak: 0.1824 },
+  "Cloverbit": { blastChance: 0.0744, backpack: 0.3648 },
+  "Coinbang": { gemFind: 0.2533, coinBonus: 0.3989, backpack: 0.95 },
+  "Coinseed": { coinBonus: 0.465, backpack: 0.456 },
+  "Cosmo": { backpack: 2.128, luck: 0.532, chestLuck: 0.4836, coinBonus: 0.76 },
+  "Craterjaw": { dirtBreak: 0.855, mineSpeed: 0.608, blastChance: 0.1093 },
+  "Crateroo": { dirtBreak: 0.30, mineSpeed: 0.21, backpack: 0.18 },
+  "Crystalith": { gemFind: 0.7734, luck: 0.4401, chestLuck: 0.2875 },
+  "Dirtmoon": { dirtBreak: 0.372, mineSpeed: 0.228 },
+  "Diskflare": { blastRadius: 0.1292, mineSpeed: 0.475 },
+  "Duskchip": { luck: 0.186, chestLuck: 0.1036 },
+  "Dustmite": { blastChance: 0.0388, backpack: 0.19 },
+  "Dustnip": { dirtBreak: 0.2976, mineSpeed: 0.1824 },
+  "Dustwell": { dirtBreak: 0.558, mineSpeed: 0.342 },
+  "Echoflare": { gemFind: 0.3378, luck: 0.2185 },
+  "Echopea": { luck: 0.114 },
+  "Emberbit": { mineSpeed: 0.312, dirtBreak: 0.204, swingRate: 0.06 },
+  "Eventide": { luck: 0.4275, chestLuck: 0.2764, backpack: 0.874 },
+  "Faultstar": { dirtBreak: 0.775, mineSpeed: 0.475 },
+  "Frosthole": { swingRate: 0.6107, dirtBreak: 0.608, mineSpeed: 0.437 },
+  "Gemnova": { gemFind: 0.5344, luck: 0.304, backpack: 0.874 },
+  "Glimore": { gemFind: 0.3488, luck: 0.171 },
+  "Gloomouse": { luck: 0.1488, chestLuck: 0.0829 },
+  "Glowpuff": { luck: 0.0475 },
+  "Gravpaw": { dirtBreak: 1.2375, mineSpeed: 0.88, backpack: 1.265 },
+  "Icering": { swingRate: 0.3986, dirtBreak: 0.342 },
+  "Kelporb": { backpack: 0.744, coinBonus: 0.285 },
+  "Leafnova": { blastChance: 0.1395, backpack: 0.684 },
+  "Matter+": { luck: 0.3801, gemFind: 0.475, chestLuck: 0.3109, backpack: 1.368, coinBonus: 0.665, walkSpeed: 1.9 },
+  "Matter-": { blastRadius: 0.114, mineSpeed: 0.76, dirtBreak: 0.76, swingRate: 0.4343, coinBonus: 0.5699 },
+  "Moonshear": { backpack: 1.71, coinBonus: 0.76, luck: 0.2185 },
+  "Nebulisk": { gemFind: 0.4889, luck: 0.3163 },
+  "Nightbag": { luck: 0.186, backpack: 0.456 },
+  "Oreproto": { coinBonus: 1.0688, backpack: 1.216, luck: 0.2185 },
+  "Paralite": { blastChance: 0.0855 },
+  "Peeporbit": { coinBonus: 0.2282 },
+  "Petalstar": { blastChance: 0.093, backpack: 0.456 },
+  "Photonna": { blastChance: 0.2239, gemFind: 0.19, luck: 0.3163, backpack: 1.76 },
+  "Prismoon": { gemFind: 0.4844, luck: 0.2376 },
+  "Puddleorb": { backpack: 0.54, coinBonus: 0.24, luck: 0.069 },
+  "Pulsarina": { zap: 0.342, swingRate: 0.4343 },
+  "Quasarin": { zap: 0.495, swingRate: 0.6286 },
+  "Relativox": { swingRate: 0.8839, dirtBreak: 0.88, mineSpeed: 0.6325 },
+  "Shadechip": { luck: 0.279, chestLuck: 0.1555 },
+  "Shardlet": { gemFind: 0.2325, luck: 0.114 },
+  "Shimmerbit": { gemFind: 0.186, luck: 0.0912 },
+  "Singuluna": { luck: 0.6188, chestLuck: 0.4, gemFind: 0.3953 },
+  "Smeltbit": { coinBonus: 0.6975, backpack: 0.684 },
+  "Snowaxis": { swingRate: 0.2657, dirtBreak: 0.228 },
+  "Softphoton": { swingRate: 0.1107, dirtBreak: 0.095 },
+  "Sparkitten": { mineSpeed: 0.2976, dirtBreak: 0.1824 },
+  "Sparkorbit": { zap: 0.225, swingRate: 0.2857 },
+  "Sparkwisp": { mineSpeed: 0.558, dirtBreak: 0.342 },
+  "Speck": { dirtBreak: 0.155, mineSpeed: 0.095 },
+  "Starloom": { blastChance: 0.2138, backpack: 1.216, coinBonus: 0.5463 },
+  "Tidewell": { backpack: 1.125, coinBonus: 0.5, luck: 0.1438 },
+  "Tinyclink": { gemFind: 0.1014, coinBonus: 0.1438, backpack: 0.3648 },
+  "Tinyspark": { zap: 0.062, swingRate: 0.0679 },
+  "Vantail": { luck: 0.3876, chestLuck: 0.2159 },
+  "Warpup": { gemFind: 0.2222, luck: 0.1438 },
+  "Zipmite": { zap: 0.1488 },
+  "Zippup": { zap: 0.119, swingRate: 0.1303 },
+  "Zipquark": { zap: 0.2232, swingRate: 0.2443 },
+};
+
 // Common to Legendary: a role from the body. "Birds find things, diggers dig,
 // heavies hit hard." Each role has a few stat pairs; a pet's name picks one.
 // Pairs marked rarePlus only go to Rare and better (PROPOSAL §B: blast is a
@@ -189,6 +273,7 @@ function readGame() {
   const eh = read(SHARED + "MineEHPets.luau");
   const ehBlock = eh.slice(eh.indexOf("ROSTER = {"), eh.indexOf("function MineEventHorizonPets.mergeIntoRoster"));
   const ehNames = new Set([...ehBlock.matchAll(/name = "([^"]+)"/g)].map((m) => m[1]));
+  const ehTier = Object.fromEntries([...ehBlock.matchAll(/name = "([^"]+)"[^\n]*?tier = "(\w+)"/g)].map((m) => [m[1], m[2]]));
   const ehAnimals = new Set([...ehBlock.matchAll(/animal = "([^"]+)"/g)].map((m) => m[1]));
 
   const pmf = read(SHARED + "PetModelFactory.luau");
@@ -209,7 +294,7 @@ function readGame() {
   for (const t of TIERS) rarityMult[t] = +rm.match(new RegExp("\\b" + t + " = ([\\d.]+)"))[1];
   for (const z of ZONES) if (!cfg.includes(`id = "${z.id}"`)) throw new Error("zone id not in MineConfig.ZONES: " + z.id);
 
-  return { roster, ehNames, ehAnimals, animals, stats, rarityMult };
+  return { roster, ehNames, ehTier, ehAnimals, animals, stats, rarityMult };
 }
 
 // ---- build -----------------------------------------------------------------
@@ -362,7 +447,30 @@ function build() {
     kits[p.name] = kit;
   }
 
-  return { G, pets, newAnimals, kits, roles, zoneIndex };
+  // 4. Event Horizon: zone 11, authored mixes rescaled onto the ladder.
+  const ehPets = [];
+  const ehMult = Math.pow(ZONE_STEP, EVENT_ZONE.index - 1);
+  for (const name of [...G.ehNames].sort()) {
+    const tier = G.ehTier[name];
+    if (!tier) throw new Error("Event Horizon pet with no tier: " + name);
+    const mix = EH_MIX[name];
+    if (!mix) throw new Error("Event Horizon pet with no frozen mix: " + name);
+    const pts = {};
+    for (const [stat, v] of Object.entries(mix)) {
+      if (BANNED.has(stat) || !(v > 0)) continue;
+      pts[stat] = v * 100 * G.stats[stat].weight;
+    }
+    if (Object.keys(pts).length === 0) { pts.mineSpeed = 2; pts.swingRate = 1; } // a mix of only dead stats
+    const have = Object.values(pts).reduce((a, b) => a + b, 0);
+    const want = (1.5 * LADDER[tier] * ehMult) / G.rarityMult[tier];
+    const kit = {};
+    for (const [stat, p] of Object.entries(pts)) kit[stat] = round4((p * want) / have / G.stats[stat].weight / 100);
+    kits[name] = kit;
+    roles[name] = "Event Horizon";
+    ehPets.push({ name, tier, zone: EVENT_ZONE.id });
+  }
+
+  return { G, pets, ehPets, newAnimals, kits, roles, zoneIndex };
 }
 
 // ---- render ----------------------------------------------------------------
@@ -385,10 +493,14 @@ function renderLuau(B) {
   L.push("\tOwner, 2026-10-10: 70 pets per zone, each zone 5% better than the one");
   L.push("\tbefore, and each zone's Mythic, Divine and Exotic pets carry that zone's");
   L.push("\town buff set, so a new zone never makes the last one's pets useless.");
+  L.push("\tEvent Horizon's 73 are zone 11: the same ladder, their own authored mix.");
+  L.push("");
+  L.push("\tTHIS IS THE ONLY PET KIT TABLE. The old X / Y bags and a second, stale");
+  L.push("\tEvent Horizon copy were deleted on 2026-10-10.");
   L.push("");
   L.push("\tWhat reads this:");
   L.push("\t  MinePetRoster   merges PETS into the roster and stamps every pet's zone");
-  L.push("\t  MinePetBoosts   KITS become PET_BOOSTS.Z, which outranks the old X / Y");
+  L.push("\t  MinePetBoosts   KITS become PET_BOOSTS.Z, the only kit bag");
   L.push("\t  PetModelFactory ANIMALS adds the new pets' skins (never overwrites one)");
   L.push("");
   L.push("\tKITS are stored before RARITY_MULT, like every other kit. At Normal and");
@@ -400,6 +512,8 @@ function renderLuau(B) {
   L.push("local M = {}");
   L.push("");
   L.push("M.ZONE_ORDER = { " + ZONES.map((z) => lq(z.id)).join(", ") + " }");
+  L.push(`-- Event Horizon's own pets, on the ladder as zone ${EVENT_ZONE.index}.`);
+  L.push(`M.EVENT_ZONE = ${lq(EVENT_ZONE.id)}`);
   L.push(`M.ZONE_STEP = ${ZONE_STEP}`);
   L.push("M.QUOTA = { " + TIERS.map((t) => `${t} = ${QUOTA[t]}`).join(", ") + " }");
   L.push("M.LADDER = { " + TIERS.map((t) => `${t} = ${LADDER[t]}`).join(", ") + " }");
@@ -415,9 +529,10 @@ function renderLuau(B) {
   L.push("}");
   L.push("");
   const ps = B.pets.slice().sort(sortPets(B.zoneIndex));
-  L.push("-- Existing roster pets: name -> zone. Their rows stay in MinePetRoster.");
+  L.push("-- Existing pets: name -> zone. Their rows stay in MinePetRoster / MineEHPets.");
   L.push("M.ZONE_OF = {");
   for (const p of ps.filter((p) => !p.isNew)) L.push(`\t[${lq(p.name)}] = ${lq(p.zone)},`);
+  for (const p of B.ehPets) L.push(`\t[${lq(p.name)}] = ${lq(p.zone)},`);
   L.push("}");
   L.push("");
   L.push("-- New zone pets.");
@@ -442,28 +557,29 @@ function renderLuau(B) {
   }
   L.push("}");
   L.push("");
-  L.push("-- Every zone pet's kit (PET_BOOSTS.Z), and the role or buff set behind it.");
+  L.push("-- Every named pet's kit (PET_BOOSTS.Z), and the role or buff set behind it.");
   L.push("M.KITS = {");
-  for (const p of ps) L.push(`\t[${lq(p.name)}] = ${kitLua(B.kits[p.name])},`);
+  for (const p of ps.concat(B.ehPets)) L.push(`\t[${lq(p.name)}] = ${kitLua(B.kits[p.name])},`);
   L.push("}");
   L.push("M.ROLE = {");
-  for (const p of ps) L.push(`\t[${lq(p.name)}] = ${lq(B.roles[p.name])},`);
+  for (const p of ps.concat(B.ehPets)) L.push(`\t[${lq(p.name)}] = ${lq(B.roles[p.name])},`);
   L.push("}");
   L.push("");
   L.push("local ZONE_INDEX = {}");
   L.push("for i, id in ipairs(M.ZONE_ORDER) do");
   L.push("\tZONE_INDEX[id] = i");
   L.push("end");
+  L.push(`ZONE_INDEX[M.EVENT_ZONE] = ${EVENT_ZONE.index}`);
   L.push("for _, row in ipairs(M.PETS) do");
   L.push("\tM.ZONE_OF[row.name] = M.ZONE_OF[row.name] or row.zone");
   L.push("end");
   L.push("");
-  L.push("-- The zone a pet's pot belongs to, or nil (Event Horizon pets, set pets).");
+  L.push("-- The zone a pet's pot belongs to (bigbang for Event Horizon), or nil.");
   L.push("function M.zoneOf(name)");
   L.push("\treturn M.ZONE_OF[name]");
   L.push("end");
   L.push("");
-  L.push("-- 1 for meadow .. 10 for primordium.");
+  L.push("-- 1 for meadow .. 10 for primordium, 11 for Event Horizon.");
   L.push("function M.zoneIndex(zoneId)");
   L.push("\treturn ZONE_INDEX[zoneId]");
   L.push("end");
@@ -516,6 +632,15 @@ function renderMd(B) {
     L.push("|---|---|---|---|---|");
     for (const p of rows) L.push(`| ${p.tier} | ${p.isNew ? "★ " : ""}${p.name} | ${p.animal} | ${B.roles[p.name]} | ${fmt(B.kits[p.name], p.tier)} |`);
   }
+  L.push("");
+  L.push(`## Event Horizon (zone ${EVENT_ZONE.index}, ${B.ehPets.length} pets, ×${Math.pow(ZONE_STEP, EVENT_ZONE.index - 1).toFixed(2)})`);
+  L.push("");
+  L.push("Their own roster and hand-authored stat mix, rescaled onto the ladder; retired stats dropped.");
+  L.push("");
+  L.push("| tier | name | boost |");
+  L.push("|---|---|---|");
+  const ehSorted = B.ehPets.slice().sort((a, b) => TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier) || a.name.localeCompare(b.name));
+  for (const p of ehSorted) L.push(`| ${p.tier} | ${p.name} | ${fmt(B.kits[p.name], p.tier)} |`);
   return L.join("\n") + "\n";
 }
 
@@ -541,5 +666,5 @@ function main() {
   if (check && stale) process.exit(1);
 }
 
-module.exports = { build, renderLuau, renderMd, ZONES, QUOTA, LADDER, ZONE_STEP, TIERS, ROLES, BANNED, OUT_LUAU, OUT_MD };
+module.exports = { build, renderLuau, renderMd, EVENT_ZONE, ZONES, QUOTA, LADDER, ZONE_STEP, TIERS, ROLES, BANNED, OUT_LUAU, OUT_MD };
 if (require.main === module) main();

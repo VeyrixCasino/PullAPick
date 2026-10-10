@@ -1,10 +1,12 @@
--- MineStats: what a stat is worth, what each type specialises in, and the
--- budget a pet of a given tier is allowed to spend.
+-- MineStats: what a stat is worth.
 --
--- The point of this file is that "is this pet balanced?" has a NUMERIC answer.
--- Every stat carries a weight in points per +1%, every tier has a point budget,
--- and a kit is legal when its total lands inside the budget's tolerance. Run
--- MineStats.audit() to check the whole table at once.
+-- Every stat carries a weight in points per +1%, so "is this worth the same as
+-- that?" has a numeric answer. Runes, gear, traits, the skill tree and the pet
+-- kits (tools/gen/zone-pets.js -> MineZonePets) all price with these weights.
+--
+-- The old pet-kit generator that lived here (TYPE_KITS, TIER_BUDGET, the X / Y
+-- SET_PROFILE, kitFor, audit) was removed on 2026-10-10: nothing called it, and
+-- pet kits now come from the approved ladder in MineZonePets.
 local MineStats = {}
 
 --------------------------------------------------------------------------------
@@ -192,120 +194,7 @@ MineStats.PET_ONLY = {
 	mineSpeed = true, luckyFind = true, scrap = true,
 }
 
---------------------------------------------------------------------------------
--- TYPE SPECIALISATION
---
--- Each type owns a VERB, not just a number. A pet's kit spends its budget
--- mostly on its type's primary, some on the secondary, and a little wherever.
--- This is what makes "I need a Shadow pet for chest runs" a real sentence.
---------------------------------------------------------------------------------
-
-MineStats.TYPE_KITS = {
-	Fire     = { verb = "Strike",    primary = "mineSpeed",  secondary = "dirtBreak",  tertiary = "swingRate" },
-	Frost    = { verb = "Tempo",     primary = "swingRate",  secondary = "mineSpeed",  tertiary = "dirtBreak" },
-	Water    = { verb = "Pulverize", primary = "pulverize",  secondary = "backpack",   tertiary = "walkSpeed" },
-	Grass    = { verb = "Harvest",   primary = "fossilFind", secondary = "backpack",   tertiary = "dirtBreak" },
-	Ground   = { verb = "Excavate",  primary = "dirtBreak",  secondary = "mineSpeed",  tertiary = "backpack" },
-	Metal    = { verb = "Scrap",     primary = "scrap",      secondary = "mineSpeed",  tertiary = "backpack" },
-	Electric = { verb = "Zap",       primary = "zap",        secondary = "swingRate",  tertiary = "mineSpeed" },
-	Crystal  = { verb = "Prospect",  primary = "gemFind",    secondary = "luck",       tertiary = "chestLuck" },
-	Shadow   = { verb = "Fortune",   primary = "luck",       secondary = "chestLuck",  tertiary = "backpack" },
-	Space    = { verb = "Find",      primary = "luckyFind",  secondary = "rareOre",       tertiary = "luck" },
-}
-
--- Cleared: no type/family marketing blurbs on pets (wild claims like instant-break).
-MineStats.TYPE_BLURB = {}
-
---------------------------------------------------------------------------------
--- BUDGETS
---
--- Point pool a pet of each tier may spend. X and Y spend the SAME budget in
--- different shapes: X concentrates it and takes a drawback, Y spreads it flat.
---------------------------------------------------------------------------------
-
-MineStats.TIER_BUDGET = {
-	Common = 25, Uncommon = 48, Rare = 60, Epic = 90,
-	Legendary = 125, Mythic = 190, Divine = 275, Exotic = 380,
-}
-
--- X and Y must be worth the SAME. X spends 1.15x its budget and hands 0.15x
--- back as a penalty, netting 1.00 -- identical to Y. An earlier version used
--- 1.35/0.15, which quietly made every X pet 20% stronger than its Y counterpart.
-MineStats.SET_PROFILE = {
-	-- Internal kit-shape only. No player-facing "family" flavour copy.
-	X = { stats = 2, concentration = 1.15, drawback = 0.15 },
-	Y = { stats = 4, concentration = 1.00, drawback = 0.00 },
-}
-
--- Filler and penalty stats are drawn from here, skipping anything the type
--- already uses -- otherwise a penalty can land on the type's own primary and
--- cancel it out. That is what broke Water, whose primary IS backpack.
-MineStats.NEUTRAL_STATS = { "backpack", "walkSpeed", "coinBonus", "mineSpeed" }
-
-MineStats.TOLERANCE = 0.05 -- a kit may land within +/-5% of its budget
-
---------------------------------------------------------------------------------
--- KIT GENERATION
---
--- Produces a legal default kit for a (type, tier, set). Hand-authored per-pet
--- boosts replace these; this is the shape they should be checked against.
---------------------------------------------------------------------------------
-
-local function round(v, dp)
-	local m = 10 ^ (dp or 2)
-	return math.floor(v * m + 0.5) / m
-end
-
-function MineStats.kitFor(typeName, tier, setKey)
-	local kit = MineStats.TYPE_KITS[typeName]
-	local budget = MineStats.TIER_BUDGET[tier]
-	local profile = MineStats.SET_PROFILE[setKey] or MineStats.SET_PROFILE.Y
-	if not (kit and budget) then
-		return {}
-	end
-
-	-- Stats this type owns; nothing else may land on them.
-	local owned = { [kit.primary] = true, [kit.secondary] = true, [kit.tertiary] = true }
-	local function freeStat()
-		for _, s in ipairs(MineStats.NEUTRAL_STATS) do
-			if not owned[s] then
-				return s
-			end
-		end
-		return nil
-	end
-
-	-- X pours its budget into two stats and hands some back as a penalty;
-	-- Y spreads the same points across four with no downside. Both net 1.00x.
-	local spend = budget * profile.concentration
-	local slots
-	if profile.stats == 2 then
-		slots = { { kit.primary, 0.68 }, { kit.secondary, 0.32 } }
-	else
-		local filler = freeStat()
-		owned[filler] = true
-		slots = { { kit.primary, 0.42 }, { kit.secondary, 0.26 }, { kit.tertiary, 0.20 }, { filler, 0.12 } }
-	end
-
-	local out = {}
-	for _, row in ipairs(slots) do
-		local stat, share = row[1], row[2]
-		local def = MineStats.STATS[stat]
-		if def then
-			out[stat] = round((spend * share) / def.weight / 100, 4)
-		end
-	end
-	if profile.drawback > 0 then
-		local penaltyStat = freeStat()
-		local def = penaltyStat and MineStats.STATS[penaltyStat]
-		if def then
-			out[penaltyStat] = round(-(budget * profile.drawback) / def.weight / 100, 4)
-		end
-	end
-	return out
-end
-
--- What a kit is actually worth, in budget points. Penalties count against it.
+-- What a kit is worth in points (weight x percent). Negative amounts count against it.
 function MineStats.valueOf(kit)
 	local total = 0
 	for stat, amount in pairs(kit or {}) do
@@ -383,38 +272,6 @@ function MineStats.describe(kit)
 		end
 	end
 	return lines
-end
-
---------------------------------------------------------------------------------
--- AUDIT
---
--- Checks every (type, tier, set) kit lands inside tolerance, and reports which
--- stat each type actually leans on. Returns a plain report table.
---------------------------------------------------------------------------------
-
-function MineStats.audit()
-	local rows, fails = {}, 0
-	for typeName in pairs(MineStats.TYPE_KITS) do
-		for tier, budget in pairs(MineStats.TIER_BUDGET) do
-			for _, setKey in ipairs({ "X", "Y" }) do
-				local kit = MineStats.kitFor(typeName, tier, setKey)
-				local value = MineStats.valueOf(kit)
-				-- Both sets net 1.00x budget, so the target is simply the budget.
-				local profile = MineStats.SET_PROFILE[setKey]
-				local target = budget * (profile.concentration - profile.drawback)
-				local drift = target > 0 and (value - target) / target or 0
-				local ok = math.abs(drift) <= MineStats.TOLERANCE
-				if not ok then
-					fails += 1
-				end
-				table.insert(rows, {
-					type = typeName, tier = tier, set = setKey,
-					value = value, target = target, drift = drift, ok = ok,
-				})
-			end
-		end
-	end
-	return rows, fails
 end
 
 return MineStats

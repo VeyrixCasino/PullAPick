@@ -2085,13 +2085,14 @@ S.matterbox = {
 --------------------------------------------------------------------------------
 -- ANIMALS
 --
--- GENERATED from the design roster (roster/genmap.js). Every animal in the pet
--- list resolves to an archetype body plus a skin, because 228 animals is far
--- too many to sculpt individually: "Tuxedo Cat" and "Ginger Cat" are the same
--- cat shape in different paint.
+-- Every animal resolves to an archetype body plus a skin, because hundreds of
+-- animals is far too many to sculpt individually: "Tuxedo Cat" and "Ginger Cat"
+-- are the same cat shape in different paint.
 --
--- Hand-edit freely -- adding a row here overrides the generated mapping, and a
--- new species in SPECIES can be pointed at from any row.
+-- Hand-maintained (its original generator, roster/genmap.js, was never in the
+-- repo). The 451 zone pets' skins are NOT here: they live in
+-- MineZonePets.ANIMALS (tools/gen/zone-pets.js) and are merged in just below.
+-- A row here always wins over a merged one.
 --------------------------------------------------------------------------------
 
 PetModelFactory.ANIMALS = {

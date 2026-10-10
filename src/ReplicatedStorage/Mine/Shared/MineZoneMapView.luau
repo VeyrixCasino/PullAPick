@@ -86,17 +86,10 @@ local function foundChest(snap, chestId)
 	return false
 end
 
+-- The pet's real kit. This read the old X bag directly, so it showed numbers
+-- no pet had paid since the zone kits (2026-10-10).
 local function boostFor(name)
-	local bag = PetBoosts.PET_BOOSTS
-	if type(bag) ~= "table" then return nil end
-	if bag.X and bag.X[name] then return bag.X[name] end
-	if bag[name] then return bag[name] end
-	local alias = PetBoosts.NAME_ALIASES and PetBoosts.NAME_ALIASES[name]
-	if alias then
-		if bag.X and bag.X[alias] then return bag.X[alias] end
-		return bag[alias]
-	end
-	return nil
+	return PetBoosts.boostsFor and PetBoosts.boostsFor(name) or nil
 end
 
 local function formatBoosts(b)

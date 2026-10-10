@@ -163,10 +163,10 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
   God Pack scale existing weight, so they stay 0. This was computed from the
   formula, not observed. OPEN P2 says `cardOdds` ignores the zone index; that is
   stale, because it does use it.
-- **`MinePackConfig.NEW_CARD_BIAS` (0.70) is read nowhere.** Packs do not prefer cards you are missing.
-- **The two card rosters are not joined.** The named X/Y animals in
-  `MinePackConfig.SET_CARDS` are **not** used when minting. The comment above
-  `openPack` says "NOT YET WIRED"; identity comes from `MineCards` sets.
+- **Packs mint generated cards only.** The named X/Y card lists that were never wired
+  into minting were deleted on 2026-10-10, along with every pack's per-pack variants
+  row (`variantOdds` already ignored them). Named pets come from the zone pots
+  ([pets](pets.md)), which are not a drop source yet.
 - **Stale comments in `MinePackConfig`:**
   - the header says packs cannot be bought with coins or gems — true, but they sell for credits;
   - the header's "chest is the identity" text describes `MinePackConfig.CHESTS`, which only a dead path reads ([chests-and-lucky-blocks](chests-and-lucky-blocks.md));
