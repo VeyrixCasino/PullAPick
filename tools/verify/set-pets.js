@@ -153,6 +153,10 @@ check(/sp\.KITS/.test(boosts) && /PET_BOOSTS\.Z\[name\] = kit/.test(boosts), "th
 const pmf = code(read(SH + "PetModelFactory.luau"));
 check(/sp\.ANIMALS/.test(pmf) && /FindFirstChild\("PetBodies"\)/.test(pmf) && /PetModelFactory\.KIT = \{/.test(pmf),
   "PetModelFactory loads the PetBodies modules and the set skins");
+// Roblox draws nothing for the legacy Pyramid and Prism mesh types (wiki
+// luau-traps §10): every cone and prism must be made of real wedge parts.
+const invisible = [pmf, ...bodySrc.map(code)].filter((s) => /MeshType\.(Pyramid|Prism|ParallelRamp|RightAngleRamp)\b/.test(s)).length;
+check(invisible === 0, "no pet part uses a mesh type Roblox no longer draws (Pyramid, Prism)");
 
 console.log("");
 console.log(fail > 0 ? `>>> set-pets: ${fail} FAILED` : ">>> set-pets: all assertions passed");

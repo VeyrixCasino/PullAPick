@@ -47,9 +47,16 @@ return function(K)
 				{ -0.98, 0.45, 0.30, 0, 1 }, { 0.98, 0.45, 0.30, 0, 1 }, { -0.98, -0.30, -0.30, 0, 1 }, { 0.98, -0.30, -0.30, 0, 1 },
 				{ -0.40, 0.30, -0.92, 1, 0 }, { 0.40, -0.30, -0.92, 1, 0 },
 			}
+			-- And round the face, so it reads as a mirror ball from the front too
+			-- (the look pass, 2026-10-10: from the front it was a plain grey cube).
+			for _, f in ipairs({ { -0.66, 0.66 }, { 0, 0.70 }, { 0.66, 0.66 }, { -0.70, 0 }, { 0.70, 0 }, { -0.66, -0.66 }, { 0, -0.72 }, { 0.66, -0.66 } }) do
+				table.insert(tiles, { f[1], f[2], 0.97, 1, 0 })
+			end
+			-- Holo tiles: cyan, pink and the ball's own silver in turn.
+			local shades = { FOIL_A, FOIL_B, p.light }
 			for i, t in ipairs(tiles) do
-				local size = (t[5] == 1) and Vector3.new(0.06, 0.36, 0.36) or ((t[4] == 1) and Vector3.new(0.36, 0.36, 0.06) or Vector3.new(0.36, 0.06, 0.36))
-				local part = c:box(size, CFrame.new(t[1], t[2], t[3]), (i % 2 == 0) and p.pale or p.light, METAL)
+				local size = (t[5] == 1) and Vector3.new(0.06, 0.36, 0.36) or ((t[4] == 1) and Vector3.new(0.32, 0.32, 0.06) or Vector3.new(0.36, 0.06, 0.36))
+				local part = c:box(size, CFrame.new(t[1], t[2], t[3]), shades[(i % 3) + 1], METAL)
 				part.Reflectance = 0.6
 			end
 			c:star(Vector3.new(0.86, 0.84, 0.70), 0.40, WHITE)

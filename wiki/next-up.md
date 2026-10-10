@@ -103,9 +103,9 @@ What that means to build:
 
 ## 2. Pets: what is left
 
-- **A full look pass of the 98 set bodies.** Only Atlantis Rising was looked at
-  closely. Rebuild the display, screenshot every set's block, and fix bodies
-  that read wrong. The agents' notes to check:
+- **DONE 2026-10-10: the look pass of the 98 set bodies.** It fixed the
+  factory's invisible cones and the Disco Ball (see [pets](systems/pets.md)).
+  Still worth an eye later:
   - Satellite is the smallest body (0.83 after the fit).
   - Hydra Pup has 38 parts.
   - Riftling is only 1.13 studs deep.

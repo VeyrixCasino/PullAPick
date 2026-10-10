@@ -756,3 +756,14 @@ buyTrickOrTreat" until the button existed. `MineEventsView` only ever rendered
 `EVENTS[1]` and read `bigbangOwned` directly, so with two limited mines the
 Crypt would have had no screen at all; `currentEvent()` now prefers an event
 whose own window is open, and owned/active are per event.
+
+## [2026-10-10] lint | set body look pass; invisible cones; duplicate modules in Studio
+Looked at all 98 set bodies in Studio, one set per screenshot. Found that
+Roblox no longer draws the Pyramid and Prism SpecialMesh types, so
+`PetModelFactory`'s `cone`/`prism` were invisible everywhere (51 set bodies,
+16 older ones). Rebuilt them from CornerWedgeParts / WedgeParts; heaviest body
+now 47 parts. Disco Ball got front tiles. Also found 13 duplicated modules in
+ReplicatedStorage.Mine.Shared (newly added files, both copies synced); removed
+the identical extras, and the display builder no longer renames instances.
+
+Updated: luau-traps (§10, §11), pets, next-up, log.

@@ -139,3 +139,27 @@ Details: [save-data-and-migrations](save-data-and-migrations.md).
 A disconnected Studio keeps running old scripts with no warning. Check the
 `MineBuild` line in the Output window before debugging
 ([rojo-and-studio](rojo-and-studio.md), TODO §0.14).
+
+## 10. Old SpecialMesh shapes draw nothing
+
+Roblox no longer renders the legacy `SpecialMesh` types **Pyramid** and
+**Prism**: a part meshed with either is invisible. Wedge, CornerWedge, Sphere,
+Cylinder, Head and Brick still draw (tested side by side in Studio,
+2026-10-10). `PetModelFactory`'s `cone` and `prism` used them, so every
+crystal, horn, quill, beak, fang and witch hat built with them was missing:
+51 of the 98 set bodies and 16 older ones (candy corn's tip, the scarecrow's
+hat, the lantern roof). They are now made of real `CornerWedgePart`s and
+`WedgePart`s. **Never mesh a part as Pyramid or Prism.** A
+`CornerWedgePart`'s point stands over its (+X, -Z) corner; a `WedgePart` is
+tall at +Z.
+
+## 11. Never rename a Rojo-synced instance aside in Studio
+
+Loading a fresh copy of a module by renaming the real one aside ("_held") and
+standing a clone in under its name left **duplicate modules** in
+ReplicatedStorage (2026-10-10: thirteen, all newly added files, each copy kept
+in sync). A later load could then pick a duplicate whose code Studio had
+cached long ago. To load fresh code from the command bar, clone the whole
+`Shared` folder somewhere private, require from the clone, and destroy it
+(what `PetShowcaseBuilder` now does). Check for duplicates with a scan of
+same-named siblings before trusting what Studio shows.

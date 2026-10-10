@@ -174,8 +174,11 @@ new bodies**. The full names sheet is `docs/SET-PETS.md` (generated).
   body use, no holiday bodies, kit values, buff sets, proc odds, a luau load
   of every module, and the wiring.
 - **Seen in Studio:** the display builds all 2,837 pets (794 + 2,043) with no
-  fallback body. Only a sample was looked at closely (Atlantis Rising); a full
-  look pass per set is still to do ([next-up](../next-up.md)).
+  fallback body. **Look pass done 2026-10-10**: all 98 set bodies, one set at a
+  time. It found the factory's invisible cones (crystals, horns, quills, crowns
+  and beaks were missing on 51 set bodies and 16 older ones; see
+  [luau-traps](../code/luau-traps.md) §10) and a Disco Ball that read as a plain
+  grey cube from the front (now tiled in holo colours round its face).
 
 **The display.** `src/ServerStorage/PetShowcaseBuilder.luau` builds
 `workspace.PetShowcase` at (3000, 0, 0): every pet on a plinth, one block per

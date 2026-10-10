@@ -31,20 +31,6 @@ M.TAG_DISTANCE = 22 -- a pet's tag shows inside this many studs (proximity)
 
 local TIERS = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic" }
 
--- Studio's command bar caches a module for the whole session, so a second run
--- after an edit would build from stale code. Requiring a fresh clone avoids it.
-local function fresh(mod)
-	local copy = mod:Clone()
-	copy.Name = mod.Name .. "_showcase"
-	copy.Parent = mod.Parent
-	local ok, result = pcall(require, copy)
-	copy:Destroy()
-	if not ok then
-		error(result)
-	end
-	return result
-end
-
 local function part(props, parent)
 	local p = Instance.new("Part")
 	p.Anchored = true
@@ -150,42 +136,40 @@ function M.build(opts)
 	local RS = game:GetService("ReplicatedStorage")
 	local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 	--[[
-		The roster, the kits and the factory each require MineZonePets by name,
-		and the command bar would hand them the copy it cached earlier in the
-		session -- so a pet generated since then would be missing, or render as
-		a fox. For the length of the loads, a fresh copy of the zone data stands
-		in under the real name; the original is put back straight after.
+		FRESH CODE, WITHOUT TOUCHING THE REAL TREE. Studio's command bar caches
+		a module for the whole session, so a second run after an edit would
+		build from stale code. The display therefore requires everything from a
+		private copy of the whole Shared folder, which it throws away after.
+
+		It used to rename the real modules aside and stand fresh copies in under
+		their names for the length of the loads. With Rojo syncing, that left
+		stray duplicate modules in ReplicatedStorage (found 2026-10-10), and a
+		later load could pick a duplicate holding stale cached code.
 	]]
-	-- The same for the set data and every module folder those modules read.
-	local held = {}
-	for _, name in ipairs({ "MineZonePets", "MineSetPets", "SetPets", "PetBodies" }) do
-		local orig = shared:FindFirstChild(name)
-		if orig then
-			local stand = orig:Clone()
-			orig.Name = name .. "_held"
-			stand.Parent = shared
-			table.insert(held, { orig = orig, stand = stand, name = name })
-		end
-	end
+	local copy = shared:Clone()
+	copy.Name = "Shared_showcase"
+	copy.Parent = shared.Parent
 	local ok, loaded = pcall(function()
+		local function need(name)
+			local m = copy:FindFirstChild(name)
+			return m and require(m) or nil
+		end
 		return {
-			Roster = fresh(shared.MinePetRoster),
-			PMF = fresh(shared.PetModelFactory),
-			Boosts = fresh(shared.MinePetBoosts),
-			Zones = fresh(shared.MineZonePets),
-			Sets = shared:FindFirstChild("MineSetPets") and fresh(shared.MineSetPets) or { SETS = {}, setOf = function() return nil end },
+			Roster = need("MinePetRoster"),
+			PMF = need("PetModelFactory"),
+			Boosts = need("MinePetBoosts"),
+			Zones = need("MineZonePets"),
+			Sets = need("MineSetPets") or { SETS = {}, setOf = function() return nil end },
+			Stats = need("MineStats"),
+			Cfg = need("MineConfig"),
 		}
 	end)
-	for _, h in ipairs(held) do
-		h.stand:Destroy()
-		h.orig.Name = h.name
-	end
+	copy:Destroy()
 	if not ok then
 		error(loaded)
 	end
 	local Roster, PMF, Boosts, Zones, Sets = loaded.Roster, loaded.PMF, loaded.Boosts, loaded.Zones, loaded.Sets
-	local Stats = require(shared.MineStats)
-	local Cfg = require(shared.MineConfig)
+	local Stats, Cfg = loaded.Stats, loaded.Cfg
 
 	local old = workspace:FindFirstChild("PetShowcase")
 	if old then

@@ -113,13 +113,75 @@ function Ctx:round(size, cf, color, mat)
 	return meshed(self:box(size, cf, color, mat), Enum.MeshType.Head)
 end
 
--- Square pyramid: base at -Y, apex at +Y.
-function Ctx:cone(size, cf, color, mat)
-	return meshed(self:box(size, cf, color, mat), Enum.MeshType.Pyramid)
+--[[
+	POINTS THAT RENDER. Roblox no longer draws the old Pyramid and Prism
+	SpecialMesh types: a part meshed with either is simply invisible (seen in
+	Studio 2026-10-10, next to Wedge and CornerWedge, which do draw). Every
+	crystal, horn, quill, beak, fang, ear tip and witch hat built with these
+	helpers was missing from the game. They are now made of real wedge parts.
+
+	A CornerWedgePart's point stands over its (+X, -Z) corner. Turned a quarter
+	(which swaps its X and Z size), it points at another corner.
+]]
+local function corner(ctx, w, h, d, cf, turns, color, mat)
+	local swap = turns % 2 == 1
+	local size = swap and Vector3.new(d, h, w) or Vector3.new(w, h, d)
+	return ctx:raw("CornerWedgePart", size, cf * CFrame.Angles(0, turns * math.pi / 2, 0), color, mat)
 end
 
+-- Several parts answering as one, so a caller can still write
+-- `c:cone(...).Transparency = 0.5` or call a method on what it got back.
+local function group(parts)
+	return setmetatable({}, {
+		__index = function(_, k)
+			local v = parts[1][k]
+			if type(v) == "function" then
+				return function(_, ...)
+					local r
+					for _, p in ipairs(parts) do
+						r = p[k](p, ...)
+					end
+					return r
+				end
+			end
+			return v
+		end,
+		__newindex = function(_, k, v)
+			for _, p in ipairs(parts) do
+				p[k] = v
+			end
+		end,
+	})
+end
+
+-- Square pyramid: base at -Y, apex at +Y. A big one (a hat, a candy-corn tip)
+-- is four corner wedges meeting over the centre. A small one (a quill, a fang,
+-- a crystal point) is two, side by side, meeting over the middle of the back
+-- edge: just as pointed and left-right symmetric, at half the parts.
+function Ctx:cone(size, cf, color, mat)
+	local w, h, d = size.X, size.Y, size.Z
+	if math.min(w, d) >= 0.6 then
+		local parts = {}
+		for _, q in ipairs({ { -1, -1, 3 }, { 1, -1, 2 }, { -1, 1, 0 }, { 1, 1, 1 } }) do
+			local at = cf * CFrame.new(q[1] * w / 4, 0, q[2] * d / 4)
+			table.insert(parts, corner(self, w / 2, h, d / 2, at, q[3], color, mat))
+		end
+		return group(parts)
+	end
+	return group({
+		corner(self, w / 2, h, d, cf * CFrame.new(-w / 4, 0, 0), 0, color, mat),
+		corner(self, w / 2, h, d, cf * CFrame.new(w / 4, 0, 0), 1, color, mat),
+	})
+end
+
+-- Triangular prism: a ridge along X at the top, sloping to the front and back.
+-- Two wedges back to back (a WedgePart is tall at +Z and slopes down to -Z).
 function Ctx:prism(size, cf, color, mat)
-	return meshed(self:box(size, cf, color, mat), Enum.MeshType.Prism)
+	local half = Vector3.new(size.X, size.Y, size.Z / 2)
+	return group({
+		self:raw("WedgePart", half, cf * CFrame.new(0, 0, -size.Z / 4), color, mat),
+		self:raw("WedgePart", half, cf * CFrame.new(0, 0, size.Z / 4) * CFrame.Angles(0, math.pi, 0), color, mat),
+	})
 end
 
 -- A capsule spanning two points: legs, arms, antennae, tails. `caps` rounds both
