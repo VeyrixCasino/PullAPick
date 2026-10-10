@@ -74,7 +74,7 @@ related: [boosts-and-stats, currencies-and-economy, zones-layers-and-seams, skin
   | Grass | Harvest | blastChance | pulverize | dirtBreak |
   | Ground | Excavate | dirtBreak | earthquake | blastChance |
   | Metal | Refine | coinBonus | blastChance | shortFuse |
-  | Electric | Zap | zap | ricochet | swingRate |
+  | Electric | Zap | zap | ricochet (Shatter) | swingRate |
   | Crystal | Prospect | rareOre | gemFind | oreLuck |
   | Shadow | Fortune | luck | chestLuck | packLuck |
   | Space | Echo | procPower | gemFind | luck |

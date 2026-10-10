@@ -9,7 +9,8 @@
 
 	The server already sends one "loot" event per proc hit, with the block's
 	position (Dig.procsAt in MineServer): BLAST once, TIDAL WAVE once, ZAP once
-	per hop, RICOCHET out then back, QUAKE when a block starts shaking. This
+	per hop, SHATTER once per shatter (up to 3 in a chain), QUAKE when a block
+	starts shaking. This
 	turns each into an animation and a sound. It draws nothing the server did
 	not report, so the picture never promises damage that did not land.
 
@@ -216,45 +217,37 @@ function M.zap(pos)
 	end)
 end
 
--- RICOCHET: the server reports the block it bounced to, then the block it came
--- back to. A spark flies there and back; if no return came, it just flashes.
-local pendingRic
-function M.ricochet(pos)
-	local now = os.clock()
-	if pendingRic and (now - pendingRic.t) < 0.3 then
-		local out, home = top(pendingRic.pos), top(pos)
-		pendingRic = nil
-		local ball = part({
-			Name = "Ricochet",
-			Shape = Enum.PartType.Ball,
-			Color = Color3.fromRGB(170, 235, 255),
-			Size = Vector3.one * 0.9,
-			CFrame = CFrame.new(home),
+-- SHATTER (replaced Ricochet, 2026-10-10): the block bursts into crystal shards
+-- that fly to its 6 sides. The server sends one SHATTER per shatter, so a
+-- chain (up to 3 per block you broke) shows as bursts hopping block to block.
+function M.shatter(pos)
+	local origin = top(pos)
+	flash(origin, Color3.fromRGB(200, 170, 255), M.BLOCK * 1.2, 0.22)
+	local dirs = {
+		Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1),
+		Vector3.new(0, 1, 0), Vector3.new(0.7, 0.7, 0), Vector3.new(-0.7, 0.7, 0), Vector3.new(0, 0.7, 0.7),
+	}
+	for _, d in ipairs(dirs) do
+		local shard = part({
+			Name = "Shard",
+			Color = Color3.fromRGB(205, 180, 255),
+			Material = Enum.Material.Glass,
+			Transparency = 0.15,
+			Size = Vector3.new(0.35, 0.35, 1.1),
+			CFrame = CFrame.lookAt(origin, origin + d) * CFrame.Angles(0, 0, rand(0, math.pi)),
 		})
-		tween(ball, 0.12, { CFrame = CFrame.new(out) }, Enum.EasingStyle.Linear)
-		task.delay(0.12, function()
-			flash(out, Color3.fromRGB(140, 220, 255), M.BLOCK * 0.9, 0.18)
-			if ball.Parent then
-				tween(ball, 0.12, { CFrame = CFrame.new(home), Transparency = 0.6 }, Enum.EasingStyle.Linear)
-			end
-		end)
-		task.delay(0.24, function()
-			flash(home, Color3.fromRGB(140, 220, 255), M.BLOCK * 0.9, 0.18)
-		end)
-		Debris:AddItem(ball, 0.3)
-		sound("proc_ricochet", out)
-		return
+		local reach = M.BLOCK * rand(0.9, 1.2)
+		tween(shard, 0.32, {
+			CFrame = CFrame.lookAt(origin + d * reach, origin + d * (reach + 1)) * CFrame.Angles(0, 0, rand(0, math.pi)),
+			Size = Vector3.new(0.12, 0.12, 0.5),
+			Transparency = 1,
+		})
+		Debris:AddItem(shard, 0.36)
 	end
-	local mine = { pos = pos, t = now }
-	pendingRic = mine
-	task.delay(0.3, function()
-		if pendingRic == mine then
-			pendingRic = nil
-			flash(top(pos), Color3.fromRGB(140, 220, 255), M.BLOCK * 0.9, 0.2)
-			sound("proc_ricochet", pos)
-		end
-	end)
+	sound("proc_shatter", pos)
 end
+-- The old proc's name, kept so a stray RICOCHET event still shows something.
+M.ricochet = M.shatter
 
 -- EARTHQUAKE: the block itself already shakes (the client reads its Quaking
 -- attribute). This adds a dust ring, stones hopping off it, a rumble, and a
@@ -280,7 +273,8 @@ local BY_TEXT = {
 	BLAST = M.blast,
 	["TIDAL WAVE"] = M.tide,
 	ZAP = M.zap,
-	RICOCHET = M.ricochet,
+	SHATTER = M.shatter,
+	RICOCHET = M.shatter,
 	QUAKE = M.quake,
 }
 

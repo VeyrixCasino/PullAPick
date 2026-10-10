@@ -499,3 +499,40 @@ Renderer and icon tools: `tools/pack-sprites/` (`render.ps1`, `icons.ps1`).
 stars and `Set · Grade`; the inventory sorts best first (stars, then set grade).
 Zone packs stay unrated, per the owner. Updated
 [cards-and-packs](systems/cards-and-packs.md).
+
+## [2026-10-10] ingest | pet ladder lifted; the proc rework (next-up §1–2)
+The owner's answers:
+- Commons stay where they are, and everything else grows to Exotic ×4/3;
+- one damage stat per proc;
+- Shatter goes to the 6 sides;
+- no caps: proc chances are priced high instead.
+
+**The ladder** is approved × (4/3)^(rank/7). An Exotic kit is 300 at Meadow and
+489 at Event Horizon.
+
+**Procs:**
+- Blast's share is 0.12, so it is now the smallest proc.
+- Tidal Wave keeps 0.18 and gains its own damage stat.
+- Zap's stat only starts a chain; hops continue with `ZAP_CONTINUE 0.80 ×
+  ZAP_FALLOFF 0.88^(h−1)`. Studio measured 3.11 hops against 3.05 expected.
+- Ricochet is now **Shatter**. It hits the 6 sides and chains on breaks, up to 3
+  per block broken; Studio showed chains of 2 and 3, and never more. The key
+  stays `ricochet` because it is data.
+- Each proc gained a damage stat that adds to procPower.
+- Chance weights: Blast 9, Zap 8, Shatter 9, Earthquake 9, Tidal Wave 10.
+  Mistreef's tide trio totals 50.4%, and no pet tops 40%.
+
+**Hats:**
+- the four proc sets carry chance + damage;
+- the proc lines are priced by weight when read, which repriced owned hats too
+  (an SSS Storm hat's Zap went from about 259% to 34%);
+- Tide's dead Backpack and Prism's Rare Ore lines now follow their set.
+
+**Effects:** Shatter's animation (crystal shards) and its glass sound replace
+Ricochet's.
+
+**Checks:** `procs.js` and `zone-pets.js` lock all of this in. The Studio pet
+grant now trims to the seat cap.
+
+Updated: mining-and-breaking, hats-and-faces, pets, boosts-and-stats, traits,
+rebirth-and-skill-tree, glossary, next-up, log.

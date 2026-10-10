@@ -31,7 +31,10 @@ related: [owner, pets, mining-and-breaking, boosts-and-stats, open-questions]
 | Tidal Wave proc; every proc has an animation and a sound (`MineProcFx`) | `6335086` |
 | Holiday pets out of the game (this page's commit) | see `wiki/log.md` |
 
-## 1. Pet power: a new top and bottom
+## 1. Pet power: a new top and bottom — DONE 2026-10-10
+
+The owner chose: Commons stay, everything else grows towards Exotic ×4/3
+(see [pets](systems/pets.md)). The rest of this section is the original brief.
 
 Owner: *"make it 489 at top, 300 at start"*. That means an Exotic's whole kit is
 worth **300 points at zone 1 (Meadow)** and **489 at zone 11 (Event Horizon)**,
@@ -45,7 +48,16 @@ so the +5% zone step stays.
 - After the change, re-run the generator and `tools/verify/zone-pets.js`. Its
   ladder assertions read `LADDER`, so they follow.
 
-## 2. Procs: rework (the owner's "equation" meant the damage formula)
+## 2. Procs: rework (the owner's "equation" meant the damage formula) — DONE 2026-10-10
+
+The owner chose:
+- one damage stat per proc;
+- Shatter goes to the 6 sides;
+- **no caps**: proc chances are priced high instead (Blast 9, Zap 8, Shatter 9,
+  Earthquake 9, Tidal Wave 10 per +1%).
+
+Built and measured in Studio; see [mining-and-breaking](systems/mining-and-breaking.md).
+The rest of this section is the original brief.
 
 Today a proc hit is `PROC_SHARE[proc] × swing damage × (1 + procPower)`
 (`MineConfig.procDamage`). On a weak pick that rounds to 1. The owner's rules:

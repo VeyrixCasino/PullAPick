@@ -158,12 +158,20 @@ end
 MineGear.SETS = {
 	{ id = "inferno", name = "Inferno", stat = "blastRadius", fantasy = "Fire / blast" },
 	{ id = "glacier", name = "Glacier", stat = "swingRate", fantasy = "Frost tempo" },
-	{ id = "tide", name = "Tide", stat = "backpack", fantasy = "Water haul" },
-	{ id = "canopy", name = "Canopy", stat = "blastChance", fantasy = "Grass harvest" },
+	--[[
+		THE PROCS ON HATS (owner, 2026-10-10: "add all these new ones to hats").
+		A proc set carries its proc's CHANCE as the set stat and its own proc
+		DAMAGE as `stat2`, which rides on every piece of the set (boostLines).
+		Tide paid Backpack, which has paid nothing since 2026-10-04, and Prism
+		moves from Rare Ore to Shatter; `was` re-themes pieces already owned.
+		This supersedes PROPOSAL #29 for tide (-> reach) and prism (-> oreLuck).
+	]]
+	{ id = "tide", name = "Tide", stat = "tidalWave", stat2 = "tideDamage", was = "backpack", fantasy = "Water wave" },
+	{ id = "canopy", name = "Canopy", stat = "blastChance", stat2 = "blastDamage", fantasy = "Grass harvest" },
 	{ id = "bedrock", name = "Bedrock", stat = "dirtBreak", fantasy = "Ground excavate" },
 	{ id = "foundry", name = "Foundry", stat = "coinBonus", fantasy = "Metal refine" },
-	{ id = "storm", name = "Storm", stat = "zap", fantasy = "Electric chain zap" },
-	{ id = "prism", name = "Prism", stat = "rareOre", fantasy = "Crystal prospect" },
+	{ id = "storm", name = "Storm", stat = "zap", stat2 = "zapDamage", fantasy = "Electric chain zap" },
+	{ id = "prism", name = "Prism", stat = "ricochet", stat2 = "shatterDamage", was = "rareOre", fantasy = "Crystal shatter" },
 	{ id = "umbra", name = "Umbra", stat = "luck", fantasy = "Shadow fortune" },
 	--[[
 		ECHO IS BARRED AS A BUFF (TODO 6.2). Void rolled it, which made the one
@@ -204,6 +212,11 @@ MineGear.STAT_WEIGHT = {
 	autoMine = 0.25,
 	earthquake = 0.30,
 	ricochet = 0.28,
+	tidalWave = 0.40,
+	blastDamage = 0.20,
+	tideDamage = 0.20,
+	zapDamage = 0.20,
+	shatterDamage = 0.20,
 	-- Proc DAMAGE. Above any one proc chance because it multiplies all four,
 	-- below Blast because it is worth nothing without a chance to scale.
 	procPower = 0.38,
@@ -490,25 +503,71 @@ end
 	Hat/face lines on a piece. Merged pieces may carry several; rolled pieces
 	always have exactly one (set stat + sheet pct).
 ]]
+--[[
+	PROC LINES ARE PRICED (owner, 2026-10-10: proc odds "lowish" -- "dont cap
+	any.. just try to make sure it doesnt happen, and if it does just make sure
+	they pay for it").
+
+	The sheet's pct is a % of the set stat, the same at every grade for every
+	set: an SSS hat is +350% of whatever it carries. For Mine Speed that is a
+	big multiplier; for a proc CHANCE it was +350% Blast or Zap, which is every
+	swing. So a proc chance or proc damage line is divided by its MineStats
+	weight (points per +1%), the same price pets pay: an SSS Tide hat is +35%
+	Tidal Wave, not +350%. Applied when the line is READ, so hats already owned
+	are repriced too.
+]]
+MineGear.PRICED_BY_WEIGHT = {
+	blastChance = true, tidalWave = true, zap = true, ricochet = true, earthquake = true,
+	blastDamage = true, tideDamage = true, zapDamage = true, shatterDamage = true,
+}
+-- A proc set's damage line, as a share of its chance line's sheet pct.
+MineGear.STAT2_SHARE = 0.5
+
+function MineGear.pricedPct(stat, pct)
+	pct = tonumber(pct) or 0
+	if MineGear.PRICED_BY_WEIGHT[stat] then
+		local def = Stats.STATS and Stats.STATS[stat]
+		local w = def and tonumber(def.weight) or 1
+		if w > 0 then
+			return round4(pct / w)
+		end
+	end
+	return pct
+end
+
 function MineGear.boostLines(piece)
 	if type(piece) ~= "table" then
 		return {}
 	end
+	local raw = {}
 	if type(piece.stats) == "table" and #piece.stats > 0 then
-		local out = {}
 		for _, row in ipairs(piece.stats) do
 			if type(row) == "table" and row.stat and tonumber(row.pct) then
-				table.insert(out, { stat = row.stat, pct = tonumber(row.pct) or 0 })
+				table.insert(raw, { stat = row.stat, pct = tonumber(row.pct) or 0 })
 			end
 		end
-		if #out > 0 then
-			return out
+	end
+	if #raw == 0 and piece.stat then
+		raw = { { stat = piece.stat, pct = tonumber(piece.pct) or 0 } }
+	end
+	local set = piece.setId and MineGear.SETS_BY_ID[piece.setId]
+	local out, setLine = {}, nil
+	for _, line in ipairs(raw) do
+		local stat = line.stat
+		-- A re-themed set: the old set stat follows the set (Tide's Backpack).
+		if set and set.was and stat == set.was then
+			stat = set.stat
+		end
+		table.insert(out, { stat = stat, pct = MineGear.pricedPct(stat, line.pct) })
+		if set and stat == set.stat and not setLine then
+			setLine = line
 		end
 	end
-	if piece.stat then
-		return { { stat = piece.stat, pct = tonumber(piece.pct) or 0 } }
+	-- A proc set's damage rides with its chance on every piece of the set.
+	if set and set.stat2 and setLine then
+		table.insert(out, { stat = set.stat2, pct = MineGear.pricedPct(set.stat2, setLine.pct * MineGear.STAT2_SHARE) })
 	end
-	return {}
+	return out
 end
 
 function MineGear.pctOnStat(piece, stat)

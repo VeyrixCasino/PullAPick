@@ -16,11 +16,11 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 |---|---|---|
 | meadow | ×1.00 | **Harvest**: more ore per block, better ore finds, more coins |
 | sunscar | ×1.05 | **Blaze**: raw damage and swing speed |
-| mistreef | ×1.10 | **Tide**: tidal waves across your layer, stardust from rubble and chests |
-| arcwork | ×1.16 | **Volt**: chain lightning and bouncing hits |
+| mistreef | ×1.10 | **Tide**: tidal waves across your layer that hit harder, stardust from rubble |
+| arcwork | ×1.16 | **Volt**: lightning chains that hit harder, faster swings |
 | bloodmoon | ×1.22 | **Fortune**: luck, better chests, better packs |
-| eclipse | ×1.28 | **Shadow**: quakes and blasts that clear rock |
-| riftmarch | ×1.34 | **Quake**: quakes, ricochets and heavy hits |
+| eclipse | ×1.28 | **Shadow**: blasts that hit harder, and quakes |
+| riftmarch | ×1.34 | **Shatter**: shatters that chain through rock, and quakes |
 | starfall | ×1.41 | **Prospect**: gems, rarer ore, more ore cases |
 | mythral | ×1.48 | **Treasure**: lucky blocks, packs and chests |
 | primordium | ×1.55 | **Primal**: damage, ore haul and rare ore |
@@ -34,7 +34,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Prospector | Lizard, Serpent, spider | finds gems and rarer ore |
 | Tidecaller | Fish, Dolphin, Ray, Slime, Otter | turns rubble into stardust |
 | Trader | Piglet, Lamb, Pony | earns more coins and ore |
-| Mystic | Sprite, ghost, Drake, Wyrm | sparks, quakes and ricochets |
+| Mystic | Sprite, ghost, Drake, Wyrm | lightning, shatters and quakes |
 
 ## Meadow (zone 1, 70 pets, 45 new)
 
@@ -58,58 +58,58 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Neutron | Cocoa Turtle | Bruiser | +34% Dirt Break, +17% Mine Speed |
 | Common | ★ Oodles | Raspberry Crab | Bruiser | +34% Dirt Break, +17% Mine Speed |
 | Common | ★ Phantom | Periwinkle Owl | Seeker | +17% Luck, +7.7% Chest Luck |
-| Common | ★ Purr | Emerald Wyrm | Mystic | +14% Ricochet Chance, +6.8% Zap Chance |
+| Common | ★ Purr | Emerald Wyrm | Mystic | +3.8% Shatter Chance, +11% Shatter Damage |
 | Common | ★ Radish | Crimson Moth | Seeker | +14% Pack Luck, +8.5% Luck |
 | Common | ★ Relic | Amber Otter | Tidecaller | +8.5% Pulverizer, +14% Scrap |
 | Common | Ringo | Monkey | Digger | +34% Ore Haul, +17% Dirt Break |
 | Common | ★ Tiddly | Tangerine Toad | Digger | +34% Dirt Break, +17% Ore Haul |
 | Common | Tinker | Clockwork Mouse | Digger | +23% Ore Finder, +17% Dirt Break |
-| Common | ★ Wanderer | Gold Wyrm | Mystic | +13% Earthquake Chance, +6.8% Zap Chance |
-| Uncommon | ★ Bounce | Pearl Mouse | Digger | +26% Ore Finder, +20% Dirt Break |
-| Uncommon | Cloudy | Sheep | Trader | +49% Coin Bonus, +20% Ore Haul |
-| Uncommon | ★ Dibble | Banded Berry Beetle | Bruiser | +39% Dirt Break, +20% Mine Speed |
-| Uncommon | ★ Fluff | Teal Beetle | Bruiser | +39% Dirt Break, +20% Ore Haul |
-| Uncommon | Freckles | Dalmatian | Striker | +39% Mine Speed, +14% Swing Rate |
-| Uncommon | Patches | Calico Cat | Striker | +28% Swing Rate, +20% Mine Speed |
-| Uncommon | ★ Pelican | Coral Duck | Seeker | +16% Pack Luck, +9.8% Luck |
-| Uncommon | ★ Shale | Cherry Hawk | Seeker | +16% Pack Luck, +9.8% Luck |
-| Uncommon | ★ Sherbet | Honey Bunny | Digger | +39% Dirt Break, +20% Ore Haul |
-| Uncommon | ★ Sirius | Scaled Maroon Serpent | Prospector | +22% Gem Find, +11% Rare Ore |
-| Uncommon | ★ Skitter | Fuchsia Penguin | Seeker | +18% Chest Luck, +9.8% Luck |
-| Uncommon | ★ Slurp | Coral Owl | Seeker | +20% Luck, +8.9% Chest Luck |
-| Uncommon | ★ Solace | Sapphire Moth | Seeker | +20% Luck, +8.9% Chest Luck |
-| Uncommon | ★ Twilight | Navy Golem | Bruiser | +39% Mine Speed, +20% Dirt Break |
-| Uncommon | ★ Ukulele | Lilac Wildcat | Striker | +39% Mine Speed, +14% Swing Rate |
-| Rare | ★ Agate | Lemon Toad | Digger | +46% Ore Haul, +23% Dirt Break |
-| Rare | ★ Blip | Maroon Lamb | Trader | +57% Coin Bonus, +6.6% Lucky Block find |
-| Rare | ★ Chickpea | Orchid Slime | Tidecaller | +12% Tidal Wave, +5.8% Pulverizer |
-| Rare | Dandy | Dandelion Sprite | Mystic | +12% Blast Chance, +9.2% Zap Chance |
-| Rare | ★ Hazel | Lemon Wolf | Striker | +46% Mine Speed, +16% Swing Rate |
-| Rare | Pecan Pie | Pie Cat | Striker | +46% Mine Speed, +23% Dirt Break |
-| Rare | Ramen | Tanuki | Striker | +46% Mine Speed, +16% Swing Rate |
-| Rare | ★ Tempo | Iris Piglet | Trader | +57% Coin Bonus, +23% Ore Haul |
-| Rare | ★ Tippy | Scaled Lemon Drake | Mystic | +19% Ricochet Chance, +9.2% Zap Chance |
-| Rare | ★ Wasabi | Aqua Fish | Tidecaller | +12% Pulverizer, +19% Scrap |
-| Epic | Bubba | Baby Hippo | Trader | +69% Coin Bonus, +28% Ore Haul |
-| Epic | ★ Canyon | Scaled Cyan Lizard | Prospector | +31% Gem Find, +15% Rare Ore |
-| Epic | ★ Marzipan | Glowing Cocoa Ray | Tidecaller | +46% Scrap, +6.9% Pulverizer |
-| Epic | ★ Nectar | Glowing Coral Turtle | Bruiser | +55% Mine Speed, +28% Dirt Break |
-| Epic | Ripple | Dolphin | Tidecaller | +14% Tidal Wave, +6.9% Pulverizer |
-| Epic | ★ Snowball | Spotted Mint Wildcat | Striker | +55% Mine Speed, +20% Swing Rate |
-| Epic | ★ Sundown | Glowing Berry Bunny | Digger | +55% Ore Haul, +28% Dirt Break |
-| Legendary | Blizzard | Ice Wolf | Striker | +49% Swing Rate, +34% Mine Speed |
-| Legendary | Drift | Shark | Tidecaller | +17% Pulverizer, +28% Scrap |
-| Legendary | ★ Huckleberry | Majestic Seafoam Fox | Striker | +68% Mine Speed, +24% Swing Rate |
-| Legendary | ★ Hummus | Regal Seafoam Critter | Digger | +68% Dirt Break, +34% Ore Haul |
-| Legendary | ★ Wick | Noble Maroon Deer | Bruiser | +68% Mine Speed, +8.5% Blast Chance |
-| Mythic | Chomp | Baby Alligator | Harvest | +89% Ore Haul, +21% Ore Finder, +17% Coin Bonus |
-| Mythic | Cinder | Lava Dragon | Harvest | +59% Ore Finder, +39% Coin Bonus, +13% Ore Haul |
-| Divine | Glimmer | Crystal Pony | Harvest | +145% Coin Bonus, +41% Ore Haul, +12% Ore Finder |
-| Divine | Halo | Angel Cat | Harvest | +116% Ore Haul, +27% Ore Finder, +22% Coin Bonus |
-| Divine | ★ Juniper | Bloom Spirit Bear | Harvest | +77% Ore Finder, +51% Coin Bonus, +17% Ore Haul |
-| Exotic | Flintlock | Pirate Parrot | Harvest | +187% Coin Bonus, +52% Ore Haul, +15% Ore Finder |
-| Exotic | Lollipop | Candy Horse | Harvest | +150% Ore Haul, +35% Ore Finder, +28% Coin Bonus |
-| Exotic | Twinkle | Fairy | Harvest | +100% Ore Finder, +66% Coin Bonus, +22% Ore Haul |
+| Common | ★ Wanderer | Gold Wyrm | Mystic | +3.8% Earthquake Chance, +2.1% Zap Chance |
+| Uncommon | ★ Bounce | Pearl Mouse | Digger | +27% Ore Finder, +20% Dirt Break |
+| Uncommon | Cloudy | Sheep | Trader | +51% Coin Bonus, +20% Ore Haul |
+| Uncommon | ★ Dibble | Banded Berry Beetle | Bruiser | +41% Dirt Break, +20% Mine Speed |
+| Uncommon | ★ Fluff | Teal Beetle | Bruiser | +41% Dirt Break, +20% Ore Haul |
+| Uncommon | Freckles | Dalmatian | Striker | +41% Mine Speed, +15% Swing Rate |
+| Uncommon | Patches | Calico Cat | Striker | +29% Swing Rate, +20% Mine Speed |
+| Uncommon | ★ Pelican | Coral Duck | Seeker | +17% Pack Luck, +10% Luck |
+| Uncommon | ★ Shale | Cherry Hawk | Seeker | +17% Pack Luck, +10% Luck |
+| Uncommon | ★ Sherbet | Honey Bunny | Digger | +41% Dirt Break, +20% Ore Haul |
+| Uncommon | ★ Sirius | Scaled Maroon Serpent | Prospector | +23% Gem Find, +11% Rare Ore |
+| Uncommon | ★ Skitter | Fuchsia Penguin | Seeker | +18% Chest Luck, +10% Luck |
+| Uncommon | ★ Slurp | Coral Owl | Seeker | +20% Luck, +9.2% Chest Luck |
+| Uncommon | ★ Solace | Sapphire Moth | Seeker | +20% Luck, +9.2% Chest Luck |
+| Uncommon | ★ Twilight | Navy Golem | Bruiser | +41% Mine Speed, +20% Dirt Break |
+| Uncommon | ★ Ukulele | Lilac Wildcat | Striker | +41% Mine Speed, +15% Swing Rate |
+| Rare | ★ Agate | Lemon Toad | Digger | +50% Ore Haul, +25% Dirt Break |
+| Rare | ★ Blip | Maroon Lamb | Trader | +62% Coin Bonus, +7.1% Lucky Block find |
+| Rare | ★ Chickpea | Orchid Slime | Tidecaller | +5.0% Tidal Wave, +17% Tidal Wave Damage |
+| Rare | Dandy | Dandelion Sprite | Mystic | +5.5% Blast Chance, +17% Blast Damage |
+| Rare | ★ Hazel | Lemon Wolf | Striker | +50% Mine Speed, +18% Swing Rate |
+| Rare | Pecan Pie | Pie Cat | Striker | +50% Mine Speed, +25% Dirt Break |
+| Rare | Ramen | Tanuki | Striker | +50% Mine Speed, +18% Swing Rate |
+| Rare | ★ Tempo | Iris Piglet | Trader | +62% Coin Bonus, +25% Ore Haul |
+| Rare | ★ Tippy | Scaled Lemon Drake | Mystic | +5.5% Shatter Chance, +17% Shatter Damage |
+| Rare | ★ Wasabi | Aqua Fish | Tidecaller | +12% Pulverizer, +21% Scrap |
+| Epic | Bubba | Baby Hippo | Trader | +78% Coin Bonus, +31% Ore Haul |
+| Epic | ★ Canyon | Scaled Cyan Lizard | Prospector | +35% Gem Find, +17% Rare Ore |
+| Epic | ★ Marzipan | Glowing Cocoa Ray | Tidecaller | +52% Scrap, +7.8% Pulverizer |
+| Epic | ★ Nectar | Glowing Coral Turtle | Bruiser | +62% Mine Speed, +31% Dirt Break |
+| Epic | Ripple | Dolphin | Tidecaller | +6.2% Tidal Wave, +21% Tidal Wave Damage |
+| Epic | ★ Snowball | Spotted Mint Wildcat | Striker | +62% Mine Speed, +22% Swing Rate |
+| Epic | ★ Sundown | Glowing Berry Bunny | Digger | +62% Ore Haul, +31% Dirt Break |
+| Legendary | Blizzard | Ice Wolf | Striker | +57% Swing Rate, +40% Mine Speed |
+| Legendary | Drift | Shark | Tidecaller | +20% Pulverizer, +33% Scrap |
+| Legendary | ★ Huckleberry | Majestic Seafoam Fox | Striker | +80% Mine Speed, +29% Swing Rate |
+| Legendary | ★ Hummus | Regal Seafoam Critter | Digger | +80% Dirt Break, +40% Ore Haul |
+| Legendary | ★ Wick | Noble Maroon Deer | Bruiser | +80% Mine Speed, +4.5% Blast Chance |
+| Mythic | Chomp | Baby Alligator | Harvest | +109% Ore Haul, +26% Ore Finder, +20% Coin Bonus |
+| Mythic | Cinder | Lava Dragon | Harvest | +73% Ore Finder, +48% Coin Bonus, +16% Ore Haul |
+| Divine | Glimmer | Crystal Pony | Harvest | +186% Coin Bonus, +52% Ore Haul, +15% Ore Finder |
+| Divine | Halo | Angel Cat | Harvest | +148% Ore Haul, +35% Ore Finder, +28% Coin Bonus |
+| Divine | ★ Juniper | Bloom Spirit Bear | Harvest | +99% Ore Finder, +65% Coin Bonus, +22% Ore Haul |
+| Exotic | Flintlock | Pirate Parrot | Harvest | +250% Coin Bonus, +70% Ore Haul, +20% Ore Finder |
+| Exotic | Lollipop | Candy Horse | Harvest | +200% Ore Haul, +47% Ore Finder, +37% Coin Bonus |
+| Exotic | Twinkle | Fairy | Harvest | +133% Ore Finder, +88% Coin Bonus, +30% Ore Haul |
 
 ## Sunscar (zone 2, 70 pets, 45 new)
 
@@ -133,58 +133,58 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Pockets | Copper Wildcat | Striker | +26% Swing Rate, +18% Mine Speed |
 | Common | ★ Raisin | Fuchsia Crab | Bruiser | +36% Dirt Break, +18% Mine Speed |
 | Common | Rook | Crow | Seeker | +16% Chest Luck, +8.9% Luck |
-| Common | ★ Scone | Rose Wyrm | Mystic | +14% Zap Chance, +7.4% Ricochet Chance |
+| Common | ★ Scone | Rose Wyrm | Mystic | +4.5% Zap Chance, +12% Zap Damage |
 | Common | Snickers | Ferret | Digger | +36% Dirt Break, +18% Ore Haul |
 | Common | ★ Somersault | Olive Penguin | Seeker | +15% Pack Luck, +8.9% Luck |
 | Common | ★ Trundle | Storm Crab | Bruiser | +36% Dirt Break, +18% Mine Speed |
 | Common | ★ Typhoon | Fuchsia Beetle | Bruiser | +36% Dirt Break, +18% Mine Speed |
 | Common | ★ Whisper | Glacier Serpent | Prospector | +20% Gem Find, +9.9% Rare Ore |
 | Common | ★ Zenith | Ruby Otter | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
-| Uncommon | Bambi | Fawn | Bruiser | +41% Mine Speed, +20% Dirt Break |
-| Uncommon | Bamboo | Panda | Bruiser | +41% Dirt Break, +20% Ore Haul |
-| Uncommon | ★ Bean | Lime Moth | Seeker | +20% Luck, +9.3% Chest Luck |
-| Uncommon | ★ Blackberry | Sapphire Piglet | Trader | +51% Coin Bonus, +5.9% Lucky Block find |
-| Uncommon | ★ Brioche | Clay Duck | Seeker | +20% Luck, +9.3% Chest Luck |
-| Uncommon | ★ Cupcake | Bubblegum Hawk | Seeker | +20% Luck, +9.3% Chest Luck |
-| Uncommon | ★ Jet | Striped Iris Pony | Trader | +51% Coin Bonus, +20% Ore Haul |
-| Uncommon | Koda | Husky | Striker | +41% Mine Speed, +15% Swing Rate |
-| Uncommon | ★ Mittens | Maroon Fish | Tidecaller | +23% Gem Find, +5.1% Pulverizer |
-| Uncommon | ★ Obsidian | Fuchsia Mouse | Digger | +27% Ore Finder, +20% Dirt Break |
-| Uncommon | ★ Pumpernickel | Cherry Wyrm | Mystic | +17% Ricochet Chance, +8.2% Zap Chance |
-| Uncommon | ★ Scurry | Thistle Golem | Bruiser | +41% Mine Speed, +20% Dirt Break |
-| Uncommon | Smudge | Gray Kitten | Striker | +41% Mine Speed, +20% Dirt Break |
-| Uncommon | ★ Tickles | Gold Toad | Digger | +41% Dirt Break, +20% Ore Haul |
-| Uncommon | ★ Trumpet | Cobalt Fox | Striker | +41% Mine Speed, +15% Swing Rate |
-| Rare | Bongo | Gorilla | Digger | +48% Ore Haul, +24% Dirt Break |
-| Rare | ★ Candle | Coral Penguin | Seeker | +20% Pack Luck, +12% Luck |
-| Rare | ★ Cedar | Plum Deer | Bruiser | +48% Mine Speed, +24% Dirt Break |
-| Rare | ★ Jam | Spotted Thistle Beetle | Bruiser | +48% Mine Speed, +6.0% Blast Chance |
-| Rare | ★ Jangle | Lime Sprite | Mystic | +19% Zap Chance, +10% Ricochet Chance |
-| Rare | Moxie | Terrier | Striker | +48% Mine Speed, +24% Dirt Break |
-| Rare | ★ Pretzel | Scaled Crimson Lizard | Prospector | +27% Gem Find, +13% Rare Ore |
-| Rare | ★ Purrcy | Jade Owl | Seeker | +22% Chest Luck, +12% Luck |
-| Rare | ★ Tiptoe | Bubblegum Mouse | Digger | +48% Ore Haul, +24% Dirt Break |
-| Rare | Turbo | Racing Turtle | Bruiser | +48% Mine Speed, +6.0% Blast Chance |
-| Epic | ★ Clink | Glowing Aqua Drake | Mystic | +22% Earthquake Chance, +12% Zap Chance |
-| Epic | ★ Glint | Glowing Cocoa Slime | Tidecaller | +14% Tidal Wave, +7.2% Pulverizer |
-| Epic | Oatmeal | Merino Sheep | Trader | +72% Coin Bonus, +8.3% Lucky Block find |
-| Epic | ★ Scruffy | Glowing Seafoam Piglet | Trader | +58% Ore Haul, +36% Coin Bonus |
-| Epic | ★ Shine | Scaled Teal Serpent | Prospector | +32% Gem Find, +16% Rare Ore |
-| Epic | ★ Thyme | Glowing Honey Lamb | Trader | +72% Coin Bonus, +29% Ore Haul |
-| Epic | Tide | Blue Shark | Tidecaller | +48% Scrap, +7.2% Pulverizer |
-| Legendary | ★ Mango | Radiant Orchid Wolf | Striker | +51% Swing Rate, +36% Mine Speed |
-| Legendary | ★ Pounce | Gleaming Lemon Bunny | Digger | +71% Ore Haul, +36% Dirt Break |
-| Legendary | Riptide | Orca | Tidecaller | +18% Pulverizer, +30% Scrap |
-| Legendary | Sterling | Silver Wolf | Striker | +71% Mine Speed, +26% Swing Rate |
-| Legendary | ★ Vega | Dazzling Pistachio Turtle | Bruiser | +71% Mine Speed, +36% Dirt Break |
-| Mythic | Drizzle | Rain Cloud Pet | Blaze | +93% Mine Speed, +23% Swing Rate, +14% Dirt Break |
-| Mythic | Fizzlet | Mini Dragon | Blaze | +67% Swing Rate, +33% Dirt Break, +14% Mine Speed |
-| Divine | ★ Helix | Sunscorch Spirit Wildcat | Blaze | +122% Dirt Break, +43% Mine Speed, +13% Swing Rate |
-| Divine | Nova | Space Cat | Blaze | +122% Mine Speed, +30% Swing Rate, +18% Dirt Break |
-| Divine | Prism | Rainbow Unicorn | Blaze | +87% Swing Rate, +43% Dirt Break, +18% Mine Speed |
-| Exotic | Crumble | Cookie Dog | Blaze | +158% Dirt Break, +55% Mine Speed, +17% Swing Rate |
-| Exotic | Juno | Space Bunny | Blaze | +158% Mine Speed, +39% Swing Rate, +24% Dirt Break |
-| Exotic | ★ Quark | Sunscorch Prism Bird | Blaze | +113% Swing Rate, +55% Dirt Break, +24% Mine Speed |
+| Uncommon | Bambi | Fawn | Bruiser | +43% Mine Speed, +21% Dirt Break |
+| Uncommon | Bamboo | Panda | Bruiser | +43% Dirt Break, +21% Ore Haul |
+| Uncommon | ★ Bean | Lime Moth | Seeker | +21% Luck, +9.7% Chest Luck |
+| Uncommon | ★ Blackberry | Sapphire Piglet | Trader | +53% Coin Bonus, +6.1% Lucky Block find |
+| Uncommon | ★ Brioche | Clay Duck | Seeker | +21% Luck, +9.7% Chest Luck |
+| Uncommon | ★ Cupcake | Bubblegum Hawk | Seeker | +21% Luck, +9.7% Chest Luck |
+| Uncommon | ★ Jet | Striped Iris Pony | Trader | +53% Coin Bonus, +21% Ore Haul |
+| Uncommon | Koda | Husky | Striker | +43% Mine Speed, +15% Swing Rate |
+| Uncommon | ★ Mittens | Maroon Fish | Tidecaller | +24% Gem Find, +5.3% Pulverizer |
+| Uncommon | ★ Obsidian | Fuchsia Mouse | Digger | +28% Ore Finder, +21% Dirt Break |
+| Uncommon | ★ Pumpernickel | Cherry Wyrm | Mystic | +4.7% Shatter Chance, +14% Shatter Damage |
+| Uncommon | ★ Scurry | Thistle Golem | Bruiser | +43% Mine Speed, +21% Dirt Break |
+| Uncommon | Smudge | Gray Kitten | Striker | +43% Mine Speed, +21% Dirt Break |
+| Uncommon | ★ Tickles | Gold Toad | Digger | +43% Dirt Break, +21% Ore Haul |
+| Uncommon | ★ Trumpet | Cobalt Fox | Striker | +43% Mine Speed, +15% Swing Rate |
+| Rare | Bongo | Gorilla | Digger | +52% Ore Haul, +26% Dirt Break |
+| Rare | ★ Candle | Coral Penguin | Seeker | +22% Pack Luck, +13% Luck |
+| Rare | ★ Cedar | Plum Deer | Bruiser | +52% Mine Speed, +26% Dirt Break |
+| Rare | ★ Jam | Spotted Thistle Beetle | Bruiser | +52% Mine Speed, +2.9% Blast Chance |
+| Rare | ★ Jangle | Lime Sprite | Mystic | +6.6% Zap Chance, +17% Zap Damage |
+| Rare | Moxie | Terrier | Striker | +52% Mine Speed, +26% Dirt Break |
+| Rare | ★ Pretzel | Scaled Crimson Lizard | Prospector | +29% Gem Find, +15% Rare Ore |
+| Rare | ★ Purrcy | Jade Owl | Seeker | +24% Chest Luck, +13% Luck |
+| Rare | ★ Tiptoe | Bubblegum Mouse | Digger | +52% Ore Haul, +26% Dirt Break |
+| Rare | Turbo | Racing Turtle | Bruiser | +52% Mine Speed, +2.9% Blast Chance |
+| Epic | ★ Clink | Glowing Aqua Drake | Mystic | +7.3% Earthquake Chance, +4.1% Zap Chance |
+| Epic | ★ Glint | Glowing Cocoa Slime | Tidecaller | +6.5% Tidal Wave, +22% Tidal Wave Damage |
+| Epic | Oatmeal | Merino Sheep | Trader | +82% Coin Bonus, +9.3% Lucky Block find |
+| Epic | ★ Scruffy | Glowing Seafoam Piglet | Trader | +65% Ore Haul, +41% Coin Bonus |
+| Epic | ★ Shine | Scaled Teal Serpent | Prospector | +36% Gem Find, +18% Rare Ore |
+| Epic | ★ Thyme | Glowing Honey Lamb | Trader | +82% Coin Bonus, +33% Ore Haul |
+| Epic | Tide | Blue Shark | Tidecaller | +54% Scrap, +8.2% Pulverizer |
+| Legendary | ★ Mango | Radiant Orchid Wolf | Striker | +60% Swing Rate, +42% Mine Speed |
+| Legendary | ★ Pounce | Gleaming Lemon Bunny | Digger | +84% Ore Haul, +42% Dirt Break |
+| Legendary | Riptide | Orca | Tidecaller | +21% Pulverizer, +35% Scrap |
+| Legendary | Sterling | Silver Wolf | Striker | +84% Mine Speed, +30% Swing Rate |
+| Legendary | ★ Vega | Dazzling Pistachio Turtle | Bruiser | +84% Mine Speed, +42% Dirt Break |
+| Mythic | Drizzle | Rain Cloud Pet | Blaze | +115% Mine Speed, +29% Swing Rate, +17% Dirt Break |
+| Mythic | Fizzlet | Mini Dragon | Blaze | +82% Swing Rate, +40% Dirt Break, +17% Mine Speed |
+| Divine | ★ Helix | Sunscorch Spirit Wildcat | Blaze | +156% Dirt Break, +55% Mine Speed, +17% Swing Rate |
+| Divine | Nova | Space Cat | Blaze | +156% Mine Speed, +39% Swing Rate, +23% Dirt Break |
+| Divine | Prism | Rainbow Unicorn | Blaze | +111% Swing Rate, +55% Dirt Break, +23% Mine Speed |
+| Exotic | Crumble | Cookie Dog | Blaze | +210% Dirt Break, +73% Mine Speed, +22% Swing Rate |
+| Exotic | Juno | Space Bunny | Blaze | +210% Mine Speed, +52% Swing Rate, +32% Dirt Break |
+| Exotic | ★ Quark | Sunscorch Prism Bird | Blaze | +150% Swing Rate, +73% Dirt Break, +32% Mine Speed |
 
 ## Mistreef (zone 3, 70 pets, 45 new)
 
@@ -213,53 +213,53 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Talisman | Sage Crab | Bruiser | +37% Dirt Break, +19% Mine Speed |
 | Common | ★ Tourmaline | Frost Beetle | Bruiser | +37% Mine Speed, +19% Dirt Break |
 | Common | ★ Twig | Fuchsia Otter | Tidecaller | +31% Scrap, +4.7% Pulverizer |
-| Common | ★ Yam | Tangerine Wyrm | Mystic | +15% Zap Chance, +7.8% Ricochet Chance |
+| Common | ★ Yam | Tangerine Wyrm | Mystic | +4.7% Zap Chance, +13% Zap Damage |
 | Common | Ziggy | Zebra | Trader | +47% Coin Bonus, +19% Ore Haul |
-| Uncommon | ★ Alder | Cherry Drake | Mystic | +17% Earthquake Chance, +8.6% Zap Chance |
-| Uncommon | ★ Bitsy | Berry Penguin | Seeker | +21% Luck, +9.8% Chest Luck |
-| Uncommon | ★ Bloom | Lagoon Lizard | Prospector | +18% Ore Luck, +12% Gem Find |
-| Uncommon | ★ Bumble | Ink Duck | Seeker | +18% Pack Luck, +11% Luck |
-| Uncommon | Clover | Deer | Bruiser | +43% Mine Speed, +21% Dirt Break |
-| Uncommon | ★ Cuddles | Poppy Piglet | Trader | +43% Ore Haul, +27% Coin Bonus |
-| Uncommon | ★ Fiddle | Periwinkle Turtle | Bruiser | +43% Mine Speed, +21% Dirt Break |
-| Uncommon | ★ Gleam | Olive Wolf | Striker | +43% Mine Speed, +15% Swing Rate |
-| Uncommon | ★ Lychee | Spotted Ink Wildcat | Striker | +43% Mine Speed, +15% Swing Rate |
-| Uncommon | Minty | Koala | Bruiser | +43% Mine Speed, +21% Dirt Break |
-| Uncommon | Miso | Shiba Inu | Striker | +43% Mine Speed, +15% Swing Rate |
-| Uncommon | ★ Mulberry | Mustard Ray | Tidecaller | +11% Pulverizer, +18% Scrap |
-| Uncommon | ★ Nickel | Tangerine Sprite | Mystic | +17% Earthquake Chance, +8.6% Zap Chance |
-| Uncommon | ★ Pewter | Lime Slime | Tidecaller | +11% Pulverizer, +18% Scrap |
-| Uncommon | Tofu | White Cat | Striker | +43% Mine Speed, +15% Swing Rate |
-| Rare | ★ Aether | Tangerine Crab | Bruiser | +51% Mine Speed, +25% Dirt Break |
-| Rare | Cherry | Red Panda | Bruiser | +51% Mine Speed, +25% Dirt Break |
-| Rare | ★ Dewdrop | Emerald Moth | Seeker | +23% Chest Luck, +13% Luck |
-| Rare | ★ Gust | Coral Dolphin | Tidecaller | +28% Gem Find, +6.3% Pulverizer |
-| Rare | ★ Kale | Spotted Emerald Beetle | Bruiser | +51% Dirt Break, +25% Ore Haul |
-| Rare | ★ Lumina | Moss Golem | Bruiser | +51% Dirt Break, +25% Mine Speed |
-| Rare | ★ Nibbler | Lime Otter | Tidecaller | +13% Tidal Wave, +6.3% Pulverizer |
-| Rare | Pipsqueak | Mouse | Digger | +34% Ore Finder, +25% Dirt Break |
-| Rare | Pogo | Kangaroo | Digger | +51% Dirt Break, +25% Ore Haul |
-| Rare | ★ Tuffy | Periwinkle Hawk | Seeker | +25% Luck, +12% Chest Luck |
-| Epic | ★ Almond | Glowing Raspberry Fish | Tidecaller | +34% Gem Find, +7.6% Pulverizer |
-| Epic | Blossom | Flower Deer | Bruiser | +61% Dirt Break, +30% Ore Haul |
-| Epic | Fern | Forest Fox | Striker | +61% Mine Speed, +22% Swing Rate |
-| Epic | ★ Skippy | Glowing Charcoal Mouse | Digger | +61% Dirt Break, +30% Ore Haul |
-| Epic | ★ Taffle | Glowing Lagoon Owl | Seeker | +25% Pack Luck, +15% Luck |
-| Epic | ★ Wuzzy | Glowing Teal Lamb | Trader | +61% Ore Haul, +38% Coin Bonus |
-| Epic | ★ Yoyo | Glowing Butter Piglet | Trader | +61% Ore Haul, +38% Coin Bonus |
-| Legendary | Cobalt | Blue Dragon | Mystic | +29% Earthquake Chance, +15% Zap Chance |
-| Legendary | ★ Finch | Shining Sky Wyrm | Mystic | +31% Ricochet Chance, +15% Zap Chance |
-| Legendary | ★ Mousse | Majestic Cream Serpent | Prospector | +42% Rare Ore, +21% Gem Find |
-| Legendary | ★ Quince | Lustrous Cocoa Bird | Seeker | +34% Chest Luck, +19% Luck |
-| Legendary | Tundra | Wolf | Striker | +75% Mine Speed, +37% Dirt Break |
-| Mythic | Fizzgig | Gremlin | Tide | +25% Tidal Wave, +8.6% Pulverizer, +12% Scrap |
-| Mythic | Pixel | Cyber Fox | Tide | +25% Pulverizer, +29% Scrap, +3.7% Tidal Wave |
-| Divine | ★ Nimbus | Tidal Spirit Toad | Tide | +107% Scrap, +11% Tidal Wave, +4.8% Pulverizer |
-| Divine | Shimmer | Mermaid Cat | Tide | +32% Tidal Wave, +11% Pulverizer, +16% Scrap |
-| Divine | Starlight | Unicorn | Tide | +32% Pulverizer, +37% Scrap, +4.8% Tidal Wave |
-| Exotic | ★ Dew | Tidal Prism Bunny | Tide | +138% Scrap, +14% Tidal Wave, +6.2% Pulverizer |
-| Exotic | Jumble | Patchwork Dog | Tide | +41% Tidal Wave, +14% Pulverizer, +21% Scrap |
-| Exotic | Mallow | Marshmallow Bunny | Tide | +41% Pulverizer, +48% Scrap, +6.2% Tidal Wave |
+| Uncommon | ★ Alder | Cherry Drake | Mystic | +5.0% Earthquake Chance, +2.8% Zap Chance |
+| Uncommon | ★ Bitsy | Berry Penguin | Seeker | +22% Luck, +10% Chest Luck |
+| Uncommon | ★ Bloom | Lagoon Lizard | Prospector | +19% Ore Luck, +12% Gem Find |
+| Uncommon | ★ Bumble | Ink Duck | Seeker | +19% Pack Luck, +11% Luck |
+| Uncommon | Clover | Deer | Bruiser | +45% Mine Speed, +22% Dirt Break |
+| Uncommon | ★ Cuddles | Poppy Piglet | Trader | +45% Ore Haul, +28% Coin Bonus |
+| Uncommon | ★ Fiddle | Periwinkle Turtle | Bruiser | +45% Mine Speed, +22% Dirt Break |
+| Uncommon | ★ Gleam | Olive Wolf | Striker | +45% Mine Speed, +16% Swing Rate |
+| Uncommon | ★ Lychee | Spotted Ink Wildcat | Striker | +45% Mine Speed, +16% Swing Rate |
+| Uncommon | Minty | Koala | Bruiser | +45% Mine Speed, +22% Dirt Break |
+| Uncommon | Miso | Shiba Inu | Striker | +45% Mine Speed, +16% Swing Rate |
+| Uncommon | ★ Mulberry | Mustard Ray | Tidecaller | +11% Pulverizer, +19% Scrap |
+| Uncommon | ★ Nickel | Tangerine Sprite | Mystic | +5.0% Earthquake Chance, +2.8% Zap Chance |
+| Uncommon | ★ Pewter | Lime Slime | Tidecaller | +11% Pulverizer, +19% Scrap |
+| Uncommon | Tofu | White Cat | Striker | +45% Mine Speed, +16% Swing Rate |
+| Rare | ★ Aether | Tangerine Crab | Bruiser | +55% Mine Speed, +28% Dirt Break |
+| Rare | Cherry | Red Panda | Bruiser | +55% Mine Speed, +28% Dirt Break |
+| Rare | ★ Dewdrop | Emerald Moth | Seeker | +25% Chest Luck, +14% Luck |
+| Rare | ★ Gust | Coral Dolphin | Tidecaller | +31% Gem Find, +6.9% Pulverizer |
+| Rare | ★ Kale | Spotted Emerald Beetle | Bruiser | +55% Dirt Break, +28% Ore Haul |
+| Rare | ★ Lumina | Moss Golem | Bruiser | +55% Dirt Break, +28% Mine Speed |
+| Rare | ★ Nibbler | Lime Otter | Tidecaller | +5.5% Tidal Wave, +18% Tidal Wave Damage |
+| Rare | Pipsqueak | Mouse | Digger | +37% Ore Finder, +28% Dirt Break |
+| Rare | Pogo | Kangaroo | Digger | +55% Dirt Break, +28% Ore Haul |
+| Rare | ★ Tuffy | Periwinkle Hawk | Seeker | +28% Luck, +13% Chest Luck |
+| Epic | ★ Almond | Glowing Raspberry Fish | Tidecaller | +38% Gem Find, +8.6% Pulverizer |
+| Epic | Blossom | Flower Deer | Bruiser | +69% Dirt Break, +34% Ore Haul |
+| Epic | Fern | Forest Fox | Striker | +69% Mine Speed, +24% Swing Rate |
+| Epic | ★ Skippy | Glowing Charcoal Mouse | Digger | +69% Dirt Break, +34% Ore Haul |
+| Epic | ★ Taffle | Glowing Lagoon Owl | Seeker | +29% Pack Luck, +17% Luck |
+| Epic | ★ Wuzzy | Glowing Teal Lamb | Trader | +69% Ore Haul, +43% Coin Bonus |
+| Epic | ★ Yoyo | Glowing Butter Piglet | Trader | +69% Ore Haul, +43% Coin Bonus |
+| Legendary | Cobalt | Blue Dragon | Mystic | +9.8% Earthquake Chance, +5.5% Zap Chance |
+| Legendary | ★ Finch | Shining Sky Wyrm | Mystic | +9.8% Shatter Chance, +29% Shatter Damage |
+| Legendary | ★ Mousse | Majestic Cream Serpent | Prospector | +49% Rare Ore, +25% Gem Find |
+| Legendary | ★ Quince | Lustrous Cocoa Bird | Seeker | +40% Chest Luck, +22% Luck |
+| Legendary | Tundra | Wolf | Striker | +88% Mine Speed, +44% Dirt Break |
+| Mythic | Fizzgig | Gremlin | Tide | +12% Tidal Wave, +28% Tidal Wave Damage, +4.5% Pulverizer |
+| Mythic | Pixel | Cyber Fox | Tide | +80% Tidal Wave Damage, +11% Pulverizer, +1.8% Tidal Wave |
+| Divine | ★ Nimbus | Tidal Spirit Toad | Tide | +41% Pulverizer, +5.7% Tidal Wave, +16% Tidal Wave Damage |
+| Divine | Shimmer | Mermaid Cat | Tide | +16% Tidal Wave, +38% Tidal Wave Damage, +6.2% Pulverizer |
+| Divine | Starlight | Unicorn | Tide | +109% Tidal Wave Damage, +14% Pulverizer, +2.4% Tidal Wave |
+| Exotic | ★ Dew | Tidal Prism Bunny | Tide | +55% Pulverizer, +7.7% Tidal Wave, +22% Tidal Wave Damage |
+| Exotic | Jumble | Patchwork Dog | Tide | +22% Tidal Wave, +51% Tidal Wave Damage, +8.3% Pulverizer |
+| Exotic | Mallow | Marshmallow Bunny | Tide | +147% Tidal Wave Damage, +19% Pulverizer, +3.3% Tidal Wave |
 
 ## Arcwork (zone 4, 70 pets, 47 new)
 
@@ -268,10 +268,10 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | Biscuit | Corgi | Striker | +39% Mine Speed, +20% Dirt Break |
 | Common | ★ Bun | Aqua Moth | Seeker | +16% Pack Luck, +9.8% Luck |
 | Common | Buttercup | Cow | Trader | +49% Coin Bonus, +5.6% Lucky Block find |
-| Common | ★ Chuckles | Maroon Sprite | Mystic | +16% Zap Chance, +8.2% Ricochet Chance |
+| Common | ★ Chuckles | Maroon Sprite | Mystic | +4.9% Zap Chance, +13% Zap Damage |
 | Common | ★ Clementine | Olive Fish | Tidecaller | +22% Gem Find, +4.9% Pulverizer |
 | Common | ★ Drifter | Jade Golem | Bruiser | +39% Mine Speed, +20% Dirt Break |
-| Common | ★ Eclair | Lavender Wyrm | Mystic | +15% Earthquake Chance, +7.9% Zap Chance |
+| Common | ★ Eclair | Lavender Wyrm | Mystic | +4.4% Earthquake Chance, +2.5% Zap Chance |
 | Common | ★ Fizzbang | Cobalt Otter | Tidecaller | +9.8% Pulverizer, +16% Scrap |
 | Common | ★ Gumball | Charcoal Wolf | Striker | +39% Mine Speed, +14% Swing Rate |
 | Common | ★ Hiccup | Lime Dolphin | Tidecaller | +9.8% Pulverizer, +16% Scrap |
@@ -290,51 +290,51 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | Scout | Beagle | Striker | +39% Mine Speed, +14% Swing Rate |
 | Common | Tango Pop | Flamingo | Seeker | +16% Pack Luck, +9.8% Luck |
 | Common | Twix | Stoat | Digger | +39% Ore Haul, +20% Dirt Break |
-| Uncommon | Bandit | Raccoon | Digger | +30% Ore Finder, +23% Dirt Break |
-| Uncommon | Bubbles | Axolotl | Digger | +45% Dirt Break, +23% Ore Haul |
-| Uncommon | ★ Fog | Ivory Otter | Tidecaller | +25% Gem Find, +5.6% Pulverizer |
-| Uncommon | ★ Fudgeball | Sapphire Ray | Tidecaller | +25% Gem Find, +5.6% Pulverizer |
-| Uncommon | ★ Kumquat | Cream Deer | Bruiser | +45% Dirt Break, +23% Mine Speed |
-| Uncommon | ★ Licorice | Cyan Beetle | Bruiser | +45% Dirt Break, +23% Ore Haul |
-| Uncommon | ★ Melody | Bronze Bunny | Digger | +30% Ore Finder, +23% Dirt Break |
-| Uncommon | Mochi | Marshmallow Bear | Bruiser | +45% Dirt Break, +23% Mine Speed |
-| Uncommon | Panko | Japanese Spitz | Striker | +32% Swing Rate, +23% Mine Speed |
-| Uncommon | ★ Pom | Aqua Serpent | Prospector | +19% Ore Luck, +13% Gem Find |
-| Uncommon | ★ River | Aqua Hawk | Seeker | +21% Chest Luck, +11% Luck |
-| Uncommon | ★ Scoot | Plum Wyrm | Mystic | +18% Zap Chance, +9.4% Ricochet Chance |
-| Uncommon | ★ Sequoia | Scaled Sky Lizard | Prospector | +25% Gem Find, +13% Rare Ore |
-| Uncommon | ★ Solstice | Poppy Mouse | Digger | +45% Ore Haul, +23% Dirt Break |
-| Uncommon | ★ Sparky | Gold Dolphin | Tidecaller | +11% Pulverizer, +19% Scrap |
-| Rare | ★ Banana | Ash Hawk | Seeker | +24% Chest Luck, +13% Luck |
-| Rare | ★ Bramblebee | Iris Wolf | Striker | +38% Swing Rate, +27% Mine Speed |
-| Rare | ★ Crescent | Cream Wildcat | Striker | +38% Swing Rate, +27% Mine Speed |
-| Rare | ★ Cymbal | Sky Bunny | Digger | +36% Ore Finder, +27% Dirt Break |
-| Rare | Echo | Owl | Seeker | +22% Pack Luck, +13% Luck |
-| Rare | Frosty | Polar Bear | Bruiser | +53% Mine Speed, +27% Dirt Break |
-| Rare | ★ Granola | Moss Crab | Bruiser | +53% Mine Speed, +6.7% Blast Chance |
-| Rare | ★ Macaron | Cobalt Duck | Seeker | +22% Pack Luck, +13% Luck |
-| Rare | Quibble | Quokka | Digger | +36% Ore Finder, +27% Dirt Break |
-| Rare | ★ Violet | Emerald Turtle | Bruiser | +53% Dirt Break, +27% Ore Haul |
-| Epic | ★ Beignet | Glowing Sky Beetle | Bruiser | +64% Mine Speed, +8.0% Blast Chance |
-| Epic | ★ Butterscotch | Glowing Cyan Moth | Seeker | +27% Pack Luck, +16% Luck |
-| Epic | ★ Flare | Glowing Maroon Mouse | Digger | +42% Ore Finder, +32% Dirt Break |
-| Epic | ★ Flicker | Glowing Cobalt Slime | Tidecaller | +16% Tidal Wave, +8.0% Pulverizer |
-| Epic | Paws | Tiger | Striker | +64% Mine Speed, +23% Swing Rate |
-| Epic | Sable | Black Fox | Striker | +45% Swing Rate, +32% Mine Speed |
-| Epic | Sproing | Tree Frog | Digger | +64% Ore Haul, +32% Dirt Break |
-| Legendary | ★ Harmony | Noble Blush Lizard | Prospector | +44% Rare Ore, +22% Gem Find |
-| Legendary | ★ Mimi | Radiant Ash Lamb | Trader | +98% Coin Bonus, +39% Ore Haul |
-| Legendary | Snowcap | Arctic Fox | Striker | +79% Mine Speed, +39% Dirt Break |
-| Legendary | ★ Sunspot | Regal Jade Penguin | Seeker | +39% Luck, +18% Chest Luck |
-| Legendary | ★ Trill | Dazzling Ash Fish | Tidecaller | +44% Gem Find, +9.8% Pulverizer |
-| Mythic | ★ Cyclone | Voltaic Crystal Drake | Volt | +41% Zap Chance, +26% Swing Rate, +6.4% Ricochet Chance |
-| Mythic | Tiki Torch | Fire Fox | Volt | +74% Swing Rate, +15% Ricochet Chance, +6.2% Zap Chance |
-| Divine | Aquamarine | Sea Dragon | Volt | +56% Ricochet Chance, +19% Zap Chance, +14% Swing Rate |
-| Divine | ★ Lantern | Voltaic Spirit Piglet | Volt | +54% Zap Chance, +34% Swing Rate, +8.4% Ricochet Chance |
-| Divine | Swirl | Ice Cream Unicorn | Volt | +96% Swing Rate, +20% Ricochet Chance, +8.1% Zap Chance |
-| Exotic | Fizzpaw | Soda Cat | Volt | +72% Ricochet Chance, +24% Zap Chance, +19% Swing Rate |
-| Exotic | Riff | Rock Star Dog | Volt | +69% Zap Chance, +43% Swing Rate, +11% Ricochet Chance |
-| Exotic | ★ Windy | Voltaic Prism Golem | Volt | +124% Swing Rate, +25% Ricochet Chance, +10% Zap Chance |
+| Uncommon | Bandit | Raccoon | Digger | +31% Ore Finder, +24% Dirt Break |
+| Uncommon | Bubbles | Axolotl | Digger | +47% Dirt Break, +24% Ore Haul |
+| Uncommon | ★ Fog | Ivory Otter | Tidecaller | +26% Gem Find, +5.9% Pulverizer |
+| Uncommon | ★ Fudgeball | Sapphire Ray | Tidecaller | +26% Gem Find, +5.9% Pulverizer |
+| Uncommon | ★ Kumquat | Cream Deer | Bruiser | +47% Dirt Break, +24% Mine Speed |
+| Uncommon | ★ Licorice | Cyan Beetle | Bruiser | +47% Dirt Break, +24% Ore Haul |
+| Uncommon | ★ Melody | Bronze Bunny | Digger | +31% Ore Finder, +24% Dirt Break |
+| Uncommon | Mochi | Marshmallow Bear | Bruiser | +47% Dirt Break, +24% Mine Speed |
+| Uncommon | Panko | Japanese Spitz | Striker | +34% Swing Rate, +24% Mine Speed |
+| Uncommon | ★ Pom | Aqua Serpent | Prospector | +20% Ore Luck, +13% Gem Find |
+| Uncommon | ★ River | Aqua Hawk | Seeker | +21% Chest Luck, +12% Luck |
+| Uncommon | ★ Scoot | Plum Wyrm | Mystic | +5.9% Zap Chance, +16% Zap Damage |
+| Uncommon | ★ Sequoia | Scaled Sky Lizard | Prospector | +26% Gem Find, +13% Rare Ore |
+| Uncommon | ★ Solstice | Poppy Mouse | Digger | +47% Ore Haul, +24% Dirt Break |
+| Uncommon | ★ Sparky | Gold Dolphin | Tidecaller | +12% Pulverizer, +20% Scrap |
+| Rare | ★ Banana | Ash Hawk | Seeker | +26% Chest Luck, +14% Luck |
+| Rare | ★ Bramblebee | Iris Wolf | Striker | +41% Swing Rate, +29% Mine Speed |
+| Rare | ★ Crescent | Cream Wildcat | Striker | +41% Swing Rate, +29% Mine Speed |
+| Rare | ★ Cymbal | Sky Bunny | Digger | +39% Ore Finder, +29% Dirt Break |
+| Rare | Echo | Owl | Seeker | +24% Pack Luck, +14% Luck |
+| Rare | Frosty | Polar Bear | Bruiser | +58% Mine Speed, +29% Dirt Break |
+| Rare | ★ Granola | Moss Crab | Bruiser | +58% Mine Speed, +3.2% Blast Chance |
+| Rare | ★ Macaron | Cobalt Duck | Seeker | +24% Pack Luck, +14% Luck |
+| Rare | Quibble | Quokka | Digger | +39% Ore Finder, +29% Dirt Break |
+| Rare | ★ Violet | Emerald Turtle | Bruiser | +58% Dirt Break, +29% Ore Haul |
+| Epic | ★ Beignet | Glowing Sky Beetle | Bruiser | +72% Mine Speed, +4.0% Blast Chance |
+| Epic | ★ Butterscotch | Glowing Cyan Moth | Seeker | +30% Pack Luck, +18% Luck |
+| Epic | ★ Flare | Glowing Maroon Mouse | Digger | +48% Ore Finder, +36% Dirt Break |
+| Epic | ★ Flicker | Glowing Cobalt Slime | Tidecaller | +7.2% Tidal Wave, +24% Tidal Wave Damage |
+| Epic | Paws | Tiger | Striker | +72% Mine Speed, +26% Swing Rate |
+| Epic | Sable | Black Fox | Striker | +51% Swing Rate, +36% Mine Speed |
+| Epic | Sproing | Tree Frog | Digger | +72% Ore Haul, +36% Dirt Break |
+| Legendary | ★ Harmony | Noble Blush Lizard | Prospector | +52% Rare Ore, +26% Gem Find |
+| Legendary | ★ Mimi | Radiant Ash Lamb | Trader | +116% Coin Bonus, +46% Ore Haul |
+| Legendary | Snowcap | Arctic Fox | Striker | +93% Mine Speed, +46% Dirt Break |
+| Legendary | ★ Sunspot | Regal Jade Penguin | Seeker | +46% Luck, +21% Chest Luck |
+| Legendary | ★ Trill | Dazzling Ash Fish | Tidecaller | +52% Gem Find, +12% Pulverizer |
+| Mythic | ★ Cyclone | Voltaic Crystal Drake | Volt | +16% Zap Chance, +30% Zap Damage, +14% Swing Rate |
+| Mythic | Tiki Torch | Fire Fox | Volt | +84% Zap Damage, +32% Swing Rate, +2.4% Zap Chance |
+| Divine | Aquamarine | Sea Dragon | Volt | +123% Swing Rate, +7.5% Zap Chance, +17% Zap Damage |
+| Divine | ★ Lantern | Voltaic Spirit Piglet | Volt | +21% Zap Chance, +40% Zap Damage, +18% Swing Rate |
+| Divine | Swirl | Ice Cream Unicorn | Volt | +115% Zap Damage, +43% Swing Rate, +3.2% Zap Chance |
+| Exotic | Fizzpaw | Soda Cat | Volt | +165% Swing Rate, +10% Zap Chance, +23% Zap Damage |
+| Exotic | Riff | Rock Star Dog | Volt | +29% Zap Chance, +54% Zap Damage, +25% Swing Rate |
+| Exotic | ★ Windy | Voltaic Prism Golem | Volt | +154% Zap Damage, +58% Swing Rate, +4.4% Zap Chance |
 
 ## Bloodmoon (zone 5, 70 pets, 47 new)
 
@@ -353,10 +353,10 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Petal | Poppy Deer | Bruiser | +41% Dirt Break, +21% Mine Speed |
 | Common | ★ Pilgrim | Maroon Wildcat | Striker | +30% Swing Rate, +21% Mine Speed |
 | Common | ★ Puff | Bubblegum Fish | Tidecaller | +34% Scrap, +5.2% Pulverizer |
-| Common | ★ Sesame | Sand Wyrm | Mystic | +17% Zap Chance, +8.6% Ricochet Chance |
+| Common | ★ Sesame | Sand Wyrm | Mystic | +5.2% Zap Chance, +14% Zap Damage |
 | Common | Skipper | Porpoise | Tidecaller | +23% Gem Find, +5.2% Pulverizer |
 | Common | ★ Sleet | Bronze Lamb | Trader | +52% Coin Bonus, +5.9% Lucky Block find |
-| Common | ★ Sorrel | Sky Sprite | Mystic | +16% Earthquake Chance, +8.3% Zap Chance |
+| Common | ★ Sorrel | Sky Sprite | Mystic | +4.6% Earthquake Chance, +2.6% Zap Chance |
 | Common | Squeaky | Guinea Pig | Trader | +52% Coin Bonus, +5.9% Lucky Block find |
 | Common | ★ Starfruit | Cobalt Serpent | Prospector | +23% Rare Ore, +11% Gem Find |
 | Common | ★ Stratus | Lagoon Slime | Tidecaller | +10% Pulverizer, +17% Scrap |
@@ -365,51 +365,51 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Thunder | Teal Duck | Seeker | +21% Luck, +9.4% Chest Luck |
 | Common | Tiki | Toucan | Seeker | +21% Luck, +9.4% Chest Luck |
 | Common | ★ Titan | Teal Wolf | Striker | +30% Swing Rate, +21% Mine Speed |
-| Uncommon | ★ Biscuitbun | Plum Fish | Tidecaller | +12% Pulverizer, +20% Scrap |
-| Uncommon | ★ Chirp | Iris Toad | Digger | +32% Ore Finder, +24% Dirt Break |
-| Uncommon | Dusty | Armadillo | Digger | +32% Ore Finder, +24% Dirt Break |
-| Uncommon | ★ Elderberry | Ivory Slime | Tidecaller | +26% Gem Find, +5.9% Pulverizer |
-| Uncommon | ★ Gale | Fern Moth | Seeker | +24% Luck, +11% Chest Luck |
-| Uncommon | Honey | Bee | Bruiser | +47% Dirt Break, +24% Ore Haul |
-| Uncommon | ★ Nectarine | Cyan Golem | Bruiser | +47% Dirt Break, +24% Mine Speed |
-| Uncommon | ★ Pinwheel | Aqua Bunny | Digger | +47% Ore Haul, +24% Dirt Break |
-| Uncommon | Pompom | Pomeranian | Striker | +47% Mine Speed, +24% Dirt Break |
-| Uncommon | ★ Pudge | Cherry Fox | Striker | +47% Mine Speed, +24% Dirt Break |
-| Uncommon | Reef | Sea Turtle | Bruiser | +47% Dirt Break, +24% Mine Speed |
-| Uncommon | ★ Saunter | Smoke Deer | Bruiser | +47% Dirt Break, +24% Ore Haul |
-| Uncommon | ★ Tamale | Emerald Crab | Bruiser | +47% Dirt Break, +24% Ore Haul |
-| Uncommon | ★ Toast | Cobalt Pony | Trader | +59% Coin Bonus, +6.8% Lucky Block find |
-| Uncommon | ★ Yodel | Lavender Sprite | Mystic | +19% Zap Chance, +9.9% Ricochet Chance |
-| Rare | ★ Daisy | Moss Ray | Tidecaller | +47% Scrap, +7.0% Pulverizer |
-| Rare | Dazzle | Peacock | Seeker | +23% Pack Luck, +14% Luck |
-| Rare | ★ Jay | Cyan Fox | Striker | +56% Mine Speed, +20% Swing Rate |
-| Rare | ★ Lark | Spotted Peach Beetle | Bruiser | +56% Dirt Break, +28% Mine Speed |
-| Rare | Pippa | Penguin | Seeker | +28% Luck, +13% Chest Luck |
-| Rare | ★ Puzzle | Plum Dolphin | Tidecaller | +47% Scrap, +7.0% Pulverizer |
-| Rare | Quill | Porcupine | Digger | +37% Ore Finder, +28% Dirt Break |
-| Rare | ★ Stardust | Charcoal Wyrm | Mystic | +23% Ricochet Chance, +11% Zap Chance |
-| Rare | ★ Tinkle | Emerald Otter | Tidecaller | +31% Gem Find, +7.0% Pulverizer |
-| Rare | ★ Trinket | Scaled Olive Serpent | Prospector | +31% Rare Ore, +16% Gem Find |
-| Epic | ★ Breeze | Glowing Iris Mouse | Digger | +67% Dirt Break, +33% Ore Haul |
-| Epic | Cranberry | Red Bird | Seeker | +33% Luck, +15% Chest Luck |
-| Epic | ★ Dinky | Glowing Fern Wildcat | Striker | +67% Mine Speed, +24% Swing Rate |
-| Epic | Fable | Griffin | Seeker | +33% Luck, +15% Chest Luck |
-| Epic | ★ Melon | Glowing Cyan Bunny | Digger | +67% Ore Haul, +33% Dirt Break |
-| Epic | ★ Piper | Glowing Clay Drake | Mystic | +28% Ricochet Chance, +13% Zap Chance |
-| Epic | ★ Plop | Glowing Lime Owl | Seeker | +28% Pack Luck, +17% Luck |
-| Legendary | Bramble | Thorn Bear | Bruiser | +83% Mine Speed, +41% Dirt Break |
-| Legendary | ★ Gelato | Shining Aqua Wolf | Striker | +59% Swing Rate, +41% Mine Speed |
-| Legendary | ★ Heather | Lustrous Olive Duck | Seeker | +41% Luck, +19% Chest Luck |
-| Legendary | Swoop | Eagle | Seeker | +34% Pack Luck, +21% Luck |
-| Legendary | ★ Udon | Gleaming Cocoa Lizard | Prospector | +34% Ore Luck, +23% Gem Find |
-| Mythic | Brix | Brick Golem | Fortune | +54% Luck, +17% Chest Luck, +6.8% Pack Luck |
-| Mythic | ★ Parfait | Crimson Crystal Penguin | Fortune | +49% Chest Luck, +16% Pack Luck, +8.1% Luck |
-| Divine | Galaxy | Space Dragon | Fortune | +59% Pack Luck, +25% Luck, +9.6% Chest Luck |
-| Divine | ★ Oracle | Crimson Spirit Turtle | Fortune | +71% Luck, +22% Chest Luck, +8.8% Pack Luck |
-| Divine | Orbitz | Planet Pup | Fortune | +64% Chest Luck, +21% Pack Luck, +11% Luck |
-| Exotic | ★ Croissant | Crimson Prism Lamb | Fortune | +76% Pack Luck, +32% Luck, +12% Chest Luck |
-| Exotic | Jinx | Shadow Cat | Fortune | +91% Luck, +29% Chest Luck, +11% Pack Luck |
-| Exotic | Rocket | Robot Dog | Fortune | +83% Chest Luck, +27% Pack Luck, +14% Luck |
+| Uncommon | ★ Biscuitbun | Plum Fish | Tidecaller | +12% Pulverizer, +21% Scrap |
+| Uncommon | ★ Chirp | Iris Toad | Digger | +33% Ore Finder, +25% Dirt Break |
+| Uncommon | Dusty | Armadillo | Digger | +33% Ore Finder, +25% Dirt Break |
+| Uncommon | ★ Elderberry | Ivory Slime | Tidecaller | +27% Gem Find, +6.2% Pulverizer |
+| Uncommon | ★ Gale | Fern Moth | Seeker | +25% Luck, +11% Chest Luck |
+| Uncommon | Honey | Bee | Bruiser | +49% Dirt Break, +25% Ore Haul |
+| Uncommon | ★ Nectarine | Cyan Golem | Bruiser | +49% Dirt Break, +25% Mine Speed |
+| Uncommon | ★ Pinwheel | Aqua Bunny | Digger | +49% Ore Haul, +25% Dirt Break |
+| Uncommon | Pompom | Pomeranian | Striker | +49% Mine Speed, +25% Dirt Break |
+| Uncommon | ★ Pudge | Cherry Fox | Striker | +49% Mine Speed, +25% Dirt Break |
+| Uncommon | Reef | Sea Turtle | Bruiser | +49% Dirt Break, +25% Mine Speed |
+| Uncommon | ★ Saunter | Smoke Deer | Bruiser | +49% Dirt Break, +25% Ore Haul |
+| Uncommon | ★ Tamale | Emerald Crab | Bruiser | +49% Dirt Break, +25% Ore Haul |
+| Uncommon | ★ Toast | Cobalt Pony | Trader | +62% Coin Bonus, +7.1% Lucky Block find |
+| Uncommon | ★ Yodel | Lavender Sprite | Mystic | +6.2% Zap Chance, +16% Zap Damage |
+| Rare | ★ Daisy | Moss Ray | Tidecaller | +51% Scrap, +7.6% Pulverizer |
+| Rare | Dazzle | Peacock | Seeker | +25% Pack Luck, +15% Luck |
+| Rare | ★ Jay | Cyan Fox | Striker | +61% Mine Speed, +22% Swing Rate |
+| Rare | ★ Lark | Spotted Peach Beetle | Bruiser | +61% Dirt Break, +30% Mine Speed |
+| Rare | Pippa | Penguin | Seeker | +30% Luck, +14% Chest Luck |
+| Rare | ★ Puzzle | Plum Dolphin | Tidecaller | +51% Scrap, +7.6% Pulverizer |
+| Rare | Quill | Porcupine | Digger | +40% Ore Finder, +30% Dirt Break |
+| Rare | ★ Stardust | Charcoal Wyrm | Mystic | +6.8% Shatter Chance, +20% Shatter Damage |
+| Rare | ★ Tinkle | Emerald Otter | Tidecaller | +34% Gem Find, +7.6% Pulverizer |
+| Rare | ★ Trinket | Scaled Olive Serpent | Prospector | +34% Rare Ore, +17% Gem Find |
+| Epic | ★ Breeze | Glowing Iris Mouse | Digger | +76% Dirt Break, +38% Ore Haul |
+| Epic | Cranberry | Red Bird | Seeker | +38% Luck, +17% Chest Luck |
+| Epic | ★ Dinky | Glowing Fern Wildcat | Striker | +76% Mine Speed, +27% Swing Rate |
+| Epic | Fable | Griffin | Seeker | +38% Luck, +17% Chest Luck |
+| Epic | ★ Melon | Glowing Cyan Bunny | Digger | +76% Ore Haul, +38% Dirt Break |
+| Epic | ★ Piper | Glowing Clay Drake | Mystic | +8.4% Shatter Chance, +25% Shatter Damage |
+| Epic | ★ Plop | Glowing Lime Owl | Seeker | +32% Pack Luck, +19% Luck |
+| Legendary | Bramble | Thorn Bear | Bruiser | +97% Mine Speed, +49% Dirt Break |
+| Legendary | ★ Gelato | Shining Aqua Wolf | Striker | +70% Swing Rate, +49% Mine Speed |
+| Legendary | ★ Heather | Lustrous Olive Duck | Seeker | +49% Luck, +22% Chest Luck |
+| Legendary | Swoop | Eagle | Seeker | +41% Pack Luck, +24% Luck |
+| Legendary | ★ Udon | Gleaming Cocoa Lizard | Prospector | +41% Ore Luck, +27% Gem Find |
+| Mythic | Brix | Brick Golem | Fortune | +66% Luck, +21% Chest Luck, +8.3% Pack Luck |
+| Mythic | ★ Parfait | Crimson Crystal Penguin | Fortune | +60% Chest Luck, +19% Pack Luck, +10.0% Luck |
+| Divine | Galaxy | Space Dragon | Fortune | +75% Pack Luck, +32% Luck, +12% Chest Luck |
+| Divine | ★ Oracle | Crimson Spirit Turtle | Fortune | +90% Luck, +29% Chest Luck, +11% Pack Luck |
+| Divine | Orbitz | Planet Pup | Fortune | +82% Chest Luck, +26% Pack Luck, +14% Luck |
+| Exotic | ★ Croissant | Crimson Prism Lamb | Fortune | +101% Pack Luck, +43% Luck, +17% Chest Luck |
+| Exotic | Jinx | Shadow Cat | Fortune | +122% Luck, +39% Chest Luck, +15% Pack Luck |
+| Exotic | Rocket | Robot Dog | Fortune | +110% Chest Luck, +35% Pack Luck, +18% Luck |
 
 ## Eclipse (zone 6, 70 pets, 47 new)
 
@@ -428,69 +428,69 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Fritter | Peach Wolf | Striker | +31% Swing Rate, +22% Mine Speed |
 | Common | ★ Lookout | Rose Beetle | Bruiser | +43% Mine Speed, +22% Dirt Break |
 | Common | ★ Mica | Cobalt Wildcat | Striker | +43% Mine Speed, +16% Swing Rate |
-| Common | ★ Poplar | Denim Wyrm | Mystic | +18% Ricochet Chance, +8.7% Zap Chance |
+| Common | ★ Poplar | Denim Wyrm | Mystic | +4.8% Shatter Chance, +14% Shatter Damage |
 | Common | ★ Pulsar | Peach Slime | Tidecaller | +36% Scrap, +5.4% Pulverizer |
 | Common | Soot | Coal Cat | Striker | +31% Swing Rate, +22% Mine Speed |
 | Common | ★ Souffle | Fuchsia Ray | Tidecaller | +24% Gem Find, +5.4% Pulverizer |
 | Common | ★ Sparrow | Olive Owl | Seeker | +22% Luck, +9.9% Chest Luck |
 | Common | ★ Spruce | Silver Otter | Tidecaller | +11% Pulverizer, +18% Scrap |
-| Common | ★ Sundae | Cinnamon Sprite | Mystic | +17% Earthquake Chance, +8.7% Zap Chance |
+| Common | ★ Sundae | Cinnamon Sprite | Mystic | +4.8% Earthquake Chance, +2.7% Zap Chance |
 | Common | Sunny | Duckling | Seeker | +22% Luck, +9.9% Chest Luck |
 | Common | Truffle | Pig | Trader | +54% Coin Bonus, +22% Ore Haul |
 | Common | ★ Tulip | Lagoon Crab | Bruiser | +43% Dirt Break, +22% Ore Haul |
 | Common | ★ Twinkletoes | Jade Fish | Tidecaller | +36% Scrap, +5.4% Pulverizer |
 | Common | Wicket | Ewok-like Bear | Bruiser | +43% Mine Speed, +22% Dirt Break |
-| Uncommon | Basil | Green Parrot | Seeker | +25% Luck, +11% Chest Luck |
-| Uncommon | ★ Beryl | Iris Duck | Seeker | +23% Chest Luck, +12% Luck |
-| Uncommon | ★ Burrow | Aqua Penguin | Seeker | +23% Chest Luck, +12% Luck |
-| Uncommon | ★ Chestnut | Maroon Pony | Trader | +62% Coin Bonus, +25% Ore Haul |
-| Uncommon | ★ Creek | Maroon Owl | Seeker | +23% Chest Luck, +12% Luck |
-| Uncommon | ★ Crepe | Scaled Blush Drake | Mystic | +21% Ricochet Chance, +10.0% Zap Chance |
-| Uncommon | ★ Dizzy | Rose Slime | Tidecaller | +41% Scrap, +6.2% Pulverizer |
-| Uncommon | ★ Jelly | Mustard Serpent | Prospector | +28% Rare Ore, +14% Gem Find |
-| Uncommon | ★ Monsoon | Sand Crab | Bruiser | +50% Mine Speed, +25% Dirt Break |
-| Uncommon | Opie | Opossum | Digger | +50% Dirt Break, +25% Ore Haul |
-| Uncommon | ★ Saturn | Ash Fox | Striker | +50% Mine Speed, +25% Dirt Break |
-| Uncommon | Skittles | Chameleon | Prospector | +28% Gem Find, +14% Rare Ore |
-| Uncommon | ★ Snap | Charcoal Turtle | Bruiser | +50% Dirt Break, +25% Mine Speed |
-| Uncommon | ★ Taco | Clay Wolf | Striker | +50% Mine Speed, +18% Swing Rate |
-| Uncommon | ★ Twang | Berry Lamb | Trader | +50% Ore Haul, +31% Coin Bonus |
-| Rare | ★ Chatter | Fuchsia Golem | Bruiser | +59% Dirt Break, +29% Ore Haul |
-| Rare | ★ Elm | Slate Hawk | Seeker | +27% Chest Luck, +15% Luck |
-| Rare | ★ Kindle | Sapphire Sprite | Mystic | +23% Zap Chance, +12% Ricochet Chance |
-| Rare | Kiwi | Green Bird | Seeker | +27% Chest Luck, +15% Luck |
-| Rare | ★ Nomad | Lime Fox | Striker | +59% Mine Speed, +29% Dirt Break |
-| Rare | Snug | Sloth | Digger | +59% Ore Haul, +29% Dirt Break |
-| Rare | Tater | Potato Penguin | Seeker | +24% Pack Luck, +15% Luck |
-| Rare | ★ Thrum | Aqua Piglet | Trader | +59% Ore Haul, +37% Coin Bonus |
-| Rare | ★ Valor | Cyan Ray | Tidecaller | +49% Scrap, +7.3% Pulverizer |
-| Rare | ★ Willow | Smoke Wildcat | Striker | +59% Mine Speed, +29% Dirt Break |
-| Epic | ★ Crunch | Glowing Iris Dolphin | Tidecaller | +18% Pulverizer, +29% Scrap |
-| Epic | Dandelion | Yellow Chick | Seeker | +35% Luck, +16% Chest Luck |
-| Epic | Jett | Falcon | Seeker | +35% Luck, +16% Chest Luck |
-| Epic | ★ Plucky | Glowing Tangerine Deer | Bruiser | +70% Dirt Break, +35% Mine Speed |
-| Epic | ★ Rowan | Banded Fern Beetle | Bruiser | +70% Mine Speed, +35% Dirt Break |
-| Epic | ★ Spire | Glowing Berry Toad | Digger | +70% Ore Haul, +35% Dirt Break |
-| Epic | ★ Twiggy | Glowing Sage Otter | Tidecaller | +18% Pulverizer, +29% Scrap |
-| Legendary | Huckle | Blue Bear | Bruiser | +87% Mine Speed, +11% Blast Chance |
-| Legendary | ★ Leapfrog | Noble Maroon Moth | Seeker | +39% Chest Luck, +22% Luck |
-| Legendary | ★ Meteor | Majestic Jade Mouse | Digger | +87% Ore Haul, +43% Dirt Break |
-| Legendary | Pizzazz | Party Pony | Trader | +108% Coin Bonus, +12% Lucky Block find |
-| Legendary | ★ Sorbet | Regal Lime Fish | Tidecaller | +48% Gem Find, +11% Pulverizer |
-| Mythic | Flint | Rock Golem | Shadow | +44% Earthquake Chance, +9.9% Blast Chance, +17% Dirt Break |
-| Mythic | Yeti | Snow Monster | Shadow | +28% Blast Chance, +40% Dirt Break, +6.6% Earthquake Chance |
-| Divine | ★ Fondue | Umbral Spirit Wyrm | Shadow | +148% Dirt Break, +20% Earthquake Chance, +5.5% Blast Chance |
-| Divine | Moondust | Lunar Dragon | Shadow | +57% Earthquake Chance, +13% Blast Chance, +22% Dirt Break |
-| Divine | Vivid | Rainbow Gecko | Shadow | +37% Blast Chance, +52% Dirt Break, +8.5% Earthquake Chance |
-| Exotic | ★ Lily | Umbral Prism Bunny | Shadow | +191% Dirt Break, +26% Earthquake Chance, +7.2% Blast Chance |
-| Exotic | Sprinkles | Cupcake Cat | Shadow | +74% Earthquake Chance, +17% Blast Chance, +29% Dirt Break |
-| Exotic | Tumble | Tumbleweed Pup | Shadow | +48% Blast Chance, +67% Dirt Break, +11% Earthquake Chance |
+| Uncommon | Basil | Green Parrot | Seeker | +26% Luck, +12% Chest Luck |
+| Uncommon | ★ Beryl | Iris Duck | Seeker | +24% Chest Luck, +13% Luck |
+| Uncommon | ★ Burrow | Aqua Penguin | Seeker | +24% Chest Luck, +13% Luck |
+| Uncommon | ★ Chestnut | Maroon Pony | Trader | +65% Coin Bonus, +26% Ore Haul |
+| Uncommon | ★ Creek | Maroon Owl | Seeker | +24% Chest Luck, +13% Luck |
+| Uncommon | ★ Crepe | Scaled Blush Drake | Mystic | +5.8% Shatter Chance, +17% Shatter Damage |
+| Uncommon | ★ Dizzy | Rose Slime | Tidecaller | +43% Scrap, +6.5% Pulverizer |
+| Uncommon | ★ Jelly | Mustard Serpent | Prospector | +29% Rare Ore, +14% Gem Find |
+| Uncommon | ★ Monsoon | Sand Crab | Bruiser | +52% Mine Speed, +26% Dirt Break |
+| Uncommon | Opie | Opossum | Digger | +52% Dirt Break, +26% Ore Haul |
+| Uncommon | ★ Saturn | Ash Fox | Striker | +52% Mine Speed, +26% Dirt Break |
+| Uncommon | Skittles | Chameleon | Prospector | +29% Gem Find, +14% Rare Ore |
+| Uncommon | ★ Snap | Charcoal Turtle | Bruiser | +52% Dirt Break, +26% Mine Speed |
+| Uncommon | ★ Taco | Clay Wolf | Striker | +52% Mine Speed, +19% Swing Rate |
+| Uncommon | ★ Twang | Berry Lamb | Trader | +52% Ore Haul, +32% Coin Bonus |
+| Rare | ★ Chatter | Fuchsia Golem | Bruiser | +64% Dirt Break, +32% Ore Haul |
+| Rare | ★ Elm | Slate Hawk | Seeker | +29% Chest Luck, +16% Luck |
+| Rare | ★ Kindle | Sapphire Sprite | Mystic | +8.0% Zap Chance, +21% Zap Damage |
+| Rare | Kiwi | Green Bird | Seeker | +29% Chest Luck, +16% Luck |
+| Rare | ★ Nomad | Lime Fox | Striker | +64% Mine Speed, +32% Dirt Break |
+| Rare | Snug | Sloth | Digger | +64% Ore Haul, +32% Dirt Break |
+| Rare | Tater | Potato Penguin | Seeker | +27% Pack Luck, +16% Luck |
+| Rare | ★ Thrum | Aqua Piglet | Trader | +64% Ore Haul, +40% Coin Bonus |
+| Rare | ★ Valor | Cyan Ray | Tidecaller | +53% Scrap, +8.0% Pulverizer |
+| Rare | ★ Willow | Smoke Wildcat | Striker | +64% Mine Speed, +32% Dirt Break |
+| Epic | ★ Crunch | Glowing Iris Dolphin | Tidecaller | +20% Pulverizer, +33% Scrap |
+| Epic | Dandelion | Yellow Chick | Seeker | +40% Luck, +18% Chest Luck |
+| Epic | Jett | Falcon | Seeker | +40% Luck, +18% Chest Luck |
+| Epic | ★ Plucky | Glowing Tangerine Deer | Bruiser | +79% Dirt Break, +40% Mine Speed |
+| Epic | ★ Rowan | Banded Fern Beetle | Bruiser | +79% Mine Speed, +40% Dirt Break |
+| Epic | ★ Spire | Glowing Berry Toad | Digger | +79% Ore Haul, +40% Dirt Break |
+| Epic | ★ Twiggy | Glowing Sage Otter | Tidecaller | +20% Pulverizer, +33% Scrap |
+| Legendary | Huckle | Blue Bear | Bruiser | +102% Mine Speed, +5.7% Blast Chance |
+| Legendary | ★ Leapfrog | Noble Maroon Moth | Seeker | +47% Chest Luck, +26% Luck |
+| Legendary | ★ Meteor | Majestic Jade Mouse | Digger | +102% Ore Haul, +51% Dirt Break |
+| Legendary | Pizzazz | Party Pony | Trader | +128% Coin Bonus, +15% Lucky Block find |
+| Legendary | ★ Sorbet | Regal Lime Fish | Tidecaller | +57% Gem Find, +13% Pulverizer |
+| Mythic | Flint | Rock Golem | Shadow | +15% Blast Chance, +33% Blast Damage, +2.3% Earthquake Chance |
+| Mythic | Yeti | Snow Monster | Shadow | +93% Blast Damage, +5.4% Earthquake Chance, +2.3% Blast Chance |
+| Divine | ★ Fondue | Umbral Spirit Wyrm | Shadow | +21% Earthquake Chance, +7.4% Blast Chance, +19% Blast Damage |
+| Divine | Moondust | Lunar Dragon | Shadow | +21% Blast Chance, +44% Blast Damage, +3.2% Earthquake Chance |
+| Divine | Vivid | Rainbow Gecko | Shadow | +126% Blast Damage, +7.4% Earthquake Chance, +3.2% Blast Chance |
+| Exotic | ★ Lily | Umbral Prism Bunny | Shadow | +28% Earthquake Chance, +9.9% Blast Chance, +26% Blast Damage |
+| Exotic | Sprinkles | Cupcake Cat | Shadow | +28% Blast Chance, +60% Blast Damage, +4.3% Earthquake Chance |
+| Exotic | Tumble | Tumbleweed Pup | Shadow | +170% Blast Damage, +9.9% Earthquake Chance, +4.3% Blast Chance |
 
 ## Riftmarch (zone 7, 70 pets, 46 new)
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | ★ Baguette | Bronze Wyrm | Mystic | +18% Zap Chance, +9.5% Ricochet Chance |
+| Common | ★ Baguette | Bronze Wyrm | Mystic | +5.7% Zap Chance, +15% Zap Damage |
 | Common | ★ Bugle | Navy Fish | Tidecaller | +38% Scrap, +5.7% Pulverizer |
 | Common | ★ Campfire | Teal Fox | Striker | +46% Mine Speed, +16% Swing Rate |
 | Common | Chippy | Chipmunk | Digger | +46% Ore Haul, +23% Dirt Break |
@@ -498,7 +498,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | Comet | Dog | Striker | +46% Mine Speed, +23% Dirt Break |
 | Common | Crickets | Cricket | Bruiser | +46% Dirt Break, +23% Ore Haul |
 | Common | Flopsy | Rabbit | Digger | +46% Dirt Break, +23% Ore Haul |
-| Common | ★ Gizmo | Plum Sprite | Mystic | +19% Ricochet Chance, +9.1% Zap Chance |
+| Common | ★ Gizmo | Plum Sprite | Mystic | +5.1% Shatter Chance, +15% Shatter Damage |
 | Common | ★ Glade | Raspberry Slime | Tidecaller | +11% Pulverizer, +19% Scrap |
 | Common | ★ Graphite | Lemon Turtle | Bruiser | +46% Dirt Break, +23% Ore Haul |
 | Common | ★ Leaf | Jade Wolf | Striker | +46% Mine Speed, +23% Dirt Break |
@@ -515,51 +515,51 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | Whiskers | Cat | Striker | +33% Swing Rate, +23% Mine Speed |
 | Common | ★ Wren | Ruby Pony | Trader | +46% Ore Haul, +28% Coin Bonus |
 | Common | ★ Zinnia | Navy Toad | Digger | +46% Ore Haul, +23% Dirt Break |
-| Uncommon | Acorn | Squirrel | Digger | +52% Ore Haul, +26% Dirt Break |
-| Uncommon | ★ Briar | Cocoa Piglet | Trader | +65% Coin Bonus, +7.5% Lucky Block find |
-| Uncommon | ★ Calcite | Tangerine Lamb | Trader | +65% Coin Bonus, +7.5% Lucky Block find |
-| Uncommon | Chirpy | Canary | Seeker | +26% Luck, +12% Chest Luck |
-| Uncommon | ★ Gooseberry | Cyan Wyrm | Mystic | +21% Zap Chance, +11% Ricochet Chance |
-| Uncommon | ★ Papaya | Caramel Toad | Digger | +35% Ore Finder, +26% Dirt Break |
-| Uncommon | ★ Plasma | Pistachio Moth | Seeker | +26% Luck, +12% Chest Luck |
-| Uncommon | ★ Pomelo | Berry Bear | Bruiser | +52% Mine Speed, +26% Dirt Break |
-| Uncommon | Puddle | Otter | Digger | +52% Dirt Break, +26% Ore Haul |
-| Uncommon | ★ Scamper | Clay Penguin | Seeker | +24% Chest Luck, +13% Luck |
-| Uncommon | ★ Speckles | Cherry Sprite | Mystic | +21% Zap Chance, +11% Ricochet Chance |
-| Uncommon | ★ Stone | Lemon Golem | Bruiser | +52% Dirt Break, +26% Ore Haul |
-| Uncommon | ★ Sunbeam | Cobalt Owl | Seeker | +24% Chest Luck, +13% Luck |
-| Uncommon | ★ Taffytail | Iris Deer | Bruiser | +52% Dirt Break, +26% Ore Haul |
-| Uncommon | ★ Trailblazer | Cream Hawk | Seeker | +24% Chest Luck, +13% Luck |
-| Rare | ★ Cobbler | Striped Cinnamon Pony | Trader | +77% Coin Bonus, +8.8% Lucky Block find |
-| Rare | ★ Hum | Iris Turtle | Bruiser | +62% Dirt Break, +31% Mine Speed |
-| Rare | Lotus | Pink Dolphin | Tidecaller | +15% Pulverizer, +26% Scrap |
-| Rare | ★ Lulu | Fuchsia Fish | Tidecaller | +51% Scrap, +7.7% Pulverizer |
-| Rare | ★ Pinecone | Cyan Crab | Bruiser | +62% Mine Speed, +31% Dirt Break |
-| Rare | Plume | Swan | Seeker | +28% Chest Luck, +15% Luck |
-| Rare | Squiggle | Octopus | Tidecaller | +34% Gem Find, +7.7% Pulverizer |
-| Rare | ★ Squirt | Tangerine Wolf | Striker | +62% Mine Speed, +22% Swing Rate |
-| Rare | ★ Tuba | Aqua Slime | Tidecaller | +15% Tidal Wave, +7.7% Pulverizer |
-| Rare | ★ Tumbleweed | Rose Drake | Mystic | +15% Blast Chance, +12% Zap Chance |
-| Epic | Cactus | Desert Lizard | Prospector | +31% Ore Luck, +20% Gem Find |
-| Epic | ★ Dribble | Glowing Mustard Critter | Digger | +49% Ore Finder, +37% Dirt Break |
-| Epic | ★ Garnet | Glowing Fuchsia Duck | Seeker | +37% Luck, +17% Chest Luck |
-| Epic | ★ Glen | Glowing Emerald Bear | Bruiser | +74% Dirt Break, +37% Mine Speed |
-| Epic | Gumdrop | Candy Bunny | Digger | +49% Ore Finder, +37% Dirt Break |
-| Epic | ★ Nebula | Glowing Cocoa Fox | Striker | +53% Swing Rate, +37% Mine Speed |
-| Epic | ★ Thorn | Glowing Jade Ray | Tidecaller | +41% Gem Find, +9.2% Pulverizer |
-| Legendary | Flash | Cheetah | Striker | +91% Mine Speed, +33% Swing Rate |
-| Legendary | ★ Jigsaw | Gleaming Cyan Toad | Digger | +91% Ore Haul, +46% Dirt Break |
-| Legendary | ★ Rush | Radiant Maroon Otter | Tidecaller | +23% Tidal Wave, +11% Pulverizer |
-| Legendary | Topaz | Golden Retriever | Striker | +91% Mine Speed, +46% Dirt Break |
-| Legendary | ★ Ziti | Dazzling Tangerine Dolphin | Tidecaller | +23% Tidal Wave, +11% Pulverizer |
-| Mythic | Pollen | Bumblebee | Quake | +46% Earthquake Chance, +17% Ricochet Chance, +18% Mine Speed |
-| Mythic | Spark | Phoenix | Quake | +50% Ricochet Chance, +42% Mine Speed, +6.9% Earthquake Chance |
-| Divine | Bolt | Lightning Leopard | Quake | +155% Mine Speed, +21% Earthquake Chance, +9.7% Ricochet Chance |
-| Divine | Shiver | Ice Dragon | Quake | +60% Earthquake Chance, +23% Ricochet Chance, +23% Mine Speed |
-| Divine | Vortex | Storm Serpent | Quake | +65% Ricochet Chance, +54% Mine Speed, +9.0% Earthquake Chance |
-| Exotic | Sizzle | Fire Lizard | Quake | +201% Mine Speed, +27% Earthquake Chance, +13% Ricochet Chance |
-| Exotic | Taffy | Candy Cat | Quake | +77% Earthquake Chance, +29% Ricochet Chance, +30% Mine Speed |
-| Exotic | ★ Wiggles | Riftborn Prism Deer | Quake | +84% Ricochet Chance, +70% Mine Speed, +12% Earthquake Chance |
+| Uncommon | Acorn | Squirrel | Digger | +54% Ore Haul, +27% Dirt Break |
+| Uncommon | ★ Briar | Cocoa Piglet | Trader | +68% Coin Bonus, +7.8% Lucky Block find |
+| Uncommon | ★ Calcite | Tangerine Lamb | Trader | +68% Coin Bonus, +7.8% Lucky Block find |
+| Uncommon | Chirpy | Canary | Seeker | +27% Luck, +12% Chest Luck |
+| Uncommon | ★ Gooseberry | Cyan Wyrm | Mystic | +6.8% Zap Chance, +18% Zap Damage |
+| Uncommon | ★ Papaya | Caramel Toad | Digger | +36% Ore Finder, +27% Dirt Break |
+| Uncommon | ★ Plasma | Pistachio Moth | Seeker | +27% Luck, +12% Chest Luck |
+| Uncommon | ★ Pomelo | Berry Bear | Bruiser | +54% Mine Speed, +27% Dirt Break |
+| Uncommon | Puddle | Otter | Digger | +54% Dirt Break, +27% Ore Haul |
+| Uncommon | ★ Scamper | Clay Penguin | Seeker | +25% Chest Luck, +14% Luck |
+| Uncommon | ★ Speckles | Cherry Sprite | Mystic | +6.8% Zap Chance, +18% Zap Damage |
+| Uncommon | ★ Stone | Lemon Golem | Bruiser | +54% Dirt Break, +27% Ore Haul |
+| Uncommon | ★ Sunbeam | Cobalt Owl | Seeker | +25% Chest Luck, +14% Luck |
+| Uncommon | ★ Taffytail | Iris Deer | Bruiser | +54% Dirt Break, +27% Ore Haul |
+| Uncommon | ★ Trailblazer | Cream Hawk | Seeker | +25% Chest Luck, +14% Luck |
+| Rare | ★ Cobbler | Striped Cinnamon Pony | Trader | +84% Coin Bonus, +9.6% Lucky Block find |
+| Rare | ★ Hum | Iris Turtle | Bruiser | +67% Dirt Break, +33% Mine Speed |
+| Rare | Lotus | Pink Dolphin | Tidecaller | +17% Pulverizer, +28% Scrap |
+| Rare | ★ Lulu | Fuchsia Fish | Tidecaller | +56% Scrap, +8.4% Pulverizer |
+| Rare | ★ Pinecone | Cyan Crab | Bruiser | +67% Mine Speed, +33% Dirt Break |
+| Rare | Plume | Swan | Seeker | +30% Chest Luck, +17% Luck |
+| Rare | Squiggle | Octopus | Tidecaller | +37% Gem Find, +8.4% Pulverizer |
+| Rare | ★ Squirt | Tangerine Wolf | Striker | +67% Mine Speed, +24% Swing Rate |
+| Rare | ★ Tuba | Aqua Slime | Tidecaller | +6.7% Tidal Wave, +22% Tidal Wave Damage |
+| Rare | ★ Tumbleweed | Rose Drake | Mystic | +7.4% Blast Chance, +22% Blast Damage |
+| Epic | Cactus | Desert Lizard | Prospector | +35% Ore Luck, +23% Gem Find |
+| Epic | ★ Dribble | Glowing Mustard Critter | Digger | +56% Ore Finder, +42% Dirt Break |
+| Epic | ★ Garnet | Glowing Fuchsia Duck | Seeker | +42% Luck, +19% Chest Luck |
+| Epic | ★ Glen | Glowing Emerald Bear | Bruiser | +83% Dirt Break, +42% Mine Speed |
+| Epic | Gumdrop | Candy Bunny | Digger | +56% Ore Finder, +42% Dirt Break |
+| Epic | ★ Nebula | Glowing Cocoa Fox | Striker | +60% Swing Rate, +42% Mine Speed |
+| Epic | ★ Thorn | Glowing Jade Ray | Tidecaller | +46% Gem Find, +10% Pulverizer |
+| Legendary | Flash | Cheetah | Striker | +107% Mine Speed, +38% Swing Rate |
+| Legendary | ★ Jigsaw | Gleaming Cyan Toad | Digger | +107% Ore Haul, +54% Dirt Break |
+| Legendary | ★ Rush | Radiant Maroon Otter | Tidecaller | +11% Tidal Wave, +36% Tidal Wave Damage |
+| Legendary | Topaz | Golden Retriever | Striker | +107% Mine Speed, +54% Dirt Break |
+| Legendary | ★ Ziti | Dazzling Tangerine Dolphin | Tidecaller | +11% Tidal Wave, +36% Tidal Wave Damage |
+| Mythic | Pollen | Bumblebee | Shatter | +16% Shatter Chance, +34% Shatter Damage, +2.4% Earthquake Chance |
+| Mythic | Spark | Phoenix | Shatter | +98% Shatter Damage, +5.7% Earthquake Chance, +2.4% Shatter Chance |
+| Divine | Bolt | Lightning Leopard | Shatter | +22% Earthquake Chance, +7.8% Shatter Chance, +20% Shatter Damage |
+| Divine | Shiver | Ice Dragon | Shatter | +22% Shatter Chance, +46% Shatter Damage, +3.3% Earthquake Chance |
+| Divine | Vortex | Storm Serpent | Shatter | +133% Shatter Damage, +7.8% Earthquake Chance, +3.3% Shatter Chance |
+| Exotic | Sizzle | Fire Lizard | Shatter | +30% Earthquake Chance, +10% Shatter Chance, +27% Shatter Damage |
+| Exotic | Taffy | Candy Cat | Shatter | +30% Shatter Chance, +63% Shatter Damage, +4.5% Earthquake Chance |
+| Exotic | ★ Wiggles | Riftborn Prism Deer | Shatter | +179% Shatter Damage, +10% Earthquake Chance, +4.5% Shatter Chance |
 
 ## Starfall (zone 8, 70 pets, 45 new)
 
@@ -571,7 +571,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Biscotti | Plum Turtle | Bruiser | +48% Dirt Break, +24% Ore Haul |
 | Common | Bloop | Blobfish | Tidecaller | +40% Scrap, +6.0% Pulverizer |
 | Common | Boop | Seal | Digger | +32% Ore Finder, +24% Dirt Break |
-| Common | ★ Brook | Cobalt Wyrm | Mystic | +20% Ricochet Chance, +9.6% Zap Chance |
+| Common | ★ Brook | Cobalt Wyrm | Mystic | +5.3% Shatter Chance, +16% Shatter Damage |
 | Common | ★ Cashew | Sky Duck | Seeker | +22% Chest Luck, +12% Luck |
 | Common | ★ Checkers | Aqua Otter | Tidecaller | +12% Pulverizer, +20% Scrap |
 | Common | Churro Pop | Alpaca | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
@@ -581,7 +581,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Dumpling | Clay Ray | Tidecaller | +40% Scrap, +6.0% Pulverizer |
 | Common | ★ Fig | Emerald Dolphin | Tidecaller | +27% Gem Find, +6.0% Pulverizer |
 | Common | ★ Fluffy | Navy Crab | Bruiser | +48% Mine Speed, +24% Dirt Break |
-| Common | ★ Granite | Cyan Sprite | Mystic | +18% Earthquake Chance, +9.6% Zap Chance |
+| Common | ★ Granite | Cyan Sprite | Mystic | +5.3% Earthquake Chance, +3.0% Zap Chance |
 | Common | ★ Hearth | Ink Deer | Bruiser | +48% Mine Speed, +24% Dirt Break |
 | Common | ★ Lingonberry | Smoke Serpent | Prospector | +27% Rare Ore, +13% Gem Find |
 | Common | Meringue | Cloud Bunny | Digger | +48% Dirt Break, +24% Ore Haul |
@@ -590,51 +590,51 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Sniffles | Mocha Toad | Digger | +32% Ore Finder, +24% Dirt Break |
 | Common | ★ Strudel | Crimson Golem | Bruiser | +48% Mine Speed, +24% Dirt Break |
 | Common | ★ Swift | Seafoam Turtle | Bruiser | +48% Dirt Break, +24% Ore Haul |
-| Uncommon | ★ Beacon | Slate Piglet | Trader | +69% Coin Bonus, +27% Ore Haul |
-| Uncommon | ★ Bingo | Pistachio Slime | Tidecaller | +30% Gem Find, +6.9% Pulverizer |
-| Uncommon | ★ Bobble | Maroon Duck | Seeker | +23% Pack Luck, +14% Luck |
-| Uncommon | ★ Brownie | Sapphire Deer | Bruiser | +55% Mine Speed, +27% Dirt Break |
-| Uncommon | Caper | Capybara | Trader | +69% Coin Bonus, +7.8% Lucky Block find |
-| Uncommon | ★ Cello | Lilac Ray | Tidecaller | +30% Gem Find, +6.9% Pulverizer |
-| Uncommon | ★ Hopscotch | Frost Fish | Tidecaller | +30% Gem Find, +6.9% Pulverizer |
-| Uncommon | ★ Kite | Slate Dolphin | Tidecaller | +46% Scrap, +6.9% Pulverizer |
-| Uncommon | ★ Nubbin | Striped Teal Pony | Trader | +55% Ore Haul, +34% Coin Bonus |
-| Uncommon | ★ Photon | Lime Beetle | Bruiser | +55% Mine Speed, +27% Dirt Break |
-| Uncommon | Puffle | Puffin | Seeker | +23% Pack Luck, +14% Luck |
-| Uncommon | ★ Starling | Sky Otter | Tidecaller | +46% Scrap, +6.9% Pulverizer |
-| Uncommon | Stumpy | Hedgehog | Digger | +55% Dirt Break, +27% Ore Haul |
-| Uncommon | ★ Yappy | Rose Wolf | Striker | +55% Mine Speed, +27% Dirt Break |
-| Uncommon | ★ Yew | Gold Lizard | Prospector | +30% Gem Find, +15% Rare Ore |
-| Rare | ★ Cirrus | Mint Wyrm | Mystic | +27% Ricochet Chance, +13% Zap Chance |
-| Rare | ★ Compass | Cobalt Penguin | Seeker | +32% Luck, +15% Chest Luck |
-| Rare | Ember | Dragon | Mystic | +26% Zap Chance, +13% Ricochet Chance |
-| Rare | Frizzle | Llama | Trader | +65% Ore Haul, +40% Coin Bonus |
-| Rare | ★ Glimmerwick | Slate Sprite | Mystic | +25% Earthquake Chance, +13% Zap Chance |
-| Rare | ★ Pansy | Peach Moth | Seeker | +29% Chest Luck, +16% Luck |
-| Rare | ★ Pathfinder | Storm Toad | Digger | +43% Ore Finder, +32% Dirt Break |
-| Rare | ★ Plunk | Sand Serpent | Prospector | +36% Rare Ore, +18% Gem Find |
-| Rare | Poppy | Parrot | Seeker | +32% Luck, +15% Chest Luck |
-| Rare | ★ Seraph | Iris Owl | Seeker | +27% Pack Luck, +16% Luck |
-| Epic | ★ Hail | Glowing Lagoon Bear | Bruiser | +77% Mine Speed, +9.7% Blast Chance |
-| Epic | ★ Heron | Glowing Lemon Hawk | Seeker | +39% Luck, +18% Chest Luck |
-| Epic | ★ Hollow | Glowing Berry Fox | Striker | +55% Swing Rate, +39% Mine Speed |
-| Epic | Nori | Black Rabbit | Digger | +52% Ore Finder, +39% Dirt Break |
-| Epic | ★ Tortilla | Glowing Aqua Crab | Bruiser | +77% Mine Speed, +39% Dirt Break |
-| Epic | ★ Updraft | Glowing Teal Golem | Bruiser | +77% Mine Speed, +9.7% Blast Chance |
-| Epic | Velvet | Fruit Bat | Seeker | +39% Luck, +18% Chest Luck |
-| Legendary | ★ Onyx | Majestic Lemon Pony | Trader | +96% Ore Haul, +60% Coin Bonus |
-| Legendary | ★ Riddle | Lustrous Ink Lamb | Trader | +96% Ore Haul, +60% Coin Bonus |
-| Legendary | Rumble | Dinosaur | Prospector | +40% Ore Luck, +27% Gem Find |
-| Legendary | ★ Scrappy | Shining Cyan Owl | Seeker | +40% Pack Luck, +24% Luck |
-| Legendary | Sol | Sun Lion | Striker | +68% Swing Rate, +48% Mine Speed |
-| Mythic | Haze | Misty Panther | Prospect | +70% Gem Find, +24% Rare Ore, +7.8% Ore Luck |
-| Mythic | Twirl | Ribbon Unicorn | Prospect | +70% Rare Ore, +18% Ore Luck, +10% Gem Find |
-| Divine | Lava Lamp | Magma Slime | Prospect | +68% Ore Luck, +32% Gem Find, +14% Rare Ore |
-| Divine | Sizzlepop | Firework Dragon | Prospect | +91% Gem Find, +32% Rare Ore, +10% Ore Luck |
-| Divine | Vanta | Shadow Panther | Prospect | +91% Rare Ore, +24% Ore Luck, +14% Gem Find |
-| Exotic | Fizz | Soda Cub | Prospect | +88% Ore Luck, +41% Gem Find, +18% Rare Ore |
-| Exotic | Sprocket | Robot Hamster | Prospect | +117% Gem Find, +41% Rare Ore, +13% Ore Luck |
-| Exotic | Tango | Orange Cat | Prospect | +117% Rare Ore, +31% Ore Luck, +18% Gem Find |
+| Uncommon | ★ Beacon | Slate Piglet | Trader | +71% Coin Bonus, +29% Ore Haul |
+| Uncommon | ★ Bingo | Pistachio Slime | Tidecaller | +32% Gem Find, +7.2% Pulverizer |
+| Uncommon | ★ Bobble | Maroon Duck | Seeker | +24% Pack Luck, +14% Luck |
+| Uncommon | ★ Brownie | Sapphire Deer | Bruiser | +57% Mine Speed, +29% Dirt Break |
+| Uncommon | Caper | Capybara | Trader | +71% Coin Bonus, +8.2% Lucky Block find |
+| Uncommon | ★ Cello | Lilac Ray | Tidecaller | +32% Gem Find, +7.2% Pulverizer |
+| Uncommon | ★ Hopscotch | Frost Fish | Tidecaller | +32% Gem Find, +7.2% Pulverizer |
+| Uncommon | ★ Kite | Slate Dolphin | Tidecaller | +48% Scrap, +7.2% Pulverizer |
+| Uncommon | ★ Nubbin | Striped Teal Pony | Trader | +57% Ore Haul, +36% Coin Bonus |
+| Uncommon | ★ Photon | Lime Beetle | Bruiser | +57% Mine Speed, +29% Dirt Break |
+| Uncommon | Puffle | Puffin | Seeker | +24% Pack Luck, +14% Luck |
+| Uncommon | ★ Starling | Sky Otter | Tidecaller | +48% Scrap, +7.2% Pulverizer |
+| Uncommon | Stumpy | Hedgehog | Digger | +57% Dirt Break, +29% Ore Haul |
+| Uncommon | ★ Yappy | Rose Wolf | Striker | +57% Mine Speed, +29% Dirt Break |
+| Uncommon | ★ Yew | Gold Lizard | Prospector | +32% Gem Find, +16% Rare Ore |
+| Rare | ★ Cirrus | Mint Wyrm | Mystic | +7.8% Shatter Chance, +23% Shatter Damage |
+| Rare | ★ Compass | Cobalt Penguin | Seeker | +35% Luck, +16% Chest Luck |
+| Rare | Ember | Dragon | Mystic | +8.8% Zap Chance, +23% Zap Damage |
+| Rare | Frizzle | Llama | Trader | +70% Ore Haul, +44% Coin Bonus |
+| Rare | ★ Glimmerwick | Slate Sprite | Mystic | +7.8% Earthquake Chance, +4.4% Zap Chance |
+| Rare | ★ Pansy | Peach Moth | Seeker | +32% Chest Luck, +18% Luck |
+| Rare | ★ Pathfinder | Storm Toad | Digger | +47% Ore Finder, +35% Dirt Break |
+| Rare | ★ Plunk | Sand Serpent | Prospector | +39% Rare Ore, +20% Gem Find |
+| Rare | Poppy | Parrot | Seeker | +35% Luck, +16% Chest Luck |
+| Rare | ★ Seraph | Iris Owl | Seeker | +29% Pack Luck, +18% Luck |
+| Epic | ★ Hail | Glowing Lagoon Bear | Bruiser | +88% Mine Speed, +4.9% Blast Chance |
+| Epic | ★ Heron | Glowing Lemon Hawk | Seeker | +44% Luck, +20% Chest Luck |
+| Epic | ★ Hollow | Glowing Berry Fox | Striker | +63% Swing Rate, +44% Mine Speed |
+| Epic | Nori | Black Rabbit | Digger | +58% Ore Finder, +44% Dirt Break |
+| Epic | ★ Tortilla | Glowing Aqua Crab | Bruiser | +88% Mine Speed, +44% Dirt Break |
+| Epic | ★ Updraft | Glowing Teal Golem | Bruiser | +88% Mine Speed, +4.9% Blast Chance |
+| Epic | Velvet | Fruit Bat | Seeker | +44% Luck, +20% Chest Luck |
+| Legendary | ★ Onyx | Majestic Lemon Pony | Trader | +113% Ore Haul, +70% Coin Bonus |
+| Legendary | ★ Riddle | Lustrous Ink Lamb | Trader | +113% Ore Haul, +70% Coin Bonus |
+| Legendary | Rumble | Dinosaur | Prospector | +47% Ore Luck, +31% Gem Find |
+| Legendary | ★ Scrappy | Shining Cyan Owl | Seeker | +47% Pack Luck, +28% Luck |
+| Legendary | Sol | Sun Lion | Striker | +81% Swing Rate, +56% Mine Speed |
+| Mythic | Haze | Misty Panther | Prospect | +85% Gem Find, +30% Rare Ore, +9.6% Ore Luck |
+| Mythic | Twirl | Ribbon Unicorn | Prospect | +85% Rare Ore, +22% Ore Luck, +13% Gem Find |
+| Divine | Lava Lamp | Magma Slime | Prospect | +87% Ore Luck, +41% Gem Find, +17% Rare Ore |
+| Divine | Sizzlepop | Firework Dragon | Prospect | +116% Gem Find, +41% Rare Ore, +13% Ore Luck |
+| Divine | Vanta | Shadow Panther | Prospect | +116% Rare Ore, +30% Ore Luck, +17% Gem Find |
+| Exotic | Fizz | Soda Cub | Prospect | +117% Ore Luck, +55% Gem Find, +23% Rare Ore |
+| Exotic | Sprocket | Robot Hamster | Prospect | +156% Gem Find, +55% Rare Ore, +18% Ore Luck |
+| Exotic | Tango | Orange Cat | Prospect | +156% Rare Ore, +41% Ore Luck, +23% Gem Find |
 
 ## Mythral (zone 9, 70 pets, 45 new)
 
@@ -657,59 +657,59 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | Pecan | Dormouse | Digger | +50% Ore Haul, +25% Dirt Break |
 | Common | ★ Pine | Bronze Slime | Tidecaller | +42% Scrap, +6.3% Pulverizer |
 | Common | ★ Pitter | Maroon Penguin | Seeker | +25% Luck, +11% Chest Luck |
-| Common | ★ Popcorn | Navy Sprite | Mystic | +19% Earthquake Chance, +10% Zap Chance |
+| Common | ★ Popcorn | Navy Sprite | Mystic | +5.6% Earthquake Chance, +3.1% Zap Chance |
 | Common | ★ Rambler | Coral Deer | Bruiser | +50% Dirt Break, +25% Mine Speed |
 | Common | ★ Reed | Emerald Wildcat | Striker | +50% Mine Speed, +25% Dirt Break |
 | Common | Rollo | Roly-Poly Bug | Bruiser | +50% Mine Speed, +25% Dirt Break |
-| Common | ★ Spinel | Frost Wyrm | Mystic | +21% Ricochet Chance, +10% Zap Chance |
+| Common | ★ Spinel | Frost Wyrm | Mystic | +5.6% Shatter Chance, +17% Shatter Damage |
 | Common | ★ Verdant | Berry Lizard | Prospector | +21% Ore Luck, +14% Gem Find |
 | Common | ★ Yuzu | Copper Turtle | Bruiser | +50% Mine Speed, +25% Dirt Break |
 | Common | ★ Zoom | Rust Serpent | Prospector | +28% Rare Ore, +14% Gem Find |
-| Uncommon | ★ Butterbean | Iris Otter | Tidecaller | +48% Scrap, +7.2% Pulverizer |
-| Uncommon | ★ Buzz | Pearl Toad | Digger | +38% Ore Finder, +29% Dirt Break |
-| Uncommon | ★ Chortle | Moss Dolphin | Tidecaller | +14% Pulverizer, +24% Scrap |
-| Uncommon | ★ Dawn | Teal Sprite | Mystic | +23% Zap Chance, +12% Ricochet Chance |
-| Uncommon | ★ Dimple | Silver Turtle | Bruiser | +58% Mine Speed, +29% Dirt Break |
-| Uncommon | ★ Doodlebug | Coral Pony | Trader | +58% Ore Haul, +36% Coin Bonus |
-| Uncommon | Fennel | Angora Rabbit | Digger | +58% Dirt Break, +29% Ore Haul |
-| Uncommon | ★ Gossamer | Cherry Wildcat | Striker | +58% Mine Speed, +21% Swing Rate |
-| Uncommon | ★ Honeydew | Scaled Jade Drake | Mystic | +24% Ricochet Chance, +12% Zap Chance |
-| Uncommon | ★ Nimble | Raspberry Serpent | Prospector | +32% Rare Ore, +16% Gem Find |
-| Uncommon | ★ Piccolo | Marigold Golem | Bruiser | +58% Mine Speed, +29% Dirt Break |
-| Uncommon | ★ Poppet | Navy Lizard | Prospector | +24% Ore Luck, +16% Gem Find |
-| Uncommon | Puffer | Pufferfish | Tidecaller | +48% Scrap, +7.2% Pulverizer |
-| Uncommon | Snoot | Piglet | Trader | +58% Ore Haul, +36% Coin Bonus |
-| Uncommon | ★ Warble | Cobalt Mouse | Digger | +58% Ore Haul, +29% Dirt Break |
-| Rare | ★ Cookie | Orchid Penguin | Seeker | +31% Chest Luck, +17% Luck |
-| Rare | Coral | Seahorse | Tidecaller | +38% Gem Find, +8.5% Pulverizer |
-| Rare | ★ Linden | Berry Bird | Seeker | +34% Luck, +15% Chest Luck |
-| Rare | ★ Popsicle | Cyan Deer | Bruiser | +68% Dirt Break, +34% Ore Haul |
-| Rare | ★ Ravioli | Pistachio Pony | Trader | +85% Coin Bonus, +9.7% Lucky Block find |
-| Rare | Ruffles | Sheepdog | Trader | +85% Coin Bonus, +9.7% Lucky Block find |
-| Rare | ★ Satsuma | Lime Wyrm | Mystic | +28% Ricochet Chance, +14% Zap Chance |
-| Rare | ★ Shortcake | Thistle Duck | Seeker | +31% Chest Luck, +17% Luck |
-| Rare | Skye | Blue Jay | Seeker | +31% Chest Luck, +17% Luck |
-| Rare | ★ Yarrow | Pistachio Wolf | Striker | +68% Mine Speed, +34% Dirt Break |
-| Epic | ★ Banjo | Glowing Aqua Ray | Tidecaller | +68% Scrap, +10% Pulverizer |
-| Epic | ★ Birch | Glowing Lime Crab | Bruiser | +81% Dirt Break, +41% Mine Speed |
-| Epic | Chiffon | Persian Cat | Striker | +81% Mine Speed, +41% Dirt Break |
-| Epic | ★ Hopper | Glowing Ink Slime | Tidecaller | +20% Tidal Wave, +10% Pulverizer |
-| Epic | ★ Pesto | Glowing Sapphire Critter | Digger | +81% Ore Haul, +41% Dirt Break |
-| Epic | ★ Quiche | Glowing Bubblegum Moth | Seeker | +34% Pack Luck, +20% Luck |
-| Epic | Vesper | Bat | Seeker | +37% Chest Luck, +20% Luck |
-| Legendary | ★ Lumen | Noble Pistachio Hawk | Seeker | +46% Chest Luck, +25% Luck |
-| Legendary | ★ Monarch | Regal Mint Beetle | Bruiser | +100% Dirt Break, +50% Mine Speed |
-| Legendary | Opal | Gem Cat | Striker | +100% Mine Speed, +36% Swing Rate |
-| Legendary | ★ Snuggles | Dazzling Seafoam Owl | Seeker | +42% Pack Luck, +25% Luck |
-| Legendary | Stomper | Baby Elephant | Trader | +126% Coin Bonus, +50% Ore Haul |
-| Mythic | Flurry | Snow Bunny | Treasure | +38% Lucky Block find, +19% Pack Luck, +9.0% Chest Luck |
-| Mythic | Glaze | Donut Dog | Treasure | +55% Pack Luck, +21% Chest Luck, +5.6% Lucky Block find |
-| Divine | Aurora | Northern Lights Wolf | Treasure | +78% Chest Luck, +17% Lucky Block find, +11% Pack Luck |
-| Divine | Gemma | Crystal Bunny | Treasure | +49% Lucky Block find, +25% Pack Luck, +12% Chest Luck |
-| Divine | Luna | Moon Fox | Treasure | +71% Pack Luck, +27% Chest Luck, +7.3% Lucky Block find |
-| Exotic | Jamboree | Circus Elephant | Treasure | +101% Chest Luck, +22% Lucky Block find, +14% Pack Luck |
-| Exotic | Razzle | Razzberry Dragon | Treasure | +63% Lucky Block find, +32% Pack Luck, +15% Chest Luck |
-| Exotic | S'more | Campfire Bear | Treasure | +92% Pack Luck, +35% Chest Luck, +9.5% Lucky Block find |
+| Uncommon | ★ Butterbean | Iris Otter | Tidecaller | +50% Scrap, +7.5% Pulverizer |
+| Uncommon | ★ Buzz | Pearl Toad | Digger | +40% Ore Finder, +30% Dirt Break |
+| Uncommon | ★ Chortle | Moss Dolphin | Tidecaller | +15% Pulverizer, +25% Scrap |
+| Uncommon | ★ Dawn | Teal Sprite | Mystic | +7.5% Zap Chance, +20% Zap Damage |
+| Uncommon | ★ Dimple | Silver Turtle | Bruiser | +60% Mine Speed, +30% Dirt Break |
+| Uncommon | ★ Doodlebug | Coral Pony | Trader | +60% Ore Haul, +38% Coin Bonus |
+| Uncommon | Fennel | Angora Rabbit | Digger | +60% Dirt Break, +30% Ore Haul |
+| Uncommon | ★ Gossamer | Cherry Wildcat | Striker | +60% Mine Speed, +21% Swing Rate |
+| Uncommon | ★ Honeydew | Scaled Jade Drake | Mystic | +6.7% Shatter Chance, +20% Shatter Damage |
+| Uncommon | ★ Nimble | Raspberry Serpent | Prospector | +33% Rare Ore, +17% Gem Find |
+| Uncommon | ★ Piccolo | Marigold Golem | Bruiser | +60% Mine Speed, +30% Dirt Break |
+| Uncommon | ★ Poppet | Navy Lizard | Prospector | +25% Ore Luck, +17% Gem Find |
+| Uncommon | Puffer | Pufferfish | Tidecaller | +50% Scrap, +7.5% Pulverizer |
+| Uncommon | Snoot | Piglet | Trader | +60% Ore Haul, +38% Coin Bonus |
+| Uncommon | ★ Warble | Cobalt Mouse | Digger | +60% Ore Haul, +30% Dirt Break |
+| Rare | ★ Cookie | Orchid Penguin | Seeker | +34% Chest Luck, +18% Luck |
+| Rare | Coral | Seahorse | Tidecaller | +41% Gem Find, +9.2% Pulverizer |
+| Rare | ★ Linden | Berry Bird | Seeker | +37% Luck, +17% Chest Luck |
+| Rare | ★ Popsicle | Cyan Deer | Bruiser | +74% Dirt Break, +37% Ore Haul |
+| Rare | ★ Ravioli | Pistachio Pony | Trader | +92% Coin Bonus, +11% Lucky Block find |
+| Rare | Ruffles | Sheepdog | Trader | +92% Coin Bonus, +11% Lucky Block find |
+| Rare | ★ Satsuma | Lime Wyrm | Mystic | +8.2% Shatter Chance, +25% Shatter Damage |
+| Rare | ★ Shortcake | Thistle Duck | Seeker | +34% Chest Luck, +18% Luck |
+| Rare | Skye | Blue Jay | Seeker | +34% Chest Luck, +18% Luck |
+| Rare | ★ Yarrow | Pistachio Wolf | Striker | +74% Mine Speed, +37% Dirt Break |
+| Epic | ★ Banjo | Glowing Aqua Ray | Tidecaller | +77% Scrap, +11% Pulverizer |
+| Epic | ★ Birch | Glowing Lime Crab | Bruiser | +92% Dirt Break, +46% Mine Speed |
+| Epic | Chiffon | Persian Cat | Striker | +92% Mine Speed, +46% Dirt Break |
+| Epic | ★ Hopper | Glowing Ink Slime | Tidecaller | +9.2% Tidal Wave, +31% Tidal Wave Damage |
+| Epic | ★ Pesto | Glowing Sapphire Critter | Digger | +92% Ore Haul, +46% Dirt Break |
+| Epic | ★ Quiche | Glowing Bubblegum Moth | Seeker | +38% Pack Luck, +23% Luck |
+| Epic | Vesper | Bat | Seeker | +42% Chest Luck, +23% Luck |
+| Legendary | ★ Lumen | Noble Pistachio Hawk | Seeker | +54% Chest Luck, +30% Luck |
+| Legendary | ★ Monarch | Regal Mint Beetle | Bruiser | +118% Dirt Break, +59% Mine Speed |
+| Legendary | Opal | Gem Cat | Striker | +118% Mine Speed, +42% Swing Rate |
+| Legendary | ★ Snuggles | Dazzling Seafoam Owl | Seeker | +49% Pack Luck, +30% Luck |
+| Legendary | Stomper | Baby Elephant | Trader | +148% Coin Bonus, +59% Ore Haul |
+| Mythic | Flurry | Snow Bunny | Treasure | +46% Lucky Block find, +24% Pack Luck, +11% Chest Luck |
+| Mythic | Glaze | Donut Dog | Treasure | +67% Pack Luck, +26% Chest Luck, +6.9% Lucky Block find |
+| Divine | Aurora | Northern Lights Wolf | Treasure | +100% Chest Luck, +22% Lucky Block find, +14% Pack Luck |
+| Divine | Gemma | Crystal Bunny | Treasure | +63% Lucky Block find, +32% Pack Luck, +15% Chest Luck |
+| Divine | Luna | Moon Fox | Treasure | +91% Pack Luck, +35% Chest Luck, +9.4% Lucky Block find |
+| Exotic | Jamboree | Circus Elephant | Treasure | +134% Chest Luck, +30% Lucky Block find, +18% Pack Luck |
+| Exotic | Razzle | Razzberry Dragon | Treasure | +84% Lucky Block find, +43% Pack Luck, +20% Chest Luck |
+| Exotic | S'more | Campfire Bear | Treasure | +123% Pack Luck, +47% Chest Luck, +13% Lucky Block find |
 
 ## Primordium (zone 10, 70 pets, 45 new)
 
@@ -721,7 +721,7 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Cannoli | Jade Toad | Digger | +53% Ore Haul, +26% Dirt Break |
 | Common | ★ Crackle | Ink Otter | Tidecaller | +44% Scrap, +6.6% Pulverizer |
 | Common | Dingo | Wild Dog | Striker | +38% Swing Rate, +26% Mine Speed |
-| Common | ★ Focaccia | Ash Wyrm | Mystic | +22% Ricochet Chance, +11% Zap Chance |
+| Common | ★ Focaccia | Ash Wyrm | Mystic | +5.9% Shatter Chance, +18% Shatter Damage |
 | Common | ★ Guava | Maroon Wolf | Striker | +53% Mine Speed, +19% Swing Rate |
 | Common | ★ Harbor | Cyan Piglet | Trader | +66% Coin Bonus, +7.5% Lucky Block find |
 | Common | ★ Jingle | Smoke Moth | Seeker | +26% Luck, +12% Chest Luck |
@@ -735,56 +735,56 @@ Divine and Exotic carry that zone's own buff set. Event Horizon keeps its 73.
 | Common | ★ Rhythm | Indigo Golem | Bruiser | +53% Mine Speed, +26% Dirt Break |
 | Common | Rumblebee | Carpenter Bee | Bruiser | +53% Mine Speed, +26% Dirt Break |
 | Common | Squish | Jellyfish | Tidecaller | +44% Scrap, +6.6% Pulverizer |
-| Common | ★ Strum | Sand Drake | Mystic | +22% Ricochet Chance, +11% Zap Chance |
+| Common | ★ Strum | Sand Drake | Mystic | +5.9% Shatter Chance, +18% Shatter Damage |
 | Common | ★ Tambourine | Indigo Beetle | Bruiser | +53% Dirt Break, +26% Mine Speed |
 | Common | ★ Tapioca | Crimson Piglet | Trader | +66% Coin Bonus, +26% Ore Haul |
 | Common | Toffee | Fox | Striker | +38% Swing Rate, +26% Mine Speed |
 | Common | ★ Whistle | Seafoam Crab | Bruiser | +53% Mine Speed, +26% Dirt Break |
-| Uncommon | ★ Arcana | Maroon Drake | Mystic | +25% Ricochet Chance, +12% Zap Chance |
-| Uncommon | Chai | Siamese Cat | Striker | +61% Mine Speed, +30% Dirt Break |
-| Uncommon | ★ Cloudberry | Fuchsia Lamb | Trader | +76% Coin Bonus, +8.6% Lucky Block find |
-| Uncommon | ★ Cocoapuff | Aqua Wyrm | Mystic | +25% Ricochet Chance, +12% Zap Chance |
-| Uncommon | ★ Jawbreaker | Amber Penguin | Seeker | +25% Pack Luck, +15% Luck |
-| Uncommon | ★ Kaboom | Ruby Turtle | Bruiser | +61% Mine Speed, +30% Dirt Break |
-| Uncommon | ★ Muesli | Navy Ray | Tidecaller | +50% Scrap, +7.6% Pulverizer |
-| Uncommon | Noodle | Snake | Prospector | +34% Gem Find, +17% Rare Ore |
-| Uncommon | ★ Plover | Marigold Mouse | Digger | +61% Ore Haul, +30% Dirt Break |
-| Uncommon | ★ Puffin | Bubblegum Wildcat | Striker | +61% Mine Speed, +22% Swing Rate |
-| Uncommon | Roxy | Fennec Fox | Striker | +61% Mine Speed, +22% Swing Rate |
-| Uncommon | ★ Spud | Sand Owl | Seeker | +30% Luck, +14% Chest Luck |
-| Uncommon | ★ Sumac | Crimson Bear | Bruiser | +61% Dirt Break, +30% Mine Speed |
-| Uncommon | ★ Voyager | Marigold Moth | Seeker | +30% Luck, +14% Chest Luck |
-| Uncommon | ★ Waddles | Crimson Fish | Tidecaller | +34% Gem Find, +7.6% Pulverizer |
-| Rare | ★ Crumpet | Scaled Fuchsia Lizard | Prospector | +40% Gem Find, +20% Rare Ore |
-| Rare | ★ Dynamo | Lagoon Toad | Digger | +71% Dirt Break, +36% Ore Haul |
-| Rare | Jellybean | Slime | Tidecaller | +59% Scrap, +8.9% Pulverizer |
-| Rare | ★ Mesa | Lemon Otter | Tidecaller | +18% Tidal Wave, +8.9% Pulverizer |
-| Rare | ★ Oak | Berry Hawk | Seeker | +36% Luck, +16% Chest Luck |
-| Rare | ★ Peanut | Raspberry Dolphin | Tidecaller | +18% Pulverizer, +30% Scrap |
-| Rare | ★ Sugarplum | Orchid Golem | Bruiser | +71% Mine Speed, +8.9% Blast Chance |
-| Rare | Sushi | Koi Fish | Tidecaller | +59% Scrap, +8.9% Pulverizer |
-| Rare | ★ Wink | Crimson Duck | Seeker | +36% Luck, +16% Chest Luck |
-| Rare | Zest | Lemon Bird | Seeker | +30% Pack Luck, +18% Luck |
-| Epic | ★ Bonbon | Glowing Emerald Sprite | Mystic | +21% Blast Chance, +17% Zap Chance |
-| Epic | ★ Boysenberry | Glowing Seafoam Bird | Seeker | +39% Chest Luck, +21% Luck |
-| Epic | ★ Ciabatta | Scaled Plum Serpent | Prospector | +36% Ore Luck, +24% Gem Find |
-| Epic | Dapper | Tuxedo Cat | Striker | +61% Swing Rate, +43% Mine Speed |
-| Epic | ★ Magpie | Striped Olive Pony | Trader | +107% Coin Bonus, +12% Lucky Block find |
-| Epic | Wobble | Emperor Penguin | Seeker | +36% Pack Luck, +21% Luck |
-| Epic | ★ Zircon | Glowing Aqua Deer | Bruiser | +85% Dirt Break, +43% Ore Haul |
-| Legendary | ★ Cider | Radiant Orchid Crab | Bruiser | +106% Mine Speed, +53% Dirt Break |
-| Legendary | ★ Flutter | Gleaming Mustard Bear | Bruiser | +106% Dirt Break, +53% Mine Speed |
-| Legendary | ★ Paddle | Shining Fern Sprite | Mystic | +44% Ricochet Chance, +21% Zap Chance |
-| Legendary | Pawsitron | Robot Cat | Striker | +106% Mine Speed, +38% Swing Rate |
-| Legendary | Timber | Moose | Bruiser | +106% Dirt Break, +53% Ore Haul |
-| Mythic | Pecan Puff | Flying Squirrel | Primal | +138% Mine Speed, +48% Ore Haul, +12% Rare Ore |
-| Mythic | Taffeta | Fancy Poodle | Primal | +138% Ore Haul, +27% Rare Ore, +21% Mine Speed |
-| Divine | Glitch | Digital Bunny | Primal | +100% Rare Ore, +63% Mine Speed, +27% Ore Haul |
-| Divine | Quasar | Cosmic Wolf | Primal | +180% Mine Speed, +63% Ore Haul, +15% Rare Ore |
-| Divine | Zephyr | Wind Hawk | Primal | +180% Ore Haul, +35% Rare Ore, +27% Mine Speed |
-| Exotic | Boogie | Disco Duck | Primal | +129% Rare Ore, +81% Mine Speed, +35% Ore Haul |
-| Exotic | Orbit | Alien | Primal | +233% Mine Speed, +81% Ore Haul, +19% Rare Ore |
-| Exotic | Saffron | Golden Tiger | Primal | +233% Ore Haul, +45% Rare Ore, +35% Mine Speed |
+| Uncommon | ★ Arcana | Maroon Drake | Mystic | +7.0% Shatter Chance, +21% Shatter Damage |
+| Uncommon | Chai | Siamese Cat | Striker | +63% Mine Speed, +32% Dirt Break |
+| Uncommon | ★ Cloudberry | Fuchsia Lamb | Trader | +79% Coin Bonus, +9.0% Lucky Block find |
+| Uncommon | ★ Cocoapuff | Aqua Wyrm | Mystic | +7.0% Shatter Chance, +21% Shatter Damage |
+| Uncommon | ★ Jawbreaker | Amber Penguin | Seeker | +26% Pack Luck, +16% Luck |
+| Uncommon | ★ Kaboom | Ruby Turtle | Bruiser | +63% Mine Speed, +32% Dirt Break |
+| Uncommon | ★ Muesli | Navy Ray | Tidecaller | +53% Scrap, +7.9% Pulverizer |
+| Uncommon | Noodle | Snake | Prospector | +35% Gem Find, +18% Rare Ore |
+| Uncommon | ★ Plover | Marigold Mouse | Digger | +63% Ore Haul, +32% Dirt Break |
+| Uncommon | ★ Puffin | Bubblegum Wildcat | Striker | +63% Mine Speed, +23% Swing Rate |
+| Uncommon | Roxy | Fennec Fox | Striker | +63% Mine Speed, +23% Swing Rate |
+| Uncommon | ★ Spud | Sand Owl | Seeker | +32% Luck, +14% Chest Luck |
+| Uncommon | ★ Sumac | Crimson Bear | Bruiser | +63% Dirt Break, +32% Mine Speed |
+| Uncommon | ★ Voyager | Marigold Moth | Seeker | +32% Luck, +14% Chest Luck |
+| Uncommon | ★ Waddles | Crimson Fish | Tidecaller | +35% Gem Find, +7.9% Pulverizer |
+| Rare | ★ Crumpet | Scaled Fuchsia Lizard | Prospector | +43% Gem Find, +22% Rare Ore |
+| Rare | ★ Dynamo | Lagoon Toad | Digger | +77% Dirt Break, +39% Ore Haul |
+| Rare | Jellybean | Slime | Tidecaller | +65% Scrap, +9.7% Pulverizer |
+| Rare | ★ Mesa | Lemon Otter | Tidecaller | +7.7% Tidal Wave, +26% Tidal Wave Damage |
+| Rare | ★ Oak | Berry Hawk | Seeker | +39% Luck, +18% Chest Luck |
+| Rare | ★ Peanut | Raspberry Dolphin | Tidecaller | +19% Pulverizer, +32% Scrap |
+| Rare | ★ Sugarplum | Orchid Golem | Bruiser | +77% Mine Speed, +4.3% Blast Chance |
+| Rare | Sushi | Koi Fish | Tidecaller | +65% Scrap, +9.7% Pulverizer |
+| Rare | ★ Wink | Crimson Duck | Seeker | +39% Luck, +18% Chest Luck |
+| Rare | Zest | Lemon Bird | Seeker | +32% Pack Luck, +19% Luck |
+| Epic | ★ Bonbon | Glowing Emerald Sprite | Mystic | +11% Blast Chance, +32% Blast Damage |
+| Epic | ★ Boysenberry | Glowing Seafoam Bird | Seeker | +44% Chest Luck, +24% Luck |
+| Epic | ★ Ciabatta | Scaled Plum Serpent | Prospector | +40% Ore Luck, +27% Gem Find |
+| Epic | Dapper | Tuxedo Cat | Striker | +69% Swing Rate, +48% Mine Speed |
+| Epic | ★ Magpie | Striped Olive Pony | Trader | +121% Coin Bonus, +14% Lucky Block find |
+| Epic | Wobble | Emperor Penguin | Seeker | +40% Pack Luck, +24% Luck |
+| Epic | ★ Zircon | Glowing Aqua Deer | Bruiser | +97% Dirt Break, +48% Ore Haul |
+| Legendary | ★ Cider | Radiant Orchid Crab | Bruiser | +124% Mine Speed, +62% Dirt Break |
+| Legendary | ★ Flutter | Gleaming Mustard Bear | Bruiser | +124% Dirt Break, +62% Mine Speed |
+| Legendary | ★ Paddle | Shining Fern Sprite | Mystic | +14% Shatter Chance, +41% Shatter Damage |
+| Legendary | Pawsitron | Robot Cat | Striker | +124% Mine Speed, +44% Swing Rate |
+| Legendary | Timber | Moose | Bruiser | +124% Dirt Break, +62% Ore Haul |
+| Mythic | Pecan Puff | Flying Squirrel | Primal | +170% Mine Speed, +59% Ore Haul, +14% Rare Ore |
+| Mythic | Taffeta | Fancy Poodle | Primal | +170% Ore Haul, +33% Rare Ore, +25% Mine Speed |
+| Divine | Glitch | Digital Bunny | Primal | +128% Rare Ore, +81% Mine Speed, +35% Ore Haul |
+| Divine | Quasar | Cosmic Wolf | Primal | +230% Mine Speed, +81% Ore Haul, +19% Rare Ore |
+| Divine | Zephyr | Wind Hawk | Primal | +230% Ore Haul, +45% Rare Ore, +35% Mine Speed |
+| Exotic | Boogie | Disco Duck | Primal | +172% Rare Ore, +109% Mine Speed, +47% Ore Haul |
+| Exotic | Orbit | Alien | Primal | +310% Mine Speed, +109% Ore Haul, +26% Rare Ore |
+| Exotic | Saffron | Golden Tiger | Primal | +310% Ore Haul, +60% Rare Ore, +47% Mine Speed |
 
 ## Event Horizon (zone 11, 73 pets, ×1.63)
 
@@ -793,78 +793,78 @@ Their own roster and hand-authored stat mix, rescaled onto the ladder; retired s
 | tier | name | boost |
 |---|---|---|
 | Common | Barybub | +60% Coin Bonus, +17% Luck |
-| Common | Dustmite | +21% Blast Chance |
+| Common | Dustmite | +9.2% Blast Chance |
 | Common | Glowpuff | +42% Luck |
 | Common | Softphoton | +37% Swing Rate, +32% Dirt Break |
 | Common | Speck | +52% Dirt Break, +32% Mine Speed |
-| Common | Tinyspark | +21% Zap Chance, +23% Swing Rate |
-| Uncommon | Bubbleorb | +69% Coin Bonus, +20% Luck |
-| Uncommon | Chillbit | +42% Swing Rate, +36% Dirt Break |
-| Uncommon | Cloverbit | +24% Blast Chance |
-| Uncommon | Dustnip | +59% Dirt Break, +36% Mine Speed |
-| Uncommon | Gloomouse | +30% Luck, +16% Chest Luck |
-| Uncommon | Peeporbit | +119% Coin Bonus |
-| Uncommon | Shimmerbit | +34% Gem Find, +17% Luck |
-| Uncommon | Sparkitten | +59% Mine Speed, +36% Dirt Break |
-| Uncommon | Tinyclink | +32% Gem Find, +46% Coin Bonus |
-| Uncommon | Zippup | +24% Zap Chance, +26% Swing Rate |
-| Rare | Ashorbit | +70% Mine Speed, +43% Dirt Break |
-| Rare | Boltseed | +28% Zap Chance, +31% Swing Rate |
-| Rare | Coinseed | +140% Coin Bonus |
-| Rare | Crateroo | +66% Dirt Break, +46% Mine Speed |
-| Rare | Dirtmoon | +70% Dirt Break, +43% Mine Speed |
-| Rare | Duskchip | +35% Luck, +19% Chest Luck |
-| Rare | Echopea | +56% Luck |
-| Rare | Emberbit | +58% Mine Speed, +38% Dirt Break, +11% Swing Rate |
-| Rare | Kelporb | +140% Coin Bonus |
-| Rare | Nightbag | +56% Luck |
-| Rare | Petalstar | +28% Blast Chance |
-| Rare | Puddleorb | +82% Coin Bonus, +24% Luck |
-| Rare | Shardlet | +40% Gem Find, +20% Luck |
-| Rare | Snowaxis | +50% Swing Rate, +43% Dirt Break |
-| Rare | Zipmite | +45% Zap Chance |
-| Epic | Bagtide | +98% Coin Bonus, +28% Luck |
-| Epic | Dustwell | +83% Dirt Break, +51% Mine Speed |
-| Epic | Glimore | +48% Gem Find, +24% Luck |
-| Epic | Icering | +60% Swing Rate, +51% Dirt Break |
-| Epic | Leafnova | +34% Blast Chance |
-| Epic | Paralite | +34% Blast Chance |
-| Epic | Shadechip | +42% Luck, +23% Chest Luck |
-| Epic | Smeltbit | +168% Coin Bonus |
-| Epic | Sparkwisp | +83% Mine Speed, +51% Dirt Break |
-| Epic | Zipquark | +33% Zap Chance, +36% Swing Rate |
-| Legendary | Bloomstar | +42% Blast Chance |
-| Legendary | Chillaxis | +74% Swing Rate, +63% Dirt Break |
-| Legendary | Coinbang | +54% Gem Find, +86% Coin Bonus |
-| Legendary | Diskflare | +166% Mine Speed |
-| Legendary | Faultstar | +103% Dirt Break, +63% Mine Speed |
-| Legendary | Prismoon | +60% Gem Find, +29% Luck |
-| Legendary | Sparkorbit | +39% Zap Chance, +49% Swing Rate |
-| Legendary | Tidewell | +121% Coin Bonus, +35% Luck |
-| Legendary | Vantail | +52% Luck, +29% Chest Luck |
-| Legendary | Warpup | +54% Gem Find, +35% Luck |
-| Mythic | Bangcub | +127% Mine Speed, +65% Swing Rate |
-| Mythic | Craterjaw | +98% Dirt Break, +70% Mine Speed, +13% Blast Chance |
-| Mythic | Echoflare | +70% Gem Find, +45% Luck |
-| Mythic | Eventide | +64% Luck, +41% Chest Luck |
-| Mythic | Frosthole | +70% Swing Rate, +70% Dirt Break, +50% Mine Speed |
-| Mythic | Gemnova | +74% Gem Find, +42% Luck |
-| Mythic | Moonshear | +158% Coin Bonus, +45% Luck |
-| Mythic | Oreproto | +180% Coin Bonus, +37% Luck |
-| Mythic | Pulsarina | +51% Zap Chance, +65% Swing Rate |
-| Mythic | Starloom | +36% Blast Chance, +92% Coin Bonus |
-| Divine | Accretia | +165% Mine Speed, +85% Swing Rate |
-| Divine | Crystalith | +75% Gem Find, +43% Luck, +28% Chest Luck |
-| Divine | Gravpaw | +166% Dirt Break, +118% Mine Speed |
-| Divine | Nebulisk | +92% Gem Find, +59% Luck |
-| Divine | Photonna | +34% Blast Chance, +29% Gem Find, +48% Luck |
-| Divine | Quasarin | +66% Zap Chance, +84% Swing Rate |
-| Divine | Relativox | +91% Swing Rate, +91% Dirt Break, +65% Mine Speed |
-| Divine | Singuluna | +62% Luck, +40% Chest Luck, +40% Gem Find |
-| Exotic | Albert Minestein | +108% Gem Find, +86% Luck |
-| Exotic | Cosmo | +71% Luck, +65% Chest Luck, +102% Coin Bonus |
-| Exotic | Matter- | +108% Mine Speed, +108% Dirt Break, +62% Swing Rate, +81% Coin Bonus |
-| Exotic | Matter+ | +49% Luck, +61% Gem Find, +40% Chest Luck, +86% Coin Bonus |
+| Common | Tinyspark | +8.7% Zap Chance, +9.5% Swing Rate |
+| Uncommon | Bubbleorb | +72% Coin Bonus, +21% Luck |
+| Uncommon | Chillbit | +44% Swing Rate, +38% Dirt Break |
+| Uncommon | Cloverbit | +11% Blast Chance |
+| Uncommon | Dustnip | +62% Dirt Break, +38% Mine Speed |
+| Uncommon | Gloomouse | +31% Luck, +17% Chest Luck |
+| Uncommon | Peeporbit | +124% Coin Bonus |
+| Uncommon | Shimmerbit | +36% Gem Find, +18% Luck |
+| Uncommon | Sparkitten | +62% Mine Speed, +38% Dirt Break |
+| Uncommon | Tinyclink | +34% Gem Find, +48% Coin Bonus |
+| Uncommon | Zippup | +10% Zap Chance, +11% Swing Rate |
+| Rare | Ashorbit | +76% Mine Speed, +46% Dirt Break |
+| Rare | Boltseed | +13% Zap Chance, +14% Swing Rate |
+| Rare | Coinseed | +153% Coin Bonus |
+| Rare | Crateroo | +72% Dirt Break, +50% Mine Speed |
+| Rare | Dirtmoon | +76% Dirt Break, +46% Mine Speed |
+| Rare | Duskchip | +38% Luck, +21% Chest Luck |
+| Rare | Echopea | +61% Luck |
+| Rare | Emberbit | +63% Mine Speed, +41% Dirt Break, +12% Swing Rate |
+| Rare | Kelporb | +153% Coin Bonus |
+| Rare | Nightbag | +61% Luck |
+| Rare | Petalstar | +14% Blast Chance |
+| Rare | Puddleorb | +89% Coin Bonus, +26% Luck |
+| Rare | Shardlet | +44% Gem Find, +22% Luck |
+| Rare | Snowaxis | +54% Swing Rate, +46% Dirt Break |
+| Rare | Zipmite | +15% Zap Chance |
+| Epic | Bagtide | +111% Coin Bonus, +32% Luck |
+| Epic | Dustwell | +94% Dirt Break, +58% Mine Speed |
+| Epic | Glimore | +55% Gem Find, +27% Luck |
+| Epic | Icering | +67% Swing Rate, +58% Dirt Break |
+| Epic | Leafnova | +17% Blast Chance |
+| Epic | Paralite | +17% Blast Chance |
+| Epic | Shadechip | +47% Luck, +26% Chest Luck |
+| Epic | Smeltbit | +190% Coin Bonus |
+| Epic | Sparkwisp | +94% Mine Speed, +58% Dirt Break |
+| Epic | Zipquark | +16% Zap Chance, +17% Swing Rate |
+| Legendary | Bloomstar | +22% Blast Chance |
+| Legendary | Chillaxis | +87% Swing Rate, +74% Dirt Break |
+| Legendary | Coinbang | +64% Gem Find, +101% Coin Bonus |
+| Legendary | Diskflare | +196% Mine Speed |
+| Legendary | Faultstar | +121% Dirt Break, +74% Mine Speed |
+| Legendary | Prismoon | +70% Gem Find, +35% Luck |
+| Legendary | Sparkorbit | +20% Zap Chance, +25% Swing Rate |
+| Legendary | Tidewell | +142% Coin Bonus, +41% Luck |
+| Legendary | Vantail | +61% Luck, +34% Chest Luck |
+| Legendary | Warpup | +63% Gem Find, +41% Luck |
+| Mythic | Bangcub | +155% Mine Speed, +80% Swing Rate |
+| Mythic | Craterjaw | +93% Dirt Break, +66% Mine Speed, +12% Blast Chance |
+| Mythic | Echoflare | +86% Gem Find, +56% Luck |
+| Mythic | Eventide | +78% Luck, +50% Chest Luck |
+| Mythic | Frosthole | +86% Swing Rate, +85% Dirt Break, +61% Mine Speed |
+| Mythic | Gemnova | +91% Gem Find, +52% Luck |
+| Mythic | Moonshear | +194% Coin Bonus, +56% Luck |
+| Mythic | Oreproto | +221% Coin Bonus, +45% Luck |
+| Mythic | Pulsarina | +27% Zap Chance, +35% Swing Rate |
+| Mythic | Starloom | +24% Blast Chance, +62% Coin Bonus |
+| Divine | Accretia | +211% Mine Speed, +108% Swing Rate |
+| Divine | Crystalith | +97% Gem Find, +55% Luck, +36% Chest Luck |
+| Divine | Gravpaw | +212% Dirt Break, +151% Mine Speed |
+| Divine | Nebulisk | +117% Gem Find, +76% Luck |
+| Divine | Photonna | +27% Blast Chance, +23% Gem Find, +38% Luck |
+| Divine | Quasarin | +37% Zap Chance, +47% Swing Rate |
+| Divine | Relativox | +117% Swing Rate, +116% Dirt Break, +83% Mine Speed |
+| Divine | Singuluna | +79% Luck, +51% Chest Luck, +51% Gem Find |
+| Exotic | Albert Minestein | +144% Gem Find, +115% Luck |
+| Exotic | Cosmo | +95% Luck, +86% Chest Luck, +136% Coin Bonus |
+| Exotic | Matter- | +144% Mine Speed, +144% Dirt Break, +82% Swing Rate, +108% Coin Bonus |
+| Exotic | Matter+ | +66% Luck, +82% Gem Find, +54% Chest Luck, +115% Coin Bonus |
 
 ## Holiday pets (6): not in the game
 

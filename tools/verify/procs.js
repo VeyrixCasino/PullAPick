@@ -37,7 +37,7 @@ const grab = (re, what) => {
   return m[0];
 };
 const share = grab(/MineConfig\.PROC_SHARE = \{[\s\S]*?\n\}/, "PROC_SHARE");
-const fn = grab(/function MineConfig\.procDamage\(dmg, which, procPower\)[\s\S]*?\nend\n/, "procDamage");
+const fn = grab(/function MineConfig\.procDamage\(dmg, which, procPower, extra\)[\s\S]*?\nend\n/, "procDamage");
 const num = (k) => Number((cfg.match(new RegExp(`MineConfig\\.${k}\\s*=\\s*([\\d.]+)`)) || [])[1]);
 
 const harness = `
@@ -51,7 +51,7 @@ local function check(ok, msg)
 end
 
 local S = MineConfig.PROC_SHARE
-for _, k in ipairs({ "blast", "zap", "ricochet", "quake" }) do
+for _, k in ipairs({ "blast", "zap", "tide", "shatter", "quake" }) do
 	check(type(S[k]) == "number" and S[k] > 0, k .. " has a share (" .. tostring(S[k]) .. ")")
 	-- The ask, in one assertion: no single proc hit is a whole swing.
 	check(S[k] < 1, k .. " is worth less than a full swing per hit")
@@ -60,6 +60,11 @@ end
 -- Blast is the one that multiplies: 6 faces. Keep the BURST under control too.
 check(S.blast * 6 <= 2.5,
 	("blast burst stays bounded: %.2f x 6 = %.2f swings"):format(S.blast, S.blast * 6))
+-- The 2026-10-10 rework (owner): blast below tidal wave, and the order of
+-- what a whole proc is worth: blast 6 x 0.12 < shatter 6 x 0.15 < tide 12 x 0.18.
+check(S.blast < S.tide, ("blast hits for less than tidal wave (%.2f < %.2f)"):format(S.blast, S.tide))
+check(S.blast * 6 < S.shatter * 6 and S.shatter * 6 < S.tide * 12,
+	("a whole proc: blast %.2f < shatter %.2f < tide %.2f swings"):format(S.blast * 6, S.shatter * 6, S.tide * 12))
 -- A full quake life, against a swing.
 local sec = ${num("EARTHQUAKE_SEC")}
 check(S.quake * sec < 1,
@@ -89,6 +94,19 @@ check(fall < 1, "zap decays " .. fall .. "x a hop, so the chain always terminate
 local total = 0
 for h = 1, hops do total += S.zap * (fall ^ (h - 1)) end
 check(total < 2.0, ("a whole zap chain is %.2f swings, even if every hop lands"):format(total))
+
+-- The continue equation: the zap stat only starts a chain; hop h continues
+-- with ZAP_CONTINUE x ZAP_FALLOFF^(h-1). About 3 hops, beside blast and shatter.
+local cont = ${num("ZAP_CONTINUE")}
+check(cont > 0 and cont < 1, "zap's continue chance is a real probability (" .. cont .. ")")
+local expHops, alive = 0, 1
+for h = 1, hops do expHops += alive alive *= cont * fall ^ (h - 1) end
+check(expHops > 2 and expHops < 4.5, ("a zap chain averages %.2f hops (%.2f swings)"):format(expHops, expHops * S.zap))
+check(${num("SHATTER_MAX_PROCS")} == 3, "shatter chains at most 3 times per block you break (owner)")
+
+-- Each proc's own damage stat adds to procPower; it never multiplies it.
+check(MineConfig.procDamage(1000, "tide", 0, 1) == math.floor(1000 * S.tide * 2), "a +100% Tidal Wave Damage doubles a wave hit")
+check(MineConfig.procDamage(1000, "tide", 1, 1) == math.floor(1000 * S.tide * 3), "...and adds to procPower rather than compounding with it")
 
 -- procDamage is the only thing that moves proc damage.
 check(MineConfig.procDamage(1000, "blast", 0) == math.floor(1000 * S.blast),
@@ -128,7 +146,7 @@ const code = (lua) => lua.replace(/--\[\[[\s\S]*?\]\]/g, "").replace(/--[^\n]*/g
 
 const procs = code((server.match(/function Dig\.procsAt[\s\S]*?\n^end$/m) || [""])[0]);
 src(procs.length > 400, "found Dig.procsAt");
-for (const which of ["blast", "ricochet", "quake", "zap"]) {
+for (const which of ["blast", "tide", "shatter", "quake", "zap"]) {
   src(new RegExp(`procDamage\\(dmg, "${which}"`).test(procs),
     `${which} goes through C.procDamage`);
 }
@@ -141,6 +159,23 @@ src(!/for hops = 1, 32 do/.test(procs), "zap's 32-hop chain is gone");
 // The quake tick must not re-apply a share on top of a pre-scaled figure.
 src(!/EARTHQUAKE_TICK_SHARE/.test(code(server)),
   "the quake tick no longer multiplies by its own share (double-scaling)");
+
+// Each proc reads its own damage stat (owner, 2026-10-10: "add damage %").
+for (const [which, stat] of [["blast", "blastDamage"], ["tide", "tideDamage"], ["shatter", "shatterDamage"], ["zap", "zapDamage"]]) {
+  src(new RegExp(`procDamage\\(dmg, "${which}", pp, b\\.${stat}\\)`).test(procs), `${which} adds ${stat}`);
+}
+// Zap: the stat starts the chain, ZAP_CONTINUE continues it.
+src(/C\.ZAP_CONTINUE/.test(procs) && /chance \*= falloff/.test(procs), "zap's chain follows ZAP_CONTINUE and ZAP_FALLOFF, not the zap stat");
+// Shatter replaces Ricochet, chains on breaks, and keeps the data key.
+src(/b\.ricochet/.test(procs) && /"SHATTER"/.test(procs) && /SHATTER_MAX_PROCS/.test(procs) && !/"RICOCHET"/.test(procs),
+  "Shatter reads the ricochet key, chains up to SHATTER_MAX_PROCS, and Ricochet's bounce is gone");
+src(/return chip\.broke == true/.test(code(server)), "swingNeighbour reports a break, which Shatter chains on");
+// Hats: proc lines are priced by weight, and the proc sets carry their damage.
+src(/PRICED_BY_WEIGHT = \{[^}]*tidalWave = true[^}]*ricochet = true/.test(gear) && /function MineGear\.pricedPct/.test(gear),
+  "hats price proc chance and damage lines by their MineStats weight");
+for (const [set, stat2] of [["tide", "tideDamage"], ["canopy", "blastDamage"], ["storm", "zapDamage"], ["prism", "shatterDamage"]]) {
+  src(new RegExp(`id = "${set}"[^\\n]*stat2 = "${stat2}"`).test(gear), `the ${set} hat set carries ${stat2}`);
+}
 
 src(/procPower = 0,/.test(cards), "procPower starts at 0 in emptyBoosts");
 src(/procPower = true/.test(cards), "...and is additive");

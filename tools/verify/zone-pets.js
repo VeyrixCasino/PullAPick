@@ -119,6 +119,21 @@ for (const z of Gen.ZONES) {
   if (top.length !== 8 || used.size !== 3 || ![...used].every((s) => z.stats.includes(s))) topOk = false;
 }
 check(topOk, "each zone's 8 Mythic/Divine/Exotic pets use exactly that zone's three buffs");
+// Owner, 2026-10-10: "make the rare pets with tidal wave (3 of them) only go up
+// to around 50-60% proc chance", and every proc's odds stay "lowish (~tidal
+// wave)" -- priced, never capped (MineStats weights).
+const tideTop = pets.filter((p) => p.zone === "mistreef" && ["Mythic", "Divine", "Exotic"].includes(p.tier))
+  .map((p) => (B.kits[p.name].tidalWave || 0) * G.rarityMult[p.tier]).sort((a, b) => b - a);
+const trio = tideTop.slice(0, 3).reduce((a, b) => a + b, 0);
+check(trio >= 0.5 && trio <= 0.6, `the three top Tidal Wave pets together reach ${(trio * 100).toFixed(1)}% at Normal (50-60%)`);
+let wildest = ["", 0];
+for (const p of pets.concat(B.ehPets)) {
+  for (const st of ["blastChance", "tidalWave", "zap", "ricochet", "earthquake"]) {
+    const c = (B.kits[p.name][st] || 0) * G.rarityMult[p.tier];
+    if (c > wildest[1]) wildest = [p.name + " " + st, c];
+  }
+}
+check(wildest[1] <= 0.4, `no single pet's proc chance tops 40% at Normal (highest: ${wildest[0]} ${(wildest[1] * 100).toFixed(1)}%)`);
 const sets = new Set(Gen.ZONES.map((z) => z.stats.slice().sort().join("+")));
 check(sets.size === Gen.ZONES.length, "no two zones share a buff set");
 

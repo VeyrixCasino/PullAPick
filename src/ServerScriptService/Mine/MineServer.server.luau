@@ -2724,6 +2724,7 @@ local function boosts(p)
 	local ADDITIVE_BOOST = {
 		echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
 		earthquake = true, ricochet = true, tidalWave = true,
+		blastDamage = true, tideDamage = true, zapDamage = true, shatterDamage = true,
 	}
 	for _, held in ipairs(p.relics or {}) do
 		local r = C.relicById(held.id)
@@ -6509,6 +6510,8 @@ local function swingNeighbour(plr, part, dmg, p)
 	if chip.broke then
 		finishBreak(plr, part, p, zone, kind, layer)
 	end
+	-- Shatter chains on this: a shard that breaks its block lets it shatter too.
+	return chip.broke == true
 end
 
 --[[
@@ -6592,7 +6595,7 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 				if other and typeof(other) == "Instance" and other.Parent then
 					if not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
 						pcall(swingNeighbour, plr, other,
-							C.procDamage(dmg, "blast", pp), p)
+							C.procDamage(dmg, "blast", pp, b.blastDamage), p)
 					end
 				end
 			end
@@ -6612,7 +6615,7 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		local tide = math.min(1, tonumber(b.tidalWave) or 0)
 		if tide > 0 and rng:NextNumber() < tide then
 			net:FireClient(plr, "loot", { text = "TIDAL WAVE", color = Color3.fromRGB(70, 170, 255), pos = part.Position })
-			local tideDmg = C.procDamage(dmg, "tide", pp)
+			local tideDmg = C.procDamage(dmg, "tide", pp, b.tideDamage)
 			for _, d in ipairs(Dig.TIDE_RING) do
 				local other = cells[keyOf(zone.id, cx + d[1], cy, cz + d[2])]
 				if other and typeof(other) == "Instance" and other.Parent
@@ -6623,69 +6626,46 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		end
 	end
 	--[[
-		RICOCHET: the hit jumps to one block beside it AND BOUNCES BACK.
+		SHATTER (owner, 2026-10-10; it replaces Ricochet). A broken block bursts
+		into shards that hit its 6 sides. A block a shard BREAKS rolls Shatter
+		too, and so on, at most C.SHATTER_MAX_PROCS shatters per block you broke
+		-- "chance when blocks break to send out shards, if other blocks break
+		they roll same ... max 3 procs per block you break".
 
-		This is the only proc that returns. Blast spreads to six neighbours, zap
-		wanders up to sixteen blocks away, echo lands a full hit on a neighbour
-		which then rolls its own procs -- all three move damage AWAY from what
-		you are aiming at, which is waste when the valuable block is the one in
-		front of you.
+		The stat KEY stays "ricochet": it is data on the skill tree (Electric's
+		secondary), the Bouncing trait, gear, pet kits and saves. Its label is
+		Shatter (MineStats), the way fossilFind became Ore Finder.
 
-		Ricochet concentrates instead: one hit out, one hit back into the
-		original block. It is the proc you take when you care about the ore you
-		are swinging at rather than the dirt around it, and that is a build
-		identity rather than a damage number.
-
-		It briefly rerolled the other procs where it landed, which made it a
-		copy of Dig.echoAt -- and echo is already being wound down (MineStats:
-		"Legacy: paid out as Swing Rate"). Two procs doing one job is worse than
-		a weak proc.
-
-		Still break-only, like Blast: a ricochet off a block that survived the
-		swing would fire on every tick of a long dig. Still not a chain: the
-		return hit goes through swingNeighbour, which re-enters nothing.
+		Break-only and clamped at 1 like blast; damage is PROC_SHARE.shatter
+		plus Shatter Damage. The chain lives HERE rather than inside
+		swingNeighbour, which re-enters nothing -- so a shard can never start a
+		blast, a wave or a zap.
 	]]
 	if broke and not Dig.PROC_SKIP[kind] then
-		-- Clamped for the same reason as blast: one jump, so over 1.0 is a
-		-- boolean rather than a rate.
-		-- Clamped like blast: one jump out and one back, so a value over 1.0 is
-		-- a boolean rather than a rate.
-		local ric = math.min(1, tonumber(b.ricochet) or 0)
-		if ric > 0 and rng:NextNumber() < ric then
-			local opts = {}
-			for _, d in ipairs(Dig.FACE6) do
-				local nx, ny, nz = cx + d[1], cy + d[2], cz + d[3]
-				local other = cells[keyOf(zone.id, nx, ny, nz)]
-				if other and typeof(other) == "Instance" and other.Parent
-					and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-					-- Coords travel with the part: procsAt needs the cell, and a
-					-- block carries no Cx/Cy/Cz attribute to read them back off.
-					table.insert(opts, { part = other, cx = nx, cy = ny, cz = nz })
-				end
-			end
-			if #opts > 0 then
-				local pick = opts[rng:NextInteger(1, #opts)]
-				local hit = pick.part
-				local ricDmg = C.procDamage(dmg, "ricochet", pp)
-				net:FireClient(plr, "loot", { text = "RICOCHET",
-					color = Color3.fromRGB(140, 220, 255), pos = hit.Position })
-				pcall(swingNeighbour, plr, hit, ricDmg, p)
-				--[[
-					AND BACK.
-
-					The return lands on the block that was swung at. It has
-					already broken -- this branch is break-only -- so the bounce
-					goes to whatever is standing there now, which on a deep seam
-					is the next block the generator has pushed up into the cell.
-					When the cell is empty the bounce is simply lost, which is
-					the honest outcome: you cleared what you were aiming at.
-				]]
-				local home = cells[keyOf(zone.id, cx, cy, cz)]
-				if home and typeof(home) == "Instance" and home.Parent
-					and not Dig.PROC_SKIP[home:GetAttribute("Kind")] then
-					net:FireClient(plr, "loot", { text = "RICOCHET",
-						color = Color3.fromRGB(140, 220, 255), pos = home.Position })
-					pcall(swingNeighbour, plr, home, ricDmg, p)
+		local sh = math.min(1, tonumber(b.ricochet) or 0)
+		if sh > 0 then
+			local shardDmg = C.procDamage(dmg, "shatter", pp, b.shatterDamage)
+			local maxProcs = math.max(1, math.floor(tonumber(C.SHATTER_MAX_PROCS) or 3))
+			local queue = { { cx, cy, cz, part.Position } }
+			local shatters = 0
+			while #queue > 0 and shatters < maxProcs do
+				local at = table.remove(queue, 1)
+				if rng:NextNumber() < sh then
+					shatters += 1
+					net:FireClient(plr, "loot", { text = "SHATTER",
+						color = Color3.fromRGB(190, 160, 255), pos = at[4] })
+					for _, d in ipairs(Dig.FACE6) do
+						local nx, ny, nz = at[1] + d[1], at[2] + d[2], at[3] + d[3]
+						local other = cells[keyOf(zone.id, nx, ny, nz)]
+						if other and typeof(other) == "Instance" and other.Parent
+							and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+							local otherPos = other.Position
+							local okHit, shardBroke = pcall(swingNeighbour, plr, other, shardDmg, p)
+							if okHit and shardBroke then
+								table.insert(queue, { nx, ny, nz, otherPos })
+							end
+						end
+					end
 				end
 			end
 		end
@@ -6725,22 +6705,23 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		still re-proc nothing.
 	]]
 	--[[
-		NOT clamped, and that is the point. Owner, 2026-10-05: "zap over 100 CAN
-		make sense because its a chance decay".
+		START vs CONTINUE (owner, 2026-10-10: "make zap have a proc chance and a
+		zap continue equation. Just ensure its balanced").
 
-		`chance` is multiplied by ZAP_FALLOFF every hop, so a stat above 1.0 is
-		not thrown away -- it buys guaranteed early hops and moves the point
-		where the chain starts failing. Zap is the only one of the four where a
-		value over 1.0 is a curve rather than a boolean.
+		The zap stat is only the chance to START. Hop h then continues with
+		ZAP_CONTINUE x ZAP_FALLOFF^(h-1) -- the same for everyone -- so a chain
+		averages about 3 hops (MineConfig). It used to be one stat for both,
+		which made a big zap stat buy long chains and frequent ones at once. Not
+		clamped: over 1.0 simply means every swing starts one.
 	]]
 	local startZap = b.zap or 0
 	if startZap <= 0 or rng:NextNumber() >= startZap then
 		return
 	end
-	local falloff = tonumber(C.ZAP_FALLOFF) or 0.75
+	local falloff = tonumber(C.ZAP_FALLOFF) or 0.88
 	local maxHops = math.max(1, math.floor(tonumber(C.ZAP_MAX_HOPS) or 6))
-	local zapBase = C.procDamage(dmg, "zap", pp)
-	local chance = startZap
+	local zapBase = C.procDamage(dmg, "zap", pp, b.zapDamage)
+	local chance = tonumber(C.ZAP_CONTINUE) or 0.8
 	local fromCx, fromCy, fromCz = cx, cy, cz
 	local prevDx, prevDy, prevDz = 0, 0, 0
 	for hops = 1, maxHops do
@@ -6772,10 +6753,10 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 			made the tail of the chain not worth reaching.
 		]]
 		pcall(swingNeighbour, plr, pick.part, zapBase, p)
-		chance *= falloff
 		if rng:NextNumber() >= chance then
 			break
 		end
+		chance *= falloff
 		prevDx, prevDy, prevDz = pick.dx, pick.dy, pick.dz
 		fromCx, fromCy, fromCz = pick.nx, pick.ny, pick.nz
 	end
@@ -14343,7 +14324,8 @@ Dig.boostSources = function(p)
 	local out = {}
 	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true,
 		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
-		earthquake = true, ricochet = true, tidalWave = true }
+		earthquake = true, ricochet = true, tidalWave = true,
+		blastDamage = true, tideDamage = true, zapDamage = true, shatterDamage = true }
 	local function add(stat, name, amt)
 		if type(amt) ~= "number" or math.abs(amt) < 0.0005 then
 			return
@@ -17466,6 +17448,11 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 					table.insert(p_devpet.cards, card)
 					p_devpet.equipped = p_devpet.equipped or {}
 					table.insert(p_devpet.equipped, 1, card.id)
+					-- Seat cap, as the real equip path keeps it: the newest stays, the oldest goes.
+					local capDev = C.effectivePetSlots and C.effectivePetSlots(p_devpet) or 3
+					while #p_devpet.equipped > capDev do
+						table.remove(p_devpet.equipped)
+					end
 					walk(plr)
 					net:FireClient(plr, "toast", "Studio: " .. row.name .. " (" .. row.tier .. ") in seat 1")
 				end

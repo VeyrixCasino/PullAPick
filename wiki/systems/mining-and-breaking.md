@@ -44,11 +44,11 @@ related: [zones-layers-and-seams, boosts-and-stats, tools, ores, forge-and-recyc
 
 | proc | chance stat | fires on | damage (× `1 + procPower`, procPower capped at 3.0) |
 |---|---|---|---|
-| Blast | `blastChance`, clamped ≤ 1 | break | `PROC_SHARE.blast` 0.35 to each of the 6 faces |
-| Tidal Wave (2026-10-10) | `tidalWave`, clamped ≤ 1 | break | `PROC_SHARE.tide` 0.18 to each of the 12 cells of `Dig.TIDE_RING`: two out along the layer, one on each diagonal, **same layer only**. Totals 2.16 swings, level with Blast's 2.10. |
-| Ricochet | `ricochet`, clamped ≤ 1 | break | 0.60 to one neighbour, **then back** into the cell you aimed at |
+| Blast | `blastChance`, clamped ≤ 1 | break | `PROC_SHARE.blast` **0.12** (was 0.35) to each of the 6 faces, + Blast Damage. 0.72 swings a proc. |
+| Tidal Wave (2026-10-10) | `tidalWave`, clamped ≤ 1 | break | `PROC_SHARE.tide` 0.18 to each of the 12 cells of `Dig.TIDE_RING`: two out along the layer, one on each diagonal, **same layer only**, + Tidal Wave Damage. 2.16 swings: the biggest proc. Its reach never grows. |
+| **Shatter** (replaced Ricochet, 2026-10-10) | `ricochet` (**key kept**: it is data), clamped ≤ 1 | break | `PROC_SHARE.shatter` 0.15 to each of the 6 faces, + Shatter Damage. A block a shard **breaks** rolls Shatter too, at most `SHATTER_MAX_PROCS` 3 per block you broke. 0.90 swings + chains. |
 | Earthquake | `earthquake`, clamped ≤ 1 | hit (not break) | A stack bank. Each tick is `QUAKE_STACK_SHARE 0.1 × stacks × stored dmg` per second. Stacks cap at 100. At most 5 blocks shake at once. The bank dies after 5 s with no new quake. |
-| Zap | `zap`, **not clamped** | any swing | 0.25 per hop, up to `ZAP_MAX_HOPS 16`. The chance to continue is multiplied by `ZAP_FALLOFF 0.89` each hop. |
+| Zap | `zap` = the chance to **start**, not clamped | any swing | 0.25 per hop, + Zap Damage, up to `ZAP_MAX_HOPS 16`. Hop h continues with `ZAP_CONTINUE 0.80 × ZAP_FALLOFF 0.88^(h−1)`, the same for everyone. That averages 3.05 hops (0.76 swings); Studio measured 3.11. |
 | Echo | only a tool with `special == "echo"` (the `echo` stat is folded into swing rate) | any swing | A full hit on a different neighbour. That neighbour rolls its own procs, but never its own echo. |
 
 `Dig.PROC_SKIP` covers chests, crates, cores and lucky blocks:
@@ -74,6 +74,23 @@ animation"* and *"a little sfx"*).
 - **Weak hits are expected.** A proc is a share of a swing, so with a weak tool it
   lands for 1 damage. Blast and Tidal Wave both do on a starter pick. The
   animation is what tells a player it fired.
+
+**The damage formula** (2026-10-10; the owner's "equation"):
+`MineConfig.procDamage` = swing × `PROC_SHARE[proc]` × (1 + procPower + that proc's own damage stat).
+- **The own damage stats** are `blastDamage`, `tideDamage`, `zapDamage` and
+  `shatterDamage`. Each ADDS to procPower, so the two never compound.
+
+**Proc chances are priced, never capped** (owner: *"dont cap any.. just make sure
+they pay for it"*).
+- **MineStats weights:** Blast 9, Zap 8, Shatter 9, Earthquake 9 and Tidal Wave 10
+  points per +1%. A top pet then rolls about 25–30%, and stacking chance costs the
+  rest of the kit.
+- **Hats** pay the same price (see [hats-and-faces](hats-and-faces.md)).
+- **Measured in Studio:**
+  - Mistreef's three top Tidal Wave pets together reach 50.4%, inside the owner's
+    50–60%;
+  - with the three top Shatter pets, 13 of 16 breaks shattered, and a weakened
+    ring chained to the cap of 3.
 
 **Pay while digging.** `payDamage` turns every point of HP landed into one dirt in the bag and one coin (× `coinBonus`). The coins are priced into `haulMix` at the moment you mine, and are paid out when you sell at an outpost. With a full bag the rock still breaks and the ore still drops; you just stop being paid. See [currencies](currencies-and-economy.md).
 

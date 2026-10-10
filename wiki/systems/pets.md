@@ -86,19 +86,28 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
 - **New pets:** 457 new ones on everyday bodies, never a holiday body. Each one
   has a colour at least 60 RGB apart from every other pet on the same body
   (relaxing to 30 only if it has to).
-- **Kits** follow the approved ladder (PROPOSAL §0 line 3): the primary stat is
-  worth Common 34 … Exotic 150 points at Normal/PL1, the secondary half that,
-  ×1.05 per zone (zone 10 is ×1.55).
+- **Kits** follow the approved ladder (PROPOSAL §0 line 3), **lifted 2026-10-10**.
+  - The owner asked for *"489 at top, 300 at start"* and *"commons stay the same,
+    but everything else grows in relitivity"*. So each rung is multiplied by
+    (4/3)^(rank/7): Common stays 34 primary (51 a kit) and Exotic reaches 200
+    (300 a kit at Meadow, 489 at Event Horizon).
+  - The secondary is half the primary, ×1.05 per zone (zone 10 is ×1.55).
   - **Common to Legendary** get a role from their body: Striker, Bruiser,
     Digger, Seeker, Prospector, Tidecaller, Trader or Mystic.
   - **Mythic, Divine and Exotic** carry their zone's own three-stat buff set
     (meadow Harvest … primordium Primal). A later zone never makes an earlier
     zone's top pets useless.
   - Blast is on 25 of 700 pets, Rare or better only.
-  - **Tidal Wave** (the water area proc, 2026-10-10) is on 15:
-    - Mistreef's Mythic, Divine and Exotic, whose buff set is now Tide
-      (tidal wave, pulverize, scrap);
-    - Tidecaller pets of Rare and up.
+  - **Proc buff sets (2026-10-10):**
+    - Mistreef Tide: Tidal Wave, Tidal Wave Damage, Pulverize;
+    - Arcwork Volt: Zap, Zap Damage, Swing Rate;
+    - Eclipse Shadow: Blast, Blast Damage, Earthquake;
+    - Riftmarch Shatter: Shatter, Shatter Damage, Earthquake.
+
+    Mistreef's three top Tidal Wave pets total 50.4% at Normal, within the owner's
+    50–60%. No pet's proc chance tops 40% (the highest is Quasarin's Zap at 37.1%).
+  - **Rare+ roles:** Tidecallers roll Tidal Wave + its damage, and Mystics roll Zap,
+    Shatter or Blast with their damage.
 - **Holiday pets are not in the game** (owner: *"only allow it from {Holiday}
   {year} Pack"*).
   - `MineZonePets.HOLIDAY` lists six: Spindle, Spooky and Wisp (Halloween), and

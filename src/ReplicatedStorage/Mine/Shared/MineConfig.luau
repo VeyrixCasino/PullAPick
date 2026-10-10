@@ -1325,8 +1325,25 @@ MineConfig.RICOCHET_HOPS = 1
 	the +300% cap a blast is 1.4 x 6 = 8.4x a swing, which is enormous and
 	cost a whole stat budget to reach.
 ]]
+--[[
+	THE 2026-10-10 PROC REWORK (owner; wiki/next-up.md section 2).
+
+	  blast    0.35 -> 0.12. "make blast less than tidal wave": it hits in three
+	           dimensions and stacks with blast range, which made it "way to OP".
+	           6 x 0.12 = 0.72 swings a proc.
+	  tide     0.18 on each of 12 cells on your layer = 2.16. The big one, and
+	           its reach never grows ("no range modifiers").
+	  zap      0.25 a hop, and the chain now has its own equation
+	           (ZAP_CONTINUE / ZAP_FALLOFF below): about 3 hops, 0.76 swings.
+	  shatter  0.15 to each of the 6 sides, and a block a shard breaks may
+	           shatter again, at most SHATTER_MAX_PROCS times per block you broke.
+	           Replaces Ricochet; the stat KEY stays "ricochet" (it is data).
+
+	Each proc also has its own damage stat (blastDamage, tideDamage, zapDamage,
+	shatterDamage) that adds to procPower for that proc alone: see procDamage.
+]]
 MineConfig.PROC_SHARE = {
-	blast = 0.35,
+	blast = 0.12,
 	--[[
 		0.45 -> 0.25. Owner, 2026-10-05: nerf the zap proc.
 
@@ -1341,8 +1358,11 @@ MineConfig.PROC_SHARE = {
 		of it.
 	]]
 	zap = 0.25,
+	-- Kept so procDamage("ricochet") still answers an old caller; the proc is
+	-- Shatter now (see "shatter").
 	ricochet = 0.60,
 	tide = 0.18,
+	shatter = 0.15,
 	-- Superseded by the stack model, which prices a quake as
 	-- QUAKE_STACK_SHARE per stack per second. Kept so procDamage("quake")
 	-- still answers for any caller that has not moved across.
@@ -1376,7 +1396,25 @@ MineConfig.ZAP_MAX_HOPS = 16
 	At 0.75 even 400% reached sixteen essentially never, so the hop cap did all
 	the work and the stat bought nothing past the first few hops.
 ]]
-MineConfig.ZAP_FALLOFF = 0.89
+MineConfig.ZAP_FALLOFF = 0.88
+--[[
+	THE ZAP CONTINUE EQUATION (owner, 2026-10-10: "make zap have a proc chance
+	and a zap continue equation. Just ensure its balanced").
+
+	The zap STAT is now only the chance to START a chain. Once started, hop h
+	continues with probability
+
+	    ZAP_CONTINUE x ZAP_FALLOFF ^ (h - 1)
+
+	which is the same for every player: 0.80, 0.70, 0.62, 0.55, ... so a chain
+	averages about 3 hops (0.76 swings at PROC_SHARE.zap 0.25), between blast's
+	0.72 and shatter's 0.90. Before this the stat drove both, so a big zap stat
+	bought long chains AND frequent ones at once.
+]]
+MineConfig.ZAP_CONTINUE = 0.80
+-- Shatter's chain: a block broken by a shard may shatter again, this many
+-- shatters in all per block you broke.
+MineConfig.SHATTER_MAX_PROCS = 3
 
 -- How far procPower can be stacked. A ceiling, not a target.
 MineConfig.PROC_POWER_CAP = 3.0
@@ -1387,14 +1425,17 @@ MineConfig.PROC_POWER_CAP = 3.0
 	The one place this is computed. A caller passing its own multiplier is how
 	Blast and Zap ended up disagreeing about what "full damage" meant.
 ]]
-function MineConfig.procDamage(dmg, which, procPower)
+-- `extra` is the proc's own damage stat (blastDamage, tideDamage, ...). It ADDS
+-- to procPower rather than multiplying it, so two damage sources never compound.
+function MineConfig.procDamage(dmg, which, procPower, extra)
 	local base = math.max(0, tonumber(dmg) or 0)
 	local share = (MineConfig.PROC_SHARE or {})[which]
 	if not share then
 		return 0
 	end
 	local pp = math.clamp(tonumber(procPower) or 0, 0, MineConfig.PROC_POWER_CAP or 3)
-	return math.max(1, math.floor(base * share * (1 + pp)))
+	local own = math.max(0, tonumber(extra) or 0)
+	return math.max(1, math.floor(base * share * (1 + pp + own)))
 end
 
 --[[

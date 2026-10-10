@@ -41,7 +41,14 @@ MineStats.STATS = {
 		sk.blastRadius line was restored and those nodes started paying at all.
 	]]
 	blastRadius = { label = "Blast Radius",  weight = 18.0, unit = "%", desc = "Tool pattern size. A sphere, so +50% radius is ~3.4x the blocks." },
-	blastChance    = { label = "Blast Chance",  weight = 4.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
+	--[[
+		PROC CHANCES ARE PRICED HIGH (owner, 2026-10-10): odds stay "lowish (~tidal
+		wave)", with no caps -- "make sure they pay for it in to many other area for
+		it to matter". Blast 9, Zap 8, Shatter 9, Earthquake 9 and Tidal Wave 10 points per +1%
+		put a top pet's chance near 25-30% and make stacking one cost the rest of
+		the kit. (Blast was 4.0, Zap 2.5, Ricochet 2.4, Tidal Wave 4.0.)
+	]]
+	blastChance    = { label = "Blast Chance",  weight = 9.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
 	--[[
 		TIDAL WAVE (owner, 2026-10-10: "a water theme aoe would be great").
 		Blast's flat cousin: a broken block sends a wave across ITS OWN LAYER,
@@ -50,7 +57,10 @@ MineStats.STATS = {
 		blast's 6 x 0.35 = 2.10, so it is priced like blast: a different shape,
 		not a stronger proc. Blast digs a pocket; a wave clears floor.
 	]]
-	tidalWave   = { label = "Tidal Wave",    weight = 4.0, unit = "%", desc = "CHANCE a broken block sends a wave across your layer, hitting the 12 blocks around it. How hard is Proc Power. Chests stay centre-only." },
+	-- Weight 10 (was 4): a wave is the biggest proc (2.16 swings), and the
+	-- owner wants proc odds "lowish" -- priced high, never capped, so stacking
+	-- chance costs everything else a kit could have had.
+	tidalWave   = { label = "Tidal Wave",    weight = 10.0, unit = "%", desc = "CHANCE a broken block sends a wave across your layer, hitting the 12 blocks around it. How hard is Proc Power. Chests stay centre-only." },
 	coinBonus   = { label = "Coin Bonus",    weight = 0.8, unit = "%", desc = "Coins from selling." },
 	gemFind     = { label = "Gem Find",      weight = 1.8, unit = "%", desc = "Gems dropped by ore." },
 	luck        = { label = "Luck",          weight = 2, unit = "%", desc = "Pack yield and tool finds; mined packs show a luck badge." },
@@ -76,7 +86,9 @@ MineStats.STATS = {
 	-- at ECHO_TO_SWING. The entry stays so an old kit or save still resolves a
 	-- weight; it is out of STAT_ORDER so no screen lists it.
 	echo        = { label = "Echo Strike",   weight = 1.5, unit = "%", desc = "Legacy: paid out as Swing Rate.", legacy = true },
-	zap         = { label = "Zap Chance",    weight = 2.5, unit = "%", desc = "CHANCE a dig chains to nearby blocks, up to 6 hops. How hard each hop lands is Proc Power." },
+	-- The stat only STARTS a chain now; the chain itself
+	-- follows MineConfig.ZAP_CONTINUE / ZAP_FALLOFF (about 3 hops, 0.76 swings).
+	zap         = { label = "Zap Chance",    weight = 8.0, unit = "%", desc = "CHANCE a dig starts a lightning chain. Each hop may continue (80%, then less each hop). How hard each hop lands is Proc Power + Zap Damage." },
 	-- LEGACY. Auto Mine was replaced by Gem Find: anything still carrying this
 	-- key is converted at AUTO_MINE_TO_GEM before it is paid or printed (see
 	-- MineStats.withoutAutoMine, MineTemper.magnitudes, MineServer.boosts). The
@@ -142,8 +154,12 @@ MineStats.STATS = {
 	]]
 	oreLuck     = { label = "Ore Luck",         weight = 2.4, unit = "%", desc = "Chance an ore block drops its ORE CASE. Does not touch chests or packs." },
 	packLuck    = { label = "Pack Luck",        weight = 2.4, unit = "%", desc = "Siphons a pack's card odds toward the chase when it is opened. Stamped on the pack when you get it." },
-	earthquake  = { label = "Earthquake Chance", weight = 2.6, unit = "%", desc = "CHANCE a block starts shaking and bleeds damage every second for 5s. Does not stack; 5 blocks at once." },
-	ricochet    = { label = "Ricochet Chance",  weight = 2.4, unit = "%", desc = "CHANCE breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
+	-- Weight 9 (was 2.6) with the other proc chances (2026-10-10): at 2.6 one pet
+	-- rolled a 103% quake chance.
+	earthquake  = { label = "Earthquake Chance", weight = 9.0, unit = "%", desc = "CHANCE a block starts shaking and bleeds damage every second for 5s. Does not stack; 5 blocks at once." },
+	-- SHATTER (was Ricochet; the KEY stays "ricochet" because it is data on
+	-- the skill tree, traits, gear, kits and saves). Owner, 2026-10-10.
+	ricochet    = { label = "Shatter Chance",   weight = 9.0, unit = "%", desc = "CHANCE a broken block shatters: shards hit its 6 sides, and a block a shard breaks may shatter again (up to 3 per block you break). How hard is Proc Power + Shatter Damage." },
 	--[[
 		PROC DAMAGE, and the only stat that moves it.
 
@@ -157,14 +173,21 @@ MineStats.STATS = {
 		less than Blast because it does nothing at all on a build with no proc
 		chance to scale.
 	]]
-	procPower   = { label = "Proc Power",       weight = 3.0, unit = "%", desc = "How hard Blast, Zap, Earthquake and Ricochet hit. Does nothing without a proc chance to scale." },
+	procPower   = { label = "Proc Power",       weight = 3.0, unit = "%", desc = "How hard Blast, Tidal Wave, Zap, Shatter and Earthquake hit. Does nothing without a proc chance to scale." },
+	-- One damage stat per proc (owner, 2026-10-10: "add damage %"). Each adds to
+	-- Proc Power for its own proc only (MineConfig.procDamage), so it is worth
+	-- half of Proc Power's 3.0.
+	blastDamage   = { label = "Blast Damage",      weight = 1.5, unit = "%", desc = "How hard Blast hits, on top of Proc Power." },
+	tideDamage    = { label = "Tidal Wave Damage", weight = 1.5, unit = "%", desc = "How hard Tidal Wave hits, on top of Proc Power. Its reach never grows." },
+	zapDamage     = { label = "Zap Damage",        weight = 1.5, unit = "%", desc = "How hard each Zap hop hits, on top of Proc Power." },
+	shatterDamage = { label = "Shatter Damage",    weight = 1.5, unit = "%", desc = "How hard each Shatter shard hits, on top of Proc Power." },
 }
 
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
 	"blastChance", "tidalWave", "rareOre", "gemFind", "coinBonus",
 	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "oreHaul", "pulverize", "scrap",
-	"earthquake", "ricochet", "procPower",
+	"earthquake", "ricochet", "procPower", "blastDamage", "tideDamage", "zapDamage", "shatterDamage",
 	-- backpack and walkSpeed retired 2026-10-04; see their entries above.
 	"coolant", "shortFuse", "dirtBreak",
 }

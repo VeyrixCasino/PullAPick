@@ -42,8 +42,16 @@ const TOP = new Set(["Mythic", "Divine", "Exotic"]);
 // has to change tier: the roster already holds 18 / 24 / 26 of them.
 const QUOTA = { Common: 25, Uncommon: 15, Rare: 10, Epic: 7, Legendary: 5, Mythic: 2, Divine: 3, Exotic: 3 };
 
-// docs/PROPOSAL.md §0 line 3, approved 2026-10-05.
-const LADDER = { Common: 34, Uncommon: 39, Rare: 46, Epic: 55, Legendary: 68, Mythic: 89, Divine: 116, Exotic: 150 };
+// docs/PROPOSAL.md §0 line 3, approved 2026-10-05 ...
+const LADDER_APPROVED = { Common: 34, Uncommon: 39, Rare: 46, Epic: 55, Legendary: 68, Mythic: 89, Divine: 116, Exotic: 150 };
+// ... and lifted 2026-10-10. Owner: an Exotic is "489 at top, 300 at start"
+// (its whole kit, zone 1 to zone 11), and "make commons stay the same, but
+// everything else grows in relativity". So Common keeps x1 and each rung up
+// takes a little more, reaching x4/3 at Exotic: primary 200, kit 300 at zone 1,
+// 300 x 1.05^10 = 489 at Event Horizon.
+const LADDER_TOP_LIFT = 4 / 3;
+const LADDER = Object.fromEntries(TIERS.map((t, i) =>
+  [t, Math.round(LADDER_APPROVED[t] * Math.pow(LADDER_TOP_LIFT, i / (TIERS.length - 1)) * 100) / 100]));
 const ZONE_STEP = 1.05;
 const SECONDARY = 0.5; // C..L: secondary = half the primary (PROPOSAL §A)
 const TOP_SHARES = [1, 0.35, 0.15]; // M/D/X: same 1.5x total, spread over the zone's three buffs
@@ -53,11 +61,11 @@ const TOP_SHARES = [1, 0.35, 0.15]; // M/D/X: same 1.5x total, spread over the z
 const ZONES = [
   { id: "meadow", adj: "Bloom", buff: "Harvest", stats: ["oreHaul", "fossilFind", "coinBonus"], desc: "more ore per block, better ore finds, more coins" },
   { id: "sunscar", adj: "Sunscorch", buff: "Blaze", stats: ["mineSpeed", "swingRate", "dirtBreak"], desc: "raw damage and swing speed" },
-  { id: "mistreef", adj: "Tidal", buff: "Tide", stats: ["tidalWave", "pulverize", "scrap"], desc: "tidal waves across your layer, stardust from rubble and chests" },
-  { id: "arcwork", adj: "Voltaic", buff: "Volt", stats: ["zap", "swingRate", "ricochet"], desc: "chain lightning and bouncing hits" },
+  { id: "mistreef", adj: "Tidal", buff: "Tide", stats: ["tidalWave", "tideDamage", "pulverize"], desc: "tidal waves across your layer that hit harder, stardust from rubble" },
+  { id: "arcwork", adj: "Voltaic", buff: "Volt", stats: ["zap", "zapDamage", "swingRate"], desc: "lightning chains that hit harder, faster swings" },
   { id: "bloodmoon", adj: "Crimson", buff: "Fortune", stats: ["luck", "chestLuck", "packLuck"], desc: "luck, better chests, better packs" },
-  { id: "eclipse", adj: "Umbral", buff: "Shadow", stats: ["earthquake", "blastChance", "dirtBreak"], desc: "quakes and blasts that clear rock" },
-  { id: "riftmarch", adj: "Riftborn", buff: "Quake", stats: ["earthquake", "ricochet", "mineSpeed"], desc: "quakes, ricochets and heavy hits" },
+  { id: "eclipse", adj: "Umbral", buff: "Shadow", stats: ["blastChance", "blastDamage", "earthquake"], desc: "blasts that hit harder, and quakes" },
+  { id: "riftmarch", adj: "Riftborn", buff: "Shatter", stats: ["ricochet", "shatterDamage", "earthquake"], desc: "shatters that chain through rock, and quakes" },
   { id: "starfall", adj: "Starfallen", buff: "Prospect", stats: ["gemFind", "rareOre", "oreLuck"], desc: "gems, rarer ore, more ore cases" },
   { id: "mythral", adj: "Mythril", buff: "Treasure", stats: ["luckyFind", "packLuck", "chestLuck"], desc: "lucky blocks, packs and chests" },
   { id: "primordium", adj: "Primeval", buff: "Primal", stats: ["mineSpeed", "oreHaul", "rareOre"], desc: "damage, ore haul and rare ore" },
@@ -173,11 +181,11 @@ const ROLES = {
   Prospector: { desc: "finds gems and rarer ore", species: ["lizard", "serpent", "spider"],
     pairs: [["gemFind", "rareOre"], ["rareOre", "gemFind"], ["oreLuck", "gemFind"]] },
   Tidecaller: { desc: "turns rubble into stardust", species: ["fish", "dolphin", "ray", "slime", "otter"],
-    pairs: [["pulverize", "scrap"], ["scrap", "pulverize"], ["gemFind", "pulverize"]], rarePlus: [["tidalWave", "pulverize"]] },
+    pairs: [["pulverize", "scrap"], ["scrap", "pulverize"], ["gemFind", "pulverize"]], rarePlus: [["tidalWave", "tideDamage"]] },
   Trader: { desc: "earns more coins and ore", species: ["pig", "sheep", "horse"],
     pairs: [["coinBonus", "oreHaul"], ["coinBonus", "luckyFind"], ["oreHaul", "coinBonus"]] },
-  Mystic: { desc: "sparks, quakes and ricochets", species: ["sprite", "ghost", "drake", "wyrm"],
-    pairs: [["zap", "ricochet"], ["ricochet", "zap"], ["earthquake", "zap"]], rarePlus: [["blastChance", "zap"]] },
+  Mystic: { desc: "lightning, shatters and quakes", species: ["sprite", "ghost", "drake", "wyrm"],
+    pairs: [["zap", "zapDamage"], ["ricochet", "shatterDamage"], ["earthquake", "zap"]], rarePlus: [["blastChance", "blastDamage"]] },
 };
 const ROLE_OF = {};
 for (const [role, r] of Object.entries(ROLES)) for (const s of r.species) ROLE_OF[s] = role;

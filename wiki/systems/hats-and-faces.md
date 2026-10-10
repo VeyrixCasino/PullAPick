@@ -41,8 +41,18 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
   (62–82%) plus one universal line. `MineGear.mergeHats` can fuse two hats into a
   multi-stat hat; faces cannot merge.
 - **Sets** (`MineGear.SETS`, 10). Each hat's catalog row picks its set: inferno = blastRadius,
-  glacier = swingRate, tide = backpack, canopy = blastChance, bedrock = dirtBreak,
-  foundry = coinBonus, storm = zap, prism = rareOre, umbra = luck, void = gemFind.
+  glacier = swingRate, **tide = Tidal Wave + Tidal Wave Damage**, **canopy = blastChance +
+  Blast Damage**, bedrock = dirtBreak, foundry = coinBonus, **storm = zap + Zap Damage**,
+  **prism = Shatter + Shatter Damage**, umbra = luck, void = gemFind.
+- **The procs on hats** (owner, 2026-10-10: *"add all these new ones to hats"*):
+  - **`stat2` rides along.** A proc set's second stat (its damage) is on every
+    piece of the set, at `STAT2_SHARE` 0.5 of the chance line.
+  - **`was` re-themes owned hats.** Tide's old Backpack and Prism's old Rare Ore
+    lines now read as the set's new stat.
+  - **`MineGear.PRICED_BY_WEIGHT`:** proc chance and proc damage lines are
+    divided by their MineStats weight when read. An SSS Tide hat is +26–35% Tidal
+    Wave, not +350%. An SSS Storm hat's Zap went from about +259% to +34%.
+    Hats already owned are repriced too, because `boostLines` applies this.
 - **Paid out in layer 2.** `Dig.layer2` adds `MineGear.flatBoost(MineGear.wornHats(eq,
   pieces), face)` once. The per-pet multiplication is gone (§0.19). Each piece also has
   one rune socket (`SOCKETS_PER_PIECE` 1), paid after the layers by
@@ -78,8 +88,9 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
 - **PROPOSAL §0 lines 1–2, approved and NOT in code:** hat ladder 16 20 25 32 40 51 64 **80**, face
   20 25 32 40 50 63 79 **100**. Faces become bigger than hats, and the SSS hat is a 4.4× nerf
   (§A). `MineGear.SHEET` still reads 30…350 and 15…175.
-- **PROPOSAL line 29, approved and NOT in code:** tide's stat becomes reach, prism's oreLuck,
-  umbra's packLuck, canopy's chestLuck.
+- **PROPOSAL line 29** (tide → reach, prism → oreLuck, umbra → packLuck, canopy → chestLuck)
+  is **superseded for tide, prism and canopy** by the 2026-10-10 proc sets above. Umbra →
+  packLuck is still approved and not built.
 
 ## State right now
 
@@ -99,7 +110,8 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
 - **Stale text from before §0.19:** the `MineGear` header, `SLOT_BLURB.hat` ("added to every
   pet") and the unused `MineGear.hatMeansLine` all describe hats multiplying pets. The
   `MineHats` header says faces are "OFF the drop table"; they drop now.
-- **The tide set rolls `backpack`,** which is a retired stat.
+- **Town kits still roll `backpack`** as an extra (`TOWN_MATCH`), which is a retired stat. The
+  tide set itself no longer does (2026-10-10).
 - **`p.temperTokens` is named after temperaments** (skins) but also pays for hats. The two now share one wallet on purpose.
 - AUDIT §4 scores gear "pure degree": one stat, bigger at a higher grade. That fails the
   differ-in-kind test.

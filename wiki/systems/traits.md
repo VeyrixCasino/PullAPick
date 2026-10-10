@@ -68,7 +68,7 @@ related: [tools, forge-and-recycling, hats-and-faces, boosts-and-stats, skins-ca
 | SSS Exotic (1/1000) | Wide = blastRadius |
 | SS Divine | Blasting = blastChance, Grinding = pulverize |
 | S Mythic | Charmed = luckyFind, Violent = procPower, Rumbling = earthquake |
-| A Legendary | Shocking = zap, Cooled = coolant, Bouncing = ricochet |
+| A Legendary | Shocking = zap, Cooled = coolant, Bouncing = ricochet (paid as **Shatter** since 2026-10-10) |
 | B Epic | Prospecting = oreLuck, Fated = packLuck, Hasty = shortFuse, Prying = chestLuck |
 | C Rare | Lucky = luck, Gleaming = gemFind, Rich = rareOre |
 | D Uncommon | Seeking = fossilFind, Swift = swingRate, Reaching = reach, Salvaging = scrap |
