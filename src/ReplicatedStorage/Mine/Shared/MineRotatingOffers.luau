@@ -49,7 +49,7 @@ MineRotatingOffers.OFFERS = {
 			{ id = "shiny_pack", qty = 2 },
 		},
 		pet = 1,
-		blurb = "LIMITED TIME. NEVER COMING BACK. 5 Lucky Blocks, 3 Diamond, 1 Mythic, a Lucky Block pet, plus 4 Heirloom, 2 Omen, 2 Shiny packs. 599 credits. Max 3.",
+		blurb = "LIMITED TIME. NEVER COMING BACK. 5 Lucky Blocks, 3 Diamond, 1 Godly, a Lucky Block pet, plus 4 Heirloom, 2 Omen, 2 Shiny packs. 599 credits. Max 3.",
 		toast = "Lucky Block Week claimed — open them in your bag",
 	},
 	{
@@ -94,12 +94,12 @@ MineRotatingOffers.OFFERS = {
 	},
 	{
 		id = "feat_mythic", key = "feat_mythic", kind = "deal",
-		title = "Mythic Cube", icon = "godly_lucky_block",
+		title = "Godly Cube", icon = "godly_lucky_block",
 		credits = 280,
 		starts = START + 3 * WEEK, ends = START + 5 * WEEK,
 		blocks = { { id = "godly_lucky_block", qty = 1 } },
-		blurb = "1 Mythic Block for 2 weeks. 280 credits.",
-		toast = "Mythic Cube claimed",
+		blurb = "1 Godly Block for 2 weeks. 280 credits.",
+		toast = "Godly Cube claimed",
 	},
 	{
 		id = "feat_lucky_late", key = "feat_lucky_late", kind = "deal",

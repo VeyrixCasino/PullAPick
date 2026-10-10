@@ -307,7 +307,7 @@ local LUCKY_ART = {
 local LUCKY_NAMES = {
 	lucky_block = "Lucky Block",
 	super_lucky_block = "Diamond Lucky Block",
-	godly_lucky_block = "Mythic Lucky Block",
+	godly_lucky_block = "Godly Lucky Block",
 }
 -- The mark on every face, one little cube per X.
 local QMARK = { ".XXX.", "X...X", "....X", "...X.", "..X..", ".....", "..X.." }

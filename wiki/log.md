@@ -168,3 +168,13 @@ Running luau-analyze over the touched files found reads of undefined globals:
 (the comment above it says there is no Motor6D), so it was left alone.
 
 Updated: chests-and-lucky-blocks, verify-suite, log.
+
+## [2026-10-10] decision | the red lucky block is "Godly Lucky Block"
+
+The owner answered "Godly everywhere". The block had three names: id
+`godly_lucky_block`, the name "Mythic Lucky Block", and the shop label "Goldy
+Lucky Block". All of them say Godly now, including the rotating-offer texts.
+"Mythic" stays a pet and card rarity only, so a "Mythic" block is no longer
+confused with a Mythic pull.
+
+Updated: chests-and-lucky-blocks, log.

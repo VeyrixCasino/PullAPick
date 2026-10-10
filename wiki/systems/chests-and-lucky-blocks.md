@@ -124,9 +124,12 @@ is injected from `S_QUEUE`.
   `iconArt` was a local of the shop's Home branch, so it read as a nil global
   in Limited and threw. All three lucky rows and the 10× bundle sat below that
   line. It is module-level now.
-- **Naming, not fixed:** the shop row labels the Mythic block "Goldy Lucky
-  Block" (`MineLuckyBlocks.SHOP`), while its type is named "Mythic Lucky
-  Block". Probably meant "Godly". It is an owner call, so it was left alone.
+- **One name: "Godly Lucky Block"** (owner, 2026-10-10: "Godly everywhere").
+  It used to have three: id `godly_lucky_block`, the name "Mythic Lucky Block"
+  (in the bag, the lucky screen, quests and the pass) and the shop label "Goldy
+  Lucky Block". Every name and label is Godly now, and so are the offer texts
+  (`MineRotatingOffers`: "Godly Cube"). "Mythic" stays a pet and card rarity
+  only.
 
 ## Where it lives
 | file | role | key symbols |
@@ -173,8 +176,8 @@ is injected from `S_QUEUE`.
 - **Rank aging is server-wide and in memory** (static read). `POOLS` is module
   state. Any player's unlock ages it for everyone in that server, and a server
   restart resets it.
-- **One lucky block has three names.** `TYPES.godly_lucky_block.name` is
-  "Mythic Lucky Block", but its shop row label says "Goldy Lucky Block".
+- ~~**One lucky block has three names.**~~ Resolved 2026-10-10: "Godly Lucky
+  Block" everywhere (see above).
 
 ## Open questions
 - Archive lucky blocks or keep them (AUDIT §5)?

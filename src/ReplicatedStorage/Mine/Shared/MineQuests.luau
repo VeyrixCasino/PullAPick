@@ -226,7 +226,7 @@ function MineQuests.describe(reward, gemsOverride)
 	if type(reward.luckyBlocks) == "table" then
 		for _, b in ipairs(reward.luckyBlocks) do
 			local nm = ({ lucky_block = "Lucky Block", super_lucky_block = "Diamond Lucky Block",
-				godly_lucky_block = "Mythic Lucky Block" })[b.id] or "Lucky Block"
+				godly_lucky_block = "Godly Lucky Block" })[b.id] or "Lucky Block"
 			local qty = b.qty or 1
 			parts[#parts + 1] = nm .. ((qty > 1) and (" x" .. qty) or "")
 		end

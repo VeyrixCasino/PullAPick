@@ -36,7 +36,7 @@ MineLuckyBlocks.TYPES = {
 	},
 	godly_lucky_block = {
 		id = "godly_lucky_block",
-		name = "Mythic Lucky Block",
+		name = "Godly Lucky Block",
 		blurb = "Red crystal. Multi-pack lottery, T18–21, Omni, dust kicker on every open.",
 		color = Color3.fromRGB(220, 48, 64),
 		icon = "rbxassetid://75196830544563",
@@ -131,7 +131,7 @@ end
 MineLuckyBlocks.SHOP = {
 	{ id = "lucky_block", credits = 45, blurb = "Golden cube · meadow packs & gems" },
 	{ id = "super_lucky_block", credits = 120, blurb = "Diamond cube · fatter packs & tools" },
-	{ id = "godly_lucky_block", credits = 280, label = "Goldy Lucky Block",
+	{ id = "godly_lucky_block", credits = 280, label = "Godly Lucky Block",
 		blurb = "Red crystal · multi-pack lottery" },
 }
 MineLuckyBlocks.BUNDLE_10 = {
@@ -386,7 +386,7 @@ function MineLuckyBlocks.oddsSheet(blockId, startGrade)
 		grades = grades,
 		kinds = kinds,
 		pets = pets,
-		-- Mythic blocks add a stardust kicker on EVERY open, on top of the roll.
+		-- Godly blocks add a stardust kicker on EVERY open, on top of the roll.
 		bonusDust = blockId == "godly_lucky_block",
 	}
 end
@@ -525,7 +525,7 @@ function MineLuckyBlocks.rollLoot(blockId, finalGrade, rng)
 			which is the thing the game is actually about. Added at the top bands
 			only and at small weight, so it stays an event rather than a drip.
 
-			Legendary is the FLOOR. A Common pet out of a Mythic block would read
+			Legendary is the FLOOR. A Common pet out of a Godly block would read
 			as a miss, and the roster carries 118 pets at Legendary or better, so
 			there is plenty of room up here.
 		]]
