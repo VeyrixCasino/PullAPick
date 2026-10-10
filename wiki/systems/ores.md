@@ -2,8 +2,9 @@
 title: Ores
 type: system
 status: current
-verified: 2026-10-07 @ 41d8f3a
+verified: 2026-10-10 @ 6c08171
 sources:
+  - src/ReplicatedStorage/Mine/Shared/MineOreFace.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - docs/ore-yield-and-vein-balance.md
   - tools/verify/veins.js
@@ -146,8 +147,49 @@ related: [ore-pouch-and-backpack, tools, forge-and-recycling, skins-cases-and-te
 ## State right now
 
 Shipped on `claude/vigilant-fermi-aucqjy`: 82 roster, veins, share floor, reach
-split, ore dropping straight into the pouch. **None of it has run in Roblox**
-(START-HERE §5).
+split, ore dropping straight into the pouch.
+
+### Every ore has its own health (2026-10-08, `b747891`)
+
+`ORE_HP_MULT` was a flat **3 for every ore in the game**, written out at its one
+call site rather than behind a function — so a Stone block and an Oganesson
+block at the same layer took the same number of swings, and the only thing that
+varied was the dirt curve underneath, which describes the LAYER.
+
+Now `oreHardness(ore) × dirtHp(zone, layer)`. The layer term is untouched, so no
+other block moved. The ore term is a MULTIPLIER, so an ore keeps its character
+at every depth instead of being trivial deep down and impossible early.
+
+Character comes from `met` and `rough` — already on every roster row and already
+driving the block's colour — so an ore that *feels* like metal is one:
+
+| character | multiplier |
+|---|---|
+| metal (`met ≥ 0.5`) | ×1.12 |
+| crystal (`rough ≤ 0.45`) | ×1.06 |
+| rock | ×0.94 |
+
+Measured: **82 distinct hardness values** where there was one, spanning
+**0.75 → 4.48**, 81 of 81 adjacent pairs differing, 30 metal / 40 crystal /
+12 rock. **Stone is 0.75×** — deliberately under 1, so the first ore a player
+swings at is softer than the dirt around it rather than three times harder
+(owner: *"make stone a little weaker"*). Pinned by `tools/verify/orehp.js`.
+
+### Ore faces are drawn per ore and hung as decals (2026-10-08, `7042cf0`)
+
+`MineOreFace` replaces the `MineOreArt` path for blocks. The old one looked the
+ore up in `ORE_FACE`, an index into **thirty** hand-packed tiles shared across
+82 ores, and hung six *tiling* `Texture`s per block — the tiling is what looked
+glitchy at block edges. Decals have no tiling properties at all.
+
+A face is a cluster of bevelled nodules covering 7–25% of the side, crowded
+centrally and clamped off the edge (a nodule that runs off lines up with the
+neighbouring block and reads as a seam). Four looks from the same `met`/`rough`
+the hardness uses: **20 metal, 24 crystal, 11 rock, 27 glow**.
+
+**Stone is a plain grey block.** `MineConfig.ORE_PLAIN` is one list both sides
+read: the server paints the block the ore's own colour and material instead of
+the darkened art host, and the client draws no face.
 
 ## Gotchas
 

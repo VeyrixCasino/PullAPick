@@ -2,7 +2,7 @@
 title: Open questions, contradictions and probable bugs
 type: meta
 status: current
-verified: 2026-10-07 @ 41d8f3a
+verified: 2026-10-10 @ 6c08171
 sources:
   - docs/OPEN.md
   - docs/BLOCKED.md
@@ -27,6 +27,54 @@ related: [owner, sources-of-truth, overview, mining-and-breaking, save-data-and-
 > **Confidence labels.** *Read* means I (Claude, in the wiki-building session)
 > checked the cited code myself. *Reported* means a research pass found it and I
 > did not independently check it. **Nothing here has been run in Roblox.**
+
+## 0. LAUNCH BOARD — owner wants to ship in 4–5 days (asked 2026-10-10)
+
+Everything below is either **blocking**, **a decision only the owner can make**,
+or **cut**. Anything already fixed is out of this list entirely; see `wiki/log.md`.
+
+### 0a. Blocking, and nobody else can do them
+
+| # | item | why it blocks |
+|---|---|---|
+| 1 | **Throw the launch switch.** `/admin launch now` exists (`cc0262f`). | Until it is thrown, `seasonNow()` is pinned to `SEASON_START`: offers frozen on slot one, battle pass never counting, Event Horizon's window never opening. |
+| 2 | **Merge PR #7.** `gh` is unauthenticated here. | Carried since 2026-10-07. |
+| 3 | **Upload the ore and charm icons.** §7 governs; no agent can upload to a group place. | `docs/TODO.md` 796–803. |
+| 4 | **Play it.** Almost nothing in this repo has run in the engine with a real player. | Every measurement is static or Studio-side. |
+
+### 0b. Decisions only the owner can make
+
+| # | decision | the shape of it |
+|---|---|---|
+| 5 | **Ship social, or cut it?** `MineSocialView` is 387 lines, complete, **mounted nowhere**, with `MineProfileView` parked beside it. Text IS filtered (`TextService:FilterStringAsync`, fails closed). | One line mounts friends, DMs, global chat and groups together. That is a moderation surface, not a bug fix. |
+| 6 | **Group Wheel: ship or strip?** Clock is fixed (`cc0262f`) but the lobby pad is still commented out, while the view mounts and three Robux products still grant spins. | Shipping needs the pad built. Stripping needs the view mount, the snapshot field and the three product branches removed. |
+| 7 | **Event Horizon's roster.** It builds **138 tools for a 2-section zone** because it walks all of `Depth.SECTIONS`. Prices are capped now (`4f45483`) so nothing overflows 2^53, but **68 of 138 sit at the cap**. | Changing the count moves every event tool's breaking power through `MineBreaking.eventStrength`. |
+| 8 | **A depth-scaled coin sink.** Potions fixed the early game only. | Owner picked the direction: progression-flavoured, repeatable, in the loop. |
+| 9 | **Ore mastery as the endgame.** Owner chose it over ladders/endless/guilds. | Not started. Advised *after* launch — the 2-hour systems only just became visible. |
+
+### 0c. Known-and-accepted for launch
+
+- **Flat gem floor prices** (trait roll 500, crate 200, backpack rung 1 at 100,
+  re-socket 10) did not move with `1e6 → 1e4` and are pocket change. Harmless;
+  they make early play generous.
+- **Chests may out-faucet ore sales** — chest gems scale on their own ladder and
+  are not pouch-capped. Watch it in live data rather than pre-tuning it.
+- **26 of 39 tutorial steps remain unreachable.** The three that mattered are in
+  (`cc0262f`); the rest grant items, and switching them on would pay out to every
+  existing player on next login.
+- **`buyCrate`/social orphans** — tracked by `tools/verify/orphan-verbs.js`, which
+  fails the suite on any NEW orphan.
+
+### 0d. Suggestions worth 30 minutes each, before launch
+
+1. **A first-session smoke test with a blank profile.** Nothing in this repo has
+   been played from zero. The intro path reads sound on paper and that is all.
+2. **Turn on one leaderboard.** `LeaderboardService` is 1,747 lines and wired;
+   a visible board is the cheapest "other people exist" signal a new game has.
+3. **Check the Forge recipe page on a phone.** It is five cells per row at a
+   scale fraction, untested at narrow widths.
+4. **Decide the Discord/code reward values.** `LAUNCH` grants 500 gems and the
+   Discord link 5,000 — both flat, both now worth very little after `1e4`.
 
 ## 1. Probable bugs found while building the wiki
 

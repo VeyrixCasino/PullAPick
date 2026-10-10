@@ -190,3 +190,15 @@ rolls are still not played in Studio: the test account has no forged ore tool
 to roll on.
 
 Updated: client-and-ui, log.
+
+## [2026-10-10] ingest | the launch-audit week: verbs, economy, ore health, tool shapes
+Two audit sweeps (currency faucet/sink census, launch readiness) plus the fixes
+they drove. Updated [tools], [ores], [currencies-and-economy] and seeded a
+LAUNCH BOARD at the top of [open-questions] — four blockers only the owner can
+clear, five decisions, four accepted-for-launch items and four 30-minute
+suggestions. Headlines: five server verbs were complete and called by nothing
+(three of them advertised by UI strings); `MineSocialView` is 387 lines mounted
+nowhere; coins had two live sinks against twelve faucets; every ore had the same
+health; every tool in a family was one silhouette in 82 colours. All fixed
+except the owner decisions. New harnesses: `orphan-verbs.js`, `orehp.js`,
+`megascale.js`, `recycle-quote.js`, `gem-spread.js`.

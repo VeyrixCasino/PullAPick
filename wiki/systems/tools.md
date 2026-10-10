@@ -1,8 +1,8 @@
 ---
 title: Tools
 type: system
-status: partial
-verified: 2026-10-05 @ b19c4c2
+status: current
+verified: 2026-10-10 @ 6c08171
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
@@ -14,6 +14,7 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineToolGrades.luau
   - src/ReplicatedStorage/Mine/Shared/MineHotbar.luau
+  - src/ReplicatedStorage/ToolModelFactory.luau
   - src/ReplicatedStorage/ToolModelFactory.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/TODO.md §0.13
@@ -160,8 +161,38 @@ equip; the coin ladder resets.
 
 ## State right now
 
-The forged-tool system is shipped, but the breaking-power gate looks broken for
-held tools (see below). Nothing here has run in the engine.
+The forged-tool system is shipped. As of 2026-10-10 all 246 tools build, are
+visually distinct, and none is invisible — measured against the live modules,
+not inferred.
+
+### What a tool actually looks like (2026-10-10)
+
+**Procedural Parts are the only thing that renders.** Every MeshPart archive in
+this place is EMPTY: `ToolKitMeshes` 102/102, `ToolModels_50` 2,058/2,088,
+`ToolModels_50_Unreferenced` 2,060/2,060, all with
+`MeshContent = Content{SourceType=None}`. They came from
+`AssetService:CreateMeshPartAsync`, whose geometry is session-only and does not
+survive a place save — see [editablemesh constraint](../code/tools-and-generators.md).
+`fromNamed` and `tryToolKitMesh` both refuse an empty mesh now (`71386b0`) and
+fall through to the part builders.
+
+**Fifteen silhouettes, five per family** (`6c08171`), chosen by the ore's place
+on the roster so the shape climbs the ladder:
+
+| family | styles |
+|---|---|
+| pickaxe | hook · adze · warpick · crescent · spire |
+| drill | auger · tri-bit · ring corer · percussive hammer · lance |
+| explosive | orb · keg · canister · cluster · faceted prism |
+
+Only the business end swaps; haft, grip and motor stay shared so a drill still
+reads as a drill. Measured: 16–17 ores per style in every family, 246 built,
+0 invisible.
+
+**The colour and material come from the ore** (`0b041f8`), via
+`ToolModelFactory.oreLook` reading `color / material / met / rough / glow`
+straight off the `MineConfig.ORES` row — the same row that colours the ore
+block, so a Copper pick matches the copper you mined.
 
 ## Gotchas
 
@@ -181,9 +212,12 @@ held tools (see below). Nothing here has run in the engine.
   purpose). `_upgradeCoinTool` and the graduation step run only for a
   `p.oreTools` row with `typeId wood_pick`, and nothing on this branch creates
   one. The starter is coin rung 1 instead.
-- **The family skin skips forged tools.** `equippedTool` returns rung `0` for a
-  forged tool, so the family temperament never applies while you hold one
-  ([skins](skins-cases-and-temper.md)).
+- ~~**The family skin skips forged tools.**~~ **FIXED 2026-10-08 (`b0c2430`).**
+  The gate tested `tier > 0` to exclude found objects, but `equippedTool`
+  returns `0` on THREE paths — the two found-tool paths *and* the forged one,
+  deliberately, because a forged tool's rung is its ore's tier. So skins did
+  nothing on every tool past hour one while the Forge reported them as fitted.
+  Now tested positively on `oreTier`, which only a forged row carries.
 - **"tier" means three things.** On a forged row it is the ore index. On a coin
   row it is the rung. On the Tool instance, the attribute `Tier` is
   `lookTier`, which is cosmetic.
