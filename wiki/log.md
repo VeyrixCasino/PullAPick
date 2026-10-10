@@ -691,3 +691,26 @@ because a Studio probe printed NIL beside meadow's 138. **A new zone must be in
 both**, and they are easy to confuse: different table shapes (`word`+`hue` vs
 `THEME_WORD`/`THEME_HUE`), identical contents. Now 138 sections reading
 Sugarloam, Gumsod, Toffeeclay.
+
+## [2026-10-10] ingest | Candy Crypt: sell curve and the candy tools
+The Crypt now has its own HP curve instead of a place on the zone ladder —
+index 12 put its surface rock past Primordium at 41,992,188 HP, the opposite of
+"no hardness requirement". One curve is both the difficulty and the sell value,
+since coins are one per point of HP: base 1, ×3 per 10-layer section, so L1
+pays 1 and L100 pays 19,683. Checked the zones it must not touch (meadow,
+sunscar, primordium, bigbang) — all unchanged.
+
+Twelve candy tools in `MineCandyTools`, four families, priced in candy, every
+row carrying the owner's warning and `seasonalOnly`. Not `eventOnly`: that is
+Event Horizon's matter lock, and the Crypt has no pool. The best candy tool
+needs 9,481 hits per block on Primordium's surface.
+
+**A probe lied and nearly got believed.** Cloning `MineCandyTools` in Edit mode
+left its internal `require(MineConfig)` on the cached pre-edit copy, so every
+tool read MEADOW's curve — powers of 6/11/16 instead of 2/182/14,762, three
+near-identical tiers. The module was correct throughout. **Verify a module that
+requires an edited module in PLAY, where the graph loads fresh**, not with a
+clone in Edit.
+
+Still unbuilt: the Trick-or-Treat case. A case holds packs and the Halloween
+2026 Pack has no id yet.

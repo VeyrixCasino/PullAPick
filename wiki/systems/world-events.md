@@ -16,6 +16,7 @@ sources:
   - src/ServerScriptService/Mine/MineBloodLake.luau
   - src/ServerScriptService/Mine/MineHarbor.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau
   - docs/OPEN.md P0 §3, P2
   - docs/PROPOSAL.md §0 line 32
   - docs/AUDIT.md §5
@@ -63,10 +64,12 @@ related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-m
 
 ### Candy Crypt (`hallow`, zone index 12) — Halloween 2026
 
-> **Partly built (2026-10-10).** The zone, its window, its claim, the tiny pit,
-> no chests, the candy balance and its strata exist. The candy ores, the
-> 10-layer sections and 3× curve, sell values, the Trick-or-Treat cases and the
-> Halloween tools do not.
+> **Built (2026-10-10), except the cases.** The zone, window, claim, 3×3 pit,
+> no chests, candy balance, strata, the twelve candy ores, the 10-layer
+> sections, the 3× curve, the sell curve and the twelve candy tools all exist.
+> **The Trick-or-Treat case does not, and cannot yet** — a case holds *packs*
+> (`MineCases`), and the Halloween 2026 Pack is still queued in the rewards
+> pass. The case is a one-file job once that pack has an id.
 
 A second limited mine, open **alongside** Event Horizon rather than after it.
 Owner's brief: candy ores dropping candy corn, **no chests**, nothing sells for
@@ -101,10 +104,27 @@ Adding it forced three things that assumed exactly one limited zone:
   zones already draw pets from the meadow pot. It becomes the Halloween 2026
   set once that pack exists, which under the holiday rule is the only legal
   source of holiday pets anyway.
-- **There is no "hardness gate" to switch off.** The gate is block HP, not a
-  flag. `zone.noStrengthGate` is set on the row but **nothing reads it yet** —
-  making surface tools viable means giving the zone a low HP curve, which is
-  part of the unbuilt work.
+- **There is no "hardness gate" to switch off.** The gate is block HP, and the
+  Crypt has its own curve in `blockHp` rather than a place on the zone ladder —
+  index 12 would have put its surface rock past Primordium at 41,992,188 HP.
+  `zone.noStrengthGate` is on the row as documentation; the HP branch is what
+  actually does it. Nothing else was stopping a normal tool: unlike Event
+  Horizon there is no separate matter pool here.
+- **One curve is the difficulty *and* the sell value**, because coins are one
+  per point of HP (`coinsFor`). Base 1, ×3 per 10-layer section:
+  `L1 = 1`, `L50 = 81`, `L100 = 19,683`, `L120 = 177,147`.
+- **Candy ores are not in `MineConfig.ORES`** (`CANDY_ORES`, 12 of them).
+  `ORES` is one global 82-rung ladder weighted only by each rung's `d` against
+  zone difficulty — **there is no per-zone filter** — so a candy rung would
+  appear in every mine and shift the share of every ore around it. They also
+  bypass the ore pouch: candy is a currency, banked at spawn and paid on break.
+  The mix walks with depth (L1 70% Candy Corn, L130 77% Jawbreaker) and is
+  chosen from the cell position, so a block is the same candy on every server.
+- **`MineCandyTools`**: 12 tools, 4 families, priced in candy, every row
+  carrying `MineCandyTools.WARNING` and `seasonalOnly`. Deliberately **not**
+  `eventOnly` — that is Event Horizon's matter lock. They work anywhere and are
+  bad everywhere else: the best one needs **9,481 hits per block** on
+  Primordium's surface, which is the warning, earned.
 
 ### Event Pass
 - **What it is.** `MineEventPass.TRACKS.event_horizon` has 6 tiers. Event XP
