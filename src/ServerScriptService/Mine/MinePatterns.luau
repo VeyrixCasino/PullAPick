@@ -168,6 +168,31 @@ function MinePatterns.resolve(tool, cx, cy, cz, aim, boosts)
 		else
 			table.insert(out, { cx = cx, cy = cy, cz = cz, factor = 1 })
 		end
+		--[[
+			SINK: a melee tool that drives DOWNWARD through more than one cell.
+
+			Owner, 2026-10-10: a hammer breaks 2 blocks down at a time. Depth
+			only -- the footprint above is unchanged, so a hammer is still
+			single-target across, which is what keeps it a hammer and not a
+			drill.
+
+			Deeper cells at full factor. A hammer's whole identity is hitting
+			hard, and falloff on the second cell would make "2 blocks down" read
+			as "1 block and a dent".
+
+			cy is DEPTH and larger cy is deeper, matching the voxel store and
+			the `down` footprints above.
+		]]
+		local sink = math.floor(tonumber(tool.sink) or 1)
+		if sink > 1 then
+			for d = 1, sink - 1 do
+				if w > 1 then
+					footprint(out, cx, cy + d, cz, w, "down")
+				else
+					table.insert(out, { cx = cx, cy = cy + d, cz = cz, factor = 1 })
+				end
+			end
+		end
 		return out
 	end
 

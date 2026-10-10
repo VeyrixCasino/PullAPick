@@ -2396,6 +2396,13 @@ local function equippedTool(p)
 				bombs = stats.bombs,
 				pattern = stats.pattern,
 				cooldown = stats.cooldown,
+				-- A hammer drives two cells DOWN (MinePatterns melee branch),
+				-- and a jackhammer holds to dig after a wind-up. These are read
+				-- off the frame like everything above: a stat added to
+				-- FRAME_STATS and not listed here never reaches the tool.
+				sink = stats.sink,
+				auto = stats.auto,
+				windSec = stats.windSec,
 				oreTier = math.max(1, math.floor(tonumber(oreRow.tier) or 1)),
 				oreToolEquipped = oreRow.uid,
 				level = level,

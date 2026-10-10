@@ -290,7 +290,10 @@ MineOreTools.FRAME_STATS = {
 			{6,1.1}, {16,1.15}, {27,1.2}, {37,1.25}, {48,1.3},
 			{59,1.4}, {69,1.5}, {82,1.6},
 		},
-		cells = { {82,1} },
+		-- `cells` is what the SHOP quotes. A hammer touches two: the aimed
+		-- block and the one under it, so this and `sink` have to move together
+		-- or the shop is lying (MinePatterns' header says exactly that).
+		cells = { {82,2} },
 		radius = { {82,0} },
 		shape = { {82,"melee"} },
 		width = { {82,false} },
@@ -299,6 +302,9 @@ MineOreTools.FRAME_STATS = {
 		bombs = { {82,false} },
 		pattern = { {82,false} },
 		cooldown = { {82,false} },
+		-- Owner, 2026-10-10: hammers break 2 blocks down at a time. Depth only;
+		-- still single-target across, which is what keeps it a hammer.
+		sink = { {82,2} },
 	},
 	drill = {
 		rate = {
