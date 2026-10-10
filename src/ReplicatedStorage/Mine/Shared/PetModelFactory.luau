@@ -706,36 +706,92 @@ local BONE = C3(244, 240, 230)
 local function block(c, p, o)
 	o = o or {}
 	local size = o.bodySize or Vector3.new(2.02, 1.88, 1.80)
-	local body = (o.square and c.box or c.ovoid)(c, size, CFrame.new(0, 0.06, 0), o.bodyColor or p.base)
+	-- `size` stays the ENVELOPE either way, because the face, snout and legs are
+	-- all placed off it. With shaping on, the core shrinks inside that envelope
+	-- and the masses below fill it back out -- otherwise they hide within the
+	-- box and change nothing, which is exactly what the first attempt did.
+	local core = (o.shape == "quad") and (size * Vector3.new(0.80, 0.78, 0.86)) or size
+	local body = (o.square and c.box or c.ovoid)(c, core, CFrame.new(0, 0.06, 0), o.bodyColor or p.base)
 	if o.bodyMat then
 		body.Material = o.bodyMat
 	end
 
+	--[[
+		BODY SHAPING.
+
+		One ovoid with a face on the front is a cube with nubs, and every
+		species built that way has the same outline as every other -- which is
+		what the owner was looking at. Outline is all you get at follow
+		distance, so the fix has to be mass, not markings.
+
+		Deliberately NOT a separate head volume. Species hardcode their face
+		details against this body (cat whiskers at z = 1.02, bunny teeth at
+		z = 1.00, fox cheek ruffs at y = -0.16); moving the face onto a head
+		would leave all of them behind on the chest, correct in isolation and
+		wrong on the model. Adding mass AROUND the existing face keeps every
+		one of those numbers true.
+
+		`shape = "quad"` gives the four-legged set a brow, cheeks, a chest and
+		haunches: a front-heavy head end, a waist, and a round rear.
+	]]
+	local bodyTop, bodyFz = 0.06 + size.Y * 0.5, size.Z * 0.5
+	c.headTop = nil
+	if o.shape == "quad" then
+		local w, h, d, y0 = size.X, size.Y, size.Z, 0.06
+		local shade = o.shapeColor or o.bodyColor or p.base
+		-- Brow: carries the top line up over the face end so it slopes.
+		c:ovoid(Vector3.new(w * 0.78, h * 0.53, d * 0.69), CFrame.new(0, y0 + h * 0.20, d * 0.15), shade)
+		-- Chest, below the face and slightly proud of it.
+		c:ovoid(Vector3.new(w * 0.71, h * 0.51, d * 0.61), CFrame.new(0, y0 - h * 0.22, d * 0.17), shade)
+		--[[
+			Back: carries the top line from the brow to the haunches.
+
+			Not decoration. The shrunken core dips between those two, and
+			markings authored against the ORIGINAL body top then hang over the
+			dip -- a cookie dog's chip at (0.02, 1.00, -0.62) came loose exactly
+			this way. Details are placed on the envelope, so the envelope has to
+			stay filled.
+		]]
+		c:ovoid(Vector3.new(w * 0.64, h * 0.54, d * 0.76), CFrame.new(0, y0 + h * 0.21, -d * 0.12), shade)
+		for _, s in ipairs({ -1, 1 }) do
+			-- Cheeks: widen the head end so there is a waist behind it.
+			c:ovoid(Vector3.new(w * 0.26, h * 0.46, d * 0.56), CFrame.new(w * 0.40 * s, y0 + h * 0.06, d * 0.14), shade)
+			-- Haunches: the round rear that reads as a four-legged animal.
+			c:ovoid(Vector3.new(w * 0.43, h * 0.69, d * 0.64), CFrame.new(w * 0.31 * s, y0 - h * 0.04, -d * 0.22), shade)
+		end
+	end
+
 	-- `fz` is the FRONT SURFACE. Face pieces push outward from it, because on a
 	-- flat cube face anything centred inside the depth just disappears.
-	local fz = size.Z * 0.5
+	local fz = bodyFz
+	local faceY = 0
 	local ey, es = o.eyeY or 0.16, o.eyeSpread or 0.44
 	local esz = o.eyeSize or Vector3.new(0.56, 0.68, 0.22)
 	local eyeZ = fz + esz.Z * 0.5 - 0.07
 
-	-- Chest patch first so the face sits over it.
+	-- Chest patch first so the face sits over it. Always on the BODY front --
+	-- a bib belongs on the chest even when the face has moved up to a head.
 	if o.bib then
 		c:ovoid(
 			Vector3.new(o.bib.w or 0.90, o.bib.h or 0.80, 0.20),
-			CFrame.new(0, o.bib.y or -0.40, fz + 0.02),
+			CFrame.new(0, o.bib.y or -0.40, bodyFz + 0.02),
 			o.bib.color or p.pale
 		)
 	end
 
 	for _, s in ipairs({ -1, 1 }) do
-		c:round(esz, CFrame.new(es * s, ey, eyeZ), o.eyeColor or INK):SetAttribute("Eye", true)
+		c:round(esz, CFrame.new(es * s, faceY + ey, eyeZ), o.eyeColor or INK):SetAttribute("Eye", true)
 		c:round(
 			Vector3.new(esz.X * 0.34, esz.Y * 0.30, 0.12),
-			CFrame.new((es - esz.X * 0.17) * s, ey + esz.Y * 0.22, eyeZ + esz.Z * 0.5 - 0.02),
+			CFrame.new((es - esz.X * 0.17) * s, faceY + ey + esz.Y * 0.22, eyeZ + esz.Z * 0.5 - 0.02),
 			WHITE
 		):SetAttribute("Eye", true)
 		if o.brow then
-			c:ovoid(Vector3.new(esz.X * 1.1, 0.16, 0.18), CFrame.new(es * s, ey + esz.Y * 0.62, fz + 0.03), o.brow)
+			c:ovoid(
+				Vector3.new(esz.X * 1.1, 0.16, 0.18),
+				CFrame.new(es * s, faceY + ey + esz.Y * 0.62, fz + 0.03),
+				o.brow
+			)
 		end
 	end
 
@@ -743,7 +799,7 @@ local function block(c, p, o)
 	if o.snout then
 		local sn = o.snout
 		local sd = sn.d or 0.46
-		local sy = sn.y or -0.28
+		local sy = faceY + (sn.y or -0.28)
 		c:ovoid(
 			Vector3.new(sn.w or 0.72, sn.h or 0.52, sd),
 			CFrame.new(0, sy, fz + sd * 0.5 - 0.10),
@@ -756,7 +812,11 @@ local function block(c, p, o)
 		)
 	elseif o.mouth ~= false then
 		local msz = o.mouthSize or Vector3.new(0.30, 0.17, 0.14)
-		c:ovoid(msz, CFrame.new(0, o.mouthY or -0.36, fz + msz.Z * 0.5 - 0.05), o.mouthColor or C3(28, 25, 33))
+		c:ovoid(
+			msz,
+			CFrame.new(0, faceY + (o.mouthY or -0.36), fz + msz.Z * 0.5 - 0.05),
+			o.mouthColor or C3(28, 25, 33)
+		)
 	end
 
 	if o.legs ~= false then
@@ -775,25 +835,34 @@ local function block(c, p, o)
 	return size, fz, body
 end
 
+-- Ear positions were authored against the headless body, where the top of the
+-- block sat at y = 1.0 and the face was at z = 0. When block() built a head it
+-- recorded where that reference moved to, so the same numbers land on the head
+-- without every species having to restate them.
 local function ears(c, colour, kind, inner)
+	local d = c.headTop or Vector3.zero
+	local dy, dz = d.Y, d.Z
+	local function at(x, y, z)
+		return CFrame.new(x, y + dy, z + dz)
+	end
 	for _, s in ipairs({ -1, 1 }) do
 		if kind == "up" then
-			c:ovoid(Vector3.new(0.44, 0.62, 0.26), CFrame.new(0.54 * s, 1.14, 0.04) * CFrame.Angles(0, 0, -0.16 * s), colour)
+			c:ovoid(Vector3.new(0.44, 0.62, 0.26), at(0.54 * s, 1.14, 0.04) * CFrame.Angles(0, 0, -0.16 * s), colour)
 			if inner then
-				c:ovoid(Vector3.new(0.22, 0.34, 0.16), CFrame.new(0.54 * s, 1.10, 0.14) * CFrame.Angles(0, 0, -0.16 * s), inner)
+				c:ovoid(Vector3.new(0.22, 0.34, 0.16), at(0.54 * s, 1.10, 0.14) * CFrame.Angles(0, 0, -0.16 * s), inner)
 			end
 		elseif kind == "down" then
-			c:ovoid(Vector3.new(0.38, 0.86, 0.44), CFrame.new(1.16 * s, 0.30, 0.06) * CFrame.Angles(0, 0, -0.14 * s), colour)
+			c:ovoid(Vector3.new(0.38, 0.86, 0.44), at(1.16 * s, 0.30, 0.06) * CFrame.Angles(0, 0, -0.14 * s), colour)
 			if inner then
-				c:ovoid(Vector3.new(0.20, 0.52, 0.26), CFrame.new(1.28 * s, 0.30, 0.12) * CFrame.Angles(0, 0, -0.14 * s), inner)
+				c:ovoid(Vector3.new(0.20, 0.52, 0.26), at(1.28 * s, 0.30, 0.12) * CFrame.Angles(0, 0, -0.14 * s), inner)
 			end
 		elseif kind == "round" then
-			c:ovoid(Vector3.new(0.50, 0.48, 0.28), CFrame.new(0.62 * s, 1.04, 0), colour)
+			c:ovoid(Vector3.new(0.50, 0.48, 0.28), at(0.62 * s, 1.04, 0), colour)
 			if inner then
-				c:ovoid(Vector3.new(0.26, 0.26, 0.18), CFrame.new(0.62 * s, 1.04, 0.10), inner)
+				c:ovoid(Vector3.new(0.26, 0.26, 0.18), at(0.62 * s, 1.04, 0.10), inner)
 			end
 		elseif kind == "tuft" then
-			c:ovoid(Vector3.new(0.32, 0.50, 0.24), CFrame.new(0.64 * s, 1.10, 0) * CFrame.Angles(0, 0, -0.32 * s), colour)
+			c:ovoid(Vector3.new(0.32, 0.50, 0.24), at(0.64 * s, 1.10, 0) * CFrame.Angles(0, 0, -0.32 * s), colour)
 		end
 	end
 end
@@ -816,11 +885,18 @@ local function spots(c, colour, list, size)
 end
 
 -- Row of plates down the spine.
+-- Plates are made at least as deep as their spacing, so consecutive ones always
+-- touch. Every caller spaced them wider than they were (lizard 0.36 vs 0.24),
+-- which left a gap between each pair; it only SHOWS on the last plate, because
+-- the ones before it sit over the body and borrow its mass. Widening keeps the
+-- positions and the span exactly as authored.
 local function ridge(c, colour, count, y, z, dz, w)
+	local width = w or 0.30
+	local depth = math.max(width, (dz or 0) * 1.06)
 	for i = 1, count do
 		local t = (i - 1) / math.max(1, count - 1)
 		c:cone(
-			Vector3.new(w or 0.30, 0.34 - t * 0.12, w or 0.30),
+			Vector3.new(width, 0.34 - t * 0.12, depth),
 			CFrame.new(0, y - t * 0.34, z - (i - 1) * dz),
 			colour
 		)
@@ -835,6 +911,7 @@ S.fox = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.62, h = 0.46, d = 0.56, color = p.pale },
 			bib = { w = 0.86, h = 0.60, y = -0.62, color = p.pale },
 			legColor = p.deep,
@@ -857,6 +934,7 @@ S.hound = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.84, h = 0.58, d = 0.50, color = p.pale },
 			brow = p.dark,
 			legColor = p.pale,
@@ -878,6 +956,7 @@ S.otter = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.68, h = 0.44, d = 0.42, color = p.pale },
 			bib = { w = 0.94, h = 0.72, y = -0.56, color = p.pale },
 			legSize = Vector3.new(0.56, 0.30, 0.60), legColor = p.dark,
@@ -1074,21 +1153,59 @@ S.moth = {
 	neck = CFrame.new(0, -0.30, 0.60),
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
-		block(c, p, { bodyColor = p.light, legs = false, tail = false, mouth = false })
+		--[[
+			The old moth was a body with two flat slabs stuck on the sides and a
+			wire antenna. At any angle but dead-on it read as sticks jammed into
+			a box, which is what the owner was seeing.
+
+			A wing is now a BLADE: overlapping panels from a broad root to a
+			narrow tip, each rotated a little further back, so the outline stays
+			a swept triangle from every angle instead of vanishing edge-on. The
+			abdomen tapers off behind the thorax so the body is not a single cube.
+		]]
+		block(c, p, {
+			bodySize = Vector3.new(1.62, 1.46, 1.52),
+			bodyColor = p.light, legs = false, tail = false, mouth = false,
+			eyeSpread = 0.38, eyeSize = Vector3.new(0.50, 0.60, 0.20),
+		})
+		-- Fuzzy thorax collar, then a two-segment abdomen trailing BEHIND. The
+		-- old one stacked downward and read as a beard under the face.
+		c:ovoid(Vector3.new(1.68, 0.60, 1.30), CFrame.new(0, 0.34, -0.22), p.pale)
+		c:ovoid(Vector3.new(1.08, 0.88, 0.94), CFrame.new(0, -0.32, -0.94), p.base)
+		c:ovoid(Vector3.new(0.78, 0.66, 0.62), CFrame.new(0, -0.46, -1.42), p.deep)
+
 		for _, s in ipairs({ -1, 1 }) do
-			c:ovoid(Vector3.new(1.50, 0.22, 1.28), CFrame.new(1.26 * s, 0.38, -0.06) * CFrame.Angles(0, 0, s * 0.30), p.base)
-			c:ovoid(Vector3.new(0.98, 0.20, 0.90), CFrame.new(1.00 * s, -0.44, -0.68) * CFrame.Angles(0, 0, s * 0.22), p.pale)
-			-- Eye-spots on the forewings: the moth tell.
-			c:ovoid(Vector3.new(0.42, 0.12, 0.42), CFrame.new(1.34 * s, 0.46, 0.04), p.glow, NEON)
-			c:ovoid(Vector3.new(0.20, 0.12, 0.20), CFrame.new(1.34 * s, 0.48, 0.04), p.deep)
-			-- Feathered antennae.
-			c:rod(Vector3.new(0.24 * s, 0.98, 0.42), Vector3.new(0.60 * s, 1.38, 0.14), 0.055, p.dark)
-			for f = 0, 2 do
-				c:ovoid(Vector3.new(0.16, 0.06, 0.06), CFrame.new((0.36 + f * 0.11) * s, 1.10 + f * 0.12, 0.34 - f * 0.08) * CFrame.Angles(0, 0, -0.7 * s), p.dark)
-			end
+			--[[
+				Wings RAISED into a V, not spread flat.
+
+				Flat wings are the whole problem. Thin horizontal panels on a
+				cube read as planks from the side and disappear entirely from
+				the front, which is why the old moth looked like sticks jammed
+				into a box. Held up the way a moth at rest holds them, the pair
+				makes a tall V that stays a clear shape from every angle, and
+				the wing's thin axis points sideways where nothing looks at it.
+			]]
+			c:ovoid(
+				Vector3.new(0.21, 1.66, 1.46),
+				CFrame.new(0.50 * s, 0.96, -0.14) * CFrame.Angles(0, -0.22 * s, -0.36 * s),
+				p.base
+			)
+			c:ovoid(
+				Vector3.new(0.18, 1.04, 0.98),
+				CFrame.new(0.58 * s, 0.06, -0.88) * CFrame.Angles(0, -0.34 * s, -0.28 * s),
+				p.pale
+			)
+			-- Eye-spot, sitting just proud of the wing's outer face.
+			c:ovoid(Vector3.new(0.15, 0.50, 0.50), CFrame.new(0.76 * s, 1.16, -0.12), p.glow, NEON)
+			c:ovoid(Vector3.new(0.16, 0.23, 0.23), CFrame.new(0.79 * s, 1.17, -0.12), p.deep)
+			-- Antenna: rooted at the front of the head and swept up and OUT, so
+			-- it clears the raised wings instead of cutting across the face.
+			c:ovoid(
+				Vector3.new(0.15, 0.14, 0.52),
+				CFrame.new(0.30 * s, 1.06, 0.56) * CFrame.Angles(-0.62, 0, -0.26 * s),
+				p.dark
+			)
 		end
-		-- Fuzzy collar ruff.
-		c:ovoid(Vector3.new(1.66, 0.44, 1.50), CFrame.new(0, 0.72, 0.02), p.pale)
 		c:light(p.glow, 1.6, 9)
 	end,
 }
@@ -1504,6 +1621,7 @@ S.cat = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.56, h = 0.38, d = 0.44, color = p.pale },
 			tailSize = Vector3.new(0.32, 0.32, 0.44), tailColor = p.base,
 		})
@@ -1527,6 +1645,7 @@ S.bunny = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.50, h = 0.34, d = 0.36, color = p.pale, nose = C3(234, 156, 168) },
 			bib = { w = 0.80, h = 0.56, y = -0.62, color = p.pale },
 			legSize = Vector3.new(0.44, 0.34, 0.62), legZ = { 0.40, -0.46 },
@@ -1552,6 +1671,7 @@ S.bear = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.14, 1.96, 1.88),
 			snout = { w = 0.80, h = 0.56, d = 0.48, color = p.pale },
 			legSize = Vector3.new(0.56, 0.42, 0.60), legX = 0.62,
@@ -1574,6 +1694,7 @@ S.wolf = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.62, h = 0.48, d = 0.66, color = p.pale },
 			brow = p.deep,
 			bib = { w = 0.78, h = 0.62, y = -0.58, color = p.pale },
@@ -1597,6 +1718,7 @@ S.bigcat = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.16, 1.92, 1.86),
 			snout = { w = 0.72, h = 0.44, d = 0.48, color = p.pale },
 			legSize = Vector3.new(0.52, 0.40, 0.58), legX = 0.62,
@@ -1620,6 +1742,7 @@ S.mouse = {
 	back = CFrame.new(0, 0.20, -0.58),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(1.86, 1.76, 1.70),
 			snout = { w = 0.44, h = 0.34, d = 0.52, color = p.pale, nose = C3(234, 150, 164) },
 			legSize = Vector3.new(0.34, 0.30, 0.42),
@@ -1708,6 +1831,7 @@ S.pig = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.14, 1.82, 1.90),
 			mouth = false,
 			legSize = Vector3.new(0.44, 0.36, 0.48), legX = 0.62,
@@ -1731,6 +1855,7 @@ S.sheep = {
 	build = function(c, p)
 		-- Dark face poking out of a pale fleece: the sheep silhouette.
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.10, 1.88, 1.86), bodyColor = p.pale,
 			snout = { w = 0.66, h = 0.50, d = 0.46, color = p.dark, nose = C3(40, 36, 44) },
 			legSize = Vector3.new(0.32, 0.44, 0.36), legColor = p.dark,
@@ -1867,6 +1992,7 @@ S.critter = {
 	build = function(c, p)
 		-- The catch-all small mammal: raccoon, ferret, quokka, opossum, sloth.
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(1.96, 1.82, 1.78),
 			snout = { w = 0.54, h = 0.40, d = 0.54, color = p.pale },
 			bib = { w = 0.82, h = 0.60, y = -0.58, color = p.pale },
