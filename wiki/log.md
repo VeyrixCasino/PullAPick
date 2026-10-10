@@ -250,3 +250,17 @@ TODO, with instructions any agent can follow cold. Done:
   owner's job" rule is marked lifted for the art pass.
 
 Updated: candy-style (new), owner, index, log.
+
+## [2026-10-10] ingest | pet bodies: the moth and the twelve cube species
+Colour made the 322 pets distinct; shape did not. Every species on `block()`
+was one ovoid with the face painted on its front, so the outline was a cube
+with nubs. Added `shape = "quad"` (brow, chest, cheeks, haunches, back) to the
+twelve four-legged species, and rebuilt the moth's wings as a raised V — the
+old ones rotated about Z only, so they stuck out sideways and vanished
+edge-on. Two approaches are recorded in [pets] as rejected: a real head volume
+strands every hardcoded face detail on the chest, and adding mass without
+shrinking the core changes nothing because it never reaches the outline. The
+shrink stranded a cookie dog's chip on the old body top, which is why there is
+a `back` mass. Also fixed `ridge()`: every caller spaced its plates wider than
+they were deep, and the gap only shows on the last plate. 322 built, 0
+duplicates, floaters 10 → 9 with the nine remaining all deliberate FX.

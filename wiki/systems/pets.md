@@ -96,6 +96,32 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
   like crazy"*). `tools/verify/pet-spring.js` sweeps both integrators across framerates.
 - **Pets wear no hats.** `ClientFns.petHatPiece` is a stub that returns nil, and `p.petHats` is gone.
 
+### Body shape
+
+`block()` is the shared chassis. By default it is **one ovoid with the face
+painted on its front** — no head volume — which is why every species built on it
+used to read as a cube with nubs.
+
+`shape = "quad"` (on the twelve four-legged species) shrinks that core to
+`0.80 × 0.78 × 0.86` and fills the envelope back out with a **brow, chest,
+cheeks, haunches and back**. `size` stays the envelope, because the face, legs
+and every `DETAILS` prop are positioned off it.
+
+Two traps, both hit once:
+
+- **Do not move the face onto a head volume.** Species hardcode face detail
+  against the body — cat whiskers at `z = 1.02`, bunny teeth at `z = 1.00`, fox
+  cheek ruffs at `y = -0.16`. A head strands all of them on the chest, each
+  piece still correct alone. Add mass *around* the face instead.
+- **The envelope must stay filled.** A cookie dog's chip at `(0.02, 1.00,
+  -0.62)` came loose when the core shrank, because nothing reached the old body
+  top behind the brow. That is what the `back` mass is for.
+
+`ridge()` makes its plates at least as deep as their spacing. Every caller
+spaced them wider than they were (lizard `0.36` vs `0.24`), and the gap only
+shows on the **last** plate — the earlier ones sit over the body and borrow its
+mass.
+
 ### How a pet gets its look
 
 Three tables, and a pet needs a row in the middle one or it renders as a fox:
