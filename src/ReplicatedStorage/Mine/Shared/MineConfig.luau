@@ -33,6 +33,31 @@ MineConfig.BLOCK = 5
 -- floor area of the old 13, so a layer is somewhere to explore rather than
 -- a room you clear in a few swings.
 MineConfig.GRID = 21
+--[[
+	BLOCKS PER LAYER, PER ZONE.
+
+	GRID is the default and every ordinary mine uses it. A zone may carry its
+	own `grid`, and Halloween does: it is a deliberately tiny mine, ten layers
+	to a section and a handful of blocks to a layer, so the depth runs away from
+	you instead of the floor area.
+
+	A layer is square, so the count is grid x grid -- there is no grid that
+	gives exactly 10. 3 gives 9 and keeps a true centre block, which matters
+	because the elevator and the pit centre are computed from it.
+
+	Zones that omit `grid` are unchanged to the block, which is the point:
+	this reads 21 for all eleven existing mines.
+]]
+function MineConfig.gridFor(zone)
+	if type(zone) ~= "table" then
+		zone = MineConfig.zoneById(zone)
+	end
+	local g = zone and tonumber(zone.grid)
+	if g and g >= 1 then
+		return math.floor(g)
+	end
+	return MineConfig.GRID or 21
+end
 MineConfig.LAYERS = 5000
 -- Layers are generated in a window below the deepest point reached, not all
 -- at once: 50 layers x 13 x 13 is 8,450 parts per zone, and building that in
@@ -486,20 +511,63 @@ local function launchClock()
 	return os.time()
 end
 
-function MineConfig.limitedActive()
-	local start = MineConfig.LIMITED_START_UNIX or 0
-	if start <= 0 then
-		return true
-	end
-	return launchClock() < start + (MineConfig.LIMITED_DAYS or 35) * 86400
-end
+--[[
+	ONE WINDOW PER LIMITED ZONE, MEASURED IN DAYS FROM SEASON START.
 
-function MineConfig.limitedEndsAt()
+	There used to be exactly one limited zone, so there was exactly one window
+	and `limitedActive()` took no argument. Halloween is a second one, running
+	alongside Event Horizon rather than after it, so the window has to belong to
+	the zone.
+
+	Offsets from SEASON_START, NOT real dates, for the reason written at length
+	above: the clock here is MineLaunch's season clock, and a wall-clock window
+	would count down before the game opened. The owner's dates (17 October to
+	7 November) are what these offsets produce if the season starts on
+	2026-09-22 as configured -- and if launch slips, they slip with it instead
+	of expiring unseen.
+
+	Passing no zoneId keeps the old meaning (Event Horizon), so every existing
+	caller still reads the same answer.
+]]
+MineConfig.LIMITED_WINDOWS = {
+	bigbang = { startDay = 0, days = 47 },
+	-- PROPOSED (2026-10-10): season start + 25 days = 17 Oct, running 21 days
+	-- to 7 Nov. Owner approved those dates; the offsets implementing them are
+	-- mine and are what needs checking.
+	hallow = { startDay = 25, days = 21 },
+}
+
+function MineConfig.limitedWindow(zoneId)
 	local start = MineConfig.LIMITED_START_UNIX or 0
 	if start <= 0 then
 		return nil
 	end
-	return start + (MineConfig.LIMITED_DAYS or 35) * 86400
+	local w = MineConfig.LIMITED_WINDOWS[zoneId or "bigbang"]
+	if not w then
+		return nil
+	end
+	local from = start + (w.startDay or 0) * 86400
+	return from, from + (w.days or MineConfig.LIMITED_DAYS or 35) * 86400
+end
+
+function MineConfig.limitedActive(zoneId)
+	local start = MineConfig.LIMITED_START_UNIX or 0
+	if start <= 0 then
+		return true
+	end
+	local from, ends = MineConfig.limitedWindow(zoneId)
+	if not from then
+		return false
+	end
+	local now = launchClock()
+	-- Lower bound as well as upper: a second window that opens later must read
+	-- CLOSED before it opens, not "not yet closed".
+	return now >= from and now < ends
+end
+
+function MineConfig.limitedEndsAt(zoneId)
+	local _, ends = MineConfig.limitedWindow(zoneId)
+	return ends
 end
 
 --[[
@@ -513,15 +581,21 @@ end
 	Returns nil when there is no deadline at all, so a caller can tell "no
 	event configured" apart from "no time left".
 ]]
-function MineConfig.limitedCountdown()
-	local ends = MineConfig.limitedEndsAt()
+function MineConfig.limitedCountdown(zoneId)
+	local from, ends = MineConfig.limitedWindow(zoneId)
 	if not ends then
 		return nil
 	end
 	-- Season clock, for the same reason limitedActive uses it: a countdown
 	-- running off the wall clock would tick down before the game opened and
 	-- greet the first players with "closed".
-	local left = ends - launchClock()
+	local now = launchClock()
+	-- A window that has not opened counts down to its OPENING. Counting down to
+	-- the close of something nobody can enter yet reads as a lie.
+	if now < from then
+		ends = from
+	end
+	local left = ends - now
 	if left <= 0 then
 		return "closed"
 	end
@@ -579,6 +653,15 @@ MineConfig.EVENTS = {
 		blurb = "Claim a moonlit mine at the edge of a black hole. Unlock the Wormhole Bag and hunt limited pets Matter+, Matter−, Cosmo, and Albert Minestein while the timer runs.",
 		bannerImage = "rbxassetid://84324385292112",
 		ownedFlag = "bigbangOwned",
+	},
+	{
+		id = "candy_crypt",
+		zoneId = "hallow",
+		name = "Candy Crypt",
+		blurb = "A tiny mine that drops away fast. No chests, nothing sells for much — what you are down here for is candy corn, and candy buys Trick-or-Treat cases, seasonal packs and the Halloween bucket. Open 17 October to 7 November.",
+		-- No banner art yet; MineEventsView draws its own panel when this is
+		-- empty, so leaving it unset is a supported state, not a hole.
+		ownedFlag = "hallowOwned",
 	},
 }
 
@@ -1623,6 +1706,9 @@ MineConfig.ZONES = {
 		minRebirth = 0,
 		buyCost = 0,
 		limited = true,
+		-- Which profile flag means "claimed". Was hardcoded in MineServer back
+		-- when one limited zone was the only limited zone.
+		ownedFlag = "bigbangOwned",
 		-- Chests three times as common as anywhere else: it is an event.
 		chestMult = 3,
 		sets = { "genesis_spark", "first_light", "proto_ore" },
@@ -1632,6 +1718,57 @@ MineConfig.ZONES = {
 		accent = Enum.Material.Glass,
 		decor = "ring",
 		angle = 18,
+	},
+	--[[
+		HALLOWEEN 2026. A second limited mine, open alongside Event Horizon
+		rather than after it (MineConfig.LIMITED_WINDOWS.hallow).
+
+		Owner, 2026-10-10: candy ores dropping candy corn, no chests at all,
+		nothing sells for much (more the deeper you go), no hardness gate so
+		surface tools work, ten layers to a section and about ten blocks to a
+		layer, and 3x per section. Candy buys Trick-or-Treat cases, seasonal
+		packs, skin and hat cases, and the Halloween bucket.
+
+		Every number here is PROPOSED except the ones the owner stated.
+	]]
+	{
+		radius = 9000,
+		id = "hallow",
+		name = "Candy Crypt",
+		prestige = 0,
+		minRebirth = 0,
+		buyCost = 0,
+		limited = true,
+		ownedFlag = "hallowOwned",
+		-- NO CHESTS. 0 survives the lookup in rollKind, which is why that
+		-- branch had to stop naming bigbang.
+		chestMult = 0,
+		-- A tiny pit: 3 x 3 = 9 blocks a layer, against 441 everywhere else.
+		-- Depth is the whole progression here, so the floor is barely there.
+		grid = 3,
+		-- No breaking-power gate: the owner wants surface tools to work.
+		noStrengthGate = true,
+		--[[
+			Meadow's sets on purpose, NOT candy ones.
+
+			`sets` is read as MineCards set ids, and candy_corn / gummy_vein /
+			sugar_glass are not registered there -- using them would hand broken
+			set ids to every pack this zone can produce. Limited zones already
+			draw pets from the meadow pot (`potZone` in MineServer), so this
+			matches the behaviour that is already true rather than inventing a
+			second answer.
+
+			This becomes the Halloween 2026 set once that pack exists; the pack
+			is the only legal source of holiday pets under the holiday rule, so
+			it cannot be a zone pot anyway.
+		]]
+		sets = { "dragons_dawn", "grass_glimmer", "prism_meadow" },
+		color = Color3.fromRGB(255, 142, 44),
+		dirt = Color3.fromRGB(62, 34, 78),
+		ground = Enum.Material.Sand,
+		accent = Enum.Material.Neon,
+		decor = "ring",
+		angle = 198,
 	},
 }
 

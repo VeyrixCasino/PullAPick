@@ -470,7 +470,9 @@ function MineDigAuth.worldToCell(pos, zone)
 		return nil, nil
 	end
 	local size = C.BLOCK or 5
-	local off = ((C.GRID or 21) - 1) * 0.5
+	-- The zone's own grid: a world position only maps to the right cell if the
+	-- centre offset matches the pit it was dug in.
+	local off = ((C.gridFor and C.gridFor(zone) or C.GRID or 21) - 1) * 0.5
 	local cx = math.floor((pos.X - origin.X) / size + off + 0.5)
 	local cz = math.floor((pos.Z - origin.Z) / size + off + 0.5)
 	return cx, cz
@@ -596,7 +598,7 @@ local function inPitOrPlaza(pos, zone)
 		return false
 	end
 	local origin = C.zoneOrigin and C.zoneOrigin(zone) or Vector3.zero
-	local pitW = (C.GRID or 21) * (C.BLOCK or 5)
+	local pitW = (C.gridFor and C.gridFor(zone) or C.GRID or 21) * (C.BLOCK or 5)
 	local half = pitW * 0.5 + 36
 	local dx = math.abs(pos.X - origin.X)
 	local dz = math.abs(pos.Z - origin.Z)

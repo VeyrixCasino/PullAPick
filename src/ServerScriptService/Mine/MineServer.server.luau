@@ -800,6 +800,10 @@ local function blank()
 		-- Item bag rungs bought. Capacity is derived, never stored.
 		itemSlotUpgrades = 0,
 		bigbangOwned = false,
+		-- Halloween's claim flag and its currency. Candy is the Candy Crypt's
+		-- only real payout: the rock sells for almost nothing by design.
+		hallowOwned = false,
+		candy = 0,
 		coreSamples = {},
 		coreRiftOpened = {},
 		deepest = {}, depthUnlock = {}, backpack = {},
@@ -1167,6 +1171,8 @@ local function load(plr)
 	p.coreSamples = p.coreSamples or {}
 	p.coreRiftOpened = p.coreRiftOpened or {}
 	p.bigbangOwned = p.bigbangOwned and true or false
+	p.hallowOwned = p.hallowOwned and true or false
+	p.candy = math.max(0, math.floor(tonumber(p.candy) or 0))
 	p.spaceCoins = math.max(0, math.floor(tonumber(p.spaceCoins) or 0))
 	p.haulSpace = math.max(0, math.floor(tonumber(p.haulSpace) or 0))
 	Dig.seedHaulMix(p)
@@ -3527,6 +3533,7 @@ local function snap(plr)
 		gems = p.gems, coins = p.coins or 0, dust = p.dust, dustShop = Packs.dustShopPayload and Packs.dustShopPayload(p) or nil, prestige = p.prestige, pickaxeTier = p.pickaxeTier,
 		backpackTier = p.backpackTier, petSlots = p.petSlots, petSlotsEffective = C.effectivePetSlots and C.effectivePetSlots(p) or p.petSlots, zoneId = p.zoneId,
 		maxUnlockedZone = p.maxUnlockedZone, bigbangOwned = p.bigbangOwned and true or false,
+		hallowOwned = p.hallowOwned and true or false, candy = p.candy or 0,
 		eventPass = (function()
 			local ev = C.EVENTS and C.EVENTS[1]
 			if not ev then return nil end
@@ -4316,11 +4323,23 @@ local function rollKind(zone, x, layer, z, b, rng)
 	-- There is no ore. What you hope to see in the wall is a chest, and which
 	-- chest it is gets decided here so the block can look like that chest.
 	local strata = C.strataFor(zone.id)
-	-- Event Horizon (bigbang) only: 3× chest density for the limited event mine.
-	-- Never multiply other zones — zone.chestMult must not leak globally.
+	--[[
+		Chest density is the zone's own `chestMult`, defaulting to 1.
+
+		This used to name bigbang explicitly, which meant a new limited mine
+		silently inherited the ordinary rate and had no way to say otherwise.
+		Halloween pays in candy and has NO chests at all, so it needs to set 0 --
+		and 0 has to survive the lookup, which is why this is `or 1` on a nil
+		check rather than an `or` on the value (0 is truthy in Luau, so
+		`tonumber(0) or 1` is 0, but the intent is worth being explicit about).
+
+		Behaviour is unchanged for everyone: bigbang still carries chestMult 3,
+		and every other zone has none and so multiplies by 1.
+	]]
 	local chance = C.CHEST_CHANCE or 0.0025
-	if zone.id == "bigbang" then
-		chance = chance * (tonumber(zone.chestMult) or 3)
+	local zoneMult = tonumber(zone.chestMult)
+	if zoneMult then
+		chance = chance * zoneMult
 	elseif zone.id == "meadow" and (tonumber(layer) or 1) <= 100 then
 		-- Onboarding density: the tutorial's three chests should be met by
 		-- digging, not by a dry spell (MineConfig.MEADOW_SHALLOW_CHEST_MULT).
@@ -4975,10 +4994,13 @@ local function ensureZone(zone, throughLayer)
 	local rng = Random.new(salt + from)
 	local made = 0
 	local Depth = Dig.Depth
+	-- Blocks per layer is the ZONE's, not the game's: Halloween is a few blocks
+	-- wide on purpose. Every other zone reads the same 21 it always did.
+	local gridN = C.gridFor and C.gridFor(zone) or C.GRID
 	for y = from, target do
 		if Depth.isAirGap and Depth.isAirGap(y) then
-			for x = 0, C.GRID - 1 do
-				for z = 0, C.GRID - 1 do
+			for x = 0, gridN - 1 do
+				for z = 0, gridN - 1 do
 					local key = keyOf(zone.id, x, y, z)
 					if not voxels[zone.id][key] then
 						voxels[zone.id][key] = Const.VOXEL_SKIP
@@ -4986,8 +5008,8 @@ local function ensureZone(zone, throughLayer)
 				end
 			end
 		else
-			for x = 0, C.GRID - 1 do
-				for z = 0, C.GRID - 1 do
+			for x = 0, gridN - 1 do
+				for z = 0, gridN - 1 do
 					if not voxels[zone.id][keyOf(zone.id, x, y, z)] then
 						spawnVoxel(zone, x, y, z, rollKind(zone, x, y, z, { luck = 1, rareOre = 1 }, rng), { rareOre = 1 })
 						made += 1
@@ -5105,7 +5127,11 @@ function Gate.zoneUnlocked(p, zone)
 		return false
 	end
 	if zone.limited then
-		return p.bigbangOwned == true
+		-- Per zone, not per game. There are two limited mines now, and reading
+		-- bigbangOwned for both would have let an Event Horizon claim unlock
+		-- Halloween and vice versa.
+		local flag = zone.ownedFlag
+		return flag ~= nil and p[flag] == true
 	end
 	local idx = 1
 	for i, z in ipairs(C.ZONES) do
@@ -5144,17 +5170,30 @@ local function enterZone(plr, zoneId)
 		if z.id == zone.id then idx = i end
 	end
 	if zone.limited then
-		if not (C.limitedActive and C.limitedActive()) and not p.bigbangOwned then
+		local flag = zone.ownedFlag
+		local owned = flag ~= nil and p[flag] == true
+		-- The window is the ZONE's window. Halloween opens after Event Horizon
+		-- and closes before it, so one shared clock would have opened both.
+		if not (C.limitedActive and C.limitedActive(zone.id)) and not owned then
 			return zone.name .. " event has ended"
 		end
-		if not p.bigbangOwned then
+		if not owned then
 			-- Free claim while the limited window is live.
-			p.bigbangOwned = true
-			p.wormholeBag = true
-			p.eventTools = p.eventTools or {}
-			p.eventTools.eh_shallow_pick = true
-			p.eventToolId = p.eventToolId or "eh_shallow_pick"
-			net:FireClient(plr, "toast", "Wormhole Bag unlocked — best haul in the game")
+			if flag then
+				p[flag] = true
+			end
+			-- The Wormhole Bag and the starter pick belong to Event Horizon,
+			-- not to "any limited zone". Halloween has no gear of its own to
+			-- grant: its tools are bought with candy.
+			if zone.id == "bigbang" then
+				p.wormholeBag = true
+				p.eventTools = p.eventTools or {}
+				p.eventTools.eh_shallow_pick = true
+				p.eventToolId = p.eventToolId or "eh_shallow_pick"
+				net:FireClient(plr, "toast", "Wormhole Bag unlocked — best haul in the game")
+			else
+				net:FireClient(plr, "toast", zone.name .. " claimed — mine candy while it lasts")
+			end
 			markDirty(plr)
 		end
 	elseif idx > math.max(1, tonumber(p.maxUnlockedZone) or 1) then
@@ -11252,6 +11291,10 @@ local function tryPrestige(plr)
 	-- Zones are bought with gems; rebirth does not gift the next island.
 	fresh.maxUnlockedZone = p.maxUnlockedZone or 1
 	fresh.bigbangOwned = p.bigbangOwned and true or false
+	-- Survives a rebirth the same way the Event Horizon claim does: the event
+	-- was claimed, and a prestige must not take it back.
+	fresh.hallowOwned = p.hallowOwned and true or false
+	fresh.candy = p.candy or 0
 	fresh.coreSamples = p.coreSamples or {}
 	fresh.coreRiftOpened = p.coreRiftOpened or {}
 	-- Skills survive a rebirth -- they ARE the rebirth reward.
@@ -12430,8 +12473,9 @@ local function buyCart(plr, payload)
 			for _ = 1, line.grant do
 				-- A random set each time, so a bundle spreads across the
 				-- collection instead of stacking ten of one set nobody needs.
-				-- A pack case or a set pack keeps its own (MineCases).
-				table.insert(p.packs, Cases.bagRow(line.id) or {
+				-- A pack case or a set pack keeps its own (MineCases). Bought
+				-- with credits, so a wild case can roll the SSS set.
+				table.insert(p.packs, Cases.bagRow(line.id, true) or {
 					packId = line.id,
 					packName = (def and def.name) or line.id,
 					setId = (def and def.setKey)
@@ -12477,7 +12521,7 @@ local function buyCart(plr, payload)
 				pid = tostring(pid)
 				local def = Packs.PACK_BY_ID[pid]
 				if def and Packs.priceOf(pid) then
-					table.insert(p.packs, Cases.bagRow(pid) or {
+					table.insert(p.packs, Cases.bagRow(pid, true) or {
 						packId = pid,
 						packName = def.name or pid,
 						setId = def.setKey
