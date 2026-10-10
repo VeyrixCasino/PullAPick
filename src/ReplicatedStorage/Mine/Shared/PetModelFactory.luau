@@ -703,6 +703,49 @@ local BONE = C3(244, 240, 230)
 --   mouth = false / mouthSize / mouthY / mouthColor
 --   legs  = false / legSize / legColor / legX / legY / legZ
 --   tail  = false / tailSize / tailColor
+--[[
+	BODY SHAPING PROFILES.
+
+	Each profile shrinks the core and fills the envelope back out with a few
+	rounded masses, so the outline stops being a box. Rows are fractions of the
+	envelope: { sizeX, sizeY, sizeZ, posX, posY, posZ, mirror }. `mirror` builds
+	the row at both +x and -x. posY is measured from the body centre at y = 0.06.
+
+	Fractions, not studs, so a species that overrides bodySize keeps its shape.
+]]
+local SHAPES = {
+	-- Four-legged: brow over the face, chest under it, a waist, round haunches.
+	quad = {
+		core = Vector3.new(0.80, 0.78, 0.86),
+		{ 0.78, 0.53, 0.69, 0.00, 0.20, 0.15 },
+		{ 0.71, 0.51, 0.61, 0.00, -0.22, 0.17 },
+		{ 0.64, 0.54, 0.76, 0.00, 0.21, -0.12 },
+		{ 0.26, 0.46, 0.56, 0.40, 0.06, 0.14, true },
+		{ 0.43, 0.69, 0.64, 0.31, -0.04, -0.22, true },
+	},
+	-- Upright: a deep breast carried forward, narrower crown, rump behind.
+	bird = {
+		core = Vector3.new(0.76, 0.80, 0.80),
+		{ 0.70, 0.50, 0.62, 0.00, 0.22, 0.10 },
+		{ 0.80, 0.62, 0.62, 0.00, -0.14, 0.20 },
+		{ 0.66, 0.50, 0.70, 0.00, 0.18, -0.16 },
+		{ 0.52, 0.46, 0.46, 0.00, -0.22, -0.30 },
+		{ 0.24, 0.56, 0.60, 0.38, 0.00, 0.02, true },
+	},
+	-- Blobs: dome over belly, no flat faces anywhere.
+	round = {
+		core = Vector3.new(0.84, 0.84, 0.84),
+		{ 0.80, 0.56, 0.80, 0.00, 0.20, 0.00 },
+		{ 0.86, 0.60, 0.82, 0.00, -0.20, 0.02 },
+		{ 0.62, 0.62, 0.44, 0.00, 0.00, 0.26 },
+		-- Rear. Every profile has to reach the back of the envelope: without
+		-- this one a dolphin's tail fin and a shark's dorsal, both placed on
+		-- the old rear face, hung off the end of the shrunken core.
+		{ 0.62, 0.62, 0.44, 0.00, 0.00, -0.26 },
+		{ 0.28, 0.62, 0.74, 0.38, 0.00, 0.00, true },
+	},
+}
+
 local function block(c, p, o)
 	o = o or {}
 	local size = o.bodySize or Vector3.new(2.02, 1.88, 1.80)
@@ -710,7 +753,8 @@ local function block(c, p, o)
 	-- all placed off it. With shaping on, the core shrinks inside that envelope
 	-- and the masses below fill it back out -- otherwise they hide within the
 	-- box and change nothing, which is exactly what the first attempt did.
-	local core = (o.shape == "quad") and (size * Vector3.new(0.80, 0.78, 0.86)) or size
+	local profile = o.shape and SHAPES[o.shape] or nil
+	local core = profile and (size * profile.core) or size
 	local body = (o.square and c.box or c.ovoid)(c, core, CFrame.new(0, 0.06, 0), o.bodyColor or p.base)
 	if o.bodyMat then
 		body.Material = o.bodyMat
@@ -736,28 +780,14 @@ local function block(c, p, o)
 	]]
 	local bodyTop, bodyFz = 0.06 + size.Y * 0.5, size.Z * 0.5
 	c.headTop = nil
-	if o.shape == "quad" then
+	if profile then
 		local w, h, d, y0 = size.X, size.Y, size.Z, 0.06
 		local shade = o.shapeColor or o.bodyColor or p.base
-		-- Brow: carries the top line up over the face end so it slopes.
-		c:ovoid(Vector3.new(w * 0.78, h * 0.53, d * 0.69), CFrame.new(0, y0 + h * 0.20, d * 0.15), shade)
-		-- Chest, below the face and slightly proud of it.
-		c:ovoid(Vector3.new(w * 0.71, h * 0.51, d * 0.61), CFrame.new(0, y0 - h * 0.22, d * 0.17), shade)
-		--[[
-			Back: carries the top line from the brow to the haunches.
-
-			Not decoration. The shrunken core dips between those two, and
-			markings authored against the ORIGINAL body top then hang over the
-			dip -- a cookie dog's chip at (0.02, 1.00, -0.62) came loose exactly
-			this way. Details are placed on the envelope, so the envelope has to
-			stay filled.
-		]]
-		c:ovoid(Vector3.new(w * 0.64, h * 0.54, d * 0.76), CFrame.new(0, y0 + h * 0.21, -d * 0.12), shade)
-		for _, s in ipairs({ -1, 1 }) do
-			-- Cheeks: widen the head end so there is a waist behind it.
-			c:ovoid(Vector3.new(w * 0.26, h * 0.46, d * 0.56), CFrame.new(w * 0.40 * s, y0 + h * 0.06, d * 0.14), shade)
-			-- Haunches: the round rear that reads as a four-legged animal.
-			c:ovoid(Vector3.new(w * 0.43, h * 0.69, d * 0.64), CFrame.new(w * 0.31 * s, y0 - h * 0.04, -d * 0.22), shade)
+		for _, m in ipairs(profile) do
+			local sz = Vector3.new(w * m[1], h * m[2], d * m[3])
+			for _, s in ipairs(m[7] and { -1, 1 } or { 1 }) do
+				c:ovoid(sz, CFrame.new(w * m[4] * s, y0 + h * m[5], d * m[6]), shade)
+			end
 		end
 	end
 
@@ -981,6 +1011,7 @@ S.stag = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.62, h = 0.54, d = 0.50, color = p.dark },
 			bib = { w = 0.70, h = 0.54, y = -0.58, color = p.pale },
 			legSize = Vector3.new(0.34, 0.42, 0.38), legColor = C3(58, 44, 38),
@@ -1010,6 +1041,7 @@ S.drake = {
 	back = CFrame.new(0, 0.20, -0.66),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.80, h = 0.50, d = 0.60, color = p.light, nose = p.deep },
 			brow = p.deep,
 			legColor = p.deep,
@@ -1037,6 +1069,7 @@ S.wyrm = {
 	back = CFrame.new(0, 0.10, -0.70),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			legs = false, tail = false, mouthSize = Vector3.new(0.86, 0.22, 0.16),
 			brow = p.deep,
 		})
@@ -1083,6 +1116,7 @@ S.toad = {
 	back = CFrame.new(0, 0.10, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.16, 1.62, 1.86),
 			eyeY = 0.62, eyeSpread = 0.46, mouthY = -0.30, mouthSize = Vector3.new(1.06, 0.16, 0.16),
 			tail = false, legSize = Vector3.new(0.62, 0.34, 0.62), legY = -0.76, legX = 0.70,
@@ -1106,6 +1140,7 @@ S.crab = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.30, 1.52, 1.66),
 			eyeY = 0.30, eyeSpread = 0.48, mouthY = -0.36, mouthSize = Vector3.new(0.62, 0.14, 0.14),
 			tail = false, legSize = Vector3.new(0.30, 0.30, 0.42), legX = 0.98,
@@ -1132,6 +1167,7 @@ S.beetle = {
 	back = CFrame.new(0, 0.30, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodyColor = p.deep, tail = false, mouthSize = Vector3.new(0.44, 0.12, 0.14),
 			legSize = Vector3.new(0.28, 0.30, 0.40), legX = 0.92, legZ = { 0.44, 0, -0.44 },
 		})
@@ -1218,6 +1254,7 @@ S.hawk = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			mouth = false, brow = p.dark,
 			bib = { w = 0.94, h = 0.86, y = -0.44, color = p.pale },
 			legColor = C3(246, 190, 64), tailSize = Vector3.new(0.92, 0.26, 0.90),
@@ -1245,6 +1282,7 @@ S.owl = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			eyeSize = Vector3.new(0.50, 0.56, 0.20), eyeSpread = 0.44,
 			mouth = false, tail = false, legColor = C3(240, 186, 74),
 			bib = { w = 1.00, h = 0.90, y = -0.42, color = p.pale },
@@ -1273,6 +1311,7 @@ S.ray = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.06, 1.44, 1.90), eyeY = 0.24, eyeSpread = 0.44,
 			mouthY = -0.40, mouthSize = Vector3.new(0.66, 0.14, 0.14),
 			legs = false, tail = false,
@@ -1363,6 +1402,7 @@ S.pumpkin = {
 		-- Carved, not painted: dark sockets in the flesh, then the light sitting
 		-- inside them. Glow straight onto orange reads as nothing at all.
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.10, 1.94, 1.94),
 			eyeColor = socket, mouthColor = socket, mouthSize = Vector3.new(0.94, 0.28, 0.16),
 			legSize = Vector3.new(0.34, 0.34, 0.44), legColor = C3(96, 132, 60), tail = false,
@@ -1435,6 +1475,7 @@ S.skelehound = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			eyeColor = C3(126, 255, 156),
 			snout = { w = 0.78, h = 0.50, d = 0.54, color = p.pale, nose = C3(40, 38, 44) },
 			legColor = p.pale, tailColor = p.pale,
@@ -1485,6 +1526,7 @@ S.reindeer = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.66, h = 0.52, d = 0.52, color = p.dark, nose = C3(255, 62, 64) },
 			bib = { w = 0.72, h = 0.52, y = -0.60, color = p.pale },
 			legColor = C3(62, 46, 40),
@@ -1567,6 +1609,7 @@ S.penguin = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			mouth = false, tail = false,
 			legSize = Vector3.new(0.56, 0.24, 0.66), legY = -0.94, legColor = C3(246, 176, 60),
 			legZ = { 0.24 },
@@ -1765,6 +1808,7 @@ S.bird = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			bodySize = Vector3.new(1.84, 1.80, 1.72),
 			mouth = false,
 			bib = { w = 0.88, h = 0.76, y = -0.42, color = p.pale },
@@ -1789,6 +1833,7 @@ S.duck = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			bodySize = Vector3.new(1.96, 1.72, 1.84),
 			mouth = false,
 			legColor = C3(246, 168, 48), legSize = Vector3.new(0.52, 0.20, 0.64), legZ = { 0.24 },
@@ -1811,6 +1856,7 @@ S.horse = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.62, h = 0.66, d = 0.66, color = p.light },
 			legSize = Vector3.new(0.36, 0.48, 0.40), legColor = p.deep,
 			tailSize = Vector3.new(0.36, 0.72, 0.40), tailColor = p.light,
@@ -1880,6 +1926,7 @@ S.turtle = {
 	back = CFrame.new(0, 0.30, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.16, 1.36, 1.90), bodyColor = p.dark,
 			snout = { w = 0.54, h = 0.36, d = 0.40, color = p.light },
 			legSize = Vector3.new(0.50, 0.28, 0.56), legX = 0.72, legY = -0.74,
@@ -1901,6 +1948,7 @@ S.fish = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(1.70, 1.80, 2.00),
 			mouthY = -0.42, mouthSize = Vector3.new(0.40, 0.26, 0.16),
 			legs = false, tail = false,
@@ -1922,6 +1970,7 @@ S.dolphin = {
 	back = CFrame.new(0, 0.30, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(1.72, 1.60, 2.10),
 			snout = { w = 0.44, h = 0.32, d = 0.76, color = p.light, nose = p.deep },
 			bib = { w = 0.84, h = 0.70, y = -0.48, color = p.pale },
@@ -1943,6 +1992,7 @@ S.lizard = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.02, 1.62, 1.90),
 			mouthY = -0.40, mouthSize = Vector3.new(0.94, 0.16, 0.16),
 			legSize = Vector3.new(0.48, 0.28, 0.44), legX = 0.78, legY = -0.78,
@@ -1964,6 +2014,7 @@ S.slime = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		local _, _, body = block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.16, 1.66, 2.00),
 			mouthY = -0.42, mouthSize = Vector3.new(0.52, 0.22, 0.16),
 			legs = false, tail = false,

@@ -102,10 +102,19 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
 painted on its front** — no head volume — which is why every species built on it
 used to read as a cube with nubs.
 
-`shape = "quad"` (on the twelve four-legged species) shrinks that core to
-`0.80 × 0.78 × 0.86` and fills the envelope back out with a **brow, chest,
-cheeks, haunches and back**. `size` stays the envelope, because the face, legs
-and every `DETAILS` prop are positioned off it.
+`shape = "<profile>"` shrinks that core and fills the envelope back out with a
+few rounded masses. `size` stays the envelope, because the face, legs and every
+`DETAILS` prop are positioned off it. Three profiles in `SHAPES`, 33 species:
+
+| profile | core | masses | used by |
+| --- | --- | --- | --- |
+| `quad` | `0.80 × 0.78 × 0.86` | brow, chest, back, cheeks, haunches | 20 four-legged |
+| `bird` | `0.76 × 0.80 × 0.80` | crown, breast, back, rump, flanks | bird, duck, penguin, owl, hawk |
+| `round` | `0.84³` | dome, belly, front, rear, sides | slime, toad, pumpkin, fish, dolphin, ray, crab, beetle |
+
+Rows are **fractions of the envelope**, so a species overriding `bodySize`
+keeps its shape. `ghost` is deliberately left out: it sets `body.Transparency`
+and opaque masses would break it.
 
 Two traps, both hit once:
 
@@ -113,9 +122,12 @@ Two traps, both hit once:
   against the body — cat whiskers at `z = 1.02`, bunny teeth at `z = 1.00`, fox
   cheek ruffs at `y = -0.16`. A head strands all of them on the chest, each
   piece still correct alone. Add mass *around* the face instead.
-- **The envelope must stay filled.** A cookie dog's chip at `(0.02, 1.00,
-  -0.62)` came loose when the core shrank, because nothing reached the old body
-  top behind the brow. That is what the `back` mass is for.
+- **The envelope must stay filled, on every face.** Details are placed on the
+  envelope, so a profile that does not reach one of its faces strands whatever
+  sits there. It happened twice: a cookie dog's chip at `(0.02, 1.00, -0.62)`
+  when `quad` had no `back` mass, and six fish and dolphin tails when `round`
+  had no rear mass. Both were found by the gap audit, not by looking. **Re-run
+  it after touching a profile.**
 
 `ridge()` makes its plates at least as deep as their spacing. Every caller
 spaced them wider than they were (lizard `0.36` vs `0.24`), and the gap only

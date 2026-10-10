@@ -264,3 +264,14 @@ shrink stranded a cookie dog's chip on the old body top, which is why there is
 a `back` mass. Also fixed `ridge()`: every caller spaced its plates wider than
 they were deep, and the gap only shows on the last plate. 322 built, 0
 duplicates, floaters 10 → 9 with the nine remaining all deliberate FX.
+
+## [2026-10-10] ingest | shaping profiles for the remaining 21 cube species
+Generalised `shape` into three profiles in `SHAPES` (`quad`, `bird`, `round`)
+and applied them to 21 more species, so 33 of 44 now have real body mass. The
+`round` profile shipped a bug the gap audit caught immediately: it had no rear
+mass, so six fish and dolphin tails hung off the shrunken core, the same way a
+cookie dog's chip did when `quad` had no back. A profile has to reach every
+face of the envelope, because details are placed on the envelope. `ghost` is
+left out on purpose -- it sets `body.Transparency` and opaque masses would
+break it. Final: 322 built, 0 duplicates, 9 models with floaters and all nine
+are deliberate FX.
