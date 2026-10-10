@@ -1934,6 +1934,11 @@ function MineInventoryView.mount(parent, opts)
 					-- Silent tier: derived from the pack's own odds, so a new
 					-- pack sorts correctly without anyone ranking it by hand.
 					rank = isBlock and 50 or (Packs.packTier and Packs.packTier(pk.packId) or 0),
+					-- 0 = unrated: lucky blocks, and zone packs, which carry no stars.
+					stars = ((not isBlock) and Packs.isRated and Packs.isRated(pk.packId))
+						and Packs.packStars(pk.packId) or 0,
+					grade = (not isBlock) and Cards.setGrade and Cards.setGrade(pk.setId) or nil,
+					setTier = (set and tonumber(string.match(tostring(set.tier or ""), "%d+"))) or 0,
 					cards = Packs.packCards and Packs.packCards(pk.packId) or 0,
 					count = 0, firstIndex = i,
 					-- A tile is a stack, but opening is always one pack. The
@@ -1958,11 +1963,25 @@ function MineInventoryView.mount(parent, opts)
 					only = name
 				end
 				g.setName = (unique == 1) and only or "Various"
+				-- A stack of several sets has no single grade to print.
+				if unique > 1 then
+					g.grade = nil
+				end
 			end
 		end
-		-- Worst first, then alphabetical. You work up through the junk; your
-		-- best pack should be the last thing you spend, not the first thing the
-		-- list hands you.
+		--[[
+			Best first: stars, then the set's grade. Owner, 2026-10-10: "by
+			default sort by stars and sets (5 star pebble bound trumps 4.5 star
+			Chaos Theory)". This replaced "worst first", which put the best pack
+			last on purpose.
+
+			Zone packs are unrated (0 stars) and so sit below every rated pack.
+			A set without a grade (every Season-1 set) ranks below any graded
+			one and falls back to its odds tier, T1 to T9.
+		]]
+		local function setRank(g)
+			return ((g.grade and Cards.GRADE_RANK and Cards.GRADE_RANK[g.grade]) or 0) * 100 + (g.setTier or 0)
+		end
 		table.sort(order, function(x, y)
 			-- Lucky blocks go first, best grade first: they are what you came to
 			-- open, and they were getting lost at the bottom of the bag.
@@ -1977,8 +1996,18 @@ function MineInventoryView.mount(parent, opts)
 				end
 				return tostring(x.key) < tostring(y.key)
 			end
+			if x.stars ~= y.stars then
+				return x.stars > y.stars
+			end
+			local xs, ys = setRank(x), setRank(y)
+			if xs ~= ys then
+				return xs > ys
+			end
 			if x.rank ~= y.rank then
-				return x.rank < y.rank
+				return x.rank > y.rank
+			end
+			if x.luckPct ~= y.luckPct then
+				return x.luckPct > y.luckPct
 			end
 			if x.tierName ~= y.tierName then
 				return x.tierName < y.tierName
@@ -2076,6 +2105,10 @@ function MineInventoryView.mount(parent, opts)
 					end
 				else
 					PackFX.drawSealed(artHost, g.packId, 54, 74)
+					-- Same place and size as the lucky-block stars, so the grid lines up.
+					if g.stars > 0 then
+						starRow(tile, g.stars, 86, 13)
+					end
 				end
 				local peek = mk("TextButton", {
 					BackgroundTransparency = 1,
@@ -2121,6 +2154,14 @@ function MineInventoryView.mount(parent, opts)
 					UDim2.new(1, -16, 0, 18))
 				setL.TextXAlignment = Enum.TextXAlignment.Center
 				setL.TextTruncate = Enum.TextTruncate.AtEnd
+				-- "Atlantis Rising · A": the set's grade in its own colour.
+				if g.grade then
+					local gradeCol = (Gear.RARITY_COLOR and Gear.RARITY_COLOR[g.grade]) or TEXT
+					local safe = string.gsub(string.gsub(tostring(g.setName), "&", "&amp;"), "<", "&lt;")
+					setL.RichText = true
+					setL.Text = string.format('%s  ·  <font color="#%s"><b>%s</b></font>',
+						safe, gradeCol:ToHex(), g.grade)
+				end
 				if g.count > 1 then
 					-- Quantity sits top-left (packs + lucky blocks share this tile).
 					-- Stack under the luck chip when both are present.

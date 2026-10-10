@@ -487,3 +487,15 @@ Halloween bodies went into [next-up](next-up.md) with a paste-in prompt. They
 asked for it so they can restart the work from it.
 
 Updated: next-up (new), index, owner, pets, log, `docs/TODO.md`.
+
+## [2026-10-10] ingest | pack art, set and rarity icons, stars and best-first sort
+Pack covers for the 19 graded sets (57, three per set: 1-2, 2.5-3.5 and 4-5 star)
+in `art/cover-art/`, rendered into 3D foil pack sprites (732x1024, set name on the
+top seal, theme-colour seals only: the owner dropped silver and gold, "make it
+apparent in UI that the packs are good") in `art/pack-sprites/`. Set medallions
+(19, ring = grade) and rarity gems (8, `MineCards.RARITY_COLOR`) in `art/icons/`.
+Renderer and icon tools: `tools/pack-sprites/` (`render.ps1`, `icons.ps1`).
+`art/` is untracked and not yet uploaded as the group. Code: pack tiles show
+stars and `Set · Grade`; the inventory sorts best first (stars, then set grade).
+Zone packs stay unrated, per the owner. Updated
+[cards-and-packs](systems/cards-and-packs.md).

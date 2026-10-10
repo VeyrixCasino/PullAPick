@@ -1531,7 +1531,19 @@ function MinePackConfig.halfStars(value)
 	return math.clamp(math.floor((tonumber(value) or 0) * 2 + 0.5) / 2, 0.5, 5)
 end
 
+-- Whether a pack is rated at all. Only real packs are; zone packs carry no
+-- stars (owner, docs/PETS-AND-SETS.md: "Zone packs get no stars").
+function MinePackConfig.isRated(id)
+	return MinePackConfig.PACK_BY_ID ~= nil and MinePackConfig.PACK_BY_ID[tostring(id or "")] ~= nil
+end
+
 function MinePackConfig.packStars(id)
+	-- A hand rating wins. The new set packs are rated by the owner (1 to 5 in
+	-- halves), and a hand rating must not drift when another pack is added.
+	local row = MinePackConfig.PACK_BY_ID and MinePackConfig.PACK_BY_ID[tostring(id or "")]
+	if row and tonumber(row.stars) then
+		return MinePackConfig.halfStars(row.stars)
+	end
 	local score = MinePackConfig.packScore(id)
 	if score <= 0 then
 		return 1

@@ -87,6 +87,20 @@ names (HoloRare, UltraRare, HyperRare, SecretRare) are kept as aliases in
 6. **Fallback.** `MineCards.HIT` / `slotOdds` (softened by `SLOT_SOFTEN` 3) is
    used only when a pack has no `odds` table of its own.
 
+**Stars and the pack order in the inventory** (2026-10-10, uncommitted at the time of writing).
+- `MinePackConfig.packStars` is derived from a pack's odds, card count and shiny rate on a
+  log scale between the weakest and strongest `Mine1PacksData` row. A row's own
+  `stars` field, if set, wins, so hand-rated packs do not drift.
+- `MinePackConfig.isRated` is true only for `Mine1PacksData` packs. **Zone packs carry
+  no stars** (owner, `docs/PETS-AND-SETS.md` §rewards), so their tiles draw no star row.
+- Inventory pack tiles draw the star row at y 86 (same as lucky blocks) and print
+  `Set · Grade` on the set line when the set has a `grade` (`MineCards.setGrade`).
+  No Season-1 set has one yet, so grades appear once the 19 graded sets are wired.
+- The default order is **best first**: stars, then set grade
+  (`MineCards.GRADE_RANK`, falling back to the set's T1–T9 tier), then odds tier,
+  luck, name. Owner: *"5 star pebble bound trumps 4.5 star Chaos Theory"*. This
+  replaced the old worst-first order. Lucky blocks stay pinned first.
+
 **Order of the reveal.** Cards are sorted worst-to-best **on the server** (by
 `MinePackFX.BAND_ORDER`, then by true odds), so each flip is at least as good as
 the last. Cards of Rare or better that rolled rarer than 1 in 200 carry an

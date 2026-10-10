@@ -361,6 +361,16 @@ function MineCards.getSet(setId)
 	return MineCards.SETS[setId]
 end
 
+-- How prestigious a set is, F (starter) to SSS (the chase). Pack tiles print it
+-- beside the set name and break star ties with it. Only a set that carries
+-- `grade` has one; the Season-1 sets do not, so they show their name alone.
+MineCards.GRADE_RANK = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 8 }
+
+function MineCards.setGrade(setId)
+	local def = MineCards.SETS[setId]
+	return def and def.grade or nil
+end
+
 function MineCards.typeOf(setId, index)
 	local def = MineCards.SETS[setId]
 	if not def then
