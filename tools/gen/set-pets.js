@@ -35,6 +35,49 @@ const PROC_CHANCE = new Set(["zap", "blastChance", "tidalWave", "ricochet", "ear
 // (which counts up from the roster) can never collide with one.
 const HEX_START = 0x400;
 
+/*
+  BUFFS THAT FIT THE SET (owner, 2026-10-10: "given buffs (that make sense)").
+  Below Mythic a pet's stats come from its body's role, and a role can carry a
+  proc from another theme (every Mystic body zaps, every rare Tidecaller makes
+  waves). Such a proc becomes the set's OWN proc; a set with no proc in its buff
+  set (Pebblebound, Mosswood...) gets one of its plain buff stats instead, so it
+  stays free of flashy effects. Only which stat changes: every stat is still
+  priced from the same ladder value, so a pet's power does not move.
+*/
+const PROC_OF = {
+  zap: ["zap", "chance"], zapDamage: ["zap", "damage"],
+  blastChance: ["blast", "chance"], blastDamage: ["blast", "damage"],
+  tidalWave: ["tide", "chance"], tideDamage: ["tide", "damage"],
+  ricochet: ["shatter", "chance"], shatterDamage: ["shatter", "damage"],
+  earthquake: ["quake", "chance"],
+};
+const PROC_STATS = {
+  zap: { chance: "zap", damage: "zapDamage" },
+  blast: { chance: "blastChance", damage: "blastDamage" },
+  tide: { chance: "tidalWave", damage: "tideDamage" },
+  shatter: { chance: "ricochet", damage: "shatterDamage" },
+  quake: { chance: "earthquake" }, // Earthquake has no damage stat of its own
+};
+function setProcFamily(buffs) {
+  const p = buffs.map((s) => PROC_OF[s]).find((x) => x && x[1] === "chance");
+  return p ? p[0] : null;
+}
+function fitToSet(pair, buffs) {
+  const family = setProcFamily(buffs);
+  const plain = buffs.filter((s) => !PROC_OF[s]);
+  const out = [];
+  for (const stat of pair) {
+    const p = PROC_OF[stat];
+    let next = stat;
+    if (p && p[0] !== family) next = family ? PROC_STATS[family][p[1]] || PROC_STATS[family].chance : null;
+    if (!next || out.includes(next)) {
+      next = plain.find((s) => !out.includes(s) && !pair.includes(s)) || plain.find((s) => !out.includes(s));
+    }
+    out.push(next);
+  }
+  return out;
+}
+
 const pascal = (key) => key.split("_").map((w) => (w === "and" ? "And" : w[0].toUpperCase() + w.slice(1))).join("");
 
 function fnv(s) {
@@ -211,7 +254,7 @@ function build() {
           const role = roleOfSpecies(species, d.bodies);
           const r = ROLES[role];
           const pairs = r.pairs.concat(tier !== "Common" && tier !== "Uncommon" && r.rarePlus ? r.rarePlus : []);
-          statsUsed = pairs[fnv(name) % pairs.length];
+          statsUsed = fitToSet(pairs[fnv(name) % pairs.length], d.buffs);
           shares = [1, SECONDARY];
           roles[name] = role;
         }
@@ -331,5 +374,5 @@ function main() {
   if (check && stale) process.exit(1);
 }
 
-module.exports = { build, outputs, renderSet, pascal, HEX_START, SET_STEP, OUT_DIR, OUT_MD };
+module.exports = { PROC_OF, setProcFamily, build, outputs, renderSet, pascal, HEX_START, SET_STEP, OUT_DIR, OUT_MD };
 if (require.main === module) main();

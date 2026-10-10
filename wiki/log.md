@@ -660,3 +660,14 @@ zone added to the first silently gets no strata. Not built yet: candy ores,
 10-layer sections and the 3x curve, sell values, the cases, and the Halloween
 tools. `zone.noStrengthGate` is set but nothing reads it — the hardness gate is
 block HP, not a flag.
+
+## [2026-10-10] query | set pets: every proc fits its set
+Owner asked whether every pet has buffs "that make sense". 9–31% of each set's
+pets below Mythic carried another theme's proc from their body's role (every
+Mystic zapped). Owner chose "use the set's own proc": those become the set's
+proc, and sets with no proc get plain buff stats. Power unchanged. Also checked
+in Studio: all 2,043 set pets have a real body, a unique name and a kit, and set
+packs open into their set's pets (pebblebound_pack_1, atlantis_rising_pack_4,
+chaos_theory_pack_6, dragonfall_pack_6).
+
+Updated: pets, log.

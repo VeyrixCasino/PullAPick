@@ -145,6 +145,13 @@ new bodies**. The full names sheet is `docs/SET-PETS.md` (generated).
   Divine and Exotic take the set's own three-stat buff set; the rest take a role
   from their body. The highest single proc chance is 53.5% (Segfault, Chaos
   Theory, Shatter), under the 60% line.
+- **A proc always fits its set** (owner, 2026-10-10: *"buffs (that make
+  sense)"*; chose "use the set's own proc"). A role can carry another theme's
+  proc (every Mystic body zaps). Below Mythic that proc becomes the set's own
+  (Dragonfall Mystics quake, Atlantis Mystics make waves). A set with no proc
+  (Pebblebound, Mosswood, Lost & Found, Royal Reserve, Rainbow Road) gets its
+  plain buff stats instead. Only the stat changes, never the power
+  (`fitToSet` in the generator; checked by `tools/verify/set-pets.js`).
 - **Theme is the predominant type** (owner: *"not every single pet in atlantis has
   to be underwater but it should DEFINATLY be the prodionent type"*). Each set's
   own themed bodies are weighted double, so they dress 71–85% of its pets; the

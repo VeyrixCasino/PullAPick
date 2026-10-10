@@ -105,6 +105,19 @@ check(worst < 0.01, `every kit is worth 1.5 x the ladder x 1.05 a set (worst ${(
 check(Math.abs(B.sets[18].mult - Math.pow(1.05, 18)) < 1e-9 && B.sets[0].mult === 1, `set 1 is x1.00 (zone 1), set 19 is x${B.sets[18].mult.toFixed(2)}`);
 check(topOk, "every set's Mythic/Divine/Exotic pets use exactly that set's buff set");
 check(wild[1] <= 0.6, `proc odds stay lowish: the highest single-pet chance is ${(wild[1] * 100).toFixed(1)}% (${wild[0]}), at most 60%`);
+// Owner: buffs must make sense. Below Mythic a proc is always the set's own,
+// and a set with no proc has none at all.
+const offTheme = [];
+for (const S of B.sets) {
+  const family = Gen.setProcFamily(S.data.buffs);
+  for (const p of S.pets) {
+    for (const st of Object.keys(S.kits[p.name])) {
+      const pf = Gen.PROC_OF[st];
+      if (pf && pf[0] !== family) offTheme.push(`${p.name} (${S.meta.name}) ${st}`);
+    }
+  }
+}
+check(offTheme.length === 0, "every set pet's proc is its set's own proc; sets with no proc have none" + (offTheme.length ? ": " + offTheme.slice(0, 5).join(", ") + (offTheme.length > 5 ? " ..." : "") : ""));
 const usedStats = new Set(B.sets.flatMap((S) => Object.values(S.kits).flatMap((k) => Object.keys(k))));
 check([...usedStats].every((s) => !Zone.BANNED.has(s) && R.G.stats[s]), "no kit carries a retired, rune-only or unknown stat");
 
