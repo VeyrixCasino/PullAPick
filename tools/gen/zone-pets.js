@@ -312,7 +312,13 @@ function readGame() {
   for (const t of TIERS) rarityMult[t] = +rm.match(new RegExp("\\b" + t + " = ([\\d.]+)"))[1];
   for (const z of ZONES) if (!cfg.includes(`id = "${z.id}"`)) throw new Error("zone id not in MineConfig.ZONES: " + z.id);
 
-  return { roster, ehNames, ehTier, ehAnimals, animals, stats, rarityMult };
+  // Every body tagged with a season in PetModelFactory is a holiday body, so a
+  // new one (Halloween 2026's ten) is excluded without editing a list here.
+  const seasons = {};
+  for (const m of pmf.matchAll(/\nS\.(\w+) = \{\n\tlabel = "[^"]+",\n\tseason = "(\w+)"/g)) seasons[m[1]] = m[2].toLowerCase();
+  for (const [sp, h] of Object.entries(seasons)) if (!HOLIDAY_SPECIES[sp]) HOLIDAY_SPECIES[sp] = h;
+
+  return { roster, ehNames, ehTier, ehAnimals, animals, stats, rarityMult, seasons };
 }
 
 // ---- build -----------------------------------------------------------------

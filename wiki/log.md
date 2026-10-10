@@ -536,3 +536,22 @@ grant now trims to the seat cap.
 
 Updated: mining-and-breaking, hats-and-faces, pets, boosts-and-stats, traits,
 rebirth-and-skill-tree, glossary, next-up, log.
+
+## [2026-10-10] ingest | ten Halloween bodies (next-up §3)
+Added Bat, Mummy, Zombie, Vampire, Cauldron, Candy Corn, Scarecrow, Haunted
+Lantern, Frankenstein and Eyeball as `PetModelFactory` species, tagged
+`season = "Halloween"`. `PetModelFactory.HALLOWEEN` lists all 15 Halloween
+bodies, and the display draws them as a block. All built cleanly in Studio.
+
+**One lesson.** `FIT_SIZE` fits a model's largest dimension, so the first Bat
+(4.6-stud wingspan) and Lantern (tall handle) came out tiny. Narrower wings, a
+lower handle and a `scale` fixed both.
+
+**Holiday bodies are now read from the season tags.** The generator and the
+check no longer use a typed-in list. That surfaced Penguin's Christmas tag,
+which would have pulled 22 ordinary pets out of the game; the tag was removed.
+
+The display now shows 794: 10 × 70, Event Horizon's 73, 6 holiday pets and 15
+Halloween bodies.
+
+Updated: pets, next-up, log.

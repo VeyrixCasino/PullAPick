@@ -132,6 +132,20 @@ zone, one row per tier, A to Z.
 - **It never ships.** MineServer strips it on a live server. The old hand-built
   rack was deleted in `d57fedc`.
 
+**Holiday bodies** carry `season = "Halloween"` or `"Christmas"` in `SPECIES`, and that tag is what
+makes a body a holiday body. The zone generator and its check read the tags, so a new holiday
+body is kept out of every pot without editing a list.
+- **Halloween 2026 added ten:** Bat, Mummy, Zombie, Vampire, Cauldron, Candy Corn, Scarecrow,
+  Haunted Lantern (`lantern`), Frankenstein and Eyeball. `PetModelFactory.HALLOWEEN` lists all
+  15 Halloween bodies, and the display draws them as a block.
+- **They are bodies, not pets yet.** A Halloween 2026 Pack is the only way one should ever reach
+  a player (the rewards pass).
+- **Penguin lost its Christmas tag** (2026-10-10). It is an everyday animal worn by 22 ordinary
+  pets, and the tag would have pulled them all out of the game.
+- **Mind FIT_SIZE.** It scales a model so its LARGEST dimension fits 2.5 studs, so wide wings or
+  a tall handle shrink the whole pet. Bat and Lantern set `scale` (1.30, 1.18) to read the same
+  size as everything else.
+
 **Trying a pet in Studio.** `devGrant { pet = "Fizzgig" }` (Studio only) mints the
 pet through `mint` and puts it in seat 1. That is how a pet's ability can be tested
 in the engine; the admin commands cannot grant a pet.
@@ -216,7 +230,7 @@ Three tables, and a pet needs a row in the middle one or it renders as a fox:
 
 | Table | Holds | Count |
 | --- | --- | --- |
-| `PetModelFactory.SPECIES` | the body builders — one blocky chassis each | 44 |
+| `PetModelFactory.SPECIES` | the body builders — one blocky chassis each | 54 (10 Halloween bodies added 2026-10-10) |
 | `PetModelFactory.ANIMALS` | `animal` → `{ species, tint, glow?, detail?, transparency? }` | 322 in the file + 451 from `MineZonePets.ANIMALS` |
 | `PetModelFactory.DETAILS` | prop packs that name the creature (`spots`, `soda`, `discoball`) | 18 |
 

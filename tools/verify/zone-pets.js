@@ -52,7 +52,8 @@ check(regular.length > 200 && existing.length === regular.length && new Set(exis
 
 // Holiday pets are NOT in the game (owner, 2026-10-10: "make sure NO holiday
 // ones are in the game.. only allow it from {Holiday} {year} Pack").
-const HOLIDAY_BODIES = new Set(["pumpkin", "ghost", "spider", "skelehound", "reaper", "reindeer", "snowman", "gingerbread", "giftbox"]);
+const HOLIDAY_BODIES = new Set(["pumpkin", "ghost", "spider", "skelehound", "reaper", "reindeer", "snowman", "gingerbread", "giftbox", ...Object.keys(G.seasons)]);
+check(Object.keys(G.seasons).length >= 15, `every season-tagged body counts as a holiday body (${Object.keys(G.seasons).length})`);
 const onHolidayBody = G.roster.filter((r) => !G.ehNames.has(r.name) && G.animals[r.animal] && HOLIDAY_BODIES.has(G.animals[r.animal].species));
 check(B.holiday.length >= 6 && onHolidayBody.every((r) => holidayNames.has(r.name)),
   `every pet on a holiday body is a holiday pet (${B.holiday.map((h) => h.name).join(", ")})`);
@@ -78,7 +79,7 @@ const animalsAll = [...Object.keys(G.animals), ...Object.keys(B.newAnimals)];
 check(new Set(animalsAll).size === animalsAll.length && fresh.every((p) => !G.ehAnimals.has(p.animal)), "every new pet has its own animal");
 const pairs = [...Object.values(G.animals), ...Object.values(B.newAnimals)].map((a) => a.species + "|" + a.rgb.join(","));
 check(new Set(pairs).size === pairs.length, `no two skins share a body and a colour (${pairs.length} skins)`);
-const HOLIDAY = new Set(["pumpkin", "ghost", "spider", "skelehound", "reaper", "reindeer", "snowman", "gingerbread", "giftbox", "matterbox"]);
+const HOLIDAY = new Set(["pumpkin", "ghost", "spider", "skelehound", "reaper", "reindeer", "snowman", "gingerbread", "giftbox", "matterbox", ...Object.keys(G.seasons)]);
 check(fresh.every((p) => !HOLIDAY.has(p.species)), "no new zone pet uses a holiday or Event Horizon body");
 const hexes = [...G.roster.map((r) => r.hex3), ...fresh.map((p) => p.hex3)];
 check(new Set(hexes).size === hexes.length && hexes.every((h) => /^[0-9a-f]{3}$/.test(h)), "every hex3 serial prefix is unique");

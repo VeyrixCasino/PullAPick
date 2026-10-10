@@ -1516,6 +1516,307 @@ S.reaper = {
 	end,
 }
 
+--------------------------------------------------------------------------------
+-- HALLOWEEN 2026 BODIES (owner, 2026-10-10: "MAKE LIKE 10 HALLOWEEN MODELS").
+-- Holiday bodies are never in a zone pot or a random roll: only a "{Holiday}
+-- {year} Pack" may hand one out (MineZonePets.HOLIDAY). Same chassis rules as
+-- every other body: block() for the mass, features on the envelope.
+--------------------------------------------------------------------------------
+
+S.bat = {
+	label = "Bat",
+	season = "Halloween",
+	tint = C3(74, 58, 92),
+	names = { "Flitter", "Nightwing", "Fang", "Duskflap", "Vespertine", "Squeak", "Moonbat", "Echo" },
+	-- FIT_SIZE fits the widest dimension, and the wings are it: scaled back up so
+	-- the body reads the size of every other pet.
+	scale = 1.30,
+	head = CFrame.new(0, 1.04, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		block(c, p, {
+			shape = "round", bodySize = Vector3.new(1.84, 1.72, 1.66),
+			eyeColor = C3(255, 84, 120), mouth = false, tail = false,
+			legSize = Vector3.new(0.26, 0.26, 0.30), legX = 0.40, legZ = { 0.10 },
+		})
+		for _, s in ipairs({ -1, 1 }) do
+			-- Tall pointed ears with a pink inner.
+			c:cone(Vector3.new(0.46, 0.80, 0.30), CFrame.new(0.48 * s, 1.14, 0.04) * CFrame.Angles(0, 0, -0.22 * s), p.base)
+			c:cone(Vector3.new(0.24, 0.46, 0.14), CFrame.new(0.48 * s, 1.08, 0.18) * CFrame.Angles(0, 0, -0.22 * s), C3(226, 140, 172))
+			-- Two little fangs.
+			c:cone(Vector3.new(0.12, 0.22, 0.10), CFrame.new(0.15 * s, -0.40, 0.88) * CFrame.Angles(math.pi, 0, 0), WHITE)
+			-- Membrane wings: a bone along the top, two scalloped panels under it.
+			c:rod(Vector3.new(0.80 * s, 0.34, -0.12), Vector3.new(1.86 * s, 0.70, -0.18), 0.07, p.deep)
+			c:ovoid(Vector3.new(1.06, 0.80, 0.08), CFrame.new(1.30 * s, 0.26, -0.16) * CFrame.Angles(0, 0, 0.30 * s), p.dark)
+			c:ovoid(Vector3.new(0.66, 0.48, 0.08), CFrame.new(1.50 * s, -0.18, -0.16) * CFrame.Angles(0, 0, 0.42 * s), p.dark)
+		end
+		c:ovoid(Vector3.new(0.40, 0.08, 0.10), CFrame.new(0, -0.30, 0.89), INK)
+	end,
+}
+
+S.mummy = {
+	label = "Mummy",
+	season = "Halloween",
+	tint = C3(208, 196, 164),
+	names = { "Wrappy", "Tutt", "Gauze", "Pharaoh", "Linen", "Dustwrap", "Sphinxie", "Rattlewrap" },
+	head = CFrame.new(0, 1.04, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		block(c, p, { eyeColor = C3(255, 214, 90), mouth = false, tail = false, legColor = p.dark })
+		local wrap = p.pale
+		-- Bandages wound round the block, alternately tilted, leaving the eyes clear.
+		for i, y in ipairs({ 0.74, -0.20, -0.58 }) do
+			c:ovoid(Vector3.new(2.10, 0.18, 1.88), CFrame.new(0, y, 0) * CFrame.Angles(0, 0, (i % 2 == 0) and 0.10 or -0.10), wrap)
+		end
+		-- One strip slips across the right eye; one end dangles loose.
+		c:ovoid(Vector3.new(0.98, 0.22, 0.10), CFrame.new(0.40, 0.20, 0.94) * CFrame.Angles(0, 0, 0.45), wrap)
+		c:ovoid(Vector3.new(0.18, 0.72, 0.08), CFrame.new(-0.72, -0.86, 0.92) * CFrame.Angles(0, 0, 0.22), wrap)
+		c:light(C3(255, 214, 90), 1.2, 7)
+	end,
+}
+
+S.zombie = {
+	label = "Zombie",
+	season = "Halloween",
+	tint = C3(128, 178, 110),
+	names = { "Shamble", "Groan", "Stitchy", "Mossbite", "Brainsy", "Lurch", "Ghoulie", "Rotgut" },
+	head = CFrame.new(0, 1.04, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		block(c, p, {
+			eyeColor = C3(214, 255, 120), mouthSize = Vector3.new(0.62, 0.22, 0.14), mouthY = -0.30,
+			legColor = C3(70, 88, 140), tail = false,
+		})
+		-- Torn shirt round the belly, and two arms reaching out in front.
+		c:ovoid(Vector3.new(2.06, 0.44, 1.84), CFrame.new(0, -0.62, 0), C3(96, 120, 170))
+		for _, s in ipairs({ -1, 1 }) do
+			c:rod(Vector3.new(0.86 * s, -0.10, 0.40), Vector3.new(0.80 * s, 0.02, 1.46), 0.18, p.base)
+			c:ovoid(Vector3.new(0.34, 0.30, 0.30), CFrame.new(0.80 * s, 0.02, 1.58), p.dark)
+		end
+		-- Two teeth, and stitches across the brow.
+		for _, x in ipairs({ -0.12, 0.12 }) do
+			c:box(Vector3.new(0.12, 0.12, 0.06), CFrame.new(x, -0.24, 0.98), WHITE)
+		end
+		c:ovoid(Vector3.new(0.86, 0.06, 0.06), CFrame.new(-0.10, 0.74, 0.92), INK)
+		for i = -2, 2 do
+			c:ovoid(Vector3.new(0.05, 0.20, 0.06), CFrame.new(-0.10 + i * 0.18, 0.74, 0.93), INK)
+		end
+	end,
+}
+
+S.vampire = {
+	label = "Vampire",
+	season = "Halloween",
+	tint = C3(214, 208, 228),
+	names = { "Vlad", "Nocturne", "Crimson", "Countess", "Batrick", "Velvet", "Draculette", "Duskfang" },
+	head = CFrame.new(0, 1.10, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		local cape, lining = C3(28, 24, 34), C3(170, 24, 48)
+		block(c, p, {
+			eyeColor = C3(220, 30, 60), mouthSize = Vector3.new(0.40, 0.10, 0.12), mouthY = -0.32,
+			legColor = cape, tail = false,
+		})
+		-- Slicked hair cap with a widow's peak.
+		c:ovoid(Vector3.new(2.06, 0.28, 1.86), CFrame.new(0, 0.94, -0.02), cape)
+		c:cone(Vector3.new(0.42, 0.34, 0.20), CFrame.new(0, 0.72, 0.88) * CFrame.Angles(math.pi, 0, 0), cape)
+		for _, s in ipairs({ -1, 1 }) do
+			c:cone(Vector3.new(0.12, 0.22, 0.10), CFrame.new(0.13 * s, -0.46, 0.92) * CFrame.Angles(math.pi, 0, 0), WHITE)
+			-- The high collar: red lining inside a black flare, standing behind the head.
+			c:ovoid(Vector3.new(0.70, 1.20, 0.10), CFrame.new(0.74 * s, 0.86, -0.66) * CFrame.Angles(0.30, 0, -0.32 * s), lining)
+			c:ovoid(Vector3.new(0.76, 1.28, 0.08), CFrame.new(0.78 * s, 0.88, -0.74) * CFrame.Angles(0.30, 0, -0.32 * s), cape)
+		end
+		-- The cape falling down the back.
+		c:ovoid(Vector3.new(2.30, 1.76, 0.14), CFrame.new(0, -0.10, -0.98), cape)
+	end,
+}
+
+S.cauldron = {
+	label = "Cauldron",
+	season = "Halloween",
+	tint = C3(60, 56, 72),
+	names = { "Bubbles", "Brewster", "Stew", "Hexpot", "Simmer", "Gloop", "Potion", "Toil" },
+	head = CFrame.new(0, 1.26, 0.06),
+	neck = CFrame.new(0, -0.30, 0.66),
+	back = CFrame.new(0, 0.20, -0.66),
+	build = function(c, p)
+		local goo = C3(116, 255, 120)
+		block(c, p, {
+			shape = "round", bodySize = Vector3.new(2.10, 1.72, 2.06),
+			eyeColor = INK, mouthSize = Vector3.new(0.56, 0.20, 0.14),
+			legs = false, tail = false,
+		})
+		-- Iron rim, a glowing brew inside it, and bubbles breaking the surface.
+		c:box(Vector3.new(2.30, 0.24, 2.26), CFrame.new(0, 0.96, 0), p.dark, METAL)
+		c:box(Vector3.new(1.90, 0.14, 1.86), CFrame.new(0, 1.04, 0), goo, NEON)
+		for _, b in ipairs({ { 0.42, 1.22, 0.20, 0.34 }, { -0.36, 1.18, -0.30, 0.26 }, { -0.10, 1.30, 0.42, 0.20 } }) do
+			c:ball(Vector3.new(b[4], b[4], b[4]), CFrame.new(b[1], b[2], b[3]), goo, NEON)
+		end
+		-- Three stubby iron feet.
+		for i = 0, 2 do
+			local a = i * math.pi * 2 / 3 + math.pi / 6
+			c:box(Vector3.new(0.32, 0.36, 0.32), CFrame.new(math.cos(a) * 0.70, -0.92, math.sin(a) * 0.70), p.deep, METAL)
+		end
+		c:light(goo, 2.2, 9)
+	end,
+}
+
+S.candycorn = {
+	label = "Candy Corn",
+	season = "Halloween",
+	tint = C3(255, 140, 30),
+	names = { "Kernel", "Tricolor", "Sweetcorn", "Treat", "Sugarcone", "Nibs", "Triangle", "Cornsy" },
+	head = CFrame.new(0, 1.62, 0.04),
+	neck = CFrame.new(0, -0.10, 0.70),
+	back = CFrame.new(0, 0.10, -0.70),
+	build = function(c, p)
+		-- Three bands, wide to narrow: yellow foot, orange middle, white tip.
+		c:box(Vector3.new(2.00, 0.80, 1.80), CFrame.new(0, -0.50, 0), C3(255, 212, 64))
+		c:box(Vector3.new(1.60, 0.80, 1.44), CFrame.new(0, 0.30, 0), p.base)
+		c:cone(Vector3.new(1.24, 0.96, 1.10), CFrame.new(0, 1.18, 0), C3(250, 238, 214))
+		-- The face sits on the orange band.
+		c:eyes(0.40, 0.74, 0.32, 0.15)
+		c:ovoid(Vector3.new(0.40, 0.10, 0.10), CFrame.new(0, 0.10, 0.74), INK)
+		for _, s in ipairs({ -1, 1 }) do
+			c:ovoid(Vector3.new(0.20, 0.12, 0.06), CFrame.new(0.52 * s, 0.20, 0.73), C3(255, 150, 170))
+			c:box(Vector3.new(0.34, 0.20, 0.40), CFrame.new(0.50 * s, -0.98, 0.10), C3(214, 170, 40))
+		end
+	end,
+}
+
+S.scarecrow = {
+	label = "Scarecrow",
+	season = "Halloween",
+	tint = C3(196, 164, 112),
+	names = { "Strawman", "Patches", "Crowscare", "Burlap", "Haybale", "Stitch", "Fieldy", "Thatch" },
+	head = CFrame.new(0, 1.62, 0.04),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		local straw, hat = C3(236, 200, 90), C3(120, 86, 50)
+		block(c, p, {
+			eyeColor = INK, eyeSize = Vector3.new(0.34, 0.34, 0.16), mouth = false,
+			legColor = C3(92, 76, 120), tail = false,
+		})
+		-- A stitched grin.
+		c:ovoid(Vector3.new(0.92, 0.08, 0.08), CFrame.new(0, -0.32, 0.92), INK)
+		for i = -2, 2 do
+			c:ovoid(Vector3.new(0.05, 0.20, 0.06), CFrame.new(i * 0.20, -0.32, 0.93), INK)
+		end
+		-- Floppy hat: wide brim, slumped crown, red band.
+		c:box(Vector3.new(2.40, 0.10, 2.20), CFrame.new(0, 1.02, 0), hat)
+		c:cone(Vector3.new(1.30, 0.90, 1.20), CFrame.new(0.06, 1.48, -0.04) * CFrame.Angles(0, 0, 0.12), hat)
+		c:box(Vector3.new(1.32, 0.14, 1.22), CFrame.new(0, 1.12, -0.04), C3(170, 60, 50))
+		-- Straw poking out at the sides, and a patch on the burlap.
+		for _, s in ipairs({ -1, 1 }) do
+			for _, y in ipairs({ 0.10, -0.24 }) do
+				c:cone(Vector3.new(0.18, 0.52, 0.18), CFrame.new(1.06 * s, y, 0.20) * CFrame.Angles(0, 0, -1.30 * s), straw)
+			end
+		end
+		c:box(Vector3.new(0.40, 0.40, 0.06), CFrame.new(-0.52, -0.54, 0.92), C3(120, 140, 190))
+	end,
+}
+
+S.lantern = {
+	label = "Haunted Lantern",
+	season = "Halloween",
+	tint = C3(64, 60, 76),
+	names = { "Wick", "Glimmer", "Hauntlight", "Ember", "Flickers", "Lamplight", "Will", "Glow" },
+	-- Its roof and handle make it the tallest body, which FIT_SIZE shrinks.
+	scale = 1.18,
+	head = CFrame.new(0, 1.78, 0.04),
+	neck = CFrame.new(0, -0.30, 0.86),
+	back = CFrame.new(0, 0.20, -0.86),
+	build = function(c, p)
+		local flame = C3(255, 160, 50)
+		-- A lit glass body inside an iron frame.
+		local glass = c:box(Vector3.new(1.56, 1.56, 1.44), CFrame.new(0, 0.05, 0), C3(255, 196, 96), GLASS)
+		glass.Transparency = 0.25
+		c:ball(Vector3.new(0.90, 1.10, 0.90), CFrame.new(0, -0.05, 0), flame, NEON)
+		for _, s in ipairs({ -1, 1 }) do
+			for _, t in ipairs({ -1, 1 }) do
+				c:rod(Vector3.new(0.80 * s, -0.80, 0.74 * t), Vector3.new(0.80 * s, 0.90, 0.74 * t), 0.08, p.dark, METAL, false)
+			end
+		end
+		c:box(Vector3.new(1.90, 0.24, 1.80), CFrame.new(0, 0.98, 0), p.dark, METAL)
+		c:box(Vector3.new(1.90, 0.24, 1.80), CFrame.new(0, -0.86, 0), p.dark, METAL)
+		c:cone(Vector3.new(1.40, 0.50, 1.30), CFrame.new(0, 1.34, 0), p.dark, METAL)
+		-- A ring handle, and a ghostly face looking out of the glass.
+		c:rod(Vector3.new(-0.36, 1.46, 0), Vector3.new(0, 1.68, 0), 0.06, p.deep, METAL)
+		c:rod(Vector3.new(0, 1.68, 0), Vector3.new(0.36, 1.46, 0), 0.06, p.deep, METAL)
+		for _, s in ipairs({ -1, 1 }) do
+			c:round(Vector3.new(0.32, 0.42, 0.08), CFrame.new(0.34 * s, 0.24, 0.76), INK):SetAttribute("Eye", true)
+		end
+		c:ovoid(Vector3.new(0.44, 0.22, 0.08), CFrame.new(0, -0.20, 0.76), INK)
+		c:light(flame, 3.0, 12)
+	end,
+}
+
+S.frankenstein = {
+	label = "Frankenstein",
+	season = "Halloween",
+	tint = C3(128, 172, 104),
+	names = { "Franky", "Bolts", "Sparky", "Stitches", "Igor", "Voltage", "Lumber", "Monty" },
+	head = CFrame.new(0, 1.14, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		local hair = C3(30, 32, 30)
+		block(c, p, {
+			square = true, eyeColor = INK, eyeSize = Vector3.new(0.40, 0.44, 0.18),
+			mouthSize = Vector3.new(0.62, 0.12, 0.12), brow = hair,
+			legColor = C3(46, 42, 52), tail = false,
+		})
+		-- The flat top, with a ragged fringe over the brow.
+		c:box(Vector3.new(2.06, 0.34, 1.84), CFrame.new(0, 0.96, 0), hair)
+		for i = -1, 1 do
+			c:box(Vector3.new(0.40, 0.20, 0.12), CFrame.new(i * 0.56, 0.74, 0.90), hair)
+		end
+		-- Neck bolts, and a stitched scar.
+		for _, s in ipairs({ -1, 1 }) do
+			c:cyl(Vector3.new(0.30, 0.22, 0.22), CFrame.new(1.12 * s, -0.10, 0), C3(170, 176, 186), METAL)
+			c:box(Vector3.new(0.10, 0.32, 0.32), CFrame.new(1.28 * s, -0.10, 0), C3(140, 146, 156), METAL)
+		end
+		c:ovoid(Vector3.new(0.70, 0.06, 0.06), CFrame.new(-0.36, 0.48, 0.92) * CFrame.Angles(0, 0, 0.3), INK)
+		for i = -1, 1 do
+			c:ovoid(Vector3.new(0.05, 0.18, 0.06), CFrame.new(-0.36 + i * 0.20, 0.48 + i * 0.06, 0.93), INK)
+		end
+	end,
+}
+
+S.eyeball = {
+	label = "Eyeball",
+	season = "Halloween",
+	tint = C3(244, 240, 234),
+	names = { "Peeper", "Iris", "Gazer", "Blinky", "Optic", "Lookout", "Stare", "Winky" },
+	head = CFrame.new(0, 1.18, 0.06),
+	neck = CFrame.new(0, -0.30, 0.66),
+	back = CFrame.new(0, 0.20, -0.66),
+	build = function(c, p)
+		-- One big round eye: the white, an iris, a pupil and a glint.
+		c:round(Vector3.new(2.00, 2.00, 2.00), CFrame.new(0, 0.12, 0), p.base)
+		c:round(Vector3.new(1.04, 1.04, 0.26), CFrame.new(0, 0.18, 0.96), C3(80, 160, 255)):SetAttribute("Eye", true)
+		c:round(Vector3.new(0.52, 0.52, 0.20), CFrame.new(0, 0.18, 1.06), INK):SetAttribute("Eye", true)
+		c:round(Vector3.new(0.18, 0.18, 0.08), CFrame.new(0.18, 0.36, 1.14), WHITE):SetAttribute("Eye", true)
+		-- Red veins creeping in from the edge.
+		local vein = C3(220, 60, 70)
+		for _, v in ipairs({
+			{ -0.92, 0.62, 0.36, -0.52, 0.42, 0.84 }, { 0.94, 0.50, 0.30, 0.56, 0.36, 0.82 },
+			{ -0.86, -0.36, 0.42, -0.48, -0.16, 0.86 }, { 0.84, -0.42, 0.44, 0.50, -0.20, 0.86 },
+		}) do
+			c:rod(Vector3.new(v[1], v[2], v[3]), Vector3.new(v[4], v[5], v[6]), 0.03, vein, nil, false)
+		end
+		-- Three little tentacle feet.
+		for _, x in ipairs({ -0.50, 0, 0.50 }) do
+			c:cone(Vector3.new(0.30, 0.50, 0.30), CFrame.new(x, -0.98, 0.10) * CFrame.Angles(math.pi, 0, 0), C3(200, 90, 110))
+		end
+	end,
+}
+
 S.reindeer = {
 	label = "Reindeer",
 	season = "Christmas",
@@ -1601,7 +1902,9 @@ S.gingerbread = {
 
 S.penguin = {
 	label = "Penguin",
-	season = "Christmas",
+	-- No season tag (2026-10-10): a penguin is an everyday animal, worn by ordinary
+	-- pets in the zone pots. A season tag makes a body a HOLIDAY body, and holiday
+	-- bodies are kept out of the game except through a holiday pack.
 	tint = C3(48, 54, 74),
 	names = { "Waddle", "Tux", "Iceberg", "Flipper", "Shuffle", "Krill", "Pebblebeak", "Blizzard" },
 	head = CFrame.new(0, 1.06, 0.06),
@@ -2082,6 +2385,17 @@ S.matterbox = {
 	end,
 }
 
+-- Every Halloween body (season = "Halloween"), sorted: the pet display draws
+-- them as their own block (PetShowcaseBuilder). Holiday bodies are in no zone
+-- pot and no random roll; only a "{Holiday} {year} Pack" may hand one out.
+PetModelFactory.HALLOWEEN = {}
+for id, def in pairs(PetModelFactory.SPECIES) do
+	if def.season == "Halloween" then
+		table.insert(PetModelFactory.HALLOWEEN, id)
+	end
+end
+table.sort(PetModelFactory.HALLOWEEN)
+
 --------------------------------------------------------------------------------
 -- ANIMALS
 --
@@ -2090,7 +2404,7 @@ S.matterbox = {
 -- are the same cat shape in different paint.
 --
 -- Hand-maintained (its original generator, roster/genmap.js, was never in the
--- repo). The 451 zone pets' skins are NOT here: they live in
+-- repo). The zone pets' skins are NOT here: they live in
 -- MineZonePets.ANIMALS (tools/gen/zone-pets.js) and are merged in just below.
 -- A row here always wins over a merged one.
 --------------------------------------------------------------------------------

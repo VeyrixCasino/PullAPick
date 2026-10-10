@@ -104,7 +104,10 @@ Today a proc hit is `PROC_SHARE[proc] × swing damage × (1 + procPower)`
 8. **Update the effects.** `MineProcFx` needs Shatter shards flying out and
    chaining, and a sound. Zap's arcs must follow the new chain.
 
-## 3. Halloween: 10 new bodies (approved)
+## 3. Halloween: 10 new bodies (approved) — DONE 2026-10-10
+
+Built, rendered in Studio and on the display; see [pets](systems/pets.md). The rest of
+this section is the original brief.
 
 Bat, Mummy, Zombie, Vampire, Cauldron, Candy Corn, Scarecrow, Haunted Lantern,
 Frankenstein, Eyeball.
