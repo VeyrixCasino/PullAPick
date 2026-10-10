@@ -841,3 +841,11 @@ Checked over 200k simulated chests. Found while pricing: card power-up costs
 makes stardust. The owner wants the Exotic max at 2–3M or more; that is next.
 
 Updated: pack-cases, chests-and-lucky-blocks, TODO A1c.
+
+## [2026-10-10] ingest | Halloween on real dates
+Owner chose real dates for the Candy Crypt over the season clock. `MineConfig`:
+a window with `opensUnix`/`closesUnix` reads the wall clock (`windowNow`);
+`hallow` is 2026-10-17 00:00 to 2026-11-08 00:00 US Eastern. Event Horizon is
+unchanged. Studio: closed today, "6d 5h" to opening.
+
+Updated: world-events, next-up, log.

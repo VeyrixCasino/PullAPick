@@ -51,10 +51,8 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
 - **The pack and its 60 pets** are built; see
   [pets](systems/pets.md#holiday-pets-halloween-2026). The Trick-or-Treat case
   pays the pack.
+- **The window is real dates** now (owner's choice): 17 Oct – 7 Nov 2026.
 - **Open, for the owner:**
-  - **The window.** The owner said real dates, and *"if the game isn't live by
-    then, it doesn't happen"*. The Crypt counts days from season start, so it
-    moves with launch.
   - **The pack's odds and the three PROPOSED buffs.**
   - **Names**, for review in `docs/HOLIDAY-PETS.md`.
 

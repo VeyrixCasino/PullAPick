@@ -521,21 +521,38 @@ end
 
 	Offsets from SEASON_START, NOT real dates, for the reason written at length
 	above: the clock here is MineLaunch's season clock, and a wall-clock window
-	would count down before the game opened. The owner's dates (17 October to
-	7 November) are what these offsets produce if the season starts on
-	2026-09-22 as configured -- and if launch slips, they slip with it instead
-	of expiring unseen.
+	would count down before the game opened. That is the default. A window
+	given as calendar dates (`opensUnix` / `closesUnix`) is the exception and
+	reads the wall clock: Halloween, which the owner wants on the real dates
+	even if that means it never runs (2026-10-10).
 
 	Passing no zoneId keeps the old meaning (Event Horizon), so every existing
 	caller still reads the same answer.
 ]]
 MineConfig.LIMITED_WINDOWS = {
 	bigbang = { startDay = 0, days = 47 },
-	-- PROPOSED (2026-10-10): season start + 25 days = 17 Oct, running 21 days
-	-- to 7 Nov. Owner approved those dates; the offsets implementing them are
-	-- mine and are what needs checking.
-	hallow = { startDay = 25, days = 21 },
+	--[[
+		HALLOWEEN IS ON THE CALENDAR, NOT THE SEASON CLOCK (owner, 2026-10-10:
+		real dates; "if the game isn't live by then, it doesn't happen"). It was
+		season start + 25 days for 21 days, which slides with launch and could
+		have run Halloween in late November. A window with `opensUnix` /
+		`closesUnix` is read against the wall clock instead.
+		    opens  2026-10-17 00:00 ET (EDT, UTC-4)  1792209600
+		    closes 2026-11-08 00:00 ET (EST, UTC-5)  1794114000  -- Nov 7 is a full day
+		Same US Eastern midnights as Event Horizon's dates above.
+	]]
+	hallow = { opensUnix = 1792209600, closesUnix = 1794114000 },
 }
+
+-- The clock a window is read on: the wall clock for a calendar window, the
+-- season clock for the rest.
+local function windowNow(zoneId)
+	local w = MineConfig.LIMITED_WINDOWS[zoneId or "bigbang"]
+	if w and w.opensUnix then
+		return os.time()
+	end
+	return launchClock()
+end
 
 function MineConfig.limitedWindow(zoneId)
 	local start = MineConfig.LIMITED_START_UNIX or 0
@@ -545,6 +562,9 @@ function MineConfig.limitedWindow(zoneId)
 	local w = MineConfig.LIMITED_WINDOWS[zoneId or "bigbang"]
 	if not w then
 		return nil
+	end
+	if w.opensUnix then
+		return w.opensUnix, w.closesUnix
 	end
 	local from = start + (w.startDay or 0) * 86400
 	return from, from + (w.days or MineConfig.LIMITED_DAYS or 35) * 86400
@@ -559,7 +579,7 @@ function MineConfig.limitedActive(zoneId)
 	if not from then
 		return false
 	end
-	local now = launchClock()
+	local now = windowNow(zoneId)
 	-- Lower bound as well as upper: a second window that opens later must read
 	-- CLOSED before it opens, not "not yet closed".
 	return now >= from and now < ends
@@ -588,8 +608,9 @@ function MineConfig.limitedCountdown(zoneId)
 	end
 	-- Season clock, for the same reason limitedActive uses it: a countdown
 	-- running off the wall clock would tick down before the game opened and
-	-- greet the first players with "closed".
-	local now = launchClock()
+	-- greet the first players with "closed". (A calendar window, Halloween,
+	-- reads the wall clock on purpose: see LIMITED_WINDOWS.)
+	local now = windowNow(zoneId)
 	-- A window that has not opened counts down to its OPENING. Counting down to
 	-- the close of something nobody can enter yet reads as a lie.
 	if now < from then

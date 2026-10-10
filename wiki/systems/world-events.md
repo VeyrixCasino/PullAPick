@@ -113,12 +113,13 @@ Adding it forced three things that assumed exactly one limited zone:
 | `Gate.zoneUnlocked` / `enterZone` read `p.bigbangOwned` for any limited zone | each zone names its own `ownedFlag` (`hallowOwned` here) |
 | `rollKind` named `bigbang` for chest density | reads `zone.chestMult`, so Halloween can set **0** |
 
-- **Windows are day offsets from SEASON START, not real dates.** The clock is
-  `MineLaunch.seasonNow()`, and a wall-clock window is the exact failure
-  MineLaunch exists to prevent — it would count down before the game opened.
-  `hallow = { startDay = 25, days = 21 }` gives the owner's **17 Oct – 7 Nov**
-  if the season starts 2026-09-22 as configured, and slips with launch if not.
-  Verified in Studio.
+- **Halloween runs on real calendar dates** (owner, 2026-10-10: *"if the game
+  isn't live by then, it doesn't happen"*). `hallow = { opensUnix, closesUnix }`:
+  2026-10-17 00:00 to 2026-11-08 00:00 US Eastern, so 7 November is a full day.
+  A window given as calendar dates reads the wall clock; Event Horizon keeps
+  its day offsets on `MineLaunch.seasonNow()`. Before this it was season start
+  + 25 days, which slid with launch. Verified in Studio: on 2026-10-10 it reads
+  closed, opening in 6 days.
 - **Blocks per layer is per zone** (`MineConfig.gridFor`). A layer is square, so
   no grid gives exactly 10: `grid = 3` gives 9 and keeps a true centre block,
   which the elevator and pit centre are computed from. Applied at the three
