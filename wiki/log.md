@@ -799,3 +799,12 @@ Checked in Studio:
 - the credit shelf shows the nine cases with the mystery box art.
 
 Updated: pack-cases, TODO A1c.
+
+## [2026-10-10] query | old packs off the stardust shelf
+Owner: *"remove old packs from the stardust shelf too"*. The rotating
+stardust shelf (`MinePackConfig.dustRotation`) now deals potions only. The
+switch is `MinePackConfig.DUST_OLD_PACKS = false`. Packs for stardust are the
+Pack Cases tab. Checked over 48 rotations (12 days): no pack offers and 4
+potions each time. The shelf text now says potions.
+
+Updated: shops-and-monetisation, pack-cases, TODO A1c.

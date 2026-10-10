@@ -75,8 +75,9 @@ The Stardust tab is separate and has two tabs of its own:
   These are always in stock, at `MineCases.dustPrice`, bought through
   `Verbs.buyDustCase`.
 - **Rotating Shelf**, which turns over every 6 h (`DUST_ROTATION_HOURS`). It
-  has 4 pack offers and 4 potion offers (`MinePackConfig.dustRotation`), and
-  still sells old card packs.
+  deals 4 potion offers (`MinePackConfig.dustRotation`). It sells no packs
+  since 2026-10-10 (owner: *"remove old packs from the stardust shelf too"*);
+  `MinePackConfig.DUST_OLD_PACKS` is the switch.
 
 **Art and buildings.** `MineShopBackgrounds` gives the full-screen art per zone
 and seam (0 to 5000, every 500). `MineShopFronts` builds a different-looking

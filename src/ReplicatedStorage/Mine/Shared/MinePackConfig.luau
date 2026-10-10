@@ -1749,6 +1749,13 @@ MinePackConfig.DUST_ROTATION_OFFERS = 4
 MinePackConfig.DUST_POTION_OFFERS = 4
 MinePackConfig.DUST_PERSONAL_MIN, MinePackConfig.DUST_PERSONAL_MAX = 1, 2
 MinePackConfig.DUST_GLOBAL_MIN, MinePackConfig.DUST_GLOBAL_MAX = 6, 24
+--[[
+	Owner, 2026-10-10: "remove old packs from the stardust shelf too". The old
+	card packs (Hopper to Shiny) left the credit shop for the pack cases, and
+	now leave this rotation as well: it deals potions only. Packs for stardust
+	are the Pack Cases tab beside it (MineCases). Flip this to bring them back.
+]]
+MinePackConfig.DUST_OLD_PACKS = false
 
 function MinePackConfig.dustRotationKey(t)
 	local d = os.date("!*t", t or os.time())
@@ -1772,7 +1779,7 @@ function MinePackConfig.dustRotation(key)
 	local rng = Random.new(math.max(1, seed))
 
 	local mid, awesome, shinyId = {}, {}, nil
-	for _, id in ipairs(MinePackConfig.dustEligibleIds()) do
+	for _, id in ipairs(MinePackConfig.DUST_OLD_PACKS and MinePackConfig.dustEligibleIds() or {}) do
 		local def = MinePackConfig.PACK_BY_ID and MinePackConfig.PACK_BY_ID[id]
 		if def and MinePackConfig.packKind(id) == "card" and (tonumber(def.cards) or 0) > 0 then
 			if id == "shiny_pack" then

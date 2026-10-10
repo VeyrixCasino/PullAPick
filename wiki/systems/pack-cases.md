@@ -92,7 +92,10 @@ How a case behaves in the game:
 - Two kinds: set cases, with exact contents, at least 3 packs, sold for
   stardust; and wild cases, a "complete wild draw".
 - Three per set: Starter / Collector / Vault.
-- Credit shop: "Cases by star + a few featured set packs". The old packs came off it.
+- Credit shop: "Cases by star + a few featured set packs". The old packs came
+  off it, and later off the rotating stardust shelf too ("remove old packs
+  from the stardust shelf too"), which now deals potions only
+  (`MinePackConfig.DUST_OLD_PACKS`).
 - Cases replace the wheel's pack slices.
 - Prices come "from expected value".
 - One case image per set plus one wild image. The star grade does not change
@@ -182,7 +185,6 @@ Wild-slot odds by set grade (`MineCases.wildGradeOdds`):
   - ★★★½ 8%, ★★★★ 14%, ★★★★½ 4%, ★★★★★ 5%;
 - which star grade each wheel slice pays (jackpot ★★★★★, apex ★★★★, heirloom
   ★★★, anomaly ★★);
-- the rotating stardust shelf, which still sells the old card packs;
 - a set case's shown stars, which are its best pack's.
 
 ## State right now

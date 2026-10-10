@@ -5982,7 +5982,7 @@ function MineInventoryView.mount(parent, opts)
 			}, grid)
 			local doors = {
 				{ tab = "packs", title = "Pack Cases", sub = "Wild cases by star · today's featured set packs", cta = "BROWSE", col = T.CREDIT or GOLD, packs = true },
-				{ tab = "dust", title = "Stardust Shop", sub = "Set cases · new packs every 6 hours", cta = "SHOP", col = T.DUST or GEM, icons = { "stardust" } },
+				{ tab = "dust", title = "Stardust Shop", sub = "Pack cases · new potions every 6 hours", cta = "SHOP", col = T.DUST or GEM, icons = { "stardust" } },
 				{ tab = "limited", title = "Lucky Blocks", sub = "Tap to open · grade them up for bigger loot", cta = "SEE", col = Color3.fromRGB(255, 200, 70), icons = { "lucky_block", "super_lucky_block", "godly_lucky_block" } },
 				{ tab = "box", title = "Build a Box", sub = "Any 10 packs you like · 12% off", cta = "BUILD", col = TEAL, icons = { "chest" } },
 				{ tab = "currencies", title = "Credits", sub = "Top up once, spend anywhere in the shop", cta = "TOP UP", col = GREEN, icons = { "credit_crate" } },
@@ -6030,9 +6030,12 @@ function MineInventoryView.mount(parent, opts)
 
 		elseif activeTab == "dust" then
 			--[[
-				THE STARDUST SHOP. Eight packs a rotation, a new shelf every six
-				hours. Two stocks per pack: yours (1-2) and the whole world's
-				(shared by every server). Both are the server's numbers.
+				THE STARDUST SHOP. Two tabs: the pack cases (always in stock) and
+				the rotating shelf, a new deal every six hours. The shelf sells
+				potions only since the old packs came off it
+				(MinePackConfig.DUST_OLD_PACKS). Two stocks per listing: yours
+				(1-2) and the whole world's (shared by every server). Both are
+				the server's numbers.
 			]]
 			local shop = state.dustShop or { offers = {} }
 			local DUSTC = T.DUST or GEM
@@ -6048,7 +6051,7 @@ function MineInventoryView.mount(parent, opts)
 			label(head, "STARDUST SHOP", 22, TEXT, UDim2.fromOffset(86, 12), UDim2.new(1, -300, 0, 28), FONT).ZIndex = 4
 			local left = math.max(0, (tonumber(shop.endsAt) or os.time()) - os.time())
 			label(head, (dustTab.view == "cases") and "Pack cases  ·  always in stock"
-				or string.format("New shelf in %dh %02dm  ·  packs + potions  ·  limited stock", left // 3600, (left % 3600) // 60),
+				or string.format("New shelf in %dh %02dm  ·  potions  ·  limited stock", left // 3600, (left % 3600) // 60),
 				13, MUTED, UDim2.fromOffset(86, 44), UDim2.new(1, -300, 0, 20)).ZIndex = 4
 			local bal = mk("Frame", { BackgroundColor3 = BG3, AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -16, 0.5, 0), Size = UDim2.fromOffset(190, 44), ZIndex = 4 }, head)
