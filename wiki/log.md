@@ -654,9 +654,9 @@ limited zone, and `rollKind` named bigbang for chest density. Windows are day
 offsets from SEASON START rather than real dates, because the clock is
 MineLaunch's season clock and a wall-clock window is the failure MineLaunch
 exists to prevent; 25/21 gives the owner's 17 Oct – 7 Nov and slips with launch.
-Also found a trap worth knowing: MineConfig has TWO section builders and the
-first is dead — the second reassigns `ZONE_SECTIONS` and throws it away, so a
-zone added to the first silently gets no strata. Not built yet: candy ores,
+Also found a trap worth knowing: MineConfig has TWO section builders.
+**(Corrected 2026-10-10, see the entry below — this line first said the first
+builder was dead and the second was live, which is backwards.)** Not built yet: candy ores,
 10-layer sections and the 3x curve, sell values, the cases, and the Halloween
 tools. `zone.noStrengthGate` is set but nothing reads it — the hardness gate is
 block HP, not a flag.
@@ -671,3 +671,23 @@ packs open into their set's pets (pebblebound_pack_1, atlantis_rising_pack_4,
 chaos_theory_pack_6, dragonfall_pack_6).
 
 Updated: pets, log.
+
+## [2026-10-10] ingest | candy ores; correcting which section builder is live
+Twelve candy ores in their own `MineConfig.CANDY_ORES`, NOT in `ORES`: that is
+one global 82-rung ladder weighted only by each rung's `d` against zone
+difficulty, with no per-zone filter, so a candy rung would appear in every mine
+and shift the share of every ore around it. ORES verified still 82 rungs. Candy
+also bypasses the ore pouch — it is a currency, banked at spawn and paid on
+break. The mix walks with depth (L1 70% Candy Corn, L130 77% Jawbreaker) and is
+chosen from the cell position so a block is the same candy everywhere.
+
+**Correction to the entry above:** MineConfig's FIRST section builder is the
+live one — it runs at module load. The second is inside
+`MineConfig.refreshZoneSections()`, behind a guard that returns early unless
+MineDepth's section count changed, so it normally never runs. I had it
+backwards, put the Candy Crypt's strata only in the second, and
+`ZONE_SECTIONS["hallow"]` stayed nil while the file looked correct. Caught only
+because a Studio probe printed NIL beside meadow's 138. **A new zone must be in
+both**, and they are easy to confuse: different table shapes (`word`+`hue` vs
+`THEME_WORD`/`THEME_HUE`), identical contents. Now 138 sections reading
+Sugarloam, Gumsod, Toffeeclay.
