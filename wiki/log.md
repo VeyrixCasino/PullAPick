@@ -962,3 +962,26 @@ Checked in a Studio play test: Meadow Pack 1★, Meadow Rare 2★, Meadow and
 Primordium Legendary 3★; the Vault tiles read GRADE SSS / A / B. Suite 58/58.
 
 Updated: pack-cases, cards-and-packs, owner, docs/PETS-AND-SETS.md, TODO A1c.
+
+## [2026-10-10] query | mystery cases spin like CS:GO; one rarity ladder for reels
+Owner: *"these myster cases are meant to be like csgo slots. Make each color
+on the reel be reflective of the grade"*. Their follow-ups:
+- *"Whatever reel lands on, you get 3 of"*;
+- *"mythic should be light blue, divine … lavender … and exotic a red"*;
+- *"same goes for skin cases.. same rarities"*.
+
+What changed:
+- **Wild cases** now spin once and give 3 of the pack the reel lands on
+  (`MineCases.WILD_PACKS`, `rollWildPack`, `wildReel`).
+- **The client** plays the spin on the existing case reel
+  (`ClientFns.playCaseReels`). `MineGradeReveal.caseSpin` gained optional
+  result text, note and colour fields, plus `isOpen`.
+- **The ladder** `MineTemper.RARITY_COLOR` / `WORD_OF` is now F Common grey →
+  SSS Exotic red. Skin cases, pack-case reels and traits all read it.
+- **Prices** were recomputed for 3 packs at a 70% return, e.g. ★★★★★ 34,000
+  stardust / 95 credits.
+
+Checked in a Studio play test: a ★★★★½ case spun 44 tiles, stopped on the
+winner, and gave 3x Royal Confectionery. The console was clean. Suite 58/58.
+
+Updated: pack-cases, skins-cases-and-temper.

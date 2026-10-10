@@ -55,8 +55,15 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
 - **Stat size.** Each stat is its slot share (1.00 / 0.60 / 0.35, from
   `MineTemper.BASE`) × `RARITY_MULT`. Chance stats use `ABS_PRIMARY` ×
   `PROC_RARITY_MULT` instead.
-- **What the player sees.** Players see words, not letters (`WORD_OF`). S, SS
-  and SSS all read "Mythic".
+- **What the player sees.** Players see words, not letters (`WORD_OF`).
+  - Since 2026-10-10 the words and colours are the cards' rarity ladder
+    (owner: *"same goes for skin cases.. same rarities"*). S used to read
+    "Mythic" along with SS and SSS.
+  - The ladder: F Common grey, D Uncommon green, C Rare blue, B Epic purple,
+    A Legendary orange, S Mythic light blue, SS Divine lavender, SSS Exotic
+    red (`MineTemper.RARITY_COLOR`).
+  - Pack cases' reels use the same ladder, and so does anything else that
+    reads it, such as traits (`MineTraitView`).
 - **Old saves.** `LEGACY_RARITY` and `normalizeRarity` map the old names
   Common…Exotic to F…SSS so old saves still load.
 - **Traits** reuse these same odds (TODO §0.18,

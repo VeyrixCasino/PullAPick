@@ -28,10 +28,25 @@ There are two kinds (`MineCases.CASES`, kind `pack_case`):
   - The whole grades are `case_1` to `case_6`, one per pack star level
     (`MineSetPacks.STARS`).
   - The half grades 2.5★, 3.5★ and 4.5★ are `case_3_4`, `case_4_5` and
-    `case_5_6`. The sets have no half-star packs, so each pack in one is a
-    coin flip between its two neighbours (owner: "Mix of both").
-  - Each case holds 3–5 random packs from any set (`MineSetPacks.CASE_SIZE`),
-    with top-graded sets rarer (`MineSetPacks.GRADE_WEIGHT`).
+    `case_5_6`. The sets have no half-star packs, so a half-star case's pack
+    is a coin flip between its two neighbours (owner: "Mix of both").
+  - **Opening one is a CS:GO-style spin.** Owner, 2026-10-10: *"these myster
+    cases are meant to be like csgo slots"*, *"Whatever reel lands on, you get
+    3 of"*.
+    - One spin per case. You get `WILD_PACKS` (3) of the pack it lands on.
+    - The pack is from any set, with top-graded sets rarer
+      (`MineSetPacks.GRADE_WEIGHT`). It lands on F 10%, D 9%, C 25%, B 25%,
+      A 25%, S 5% and SS 1% of the time; SSS only on credit-bought cases.
+    - `MineCases.wildReel` builds a 44-tile reel of packs drawn the same way,
+      with the winner at tile 38. `MineCases.open` sends it as `design.reel`.
+    - MineClient plays it on `MineGradeReveal.caseSpin`
+      (`ClientFns.playCaseReels`), one spin after another in a run.
+    - **Each tile is coloured and labelled by its set's grade**, on the shared
+      rarity ladder (`MineTemper.RARITY_COLOR` / `WORD_OF`, which skin cases
+      use too):
+      - F Common grey, D Uncommon green, C Rare blue, B Epic purple;
+      - A Legendary orange, S Mythic light blue, SS Divine lavender,
+        SSS Exotic red.
   - A better case is better only because of its packs' own odds: no luck
     boost (owner: "by design (Not a % boos[t])").
   - Chests drop them, the wheel pays them, and both shops sell them.
@@ -158,15 +173,17 @@ with the second a 0 or a 5.
 
 | wild case | recycle value | stardust | return | credits |
 |---|---|---|---|---|
-| ★ | 182 | 260 | 70% | 10 |
-| ★½ | 325 | 465 | 70% | 15 |
-| ★★ | 740 | 1,050 | 70% | 20 |
-| ★★½ | 1,567 | 2,250 | 70% | 25 |
-| ★★★ | 2,394 | 3,400 | 70% | 35 |
-| ★★★½ | 5,596 | 8,000 | 70% | 50 |
-| ★★★★ | 8,799 | 12,500 | 70% | 60 |
-| ★★★★½ | 18,913 | 27,000 | 70% | 85 |
-| ★★★★★ | 29,026 | 41,500 | 70% | 100 |
+| ★ | 149 | 215 | 70% | 10 |
+| ★½ | 267 | 380 | 70% | 10 |
+| ★★ | 608 | 870 | 70% | 20 |
+| ★★½ | 1,288 | 1,850 | 70% | 25 |
+| ★★★ | 1,968 | 2,800 | 70% | 30 |
+| ★★★½ | 4,600 | 6,550 | 70% | 45 |
+| ★★★★ | 7,232 | 10,500 | 69% | 55 |
+| ★★★★½ | 15,545 | 22,000 | 71% | 75 |
+| ★★★★★ | 23,857 | 34,000 | 70% | 95 |
+
+These are for 3 packs a spin. ★ and ★½ round to the same 10 credits.
 
 | set case (stardust) | Starter | Collector | Vault | return |
 |---|---|---|---|---|

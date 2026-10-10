@@ -43,15 +43,26 @@ MineTemper.PROC_RARITY_MULT = {
 	A = 0.80, S = 0.95, SS = 1.12, SSS = 1.30,
 }
 
+--[[
+	THE RARITY LADDER EVERY CASE REEL USES (skin cases here, and the pack cases'
+	reel, MineCases). Owner, 2026-10-10, on the CS:GO-style reel: "Make each
+	color on the reel be reflective of the grade (red of mythic, grey for
+	common, green uncommon blue rare etc)", then "mythic should be light blue,
+	divine should be ... a light purple (lavender almost) and exotic a red", and
+	"same goes for skin cases.. same rarities".
+
+	  F Common grey · D Uncommon green · C Rare blue · B Epic purple
+	  A Legendary orange · S Mythic light blue · SS Divine lavender · SSS Exotic red
+]]
 MineTemper.RARITY_COLOR = {
-	F = Color3.fromRGB(170, 176, 188),
-	D = Color3.fromRGB(151, 106, 72),
-	C = Color3.fromRGB(112, 226, 148),
-	B = Color3.fromRGB(96, 164, 255),
-	A = Color3.fromRGB(196, 120, 255),
-	S = Color3.fromRGB(255, 206, 92),
-	SS = Color3.fromRGB(255, 132, 214),
-	SSS = Color3.fromRGB(96, 248, 255),
+	F = Color3.fromRGB(170, 170, 170),
+	D = Color3.fromRGB(85, 255, 127),
+	C = Color3.fromRGB(85, 170, 255),
+	B = Color3.fromRGB(170, 85, 255),
+	A = Color3.fromRGB(255, 170, 0),
+	S = Color3.fromRGB(120, 215, 255),
+	SS = Color3.fromRGB(205, 180, 255),
+	SSS = Color3.fromRGB(255, 55, 55),
 }
 
 -- SSS bases after x5, then multiplied by grade. echo/zap/autoMine/blastRadius/
@@ -385,15 +396,15 @@ end
 -- word like the pets it sits beside in the boost list.
 --
 -- The letters stay as the internal grade, because every magnitude, pool and
--- weight in this file is keyed by them -- and the top three letters all read
--- "Mythic": which Mythic you pulled is the kit's name (Godnail, Absolute Dig),
--- exactly as a Mythic pet's power is its print rather than its word.
+-- weight in this file is keyed by them. The top three used to all read
+-- "Mythic"; since 2026-10-10 they are Mythic, Divine and Exotic, the same
+-- ladder as the cards (owner: "same rarities").
 --------------------------------------------------------------------------------
 MineTemper.WORD_OF = {
 	F = "Common", D = "Uncommon", C = "Rare", B = "Epic",
-	A = "Legendary", S = "Mythic", SS = "Mythic", SSS = "Mythic",
+	A = "Legendary", S = "Mythic", SS = "Divine", SSS = "Exotic",
 }
-MineTemper.WORD_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
+MineTemper.WORD_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic" }
 
 function MineTemper.wordOf(rarity)
 	local g = MineTemper.normalizeRarity(rarity)
@@ -408,6 +419,8 @@ MineTemper.WORD_COLOR = {
 	Epic = MineTemper.RARITY_COLOR.B,
 	Legendary = MineTemper.RARITY_COLOR.A,
 	Mythic = MineTemper.RARITY_COLOR.S,
+	Divine = MineTemper.RARITY_COLOR.SS,
+	Exotic = MineTemper.RARITY_COLOR.SSS,
 }
 
 function MineTemper.colorOf(rarity)

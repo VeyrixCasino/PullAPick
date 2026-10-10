@@ -3678,6 +3678,38 @@ function ClientFns.caseScreen()
 	return ClientFns.caseCtl
 end
 
+--[[
+	MYSTERY (WILD) PACK CASES SPIN. Owner, 2026-10-10: "these myster cases are
+	meant to be like csgo slots". Each design that carries a `reel`
+	(MineCases.open) plays on the case reel, one after another: the next spin
+	waits until the player has closed the last result. `done` runs after the
+	last one.
+]]
+function ClientFns.playCaseReels(designs, done)
+	local i = 0
+	local function nextOne()
+		i += 1
+		local d = designs[i]
+		if not d then
+			if done then
+				done()
+			end
+			return
+		end
+		local screen = ClientFns.caseScreen()
+		Audio.play("open")
+		screen.play(d.reel, function()
+			task.spawn(function()
+				while screen.isOpen and screen.isOpen() do
+					task.wait(0.1)
+				end
+				nextOne()
+			end)
+		end)
+	end
+	nextOne()
+end
+
 function ClientFns.luckyScreen()
 	if ClientFns.luckyCtl then
 		return ClientFns.luckyCtl
@@ -12051,6 +12083,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- as a ten-pack run -- one pack is just a run of length one.
 		local design = (typeof(extra) == "table") and extra or { name = tostring(extra or "Booster Pack") }
 		design.cards = payload or {}
+		-- A mystery pack case spins instead (CS:GO reel).
+		if type(design.reel) == "table" then
+			ClientFns.playCaseReels({ design }, clearPackRevealBusy)
+			return
+		end
 		-- Gear / Rune cases use the CSGO reel (not PackReveal / lucky-block).
 		if design.kind == "gear" or design.kind == "rune" then
 			Audio.play("open")
@@ -12171,10 +12208,27 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- A whole run in one reply. The server has already removed the packs and
 		-- says how many of that kind are left, so the prompt needs no round trip.
 		local meta = (typeof(extra) == "table") and extra or {}
-		if revealCtl then
-			revealCtl.play(payload or {}, meta)
+		-- Mystery pack cases in the run spin first (CS:GO reel), one by one;
+		-- whatever else came out plays the usual reveal after.
+		local spins, rest = {}, {}
+		for _, d in ipairs(payload or {}) do
+			if type(d) == "table" and type(d.reel) == "table" then
+				table.insert(spins, d)
+			else
+				table.insert(rest, d)
+			end
+		end
+		local function playRest()
+			if #rest > 0 and revealCtl then
+				revealCtl.play(rest, meta)
+			else
+				clearPackRevealBusy()
+			end
+		end
+		if #spins > 0 then
+			ClientFns.playCaseReels(spins, playRest)
 		else
-			clearPackRevealBusy()
+			playRest()
 		end
 	elseif action == "luckyBlockOpened" then
 		-- Tap-through reveal; the loot is shown at the end of it.

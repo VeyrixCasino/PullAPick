@@ -1420,7 +1420,9 @@ function MineGradeReveal.caseSpin(parent, opts)
 	local tiles = {}
 	local function tile(i, row)
 		local grade = Temper.normalizeRarity(row.rarity) or "F"
-		local ink = Temper.colorOf(grade)
+		-- A row may bring its own colour and word (pack cases, MineCases.reelGrade);
+		-- temperaments and gear use the temper ladder.
+		local ink = row.color or Temper.colorOf(grade)
 		local t = mk("Frame", {
 			BackgroundColor3 = CARD_HI, BorderSizePixel = 0,
 			Position = UDim2.fromOffset((i - 1) * (TILE_W + TILE_GAP) + TILE_GAP, 10),
@@ -1438,7 +1440,7 @@ function MineGradeReveal.caseSpin(parent, opts)
 		round(wash, 10)
 		local kit = Temper.kit(row.id)
 		local labelName = tostring(row.name or (kit and kit.name) or row.id)
-		say(t, string.upper(Temper.wordOf(grade)), 10, ink, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 0, 12), FONT)
+		say(t, string.upper(row.label or Temper.wordOf(grade)), 10, ink, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 0, 12), FONT)
 		local iconUrl = (kit and kit.icon) or row.icon
 		if (not iconUrl or iconUrl == "") and Icons and Icons.image then
 			pcall(function()
@@ -1535,6 +1537,8 @@ function MineGradeReveal.caseSpin(parent, opts)
 
 		local kit = Temper.kit(payload.id)
 		local grade = Temper.normalizeRarity(payload.rarity)
+		-- The winner's colour: the payload's own (pack cases), else the temper ladder.
+		local winInk = payload.color or Temper.colorOf(grade)
 		title.Text = string.upper(tostring(payload.title or Temper.CASE_NAME or "Temperament Case"))
 		sub.Text = "opening..."
 		resultName.Text = ""
@@ -1591,7 +1595,7 @@ function MineGradeReveal.caseSpin(parent, opts)
 				if winRank >= 5 and not riserPlayed and frac >= 0.62 then
 					riserPlayed = true
 					if Audio and Audio.play then pcall(Audio.play, "riser") end
-					local ink = Temper.colorOf(grade)
+					local ink = winInk
 					TweenService:Create(boxStroke, TweenInfo.new(0.35, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 6, true), {
 						Color = ink:Lerp(Color3.new(1, 1, 1), 0.3), Thickness = 5, Transparency = 0,
 					}):Play()
@@ -1634,7 +1638,8 @@ function MineGradeReveal.caseSpin(parent, opts)
 					end
 				end
 				if Audio and Audio.play then pcall(Audio.play, "thud") end
-				sub.Text = payload.dupe and "another copy -- your collection keeps the better grade"
+				sub.Text = payload.note
+					or (payload.dupe and "another copy -- your collection keeps the better grade")
 					or "yours to fit on any tool"
 				-- A batch shows its best roll (the server picks it), so say so;
 				-- otherwise a x10 reads as one case and the other nine vanish.
@@ -1642,14 +1647,15 @@ function MineGradeReveal.caseSpin(parent, opts)
 				if nBundle and nBundle > 1 then
 					sub.Text = string.format("BEST OF %d  -  all %d are in your collection", nBundle, nBundle)
 				end
-				resultName.Text = string.upper(tostring(payload.word or Temper.wordOf(grade)))
-					.. "   " .. tostring((kit and kit.name) or payload.id or "")
-				resultName.TextColor3 = Temper.colorOf(grade)
+				resultName.Text = payload.resultText
+					or (string.upper(tostring(payload.word or Temper.wordOf(grade)))
+						.. "   " .. tostring((kit and kit.name) or payload.id or ""))
+				resultName.TextColor3 = winInk
 				local bits = {}
-				for _, line in ipairs(Temper.describe(payload.id, grade) or {}) do
+				for _, line in ipairs((not payload.resultSub) and Temper.describe(payload.id, grade) or {}) do
 					table.insert(bits, tostring(line.label) .. " " .. tostring(line.text))
 				end
-				resultSub.Text = (#bits > 0) and table.concat(bits, "    ") or ""
+				resultSub.Text = payload.resultSub or ((#bits > 0) and table.concat(bits, "    ") or "")
 				-- Result line punches in.
 				do
 					local rp = resultName:FindFirstChild("Pop") or mk("UIScale", { Name = "Pop" }, resultName)
@@ -1667,7 +1673,7 @@ function MineGradeReveal.caseSpin(parent, opts)
 							rank = i
 						end
 					end
-					local ink = Temper.colorOf(grade)
+					local ink = winInk
 					if rank >= 5 then
 						if Audio and Audio.play then pcall(Audio.play, "flash") end
 						-- Screen shake: the box rattles, harder for higher grades.
@@ -1758,7 +1764,7 @@ function MineGradeReveal.caseSpin(parent, opts)
 							end)
 							if okC and Celebrate then
 								pcall(Celebrate.burst, Celebrate.fromRank(rank),
-									{ confetti = false, sound = false, title = grade .. "!" })
+									{ confetti = false, sound = false, title = payload.celebrateTitle or (grade .. "!") })
 							end
 						end
 					elseif Audio and Audio.play then
@@ -1777,6 +1783,12 @@ function MineGradeReveal.caseSpin(parent, opts)
 			tween:Play()
 			tween.Completed:Connect(finish)
 		end)
+	end
+
+	-- True while the reel or its result is on screen. A caller chaining several
+	-- spins (pack cases) waits for the player to close one before the next.
+	function ctl.isOpen()
+		return screen.Visible
 	end
 
 	function ctl.close()

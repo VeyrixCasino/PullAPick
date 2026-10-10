@@ -6,12 +6,13 @@
 	(determines what exact packs and how many [3 min]{stardust})), and cases
 	that is a complete wild draw (such as chest cases, random packs, random set)".
 
-	  WILD CASES  "case_<1..6>", one per star grade (MineSetPacks.STARS):
-	              3-5 random packs of that grade from any set, top-graded sets
-	              rarer (MineSetPacks.CASE_SIZE, GRADE_WEIGHT). Chests drop
-	              them, the daily wheel pays them, the credit shop sells them,
-	              and so does the stardust shop. The SSS set only ever comes
-	              out of one bought with credits (M.PAID_ONLY_GRADES).
+	  WILD CASES  one per star grade, 1★ to 5★ in half steps (M.WILD_GRADES):
+	              a CS:GO-style spin over packs of that grade from any set,
+	              top-graded sets rarer (MineSetPacks.GRADE_WEIGHT); you get 3
+	              of the pack it lands on (M.WILD_PACKS, M.wildReel). Chests
+	              drop them, the daily wheel pays them, and both shops sell
+	              them. The SSS set only ever comes out of one bought with
+	              credits (M.PAID_ONLY_GRADES).
 	  SET CASES   "<setKey>_case_<starter|collector|vault>", three per set,
 	              exact contents, sold for stardust, and only for the sets
 	              graded B or lower (M.SHOP_MAX_GRADE):
@@ -19,9 +20,8 @@
 	                Collector  ★★ + ★★★ + ★★★ + ★★★★
 	                Vault      ★★★★ + ★★★★ + ★★★★★
 
-	EVERY NUMBER HERE IS PROPOSED until the owner approves it: the case
-	contents, the stars a set case shows, the chest luck cap, the featured set
-	packs and every price (wiki: systems/pack-cases, "the pricing pass").
+	The prices, chest rates, wheel slices and featured packs were decided in
+	the owner's pricing pass, 2026-10-10 (wiki: systems/pack-cases).
 
 	Ids are data: a case sits in a save as a bag row in p.packs.
 
@@ -130,6 +130,10 @@ M.WILD_GRADES = {
 	{ levels = { 6 }, stars = 5, text = "★★★★★" },
 }
 
+-- One spin, and you get this many of the pack it lands on (owner: "Whatever
+-- reel lands on, you get 3 of").
+M.WILD_PACKS = 3
+
 -- The wild case of a pack star level (1..6), or of a pair of them.
 function M.wildId(level, hi)
 	if hi and hi ~= level then
@@ -169,7 +173,7 @@ for _, g in ipairs(M.WILD_GRADES) do
 		stars = g.stars,
 		cards = 0,
 		packText = packText,
-		blurb = "3-5 random " .. packText .. " packs from any set",
+		blurb = "one spin: 3 of the " .. packText .. " pack it lands on, from any set",
 	}
 	add(def)
 	table.insert(M.WILD, def)
@@ -249,11 +253,7 @@ function M.countText(id)
 	if def.caseType == "set" then
 		return #def.packs .. " packs"
 	end
-	local lo, hi = math.huge, 0
-	for _, r in ipairs(SetPacks.CASE_SIZE) do
-		lo, hi = math.min(lo, r.n), math.max(hi, r.n)
-	end
-	return lo .. "-" .. hi .. " packs"
+	return "1 spin · " .. M.WILD_PACKS .. " packs"
 end
 
 -- ------------------------------------------------------------- rolling --
@@ -352,20 +352,60 @@ function M.contents(id, rng, paid)
 	if def.caseType == "set" then
 		return table.clone(def.packs)
 	end
-	local size = weighted(SetPacks.CASE_SIZE, rng, function(r)
-		return r.weight
-	end).n
-	local levels = def.levels or { def.starLevel }
+	-- One spin: you get WILD_PACKS of the pack it lands on.
+	local packId = M.rollWildPack(def, rng, paid)
 	local out = {}
-	for _ = 1, size do
-		local key = M.rollWildSet(rng, paid)
-		if key then
-			-- A half grade's coin flip, per pack.
-			local level = levels[(rng and rng:NextInteger(1, #levels)) or math.random(1, #levels)]
-			table.insert(out, SetPacks.packId(key, level))
-		end
+	for _ = 1, M.WILD_PACKS do
+		table.insert(out, packId)
 	end
 	return out
+end
+
+-- One wild pack: a set (top grades rarer) and, for a half grade, a coin flip
+-- between its two pack levels.
+function M.rollWildPack(def, rng, paid)
+	local levels = def.levels or { def.starLevel }
+	local key = M.rollWildSet(rng, paid) or (M.SETS[1] and M.SETS[1].key)
+	local level = levels[(rng and rng:NextInteger(1, #levels)) or math.random(1, #levels)]
+	return SetPacks.packId(key, level)
+end
+
+--[[
+	THE REEL. Owner, 2026-10-10: "these myster cases are meant to be like csgo
+	slots", and "Whatever reel lands on, you get 3 of". A wild case opens on a
+	CS:GO-style reel (MineGradeReveal.caseSpin) of packs from random sets, each
+	coloured by its set's grade on the shared rarity ladder (MineTemper:
+	F Common grey ... S Mythic light blue, SS Divine lavender, SSS Exotic red).
+
+	The winner is decided before the reel is built, and sits at REEL_WIN_AT.
+	The other tiles are drawn the same way the winner was, so the reel shows
+	what this case can really land on: an SSS tile only on a credit-bought case.
+]]
+M.REEL_LENGTH = 44
+M.REEL_WIN_AT = 38
+
+local function reelRow(packId)
+	local key = M.parsePack(packId)
+	local set = key and M.SET_BY_KEY[key]
+	local art = Art.packArt(packId)
+	return {
+		id = packId,
+		rarity = (set and set.grade) or "F",
+		name = M.packName(packId),
+		icon = art and art.image or nil,
+	}
+end
+
+function M.wildReel(def, winPackId, rng, paid)
+	local rows = {}
+	for i = 1, M.REEL_LENGTH do
+		if i == M.REEL_WIN_AT then
+			table.insert(rows, reelRow(winPackId))
+		else
+			table.insert(rows, reelRow(M.rollWildPack(def, rng, paid)))
+		end
+	end
+	return rows, M.REEL_WIN_AT
 end
 
 -- -------------------------------------------------------------- the bag --
@@ -438,6 +478,29 @@ function M.open(p, pk, rng)
 		setName = def.setName or "Any set",
 		kind = M.KIND,
 	}
+	--[[
+		A wild case spins (MineClient plays it on MineGradeReveal.caseSpin): the
+		reel, where it stops, and the words for the result. The packs are already
+		in the bag; the reel only shows which one it was.
+	]]
+	if def.caseType == "wild" and loot[1] then
+		local won = loot[1].packId
+		local key = M.parsePack(won)
+		local set = key and M.SET_BY_KEY[key]
+		local reel, at = M.wildReel(def, won, rng, pk.paid == true)
+		design.reel = {
+			reel = reel,
+			at = at,
+			id = won,
+			rarity = (set and set.grade) or "F",
+			title = def.name,
+			resultText = #loot .. "x  " .. loot[1].name,
+			resultSub = set and (set.name .. "  ·  grade " .. set.grade .. "  ·  "
+				.. (SetPacks.STAR_TEXT[select(2, M.parsePack(won)) or 1] or "")) or "",
+			note = "in your bag",
+			celebrateTitle = string.upper((set and set.name) or "JACKPOT") .. "!",
+		}
+	end
 	return loot, design
 end
 
@@ -544,15 +607,6 @@ local function dustOfTier()
 	return Packs.RECYCLE_STARDUST or {}
 end
 
-local function avgCaseSize()
-	local sum, total = 0, 0
-	for _, r in ipairs(SetPacks.CASE_SIZE) do
-		sum += r.n * r.weight
-		total += r.weight
-	end
-	return (total > 0) and (sum / total) or 3
-end
-
 --[[
 	What a case, or a set pack, is expected to recycle for in stardust: each
 	pack's expected card value (MineSetPacks.expectedPackDust over
@@ -576,7 +630,7 @@ function M.expectedDust(id)
 		for _, level in ipairs(levels) do
 			per += SetPacks.expectedPackDust(level, dust) / #levels
 		end
-		return per * avgCaseSize()
+		return per * M.WILD_PACKS
 	end
 	local key, level = M.parsePack(id)
 	if key then
