@@ -21,10 +21,70 @@ So the current job is **pets only**:
      These sets are not tied to a zone.
 3. **Rename** any pet where it helps, and **name all the new pets**.
 4. **Think out each pet's abilities** properly.
-5. **Add 20–30 new body types** ("we're reusing the same couple with different
-   colours"). Today there are 44 species builders in
+5. **Add about 100 new body types.** The owner first said 20–30, then raised
+   it: *"prob more like 100, but then we will be set for good"*. Today there
+   are 44 species builders in
    `src/ReplicatedStorage/Mine/Shared/PetModelFactory.luau`. Most pets use four
    of them: hound, cat, critter and bird.
+
+**Decided 2026-10-10 (the owner's answers):**
+- **Every pet gets its own name.** That includes all 2,043 set cards. No
+  generated "Ember Fox" names in the new sets.
+- **Power steps +5%, not +12%.**
+  - Each zone's pot is 5% better than the zone before it. Zone 11 ends up about
+    1.63× zone 1 (1.05^10).
+  - **Each set gets its own pet budget, 5% above the set before it.** Set 19
+    ends up about 2.41× set 1 (1.05^18).
+- **Heartwood:** Mosswood ★★★★★ keeps "Heartwood". **Worldtree ★★ becomes
+  "Sapwood"** (the owner said to rename the other one; the name is Claude's pick).
+- **Universal packs go.** In the rework, no pack draws from a random set out of
+  everything. *Direction only: nothing is removed yet* (the owner: "don't nuke
+  them").
+
+## Today's pets, counted (2026-10-10)
+
+**The set system is still live.** Every pack carries a `setId`, and opening it
+draws from that set.
+
+| what | count |
+|---|---|
+| Hand-named pets with their own look (`MinePetRoster` 253 + `MineEHPets` 73, 4 names shared) | **322** |
+| Old generated card sets (`MineCards.SETS`) | **41** |
+| Card slots in them (cards + secret Exotics) | **4,023** |
+| **Distinct pets** among those slots (16 prefixes × 16 animals; 16 bodies) | **207** |
+| Sets no zone lists, reachable only as a random set on a granted pack | 9 sets, 837 slots |
+
+**How a pack picks its set today:**
+- **Chest packs from mining:** the zone's 3 sets by depth (`MineConfig.setForLayer`).
+- **Every other pack** (shop, bundles, stardust, daily rewards, quests, wheel):
+  **a random set out of all 41.** These are the "universal" packs.
+
+**Per zone today:**
+
+| zone | card slots | distinct pets |
+|---|---|---|
+| meadow | 278 | 99 |
+| sunscar | 275 | 96 |
+| mistreef | 279 | 133 |
+| arcwork | 278 | 165 |
+| bloodmoon | 279 | 147 |
+| eclipse | 316 | 145 |
+| riftmarch | 312 | 138 |
+| starfall | 319 | 130 |
+| mythral | 217 (one set is a tool id, `brutalcrusher`) | 124 |
+| primordium | 333 | 111 |
+| bigbang (Event Horizon) | 300 | 137 |
+
+The same 207 names repeat in every zone, so **no zone owns a pet today.**
+
+**If the 322 named pets are split into zone pots:** Event Horizon keeps its 73,
+and the other 249 make about **25 per zone** for the 10 regular zones. Zone pots
+need new pets to reach a real collection size (owner to choose; see
+`wiki/open-questions.md` H9).
+
+**Totals after the plan:**
+- **Pets:** 322 existing + 2,043 set pets + new zone pets, so 2,365 or more.
+- **Body types:** 44 + about 100, so about 144.
 
 ## The 19 exclusive sets (the owner's table)
 
@@ -50,7 +110,7 @@ L Legendary, M Mythic, D Divine, X Exotic.
 | 14 | Atlantis Rising (A) | Tidepool Treasures | Coral Crown | Sunken City | Leviathan's Wake | Atlantean Vault | Throne of the Deep |
 | 15 | Divine Relics (A) | Forgotten Idol | Sacred Fragment | Relic of Ages | Celestial Artifact | Pantheon's Key | Origin of Divinity |
 | 16 | Dragonfall (S) | Scaled Beginnings | Hatchling's Hoard | Drakefire | Wyrm's Treasury | Dragon King's Vault | World Eater |
-| 17 | Worldtree (S) | Seedling | Rootbound | Heartwood | Verdant Awakening | Worldtree's Crown | Genesis Bloom |
+| 17 | Worldtree (S) | Seedling | Rootbound | Sapwood *(was Heartwood)* | Verdant Awakening | Worldtree's Crown | Genesis Bloom |
 | 18 | Mythic Menagerie (SS) | Tiny Terrors | Wildlings | Beastbound | Apex Predators | Mythical Beasts | Primordial Titans |
 | 19 | Chaos Theory (SSS) | Minor Glitch | Broken Pattern | Fracture Point | Reality Shift | Paradox Engine | Infinite Collapse |
 
@@ -80,7 +140,7 @@ L Legendary, M Mythic, D Divine, X Exotic.
 - Every row adds up to its card count.
 - The sets hold **2,043 cards** in total: 819 C, 482 U, 292 R, 169 E, 114 L, 58 M, 55 D and 54 X.
 - **450 of them are Epic or better.**
-- **"Heartwood" is used twice:** Mosswood ★★★★★ and Worldtree ★★. Pack ids must be unique, so one of them needs a new name. The owner has not chosen which.
+- **"Heartwood" was used twice:** Mosswood ★★★★★ and Worldtree ★★. Worldtree's becomes **"Sapwood"** (decided above).
 
 ## Facts that shape the job (code, 2026-10-10)
 

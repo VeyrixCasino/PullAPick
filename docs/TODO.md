@@ -19,7 +19,8 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
 > The full spec is [`docs/PETS-AND-SETS.md`](PETS-AND-SETS.md):
 > - zone pots for the existing pets;
 > - 19 exclusive sets with 2,043 cards;
-> - 20–30 new body types;
+> - about 100 new body types;
+> - every pet named by hand, power +5% per zone and +5% per set;
 > - renames (always with an alias) and abilities.
 >
 > It also lists the legacy to retire (X/Y sets, variant odds at pack open) and

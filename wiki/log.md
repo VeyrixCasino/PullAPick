@@ -325,3 +325,28 @@ A help-needed table (H1–H8) went into open-questions.
 
 Updated: owner, open-questions, sources-of-truth, log. Also docs/TODO.md ★ NOW
 (LATEST banner, A1b, A2 placement).
+
+## [2026-10-10] query | how many pets exist, and is the set system live?
+The owner's answers:
+- every pet is named by hand, all 2,043 set cards included;
+- about 100 new body types;
+- +5% per zone, not 12%, and each set's pet budget is 5% above the set before it;
+- Worldtree's ★★ "Heartwood" becomes "Sapwood";
+- universal packs go, though nothing is deleted yet.
+
+The count:
+- **322 hand-named pets.**
+- **41 old generated sets** hold **4,023 card slots but only 207 distinct
+  pets.** Names are 16 prefixes × 16 animals, so the same names recur in every
+  zone and no zone owns a pet.
+- **The set system is live.** Chest packs take the zone's set by depth. Every
+  other pack takes a random set from all 41: shop, bundles, stardust, daily
+  rewards, quests and the wheel. That random draw is the owner's "universal
+  packs".
+- **9 sets (837 slots) are reachable only at random.**
+- **Splitting the named pets** gives about 25 per zone.
+
+New owner question: H9, the zone pot size.
+
+Updated: cards-and-packs (set-system status), open-questions (H1–H3 answered,
+H9), owner, log. Also docs/PETS-AND-SETS.md and docs/TODO.md.

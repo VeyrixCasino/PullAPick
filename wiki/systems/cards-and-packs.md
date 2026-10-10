@@ -42,6 +42,26 @@ sets, and `MineConfig.setForLayer` picks one by depth, switching at 25% and 60%
 of `MineConfig.LAYERS`. Every serial is claimed in a global registry by `mint` in
 MineServer, which is what makes trading safe.
 
+**The set system is live, and it is how every pack works** (counted 2026-10-10):
+- **Size.** 41 sets hold **4,023 card slots, but only 207 distinct pets.** Names
+  come from 16 prefixes × 16 species, and the body is one of those 16 species.
+  The same "Ember Fox" can be Common in one set and Exotic in another.
+- **A chest pack** found while mining gets its zone's set by depth
+  (`setForLayer`). One zone has 217–333 slots, holding 96–165 distinct pets, and
+  most of those names repeat in every other zone.
+- **Every other pack picks a random set from all 41.** That covers shop,
+  bundles, stardust, daily rewards, quests and the wheel (`Verbs.grantPacks`,
+  `SET_IDS`). A Meadow player can open a Primordium or Event Horizon set. 9 sets
+  (837 slots) are reachable only this way, because no zone lists them.
+- **Mythral lists `"brutalcrusher"`, which is a tool id, as a set.** So
+  `mythral_choir` is reachable only at random.
+- **The 322 hand-named pets** (`MinePetRoster` plus `MineEHPets`) are separate.
+  They drop only from the wheel, lucky blocks and Event Horizon chests, never
+  from packs.
+
+The owner's rework replaces all of this with zone pots plus 19 exclusive sets
+(`docs/PETS-AND-SETS.md`).
+
 **The 8-rung rarity ladder** is Common, Uncommon, Rare, Epic, Legendary, Mythic,
 Divine, Exotic (`MineCards.RARITY_ORDER` = `MinePackConfig.TIERS`). The old TCG
 names (HoloRare, UltraRare, HyperRare, SecretRare) are kept as aliases in

@@ -99,8 +99,14 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
   pets get a different buff set.
 - **19 exclusive sets**, graded F–SSS, each with six star-graded packs and its
   own pets. The owner named every set and pack.
-- **20–30 new pet body types.** Renaming is allowed, and abilities get
+- **About 100 new pet body types** (first 20–30, then *"prob more like 100,
+  but then we will be set for good"*). Renaming is allowed, and abilities get
   designed properly.
+- **Every pet has its own name,** all 2,043 set cards included.
+- **Power steps are +5%:** each zone's pot over the zone before it, and each
+  set's pet budget over the set before it. 12% was rejected as *"a lot"*.
+- **Universal packs** (a pack that draws a random set from everything) are to
+  go. *"Don't nuke them"* yet: count first.
 - **Old content:** *"XY is old"*, and so are the variant drop rates at pack
   open. They are legacy and nothing new should build on them.
 - **Rewards direction** (queued):

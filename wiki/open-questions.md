@@ -36,11 +36,12 @@ has a default that is used if the owner says "you decide".
 
 | # | what I need | my default |
 |---|---|---|
-| H1 | **How many pets get a hand-made name and look?** The 19 sets hold 2,043 cards, and a card is a pet. | Name and design every Epic or better by hand (450). Commons to Rares get set-themed generated names on shared bodies, the way packs mint today. |
-| H2 | **How much better is each zone's pot?** "Better, but not exponentially." | +12% per zone, so zone 11 is about 3.1× zone 1. Mythic, Divine and Exotic get a different buff set per zone. |
-| H3 | **"Heartwood" is used twice** (Mosswood ★★★★★, Worldtree ★★). Pack ids must be unique. | Rename Worldtree ★★ to "Sapwood". |
+| ~~H1~~ | **Answered:** every pet is named separately, all 2,043 included, with about 100 new body types. | — |
+| ~~H2~~ | **Answered:** +5% per zone (not 12%), and each set's pet budget is 5% above the set before it. | — |
+| ~~H3~~ | **Answered:** Worldtree ★★ is renamed "Sapwood"; Mosswood keeps "Heartwood". | — |
+| H9 | **How big is each zone's pot?** Splitting the 322 named pets gives about 25 per zone (Event Horizon keeps its 73). Counts are in `docs/PETS-AND-SETS.md`. | About 40 per zone, so about 15 new pets per zone, roughly 150 in total. |
 | H4 | **A names sheet.** I will send every new and renamed pet per zone and set for one yes/edit pass before anything is built. Names are save data, so changing them later costs aliases. | Approve in one pass, by pasting it back with edits. |
-| H5 | **Is the old card content legacy?** That is the 41 `MineCards.SETS`, the 55 `MineZonePacks` and the 19 `Mine1PacksData` card packs. X/Y and the variant odds at pack open are already confirmed old. | Retire them from dropping. Owned cards keep working. |
+| H5 | **Is the old card content legacy?** That is the 41 `MineCards.SETS` (4,023 slots but only 207 distinct pets), the 55 `MineZonePacks` and the 19 `Mine1PacksData` card packs. X/Y and the variant odds at pack open are already confirmed old. The owner said universal packs go, but "don't nuke them" yet. | Retire them from dropping once the new pots exist. Owned cards keep working. |
 | H6 | **Art uploads.** The pack and set images, and the wheel's one-image face. An agent can make the images but cannot upload to the group (35326298). | The owner uploads to the group and pastes the asset ids back. |
 | H7 | **The 6-hour wheel spin** (rewards pass): do unused spins bank, and how many? | Bank up to 4 (one day's worth). |
 | H8 | **One pet session at a time.** Another session rebuilt pet bodies in `PetModelFactory` (`c62fad6`, `1af78a4`). Two sessions editing that 3,500-line file collide. | Only the session the owner continues with touches it. |
