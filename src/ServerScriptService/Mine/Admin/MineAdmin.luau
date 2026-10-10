@@ -855,7 +855,9 @@ function MineAdmin.start(deps)
 			notifyAdmin(admin, "/admin give <userId|Username|me> credits|coins|gems|dust|skill|temper <n>")
 			notifyAdmin(admin, "/admin give <who> pack <packId> [qty] | zone <n> | tool <family> [tier]")
 			notifyAdmin(admin, "/admin alltools [start] [count]  |  /admin alltools all   -- named tools into YOUR bag")
-			notifyAdmin(admin, "/admin oretools [all|pickaxe|drill|explosive]  -- forge all 246 ore tools (bypasses the 200 cap)")
+			-- No tool count here: it was "246" (3 families x 82 ores) and went
+			-- stale the day hammers shipped. The command reports what it forged.
+			notifyAdmin(admin, "/admin oretools [all|pickaxe|hammer|drill|explosive]  -- forge every ore tool in a family (bypasses the 200 cap)")
 			notifyAdmin(admin, "/admin say <message>[|seconds]  -- banner on every player's screen")
 			notifyAdmin(admin, "/admin launch status   -- is the season running, and how far in")
 			notifyAdmin(admin, "/admin launch now      -- THROW THE SWITCH. Starts the season. Not undoable.")
@@ -1081,7 +1083,7 @@ function MineAdmin.start(deps)
 				or (want == "pickaxe" or want == "hammer" or want == "drill" or want == "explosive") and { want }
 				or nil
 			if not fams then
-				notifyAdmin(admin, "usage: /admin oretools [all|pickaxe|drill|explosive]")
+				notifyAdmin(admin, "usage: /admin oretools [" .. table.concat(OreTools.FAMILY_ORDER or {}, "|") .. "|all]")
 				return true
 			end
 			p.oreTools = p.oreTools or {}
