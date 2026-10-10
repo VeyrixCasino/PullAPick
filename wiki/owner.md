@@ -147,6 +147,18 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
 - **Names:** all 2,043 ship now, and the owner reviews the sheet after.
 - **Pack cases** can roll any set, with top grades rarer. They are sold for
   stardust in a new tab of the stardust shop.
+- **Pack cases, refined later that day** ([pack-cases](systems/pack-cases.md)):
+  - Two kinds. Set cases (Starter, Collector and Vault, with exact packs, sold
+    for stardust) and wild cases (random packs of one star grade, sold in both
+    shops).
+  - Cases replace the wheel's pack slices.
+  - The credit shop sells "cases by star + a few featured set packs".
+  - Prices come from expected value. A better set costs 10% more than the set
+    before it.
+  - Shops carry no sets above grade B.
+  - Chaos Theory (SSS) comes from credit-bought wild cases only, at 0.5% of
+    slots.
+  - Case art is a booster box.
 - **The Halloween 2026 Pack** comes from a Halloween event mine only.
 - **Old generated cards stop dropping;** owned ones keep working.
 - **Theme:** a set's theme must be the predominant type of its pets, not every

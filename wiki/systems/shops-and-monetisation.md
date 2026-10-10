@@ -57,7 +57,9 @@ the Founders Rig (`patron_rig`). At a seam desk, selling pays `DEPTH_SELL_FRAC`
 `MinePackConfig.creditPrice`, which takes 10% off for everyone. It sells:
 - pack cases and packs, with a 10-pack at 70% of ten singles. Since 2026-10-10
   the shelf is `MineCases.creditShelf`: the six wild cases, then four
-  featured set packs a UTC day. The old card packs (Hopper to Shiny) came off
+  featured set packs a UTC day from sets graded B or lower. Only a
+  credit-bought wild case can roll Chaos Theory (SSS), at 0.5% of its slots.
+  The old card packs (Hopper to Shiny) came off
   it (owner: *"clear out the credit shop… of all the unused packs"*). Prices
   are PROPOSED; see [pack-cases](pack-cases.md);
 - Build-a-Box: any 10 items from that same shelf, at 12% off;
@@ -65,9 +67,13 @@ the Founders Rig (`patron_rig`). At a seam desk, selling pays `DEPTH_SELL_FRAC`
 - scrolls (`MineScrolls.ITEMS`: white, black, omni, runesmith; these are rune-era items).
 
 The Stardust tab is separate and has two tabs of its own:
-- **Pack Cases**, which opens first. Every set's Starter, Collector and Vault,
-  picked set by set, plus the six wild cases. These are always in stock, at
-  `MineCases.dustPrice`, bought through `Verbs.buyDustCase`.
+- **Pack Cases**, which opens first. It sells:
+  - the Starter, Collector and Vault of each set graded B or lower (owner:
+    *"shops dont carry any sets above b"*), picked set by set;
+  - the six wild cases.
+
+  These are always in stock, at `MineCases.dustPrice`, bought through
+  `Verbs.buyDustCase`.
 - **Rotating Shelf**, which turns over every 6 h (`DUST_ROTATION_HOURS`). It
   has 4 pack offers and 4 potion offers (`MinePackConfig.dustRotation`), and
   still sells old card packs.

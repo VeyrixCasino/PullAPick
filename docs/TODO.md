@@ -115,9 +115,15 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
     day, with the old packs taken off) and a Pack Cases tab in the stardust shop.
 
   Still open:
+  - Decided later the same day:
+    - a better set costs 10% more than the set before it;
+    - shops carry no sets above grade B;
+    - Chaos Theory (SSS) comes from credit-bought wild cases only, at 0.5% of
+      their slots;
+    - case art is a booster box.
   - [ ] **The pricing pass, "how much everything is worth" (owner).** Approve
         or edit the PROPOSED block in the wiki page:
-        - case stardust and credit prices, with the ×1.05-per-set value;
+        - case stardust and credit prices;
         - the featured set packs' prices and star grades;
         - the chest case rates and the luck cap;
         - which star grade each wheel slice pays;

@@ -1374,7 +1374,8 @@ function MineInventoryView.mount(parent, opts)
 			--[[
 				A PACK CASE lists what it holds: a set case its exact packs, a
 				wild case how likely each slot is to come from a set of each
-				grade (MineSetPacks.caseGradeOdds), best grade last.
+				grade (MineCases.wildGradeOdds), best grade last. The SSS row
+				says it is credit-bought cases only.
 			]]
 			local SetPacks = require(shared:WaitForChild("MineSetPacks"))
 			local hdrK = label(inspectP, (caseDef.caseType == "set") and "WHAT'S INSIDE"
@@ -1412,8 +1413,9 @@ function MineInventoryView.mount(parent, opts)
 						Cards.RARITY_COLOR[SetPacks.STAR_TIER[level or 1]] or TEXT)
 				end
 			else
-				for _, row in ipairs(SetPacks.caseGradeOdds()) do
-					caseRow(string.format("Grade %s  (%d sets)", row.grade, row.sets),
+				for _, row in ipairs(Cases.wildGradeOdds()) do
+					caseRow(string.format("Grade %s  (%d %s)%s", row.grade, row.sets, (row.sets == 1) and "set" or "sets",
+						row.paidOnly and "  --  bought with credits only" or ""),
 						string.format("%.1f%%", row.pct), (Gear.RARITY_COLOR and Gear.RARITY_COLOR[row.grade]) or TEXT)
 				end
 			end
@@ -6135,13 +6137,16 @@ function MineInventoryView.mount(parent, opts)
 					return grid
 				end
 
-				-- One set at a time: 19 sets x 3 cases is too long a wall.
-				local setKey = dustTab.set or (Cases.SETS[1] and Cases.SETS[1].key)
-				sectionHeader("Set cases  --  that set's exact packs, every time", 2)
+				-- One set at a time, and only the sets the shops carry (grade B
+				-- and lower; the better sets come out of wild cases).
+				local shopSets = Cases.shopSets()
+				local setKey = (dustTab.set and Cases.inShops(dustTab.set) and dustTab.set)
+					or (shopSets[1] and shopSets[1].key)
+				sectionHeader("Set cases  --  that set's exact packs, every time  ·  grade B and below", 2)
 				local chips = stripOf(body, "SetChips", 6)
 				chips.Size = UDim2.new(1, -6, 0, 40)
 				chips.LayoutOrder = 3
-				for si, s in ipairs(Cases.SETS) do
+				for si, s in ipairs(shopSets) do
 					local on = s.key == setKey
 					local gradeCol = (Gear.RARITY_COLOR and Gear.RARITY_COLOR[s.grade]) or TEXT
 					local chip = mk("TextButton", {
@@ -6162,7 +6167,7 @@ function MineInventoryView.mount(parent, opts)
 					caseTile(setGrid, Cases.setCaseId(setKey, kind.key), ci)
 				end
 
-				sectionHeader("Wild cases  --  3-5 random packs of one star grade, from any set", 5)
+				sectionHeader("Wild cases  --  3-5 random packs of one star grade, from any set up to SS", 5)
 				local wildGrid = caseGrid(6)
 				for n = 1, #Cases.CASES do
 					local def = Cases.CASES[n]

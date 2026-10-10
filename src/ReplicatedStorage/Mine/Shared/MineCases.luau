@@ -7,12 +7,14 @@
 	that is a complete wild draw (such as chest cases, random packs, random set)".
 
 	  WILD CASES  "case_<1..6>", one per star grade (MineSetPacks.STARS):
-	              3-5 random packs of that grade from ANY set, top-graded sets
+	              3-5 random packs of that grade from any set, top-graded sets
 	              rarer (MineSetPacks.CASE_SIZE, GRADE_WEIGHT). Chests drop
 	              them, the daily wheel pays them, the credit shop sells them,
-	              and so does the stardust shop.
+	              and so does the stardust shop. The SSS set only ever comes
+	              out of one bought with credits (M.PAID_ONLY_GRADES).
 	  SET CASES   "<setKey>_case_<starter|collector|vault>", three per set,
-	              exact contents, sold for stardust:
+	              exact contents, sold for stardust, and only for the sets
+	              graded B or lower (M.SHOP_MAX_GRADE):
 	                Starter    ★ + ★½ + ★★
 	                Collector  ★★ + ★★★ + ★★★ + ★★★★
 	                Vault      ★★★★ + ★★★★ + ★★★★★
@@ -61,6 +63,31 @@ do
 		M.SET_BY_KEY[s.key] = s
 	end
 end
+
+M.GRADE_RANK = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 8 }
+
+--[[
+	WHAT THE SHOPS CARRY. Owner, 2026-10-10: "Make it so shops dont carry any
+	sets above b". Set cases and featured set packs are sold only for sets
+	graded B or lower; the A, S, SS and SSS sets come out of wild cases only,
+	which is what makes a wild case the better buy.
+]]
+M.SHOP_MAX_GRADE = "B"
+
+function M.inShops(setKey)
+	local set = M.SET_BY_KEY[setKey]
+	return set ~= nil and (M.GRADE_RANK[set.grade] or 99) <= M.GRADE_RANK[M.SHOP_MAX_GRADE]
+end
+
+--[[
+	THE SSS SET. Owner, 2026-10-10: Chaos Theory comes "credits, and 0.5%
+	only" (and stays something you trade for). Only a wild case bought with
+	credits can roll it, in exactly this share of its slots; every other wild
+	case (chests, the wheel, stardust) never does. A credit-bought case
+	carries `paid` on its bag row (MineCases.bagRow).
+]]
+M.PAID_ONLY_GRADES = { SSS = true }
+M.PAID_ONLY_SHARE = 0.005
 
 -- PROPOSED. The three set cases, by the star grade (1..6) of each pack inside.
 M.SET_CASES = {
@@ -116,6 +143,8 @@ for _, set in ipairs(M.SETS) do
 			table.insert(packs, SetPacks.packId(set.key, level))
 			top = math.max(top, level)
 		end
+		-- Every set gets the rows, so a case already in a bag still opens;
+		-- only the sets the shops carry are for sale (M.inShops).
 		add({
 			id = M.setCaseId(set.key, kind.key),
 			name = set.name .. " " .. kind.name,
@@ -124,6 +153,7 @@ for _, set in ipairs(M.SETS) do
 			setKey = set.key,
 			setName = set.name,
 			grade = set.grade,
+			forSale = M.inShops(set.key),
 			-- PROPOSED: a set case shows the stars of the best pack in it.
 			starLevel = top,
 			stars = SetPacks.STARS[top],
@@ -207,16 +237,75 @@ local function weighted(rows, rng, weightOf)
 	return rows[#rows]
 end
 
--- The set filling one wild slot: any set, top grades rarer.
-function M.rollWildSet(rng)
-	local set = weighted(M.SETS, rng, function(s)
+-- The sets a wild slot draws from: everything but the paid-only grades, or
+-- only the paid-only grades.
+local function wildPool(paidOnly)
+	local out = {}
+	for _, s in ipairs(M.SETS) do
+		if (M.PAID_ONLY_GRADES[s.grade] == true) == paidOnly then
+			table.insert(out, s)
+		end
+	end
+	return out
+end
+
+--[[
+	The set filling one wild slot: any set, top grades rarer
+	(MineSetPacks.GRADE_WEIGHT). A credit-bought case (`paid`) first gives
+	the paid-only sets their fixed share.
+]]
+function M.rollWildSet(rng, paid)
+	local special = wildPool(true)
+	if paid and #special > 0 and (rng and rng:NextNumber() or math.random()) < M.PAID_ONLY_SHARE then
+		local set = weighted(special, rng, function(s)
+			return SetPacks.GRADE_WEIGHT[s.grade] or 1
+		end)
+		return set and set.key
+	end
+	local set = weighted(wildPool(false), rng, function(s)
 		return SetPacks.GRADE_WEIGHT[s.grade] or 1
 	end)
 	return set and set.key
 end
 
+--[[
+	For the inspector: how likely one wild slot is to come from a set of each
+	grade, best grade last: { { grade, pct, sets, paidOnly } }. The paid-only
+	grades print their share of a credit-bought case.
+]]
+function M.wildGradeOdds()
+	local byGrade, total = {}, 0
+	for _, s in ipairs(wildPool(false)) do
+		local w = SetPacks.GRADE_WEIGHT[s.grade] or 1
+		total += w
+		byGrade[s.grade] = byGrade[s.grade] or { grade = s.grade, pct = 0, sets = 0 }
+		byGrade[s.grade].pct += w
+		byGrade[s.grade].sets += 1
+	end
+	local out = {}
+	for _, g in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
+		local row = byGrade[g]
+		if row then
+			row.pct = (total > 0) and (row.pct / total * 100) or 0
+			table.insert(out, row)
+		elseif M.PAID_ONLY_GRADES[g] then
+			local n = 0
+			for _, s in ipairs(M.SETS) do
+				if s.grade == g then
+					n += 1
+				end
+			end
+			if n > 0 then
+				table.insert(out, { grade = g, pct = M.PAID_ONLY_SHARE * 100, sets = n, paidOnly = true })
+			end
+		end
+	end
+	return out
+end
+
 -- What a case holds, as set pack ids. A set case always holds the same.
-function M.contents(id, rng)
+-- `paid` is true for a wild case bought with credits.
+function M.contents(id, rng, paid)
 	local def = M.get(id)
 	if not def then
 		return {}
@@ -229,7 +318,7 @@ function M.contents(id, rng)
 	end).n
 	local out = {}
 	for _ = 1, size do
-		local key = M.rollWildSet(rng)
+		local key = M.rollWildSet(rng, paid)
 		if key then
 			table.insert(out, SetPacks.packId(key, def.starLevel))
 		end
@@ -240,8 +329,9 @@ end
 -- -------------------------------------------------------------- the bag --
 
 -- A case as a bag row. `setId` is the case's set, or "wild": never a random
--- old card set, which the bag tile would print as the case's set.
-function M.bagRow(id)
+-- old card set, which the bag tile would print as the case's set. `paid` marks
+-- a wild case bought with credits, the only kind that can roll the SSS set.
+function M.bagRow(id, paid)
 	local def = M.get(id)
 	if not def then
 		return nil
@@ -251,6 +341,7 @@ function M.bagRow(id)
 		packName = def.name,
 		kind = M.KIND,
 		setId = def.setKey or "wild",
+		paid = (paid and def.caseType == "wild") or nil,
 	}
 end
 
@@ -282,7 +373,7 @@ function M.open(p, pk, rng)
 	p.packs = p.packs or {}
 	local luck = tonumber(pk.luck)
 	local loot = {}
-	for _, packId in ipairs(M.contents(def.id, rng)) do
+	for _, packId in ipairs(M.contents(def.id, rng, pk.paid == true)) do
 		local row = M.packRow(packId)
 		if luck and luck > 1 then
 			row.luck = luck
@@ -336,27 +427,34 @@ end
 -- -------------------------------------------------------------- prices --
 
 --[[
-	PROPOSED. A set's pets are 5% stronger for every set before it (owner,
-	MineSetPets.setMult), so a pack from set N is valued 1.05^(N-1) of the same
-	pack from Pebblebound. Without this a Chaos Theory Vault would cost what a
-	Pebblebound Vault does, and nobody would buy the Pebblebound one.
+	A pack from a better set costs more. Owner, 2026-10-10: "Better does still
+	cost more [10% more than last]": a pack from set N is valued 1.10^(N-1) of
+	the same pack from Pebblebound.
 ]]
-M.SET_VALUE_STEP = 1.05
+M.SET_VALUE_STEP = 1.10
 
 function M.setValue(setKey)
 	local set = M.SET_BY_KEY[setKey]
 	return M.SET_VALUE_STEP ^ (((set and set.index) or 1) - 1)
 end
 
--- The average value of a wild slot, over the grade-weighted set draw.
-function M.wildValue()
-	local sum, total = 0, 0
-	for _, s in ipairs(M.SETS) do
-		local w = SetPacks.GRADE_WEIGHT[s.grade] or 1
-		sum += w * M.setValue(s.key)
-		total += w
+-- The average value of a wild slot, over the set draw that case gets.
+function M.wildValue(paid)
+	local function mean(pool)
+		local sum, total = 0, 0
+		for _, s in ipairs(pool) do
+			local w = SetPacks.GRADE_WEIGHT[s.grade] or 1
+			sum += w * M.setValue(s.key)
+			total += w
+		end
+		return (total > 0) and (sum / total) or 1
 	end
-	return (total > 0) and (sum / total) or 1
+	local base = mean(wildPool(false))
+	local special = wildPool(true)
+	if paid and #special > 0 then
+		return base * (1 - M.PAID_ONLY_SHARE) + mean(special) * M.PAID_ONLY_SHARE
+	end
+	return base
 end
 
 local function dustOfTier()
@@ -376,9 +474,10 @@ end
 --[[
 	What a case, or a set pack, is expected to scrap for in stardust: each
 	pack's expected card value (MineSetPacks.expectedPackDust over
-	MinePackConfig.RECYCLE_STARDUST), times its set's value.
+	MinePackConfig.RECYCLE_STARDUST), times its set's value. `paid` prices a
+	wild case as the credit-bought kind.
 ]]
-function M.expectedDust(id)
+function M.expectedDust(id, paid)
 	local dust = dustOfTier()
 	local def = M.get(id)
 	if def and def.caseType == "set" then
@@ -389,7 +488,7 @@ function M.expectedDust(id)
 		end
 		return ev * M.setValue(def.setKey)
 	elseif def then
-		return SetPacks.expectedPackDust(def.starLevel, dust) * avgCaseSize() * M.wildValue()
+		return SetPacks.expectedPackDust(def.starLevel, dust) * avgCaseSize() * M.wildValue(paid)
 	end
 	local key, level = M.parsePack(id)
 	if key then
@@ -399,12 +498,13 @@ function M.expectedDust(id)
 end
 
 -- PROPOSED. Stardust price = expected value / MineSetPacks.CASE_RTP (0.65),
--- to the nearest 5.
+-- to the nearest 5. Nil for anything the stardust shop does not carry.
 function M.dustPrice(id)
-	if not M.get(id) then
+	local def = M.get(id)
+	if not def or (def.caseType == "set" and not def.forSale) then
 		return nil
 	end
-	local ev = M.expectedDust(id) / (SetPacks.CASE_RTP or 0.65)
+	local ev = M.expectedDust(id, false) / (SetPacks.CASE_RTP or 0.65)
 	return math.max(25, math.floor(ev / 5 + 0.5) * 5)
 end
 
@@ -424,12 +524,23 @@ end
 
 -- --------------------------------------------------------------- shops --
 
--- PROPOSED. The set packs the credit shop features each UTC day: four sets,
--- one pack each, at these star grades.
+-- PROPOSED. The set packs the credit shop features each UTC day: four sets
+-- the shops carry, one pack each, at these star grades.
 M.FEATURED_LEVELS = { 4, 5, 5, 6 }
 
 function M.dayIndex(now)
 	return math.floor((tonumber(now) or os.time()) / 86400)
+end
+
+-- The sets the shops carry, in the owner's order.
+function M.shopSets()
+	local out = {}
+	for _, s in ipairs(M.SETS) do
+		if M.inShops(s.key) then
+			table.insert(out, s)
+		end
+	end
+	return out
 end
 
 -- Today's featured set packs. The same on every server and every client.
@@ -437,7 +548,7 @@ function M.featuredSetPacks(day)
 	day = tonumber(day) or M.dayIndex()
 	local rng = Random.new(day * 7919 + 17)
 	local keys = {}
-	for _, s in ipairs(M.SETS) do
+	for _, s in ipairs(M.shopSets()) do
 		table.insert(keys, s.key)
 	end
 	local out = {}
@@ -468,7 +579,8 @@ function M.creditShelf(day)
 end
 
 -- The credit price of anything on today's credit shelf, else nil. The server
--- prices a cart line with this, so an item off the shelf cannot be bought.
+-- prices a cart line with this, so an item off the shelf cannot be bought. A
+-- wild case is priced as the credit-bought kind, which can roll the SSS set.
 function M.creditPrice(id, day)
 	id = tostring(id or "")
 	local listed = false
@@ -481,15 +593,17 @@ function M.creditPrice(id, day)
 	if not listed then
 		return nil
 	end
-	return creditsFor(M.expectedDust(id))
+	return creditsFor(M.expectedDust(id, true))
 end
 
--- What the stardust shop's cases tab sells: the wild cases, then each set's
--- three cases in the owner's order.
+-- What the stardust shop's cases tab sells: the wild cases, then the three
+-- cases of every set the shops carry, in the owner's order.
 function M.dustShelf()
 	local out = {}
 	for _, def in ipairs(M.CASES) do
-		table.insert(out, def.id)
+		if def.caseType == "wild" or def.forSale then
+			table.insert(out, def.id)
+		end
 	end
 	return out
 end
