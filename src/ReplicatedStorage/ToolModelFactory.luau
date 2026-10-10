@@ -1105,8 +1105,119 @@ local function buildLunarPickaxe(variant, model)
 	return handle
 end
 
+--[[
+	THE SLEDGEHAMMER. Owner, 2026-10-10: "make another class (Hammers most
+	damage; looks like sledge hammers)".
+
+	A sledge is a pickaxe's opposite in silhouette and that is the whole
+	point: where the pick is two thin horns sweeping down, this is one solid
+	block sitting square across the top of a long haft. Read at a glance, in
+	the hand, from behind -- you should never mistake which one you are
+	holding.
+
+	Built on the same haft the pick uses, for the same reason the five
+	invented pickaxe heads were deleted: the family is told by the HEAD, and
+	the handle is the part that says "this is a mining tool". The haft runs
+	longer and thicker than the pick's, because a sledge is two-handed.
+
+	Ore identity lands on the head block and the band, with the wood/dark
+	haft from oreLook -- the same split every icon uses.
+]]
+local function buildHammer(t, model, look)
+	local metal = (look and look.metal) or ramp(PICK_METAL, t)
+	local haft = (look and look.haft) or ramp(PICK_HAFT, t)
+	local mat = (look and look.mat) or metalFor(t)
+	local lit = look and look.lit or nil
+	local refl = (look and look.refl) or (0.06 + t * 0.24)
+
+	-- Longer and fatter than the pick's: a sledge is swung with two hands.
+	local handle = cyl({
+		Name = "Handle", Length = 3.4, Dia = 0.38,
+		CFrame = CFrame.new(0, -0.35, 0),
+		Color = haft, Material = t < 0.5 and Enum.Material.Wood or Enum.Material.Metal,
+	}, model)
+	cyl({
+		Name = "Pommel", Length = 0.26, Dia = 0.52,
+		CFrame = CFrame.new(0, -2.0, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	for i = 0, 5 do
+		cyl({
+			Name = "Wrap", Length = 0.18, Dia = 0.43,
+			CFrame = CFrame.new(0, -1.72 + i * 0.24, 0),
+			Color = t < 0.55 and C3(60, 44, 30) or metal:Lerp(DARK, 0.45),
+			Material = t < 0.55 and Enum.Material.Fabric or Enum.Material.Metal,
+		}, model)
+	end
+
+	--[[
+		THE HEAD: one square block across the haft, with a face plate at each
+		end. Deliberately BLUNT -- no taper, no point. Everything that reads
+		as "heavy" here is width and squareness, not length.
+	]]
+	local hy = 1.42
+	local hw = 1.15 + t * 0.45
+	box({
+		Name = "Head", Size = Vector3.new(hw, 0.62 + t * 0.14, 0.66 + t * 0.12),
+		CFrame = CFrame.new(0, hy, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	for _, s in ipairs({ -1, 1 }) do
+		box({
+			Name = "Face", Size = Vector3.new(0.16, 0.74 + t * 0.16, 0.78 + t * 0.14),
+			CFrame = CFrame.new(s * (hw * 0.5 + 0.06), hy, 0),
+			Color = metal:Lerp(C3(255, 255, 255), 0.26),
+			Material = mat, Reflectance = refl + 0.1,
+		}, model)
+		-- A chamfer behind each face, so the block is not a plain cuboid.
+		box({
+			Name = "Bevel", Size = Vector3.new(0.2, 0.46, 0.5),
+			CFrame = CFrame.new(s * (hw * 0.5 - 0.1), hy, 0)
+				* CFrame.Angles(0, 0, math.rad(s * 10)),
+			Color = metal:Lerp(DARK, 0.2), Material = mat, Reflectance = refl,
+		}, model)
+	end
+	-- Collar where the haft passes through, and the wedge that pins it.
+	box({
+		Name = "Collar", Size = Vector3.new(0.52, 0.3, 0.58),
+		CFrame = CFrame.new(0, hy - 0.42, 0),
+		Color = metal:Lerp(DARK, 0.34), Material = mat, Reflectance = refl,
+	}, model)
+	box({
+		Name = "Wedge", Size = Vector3.new(0.3, 0.14, 0.42),
+		CFrame = CFrame.new(0, hy + 0.4, 0),
+		Color = metal:Lerp(C3(255, 255, 255), 0.18), Material = mat,
+	}, model)
+
+	-- Deep tiers grow shards off the head, exactly as the pick does, so the
+	-- two families age the same way.
+	if t > 0.62 then
+		local n = 3 + math.floor((t - 0.62) * 8)
+		for i = 1, n do
+			local a = math.rad((i / n) * 360)
+			box({
+				Name = "Shard",
+				Size = Vector3.new(0.14, 0.26 + (i % 2) * 0.18, 0.14),
+				CFrame = CFrame.new(0, hy, 0) * CFrame.Angles(0, a, 0)
+					* CFrame.new(hw * 0.32, 0.3, 0) * CFrame.Angles(math.rad(14), 0, math.rad(20)),
+				Color = metal:Lerp(C3(255, 255, 255), 0.34),
+				Material = mat, Reflectance = refl + 0.12,
+			}, model)
+		end
+	end
+	if lit then
+		box({
+			Name = "Rune", Size = Vector3.new(hw * 0.7, 0.09, 0.1),
+			CFrame = CFrame.new(0, hy, 0.34),
+			Color = lit, Material = Enum.Material.Neon,
+		}, model)
+	end
+	return handle
+end
+
 local BUILDERS = {
 	pickaxe = buildPickaxe, drill = buildDrill, explosive = buildExplosive,
+	hammer = buildHammer,
 }
 -- buildRanged is deliberately not in BUILDERS: the ranged family was cut, and
 -- build() falls back to pickaxe for anything it does not recognise. Kept in the
@@ -1138,6 +1249,9 @@ local GRIPS = {
 	-- height rather than swinging round the knees.
 	pickaxe = (HAFT_UP * CFrame.Angles(0, 0, math.rad(14)) * CFrame.new(0.7, 0, 0)):Inverse(),
 	explosive = (HAFT_UP * CFrame.Angles(0, 0, math.rad(10)) * CFrame.new(0.45, 0, 0)):Inverse(),
+	-- Hammer: hafted like the pickaxe, gripped a little lower because the haft
+	-- is longer and it is swung with two hands.
+	hammer = (HAFT_UP * CFrame.Angles(0, 0, math.rad(12)) * CFrame.new(0.95, 0, 0)):Inverse(),
 	-- Machines are authored with the grip up +Y and the working end down -Z,
 	-- which is already how an identity grip lands them: up is up, forward is
 	-- forward. They only need settling into the palm.
@@ -1151,7 +1265,7 @@ local GRIPS = {
 --
 -- Target: a held tool reads at roughly 3.5 studs against a 5-stud character,
 -- with the pickaxe deliberately larger because it is the two-handed one.
-local SCALE = { pickaxe = 1.28, drill = 0.68, explosive = 0.74 }
+local SCALE = { pickaxe = 1.28, drill = 0.68, explosive = 0.74, hammer = 1.2 }
 
 --[[
 	NAMED HQ MESHES IN THE HAND.
@@ -1977,7 +2091,7 @@ function ToolModelFactory.fromNamed(toolName, finish, familyHint)
 	end
 
 	local family = familyHint or guessFamily(folderName or toolName)
-	if family ~= "drill" and family ~= "explosive" then
+	if family ~= "drill" and family ~= "explosive" and family ~= "hammer" then
 		family = "pickaxe"
 	end
 	local pose = NAMED_POSE[folderName] or NAMED_POSE[toolName] or measuredPoseFor(folderName or toolName, model, family) or {}

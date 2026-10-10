@@ -2626,6 +2626,7 @@ MineConfig.ORE_MIN_SHARE = 1e-6
 ]]
 MineConfig.FORGE_ONLY_FAMILIES = {
 	pickaxe = true,
+	hammer = true,
 	drill = true,
 	explosive = true,
 	weapon = true,

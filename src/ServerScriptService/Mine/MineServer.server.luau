@@ -2176,7 +2176,29 @@ local function equippedTool(p)
 			local lvl = math.max(1, tonumber(held.level) or 1)
 			local power = 1
 			if C.toolPower then
-				power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)))
+				--[[
+					PER-FAMILY DAMAGE. toolPower takes no family argument, so a
+					hammer would otherwise hit exactly as hard as a pickaxe at
+					half the swing rate -- strictly worse, not a damage class.
+					See MineOreTools.FAMILY_POWER.
+
+					Required HERE rather than reaching for the `OreToolsM`
+					local further down this function: that one is declared in a
+					LATER branch, so naming it from this branch reads a nil
+					global. The `and` guard would have hidden it -- the
+					multiplier would silently fall back to 1 and hammers would
+					quietly stay broken.
+				]]
+				local famPow = 1
+				do
+					local okFP, FP = pcall(function()
+						return require(shared:WaitForChild("MineOreTools"))
+					end)
+					if okFP and FP and FP.familyPower then
+						famPow = FP.familyPower(famId)
+					end
+				end
+				power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult) * famPow))
 			end
 			--[[
 				FINISHES RIDE AN ORE TOOL THE SAME WAY THEY RIDE A FLAGSHIP.
@@ -2334,7 +2356,9 @@ local function equippedTool(p)
 					(oreDef and oreDef.name) or ("Tier " .. tostring(oreRow.tier)),
 					OreToolsM.familyNoun(famId)),
 				family = famId,
-				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult))),
+				-- Per-family damage; see MineOreTools.FAMILY_POWER.
+				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult)
+					* (OreToolsM and OreToolsM.familyPower and OreToolsM.familyPower(famId) or 1))),
 				rate = stats.rate or 2.6,
 				radius = stats.radius or 0,
 				cells = stats.cells or 1,
@@ -15505,7 +15529,7 @@ function Verbs.equipTemper(plr, payload)
 	local target
 	local family = payload.family
 	if family then
-		if family ~= "pickaxe" and family ~= "drill" and family ~= "explosive" then
+		if family ~= "pickaxe" and family ~= "hammer" and family ~= "drill" and family ~= "explosive" then
 			net:FireClient(plr, "toast", "Unknown tool family")
 			return
 		end
@@ -15563,7 +15587,7 @@ function Verbs.rollTemper(plr, payload)
 	local family = type(payload) == "table" and payload.family or nil
 	local ft
 	if family then
-		if family ~= "pickaxe" and family ~= "drill" and family ~= "explosive" then
+		if family ~= "pickaxe" and family ~= "hammer" and family ~= "drill" and family ~= "explosive" then
 			net:FireClient(plr, "toast", "Unknown tool family")
 			return
 		end

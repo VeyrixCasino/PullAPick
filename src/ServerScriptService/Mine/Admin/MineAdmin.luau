@@ -250,7 +250,7 @@ function MineAdmin.start(deps)
 			if equippedTool then
 				equippedTool(p)
 			end
-			if p.tools[fam] ~= nil or fam == "pickaxe" or fam == "drill" or fam == "explosive" then
+			if p.tools[fam] ~= nil or fam == "pickaxe" or fam == "hammer" or fam == "drill" or fam == "explosive" then
 				p.tools[fam] = tier
 				p.toolFamily = fam
 				p.toolEquipped = true
@@ -358,7 +358,7 @@ function MineAdmin.start(deps)
 			else
 				local fam = tostring(payload.namedToolFamily or "")
 				local tier = clampInt(payload.namedToolTier or payload.toolTier or 1, 1, 99)
-				if fam ~= "pickaxe" and fam ~= "drill" and fam ~= "explosive" then
+				if fam ~= "pickaxe" and fam ~= "hammer" and fam ~= "drill" and fam ~= "explosive" then
 					return { ok = false, err = "unknown_named_tool" }
 				end
 				p.tools = p.tools or { pickaxe = 1, drill = 0, explosive = 0 }
@@ -1071,7 +1071,7 @@ function MineAdmin.start(deps)
 			local want = string.lower(tostring(args[2] or "all"))
 			local fams = (want == "all")
 					and { "pickaxe", "drill", "explosive" }
-				or (want == "pickaxe" or want == "drill" or want == "explosive") and { want }
+				or (want == "pickaxe" or want == "hammer" or want == "drill" or want == "explosive") and { want }
 				or nil
 			if not fams then
 				notifyAdmin(admin, "usage: /admin oretools [all|pickaxe|drill|explosive]")

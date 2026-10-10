@@ -635,7 +635,7 @@ local function paintToolViewport(box, item, z)
 		return false
 	end
 	local family = item.family or (item.def and item.def.family) or "pickaxe"
-	if family ~= "drill" and family ~= "explosive" then
+	if family ~= "drill" and family ~= "explosive" and family ~= "hammer" then
 		family = "pickaxe"
 	end
 	local owned = item.owned

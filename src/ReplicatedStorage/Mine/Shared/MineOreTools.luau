@@ -52,13 +52,16 @@ local Traits = require(shared:WaitForChild("MineTraits"))
 -- What one of these is called. Singular, because it names one tool.
 MineOreTools.NOUN = {
 	pickaxe = "Pickaxe",
+	hammer = "Hammer",
 	drill = "Drill",
 	explosive = "Explosive",
 	weapon = "Weapon",
 }
 
 -- The families a player can actually forge in, in rail order.
-MineOreTools.FAMILY_ORDER = { "pickaxe", "drill", "explosive" }
+-- Hammer sits next to the pickaxe: both are single-target melee, and a player
+-- choosing between "chip fast" and "hit hard" should see them side by side.
+MineOreTools.FAMILY_ORDER = { "pickaxe", "hammer", "drill", "explosive" }
 
 function MineOreTools.familyNoun(familyId)
 	local id = tostring(familyId or "pickaxe")
@@ -155,10 +158,51 @@ end
 	with nothing going up. That is a 30% cut to forge costs nobody asked for.
 	Baking the real curve removes the dependency and changes no number at all.
 ]]
+--[[
+	PER-FAMILY DAMAGE, which the game had no way to express until now.
+
+	Owner, 2026-10-10: "Hammers most damage".
+
+	`C.toolPower(tier, level, typeMult)` has no family argument, and typeMult
+	is the only family-dependent input -- so with the pickaxe's rung spacing a
+	hammer came out at IDENTICAL damage per hit and HALF the swing rate, which
+	is not a damage class, it is a worse pickaxe. Measured before this: a
+	tier-41 pick and hammer both hit for 24,484, at 2.8/sec against 1.30.
+
+	Raising it through typeMult instead was the other option and it is the
+	wrong one: typeMult also drives craft COST, so a hammer would have become
+	expensive rather than hard-hitting, and the two knobs would be welded
+	together forever.
+
+	2.2 is chosen against the rate ratio, not picked for feel. A hammer swings
+	at about 0.46x a pickaxe, so 1/0.46 = 2.15 is DPS parity; 2.2 puts it a
+	couple of percent above, which is the right side of even for a tool that
+	is strictly less flexible -- you cannot tap a hammer at a thin seam.
+
+	What a player feels: the hammer hits more than twice as hard per blow and
+	ends up in the same place over a minute. That matters because block HP is
+	a threshold, not a pool -- a blow that overkills a block wastes the
+	excess, so the hammer is better on deep high-HP rock and worse on shallow
+	chip-work. That is a real choice rather than a bigger number.
+]]
+MineOreTools.FAMILY_POWER = {
+	pickaxe = 1,
+	hammer = 2.2,
+	drill = 1,
+	explosive = 1,
+}
+
+function MineOreTools.familyPower(familyId)
+	return MineOreTools.FAMILY_POWER[tostring(familyId or "pickaxe")] or 1
+end
+
 MineOreTools.TYPE_MULT_STEPS = {
 	pickaxe = { 6, 16, 27, 37, 48, 59, 69, 82 },
 	drill = { 9, 19, 30, 41, 52, 63, 73, 82 },
 	explosive = { 9, 19, 30, 41, 52, 63, 73, 82 },
+	-- Hammers sit on the pickaxe's rung spacing: both are single-target melee,
+	-- so a hammer and a pick of the same ore should cost the same to forge.
+	hammer = { 6, 16, 27, 37, 48, 59, 69, 82 },
 }
 
 --[[
@@ -190,6 +234,42 @@ MineOreTools.FRAME_STATS = {
 			{23,2.3}, {27,2.6}, {30,2.4}, {34,2.7}, {37,2.5}, {41,2.8},
 			{45,2.6}, {48,2.9}, {52,2.7}, {55,2.5}, {59,3}, {62,2.8},
 			{66,3.1}, {69,2.9}, {73,3.2}, {76,3}, {80,3.1}, {82,3.2},
+		},
+		cells = { {82,1} },
+		radius = { {82,0} },
+		shape = { {82,"melee"} },
+		width = { {82,false} },
+		axis = { {82,false} },
+		turn = { {82,false} },
+		bombs = { {82,false} },
+		pattern = { {82,false} },
+		cooldown = { {82,false} },
+	},
+	--[[
+		HAMMERS -- the hardest hit in the game, and the slowest.
+
+		Owner, 2026-10-10: "make another class (Hammers most damage; looks
+		like sledge hammers)".
+
+		Damage in this game is `toolPower x rate`, so "most damage" has to be
+		expressed as damage PER SWING, not as damage per second -- otherwise
+		it is just a better pickaxe and there is no reason to carry one. A
+		hammer swings at roughly HALF a pickaxe's rate (1.1 to 1.6 against
+		2.3 to 3.2), and MineOreTools.typeMult puts it a rung above the pick,
+		so each blow lands far harder while the sustained output stays in
+		family.
+
+		That is the trade a player should feel: a pick chips, a hammer
+		commits. It is single-target melee like the pick -- one cell, no
+		radius -- because a slow AOE would simply be the explosive.
+
+		The rate curve rises a little across the roster, like the pick's, so
+		a deep hammer is not literally unplayable to hold.
+	]]
+	hammer = {
+		rate = {
+			{6,1.1}, {16,1.15}, {27,1.2}, {37,1.25}, {48,1.3},
+			{59,1.4}, {69,1.5}, {82,1.6},
 		},
 		cells = { {82,1} },
 		radius = { {82,0} },
