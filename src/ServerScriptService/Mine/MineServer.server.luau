@@ -4609,6 +4609,42 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		part.Color = C.LUCKY_LAYER_COLOR or Color3.fromRGB(255, 214, 92)
 		part.Material = Enum.Material.Neon
 	end
+	--[[
+		CANDY CRYPT ROCK.
+
+		Rolled from the cell position, not from an RNG stream, so the same block
+		is the same candy on every server and after a reload -- the same reason
+		veinOreAt is a pure function of position.
+
+		Candy is NOT routed through oreDef. It is a currency, not a pouch ore,
+		and MineConfig.ORES is left untouched so no existing zone's ore mix
+		moves (see the comment on MineConfig.CANDY_ORES). Any OreId this block
+		picked up above is cleared, or it would pay out twice.
+	]]
+	if zone.id == "hallow" and C.candyOreAt
+		and kind ~= "chest" and kind ~= "core" and kind ~= "lucky_block"
+	then
+		-- bit32.bxor, not `~`: Luau has no bitwise-xor operator.
+		local seed = bit32.bxor(bit32.bxor(x * 73856093, y * 19349663), z * 83492791)
+		local crng = Random.new(seed)
+		if crng:NextNumber() < (C.CANDY_ORE_SHARE or 0.15) then
+			local cdef = C.candyOreAt(y, crng, C.CANDY_DEPTH_LAYERS)
+			if cdef then
+				part.Color = cdef.color
+				part.Material = cdef.material or Enum.Material.SmoothPlastic
+				part:SetAttribute("OreId", nil)
+				part:SetAttribute("OreName", nil)
+				part:SetAttribute("OreTier", nil)
+				part:SetAttribute("CandyOre", cdef.id)
+				part:SetAttribute("CandyName", cdef.name)
+				-- Banked at spawn so the payout cannot disagree with the block
+				-- the player actually looked at.
+				part:SetAttribute("Candy", math.max(1, math.floor(
+					(cdef.candy or 1) * (C.candySectionMult and C.candySectionMult(y) or 1)
+				)))
+			end
+		end
+	end
 	part:SetAttribute("ZoneId", zone.id)
 	part:SetAttribute("CX", x)
 	part:SetAttribute("CY", y)
@@ -6210,6 +6246,24 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			compounds. MineConfig.oreHaulMult clamps it at ORE_HAUL_CAP however
 			tall the stack gets.
 		]]
+		--[[
+			CANDY first, and it returns: a candy block has no OreId, so the ore
+			branch below would not fire anyway, but making that explicit keeps
+			the two payouts from ever both running if a future change stamps
+			both. Candy goes straight to the balance -- no pouch, no capacity
+			check, nothing to sell.
+		]]
+		local candyGot = tonumber(part:GetAttribute("Candy"))
+		if candyGot and candyGot > 0 then
+			p.candy = math.max(0, math.floor((tonumber(p.candy) or 0) + candyGot))
+			local cname = tostring(part:GetAttribute("CandyName") or "Candy")
+			net:FireClient(plr, "loot", {
+				text = ("+%d %s"):format(candyGot, cname),
+				color = part.Color,
+				pos = part.Position,
+			})
+			markDirty(plr)
+		end
 		local ore = C.oreById(part:GetAttribute("OreId"))
 		if ore then
 			local lo, hi = C.oreYieldFor(ore.tier)

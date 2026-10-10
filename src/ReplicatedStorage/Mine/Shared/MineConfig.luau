@@ -2165,6 +2165,7 @@ do
 		mythral = { word = "Ossuary", hue = Color3.fromRGB(200, 180, 120) },
 		primordium = { word = "Magma", hue = Color3.fromRGB(180, 70, 30) },
 		bigbang = { word = "Horizon", hue = Color3.fromRGB(200, 210, 255) },
+		hallow = { word = "Candy", hue = Color3.fromRGB(255, 142, 44) },
 	}
 	-- No "dust". Prefer stone / rock / ite (and a few hard rock words).
 	local TAIL = { "stone", "rock", "ite", "shale", "basalt", "flint", "ore", "slate", "granite", "vein" }
@@ -2179,6 +2180,7 @@ do
 		mythral = {"Boneloam","Relicsod","Tombclay","Ossumarl","Cryptpeat"},
 		primordium = {"Magmaloam","Lavasod","Emberclay","Coremarl","Pyrepeat"},
 		bigbang = {"Protozoam","Sparksod","Nullclay","Aethermarl","Genesispeat"},
+		hallow = {"Sugarloam","Gumsod","Toffeeclay","Caramarl","Liquorpeat"},
 	}
 	local PLANET_ROCK = {
 		sunscar = {"Glassite","Dunestone","Solrock","Scorchite","Mirageflint"},
@@ -2191,6 +2193,7 @@ do
 		mythral = {"Ossistone","Relicite","Tombflint","Boneite","Cryptrock"},
 		primordium = {"Magmite","Lavastone","Emberflint","Coreite","Pyrock"},
 		bigbang = {"Protostone","Nullite","Aetherflint","Horizite","Genesisrock"},
+		hallow = {"Candystone","Gumdropite","Toffeeflint","Nougatrock","Brittleite"},
 	}
 	for zoneId, theme in pairs(THEME) do
 		local list = {}
@@ -2253,11 +2256,20 @@ function MineConfig.refreshZoneSections()
 	MineConfig._zoneSecFrom = 0
 	-- Force the module's initial builder pattern by clearing and copying from Depth again.
 	--[[
-		NOTE: this is the LIVE builder. There is a second, older one above with
-		its own THEME / PLANET_DIRT / PLANET_ROCK that looks identical and is
-		dead -- line 2293 reassigns MineConfig.ZONE_SECTIONS, throwing its work
-		away. A zone added to the one above and not to this one gets no strata
-		at all and reads nil, which is what `hallow` did until it was added here.
+		THERE ARE TWO OF THESE AND A NEW ZONE NEEDS TO BE IN BOTH.
+
+		The block above runs at module load and is what normally populates
+		ZONE_SECTIONS. This one is the REBUILD, for when MineDepth's section
+		count changes under a Studio Source edit -- and the guard directly above
+		returns early whenever nothing has changed, so most of the time it never
+		runs at all.
+
+		Neither is dead, and they are easy to mistake for each other: the tables
+		have different shapes (THEME carries word+hue, here it is THEME_WORD and
+		THEME_HUE) but the same contents. A zone added to only one of them looks
+		correct in the file and reads nil at runtime, which is exactly what
+		`hallow` did -- added here first, where the early return meant it never
+		executed.
 	]]
 	local THEME_WORD = {
 		meadow = "", sunscar = "Sunscar", mistreef = "Tide", arcwork = "Cog",
@@ -3951,6 +3963,117 @@ end
 
 function MineConfig.oreById(id)
 	return MineConfig.ORE_BY_ID[tostring(id or "")]
+end
+
+--[[
+	CANDY ORES -- the Candy Crypt's own rock, and deliberately NOT in ORES.
+
+	ORES is one global 82-rung ladder, and `oreWeights` gives every rung a
+	weight from its own `d` against the zone's difficulty. There is no per-zone
+	filter. So a candy rung added to ORES would appear in EVERY mine at the
+	depth matching its d, and would shift the share of every ore around it --
+	changing spawn rates across all eleven existing zones. That is not a change
+	to make while adding a Halloween event, so candy lives in its own table and
+	ORES is untouched to the byte.
+
+	They also bypass the ore pouch. A pouch ore has to be sellable, forgeable,
+	benchable and discoverable, and candy is none of those: it is a currency you
+	spend at the Trick-or-Treat shelf. A block grants `candy` on break and that
+	is the whole contract.
+
+	`at` is the fraction of the way down the mine where the ore is centred, so
+	the mix walks from Candy Corn at the top to Jawbreakers at the bottom.
+
+	PROPOSED (2026-10-10): every candy number here -- the amounts, the spread,
+	and CANDY_ORE_SHARE.
+]]
+--[[
+	ONE TABLE FOR EVERY CANDY NUMBER, so the owner has one place to edit.
+	All PROPOSED (2026-10-10) except the two the owner stated: ten layers to a
+	section, and 3x per section.
+
+	  CANDY_ORE_SHARE      how many of the Crypt's blocks are candy ore
+	  CANDY_SECTION_SPAN   layers per section            -- owner: 10
+	  CANDY_SECTION_MULT   per-section multiplier        -- owner: 3x
+	  CANDY_DEPTH_LAYERS   depth the candy ladder spans, 12 ores x 10 layers
+	  CANDY_SELL_BASE      coins a Crypt block sells for in section 1
+]]
+MineConfig.CANDY_ORE_SHARE = 0.15
+MineConfig.CANDY_SECTION_SPAN = 10
+MineConfig.CANDY_SECTION_MULT = 3
+MineConfig.CANDY_DEPTH_LAYERS = 120
+MineConfig.CANDY_SELL_BASE = 1
+
+-- Which section of the Crypt a layer is in, 1-based. Its own span, because
+-- SECTION_SPAN is 25 game-wide and the owner asked for 10 here.
+function MineConfig.candySection(layer)
+	local span = math.max(1, tonumber(MineConfig.CANDY_SECTION_SPAN) or 10)
+	return math.max(1, math.floor(((tonumber(layer) or 1) - 1) / span) + 1)
+end
+
+-- 3x per section, compounding. This is the "extremely exponential" the owner
+-- asked for: section 10 pays 3^9 = 19,683 times section 1.
+function MineConfig.candySectionMult(layer)
+	local m = tonumber(MineConfig.CANDY_SECTION_MULT) or 3
+	return m ^ (MineConfig.candySection(layer) - 1)
+end
+
+MineConfig.CANDY_ORES = {
+	{ id = "candy_corn", name = "Candy Corn", at = 0.00, candy = 1, color = Color3.fromRGB(255, 176, 46), material = Enum.Material.SmoothPlastic },
+	{ id = "gumdrop", name = "Gumdrop", at = 0.09, candy = 2, color = Color3.fromRGB(226, 72, 128), material = Enum.Material.Glass },
+	{ id = "licorice", name = "Licorice", at = 0.18, candy = 3, color = Color3.fromRGB(46, 38, 54), material = Enum.Material.SmoothPlastic },
+	{ id = "caramel", name = "Caramel", at = 0.27, candy = 5, color = Color3.fromRGB(190, 118, 48), material = Enum.Material.Sand },
+	{ id = "taffy", name = "Taffy", at = 0.36, candy = 8, color = Color3.fromRGB(246, 150, 196), material = Enum.Material.SmoothPlastic },
+	{ id = "toffee_shard", name = "Toffee Shard", at = 0.45, candy = 12, color = Color3.fromRGB(150, 86, 36), material = Enum.Material.Glass },
+	{ id = "nougat", name = "Nougat", at = 0.54, candy = 18, color = Color3.fromRGB(236, 214, 170), material = Enum.Material.Foil },
+	{ id = "rock_candy", name = "Rock Candy", at = 0.63, candy = 26, color = Color3.fromRGB(152, 220, 246), material = Enum.Material.Ice },
+	{ id = "candy_apple", name = "Candy Apple", at = 0.72, candy = 38, color = Color3.fromRGB(206, 30, 44), material = Enum.Material.Glass },
+	{ id = "sugar_skull", name = "Sugar Skull", at = 0.81, candy = 55, color = Color3.fromRGB(244, 240, 228), material = Enum.Material.Plaster },
+	{ id = "chocolate_skull", name = "Chocolate Skull", at = 0.90, candy = 80, color = Color3.fromRGB(78, 46, 30), material = Enum.Material.Slate },
+	{ id = "jawbreaker", name = "Jawbreaker", at = 1.00, candy = 120, color = Color3.fromRGB(180, 120, 240), material = Enum.Material.Neon },
+}
+
+MineConfig.CANDY_BY_ID = {}
+for _, o in ipairs(MineConfig.CANDY_ORES) do
+	MineConfig.CANDY_BY_ID[o.id] = o
+end
+
+function MineConfig.candyOreById(id)
+	return MineConfig.CANDY_BY_ID[tostring(id or "")]
+end
+
+--[[
+	Which candy ore sits at this depth.
+
+	A narrow window that slides down the mine, not a flat roll: the top of the
+	Crypt is Candy Corn and the bottom is Jawbreakers, with a couple of
+	neighbours either side so a layer is never one single rock. `span` is how
+	far either side still has a chance, in the same 0..1 units as `at`.
+]]
+function MineConfig.candyOreAt(layer, rng, maxLayer)
+	local list = MineConfig.CANDY_ORES
+	local top = math.max(1, tonumber(maxLayer) or (MineConfig.CANDY_DEPTH_LAYERS or 100))
+	local t = math.clamp((tonumber(layer) or 1) / top, 0, 1)
+	local span = 0.22
+	local w, tot = table.create(#list), 0
+	for i, o in ipairs(list) do
+		local d = math.abs(o.at - t)
+		local v = (d >= span) and 0 or (1 - d / span) ^ 2
+		w[i] = v
+		tot += v
+	end
+	if tot <= 0 then
+		-- Past the bottom of the table: the deepest candy, not nothing.
+		return list[#list]
+	end
+	local pick = ((rng and rng.NextNumber) and rng:NextNumber() or math.random()) * tot
+	for i, o in ipairs(list) do
+		pick -= w[i]
+		if pick <= 0 then
+			return o
+		end
+	end
+	return list[#list]
 end
 
 --[[
