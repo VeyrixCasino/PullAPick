@@ -1069,8 +1069,15 @@ function MineAdmin.start(deps)
 				return true
 			end
 			local want = string.lower(tostring(args[2] or "all"))
+			--[[
+				Read from MineOreTools.FAMILY_ORDER rather than listing the
+				families here. This said { pickaxe, drill, explosive } and
+				silently skipped hammers the day they shipped -- "all tools"
+				that quietly means "all but one family" is the worst kind of
+				admin command. A fifth family now needs no edit here.
+			]]
 			local fams = (want == "all")
-					and { "pickaxe", "drill", "explosive" }
+					and (OreTools.FAMILY_ORDER or { "pickaxe", "drill", "explosive" })
 				or (want == "pickaxe" or want == "hammer" or want == "drill" or want == "explosive") and { want }
 				or nil
 			if not fams then
