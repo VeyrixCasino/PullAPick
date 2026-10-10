@@ -9734,20 +9734,6 @@ local function salvage(plr, id)
 	end
 end
 
-local function powerUp(plr, id)
-	local p = profiles[plr.UserId]
-	local c = cardById(p, id)
-	if not c then return end
-	if (c.powerLevel or 1) >= C.MAX_POWER then net:FireClient(plr, "toast", "Max power") return end
-	-- Priced by the card (MineConfig.powerDustCost). What was paid is kept on
-	-- the card: recycling refunds half of it, never more.
-	local cost = C.vipPrice(C.powerDustCost(c.powerLevel or 1, c), hasVipPass(plr))
-	if p.dust < cost then net:FireClient(plr, "toast", "Need " .. cost .. " dust") return end
-	p.dust -= cost
-	c.powerSpent = C.powerSpent(c) + cost
-	c.powerLevel = (c.powerLevel or 1) + 1
-	snap(plr)
-end
 --[[
 	TOOLS ARE NOT BOUGHT ANY MORE. THEY ARE FORGED.
 
@@ -17406,7 +17392,6 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "fusePassTools" then Verbs.fusePassTools(plr)
 		elseif action == "salvage" then salvage(plr, payload)
 		elseif action == "scrap" then scrapItem(plr, payload)
-		elseif action == "power" then powerUp(plr, payload)
 		elseif action == "buy" then buy(plr, payload)
 		elseif action == "introAck" then
 			local p = profiles[plr.UserId]

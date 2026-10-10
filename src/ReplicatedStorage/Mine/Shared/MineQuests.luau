@@ -55,7 +55,7 @@ MineQuests.CHAIN = {
 	{ id = "merge1",     stat = "merges",   goal = 1,       text = "Merge three of a kind",        tip = "Three matching cards merge into one stronger card.", reward = { pack = "iron_pack", packQty = 2 } },
 	{ id = "open10",     stat = "packs",    goal = 10,      text = "Open 10 packs",                tip = "Summon tab: Runes 25g, Gear 75g.", reward = { gems = 150 } },
 	{ id = "chestsL5",   stat = "chestsL5", goal = 5,       text = "Open 5 chests below 200m (Layer 5+)", tip = "Drills bore straight down — built for depth runs.", reward = { gems = 400, tool = "meadow_surface_8_drill", toolName = "Twistauger" } },
-	{ id = "cards50",    stat = "cards",    goal = 50,      text = "Collect 50 more cards",        tip = "Power-up cards with stardust — power survives rebirth.", reward = { gems = 180 } },
+	{ id = "cards50",    stat = "cards",    goal = 50,      text = "Collect 50 more cards",        tip = "Recycle spare cards for stardust, then spend it on pack cases.", reward = { gems = 180 } },
 	{ id = "sell25",     stat = "sells",    goal = 25,      text = "Sell 25 hauls",                tip = "Watch the Rebirth tab: farm to the MINIMUM bank, not just the fee.", reward = { gems = 220 } },
 	{ id = "gear3",      stat = "gear",     goal = 3,       text = "Summon 3 gear pieces",         tip = "Equip gear by slot. Matching sets add bonuses.", reward = { gems = 140 } },
 	-- Charms drop from chests at 0.5% and are also bought with temper tokens,

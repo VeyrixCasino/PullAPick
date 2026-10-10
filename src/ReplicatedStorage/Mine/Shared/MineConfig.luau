@@ -736,23 +736,15 @@ function MineConfig.isProgressionZone(zone)
 	return zone ~= nil and not zone.limited
 end
 --[[
-	WHAT A POWER LEVEL COSTS. Owner, 2026-10-10, on "maxing an Exotic costs
-	7,500": "SHOULD COST A MINIMUM OF 2 OR 3 MILLION ... (REMEMBER HOW MUCH
-	DAMAGE THAT DOES)". A level is +4% to everything the pet does
-	(MineConfig.cardPower), so level 25 nearly doubles it. Decided:
+	PET LEVELS ARE GONE. Owner, 2026-10-10: maxing an Exotic cost 7,500 for
+	nearly double its damage; asked how strong that made pets, they chose
+	"Remove leveling". Nothing buys a level now: the server's "power" action and
+	the client's POWER-UP tab are gone. Levels already on a card stay and still
+	count in cardPower.
 
-	  POWER_MAX_EXOTIC  stardust to take an Exotic from level 1 to MAX_POWER
-	  every other card  the same, scaled by its card value (its recycle
-	                    value, MineConfig.RARITY_DUST x variant x finish), so a
-	                    Common costs ~5.6K to max and a Shadow Exotic 90M
-	  POWER_GROWTH      each level costs this much more than the one before
-
-	powerDustCost(level, card) is the price of level -> level + 1.
+	The old flat price was 25 x level. It is kept only to work out what those
+	levels cost, for the recycle refund (MineConfig.powerSpent).
 ]]
-MineConfig.POWER_MAX_EXOTIC = 30000000
-MineConfig.POWER_GROWTH = 1.2
--- The old flat price: 25 x level for every card. Kept only to work out what a
--- level bought before 2026-10-10 actually cost (MineConfig.powerSpent).
 MineConfig.POWER_DUST = 25
 -- VIP gamepass. No shop discount, bag, walk, or luck.
 -- Perks: remote sell (cooldown), AFK coins/gems, [VIP] tag. (It used to add a
@@ -1904,35 +1896,10 @@ function MineConfig.salvageDust(card)
 	return math.floor(MineConfig.cardBaseDust(card) + MineConfig.POWER_REFUND * MineConfig.powerSpent(card))
 end
 
--- The price of taking `card` from `level` to level + 1.
-function MineConfig.powerDustCost(level, card)
-	level = math.max(1, math.floor(tonumber(level) or 1))
-	local g = MineConfig.POWER_GROWTH
-	local steps = math.max(1, (MineConfig.MAX_POWER or 25) - 1)
-	-- The first level's price, so the whole climb sums to the card's budget.
-	local total = MineConfig.POWER_MAX_EXOTIC
-		* MineConfig.cardBaseDust(card or { rarityId = "Common" }) / MineConfig.RARITY_DUST.Exotic
-	local first = total * (g - 1) / (g ^ steps - 1)
-	return MineConfig.roundPrice(first * g ^ (level - 1))
-end
-
 --[[
-	A clean price (owner: "make it an even number"): under 100 to the nearest
-	5, otherwise two significant figures. 76,436 -> 76,000; 949 -> 950.
-]]
-function MineConfig.roundPrice(n)
-	n = tonumber(n) or 0
-	if n < 100 then
-		return math.max(5, math.floor(n / 5 + 0.5) * 5)
-	end
-	local step = 10 ^ (math.floor(math.log10(n)) - 1)
-	return math.floor(n / step + 0.5) * step
-end
-
---[[
-	The stardust actually put into a card's levels. New levels record it on the
-	card (`powerSpent`, MineServer powerUp); a card levelled before that pays
-	the old flat price back, so a level bought for 25 cannot refund thousands.
+	The stardust put into a card's levels: `powerSpent` if a level recorded it,
+	else the old flat 25 x level price, so a level bought for 25 can never
+	refund more than about half that.
 ]]
 function MineConfig.powerSpent(card)
 	local spent = tonumber(card.powerSpent)

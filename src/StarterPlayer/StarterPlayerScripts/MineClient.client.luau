@@ -7223,6 +7223,10 @@ local function refreshDust()
 	local Gear = require(shared:WaitForChild("MineGear"))
 
 	local sel = scrapUI.sel
+	-- The POWER-UP tab is gone: pets no longer level (owner, 2026-10-10).
+	if scrapUI.tab == "power" then
+		scrapUI.tab = "cards"
+	end
 	local tab = scrapUI.tab
 
 	-- A plain explanatory line. MineInventoryView has `note` for this; this file
@@ -7278,7 +7282,8 @@ local function refreshDust()
 	walletPill(shortNum(snap.gems or 0) .. " GEMS", T.GEM, 198)
 
 	----------------------------------------------------------------------------
-	-- Tabs. Power-up is the only one that spends, and it lives alone.
+	-- Tabs. Every one of them earns stardust; the POWER-UP tab that spent it is
+	-- gone with pet levelling.
 	----------------------------------------------------------------------------
 	local tabRow = mk("Frame", {
 		BackgroundTransparency = 1,
@@ -7286,25 +7291,21 @@ local function refreshDust()
 		LayoutOrder = 1,
 	}, dustP.Body)
 	local tabs = {
-		{ "cards", "CARDS" }, { "packs", "PACKS" }, { "runes", "RUNES" }, { "gear", "GEAR" }, { "power", "POWER-UP" },
+		{ "cards", "CARDS" }, { "packs", "PACKS" }, { "runes", "RUNES" }, { "gear", "GEAR" },
 	}
 	for ti, t in ipairs(tabs) do
 		local on = (tab == t[1])
-		local spend = (t[1] == "power")
 		local b = mk("TextButton", {
 			AutoButtonColor = true,
-			BackgroundColor3 = on and (spend and GOLD or T.GREEN) or BG2,
+			BackgroundColor3 = on and T.GREEN or BG2,
 			Font = FONT,
 			TextSize = 14,
-			TextColor3 = on and Color3.fromRGB(16, 20, 16) or (spend and GOLD or MUTED),
+			TextColor3 = on and Color3.fromRGB(16, 20, 16) or MUTED,
 			Text = t[2],
 			Position = UDim2.fromOffset((ti - 1) * 118, 0),
 			Size = UDim2.fromOffset(112, 30),
 		}, tabRow)
 		round(b, 7)
-		if spend and not on then
-			stroke(b, 1, GOLD)
-		end
 		b.MouseButton1Click:Connect(function()
 			scrapUI.tab = t[1]
 			scrapUI.sel = {}
@@ -7566,48 +7567,13 @@ local function refreshDust()
 			scrapNote("No spare gear. Equipped pieces are not offered.")
 		end
 
-	else
-		--[[
-			POWER-UP SPENDS. It is on its own tab for exactly that reason: on the
-			old screen it sat one row above "Scrap ... +16 stardust" in identical
-			styling, and the minus sign was the only thing telling you which way
-			the stardust was going.
-		]]
-		scrapNote("This tab SPENDS stardust to level a card. Everything else here earns it.", 0)
-		local worn = {}
-		for _, id in ipairs(snap.equipped or {}) do
-			worn[id] = true
-		end
-		local shownAny = false
-		for i, card in ipairs(snap.cards or {}) do
-			local cost = C.vipPrice(C.powerDustCost(card.powerLevel or 1, card), snap and snap.vip)
-			local afford = (snap.dust or 0) >= cost
-			local col = Cards.RARITY_COLOR[card.rarityId or ""] or MUTED
-			shownAny = true
-			tile(i, tostring(card.name),
-				string.format("level %d%s", card.powerLevel or 1, worn[card.id] and "  equipped" or ""),
-				"-" .. shortNum(cost) .. " stardust", afford and GOLD or Color3.fromRGB(190, 80, 80),
-				col, {}, function()
-				if not afford then
-					showToast("Not enough stardust")
-					return
-				end
-				net:FireServer("power", card.id)
-			end)
-			if i >= 120 then
-				break
-			end
-		end
-		if not shownAny then
-			scrapNote("No cards to power up.")
-		end
 	end
 
 	----------------------------------------------------------------------------
 	-- The action bar. Outside the scroll, so the totals never scroll away while
 	-- you are still choosing.
 	----------------------------------------------------------------------------
-	if tab ~= "power" then
+	do
 		local bar = mk("Frame", {
 			Name = "ScrapBar",
 			BackgroundColor3 = BG2,

@@ -858,7 +858,7 @@ MILLION … (REMEMBER HOW MUCH DAMAGE THAT DOES)"*. They then chose:
 - each level 20% pricier than the last;
 - recycling refunds half the spend.
 
-`MineConfig.powerDustCost(level, card)` is now `POWER_MAX_EXOTIC` ×
+`powerDustCost(level, card)` (gone: levelling was removed later that day) was `POWER_MAX_EXOTIC` ×
 card value ÷ Exotic dust, along a ×1.2 curve:
 - Common 5,625 to max;
 - Legendary 1.5M;
@@ -873,3 +873,26 @@ level now records what was paid on the card. An old card counts the old flat
 Verified in a Studio play test; suite 57/57.
 
 Updated: pets (new "Power levels" section), currencies-and-economy.
+
+## [2026-10-10] query | pet levelling removed
+The owner asked for clean numbers ("make it an even number"), then asked how
+strong levelling makes pets. Shown the answer, they chose "Remove leveling":
+- Level 25 was ×1.96 to a pet's own boosts.
+- A maxed Shadow Exotic was about 26× a plain Common: Scanline's shatter
+  damage went from +321% to +629% at level 25, and +1,887% as a Shadow.
+
+What was removed:
+- MineServer `powerUp` and its `power` action;
+- the Scrapper's POWER-UP tab;
+- the 30M price curve in `MineConfig`.
+
+What stays:
+- levels already on cards, which still count in `cardPower`;
+- recycling's half-refund, now always of the old 25 × level spend, so the
+  power-then-recycle faucet stays closed.
+
+Also: the quest tip about powering up cards was rewritten. Checked in Studio:
+the Scrapper shows CARDS / PACKS / RUNES / GEAR, and the console is clean.
+Suite 57/57.
+
+Updated: pets, currencies-and-economy.
