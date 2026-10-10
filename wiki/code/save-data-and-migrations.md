@@ -90,6 +90,7 @@ A roster change needs an id→id map that keeps the old ids as aliases (TODO §9
 | migration | stamp | what it does |
 |---|---|---|
 | Event Horizon renames | none (alias maps) | renames pet cards via `PetRoster.NAME_ALIASES`, and remaps event tool ids |
+| **Named-pet stack keys** (2026-10-10) | none (idempotent) | sets every named pet card's `cardKey` to `MinePetRoster.cardKeyOf(name)`, so copies from lucky blocks, the wheel, devGrant and packs stack and merge. Skips generated cards (`"set#007"`). Runs after the Event Horizon renames. |
 | Gear seats | none | moves `equippedGear.gloves` to `face`. The hat seats come from `Gear.HAT_SLOTS`, so `hat2` survives a rejoin. |
 | Runes and gear | none (runs every load) | `Runes.normalize` and `Gear.normalize`: labels tiers, converts word grades to letters, and **canonicalises stat keys** (below) |
 | Dropped fields | none | sets `fusePity`, `toolMastery` and `petHats` to nil. Ranged sockets fold into the pickaxe. |

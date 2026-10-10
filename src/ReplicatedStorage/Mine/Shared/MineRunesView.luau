@@ -122,7 +122,6 @@ function MineRunesView.mount(parent, opts)
 		gearRollPrice = 75,
 	}
 	local selected = {} -- up to 2 rune ids
-	local selectedHats = {} -- up to 2 hat gear ids for merge
 	local view = {}
 
 	local root = mk("Frame", {
@@ -552,78 +551,11 @@ function MineRunesView.mount(parent, opts)
 			end
 		end
 
-		-- Hat merge: only path to multi-stat hats. Grey out faces; red-dot ready.
+		-- Hats no longer merge two-into-one (owner, 2026-10-10): three of the same
+		-- hat at the same grade fuse one grade up, in the hat panel's Upgrade list.
 		detailLabel(" ", 8)
-		detailLabel("MERGE HATS", 16, GOLD)
-		detailLabel("Pick two hats. Faces cannot merge. Combines boosts into one piece.", nil, MUTED)
-		do
-			local hats = {}
-			for _, piece in ipairs(state.gear or {}) do
-				if Gear.isHatPiece and Gear.isHatPiece(piece) and not (Gear.isFacePiece and Gear.isFacePiece(piece)) then
-					table.insert(hats, piece)
-				end
-			end
-			table.sort(hats, function(a, b)
-				return (Gear.RARITY_RANK[a.rarity] or 0) > (Gear.RARITY_RANK[b.rarity] or 0)
-			end)
-			if #hats < 2 then
-				detailLabel(#hats == 0 and "No hats yet — open a Gear Case." or "Need two hats to merge.", nil, MUTED)
-			else
-				for _, piece in ipairs(hats) do
-					local on = table.find(selectedHats, piece.id) ~= nil
-					local can = true
-					local boost = Gear.hatEffectLine and Gear.hatEffectLine(piece) or string.format("+%.0f%%", (piece.pct or 0) * 100)
-					local row = mk("TextButton", {
-						Size = UDim2.new(1, 0, 0, 44),
-						BackgroundColor3 = on and GOLD or CARD_HI,
-						BackgroundTransparency = can and 0 or 0.45,
-						Text = "",
-						AutoButtonColor = true,
-						ZIndex = 35,
-					}, detailScroll)
-					round(row, 8)
-					if can and not on then
-						mk("Frame", {
-							BackgroundColor3 = RED, BorderSizePixel = 0,
-							AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -6, 0, 6),
-							Size = UDim2.fromOffset(8, 8), ZIndex = 37,
-						}, row)
-					end
-					local gImg = Gear.image and Gear.image(piece)
-					if gImg then
-						mk("ImageLabel", {
-							BackgroundTransparency = 1, Image = gImg, ScaleType = Enum.ScaleType.Fit,
-							Position = UDim2.fromOffset(6, 4), Size = UDim2.fromOffset(36, 36), ZIndex = 36,
-						}, row)
-					end
-					mk("TextLabel", {
-						BackgroundTransparency = 1, Font = FONT_M, TextSize = 13,
-						TextColor3 = on and Color3.fromRGB(28, 22, 12) or TEXT,
-						TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-						Text = string.format("%s  %s", tostring(piece.name or piece.setName or "Hat"), boost),
-						Position = UDim2.fromOffset(gImg and 48 or 10, 0), Size = UDim2.new(1, -56, 1, 0), ZIndex = 36,
-					}, row)
-					row.MouseButton1Click:Connect(function()
-						local idx = table.find(selectedHats, piece.id)
-						if idx then
-							table.remove(selectedHats, idx)
-						elseif #selectedHats < 2 then
-							table.insert(selectedHats, piece.id)
-						else
-							selectedHats[1] = selectedHats[2]
-							selectedHats[2] = piece.id
-						end
-						paint()
-					end)
-				end
-				if #selectedHats >= 2 and opts.onMergeHats then
-					detailBtn("MERGE HATS", GOLD, true, function()
-						opts.onMergeHats(selectedHats[1], selectedHats[2])
-						selectedHats = {}
-					end)
-				end
-			end
-		end
+		detailLabel("HATS", 16, GOLD)
+		detailLabel("Three of the same hat at the same grade fuse into the next grade (up to A). Find them under Hats, Upgrade.", nil, MUTED)
 
 		-- Compact gear
 		detailLabel(" ", 8)

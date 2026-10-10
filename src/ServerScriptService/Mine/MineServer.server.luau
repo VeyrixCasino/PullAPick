@@ -1151,6 +1151,24 @@ local function load(plr)
 			end
 		end
 	end
+	--[[
+		One stack key per named pet (MinePetRoster.cardKeyOf). Copies minted by a
+		lucky block ("lucky_block:Name"), the wheel ("group_wheel:Name"), devGrant
+		or Event Horizon carried their source as their key, so they never stacked
+		or merged with the same pet from a pack. Idempotent: a card already on
+		its key is left alone. Generated cards ("set#007") are never touched.
+	]]
+	if PetRoster and PetRoster.cardKeyOf then
+		for _, c in ipairs(p.cards) do
+			if type(c) == "table" and type(c.name) == "string"
+				and not (type(c.cardKey) == "string" and string.find(c.cardKey, "#", 1, true)) then
+				local key = PetRoster.cardKeyOf(c.name)
+				if key and c.cardKey ~= key then
+					c.cardKey = key
+				end
+			end
+		end
+	end
 	p.packs = p.packs or {}
 	p.packsOpened = p.packsOpened or {}
 	p.backpack = p.backpack or {}
@@ -7818,13 +7836,19 @@ mint = function(def, userId, rollFinish)
 	end
 	id = id or makeSerial(def)
 	local rosterPet = PetRoster and PetRoster.BY_NAME and PetRoster.BY_NAME[def.name]
+	-- A named pet's one stack key, whoever minted it (MinePetRoster.cardKeyOf).
+	-- Generated cards ("set#007") keep theirs.
+	local cardKey = def.cardKey
+	if rosterPet and PetRoster.cardKeyOf and not (type(cardKey) == "string" and string.find(cardKey, "#", 1, true)) then
+		cardKey = PetRoster.cardKeyOf(def.name) or cardKey
+	end
 	local card = {
 		id = id,
 		serial = id, -- PPP + 16-hex instance; never regenerated on trade/equip
 		speciesHex = string.sub(id, 1, 3),
 		setId = def.setId,
 		index = def.index,
-		cardKey = def.cardKey,
+		cardKey = cardKey,
 		name = def.name,
 		rarityId = def.rarityId or (rosterPet and rosterPet.tier) or nil,
 		typeId = def.typeId,
@@ -11821,50 +11845,16 @@ function Verbs.rollGearBanner(plr, payload)
 	walk(plr)
 end
 
-function Verbs.mergeHats(plr, payload)
-	local p = profiles[plr.UserId]
-	if not p then return end
-	local aId, bId = payload and payload.a, payload and payload.b
-	local a, b = gearById(p, aId), gearById(p, bId)
-	if not a or not b or aId == bId then
-		net:FireClient(plr, "toast", "Pick two different hats")
-		return
-	end
-	-- Unequip first — a worn hat cannot be consumed.
-	local function strip(id)
-		for slot, gid in pairs(p.equippedGear or {}) do
-			if gid == id then p.equippedGear[slot] = nil end
-		end
-	end
-	strip(aId)
-	strip(bId)
-	local merged, err = Gear.mergeHats(a, b, instanceHex16())
-	if not merged then
-		net:FireClient(plr, "toast", err or "Cannot merge")
-		return
-	end
-	-- Remove both inputs, insert result.
-	local kept = {}
-	for _, g in ipairs(p.gear or {}) do
-		if g.id ~= aId and g.id ~= bId then
-			table.insert(kept, g)
-		end
-	end
-	table.insert(kept, merged)
-	p.gear = kept
-	net:FireClient(plr, "toast", "Hats merged!")
-	markDirty(plr)
-	snap(plr)
-end
-
 --[[
-	Fuse two matching pieces into one of the next grade, capped at FUSE_CAP.
+	Fuse matching pieces into one of the next grade, capped at FUSE_CAP: three
+	of the same hat, or two of the same face (MineGear.FUSE_NEED; owner,
+	2026-10-10, hats take three).
 
-	MineGear.canUpgrade owns the rules, and the panel calls the very same
-	function to decide which pairs to offer, so the screen and this verb cannot
-	disagree about what is legal. It is re-checked here regardless: the client
-	names two ids and nothing else, because a client that names its own outcome
-	is not a client.
+	MineGear.canFuse owns the rules, and the panel's MineGear.upgradePairs uses
+	the very same ones to decide what to offer, so the screen and this verb
+	cannot disagree about what is legal. It is re-checked here regardless: the
+	client names ids and nothing else, because a client that names its own
+	outcome is not a client.
 
 	`gear in use` deliberately counts pet hats as well as worn pieces. A hat
 	sitting on a pet is not lying around spare, and consuming it out from under
@@ -11873,21 +11863,29 @@ end
 function Verbs.upgradeGear(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then return end
-	local aId, bId = payload and payload.a, payload and payload.b
-	local a, b = gearById(p, aId), gearById(p, bId)
-	if not a or not b then
-		net:FireClient(plr, "toast", "Pick two pieces")
-		return
+	-- The pieces by id: `ids` (three hats, or two faces), or the old a/b pair.
+	payload = (type(payload) == "table") and payload or {}
+	local ids = (type(payload.ids) == "table") and payload.ids or { payload.a, payload.b }
+	local pieces, consumed = {}, {}
+	for _, id in ipairs(ids) do
+		local g = gearById(p, id)
+		if not g then
+			net:FireClient(plr, "toast", "Pick the pieces to fuse")
+			return
+		end
+		table.insert(pieces, g)
+		consumed[id] = true
 	end
 	local used = {}
 	for _, id in pairs(p.equippedGear or {}) do
 		if id then used[id] = true end
 	end
-	local ok, why = Gear.canUpgrade(a, b, used)
+	local ok, why = Gear.canFuse(pieces, used)
 	if not ok then
 		net:FireClient(plr, "toast", why or "Cannot upgrade")
 		return
 	end
+	local a = pieces[1]
 	local was = a.rarity
 	local made = Gear.upgradedFrom(a, instanceHex16())
 	if not made then
@@ -11896,7 +11894,7 @@ function Verbs.upgradeGear(plr, payload)
 	end
 	local kept = {}
 	for _, g in ipairs(p.gear or {}) do
-		if g.id ~= aId and g.id ~= bId then
+		if not consumed[g.id] then
 			table.insert(kept, g)
 		end
 	end
@@ -17458,10 +17456,8 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "destroyToolRune" then destroyToolRune(plr, payload)
 		elseif action == "unsocketToolRune" then destroyToolRune(plr, payload)
 		elseif action == "socketPetRune" then Verbs.socketPetRune(plr, payload)
-		-- The client has always fired this from the hat-merge button; it was the
-		-- only one of 93 client actions with no branch here, so the button did
-		-- nothing at all. Verbs.mergeHats itself was complete.
-		elseif action == "mergeHats" then Verbs.mergeHats(plr, payload)
+		-- (No "mergeHats": the two-hat merge was retired 2026-10-10; hats fuse
+		-- three of a kind through upgradeGear.)
 		elseif action == "upgradeGear" then Verbs.upgradeGear(plr, payload)
 		elseif action == "upgradeOrePouch" then Verbs.upgradeOrePouch(plr)
 		elseif action == "toggleOreLock" then Verbs.toggleOreLock(plr, payload)

@@ -1009,8 +1009,8 @@ end
 	panel and the server agree on exactly which pairs are offerable instead of
 	each deciding for itself.
 
-	Two pieces fuse when they are the same set, the same slot and the same grade,
-	neither is in use, and neither has a rune in it. `worn` is a set of gear ids
+	Pieces fuse when they match (three of the same hat, two of the same face),
+	are the same grade, none is in use, and none has a rune in it (canFuse). `worn` is a set of gear ids
 	that are spoken for -- anything in one of your three hat seats or your face.
 	Refusing socketed pieces is
 	deliberate: a fuse consumes one of the two, and quietly eating a socketed
@@ -1032,37 +1032,83 @@ function MineGear.isSocketed(piece)
 	return false
 end
 
-function MineGear.canUpgrade(a, b, worn)
-	if type(a) ~= "table" or type(b) ~= "table" then
-		return false, "Pick two pieces"
+--[[
+	HATS FUSE THREE OF A KIND (owner, 2026-10-10: "make sure only 3 ... of the
+	SAME HAT can merge for a ... tier up (up to a)"). The owner chose: the same
+	hat at the same grade, exactly one grade up, capped at FUSE_CAP (A), and it
+	is the ONLY way hats combine -- the old two-hat multi-stat merge is retired.
+	"The same hat" is its catalog hat (else its set): three C Dominus Astras.
+	Faces keep the pair fuse. A multi-stat hat from the retired merge keeps its
+	stats but cannot fuse: it is not the same hat as anything.
+]]
+MineGear.FUSE_NEED = { hat = 3, face = 2 }
+
+function MineGear.fuseNeed(slot)
+	return MineGear.FUSE_NEED[MineGear.migrateSlot(slot)] or 2
+end
+
+-- What makes two pieces "the same" for fusing.
+function MineGear.fuseIdentity(piece)
+	if MineGear.migrateSlot(piece.slot) == "hat" then
+		return tostring(piece.catalogId or piece.hatId or piece.itemName or piece.setId)
+			.. "|" .. tostring(piece.setId)
 	end
-	if a.id == b.id then
-		return false, "Pick two different pieces"
+	return tostring(piece.setId)
+end
+
+function MineGear.canFuse(pieces, worn)
+	if type(pieces) ~= "table" or type(pieces[1]) ~= "table" then
+		return false, "Pick the pieces to fuse"
 	end
-	local slotA, slotB = MineGear.migrateSlot(a.slot), MineGear.migrateSlot(b.slot)
-	if a.setId ~= b.setId or slotA ~= slotB then
-		return false, "Both pieces must be the same set and slot"
+	local first = pieces[1]
+	local slot = MineGear.migrateSlot(first.slot)
+	local need = MineGear.fuseNeed(slot)
+	if #pieces ~= need then
+		return false, (slot == "hat") and "Fusing takes three of the same hat" or ("Fusing takes " .. need .. " matching pieces")
 	end
-	local gradeA, gradeB = MineGear.migrateRarity(a.rarity), MineGear.migrateRarity(b.rarity)
-	if gradeA ~= gradeB then
-		return false, "Both pieces must be the same grade"
-	end
-	if not ToolGrades.nextGrade(gradeA) then
-		return false, tostring(ToolGrades.FUSE_CAP) .. " is as far as fusing goes"
-	end
+	local grade = MineGear.migrateRarity(first.rarity)
+	local ident = MineGear.fuseIdentity(first)
+	local seen = {}
 	worn = worn or {}
-	if worn[a.id] or worn[b.id] then
-		return false, "Take it off first"
+	for _, g in ipairs(pieces) do
+		if type(g) ~= "table" or seen[g.id] then
+			return false, "Pick different pieces"
+		end
+		seen[g.id] = true
+		if MineGear.migrateSlot(g.slot) ~= slot then
+			return false, "All pieces must be the same slot"
+		end
+		if slot == "hat" and g.merged then
+			return false, "A merged hat cannot fuse"
+		end
+		if MineGear.fuseIdentity(g) ~= ident then
+			return false, (slot == "hat") and "All three must be the same hat" or "Both pieces must be the same set"
+		end
+		if MineGear.migrateRarity(g.rarity) ~= grade then
+			return false, "All pieces must be the same grade"
+		end
+		if worn[g.id] then
+			return false, "Take it off first"
+		end
+		if MineGear.isSocketed(g) then
+			return false, "Unsocket the rune first"
+		end
 	end
-	if MineGear.isSocketed(a) or MineGear.isSocketed(b) then
-		return false, "Unsocket the rune first"
+	if not ToolGrades.nextGrade(grade) then
+		return false, tostring(ToolGrades.FUSE_CAP) .. " is as far as fusing goes"
 	end
 	return true
 end
 
--- Every pair a player could fuse right now, newest grade last so the panel can
--- show the cheapest win first. Pieces are paired off two at a time inside each
--- set/slot/grade bucket, so six matching C pieces offer three upgrades.
+-- Two-piece form, kept for any caller that still names a pair. A hat pair is
+-- refused (hats take three).
+function MineGear.canUpgrade(a, b, worn)
+	return MineGear.canFuse({ a, b }, worn)
+end
+
+-- Every group a player could fuse right now, lowest grade first so the panel
+-- shows the cheapest win first. Each row is { pieces, a, b, setId, slot, from,
+-- to, need }; nine matching C hats offer three fuses, six matching faces three.
 function MineGear.upgradePairs(list, worn)
 	worn = worn or {}
 	local groups, order = {}, {}
@@ -1070,8 +1116,9 @@ function MineGear.upgradePairs(list, worn)
 		if type(g) == "table" then
 			local slot = MineGear.migrateSlot(g.slot)
 			local grade = MineGear.migrateRarity(g.rarity)
-			if ToolGrades.nextGrade(grade) and not worn[g.id] and not MineGear.isSocketed(g) then
-				local key = tostring(g.setId) .. "|" .. tostring(slot) .. "|" .. tostring(grade)
+			if ToolGrades.nextGrade(grade) and not worn[g.id] and not MineGear.isSocketed(g)
+				and not (slot == "hat" and g.merged) then
+				local key = MineGear.fuseIdentity(g) .. "|" .. tostring(slot) .. "|" .. tostring(grade)
 				if not groups[key] then
 					groups[key] = {}
 					order[#order + 1] = key
@@ -1083,14 +1130,18 @@ function MineGear.upgradePairs(list, worn)
 	local out = {}
 	for _, key in ipairs(order) do
 		local bucket = groups[key]
-		for i = 1, #bucket - 1, 2 do
-			local first = bucket[i]
-			local grade = MineGear.migrateRarity(first.rarity)
+		local slot = MineGear.migrateSlot(bucket[1].slot)
+		local need = MineGear.fuseNeed(slot)
+		for i = 1, #bucket - need + 1, need do
+			local pieces = table.move(bucket, i, i + need - 1, 1, {})
+			local grade = MineGear.migrateRarity(pieces[1].rarity)
 			table.insert(out, {
-				a = first,
-				b = bucket[i + 1],
-				setId = first.setId,
-				slot = MineGear.migrateSlot(first.slot),
+				pieces = pieces,
+				a = pieces[1],
+				b = pieces[2],
+				setId = pieces[1].setId,
+				slot = slot,
+				need = need,
 				from = grade,
 				to = ToolGrades.nextGrade(grade),
 			})
@@ -1125,66 +1176,6 @@ function MineGear.upgradedFrom(piece, newId)
 	end
 	out.name = MineGear.shopName(out)
 	return out
-end
-
---[[
-	Merge two hat pieces into one multi-stat hat. Face pieces cannot merge.
-	Only path to multi-stat hats. Same-stat lines sum; rarity keeps the higher.
-]]
-function MineGear.mergeHats(a, b, newId)
-	local function hatish(g)
-		if MineGear.isFacePiece(g) then
-			return false
-		end
-		return MineGear.isHatPiece(g) or MineGear.migrateSlot(g and g.slot) == "hat"
-	end
-	if not (hatish(a) and hatish(b)) then
-		return nil, "Only hats merge"
-	end
-	local order = { "F", "D", "C", "B", "A", "S", "SS", "SSS" }
-	local function rank(r)
-		return table.find(order, MineGear.migrateRarity(r)) or 1
-	end
-	local primary = rank(a.rarity) >= rank(b.rarity) and a or b
-	local secondary = primary == a and b or a
-	local stats = {}
-	local function addLines(piece)
-		for _, line in ipairs(MineGear.boostLines(piece)) do
-			local found
-			for _, row in ipairs(stats) do
-				if row.stat == line.stat then
-					row.pct += line.pct
-					found = true
-					break
-				end
-			end
-			if not found then
-				table.insert(stats, { stat = line.stat, pct = line.pct })
-			end
-		end
-	end
-	addLines(a)
-	addLines(b)
-	if #stats == 0 then
-		return nil, "Nothing to merge"
-	end
-	return {
-		id = newId or primary.id,
-		setId = primary.setId,
-		setName = primary.setName,
-		stat = stats[1].stat,
-		pct = stats[1].pct,
-		stats = stats,
-		slot = "hat",
-		rarity = MineGear.migrateRarity(primary.rarity),
-		mult = primary.mult or 0,
-		slotCount = math.max(tonumber(primary.slotCount) or 1, tonumber(secondary.slotCount) or 1),
-		sockets = {},
-		hatId = primary.hatId or secondary.hatId,
-		catalogId = primary.catalogId or secondary.catalogId,
-		name = primary.name or secondary.name,
-		merged = true,
-	}
 end
 
 return MineGear

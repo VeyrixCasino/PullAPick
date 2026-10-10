@@ -4651,10 +4651,11 @@ function MineInventoryView.mount(parent, opts)
 			sectionHeader("Wearing: " .. table.concat(names, "  +  "), 2)
 		end
 		--------------------------------------------------------------------
-		-- UPGRADE. Two matching pieces fuse into one of the next grade.
+		-- UPGRADE. Three of the same hat (two matching faces) fuse into one of
+		-- the next grade, up to A (MineGear.FUSE_NEED).
 		--
 		-- MineGear.upgradePairs decides what is offerable and Verbs.upgradeGear
-		-- re-checks with the same MineGear.canUpgrade, so this list can never
+		-- re-checks with the same MineGear.canFuse, so this list can never
 		-- put up a pair the server then refuses. Worn pieces are excluded by that
 		-- function, not by anything here.
 		--------------------------------------------------------------------
@@ -4680,7 +4681,7 @@ function MineInventoryView.mount(parent, opts)
 				}, body)
 				mk("UIGridLayout", {
 					CellPadding = UDim2.fromOffset(8, 8),
-					CellSize = UDim2.fromOffset(232, 96),
+					CellSize = UDim2.fromOffset(284, 96),
 					SortOrder = Enum.SortOrder.LayoutOrder,
 					HorizontalAlignment = Enum.HorizontalAlignment.Left,
 				}, ups)
@@ -4692,7 +4693,9 @@ function MineInventoryView.mount(parent, opts)
 					local row = mk("Frame", { BackgroundColor3 = BG2, LayoutOrder = pi }, ups)
 					round(row, 8)
 					stroke(row, 1, tint)
-					for k, piece in ipairs({ pair.a, pair.b }) do
+					local pieces = pair.pieces or { pair.a, pair.b }
+					local textX = 8 + #pieces * 52 + 4
+					for k, piece in ipairs(pieces) do
 						local well = mk("Frame", {
 							BackgroundColor3 = BG3,
 							Position = UDim2.fromOffset(8 + (k - 1) * 52, 8),
@@ -4712,10 +4715,14 @@ function MineInventoryView.mount(parent, opts)
 							}, well)
 						end
 					end
-					label(row, tostring(pair.from) .. "  +  " .. tostring(pair.from), 12, MUTED,
-						UDim2.fromOffset(8, 58), UDim2.fromOffset(104, 16), FONT)
+					local froms = {}
+					for _ = 1, #pieces do
+						table.insert(froms, tostring(pair.from))
+					end
+					label(row, table.concat(froms, " + "), 12, MUTED,
+						UDim2.fromOffset(8, 58), UDim2.fromOffset(textX - 12, 16), FONT)
 					label(row, "\u{2192}  " .. tostring(pair.to), 22, tint,
-						UDim2.fromOffset(116, 8), UDim2.fromOffset(108, 44), FONT)
+						UDim2.fromOffset(textX, 8), UDim2.fromOffset(276 - textX, 44), FONT)
 					local go = mk("TextButton", {
 						AutoButtonColor = true,
 						BackgroundColor3 = GREEN,
@@ -4723,13 +4730,17 @@ function MineInventoryView.mount(parent, opts)
 						TextSize = 13,
 						TextColor3 = Color3.fromRGB(10, 26, 16),
 						Text = "FUSE",
-						Position = UDim2.fromOffset(116, 58),
-						Size = UDim2.fromOffset(108, 28),
+						Position = UDim2.fromOffset(textX, 58),
+						Size = UDim2.fromOffset(276 - textX, 28),
 					}, row)
 					round(go, 6)
 					go.MouseButton1Click:Connect(function()
 						if opts.onUpgradeGear then
-							opts.onUpgradeGear(pair.a.id, pair.b.id)
+							local ids = {}
+							for _, piece in ipairs(pieces) do
+								table.insert(ids, piece.id)
+							end
+							opts.onUpgradeGear(ids)
 						end
 					end)
 				end

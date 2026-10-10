@@ -399,6 +399,28 @@ for oldName, newName in pairs(MinePetRoster.NAME_ALIASES) do
 	end
 end
 
+--[[
+	ONE STACK KEY PER NAMED PET (owner, 2026-10-10: "fix the merge thing so pets
+	stack"). Stacking and merging compare `cardKey` (with rarity and variant),
+	and each source used to mint its own: "meadow:Breezy" from a pack,
+	"lucky_block:Breezy" from a lucky block, "group_wheel:Breezy" from the
+	wheel -- three stacks of one pet that could never merge. Every named pet now
+	has exactly one key, "<home>:<name>", its home being its set, holiday pack or
+	zone (Event Horizon pets: "bigbang"). MineServer's mint applies it and
+	re-keys old saves on load. `setId` still says where a copy came from.
+]]
+function MinePetRoster.homeOf(pet)
+	return (pet and (pet.set or pet.zone)) or "pet"
+end
+
+function MinePetRoster.cardKeyOf(name)
+	local pet = MinePetRoster.BY_NAME[name]
+	if not pet then
+		return nil
+	end
+	return MinePetRoster.homeOf(pet) .. ":" .. pet.name
+end
+
 function MinePetRoster.color(tier)
 	return MinePetRoster.TIER_COLOR[tier] or MinePetRoster.TIER_COLOR.Common
 end

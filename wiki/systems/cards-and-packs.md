@@ -209,10 +209,13 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
   admin grant, opener) finds them, but nothing that walks the universal list
   sells or re-rates them. **One side effect:** the day-4 surprise walks
   `PACK_BY_ID` for packs of 2★ and up, so it can now hand out a set pack.
-- **Two pets of one name can fail to merge.** Pack pets use `"<home>:<name>"`,
-  but lucky blocks mint `"lucky_block:<name>"` and the group wheel
-  `"group_wheel:<name>"`, and merging needs equal `cardKey`s. Not changed yet;
-  ask before re-keying, because it touches saved cards.
+- **One stack key per named pet** (owner, 2026-10-10: *"fix the merge thing so
+  pets stack"*). Stacks and merges compare `cardKey`, and lucky blocks, the
+  wheel, devGrant and Event Horizon each used to mint their own
+  (`"lucky_block:Name"`...), so copies never stacked. Every named pet now has one
+  key, `MinePetRoster.cardKeyOf(name)` = `"<set, holiday pack or zone>:<name>"`;
+  `mint` applies it and `load` re-keys old saves. `setId` still records the
+  source. Generated cards (`"set#007"`) are untouched.
 - **`MinePackConfig.CARD_SUBSET_SHARE` / `cardPoolFor` are now dead for packs**:
   they narrowed the old card sets, which no pack draws from any more.
 - **Stale comments in `MinePackConfig`:**

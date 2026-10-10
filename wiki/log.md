@@ -896,3 +896,15 @@ the Scrapper shows CARDS / PACKS / RUNES / GEAR, and the console is clean.
 Suite 57/57.
 
 Updated: pets, currencies-and-economy.
+
+## [2026-10-10] ingest | pets stack across sources; hats fuse three of a kind
+Pets: one `cardKey` per named pet (`MinePetRoster.cardKeyOf`), applied by `mint`
+and by a load re-key. Studio: a devGrant Breezy now reads `meadow:Breezy`, like
+a pack copy; the test save holds no `dev:` / `lucky_block:` / `group_wheel:` keys.
+Hats: owner chose three of the same hat, same grade, exactly +1 grade, max A, as
+the only way to combine; the two-hat multi-stat merge verb is removed. Studio
+check of `MineGear.canFuse` on made-up pieces (pairs, quads, mixed hats and
+grades, A, worn and merged hats all refused).
+
+Updated: hats-and-faces, client-and-ui, cards-and-packs, save-data-and-migrations,
+next-up, log.

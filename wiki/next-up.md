@@ -67,10 +67,8 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
   - Gummy, Bottle and Sapshell are glass, so a Golden variant may hide it.
   - Some accent colours never take the tint (gold, lava, the rainbow bands,
     the ninja's headband).
-- **Pets of one name can fail to merge.** Pack pets use `"<home>:<name>"`;
-  lucky blocks mint `"lucky_block:<name>"` and the group wheel
-  `"group_wheel:<name>"`. Merging needs equal `cardKey`s. **Ask** before
-  re-keying, because it touches saved cards.
+- **DONE 2026-10-10: pets of one name stack and merge** (one `cardKey` per
+  named pet; see [cards-and-packs](systems/cards-and-packs.md)).
 - **Studio Edit caches modules per session.** After a Studio restart the display
   shows current stat labels; before one, it can show old labels.
 

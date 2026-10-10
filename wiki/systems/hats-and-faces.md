@@ -38,8 +38,16 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
 - **Lines.** `MineGear.applyTownSkills` splits a piece's total into lines. Grades F–C get a
   universal line (dirtBreak or mineSpeed, 44%), the set stat (32–36%), and one or two
   extras from swingRate / backpack / coinBonus / luck. Grades B and up get the set stat
-  (62–82%) plus one universal line. `MineGear.mergeHats` can fuse two hats into a
-  multi-stat hat; faces cannot merge.
+  (62–82%) plus one universal line.
+- **Combining hats: three of a kind** (owner, 2026-10-10: *"make sure only 3 ... of
+  the SAME HAT can merge for a ... tier up (up to a)"*). Three of the same hat
+  (same catalog hat, else set) at the same grade fuse into one of exactly the next
+  grade, capped at A (`MineToolGrades.FUSE_CAP`). It is the only way hats
+  combine: the two-hat multi-stat merge (`mergeHats`) is retired, and multi-stat
+  hats already made keep their stats but cannot fuse. Faces still fuse in pairs.
+  Rules: `MineGear.canFuse` / `FUSE_NEED` / `upgradePairs`; verb
+  `Verbs.upgradeGear` (`{ ids }`); the hat panel's Upgrade list. Checked in
+  Studio with made-up pieces.
 - **Sets** (`MineGear.SETS`, 10). Each hat's catalog row picks its set: inferno = blastRadius,
   glacier = swingRate, **tide = Tidal Wave + Tidal Wave Damage**, **canopy = blastChance +
   Blast Damage**, bedrock = dirtBreak, foundry = coinBonus, **storm = zap + Zap Damage**,

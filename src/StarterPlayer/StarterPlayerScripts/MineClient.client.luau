@@ -3316,11 +3316,15 @@ invCtl = InventoryView.mount(gui, {
 	onMerge = function(id) net:FireServer("merge", { ids = { id } }) end,
 	-- Gear tab. Tools and armour are the same question -- what am I taking down
 	-- there -- so they get answered in one place.
-	-- Fuse two matching pieces into the next grade. The client names two ids
-	-- and nothing else; MineGear.canUpgrade decides on the server.
-	onUpgradeGear = function(aId, bId)
+	-- Fuse matching pieces into the next grade: three of the same hat, two of
+	-- the same face. The client names ids and nothing else; MineGear.canFuse
+	-- decides on the server.
+	onUpgradeGear = function(ids, bId)
+		if type(ids) ~= "table" then
+			ids = { ids, bId }
+		end
 		Audio.play("equip")
-		net:FireServer("upgradeGear", { a = aId, b = bId })
+		net:FireServer("upgradeGear", { ids = ids })
 	end,
 	-- `slot` is the seat the player was looking at. The server honours it when it
 	-- names a real seat and takes the first free one otherwise.
@@ -9236,7 +9240,6 @@ local function refreshEnchanter()
 			onRollRune = function(count) net:FireServer("rollRune", { count = count or 1 }) end,
 			onRollGear = function(count) net:FireServer("rollGear", { count = count or 1 }) end,
 			onFuse = function(a, b) net:FireServer("fuseRune", { a = a, b = b }) end,
-			onMergeHats = function(a, b) net:FireServer("mergeHats", { a = a, b = b }) end,
 			onArmWhite = function(id) net:FireServer("armWhiteScroll", { runeId = id }) end,
 			onSocketTool = function(id, fam, slot) net:FireServer("socketToolRune", { runeId = id, family = fam, slot = slot }) end,
 			onBlackUnequip = function(fam, slot) net:FireServer("blackUnequipToolRune", { family = fam, slot = slot }) end,

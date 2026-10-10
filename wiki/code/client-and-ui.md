@@ -209,8 +209,8 @@ The tier mappers take the real result:
     - A failed fuse gets the tier-0 thud and never a fanfare.
     - Played in Studio on 2026-10-10: F and D rolls gave a thud, C rolls gave
       the pluck and a sparkle burst.
-  - **Hat merging is not luck.** The better hat always wins (`MineGear.mergeHats`),
-    so it gets no celebration.
+  - **Hat fusing is not luck.** Three of the same hat always make the next
+    grade (`MineGear.canFuse`), so it gets no celebration.
 - **Testing note:** Studio's command bar has its own module cache. Wrapping
   `MineCelebrate` from it does not touch the game's copy. Watch for
   `MineSfx_*` sounds in SoundService and `Burst` frames under
