@@ -112,7 +112,9 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
 - **Rewards direction** (queued):
   - star-graded pack cases holding 3–5 packs: chest drops, the wheel, and a
     stardust NPC at about 60–70% RTP;
-  - zone packs carry no stars, and only exclusive packs are given as rewards;
+  - only exclusive packs are given as rewards. "Zone packs carry no stars" was
+    reversed on 2026-10-10: "EVERY PACK HAS A STAR VALUE". A zone's Pack is ★,
+    its Rare Pack ★★ and its Legendary Pack ★★★;
   - packs must differ a lot from each other;
   - the wheel gives a free spin every 6 h and gets a one-image face.
 - **The TODAY checklist** lives inside the Quests panel.

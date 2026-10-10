@@ -195,7 +195,9 @@ already own keep working.
 - **Pack cases:**
   - a case holds **3–5 packs** of a **known star grade**;
   - they are rare-ish drops from chests, so packs can be earned by mining;
-  - each case says its star grade on it. **Zone packs get no stars.**
+  - each case says its star grade on it. ~~Zone packs get no stars.~~
+    *Reversed 2026-10-10:* "EVERY PACK HAS A STAR VALUE". A zone's Pack is ★,
+    its Rare Pack ★★ and its Legendary Pack ★★★ (`MinePackConfig.ZONE_PACK_STARS`).
 - **A stardust NPC** sells pack cases, not single packs: random packs of a
   known star grade, at about **60–70% RTP**. Packs are oversaturated, so packs
   must feel very different from each other.

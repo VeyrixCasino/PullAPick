@@ -114,8 +114,12 @@ names (HoloRare, UltraRare, HyperRare, SecretRare) are kept as aliases in
 - `MinePackConfig.packStars` is derived from a pack's odds, card count and shiny rate on a
   log scale between the weakest and strongest `Mine1PacksData` row. A row's own
   `stars` field, if set, wins, so hand-rated packs do not drift.
-- `MinePackConfig.isRated` is true only for `Mine1PacksData` packs. **Zone packs carry
-  no stars** (owner, `docs/PETS-AND-SETS.md` §rewards), so their tiles draw no star row.
+- `MinePackConfig.isRated` covers every pack in `PACK_BY_ID` (the set packs and pack
+  cases included) **and the zone card packs**. Owner, 2026-10-10: *"EVERY PACK HAS A
+  STAR VALUE"*. This reversed the old "zone packs carry no stars". In every zone,
+  `ZONE_PACK_STARS` makes the Pack ★, the Rare Pack ★★ and the Legendary Pack
+  ★★★. Currency pouches and ore cases stay unrated.
+- A set case shows its set's grade instead of stars ([pack-cases](pack-cases.md)).
 - Inventory pack tiles draw the star row at y 86 (same as lucky blocks) and print
   `Set · Grade` on the set line when the set has a `grade` (`MineCards.setGrade`).
   No Season-1 set has one yet, so grades appear once the 19 graded sets are wired.

@@ -945,3 +945,20 @@ lived in an old worktree); the battle pass has no quests (only Event Horizon's
 event pass does); the client cannot read Event Horizon's window.
 
 Updated: client-and-ui, next-up, TODO, log.
+
+## [2026-10-10] query | pricing pass closed; zone packs get stars; set cases show their grade
+The owner closed the pricing pass:
+- The wheel's case slices stay.
+- The featured set packs stay: 4 a day at ★★★ / ★★★★ / ★★★★ / ★★★★★.
+- **Set cases show their set's grade, not stars.** Owner: *"A 1 star pack of
+  the top set and a 1 star of shittiest set means vastly different things"*.
+  The bag and stardust tiles draw "GRADE F" and so on (`MineInventoryView`
+  gradeRow); the sort still uses stars.
+- **Zone packs get stars.** Owner: *"EVERY PACK HAS A STAR VALUE"*, then "Pack 1,
+  Rare 2, Legendary 3". This is `MinePackConfig.ZONE_PACK_STARS`, read by
+  `isRated` and `packStars`, and it reverses "Zone packs get no stars".
+
+Checked in a Studio play test: Meadow Pack 1★, Meadow Rare 2★, Meadow and
+Primordium Legendary 3★; the Vault tiles read GRADE SSS / A / B. Suite 58/58.
+
+Updated: pack-cases, cards-and-packs, owner, docs/PETS-AND-SETS.md, TODO A1c.

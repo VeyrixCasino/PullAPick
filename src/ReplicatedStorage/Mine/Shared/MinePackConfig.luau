@@ -1538,13 +1538,37 @@ function MinePackConfig.halfStars(value)
 	return math.clamp(math.floor((tonumber(value) or 0) * 2 + 0.5) / 2, 0.5, 5)
 end
 
--- Whether a pack is rated at all. Only real packs are; zone packs carry no
--- stars (owner, docs/PETS-AND-SETS.md: "Zone packs get no stars").
+--[[
+	ZONE PACKS HAVE STARS. Owner, 2026-10-10: "EVERY PACK HAS A STAR VALUE.
+	every zone is 1(Common),2(medium),3(Rare) star", then "Pack 1, Rare 2,
+	Legendary 3". This replaced "Zone packs get no stars" (PETS-AND-SETS).
+	The same in every zone; currency pouches and ore cases stay unrated.
+]]
+MinePackConfig.ZONE_PACK_STARS = { pack_common = 1, pack_rare = 2, pack_legendary = 3 }
+
+-- A zone card pack's star value, or nil.
+local function zonePackStars(id)
+	local mod = script.Parent:FindFirstChild("MineZonePacks")
+	local ok, ZonePacks = pcall(function()
+		return mod and require(mod)
+	end)
+	local def = ok and ZonePacks and ZonePacks.get and ZonePacks.get(tostring(id or ""))
+	return def and MinePackConfig.ZONE_PACK_STARS[def.slot or ""] or nil
+end
+
+-- Whether a pack is rated at all: every real pack, and the zone card packs.
 function MinePackConfig.isRated(id)
-	return MinePackConfig.PACK_BY_ID ~= nil and MinePackConfig.PACK_BY_ID[tostring(id or "")] ~= nil
+	if MinePackConfig.PACK_BY_ID ~= nil and MinePackConfig.PACK_BY_ID[tostring(id or "")] ~= nil then
+		return true
+	end
+	return zonePackStars(id) ~= nil
 end
 
 function MinePackConfig.packStars(id)
+	local zone = zonePackStars(id)
+	if zone then
+		return zone
+	end
 	-- A hand rating wins. The new set packs are rated by the owner (1 to 5 in
 	-- halves), and a hand rating must not drift when another pack is added.
 	local row = MinePackConfig.PACK_BY_ID and MinePackConfig.PACK_BY_ID[tostring(id or "")]

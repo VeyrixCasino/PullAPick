@@ -123,13 +123,15 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
     - Chaos Theory (SSS) comes from credit-bought wild cases only, at 0.5% of
       their slots;
     - case art is a booster box.
-  - [ ] **The pricing pass, "how much everything is worth" (owner).** Approve
-        or edit the PROPOSED block in the wiki page:
-        - ~~case stardust and credit prices~~ decided: priced by return (wild 70%, set cases 65% → 55%), pretty numbers;
-        - the featured set packs' prices and star grades;
-        - ~~the chest case rates~~ decided: 10% of chests, each grade half as common, better ranks start higher;
-        - which star grade each wheel slice pays;
-        - the stars a set case shows.
+  - [x] **The pricing pass, "how much everything is worth" (owner). Done
+        2026-10-10** (`wiki/systems/pack-cases.md`):
+        - case prices are set by return (wild 70%, set cases 65% → 55%), in
+          pretty numbers;
+        - chests: 10% get a case, and each grade is half as common;
+        - the wheel slices and the featured packs stay;
+        - set cases show their set's grade;
+        - zone packs are ★ / ★★ / ★★★;
+        - pet levelling was removed.
   - [x] The old packs are off the rotating stardust shelf too (owner,
         2026-10-10). It deals potions only (`MinePackConfig.DUST_OLD_PACKS`).
   - [x] Case art from Canva: 19 booster boxes plus 1 wild mystery box, made,

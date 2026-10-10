@@ -200,12 +200,17 @@ Wild-slot odds by set grade (`MineCases.wildGradeOdds`):
 | SS | 1.2% |
 | SSS | 0.5%, credit-bought cases only |
 
-**Still PROPOSED:**
-- which star grade each wheel slice pays (jackpot ★★★★★, apex ★★★★, heirloom
-  ★★★, anomaly ★★);
-- the featured set packs' star grades (`FEATURED_LEVELS`);
-- the stars a set case shows, which are its best pack's;
-- the credit curve itself.
+**Also decided (owner, 2026-10-10), closing the pricing pass:**
+- The wheel's case slices stay: Anomaly ★★ 10%, Heirloom ★★★ 10%, Apex ★★★★ 6%,
+  Jackpot ★★★★★ + 15K gems 0.8%. That is about 1,000 stardust of value a spin.
+- The featured set packs stay: 4 a day at ★★★, ★★★★, ★★★★ and ★★★★★.
+- **A set case shows its set's grade, not stars.** Owner: *"A 1 star pack of
+  the top set and a 1 star of shittiest set means vastly different things."*
+  The bag tile and the stardust tile draw "GRADE F" and so on in the grade's
+  colour (`MineInventoryView` gradeRow). A set case still sorts by its best
+  pack's stars.
+- The credit curve (`CREDIT_CURVE`) was not asked about separately. It is
+  what turns value into credits.
 
 ## State right now
 

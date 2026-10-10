@@ -349,6 +349,26 @@ local function starRow(parent, rating, yOffset, textSize)
 	return holder
 end
 
+--[[
+	A set case's grade where a pack shows its stars. Owner, 2026-10-10: "just
+	the rarity, if its a case for the set ... A 1 star pack of the top set and a
+	1 star of shittiest set means vastly different things." Same place and
+	height as starRow, so the grid lines up.
+]]
+local function gradeRow(parent, grade, yOffset, textSize)
+	textSize = textSize or 14
+	local col = (Gear.RARITY_COLOR and Gear.RARITY_COLOR[grade]) or GOLD
+	return mk("TextLabel", {
+		Name = "Grade",
+		BackgroundTransparency = 1, Font = FONT, TextSize = textSize, TextColor3 = col,
+		Text = "GRADE " .. tostring(grade or "?"),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, yOffset),
+		Size = UDim2.fromOffset(math.floor(textSize * 6), textSize + 2),
+		ZIndex = 6,
+	}, parent)
+end
+
 -- As wide as its label plus padding, and never narrower than `minWidth`.
 local function fitButton(b, pad, minWidth)
 	b.AutomaticSize = Enum.AutomaticSize.X
@@ -2170,7 +2190,11 @@ function MineInventoryView.mount(parent, opts)
 				else
 					PackFX.drawSealed(artHost, g.packId, 54, 74)
 					-- Same place and size as the lucky-block stars, so the grid lines up.
-					if g.stars > 0 then
+					-- A set case shows its set's grade instead (it still sorts by stars).
+					local setCase = require(shared:WaitForChild("MineCases")).get(g.packId)
+					if setCase and setCase.caseType == "set" then
+						gradeRow(tile, setCase.grade, 86, 13)
+					elseif g.stars > 0 then
 						starRow(tile, g.stars, 86, 13)
 					end
 				end
@@ -6112,7 +6136,11 @@ function MineInventoryView.mount(parent, opts)
 					local artHost = mk("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0),
 						Position = UDim2.new(0.5, 0, 0, 10), Size = UDim2.fromOffset(64, 88), ZIndex = 3 }, tile)
 					pcall(PackFX.drawSealed, artHost, id, 64, 88)
-					starRow(tile, def.stars or 1, 102, 12)
+					if def.caseType == "set" then
+						gradeRow(tile, def.grade, 102, 12)
+					else
+						starRow(tile, def.stars or 1, 102, 12)
+					end
 					local nm = label(tile, def.name, 14, TEXT, UDim2.fromOffset(6, 118), UDim2.new(1, -12, 0, 18), FONT,
 						Enum.TextXAlignment.Center)
 					nm.TextTruncate = Enum.TextTruncate.AtEnd
