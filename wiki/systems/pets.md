@@ -258,6 +258,44 @@ The names sheet is `docs/HOLIDAY-PETS.md` (generated).
   the Studio place because of `$ignoreUnknownInstances` (unverified).
 - `MinePetRoster` also calls `eh.applyToPetRoster`, which `MineEHPets` does not define, so the call does nothing.
 
+## Power levels (repriced 2026-10-10)
+
+A pet levels 1 to `MineConfig.MAX_POWER` (25) for stardust (MineServer
+`powerUp`). Each level is +4% to everything it does (`MineConfig.cardPower`),
+so level 25 is ×1.96.
+
+- **What it costs** is *decided* by the owner: *"SHOULD COST A MINIMUM OF 2 OR 3
+  MILLION … (REMEMBER HOW MUCH DAMAGE THAT DOES)"*. They then picked these
+  answers:
+  - **30M to max an Exotic** (`POWER_MAX_EXOTIC`).
+  - **Other cards scale by card value**, which is `cardBaseDust`: rarity dust
+    × variant × finish.
+  - **Each level costs 20% more than the last** (`POWER_GROWTH`).
+
+  | rarity | level 1→2 | level 24→25 | total to 25 |
+  |---|---|---|---|
+  | Common | 14 | 949 | 5,625 |
+  | Rare | 67 | 4,431 | 26K |
+  | Epic | 215 | 14K | 84K |
+  | Legendary | 3,822 | 253K | 1.5M |
+  | Mythic | 9,555 | 633K | 3.75M |
+  | Divine | 26,753 | 1.77M | 10.5M |
+  | Exotic | 76,436 | 5.06M | 30M |
+
+  A Shadow Exotic costs 90M, because finishes scale the price the way they
+  scale the power.
+- **Recycling refunds half the stardust put into levels** (`POWER_REFUND`).
+  It used to pay +10% per level: maxing an Exotic cost 7,500 and added 76,800
+  to its recycle value, which made stardust.
+  - A level now records what it cost on the card (`powerSpent`).
+  - A card levelled before the change counts the old flat 25 × level as its
+    spend (`MineConfig.powerSpent`), so old cheap levels cannot cash out at
+    the new prices.
+- Checked in Studio: three Legendary levels cost 3,822 / 4,586 / 5,503, as the
+  formula says, and recycling the card then paid 1,600 + half the spend.
+- `MineTradeValue.cardValue` still adds +35% per level. That only feeds the
+  trade-fairness sum (TradeService); no stardust is paid from it.
+
 ## Models and the follow
 
 - `PetModelFactory` builds a procedural model per card (`fromCard`, `build`,

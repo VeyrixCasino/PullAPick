@@ -849,3 +849,27 @@ a window with `opensUnix`/`closesUnix` reads the wall clock (`windowNow`);
 unchanged. Studio: closed today, "6d 5h" to opening.
 
 Updated: world-events, next-up, log.
+
+## [2026-10-10] query | pet power levels repriced; the recycle loop closed
+Owner, on "maxing an Exotic costs 7,500": *"SHOULD COST A MINIMUM OF 2 OR 3
+MILLION … (REMEMBER HOW MUCH DAMAGE THAT DOES)"*. They then chose:
+- 30M to max an Exotic;
+- other cards scaled by card value;
+- each level 20% pricier than the last;
+- recycling refunds half the spend.
+
+`MineConfig.powerDustCost(level, card)` is now `POWER_MAX_EXOTIC` ×
+card value ÷ Exotic dust, along a ×1.2 curve:
+- Common 5,625 to max;
+- Legendary 1.5M;
+- Divine 10.5M;
+- Exotic 30M;
+- Shadow Exotic 90M.
+
+`salvageDust` is the card's value plus `POWER_REFUND` × `powerSpent`. A
+level now records what was paid on the card. An old card counts the old flat
+25 × level as its spend, so the 7,500 → 76,800 loop is gone.
+
+Verified in a Studio play test; suite 57/57.
+
+Updated: pets (new "Power levels" section), currencies-and-economy.

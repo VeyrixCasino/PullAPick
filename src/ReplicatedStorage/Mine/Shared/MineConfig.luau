@@ -735,6 +735,24 @@ function MineConfig.isProgressionZone(zone)
 	end
 	return zone ~= nil and not zone.limited
 end
+--[[
+	WHAT A POWER LEVEL COSTS. Owner, 2026-10-10, on "maxing an Exotic costs
+	7,500": "SHOULD COST A MINIMUM OF 2 OR 3 MILLION ... (REMEMBER HOW MUCH
+	DAMAGE THAT DOES)". A level is +4% to everything the pet does
+	(MineConfig.cardPower), so level 25 nearly doubles it. Decided:
+
+	  POWER_MAX_EXOTIC  stardust to take an Exotic from level 1 to MAX_POWER
+	  every other card  the same, scaled by its card value (its recycle
+	                    value, MineConfig.RARITY_DUST x variant x finish), so a
+	                    Common costs ~5.6K to max and a Shadow Exotic 90M
+	  POWER_GROWTH      each level costs this much more than the one before
+
+	powerDustCost(level, card) is the price of level -> level + 1.
+]]
+MineConfig.POWER_MAX_EXOTIC = 30000000
+MineConfig.POWER_GROWTH = 1.2
+-- The old flat price: 25 x level for every card. Kept only to work out what a
+-- level bought before 2026-10-10 actually cost (MineConfig.powerSpent).
 MineConfig.POWER_DUST = 25
 -- VIP gamepass. No shop discount, bag, walk, or luck.
 -- Perks: remote sell (cooldown), AFK coins/gems, [VIP] tag. (It used to add a
@@ -1867,15 +1885,49 @@ function MineConfig.cardPower(card)
 	return r * v * s * p
 end
 
-function MineConfig.salvageDust(card)
+-- A card's value before any power: its rarity's stardust x variant x finish.
+function MineConfig.cardBaseDust(card)
 	local base = MineConfig.RARITY_DUST[card.rarityId] or 8
 	local v = MineConfig.VARIANT_MULT[card.variant or "Normal"] or 1
 	local s = (card.shadow and MineConfig.SHADOW_MULT) or (card.shiny and MineConfig.SHINY_MULT) or 1
-	return math.floor(base * v * s * (1 + 0.1 * ((card.powerLevel or 1) - 1)))
+	return base * v * s
 end
 
-function MineConfig.powerDustCost(level)
-	return MineConfig.POWER_DUST * (level or 1)
+--[[
+	Recycling pays the card's value plus HALF the stardust put into its power
+	levels (owner: "Refund half the spend"). It used to pay +10% per level,
+	which made stardust: maxing an Exotic cost 7,500 and added 76,800.
+]]
+MineConfig.POWER_REFUND = 0.5
+
+function MineConfig.salvageDust(card)
+	return math.floor(MineConfig.cardBaseDust(card) + MineConfig.POWER_REFUND * MineConfig.powerSpent(card))
+end
+
+-- The price of taking `card` from `level` to level + 1.
+function MineConfig.powerDustCost(level, card)
+	level = math.max(1, math.floor(tonumber(level) or 1))
+	local g = MineConfig.POWER_GROWTH
+	local steps = math.max(1, (MineConfig.MAX_POWER or 25) - 1)
+	-- The first level's price, so the whole climb sums to the card's budget.
+	local total = MineConfig.POWER_MAX_EXOTIC
+		* MineConfig.cardBaseDust(card or { rarityId = "Common" }) / MineConfig.RARITY_DUST.Exotic
+	local first = total * (g - 1) / (g ^ steps - 1)
+	return math.max(1, math.floor(first * g ^ (level - 1) + 0.5))
+end
+
+--[[
+	The stardust actually put into a card's levels. New levels record it on the
+	card (`powerSpent`, MineServer powerUp); a card levelled before that pays
+	the old flat price back, so a level bought for 25 cannot refund thousands.
+]]
+function MineConfig.powerSpent(card)
+	local spent = tonumber(card.powerSpent)
+	if spent then
+		return spent
+	end
+	local level = math.max(1, math.floor(tonumber(card.powerLevel) or 1))
+	return MineConfig.POWER_DUST * level * (level - 1) / 2
 end
 
 -- VIP spend: cost × 0.9, floor at 1 when cost > 0.

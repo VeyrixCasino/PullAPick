@@ -7580,7 +7580,7 @@ local function refreshDust()
 		end
 		local shownAny = false
 		for i, card in ipairs(snap.cards or {}) do
-			local cost = C.vipPrice(C.powerDustCost(card.powerLevel or 1), snap and snap.vip)
+			local cost = C.vipPrice(C.powerDustCost(card.powerLevel or 1, card), snap and snap.vip)
 			local afford = (snap.dust or 0) >= cost
 			local col = Cards.RARITY_COLOR[card.rarityId or ""] or MUTED
 			shownAny = true

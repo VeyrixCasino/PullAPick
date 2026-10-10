@@ -9739,9 +9739,12 @@ local function powerUp(plr, id)
 	local c = cardById(p, id)
 	if not c then return end
 	if (c.powerLevel or 1) >= C.MAX_POWER then net:FireClient(plr, "toast", "Max power") return end
-	local cost = C.vipPrice(C.powerDustCost(c.powerLevel or 1), hasVipPass(plr))
+	-- Priced by the card (MineConfig.powerDustCost). What was paid is kept on
+	-- the card: recycling refunds half of it, never more.
+	local cost = C.vipPrice(C.powerDustCost(c.powerLevel or 1, c), hasVipPass(plr))
 	if p.dust < cost then net:FireClient(plr, "toast", "Need " .. cost .. " dust") return end
 	p.dust -= cost
+	c.powerSpent = C.powerSpent(c) + cost
 	c.powerLevel = (c.powerLevel or 1) + 1
 	snap(plr)
 end
