@@ -312,6 +312,45 @@ end
 -- flat. Low tiers are stubby with a hard hook; high tiers are long and shallow.
 --------------------------------------------------------------------------------
 
+--[[
+	FIVE PICKAXE HEADS, NOT ONE HEAD IN EIGHTY-TWO COLOURS.
+
+	Owner, 2026-10-10: "I DONT LIKE THE PICKAXES YOUR USING. I WANT DIFFERENT
+	ONES THAT [aren't] LAZY OLD RECYCLED MODELS."
+
+	Fair. Before this, every ore tool in a family was the SAME OBJECT: one
+	silhouette built by one function, with `t` nudging proportions and adding
+	a gem past 0.30 and a crown past 0.80. Three visual states across eighty-
+	two ores, all the same shape, differing in colour. That is a recolour, not
+	a roster.
+
+	Five heads now, picked by where the ore sits on the roster, so a Stone
+	pick and an Oganesson pick are different OBJECTS:
+
+	  0  HOOK      the classic twin-horn pick, swept back
+	  1  ADZE      one broad flat blade and a stubby counterweight
+	  2  WARPICK   a single long spike with a hammer poll behind it
+	  3  CRESCENT  two blades meeting in a wide arc, thin and mean
+	  4  SPIRE     a vertical crystal spire with short side barbs
+
+	styleFor below is what chooses, and it reads the ore's own position rather
+	than hashing the name: the roster is a ladder, so the shape should climb
+	it. Bands are equal fifths of `t`, which MineServer derives from the ore's
+	tier, so the five are evenly spread and the same ore always gets the same
+	head.
+
+	Everything here is Parts. That is not a style choice -- it is the only
+	thing in this game that renders. Every MeshPart archive in the place is
+	empty (see the file header on MineHorizonTools and
+	tools/verify/orehp.js), because CreateMeshPartAsync geometry does not
+	survive a save.
+]]
+local HEAD_STYLES = 5
+
+local function styleFor(t)
+	return math.clamp(math.floor((tonumber(t) or 0) * HEAD_STYLES), 0, HEAD_STYLES - 1)
+end
+
 local function pickArm(model, root, t, col, mat, lit, refl)
 	-- Roughly 45 degrees of sweep, spread over more links the higher the tier:
 	-- enough for a hooked pick, well short of the crescent you get if each link
@@ -352,6 +391,197 @@ local function pickArm(model, root, t, col, mat, lit, refl)
 			Color = lit, Material = Enum.Material.Neon,
 		}, model)
 	end
+end
+
+--[[
+	ADZE -- one broad flat blade, a stubby counterweight behind it.
+
+	Reads as a tool for shifting earth rather than splitting rock, which is
+	what the shallow-middle of the roster is for. The blade widens as it goes
+	out, the opposite of the hook's taper, so the two are not mistakable at a
+	glance even in silhouette.
+]]
+local function headAdze(model, root, t, col, mat, lit, refl)
+	local w = 0.62 + t * 0.22
+	for j = 1, 4 do
+		local f = (j - 1) / 4
+		box({
+			Name = "Blade",
+			Size = Vector3.new(0.30, 0.30 + f * w, 0.52 + f * 0.30),
+			CFrame = root * CFrame.new(0.26 + (j - 1) * 0.28, -f * 0.10, 0)
+				* CFrame.Angles(0, 0, math.rad(-4 * j)),
+			Color = col:Lerp(C3(255, 255, 255), f * 0.18),
+			Material = mat, Reflectance = refl or (0.05 + t * 0.2),
+		}, model)
+	end
+	edge({
+		Name = "Lip", Length = 0.26, Width = 0.86 + t * 0.3, Height = 0.16,
+		CFrame = root * CFrame.new(1.40, -0.42, 0) * CFrame.Angles(0, 0, math.rad(-20)),
+		Color = col:Lerp(C3(255, 255, 255), 0.4), Material = mat,
+		Reflectance = refl and (refl + 0.1) or (0.12 + t * 0.26),
+	}, model)
+	-- Counterweight: short, heavy, and the thing that stops it reading as a spade.
+	box({
+		Name = "Poll", Size = Vector3.new(0.44, 0.52, 0.5),
+		CFrame = root * CFrame.new(-0.42, 0, 0),
+		Color = col:Lerp(DARK, 0.3), Material = mat, Reflectance = refl or 0.06,
+	}, model)
+	if lit then
+		box({
+			Name = "Rune", Size = Vector3.new(0.9, 0.06, 0.08),
+			CFrame = root * CFrame.new(0.8, 0.16, 0.28),
+			Color = lit, Material = Enum.Material.Neon,
+		}, model)
+	end
+end
+
+--[[
+	WARPICK -- one long spike forward, a hammer poll behind.
+
+	Asymmetric on purpose. The hook and the crescent are both mirrored, so an
+	obviously one-sided head is the cheapest way to make the middle of the
+	roster look like a different tool rather than a bigger one.
+]]
+local function headWarpick(model, root, t, col, mat, lit, refl)
+	local segs = 6
+	local cur = CFrame.new(0.24, 0, 0) * CFrame.Angles(0, 0, math.rad(4))
+	for j = 1, segs do
+		local f = (j - 1) / segs
+		box({
+			Name = "Spike",
+			Size = Vector3.new(0.30, 0.44 * (1 - f * 0.62), 0.42 * (1 - f * 0.55)),
+			CFrame = root * cur * CFrame.new(0.15, 0, 0),
+			Color = col:Lerp(C3(255, 255, 255), f * 0.2),
+			Material = mat, Reflectance = refl or (0.06 + t * 0.24),
+		}, model)
+		cur = cur * CFrame.new(0.28, 0, 0) * CFrame.Angles(0, 0, math.rad(-3))
+	end
+	edge({
+		Name = "Tip", Length = 0.46 + t * 0.2, Width = 0.17, Height = 0.17,
+		CFrame = root * cur,
+		Color = col:Lerp(C3(255, 255, 255), 0.42), Material = mat,
+		Reflectance = refl and (refl + 0.12) or (0.16 + t * 0.3),
+	}, model)
+	box({
+		Name = "Hammer", Size = Vector3.new(0.58, 0.60, 0.58),
+		CFrame = root * CFrame.new(-0.52, 0, 0),
+		Color = col:Lerp(DARK, 0.22), Material = mat, Reflectance = refl or (0.08 + t * 0.2),
+	}, model)
+	for _, s in ipairs({ -1, 1 }) do
+		box({
+			Name = "Cheek", Size = Vector3.new(0.12, 0.44, 0.44),
+			CFrame = root * CFrame.new(-0.82, 0, 0) * CFrame.Angles(0, 0, math.rad(s * 4)),
+			Color = col:Lerp(DARK, 0.42), Material = mat,
+		}, model)
+	end
+	if lit then
+		ball({
+			Name = "Core", Dia = 0.2, CFrame = root * CFrame.new(-0.52, 0, 0.3),
+			Color = lit, Material = Enum.Material.Neon,
+		}, model)
+	end
+end
+
+--[[
+	CRESCENT -- two thin blades meeting in a wide arc.
+
+	The deep-roster shape. Where the hook sweeps back from a thick root, this
+	is thin the whole way and curves much harder, so the head reads as a
+	blade rather than a wedge.
+]]
+local function headCrescent(model, root, t, col, mat, lit, refl)
+	for _, s in ipairs({ -1, 1 }) do
+		local cur = CFrame.new(0.2, 0, 0) * CFrame.Angles(0, 0, math.rad(s * 26))
+		local segs = 7
+		for j = 1, segs do
+			local f = (j - 1) / segs
+			box({
+				Name = "Arc",
+				Size = Vector3.new(0.26, 0.40 * (1 - f * 0.5), 0.22 + f * 0.1),
+				CFrame = root * cur * CFrame.new(0.13, 0, 0),
+				Color = col:Lerp(C3(255, 255, 255), f * 0.26),
+				Material = mat, Reflectance = refl or (0.1 + t * 0.26),
+			}, model)
+			cur = cur * CFrame.new(0.24, 0, 0) * CFrame.Angles(0, 0, math.rad(s * -11))
+		end
+		edge({
+			Name = "Point", Length = 0.34, Width = 0.2, Height = 0.14,
+			CFrame = root * cur,
+			Color = col:Lerp(C3(255, 255, 255), 0.5), Material = mat,
+			Reflectance = refl and (refl + 0.14) or (0.2 + t * 0.3),
+		}, model)
+	end
+	if lit then
+		box({
+			Name = "Rune", Size = Vector3.new(0.1, 0.9, 0.08),
+			CFrame = root * CFrame.new(0.1, 0, 0.2),
+			Color = lit, Material = Enum.Material.Neon,
+		}, model)
+	end
+end
+
+--[[
+	SPIRE -- a vertical crystal shard with short barbs at its base.
+
+	The top of the roster, and the one head that does not look like a
+	blacksmith made it. Built UP rather than out, so it breaks the horizontal
+	silhouette every other head shares -- which is the point at tier 70+,
+	where the ores are prismatic and the tool should stop reading as iron.
+]]
+local function headSpire(model, root, t, col, mat, lit, refl)
+	local n = 5
+	for j = 1, n do
+		local f = (j - 1) / n
+		box({
+			Name = "Shard",
+			Size = Vector3.new(0.34 * (1 - f * 0.6), 0.34, 0.34 * (1 - f * 0.6)),
+			CFrame = root * CFrame.new(0, 0.26 + f * 1.15, 0)
+				* CFrame.Angles(0, math.rad(f * 40), math.rad(f * 5)),
+			Color = col:Lerp(C3(255, 255, 255), f * 0.36),
+			Material = mat, Reflectance = refl or (0.14 + t * 0.3),
+		}, model)
+	end
+	edge({
+		Name = "Apex", Length = 0.5, Width = 0.14, Height = 0.14,
+		CFrame = root * CFrame.new(0, 1.62, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = col:Lerp(C3(255, 255, 255), 0.55), Material = mat,
+		Reflectance = refl and (refl + 0.16) or (0.26 + t * 0.3),
+	}, model)
+	for _, s in ipairs({ -1, 1 }) do
+		box({
+			Name = "Barb", Size = Vector3.new(0.5, 0.2, 0.2),
+			CFrame = root * CFrame.new(s * 0.42, 0.18, 0) * CFrame.Angles(0, 0, math.rad(s * 18)),
+			Color = col:Lerp(C3(255, 255, 255), 0.2), Material = mat, Reflectance = refl or 0.14,
+		}, model)
+	end
+	if lit then
+		ball({
+			Name = "Core", Dia = 0.3, CFrame = root * CFrame.new(0, 0.7, 0),
+			Color = lit, Material = Enum.Material.Neon,
+		}, model)
+	end
+end
+
+--[[
+	The dispatch. HOOK keeps the original mirrored pickArm so the shallow
+	roster is unchanged -- the shape nobody complained about -- and the four
+	above take over further up.
+]]
+local function pickHead(model, root, t, col, mat, lit, refl)
+	local style = styleFor(t)
+	if style == 1 then
+		headAdze(model, root, t, col, mat, lit, refl)
+	elseif style == 2 then
+		headWarpick(model, root, t, col, mat, lit, refl)
+	elseif style == 3 then
+		headCrescent(model, root, t, col, mat, lit, refl)
+	elseif style == 4 then
+		headSpire(model, root, t, col, mat, lit, refl)
+	else
+		pickArm(model, root, t, col, mat, lit, refl)
+		pickArm(model, root * CFrame.Angles(0, math.pi, 0), t, col, mat, lit, refl)
+	end
+	return style
 end
 
 local function buildPickaxe(t, model, look)
@@ -404,8 +634,9 @@ local function buildPickaxe(t, model, look)
 	end
 
 	local head = CFrame.new(0, 1.32, 0)
-	pickArm(model, head, t, metal, mat, lit, look and look.refl)
-	pickArm(model, head * CFrame.Angles(0, math.pi, 0), t, metal, mat, lit, look and look.refl)
+	-- One of five heads, by the ore's place on the roster. See HEAD_STYLES.
+	local headStyle = pickHead(model, head, t, metal, mat, lit, look and look.refl)
+	model:SetAttribute("HeadStyle", headStyle)
 
 	-- A gem set in the eye from mid-ladder, a lit crown near the top.
 	if t > 0.30 then
@@ -511,30 +742,126 @@ local function buildDrill(t, model, look)
 		}, model)
 	end
 
+	--[[
+		FIVE BITS, same reasoning as the five pickaxe heads. The body, motor
+		and grip stay shared -- a drill should still read as a drill -- and
+		the BUSINESS END is what changes, because that is the part a player
+		is looking at while it is pointed into a wall.
+
+		  0 AUGER    the original spiral cone
+		  1 TRIBIT   three straight cutters around a stubby core
+		  2 CORER    an open ring saw, hollow in the middle
+		  3 HAMMER   a blunt percussive piston, no spiral at all
+		  4 LANCE    a long thin spike ringed with floating emitters
+	]]
 	local blen = 1.75 + t * 1.15
 	local bz = -1.02
-	cone({
-		Name = "Bit", Length = blen, Dia = 0.76, Tip = 0.08, Segs = 8,
-		CFrame = CFrame.new(0, 0, bz) * CFrame.Angles(math.rad(-90), 0, 0),
-		Color = bit, Material = mat, Reflectance = 0.15 + t * 0.3,
-	}, model)
-	-- Helical flight: plates spiralling down the cone, riding just proud of its
-	-- surface so the bit reads as cut, not as a stack of discs.
-	local flights = 14 + math.floor(t * 10)
-	for i = 0, flights - 1 do
-		local f = i / flights
-		local r = 0.38 - f * 0.31
-		local ang = f * math.rad(500)
-		box({
-			Name = "Flight",
-			Size = Vector3.new(0.11, 0.34 - f * 0.24, 0.26),
-			CFrame = CFrame.new(0, 0, bz - blen * f)
-				* CFrame.Angles(0, 0, ang)
-				* CFrame.new(r, 0, 0)
-				* CFrame.Angles(0, math.rad(30), 0),
-			Color = bit:Lerp(C3(255, 255, 255), 0.2 + f * 0.3),
-			Material = mat, Reflectance = 0.2 + t * 0.3,
+	local bitStyle = styleFor(t)
+	model:SetAttribute("BitStyle", bitStyle)
+
+	if bitStyle == 1 then
+		cyl({
+			Name = "Core", Length = blen * 0.5, Dia = 0.42,
+			CFrame = CFrame.new(0, 0, bz - blen * 0.25) * CFrame.Angles(0, math.rad(90), 0),
+			Color = bit, Material = mat, Reflectance = 0.18 + t * 0.26,
 		}, model)
+		for i = 0, 2 do
+			local a = math.rad(i * 120)
+			for j = 0, 5 do
+				local f = j / 6
+				box({
+					Name = "Cutter", Size = Vector3.new(0.16, 0.30 - f * 0.18, 0.40),
+					CFrame = CFrame.new(0, 0, bz - blen * f * 0.92)
+						* CFrame.Angles(0, 0, a)
+						* CFrame.new(0.34 - f * 0.18, 0, 0),
+					Color = bit:Lerp(C3(255, 255, 255), 0.16 + f * 0.3),
+					Material = mat, Reflectance = 0.2 + t * 0.3,
+				}, model)
+			end
+		end
+	elseif bitStyle == 2 then
+		-- Open ring: teeth on a circle, nothing in the middle.
+		for i = 0, 11 do
+			local a = math.rad(i * 30)
+			box({
+				Name = "Tooth", Size = Vector3.new(0.18, 0.26, 0.5 + t * 0.3),
+				CFrame = CFrame.new(0, 0, bz - blen * 0.45)
+					* CFrame.Angles(0, 0, a) * CFrame.new(0.5, 0, 0),
+				Color = bit:Lerp(C3(255, 255, 255), 0.26),
+				Material = mat, Reflectance = 0.22 + t * 0.3,
+			}, model)
+		end
+		for _, zf in ipairs({ 0.16, 0.74 }) do
+			cyl({
+				Name = "Ring", Length = 0.14, Dia = 1.16,
+				CFrame = CFrame.new(0, 0, bz - blen * zf) * CFrame.Angles(0, math.rad(90), 0),
+				Color = bit:Lerp(DARK, 0.2), Material = mat, Reflectance = 0.18,
+			}, model)
+		end
+	elseif bitStyle == 3 then
+		-- Percussive: a blunt piston that hits rather than cuts.
+		cyl({
+			Name = "Piston", Length = blen * 0.72, Dia = 0.86,
+			CFrame = CFrame.new(0, 0, bz - blen * 0.36) * CFrame.Angles(0, math.rad(90), 0),
+			Color = bit, Material = mat, Reflectance = 0.14 + t * 0.2,
+		}, model)
+		cyl({
+			Name = "Anvil", Length = 0.34, Dia = 1.06,
+			CFrame = CFrame.new(0, 0, bz - blen * 0.86) * CFrame.Angles(0, math.rad(90), 0),
+			Color = bit:Lerp(C3(255, 255, 255), 0.3), Material = mat, Reflectance = 0.26 + t * 0.3,
+		}, model)
+		for i = 0, 3 do
+			box({
+				Name = "Collar", Size = Vector3.new(1.0, 0.12, 0.16),
+				CFrame = CFrame.new(0, 0, bz - blen * (0.18 + i * 0.18))
+					* CFrame.Angles(0, 0, math.rad(i * 45)),
+				Color = bit:Lerp(DARK, 0.34), Material = mat,
+			}, model)
+		end
+	elseif bitStyle == 4 then
+		-- Lance: thin, long, and ringed with emitters that float off it.
+		cone({
+			Name = "Lance", Length = blen * 1.25, Dia = 0.34, Tip = 0.04, Segs = 6,
+			CFrame = CFrame.new(0, 0, bz) * CFrame.Angles(math.rad(-90), 0, 0),
+			Color = bit:Lerp(C3(255, 255, 255), 0.3), Material = mat,
+			Reflectance = 0.3 + t * 0.3,
+		}, model)
+		for i = 0, 2 do
+			for j = 0, 3 do
+				local a = math.rad(j * 90 + i * 30)
+				box({
+					Name = "Emitter", Size = Vector3.new(0.14, 0.14, 0.14),
+					CFrame = CFrame.new(0, 0, bz - blen * (0.25 + i * 0.3))
+						* CFrame.Angles(0, 0, a) * CFrame.new(0.42, 0, 0),
+					Color = lit or bit:Lerp(C3(255, 255, 255), 0.5),
+					Material = lit and Enum.Material.Neon or mat,
+				}, model)
+			end
+		end
+	else
+		cone({
+			Name = "Bit", Length = blen, Dia = 0.76, Tip = 0.08, Segs = 8,
+			CFrame = CFrame.new(0, 0, bz) * CFrame.Angles(math.rad(-90), 0, 0),
+			Color = bit, Material = mat, Reflectance = 0.15 + t * 0.3,
+		}, model)
+		-- Helical flight: plates spiralling down the cone, riding just proud of
+		-- its surface so the bit reads as cut, not as a stack of discs.
+		local flights = 14 + math.floor(t * 10)
+		for i = 0, flights - 1 do
+			local f = i / flights
+			local r = 0.38 - f * 0.31
+			local ang = f * math.rad(500)
+			box({
+				Name = "Flight",
+				Size = Vector3.new(0.11, 0.34 - f * 0.24, 0.26),
+				CFrame = CFrame.new(0, 0, bz - blen * f)
+					* CFrame.Angles(0, 0, ang)
+					* CFrame.new(r, 0, 0)
+					* CFrame.Angles(0, math.rad(30), 0),
+				Color = bit:Lerp(C3(255, 255, 255), 0.2 + f * 0.3),
+				Material = mat, Reflectance = 0.2 + t * 0.3,
+			}, model)
+		end
 	end
 
 	-- Power cell on the tail, then intakes and fins as the ladder climbs.
@@ -780,25 +1107,115 @@ local function buildExplosive(t, model, look)
 		Reflectance = 0.15,
 	}, model)
 
-	ball({
-		Name = "Casing", Dia = r, CFrame = CFrame.new(0, cy, 0),
-		Color = body, Material = mat, Reflectance = 0.06 + t * 0.2,
-	}, model)
-	-- Equator band plus two latitude bands, with rivets round the belt.
-	for _, o in ipairs({ { 0, 1.015 }, { 0.3, 0.9 }, { -0.3, 0.9 } }) do
+	--[[
+		FIVE SHELLS, same reasoning again. The haft, collar and fuse stay
+		shared; the body is what changes.
+
+		  0 ORB      the original banded sphere
+		  1 KEG      a squat cylinder with hoops, read as a powder keg
+		  2 CANISTER a tall ribbed drum with a shoulder taper
+		  3 CLUSTER  four small spheres strapped to a core
+		  4 PRISM    a faceted crystal charge with no metal at all
+	]]
+	local shellStyle = styleFor(t)
+	model:SetAttribute("ShellStyle", shellStyle)
+
+	if shellStyle == 1 then
 		cyl({
-			Name = "Band", Length = 0.11, Dia = r * o[2],
-			CFrame = CFrame.new(0, cy + o[1] * r, 0), Color = trim,
-			Material = Enum.Material.Metal, Reflectance = 0.2,
+			Name = "Keg", Length = r * 1.15, Dia = r * 1.0,
+			CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = body, Material = mat, Reflectance = 0.05 + t * 0.16,
 		}, model)
-	end
-	for i = 0, 7 do
+		for _, yf in ipairs({ -0.36, 0, 0.36 }) do
+			cyl({
+				Name = "Hoop", Length = 0.13, Dia = r * 1.06,
+				CFrame = CFrame.new(0, cy + yf * r, 0) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = trim, Material = Enum.Material.Metal, Reflectance = 0.24,
+			}, model)
+		end
+	elseif shellStyle == 2 then
+		cyl({
+			Name = "Drum", Length = r * 1.5, Dia = r * 0.82,
+			CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = body, Material = mat, Reflectance = 0.08 + t * 0.2,
+		}, model)
+		cone({
+			Name = "Shoulder", Length = r * 0.42, Dia = r * 0.82, Tip = r * 0.4, Segs = 10,
+			CFrame = CFrame.new(0, cy + r * 0.75, 0) * CFrame.Angles(math.rad(-90), 0, 0),
+			Color = body:Lerp(C3(255, 255, 255), 0.14), Material = mat,
+		}, model)
+		for i = 0, 7 do
+			box({
+				Name = "Rib", Size = Vector3.new(0.09, r * 1.3, 0.12),
+				CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, math.rad(i * 45), 0)
+					* CFrame.new(0, 0, r * 0.42),
+				Color = trim:Lerp(DARK, 0.2), Material = Enum.Material.Metal,
+			}, model)
+		end
+	elseif shellStyle == 3 then
 		ball({
-			Name = "Rivet", Dia = 0.13,
-			CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, math.rad(i * 45), 0)
-				* CFrame.new(0, 0, r * 0.51),
-			Color = trim:Lerp(C3(255, 255, 255), 0.35), Material = Enum.Material.Metal,
+			Name = "Core", Dia = r * 0.72, CFrame = CFrame.new(0, cy, 0),
+			Color = body:Lerp(DARK, 0.25), Material = mat,
 		}, model)
+		for i = 0, 3 do
+			local a = math.rad(i * 90 + 45)
+			ball({
+				Name = "Bomblet", Dia = r * 0.56,
+				CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, a, 0)
+					* CFrame.new(0, 0, r * 0.46),
+				Color = body, Material = mat, Reflectance = 0.1 + t * 0.2,
+			}, model)
+			box({
+				Name = "Strap", Size = Vector3.new(0.1, r * 0.9, 0.1),
+				CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, a, 0)
+					* CFrame.new(0, 0, r * 0.46),
+				Color = trim, Material = Enum.Material.Metal,
+			}, model)
+		end
+	elseif shellStyle == 4 then
+		-- Faceted: no bands, no rivets. It should not look manufactured.
+		for i = 0, 5 do
+			local a = math.rad(i * 60)
+			box({
+				Name = "Facet", Size = Vector3.new(r * 0.5, r * 1.1, r * 0.5),
+				CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, a, 0)
+					* CFrame.new(0, 0, r * 0.28) * CFrame.Angles(math.rad(8), 0, 0),
+				Color = body:Lerp(C3(255, 255, 255), 0.1 + (i % 2) * 0.12),
+				Material = mat, Reflectance = 0.2 + t * 0.3,
+			}, model)
+		end
+		edge({
+			Name = "Crown", Length = r * 0.7, Width = r * 0.3, Height = r * 0.3,
+			CFrame = CFrame.new(0, cy + r * 0.72, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = body:Lerp(C3(255, 255, 255), 0.4), Material = mat,
+			Reflectance = 0.3 + t * 0.3,
+		}, model)
+	else
+		ball({
+			Name = "Casing", Dia = r, CFrame = CFrame.new(0, cy, 0),
+			Color = body, Material = mat, Reflectance = 0.06 + t * 0.2,
+		}, model)
+		-- Equator band plus two latitude bands, with rivets round the belt.
+		for _, o in ipairs({ { 0, 1.015 }, { 0.3, 0.9 }, { -0.3, 0.9 } }) do
+			cyl({
+				Name = "Band", Length = 0.11, Dia = r * o[2],
+				CFrame = CFrame.new(0, cy + o[1] * r, 0), Color = trim,
+				Material = Enum.Material.Metal, Reflectance = 0.2,
+			}, model)
+		end
+	end
+	-- Rivets belong on a MANUFACTURED shell. The cluster straps its bomblets
+	-- instead, and the prism is grown rather than built -- a riveted crystal
+	-- is the kind of detail that undoes the whole shape.
+	if shellStyle ~= 3 and shellStyle ~= 4 then
+		for i = 0, 7 do
+			ball({
+				Name = "Rivet", Dia = 0.13,
+				CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, math.rad(i * 45), 0)
+					* CFrame.new(0, 0, r * 0.51),
+				Color = trim:Lerp(C3(255, 255, 255), 0.35), Material = Enum.Material.Metal,
+			}, model)
+		end
 	end
 
 	if t < 0.45 then
