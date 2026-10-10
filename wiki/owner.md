@@ -140,6 +140,16 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
 - **Hand-offs:** when the queue is long, they want it written into the wiki
   with a prompt, then they restart the work.
 
+## Decided 2026-10-10, sets and rewards
+
+- **Set power:** set 1 (Pebblebound) starts at zone 1's level, and each set is
+  +5% (Chaos Theory ×2.41).
+- **Names:** all 2,043 ship now, and the owner reviews the sheet after.
+- **Pack cases** can roll any set, with top grades rarer. They are sold for
+  stardust in a new tab of the stardust shop.
+- **The Halloween 2026 Pack** comes from a Halloween event mine only.
+- **Old generated cards stop dropping;** owned ones keep working.
+
 ## Locked decisions: one line each
 
 These come from `docs/TODO.md` §0. Each is settled: build on it and do not

@@ -208,6 +208,19 @@ already own keep working.
   - Only **exclusive, non-zone** packs are given as rewards.
 - **The TODAY checklist** (TODO A2) goes **inside the Quests panel**. Decided.
 
+## Rewards pass: decided 2026-10-10 (late)
+
+- **What a case can roll.** A pack case shows its stars: a ★★★ case is 3–5
+  random ★★★ packs. They can come from **any set**, but higher grades are
+  rarer: F, D and C sets often, A and S less often, SS and SSS rarely.
+- **Where cases are sold.** Cases are bought with stardust **inside the
+  existing stardust shop**, as a new tab. There is no NPC stall.
+- **The Halloween 2026 Pack** comes from the **Halloween event mine only**.
+- **Old generated cards stop dropping** ("Ember Fox" and the rest). Owned ones
+  keep working and stay tradeable.
+- **Every number is PROPOSED until the owner approves it:** pack odds, case
+  contents and prices, the 60–70% return, chest case rates and the 6-hour spin.
+
 ## Open, for the owner
 
 See `wiki/open-questions.md`, the section "Help needed: pets and pack sets".

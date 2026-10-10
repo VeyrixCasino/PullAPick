@@ -1905,4 +1905,41 @@ function MinePackConfig.pullOdds(pack, card, poolSize, slots, shadowOfShiny)
 	return (perPack > 0) and (1 / perPack) or nil, (perSlot > 0) and (1 / perSlot) or nil
 end
 
+--[[
+	THE 19 SETS' PACKS (MineSetPacks) answer every pack lookup like any other
+	pack: the bag tile, the inspector, the admin grant and the opener all read
+	PACK_BY_ID. They stay OUT of PACKS, the universal list, so no shop, star
+	band or rotation that walks it starts selling or re-rating them.
+
+	Their sort rank sits among the universal packs by the same score, so a
+	five-star set pack sorts with the best packs and a one-star with the worst.
+]]
+do
+	local mod = script.Parent:FindFirstChild("MineSetPacks")
+	local ok, SetPacks = pcall(function()
+		return mod and require(mod)
+	end)
+	if ok and type(SetPacks) == "table" then
+		local scores = {}
+		for _, row in ipairs(MinePackConfig.PACKS or {}) do
+			table.insert(scores, packScore(row))
+		end
+		for _, def in ipairs(SetPacks.PACKS or {}) do
+			if MinePackConfig.PACK_BY_ID[def.id] == nil then
+				MinePackConfig.PACK_BY_ID[def.id] = def
+				local mine, below = packScore(def), 0
+				for _, sc in ipairs(scores) do
+					if sc <= mine then
+						below += 1
+					end
+				end
+				MinePackConfig.PACK_TIER[def.id] = below + 0.5
+			end
+		end
+	elseif not ok and warn then
+		-- (warn is nil in the offline pack checks, which stub the module tree)
+		warn("[MinePackConfig] MineSetPacks: " .. tostring(SetPacks))
+	end
+end
+
 return MinePackConfig

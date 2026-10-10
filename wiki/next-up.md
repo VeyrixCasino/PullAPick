@@ -135,9 +135,10 @@ Owner: *"make sure NO holiday ones are in the game.. only allow it from {Holiday
 
 ## 5. After that
 
-- The rewards pass (`docs/PETS-AND-SETS.md`): pack cases, the stardust NPC,
-  ★ wheel slices, the 6-hour spin, zone pots as the drop source, removing
-  universal packs, and the Halloween 2026 Pack.
+- The rewards pass (`docs/PETS-AND-SETS.md`): pack cases, the stardust shop
+  tab, ★ wheel slices, the 6-hour spin, removing universal packs, and the
+  Halloween 2026 Pack. **Done so far:** set packs open into their set's pets,
+  and zone pots are the drop source for every other pack (2026-10-10).
 - The 19 sets' pets (2,043, every one named) and about 100 new bodies.
 - A2 (the TODAY checklist in the Quests panel), then A3 (fishing).
 

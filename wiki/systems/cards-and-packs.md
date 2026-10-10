@@ -2,9 +2,12 @@
 title: Cards and packs
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-10 @ f6baac2
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineCards.luau
+  - src/ReplicatedStorage/Mine/Shared/MineSetPacks.luau
+  - src/ReplicatedStorage/Mine/Shared/MineSetPets.luau
+  - src/ReplicatedStorage/Mine/Shared/MinePetRoster.luau
   - src/ReplicatedStorage/Mine/Shared/MinePackConfig.luau
   - src/ReplicatedStorage/Mine/Shared/Mine1PacksData.luau
   - src/ReplicatedStorage/Mine/Shared/MineZonePacks.luau
@@ -42,7 +45,29 @@ sets, and `MineConfig.setForLayer` picks one by depth, switching at 25% and 60%
 of `MineConfig.LAYERS`. Every serial is claimed in a global registry by `mint` in
 MineServer, which is what makes trading safe.
 
-**The set system is live, and it is how every pack works** (counted 2026-10-10):
+**Who comes out of a pack: named pets only** (owner, 2026-10-10: old
+generated cards *"stop dropping"*). Since then `openPack` mints from two
+sources; the old card sets below now only supply a fallback rarity:
+- **A set pack** (`<setkey>_pack_1..6`, `MineSetPacks`) pays only its own
+  set's named pets (`MinePetRoster.BY_SET`). This is the owner's *"make some
+  packs draw certain cards"*.
+- **Every other card pack pays from a zone pot** (`MinePetRoster.BY_ZONE`, 70
+  named pets a zone). The zone is the pack's own (a zone pack, or a pack found
+  in a zone). Failing that, it is the zone that lists the pack's old set, or
+  the zone the set is named after (Bloodmoon, Eclipse, Mythral). A "Universal"
+  set's pack pays from the deepest regular zone the player has opened.
+  Event Horizon packs pay Event Horizon pets.
+- **The rarity is rolled exactly as before**, from the same tables; only *who*
+  changes. `MineSetPacks.pickPet` picks a pet of that rarity, falls a rarity
+  down if the pot has none, and never picks a holiday pet.
+- **The card** is `MineSetPacks.petCard`: `setId` is the pet's home (set key
+  or zone id), and `cardKey` is `"<home>:<name>"`, so copies from packs merge.
+- **The starter bundle's free pet** is a meadow Common from the pot.
+- **Old cards already owned keep working** and stay tradeable.
+- Verified in a Studio play test (2026-10-10): meadow, eclipse, primordium and
+  Event Horizon packs paid named pets of their own zone.
+
+**The old set system, for reference** (counted 2026-10-10, before the switch):
 - **Size.** 41 sets hold **4,023 card slots, but only 207 distinct pets.** Names
   come from 16 prefixes × 16 species, and the body is one of those 16 species.
   The same "Ember Fox" can be Common in one set and Exotic in another.
@@ -55,12 +80,10 @@ MineServer, which is what makes trading safe.
   (837 slots) are reachable only this way, because no zone lists them.
 - **Mythral lists `"brutalcrusher"`, which is a tool id, as a set.** So
   `mythral_choir` is reachable only at random.
-- **The 322 hand-named pets** (`MinePetRoster` plus `MineEHPets`) are separate.
-  They drop only from the wheel, lucky blocks and Event Horizon chests, never
-  from packs.
+- The old card sets now only supply the rarity for a pack that has no `odds`
+  table of its own (`MineCards.rollPack`, the fallback below).
 
-The owner's rework replaces all of this with zone pots plus 19 exclusive sets
-(`docs/PETS-AND-SETS.md`).
+The owner's rework (`docs/PETS-AND-SETS.md`): zone pots plus 19 exclusive sets.
 
 **The 8-rung rarity ladder** is Common, Uncommon, Rare, Epic, Legendary, Mythic,
 Divine, Exotic (`MineCards.RARITY_ORDER` = `MinePackConfig.TIERS`). The old TCG
@@ -75,9 +98,9 @@ names (HoloRare, UltraRare, HyperRare, SecretRare) are kept as aliases in
 2. **God Pack.** The chance is half the pack's Exotic %
    (`godPackChancePercent`). When it hits, every card in the pack is Mythic or
    better (`rollGodCard`).
-3. **Which card.** The card is drawn from that rarity in the set, narrowed to a
-   60% window per pack (`cardPoolFor`, `CARD_SUBSET_SHARE`). Two packs from the
-   same set therefore pay different pets.
+3. **Which pet.** A named pet of that rarity, from the set (set packs) or the
+   zone pot (everything else); see "Who comes out of a pack" above. The old
+   per-pack 60% card window (`cardPoolFor`) no longer decides anything.
 4. **Variant.** `variantOdds` overrides each pack's own `variants` row. Every
    pack pays Golden 1% and nothing else (`VARIANT_BASE`), except the packs named
    in `VARIANT_HEADLINE`, such as `void_pack` at Void 2%.
@@ -111,6 +134,7 @@ the last. Cards of Rare or better that rolled rarer than 1 in 200 carry an
 |---|---|---|
 | `cards` | `<zone>_pack_common/rare/legendary` (3/4/5 cards) | odds from `MineZonePacks` `cardOdds(zoneIndex, heat)` |
 | `currency` | `<zone>_currency_common/rare` | coins + gems, no cards |
+| `cards` + `setKey` | `<setkey>_pack_1..6` (★ to ★★★★★; 3, 3, 4, 4, 5, 5 cards) | `MineSetPacks.ODDS` by star grade; only that set's pets |
 | card pack, no kind | 19 in `Mine1PacksData` (loam … heirloom; hopper 6 cards, magma 8, apex 1) | own `odds` table |
 | `rune` / `gear` | `rune_*_pack`, `gear_*_pack` | `MineLootPacks` rolls one item per slot |
 | `ore_case` | `<ore>_ore_case` | a skin or a charm, see [skins-cases-and-temper](skins-cases-and-temper.md) |
@@ -150,6 +174,7 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
 | `src/ReplicatedStorage/Mine/Shared/Mine1PacksData.luau` | 25 authored pack rows | `odds`, `cards`, `shiny`, `kind` |
 | `src/ReplicatedStorage/Mine/Shared/MineZonePacks.luau` | 5 generated slots × 11 zones, plus ore packs and cases | `buildAll`, `get`, `SLOTS` |
 | `src/ReplicatedStorage/Mine/Shared/MineLootPacks.luau` | rune and gear pack roller | `rollRarity`, `isLoot` |
+| `src/ReplicatedStorage/Mine/Shared/MineSetPacks.luau` | the 19 sets' six packs each, the pack cases, the named-pet pick (all numbers PROPOSED) | `PACK_BY_ID`, `ODDS`, `pickPet`, `petCard`, `rollCase`, `casePrice` |
 | MineServer | minting, opening, legacy banking | `mint`, `openPack`, `openMany`, `Dig.bankOrePacks` |
 | `src/ReplicatedStorage/Mine/Shared/MinePackReveal.luau`, `src/ReplicatedStorage/Mine/Shared/MinePackFX.luau` | the reveal, and the 1.4 s tear (ported from TCG Life) | `mount`, `ART`, `BAND_ORDER`, `pullScore` |
 
@@ -177,10 +202,17 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
   God Pack scale existing weight, so they stay 0. This was computed from the
   formula, not observed. OPEN P2 says `cardOdds` ignores the zone index; that is
   stale, because it does use it.
-- **Packs mint generated cards only.** The named X/Y card lists that were never wired
-  into minting were deleted on 2026-10-10, along with every pack's per-pack variants
-  row (`variantOdds` already ignored them). Named pets come from the zone pots
-  ([pets](pets.md)), which are not a drop source yet.
+- **Set packs live in `PACK_BY_ID` but not in `PACKS`.** `MinePackConfig`
+  registers them at the end of the file, so every lookup (bag tile, inspector,
+  admin grant, opener) finds them, but nothing that walks the universal list
+  sells or re-rates them. **One side effect:** the day-4 surprise walks
+  `PACK_BY_ID` for packs of 2★ and up, so it can now hand out a set pack.
+- **Two pets of one name can fail to merge.** Pack pets use `"<home>:<name>"`,
+  but lucky blocks mint `"lucky_block:<name>"` and the group wheel
+  `"group_wheel:<name>"`, and merging needs equal `cardKey`s. Not changed yet;
+  ask before re-keying, because it touches saved cards.
+- **`MinePackConfig.CARD_SUBSET_SHARE` / `cardPoolFor` are now dead for packs**:
+  they narrowed the old card sets, which no pack draws from any more.
 - **Stale comments in `MinePackConfig`:**
   - the header says packs cannot be bought with coins or gems — true, but they sell for credits;
   - the header's "chest is the identity" text describes `MinePackConfig.CHESTS`, which only a dead path reads ([chests-and-lucky-blocks](chests-and-lucky-blocks.md));
@@ -196,7 +228,6 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
 - Is a Meadow pack with no Mythic+ at all intended? Compare PROPOSAL §I: *"Exotic … 1 in 5,000 … is not rare, it is absent."*
 - "New drop tables" was never defined (OPEN #12).
 - Should the 28 legacy packs move onto the ore system (OPEN P2)?
-- Should the X/Y roster be wired into minting?
 
 ## See also
 [pets](pets.md) · [chests-and-lucky-blocks](chests-and-lucky-blocks.md) · [shops-and-monetisation](shops-and-monetisation.md) · [trading](trading.md) · [ore-pouch-and-backpack](ore-pouch-and-backpack.md) · [glossary](../glossary.md)

@@ -281,6 +281,18 @@ const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const round4 = (v) => Math.round(v * 10000) / 10000;
 const lighten = (rgb, t) => rgb.map((c) => Math.round(c + (255 - c) * t));
 
+// Names the 19 sets already hold (SetPets/*.luau), so a zone pet never takes one.
+function setPetNames() {
+  const dir = path.join(ROOT, SHARED, "SetPets");
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const f of fs.readdirSync(dir)) {
+    if (!f.endsWith(".luau")) continue;
+    for (const m of fs.readFileSync(path.join(dir, f), "utf8").matchAll(/\{ name = "([^"]+)", hex3/g)) out.push(m[1]);
+  }
+  return out;
+}
+
 // ---- read the game ---------------------------------------------------------
 function readGame() {
   const roster = [];
@@ -350,7 +362,7 @@ function build() {
   });
 
   // 2. New pets fill each zone to its quota.
-  const usedNames = new Set([...G.roster.map((r) => r.name), ...G.ehNames]);
+  const usedNames = new Set([...G.roster.map((r) => r.name), ...G.ehNames, ...setPetNames()]);
   const usedAnimals = new Set([...Object.keys(G.animals), ...G.ehAnimals]);
   const tintsBy = {}; // species -> [rgb]
   for (const a of Object.values(G.animals)) (tintsBy[a.species] = tintsBy[a.species] || []).push(a.rgb);

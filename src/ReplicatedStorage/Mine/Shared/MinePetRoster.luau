@@ -342,8 +342,32 @@ do
 	end
 end
 
+--[[
+	SET PETS (MineSetPets, owner 2026-10-10: the 19 exclusive sets). They join
+	the roster here too, before the indexes, and every one is stamped with its
+	set. A name already in the roster is never replaced.
+]]
+do
+	local ok, sp = pcall(require, script.Parent:FindFirstChild("MineSetPets"))
+	if ok and type(sp) == "table" and sp.PETS then
+		local have = {}
+		for _, pet in ipairs(MinePetRoster.PETS) do
+			have[pet.name] = true
+		end
+		for _, row in ipairs(sp.PETS) do
+			if not have[row.name] then
+				table.insert(MinePetRoster.PETS, {
+					name = row.name, hex3 = row.hex3, animal = row.animal, tier = row.tier, tierVia = "set", set = row.set,
+				})
+			end
+		end
+	end
+end
+
 MinePetRoster.BY_NAME = {}
 MinePetRoster.BY_TIER = {}
+-- set key -> its pets (the 19 exclusive sets).
+MinePetRoster.BY_SET = {}
 -- zone id -> its pets. Event Horizon pets carry no zone here; they are bigbang's.
 MinePetRoster.BY_ZONE = {}
 for _, pet in ipairs(MinePetRoster.PETS) do
@@ -353,6 +377,10 @@ for _, pet in ipairs(MinePetRoster.PETS) do
 	if pet.zone then
 		MinePetRoster.BY_ZONE[pet.zone] = MinePetRoster.BY_ZONE[pet.zone] or {}
 		table.insert(MinePetRoster.BY_ZONE[pet.zone], pet)
+	end
+	if pet.set then
+		MinePetRoster.BY_SET[pet.set] = MinePetRoster.BY_SET[pet.set] or {}
+		table.insert(MinePetRoster.BY_SET[pet.set], pet)
 	end
 end
 for oldName, newName in pairs(MinePetRoster.NAME_ALIASES) do

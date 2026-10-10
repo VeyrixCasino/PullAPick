@@ -156,11 +156,16 @@ function M.build(opts)
 		a fox. For the length of the loads, a fresh copy of the zone data stands
 		in under the real name; the original is put back straight after.
 	]]
-	local zoneData = shared:FindFirstChild("MineZonePets")
-	local stand = zoneData and zoneData:Clone()
-	if stand then
-		zoneData.Name = "MineZonePets_held"
-		stand.Parent = shared
+	-- The same for the set data and every module folder those modules read.
+	local held = {}
+	for _, name in ipairs({ "MineZonePets", "MineSetPets", "SetPets", "PetBodies" }) do
+		local orig = shared:FindFirstChild(name)
+		if orig then
+			local stand = orig:Clone()
+			orig.Name = name .. "_held"
+			stand.Parent = shared
+			table.insert(held, { orig = orig, stand = stand, name = name })
+		end
 	end
 	local ok, loaded = pcall(function()
 		return {
@@ -168,16 +173,17 @@ function M.build(opts)
 			PMF = fresh(shared.PetModelFactory),
 			Boosts = fresh(shared.MinePetBoosts),
 			Zones = fresh(shared.MineZonePets),
+			Sets = shared:FindFirstChild("MineSetPets") and fresh(shared.MineSetPets) or { SETS = {}, setOf = function() return nil end },
 		}
 	end)
-	if stand then
-		stand:Destroy()
-		zoneData.Name = "MineZonePets"
+	for _, h in ipairs(held) do
+		h.stand:Destroy()
+		h.orig.Name = h.name
 	end
 	if not ok then
 		error(loaded)
 	end
-	local Roster, PMF, Boosts, Zones = loaded.Roster, loaded.PMF, loaded.Boosts, loaded.Zones
+	local Roster, PMF, Boosts, Zones, Sets = loaded.Roster, loaded.PMF, loaded.Boosts, loaded.Zones, loaded.Sets
 	local Stats = require(shared.MineStats)
 	local Cfg = require(shared.MineConfig)
 
@@ -212,11 +218,30 @@ function M.build(opts)
 	}
 	local holidayPets = {}
 	local other = { id = "other", title = "NO ZONE", sub = "Pets with no zone pot (should be empty)", pets = {} }
+	-- The 19 exclusive sets, in the owner's order.
+	local bySet, setGroups = {}, {}
+	for _, set in ipairs(Sets.SETS or {}) do
+		local buffs = {}
+		for _, st in ipairs(set.BUFFS or {}) do
+			table.insert(buffs, (Stats.STATS[st] and Stats.STATS[st].label) or st)
+		end
+		local g = {
+			id = set.KEY,
+			title = string.upper(set.NAME) .. "  (" .. tostring(set.GRADE) .. ")",
+			sub = string.format("Set %d  ·  power x%.2f  ·  Mythic/Divine/Exotic: %s", set.INDEX or 0, set.POWER or 1, table.concat(buffs, ", ")),
+			pets = {},
+		}
+		bySet[set.KEY] = g
+		table.insert(setGroups, g)
+	end
 	for _, pet in ipairs(Roster.PETS) do
 		-- Ask the zone data directly: it is required fresh above, the roster's own
 		-- copy may be a cached one from earlier in the Studio session.
 		local zone = Zones.zoneOf(pet.name) or pet.zone
-		if Zones.HOLIDAY and Zones.HOLIDAY[pet.name] then
+		local setKey = Sets.setOf and Sets.setOf(pet.name)
+		if setKey and bySet[setKey] then
+			table.insert(bySet[setKey].pets, pet)
+		elseif Zones.HOLIDAY and Zones.HOLIDAY[pet.name] then
 			table.insert(holidayPets, pet)
 		elseif zone and byZone[zone] then
 			table.insert(byZone[zone].pets, pet)
@@ -227,6 +252,9 @@ function M.build(opts)
 		end
 	end
 	table.insert(groups, eh)
+	for _, g in ipairs(setGroups) do
+		table.insert(groups, g)
+	end
 	-- Holiday bodies with no roster pet yet: one of each, so they can be judged.
 	-- Holiday pets are in no pot and no random roll; only a {Holiday} {year} Pack gives one.
 	table.insert(groups, {
@@ -323,7 +351,7 @@ function M.build(opts)
 					-- Face the aisle at the front of the block (towards -Z).
 					model:PivotTo(CFrame.new(at + Vector3.new(0, 0.6 + size.Y / 2, 0)) * CFrame.Angles(0, math.pi, 0))
 					local kit = Boosts.boostsFor(pet.name)
-					local role = (Zones.ROLE and Zones.ROLE[pet.name]) or ""
+					local role = (Zones.ROLE and Zones.ROLE[pet.name]) or (Sets.ROLE and Sets.ROLE[pet.name]) or ""
 					nameTag(model, pet, g.bodies and "" or kitText(kit, pet.tier, Stats, Cfg), role, colour)
 					model.Parent = block
 					count += 1

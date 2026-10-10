@@ -179,7 +179,7 @@ check(merge > 0 && merge < roster.indexOf("MinePetRoster.BY_NAME = {}") && merge
 check(/BY_ZONE\[pet\.zone\]/.test(roster), "MinePetRoster indexes pets by zone (BY_ZONE)");
 const boosts = code(read("src/ReplicatedStorage/Mine/Shared/MinePetBoosts.luau"));
 const fn = boosts.slice(boosts.indexOf("function M.boostsFor"));
-check(/PET_BOOSTS\.Z = zp\.KITS/.test(boosts) && /return z and z\[name\]/.test(fn), "boostsFor answers from the one kit table (PET_BOOSTS.Z)");
+check(/PET_BOOSTS\.Z\[name\] = kit/.test(boosts) && /zp\.KITS/.test(boosts) && /return z and z\[name\]/.test(fn), "boostsFor answers from the one kit table (PET_BOOSTS.Z)");
 const pmf = code(read("src/ReplicatedStorage/Mine/Shared/PetModelFactory.luau"));
 check(/zp\.ANIMALS[\s\S]{0,200}PetModelFactory\.ANIMALS\[animal\] == nil/.test(pmf), "PetModelFactory adds the zone skins without overwriting any");
 

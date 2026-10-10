@@ -8295,12 +8295,48 @@ local function openPack(plr, setId, chestId, pk, collect)
 	-- number prices the "1 in X" below, so the odds shown are the odds rolled.
 	local shadowShare = (Packs.shadowOfShiny and Packs.shadowOfShiny(packDef and packDef.id, C.SHADOW_OF_SHINY))
 		or (C.SHADOW_OF_SHINY or 0.01)
+	--[[
+		OLD GENERATED CARDS STOP DROPPING (owner, 2026-10-10). Every pack that
+		is not a set pack pays from a ZONE POT (MineZonePets, 70 named pets a
+		zone): the zone the pack belongs to (a zone pack, or a pack found in a
+		zone), else the zone that owns the pack's old set, else the meadow. The
+		rarity is still rolled exactly as before, from the same tables; only
+		WHO you get changes. Old cards already owned keep working.
+
+		A few old sets sit in no zone's list but carry a zone's name (Bloodmoon,
+		Eclipse, Mythral); they pay from that zone. A pack of a "Universal" set
+		pays from the deepest regular zone the player has opened.
+	]]
+	local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+	local potZone, potPets
+	if not (packDef and packDef.setKey) then
+		potZone = (packDef and packDef.zoneId) or (pk and pk.zoneId)
+		if not potZone then
+			local oldSet = Cards.SETS and Cards.SETS[setId]
+			local label = oldSet and string.lower(tostring(oldSet.displayName or "")) or ""
+			for _, z in ipairs(C.ZONES or {}) do
+				if (z.sets and table.find(z.sets, setId)) or z.id == label then
+					potZone = z.id
+					break
+				end
+			end
+		end
+		if not potZone then
+			local z = C.ZONES and C.ZONES[math.max(1, math.floor(tonumber(p and p.maxUnlockedZone) or 1))]
+			potZone = (z and not z.limited) and z.id or "meadow"
+		end
+		potPets = PetRoster.BY_ZONE and (PetRoster.BY_ZONE[potZone] or PetRoster.BY_ZONE.meadow)
+		if potPets and not PetRoster.BY_ZONE[potZone] then
+			potZone = "meadow"
+		end
+	end
+	local potName = potZone and ((C.zoneById(potZone) or {}).name or potZone) or nil
 
 	for slot = 1, want do
-		local def, variant, isShiny, poolN
+		local def, variant, isShiny, poolN, rolledTier
 		if legacy then
 			local r = legacy[slot]
-			variant, isShiny = r.variant, r.shiny
+			variant, isShiny, rolledTier = r.variant, r.shiny, r.tier
 			local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, r.tier or "Common") or {}
 			if #pool == 0 and Cards.indicesOfRarity then
 				pool = Cards.indicesOfRarity(setId, "Common") or {}
@@ -8311,23 +8347,47 @@ local function openPack(plr, setId, chestId, pk, collect)
 			local roll = (isGodPack and Packs.rollGodCard)
 				and Packs.rollGodCard(packDef, rng)
 				or Packs.rollCard(packDef, rng)
-			variant, isShiny = roll.variant, roll.shiny
-			local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, roll.tier) or {}
-			if #pool == 0 and Cards.indicesOfRarity then
-				pool = Cards.indicesOfRarity(setId, "Common") or {}
+			variant, isShiny, rolledTier = roll.variant, roll.shiny, roll.tier
+			if packDef.setKey then
+				--[[
+					A SET PACK DRAWS ONLY ITS SET'S PETS (owner, 2026-10-10:
+					"make some packs draw certain cards"). The rarity came from
+					the pack's star-grade odds just above; the pet is any of the
+					set's hand-named pets at that rarity (MineSetPacks.pickPet).
+				]]
+				local pets = PetRoster.BY_SET and PetRoster.BY_SET[packDef.setKey]
+				local pet, n = SetPacks.pickPet(pets, roll.tier, rng)
+				if pet then
+					def = SetPacks.petCard(pet, packDef.setKey, packDef.setName)
+					poolN = n
+				end
+			else
+				local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, roll.tier) or {}
+				if #pool == 0 and Cards.indicesOfRarity then
+					pool = Cards.indicesOfRarity(setId, "Common") or {}
+				end
+				-- This pack's slice of that rarity, not the whole set: two packs of
+				-- one set used to be the same pack in a different wrapper.
+				if Packs.cardPoolFor then
+					pool = Packs.cardPoolFor(packDef, pool)
+				end
+				local index = (#pool > 0) and pool[rng:NextInteger(1, #pool)] or 1
+				def = Cards.getCard and Cards.getCard(setId, index) or nil
+				poolN = #pool
 			end
-			-- This pack's slice of that rarity, not the whole set: two packs of
-			-- one set used to be the same pack in a different wrapper.
-			if Packs.cardPoolFor then
-				pool = Packs.cardPoolFor(packDef, pool)
-			end
-			local index = (#pool > 0) and pool[rng:NextInteger(1, #pool)] or 1
-			def = Cards.getCard and Cards.getCard(setId, index) or nil
-			poolN = #pool
 		else
 			def = fallback and fallback[slot]
 			variant = "Normal"
 			isShiny = rng:NextNumber() * 100 < shinyPct
+		end
+		-- Same rarity, from the zone pot (see potPets above).
+		local potTier = rolledTier or (def and def.rarityId)
+		if potTier and potPets then
+			local pet, n = SetPacks.pickPet(potPets, potTier, rng)
+			if pet then
+				def = SetPacks.petCard(pet, potZone, potName)
+				poolN = poolN and n or nil
+			end
 		end
 		if def then
 			local c = mint(def, plr.UserId)
@@ -8506,7 +8566,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 			or (pk and pk.tier and C.PACK_TIERS[pk.tier])
 			or (chest and chest.name)
 			or "Booster Pack",
-		setName = (set and set.displayName) or setId,
+		setName = (packDef and packDef.setKey and packDef.setName) or potName or (set and set.displayName) or setId,
 	}
 	if isGodPack then
 		design.godpack = true
@@ -10830,14 +10890,12 @@ local function buyProductWithCredits(plr, key)
 		end
 		p.coins = (p.coins or 0) + (tonumber(prod.coins) or 8000)
 		if (tonumber(prod.commonPet) or 1) > 0 then
-			local setId = "dragons_dawn"
-			local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, "Common") or {}
-			if #pool > 0 then
-				local index = pool[Random.new():NextInteger(1, #pool)]
-				local def = Cards.getCard and Cards.getCard(setId, index)
-				if def then
-					table.insert(p.cards, mint(def, plr.UserId, true))
-				end
+			-- A Common from the meadow's pot: old generated cards no longer drop.
+			local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+			local pet = SetPacks.pickPet(PetRoster.BY_ZONE and PetRoster.BY_ZONE.meadow, "Common", Random.new())
+			if pet then
+				local def = SetPacks.petCard(pet, "meadow", (C.zoneById("meadow") or {}).name)
+				table.insert(p.cards, mint(def, plr.UserId, true))
 			end
 		end
 		p.starterBought = true
@@ -14655,7 +14713,9 @@ function Verbs.grantPacks(plr, p, list)
 			table.insert(p.packs, {
 				packId = row.id,
 				packName = (def and def.name) or row.id,
-				setId = (#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn",
+				-- A set pack belongs to its own set; anything else picks one.
+				setId = (def and def.setKey)
+					or ((#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn"),
 			})
 		end
 	end
@@ -17481,6 +17541,21 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 					end
 					snap(plr)
 				end
+				if type(payload.packIds) == "table" then
+					-- Studio only: these exact packs by id (zone packs, set packs),
+					-- stamped the way a real drop or grant stamps them.
+					local ZonePacks = require(shared:WaitForChild("MineZonePacks"))
+					for _, id in ipairs(payload.packIds) do
+						local def = Packs.PACK_BY_ID[tostring(id)] or ZonePacks.get(tostring(id))
+						if def then
+							table.insert(p_dev0.packs, {
+								packId = def.id, packName = def.name,
+								setId = def.setKey, zoneId = def.zoneId,
+							})
+						end
+					end
+					snap(plr)
+				end
 				if payload.tool then
 					local pd = profiles[plr.UserId]
 					equippedTool(pd)
@@ -17922,14 +17997,12 @@ Verbs.grantReceipt = function(info)
 			end
 			p.coins = (p.coins or 0) + (tonumber(prod.coins) or 8000)
 			if (tonumber(prod.commonPet) or 1) > 0 then
-				local setId = "dragons_dawn"
-				local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, "Common") or {}
-				if #pool > 0 then
-					local index = pool[Random.new():NextInteger(1, #pool)]
-					local def = Cards.getCard and Cards.getCard(setId, index)
-					if def then
-						table.insert(p.cards, mint(def, plr.UserId, true))
-					end
+				-- A Common from the meadow's pot: old generated cards no longer drop.
+				local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+				local pet = SetPacks.pickPet(PetRoster.BY_ZONE and PetRoster.BY_ZONE.meadow, "Common", Random.new())
+				if pet then
+					local def = SetPacks.petCard(pet, "meadow", (C.zoneById("meadow") or {}).name)
+					table.insert(p.cards, mint(def, plr.UserId, true))
 				end
 			end
 			p.starterBought = true

@@ -1907,7 +1907,10 @@ function MineInventoryView.mount(parent, opts)
 			local isBlock = pk.kind == "lucky_block" or (pk.blockId ~= nil)
 			local tierName = pk.packName or C.PACK_TIERS[pk.tier or 1] or "Pack"
 			local set = Cards.SETS[pk.setId]
-			local setName = (set and set.displayName) or tostring(pk.setId or "Unknown set")
+			local setPack = Packs.PACK_BY_ID and Packs.PACK_BY_ID[pk.packId]
+			setPack = (setPack and setPack.setKey) and setPack or nil
+			local setName = (set and set.displayName) or (setPack and setPack.setName)
+				or tostring(pk.setId or "Unknown set")
 			local luckMult = tonumber(pk.luck) or 1
 			local luckPct = (luckMult > 1) and math.floor((luckMult - 1) * 100 + 0.5) or 0
 			local key
@@ -1937,7 +1940,8 @@ function MineInventoryView.mount(parent, opts)
 					-- 0 = unrated: lucky blocks, and zone packs, which carry no stars.
 					stars = ((not isBlock) and Packs.isRated and Packs.isRated(pk.packId))
 						and Packs.packStars(pk.packId) or 0,
-					grade = (not isBlock) and Cards.setGrade and Cards.setGrade(pk.setId) or nil,
+					grade = (not isBlock) and ((setPack and setPack.grade)
+						or (Cards.setGrade and Cards.setGrade(pk.setId))) or nil,
 					setTier = (set and tonumber(string.match(tostring(set.tier or ""), "%d+"))) or 0,
 					cards = Packs.packCards and Packs.packCards(pk.packId) or 0,
 					count = 0, firstIndex = i,

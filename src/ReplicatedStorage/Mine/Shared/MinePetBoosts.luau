@@ -23,11 +23,22 @@ M.NAME_ALIASES = {
 	["Matter(-)"] = "Matter-",
 }
 
-M.PET_BOOSTS = {}
+-- One table: the zone pets' kits (MineZonePets) and the 19 sets' (MineSetPets).
+M.PET_BOOSTS = { Z = {} }
 do
 	local ok, zp = pcall(require, script.Parent:FindFirstChild("MineZonePets"))
 	if ok and type(zp) == "table" and zp.KITS then
-		M.PET_BOOSTS.Z = zp.KITS
+		for name, kit in pairs(zp.KITS) do
+			M.PET_BOOSTS.Z[name] = kit
+		end
+	end
+	local okS, sp = pcall(require, script.Parent:FindFirstChild("MineSetPets"))
+	if okS and type(sp) == "table" and sp.KITS then
+		for name, kit in pairs(sp.KITS) do
+			if M.PET_BOOSTS.Z[name] == nil then
+				M.PET_BOOSTS.Z[name] = kit
+			end
+		end
 	end
 end
 

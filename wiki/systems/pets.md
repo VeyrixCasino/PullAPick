@@ -119,9 +119,11 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
 - **Lookups.** `MinePetRoster.BY_ZONE[zone]` lists a zone's pets, and every
   regular pet has a `zone`. `MineZonePets.zoneOf(name)` and `zoneMult(zone)`
   answer the same questions.
-- **Not wired yet:** nothing drops from a zone pot. Packs still mint from the
-  old card sets, and the wheel and lucky blocks still pick from any tier. Pots
-  become the drop source in the rewards pass.
+- **Zone pots are the drop source for packs** (2026-10-10): every card pack
+  that is not a set pack pays a named pet from its zone's pot, at the rarity
+  the pack rolled ([cards-and-packs](cards-and-packs.md)). Set packs pay from
+  their set (`MinePetRoster.BY_SET`). The wheel and lucky blocks still pick
+  from any tier.
 
 **The display.** `src/ServerStorage/PetShowcaseBuilder.luau` builds
 `workspace.PetShowcase` at (3000, 0, 0): every pet on a plinth, one block per

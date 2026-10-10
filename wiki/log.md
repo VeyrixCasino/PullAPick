@@ -563,3 +563,16 @@ The owner allowed personal uploads plus sharing. 84 images (57 pack sprites,
 the other 83 await the owner's share (`build/pack-art/share-list.txt`). Found
 that Studio caches a failed asset load for the session. Updated
 [assets-and-uploads](code/assets-and-uploads.md).
+
+## [2026-10-10] ingest | packs pay named pets (set packs, zone pots)
+Owner: old generated cards *"stop dropping"*; set packs draw only their set.
+`openPack` now mints a named pet at the rolled rarity: a set pack from its set
+(`MinePetRoster.BY_SET`), every other card pack from a zone pot
+(`BY_ZONE`; the pack's zone, else its old set's zone, else the player's
+deepest zone). The starter pet is a meadow Common. Set packs
+(`MineSetPacks`, `<setkey>_pack_1..6`) are registered in
+`MinePackConfig.PACK_BY_ID`, not `PACKS`. Verified in a Studio play test with a
+new Studio-only `devGrant { packIds = {...} }`. Found: lucky-block and
+group-wheel pets use their own `cardKey`, so they do not merge with pack copies.
+
+Updated: cards-and-packs, pets, next-up, log.

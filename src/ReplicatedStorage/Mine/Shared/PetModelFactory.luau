@@ -2385,6 +2385,42 @@ S.matterbox = {
 	end,
 }
 
+--[[
+	SET BODIES (2026-10-10: the 19 exclusive sets, about 5 new bodies each).
+
+	Each set's bodies live in their own module, PetBodies/<Set>.luau, so a set
+	can be built without touching this file. A module returns
+	function(K) -> { [speciesId] = def }, where K is this kit: the same
+	chassis (block), helpers and colours every body above uses. An id already
+	taken here is never overwritten.
+]]
+PetModelFactory.KIT = {
+	C3 = C3, PLASTIC = PLASTIC, METAL = METAL, NEON = NEON, GLASS = GLASS, SLATE = SLATE, WOOD = WOOD,
+	INK = INK, WHITE = WHITE, NOSE = NOSE, SHAPES = SHAPES,
+	block = block, ears = ears, wings = wings, spots = spots, ridge = ridge,
+}
+do
+	local folder = script.Parent:FindFirstChild("PetBodies")
+	if folder then
+		for _, mod in ipairs(folder:GetChildren()) do
+			if mod:IsA("ModuleScript") then
+				local ok, defs = pcall(function()
+					return require(mod)(PetModelFactory.KIT)
+				end)
+				if ok and type(defs) == "table" then
+					for id, def in pairs(defs) do
+						if S[id] == nil then
+							S[id] = def
+						end
+					end
+				else
+					warn("[PetModelFactory] PetBodies/" .. mod.Name .. ": " .. tostring(defs))
+				end
+			end
+		end
+	end
+end
+
 -- Every Halloween body (season = "Halloween"), sorted: the pet display draws
 -- them as their own block (PetShowcaseBuilder). Holiday bodies are in no zone
 -- pot and no random roll; only a "{Holiday} {year} Pack" may hand one out.
@@ -2747,6 +2783,15 @@ do
 	local ok, zp = pcall(require, script.Parent:FindFirstChild("MineZonePets"))
 	if ok and type(zp) == "table" and zp.ANIMALS then
 		for animal, skin in pairs(zp.ANIMALS) do
+			if PetModelFactory.ANIMALS[animal] == nil then
+				PetModelFactory.ANIMALS[animal] = skin
+			end
+		end
+	end
+	-- The 19 sets' pets bring their skins the same way (MineSetPets).
+	local okS, sp = pcall(require, script.Parent:FindFirstChild("MineSetPets"))
+	if okS and type(sp) == "table" and sp.ANIMALS then
+		for animal, skin in pairs(sp.ANIMALS) do
 			if PetModelFactory.ANIMALS[animal] == nil then
 				PetModelFactory.ANIMALS[animal] = skin
 			end
