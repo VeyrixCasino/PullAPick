@@ -2729,6 +2729,36 @@ dockBtn(ICONS.cart, "Shop", function()
 	hidePanels()
 	net:FireServer("goTo", "shop")
 end)
+--[[
+	THE DAILY WHEEL (owner, 2026-10-10: "we need that daily wheel working").
+	A dock button, second from the top, because a daily reward nobody can find
+	is not a daily reward. Its badge counts the free spins left (MineNotifs).
+	The emoji stands in until the art pass draws a wheel icon.
+]]
+do
+	local _, plate = dockBtn("", "Wheel", function()
+		if not groupWheelCtl then
+			return
+		end
+		if groupWheelCtl.isOpen and groupWheelCtl.isOpen() then
+			groupWheelCtl.close()
+			return
+		end
+		hidePanels()
+		groupWheelCtl.open(snap and snap.groupWheel or nil)
+	end, { candy = "gold" })
+	mk("TextLabel", {
+		Name = "WheelIcon",
+		BackgroundTransparency = 1,
+		Text = "🎡",
+		TextSize = 30,
+		Font = Enum.Font.GothamMedium,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(38, 38),
+		Active = false,
+	}, plate)
+end
 dockBtn(ICONS.card, "Inventory", function()
 	-- Replaces the Binder button. The binder is still in there, as
 	-- Inventory > Cards.
@@ -11496,6 +11526,10 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 					end
 				end,
 			})
+			-- Keep the daily wheel panel current (spins left, countdown).
+			if groupWheelCtl and type(payload.groupWheel) == "table" then
+				groupWheelCtl.setPayload(payload.groupWheel)
+			end
 		end
 		if payload then
 			-- Always cache; only redraw if the wheel is actually on screen.

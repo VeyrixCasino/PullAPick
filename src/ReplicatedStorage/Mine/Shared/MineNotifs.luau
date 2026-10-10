@@ -176,6 +176,8 @@ function MineNotifs.counts(snap, extra)
 			out.contract += 1
 		end
 	end
+	-- The daily wheel's free spins left today (its own dock button).
+	out.wheel = (type(snap.groupWheel) == "table") and math.max(0, math.floor(tonumber(snap.groupWheel.freeLeft) or 0)) or 0
 	local nPacks = (type(snap.packs) == "table") and #snap.packs or 0
 	local u = snap.upgrades
 	local nUp = u and ((tonumber(u.gear) or 0) + (tonumber(u.pets) or 0)) or 0
@@ -194,10 +196,22 @@ function MineNotifs.apply(snap, hooks)
 		local byLabel = {}
 		for _, child in ipairs(hooks.dock:GetChildren()) do
 			if child:IsA("GuiButton") then
-				for _, d in ipairs(child:GetDescendants()) do
+				-- The CAPTION is a direct child. Searching all descendants first
+				-- found an emoji icon (Planets, Wheel) and keyed the button by it.
+				local found = false
+				for _, d in ipairs(child:GetChildren()) do
 					if d:IsA("TextLabel") and d.Text ~= "" and not byLabel[d.Text] then
 						byLabel[d.Text] = child
+						found = true
 						break
+					end
+				end
+				if not found then
+					for _, d in ipairs(child:GetDescendants()) do
+						if d:IsA("TextLabel") and d.Text ~= "" and not byLabel[d.Text] then
+							byLabel[d.Text] = child
+							break
+						end
 					end
 				end
 			end
@@ -205,6 +219,7 @@ function MineNotifs.apply(snap, hooks)
 		MineNotifs.set(byLabel["Merge"], counts.merge)
 		MineNotifs.set(byLabel["Pass"], counts.pass)
 		MineNotifs.set(byLabel["Inventory"], counts.inventory)
+		MineNotifs.set(byLabel["Wheel"], counts.wheel)
 	end
 	if hooks.setRail then
 		hooks.setRail({

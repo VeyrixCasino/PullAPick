@@ -1,26 +1,42 @@
 --[[
-	MineGroupWheel -- limited-week lobby prize wheel.
+	MineGroupWheel -- the DAILY WHEEL in the lobby. Shared rules: the prize
+	table, the daily allowance, the payload. No services, so a verify script
+	can run all of it (tools/verify/daily-wheel.js).
 
-	Same season clock as MineRotatingOffers / LIMITED_SALE_OPENS_AT.
-	Featured chase: Galaxy (Divine 0.5%) + Spark (Mythic 1.5%).
-	Landing EXOTIC rolls a random droppable Exotic (Matter± / Albert excluded).
-	Free spin every 6h for group members; Robux packs bank paid spins.
+	Owner, 2026-10-10 (docs/TODO.md, NOW, A1): "we need that daily wheel
+	working". Decided: EVERY player gets one free spin a day, group members get
+	+1, and login streaks add more. It stands in the lobby with its odds printed
+	on it.
+
+	It used to be a one-week paid "Group Wheel": group members only, a rolling
+	6h cooldown, and a sale window that had already closed before launch. The
+	module keeps its name and its profile key (`p.groupWheel`) because both are
+	data. A save written by the old wheel loads into this one.
+
+	THE DAY is the UTC day, `floor(os.time() / 86400)`, the same boundary every
+	other daily in the game uses (MineServer `utcDayIndex`).
 ]]
 
 local MineGroupWheel = {}
 
 local PetRoster = require(script.Parent:WaitForChild("MinePetRoster"))
 
--- Align with MineRotatingOffers.START / MineConfig.LIMITED_SALE_OPENS_AT.
-local START = 1790049600
-local WEEK = 604800
+--[[
+	PROPOSED (2026-10-10, awaiting the owner): spins per day.
+	  FREE_PER_DAY   every player
+	  GROUP_BONUS    extra for group members (MineConfig.GROUP_ID)
+	  STREAK_EVERY   on every Nth consecutive login day (the daily calendar's
+	                 streak, p.daily.streak, counted once today's daily is claimed)
+	  STREAK_BONUS   ...this many extra spins that day
+]]
+MineGroupWheel.FREE_PER_DAY = 1
+MineGroupWheel.GROUP_BONUS = 1
+MineGroupWheel.STREAK_EVERY = 7
+MineGroupWheel.STREAK_BONUS = 1
 
-MineGroupWheel.COOLDOWN_SEC = 6 * 3600
-MineGroupWheel.SALE_START = START
-MineGroupWheel.SALE_ENDS = START + WEEK
 MineGroupWheel.FEATURED_DIVINE = "Galaxy"
 MineGroupWheel.FEATURED_MYTHIC = "Spark"
-MineGroupWheel.TAGLINE = "Galaxy + Spark = EXOTIC"
+MineGroupWheel.TAGLINE = "1 FREE SPIN EVERY DAY  ·  +1 FOR GROUP MEMBERS"
 
 -- Event Horizon limiteds stay off the random Exotic pool.
 MineGroupWheel.EXOTIC_EXCLUDE = {
@@ -29,101 +45,137 @@ MineGroupWheel.EXOTIC_EXCLUDE = {
 	["Albert Minestein"] = true,
 }
 
-MineGroupWheel.PRODUCT_KEYS = {
-	{ key = "group_wheel_1", spins = 1, robux = 20 },
-	{ key = "group_wheel_5", spins = 5, robux = 80 },
-	{ key = "group_wheel_10", spins = 10, robux = 150 },
-}
+-- Paid spins. Prices and spin counts live in MineConfig.PRODUCTS (the source
+-- the receipt grant reads). productId is 0 until the owner pastes real ids.
+MineGroupWheel.PRODUCT_KEYS = { "group_wheel_1", "group_wheel_5", "group_wheel_10" }
 
 --[[
-	LABELS ARE FOR A PLAYER WHO ARRIVED A MINUTE AGO.
+	THE PRIZE TABLE. PROPOSED 2026-10-10, awaiting the owner.
 
-	`id` is identity; `label` and `sub` are display only, so these are free to
-	say what the prize actually IS. Nobody knows what a "temper" is -- but
-	everybody understands pulling a CASE. Same for "gem storm" and "dust hoard":
-	the internal name meant something to us and nothing to anyone else.
+	The old table was tuned for a one-week PAID wheel: an 18% chance of an Epic
+	or better pet and a 50K-gem jackpot, against a 400-gem day-one daily
+	reward. As a free spin for every player, every day, that would have flooded
+	the economy in a week. This keeps the same 16 slices and ids, with the
+	chase where a free daily spin can afford it.
 
-	Labels carry the meaning on their own, because the world wheel prints only
-	the label (GroupWheelService) -- the sub exists for the UI panel.
+	`weight` is a percentage (the table sums to 100). `hype` marks a chase
+	slice: at least a GREAT celebration, rays on the world wheel. `id` is
+	identity and is never renamed; `label` and `sub` are display only.
 ]]
--- weight ≈ percent when the table sums near 100.
--- `hype` marks the chases: the slices worth stopping on. Named rather than
--- inferred from weight, because low weight is not the same as good -- 8K GEMS
--- is rare and dull, APEX PACK is common and great.
 MineGroupWheel.SEGMENTS = {
-	{ id = "exotic", label = "MYSTERY PET", sub = "Exotic — 1 in 400", color = Color3.fromRGB(18, 16, 22), weight = 0.25, hype = true,
+	{ id = "exotic", label = "MYSTERY PET", sub = "Exotic", color = Color3.fromRGB(18, 16, 22), weight = 0.05, hype = true,
 		mystery = true, reward = { petPool = "droppable_exotic" } },
-	{ id = "galaxy", label = "DIVINE PET", sub = "Galaxy", color = Color3.fromRGB(255, 245, 160), weight = 0.5, hype = true,
+	{ id = "galaxy", label = "DIVINE PET", sub = "Galaxy", color = Color3.fromRGB(255, 245, 160), weight = 0.15, hype = true,
 		reward = { pet = "Galaxy" } },
-	{ id = "spark", label = "MYTHIC PET", sub = "Spark", color = Color3.fromRGB(85, 220, 255), weight = 1.5, hype = true,
+	{ id = "spark", label = "MYTHIC PET", sub = "Spark", color = Color3.fromRGB(85, 220, 255), weight = 0.5, hype = true,
 		reward = { pet = "Spark" } },
-	{ id = "legendary_pet", label = "LEGENDARY PET", sub = "Any Legendary", color = Color3.fromRGB(255, 170, 60), weight = 6, hype = true,
+	{ id = "legendary_pet", label = "LEGENDARY PET", sub = "Any Legendary", color = Color3.fromRGB(255, 170, 60), weight = 2, hype = true,
 		reward = { petTier = "Legendary" } },
-	{ id = "epic_pet", label = "EPIC PET", sub = "Any Epic", color = Color3.fromRGB(190, 120, 255), weight = 12,
+	{ id = "epic_pet", label = "EPIC PET", sub = "Any Epic", color = Color3.fromRGB(190, 120, 255), weight = 5,
 		reward = { petTier = "Epic" } },
-	{ id = "jackpot", label = "JACKPOT", sub = "50K Gems + Apex x2", color = Color3.fromRGB(255, 80, 120), weight = 2, hype = true,
-		reward = { gems = 50000, packs = { { id = "apex_pack", qty = 2 } } } },
-	{ id = "gem_storm", label = "20K GEMS", sub = "Gem Storm", color = Color3.fromRGB(80, 200, 255), weight = 4,
-		reward = { gems = 20000 } },
-	{ id = "gear_vault", label = "GEAR CASE", sub = "x2", color = Color3.fromRGB(255, 180, 60), weight = 8,
-		reward = { packs = { { id = "gear_vault_pack", qty = 2 } } } },
-	{ id = "heavy_runes", label = "RUNE CASE", sub = "x2", color = Color3.fromRGB(180, 100, 255), weight = 8,
-		reward = { packs = { { id = "rune_heavy_pack", qty = 2 } } } },
-	{ id = "apex", label = "APEX PACK", sub = "Best pack", color = Color3.fromRGB(255, 220, 80), weight = 11,
+	{ id = "jackpot", label = "JACKPOT", sub = "15K Gems + Apex", color = Color3.fromRGB(255, 80, 120), weight = 0.8, hype = true,
+		reward = { gems = 15000, packs = { { id = "apex_pack", qty = 1 } } } },
+	{ id = "gem_storm", label = "5K GEMS", sub = "Gem Storm", color = Color3.fromRGB(80, 200, 255), weight = 3,
+		reward = { gems = 5000 } },
+	{ id = "gear_vault", label = "GEAR CASE", sub = "x1", color = Color3.fromRGB(255, 180, 60), weight = 6,
+		reward = { packs = { { id = "gear_vault_pack", qty = 1 } } } },
+	{ id = "heavy_runes", label = "RUNE CASE", sub = "x1", color = Color3.fromRGB(180, 100, 255), weight = 6,
+		reward = { packs = { { id = "rune_heavy_pack", qty = 1 } } } },
+	{ id = "apex", label = "APEX PACK", sub = "Best pack", color = Color3.fromRGB(255, 220, 80), weight = 6,
 		reward = { packs = { { id = "apex_pack", qty = 1 } } } },
-	{ id = "heirloom", label = "HEIRLOOM", sub = "Pack x2", color = Color3.fromRGB(120, 255, 180), weight = 11,
-		reward = { packs = { { id = "heirloom_pack", qty = 2 } } } },
-	{ id = "anomaly", label = "ANOMALY", sub = "Pack x2", color = Color3.fromRGB(100, 255, 255), weight = 11,
-		reward = { packs = { { id = "anomaly_pack", qty = 2 } } } },
-	{ id = "godly", label = "LUCKY BLOCK", sub = "Grade A", color = Color3.fromRGB(255, 120, 40), weight = 8,
-		reward = { blocks = { { id = "godly_lucky_block", grade = "A", qty = 1 } } } },
-	{ id = "dust_hoard", label = "25K DUST", sub = "Stardust", color = Color3.fromRGB(220, 180, 255), weight = 5,
-		reward = { dust = 25000 } },
-	{ id = "gem_bag", label = "8K GEMS", sub = "Gem Bag", color = Color3.fromRGB(100, 160, 255), weight = 5.75,
-		reward = { gems = 8000 } },
-	{ id = "tokens", label = "TEMPER CASE", sub = "80 Tokens = 4 cases", color = Color3.fromRGB(255, 200, 120), weight = 6,
-		reward = { tokens = 80 } },
+	{ id = "heirloom", label = "HEIRLOOM", sub = "Pack x1", color = Color3.fromRGB(120, 255, 180), weight = 10,
+		reward = { packs = { { id = "heirloom_pack", qty = 1 } } } },
+	{ id = "anomaly", label = "ANOMALY", sub = "Pack x1", color = Color3.fromRGB(100, 255, 255), weight = 10,
+		reward = { packs = { { id = "anomaly_pack", qty = 1 } } } },
+	-- id "godly" is kept (identity); the prize is now a grade-C Lucky Block.
+	{ id = "godly", label = "LUCKY BLOCK", sub = "Grade C", color = Color3.fromRGB(255, 120, 40), weight = 6,
+		reward = { blocks = { { id = "lucky_block", grade = "C", qty = 1 } } } },
+	{ id = "dust_hoard", label = "5K DUST", sub = "Stardust", color = Color3.fromRGB(220, 180, 255), weight = 8,
+		reward = { dust = 5000 } },
+	{ id = "gem_bag", label = "1.5K GEMS", sub = "Gem Bag", color = Color3.fromRGB(100, 160, 255), weight = 20.5,
+		reward = { gems = 1500 } },
+	{ id = "tokens", label = "20 TOKENS", sub = "Temper tokens", color = Color3.fromRGB(255, 200, 120), weight = 16,
+		reward = { tokens = 20 } },
 }
 
+-- -------------------------------------------------------------- the day --
+
+function MineGroupWheel.dayIndex(now)
+	return math.floor((tonumber(now) or os.time()) / 86400)
+end
+
+-- Seconds until the next UTC midnight, when the free spins refill.
+function MineGroupWheel.resetIn(now)
+	now = math.floor(tonumber(now) or os.time())
+	return 86400 - (now % 86400)
+end
+
 --[[
-	THE SEASON CLOCK, WHICH THE HEADER ABOVE ALREADY CLAIMED.
-
-	These read os.time(). SALE_START is 2026-09-22 and SALE_ENDS a week later,
-	both already in the past -- so isLive() returned FALSE for everyone, the
-	week-long sale having expired before a single player saw it, and the
-	Studio escape hatch only fires BEFORE SALE_START so it was dead there too.
-
-	Reading the launch clock makes the window mean what it says: one week from
-	the moment the owner launches, wherever that lands in real time. Required
-	lazily so this module stays leaf-level -- MineLaunch requires nothing, and
-	keeping the edge out of the load graph means a future require inside it
-	cannot cycle back through here.
+	How many free spins a player gets TODAY.
+	  member         in the group (cached by GroupWheelService, never yields here)
+	  streak         p.daily.streak
+	  claimedToday   p.daily.last == today, so the streak counts for today
 ]]
-local function seasonNow(now)
-	if tonumber(now) then
-		return tonumber(now)
+function MineGroupWheel.allowance(member, streak, claimedToday)
+	local n = MineGroupWheel.FREE_PER_DAY
+	if member then
+		n += MineGroupWheel.GROUP_BONUS
 	end
-	local ok, L = pcall(function()
-		return require(script.Parent:WaitForChild("MineLaunch"))
-	end)
-	if ok and type(L) == "table" and type(L.seasonNow) == "function" then
-		return L.seasonNow()
+	streak = math.floor(tonumber(streak) or 0)
+	local every = MineGroupWheel.STREAK_EVERY
+	if claimedToday and every > 0 and streak >= every and streak % every == 0 then
+		n += MineGroupWheel.STREAK_BONUS
 	end
-	return os.time()
+	return n
 end
 
-function MineGroupWheel.isLive(now)
-	now = seasonNow(now)
-	if now < MineGroupWheel.SALE_START then
-		return game:GetService("RunService"):IsStudio()
-	end
-	return now < MineGroupWheel.SALE_ENDS
+-- True when today is a streak-bonus day (for the panel's copy).
+function MineGroupWheel.isStreakDay(streak, claimedToday)
+	local every = MineGroupWheel.STREAK_EVERY
+	streak = math.floor(tonumber(streak) or 0)
+	return claimedToday == true and every > 0 and streak >= every and streak % every == 0
 end
 
-function MineGroupWheel.saleLeft(now)
-	now = seasonNow(now)
-	return math.max(0, MineGroupWheel.SALE_ENDS - now)
+-- Free spins already used today. A new day reads as zero without a write.
+function MineGroupWheel.usedToday(gw, day)
+	if type(gw) ~= "table" or gw.day ~= day then
+		return 0
+	end
+	return math.max(0, math.floor(tonumber(gw.used) or 0))
 end
+
+function MineGroupWheel.freeLeft(gw, day, allowance)
+	return math.max(0, (tonumber(allowance) or 0) - MineGroupWheel.usedToday(gw, day))
+end
+
+function MineGroupWheel.paidSpins(p)
+	local gw = type(p) == "table" and type(p.groupWheel) == "table" and p.groupWheel or {}
+	return math.max(0, math.floor(tonumber(gw.paid) or 0))
+end
+
+--[[
+	Everything the panel and the HUD need, small enough for every snapshot:
+	no segment table (the client has it, this module is shared).
+]]
+function MineGroupWheel.state(p, now, member)
+	p = type(p) == "table" and p or {}
+	now = tonumber(now) or os.time()
+	local day = MineGroupWheel.dayIndex(now)
+	local daily = type(p.daily) == "table" and p.daily or {}
+	local claimedToday = tonumber(daily.last) == day
+	local allowance = MineGroupWheel.allowance(member, daily.streak, claimedToday)
+	return {
+		freeLeft = MineGroupWheel.freeLeft(p.groupWheel, day, allowance),
+		freeTotal = allowance,
+		paid = MineGroupWheel.paidSpins(p),
+		resetIn = MineGroupWheel.resetIn(now),
+		member = member == true,
+		streakDay = MineGroupWheel.isStreakDay(daily.streak, claimedToday),
+		claimedDaily = claimedToday,
+	}
+end
+
+-- --------------------------------------------------------------- prizes --
 
 function MineGroupWheel.droppableExotics()
 	local out = {}
@@ -145,24 +197,11 @@ function MineGroupWheel.rollDroppableExotic(rng)
 	return pool[rng:NextInteger(1, #pool)]
 end
 
---[[
-	Any pet of a given tier.
-
-	The wheel could only ever name one specific pet or roll the exotic pool, so
-	the only pets on it were three chase slots totalling 2.25%. A new player
-	would far rather walk away with an Epic or Legendary pet than with all the
-	stardust in the world, and the roster already carries 33 Epics and 29
-	Legendaries -- they just had no way onto the wheel.
-]]
+-- Any pet of a tier, Event Horizon limiteds excluded.
 function MineGroupWheel.rollPetOfTier(tier, rng)
 	rng = rng or Random.new()
-	local roster = script.Parent:FindFirstChild("MinePetRoster")
-	local ok, PR = pcall(require, roster)
-	if not ok or type(PR) ~= "table" then
-		return nil
-	end
 	local pool = {}
-	for _, pet in ipairs((PR.BY_TIER or {})[tier] or {}) do
+	for _, pet in ipairs((PetRoster.BY_TIER or {})[tier] or {}) do
 		local name = (type(pet) == "table") and pet.name or pet
 		if type(name) == "string" and name ~= "" and not MineGroupWheel.EXOTIC_EXCLUDE[name] then
 			table.insert(pool, name)
@@ -214,88 +253,38 @@ function MineGroupWheel.roll(rng)
 	return MineGroupWheel.SEGMENTS[last], last
 end
 
-function MineGroupWheel.nextAt(last)
-	last = tonumber(last) or 0
-	if last <= 0 then
-		return 0
+-- "1 in N" for a slice, from its real weight.
+function MineGroupWheel.oneIn(seg)
+	local w = math.max(0, tonumber(seg and seg.weight) or 0)
+	local total = MineGroupWheel.totalWeight()
+	if w <= 0 or total <= 0 then
+		return math.huge
 	end
-	return last + MineGroupWheel.COOLDOWN_SEC
+	return total / w
 end
 
-function MineGroupWheel.ready(last, now)
-	now = tonumber(now) or os.time()
-	local nextAt = MineGroupWheel.nextAt(last)
-	if nextAt <= 0 then
-		return true, 0
+-- The odds as a player reads them: "20%" for common, "1 in 200" for rare.
+function MineGroupWheel.oddsText(seg)
+	local total = MineGroupWheel.totalWeight()
+	local w = math.max(0, tonumber(seg and seg.weight) or 0)
+	if total <= 0 or w <= 0 then
+		return ""
 	end
-	return now >= nextAt, math.max(0, nextAt - now)
+	local pct = w / total * 100
+	if pct >= 10 then
+		return string.format("%.0f%%", pct)
+	elseif pct >= 1 then
+		return string.format("%.1f%%", pct)
+	end
+	return string.format("1 in %d", math.floor(100 / pct + 0.5))
 end
 
-function MineGroupWheel.paidSpins(p)
-	local gw = type(p) == "table" and type(p.groupWheel) == "table" and p.groupWheel or {}
-	return math.max(0, math.floor(tonumber(gw.paid) or 0))
-end
-
---[[
-	TWO CLOCKS, DELIBERATELY.
-
-	`now` is REAL time and stays real: the 6h spin cooldown is a wall-clock
-	promise to the player and must not pause because the season has not
-	started. The SALE WINDOW is season time, so isLive and saleLeft are called
-	with no argument and resolve it themselves.
-
-	Passing `now` into those two is what made the sale read as already over --
-	the callers hand in os.time(), which is years past a window anchored to
-	2026-09-22.
-]]
-function MineGroupWheel.payload(p, now)
-	p = p or {}
-	now = tonumber(now) or os.time()
-	local gw = type(p.groupWheel) == "table" and p.groupWheel or {}
-	local ready, wait = MineGroupWheel.ready(gw.last, now)
-	local live = MineGroupWheel.isLive()
-	return {
-		live = live,
-		saleLeft = MineGroupWheel.saleLeft(),
-		saleEnds = MineGroupWheel.SALE_ENDS,
-		tagline = MineGroupWheel.TAGLINE,
-		featuredDivine = MineGroupWheel.FEATURED_DIVINE,
-		featuredMythic = MineGroupWheel.FEATURED_MYTHIC,
-		ready = ready,
-		wait = wait,
-		nextAt = MineGroupWheel.nextAt(gw.last),
-		paid = MineGroupWheel.paidSpins(p),
-		segments = MineGroupWheel.SEGMENTS,
-		cooldownSec = MineGroupWheel.COOLDOWN_SEC,
-		products = MineGroupWheel.PRODUCT_KEYS,
-	}
-end
-
-function MineGroupWheel.rewardLines(seg)
-	local r = seg and seg.reward or {}
-	local lines = {}
-	if type(r.pet) == "string" then
-		lines[#lines + 1] = r.pet
-	end
-	if r.petPool == "droppable_exotic" then
-		lines[#lines + 1] = "Mystery Exotic"
-	end
-	if (tonumber(r.gems) or 0) > 0 then
-		lines[#lines + 1] = string.format("%s Gems", tostring(r.gems))
-	end
-	if (tonumber(r.dust) or 0) > 0 then
-		lines[#lines + 1] = string.format("%s Stardust", tostring(r.dust))
-	end
-	if (tonumber(r.tokens) or 0) > 0 then
-		lines[#lines + 1] = string.format("%s Temper Tokens", tostring(r.tokens))
-	end
-	for _, row in ipairs(r.packs or {}) do
-		lines[#lines + 1] = string.format("%s x%d", tostring(row.id), tonumber(row.qty) or 1)
-	end
-	for _, row in ipairs(r.blocks or {}) do
-		lines[#lines + 1] = string.format("%s [%s]", tostring(row.id), tostring(row.grade or "F"))
-	end
-	return lines
+-- A player-facing name for a pack or block id ("apex_pack" -> "Apex Pack").
+function MineGroupWheel.prettyId(id)
+	local s = tostring(id or ""):gsub("_", " ")
+	return (s:gsub("(%a)([%w]*)", function(a, b)
+		return string.upper(a) .. b
+	end))
 end
 
 return MineGroupWheel

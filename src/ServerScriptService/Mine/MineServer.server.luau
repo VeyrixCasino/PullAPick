@@ -3661,7 +3661,8 @@ local function snap(plr)
 		milestones = Quests.svMilestoneState(p),
 		contracts = Quests.svContractState(p, plr.UserId),
 		daily = dailyState(p),
-		groupWheel = GroupWheelService.payload(p),
+		-- Small (spins left, paid, reset): the panel has the prize table itself.
+		groupWheel = GroupWheelService.snapState(p, plr),
 		discordLinked = p.discordLinked == true,
 		discordId = p.discordId,
 		discordBonusClaimed = p.discordBonusClaimed == true,
@@ -13751,11 +13752,9 @@ end)
 pcall(function()
 	local world = workspace:FindFirstChild("MineWorld")
 	local lobby = world and world:FindFirstChild("Lobby")
-	-- Unparked 2026-09-23: the Group Wheel is back in the lobby. Its Pad is a
-	-- real visible, collidable platform now, so the Spin prompt has something
-	-- under it that players can see and stand on.
-	-- Group wheel removed. Uncomment to bring it back:
-	-- GroupWheelService.build(lobby)
+	-- The DAILY WHEEL (owner, 2026-10-10: "we need that daily wheel working").
+	-- One free spin a day for everyone, +1 for group members, streak bonuses.
+	GroupWheelService.build(lobby)
 end)
 -- Before anything season-timed runs: the offers and the pass read
 -- Launch.seasonNow(), and a load after they first ask would have them answer
@@ -14499,6 +14498,9 @@ Verbs.KEEP_ON_REBIRTH = {
 	"dustShop", "backpackCoinV2",
 	-- owned things (some bought with Robux)
 	"ownedPets", "potions", "activePotions", "vfx", "equippedVfx", "chestBag", "vipPass", "vip",
+	-- the daily wheel: banked Robux spins, and today's free spins (a rebirth
+	-- must neither wipe paid spins nor hand out a fresh day of free ones)
+	"groupWheel",
 	"shopToolRunes", "charms", "equippedCharm", "dealBuys", "creditBuys",
 	-- records and settings
 	"packsOpened", "playtime", "settings",
@@ -17490,6 +17492,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			GroupWheelService.spin(plr, profiles, {
 				net = net,
 				markDirty = markDirty,
+				save = save,
 				snap = snap,
 				grantPacks = Verbs.grantPacks,
 				LuckyBlocks = LuckyBlocks,
@@ -17642,7 +17645,7 @@ task.defer(function()
 			elseif machine == "groupWheel" then
 				local p = profiles[plr.UserId]
 				if not p then return end
-				net:FireClient(plr, "openGroupWheel", GroupWheelService.payload(p))
+				net:FireClient(plr, "openGroupWheel", GroupWheelService.payload(p, plr))
 			elseif machine == "elevator" then
 				local p = profiles[plr.UserId]
 				if not p then return end
@@ -17949,7 +17952,6 @@ Verbs.grantReceipt = function(info)
 		end
 		if key == "group_wheel_1" or key == "group_wheel_5" or key == "group_wheel_10" then
 			-- Always bank spins on a paid receipt — the charge already cleared.
-			local Wheel = require(shared:WaitForChild("MineGroupWheel"))
 			local prod = C.product(key) or {}
 			local n = math.max(1, math.floor(tonumber(prod.spins) or 1))
 			GroupWheelService.grantPaidSpins(p, n)
@@ -17958,9 +17960,9 @@ Verbs.grantReceipt = function(info)
 			net:FireClient(plr, "groupWheel", {
 				ok = false,
 				reason = "bought",
-				payload = Wheel.payload(p, os.time()),
+				payload = GroupWheelService.payload(p, plr),
 			})
-			net:FireClient(plr, "toast", string.format("+%d Group Wheel spin%s", n, n == 1 and "" or "s"))
+			net:FireClient(plr, "toast", string.format("+%d Daily Wheel spin%s", n, n == 1 and "" or "s"))
 			return true
 		end
 		return false

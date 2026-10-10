@@ -1,8 +1,15 @@
 --[[
-	GroupWheelService -- lobby Group Wheel pad + spin grants.
+	GroupWheelService -- the lobby DAILY WHEEL: the world model, the spin, the grant.
 
-	Kept out of MineServer so the main script stays under Luau's register cap.
-	MineServer only: require, build once, bindPrompt branch, net action.
+	Owner, 2026-10-10 (docs/TODO.md NOW, A1): every player gets one free spin a
+	day, group members +1, and login streaks add more (MineGroupWheel.allowance).
+	Kept out of MineServer for Luau's register cap. MineServer only requires
+	this, builds it once, routes the "groupWheelSpin" verb and the "groupWheel"
+	machine prompt, and puts `snapState` in the snapshot.
+
+	Profile: `p.groupWheel = { day, used, paid, last }`. `day`/`used` count
+	today's FREE spins; `paid` are banked Robux spins and never expire;
+	`last` is the old wheel's field, still written so nothing reading it breaks.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -20,19 +27,53 @@ local function groupId()
 	return tonumber(C.GROUP_ID) or 0
 end
 
-local function inGroup(plr)
+--[[
+	GROUP MEMBERSHIP, CACHED PER SESSION.
+
+	IsInGroupAsync yields, and the old wheel called it inside every spin, under
+	the per-player busy lock. The snapshot (up to 10 a second) needs the answer
+	too, and must never yield. So it is looked up once, when the player joins,
+	and the cache answers from then on. Until it answers the player counts as a
+	non-member: the group bonus appears a moment later, never the other way.
+]]
+local members = {}
+
+local function lookupMember(plr)
 	local gid = groupId()
 	if gid <= 0 then
-		return RunService:IsStudio()
+		members[plr.UserId] = RunService:IsStudio()
+		return
 	end
 	local ok, member = pcall(function()
 		return plr:IsInGroupAsync(gid)
 	end)
-	return ok and member == true
+	members[plr.UserId] = ok and member == true
 end
 
-function GroupWheelService.payload(p)
-	return Wheel.payload(p, os.time())
+Players.PlayerAdded:Connect(function(plr)
+	task.spawn(lookupMember, plr)
+end)
+Players.PlayerRemoving:Connect(function(plr)
+	members[plr.UserId] = nil
+end)
+for _, plr in ipairs(Players:GetPlayers()) do
+	task.spawn(lookupMember, plr)
+end
+
+function GroupWheelService.isMember(plr)
+	return plr ~= nil and members[plr.UserId] == true
+end
+
+-- Small, for every snapshot: spins left, paid, time to reset, member.
+function GroupWheelService.snapState(p, plr)
+	return Wheel.state(p, os.time(), GroupWheelService.isMember(plr))
+end
+
+-- For the panel: the state plus the prize table it draws.
+function GroupWheelService.payload(p, plr)
+	local st = Wheel.state(p, os.time(), GroupWheelService.isMember(plr))
+	st.segments = Wheel.SEGMENTS
+	return st
 end
 
 function GroupWheelService.grantPaidSpins(p, n)
@@ -40,11 +81,12 @@ function GroupWheelService.grantPaidSpins(p, n)
 	if n <= 0 then
 		return 0
 	end
-	p.groupWheel = type(p.groupWheel) == "table" and p.groupWheel or { last = 0, paid = 0 }
+	p.groupWheel = type(p.groupWheel) == "table" and p.groupWheel or {}
 	p.groupWheel.paid = math.max(0, math.floor(tonumber(p.groupWheel.paid) or 0)) + n
 	return p.groupWheel.paid
 end
 
+-- Grant one slice's prize. Returns the lines the player reads ("Apex Pack x1").
 function GroupWheelService.applyReward(plr, p, reward, deps)
 	deps = deps or {}
 	reward = reward or {}
@@ -53,6 +95,7 @@ function GroupWheelService.applyReward(plr, p, reward, deps)
 	local petName = Wheel.resolvePetName(reward, rng)
 	if petName and deps.mint then
 		local roster = PetRoster.BY_NAME and PetRoster.BY_NAME[petName]
+		-- setId / cardKey stay "group_wheel": they are on minted cards (data).
 		local def = {
 			setId = "group_wheel",
 			index = 1,
@@ -61,14 +104,14 @@ function GroupWheelService.applyReward(plr, p, reward, deps)
 			rarityId = (roster and roster.tier) or "Exotic",
 			typeId = "Crystal",
 			animal = roster and roster.animal or nil,
-			roleName = "Group Wheel",
+			roleName = "Daily Wheel",
 			kind = "Unit",
-			setName = "Group Wheel",
+			setName = "Daily Wheel",
 		}
 		local c = deps.mint(def, plr.UserId)
 		p.cards = p.cards or {}
 		table.insert(p.cards, c)
-		lines[#lines + 1] = string.format("%s (%s)", petName, tostring(def.rarityId))
+		lines[#lines + 1] = string.format("%s (%s pet)", petName, tostring(def.rarityId))
 	end
 	local gems = math.floor(tonumber(reward.gems) or 0)
 	if gems > 0 then
@@ -88,21 +131,31 @@ function GroupWheelService.applyReward(plr, p, reward, deps)
 	if type(reward.packs) == "table" and deps.grantPacks then
 		deps.grantPacks(plr, p, reward.packs)
 		for _, row in ipairs(reward.packs) do
-			lines[#lines + 1] = string.format("%s x%d", tostring(row.id), tonumber(row.qty) or 1)
+			lines[#lines + 1] = string.format("%s x%d", Wheel.prettyId(row.id), tonumber(row.qty) or 1)
 		end
 	end
 	if type(reward.blocks) == "table" and deps.LuckyBlocks and deps.LuckyBlocks.grant then
 		for _, row in ipairs(reward.blocks) do
-			local id = tostring(row.id or "godly_lucky_block")
-			local grade = tostring(row.grade or "A")
+			local id = tostring(row.id or "lucky_block")
+			local grade = tostring(row.grade or "F")
 			local qty = math.max(1, math.floor(tonumber(row.qty) or 1))
 			deps.LuckyBlocks.grant(p, id, grade, qty)
-			lines[#lines + 1] = string.format("%s [%s] x%d", id, grade, qty)
+			local def = deps.LuckyBlocks.def and deps.LuckyBlocks.def(id)
+			lines[#lines + 1] = string.format("%s (grade %s) x%d", (def and def.name) or Wheel.prettyId(id), grade, qty)
 		end
 	end
 	return lines
 end
 
+--[[
+	ONE SPIN.
+
+	Free spins go FIRST: they refill at midnight and a paid spin keeps forever,
+	so spending a paid one while a free one sat unused was the player losing a
+	spin. A paid spin is Robux turned into a random prize, so it obeys the
+	regional paid-random rule (PolicyNoRandom); free spins are not paid and
+	always work.
+]]
 function GroupWheelService.spin(plr, profiles, deps)
 	deps = deps or {}
 	local net = deps.net
@@ -111,61 +164,36 @@ function GroupWheelService.spin(plr, profiles, deps)
 		return
 	end
 	local now = os.time()
-	p.groupWheel = type(p.groupWheel) == "table" and p.groupWheel or { last = 0, paid = 0 }
-	local paid = math.max(0, math.floor(tonumber(p.groupWheel.paid) or 0))
-	-- No `now`: the sale window is SEASON time (see MineGroupWheel.payload),
-	-- while `now` above is real time for the 6h cooldown. Passing it here is
-	-- what made the week read as over before anyone played.
-	if not Wheel.isLive() and paid <= 0 then
+	local day = Wheel.dayIndex(now)
+	p.groupWheel = type(p.groupWheel) == "table" and p.groupWheel or {}
+	local gw = p.groupWheel
+	local st = Wheel.state(p, now, GroupWheelService.isMember(plr))
+
+	local usedPaid = false
+	if st.freeLeft > 0 then
+		if gw.day ~= day then
+			gw.day = day
+			gw.used = 0
+		end
+		gw.used = math.max(0, math.floor(tonumber(gw.used) or 0)) + 1
+		gw.last = now
+	elseif st.paid > 0 and plr:GetAttribute("PolicyNoRandom") ~= true then
+		gw.paid = st.paid - 1
+		usedPaid = true
+	else
 		if net then
 			net:FireClient(plr, "groupWheel", {
 				ok = false,
-				reason = "ended",
-				payload = Wheel.payload(p, now),
+				reason = (st.paid > 0) and "region" or "used",
+				payload = GroupWheelService.payload(p, plr),
 			})
-			net:FireClient(plr, "toast", "Group Wheel week is over")
+			local h = math.floor(st.resetIn / 3600)
+			local m = math.floor((st.resetIn % 3600) / 60)
+			net:FireClient(plr, "toast", (st.paid > 0)
+				and "Paid spins aren't available in your region"
+				or string.format("Next free spin in %dh %dm", h, m))
 		end
 		return
-	end
-
-	local usedPaid = false
-	if paid > 0 then
-		p.groupWheel.paid = paid - 1
-		usedPaid = true
-	else
-		local gid = groupId()
-		if gid <= 0 and not RunService:IsStudio() then
-			if net then net:FireClient(plr, "toast", "Group Wheel is not configured yet.") end
-			return
-		end
-		if not inGroup(plr) then
-			if net then
-				net:FireClient(plr, "groupWheel", {
-					ok = false,
-					reason = "group",
-					groupId = gid,
-					payload = Wheel.payload(p, now),
-				})
-				net:FireClient(plr, "toast", "Join the group for a free spin, or buy spins")
-			end
-			return
-		end
-		local ready, wait = Wheel.ready(p.groupWheel.last, now)
-		if not ready then
-			if net then
-				net:FireClient(plr, "groupWheel", {
-					ok = false,
-					reason = "cooldown",
-					wait = wait,
-					payload = Wheel.payload(p, now),
-				})
-				local hrs = math.floor(wait / 3600)
-				local mins = math.floor((wait % 3600) / 60)
-				net:FireClient(plr, "toast", string.format("Next free spin in %dh %dm — or buy spins", hrs, mins))
-			end
-			return
-		end
-		p.groupWheel.last = now
 	end
 
 	local rng = Random.new()
@@ -173,6 +201,9 @@ function GroupWheelService.spin(plr, profiles, deps)
 	deps.rng = rng
 	local lines = GroupWheelService.applyReward(plr, p, seg.reward, deps)
 	if deps.markDirty then deps.markDirty(plr) end
+	-- Saved now, not at the next autosave: a prize lost to a crash inside the
+	-- 45 s window is the thing a daily reward must never do.
+	if deps.save then pcall(deps.save, plr) end
 	if deps.snap then deps.snap(plr) end
 	if net then
 		net:FireClient(plr, "groupWheel", {
@@ -183,15 +214,13 @@ function GroupWheelService.spin(plr, profiles, deps)
 			sub = seg.sub,
 			lines = lines,
 			usedPaid = usedPaid,
-			payload = Wheel.payload(p, now),
-			promptFavorite = true,
+			oneIn = Wheel.oneIn(seg),
+			hype = seg.hype == true,
+			payload = GroupWheelService.payload(p, plr),
+			-- Only after a real chase: asking on every common prize is nagging.
+			promptFavorite = seg.hype == true,
 		})
-		net:FireClient(plr, "toast", "Group Wheel: " .. tostring(seg.label) .. "!")
-		net:FireClient(plr, "loot", {
-			kind = "groupWheel",
-			label = seg.label,
-			lines = lines,
-		})
+		net:FireClient(plr, "toast", "Daily Wheel: " .. tostring(seg.label) .. "!")
 	end
 end
 
@@ -216,15 +245,11 @@ local SECTOR_HALVES = {
 	{ side = -1, rot = CFrame.fromMatrix(Vector3.zero, Vector3.new(0, 0, -1), Vector3.new(-1, 0, 0), Vector3.new(0, 1, 0)) },
 }
 
-local function fmtSaleLeft(sec)
+local function fmtLeft(sec)
 	sec = math.max(0, math.floor(tonumber(sec) or 0))
-	local d = math.floor(sec / 86400)
-	local h = math.floor((sec % 86400) / 3600)
+	local h = math.floor(sec / 3600)
 	local m = math.floor((sec % 3600) / 60)
 	local s = sec % 60
-	if d > 0 then
-		return string.format("%dd %dh %dm", d, h, m)
-	end
 	if h > 0 then
 		return string.format("%dh %dm %ds", h, m, s)
 	end
@@ -360,7 +385,9 @@ function GroupWheelService.build(lobby)
 	local pivot = part({
 		Name = "Pivot",
 		Size = Vector3.new(0.2, 0.2, 0.2),
-		CFrame = faceCF,
+		-- Turned so its UP axis is the wheel's axle: the client spinner in
+		-- MineGroupWheelView turns the model about its pivot's up axis.
+		CFrame = faceCF * CFrame.Angles(math.rad(90), 0, 0),
 		Transparency = 1,
 		CanCollide = false,
 	}, wheel)
@@ -439,7 +466,9 @@ function GroupWheelService.build(lobby)
 			CanCollide = false,
 		}, wheel)
 
-		local labelText = isMystery and "?" or tostring(seg.label or "?")
+		-- The odds go ON the world wheel too (owner, 2026-10-10: "odds printed
+		-- on it"), from the same weights the server rolls.
+		local labelText = (isMystery and "?" or tostring(seg.label or "?")) .. "\n" .. Wheel.oddsText(seg)
 		--[[
 			A label is only as wide as the arc AT ITS OWN RADIUS.
 
@@ -487,26 +516,46 @@ function GroupWheelService.build(lobby)
 	}, wheel)
 	surfaceLabel(hub, "SPIN", { color = Color3.fromRGB(30, 20, 10), pps = 55 })
 
-	-- Idle spin — always slowly turning so every option rides past the pointer.
-	local spinAng = 0
-	local idleConn
-	idleConn = RunService.Heartbeat:Connect(function(dt)
-		if not folder.Parent or not wheel.Parent then
-			if idleConn then idleConn:Disconnect() end
-			return
+	--[[
+		IDLE SPIN, ON EACH CLIENT.
+
+		This was a server Heartbeat PivotTo, which re-replicated about 100 part
+		CFrames to every player every frame, forever. MineGroupWheelView now
+		turns the wheel on each client about its pivot's up axis (the Pivot part
+		above is turned so that axis is the axle). Same look, zero server work.
+	]]
+	--[[
+		The client must know the wheel's real pose before it turns it, or it
+		spins about the wrong axis (seen in Studio, 2026-10-10: the slices went
+		edge-on). Three things guarantee that under StreamingEnabled:
+		  * WorldPivot is set explicitly, so the pivot arrives WITH the model
+		    instead of depending on the Pivot part having replicated
+		  * Atomic streaming: the wheel and every part of it arrive together,
+		    and leave together
+		  * PartCount: the client spinner waits until that many parts are
+		    present before it records the pose
+	]]
+	wheel.PrimaryPart = nil
+	wheel.WorldPivot = pivot.CFrame
+	wheel.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	do
+		local count = 0
+		for _, d in ipairs(wheel:GetDescendants()) do
+			if d:IsA("BasePart") then
+				count += 1
+			end
 		end
-		spinAng += math.rad(16) * dt -- ~2.7 RPM idle crawl
-		wheel:PivotTo(faceCF * CFrame.Angles(0, 0, spinAng))
-	end)
-	folder.Destroying:Connect(function()
-		if idleConn then idleConn:Disconnect() end
-	end)
+		wheel:SetAttribute("PartCount", count)
+	end
+	wheel:SetAttribute("SpinSpeed", 16) -- degrees per second, ~2.7 RPM
 
 	-- Title + week timer sign above the wheel.
 	local sign = part({
 		Name = "TimerSign",
 		Size = Vector3.new(8.5, 2.4, 0.35),
-		CFrame = faceCF * CFrame.new(0, 8.6, 0.2),
+		-- Clear of the pointer (which tops out at 7.95): at 8.6 the pointer
+		-- covered the middle of the countdown.
+		CFrame = faceCF * CFrame.new(0, 9.3, 0.2),
 		Material = Enum.Material.SmoothPlastic,
 		Color = Color3.fromRGB(20, 16, 26),
 		CanCollide = false,
@@ -524,7 +573,7 @@ function GroupWheelService.build(lobby)
 	title.Font = Enum.Font.GothamBlack
 	title.TextScaled = true
 	title.TextColor3 = Color3.fromRGB(255, 220, 120)
-	title.Text = "GROUP WHEEL"
+	title.Text = "DAILY WHEEL"
 	title.Parent = signGui
 	local tag = Instance.new("TextLabel")
 	tag.BackgroundTransparency = 1
@@ -533,7 +582,7 @@ function GroupWheelService.build(lobby)
 	tag.Font = Enum.Font.GothamBold
 	tag.TextScaled = true
 	tag.TextColor3 = Color3.fromRGB(255, 120, 150)
-	tag.Text = tostring(Wheel.TAGLINE or "Galaxy + Spark = EXOTIC")
+	tag.Text = tostring(Wheel.TAGLINE)
 	tag.Parent = signGui
 	local timer = Instance.new("TextLabel")
 	timer.Name = "Timer"
@@ -543,18 +592,14 @@ function GroupWheelService.build(lobby)
 	timer.Font = Enum.Font.GothamMedium
 	timer.TextScaled = true
 	timer.TextColor3 = Color3.fromRGB(200, 220, 255)
-	timer.Text = "ENDS IN —"
+	timer.Text = "NEW SPINS IN —"
 	timer.Parent = signGui
 
+	-- Free spins refill at UTC midnight, the same moment for everyone, so a
+	-- world sign can count it down.
 	task.spawn(function()
 		while folder.Parent do
-			if Wheel.isLive() then
-				timer.Text = "ENDS IN  " .. fmtSaleLeft(Wheel.saleLeft())
-				timer.TextColor3 = Color3.fromRGB(200, 220, 255)
-			else
-				timer.Text = "WEEK ENDED"
-				timer.TextColor3 = Color3.fromRGB(160, 160, 170)
-			end
+			timer.Text = "NEW FREE SPINS IN  " .. fmtLeft(Wheel.resetIn())
 			task.wait(1)
 		end
 	end)
@@ -592,7 +637,7 @@ function GroupWheelService.build(lobby)
 	pad:SetAttribute("Machine", "groupWheel")
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Spin"
-	prompt.ObjectText = "Group Wheel"
+	prompt.ObjectText = "Daily Wheel"
 	prompt.HoldDuration = 0.2
 	prompt.MaxActivationDistance = 18
 	prompt.RequiresLineOfSight = false
