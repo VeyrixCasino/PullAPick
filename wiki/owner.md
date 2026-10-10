@@ -90,6 +90,29 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
 - **The UI follows [candy-style](code/candy-style.md)** (owner, 2026-10-08):
   chunky and juicy, with honest rarity-scaled wins and *"no alarms"*.
 
+## Decided 2026-10-10, evening (`docs/PETS-AND-SETS.md`)
+
+- **Pets come first.** *"Just make the pet models… once all pets are in place
+  I'll get you to re-evaluate rewards."* The daily loop (A2 onward) waits.
+- **Zone pots:** the current pets are divided among the 11 zones. Later zones
+  are better, *"but not exponentially"*. Each zone's Mythic, Divine and Exotic
+  pets get a different buff set.
+- **19 exclusive sets**, graded F–SSS, each with six star-graded packs and its
+  own pets. The owner named every set and pack.
+- **20–30 new pet body types.** Renaming is allowed, and abilities get
+  designed properly.
+- **Old content:** *"XY is old"*, and so are the variant drop rates at pack
+  open. They are legacy and nothing new should build on them.
+- **Rewards direction** (queued):
+  - star-graded pack cases holding 3–5 packs: chest drops, the wheel, and a
+    stardust NPC at about 60–70% RTP;
+  - zone packs carry no stars, and only exclusive packs are given as rewards;
+  - packs must differ a lot from each other;
+  - the wheel gives a free spin every 6 h and gets a one-image face.
+- **The TODAY checklist** lives inside the Quests panel.
+- **Before a big job, they want a model recommendation**, and they switch
+  models before the work starts.
+
 ## Locked decisions: one line each
 
 These come from `docs/TODO.md` §0. Each is settled: build on it and do not

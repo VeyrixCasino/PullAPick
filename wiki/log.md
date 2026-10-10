@@ -303,3 +303,25 @@ await the owner. New check: `daily-wheel`. Suite: 54/54.
 
 Updated: social-quests-and-leaderboards, open-questions (#6 answered),
 retired-and-parked, code-map, save-data-and-migrations, verify-suite, log.
+
+## [2026-10-10] ingest | pets first: the owner's 19 sets and zone pots
+The owner reset the priority: pets come first, and rewards wait until every pet
+is in place. Their spec went into `docs/PETS-AND-SETS.md`:
+- 19 exclusive sets, graded F–SSS, each with six star-graded packs. The owner
+  named every set and pack;
+- card counts per rarity;
+- zone pots for the existing pets;
+- 20–30 new body types.
+
+Checked:
+- **Every row adds up.** That is 2,043 cards, 450 of them Epic or better.
+- **"Heartwood" is a duplicate pack name.**
+- **A card is a pet**, so the job is far bigger than the 322 named pets today.
+
+The owner flagged the X/Y sets and the variant odds rolled at pack open as old.
+They are now marked legacy. One near-miss: MineCards' `Prism = 4` is a rank
+(`VARIANT_RANK`), not a second multiplier, so it was not listed as a conflict.
+A help-needed table (H1–H8) went into open-questions.
+
+Updated: owner, open-questions, sources-of-truth, log. Also docs/TODO.md ★ NOW
+(LATEST banner, A1b, A2 placement).

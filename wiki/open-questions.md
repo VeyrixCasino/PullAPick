@@ -28,6 +28,23 @@ related: [owner, sources-of-truth, overview, mining-and-breaking, save-data-and-
 > checked the cited code myself. *Reported* means a research pass found it and I
 > did not independently check it. **Nothing here has been run in Roblox.**
 
+## Help needed: pets and pack sets (2026-10-10)
+
+The owner asked for this note. The pet job is specified in
+`docs/PETS-AND-SETS.md`. Claude needs the owner for the items below. Each one
+has a default that is used if the owner says "you decide".
+
+| # | what I need | my default |
+|---|---|---|
+| H1 | **How many pets get a hand-made name and look?** The 19 sets hold 2,043 cards, and a card is a pet. | Name and design every Epic or better by hand (450). Commons to Rares get set-themed generated names on shared bodies, the way packs mint today. |
+| H2 | **How much better is each zone's pot?** "Better, but not exponentially." | +12% per zone, so zone 11 is about 3.1× zone 1. Mythic, Divine and Exotic get a different buff set per zone. |
+| H3 | **"Heartwood" is used twice** (Mosswood ★★★★★, Worldtree ★★). Pack ids must be unique. | Rename Worldtree ★★ to "Sapwood". |
+| H4 | **A names sheet.** I will send every new and renamed pet per zone and set for one yes/edit pass before anything is built. Names are save data, so changing them later costs aliases. | Approve in one pass, by pasting it back with edits. |
+| H5 | **Is the old card content legacy?** That is the 41 `MineCards.SETS`, the 55 `MineZonePacks` and the 19 `Mine1PacksData` card packs. X/Y and the variant odds at pack open are already confirmed old. | Retire them from dropping. Owned cards keep working. |
+| H6 | **Art uploads.** The pack and set images, and the wheel's one-image face. An agent can make the images but cannot upload to the group (35326298). | The owner uploads to the group and pastes the asset ids back. |
+| H7 | **The 6-hour wheel spin** (rewards pass): do unused spins bank, and how many? | Bank up to 4 (one day's worth). |
+| H8 | **One pet session at a time.** Another session rebuilt pet bodies in `PetModelFactory` (`c62fad6`, `1af78a4`). Two sessions editing that 3,500-line file collide. | Only the session the owner continues with touches it. |
+
 ## 0. LAUNCH BOARD — owner wants to ship in 4–5 days (asked 2026-10-10)
 
 Everything below is either **blocking**, **a decision only the owner can make**,

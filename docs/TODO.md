@@ -14,6 +14,18 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
 
 # ★ NOW — the owner's 2026-10-10 roadmap. Read this before anything else here.
 
+> **LATEST (2026-10-10, evening): PETS FIRST.** The owner: *"Just make the pet
+> models… once all pets are in place I'll get you to re-evaluate rewards."*
+> The full spec is [`docs/PETS-AND-SETS.md`](PETS-AND-SETS.md):
+> - zone pots for the existing pets;
+> - 19 exclusive sets with 2,043 cards;
+> - 20–30 new body types;
+> - renames (always with an alias) and abilities.
+>
+> It also lists the legacy to retire (X/Y sets, variant odds at pack open) and
+> the queued rewards pass (pack cases, ★ wheel, the stardust NPC). **A1 is done.
+> A2 goes inside the Quests panel (decided). A2, A3 and B–D wait behind the pets.**
+
 **How to work this list (any agent, cold start):**
 
 1. **Read [`wiki/code/candy-style.md`](../wiki/code/candy-style.md) before you touch
@@ -85,7 +97,12 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
   - Paid spins (`group_wheel_1/5/10`) are still `productId = 0`. BLOCKED on
     the owner's product ids. The buy row stays hidden until they have ids.
   - Details: `wiki/systems/social-quests-and-leaderboards.md` (Daily wheel).
-- **A2. More daily attractions.** First list what exists: the daily reward
+- **A1b. Wheel changes (queued for the rewards pass, `docs/PETS-AND-SETS.md`):**
+  - a free spin every 6 h;
+  - the face as one generated image;
+  - ★ pack-case slices instead of specific prizes.
+- **A2. More daily attractions.** The TODAY checklist goes **inside the Quests
+  panel** (owner, 2026-10-10). First list what exists: the daily reward
   calendar, the 3 daily quests, playtime gifts, the daily surprise, Job Board
   contracts and the pass. Then add:
   - The wheel.
