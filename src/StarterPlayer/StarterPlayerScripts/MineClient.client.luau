@@ -1347,6 +1347,10 @@ do
 		Text = "",
 		Position = UDim2.fromOffset(18, 68),
 		Size = UDim2.new(1, -36, 0, 18),
+		-- Measured at 288px for "Reward: 60 Gems  +  Unlocks Bronze", which is
+		-- wider than the panel has ever been on a phone. One line, so it cannot
+		-- wrap; the panel clips, so without this it was cut mid-character.
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 21,
 		Active = false,
@@ -1450,6 +1454,51 @@ function ClientFns.questIsPhone()
 	return math.min(v.X, v.Y) < 700
 end
 
+--[[
+	HOW WIDE THE QUEST PANEL IS -- ONE ANSWER, NOT FOUR.
+
+	Owner, 2026-10-10: "this quest bar is obnixious, and if i was to guess it
+	doesnt scale to mobile".
+
+	Half right, and the half that was wrong is the interesting one. The panel
+	DOES already know about phones -- it starts collapsed on touch and shrinks
+	to 260 -- but 260 is a CONSTANT, so it was 260 on a 428pt phone and 260 on
+	a 320pt one, where it covers 81% of the screen. That is the "obnoxious".
+
+	Worse, that constant was written out in FOUR places (the panel layout, the
+	quest card, the daily box and today's box). Four copies of one number is
+	the shape of bug this project keeps hitting: every copy looks correct on
+	its own, and they only disagree once one of them is edited. They are one
+	call now.
+
+	Width is a fraction of the REAL viewport, floored so it never gets too
+	narrow to read a quest line and capped at the old desktop 304 so nothing
+	on a big screen changes.
+]]
+function ClientFns.questWidth()
+	if not ClientFns.questIsPhone() then
+		return 304
+	end
+	local cam = workspace.CurrentCamera
+	local v = cam and cam.ViewportSize or Vector2.new(1280, 720)
+	--[[
+		46% of the short edge, floored at 220 and capped at the old 260.
+
+		The floor is measured, not guessed. Every label in the live panel was
+		measured with TextService:GetTextSize: the widest WRAPPED line needs
+		293px (it wraps, so it does not care), and the widest UNWRAPPED one is
+		RewardHint -- "Reward: 60 Gems  +  Unlocks Bronze" -- at 288px. That
+		one already overflowed the old 260 phone width and was being chopped
+		mid-character by the panel's ClipsDescendants, so it is truncated with
+		an ellipsis now rather than cut.
+
+		220 keeps the ordinary quest rows ("Open 3 chests" at 144, "free spin
+		in 23h 05m" at 131) comfortable with room for the right-aligned
+		counter beside them.
+	]]
+	return math.clamp(math.floor(math.min(v.X, v.Y) * 0.46), 220, 260)
+end
+
 -- The quest panel's open/collapsed state (active quest + daily quests).
 -- preferred = user intent when no modal; peeking = temporary expand over a modal.
 --[[
@@ -1550,25 +1599,45 @@ function ClientFns.layoutQuestPanel(instant)
 	local qVis = questBox.Visible
 	local dVis = d ~= nil and d.Visible
 	local y = H
-	local wide = 0
+	--[[
+		THE PANEL AND ITS THREE CARDS ARE ONE WIDTH, DECIDED HERE.
+
+		This used to take the WIDEST card and grow the panel to fit it, with the
+		260/304 constant only as a fallback for when every card was empty. That
+		reads as careful and is the wrong way round: each card sized itself from
+		its OWN copy of that constant, so the panel's width was really three
+		copies agreeing by luck, and nothing re-sized them when the viewport
+		changed -- a phone that rotated kept whatever width it booted with.
+
+		questWidth() decides now and the cards are told. One number applied
+		top-down, which is also why re-running this on a viewport change is
+		enough to make rotation work; see the ViewportSize handler.
+	]]
+	local wide = ClientFns.questWidth()
+	local function fit(box)
+		if box and box.Size.X.Offset ~= wide then
+			box.Size = UDim2.fromOffset(wide, box.Size.Y.Offset)
+		end
+	end
 	-- TODAY first (MineToday; owner, 2026-10-10: at the top of the panel).
 	local todayBox = ClientFns.todayBox
 	local tVis = todayBox ~= nil and todayBox.Visible
 	if tVis then
+		fit(todayBox)
 		todayBox.Position = UDim2.fromOffset(0, y)
 		y += todayBox.Size.Y.Offset
-		wide = math.max(wide, todayBox.Size.X.Offset)
 		local below = todayBox:FindFirstChild("Divider")
 		if below then
 			below.Visible = qVis or dVis
 		end
 	end
 	if qVis then
+		fit(questBox)
 		questBox.Position = UDim2.fromOffset(0, y)
 		y += questBox.Size.Y.Offset
-		wide = math.max(wide, questBox.Size.X.Offset)
 	end
 	if d then
+		fit(d)
 		d.Position = UDim2.fromOffset(0, y)
 		local rule = d:FindFirstChild("Divider")
 		if rule then
@@ -1576,11 +1645,7 @@ function ClientFns.layoutQuestPanel(instant)
 		end
 		if dVis then
 			y += d.Size.Y.Offset
-			wide = math.max(wide, d.Size.X.Offset)
 		end
-	end
-	if wide < 80 then
-		wide = ClientFns.questIsPhone() and 260 or 304
 	end
 	panel.Visible = qVis or dVis or tVis
 	panel.Position = UDim2.new(0, ClientFns.questDrawerRestX or 16, 0, ClientFns.questPanelY or 300)
@@ -1765,7 +1830,7 @@ function ClientFns.showQuest(state)
 		questTip.Text = tip or ""
 		questTip.Visible = tip ~= nil and not state.ready and not phone
 	end
-	local wide = phone and 260 or 304
+	local wide = ClientFns.questWidth()
 	local tall = (tip and not state.ready and not phone) and 126 or 96
 	questBox.Size = UDim2.fromOffset(wide, tall)
 	if state.ready then
@@ -1958,7 +2023,7 @@ function ClientFns.paintDailyBox(list)
 			end
 		end
 	end
-	box.Size = UDim2.fromOffset((ClientFns.questIsPhone() and 260) or 304, ClientFns.dailyFolded and 34 or (34 + #list * 46 + 6))
+	box.Size = UDim2.fromOffset(ClientFns.questWidth(), ClientFns.dailyFolded and 34 or (34 + #list * 46 + 6))
 	box.Visible = true
 	box.ClipsDescendants = false
 	ClientFns.placeDailyBox()
@@ -2094,7 +2159,7 @@ function ClientFns.paintTodayBox()
 		end
 	end
 	local h = ClientFns.todayFolded and 34 or (34 + #shown * parts.ROW + 6)
-	box.Size = UDim2.fromOffset((ClientFns.questIsPhone() and 260) or 304, h)
+	box.Size = UDim2.fromOffset(ClientFns.questWidth(), h)
 	box.Visible = #shown > 0
 	ClientFns.layoutQuestPanel()
 end
@@ -12654,6 +12719,12 @@ end)
 			refreshMineUiScale()
 			layoutTopbar()
 			ClientFns.introPlace(introBanner.Size.X.Offset)
+			-- Rotation changes the short edge, so it changes questWidth(). The
+			-- panel owns its cards' width now, so one instant re-layout is the
+			-- whole of "the quest bar scales".
+			if ClientFns.layoutQuestPanel then
+				ClientFns.layoutQuestPanel(true)
+			end
 		end)
 	end
 
