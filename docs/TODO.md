@@ -79,8 +79,12 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
 - **Daily wheel:** every player gets one free spin a day, group members
   (`MineConfig.GROUP_ID`) get +1, and login streaks grant extra spins. It is
   built in the lobby where everyone walks past it, with its odds printed on it.
-- **Second progression track: fishing,** limited by bait. Bait costs **coins**,
-  which finally gives coins a real sink (§0.28).
+- **Second progression track: fishing,** limited by bait. ~~Bait costs **coins**~~
+  **Changed 2026-10-11:** the coin sink is the **rods** (bought and levelled with
+  coins, a token prestige every 10 levels); bait is AFK'd for, paid by quests or
+  bought with tokens, at most 15 a day (owner: *"make the rods cost coins, but make
+  the bait need to be afked for or claimed from quests or bought with tokens"*).
+  Details: wiki systems/fishing.
 - **Grades:** stars from **1★ to 5★ in half steps, 9 grades**.
   - Tool rolls are graded in stars.
   - Every other grade (Common–Exotic, F–SSS, tiers) shows a ★ equivalent
@@ -155,8 +159,15 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
     moves").
   - The aim: a player never runs out of things to do, and there is always a
     reason to come back tomorrow.
-- **A3. Fishing.**
-  - A pond on the lobby surface first, then one per planet surface.
+- **A3. Fishing. FIRST CUT BUILT 2026-10-11** (wiki systems/fishing): Greyvein's
+  surface pool and the 1,000 / 3,000 outpost pools, 12 Greyvein fish, cast and reel
+  minigames (the fight replayed by the server), 4 rods with levels and token
+  prestige, bait capped at 15 a day, the cooler. Tuned by a learning machine
+  (`tools/sim/fishing-tune.js`, docs/FISHING-TUNING.md). Still to do: fish for the
+  other zones, selling / trading, album set bonuses, TODAY's catch of the day, a
+  rod and bobber in the world, fish art. The original brief:
+  - A pond on the lobby surface first, then one per planet surface (owner,
+    2026-10-10: the first spot is in zone 2 instead).
   - Cast → bite → reel, as a short juicy minigame that can be skipped or sped up.
   - Each cast uses one bait. Bait is bought with coins.
   - The catch table is graded in ★, and its odds are shown at the bait seller.

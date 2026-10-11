@@ -1120,3 +1120,18 @@ Updated: chests-and-lucky-blocks, pack-cases, ambiguous-terms, log.
 Suite 61/61.
 
 Updated: pack-cases, cards-and-packs.
+
+## [2026-10-11] ingest | A3: fishing, first cut
+Built fishing on Greyvein (owner: *"Make the first fishing spot in zone 2"*): the
+surface Quarry Pool, the 1,000 / 3,000 station-bay pools, 12 fish, a cast bar and the
+GREEN / YELLOW / RED reel fight in the owner's words, a 15-a-day bait cap (AFK, quests,
+tokens), 4 rods with x1.6 levels and a token prestige every 10 (kept on rebirth), a
+5-bait rod that is one all-or-nothing fight, and the cooler. The server replays the
+fight from the client's presses. The owner's "learning machine" is
+`tools/sim/fishing-tune.js`: it found the brink (0.951 with the Quarry Rod L10) and
+set the grades under it (docs/FISHING-TUNING.md). Tuning found that identical fish fall
+off a cliff; a fish's size now sets its fight. Play-tested in Studio (the owner was
+fishing in the same session: three catches, a rod bought and levelled). Settled:
+"tokens" means temper tokens; bait is no longer the coin sink, the rods are.
+
+Updated: fishing (new), index, owner, next-up, zones-layers-and-seams, TODO, log.

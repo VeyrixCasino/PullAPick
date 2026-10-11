@@ -3700,6 +3700,12 @@ local function snap(plr)
 		skins = p.skins or {}, skinEquipped = p.skinEquipped or {},
 		-- One-shot: the client reads it once, then it is cleared below.
 		skinNotice = p.skinNotice,
+		-- Fishing's bait, rod and cooler count (MineFishingService; Verbs is
+		-- declared below this function, so it is required here).
+		fishing = (function()
+			local okF, Fish = pcall(require, script.Parent:WaitForChild("MineFishingService"))
+			return okF and Fish.snapState(p) or nil
+		end)(),
 		eventPass = (function()
 			local ev = C.EVENTS and C.EVENTS[1]
 			if not ev then return nil end
@@ -10432,6 +10438,12 @@ end
 ]]
 local Verbs = {}
 
+-- FISHING (TODO A3): MineFishingService owns it -- casts, the replayed reel
+-- fight, bait, rods, the cooler. Every remote action starting "fish" goes
+-- there; so does a spot's prompt (Machine "fish").
+Verbs.Fish = require(script.Parent:WaitForChild("MineFishingService"))
+Verbs.Fish.init({ profiles = profiles, net = net, snap = snap, markDirty = markDirty })
+
 --[[
 	THE FREE FIRST PICKAXE.
 
@@ -13901,6 +13913,8 @@ function Verbs.claimDailyQuest(plr, payload)
 	local gems = Quests.dailyGems(def, p.maxUnlockedZone or 1)
 	p.gems = (p.gems or 0) + gems
 	row.claimed = true
+	-- A daily quest pays bait too (owner: +2), toward the day's cap.
+	Verbs.Fish.questBait(plr, p)
 	introAdvance(plr, p, 7)
 	awardPassXp(plr, p, (Scrolls.PASS_XP_AWARD and Scrolls.PASS_XP_AWARD.daily) or 75, "daily")
 	markDirty(plr)
@@ -15119,6 +15133,8 @@ Verbs.KEEP_ON_REBIRTH = {
 	"codes", "receipts", "starterBought", "referredBy", "funnelJoined", "invites",
 	"discordLinked", "discordId", "discordBonusClaimed", "milestones", "freeGearUsed",
 	"dustShop", "backpackCoinV2",
+	-- fishing: rod levels "stays between rebirths" (owner), and so do the bait and the cooler
+	"fishing",
 	-- owned things (some bought with Robux)
 	"ownedPets", "potions", "activePotions", "vfx", "equippedVfx", "chestBag", "vipPass", "vip",
 	-- the daily wheel: banked Robux spins, and today's free spins (a rebirth
@@ -17607,6 +17623,10 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 	local ok, err = pcall(function()
 		if not profiles[plr.UserId] then load(plr) end
 		if Verbs.policyBlocks(plr, action) then return end
+		if type(action) == "string" and string.sub(action, 1, 4) == "fish" then
+			Verbs.Fish.dispatch(plr, action, payload)
+			return
+		end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
 		elseif action == "rollTrait" then Verbs.rollTrait(plr, payload)
@@ -18356,6 +18376,8 @@ task.defer(function()
 				local p = profiles[plr.UserId]
 				if not p then return end
 				net:FireClient(plr, "openGroupWheel", GroupWheelService.payload(p, plr))
+			elseif machine == "fish" then
+				Verbs.Fish.prompt(plr, parent)
 			elseif machine == "elevator" then
 				local p = profiles[plr.UserId]
 				if not p then return end

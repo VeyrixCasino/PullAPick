@@ -82,8 +82,10 @@ unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
 - **The daily wheel:** every player gets one free spin a day, group members
   get +1, and login streaks grant extra spins. It sits in the lobby with its
   odds printed.
-- **Fishing is the second progression track.** It is limited by bait, and
-  bait costs coins (a coin sink, §0.28).
+- **Fishing is the second progression track.** It is limited by bait (15 a
+  day: AFK, quests, tokens). Since 2026-10-11 the coin sink is the rods, not the
+  bait. See [fishing](systems/fishing.md).
+- **"Tokens" means temper tokens**, always (owner, 2026-10-11, in capitals).
 - **Stars:** 1★–5★ in half steps (9 grades). Every other grade shows a ★
   equivalent beside its name.
 - **"Godly Lucky Block"** is the red block's only name.

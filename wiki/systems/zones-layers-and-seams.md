@@ -139,7 +139,9 @@ depth points"*).
 
 ## State right now
 - The seam chain is wired, free and still **unconfirmed in engine** (`docs/OPEN.md` P0 §1).
-- Ten outposts per zone are wired, and the station bay content is undecided.
+- Ten outposts per zone are wired. The station bays of the 1,000 and 3,000
+  outposts hold fishing pools in zones that have fish (2026-10-11,
+  [fishing](fishing.md)); the rest are still RESERVED.
 
 ## Gotchas
 - **Huge depth-desk payouts (found by reading the code).** `MineDepth.equivZoneIndex` treats seam 500 as "zone + 4" and seam 1500 as "zone + 6". So `depthSellMult` pays **×487.5** (5⁴ × 0.78) at the seam-500 desk and **×12,187.5** at the seam-1500 desk. Every other seam pays ×0.78, which is *worse* than the surface's ×1. The `MineServer` comment saying "depth desks stay strictly better" is only true for 500 and 1500. The equivalence dates from the old geometric HP curve. See [currencies](currencies-and-economy.md).

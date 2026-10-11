@@ -5522,6 +5522,15 @@ groupWheelCtl = require(shared:WaitForChild("MineGroupWheelView")).mount(gui, {
 	end,
 })
 
+-- FISHING (TODO A3): the screen and the cast / reel minigame. On ClientFns,
+-- because the top level has few locals to spare. The server opens it from a
+-- spot's Fish prompt ("fishing" { kind = "state" }).
+ClientFns.fishingCtl = require(shared:WaitForChild("MineFishingView")).mount(gui, {
+	send = function(verb, payload)
+		net:FireServer(verb, payload)
+	end,
+})
+
 -- mount() hands back a controller; the Frame is controller.root. Binding the
 -- controller straight to skillP is what left the wheel permanently open.
 skillCtl = SkillView.mount(gui, {
@@ -12150,6 +12159,14 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		ClientFns.routePanel(payload, extra)
 	elseif action == "adminBroadcast" then
 		ClientFns.showBroadcast(payload)
+	elseif action == "fishing" then
+		local ctl = ClientFns.fishingCtl
+		if ctl then
+			if type(payload) == "table" and payload.kind == "state" and not ctl.isOpen() then
+				hidePanels()
+			end
+			ctl.onMessage(payload)
+		end
 	elseif action == "openGroupWheel" then
 		hidePanels()
 		if groupWheelCtl then

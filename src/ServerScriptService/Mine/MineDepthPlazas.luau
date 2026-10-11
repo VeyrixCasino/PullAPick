@@ -6,6 +6,9 @@ local CollectionService = game:GetService("CollectionService")
 local shared = game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared")
 local Depth = require(shared:WaitForChild("MineDepth"))
 local C = require(shared:WaitForChild("MineConfig"))
+-- Fishing spots in the station bays (TODO A3).
+local Fishing = require(shared:WaitForChild("MineFishing"))
+local FishPonds = require(script.Parent:WaitForChild("MineFishPonds"))
 
 local MineDepthPlazas = {}
 
@@ -783,6 +786,26 @@ local function wallOutpost(folder, zone, seam)
 	lbl.TextColor3 = Color3.fromRGB(150, 140, 125)
 	lbl.Text = "RESERVED"
 	lbl.Parent = sg
+
+	--[[
+		FISHING (TODO A3). Owner: "ever zone should have a couple underground
+		fishing areas in each zone (at outposts)", and chose the station bays of
+		the 1,000 and 3,000 outposts (MineFishing.OUTPOST_SEAMS). The pool sits on
+		the bay deck, its pier reaching back toward the room, and the bay's sign
+		names it instead of saying RESERVED.
+	]]
+	local spot = zone and Fishing.spot(zone.id .. "_" .. tostring(seam))
+	if spot then
+		lbl.Text = string.upper(spot.name)
+		local back = Vector3.new(bx, 0, bz)
+		local c = Vector3.new(bcx, floorY + 1, bcz) + back * 2
+		FishPonds.build(bay, spot, CFrame.lookAt(c, c + back), Vector2.new(math.min(30, bayW - 16), 13), {
+			rim = look.wall:Lerp(Color3.fromRGB(150, 146, 138), 0.35),
+			water = Color3.fromRGB(34, 92, 112),
+			deep = Color3.fromRGB(12, 24, 30),
+			light = true,
+		})
+	end
 end
 
 function buildDeck(zone, seam, desk)

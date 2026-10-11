@@ -2,6 +2,9 @@
 local MineConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineConfig"))
 
 local WorldBuilder = {}
+-- Fishing spots (TODO A3): which zones have a surface pond, and the builder.
+local Fishing = require(game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineFishing"))
+local FishPonds = require(script.Parent:WaitForChild("MineFishPonds"))
 
 local WOOD = Color3.fromRGB(118, 90, 62)
 local STONE = Color3.fromRGB(92, 90, 84)
@@ -1048,6 +1051,22 @@ function WorldBuilder.buildOutpost(parent, zone, origin, dir)
 		part({ Name = "Banner", Parent = f, Size = Vector3.new(4.4, 10, 0.2),
 			CFrame = facing(p + Vector3.new(0, 14, 0) + side * (c[2] * -2.4), dir),
 			Color = pal.accent, Material = Enum.Material.Fabric }).CanCollide = false
+	end
+
+	--[[
+		FISHING (TODO A3; owner: "Make the first fishing spot in zone 2"). A zone
+		with a surface spot in MineFishing.SPOTS gets its pool on the back corner
+		of the square, past the Blacksmith: clear of the shops (hole + 40), the
+		lamps (side 9) and the banners (side 67). You walk out on the pier from
+		the path side and fish facing away from it.
+	]]
+	for _, spot in ipairs(Fishing.SPOTS) do
+		if spot.kind == "surface" and spot.zoneId == zone.id then
+			local c = at(hole + 84, 44, TOP)
+			FishPonds.build(f, spot, CFrame.lookAt(c, c + side), Vector2.new(24, 32), {
+				rim = stone:Lerp(Color3.fromRGB(60, 58, 54), 0.35),
+			})
+		end
 	end
 
 	return f
