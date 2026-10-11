@@ -3,30 +3,33 @@
 
 	The rules are MineFishing, the fight is MineFishingFight (the SAME code the
 	server replays), the verbs are MineFishingService. This draws, takes input
-	and reports:
+	and reports.
 
-	  THE SCREEN (opened from a spot's Fish prompt): bait and where it comes
-	  from, four tabs --
-	    FISH    the CAST button, your rod, bait for tokens
-	    TACKLE  the rods: buy (coins), equip, level (coins), prestige (tokens)
-	    ODDS    this spot's catch table at your luck (owner: odds shown)
-	    COOLER  your fish cards, this zone's twelve, best size each
+	FOR KIDS, NOT READERS. Owner, 2026-10-11: "we got to work to get this to
+	keep KIDS attention.. not a grown man who knows how to read fluent
+	english" -- ages 10-14+, and "icons + big numbers, 1-3 words", "a pointing
+	hand", "more reward juice", "info hidden behind a (?) button". So:
+	  * every number wears an icon (🐛 bait, 🎟 tokens, 💰 coins, ⚡ reel,
+	    💪 line, 🍀 luck) and no main screen carries a sentence;
+	  * the sentences live behind (?), one short line each;
+	  * a 👆 bounces on CAST until your first cast;
+	  * in the fight the REEL button IS the instruction: it turns green
+	    ("REEL!"), yellow ("EASY") or red ("LET GO!") with the fish;
+	  * a perfect cast sparkles, and a catch celebrates by its real rarity
+	    (MineCelebrate; a ★ minnow gets a pop, a ★★★★★ gets the works).
 
-	  THE MINIGAME:
-	    cast   a power bar sweeps; stop it on the sweet spot. Good and perfect
-	           casts are luck (owner).
-	    wait   the bobber sits until the bite.
-	    reel   hold REEL (button, or F). The fish is GREEN, YELLOW or RED; the
-	           tension bar has a floor that creeps up if you hold it high; past
-	           100 m it can slip the hook. The client runs MineFishingFight at
-	           30 ticks a second and records only when REEL went down and up;
-	           the server replays that to decide.
-	    catch  the cards, worst to best, one tap each (owner: "least to best").
+	THE SCREEN (from a spot's Fish prompt): FISH (cast, rod, bait for tokens),
+	TACKLE (rods: buy, equip, level, prestige), ODDS (this spot's catch table),
+	COOLER (your fish cards).
 
-	mount(gui, opts) -> controller { onMessage(data), close(), isOpen() }
+	THE MINIGAME: cast (stop the bar in the gold) -> wait -> reel (hold REEL or
+	F; the client runs MineFishingFight at 30 ticks a second and records only
+	when REEL went down and up, which the server replays) -> catch (cards, worst
+	to best, one tap each).
+
+	mount(gui, opts) -> controller { onMessage(data), close(), isOpen(), root }
 	  opts.send(action, payload)   fire a "fish..." verb to the server
 ]]
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -36,16 +39,44 @@ local T = require(shared:WaitForChild("MineTheme"))
 local M = require(shared:WaitForChild("MineFishing"))
 local Fight = require(shared:WaitForChild("MineFishingFight"))
 
+local function optional(name)
+	local ok, mod = pcall(function()
+		return require(shared:WaitForChild(name, 5))
+	end)
+	return ok and mod or nil
+end
+local UI = optional("MineUI")
+local Celebrate = optional("MineCelebrate")
+local Audio = optional("MineAudio")
+
 local View = {}
 
+-- The fish's colour, what the REEL button says, and its colour then.
 local COLOUR = {
-	green = { col = Color3.fromRGB(96, 226, 120), word = "TIRED  ·  REEL!" },
-	yellow = { col = Color3.fromRGB(255, 206, 70), word = "FIGHTING  ·  CAREFUL" },
-	red = { col = Color3.fromRGB(255, 76, 76), word = "RUNNING  ·  TAP OR LET GO" },
+	green = { col = Color3.fromRGB(96, 226, 120), word = "REEL!", btn = Color3.fromRGB(40, 190, 90) },
+	yellow = { col = Color3.fromRGB(255, 206, 70), word = "EASY...", btn = Color3.fromRGB(230, 160, 20) },
+	red = { col = Color3.fromRGB(255, 76, 76), word = "LET GO!", btn = Color3.fromRGB(220, 50, 70) },
 }
 
+-- What (?) says. One short line each (owner: short sentences are fine in popups).
+local HELP = {
+	"🐛  Bait: 15 a day. You get it by staying in the game, from daily quests, or with 🎟 tokens.",
+	"✨  Stop the bar in the GOLD for a perfect cast. Perfect = more 🍀 luck.",
+	"🐟  GREEN: hold REEL.   YELLOW: easy.   RED: LET GO (or tap).",
+	"💥  Too much tension snaps the line. Past 100 m the fish can escape.",
+	"🎣  Better rods: ⚡ reel faster, 💪 hold more, 🍀 find rarer fish. Every 10 levels needs 🎟.",
+	"📦  Every fish you land goes in your COOLER.",
+}
+
+-- Every list here shows things in the order they were made (LayoutOrder),
+-- never alphabetically by instance name.
+local made = 0
 local function mk(class, props, parent)
 	local i = Instance.new(class)
+	if i:IsA("GuiObject") then
+		made += 1
+		i.LayoutOrder = made
+	end
 	for k, v in pairs(props or {}) do
 		i[k] = v
 	end
@@ -80,20 +111,37 @@ local function label(parent, text, size, color, props)
 	return l
 end
 
+-- A chunky button: candy outline, juice on hover and press (candy-style rules).
 local function button(parent, text, size, pos, color)
 	local b = mk("TextButton", {
 		AutoButtonColor = true,
 		BackgroundColor3 = color or T.ACCENT,
 		Text = text,
 		TextColor3 = T.ON_CANDY,
-		TextSize = 18,
+		TextSize = 20,
 		Font = T.FONT,
+		TextStrokeColor3 = T.OUTLINE,
+		TextStrokeTransparency = 0.35,
 		Size = size,
 		Position = pos or UDim2.new(),
 	}, parent)
-	round(b, 12)
-	stroke(b, T.OUTLINE, 2)
+	round(b, 14)
+	stroke(b, T.OUTLINE, T.STROKE_CHUNKY or 3)
+	if UI and UI.juice then
+		pcall(UI.juice, b)
+	end
 	return b
+end
+
+-- A stat chip: an icon and a number, nothing else.
+local chipN = 0
+local function chip(parent, text, color, width)
+	chipN += 1
+	local c = mk("Frame", { BackgroundColor3 = T.INK, Size = UDim2.fromOffset(width or 96, 34), ZIndex = 43, LayoutOrder = chipN }, parent)
+	round(c, 17)
+	stroke(c, color or T.LINE, 2)
+	label(c, text, 18, color or T.TEXT, { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 44 })
+	return c
 end
 
 local function short(n)
@@ -110,10 +158,22 @@ end
 
 local function clockText(secs)
 	secs = math.max(0, math.floor(tonumber(secs) or 0))
-	if secs >= 60 then
-		return string.format("%dm %02ds", math.floor(secs / 60), secs % 60)
+	return string.format("%d:%02d", math.floor(secs / 60), secs % 60)
+end
+
+-- A catch's celebration tier from its grade (1..9): ★ to ★★½ just pop.
+local function tierOf(grade)
+	grade = tonumber(grade) or 1
+	if grade >= 9 then
+		return 4
+	elseif grade >= 8 then
+		return 3
+	elseif grade >= 7 then
+		return 2
+	elseif grade >= 5 then
+		return 1
 	end
-	return secs .. "s"
+	return 0
 end
 
 function View.mount(gui, opts)
@@ -131,7 +191,7 @@ function View.mount(gui, opts)
 		BackgroundColor3 = T.PANEL, ZIndex = 40,
 	}, gui)
 	round(root, 18)
-	stroke(root, T.EDGE, 3)
+	stroke(root, T.EDGE, T.STROKE_THICK or 4)
 	root:SetAttribute("MineUIAdopted", true)
 	local scale = mk("UIScale", {}, root)
 	local function fit()
@@ -144,28 +204,53 @@ function View.mount(gui, opts)
 		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
 	end
 
-	local title = label(root, "🎣 FISHING", 28, T.GOLD, { Position = UDim2.fromOffset(22, 14), Size = UDim2.new(1, -80, 0, 32), ZIndex = 41 })
-	local sub = label(root, "", 15, T.MUTED, { Position = UDim2.fromOffset(24, 48), Size = UDim2.new(1, -48, 0, 20), ZIndex = 41 })
-	local close = button(root, "X", UDim2.fromOffset(40, 40), UDim2.new(1, -54, 0, 14), T.CANDY.red[2])
+	local title = label(root, "🎣 FISHING", 30, T.GOLD, { Position = UDim2.fromOffset(22, 12), Size = UDim2.new(1, -150, 0, 34), ZIndex = 41 })
+	-- The bait line: three chips, no words.
+	local chips = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(22, 48), Size = UDim2.new(1, -44, 0, 34), ZIndex = 41 }, root)
+	mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, chips)
+	local baitChip = chip(chips, "🐛 0", T.GREEN, 92)
+	local dayChip = chip(chips, "📅 0/15", T.MUTED, 110)
+	local afkChip = chip(chips, "💤 8:00", T.MUTED, 104)
+	local tokenChip = chip(chips, "🎟 0", T.GOLD, 104)
+	local close = button(root, "X", UDim2.fromOffset(42, 42), UDim2.new(1, -56, 0, 12), T.CANDY.red[2])
 	close.Name = "Close"
 	close.ZIndex = 42
+	local helpBtn = button(root, "?", UDim2.fromOffset(42, 42), UDim2.new(1, -106, 0, 12), T.CANDY.blue[2])
+	helpBtn.Name = "Help"
+	helpBtn.ZIndex = 42
 
 	-- Tabs.
 	local tabs = {}
-	local tabBar = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(20, 76), Size = UDim2.new(1, -40, 0, 38), ZIndex = 41 }, root)
-	mk("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, tabBar)
+	local tabBar = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(20, 92), Size = UDim2.new(1, -40, 0, 40), ZIndex = 41 }, root)
+	mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, tabBar)
 	local pages = {}
-	for _, t in ipairs({ { "fish", "FISH" }, { "tackle", "TACKLE" }, { "odds", "ODDS" }, { "cooler", "COOLER" } }) do
-		local b = button(tabBar, t[2], UDim2.fromOffset(140, 36), nil, T.CARD)
+	for i, t in ipairs({ { "fish", "🎣 FISH" }, { "tackle", "🛠 RODS" }, { "odds", "🍀 ODDS" }, { "cooler", "📦 COOLER" } }) do
+		local b = button(tabBar, t[2], UDim2.fromOffset(148, 38), nil, T.CARD)
+		b.LayoutOrder = i
 		b.Name = "Tab_" .. t[1]
+		b.TextSize = 18
 		b.ZIndex = 42
 		tabs[t[1]] = b
 		pages[t[1]] = mk("ScrollingFrame", {
-			Name = "Page_" .. t[1], BackgroundTransparency = 1, Visible = false, Position = UDim2.fromOffset(20, 124),
-			Size = UDim2.new(1, -40, 1, -140), CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			Name = "Page_" .. t[1], BackgroundTransparency = 1, Visible = false, Position = UDim2.fromOffset(20, 142),
+			Size = UDim2.new(1, -40, 1, -156), CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollBarThickness = 6, BorderSizePixel = 0, ZIndex = 41,
 		}, root)
 	end
+
+	-- (?) -- the explanations, one tap away and never on the main screen.
+	local help = mk("Frame", { Name = "HelpCard", Visible = false, BackgroundColor3 = T.INK, Position = UDim2.fromOffset(20, 92),
+		Size = UDim2.new(1, -40, 1, -106), ZIndex = 60 }, root)
+	round(help, 14)
+	stroke(help, T.CANDY.blue[2], 3)
+	mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10) }, help)
+	mk("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 18), PaddingTop = UDim.new(0, 16) }, help)
+	for _, line in ipairs(HELP) do
+		label(help, line, 18, T.TEXT, { TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y, Size = UDim2.new(1, 0, 0, 22), ZIndex = 61 })
+	end
+	helpBtn.MouseButton1Click:Connect(function()
+		help.Visible = not help.Visible
+	end)
 
 	local function clear(page)
 		for _, c in ipairs(page:GetChildren()) do
@@ -179,6 +264,42 @@ function View.mount(gui, opts)
 		return M.rod(id) or M.rod(M.STARTER_ROD)
 	end
 
+	local function statChips(parent, stats, x, y)
+		local row = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(x, y), Size = UDim2.new(1, -x, 0, 34), ZIndex = 43 }, parent)
+		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6) }, row)
+		chip(row, string.format("⚡ %.1f", stats.reel), T.CANDY.cyan[1], 86)
+		chip(row, string.format("💪 x%.2f", stats.line), T.CANDY.orange[1], 100)
+		chip(row, string.format("🍀 x%.2f", stats.luck), T.GREEN, 100)
+		if (stats.bait or 1) > 1 then
+			chip(row, "🐛 x" .. stats.bait, T.CANDY.magenta[1], 76)
+		end
+		return row
+	end
+
+	-- A 👆 that bounces under something until it is no longer needed.
+	local function pointAt(target)
+		local hand = label(target.Parent, "👆", 40, T.TEXT, {
+			Name = "PointHand", AnchorPoint = Vector2.new(0.5, 0), Size = UDim2.fromOffset(50, 50),
+			TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 50,
+			Position = UDim2.new(target.Position.X.Scale, target.Position.X.Offset + target.Size.X.Offset * 0.5,
+				target.Position.Y.Scale, target.Position.Y.Offset + target.Size.Y.Offset + 2),
+		})
+		local up = hand.Position
+		local down = up + UDim2.fromOffset(0, 10)
+		task.spawn(function()
+			while hand.Parent do
+				TweenService:Create(hand, TweenInfo.new(0.35, Enum.EasingStyle.Sine), { Position = down }):Play()
+				task.wait(0.35)
+				if not hand.Parent then
+					break
+				end
+				TweenService:Create(hand, TweenInfo.new(0.35, Enum.EasingStyle.Sine), { Position = up }):Play()
+				task.wait(0.35)
+			end
+		end)
+		return hand
+	end
+
 	-- FISH
 	local function paintFish()
 		local page = pages.fish
@@ -187,34 +308,39 @@ function View.mount(gui, opts)
 		local rodId = st.rod or M.STARTER_ROD
 		local r = rodDef(rodId)
 		local stats = data.rodStats or M.rodStats(rodId, st.rodLevel)
-		local card = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.new(1, -8, 0, 120), ZIndex = 42 }, page)
+		local card = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.new(1, -8, 0, 96), ZIndex = 42 }, page)
 		round(card, 14)
-		stroke(card, T.LINE)
-		label(card, r.name .. "  ·  level " .. (st.rodLevel or 0), 22, T.TEXT, { Position = UDim2.fromOffset(16, 12), ZIndex = 43 })
-		label(card, string.format("Reel %.1f m/s   ·   Line x%.2f   ·   Luck x%.2f%s", stats.reel, stats.line, stats.luck,
-			(stats.bait or 1) > 1 and ("   ·   " .. stats.bait .. " bait a cast") or ""), 15, T.MUTED,
-			{ Position = UDim2.fromOffset(16, 44), ZIndex = 43 })
-		label(card, string.format("This spot: luck x%.2f in total. Perfect cast x%.1f, good x%.1f.", data.luck or 1,
-			M.CAST.luck.perfect, M.CAST.luck.good), 15, T.MUTED, { Position = UDim2.fromOffset(16, 70), ZIndex = 43 })
+		stroke(card, T.LINE, 2)
+		label(card, "🎣 " .. r.name, 24, T.TEXT, { Position = UDim2.fromOffset(16, 10), Size = UDim2.new(0.7, 0, 0, 28), ZIndex = 43 })
+		chip(card, "Lv " .. (st.rodLevel or 0), T.GOLD, 80).Position = UDim2.new(1, -96, 0, 10)
+		statChips(card, stats, 16, 50)
 		local need = stats.bait or 1
-		local cast = button(page, (st.bait or 0) >= need and "CAST" or "NO BAIT", UDim2.fromOffset(260, 64),
-			UDim2.fromOffset(0, 134), (st.bait or 0) >= need and T.CANDY.gold[2] or T.DEAD)
+		local can = (st.bait or 0) >= need
+		local cast = button(page, can and "CAST" or ("🐛 " .. (st.bait or 0)), UDim2.fromOffset(280, 70),
+			UDim2.new(0.5, -140, 0, 108), can and T.CANDY.gold[2] or T.DEAD)
 		cast.Name = "Cast"
-		cast.TextSize = 30
+		cast.TextSize = 34
 		cast.ZIndex = 43
-		cast.Position = UDim2.new(0.5, -130, 0, 134)
+		if can and UI and UI.pulse then
+			pcall(UI.pulse, cast, 1.05, 1.1)
+		end
+		if can and (tonumber(st.casts) or 0) == 0 then
+			pointAt(cast)
+		end
 		cast.MouseButton1Click:Connect(function()
-			if (st.bait or 0) >= need and not stage then
+			if can and not stage then
 				send("fishStart", { spotId = data.spotId })
 			end
 		end)
-		local buyRow = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 214), Size = UDim2.new(1, 0, 0, 44), ZIndex = 42 }, page)
-		label(buyRow, string.format("Bait for tokens: %d each (you have %s)", M.TOKEN_PRICE, short(data.tokens)), 15, T.MUTED,
-			{ Position = UDim2.fromOffset(4, 10), Size = UDim2.new(0.55, 0, 0, 22), ZIndex = 43 })
-		for i, n in ipairs({ 1, 5 }) do
-			local b = button(buyRow, "+" .. n .. "  (" .. n * M.TOKEN_PRICE .. ")", UDim2.fromOffset(120, 40),
-				UDim2.new(1, -250 + (i - 1) * 128, 0, 0), T.CANDY.cyan[2])
-			b.TextSize = 16
+		-- Bait for tokens: two buttons that say only what you get and what it costs.
+		local row = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 236), Size = UDim2.new(1, 0, 0, 48), ZIndex = 42 }, page)
+		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Padding = UDim.new(0, 12) }, row)
+		for _, n in ipairs({ 1, 5 }) do
+			local cost = n * M.TOKEN_PRICE
+			local afford = (data.tokens or 0) >= cost
+			local b = button(row, "🐛 +" .. n .. "   🎟 " .. cost, UDim2.fromOffset(190, 46), nil, afford and T.CANDY.cyan[2] or T.DEAD)
+			b.TextSize = 18
 			b.ZIndex = 43
 			b.MouseButton1Click:Connect(function()
 				send("fishBuyBait", { n = n, spotId = data.spotId })
@@ -226,23 +352,20 @@ function View.mount(gui, opts)
 	local function paintTackle()
 		local page = pages.tackle
 		clear(page)
-		mk("UIListLayout", { Padding = UDim.new(0, 8) }, page)
+		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }, page)
 		local st = data.state or {}
 		for _, row in ipairs(data.rods or {}) do
 			local r = rodDef(row.id)
 			local equipped = st.rod == row.id
-			local card = mk("Frame", { BackgroundColor3 = equipped and T.CARD_HI or T.CARD, Size = UDim2.new(1, -10, 0, 88), ZIndex = 42 }, page)
+			local card = mk("Frame", { BackgroundColor3 = equipped and T.CARD_HI or T.CARD, Size = UDim2.new(1, -10, 0, 92), ZIndex = 42 }, page)
 			round(card, 12)
-			stroke(card, equipped and T.GOLD or T.LINE, equipped and 2 or 1)
-			label(card, r.name .. (row.owned and ("  ·  L" .. row.level .. "/" .. row.cap) or ""), 19, T.TEXT,
-				{ Position = UDim2.fromOffset(14, 8), Size = UDim2.new(0.6, 0, 0, 24), ZIndex = 43 })
-			label(card, r.blurb or "", 14, T.MUTED, { Position = UDim2.fromOffset(14, 34), Size = UDim2.new(0.6, 0, 0, 18), ZIndex = 43 })
-			label(card, string.format("Reel %.1f · Line x%.2f · Luck x%.2f%s", row.stats.reel, row.stats.line, row.stats.luck,
-				r.bait > 1 and (" · " .. r.bait .. " bait") or ""), 14, T.FAINT,
-				{ Position = UDim2.fromOffset(14, 58), Size = UDim2.new(0.6, 0, 0, 18), ZIndex = 43 })
-			local function act(text, color, verb)
-				local b = button(card, text, UDim2.fromOffset(200, 40), UDim2.new(1, -212, 0.5, -20), color)
-				b.TextSize = 16
+			stroke(card, equipped and T.GOLD or T.LINE, equipped and 3 or 1)
+			label(card, (equipped and "✅ " or "") .. r.name .. (row.owned and ("   Lv " .. row.level .. "/" .. row.cap) or ""), 20, T.TEXT,
+				{ Position = UDim2.fromOffset(14, 8), Size = UDim2.new(0.62, 0, 0, 26), ZIndex = 43 })
+			statChips(card, row.stats, 14, 46).Size = UDim2.new(0.62, -14, 0, 34)
+			local function act(text, color, verb, enabled)
+				local b = button(card, text, UDim2.fromOffset(190, 44), UDim2.new(1, -202, 0.5, -22), enabled and color or T.DEAD)
+				b.TextSize = 18
 				b.ZIndex = 43
 				b.MouseButton1Click:Connect(function()
 					send(verb, { rodId = row.id, spotId = data.spotId })
@@ -250,46 +373,46 @@ function View.mount(gui, opts)
 				return b
 			end
 			if not row.owned then
-				act("BUY  " .. short(row.price) .. " coins", ((data.coins or 0) >= row.price) and T.CANDY.gold[2] or T.DEAD, "fishBuyRod")
+				act("BUY  💰 " .. short(row.price), T.CANDY.gold[2], "fishBuyRod", (data.coins or 0) >= row.price)
 			elseif row.prestigeCost then
-				act("PRESTIGE  " .. short(row.prestigeCost) .. " tokens", T.CANDY.magenta[2], "fishPrestigeRod")
+				act("⭐ 🎟 " .. short(row.prestigeCost), T.CANDY.magenta[2], "fishPrestigeRod", (data.tokens or 0) >= row.prestigeCost)
 			elseif row.nextCost then
-				act("LEVEL UP  " .. short(row.nextCost) .. " coins", ((data.coins or 0) >= row.nextCost) and T.CANDY.green[2] or T.DEAD, "fishUpgradeRod")
+				act("⬆ 💰 " .. short(row.nextCost), T.CANDY.green[2], "fishUpgradeRod", (data.coins or 0) >= row.nextCost)
 			else
-				local b = act("MAX", T.DEAD, "fishUpgradeRod")
-				b.Active = false
+				act("MAX", T.DEAD, "fishUpgradeRod", false).Active = false
 			end
 			if row.owned and not equipped then
-				local e = button(card, "EQUIP", UDim2.fromOffset(90, 30), UDim2.new(1, -310, 0.5, -15), T.CANDY.purple[2])
-				e.TextSize = 14
+				local e = button(card, "USE", UDim2.fromOffset(74, 36), UDim2.new(1, -286, 0.5, -18), T.CANDY.purple[2])
+				e.TextSize = 16
 				e.ZIndex = 43
 				e.MouseButton1Click:Connect(function()
 					send("fishEquipRod", { rodId = row.id, spotId = data.spotId })
 				end)
 			end
 		end
-		label(page, string.format("Levels cost coins (x%.1f each). Every %d levels the rod needs a prestige, paid in tokens. Rods and levels stay through rebirth.",
-			M.LEVEL_COST_GROW, M.PRESTIGE_EVERY), 14, T.MUTED, { TextWrapped = true, Size = UDim2.new(1, -10, 0, 40), ZIndex = 42 })
 	end
 
 	-- ODDS
 	local function paintOdds()
 		local page = pages.odds
 		clear(page)
-		mk("UIListLayout", { Padding = UDim.new(0, 4) }, page)
-		label(page, string.format("What bites here, at your luck (x%.2f). A perfect cast is x%.1f on top.", data.luck or 1, M.CAST.luck.perfect),
-			15, T.MUTED, { Size = UDim2.new(1, -10, 0, 22), ZIndex = 42 })
+		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) }, page)
+		local top = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -10, 0, 36), ZIndex = 42 }, page)
+		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, top)
+		chip(top, string.format("🍀 x%.2f", data.luck or 1), T.GREEN, 110)
+		chip(top, string.format("✨ x%.1f", M.CAST.luck.perfect), T.GOLD, 96)
 		for _, row in ipairs(data.odds or {}) do
 			local f = M.fish(row.id)
 			if f then
-				local line = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.new(1, -10, 0, 30), ZIndex = 42 }, page)
+				local known = data.cooler and data.cooler[f.id] ~= nil
+				local line = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.new(1, -10, 0, 32), ZIndex = 42 }, page)
 				round(line, 8)
 				local col = M.GRADE_COLOR[f.grade]
-				label(line, M.GRADE_TEXT[f.grade], 16, col, { Position = UDim2.fromOffset(10, 4), Size = UDim2.fromOffset(110, 22), ZIndex = 43 })
-				label(line, f.name, 16, T.TEXT, { Position = UDim2.fromOffset(124, 4), Size = UDim2.new(0.5, 0, 0, 22), ZIndex = 43 })
+				label(line, M.GRADE_TEXT[f.grade], 18, col, { Position = UDim2.fromOffset(10, 4), Size = UDim2.fromOffset(120, 24), ZIndex = 43 })
+				label(line, (known and "✅ " or "") .. f.name, 18, T.TEXT, { Position = UDim2.fromOffset(134, 4), Size = UDim2.new(0.5, 0, 0, 24), ZIndex = 43 })
 				local pct = row.p * 100
 				local txt = (pct >= 1) and string.format("%.1f%%", pct) or string.format("1 in %s", short(math.floor(1 / math.max(row.p, 1e-9) + 0.5)))
-				label(line, txt, 16, T.GOLD, { Position = UDim2.new(1, -150, 0, 4), Size = UDim2.fromOffset(140, 22),
+				label(line, txt, 18, T.GOLD, { Position = UDim2.new(1, -150, 0, 4), Size = UDim2.fromOffset(140, 24),
 					TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 43 })
 			end
 		end
@@ -301,17 +424,17 @@ function View.mount(gui, opts)
 		local known = row ~= nil
 		local c = mk("Frame", { BackgroundColor3 = known and T.CARD or T.DEAD, ZIndex = 42 }, parent)
 		round(c, 12)
-		stroke(c, known and col or T.LINE, known and 2 or 1)
+		stroke(c, known and col or T.LINE, known and 3 or 1)
 		local band = mk("Frame", { BackgroundColor3 = known and col or T.LINE, Size = UDim2.new(1, 0, 0, 8), ZIndex = 43 }, c)
 		round(band, 6)
-		label(c, known and "🐟" or "?", 34, T.TEXT, { Position = UDim2.fromOffset(0, 14), Size = UDim2.new(1, 0, 0, 40),
+		label(c, known and "🐟" or "❓", 36, T.TEXT, { Position = UDim2.fromOffset(0, 12), Size = UDim2.new(1, 0, 0, 42),
 			TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 43 })
-		label(c, known and f.name or "???", 15, T.TEXT, { Position = UDim2.fromOffset(6, 58), Size = UDim2.new(1, -12, 0, 20),
+		label(c, known and f.name or "???", 16, T.TEXT, { Position = UDim2.fromOffset(6, 56), Size = UDim2.new(1, -12, 0, 20),
 			TextXAlignment = Enum.TextXAlignment.Center, TextScaled = true, ZIndex = 43 })
-		label(c, M.GRADE_TEXT[f.grade], 14, col, { Position = UDim2.fromOffset(0, 80), Size = UDim2.new(1, 0, 0, 18),
+		label(c, M.GRADE_TEXT[f.grade], 16, col, { Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 0, 20),
 			TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 43 })
-		local foot = extra or (known and string.format("x%d  ·  best %.2f kg", row.n or 0, row.best or 0) or "not caught yet")
-		label(c, foot, 13, T.MUTED, { Position = UDim2.fromOffset(4, 100), Size = UDim2.new(1, -8, 0, 18),
+		local foot = extra or (known and string.format("x%d   ⚖ %.2f kg", row.n or 0, row.best or 0) or "")
+		label(c, foot, 15, T.MUTED, { Position = UDim2.fromOffset(4, 100), Size = UDim2.new(1, -8, 0, 18),
 			TextXAlignment = Enum.TextXAlignment.Center, TextScaled = true, ZIndex = 43 })
 		return c
 	end
@@ -326,14 +449,15 @@ function View.mount(gui, opts)
 		end
 	end
 
-	-- The bait line, with the AFK countdown ticking between states.
+	-- The chips, with the AFK countdown ticking between states.
 	function ctl.paintSub()
 		local st = (data and data.state) or {}
 		local left = (tonumber(st.afkNext) or 0) - (os.clock() - ((data and data.at) or os.clock()))
 		local full = (st.baitGot or 0) >= (st.cap or M.BAIT_DAY_CAP)
-		sub.Text = string.format("Bait %d   ·   today %d/%d   ·   %s   ·   quests +%d each",
-			st.bait or 0, st.baitGot or 0, st.cap or M.BAIT_DAY_CAP,
-			full and "daily cap reached" or ("next AFK bait in " .. clockText(math.max(0, left))), M.QUEST_BAIT)
+		baitChip:FindFirstChildOfClass("TextLabel").Text = "🐛 " .. (st.bait or 0)
+		dayChip:FindFirstChildOfClass("TextLabel").Text = "📅 " .. (st.baitGot or 0) .. "/" .. (st.cap or M.BAIT_DAY_CAP)
+		afkChip:FindFirstChildOfClass("TextLabel").Text = full and "💤 ✅" or ("💤 " .. clockText(math.max(0, left)))
+		tokenChip:FindFirstChildOfClass("TextLabel").Text = "🎟 " .. short(data and data.tokens or 0)
 	end
 	task.spawn(function()
 		while root.Parent do
@@ -368,84 +492,259 @@ function View.mount(gui, opts)
 	for id, b in pairs(tabs) do
 		b.MouseButton1Click:Connect(function()
 			tab = id
+			help.Visible = false
 			paint()
 		end)
 	end
 
 	-- --------------------------------------------------------- minigame --
-	local hud = mk("Frame", {
-		Name = "FishingHud", Visible = false, AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -130), Size = UDim2.fromOffset(560, 250),
-		BackgroundColor3 = T.PANEL, BackgroundTransparency = 0.08, ZIndex = 45,
+	--[[
+		PLAYING THE FISH, IN THE POND. Owner, 2026-10-11: "Instead of making the
+		fish a icon on a gui, make it look like your fishing in a pond, and
+		theres a marker tracking it, with the distance, and make it so therews
+		just a button in the bottom center of the screen thats says Reel, and
+		have the tension car a half circle around the bar", "make the icon have
+		a little fish icon with a distance marker", and no "reel now"
+		instructions except the first time.
+
+		So the minigame is mostly in the WORLD (all of it client-side, nobody
+		else sees it):
+		  * a rod at your side and a LINE (a Beam) from its tip to the water,
+		    slack when the tension is low and pulled straight as it climbs;
+		  * the cast throws a BOBBER out along an arc;
+		  * on the bite, a splash, and the bobber becomes the FISH MARKER: a
+		    🐟 bubble in the fish's colour with the distance under it, swimming
+		    the pond -- out toward the far rim as it gets away, darting side to
+		    side, harder when it runs;
+		and on screen only ONE button, bottom centre -- Cast, then Reel -- with a
+		half-circle gauge round it: the power while casting (the gold is the
+		sweet spot), the tension while reeling (the creeping floor in dark red).
+	]]
+	local Players = game:GetService("Players")
+	local CollectionService = game:GetService("CollectionService")
+
+	local reelRoot = mk("Frame", {
+		Name = "FishingHud", Visible = false, AnchorPoint = Vector2.new(0.5, 1), BackgroundTransparency = 1,
+		Position = UDim2.new(0.5, 0, 1, -24), Size = UDim2.fromOffset(340, 200), ZIndex = 45,
 	}, gui)
-	round(hud, 18)
-	stroke(hud, T.EDGE, 3)
-	hud:SetAttribute("MineUIAdopted", true)
-	local hudScale = mk("UIScale", {}, hud)
+	reelRoot:SetAttribute("MineUIAdopted", true)
+	local hud = reelRoot -- the controller's isOpen() and the AFK guard read this
+	local hudScale = mk("UIScale", {}, reelRoot)
 	local function fitHud()
 		local cam = workspace.CurrentCamera
 		local vp = cam and cam.ViewportSize or Vector2.new(1280, 720)
-		hudScale.Scale = math.clamp(math.min(vp.X / 600, vp.Y / 560), 0.55, 1.1)
+		hudScale.Scale = math.clamp(math.min(vp.X / 700, vp.Y / 640), 0.7, 1.15)
 	end
 	fitHud()
-	-- The camera's viewport is 1x1 while the client boots, so fit again when it settles.
 	if workspace.CurrentCamera then
 		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitHud)
 	end
-	local headline = label(hud, "", 26, T.GOLD, { Position = UDim2.fromOffset(20, 10), Size = UDim2.new(1, -40, 0, 32),
-		TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 46 })
-	local hint = label(hud, "", 15, T.MUTED, { Position = UDim2.fromOffset(20, 42), Size = UDim2.new(1, -40, 0, 20),
-		TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 46 })
 
-	-- A horizontal bar: track, fill, and markers.
-	local function bar(y, h)
-		local track = mk("Frame", { BackgroundColor3 = T.INK, Position = UDim2.fromOffset(30, y), Size = UDim2.new(1, -60, 0, h), ZIndex = 46 }, hud)
-		round(track, 8)
-		stroke(track, T.LINE)
-		local fill = mk("Frame", { BackgroundColor3 = T.GREEN, Size = UDim2.fromScale(0, 1), ZIndex = 47 }, track)
-		round(fill, 8)
-		return track, fill
+	-- The half-circle gauge: SEGS little bars standing on an arc round the button.
+	local SEGS, R, CX, CY = 26, 132, 170, 168
+	local segs = {}
+	for i = 1, SEGS do
+		local th = math.pi - (i - 0.5) / SEGS * math.pi
+		local seg = mk("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = T.INK, BorderSizePixel = 0,
+			Position = UDim2.fromOffset(CX + R * math.cos(th), CY - R * math.sin(th)),
+			Size = UDim2.fromOffset(22, 12), Rotation = 90 - math.deg(th), ZIndex = 46,
+		}, reelRoot)
+		round(seg, 4)
+		stroke(seg, T.OUTLINE, 2)
+		segs[i] = seg
+	end
+	local gaugeBox = { pos = reelRoot.Position }
+
+	local action = button(reelRoot, "Cast", UDim2.fromOffset(210, 78), UDim2.fromOffset(CX - 105, CY - 46), T.CANDY.gold[2])
+	action.Name = "Action"
+	action.TextSize = 36
+	action.ZIndex = 47
+	local quit = button(reelRoot, "✖", UDim2.fromOffset(40, 40), UDim2.fromOffset(CX + 120, CY - 6), T.CARD)
+	quit.Name = "GiveUp"
+	quit.TextSize = 16
+	quit.ZIndex = 47
+	-- First time only: one short line above the gauge.
+	local hint = label(reelRoot, "", 20, T.TEXT, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromOffset(CX, CY - R - 18),
+		Size = UDim2.fromOffset(460, 26), TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.3,
+		TextStrokeColor3 = T.OUTLINE, ZIndex = 46 })
+
+	-- Big words in the middle of the screen: FISH ON!, LANDED!, SNAP!
+	local headline = label(gui, "", 54, T.GOLD, { Name = "FishingWord", AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.3), Size = UDim2.fromOffset(700, 70), TextXAlignment = Enum.TextXAlignment.Center,
+		TextStrokeTransparency = 0.15, TextStrokeColor3 = T.OUTLINE, Visible = false, ZIndex = 60 })
+	local headScale = mk("UIScale", {}, headline)
+	local function shout(text, color, hold)
+		headline.Text = text
+		headline.TextColor3 = color or T.GOLD
+		headline.Visible = true
+		headScale.Scale = 0.4
+		TweenService:Create(headScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		local mine = text
+		if hold then
+			task.delay(hold, function()
+				if headline.Text == mine then
+					headline.Visible = false
+				end
+			end)
+		end
 	end
 
-	-- Cast bar: the good and perfect zones, and the sweeping needle.
-	local castTrack = bar(80, 34)
-	local good = mk("Frame", { BackgroundColor3 = T.CANDY.green[2], BackgroundTransparency = 0.45, ZIndex = 47,
-		Position = UDim2.fromScale(M.CAST.sweet - M.CAST.good, 0), Size = UDim2.fromScale(M.CAST.good * 2, 1) }, castTrack)
-	local perfect = mk("Frame", { BackgroundColor3 = T.GOLD, ZIndex = 48,
-		Position = UDim2.fromScale(M.CAST.sweet - M.CAST.perfect, 0), Size = UDim2.fromScale(M.CAST.perfect * 2, 1) }, castTrack)
-	local needle = mk("Frame", { BackgroundColor3 = Color3.new(1, 1, 1), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 49,
-		Position = UDim2.fromScale(0, 0.5), Size = UDim2.new(0, 6, 1, 10) }, castTrack)
-	round(needle, 3)
-	local _ = good and perfect
-
-	-- Fight bars: distance (the 100 m line marked) and tension (the floor marked).
-	local distTrack, distFill = bar(84, 22)
-	local line100 = mk("Frame", { BackgroundColor3 = T.RED, Position = UDim2.fromScale(Fight.ESCAPE_AT / Fight.MAX_DIST, 0),
-		Size = UDim2.new(0, 3, 1, 0), ZIndex = 48 }, distTrack)
-	local distText = label(hud, "", 15, T.TEXT, { Position = UDim2.fromOffset(30, 62), Size = UDim2.fromOffset(240, 20), ZIndex = 46 })
-	local tensTrack, tensFill = bar(132, 26)
-	local floorMark = mk("Frame", { BackgroundColor3 = T.RED, BackgroundTransparency = 0.35, Size = UDim2.fromScale(0, 1), ZIndex = 48 }, tensTrack)
-	local tensText = label(hud, "TENSION", 15, T.TEXT, { Position = UDim2.fromOffset(30, 110), Size = UDim2.fromOffset(240, 20), ZIndex = 46 })
-	local fishLamp = mk("Frame", { BackgroundColor3 = COLOUR.green.col, AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -30, 0, 58), Size = UDim2.fromOffset(250, 24), ZIndex = 46 }, hud)
-	round(fishLamp, 12)
-	local fishWord = label(fishLamp, "", 15, T.INK, { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 47 })
-	local _2 = line100
-
-	local action = button(hud, "CAST", UDim2.fromOffset(240, 58), UDim2.new(0.5, -120, 1, -72), T.CANDY.gold[2])
-	action.Name = "Action"
-	action.TextSize = 28
-	action.ZIndex = 47
-	local quit = button(hud, "GIVE UP", UDim2.fromOffset(110, 34), UDim2.new(1, -126, 1, -52), T.CARD)
-	quit.Name = "GiveUp"
-	quit.TextSize = 14
-	quit.ZIndex = 47
-
-	local function showParts(which)
-		castTrack.Visible = which == "cast"
-		for _, o in ipairs({ distTrack, tensTrack, distText, tensText, fishLamp }) do
-			o.Visible = which == "fight"
+	-- Paint the gauge: `value` lit (green -> gold -> red along the arc), `floor`
+	-- dark red underneath, or for the cast, the sweet zone and the needle.
+	local function paintGauge(value, floor, cast)
+		for i, seg in ipairs(segs) do
+			local a = (i - 0.5) / SEGS
+			if cast then
+				local off = math.abs(a - M.CAST.sweet)
+				local base = (off <= M.CAST.perfect + 0.02) and T.GOLD or ((off <= M.CAST.good) and T.CANDY.green[2] or T.INK)
+				local here = math.abs(a - value) <= 0.5 / SEGS + 0.001
+				seg.BackgroundColor3 = here and Color3.new(1, 1, 1) or base
+				seg.BackgroundTransparency = here and 0 or ((base == T.INK) and 0.2 or 0.35)
+				seg.Size = here and UDim2.fromOffset(26, 18) or UDim2.fromOffset(22, 12)
+			else
+				local lit = a <= value
+				local col = (a < 0.5) and T.GREEN:Lerp(T.GOLD, a / 0.5) or T.GOLD:Lerp(T.RED, (a - 0.5) / 0.5)
+				if lit then
+					seg.BackgroundColor3 = col
+					seg.BackgroundTransparency = 0
+				elseif a <= floor then
+					seg.BackgroundColor3 = Color3.fromRGB(110, 24, 34)
+					seg.BackgroundTransparency = 0
+				else
+					seg.BackgroundColor3 = T.INK
+					seg.BackgroundTransparency = 0.2
+				end
+				seg.Size = UDim2.fromOffset(22, 12)
+			end
 		end
+		-- Close to snapping, the whole gauge shakes.
+		if not cast and value > 0.82 then
+			local j = (value - 0.82) * 30
+			reelRoot.Position = gaugeBox.pos + UDim2.fromOffset((math.random() - 0.5) * j, (math.random() - 0.5) * j)
+		else
+			reelRoot.Position = gaugeBox.pos
+		end
+	end
+
+	-- ------------------------------------------------- the pond, in 3D --
+	local fx = {} -- rod, line, bobber, marker ... for this cast; cleared after
+	local pond -- { water, dock, fwd, right, half, halfW, surface }
+
+	local function findPond(spotId)
+		for _, d in ipairs(CollectionService:GetTagged("MineFishSpot")) do
+			if d:GetAttribute("SpotId") == spotId then
+				local water = d.Parent and d.Parent:FindFirstChild("PondWater")
+				if water then
+					return {
+						water = water, dock = d,
+						fwd = water.CFrame.LookVector, right = water.CFrame.RightVector,
+						half = water.Size.Z * 0.5, halfW = water.Size.X * 0.5,
+						surface = water.Position.Y + water.Size.Y * 0.5,
+					}
+				end
+			end
+		end
+		return nil
+	end
+
+	-- Where `dist` metres puts the fish: 0 at your end of the pool, 100 m (where
+	-- it can slip the hook) at the far rim; `side` -1..1 across it.
+	local function pondPoint(dist, side)
+		local t = math.clamp((tonumber(dist) or 0) / Fight.ESCAPE_AT, 0, 1)
+		local along = -pond.half + 2 + (pond.half * 2 - 4) * t
+		local p = pond.water.Position + pond.fwd * along + pond.right * (side * (pond.halfW - 2.5))
+		return Vector3.new(p.X, pond.surface + 0.15, p.Z)
+	end
+
+	local function clearFx()
+		for _, inst in pairs(fx) do
+			if typeof(inst) == "Instance" then
+				inst:Destroy()
+			end
+		end
+		fx = {}
+	end
+
+	local function splash(at, color, big)
+		local ring = mk("Part", {
+			Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
+			Shape = Enum.PartType.Cylinder, Material = Enum.Material.Neon, Color = color or Color3.new(1, 1, 1),
+			Size = Vector3.new(0.12, 1, 1), Transparency = 0.25,
+			CFrame = CFrame.new(at) * CFrame.Angles(0, 0, math.rad(90)),
+		}, workspace)
+		local grow = big and 9 or 5
+		TweenService:Create(ring, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+			Size = Vector3.new(0.12, grow, grow), Transparency = 1,
+		}):Play()
+		task.delay(0.65, function()
+			ring:Destroy()
+		end)
+	end
+
+	-- The rod at your right hand, the line from its tip, the bobber.
+	local function rigFx()
+		clearFx()
+		local char = Players.LocalPlayer.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if not (hrp and pond) then
+			return
+		end
+		if hum then
+			pcall(function()
+				hum:UnequipTools()
+			end)
+		end
+		local grip = Vector3.new(1.1, 0.2, -0.9)
+		local dir = Vector3.new(0, math.sin(math.rad(38)), -math.cos(math.rad(38)))
+		local rod = mk("Part", {
+			Name = "FishingRod", Size = Vector3.new(0.18, 0.18, 7), Color = Color3.fromRGB(122, 84, 50),
+			Material = Enum.Material.Wood, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true,
+		}, workspace)
+		local reelKnob = mk("Part", {
+			Name = "Reel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.35, 0.6, 0.6),
+			Color = Color3.fromRGB(60, 60, 70), Material = Enum.Material.Metal,
+			CanCollide = false, CanQuery = false, CanTouch = false, Massless = true,
+		}, rod)
+		local w = mk("Weld", { Part0 = hrp, Part1 = rod, C0 = CFrame.lookAt(grip + dir * 3.5, grip + dir * 4.5) }, rod)
+		mk("Weld", { Part0 = rod, Part1 = reelKnob, C0 = CFrame.new(0.25, -0.1, 2.4) }, reelKnob)
+		local tip = mk("Attachment", { Name = "Tip", Position = Vector3.new(0, 0, -3.5) }, rod)
+		tip.Axis = Vector3.new(0, -1, 0)
+		local bob = mk("Part", {
+			Name = "Bobber", Shape = Enum.PartType.Ball, Size = Vector3.new(0.7, 0.7, 0.7), Anchored = true,
+			Color = Color3.fromRGB(235, 60, 60), Material = Enum.Material.SmoothPlastic,
+			CanCollide = false, CanQuery = false, CanTouch = false, CFrame = CFrame.new(tip.WorldPosition),
+		}, workspace)
+		local bobAt = mk("Attachment", { Name = "Line" }, bob)
+		local line = mk("Beam", {
+			Attachment0 = tip, Attachment1 = bobAt, Width0 = 0.06, Width1 = 0.06, FaceCamera = true, Segments = 24,
+			Color = ColorSequence.new(Color3.fromRGB(240, 240, 240)), Transparency = NumberSequence.new(0.1),
+			CurveSize0 = 2.5, CurveSize1 = 0,
+		}, rod)
+		fx.rod, fx.bob, fx.line, fx.weld = rod, bob, line, w
+	end
+
+	-- The fish marker: a 🐟 bubble in the fish's colour, the distance under it.
+	local function rigMarker()
+		if not fx.bob then
+			return
+		end
+		local bb = mk("BillboardGui", {
+			Name = "FishMarker", Size = UDim2.fromOffset(84, 78), StudsOffset = Vector3.new(0, 2.6, 0),
+			AlwaysOnTop = true, LightInfluence = 0, MaxDistance = 300,
+		}, fx.bob)
+		local bubble = mk("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0),
+			Size = UDim2.fromOffset(50, 50), BackgroundColor3 = COLOUR.green.col }, bb)
+		round(bubble, 25)
+		stroke(bubble, T.OUTLINE, 3)
+		label(bubble, "🐟", 30, T.TEXT, { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center })
+		local dist = label(bb, "", 20, T.TEXT, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(0.5, 1),
+			Size = UDim2.fromOffset(84, 24), TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.2,
+			TextStrokeColor3 = T.OUTLINE })
+		fx.bubble, fx.distLabel = bubble, dist
+		-- The bobber is under now; the bubble and the splashes show the fish.
+		fx.bob.Transparency = 1
 	end
 
 	-- State of the running minigame.
@@ -454,6 +753,8 @@ function View.mount(gui, opts)
 	local heartbeat
 	local catchQueue, catchIndex = nil, 0
 	local catchHolder
+	local firstTime = false
+	local wiggle, wiggleT = 0, 0
 
 	local function stopLoop()
 		if heartbeat then
@@ -462,15 +763,21 @@ function View.mount(gui, opts)
 		end
 	end
 
-	local function endMinigame()
-		stopLoop()
-		stage = nil
-		hud.Visible = false
-		reelDown = false
+	local function clearCatch()
 		if catchHolder then
 			catchHolder:Destroy()
 			catchHolder = nil
 		end
+	end
+
+	local function endMinigame()
+		stopLoop()
+		stage = nil
+		reelRoot.Visible = false
+		headline.Visible = false
+		reelDown = false
+		clearCatch()
+		clearFx()
 		if data then
 			root.Visible = true
 			paint()
@@ -478,27 +785,26 @@ function View.mount(gui, opts)
 	end
 
 	local function startCast()
-		-- A new cast starts clean: no card left over from the last catch.
-		if catchHolder then
-			catchHolder:Destroy()
-			catchHolder = nil
-		end
+		clearCatch()
 		catchQueue, catchIndex = nil, 0
-		headline.TextColor3 = T.GOLD
 		fitHud()
+		pond = data and findPond(data.spotId) or nil
+		rigFx()
+		firstTime = data and data.state and (tonumber(data.state.casts) or 0) == 0 or false
 		stage = "cast"
 		root.Visible = false
-		hud.Visible = true
-		showParts("cast")
-		headline.Text = "CAST!"
-		hint.Text = "Stop the bar in the gold for a PERFECT cast (more luck)"
-		action.Text = "CAST"
+		reelRoot.Visible = true
+		headline.Visible = false
+		hint.Text = firstTime and "Tap CAST when the white mark is in the GOLD ✨" or ""
+		action.Text = "Cast"
+		action.BackgroundColor3 = T.CANDY.gold[2]
 		action.Visible = true
+		quit.Visible = true
 		castT0 = os.clock()
 		stopLoop()
 		heartbeat = RunService.Heartbeat:Connect(function()
 			castTick = math.floor((os.clock() - castT0) * Fight.HZ)
-			needle.Position = UDim2.fromScale(M.castBar(castTick), 0.5)
+			paintGauge(M.castBar(castTick), 0, true)
 			if castTick > M.CAST.maxTicks then
 				endMinigame()
 			end
@@ -512,25 +818,74 @@ function View.mount(gui, opts)
 		stopLoop()
 		stage = "wait"
 		local q = M.castQuality(castTick)
-		headline.Text = (q == "perfect" and "PERFECT CAST!") or (q == "good" and "GOOD CAST") or "Cast"
-		hint.Text = "Waiting for a bite ..."
+		local power = M.castBar(castTick)
 		action.Visible = false
+		hint.Text = ""
+		if q == "perfect" then
+			shout("PERFECT! ✨", T.GOLD, 1.2)
+			if Celebrate then
+				pcall(Celebrate.burst, 1)
+			end
+		elseif q == "good" then
+			shout("GOOD!", T.GREEN, 1)
+		end
 		send("fishCast", { tick = castTick })
+		-- The bobber flies out along an arc and lands; further for more power.
+		if fx.bob and pond and fx.rod then
+			local from = fx.rod.Tip.WorldPosition
+			local landDist = 20 + 60 * power
+			local to = pondPoint(landDist, (math.random() - 0.5) * 0.6)
+			local t0 = os.clock()
+			heartbeat = RunService.Heartbeat:Connect(function()
+				local a = math.clamp((os.clock() - t0) / 0.7, 0, 1)
+				local p = from:Lerp(to, a) + Vector3.new(0, math.sin(a * math.pi) * 6, 0)
+				if a >= 1 then
+					stopLoop()
+					splash(to, Color3.new(1, 1, 1), false)
+					fx.restAt = to
+					-- Bob gently until the bite.
+					local b0 = os.clock()
+					heartbeat = RunService.Heartbeat:Connect(function()
+						if fx.bob then
+							fx.bob.CFrame = CFrame.new(to + Vector3.new(0, math.sin((os.clock() - b0) * 4) * 0.12, 0))
+						end
+					end)
+				end
+				if fx.bob then
+					fx.bob.CFrame = CFrame.new(p)
+				end
+			end)
+		end
 	end
 
-	local function paintFight()
+	local function paintFight(dt)
 		local s = fight
 		local c = COLOUR[s.colour] or COLOUR.green
-		distFill.Size = UDim2.fromScale(math.clamp(s.dist / Fight.MAX_DIST, 0, 1), 1)
-		distFill.BackgroundColor3 = (s.dist > Fight.ESCAPE_AT) and T.RED or T.CANDY.cyan[2]
-		distText.Text = string.format("%.1f m%s", s.dist, (s.dist > Fight.ESCAPE_AT) and "  ·  SLIPPING!" or "")
-		tensFill.Size = UDim2.fromScale(math.clamp(s.tension, 0, 1), 1)
-		tensFill.BackgroundColor3 = (s.tension > 0.8) and T.RED or ((s.tension > 0.55) and T.GOLD or T.GREEN)
-		floorMark.Size = UDim2.fromScale(math.clamp(s.floor, 0, 1), 1)
-		tensText.Text = string.format("TENSION %d%%%s", math.floor(s.tension * 100), (s.floor > 0.05) and string.format("  ·  floor %d%%", math.floor(s.floor * 100)) or "")
-		fishLamp.BackgroundColor3 = c.col
-		fishWord.Text = c.word
+		paintGauge(math.clamp(s.tension, 0, 1), math.clamp(s.floor, 0, 1), false)
 		action.BackgroundColor3 = reelDown and T.CANDY.green[1] or T.CANDY.green[2]
+		-- The fish swims the pond: further out as it gets away, side to side,
+		-- harder and faster when it runs.
+		if fx.bob and pond then
+			local speed = (s.colour == "red" and 3.4) or (s.colour == "yellow" and 2.0) or 0.9
+			wiggleT += (dt or Fight.DT) * speed
+			local reach = (s.colour == "red" and 0.95) or (s.colour == "yellow" and 0.65) or 0.35
+			wiggle += ((math.sin(wiggleT) * reach) - wiggle) * math.min(1, (dt or Fight.DT) * 4)
+			fx.bob.CFrame = CFrame.new(pondPoint(s.dist, wiggle))
+			if s.colour == "red" and math.random() < 0.06 then
+				splash(fx.bob.Position, c.col, false)
+			end
+		end
+		if fx.bubble then
+			fx.bubble.BackgroundColor3 = c.col
+			fx.distLabel.Text = string.format("%d m", math.floor(s.dist + 0.5))
+			fx.distLabel.TextColor3 = (s.dist > Fight.ESCAPE_AT * 0.85) and T.RED or T.TEXT
+		end
+		-- The line: slack when easy, straight as the tension climbs; it reddens near the snap.
+		if fx.line then
+			fx.line.CurveSize0 = 2.5 * (1 - math.clamp(s.tension, 0, 1))
+			local hot = math.clamp((s.tension - 0.6) / 0.4, 0, 1)
+			fx.line.Color = ColorSequence.new(Color3.fromRGB(240, 240, 240):Lerp(Color3.fromRGB(255, 70, 70), hot))
+		end
 	end
 
 	local function finishFight(result)
@@ -538,35 +893,55 @@ function View.mount(gui, opts)
 		stage = "catch"
 		action.Visible = false
 		quit.Visible = false
+		hint.Text = ""
+		paintGauge(0, 0, false)
 		if result == "caught" then
-			headline.Text = "LANDED!"
-			hint.Text = "..."
+			shout("LANDED! 🎉", T.GREEN)
+			-- Drag the marker in to the dock.
+			if fx.bob and pond then
+				TweenService:Create(fx.bob, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+					CFrame = CFrame.new(pondPoint(0, 0) + Vector3.new(0, 1.5, 0)),
+				}):Play()
+				splash(pondPoint(0, 0), T.GREEN, true)
+			end
 		elseif result == "snapped" then
-			headline.Text = "SNAP! The line broke"
-			hint.Text = "Too much tension. Let go on red."
+			shout("SNAP! 💥", T.RED, 2)
+			if fx.line then
+				fx.line.Enabled = false
+			end
+			if Audio and Audio.play then
+				pcall(Audio.play, "thud")
+			end
 		else
-			headline.Text = "It got away"
-			hint.Text = "Keep it under 100 m."
+			shout("GOT AWAY 💨", T.MUTED, 2)
+			if fx.bob and pond then
+				local away = fx.bob.Position + pond.fwd * 6
+				TweenService:Create(fx.bob, TweenInfo.new(0.6), { CFrame = CFrame.new(away) }):Play()
+				splash(fx.bob.Position, T.MUTED, true)
+			end
 		end
 		send("fishReel", { toggles = toggles, ticks = fight.tick })
 	end
 
 	local function startFight(f)
-		if catchHolder then
-			catchHolder:Destroy()
-			catchHolder = nil
-		end
-		headline.TextColor3 = T.GOLD
+		clearCatch()
 		stage = "fight"
-		showParts("fight")
-		headline.Text = (f.count or 1) > 1 and ("FISH ON!  x" .. f.count) or "FISH ON!"
-		hint.Text = "Hold REEL (or F). Green: reel. Yellow: careful. Red: tap or let go."
-		action.Text = "REEL"
+		shout((f.count or 1) > 1 and ("FISH ON! x" .. f.count) or "FISH ON!", T.GOLD, 1.1)
+		hint.Text = firstTime and "Hold REEL to pull. RED = it's running: tap, or let go!" or ""
+		action.Text = "Reel"
 		action.Visible = true
 		quit.Visible = true
+		if fx.restAt then
+			splash(fx.restAt, Color3.new(1, 1, 1), true)
+		end
+		if Audio and Audio.playLoot then
+			pcall(Audio.playLoot)
+		end
+		rigMarker()
 		fight = Fight.new(f.fight)
 		toggles, reelDown, lastReeling, acc = {}, false, false, 0
-		paintFight()
+		wiggle, wiggleT = 0, math.random() * 6
+		paintFight(0)
 		stopLoop()
 		heartbeat = RunService.Heartbeat:Connect(function(dt)
 			acc += math.min(dt, 0.25)
@@ -578,22 +953,19 @@ function View.mount(gui, opts)
 				end
 				local r = Fight.step(fight, reelDown)
 				if r then
-					paintFight()
+					paintFight(dt)
 					finishFight(r)
 					return
 				end
 			end
-			paintFight()
+			paintFight(dt)
 		end)
 	end
 
 	local function showNextCatch()
 		catchIndex += 1
 		local c = catchQueue and catchQueue[catchIndex]
-		if catchHolder then
-			catchHolder:Destroy()
-			catchHolder = nil
-		end
+		clearCatch()
 		if not c then
 			endMinigame()
 			return
@@ -603,27 +975,41 @@ function View.mount(gui, opts)
 			showNextCatch()
 			return
 		end
-		catchHolder = mk("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 66),
-			Size = UDim2.fromOffset(150, 128), ZIndex = 48 }, hud)
+		headline.Visible = false
+		catchHolder = mk("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.42),
+			Size = UDim2.fromOffset(220, 188), ZIndex = 58 }, gui)
 		local card = fishCard(catchHolder, f, { n = 1, best = c.kg },
-			string.format("%.2f kg%s", c.kg, c.new and "  ·  NEW!" or (c.record and "  ·  RECORD!" or "")))
+			string.format("⚖ %.2f kg%s", c.kg, c.new and "   NEW!" or (c.record and "   RECORD!" or "")))
 		card.Size = UDim2.fromScale(1, 1)
 		for _, d in ipairs(card:GetDescendants()) do
 			if d:IsA("GuiObject") then
-				d.ZIndex += 6
+				d.ZIndex += 16
+			end
+			if d:IsA("TextLabel") then
+				d.TextSize = math.floor(d.TextSize * 1.4)
 			end
 		end
-		card.ZIndex = 48
+		card.ZIndex = 58
 		local sc = mk("UIScale", { Scale = 0.4 }, card)
 		TweenService:Create(sc, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-		headline.Text = M.GRADE_TEXT[f.grade] .. "  " .. f.name
-		headline.TextColor3 = M.GRADE_COLOR[f.grade]
-		hint.Text = (#catchQueue > 1) and string.format("%d of %d  ·  tap to continue", catchIndex, #catchQueue) or "Tap to continue"
-		action.Text = (catchIndex < #catchQueue) and "NEXT" or "DONE"
+		local name = mk("TextLabel", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, -8),
+			Size = UDim2.fromOffset(500, 40), Font = T.FONT, TextSize = 34, TextColor3 = M.GRADE_COLOR[f.grade],
+			TextStrokeTransparency = 0.15, TextStrokeColor3 = T.OUTLINE, Text = M.GRADE_TEXT[f.grade], ZIndex = 59 }, catchHolder)
+		local _ = name
+		hint.Text = (#catchQueue > 1) and (catchIndex .. " / " .. #catchQueue) or ""
+		action.Text = (catchIndex < #catchQueue) and "Next ▶" or "OK ✔"
+		action.BackgroundColor3 = T.CANDY.green[2]
 		action.Visible = true
+		-- Reward juice by the REAL rarity: a minnow pops, a ★★★★★ gets the works.
+		local tier = tierOf(f.grade)
+		if Celebrate and tier > 0 then
+			pcall(Celebrate.burst, tier)
+		elseif Audio and Audio.playLoot then
+			pcall(Audio.playLoot)
+		end
 	end
 
-	-- Input: the action button does what the stage needs.
+	-- Input: the one button does what the stage needs.
 	action.MouseButton1Down:Connect(function()
 		if stage == "fight" then
 			reelDown = true
@@ -657,7 +1043,7 @@ function View.mount(gui, opts)
 		end
 	end)
 	quit.MouseButton1Click:Connect(function()
-		if stage == "fight" then
+		if stage == "fight" or stage == "wait" then
 			send("fishGiveUp", {})
 		end
 		endMinigame()
@@ -669,7 +1055,11 @@ function View.mount(gui, opts)
 		end
 		stopLoop()
 		stage = nil
-		hud.Visible = false
+		help.Visible = false
+		reelRoot.Visible = false
+		headline.Visible = false
+		clearCatch()
+		clearFx()
 		root.Visible = false
 	end
 	close.MouseButton1Click:Connect(closeAll)
@@ -680,17 +1070,22 @@ function View.mount(gui, opts)
 			return
 		end
 		if msg.kind == "state" then
+			local before = data and data.state and data.state.bait
 			data = msg
 			data.at = os.clock()
 			if not stage then
 				root.Visible = true
 			end
 			paint()
+			if before and data.state and (data.state.bait or 0) > before and UI and UI.popNumber then
+				pcall(UI.popNumber, baitChip:FindFirstChildOfClass("TextLabel"))
+			end
 		elseif msg.kind == "cast" then
 			startCast()
 		elseif msg.kind == "bite" then
 			if data and data.state then
 				data.state.bait = msg.bait
+				data.state.casts = (tonumber(data.state.casts) or 0) + 1
 			end
 			local myStage = stage
 			task.delay(math.max(0, tonumber(msg.bite) or 1), function()
@@ -702,7 +1097,6 @@ function View.mount(gui, opts)
 			if data then
 				data.state = msg.state or data.state
 			end
-			headline.TextColor3 = T.GOLD
 			if msg.result == "caught" and type(msg.catches) == "table" and #msg.catches > 0 then
 				catchQueue, catchIndex = msg.catches, 0
 				if data and data.cooler then
@@ -713,13 +1107,21 @@ function View.mount(gui, opts)
 						data.cooler[c.id] = row
 					end
 				end
-				showNextCatch()
+				-- Let LANDED! and the drag-in play first.
+				task.delay(0.9, function()
+					if stage == "catch" and catchIndex == 0 then
+						showNextCatch()
+					end
+				end)
 			else
 				if msg.result == "caught" then
-					headline.Text = "The server did not see that catch"
+					headline.Text = "Hmm, try again"
 				end
-				hint.Text = (msg.count or 1) > 1 and ("All " .. msg.count .. " got away.") or hint.Text
+				if (msg.count or 1) > 1 then
+					hint.Text = "All " .. msg.count .. " got away"
+				end
 				action.Text = "OK"
+				action.BackgroundColor3 = T.CANDY.purple[2]
 				action.Visible = true
 				catchQueue, catchIndex = {}, 0
 				stage = "catch"

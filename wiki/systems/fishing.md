@@ -56,15 +56,40 @@ related: [zones-layers-and-seams, currencies-and-economy, social-quests-and-lead
 
 **The fight** (`MineFishingFight`, pure and deterministic).
 - **Per tick (30 a second):**
-  - Reeling pulls the fish in: fast on green, slow on red.
+  - Reeling pulls the fish in on every colour, fastest on green. A held reel also
+    cancels part of the fish's run (`hold`). So even on red, a tap "holds it off
+    a bit" and spam-tapping through a run is a real strategy (owner, 2026-10-11).
   - Reeling also raises the tension, divided by the rod's line strength: barely on
-    green, a fair bit on yellow, very fast on red.
+    green, a fair bit on yellow, steeply on red.
   - Letting go lets the tension fall back, but not below the **floor**.
   - The floor creeps up while you hold the tension above 0.6.
+- **The finish is a fight** (owner: *"Finish has to be more of a challange"*).
+  Inside 14 m the fish stops tiring, runs 1.7× as often and pulls 1.3× as hard.
+  The first time it gets inside 9 m, it lunges: a run starts at once.
 - **Losing.** Tension 1 snaps the line. Past 100 m, each metre over is a 3% a
   second escape chance (owner's rule). At 140 m it is gone.
 - **Harder grades.** They run more often and for longer, swim harder and tire
-  later. 20% of runs are long ones.
+  later. 20% of runs are long ones. Since 2026-10-11, fights start closer (25–45 m)
+  and calm for less, so they are risky without being long.
+
+**On screen and in the pond** (`MineFishingView`; owner, 2026-10-11: *"make it look
+like your fishing in a pond"*).
+- **The FISH tab:** icons and numbers, with sentences behind (?). A 👆 points at
+  CAST until your first cast.
+- **The minigame is mostly in the world**, and client-side only:
+  - a rod at your side, and a line (a Beam) that sags when slack and pulls straight
+    and reddens as the tension climbs;
+  - the cast throws a bobber out along an arc, further for more power;
+  - the bite splashes;
+  - the **fish marker** is a 🐟 bubble in the fish's colour, with the distance
+    under it. It swims the pool: toward the far rim as it gets away (100 m = the
+    rim), side to side, harder when it runs.
+- **One button, bottom centre:** Cast, then Reel (or F). A half-circle gauge round
+  it shows the power while casting (gold = perfect) and the tension while
+  reeling (the floor in dark red). It shakes near the snap.
+- **No instructions** except on the first cast ever.
+- **Big words** for FISH ON!, LANDED!, SNAP! and GOT AWAY. A catch celebrates by
+  its real rarity (`MineCelebrate`).
 
 **Anti-cheat by replay** (`MineFishingService`).
 1. `fishStart`: the server checks you are at the spot and have bait.
@@ -91,10 +116,13 @@ pick).
 
 | rod | price | reel | line | luck | bait/cast | level base |
 |---|---|---|---|---|---|---|
-| Twig Rod | free | 4.0 | ×1.00 | ×1.00 | 1 | 400 |
-| Quarry Rod | 60K | 4.8 | ×1.25 | ×1.12 | 1 | 6K |
-| Deepline Rod | 4M | 5.6 | ×1.55 | ×1.25 | 1 | 300K |
-| Trawler Rod | 300M | 6.0 | ×1.80 | ×1.35 | **5** | 20M |
+| Twig Rod | free | 6.0 | ×1.00 | ×1.00 | 1 | 400 |
+| Quarry Rod | 60K | 7.2 | ×1.25 | ×1.12 | 1 | 6K |
+| Deepline Rod | 4M | 8.4 | ×1.55 | ×1.25 | 1 | 300K |
+| Trawler Rod | 300M | 9.0 | ×1.80 | ×1.35 | **5** | 20M |
+
+(Reel speeds went up ×1.5 on 2026-10-11, when fights got spikier: the tuner found
+the slower rods made every fight minutes long.)
 
 - A level costs level base × 1.6^level coins.
 - Each level adds 2% reel, 2.5% line and 1.5% luck.
@@ -116,15 +144,20 @@ of possibility, and tone down from there"*.
 uses the cross-entropy method over a small policy: a tension limit per colour, a
 hysteresis, a distance panic and a tap rhythm for runs.
 - **The brink:** with the Quarry Rod at level 10, a perfect-reflex bot lands
-  difficulty 0.951 half the time.
-- **Toned down:** the ★★★★★ fish is 0.903, and ★ is 0.08, a quick sure catch.
-- **How a human-like bot does** (233 ms reactions, a shaky read of the bar) against
-  a ★★★★★ fish:
-  - Twig Rod: 19%, 3 minutes;
-  - Quarry Rod L10: 55%, 1½ minutes;
-  - Deepline Rod L30: 84%;
-  - Trawler Rod L50: 95%.
-- ★ to ★★★★ fish are near-certain catches of 10–50 seconds.
+  difficulty 1.134 half the time.
+- **Harder, 2026-10-11** (owner: *"make the fishing harder"*, *"close calls"*):
+  - the ★★★★★ fish sits at the brink's cap, 1.077;
+  - the ★ fish is 0.15;
+  - the grades between step up geometrically.
+  - Tuning every grade to a catch rate instead made the small fish minute-long
+    fights, so only the top is tuned to a rate.
+- **How a human-like bot does** (233 ms reactions, a shaky read of the bar):
+
+  | rod | ★ | ★★ | ★★★ | ★★★★ | ★★★★½ | ★★★★★ |
+  |---|---|---|---|---|---|---|
+  | Twig L0 | 98% · 15 s | 84% · 20 s | 66% · 36 s | 26% | 1% | 0% |
+  | Quarry L10 | 100% | 100% | 98% · 20 s | 76% · 48 s | 63% | 42% · 2½ min |
+  | Deepline L30 | 100% | 100% | 100% | 100% | 99% | 85% · 50 s |
 
 The full table is in `docs/FISHING-TUNING.md`. `tools/verify/fishing.js` checks
 that `MineFishing.DIFFICULTY` is the row the machine printed.
@@ -152,9 +185,13 @@ Letting a fish's size set its fight fixed both.
 - Catches are fish cards in a cooler. Selling waits.
 
 ## State right now
-- **Built and play-tested in Studio on the Greyvein pond:** cast → bite → fight →
-  result, the catch cards, the cooler, buying bait with tokens, buying and
+- **Built and play-tested in Studio on the Greyvein pond** (first cut): cast → bite →
+  fight → result, the catch cards, the cooler, buying bait with tokens, buying and
   levelling a rod.
+- **The pond view and the harder fight (2026-10-11) compile and pass
+  `tools/verify/fishing.js`, but have not been played yet.** Studio was in use by
+  another session. Things to look at first: the rod's angle at your side, and
+  whether the marker reads well from the dock.
 - **Not yet seen in Studio:** the underground pools. They build only when a seam's
   plaza opens.
 - **Only Greyvein has fish.** Other zones need their own lists in

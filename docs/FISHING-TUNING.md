@@ -12,15 +12,16 @@ the brink of possibility, and tone down from there"*.
    on green, yellow and red, a hysteresis, when to panic about distance, and a tap
    rhythm for runs) on the real `MineFishingFight`, run in luau.
 2. **The brink.** With the quarry_rod at level 10, a perfect-reflex bot lands a fish
-   of difficulty **0.951** half the time. Anything harder is out of reach.
+   of difficulty **1.134** half the time. Anything harder is out of reach.
 3. **Toned down.** The ★★★★★ fish is set where the human-like bot (below) with the
-   reference rod lands it 35% of the time, and never past 0.95 × the brink. The ★
-   fish is 0.08, a quick sure catch, and the grades between step up geometrically.
+   reference rod lands it 22% of the time (owner: "make the fishing harder"),
+   never past 0.95 × the brink. The ★ fish is 0.15, and the grades step up
+   geometrically between, which keeps the small fish short.
    A fish's fight also follows its size (`MineFishingFight.spiritOf`), so every cell
    below averages small and big catches as they are rolled. PROPOSED numbers. The row
    for `MineFishing.DIFFICULTY`:
 
-   `{ 0.080, 0.108, 0.147, 0.199, 0.269, 0.364, 0.493, 0.667, 0.903 }`
+   `{ 0.150, 0.192, 0.246, 0.314, 0.402, 0.514, 0.658, 0.842, 1.077 }`
 
 4. Measured each grade with each rod, for the expert bot and a HUMAN-like bot (it
    reacts 7 ticks late, about 233 ms, and reads the tension bar ±0.06;
@@ -30,28 +31,28 @@ the brink of possibility, and tone down from there"*.
 
 | grade | difficulty | twig L0 | twig L10 | quarry L10 | quarry L20 | deepline L30 | trawler L50 |
 |---|---|---|---|---|---|---|---|
-| ★ | 0.080 | 100% · 14s | 100% · 10s | 100% · 8s | 100% · 7s | 100% · 5s | 100% · 3s |
-| ★½ | 0.108 | 100% · 15s | 100% · 11s | 100% · 9s | 100% · 7s | 100% · 5s | 100% · 4s |
-| ★★ | 0.147 | 100% · 17s | 100% · 12s | 100% · 9s | 100% · 8s | 100% · 5s | 100% · 4s |
-| ★★½ | 0.199 | 100% · 20s | 100% · 14s | 100% · 11s | 100% · 8s | 100% · 6s | 100% · 4s |
-| ★★★ | 0.269 | 100% · 25s | 100% · 17s | 100% · 13s | 100% · 10s | 100% · 7s | 100% · 5s |
-| ★★★½ | 0.364 | 98% · 35s | 100% · 23s | 100% · 17s | 100% · 13s | 100% · 8s | 100% · 5s |
-| ★★★★ | 0.493 | 84% · 51s | 99% · 39s | 100% · 26s | 100% · 18s | 100% · 11s | 100% · 7s |
-| ★★★★½ | 0.667 | 62% · 88s | 81% · 63s | 90% · 46s | 97% · 35s | 99% · 18s | 100% · 10s |
-| ★★★★★ | 0.903 | 19% · 186s | 41% · 120s | 55% · 89s | 66% · 64s | 84% · 34s | 95% · 19s |
+| ★ | 0.150 | 98% · 15s | 100% · 11s | 100% · 8s | 100% · 6s | 100% · 4s | 100% · 3s |
+| ★½ | 0.192 | 93% · 17s | 100% · 13s | 100% · 9s | 100% · 7s | 100% · 4s | 100% · 3s |
+| ★★ | 0.246 | 84% · 20s | 99% · 16s | 100% · 11s | 100% · 8s | 100% · 5s | 100% · 3s |
+| ★★½ | 0.314 | 76% · 26s | 94% · 21s | 100% · 15s | 100% · 10s | 100% · 6s | 100% · 4s |
+| ★★★ | 0.402 | 66% · 36s | 86% · 27s | 98% · 20s | 100% · 13s | 100% · 7s | 100% · 4s |
+| ★★★½ | 0.514 | 49% · 72s | 71% · 42s | 92% · 31s | 100% · 21s | 100% · 10s | 100% · 5s |
+| ★★★★ | 0.658 | 26% · 170s | 57% · 87s | 76% · 48s | 92% · 33s | 100% · 16s | 100% · 7s |
+| ★★★★½ | 0.842 | 1% · 162s | 37% · 149s | 63% · 88s | 77% · 59s | 99% · 29s | 100% · 12s |
+| ★★★★★ | 1.077 | 0% · 0s | 10% · 222s | 42% · 158s | 60% · 104s | 85% · 50s | 100% · 22s |
 
 ## Perfect-reflex bot
 
 | grade | difficulty | twig L0 | twig L10 | quarry L10 | quarry L20 | deepline L30 | trawler L50 |
 |---|---|---|---|---|---|---|---|
-| ★ | 0.080 | 100% · 13s | 100% · 10s | 100% · 8s | 100% · 6s | 100% · 5s | 100% · 3s |
-| ★½ | 0.108 | 100% · 14s | 100% · 11s | 100% · 8s | 100% · 7s | 100% · 5s | 100% · 4s |
-| ★★ | 0.147 | 100% · 15s | 100% · 12s | 100% · 9s | 100% · 7s | 100% · 5s | 100% · 4s |
-| ★★½ | 0.199 | 100% · 18s | 100% · 13s | 100% · 10s | 100% · 8s | 100% · 6s | 100% · 4s |
-| ★★★ | 0.269 | 100% · 22s | 100% · 16s | 100% · 12s | 100% · 9s | 100% · 6s | 100% · 4s |
-| ★★★½ | 0.364 | 100% · 31s | 100% · 21s | 100% · 16s | 100% · 12s | 100% · 8s | 100% · 5s |
-| ★★★★ | 0.493 | 99% · 53s | 100% · 35s | 100% · 23s | 100% · 17s | 100% · 10s | 100% · 7s |
-| ★★★★½ | 0.667 | 78% · 86s | 86% · 60s | 93% · 44s | 96% · 32s | 100% · 18s | 100% · 10s |
-| ★★★★★ | 0.903 | 29% · 156s | 47% · 114s | 59% · 82s | 65% · 56s | 86% · 33s | 96% · 19s |
+| ★ | 0.150 | 100% · 14s | 100% · 10s | 100% · 7s | 100% · 6s | 100% · 4s | 100% · 3s |
+| ★½ | 0.192 | 100% · 18s | 100% · 12s | 100% · 8s | 100% · 6s | 100% · 4s | 100% · 3s |
+| ★★ | 0.246 | 100% · 23s | 100% · 14s | 100% · 10s | 100% · 7s | 100% · 5s | 100% · 3s |
+| ★★½ | 0.314 | 100% · 34s | 100% · 19s | 100% · 13s | 100% · 9s | 100% · 5s | 100% · 4s |
+| ★★★ | 0.402 | 100% · 64s | 100% · 31s | 100% · 18s | 100% · 12s | 100% · 6s | 100% · 4s |
+| ★★★½ | 0.514 | 89% · 187s | 100% · 83s | 100% · 32s | 100% · 20s | 100% · 9s | 100% · 5s |
+| ★★★★ | 0.658 | 56% · 261s | 86% · 150s | 100% · 64s | 100% · 35s | 100% · 15s | 100% · 7s |
+| ★★★★½ | 0.842 | 34% · 490s | 70% · 215s | 86% · 108s | 92% · 65s | 100% · 28s | 100% · 11s |
+| ★★★★★ | 1.077 | 6% · 697s | 43% · 289s | 58% · 154s | 68% · 102s | 88% · 49s | 100% · 20s |
 
-Took 98 s.
+Took 219 s.

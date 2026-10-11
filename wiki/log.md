@@ -1140,3 +1140,19 @@ Updated: fishing (new), index, owner, next-up, zones-layers-and-seams, TODO, log
 Owner: *"make the afk not pop up when in ui"*. Seen in Studio: AFK CHILL over an open Blacksmith. Cause: taps on buttons are "game processed" and the AFK block ignored them before resetting its idle clock. Any input now counts, and `ClientFns.inUi()` holds AFK and its tip off while a screen is up.
 
 Updated: client-and-ui, log.
+
+## [2026-10-11] ingest | Fishing: harder, and played in the pond
+Owner: *"make the fishing harder"*. Holding REEL still pulls on yellow and red and
+slows a run, so spam-tapping is a strategy with close calls. The finish is a fight:
+inside 14 m the fish stops tiring and runs more, and it lunges at 9 m. The minigame
+moved into the world: a rod and a line, a cast bobber, and a 🐟 marker with its
+distance swimming the pool. One Cast/Reel button sits at the bottom centre with a
+half-circle tension gauge, and instructions show only on the first cast. The
+fishing screen became icons and numbers, with sentences behind (?).
+
+Retuned: tuning every grade to a catch rate made easy fish minute-long fights, so
+fights were made spikier (closer starts, shorter calms), rods reel ×1.5, and only
+the top grade is tuned to a rate. Starter rod: ★ 98% in 15 s, ★★★ 66%, ★★★★ 26%.
+The new view is not yet play-tested; Studio was busy.
+
+Updated: fishing, log.

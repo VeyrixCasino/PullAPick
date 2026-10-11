@@ -64,7 +64,7 @@ M.GRADE_WEIGHT = { 4500, 2500, 1400, 800, 450, 220, 90, 30, 5 }
 	notch under it and the rest step down. Its last report is in
 	docs/FISHING-TUNING.md; rerun it after touching the fight.
 ]]
-M.DIFFICULTY = { 0.080, 0.108, 0.147, 0.199, 0.269, 0.364, 0.493, 0.667, 0.903 }
+M.DIFFICULTY = { 0.150, 0.192, 0.246, 0.314, 0.402, 0.514, 0.658, 0.842, 1.077 }
 
 -- Later zones' fish fight harder; the zone's rods are levelled to match.
 M.ZONE_DIFFICULTY = {
@@ -155,13 +155,13 @@ end
 	PROPOSED prices (owner chose the shape: 4 rods, 50 levels, x1.6).
 ]]
 M.RODS = {
-	{ id = "twig_rod", name = "Twig Rod", price = 0, bait = 1, reel = 4, line = 1, luck = 1, levelBase = 400,
+	{ id = "twig_rod", name = "Twig Rod", price = 0, bait = 1, reel = 6, line = 1, luck = 1, levelBase = 400,
 		blurb = "Everyone's first rod. Free." },
-	{ id = "quarry_rod", name = "Quarry Rod", price = 60000, bait = 1, reel = 4.8, line = 1.25, luck = 1.12,
+	{ id = "quarry_rod", name = "Quarry Rod", price = 60000, bait = 1, reel = 7.2, line = 1.25, luck = 1.12,
 		levelBase = 6000, blurb = "Stiffer line, faster reel." },
-	{ id = "deepline_rod", name = "Deepline Rod", price = 4000000, bait = 1, reel = 5.6, line = 1.55, luck = 1.25,
+	{ id = "deepline_rod", name = "Deepline Rod", price = 4000000, bait = 1, reel = 8.4, line = 1.55, luck = 1.25,
 		levelBase = 300000, blurb = "Built for the long fights." },
-	{ id = "trawler_rod", name = "Trawler Rod", price = 300000000, bait = 5, reel = 6, line = 1.8, luck = 1.35,
+	{ id = "trawler_rod", name = "Trawler Rod", price = 300000000, bait = 5, reel = 9, line = 1.8, luck = 1.35,
 		levelBase = 20000000, blurb = "Casts 5 bait at once. One fight for all five: land it or lose them all." },
 }
 M.ROD_BY_ID = {}

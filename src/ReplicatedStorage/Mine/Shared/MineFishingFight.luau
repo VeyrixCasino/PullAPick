@@ -47,13 +47,36 @@ F.ESCAPE_PER_M = 0.03 -- escape chance per second, per metre past ESCAPE_AT (own
 F.MAX_TICKS = 30 * 60 * 20 -- 20 minutes: a fight that long is called off (the fish wins)
 F.MAX_DIST = 140 -- the line runs out here; the fish is gone
 
--- What a colour does to reeling, to the tension a reel adds, and to the run.
+--[[
+	What a colour does: `reel` to your pull, `tension` to what a reel adds,
+	`swim` to the fish's run, and `hold` to how much of that run a held reel
+	cancels.
+
+	REELING ALWAYS DOES SOMETHING (owner, 2026-10-11: "even when the fish is
+	running it should still hold it off a bit if u click", "even when yellow
+	and red it still reels (spam tapping is a stratagy, but still make it hard
+	and come to close calls"). So a held reel on red slows the run by `hold`
+	and still pulls a little, at a steep tension price: tapping through a run
+	keeps the fish from bolting without snapping the line, and holding through
+	one snaps it.
+]]
 F.COLOUR = {
-	green = { reel = 1.0, tension = 0.25, swim = 0.15 },
-	yellow = { reel = 0.75, tension = 1.0, swim = 0.55 },
-	red = { reel = 0.3, tension = 3.2, swim = 1.6 },
+	green = { reel = 1.0, tension = 0.25, swim = 0.15, hold = 0.5 },
+	yellow = { reel = 0.8, tension = 1.2, swim = 0.55, hold = 0.45 },
+	red = { reel = 0.5, tension = 2.2, swim = 1.6, hold = 0.45 },
 }
-F.TENSION_DECAY = 0.55 -- per second, toward the floor, while not reeling
+F.TENSION_DECAY = 0.7 -- per second, toward the floor, while not reeling
+--[[
+	THE FINISH IS A FIGHT (owner: "Finish has to be more of a challange").
+	Inside FINISH_DIST the fish sees the shore: it stops tiring, runs FINISH_RED
+	times as often and pulls FINISH_PULL times as hard, and the first time it
+	gets inside LUNGE_DIST it lunges -- a run starts at once. Landing a fish is
+	the last few metres, not the first.
+]]
+F.FINISH_DIST = 14
+F.FINISH_RED = 1.7
+F.FINISH_PULL = 1.3
+F.LUNGE_DIST = 9
 F.RATCHET_AT = 0.6 -- tension held above this lifts the floor...
 F.RATCHET_RATE = 0.06 -- ...closing this share of the gap a second
 F.FLOOR_MAX = 0.85
@@ -87,13 +110,16 @@ function F.fishFromDifficulty(d)
 	d = math.max(0, tonumber(d) or 0)
 	return {
 		difficulty = d,
-		startDist = 30 + 30 * d, -- metres out when it bites
+		-- Short and spiky (owner, 2026-10-11: "make the fishing harder", "close
+		-- calls"): a fish starts closer, calms for less and runs sooner than the
+		-- first cut, so it is risky without being long.
+		startDist = 25 + 20 * d, -- metres out when it bites
 		swim = 1 + 2.2 * d, -- metres a second it pulls away (x the colour's swim)
-		pull = 0.25 + 0.9 * d, -- tension a second while reeling on yellow
-		pRed = math.min(0.55, 0.12 + 0.33 * d), -- share of spells that are runs
-		pYellow = 0.35,
+		pull = 0.3 + 0.9 * d, -- tension a second while reeling on yellow
+		pRed = math.min(0.6, 0.18 + 0.32 * d), -- share of spells that are runs
+		pYellow = 0.4,
 		redLen = 1 + 1.2 * d, -- mean seconds of a run
-		calmLen = 2.2, -- mean seconds of a green spell
+		calmLen = 1.6, -- mean seconds of a green spell
 		fightLen = 1.6, -- mean seconds of a yellow spell
 		stamina = 40 + 200 * d, -- seconds until it is fully tired
 	}
@@ -112,8 +138,9 @@ end
 
 local function nextSpell(s)
 	local fish = s.fish
-	local tired = math.min(1, s.t / math.max(1, fish.stamina))
-	local pRed = fish.pRed * (1 - F.TIRE_RED * tired)
+	local finish = s.dist < F.FINISH_DIST
+	local tired = finish and 0 or math.min(1, s.t / math.max(1, fish.stamina))
+	local pRed = math.min(0.8, fish.pRed * (1 - F.TIRE_RED * tired) * (finish and F.FINISH_RED or 1))
 	local pYellow = fish.pYellow
 	local u = rand(s)
 	local colour, mean
@@ -150,6 +177,7 @@ function F.new(params)
 		t = 0,
 		colour = "green",
 		left = F.HZ,
+		lunged = false,
 		result = nil,
 	}
 	-- A fish's size sets its spirit; without one (old callers), the seed does.
@@ -166,16 +194,26 @@ function F.step(s, reeling)
 	local dt = F.DT
 	s.tick += 1
 	s.t = s.tick * dt
+	-- The lunge: the first time inside LUNGE_DIST, a run starts now.
+	if not s.lunged and s.dist < F.LUNGE_DIST then
+		s.lunged = true
+		s.colour = "red"
+		s.left = math.max(3, math.floor(s.fish.redLen * (0.75 + 0.5 * rand(s)) * F.HZ + 0.5))
+	end
 	local c = F.COLOUR[s.colour]
 	local fish = s.fish
-	local tired = math.min(1, s.t / math.max(1, fish.stamina))
+	local finish = s.dist < F.FINISH_DIST
+	local tired = finish and 0 or math.min(1, s.t / math.max(1, fish.stamina))
+	local pull = fish.pull * s.spirit * (finish and F.FINISH_PULL or 1)
+	local run = fish.swim * s.spirit * c.swim * (1 - F.TIRE_SWIM * tired)
 	if reeling then
 		s.dist -= s.reel * c.reel * dt
-		s.tension += fish.pull * s.spirit * c.tension / s.line * dt
+		s.tension += pull * c.tension / s.line * dt
+		run *= 1 - c.hold
 	else
 		s.tension = math.max(s.floor, s.tension - F.TENSION_DECAY * dt)
 	end
-	s.dist += fish.swim * s.spirit * c.swim * (1 - F.TIRE_SWIM * tired) * dt
+	s.dist += run * dt
 	-- The floor remembers what you held.
 	if s.tension > F.RATCHET_AT and s.tension > s.floor then
 		s.floor = math.min(F.FLOOR_MAX, s.floor + (s.tension - s.floor) * F.RATCHET_RATE * dt)

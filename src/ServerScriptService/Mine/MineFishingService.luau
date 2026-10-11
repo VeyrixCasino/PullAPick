@@ -118,6 +118,7 @@ function S.snapState(p)
 		rod = rodId,
 		rodLevel = row.level or 0,
 		coolerKinds = kinds,
+		casts = f.casts, -- 0 until the first cast: the view points at CAST
 		coolerFish = fish,
 	}
 end

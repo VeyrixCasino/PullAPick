@@ -34,13 +34,18 @@ if (!Luau.ready) { console.log(Luau.missing("luau")); process.exit(1); }
 const QUICK = process.argv.includes("--quick");
 
 // Tuning choices, stated here so the report can print them. PROPOSED.
-// The 5-star fish: a human-like player with the reference rod lands it this
-// often ("usually results in human error and you fuck it" -- owner) ...
-const TOP_TARGET = 0.35;
-// ... and it is never more than this share of the brink (tone down from it).
+// How often a human-like player with the reference rod lands each grade.
+// Owner, 2026-10-11: "make the fishing harder", "come to close calls" -- so
+// even a 2-star can slip, and a 5-star is "usually human error and you fuck
+// it" (2026-10-10).
+// Tuning to a catch rate for EVERY grade made the easy fish minute-long
+// fights (a good player lands a slow fish every time), so only the TOP is
+// tuned to a rate; the 1-star is a set BOTTOM and the grades step up
+// geometrically between, which keeps the small fish short.
+const TOP_TARGET = 0.22;
+// ... and it is never past this share of the brink (tone down from it).
 const TOP_CAP = 0.95;
-// The 1-star fish's difficulty: a quick, near-certain catch.
-const BOTTOM = 0.08;
+const BOTTOM = 0.15;
 // A committed Greyvein fisher: the second rod, ten levels in, no prestige yet.
 const REF_ROD = { id: "quarry_rod", level: 10 };
 const ROD_ROWS = [
@@ -200,10 +205,10 @@ local exS = train(maker(brink0 * 0.9, brink0 * 1.15, REF, REFL), 0, 0)
 local brink = math.max(brink0, invert(exS, 0.5, REF, REFL, 0, 0, 3))
 print(string.format("BRINK %.4f", brink))
 
--- 2. The grades. The 5-star fish: where a human-like player with the
--- reference rod lands it TOP_TARGET of the time, and never past TOP_CAP x the
--- brink. The 1-star fish: BOTTOM. The rest step up geometrically between.
-local hu = train(maker(0.02, brink, REF, REFL), ${HUMAN.delay}, ${HUMAN.noise})
+-- 2. The grades: the top where a human-like player with the reference rod
+-- lands it TOP_TARGET of the time (never past TOP_CAP x the brink), the
+-- bottom at BOTTOM, geometric between.
+local hu = train(maker(0.02, brink * 1.2, REF, REFL), ${HUMAN.delay}, ${HUMAN.noise})
 local top = math.min(${TOP_CAP} * brink, invert(hu, ${TOP_TARGET}, REF, REFL, ${HUMAN.delay}, ${HUMAN.noise}, brink * 1.5))
 local diff = {}
 for g = 1, 9 do
@@ -275,8 +280,9 @@ the brink of possibility, and tone down from there"*.
 2. **The brink.** With the ${REF_ROD.id} at level ${REF_ROD.level}, a perfect-reflex bot lands a fish
    of difficulty **${brink.toFixed(3)}** half the time. Anything harder is out of reach.
 3. **Toned down.** The ★★★★★ fish is set where the human-like bot (below) with the
-   reference rod lands it ${pct(TOP_TARGET)} of the time, and never past ${TOP_CAP} × the brink. The ★
-   fish is ${BOTTOM}, a quick sure catch, and the grades between step up geometrically.
+   reference rod lands it ${pct(TOP_TARGET)} of the time (owner: "make the fishing harder"),
+   never past ${TOP_CAP} × the brink. The ★ fish is ${BOTTOM}, and the grades step up
+   geometrically between, which keeps the small fish short.
    A fish's fight also follows its size (\`MineFishingFight.spiritOf\`), so every cell
    below averages small and big catches as they are rolled. PROPOSED numbers. The row
    for \`MineFishing.DIFFICULTY\`:
