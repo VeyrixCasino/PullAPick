@@ -213,13 +213,34 @@ local function allRecipes(snapshot, familyId)
 			afford = discovered and have >= cost,
 		}
 	end
+	--[[
+		Craftable first, then discovered, then locked -- and BEST FIRST inside
+		each band.
+
+		Owner, 2026-10-11: craftable recipes go "at the top, sorted from best to
+		least", and the rest "sorted by descending rarity by default".
+
+		The tie-break used to be ascending tier, which put the weakest thing a
+		player could make at the very top of the screen. For an ore, tier IS the
+		rarity ladder -- deeper ore is rarer and better -- so one comparison
+		satisfies both halves of that sentence.
+
+		Locked stays last and still leaks nothing: Rule 3 means a locked square
+		is drawn blank, and ordering by tier does not name, colour or rank it on
+		screen.
+	]]
 	table.sort(out, function(a, b)
 		local ra = a.afford and 0 or (a.locked and 2 or 1)
 		local rb = b.afford and 0 or (b.locked and 2 or 1)
 		if ra ~= rb then
 			return ra < rb
 		end
-		return a.tier < b.tier
+		if a.tier ~= b.tier then
+			return a.tier > b.tier
+		end
+		-- Stable across redraws: a grid that reshuffles under the cursor while
+		-- ore comes in is worse than one that is merely long.
+		return tostring(a.id) < tostring(b.id)
 	end)
 	return out
 end
@@ -407,10 +428,44 @@ function MineForge.mount(parent, opts)
 		Visible = false,
 	}, root)
 
+	--[[
+		SEARCH, over a catalogue of 82 recipes per family.
+
+		Owner, 2026-10-11: "Add search, sorting, and useful filters."
+
+		RULE 3 DECIDES WHAT IT CAN MATCH. An undiscovered ore must not leak its
+		name, tier or colour, so a locked square is drawn blank -- which means
+		it cannot be searched either. Matching a query against a hidden name
+		would tell a player exactly what they have not found yet: type "cobalt",
+		watch one blank square survive the filter, and the name is leaked by
+		position. So a query hides every locked row instead, and the count below
+		says how many are still out there.
+	]]
+	local searchBox = mk("TextBox", {
+		Name = "RecipeSearch",
+		BackgroundColor3 = BG3,
+		Size = UDim2.new(0.42, 0, 0, 30),
+		Position = UDim2.fromOffset(0, 0),
+		Font = FONT_M,
+		TextSize = 13,
+		TextColor3 = TEXT,
+		PlaceholderText = "Search recipes...",
+		PlaceholderColor3 = MUTED,
+		Text = "",
+		ClearTextOnFocus = false,
+		Visible = false,
+	}, craftPane)
+	round(searchBox, 8)
+
+	local searchNote = label(craftPane, "", 11, MUTED,
+		UDim2.new(0.44, 10, 0, 8), UDim2.new(0.56, -10, 0, 18), FONT_M)
+	searchNote.Visible = false
+
 	local grid = mk("ScrollingFrame", {
 		Name = "RecipeGrid",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, 38),
+		Size = UDim2.new(1, 0, 1, -38),
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollBarThickness = 5,
@@ -992,13 +1047,55 @@ function MineForge.mount(parent, opts)
 			end
 		end
 		local rows = allRecipes(snapshot, selFamily)
-		for i, r in ipairs(rows) do
-			recipeCell(grid, r, i, function()
-				selOreId = r.id
-				refresh()
-			end)
+		local q = string.lower(searchBox.Text or "")
+		local shown, hiddenLocked = 0, 0
+		for _, r in ipairs(rows) do
+			local keep = true
+			if q ~= "" then
+				if r.locked then
+					-- Never matched by name: see the Rule 3 note on searchBox.
+					keep = false
+					hiddenLocked += 1
+				else
+					local nm = string.lower(tostring(OreTools.name(r.def, selFamily) or r.name or ""))
+					keep = string.find(nm, q, 1, true) ~= nil
+				end
+			end
+			if keep then
+				shown += 1
+				local r2 = r
+				recipeCell(grid, r2, shown, function()
+					selOreId = r2.id
+					refresh()
+				end)
+			end
+		end
+		if q ~= "" then
+			searchNote.Visible = true
+			searchNote.Text = ("%d of %d  ·  %d undiscovered hidden")
+				:format(shown, #rows, hiddenLocked)
+		else
+			searchNote.Visible = false
 		end
 	end
+
+	--[[
+		Typing redraws the grid and nothing else.
+
+		Connected HERE, below drawGrid, and not up beside the TextBox: a local
+		referenced above its declaration compiles to a GLOBAL READ in Luau, so
+		the handler would have called nil on the first keystroke with no error
+		at build time.
+
+		drawGrid, not refresh: refresh rebuilds the rail, the modes and the
+		pouch strip too, and doing all of that per character is how a search box
+		ends up feeling broken on a phone.
+	]]
+	searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+		if grid.Visible then
+			drawGrid((opts.getSnap and opts.getSnap()) or {})
+		end
+	end)
 
 	--[[
 		THE RECIPE: the tool itself, then what it costs and what it does.
@@ -1513,8 +1610,11 @@ function MineForge.mount(parent, opts)
 				end
 			end
 			grid.Visible = pick == nil
+			-- The search box belongs to the CATALOGUE, not to one recipe.
+			searchBox.Visible = pick == nil
 			recipeView.Visible = pick ~= nil
 			if pick then
+				searchNote.Visible = false
 				drawRecipe(snapshot, pick)
 			else
 				drawGrid(snapshot)
