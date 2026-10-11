@@ -3058,8 +3058,14 @@ end)
 	moderation is clear -- add it to ICONS and pass it as the first argument;
 	nothing else here has to change.
 
-	`clearPlate` is what "no background" means here: the 56px plate behind every
-	other dock icon is switched off, so the anvil sits on the world.
+	IT KEEPS THE STANDARD PLATE. Owner, 2026-10-11: "put the ui button back
+	around the forge icon."
+
+	This passed `clearPlate` for one turn, on my reading of "an anvil icon with
+	no background" as "no UI plate". Wrong reading: the plate is the button, and
+	a button with no button under it is the only one in the column sitting
+	straight on the world. "No background" meant the anvil art itself should not
+	carry one -- which four frames on a transparent plate already satisfies.
 ]]
 do
 	local _, plate = dockBtn("", "Forge", function()
@@ -3084,7 +3090,7 @@ do
 		end
 		hidePanels()
 		net:FireServer("goTo", "shop")
-	end, { clearPlate = true })
+	end)
 
 	-- Anvil, bottom-up: base, waist, body, horn. Offsets are from the plate's
 	-- centre so the whole thing stays put when the dock reflows.
@@ -3211,39 +3217,62 @@ do
 	}, plate)
 end
 --[[
-	EVENTS LOSES ITS PLATE AGAIN. Owner, 2026-10-11: "Remove the background
-	behind the Event icon while keeping it in exactly the same spot."
+	EVENTS KEEPS THE UI PLATE. THE BACKGROUND TO REMOVE IS IN THE ARTWORK.
 
-	THIS REVERSES THE 2026-10-05 DECISION, deliberately, and the history is
-	worth keeping because it has now gone round once. Events originally passed
-	clearPlate; on 2026-10-05 the owner asked for the block back -- "put a ui
-	button block under it, so it matches every other icon in the row" -- and the
-	note then recorded the reason it had been bare: the popper asset has a plate
-	baked into it, so the UI plate made two stacked plates.
+	Owner, 2026-10-11, with a screenshot of the icon: "remove THIS background to
+	the event icon (NOT THE UI BUTTON)".
 
-	That baked plate was never re-uploaded transparent, so the owner is looking
-	at the doubled version and has asked for the UI one off again. clearPlate
-	only switches off the 56px plate and its hairline; the button, its order in
-	the column and its hit area are untouched, so it keeps "exactly the same
-	spot".
+	I had this backwards for one turn and took the plate off, which left the
+	popper's own baked-in dark square sitting straight on the world -- the one
+	button in the column with no button under it, and the baked square still
+	there. Exactly the wrong half.
 
-	The real fix is still a transparent re-upload of the popper; the id lives in
-	ICONS at the top of this file and nothing else would have to change.
+	The plate is back. The background being removed is in the IMAGE, and it is
+	worth naming exactly what it is, because the id is commented "transparent
+	party popper (no white plate)" and that is wrong.
+
+	Rendered on a white slab in Studio beside a known-transparent control, the
+	popper shows a dark CHECKERBOARD -- the editor's transparency grid, exported
+	as real pixels. The png was saved with the checker pattern flattened into it
+	instead of with an alpha channel. No code can undo that: an ImageLabel
+	cannot key a colour out of its own source, and ImageRectOffset crops rather
+	than masks.
+
+	So the art is swapped for the glyph until a real transparent png exists.
+	This is the same bargain the dock already makes twice -- Wheel is an emoji
+	and so is Planets, both captioned as standing in until the art pass -- and
+	a clean glyph on the standard plate is strictly better than a checkerboard
+	square on it. RESTORING THE PAINTING is a one-line change: re-export the
+	popper with alpha, upload, and pass ICONS.events as dockBtn's first argument
+	again.
 ]]
-dockBtn(ICONS.events, "Events", function()
-	if not eventsCtl then
-		return
-	end
-	if eventsCtl.root.Visible then
-		eventsCtl.close()
-		return
-	end
-	hidePanels()
-	if snap then
-		eventsCtl.setState(snap)
-	end
-	eventsCtl.open()
-end, { clearPlate = true })
+do
+	local _, plate = dockBtn("", "Events", function()
+		if not eventsCtl then
+			return
+		end
+		if eventsCtl.root.Visible then
+			eventsCtl.close()
+			return
+		end
+		hidePanels()
+		if snap then
+			eventsCtl.setState(snap)
+		end
+		eventsCtl.open()
+	end)
+	mk("TextLabel", {
+		Name = "EventIcon",
+		BackgroundTransparency = 1,
+		Text = "🎉",
+		TextSize = 30,
+		Font = Enum.Font.GothamMedium,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(38, 38),
+		Active = false,
+	}, plate)
+end
 dockBtn(ICONS.skills, "Jobs", function()
 	if depthHud.contractor then
 		if snap then
