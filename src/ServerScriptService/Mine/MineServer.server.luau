@@ -17700,6 +17700,15 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 					introAdvance(plr, p, step)
 				end
 			end
+		elseif action == "snapNow" then
+			-- A screen opening asks for fresh numbers (MineForgeDemo). At most once a
+			-- second per player, so it cannot be used to hammer snap().
+			Verbs.snapNowAt = Verbs.snapNowAt or {}
+			local now = os.clock()
+			if now - (Verbs.snapNowAt[plr.UserId] or 0) >= 1 then
+				Verbs.snapNowAt[plr.UserId] = now
+				snap(plr)
+			end
 		elseif action == "introPing" then
 			local p = profiles[plr.UserId]
 			local want = math.floor(tonumber(payload) or 0)

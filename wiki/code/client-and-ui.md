@@ -283,6 +283,14 @@ The tier mappers take the real result:
 `MineAmbience` adds client-only motion to tagged world parts. `LoadPlayerModule`
 boots Roblox's PlayerModule.
 
+## Forge demos (2026-10-11)
+
+Owner: *"i want to gasp with excitment next time i open the fuckin forge gui"*, then: demos behind buttons, *"do 1 molten forge and 1 candy uis"*. `MineForgeDemo` is one working Forge in two themes, and `MineForgeDemo.client` puts two preview buttons on screen: 🔥 FORGE A (molten) and 🍬 FORGE B (candy), left side, under the quests.
+- **Layout:** the Canva mockup *Mine For Cards FORGE menu*. Title and wallet chips on top, then CRAFT / UPGRADE / RECYCLE tabs. The five families run down the left. The centre stage is an anvil with the tool spinning in 3D (`ToolModelFactory`) over turning light rays and a ring glow, plus its name, rarity badge, stats, cost and one big action button with a sweeping shine. The right side is a scrolling grid of rarity-bordered cards, each with a cut-gem ore and a green dot when ready.
+- **It works:** it fires the live verbs (`craftOreTool`, `upgradeOreTool`, `equipOreTool`, `recycleOreTool`), uses the live prices (`MineConfig.toolCraftCost`, `toolUpgradeCost`, `toolRecycle`) and reads the same snapshot fields as `MineForge`. Recycling asks twice. A new tool celebrates by its rarity. On open it asks for a fresh snapshot (`snapNow`, at most once a second).
+- **Kept out of the way:** its own client script and module, and no line of `MineClient` or `MineForge`. If the owner picks one, it replaces the Forge for real and the demo files go.
+- **Gradient trap:** a `UIGradient` on a TextButton tints its text too. Put the gradient on a Fill frame under the label (`MineForgeDemo` `pill`).
+
 ## Gotchas
 
 - **AFK never starts in a menu** (owner, 2026-10-11: *"make the afk not pop up when in ui"*). The AFK chill block in `MineClient` used to drop every "game processed" input before resetting its idle clock, so taps on buttons did not count: browsing the Blacksmith or holding REEL through a fish fight read as standing still, and AFK CHILL popped over the menu (seen in Studio). Now any input resets it, and `ClientFns.inUi()` (screens that report `isOpen`, the old `panels`, or anything big and solid over the world) holds off AFK and its tip.

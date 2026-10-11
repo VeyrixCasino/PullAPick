@@ -1177,3 +1177,8 @@ models, icons from Canva, colourways = ore look plus skins.
     plus a monthly allowance.
 
 Updated: tools.
+
+## [2026-10-11] ingest | Two demo Forges (molten, candy)
+The owner was tired of the pitch-black Forge and asked for two demos behind buttons. Canva made the layout mockup ("Mine For Cards FORGE menu"). `MineForgeDemo` builds it in both themes and works for real: craft, upgrade, equip, recycle. 3D tools spin over a glow, cards scroll, and new tools celebrate. Seen in Studio Edit with sample data, not yet in play. Also: `snapNow` (a throttled fresh snapshot), and the trap that a UIGradient on a TextButton tints its text.
+
+Updated: client-and-ui, log.
