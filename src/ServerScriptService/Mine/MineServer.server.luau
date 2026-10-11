@@ -56,6 +56,38 @@ local Gear = require(shared.MineGear)
 local Scrolls = require(shared.MineScrolls)
 local LuckyBlocks = require(shared.MineLuckyBlocks)
 local Quests = require(shared:WaitForChild("MineQuests"))
+
+--[[
+	FORWARD DECLARATIONS, because these four are called above where they are
+	defined.
+
+	Luau scoping is positional: a `local function markDirty` on line 3919 is not
+	in scope on line 2032, so the call there does not resolve to it -- it
+	compiles to a GLOBAL lookup, which is nil. That is legal Luau, so
+	luau-compile passes and the gates stay green, and it only shows up when the
+	line actually runs:
+
+	    MineServer:2293: attempt to call a nil value
+
+	That one was skinBase and it took out equippedTool, and with it givePickaxe,
+	snap, boosts and mineTick. skinBase was moved above its callers. These four
+	could not be moved as cheaply -- openLuckyBlock would have to travel ~3,800
+	lines -- so they are declared here and ASSIGNED where they already live
+	(their definitions drop the `local`).
+
+	This costs no registers: `local markDirty` here plus `function markDirty()`
+	later is the same single top-level local it was before, which matters
+	because this file sits at the documented minimum of 4 spare.
+
+	Where each was being called before it existed:
+	    markDirty       2032   VIP gamepass grant
+	    tp              4949   dropping a player down a hole
+	    buy            10210   a buy routed from another verb
+	    openLuckyBlock  9346 / 9446   lucky block opened from a dig
+
+	tools/verify/localorder.js fails the build if this happens again.
+]]
+local markDirty, tp, buy, openLuckyBlock
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local LeaderboardService = require(script.Parent:WaitForChild("LeaderboardService"))
 local GroupWheelService = require(script.Parent:WaitForChild("GroupWheelService"))
@@ -2203,6 +2235,48 @@ local function foreverToolZoneOk(p, def)
 	return true
 end
 
+--[[
+	THE SKIN'S BASE MULTIPLIER on the tool it is worn on.
+
+	Owner: "The skin is the base, multiplied by the ore damage off the rip,
+	then every other boost stacks on top of the skin boost." The stacking is
+	layer 1 and 2 in boosts(); THIS is the "off the rip" -- it multiplies the
+	ore tool's own power before any boost has had a say.
+
+	Per family, because a skin is worn per family. Returns 1 for no skin, so
+	an unskinned tool is exactly the tool it was.
+
+	IT LIVES ABOVE equippedTool, AND THAT IS THE WHOLE POINT.
+
+	It used to sit next to boosts(), ~370 lines BELOW the two places that call
+	it. In Luau a local referenced above its own declaration is not an error and
+	not a compile failure -- it is a GLOBAL READ, which is nil. So
+	`luau-compile` passed, every gate passed, and the game threw at runtime:
+
+	  MineServer:2293: attempt to call a nil value
+	  ... function equippedTool / boosts / mineTick
+
+	equippedTool is called by givePickaxe, snap, boosts and mineTick, so one
+	mis-ordered local took out spawning, the snapshot and the mining loop
+	together. Anything calling this must stay below it.
+]]
+local function skinBase(p, familyId)
+	if not p or not familyId then
+		return 1
+	end
+	local id = p.skinEquipped and p.skinEquipped[tostring(familyId)]
+	if not id then
+		return 1
+	end
+	local ok, Skins = pcall(function()
+		return require(shared:WaitForChild("MineSkins"))
+	end)
+	if not ok or not Skins then
+		return 1
+	end
+	return tonumber(Skins.baseOf(id)) or 1
+end
+
 local function equippedTool(p)
 	-- Migrate saves that predate the 70-tool table.
 	if not p.tools then
@@ -2648,33 +2722,6 @@ function Dig.layer2(p, n)
 	return t2, tailor
 end
 
---[[
-	THE SKIN'S BASE MULTIPLIER on the tool it is worn on.
-
-	Owner: "The skin is the base, multiplied by the ore damage off the rip,
-	then every other boost stacks on top of the skin boost." The stacking is
-	layer 1 and 2 in boosts(); THIS is the "off the rip" -- it multiplies the
-	ore tool's own power before any boost has had a say.
-
-	Per family, because a skin is worn per family. Returns 1 for no skin, so
-	an unskinned tool is exactly the tool it was.
-]]
-local function skinBase(p, familyId)
-	if not p or not familyId then
-		return 1
-	end
-	local id = p.skinEquipped and p.skinEquipped[tostring(familyId)]
-	if not id then
-		return 1
-	end
-	local ok, Skins = pcall(function()
-		return require(shared:WaitForChild("MineSkins"))
-	end)
-	if not ok or not Skins then
-		return 1
-	end
-	return tonumber(Skins.baseOf(id)) or 1
-end
 local function boosts(p)
 	local b = Cards.emptyBoosts()
 	local n = #(p.equipped or {})
@@ -3901,7 +3948,8 @@ end
 -- is exactly the hitch you feel when a big charge goes off. Mark the player
 -- dirty instead and flush at most ten times a second.
 local dirty = {}
-local function markDirty(plr)
+-- Assigned, not declared: the forward declaration is up with the requires.
+function markDirty(plr)
 	dirty[plr.UserId] = plr
 end
 
@@ -5321,7 +5369,8 @@ local function ensureZone(zone, throughLayer)
 	syncPitWalls(zone)
 end
 
-local function tp(plr, cf)
+-- Assigned, not declared: the forward declaration is up with the requires.
+function tp(plr, cf)
 	pcall(function()
 		Dig.Auth.allowTpUser(plr.UserId, 2.5)
 	end)
@@ -11662,7 +11711,8 @@ local function buyZone(plr, zoneId)
 	snap(plr)
 end
 
-local function buy(plr, kind)
+-- Assigned, not declared: the forward declaration is up with the requires.
+function buy(plr, kind)
 	local p = profiles[plr.UserId]
 	-- No surface gate: the player now spawns in the mine and camp is 200
 	-- studs away. Item M puts the Toolsmith in the lobby, which gates this
@@ -13113,7 +13163,8 @@ local function grantPassSignatureTool(p, toolId, plr)
 	return true
 end
 
-local function openLuckyBlock(plr, entry)
+-- Assigned, not declared: the forward declaration is up with the requires.
+function openLuckyBlock(plr, entry)
 	local p = profiles[plr.UserId]
 	if not p or type(entry) ~= "table" then
 		return
