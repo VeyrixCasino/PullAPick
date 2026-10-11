@@ -81,9 +81,8 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
   and outpost pools, play-tested. Next for it: other zones' fish, selling, album
   bonuses, catch of the day, a rod and bobber in the world.
 - B tools, C art, D planets ([open-questions](open-questions.md)).
+- **The PR is open:** [VeyrixCasino/PullAPick#8](https://github.com/VeyrixCasino/PullAPick/pull/8) (2026-10-11), `claude/vigilant-fermi-aucqjy` into `main`. The repo has no CI checks; the verify suite is local.
 - **BLOCKED:**
-  - **The PR:** the owner runs `gh auth login`, or opens it at
-    https://github.com/VeyrixCasino/PullAPick/compare/main...claude/vigilant-fermi-aucqjy?expand=1
   - **The wheel's Robux product ids:** the owner supplies them.
   - **The wheel's image face:** needs its art uploaded to group 35326298.
 
