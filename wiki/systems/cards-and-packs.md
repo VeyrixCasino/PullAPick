@@ -162,6 +162,12 @@ reported to the owner and not changed:
 - Chest-found zone packs use depth only, not the zone. A 1★ Meadow Pack from
   deep layers pays 25% Epic or better.
 - `apex_pack` is rated 2.5★ but pays Epic or better 77% of the time (one card).
+  **Retired 2026-10-11** (owner: *"we dont need apex pack anymore"*). Nothing
+  hands it out now: the four quests that paid it (`merge25`, `merge60`,
+  `cards500`, `cards1k`) and the Pot of Gold deal pay a ★★★ Wild Case each
+  instead. That case is the nearest in value: about 1,360 stardust expected,
+  against Apex's 1,500. Packs already in bags still open. The dead
+  `Mine1ChestsData` rows still list it.
 - The open-all YOUR HITS screen counts an Epic with a "1 in X" ribbon as a hit.
 
 **The build-up** (`MinePackReveal` `buildUp`, 2026-10-10). Before a Legendary

@@ -88,20 +88,20 @@ MineQuests.CHAIN = {
 	{ id = "mine10k",    stat = "blocks",   goal = 10000,   text = "Break 10,000 blocks",          tip = "Spend skill points in the Clouds after each rebirth.", reward = { gems = 120 } },
 	{ id = "sell80",     stat = "sells",    goal = 80,      text = "Sell 80 hauls",                tip = "Each rebirth adds skill points and temper tokens.", reward = { gems = 90 } },
 	{ id = "open40",     stat = "packs",    goal = 40,      text = "Open 40 packs",                tip = "Forever tools roll Temperaments (10 tokens). Rolls never refund.", reward = { pack = "night_pack", packQty = 3 } },
-	{ id = "merge25",    stat = "merges",   goal = 25,      text = "Merge 25 times",               tip = "Sell unused skill points for tokens if you need a temper roll.", reward = { pack = "apex_pack", packQty = 2 } },
+	{ id = "merge25",    stat = "merges",   goal = 25,      text = "Merge 25 times",               tip = "Sell unused skill points for tokens if you need a temper roll.", reward = { pack = "case_4", packQty = 2 } },
 	{ id = "zone4",      stat = "zone",     goal = 3,       text = "Unlock three more zones",      tip = "Don't dig locked zones — buy the portal first.", reward = { gems = 144 } },
 	{ id = "depth500",   stat = "depth",    goal = 500,     text = "Gain 500 depth",               tip = "Temperaments ride forever tools through rebirth with the family.", reward = { gems = 106 } },
 	{ id = "gear12",     stat = "gear",     goal = 12,      text = "Own 12 more gear pieces",      tip = "Gear keeps. Re-equip after a rebirth if slots look empty.", reward = { gems = 86 } },
 	{ id = "cards250",   stat = "cards",    goal = 250,     text = "Collect 250 more cards",       tip = "Prestige yield +15%/rank and luck +5%/rank forever.", reward = { gems = 168 } },
 	{ id = "rebirth3",   stat = "rebirth",  goal = 3,       text = "Rebirth 3 more times",         tip = "Pay wall ≠ minimum. Farm the minimum bank shown on Rebirth.", reward = { gems = 192 } },
 	{ id = "mine25k",    stat = "blocks",   goal = 25000,   text = "Break 25,000 blocks",          tip = "Job Board + dailies reset on the UTC day — free gems.", reward = { gems = 240 } },
-	{ id = "merge60",    stat = "merges",   goal = 60,      text = "Merge 60 times",               tip = "High merges before a big rebirth bank pays off.", reward = { pack = "apex_pack", packQty = 3 } },
+	{ id = "merge60",    stat = "merges",   goal = 60,      text = "Merge 60 times",               tip = "High merges before a big rebirth bank pays off.", reward = { pack = "case_4", packQty = 3 } },
 	-- Late
 	{ id = "zone5",      stat = "zone",     goal = 4,       text = "Unlock four more zones",       tip = "Event Horizon is free while the event runs — claim via the portal.", reward = { gems = 240 } },
 	{ id = "depth1k",    stat = "depth",    goal = 1000,    text = "Gain 1,000 depth",             tip = "Charms and skins keep across rebirths — depth is what unlocks the later ones.", reward = { gems = 280 } },
 	{ id = "open120",    stat = "packs",    goal = 120,     text = "Open 120 packs",               tip = "Chest luck from skills/runes/temper stacks — dig for chests.", reward = { gems = 220 } },
 	{ id = "sell200",    stat = "sells",    goal = 200,     text = "Sell 200 hauls",               tip = "Coins fund the next rebirth minimum. Don't idle on a full fee.", reward = { gems = 260 } },
-	{ id = "cards500",   stat = "cards",    goal = 500,     text = "Collect 500 more cards",       tip = "Collection milestones pay gems anytime — check Quests.", reward = { pack = "apex_pack", packQty = 4 } },
+	{ id = "cards500",   stat = "cards",    goal = 500,     text = "Collect 500 more cards",       tip = "Collection milestones pay gems anytime — check Quests.", reward = { pack = "case_4", packQty = 4 } },
 	{ id = "rebirth5",   stat = "rebirth",  goal = 5,       text = "Rebirth 5 more times",         tip = "Skill tree roads are XOR — commit a path, then temper.", reward = { gems = 320 } },
 	{ id = "mine75k",    stat = "blocks",   goal = 75000,   text = "Break 75,000 blocks",          tip = "AFK chill pad parks you safely if you go idle.", reward = { gems = 400 } },
 	{ id = "merge150",   stat = "merges",   goal = 150,     text = "Merge 150 times",              tip = "Deep rune fuses cost exponential gems — budget for them.", reward = { gems = 360 } },
@@ -110,7 +110,7 @@ MineQuests.CHAIN = {
 	{ id = "rune40",     stat = "runes",    goal = 40,      text = "Own 40 more runes",            tip = "Pet/tool/gear rune kinds are separate — roll what you socket.", reward = { gems = 340 } },
 	{ id = "rebirth10",  stat = "rebirth",  goal = 10,      text = "Rebirth 10 more times",        tip = "Past late zones, income leans on prestige yield — bank the minimum.", reward = { gems = 600 } },
 	{ id = "mine200k",   stat = "blocks",   goal = 200000,  text = "Break 200,000 blocks",         tip = "Keep temper tokens for forever-tool rerolls when kits look weak.", reward = { gems = 800 } },
-	{ id = "cards1k",    stat = "cards",    goal = 1000,    text = "Collect 1,000 more cards",     tip = "Shinies and variants are permanent power.", reward = { pack = "apex_pack", packQty = 6 } },
+	{ id = "cards1k",    stat = "cards",    goal = 1000,    text = "Collect 1,000 more cards",     tip = "Shinies and variants are permanent power.", reward = { pack = "case_4", packQty = 6 } },
 	{ id = "zone6",      stat = "zone",     goal = 5,       text = "Unlock five more zones",       tip = "Buy every zone you can afford — portals are gem sinks that keep.", reward = { gems = 720 } },
 	{ id = "merge400",   stat = "merges",   goal = 400,     text = "Merge 400 times",              tip = "Merge backlog is free power before a big rebirth.", reward = { gems = 660 } },
 	{ id = "rebirth20",  stat = "rebirth",  goal = 20,      text = "Rebirth 20 more times",        tip = "TokensFor grows slowly — steady rebirths beat one huge stall.", reward = { gems = 900 } },
@@ -237,6 +237,14 @@ function MineQuests.describe(reward, gemsOverride)
 	if reward.pack then
 		local qty = reward.packQty or 1
 		local nm = tostring(reward.pack):gsub("_", " "):gsub("^%l", string.upper):gsub(" %l", string.upper)
+		-- A pack case names itself ("★★★ Wild Case"), not its id ("Case 4").
+		local okC, Cases = pcall(function()
+			return require(script.Parent:WaitForChild("MineCases"))
+		end)
+		local caseDef = okC and Cases and Cases.get and Cases.get(reward.pack)
+		if caseDef and caseDef.name then
+			nm = caseDef.name
+		end
 		parts[#parts + 1] = (qty > 1) and (nm .. " x" .. qty) or nm
 	end
 	return #parts > 0 and table.concat(parts, "  +  ") or "--"

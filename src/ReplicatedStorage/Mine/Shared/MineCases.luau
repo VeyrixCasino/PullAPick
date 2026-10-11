@@ -121,13 +121,14 @@ M.CHEST_POPUP_LEVEL = 5
 	`weights` (optional) splits a mixed case's packs between its levels; with
 	none, each level is equally likely (M.levelOdds).
 
-	THE TOP TWO ARE A CHANCE, NOT A PROMISE. Owner, 2026-10-10: "make myster 5
-	stars not garunteed 5 stars, just a good chnace at getting 5 star packs",
-	and chose 35% ★★★★★, else ★★★★. The ★★★★½ case was a coin flip between
-	the same two packs, which would have made it worth MORE than the ★★★★★
-	case above it, so it drops to 15% ★★★★★ (owner's pick). The ★★★★★ case
-	keeps its id, case_6, and its colour (starLevel 6): bags, the wheel's
-	jackpot and the lucky blocks already name it.
+	EVERY CASE GIVES THE STARS IT SAYS. Owner, 2026-10-11: "set it up so they
+	all give how many stars it says.. keep original price". This undid a
+	same-day change that made the top two a chance (★★★★★ 35% ★★★★★ packs,
+	★★★★½ 15%), which had priced the ★★★★★ case down to 12,500 stardust. A
+	whole-star case pays only its own packs; a half-star case is the coin flip
+	between its neighbours the owner first chose ("Mix of both"), so it averages
+	the stars it says. Prices are the 70% return on that, the original rule.
+	`weights` stays supported (M.levelOdds) but no row uses it.
 ]]
 M.WILD_GRADES = {
 	{ levels = { 1 }, stars = 1, text = "★" },
@@ -137,8 +138,8 @@ M.WILD_GRADES = {
 	{ levels = { 4 }, stars = 3, text = "★★★" },
 	{ levels = { 4, 5 }, stars = 3.5, text = "★★★½" },
 	{ levels = { 5 }, stars = 4, text = "★★★★" },
-	{ levels = { 5, 6 }, weights = { 85, 15 }, stars = 4.5, text = "★★★★½" },
-	{ id = "case_6", levels = { 5, 6 }, weights = { 65, 35 }, starLevel = 6, stars = 5, text = "★★★★★" },
+	{ levels = { 5, 6 }, stars = 4.5, text = "★★★★½" },
+	{ levels = { 6 }, stars = 5, text = "★★★★★" },
 }
 
 -- One spin, and you get this many of the pack it lands on (owner: "Whatever

@@ -1169,6 +1169,17 @@ local function load(plr)
 				if key and c.cardKey ~= key then
 					c.cardKey = key
 				end
+				--[[
+					A set pet's card wears the roster's CURRENT look. A card keeps
+					the `animal` it was minted with, and 2026-10-10 gave every
+					Epic-and-up set pet a body of its own and re-coloured the rest
+					(owner: "ALL UNIQUE"). Without this an old copy would keep
+					drawing the recolour it was pulled as. Idempotent.
+				]]
+				local row = PetRoster.BY_NAME and PetRoster.BY_NAME[c.name]
+				if row and row.set and type(row.animal) == "string" and c.animal ~= row.animal then
+					c.animal = row.animal
+				end
 			end
 		end
 	end
@@ -13783,10 +13794,14 @@ grantReward = function(plr, p, reward, gemsOverride)
 			end
 		end
 		p.packs = p.packs or {}
+		-- A pack case is its own kind of bag row (MineCases.bagRow). The quests
+		-- that paid Apex Packs pay ★★★ Wild Cases since 2026-10-11 (owner: "we
+		-- dont need apex pack anymore").
+		local Cases = require(shared:WaitForChild("MineCases"))
 		for _ = 1, (reward.packQty or 1) do
 			-- A random set each time, so a run of rewards spreads across the
 			-- collection instead of stacking one set nobody needs.
-			table.insert(p.packs, {
+			table.insert(p.packs, Cases.bagRow(reward.pack) or {
 				packId = reward.pack,
 				packName = (def and def.name) or reward.pack,
 				setId = SET_IDS[rng:NextInteger(1, #SET_IDS)],

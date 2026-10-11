@@ -30,13 +30,13 @@ There are two kinds (`MineCases.CASES`, kind `pack_case`):
   - The half grades 2.5★, 3.5★ and 4.5★ are `case_3_4`, `case_4_5` and
     `case_5_6`. The sets have no half-star packs, so a half-star case's pack
     is a coin flip between its two neighbours (owner: "Mix of both").
-  - **The top two are a chance, not a promise** (owner, 2026-10-11: *"make
-    myster 5 stars not garunteed 5 stars, just a good chnace at getting 5 star
-    packs"*). The ★★★★★ case (`case_6`, id and colour kept) lands on a ★★★★★ pack
-    **35%** of the time, else ★★★★. The ★★★★½ case dropped from 50% to **15%**
-    ★★★★★ so it stays below the ★★★★★ case (owner's pick). `WILD_GRADES` rows
-    carry `weights`; `MineCases.levelOdds` feeds the roll, the reel, the price,
-    the pack tier and the inspector's "(85/15)" / "(65/35)".
+  - **Every case gives the stars it says** (owner, 2026-10-11: *"set it up so
+    they all give how many sars it sasys.. keep original price"*). A whole-star
+    case pays only its own packs; a half-star case is the 50/50 coin flip above.
+    This undid a same-day change that made the ★★★★★ case 35% ★★★★★ packs (else
+    ★★★★) and the ★★★★½ case 15%, which had priced the ★★★★★ case down to 12,500
+    stardust. `WILD_GRADES` rows may still carry `weights` (`MineCases.levelOdds`
+    feeds the roll, the reel, the price and the inspector), but none do.
   - **Opening one is a CS:GO-style spin.** Owner, 2026-10-10: *"these myster
     cases are meant to be like csgo slots"*, *"Whatever reel lands on, you get
     3 of"*.
@@ -191,11 +191,11 @@ with the second a 0 or a 5.
 | ★★★ | 1,364 | 1,950 | 70% | 30 |
 | ★★★½ | 3,128 | 4,450 | 70% | 35 |
 | ★★★★ | 4,892 | 7,000 | 70% | 45 |
-| ★★★★½ | 6,552 | 9,350 | 70% | 50 |
-| ★★★★★ | 8,765 | 12,500 | 70% | 60 |
+| ★★★★½ | 10,425 | 15,000 | 70% | 65 |
+| ★★★★★ | 15,958 | 23,000 | 69% | 80 |
 
-(★★★★½ and ★★★★★ re-priced 2026-10-11 when they stopped being 50% and 100%
-★★★★★; read in Studio from `expectedDust`, `dustPrice` and `creditPrice`.)
+(Read in Studio on 2026-10-11 from `expectedDust`, `dustPrice` and `creditPrice`,
+after the top two went back to the stars they say.)
 
 These are for 3 packs a spin. ★½ is set to 15 credits by hand (`MineCases.CREDIT_SET`;
 owner: "make ★½ 15 credits"), because the curve rounds it to the same 10 as ★.

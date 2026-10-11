@@ -61,10 +61,12 @@ MineRotatingOffers.OFFERS = {
 		packs = {
 			{ id = "heirloom_pack", qty = 3 },
 			{ id = "omen_pack", qty = 2 },
-			{ id = "apex_pack", qty = 1 },
+			-- Was an Apex Pack; Apex is retired (owner, 2026-10-11). The ★★★
+			-- Wild Case is the nearest in value.
+			{ id = "case_4", qty = 1 },
 		},
 		potions = { { id = "pot_t3_fortune", qty = 2 } },
-		blurb = "LIMITED TIME. NEVER COMING BACK. 200% Luck charm, 8 Shiny Packs, 3 Heirloom, 2 Omen, 1 Apex, and 2 Fortune Flasks. 599 credits. Max 1.",
+		blurb = "LIMITED TIME. NEVER COMING BACK. 200% Luck charm, 8 Shiny Packs, 3 Heirloom, 2 Omen, a ★★★ Wild Case, and 2 Fortune Flasks. 599 credits. Max 1.",
 		toast = "Pot of Gold claimed — equip the charm, then open the packs",
 	},
 	{
@@ -205,11 +207,14 @@ function MineRotatingOffers.grant(p, offer)
 	end
 	do
 		local Packs = require(script.Parent:WaitForChild("MinePackConfig"))
+		local Cases = require(script.Parent:WaitForChild("MineCases"))
 		for _, row in ipairs(offer.packs or {}) do
 			local id = tostring(row.id or "")
 			local def = Packs.PACK_BY_ID and Packs.PACK_BY_ID[id]
 			for _ = 1, math.max(1, math.floor(tonumber(row.qty) or 1)) do
-				table.insert(p.packs, {
+				-- A pack case is its own bag row; a deal is bought with credits,
+				-- so it is a paid case (MineCases.bagRow).
+				table.insert(p.packs, Cases.bagRow(id, true) or {
 					packId = id,
 					packName = (def and def.name) or id,
 					setId = "dragons_dawn",

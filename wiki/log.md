@@ -1098,3 +1098,25 @@ always means temper tokens. Checked by `tools/verify/chest-depth.js` and in Stud
 (case values 7,000 / 9,350 / 12,500 dust for ★★★★ / ★★★★½ / ★★★★★).
 
 Updated: chests-and-lucky-blocks, pack-cases, ambiguous-terms, log.
+
+## [2026-10-11] decision | cases give the stars they say; Apex retired
+- **Mystery cases.** *"set it up so they all give how many sars it sasys.. keep
+  original price"*.
+  - The ★★★★★ case pays only ★★★★★ packs again. Earlier the same day it was
+    set to 35% ★★★★★ / 65% ★★★★.
+  - ★★★★½ is a 50/50 coin flip again; it had been set to 15/85.
+  - Prices are back on the 70% return: ★★★★½ 15,000 / 65, ★★★★★ 23,000 / 80.
+- **Apex.** *"we dont need apex pack anymore"*.
+  - The four quests (Merge 25 / 60, Collect 500 / 1,000 cards) and the Pot of
+    Gold deal pay a ★★★ Wild Case for each Apex. It is the nearest in value
+    (~1,360 against ~1,500).
+  - Quest and deal grants now write proper case rows (`MineCases.bagRow`), and
+    a quest's reward text names the case.
+  - Packs already owned still open.
+- Also committed: the load migration that puts every set pet's card on the
+  roster's current look (MineServer). It is idempotent, and it is needed once
+  the unique set bodies land.
+
+Suite 61/61.
+
+Updated: pack-cases, cards-and-packs.
