@@ -222,8 +222,8 @@ block, so a Copper pick matches the copper you mined.
   row it is the rung. On the Tool instance, the attribute `Tier` is
   `lookTier`, which is cosmetic.
 - **"grade" is not a tool grade.** `MineToolGrades` is the F→SSS Clash-Royale
-  climb (`UPGRADE_P 1/3`, `MISS_LIMIT 3`); its one live server caller is the
-  lucky-block grade-up (gear now rolls letters from the temper weights, per its
+  climb (`UPGRADE_P 1/3`, `MISS_LIMIT 3`); its one live server caller is
+  opening a lucky block (gear now rolls letters from the temper weights, per its
   header). Forged tools have no grade.
 - **Raising the cap above 100 fails silently.** MineServer and OreBalanceSim
   read `math.min(100, TOOL_MAX_LEVEL)`.

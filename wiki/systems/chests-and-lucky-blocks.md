@@ -9,6 +9,7 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineChestModel.luau
   - src/ReplicatedStorage/Mine/Shared/MineChestRanks.luau
   - src/ReplicatedStorage/Mine/Shared/MineLuckyBlocks.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCases.luau
   - src/ReplicatedStorage/Mine/Shared/MineGradeReveal.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
@@ -23,7 +24,7 @@ related: [cards-and-packs, mining-and-breaking, zones-layers-and-seams, shops-an
 > **Chests** are blocks in the mine wall. You break one and it pays coins, gems
 > and maybe packs. **Lucky blocks** are a second gacha. They drop rarely off
 > ordinary rock, sit in your bag like packs, and on opening climb an F→SSS grade
-> before paying out. Both exist to give the dig a hit between ore finds.
+> before paying out: a mystery case, a skin case, or some gems or stardust. Both exist to give the dig a hit between ore finds.
 
 `MineServer` below means `src/ServerScriptService/Mine/MineServer.server.luau`.
 
@@ -102,25 +103,73 @@ is injected from `S_QUEUE`.
   (0.0002) × (1 + `luckyFind`). Ore, chests and cores don't roll. The code is the
   last `else` branch of the break handler.
 - **Type.** `MineLuckyBlocks.PIT_WEIGHTS` sets the mix: Lucky 80, Diamond 15,
-  Mythic 5. The ids are `lucky_block`, `super_lucky_block`, `godly_lucky_block`.
+  Godly 5. The ids are `lucky_block`, `super_lucky_block`, `godly_lucky_block`.
 - **Starting grade.** A found block may start graded (`PRESET_WEIGHTS`: F 70,
   D 18, C 8, B 3, A 1).
 - **Other sources.** The battle-pass track, the credits shop (45 / 120 / 280
   credits, or 10 for 350), rotating offers and the Weekend Haul product.
 - **Stored** in `p.packs` as `kind = "lucky_block"`. The stack key is
   block | grade | luck | levels bought (`stackKey`).
-- **Grade-up.** `Verbs.luckyGradeUp` costs gems before you open:
-  `GRADE_UP_BASE` 25,000 × `GRADE_UP_GROWTH` 5^n, so 25K, then 125K, and so on.
+- **Grade-ups are off** (owner, 2026-10-10: *"Remove grade-ups"*).
+  `MineLuckyBlocks.GRADE_UP_ON` is false, so `gradeUpPrice` returns nil. That
+  hides the GRADE UP button, and `Verbs.luckyGradeUp` refuses. Blocks that
+  already bought levels keep them. When it was on, it cost `GRADE_UP_BASE`
+  25,000 × `GRADE_UP_GROWTH` 5^n gems.
 - **Opening.** `Verbs.openLucky` climbs the grade with `MineToolGrades.rollClash`.
   The odds per step are `UPGRADE_P` {½, ½, ⅓, ¼, 2/7, 2/7, 2/7}, and three misses
   end the climb. SSS lands about 0.85% of the time, per the comment on
   `UPGRADE_P`.
-- **Loot.** `MineLuckyBlocks.rollLoot(blockId, finalGrade)` picks the kind from
-  the block type and the grade band: pack, gems, dust, tool, scroll, potion
-  or pet. Until 2026-10-08 the loot card listed only packs, gems, dust, tools,
-  scrolls and tokens. Pets and potions were granted but only appeared through
-  the `lootText` fallback, and a godly block always adds dust, so its pet
-  never showed. Both are rows now, with the pet first.
+- **Loot: cases, plus fixed gems and stardust** (owner, 2026-10-10: the blocks
+  were *"hella boring, and not worth shit"*). Every number is PROPOSED.
+  - **The owner's rules.** Gems and stardust stay, as **fixed** amounts
+    (*"not scaled.. good way to break economy"*), and kept small. Pets, skins
+    and charms come **through cases**: *"it should give cases/packs to give you
+    pets, skins and charms"*. A better block or grade pays a better case; there
+    is no % luck boost.
+  - **Gone:** zone packs, the dead shop pickaxes, scrolls and the direct pet
+    roll (and with it the lucky-block pet mint).
+  - **The four kinds** are in `KIND_TABLES`, by block and grade band:
+    - **mystery**: a wild pack case (`MYSTERY_CASE`). One spin, then 3 of the
+      set pack it lands on ([pack-cases](pack-cases.md)). This is where pets
+      come from.
+    - **skincase**: an ore case (`<ore>_ore_case`). It opens to a skin, or that
+      ore's charm. The server picks an ore evenly from the block's tier range
+      (`SKIN_CASE_TIERS`), so a deeper ore means a better charm.
+    - **gems** and **dust**: the fixed `GEMS` and `DUST` ranges.
+  - **The Godly stardust bonus** on every open is unchanged.
+
+  Which mystery case each block pays, by final grade:
+
+  | block | F/D | C | B | A | S | SS | SSS |
+  |---|---|---|---|---|---|---|---|
+  | Lucky | ★ | ★½ | ★★ | ★★½ | ★★★ | ★★★½ | ★★★★ |
+  | Diamond | ★★ | ★★½ | ★★★ | ★★★½ | ★★★★ | ★★★★½ | ★★★★★ |
+  | Godly | ★★★ | ★★★½ | ★★★★ | ★★★★ | ★★★★½ | ★★★★★ | 2× ★★★★★ |
+
+  Skin case ore tiers, by band (low F/D, mid C/B, high A/S, top SS/SSS):
+  Lucky 1–10 / 8–20 / 15–30 / 25–40, Diamond 15–30 / 25–40 / 35–55 / 45–65, and
+  Godly 35–55 / 45–65 / 55–75 / 65–82.
+
+  Chance per open from an F start (computed from the same tables, 2026-10-10):
+
+  | block | mystery case | skin case | gems | stardust |
+  |---|---|---|---|---|
+  | Lucky | 44.3% | 14.3% | 20.7% | 20.7% |
+  | Diamond | 51.9% | 19.2% | 14.6% | 14.3% |
+  | Godly | 56.8% | 24.0% | 9.8% | 9.4% |
+
+  - **Granted** by `openLuckyBlock` in MineServer: `MineCases.bagRow(caseId)`
+    × qty, or the same ore case row a broken ore block drops.
+  - Mystery cases from lucky blocks are **not** `paid`, so they never reach the
+    0.5% SSS-set share that credit-bought cases have.
+  - **The loot card** (`MineGradeReveal` `lootRows`) shows a mystery case with
+    its case art and name, and a skin case in its ore's colour. SKIP ALL
+    totals the cases.
+  - Checked in Studio on 2026-10-10: 15 opens across all three blocks paid ★
+    to ★★★★★ cases, two skin cases (Peridot, Starmetal) and stardust. They
+    were in the bag, and the card showed "2x ★★★★★ Wild Case".
+  - *History:* until 2026-10-08 the loot card left out pets and potions, which
+    showed only through the `lootText` fallback.
 - **The lucky screen** is the lucky path in `MineGradeReveal` (`LuckyReveal`).
   `MineClient` now passes `displayOrder = 120`, the same layer as the pack
   reveal and the case reel. It had sat on the module default, 95, because
@@ -132,14 +181,17 @@ is injected from `S_QUEUE`.
   none. Now:
   - `MineLuckyBlocks.gradeOdds(start)` computes the final-grade odds
     **exactly**, by walking the same climb `rollClash` runs.
-  - `oddsSheet` folds in `KIND_TABLES` and `PET_TABLES`. These are the loot
-    rows `rollLoot` now reads, moved out of inline code with the numbers
-    unchanged: 16,000 rolls matched the old code exactly.
+  - `oddsSheet` folds in `KIND_TABLES`, the loot rows `rollLoot` reads.
+    `PET_TABLES` is empty since the 2026-10-10 redo, because pets come out of
+    the cases.
   - `MineLuckyOddsView` draws the sheet in three places: an ODDS button on
     every credit-shop row, the bag tile's ⓘ (which used to open the unrelated
     pack inspector), and an ODDS button on the lucky screen, for the grade
     the block is on now.
-  - `tools/verify/lucky-odds.js` guards all of it.
+  - `tools/verify/lucky-odds.js` guards all of it. Since 2026-10-10 it also
+    checks that every prize is a real wild case and an ore tier that exists,
+    that a better grade or block never pays a worse case, and that grade-ups
+    are off.
   - From F the grade odds are F 12.5%, D 18.8%, C 31.0%, B 23.0%, A 8.8%,
     S 3.68%, SS 1.45% and SSS 0.85%. That matches the table in the module
     comment.
@@ -161,8 +213,8 @@ is injected from `S_QUEUE`.
 | `src/ReplicatedStorage/Mine/Shared/Mine1ChestsData.luau` | 80-row catalog of chests with layer bands | `layers`, `weight`, `packs` |
 | `src/ReplicatedStorage/Mine/Shared/MineChestRanks.luau` | S..F ladder and aging | `WEIGHT`, `agePool`, `roll` |
 | `src/ReplicatedStorage/Mine/Shared/MineChestModel.luau` | the visible chest | `PALETTE` |
-| `src/ReplicatedStorage/Mine/Shared/MineLuckyBlocks.luau` | types, shop rows, grade-up, loot | `TYPES`, `SHOP`, `UPGRADE_P`, `rollLoot` |
-| MineServer | spawn, break, open | `rollKind`, `openChestBlock`, `Verbs.openLucky`, `Verbs.luckyGradeUp` |
+| `src/ReplicatedStorage/Mine/Shared/MineLuckyBlocks.luau` | types, shop rows, loot tables | `TYPES`, `SHOP`, `UPGRADE_P`, `KIND_TABLES`, `MYSTERY_CASE`, `SKIN_CASE_TIERS`, `rollLoot`, `GRADE_UP_ON` |
+| MineServer | spawn, break, open | `rollKind`, `openChestBlock`, `openLuckyBlock`, `Verbs.openLucky`, `Verbs.luckyGradeUp` (refuses) |
 
 ## Decided by the owner
 - **Lucky screen layering is fixed and confirmed in engine.** Owner, after
@@ -171,6 +223,8 @@ is injected from `S_QUEUE`.
 - **PROPOSAL §0 line 21** ("chest coin reward: FIX THE CRASH") is approved and
   marked fixed. See the gotcha below.
 - **Chests do not drop charms.** Charms drop from ore (TODO §0.13 rule 5).
+- **Lucky blocks pay cases, plus fixed gems and stardust, and grade-ups are
+  gone** (2026-10-10, see Loot above). The numbers are PROPOSED.
 
 ## State right now
 - **Shipped, and mostly inherited.** These modules last changed in the import or

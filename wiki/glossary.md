@@ -77,7 +77,7 @@ related: [ambiguous-terms, overview, index]
 
 - **Card** — a pet; the pet *is* the card. **Pack** — a sealed bag in `p.packs`. **Zone pack** — `<zone>_pack_*`. **Ore pack** — the legacy `<ore>_ore_pack`, banked on load. **God Pack** — all Mythic+, at half the pack's Exotic rate. [cards-and-packs](systems/cards-and-packs.md)
 - **Variant / finish** — Golden, Prism, Rainbow, Void / Shiny, Shadow on a pet. **Rarity ladder** — Common…Exotic, 8 rungs. [cards-and-packs](systems/cards-and-packs.md)
-- **Section chest** — one per 25 layers. **Chest rank** — S, A, B, C, D, F (F is extinct), with aging. **Lucky block / grade-up** — [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md)
+- **Section chest** — one per 25 layers. **Chest rank** — S, A, B, C, D, F (F is extinct), with aging. **Lucky block** (pays a case, gems or stardust; paid grade-ups are off) — [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md)
 - **Serial** — a card's global id, used in trades. **Coinflip** — off. [trading](systems/trading.md)
 - **Job Board** (contractor), contracts, dailies, milestones — [social-quests-and-leaderboards](systems/social-quests-and-leaderboards.md)
 - **Founders Pack / VIP / Battle Pass / Build-a-Box / Stardust shop / Event Pass** — [shops-and-monetisation](systems/shops-and-monetisation.md)

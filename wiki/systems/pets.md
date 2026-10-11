@@ -120,7 +120,7 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
   - `MineZonePets.HOLIDAY` lists six: Spindle, Spooky and Wisp (Halloween), and
     Jolly, Tinsel and Tinseltoe (Christmas).
   - They are in no pot. The roster stamps `pet.holiday`, and
-    `MineGroupWheel.rollPetOfTier` (wheel and lucky blocks) skips them.
+    `MineGroupWheel.rollPetOfTier` (the wheel) skips them.
   - They keep a zone-1 kit, so an owned copy still pays.
   - New pets never use a holiday body, so 457 new pets fill the pots, not 451.
 - **Lookups.** `MinePetRoster.BY_ZONE[zone]` lists a zone's pets, and every
@@ -129,8 +129,9 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
 - **Zone pots are the drop source for packs** (2026-10-10): every card pack
   that is not a set pack pays a named pet from its zone's pot, at the rarity
   the pack rolled ([cards-and-packs](cards-and-packs.md)). Set packs pay from
-  their set (`MinePetRoster.BY_SET`). The wheel and lucky blocks still pick
-  from any tier.
+  their set (`MinePetRoster.BY_SET`). The wheel still picks from any tier.
+  Lucky blocks no longer roll pets; since 2026-10-10 they pay mystery cases,
+  whose packs pay the pets ([chests-and-lucky-blocks](chests-and-lucky-blocks.md)).
 
 ## The 19 sets (2026-10-10)
 

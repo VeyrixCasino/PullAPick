@@ -827,6 +827,18 @@ function MineGradeReveal.lucky(parent, opts)
 				local qty = math.max(1, math.floor(tonumber(loot.packQty) or 1))
 				table.insert(rows, { icon = "pack", packId = loot.packId, text = (qty > 1 and (qty .. "x  ") or "") .. pretty(loot.packId) })
 			end
+			-- A lucky block pays cases (MineLuckyBlocks.rollLoot). A mystery case
+			-- wears its case art; a skin case wears its ore's colour.
+			if loot.caseId then
+				local qty = math.max(1, math.floor(tonumber(loot.caseQty) or 1))
+				table.insert(rows, { packId = loot.caseId, text = (qty > 1 and (qty .. "x  ") or "") .. tostring(loot.caseName or pretty(loot.caseId)) })
+			end
+			if loot.oreCaseName then
+				table.insert(rows, { icon = "chest", packId = loot.oreId and (loot.oreId .. "_ore_pack") or nil, text = tostring(loot.oreCaseName) })
+			end
+			if loot.caseCount then
+				table.insert(rows, { icon = "chest", text = fmt(loot.caseCount) .. "  cases, in your bag" })
+			end
 			if loot.gems then
 				table.insert(rows, { icon = "gems", text = fmt(loot.gems) .. "  Gems" })
 			end
@@ -1075,7 +1087,7 @@ function MineGradeReveal.lucky(parent, opts)
 			end
 			st.queue = {}
 			local best, bestRank = "F", 0
-			local totals = { gems = 0, dust = 0, packs = 0 }
+			local totals = { gems = 0, dust = 0, packs = 0, cases = 0 }
 			for _, q in ipairs(all) do
 				local g = (q.info and q.info.final) or q.startGrade or "F"
 				for i, x in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
@@ -1087,6 +1099,8 @@ function MineGradeReveal.lucky(parent, opts)
 				totals.gems += tonumber(loot.gems) or 0
 				totals.dust += tonumber(loot.dust) or 0
 				totals.packs += (loot.packId and math.max(1, math.floor(tonumber(loot.packQty) or 1)) or 0)
+				totals.cases += (loot.caseId and math.max(1, math.floor(tonumber(loot.caseQty) or 1)) or 0)
+					+ (loot.oreCaseName and 1 or 0)
 			end
 			st.grade = best
 			st.mode = "loot"
@@ -1098,6 +1112,7 @@ function MineGradeReveal.lucky(parent, opts)
 				rows.packId = nil
 			end
 			showCard(#all .. " lucky blocks opened", best, {
+				caseCount = totals.cases > 0 and totals.cases or nil,
 				gems = totals.gems > 0 and totals.gems or nil,
 				dust = totals.dust > 0 and totals.dust or nil,
 			}, totals.packs > 0 and (totals.packs .. " packs") or nil)

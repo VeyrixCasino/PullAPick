@@ -13072,85 +13072,49 @@ local function openLuckyBlock(plr, entry)
 	local rng = Random.new()
 	local finalGrade, info = Grades.rollClash(entry.startGrade or "F", rng, LuckyBlocks.UPGRADE_P)
 	local loot = LuckyBlocks.rollLoot(blockId, finalGrade, rng)
-	-- Grant loot
-	if loot.packId then
-		local def
-		for _, row in ipairs(Packs.PACKS or {}) do
-			if row.id == loot.packId then def = row break end
+	--[[
+		Grant the loot: a case, gems or stardust (MineLuckyBlocks.rollLoot).
+		A case goes in the bag and is opened like any other, so a mystery case
+		still spins its reel and a skin case still plays its own.
+	]]
+	p.packs = p.packs or {}
+	if loot.caseId then
+		local Cases = require(shared:WaitForChild("MineCases"))
+		local def = Cases.get(loot.caseId)
+		for _ = 1, math.max(1, math.floor(tonumber(loot.caseQty) or 1)) do
+			local row = Cases.bagRow(loot.caseId)
+			if row then
+				table.insert(p.packs, row)
+			end
 		end
-		-- Also resolve zone packs if present
-		pcall(function()
-			local ZonePacks = require(shared.MineZonePacks)
-			def = def or ZonePacks.get(loot.packId)
-		end)
-		p.packs = p.packs or {}
-		local packQty = math.max(1, math.floor(tonumber(loot.packQty) or 1))
-		for _ = 1, packQty do
+		loot.caseName = (def and def.name) or loot.caseId
+	end
+	if type(loot.skinCaseTiers) == "table" then
+		-- Any ore in the block's tier range, evenly. Same bag row a broken ore
+		-- block drops, so it opens to a skin or that ore's charm.
+		local lo = tonumber(loot.skinCaseTiers[1]) or 1
+		local hi = tonumber(loot.skinCaseTiers[2]) or lo
+		local pool = {}
+		for _, ore in ipairs(C.ORES or {}) do
+			local t = tonumber(ore.tier)
+			if t and t >= lo and t <= hi then
+				table.insert(pool, ore)
+			end
+		end
+		local ore = pool[1] and pool[rng:NextInteger(1, #pool)]
+		if ore then
 			table.insert(p.packs, {
-				packId = loot.packId,
-				packName = (def and def.name) or loot.packId,
-				setId = "dragons_dawn",
+				packId = ore.id .. "_ore_case",
+				packName = ore.name .. " Case",
+				kind = "ore_case",
+				oreId = ore.id,
 			})
+			loot.oreId = ore.id
+			loot.oreCaseName = ore.name .. " Case"
 		end
 	end
 	if loot.gems then p.gems = (p.gems or 0) + loot.gems end
 	if loot.dust then p.dust = (p.dust or 0) + loot.dust end
-	if loot.temperTokens then p.temperTokens = (p.temperTokens or 0) + loot.temperTokens end
-	if type(loot.scrolls) == "table" then
-		for id, qty in pairs(loot.scrolls) do grantScrolls(p, id, qty) end
-	end
-	if loot.potionId then
-		pcall(function()
-			local Potions = require(shared:WaitForChild("MinePotions"))
-			if Potions.grant(p, loot.potionId, loot.potionQty or 1) then
-				local def = Potions.def(loot.potionId)
-				net:FireClient(plr, "toast", "Potion: " .. ((def and def.name) or loot.potionId))
-			end
-		end)
-	end
-	if loot.toolId and loot.toolFamily then
-		p.tools = p.tools or {}
-		local cur = p.tools[loot.toolFamily] or 0
-		local ToolsMod = Tools
-		local shop = ToolsMod.tool(loot.toolFamily, loot.toolId)
-		if shop and shop.tier and shop.tier > cur then
-			p.tools[loot.toolFamily] = shop.tier
-		end
-	end
-	--[[
-		A PET OUT OF A LUCKY BLOCK.
-
-		Minted through the same path the group wheel used, so a pet won here is
-		indistinguishable from one won anywhere else -- same serial, same roster
-		lookup, same card shape. rollLoot only ever sets petTier at Legendary or
-		better (MineLuckyBlocks), so there is no floor to enforce here.
-	]]
-	if loot.petTier and mint then
-		pcall(function()
-			local Wheel = require(shared:WaitForChild("MineGroupWheel"))
-			local petName = Wheel.rollPetOfTier and Wheel.rollPetOfTier(loot.petTier, rng)
-			if not petName then
-				return
-			end
-			local roster = PetRoster and PetRoster.BY_NAME and PetRoster.BY_NAME[petName]
-			local c = mint({
-				setId = "lucky_block",
-				index = 1,
-				cardKey = "lucky_block:" .. petName,
-				name = petName,
-				rarityId = (roster and roster.tier) or loot.petTier,
-				typeId = "Crystal",
-				animal = roster and roster.animal or nil,
-				roleName = "Lucky Block",
-				kind = "Unit",
-				setName = "Lucky Block",
-			}, plr.UserId, true)
-			p.cards = p.cards or {}
-			table.insert(p.cards, c)
-			-- so the reveal card can name it rather than saying "Legendary Pet"
-			loot.petName = petName
-		end)
-	end
 	markDirty(plr)
 	snap(plr)
 	net:FireClient(plr, "luckyBlockOpened", {
@@ -13248,7 +13212,11 @@ function Verbs.luckyGradeUp(plr, payload)
 	if not nextGrade then
 		return refuse("It is already the top grade")
 	end
+	-- nil while grade-ups are off (MineLuckyBlocks.GRADE_UP_ON).
 	local price = LuckyBlocks.gradeUpPrice(entry)
+	if not price then
+		return refuse("Grade-ups are gone")
+	end
 	if (p.gems or 0) < price then
 		return refuse("You need " .. price .. " gems")
 	end

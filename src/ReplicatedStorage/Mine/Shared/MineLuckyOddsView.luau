@@ -6,8 +6,8 @@
 	The packs had their inspector; the blocks showed nothing.
 
 	Two screens open it: the credit shop (and the bag's ⓘ) in MineInventoryView,
-	and the lucky screen itself in MineGradeReveal, where a paid Grade Up changes
-	the start grade and so the odds. The lucky screen sits above the inventory
+	and the lucky screen itself in MineGradeReveal, for the grade the block is on.
+	(Paid grade-ups, which changed it, are off.) The lucky screen sits above the inventory
 	(DisplayOrder 120), so the sheet draws into whatever parent it is handed
 	rather than living inside one of them.
 
@@ -167,7 +167,7 @@ function MineLuckyOddsView.show(parent, blockId, startGrade, opts)
 
 	order += 1
 	local note = label(body, (sheet.bonusDust and "Every open also adds bonus stardust on top. " or "")
-		.. "Better grades pay bigger amounts. Grade Up (gems) raises the start grade before you open.",
+		.. "A better grade pays a higher-star mystery case and a deeper skin case. Cases go in your bag.",
 		12, T.MUTED, UDim2.new(), UDim2.new(1, -6, 0, 34))
 	note.TextWrapped = true
 	note.LayoutOrder = order

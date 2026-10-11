@@ -105,7 +105,7 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
 **Grade reveal and iridescence.**
 - `MineGradeReveal` plays the step-by-step F→SSS animation that the server
   scripted with `MineToolGrades.rollClash`. Its header says gear crates; the one
-  live `rollClash` caller in MineServer is the lucky-block grade-up. It is
+  live `rollClash` caller in MineServer is opening a lucky block. It is
   **not** used for tempers.
 - `MineIridescence` draws the shared S / SS / SSS badge: 1, 2 or 3 marks on a
   9-stop pastel gradient. Inventory, sockets and grade reveal use it.

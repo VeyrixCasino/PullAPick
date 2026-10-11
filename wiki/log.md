@@ -1004,3 +1004,30 @@ Played in Studio: ★★★ × 13 = 300 credits, "save 90". Suite 60/60.
 Also seen: another session's Skins panel (`_SkinProbeGui`) opens over the
 shop and hides MineUI, and its SS chip is pale yellow where the reels now
 use lavender for Divine.
+
+## [2026-10-10] decision | lucky blocks pay cases; grade-ups removed
+The owner said lucky blocks were *"hella boring, and not worth shit (ezpically
+with the way you get gems now)"*, and gave these answers:
+- gems and stardust stay, *"not scaled.. good way to break economy"*;
+- pets, skins and charms come *"through cases/packs"*, using mystery cases;
+- the gem and stardust amounts stay small;
+- *"Remove grade-ups"*.
+
+`MineLuckyBlocks` now rolls four kinds:
+- a mystery (wild) case, ★ on a plain Lucky F up to 2× ★★★★★ on a Godly SSS;
+- a skin (ore) case, from an ore tier range set by the block and grade band;
+- fixed gems;
+- fixed stardust.
+
+Zone packs, pickaxes, scrolls and direct pets are gone. `GRADE_UP_ON` is false,
+so there is no price and no button, and the server verb refuses. Every number is
+PROPOSED (tables in chests-and-lucky-blocks). From an F start, a Godly block pays
+a case 81% of the time.
+
+Checked in Studio: 15 real opens paid ★ to ★★★★★ cases, Peridot and Starmetal
+skin cases, and stardust. All of it landed in the bag. The loot card showed
+"2x ★★★★★ Wild Case" with the case art. lucky-odds now also checks that every
+prize is a real case. Suite 60/60.
+
+Updated: chests-and-lucky-blocks, pets, skins-cases-and-temper, tools, glossary,
+verify-suite.

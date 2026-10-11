@@ -10,7 +10,9 @@
 //      the server actually rolls with,
 //   3. rollLoot's real draws match the KIND_TABLES rows the odds sheet reads,
 //      so the sheet cannot drift from the roll,
-//   4. the shop shows MineLuckyBlocks.oddsSheet, not numbers typed by hand.
+//   4. the shop shows MineLuckyBlocks.oddsSheet, not numbers typed by hand,
+//   5. the prizes are real cases, and a better block or grade never pays a
+//      worse one (owner, 2026-10-10: lucky blocks pay mystery and skin cases).
 //
 //   node tools/verify/lucky-odds.js
 const fs = require("fs");
@@ -29,6 +31,14 @@ if (!Luau.ready) {
 const grades = read("src/ReplicatedStorage/Mine/Shared/MineToolGrades.luau");
 const lucky = read("src/ReplicatedStorage/Mine/Shared/MineLuckyBlocks.luau")
   .replace('require(script.Parent:WaitForChild("MineToolGrades"))', "GRADES_STUB");
+// The wild case ids in star order, from MineCases.WILD_GRADES ("case_" + levels),
+// and the ore tiers a skin case can be drawn from.
+const caseSrc = read("src/ReplicatedStorage/Mine/Shared/MineCases.luau");
+const wildBlock = (caseSrc.match(/M\.WILD_GRADES = \{([\s\S]*?)\n\}/) || [])[1] || "";
+const WILD = [...wildBlock.matchAll(/levels = \{([^}]*)\}/g)]
+  .map((m) => "case_" + m[1].split(",").map((x) => x.trim()).join("_"));
+const ORE_TIERS = [...read("src/ReplicatedStorage/Mine/Shared/MineConfig.luau")
+  .matchAll(/\{ id = "[a-z_]+", name = "[^"]+", tier = (\d+)/g)].map((m) => +m[1]);
 
 const harness = `
 -- The block types carry colours; nothing here reads them.
@@ -101,16 +111,12 @@ for _, b in ipairs(blocks) do
 		local want, total = {}, 0
 		for _, r in ipairs(rows) do total += r[1] end
 		for _, r in ipairs(rows) do
-			local k = (r[2] == "chase") and "dust" or r[2]
-			want[k] = (want[k] or 0) + r[1] / total
+			want[r[2]] = (want[r[2]] or 0) + r[1] / total
 		end
 		local got = {}
 		for _ = 1, M do
 			local out = LB.rollLoot(b, g, r2)
 			local k = out.kind
-			if k == "scroll_white" or k == "scroll_black" or k == "scroll_omni" then
-				-- rollLoot keeps these names in kind
-			end
 			got[k] = (got[k] or 0) + 1 / M
 		end
 		for k, p in pairs(want) do
@@ -137,6 +143,30 @@ for _, b in ipairs(blocks) do
 		check(LB.KIND_NAMES[k] ~= nil, b .. ": reward '" .. k .. "' has a name to show")
 	end
 end
+
+-- 5. the prizes are real cases, and better never pays worse
+local WILD = { ${WILD.map((id) => '"' + id + '"').join(", ")} }
+local wildRank = {}
+for i, id in ipairs(WILD) do wildRank[id] = i end
+check(#WILD == 9, "read the 9 wild case grades from MineCases (" .. #WILD .. ")")
+local ORE_MIN, ORE_MAX = ${Math.min(...ORE_TIERS)}, ${Math.max(...ORE_TIERS)}
+local below = {}
+for _, b in ipairs(blocks) do
+	local last = 0
+	for _, g in ipairs(ORDER) do
+		local id = LB.MYSTERY_CASE[b][g]
+		local rank = wildRank[id] or 0
+		check(rank > 0, b .. " at " .. g .. " pays a real mystery case (" .. tostring(id) .. ")")
+		check(rank >= last, b .. " at " .. g .. " pays no worse a case than the grade below")
+		check(rank >= (below[g] or 0), b .. " at " .. g .. " pays no worse a case than the block below")
+		last, below[g] = rank, rank
+	end
+	for band, r in pairs(LB.SKIN_CASE_TIERS[b]) do
+		check(r[1] >= ORE_MIN and r[2] <= ORE_MAX and r[1] <= r[2],
+			b .. " " .. band .. " skin cases come from real ores (tiers " .. r[1] .. "-" .. r[2] .. ")")
+	end
+end
+check(LB.gradeUpPrice({}) == nil, "grade-ups are off (no price, so no button)")
 
 if fail > 0 then
 	print("")
@@ -174,7 +204,7 @@ src(/"ODDS"/.test(code(inv)) && /showLuckyOdds\(rowDef\.id/.test(code(inv)),
 src(/MineLuckyOddsView/.test(code(inv)) && /inspectStack\(g\)/.test(code(inv)),
   "...and a lucky block's info button in the bag opens its odds, not the pack inspector");
 src(/oddsBtn/.test(code(reveal)) && /MineLuckyOddsView/.test(code(reveal)) && /st\.grade/.test(code(reveal)),
-  "the lucky screen has ODDS for the grade the block is on now (Grade Up changes it)");
+  "the lucky screen has ODDS for the grade the block is on now");
 
 console.log("");
 console.log(fail > 0 ? `>>> lucky-odds: ${fail} FAILED` : ">>> lucky-odds: all assertions passed");
