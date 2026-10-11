@@ -3092,10 +3092,27 @@ do
 		net:FireServer("goTo", "shop")
 	end)
 
-	-- Anvil, bottom-up: base, waist, body, horn. Offsets are from the plate's
-	-- centre so the whole thing stays put when the dock reflows.
+	--[[
+		THE ANVIL CENTRES ITSELF, BECAUSE I CANNOT BE TRUSTED TO.
+
+		Owner, 2026-10-11: "CENTER FORGE ICON ANVIL".
+
+		The first version was hand-placed around the plate's middle, and an
+		anvil is not a symmetrical object -- it has a horn on one side. The
+		horn ran to x -25 while the body stopped at +17, so the SILHOUETTE's
+		centre sat at x -4, y +3.5 even though every slab was positioned
+		"from the centre". It was also only 42x25 inside a 56px plate, so it
+		read small as well as off.
+
+		So the shapes are authored in whatever coordinates suit the drawing,
+		their bounding box is measured, and everything is shifted by its
+		centre at the end. Re-proportioning the anvil later cannot un-centre
+		it, which is the part that actually went wrong.
+	]]
 	local INK = Color3.fromRGB(28, 28, 34)
 	local STEEL = Color3.fromRGB(214, 220, 232)
+	local FACE = Color3.fromRGB(240, 244, 252)
+	local parts = {}
 	local function slab(w, h, x, y, colour, radius)
 		local f = mk("Frame", {
 			BackgroundColor3 = colour,
@@ -3111,14 +3128,37 @@ do
 		s.Color = INK
 		s.Thickness = 2
 		s.Parent = f
+		table.insert(parts, { f = f, x = x, y = y, w = w, h = h })
 		return f
 	end
-	slab(30, 6, 0, 13, STEEL, 3)    -- base
-	slab(12, 8, 0, 5, STEEL, 2)     -- waist
-	slab(34, 10, 0, -4, STEEL, 4)   -- body: the face a smith hits
-	-- The horn: a small slab pushed off the left end of the body, tapered by
-	-- sitting it slightly higher than the body's midline.
-	slab(10, 6, -20, -5, STEEL, 3)
+
+	-- Bottom-up. The horn is three stepped slabs so it tapers to a point
+	-- instead of being one stub hanging off the side.
+	--
+	-- Sized to leave a margin: the first pass at these proportions measured 92%
+	-- of the plate's width in Studio, which crowds both edges and reads as the
+	-- icon being too big for its button rather than as a big icon.
+	slab(30, 8, 0, 12, STEEL, 3)     -- base / foot
+	slab(11, 10, 0, 3, STEEL, 2)     -- waist
+	slab(33, 11, 2, -7, STEEL, 4)    -- body
+	slab(26, 4, 2, -13, FACE, 2)     -- the struck face, catching the light
+	slab(8, 9, -17, -7, STEEL, 3)    -- horn, step 1
+	slab(6, 7, -22, -7, STEEL, 3)    -- horn, step 2
+	slab(4, 5, -26, -7, STEEL, 2)    -- horn, tip
+
+	-- Measure the silhouette and move it onto the plate's middle.
+	local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+	for _, p in ipairs(parts) do
+		minX = math.min(minX, p.x - p.w / 2)
+		maxX = math.max(maxX, p.x + p.w / 2)
+		minY = math.min(minY, p.y - p.h / 2)
+		maxY = math.max(maxY, p.y + p.h / 2)
+	end
+	local cx = (minX + maxX) / 2
+	local cy = (minY + maxY) / 2
+	for _, p in ipairs(parts) do
+		p.f.Position = UDim2.new(0.5, math.floor(p.x - cx + 0.5), 0.5, math.floor(p.y - cy + 0.5))
+	end
 end
 
 --[[
