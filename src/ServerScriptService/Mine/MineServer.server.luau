@@ -16945,7 +16945,7 @@ function Verbs.Afk.start(plr)
 		coins = Verbs.Afk.coinsFor(p),
 		packBase = C.AFK_PACK_BASE or (1 / 120),
 	})
-	net:FireClient(plr, "toast", "AFK chill — mining slowly. Wake from the HUD when you are back.")
+	-- No toast: the 💤 AFK pill is the whole message (owner, 2026-10-11).
 	Verbs.Afk.bindMove(plr)
 end
 

@@ -3030,12 +3030,21 @@ end)
 	only enter from another room. It sits where Skins sat; Skins moves down one
 	and keeps its button.
 
-	THE ANVIL IS FOUR FRAMES, NOT AN UPLOAD. Every icon in ICONS is an uploaded
-	png, and the 36 charm images uploaded on 2026-10-07 still return
-	AssetFetchStatus.Failure -- real ids, pending moderation -- so a freshly
-	uploaded anvil would most likely draw nothing for days. Drawing it keeps the
-	button working today, and it is the pattern the dock already uses: Wheel and
-	Planets are emoji standing in for art.
+	THE ANVIL IS FOUR FRAMES, AND THAT IS A STAND-IN, NOT THE FINISH.
+
+	MineUI.icon's own header says chrome goes through it as an uploaded PNG
+	because an earlier icon set was "hand-drawn out of Frames and UICorners,
+	which is why they read as placeholder art". This is knowingly that, for one
+	button, for one reason: the 36 charm images uploaded on 2026-10-07 still
+	return AssetFetchStatus.Failure -- real ids, creator iPressBars, pending
+	moderation -- so an anvil uploaded today would most likely draw nothing at
+	all for days.
+
+	A drawn anvil that works beats a button with an invisible icon, and the dock
+	already carries the same bargain twice: Wheel and Planets are emoji that
+	"stand in until the art pass". REPLACE THIS with an uploaded anvil PNG once
+	moderation is clear -- add it to ICONS and pass it as the first argument;
+	nothing else here has to change.
 
 	`clearPlate` is what "no background" means here: the 56px plate behind every
 	other dock icon is switched off, so the anvil sits on the world.
@@ -13021,6 +13030,44 @@ task.spawn(function()
 		end
 	end)
 
+	--[[
+		THE AFK PILL. Owner, 2026-10-11, on the old card ("AFK CHILL", a line
+		of stats and a Wake up button): "i see that goddamn afk thing it piosses
+		me oiff so i know its gonna mke other people mad", and "just an x button
+		is all it takes.. move get you out of it".
+
+		So it is small and says almost nothing: 💤 AFK, then what you have
+		earned since you stopped, counting up. The X only closes it -- you stay
+		AFK, still earning -- and MOVING (or jumping) is what wakes you: the
+		server's watcher (Verbs.Afk.bindMove) stops AFK on movement, and the
+		keys below do the same from here.
+	]]
+	local earned, packsGot, dismissed = 0, 0, false
+	local function short(n)
+		n = tonumber(n) or 0
+		if n >= 1e9 then
+			return string.format("%.1fB", n / 1e9)
+		elseif n >= 1e6 then
+			return string.format("%.1fM", n / 1e6)
+		elseif n >= 1e3 then
+			return string.format("%.1fK", n / 1e3)
+		end
+		return tostring(math.floor(n))
+	end
+	local function paintPill()
+		if not statusL then
+			return
+		end
+		local t = "💤 AFK"
+		if earned > 0 then
+			t = t .. "   +" .. short(earned) .. " 💰"
+		end
+		if packsGot > 0 then
+			t = t .. "   +" .. packsGot .. " 📦"
+		end
+		statusL.Text = t
+	end
+
 	local function ensureHud()
 		if gui and gui.Parent then
 			return
@@ -13033,86 +13080,92 @@ task.spawn(function()
 		gui.Enabled = false
 		gui.Parent = player:WaitForChild("PlayerGui")
 		local card = Instance.new("Frame")
+		card.Name = "Pill"
 		card.AnchorPoint = Vector2.new(0.5, 0)
 		card.Position = UDim2.new(0.5, 0, 0, 14)
-		card.Size = UDim2.fromOffset(360, 108)
-		card.BackgroundColor3 = Color3.fromRGB(22, 28, 24)
+		card.Size = UDim2.fromOffset(250, 46)
+		card.AutomaticSize = Enum.AutomaticSize.X
+		card.BackgroundColor3 = Color3.fromRGB(23, 19, 51)
 		card.BorderSizePixel = 0
 		card.Parent = gui
 		local c = Instance.new("UICorner")
-		c.CornerRadius = UDim.new(0, 12)
+		c.CornerRadius = UDim.new(1, 0)
 		c.Parent = card
-		local title = Instance.new("TextLabel")
-		title.BackgroundTransparency = 1
-		title.Position = UDim2.fromOffset(14, 10)
-		title.Size = UDim2.new(1, -28, 0, 22)
-		title.Font = Enum.Font.GothamBlack
-		title.TextSize = 16
-		title.TextColor3 = Color3.fromRGB(170, 255, 180)
-		title.TextXAlignment = Enum.TextXAlignment.Left
-		title.Text = "AFK CHILL"
-		title.Parent = card
+		local st = Instance.new("UIStroke")
+		st.Color = Color3.fromRGB(112, 226, 148)
+		st.Thickness = 3
+		st.Parent = card
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft = UDim.new(0, 18)
+		pad.PaddingRight = UDim.new(0, 54)
+		pad.Parent = card
 		statusL = Instance.new("TextLabel")
 		statusL.BackgroundTransparency = 1
-		statusL.Position = UDim2.fromOffset(14, 36)
-		statusL.Size = UDim2.new(1, -28, 0, 34)
-		statusL.Font = Enum.Font.Gotham
-		statusL.TextSize = 13
-		statusL.TextColor3 = Color3.fromRGB(210, 220, 215)
+		statusL.AutomaticSize = Enum.AutomaticSize.X
+		statusL.Size = UDim2.new(0, 0, 1, 0)
+		statusL.Font = Enum.Font.BuilderSansBold
+		statusL.TextSize = 22
+		statusL.TextColor3 = Color3.fromRGB(236, 234, 255)
 		statusL.TextXAlignment = Enum.TextXAlignment.Left
-		statusL.TextWrapped = true
-		statusL.Text = "Mining slowly..."
+		statusL.Text = "💤 AFK"
 		statusL.Parent = card
 		wakeBtn = Instance.new("TextButton")
-		wakeBtn.AnchorPoint = Vector2.new(0.5, 1)
-		wakeBtn.Position = UDim2.new(0.5, 0, 1, -10)
-		wakeBtn.Size = UDim2.fromOffset(140, 28)
-		wakeBtn.BackgroundColor3 = Color3.fromRGB(90, 200, 120)
-		wakeBtn.Font = Enum.Font.GothamBold
-		wakeBtn.TextSize = 14
-		wakeBtn.TextColor3 = Color3.fromRGB(16, 22, 18)
-		wakeBtn.Text = "Wake up"
+		wakeBtn.Name = "Close"
+		wakeBtn.AnchorPoint = Vector2.new(1, 0.5)
+		wakeBtn.Position = UDim2.new(1, 46, 0.5, 0)
+		wakeBtn.Size = UDim2.fromOffset(34, 34)
+		wakeBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 70)
+		wakeBtn.Font = Enum.Font.BuilderSansBold
+		wakeBtn.TextSize = 20
+		wakeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		wakeBtn.Text = "X"
 		wakeBtn.Parent = card
 		local wc = Instance.new("UICorner")
-		wc.CornerRadius = UDim.new(0, 8)
+		wc.CornerRadius = UDim.new(1, 0)
 		wc.Parent = wakeBtn
+		local ws = Instance.new("UIStroke")
+		ws.Color = Color3.fromRGB(20, 12, 44)
+		ws.Thickness = 2
+		ws.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		ws.Parent = wakeBtn
 		wakeBtn.MouseButton1Click:Connect(function()
-			touch()
-			net:FireServer("afkStop")
+			-- Close the pill; stay AFK. Moving is what wakes you.
+			dismissed = true
+			gui.Enabled = false
 		end)
 	end
 
 	ClientFns.onAfkState = function(payload)
 		ensureHud()
 		afkLocal = payload and payload.active and true or false
-		gui.Enabled = afkLocal
 		if afkLocal then
 			tipShown = true
-			local sec = math.floor(tonumber(payload.interval) or 30)
-			statusL.Text = string.format(
-				"~%ds / block | %d coins | packs scale with luck + chest luck",
-				sec,
-				tonumber(payload.coins) or 3
-			)
+			earned, packsGot, dismissed = 0, 0, false
+			paintPill()
 		else
 			touch()
 		end
+		gui.Enabled = afkLocal and not dismissed
 	end
 
 	ClientFns.onAfkMine = function(payload)
 		ensureHud()
-		if not gui.Enabled then
+		earned += tonumber(payload and payload.coins) or 0
+		if payload and payload.pack then
+			packsGot += 1
+		end
+		if dismissed or not gui.Enabled then
 			return
 		end
-		local sec = math.floor(tonumber(payload and payload.interval) or 30)
-		local line = string.format("+%d coins | next ~%ds", tonumber(payload and payload.coins) or 3, sec)
-		if payload and payload.pack then
-			line = line .. " | PACK " .. tostring(payload.pack)
+		paintPill()
+		if ClientFns.UI and ClientFns.UI.popNumber then
+			pcall(ClientFns.UI.popNumber, statusL)
 		end
-		statusL.Text = line
 	end
 
-	-- once, early, while they are still here -- not after they have gone.
+	-- Once, early, while they are still here -- not after they have gone. A
+	-- pill, not a paragraph (owner: kids, "not a grown man who knows how to
+	-- read fluent english"); it goes on its own, or with its X.
 	-- Deliberately does not call busyOpening(): that local is declared below
 	-- this one, so from in here the name would resolve to a nil global.
 	local function showAfkTip()
@@ -13129,50 +13182,30 @@ task.spawn(function()
 		local tc = Instance.new("TextButton")
 		tc.AnchorPoint = Vector2.new(0.5, 0)
 		tc.Position = UDim2.new(0.5, 0, 0, 14)
-		tc.Size = UDim2.fromOffset(430, 94)
-		tc.BackgroundColor3 = Color3.fromRGB(22, 28, 24)
+		tc.Size = UDim2.fromOffset(300, 46)
+		tc.BackgroundColor3 = Color3.fromRGB(23, 19, 51)
 		tc.BorderSizePixel = 0
 		tc.AutoButtonColor = false
-		tc.Text = ""
+		tc.Font = Enum.Font.BuilderSansBold
+		tc.TextSize = 22
+		tc.TextColor3 = Color3.fromRGB(236, 234, 255)
+		tc.Text = "💤 AFK = FREE 💰 + 📦     X"
 		tc.Parent = tg
 		local tcc = Instance.new("UICorner")
-		tcc.CornerRadius = UDim.new(0, 12)
+		tcc.CornerRadius = UDim.new(1, 0)
 		tcc.Parent = tc
 		local ts = Instance.new("UIStroke")
-		ts.Color = Color3.fromRGB(90, 200, 120)
-		ts.Thickness = 2
+		ts.Color = Color3.fromRGB(112, 226, 148)
+		ts.Thickness = 3
+		ts.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		ts.Parent = tc
-		local tt = Instance.new("TextLabel")
-		tt.BackgroundTransparency = 1
-		tt.Position = UDim2.fromOffset(14, 9)
-		tt.Size = UDim2.new(1, -28, 0, 20)
-		tt.Font = Enum.Font.GothamBlack
-		tt.TextSize = 15
-		tt.TextColor3 = Color3.fromRGB(170, 255, 180)
-		tt.TextXAlignment = Enum.TextXAlignment.Left
-		tt.Text = "YOU KEEP MINING WHILE AFK"
-		tt.Parent = tc
-		local tb = Instance.new("TextLabel")
-		tb.BackgroundTransparency = 1
-		tb.Position = UDim2.fromOffset(14, 32)
-		tb.Size = UDim2.new(1, -28, 0, 48)
-		tb.Font = Enum.Font.Gotham
-		tb.TextSize = 13
-		tb.TextColor3 = Color3.fromRGB(210, 220, 215)
-		tb.TextXAlignment = Enum.TextXAlignment.Left
-		tb.TextYAlignment = Enum.TextYAlignment.Top
-		tb.TextWrapped = true
-		tb.Text = "Stand still 5 minutes and you mine on your own -- coins and free packs"
-			.. " keep rolling in while you are away. Leave the game open instead of"
-			.. " closing it.  (tap to dismiss)"
-		tb.Parent = tc
 		local function closeTip()
 			if tg and tg.Parent then
 				tg:Destroy()
 			end
 		end
 		tc.MouseButton1Click:Connect(closeTip)
-		task.delay(11, closeTip)
+		task.delay(6, closeTip)
 	end
 
 
