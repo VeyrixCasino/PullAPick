@@ -95,8 +95,7 @@ end
 	progression rather than one of two parallel ladders that each ended
 	somewhere different. The Forge leads because it is the only line.
 
-	What STAYS: Backpacks (haul capacity, not a tool), the Ore Pouch, and
-	Secrets, which are pulled from chests and were never sold.
+	What STAYS: Backpacks (haul capacity, not a tool) and the Ore Pouch.
 
 	The roster in MineTools is NOT deleted with the tabs. MineOreTools reads it
 	for each forged tool's frame and cost multiplier -- `frames()` filters on
@@ -106,19 +105,34 @@ end
 	The server refuses the buy verbs independently of this list; a tab removed
 	from a client rail is a UI change, not a rule. See buyTool in MineServer.
 ]]
-local TABS = {
-	{ id = "bench", label = "Forge", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
-	{ id = "pouch", label = "Ore Pouch", blurb = "What you are carrying, and what it sells for. Ore pays gems; the pouch survives a rebirth." },
-	{ id = "backpack", label = "Backpacks", blurb = "Haul capacity. Coins for most rungs; the top pack is Robux." },
-	--[[
-		Secrets was wired everywhere and never given a button.
+--[[
+	THIS RAIL IS NOT A SHOP. Owner, 2026-10-10: "switch bottom bar to craft,
+	inventory, loadout, shit like that.. Not a shop anymore".
 
-		FAMILY_TINT carries a secrets colour, rows() returns secretRankList() for
-		it, paint() branches on it and the tab counter prints "have/total" for
-		it -- but no commit in this file's history ever put it in TABS, so the
-		forever tools could not be reached from the shop at all.
-	]]
-	{ id = "secrets", label = "Secrets", blurb = "Forever tools. Pulled from chests, never sold on a shelf." },
+	Only two of these three ever took money, and the one that led -- the bench --
+	takes ore. Labelling the rail after the VERB the player came to do beats
+	labelling it after a transaction that mostly is not one:
+
+		bench    -> Craft      you make a tool here
+		pouch    -> Inventory  what you are carrying
+		backpack -> Loadout    what you carry it in
+
+	SECRETS IS GONE FROM THIS RAIL, and nothing is stranded by that.
+
+	It was added here because the forever tools had no button anywhere. They do
+	now: MineInventoryView draws a "Found tools  N / M" grid with the same
+	blackout for undiscovered rows, which is where the owner asked for them --
+	"the secrets tab shouldnt be a thing, just the shit in your inventory".
+
+	The secrets BRANCHES in this file stay (rows(), paint(), FAMILY_TINT, the
+	stage). They are dead from the rail but still reachable if a future entry
+	wants them, and deleting ~25 live call sites to remove one button is how a
+	working stage gets broken. Dead-but-correct beats half-deleted.
+]]
+local TABS = {
+	{ id = "bench", label = "Craft", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
+	{ id = "pouch", label = "Inventory", blurb = "What you are carrying, and what it sells for. Ore pays gems; the pouch survives a rebirth." },
+	{ id = "backpack", label = "Loadout", blurb = "Haul capacity. Coins for most rungs; the top pack is Robux." },
 }
 
 --------------------------------------------------------------------------------

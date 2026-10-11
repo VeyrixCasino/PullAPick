@@ -3546,6 +3546,31 @@ function MineInventoryView.mount(parent, opts)
 			painted = paintToolViewport(box, item, z)
 		end
 		local img = item and item.icon
+		--[[
+			CHARM ART, WHICH NOTHING HAS EVER DRAWN.
+
+			Owner, 2026-10-10: "can you please use those fuckin charm images i
+			put in the game".
+
+			36 of the 73 rows in MineCharms carry `art = "rbxassetid://..."` --
+			uploaded to the game, and read by NO code. The only `.art` reads in
+			any view are PackFX.art(), a different function on a different
+			table, so every charm fell past this branch to the "?" glyph at the
+			bottom of this function.
+
+			Set HERE rather than on the row builders because there are two of
+			them -- the owned list and the token shelf -- and a third would miss
+			it the same way. One read covers every charm tile in the panel.
+
+			The 37 charms with no art keep the old fallback untouched: this adds
+			a picture where one exists and changes nothing where one does not.
+		]]
+		if (not img) and item and item.slot == "charm" and type(item.def) == "table" then
+			local art = item.def.art
+			if type(art) == "string" and art ~= "" then
+				img = art
+			end
+		end
 		if (not painted) and item and not img and item.slot == "tool" and Icons.image then
 			img = Icons.image(tostring(item.id or ""))
 				or Icons.image(item.family)
