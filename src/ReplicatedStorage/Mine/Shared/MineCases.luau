@@ -771,8 +771,12 @@ function M.creditPrice(id, day)
 	if not listed then
 		return nil
 	end
-	return creditsFor(id)
+	return M.CREDIT_SET[id] or creditsFor(id)
 end
+
+-- Credit prices the owner set by hand, over the curve. ★½ rounded to the same
+-- 10 credits as ★; owner, 2026-10-10: "make ★½ 15 credits".
+M.CREDIT_SET = { case_2 = 15 }
 
 -- What the stardust shop's cases tab sells: the wild cases, then the three
 -- cases of every set the shops carry, in the owner's order.

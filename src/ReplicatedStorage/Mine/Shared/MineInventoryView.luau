@@ -1292,6 +1292,161 @@ function MineInventoryView.mount(parent, opts)
 		refreshCart()
 	end
 
+	--[[
+		THE MYSTERY CASE BUYER. Owner, 2026-10-10: "make it so when i go to buy
+		mystery crates i can choose what star count i want and quanity." One
+		panel instead of nine tiles: pick the star grade, set how many, buy.
+		The same panel in the credit shop (`currency` "credits": it goes to the
+		cart, as tens at the 10-for-7 bundle price plus singles) and the stardust
+		shop ("stardust": bought at once, MineServer Verbs.buyDustCase).
+		`mystery` keeps the pick across renders.
+	]]
+	local mystery = { id = "case_1", qty = 1 }
+	local function mysteryBuyer(parent, order, currency)
+		local Cases = require(shared:WaitForChild("MineCases"))
+		if not Cases.get(mystery.id) then
+			mystery.id = Cases.WILD[1] and Cases.WILD[1].id or "case_1"
+		end
+		local def = Cases.get(mystery.id)
+		local accent = PackFX.art(mystery.id).accent
+		local isDust = currency == "stardust"
+		local cur = isDust and (T.DUST or GEM) or (T.CREDIT or GOLD)
+
+		local panel = mk("Frame", { BackgroundColor3 = BG2, Size = UDim2.new(1, -6, 0, 196), LayoutOrder = order }, parent)
+		round(panel, 12)
+		stroke(panel, 2, accent)
+		local artHost = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 14),
+			Size = UDim2.fromOffset(120, 168), ZIndex = 3 }, panel)
+		pcall(PackFX.drawSealed, artHost, mystery.id, 120, 168)
+
+		local x = 150
+		label(panel, "MYSTERY CASE", 22, TEXT, UDim2.fromOffset(x, 12), UDim2.new(1, -x - 12, 0, 26), FONT).ZIndex = 3
+		label(panel, "One spin  ·  3 of the pack it lands on  ·  from any set", 13, MUTED,
+			UDim2.fromOffset(x, 40), UDim2.new(1, -x - 12, 0, 18)).ZIndex = 3
+
+		-- The star grade: one chip per wild case, worst to best.
+		local chips = stripOf(panel, "MysteryStars", 6)
+		chips.Position = UDim2.fromOffset(x, 64)
+		chips.Size = UDim2.new(1, -x - 12, 0, 40)
+		chips.ZIndex = 3
+		for i, w in ipairs(Cases.WILD) do
+			local on = w.id == mystery.id
+			local col = PackFX.art(w.id).accent
+			local text = string.gsub(w.name, " Wild Case", "")
+			local chip = mk("TextButton", {
+				AutoButtonColor = true, BackgroundColor3 = on and col or BG3, Font = FONT, TextSize = 15,
+				TextColor3 = on and Color3.fromRGB(20, 16, 24) or col, Text = "  " .. text .. "  ",
+				AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 32), LayoutOrder = i, ZIndex = 4,
+			}, chips)
+			round(chip, 8)
+			stroke(chip, 1, col)
+			chip.MouseButton1Click:Connect(function()
+				mystery.id = w.id
+				render()
+			end)
+		end
+
+		-- How many, and what it costs.
+		local qtyY = 118
+		label(panel, "HOW MANY", 12, MUTED, UDim2.fromOffset(x, qtyY + 8), UDim2.fromOffset(76, 18), FONT).ZIndex = 3
+		local function stepBtn(text, px)
+			local b = mk("TextButton", {
+				AutoButtonColor = true, BackgroundColor3 = BG3, Font = FONT, TextSize = 18, TextColor3 = TEXT,
+				Text = text, Position = UDim2.fromOffset(px, qtyY), Size = UDim2.fromOffset(34, 34), ZIndex = 4,
+			}, panel)
+			round(b, 8)
+			return b
+		end
+		local minus = stepBtn("-", x + 80)
+		local box = mk("TextBox", {
+			BackgroundColor3 = BG3, Font = FONT, TextSize = 16, TextColor3 = TEXT, ClearTextOnFocus = false,
+			Text = tostring(mystery.qty), Position = UDim2.fromOffset(x + 118, qtyY), Size = UDim2.fromOffset(60, 34),
+			ZIndex = 4,
+		}, panel)
+		round(box, 8)
+		local plus = stepBtn("+", x + 182)
+		local ten = stepBtn("x10", x + 220)
+		ten.Size = UDim2.fromOffset(48, 34)
+		ten.TextSize = 14
+
+		local buy = mk("TextButton", {
+			AutoButtonColor = true, BackgroundColor3 = cur, Font = FONT, TextSize = 16,
+			TextColor3 = Color3.fromRGB(26, 20, 40), Text = "",
+			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, qtyY - 2),
+			Size = UDim2.fromOffset(190, 40), ZIndex = 4,
+		}, panel)
+		round(buy, 10)
+		local note = label(panel, "", 12, GREEN, UDim2.fromOffset(x, qtyY + 44), UDim2.new(1, -x - 14, 0, 16))
+		note.ZIndex = 3
+
+		-- Credits: tens at the bundle price, the rest as singles (the cart's own
+		-- pricing). Stardust: a flat price each.
+		local function priceFor(qty)
+			if isDust then
+				return (Cases.dustPrice(mystery.id) or 0) * qty, 0
+			end
+			local unit = Packs.priceOf(mystery.id) or 0
+			local tens = math.floor(qty / (Packs.BUNDLE_QTY or 10))
+			local bundle = Packs.bundlePrice(mystery.id) or unit * 10
+			local total = tens * bundle + (qty - tens * (Packs.BUNDLE_QTY or 10)) * unit
+			return total, unit * qty - total
+		end
+		local function refresh()
+			mystery.qty = math.clamp(math.floor(tonumber(mystery.qty) or 1), 1, CART_QTY_MAX)
+			box.Text = tostring(mystery.qty)
+			local total, saved = priceFor(mystery.qty)
+			local can = (not isDust) or (state.dust or 0) >= total
+			buy.BackgroundColor3 = can and cur or BG3
+			paintCostButton(buy, (isDust and "BUY " or "ADD ") .. mystery.qty, total, currency,
+				can and Color3.fromRGB(26, 20, 40) or MUTED)
+			note.Text = (saved > 0) and ("save " .. shortNum(saved) .. " credits with the 10-pack price")
+				or (def and def.blurb or "")
+			note.TextColor3 = (saved > 0) and GREEN or MUTED
+		end
+		minus.MouseButton1Click:Connect(function()
+			mystery.qty -= 1
+			refresh()
+		end)
+		plus.MouseButton1Click:Connect(function()
+			mystery.qty += 1
+			refresh()
+		end)
+		ten.MouseButton1Click:Connect(function()
+			mystery.qty += 10
+			refresh()
+		end)
+		box.FocusLost:Connect(function()
+			mystery.qty = tonumber(box.Text) or mystery.qty
+			refresh()
+		end)
+		buy.MouseButton1Click:Connect(function()
+			local qty = mystery.qty
+			if isDust then
+				if (state.dust or 0) < priceFor(qty) then
+					if opts.onToast then opts.onToast("Not enough stardust") end
+					return
+				end
+				if opts.onBuyDustCase then
+					opts.onBuyDustCase(mystery.id, qty)
+				end
+				return
+			end
+			local size = Packs.BUNDLE_QTY or 10
+			local tens = math.floor(qty / size)
+			if tens > 0 then
+				cartAdd("pack", mystery.id, true, tens)
+			end
+			if qty - tens * size > 0 then
+				cartAdd("pack", mystery.id, false, qty - tens * size)
+			end
+			if opts.onToast then
+				opts.onToast(qty .. "x " .. (def and def.name or "case") .. " added to cart")
+			end
+		end)
+		refresh()
+		return panel
+	end
+
 	local inspectP
 	--[[
 		`g` is a tile group: { packId, tierName, setName, cards, firstIndex,
@@ -6210,14 +6365,8 @@ function MineInventoryView.mount(parent, opts)
 					caseTile(setGrid, Cases.setCaseId(setKey, kind.key), ci)
 				end
 
-				sectionHeader("Wild cases  --  3-5 random packs of one star grade, from any set up to SS", 5)
-				local wildGrid = caseGrid(6)
-				for n = 1, #Cases.CASES do
-					local def = Cases.CASES[n]
-					if def.caseType == "wild" then
-						caseTile(wildGrid, def.id, n)
-					end
-				end
+				sectionHeader("Mystery cases  --  one spin, 3 of the pack it lands on, from any set up to SS", 5)
+				mysteryBuyer(body, 6, "stardust")
 			elseif #(shop.offers or {}) == 0 then
 				note(body, "The shelf is being restocked -- check back in a moment.", 2)
 			else
@@ -6661,13 +6810,15 @@ function MineInventoryView.mount(parent, opts)
 				end)
 			end
 
-			note(body, "Wild pack cases by star, and today's featured set packs  --  pay with Credits, 10% off at checkout.", 1)
+			-- Mystery cases: pick the star grade and how many (owner, 2026-10-10).
+			mysteryBuyer(body, 1, "credits")
+			note(body, "Today's featured set packs  --  pay with Credits, 10% off at checkout.", 2)
 
 			local grid = mk("Frame", {
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, -6, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
-				LayoutOrder = 2,
+				LayoutOrder = 3,
 			}, body)
 			mk("UIGridLayout", {
 				CellPadding = UDim2.fromOffset(8, 8),
@@ -6687,7 +6838,9 @@ function MineInventoryView.mount(parent, opts)
 			local rows = {}
 			for _, id in ipairs(Cases.creditShelf()) do
 				local def = Packs.PACK_BY_ID[id]
-				if def and Packs.priceOf(id) then
+				-- The wild cases are bought through the mystery buyer above.
+				local wild = Cases.get(id) and Cases.get(id).caseType == "wild"
+				if def and Packs.priceOf(id) and not wild then
 					table.insert(rows, def)
 				end
 			end

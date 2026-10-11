@@ -15298,7 +15298,9 @@ function Verbs.buyDustCase(plr, payload)
 		net:FireClient(plr, "toast", "That case isn't for sale")
 		return
 	end
-	local qty = math.clamp(math.floor(tonumber(payload.qty) or 1), 1, 10)
+	-- The mystery buyer lets the player type a quantity (owner, 2026-10-10);
+	-- the same ceiling as a cart line.
+	local qty = math.clamp(math.floor(tonumber(payload.qty) or 1), 1, Const.BUY_QTY_MAX or 100)
 	local pay = price * qty
 	if (tonumber(p.dust) or 0) < pay then
 		net:FireClient(plr, "toast", "Need " .. pay .. " stardust")

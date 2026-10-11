@@ -174,7 +174,7 @@ with the second a 0 or a 5.
 | wild case | recycle value | stardust | return | credits |
 |---|---|---|---|---|
 | ★ | 149 | 215 | 70% | 10 |
-| ★½ | 267 | 380 | 70% | 10 |
+| ★½ | 267 | 380 | 70% | 15 |
 | ★★ | 608 | 870 | 70% | 20 |
 | ★★½ | 1,288 | 1,850 | 70% | 25 |
 | ★★★ | 1,968 | 2,800 | 70% | 30 |
@@ -183,7 +183,18 @@ with the second a 0 or a 5.
 | ★★★★½ | 15,545 | 22,000 | 71% | 75 |
 | ★★★★★ | 23,857 | 34,000 | 70% | 95 |
 
-These are for 3 packs a spin. ★ and ★½ round to the same 10 credits.
+These are for 3 packs a spin. ★½ is set to 15 credits by hand (`MineCases.CREDIT_SET`;
+owner: "make ★½ 15 credits"), because the curve rounds it to the same 10 as ★.
+
+**Buying mystery cases** (owner, 2026-10-10: *"when i go to buy mystery crates i can
+choose what star count i want and quanity"*). Both shops show one MYSTERY CASE panel
+instead of nine tiles (`MineInventoryView` mysteryBuyer):
+- pick the star grade from the chips, ★ to ★★★★★;
+- set how many with −, +, ×10 or by typing, from 1 to 100.
+- In the credit shop it goes to the cart as tens at the 10-for-7 bundle price plus
+  singles, and says how much the bundle saves.
+- In the stardust shop it buys at once (`Verbs.buyDustCase`, now up to
+  `Const.BUY_QTY_MAX`).
 
 | set case (stardust) | Starter | Collector | Vault | return |
 |---|---|---|---|---|

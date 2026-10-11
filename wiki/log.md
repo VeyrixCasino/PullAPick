@@ -985,3 +985,22 @@ Checked in a Studio play test: a ★★★★½ case spun 44 tiles, stopped on t
 winner, and gave 3x Royal Confectionery. The console was clean. Suite 58/58.
 
 Updated: pack-cases, skins-cases-and-temper.
+
+## [2026-10-10] query | mystery case buyer: pick the stars and how many; ★½ is 15 credits
+The owner asked for two things:
+- *"make ★½ 15 credits"*. This is `MineCases.CREDIT_SET` (case_2 = 15).
+- *"when i go to buy mystery crates i can choose what star count i want and
+  quanity"*.
+
+Both shops now show one MYSTERY CASE panel (`MineInventoryView` mysteryBuyer):
+star chips, then −/+/×10 or a typed quantity from 1 to 100.
+- Credits: the order goes to the cart as tens at the bundle price plus singles,
+  and the panel shows the saving.
+- Stardust: it buys at once (`Verbs.buyDustCase`, quantity cap raised to
+  `Const.BUY_QTY_MAX`).
+
+Played in Studio: ★★★ × 13 = 300 credits, "save 90". Suite 60/60.
+
+Also seen: another session's Skins panel (`_SkinProbeGui`) opens over the
+shop and hides MineUI, and its SS chip is pale yellow where the reels now
+use lavender for Divine.
