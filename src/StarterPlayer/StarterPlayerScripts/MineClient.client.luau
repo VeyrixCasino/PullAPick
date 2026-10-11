@@ -385,7 +385,7 @@ end
 -- Panel controllers. Declared up here because HUD pieces built further up the
 -- file close over them: a local declared below its use site is a nil global to
 -- that closure, and the call just silently does nothing.
-local skillP, skillCtl, shopCtl, depthShopCtl, elevCtl, invCtl, portalFx, eventsCtl, forgeCtl, groupWheelCtl
+local skillP, skillCtl, shopCtl, depthShopCtl, elevCtl, invCtl, portalFx, eventsCtl, forgeCtl, groupWheelCtl, skinsCtl
 local function persistCardSort(id)
 	if type(id) ~= "string" or not CARD_SORT_OK[id] then
 		return
@@ -2938,6 +2938,29 @@ dockBtn(ICONS.card, "Inventory", function()
 		end
 	end
 end)
+--[[
+	SKINS. The wardrobe: 225 of them, filtered by set, equipped per tool class.
+
+	Reusing the enchanter art until skin art lands, the same way the Pass
+	button borrows the merge arrows. Better a button a kid can find with the
+	wrong picture than a feature with no way in at all.
+]]
+dockBtn(ICONS.enchanter, "Skins", function()
+	if not skinsCtl then
+		return
+	end
+	if skinsCtl.root.Visible then
+		skinsCtl.close()
+	else
+		hidePanels()
+		-- Feed the snapshot already held, or the first open shows an empty
+		-- wardrobe until the next dig -- the bug the Inventory button hit.
+		if snap then
+			skinsCtl.setState(snap)
+		end
+		skinsCtl.open()
+	end
+end)
 -- Trading. The picker opens from here; invites and the trade window itself
 -- arrive as server events (tradeInvite / tradeSync) -- see ClientFns.tradeView.
 dockBtn(ICONS.merge, "Trade", function()
@@ -5417,8 +5440,11 @@ eventsCtl = require(shared:WaitForChild("MineEventsView")).mount(gui, {
 	onTrickOrTreat = function()
 		net:FireServer("buyTrickOrTreat")
 	end,
-	-- One skin per tool FAMILY, covering every tool in that class. Passing no
-	-- id unequips; the server owns the ownership check either way.
+})
+
+skinsCtl = require(shared:WaitForChild("MineSkinsView")).mount(gui, {
+	-- One skin per tool FAMILY, covering every tool in that class.
+	-- Passing no id unequips; the server owns the ownership check.
 	onEquipSkin = function(id, family)
 		net:FireServer("equipSkin", { id = id, family = family })
 	end,
@@ -11688,6 +11714,9 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- ride the snapshot directly rather than needing its own dirty flag.
 		if ClientFns.hotbarCtl and ClientFns.hotbarCtl.refresh then
 			pcall(ClientFns.hotbarCtl.refresh)
+		end
+		if skinsCtl and skinsCtl.root.Visible then
+			skinsCtl.setState(payload)
 		end
 		ClientFns.syncPlaytime(payload)
 		pcall(ClientFns.paintDailyBox, payload and payload.dailyQuests)
