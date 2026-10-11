@@ -2361,7 +2361,7 @@ local function shortNum(n)
 	local ok, Ab = pcall(function()
 		return require(game.ReplicatedStorage.Mine.Shared:WaitForChild("MineAbbrev"))
 	end)
-	-- currency, not format: four significant figures and floored, so a wallet
+	-- currency, not format: two decimals at most and floored, so a wallet
 	-- never rounds up and tells a player they can afford something they cannot.
 	if ok and Ab and Ab.currency then
 		return Ab.currency(n)

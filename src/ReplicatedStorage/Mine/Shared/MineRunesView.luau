@@ -56,7 +56,7 @@ local function stroke(inst, thick, color, transparency)
 end
 
 local function money(n)
-	-- Four significant figures, floored, same as every other wallet readout.
+	-- Two decimals at most, floored, same as every other wallet readout.
 	local okAb, Ab = pcall(function()
 		return require(script.Parent:WaitForChild("MineAbbrev"))
 	end)

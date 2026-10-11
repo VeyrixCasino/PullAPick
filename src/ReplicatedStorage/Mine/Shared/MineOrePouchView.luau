@@ -100,7 +100,7 @@ local function label(parent, str, size, color, pos, sz, font, align)
 	}, parent)
 end
 
--- Four significant figures, floored, suffixed the whole way up. The same
+-- Two decimals at most, floored, suffixed the whole way up. The same
 -- function the server quotes with, so a price reads identically on both sides.
 local function num(n)
 	return Abbrev.currency(n)
