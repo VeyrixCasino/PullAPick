@@ -5738,7 +5738,22 @@ local function givePickaxe(plr)
 				local oreDef = C.ORES and C.ORES[math.floor(oTier)]
 				oreLook = oreDef and ToolModels.oreLook(oreDef, C.ORE_COUNT or #(C.ORES or {})) or nil
 			end
-			model, handle, grip = ToolModels.build(famId, lookTier, count, oreLook)
+			-- A skin worn on this family dresses the tool (owner, 2026-10-11:
+			-- "Ore look + skins"). Only families with skin forms build one;
+			-- the rest fall through to the plain ore tool.
+			local skinId = p and p.skinEquipped and p.skinEquipped[famId]
+			if skinId and ToolModels.buildSkinned then
+				local okS, Skins = pcall(function()
+					return require(shared:WaitForChild("MineSkins"))
+				end)
+				local skinDef = okS and Skins and Skins.byId(skinId)
+				if skinDef then
+					model, handle, grip = ToolModels.buildSkinned(famId, skinDef, oreLook)
+				end
+			end
+			if not handle then
+				model, handle, grip = ToolModels.build(famId, lookTier, count, oreLook)
+			end
 		end
 	end
 	if not handle then
@@ -10649,6 +10664,8 @@ function Verbs.equipSkin(plr, payload)
 			p.skinEquipped[fam] = nil
 			markDirty(plr)
 			snap(plr)
+			-- The held tool drops the skin's look at once.
+			givePickaxe(plr)
 		end
 		return
 	end
@@ -10680,6 +10697,9 @@ function Verbs.equipSkin(plr, payload)
 	p.skinEquipped[fam] = id
 	markDirty(plr)
 	snap(plr)
+	-- Re-give the held tool, so a skin with a form (hammers, jackhammers)
+	-- shows on it at once.
+	givePickaxe(plr)
 	net:FireClient(plr, "toast", ("%s equipped on your %s"):format(def.name, fam))
 end
 

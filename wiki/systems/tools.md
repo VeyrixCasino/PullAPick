@@ -189,6 +189,50 @@ Only the business end swaps; haft, grip and motor stay shared so a drill still
 reads as a drill. Measured: 16–17 ores per style in every family, 246 built,
 0 invisible.
 
+**Hammers and jackhammers, built to the icons** (2026-10-11). Owner: *"i need
+the hammers and jackhammers fully built in.. every tool, every ore, all color
+ways.. extremely hq"*. `buildHammer` and `buildJackhammer` were rebuilt to match
+the Canva icons (`art/tool-icons/`). Each is the same silhouette at every ore,
+made of the ore (`oreLook`), and checked in Studio: all 82 of each build with no
+errors, at 39–59 and 45–68 parts.
+- **Sledge:** swelled throat, ferrules, an 8-turn wound grip and a three-piece
+  pommel. The head has bevelled edges, face plates with bosses, bands, cheek
+  panels with a rune slot and rivets, a collar and a wedge.
+  - Stone-age ores (rock, not metal) are rope-lashed and chipped instead.
+  - From t 0.35 it gains langets, from 0.62 shards of its ore, from 0.85 crown
+    fins and a pommel gem.
+- **Jackhammer:** T-bar with ridged grips and caps, braces and a throttle; a
+  finned air cylinder, a slotted muffler, and an air coupling with a curved
+  hose. Below that a striker with bolts, a retainer latch, an octagonal shank
+  and a flat chisel. Plates from 0.35, shards and an energy ring from 0.62,
+  coils and a gem from 0.85.
+- The Handle part, `GRIPS` and `SCALE` are unchanged, so both sit in the hand
+  where they did.
+
+**Frostfire is split** (all five families). Owner: *"should feel like more of a
+fight between fire and ice ... MAKE SURE FROSTFIRE IS GOOD"*. `oreLook` gives
+Frostfire a `split`, and `applySplit` runs after every builder:
+- parts left of the tool's centre turn to Ice, right of it to bright orange
+  fire with Neon embers;
+- a part running across the centre (a hammer head, a crossbar) is cut in two,
+  with a white-hot seam between the halves;
+- what cannot be cut goes by height (ice low, fire high);
+- a flame particle rises off the fire side.
+
+**Skins have a look on hammers and jackhammers** (`ToolModelFactory.buildSkinned`,
+`SKIN_FORMS`, `SKIN_PALETTES`). The owner picked "Ore look + skins". Each of the
+9 skin sets has the form `docs/SKINS.md` gives it (Toybox mallet and pogo stick,
+Cursed gravedigger's maul and iron stake, and so on: 18 forms).
+- **Shared per set:** palette, material and trim.
+- **Per skin:** an accent from its id.
+- **Per grade:** trim from B, glow and a PointLight from S, sparkles at SSS.
+- **The ore still shows:** an inlay gem in the ore's colour.
+- `givePickaxe` builds the skin form when `p.skinEquipped[family]` is set.
+  `Verbs.equipSkin` re-gives the tool, so the look changes at once.
+- All 18 build at 15–38 parts. They are a solid first pass, simpler than the
+  ore tools.
+- Pickaxe, drill and explosive skins still have no look.
+
 **The colour and material come from the ore** (`0b041f8`), via
 `ToolModelFactory.oreLook` reading `color / material / met / rough / glow`
 straight off the `MineConfig.ORES` row — the same row that colours the ore

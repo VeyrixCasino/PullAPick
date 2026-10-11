@@ -1156,3 +1156,24 @@ the top grade is tuned to a rate. Starter rod: ★ 98% in 15 s, ★★★ 66%, �
 The new view is not yet play-tested; Studio was busy.
 
 Updated: fishing, log.
+
+## [2026-10-11] decision | hammers and jackhammers built HQ; Frostfire split; skin looks
+The owner asked: *"i need the hammers and jackhammers fully built in.. every
+tool, every ore, all color ways.. extremely hq"*. Their picks: icons and 3D
+models, icons from Canva, colourways = ore look plus skins.
+- `ToolModelFactory`: `buildHammer` and `buildJackhammer` rebuilt to the icons.
+  All 164 ore tools build in Studio with no errors.
+- **Frostfire** (*"more of a fight between fire and ice"*) is split down the
+  middle on every family: ice against fire, a cut seam, a flame particle.
+- **Skins:** 18 set looks for hammer and jackhammer (`buildSkinned`), shown when
+  a skin is equipped, with the ore as an inlay.
+- **Icons:** in progress in Canva.
+  - The hammer and jackhammer icons are approved, except Frostfire, which is
+    being regenerated.
+  - The owner also asked to redo pickaxe, drill and explosive tiers 1–81,
+    keeping each tier-82 icon (*"i like PICKAXE 82, BUT REDO THE RESTs"*), with
+    colours that match the ore.
+  - Canva rate-limits generation: per its help, about 7 images per 30 minutes,
+    plus a monthly allowance.
+
+Updated: tools.
