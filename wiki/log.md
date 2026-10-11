@@ -1060,3 +1060,28 @@ its ~24 Epic-and-up pets are recolours of the same few models. That is why
 good pulls "all the same exact cards". Raised with the owner.
 
 Updated: cards-and-packs, chests-and-lucky-blocks.
+
+## [2026-10-10] decision | a set's grade scales its packs' odds; case prices follow
+The owner said *"i swear some lower grade packs are pulling nothing but epics"*,
+then named low-grade set packs. An audit (a seeded replay of `openPack`, 4,000
+opens per set pack) found no roll bug, but the grade never entered the roll. An
+F set's ★★★★★ pack paid 60% Epic-or-better per card, the same as the SSS set's.
+
+What changed:
+- `MineSetPacks.GRADE_ODDS_MULT` (PROPOSED) multiplies every Epic-and-up chance:
+  F 0.40, D 0.50, C 0.60, B 0.70, A 0.80, S 0.90, SS 0.95, SSS 1.00.
+- What that removes goes back to Common, Uncommon and Rare in proportion.
+- ★★★★★ Epic-or-better per card is now F 24% … SSS 60%.
+- Cases price off the new odds:
+  - a set case by its set's grade;
+  - a wild case averaged over the grades its reel lands on (mostly low).
+- ★★★★★ wild fell from 34,000 to 23,000 stardust and from 95 to 80 credits.
+- `creditPrice` now bumps a wild tie by 5, so the credit ladder always climbs:
+  10, 15, 20, 25, 30, 35, 45, 65, 80.
+
+The audit also flagged three things, reported to the owner and not changed:
+- chest-found zone packs ignore the zone (depth only);
+- Apex is rated 2.5★ but pays Epic or better 77% of the time;
+- the open-all hits screen counts ribboned Epics as hits.
+
+Updated: cards-and-packs, pack-cases.

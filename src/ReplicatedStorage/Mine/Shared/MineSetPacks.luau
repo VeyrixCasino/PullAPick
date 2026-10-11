@@ -44,6 +44,45 @@ M.ODDS = {
 	{ Common = 0, Uncommon = 12, Rare = 28, Epic = 28, Legendary = 18, Mythic = 8.5, Divine = 4, Exotic = 1.5 },
 }
 
+--[[
+	PROPOSED. A set's GRADE scales its packs' Epic-and-better odds at the same
+	stars. Owner, 2026-10-10: "i swear some lower grade packs are pulling nothing
+	but epics", then picked "Low-grade set packs" as the culprit. Until then the
+	grade never entered the roll: an F set's five-star pack paid exactly what the
+	SSS set's did (60% Epic or better a card).
+
+	Epic, Legendary, Mythic, Divine and Exotic are each multiplied by the grade's
+	factor; what that removes goes back to Common, Uncommon and Rare in their own
+	proportions, so a row still sums to 100. SSS keeps the base row (M.ODDS).
+	Five stars, Epic or better a card: F 24%, D 30%, C 36%, B 42%, A 48%, S 54%,
+	SS 57%, SSS 60%.
+]]
+M.GRADE_ODDS_MULT = { F = 0.40, D = 0.50, C = 0.60, B = 0.70, A = 0.80, S = 0.90, SS = 0.95, SSS = 1.00 }
+local LOW_TIERS = { Common = true, Uncommon = true, Rare = true }
+
+function M.oddsFor(n, grade)
+	local base = M.ODDS[n] or M.ODDS[1]
+	local k = M.GRADE_ODDS_MULT[grade or ""] or 1
+	if k == 1 then
+		return base
+	end
+	local out, freed, low = {}, 0, 0
+	for tier, p in pairs(base) do
+		if LOW_TIERS[tier] then
+			low += p
+		else
+			out[tier] = p * k
+			freed += p - p * k
+		end
+	end
+	for tier, p in pairs(base) do
+		if LOW_TIERS[tier] then
+			out[tier] = (low > 0) and (p + freed * p / low) or p
+		end
+	end
+	return out
+end
+
 -- PROPOSED. How likely each set is to fill a case slot, by its grade (per set):
 -- "any set, top grades rarer" (owner).
 M.GRADE_WEIGHT = { F = 10, D = 9, C = 8, B = 6, A = 4, S = 2.5, SS = 1.2, SSS = 0.5 }
@@ -104,7 +143,8 @@ for _, set in ipairs(Sets.SETS) do
 			starLevel = n,
 			stars = M.STARS[n],
 			cards = M.CARDS[n],
-			odds = M.ODDS[n],
+			-- Scaled by the set's grade (M.GRADE_ODDS_MULT).
+			odds = M.oddsFor(n, set.GRADE),
 		}
 		table.insert(M.PACKS, def)
 		M.PACK_BY_ID[def.id] = def
@@ -178,9 +218,9 @@ local function weighted(rows, rng, weightOf)
 	return rows[#rows]
 end
 
--- A card's rarity in a set pack.
-function M.rollTier(starLevel, rng)
-	local odds = M.ODDS[starLevel] or M.ODDS[1]
+-- A card's rarity in a set pack (of a set of `grade`, M.GRADE_ODDS_MULT).
+function M.rollTier(starLevel, rng, grade)
+	local odds = M.oddsFor(starLevel, grade)
 	local rows = {}
 	for _, t in ipairs(M.TIERS) do
 		table.insert(rows, { tier = t, w = odds[t] or 0 })
@@ -272,10 +312,11 @@ function M.caseGradeOdds()
 	return out
 end
 
--- Expected stardust value of one set pack of a star grade, given each tier's
--- stardust value (MinePackConfig.RECYCLE_STARDUST).
-function M.expectedPackDust(starLevel, dustOfTier)
-	local odds = M.ODDS[starLevel] or M.ODDS[1]
+-- Expected stardust value of one set pack of a star grade from a set of
+-- `grade` (nil: the base row), given each tier's stardust value
+-- (MinePackConfig.RECYCLE_STARDUST).
+function M.expectedPackDust(starLevel, dustOfTier, grade)
+	local odds = M.oddsFor(starLevel, grade)
 	local per = 0
 	for _, t in ipairs(M.TIERS) do
 		per += (odds[t] or 0) / 100 * (tonumber(dustOfTier[t]) or 0)

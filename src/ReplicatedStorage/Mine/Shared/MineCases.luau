@@ -610,31 +610,50 @@ end
 --[[
 	What a case, or a set pack, is expected to recycle for in stardust: each
 	pack's expected card value (MineSetPacks.expectedPackDust over
-	MinePackConfig.RECYCLE_STARDUST). Recycling pays by rarity only, so the set
-	does not change it.
+	MinePackConfig.RECYCLE_STARDUST). Recycling pays by rarity only, but since
+	2026-10-10 a set's grade scales its packs' Epic-and-better odds
+	(MineSetPacks.GRADE_ODDS_MULT), so the set's grade is passed in. A wild
+	case averages over the grades its reel can land on (wildGradeOdds).
 ]]
+local function gradeOfKey(key)
+	local s = key and M.SET_BY_KEY[key]
+	return s and s.grade or nil
+end
+
 function M.expectedDust(id)
 	local dust = dustOfTier()
 	local def = M.get(id)
 	if def and def.caseType == "set" then
 		local ev = 0
 		for _, packId in ipairs(def.packs) do
-			local _, level = M.parsePack(packId)
-			ev += SetPacks.expectedPackDust(level, dust)
+			local key, level = M.parsePack(packId)
+			ev += SetPacks.expectedPackDust(level, dust, gradeOfKey(key))
 		end
 		return ev
 	elseif def then
-		-- A half grade's pack is either neighbour, evenly.
+		-- A half grade's pack is either neighbour, evenly; the set is any wild
+		-- set, by the reel's own grade odds (free cases; the paid-only share is
+		-- too small to price).
 		local levels = def.levels or { def.starLevel }
+		local grades = {}
+		for _, row in ipairs(M.wildGradeOdds()) do
+			if not row.paidOnly then
+				table.insert(grades, row)
+			end
+		end
 		local per = 0
 		for _, level in ipairs(levels) do
-			per += SetPacks.expectedPackDust(level, dust) / #levels
+			local ev = 0
+			for _, row in ipairs(grades) do
+				ev += SetPacks.expectedPackDust(level, dust, row.grade) * row.pct / 100
+			end
+			per += ev / #levels
 		end
 		return per * M.WILD_PACKS
 	end
 	local key, level = M.parsePack(id)
 	if key then
-		return SetPacks.expectedPackDust(level, dust)
+		return SetPacks.expectedPackDust(level, dust, gradeOfKey(key))
 	end
 	return 0
 end
@@ -770,6 +789,23 @@ function M.creditPrice(id, day)
 	end
 	if not listed then
 		return nil
+	end
+	local def = M.get(id)
+	if def and def.caseType == "wild" then
+		--[[
+			A wild case never costs the same as the grade below it: the owner
+			set ★½ apart from ★ by hand, and the grade odds (2026-10-10) then
+			rounded ★★ onto ★½'s 15. Walk the ladder and bump a tie by 5.
+		]]
+		local prev = 0
+		for _, g in ipairs(M.WILD_GRADES) do
+			local gid = "case_" .. table.concat(g.levels, "_")
+			local p = math.max(M.CREDIT_SET[gid] or creditsFor(gid), prev + 5)
+			if gid == id then
+				return p
+			end
+			prev = p
+		end
 	end
 	return M.CREDIT_SET[id] or creditsFor(id)
 end

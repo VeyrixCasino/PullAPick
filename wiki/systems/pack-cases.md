@@ -159,7 +159,11 @@ with the second a 0 or a 5.
 
 - **Recycle value** comes from `MineCases.expectedDust`:
   `MineSetPacks.expectedPackDust` over `MinePackConfig.RECYCLE_STARDUST`.
-  Recycling pays by rarity only, so the set does not change it.
+  Recycling pays by rarity only, but since 2026-10-10 a set's grade scales its
+  packs' Epic-and-better odds (`MineSetPacks.GRADE_ODDS_MULT`, see
+  [cards-and-packs](cards-and-packs.md)), so a low set's case is worth less.
+  A wild case averages over the grades its reel lands on. Most of its sets are
+  low grades, so wild cases fell about a third.
 - **Stardust** = recycle value / return.
   - Wild cases return 70% (`WILD_RTP`).
   - Set cases return 65% for Pebblebound, falling evenly to 55% for Royal
@@ -173,18 +177,20 @@ with the second a 0 or a 5.
 
 | wild case | recycle value | stardust | return | credits |
 |---|---|---|---|---|
-| ★ | 149 | 215 | 70% | 10 |
-| ★½ | 267 | 380 | 70% | 15 |
-| ★★ | 608 | 870 | 70% | 20 |
-| ★★½ | 1,288 | 1,850 | 70% | 25 |
-| ★★★ | 1,968 | 2,800 | 70% | 30 |
-| ★★★½ | 4,600 | 6,550 | 70% | 45 |
-| ★★★★ | 7,232 | 10,500 | 69% | 55 |
-| ★★★★½ | 15,545 | 22,000 | 71% | 75 |
-| ★★★★★ | 23,857 | 34,000 | 70% | 95 |
+| ★ | 125 | 180 | 69% | 10 |
+| ★½ | 206 | 295 | 70% | 15 |
+| ★★ | 449 | 640 | 70% | 20 |
+| ★★½ | 906 | 1,300 | 70% | 25 |
+| ★★★ | 1,364 | 1,950 | 70% | 30 |
+| ★★★½ | 3,128 | 4,450 | 70% | 35 |
+| ★★★★ | 4,893 | 7,000 | 70% | 45 |
+| ★★★★½ | 10,425 | 15,000 | 70% | 65 |
+| ★★★★★ | 15,958 | 23,000 | 69% | 80 |
 
 These are for 3 packs a spin. ★½ is set to 15 credits by hand (`MineCases.CREDIT_SET`;
 owner: "make ★½ 15 credits"), because the curve rounds it to the same 10 as ★.
+Since the grade odds, a wild case never costs the same credits as the grade below
+it: `creditPrice` bumps a tie by 5 (★★ had rounded onto ★½'s 15).
 
 **Buying mystery cases** (owner, 2026-10-10: *"when i go to buy mystery crates i can
 choose what star count i want and quanity"*). Both shops show one MYSTERY CASE panel
@@ -198,20 +204,20 @@ instead of nine tiles (`MineInventoryView` mysteryBuyer):
 
 | set case (stardust) | Starter | Collector | Vault | return |
 |---|---|---|---|---|
-| Pebblebound (F) | 525 | 6,050 | 19,500 | 65% |
-| Sugar Rush (D) | 535 | 6,150 | 20,000 | 64% |
-| Mosswood (C) | 545 | 6,300 | 20,500 | 62% |
-| Lost & Found (C) | 555 | 6,400 | 21,000 | 61% |
-| Starfront (C) | 570 | 6,550 | 21,500 | 60% |
-| Arcade Legends (B) | 580 | 6,700 | 21,500 | 59% |
-| Crystal Hollow (B) | 595 | 6,850 | 22,000 | 57% |
-| Shogun's Oath (B) | 605 | 7,000 | 22,500 | 56% |
-| Royal Reserve (B) | 620 | 7,150 | 23,000 | 55% |
+| Pebblebound (F) | 300 | 2,650 | 8,150 | 65% |
+| Sugar Rush (D) | 345 | 3,250 | 10,500 | 64% |
+| Mosswood (C) | 390 | 3,950 | 12,500 | 63% |
+| Lost & Found (C) | 400 | 4,000 | 12,500 | 61% |
+| Starfront (C) | 410 | 4,100 | 13,000 | 60% |
+| Arcade Legends (B) | 455 | 4,800 | 15,500 | 59% |
+| Crystal Hollow (B) | 465 | 4,900 | 15,500 | 58% |
+| Shogun's Oath (B) | 480 | 5,000 | 16,000 | 56% |
+| Royal Reserve (B) | 490 | 5,150 | 16,500 | 55% |
 
 Featured set packs in credits (sets F to B only):
-- ★★★ is about 25.
-- ★★★★ is 35–40.
-- ★★★★★ is about 70.
+- ★★★ is 15–20.
+- ★★★★ is 25–35.
+- ★★★★★ is 40–60 (after the 2026-10-10 grade odds).
 - Four are featured each UTC day, at ★★★, ★★★★, ★★★★ and ★★★★★
   (`FEATURED_LEVELS`).
 

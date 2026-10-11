@@ -142,6 +142,28 @@ names (HoloRare, UltraRare, HyperRare, SecretRare) are kept as aliases in
 the last. Cards of Rare or better that rolled rarer than 1 in 200 carry an
 `oneIn` ribbon, priced by `MinePackConfig.pullOdds`.
 
+**A set's grade scales its odds** (`MineSetPacks.GRADE_ODDS_MULT`, 2026-10-10,
+PROPOSED).
+- Owner: *"i swear some lower grade packs are pulling nothing but epics"*. They
+  then named low-grade set packs.
+- Until then the grade never entered the roll. An F set's ★★★★★ pack paid the
+  same 60% Epic-or-better per card as the SSS set's.
+- Now each Epic-and-up chance is multiplied by F 0.40, D 0.50, C 0.60, B 0.70,
+  A 0.80, S 0.90, SS 0.95 or SSS 1.00. The removed share goes back to Common,
+  Uncommon and Rare in proportion, so every row still sums to 100.
+- ★★★★★ Epic-or-better per card: F 24%, C 36%, B 42%, A 48%, S 54%, SSS 60%.
+  ★★★★: F 12.8%, SSS 32%.
+- Stars do not change; the pack's value does. Case prices follow
+  ([pack-cases](pack-cases.md)).
+
+An audit the same day (a seeded replay of `openPack`, 4,000 opens per set pack)
+found no roll bug: every pack paid its table. It also flagged three things,
+reported to the owner and not changed:
+- Chest-found zone packs use depth only, not the zone. A 1★ Meadow Pack from
+  deep layers pays 25% Epic or better.
+- `apex_pack` is rated 2.5★ but pays Epic or better 77% of the time (one card).
+- The open-all YOUR HITS screen counts an Epic with a "1 in X" ribbon as a hit.
+
 **The build-up** (`MinePackReveal` `buildUp`, 2026-10-10). Before a Legendary
 or better turns over, its back flashes every rarity from Legendary up to the
 one below it, twice each, then flickers its own rarity three times. An Exotic
@@ -162,10 +184,10 @@ cards can be tapped too (`addPick`). Checked in Studio on 2026-10-10.
 ### Pack kinds (the `kind` on a pack definition)
 | kind | ids | what opens |
 |---|---|---|
-| `cards` | `<zone>_pack_common/rare/legendary` (3/4/5 cards) | odds from `MineZonePacks` `cardOdds(zoneIndex, heat)` |
+| `cards` | `<zone>_pack_common/rare/legendary` (3/4/5 cards) | odds from `MineZonePacks` `cardOdds(zoneIndex, heat)`; a chest-found pack (with `layer`) uses `depthCardOdds` instead |
 | `currency` | `<zone>_currency_common/rare` | coins + gems, no cards |
 | `holiday` | `halloween_2026` (3 cards) | `MineSetPacks.HOLIDAY_ODDS` (PROPOSED); only its holiday pets, the one pack allowed to pay them. Kind `holiday` keeps it out of the day-4 surprise. Paid by the Trick-or-Treat case. |
-| `cards` + `setKey` | `<setkey>_pack_1..6` (★ to ★★★★★; 3, 3, 4, 4, 5, 5 cards) | `MineSetPacks.ODDS` by star grade; only that set's pets |
+| `cards` + `setKey` | `<setkey>_pack_1..6` (★ to ★★★★★; 3, 3, 4, 4, 5, 5 cards) | `MineSetPacks.ODDS` by star grade, scaled by the set's grade (`oddsFor`); only that set's pets |
 | card pack, no kind | 19 in `Mine1PacksData` (loam … heirloom; hopper 6 cards, magma 8, apex 1) | own `odds` table |
 | `rune` / `gear` | `rune_*_pack`, `gear_*_pack` | `MineLootPacks` rolls one item per slot |
 | `ore_case` | `<ore>_ore_case` | a skin or a charm, see [skins-cases-and-temper](skins-cases-and-temper.md) |
@@ -229,11 +251,16 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
 - **Never confirmed in engine**, like the rest of the branch (START-HERE §5).
 
 ## Gotchas
-- **Meadow zone packs can never pay Mythic, Divine or Exotic.** `cardOdds(1, heat)`
-  maps zone 1 to layer 1, where `t = 0` zeroes those three rungs. Siphon and the
-  God Pack scale existing weight, so they stay 0. This was computed from the
-  formula, not observed. OPEN P2 says `cardOdds` ignores the zone index; that is
-  stale, because it does use it.
+- **Meadow zone packs WITHOUT a depth stamp can never pay Mythic, Divine or
+  Exotic** (AFK, tutorial and grant packs). `cardOdds(1, heat)` maps zone 1 to
+  layer 1, where `t = 0` zeroes those three rungs. Siphon and the God Pack scale
+  existing weight, so they stay 0. This was computed from the formula, not
+  observed. OPEN P2 says `cardOdds` ignores the zone index; that is stale,
+  because it does use it.
+  - **A chest-found zone pack is different.** It carries `layer`, and openPack
+    swaps its odds for `depthCardOdds(layer, maxL, heat)` (MineServer, about
+    line 8507). That uses depth within the zone and ignores the zone itself, so
+    a deep Meadow Pack can pay Mythic+ (audit, 2026-10-10).
 - **Set packs live in `PACK_BY_ID` but not in `PACKS`.** `MinePackConfig`
   registers them at the end of the file, so every lookup (bag tile, inspector,
   admin grant, opener) finds them, but nothing that walks the universal list
