@@ -472,7 +472,10 @@ function MineForge.mount(parent, opts)
 		Visible = false,
 	}, craftPane)
 	mk("UIGridLayout", {
-		CellSize = UDim2.new(0.2, -10, 0, 124),
+		-- 124 -> 148: the card carries a rarity band, a 52px icon, a wrapped
+		-- tool name at the 14px floor, the cost and the ore. At 124 the ore
+		-- line fell off the bottom edge.
+		CellSize = UDim2.new(0.2, -10, 0, 148),
 		CellPadding = UDim2.fromOffset(10, 10),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -997,45 +1000,142 @@ function MineForge.mount(parent, opts)
 		ore must not leak through a recipe. It still occupies its place in the
 		grid, so the catalogue is honest about its own size.
 	]]
+	--[[
+		THE RECIPE CARD.
+
+		Owner, 2026-10-11: "Each recipe should be an item card with the icon and
+		name of the tool being crafted", with "excellent item cards" and
+		"distinct rarity treatments" -- and then, "forge needs all attention".
+
+		Four things were wrong with the old square:
+
+		1. It drew the ORE, not the tool. MineIcons carries ORE_PICK, ORE_DRILL
+		   and ORE_BOMB -- 82 per-tier icons each, 246 in all, of the actual
+		   forged tool -- and NOTHING in the game read one of them.
+		2. It was built out of raw instances, so it had none of the house
+		   chrome: no fat outline, no juice, no press.
+		3. Text sat at 10-12px against floors of 14/16.
+		4. The only state it showed was affordable-or-not. 82 recipes all look
+		   the same weight, so nothing told you a deep one was worth wanting.
+
+		THE ICON IS LAYERED, AND THAT IS DELIBERATE. 231 of those 246 ids do not
+		currently serve -- they are real Image assets, creator iPressBars, all
+		uploaded 2026-10-06, and only tiers 1/20/41/60/82 come back Success, the
+		same stuck batch as the charm art. A failed ImageLabel draws nothing, so
+		the ore icon goes UNDERNEATH and the tool icon on top: today the card
+		shows the ore and reads correctly, and the moment moderation clears the
+		tool art appears with no code change.
+	]]
+	local TOOL_SHEET = {
+		pickaxe = Icons.ORE_PICK,
+		drill = Icons.ORE_DRILL,
+		explosive = Icons.ORE_BOMB,
+	}
+	--[[
+		Five rarity bands across the 82 rungs, so depth reads as worth.
+		Deliberately NOT shown on a locked card: a coloured stripe on an
+		undiscovered square would leak its tier, which Rule 3 forbids just as
+		much as leaking the name.
+	]]
+	-- Color3.fromRGB spelled out: this file has no C3 helper, and a missing
+	-- local is a GLOBAL READ in Luau -- nil at runtime, clean at build time.
+	local BANDS = {
+		{ upto = 16, color = Color3.fromRGB(150, 156, 178) },
+		{ upto = 33, color = Color3.fromRGB(112, 214, 140) },
+		{ upto = 49, color = Color3.fromRGB(96, 176, 255) },
+		{ upto = 66, color = Color3.fromRGB(186, 124, 255) },
+		{ upto = 82, color = Color3.fromRGB(255, 194, 77) },
+	}
+	local function bandOf(tier)
+		for _, b in ipairs(BANDS) do
+			if (tonumber(tier) or 1) <= b.upto then
+				return b.color
+			end
+		end
+		return BANDS[#BANDS].color
+	end
+
 	local function recipeCell(host, r, order, onPick)
-		local b = mk("TextButton", {
-			BackgroundColor3 = r.locked and BG3 or BG2,
-			BackgroundTransparency = r.locked and 0.35 or 0,
-			AutoButtonColor = not r.locked,
-			Text = "",
+		--[[
+			CELL OUTSIDE, BUTTON INSIDE, AND THAT SPLIT IS LOAD-BEARING.
+
+			`juice` works by putting a UIScale on what you hand it. Hand it a
+			UIGridLayout CELL and the cell scales inside a slot the layout has
+			already sized -- the bug the skins wardrobe shipped, where a scaled
+			tile left its own cell and rendered blank.
+
+			So the thing the grid owns is a plain Frame of fixed size, and
+			everything visible lives in a button filling it. The button carries
+			the art, the press and the scale; the grid only ever sees the frame.
+		]]
+		local cell = mk("Frame", {
+			BackgroundTransparency = 1,
 			LayoutOrder = order,
 		}, host)
-		round(b, 8)
-		-- Affordable is the state worth finding at a glance, so it is the only
-		-- one that gets an outline.
-		if r.afford then
-			local s = Instance.new("UIStroke")
-			s.Color = GREEN
-			s.Thickness = 2
-			s.Parent = b
-		end
+		local b = mk("TextButton", {
+			BackgroundColor3 = r.locked and BG3 or BG2,
+			BackgroundTransparency = r.locked and 0.25 or 0,
+			AutoButtonColor = false,
+			Text = "",
+			Size = UDim2.fromScale(1, 1),
+		}, cell)
+		round(b, 12)
+		-- The kit's edge(), not a raw UIStroke: it falls back to T.EDGE and a
+		-- 1px thickness if the theme keys are missing, which a direct
+		-- `stroke.Color = T.OUTLINE` does not -- that throws on nil and takes
+		-- the whole grid with it.
+		local stroke = UI.edge(b, T.OUTLINE, T.STROKE_CHUNKY)
 
 		if r.locked then
-			label(b, "?", 30, MUTED, UDim2.fromOffset(0, 24), UDim2.new(1, 0, 0, 36),
+			-- Rule 3: nothing here is read from the ore row.
+			label(b, "?", 34, MUTED, UDim2.fromOffset(0, 34), UDim2.new(1, 0, 0, 40),
 				FONT, Enum.TextXAlignment.Center)
-			label(b, "undiscovered", 11, MUTED, UDim2.fromOffset(0, 70),
-				UDim2.new(1, 0, 0, 14), FONT_M, Enum.TextXAlignment.Center)
+			label(b, "undiscovered", T.TEXT_MIN, MUTED, UDim2.fromOffset(0, 86),
+				UDim2.new(1, 0, 0, 18), FONT_M, Enum.TextXAlignment.Center)
 			return b
 		end
 
+		-- Rarity: a band across the top, and the same colour on the outline
+		-- once you can actually forge it.
+		local band = bandOf(r.tier)
+		local stripe = mk("Frame", {
+			Name = "Band", BackgroundColor3 = band, BorderSizePixel = 0,
+			Size = UDim2.new(1, 0, 0, 6), Position = UDim2.fromOffset(0, 0),
+		}, b)
+		round(stripe, 3)
+
+		-- Icon: ore underneath, the forged tool over the top of it.
 		local art = OreIcons.BY_ID and OreIcons.BY_ID[r.id]
 		if art and art.icon then
-			UI.icon(b, art.icon, 44, UDim2.new(0.5, -22, 0, 10))
+			UI.icon(b, art.icon, 52, UDim2.new(0.5, -26, 0, 14))
 		end
-		label(b, OreTools.name(r.def, selFamily), 12, TEXT, UDim2.fromOffset(4, 58),
-			UDim2.new(1, -8, 0, 28), FONT, Enum.TextXAlignment.Center).TextWrapped = true
+		local sheet = TOOL_SHEET[selFamily]
+		local toolArt = sheet and sheet[tonumber(r.tier) or -1]
+		if toolArt then
+			UI.icon(b, toolArt, 52, UDim2.new(0.5, -26, 0, 14))
+		end
+
+		label(b, OreTools.name(r.def, selFamily), T.TEXT_MIN, TEXT,
+			UDim2.fromOffset(6, 70), UDim2.new(1, -12, 0, 32),
+			FONT, Enum.TextXAlignment.Center).TextWrapped = true
+
 		-- What it NEEDS, which is the whole reason the square is readable at a
-		-- glance: the ore, the amount, and whether you are there yet.
-		label(b, string.format("%s / %s", num(r.have), num(r.cost)), 12,
-			r.afford and GREEN or MUTED, UDim2.fromOffset(4, 92),
-			UDim2.new(1, -8, 0, 14), FONT_M, Enum.TextXAlignment.Center)
-		label(b, r.name, 10, MUTED, UDim2.fromOffset(4, 106),
-			UDim2.new(1, -8, 0, 12), FONT_M, Enum.TextXAlignment.Center)
+		-- glance: the amount, and whether you are there yet.
+		local costLbl = label(b, string.format("%s / %s", num(r.have), num(r.cost)),
+			T.TEXT_MIN, r.afford and GREEN or MUTED, UDim2.fromOffset(6, 104),
+			UDim2.new(1, -12, 0, 18), FONT, Enum.TextXAlignment.Center)
+		costLbl.Font = Enum.Font.GothamBlack
+
+		label(b, r.name, T.TEXT_MIN - 1, MUTED, UDim2.fromOffset(6, 124),
+			UDim2.new(1, -12, 0, 16), FONT_M, Enum.TextXAlignment.Center)
+
+		if r.afford then
+			stroke.Color = GREEN
+			stroke.Thickness = T.STROKE_THICK or 4
+			stroke.Transparency = 0
+		end
+		-- Everything pressable gets juice; the kit's own rule.
+		UI.juice(b)
 		b.MouseButton1Click:Connect(onPick)
 		return b
 	end
