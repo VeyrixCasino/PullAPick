@@ -251,16 +251,49 @@ end
 	a hat is something you see often enough to go looking for sets, a charm is
 	a real find. Hats run about 8x the rate of charms.
 
-	Per 1000 chests, roughly: 701 packs, 170 coins, 90 hats, 22 dust,
-	11 charms, 6 relics.
+	A SKIN CASE sits between hats and charms. Owner, 2026-10-10: "We need the
+	skin cases to be found in chests." Rarer than a hat because a skin is a
+	build and not a cosmetic, commoner than a charm because there are 225 of
+	them to collect and an F is meant to be an ordinary find. `lucky` so chest
+	luck moves it, the same as the two rows under it.
+
+	Per 1000 chests, roughly: 697 packs, 169 coins, 90 hats, 30 skin cases,
+	22 dust, 11 charms, 6 relics.
 ]]
 MineConfig.CHEST_LOOT = {
 	{ kind = "pack",   weight = 70 },
 	{ kind = "coins",  weight = 17 },
 	{ kind = "hat",    weight = 9 },
+	{ kind = "skincase", weight = 3, lucky = true },
 	{ kind = "dust",   weight = 2.2 },
 	{ kind = "charm",  weight = 1.1, lucky = true },
 	{ kind = "relic",  weight = 0.6, lucky = true },
+}
+
+--[[
+	WHICH TIER A SKIN CASE PAYS. Weights, not percentages, so a row can be
+	retuned without renormalising the rest by hand.
+
+	PROPOSED (2026-10-10). Skin cases are 3 of 102.9 chest weight (2.9% of
+	chests) and an SSS is 4 of 1000 cases, so an SSS is about **1 in 8,575
+	chests** -- roughly 3.4 million blocks at CHEST_CHANCE, and nine times that
+	for a SPECIFIC one. A chase, not a milestone, which is why the set bonus
+	exists for the people who never see one.
+
+	An earlier draft of this comment said 83,000 chests. That was wrong by a
+	factor of ten, and wrong in the direction that invites someone to loosen a
+	drop rate to fix a problem that was never there. tools/verify/skin-model.js
+	derives it now instead of restating it.
+]]
+MineConfig.SKIN_CASE_TIERS = {
+	{ tier = "F",   weight = 400 },
+	{ tier = "D",   weight = 240 },
+	{ tier = "C",   weight = 150 },
+	{ tier = "B",   weight = 90 },
+	{ tier = "A",   weight = 60 },
+	{ tier = "S",   weight = 36 },
+	{ tier = "SS",  weight = 20 },
+	{ tier = "SSS", weight = 4 },
 }
 
 --[[

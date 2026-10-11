@@ -804,6 +804,9 @@ local function blank()
 		-- only real payout: the rock sells for almost nothing by design.
 		hallowOwned = false,
 		candy = 0,
+		-- Skins owned, and the one equipped per tool family.
+		skins = {},
+		skinEquipped = {},
 		coreSamples = {},
 		coreRiftOpened = {},
 		deepest = {}, depthUnlock = {}, backpack = {},
@@ -1191,6 +1194,58 @@ local function load(plr)
 	p.bigbangOwned = p.bigbangOwned and true or false
 	p.hallowOwned = p.hallowOwned and true or false
 	p.candy = math.max(0, math.floor(tonumber(p.candy) or 0))
+	p.skins = type(p.skins) == "table" and p.skins or {}
+	p.skinEquipped = type(p.skinEquipped) == "table" and p.skinEquipped or {}
+	--[[
+		TEMPERS BECOME SKINS. Owner, 2026-10-10: the new skins replace them.
+
+		A MIGRATION, not a rename. p.tempers is a map of kit.id -> {rarity, n}
+		and the grades are the same F..SSS ladder, so each owned temper becomes
+		one owned skin of the SAME GRADE, picked deterministically from that
+		grade's skins by hashing the temper id. Deterministic because two
+		players with the same temper must get the same skin, and because a
+		player who logs in twice must not collect two.
+
+		The tempers are LEFT IN PLACE, not deleted. If this mapping turns out
+		wrong the source data is still there to remap from; deleting it would
+		make the migration unrepeatable and unauditable. `skinsFromTempers`
+		stops it running twice.
+	]]
+	if not p.skinsFromTempers then
+		local okSk, Skins = pcall(function()
+			return require(shared:WaitForChild("MineSkins"))
+		end)
+		if okSk and Skins and type(Skins.LIST) == "table" then
+			local byGrade = {}
+			for _, s in ipairs(Skins.LIST) do
+				byGrade[s.tier] = byGrade[s.tier] or {}
+				table.insert(byGrade[s.tier], s.id)
+			end
+			for _, list in pairs(byGrade) do
+				table.sort(list) -- stable order, so the hash means the same thing twice
+			end
+			local granted = 0
+			for tid, row in pairs(p.tempers or {}) do
+				local grade = type(row) == "table" and tostring(row.rarity or "F") or "F"
+				local pool = byGrade[grade] or byGrade.F
+				if pool and #pool > 0 then
+					local h = 0
+					for i = 1, #tid do
+						h = (h * 31 + string.byte(tid, i)) % 2147483647
+					end
+					local pick = pool[(h % #pool) + 1]
+					if not p.skins[pick] then
+						p.skins[pick] = true
+						granted += 1
+					end
+				end
+			end
+			if granted > 0 then
+				print(("[Mine] migrated %d temper(s) to skins for %d"):format(granted, plr.UserId))
+			end
+		end
+		p.skinsFromTempers = true
+	end
 	p.spaceCoins = math.max(0, math.floor(tonumber(p.spaceCoins) or 0))
 	p.haulSpace = math.max(0, math.floor(tonumber(p.haulSpace) or 0))
 	Dig.seedHaulMix(p)
@@ -2222,7 +2277,9 @@ local function equippedTool(p)
 						famPow = FP.familyPower(famId)
 					end
 				end
-				power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult) * famPow))
+				-- x the skin's base: "multiplied by the ore damage off the rip".
+				power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)
+					* famPow * skinBase(p, famId)))
 			end
 			--[[
 				FINISHES RIDE AN ORE TOOL THE SAME WAY THEY RIDE A FLAGSHIP.
@@ -2382,7 +2439,9 @@ local function equippedTool(p)
 				family = famId,
 				-- Per-family damage; see MineOreTools.FAMILY_POWER.
 				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult)
-					* (OreToolsM and OreToolsM.familyPower and OreToolsM.familyPower(famId) or 1))),
+					* (OreToolsM and OreToolsM.familyPower and OreToolsM.familyPower(famId) or 1)
+					-- x the skin worn on this family, before any boost.
+					* skinBase(p, famId))),
 				rate = stats.rate or 2.6,
 				radius = stats.radius or 0,
 				cells = stats.cells or 1,
@@ -2578,6 +2637,33 @@ function Dig.layer2(p, n)
 	return t2, tailor
 end
 
+--[[
+	THE SKIN'S BASE MULTIPLIER on the tool it is worn on.
+
+	Owner: "The skin is the base, multiplied by the ore damage off the rip,
+	then every other boost stacks on top of the skin boost." The stacking is
+	layer 1 and 2 in boosts(); THIS is the "off the rip" -- it multiplies the
+	ore tool's own power before any boost has had a say.
+
+	Per family, because a skin is worn per family. Returns 1 for no skin, so
+	an unskinned tool is exactly the tool it was.
+]]
+local function skinBase(p, familyId)
+	if not p or not familyId then
+		return 1
+	end
+	local id = p.skinEquipped and p.skinEquipped[tostring(familyId)]
+	if not id then
+		return 1
+	end
+	local ok, Skins = pcall(function()
+		return require(shared:WaitForChild("MineSkins"))
+	end)
+	if not ok or not Skins then
+		return 1
+	end
+	return tonumber(Skins.baseOf(id)) or 1
+end
 local function boosts(p)
 	local b = Cards.emptyBoosts()
 	local n = #(p.equipped or {})
@@ -2640,6 +2726,47 @@ local function boosts(p)
 						end
 					end
 					break
+				end
+			end
+		end
+	end
+
+	--[[
+		THE SKIN ON THE TOOL YOU ARE HOLDING. LAYER 1.
+
+		Not my placement -- the owner's note at the top of this function put
+		skins there already: "skills+skins+tools+traits are the very bottom ...
+		equipment+pets are #2". So a skin ADDS with the trait and the skill
+		tree, and the pets and gear layer multiplies that, which is exactly the
+		worked example in that note: base 100, skin +50%, pet +100% -> 300.
+
+		One skin per FAMILY, and only the family you are actually holding pays,
+		the same rule the tool's own trait follows directly above. A skin on
+		your drill does nothing while you swing a pickaxe.
+
+		Dig.Layers.add, not b[stat], so ADDITIVE_STATS is honoured in one place
+		rather than by a second opinion here about which stats add.
+	]]
+	do
+		local uid = p.oreToolEquipped
+		local fam
+		if uid then
+			for _, t in ipairs(p.oreTools or {}) do
+				if t.uid == uid then
+					fam = t.familyId
+					break
+				end
+			end
+		end
+		local id = fam and p.skinEquipped and p.skinEquipped[fam]
+		if id then
+			local okSk, Skins = pcall(function()
+				return require(shared:WaitForChild("MineSkins"))
+			end)
+			local def = okSk and Skins and Skins.byId(id)
+			if def then
+				for stat, amount in pairs(def.kit or {}) do
+					Dig.Layers.add(T1, stat, amount)
 				end
 			end
 		end
@@ -3559,6 +3686,9 @@ local function snap(plr)
 		backpackTier = p.backpackTier, petSlots = p.petSlots, petSlotsEffective = C.effectivePetSlots and C.effectivePetSlots(p) or p.petSlots, zoneId = p.zoneId,
 		maxUnlockedZone = p.maxUnlockedZone, bigbangOwned = p.bigbangOwned and true or false,
 		hallowOwned = p.hallowOwned and true or false, candy = p.candy or 0,
+		skins = p.skins or {}, skinEquipped = p.skinEquipped or {},
+		-- One-shot: the client reads it once, then it is cleared below.
+		skinNotice = p.skinNotice,
 		eventPass = (function()
 			local ev = C.EVENTS and C.EVENTS[1]
 			if not ev then return nil end
@@ -3744,6 +3874,9 @@ local function snap(plr)
 		end)(),
 		creditPacks = Scrolls.CREDIT_PACKS, scrollShop = Scrolls.ITEMS,
 	})
+	-- The skin notice is ONE SHOT. Cleared after the send, or every snapshot
+	-- from here on re-announces the same skin -- and snaps are frequent.
+	p.skinNotice = nil
 end
 
 -- A snapshot is the whole profile: cards, packs, relics, skills. Sending one
@@ -5367,6 +5500,60 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 		table.insert(p.packs, { kind = kind, chestId = chest.id, zoneTier = tier,
 			zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) })
 		return "pack", chest.id
+	elseif chosen.kind == "skincase" then
+		--[[
+			A SKIN CASE. Rolls a tier off C.SKIN_CASE_TIERS, then a skin of that
+			tier at random, then grants it.
+
+			A DUPLICATE IS NOT A BLANK. 225 skins and an F pool of 54 means
+			duplicates are routine, so a repeat pays stardust rather than
+			nothing -- a case that can open into "you already have this" is a
+			case players learn to dread opening.
+		]]
+		local okSk, Skins = pcall(function()
+			return require(shared:WaitForChild("MineSkins"))
+		end)
+		if okSk and Skins then
+			local rows = C.SKIN_CASE_TIERS or {}
+			local tot = 0
+			for _, r in ipairs(rows) do
+				tot += (tonumber(r.weight) or 0)
+			end
+			local pick, tier = rng:NextNumber() * tot, "F"
+			for _, r in ipairs(rows) do
+				pick -= (tonumber(r.weight) or 0)
+				if pick <= 0 then
+					tier = r.tier
+					break
+				end
+			end
+			local pool = {}
+			for _, s in ipairs(Skins.LIST or {}) do
+				if s.tier == tier then
+					table.insert(pool, s)
+				end
+			end
+			local def = pool[1] and pool[rng:NextInteger(1, #pool)] or nil
+			if def then
+				p.skins = p.skins or {}
+				if p.skins[def.id] then
+					local dust = math.max(1, math.floor(20 * (Skins.TIER_RANK[tier] or 1)))
+					p.dust = (p.dust or 0) + dust
+					return "skindupe", def.name, dust
+				end
+				p.skins[def.id] = true
+				--[[
+					giveDrop and rollChestLoot both take a profile and no PLAYER, which
+					is why every chest reward in this function grants silently.
+					Threading plr through two hot-path functions to toast one of them
+					is the wrong trade, so the notice rides the profile and the next
+					snap carries it. A chase item landing with no feedback at all is
+					what is worth avoiding; hats and charms keep the existing silence.
+				]]
+				p.skinNotice = { name = def.name, tier = tier, set = def.set }
+				return "skin", def.name, tier
+			end
+		end
 	elseif chosen.kind == "charm" then
 		-- The rare one. Never a duplicate; a full set falls back to a pack so
 		-- the rarest roll is never a dead one, same as relics.
@@ -10396,6 +10583,70 @@ end
 	no side effects, so the granting lives here where the profile is, and the
 	roll itself stays testable.
 ]]
+--[[
+	EQUIP A SKIN, per tool family.
+
+	One skin per family, and it covers EVERY tool in that family -- the owner's
+	rule: "Skins work on every tool in the class." So this stores an id against
+	a family, never against a tool uid, and a player who forges a better pickaxe
+	keeps the skin they were wearing.
+
+	Passing no id unequips, which has to exist: a skin is a build choice and a
+	player must be able to take one off without owning a second.
+]]
+function Verbs.equipSkin(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local id = type(payload) == "table" and tostring(payload.id or "") or tostring(payload or "")
+	local fam = type(payload) == "table" and tostring(payload.family or "") or ""
+	local okSk, Skins = pcall(function()
+		return require(shared:WaitForChild("MineSkins"))
+	end)
+	if not okSk or not Skins then
+		return
+	end
+	p.skinEquipped = p.skinEquipped or {}
+	if id == "" then
+		if fam ~= "" then
+			p.skinEquipped[fam] = nil
+			markDirty(plr)
+			snap(plr)
+		end
+		return
+	end
+	local def = Skins.byId(id)
+	if not def then
+		net:FireClient(plr, "toast", "No such skin")
+		return
+	end
+	-- Owning it is the gate. Checked server side because the client sends the id.
+	if not (p.skins and p.skins[id]) then
+		net:FireClient(plr, "toast", "You do not own that skin")
+		return
+	end
+	-- A skin belongs to a FAMILY slot; the client says which tool class it is
+	-- dressing, and anything unknown falls back to the one being held.
+	if fam == "" then
+		local uid = p.oreToolEquipped
+		for _, t in ipairs(p.oreTools or {}) do
+			if t.uid == uid then
+				fam = tostring(t.familyId or "")
+				break
+			end
+		end
+	end
+	if fam == "" then
+		net:FireClient(plr, "toast", "Hold a tool to skin it")
+		return
+	end
+	p.skinEquipped[fam] = id
+	markDirty(plr)
+	snap(plr)
+	net:FireClient(plr, "toast", ("%s equipped on your %s"):format(def.name, fam))
+end
+
 function Verbs.buyTrickOrTreat(plr)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -11524,6 +11775,9 @@ local function tryPrestige(plr)
 	-- was claimed, and a prestige must not take it back.
 	fresh.hallowOwned = p.hallowOwned and true or false
 	fresh.candy = p.candy or 0
+	-- Skins are cosmetic-and-build items, not progression: a rebirth keeps them.
+	fresh.skins = p.skins or {}
+	fresh.skinEquipped = p.skinEquipped or {}
 	fresh.coreSamples = p.coreSamples or {}
 	fresh.coreRiftOpened = p.coreRiftOpened or {}
 	-- Skills survive a rebirth -- they ARE the rebirth reward.
@@ -17417,6 +17671,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "prestige" then tryPrestige(plr)
 		elseif action == "buyZone" then buyZone(plr, payload)
 		elseif action == "buyTrickOrTreat" then Verbs.buyTrickOrTreat(plr)
+		elseif action == "equipSkin" then Verbs.equipSkin(plr, payload)
 		elseif action == "equipCharm" then equipCharm(plr, payload)
 		elseif action == "mergeCharm" then Verbs.mergeCharm(plr, payload)
 		elseif action == "equipVfx" then equipVfx(plr, payload)

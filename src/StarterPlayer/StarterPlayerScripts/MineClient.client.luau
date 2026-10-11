@@ -5417,6 +5417,11 @@ eventsCtl = require(shared:WaitForChild("MineEventsView")).mount(gui, {
 	onTrickOrTreat = function()
 		net:FireServer("buyTrickOrTreat")
 	end,
+	-- One skin per tool FAMILY, covering every tool in that class. Passing no
+	-- id unequips; the server owns the ownership check either way.
+	onEquipSkin = function(id, family)
+		net:FireServer("equipSkin", { id = id, family = family })
+	end,
 })
 
 groupWheelCtl = require(shared:WaitForChild("MineGroupWheelView")).mount(gui, {
