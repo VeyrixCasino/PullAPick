@@ -116,7 +116,18 @@ M.CHEST_POPUP_LEVEL = 5
 	mixes its two neighbours, each pack a coin flip (owner: "Mix of both").
 
 	Ids are data: "case_<level>" for a whole grade (case_1..case_6, as shipped),
-	"case_<lo>_<hi>" for a half grade.
+	"case_<lo>_<hi>" for a half grade. A row may name its `id` outright.
+
+	`weights` (optional) splits a mixed case's packs between its levels; with
+	none, each level is equally likely (M.levelOdds).
+
+	THE TOP TWO ARE A CHANCE, NOT A PROMISE. Owner, 2026-10-10: "make myster 5
+	stars not garunteed 5 stars, just a good chnace at getting 5 star packs",
+	and chose 35% ★★★★★, else ★★★★. The ★★★★½ case was a coin flip between
+	the same two packs, which would have made it worth MORE than the ★★★★★
+	case above it, so it drops to 15% ★★★★★ (owner's pick). The ★★★★★ case
+	keeps its id, case_6, and its colour (starLevel 6): bags, the wheel's
+	jackpot and the lucky blocks already name it.
 ]]
 M.WILD_GRADES = {
 	{ levels = { 1 }, stars = 1, text = "★" },
@@ -126,8 +137,8 @@ M.WILD_GRADES = {
 	{ levels = { 4 }, stars = 3, text = "★★★" },
 	{ levels = { 4, 5 }, stars = 3.5, text = "★★★½" },
 	{ levels = { 5 }, stars = 4, text = "★★★★" },
-	{ levels = { 5, 6 }, stars = 4.5, text = "★★★★½" },
-	{ levels = { 6 }, stars = 5, text = "★★★★★" },
+	{ levels = { 5, 6 }, weights = { 85, 15 }, stars = 4.5, text = "★★★★½" },
+	{ id = "case_6", levels = { 5, 6 }, weights = { 65, 35 }, starLevel = 6, stars = 5, text = "★★★★★" },
 }
 
 -- One spin, and you get this many of the pack it lands on (owner: "Whatever
@@ -140,6 +151,31 @@ function M.wildId(level, hi)
 		return "case_" .. level .. "_" .. hi
 	end
 	return "case_" .. level
+end
+
+-- The id of a WILD_GRADES row.
+function M.wildGradeId(g)
+	return g.id or M.wildId(g.levels[1], g.levels[#g.levels])
+end
+
+--[[
+	A wild case's pack levels and how likely each is: { { level, p } ... },
+	p summing to 1. Even unless the case names `weights`. The roll, the reel,
+	the price and the inspector all read this, so they cannot disagree.
+]]
+function M.levelOdds(def)
+	local levels = (def and def.levels) or { def and def.starLevel or 1 }
+	local weights = def and def.weights
+	local total = 0
+	for i = 1, #levels do
+		total += math.max(0, tonumber(weights and weights[i]) or 1)
+	end
+	local out = {}
+	for i, level in ipairs(levels) do
+		local w = math.max(0, tonumber(weights and weights[i]) or 1)
+		table.insert(out, { level = level, p = (total > 0) and (w / total) or (1 / #levels) })
+	end
+	return out
 end
 
 function M.setCaseId(setKey, kind)
@@ -163,18 +199,23 @@ for _, g in ipairs(M.WILD_GRADES) do
 		packText = SetPacks.STAR_TEXT[lo] .. " or " .. SetPacks.STAR_TEXT[hi]
 	end
 	local def = {
-		id = M.wildId(lo, hi),
+		id = M.wildGradeId(g),
 		name = g.text .. " Wild Case",
 		caseType = "wild",
 		levels = g.levels,
+		weights = g.weights,
 		-- The colour and rank of a half grade are its lower neighbour's, so a
-		-- 2.5★ case never passes for a 3★ one.
-		starLevel = lo,
+		-- 2.5★ case never passes for a 3★ one. The ★★★★★ case names its own.
+		starLevel = g.starLevel or lo,
 		stars = g.stars,
 		cards = 0,
 		packText = packText,
 		blurb = "one spin: 3 of the " .. packText .. " pack it lands on, from any set",
 	}
+	if g.weights and hi ~= lo then
+		local odds = M.levelOdds(def)
+		def.blurb ..= string.format(" (%d%% %s)", math.floor(odds[#odds].p * 100 + 0.5), SetPacks.STAR_TEXT[hi])
+	end
 	add(def)
 	table.insert(M.WILD, def)
 end
@@ -361,13 +402,14 @@ function M.contents(id, rng, paid)
 	return out
 end
 
--- One wild pack: a set (top grades rarer) and, for a half grade, a coin flip
--- between its two pack levels.
+-- One wild pack: a set (top grades rarer) and, for a mixed case, one of its
+-- pack levels by M.levelOdds (a coin flip unless the case names weights).
 function M.rollWildPack(def, rng, paid)
-	local levels = def.levels or { def.starLevel }
 	local key = M.rollWildSet(rng, paid) or (M.SETS[1] and M.SETS[1].key)
-	local level = levels[(rng and rng:NextInteger(1, #levels)) or math.random(1, #levels)]
-	return SetPacks.packId(key, level)
+	local pick = weighted(M.levelOdds(def), rng, function(r)
+		return r.p
+	end)
+	return SetPacks.packId(key, pick and pick.level or def.starLevel or 1)
 end
 
 --[[
@@ -631,10 +673,9 @@ function M.expectedDust(id)
 		end
 		return ev
 	elseif def then
-		-- A half grade's pack is either neighbour, evenly; the set is any wild
-		-- set, by the reel's own grade odds (free cases; the paid-only share is
-		-- too small to price).
-		local levels = def.levels or { def.starLevel }
+		-- A mixed case's pack is one of its levels by M.levelOdds; the set is
+		-- any wild set, by the reel's own grade odds (free cases; the paid-only
+		-- share is too small to price).
 		local grades = {}
 		for _, row in ipairs(M.wildGradeOdds()) do
 			if not row.paidOnly then
@@ -642,12 +683,12 @@ function M.expectedDust(id)
 			end
 		end
 		local per = 0
-		for _, level in ipairs(levels) do
+		for _, lv in ipairs(M.levelOdds(def)) do
 			local ev = 0
 			for _, row in ipairs(grades) do
-				ev += SetPacks.expectedPackDust(level, dust, row.grade) * row.pct / 100
+				ev += SetPacks.expectedPackDust(lv.level, dust, row.grade) * row.pct / 100
 			end
-			per += ev / #levels
+			per += ev * lv.p
 		end
 		return per * M.WILD_PACKS
 	end
@@ -799,7 +840,7 @@ function M.creditPrice(id, day)
 		]]
 		local prev = 0
 		for _, g in ipairs(M.WILD_GRADES) do
-			local gid = "case_" .. table.concat(g.levels, "_")
+			local gid = M.wildGradeId(g)
 			local p = math.max(M.CREDIT_SET[gid] or creditsFor(gid), prev + 5)
 			if gid == id then
 				return p

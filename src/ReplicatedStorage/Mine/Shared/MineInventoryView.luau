@@ -1569,7 +1569,18 @@ function MineInventoryView.mount(parent, opts)
 			local SetPacks = require(shared:WaitForChild("MineSetPacks"))
 			local hdrK = label(inspectP, (caseDef.caseType == "set") and "WHAT'S INSIDE"
 				or ("EACH PACK IS " .. string.upper(caseDef.packText or SetPacks.STAR_TEXT[caseDef.starLevel])
-					.. ((#(caseDef.levels or {}) > 1) and " (50/50)" or "") .. ", FROM A SET OF GRADE"),
+					.. (function()
+						-- A mixed case prints its split: "(50/50)", or "(65/35)" for the ★★★★★ case.
+						local odds = (#(caseDef.levels or {}) > 1) and require(shared:WaitForChild("MineCases")).levelOdds(caseDef) or {}
+						if #odds < 2 then
+							return ""
+						end
+						local parts = {}
+						for _, lv in ipairs(odds) do
+							table.insert(parts, tostring(math.floor(lv.p * 100 + 0.5)))
+						end
+						return " (" .. table.concat(parts, "/") .. ")"
+					end)() .. ", FROM A SET OF GRADE"),
 				13, MUTED, UDim2.fromOffset(18, 210), UDim2.new(1, -36, 0, 18), FONT)
 			hdrK.TextXAlignment = Enum.TextXAlignment.Left
 			hdrK.ZIndex = 62

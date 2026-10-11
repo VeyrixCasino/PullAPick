@@ -30,6 +30,13 @@ There are two kinds (`MineCases.CASES`, kind `pack_case`):
   - The half grades 2.5★, 3.5★ and 4.5★ are `case_3_4`, `case_4_5` and
     `case_5_6`. The sets have no half-star packs, so a half-star case's pack
     is a coin flip between its two neighbours (owner: "Mix of both").
+  - **The top two are a chance, not a promise** (owner, 2026-10-11: *"make
+    myster 5 stars not garunteed 5 stars, just a good chnace at getting 5 star
+    packs"*). The ★★★★★ case (`case_6`, id and colour kept) lands on a ★★★★★ pack
+    **35%** of the time, else ★★★★. The ★★★★½ case dropped from 50% to **15%**
+    ★★★★★ so it stays below the ★★★★★ case (owner's pick). `WILD_GRADES` rows
+    carry `weights`; `MineCases.levelOdds` feeds the roll, the reel, the price,
+    the pack tier and the inspector's "(85/15)" / "(65/35)".
   - **Opening one is a CS:GO-style spin.** Owner, 2026-10-10: *"these myster
     cases are meant to be like csgo slots"*, *"Whatever reel lands on, you get
     3 of"*.
@@ -183,9 +190,12 @@ with the second a 0 or a 5.
 | ★★½ | 906 | 1,300 | 70% | 25 |
 | ★★★ | 1,364 | 1,950 | 70% | 30 |
 | ★★★½ | 3,128 | 4,450 | 70% | 35 |
-| ★★★★ | 4,893 | 7,000 | 70% | 45 |
-| ★★★★½ | 10,425 | 15,000 | 70% | 65 |
-| ★★★★★ | 15,958 | 23,000 | 69% | 80 |
+| ★★★★ | 4,892 | 7,000 | 70% | 45 |
+| ★★★★½ | 6,552 | 9,350 | 70% | 50 |
+| ★★★★★ | 8,765 | 12,500 | 70% | 60 |
+
+(★★★★½ and ★★★★★ re-priced 2026-10-11 when they stopped being 50% and 100%
+★★★★★; read in Studio from `expectedDust`, `dustPrice` and `creditPrice`.)
 
 These are for 3 packs a spin. ★½ is set to 15 credits by hand (`MineCases.CREDIT_SET`;
 owner: "make ★½ 15 credits"), because the curve rounds it to the same 10 as ★.
@@ -236,7 +246,7 @@ Wild-slot odds by set grade (`MineCases.wildGradeOdds`):
 
 **Also decided (owner, 2026-10-10), closing the pricing pass:**
 - The wheel's case slices stay: Anomaly ★★ 10%, Heirloom ★★★ 10%, Apex ★★★★ 6%,
-  Jackpot ★★★★★ + 15K gems 0.8%. That is about 1,000 stardust of value a spin.
+  Jackpot ★★★★★ + 15K gems 0.8%. That is about 1,000 stardust of value a spin. (Counted before 2026-10-11, when the ★★★★★ case was a sure ★★★★★ pack; the jackpot case is worth about half that now.)
 - The featured set packs stay: 4 a day at ★★★, ★★★★, ★★★★ and ★★★★★.
 - **A set case shows its set's grade, not stars.** Owner: *"A 1 star pack of
   the top set and a 1 star of shittiest set means vastly different things."*

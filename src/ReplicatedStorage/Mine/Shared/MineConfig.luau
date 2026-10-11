@@ -297,6 +297,69 @@ MineConfig.SKIN_CASE_TIERS = {
 }
 
 --[[
+	SKIN CASES FROM CHESTS, BETTER FROM BETTER CHESTS. Owner, 2026-10-11, on
+	pack cases already scaling with the chest: "nothing for skins i dont
+	think.. same logic/rates", and chose "better chests -> better skin tiers".
+
+	  CHEST_SKIN_CASE_CHANCE  a chest drops a skin case this often: the 3 of
+	                          102.9 the CHEST_LOOT row above was given. Chest
+	                          luck raises it, capped at CHEST_SKIN_LUCK_CAP
+	                          (the pack cases' cap).
+	  CHEST_SKIN_RANK_SHIFT   tiers the SKIN_CASE_TIERS ladder starts higher:
+	                          a B chest rolls D at F's weight, D's at C's ...;
+	                          rows pushed past SSS drop off. The same rule
+	                          MineCases.chestCaseOdds applies to pack cases.
+	                          Lower ranks are never pushed down.
+
+	The CHEST_LOOT row was never reached: only giveDrop reads that table, and
+	nothing calls giveDrop. Wall chests open through openChestBlock, which rolls
+	this instead.
+]]
+MineConfig.CHEST_SKIN_CASE_CHANCE = 0.03
+MineConfig.CHEST_SKIN_LUCK_CAP = 3
+MineConfig.CHEST_SKIN_RANK_SHIFT = { B = 1, A = 2, S = 3 }
+
+-- { { tier, p } ... } for one skin case from a chest of `rank`, p summing to 1.
+function MineConfig.skinCaseTierOdds(rank)
+	local rows = MineConfig.SKIN_CASE_TIERS
+	local shift = MineConfig.CHEST_SKIN_RANK_SHIFT[rank or ""] or 0
+	local out, total = {}, 0
+	for i, r in ipairs(rows) do
+		local from = rows[i - shift]
+		local w = from and (tonumber(from.weight) or 0) or 0
+		total += w
+		table.insert(out, { tier = r.tier, p = w })
+	end
+	for _, r in ipairs(out) do
+		r.p = (total > 0) and (r.p / total) or 0
+	end
+	return out
+end
+
+-- A chest's skin case, if it drops one: the tier, or nil.
+function MineConfig.rollChestSkinTier(rank, rng, chestLuck)
+	rng = rng or Random.new()
+	local luck = math.clamp(tonumber(chestLuck) or 1, 1, MineConfig.CHEST_SKIN_LUCK_CAP)
+	if rng:NextNumber() >= MineConfig.CHEST_SKIN_CASE_CHANCE * luck then
+		return nil
+	end
+	local roll = rng:NextNumber()
+	local odds = MineConfig.skinCaseTierOdds(rank)
+	for _, r in ipairs(odds) do
+		roll -= r.p
+		if roll <= 0 and r.p > 0 then
+			return r.tier
+		end
+	end
+	for i = #odds, 1, -1 do
+		if odds[i].p > 0 then
+			return odds[i].tier
+		end
+	end
+	return nil
+end
+
+--[[
 	HOW MANY PACKS A PACK CHEST PAYS.
 
 	Not one. A chest can come up empty and a chest can bury you, and there is
@@ -1379,6 +1442,45 @@ MineConfig.CHEST_CHANCE = 0.003 -- ~1.3 chests / layer on 21x21; ~20 an hour of 
 -- Shallow Meadow (first 100 layers) doubles it again: the tutorial asks for three chests,
 -- and a new player should meet them inside their first ten minutes.
 MineConfig.MEADOW_SHALLOW_CHEST_MULT = 2
+--[[
+	BETTER CHESTS DEEPER. Owner, 2026-10-10: "zone and depth should have
+	something to do with chest drop rates across the map.. i can picture people
+	with explosoves nuking starter mine bcuz everything is one shot. there should
+	be incentive to go a little deeper". Then chose: BETTER chests only (the
+	count stays CHEST_CHANCE everywhere), x1 at a zone's top to x3 at its
+	deepest rock, inside every zone EXCEPT the first -- Dirt Meadow stays x1 --
+	and front-loaded.
+
+	The multiplier follows how tough the rock is, on a log scale. Block HP grows
+	linearly with depth (MineDepth.dirtHp), so log(HP / topHP) over
+	log(bottomHP / topHP) is how far through a zone's toughness a block sits.
+	That puts most of the gain early: x1.7 at layer 100, x2.2 at 500, x2.5 at
+	1,000, x3 at the floor. Going "a little deeper" pays at once, and the top of
+	a zone is never the best place to nuke.
+
+	It multiplies the weight of the ranks better than C -- B, A and S -- in the
+	zone's chest pool (MineChestRanks.roll `better`), and the catalog chests'
+	luck (MinePackConfig.rollChestAt). Better chests then pay better pack cases
+	and skin cases through their rank (MineCases.CHEST_RANK_SHIFT,
+	CHEST_SKIN_RANK_SHIFT). Event mines and Meadow are x1.
+]]
+MineConfig.CHEST_DEPTH_LUCK_MAX = 3
+MineConfig.CHEST_DEPTH_LUCK_SKIP = { meadow = true }
+
+function MineConfig.chestRankLuck(zoneId, layer)
+	local zone = MineConfig.zoneById(zoneId)
+	if not zone or zone.limited or MineConfig.CHEST_DEPTH_LUCK_SKIP[zone.id] then
+		return 1
+	end
+	local floor = math.max(2, MineConfig.zoneLayers(zone))
+	layer = math.clamp(math.floor(tonumber(layer) or 1), 1, floor)
+	-- The zone multiplier cancels in the ratio, so the meadow-shaped curve is
+	-- every zone's curve.
+	local top = Depth.meadowDirtHp(1)
+	local t = math.log(Depth.meadowDirtHp(layer) / top) / math.log(Depth.meadowDirtHp(floor) / top)
+	return 1 + (MineConfig.CHEST_DEPTH_LUCK_MAX - 1) * math.clamp(t, 0, 1)
+end
+
 -- Pit lucky cubes. 1 in 5,000. Mix 80/15/5 gold/diamond/mythic. Not 3× in bigbang.
 MineConfig.LUCKY_BLOCK_CHANCE = 0.00020
 --[[

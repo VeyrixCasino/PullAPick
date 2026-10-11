@@ -54,7 +54,7 @@ related: [glossary, owner, open-questions, overview]
 | **build** | the player's charms-and-skins build, the `MineBuild` stamp, or `rojo build` | Which? |
 | **echo** | a retired stat, a tool special, or the Space element's verb | Which? |
 | **oreYield** | the old key for blast chance (now `blastChance`), or `MineConfig.oreYieldFor` (ore quantity) | Chance or quantity? |
-| **tokens** | skill-tree tokens (`skillState.tokens`) or temper tokens (hats, cases, traits) | Which? Rename one? |
+| **tokens** | **temper tokens** (`p.temperTokens`). Owner, 2026-10-11: *"ALL 'TEMPER' TOKENS ARE JUST TOKENS. IF I EVER SAY TOKENS I MEAN TEMPER TOKENS"*. Skill-tree tokens (`skillState.tokens`) are the other thing in code. | Settled: do not ask again. |
 
 ## Ore, packs and loot
 

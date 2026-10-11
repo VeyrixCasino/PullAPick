@@ -45,6 +45,18 @@ roll beats `MineConfig.CHEST_CHANCE` (0.003). That chance is multiplied in a few
   at layer ≤ 120 and 12% deeper in zone 1. `m1_lookingglass` is never picked.
 - **Otherwise, the zone's pool**, rolled by rank in `MineChestRanks`. The weights
   are S 4, A 10, B 22, C 100, D 35, F 0.
+- **Better chests deeper** (owner, 2026-10-10/11). How MANY chests stays
+  `CHEST_CHANCE` everywhere; how GOOD they are rises with depth inside every zone
+  except Dirt Meadow. `MineConfig.chestRankLuck(zone, layer)` is ×1 at a zone's top
+  and ×3 at its floor, on a log of block HP, so it is front-loaded: ×1.7 at layer
+  100, ×2.2 at 500, ×2.45 at 1,000. It multiplies the pool's **B, A and S** weights
+  (`MineChestRanks.roll` `better`, which leaves D and C alone) and the catalog
+  chests' luck. In Greyvein's pool that takes S from 0.9% to 2.2%, A from 2.2% to
+  4.9% and B from 16% to 34% of chests. Meadow and the event mines stay ×1. The
+  owner's reason: *"i can picture people with explosoves nuking starter mine bcuz
+  everything is one shot. there should be incentive to go a little deeper"*.
+  Better ranks then pay better pack cases and skin cases (below).
+  `tools/verify/chest-depth.js` checks it.
 - **The Shiny Chest (chase).** In zone 1 it can appear only at layer ≥ 2500, at
   1/8000. In zones 2–10 the chance lerps from 1/2500 up to 0.8%.
 
@@ -90,6 +102,18 @@ the five kinds are still separated by tint alone. Open question below.
   - A better chest rank starts the ladder a half-star higher (S starts at
     ★★½). F and D chests drop a case only 2.5% and 5% of the time.
   - Chest luck raises the chance, up to ×3. See [pack-cases](pack-cases.md).
+- **Skin cases** (owner, 2026-10-11: skins follow the pack cases' *"same
+  logic/rates"*; chose "better chests → better skin tiers").
+  - 3% of zone chests drop one (`MineConfig.CHEST_SKIN_CASE_CHANCE`), raised by
+    chest luck up to ×3. It opens on the spot: a skin of the rolled tier, or
+    stardust for a duplicate (`Dig.grantChestSkin`).
+  - The tier comes from `SKIN_CASE_TIERS`, shifted up by the chest's rank
+    (`CHEST_SKIN_RANK_SHIFT`: B +1, A +2, S +3, the pack cases' rule). A C chest's
+    case is SSS 0.4% of the time, an S chest's about 6%. Low ranks are never
+    pushed down.
+  - **Before this, chests paid no skin cases at all.** The `CHEST_LOOT` skincase
+    row (2026-10-10) is read only by `rollChestLoot`, whose only caller,
+    `giveDrop`, is never called. Wall chests open through `openChestBlock`.
 - **Tutorial chests** force how many packs drop through the `PackQty` attribute.
 - **Persist bag.** Mid and deep layers have a small chance (0.8% / 0.4%, times
   `chestLuck`) at a one-off bag that adds `backpackBonus`.

@@ -35,8 +35,12 @@ const lucky = read("src/ReplicatedStorage/Mine/Shared/MineLuckyBlocks.luau")
 // and the ore tiers a skin case can be drawn from.
 const caseSrc = read("src/ReplicatedStorage/Mine/Shared/MineCases.luau");
 const wildBlock = (caseSrc.match(/M\.WILD_GRADES = \{([\s\S]*?)\n\}/) || [])[1] || "";
-const WILD = [...wildBlock.matchAll(/levels = \{([^}]*)\}/g)]
-  .map((m) => "case_" + m[1].split(",").map((x) => x.trim()).join("_"));
+// A row may name its id outright (the ★★★★★ case is case_6 over levels 5 and 6).
+const WILD = [...wildBlock.matchAll(/\{([^\n]*?)levels = \{([^}]*)\}/g)]
+  .map((m) => {
+    const named = m[1].match(/id = "([a-z0-9_]+)"/);
+    return named ? named[1] : "case_" + m[2].split(",").map((x) => x.trim()).join("_");
+  });
 const ORE_TIERS = [...read("src/ReplicatedStorage/Mine/Shared/MineConfig.luau")
   .matchAll(/\{ id = "[a-z_]+", name = "[^"]+", tier = (\d+)/g)].map((m) => +m[1]);
 

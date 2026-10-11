@@ -2013,10 +2013,9 @@ do
 			if MinePackConfig.PACK_BY_ID[def.id] == nil then
 				MinePackConfig.PACK_BY_ID[def.id] = def
 				local key = def.setKey or (M.SETS[1] and M.SETS[1].key) or ""
-				local levels = def.levels or { def.starLevel }
 				local tier = 0
-				for _, level in ipairs(levels) do
-					tier += (tonumber(MinePackConfig.PACK_TIER[key .. "_pack_" .. tostring(level)]) or 0) / #levels
+				for _, lv in ipairs(M.levelOdds(def)) do
+					tier += (tonumber(MinePackConfig.PACK_TIER[key .. "_pack_" .. tostring(lv.level)]) or 0) * lv.p
 				end
 				MinePackConfig.PACK_TIER[def.id] = tier + 0.25
 			end

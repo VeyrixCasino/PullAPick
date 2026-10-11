@@ -1085,3 +1085,16 @@ The audit also flagged three things, reported to the owner and not changed:
 - the open-all hits screen counts ribboned Epics as hits.
 
 Updated: cards-and-packs, pack-cases.
+
+## [2026-10-11] ingest | Better chests deeper; the 5★ case is a chance; chest skin cases
+Owner asked for depth to matter for chests (*"people with explosoves nuking starter mine"*)
+and chose: better chests only (count unchanged), ×1 → ×3 inside every zone except Meadow,
+front-loaded (`MineConfig.chestRankLuck`, lifting B/A/S only). Then for cases: skins get
+"same logic/rates" (a chest's rank shifts its skin tier, 3% of chests), and *"make myster 5
+stars not garunteed 5 stars"*: the ★★★★★ case is 35% ★★★★★, and the ★★★★½ case drops to 15%
+so the ladder does not invert (both owner's picks). Found: chests never paid a skin case,
+because the CHEST_LOOT row's only caller (`giveDrop`) is never called. Also settled: "tokens"
+always means temper tokens. Checked by `tools/verify/chest-depth.js` and in Studio
+(case values 7,000 / 9,350 / 12,500 dust for ★★★★ / ★★★★½ / ★★★★★).
+
+Updated: chests-and-lucky-blocks, pack-cases, ambiguous-terms, log.

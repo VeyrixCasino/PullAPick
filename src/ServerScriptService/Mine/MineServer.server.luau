@@ -4582,7 +4582,9 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	local chestDef
 	if kind == "chest" then
 		local ZoneChests = require(shared:WaitForChild("MineZoneChests"))
-		chestDef = ZoneChests.rollSpawn(zone.id, y, (C.zoneIndex and C.zoneIndex(zone.id)) or 1)
+		-- Better chests deeper, inside every zone but Meadow (MineConfig.chestRankLuck).
+		chestDef = ZoneChests.rollSpawn(zone.id, y, (C.zoneIndex and C.zoneIndex(zone.id)) or 1,
+			C.chestRankLuck and C.chestRankLuck(zone.id, y) or 1)
 	end
 	local part = Instance.new("Part")
 	part.Name = "MineBlock"
@@ -5418,6 +5420,45 @@ local function zoneTierOf(zone)
 	return 1
 end
 
+--[[
+	A SKIN OF `tier`, from a chest's skin case: a skin of that tier at random
+	(MineSkins), granted. Returns "skin", name, tier -- or "skindupe", name,
+	stardust, because A DUPLICATE IS NOT A BLANK: 225 skins and an F pool of 54
+	make repeats routine, and a case that opens into "you already have this" is
+	one players learn to dread. nil if the skin list is missing.
+
+	It rides the profile (p.skinNotice, read once by MineSkinsView) because the
+	old CHEST_LOOT caller had no player; openChestBlock also toasts.
+]]
+function Dig.grantChestSkin(p, tier, rng)
+	rng = rng or Random.new()
+	local okSk, Skins = pcall(function()
+		return require(shared:WaitForChild("MineSkins"))
+	end)
+	if not (okSk and Skins) then
+		return nil
+	end
+	local pool = {}
+	for _, s in ipairs(Skins.LIST or {}) do
+		if s.tier == tier then
+			table.insert(pool, s)
+		end
+	end
+	local def = pool[1] and pool[rng:NextInteger(1, #pool)] or nil
+	if not def then
+		return nil
+	end
+	p.skins = p.skins or {}
+	if p.skins[def.id] then
+		local dust = math.max(1, math.floor(20 * (Skins.TIER_RANK[tier] or 1)))
+		p.dust = (p.dust or 0) + dust
+		return "skindupe", def.name, dust
+	end
+	p.skins[def.id] = true
+	p.skinNotice = { name = def.name, tier = tier, set = def.set }
+	return "skin", def.name, tier
+end
+
 -- What a broken chest actually yields. Usually packs -- a run of them, which
 -- can be none -- sometimes coins, a hat often enough to chase sets, a charm
 -- rarely, and a relic almost never. No gems: those are minted from scrap ore
@@ -5501,58 +5542,12 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 			zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) })
 		return "pack", chest.id
 	elseif chosen.kind == "skincase" then
-		--[[
-			A SKIN CASE. Rolls a tier off C.SKIN_CASE_TIERS, then a skin of that
-			tier at random, then grants it.
-
-			A DUPLICATE IS NOT A BLANK. 225 skins and an F pool of 54 means
-			duplicates are routine, so a repeat pays stardust rather than
-			nothing -- a case that can open into "you already have this" is a
-			case players learn to dread opening.
-		]]
-		local okSk, Skins = pcall(function()
-			return require(shared:WaitForChild("MineSkins"))
-		end)
-		if okSk and Skins then
-			local rows = C.SKIN_CASE_TIERS or {}
-			local tot = 0
-			for _, r in ipairs(rows) do
-				tot += (tonumber(r.weight) or 0)
-			end
-			local pick, tier = rng:NextNumber() * tot, "F"
-			for _, r in ipairs(rows) do
-				pick -= (tonumber(r.weight) or 0)
-				if pick <= 0 then
-					tier = r.tier
-					break
-				end
-			end
-			local pool = {}
-			for _, s in ipairs(Skins.LIST or {}) do
-				if s.tier == tier then
-					table.insert(pool, s)
-				end
-			end
-			local def = pool[1] and pool[rng:NextInteger(1, #pool)] or nil
-			if def then
-				p.skins = p.skins or {}
-				if p.skins[def.id] then
-					local dust = math.max(1, math.floor(20 * (Skins.TIER_RANK[tier] or 1)))
-					p.dust = (p.dust or 0) + dust
-					return "skindupe", def.name, dust
-				end
-				p.skins[def.id] = true
-				--[[
-					giveDrop and rollChestLoot both take a profile and no PLAYER, which
-					is why every chest reward in this function grants silently.
-					Threading plr through two hot-path functions to toast one of them
-					is the wrong trade, so the notice rides the profile and the next
-					snap carries it. A chase item landing with no feedback at all is
-					what is worth avoiding; hats and charms keep the existing silence.
-				]]
-				p.skinNotice = { name = def.name, tier = tier, set = def.set }
-				return "skin", def.name, tier
-			end
+		-- (Unreached: see MineConfig.CHEST_SKIN_CASE_CHANCE. Kept on the shared
+		-- grant so the two cannot drift.)
+		local tier = C.rollChestSkinTier and C.rollChestSkinTier(nil, rng, 0) or "F"
+		local got, name, extra = Dig.grantChestSkin(p, tier or "F", rng)
+		if got then
+			return got, name, extra
 		end
 	elseif chosen.kind == "charm" then
 		-- The rare one. Never a duplicate; a full set falls back to a pack so
@@ -5983,7 +5978,8 @@ local function openChestBlock(plr, p, chestId, b, part)
 		def = ZoneChests.exclusiveFor(zone.id, layer)
 		rank = "native"
 	elseif not def then
-		local pick = ZoneChests.roll(zone.id, rng, { luck = luck, layer = layer })
+		local pick = ZoneChests.roll(zone.id, rng, { luck = luck, layer = layer,
+			better = C.chestRankLuck and C.chestRankLuck(zone.id, layer) or 1 })
 		if not pick or not pick.def then
 			return
 		end
@@ -6131,6 +6127,23 @@ local function openChestBlock(plr, p, chestId, b, part)
 					title = "PACK CASE",
 					blurb = (def.blurb or "") .. ". It is in your bag.",
 				})
+			end
+		end
+	end
+	--[[
+		A SKIN CASE, SOMETIMES (MineConfig.CHEST_SKIN_CASE_CHANCE, 3%). Owner,
+		2026-10-11: skins follow the pack cases' logic, so a better chest rank
+		pays a better tier (CHEST_SKIN_RANK_SHIFT); chest luck raises the chance,
+		capped. Opened on the spot: the skin, or stardust for a duplicate.
+	]]
+	do
+		local tier = C.rollChestSkinTier and C.rollChestSkinTier(rank, rng, b and b.chestLuck)
+		if tier then
+			local got, name, extra = Dig.grantChestSkin(p, tier, rng)
+			if got == "skin" then
+				net:FireClient(plr, "toast", ("SKIN CASE! %s (%s)"):format(tostring(name), tostring(tier)))
+			elseif got == "skindupe" then
+				net:FireClient(plr, "toast", ("SKIN CASE: %s again, +%d stardust"):format(tostring(name), tonumber(extra) or 0))
 			end
 		end
 	end
