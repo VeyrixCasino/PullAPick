@@ -285,6 +285,7 @@ boots Roblox's PlayerModule.
 
 ## Gotchas
 
+- **AFK never starts in a menu** (owner, 2026-10-11: *"make the afk not pop up when in ui"*). The AFK chill block in `MineClient` used to drop every "game processed" input before resetting its idle clock, so taps on buttons did not count: browsing the Blacksmith or holding REEL through a fish fight read as standing still, and AFK CHILL popped over the menu (seen in Studio). Now any input resets it, and `ClientFns.inUi()` (screens that report `isOpen`, the old `panels`, or anything big and solid over the world) holds off AFK and its tip.
 - "A panel is missing" is a sync question first (TODO §0.14). Check what the
   MineBuild line in the Output window says before debugging.
 - START-HERE §5 says almost nothing has run in Roblox. That was written before

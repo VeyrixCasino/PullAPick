@@ -1135,3 +1135,8 @@ fishing in the same session: three catches, a rod bought and levelled). Settled:
 "tokens" means temper tokens; bait is no longer the coin sink, the rods are.
 
 Updated: fishing (new), index, owner, next-up, zones-layers-and-seams, TODO, log.
+
+## [2026-10-11] fix | AFK stays out of menus
+Owner: *"make the afk not pop up when in ui"*. Seen in Studio: AFK CHILL over an open Blacksmith. Cause: taps on buttons are "game processed" and the AFK block ignored them before resetting its idle clock. Any input now counts, and `ClientFns.inUi()` holds AFK and its tip off while a screen is up.
+
+Updated: client-and-ui, log.

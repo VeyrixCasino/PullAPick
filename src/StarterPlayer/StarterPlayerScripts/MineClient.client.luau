@@ -1647,7 +1647,23 @@ function ClientFns.layoutQuestPanel(instant)
 			y += d.Size.Y.Offset
 		end
 	end
-	panel.Visible = qVis or dVis or tVis
+	--[[
+		A FULLSCREEN SCREEN GETS THE SCREEN. Owner, 2026-10-11: "Fix the issue
+		where the main menu stacks over the inventory."
+
+		raiseQuests() lifts this panel to ZIndex 90 whenever a modal is open, so
+		the collapsed QUESTS pill can be peeked at over the top of it. That is
+		right for a windowed panel and wrong for a fullscreen one: the pill
+		lands at the top-left, which is exactly where the Blacksmith screen puts
+		its CRAFT / UPGRADE / SHOP rail, so it covered the selected nav entry.
+
+		The rest of the HUD already knew this -- `apply()` switches the wallet,
+		the prestige label and the dock off whenever a HUD_HIDERS panel is up.
+		The quest panel was the one piece that stayed. It hides with them now,
+		and `questHudCovered` is read HERE rather than set on the instance so a
+		later relayout cannot quietly turn it back on.
+	]]
+	panel.Visible = (qVis or dVis or tVis) and not ClientFns.questHudCovered
 	panel.Position = UDim2.new(0, ClientFns.questDrawerRestX or 16, 0, ClientFns.questPanelY or 300)
 	local open = ClientFns.questDrawerOpen ~= false
 	local goal = open and UDim2.fromOffset(wide, y + 6) or UDim2.fromOffset(150, H)
@@ -3004,6 +3020,72 @@ dockBtn(ICONS.card, "Inventory", function()
 	end
 end)
 --[[
+	FORGE GETS A DOCK BUTTON, DRAWN RATHER THAN UPLOADED.
+
+	Owner, 2026-10-11: "Move Forge to the right side where Skins is now. Use an
+	anvil icon with no background."
+
+	It had no way in from the world at all: `ClientFns.onForge` is only reachable
+	from a button INSIDE the Blacksmith screen, so the Forge was a room you could
+	only enter from another room. It sits where Skins sat; Skins moves down one
+	and keeps its button.
+
+	THE ANVIL IS FOUR FRAMES, NOT AN UPLOAD. Every icon in ICONS is an uploaded
+	png, and the 36 charm images uploaded on 2026-10-07 still return
+	AssetFetchStatus.Failure -- real ids, pending moderation -- so a freshly
+	uploaded anvil would most likely draw nothing for days. Drawing it keeps the
+	button working today, and it is the pattern the dock already uses: Wheel and
+	Planets are emoji standing in for art.
+
+	`clearPlate` is what "no background" means here: the 56px plate behind every
+	other dock icon is switched off, so the anvil sits on the world.
+]]
+do
+	local _, plate = dockBtn("", "Forge", function()
+		if not forgeCtl then
+			return
+		end
+		if forgeCtl.root and forgeCtl.root.Visible then
+			forgeCtl.close()
+			return
+		end
+		hidePanels()
+		if snap then
+			forgeCtl.setState(snap)
+		end
+		forgeCtl.open()
+	end, { clearPlate = true })
+
+	-- Anvil, bottom-up: base, waist, body, horn. Offsets are from the plate's
+	-- centre so the whole thing stays put when the dock reflows.
+	local INK = Color3.fromRGB(28, 28, 34)
+	local STEEL = Color3.fromRGB(214, 220, 232)
+	local function slab(w, h, x, y, colour, radius)
+		local f = mk("Frame", {
+			BackgroundColor3 = colour,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, x, 0.5, y),
+			Size = UDim2.fromOffset(w, h),
+			Active = false,
+			ZIndex = 3,
+		}, plate)
+		round(f, radius or 3)
+		local s = Instance.new("UIStroke")
+		s.Color = INK
+		s.Thickness = 2
+		s.Parent = f
+		return f
+	end
+	slab(30, 6, 0, 13, STEEL, 3)    -- base
+	slab(12, 8, 0, 5, STEEL, 2)     -- waist
+	slab(34, 10, 0, -4, STEEL, 4)   -- body: the face a smith hits
+	-- The horn: a small slab pushed off the left end of the body, tapered by
+	-- sitting it slightly higher than the body's midline.
+	slab(10, 6, -20, -5, STEEL, 3)
+end
+
+--[[
 	SKINS. The wardrobe: 225 of them, filtered by set, equipped per tool class.
 
 	Reusing the enchanter art until skin art lands, the same way the Pass
@@ -3098,6 +3180,26 @@ do
 		Active = false,
 	}, plate)
 end
+--[[
+	EVENTS LOSES ITS PLATE AGAIN. Owner, 2026-10-11: "Remove the background
+	behind the Event icon while keeping it in exactly the same spot."
+
+	THIS REVERSES THE 2026-10-05 DECISION, deliberately, and the history is
+	worth keeping because it has now gone round once. Events originally passed
+	clearPlate; on 2026-10-05 the owner asked for the block back -- "put a ui
+	button block under it, so it matches every other icon in the row" -- and the
+	note then recorded the reason it had been bare: the popper asset has a plate
+	baked into it, so the UI plate made two stacked plates.
+
+	That baked plate was never re-uploaded transparent, so the owner is looking
+	at the doubled version and has asked for the UI one off again. clearPlate
+	only switches off the 56px plate and its hairline; the button, its order in
+	the column and its hit area are untouched, so it keeps "exactly the same
+	spot".
+
+	The real fix is still a transparent re-upload of the popper; the id lives in
+	ICONS at the top of this file and nothing else would have to change.
+]]
 dockBtn(ICONS.events, "Events", function()
 	if not eventsCtl then
 		return
@@ -3111,22 +3213,7 @@ dockBtn(ICONS.events, "Events", function()
 		eventsCtl.setState(snap)
 	end
 	eventsCtl.open()
-end)
---[[
-	EVENTS GETS THE SAME PLATE AS EVERY OTHER DOCK BUTTON.
-
-	Owner, 2026-10-05: "can you remove the background to the event icon, and then
-	put a ui button block under it, so it matches every other icon in the row".
-
-	It used to pass clearPlate, which switched off the 56px plate AND its
-	hairline, so Events was the one button in the column with nothing behind it --
-	the art sat straight on the world. That was done because the popper asset had
-	a plate baked into it, and two plates looked worse than none.
-
-	Dropping clearPlate puts the standard block back. If the baked plate is still
-	in the asset the art needs a transparent re-upload; the id lives in ICONS at
-	the top of this file and nothing else has to change.
-]]
+end, { clearPlate = true })
 dockBtn(ICONS.skills, "Jobs", function()
 	if depthHud.contractor then
 		if snap then
@@ -12657,6 +12744,9 @@ function ClientFns.wireQuestHudHiders()
 		wallet.Visible = not cover
 		presL.Visible = not cover
 		dock.Visible = not cover
+		-- The quest panel hides with the rest of the HUD under a fullscreen
+		-- screen; layoutQuestPanel reads this. See the note there.
+		ClientFns.questHudCovered = cover
 		if hideQuests then
 			if phone then
 				ClientFns.questFolded = true
@@ -12800,8 +12890,63 @@ task.spawn(function()
 		lastInput = os.clock()
 	end
 
+	--[[
+		IN A MENU IS NOT IDLE. Owner, 2026-10-11: "make the afk not pop up when
+		in ui". A tap on a button is "game processed", and this file used to
+		drop those before resetting the idle clock -- so browsing a shop, reading
+		the cooler or holding REEL through a long fish fight (all taps and holds
+		on buttons) counted as standing still, and the AFK chill grabbed you.
+
+		inUi() is true while any screen is up: the screens that say so
+		(isOpen), the old panels, and, as a catch-all, anything big and solid
+		drawn over the world. While it is true nothing starts AFK and the tip
+		stays away.
+	]]
+	local function ctlOpen(ctl)
+		if type(ctl) ~= "table" or type(ctl.isOpen) ~= "function" then
+			return false
+		end
+		local ok, v = pcall(ctl.isOpen)
+		return ok and v == true
+	end
+	local function inUi()
+		if packRevealBusy then
+			return true
+		end
+		for _, ctl in pairs({ ClientFns.luckyCtl, ClientFns.fishingCtl, ClientFns.tradeCtl, invCtl, forgeCtl, eventsCtl,
+			groupWheelCtl, shopCtl, depthShopCtl, elevCtl, skinsCtl, skillCtl }) do
+			if ctlOpen(ctl) then
+				return true
+			end
+		end
+		for _, p in pairs(panels) do
+			if p.Visible then
+				return true
+			end
+		end
+		local pg = player:FindFirstChild("PlayerGui")
+		local cam = workspace.CurrentCamera
+		if pg and cam then
+			local area = cam.ViewportSize.X * cam.ViewportSize.Y
+			for _, sg in ipairs(pg:GetChildren()) do
+				if sg:IsA("ScreenGui") and sg.Enabled and sg.Name ~= "MineAfkUI" and sg.Name ~= "MineAfkTipUI" then
+					for _, f in ipairs(sg:GetChildren()) do
+						if f:IsA("GuiObject") and f.Visible and f.BackgroundTransparency < 0.5
+							and f.AbsoluteSize.X * f.AbsoluteSize.Y > area * 0.2 then
+							return true
+						end
+					end
+				end
+			end
+		end
+		return false
+	end
+	ClientFns.inUi = inUi
+
 	UIS.InputBegan:Connect(function(input, gp)
 		if gp then
+			-- A tap on a button is still a person playing.
+			touch()
 			return
 		end
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -12851,7 +12996,7 @@ task.spawn(function()
 	pcall(function()
 		player.Idled:Connect(function(idleTime)
 			pokeIdle()
-			if packRevealBusy then
+			if packRevealBusy or inUi() then
 				touch()
 				return
 			end
@@ -13045,12 +13190,12 @@ task.spawn(function()
 	task.spawn(function()
 		while true do
 			task.wait(1.25)
-			if not tipShown and os.clock() - sessionStart >= 165 and not busyOpening() then
+			if not tipShown and os.clock() - sessionStart >= 165 and not busyOpening() and not inUi() then
 				showAfkTip()
 			end
 			if afkLocal then
 				-- Stay AFK until Wake or actual movement (WASD / jump / stick).
-			elseif busyOpening() then
+			elseif busyOpening() or inUi() then
 				touch()
 			elseif os.clock() - lastInput >= IDLE_SEC then
 				net:FireServer("afkStart")
