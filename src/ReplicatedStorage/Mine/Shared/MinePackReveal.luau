@@ -643,6 +643,59 @@ function MinePackReveal.mount(playerGui, opts)
 		return false
 	end
 
+	--[[
+		THE BUILD-UP before a Legendary or better turns over. Owner, 2026-10-10:
+		"make the card flash legendary twice, mythic twice..... and the flicker
+		whatever it really is 3 times (just a buildup.. one click skips it tho)".
+
+		The back flashes each rarity from Legendary up to the one below the
+		card's, twice each, then flickers its own rarity three times. Every flash
+		is an anim(), so one tap ends the lot and the card turns at once; the
+		protected window after the flip drops that tap, so it cannot skip the
+		card too. A Legendary just flickers Legendary three times.
+	]]
+	local BUILD_FROM = 5 -- Legendary, in MineCards.RARITY_ORDER
+	local BUILD_ON, BUILD_OFF = 0.08, 0.12
+	local function buildUp(back, rank)
+		if not back or not back.Parent or rank < BUILD_FROM then
+			return
+		end
+		local order = Cards.RARITY_ORDER or {}
+		local glow = mk("Frame", {
+			Name = "BuildUp",
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 50,
+		}, back)
+		round(glow, 12)
+		local bs = back:FindFirstChildOfClass("UIStroke")
+		pcall(Audio.play, "riser")
+		for r = BUILD_FROM, rank do
+			local col = (Cards.RARITY_COLOR and Cards.RARITY_COLOR[order[r] or ""]) or MUTED
+			glow.BackgroundColor3 = col
+			if bs then
+				bs.Color, bs.Transparency, bs.Thickness = col, 0, 6
+			end
+			local cut = false
+			for _ = 1, (r == rank) and 3 or 2 do
+				pcall(Audio.play, "tick", 0.7, 0.9 + (r - BUILD_FROM) * 0.12)
+				if anim(glow, BUILD_ON, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, { BackgroundTransparency = 0.15 })
+					or anim(glow, BUILD_OFF, Enum.EasingStyle.Quad, Enum.EasingDirection.In, { BackgroundTransparency = 1 }) then
+					cut = true
+					break
+				end
+			end
+			if cut then
+				break
+			end
+		end
+		if glow.Parent then
+			glow:Destroy()
+		end
+	end
+
 	----------------------------------------------------------------------------
 	-- Card faces.
 	--
@@ -832,6 +885,26 @@ function MinePackReveal.mount(playerGui, opts)
 			focus.close()
 		end
 	end)
+
+	-- Make a recap slot (YOU PULLED strip or the open-all hits grid) tappable:
+	-- a tap lifts its card up for a look. The slot must hold a full-size face
+	-- named "Card", scaled down by a UIScale.
+	local function addPick(slot)
+		if not (slot:IsA("Frame") and slot:FindFirstChild("Card")) or slot:FindFirstChild("Pick") then
+			return
+		end
+		local pick = mk("TextButton", {
+			Name = "Pick",
+			BackgroundTransparency = 1,
+			Text = "",
+			AutoButtonColor = false,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 30,
+		}, slot)
+		pick.MouseButton1Click:Connect(function()
+			focusRecap(slot)
+		end)
+	end
 
 	----------------------------------------------------------------------------
 	-- ONE PACK.
@@ -1163,7 +1236,10 @@ function MinePackReveal.mount(playerGui, opts)
 
 			-- TENSION is an OFFER. Rush mode sets t.tension to zero, and a tap
 			-- mid-pulse cuts it short through anim() -- never a cutscene.
-			if t.tension > 0 and (band == "HIT" or band == "CHASE" or band == "GOD") then
+			-- Legendary and up get the rarity build-up instead (buildUp).
+			if t.tension > 0 and not skipAll and PackFX.rankOf(card, Cards) >= BUILD_FROM then
+				buildUp(back, PackFX.rankOf(card, Cards))
+			elseif t.tension > 0 and (band == "HIT" or band == "CHASE" or band == "GOD") then
 				local pulse = back and back:FindFirstChildOfClass("UIScale")
 				if pulse then
 					local hold = (band == "GOD") and t.tension * 2 or t.tension
@@ -1464,8 +1540,18 @@ function MinePackReveal.mount(playerGui, opts)
 	end)
 	-- The prompt is the only thing that turns this on, so it can never eat a
 	-- tap during the reveal itself.
+	--[[
+		The YOU PULLED strip rides ABOVE this layer while the prompt is up. It
+		sat below it (8 against 24), so a tap on a pulled card hit TapAnywhere
+		and closed the reveal instead of lifting the card for a look. Owner,
+		2026-10-10: "you used to be able to click what u found in the packs to
+		look at them, but now you cant". A tap that misses the cards still
+		closes.
+	]]
 	prompt:GetPropertyChangedSignal("Visible"):Connect(function()
 		dismiss.Visible = prompt.Visible
+		tray.ZIndex = prompt.Visible and 25 or 8
+		hitsHost.ZIndex = prompt.Visible and 25 or 9
 	end)
 
 	local function showPrompt(meta)
@@ -1545,19 +1631,7 @@ function MinePackReveal.mount(playerGui, opts)
 		-- once the pack is done: mid-pack, a tap near the strip has to keep
 		-- drawing cards for someone mashing through it.
 		for _, c in ipairs(tray:GetChildren()) do
-			if c:IsA("Frame") and c:FindFirstChild("Card") and not c:FindFirstChild("Pick") then
-				local pick = mk("TextButton", {
-					Name = "Pick",
-					BackgroundTransparency = 1,
-					Text = "",
-					AutoButtonColor = false,
-					Size = UDim2.fromScale(1, 1),
-					ZIndex = 30,
-				}, c)
-				pick.MouseButton1Click:Connect(function()
-					focusRecap(c)
-				end)
-			end
+			addPick(c)
 		end
 
 		prompt.Visible = true
@@ -1865,12 +1939,30 @@ function MinePackReveal.mount(playerGui, opts)
 				}, hitsHost)
 				slots[#slots + 1] = { slot = slot, card = hits[i] }
 			end
+			--[[
+				Each hit is built full size and scaled down, the same as a card in
+				the YOU PULLED strip, so a tap lifts it back up for a proper look
+				(focusRecap). It was painted straight at recap size with no way to
+				open it. Owner, 2026-10-10: "you used to be able to click what u
+				found in the packs to look at them".
+			]]
+			local fw, fh = cardSize()
 			task.spawn(function()
 				for i, row in ipairs(slots) do
 					if not row.slot.Parent then
 						return
 					end
-					pcall(buildFace, row.slot, row.card, RECAP_W, RECAP_H)
+					local holder = mk("Frame", {
+						Name = "Card",
+						BackgroundTransparency = 1,
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.fromScale(0.5, 0.5),
+						Size = UDim2.fromOffset(fw, fh),
+						ZIndex = 9,
+					}, row.slot)
+					mk("UIScale", { Scale = RECAP_W / math.max(1, fw) }, holder)
+					pcall(buildFace, holder, row.card, fw, fh)
+					addPick(row.slot)
 					if i % 6 == 0 then
 						task.wait()
 					end

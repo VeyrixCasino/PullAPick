@@ -1031,3 +1031,32 @@ prize is a real case. Suite 60/60.
 
 Updated: chests-and-lucky-blocks, pets, skins-cases-and-temper, tools, glossary,
 verify-suite.
+
+## [2026-10-10] decision | star row, pulled-card tap, SSS! title, build-up flash
+The owner found five things in play:
+- **"these 4 stars be saying their 5 star packs ... also stars are far from
+  centered".** `starRow` clipped one five-star string to a width guessed from
+  the text size. BuilderSans stars are much narrower (40 px against 66), so a
+  4-star fill showed five gold stars. Now each star has its own centred cell.
+- **"you used to be able to click what u found in the packs to look at them,
+  but now you cant".** TapAnywhere (z-index 24) sat over the YOU PULLED strip
+  (z-index 8). The strip and the open-all hits grid now rise above it while the
+  prompt is up, and hits can be tapped too.
+- **"make it so the sss doesnt stick around".** The MineCelebrate title is
+  cleared on collect, close and the next spin.
+- **The card build-up.** Legendary ×2, Mythic ×2, Divine ×2, then the card's
+  own rarity ×3, and one tap skips it.
+- **"why is SSS behind B B C".** Set cases sort by hidden stars (Collector ★★★★),
+  and the broken star row made 4-star packs look like 5-star ones.
+
+Checked in Studio:
+- 4-star packs show 4 gold stars, centred;
+- the topmost button at every pulled card is Pick, and a tap lifts the card
+  with its stats;
+- an Exotic build-up ran Legendary to Mythic to Divine to Exotic.
+
+Also found (not changed): each set has ~100 pets on only 7–9 base bodies, so
+its ~24 Epic-and-up pets are recolours of the same few models. That is why
+good pulls "all the same exact cards". Raised with the owner.
+
+Updated: cards-and-packs, chests-and-lucky-blocks.

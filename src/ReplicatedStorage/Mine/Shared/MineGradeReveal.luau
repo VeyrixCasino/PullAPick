@@ -60,6 +60,21 @@ local function colourFor(grade)
 	return (Gear.RARITY_COLOR and Gear.RARITY_COLOR[grade]) or Color3.fromRGB(220, 220, 230)
 end
 
+--[[
+	The big "SSS!" title is the shared MineCelebrate overlay, which holds for
+	about three seconds on its own clock. Closing a screen or moving on to the
+	next block or spin clears it, instead of leaving it over whatever comes next.
+	Owner, 2026-10-10: "make it so the sss doesnt stick around".
+]]
+local function clearCelebration()
+	local ok, Celebrate = pcall(function()
+		return require(shared:WaitForChild("MineCelebrate"))
+	end)
+	if ok and Celebrate and Celebrate.cancel then
+		pcall(Celebrate.cancel)
+	end
+end
+
 local function waitBeat(sec, shouldSkip)
 	local t0 = os.clock()
 	while os.clock() - t0 < sec do
@@ -725,6 +740,7 @@ function MineGradeReveal.lucky(parent, opts)
 	end
 
 	function ctl.close()
+		clearCelebration()
 		sg.Enabled = false
 		st.mode = "closed"
 		st.queue = {}
@@ -1140,6 +1156,7 @@ function MineGradeReveal.lucky(parent, opts)
 		if st.mode ~= "loot" then
 			return
 		end
+		clearCelebration()
 		card.Visible = false
 		st.payload = nil
 		local nextOne = table.remove(st.queue, 1)
@@ -1533,6 +1550,7 @@ function MineGradeReveal.caseSpin(parent, opts)
 		if playing and finishNow then
 			finishNow()
 		end
+		clearCelebration()
 		playing = true
 		for _, ch in ipairs(reel:GetChildren()) do
 			ch:Destroy()
@@ -1807,6 +1825,7 @@ function MineGradeReveal.caseSpin(parent, opts)
 	end
 
 	function ctl.close()
+		clearCelebration()
 		setGuiOn(false)
 		playing = false
 		boxStroke.Color = GOLD

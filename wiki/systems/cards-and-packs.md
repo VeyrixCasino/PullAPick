@@ -127,11 +127,37 @@ names (HoloRare, UltraRare, HyperRare, SecretRare) are kept as aliases in
   (`MineCards.GRADE_RANK`, falling back to the set's T1–T9 tier), then odds tier,
   luck, name. Owner: *"5 star pebble bound trumps 4.5 star Chaos Theory"*. This
   replaced the old worst-first order. Lucky blocks stay pinned first.
+- **The star row** (`MineInventoryView` `starRow`) draws each star in its own
+  cell with the glyph centred, filled whole, half or not at all. Until
+  2026-10-10 it clipped one "★★★★★" string to a width guessed as 5.1 × the text
+  size. BuilderSans draws five stars at 13 px in 40 px, not 66, so a 4-star clip
+  covered all five glyphs and the row sat left of centre. Owner: *"these 4 stars
+  be saying their 5 star packs ... also stars are far from centered"*.
+- Set cases show their grade, not stars, but still sort by their hidden stars:
+  Starter ★★, Collector ★★★★, Vault ★★★★★. So a GRADE SSS Collector Case sorts
+  after 5-star packs of any grade.
 
 **Order of the reveal.** Cards are sorted worst-to-best **on the server** (by
 `MinePackFX.BAND_ORDER`, then by true odds), so each flip is at least as good as
 the last. Cards of Rare or better that rolled rarer than 1 in 200 carry an
 `oneIn` ribbon, priced by `MinePackConfig.pullOdds`.
+
+**The build-up** (`MinePackReveal` `buildUp`, 2026-10-10). Before a Legendary
+or better turns over, its back flashes every rarity from Legendary up to the
+one below it, twice each, then flickers its own rarity three times. An Exotic
+goes Legendary ×2, Mythic ×2, Divine ×2, Exotic ×3. One tap skips straight to
+the flip, and the protected window after the flip drops that tap. Rush (mashing)
+and SKIP ALL skip it. Epic and below keep the old glow-and-shiver. Owner:
+*"make the card flash legendary twice, mythic twice..... and the flicker
+whatever it really is 3 times (just a buildup.. one click skips it tho)"*.
+
+**Looking at what you pulled.** When a pack ends, every card in the YOU PULLED
+strip can be tapped to lift it to the middle at full size, with its stats. Tap
+again to put it back. This broke when TapAnywhere (z-index 24, closes the
+reveal) went over the strip (z-index 8): a tap on a card closed the screen. The
+strip and the open-all hits grid now rise to z-index 25 while the prompt is up.
+The open-all YOUR HITS grid builds each hit full size and scaled down, so its
+cards can be tapped too (`addPick`). Checked in Studio on 2026-10-10.
 
 ### Pack kinds (the `kind` on a pack definition)
 | kind | ids | what opens |

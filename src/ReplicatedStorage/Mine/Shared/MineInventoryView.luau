@@ -312,39 +312,53 @@ end
 --[[
 	Five stars filled to a fraction, centred on `parent`.
 
-	Two rows of the same glyphs, grey under gold, with the gold row clipped to
-	the rating -- so three and a half stars is exactly three and a half rather
-	than a rounded three. Ratings come from MinePackConfig.packStars /
-	MineLuckyBlocks.blockStars.
+	Each star is its own cell with the glyph centred in it: grey underneath,
+	gold on top clipped to that star's share of the rating. So three and a half
+	stars is exactly three gold, one half, one grey. Ratings come from
+	MinePackConfig.packStars / MineLuckyBlocks.blockStars.
+
+	It used to be one five-star string clipped to rating/5 of a width GUESSED
+	from the text size (5.1 x size). BuilderSans draws a star far narrower than
+	that: five glyphs at 13 px are 40 px against a 66 px guess. A four-star clip
+	(53 px) covered all five glyphs, and the left-aligned run sat off centre.
+	Owner, 2026-10-10: "these 4 stars be saying their 5 star packs ... also
+	stars are far from centered".
 ]]
 local function starRow(parent, rating, yOffset, textSize)
 	textSize = textSize or 14
-	local width = math.floor(textSize * 5.1)
+	local cell = math.ceil(textSize * 0.8)
+	local tall = textSize + 2
 	local holder = mk("Frame", {
 		Name = "Stars",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, yOffset),
-		Size = UDim2.fromOffset(width, textSize + 2),
+		Size = UDim2.fromOffset(cell * 5, tall),
 		ZIndex = 6,
 	}, parent)
-	local function glyphs(colour, z)
+	local function glyph(colour, z, into)
 		return mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, Text = "★★★★★", TextSize = textSize,
-			TextColor3 = colour, TextXAlignment = Enum.TextXAlignment.Left,
-			Size = UDim2.fromOffset(width, textSize + 2), ZIndex = z,
-		}, nil)
+			BackgroundTransparency = 1, Font = FONT, Text = "★", TextSize = textSize,
+			TextColor3 = colour, TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.fromOffset(cell, tall), ZIndex = z,
+		}, into)
 	end
-	local back = glyphs(Color3.fromRGB(72, 72, 84), 6)
-	back.Parent = holder
-	local fill = math.clamp((tonumber(rating) or 0) / 5, 0, 1)
-	if fill > 0 then
-		local clip = mk("Frame", {
-			BackgroundTransparency = 1, ClipsDescendants = true,
-			Size = UDim2.fromOffset(math.floor(width * fill + 0.5), textSize + 2), ZIndex = 7,
+	local stars = math.clamp(tonumber(rating) or 0, 0, 5)
+	for i = 1, 5 do
+		local slot = mk("Frame", {
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset((i - 1) * cell, 0),
+			Size = UDim2.fromOffset(cell, tall), ZIndex = 6,
 		}, holder)
-		local front = glyphs(GOLD, 7)
-		front.Parent = clip
+		glyph(Color3.fromRGB(72, 72, 84), 6, slot)
+		local fill = math.clamp(stars - (i - 1), 0, 1)
+		if fill > 0 then
+			local clip = mk("Frame", {
+				BackgroundTransparency = 1, ClipsDescendants = true,
+				Size = UDim2.fromOffset(math.floor(cell * fill + 0.5), tall), ZIndex = 7,
+			}, slot)
+			glyph(GOLD, 7, clip)
+		end
 	end
 	return holder
 end

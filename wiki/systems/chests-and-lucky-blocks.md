@@ -175,7 +175,10 @@ is injected from `S_QUEUE`.
   reveal and the case reel. It had sat on the module default, 95, because
   `bca50ca` meant to move it but changed `caseSpin` instead.
 - **The win** plays the tier stinger, and S and up add the `MineCelebrate`
-  title. It had no win sound before.
+  title. It had no win sound before. The title ("SSS!") is cleared when you
+  collect, close, or start the next block or case spin (`clearCelebration`,
+  2026-10-10). It used to hold about 3.7 s over whatever came next. Owner:
+  *"make it so the sss doesnt stick around"*.
 - **Odds are shown (since 2026-10-08).** Blocks are sold for credits, which
   Robux buy, and Roblox requires paid random items to show odds. They showed
   none. Now:
