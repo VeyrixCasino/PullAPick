@@ -219,9 +219,18 @@ src(/OreTools\.name\(row\.def, fam\)/.test(forge), "...and a craft recipe too");
 src(/OreTools\.name\(o\.def, selFamily\)/.test(forge), "...and every rail row");
 src(!/local function typeMultOf/.test(forge),
   "the Forge's duplicate typeMultOf is gone; MineOreTools owns the rule");
-src(/colButton\("SHOP"/.test(forge), "SHOP is a tab on the mode rail");
-src(/colButton\("CRAFT"/.test(forge) && /colButton\("UPGRADE"/.test(forge),
-  "...beside CRAFT and UPGRADE");
+src(/colButton\("SHOP"/.test(forge), "SHOP is an entry on the rail");
+// Owner, 2026-10-11: "Center the bottom tabs, in this order: Crafting, Loadout,
+// Upgrades." CRAFT and UPGRADE are two of those three tabs now, so they are NOT
+// on this rail any more -- having the same choice in a rail and a tab bar is how
+// two controls end up disagreeing about one piece of state. The host drives the
+// mode through setMode instead, and that is what has to exist.
+src(!/colButton\("CRAFT"/.test(forge) && !/colButton\("UPGRADE"/.test(forge),
+  "...and CRAFT/UPGRADE are not, because they are bottom tabs");
+src(/local function setMode\(mode\)/.test(forge) && /setMode = setMode/.test(forge),
+  "the Forge exposes setMode so the bottom bar can drive craft vs upgrade");
+src(/colButton\("BACKPACKS"/.test(forge),
+  "BACKPACKS has a rail entry, since it is no longer a bottom tab");
 
 console.log("");
 console.log(fail > 0 ? `>>> oreforge: ${fail} FAILED` : ">>> oreforge: all assertions passed");

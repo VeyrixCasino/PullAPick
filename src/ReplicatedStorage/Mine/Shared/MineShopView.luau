@@ -130,10 +130,23 @@ end
 	working stage gets broken. Dead-but-correct beats half-deleted.
 ]]
 local TABS = {
-	{ id = "bench", label = "Craft", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
-	{ id = "pouch", label = "Inventory", blurb = "What you are carrying, and what it sells for. Ore pays gems; the pouch survives a rebirth." },
-	{ id = "backpack", label = "Loadout", blurb = "Haul capacity. Coins for most rungs; the top pack is Robux." },
+	{ id = "bench", label = "Crafting", blurb = "Every recipe in the game. The ones you can forge right now come first." },
+	{ id = "loadout", label = "Loadout", blurb = "What you are carrying and what you are wearing. Tap anything to inspect it." },
+	{ id = "upgrades", label = "Upgrades", blurb = "Level a tool, merge duplicates, or scrap what you have outgrown." },
 }
+
+--[[
+	WHERE THE OLD TABS WENT.
+
+	`pouch` and `backpack` are no longer tabs. The ore pouch was never a
+	destination -- it is a strip along the bottom of the craft screen and is
+	drawn there whatever tab is up, so a tab for it was a second way to look at
+	something already on screen. Backpacks are a purchase, so they belong behind
+	the SHOP entry on the rail with the other things you buy with coins.
+
+	Both ids still work in `rows()` and `paint()`: nothing that could reach them
+	has been deleted, so a stale call cannot land on a blank screen.
+]]
 
 --------------------------------------------------------------------------------
 -- HELPERS
@@ -617,6 +630,19 @@ function MineShopView.mount(parent, opts)
 			onCoinShop = function()
 				view.setTab("pickaxe")
 			end,
+			-- The backpack shelf still exists; this is the only thing that
+			-- opens it now that the bottom bar is three tabs. See the note on
+			-- the BACKPACKS button in MineForge.paintModes.
+			onBackpacks = function()
+				view.setTab("backpack")
+			end,
+			-- Cards and charms merge; ore tools do not. This opens the screen
+			-- that owns the mechanic. See the note in MineForge.paintModes.
+			onMerge = function()
+				if opts.onOpenMerge then
+					opts.onOpenMerge()
+				end
+			end,
 			-- Fitting a skin or socketing a rune happens at the Enchanter. The
 			-- Forge reports what is fitted and sends you there rather than
 			-- growing a second copy of those two screens.
@@ -726,6 +752,62 @@ function MineShopView.mount(parent, opts)
 				.. tostring(ctlP))
 		end
 		pouchCtl = okMountP and ctlP or nil
+	end
+
+	--[[
+		THE LOADOUT TAB.
+
+		Mounted exactly like the pouch above -- its own frame, its own module,
+		mounted through pcall so a throw costs one tab rather than the screen.
+
+		It is handed the whole state table rather than a hand-picked subset: it
+		reads tools, gear, runes and the worn map, and the list of what a
+		loadout shows is the kind of thing that grows. The pouch gets a subset
+		because it must NOT compute its own prices; this one only reads.
+	]]
+	local okLoadout, LoadoutView = pcall(function()
+		return require(shared:WaitForChild("MineLoadoutView", 5))
+	end)
+	if not (okLoadout and LoadoutView and LoadoutView.mount) then
+		warn("[MineShopView] NO LOADOUT: "
+			.. "ReplicatedStorage.Mine.Shared.MineLoadoutView did not resolve ("
+			.. tostring(LoadoutView) .. ").")
+	end
+	local loadoutPanel, loadoutCtl
+	if okLoadout and LoadoutView and LoadoutView.mount then
+		loadoutPanel = mk("Frame", {
+			Name = "LoadoutHost",
+			Visible = false,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 156),
+			Size = UDim2.new(0.92, 0, 1, -236),
+			BackgroundTransparency = 1,
+			ZIndex = 86,
+		}, root)
+		local okMountL, ctlL = pcall(LoadoutView.mount, loadoutPanel, {
+			getSnap = function()
+				return state
+			end,
+			onEquipTool = function(uid)
+				if opts.onEquipOreTool then
+					opts.onEquipOreTool(uid)
+				end
+			end,
+			onEquipGear = function(id, slot)
+				if opts.onEquipGear then
+					opts.onEquipGear(id, slot)
+				end
+			end,
+			onUnequipGear = function(slot, id)
+				if opts.onUnequipGear then
+					opts.onUnequipGear(slot, id)
+				end
+			end,
+		})
+		if not okMountL then
+			warn("[MineShopView] NO LOADOUT: MineLoadoutView.mount threw: " .. tostring(ctlL))
+		end
+		loadoutCtl = okMountL and ctlL or nil
 	end
 
 	--[[
@@ -1182,9 +1264,21 @@ function MineShopView.mount(parent, opts)
 	strip.AnchorPoint = Vector2.new(0.5, 1)
 	strip.Position = UDim2.new(0.5, 0, 1, -44)
 	strip.Size = UDim2.fromOffset(920, 48)
+	--[[
+		THE BOTTOM TABS SIT IN THE MIDDLE. Owner, 2026-10-11: "Center the bottom
+		tabs, in this order: Crafting, Loadout, Upgrades."
+
+		The strip is already anchored at 0.5 and its UIListLayout is built with
+		HorizontalAlignment.Center -- and then this line overrode it to Right,
+		which is why three 164px buttons sat hard against the right edge of a
+		920px strip with a 300px hole on the left. Setting Center here rather
+		than deleting the line keeps the override explicit: this block is where
+		the bottom bar's geometry is decided, and a reader looking for the
+		alignment finds it with the rest of it.
+	]]
 	local stripLayout = strip:FindFirstChildOfClass("UIListLayout")
 	if stripLayout then
-		stripLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+		stripLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	end
 	for _, entry in pairs(tabBtns) do
 		entry.button.Size = UDim2.fromOffset(164, 52)
@@ -1820,8 +1914,17 @@ function MineShopView.mount(parent, opts)
 	end
 
 	function rows()
-		-- The bench is a list, not a shelf: no rungs to step through.
-		if activeTab == "bench" then
+		--[[
+			The three panel tabs are lists, not shelves: no rungs to step
+			through, so the carousel has nothing to count.
+
+			`upgrades` and `loadout` have to be named here as well as `bench`.
+			Without them they would fall through to the coin-shop ladder below
+			and `setTab` would size its index against a row set belonging to a
+			completely different screen -- no error, just a tab counter quoting
+			a number from somewhere else.
+		]]
+		if activeTab == "bench" or activeTab == "upgrades" or activeTab == "loadout" then
 			return {}
 		end
 		if activeTab == "backpack" then
@@ -2029,10 +2132,38 @@ function MineShopView.mount(parent, opts)
 			t.button.BackgroundColor3 = on and CARD_HI or CARD
 			t.stroke.Transparency = on and 0.05 or 0.6
 			t.label.TextColor3 = on and TEXT or MUTED
+			--[[
+				EACH TAB COUNTS THE THING THAT TAB IS ABOUT.
+
+				`bench` used to print the ore-tool count, which was right when
+				this tab was the whole Forge and is wrong now that it is only
+				the CRAFT half: the number of tools you own answers the UPGRADES
+				tab's question, not Crafting's. Crafting counts the recipes you
+				have unlocked, which is what an ore being discovered means.
+
+				No denominators here. A have/total needs both halves to mean the
+				same thing, and "recipes known" has no honest total to sit over
+				it while Rule 3 keeps undiscovered ores unnamed.
+			]]
 			if id == "bench" then
-				-- How many tools there are to work on, not a have/total: every
-				-- ore tool you own is levellable, so a denominator is noise.
+				local known = 0
+				local seen = state.oresSeen
+				if type(seen) == "table" then
+					for _, v in pairs(seen) do
+						if v then known += 1 end
+					end
+				else
+					for _, amt in pairs(state.ores or {}) do
+						if (tonumber(amt) or 0) > 0 then known += 1 end
+					end
+				end
+				t.count.Text = tostring(known)
+			elseif id == "upgrades" then
+				-- Every ore tool you own is levellable, so this is the count of
+				-- things there are to work on.
 				t.count.Text = tostring(#(state.oreTools or {}))
+			elseif id == "loadout" then
+				t.count.Text = tostring(#(state.oreTools or {}) + #(state.gear or {}))
 			elseif id == "secrets" then
 				local have = 0
 				local total = #(Tools.CHEST_TOOLS or {})
@@ -2094,10 +2225,22 @@ function MineShopView.mount(parent, opts)
 			on open for every player. If the module failed to require, fall back
 			to the first coin-shop family instead.
 		]]
-		if activeTab == "bench" and not benchPanel then
+		if (activeTab == "bench" or activeTab == "upgrades") and not benchPanel then
 			activeTab = "pickaxe"
 		end
-		if activeTab == "bench" then
+		--[[
+			CRAFTING AND UPGRADES ARE ONE PANEL IN TWO MODES.
+
+			Both tabs show the Forge; the difference is which half of it. The
+			mode used to be picked by two buttons on the Forge's own rail, and
+			those are gone (see MineForge.paintModes) precisely so the choice
+			lives in ONE place -- here -- rather than in a rail and a tab bar
+			that can disagree about which is selected.
+
+			setMode is a no-op when the mode already matches, so re-painting the
+			same tab does not throw away the player's selected recipe.
+		]]
+		if activeTab == "bench" or activeTab == "upgrades" then
 			creditsStage.Visible = false
 			card.Visible = false
 			leftBtn.Visible = false
@@ -2106,8 +2249,18 @@ function MineShopView.mount(parent, opts)
 			track.Visible = false
 			temperBar.Visible = false
 			vp.Visible = false
+			if loadoutPanel then
+				loadoutPanel.Visible = false
+			end
 			if benchPanel then
 				benchPanel.Visible = true
+			end
+			if benchCtl and benchCtl.setMode then
+				local okM, errM = pcall(benchCtl.setMode,
+					(activeTab == "upgrades") and "upgrade" or "craft")
+				if not okM then
+					warn("[MineShopView] forge setMode failed: " .. tostring(errM))
+				end
 			end
 			if benchCtl and benchCtl.refresh then
 				-- A bare pcall here is what made a thrown row look like an empty
@@ -2128,9 +2281,38 @@ function MineShopView.mount(parent, opts)
 			track.Visible = false
 			temperBar.Visible = false
 			vp.Visible = false
+			if loadoutPanel then
+				loadoutPanel.Visible = false
+			end
 			pouchPanel.Visible = true
 			if pouchCtl and pouchCtl.refresh then
 				pcall(pouchCtl.refresh)
+			end
+			return
+		end
+		--[[
+			LOADOUT. Owned tools, gear, gems and traits, with an inspection pane.
+
+			Same shape as the pouch branch above: hide the carousel chrome, show
+			one panel, ask it to refresh. It reads `state` directly, so a
+			snapshot landing while the tab is up redraws it without this file
+			knowing what a gear row looks like.
+		]]
+		if activeTab == "loadout" and loadoutPanel then
+			creditsStage.Visible = false
+			card.Visible = false
+			leftBtn.Visible = false
+			rightBtn.Visible = false
+			counter.Visible = false
+			track.Visible = false
+			temperBar.Visible = false
+			vp.Visible = false
+			loadoutPanel.Visible = true
+			if loadoutCtl and loadoutCtl.refresh then
+				local okL, errL = pcall(loadoutCtl.refresh)
+				if not okL then
+					warn("[MineShopView] loadout refresh failed: " .. tostring(errL))
+				end
 			end
 			return
 		end
@@ -2139,6 +2321,9 @@ function MineShopView.mount(parent, opts)
 		end
 		if benchPanel then
 			benchPanel.Visible = false
+		end
+		if loadoutPanel then
+			loadoutPanel.Visible = false
 		end
 		vp.Visible = true
 
@@ -2464,6 +2649,24 @@ function MineShopView.mount(parent, opts)
 		state.ownedShopTools = snapshot.ownedShopTools or {}
 		state.shopToolRunes = snapshot.shopToolRunes or {}
 		state.runes = snapshot.runes or {}
+		--[[
+			WHAT THE LOADOUT TAB READS.
+
+			`runes` was already here for the Forge's socket readout; gear, the
+			worn map and the held tool's uid were not, because nothing in this
+			screen had ever needed them. MineLoadoutView reads `state` directly,
+			so a field missing here is not an error -- it is an empty section
+			with no message, which is the failure this project keeps hitting:
+			two correct halves that were never introduced.
+
+			The held tool is `oreToolEquipped` -- the name Verbs.equipOreTool
+			writes on the server and the name MineForge already reads. Not
+			`equippedTool`, which is a server-side FUNCTION, and not
+			`equippedToolUid`, which does not exist.
+		]]
+		state.gear = snapshot.gear or {}
+		state.equippedGear = snapshot.equippedGear or {}
+		state.oreToolEquipped = snapshot.oreToolEquipped
 		state.shopToolId = snapshot.shopToolId or (snapshot.tool and snapshot.tool.id)
 		state.tempers = snapshot.tempers or {}
 		state.toolTempers = snapshot.toolTempers or {}

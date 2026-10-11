@@ -1351,41 +1351,100 @@ function MineForge.mount(parent, opts)
 				d:Destroy()
 			end
 		end
-		colButton("CRAFT", 1, selMode == "craft", true, function()
-			selMode = "craft"
-			-- CRAFT always opens on the catalogue. Returning to a recipe the
-			-- player opened some tabs ago hides the grid they came back for.
-			selOreId = nil
-			refresh()
-		end)
-		colButton("UPGRADE", 2, selMode == "upgrade", true, function()
-			selMode = "upgrade"
-			refresh()
-		end)
+		--[[
+			THE RAIL IS NAVIGATION AND FILTERS NOW, NOT MODES.
+
+			Owner, 2026-10-11: the screen's bottom bar is "Crafting, Loadout,
+			Upgrades", and tool-type filters go "on the left for Pickaxe, Drill,
+			Explosive, Sledgehammer, and Jackhammer".
+
+			CRAFT and UPGRADE are gone from here because they ARE two of those
+			three tabs now; the host drives them through setMode. Keeping them
+			would have put the same choice in two places, which is how two
+			controls end up disagreeing about one piece of state.
+
+			SHOP stays, moved to the top: the owner asked for "the existing Shop
+			entry" to go "a sensible place in the navigation", and this rail IS
+			the navigation. It is a route rather than a filter -- it opens
+			another panel -- so it sits above the TOOL TYPE heading with the
+			filters grouped under it, rather than reading as a sixth tool type.
+		]]
 		if opts.onCoinShop then
-			-- A route, not a mode: it never reads as selected because the panel
-			-- it opens is not this one.
-			colButton("SHOP", 3, false, true, function()
+			-- A route, not a filter: it never reads as selected because the
+			-- panel it opens is not this one.
+			colButton("SHOP", 1, false, true, function()
 				opts.onCoinShop()
 			end)
 		end
+		--[[
+			BACKPACKS NEEDS A DOOR, AND THIS IS IT.
 
-		label(modeCol, "FAMILY", 10, MUTED, nil, UDim2.new(1, 0, 0, 20), FONT).LayoutOrder = 4
+			Backpacks used to be one of the bottom tabs. The owner's new bottom
+			bar is Crafting / Loadout / Upgrades, so that button is gone -- and
+			`backpack` is still a perfectly good shelf that `setTab` can show,
+			which means losing the button loses the only way to reach it. That
+			is precisely how the Secrets shelf spent its whole life unreachable.
+
+			It sits beside SHOP because it is the same kind of thing: capacity
+			you buy with coins, not a tool you forge and not a filter.
+		]]
+		if opts.onBackpacks then
+			colButton("BACKPACKS", 2, false, true, function()
+				opts.onBackpacks()
+			end)
+		end
+		--[[
+			MERGE IS A ROUTE, BECAUSE TOOLS DO NOT MERGE.
+
+			The owner asked Upgrades to carry "the available item operations,
+			such as merging and scrapping". Scrapping is right here -- the
+			UPGRADE pane arms a SCRAP button and quotes the ore and dust back.
+			Merging is not, and cannot be: an ore tool is levelled or scrapped,
+			and the things that actually merge in this game are CARDS (three
+			copies) and CHARMS (MineCharms.mergeTarget). There is no tool-merge
+			verb on the server to call.
+
+			So this opens the screen that really does it instead of growing a
+			second copy of it here. A button that routes somewhere honest beats
+			a button that implies a mechanic the game does not have.
+		]]
+		if opts.onMerge then
+			colButton("MERGE", 3, false, true, function()
+				opts.onMerge()
+			end)
+		end
+
+		label(modeCol, "TOOL TYPE", 10, MUTED, nil, UDim2.new(1, 0, 0, 20), FONT).LayoutOrder = 4
 		local order = 4
 		for _, famId in ipairs(OreTools.FAMILY_ORDER or {}) do
 			local defs = (Tools.TOOLS or {})[famId]
-			-- A family with no roster yet (weapons are flagged planned) would
-			-- otherwise be a button that selects nothing.
-			if defs and #defs > 0 then
-				order += 1
-				local id = famId
-				colButton(string.upper(OreTools.familyNoun(id) .. "s"), order,
-					selFamily == id, true, function()
-						selFamily = id
-						selUid = nil
-						refresh()
-					end)
-			end
+			local has = defs ~= nil and #defs > 0
+			order += 1
+			local id = famId
+			--[[
+				ALL FIVE SHOW, INCLUDING THE TWO WITH NOTHING IN THEM.
+
+				This used to skip a family whose roster was empty, so the rail
+				read "PICKAXES / DRILLS / EXPLOSIVES" and the owner's other two
+				tool types were simply absent from the game's own menu. They are
+				not absent by design: MineTools.TOOLS has 25 pickaxe frames, 16
+				drill and 16 explosive, and NIL for hammer and jackhammer, while
+				MineConfig already carries their craft multipliers (jackhammer
+				1.25). The cost maths was written and the rosters never were, so
+				the two halves have never met -- a recipe for a sledgehammer
+				does not exist anywhere in the game today.
+
+				Hiding that made it look intentional. Showing the filter with a
+				(0) and no click says what is actually true: the type exists and
+				has no recipes yet. The fix is a roster, which is content the
+				owner has to sign off, not a UI change.
+			]]
+			colButton(string.upper(OreTools.familyNoun(id) .. "s") .. (has and "" or "  (0)"),
+				order, has and selFamily == id, has, function()
+					selFamily = id
+					selUid = nil
+					refresh()
+				end)
 		end
 	end
 
@@ -1541,7 +1600,31 @@ function MineForge.mount(parent, opts)
 	end
 
 	refresh()
-	return { refresh = refresh, root = root }
+	--[[
+		setMode lets the HOST drive craft-vs-upgrade.
+
+		Owner, 2026-10-11: the screen's bottom bar is "Crafting, Loadout,
+		Upgrades", so the choice that used to be two buttons on this rail is now
+		two of the three tabs. `selMode` is a local in this closure, so without
+		a setter the bottom bar could only fake it by clicking a button it does
+		not own.
+
+		Entering CRAFT clears selOreId for the same reason the rail's own CRAFT
+		button does: the catalogue is what a player is coming back for, not the
+		one recipe they opened several tabs ago.
+	]]
+	local function setMode(mode)
+		local want = (mode == "upgrade") and "upgrade" or "craft"
+		if selMode == want then
+			return
+		end
+		selMode = want
+		if want == "craft" then
+			selOreId = nil
+		end
+		refresh()
+	end
+	return { refresh = refresh, root = root, setMode = setMode, getMode = function() return selMode end }
 end
 
 return MineForge

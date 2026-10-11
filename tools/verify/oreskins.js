@@ -157,10 +157,19 @@ for (const id of ["pickaxe", "drill", "explosive"]) {
   ok(tabs && !new RegExp(`id = "${id}"`).test(tabs[1]),
     `the ${id} tab is gone from the shop rail`);
 }
-for (const id of ["bench", "pouch", "backpack"]) {
-  ok(tabs && new RegExp(`id = "${id}"`).test(tabs[1]),
-    `${id} still sells`, id === "backpack" ? "capacity, not a tool" : "");
+// Owner, 2026-10-11: the bottom bar is "Crafting, Loadout, Upgrades". `pouch`
+// and `backpack` stopped being tabs that day -- the pouch is a strip drawn on
+// the craft screen whatever tab is up, and backpacks moved into the rail's
+// navigation beside SHOP.
+for (const id of ["bench", "loadout", "upgrades"]) {
+  ok(tabs && new RegExp(`id = "${id}"`).test(tabs[1]), `${id} is a bottom tab`);
 }
+// The point of the old assertion was never the BUTTON, it was that a shelf
+// which still exists keeps a way in. `backpack` is still a live branch in
+// rows() and paint(), so the only thing that can strand it is nothing calling
+// setTab. That is the Secrets bug, and this is the guard for it.
+ok(/onBackpacks\s*=\s*function\(\)\s*\n?\s*view\.setTab\("backpack"\)/.test(SHOP),
+  "the backpack shelf still has a door", "rail -> onBackpacks -> setTab");
 
 // --------------------------------------------- the roster is NOT deleted --
 // MineOreTools.frames filters Tools.TOOLS on price > 0 to pick a forged tool's

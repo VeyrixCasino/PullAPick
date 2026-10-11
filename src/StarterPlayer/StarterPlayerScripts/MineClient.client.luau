@@ -2960,17 +2960,29 @@ function ClientFns.onSurface()
 	return flat.Magnitude <= (C.CAMP_RADIUS or 52)
 end
 
-dockBtn(ICONS.cart, "Shop", function()
-	-- Takes you TO the shop rather than opening one wherever you stand. The
-	-- counter is the gate: you cannot browse tools from the bottom of a shaft,
-	-- and getting there costs you your position in the mine.
-	if shopCtl and shopCtl.root.Visible then
-		shopCtl.close()
-		return
-	end
-	hidePanels()
-	net:FireServer("goTo", "shop")
-end)
+--[[
+	THE SHOP BUTTON IS GONE FROM THE DOCK, NOT FROM THE GAME.
+
+	Owner, 2026-10-11: "Move the existing Shop entry to a sensible place in the
+	navigation. Its placement is unspecified, so inspect the current UI and use
+	the existing navigation to determine where it belongs."
+
+	The navigation it belongs to already exists and already has a SHOP entry:
+	the rail down the left of the Blacksmith screen, which is where the coin
+	shelves are browsed from (MineForge.paintModes -> opts.onCoinShop). So the
+	entry is not being invented anywhere, it is being left in the one place it
+	was already doing the job, and the duplicate on the dock is removed.
+
+	WHAT THE DOCK LOSES IS A DOOR, AND FORGE PICKS IT UP. This button's real job
+	was never "open a panel" -- it was `goTo shop`, the TRAVEL that gets you to
+	the counter, and the counter is a deliberate gate: you cannot browse tools
+	from the bottom of a shaft, and getting there costs you your place in the
+	mine. The Forge button below does exactly that same travel, so the gate is
+	intact and the Blacksmith still has a way in from the world.
+
+	It also keeps the column the same length -- one button out, one in -- which
+	is what lets Events stay on the exact row it was on.
+]]
 --[[
 	THE DAILY WHEEL (owner, 2026-10-10: "we need that daily wheel working").
 	A dock button, second from the top, because a daily reward nobody can find
@@ -3051,18 +3063,27 @@ end)
 ]]
 do
 	local _, plate = dockBtn("", "Forge", function()
-		if not forgeCtl then
-			return
-		end
-		if forgeCtl.root and forgeCtl.root.Visible then
-			forgeCtl.close()
+		--[[
+			THE BLACKSMITH, not MineForgeView.
+
+			Two different screens in this game answer to "forge". MineForgeView
+			is the temperament fitting panel whose title bar says FORGE;
+			the BLACKSMITH (MineShopView) is the one that holds the Forge
+			itself -- every recipe, the upgrade bench, the ore pouch -- and is
+			the screen the owner's Crafting / Loadout / Upgrades bar belongs to.
+			This opens that one.
+
+			It travels rather than opening in place, because it inherits the old
+			Shop button's job: the counter is the gate, and a player should not
+			be able to browse recipes from the bottom of a shaft. `goTo` teleports
+			and the arrival opens the panel (see the route map's `shop` entry).
+		]]
+		if shopCtl and shopCtl.root and shopCtl.root.Visible then
+			shopCtl.close()
 			return
 		end
 		hidePanels()
-		if snap then
-			forgeCtl.setState(snap)
-		end
-		forgeCtl.open()
+		net:FireServer("goTo", "shop")
 	end, { clearPlate = true })
 
 	-- Anvil, bottom-up: base, waist, body, horn. Offsets are from the plate's
@@ -5421,6 +5442,39 @@ shopCtl = ShopView.mount(gui, {
 		which opens the dialog on the server's own figures. The second carries
 		confirm and performs it.
 	]]
+	--[[
+		The LOADOUT tab's three actions. Each one only names the thing; the
+		server re-checks ownership and decides, and the view redraws off the
+		snapshot that comes back rather than predicting the result.
+
+		equipOreTool reads an empty uid as "put it away", which is why the
+		unequip case needs no verb of its own.
+	]]
+	onEquipOreTool = function(uid)
+		net:FireServer("equipOreTool", { uid = uid or "" })
+	end,
+	onEquipGear = function(id, slot)
+		net:FireServer("equipGear", { gearId = id, slot = slot })
+	end,
+	onUnequipGear = function(slot, id)
+		net:FireServer("unequipGear", { slot = slot, gearId = id })
+	end,
+	--[[
+		MERGE, from the Upgrades rail. Cards are what merge -- three copies make
+		one better card -- and that lives in Inventory > Cards, so this hands the
+		player to it rather than the Blacksmith growing a second copy of a screen
+		that already works.
+	]]
+	onOpenMerge = function()
+		if not invCtl then
+			return
+		end
+		hidePanels()
+		if snap then
+			invCtl.setState(snap)
+		end
+		invCtl.open("inventory", "cards")
+	end,
 	onUpgradeOrePouch = function()
 		net:FireServer("upgradeOrePouch")
 	end,
