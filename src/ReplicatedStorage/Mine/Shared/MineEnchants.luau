@@ -284,7 +284,9 @@ end
 	the tool in hand, with that tool's special enchant (or nil):
 	  * every OTHER family's chance and damage goes to 0, so pets, skins and
 	    charms only boost the proc you picked (owner);
-	  * no special enchant, no proc at all;
+	  * no Special enchant yet: the tool keeps the ONE proc your gear gives the
+	    most chance of (owner, 2026-10-12: "Pets' best proc until you pick
+	    one"), so a new player still has a proc before the slot opens at 25;
 	  * the enchant adds its own chance and damage for its family;
 	  * a chance over 100% converts into that proc's damage (owner).
 	Returns b.
@@ -292,6 +294,17 @@ end
 function M.gateProcs(b, special)
 	local def = special and M.get(special.id)
 	local fam = def and def.live and def.effect and def.effect.kind == "proc" and def.effect.family or nil
+	local fromEnchant = fam ~= nil
+	if not fam then
+		-- Pets' best proc until a Special is chosen. Ties go in PROC_ORDER.
+		local best = 0
+		for _, key in ipairs(M.PROC_ORDER) do
+			local c = tonumber(b[M.PROCS[key].chance]) or 0
+			if c > best then
+				best, fam = c, key
+			end
+		end
+	end
 	for key, proc in pairs(M.PROCS) do
 		if key ~= fam then
 			b[proc.chance] = 0
@@ -305,9 +318,11 @@ function M.gateProcs(b, special)
 	end
 	if fam then
 		local proc = M.PROCS[fam]
-		local level = math.clamp(math.floor(tonumber(special.level) or 1), 1, M.MAX_LEVEL)
-		b[proc.chance] = (b[proc.chance] or 0) + def.effect.chance * level
-		b[proc.damage] = (b[proc.damage] or 0) + def.effect.damage * level
+		if fromEnchant then
+			local level = math.clamp(math.floor(tonumber(special.level) or 1), 1, M.MAX_LEVEL)
+			b[proc.chance] = (b[proc.chance] or 0) + def.effect.chance * level
+			b[proc.damage] = (b[proc.damage] or 0) + def.effect.damage * level
+		end
 		local over = (b[proc.chance] or 0) - 1
 		if over > 0 then
 			b[proc.chance] = 1

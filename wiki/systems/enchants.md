@@ -34,7 +34,9 @@ related: [traits, boosts-and-stats, mining-and-breaking, pets, chests-and-lucky-
 - every other proc family's chance and damage goes to 0, so pets, skins and charms
   only boost the proc your Special picked (owner: *"This slot determines which effect
   your tool will have, regardless of pet setup. The pets only boost this."*);
-- with no Special enchant there is no proc at all;
+- with no Special enchant yet, the tool keeps the one proc your gear gives the most
+  chance of (owner, 2026-10-12: *"Pets' best proc until you pick one"*), so new players
+  keep a proc before the slot opens at level 25;
 - a chance over 100% converts into that proc's damage (owner).
 
 The families are Zap (`zap`/`zapDamage`), Blast (`blastChance`/`blastDamage`/`blastRadius`),
@@ -111,6 +113,5 @@ works only in Studio.
   - the trait and rune retirement with refunds;
   - the pet overlap fix;
   - auto-equip that reads the Special.
-- **Watch: no procs before a Special enchant.** Because the Special decides the proc, a
-  player has none until they apply one, which needs level 25. Pets with procs do
-  nothing until then. This is what the rules say; it is flagged for the owner.
+- **Before level 25** the tool keeps its gear's best proc; the owner chose this over
+  "no procs before a Special enchant" (2026-10-12).

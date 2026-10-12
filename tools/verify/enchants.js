@@ -41,7 +41,9 @@ end
 local b = E.gateProcs(boostsWith(), { id = "zap", level = 5 })
 print(string.format("ZAP %.3f %.3f %.3f %.3f %.3f %.3f %.3f", b.zap, b.zapDamage, b.blastChance, b.blastDamage, b.blastRadius, b.tidalWave, b.procPower))
 local n = E.gateProcs(boostsWith(), nil)
-print(string.format("NONE %.3f %.3f %.3f %.3f %.3f", n.zap, n.blastChance, n.tidalWave, n.earthquake, n.procPower))
+print(string.format("NONE %.3f %.3f %.3f %.3f %.3f %.3f", n.zap, n.blastChance, n.tidalWave, n.earthquake, n.procPower, n.blastDamage))
+local bare = E.gateProcs({ zap = 0, blastChance = 0, tidalWave = 0, ricochet = 0, earthquake = 0, procPower = 0.4 }, nil)
+print(string.format("BARE %.3f", bare.procPower))
 local o = boostsWith()
 o.zap = 1.1
 o = E.gateProcs(o, { id = "zap", level = 2 })
@@ -99,7 +101,9 @@ check(Math.abs(z[0] - 0.55) < 1e-9 && Math.abs(z[1] - 1.0) < 1e-9, "a Zap V tool
 check(z[2] === 0 && z[3] === 0 && z[4] === 0 && z[5] === 0, "...and every other family (blast, its radius, tide) is zeroed: pets only boost YOUR proc (owner)");
 check(Math.abs(z[6] - 0.3) < 1e-9, "generic proc damage stays for the proc you have");
 const nn = num("NONE");
-check(nn.every((x) => x === 0), "no Special enchant: no proc at all, and proc damage has nothing to land on");
+check(nn[0] === 0 && Math.abs(nn[1] - 0.4) < 1e-9 && nn[2] === 0 && nn[3] === 0 && Math.abs(nn[4] - 0.3) < 1e-9 && Math.abs(nn[5] - 0.2) < 1e-9,
+  "no Special yet: the tool keeps its gear's BEST proc (blast 40% here) and nothing else (owner: \"Pets' best proc until you pick one\")");
+check(get("BARE") === "0.000", "no proc at all: proc damage has nothing to land on");
 const ov = num("OVER");
 check(ov[0] === 1 && Math.abs(ov[1] - (0.5 + 0.2 + 0.2)) < 1e-9, "a chance over 100% converts into that proc's damage (owner): 110% + 10% -> 100% and +20% damage");
 // 2
