@@ -45,6 +45,13 @@ local hub = Hub.mount(hudGui, {
 		net:FireServer(verb, payload)
 	end,
 	isStudio = RunService:IsStudio(),
+	-- BAGS / COIN SHOP: the old shop's shelves, through MineClient.
+	onShop = function(tab)
+		local ev = mine:FindFirstChild("OpenPanel")
+		if ev then
+			ev:Fire("shop", tab)
+		end
+	end,
 })
 
 -- The way in: MineClient's Forge button fires this.
@@ -52,7 +59,14 @@ local openEv = mine:FindFirstChild("ForgeHubOpen") or Instance.new("BindableEven
 openEv.Name = "ForgeHubOpen"
 openEv.Parent = mine
 openEv.Event:Connect(function(tab)
-	if hub.isOpen() then
+	-- A counter only ever opens (walking up twice must not close it); the
+	-- Forge button toggles.
+	if tab == "counter" then
+		if hub.isOpen() then
+			return
+		end
+		tab = nil
+	elseif hub.isOpen() then
 		hub.close()
 		return
 	end
@@ -67,6 +81,11 @@ net.OnClientEvent:Connect(function(action, payload)
 		snap = payload
 		if hub.isOpen() then
 			pcall(hub.refresh)
+		end
+	elseif action == "bookBundle" and type(payload) == "table" then
+		-- A bundle bought here (or a chest's, while the Forge is open).
+		if hub.showBundle then
+			pcall(hub.showBundle, payload.books)
 		end
 	elseif action == "playerLevel" and type(payload) == "table" then
 		if okCel and Celebrate and Celebrate.burst then

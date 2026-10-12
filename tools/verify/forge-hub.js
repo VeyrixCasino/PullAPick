@@ -50,6 +50,16 @@ check(/Craftable first, best first/.test(hub), "recipes sort craftable first, be
 // 5
 check(!exists("src/ReplicatedStorage/Mine/Shared/MineForgeDemo.luau") && !exists("src/StarterPlayer/StarterPlayerScripts/MineForgeDemo.client.luau"),
   "the two demo Forges are gone (the owner picked A)");
+// The Blacksmith counter (owner, 2026-10-12: "the Blacksmith counter should open the Forge hub").
+check(/if name == "shop" and tab == nil then[\s\S]{0,200}hubOpen:Fire\("counter"\)/.test(client),
+  "every plain \"shop\" (the counters, the Blacksmith buttons) opens the Forge hub");
+check(/if \(tab == "pickaxe" or tab == "backpack"\) and shopCtl\.setTab then/.test(client) && /opts\.onShop\("backpack"\)/.test(hub) && /opts\.onShop\("pickaxe"\)/.test(hub)
+  && /ev:Fire\("shop", tab\)/.test(hubClient) && /openPanelEv\.Name = "OpenPanel"/.test(client),
+  "the hub's BAGS and COIN SHOP buttons still reach the old shop's two shelves");
+check(/\[3\] = \{ text = "Coins burning a hole\? BUY A BIGGER PICK\.", panel = "shop", tab = "pickaxe"/.test(server)
+  && /net:FireClient\(plr, "openPanel", "shop", onPickStep and "pickaxe" or nil\)/.test(server),
+  "the tutorial's buy-a-pick step still lands on the coin pickaxes, at the counter too");
+check(/if tab == "counter" then\s*\n\s*if hub\.isOpen\(\) then\s*\n\s*return/.test(hubClient), "walking up to a counter only opens the hub, never closes it");
 
 console.log("");
 console.log(fail > 0 ? `>>> forge-hub: ${fail} FAILED` : ">>> forge-hub: all assertions passed");

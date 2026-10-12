@@ -161,6 +161,11 @@ is injected from `S_QUEUE`.
       (`SKIN_CASE_TIERS`), so a deeper ore means a better charm.
     - **gems** and **dust**: the fixed `GEMS` and `DUST` ranges.
   - **The Godly stardust bonus** on every open is unchanged.
+  - **A book bundle with every block** (owner, 2026-10-12: *"Book buddles from
+    lucky blocks, and chest(not cases)"*): Lucky 2 books, Diamond 3, Godly 5,
+    on top of the loot (`MineEnchants.LUCKY_BUNDLE`). The end of the reveal
+    lists them. Chests drop bundles too, and cases never do. See
+    [enchants](enchants.md).
 
   Which mystery case each block pays, by final grade:
 

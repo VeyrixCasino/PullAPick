@@ -292,9 +292,15 @@ Owner: *"I FUCKING LOVE FORGE A.. WIDE SCREEN, NOT ENOUGH ROOM, AND TOO BIG BUTT
   - LEVEL: before → after damage, cost, +1 / +10; coin levels for the wooden pick;
   - ENCHANT: the three slots, plus a book picker that shows the slot's effect now → with that book, and apply / replace / remove;
   - SCRAP: what you get back (books included) and *TAP AGAIN* to confirm;
-  - MY BOOKS: merge 3 → +1.
+  - MY BOOKS: a BOOK BUNDLE card (3 random books for gems; it opens on screen), then merge 3 → +1.
 
-The header shows the player level and XP bar, the wallet, and in Studio a 🧪 TEST BOOKS button.
+The header shows the player level and XP bar, the wallet, 🎒 BAGS and 💰 COIN SHOP (the old shop's two shelves the hub has no tab for), and in Studio a 🧪 TEST BOOKS button.
+
+**The Blacksmith counter opens the hub** (owner, 2026-10-12: *"the Blacksmith counter should open the Forge hub"*):
+- `ClientFns.routePanel` sends every plain `"shop"` there: the counters tagged `Machine="shop"` and the "to the Blacksmith" buttons.
+- `"shop"` with a named shelf (`pickaxe` or `backpack`) still opens the old shop on that shelf.
+- The tutorial's step 3 (*BUY A BIGGER PICK*) carries `tab = "pickaxe"`. While a player is on that step, the server opens the coin shelf at the counter, so the step still ends in the purchase it teaches.
+- Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it.
 
 It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
 

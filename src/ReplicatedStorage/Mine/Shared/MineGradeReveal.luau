@@ -888,6 +888,10 @@ function MineGradeReveal.lucky(parent, opts)
 				local qty = math.max(1, math.floor(tonumber(loot.potionQty) or 1))
 				table.insert(rows, { emoji = "🧪", text = (qty > 1 and (qty .. "x  ") or "") .. pretty(loot.potionId) })
 			end
+			-- Every lucky block's book bundle (MineEnchants.LUCKY_BUNDLE).
+			if type(loot.books) == "table" and #loot.books > 0 then
+				table.insert(rows, { emoji = "📖", text = #loot.books .. "  Enchant books, for the Forge" })
+			end
 		end
 		if #rows == 0 then
 			table.insert(rows, { icon = "chest", text = tostring(lootText or "--") })

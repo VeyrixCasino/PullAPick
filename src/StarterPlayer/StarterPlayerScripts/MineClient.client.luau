@@ -11560,7 +11560,9 @@ RunService.Heartbeat:Connect(function(dt)
 		local fuse = 1 + math.max(0, tonumber(snap and snap.boosts and snap.boosts.shortFuse) or 0)
 		need = (tl.cooldown / fuse) * 1.03
 	else
-		need = (1 / math.max(0.05, (tl and tl.rate) or 2.5)) * swingSec
+		local oc = ClientFns.enchSpeed
+		local ocMult = (oc and (os.clock() - oc.at) <= oc.grace) and math.max(1, oc.mult) or 1
+		need = (1 / math.max(0.05, (tl and tl.rate) or 2.5)) * swingSec / ocMult
 	end
 	hold += dt
 	swingFill.Size = UDim2.fromScale(math.clamp(hold / need, 0, 1), 1)
@@ -11667,8 +11669,36 @@ function ClientFns.pulseQuestClaim()
 	end)
 end
 
+--[[
+	Other client scripts open a MineClient screen through this, for example the
+	Forge hub's BAGS and COIN SHOP buttons: Mine.OpenPanel:Fire(name, tab).
+]]
+do
+	local openPanelEv = Instance.new("BindableEvent")
+	openPanelEv.Name = "OpenPanel"
+	openPanelEv.Parent = game:GetService("ReplicatedStorage"):WaitForChild("Mine")
+	openPanelEv.Event:Connect(function(name, tab)
+		ClientFns.routePanel(name, tab)
+	end)
+end
+
 function ClientFns.routePanel(name, tab)
 	name = tostring(name or "")
+	--[[
+		THE BLACKSMITH OPENS THE FORGE HUB (owner, 2026-10-12: "the Blacksmith
+		counter should open the Forge hub"). Every plain "shop" -- the counters,
+		the "to the Blacksmith" buttons -- lands there. A named shelf (the
+		tutorial's coin pickaxe, the hub's BAGS and COIN SHOP) still opens the
+		old shop on that shelf, since the hub sells neither.
+	]]
+	if name == "shop" and tab == nil then
+		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
+		if hubOpen then
+			hidePanels()
+			hubOpen:Fire("counter")
+			return
+		end
+	end
 	if name == "depth_shop" then
 		if depthShopCtl then
 			hidePanels()
@@ -11717,6 +11747,10 @@ function ClientFns.routePanel(name, tab)
 			if shopCtl then
 				if snap then shopCtl.setState(snap) end
 				shopCtl.open()
+				-- The two shelves the Forge hub sends here.
+				if (tab == "pickaxe" or tab == "backpack") and shopCtl.setTab then
+					shopCtl.setTab(tab)
+				end
 			end
 		end },
 		merge = { mergeP, refreshMerge },
@@ -12370,6 +12404,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		ClientFns.routePanel("merge")
 	elseif action == "spin" then
 		ClientFns.showSpin(payload)
+	elseif action == "enchSpeed" and type(payload) == "table" then
+		-- Overclock (MineEnchants): the server's swing speed for the held tool
+		-- right now. The swing bar paces by it, and it lapses on its own after
+		-- the grace, exactly as the server's does.
+		ClientFns.enchSpeed = { mult = tonumber(payload.mult) or 1, grace = tonumber(payload.grace) or 2.5, at = os.clock() }
 	elseif action == "hit" and payload then
 		if payload.pos and payload.dmg then
 			floatText("+" .. tostring(payload.dmg), Color3.fromRGB(190, 190, 195), payload.pos)

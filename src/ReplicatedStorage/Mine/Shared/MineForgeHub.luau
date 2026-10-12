@@ -357,6 +357,22 @@ function Hub.mount(gui, opts)
 		return v
 	end
 	local coinsV, gemsV, dustV = chip(2, "💰"), chip(3, "💎"), chip(4, "✨")
+	-- The old shop's two shelves the Forge has no tab for, now that the
+	-- Blacksmith counter opens the Forge: bags, and the coin tools.
+	if opts.onShop then
+		local bagsBtn = pill(chips, "🎒 BAGS", TH.cool, UDim2.fromOffset(120, 40), 16, 75)
+		bagsBtn.LayoutOrder = -1
+		bagsBtn.MouseButton1Click:Connect(function()
+			ctl.close()
+			opts.onShop("backpack")
+		end)
+		local coinBtn = pill(chips, "💰 COIN SHOP", TH.action, UDim2.fromOffset(150, 40), 16, 75)
+		coinBtn.LayoutOrder = 0
+		coinBtn.MouseButton1Click:Connect(function()
+			ctl.close()
+			opts.onShop("pickaxe")
+		end)
+	end
 	local studioBtn
 	if opts.isStudio then
 		studioBtn = pill(chips, "🧪 TEST BOOKS", TH.magic, UDim2.fromOffset(150, 40), 15, 75)
@@ -1306,10 +1322,31 @@ function Hub.mount(gui, opts)
 
 	local function paintBooks(snap)
 		local books = snap.enchants and snap.enchants.books or {}
-		local hdr = text(uWork, "📖 MY BOOKS   ·   merge " .. E.MERGE_COST .. " of the same book for +1 level", 18, TH.text, { Size = UDim2.new(1, 0, 0, 26),
-			TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 76 })
+		-- THE BOOK SHOP: gems buy a bundle (owner chose "Gems buy book bundles").
+		local en = snap.enchants or {}
+		local price = tonumber(en.bundlePrice) or E.bundlePrice(1)
+		local size = tonumber(en.bundleSize) or E.SHOP_BUNDLE
+		local canBuy = (tonumber(snap.gems) or 0) >= price
+		local shop = mk("Frame", { BackgroundColor3 = TH.panel2, Size = UDim2.new(1, -8, 0, 64), ZIndex = 76 }, uWork)
+		round(shop, 12)
+		stroke(shop, TH.magic[1], 2)
+		text(shop, "📚", 30, Color3.new(1, 1, 1), { Position = UDim2.fromOffset(8, 0), Size = UDim2.fromOffset(48, 64), ZIndex = 77 })
+		local st = text(shop, "BOOK BUNDLE   ·   " .. size .. " random books", 19, TH.text, { Position = UDim2.fromOffset(62, 6),
+			Size = UDim2.new(1, -250, 0, 26), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 77 })
+		ink(st, 1)
+		text(shop, "Chests and lucky blocks drop bundles too.", 14, TH.muted, { Position = UDim2.fromOffset(62, 34),
+			Size = UDim2.new(1, -250, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, Font = FONT_B, ZIndex = 77 })
+		local buy = pill(shop, "💎 " .. short(price), canBuy and TH.good or TH.off, UDim2.fromOffset(170, 44), 18, 78)
+		buy.Position = UDim2.new(1, -180, 0.5, -22)
+		buy.MouseButton1Click:Connect(function()
+			if canBuy then
+				act("enchBuyBundle", {})
+			end
+		end)
+		local hdr = text(uWork, "📖 MY BOOKS   ·   merge " .. E.MERGE_COST .. " of the same book for +1 level", 18, TH.text, { Position = UDim2.fromOffset(0, 72),
+			Size = UDim2.new(1, 0, 0, 26), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 76 })
 		ink(hdr, 1)
-		local sc = scroller(uWork, UDim2.fromOffset(0, 32), UDim2.new(1, 0, 1, -32), nil)
+		local sc = scroller(uWork, UDim2.fromOffset(0, 104), UDim2.new(1, 0, 1, -104), nil)
 		local rows = {}
 		for key, n in pairs(books) do
 			local id, level = E.parseBookKey(key)
@@ -1327,7 +1364,7 @@ function Hub.mount(gui, opts)
 			return a.level < b.level
 		end)
 		if #rows == 0 then
-			text(sc, "No books yet. Chests drop them — about 1 in 20.", 18, TH.muted, { Size = UDim2.new(1, 0, 0, 40), ZIndex = 77 })
+			text(sc, "No books yet. Buy a bundle above, or find one in a chest or a lucky block.", 18, TH.muted, { Size = UDim2.new(1, 0, 0, 40), ZIndex = 77 })
 		end
 		for i, r in ipairs(rows) do
 			local canMerge = r.n >= E.MERGE_COST and r.level < E.MAX_LEVEL
@@ -1447,6 +1484,59 @@ function Hub.mount(gui, opts)
 			ctl._pendingCraft = nil
 		end
 		lastToolCount = n
+	end
+
+	--[[
+		A BUNDLE OPENS ON SCREEN: the books you just got, big, then tap to go on.
+		Only while the Forge is open (a chest's bundle toasts in the mine).
+	]]
+	function ctl.showBundle(books)
+		if not root.Visible or type(books) ~= "table" or #books == 0 then
+			return
+		end
+		local old = root:FindFirstChild("BundleReveal")
+		if old then
+			old:Destroy()
+		end
+		local veil = mk("TextButton", { Name = "BundleReveal", Text = "", AutoButtonColor = false, BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundTransparency = 0.3, Size = UDim2.fromScale(1, 1), ZIndex = 120 }, root)
+		local h = 130 + 64 * #books
+		local card = mk("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(560, h),
+			BackgroundColor3 = TH.panel, ZIndex = 121 }, veil)
+		round(card, 18)
+		stroke(card, TH.magic[1], 3)
+		local title = text(card, "📖 BOOK BUNDLE!", 32, TH.text, { Position = UDim2.fromOffset(0, 10), Size = UDim2.new(1, 0, 0, 44), ZIndex = 122 })
+		ink(title, 2)
+		local best = 1
+		for i, bk in ipairs(books) do
+			local def = E.get(bk.id)
+			if def then
+				local col = E.RARITY_COLOR[def.rarity] or TH.edge
+				best = math.max(best, table.find(E.RARITIES, def.rarity) or 1)
+				local row = mk("Frame", { BackgroundColor3 = TH.panel2, Position = UDim2.fromOffset(20, 60 + (i - 1) * 64),
+					Size = UDim2.new(1, -40, 0, 56), ZIndex = 122 }, card)
+				round(row, 10)
+				stroke(row, col, 2)
+				text(row, def.icon, 26, Color3.new(1, 1, 1), { Position = UDim2.fromOffset(6, 0), Size = UDim2.fromOffset(44, 56), ZIndex = 123 })
+				local nm = text(row, def.name .. " " .. E.roman(bk.level), 20, col, { Position = UDim2.fromOffset(56, 2), Size = UDim2.new(1, -66, 0, 28),
+					TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 123 })
+				ink(nm, 1)
+				text(row, E.SLOT_BY_ID[def.slot].name .. "  ·  " .. E.describe(def, bk.level), 14, TH.muted, { Position = UDim2.fromOffset(56, 30),
+					Size = UDim2.new(1, -66, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Font = FONT_B, ZIndex = 123 })
+			end
+		end
+		text(card, "TAP TO KEEP GOING", 16, TH.faint, { Position = UDim2.new(0, 0, 1, -40), Size = UDim2.new(1, 0, 0, 30), Font = FONT_B, ZIndex = 122 })
+		if Celebrate and Celebrate.burst then
+			pcall(Celebrate.burst, math.clamp(best - 1, 1, 4))
+		end
+		veil.MouseButton1Click:Connect(function()
+			veil:Destroy()
+		end)
+		task.delay(8, function()
+			if veil.Parent then
+				veil:Destroy()
+			end
+		end)
 	end
 
 	function ctl.refresh()

@@ -4038,7 +4038,7 @@ local Intro = {
 	steps = {
 		[1] = { text = "HOLD on a rock to break it." },
 		[2] = { text = "Bag's filling up! Run it to the SELL PAD.", waypoint = "sell", bonusGems = 10 },
-		[3] = { text = "Coins burning a hole? BUY A BIGGER PICK.", panel = "shop", waypoint = "shop", grantCoins = "nextPick" },
+		[3] = { text = "Coins burning a hole? BUY A BIGGER PICK.", panel = "shop", tab = "pickaxe", waypoint = "shop", grantCoins = "nextPick" },
 		[4] = { text = "Chests are stuffed with packs. CRACK ONE.", waypoint = "chest" },
 		[5] = { text = "RIP IT OPEN — Inventory, Packs.", panel = "inventory", tab = "packs", grantPack = true },
 		[6] = { text = "Send your best pet out. It mines WITH you.", panel = "inventory", tab = "cards", highlight = "cardsTab", bonusGems = 15 },
@@ -6243,10 +6243,11 @@ local function openChestBlock(plr, p, chestId, b, part)
 			end
 		end
 	end
-	-- AN ENCHANT BOOK, SOMETIMES (MineEnchants.CHEST_BOOK_CHANCE): better
-	-- chests can give a higher level. Owner: "Enchant books from chests and cases".
+	-- A BOOK BUNDLE, SOMETIMES (MineEnchants.CHEST_BOOK_CHANCE): 2 books, more
+	-- and better from a better chest. Owner: "Book buddles from lucky blocks,
+	-- and chest(not cases)".
 	if Dig.EnchSvc then
-		Dig.EnchSvc.chestBook(plr, p, rank, rng, b and b.chestLuck)
+		Dig.EnchSvc.chestBundle(plr, p, rank, rng, b and b.chestLuck)
 	end
 	--[[
 		A SKIN CASE, SOMETIMES (MineConfig.CHEST_SKIN_CASE_CHANCE, 3%). Owner,
@@ -6613,6 +6614,10 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			markDirty(plr)
 		end
 		local ore = C.oreById(part:GetAttribute("OreId"))
+		-- Alchemy (a Utility enchant) can turn it into the next ore up.
+		if ore and Dig.EnchSvc then
+			ore = Dig.EnchSvc.alchemy(plr, p, ore, part.Position)
+		end
 		if ore then
 			local lo, hi = C.oreYieldFor(ore.tier)
 			lo = math.max(1, math.floor(tonumber(lo) or 1))
@@ -6620,11 +6625,17 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			-- Roll first, multiply after: multiplying the band ends would lose
 			-- the low end to flooring and quietly narrow the spread.
 			local got = math.random(lo, hi)
-			local haul = C.oreHaulMult(b and b.oreHaul)
+			-- bb, this function's boosts. It read `b`, which is not defined
+			-- here, so Ore Haul (gear, pets, the Fortune enchant) never paid.
+			local haul = C.oreHaulMult(bb and bb.oreHaul)
 			if haul > 1 then
 				-- Floored, like every other payout here, and never below the
 				-- unboosted roll -- a boost must not be able to cost you ore.
 				got = math.max(got, math.floor(got * haul))
+			end
+			-- Duplicator (a Utility enchant): sometimes, twice the ore.
+			if Dig.EnchSvc then
+				got = Dig.EnchSvc.duplicate(plr, p, got, part.Position)
 			end
 			--[[
 				Into the POUCH, up to what it holds, and through Dig.addOre so the
@@ -6686,6 +6697,10 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			-- from breaking ores and chests"). Runes are retired; nothing rolls one.
 			if Dig.EnchSvc then
 				Dig.EnchSvc.gainXp(plr, p, Dig.Enchants.XP_ORE)
+			end
+			-- Vein Miner (a Utility enchant): the rest of this ore's vein.
+			if Dig.veinAt then
+				Dig.veinAt(plr, p, zone, part)
 			end
 		end
 	elseif kind == "core" then
@@ -6986,6 +7001,60 @@ local function swingNeighbour(plr, part, dmg, p)
 	end
 	-- Shatter chains on this: a shard that breaks its block lets it shatter too.
 	return chip.broke == true
+end
+
+--[[
+	VEIN MINER (MineEnchants veinminer, a Utility enchant). The ore block you
+	just broke takes up to veinCount more blocks of the SAME ore with it,
+	spreading face to face. Each is a full-HP neighbour hit, so it pays, gates
+	and counts like any proc. A vein block never starts a vein of its own.
+]]
+Dig.veining = setmetatable({}, { __mode = "k" })
+function Dig.veinAt(plr, p, zone, part)
+	local n = (Dig.EnchSvc and Dig.EnchSvc.veinCount(p)) or 0
+	if n <= 0 or Dig.veining[p] or not (zone and part) then
+		return
+	end
+	local cells = voxels[zone.id]
+	local oreId = part:GetAttribute("OreId")
+	local cx, cy, cz = part:GetAttribute("CX"), part:GetAttribute("CY"), part:GetAttribute("CZ")
+	if not (cells and oreId and cx and cy and cz) then
+		return
+	end
+	local pos = part.Position
+	local took = 0
+	Dig.veining[p] = true
+	pcall(function()
+		local seen = { [keyOf(zone.id, cx, cy, cz)] = true }
+		local queue, head = { { cx, cy, cz } }, 1
+		while head <= #queue and took < n do
+			local c = queue[head]
+			head += 1
+			for _, d in ipairs(Dig.FACE6) do
+				if took >= n then
+					break
+				end
+				local nx, ny, nz = c[1] + d[1], c[2] + d[2], c[3] + d[3]
+				local k = keyOf(zone.id, nx, ny, nz)
+				if not seen[k] then
+					seen[k] = true
+					local other = cells[k]
+					if other and typeof(other) == "Instance" and other.Parent and other:GetAttribute("OreId") == oreId then
+						local hp = tonumber(other:GetAttribute("HP")) or tonumber(other:GetAttribute("MaxHP")) or 1
+						local ok, broke = pcall(swingNeighbour, plr, other, math.max(1, math.ceil(hp)), p)
+						if ok and broke then
+							took += 1
+							table.insert(queue, { nx, ny, nz })
+						end
+					end
+				end
+			end
+		end
+	end)
+	Dig.veining[p] = nil
+	if took > 0 then
+		net:FireClient(plr, "loot", { text = "VEIN +" .. took, color = Color3.fromRGB(255, 210, 90), pos = pos })
+	end
 end
 
 --[[
@@ -7733,6 +7802,11 @@ local function swingBlock(plr, part)
 	if not tool.cooldown then
 		local nowB = os.clock()
 		local manual = math.max(0.05, tonumber(tool.rate) or 2.5) / math.max(0.05, tonumber(b.swingSec) or 1)
+		-- Overclock (MineEnchants): a streak of one-shots swings faster, and the
+		-- client paces itself from the same number (the "enchSpeed" event).
+		if Dig.EnchSvc then
+			manual *= Dig.EnchSvc.swingSpeed(p)
+		end
 		local refill = math.max(manual, tonumber(b.autoMine) or 0) * 1.35
 		local bucket = swingBudget[plr.UserId]
 		if not bucket then
@@ -7844,6 +7918,11 @@ local function swingBlock(plr, part)
 		end
 		dmg = math.max(1, dmg)
 	end
+	-- The Damage slot's mining enchant (MineEnchants): Critical Strike,
+	-- Executioner, Demolitionist or Combo shapes this swing's damage.
+	if Dig.EnchSvc then
+		dmg = Dig.EnchSvc.hitDamage(plr, p, part, dmg, maxHp)
+	end
 	local function applyDmg(amount, echo)
 		if not part or not part.Parent then return true end
 		local Matter = require(shared.MineSpaceMatter)
@@ -7928,10 +8007,16 @@ local function swingBlock(plr, part)
 	-- The cell you aimed at always takes a full-power hit.
 	local centreDmg = powerFor(kind, dmg)
 	local centreBroken = false
+	-- Overclock counts ONE-SHOTS: the aimed block was whole and this swing broke it.
+	local wasWhole = (tonumber(part:GetAttribute("HP")) or maxHp) >= maxHp
+	local aimPos = part.Position
 	if hitCentre or #touched == 0 then
 		centreBroken = applyDmg(centreDmg, false)
 	else
 		centreBroken = applyDmg(centreDmg, false)
+	end
+	if Dig.EnchSvc then
+		Dig.EnchSvc.afterSwing(plr, p, centreBroken and wasWhole, aimPos)
 	end
 
 	-- ECHO, BLAST, ZAP -- all three live in Dig.procsAt / Dig.echoAt now.
@@ -13333,6 +13418,11 @@ function openLuckyBlock(plr, entry)
 	end
 	if loot.gems then p.gems = (p.gems or 0) + loot.gems end
 	if loot.dust then p.dust = (p.dust or 0) + loot.dust end
+	-- A BOOK BUNDLE with every lucky block (MineEnchants.LUCKY_BUNDLE: Lucky 2,
+	-- Diamond 3, Godly 5). Listed at the end of the reveal with the rest.
+	if Dig.EnchSvc then
+		loot.books = Dig.EnchSvc.luckyBundle(p, blockId, rng)
+	end
 	markDirty(plr)
 	snap(plr)
 	net:FireClient(plr, "luckyBlockOpened", {
@@ -18568,7 +18658,13 @@ task.defer(function()
 				-- tagged Machine="shop" (Blacksmith, Chandlery, Bloodforge, Supply Pod)
 				-- and every one of them fell straight through this if-chain, so walking
 				-- up to a shop and pressing it did nothing at all.
-				net:FireClient(plr, "openPanel", "shop")
+				--
+				-- The counter opens THE FORGE HUB now (owner, 2026-10-12: "the
+				-- Blacksmith counter should open the Forge hub"). Only the tutorial's
+				-- "buy a bigger pick" step (3) opens the coin shelf it teaches.
+				local pc = profiles[plr.UserId]
+				local onPickStep = pc and math.floor(tonumber(pc.intro) or 0) == 3
+				net:FireClient(plr, "openPanel", "shop", onPickStep and "pickaxe" or nil)
 			elseif machine == "open" then openFrom(plr)
 			elseif machine == "prestige" then
 				-- Open the Rebirth panel, never rebirth outright.

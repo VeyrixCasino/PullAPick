@@ -12,7 +12,8 @@
 	  * Levels I to V. "anything that is a progressive boost is compounded".
 	  * Enchants replace TRAITS and RUNES ("RETIRE RUNES AND TRAITS.. ENCHNATS
 	    TAKE OVERTHAT FEILD").
-	and chose (2026-10-11): enchants come as BOOKS from chests and cases; three
+	and chose (2026-10-11): enchants come as BOOKS from chests (2026-10-12: in
+	BUNDLES, from chests and lucky blocks, never cases; gems buy them too); three
 	of the same book at the same level merge into one a level up (to V); the
 	slots unlock with the new PLAYER LEVEL (Damage 1, Utility 10, Special 25),
 	which is earned from ores and chests, never from the pass.
@@ -22,10 +23,11 @@
 	Values marked PROPOSED are first passes for the owner; the ones the owner
 	gave are marked (owner).
 
-	LIVE vs NOT YET. An enchant whose effect needs new mining code (a crit, a
-	combo counter, a vein break) is marked `live = false` until that code
-	lands: the Forge shows it as "COMING SOON" and the server refuses to apply
-	it, so no card ever promises something the game does not do.
+	LIVE vs NOT YET. An enchant whose effect needs mining code the game does
+	not have is marked `live = false`: the Forge shows it as "COMING SOON" and
+	the server refuses to apply it, so no card ever promises something the game
+	does not do. Since 2026-10-12 every enchant here is live (owner: "Make the
+	'coming soon' enchants actually work"); the flag stays for the next one.
 
 	Pure: no services. MineServer reads it as Dig.Enchants.
 ]]
@@ -141,8 +143,15 @@ M.RARITY_WEIGHT = { Common = 100, Uncommon = 45, Rare = 18, Epic = 7, Legendary 
 	  add    an additive stat: + per * level.
 	  multi  several of the above at once (Heavy Impact).
 	  proc   a Special: { family, chance per level, damage per level }.
-	  later  needs new mining code; `live = false` until it lands.
+	  hit    a Damage enchant that acts inside the swing (hitMult,
+	         overclockSpeed below; MineEnchantService keeps the streaks).
+	  ore    a Utility enchant that acts on an ore drop (oreChance,
+	         veinBlocks below).
 ]]
+-- The tools that SWING. A thrown charge never swings, so the in-swing Damage
+-- enchants do nothing on one: not compatible (Power and Heavy still are).
+local SWUNG = { "pickaxe", "hammer", "drill", "jackhammer" }
+
 M.LIST = {
 	-- ---------------------------------------------------- DAMAGE --
 	{ id = "power", name = "Power", icon = "💪", slot = "damage", rarity = "Common", live = true,
@@ -154,20 +163,20 @@ M.LIST = {
 			{ stat = "swingRate", base = 0.8 ^ (1 / 5) },
 		} },
 		blurb = "Much harder hits, slower swings" }, -- owner: +30% damage, -20% speed (at V)
-	{ id = "crit", name = "Critical Strike", icon = "💥", slot = "damage", rarity = "Rare", live = false,
-		effect = { kind = "later", chance = 0.04, mult = 2.5 },
+	{ id = "crit", name = "Critical Strike", icon = "💥", slot = "damage", rarity = "Rare", live = true, families = SWUNG,
+		effect = { kind = "hit", chance = 0.04, mult = 2.5 },
 		blurb = "A chance for a huge hit" }, -- PROPOSED 4% a level, x2.5
-	{ id = "executioner", name = "Executioner", icon = "🪓", slot = "damage", rarity = "Rare", live = false,
-		effect = { kind = "later", per = 0.2, hitsLeft = 2 },
+	{ id = "executioner", name = "Executioner", icon = "🪓", slot = "damage", rarity = "Rare", live = true, families = SWUNG,
+		effect = { kind = "hit", per = 0.2, hitsLeft = 2 },
 		blurb = "Finishes blocks that are almost broken" }, -- PROPOSED +20% a level within 2 hits of breaking
-	{ id = "demolition", name = "Demolitionist", icon = "🧱", slot = "damage", rarity = "Rare", live = false,
-		effect = { kind = "later", per = 0.08, hitsFrom = 8 },
+	{ id = "demolition", name = "Demolitionist", icon = "🧱", slot = "damage", rarity = "Rare", live = true, families = SWUNG,
+		effect = { kind = "hit", per = 0.08, hitsFrom = 8 },
 		blurb = "Big damage on tough blocks" }, -- PROPOSED +8% a level on blocks of 8+ hits
-	{ id = "overclock", name = "Overclock", icon = "⚡", slot = "damage", rarity = "Epic", live = false,
-		effect = { kind = "later", perStack = 0.01, stacks = 20 },
+	{ id = "overclock", name = "Overclock", icon = "⚡", slot = "damage", rarity = "Epic", live = true, families = SWUNG,
+		effect = { kind = "hit", perStack = 0.01, stacks = 20 },
 		blurb = "Faster with every one-shot in a row" }, -- owner: +5%/one-shot, max 20 (at V)
-	{ id = "combo", name = "Combo", icon = "🔥", slot = "damage", rarity = "Epic", live = false,
-		effect = { kind = "later", perStack = 0.004, stacks = 100 },
+	{ id = "combo", name = "Combo", icon = "🔥", slot = "damage", rarity = "Epic", live = true, families = SWUNG,
+		effect = { kind = "hit", perStack = 0.004, stacks = 100 },
 		blurb = "Stronger with every hit in a row" }, -- owner: +2%/hit, max 100 (at V)
 
 	-- --------------------------------------------------- UTILITY --
@@ -189,15 +198,15 @@ M.LIST = {
 	{ id = "experience", name = "Experience", icon = "⭐", slot = "utility", rarity = "Uncommon", live = true,
 		effect = { kind = "xp", base = 1.1 },
 		blurb = "More player XP" }, -- PROPOSED x1.1 a level
-	{ id = "veinminer", name = "Vein Miner", icon = "⛓", slot = "utility", rarity = "Epic", live = false,
-		effect = { kind = "later", blocks = 2 },
+	{ id = "veinminer", name = "Vein Miner", icon = "⛓", slot = "utility", rarity = "Epic", live = true,
+		effect = { kind = "ore", blocks = 2 },
 		blurb = "Breaks the rest of an ore vein" }, -- owner; PROPOSED +2 vein blocks a level, ore only
-	{ id = "alchemy", name = "Alchemy", icon = "⚗", slot = "utility", rarity = "Epic", live = false,
-		effect = { kind = "later", chance = 0.02 },
+	{ id = "alchemy", name = "Alchemy", icon = "⚗", slot = "utility", rarity = "Epic", live = true,
+		effect = { kind = "ore", chance = 0.02 },
 		blurb = "A chance to upgrade the ore you mine" }, -- owner's 2nd "Fortune"; PROPOSED 2% a level
-	{ id = "duplicator", name = "Duplicator", icon = "📋", slot = "utility", rarity = "Rare", live = false,
-		effect = { kind = "later", chance = 0.04 },
-		blurb = "A chance for double drops" }, -- PROPOSED 4% a level
+	{ id = "duplicator", name = "Duplicator", icon = "📋", slot = "utility", rarity = "Rare", live = true,
+		effect = { kind = "ore", chance = 0.04 },
+		blurb = "A chance for double ore" }, -- PROPOSED 4% a level
 
 	-- --------------------------------------------------- SPECIAL --
 	-- Owner: "Zap, Blast, Tidal wave, Etcetc". Chance and damage are PROPOSED.
@@ -292,15 +301,93 @@ function M.describe(def, level)
 	elseif def.id == "demolition" then
 		return "+" .. pct(e.per * level) .. " on tough blocks"
 	elseif def.id == "overclock" then
-		return "+" .. pct(e.perStack * level) .. " speed a one-shot (max " .. e.stacks .. ")"
+		return "+" .. pct(e.perStack * level) .. " speed a one-shot in a row (max " .. e.stacks .. ")"
 	elseif def.id == "combo" then
-		return "+" .. pct(e.perStack * level) .. " a hit (max " .. e.stacks .. ")"
+		return "+" .. pct(e.perStack * level) .. " damage a hit in a row (max " .. e.stacks .. ")"
 	elseif def.id == "veinminer" then
 		return "+" .. tostring(e.blocks * level) .. " vein blocks"
+	elseif def.id == "alchemy" then
+		return pct(e.chance * level) .. " to upgrade the ore"
+	elseif def.id == "duplicator" then
+		return pct(e.chance * level) .. " double ore"
 	elseif e.chance then
 		return pct(e.chance * level) .. " chance"
 	end
 	return ""
+end
+
+-- ---------------------------------------------------- mining enchants --
+--[[
+	The Damage enchants that act INSIDE a swing and the Utility ones that act on
+	an ORE DROP. Pure maths; MineEnchantService keeps the streaks and MineServer
+	calls it from the swing (swingBlock) and the ore break (finishBreak).
+
+	A streak ends after a pause (PROPOSED graces below): Combo after
+	COMBO_GRACE seconds without a hit, Overclock after OVERCLOCK_GRACE
+	without a one-shot -- or at once, on a swing that did not one-shot.
+]]
+M.COMBO_GRACE = 2
+M.OVERCLOCK_GRACE = 2.5
+
+local function lv(level)
+	return math.clamp(math.floor(tonumber(level) or 1), 1, M.MAX_LEVEL)
+end
+
+--[[
+	One swing's damage multiplier from a Damage enchant, and the word to flash
+	(or nil). h = { dmg, hp, maxHp, combo, roll }: hp is the block's HP before
+	the swing, combo the streak counting THIS hit, roll a 0-1 number (the crit's
+	dice). Overclock is speed, not damage: overclockSpeed.
+]]
+function M.hitMult(def, level, h)
+	local e = def and def.live and def.effect
+	if not (e and e.kind == "hit" and type(h) == "table") then
+		return 1, nil
+	end
+	level = lv(level)
+	local dmg = math.max(1, tonumber(h.dmg) or 1)
+	if def.id == "crit" then
+		if (tonumber(h.roll) or 1) < e.chance * level then
+			return e.mult, "CRIT!"
+		end
+	elseif def.id == "executioner" then
+		if (tonumber(h.hp) or math.huge) <= dmg * e.hitsLeft then
+			return 1 + e.per * level, nil
+		end
+	elseif def.id == "demolition" then
+		if (tonumber(h.maxHp) or 0) >= dmg * e.hitsFrom then
+			return 1 + e.per * level, nil
+		end
+	elseif def.id == "combo" then
+		-- The hits BEFORE this one are the stacks, so the first hit is plain.
+		local stacks = math.clamp(math.floor(tonumber(h.combo) or 1) - 1, 0, e.stacks)
+		return 1 + e.perStack * level * stacks, nil
+	end
+	return 1, nil
+end
+
+-- Overclock's swing speed at a streak of one-shots (1 = no faster).
+function M.overclockSpeed(def, level, streak)
+	local e = def and def.live and def.id == "overclock" and def.effect
+	if not e then
+		return 1
+	end
+	return 1 + e.perStack * lv(level) * math.clamp(math.floor(tonumber(streak) or 0), 0, e.stacks)
+end
+
+-- Alchemy's and Duplicator's chance on one ore drop.
+function M.oreChance(def, level)
+	local e = def and def.live and def.effect
+	if not (e and e.kind == "ore" and e.chance) then
+		return 0
+	end
+	return e.chance * lv(level)
+end
+
+-- How many more blocks of the vein Vein Miner takes.
+function M.veinBlocks(def, level)
+	local e = def and def.live and def.id == "veinminer" and def.effect
+	return e and (e.blocks * lv(level)) or 0
 end
 
 -- ----------------------------------------------------- compatibility --
@@ -437,24 +524,89 @@ function M.rollBookId(rng, slotFilter)
 	return M.LIST[1].id
 end
 
+-- A book's level: I, unless a rank (B/A/S) lifts it (BOOK_RANK_LEVEL).
+local function liftLevel(rank, rng)
+	local lift = M.BOOK_RANK_LEVEL[rank or ""]
+	if lift then
+		local u = rng:NextNumber()
+		if u < lift[2] then
+			return 3
+		elseif u < lift[1] then
+			return 2
+		end
+	end
+	return 1
+end
+
 function M.rollChestBook(rank, rng, chestLuck)
 	rng = rng or Random.new()
 	local luck = math.clamp(tonumber(chestLuck) or 1, 1, M.BOOK_LUCK_CAP)
 	if rng:NextNumber() >= M.CHEST_BOOK_CHANCE * luck then
 		return nil
 	end
-	local id = M.rollBookId(rng)
-	local level = 1
-	local lift = M.BOOK_RANK_LEVEL[rank or ""]
-	if lift then
-		local u = rng:NextNumber()
-		if u < lift[2] then
-			level = 3
-		elseif u < lift[1] then
-			level = 2
-		end
+	return { id = M.rollBookId(rng), level = liftLevel(rank, rng) }
+end
+
+--[[
+	BOOK BUNDLES. Owner, 2026-10-12: "Book buddles from lucky blocks, and
+	chest(not cases)", and chose 2-5 books, scaled:
+	  * a chest's book roll (CHEST_BOOK_CHANCE, as before) pays a BUNDLE:
+	    CHEST_BUNDLE_BASE books, more from a better chest (CHEST_BUNDLE);
+	  * every lucky block pays one on top of its loot (LUCKY_BUNDLE): Lucky 2,
+	    Diamond 3, Godly 5, the better blocks lifting levels like a good chest;
+	  * gems buy a SHOP_BUNDLE at the Forge (owner chose "Gems buy book
+	    bundles": the gem sink runes used to be), priced up a little a zone.
+	Cases never drop books. PROPOSED: the gem price and its step.
+]]
+M.CHEST_BUNDLE_BASE = 2
+M.CHEST_BUNDLE = { S = 4, A = 3, B = 3 }
+M.LUCKY_BUNDLE = {
+	lucky_block = { n = 2 },
+	super_lucky_block = { n = 3, rank = "A" },
+	godly_lucky_block = { n = 5, rank = "S" },
+}
+M.SHOP_BUNDLE = 3
+M.SHOP_BUNDLE_PRICE = 500 -- gems at zone 1: the price the trait roll had (PROPOSED)
+M.SHOP_BUNDLE_STEP = 1.15 -- x a zone (PROPOSED)
+
+function M.bundlePrice(zoneIndex)
+	local z = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	return math.floor(M.SHOP_BUNDLE_PRICE * M.SHOP_BUNDLE_STEP ^ (z - 1) + 0.5)
+end
+
+-- n books by rarity weight; a rank can lift their levels.
+function M.rollBundle(n, rng, rank)
+	rng = rng or Random.new()
+	local out = {}
+	for _ = 1, math.clamp(math.floor(tonumber(n) or 1), 1, 10) do
+		table.insert(out, { id = M.rollBookId(rng), level = liftLevel(rank, rng) })
 	end
-	return { id = id, level = level }
+	return out
+end
+
+-- A chest's bundle, or nil (most chests).
+function M.rollChestBundle(rank, rng, chestLuck)
+	rng = rng or Random.new()
+	local luck = math.clamp(tonumber(chestLuck) or 1, 1, M.BOOK_LUCK_CAP)
+	if rng:NextNumber() >= M.CHEST_BOOK_CHANCE * luck then
+		return nil
+	end
+	return M.rollBundle(M.CHEST_BUNDLE[rank or ""] or M.CHEST_BUNDLE_BASE, rng, rank)
+end
+
+function M.luckyBundle(blockId, rng)
+	local spec = M.LUCKY_BUNDLE[tostring(blockId or "")] or M.LUCKY_BUNDLE.lucky_block
+	return M.rollBundle(spec.n, rng, spec.rank)
+end
+
+-- "Power I, Zap II, Fortune I" for a toast.
+function M.bundleText(books)
+	local names = {}
+	for _, bk in ipairs(books or {}) do
+		local def = M.get(bk.id)
+		table.insert(names, (def and def.name or tostring(bk.id)) .. " " .. M.roman(bk.level))
+	end
+	return table.concat(names, ", ")
 end
 
 -- --------------------------------------------------------- player XP --

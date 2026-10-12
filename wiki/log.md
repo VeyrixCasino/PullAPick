@@ -1225,3 +1225,22 @@ Updated: enchants, log.
 The owner: *"rework all pets so most a liitle less abiliy oriented"*, and chose "Both". Pets with an ability fell from 116 to 55 in the zone pots, from 399 to 234 in the sets and from 7 to 6 at Halloween. No pet has two ability families now (28 did). The abilities that remain are 30% weaker, but every pet keeps its power: the points go to a plain stat. Eclipse and Riftmarch lost Earthquake from their buff sets, and the Mystic Earthquake + Zap pair became Earthquake + Mine Speed. The Tidal Wave trio check is now 35–42%, which is the old 50–60% × 0.7. No names, tiers, serials or set `buffs` JSON changed.
 
 Updated: pets, log.
+
+## [2026-10-12] ingest | The eight mining enchants, book bundles, the Blacksmith opens the Forge
+The owner asked to make the "coming soon" enchants work. All eight are live:
+- Critical Strike, Executioner, Demolitionist and Combo act in the swing.
+- Overclock is real swing speed; the server budget and the client bar share it.
+- Vein Miner, Alchemy and Duplicator act on an ore drop.
+- Explosives take none of the five in-swing ones.
+
+Fixing this found that Ore Haul never paid: the ore drop read an undefined `b` instead of `bb`.
+
+Books come as bundles now (the owner chose 2–5, scaled):
+- chests: 2–4 books;
+- lucky blocks, every one: Lucky 2, Diamond 3, Godly 5;
+- the Forge's gems shop: 3 books, 500 gems × 1.15 a zone, PROPOSED (the owner chose gems as the sink runes were);
+- never cases.
+
+The Blacksmith counter opens the Forge hub. Its new BAGS and COIN SHOP buttons reach the old shop's two shelves, and the tutorial's buy-a-pick step still lands on the coin pickaxes.
+
+Updated: enchants, client-and-ui, chests-and-lucky-blocks, log.

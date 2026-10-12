@@ -8,10 +8,19 @@
 	  dispatch(plr, action, payload)  every remote action starting "ench"
 	  snapState(p)                    the block the snapshot carries
 	  gainXp(plr, p, amount)          ore blocks and chests pay XP
-	  chestBook(plr, p, rank, rng, chestLuck)   a chest's book, sometimes
+	  chestBundle(plr, p, rank, rng, chestLuck)   a chest's book bundle, sometimes
+	  luckyBundle(p, blockId, rng)    a lucky block's bundle (shown by its reveal)
 	  returnBooks(p, tool)            a tool being recycled gives its enchants back
 	  special(p)                      the held tool's Special enchant (for boosts)
 	  layerStats(p)                   the held tool's Damage/Utility stats (for boosts)
+	  hitDamage(plr, p, part, dmg, maxHp)   a swing's damage, through the Damage
+	                                  slot's mining enchant (crit, executioner,
+	                                  demolition, combo)
+	  afterSwing(plr, p, oneShot, pos)  Overclock's streak, after the swing lands
+	  swingSpeed(p)                   Overclock's swing speed now (1 = none)
+	  alchemy(plr, p, ore, pos)       an ore drop, maybe the next ore up
+	  duplicate(plr, p, got, pos)     an ore count, maybe doubled
+	  veinCount(p)                    how many vein blocks Vein Miner takes
 
 	SERVER-AUTHORITATIVE. The client names a tool, a slot and a book; this
 	checks you own the tool and the book, the slot is unlocked at your level,
@@ -118,6 +127,164 @@ local function xpMult(p)
 	return 1
 end
 
+-- ---------------------------------------------------- mining enchants --
+--[[
+	The eight that needed mining code (owner, 2026-10-12: "Make the 'coming
+	soon' enchants actually work"). The maths is MineEnchants (hitMult,
+	overclockSpeed, oreChance, veinBlocks); this keeps the two STREAKS and
+	flashes the word over the block. Streaks are per player and never saved:
+	a weak table keyed by the profile, so a leaving player takes theirs along.
+]]
+local streaks = setmetatable({}, { __mode = "k" })
+local FLASH = {
+	crit = Color3.fromRGB(255, 90, 70),
+	combo = Color3.fromRGB(255, 160, 60),
+	overclock = Color3.fromRGB(120, 220, 255),
+	alchemy = Color3.fromRGB(200, 140, 255),
+	duplicator = Color3.fromRGB(120, 255, 160),
+}
+
+-- The held tool's live enchant in a slot, and its level, or nil.
+local function slotEnchant(p, slot)
+	local t = heldTool(p)
+	local e = t and type(t.enchants) == "table" and t.enchants[slot] or nil
+	if not (e and E.slotUnlocked(slot, p.level)) then
+		return nil
+	end
+	local def = E.get(e.id)
+	if not (def and def.live) then
+		return nil
+	end
+	return def, math.clamp(math.floor(tonumber(e.level) or 1), 1, E.MAX_LEVEL)
+end
+
+local function streak(p)
+	local s = streaks[p]
+	if not s then
+		s = { combo = 0, comboAt = 0, oc = 0, ocAt = 0 }
+		streaks[p] = s
+	end
+	return s
+end
+
+local function flash(plr, text, color, pos)
+	if pos then
+		ctx.net:FireClient(plr, "loot", { text = text, color = color, pos = pos })
+	end
+end
+
+-- Round by chance, like the swing's own damage: x1.2 on a 1-damage hit is a
+-- 2 one time in five rather than never.
+local function roundByChance(x)
+	local n = math.floor(x)
+	if math.random() < (x - n) then
+		n += 1
+	end
+	return math.max(1, n)
+end
+
+function S.hitDamage(plr, p, part, dmg, maxHp)
+	local def, level = slotEnchant(p, "damage")
+	if not (def and def.effect.kind == "hit") or def.id == "overclock" then
+		return dmg
+	end
+	local h = { dmg = dmg, maxHp = maxHp, hp = tonumber(part:GetAttribute("HP")) or maxHp, roll = math.random() }
+	if def.id == "combo" then
+		local s, now = streak(p), os.clock()
+		if now - s.comboAt > E.COMBO_GRACE then
+			s.combo = 0
+		end
+		s.combo += 1
+		s.comboAt = now
+		h.combo = s.combo
+		if s.combo % 25 == 0 and s.combo <= def.effect.stacks + 1 then
+			flash(plr, "COMBO " .. s.combo, FLASH.combo, part.Position)
+		end
+	end
+	local mult, word = E.hitMult(def, level, h)
+	if word then
+		flash(plr, word, FLASH[def.id] or FLASH.crit, part.Position)
+	end
+	if mult == 1 then
+		return dmg
+	end
+	return roundByChance(dmg * mult)
+end
+
+-- Overclock counts one-shots in a row: the block was whole and this swing
+-- broke it. Anything else ends the streak. The client is told every time it
+-- moves, because it paces its own swings ("enchSpeed").
+function S.afterSwing(plr, p, oneShot, pos)
+	local def, level = slotEnchant(p, "damage")
+	local s = streaks[p]
+	if not (def and def.id == "overclock") then
+		if s and s.oc > 0 then
+			s.oc = 0
+			ctx.net:FireClient(plr, "enchSpeed", { mult = 1, grace = E.OVERCLOCK_GRACE })
+		end
+		return
+	end
+	s = streak(p)
+	local now = os.clock()
+	local was = (now - s.ocAt <= E.OVERCLOCK_GRACE) and s.oc or 0
+	s.oc = oneShot and math.min(def.effect.stacks, was + 1) or 0
+	s.ocAt = now
+	if s.oc > 0 or was > 0 then
+		ctx.net:FireClient(plr, "enchSpeed", { mult = E.overclockSpeed(def, level, s.oc), grace = E.OVERCLOCK_GRACE })
+	end
+	if s.oc > was and s.oc % 5 == 0 then
+		flash(plr, "OVERCLOCK x" .. s.oc, FLASH.overclock, pos)
+	end
+end
+
+function S.swingSpeed(p)
+	local s = streaks[p]
+	if not (s and s.oc > 0 and os.clock() - s.ocAt <= E.OVERCLOCK_GRACE) then
+		return 1
+	end
+	local def, level = slotEnchant(p, "damage")
+	return E.overclockSpeed(def, level, s.oc)
+end
+
+local Config
+local function nextOre(ore)
+	Config = Config or require(shared:WaitForChild("MineConfig"))
+	local want = (tonumber(ore.tier) or 0) + 1
+	for _, o in ipairs(Config.ORES or {}) do
+		if o.tier == want then
+			return o
+		end
+	end
+	return nil
+end
+
+function S.alchemy(plr, p, ore, pos)
+	local def, level = slotEnchant(p, "utility")
+	if not (ore and def and def.id == "alchemy") or math.random() >= E.oreChance(def, level) then
+		return ore
+	end
+	local up = nextOre(ore)
+	if not up then
+		return ore
+	end
+	flash(plr, "ALCHEMY! " .. tostring(up.name), FLASH.alchemy, pos)
+	return up
+end
+
+function S.duplicate(plr, p, got, pos)
+	local def, level = slotEnchant(p, "utility")
+	if not (def and def.id == "duplicator") or math.random() >= E.oreChance(def, level) then
+		return got
+	end
+	flash(plr, "DOUBLE!", FLASH.duplicator, pos)
+	return got * 2
+end
+
+function S.veinCount(p)
+	local def, level = slotEnchant(p, "utility")
+	return (def and def.id == "veinminer") and E.veinBlocks(def, level) or 0
+end
+
 -- -------------------------------------------------------------- XP --
 
 function S.gainXp(plr, p, amount)
@@ -165,16 +332,35 @@ end
 
 -- ------------------------------------------------------------ books --
 
-function S.chestBook(plr, p, rank, rng, chestLuck)
+local function giveBooks(p, books)
+	for _, bk in ipairs(books or {}) do
+		addBook(p, bk.id, bk.level)
+	end
+end
+
+-- The Forge's gem price for a bundle: up a little each zone you have opened.
+local function bundlePrice(p)
+	return E.bundlePrice(math.max(1, math.floor(tonumber(p.maxUnlockedZone) or 1)))
+end
+
+function S.chestBundle(plr, p, rank, rng, chestLuck)
 	S.ensure(p)
-	local book = E.rollChestBook(rank, rng, chestLuck)
-	if not book then
+	local books = E.rollChestBundle(rank, rng, chestLuck)
+	if not books then
 		return nil
 	end
-	addBook(p, book.id, book.level)
-	local def = E.get(book.id)
-	toast(plr, "📖 ENCHANT BOOK: " .. (def and def.name or book.id) .. " " .. E.roman(book.level))
-	return book
+	giveBooks(p, books)
+	toast(plr, "📖 BOOK BUNDLE! " .. E.bundleText(books))
+	ctx.net:FireClient(plr, "bookBundle", { books = books, source = "chest" })
+	return books
+end
+
+-- No toast: the lucky block's own reveal lists the books with the rest.
+function S.luckyBundle(p, blockId, rng)
+	S.ensure(p)
+	local books = E.luckyBundle(blockId, rng)
+	giveBooks(p, books)
+	return books
 end
 
 function S.returnBooks(p, tool)
@@ -196,6 +382,8 @@ function S.snapState(p)
 		level = p.level,
 		xp = p.xp,
 		next = E.xpToNext(p.level),
+		bundlePrice = bundlePrice(p),
+		bundleSize = E.SHOP_BUNDLE,
 	}
 end
 
@@ -277,6 +465,21 @@ function V.enchMerge(plr, p, payload)
 	end
 	addBook(p, def.id, level + 1)
 	toast(plr, "📖 " .. def.name .. " " .. E.roman(level + 1) .. "!")
+	ctx.markDirty(plr)
+	ctx.snap(plr)
+end
+
+-- Buy a bundle of books with gems, at the Forge.
+function V.enchBuyBundle(plr, p)
+	local price = bundlePrice(p)
+	if (tonumber(p.gems) or 0) < price then
+		return toast(plr, "A book bundle is " .. price .. " gems")
+	end
+	p.gems = (tonumber(p.gems) or 0) - price
+	local books = E.rollBundle(E.SHOP_BUNDLE, Random.new())
+	giveBooks(p, books)
+	toast(plr, "📖 BOOK BUNDLE! " .. E.bundleText(books))
+	ctx.net:FireClient(plr, "bookBundle", { books = books, source = "shop" })
 	ctx.markDirty(plr)
 	ctx.snap(plr)
 end

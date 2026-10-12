@@ -48,9 +48,9 @@ ok(/MineConfig\.ORE_HAUL_CAP\s*=\s*\d+/.test(CFG), "there is a cap constant");
 ok(/function MineConfig\.oreHaulMult\(/.test(CFG), "oreHaulMult exists");
 
 // The drop site must use it, and must still refuse the finder.
-ok(/local haul = C\.oreHaulMult\(b and b\.oreHaul\)/.test(SRV),
-  "the ore drop applies Ore Haul");
-ok(/local got = math\.random\(lo, hi\)\s*\n\s*local haul/.test(SRV),
+ok(/local haul = C\.oreHaulMult\(bb and bb\.oreHaul\)/.test(SRV),
+  "the ore drop applies Ore Haul, from this function's own boosts (bb; it read an undefined b until 2026-10-12, so it never paid)");
+ok(/local got = math\.random\(lo, hi\)\s*\n(\s*--[^\n]*\n)*\s*local haul/.test(SRV),
   "it rolls first and multiplies after",
   "multiplying the band ends would lose the low end to flooring");
 ok(/THE ORE FINDER IS STILL NOT APPLIED HERE/.test(SRV),
