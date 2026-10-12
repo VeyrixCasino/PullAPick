@@ -1215,3 +1215,13 @@ allowance stopped generation after about 19 hours of cooldowns. Resume from
 credits reset.
 
 Suite 65/65.
+
+## [2026-10-12] decision | Three tiers per ability
+The owner: *"Make 3 levels of abilities"*, and chose "Each ability has 3 tiers that change how it works". The Special enchant's level picks the tier (I–II = 1, III–IV = 2, V = 3). Before a Special, the pets' best proc runs at tier 1. Zap chains 1/2/3 times. Blast hits 6, 18 or 26 blocks, and its tier 3 chains up to 3 pops. Tidal Wave clears 1–3 layers. Shatter allows 3, 6 or 10 procs. Quake spreads to 0, 2 or 4 neighbours, ×1.5 at tier 3. The tier table is in enchants; `Dig.procsAt` reads `b.procTier`. Checked by `tools/verify/enchants.js`.
+
+Updated: enchants, log.
+
+## [2026-10-12] decision | The pet calm pass
+The owner: *"rework all pets so most a liitle less abiliy oriented"*, and chose "Both". Pets with an ability fell from 116 to 55 in the zone pots, from 399 to 234 in the sets and from 7 to 6 at Halloween. No pet has two ability families now (28 did). The abilities that remain are 30% weaker, but every pet keeps its power: the points go to a plain stat. Eclipse and Riftmarch lost Earthquake from their buff sets, and the Mystic Earthquake + Zap pair became Earthquake + Mine Speed. The Tidal Wave trio check is now 35–42%, which is the old 50–60% × 0.7. No names, tiers, serials or set `buffs` JSON changed.
+
+Updated: pets, log.

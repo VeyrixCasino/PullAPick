@@ -13,20 +13,20 @@ Also pays the older halloween pets: Spindle, Spooky, Wisp.
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Exotic | Webster | Slime Reaper | Halloween 2026 | +163% Luck, +33% Lucky Block find, +5.4% Shatter Chance |
-| Divine | Graveyard Gus | Witch Purple Vampire | Halloween 2026 | +69% Lucky Block find, +9.4% Shatter Chance, +18% Luck |
-| Divine | Rattlebones | Fog Frankenstein | Halloween 2026 | +27% Shatter Chance, +42% Luck, +10% Lucky Block find |
-| Mythic | Gloomy | Slime Mummy | Halloween 2026 | +89% Luck, +18% Lucky Block find, +3.0% Shatter Chance |
-| Mythic | Cornstalk | Fog Skelehound | Halloween 2026 | +51% Lucky Block find, +6.9% Shatter Chance, +13% Luck |
+| Exotic | Webster | Slime Reaper | Halloween 2026 | +170% Luck, +33% Lucky Block find, +3.8% Shatter Chance |
+| Divine | Graveyard Gus | Witch Purple Vampire | Halloween 2026 | +76% Lucky Block find, +6.6% Shatter Chance, +18% Luck |
+| Divine | Rattlebones | Fog Frankenstein | Halloween 2026 | +19% Shatter Chance, +79% Luck, +10% Lucky Block find |
+| Mythic | Gloomy | Slime Mummy | Halloween 2026 | +93% Luck, +18% Lucky Block find, +2.1% Shatter Chance |
+| Mythic | Cornstalk | Fog Skelehound | Halloween 2026 | +56% Lucky Block find, +4.8% Shatter Chance, +13% Luck |
 | Legendary | Screech | Fog Zombie | Bruiser | +131% Dirt Break, +65% Ore Haul |
 | Legendary | Potionpaw | Bone Scarecrow | Seeker | +59% Chest Luck, +33% Luck |
-| Legendary | Tombsy | Candy Corn Cauldron | Mystic | +14% Shatter Chance, +44% Shatter Damage |
+| Legendary | Tombsy | Candy Corn Cauldron | Mystic | +65% Luck, +19% Lucky Block find |
 | Legendary | Wolfsbane | Licorice Haunted Lantern | Prospector | +54% Ore Luck, +36% Gem Find |
 | Epic | Fangtail | Marshmallow Bat | Striker | +101% Mine Speed, +51% Dirt Break |
 | Epic | Crawly | Slime Candy Corn | Trader | +101% Ore Haul, +63% Coin Bonus |
 | Epic | Cauldry | Graveyard Eyeball | Seeker | +42% Pack Luck, +25% Luck |
 | Epic | Eek | Midnight Pumpkin | Bruiser | +101% Mine Speed, +51% Dirt Break |
-| Epic | Gummy Worm | Graveyard Ghost | Mystic | +11% Shatter Chance, +34% Shatter Damage |
+| Epic | Gummy Worm | Graveyard Ghost | Mystic | +7.9% Shatter Chance, +24% Shatter Damage, +46% Dirt Break |
 | Epic | Yikes | Moonlight Spider | Digger | +68% Ore Finder, +51% Dirt Break |
 | Rare | Patchling | Devil Bunny | Digger | +54% Ore Finder, +41% Dirt Break |
 | Rare | Grimsby | Caped Bear | Bruiser | +81% Dirt Break, +41% Ore Haul |

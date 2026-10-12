@@ -64,8 +64,10 @@ const ZONES = [
   { id: "mistreef", adj: "Tidal", buff: "Tide", stats: ["tidalWave", "tideDamage", "pulverize"], desc: "tidal waves across your layer that hit harder, stardust from rubble" },
   { id: "arcwork", adj: "Voltaic", buff: "Volt", stats: ["zap", "zapDamage", "swingRate"], desc: "lightning chains that hit harder, faster swings" },
   { id: "bloodmoon", adj: "Crimson", buff: "Fortune", stats: ["luck", "chestLuck", "packLuck"], desc: "luck, better chests, better packs" },
-  { id: "eclipse", adj: "Umbral", buff: "Shadow", stats: ["blastChance", "blastDamage", "earthquake"], desc: "blasts that hit harder, and quakes" },
-  { id: "riftmarch", adj: "Riftborn", buff: "Shatter", stats: ["ricochet", "shatterDamage", "earthquake"], desc: "shatters that chain through rock, and quakes" },
+  // One ability per buff set (owner, 2026-10-12: no pet with two): Eclipse and
+  // Riftmarch used to add quakes on top of blast and shatter.
+  { id: "eclipse", adj: "Umbral", buff: "Shadow", stats: ["blastChance", "blastDamage", "mineSpeed"], desc: "blasts that hit harder, and raw damage" },
+  { id: "riftmarch", adj: "Riftborn", buff: "Shatter", stats: ["ricochet", "shatterDamage", "dirtBreak"], desc: "shatters that chain through rock, and dirt breaking" },
   { id: "starfall", adj: "Starfallen", buff: "Prospect", stats: ["gemFind", "rareOre", "oreLuck"], desc: "gems, rarer ore, more ore cases" },
   { id: "mythral", adj: "Mythril", buff: "Treasure", stats: ["luckyFind", "packLuck", "chestLuck"], desc: "lucky blocks, packs and chests" },
   { id: "primordium", adj: "Primeval", buff: "Primal", stats: ["mineSpeed", "oreHaul", "rareOre"], desc: "damage, ore haul and rare ore" },
@@ -185,7 +187,7 @@ const ROLES = {
   Trader: { desc: "earns more coins and ore", species: ["pig", "sheep", "horse"],
     pairs: [["coinBonus", "oreHaul"], ["coinBonus", "luckyFind"], ["oreHaul", "coinBonus"]] },
   Mystic: { desc: "lightning, shatters and quakes", species: ["sprite", "ghost", "drake", "wyrm"],
-    pairs: [["zap", "zapDamage"], ["ricochet", "shatterDamage"], ["earthquake", "zap"]], rarePlus: [["blastChance", "blastDamage"]] },
+    pairs: [["zap", "zapDamage"], ["ricochet", "shatterDamage"], ["earthquake", "mineSpeed"]], rarePlus: [["blastChance", "blastDamage"]] },
 };
 const ROLE_OF = {};
 for (const [role, r] of Object.entries(ROLES)) for (const s of r.species) ROLE_OF[s] = role;
@@ -193,6 +195,89 @@ for (const [role, r] of Object.entries(ROLES)) for (const s of r.species) ROLE_O
 // Stats a pet may never carry: retired (pay nothing), rune-only (MineCards.addStat
 // drops them), procPower (PROPOSAL §0 line 7).
 const BANNED = new Set(["backpack", "walkSpeed", "echo", "autoMine", "blastRadius", "reach", "coolant", "shortFuse", "procPower"]);
+
+/*
+  THE CALM PASS. Owner, 2026-10-12: "rework all pets so most a liitle less
+  abiliy oriented", and chose "Both": about half the pets that carried an
+  ability (a proc) lose it for a plain stat, and the ones that keep one keep
+  it PROC_WEAKEN as strong. Also no pet carries two ability FAMILIES (the
+  tool's Special enchant decides the proc now; a pet only boosts it).
+
+  calmProcs(name, stats, opts) returns the stats a pet really gets:
+    * only the FIRST ability family in the list survives; any other family's
+      stat becomes a plain one;
+    * unless opts.keepAll (the zone and set TOP pets, whose buff set IS the
+      zone's identity), a pet keeps its ability only when fnv(name..":calm")
+      is a multiple of 3 -- by name, so it never moves between runs;
+    * a lost stat becomes, in order: one of opts.plain (a set's own plain
+      buffs), PROC_PLAIN's partner for it, then PLAIN_FALLBACK -- never a
+      stat the pet already has.
+  weakenPoints (below) then makes each ability it keeps PROC_WEAKEN as strong.
+  Names, tiers and serials are untouched; only which stat and how much.
+*/
+const PROC_FAMILY_OF = { zap: "zap", zapDamage: "zap", blastChance: "blast", blastDamage: "blast", tidalWave: "tide",
+  tideDamage: "tide", ricochet: "shatter", shatterDamage: "shatter", earthquake: "quake" };
+const PROC_PLAIN = { blastChance: "mineSpeed", blastDamage: "dirtBreak", zap: "swingRate", zapDamage: "mineSpeed", tidalWave: "pulverize",
+  tideDamage: "gemFind", ricochet: "dirtBreak", shatterDamage: "mineSpeed", earthquake: "mineSpeed" };
+const PLAIN_FALLBACK = ["mineSpeed", "dirtBreak", "swingRate", "oreHaul", "luck", "coinBonus", "gemFind"];
+const PROC_WEAKEN = 0.7;
+function calmProcs(name, stats, opts = {}) {
+  // One in three below the top keeps it: with the top pets keeping theirs, that
+  // is about half of all ability pets (2026-10-12 count in docs/ZONE-PETS.md).
+  const keep = opts.keepAll || fnv(name + ":calm") % 3 === 0;
+  let family = null;
+  const out = [];
+  for (const s of stats) {
+    const f = PROC_FAMILY_OF[s];
+    let next = s;
+    if (f) {
+      if (!keep || (family && f !== family)) next = null;
+      else family = f;
+    }
+    if (!next) {
+      const prefs = [...(opts.plain || []), PROC_PLAIN[s], ...PLAIN_FALLBACK];
+      const ok = (x, strict) => x && !PROC_FAMILY_OF[x] && !BANNED.has(x) && !out.includes(x) && (!strict || !stats.includes(x));
+      next = prefs.find((x) => ok(x, true)) || prefs.find((x) => ok(x, false));
+    }
+    out.push(next);
+  }
+  return out;
+}
+/*
+  A weaker ABILITY, not a weaker PET. weakenPoints takes a pet's points by
+  stat ({ stat = points before MineStats weight }) and cuts every ability stat
+  to PROC_WEAKEN, then hands the points it took to the pet's first plain stat
+  (or, for a pet with nothing else, the plain partner of its ability). The
+  total stays on the ladder -- the rule every generator here keeps ("every
+  stat is still priced from the same ladder value, so a pet's power does not
+  move").
+*/
+function weakenPoints(pts, order) {
+  let lost = 0;
+  let firstProc = null;
+  for (const s of order) {
+    if (PROC_FAMILY_OF[s] && pts[s]) {
+      firstProc = firstProc || s;
+      lost += pts[s] * (1 - PROC_WEAKEN);
+      pts[s] *= PROC_WEAKEN;
+    }
+  }
+  if (lost > 0) {
+    const target = order.find((s) => !PROC_FAMILY_OF[s] && !BANNED.has(s)) || PROC_PLAIN[firstProc] || "mineSpeed";
+    pts[target] = (pts[target] || 0) + lost;
+  }
+  return pts;
+}
+function pointsKit(pts, weightOf) {
+  const kit = {};
+  for (const [stat, v] of Object.entries(pts)) {
+    if (BANNED.has(stat)) throw new Error("banned stat " + stat);
+    const w = weightOf(stat);
+    if (!w) throw new Error("no MineStats weight for " + stat);
+    kit[stat] = round4(v / w / 100);
+  }
+  return kit;
+}
 
 // New pets use everyday bodies only. Holiday bodies stay rare (owner:
 // "lets not overuse the holiday ones"); matterbox is Event Horizon's.
@@ -468,12 +553,10 @@ function build() {
       shares = [1, SECONDARY];
       roles[p.name] = role;
     }
-    statsUsed.forEach((stat, i) => {
-      if (BANNED.has(stat)) throw new Error("banned stat " + stat);
-      const w = G.stats[stat] && G.stats[stat].weight;
-      if (!w) throw new Error("no MineStats weight for " + stat);
-      kit[stat] = round4((P * shares[i]) / w / 100);
-    });
+    statsUsed = calmProcs(p.name, statsUsed, { keepAll: TOP.has(p.tier) });
+    const pts = {};
+    statsUsed.forEach((stat, i) => { pts[stat] = (pts[stat] || 0) + P * shares[i]; });
+    Object.assign(kit, pointsKit(weakenPoints(pts, statsUsed), (s) => G.stats[s] && G.stats[s].weight));
     kits[p.name] = kit;
   }
 
@@ -491,6 +574,16 @@ function build() {
       pts[stat] = v * 100 * G.stats[stat].weight;
     }
     if (Object.keys(pts).length === 0) { pts.mineSpeed = 2; pts.swingRate = 1; } // a mix of only dead stats
+    // The calm pass: a lost ability's points move to its plain partner.
+    const before = Object.keys(pts);
+    const after = calmProcs(name, before);
+    before.forEach((s, i) => {
+      if (after[i] !== s) {
+        pts[after[i]] = (pts[after[i]] || 0) + pts[s];
+        delete pts[s];
+      }
+    });
+    weakenPoints(pts, Object.keys(pts));
     const have = Object.values(pts).reduce((a, b) => a + b, 0);
     const want = (1.5 * LADDER[tier] * ehMult) / G.rarityMult[tier];
     const kit = {};
@@ -504,10 +597,11 @@ function build() {
   for (const h of holiday) {
     const role = ROLE_OF[h.species] || "Mystic";
     const r = ROLES[role];
-    const pair = r.pairs[fnv(h.name) % r.pairs.length];
+    const pair = calmProcs(h.name, r.pairs[fnv(h.name) % r.pairs.length]);
     const P = LADDER[h.tier] / G.rarityMult[h.tier];
-    const kit = {};
-    pair.forEach((stat, i) => { kit[stat] = round4((P * (i === 0 ? 1 : SECONDARY)) / G.stats[stat].weight / 100); });
+    const pts = {};
+    pair.forEach((stat, i) => { pts[stat] = (pts[stat] || 0) + P * (i === 0 ? 1 : SECONDARY); });
+    const kit = pointsKit(weakenPoints(pts, pair), (s) => G.stats[s] && G.stats[s].weight);
     kits[h.name] = kit;
     roles[h.name] = role;
   }
@@ -723,5 +817,6 @@ function main() {
   if (check && stale) process.exit(1);
 }
 
-module.exports = { build, renderLuau, renderMd, EVENT_ZONE, ZONES, QUOTA, LADDER, ZONE_STEP, TIERS, ROLES, BANNED, OUT_LUAU, OUT_MD };
+module.exports = { build, renderLuau, renderMd, EVENT_ZONE, ZONES, QUOTA, LADDER, ZONE_STEP, TIERS, ROLES, BANNED, OUT_LUAU, OUT_MD,
+  calmProcs, weakenPoints, pointsKit, PROC_FAMILY_OF, PROC_WEAKEN };
 if (require.main === module) main();

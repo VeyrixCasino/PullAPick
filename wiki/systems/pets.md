@@ -2,7 +2,7 @@
 title: Pets
 type: system
 status: partial
-verified: 2026-10-10 @ 5f74929
+verified: 2026-10-12 @ 681aab8
 sources:
   - src/ReplicatedStorage/Mine/Shared/MinePetRoster.luau
   - src/ReplicatedStorage/Mine/Shared/MineSetPets.luau
@@ -104,17 +104,45 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
   - **Mythic, Divine and Exotic** carry their zone's own three-stat buff set
     (meadow Harvest … primordium Primal). A later zone never makes an earlier
     zone's top pets useless.
-  - Blast is on 25 of 700 pets, Rare or better only.
-  - **Proc buff sets (2026-10-10):**
+  - Blast is on 11 of 700 pets, Rare or better only.
+  - **Proc buff sets (2026-10-10; one ability each since 2026-10-12):**
     - Mistreef Tide: Tidal Wave, Tidal Wave Damage, Pulverize;
     - Arcwork Volt: Zap, Zap Damage, Swing Rate;
-    - Eclipse Shadow: Blast, Blast Damage, Earthquake;
-    - Riftmarch Shatter: Shatter, Shatter Damage, Earthquake.
+    - Eclipse Shadow: Blast, Blast Damage, Mine Speed (was Earthquake);
+    - Riftmarch Shatter: Shatter, Shatter Damage, Dirt Break (was Earthquake).
 
-    Mistreef's three top Tidal Wave pets total 50.4% at Normal, within the owner's
-    50–60%. No pet's proc chance tops 40% (the highest is Quasarin's Zap at 37.1%).
+    Mistreef's three top Tidal Wave pets total 35.3% at Normal: the owner's
+    50–60% from 2026-10-10, × 0.7 after the calm pass. No pet's proc chance tops
+    40% (the highest is Quasarin's Zap at 26.0%).
   - **Rare+ roles:** Tidecallers roll Tidal Wave + its damage, and Mystics roll Zap,
-    Shatter or Blast with their damage.
+    Shatter or Blast with their damage, or Earthquake + Mine Speed (was
+    Earthquake + Zap).
+- **The calm pass (2026-10-12).** The owner: *"rework all pets so most a liitle
+  less abiliy oriented"*, and chose "Both". The tool's Special enchant now
+  decides which ability fires; a pet only boosts it ([enchants](enchants.md)).
+  - **No pet has two ability families.** Only the first one in its stats stays.
+  - **Fewer pets have one.** Below Mythic, a pet keeps its ability only when
+    its name hashes to a multiple of 3 (`fnv(name..":calm") % 3`). The rest swap
+    it for a plain stat: the set's own plain buffs first, then a fixed partner
+    (Blast → Mine Speed, Zap → Swing Rate, Tidal Wave → Pulverize …).
+    Mythic, Divine and Exotic keep theirs, because that buff set is the zone's or
+    set's identity.
+  - **The ones left are 30% weaker** (`PROC_WEAKEN = 0.7`), with the same
+    chance and damage cut.
+  - **Pets are not weaker.** `weakenPoints` gives the 30% to the pet's first plain
+    stat, so every kit still sits on the ladder.
+  - **The counts, before → after:**
+
+    | | Pets with an ability | Pets with two | Mean chance |
+    |---|---|---|---|
+    | Zone pots | 116 → 55 | 28 → 0 | 4.6% → 3.1% |
+    | Sets | 399 → 234 | 0 → 0 | 6.0% → 3.8% |
+    | Halloween | 7 → 6 | 0 → 0 | 4.3% → 2.7% |
+
+  - Names, tiers, serials and each set's `buffs` JSON are unchanged. Only the
+    stats and their values moved.
+  - The helpers are `calmProcs`, `weakenPoints` and `pointsKit` in
+    `tools/gen/zone-pets.js`, shared by the set and holiday generators.
 - **Holiday pets are not in the game** (owner: *"only allow it from {Holiday}
   {year} Pack"*).
   - `MineZonePets.HOLIDAY` lists six: Spindle, Spooky and Wisp (Halloween), and
@@ -144,8 +172,8 @@ new bodies**. The full names sheet is `docs/SET-PETS.md` (generated).
   from Pebblebound's 120 down to Chaos Theory's 95.
 - **Kits** follow the zone pots' rules: the pet ladder × 1.05 per set. Mythic,
   Divine and Exotic take the set's own three-stat buff set; the rest take a role
-  from their body. The highest single proc chance is 53.5% (Segfault, Chaos
-  Theory, Shatter), under the 60% line.
+  from their body. The highest single proc chance is 37.4% (Segfault, Chaos
+  Theory, Shatter; 53.5% before the calm pass), under the 60% line.
 - **A proc always fits its set** (owner, 2026-10-10: *"buffs (that make
   sense)"*; chose "use the set's own proc"). A role can carry another theme's
   proc (every Mystic body zaps). Below Mythic that proc becomes the set's own

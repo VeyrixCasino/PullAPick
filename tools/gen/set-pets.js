@@ -25,7 +25,7 @@ const OUT_DIR = SHARED + "SetPets/";
 const OUT_MD = "docs/SET-PETS.md";
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8").replace(/\r\n/g, "\n");
 
-const { TIERS, LADDER, ZONE_STEP, ROLES, BANNED } = Zone;
+const { TIERS, LADDER, ZONE_STEP, ROLES, BANNED, calmProcs, weakenPoints, pointsKit } = Zone;
 const TOP = new Set(["Mythic", "Divine", "Exotic"]);
 const SET_STEP = ZONE_STEP; // +5% a set, the zones' step
 const TOP_SHARES = [1, 0.35, 0.15];
@@ -258,10 +258,13 @@ function build() {
           shares = [1, SECONDARY];
           roles[name] = role;
         }
-        statsUsed.forEach((stat, i) => {
-          if (BANNED.has(stat)) throw new Error("banned stat " + stat);
-          kit[stat] = round4((P * shares[i]) / R.G.stats[stat].weight / 100);
-        });
+        // The calm pass (zone-pets.js calmProcs): half of the ability pets
+        // below Mythic swap it for one of the set's own plain buffs, and the
+        // rest keep it a little weaker.
+        statsUsed = calmProcs(name, statsUsed, { keepAll: TOP.has(tier), plain: d.buffs.filter((s) => !PROC_OF[s]) });
+        const pts = {};
+        statsUsed.forEach((stat, i) => { pts[stat] = (pts[stat] || 0) + P * shares[i]; });
+        Object.assign(kit, pointsKit(weakenPoints(pts, statsUsed), (s) => R.G.stats[s] && R.G.stats[s].weight));
         kits[name] = kit;
       }
     });

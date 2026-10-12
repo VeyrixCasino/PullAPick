@@ -172,10 +172,11 @@ function buildOne(d, R, hexFrom) {
       shares = [1, SECONDARY];
       roles[name] = role;
     }
-    statsUsed.forEach((stat, i) => {
-      if (BANNED.has(stat)) throw new Error("banned stat " + stat);
-      kit[stat] = round4((P * shares[i]) / R.G.stats[stat].weight / 100);
-    });
+    // The calm pass (zone-pets.js calmProcs), as for every other pet.
+    statsUsed = Zone.calmProcs(name, statsUsed, { keepAll: TOP.has(tier), plain: d.buffs.filter((s) => !SetGen.PROC_OF[s]) });
+    const pts = {};
+    statsUsed.forEach((stat, i) => { pts[stat] = (pts[stat] || 0) + P * shares[i]; });
+    Object.assign(kit, Zone.pointsKit(Zone.weakenPoints(pts, statsUsed), (s) => R.G.stats[s] && R.G.stats[s].weight));
     kits[name] = kit;
   };
 

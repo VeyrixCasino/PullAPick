@@ -122,11 +122,16 @@ for (const z of Gen.ZONES) {
 check(topOk, "each zone's 8 Mythic/Divine/Exotic pets use exactly that zone's three buffs");
 // Owner, 2026-10-10: "make the rare pets with tidal wave (3 of them) only go up
 // to around 50-60% proc chance", and every proc's odds stay "lowish (~tidal
-// wave)" -- priced, never capped (MineStats weights).
+// wave)" -- priced, never capped (MineStats weights). Owner, 2026-10-12, the
+// calm pass ("rework all pets so most a liitle less abiliy oriented", chose
+// "Both"): every ability a pet keeps is PROC_WEAKEN (0.7) as strong, so the
+// trio's 50-60% becomes 35-42%.
 const tideTop = pets.filter((p) => p.zone === "mistreef" && ["Mythic", "Divine", "Exotic"].includes(p.tier))
   .map((p) => (B.kits[p.name].tidalWave || 0) * G.rarityMult[p.tier]).sort((a, b) => b - a);
 const trio = tideTop.slice(0, 3).reduce((a, b) => a + b, 0);
-check(trio >= 0.5 && trio <= 0.6, `the three top Tidal Wave pets together reach ${(trio * 100).toFixed(1)}% at Normal (50-60%)`);
+const tideLo = 0.5 * Gen.PROC_WEAKEN - 1e-9;
+const tideHi = 0.6 * Gen.PROC_WEAKEN + 1e-9;
+check(trio >= tideLo && trio <= tideHi, `the three top Tidal Wave pets together reach ${(trio * 100).toFixed(1)}% at Normal (${(tideLo * 100).toFixed(0)}-${(tideHi * 100).toFixed(0)}%, the old 50-60% x ${Gen.PROC_WEAKEN})`);
 let wildest = ["", 0];
 for (const p of pets.concat(B.ehPets)) {
   for (const st of ["blastChance", "tidalWave", "zap", "ricochet", "earthquake"]) {
