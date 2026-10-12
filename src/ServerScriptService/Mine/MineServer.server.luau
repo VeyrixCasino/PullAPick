@@ -100,6 +100,8 @@ local Dig = {
 	-- script sits at 197 of Luau's 200, and boosts() reads it per swing so a
 	-- require-per-call is not an option either.
 	Traits = require(shared:WaitForChild("MineTraits")),
+	-- Enchants: three slots per tool, books, the player level (MineEnchants).
+	Enchants = require(shared:WaitForChild("MineEnchants")),
 	-- Two layers, and the second multiplies the first. See MineBoostLayers
 	-- for the owner's worked example (100 -> 300, not 250).
 	Layers = require(shared:WaitForChild("MineBoostLayers")),
@@ -2790,6 +2792,18 @@ local function boosts(p)
 	end
 
 	--[[
+		THE HELD TOOL'S ENCHANTS, LAYER 1 -- where the trait sits, because
+		enchants take over the field traits and runes held (owner, 2026-10-11).
+		Damage and Utility only; Special is not a stat, it picks the proc
+		(gateProcs, at the end of this function).
+	]]
+	if Dig.EnchSvc then
+		for _, st in ipairs(Dig.EnchSvc.layerStats(p)) do
+			Dig.Layers.add(T1, st.stat, st.value)
+		end
+	end
+
+	--[[
 		THE SKIN ON THE TOOL YOU ARE HOLDING. LAYER 1.
 
 		Not my placement -- the owner's note at the top of this function put
@@ -3121,6 +3135,15 @@ local function boosts(p)
 		b.autoMine = math.max(tonumber(b.autoMine) or 0, C.AUTO_MINE_LICENSE_RATE or 1)
 	end
 
+	--[[
+		THE SPECIAL SLOT DECIDES THE PROC (owner: "This slot determines which
+		effect your tool will have, regardless of pet setup. The pets only boost
+		this"). Every other proc family is zeroed, the enchant adds its own, and
+		a chance over 100% becomes that proc's damage. MineEnchants.gateProcs.
+	]]
+	if Dig.EnchSvc then
+		b = Dig.Enchants.gateProcs(b, Dig.EnchSvc.special(p))
+	end
 	return Runes.clampBoosts(b)
 end
 
@@ -3752,6 +3775,11 @@ local function snap(plr)
 		fishing = (function()
 			local okF, Fish = pcall(require, script.Parent:WaitForChild("MineFishingService"))
 			return okF and Fish.snapState(p) or nil
+		end)(),
+		-- Enchant books and the player level (MineEnchantService).
+		enchants = (function()
+			local okE, Ench = pcall(require, script.Parent:WaitForChild("MineEnchantService"))
+			return okE and Ench.snapState(p) or nil
 		end)(),
 		eventPass = (function()
 			local ev = C.EVENTS and C.EVENTS[1]
@@ -6083,6 +6111,10 @@ local function openChestBlock(plr, p, chestId, b, part)
 		p.found[def.id] = nil
 	end
 	bumpStat(plr, p, "chests")
+	-- The player level: a chest pays XP, more for a better one (MineEnchants).
+	if Dig.EnchSvc then
+		Dig.EnchSvc.gainXp(plr, p, Dig.Enchants.XP_CHEST * (Dig.Enchants.XP_CHEST_RANK[rank or ""] or 1))
+	end
 	introAdvance(plr, p, 4)
 	do
 		-- Per-layer chest counts for the layer quests.
@@ -6210,6 +6242,11 @@ local function openChestBlock(plr, p, chestId, b, part)
 				})
 			end
 		end
+	end
+	-- AN ENCHANT BOOK, SOMETIMES (MineEnchants.CHEST_BOOK_CHANCE): better
+	-- chests can give a higher level. Owner: "Enchant books from chests and cases".
+	if Dig.EnchSvc then
+		Dig.EnchSvc.chestBook(plr, p, rank, rng, b and b.chestLuck)
 	end
 	--[[
 		A SKIN CASE, SOMETIMES (MineConfig.CHEST_SKIN_CASE_CHANCE, 3%). Owner,
@@ -6645,8 +6682,11 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 					pos = part.Position,
 				})
 			end
-			-- TODO(runes): roll this ore's rune here, 2% down to 0.5% by tier,
-			-- F-SSS. Needs the rune overhaul; nothing rolls one yet.
+			-- The player level: every ore block pays XP (owner: "add levels,
+			-- from breaking ores and chests"). Runes are retired; nothing rolls one.
+			if Dig.EnchSvc then
+				Dig.EnchSvc.gainXp(plr, p, Dig.Enchants.XP_ORE)
+			end
 		end
 	elseif kind == "core" then
 		grantChestTool(plr, p, "geothermal_nuke")
@@ -10507,6 +10547,12 @@ local Verbs = {}
 -- there; so does a spot's prompt (Machine "fish").
 Verbs.Fish = require(script.Parent:WaitForChild("MineFishingService"))
 Verbs.Fish.init({ profiles = profiles, net = net, snap = snap, markDirty = markDirty })
+
+-- ENCHANTS (owner, 2026-10-11): MineEnchantService owns books, slots and the
+-- player level. Also on Dig, because boosts() is declared above Verbs.
+Verbs.Ench = require(script.Parent:WaitForChild("MineEnchantService"))
+Verbs.Ench.init({ profiles = profiles, net = net, snap = snap, markDirty = markDirty })
+Dig.EnchSvc = Verbs.Ench
 
 --[[
 	THE FREE FIRST PICKAXE.
@@ -15206,6 +15252,8 @@ Verbs.KEEP_ON_REBIRTH = {
 	"dustShop", "backpackCoinV2",
 	-- fishing: rod levels "stays between rebirths" (owner), and so do the bait and the cooler
 	"fishing",
+	-- enchant books and the player level are account progress, not the coin ladder
+	"enchantBooks", "level", "xp",
 	-- owned things (some bought with Robux)
 	"ownedPets", "potions", "activePotions", "vfx", "equippedVfx", "chestBag", "vipPass", "vip",
 	-- the daily wheel: banked Robux spins, and today's free spins (a rebirth
@@ -17657,6 +17705,10 @@ function Verbs.recycleOreTool(plr, payload)
 	-- resolves. equippedTool self-heals from this, but re-giving the pickaxe
 	-- here is what actually puts the ladder tool back in the player's hand.
 	local wasHeld = (p.oreToolEquipped == tool.uid)
+	-- Its enchants come back as books: recycling a tool never eats an enchant.
+	if Dig.EnchSvc then
+		Dig.EnchSvc.returnBooks(p, tool)
+	end
 	table.remove(p.oreTools, index)
 	if wasHeld then
 		p.oreToolEquipped = nil
@@ -17696,6 +17748,10 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		if Verbs.policyBlocks(plr, action) then return end
 		if type(action) == "string" and string.sub(action, 1, 4) == "fish" then
 			Verbs.Fish.dispatch(plr, action, payload)
+			return
+		end
+		if type(action) == "string" and string.sub(action, 1, 4) == "ench" then
+			Verbs.Ench.dispatch(plr, action, payload)
 			return
 		end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)

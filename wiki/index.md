@@ -48,6 +48,7 @@ related: [README, overview, owner, SCHEMA, log]
 - [currencies-and-economy](systems/currencies-and-economy.md): coins, gems, stardust, sinks, number formatting
 - [cards-and-packs](systems/cards-and-packs.md): cards, pack odds, reveal, the pity contradiction
 - [pack-cases](systems/pack-cases.md): wild and set cases, chest drops, wheel, credit and stardust shelves, the pricing pass
+- [enchants](systems/enchants.md): three slots per tool, books, merging, the Special proc gate, the player level
 - [fishing](systems/fishing.md): spots, fish, the replayed reel fight, bait cap, rods and prestige, the cooler, the tuning bot
 - [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md): section chests, ranks, lucky blocks
 - [world-events](systems/world-events.md): Event Horizon, Event Pass, World Pulse

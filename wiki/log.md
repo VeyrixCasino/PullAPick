@@ -1182,3 +1182,8 @@ Updated: tools.
 The owner was tired of the pitch-black Forge and asked for two demos behind buttons. Canva made the layout mockup ("Mine For Cards FORGE menu"). `MineForgeDemo` builds it in both themes and works for real: craft, upgrade, equip, recycle. 3D tools spin over a glow, cards scroll, and new tools celebrate. Seen in Studio Edit with sample data, not yet in play. Also: `snapNow` (a throttled fresh snapshot), and the trap that a UIGradient on a TextButton tints its text.
 
 Updated: client-and-ui, log.
+
+## [2026-10-12] ingest | Enchants core and the player level
+The owner asked for a 3-slot enchant system (Damage, Utility, Special; I to V) to replace traits and runes. The Special slot decides the proc (pets only boost it; chance over 100% becomes damage). The owner chose: books from chests and cases, merge 3 for +1, slots unlocking at levels 1/10/25 from a new player level (XP from ores and chests), and refunds for retired traits and runes. Built: `MineEnchants` (data), `MineEnchantService` (verbs, XP, books), Layer 1 stats and the proc gate in `boosts()`, chest books, ore and chest XP, books returned on recycle, kept through rebirth. Checked by `tools/verify/enchants.js`. Flagged: no procs before a Special enchant, which needs level 25.
+
+Updated: enchants (new), index, log.
