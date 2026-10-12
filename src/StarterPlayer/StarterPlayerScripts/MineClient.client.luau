@@ -3084,6 +3084,19 @@ do
 			be able to browse recipes from the bottom of a shaft. `goTo` teleports
 			and the arrival opens the panel (see the route map's `shop` entry).
 		]]
+		--[[
+			THE FORGE HUB, where it exists (owner, 2026-10-11: Forge A is the
+			design, the inventory brief the features). MineForgeHub.client makes
+			Mine.ForgeHubOpen; it opens in place -- no trip to the counter, since
+			"nothing is ever too far away" (TODO §0) and the craft verb checks
+			no station. Without it, the old trip to the Blacksmith below.
+		]]
+		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
+		if hubOpen then
+			hidePanels()
+			hubOpen:Fire()
+			return
+		end
 		if shopCtl and shopCtl.root and shopCtl.root.Visible then
 			shopCtl.close()
 			return
@@ -12787,13 +12800,15 @@ print("[Mine] client ready")
 	main chunk's 200-register ceiling.
 ]]
 function ClientFns.wireQuestHudHiders()
-	local HUD_HIDERS = { ShopPanel = true, SkillWheel = true }
+	-- ForgeHub: THE FORGE (MineForgeHub) hides the dock and wallet like the Blacksmith (owner: "AS PER USUAL").
+	local HUD_HIDERS = { ShopPanel = true, SkillWheel = true, ForgeHub = true }
 	-- Any of these open -> quest drawers auto-collapse (tabs remain for a peek).
 	local QUEST_HIDERS = {
 		SkillWheel = true,
 		ShopPanel = true,
 		Inventory = true,
 		ForgePanel = true,
+		ForgeHub = true,
 		EventsPanel = true,
 		DepthShopPanel = true,
 		GiftsPanel = true,
@@ -12807,6 +12822,7 @@ function ClientFns.wireQuestHudHiders()
 		SkillWheel = true,
 		Inventory = true,
 		ForgePanel = true,
+		ForgeHub = true,
 		EventsPanel = true,
 		DepthShopPanel = true,
 		GiftsPanel = true,

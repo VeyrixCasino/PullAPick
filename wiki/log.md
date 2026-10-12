@@ -1187,3 +1187,8 @@ Updated: client-and-ui, log.
 The owner asked for a 3-slot enchant system (Damage, Utility, Special; I to V) to replace traits and runes. The Special slot decides the proc (pets only boost it; chance over 100% becomes damage). The owner chose: books from chests and cases, merge 3 for +1, slots unlocking at levels 1/10/25 from a new player level (XP from ores and chests), and refunds for retired traits and runes. Built: `MineEnchants` (data), `MineEnchantService` (verbs, XP, books), Layer 1 stats and the proc gate in `boosts()`, chest books, ore and chest XP, books returned on recycle, kept through rebirth. Checked by `tools/verify/enchants.js`. Flagged: no procs before a Special enchant, which needs level 25.
 
 Updated: enchants (new), index, log.
+
+## [2026-10-12] ingest | The Forge hub (Forge A + the inventory brief)
+The owner loved Forge A but found it cramped, with buttons too big, and gave the inventory brief as the feature list ("DONT LISTEN TO ANY DESIGN TIPS"). Built `MineForgeHub`, wider and with smaller buttons, with three tabs: Crafting (search / filter / sort, craftable first, best first), Loadout (inspect, equip, skin, jump to upgrades) and Upgrades (level, enchant slots and book picker, scrap with confirm, merge books). The Forge dock button opens it; it hides the dock like the Blacksmith. Demo Forges removed. Not yet seen in Studio: it was in use.
+
+Updated: client-and-ui, log.

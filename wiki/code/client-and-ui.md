@@ -283,13 +283,20 @@ The tier mappers take the real result:
 `MineAmbience` adds client-only motion to tagged world parts. `LoadPlayerModule`
 boots Roblox's PlayerModule.
 
-## Forge demos (2026-10-11)
+## The Forge hub (2026-10-12)
 
-Owner: *"i want to gasp with excitment next time i open the fuckin forge gui"*, then: demos behind buttons, *"do 1 molten forge and 1 candy uis"*. `MineForgeDemo` is one working Forge in two themes, and `MineForgeDemo.client` puts two preview buttons on screen: 🔥 FORGE A (molten) and 🍬 FORGE B (candy), left side, under the quests.
-- **Layout:** the Canva mockup *Mine For Cards FORGE menu*. Title and wallet chips on top, then CRAFT / UPGRADE / RECYCLE tabs. The five families run down the left. The centre stage is an anvil with the tool spinning in 3D (`ToolModelFactory`) over turning light rays and a ring glow, plus its name, rarity badge, stats, cost and one big action button with a sweeping shine. The right side is a scrolling grid of rarity-bordered cards, each with a cut-gem ore and a green dot when ready.
-- **It works:** it fires the live verbs (`craftOreTool`, `upgradeOreTool`, `equipOreTool`, `recycleOreTool`), uses the live prices (`MineConfig.toolCraftCost`, `toolUpgradeCost`, `toolRecycle`) and reads the same snapshot fields as `MineForge`. Recycling asks twice. A new tool celebrates by its rarity. On open it asks for a fresh snapshot (`snapNow`, at most once a second).
-- **Kept out of the way:** its own client script and module, and no line of `MineClient` or `MineForge`. If the owner picks one, it replaces the Forge for real and the demo files go.
-- **Gradient trap:** a `UIGradient` on a TextButton tints its text too. Put the gradient on a Fill frame under the label (`MineForgeDemo` `pill`).
+Owner: *"I FUCKING LOVE FORGE A.. WIDE SCREEN, NOT ENOUGH ROOM, AND TOO BIG BUTTONSA THO"*, *"STICK WITH PROMPT A'S DESGIN"*, plus the features of the long inventory brief. `MineForgeHub` is Forge A's molten look at 1500×820, scaled to fill most of the screen, with smaller buttons. It has three tabs:
+- **CRAFTING.** Every real recipe (each ore × each tool class), craftable first and best first, then the rest by rarity. It has search, rarity / class / craftable filters, sort by rarity, cost or name, a Reset that counts the active filters, empty states, and 60 cards at a time with SHOW MORE. A class rail sits on the left: All, Pickaxes, Sledgehammers, Drills, Jackhammers, Explosives. The detail panel shows the tool turning in 3D, its rarity and class, damage, the ore held / needed with a bar, and CRAFT.
+- **LOADOUT.** Every owned tool, with filters and sort. The inspector shows 3D, rarity, class, level, damage, the skin and the three enchant slots, with EQUIP / PUT AWAY, SKIN (a picker of owned skins for that class), and LEVEL UP / ENCHANT, which jump to Upgrades with the tool kept.
+- **UPGRADES.** Pick a tool, then an operation:
+  - LEVEL: before → after damage, cost, +1 / +10; coin levels for the wooden pick;
+  - ENCHANT: the three slots, plus a book picker that shows the slot's effect now → with that book, and apply / replace / remove;
+  - SCRAP: what you get back (books included) and *TAP AGAIN* to confirm;
+  - MY BOOKS: merge 3 → +1.
+
+The header shows the player level and XP bar, the wallet, and in Studio a 🧪 TEST BOOKS button.
+
+It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
 
 ## Gotchas
 
