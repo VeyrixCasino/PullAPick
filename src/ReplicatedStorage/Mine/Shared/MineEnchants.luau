@@ -65,6 +65,56 @@ M.PROCS = {
 }
 M.PROC_ORDER = { "zap", "blast", "tide", "shatter", "quake" }
 
+--[[
+	THREE TIERS PER ABILITY. Owner, 2026-10-12: "Make 3 levels of abilities",
+	and chose tiers that CHANGE HOW IT WORKS, picked by the Special enchant's
+	level: I-II tier 1, III-IV tier 2, V tier 3 (TIER_OF). "also made the
+	ability itself have a proc chance and dmage": every level adds both (the
+	Special entries' effect.chance / effect.damage). A tool on its pets' best
+	proc, with no Special, is tier 1. MineServer Dig.procsAt reads b.procTier.
+
+	Every tier is capped so one hit cannot snowball (owner's "real limits"):
+	the caps are the numbers in each tier below. PROPOSED.
+]]
+M.TIER_OF = { 1, 1, 2, 2, 3 }
+M.TIERS = {
+	zap = {
+		{ name = "Spark", text = "1 chain", chains = 1, continue = 0.80 },
+		{ name = "Fork", text = "2 chains", chains = 2, continue = 0.80 },
+		{ name = "Storm", text = "3 longer chains", chains = 3, continue = 0.85 },
+	},
+	blast = {
+		{ name = "Pop", text = "the 6 sides", cells = "face6" },
+		{ name = "Burst", text = "18 blocks around", cells = "edge18" },
+		{ name = "Detonation", text = "all 26 around, and breaks pop again (max 3)", cells = "cube26", chain = 0.25, chainMax = 3 },
+	},
+	tide = {
+		{ name = "Swell", text = "1 layer", layers = 1 },
+		{ name = "Breaker", text = "2 layers", layers = 2 },
+		{ name = "Tsunami", text = "3 layers", layers = 3 },
+	},
+	shatter = {
+		{ name = "Crack", text = "up to 3 bursts", maxProcs = 3 },
+		{ name = "Splinter", text = "up to 6 bursts", maxProcs = 6 },
+		{ name = "Cascade", text = "up to 10 bursts", maxProcs = 10 },
+	},
+	quake = {
+		{ name = "Tremor", text = "1 block shakes", spread = 0, mult = 1 },
+		{ name = "Rumble", text = "+2 blocks nearby", spread = 2, mult = 1 },
+		{ name = "Cataclysm", text = "+4 blocks, +50% damage", spread = 4, mult = 1.5 },
+	},
+}
+
+function M.tierOf(level)
+	return M.TIER_OF[math.clamp(math.floor(tonumber(level) or 1), 1, M.MAX_LEVEL)] or 1
+end
+
+-- The tier table for a proc family at a tier.
+function M.tier(family, tier)
+	local t = M.TIERS[family]
+	return t and t[math.clamp(math.floor(tonumber(tier) or 1), 1, 3)] or nil
+end
+
 -- Tool families. Explosives detonate without rolling procs (MineServer
 -- detonate), so a Special enchant would do nothing on one: not compatible.
 M.FAMILIES = { "pickaxe", "hammer", "drill", "jackhammer", "explosive" }
@@ -232,7 +282,9 @@ function M.describe(def, level)
 	elseif e.kind == "xp" then
 		return "+" .. pct(e.base ^ level - 1) .. " XP"
 	elseif e.kind == "proc" then
-		return pct(e.chance * level) .. " chance, +" .. pct(e.damage * level) .. " damage"
+		local t = M.tier(e.family, M.tierOf(level))
+		return (t and ("T" .. M.tierOf(level) .. " " .. t.name .. ": " .. t.text .. " · ") or "")
+			.. pct(e.chance * level) .. " chance, +" .. pct(e.damage * level) .. " damage"
 	elseif def.id == "crit" then
 		return pct(e.chance * level) .. " for x" .. tostring(e.mult)
 	elseif def.id == "executioner" then
@@ -295,6 +347,8 @@ function M.gateProcs(b, special)
 	local def = special and M.get(special.id)
 	local fam = def and def.live and def.effect and def.effect.kind == "proc" and def.effect.family or nil
 	local fromEnchant = fam ~= nil
+	-- The ability's tier: the Special's level picks it; pets' best proc is tier 1.
+	b.procTier = fromEnchant and M.tierOf(special.level) or 1
 	if not fam then
 		-- Pets' best proc until a Special is chosen. Ties go in PROC_ORDER.
 		local best = 0

@@ -7030,6 +7030,22 @@ end
 
 Dig.PROC_SKIP = { chest = true, crate = true, core = true, lucky_block = true }
 Dig.FACE6 = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
+-- Blast's tier 2 and 3 reach (MineEnchants.TIERS.blast): the 18 cells that
+-- share a face or an edge, and all 26 around.
+Dig.EDGE18, Dig.CUBE26 = {}, {}
+for dx = -1, 1 do
+	for dy = -1, 1 do
+		for dz = -1, 1 do
+			local n = math.abs(dx) + math.abs(dy) + math.abs(dz)
+			if n > 0 then
+				table.insert(Dig.CUBE26, { dx, dy, dz })
+				if n <= 2 then
+					table.insert(Dig.EDGE18, { dx, dy, dz })
+				end
+			end
+		end
+	end
+end
 -- Tidal Wave's reach: the 12 cells within two steps on the SAME layer (x, z).
 Dig.TIDE_RING = {
 	{ 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
@@ -7048,6 +7064,10 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		what a player's proc damage is mid-swing.
 	]]
 	local pp = tonumber(b.procPower) or 0
+	-- THE ABILITY'S TIER (MineEnchants.TIERS; owner: "Make 3 levels of
+	-- abilities"): the Special enchant's level picks it, 1 without one.
+	local tier = math.clamp(math.floor(tonumber(b.procTier) or 1), 1, 3)
+	local Tiers = Dig.Enchants and Dig.Enchants.tier
 	-- Omni Blast is a destroy-proc: chest / core / cube deaths stay
 	-- centre-only, both as the source and as a neighbour.
 	if broke and not Dig.PROC_SKIP[kind] then
@@ -7063,13 +7083,29 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		]]
 		local chance = forceBlast and 1 or math.min(1, b.blastChance or 0)
 		if chance > 0 and rng:NextNumber() < chance then
-			net:FireClient(plr, "loot", { text = "BLAST", color = Color3.fromRGB(255, 140, 70), pos = part.Position })
-			for _, d in ipairs(Dig.FACE6) do
-				local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
+			local tt = (Tiers and Tiers("blast", tier)) or { cells = "face6" }
+			local reach = (tt.cells == "cube26" and Dig.CUBE26) or (tt.cells == "edge18" and Dig.EDGE18) or Dig.FACE6
+			net:FireClient(plr, "loot", { text = (tier >= 3 and "DETONATION") or (tier == 2 and "BURST") or "BLAST",
+				color = Color3.fromRGB(255, 140, 70), pos = part.Position })
+			local blastDmg = C.procDamage(dmg, "blast", pp, b.blastDamage)
+			-- Tier 3: a block the blast breaks can pop a plain 6-side blast of its
+			-- own, at most chainMax times a swing, and those pops pop nothing.
+			local pops, popMax = 0, tonumber(tt.chainMax) or 0
+			for _, d in ipairs(reach) do
+				local nx, ny, nz = cx + d[1], cy + d[2], cz + d[3]
+				local other = cells[keyOf(zone.id, nx, ny, nz)]
 				if other and typeof(other) == "Instance" and other.Parent then
 					if not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-						pcall(swingNeighbour, plr, other,
-							C.procDamage(dmg, "blast", pp, b.blastDamage), p)
+						local okHit, killed = pcall(swingNeighbour, plr, other, blastDmg, p)
+						if okHit and killed and pops < popMax and rng:NextNumber() < (tonumber(tt.chain) or 0) then
+							pops += 1
+							for _, d2 in ipairs(Dig.FACE6) do
+								local o2 = cells[keyOf(zone.id, nx + d2[1], ny + d2[2], nz + d2[3])]
+								if o2 and typeof(o2) == "Instance" and o2.Parent and not Dig.PROC_SKIP[o2:GetAttribute("Kind")] then
+									pcall(swingNeighbour, plr, o2, blastDmg, p)
+								end
+							end
+						end
 					end
 				end
 			end
@@ -7090,11 +7126,15 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		if tide > 0 and rng:NextNumber() < tide then
 			net:FireClient(plr, "loot", { text = "TIDAL WAVE", color = Color3.fromRGB(70, 170, 255), pos = part.Position })
 			local tideDmg = C.procDamage(dmg, "tide", pp, b.tideDamage)
-			for _, d in ipairs(Dig.TIDE_RING) do
-				local other = cells[keyOf(zone.id, cx + d[1], cy, cz + d[2])]
-				if other and typeof(other) == "Instance" and other.Parent
-					and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-					pcall(swingNeighbour, plr, other, tideDmg, p)
+			-- Tier 2 and 3 roll the wave down one and two more layers.
+			local tt = (Tiers and Tiers("tide", tier)) or { layers = 1 }
+			for layerOff = 0, math.clamp(math.floor(tonumber(tt.layers) or 1), 1, 3) - 1 do
+				for _, d in ipairs(Dig.TIDE_RING) do
+					local other = cells[keyOf(zone.id, cx + d[1], cy - layerOff, cz + d[2])]
+					if other and typeof(other) == "Instance" and other.Parent
+						and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+						pcall(swingNeighbour, plr, other, tideDmg, p)
+					end
 				end
 			end
 		end
@@ -7119,7 +7159,9 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		local sh = math.min(1, tonumber(b.ricochet) or 0)
 		if sh > 0 then
 			local shardDmg = C.procDamage(dmg, "shatter", pp, b.shatterDamage)
-			local maxProcs = math.max(1, math.floor(tonumber(C.SHATTER_MAX_PROCS) or 3))
+			-- The tier sets how many bursts one broken block can set off.
+			local tt = Tiers and Tiers("shatter", tier)
+			local maxProcs = math.max(1, math.floor(tonumber(tt and tt.maxProcs) or tonumber(C.SHATTER_MAX_PROCS) or 3))
 			local queue = { { cx, cy, cz, part.Position } }
 			local shatters = 0
 			while #queue > 0 and shatters < maxProcs do
@@ -7163,7 +7205,25 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 			-- subtracts what it was given rather than re-deriving a share, so
 			-- the quake a player started keeps its damage even if the stat
 			-- changes under it mid-shake.
-			Dig.startQuake(plr, p, part, C.procDamage(dmg, "quake", pp))
+			local tt = (Tiers and Tiers("quake", tier)) or { spread = 0, mult = 1 }
+			local qd = C.procDamage(dmg, "quake", pp) * (tonumber(tt.mult) or 1)
+			Dig.startQuake(plr, p, part, qd)
+			-- Tier 2 and 3 shake that many neighbours too (each at most once:
+			-- startQuake leaves a block already shaking alone).
+			local spread = math.floor(tonumber(tt.spread) or 0)
+			if spread > 0 then
+				local near = {}
+				for _, d in ipairs(Dig.FACE6) do
+					local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
+					if other and typeof(other) == "Instance" and other.Parent and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+						table.insert(near, other)
+					end
+				end
+				for _ = 1, math.min(spread, #near) do
+					local pick = table.remove(near, rng:NextInteger(1, #near))
+					Dig.startQuake(plr, p, pick, qd)
+				end
+			end
 		end
 	end
 
@@ -7195,7 +7255,11 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 	local falloff = tonumber(C.ZAP_FALLOFF) or 0.88
 	local maxHops = math.max(1, math.floor(tonumber(C.ZAP_MAX_HOPS) or 6))
 	local zapBase = C.procDamage(dmg, "zap", pp, b.zapDamage)
-	local chance = tonumber(C.ZAP_CONTINUE) or 0.8
+	-- The tier: Fork runs 2 chains, Storm 3 that continue more often. Each
+	-- chain keeps the hop cap, so a swing is at most chains x ZAP_MAX_HOPS hits.
+	local tt = (Tiers and Tiers("zap", tier)) or { chains = 1 }
+	for _chain = 1, math.clamp(math.floor(tonumber(tt.chains) or 1), 1, 3) do
+	local chance = tonumber(tt.continue) or tonumber(C.ZAP_CONTINUE) or 0.8
 	local fromCx, fromCy, fromCz = cx, cy, cz
 	local prevDx, prevDy, prevDz = 0, 0, 0
 	for hops = 1, maxHops do
@@ -7234,6 +7298,7 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		prevDx, prevDy, prevDz = pick.dx, pick.dy, pick.dz
 		fromCx, fromCy, fromCz = pick.nx, pick.ny, pick.nz
 	end
+	end -- chains
 end
 
 --[[

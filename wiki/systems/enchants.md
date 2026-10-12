@@ -44,6 +44,16 @@ Tidal Wave (`tidalWave`/`tideDamage`), Shatter (`ricochet`/`shatterDamage`) and
 Earthquake (`earthquake`, with `procPower` as its damage). Explosives roll no procs, so
 they take no Special.
 
+**Three tiers per ability** (owner, 2026-10-12: *"Make 3 levels of abilities"*, tiers that change how it works). The Special's level picks the tier: I–II tier 1, III–IV tier 2, V tier 3 (`MineEnchants.TIERS`, read by `Dig.procsAt` as `b.procTier`). Pets' best proc alone is tier 1. Each ability also carries its own proc chance and damage, both rising per level (owner: *"also made the ability itself have a proc chance and dmage"*). PROPOSED, each capped:
+
+| ability | tier 1 | tier 2 | tier 3 |
+|---|---|---|---|
+| Zap | Spark: 1 chain | Fork: 2 chains | Storm: 3 chains, continue 85% |
+| Blast | Pop: 6 sides | Burst: 18 around | Detonation: 26 around, breaks pop again (max 3) |
+| Tidal Wave | Swell: 1 layer | Breaker: 2 layers | Tsunami: 3 layers |
+| Shatter | Crack: 3 bursts | Splinter: 6 | Cascade: 10 |
+| Earthquake | Tremor: 1 block | Rumble: +2 blocks | Cataclysm: +4 blocks, +50% damage |
+
 **Damage and Utility are Layer 1** (`MineEnchantService.layerStats`), beside the
 trait, skin and skills (owner §0.19: the layers multiply, sources inside a layer
 add). Only the held tool's enchants count.

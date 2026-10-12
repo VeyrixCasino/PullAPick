@@ -55,6 +55,10 @@ print(string.format("POWER %s %.4f", power.stat, power.value))
 print(string.format("HEAVY %.4f %.4f", heavy[1].value, heavy[2].value))
 print("DESC " .. E.describe(E.get("power"), 5) .. " | " .. E.describe(E.get("zap"), 3))
 print("LATER " .. #E.statsAt(E.get("crit"), 5))
+print("TIER " .. E.tierOf(1) .. E.tierOf(2) .. E.tierOf(3) .. E.tierOf(4) .. E.tierOf(5) .. " " .. E.tier("zap", 3).chains .. " " .. E.tier("shatter", 2).maxProcs .. " " .. E.tier("blast", 3).chainMax)
+local g5 = E.gateProcs({ zap = 0.1, zapDamage = 0 }, { id = "zap", level = 5 })
+local g0 = E.gateProcs({ zap = 0.1 }, nil)
+print("PTIER " .. g5.procTier .. " " .. g0.procTier)
 -- 3. compatibility
 local okS = E.compatible(E.get("zap"), "explosive")
 local okP = E.compatible(E.get("zap"), "pickaxe")
@@ -111,7 +115,9 @@ const pw = get("POWER").split(" ");
 check(pw[0] === "mineSpeed" && Math.abs(Number(pw[1]) - (1.05 ** 5 - 1)) < 1e-4, "Power V is +27.6% damage: +5% a level, compounded (owner)");
 const hv = num("HEAVY");
 check(Math.abs(hv[0] - 0.3) < 1e-4 && Math.abs(hv[1] + 0.2) < 1e-4, "Heavy Impact V is +30% damage and -20% speed (owner)");
-check(get("DESC") === "+27.6% | 15% chance, +30% damage", "the cards print the real numbers");
+check(get("DESC") === "+27.6% | T2 Fork: 2 chains · 15% chance, +30% damage", "the cards print the real numbers, with the ability tier");
+check(get("TIER") === "11223 3 6 3", "3 tiers per ability: I-II tier 1, III-IV tier 2, V tier 3 (owner); Storm 3 chains, Splinter 6 bursts, Detonation 3 pops");
+check(get("PTIER") === "3 1", "a Special V tool is tier 3; pets' best proc alone is tier 1");
 check(get("LATER") === "0", "a not-yet-live enchant (Critical Strike) adds nothing");
 // 3
 check(get("COMPAT") === "false true false", "explosives take no Special (they roll no procs); a not-yet-live enchant is refused");
@@ -141,6 +147,10 @@ check(/Dig\.EnchSvc\.chestBook\(plr, p, rank, rng/.test(sv) && /XP_CHEST \* \(Di
 const rec = (sv.match(/function Verbs\.recycleOreTool[\s\S]*?\nend\n/) || [""])[0];
 check(/Dig\.EnchSvc\.returnBooks\(p, tool\)[\s\S]*table\.remove\(p\.oreTools, index\)/.test(rec), "recycling a tool gives its enchants back first");
 check(/"enchantBooks", "level", "xp",/.test(sv), "books and the player level survive rebirth");
+const procs = (sv.match(/function Dig\.procsAt[\s\S]*?\nend\n/) || [""])[0];
+check(/local tier = math\.clamp\(math\.floor\(tonumber\(b\.procTier\) or 1\), 1, 3\)/.test(procs) && /Tiers\("blast", tier\)/.test(procs) && /Tiers\("tide", tier\)/.test(procs)
+  && /Tiers\("shatter", tier\)/.test(procs) && /Tiers\("quake", tier\)/.test(procs) && /Tiers\("zap", tier\)/.test(procs), "every ability reads its tier in Dig.procsAt");
+check(/pops < popMax/.test(procs) && /math\.clamp\(math\.floor\(tonumber\(tt\.chains\) or 1\), 1, 3\)/.test(procs) && /math\.min\(spread, #near\)/.test(procs), "the tiers are capped: blast pops, zap chains and quake spread all have limits");
 const svc = read("src/ServerScriptService/Mine/MineEnchantService.luau");
 check(/E\.slotUnlocked\(slot, p\.level\)/.test(svc) && /E\.compatible\(def, tool\.familyId/.test(svc) && /takeBook\(p, def\.id, level, 1\)/.test(svc),
   "applying checks the level, the slot, compatibility and the book before anything changes");
