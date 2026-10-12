@@ -664,8 +664,24 @@ function MineForge.mount(parent, opts)
 			Everything below is positioned off HERO_X, so the text column starts
 			clear of the portrait rather than being hand-offset in ten places.
 		]]
-		local PORTRAIT = 150
-		local HERO_X = PORTRAIT + 28
+		--[[
+			THE PANE IS BIG. THIS USED ABOUT A FIFTH OF IT.
+
+			Owner, 2026-10-12: "finish the forge ui". Everything this screen says
+			was already right -- portrait, rarity, the gain before the price, an
+			armed SCRAP -- and it was all crammed into a 340x200 corner of a pane
+			roughly 900 tall, with the remaining four fifths dark and empty. It
+			did not read as a simple screen, it read as an unfinished one.
+
+			So the same content is laid out against the pane instead of against
+			(0, 0): a hero band across the top, the numbers in a card that spans
+			the width, the actions in a row of buttons big enough to hit on a
+			phone, and the build at the bottom. Nothing below changes WHAT is
+			said, only where it sits and how big it is.
+		]]
+		local PORTRAIT = 200
+		local HERO_X = PORTRAIT + 36
+		local PANE_W = math.max(360, host.AbsoluteSize.X)
 
 		local orb = mk("Frame", {
 			BackgroundColor3 = T.CARD_HI,
@@ -673,7 +689,7 @@ function MineForge.mount(parent, opts)
 			Position = UDim2.fromOffset(0, 0),
 		}, host)
 		UI.round(orb, 999)
-		UI.edge(orb, T.ACCENT, 2)
+		UI.edge(orb, T.ACCENT, 3)
 		-- The ore's own skin for a forged pickaxe. This is the hero portrait, so
 		-- it is the one place a player studies the tool they are about to spend
 		-- on -- showing the same generic pickaxe for all 82 tiers here was the
@@ -681,20 +697,20 @@ function MineForge.mount(parent, opts)
 		UI.icon(orb, Icons.forTool(tool) or IMG.merge, math.floor(PORTRAIT * 0.6),
 			UDim2.fromOffset(math.floor(PORTRAIT * 0.2), math.floor(PORTRAIT * 0.2)))
 
-		label(host, OreTools.toolName(tool), 28, TEXT, UDim2.fromOffset(HERO_X, 0),
-			UDim2.new(1, -HERO_X, 0, 34), FONT)
+		label(host, OreTools.toolName(tool), 34, TEXT, UDim2.fromOffset(HERO_X, 8),
+			UDim2.new(1, -HERO_X, 0, 42), FONT)
 
 		-- Rarity as a chip and the tier beside it, the way the reference reads
 		-- them: what it is, then how deep it goes.
 		local band = C.oreBandForTier and C.oreBandForTier(tool.tier) or nil
 		if band then
-			UI.pill(host, string.upper(band), T.ACCENT, UDim2.fromOffset(HERO_X, 38))
+			UI.pill(host, string.upper(band), T.ACCENT, UDim2.fromOffset(HERO_X, 56))
 		end
-		label(host, string.format("Tier %s", tostring(tool.tier or "?")), 15, T.GEM,
-			UDim2.fromOffset(HERO_X + (band and 118 or 0), 38), UDim2.fromOffset(110, 26), FONT)
+		label(host, string.format("Tier %s", tostring(tool.tier or "?")), T.TEXT_BODY, T.GEM,
+			UDim2.fromOffset(HERO_X + (band and 128 or 0), 56), UDim2.fromOffset(120, 28), FONT)
 
-		label(host, string.format("level %d / %d", level, cap), 14,
-			maxed and GOLD or MUTED, UDim2.fromOffset(HERO_X, 68), UDim2.new(1, -HERO_X, 0, 18))
+		label(host, string.format("level %d / %d", level, cap), T.TEXT_BODY,
+			maxed and GOLD or MUTED, UDim2.fromOffset(HERO_X, 92), UDim2.new(1, -HERO_X, 0, 22))
 
 		--[[
 			Breaking power and reach, stated plainly, because they are the whole
@@ -704,8 +720,8 @@ function MineForge.mount(parent, opts)
 		if C.toolBreakingPower and not coinTool then
 			local bp = C.toolBreakingPower(tool)
 			label(host, string.format("breaking power %d  \u{00B7}  reaches ore tier %d",
-				bp, C.oreReachCap(bp)), 12, GOLD,
-				UDim2.fromOffset(HERO_X, 92), UDim2.new(1, -HERO_X, 0, 16))
+				bp, C.oreReachCap(bp)), T.TEXT_MIN, GOLD,
+				UDim2.fromOffset(HERO_X, 122), UDim2.new(1, -HERO_X, 0, 20))
 		end
 
 		local canStep, costLine, heldLine
@@ -755,23 +771,45 @@ function MineForge.mount(parent, opts)
 			heldLine = string.format("held  %s  \u{00B7}  %s", num(haveOre), num(haveDust))
 		end
 
-		label(host, costLine, 14, (maxed and GOLD) or (canStep and GREEN) or MUTED,
-			UDim2.fromOffset(HERO_X, 114), UDim2.new(1, -HERO_X, 0, 20))
+		--[[
+			THE PRICE GETS A CARD, SPANNING THE PANE.
+
+			It was two bare lines floating beside the portrait at 14 and 13px.
+			This is the number the whole screen is asking the player to agree
+			to, so it sits on its own surface, at the type floors, across the
+			full width -- which is also the space that was empty.
+		]]
+		local priceCard = mk("Frame", {
+			BackgroundColor3 = T.CARD,
+			Position = UDim2.fromOffset(0, PORTRAIT + 22),
+			Size = UDim2.new(1, 0, 0, heldLine and 82 or 58),
+		}, host)
+		UI.round(priceCard, 12)
+		UI.edge(priceCard, T.OUTLINE, T.STROKE_CHUNKY)
+		label(priceCard, costLine, T.TEXT_BODY, (maxed and GOLD) or (canStep and GREEN) or MUTED,
+			UDim2.fromOffset(16, 12), UDim2.new(1, -32, 0, 24), FONT)
 		if heldLine then
-			label(host, heldLine, 13, MUTED, UDim2.fromOffset(HERO_X, 136), UDim2.new(1, -HERO_X, 0, 16))
+			label(priceCard, heldLine, T.TEXT_MIN, MUTED,
+				UDim2.fromOffset(16, 44), UDim2.new(1, -32, 0, 20))
 		end
 
-		-- Clear of the 150px portrait, so nothing sits on top of it.
-		local y = 172
-		button(host, "+1", GREEN, UDim2.fromOffset(0, y), UDim2.fromOffset(56, 28),
+		-- Clear of the portrait AND the price card, so nothing overlaps.
+		local y = PORTRAIT + 22 + (heldLine and 82 or 58) + 16
+		--[[
+			Buttons at 92x44 rather than 56x28. The old row was below every
+			touch-target guidance there is, on a screen whose whole job is
+			spending, and it had four fifths of a pane going spare.
+		]]
+		local BW, BH, BGAP = 92, 44, 10
+		button(host, "+1", GREEN, UDim2.fromOffset(0, y), UDim2.fromOffset(BW, BH),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, 1) end
 			end)
-		button(host, "+10", GREEN, UDim2.fromOffset(62, y), UDim2.fromOffset(56, 28),
+		button(host, "+10", GREEN, UDim2.fromOffset(BW + BGAP, y), UDim2.fromOffset(BW, BH),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, 10) end
 			end)
-		button(host, "MAX", GREEN, UDim2.fromOffset(124, y), UDim2.fromOffset(56, 28),
+		button(host, "MAX", GREEN, UDim2.fromOffset((BW + BGAP) * 2, y), UDim2.fromOffset(BW, BH),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, cap) end
 			end)
@@ -809,8 +847,9 @@ function MineForge.mount(parent, opts)
 		-- Equipping is what turns a forged tool into breaking power you actually
 		-- carry, so it sits beside the levelling buttons rather than buried.
 		local equipped = (snapshot.oreToolEquipped ~= nil and snapshot.oreToolEquipped == tool.uid)
+		local y2 = y + BH + BGAP
 		button(host, equipped and "EQUIPPED" or "EQUIP", GOLD,
-			UDim2.fromOffset(0, y + 38), UDim2.fromOffset(110, 26), not equipped, function()
+			UDim2.fromOffset(0, y2), UDim2.fromOffset(150, BH), not equipped, function()
 				if opts.onEquip then opts.onEquip(tool.uid) end
 			end)
 
@@ -818,7 +857,7 @@ function MineForge.mount(parent, opts)
 		button(host,
 			armed and "DESTROY IT?  click again"
 				or ("SCRAP  +" .. num(recOre) .. " ore / +" .. num(recDust) .. " dust"),
-			RED, UDim2.fromOffset(116, y + 38), UDim2.fromOffset(224, 26), true, function()
+			RED, UDim2.fromOffset(160, y2), UDim2.fromOffset(300, BH), true, function()
 				if armed then
 					scrapArmed = nil
 					if opts.onRecycle then
@@ -836,7 +875,8 @@ function MineForge.mount(parent, opts)
 			label(host, recOre > 0
 					and "the tool is gone; only levels you bought come back"
 					or "this tool refunds NOTHING -- it was forged at its level",
-				11, RED, UDim2.fromOffset(116, y + 66), UDim2.new(1, -116, 0, 14), FONT_M)
+				T.TEXT_MIN, RED, UDim2.fromOffset(160, y2 + BH + 6),
+				UDim2.new(1, -160, 0, 20), FONT_M)
 		end
 
 		--[[
@@ -861,9 +901,25 @@ function MineForge.mount(parent, opts)
 			instead is a design call, not a side effect of this panel.
 		]]
 		local fam = tostring(tool.familyId or selFamily or "pickaxe")
-		local ySkin = y + 76
-		label(host, "ON THIS FAMILY", 11, MUTED, UDim2.fromOffset(0, ySkin),
-			UDim2.new(1, 0, 0, 14), FONT)
+		-- The build gets its own card under the actions, which is where the rest
+		-- of the pane's empty space was.
+		local ySkin = y2 + BH + 36
+		do
+			-- Flush with the price card above it, not bled 14px past the pane on
+			-- each side -- the right edge was running off the panel. And tall
+			-- enough for both buttons: at 98 the SOCKET A RUNE row hung 4px out
+			-- of the bottom.
+			local buildCard = mk("Frame", {
+				BackgroundColor3 = T.CARD,
+				Position = UDim2.fromOffset(0, ySkin - 16),
+				Size = UDim2.new(1, 0, 0, 112),
+				ZIndex = 0,
+			}, host)
+			UI.round(buildCard, 12)
+			UI.edge(buildCard, T.OUTLINE, T.STROKE_CHUNKY)
+		end
+		label(host, "ON THIS FAMILY", T.TEXT_MIN, MUTED, UDim2.fromOffset(16, ySkin),
+			UDim2.new(1, -32, 0, 18), FONT)
 
 		local tt = (snapshot.toolTempers or {})[fam] or {}
 		local skinLine, skinInk = "no skin fitted", MUTED
@@ -876,7 +932,7 @@ function MineForge.mount(parent, opts)
 				tt.temperRarity and ("  " .. tostring(tt.temperRarity)) or "")
 			skinInk = GOLD
 		end
-		label(host, "skin   " .. skinLine, 12, skinInk, UDim2.fromOffset(0, ySkin + 16),
+		label(host, "skin   " .. skinLine, T.TEXT_MIN, skinInk, UDim2.fromOffset(16, ySkin + 26),
 			UDim2.new(1, -120, 0, 16))
 
 		local socket = (snapshot.toolSockets or {})[fam]
@@ -902,16 +958,16 @@ function MineForge.mount(parent, opts)
 			end
 			runeInk = GOLD
 		end
-		label(host, "rune   " .. runeLine, 12, runeInk, UDim2.fromOffset(0, ySkin + 34),
+		label(host, "rune   " .. runeLine, T.TEXT_MIN, runeInk, UDim2.fromOffset(16, ySkin + 52),
 			UDim2.new(1, -120, 0, 16))
 
 		if opts.onOpenEnchanter then
-			button(host, "FIT A SKIN", BG3, UDim2.new(1, -118, 0, ySkin + 14),
-				UDim2.fromOffset(112, 24), true, function()
+			button(host, "FIT A SKIN", BG3, UDim2.new(1, -166, 0, ySkin + 18),
+				UDim2.fromOffset(140, 30), true, function()
 					opts.onOpenEnchanter("temper")
 				end)
-			button(host, "SOCKET A RUNE", BG3, UDim2.new(1, -118, 0, ySkin + 42),
-				UDim2.fromOffset(112, 24), true, function()
+			button(host, "SOCKET A RUNE", BG3, UDim2.new(1, -166, 0, ySkin + 56),
+				UDim2.fromOffset(140, 30), true, function()
 					opts.onOpenEnchanter("sockets")
 				end)
 		end
