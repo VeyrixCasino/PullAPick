@@ -82,6 +82,39 @@ for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
     shared.length ? shared.length + " shared ids" : "disjoint");
 }
 
+/*
+  Hammers and jackhammers (owner, 2026-10-11: "fully built in"). The Canva icons
+  are per ore like the others. Jackhammers 75-82 are the one allowed gap: the
+  Canva AI allowance ran out mid-run, and a missing tier falls back to the flat
+  family icon. Any OTHER missing tier is a bug.
+*/
+const allOther = [...ids];
+for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
+  const t = tableOf(name);
+  if (t) allOther.push(...t.values());
+}
+// ORE_PICK_CANVA is tiers 1-81 only: tier 82 keeps the original art the owner liked.
+for (const [name, allowedGap] of [["ORE_HAMMER", []], ["ORE_JACKHAMMER", [75, 76, 77, 78, 79, 80, 81, 82]], ["ORE_PICK_CANVA", [82]]]) {
+  const t = tableOf(name);
+  ok(!!t, `MineIcons.${name} exists`);
+  if (!t) continue;
+  const missing = [];
+  for (let tier = 1; tier <= oreCount; tier++) if (!t.has(tier)) missing.push(tier);
+  const unexpected = missing.filter((m) => !allowedGap.includes(m));
+  ok(unexpected.length === 0, `${name} covers every ore tier` + (allowedGap.length ? " except the known gap" : ""),
+    unexpected.length ? "missing " + unexpected.join(",") : `${t.size} of ${oreCount}` +
+      (!missing.length ? "" : name === "ORE_PICK_CANVA" ? " (82 keeps its original art)" : ` (still to come: ${missing.join(",")})`));
+  const v = [...t.values()];
+  const d = v.filter((x, i) => v.indexOf(x) !== i);
+  ok(d.length === 0, `${name} has no two ores sharing an icon`, d.length ? [...new Set(d)].join(", ") : v.length + " distinct");
+  const shared = v.filter((x) => allOther.includes(x));
+  ok(shared.length === 0, `${name} shares no asset with the pick, drill or bomb icons`, shared.length ? shared.length + " shared ids" : "disjoint");
+  allOther.push(...v);
+}
+ok(/MineIcons\.ORE_SKINS\.hammer = MineIcons\.ORE_HAMMER/.test(ICONS) && /MineIcons\.ORE_SKINS\.jackhammer = MineIcons\.ORE_JACKHAMMER/.test(ICONS),
+  "hammer and jackhammer icons join ORE_SKINS (behind NEW_TOOL_ICONS_SHARED)");
+ok(/MineIcons\.ORE_PICK\[tier\] = id/.test(ICONS), "the Canva pickaxes replace ORE_PICK's tiers once shared");
+
 for (const n of ["ADMIN_PICK", "ADMIN_DRILL", "ADMIN_BOMB"]) {
   ok(new RegExp("MineIcons\\." + n + ' = "rbxassetid://\\d+"').test(ICONS),
     `${n} is set`, "the last icon of each sheet is the admin tool");

@@ -156,6 +156,17 @@ equip; the coin ladder resets.
 - **Every ore tier has its own pickaxe skin** (`MineIcons.ORE_PICK`, one asset id
   per tier; `Icons.forTool(tool)` is the one rule the hotbar, Forge and inventory
   share). `tools/verify/oreskins.js` asserts the ids are distinct.
+- **New icons from Canva, one per ore** (owner, 2026-10-11).
+  - **Hammers and jackhammers** got icons for the first time (`ORE_HAMMER`,
+    `ORE_JACKHAMMER`). The owner approved them, with Frostfire redone as fire
+    against ice.
+  - **Pickaxes 1–81 are redone** (`ORE_PICK_CANVA`). The owner: *"i like
+    PICKAXE 82, BUT REDO THE RESTs ... make sure the colors make sense"*. Tier
+    82 keeps the original.
+  - **Drill and explosive 1–81 and jackhammer 75–82 are blocked** on Canva's
+    AI allowance.
+  - All of it switches on with `MineIcons.NEW_TOOL_ICONS_SHARED` once the owner
+    shares the uploads ([assets-and-uploads](../code/assets-and-uploads.md)).
 - **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line
   12).
 

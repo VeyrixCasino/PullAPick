@@ -90,6 +90,19 @@ it via personal account, and i just have to share access"*.
     owner shared all 20 on 2026-10-10.** After that, `PreloadAsync` loaded
     20/20 at 732×1024 (checked with leading-zero ids), and the boxes drew on
     the bag tiles and the opening screen in a play test.
+- **Tool icons from Canva** (2026-10-11 and 12). They use the same pipeline,
+  with `tools/icons/slice-grid.ps1` cutting each 10 × 9 sheet into
+  512 × 512 icons in `art/tool-icons/<family>/NN_<ore>.png`. Prompts and
+  Canva state are in `build/hammer-icons/` and `build/tool-icons/`.
+  - **Uploaded:** 82 hammers, 74 jackhammers and 81 pickaxes (tiers 1–81), as
+    the owner's account. All are listed in `build/hammer-icons/share-list.txt`.
+  - **Wired behind `MineIcons.NEW_TOOL_ICONS_SHARED`,** which is false until the
+    owner shares them. An unshared image draws nothing, and a blank hotbar is
+    worse than the old art.
+  - **Not done:** jackhammers 75–82, drills and explosives. Canva's AI
+    allowance ran out. Its help says about 7 images per 30 minutes, plus a
+    monthly allowance, and generation failed for 19+ hours. Resume from each
+    folder's `state.json`.
 - The owner has seen personal assets in the group they never shared by hand.
   Roblox appears to grant an experience use of an asset its owner uses there
   from Studio; *unverified*, so still share explicitly and test.

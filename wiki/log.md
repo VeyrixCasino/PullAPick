@@ -1192,3 +1192,26 @@ Updated: enchants (new), index, log.
 The owner loved Forge A but found it cramped, with buttons too big, and gave the inventory brief as the feature list ("DONT LISTEN TO ANY DESIGN TIPS"). Built `MineForgeHub`, wider and with smaller buttons, with three tabs: Crafting (search / filter / sort, craftable first, best first), Loadout (inspect, equip, skin, jump to upgrades) and Upgrades (level, enchant slots and book picker, scrap with confirm, merge books). The Forge dock button opens it; it hides the dock like the Blacksmith. Demo Forges removed. Not yet seen in Studio: it was in use.
 
 Updated: client-and-ui, log.
+
+## [2026-10-12] decision | tool icons uploaded and wired behind the share flag
+Canva made these:
+- 82 hammer and 74 jackhammer icons (Frostfire redone as fire against ice);
+- pickaxes 1–81, redone with ore-true colours (owner: keep pickaxe 82, *"REDO
+  THE RESTs"*).
+
+All 237 are uploaded as the owner's account and wired into `MineIcons`
+(`ORE_HAMMER`, `ORE_JACKHAMMER`, `ORE_PICK_CANVA`). They stay behind
+`NEW_TOOL_ICONS_SHARED`, false until the owner shares them in the Creator Hub
+(`build/hammer-icons/share-list.txt`).
+
+`oreskins.js` now checks the new tables:
+- each tier is complete, except jackhammers 75–82 and pickaxe 82;
+- no two ores share an icon;
+- no icon is shared with another family.
+
+**Blocked:** jackhammers 75–82, drills 1–81 and explosives 1–81. Canva's AI
+allowance stopped generation after about 19 hours of cooldowns. Resume from
+`build/hammer-icons/state.json` and `build/tool-icons/state.json` when the
+credits reset.
+
+Suite 65/65.
