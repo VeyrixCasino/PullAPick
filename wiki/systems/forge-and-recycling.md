@@ -2,7 +2,7 @@
 title: Forge and recycling
 type: system
 status: partial
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineForge.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
@@ -16,7 +16,7 @@ sources:
   - docs/TODO.md §6.1
   - docs/PROPOSAL.md §0
   - docs/OPEN.md P0 #4
-related: [tools, ores, ore-pouch-and-backpack, skins-cases-and-temper, rebirth-and-skill-tree, client-and-ui, traits]
+related: [tools, ores, ore-pouch-and-backpack, skins-cases-and-temper, rebirth-and-skill-tree, client-and-ui, traits, enchants]
 ---
 
 # Forge and recycling
@@ -83,9 +83,15 @@ the inventory and the Enchanter. The flow:
 3. A review screen lists the payout.
 4. Hold for 3 s to confirm.
 
-The kinds are card, rune, gear and pack. The batch is **all-or-none**, capped
-at `MineConfig.SCRAP_MAX 200`, and socketed gear is blocked. Forged tools are
-not in this flow.
+The kinds are card, gear and pack (`scrapPlan`). The batch is **all-or-none**,
+capped at `MineConfig.SCRAP_MAX 200`, and worn gear and pets out with you are
+blocked. Forged tools are not in this flow. Until 2026-10-12 runes were a fourth
+kind (the scrapper had a RUNES tab) and gear with a rune in it was blocked; both
+went with runes ([traits](traits.md)).
+
+**The tool's build card** on the old Forge bench (`MineForge`) shows the tool's
+enchants, or "none · enchant it at the FORGE". It had a SOCKET A RUNE button
+until 2026-10-12. Enchants are applied in the Forge hub ([enchants](enchants.md)).
 
 **Rebirth.** The rack, its levels, the equipped tool and the pouch all survive.
 The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
@@ -116,11 +122,12 @@ The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
 ## State right now
 
 - **Shipped:** craft, upgrade with +N, single-tool scrap, level inheritance,
-  bulk recycle for four kinds.
+  bulk recycle for three kinds.
 - **Open** (OPEN #13, #15):
   - fold `MineForgeView` (tempers) into the Forge
   - keep the 3D stage from `583d9ad`
-  - decide whether the Temper and Sockets tabs move here
+  - decide whether the Enchanter's Temper tab moves here (its Sockets tab was
+    removed with runes on 2026-10-12)
   - apply the approved recycle curve
 - **Untested:** nothing here has run in the engine.
 
@@ -152,8 +159,9 @@ The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
 
 - How should the recycle exploit be fixed, and does the refund cover the craft
   cost?
-- Does the recycle curve apply to pets, runes and charms too ("universal")?
-- Do the Temper and Sockets tabs move into the Forge?
+- Does the recycle curve apply to pets and charms too ("universal")?
+- Does the Temper tab move into the Forge? (The owner kept it on the Enchanter on
+  2026-10-12, with Summon, Salvage and Dust.)
 
 ## See also
 

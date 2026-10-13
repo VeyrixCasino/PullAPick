@@ -1,5 +1,6 @@
--- MineGear: 8-tier gear pieces, set identities, predetermined stats, permanent sockets.
-local MineRunes = require(script.Parent:WaitForChild("MineRunes"))
+-- MineGear: 8-tier gear pieces, set identities, predetermined stats.
+-- (Gear sockets held runes; runes were retired on 2026-10-12, and a piece's
+-- `sockets` stays an empty table on old saves.)
 local ToolGrades = require(script.Parent:WaitForChild("MineToolGrades"))
 
 local MineGear = {}
@@ -19,13 +20,11 @@ MineGear.RARITIES = { "F", "D", "C", "B", "A", "S", "SS", "SSS" }
 --
 -- Both are real Roblox catalog items (MineHats), graded F..SSS off their RAP.
 --
--- ONE rune socket per piece, never more. Three pets + three hats + your face +
--- your tool is eight runes in the entire game, which is exactly why a rune is
--- allowed to be worth something (see MineRunes.SOCKET_GAIN).
+-- Pieces had one rune socket each until runes were retired (2026-10-12).
 --
 -- Old saves lose nothing: every retired slot folds into "hat" and is re-priced
 -- off the live sheet, so a Bedrock Plate becomes a Bedrock hat of the same
--- grade, sockets and all.
+-- grade.
 --------------------------------------------------------------------------------
 MineGear.SLOTS = { "hat", "face" }
 MineGear.SLOT_LABEL = { hat = "Hat", face = "Face" }
@@ -484,12 +483,9 @@ function MineGear.piecePct(setId, slot, rarity)
 	if cell.pct then
 		return round4(cell.pct)
 	end
-	-- Legacy rows (none ship any more) kept the old half-a-rune shape.
-	local set = MineGear.SETS_BY_ID[setId]
-	if not set then
-		return 0
-	end
-	return round4(MineRunes.initialMaxFraction(set.stat) / 2 * (1 + (cell.mult or 0)))
+	-- Legacy rows (none ship any more) were priced as half a rune; runes are
+	-- gone, so a row without its own pct pays nothing.
+	return 0
 end
 
 --[[
@@ -628,18 +624,14 @@ end
 	ever explained it, and it is why gear ended up the single largest multiplier
 	in the game at +1225%.
 
-	Now: a pet contributes its own delta, scaled by its own rune, and that is
-	all. Gear is counted ONCE, by flatBoost below, and both land in layer 2 --
+	Now: a pet contributes its own delta, and that is all. Gear is counted ONCE, by flatBoost below, and both land in layer 2 --
 	see MineBoostLayers for what that means.
 ]]
 function MineGear.stackPets(pets)
 	local total = {}
 	for _, row in ipairs(pets or {}) do
-		-- A pet's own rune still rides its own delta. That is a property of the
-		-- pet, not of your hat, and it was never the part that was broken.
-		local runeAll = MineRunes.wearBroad(row.rune)
 		for stat, amount in pairs(row.delta or {}) do
-			local n = (tonumber(amount) or 0) * (1 + runeAll)
+			local n = tonumber(amount) or 0
 			if n ~= 0 then
 				total[stat] = (total[stat] or 0) + n
 			end
@@ -879,29 +871,6 @@ function MineGear.setCompletionScore(equipped)
 		if sc > best then best, bestId = sc, id end
 	end
 	return bestId, best, scores
-end
-
---[[
-	The pieces YOU wear, which means their runes -- a rune's own stat has always
-	landed on you and still does. What is deliberately NOT here any more is the
-	piece percentage: a hat multiplies every pet and a face multiplies
-	the team, and both of those happen in stackPets. Pouring them in here as
-	flat stats is what made gear invisible.
-
-	`ipairs` was also wrong: a piece whose first socket is empty holds its runes
-	at index 2 and up, and ipairs stops at the hole.
-]]
-function MineGear.applyEquipped(b, equipped, runeById)
-	for _, piece in pairs(equipped or {}) do
-		if piece then
-			for _, runeId in pairs(piece.sockets or {}) do
-				local rune = runeById and runeById[runeId]
-				if rune then
-					MineRunes.applyRune(b, rune, MineRunes.SOCKET_GAIN)
-				end
-			end
-		end
-	end
 end
 
 function MineGear.audit()

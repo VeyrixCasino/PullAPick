@@ -2,7 +2,7 @@
 title: Ore pouch and backpack
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOrePouch.luau
   - src/ReplicatedStorage/Mine/Shared/MineOrePouchView.luau
@@ -22,7 +22,9 @@ related: [ores, forge-and-recycling, currencies-and-economy, rebirth-and-skill-t
 > Three different containers that all get called "the bag". The **ore pouch**
 > holds ore and sells it for gems. The **backpack** holds the dirt haul you
 > carry to a sell pad for coins. The **item bag** is the inventory shelf for
-> cards, packs, runes and tempers. Only the pouch survives a rebirth.
+> cards, packs, tempers, chest tools and event tools (`MineConfig.ITEM_BAG_FIELDS`;
+> runes counted too until they were retired on 2026-10-12). Only the pouch
+> survives a rebirth.
 
 ## How it works
 
@@ -104,7 +106,9 @@ runs on every load, after the roster migrations:
 ## Decided by the owner
 
 - The ore pouch, zones and runes are gem sinks. Gems come from selling ore
-  (TODO §0.13 rule 7; TODO §9).
+  (TODO §0.13 rule 7; TODO §9). Runes were retired on 2026-10-12; the Forge's
+  enchant book bundles took their place as the gem sink (owner's pick, see
+  [enchants](enchants.md)).
 - The 60 fossil bags stay in `MineBags.LIST`, unobtainable and hidden.
   Deleting them would renumber every `bag_<index>` (TODO §0.12).
 - **`ORE_GEM_SPREAD` 1e6 → 1e4** (PROPOSAL §0 line 16), and the gemvault/warren

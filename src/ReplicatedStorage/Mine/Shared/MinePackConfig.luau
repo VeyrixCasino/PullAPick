@@ -1286,11 +1286,8 @@ MinePackConfig.PACK_PRICE = {
 	heirloom_pack = 55,
 	apex_pack = 60,
 
-	rune_pack = 18,
 	gear_pack = 24,
-	rune_heavy_pack = 40,
 	gear_case_pack = 45,
-	rune_sealed_pack = 52,
 	gear_vault_pack = 60,
 }
 -- Retired ids that still appear in old saves and chest rows.
@@ -1335,11 +1332,8 @@ MinePackConfig.CREDIT_PRICE = {
 	heirloom_pack = 55,
 	apex_pack = 60,
 
-	rune_pack = 18,
 	gear_pack = 24,
-	rune_heavy_pack = 40,
 	gear_case_pack = 45,
-	rune_sealed_pack = 52,
 	gear_vault_pack = 60,
 }
 MinePackConfig.CREDIT_PRICE.chrome_pack = MinePackConfig.CREDIT_PRICE.magma_pack
@@ -1612,7 +1606,6 @@ end
 ]]
 local PACK_UNIT = {
 	card = { "card", "cards" },
-	rune = { "rune", "runes" },
 	gear = { "piece", "pieces" },
 	pack_case = { "pack", "packs" },
 }
@@ -1674,9 +1667,7 @@ MinePackConfig.DUST_STOCK_MAX = 2
 MinePackConfig.DUST_OFFER_COUNT = 5
 -- Mid packs are the usual shelf. Awesome / shiny inject rarely in dustRotation.
 MinePackConfig.DUST_EXCLUDE = {
-	rune_heavy_pack = true,
 	gear_case_pack = true,
-	rune_sealed_pack = true,
 	gear_vault_pack = true,
 }
 MinePackConfig.DUST_AWESOME = {

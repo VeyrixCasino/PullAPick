@@ -2,13 +2,13 @@
 title: The server — MineServer.server.luau
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/START-HERE.md §4, §5
   - docs/HANDOFF.md §2.2, §2.3, §2.8
   - docs/TODO.md §0.14, §1
-related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-and-debug, trading, social-quests-and-leaderboards]
+related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-and-debug, trading, social-quests-and-leaderboards, traits]
 ---
 
 # The server — `MineServer.server.luau`
@@ -43,8 +43,10 @@ related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-a
 A new module or helper does **not** get a new top-level `local`. It goes on a
 table that already exists:
 
-- `local Dig = { Traits, Layers, Depth, Auth, Shop, Plazas, Breaking }` holds
-  requires. The comment there says the script "sits at 197 of Luau's 200".
+- `local Dig = { Enchants, Layers, Depth, Auth, Shop, Plazas, Breaking, Trader,
+  TraderNPC, Launch }` holds requires. `Dig.Traits` sat first until tool traits
+  were retired on 2026-10-12 ([traits](../systems/traits.md)). Comments elsewhere
+  say the script "sits at 197 of Luau's 200".
 - 26 more `Dig.x` fields are added further down: `Dig.bankOrePacks`, `Dig.addOre`,
   `Dig.pouch`, `Dig.QUAKE`, `Dig.echoAt`, `Dig.procsAt`, `Dig.boostSources`, and others.
 - `local Const = { THROW_SPEED, … }` packs scalars into one register.
@@ -70,7 +72,10 @@ declaration-order trap (HANDOFF §2.3).
   2. Every other action takes a per-player `busy[userId]` lock. A second request
      that arrives while one is running is **dropped**, not queued.
   3. `Verbs.policyBlocks` refuses paid-random actions (when the PolicyNoRandom
-     attribute is set) and refuses `discordLink`.
+     attribute is set) and refuses `discordLink`. The paid-random list is
+     `Verbs.PAID_RANDOM`. On 2026-10-12 it lost `buyScroll`, `rollRune`,
+     `fuseRune`, `buyCrate` and `buyPouch` (rune-era verbs, now deleted) and
+     gained `enchBuyBundle`, the Forge's gem book bundle.
   4. The branch runs inside a `pcall`. An error goes to `warn("[Mine] …")`.
 - 57 of the 141 branch lines call `Verbs.x` on the same line. The rest call
   file-local functions (`buy`, `equip`, `openAt`, `swingBlock`…), call
@@ -120,7 +125,8 @@ gives for this chain have drifted, so search by name.
   - wallet: `p.coins`, `p.gems`, `p.dust`, `p.credits`
   - ore: `p.ores[id]`, `p.oreTools`, `p.orePouchTier`, `p.oreLocks`, `p.oresSeen`
   - depth: `p.deepest`, `p.seams`
-  - inventory: `p.packs`, `p.cards`, `p.charms`, `p.gear`, `p.runes`
+  - inventory: `p.packs`, `p.cards`, `p.charms`, `p.gear`, `p.enchantBooks`
+    (`p.runes` and `p.scrolls` were dropped on 2026-10-12)
   - progression: `p.prestige`, `p.skillPresets`
   - counters: `p.stats`, `p.quest`, `p.intro`
 - Full shape and migrations: [save-data-and-migrations](save-data-and-migrations.md).

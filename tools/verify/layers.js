@@ -94,7 +94,7 @@ check(z.luck == 1, "no contributions, no change")
 
 check(#L.LAYER1 == 4 and #L.LAYER2 == 2,
 	"layer 1 names four sources and layer 2 names two")
-for _, name in ipairs({ "skills", "skins", "tools", "traits" }) do
+for _, name in ipairs({ "skills", "skins", "tools", "enchants" }) do
 	check(L.TIER_OF[name] == 1, name .. " is layer 1")
 end
 for _, name in ipairs({ "equipment", "pets" }) do
@@ -140,7 +140,8 @@ const boosts = code((server.match(/local function boosts\(p\)[\s\S]*?\n^end$/m) 
 src(/local T1, T2 = \{\}, \{\}/.test(boosts), "boosts collects two layers");
 src(/Dig\.Layers\.apply\(b, T1, T2, Cards\.ADDITIVE_STATS\)/.test(boosts),
   "...and combines them once, through ADDITIVE_STATS");
-src(/Dig\.Layers\.add\(T1, def\.stat/.test(boosts), "the tool's trait is layer 1");
+src(/Dig\.Layers\.add\(T1, st\.stat, st\.value\)/.test(boosts), "the held tool's enchants are layer 1, where the trait sat");
+src(!/Dig\.Traits|t\.trait/.test(boosts), "...and traits pay nothing any more (retired 2026-10-12)");
 src(/Dig\.Layers\.add\(T1, key, sk\[stat\]\)/.test(boosts), "rebirth skills are layer 1");
 src(/T2, Dig\.tailor\[p\] = Dig\.layer2\(p, n\)/.test(boosts), "pets and gear are layer 2");
 src(!/Dig\.applyPets/.test(boosts), "the old applyPets mutation is gone");

@@ -2,7 +2,7 @@
 title: Cards and packs
 type: system
 status: current
-verified: 2026-10-10 @ f6baac2
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineCards.luau
   - src/ReplicatedStorage/Mine/Shared/MineSetPacks.luau
@@ -25,7 +25,7 @@ related: [pets, chests-and-lucky-blocks, shops-and-monetisation, skins-cases-and
 # Cards and packs
 
 > The game is *Mine For Cards*: a **card is a pet**. Packs are sealed bags of
-> cards (or runes, gear, coins) that you find in chests, earn, or buy with
+> cards (or gear, coins) that you find in chests, earn, or buy with
 > credits, then rip open in a tap-through reveal. The pet's power is covered in
 > [pets](pets.md); this page covers where cards come from.
 
@@ -195,7 +195,7 @@ cards can be tapped too (`addPick`). Checked in Studio on 2026-10-10.
 | `holiday` | `halloween_2026` (3 cards) | `MineSetPacks.HOLIDAY_ODDS` (PROPOSED); only its holiday pets, the one pack allowed to pay them. Kind `holiday` keeps it out of the day-4 surprise. Paid by the Trick-or-Treat case. |
 | `cards` + `setKey` | `<setkey>_pack_1..6` (★ to ★★★★★; 3, 3, 4, 4, 5, 5 cards) | `MineSetPacks.ODDS` by star grade, scaled by the set's grade (`oddsFor`); only that set's pets |
 | card pack, no kind | 19 in `Mine1PacksData` (loam … heirloom; hopper 6 cards, magma 8, apex 1) | own `odds` table |
-| `rune` / `gear` | `rune_*_pack`, `gear_*_pack` | `MineLootPacks` rolls one item per slot |
+| `gear` | `gear_pack`, `gear_case_pack`, `gear_vault_pack` | `MineLootPacks` rolls one item per slot. The three rune cases (`rune_pack`, `rune_heavy_pack`, `rune_sealed_pack`) were removed with runes on 2026-10-12, from `Mine1PacksData`, `MinePackConfig` and `MinePackFX`. |
 | `ore_case` | `<ore>_ore_case` | a skin or a charm, see [skins-cases-and-temper](skins-cases-and-temper.md) |
 | `ore` (legacy) | `<ore>_ore_pack` | ore; converted on load (below) |
 | `lucky_block` | stored in `p.packs` | see [chests-and-lucky-blocks](chests-and-lucky-blocks.md) |
@@ -208,8 +208,7 @@ the day-4 surprise (`Verbs.claimDailySurprise`), AFK (`Verbs.Afk.grantPack`; 20%
 from your top zone, `Const.AFK_TOP_ZONE_SHARE`), lucky blocks and Weekend Haul.
 
 **Opening and buying.** Three verbs open packs: `open`, `openAt` and `openMany`.
-`openMany` opens up to `Const.OPEN_RUN_MAX` = 50 packs, but only 3 gear or rune
-cases. The owner asked for a typed buy quantity ("a custom amount of packs to
+`openMany` opens up to `Const.OPEN_RUN_MAX` = 50 packs, but only 3 gear cases. The owner asked for a typed buy quantity ("a custom amount of packs to
 buy… default 1", quoted in `tools/verify/buyqty.js`). It is a TextBox now, and
 three ceilings agree at 100: `Const.BUY_QTY_MAX`, `Const.CART_MAX_QTY` and the
 view's `CART_QTY_MAX`. A ten-pack costs 70% of ten singles (`BUNDLE_QTY`,
@@ -231,9 +230,9 @@ still be opened by hand. `tools/verify/orepacks.js` guards this.
 |---|---|---|
 | `src/ReplicatedStorage/Mine/Shared/MineCards.luau` | card sets, identity, fallback odds, colours | `SETS`, `getCard`, `HIT`, `slotOdds`, `rollPack` |
 | `src/ReplicatedStorage/Mine/Shared/MinePackConfig.luau` | pack odds helpers, prices, God Pack, card pools, stardust shop | `rollCard`, `siphonOdds`, `cardPoolFor`, `variantOdds`, `PACK_PRICE` |
-| `src/ReplicatedStorage/Mine/Shared/Mine1PacksData.luau` | 25 authored pack rows | `odds`, `cards`, `shiny`, `kind` |
+| `src/ReplicatedStorage/Mine/Shared/Mine1PacksData.luau` | 22 authored pack rows (25 until the rune cases were removed on 2026-10-12) | `odds`, `cards`, `shiny`, `kind` |
 | `src/ReplicatedStorage/Mine/Shared/MineZonePacks.luau` | 5 generated slots × 11 zones, plus ore packs and cases | `buildAll`, `get`, `SLOTS` |
-| `src/ReplicatedStorage/Mine/Shared/MineLootPacks.luau` | rune and gear pack roller | `rollRarity`, `isLoot` |
+| `src/ReplicatedStorage/Mine/Shared/MineLootPacks.luau` | gear pack roller (it rolled runes too until 2026-10-12) | `rollRarity`, `isLoot` |
 | `src/ReplicatedStorage/Mine/Shared/MineSetPacks.luau` | the 19 sets' six packs each, the pack cases, the named-pet pick (all numbers PROPOSED) | `PACK_BY_ID`, `ODDS`, `pickPet`, `petCard`, `rollCase`, `casePrice` |
 | MineServer | minting, opening, legacy banking | `mint`, `openPack`, `openMany`, `Dig.bankOrePacks` |
 | `src/ReplicatedStorage/Mine/Shared/MinePackReveal.luau`, `src/ReplicatedStorage/Mine/Shared/MinePackFX.luau` | the reveal, and the 1.4 s tear (ported from TCG Life) | `mount`, `ART`, `BAND_ORDER`, `pullScore` |

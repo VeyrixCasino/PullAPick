@@ -26,7 +26,7 @@ MineQuests.CHAIN = {
 	-- Early (session 1)
 	{ id = "mine25",     stat = "blocks",   goal = 10,      text = "Break 10 blocks",              tip = "Hold LMB on a rock. Dig fills your bag.", reward = { coins = 200, pack = "loam_pack" } }, -- id kept: CHAIN_V1 names it
 	{ id = "sell1",      stat = "sells",    goal = 1,       text = "Sell your haul at the Depot",  tip = "Sell pad by the shops. Gems/coins bank; bag empties.", reward = { coins = 400 } },
-	{ id = "pick2",      stat = "picktier", goal = 1,       text = "Buy a better pickaxe",         tip = "Blacksmith. Coin tools reset on rebirth; socketed runes stay.", reward = { gems = 20 } },
+	{ id = "pick2",      stat = "picktier", goal = 1,       text = "Buy a better pickaxe",         tip = "Blacksmith → COIN SHOP. Coin tools reset on rebirth.", reward = { gems = 20 } },
 	{ id = "mine100",    stat = "blocks",   goal = 100,     text = "Break 100 blocks",             tip = "Chests hide in the wall — dig deeper for better odds.", reward = { gems = 25 } },
 	{ id = "chests3",    stat = "chests",   goal = 3,       text = "Open 3 chests",                tip = "Chests glow — when the dirt lights up, one is close.", reward = { gems = 60, tool = "meadow_surface_2_pick", toolName = "Bronzewedge" } },
 	{ id = "depth20",    stat = "depth",    goal = 20,      text = "Gain 20 depth",                tip = "Depth unlocks harder rock and richer chests.", reward = { coins = 800 } },
@@ -35,7 +35,7 @@ MineQuests.CHAIN = {
 	{ id = "open3",      stat = "packs",    goal = 3,       text = "Open 3 packs",                 tip = "Open packs from your bag. Variants and shinies are permanent.", reward = { gems = 40 } },
 	{ id = "chestsL3",   stat = "chestsL3", goal = 3,       text = "Open 3 chests below 100m (Layer 3+)", tip = "Deeper layers hide better chests.", reward = { gems = 150, tool = "meadow_surface_4_pick", toolName = "Coppervine" } },
 	{ id = "cards10",    stat = "cards",    goal = 10,      text = "Collect 10 more cards",        tip = "Equip pets in slots. More slots unlock as you grow.", reward = { pack = "slate_pack" } },
-	{ id = "sell5",      stat = "sells",    goal = 5,       text = "Sell 5 hauls",                 tip = "Coins buy tools. Gems buy zones, runes, and gear.", reward = { gems = 45 } },
+	{ id = "sell5",      stat = "sells",    goal = 5,       text = "Sell 5 hauls",                 tip = "Coins buy tools. Gems buy zones, gear and enchant books.", reward = { gems = 45 } },
 	--[[
 		THE FORGE, FINALLY ON THE LADDER.
 
@@ -46,14 +46,14 @@ MineQuests.CHAIN = {
 		exists.
 	]]
 	{ id = "forge1",     stat = "oretools", goal = 1,       text = "Forge a tool out of ore",      tip = "The Forge turns ore into a tool. Every ore makes its own pickaxe, drill and charge -- 246 in all.", reward = { gems = 60 } },
-	{ id = "chests10",   stat = "chests",   goal = 10,      text = "Open 10 chests",               tip = "Every tool has a rune slot — runes stay in it through rebirth.", reward = { gems = 200, tool = "meadow_surface_5_pick", toolName = "Ironvine" } },
+	{ id = "chests10",   stat = "chests",   goal = 10,      text = "Open 10 chests",               tip = "Chests can drop a BOOK BUNDLE: enchants for your tools.", reward = { gems = 200, tool = "meadow_surface_5_pick", toolName = "Ironvine" } },
 	{ id = "zone2",      stat = "zone",     goal = 1,       text = "Unlock the next zone",         tip = "Buy portals with gems. Zones stay unlocked after rebirth.", reward = { gems = 80 } },
-	{ id = "chestsL4",   stat = "chestsL4", goal = 5,       text = "Open 5 chests below 150m (Layer 4+)", tip = "Chest luck from pets, runes and skills stacks.", reward = { gems = 300, tool = "meadow_surface_6_pick", toolName = "Hillforge" } },
+	{ id = "chestsL4",   stat = "chestsL4", goal = 5,       text = "Open 5 chests below 150m (Layer 4+)", tip = "Chest luck from pets, skills and enchants stacks.", reward = { gems = 300, tool = "meadow_surface_6_pick", toolName = "Hillforge" } },
 	-- Mid
 	{ id = "mine1k",     stat = "blocks",   goal = 1000,    text = "Break 1,000 blocks",           tip = "Upgrade pick + backpack so hauls pay for the next rebirth bank.", reward = { gems = 120 } },
 	{ id = "depth80",    stat = "depth",    goal = 80,      text = "Gain 80 depth",                tip = "Later layers drop better chest ranks.", reward = { gems = 100 } },
 	{ id = "merge1",     stat = "merges",   goal = 1,       text = "Merge three of a kind",        tip = "Three matching cards merge into one stronger card.", reward = { pack = "iron_pack", packQty = 2 } },
-	{ id = "open10",     stat = "packs",    goal = 10,      text = "Open 10 packs",                tip = "Summon tab: Runes 25g, Gear 75g.", reward = { gems = 150 } },
+	{ id = "open10",     stat = "packs",    goal = 10,      text = "Open 10 packs",                tip = "Gear Cases are in the Enchanter's Summon tab, for rebirth tokens.", reward = { gems = 150 } },
 	{ id = "chestsL5",   stat = "chestsL5", goal = 5,       text = "Open 5 chests below 200m (Layer 5+)", tip = "Drills bore straight down — built for depth runs.", reward = { gems = 400, tool = "meadow_surface_8_drill", toolName = "Twistauger" } },
 	{ id = "cards50",    stat = "cards",    goal = 50,      text = "Collect 50 more cards",        tip = "Recycle spare cards for stardust, then spend it on pack cases.", reward = { gems = 180 } },
 	{ id = "sell25",     stat = "sells",    goal = 25,      text = "Sell 25 hauls",                tip = "Watch the Rebirth tab: farm to the MINIMUM bank, not just the fee.", reward = { gems = 220 } },
@@ -61,27 +61,27 @@ MineQuests.CHAIN = {
 	-- Charms drop from chests at 0.5% and are also bought with temper tokens,
 	-- so by this rung a player has almost certainly seen one and not known
 	-- what it was for.
-	{ id = "charm1",     stat = "charms",   goal = 1,       text = "Get a charm",                  tip = "One charm equips at a time, and it does not take a rune or pet slot. Chests drop them; the token shop sells them.", reward = { gems = 110 } },
+	{ id = "charm1",     stat = "charms",   goal = 1,       text = "Get a charm",                  tip = "One charm equips at a time, and it does not take a pet slot. Chests drop them; the token shop sells them.", reward = { gems = 110 } },
 	{ id = "chests25",   stat = "chests",   goal = 25,      text = "Open 25 chests",               tip = "Bombs clear a whole patch at once.", reward = { gems = 500, tool = "meadow_surface_10_bomb", toolName = "Clayfuse" } },
-	{ id = "rune5",      stat = "runes",    goal = 5,       text = "Summon 5 runes",               tip = "Socket runes on tools, pets, and gear. They keep through rebirth.", reward = { pack = "slate_pack" } },
+	-- The rune and trait rungs teach enchants since runes and traits were
+	-- retired (owner, 2026-10-12: "Teach enchants"). Same places, same rewards.
+	{ id = "ench1",      stat = "enchants", goal = 1,       text = "Enchant a tool",               tip = "Forge → UPGRADES → ENCHANT. Books drop from chests and lucky blocks.", reward = { pack = "slate_pack" } },
 	--[[
-		SKINS AND TRAITS, THE TWO LEAST-TAUGHT SYSTEMS IN THE GAME.
+		SKINS AND ENCHANTS, ON A TOOL.
 
 		Skins (temperaments) are fitted PER FAMILY and were invisible on the
-		ladder; traits are rolled per forged tool and were mentioned exactly
-		zero times across 62 rungs. Both sit after rune5 on purpose -- a
-		player who has socketed a rune already understands "a thing that goes
-		on a tool", so these read as more of a known idea rather than a new
-		one.
+		ladder. Both rungs sit after ench1 on purpose -- a player who has put
+		a book on a tool already understands "a thing that goes on a tool",
+		so a skin and a merged book read as more of a known idea.
 	]]
 	{ id = "skin1",      stat = "skins",    goal = 1,       text = "Fit a skin to a tool family",  tip = "Skins are per FAMILY, not per tool -- fit one and every pickaxe you forge wears it. Ore cases drop them.", reward = { gems = 160 } },
-	{ id = "trait1",     stat = "traits",   goal = 1,       text = "Roll a trait on a forged tool", tip = "A trait is rolled onto one tool and re-rolling replaces it. 500 gems a go.", reward = { gems = 200 } },
+	{ id = "bookmerge1", stat = "bookmerges", goal = 1,     text = "Merge 3 books into a better one", tip = "Forge → MY BOOKS: three of the same book make one a level up.", reward = { gems = 200 } },
 	{ id = "zone3",      stat = "zone",     goal = 2,       text = "Unlock two more zones",        tip = "Higher zones need Rebirth rank + gems. Check the portal plaque.", reward = { pack = "night_pack", packQty = 2 } },
 	{ id = "chestsL6",   stat = "chestsL6", goal = 10,      text = "Open 10 chests below 250m (Layer 6+)", tip = "Greyvein tools hit harder — this one is on the house.", reward = { gems = 800, tool = "sunscar_surface_2_pick", toolName = "Chiselspike" } },
-	{ id = "mine3k",     stat = "blocks",   goal = 3000,    text = "Break 3,000 blocks",           tip = "Fuse runes at 50% success — no pity. White scrolls raise cost ×5.", reward = { gems = 64 } },
+	{ id = "mine3k",     stat = "blocks",   goal = 3000,    text = "Break 3,000 blocks",           tip = "Three of the same enchant book merge into one a level up.", reward = { gems = 64 } },
 	{ id = "merge8",     stat = "merges",   goal = 8,       text = "Merge 8 times",                tip = "Merge before rebirth if you are close — cards keep.", reward = { gems = 40 } },
 	{ id = "depth200",   stat = "depth",    goal = 200,     text = "Gain 200 depth",               tip = "Depth resets each rebirth. Zones do not.", reward = { gems = 56 } },
-	{ id = "cards100",   stat = "cards",    goal = 100,     text = "Collect 100 more cards",       tip = "Pets + socketed pet runes stack into dig power.", reward = { pack = "iron_pack", packQty = 3 } },
+	{ id = "cards100",   stat = "cards",    goal = 100,     text = "Collect 100 more cards",       tip = "Your pets stack into dig power.", reward = { pack = "iron_pack", packQty = 3 } },
 	{ id = "pick5",      stat = "picktier", goal = 4,       text = "Climb 4 pickaxe tiers",        tip = "Coin ladder resets on rebirth. Don't overspend past the min bank.", reward = { gems = 72 } },
 	{ id = "rebirth1",   stat = "rebirth",  goal = 1,       text = "Rebirth once",                 tip = "Rebirth at the MINIMUM coin bank. Skills + temper tokens are the prize.", reward = { gems = 400 } },
 	-- Late mid
@@ -99,15 +99,15 @@ MineQuests.CHAIN = {
 	-- Late
 	{ id = "zone5",      stat = "zone",     goal = 4,       text = "Unlock four more zones",       tip = "Event Horizon is free while the event runs — claim via the portal.", reward = { gems = 240 } },
 	{ id = "depth1k",    stat = "depth",    goal = 1000,    text = "Gain 1,000 depth",             tip = "Charms and skins keep across rebirths — depth is what unlocks the later ones.", reward = { gems = 280 } },
-	{ id = "open120",    stat = "packs",    goal = 120,     text = "Open 120 packs",               tip = "Chest luck from skills/runes/temper stacks — dig for chests.", reward = { gems = 220 } },
+	{ id = "open120",    stat = "packs",    goal = 120,     text = "Open 120 packs",               tip = "Chest luck from skills, enchants and temper stacks — dig for chests.", reward = { gems = 220 } },
 	{ id = "sell200",    stat = "sells",    goal = 200,     text = "Sell 200 hauls",               tip = "Coins fund the next rebirth minimum. Don't idle on a full fee.", reward = { gems = 260 } },
 	{ id = "cards500",   stat = "cards",    goal = 500,     text = "Collect 500 more cards",       tip = "Collection milestones pay gems anytime — check Quests.", reward = { pack = "case_4", packQty = 4 } },
 	{ id = "rebirth5",   stat = "rebirth",  goal = 5,       text = "Rebirth 5 more times",         tip = "Skill tree roads are XOR — commit a path, then temper.", reward = { gems = 320 } },
 	{ id = "mine75k",    stat = "blocks",   goal = 75000,   text = "Break 75,000 blocks",          tip = "AFK chill pad parks you safely if you go idle.", reward = { gems = 400 } },
-	{ id = "merge150",   stat = "merges",   goal = 150,     text = "Merge 150 times",              tip = "Deep rune fuses cost exponential gems — budget for them.", reward = { gems = 360 } },
+	{ id = "merge150",   stat = "merges",   goal = 150,     text = "Merge 150 times",              tip = "Merging cards makes stronger pets.", reward = { gems = 360 } },
 	{ id = "depth2k",    stat = "depth",    goal = 2000,    text = "Gain 2,000 depth",             tip = "Push depth on your strongest zone before banking a rebirth.", reward = { gems = 480 } },
-	{ id = "gear30",     stat = "gear",     goal = 30,      text = "Own 30 more gear pieces",      tip = "Socket gear runes for set-defining stats.", reward = { gems = 340 } },
-	{ id = "rune40",     stat = "runes",    goal = 40,      text = "Own 40 more runes",            tip = "Pet/tool/gear rune kinds are separate — roll what you socket.", reward = { gems = 340 } },
+	{ id = "gear30",     stat = "gear",     goal = 30,      text = "Own 30 more gear pieces",      tip = "Matching gear sets add bonuses.", reward = { gems = 340 } },
+	{ id = "bookmerge10", stat = "bookmerges", goal = 10,   text = "Merge books 10 times",         tip = "A level V enchant is 81 level I books, merged.", reward = { gems = 340 } },
 	{ id = "rebirth10",  stat = "rebirth",  goal = 10,      text = "Rebirth 10 more times",        tip = "Past late zones, income leans on prestige yield — bank the minimum.", reward = { gems = 600 } },
 	{ id = "mine200k",   stat = "blocks",   goal = 200000,  text = "Break 200,000 blocks",         tip = "Keep temper tokens for forever-tool rerolls when kits look weak.", reward = { gems = 800 } },
 	{ id = "cards1k",    stat = "cards",    goal = 1000,    text = "Collect 1,000 more cards",     tip = "Shinies and variants are permanent power.", reward = { pack = "case_4", packQty = 6 } },
@@ -127,10 +127,10 @@ MineQuests.COUNT = #MineQuests.CHAIN
 ]]
 MineQuests.CHAIN_V1 = {
 	"mine25", "sell1", "pick2", "mine100", "depth20", "mine250", "open3", "cards10", "sell5", "zone2",
-	"mine1k", "depth80", "merge1", "open10", "cards50", "sell25", "gear3", "rune5", "zone3", "mine3k",
+	"mine1k", "depth80", "merge1", "open10", "cards50", "sell25", "gear3", "ench1", "zone3", "mine3k",
 	"merge8", "depth200", "cards100", "pick5", "rebirth1", "mine10k", "sell80", "open40", "merge25", "zone4",
 	"depth500", "gear12", "cards250", "rebirth3", "mine25k", "merge60", "zone5", "depth1k", "open120", "sell200",
-	"cards500", "rebirth5", "mine75k", "merge150", "depth2k", "gear30", "rune40", "rebirth10", "mine200k", "cards1k",
+	"cards500", "rebirth5", "mine75k", "merge150", "depth2k", "gear30", "bookmerge10", "rebirth10", "mine200k", "cards1k",
 	"zone6", "merge400", "rebirth20", "mine500k",
 }
 
@@ -151,10 +151,10 @@ MineQuests.CHAIN_V1 = {
 MineQuests.CHAIN_V2 = {
 	"mine25", "sell1", "pick2", "mine100", "chests3", "depth20", "chestsL2", "mine250", "open3", "chestsL3",
 	"cards10", "sell5", "chests10", "zone2", "chestsL4", "mine1k", "depth80", "merge1", "open10", "chestsL5",
-	"cards50", "sell25", "gear3", "chests25", "rune5", "zone3", "chestsL6", "mine3k", "merge8", "depth200",
+	"cards50", "sell25", "gear3", "chests25", "ench1", "zone3", "chestsL6", "mine3k", "merge8", "depth200",
 	"cards100", "pick5", "rebirth1", "mine10k", "sell80", "open40", "merge25", "zone4", "depth500", "gear12",
 	"cards250", "rebirth3", "mine25k", "merge60", "zone5", "depth1k", "open120", "sell200", "cards500", "rebirth5",
-	"mine75k", "merge150", "depth2k", "gear30", "rune40", "rebirth10", "mine200k", "cards1k", "zone6", "merge400",
+	"mine75k", "merge150", "depth2k", "gear30", "bookmerge10", "rebirth10", "mine200k", "cards1k", "zone6", "merge400",
 	"rebirth20", "mine500k",
 }
 
@@ -304,7 +304,7 @@ end
 	  A) ~10 min   — dig work
 	  B) ~25-30 min — one rebirth
 	  C) ~45 min   — chest farm or pack opens
-	Gear / rune opens never count toward the packs tier (server-side).
+	Gear opens never count toward the packs tier (server-side).
 ]]
 MineQuests.DAILY_TIERS = {
 	{
@@ -400,7 +400,7 @@ MineQuests.CONTRACT_POOL = {
 	{ id = "c_depth_s",   stat = "depth",  goal = 50,   text = "Gain 50 depth",           gems = 55 },
 	{ id = "c_depth_m",   stat = "depth",  goal = 150,  text = "Gain 150 depth",          gems = 105 },
 	{ id = "c_gear_s",    stat = "gear",   goal = 2,    text = "Summon 2 gear",           gems = 65 },
-	{ id = "c_rune_s",    stat = "runes",  goal = 3,    text = "Summon 3 runes",          gems = 65 },
+	{ id = "c_ench_s",    stat = "enchants", goal = 2,  text = "Fill 2 enchant slots",    gems = 65 },
 }
 MineQuests.CONTRACT_COUNT = 3
 MineQuests.CONTRACT_ZONE_SCALE = 0.55

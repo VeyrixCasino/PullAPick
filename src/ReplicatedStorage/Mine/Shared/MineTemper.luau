@@ -331,7 +331,7 @@ function MineTemper.describe(kitOrId, rarity)
 	return lines
 end
 
--- Apply onto a live boosts table. Caps are the caller's job (Runes.clampBoosts).
+-- Apply onto a live boosts table. Caps are the caller's job (MineCards.clampBoosts).
 function MineTemper.applyTemper(boosts, foreverTool)
 	if not (boosts and foreverTool) then
 		return boosts

@@ -79,8 +79,10 @@ MineGroupWheel.SEGMENTS = {
 		reward = { gems = 5000 } },
 	{ id = "gear_vault", label = "GEAR CASE", sub = "x1", color = Color3.fromRGB(255, 180, 60), weight = 6,
 		reward = { packs = { { id = "gear_vault_pack", qty = 1 } } } },
-	{ id = "heavy_runes", label = "RUNE CASE", sub = "x1", color = Color3.fromRGB(180, 100, 255), weight = 6,
-		reward = { packs = { { id = "rune_heavy_pack", qty = 1 } } } },
+	-- id "heavy_runes" is kept (identity); the prize is now 3 Lucky Books (owner,
+	-- 2026-10-12: "3 lucky enchanted books"): a book bundle at an S chest's levels.
+	{ id = "heavy_runes", label = "3 LUCKY BOOKS", sub = "Enchant books", color = Color3.fromRGB(180, 100, 255), weight = 6,
+		reward = { books = { n = 3, rank = "S" } } },
 	--[[
 		The pack slices pay WILD PACK CASES (MineCases "case_<n>": 3-5 random
 		packs of one star grade from any set). Owner, 2026-10-10: the slices

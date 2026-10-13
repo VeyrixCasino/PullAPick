@@ -1,42 +1,13 @@
 local Launch = require(script.Parent:WaitForChild("MineLaunch"))
--- MineScrolls: white / black / omni consumables bought with credits.
+-- MineScrolls: the credit packs, the battle pass and its track, the daily.
+-- The white / black / omni scrolls it was named for were rune tools, retired
+-- with runes on 2026-10-12; ITEMS stays (empty) so old readers find nothing.
 -- Credits track ~1 Robux = 1 credit at face value (passes & limiteds cost the
 -- same number either way). Bigger packs add bonus credits — that is the deal,
 -- so buying a Vault/Crate then spending credits undercuts paying Robux direct.
 local MineScrolls = {}
 
-MineScrolls.ITEMS = {
-	white = {
-		id = "white",
-		name = "White Scroll",
-		blurb = "Arm a rune before fuse. On fail, both runes survive. That rune's future fuses cost 5x gems.",
-		price = 50,
-		bundleQty = 5,
-		bundlePrice = 200,
-	},
-	black = {
-		id = "black",
-		name = "Black Scroll",
-		blurb = "Unequip a socketed tool rune back to inventory at 100% next fuse/socket chance.",
-		price = 50,
-		bundleQty = 5,
-		bundlePrice = 200,
-	},
-	omni = {
-		id = "omni",
-		name = "Omniscroll",
-		blurb = "Unlock a second loadout socket on one tool family. Unequip later to remove the slot.",
-		price = 150,
-	},
-	runesmith = {
-		id = "runesmith",
-		name = "Runesmith Package",
-		blurb = "Rotating bundle: White + Black + Omniscroll.",
-		price = 500,
-		grants = { white = 1, black = 1, omni = 1 },
-		rotating = true,
-	},
-}
+MineScrolls.ITEMS = {}
 
 -- Live developer products. The ids and Robux prices are the real ones from the
 -- Creator Dashboard; `credits` is what we grant. ProcessReceipt matches on
@@ -116,7 +87,7 @@ MineScrolls.BATTLE_PASS = {
 }
 
 function MineScrolls.emptyBag()
-	return { white = 0, black = 0, omni = 0 }
+	return {}
 end
 
 function MineScrolls.packById(id)
@@ -171,10 +142,6 @@ local function mergeReward(a, b)
 			for i, row in ipairs(out.luckyBlocks) do copy[i] = row end
 			for _, row in ipairs(v) do table.insert(copy, row) end
 			out.luckyBlocks = copy
-		elseif k == "scrolls" and out.scrolls then
-			local s = shallowClone(out.scrolls)
-			for id, qty in pairs(v) do s[id] = (s[id] or 0) + qty end
-			out.scrolls = s
 		elseif type(v) == "number" and type(out[k]) == "number" then
 			out[k] = out[k] + v
 		else
@@ -236,9 +203,11 @@ local function buildPassTrack()
 			elseif tier <= 60 then prem = lb("super_lucky_block", (tier % 2 == 0) and "A" or "B")
 			else prem = lb("super_lucky_block", "A") end
 
-			if tier == 25 then prem = mergeReward(prem, { scrolls = { white = 1 } })
-			elseif tier == 55 then prem = mergeReward(prem, { scrolls = { black = 1 } })
-			elseif tier == 88 then prem = mergeReward(prem, { scrolls = { omni = 1 } }) end
+			-- Enchant books where the scrolls were (owner, 2026-10-12; the whole
+			-- pass is due a rework). `books` = how many, granted as one bundle.
+			if tier == 25 then prem = mergeReward(prem, { books = 3 })
+			elseif tier == 55 then prem = mergeReward(prem, { books = 4 })
+			elseif tier == 88 then prem = mergeReward(prem, { books = 5 }) end
 			if tier % 7 == 0 then prem = mergeReward(prem, { gems = 400 + tier * 8 }) end
 			if tier % 9 == 0 then prem = mergeReward(prem, { dust = 100 + tier * 2 }) end
 		end
@@ -268,14 +237,7 @@ local function buildPassTrack()
 			if r.credits then return "credits" end
 			if r.gems then return "gems" end
 			if r.dust then return "stardust" end
-			if r.scrolls then
-				if r.scrolls.omni then return "omni" end
-				if r.scrolls.black then return "black" end
-				if r.scrolls.white then return "white" end
-				for sid in pairs(r.scrolls) do
-					return sid
-				end
-			end
+			if r.books then return "books" end
 			return "gift"
 		end
 		if free then
@@ -433,13 +395,7 @@ function MineScrolls.describeReward(reward)
 	if reward.credits then parts[#parts + 1] = reward.credits .. " Credits" end
 	if reward.gems then parts[#parts + 1] = reward.gems .. " Gems" end
 	if reward.dust then parts[#parts + 1] = reward.dust .. " Stardust" end
-	if type(reward.scrolls) == "table" then
-		for id, qty in pairs(reward.scrolls) do
-			local item = MineScrolls.itemById(id)
-			local nm = (item and item.name) or id
-			parts[#parts + 1] = (qty > 1) and (nm .. " x" .. qty) or nm
-		end
-	end
+	if reward.books then parts[#parts + 1] = reward.books .. " Enchant Books" end
 	if #parts == 0 then return "--" end
 	return table.concat(parts, "  +  ")
 end

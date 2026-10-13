@@ -2,7 +2,7 @@
 title: Chests and lucky blocks
 type: system
 status: current
-verified: 2026-10-10 @ 4ac7320
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineZoneChests.luau
   - src/ReplicatedStorage/Mine/Shared/Mine1ChestsData.luau
@@ -151,7 +151,8 @@ is injected from `S_QUEUE`.
     pets, skins and charms"*. A better block or grade pays a better case; there
     is no % luck boost.
   - **Gone:** zone packs, the dead shop pickaxes, scrolls and the direct pet
-    roll (and with it the lucky-block pet mint).
+    roll (and with it the lucky-block pet mint). Scrolls then left the game
+    entirely on 2026-10-12, with runes ([traits](traits.md)).
   - **The four kinds** are in `KIND_TABLES`, by block and grade band:
     - **mystery**: a wild pack case (`MYSTERY_CASE`). One spin, then 3 of the
       set pack it lands on ([pack-cases](pack-cases.md)). This is where pets

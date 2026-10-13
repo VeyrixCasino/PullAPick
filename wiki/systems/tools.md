@@ -2,7 +2,7 @@
 title: Tools
 type: system
 status: current
-verified: 2026-10-10 @ 6c08171
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
@@ -20,7 +20,7 @@ sources:
   - docs/TODO.md §0.13
   - docs/TODO.md §0.15
   - docs/PR-BALANCE-PASS.md
-related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, traits, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads]
+related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, enchants, traits, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads]
 ---
 
 # Tools
@@ -38,8 +38,10 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 1. **Event Horizon tool** (zone `bigbang`): `MineHorizonTools`, one per dirt
    section, paid in space coins.
 2. **Forged ore tool**: `p.oreToolEquipped` (a uid) → a `p.oreTools` row
-   `{uid, typeId, familyId, tier, level, trait?}`. `tier` is the **ore's index**
-   in `MineConfig.ORES`. Rack cap 200.
+   `{uid, typeId, familyId, tier, level, enchants?}`. `tier` is the **ore's index**
+   in `MineConfig.ORES`. Rack cap 200. `enchants` holds the tool's Damage /
+   Utility / Special books ([enchants](enchants.md)). Rows carried a `trait`
+   until 2026-10-12; load clears it now ([traits](traits.md)).
 3. **Chest flagship / "forever tool"** (shop "Secrets" tab): `p.chestTool` in
    `MineTools.CHEST_TOOLS`, `MineBandTools` (80) or `MineTools.PASS_TOOLS` (3).
 4. **Zone shop tool**: `p.shopToolId`, `MineShopLadders` (19 per zone, 190).
@@ -57,7 +59,9 @@ Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
 weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`.
 
 **Forged tools** ("a forged tool IS its ore", TODO §0.15). Name `{Ore} {Noun}`
-plus a trait prefix (`MineOreTools.name` → `MineTraits.decorate`). The frame is
+(`MineOreTools.name`). Until 2026-10-12 a trait prefix went in front, from the
+now-deleted `MineTraits.decorate`; `name` keeps an ignored `_trait` argument so
+old callers still work. The frame is
 never picked: `MineOreTools.frameForTier` maps ore tier 1..82 proportionally
 onto the family's priced rungs (24 / 16 / 16). `typeMult` = the frame's
 `RARITY_RANK` (stamped by `MineTools.rarityForTier`). Craft, level and scrap at
@@ -208,7 +212,8 @@ made of the ore (`oreLook`), and checked in Studio: all 82 of each build with no
 errors, at 39–59 and 45–68 parts.
 - **Sledge:** swelled throat, ferrules, an 8-turn wound grip and a three-piece
   pommel. The head has bevelled edges, face plates with bosses, bands, cheek
-  panels with a rune slot and rivets, a collar and a wedge.
+  panels with a rune slot (a glowing decorative part, not a socket) and rivets,
+  a collar and a wedge.
   - Stone-age ores (rock, not metal) are rope-lashed and chipped instead.
   - From t 0.35 it gains langets, from 0.62 shards of its ore, from 0.85 crown
     fins and a pommel gem.

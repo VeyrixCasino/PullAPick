@@ -39,7 +39,7 @@ related: [README, overview, owner, SCHEMA, log]
 - [boosts-and-stats](systems/boosts-and-stats.md): stat keys, the two boost layers, luck, caps, potions
 - [charms](systems/charms.md): ore charms, shapes, merging, legacy charms
 - [skins-cases-and-temper](systems/skins-cases-and-temper.md): F…SSS tempers, ore cases, grade reveal
-- [traits](systems/traits.md): the tool prefix, the Enchanter, and the runes it replaces
+- [traits](systems/traits.md): tool traits and runes, retired 2026-10-12, and what replaced each payout
 - [pets](systems/pets.md): three seats, boost path, pet traits, Event Horizon pets
 - [hats-and-faces](systems/hats-and-faces.md): gear (3 hats + a face), grades, sets, hat crates
 - [rebirth-and-skill-tree](systems/rebirth-and-skill-tree.md): rebirth (= prestige), what persists, the 75-node tree

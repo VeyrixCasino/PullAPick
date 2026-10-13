@@ -574,12 +574,13 @@ function M.bundlePrice(zoneIndex)
 	return math.floor(M.SHOP_BUNDLE_PRICE * M.SHOP_BUNDLE_STEP ^ (z - 1) + 0.5)
 end
 
--- n books by rarity weight; a rank can lift their levels.
-function M.rollBundle(n, rng, rank)
+-- n books by rarity weight; a rank can lift their levels; slotFilter
+-- ({ damage = true }) keeps them to slots (the tutorial's, which level 1 can use).
+function M.rollBundle(n, rng, rank, slotFilter)
 	rng = rng or Random.new()
 	local out = {}
 	for _ = 1, math.clamp(math.floor(tonumber(n) or 1), 1, 10) do
-		table.insert(out, { id = M.rollBookId(rng), level = liftLevel(rank, rng) })
+		table.insert(out, { id = M.rollBookId(rng, slotFilter), level = liftLevel(rank, rng) })
 	end
 	return out
 end

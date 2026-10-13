@@ -2,7 +2,7 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-07 @ 41d8f3a
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
@@ -10,6 +10,7 @@ sources:
   - docs/START-HERE.md §1, §4.5, §4.6
   - docs/HANDOFF.md §2.4
   - docs/OPEN.md
+  - tools/verify/runes-retired.js
 related: [luau-traps, tools-and-generators, local-setup]
 ---
 
@@ -79,7 +80,7 @@ generation ceiling plus per-server randomness, 2026-10-07).
 ## Every check
 
 **L** marks the 14 checks that execute the `luau` binary. Without the binary they
-DID NOT RUN. The docs say "11 of 23", which is stale: there are 36 checks now (`oreskins` arrived in `9733a05`, `heldtool` in `b19c4c2`).
+DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b19c4c2` (`oreskins` arrived in `9733a05`, `heldtool` in `b19c4c2`). **This table is not complete:** at `4e4fbb3` `tools/verify/` holds 67 `.js` files (helpers included), and many newer checks (for example `enchants`, `forge-hub`) are not listed here yet. The counts in this paragraph were not rechecked on 2026-10-12.
 
 | check | asserts |
 |---|---|
@@ -115,7 +116,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 36 checks now (`
 | `skilltree` | every stat the tree grants is applied by the server |
 | `statkeys` | renamed stat keys (`oreYield`) still read in old saves |
 | `stats` **L** | `MineStats.STATS`, `STAT_ORDER`, `emptyBoosts` and `ADDITIVE_STATS` agree |
-| `traits` **L** | the trait rules: prefix, odds tied to MineTemper's skins table, Exotic 1/1000 |
+| `runes-retired` | runes, scrolls, sockets and tool traits stay retired (2026-10-12): the five modules are deleted and nothing requires them; no rune, scroll or trait verb; `boosts()` pays none; old saves drop the fields; the pass, Founders pack and wheel pay books where they paid scrolls and runes; the tutorial and quests teach enchants; the Enchanter keeps Summon / Temper / Salvage / Dust; runes are not a trade kind; the rune cases are gone. Replaces the deleted `traits` **L** check (`tools/verify/traits.js`), which pinned the trait rules. |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |
 | `veins` **L** | the vein lattice keeps per-block ore density unchanged, the size distribution matches the owner's spec, and the field is re-rolled per server |

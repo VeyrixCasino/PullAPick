@@ -2,7 +2,7 @@
 title: Save data and migrations
 type: code
 status: current
-verified: 2026-10-05 @ b19c4c2
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
@@ -14,6 +14,7 @@ sources:
   - docs/TODO.md §9
   - tools/verify/statkeys.js
   - tools/verify/orepacks.js
+  - tools/verify/runes-retired.js
 related: [server, luau-traps, ores, ore-pouch-and-backpack, tools, traits, retired-and-parked]
 ---
 
@@ -72,7 +73,8 @@ related: [server, luau-traps, ores, ore-pouch-and-backpack, tools, traits, retir
 - **Depth:** `deepest[zone]` (keys normalised to strings), `seams`, `zoneId`,
   `maxUnlockedZone`, `prestige`
 - **Collections:** `packs` (each `{packId, packName, setId}`), `cards`, `charms`,
-  `tempers`, `gear`, `runes`, `relics`, `chestTools`, `vfx`, `potions`, `scrolls`
+  `tempers`, `gear`, `relics`, `chestTools`, `vfx`, `potions`, `enchantBooks`.
+  `runes` and `scrolls` were collections too, until 2026-10-12 (see below).
 - **Progression:** `skillPresets`, `skillSlot`, `stats` (counters), `quest`,
   `dailyQuests`, `intro`, `pass`, `daily`
 - **Daily wheel:** `groupWheel = { day, used, paid, last }`. `day` is the UTC
@@ -92,8 +94,9 @@ A roster change needs an id→id map that keeps the old ids as aliases (TODO §9
 | Event Horizon renames | none (alias maps) | renames pet cards via `PetRoster.NAME_ALIASES`, and remaps event tool ids |
 | **Named-pet stack keys** (2026-10-10) | none (idempotent) | sets every named pet card's `cardKey` to `MinePetRoster.cardKeyOf(name)`, so copies from lucky blocks, the wheel, devGrant and packs stack and merge. Skips generated cards (`"set#007"`). Runs after the Event Horizon renames. |
 | Gear seats | none | moves `equippedGear.gloves` to `face`. The hat seats come from `Gear.HAT_SLOTS`, so `hat2` survives a rejoin. |
-| Runes and gear | none (runs every load) | `Runes.normalize` and `Gear.normalize`: labels tiers, converts word grades to letters, and **canonicalises stat keys** (below) |
-| Dropped fields | none | sets `fusePity`, `toolMastery` and `petHats` to nil. Ranged sockets fold into the pickaxe. |
+| Gear | none (runs every load) | `Gear.normalize`: labels tiers, converts word grades to letters, and **canonicalises stat keys** (below). Until 2026-10-12 `Runes.normalize` did the same for runes. |
+| **Runes, scrolls, sockets and tool traits retired** (2026-10-12) | none (runs every load) | sets `p.runes`, `p.toolSockets`, `p.petSockets`, `p.shopToolRunes` and `p.scrolls` to nil; clears every ore tool's `trait` and every chest tool's `runeId`; empties each gear piece's `sockets`. **No refund**: owner, 2026-10-12, *"no one has played.. ur good"*. See [traits](../systems/traits.md). |
+| Dropped fields | none | sets `fusePity`, `toolMastery` and `petHats` to nil. The old `ranged` tool family folds into the pickaxe. |
 | Intro and quest ladders | `introVer` 2→4, `questVer` 2 | moves saved step numbers onto the new ladders (`Quests.remapV1`) |
 | Backpack ladder | `backpackCoinV2`, `backpackCatalogV3` | the old 6-rung gem ladder becomes the 30-rung coin ladder, matched by capacity |
 | **Ore roster v1** | `oreRosterV < 1` (was `~= 1`, which re-ran it on every load; fixed in `b19c4c2`) → stamps 1 | `MineConfig.ORE_MIGRATION`: 33 retired ids. Sums `p.ores` and renames packs. |
@@ -109,16 +112,18 @@ legacy single temper moving into slot 1 when a temper is rolled.
 
 ## "A stat key is DATA"
 
-Stat names such as `blastChance` are **stored** on saved runes (`rune.stat`) and
-gear (`piece.stat` and each `piece.stats[]`). Renaming one in code without a
-migration silently zeroes what players rolled (START-HERE §4.4, HANDOFF §2.3 #4).
+Stat names such as `blastChance` are **stored** on saved gear (`piece.stat` and
+each `piece.stats[]`). Until 2026-10-12 they were stored on saved runes
+(`rune.stat`) too. Renaming one in code without a migration silently zeroes what
+players rolled (START-HERE §4.4, HANDOFF §2.3 #4).
 
 - `oreYield` → `blastChance` (2026-10-04): `MineStats.LEGACY_STAT` and
-  `MineStats.canonStat` map the old key on load, via `Runes.normalize` and
-  `MineGear.canonStat`. `tools/verify/statkeys.js` guards it.
+  `MineStats.canonStat` map the old key on load, via `MineGear.canonStat`.
+  `tools/verify/statkeys.js` guards it. (The `MineStats` comment still says
+  runes are migrated this way; runes no longer exist.)
 - `fossilFind` keeps its name even though fossils are gone, for exactly this reason.
-- Set runes take their stats from `MineRunes.SETS` and **bypass** `NO_ROLL_STATS`.
-  Retiring a stat means editing that table by hand as well (HANDOFF §2.3 #5).
+- HANDOFF §2.3 #5 warns that set runes (`MineRunes.SETS`) bypassed
+  `NO_ROLL_STATS`. That trap went with `MineRunes` on 2026-10-12.
 
 ## How to add a migration
 

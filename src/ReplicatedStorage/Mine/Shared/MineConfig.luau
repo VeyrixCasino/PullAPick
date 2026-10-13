@@ -895,7 +895,7 @@ MineConfig.ITEM_SLOT_GEM_RATE = 1.08
 -- through three files. Gear, charms and potions are deliberately NOT here:
 -- they are equipment slots, not shelf stock.
 MineConfig.ITEM_BAG_FIELDS = {
-	"cards", "packs", "runes", "tempers",
+	"cards", "packs", "tempers",
 	"chestTools", "eventTools",
 }
 
@@ -907,7 +907,7 @@ function MineConfig.itemSlotsUsed(p)
 	for _, field in ipairs(MineConfig.ITEM_BAG_FIELDS) do
 		local t = p[field]
 		if type(t) == "table" then
-			-- Three shapes in play: arrays (cards, packs, runes, chestTools),
+			-- Three shapes in play: arrays (cards, packs, chestTools),
 			-- id-keyed maps (eventTools) and maps whose value
 			-- carries a copy count (tempers). Length first, then entries.
 			local n = #t

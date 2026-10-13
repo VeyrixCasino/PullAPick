@@ -2,7 +2,7 @@
 title: Trading
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ServerScriptService/Mine/TradeService.luau
   - src/ReplicatedStorage/Mine/Shared/MineTradeValue.luau
@@ -34,9 +34,12 @@ The flow is written out in the header of `TradeService`:
    - **cards**, by registry serial;
    - **packs**, by `uid`. Any `p.packs` row has one, so ore cases and lucky blocks
      can be traded too;
-   - **runes**, **gear** and **potions**;
+   - **gear** and **potions**;
    - and currency: **gems**, **stardust** (`dust`) and **temper tokens**
      (`temperTokens`).
+
+   Runes were a fifth kind until 2026-10-12, when they left the game. `KINDS`
+   in `TradeService` is now cards, packs, gear, potions (see [traits](traits.md)).
 3. **Talk.** Players can mark the other side's items WANT or NO, and put a number
    on the gems, stardust or tokens they want. These are talk only and never change
    the deal.
@@ -47,8 +50,7 @@ The flow is written out in the header of `TradeService`:
    fails, the moves that succeeded are undone. Both players are then saved.
 
 **What can't be offered.** The `setOffer` and `gather` checks refuse:
-- socketed runes (`runeBusy`);
-- worn gear;
+- worn gear (`gearWorn`);
 - cards without a registry serial;
 - anything from an ephemeral profile (one whose save failed to load).
 
@@ -63,22 +65,23 @@ is not allowed in their region (`Verbs.fetchPolicy`).
 
 **What gets stripped from a traded item:**
 - **Pets.** A traded pet leaves the giver's `p.equipped` (`escrow`).
-- **Pet runes.** A pet's rune socket lives in the *giver's* `p.petSockets[cardId]`,
-  which TradeService never touches. The rune stays behind with the giver, still
-  pointing at a card they no longer own.
-- **Gear runes.** A gear piece's `sockets` travel with it, but they hold rune ids
-  from the giver's `p.runes`.
 
-Both rune points are static reads and have not been tested in engine.
+Until 2026-10-12 a pet's rune stayed behind in the giver's `p.petSockets`, and a
+gear piece's `sockets` travelled holding rune ids from the giver's `p.runes`.
+Both are gone now. Load sets `p.runes` and `p.petSockets` to nil and empties
+every gear piece's `sockets` (MineServer `load()`). Old gear keeps an empty
+`sockets` table that nothing reads.
 
 **Pricing.** `MineTradeValue` puts a stardust-equivalent price on everything. The
 trade windows show it, and the coinflip announcement uses it (`lootValue`). It
 never blocks a trade.
 - **Rates:** `GEM_TO_DUST` 2, `COIN_TO_DUST` 0.002.
 - **Cards:** `MinePackConfig.recycleValue`, then ×(1 + 0.35 × (powerLevel − 1)).
-- **Packs:** rune pack 55 and gear pack 70 (`PACK_DUST`). Any other pack is its
-  credit price × 2 × 0.6.
-- **Runes, by tier:** 25 / 100 / 400 / 1600 / 6400 (`RUNE_TIER_DUST`).
+- **Packs:** gear pack 70 (`PACK_DUST`). Any other pack is its credit price ×
+  2 × 0.6. `PACK_DUST` still lists `rune_pack` 55, but that case is gone.
+- **Rune leftovers.** `RUNE_DUST` stays because `tierOf` uses it to recognise a
+  rarity name. `runeValue` and `RUNE_TIER_DUST` stay too, but nothing can offer a
+  rune now. `total` still loops over an `offer.runes` that is always empty.
 - **Gear, by grade:** F → SSS is mapped onto Common → Exotic, then priced 12 → 3600
   (`GEAR_DUST`, `GRADE_TO_NAME`).
 
@@ -91,9 +94,9 @@ just returns a toast.
 | file | role | key symbols |
 |---|---|---|
 | `src/ServerScriptService/Mine/TradeService.luau` | sessions, offers, escrow, commit | `invite`, `setOffer`, `confirm`, `commit`, `COINFLIP_ENABLED`, `MAX_ITEMS` |
-| `src/ReplicatedStorage/Mine/Shared/MineTradeValue.luau` | stardust-equivalent prices | `cardValue`, `packValue`, `runeValue`, `gearValue`, `total` |
+| `src/ReplicatedStorage/Mine/Shared/MineTradeValue.luau` | stardust-equivalent prices | `cardValue`, `packValue`, `gearValue`, `total` (`runeValue` is unused) |
 | `src/ReplicatedStorage/Mine/Shared/MineTradeView.luau` | the trade window, mounted in MineClient as `ClientFns.tradeCtl` | `mount` |
-| MineServer | action router (`tradeAsk` … `tradeConfirm`), serial registry, policy | `transferSerial`, `isCardSerial`, `runeBusy`, `Verbs.fetchPolicy` |
+| MineServer | action router (`tradeAsk` … `tradeConfirm`), serial registry, policy | `transferSerial`, `isCardSerial`, `Verbs.fetchPolicy` |
 
 There is a second, broken entry point. `MineProfileView` has a trade button, but
 nothing mounts that view ([social-quests-and-leaderboards](social-quests-and-leaderboards.md)).
@@ -111,18 +114,21 @@ nothing mounts that view ([social-quests-and-leaderboards](social-quests-and-lea
 **Where the code stands against those rules:**
 - **Ore tools are not tradeable**, so the 500× ore-tool route that §3 worries
   about is closed today.
-- **Pets, runes and gear still move.** Their prices are flat rarity ladders that
+- **Pets and gear still move.** Their prices are flat rarity ladders that
   are not tied to their stats.
 - **One part of PRINCIPLES is stale.** §8's "pet slots (3→8)" no longer holds;
   everyone has 3 (`MineConfig.effectivePetSlots`).
 
 ## Decided by the owner
 - **Fossils are gone.** The fossils trade tab went with them (TODO §0.12, `ba345b7`).
-- **Runes and gear are being replaced by traits** (TODO §0.17). Runes and gear are still tradeable until stage 3 retires them.
+- **Runes are retired.** Owner, 2026-10-11: *"RETIRE RUNES AND TRAITS.. ENCHNATS
+  TAKE OVERTHAT FEILD"*. The rune trade kind went on 2026-10-12. Gear stays in
+  the game and stays tradeable (see [hats-and-faces](hats-and-faces.md)).
 - **Coinflip-off and the 16-item cap** are code choices. No owner decision on them was found.
 
 ## State right now
-- **Shipped.** TradeService is unchanged since the import, apart from removing the fossils tab.
+- **Shipped.** TradeService is unchanged since the import, apart from removing
+  the fossils tab and, on 2026-10-12, the runes tab (`MineTradeView` too).
 - **On the ARCHIVE list.** AUDIT §5 says: *"Trading (~1,900 lines) — a trading
   economy before there is an economy."* That is a proposal; the owner's yes to the
   cut list is not recorded, and trading is still wired.
@@ -132,15 +138,14 @@ nothing mounts that view ([social-quests-and-leaderboards](social-quests-and-lea
   `tradeConfirm`, so grepping `TradeService.setOffer` alone misses the router
   (START-HERE §5).
 - **Escrow takes items, not equips.** It removes rows and does not unequip
-  anything except pets. See the rune notes above.
+  anything except pets.
 - **Card serials are permanent.** A card's serial is never regenerated on trade.
   The `mint` comment says the serial is "PPP + 16-hex".
 
 ## Open questions
 - Should trading ship at launch, or be archived (AUDIT §5)?
 - If it ships, should price bind to power (PRINCIPLES §3), or should power-bearing items be untradeable?
-- Should runes and gear stay tradeable while they are being retired?
-- Should pet and gear runes be detached and returned on trade?
+- Should gear stay tradeable? (The rune half of this closed on 2026-10-12.)
 
 ## See also
-[cards-and-packs](cards-and-packs.md) · [currencies-and-economy](currencies-and-economy.md) · [traits](traits.md) (runes) · [hats-and-faces](hats-and-faces.md) (gear) · [pets](pets.md) · [forge-and-recycling](forge-and-recycling.md) · [save-data-and-migrations](../code/save-data-and-migrations.md)
+[cards-and-packs](cards-and-packs.md) · [currencies-and-economy](currencies-and-economy.md) · [traits](traits.md) (retired runes) · [hats-and-faces](hats-and-faces.md) (gear) · [pets](pets.md) · [forge-and-recycling](forge-and-recycling.md) · [save-data-and-migrations](../code/save-data-and-migrations.md)

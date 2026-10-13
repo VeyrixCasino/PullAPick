@@ -51,7 +51,7 @@ check(/Craftable first, best first/.test(hub), "recipes sort craftable first, be
 check(!exists("src/ReplicatedStorage/Mine/Shared/MineForgeDemo.luau") && !exists("src/StarterPlayer/StarterPlayerScripts/MineForgeDemo.client.luau"),
   "the two demo Forges are gone (the owner picked A)");
 // The Blacksmith counter (owner, 2026-10-12: "the Blacksmith counter should open the Forge hub").
-check(/if name == "shop" and tab == nil then[\s\S]{0,200}hubOpen:Fire\("counter"\)/.test(client),
+check(/if \(name == "shop" and tab == nil\) or name == "forge" then[\s\S]{0,300}hubOpen:Fire\(\(name == "forge" and tab == "enchant"\) and "enchant" or "counter"\)/.test(client),
   "every plain \"shop\" (the counters, the Blacksmith buttons) opens the Forge hub");
 check(/if \(tab == "pickaxe" or tab == "backpack"\) and shopCtl\.setTab then/.test(client) && /opts\.onShop\("backpack"\)/.test(hub) && /opts\.onShop\("pickaxe"\)/.test(hub)
   && /ev:Fire\("shop", tab\)/.test(hubClient) && /openPanelEv\.Name = "OpenPanel"/.test(client),

@@ -1,5 +1,6 @@
 --[[
-	MineLootPacks -- what comes out of a rune or gear pack.
+	MineLootPacks -- what comes out of a gear pack. (Rune packs were retired
+	with runes on 2026-10-12; the notes below on rune tiers are history.)
 
 	The pack rows in Mine1PacksData carry `kind` and an `odds` table over the
 	same eight-name rarity ladder the card packs use. This module is the roller
@@ -24,7 +25,6 @@ local MineLootPacks = {}
 
 local Gear = require(script.Parent:WaitForChild("MineGear"))
 local ToolGrades = require(script.Parent:WaitForChild("MineToolGrades"))
-local Runes = require(script.Parent:WaitForChild("MineRunes"))
 local Stats = require(script.Parent:WaitForChild("MineStats"))
 
 MineLootPacks.LADDER = {
@@ -39,7 +39,7 @@ end
 function MineLootPacks.isLoot(kind)
 	-- "fossil" is gone with the fossil system; kept out of the list rather than
 	-- left in to match a kind nothing produces.
-	return kind == "rune" or kind == "gear"
+	return kind == "gear"
 end
 
 --[[
@@ -118,48 +118,7 @@ function MineLootPacks.gearItem(rarityId, mintId, rng, opts)
 	}
 end
 
--- ---------------------------------------------------------------- rune ----
-
---[[
-	Runes stop at tier five, so the top three rungs are unreachable and the pack
-	rows declare them as 0.00% rather than leaving them out. Clamping instead
-	would quietly turn a Divine row into another Legendary, which is the kind of
-	generosity that reads as a bug when someone counts.
-]]
-function MineLootPacks.runeItem(rarityId, mintId, rng)
-	rng = rng or Random.new()
-	local rank = MineLootPacks.RANK[rarityId] or 1
-	local tier = math.clamp(rank, 1, Runes.MAX_DROP_TIER or 5)
-	-- newRune refuses "gear" outright; gear comes from gear packs, not these.
-	local kind = "pet"
-	for _ = 1, 8 do
-		local k = Runes.rollDropKind(rng)
-		if k and k ~= "gear" then
-			kind = k
-			break
-		end
-	end
-	local rune = Runes.newRune(kind, mintId, rng)
-	rune.tier = tier
-	rune.pct = Runes.pctForTier(rune.stat, tier)
-	return {
-		kind = "rune",
-		rarityId = rarityId,
-		-- "T4 Drill Damage", not "T4": tierLabel alone is the rung, and the
-		-- reveal shows this as the item's headline.
-		name = string.format("T%d %s", tier, (Stats.STATS[rune.stat] and Stats.STATS[rune.stat].label) or rune.stat),
-		-- describe() repeats the kind, the tier and the percentage, all three of
-		-- which are already on the face. What the face cannot say is what the
-		-- rune is FOR, and "which of my things can take this" is the question
-		-- someone actually has when a rune lands. Read off the real socket
-		-- rules: a pet rune goes anywhere, the others match their family or
-		-- go into gear.
-		sub = (kind == "pet")
-			and "Fits any pet, tool or gear"
-			or ("Fits " .. ((kind == "explosive") and "an " or "a ") .. tostring(kind) .. " or gear"),
-		rune = rune,
-	}
-end
+-- Rune items were minted here until runes were retired (2026-10-12).
 
 --[[
 	A fossil loot item used to be minted here. Fossils are retired, both fossil
@@ -190,8 +149,6 @@ function MineLootPacks.roll(packDef, rng, mint)
 		if kind == "gear" then
 			-- CR process from F (lucky-block API: pass startGrade via gearItem opts).
 			item = MineLootPacks.gearItem(rarityId, mint(), rng, { startGrade = "F" })
-		elseif kind == "rune" then
-			item = MineLootPacks.runeItem(rarityId, mint(), rng)
 		end
 		if item then
 			item.packId = packDef.id

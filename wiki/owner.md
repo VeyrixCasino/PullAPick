@@ -2,7 +2,7 @@
 title: The owner — goals, decisions, and how to work with them
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/TODO.md §0, §9
   - docs/START-HERE.md §1, §6
@@ -192,7 +192,8 @@ reopen it.
 - **0.4** The roster is **82 ores, final**. Event Horizon ores may be added later.
 - **0.5–0.6** Charms drop from ore. There is one skin case per ore.
 - **0.7** Gems come from selling ore. Zones, traits (formerly runes) and the
-  pouch are the gem sinks.
+  pouch are the gem sinks. **Updated 2026-10-12:** traits and runes are retired;
+  the owner picked enchant book bundles at the Forge as the gem sink in their place.
 - **0.8–0.9** Big numbers are formatted server-side and round down. Currencies
   show 4 significant figures, floored.
 - **0.10** The wooden pick is only a tutorial pick. The tutorial hands over the
@@ -206,7 +207,11 @@ reopen it.
 - **0.16** Proc damage and proc chance are separate stats.
 - **0.17–0.18, 0.22–0.23** Runes and gear-on-pets are replaced by **traits**, a
   prefix on your tool rolled at the Enchanter. The word "enchant" is reserved
-  for a future feature.
+  for a future feature. **Overridden by the owner, 2026-10-11/12:** *"RETIRE
+  RUNES AND TRAITS.. ENCHNATS TAKE OVERTHAT FEILD"*. Runes, scrolls, sockets and
+  tool traits are gone, with no refund (*"no one has played.. ur good"*); pet
+  traits stay. Enchants are that future feature, now built
+  ([enchants](systems/enchants.md), [traits](systems/traits.md)).
 - **0.19** **Two boost layers.** Inside a layer, bonuses add. The two layers then
   multiply. See [boosts](systems/boosts-and-stats.md).
 - **0.24** Three pet seats and three hat seats. Pets stand behind you, centred.

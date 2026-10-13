@@ -2,11 +2,12 @@
 title: Ambiguous terms — words that mean more than one thing here
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/TODO.md §0
   - docs/OPEN.md
   - src/ReplicatedStorage/Mine/Shared/MineCards.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEnchants.luau
   - src/ReplicatedStorage/Mine/Shared/MineGear.luau
   - src/ReplicatedStorage/Mine/Shared/MineBreaking.luau
 related: [glossary, owner, open-questions, overview]
@@ -22,7 +23,10 @@ related: [glossary, owner, open-questions, overview]
 >
 > Add a row when you discover a new collision. Many of these exist because the
 > game was renamed several times (runes → enchantments → traits; bench →
-> Blacksmith → Forge), so old docs use the old word for the new thing.
+> Blacksmith → Forge), so old docs use the old word for the new thing. On
+> 2026-10-12 runes, scrolls, sockets and tool traits were retired, and
+> **enchants** (books in tool slots) became a new, separate system
+> ([traits](systems/traits.md), [enchants](systems/enchants.md)).
 
 ## Items and tools
 
@@ -30,7 +34,7 @@ related: [glossary, owner, open-questions, overview]
 |---|---|---|
 | **tool** | a forged ore tool (`{Ore} {Noun}`), a coin-ladder shop pick, a chest flagship tool, an Event Horizon tool, or the tutorial wooden pick | Which kind of tool? See [tools](systems/tools.md) |
 | **tier** | the ore's index (1–82), a coin-ladder rung, the cosmetic `lookTier`, a pouch rung, or the word "Tier" in the UI | Which ladder? |
-| **level** | tool level (cap 30), wooden pick level (cap 5), trait level (1–5), pet power level, or a depth layer | Level of what? |
+| **level** | tool level (cap 30), wooden pick level (cap 5), enchant level (I–V), the player level that unlocks enchant slots, pet power level, or a depth layer. (Trait levels 1–5 were retired on 2026-10-12.) | Level of what? |
 | **grade** | the temper letters F…SSS, the lucky-block grade-up climb (`MineToolGrades`), or a gear grade | Tempers, lucky blocks, or gear? |
 | **breaking power** | ore tier (1–82; the Forge UI) or strength (1–1000; the gate), and never the same thing as damage | Which scale should a player see? See [mining-and-breaking](systems/mining-and-breaking.md) |
 | **Forge / bench / Blacksmith** | the same panel under three names; older docs say bench or Blacksmith | Probably the Forge: confirm |
@@ -38,19 +42,19 @@ related: [glossary, owner, open-questions, overview]
 | **skin** | today a **temper** (a stat kit F…SSS); the plan was a cosmetic wrap | Does the owner mean power or looks? See [skins](systems/skins-cases-and-temper.md) |
 | **gear** | hats + face (current), the old six-slot armour, or Roblox catalog Gear tools (`MineAntiGear`) | Which? See [hats-and-faces](systems/hats-and-faces.md) |
 | **face** | a gear piece, an avatar face, or a block-face texture on an ore | Which? |
-| **set** | a gear set (10 stat identities), a rune set, a pet set X/Y, a card `setId`, or Event Horizon set ids | Which? |
+| **set** | a gear set (10 stat identities), a pet set X/Y, a card `setId`, or Event Horizon set ids. Old docs also mean a rune set (retired 2026-10-12). | Which? |
 
 ## Boosts, traits and building
 
 | word | it can mean | ask |
 |---|---|---|
-| **trait** | the prefix on a forged tool (rolled at the Enchanter), **or** a pet's per-print perk (`MineCards.TRAITS`, e.g. Lone Wolf) | Tool or pet? See [traits](systems/traits.md), [pets](systems/pets.md) |
-| **enchant / enchantment** | the old name of traits, the Enchanter *building*, or a **future** feature the owner has reserved the word for | What will "enchants" be? Still open |
-| **rune** | the old socketed-stat system (still live), or the thing traits replaced | Live runes or the replacement? |
+| **trait** | a pet's per-print perk (`MineCards.TRAITS`, e.g. Lone Wolf), which is live, **or** the prefix on a forged tool, which was retired on 2026-10-12 | Usually the pet perk now. If they mean tool traits, they are gone: did they mean enchants? See [pets](systems/pets.md), [traits](systems/traits.md) |
+| **enchant / enchantment** | the live **enchants** (books in a tool's Damage / Utility / Special slots, applied at the Forge, `MineEnchants`), the Enchanter *building* (which does not enchant: its tabs are Summon, Temper, Salvage, Dust), or the old name of traits in older docs | Books at the Forge, or the Enchanter building? See [enchants](systems/enchants.md) |
+| **rune** | the old socketed-stat system, retired on 2026-10-12 (enchants took its field). The id `heavy_runes` survives as the daily wheel slice that now pays 3 Lucky Books. | Runes are gone: did they mean enchants? See [traits](systems/traits.md) |
 | **boost** | layer 1, layer 2, charms (in neither layer), or potions | Which layer? See [boosts-and-stats](systems/boosts-and-stats.md) |
 | **layer** | a depth row of the mine, or one of the two **boost layers** | Mine or boosts? |
-| **slot / seat** | pet seats (3), hat seats (3), rune sockets, `SHEET.slots` (a socket count), or bag capacity | Which? |
-| **merge** | charm merge (gems), hat merge (two into one), card "MERGE 3", or rune fuse | Which? |
+| **slot / seat** | pet seats (3), hat seats (3), a tool's three enchant slots, or bag capacity. Rune sockets were retired on 2026-10-12; `MineGear.SHEET.slots` is their dead socket count. | Which? |
+| **merge** | charm merge (gems), hat merge (three of a kind), enchant book merge (three of a book make one a level up), or card "MERGE 3". Rune fuse is retired. | Which? |
 | **build** | the player's charms-and-skins build, the `MineBuild` stamp, or `rojo build` | Which? |
 | **echo** | a retired stat, a tool special, or the Space element's verb | Which? |
 | **oreYield** | the old key for blast chance (now `blastChance`), or `MineConfig.oreYieldFor` (ore quantity) | Chance or quantity? |
@@ -60,7 +64,7 @@ related: [glossary, owner, open-questions, overview]
 
 | word | it can mean | ask |
 |---|---|---|
-| **pack** | a card pack, a currency pouch, a rune/gear case, an ore case, a lucky block, or the legacy `<ore>_ore_pack` | Which? See [cards-and-packs](systems/cards-and-packs.md) |
+| **pack** | a card pack, a currency pouch, a gear case, an ore case, a lucky block, or the legacy `<ore>_ore_pack`. (The three rune cases were removed on 2026-10-12.) | Which? See [cards-and-packs](systems/cards-and-packs.md) |
 | **case** | an ore case, a temper (skin) case, a "Gear Case", or the old pack | Which? |
 | **chest** | a zone chest, a `Mine1ChestsData` catalog chest, a Shiny chase chest, or the dead `MinePackConfig.CHESTS` | Which table is the real list? See [chests](systems/chests-and-lucky-blocks.md) |
 | **card** | a pet (the pet *is* the card), or a collectible card | Should players ever see "card"? |

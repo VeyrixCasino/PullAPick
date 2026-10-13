@@ -59,13 +59,19 @@ local openEv = mine:FindFirstChild("ForgeHubOpen") or Instance.new("BindableEven
 openEv.Name = "ForgeHubOpen"
 openEv.Parent = mine
 openEv.Event:Connect(function(tab)
-	-- A counter only ever opens (walking up twice must not close it); the
-	-- Forge button toggles.
+	-- A counter or the tutorial only ever opens (walking up twice must not
+	-- close it); the Forge button toggles. "enchant" lands on Upgrades > ENCHANT.
 	if tab == "counter" then
 		if hub.isOpen() then
 			return
 		end
 		tab = nil
+	elseif tab == "enchant" then
+		pcall(function()
+			net:FireServer("snapNow")
+		end)
+		hub.open("upgrades", nil, "enchant")
+		return
 	elseif hub.isOpen() then
 		hub.close()
 		return

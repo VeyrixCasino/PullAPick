@@ -585,6 +585,50 @@ end
 -- nothing at all. If you add a stat to MineStats.STATS, add it here.
 --
 -- Multiplier stats start at 1 (1.00 = +0%). Additive ones start at 0.
+--[[
+	THE FLOOR on a finished boosts table: MineServer's boosts() ends here.
+	Moved from MineRunes on 2026-10-12, when runes were retired. An ADDITIVE
+	stat floors at 0, a multiplier at x0.05, and the swing time at 0.05 s.
+
+	It used to keep its own list of additive stats, and that list had fallen
+	behind ADDITIVE_STATS. So Tidal Wave, every proc's damage, Proc Power and
+	Ore Haul were floored like multipliers, at 0.05: a tool the Special gate
+	had just zeroed still rolled a 5% Tidal Wave, and everyone had +5% Ore Haul.
+	There is one list now.
+]]
+local clampStats
+function MineCards.clampBoosts(b)
+	if type(b) ~= "table" then
+		return b
+	end
+	-- Looked up lazily like the other MineStats reads here, and retried until
+	-- found: a failed lookup must not switch the floor off for good. Without
+	-- MineStats it still floors every additive stat and the swing time.
+	if not clampStats then
+		local parent = script.Parent
+		local ok, Stats = pcall(function()
+			return require(parent:FindFirstChild("MineStats"))
+		end)
+		if ok and type(Stats) == "table" and type(Stats.STATS) == "table" then
+			clampStats = Stats.STATS
+		end
+	end
+	for stat in pairs(clampStats or ADDITIVE_STATS) do
+		if ADDITIVE_STATS[stat] then
+			b[stat] = math.max(0, tonumber(b[stat]) or 0)
+		elseif stat == "swingRate" then
+			b.swingSec = math.max(0.05, tonumber(b.swingSec) or 1)
+		else
+			local mult = b[stat]
+			if type(mult) == "number" then
+				b[stat] = math.max(0.05, mult)
+			end
+		end
+	end
+	b.swingSec = math.max(0.05, tonumber(b.swingSec) or 1)
+	return b
+end
+
 function MineCards.emptyBoosts()
 	return {
 		-- multipliers

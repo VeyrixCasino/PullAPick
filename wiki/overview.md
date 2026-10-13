@@ -2,7 +2,7 @@
 title: Mine For Cards — the game in one page
 type: meta
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/START-HERE.md §2, §5
   - docs/HANDOFF.md §2.1, §2.5
@@ -63,8 +63,9 @@ to an axis that nothing gated. `roadmap/PRINCIPLES.md` §1–§2 tells the
 ## Three currencies, three jobs (the intended design)
 
 - **Ore** is power: tools are forged from it and levelled with it.
-- **Gems** are for gambling and access: traits, charm merges, cases, zones,
-  pouch upgrades. They are minted by selling ore.
+- **Gems** are for gambling and access: enchant book bundles, charm merges,
+  cases, zones, pouch upgrades. They are minted by selling ore. (Trait rolls and
+  runes were gem sinks until they were retired on 2026-10-12.)
 - **Coins** are for consumables and access. **This is not solved yet.** Coins
   have almost nothing to buy now that the Forge runs on ore, seams are free, and
   tools are no longer sold for coins (TODO §0.28, PROPOSAL line 23, commit
@@ -80,7 +81,9 @@ them.
 - [charms](systems/charms.md): ore drops; each one has a *shape*.
 - [skins](systems/skins-cases-and-temper.md): the top prize, hunted from ore
   cases.
-- [traits](systems/traits.md): a rolled prefix on your tool, such as "Lucky Stone Drill".
+- [enchants](systems/enchants.md): books in your tool's three slots (Damage,
+  Utility, Special); the Special picks the tool's proc. They replaced tool traits
+  and runes, retired on 2026-10-12 ([traits](systems/traits.md)).
 - [pets](systems/pets.md) and [hats](systems/hats-and-faces.md): support.
 - [skill tree](systems/rebirth-and-skill-tree.md): bought with rebirth tokens.
 

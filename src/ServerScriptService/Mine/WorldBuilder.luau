@@ -1335,8 +1335,8 @@ function WorldBuilder.buildLobby(world)
 		{ x = 76, z = 40, style = "forge", title = "Blacksmith", verb = "FORGE", npc = "Bruk",
 		  role = "Picks, drills, bags", machine = "shop",
 		  pal = { brick = Color3.fromRGB(96, 92, 96), roof = Color3.fromRGB(58, 56, 64), trim = Color3.fromRGB(84, 62, 42), accent = Color3.fromRGB(255, 146, 62), mat = Enum.Material.Brick } },
-		{ x = -70, z = -46, style = "spire", title = "Enchanter", verb = "RUNES", npc = "Sable",
-		  role = "Runes, scrap, stardust shop", machine = "enchanter", locked = false,
+		{ x = -70, z = -46, style = "spire", title = "Enchanter", verb = "SUMMON", npc = "Sable",
+		  role = "Gear, skins, scrap, stardust", machine = "enchanter", locked = false,
 		  pal = { brick = Color3.fromRGB(74, 70, 106), roof = Color3.fromRGB(46, 42, 72), trim = Color3.fromRGB(102, 94, 138), accent = Color3.fromRGB(154, 144, 226), mat = Enum.Material.Slate } },
 		-- The FOSSIL BENCH stood here (x 66, z -30), and it is gone with the
 		-- fossil system. The slot is deliberately left empty rather than filled:

@@ -61,9 +61,6 @@ MinePackFX.ART = {
 		before reading its name.
 	]]
 
-	rune_pack         = { primary = Color3.fromRGB(46, 28, 72),  accent = Color3.fromRGB(178, 132, 240), secondary = Color3.fromRGB(98, 66, 152), image = "rbxassetid://113565242847795" },
-	rune_heavy_pack   = { primary = Color3.fromRGB(34, 18, 62),  accent = Color3.fromRGB(200, 146, 255), secondary = Color3.fromRGB(112, 70, 180), image = "rbxassetid://119839016362746" },
-	rune_sealed_pack  = { primary = Color3.fromRGB(22, 10, 46),  accent = Color3.fromRGB(226, 176, 255), secondary = Color3.fromRGB(130, 82, 208), image = "rbxassetid://91167732083445" },
 
 	gear_pack         = { primary = Color3.fromRGB(30, 46, 66),  accent = Color3.fromRGB(122, 172, 224), secondary = Color3.fromRGB(66, 106, 152), image = "rbxassetid://131050081581531" },
 	gear_case_pack    = { primary = Color3.fromRGB(22, 38, 60),  accent = Color3.fromRGB(146, 196, 246), secondary = Color3.fromRGB(76, 122, 176), image = "rbxassetid://132056496410791" },

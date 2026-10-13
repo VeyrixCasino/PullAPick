@@ -47,7 +47,6 @@ local C = require(shared:WaitForChild("MineConfig"))
 local Tools = require(shared:WaitForChild("MineTools"))
 -- The trait prefix. Loaded here so every caller that names a tool
 -- gets the prefix for free rather than remembering to add it.
-local Traits = require(shared:WaitForChild("MineTraits"))
 
 -- What one of these is called. Singular, because it names one tool.
 MineOreTools.NOUN = {
@@ -479,18 +478,19 @@ end
 	(Sharp Stone Pickaxe, Lucky Stone Drill)". Every caller that names a tool
 	goes through here, so there is nowhere for an unprefixed name to leak out.
 ]]
-function MineOreTools.name(oreDef, familyId, trait)
+-- `_trait` is ignored: tool traits (the prefix) were retired on 2026-10-12,
+-- when enchants took their field. Kept in the signature for old callers.
+function MineOreTools.name(oreDef, familyId, _trait)
 	local ore = (type(oreDef) == "table" and (oreDef.name or oreDef.id)) or "Unknown"
-	return Traits.decorate(tostring(ore) .. " " .. MineOreTools.familyNoun(familyId), trait)
+	return tostring(ore) .. " " .. MineOreTools.familyNoun(familyId)
 end
 
--- The same, from a forged row. The row carries its own trait, so a tool
--- cannot be named without it.
+-- The same, from a forged row.
 function MineOreTools.toolName(tool)
 	if type(tool) ~= "table" then
 		return "Unknown Tool"
 	end
-	return MineOreTools.name(MineOreTools.oreOf(tool), tool.familyId, tool.trait)
+	return MineOreTools.name(MineOreTools.oreOf(tool), tool.familyId)
 end
 
 return MineOreTools

@@ -2,7 +2,7 @@
 title: Social, quests and leaderboards
 type: system
 status: current
-verified: 2026-10-10 @ 299dd2c
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ServerScriptService/Mine/SocialService.luau
   - src/ReplicatedStorage/Mine/Shared/MineGroupWheelView.luau
@@ -21,7 +21,7 @@ sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/OPEN.md P1 §16, P2
   - docs/AUDIT.md §5
-related: [shops-and-monetisation, trading, world-events, rebirth-and-skill-tree, cards-and-packs]
+related: [shops-and-monetisation, trading, world-events, rebirth-and-skill-tree, cards-and-packs, enchants, traits]
 ---
 
 # Social, quests and leaderboards
@@ -61,6 +61,17 @@ goes through `TextService:FilterStringAsync`. MineServer routes the actions
 
 There is also a daily login streak (`Verbs.claimDaily`), and its day 4 pays a
 surprise pack (`Verbs.claimDailySurprise`).
+
+**The rune and trait quests teach enchants** (2026-10-12, when runes and traits
+were retired; same rewards, same places in the ladder):
+- chain `rune5` → `ench1` "Enchant a tool" (stat `enchants`);
+- chain `trait1` → `bookmerge1` "Merge 3 books into a better one" (stat `bookmerges`);
+- chain `rune40` → `bookmerge10` "Merge books 10 times";
+- contract `c_rune_s` → `c_ench_s` "Fill 2 enchant slots".
+
+MineServer's `questValue` derives `enchants` (filled enchant slots across all
+forged tools) and reads `bookmerges` from `p.bookMerges`, which survives a
+rebirth. Tips that mentioned runes or scrolls were rewritten.
 
 **Job Board.** `MineContractor` shows every quest in one place, plus the
 battle-pass XP each one feeds. It opens from the world pad (machine `contractor`)
@@ -114,7 +125,12 @@ A 16-slice prize wheel in the lobby, at about (40, 6, 0).
   - `anomaly`: a ★★ case.
 
   The ids are unchanged. The star grade each slice pays is PROPOSED. The gear
-  and rune case slices stay. See [pack-cases](pack-cases.md).
+  case slice stays. See [pack-cases](pack-cases.md).
+- **The rune slice pays 3 Lucky Books** (2026-10-12; owner: *"3 lucky enchanted
+  books"*). The 6% slice keeps its id `heavy_runes`, because ids are data, but
+  its label is "3 LUCKY BOOKS" and it pays 3 enchant books rolled at an S
+  chest's levels (`MineGroupWheel.SEGMENTS`, `reward.books`; granted in
+  `GroupWheelService.applyReward`). Before, it paid one Heavy Rune Case.
 - **Paid spins.** Products `group_wheel_1/5/10` bank 1, 5 or 10 spins. Free spins
   are spent first. Paid spins are blocked where paid random items are not allowed
   (`PolicyNoRandom`). All three products have `productId = 0`, so none can be
@@ -178,13 +194,17 @@ A 16-slice prize wheel in the lobby, at about (40, 6, 0).
   badge counted down, and the used spin survived a restart.
 - **Dormant:** the social and profile UI.
 - **Most of this code is unchanged since the import** (`566eecf`). Quests and the
-  wheel only lost their fossil rows (`ba345b7`).
+  wheel lost their fossil rows (`ba345b7`), and on 2026-10-12 their rune and
+  trait rows became enchant rows (above).
 
 ## Gotchas
-- **Quest copy predates the Forge, traits and charms work.** For example:
+- **Some quest copy predates the Forge and charms work.** For example:
   - chain rung `pick2` says "Buy a better pickaxe" and rewards coin-shop tools (`meadow_surface_N_pick`);
   - `merge1` says "Merge three of a kind";
-  - tips mention runes, a "Summon tab" and "Gems buy zones, runes, and gear".
+  - `open10`'s tip still says "Summon tab: Gear 75g".
+
+  The rune tips ("Gems buy zones, runes, and gear" and others) were rewritten on
+  2026-10-12; `sell5` now says "Gems buy zones, gear and enchant books".
 
   Rewrite before launch (`MineQuests.CHAIN`).
 - **OPEN P2 is wrong** where it says the group wheel and the battle pass are

@@ -2,7 +2,7 @@
 title: Rebirth and skill tree
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineSkillData.luau
@@ -49,10 +49,11 @@ related: [boosts-and-stats, currencies-and-economy, zones-layers-and-seams, skin
   - `maxUnlockedZone`, `bigbangOwned` and core samples;
   - skill fields (`skillEarned`, `skillBought`, presets, `skillBurned`) and `temperTokens`;
   - **forged ore tools** (`oreTools`, `oreToolEquipped`);
-  - runes, gear, sockets, charms, `tempers` and `toolTempers`;
+  - gear, charms, `tempers` and `toolTempers`;
   - **the whole ore pouch** (tier, ores, locks, `oresSeen`);
-  - gems, credits, scrolls, dailies, pass and stats.
-- **Also carried:** the `Verbs.KEEP_ON_REBIRTH` list (tutorial flags, codes, receipts, owned pets, potions, VIP, `shopToolRunes`, settings…).
+  - gems, credits, dailies, pass and stats.
+- **Also carried:** the `Verbs.KEEP_ON_REBIRTH` list (tutorial flags, codes, receipts, owned pets, potions, VIP, settings…). It includes `enchantBooks`, the player `level` and `xp`, and `bookMerges`: enchant progress is account progress ([enchants](enchants.md)).
+- **Retired on 2026-10-12:** runes, sockets, scrolls and `shopToolRunes` used to be carried too. They no longer exist ([traits](traits.md)).
 
 **What a rebirth pays.**
 - **Skill points:** `MineSkillData.tokensFor(n) = 2 + ⌊(n−1)/2⌋`, so 460 points over 40 rebirths.
@@ -115,7 +116,7 @@ related: [boosts-and-stats, currencies-and-economy, zones-layers-and-seams, skin
 - **Stale cap note.** The `MineSkillData` header still talks about "MineStats caps from ALL sources". `MineStats` says "No magnitude caps".
 - **Stale income note.** The `rebirthCost` comment still cites `prestigeYield` as income growth, but that function has been deleted.
 - **Two rebirth counts can drift apart.** `p.prestige` is the authoritative count. `p.stats.rebirth` is a separate stat counter (`bumpStat`) that `foreverPowerCap` reads, and the two can diverge on old saves (unverified).
-- **TODO 6.1 says `shopToolRunes` is not carried.** It is carried, through `Verbs.KEEP_ON_REBIRTH`.
+- **TODO 6.1 talks about `shopToolRunes`.** That field was retired with runes on 2026-10-12; load sets it to nil and nothing carries it now.
 - **"Tokens" means two things.** `skillState(p).tokens` is *skill points*. `p.temperTokens` is a separate currency. See [ambiguous-terms](../ambiguous-terms.md).
 - **`MineBuild` is not part of this.** It is the Studio build stamp (`MineBuild.STAMP`, `MineBuild.EXPECT`), not a player "build"; see [rojo-and-studio](../code/rojo-and-studio.md).
 

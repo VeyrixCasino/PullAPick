@@ -46,12 +46,13 @@
 local MineBoostLayers = {}
 
 -- Who is in which layer. Names, not modules: this is the design statement, and
--- the server maps its own sources onto it.
-MineBoostLayers.LAYER1 = { "skills", "skins", "tools", "traits" }
+-- the server maps its own sources onto it. Enchants sit where the owner's
+-- "traits" did; traits were retired for them on 2026-10-12.
+MineBoostLayers.LAYER1 = { "skills", "skins", "tools", "enchants" }
 MineBoostLayers.LAYER2 = { "equipment", "pets" }
 
 MineBoostLayers.TIER_OF = {
-	skills = 1, skins = 1, tools = 1, traits = 1,
+	skills = 1, skins = 1, tools = 1, enchants = 1,
 	equipment = 2, pets = 2,
 }
 

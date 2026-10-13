@@ -49,7 +49,6 @@ local Tools = require(shared.MineTools)
 local ChestModel = require(shared:WaitForChild("MineChestModel"))
 local ToolModels = require(game.ReplicatedStorage:WaitForChild("ToolModelFactory"))
 local Stats = require(shared.MineStats)
-local Runes = require(shared.MineRunes)
 local Charms = require(shared:WaitForChild("MineCharms"))
 local Vfx = require(shared:WaitForChild("MineVfx"))
 local Gear = require(shared.MineGear)
@@ -95,11 +94,7 @@ local TradeService = require(script.Parent:WaitForChild("TradeService"))
 local SocialService = require(script.Parent:WaitForChild("SocialService"))
 -- Mine For Cards modules packed as one local to spare the 200-register main-chunk cap.
 local Dig = {
-	-- Traits: the prefix on a forged tool, and the one thing runes and
-	-- gear were replaced by. On Dig rather than a top-level local because this
-	-- script sits at 197 of Luau's 200, and boosts() reads it per swing so a
-	-- require-per-call is not an option either.
-	Traits = require(shared:WaitForChild("MineTraits")),
+	-- (Dig.Traits lived here until tool traits were retired, 2026-10-12.)
 	-- Enchants: three slots per tool, books, the player level (MineEnchants).
 	Enchants = require(shared:WaitForChild("MineEnchants")),
 	-- Two layers, and the second multiplies the first. See MineBoostLayers
@@ -911,21 +906,18 @@ local function blank()
 		skillEarned = 0, skillBought = 0, skillSlot = 1, skillPresets = { { levels = {}, spent = 0 } },
 		-- skillBurned: points destroyed by sacrifice. temperTokens: what they paid.
 		boughtSecond = false, skillBurned = 0, temperTokens = 0,
-		runes = {}, gear = {},
+		gear = {},
 		-- Three hat seats, all the player's. Pets wear nothing.
 		equippedGear = { hat = nil, hat2 = nil, hat3 = nil, face = nil },
-		toolSockets = { pickaxe = nil, drill = nil, explosive = nil },
-		-- One temperament per tool family. Lives on the family, like its runes.
+		-- One temperament per tool family. Lives on the family.
 		toolTempers = {},
 		-- Owned temperaments, keyed by kit id: { rarity = grade, n = copies }.
 		tempers = {},
-		petSockets = {},
 		charms = {},
 		equippedCharm = nil,
 		vfx = {},
 		equippedVfx = Vfx.blankEquip(),
 		credits = 0,
-		scrolls = { white = 0, black = 0, omni = 0 },
 	}
 end
 
@@ -1375,7 +1367,6 @@ local function load(plr)
 	if Dig.Depth.grantReachedSeams then
 		Dig.Depth.grantReachedSeams(p)
 	end
-	p.runes = p.runes or {}
 	p.gear = p.gear or {}
 	p.equippedGear = p.equippedGear or { hat = nil, face = nil }
 	if p.equippedGear.gloves ~= nil then
@@ -1475,21 +1466,39 @@ local function load(plr)
 		end
 	end
 	p.equippedVfx = Vfx.normalize(p.equippedVfx)
-	p.toolSockets = p.toolSockets or { pickaxe = nil, drill = nil, explosive = nil }
-	if p.toolSockets.ranged ~= nil then
-		-- Ranged tools/runes were cut; fold any leftover socket into pickaxe.
-		if p.toolSockets.ranged and not p.toolSockets.pickaxe then
-			p.toolSockets.pickaxe = p.toolSockets.ranged
-		end
-		p.toolSockets.ranged = nil
-	end
-	-- Migrate ranged runes so fuse/socket never target a dead family.
-	for _, rune in ipairs(p.runes or {}) do
-		if type(rune) == "table" and rune.kind == "ranged" then
-			rune.kind = "pickaxe"
+	--[[
+		RUNES, SCROLLS, SOCKETS AND TOOL TRAITS ARE RETIRED (owner, 2026-10-12:
+		"RETIRE RUNES AND TRAITS.. ENCHNATS TAKE OVERTHAT FEILD"; nobody has
+		played yet, so nothing is refunded). Whatever an old save still carries
+		is dropped here, so no reader ever finds a rune to pay.
+	]]
+	p.runes, p.toolSockets, p.petSockets, p.shopToolRunes, p.scrolls = nil, nil, nil, nil, nil
+	for _, t in ipairs(p.oreTools or {}) do
+		if type(t) == "table" then
+			t.trait = nil
 		end
 	end
-	p.petSockets = p.petSockets or {}
+	for _, ct in ipairs(p.chestTools or {}) do
+		if type(ct) == "table" then
+			ct.runeId = nil
+		end
+	end
+	for _, g in ipairs(p.gear or {}) do
+		if type(g) == "table" and type(g.sockets) == "table" then
+			g.sockets = {}
+		end
+	end
+	-- The three rune cases are gone from the pack table, so one left in a bag
+	-- could never open: it goes too.
+	if type(p.packs) == "table" then
+		local RUNE_CASE = { rune_pack = true, rune_heavy_pack = true, rune_sealed_pack = true }
+		for i = #p.packs, 1, -1 do
+			local row = p.packs[i]
+			if type(row) == "table" and (RUNE_CASE[tostring(row.packId or "")] or row.kind == "rune") then
+				table.remove(p.packs, i)
+			end
+		end
+	end
 	--[[
 		Temperaments are a COLLECTION now: you own them, and you choose which one
 		each tool wears. Anything already rolled onto a family or a flagship is
@@ -1532,12 +1541,6 @@ local function load(plr)
 	p.charms = p.charms or {}
 	if type(p.equippedCharm) == "string" and p.equippedCharm ~= "" and not p.charms[p.equippedCharm] then
 		p.equippedCharm = nil
-	end
-	-- Tiers arrived after these saves were written. normalize() labels each
-	-- rune from the percentage it already has and leaves that percentage alone.
-	p.runes = p.runes or {}
-	for _, r in ipairs(p.runes) do
-		Runes.normalize(r)
 	end
 	-- Gear grades became letters (F..SSS); saved pieces still carry the old
 	-- words, and the stat sheet is keyed by grade, so this has to run before
@@ -1653,10 +1656,6 @@ local function load(plr)
 		p.pass.owned = true
 	end
 	Scrolls.reconcilePass(p.pass)
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	p.scrolls.white = p.scrolls.white or 0
-	p.scrolls.black = p.scrolls.black or 0
-	p.scrolls.omni = p.scrolls.omni or 0
 	-- One-shot: old 6-rung gem backpack ladder → 30-rung coin ladder by capacity.
 	if not p.backpackCoinV2 then
 		local OLD = { 80, 650, 5400, 44000, 370000, 3100000 }
@@ -2059,7 +2058,7 @@ local function load(plr)
 				local seatsRef = { left = vipSeatsLeft }
 				if Founders.grant(p, plr, "gamepass", {
 					seatsRef = seatsRef,
-					grantScrolls = grantScrolls,
+					grantBooks = Dig.grantBooks,
 					toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 				}) then
 					vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -2652,15 +2651,10 @@ end
 Dig.tailor = setmetatable({}, { __mode = "k" })
 
 function Dig.petRows(p, n)
-	local pieces, runes = {}, {}
+	local pieces = {}
 	for _, g in ipairs(p.gear or {}) do
 		if type(g) == "table" and g.id then
 			pieces[g.id] = g
-		end
-	end
-	for _, r in ipairs(p.runes or {}) do
-		if type(r) == "table" and r.id then
-			runes[r.id] = r
 		end
 	end
 	local zero = Cards.emptyBoosts()
@@ -2690,11 +2684,10 @@ function Dig.petRows(p, n)
 				cardId = id,
 				-- No `hat`: a pet wears none. Your three seats apply to all of
 				-- them at once, and stackPets reads them from `eq`.
-				rune = runes[(p.petSockets or {})[id] or ""],
 			})
 		end
 	end
-	return rows, pieces, runes
+	return rows, pieces
 end
 
 --[[
@@ -2760,39 +2753,7 @@ local function boosts(p)
 		end
 	end
 	--[[
-		THE EQUIPPED TOOL'S ENCHANTMENT.
-
-		One trait, on the tool you are holding, and nothing else: no
-		slots, no per-family sockets, no three hats and a face. A tool that is
-		not in your hands gives nothing, which is what makes the prefix on the
-		one you ARE holding mean something.
-
-		Folded through MineCards.ADDITIVE_STATS rather than a second opinion
-		about which stats add and which multiply -- the two drifting apart
-		would quietly pay a chance stat as a multiplier.
-	]]
-	do
-		local uid = p.oreToolEquipped
-		if uid then
-			for _, t in ipairs(p.oreTools or {}) do
-				if t.uid == uid then
-					if type(t.trait) == "table" then
-						-- Layer 1: the tool's own trait, beside skills
-						-- and skins rather than on top of them.
-						local def = Dig.Traits.byId(t.trait.id)
-						if def then
-							Dig.Layers.add(T1, def.stat,
-								Dig.Traits.amount(t.trait.id, t.trait.level))
-						end
-					end
-					break
-				end
-			end
-		end
-	end
-
-	--[[
-		THE HELD TOOL'S ENCHANTS, LAYER 1 -- where the trait sits, because
+		THE HELD TOOL'S ENCHANTS, LAYER 1 -- where traits sat (retired 2026-10-12), because
 		enchants take over the field traits and runes held (owner, 2026-10-11).
 		Damage and Utility only; Special is not a stat, it picks the proc
 		(gateProcs, at the end of this function).
@@ -2978,62 +2939,11 @@ local function boosts(p)
 		end
 	end
 
-	-- Runes + gear (after relics/charter; clamped at the end).
-	local byRune = {}
-	for _, r in ipairs(p.runes or {}) do byRune[r.id] = r end
-	local equippedPieces = {}
-	for slot, pieceId in pairs(p.equippedGear or {}) do
-		if pieceId then
-			for _, g in ipairs(p.gear or {}) do
-				if g.id == pieceId then
-					equippedPieces[slot] = g
-					break
-				end
-			end
-		end
-	end
-	Gear.applyEquipped(b, equippedPieces, byRune)
-	local _, fam = equippedTool(p)
-	local sock = p.toolSockets and p.toolSockets[fam]
-	local mainId, omniId
-	if type(sock) == "string" then
-		mainId = sock
-	elseif type(sock) == "table" then
-		mainId, omniId = sock.main, sock.omni
-	end
-	-- Track what is actually socketed, so a completed set can pay its bonus.
-	-- Only worn runes count; a full set sitting in the bag is a full set you
-	-- have not equipped.
-	local socketed = {}
-	local function wear(rune)
-		if rune then
-			-- Six sockets in the whole loadout: a rune that earns one is worth
-			-- more than it was when a single head piece held five.
-			Runes.applyRune(b, rune, Runes.SOCKET_GAIN)
-			table.insert(socketed, rune)
-		end
-	end
-	if mainId and byRune[mainId] then wear(byRune[mainId]) end
-	if omniId and byRune[omniId] then wear(byRune[omniId]) end
-	for _, ct in ipairs(p.chestTools or {}) do
-		if ct.runeId and byRune[ct.runeId] and p.chestTool == ct.id then
-			wear(byRune[ct.runeId])
-		end
-	end
-	-- A coin-shop tool's own socket, while that tool is the one in hand.
-	if p.shopToolId and not p.chestTool and p.shopToolRunes then
-		local rid = p.shopToolRunes[p.shopToolId]
-		if rid and byRune[rid] then
-			wear(byRune[rid])
-		end
-	end
-	for _, cardId in ipairs(p.equipped or {}) do
-		local rid = p.petSockets and p.petSockets[cardId]
-		if rid and byRune[rid] then wear(byRune[rid]) end
-	end
-	Runes.applySetBonuses(b, socketed)
+	-- Runes, and the gear and tool sockets they sat in, were retired on
+	-- 2026-10-12: enchants took that field (owner: "RETIRE RUNES AND TRAITS..
+	-- ENCHNATS TAKE OVERTHAT FEILD"). Gear pays through layer 2 (Dig.layer2).
 
-	-- One equipped charm (does not take a rune/pet slot).
+	-- One equipped charm (does not take a pet slot).
 	if p.equippedCharm then
 		Charms.applyEquipped(b, p.equippedCharm, p)
 	end
@@ -3144,52 +3054,11 @@ local function boosts(p)
 	if Dig.EnchSvc then
 		b = Dig.Enchants.gateProcs(b, Dig.EnchSvc.special(p))
 	end
-	return Runes.clampBoosts(b)
-end
-
-local function runeById(p, id)
-	for _, r in ipairs(p.runes or {}) do if r.id == id then return r end end
+	return Cards.clampBoosts(b)
 end
 
 local function gearById(p, id)
 	for _, g in ipairs(p.gear or {}) do if g.id == id then return g end end
-end
-
-local function removeRune(p, id)
-	for i, r in ipairs(p.runes or {}) do if r.id == id then return table.remove(p.runes, i) end end
-end
-
-local function familySocket(p, family)
-	p.toolSockets = p.toolSockets or {}
-	local v = p.toolSockets[family]
-	if type(v) == "string" then
-		v = { main = v, omni = nil, omniUnlocked = false }
-		p.toolSockets[family] = v
-	elseif type(v) ~= "table" then
-		v = { main = nil, omni = nil, omniUnlocked = false }
-		p.toolSockets[family] = v
-	else
-		v.main = v.main or nil
-		v.omni = v.omni or nil
-		v.omniUnlocked = v.omniUnlocked and true or false
-	end
-	return v
-end
-
-local function runeBusy(p, id)
-	for fam, _ in pairs(p.toolSockets or {}) do
-		local sock = familySocket(p, fam)
-		if sock.main == id or sock.omni == id then return "tool" end
-	end
-	for _, ct in ipairs(p.chestTools or {}) do if ct.runeId == id then return "chest" end end
-	for _, rid in pairs(p.petSockets or {}) do if rid == id then return "pet" end end
-	for _, rid in pairs(p.shopToolRunes or {}) do if rid == id then return "shop" end end
-	for _, g in ipairs(p.gear or {}) do
-		-- pairs, not ipairs: sockets is sparse whenever slot 1 is still empty,
-		-- and ipairs stops dead at the first hole.
-		for _, sid in pairs(g.sockets or {}) do if sid == id then return "gear" end end
-	end
-	return nil
 end
 
 local function cap(p)
@@ -3356,8 +3225,21 @@ local function questValue(p, stat)
 		return best
 	elseif stat == "gear" then
 		return #(p.gear or {})
-	elseif stat == "runes" then
-		return #(p.runes or {})
+	elseif stat == "enchants" then
+		-- Filled enchant slots across every tool (derived, like the four below).
+		local n = 0
+		for _, t in ipairs(p.oreTools or {}) do
+			if type(t) == "table" and type(t.enchants) == "table" then
+				for _, e in pairs(t.enchants) do
+					if type(e) == "table" then
+						n += 1
+					end
+				end
+			end
+		end
+		return n
+	elseif stat == "bookmerges" then
+		return tonumber(p.bookMerges) or 0
 	--[[
 		THE FOUR SYSTEMS THE LADDER NEVER MENTIONED.
 
@@ -3372,7 +3254,6 @@ local function questValue(p, stat)
 		them needs a new counter to be written, migrated or kept in sync:
 
 		  oretools  how many tools you have forged
-		  traits    how many of them carry a trait
 		  charms    how many charms you own (p.charms is a keyed set)
 		  skins     how many families have a temperament fitted
 
@@ -3383,14 +3264,6 @@ local function questValue(p, stat)
 	]]
 	elseif stat == "oretools" then
 		return #(p.oreTools or {})
-	elseif stat == "traits" then
-		local n = 0
-		for _, t in ipairs(p.oreTools or {}) do
-			if type(t) == "table" and type(t.trait) == "table" then
-				n += 1
-			end
-		end
-		return n
 	elseif stat == "charms" then
 		local n = 0
 		for _, owned in pairs(p.charms or {}) do
@@ -3760,7 +3633,6 @@ local function snap(plr)
 	end
 	net:FireClient(plr, "snapshot", {
 		settings = p.settings, starterBought = p.starterBought and true or false,
-		shopToolRunes = p.shopToolRunes or {},
 		playtime = p.playtime, serverTime = os.time(),
 		freeGear = (not p.freeGearUsed) and #(p.gear or {}) == 0,
 		gems = p.gems, coins = p.coins or 0, dust = p.dust, dustShop = Packs.dustShopPayload and Packs.dustShopPayload(p) or nil, prestige = p.prestige, pickaxeTier = p.pickaxeTier,
@@ -3902,15 +3774,14 @@ local function snap(plr)
 		toolTier = p.toolTier or {},
 		-- Owned once. Pass XP/claims live under Inventory > Pass.
 		battlePass = p.battlePass,
-		runes = p.runes, gear = p.gear, equippedGear = p.equippedGear,
-		toolSockets = p.toolSockets, petSockets = p.petSockets,
+		gear = p.gear, equippedGear = p.equippedGear,
 		hatSlots = Gear.HAT_SLOTS,
 		tailorStat = Dig.tailor[p],
 		toolTempers = p.toolTempers or {},
 		tempers = p.tempers or {},
 		temperCasePrice = require(shared.MineTemper).CASE_PRICE_TOKENS,
-		runeRollPrice = Runes.rollPriceFor(p.maxUnlockedZone), gearRollPrice = tonumber(Gear.ROLL_TOKEN_COST) or 5,
-		credits = p.credits or 0, scrolls = p.scrolls or Scrolls.emptyBag(),
+		gearRollPrice = tonumber(Gear.ROLL_TOKEN_COST) or 5,
+		credits = p.credits or 0,
 		quest = questState(p),
 		dailyQuests = dailyQuestState(p, plr.UserId),
 		milestones = Quests.svMilestoneState(p),
@@ -3964,7 +3835,7 @@ local function snap(plr)
 				tiers = Scrolls.PASS_TIERS,
 			}
 		end)(),
-		creditPacks = Scrolls.CREDIT_PACKS, scrollShop = Scrolls.ITEMS,
+		creditPacks = Scrolls.CREDIT_PACKS,
 	})
 	-- The skin notice is ONE SHOT. Cleared after the send, or every snapshot
 	-- from here on re-announces the same skin -- and snaps are frequent.
@@ -4043,13 +3914,13 @@ local Intro = {
 		[5] = { text = "RIP IT OPEN — Inventory, Packs.", panel = "inventory", tab = "packs", grantPack = true },
 		[6] = { text = "Send your best pet out. It mines WITH you.", panel = "inventory", tab = "cards", highlight = "cardsTab", bonusGems = 15 },
 		[7] = { text = "Free gems, top-left. CLAIM IT.", highlight = "questClaim" },
-		[8] = { text = "Now the good stuff: ROLL A RUNE.", panel = "summon", grantGems = "runeRoll", waypoint = "enchanter" },
-		[9] = { text = "Jam it into your pick. Yours forever, even through rebirth.", panel = "enchanter", tab = "sockets", requireAction = "socketToolRune", waypoint = "enchanter", bonusGems = 25 },
+		-- Enchants took the rune lesson's place (owner, 2026-10-12: "Teach enchants"):
+		-- two free Damage books, which level 1 can use, and the Forge opens on ENCHANT.
+		[8] = { text = "FREE BOOKS! 📖 Open the FORGE and ENCHANT your pick.", panel = "forge", tab = "enchant", grantBooks = 2, requireAction = "enchApply", bonusGems = 25 },
 		-- Two things wrong here before: it said hats go on your PETS (they are
 		-- player-only now, three seats, TODO 6.2) and it taught gems (they cost
 		-- rebirth tokens).
 		[10] = { text = "Summon a HAT — your first roll is FREE. Hats are real Roblox items, you wear them yourself, and after the free one they cost REBIRTH TOKENS.", panel = "summon", highlight = "gearRow", waypoint = "enchanter" },
-		[11] = { text = "Your runes live at the Enchanter, on its RUNES tab. Fuse spares there later (50%, no pity).", panel = "enchanter", tab = "runes", ack = true, waypoint = "enchanter" },
 		[12] = { text = "NEW ZONE: Greyvein. The bar is how close you are.", panel = "zones" },
 		[13] = { text = "JOBS: dailies and the board pay gems every UTC day. Come back here when you need more.", panel = "jobs", ack = true, waypoint = "contractor" },
 		[14] = { text = "EVENTS: Event Horizon is free while its timer runs — grab it from the portal.", panel = "events", ack = true },
@@ -4066,7 +3937,6 @@ local Intro = {
 		[20] = { text = "FREE GIFTS fill up while you play. Tap the gift box under the wallet and open one.", highlight = "gifts" },
 		[21] = { text = "Dig down to 30m. The deepest miners get their name on the board at the far end of every mine." },
 		[22] = { text = "Chests glow. When the dirt around you picks up a warm light, a chest is close: dig toward it and open 3 chests.", count = 3 },
-		[23] = { text = "Every tool has its own RUNE SLOT. Rebirth takes coin tools back, but the rune stays in the slot and is waiting when you buy that tool again.", panel = "enchanter", tab = "sockets", ack = true, waypoint = "enchanter" },
 		--[[
 			The hat/face/rune lessons. Each one opens the screen it teaches AND
 			points a hand at the exact thing to tap (`highlight` resolves to a
@@ -4075,7 +3945,6 @@ local Intro = {
 		]]
 		[24] = { text = "A HAT is yours -- you have three seats, and every hat you wear makes every pet stronger. Tap a HAT seat, then tap a hat.", panel = "inventory", tab = "tools", highlight = "hatSeat", requireAction = "equipGearPiece" },
 		[25] = { text = "Your FACE is the one piece nobody else wears -- it multiplies your WHOLE team. Fit one here.", panel = "inventory", tab = "tools", highlight = "faceSeat", ack = true },
-		[26] = { text = "Runes fit from your bag now: one per pet, one per hat, one in your face, one on your tool. Eight in the entire game.", panel = "inventory", tab = "runes", highlight = "runesTab", ack = true },
 		-- No `ack`: this one only clears when the pickaxe is actually in hand.
 		[27] = { text = "Go to the BLACKSMITH and grab your free pickaxe.", waypoint = "shop" },
 		[28] = { text = "Break the next block. That swing drops your charm." },
@@ -4105,7 +3974,7 @@ local Intro = {
 		all, so the step asks for something real and the Blacksmith hands it
 		over free.
 
-		Runes and temperaments sit AFTER the rebirth step. They are the best
+		Enchants and temperaments sit AFTER the rebirth step. They are the best
 		part of the game and they mean nothing to someone who has not yet felt a
 		run end -- taught at minute three they were noise, taught after a
 		rebirth they are the reason to start the next one.
@@ -4131,7 +4000,7 @@ local Intro = {
 		than minutes and is when a daily and a gift box start to mean
 		something.
 
-		14 goes last, after runes (9) and the temper case (16): Event Horizon
+		14 goes last, after enchants (8) and the temper case (16): Event Horizon
 		is a whole second mine, and pointing someone at it before they have a
 		build is pointing them at a wall they cannot break.
 
@@ -4144,7 +4013,7 @@ local Intro = {
 		them on would hand every existing player a payout on their next login;
 		that is a balance decision, not a wiring fix.
 	]]
-	order = { 27, 1, 2, 3, 4, 5, 6, 7, 12, 18, 8, 19, 20, 9, 16, 14 },
+	order = { 27, 1, 2, 3, 4, 5, 6, 7, 12, 18, 8, 19, 20, 16, 14 },
 }
 -- Finished. Clear of every step number (the v2 ladder used 19 for done).
 Intro.done = 99
@@ -4189,8 +4058,13 @@ local function introSatisfied(p, step)
 		return #(p.equipped or {}) > 0
 	elseif step == 7 then
 		return (tonumber(p.quest) or 1) > 1
-	elseif step == 9 then
-		return next(p.toolSockets or {}) ~= nil or next(p.petSockets or {}) ~= nil
+	elseif step == 8 then
+		for _, t in ipairs(p.oreTools or {}) do
+			if type(t) == "table" and type(t.enchants) == "table" and next(t.enchants) ~= nil then
+				return true
+			end
+		end
+		return false
 	elseif step == 10 then
 		return next(p.equippedGear or {}) ~= nil
 	elseif step == 12 then
@@ -4248,8 +4122,12 @@ local function introGrant(plr, p)
 	if p.introGrants[key] then
 		return
 	end
-	if d.grantGear or d.grantDust or d.bonusGems or (type(d.grantTokens) == "number") then
+	if d.grantGear or d.grantDust or d.bonusGems or d.grantBooks or (type(d.grantTokens) == "number") then
 		p.introGrants[key] = true
+		if type(d.grantBooks) == "number" and d.grantBooks > 0 and Dig.grantBooks then
+			Dig.grantBooks(p, d.grantBooks, nil, { damage = true })
+			net:FireClient(plr, "toast", "📖 " .. d.grantBooks .. " FREE enchant books!")
+		end
 		if d.grantGear then
 			local def = Packs.PACK_BY_ID and Packs.PACK_BY_ID.gear_pack
 			p.packs = p.packs or {}
@@ -4277,10 +4155,6 @@ local function introGrant(plr, p)
 	end
 	-- grantZone: enough for that zone's portal, whatever it costs today.
 	local grantGems = d.grantGems
-	-- "runeRoll": one summon at today's price for this player's zones.
-	if grantGems == "runeRoll" then
-		grantGems = Runes.rollPriceFor(p.maxUnlockedZone)
-	end
 	if d.grantZone and C.ZONES[d.grantZone] then
 		grantGems = math.floor(tonumber(C.ZONES[d.grantZone].buyCost) or grantGems or 0)
 	end
@@ -8691,7 +8565,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		end
 	end
 	--[[
-		FOSSIL, RUNE AND GEAR PACKS.
+		FOSSIL AND GEAR PACKS.
 
 		Everything a card pack does, with a different roller and a different
 		bucket, and then it leaves before any of the card machinery below runs.
@@ -8703,7 +8577,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		Items carry `rarityId` off the shared eight-name ladder, which is what
 		makes that possible -- the sort below, the reveal's colour and hold
 		timing, and the pull-grade screen effects all read that one field and
-		neither know nor care that this is a rune.
+		neither know nor care that this is gear.
 
 		Written inline, and MineLootPacks required here rather than at the top of
 		the file, because this script is at Luau's ceiling of 200 top-level
@@ -8747,9 +8621,6 @@ local function openPack(plr, setId, chestId, pk, collect)
 				elseif math.floor(tonumber(p.intro) or 0) == 38 then
 					introAdvance(plr, p, 38)
 				end
-			elseif item.kind == "rune" and item.rune then
-				p.runes = p.runes or {}
-				table.insert(p.runes, item.rune)
 			end
 		end
 		-- Best last, exactly as for cards, and for the same reason: the order
@@ -8762,8 +8633,8 @@ local function openPack(plr, setId, chestId, pk, collect)
 			end
 			return tostring(x.name or "") < tostring(y.name or "")
 		end)
-		-- Equipment packs count; gear/rune summons do not.
-		if packDef.kind ~= "gear" and packDef.kind ~= "rune" then
+		-- Equipment packs count; gear summons do not.
+		if packDef.kind ~= "gear" then
 			bumpStat(plr, p, "packs")
 		end
 		introAdvance(plr, p, 5)
@@ -8775,7 +8646,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		local design = {
 			packId = packDef.id,
 			name = (pk and pk.packName) or packDef.name or "Pack",
-			setName = ({ rune = "Runes", gear = "Gear" })[packDef.kind] or "Loot",
+			setName = ({ gear = "Gear" })[packDef.kind] or "Loot",
 			kind = packDef.kind,
 		}
 		if collect then
@@ -9620,10 +9491,10 @@ local function openMany(plr, payload)
 	payload = (type(payload) == "table") and payload or {}
 	local packId = payload.packId
 	local want = math.clamp(math.floor(tonumber(payload.count) or 1), 1, Const.OPEN_RUN_MAX)
-	-- Gear / Rune cases: hard cap 3 concurrent reels. No Open All.
+	-- Gear cases: hard cap 3 concurrent reels. No Open All.
 	do
 		local def = packId and Packs.PACK_BY_ID[packId]
-		if def and (def.kind == "gear" or def.kind == "rune") then
+		if def and def.kind == "gear" then
 			want = math.min(want, 3)
 		end
 	end
@@ -9917,21 +9788,6 @@ local function scrapPlan(p, kind, ids, into)
 				end
 			end
 		end
-	elseif kind == "rune" then
-		local byId = {}
-		for _, r in ipairs(p.runes or {}) do
-			byId[r.id] = r
-		end
-		for _, id in ipairs(order) do
-			local r = byId[id]
-			if not r then
-				block(id, nil, "not in your bag")
-			elseif runeBusy(p, id) then
-				block(id, r.name, "socketed")
-			else
-				add(id, r.name, 0, Runes.scrapGems(r))
-			end
-		end
 	elseif kind == "gear" then
 		local worn = {}
 		for _, id in pairs(p.equippedGear or {}) do
@@ -9950,18 +9806,7 @@ local function scrapPlan(p, kind, ids, into)
 			elseif worn[id] then
 				block(id, g.name or g.setName, "worn")
 			else
-				local socketed = false
-				for _, rid in pairs(g.sockets or {}) do
-					if rid then
-						socketed = true
-						break
-					end
-				end
-				if socketed then
-					block(id, g.name or g.setName, "has a rune in it")
-				else
-					add(id, g.name or g.setName, 0, Gear.scrapGems(g))
-				end
+				add(id, g.name or g.setName, 0, Gear.scrapGems(g))
 			end
 		end
 	elseif kind == "pack" then
@@ -10020,7 +9865,7 @@ local function scrapMany(plr, payload)
 		return
 	end
 	local kind = payload.kind
-	if kind ~= "card" and kind ~= "rune" and kind ~= "gear" and kind ~= "pack" then
+	if kind ~= "card" and kind ~= "gear" and kind ~= "pack" then
 		return
 	end
 	local into = (payload.into == "gems") and "gems" or "dust"
@@ -10070,12 +9915,6 @@ local function scrapMany(plr, payload)
 		for i = #(p.cards or {}), 1, -1 do
 			if go[p.cards[i].id] then
 				table.remove(p.cards, i)
-			end
-		end
-	elseif kind == "rune" then
-		for i = #(p.runes or {}), 1, -1 do
-			if go[p.runes[i].id] then
-				table.remove(p.runes, i)
 			end
 		end
 	elseif kind == "gear" then
@@ -10173,23 +10012,6 @@ local function scrapItem(plr, payload)
 		markDirty(plr)
 		snap(plr)
 		return
-	elseif kind == "rune" then
-		for i, r in ipairs(p.runes or {}) do
-			if r.id == id then
-				if runeBusy(p, id) then
-					net:FireClient(plr, "toast", "Unsocket it first")
-					return
-				end
-				local gems = Runes.scrapGems(r)
-				p.gems = (p.gems or 0) + gems
-				table.remove(p.runes, i)
-				markDirty(plr)
-				snap(plr)
-				walk(plr)
-				net:FireClient(plr, "toast", "Scrapped rune for " .. gems .. " gems")
-				return
-			end
-		end
 	elseif kind == "gear" then
 		for i, g in ipairs(p.gear or {}) do
 			if g.id == id then
@@ -10701,7 +10523,12 @@ Verbs.Fish.init({ profiles = profiles, net = net, snap = snap, markDirty = markD
 -- ENCHANTS (owner, 2026-10-11): MineEnchantService owns books, slots and the
 -- player level. Also on Dig, because boosts() is declared above Verbs.
 Verbs.Ench = require(script.Parent:WaitForChild("MineEnchantService"))
-Verbs.Ench.init({ profiles = profiles, net = net, snap = snap, markDirty = markDirty })
+Verbs.Ench.init({ profiles = profiles, net = net, snap = snap, markDirty = markDirty,
+	-- The tutorial's enchant step (Intro step 8) ends when a book goes on.
+	onApply = function(plr, p)
+		introAdvance(plr, p, 8)
+	end,
+})
 Dig.EnchSvc = Verbs.Ench
 
 --[[
@@ -12105,17 +11932,14 @@ local function tryPrestige(plr)
 
 		The COIN-LADDER tools (pickaxeTier and the shop rungs) still reset, and
 		that is deliberate and unchanged: those are the cheap early rungs rebirth
-		is meant to make you re-buy quickly, and their socketed runes stay on the
-		family so nothing permanent is lost. Forged tools are the opposite -- paid
-		for in a currency that itself survives.
+		is meant to make you re-buy quickly. Forged tools are the opposite -- paid
+		for in a currency that itself survives, and their enchants with them.
 	]]
 	fresh.oreTools = p.oreTools or {}
 	fresh.oreToolEquipped = p.oreToolEquipped
-	-- Coin-ladder tools reset; socketed runes stay on the family through rebirth.
-	fresh.runes = p.runes
+	-- Coin-ladder tools reset; forged tools, gear and charms stay.
 	fresh.gear = p.gear
 	fresh.equippedGear = p.equippedGear
-	fresh.petSockets = p.petSockets
 	fresh.charms = p.charms or {}
 	fresh.equippedCharm = p.equippedCharm
 	fresh.persistBags = p.persistBags or {}
@@ -12138,8 +11962,6 @@ local function tryPrestige(plr)
 	local rebirthGems = Skills.rebirthGemReward and Skills.rebirthGemReward(fresh.prestige, fresh.maxUnlockedZone) or 0
 	fresh.gems = (p.gems or 0) + rebirthGems
 	fresh.credits = p.credits or 0
-	fresh.scrolls = p.scrolls or Scrolls.emptyBag()
-	fresh.toolSockets = p.toolSockets or { pickaxe = nil, drill = nil, explosive = nil }
 	-- Temperaments ride on the family too, so the coin ladder resetting does not
 	-- take a roll you paid tokens for.
 	fresh.toolTempers = p.toolTempers or {}
@@ -12187,7 +12009,7 @@ local function tryPrestige(plr)
 	tp(plr, cloudCf())
 	givePickaxe(plr)
 	giveBackpackModel(plr)
-	net:FireClient(plr, "toast", string.format("Rebirth %d! +%d skill points, +%d tokens, +%d gems. Tool runes stay socketed through rebirth.",
+	net:FireClient(plr, "toast", string.format("Rebirth %d! +%d skill points, +%d tokens, +%d gems. Forged tools and their enchants stay.",
 		fresh.prestige, Skills.tokensFor(fresh.prestige), Skills.rebirthTokens(fresh.prestige), rebirthGems))
 	if fresh.prestige == 1 then
 		local Temper = require(shared.MineTemper)
@@ -12205,59 +12027,6 @@ local function tryPrestige(plr)
 		re-plan should open the screen you re-plan on.
 	]]
 	net:FireClient(plr, "openPanel", "skills")
-end
-
-function Verbs.debugGrantRune(plr, payload)
-	if not Svc.Run:IsStudio() then return end
-	local p = profiles[plr.UserId]
-	if not p then return end
-	p.runes = p.runes or {}
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	p.gear = p.gear or {}
-	p.equippedGear = p.equippedGear or {}
-
-	local n = math.clamp(tonumber(payload and payload.count) or 20, 1, 50)
-	local rng = Random.new()
-	for _ = 1, n do
-		-- T10 blast: 0.60% doubled nine times.
-		table.insert(p.runes, {
-			id = instanceHex16(),
-			kind = "explosive",
-			stat = "blastRadius",
-			tier = 10,
-			pct = Runes.pctForTier("blastRadius", 10),
-			level = 10,
-		})
-	end
-	-- Tier/level 99 "damage" runes = pickaxe mineSpeed (tool power).
-	local nDmg = math.clamp(tonumber(payload and payload.damageCount) or 20, 1, 50)
-	for _ = 1, nDmg do
-		table.insert(p.runes, {
-			id = instanceHex16(),
-			kind = "pickaxe",
-			stat = "mineSpeed",
-			tier = 10,
-			pct = Runes.pctForTier("mineSpeed", 10),
-			level = 99,
-		})
-	end
-	p.scrolls.white = (p.scrolls.white or 0) + 1
-
-	-- Full Exotic Inferno (blast) set, equipped.
-	for _, slot in ipairs(Gear.SLOTS) do
-		local piece = Gear.makePiece(instanceHex16(), "inferno", slot, "SSS",
-			Gear.catalogFor and Gear.catalogFor(slot, "SSS", "inferno", Random.new()) or nil)
-		if piece then
-			piece.stat = "blastRadius"
-			table.insert(p.gear, piece)
-			p.equippedGear[slot] = piece.id
-		end
-	end
-
-	givePickaxe(plr)
-	net:FireClient(plr, "toast", string.format("Granted %d blast + %d L99 damage runes, Sinkhole, Exotic Inferno", n, nDmg))
-	snap(plr)
-	walk(plr)
 end
 
 function Verbs.debugGrantBlastSet(plr)
@@ -12280,27 +12049,6 @@ function Verbs.debugGrantBlastSet(plr)
 	walk(plr)
 end
 
-function Verbs.debugGrantL99Blast(plr, payload)
-	if not Svc.Run:IsStudio() then return end
-	local p = profiles[plr.UserId]
-	if not p then return end
-	p.runes = p.runes or {}
-	local n = math.clamp(tonumber(payload and payload.count) or 5, 1, 30)
-	local rng = Random.new()
-	for _ = 1, n do
-		table.insert(p.runes, {
-			id = instanceHex16(),
-			kind = "explosive",
-			stat = "blastRadius",
-			tier = 10,
-			pct = Runes.pctForTier("blastRadius", 10),
-			level = 99,
-		})
-	end
-	net:FireClient(plr, "toast", string.format("Granted %d× L99 +300%% blast runes (gear-socketable)", n))
-	snap(plr)
-end
-
 --[[
 	Buy rolls in bulk.
 
@@ -12317,46 +12065,6 @@ local function rollCount(payload)
 		n = tonumber(payload.count)
 	end
 	return math.clamp(math.floor(n or 1), 1, Const.ROLL_MAX)
-end
-
-function Verbs.rollRuneBanner(plr, payload)
-	local p = profiles[plr.UserId]
-	local want = rollCount(payload)
-	local price = Runes.rollPriceFor(p.maxUnlockedZone)
-	if (p.gems or 0) < price then
-		net:FireClient(plr, "toast", "Need " .. price .. " gems")
-		return
-	end
-	local done = 0
-	local def = Packs.PACK_BY_ID.rune_pack
-	p.packs = p.packs or {}
-	for _ = 1, want do
-		if (p.gems or 0) < price then break end
-		p.gems -= price
-		done += 1
-		table.insert(p.packs, {
-			packId = "rune_pack",
-			packName = (def and def.name) or "Rune Pouch",
-			kind = "rune",
-		})
-	end
-	if done == 1 then
-		net:FireClient(plr, "toast", (def and def.name or "Rune Pouch") .. "!")
-	elseif done > 1 then
-		net:FireClient(plr, "toast", string.format("%d× %s  (-%s gems)",
-			done, (def and def.name) or "Rune Pouch", tostring(done * price)))
-	end
-	if done < want then
-		net:FireClient(plr, "toast", string.format("Ran out of gems after %d of %d", done, want))
-	end
-	if done > 0 then
-		introAdvance(plr, p, 8)
-		-- The pouch flies into the bag on screen (MineClient flyToBag).
-		net:FireClient(plr, "purchaseFx", { kind = "pack", packId = "rune_pack", count = done,
-			name = (def and def.name) or "Rune Pouch" })
-	end
-	snap(plr)
-	walk(plr)
 end
 
 function Verbs.rollGearBanner(plr, payload)
@@ -12468,192 +12176,6 @@ function Verbs.upgradeGear(plr, payload)
 	net:FireClient(plr, "gearUpgraded", { id = made.id, from = was, to = made.rarity })
 	markDirty(plr)
 	snap(plr)
-end
-
-function Verbs.fuseRunes(plr, payload)
-	local p = profiles[plr.UserId]
-	local aId, bId = payload and payload.a, payload and payload.b
-	local a, b = runeById(p, aId), runeById(p, bId)
-	if not a or not b or aId == bId then net:FireClient(plr, "toast", "Pick two different runes") return end
-	if runeBusy(p, aId) or runeBusy(p, bId) then net:FireClient(plr, "toast", "Unequip both runes before fusing") return end
-	local preview, err = Runes.fusePreview(a, b)
-	if not preview then net:FireClient(plr, "toast", err or "Cannot fuse") return end
-	if (p.gems or 0) < preview.cost then net:FireClient(plr, "toast", "Need " .. preview.cost .. " gems") return end
-	local protected = (a.whiteArmed == true) or (b.whiteArmed == true)
-	p.gems -= preview.cost
-	--[[
-		One flat independent coin flip, Runes.FUSE_SUCCESS, every attempt.
-
-		There is no pity ledger, no per-level fail counter and no way to force a
-		win. The previous version kept p.fusePity keyed on levelA+levelB and
-		handed out a guaranteed success after five failures; that is exactly
-		what must not exist here. Do not add it back in any form.
-	]]
-	local chance = Runes.FUSE_SUCCESS
-	local hit = Random.new():NextNumber() < chance
-	-- Consume white arming either way; mark whiteUsed so future fuses are 5x.
-	local function consumeWhite(r)
-		if r.whiteArmed then
-			r.whiteArmed = nil
-			r.whiteUsed = true
-		end
-	end
-	if not hit then
-		if protected then
-			consumeWhite(a)
-			consumeWhite(b)
-			net:FireClient(plr, "toast", string.format("Fuse failed (%.0f%%). White Scroll saved both runes.", chance * 100))
-		else
-			removeRune(p, aId)
-			removeRune(p, bId)
-			net:FireClient(plr, "toast", string.format("Fuse failed (%.0f%%). Both runes destroyed.", chance * 100))
-		end
-		-- A miss gets the small "no", never a fanfare (MineCelebrate's honesty rule).
-		net:FireClient(plr, "luckResult", { ok = false, kind = "fuse" })
-		snap(plr)
-		return
-	end
-	consumeWhite(a)
-	consumeWhite(b)
-	local whiteUsed = a.whiteUsed or b.whiteUsed or false
-	removeRune(p, aId)
-	removeRune(p, bId)
-	local out = {
-		id = instanceHex16(), kind = preview.kind, stat = preview.stat, pct = preview.pct,
-		tier = preview.tier,
-		level = preview.level, secondaryStat = preview.secondaryStat, secondaryPct = preview.secondaryPct,
-		whiteUsed = whiteUsed,
-	}
-	table.insert(p.runes, out)
-	net:FireClient(plr, "toast", "Fused! " .. Runes.describe(out))
-	-- For the client to celebrate by what was really made (MineCelebrate). Each
-	-- tier is another coin flip on top of the last, so a deep fuse is rare.
-	net:FireClient(plr, "luckResult", { ok = true, kind = "fuse", runeTier = out.tier,
-		title = "FUSED!  T" .. tostring(out.tier) })
-	snap(plr)
-	walk(plr)
-end
-
-function Verbs.socketToolRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local runeId = payload and payload.runeId
-	local family = tostring(payload and payload.family or p.toolFamily or "pickaxe")
-	local chestId = payload and payload.chestId
-	local shopToolId = payload and payload.shopToolId
-	local rune = runeById(p, runeId)
-	if not rune then net:FireClient(plr, "toast", "Unknown rune") return end
-	if runeBusy(p, runeId) then net:FireClient(plr, "toast", "That rune is already socketed") return end
-	local function bindDestroyingPrevious(prevId, assign)
-		if prevId then
-			if (p.gems or 0) < Runes.RESOCKET_PRICE then
-				net:FireClient(plr, "toast", "Destroying the old rune costs " .. Runes.RESOCKET_PRICE .. " gems")
-				return false
-			end
-			p.gems -= Runes.RESOCKET_PRICE
-			removeRune(p, prevId)
-		end
-		assign()
-		return true
-	end
-	if chestId then
-		local ct
-		for _, row in ipairs(p.chestTools or {}) do if row.id == chestId then ct = row break end end
-		if not ct then net:FireClient(plr, "toast", "Unknown chest tool") return end
-		if not Runes.canSocketOnTool(rune, ct.family or family) then net:FireClient(plr, "toast", "Wrong rune kind") return end
-		if not bindDestroyingPrevious(ct.runeId, function() ct.runeId = runeId end) then return end
-	elseif shopToolId then
-		-- Every coin-shop tool has its own socket (the client always sent
-		-- shopToolId; nothing here read it, so the rune fell into the family
-		-- socket or bounced with "Buy that tool first").
-		shopToolId = tostring(shopToolId)
-		if not (p.ownedShopTools and p.ownedShopTools[shopToolId]) then net:FireClient(plr, "toast", "Buy that tool first") return end
-		p.shopToolRunes = p.shopToolRunes or {}
-		if not bindDestroyingPrevious(p.shopToolRunes[shopToolId], function() p.shopToolRunes[shopToolId] = runeId end) then return end
-	else
-		if not Runes.canSocketOnTool(rune, family) then net:FireClient(plr, "toast", "Wrong rune kind for that tool") return end
-		if (p.tools[family] or 0) <= 0 then net:FireClient(plr, "toast", "Buy that tool first") return end
-		local slot = tostring(payload and payload.slot or "main")
-		local sock = familySocket(p, family)
-		if slot == "omni" and not sock.omniUnlocked then
-			net:FireClient(plr, "toast", "Unlock omni socket with an Omniscroll first")
-			return
-		end
-		local prevId = (slot == "omni") and sock.omni or sock.main
-		if not bindDestroyingPrevious(prevId, function()
-			if slot == "omni" then sock.omni = runeId else sock.main = runeId end
-		end) then return end
-	end
-	net:FireClient(plr, "toast", "Socketed " .. Runes.describe(rune) .. " (locked until destroyed)")
-	introAdvance(plr, p, 9)
-	snap(plr)
-	walk(plr)
-end
-
-local function destroyToolRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local family = tostring(payload and payload.family or "")
-	local chestId = payload and payload.chestId
-	local shopToolId = payload and payload.shopToolId and tostring(payload.shopToolId)
-	if (p.gems or 0) < Runes.RESOCKET_PRICE then
-		net:FireClient(plr, "toast", "Destroying a socketed rune costs " .. Runes.RESOCKET_PRICE .. " gems")
-		return
-	end
-	if shopToolId then
-		local rid = p.shopToolRunes and p.shopToolRunes[shopToolId]
-		if rid then
-			p.gems -= Runes.RESOCKET_PRICE
-			removeRune(p, rid)
-			p.shopToolRunes[shopToolId] = nil
-			net:FireClient(plr, "toast", "Rune destroyed")
-			snap(plr)
-			walk(plr)
-			return
-		end
-	elseif chestId then
-		for _, ct in ipairs(p.chestTools or {}) do
-			if ct.id == chestId and ct.runeId then
-				p.gems -= Runes.RESOCKET_PRICE
-				removeRune(p, ct.runeId)
-				ct.runeId = nil
-				net:FireClient(plr, "toast", "Rune destroyed")
-				snap(plr)
-				walk(plr)
-				return
-		end
-		end
-	elseif family ~= "" then
-		local slot = tostring(payload and payload.slot or "main")
-		local sock = familySocket(p, family)
-		local runeId = (slot == "omni") and sock.omni or sock.main
-		if runeId then
-			p.gems -= Runes.RESOCKET_PRICE
-			removeRune(p, runeId)
-			if slot == "omni" then sock.omni = nil else sock.main = nil end
-			net:FireClient(plr, "toast", "Rune destroyed")
-			snap(plr)
-			walk(plr)
-			return
-		end
-	end
-	net:FireClient(plr, "toast", "No socketed rune to destroy")
-end
-
-function Verbs.socketPetRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local rune = runeById(p, payload and payload.runeId)
-	local cardId = payload and payload.cardId
-	if not rune or not Runes.canSocketOnPet(rune) then net:FireClient(plr, "toast", "Only pet runes go on pets") return end
-	if not cardById(p, cardId) then net:FireClient(plr, "toast", "Unknown pet") return end
-	if runeBusy(p, rune.id) then net:FireClient(plr, "toast", "Rune already socketed") return end
-	if p.petSockets[cardId] then
-		if (p.gems or 0) < Runes.RESOCKET_PRICE then net:FireClient(plr, "toast", "Resocket costs " .. Runes.RESOCKET_PRICE .. " gems") return end
-		p.gems -= Runes.RESOCKET_PRICE
-	end
-	p.petSockets[cardId] = rune.id
-	introAdvance(plr, p, 9)
-	introAdvance(plr, p, 26)
-	snap(plr)
-	walk(plr)
 end
 
 function Verbs.unequipGearPiece(plr, payload)
@@ -12770,152 +12292,14 @@ function Verbs.equipGearPiece(plr, payload)
 	applyPlayerCosmetics(plr)
 end
 
-function Verbs.socketGearRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local piece = gearById(p, payload and payload.gearId)
-	local rune = runeById(p, payload and payload.runeId)
-	local index = tonumber(payload and payload.index) or 1
-	if not piece or not rune then net:FireClient(plr, "toast", "Pick gear and rune") return end
-	if not Runes.canSocketOnGear(rune) then net:FireClient(plr, "toast", "That rune cannot socket on gear") return end
-	if runeBusy(p, rune.id) then net:FireClient(plr, "toast", "Rune already socketed") return end
-	piece.sockets = piece.sockets or {}
-	if index < 1 or index > (piece.slotCount or 0) then net:FireClient(plr, "toast", "No such socket") return end
-	if piece.sockets[index] then net:FireClient(plr, "toast", "Socket filled forever - cannot remove") return end
-	piece.sockets[index] = rune.id
-	net:FireClient(plr, "toast", "Locked into gear (permanent)")
-	introAdvance(plr, p, 9)
-	snap(plr)
-	walk(plr)
-end
-
-local function grantScrolls(p, id, qty)
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	p.scrolls[id] = (p.scrolls[id] or 0) + qty
-end
-
---[[
-	Pouches and crates. A pouch is a blind pull from every set; a crate is aimed
-	at one set and costs a lot more, which is how you finish the set you are
-	three-quarters through. Both pay gems, so there is a non-Robux path to
-	scrolls -- white protects a fuse, and fusing is the long grind.
-]]
-local function openRuneBox(plr, spec, setId)
-	local p = profiles[plr.UserId]
-	if not spec then
-		net:FireClient(plr, "toast", "Unknown box")
-		return
+-- Enchant books a reward pays (the pass, the Founders pack), as one bundle.
+-- They paid scrolls until scrolls were retired with runes (2026-10-12). A Dig
+-- field, not a local, so the join-time Founders check above can reach it.
+function Dig.grantBooks(p, n, rank, slotFilter)
+	n = math.floor(tonumber(n) or 0)
+	if Dig.EnchSvc and n > 0 then
+		return Dig.EnchSvc.grantBundle(p, n, rank, slotFilter)
 	end
-	if (p.gems or 0) < spec.gems then
-		net:FireClient(plr, "toast", "Need " .. spec.gems .. " gems")
-		return
-	end
-	p.gems -= spec.gems
-	local result = Runes.openBox(spec, setId, instanceHex16, Random.new())
-	for _, r in ipairs(result.runes or {}) do
-		table.insert(p.runes, r)
-	end
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	local extras = {}
-	for id, n in pairs(result.scrolls or {}) do
-		if n > 0 then
-			p.scrolls[id] = (p.scrolls[id] or 0) + n
-			table.insert(extras, n .. "x " .. id)
-		end
-	end
-	table.sort(extras)
-	local count = #(result.runes or {})
-	local line = spec.name .. ": " .. count .. (count == 1 and " rune" or " runes")
-	if #extras > 0 then
-		line = line .. " + " .. table.concat(extras, ", ")
-	end
-	net:FireClient(plr, "toast", line)
-	net:FireClient(plr, "boxOpened", { spec = spec.id, runes = result.runes, scrolls = result.scrolls })
-	snap(plr)
-	walk(plr)
-end
-
-function Verbs.buyPouch(plr, payload)
-	openRuneBox(plr, Runes.pouch(payload and payload.tier), nil)
-end
-
-function Verbs.buyCrate(plr, payload)
-	local setId = payload and payload.setId
-	if not Runes.set(setId) then
-		net:FireClient(plr, "toast", "Pick a set to aim the crate at")
-		return
-	end
-	openRuneBox(plr, Runes.crate(payload and payload.tier), setId)
-end
-
-function Verbs.buyScroll(plr, payload)
-	local p = profiles[plr.UserId]
-	local id = payload and payload.id
-	local item = Scrolls.itemById(id)
-	if not item then
-		net:FireClient(plr, "toast", "Unknown scroll")
-		return
-	end
-	local cost, grant = item.price, 1
-	if payload and payload.bundle then
-		if not item.bundleQty then
-			net:FireClient(plr, "toast", "No bundle for that item")
-			return
-		end
-		cost = item.bundlePrice or (item.price * item.bundleQty)
-		grant = item.bundleQty
-	end
-	cost = C.vipPrice(cost, hasVipPass(plr))
-
-	--[[
-		A TYPED QUANTITY. Owner: "a custom amoujt of packs to buy (the player
-		can write the number themselves [default 1])".
-
-		Multiplies whatever one unit costs -- so it stacks on a bundle too, and
-		the VIP discount is applied before the multiply rather than after, or
-		buying ten would round the discount away ten times.
-
-		Short on credits pays out what you CAN afford rather than refusing,
-		which is the same contract openMany documents for "open 10" off a stack
-		of six. Refusing a 50-pack request because you can afford 49 is the
-		behaviour that makes people stop using the box.
-	]]
-	local qty = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
-		1, Const.BUY_QTY_MAX)
-	local unit, unitGrant = cost, grant
-	local have = tonumber(p.credits) or 0
-	if unit > 0 then
-		qty = math.min(qty, math.floor(have / unit))
-	end
-	if qty < 1 then
-		net:FireClient(plr, "toast", "Need " .. unit .. " credits")
-		return
-	end
-	cost, grant = unit * qty, unitGrant * qty
-
-	if (p.credits or 0) < cost then
-		net:FireClient(plr, "toast", "Need " .. cost .. " credits")
-		return
-	end
-	p.credits -= cost
-	if id == "runesmith" and item.grants then
-		for k, v in pairs(item.grants) do
-			grantScrolls(p, k, v)
-		end
-	else
-		grantScrolls(p, id, grant)
-	end
-	net:FireClient(plr, "toast", "Bought " .. item.name .. (grant > 1 and (" x" .. grant) or ""))
-	-- Say so when the box asked for more than the wallet could cover, or a
-	-- short fill looks like the number was ignored.
-	do
-		local asked = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
-			1, Const.BUY_QTY_MAX)
-		if asked > qty then
-			net:FireClient(plr, "toast", string.format(
-				"Only %d of %d - that is what %d credits covered", qty, asked, have))
-		end
-	end
-	snap(plr)
 end
 
 --[[
@@ -12959,7 +12343,7 @@ local function joinVip(plr)
 			local seatsRef = { left = vipSeatsLeft }
 			if Founders.grant(p, plr, "gamepass", {
 				seatsRef = seatsRef,
-				grantScrolls = grantScrolls,
+				grantBooks = Dig.grantBooks,
 				toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 			}) then
 				vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -12983,7 +12367,7 @@ local function joinVip(plr)
 		local seatsRef = { left = vipSeatsLeft }
 		Founders.grant(p, plr, "credits", {
 			seatsRef = seatsRef,
-			grantScrolls = grantScrolls,
+			grantBooks = Dig.grantBooks,
 			toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 		})
 		vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -12996,7 +12380,7 @@ end
 
 local function cartPrice(line)
 	local kind, id = line.kind, tostring(line.id)
-	-- Shop sells packs (and scrolls) only — never individual cards.
+	-- Shop sells packs only — never individual cards. (Scrolls retired 2026-10-12.)
 	if kind == "card" or kind == "cards" or kind == "pet" then
 		return nil
 	end
@@ -13009,18 +12393,6 @@ local function cartPrice(line)
 			return Packs.bundlePrice(id), Packs.BUNDLE_QTY
 		end
 		return unit, 1
-	elseif kind == "scroll" then
-		local item = Scrolls.itemById(id)
-		if not item then
-			return nil
-		end
-		if line.bundle then
-			if not item.bundleQty then
-				return nil
-			end
-			return item.bundlePrice or (item.price * item.bundleQty), item.bundleQty
-		end
-		return item.price, 1
 	elseif kind == "lucky_block" then
 		local LuckyBlocks = require(shared.MineLuckyBlocks)
 		if not LuckyBlocks.def(id) then
@@ -13243,19 +12615,6 @@ local function buyCart(plr, payload)
 			end
 			table.insert(granted, { kind = "pack", id = line.id,
 				name = (def and def.name) or line.id, qty = line.grant })
-		elseif line.kind == "scroll" then
-			local item = Scrolls.itemById(line.id)
-			if line.id == "runesmith" and item and item.grants then
-				for _ = 1, line.qty do
-					for k, v in pairs(item.grants) do
-						grantScrolls(p, k, v)
-					end
-				end
-			else
-				grantScrolls(p, line.id, line.grant)
-			end
-			table.insert(granted, { kind = "scroll", id = line.id,
-				name = (item and item.name) or line.id, qty = line.grant })
 		elseif line.kind == "lucky_block" then
 			local LuckyBlocks = require(shared.MineLuckyBlocks)
 			local def = LuckyBlocks.def(line.id)
@@ -13665,9 +13024,6 @@ function Verbs.sellTool(plr, payload)
 		if not row then
 			return refuse("You do not own that")
 		end
-		if row.runeId then
-			return refuse("Unsocket its rune first")
-		end
 		local def = Tools.chestTool(id)
 		local dust, tokens = Tools.foreverSellValue(def, row)
 		table.remove(p.chestTools, at)
@@ -13792,10 +13148,8 @@ function Verbs.claimPass(plr, payload)
 		if reward.dust then
 			profile.dust = (profile.dust or 0) + reward.dust
 		end
-		if type(reward.scrolls) == "table" then
-			for id, qty in pairs(reward.scrolls) do
-				grantScrolls(profile, id, qty)
-			end
+		if reward.books then
+			Dig.grantBooks(profile, reward.books)
 		end
 		if type(reward.luckyBlocks) == "table" then
 			local okLB, LuckyBlocks = pcall(function()
@@ -13961,14 +13315,12 @@ function Verbs.claimPass(plr, payload)
 				end
 				p.packs = livePacks
 			end
-			-- Currency / scrolls / tools from this claim onto live (ledger already on p.pass).
+			-- Currency / books / tools from this claim onto live (ledger already on p.pass).
 			if reward.credits then p.credits = (p.credits or 0) + reward.credits end
 			if reward.gems then p.gems = (p.gems or 0) + reward.gems end
 			if reward.dust then p.dust = (p.dust or 0) + reward.dust end
-			if type(reward.scrolls) == "table" then
-				for id, qty in pairs(reward.scrolls) do
-					grantScrolls(p, id, qty)
-				end
+			if reward.books then
+				Dig.grantBooks(p, reward.books)
 			end
 			if reward.toolId then
 				grantPassSignatureTool(p, reward.toolId, plr)
@@ -14390,74 +13742,6 @@ function Verbs.discordLink(plr, payload)
 		net:FireClient(plr, "discordLinked", { ok = true, discordId = p.discordId })
 	end
 	net:FireClient(plr, "toast", tostring(msg or (ok and "Linked" or "Failed")))
-end
-
-function Verbs.armWhiteScroll(plr, payload)
-	local p = profiles[plr.UserId]
-	local rune = runeById(p, payload and payload.runeId)
-	if not rune then
-		net:FireClient(plr, "toast", "Unknown rune")
-		return
-	end
-	if runeBusy(p, rune.id) then
-		net:FireClient(plr, "toast", "Unequip rune before arming")
-		return
-	end
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	if (p.scrolls.white or 0) < 1 then
-		net:FireClient(plr, "toast", "Need a White Scroll")
-		return
-	end
-	p.scrolls.white -= 1
-	rune.whiteArmed = true
-	net:FireClient(plr, "toast", "White Scroll armed on " .. Runes.describe(rune))
-	snap(plr)
-end
-
-function Verbs.blackUnequipToolRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local family = tostring(payload and payload.family or p.toolFamily or "pickaxe")
-	local slot = tostring(payload and payload.slot or "main")
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	if (p.scrolls.black or 0) < 1 then
-		net:FireClient(plr, "toast", "Need a Black Scroll")
-		return
-	end
-	local sock = familySocket(p, family)
-	local runeId = (slot == "omni") and sock.omni or sock.main
-	if not runeId then
-		net:FireClient(plr, "toast", "No rune in that socket")
-		return
-	end
-	local rune = runeById(p, runeId)
-	p.scrolls.black -= 1
-	if slot == "omni" then sock.omni = nil else sock.main = nil end
-	if rune then
-		-- No "100% next fuse" any more: every fuse is a flat 50% for everyone.
-		net:FireClient(plr, "toast", "Black Scroll: " .. Runes.describe(rune) .. " returned to your runes")
-	else
-		net:FireClient(plr, "toast", "Socket cleared")
-	end
-	snap(plr)
-end
-
-function Verbs.applyOmniscroll(plr, payload)
-	local p = profiles[plr.UserId]
-	local family = tostring(payload and payload.family or p.toolFamily or "pickaxe")
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	if (p.scrolls.omni or 0) < 1 then
-		net:FireClient(plr, "toast", "Need an Omniscroll")
-		return
-	end
-	local sock = familySocket(p, family)
-	if sock.omniUnlocked then
-		net:FireClient(plr, "toast", "That family already has omni unlocked")
-		return
-	end
-	p.scrolls.omni -= 1
-	sock.omniUnlocked = true
-	net:FireClient(plr, "toast", "Omniscroll unlocked second socket on " .. family)
-	snap(plr)
 end
 
 function Verbs.buyCreditPack(plr, payload)
@@ -15059,25 +14343,12 @@ function Dig.planUpgrades(p)
 	-- Claimed during this plan only. Higher-priority seats may take a hat off a
 	-- lower seat; sanitizeHatUniqueness clears duplicates after equip.
 	local used = {}
-	local function hasSocket(on)
-		for _, r in pairs((on and on.sockets) or {}) do
-			if r then
-				return true
-			end
-		end
-		return false
-	end
 	-- Better by effective boost value (universal-weighted powerScore), not grade alone.
 	local function beats(cand, on)
 		if not on then
 			return true
 		end
 		if cand == on or cand.id == on.id then
-			return false
-		end
-		-- A socket is permanent: swapping a piece with a rune in it strands the
-		-- rune, so "better" never means that on its own.
-		if hasSocket(on) then
 			return false
 		end
 		return Dig.gearScore(cand) > Dig.gearScore(on) + 1e-6
@@ -15271,42 +14542,6 @@ Dig.boostSources = function(p)
 				add(row.stat, "Charter: " .. tostring(row.name or id), row.per * math.min(level, row.max))
 			end
 		end
-		local byRune = {}
-		for _, r in ipairs(p.runes or {}) do
-			byRune[r.id] = r
-		end
-		local function rune(label, rid)
-			local r = rid and byRune[rid]
-			if r then
-				local b = Cards.emptyBoosts()
-				Runes.applyRune(b, r)
-				Cards.foldSwingRate(b)
-				diff(label, b)
-			end
-		end
-		local _, fam = equippedTool(p)
-		local sock = p.toolSockets and p.toolSockets[fam]
-		if type(sock) == "string" then
-			rune("Rune on your " .. tostring(fam), sock)
-		elseif type(sock) == "table" then
-			rune("Rune on your " .. tostring(fam), sock.main)
-			rune("Omni rune", sock.omni)
-		end
-		for _, ct in ipairs(p.chestTools or {}) do
-			if ct.runeId and p.chestTool == ct.id then
-				rune("Rune on " .. tostring(ct.name or "tool"), ct.runeId)
-			end
-		end
-		if p.shopToolId and not p.chestTool and p.shopToolRunes then
-			rune("Rune on your tool", p.shopToolRunes[p.shopToolId])
-		end
-		for _, cardId in ipairs(p.equipped or {}) do
-			local rid = p.petSockets and p.petSockets[cardId]
-			local c = rid and cardById(p, cardId)
-			if c then
-				rune("Rune on " .. tostring(c.name or "pet"), rid)
-			end
-		end
 		--[[
 			Hats and the face are multipliers on the pets, not stats of their
 			own, so each one is measured the honest way: stack the team with
@@ -15316,19 +14551,18 @@ Dig.boostSources = function(p)
 		do
 			local rows, pieces = Dig.petRows(p, #(p.equipped or {}))
 			local eq = p.equippedGear or {}
-			local function variant(withHats, withRunes, onlyIndex)
+			local function variant(withHats, onlyIndex)
 				local v = {}
 				for i, r in ipairs(rows) do
 					local keep = (onlyIndex == nil) or (i == onlyIndex)
 					v[i] = {
 						delta = r.delta,
 						hat = (withHats and keep) and r.hat or nil,
-						rune = (withRunes and keep) and r.rune or nil,
 					}
 				end
 				return v
 			end
-			local bare = Gear.stackPets(variant(false, false), nil, nil)
+			local bare = Gear.stackPets(variant(false), nil, nil)
 			local function emit(name, total)
 				local b = Cards.emptyBoosts()
 				for stat, amount in pairs(total) do
@@ -15346,10 +14580,7 @@ Dig.boostSources = function(p)
 			end
 			for i, row in ipairs(rows) do
 				if row.hat then
-					emit((row.hat.name or "Hat") .. " on " .. row.name, Gear.stackPets(variant(true, false, i), nil, nil))
-				end
-				if row.rune then
-					emit("Rune on " .. row.name .. " (spread)", Gear.stackPets(variant(false, true, i), nil, nil))
+					emit((row.hat.name or "Hat") .. " on " .. row.name, Gear.stackPets(variant(true, i), nil, nil))
 				end
 			end
 			--[[
@@ -15374,9 +14605,6 @@ Dig.boostSources = function(p)
 				Cards.foldSwingRate(gearOnly)
 				diff("Your gear (flat, layer 2)", gearOnly)
 			end
-			local gb = Cards.emptyBoosts()
-			Gear.applyEquipped(gb, { hat = myHat, face = myFace }, byRune)
-			diff("Runes in your gear", gb)
 		end
 		if p.equippedCharm then
 			local cb = Cards.emptyBoosts()
@@ -15408,13 +14636,13 @@ Verbs.KEEP_ON_REBIRTH = {
 	-- fishing: rod levels "stays between rebirths" (owner), and so do the bait and the cooler
 	"fishing",
 	-- enchant books and the player level are account progress, not the coin ladder
-	"enchantBooks", "level", "xp",
+	"enchantBooks", "level", "xp", "bookMerges",
 	-- owned things (some bought with Robux)
 	"ownedPets", "potions", "activePotions", "vfx", "equippedVfx", "chestBag", "vipPass", "vip",
 	-- the daily wheel: banked Robux spins, and today's free spins (a rebirth
 	-- must neither wipe paid spins nor hand out a fresh day of free ones)
 	"groupWheel",
-	"shopToolRunes", "charms", "equippedCharm", "dealBuys", "creditBuys",
+	"charms", "equippedCharm", "dealBuys", "creditBuys",
 	-- records and settings
 	"packsOpened", "playtime", "settings",
 	-- save guard: a profile that never loaded must stay unsaveable
@@ -15802,10 +15030,12 @@ end
 	lookup is retried with backoff for as long as the player stays.
 ]]
 Verbs.PAID_RANDOM = {
-	buyCart = true, buyScroll = true, buyDustPack = true, buyDustCase = true, luckyGradeUp = true,
-	rollRune = true, rollGear = true, rollTemper = true, fuseRune = true,
+	buyCart = true, buyDustPack = true, buyDustCase = true, luckyGradeUp = true,
+	rollGear = true, rollTemper = true,
 	openTemperCase = true, openTemperCaseBundle = true, scrapTemper = true,
-	buyCrate = true, buyCharmsPack = true, buyPouch = true,
+	buyCharmsPack = true,
+	-- The Forge's gem book bundle: random books for gems (MineEnchants.SHOP_BUNDLE).
+	enchBuyBundle = true,
 }
 
 function Verbs.fetchPolicy(plr)
@@ -17742,90 +16972,6 @@ function Verbs.craftOreTool(plr, payload)
 	snap(plr)
 end
 
---[[
-	ENCHANT A TOOL. One verb, one flat price, one roll.
-
-	Owner, 2026-10-04: applying a trait is "the same rarity as rune/temperment/skins",
-	Exotic at 1/1000 and Exotic V at 1/5000, level random 1-5, and the price
-	"stays the same with rebirths (broke players arent going to try to get
-	exotic V, endgame players will.)".
-
-	So this is a GACHA, not a purchase: you pay MineTraits.ROLL_PRICE and get
-	what the table gives you. The price reads no prestige, no rebirth count, no
-	zone and no tool tier -- tools/verify/traits.js asserts that, because a
-	price that quietly scaled with rebirth would break the one sentence the
-	owner was most specific about.
-
-	Server-authoritative in the way that matters: the client names a uid and
-	nothing else. The rarity, the trait and the level are all rolled here
-	with a server rng.
-]]
-function Verbs.rollTrait(plr, payload)
-	local p = profiles[plr.UserId]
-	if not p then
-		return
-	end
-	local Traits = Dig.Traits
-	local uid = (type(payload) == "table") and payload.uid or payload
-	local tool = Verbs._findOreTool(p, uid)
-	if not tool then
-		net:FireClient(plr, "toast", "That tool is not in your bag")
-		return
-	end
-
-	local cost = Traits.ROLL_PRICE
-	local have = tonumber(p.gems) or 0
-	if have < cost then
-		net:FireClient(plr, "toast", string.format("Needs %s gems",
-			Verbs._benchNum(cost)))
-		return
-	end
-
-	local rolled = Traits.roll(Random.new())
-	if not rolled then
-		net:FireClient(plr, "toast", "The enchanter has nothing to give")
-		return
-	end
-
-	p.gems = have - cost
-	--[[
-		A roll REPLACES what was there. There is no "keep the better one"
-		prompt: that turns every roll into a dialog, and the gamble is the
-		feature. The old one is named in the toast so a player who just lost
-		something good sees what it was.
-	]]
-	local had = type(tool.trait) == "table" and Traits.label(tool.trait) or nil
-	tool.trait = rolled
-
-	local OreTools = require(shared:WaitForChild("MineOreTools"))
-	net:FireClient(plr, "toast", string.format("%s  \u{00B7}  %s%s",
-		OreTools.toolName(tool), Traits.label(rolled),
-		had and ("   (was " .. had .. ")") or ""))
-	bumpStat(plr, p, "traits")
-	--[[
-		The result, for the client to celebrate. The toast alone made a
-		1-in-1000 SSS look exactly like an F. The grade is the trait's REAL
-		rarity, so the celebration size is honest (see MineCelebrate).
-	]]
-	do
-		local def = Traits.byId(rolled.id)
-		net:FireClient(plr, "traitRolled", {
-			uid = tool.uid,
-			id = rolled.id,
-			level = rolled.level,
-			grade = def and def.rarity or "F",
-			label = Traits.label(rolled),
-			oneIn = Traits.odds(rolled.id, rolled.level),
-		})
-	end
-	-- Re-give the tool so its name and its stats both follow the roll.
-	if p.oreToolEquipped == tool.uid then
-		givePickaxe(plr)
-	end
-	markDirty(plr)
-	snap(plr)
-end
-
 function Verbs.recycleOreTool(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -17911,7 +17057,6 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
-		elseif action == "rollTrait" then Verbs.rollTrait(plr, payload)
 		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
@@ -18020,13 +17165,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "goClouds" then Verbs.goClouds(plr)
 		elseif action == "buyTool" then buyTool(plr, payload)
 		elseif action == "buyDepthTool" then buyDepthTool(plr, payload)
-		elseif action == "rollRune" then Verbs.rollRuneBanner(plr, payload)
 		elseif action == "rollGear" then Verbs.rollGearBanner(plr, payload)
-		elseif action == "fuseRune" then Verbs.fuseRunes(plr, payload)
-		elseif action == "socketToolRune" then Verbs.socketToolRune(plr, payload)
-		elseif action == "destroyToolRune" then destroyToolRune(plr, payload)
-		elseif action == "unsocketToolRune" then destroyToolRune(plr, payload)
-		elseif action == "socketPetRune" then Verbs.socketPetRune(plr, payload)
 		-- (No "mergeHats": the two-hat merge was retired 2026-10-10; hats fuse
 		-- three of a kind through upgradeGear.)
 		elseif action == "upgradeGear" then Verbs.upgradeGear(plr, payload)
@@ -18040,8 +17179,6 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "equipGear" then Verbs.equipGearPiece(plr, payload)
 		elseif action == "equipBest" then Verbs.equipBest(plr)
 		elseif action == "unequipGear" then Verbs.unequipGearPiece(plr, payload)
-		elseif action == "socketGearRune" then Verbs.socketGearRune(plr, payload)
-		elseif action == "buyScroll" then Verbs.buyScroll(plr, payload)
 		elseif action == "drinkPotion" then
 			local p = profiles[plr.UserId]
 			if not p or type(payload) ~= "table" then return end
@@ -18188,14 +17325,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			markDirty(plr)
 			snap(plr)
 		elseif action == "joinVip" then joinVip(plr)
-		elseif action == "buyPouch" then Verbs.buyPouch(plr, payload)
-		elseif action == "buyCrate" then Verbs.buyCrate(plr, payload)
-		elseif action == "armWhiteScroll" then Verbs.armWhiteScroll(plr, payload)
-		elseif action == "debugGrantRune" then Verbs.debugGrantRune(plr, payload)
 		elseif action == "debugGrantBlastSet" then Verbs.debugGrantBlastSet(plr)
-		elseif action == "debugGrantL99Blast" then Verbs.debugGrantL99Blast(plr, payload)
-		elseif action == "blackUnequipToolRune" then Verbs.blackUnequipToolRune(plr, payload)
-		elseif action == "applyOmniscroll" then Verbs.applyOmniscroll(plr, payload)
 		elseif action == "buyCreditPack" then Verbs.buyCreditPack(plr, payload)
 		elseif action == "buyCharter" then Verbs.buyCharter(plr, payload)
 		elseif action == "buySeam" then Verbs.buySeam(plr, payload)
@@ -18518,6 +17648,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				grantPacks = Verbs.grantPacks,
 				LuckyBlocks = LuckyBlocks,
 				mint = mint,
+				grantBooks = Dig.grantBooks,
 			})
 		elseif action == "discordLink" then Verbs.discordLink(plr, payload)
 		elseif action == "claimPass" then Verbs.claimPass(plr, payload)
@@ -18534,7 +17665,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			-- A coinflip is a mode inside the trade window now.
 			net:FireClient(plr, "toast", "Open a trade, then switch it to COINFLIP")
 		elseif action == "tradeOffer" then
-			TradeService.setOffer(net, profiles, plr, payload, { isCardSerial = isCardSerial, runeBusy = runeBusy })
+			TradeService.setOffer(net, profiles, plr, payload, { isCardSerial = isCardSerial })
 		elseif action == "tradeMode" then
 			TradeService.setMode(net, profiles, plr, typeof(payload) == "table" and payload.mode or payload)
 		elseif action == "tradeMark" then
@@ -18542,7 +17673,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "tradeWant" then
 			TradeService.want(net, profiles, plr, payload)
 		elseif action == "tradePeek" then
-			TradeService.peek(net, profiles, plr, { isCardSerial = isCardSerial, runeBusy = runeBusy })
+			TradeService.peek(net, profiles, plr, { isCardSerial = isCardSerial })
 		elseif action == "tradeBack" then
 			TradeService.back(net, profiles, plr)
 		elseif action == "tradeReady" then
@@ -18553,7 +17684,6 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			TradeService.confirm(net, profiles, plr, {
 				transferSerial = transferSerial,
 				isCardSerial = isCardSerial,
-				runeBusy = runeBusy,
 				save = save,
 				push = function(p) if p then snap(p) end end,
 			})
@@ -19093,7 +18223,7 @@ Svc.Marketplace.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId,
 			local seatsRef = { left = vipSeatsLeft }
 			if Founders.grant(p, plr, "gamepass", {
 				seatsRef = seatsRef,
-				grantScrolls = grantScrolls,
+				grantBooks = Dig.grantBooks,
 				toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 			}) then
 				vipSeatsLeft = seatsRef.left or vipSeatsLeft

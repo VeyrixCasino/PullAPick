@@ -6,7 +6,6 @@
 //
 //   launchSeason   the game could never start
 //   buyCharter     4 gem upgrades, and the panel said "the charter spends them"
-//   buyPouch       3 rune cases, and the panel said "open a Rune Case"
 //   buyCharm       36 token-priced charms
 //   skillBuySlot   a padlock with no price and no buy
 //
@@ -40,9 +39,7 @@ const KNOWN = {
 
   // Studio-only, and all four are gated on Svc.Run:IsStudio() at the verb.
   devGrant: "Studio only, gated at the verb",
-  debugGrantRune: "Studio only, gated at the verb",
   debugGrantBlastSet: "Studio only, gated at the verb",
-  debugGrantL99Blast: "Studio only, gated at the verb",
 
   // Answered deliberately so an OLD CLIENT gets a sensible reply.
   coinflipAsk: "answered with a redirect; kept for old clients",
@@ -54,7 +51,6 @@ const KNOWN = {
   // Server-side aliases for a verb the client does fire under another name.
   tradeReady: "legacy alias for trade accept, which the client does fire",
   skillSacrifice: "alias",
-  unsocketToolRune: "alias",
   unequipTool: "alias",
   profileView: "reached server-side from SocialService.publicProfile",
 

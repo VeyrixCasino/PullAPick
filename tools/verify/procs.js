@@ -29,7 +29,6 @@ const server = read("src/ServerScriptService/Mine/MineServer.server.luau");
 const cards = read("src/ReplicatedStorage/Mine/Shared/MineCards.luau");
 const stats = read("src/ReplicatedStorage/Mine/Shared/MineStats.luau");
 const gear = read("src/ReplicatedStorage/Mine/Shared/MineGear.luau");
-const runes = read("src/ReplicatedStorage/Mine/Shared/MineRunes.luau");
 
 const grab = (re, what) => {
   const m = cfg.match(re);
@@ -182,8 +181,7 @@ src(/procPower = true/.test(cards), "...and is additive");
 src(/procPower\s*= \{ label = "Proc Power"/.test(stats), "procPower is a real stat");
 src(/"earthquake", "ricochet", "procPower",/.test(stats), "...and is in STAT_ORDER");
 src(/procPower = 0\.\d+,/.test(gear), "gear can roll procPower");
-src((runes.match(/"procPower"/g) || []).length >= 3, "runes can roll procPower on 3+ families");
-src(/drill = \{[^}]*"procPower"/.test(runes), "...drills among them (the drill-friendly ask)");
+// (The rune half -- runes rolling procPower -- left with runes on 2026-10-12.)
 
 console.log("");
 console.log(fail > 0 ? `>>> procs: ${fail} FAILED` : ">>> procs: all assertions passed");

@@ -592,7 +592,7 @@ function MineSkillData.rebirthAdvice(coins, prestige, zone)
 	else
 		status = "farm"
 		reason = string.format(
-			"Farm to %s coins (pay wall %s). Gems/cards/runes/gear/skills keep.",
+			"Farm to %s coins (pay wall %s). Gems/cards/gear/enchants/skills keep.",
 			tostring(minCoins), tostring(cost))
 	end
 	return {

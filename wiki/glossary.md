@@ -2,7 +2,7 @@
 title: Glossary
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/TODO.md §0
   - docs/START-HERE.md
@@ -46,7 +46,7 @@ related: [ambiguous-terms, overview, index]
 
 ## Money
 
-- **Coins** — the haul currency, paid at a sell pad. **Gems** — minted by selling ore; the sink for zones, trait rolls, charm merges. **Stardust** (`p.dust`) — upgrade currency. **Temper tokens** — the rebirth-token currency for hats and cases. **Credits** — Robux-bought. [currencies-and-economy](systems/currencies-and-economy.md)
+- **Coins** — the haul currency, paid at a sell pad. **Gems** — minted by selling ore; the sink for zones, enchant book bundles, charm merges (trait rolls until 2026-10-12). **Stardust** (`p.dust`) — upgrade currency. **Temper tokens** — the rebirth-token currency for hats and cases. **Credits** — Robux-bought. [currencies-and-economy](systems/currencies-and-economy.md)
 - **Haul / `haulMix`** — coins priced while mining, paid at a sell desk. [currencies-and-economy](systems/currencies-and-economy.md)
 - **Ore pouch** — the gem-sellable ore store. **Backpack** — the haul bag. **Item bag** — the inventory shelf. [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md)
 - **`ORE_GEM_SPREAD`** — how much more the top ore sells for than the bottom one. [currencies-and-economy](systems/currencies-and-economy.md)
@@ -66,10 +66,10 @@ related: [ambiguous-terms, overview, index]
 - **Charm shape** — Focus, Twin, Pact, Ward, Brink or Surge: how a charm spends its budget. **Charm merge** — 1 copy plus gems gives the same variant one ore tier deeper. [charms](systems/charms.md)
 - **Ore case** — a 2% per-ore-block drop that pays a skin (75%) or a charm (25%). [skins-cases-and-temper](systems/skins-cases-and-temper.md)
 - **Temper / temperament** — an F…SSS stat kit (what the code calls a skin). **Temper case** — a roll for one. [skins-cases-and-temper](systems/skins-cases-and-temper.md)
-- **Trait** — the prefix on one forged tool, rolled at the Enchanter (500 gems; Exotic V is 1 in 5,000). [traits](systems/traits.md)
-- **Enchanter** — the building with tabs Traits / Merge / Sockets / Summon / Temper / Salvage / Dust. [traits](systems/traits.md)
-- **Rune / socket / scroll** — the old socketed-stat system, still live. **Stage 3** — its deferred retirement. [traits](systems/traits.md)
-- **Pet trait** — a pet's per-print perk (`MineCards.TRAITS`, 12 of them). **`cardPower`** — rarity × variant × shadow × power level. **Set X/Y** — two kit variants per pet name. [pets](systems/pets.md)
+- **Enchant / enchant book** — a book applied to one of a forged tool's three slots (Damage, Utility, Special), levelled I–V; three of a book merge into one a level up. Books come in bundles from chests, lucky blocks and the Forge's gem shop. **Player level** — unlocks the slots. [enchants](systems/enchants.md)
+- **Enchanter** — the building with tabs Summon / Temper / Salvage / Dust. Its Traits, Merge and Sockets tabs went on 2026-10-12. It does not enchant; books are applied at the Forge. [client-and-ui](code/client-and-ui.md)
+- **Tool trait** (retired 2026-10-12) — the prefix once rolled onto one forged tool at the Enchanter. **Rune / socket / scroll** (retired 2026-10-12) — the old socketed-stat system. **Stage 3** — the old name for their retirement. [traits](systems/traits.md)
+- **Pet trait** (the "trait" that is still live) — a pet's per-print perk (`MineCards.TRAITS`, 12 of them). **`cardPower`** — rarity × variant × shadow × power level. **Set X/Y** — two kit variants per pet name. [pets](systems/pets.md)
 - **Pet seat / hat seat** — 3 each. **EH pets** — the 73 Event Horizon pets. [pets](systems/pets.md)
 - **Gear** — hats plus a face. **Hat crate** (`gear_pack`) — 5 rebirth tokens. **Gear set** — one of 10 stat identities. **NewGear** — a prototype catalog not wired to drops. [hats-and-faces](systems/hats-and-faces.md)
 

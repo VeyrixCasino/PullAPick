@@ -4,12 +4,15 @@
 	The rules and numbers are MineEnchants (shared). MineServer wires this in
 	as Verbs.Ench and calls:
 
-	  init(ctx)                       ctx = { profiles, net, snap, markDirty }
+	  init(ctx)                       ctx = { profiles, net, snap, markDirty, onApply }
+	                                  (onApply(plr, p): the tutorial's enchant step)
 	  dispatch(plr, action, payload)  every remote action starting "ench"
 	  snapState(p)                    the block the snapshot carries
 	  gainXp(plr, p, amount)          ore blocks and chests pay XP
 	  chestBundle(plr, p, rank, rng, chestLuck)   a chest's book bundle, sometimes
 	  luckyBundle(p, blockId, rng)    a lucky block's bundle (shown by its reveal)
+	  grantBundle(p, n, rank)         n books from a reward (the pass, the Founders
+	                                  pack, the daily wheel); the giver says what
 	  returnBooks(p, tool)            a tool being recycled gives its enchants back
 	  special(p)                      the held tool's Special enchant (for boosts)
 	  layerStats(p)                   the held tool's Damage/Utility stats (for boosts)
@@ -355,6 +358,15 @@ function S.chestBundle(plr, p, rank, rng, chestLuck)
 	return books
 end
 
+-- n books from a reward, rolled at a rank's levels (nil = level I). No toast:
+-- the giver (the pass, the Founders pack, the daily wheel) says what it paid.
+function S.grantBundle(p, n, rank, slotFilter)
+	S.ensure(p)
+	local books = E.rollBundle(n, Random.new(), rank, slotFilter)
+	giveBooks(p, books)
+	return books
+end
+
 -- No toast: the lucky block's own reveal lists the books with the rest.
 function S.luckyBundle(p, blockId, rng)
 	S.ensure(p)
@@ -429,6 +441,9 @@ function V.enchApply(plr, p, payload)
 	end
 	tool.enchants[slot] = { id = def.id, level = level }
 	toast(plr, "✨ " .. def.name .. " " .. E.roman(level) .. " applied")
+	if ctx.onApply then
+		ctx.onApply(plr, p)
+	end
 	ctx.markDirty(plr)
 	ctx.snap(plr)
 end
@@ -464,6 +479,8 @@ function V.enchMerge(plr, p, payload)
 		return toast(plr, "Merging needs " .. E.MERGE_COST .. " of the same book")
 	end
 	addBook(p, def.id, level + 1)
+	-- A lifetime count, for the "merge books" quests (kept through rebirth).
+	p.bookMerges = (tonumber(p.bookMerges) or 0) + 1
 	toast(plr, "📖 " .. def.name .. " " .. E.roman(level + 1) .. "!")
 	ctx.markDirty(plr)
 	ctx.snap(plr)

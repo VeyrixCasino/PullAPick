@@ -111,7 +111,8 @@ return {
 	},
 
 	--[[
-		LOOT PACKS -- runes and gear, sold and opened as packs.
+		LOOT PACKS -- gear, sold and opened as packs. (The three rune cases left
+		with runes on 2026-10-12.)
 
 		Same shape as a card pack on purpose. `cards` is how many ITEMS the pack
 		pays, and `odds` is over the same eight-name rarity ladder, so every
@@ -121,26 +122,12 @@ return {
 
 		`kind` is the only new field. It says which roller builds the item, and
 		MineLootPacks maps the ladder onto that family's own scale --
-		Common..Exotic onto gear F..SSS and onto rune tiers 1..5.
+		Common..Exotic onto gear F..SSS.
 
 		These odds GOVERN. The roller reads this table rather than each family's
 		internal weights, for the same reason the card packs do: two tables that
 		can disagree eventually do, and the one on screen is the one that lies.
 	]]
-	-- Runes stop at tier 5, so Mythic and above are zero here rather than absent:
-	-- a printed 0.00% is a promise, a missing row is a question.
-	{
-		id = "rune_pack", name = "Rune Case", kind = "rune", cards = 1,
-		odds = { Common = 30.000, Uncommon = 25.000, Rare = 20.000, Epic = 15.000, Legendary = 10.000, Mythic = 0.000, Divine = 0.000, Exotic = 0.000 },
-	},
-	{
-		id = "rune_heavy_pack", name = "Heavy Rune Case", kind = "rune", cards = 3,
-		odds = { Common = 22.000, Uncommon = 24.000, Rare = 23.000, Epic = 18.000, Legendary = 13.000, Mythic = 0.000, Divine = 0.000, Exotic = 0.000 },
-	},
-	{
-		id = "rune_sealed_pack", name = "Sealed Rune Case", kind = "rune", cards = 6,
-		odds = { Common = 0.000, Uncommon = 34.000, Rare = 28.000, Epic = 22.000, Legendary = 16.000, Mythic = 0.000, Divine = 0.000, Exotic = 0.000 },
-	},
 	{
 		id = "gear_pack", name = "Gear Case", kind = "gear", cards = 1,
 		odds = { Common = 9.800, Uncommon = 23.783, Rare = 31.913, Epic = 23.783, Legendary = 9.800, Mythic = 0.808, Divine = 0.101, Exotic = 0.020 },

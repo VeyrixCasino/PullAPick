@@ -200,8 +200,12 @@ check(ls[1] === 0 && ls[2] >= 5 && ls[3] >= 5 && ls[4] === 5, `${ls[0]} enchants
 const sv = read("src/ServerScriptService/Mine/MineServer.server.luau");
 check(/Enchants = require\(shared:WaitForChild\("MineEnchants"\)\)/.test(sv) && /Dig\.EnchSvc = Verbs\.Ench/.test(sv), "MineServer loads the module and the service");
 check(/string\.sub\(action, 1, 4\) == "ench" then\s*\n\s*Verbs\.Ench\.dispatch/.test(sv), "every \"ench\" action goes to the service");
-check(/for _, st in ipairs\(Dig\.EnchSvc\.layerStats\(p\)\) do\s*\n\s*Dig\.Layers\.add\(T1, st\.stat, st\.value\)/.test(sv), "Damage and Utility enchants are Layer 1, where traits sit");
-check(/b = Dig\.Enchants\.gateProcs\(b, Dig\.EnchSvc\.special\(p\)\)\s*\n\s*end\s*\n\s*return Runes\.clampBoosts\(b\)/.test(sv), "the Special slot gates the procs last, on the finished boosts");
+check(/for _, st in ipairs\(Dig\.EnchSvc\.layerStats\(p\)\) do\s*\n\s*Dig\.Layers\.add\(T1, st\.stat, st\.value\)/.test(sv), "Damage and Utility enchants are Layer 1, where traits sat");
+check(/b = Dig\.Enchants\.gateProcs\(b, Dig\.EnchSvc\.special\(p\)\)\s*\n\s*end\s*\n\s*return Cards\.clampBoosts\(b\)/.test(sv), "the Special slot gates the procs last, on the finished boosts");
+const cardsSrc = read("src/ReplicatedStorage/Mine/Shared/MineCards.luau");
+const clampFn = (cardsSrc.match(/function MineCards\.clampBoosts[\s\S]*?\nend\n/) || [""])[0];
+check(/if ADDITIVE_STATS\[stat\] then\s*\n\s*b\[stat\] = math\.max\(0,/.test(clampFn),
+  "the clamp floors EVERY additive stat at 0 (ADDITIVE_STATS), so a proc the gate zeroed stays 0 -- it floored Tidal Wave at 5% before");
 check(/Dig\.EnchSvc\.chestBundle\(plr, p, rank, rng/.test(sv) && /XP_CHEST \* \(Dig\.Enchants\.XP_CHEST_RANK/.test(sv) && /gainXp\(plr, p, Dig\.Enchants\.XP_ORE\)/.test(sv),
   "chests drop books and pay XP; ore blocks pay XP");
 const rec = (sv.match(/function Verbs\.recycleOreTool[\s\S]*?\nend\n/) || [""])[0];

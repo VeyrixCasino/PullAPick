@@ -2,9 +2,11 @@
 title: The client and the UI kit
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau
+  - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
+  - src/ReplicatedStorage/Mine/Shared/MineLoadoutView.luau
   - src/ReplicatedStorage/Mine/Shared/MineUI.luau
   - src/ReplicatedStorage/Mine/Shared/MineTheme.luau
   - src/ReplicatedStorage/Mine/Shared/MineHotbar.luau
@@ -15,7 +17,7 @@ sources:
   - src/ReplicatedFirst/MineLoadingScreen.client.luau
   - docs/AUDIO.md
   - docs/TODO.md §0.14, §0.33
-related: [server, code-map, luau-traps, rojo-and-studio, tools]
+related: [server, code-map, luau-traps, rojo-and-studio, tools, traits, enchants]
 ---
 
 # The client and the UI kit
@@ -52,9 +54,11 @@ related: [server, code-map, luau-traps, rojo-and-studio, tools]
 ## Is Studio running this code? (`MineBuild`)
 
 `MineBuild.announce` runs first and prints `MineBuild.STAMP`, which is
-`"2026-10-04 traits + centred pets"` at `26036a0`. It then checks
-`MineBuild.EXPECT`, a list of the modules this build needs (MineForge,
-MineOrePouchView, MineTraits and others), against the live DataModel. If any is
+`"2026-10-04 traits + centred pets"` (still, at `4e4fbb3`; the label was not
+bumped when traits were retired). It then checks `MineBuild.EXPECT`, a list of
+the modules this build needs (MineForge, MineOrePouchView, MineBoostLayers and
+others), against the live DataModel. `MineTraits` and `MineTraitView` were
+removed from that list when they were deleted on 2026-10-12. If any is
 missing it warns **"THIS STUDIO IS RUNNING OLDER CODE THAN src/"**, names what the
 player loses, and gives the fix: `git pull` in the clone that `rojo serve` is
 running from, then reconnect. TODO §0.14 explains why this exists: "the UI isn't
@@ -72,7 +76,7 @@ and returns a controller: `invCtl`, `shopCtl`, `forgeCtl`, `ClientFns.hotbarCtl`
 |---|---|
 | `MineInventoryView` | the main window (packs, cards, chests, shop, passes). 7,867 lines. |
 | `MineShopView` | the shop. It mounts `MineForge` (Forge tab) and `MineOrePouchView` (Ore Pouch tab). |
-| `MineForgeView`, `MineTraitView`, `MineRunesView`, `MineSocketsView` | the Enchanter panes |
+| `MineForgeView` | the Enchanter's Temper pane. The Enchanter's other tabs (Summon, Salvage, Dust) are drawn in MineClient. `MineTraitView`, `MineRunesView` and `MineSocketsView` were deleted on 2026-10-12 with runes and traits. |
 | `MineSkillView`, `MineZoneMapView`, `MineDepthShopView`, `MineEventsView`, `MineProfileView` | other panels |
 | `MineTradeView`, `MineSocialView`, `MineGroupWheelView` | these break the rule: they call `net:FireServer` themselves (11, 11 and 1 calls) |
 | `MineBenchView` | superseded by the Forge (AUDIT §5) |
@@ -209,17 +213,13 @@ The tier mappers take the real result:
   - **The case reel** adds the overlay at S and up.
   - **S-rank chests** get the small tier-1 pluck. Every other chest stays
     silent, by the owner's request.
-  - **Trait rolls** send `traitRolled`. They are celebrated by the trait's
-    grade.
-  - **Temperament rolls and rune fuses** were a toast only, so an SSS looked
-    like an F. They now send `luckResult` (`ok`, `grade` or `runeTier`,
-    `title`):
-    - A temperament roll is celebrated by its grade.
-    - A successful fuse is celebrated by its result tier: T2 nice, T3–4 great,
-      T5–6 epic, T7+ legendary. Each tier is another 50% flip.
-    - A failed fuse gets the tier-0 thud and never a fanfare.
-    - Played in Studio on 2026-10-10: F and D rolls gave a thud, C rolls gave
-      the pluck and a sparkle burst.
+  - **Temperament rolls** were a toast only, so an SSS looked like an F. They
+    now send `luckResult` (`ok`, `grade`, `title`) and are celebrated by their
+    grade; a miss gets the small thud, never a fanfare. Played in Studio on
+    2026-10-10: F and D rolls gave a thud, C rolls gave the pluck and a sparkle
+    burst.
+  - Until 2026-10-12, trait rolls (`traitRolled`) and rune fuses (`luckResult`
+    with `runeTier`) were celebrated too. Both went with traits and runes.
   - **Hat fusing is not luck.** Three of the same hat always make the next
     grade (`MineGear.canFuse`), so it gets no celebration.
 - **Testing note:** Studio's command bar has its own module cache. Wrapping
@@ -303,6 +303,25 @@ The header shows the player level and XP bar, the wallet, 🎒 BAGS and 💰 COI
 - Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it.
 
 It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
+
+## UI removed with runes and traits (2026-10-12)
+
+Runes, scrolls, sockets and tool traits were retired ([traits](../systems/traits.md)).
+What went from the screens:
+- **Enchanter:** its Traits, Merge and Sockets tabs, and the Rune Case row on
+  Summon. It keeps Summon (Gear Case and Temperament Case rows), Temper, Salvage
+  and Dust; a retired tab name lands on Summon (MineClient). Its world sign
+  reads verb "SUMMON", role "Gear, skins, scrap, stardust" (`WorldBuilder`).
+- **Inventory:** the Inventory > Runes and Collection > Runes tabs. Old routes
+  land on Equipment and Chests (`MineInventoryView` `ctl.open`). The Shop >
+  Credits SCROLLS shelf and the cart's "scroll" line are gone. The item card's
+  RUNES box is now ENCHANTS ("Forged tools take enchants · open the FORGE").
+- **`MineLoadoutView`:** its Gems and Traits sections.
+- **Shop and Forge:** the shop tools' RUNE SLOT line (`MineShopView`), and the
+  old Forge bench's SOCKET A RUNE button (`MineForge`; its build card lists the
+  tool's enchants now).
+- **Elsewhere:** the trade window's runes tab (`MineTradeView`), the scrapper's
+  RUNES tab, and rune loot cards.
 
 ## Gotchas
 

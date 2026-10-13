@@ -136,6 +136,11 @@ function GroupWheelService.applyReward(plr, p, reward, deps)
 			lines[#lines + 1] = string.format("%s x%d", (case and case.name) or Wheel.prettyId(row.id), tonumber(row.qty) or 1)
 		end
 	end
+	-- Enchant books (MineEnchants): "3 Lucky Books" roll at an S chest's levels.
+	if type(reward.books) == "table" and deps.grantBooks then
+		local got = deps.grantBooks(p, tonumber(reward.books.n) or 3, reward.books.rank)
+		lines[#lines + 1] = string.format("%d Lucky Enchant Books", #(got or {}))
+	end
 	if type(reward.blocks) == "table" and deps.LuckyBlocks and deps.LuckyBlocks.grant then
 		for _, row in ipairs(reward.blocks) do
 			local id = tostring(row.id or "lucky_block")

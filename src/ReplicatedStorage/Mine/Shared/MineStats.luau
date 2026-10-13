@@ -21,7 +21,7 @@ local MineStats = {}
 MineStats.STATS = {
 	mineSpeed   = { label = "Mine Speed",    weight = 1.0, unit = "%", desc = "Damage on every tool (pick, drill, bomb). Pets only — never a gem rune. Short Fuse rune adds more on explosives." },
 	swingRate   = { label = "Swing Rate",    weight = 1.4, unit = "%", desc = "Swings per second." },
-	reach       = { label = "Reach",         weight = 1.4, unit = "%", desc = "Pick/drill aim distance. 26 × (1 + reach). Rune only." },
+	reach       = { label = "Reach",         weight = 1.4, unit = "%", desc = "Pick/drill aim distance. 26 × (1 + reach). From the Reach enchant." },
 	--[[
 		BLAST RADIUS IS CUBIC, AND WAS PRICED LINEAR. Owner, 2026-10-04:
 		"balance fire.. rn fire is just way to over powered".
@@ -128,8 +128,8 @@ MineStats.STATS = {
 	oreHaul     = { label = "Ore Haul",         weight = 1.0, unit = "%", desc = "Multiplies how much ore a block drops. Does not change which ore you get." },
 	pulverize   = { label = "Pulverizer",       weight = 4.0, unit = "%", desc = "Chance to drop 1 stardust when dirt/ore dies. Not chests or cubes." },
 	scrap       = { label = "Scrap",            weight = 1.2, unit = "%", desc = "Extra stardust when a chest dies. Not the Scrapper. Pets only." },
-	coolant     = { label = "Coolant",          weight = 2.5, unit = "%", desc = "Drill spin-up. turn / (1 + coolant). Apex stays 0. Rune only." },
-	shortFuse   = { label = "Short Fuse",       weight = 2.2, unit = "%", desc = "Bomb cooldown / (1 + p), and extra mineSpeed on explosives. Rune only." },
+	coolant     = { label = "Coolant",          weight = 2.5, unit = "%", desc = "Drill spin-up. turn / (1 + coolant). Apex stays 0." },
+	shortFuse   = { label = "Short Fuse",       weight = 2.2, unit = "%", desc = "Bomb cooldown / (1 + p), and extra mineSpeed on explosives." },
 	-- The two new build boosts. Priced near zap (2.5) because they are the
 	-- same shape of thing -- a chance to reach a block you did not swing at --
 	-- and neither multiplies the hit itself.

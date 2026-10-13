@@ -2,7 +2,7 @@
 title: Skins, cases and temper
 type: system
 status: partial
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTemper.luau
   - src/ReplicatedStorage/Mine/Shared/MineForgeView.luau
@@ -63,11 +63,14 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
     A Legendary orange, S Mythic light blue, SS Divine lavender, SSS Exotic
     red (`MineTemper.RARITY_COLOR`).
   - Pack cases' reels use the same ladder, and so does anything else that
-    reads it, such as traits (`MineTraitView`).
+    reads it. (Traits did too, through `MineTraitView`, until they were
+    retired and that view deleted on 2026-10-12.)
 - **Old saves.** `LEGACY_RARITY` and `normalizeRarity` map the old names
   Common…Exotic to F…SSS so old saves still load.
-- **Traits** reuse these same odds (TODO §0.18,
-  [enchantments](traits.md)).
+- **Gear grades, charms and the trader** read these same odds
+  (`MineTemper.RARITY_WEIGHTS` in `MineGear`, `MineCharms`, `MineTrader`). Tool
+  traits reused them too (TODO §0.18) until they were retired on 2026-10-12
+  ([traits](traits.md)).
 
 **Owning and fitting.**
 - `p.tempers[kitId] = {rarity, n}` keeps the best grade seen and a copy count.
@@ -108,7 +111,8 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
   live `rollClash` caller in MineServer is opening a lucky block. It is
   **not** used for tempers.
 - `MineIridescence` draws the shared S / SS / SSS badge: 1, 2 or 3 marks on a
-  9-stop pastel gradient. Inventory, sockets and grade reveal use it.
+  9-stop pastel gradient. The inventory, MineClient and the grade reveal use it
+  (the sockets screen did too, until it was deleted on 2026-10-12).
 
 ## Where it lives
 

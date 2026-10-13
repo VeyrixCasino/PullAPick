@@ -2,7 +2,7 @@
 title: Currencies and economy
 type: system
 status: current
-verified: 2026-10-10 @ 6c08171
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineOrePouch.luau
@@ -11,11 +11,12 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineAbbrev.luau
   - src/ServerScriptService/Mine/MineBigNum.luau
   - src/ReplicatedStorage/Mine/Shared/MinePotions.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEnchants.luau
   - docs/TODO.md §0.13, §0.28
   - docs/HANDOFF.md §2.7
   - docs/OPEN.md §7, §7a
   - docs/PROPOSAL.md §0, §E, §H1
-related: [mining-and-breaking, zones-layers-and-seams, rebirth-and-skill-tree, ore-pouch-and-backpack, forge-and-recycling, shops-and-monetisation, chests-and-lucky-blocks]
+related: [mining-and-breaking, zones-layers-and-seams, rebirth-and-skill-tree, ore-pouch-and-backpack, forge-and-recycling, shops-and-monetisation, chests-and-lucky-blocks, enchants, traits]
 ---
 
 # Currencies and economy
@@ -27,7 +28,7 @@ related: [mining-and-breaking, zones-layers-and-seams, rebirth-and-skill-tree, o
 | currency | field | comes from (faucets) | goes to (sinks) |
 |---|---|---|---|
 | **Coins** | `p.coins` | **Digging.** `payDamage` pays 1 coin per HP landed × `coinBonus`, priced into `haulMix` as you mine and paid when you sell. **Chest blocks** (`MineZoneChests.rollCurrency` × coinBonus) and the chest `coins` row (`Dig.Depth.dirtHp`; the crash is fixed). **Pack rows.** **Selling ladder tools back** (`Verbs.sellTool`). **Pass claims.** **AFK ticks.** **Credit products** (`prod.coins`). **Tutorial.** Sale payouts of coins and space coins are ×2 for owners of the `COIN_DOUBLE_GAMEPASS_ID` pass (`p.coinDouble`). | **Surface coin-shop tool ladder** (`MineShopBuy`, `buyTool`). **Depth-desk tools** (`buyDepthTool`). **Coin-tool levels** (`Verbs._upgradeCoinTool`). **Rebirth** (`tryPrestige`). Seams cost 0 now. |
-| **Gems** | `p.gems` | **Selling ore from the pouch** (`Verbs.sellOre`, `Verbs.sellAllOres` → `MineOrePouch.stackValue`). **Chests** (× `gemFind`). **Rebirth reward.** **Quests and tutorial.** **The fossil cash-out on load.** | **Zones** (`buyCost`). **Bags** (`MineBags.gemPrice`, 100 × 1.08^rung). **Pouch rungs.** **Trait roll** (`MineTraits.ROLL_PRICE 500`). **Charm merge.** **Rune fuse.** **Charter levels** (`Verbs.buyCharter`). **Crates.** **Gem Vault / Chest Warren pack unlocks** (`MinePackConfig`, 2.5M / 4M). |
+| **Gems** | `p.gems` | **Selling ore from the pouch** (`Verbs.sellOre`, `Verbs.sellAllOres` → `MineOrePouch.stackValue`). **Chests** (× `gemFind`). **Rebirth reward.** **Quests and tutorial.** **The fossil cash-out on load.** | **Zones** (`buyCost`). **Bags** (`MineBags.gemPrice`, 100 × 1.08^rung). **Pouch rungs.** **Enchant book bundles** at the Forge (`MineEnchants.bundlePrice`: 500 × 1.15 a zone, PROPOSED). **Charm merge.** **Charter levels** (`Verbs.buyCharter`). **Pack crates** (`MineConfig.CRATE_PRICE` 200). **Gem Vault / Chest Warren pack unlocks** (`MinePackConfig`, 2.5M / 4M). Until 2026-10-12 the trait roll (500), rune rolls, fuses and re-sockets, and rune cases and set crates were gem sinks too; they were retired with runes ([traits](traits.md)). |
 | **Ore** | `p.ores` (the pouch) | **Ore blocks** (`MineConfig.oreYieldFor`). | **Forging and upgrading tools**, or selling for gems. See [forge-and-recycling](forge-and-recycling.md) and [ore-pouch-and-backpack](ore-pouch-and-backpack.md). |
 | Stardust | `p.dust` | `pulverize`, chest scrap, recycling | ore-tool levels (`TOOL_DUST_BASE 25`), potion merges (`MinePotions`), pet power-up (removed 2026-10-10; see [pets](pets.md)), pack cases ([pack-cases](pack-cases.md)), card merges |
 | Space coins | `p.spaceCoins` | Event Horizon haul (currency `"space"`) | event tools (`MineShopBuy.buyEvent`) |
@@ -64,7 +65,7 @@ related: [mining-and-breaking, zones-layers-and-seams, rebirth-and-skill-tree, o
 | `src/ServerScriptService/Mine/MineBigNum.luau` | server formatter | `MineBigNum.auto`, `MineBigNum.suffix` |
 
 ## Decided by the owner
-- **Gems come from selling ore.** Zones, runes and the pouch are gem sinks (`docs/TODO.md` §0.13 rule 7).
+- **Gems come from selling ore.** Zones, runes and the pouch are gem sinks (`docs/TODO.md` §0.13 rule 7). Runes were retired on 2026-10-12, and the owner picked *"Gems buy book bundles"* to take their place as the sink ([enchants](enchants.md)).
 - **Big numbers are server-side and round down** (§0.13 rule 8). **Currencies show four significant figures, floored** (§0.13 rule 9).
 - **No coin multiplier on rebirth.** `prestigeYield` was dead and has been deleted (§0.27, PROPOSAL line 22).
 - **Seams are free** (2026-10-05).
@@ -98,16 +99,19 @@ an exponential faucet. A depth-scaled coin sink is still owed; the owner has
 picked the direction (progression-flavoured, repeatable, in the loop).
 
 **Gems are the healthiest currency**: one metered tap (pouch-capped ore sales)
-against ~17 sinks. The `1e4` change fixed the top end but left the FLOOR alone —
+against ~17 sinks (counted before 2026-10-12, when the trait and rune sinks were
+retired). The `1e4` change fixed the top end but left the FLOOR alone —
 trait roll 500, pack crate 200, backpack rung 1 at 100, re-socket 10 were pocket
-change at `1e6` and still are. Derived sinks (ore pouch, charm merge) corrected
-themselves; authored ones cannot.
+change at `1e6` and still are. The trait roll and re-socket went with runes on
+2026-10-12; the crate and the backpack rung are left.
+Derived sinks (ore pouch, charm merge) corrected themselves; authored ones cannot.
 
 **Three gem/token sinks were unreachable and are now wired**: the Charter
 (`2ae2c74`, 4 upgrades, 14,039,800 gems for the full ladder ≈ 329 Oganesson),
 rune cases and set crates (`ec097dc`, `5cbf80e`, 300 → 60,000 gems), and the
 36-charm token shelf (`69f3de6`, 15 → 2,500 tokens). All three had complete
 servers and no caller; two were advertised by UI strings pointing at nothing.
+The rune cases and set crates were removed again on 2026-10-12, with runes.
 
 ## Gotchas
 - **`p.haulGems` is permanently zero, and that is CORRECT.** Read in five places, incremented in none. Coins bank into the haul as you dig; gems come from selling ore out of the pouch at the moment of sale. Documented at its declaration (`4f45483`) so it is not "fixed" into a second faucet. Kept because it is a persisted profile key.
@@ -116,7 +120,7 @@ servers and no caller; two were advertised by UI strings pointing at nothing.
 
 ## Open questions
 - **A depth-scaled coin sink.** Potions fixed the early game only (0.1 blocks for an Elixir at zone 5 L1000). Owner has picked the direction: progression-flavoured, repeatable, in the loop.
-- **The flat gem floor prices** — trait roll 500, crate 200, backpack rung 1 at 100, re-socket 10 — did not move with `ORE_GEM_SPREAD 1e6 -> 1e4` and are pocket change at every stage.
+- **The flat gem floor prices** — pack crate 200 and backpack rung 1 at 100; the trait roll and re-socket prices went with runes on 2026-10-12 — did not move with `ORE_GEM_SPREAD 1e6 -> 1e4` and are pocket change at every stage. The gem book bundle does scale, ×1.15 a zone (PROPOSED).
 - **Chests may now out-faucet ore sales.** Chest gems scale on their own ladder (`GEM_MULT.primordium = 820`) and are not pouch-capped, so a top chest can pay 3.7-6.5 Oganesson units. That inverts the stated rule that ore is the one gem tap.
 - ~~What is the final `ORE_GEM_SPREAD`?~~ **SETTLED**: `1e4`, applied 2026-10-08 (`0b98d13`).
 

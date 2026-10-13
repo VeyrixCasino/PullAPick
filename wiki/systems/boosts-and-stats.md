@@ -2,13 +2,14 @@
 title: Boosts and stats
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineStats.luau
   - src/ReplicatedStorage/Mine/Shared/MineBoostLayers.luau
   - src/ReplicatedStorage/Mine/Shared/MineCards.luau
   - src/ReplicatedStorage/Mine/Shared/MinePotions.luau
-  - src/ReplicatedStorage/Mine/Shared/MineRunes.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEnchants.luau
+  - tools/verify/runes-retired.js
   - src/ServerScriptService/Mine/MineServer.server.luau
   - tools/verify/layers.js
   - tools/verify/statkeys.js
@@ -21,20 +22,20 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 
 # Boosts and stats
 
-> Every buff in the game is expressed in one vocabulary of about 25 **stat keys**: mine speed, luck, blast chance and so on. Pets, hats, the skill tree, runes, traits, charms, potions and skins all write into one boost table. That table is computed fresh by `boosts(p)` on the server. The owner's rule for how the sources combine is "two layers, and the second multiplies the first".
+> Every buff in the game is expressed in one vocabulary of about 25 **stat keys**: mine speed, luck, blast chance and so on. Pets, hats, the skill tree, enchants, charms, potions and skins all write into one boost table (runes and tool traits did too, until they were retired on 2026-10-12: [traits](traits.md)). That table is computed fresh by `boosts(p)` on the server. The owner's rule for how the sources combine is "two layers, and the second multiplies the first".
 
 ## How it works
 
 **The stat roster** is `MineStats.STATS`: 27 keys, each with a label, a description and a `weight` in budget points per +1%.
-- **Weights are the canonical price of a stat.** The skill tree, traits, gear and runes all divide by them (`docs/HANDOFF.md` §2.9).
+- **Weights are the canonical price of a stat.** The skill tree, gear and pet kits all divide by them (traits and runes did too) (`docs/HANDOFF.md` §2.9).
 - **`blastRadius` is weighted 18.0** because a blast is a sphere: +50% radius is about 3.4× the blocks (§0.21).
 - **`MineStats.STAT_ORDER`** lists the 23 live keys. Four keys are **legacy** and appear nowhere else:
   - `backpack` and `walkSpeed`, retired 2026-10-04;
   - `echo`, paid out as swing rate at `ECHO_TO_SWING`;
   - `autoMine`, paid out as gem find at `AUTO_MINE_TO_GEM`.
-- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach, coolant and shortFuse. `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
+- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach, coolant and shortFuse: kept off pet kits. With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
 
-**Stat keys are data.** Keys are saved on runes (`rune.stat`) and gear (`piece.stat`, `piece.stats`) in live player saves.
+**Stat keys are data.** Keys are saved on gear (`piece.stat`, `piece.stats`) in live player saves (and were on runes, until 2026-10-12).
 - **Renaming a key is a save migration** (`docs/START-HERE.md` §4.4).
 - **The one rename so far:** `oreYield` became `blastChance` on 2026-10-04. `MineStats.LEGACY_STAT` and `MineStats.canonStat` map the old key on load, and `tools/verify/statkeys.js` guards it.
 - **`fossilFind` keeps its key** but means "Ore Finder" (§0.12).
@@ -43,20 +44,19 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 - **Starting values.** `MineCards.emptyBoosts` sets multiplier stats to 1, additive stats to 0, and `swingSec` (a *duration*) to 1. `MineCards.ADDITIVE_STATS` lists the additive (chance) stats.
 - **How `boosts(p)` builds it** (in `MineServer.server.luau`), in this order:
   1. **Base multipliers.** `MineConfig.prestigeLuck` (+5% luck per rebirth). VIP ×1.05 luck. The sell haste: ×1.08 mineSpeed for 20 s after a sale. Event-pass bonuses inside Event Horizon.
-  2. **Layer 1 (`T1`).** The trait on the held ore tool (`Dig.Traits`), plus the skill tree's `mineSpeed`, `dirtBreak`, `walkSpeed`, `luck` and `rareOre`.
+  2. **Layer 1 (`T1`).** The held tool's Damage and Utility enchants (`MineEnchantService.layerStats`; the tool's trait sat here until 2026-10-12), plus the skill tree's `mineSpeed`, `dirtBreak`, `walkSpeed`, `luck` and `rareOre`.
   3. **Layer 2 (`T2`).** `Dig.layer2`: pets (`MineGear.stackPets`) plus worn hats and face, counted once (`MineGear.flatBoost`).
   4. **Combine.** `MineBoostLayers.apply` computes `base × (1 + T1) × (1 + T2)` per stat. Additive stats are summed, not layered. The owner's example: 100 → **300**, not 250 (`tools/verify/layers.js` asserts it).
   5. **Applied outside both layers:**
      - the rest of the tree's stats;
      - relics and charter;
-     - runes in gear, tool, chest-tool, shop-tool and pet sockets, plus rune set bonuses;
      - the equipped charm (`MineCharms.applyEquipped`);
      - world events (`MineWorldEvents.foldBoosts`);
      - potions (`MinePotions.applyBoosts`);
      - the tool's skin or temperament (`MineTemper.applyTemper`).
-  6. **Folds and floors.** Echo is folded into swing rate and autoMine into gem find, and the auto-mine licence is applied. Then `MineRunes.clampBoosts` applies **floors only**: additive stats ≥ 0, multipliers ≥ 0.05, `swingSec` ≥ 0.05.
+  6. **The proc gate, folds and floors.** Echo is folded into swing rate and autoMine into gem find, and the auto-mine licence is applied. `Dig.Enchants.gateProcs` keeps only the Special enchant's proc family ([enchants](enchants.md)). Then `MineCards.clampBoosts` applies **floors only**: every `ADDITIVE_STATS` stat ≥ 0, multipliers ≥ 0.05, `swingSec` ≥ 0.05.
 
-**The three luck channels** (TODO 6.2). Generic `luck` remains the shared base that prestige, VIP, the pass, skills, runes and the Umbra set feed. Two channel stats multiply on top of it, and chest luck reuses an existing stat:
+**The three luck channels** (TODO 6.2). Generic `luck` remains the shared base that prestige, VIP, the pass, skills and the Umbra set feed. Two channel stats multiply on top of it, and chest luck reuses an existing stat:
 
 | channel | formula | what it moves |
 |---|---|---|
@@ -68,8 +68,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 - blast, tidal wave, shatter (`ricochet`) and earthquake chances are clamped to ≤ 1 in `Dig.procsAt`. They are a probability; there is no other cap (owner: price, don't cap);
 - zap is deliberately not clamped;
 - `procPower` ≤ `MineConfig.PROC_POWER_CAP 3.0`;
-- the forever-tool power cap is `foreverPowerCap`;
-- rune fusing has a ceiling (`MineRunes.FUSE_CEILING_MULT`).
+- the forever-tool power cap is `foreverPowerCap`.
 
 **Potions** are `MinePotions.DEFS`: 25 potions, 5 stats × 5 tiers.
 - **Stats:** Haste → mineSpeed, Power → dirtBreak, Fortune → luck, Purse → coinBonus, Haul → `backpack`.
@@ -91,9 +90,9 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 |---|---|---|
 | `src/ReplicatedStorage/Mine/Shared/MineStats.luau` | stat roster, weights, migration | `MineStats.STATS`, `MineStats.STAT_ORDER`, `MineStats.LEGACY_STAT`, `MineStats.canonStat`, `MineStats.valueOf` |
 | `src/ReplicatedStorage/Mine/Shared/MineBoostLayers.luau` | the two-layer rule | `MineBoostLayers.LAYER1`, `MineBoostLayers.LAYER2`, `MineBoostLayers.apply` |
-| `src/ReplicatedStorage/Mine/Shared/MineCards.luau` | empty table, additive list | `MineCards.emptyBoosts`, `MineCards.ADDITIVE_STATS`, `MineCards.foldSwingRate` |
+| `src/ReplicatedStorage/Mine/Shared/MineCards.luau` | empty table, additive list, the floor | `MineCards.emptyBoosts`, `MineCards.ADDITIVE_STATS`, `MineCards.clampBoosts`, `MineCards.foldSwingRate` |
 | `src/ServerScriptService/Mine/MineServer.server.luau` | the fold | `boosts`, `Dig.layer2`, `Dig.oreLuck`, `Dig.packLuck` |
-| `src/ReplicatedStorage/Mine/Shared/MineRunes.luau` | floors, rune pools | `MineRunes.clampBoosts`, `MineRunes.FAMILY_STATS`, `MineRunes.NO_ROLL_STATS` |
+| `src/ReplicatedStorage/Mine/Shared/MineEnchants.luau` | the enchant layer stats and the proc gate | `MineEnchants.statsAt`, `MineEnchants.gateProcs` |
 | `src/ReplicatedStorage/Mine/Shared/MinePotions.luau` | potions | `MinePotions.DEFS`, `MinePotions.applyBoosts` |
 
 ## Decided by the owner
@@ -117,12 +116,13 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 
 ## Gotchas
 - **Line 37 was superseded before it was approved.** PROPOSAL §0 line 37 says "keep the `oreYield` key", but the key had already been renamed, with a migration, in `eb973f6` (2026-10-04). §0.16 still says "CHANCE stays on oreYield".
-- **PROPOSAL §C is wrong about procPower's sources.** It says Space is its only source and no pet or gear grants it. In code, pet, pickaxe, explosive and drill rune pools roll it (`MineRunes.FAMILY_STATS`), the `Violent` trait grants it (`MineTraits`), and `MineGear.STAT_WEIGHT` prices it.
+- **PROPOSAL §C is wrong about procPower's sources.** It says Space is its only source and no pet or gear grants it. In code, runes and the `Violent` trait granted it until 2026-10-12; today `MineGear.STAT_WEIGHT` prices it and the Earthquake Special uses it as its damage.
 - **"Retired" `backpack` is still live.** It is still read by `cap(p)`, and Haul potions still raise it. The `MineStats` comment "they now simply never move off 1" is not true for potions.
 - **Stale descriptions.**
   - `MineStats` descriptions: zap "up to 6 hops" (it is 16), earthquake "Does not stack" (it does), gemFind "dropped by ore" (it only applies to chests).
   - The `MineSkillData` header promises caps that do not exist.
-- **The list of additive stats is copied in four places:** `MineCards.ADDITIVE_STATS`, the inline `ADDITIVE_BOOST` in `boosts` (used for relics and charter), `MineRunes.clampBoosts` and `MinePotions.applyBoosts`. The copies have drifted. `ADDITIVE_BOOST` lacks `procPower`, so a relic or charter row granting it would multiply 0. Nothing grants it there today.
+- **The list of additive stats is copied in three places:** `MineCards.ADDITIVE_STATS`, the inline `ADDITIVE_BOOST` in `boosts` (used for relics and charter) and `MinePotions.applyBoosts`. The copies have drifted.
+  - **The floor's copy was the worst.** `MineRunes.clampBoosts` kept its own list, which missed Tidal Wave, every proc's damage, Proc Power and Ore Haul. It floored them like multipliers, at 0.05, so every tool rolled a 5% Tidal Wave and everyone had +5% Ore Haul, even after the Special gate zeroed them. Since 2026-10-12 the floor is `MineCards.clampBoosts`, and it reads `ADDITIVE_STATS` itself. `ADDITIVE_BOOST` lacks `procPower`, so a relic or charter row granting it would multiply 0. Nothing grants it there today.
 
 ## Open questions
 - Wire skins and tools into `T1`, and widen the skill filter (`docs/OPEN.md` §10).

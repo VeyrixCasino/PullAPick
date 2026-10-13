@@ -2,7 +2,7 @@
 title: Shops and monetisation
 type: system
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopBuy.luau
@@ -15,6 +15,8 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopBackgrounds.luau
   - src/ReplicatedStorage/Mine/Shared/MineScrolls.luau
   - src/ReplicatedStorage/Mine/Shared/MineFounders.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEnchants.luau
+  - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MinePackConfig.luau
   - src/ReplicatedStorage/TCG/Shared/MarketConfig.luau
@@ -25,15 +27,15 @@ sources:
   - docs/PROPOSAL.md §0 lines 23, 34
   - docs/BLOCKED.md §6
   - docs/TODO.md §0.14, §0.24, §0.28
-related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tools, forge-and-recycling, social-quests-and-leaderboards]
+related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tools, forge-and-recycling, social-quests-and-leaderboards, enchants, traits]
 ---
 
 # Shops and monetisation
 
 > "Shop" means at least five different screens in this game, paid in four
 > currencies. **Robux reach the game in one way only: credits (and two
-> gamepasses).** Credits buy packs, lucky blocks, scrolls, the battle pass and
-> limited deals.
+> gamepasses).** Credits buy packs, lucky blocks, the battle pass and limited
+> deals. (Scrolls were sold for credits too, until runes were retired on 2026-10-12.)
 
 `MineServer` below means `src/ServerScriptService/Mine/MineServer.server.luau`.
 
@@ -45,6 +47,9 @@ related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tool
 | **Event Horizon tools** | `bigbang` shop | space coins | `MineHorizonTools` via `MineShopBuy.buyEvent` |
 | **Inventory → Shop** | menu | credits; stardust for the Stardust tab | `MineInventoryView` tabs home, box, limited, packs, dust, currencies, vip |
 | **Rotating offers** | Shop → Limited | credits or Robux | `MineRotatingOffers` (3 slots, season 2026-09-22 → 2026-11-01 ET) |
+
+Since 2026-10-12 the Blacksmith counter opens the Forge hub, whose BAGS and COIN
+SHOP buttons lead back to the old shop's shelves ([client-and-ui](../code/client-and-ui.md)).
 
 **Coin-shop tools.** `MineShopLadders` sells 10 tools per zone on the surface
 plus 3 per depth desk: "19 per zone · 190 shop tools total", per its header.
@@ -63,8 +68,17 @@ the Founders Rig (`patron_rig`). At a seam desk, selling pays `DEPTH_SELL_FRAC`
   it (owner: *"clear out the credit shop… of all the unused packs"*). Prices
   are PROPOSED; see [pack-cases](pack-cases.md);
 - Build-a-Box: any 10 items from that same shelf, at 12% off;
-- lucky blocks (`MineLuckyBlocks.SHOP`);
-- scrolls (`MineScrolls.ITEMS`: white, black, omni, runesmith; these are rune-era items).
+- lucky blocks (`MineLuckyBlocks.SHOP`).
+
+Until 2026-10-12 it also had a SCROLLS shelf (White, Black, Omniscroll and the
+Runesmith Package). Those were rune tools, so they went with runes
+([traits](traits.md)). `MineScrolls.ITEMS` is now `{}`, the shelf is gone from
+`MineInventoryView`, and the cart has no "scroll" line kind any more.
+
+**Gems at the Forge.** The Forge sells a bundle of 3 enchant books for gems
+(`MineEnchants.SHOP_BUNDLE`, `bundlePrice`: 500 gems × 1.15 a zone, PROPOSED).
+The owner picked *"Gems buy book bundles"* on 2026-10-12, as the gem sink runes
+used to be. See [enchants](enchants.md).
 
 The Stardust tab is separate and has two tabs of its own:
 - **Pack Cases**, which opens first. It sells:
@@ -93,6 +107,10 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     a 28-day season, `PASS_SEASON_ID` "2026-10".
   - XP comes from digging (+1), selling (+25) and packs (+10 to +25).
   - The free track pays at most 100 credits in total; the premium track pays at most 1,200.
+  - The premium track's scroll rewards at tiers 25, 55 and 88 became 3, 4 and
+    5 enchant books on 2026-10-12 (`MineScrolls` `buildPassTrack`, `books = n`;
+    the claim grants them with `Dig.grantBooks`). The owner added *"we have to
+    rework the entire battle pass"*. That rework is open and not specified.
   - `src/ServerScriptService/TCGServer/BattlePass.luau` is an unrelated AFK-place stub.
 - **`MineConfig.PRODUCTS`** lists: patron_rig, lucky_charm, lucky_block_pet, two
   deals, starter_bundle 129, weekend_haul 349, group_wheel_1/5/10, coin_double
@@ -116,7 +134,10 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     `MineConfig.effectivePetSlots` clamps every player to 3 (TODO §0.24).
 - **Founders Pack** (`MineFounders`, stored as `p.vip.since`).
   - **Price:** 799 credits, or the Founders gamepass.
-  - **What it gives:** a White Scroll, the Founder tag VFX, and +5% luck in `boosts`.
+  - **What it gives:** 3 enchant books (`MineFounders.BOOKS`), the Founder tag
+    VFX, and +5% luck in `boosts`. Until 2026-10-12 it gave a White Scroll. Swapping
+    in 3 books was an assistant default when scrolls were retired, **not** an
+    owner decision.
   - **Seats:** `VIP_SEATS` 500 per *server*, reset whenever that server restarts.
   - **The name clash.** MineServer's `isVip(p)` and `MinePackConfig.VIP_PRICE`,
     `MinePackConfig.VIP_SEATS` and `MinePackConfig.VIP_DISCOUNT` mean **Founders**, not the VIP gamepass.
@@ -133,8 +154,10 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
   (PRINCIPLES §8, and the ECONOMY checklist). It is not a locked rule.
 
 ## State right now
-- **Shipped and inherited.** `MineScrolls`, `MineRotatingOffers` and the store
-  tabs are unchanged since the import.
+- **Shipped and inherited.** `MineRotatingOffers` and the store tabs are
+  unchanged since the import. `MineScrolls` changed on 2026-10-12: its scroll
+  items are gone and the pass pays books where it paid scrolls. It keeps the
+  name, and still holds the credit packs, the pass and its track.
 - **Changed on this branch:** the Forge tab leads the panel, and the quantity
   box is typed (`4368c03`). The 4th pet seat was already gone before the branch
   (TODO §0.24).
@@ -160,7 +183,9 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
 ## Open questions
 - What are coins for now that tools are not sold for them (OPEN §7)?
 - Product ids for every `MineConfig.PRODUCTS` row, or should the unsold rows be cut?
-- Keep or archive the battle pass (AUDIT §5)?
+- Keep or archive the battle pass (AUDIT §5)? The owner said on 2026-10-12 it
+  needs a full rework, with no detail yet.
+- Is 3 books the right Founders reward in place of the White Scroll (an assistant default)?
 - Should Founders seats be per server, or global?
 
 ## See also

@@ -2,7 +2,7 @@
 title: Enchants and the player level
 type: system
 status: partial
-verified: 2026-10-12 @ 67a6894
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineEnchants.luau
   - src/ServerScriptService/Mine/MineEnchantService.luau
@@ -21,7 +21,8 @@ related: [traits, boosts-and-stats, mining-and-breaking, pets, chests-and-lucky-
 > bundles: from chests, from every lucky block, and for gems at the Forge (never
 > from cases). Three of the same book merge into one a level up. The slots
 > unlock with the new player level, which is earned from ore and chests.
-> Enchants take over from traits and runes, which are being retired.
+> Enchants took over from tool traits and runes, which were retired on
+> 2026-10-12 ([traits](traits.md)).
 
 ## How it works
 
@@ -58,8 +59,8 @@ they take no Special.
 | Shatter | Crack: 3 bursts | Splinter: 6 | Cascade: 10 |
 | Earthquake | Tremor: 1 block | Rumble: +2 blocks | Cataclysm: +4 blocks, +50% damage |
 
-**Damage and Utility are Layer 1** (`MineEnchantService.layerStats`), beside the
-trait, skin and skills (owner §0.19: the layers multiply, sources inside a layer
+**Damage and Utility are Layer 1** (`MineEnchantService.layerStats`), where the
+trait sat, beside the skin and skills (owner §0.19: the layers multiply, sources inside a layer
 add). Only the held tool's enchants count.
 
 **The enchants** (`MineEnchants.LIST`). Every one is live since 2026-10-12
@@ -158,6 +159,7 @@ works only in Studio.
   made to work.)
 - Slots unlock at levels 1 / 10 / 25, with a gift every 5 levels.
 - Traits and runes are retired; what players own is refunded (next step).
+  2026-10-12: *"no one has played.. ur good"*, so nothing is refunded.
 
 ## State right now
 - **Built and checked** (`tools/verify/enchants.js`):
@@ -166,9 +168,16 @@ works only in Studio.
   - book bundles from chests and lucky blocks, and the Forge's gem bundle.
 - **The Forge hub** shows and applies all of this ([client-and-ui](../code/client-and-ui.md)).
   The Blacksmith counter opens it.
+- **Retired for them (2026-10-12):** tool traits, runes, scrolls and sockets. The
+  rewards that paid scrolls pay books now: the premium pass's tiers 25 / 55 / 88
+  (3 / 4 / 5 books), the Founders pack (3), and the daily wheel's 6% slice
+  ("3 LUCKY BOOKS", S-chest levels). The tutorial's step 8 gives 2 free Damage
+  books and opens the Forge on ENCHANT; the quests ask for enchants and book
+  merges. See [traits](traits.md).
 - **Not built yet:**
-  - the trait and rune retirement (no refunds: the owner says nobody has played);
-  - auto-equip that reads the Special.
+  - auto-equip that reads the Special;
+  - an enchant for Coolant or Short Fuse (open: they now come only from the
+    skill tree).
 - **Not yet seen in a live server:** the mining enchants and bundles are checked
   by code, not by play.
 - **Before level 25** the tool keeps its gear's best proc; the owner chose this over

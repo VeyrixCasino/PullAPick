@@ -6,7 +6,7 @@
 	player already knows from every other game with an inventory in it:
 
 		Inventory   Equipment / Packs / Cards / Potions / VFX
-		Collection  Chests / Packs / Cards / Equipment / Runes
+		Collection  Chests / Packs / Cards / Equipment / Hats / Faces
 		Shop        Home / Build Box / Limited / Packs / Credits / VIP
 		Pass
 
@@ -63,15 +63,11 @@ local GEM = T.GEM
 local GREEN = T.GREEN
 
 local SECTIONS = {
-	-- Equipment first: it is what the Inventory button is for. Gear, Charms and
-	-- Runes had tabs here once; gear and charms are slots on the Equipment
-	-- screen now, and runes belong to the Enchanter (Collection -> Runes still
-	-- lists every one you own).
+	-- Equipment first: it is what the Inventory button is for. Gear and charms
+	-- had tabs here once and are slots on the Equipment screen now. The Runes
+	-- tabs left with runes (2026-10-12); enchants live at the Forge.
 	{ id = "inventory", label = "Inventory", tabs = {
 		{ id = "tools", label = "Equipment" },
-		-- Socketing is not a purchase, so it does not belong behind a walk to the
-		-- Enchanter. Buying runes and gear still does, and that half stays there.
-		{ id = "runes", label = "Runes" },
 		{ id = "packs", label = "Packs" },
 		{ id = "cards", label = "Cards" },
 		{ id = "potions", label = "Potions" },
@@ -84,7 +80,6 @@ local SECTIONS = {
 		{ id = "equipment", label = "Equipment" },
 		{ id = "hats", label = "Hats" },
 		{ id = "faces", label = "Faces" },
-		{ id = "runes", label = "Runes" },
 	} },
 	{ id = "shop", label = "Shop", tabs = {
 		{ id = "home", label = "Home" },
@@ -1224,15 +1219,8 @@ function MineInventoryView.mount(parent, opts)
 			end
 			return math.floor(sum * 0.88 + 0.5)
 		end
-		local shop = state.scrollShop or {}
-		local item = shop[line.id]
-		if not item then
-			return 0
-		end
-		if line.bundle then
-			return item.bundlePrice or ((item.price or 0) * (item.bundleQty or 1))
-		end
-		return item.price or 0
+		-- (Scrolls, the last other kind, were retired with runes.)
+		return 0
 	end
 
 	local function cartSubtotal()
@@ -2880,29 +2868,6 @@ function MineInventoryView.mount(parent, opts)
 			return gradeInk(rarity)
 		end
 
-		-- What is fitted, in words. "+2 slots" tells you the piece could hold runes;
-	-- it does not tell you whether it does, which is the thing you want to know
-	-- while deciding what to wear.
-	local function runeSummary(sockets, slots)
-		local Runes = require(shared:WaitForChild("MineRunes"))
-		local byId = {}
-		for _, r in ipairs(state.runes or {}) do
-			byId[r.id] = r
-		end
-		local bits = {}
-		for i = 1, (slots or 0) do
-			local id = sockets and sockets[i]
-			local rune = id and byId[id]
-			if rune then
-				bits[#bits + 1] = string.format("%s +%.0f%%", tostring(rune.stat), (rune.pct or 0) * 100)
-			end
-		end
-		if #bits == 0 then
-			return (slots or 0) > 0 and ((slots or 0) .. " empty socket" .. ((slots == 1) and "" or "s")) or "no sockets"
-		end
-		return table.concat(bits, "   ")
-	end
-
 	--[[
 		THE CHARACTER SCREEN  (Inventory -> Equipment)
 
@@ -3131,9 +3096,7 @@ function MineInventoryView.mount(parent, opts)
 						rarity = def.rarity or (Tools.chestRarityFromDrop and def.drop and Tools.chestRarityFromDrop(def.drop)) or (Tools.rarityForPower and Tools.rarityForPower(def.power)), icon = Icons.image(row.id) or nil, def = def, owned = row, slot = "tool",
 						source = "forever", id = row.id,
 						equipped = eqSrc == "forever" and eqId == row.id,
-						sockets = row.sockets, runeId = row.runeId,
 						sell = { dust = dust, tokens = tokens },
-						why = row.runeId and "Unsocket its rune first" or nil,
 					})
 				end
 			end
@@ -3419,42 +3382,9 @@ function MineInventoryView.mount(parent, opts)
 	end
 
 	-- How good a thing is, on a scale that only means anything inside one slot.
-	-- Gear: grade, then sockets, then its bonus. Tools: MineTools.budget, the
+	-- Gear: grade, then its bonus. Tools: MineTools.budget, the
 	-- game's own measure, with a shiny or shadow finish counted. Charms: the
 	-- sum of their stat multipliers.
---[[
-		The rune pane is the Enchanter's own sockets screen, mounted here once.
-
-		It hangs off `root` rather than `body` because body is cleared and
-		rebuilt on every render, which would destroy it mid-decision -- and it is
-		mounted lazily so a player who never opens the tab never pays for it.
-	]]
-	function eq.socketsPane()
-		if eq.socketsBroken then
-			return nil
-		end
-		if not eq.sockets then
-			local ok, SV = pcall(require, shared:WaitForChild("MineSocketsView"))
-			if not (ok and type(SV) == "table" and SV.mount) then
-				eq.socketsBroken = true
-				return nil
-			end
-			local ok2, view = pcall(SV.mount, root, {
-				onSocket = function(item, runeId, index)
-					if opts.onSocketAny then
-						opts.onSocketAny(item, runeId, index)
-					end
-				end,
-			})
-			if not (ok2 and type(view) == "table") then
-				eq.socketsBroken = true
-				return nil
-			end
-			eq.sockets = view
-		end
-		return eq.sockets
-	end
-
 	function eq.strength(item)
 		if not item then
 			return nil
@@ -3828,7 +3758,6 @@ function MineInventoryView.mount(parent, opts)
 			if isFace then
 				table.insert(rows, { "Note", "Multiplies matching hat %s" })
 			end
-			table.insert(rows, { "Sockets", tostring(g.slotCount or 0) })
 		elseif item.source == "charm" then
 			rows = { { "Type", "Charm" }, { "Effect", tostring(item.def.blurb or item.def.source or "-") } }
 		elseif item.source == "charmbuy" then
@@ -3864,40 +3793,16 @@ function MineInventoryView.mount(parent, opts)
 		}, card)
 		round(fitted, 10)
 		stroke(fitted, 1)
-		label(fitted, "RUNES", 10, MUTED, UDim2.fromOffset(14, 6), UDim2.new(1, -28, 0, 12), FONT)
+		-- Enchants took the runes' place (2026-10-12). They go on forged tools,
+		-- at the Forge, so this box says where rather than listing sockets.
+		label(fitted, "ENCHANTS", 10, MUTED, UDim2.fromOffset(14, 6), UDim2.new(1, -28, 0, 12), FONT)
 		local fitText
 		if item.source == "gear" then
-			fitText = runeSummary(item.def.sockets, item.def.slotCount)
-		elseif item.runeId then
-			local nameOf
-			for _, r in ipairs(state.runes or {}) do
-				if r.id == item.runeId then
-					nameOf = string.format("%s +%.0f%%", tostring(r.stat), (r.pct or 0) * 100)
-				end
-			end
-			fitText = nameOf or "one rune fitted"
-		elseif item.source == "charm" then
-			fitText = "Charms do not take runes"
-		elseif item.source == "ladder" or item.source == "shop" then
-			-- Coin tools share one socket per family: whatever rune is in the
-			-- pickaxe socket is in every pickaxe rung.
-			local sock = (state.toolSockets or {})[item.family or (item.def and item.def.family) or ""]
-			local bits = {}
-			if type(sock) == "table" then
-				for _, key in ipairs({ "main", "omni" }) do
-					local rid = sock[key]
-					for _, r in ipairs(state.runes or {}) do
-						if rid and r.id == rid then
-							table.insert(bits, string.format("%s %s +%.0f%%", key == "omni" and "Omni" or "Main",
-								tostring(r.stat), (r.pct or 0) * 100))
-						end
-					end
-				end
-			end
-			fitText = (#bits > 0) and table.concat(bits, "   ")
-				or "No rune in this family's socket · fit one at the Enchanter"
+			fitText = "Gear takes no enchants"
+		elseif item.source == "charm" or item.source == "charmbuy" then
+			fitText = "Charms take no enchants"
 		else
-			fitText = "No rune fitted · socket it at the Enchanter"
+			fitText = "Forged tools take enchants · open the FORGE"
 		end
 		label(fitted, fitText, 13, GEM, UDim2.fromOffset(14, 19), UDim2.new(1, -28, 0, 18))
 
@@ -4713,7 +4618,7 @@ function MineInventoryView.mount(parent, opts)
 			round(plus, 10)
 			stroke(plus, 1, GEM)
 			label(plus, "+", 44, GEM, UDim2.fromOffset(12, 8), UDim2.fromOffset(72, 76), FONT, Enum.TextXAlignment.Center)
-			label(plus, "MORE HATS & RUNES", 13, TEXT, UDim2.fromOffset(94, 24), UDim2.new(1, -104, 0, 18), FONT)
+			label(plus, "MORE HATS", 13, TEXT, UDim2.fromOffset(94, 24), UDim2.new(1, -104, 0, 18), FONT)
 			label(plus, "takes you to the Enchanter", 11, MUTED, UDim2.fromOffset(94, 46), UDim2.new(1, -104, 0, 16))
 			plus.MouseButton1Click:Connect(function()
 				if opts.onGoEnchanter then opts.onGoEnchanter() end
@@ -5393,11 +5298,7 @@ function MineInventoryView.mount(parent, opts)
 		note(body, "Live totals from everything you are running. The small line under each says where it comes from.", 99)
 	end
 
-	-- The Runes tab used to list MineConfig.RELICS, which are not runes -- they
-	-- are flat-stat relics, and every one of them read "Not found yet" forever.
-	-- It shows the seven rune sets and how far along each one you are, which is
-	-- the thing a collection tab is for.
-	-- One equipped identity. Not a rune socket — equip/unequip freely, never destroyed.
+	-- One equipped identity: equip/unequip freely, never destroyed.
 		local function renderVfx()
 			local Vfx = require(shared:WaitForChild("MineVfx"))
 			local owned = state.vfx or {}
@@ -5447,67 +5348,6 @@ function MineInventoryView.mount(parent, opts)
 			end
 		end
 
-		local function renderRunes()
-		local Runes = require(shared:WaitForChild("MineRunes"))
-		local owned = state.runes or {}
-
-		-- Distinct slots held per set, whether socketed or in the bag.
-		local held = {}
-		for _, r in ipairs(owned) do
-			if type(r) == "table" and r.setId and r.slot then
-				held[r.setId] = held[r.setId] or {}
-				held[r.setId][r.slot] = (held[r.setId][r.slot] or 0) + 1
-			end
-		end
-
-		local loose = 0
-		for _, r in ipairs(owned) do
-			if type(r) == "table" and not r.setId then
-				loose += 1
-			end
-		end
-
-		local head = panelRow(body, 40, 0)
-		label(head, "Rune sets", 15, TEXT, UDim2.fromOffset(14, 0), UDim2.new(0.6, 0, 1, 0), FONT)
-		label(head, #owned .. " runes held", 14, GOLD, UDim2.new(1, -160, 0, 0),
-			UDim2.fromOffset(146, 40), FONT, Enum.TextXAlignment.Right)
-
-		for i, set in ipairs(Runes.SETS) do
-			if matches(set.name .. " " .. table.concat(set.slots, " ")) then
-				local mine = held[set.id] or {}
-				local have = 0
-				for slot = 1, #set.slots do
-					if mine[slot] then
-						have += 1
-					end
-				end
-				local complete = have >= #set.slots
-				local row = panelRow(body, 78, i)
-				label(row, set.name, 15, complete and GOLD or TEXT, UDim2.fromOffset(14, 6),
-					UDim2.new(1, -140, 0, 20), FONT)
-				label(row, have .. " / " .. #set.slots, 14, complete and GOLD or MUTED,
-					UDim2.new(1, -120, 0, 6), UDim2.fromOffset(106, 20), FONT, Enum.TextXAlignment.Right)
-				-- Which of the three you are missing, by name, because "2/3" does
-				-- not tell you what to go and buy a crate for.
-				local bits = {}
-				for slot, stat in ipairs(set.slots) do
-					local n = mine[slot] or 0
-					local tag = (slot == 3) and " (chase)" or ""
-					bits[#bits + 1] = string.format("%s%s %s", stat, tag, n > 0 and ("x" .. n) or "--")
-				end
-				label(row, table.concat(bits, "    "), 12, MUTED, UDim2.fromOffset(14, 30),
-					UDim2.new(1, -28, 0, 18))
-				label(row, complete
-						and ("Set bonus active: +" .. math.floor(Runes.SET_BONUS_PCT * 100) .. "% " .. set.bonus .. " when all three are socketed")
-						or ("Completes to: +" .. math.floor(Runes.SET_BONUS_PCT * 100) .. "% " .. set.bonus),
-					12, complete and GREEN or GEM, UDim2.fromOffset(14, 50), UDim2.new(1, -28, 0, 18))
-			end
-		end
-
-		if loose > 0 then
-			note(body, loose .. " older runes belong to no set. They still work; they just cannot complete one.", 99)
-		end
-	end
 	----------------------------------------------------------------------------
 	-- COLLECTION
 	----------------------------------------------------------------------------
@@ -5966,8 +5806,7 @@ function MineInventoryView.mount(parent, opts)
 			elseif line.kind == "box" then
 				name = "Custom Box  " .. tostring(#(line.packs or {})) .. " packs"
 			else
-				local item = (state.scrollShop or {})[line.id]
-				name = ((item and item.name) or line.id) .. (line.bundle and "  5x" or "")
+				name = tostring(line.id)
 			end
 			local nl = label(row, name, 14, TEXT, UDim2.fromOffset(10, 6), UDim2.new(1, -110, 0, 18), FONT)
 			nl.TextXAlignment = Enum.TextXAlignment.Left
@@ -7116,45 +6955,6 @@ function MineInventoryView.mount(parent, opts)
 			end
 
 			order += 1
-			sectionHeader("SCROLLS  --  paid in Credits", order)
-			for id, item in pairs(state.scrollShop or {}) do
-				order += 1
-				local row = panelRow(body, 62, order)
-				label(row, item.name or id, 15, TEXT, UDim2.fromOffset(14, 8),
-					UDim2.new(1, -240, 0, 20), FONT)
-				local blurb = label(row, item.blurb or "", 11, MUTED,
-					UDim2.fromOffset(14, 30), UDim2.new(1, -240, 0, 26))
-				blurb.TextWrapped = true
-				local addOne = mk("TextButton", {
-					AutoButtonColor = true, BackgroundColor3 = BG3,
-					Font = FONT, TextSize = 13, TextColor3 = TEXT,
-					Text = "",
-					AnchorPoint = Vector2.new(1, 0.5),
-					Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(110, 32),
-				}, row)
-				round(addOne, 7)
-				stroke(addOne, 1, T.CREDIT or GOLD)
-				paintCostButton(addOne, "ADD", vipCreditPrice(item.price), "credits", TEXT)
-				addOne.MouseButton1Click:Connect(function()
-					cartAdd("scroll", id, false, 1)
-				end)
-				if item.bundleQty then
-					local addBundle = mk("TextButton", {
-						AutoButtonColor = true, BackgroundColor3 = T.CREDIT or GOLD,
-						Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(26, 20, 40),
-						Text = "",
-						AnchorPoint = Vector2.new(1, 0.5),
-						Position = UDim2.new(1, -130, 0.5, 0), Size = UDim2.fromOffset(110, 32),
-					}, row)
-					round(addBundle, 7)
-					paintCostButton(addBundle, item.bundleQty .. "x", vipCreditPrice(item.bundlePrice or item.price * item.bundleQty), "credits", Color3.fromRGB(26, 20, 40))
-					addBundle.MouseButton1Click:Connect(function()
-						cartAdd("scroll", id, true, 1)
-					end)
-				end
-			end
-
-			order += 1
 			sectionHeader("EARNED IN THE MINE", order)
 			order += 1
 			local row = panelRow(body, 52, order)
@@ -7377,8 +7177,8 @@ function MineInventoryView.mount(parent, opts)
 			local grants = {
 				{ "+5% Luck, always on",
 				  "Stated. Packs, chests, and finds lean a little luckier." },
-				{ "A White Scroll the moment you join",
-				  "Arms a rune before a fuse -- on a fail, both runes survive." },
+				{ "3 Enchant Books the moment you join",
+				  "Put them on your tools at the Forge." },
 				{ "Founder Tag",
 				  "Trumps [VIP] on your name. Switch either tag off in VFX." },
 				{ "Founders Bag",
@@ -7678,10 +7478,7 @@ function MineInventoryView.mount(parent, opts)
 			credits = Color3.fromRGB(80, 220, 140),
 			gems = Color3.fromRGB(90, 180, 255),
 			stardust = Color3.fromRGB(255, 160, 220),
-			scroll = Color3.fromRGB(240, 230, 180),
-			white = Color3.fromRGB(240, 230, 180),
-			black = Color3.fromRGB(90, 36, 48),
-			omni = Color3.fromRGB(232, 197, 106),
+			books = Color3.fromRGB(210, 150, 255),
 			battlepass = Color3.fromRGB(255, 214, 90),
 		}
 
@@ -7693,17 +7490,7 @@ function MineInventoryView.mount(parent, opts)
 			if not id and reward.credits then id = "credits" end
 			if not id and reward.gems then id = "gems" end
 			if not id and reward.dust then id = "stardust" end
-			if not id and reward.scrolls then
-				if reward.scrolls.omni then id = "omni"
-				elseif reward.scrolls.black then id = "black"
-				elseif reward.scrolls.white then id = "white"
-				else
-					for sid in pairs(reward.scrolls) do
-						id = sid
-						break
-					end
-				end
-			end
+			if not id and reward.books then id = "books" end
 			id = id or "gift"
 			local col = ICON_COL[id] or GOLD
 			if LuckyBlocks and LuckyBlocks.TYPES[id] then
@@ -7722,7 +7509,7 @@ function MineInventoryView.mount(parent, opts)
 			if id == "credits" then return "CR" end
 			if id == "gems" then return "GEM" end
 			if id == "stardust" then return "DST" end
-			if id == "scroll" then return "SCR" end
+			if id == "books" then return "BK" end
 			return "?"
 		end
 
@@ -8147,20 +7934,7 @@ function MineInventoryView.mount(parent, opts)
 		sortBar.Position = UDim2.fromOffset(L.x, L.top + tabsH + searchH)
 		body.Position = UDim2.fromOffset(L.x, L.top + top)
 		body.Size = UDim2.new(1, -L.w, 1, -(L.top + 16 + top))
-		do
-			local on = section == "inventory" and activeTab == "runes"
-			local sv = on and eq.socketsPane() or eq.sockets
-			if sv then
-				if sv.root then
-					sv.root.Position = UDim2.fromOffset(L.x, L.top + top)
-					sv.root.Size = UDim2.new(1, -L.w, 1, -(L.top + 16 + top))
-					sv.root.ZIndex = 40
-				end
-				sv.setState(state)
-				sv.setVisible(on)
-			end
-			body.Visible = not on
-		end
+		body.Visible = true
 
 		clear(body)
 		body.CanvasPosition = Vector2.zero
@@ -8173,8 +7947,6 @@ function MineInventoryView.mount(parent, opts)
 				renderPotions()
 			elseif activeTab == "vfx" then
 				renderVfx()
-			elseif activeTab == "runes" then
-				-- The sockets pane is drawn over the body (see above).
 			else
 				-- Equipment, and anything still named after a retired tab.
 				renderOwnedTools()
@@ -8193,7 +7965,8 @@ function MineInventoryView.mount(parent, opts)
 			elseif activeTab == "faces" then
 				renderNewGear("faces")
 			else
-				renderRunes()
+				-- Anything still named after a retired tab (Runes) lands on Chests.
+				renderChestDex()
 			end
 		elseif section == "shop" then
 			renderShop()
@@ -8542,8 +8315,10 @@ function MineInventoryView.mount(parent, opts)
 			activeTab = t or tabFor[sec] or sectionDef(sec).tabs[1].id
 			-- Gear, Runes and Charms no longer have Inventory tabs; an old
 			-- tutorial step or toast that names one gets Equipment.
-			if sec == "inventory" and (activeTab == "gear" or activeTab == "charms") then
+			if sec == "inventory" and (activeTab == "gear" or activeTab == "charms" or activeTab == "runes") then
 				activeTab = "tools"
+			elseif sec == "collection" and activeTab == "runes" then
+				activeTab = "chests"
 			end
 		end
 		root.Visible = true

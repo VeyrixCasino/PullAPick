@@ -288,7 +288,7 @@ MineTools.PASS_TOOLS = {
 		blurb = "Battle Pass explosive. Holds two temperaments." },
 	{ id = "yardblade", name = "YardBlade", family = "pickaxe", power = 12, rate = 3.0, radius = 0, cells = 1, shape = "crescent",
 		rarity = "Legendary", rarityId = "Legendary", temperSlots = 2, special = "yardblade", omniBlast = 1.0,
-		blurb = "Fused half-moon + Eclipse. 100% Omni Blast before pets and runes." },
+		blurb = "Fused half-moon + Eclipse. 100% Omni Blast before pets and enchants." },
 }
 
 function MineTools.passTool(id)

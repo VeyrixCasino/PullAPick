@@ -864,11 +864,6 @@ function MineGradeReveal.lucky(parent, opts)
 			if loot.toolId then
 				table.insert(rows, { icon = loot.toolFamily or "pickaxe", text = pretty(loot.toolId) })
 			end
-			if type(loot.scrolls) == "table" then
-				for id, qty in pairs(loot.scrolls) do
-					table.insert(rows, { icon = id, text = qty .. "x  " .. pretty(id) .. " scroll" })
-				end
-			end
 			if loot.temperTokens then
 				table.insert(rows, { icon = "tokens", text = fmt(loot.temperTokens) .. "  Temper tokens" })
 			end

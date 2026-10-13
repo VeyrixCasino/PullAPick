@@ -2,7 +2,7 @@
 title: Code map
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - default.project.json
   - AGENTS.md
@@ -51,9 +51,12 @@ children (AGENTS.md).
 ## ReplicatedStorage
 
 **`src/ReplicatedStorage/Mine/Shared/`** is where most design work happens. It has
-94 entries: data modules (`MineConfig`, `MineDepth`, `MineStats`, `MineTraits`,
-`MineCharms`, `MinePackConfig`…) and the client **views** (`*View.luau`, `MineForge`,
-`MineHotbar`, `MineUI`, `MineTheme`). The largest, by lines:
+113 entries at `4e4fbb3`: data modules (`MineConfig`, `MineDepth`, `MineStats`,
+`MineEnchants`, `MineCharms`, `MinePackConfig`…) and the client **views** (`*View.luau`, `MineForge`,
+`MineHotbar`, `MineUI`, `MineTheme`). `MineRunes`, `MineRunesView`,
+`MineSocketsView`, `MineTraits` and `MineTraitView` were deleted on 2026-10-12,
+when runes and tool traits were retired ([traits](../systems/traits.md)). The
+largest, by lines (counted at `26036a0`, not rechecked):
 
 | module | lines | note |
 |---|---|---|
@@ -83,7 +86,7 @@ Other ReplicatedStorage contents:
 ## ServerScriptService
 
 - `src/ServerScriptService/Mine/MineServer.server.luau`: **the whole game server**,
-  17,050 lines and about 600 KB. See [server](server.md).
+  17,050 lines and about 600 KB at `26036a0`. See [server](server.md).
 - Other modules in `Mine/`: `MineDigAuth`, `MineDepthPlazas` (outposts, elevator
   rides), `MineDepthLive`, `WorldBuilder` (builds the map at boot), the zone themes
   `MineHarbor`, `MineBloodLake` and `MineEventHorizon` (loaded by `WorldBuilder` per

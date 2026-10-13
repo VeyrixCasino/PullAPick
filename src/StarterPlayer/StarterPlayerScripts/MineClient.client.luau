@@ -2700,7 +2700,6 @@ enchantP.Size = UDim2.fromScale(0.94, 0.92)
 if enchantP.Body then
 	enchantP.Body.Visible = false
 end
-local runesCtl
 local tradeP = panel("Trade")
 local zoneP = panel("Planets")
 local presP = panel("Rebirth")
@@ -2924,31 +2923,6 @@ function ClientFns.upgradeNudge()
 	scrub(btn)
 	scrub(btn:FindFirstChild("Plate"))
 	ClientFns.upgradeShown = 0
-end
-
---[[
-	WHERE A RUNE GOES, in one function, because two screens ask the question now:
-	the Enchanter, and the Runes tab in your bag. Socketing is not a purchase, so
-	it does not belong behind a walk to a machine -- buying still does.
-]]
-function ClientFns.socketRoute(item, runeId, index)
-	if type(item) ~= "table" then
-		return
-	end
-	if item.kind == "gear" then
-		net:FireServer("socketGearRune", { gearId = item.id, runeId = runeId, index = index })
-	elseif item.kind == "pet" then
-		net:FireServer("socketPetRune", { cardId = item.id, runeId = runeId })
-	elseif item.kind == "chest" then
-		net:FireServer("socketToolRune", { runeId = runeId, chestId = item.id, family = item.family })
-	elseif item.kind == "shop" then
-		net:FireServer("socketToolRune", { runeId = runeId, shopToolId = item.id, family = item.family })
-	else
-		net:FireServer("socketToolRune", {
-			runeId = runeId, family = item.family,
-			slot = (index == 1) and "main" or "omni",
-		})
-	end
 end
 
 function ClientFns.onSurface()
@@ -3219,7 +3193,7 @@ dockBtn(ICONS.pass, "Pass", function()
 	end
 end)
 dockBtn(ICONS.enchanter, "Enchanter", function()
-	ClientFns.routePanel("enchanter", "runes")
+	ClientFns.routePanel("enchanter", "summon")
 end)
 -- A TODAY row's tap (MineToday.ORDER `open`): the same screens the dock opens.
 function ClientFns.todayOpen(where)
@@ -3691,8 +3665,6 @@ portalFx = PortalFX.start(function() return snap end)
 local ShopView = require(shared:WaitForChild("MineShopView"))
 local DepthShopView = require(shared:WaitForChild("MineDepthShopView"))
 local ForgeView = require(shared:WaitForChild("MineForgeView"))
-local RunesView = require(shared:WaitForChild("MineRunesView"))
-local RunesSockets = require(shared:WaitForChild("MineSocketsView"))
 -- One window for packs, cards, the chest directory, the shop and passes:
 -- sections down the left, tabs across the top. The card art comes from this
 -- file's own paintCard, so there is exactly one card renderer in the game.
@@ -3759,9 +3731,9 @@ invCtl = InventoryView.mount(gui, {
 		if packRevealBusy then
 			return
 		end
-		-- Gear / Rune cases: never more than 3 at once.
+		-- Gear cases: never more than 3 at once.
 		local pid = tostring(packId or "")
-		if string.find(pid, "gear", 1, true) or string.find(pid, "rune", 1, true) then
+		if string.find(pid, "gear", 1, true) then
 			count = math.min(tonumber(count) or 1, 3)
 		end
 		armPackRevealBusy()
@@ -3804,14 +3776,10 @@ invCtl = InventoryView.mount(gui, {
 		Audio.play("equip")
 		net:FireServer("equipGear", { gearId = id, slot = slot })
 	end,
-			onSocketGear = function(gearId, runeId, index)
-				net:FireServer("socketGearRune", { gearId = gearId, runeId = runeId, index = index })
-			end,
 	onUnequipGear = function(slot, gearId)
 		net:FireServer("unequipGear", { slot = slot, gearId = gearId })
 	end,
 	onEquipBest = function() net:FireServer("equipBest") end,
-	onSocketAny = function(item, runeId, index) ClientFns.socketRoute(item, runeId, index) end,
 	-- The plus tile at the end of your gear: walk to the machine, open summons.
 	onGoEnchanter = function()
 		net:FireServer("introPing", 30)
@@ -5449,7 +5417,7 @@ shopCtl = ShopView.mount(gui, {
 		if ClientFns.teleportToEnchanter then
 			ClientFns.teleportToEnchanter()
 		end
-		ClientFns.routePanel("enchanter", tostring(tab or "sockets"))
+		ClientFns.routePanel("enchanter", tostring(tab or "temper"))
 	end,
 	onBuyTool = function(family, tier, toolId)
 		if toolId then
@@ -5476,9 +5444,6 @@ shopCtl = ShopView.mount(gui, {
 		else
 			net:FireServer("buyCreditPack", { packId = packId })
 		end
-	end,
-	onBuyScroll = function(id, bundle)
-		net:FireServer("buyScroll", { id = id, bundle = bundle and true or nil })
 	end,
 	--[[
 		The blacksmith bench.
@@ -6503,7 +6468,6 @@ function ClientFns.paintLoot(parent, item, w)
 	local rareCol = Cards.RARITY_COLOR[item.rarityId] or TEXT
 	local FAMILY = {
 		gear = { tag = "GEAR", tint = Color3.fromRGB(86, 132, 190) },
-		rune = { tag = "RUNE", tint = Color3.fromRGB(150, 104, 200) },
 		gems = { tag = "GEMS", tint = Color3.fromRGB(90, 180, 255) },
 		coins = { tag = "COINS", tint = Color3.fromRGB(240, 200, 90) },
 		stardust = { tag = "STARDUST", tint = Color3.fromRGB(210, 160, 255) },
@@ -6525,8 +6489,6 @@ function ClientFns.paintLoot(parent, item, w)
 	local image
 	if item.kind == "gear" and item.gear then
 		image = Gear.image(item.gear)
-	elseif item.kind == "rune" and item.rune then
-		image = Icons.image(item.rune.stat)
 	elseif item.kind == "gems" then
 		image = Icons.image("gems")
 	elseif item.kind == "coins" then
@@ -6674,8 +6636,6 @@ function ClientFns.paintLoot(parent, item, w)
 	if item.kind == "gear" and item.gear then
 		pillText = (Gear.SLOT_LABEL[item.gear.slot] or item.gear.slot or "")
 			.. "  " .. tostring(item.gear.rarity or "")
-	elseif item.kind == "rune" and item.rune then
-		pillText = tostring(item.rune.kind or "") .. "  T" .. tostring(item.rune.tier or 1)
 	elseif isCurrency then
 		pillText = fam.tag
 	elseif item.kind == "tool" then
@@ -6690,20 +6650,10 @@ function ClientFns.paintLoot(parent, item, w)
 		Text = pillText,
 	}, pill)
 
-	-- The right-hand number is the reason to want it: a percentage for gear
-	-- and runes.
+	-- The right-hand number is the reason to want it: a percentage for gear.
 	local right = ""
 	if item.kind == "gear" and item.gear then
-		local slots = item.gear.slotCount or 0
-		local socketText = slots .. ((slots == 1) and " socket" or " sockets")
-		-- An amulet is a socket slot and pays no percentage at all. "+0.0%"
-		-- on one reads as a piece that failed to roll rather than as the
-		-- point of the slot.
-		right = ((item.gear.pct or 0) > 0)
-			and string.format("+%.1f%%  %s", (item.gear.pct or 0) * 100, socketText)
-			or socketText
-	elseif item.kind == "rune" and item.rune then
-		right = string.format("+%.2f%%", (item.rune.pct or 0) * 100)
+		right = ((item.gear.pct or 0) > 0) and string.format("+%.1f%%", (item.gear.pct or 0) * 100) or ""
 	elseif item.kind == "tool" and tonumber(item.power) then
 		right = "power " .. ClientFns.commas(math.floor(tonumber(item.power)))
 	elseif item.kind == "pack" and tonumber(item.stars) then
@@ -7777,7 +7727,6 @@ local function refreshDust()
 	if not snap then
 		return
 	end
-	local Runes = require(shared:WaitForChild("MineRunes"))
 	local Gear = require(shared:WaitForChild("MineGear"))
 
 	local sel = scrapUI.sel
@@ -7849,7 +7798,7 @@ local function refreshDust()
 		LayoutOrder = 1,
 	}, dustP.Body)
 	local tabs = {
-		{ "cards", "CARDS" }, { "packs", "PACKS" }, { "runes", "RUNES" }, { "gear", "GEAR" },
+		{ "cards", "CARDS" }, { "packs", "PACKS" }, { "gear", "GEAR" },
 	}
 	for ti, t in ipairs(tabs) do
 		local on = (tab == t[1])
@@ -8071,26 +8020,7 @@ local function refreshDust()
 			end
 		end
 		if #list == 0 then
-			scrapNote("No card packs to scrap. Currency / rune / gear packs stay sealed.")
-		end
-
-	elseif tab == "runes" then
-		local runes = Runes.looseRunes(snap)
-		for i, r in ipairs(runes) do
-			local gems = Runes.scrapGems(r)
-			tile(i, string.format("%s %s", tostring(r.kind), tostring(r.stat)),
-				string.format("+%.1f%%   tier %s", (r.pct or 0) * 100, tostring(r.tier or 1)),
-				"+" .. shortNum(gems) .. " gems", T.GEM, T.GEM, { r.id }, function()
-				sel[r.id] = (not sel[r.id]) or nil
-				refreshDust()
-			end)
-			if sel[r.id] then
-				totalN += 1
-				totalGems += gems
-			end
-		end
-		if #runes == 0 then
-			scrapNote("No loose runes. Socketed runes cannot be scrapped -- unsocket one first.")
+			scrapNote("No card packs to scrap. Currency and gear packs stay sealed.")
 		end
 
 	elseif tab == "gear" then
@@ -8175,7 +8105,6 @@ local function refreshDust()
 
 		local kind = (tab == "cards") and "card"
 			or (tab == "packs") and "pack"
-			or (tab == "runes") and "rune"
 			or "gear"
 		local function fire(into)
 			local ids = {}
@@ -8289,7 +8218,7 @@ function ClientFns.confirmRebirth()
 			local cost = (advice and advice.cost) or (snap and snap.rebirthCost) or 0
 			local early = (snap and (snap.coins or 0) or 0) < minCoins
 			return "You lose coins, the pick ladder, and mine depth.\n"
-				.. "You keep gems, cards, runes, gear, skills, skins, charms and your ore pouch.\n\n"
+				.. "You keep gems, cards, gear, forged tools and their enchants, skills, skins, charms and your ore pouch.\n\n"
 				.. string.format("Fee %s  |  Minimum bank %s%s\n",
 					shortNum(cost), shortNum(minCoins), early and "  |  early" or "")
 				.. string.format("Rebirth %d grants %d skill points + %d temper tokens + %d gems.",
@@ -8926,9 +8855,9 @@ refreshPrestige = function()
 		}, card)
 	end
 	half(0, "YOU KEEP", Color3.fromRGB(130, 215, 140),
-		"Gems | cards | runes | gear\nSkills | skins | charms | ore pouch\nZones stay unlocked")
+		"Gems | cards | gear | enchants\nSkills | skins | charms | ore pouch\nZones stay unlocked")
 	half(0.5, "RESETS", Color3.fromRGB(235, 150, 130),
-		"Coins | pickaxe ladder\nBackpack | mine depth\n(runes stay in their tool slots)")
+		"Coins | pickaxe ladder\nBackpack | mine depth")
 
 	-- 4. What the next rank pays.
 	local get = mk("Frame", {
@@ -9047,21 +8976,12 @@ refreshPrestige = function()
 end
 
 --[[
-	The Enchanter has two halves now.
-
-	"Runes" is the roll/fuse bench it always was. "Sockets" is the part that was
-	previously a list of buttons reading "Socket -> pickaxe main": pick the gear
-	or tool, see its sockets laid out around it, pick a rune, click the socket.
+	The Enchanter: Summon, Temper, Salvage and Dust. Its Traits, Merge and
+	Sockets tabs left with traits and runes on 2026-10-12 (enchants live at the
+	Forge), and it opens on Summon.
 ]]
-local socketsCtl, enchantTabs, traitCtl
---[[
-	The Enchanter opens on ENCHANT now, not on the rune bench.
-
-	Traits replaced runes as the thing you come here to do (TODO 0.17),
-	so the bench being the landing tab would put the retiring system in front
-	of the one that replaced it.
-]]
-local enchantTab = "trait"
+local enchantTabs
+local enchantTab = "summon"
 
 --[[
 	SUMMON -- its own tab.
@@ -9069,8 +8989,7 @@ local enchantTab = "trait"
 	It was on the rune bench, which meant every time you went to fuse something
 	the game put a purchase in front of you. Rolling is a thing you choose to
 	go and do, so it gets its own tab and stays out of the way until you pick
-	it. Both rune and gear rolls live here; there is nowhere else either of them
-	belongs.
+	it. Gear and temperament rolls live here.
 
 	One table because MineClient is a few locals off Luau's per-function cap.
 ]]
@@ -9080,11 +8999,8 @@ function rollsTab.build(parent)
 	if rollsTab.root then
 		return
 	end
-	-- BOTH required here. Neither is a top-level local in this file (the other
-	-- users require them inside their own functions), so out here they are nil
-	-- globals -- which is why Runes.ROLL_PRICE was indexing nil and this tab
-	-- rendered with zero buttons.
-	local Runes = require(shared:WaitForChild("MineRunes"))
+	-- Required here: not a top-level local in this file (the other users
+	-- require it inside their own functions), so out here it is a nil global.
 	local Gear = require(shared:WaitForChild("MineGear"))
 	local Icons = require(shared:WaitForChild("MineIcons"))
 	rollsTab.root = mk("Frame", {
@@ -9100,7 +9016,7 @@ function rollsTab.build(parent)
 	rollsTab.haveChip = nil
 	rollsTab.buttons = {}
 	-- The per-draw price chip on each card, repainted when the price moves
-	-- (summons are a flat price at every depth: MineRunes.rollPriceFor).
+	-- (the gear and temper prices come off the snapshot).
 	rollsTab.unitChips = {}
 
 	--[[
@@ -9239,23 +9155,19 @@ function rollsTab.build(parent)
 		end
 		return fallback
 	end
-	row("Rune Case", "Pet-boost runes only - T1 to T5. Fits pets, tools, or gear.",
-		art("rune"), (snap and tonumber(snap.runeRollPrice)) or Runes.ROLL_PRICE, 24,
-		Color3.fromRGB(96, 196, 128), function(n)
-			net:FireServer("rollRune", { count = n or 1 })
-		end, { 1, 10, 100 }, "rune")
 	-- Crates land in the bag and open at your own pace, so a 100x buy is not
-	-- 100 ceremonies -- same as runes. Priced in REBIRTH TOKENS now, not gems.
+	-- 100 ceremonies. Priced in REBIRTH TOKENS, not gems. (The Rune Case row
+	-- left with runes, 2026-10-12; enchant books come from the Forge now.)
 	row("Gear Case", "Hats and faces, worn by YOU. Graded F to SSS. Costs rebirth tokens.",
 		art("gear", Hats.thumb and Hats.thumb(1016143686) or nil),
-		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_TOKEN_COST or 5, 136,
+		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_TOKEN_COST or 5, 24,
 		Color3.fromRGB(168, 140, 255), function(n)
 			net:FireServer("rollGear", { count = n or 1 })
 		end, { 1, 10, 100 }, "gear")
 	-- The case lives where the other draws live, not behind a rebirth wall.
 	row(string.upper(tostring(Temper.CASE_NAME or "Temperament Case")),
 		"Spins for one temperament, Common to Mythic. Fit it to any tool.",
-		art("temper"), tonumber(Temper.CASE_PRICE_TOKENS) or 20, 248,
+		art("temper"), tonumber(Temper.CASE_PRICE_TOKENS) or 20, 136,
 		Color3.fromRGB(255, 176, 92), function(n)
 			net:FireServer("openTemperCase", { count = n or 1 })
 		end, { 1, 10, 100 }, "temper")
@@ -9278,12 +9190,11 @@ function rollsTab.paint()
 	for _, c in ipairs(rollsTab.have:GetChildren()) do
 		c:Destroy()
 	end
-	-- The header chip is the GEM purse (the rune row). The gear and temper rows
-	-- price themselves in tokens and check haveTokens, via spendsTokens above.
-	rollsTab.haveChip = Icons.priceChip(rollsTab.have, "gems", shortNum(haveGems), {
+	-- The header chip is the TOKEN purse: both rows (gear, temper) cost tokens.
+	rollsTab.haveChip = Icons.priceChip(rollsTab.have, "tokens", shortNum(haveTokens), {
 		iconSize = 18,
 		textSize = 17,
-		textColor = T.GEM,
+		textColor = T.GOLD,
 		font = FONT,
 		zIndex = 35,
 	})
@@ -9291,8 +9202,6 @@ function rollsTab.paint()
 	local function priceOf(kind)
 		if kind == "gear" then
 			return tonumber(snap.gearRollPrice)
-		elseif kind == "rune" then
-			return tonumber(snap.runeRollPrice)
 		elseif kind == "temper" then
 			-- The case is one flat price, wherever you are standing.
 			return tonumber(snap.temperCasePrice)
@@ -9371,7 +9280,6 @@ end
 ClientFns.handTargets = {
 	-- inventory
 	equipmentTab = { find = function() return ClientFns.handFind(invCtl, { "Tab_tools" }) end },
-	runesTab = { find = function() return ClientFns.handFind(invCtl, { "Tab_runes" }) end },
 	cardsTab = { find = function() return ClientFns.handFind(invCtl, { "Tab_cards" }) end },
 	petSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_pet1", "Seat_pet2", "Seat_pet3" }) end },
 	faceSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_face" }) end },
@@ -9379,7 +9287,6 @@ ClientFns.handTargets = {
 	hatSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_hat", "Seat_hat2", "Seat_hat3" }) end },
 	-- enchanter
 	caseRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_temper", true) or nil end },
-	runeRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_rune", true) or nil end },
 	gearRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_gear", true) or nil end },
 	goEnchanter = { find = function() return ClientFns.handFind(invCtl, { "GoEnchanter" }) end },
 }
@@ -9633,20 +9540,15 @@ function ClientFns.paintEnchantExtra()
 	end
 end
 
+-- The Enchanter's four tabs since traits and runes left (2026-10-12).
+ClientFns.ENCHANT_TABS = { summon = true, temper = true, salvage = true, dust = true }
+
 function ClientFns.showEnchantTab(id)
+	-- A retired tab ("trait", "runes", "sockets") lands on Summon.
+	if not ClientFns.ENCHANT_TABS[id] then
+		id = "summon"
+	end
 	enchantTab = id
-	if runesCtl and runesCtl.root then
-		runesCtl.root.Visible = (id == "runes")
-		if id == "runes" then
-			runesCtl.paint()
-		end
-	end
-	if socketsCtl then
-		socketsCtl.setVisible(id == "sockets")
-	end
-	if traitCtl then
-		traitCtl.setVisible(id == "trait")
-	end
 	if rollsTab.root then
 		rollsTab.root.Visible = (id == "summon")
 		if id == "summon" then
@@ -9676,63 +9578,6 @@ end
 
 local function refreshEnchanter()
 	if not snap then return end
-	if not traitCtl then
-		--[[
-			Guarded like the Forge's panels: a module missing from a build
-			should cost this one tab, not the whole Enchanter. And LOUDLY --
-			the silent version of this guard is what hid the Forge for a week.
-		]]
-		local okE, EnchantView = pcall(function()
-			return require(shared:WaitForChild("MineTraitView", 5))
-		end)
-		if okE and EnchantView and EnchantView.mount then
-			local okM, ctl = pcall(EnchantView.mount, enchantP, {
-				getSnap = function()
-					return snap or {}
-				end,
-				-- A uid and nothing else. The rarity, the trait and the
-				-- level are all rolled on the server.
-				onTrait = function(uid)
-					net:FireServer("rollTrait", { uid = uid })
-				end,
-			})
-			if okM then
-				traitCtl = ctl
-			else
-				warn("[MineClient] NO TRAIT TAB: MineTraitView.mount threw: " .. tostring(ctl))
-			end
-		else
-			warn("[MineClient] NO TRAIT TAB: ReplicatedStorage.Mine.Shared."
-				.. "MineTraitView did not resolve (" .. tostring(EnchantView) .. ").")
-		end
-	end
-	if not socketsCtl then
-		socketsCtl = RunesSockets.mount(enchantP, {
-			onSocket = ClientFns.socketRoute,
-			--[[
-				Buy a rune case. Verbs.buyPouch has been complete and
-				dispatched with no caller, while this very panel told the
-				player "No loose runes. Roll one, or open a Rune Case" --
-				naming a shop that existed only on the server. Three SKUs at
-				300 / 3,000 / 30,000 gems, and the only non-Robux path to
-				scrolls.
-			]]
-			onBuyPouch = function(tier)
-				net:FireServer("buyPouch", { tier = tier })
-			end,
-			-- A Set Crate is aimed at one of the seven rune sets. The view
-			-- will not call this without a set picked, and the server refuses
-			-- without one too, so neither side can spend 60,000 gems on a
-			-- crate with no target.
-			onBuyCrate = function(tier, setId)
-				net:FireServer("buyCrate", { tier = tier, setId = tostring(setId or "") })
-			end,
-		})
-		if socketsCtl.root then
-			socketsCtl.root.Position = UDim2.fromOffset(12, 96)
-			socketsCtl.root.Size = UDim2.new(1, -24, 1, -108)
-		end
-	end
 	if not enchantTabs then
 		enchantTabs = {}
 		local strip = mk("Frame", {
@@ -9743,10 +9588,10 @@ local function refreshEnchanter()
 			FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, strip)
-		-- Trait leads: it is the prefix on your tool, and the reason to walk
-		-- here at all. Merge/Sockets/Summon are the rune bench, which is being
-		-- retired behind it.
-		for i, t in ipairs({ { "trait", "Traits" }, { "runes", "Merge" }, { "sockets", "Sockets" }, { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
+		-- Traits, Merge and Sockets left with traits and runes (owner, 2026-10-12:
+		-- "RETIRE RUNES AND TRAITS.. ENCHNATS TAKE OVERTHAT FEILD"); enchants live
+		-- at the Forge. The owner chose to keep the Enchanter for these four.
+		for i, t in ipairs({ { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
 			local b = mk("TextButton", {
 				AutoButtonColor = true, BackgroundColor3 = BG2, Font = FONT, TextSize = 13,
 				TextColor3 = TEXT, Text = t[2], Size = UDim2.fromOffset(96, 36),
@@ -9762,60 +9607,6 @@ local function refreshEnchanter()
 	end
 	rollsTab.build(enchantP)
 	rollsTab.paint()
-	-- Repaint the trait tab on every open: the tool list, the prefixes and
-	-- the gem count all move while the panel is shut.
-	if traitCtl then
-		traitCtl.setVisible(enchantTab == "trait")
-	end
-	socketsCtl.setState(snap)
-	if not runesCtl then
-		if enchantP.Body then
-			enchantP.Body.Visible = false
-		end
-		for _, ch in ipairs(enchantP:GetChildren()) do
-			if ch.Name == "RunesView" then ch:Destroy() end
-		end
-		runesCtl = RunesView.mount(enchantP, {
-			--[[
-				Bulk recycle, from the rune list. Same two-call path the inventory
-				uses: this is the ASK, and the server's `confirmScrap` reply opens
-				the review (which is drawn by the inventory view but parented to
-				the screen, so it shows over the Enchanter).
-			]]
-			onScrapMany = function(kind, ids, into, confirm)
-				net:FireServer("scrapMany", {
-					kind = kind or "rune",
-					ids = ids,
-					into = into,
-					confirm = confirm and true or nil,
-				})
-			end,
-			onToast = function(msg) showToast(tostring(msg)) end,
-			onRollRune = function(count) net:FireServer("rollRune", { count = count or 1 }) end,
-			onRollGear = function(count) net:FireServer("rollGear", { count = count or 1 }) end,
-			onFuse = function(a, b) net:FireServer("fuseRune", { a = a, b = b }) end,
-			onArmWhite = function(id) net:FireServer("armWhiteScroll", { runeId = id }) end,
-			onSocketTool = function(id, fam, slot) net:FireServer("socketToolRune", { runeId = id, family = fam, slot = slot }) end,
-			onBlackUnequip = function(fam, slot) net:FireServer("blackUnequipToolRune", { family = fam, slot = slot }) end,
-			onDestroySocket = function(fam, slot) net:FireServer("destroyToolRune", { family = fam, slot = slot }) end,
-			onApplyOmni = function(fam) net:FireServer("applyOmniscroll", { family = fam }) end,
-			onSocketPet = function(id, cardId)
-				-- cardId was never sent, so the server always answered "Unknown pet".
-				net:FireServer("socketPetRune", { runeId = id, cardId = cardId })
-			end,
-			-- Off-ladder tools. socketToolRune has always taken a chestId; the
-			-- Enchanter just never offered them as targets.
-			onSocketChestTool = function(runeId, chestId)
-				net:FireServer("socketToolRune", { runeId = runeId, chestId = chestId })
-			end,
-			onEquipGear = function(id, slot) net:FireServer("equipGear", { gearId = id, slot = slot }) end,
-		})
-		if runesCtl.root then
-			runesCtl.root.Position = UDim2.fromOffset(12, 96)
-			runesCtl.root.Size = UDim2.new(1, -24, 1, -108)
-		end
-	end
-	runesCtl.setState(snap)
 	-- Temper tab: the Forge's own list, mounted bare, so a tool's temperament can
 	-- be rolled here as well as at the Forge. Kept on ClientFns rather than in a
 	-- new top-level local; this script's top level is at the register ceiling.
@@ -11691,13 +11482,15 @@ function ClientFns.routePanel(name, tab)
 		tutorial's coin pickaxe, the hub's BAGS and COIN SHOP) still opens the
 		old shop on that shelf, since the hub sells neither.
 	]]
-	if name == "shop" and tab == nil then
+	if (name == "shop" and tab == nil) or name == "forge" then
 		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
 		if hubOpen then
 			hidePanels()
-			hubOpen:Fire("counter")
+			-- "forge" + "enchant": the tutorial's step, on Upgrades > ENCHANT.
+			hubOpen:Fire((name == "forge" and tab == "enchant") and "enchant" or "counter")
 			return
 		end
+		name = "shop"
 	end
 	if name == "depth_shop" then
 		if depthShopCtl then
@@ -12150,19 +11943,7 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if dustP and dustP.Visible then refreshDust() end
 		if zoneP and zoneP.Visible then refreshZones() end
 		if presP and presP.Visible then refreshPrestige() end
-		if runesCtl then
-			runesCtl.setState(payload)
-			-- The trait tab never repainted while the rune bench existed, so a
-			-- roll (gems, the tool's new prefix) stayed stale until reopened.
-			-- Rolls are rare, so repaint only when gems or the rack change.
-			if traitCtl and enchantP and enchantP.Visible then
-				local key = tostring(payload.gems) .. ":" .. tostring(payload.oreTools and #payload.oreTools)
-				if key ~= ClientFns.traitPaintKey then
-					ClientFns.traitPaintKey = key
-					pcall(traitCtl.paint)
-				end
-			end
-		elseif enchantP and enchantP.Visible and refreshEnchanter then
+		if enchantP and enchantP.Visible and refreshEnchanter then
 			refreshEnchanter()
 		end
 		local eq = payload.equipped or {}
@@ -12382,8 +12163,8 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 					ClientFns.handClear()
 				end
 				if payload.requireAction then
-					-- Soft lock (socket step): keep the bench on screen while
-					-- the step wants a socket. Bounded -- two re-opens or 45
+					-- Soft lock (a step that wants an action): keep its screen up
+					-- while the step waits. Bounded -- two re-opens or 45
 					-- seconds, whichever runs out first -- so it can never
 					-- hold the screen hostage.
 					ClientFns.introRequire = {
@@ -12475,8 +12256,8 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 			ClientFns.playCaseReels({ design }, clearPackRevealBusy)
 			return
 		end
-		-- Gear / Rune cases use the CSGO reel (not PackReveal / lucky-block).
-		if design.kind == "gear" or design.kind == "rune" then
+		-- Gear cases use the CSGO reel (not PackReveal / lucky-block).
+		if design.kind == "gear" then
 			Audio.play("open")
 			local cards = design.cards or {}
 			local n = math.min(#cards, 3)
@@ -12546,10 +12327,10 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 				end
 				return {
 					reel = reel, at = at,
-					id = (item.gear and item.gear.id) or (item.rune and item.rune.id),
+					id = item.gear and item.gear.id,
 					name = item.name,
 					rarity = winR,
-					title = design.kind == "gear" and "Gear Case" or "Rune Case",
+					title = "Gear Case",
 					kind = design.kind,
 					sub = item.sub,
 					icon = reel[at] and reel[at].icon,
@@ -12648,22 +12429,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "temperCase" and payload then
 		Audio.play("open")
 		ClientFns.caseScreen().play(payload)
-	elseif action == "traitRolled" and type(payload) == "table" then
-		-- The Enchanter's trait roll: celebrated by the trait's real grade, so
-		-- an SSS (1 in 1000) is a party and an F is a soft pop.
-		pcall(function()
-			local Celebrate = require(shared:WaitForChild("MineCelebrate"))
-			local tier = Celebrate.fromGrade(payload.grade)
-			Celebrate.burst(tier, { title = tier >= 2 and tostring(payload.label or "") or nil })
-		end)
-		if traitCtl and enchantP and enchantP.Visible then
-			pcall(traitCtl.paint)
-		end
 	elseif action == "luckResult" and type(payload) == "table" then
 		--[[
-			Random outcomes that used to be a toast alone: rune fuses (a 50% flip)
-			and temperament rolls (the F..SSS ladder). Celebrated by the REAL
-			result. A failed fuse gets the small "no" sound, never a fanfare.
+			Random outcomes that used to be a toast alone: temperament rolls (the
+			F..SSS ladder). Celebrated by the REAL result. A miss gets the small
+			"no" sound, never a fanfare.
 		]]
 		pcall(function()
 			if payload.ok == false then
@@ -12671,14 +12441,7 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 				return
 			end
 			local Celebrate = require(shared:WaitForChild("MineCelebrate"))
-			local tier
-			if payload.grade then
-				tier = Celebrate.fromGrade(payload.grade)
-			else
-				-- A fuse succeeded; each rune tier is one more flip on the last.
-				local t = tonumber(payload.runeTier) or 2
-				tier = (t >= 7 and 4) or (t >= 5 and 3) or (t >= 3 and 2) or 1
-			end
+			local tier = Celebrate.fromGrade(payload.grade)
 			Celebrate.burst(tier, { title = (tier >= 2) and tostring(payload.title or "") or nil })
 		end)
 	elseif action == "luckyGraded" then
@@ -12780,8 +12543,9 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	end
 end)
 
--- Socket-step soft lock: if the bench is closed while the tutorial still
--- wants a socket, breathe it back open. Bounded by introRequire's budget.
+-- Soft lock: if a step's screen is closed while the tutorial still wants its
+-- action (step 8: enchant your pick, at the Forge), breathe it back open.
+-- Bounded by introRequire's budget.
 task.spawn(function()
 	while true do
 		task.wait(2)
@@ -12789,9 +12553,18 @@ task.spawn(function()
 		if req then
 			if os.clock() > req.expires or req.reopens <= 0 then
 				ClientFns.introRequire = nil
-			elseif enchantP and not enchantP.Visible then
-				req.reopens -= 1
-				ClientFns.routePanel(req.panel or "enchanter", req.tab or "sockets")
+			else
+				local up
+				if req.panel == "forge" then
+					local hub = gui:FindFirstChild("ForgeHub")
+					up = hub ~= nil and hub.Visible
+				else
+					up = enchantP ~= nil and enchantP.Visible
+				end
+				if not up then
+					req.reopens -= 1
+					ClientFns.routePanel(req.panel or "enchanter", req.tab)
+				end
 			end
 		end
 	end

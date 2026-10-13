@@ -2,7 +2,7 @@
 title: Open questions, contradictions and probable bugs
 type: meta
 status: current
-verified: 2026-10-10 @ 6c08171
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/OPEN.md
   - docs/BLOCKED.md
@@ -10,7 +10,7 @@ sources:
   - docs/TODO.md §0
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineBreaking.luau
-related: [owner, sources-of-truth, overview, mining-and-breaking, save-data-and-migrations]
+related: [owner, sources-of-truth, overview, mining-and-breaking, save-data-and-migrations, traits, enchants]
 ---
 
 # Open questions, contradictions and probable bugs
@@ -72,16 +72,22 @@ or **cut**. Anything already fixed is out of this list entirely; see `wiki/log.m
 
 ### 0c. Known-and-accepted for launch
 
-- **Flat gem floor prices** (trait roll 500, crate 200, backpack rung 1 at 100,
-  re-socket 10) did not move with `1e6 → 1e4` and are pocket change. Harmless;
-  they make early play generous.
+- **Flat gem floor prices** (pack crate 200, backpack rung 1 at 100) did not
+  move with `1e6 → 1e4` and are pocket change. Harmless; they make early play
+  generous. The trait roll (500) and re-socketing (10) were on this list until
+  they were retired with runes on 2026-10-12. The Forge's gem book
+  bundle starts at the trait roll's 500 and rises ×1.15 a zone
+  (`MineEnchants.bundlePrice`, PROPOSED).
 - **Chests may out-faucet ore sales** — chest gems scale on their own ladder and
   are not pouch-capped. Watch it in live data rather than pre-tuning it.
-- **26 of 39 tutorial steps remain unreachable.** The three that mattered are in
-  (`cc0262f`); the rest grant items, and switching them on would pay out to every
-  existing player on next login.
-- **`buyCrate`/social orphans** — tracked by `tools/verify/orphan-verbs.js`, which
-  fails the suite on any NEW orphan.
+- **20 of 35 tutorial steps remain unreachable** (`Intro.order` lists 15). The
+  three that mattered are in (`cc0262f`); the rest grant items, and switching
+  them on would pay out to every existing player on next login. On 2026-10-12
+  the rune steps 8 and 9 became one enchant step 8, and the dead rune steps 11,
+  23 and 26 were deleted.
+- **Social orphans** — tracked by `tools/verify/orphan-verbs.js`, which fails the
+  suite on any NEW orphan. (`buyCrate` was a rune crate; it was removed with
+  runes on 2026-10-12.)
 
 ### 0d. Suggestions worth 30 minutes each, before launch
 
@@ -109,7 +115,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 6 | **The chest coin crash fix landed in dead code.** The `e77d84e` fix is in `rollChestLoot`, reached only by `giveDrop`, which nothing calls. Live chests use `MineZoneChests.rollCurrency`. | *Reported* | [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md) |
 | 7 | **Chest flagship tools never drop** (static read): `openChestBlock` reads `rollChestTool` about 2,600 lines above its declaration, so it is a global read and nil. | *Reported* | same page; see the global-read trap in [luau-traps](code/luau-traps.md) |
 | 8 | **Tutorial step 29 hands a new player SSS hats**, worth +1050% in layer 2. | *Reported* | [hats-and-faces](systems/hats-and-faces.md) |
-| 9 | **`MineStats.RUNE_ONLY` silently zeroes the `blastRadius` line on all 26 pets that have one.** | *Reported* | [pets](systems/pets.md) |
+| 9 | **`MineStats.RUNE_ONLY` silently zeroes the `blastRadius` line on all 26 pets that have one.** Runes are retired (2026-10-12), but the table is kept on purpose because `MineCards` uses it as the pet-kit stat filter. | *Reported* (count not rechecked after the 2026-10-12 calm pass) | [pets](systems/pets.md) |
 | 10 | **The charm MERGE button wants 2 copies** (`math.max(2, MERGE_COST)`); the server needs 1 and the gem price is never shown. | *Reported* | [charms](systems/charms.md) |
 | 11 | **24 ore charms carry `luck`**, which raises the ore-case chance that drops them. This breaks the "no reward boosts its own acquisition" rule. **24 carry the retired `backpack` stat.** | *Reported* | [charms](systems/charms.md) |
 | 12 | **Meadow zone packs can never pay Mythic, Divine or Exotic** (computed from `cardOdds`). | *Reported* | [cards-and-packs](systems/cards-and-packs.md) |
@@ -140,9 +146,9 @@ because each moves the economy in more than one place. Measured figures are in
 | **TODO §9: "skin and temper crates cost ore only"** | Temper cases cost **temper tokens**. | same page |
 | **TODO §0.13.11: "the swing gate reads `BreakPower`"** | The gate reads the tool row (`oreTier` / `oreId`, derived per swing since `b19c4c2`). Per the research pass the `BreakPower` *attribute* is not read by the gate (not rechecked). | [mining-and-breaking](systems/mining-and-breaking.md) |
 | **Standing rule "no pity systems"** | PROPOSAL §0 lines 26 and 28 (**approved**) add pack pity and an Exotic floor. Neither is built. | [cards-and-packs](systems/cards-and-packs.md) |
-| **PROPOSAL line 27: "trait pity: NONE"** | OPEN §12 still lists trait pity. | [traits](systems/traits.md) |
+| **PROPOSAL line 27: "trait pity: NONE"** | OPEN §12 still lists trait pity. Moot since 2026-10-12: tool traits are retired. | [traits](systems/traits.md) |
 | **PROPOSAL line 37: "keep the `oreYield` key"** | It was renamed to `blastChance` in `eb973f6`, the day before. | [boosts-and-stats](systems/boosts-and-stats.md) |
-| **TODO §0.7 / §0.17: runes are a gem sink and are replaced by traits** | Runes, scrolls and sockets are still live ("stage 3", the retirement, is deferred). | [traits](systems/traits.md) |
+| **TODO §0.7 / §0.17: runes are a gem sink and are replaced by traits; "stage 3" (retiring runes) is still to do** | The owner overrode this on 2026-10-11/12: runes, scrolls, sockets **and** tool traits are all retired, and enchants took their field. The gem sink is now the Forge's book bundle. TODO §0.17 has not been updated to say so. | [traits](systems/traits.md), [enchants](systems/enchants.md) |
 | **TODO §0.21: capacity comes only from the bag ladder and pouch** | `cap(p)` still multiplies by the `backpack` boost. | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
 | **PROPOSAL §0 line 13 / §F0** (`ZONE_STEP 1`, `ORE_POW 2.0`, `MAX 209`) | Code has 100 / 1.0 / 1000. | [mining-and-breaking](systems/mining-and-breaking.md) |
 
@@ -165,9 +171,23 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
 - **One charm per ore, or two?** Is the ~24 hand-authored charm rewrite (AUDIT)
   approved? Should charms sit in a boost layer?
 - **Pack pity and the Exotic floor:** build them, or keep "no pity"?
-- **Runes at stage 3:** migrate into traits, or refund?
-- **What will "enchants" be?** The word is reserved. Should the pet perks in
-  `MineCards.TRAITS` be renamed to avoid the clash?
+- ~~**Runes at stage 3:** migrate into traits, or refund?~~ **Answered
+  2026-10-12: neither.** Runes and tool traits are retired with no refund and no
+  migration (owner: *"no one has played.. ur good"*); old saves just drop the fields.
+- ~~**What will "enchants" be?**~~ **Answered:** books in a tool's three slots
+  ([enchants](systems/enchants.md)). The pet perks in `MineCards.TRAITS` stay
+  (owner's pick, 2026-10-12); with tool traits gone, "trait" now means the pet perk.
+- **Coolant and Short Fuse lost two of their sources.** Coolant (drill spin-up)
+  and Short Fuse (bomb cooldown) came from runes, traits and the skill tree.
+  Pets and gear cannot roll them (`MineStats.RUNE_ONLY`; zone pets are banned).
+  Since 2026-10-12 only the skill tree grants them (the Water nodes give
+  `coolant`, the Metal nodes give `shortFuse`; `boosts()` applies both). Should
+  enchants offer them too?
+- **Rework the battle pass.** Owner, 2026-10-12: *"we have to rework the entire
+  battle pass"*. Nothing about the shape is decided. Its scroll rewards became
+  enchant books as a stopgap ([shops-and-monetisation](systems/shops-and-monetisation.md)).
+- **The Founders pack's 3 books** replaced its White Scroll as an assistant
+  default, not an owner decision. Confirm or change it.
 - **Should family tempers apply to forged tools?** Today they do not.
 - **Is a Meadow pack with no Mythic+ intended?**
 
@@ -241,10 +261,11 @@ Fix these as you touch them (TODO §9: "kill stale comments on sight").
 - `PRINCIPLES §8` still says "pet slots 3→8". The code has 3.
 - The roadmap docs claim `gen-ores.js` has a `--force-stale` guard; that commit
   (`9932508`) is only on `origin/ore-tools-power`.
-- Stale code comments: `MineCharms`, `MineGear`, `MineHats`, `MineTraits`,
-  `MineRunes`, `MineOrePouch`, `MineBags`, `MineStats` (zap, earthquake,
-  gemFind), `MineDigAuth` ("snap-back"), `MineBreaking`, `MineDepth`, the World
+- Stale code comments: `MineCharms`, `MineGear`, `MineHats`, `MineOrePouch`,
+  `MineBags`, `MineStats` (zap, earthquake, gemFind, and stat keys "migrated on
+  runes"), `MineDigAuth` ("snap-back"), `MineBreaking`, `MineDepth`, the World
   Pulse comment in `MineServer`, `MinePackConfig.PACK_PRICE`, `LIMITED_DAYS`.
+  (`MineTraits` and `MineRunes` were on this list until they were deleted on 2026-10-12.)
 - Founders price: comments say 1000 credits / R$999; constants say 799.
   `PlaceConfig.MAIN_PLACE_ID` is not the placeId in START-HERE.
 - Dead code the research passes found: `NEW_CARD_BIAS` (never read), the X/Y

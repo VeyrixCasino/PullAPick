@@ -2,7 +2,7 @@
 title: Luau and workflow traps
 type: code
 status: current
-verified: 2026-10-05 @ 9733a05
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/START-HERE.md §4, §5
   - docs/HANDOFF.md §2.3
@@ -88,8 +88,9 @@ Checked against `.luau-bin/luau` at `26036a0`:
 
 ## 4. Keys stored in saves are DATA
 
-- **Stat keys.** Names like `blastChance` are stored on runes and gear. Renaming
-  one is a migration, not a refactor. That is why `fossilFind` keeps its name.
+- **Stat keys.** Names like `blastChance` are stored on gear pieces (and were on
+  runes, until runes were retired on 2026-10-12). Renaming one is a migration, not
+  a refactor. That is why `fossilFind` keeps its name.
 - **Ore ids** are stored twice: `p.ores[id]` and `"<id>_ore_pack"`.
 
 Details: [save-data-and-migrations](save-data-and-migrations.md).

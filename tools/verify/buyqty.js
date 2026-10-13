@@ -30,7 +30,7 @@ check(cartMax > 0 && buyMax > 0 && viewMax > 0,
 check(cartMax === viewMax,
   `the view's box and the server's cart agree (${viewMax} vs ${cartMax})`);
 check(buyMax === cartMax,
-  `buyScroll's ceiling matches the cart's (${buyMax} vs ${cartMax})`);
+  `the direct-buy ceiling (BUY_QTY_MAX) matches the cart's (${buyMax} vs ${cartMax})`);
 check(cartMax >= 50, `the ceiling is worth typing into (${cartMax})`);
 
 // The box itself.
@@ -45,11 +45,7 @@ check(/math\.clamp\(math\.floor\(want\), 1, CART_QTY_MAX\)/.test(view),
 
 // Default 1, as asked.
 check(/qty = qty or 1/.test(view), "a line defaults to 1");
-const scroll = (server.match(/function Verbs\.buyScroll[\s\S]*?\n^end$/m) || [""])[0];
-check(/tonumber\(payload and payload\.qty\) or 1/.test(scroll),
-  "buyScroll defaults to 1 when no quantity is sent");
-check(/qty = math\.min\(qty, math\.floor\(have \/ unit\)\)/.test(scroll),
-  "...and pays out what the wallet covers rather than refusing the whole request");
+// (buyScroll's own checks left with scrolls, retired with runes on 2026-10-12.)
 
 console.log("");
 console.log(fail > 0 ? `>>> buyqty: ${fail} FAILED` : ">>> buyqty: all assertions passed");

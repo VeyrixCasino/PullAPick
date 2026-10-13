@@ -99,10 +99,7 @@ function MineShopBuy.buySurface(plr, p, payload, deps)
 	givePickaxe(plr)
 	giveBackpackModel(plr)
 	if introAdvance then introAdvance(plr, p, 3) end
-	-- A rune socketed into this tool before a rebirth is still in its slot.
-	local waiting = p.shopToolRunes and p.shopToolRunes[toolId]
-	net:FireClient(plr, "toast", "Bought " .. (row.name or toolId)
-		.. (waiting and " — your rune is still in its slot" or ""))
+	net:FireClient(plr, "toast", "Bought " .. (row.name or toolId))
 	snap(plr)
 	return true
 end

@@ -1251,3 +1251,29 @@ Updated: enchants, client-and-ui, chests-and-lucky-blocks, log.
 - **Open:** whether the 🐟 marker reads well (Studio screenshots skip in-world labels), and the camera angle. While closing the daily reward popup a click landed on CLAIM, so Day 1 (400 gems) was claimed on the owner's Studio profile.
 
 Updated: fishing, log.
+
+## [2026-10-12] decision | Traits and runes retired
+The owner: *"Retire traits and runes <no one has played.. ur good"*, so nothing was refunded. Their choices:
+- only tool traits go; pet per-print perks stay;
+- gems buy book bundles, the gem sink runes were;
+- the Enchanter keeps Summon, Temper, Salvage and Dust;
+- the battle pass uses books *"but we have to rework the entire battle pass"*;
+- the daily wheel's 6% slice is *"3 lucky enchanted books"*;
+- the tutorial and the quests teach enchants.
+
+Deleted: MineRunes, MineRunesView, MineSocketsView, MineTraits, MineTraitView, the three rune cases, the scroll items, rune trading, and the Runes tabs and sections. Old saves drop the fields on load.
+
+The pass's scroll tiers (25 / 55 / 88) pay 3 / 4 / 5 books. The Founders pack pays 3 books; that one is an assistant default.
+
+Moving the floor to `MineCards.clampBoosts` found that it had floored Tidal Wave, the proc damages, Proc Power and Ore Haul at 0.05: a 5% Tidal Wave on every tool. It now floors every additive stat at 0.
+
+Open: Coolant and Short Fuse now come only from the skill tree; should enchants offer them? `tools/verify/runes-retired.js` guards it all. Unopened rune cases are dropped from old bags on load.
+
+Updated: traits, retired-and-parked, boosts-and-stats, enchants, index, log (and the other pages that described runes as live).
+
+## [2026-10-12] lint | Wiki sweep after the rune and trait retirement
+About 25 pages now describe the current game without runes, scrolls, sockets or tool traits, with the history marked "until 2026-10-12". The pages swept were trading, shops, ambiguous terms, save data, rebirth, packs, open questions, economy, client UI, quests, pets, the pouch, hats, the Forge, tools, chests, admin, the glossary, the server, Luau traps, sources of truth, the code map, the overview, the owner page, skins and the verify suite.
+
+The sweep corrected one claim: Coolant and Short Fuse still come from the skill tree (Water, Metal). It also found that unopened rune cases in old bags could never open; load drops them now.
+
+Updated: the pages above, log.

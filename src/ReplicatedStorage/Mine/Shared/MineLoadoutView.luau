@@ -11,15 +11,11 @@
 	    sections (left)  |  a generous grid (middle)  |  inspection (right)
 
 	Crafting puts tool-type filters in that left column and recipes in the grid;
-	Loadout puts the four things you own there. A player who learns one tab can
+	Loadout puts the things you own there. A player who learns one tab can
 	read the other, which is worth more than two layouts each optimal alone.
 
-	"GEMS" ARE RUNES. The game's word for the socketable stones is rune --
-	MineRunes, the Enchanter, `snapshot.runes` -- and the owner's word is gems.
-	The owner's word wins on the button because that is what they will look for,
-	and the code keeps saying runes because that is what every other file calls
-	them. The mapping lives here, in one function, rather than being renamed
-	through the codebase on the strength of one sentence.
+	The "gems" and "traits" sections the owner asked for were runes and gear
+	traits; both left the game on 2026-10-12 when enchants took that field.
 
 	RARITY COLOUR IS MineGear.RARITY_COLOR, for the reason MineSkinsView gives:
 	MineTheme.CANDY keys each carry a meaning (gold is coins, cyan is gems) and
@@ -49,8 +45,6 @@ local function soft(name)
 end
 local Icons = soft("MineIcons")
 local GearIcons = soft("MineGearIcons")
-local Traits = soft("MineTraits")
-local Runes = soft("MineRunes")
 
 local RARITY_COLOR = Gear.RARITY_COLOR or {}
 local RARITY_RANK = Gear.RARITY_RANK or {}
@@ -58,8 +52,7 @@ local RARITY_RANK = Gear.RARITY_RANK or {}
 local SECTIONS = {
 	{ key = "tools", label = "Tools", blurb = "Every tool you have forged." },
 	{ key = "gear", label = "Gear", blurb = "Worn pieces and the ones on the bench." },
-	{ key = "gems", label = "Gems", blurb = "Stones you can socket into gear." },
-	{ key = "traits", label = "Traits", blurb = "What your worn gear is giving you." },
+	-- "Gems" (runes) and "Traits" left with runes and traits, 2026-10-12.
 }
 
 --------------------------------------------------------------------------------
@@ -166,9 +159,6 @@ local function gearRows(snap, opts)
 			if tonumber(g.pct) then
 				stats[#stats + 1] = { "Power", pct(g.pct) }
 			end
-			if tonumber(g.slotCount) then
-				stats[#stats + 1] = { "Sockets", tostring(math.floor(g.slotCount)) }
-			end
 			out[#out + 1] = {
 				key = "gear|" .. id,
 				name = (okLabel and labelled) or g.name or ("Gear " .. id),
@@ -200,121 +190,9 @@ local function gearRows(snap, opts)
 	return out
 end
 
--- GEMS. `snapshot.runes` is the list; a socketed one carries the piece it sits
--- in, which is the one fact that makes this list readable at a glance.
-local function gemRows(snap, _opts)
-	local out = {}
-	for _, r in ipairs(snap.runes or {}) do
-		if type(r) == "table" then
-			local id = tostring(r.id or r.uid or "")
-			local tier = math.floor(tonumber(r.tier) or 0)
-			local stat = tostring(r.stat or r.kind or "?")
-			local socketed = r.socketedIn ~= nil or r.gearId ~= nil or r.equipped == true
-			local stats = {
-				{ "Stat", stat },
-				{ "Tier", tostring(tier) },
-			}
-			if tonumber(r.pct) then
-				stats[#stats + 1] = { "Bonus", pct(r.pct) }
-			elseif Runes and Runes.pctForTier then
-				local okP, v = pcall(Runes.pctForTier, stat, tier)
-				if okP and tonumber(v) then
-					stats[#stats + 1] = { "Bonus", pct(v) }
-				end
-			end
-			out[#out + 1] = {
-				key = "gem|" .. id,
-				name = r.name or (stat:sub(1, 1):upper() .. stat:sub(2) .. " Gem"),
-				sub = socketed and "socketed" or "loose",
-				rarity = r.rarity,
-				equipped = socketed,
-				iconKey = { "gems" },
-				sortA = tier,
-				sortB = tonumber(r.pct) or 0,
-				stats = stats,
-			}
-		end
-	end
-	table.sort(out, function(a, b)
-		if a.equipped ~= b.equipped then return a.equipped end
-		if a.sortA ~= b.sortA then return a.sortA > b.sortA end
-		return tostring(a.name) < tostring(b.name)
-	end)
-	return out
-end
-
---[[
-	TRAITS ARE DERIVED, NOT OWNED.
-
-	There is no `snapshot.traits` list: a trait is something a worn gear piece
-	GIVES you, so the honest list is "what my gear is granting right now",
-	totalled per trait rather than repeated once per piece. A player reading
-	this wants the total -- two pieces each giving the same trait is one line
-	with the sum, not two lines they have to add up.
-]]
-local function traitRows(snap, _opts)
-	local worn = snap.equippedGear or {}
-	local wornIds = {}
-	for _, id in pairs(worn) do
-		if id ~= nil then wornIds[tostring(id)] = true end
-	end
-	local acc, order = {}, {}
-	for _, g in ipairs(snap.gear or {}) do
-		if type(g) == "table" and wornIds[tostring(g.id or g.uid or "")] then
-			for _, tr in ipairs(g.traits or {}) do
-				local id = type(tr) == "table" and tostring(tr.id or tr.stat or "?") or tostring(tr)
-				local amount = (type(tr) == "table" and tonumber(tr.pct or tr.amount)) or 0
-				if not acc[id] then
-					acc[id] = { amount = 0, count = 0, rarity = type(tr) == "table" and tr.rarity or nil }
-					order[#order + 1] = id
-				end
-				acc[id].amount += amount
-				acc[id].count += 1
-			end
-		end
-	end
-	local out = {}
-	for _, id in ipairs(order) do
-		local a = acc[id]
-		local nm = id
-		if Traits and Traits.byId then
-			local okT, def = pcall(Traits.byId, id)
-			if okT and type(def) == "table" and def.name then
-				nm = def.name
-			end
-		end
-		local rarity = a.rarity
-		if not rarity and Traits and Traits.rarityOf then
-			local okR, r = pcall(Traits.rarityOf, id)
-			if okR then rarity = r end
-		end
-		out[#out + 1] = {
-			key = "trait|" .. id,
-			name = nm,
-			sub = a.count > 1 and (a.count .. " pieces") or "1 piece",
-			rarity = rarity,
-			equipped = true,
-			iconKey = { "skills" },
-			sortA = RARITY_RANK[rarity] or 0,
-			sortB = a.amount,
-			stats = {
-				{ "Total", a.amount > 0 and pct(a.amount) or "--" },
-				{ "From", a.count .. (a.count == 1 and " piece" or " pieces") },
-			},
-		}
-	end
-	table.sort(out, function(a, b)
-		if a.sortA ~= b.sortA then return a.sortA > b.sortA end
-		return a.sortB > b.sortB
-	end)
-	return out
-end
-
 local BUILDERS = {
 	tools = toolRows,
 	gear = gearRows,
-	gems = gemRows,
-	traits = traitRows,
 }
 
 --------------------------------------------------------------------------------

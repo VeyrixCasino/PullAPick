@@ -61,16 +61,13 @@ const fns = [
   slice(/function MineOreTools\.familyNoun\(familyId\)[\s\S]*?\nend\n/, "familyNoun"),
   slice(/function MineOreTools\.frames\(familyId\)[\s\S]*?\nend\n/, "frames"),
   slice(/function MineOreTools\.frameForTier\(familyId, oreTier\)[\s\S]*?\nend\n/, "frameForTier"),
-  slice(/function MineOreTools\.name\(oreDef, familyId, trait\)[\s\S]*?\nend\n/, "name"),
+  slice(/function MineOreTools\.name\(oreDef, familyId, _trait\)[\s\S]*?\nend\n/, "name"),
 ].join("\n");
 const noun = slice(/MineOreTools\.NOUN = \{[\s\S]*?\n\}/, "NOUN");
 
 const harness = `
 local C = { ORE_COUNT = ${oreCount} }
--- The enchantment prefix has its own check (tools/verify/traits.js). Here it
--- is stubbed to a pass-through so this file keeps testing the ORE half of the
--- name -- a real decorate would make "Stone Pickaxe" depend on the roster too.
-local Traits = { decorate = function(name, e) return name end }
+-- Tool names carry no prefix since traits were retired (2026-10-12).
 local Tools = { TOOLS = {
 ${Object.entries(families).map(([f, rows]) =>
   `\t${f} = {\n${rows.map((r) => "\t\t" + r + ",").join("\n")}\n\t},`).join("\n")}

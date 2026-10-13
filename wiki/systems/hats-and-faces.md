@@ -2,7 +2,7 @@
 title: Hats and faces (gear)
 type: system
 status: partial
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineGear.luau
   - src/ReplicatedStorage/Mine/Shared/MineHats.luau
@@ -62,9 +62,12 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
     Wave, not +350%. An SSS Storm hat's Zap went from about +259% to +34%.
     Hats already owned are repriced too, because `boostLines` applies this.
 - **Paid out in layer 2.** `Dig.layer2` adds `MineGear.flatBoost(MineGear.wornHats(eq,
-  pieces), face)` once. The per-pet multiplication is gone (§0.19). Each piece also has
-  one rune socket (`SOCKETS_PER_PIECE` 1), paid after the layers by
-  `MineGear.applyEquipped` (see [traits](traits.md)).
+  pieces), face)` once. The per-pet multiplication is gone (§0.19). Until 2026-10-12
+  each piece also had one rune socket, paid after the layers by `applyEquipped`.
+  Runes were retired then, and that function was removed with them
+  ([traits](traits.md)). Load empties every piece's `sockets`; old pieces keep an
+  empty table that nothing reads. `SOCKETS_PER_PIECE` and `SHEET.slots` are
+  leftovers from sockets.
 - **Getting one:**
   - **Hat crate** (`gear_pack`) from the Enchanter's Summon tab: `Verbs.rollGearBanner`,
     `MineGear.ROLL_TOKEN_COST` 5 tokens from `p.temperTokens`, and your first draw is free
@@ -132,7 +135,9 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
 ## Open questions
 
 - Is NewGear meant to replace `MineHats` as the drop catalog? Nothing says so.
-- When stage 3 retires runes, what happens to the rune sitting in each gear piece's socket?
+- ~~When stage 3 retires runes, what happens to the rune sitting in each gear piece's socket?~~
+  **Answered 2026-10-12:** it is dropped on load, with no refund (owner: *"no one
+  has played.. ur good"*).
 - Should faces drop from chests?
 
 ## See also

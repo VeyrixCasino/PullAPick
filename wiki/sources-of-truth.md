@@ -2,7 +2,7 @@
 title: Sources of truth — every doc, and how far to trust it
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/START-HERE.md
   - docs/TODO.md §0
@@ -43,7 +43,7 @@ ore researcher; it is not on the working branch.
 | `docs/PROPOSAL.md` §0 | **The 38 signed-off numbers.** Two lines changed afterwards (seams free, two ore reaches). | 2026-10-05 | Authority on *intent*. Several lines are approved but **not built**. |
 | `docs/PETS-AND-SETS.md` | **The pet and pack-set spec.** The owner's 19 sets with their pack names and card counts, the zone pots, the legacy to retire, and the queued rewards pass. | 2026-10-10 | Authority on pets and sets. The newest direction. |
 | `docs/START-HERE.md` | The cold-start prompt plus the traps and the honest branch state. | 2026-10-05 | Good. §2 still says players "sell ore for coins"; it sells for gems. |
-| `docs/HANDOFF.md` | "The bible": traps, house style, the owner's complaint list. | 2026-10-05 | Good. §2.5 implies runes are gone; they are not. |
+| `docs/HANDOFF.md` | "The bible": traps, house style, the owner's complaint list. | 2026-10-05 | Good. §2.5 says traits replaced runes; since 2026-10-12 both are retired and enchants replaced them ([traits](systems/traits.md)). |
 | `docs/OPEN.md` | Every unfinished task, prioritised. | 2026-10-05 | Index into TODO. Some line numbers are stale. |
 | `docs/BLOCKED.md` | Questions only the owner can answer (TASTE / FACT / REACH). | 2026-10-05 | Mostly superseded by PROPOSAL §0; a few still open. |
 

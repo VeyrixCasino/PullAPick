@@ -250,18 +250,17 @@ end
 		onBuyTool(family)   -- buy the next rung in a tool family
 		onBuyBackpack()     -- buy the next backpack
 		onBuyCreditPack(packId)
-		onBuyScroll(id, bundle)
 		onEquip(family)     -- hold a family you already own
 		onClose()
 	Returns a controller: .root, .setState(snapshot), .open(tab), .close().
 ]]
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
-	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, oreLocks = {}, orePouch = {}, orePouchTier = 1, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
+	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, oreLocks = {}, orePouch = {}, orePouchTier = 1, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
 	-- Opens on the Forge, not on a shelf of coin-bought picks.
 	local activeTab = "bench"
 	local index = 1
-	state.tempers, state.toolTempers, state.toolSockets = {}, {}, {}
+	state.tempers, state.toolTempers = {}, {}
 	local view = {}
 	local CARD_HOME = UDim2.new(0.5, 0, 0, 104)
 
@@ -614,16 +613,9 @@ function MineShopView.mount(parent, opts)
 					-- comes off the pouch tier. Without this it defaulted to 1
 					-- and quoted a tier-1 pouch to everybody.
 					orePouchTier = state.orePouchTier or 1,
-					--[[
-						The skin and rune the selected tool's FAMILY is wearing.
-						Both are keyed by family, not by tool -- a forged row
-						cannot hold either -- and the Forge says so rather than
-						implying the fit is per-tool. `runes` is the loose list,
-						used to name a socketed rune when it is still in it.
-					]]
+					-- The skin the selected tool's FAMILY is wearing (keyed by
+					-- family, not by tool), which the Forge says so.
 					toolTempers = state.toolTempers or {},
-					toolSockets = state.toolSockets or {},
-					runes = state.runes or {},
 				}
 			end,
 			-- Out of the Forge and down to the second line.
@@ -643,9 +635,8 @@ function MineShopView.mount(parent, opts)
 					opts.onOpenMerge()
 				end
 			end,
-			-- Fitting a skin or socketing a rune happens at the Enchanter. The
-			-- Forge reports what is fitted and sends you there rather than
-			-- growing a second copy of those two screens.
+			-- Fitting a skin happens at the Enchanter. The Forge reports what
+			-- is fitted and sends you there rather than growing a second copy.
 			onOpenEnchanter = function(tab)
 				if opts.onOpenEnchanter then
 					opts.onOpenEnchanter(tab)
@@ -761,7 +752,7 @@ function MineShopView.mount(parent, opts)
 		mounted through pcall so a throw costs one tab rather than the screen.
 
 		It is handed the whole state table rather than a hand-picked subset: it
-		reads tools, gear, runes and the worn map, and the list of what a
+		reads tools, gear and the worn map, and the list of what a
 		loadout shows is the kind of thing that grows. The pouch gets a subset
 		because it must NOT compute its own prices; this one only reads.
 	]]
@@ -2425,31 +2416,6 @@ function MineShopView.mount(parent, opts)
 		local lines = (status == "zone") and {}
 			or (isSecrets and status == "locked") and { { "Rank", "#" .. index }, { "Rarity", "Secret" } }
 			or statLines(statFamily, row)
-		-- Every shop tool has its own rune slot. Rebirth takes the tool back but
-		-- not the rune, which waits in the slot until the tool is bought again.
-		if not isSecrets and activeTab ~= "backpack" and status ~= "zone" then
-			local rid = (state.shopToolRunes or {})[row.id]
-			local rune
-			for _, r in ipairs(state.runes or {}) do
-				if r.id == rid then
-					rune = r
-					break
-				end
-			end
-			local owned = status == "owned" or status == "held"
-			local label = "RUNE SLOT"
-			if rune then
-				local okS, Stats = pcall(require, shared:WaitForChild("MineStats"))
-				local def = okS and Stats.STATS and Stats.STATS[rune.stat]
-				label = owned and ("RUNE · " .. tostring(def and def.label or rune.stat))
-					or ("WAITING · " .. tostring(def and def.label or rune.stat))
-			end
-			table.insert(lines, {
-				label,
-				rune and string.format("+%.1f%%", (rune.pct or 0) * 100) or "Empty",
-				rune and GREEN or MUTED,
-			})
-		end
 		for i, sl in ipairs(lines) do
 			local pill = mk("Frame", {
 				Size = UDim2.fromOffset(158, 54), BackgroundColor3 = Color3.fromRGB(58, 44, 35),
@@ -2631,9 +2597,7 @@ function MineShopView.mount(parent, opts)
 		state.backpackTier = snapshot.backpackTier or 1
 		state.family = snapshot.tool and snapshot.tool.family or nil
 		state.credits = snapshot.credits or 0
-		state.scrolls = snapshot.scrolls or {}
 		state.creditPacks = snapshot.creditPacks or {}
-		state.scrollShop = snapshot.scrollShop or {}
 		state.chestTools = snapshot.chestTools or {}
 		state.chestTool = snapshot.chestTool
 		state.zoneId = snapshot.zoneId
@@ -2647,13 +2611,10 @@ function MineShopView.mount(parent, opts)
 			or state.maxUnlockedZone
 			or 1
 		state.ownedShopTools = snapshot.ownedShopTools or {}
-		state.shopToolRunes = snapshot.shopToolRunes or {}
-		state.runes = snapshot.runes or {}
 		--[[
 			WHAT THE LOADOUT TAB READS.
 
-			`runes` was already here for the Forge's socket readout; gear, the
-			worn map and the held tool's uid were not, because nothing in this
+			Gear, the worn map and the held tool's uid were not here, because nothing in this
 			screen had ever needed them. MineLoadoutView reads `state` directly,
 			so a field missing here is not an error -- it is an empty section
 			with no message, which is the failure this project keeps hitting:
@@ -2670,8 +2631,6 @@ function MineShopView.mount(parent, opts)
 		state.shopToolId = snapshot.shopToolId or (snapshot.tool and snapshot.tool.id)
 		state.tempers = snapshot.tempers or {}
 		state.toolTempers = snapshot.toolTempers or {}
-		-- The Forge shows what the selected tool's FAMILY is wearing.
-		state.toolSockets = snapshot.toolSockets or {}
 		if root.Visible then
 			paint()
 		end

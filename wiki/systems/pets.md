@@ -2,7 +2,7 @@
 title: Pets
 type: system
 status: partial
-verified: 2026-10-12 @ 681aab8
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MinePetRoster.luau
   - src/ReplicatedStorage/Mine/Shared/MineSetPets.luau
@@ -45,9 +45,11 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
   bought up to eight seats is clamped on load and keeps every pet. `PET_SLOT_PRICE`
   `{0,0,0}` survives only so old rows still resolve. VIP's fourth seat is gone.
 - **Boost path.** `Dig.petRows` runs `MineCards.applyKit(one, card, cardPower(card), n)`
-  for each pet, where `n` is the number of pets out. It keeps only what the pet adds, then multiplies that by
-  `1 + MineRunes.wearBroad(its rune)`. `MineGear.stackPets` sums the pets and
-  `Dig.layer2` adds the gear, giving layer 2. Gear no longer multiplies per pet (§0.19).
+  for each pet, where `n` is the number of pets out, and keeps only what the pet adds.
+  `MineGear.stackPets` sums the pets and `Dig.layer2` adds the gear, giving layer 2.
+  Gear no longer multiplies per pet (§0.19). Until 2026-10-12 each pet's share was
+  also multiplied by its socketed rune (`MineRunes.wearBroad`); pet sockets were
+  retired with runes ([traits](traits.md)).
 - **Power.** `MineConfig.cardPower` = `RARITY_MULT` (Common 1 … Exotic 4.4) ×
   `VARIANT_MULT` (Normal 1, Shiny 1.5, Golden 2.25, Prism 3.5, Rainbow 5.5) ×
   (`SHADOW_MULT` 3, or `SHINY_MULT` 1.5) × (1 + 0.04 × (powerLevel − 1)).
@@ -67,7 +69,8 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
   adds a `FAMILY` boost (8 types, for example Fire "Forge Heart" +22% damage) and a
   **pet trait** from `MineCards.TRAITS`. There are 12, hashed from (setId, index) or from the name.
   Lone Wolf pays only when that pet is your only one; Squad Bond scales with the number of *other* pets.
-  This is **not** the tool trait in [traits](traits.md).
+  Pet traits **stay**: when tool traits were retired on 2026-10-12, the owner chose to
+  retire only the tool kind. The retired tool trait is a different thing ([traits](traits.md)).
 
 ## Roster
 
@@ -439,7 +442,10 @@ sync.
   builder before "fixing" a gap.
 - **Pet blastRadius pays nothing.** `MineCards.addStat` drops anything in
   `MineStats.RUNE_ONLY` (blastRadius, reach, coolant, shortFuse), so no kit carries one
-  any more (the generator bans them).
+  any more (the generator bans them). The table is named for runes, which were retired
+  on 2026-10-12, but it is kept because this filter is its job now. With runes and
+  tool traits gone, coolant and shortFuse come only from the skill tree
+  ([open-questions](../open-questions.md)).
 - **Pet traits and families carry retired stats.** Pack Lord and Cart Push carry backpack;
   Afterimage and Heavy Yield carry walkSpeed; Echo Strike's echo is paid as swing rate; the Earth and Water
   families carry backpack. The comment on `MineCards.TRAITS` says **its order is load-bearing**:
