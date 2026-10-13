@@ -636,10 +636,29 @@ function View.mount(gui, opts)
 			if d:GetAttribute("SpotId") == spotId then
 				local water = d.Parent and d.Parent:FindFirstChild("PondWater")
 				if water then
+					--[[
+						YOUR END OF THE POOL IS THE TIP OF THE DOCK, not the rim behind it.
+						The Sunscar pond is 32 studs long and its pier runs 10 into it, so
+						counting from the rim put the first third of every fight under the
+						planks, with the fish marker hidden (seen in Studio, 2026-10-12).
+					]]
+					local fwd = water.CFrame.LookVector
+					local half = water.Size.Z * 0.5
+					local tip = -half
+					for _, part in ipairs(d.Parent:GetChildren()) do
+						if part:IsA("BasePart") and (part == d or part.Name:find("^Pier")) then
+							local cf = part.CFrame
+							local reach = 0.5 * (math.abs(fwd:Dot(cf.RightVector)) * part.Size.X
+								+ math.abs(fwd:Dot(cf.UpVector)) * part.Size.Y
+								+ math.abs(fwd:Dot(cf.LookVector)) * part.Size.Z)
+							tip = math.max(tip, (part.Position - water.Position):Dot(fwd) + reach)
+						end
+					end
 					return {
 						water = water, dock = d,
-						fwd = water.CFrame.LookVector, right = water.CFrame.RightVector,
-						half = water.Size.Z * 0.5, halfW = water.Size.X * 0.5,
+						fwd = fwd, right = water.CFrame.RightVector,
+						half = half, halfW = water.Size.X * 0.5,
+						start = math.clamp(tip + 1.5, -half + 2, half - 8),
 						surface = water.Position.Y + water.Size.Y * 0.5,
 					}
 				end
@@ -648,11 +667,12 @@ function View.mount(gui, opts)
 		return nil
 	end
 
-	-- Where `dist` metres puts the fish: 0 at your end of the pool, 100 m (where
-	-- it can slip the hook) at the far rim; `side` -1..1 across it.
+	-- Where `dist` metres puts the fish: 0 just past the end of the dock, 100 m
+	-- (where it can slip the hook) at the far rim; `side` -1..1 across it.
 	local function pondPoint(dist, side)
 		local t = math.clamp((tonumber(dist) or 0) / Fight.ESCAPE_AT, 0, 1)
-		local along = -pond.half + 2 + (pond.half * 2 - 4) * t
+		local start = pond.start or (-pond.half + 2)
+		local along = start + (pond.half - 2 - start) * t
 		local p = pond.water.Position + pond.fwd * along + pond.right * (side * (pond.halfW - 2.5))
 		return Vector3.new(p.X, pond.surface + 0.15, p.Z)
 	end
@@ -770,9 +790,31 @@ function View.mount(gui, opts)
 		end
 	end
 
+	--[[
+		The tutorial's hint card (MineUI.Intro) sits bottom-centre, right over the
+		cast gauge and REEL (seen in Studio, 2026-10-12). It is tucked away while
+		you fish and comes back after.
+	]]
+	local tuckedIntro
+	local function tuckIntro(on)
+		local intro = gui:FindFirstChild("Intro")
+		if on then
+			if intro and intro:IsA("GuiObject") and intro.Visible then
+				tuckedIntro = intro
+				intro.Visible = false
+			end
+		elseif tuckedIntro then
+			if tuckedIntro.Parent then
+				tuckedIntro.Visible = true
+			end
+			tuckedIntro = nil
+		end
+	end
+
 	local function endMinigame()
 		stopLoop()
 		stage = nil
+		tuckIntro(false)
 		reelRoot.Visible = false
 		headline.Visible = false
 		reelDown = false
@@ -793,6 +835,7 @@ function View.mount(gui, opts)
 		firstTime = data and data.state and (tonumber(data.state.casts) or 0) == 0 or false
 		stage = "cast"
 		root.Visible = false
+		tuckIntro(true)
 		reelRoot.Visible = true
 		headline.Visible = false
 		hint.Text = firstTime and "Tap CAST when the white mark is in the GOLD ✨" or ""
@@ -1055,6 +1098,7 @@ function View.mount(gui, opts)
 		end
 		stopLoop()
 		stage = nil
+		tuckIntro(false)
 		help.Visible = false
 		reelRoot.Visible = false
 		headline.Visible = false

@@ -1244,3 +1244,10 @@ Books come as bundles now (the owner chose 2–5, scaled):
 The Blacksmith counter opens the Forge hub. Its new BAGS and COIN SHOP buttons reach the old shop's two shelves, and the tutorial's buy-a-pick step still lands on the coin pickaxes.
 
 Updated: enchants, client-and-ui, chests-and-lucky-blocks, log.
+
+## [2026-10-12] lint | Studio checks: the Forge hub, and fishing played
+- **The Forge hub, in Edit with sample data.** The BAGS and COIN SHOP buttons, the BOOK BUNDLE card and the bundle reveal render. Rojo had left duplicate copies of MineForgeHub (×2 in Shared and in StarterPlayerScripts), MineEnchants and MineEnchantService; the identical extras were removed.
+- **Fishing, played on the Quarry Pool with the owner's OK** (two short Play runs, both closed after; owner: *"close playtest from now on"*). Cast, bite and reel work, with no console errors. Fixed: the pool now counts from the tip of the dock (fights used to start under the planks), and the tutorial card hides during the minigame.
+- **Open:** whether the 🐟 marker reads well (Studio screenshots skip in-world labels), and the camera angle. While closing the daily reward popup a click landed on CLAIM, so Day 1 (400 gems) was claimed on the owner's Studio profile.
+
+Updated: fishing, log.

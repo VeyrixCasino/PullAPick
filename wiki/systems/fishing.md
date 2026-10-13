@@ -2,7 +2,7 @@
 title: Fishing
 type: system
 status: partial
-verified: 2026-10-11 @ 9b160ef
+verified: 2026-10-12 @ a857a63
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineFishing.luau
   - src/ReplicatedStorage/Mine/Shared/MineFishingFight.luau
@@ -84,6 +84,12 @@ like your fishing in a pond"*).
   - the **fish marker** is a 🐟 bubble in the fish's colour, with the distance
     under it. It swims the pool: toward the far rim as it gets away (100 m = the
     rim), side to side, harder when it runs.
+  - **0 m is the tip of the dock**, not the rim behind it (`findPond` measures the
+    Dock and Pier parts along the pool; `pondPoint` counts from there). Before
+    2026-10-12 the pool counted from the rim. On the Quarry Pool (32 studs long,
+    the pier 10 in), that put the first third of every fight under the planks.
+  - **The tutorial's hint card** (the `Intro` frame MineClient builds) hides while the cast/reel HUD is
+    up, because it sat over the gauge. It comes back after.
 - **One button, bottom centre:** Cast, then Reel (or F). A half-circle gauge round
   it shows the power while casting (gold = perfect) and the tension while
   reeling (the floor in dark red). It shakes near the snap.
@@ -188,10 +194,16 @@ Letting a fish's size set its fight fixed both.
 - **Built and play-tested in Studio on the Greyvein pond** (first cut): cast → bite →
   fight → result, the catch cards, the cooler, buying bait with tokens, buying and
   levelling a rod.
-- **The pond view and the harder fight (2026-10-11) compile and pass
-  `tools/verify/fishing.js`, but have not been played yet.** Studio was in use by
-  another session. Things to look at first: the rod's angle at your side, and
-  whether the marker reads well from the dock.
+- **The pond view and the harder fight were played in Studio on 2026-10-12** on the
+  Quarry Pool (the owner's profile). Open, CAST with the half-circle gauge, the bite,
+  and REEL with the tension ring all work, with no console errors.
+  - **Fixed then:** the bobber landed under the dock (0 m was the rim), and the
+    tutorial card covered the gauge.
+  - **Still to judge:** the marker itself. It is on, on top and on screen, but
+    Studio's screenshots do not draw in-world labels, so nobody has seen it yet.
+    With the default camera, the far end of the pool sits near the right-hand
+    button column; turning the camera toward the pool while fishing would help
+    (not built).
 - **Not yet seen in Studio:** the underground pools. They build only when a seam's
   plaza opens.
 - **Only Greyvein has fish.** Other zones need their own lists in
