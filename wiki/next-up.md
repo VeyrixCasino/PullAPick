@@ -2,7 +2,7 @@
 title: Next up (handoff, 2026-10-10, evening)
 type: meta
 status: current
-verified: 2026-10-13 @ 98c141a
+verified: 2026-10-14 @ a299374
 sources:
   - docs/PETS-AND-SETS.md
   - docs/SET-PETS.md
@@ -109,10 +109,18 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
 - **DONE 2026-10-13: B4 grade ★ reference** — `wiki/systems/grades-and-stars.md`
   + `MineStars` helper; Loadout inspect shows letter + stars. **2026-10-14:**
   also pack odds, inventory Grade, forge temper words, skins badge, lucky odds.
-- **DONE 2026-10-13: B2 DPS verify (measure only)** — `tools/verify/tool-dps.js`.
-  Currently **7 FAIL**: same-grade explosives lose `edps` to hammer/drill at
-  mid tiers (only tier 82 tops). **Do not retune until B1 hammer niche is
-  decided.** C art, D planets ([open-questions](open-questions.md)).
+- **DONE 2026-10-14: B1 hammer niche LOCKED** — slow / heavy / single-target,
+  hardest hit + highest single-block DPS (`FAMILY_POWER.hammer = 3.7`).
+- **DONE 2026-10-14: B2 archetype rebalance** — `tool-dps.js` green.
+  Explosive area `edps` tops same-grade (`FAMILY_POWER.explosive = 4`, line
+  depth baked, mid line length + sphere cooldown). Hammer crowns single-block
+  `dps`; jackhammer ≈ drill; pick stays faster.
+- **DONE 2026-10-14: B3 slice (no new rates)** — open-questions #7 fixed
+  (`rollChestTool` forward-declare; zone chests drop Secrets again). Secrets /
+  Found forever tools show ★ beside word rarity via `MineStars.beside`.
+  `tools/verify/chest-tools.js`. Full B3 (5–6 themed sets / event tables /
+  purchasable rolls) still owner. Next tools work: C art
+  ([tools](systems/tools.md)).
 - **The PR is open:** [VeyrixCasino/PullAPick#8](https://github.com/VeyrixCasino/PullAPick/pull/8) (2026-10-11), `claude/vigilant-fermi-aucqjy` into `main`. The repo has no CI checks; the verify suite is local.
 - **BLOCKED:**
   - **The wheel's Robux product ids:** the owner supplies them.

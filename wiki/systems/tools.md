@@ -2,7 +2,7 @@
 title: Tools
 type: system
 status: current
-verified: 2026-10-13 @ 98c141a
+verified: 2026-10-14 @ a299374
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
@@ -16,9 +16,11 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineHotbar.luau
   - src/ReplicatedStorage/ToolModelFactory.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
+  - src/ServerScriptService/Mine/MinePatterns.luau
   - tools/verify/tool-dps.js
   - docs/TODO.md §0.13
   - docs/TODO.md §0.15
+  - docs/TODO.md B1
   - docs/TODO.md B2
   - docs/PR-BALANCE-PASS.md
 related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, enchants, traits, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads, verify-suite]
@@ -45,6 +47,10 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
    until 2026-10-12; load clears it now ([traits](traits.md)).
 3. **Chest flagship / "forever tool"** (shop "Secrets" tab): `p.chestTool` in
    `MineTools.CHEST_TOOLS`, `MineBandTools` (80) or `MineTools.PASS_TOOLS` (3).
+   Zone chests call `rollChestTool` on open (forward-declared before
+   `openChestBlock` — open-questions #7 fixed 2026-10-14). Rarity words map to
+   ★ via `MineStars.beside` on the Secrets chip and Found forever-tool lines.
+   Full B3 themed sets / new tables still owner.
 4. **Zone shop tool**: `p.shopToolId`, `MineShopLadders` (19 per zone, 190).
 5. **Coin ladder**: `MineTools.TOOLS` — 25 pickaxes (incl. `wood_pick`), 16
    drills, 16 explosives; `p.tools[fam]` = highest rung owned, `p.toolTier[fam]`
@@ -60,15 +66,23 @@ Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
 weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`
 (`pickaxe`, `hammer`, `drill`, `jackhammer`, `explosive`).
 
-**DPS table (TODO B2, before rebalance).** `tools/verify/tool-dps.js` computes
-single-cell `dps` and multi-cell `edps` for representative forged ores across
-all five families from live `toolPower` × `FAMILY_POWER` × `FRAME_STATS`. It
-asserts the intended ordering as soft checks (fast pick vs slow heavy hammer;
-drills/explosives have area; explosives should top same-grade `edps`, beaten
-only by higher-grade). Failures are gaps for the later rebalance — the check
-does not retune numbers. B1 hammer niche still needs owner sign-off; the script
-only reads what is already baked. Run: `node tools/verify/tool-dps.js`
-(also via `bash tools/verify/suite.sh`).
+**Family niches (B1 LOCKED 2026-10-14; B2 retuned same day).**
+
+| family | niche |
+|---|---|
+| pickaxe | fastest melee; chips single blocks |
+| **hammer** | **slow / heavy / single-target**: hardest hit **and** highest single-block `dps` of every family (`FAMILY_POWER.hammer = 3.7`). Sink 2 is depth only — still single-target across |
+| drill | aimed area (up to 3×3); single-cell `dps` below hammer |
+| jackhammer | drill that only digs down; same single-cell `dps` as drill (`FAMILY_POWER` cancels 1.5× rate) |
+| explosive | area king: same-grade full-footprint `edps` tops the chart (`FAMILY_POWER.explosive = 4` + line depth bake + mid cooldown/line length). Higher-grade tools may beat a low explosive |
+
+**DPS table (TODO B2).** `tools/verify/tool-dps.js` computes single-block `dps`
+and full-footprint `edps` from live `toolPower` × `FAMILY_POWER` × `FRAME_STATS`.
+Explosive `edps` uses `blocksPerBomb × bombs` — for line patterns
+`max(cells, depth)` so coverage matches `MinePatterns.line` (depth is baked on
+`FRAME_STATS.explosive` and copied onto the equipped tool). Asserts: pick faster
+than hammer; hammer crowns single-block `dps`; jackhammer ≈ drill; same-grade
+explosive `edps` tops the chart. Run: `node tools/verify/tool-dps.js`.
 
 **Forged tools** ("a forged tool IS its ore", TODO §0.15). Name `{Ore} {Noun}`
 (`MineOreTools.name`). Until 2026-10-12 a trait prefix went in front, from the
@@ -185,6 +199,13 @@ equip; the coin ladder resets.
     shares the uploads ([assets-and-uploads](../code/assets-and-uploads.md)).
 - **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line
   12).
+- **B1 hammer niche LOCKED (owner, 2026-10-14):** slow / heavy / single-target,
+  hardest hit, **and** highest single-block DPS of all families. Code:
+  `FAMILY_POWER.hammer = 3.7` (was 2.2 pickaxe-parity), half rate, sink 2.
+- **B2 explosive area crown (owner, 2026-10-14):** same-grade explosive `edps`
+  from the full blast footprint tops other families. Code:
+  `FAMILY_POWER.explosive = 4`; line `depth` baked + wired through `equippedTool`;
+  line cells/depth 42–46 and 53–57 lengthened to 13; mid sphere cooldown trimmed.
 
 ## State right now
 

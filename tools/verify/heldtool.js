@@ -52,7 +52,15 @@ if (row) {
     "without it toolBreakingPower cannot derive from the ore");
   ok(/oreId\s*=/.test(row[0]), "the row carries oreId",
     "this is the field that selects the derive branch at all");
+  ok(/cooldown\s*=\s*stats\.cooldown/.test(row[0]), "the row carries frame cooldown",
+    "without it forged explosives never enter client throw mode");
+  ok(/pattern\s*=\s*stats\.pattern/.test(row[0]), "the row carries frame pattern");
+  ok(/bombs\s*=\s*stats\.bombs/.test(row[0]), "the row carries frame bombs");
 }
+// Only one oreToolEquipped synthesise path — a second return was dead and
+// hid the missing cooldown on the live first return.
+ok((SRV.match(/if p\.oreToolEquipped then/g) || []).length === 1,
+  "equippedTool has exactly one oreToolEquipped branch");
 
 // ------------------------------------------- migrations are monotonic --
 ok(!/if p\.oreRosterV ~= 1 then/.test(SRV),

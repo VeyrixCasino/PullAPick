@@ -1,20 +1,22 @@
-// TODO B2 — DPS table for forged tool families, BEFORE rebalancing.
+// TODO B2 — DPS table for forged tool families.
 //
-// docs/TODO.md B2: build the DPS table as a verify script first, so family /
-// frame ordering is asserted. Soft / documenting checks encode the intended
-// trade (fast/short/low ↔ slow/long/high with higher overall DPS; drills and
-// explosives get area; long-range explosives top DPS short of higher-grade).
-// If live numbers violate that, FAIL with a clear message — do not retune here.
+// docs/TODO.md B2 + owner 2026-10-14:
+//   - hammer (B1 LOCKED): slow / heavy / single-target, hardest hit, and the
+//     highest *single-block* DPS of every family
+//   - drills and explosives get area (3×3 and up)
+//   - same-grade explosive *area* edps tops the chart (full blast footprint);
+//     higher-grade tools may beat a low explosive
+//   - pickaxe faster than hammer; jackhammer single-cell dps ≈ drill
 //
-// Metrics (pre-cap, no falloff, no boosts, level 1, matching MineTools header):
+// Metrics (pre-cap, no falloff, no boosts, level 1):
 //   hit     = toolPower(tier,1,typeMult) × FAMILY_POWER
 //   aps     = rate  (melee/drill/jackhammer)  or  1/cooldown  (explosive)
-//   dps     = hit × aps                         (single-cell sustained)
-//   edps    = hit × cells × aps                 (multi-cell / area throughput)
-//             explosives also × bombs (cells is per-pod in FRAME_STATS)
-//
-// Hammer sink cells (2) count in edps; B1 niche is still owner-owned — this
-// only reads what the code already bakes, it does not invent a new niche.
+//   dps     = hit × aps                         (single-cell / single-block)
+//   edps    = hit × affectedBlocks × aps        (full footprint throughput)
+//             explosives: blocksPerBomb × bombs
+//               line/linesplash → max(cells, depth) when depth is baked
+//               else cells (sphere/cluster/splash quote)
+//             other families: cells (hammer sink-2 is already in cells)
 //
 // Pure JS (no luau). suite.sh picks this up; on Windows:
 //   node tools/verify/tool-dps.js
@@ -243,14 +245,31 @@ function frameStats(familyId, oreTier) {
   return out;
 }
 
+/** Full blast / swing footprint in blocks (owner 2026-10-14). */
+function affectedBlocks(familyId, stats) {
+  const cells = Math.max(1, Number(stats.cells) || 1);
+  const bombs = Math.max(1, Number(stats.bombs) || 1);
+  const isExpl = familyId === "explosive" ||
+    (stats.cooldown != null && stats.cooldown !== false);
+  if (!isExpl) {
+    return { cells, bombs: 1, perBomb: cells, spread: cells };
+  }
+  let perBomb = cells;
+  const pat = stats.pattern;
+  if (pat === "line" || pat === "linesplash") {
+    const d = Number(stats.depth);
+    if (Number.isFinite(d) && d > 0) perBomb = Math.max(cells, d);
+  }
+  return { cells, bombs, perBomb, spread: perBomb * bombs };
+}
+
 function profile(familyId, tier, level) {
   const stats = frameStats(familyId, tier);
   const tm = typeMult(familyId, tier);
   const famPow = FAMILY_POWER[familyId] ?? 1;
   const hit = toolPower(tier, level, tm) * famPow;
-  const cells = Math.max(1, Number(stats.cells) || 1);
-  const bombs = Math.max(1, Number(stats.bombs) || 1);
-  const isExpl = familyId === "explosive" || (stats.cooldown != null && stats.cooldown !== false);
+  const isExpl = familyId === "explosive" ||
+    (stats.cooldown != null && stats.cooldown !== false);
   let aps;
   if (isExpl) {
     const cd = Math.max(0.05, Number(stats.cooldown) || 2);
@@ -258,15 +277,14 @@ function profile(familyId, tier, level) {
   } else {
     aps = Math.max(0.05, Number(stats.rate) || 2.6);
   }
+  const foot = affectedBlocks(familyId, stats);
   const dps = hit * aps;
-  // Multi-cell effective: drills/explosives clear many cells per use.
-  // Explosives: cells is per-pod (MineTools DC = power × bombs × blocks_per_bomb).
-  const spread = isExpl ? cells * bombs : cells;
-  const edps = hit * spread * aps;
+  const edps = hit * foot.spread * aps;
   return {
-    familyId, tier, level, hit, aps, cells, bombs, spread,
+    familyId, tier, level, hit, aps,
+    cells: foot.cells, bombs: foot.bombs, perBomb: foot.perBomb, spread: foot.spread,
     dps, edps,
-    rate: stats.rate, cooldown: stats.cooldown,
+    rate: stats.rate, cooldown: stats.cooldown, depth: stats.depth,
     pattern: stats.pattern, radius: stats.radius,
     width: stats.width, shape: stats.shape, sink: stats.sink,
     typeMult: tm, famPow,
@@ -308,10 +326,12 @@ function fmt(n) {
   return n.toFixed(2);
 }
 
-console.log("  tier  family       hit        aps  cells×bombs   dps        edps     notes");
+console.log("  tier  family       hit        aps  perBomb×bombs  dps        edps     notes");
 for (const r of rows) {
   const note = r.familyId === "explosive"
-    ? (r.pattern || "?") + " r" + (r.radius ?? "?") + " cd" + fmt(r.cooldown)
+    ? (r.pattern || "?") + " r" + (r.radius ?? "?") +
+      (r.depth != null ? (" d" + r.depth) : "") +
+      " cd" + fmt(r.cooldown)
     : (r.shape || "") + (r.width ? (" w" + r.width) : "") +
       (r.sink ? (" sink" + r.sink) : "");
   console.log(
@@ -319,7 +339,7 @@ for (const r of rows) {
     r.familyId.padEnd(11) +
     fmt(r.hit).padStart(10) +
     fmt(r.aps).padStart(9) +
-    (r.cells + "×" + r.bombs).padStart(10) +
+    (r.perBomb + "×" + r.bombs).padStart(12) +
     fmt(r.dps).padStart(10) +
     fmt(r.edps).padStart(11) +
     "  " + note
@@ -327,11 +347,9 @@ for (const r of rows) {
 }
 console.log("");
 
-// --- Soft / documenting assertions from TODO B2 -----------------------------
+// --- Assertions from TODO B2 + owner 2026-10-14 -----------------------------
 
-// 1) fast/short/low ↔ slow/long/high (pickaxe vs hammer at same ore).
-//    Code already aims for this; B1 niche sign-off is separate — we only assert
-//    what FRAME_STATS + FAMILY_POWER already encode.
+// 1) pickaxe faster than hammer; hammer hardest per blow.
 for (const t of SAMPLE_TIERS) {
   const p = profile("pickaxe", t, LEVEL);
   const h = profile("hammer", t, LEVEL);
@@ -341,6 +359,18 @@ for (const t of SAMPLE_TIERS) {
   softFail(h.hit > p.hit,
     "tier " + t + ": hammer hits harder per blow than pickaxe (" +
     fmt(h.hit) + " vs " + fmt(p.hit) + ")");
+}
+
+// 1b) B1 LOCKED: hammer single-block dps crowns every other family.
+for (const t of SAMPLE_TIERS) {
+  const h = profile("hammer", t, LEVEL);
+  for (const f of FAMILIES) {
+    if (f === "hammer") continue;
+    const o = profile(f, t, LEVEL);
+    softFail(h.dps >= o.dps,
+      "tier " + t + ": hammer single-block dps >= " + f +
+      " (" + fmt(h.dps) + " vs " + fmt(o.dps) + ")");
+  }
 }
 
 // 2) drills and explosives get area (3×3 and up).
@@ -373,16 +403,31 @@ if (drillAreaTiers.length) {
     "jackhammer shares drill area at tier " + t + " (cells=" + j.cells + ")");
 }
 
-// 3) long-range explosives top the DPS chart, beaten only by higher-grade.
-//    "Long-range" here = line-pattern frames (depth into the wall). Throw reach
-//    is global (MineConfig.THROW_RANGE); forged FRAME_STATS has no `depth` key
-//    yet — coverage uses the baked `cells` quote.
+// 3) long-range / same-grade explosives top area edps.
 const lineTiers = [];
 for (let t = 1; t <= ORE_COUNT; t++) {
   if (frameStats("explosive", t).pattern === "line") lineTiers.push(t);
 }
 ok(lineTiers.length > 0,
   "line-pattern (long) explosives exist (" + lineTiers.length + " tiers)");
+
+// Line frames must bake depth so MinePatterns coverage matches the cells quote.
+{
+  let depthOk = true;
+  const bad = [];
+  for (const t of lineTiers) {
+    const s = frameStats("explosive", t);
+    const d = Number(s.depth);
+    const c = Number(s.cells);
+    if (!(Number.isFinite(d) && d >= 1) || !(Number.isFinite(c) && c >= 1) || d < c) {
+      depthOk = false;
+      bad.push(t + "(d=" + s.depth + ",c=" + s.cells + ")");
+    }
+  }
+  softFail(depthOk,
+    "line explosives bake depth >= cells (MinePatterns); bad: " +
+    (bad.slice(0, 8).join(",") || "none"));
+}
 
 function topsChart(tier, label) {
   const byFam = {};
@@ -427,25 +472,7 @@ for (const t of SAMPLE_TIERS) {
     "tier " + ORE_COUNT + " explosive remains top edps vs " + top.bestOther.familyId);
 }
 
-// 4) Documented continuum: FAMILY_POWER.hammer (2.2) was tuned so single-target
-//    dps sits at parity-plus against a ~0.46 rate ratio (pick ~2.3–3.2). At the
-//    shallow end pickaxe rate is 3.0, so hammer is behind there by design of the
-//    rate curve — assert mid/deep sample tiers only.
-for (const t of SAMPLE_TIERS.filter((t) => t >= 20)) {
-  const p = profile("pickaxe", t, LEVEL);
-  const h = profile("hammer", t, LEVEL);
-  softFail(h.dps >= p.dps * 0.95,
-    "tier " + t + ": hammer single-target dps stays near pickaxe (≥95%: " +
-    fmt(h.dps) + " vs " + fmt(p.dps) + ")");
-}
-{
-  const p1 = profile("pickaxe", 1, LEVEL);
-  const h1 = profile("hammer", 1, LEVEL);
-  console.log("  NOTE  tier 1 hammer/pick dps ratio " +
-    (h1.dps / p1.dps).toFixed(3) + " (shallow rate curve; not asserted)");
-}
-
-// 5) Jackhammer vs drill: same single-cell DPS (FAMILY_POWER cancels rate×1.5).
+// 4) Jackhammer vs drill: same single-cell DPS (FAMILY_POWER cancels rate×1.5).
 for (const t of SAMPLE_TIERS) {
   const d = profile("drill", t, LEVEL);
   const j = profile("jackhammer", t, LEVEL);
@@ -454,19 +481,9 @@ for (const t of SAMPLE_TIERS) {
     "tier " + t + ": jackhammer dps ≈ drill dps (ratio " + ratio.toFixed(3) + ")");
 }
 
-// Gap note: forged explosives bake no `depth` (line patterns rely on it in MinePatterns).
-{
-  const hasDepth = /depth\s*=\s*\{/.test(ore);
-  if (!hasDepth) {
-    console.log("  NOTE  FRAME_STATS.explosive has no depth RLE — forged line");
-    console.log("        charges fall through to MinePatterns depth default (1).");
-    console.log("        Coverage edps uses cells quote; live line length may be short.");
-  }
-}
-
 console.log("");
 console.log(fails === 0
   ? ">>> tool-dps OK (" + checks + " checks)"
   : ">>> tool-dps FAILED " + fails + "/" + checks +
-    " — gaps vs TODO B2 ordering; do not retune in this check");
+    " — gaps vs TODO B2 / B1 hammer niche ordering");
 process.exit(fails === 0 ? 0 : 1);

@@ -164,32 +164,35 @@ end
 	PER-FAMILY DAMAGE, which the game had no way to express until now.
 
 	Owner, 2026-10-10: "Hammers most damage".
+	Owner, 2026-10-14 (B1 LOCKED): hammer niche = slow / heavy / single-target
+	AND the highest single-block DPS of every family (hardest hit + best
+	sustained DPS on one block). Not merely ≈ pickaxe.
 
 	`C.toolPower(tier, level, typeMult)` has no family argument, and typeMult
 	is the only family-dependent input -- so with the pickaxe's rung spacing a
 	hammer came out at IDENTICAL damage per hit and HALF the swing rate, which
-	is not a damage class, it is a worse pickaxe. Measured before this: a
-	tier-41 pick and hammer both hit for 24,484, at 2.8/sec against 1.30.
+	is not a damage class, it is a worse pickaxe.
 
 	Raising it through typeMult instead was the other option and it is the
 	wrong one: typeMult also drives craft COST, so a hammer would have become
 	expensive rather than hard-hitting, and the two knobs would be welded
 	together forever.
 
-	2.2 is chosen against the rate ratio, not picked for feel. A hammer swings
-	at about 0.46x a pickaxe, so 1/0.46 = 2.15 is DPS parity; 2.2 puts it a
-	couple of percent above, which is the right side of even for a tool that
-	is strictly less flexible -- you cannot tap a hammer at a thin seam.
+	DECISION 2026-10-14 (was PROPOSED 2.2 for pickaxe parity): hammer = 3.7.
+	Pickaxe parity only needs ~2.2 against the ~0.46 rate ratio, but drills
+	peak at rate 4 while hammers sit near 1.1–1.2, so single-block DPS crown
+	vs drill needs about 3.64 at the worst tier. 3.7 clears that with a small
+	margin. tools/verify/tool-dps.js asserts hammer.dps >= every other family
+	at the sample tiers.
 
-	What a player feels: the hammer hits more than twice as hard per blow and
-	ends up in the same place over a minute. That matters because block HP is
-	a threshold, not a pool -- a blow that overkills a block wastes the
-	excess, so the hammer is better on deep high-HP rock and worse on shallow
-	chip-work. That is a real choice rather than a bigger number.
+	What a player feels: the hammer hits hardest per blow AND wins sustained
+	DPS on a single block, paid for by being the slowest melee and only
+	sinking two cells down (still single-target across). Block HP is a
+	threshold, so the overkill trade vs a fast pick on chip-work remains real.
 ]]
 MineOreTools.FAMILY_POWER = {
 	pickaxe = 1,
-	hammer = 2.2,
+	hammer = 3.7,
 	drill = 1,
 	--[[
 		SAME DPS AS A DRILL, PAID FOR BY BEING FASTER.
@@ -202,7 +205,17 @@ MineOreTools.FAMILY_POWER = {
 		Keep this and the rate multiplier in step: they exist to cancel.
 	]]
 	jackhammer = 1 / 1.5,
-	explosive = 1,
+	--[[
+		DECISION 2026-10-14 (B2, was 1): explosive = 4.
+
+		TODO B2: same-grade explosive *area* edps (full blast footprint) tops
+		every other family; higher-grade tools may still beat a low explosive.
+		Raising FAMILY_POWER alone to ~7 would also inflate single-cell dps and
+		force the hammer crown higher — prefer a modest power floor here plus
+		FRAME_STATS coverage / cooldown on the mid bands (below). Asserted by
+		tools/verify/tool-dps.js.
+	]]
+	explosive = 4,
 }
 
 function MineOreTools.familyPower(familyId)
@@ -264,25 +277,17 @@ MineOreTools.FRAME_STATS = {
 		cooldown = { {82,false} },
 	},
 	--[[
-		HAMMERS -- the hardest hit in the game, and the slowest.
+		HAMMERS -- slow / heavy / single-target, hardest hit + best single-block DPS.
 
 		Owner, 2026-10-10: "make another class (Hammers most damage; looks
 		like sledge hammers)".
+		Owner, 2026-10-14 B1 LOCKED: also highest sustained DPS on one block
+		(FAMILY_POWER.hammer = 3.7). Pick stays faster; hammer stays single-
+		target across (sink 2 is depth only).
 
-		Damage in this game is `toolPower x rate`, so "most damage" has to be
-		expressed as damage PER SWING, not as damage per second -- otherwise
-		it is just a better pickaxe and there is no reason to carry one. A
-		hammer swings at roughly HALF a pickaxe's rate (1.1 to 1.6 against
-		2.3 to 3.2), and MineOreTools.typeMult puts it a rung above the pick,
-		so each blow lands far harder while the sustained output stays in
-		family.
-
-		That is the trade a player should feel: a pick chips, a hammer
-		commits. It is single-target melee like the pick -- one cell, no
-		radius -- because a slow AOE would simply be the explosive.
-
-		The rate curve rises a little across the roster, like the pick's, so
-		a deep hammer is not literally unplayable to hold.
+		A hammer swings at roughly HALF a pickaxe's rate (1.1 to 1.6 against
+		2.3 to 3.2). The rate curve rises a little across the roster so a deep
+		hammer is not literally unplayable to hold.
 	]]
 	hammer = {
 		rate = {
@@ -378,10 +383,26 @@ MineOreTools.FRAME_STATS = {
 		-- Three seconds to spin up before the first block gives.
 		windSec = { {82,3} },
 	},
+	--[[
+		EXPLOSIVES — area king (TODO B2 / owner 2026-10-14).
+
+		edps is hit × (blocks per bomb) × bombs × (1/cooldown). blocks per bomb
+		is `cells` for sphere/cluster/splash, and `depth` for line (MinePatterns
+		line() reads tool.depth; without it live coverage was 1 while the shop
+		quoted 7+). Bake depth with the line cells so the quote matches the blast.
+
+		DECISION 2026-10-14 retune (was roster bake):
+		- FAMILY_POWER.explosive 1 → 4 (see above).
+		- line 42–46 cells/depth 7 → 13; line 53–57 cells/depth 9 → 13 so
+		  long-range frames clear same-grade drill 3×3 edps.
+		- mid sphere cooldown {36,1.75}/{41,1.9} → {36,1.15}/{41,1.2} so
+		  radius-1 spheres keep honest geometry while still topping edps
+		  against area drills (raising radius would jump cells 7→33).
+	]]
 	explosive = {
 		rate = { {82,1} },
 		cells = {
-			{46,7}, {52,33}, {57,9}, {63,11}, {82,33},
+			{41,7}, {46,13}, {52,33}, {57,13}, {63,11}, {82,33},
 		},
 		radius = {
 			{41,1}, {46,0}, {52,2}, {63,0}, {82,2},
@@ -397,9 +418,14 @@ MineOreTools.FRAME_STATS = {
 			{25,"sphere"}, {30,"cluster"}, {41,"sphere"}, {46,"line"}, {52,"cluster"}, {63,"line"},
 			{68,"splash"}, {82,"cluster"},
 		},
+		-- Line length into the wall. Must match cells on line bands; false
+		-- elsewhere (sphere/cluster/splash ignore depth).
+		depth = {
+			{41,false}, {46,13}, {52,false}, {57,13}, {63,11}, {82,false},
+		},
 		cooldown = {
 			{3,2.05}, {9,1.15}, {14,1.25}, {19,1.4}, {25,1.6}, {30,1.95},
-			{36,1.75}, {41,1.9}, {46,2.15}, {52,2.45}, {57,2.3}, {63,2.6},
+			{36,1.15}, {41,1.2}, {46,2.15}, {52,2.45}, {57,2.3}, {63,2.6},
 			{68,2.75}, {73,3.15}, {79,3.65}, {82,4.25},
 		},
 	},

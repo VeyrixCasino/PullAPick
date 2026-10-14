@@ -1337,3 +1337,23 @@ balance changes. Candy-style gotcha: never pulse UIScale on TextLabels.
 
 Updated: MineInventoryView, MineForgeView, MineSkinsView, MineLuckyOddsView,
 grades-and-stars, candy-style, log.
+
+## [2026-10-14] ingest | B1 hammer niche lock + B2 explosive rebalance
+Owner locked B1: hammer = slow / heavy / single-target + highest single-block
+DPS. Retuned `FAMILY_POWER.hammer` 2.2?3.7, `explosive` 1?4; baked explosive
+`depth` RLE (wired through `equippedTool`); lengthened mid line cells/depth to
+13; trimmed mid sphere cooldowns. `tool-dps.js` now asserts hammer crowns
+single-block `dps` and full-footprint explosive `edps`.
+
+Updated: MineOreTools, MineServer, tool-dps.js, tools.md, next-up.md,
+verify-suite.md, log.
+
+## [2026-10-14] ingest | chest tool drops live + tool ? display
+Fixed open-questions #7: forward-declare `rollChestTool` before
+`openChestBlock` so zone chests can drop Secrets/forever tools again.
+Secrets shop rarity chip and Found forever-tool sub-lines use
+`MineStars.beside` (word kept). New `tools/verify/chest-tools.js`.
+Full B3 (5?6 themed sets / new drop tables) still needs the owner.
+
+Updated: MineServer, MineShopView, MineInventoryView, chest-tools.js,
+open-questions, chests-and-lucky-blocks, tools.md, next-up, log.

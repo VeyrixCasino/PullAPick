@@ -3095,7 +3095,7 @@ function MineInventoryView.mount(parent, opts)
 					table.insert(out, {
 						key = "forever|" .. tostring(row.id),
 						name = (row.nightmare and "Nightmare " or row.shadow and "Shadow " or row.shiny and "Shiny " or "") .. (def.name or row.id),
-						sub = tostring(def.rarity or "Found") .. " · chest",
+						sub = Stars.beside(def.rarity or "Found") .. " · chest",
 						rarity = def.rarity or (Tools.chestRarityFromDrop and def.drop and Tools.chestRarityFromDrop(def.drop)) or (Tools.rarityForPower and Tools.rarityForPower(def.power)), icon = Icons.image(row.id) or nil, def = def, owned = row, slot = "tool",
 						source = "forever", id = row.id,
 						equipped = eqSrc == "forever" and eqId == row.id,

@@ -2,7 +2,7 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-13 @ 98c141a
+verified: 2026-10-14 @ a299374
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
@@ -98,7 +98,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
 | `daily-wheel` **L** | the daily wheel: weights sum to 100, the 16 slice ids are unchanged, every slice prints odds, a free spin gives a pet at most 10% of the time, the daily allowance (base, group, streak), a UTC-day reset, and a landing on the rolled slice from any start angle. Source checks: the lobby build is live, rebirth keeps the field, a spin saves, free spins go first and paid spins obey `PolicyNoRandom`, and the world wheel spins on the client. Added 2026-10-10. |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |
-| `tool-dps` | TODO B2 DPS table for forged families (pickaxe/hammer/drill/jackhammer/explosive): prints `dps`/`edps`, asserts fast↔slow trade, area on drills/explosives, and that same-grade explosives top `edps` (gaps FAIL; no retune). Pure JS. Added 2026-10-13. |
+| `tool-dps` | TODO B1/B2 DPS table for forged families: prints single-block `dps` and full-footprint `edps`; asserts pick faster than hammer, hammer crowns single-block `dps`, jackhammer ≈ drill, area on drills/explosives, line depth baked, and same-grade explosives top `edps`. Pure JS. Added 2026-10-13; retuned 2026-10-14. |
 | `dmg-live` **L** | runs `toolTierPower` in real declaration order |
 | `forge-snap` | the Forge reads no snapshot field the shop does not pass it |
 | `forge-upgrade` | forging the next tier carries the level across, so it is an upgrade |
