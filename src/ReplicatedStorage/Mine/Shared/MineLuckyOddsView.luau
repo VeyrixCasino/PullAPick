@@ -19,6 +19,7 @@
 local shared = script.Parent
 local T = require(shared:WaitForChild("MineTheme"))
 local LB = require(shared:WaitForChild("MineLuckyBlocks"))
+local Stars = require(shared:WaitForChild("MineStars"))
 
 local MineLuckyOddsView = {}
 
@@ -136,7 +137,8 @@ function MineLuckyOddsView.show(parent, blockId, startGrade, opts)
 	for _, g in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
 		local p = sheet.grades[g] or 0
 		if p > 0 then
-			row("Grade " .. g, p, gradeColour(g))
+			-- Letter kept; ★ beside it (MineStars / TODO B4).
+			row("Grade " .. Stars.beside(g), p, gradeColour(g))
 		end
 	end
 
@@ -160,7 +162,7 @@ function MineLuckyOddsView.show(parent, blockId, startGrade, opts)
 		for _, tier in ipairs({ "Legendary", "Mythic", "Divine", "Exotic" }) do
 			if sheet.pets[tier] then
 				local tint = okC and Cards and Cards.RARITY_COLOR and Cards.RARITY_COLOR[tier] or nil
-				row(tier .. " pet", sheet.pets[tier], tint)
+				row(Stars.beside(tier) .. " pet", sheet.pets[tier], tint)
 			end
 		end
 	end

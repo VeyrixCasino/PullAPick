@@ -2,7 +2,7 @@
 title: Skins, cases and temper
 type: system
 status: partial
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-13 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTemper.luau
   - src/ReplicatedStorage/Mine/Shared/MineForgeView.luau
@@ -78,7 +78,14 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
   (`p.toolTempers[fam].tempers[slot]`) or a flagship row. You can fit 1–2
   kits; the number of slots comes from `MineTemper.slotCount`.
 - `boosts()` applies **one** temper set: the flagship's if you are holding a
-  flagship, otherwise your tool family's. Tempers survive rebirth.
+  flagship, otherwise your tool family's (`p.toolTempers[fam]` via
+  `MineTemper.applyTemper`). That family path runs for a shop rung (`tier > 0`)
+  **or** a forged ore tool (`row.oreTool` / `row.oreTier` — forged tools return
+  look-rung `0` on purpose). Fixed in `b0c2430`; pinned by
+  `tools/verify/layers.js`. Tempers survive rebirth.
+- Separately, equipped **MineSkins** (`p.skinEquipped[fam]`) fold into layer 1
+  while you hold that family's forged tool, and `skinBase` multiplies the
+  tool's ore power "off the rip".
 
 **Sources.**
 1. **Temperament Case**, at the Enchanter. `Verbs.openTemperCase` costs
@@ -147,10 +154,11 @@ engine.
 
 ## Gotchas
 
-- **The family skin does nothing on a forged tool.** `boosts()` applies the
-  family temper only when `equippedTool` returns rung > 0, and a forged tool
-  returns 0. Since forged tools are now the main tool, skins and tempers
-  mostly do nothing (found by reading the code; not run).
+- ~~**The family skin does nothing on a forged tool.**~~ **FIXED in `b0c2430`.**
+  The old gate was `(tier or 0) > 0`; forged tools return look-rung 0, so the
+  family temper never applied. `boosts()` now treats `oreTool` / `oreTier` as
+  forged and applies `p.toolTempers[fam]` the same way as a shop rung.
+  `tools/verify/layers.js` fails if the rung-only gate returns.
 - **Rule 6 contradicts the code.** TODO §0.13 rule 6 says the case "rolls 2%
   down to 0.5% to decide whether you get a tool". The code (`ORE_CASE_CHANCE`)
   and TODO §6.1 "Ore drops ore" say a case never pays a tool: that first build
@@ -168,10 +176,13 @@ engine.
 
 ## Open questions
 
-- Are skins cosmetic, or a power source? This blocks the rename and the art.
+- Are skins cosmetic, or a power source? Docs disagree (`ROADMAP` says wrap-only;
+  TODO §0.13 / §0.19 and the live code treat them as F→SSS stat kits). This
+  blocks the rename and the art — do not invent; ask the owner.
 - Should ore cases cost or need ore, as standing rule "ore only" says? Or does
   that rule cover only bought crates?
-- Should the family temper apply to forged tools (OPEN #15 fold-in)?
+- ~~Should the family temper apply to forged tools?~~ **Yes in code** (`b0c2430`):
+  same family `toolTempers` path as a non-forged held tool.
 
 ## See also
 

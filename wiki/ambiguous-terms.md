@@ -35,7 +35,7 @@ related: [glossary, owner, open-questions, overview]
 | **tool** | a forged ore tool (`{Ore} {Noun}`), a coin-ladder shop pick, a chest flagship tool, an Event Horizon tool, or the tutorial wooden pick | Which kind of tool? See [tools](systems/tools.md) |
 | **tier** | the ore's index (1–82), a coin-ladder rung, the cosmetic `lookTier`, a pouch rung, or the word "Tier" in the UI | Which ladder? |
 | **level** | tool level (cap 30), wooden pick level (cap 5), enchant level (I–V), the player level that unlocks enchant slots, pet power level, or a depth layer. (Trait levels 1–5 were retired on 2026-10-12.) | Level of what? |
-| **grade** | the temper letters F…SSS, the lucky-block grade-up climb (`MineToolGrades`), or a gear grade | Tempers, lucky blocks, or gear? |
+| **grade** | the temper letters F…SSS, the lucky-block grade-up climb (`MineToolGrades`), a gear grade, or the shared ★½ display scale | Tempers, lucky blocks, gear, or stars? See [grades-and-stars](systems/grades-and-stars.md) |
 | **breaking power** | ore tier (1–82; the Forge UI) or strength (1–1000; the gate), and never the same thing as damage | Which scale should a player see? See [mining-and-breaking](systems/mining-and-breaking.md) |
 | **Forge / bench / Blacksmith** | the same panel under three names; older docs say bench or Blacksmith | Probably the Forge: confirm |
 | **finish** | Shiny / Shadow / Nightmare power multipliers on a tool | Power finish, or a cosmetic? |

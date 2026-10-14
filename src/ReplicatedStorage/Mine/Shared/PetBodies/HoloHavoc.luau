@@ -142,10 +142,10 @@ return function(K)
 		end,
 	}
 
-	-- A glass jellyfish: a see-through bell with a glowing core, a frilled skirt,
+	-- A glass prism jelly: a see-through bell with a glowing core, a frilled skirt,
 	-- trailing tentacles and two ribbon arms.
 	S.hh_jelly = {
-		label = "Jellyfish",
+		label = "Prism Jelly",
 		set = "holo_havoc",
 		tint = C3(200, 150, 255),
 		head = CFrame.new(0, 1.16, 0.06),

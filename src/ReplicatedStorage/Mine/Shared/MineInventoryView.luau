@@ -32,6 +32,7 @@ local Irid = require(shared:WaitForChild("MineIridescence"))
 -- upvalue only errors when something indexes it -- which here is mount(), not
 -- the module body. A require check alone will not catch that class of break.
 local Packs = require(shared:WaitForChild("MinePackConfig"))
+local Stars = require(shared:WaitForChild("MineStars"))
 local Tools = require(shared:WaitForChild("MineTools"))
 local Icons = require(shared:WaitForChild("MineIcons"))
 local ToolIcons = require(shared:WaitForChild("MineToolIcons"))
@@ -1684,12 +1685,14 @@ function MineInventoryView.mount(parent, opts)
 					Size = UDim2.fromOffset(4, 26),
 					ZIndex = 63,
 				}, line)
-				local rl = label(line, Cards.RARITY_LABEL[row.rarity] or row.rarity, 13, col,
-					UDim2.fromOffset(12, 0), UDim2.fromOffset(120, 26))
+				-- Word kept; ★ beside it (MineStars / TODO B4).
+				local rarName = Cards.RARITY_LABEL[row.rarity] or row.rarity
+				local rl = label(line, Stars.beside(rarName), 13, col,
+					UDim2.fromOffset(12, 0), UDim2.fromOffset(168, 26))
 				rl.TextXAlignment = Enum.TextXAlignment.Left
 				rl.ZIndex = 63
 				local pl = label(line, string.format("%.2f%%", row.weight), 13, TEXT,
-					UDim2.fromOffset(132, 0), UDim2.fromOffset(74, 26), FONT)
+					UDim2.fromOffset(180, 0), UDim2.fromOffset(60, 26), FONT)
 				pl.TextXAlignment = Enum.TextXAlignment.Right
 				pl.ZIndex = 63
 				local oneInPct = row.weight
@@ -3750,7 +3753,8 @@ function MineInventoryView.mount(parent, opts)
 			rows = {
 				{ "Slot", isFace and "Face" or "Hat" },
 				{ "Set", tostring(g.setName or g.setId or "-") },
-				{ "Grade", tostring(g.rarity or "-") },
+				-- Letter kept; ★ beside it (MineStars / TODO B4).
+				{ "Grade", (g.rarity and Stars.beside(g.rarity)) or "-" },
 			}
 			for i, line in ipairs(boostLines) do
 				table.insert(rows, { i == 1 and "Boost" or "", line })

@@ -2,17 +2,19 @@
 title: Fishing
 type: system
 status: partial
-verified: 2026-10-12 @ a857a63
+verified: 2026-10-13 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineFishing.luau
   - src/ReplicatedStorage/Mine/Shared/MineFishingFight.luau
   - src/ReplicatedStorage/Mine/Shared/MineFishingView.luau
+  - src/ReplicatedStorage/Mine/Shared/MineToday.luau
   - src/ServerScriptService/Mine/MineFishingService.luau
   - src/ServerScriptService/Mine/MineFishPonds.luau
   - src/ServerScriptService/Mine/WorldBuilder.luau
   - src/ServerScriptService/Mine/MineDepthPlazas.luau
   - tools/sim/fishing-tune.js
   - tools/verify/fishing.js
+  - tools/verify/today.js
   - docs/FISHING-TUNING.md
   - docs/TODO.md A3
 related: [zones-layers-and-seams, currencies-and-economy, social-quests-and-leaderboards, rebirth-and-skill-tree, client-and-ui]
@@ -40,9 +42,12 @@ related: [zones-layers-and-seams, currencies-and-economy, social-quests-and-lead
   the Fish prompt.
 - The server accepts a cast only within `SPOT_RADIUS` (40) of the dock.
 
-**Fish.** Each zone has its own list (`MineFishing.FISH`). Greyvein has 12, from
-★ to ★★★★★ in half steps, Gravel Minnow to Monolith Koi. Before luck, the odds
-(`GRADE_WEIGHT`) are:
+**Fish.** Each permanent zone has its own list (`MineFishing.FISH`): 12 fish from
+★ to ★★★★★ in half steps (two each of ★ / ★½ / ★★, then one per higher half-step).
+Greyvein's run from Gravel Minnow to Monolith Koi; the other nine zones mirror that
+grade shape with thematic names (PROPOSED). `ZONE_DIFFICULTY` scales fight hardness
+by zone (PROPOSED: ~1.05^(zoneIndex−2), Greyvein = 1). Event Horizon has no list yet.
+Before luck, the odds (`GRADE_WEIGHT`) are:
 
 | ★ | ★½ | ★★ | ★★½ | ★★★ | ★★★½ | ★★★★ | ★★★★½ | ★★★★★ |
 |---|---|---|---|---|---|---|---|---|
@@ -77,9 +82,13 @@ like your fishing in a pond"*).
 - **The FISH tab:** icons and numbers, with sentences behind (?). A 👆 points at
   CAST until your first cast.
 - **The minigame is mostly in the world**, and client-side only:
-  - a rod at your side, and a line (a Beam) that sags when slack and pulls straight
-    and reddens as the tension climbs;
-  - the cast throws a bobber out along an arc, further for more power;
+  - a **procedural wood rod** (Parts + WeldConstraint to `RightHand`, no mesh
+    upload) in `Workspace.MineFishFx`, with handle, reel and tip eye; a line
+    (Beam) from the tip that sags when slack and pulls straight / reddens as
+    tension climbs;
+  - a **cork bobber** (tan ball + red cap + stem) that sits on the tip during
+    the cast wind-up, flies out on an arc (further for more power), then floats
+    on the pond; it **stays visible** under the fish marker during the fight;
   - the bite splashes;
   - the **fish marker** is a 🐟 bubble in the fish's colour, with the distance
     under it. It swims the pool: toward the far rim as it gets away (100 m = the
@@ -138,8 +147,37 @@ the slower rods made every fight minutes long.)
   survive rebirth.
 
 **The cooler.** `p.fishing.cooler[fishId] = { n, best }`, opened from any spot
-(the COOLER tab). Selling, trading and album set bonuses are not built
-(owner: *"just make it give fish cards for now"*).
+(the COOLER tab). **Selling for coins is built** (`fishSell` / `fishSellAll`):
+one SELL on a card, or SELL ALL with a server-priced confirm (ore-pouch
+pattern). Coins only — not gems. Selling to `n = 0` keeps the row so the card
+stays known. Trading is not built.
+
+**Album set bonuses (PROPOSED, first cut 2026-10-13).** The album is cooler
+known fish (a row present = ever caught; `n` may be 0). One set per zone
+(12 fish). Bonuses apply only at that zone's spots:
+
+| progress | luck at that zone's spots |
+|---|---|
+| 3 of 12 (milestone) | ×1.02 (+2% PROPOSED) |
+| 12 of 12 (complete) | ×1.05 (+5% PROPOSED) |
+
+Complete replaces the milestone (does not stack 2%+5%). Completing other zones
+does not stack onto this spot; soft-cap later if needed. Cast luck is
+`rod × spot × album × cast quality` (`MineFishing.albumLuck`, applied in
+`MineFishingService.fishCast` / `fullState`). Progress shows on the FISH tab
+and COOLER tab (`📗 ALBUM n/12`), and as a chip on ODDS.
+
+**Sell price (PROPOSED).** `MineFishing.sellCoins`:
+`floor(120 × 2.8^(gradeIndex−1) × (0.55 + size))`. Cooler sells use
+`TYPICAL_SIZE` 0.25 (median of the squared size roll), because the cooler does
+not store every fish's kg. At that size: ★ ≈ 96 coins, ★★★★★ ≈ 363K.
+
+**Catch of the day.** One global target fish per UTC day
+(`MineFishing.catchOfDay(day)`), seeded so every server agrees. Landing it sets
+`cotdGot`; `fishClaimCotd` pays coins (`CATCH_OF_DAY_BASE` 2500 × 2.8^(g−1) ×
+0.5, PROPOSED). TODAY shows the row while unfinished or claimable
+(`MineToday`, open `"fish"`): claim when ready, else open the nearest pond.
+Also on the FISH tab.
 
 ## The learning machine (tuning)
 
@@ -188,7 +226,9 @@ Letting a fish's size set its fight fixed both.
   through rebirth. One rod casts 5 bait.
 - Cast and reel are both minigames, and **no skipping**. The colour, tension, floor
   and escape rules are quoted in `MineFishingFight`'s header.
-- Catches are fish cards in a cooler. Selling waits.
+- Catches are fish cards in a cooler. First cut: selling waited (owner: *"just
+  make it give fish cards for now"*). **2026-10-13:** cooler sells for coins;
+  trading still waits.
 
 ## State right now
 - **Built and play-tested in Studio on the Greyvein pond** (first cut): cast → bite →
@@ -206,16 +246,29 @@ Letting a fish's size set its fight fixed both.
     (not built).
 - **Not yet seen in Studio:** the underground pools. They build only when a seam's
   plaza opens.
-- **Only Greyvein has fish.** Other zones need their own lists in
-  `MineFishing.FISH` (and `ZONE_DIFFICULTY`) before their outposts get pools.
+- **All ten permanent zones have fish lists** (meadow → primordium). Listing a
+  zone in `MineFishing.FISH` also registers its 1,000 / 3,000 outpost spots, so
+  `MineDepthPlazas` builds those pools when the seam opens. Only Greyvein has a
+  surface pond. Event Horizon still needs a list if it should fish.
+- **DONE 2026-10-13:** cooler sell for coins; catch of the day on TODAY + FISH
+  tab (global UTC target, coins claim).
+- **DONE 2026-10-13 (rod + bobber):** procedural hand rod + cork bobber in
+  `MineFishingView.rigFx` (Studio Play on Quarry Pool: wood shaft welded to
+  `RightHand`, cork lands on pond surface, Beam line on, cork stays visible
+  through the fight). Older stub used a classic Weld C0 without posing world
+  CFrame first and hid the cork on bite (`Transparency = 1`), so it read as
+  "not built".
+- **DONE 2026-10-13:** album set bonuses (cooler known = album; per-zone 12-fish
+  sets; PROPOSED +2% at 3/12, +5% at 12/12 on that zone's spots; FISH + COOLER
+  progress).
 - **Not built:**
-  - fish selling and trading;
-  - album set bonuses;
-  - TODAY's "catch of the day";
-  - a rod model in the hand and a bobber on the water;
+  - fish trading;
   - fish art (cards use 🐟).
-- **PROPOSED, for the owner:** rod prices, starter bait, fish names, the 9 grade
-  odds and the tuning targets.
+- **PROPOSED, for the owner:** rod prices, starter bait, fish names (all zones),
+  `ZONE_DIFFICULTY` multipliers, the 9 grade odds, the tuning targets, sell
+  prices (`SELL_BASE` 120 / `SELL_GROW` 2.8), catch-of-day rewards
+  (`CATCH_OF_DAY_BASE` 2500), and album luck
+  (`ALBUM_MILESTONE_LUCK` 0.02 / `ALBUM_COMPLETE_LUCK` 0.05).
 
 ## Gotchas
 - **Fight determinism.** The fight must stay `+ - * /` and its own generator.

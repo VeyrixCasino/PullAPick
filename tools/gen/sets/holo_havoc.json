@@ -1,69 +1,1091 @@
 {
   "key": "holo_havoc",
   "bodies": [
-    { "id": "hh_discoball", "label": "Disco Ball", "role": "Mystic" },
-    { "id": "hh_holopup", "label": "Holo Pup", "role": "Seeker" },
-    { "id": "hh_shutterbug", "label": "Shutterbug", "role": "Prospector" },
-    { "id": "hh_jelly", "label": "Jellyfish", "role": "Tidecaller" },
-    { "id": "hh_chameleon", "label": "Chameleon", "role": "Striker" }
+    {
+      "id": "hh_discoball",
+      "label": "Disco Ball",
+      "role": "Mystic"
+    },
+    {
+      "id": "hh_holopup",
+      "label": "Holo Pup",
+      "role": "Seeker"
+    },
+    {
+      "id": "hh_shutterbug",
+      "label": "Shutterbug",
+      "role": "Prospector"
+    },
+    {
+      "id": "hh_jelly",
+      "label": "Prism Jelly",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "hh_chameleon",
+      "label": "Chameleon",
+      "role": "Striker"
+    },
+    {
+      "id": "hh_glitterfinch",
+      "label": "Glitter Finch",
+      "role": "Seeker"
+    },
+    {
+      "id": "hh_sequinwombat",
+      "label": "Sequin Wombat",
+      "role": "Digger"
+    },
+    {
+      "id": "hh_spangleskunk",
+      "label": "Spangle Skunk",
+      "role": "Striker"
+    },
+    {
+      "id": "hh_foilpompom",
+      "label": "Foil Pompom",
+      "role": "Trader"
+    }
   ],
-  "extraBodies": ["beetle", "slime", "fish"],
-  "buffs": ["ricochet", "shatterDamage", "gemFind"],
+  "topBodies": [
+    {
+      "id": "hh_t_giraffe",
+      "label": "Balloon Giraffe",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        200,
+        40
+      ]
+    },
+    {
+      "id": "hh_t_gopher",
+      "label": "Periscope Gopher",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        220,
+        120,
+        60
+      ]
+    },
+    {
+      "id": "hh_t_slug",
+      "label": "Mercury Slug",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        150,
+        170,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_holocard",
+      "label": "Trading Holocard",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        80,
+        228,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_shades",
+      "label": "Aviator Shades",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        240,
+        140,
+        160
+      ]
+    },
+    {
+      "id": "hh_t_bubble",
+      "label": "Soapfilm Bubble",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        190,
+        240,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_toaster",
+      "label": "Diner Toaster",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        120,
+        240,
+        190
+      ]
+    },
+    {
+      "id": "hh_t_popper",
+      "label": "Foil Popper",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        230,
+        30,
+        160
+      ]
+    },
+    {
+      "id": "hh_t_starling",
+      "label": "Sheen Starling",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        110,
+        60,
+        230
+      ]
+    },
+    {
+      "id": "hh_t_cuttlefish",
+      "label": "Strobe Cuttlefish",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        255,
+        110,
+        90
+      ]
+    },
+    {
+      "id": "hh_t_zebra",
+      "label": "Illusion Zebra",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        250,
+        250,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_anemone",
+      "label": "Fiber Anemone",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        30,
+        210,
+        180
+      ]
+    },
+    {
+      "id": "hh_t_projector",
+      "label": "Reel Projector",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        255,
+        150,
+        40
+      ]
+    },
+    {
+      "id": "hh_t_platter",
+      "label": "Optic Platter",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        210,
+        175,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_ibis",
+      "label": "Mirrorball Ibis",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        120,
+        170
+      ]
+    },
+    {
+      "id": "hh_t_knight",
+      "label": "Tinfoil Knight",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        40,
+        70,
+        210
+      ]
+    },
+    {
+      "id": "hh_t_lacewing",
+      "label": "Sheer Lacewing",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        170,
+        255,
+        70
+      ]
+    },
+    {
+      "id": "hh_t_bulb",
+      "label": "Filament Bulb",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        255,
+        235,
+        110
+      ]
+    },
+    {
+      "id": "hh_t_kaleidoscope",
+      "label": "Twist Kaleidoscope",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        170,
+        100,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_cradle",
+      "label": "Pendulum Cradle",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        70,
+        200,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_hatchetfish",
+      "label": "Silver Hatchetfish",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        120,
+        170,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_funhouse",
+      "label": "Wobbly Funhouse",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        0,
+        190,
+        120
+      ]
+    },
+    {
+      "id": "hh_t_spotlight",
+      "label": "Stage Spotlight",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        60,
+        60
+      ]
+    },
+    {
+      "id": "hh_t_streamer",
+      "label": "Party Streamer",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        90,
+        200
+      ]
+    },
+    {
+      "id": "hh_t_caravan",
+      "label": "Aluminium Caravan",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        100,
+        140,
+        200
+      ]
+    },
+    {
+      "id": "hh_t_origami",
+      "label": "Holofold Origami",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        220,
+        140
+      ]
+    },
+    {
+      "id": "hh_t_narwhal",
+      "label": "Laser Narwhal",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        90,
+        200
+      ]
+    },
+    {
+      "id": "hh_t_yak",
+      "label": "Foilfringe Yak",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        170,
+        80
+      ]
+    },
+    {
+      "id": "hh_t_foilroll",
+      "label": "Kitchen Foilroll",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        230,
+        230,
+        240
+      ]
+    },
+    {
+      "id": "hh_t_ostrich",
+      "label": "Sequin Ostrich",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        80,
+        40
+      ]
+    },
+    {
+      "id": "hh_t_infinity",
+      "label": "Infinity Mirror",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        80,
+        200,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_anaglyph",
+      "label": "Anaglyph Toucan",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        50,
+        70
+      ]
+    },
+    {
+      "id": "hh_t_porcupine",
+      "label": "Fibreoptic Porcupine",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        160,
+        90,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_moire",
+      "label": "Moire Ripple",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        40,
+        220,
+        180
+      ]
+    },
+    {
+      "id": "hh_t_aureole",
+      "label": "Aureole Lens",
+      "role": "Digger",
+      "tier": "Divine",
+      "tint": [
+        255,
+        220,
+        120
+      ]
+    },
+    {
+      "id": "hh_t_caustic",
+      "label": "Caustic Pool",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        60,
+        180,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_penrose",
+      "label": "Penrose Triangle",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        200,
+        200,
+        220
+      ]
+    },
+    {
+      "id": "hh_t_dichroic",
+      "label": "Dichroic Film",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        80,
+        200
+      ]
+    },
+    {
+      "id": "hh_t_lenticular",
+      "label": "Lenticular Flip",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        100,
+        160,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_fresnel",
+      "label": "Fresnel Lamp",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        200,
+        80
+      ]
+    },
+    {
+      "id": "hh_t_polarizer",
+      "label": "Polarizer Cube",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        140,
+        100,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_spectro",
+      "label": "Pocket Spectroscope",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        140,
+        60
+      ]
+    },
+    {
+      "id": "hh_t_zoetrope",
+      "label": "Chrome Zoetrope",
+      "role": "Digger",
+      "tier": "Exotic",
+      "tint": [
+        220,
+        180,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_stereo",
+      "label": "Stereo Viewer",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        180,
+        120,
+        80
+      ]
+    },
+    {
+      "id": "hh_t_grating",
+      "label": "Diffraction Grating",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        100,
+        180
+      ]
+    },
+    {
+      "id": "hh_t_newton",
+      "label": "Newton Rings",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        100,
+        220,
+        255
+      ]
+    },
+    {
+      "id": "hh_t_ferrofluid",
+      "label": "Ferrofluid Spike",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        40,
+        40,
+        50
+      ]
+    },
+    {
+      "id": "hh_t_afterimage",
+      "label": "Afterimage Twin",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        70,
+        120
+      ]
+    }
+  ],
+  "extraBodies": [
+    "beetle",
+    "slime",
+    "fish"
+  ],
+  "buffs": [
+    "ricochet",
+    "shatterDamage",
+    "gemFind"
+  ],
   "palette": [
-    ["Chrome", 204, 210, 222],
-    ["Silver", 160, 164, 176],
-    ["Gunmetal", 80, 86, 102],
-    ["Holo Cyan", 80, 228, 255],
-    ["Holo Pink", 255, 118, 214],
-    ["Holo Violet", 164, 110, 255],
-    ["Laser Lime", 172, 255, 80],
-    ["Neon Teal", 30, 206, 176],
-    ["Ultraviolet", 104, 50, 220],
-    ["Infrared", 255, 60, 84],
-    ["Mirror Blue", 120, 160, 240],
-    ["Gold Foil", 240, 200, 86],
-    ["Rose Foil", 240, 150, 160],
-    ["Pearl Sheen", 238, 232, 246],
-    ["Black Mirror", 30, 32, 44],
-    ["Sunburst", 255, 156, 40],
-    ["Magenta Flash", 220, 30, 160],
-    ["Ice Glass", 186, 236, 252],
-    ["Mint Glass", 140, 240, 196],
-    ["Copper Foil", 204, 114, 72],
-    ["Cobalt Glass", 40, 76, 214],
-    ["Smoke Glass", 124, 120, 146],
-    ["Lilac Foil", 212, 178, 250],
-    ["Lemon Laser", 240, 255, 150]
+    [
+      "Chrome",
+      204,
+      210,
+      222
+    ],
+    [
+      "Silver",
+      160,
+      164,
+      176
+    ],
+    [
+      "Gunmetal",
+      80,
+      86,
+      102
+    ],
+    [
+      "Holo Cyan",
+      80,
+      228,
+      255
+    ],
+    [
+      "Holo Pink",
+      255,
+      118,
+      214
+    ],
+    [
+      "Holo Violet",
+      164,
+      110,
+      255
+    ],
+    [
+      "Laser Lime",
+      172,
+      255,
+      80
+    ],
+    [
+      "Neon Teal",
+      30,
+      206,
+      176
+    ],
+    [
+      "Ultraviolet",
+      104,
+      50,
+      220
+    ],
+    [
+      "Infrared",
+      255,
+      60,
+      84
+    ],
+    [
+      "Mirror Blue",
+      120,
+      160,
+      240
+    ],
+    [
+      "Gold Foil",
+      240,
+      200,
+      86
+    ],
+    [
+      "Rose Foil",
+      240,
+      150,
+      160
+    ],
+    [
+      "Pearl Sheen",
+      238,
+      232,
+      246
+    ],
+    [
+      "Black Mirror",
+      30,
+      32,
+      44
+    ],
+    [
+      "Sunburst",
+      255,
+      156,
+      40
+    ],
+    [
+      "Magenta Flash",
+      220,
+      30,
+      160
+    ],
+    [
+      "Ice Glass",
+      186,
+      236,
+      252
+    ],
+    [
+      "Mint Glass",
+      140,
+      240,
+      196
+    ],
+    [
+      "Copper Foil",
+      204,
+      114,
+      72
+    ],
+    [
+      "Cobalt Glass",
+      40,
+      76,
+      214
+    ],
+    [
+      "Smoke Glass",
+      124,
+      120,
+      146
+    ],
+    [
+      "Lilac Foil",
+      212,
+      178,
+      250
+    ],
+    [
+      "Lemon Laser",
+      240,
+      255,
+      150
+    ],
+    [
+      "Bottle Glass",
+      34,
+      85,
+      0
+    ],
+    [
+      "Berry Foil",
+      119,
+      0,
+      51
+    ],
+    [
+      "Laser Fuchsia",
+      255,
+      0,
+      255
+    ],
+    [
+      "Night Violet",
+      51,
+      0,
+      85
+    ],
+    [
+      "Laser Mint",
+      0,
+      255,
+      153
+    ],
+    [
+      "Laser Green",
+      0,
+      153,
+      0
+    ],
+    [
+      "Burnt Bronze",
+      85,
+      51,
+      0
+    ],
+    [
+      "Flash Yellow",
+      255,
+      255,
+      0
+    ],
+    [
+      "Glowstick Green",
+      0,
+      255,
+      0
+    ],
+    [
+      "Olive Chrome",
+      136,
+      153,
+      102
+    ],
+    [
+      "Blue Laser",
+      0,
+      0,
+      255
+    ],
+    [
+      "Flare Orange",
+      255,
+      68,
+      0
+    ],
+    [
+      "Ruby Foil",
+      136,
+      0,
+      0
+    ],
+    [
+      "Deep Sapphire",
+      0,
+      68,
+      136
+    ],
+    [
+      "Teal Smoke",
+      0,
+      102,
+      85
+    ],
+    [
+      "Plum Sheen",
+      153,
+      85,
+      153
+    ]
   ],
   "topWords": {
-    "Legendary": ["Glossy", "Chrome", "Mirrored", "Gleaming"],
-    "Mythic": ["Holographic", "Iridescent", "Refracted", "Lustrous"],
-    "Divine": ["Dazzling", "Brilliant", "Luminous", "Radiant"],
-    "Exotic": ["Hyperholo", "Prismatic", "Spectral", "Infinite"]
+    "Legendary": [
+      "Glossy",
+      "Chrome",
+      "Mirrored",
+      "Gleaming"
+    ],
+    "Mythic": [
+      "Holographic",
+      "Iridescent",
+      "Refracted",
+      "Lustrous"
+    ],
+    "Divine": [
+      "Dazzling",
+      "Brilliant",
+      "Luminous",
+      "Radiant"
+    ],
+    "Exotic": [
+      "Hyperholo",
+      "Prismatic",
+      "Spectral",
+      "Infinite"
+    ]
   },
   "names": [
-    "Holo", "Holofoil", "Holoflash", "Holopaw", "Holobit", "Hologlow", "Holotail", "Holowisp",
-    "Holodot", "Holozip", "Hologlint", "Holoshine", "Holosheen", "Holohop", "Holostar", "Holospark",
-    "Hologram", "Holo Kit", "Holo Pip", "Chrome", "Chromey", "Chromium", "Chromatic", "Chromepaw",
-    "Chrometail", "Quicksilver", "Silverleaf", "Titanium", "Alloy", "Gleamium", "Polish", "Glossy",
-    "Gloss", "Sheeny", "Burnish", "Buffed", "Spitshine", "Mirror", "Mirrorball", "Mirrorpaw",
-    "Mirror Maze", "Looking Glass", "Reflex", "Reflecta", "Reflecto", "Reflection", "Refract", "Refracto",
-    "Refraction", "Lens", "Lensy", "Lensflare", "Optic", "Periscope", "Goggles", "Specs",
-    "Spectacles", "Bifocal", "Glassbead", "Glassy", "Glimmerglass", "Hologlass", "Funhouse", "Copycat",
-    "Twinsy", "Lookalike", "Lasertail", "Laserpaw", "Beam", "Beamer", "Strobelight", "Glare",
-    "Neon", "Neonbit", "Neonpaw", "Neonglow", "Fluoro", "Phosphor", "Glowbit", "Lumiflash",
-    "Wavelength", "Kaleidoscope", "Iridess", "Iridia", "Shimmerjack", "Glitterbug", "Glitterball", "Glitterfoil",
-    "Sparklefoil", "Starfoil", "Foil", "Foily", "Tinfoil", "Foilfox", "Sequin", "Spangle",
-    "Glitz", "Glitzy", "Bling", "Dazzler", "Razzmatazz", "Flashbulb", "Shutter", "Snapshot",
-    "Flashcube", "Focus", "Pixelate", "Hyperspark", "Lumenbit", "Lightshow", "Laserlight", "Disco",
-    "Discotail", "Discopaw", "Groovy", "Boogaloo", "Dancefloor", "Shimmy", "Afterglow", "Glowup",
-    "Ultraviolet", "Infrared", "Blacklight", "Photonix", "Prismatica", "Hexashine", "Chromaflash", "Colorshift",
-    "Huestorm", "Tintflip", "Lenticular", "Opalite", "Mirage Pup", "Sheenbeam", "Glossypaw", "Chromebot",
-    "Mirrorbot", "Holo Hopper", "Glimmerbit", "Glitterbit", "Foilwing", "Foiltail", "Foilpaw", "Glossbeam",
-    "Gleamwing", "Mirrorwing", "Chromewing", "Chromeback", "Chromeflash", "Silverflash", "Silverflick", "Shinyback",
-    "Sparkleglass", "Glasswing", "Glassfin", "Lensbug", "Lenspaw", "Opticat", "Refractor", "Reflector",
-    "Beamlet", "Beamling", "Laserlet", "Neonfin", "Neonwhisk", "Holo Hare", "Holohorn", "Afterimage",
-    "Hyperlight", "Lightbender", "Lightwave", "Glowwave", "Shinewave", "Sheenwave", "Iridescence", "Bubblesheen",
-    "Gleamer", "Dazzlebeam", "Dazzleglass", "Glitterglass", "Sparklebeam", "Starglass", "Holo Heart"
+    "Holo",
+    "Holofoil",
+    "Holoflash",
+    "Holopaw",
+    "Holobit",
+    "Hologlow",
+    "Holotail",
+    "Holowisp",
+    "Holodot",
+    "Holozip",
+    "Hologlint",
+    "Holoshine",
+    "Holosheen",
+    "Holohop",
+    "Holostar",
+    "Holospark",
+    "Hologram",
+    "Holo Kit",
+    "Holo Pip",
+    "Chrome",
+    "Chromey",
+    "Chromium",
+    "Chromatic",
+    "Chromepaw",
+    "Chrometail",
+    "Quicksilver",
+    "Silverleaf",
+    "Titanium",
+    "Alloy",
+    "Gleamium",
+    "Polish",
+    "Glossy",
+    "Gloss",
+    "Sheeny",
+    "Burnish",
+    "Buffed",
+    "Spitshine",
+    "Mirror",
+    "Mirrorball",
+    "Mirrorpaw",
+    "Mirror Maze",
+    "Looking Glass",
+    "Reflex",
+    "Reflecta",
+    "Reflecto",
+    "Reflection",
+    "Refract",
+    "Refracto",
+    "Refraction",
+    "Lens",
+    "Lensy",
+    "Lensflare",
+    "Optic",
+    "Periscope",
+    "Goggles",
+    "Specs",
+    "Spectacles",
+    "Bifocal",
+    "Glassbead",
+    "Glassy",
+    "Glimmerglass",
+    "Hologlass",
+    "Funhouse",
+    "Copycat",
+    "Twinsy",
+    "Lookalike",
+    "Lasertail",
+    "Laserpaw",
+    "Beam",
+    "Beamer",
+    "Strobelight",
+    "Glare",
+    "Neon",
+    "Neonbit",
+    "Neonpaw",
+    "Neonglow",
+    "Fluoro",
+    "Phosphor",
+    "Glowbit",
+    "Lumiflash",
+    "Wavelength",
+    "Kaleidoscope",
+    "Iridess",
+    "Iridia",
+    "Shimmerjack",
+    "Glitterbug",
+    "Glitterball",
+    "Glitterfoil",
+    "Sparklefoil",
+    "Starfoil",
+    "Foil",
+    "Foily",
+    "Tinfoil",
+    "Foilfox",
+    "Sequin",
+    "Spangle",
+    "Glitz",
+    "Glitzy",
+    "Bling",
+    "Dazzler",
+    "Razzmatazz",
+    "Flashbulb",
+    "Shutter",
+    "Snapshot",
+    "Flashcube",
+    "Focus",
+    "Pixelate",
+    "Hyperspark",
+    "Lumenbit",
+    "Lightshow",
+    "Laserlight",
+    "Disco",
+    "Discotail",
+    "Discopaw",
+    "Groovy",
+    "Boogaloo",
+    "Dancefloor",
+    "Shimmy",
+    "Afterglow",
+    "Glowup",
+    "Ultraviolet",
+    "Infrared",
+    "Blacklight",
+    "Photonix",
+    "Prismatica",
+    "Hexashine",
+    "Chromaflash",
+    "Colorshift",
+    "Huestorm",
+    "Tintflip",
+    "Lenticular",
+    "Opalite",
+    "Mirage Pup",
+    "Sheenbeam",
+    "Glossypaw",
+    "Chromebot",
+    "Mirrorbot",
+    "Holo Hopper",
+    "Glimmerbit",
+    "Glitterbit",
+    "Foilwing",
+    "Foiltail",
+    "Foilpaw",
+    "Glossbeam",
+    "Gleamwing",
+    "Mirrorwing",
+    "Chromewing",
+    "Chromeback",
+    "Chromeflash",
+    "Silverflash",
+    "Silverflick",
+    "Shinyback",
+    "Sparkleglass",
+    "Glasswing",
+    "Glassfin",
+    "Lensbug",
+    "Lenspaw",
+    "Opticat",
+    "Refractor",
+    "Reflector",
+    "Beamlet",
+    "Beamling",
+    "Laserlet",
+    "Neonfin",
+    "Neonwhisk",
+    "Holo Hare",
+    "Holohorn",
+    "Afterimage",
+    "Hyperlight",
+    "Lightbender",
+    "Lightwave",
+    "Glowwave",
+    "Shinewave",
+    "Sheenwave",
+    "Iridescence",
+    "Bubblesheen",
+    "Gleamer",
+    "Dazzlebeam",
+    "Dazzleglass",
+    "Glitterglass",
+    "Sparklebeam",
+    "Starglass",
+    "Holo Heart",
+    "Sheenwhisker",
+    "Glintwhisker",
+    "Foilfeather",
+    "Tinselpaw",
+    "Sequinsnoot",
+    "Spangletail",
+    "Glossbit",
+    "Glarebug",
+    "Flickerfoil",
+    "Shinyfoot",
+    "Polishpaw",
+    "Reflectra",
+    "Sparklesheen",
+    "Holohoot",
+    "Holofluff",
+    "Hologlimmer",
+    "Glimmerfoil",
+    "Beambug",
+    "Laserbean",
+    "Strobey",
+    "Flashfoil",
+    "Mirrorpop",
+    "Chromepuff",
+    "Gleampuff",
+    "Shimmerfoil",
+    "Silverglint",
+    "Foilflip",
+    "Opticorn",
+    "Glossfin",
+    "Shinebug",
+    "Dazzlepop",
+    "Sheenling",
+    "Glossling",
+    "Glintling",
+    "Holoskip",
+    "Chromeskip",
+    "Mirrorskip",
+    "Glarefin",
+    "Holofin",
+    "Sequina",
+    "Tinsel Tot",
+    "Foilsnap",
+    "Sheen Bean",
+    "Glimmerwhisk",
+    "Beamwhisker",
+    "Glarepaw",
+    "Sheenpaw",
+    "Glimmerpaw"
   ]
 }

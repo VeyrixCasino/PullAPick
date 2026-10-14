@@ -149,6 +149,19 @@ src(!/Dig\.applyPets/.test(boosts), "the old applyPets mutation is gone");
 src(boosts.indexOf("Dig.Layers.apply") > boosts.indexOf("Dig.Layers.add(T1, key"),
   "the combine happens after every source has contributed");
 
+// Family temperament on forged tools (b0c2430). equippedTool returns rung 0 for
+// a forged ore tool on purpose (ore tier is not lookTier). The old gate was
+// `(tier or 0) > 0`, which excluded every forged tool — the only tools past the
+// first hour. Positive markers: oreTool / oreTier on the held row.
+src(/row\.oreTool == true or tonumber\(row\.oreTier\)/.test(boosts),
+  "family temper recognises a forged held tool (oreTool or oreTier)");
+src(/\(forged or \(tier or 0\) > 0\) and p\.toolTempers/.test(boosts),
+  "...and applies toolTempers for forged OR a shop rung > 0");
+src(!/local tt = \(tier or 0\) > 0 and p\.toolTempers/.test(boosts),
+  "...the rung-only gate is gone");
+src(/MineTemper\)\.applyTemper\(b, tt\)/.test(boosts),
+  "family temper still pays through MineTemper.applyTemper");
+
 console.log("");
 console.log(fail > 0 ? `>>> layers: ${fail} FAILED` : ">>> layers: all assertions passed");
 process.exit(fail > 0 ? 1 : 0);

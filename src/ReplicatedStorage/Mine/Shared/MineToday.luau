@@ -4,8 +4,9 @@
 	Owner, 2026-10-10: the TODAY checklist goes INSIDE the Quests panel, at the
 	top. One row per daily thing, with its timer: the daily reward, the daily
 	quests, playtime gifts, the wheel, the Job Board, the pass, the event pass's
-	quests and the event mines. A row that pays out now is READY and pulses
-	(candy-style: "what pays out always moves"); tapping a row opens its screen.
+	quests, the event mines and fishing's catch of the day. A row that pays out
+	now is READY and pulses (candy-style: "what pays out always moves"); tapping
+	a row opens its screen.
 
 	PURE ON PURPOSE. rows() reads only what the client already holds -- the
 	snapshot, the clock, and a small context the caller builds (the playtime
@@ -21,6 +22,7 @@ local M = {}
 M.ORDER = {
 	{ id = "daily", label = "Daily reward", open = "daily" },
 	{ id = "quests", label = "Daily quests", open = "daily" },
+	{ id = "catch", label = "Catch of the day", open = "fish" },
 	{ id = "gifts", label = "Playtime gifts", open = "gifts" },
 	{ id = "wheel", label = "Wheel", open = "wheel" },
 	{ id = "jobs", label = "Job Board", open = "jobs" },
@@ -121,6 +123,21 @@ function M.rows(snap, now, ctx)
 			put("quests", "done  ·  new in " .. reset, { done = true })
 		else
 			put("quests", claimed .. "/" .. math.max(total, 3) .. " done")
+		end
+	end
+
+	-- Fishing catch of the day (global UTC target; A3).
+	do
+		local fish = snap.fishing
+		local c = type(fish) == "table" and fish.catchOfDay or nil
+		if type(c) == "table" and c.id then
+			if c.claimed then
+				put("catch", "done  ·  new in " .. reset, { done = true })
+			elseif c.got then
+				put("catch", "CLAIM!", { ready = true })
+			else
+				put("catch", "🐟 " .. tostring(c.name or c.id))
+			end
 		end
 	end
 
@@ -239,6 +256,7 @@ end
 	while it pays out now (ready) or is an event mine that is open (live). Done
 	rows, closed events and countdowns are hidden; so are the daily quests and
 	the event quests, which the Daily Quests box right below already shows.
+	Catch of the day also shows while still to catch (a reason to fish today).
 	With nothing active the TODAY box is not shown at all.
 ]]
 M.NOT_IN_PANEL = { quests = true, eventpass = true }
@@ -246,7 +264,8 @@ M.NOT_IN_PANEL = { quests = true, eventpass = true }
 function M.active(rows)
 	local out = {}
 	for _, r in ipairs(rows or {}) do
-		if (r.ready or r.live) and not M.NOT_IN_PANEL[r.id] then
+		local showCatch = r.id == "catch" and not r.done
+		if showCatch or ((r.ready or r.live) and not M.NOT_IN_PANEL[r.id]) then
 			table.insert(out, r)
 		end
 	end

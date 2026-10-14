@@ -1277,3 +1277,63 @@ About 25 pages now describe the current game without runes, scrolls, sockets or 
 The sweep corrected one claim: Coolant and Short Fuse still come from the skill tree (Water, Metal). It also found that unopened rune cases in old bags could never open; load drops them now.
 
 Updated: the pages above, log.
+
+## [2026-10-13] query | family tempers on forged tools (digest)
+Confirmed the digest against `MineServer.boosts` / `equippedTool`: the bug was
+real (`(tier or 0) > 0` excluded forged look-rung 0) and **already fixed in
+`b0c2430`**. No further MineServer edit. Pinned the gate in
+`tools/verify/layers.js`. Wiki gotcha / open Q updated; cosmetic-vs-power
+left open (do not invent).
+
+Updated: skins-cases-and-temper, boosts-and-stats, open-questions, log.
+
+## [2026-10-13] ingest | A3: cooler sell + catch of the day
+Built cooler sell for coins (fishSell / fishSellAll, ore-pouch confirm) and
+wired catch of the day into TODAY / FISH tab (global UTC target, fishClaimCotd).
+Sell and reward numbers are PROPOSED. Updated fishing.md, next-up, client-and-ui.
+
+## [2026-10-13] ingest | A3: hand rod + cork bobber
+`MineFishingView.rigFx` rebuilt: pose Parts in world, WeldConstraint to
+RightHand (wood shaft / handle / reel / tip eye), cork float (tan + red cap +
+stem) under `Workspace.MineFishFx`, Beam line, tip-track during cast wind-up.
+Cork stays on the water through the fight (no longer Transparency = 1 on bite).
+Studio Play on Quarry Pool (`sunscar_pond`): rod welded to RightHand, cork on
+surface after cast, Beam on, clean console for fishing. Fight module untouched.
+Updated: fishing.md, log.
+
+## [2026-10-13] ingest | A3: fish album set bonuses
+Album = cooler known (row kept at n=0 after sell). One set per zone (12 fish).
+PROPOSED luck at that zone's spots: +2% at 3/12, +5% at 12/12 (complete
+replaces milestone). Applied in `fishCast` / `fullState` with rod Ã— spot Ã—
+album Ã— cast. FISH + COOLER + ODDS show progress. Updated fishing.md, next-up.
+
+## [2026-10-13] ingest | TODO B4 grade reference + MineStars
+Surveyed every grade ladder (F…SSS / Common…Exotic, fishing GRADES, wild
+cases, set/zone pack stars, lucky ranks, chest ranks, pass tiers, ore bands).
+Added wiki/systems/grades-and-stars.md, MineStars.luau (stars/value/label/beside),
+and wired Loadout inspect rarity to MineStars.beside. No balance changes.
+
+Updated: grades-and-stars, index, glossary, ambiguous-terms, log.
+
+## [2026-10-14] fix | TODAY font-size flicker
+Ready TODAY rows pulsed `UIScale` on the status `TextLabel` (~15 Hz), which
+read as font sizes flickering. Pulse moved to the green ready-dot. Fishing cooler
+cards dropped `TextScaled` on name/foot (fixed size + truncate).
+
+Updated: MineClient, MineFishingView, log.
+
+## [2026-10-13] ingest | TODO B2 tool-dps verify (no rebalance)
+Added `tools/verify/tool-dps.js`: forged family DPS/`edps` table from live
+`toolPower` × `FAMILY_POWER` × `FRAME_STATS`. Soft-asserts B2 ordering; current
+tree fails same-grade explosive-top at most sample tiers (drills win on area
+throughput). No balance edits. Noted missing explosive `depth` RLE.
+
+Updated: tools.md, verify-suite.md, log.
+
+## [2026-10-14] ingest | MineStars.beside more UI sites
+Wired `MineStars.beside` on pack odds, inventory Grade row, forge temper word
+lines, skins tier badge, and lucky-block odds. Tiny letter chips unchanged. No
+balance changes. Candy-style gotcha: never pulse UIScale on TextLabels.
+
+Updated: MineInventoryView, MineForgeView, MineSkinsView, MineLuckyOddsView,
+grades-and-stars, candy-style, log.

@@ -2,7 +2,7 @@
 title: Tools and generators
 type: code
 status: current
-verified: 2026-10-05 @ b19c4c2
+verified: 2026-10-13 @ 98c141a
 sources:
   - tools/serve.js
   - .claude/launch.json
@@ -35,7 +35,7 @@ related: [verify-suite, assets-and-uploads, code-map, rojo-and-studio, local-set
 | `tools/skills/gen.js` | `MineSkillData` node percentages | `MineSkillData.ENERGIES` and `MineStats.weight` | `--check` gives "0 would change" at `26036a0`. Rebuilt because the original was never committed (HANDOFF §2.3). |
 | `tools/gen/zone-pets.js` | `MineZonePets.luau`, `docs/ZONE-PETS.md` | its own name and buff tables, the roster, `PetModelFactory` | `--check`. The zone pots (70 a zone) and every named pet's kit. Never reads the sets. |
 | `tools/gen/holiday-pets.js` | `HolidayPets/<Pack>.luau`, `docs/HOLIDAY-PETS.md` | `tools/gen/holiday/*.json`, `PetModelFactory` (bodies, `cos_*` costumes), the zone and set generators | `--check`. The Halloween 2026 Pack's 60 pets. Checked by `tools/verify/holiday-pets.js`. |
-| `tools/gen/set-pets.js` | `SetPets/<Set>.luau` (19), `docs/SET-PETS.md` | `tools/gen/sets/*.json`, `PetBodies/*.luau`, `Zone.build()` | `--check`. The 19 sets' 2,043 pets. Checked by `tools/verify/set-pets.js`. |
+| `tools/gen/set-pets.js` | `SetPets/<Set>.luau` (19), `docs/SET-PETS.md` | `tools/gen/sets/*.json`, `PetBodies/*.luau` (50: base/Top/Extra), `Zone.build()` | `--check`. The 19 sets' **2,493** pets (900 unique Epic+ tops). Checked by `tools/verify/set-pets.js`. |
 | `tools/gen-ore-icons.js` | `src/ReplicatedStorage/Mine/Shared/MineOreIcons.luau` | `build/icons/ids.json` (tracked) and the live roster | exits non-zero if any ore lacks an icon |
 
 `tools/verify/generated-fresh.js` fails the suite when the mine map or the

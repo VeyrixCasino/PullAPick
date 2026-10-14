@@ -2,7 +2,7 @@
 title: Tools
 type: system
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-13 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
@@ -15,12 +15,13 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineToolGrades.luau
   - src/ReplicatedStorage/Mine/Shared/MineHotbar.luau
   - src/ReplicatedStorage/ToolModelFactory.luau
-  - src/ReplicatedStorage/ToolModelFactory.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
+  - tools/verify/tool-dps.js
   - docs/TODO.md §0.13
   - docs/TODO.md §0.15
+  - docs/TODO.md B2
   - docs/PR-BALANCE-PASS.md
-related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, enchants, traits, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads]
+related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, enchants, traits, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads, verify-suite]
 ---
 
 # Tools
@@ -56,7 +57,18 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 6. `MineConfig.BARE_HANDS` if no pickaxe was ever collected.
 
 Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
-weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`.
+weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`
+(`pickaxe`, `hammer`, `drill`, `jackhammer`, `explosive`).
+
+**DPS table (TODO B2, before rebalance).** `tools/verify/tool-dps.js` computes
+single-cell `dps` and multi-cell `edps` for representative forged ores across
+all five families from live `toolPower` × `FAMILY_POWER` × `FRAME_STATS`. It
+asserts the intended ordering as soft checks (fast pick vs slow heavy hammer;
+drills/explosives have area; explosives should top same-grade `edps`, beaten
+only by higher-grade). Failures are gaps for the later rebalance — the check
+does not retune numbers. B1 hammer niche still needs owner sign-off; the script
+only reads what is already baked. Run: `node tools/verify/tool-dps.js`
+(also via `bash tools/verify/suite.sh`).
 
 **Forged tools** ("a forged tool IS its ore", TODO §0.15). Name `{Ore} {Noun}`
 (`MineOreTools.name`). Until 2026-10-12 a trait prefix went in front, from the

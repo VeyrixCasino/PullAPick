@@ -1,13 +1,16 @@
-// The 19 exclusive sets: 2,043 named pets, exactly the owner's counts.
+// The 19 exclusive sets: named pets at the owner's counts (Epic+ doubled for
+// unique top bodies — tools/gen/sets/_sets.json).
 //
 // Owner, 2026-10-10 (docs/PETS-AND-SETS.md, tools/gen/sets/_sets.json):
-// every set pet named by hand, ~100 new bodies, each set +5% over the set
-// before (set 1 at zone 1's level), no holiday bodies, proc odds "lowish".
+// every set pet named by hand, recolour + unique Epic+ bodies, each set +5%
+// over the set before (set 1 at zone 1's level), no holiday bodies, proc odds
+// "lowish". Common/Uncommon/Rare share recolour bodies (vastly different
+// colours); Epic and up each wear a topBody of their own.
 //
 //   1. the generated files are fresh (tools/gen/set-pets.js --check)
-//   2. every set holds exactly the owner's count at every rarity (2,043)
+//   2. every set holds exactly the owner's count at every rarity
 //   3. names, looks, (body, colour) and serials never collide with anything
-//   4. bodies: every own body exists in PetBodies and is used; no holiday body
+//   4. bodies: recolour bodies used 3+; top bodies 1:1 with Epic+; no holiday
 //   5. kits: the ladder x 1.05 a set; top pets use the set's buffs; odds sane
 //   6. each SetPets module runs in luau and carries what it claims
 //   7. the roster, kit lookup and model factory read the sets
@@ -44,7 +47,8 @@ for (const S of B.sets) {
   });
   total += S.pets.length;
 }
-check(B.sets.length === 19 && total === 2043 && countsOk, `19 sets, ${total} pets, every set exactly the owner's count at every rarity`);
+const wantTotal = B.sets.reduce((a, S) => a + S.meta.counts.reduce((x, y) => x + y, 0), 0);
+check(B.sets.length === 19 && total === wantTotal && countsOk, `19 sets, ${total} pets, every set exactly the owner's count at every rarity`);
 
 // 3. identity
 const Z = Zone.build();
@@ -59,32 +63,51 @@ const pairs = [...Object.values(Z.G.animals), ...Object.values(Z.newAnimals), ..
 check(new Set(pairs).size === pairs.length, `no two skins share a body and a colour (${pairs.length} skins)`);
 const hexes = B.sets.flatMap((S) => S.pets.map((p) => parseInt(p.hex3, 16)));
 const otherHex = new Set([...Z.G.roster.map((r) => parseInt(r.hex3, 16)), ...Z.pets.map((p) => parseInt(p.hex3, 16))]);
-check(new Set(hexes).size === hexes.length && hexes.every((h) => h >= Gen.HEX_START && h < 0xc00 && !otherHex.has(h)),
-  "set serial prefixes are unique and live in their own range (0x400-0xBFF)");
+const hexOk = new Set(hexes).size === hexes.length && hexes.every((h) => {
+  const inOld = h >= Gen.HEX_START && h < 0xc00;
+  const inNew = h >= Gen.HEX_NEW && h < Gen.HEX_END;
+  return (inOld || inNew) && !otherHex.has(h);
+});
+check(hexOk, "set serial prefixes are unique and live in 0x400-0xBFF or 0xD00-0xFFF (0xC00-0xCFF is Halloween)");
 
 // 4. bodies
-let bodiesOk = true, ownBodies = 0, unused = [];
+let bodiesOk = true, recolourBodies = 0, topBodies = 0, unused = [], topWrong = [];
 for (const S of B.sets) {
   for (const b of S.data.bodies) {
-    ownBodies++;
+    recolourBodies++;
     if (!R.species[b.id] || !R.species[b.id].setBody) bodiesOk = false;
     if (!(S.bodyCount[b.id] >= 3)) unused.push(b.id);
   }
+  for (const b of S.data.topBodies || []) {
+    topBodies++;
+    if (!R.species[b.id] || !R.species[b.id].setBody) bodiesOk = false;
+    if (S.bodyCount[b.id] !== 1) topWrong.push(b.id);
+  }
+  const epicPlus = S.pets.filter((p) => !Gen.RECOLOUR_TIERS.has(p.tier)).length;
+  if ((S.data.topBodies || []).length !== epicPlus) bodiesOk = false;
 }
-check(bodiesOk && ownBodies >= 95, `${ownBodies} new set bodies, each in a PetBodies module`);
-check(unused.length === 0, "every set body is worn by at least 3 of its set's pets" + (unused.length ? ": " + unused.join(", ") : ""));
-// Owner: the theme is the predominant type. The own (themed) bodies dress most of a set.
+check(bodiesOk && recolourBodies >= 95 && topBodies >= 400,
+  `${recolourBodies} recolour + ${topBodies} top bodies, each in a PetBodies module; top bodies 1:1 with Epic+`);
+check(unused.length === 0, "every recolour body is worn by at least 3 of its set's pets" + (unused.length ? ": " + unused.join(", ") : ""));
+check(topWrong.length === 0, "every top body is worn by exactly one pet" + (topWrong.length ? ": " + topWrong.slice(0, 8).join(", ") : ""));
+// Owner: the theme is the predominant type. Recolour + top bodies are the set's
+// own themed bodies; extras (shared zone species) must stay a minority.
 const thin = B.sets.filter((S) => {
-  const own = new Set(S.data.bodies.map((b) => b.id));
+  const own = new Set([
+    ...S.data.bodies.map((b) => b.id),
+    ...(S.data.topBodies || []).map((b) => b.id),
+  ]);
   return S.pets.filter((p) => own.has(p.species)).length / S.pets.length < 0.6;
 }).map((S) => S.meta.key);
 check(thin.length === 0, "every set's own themed bodies dress at least 60% of its pets" + (thin.length ? ": " + thin.join(", ") : ""));
 const holiday = B.sets.flatMap((S) => S.pets.filter((p) => R.species[p.species] && R.species[p.species].season));
 check(holiday.length === 0, "no set pet wears a holiday body");
-const bodySrc = fs.readdirSync(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/PetBodies")).filter((f) => f.endsWith(".luau"))
-  .map((f) => read("src/ReplicatedStorage/Mine/Shared/PetBodies/" + f));
-check(bodySrc.length === 19 && bodySrc.every((s) => !/season\s*=/.test(code(s)) && /^\s*(--\[\[[\s\S]*?\]\]\s*)?return function\(K\)/m.test(s)),
-  "19 PetBodies modules, each a plain function of the kit with no season tag");
+const bodyFiles = fs.readdirSync(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/PetBodies")).filter((f) => f.endsWith(".luau"));
+const bodySrc = bodyFiles.map((f) => read("src/ReplicatedStorage/Mine/Shared/PetBodies/" + f));
+const baseN = bodyFiles.filter((f) => !/(Top|Extra)\.luau$/.test(f)).length;
+const topN = bodyFiles.filter((f) => /Top\.luau$/.test(f)).length;
+check(baseN === 19 && topN === 19 && bodySrc.every((s) => !/season\s*=/.test(code(s)) && /^\s*(--\[\[[\s\S]*?\]\]\s*)?return function\(K\)/m.test(s)),
+  `${bodyFiles.length} PetBodies modules (19 base + ${topN} Top + ${bodyFiles.length - baseN - topN} Extra), each a plain function of the kit with no season tag`);
 
 // 5. kits
 const value = (kit) => Object.entries(kit).reduce((a, [s, v]) => a + v * 100 * R.G.stats[s].weight, 0);

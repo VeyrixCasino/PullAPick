@@ -29,7 +29,8 @@
 	p.fishing (kept through rebirth: Verbs.KEEP_ON_REBIRTH):
 	  bait, day, baitGot (gained today, capped), afk (seconds toward the next
 	  AFK bait), rod (equipped id), rods = { [id] = { level, gates } },
-	  cooler = { [fishId] = { n, best } }, casts, landed, lost, starter
+	  cooler = { [fishId] = { n, best } }, casts, landed, lost, starter,
+	  cotdGot, cotdClaimed (catch of the day; reset with baitGot on UTC day)
 ]]
 local RS = game:GetService("ReplicatedStorage")
 local CollectionService = game:GetService("CollectionService")
@@ -64,6 +65,8 @@ function S.ensure(p)
 	if f.day ~= today() then
 		f.day = today()
 		f.baitGot = 0
+		f.cotdGot = false
+		f.cotdClaimed = false
 	end
 	if type(f.rods) ~= "table" then
 		f.rods = {}
@@ -84,6 +87,8 @@ function S.ensure(p)
 	f.casts = tonumber(f.casts) or 0
 	f.landed = tonumber(f.landed) or 0
 	f.lost = tonumber(f.lost) or 0
+	f.cotdGot = f.cotdGot == true
+	f.cotdClaimed = f.cotdClaimed == true
 	return f
 end
 
@@ -107,9 +112,12 @@ function S.snapState(p)
 	local rodId, row = rodRow(f)
 	local kinds, fish = 0, 0
 	for _, c in pairs(f.cooler) do
-		kinds += 1
-		fish += tonumber(c.n) or 0
+		if (tonumber(c.n) or 0) > 0 or (tonumber(c.best) or 0) > 0 then
+			kinds += 1
+		end
+		fish += math.max(0, math.floor(tonumber(c.n) or 0))
 	end
+	local target = M.catchOfDay(today())
 	return {
 		bait = f.bait,
 		baitGot = f.baitGot,
@@ -120,6 +128,15 @@ function S.snapState(p)
 		coolerKinds = kinds,
 		casts = f.casts, -- 0 until the first cast: the view points at CAST
 		coolerFish = fish,
+		catchOfDay = target and {
+			id = target.id,
+			name = target.name,
+			grade = target.grade,
+			zoneId = target.zoneId,
+			got = f.cotdGot,
+			claimed = f.cotdClaimed,
+			reward = M.catchOfDayReward(target.id),
+		} or nil,
 	}
 end
 
@@ -146,9 +163,13 @@ local function fullState(p, spotId)
 			stats = M.rodStats(r.id, level),
 		})
 	end
+	local album = spot and M.albumProgress(f.cooler, spot.zoneId) or nil
+	local albumMult = album and album.luck or 1
+	-- rod × spot × album (cast quality is applied only on fishCast).
+	local luck = st.luck * (spot and spot.luck or 1) * albumMult
 	local odds = {}
 	if spot then
-		for _, r in ipairs(M.catchOdds(spot.zoneId, st.luck * spot.luck)) do
+		for _, r in ipairs(M.catchOdds(spot.zoneId, luck)) do
 			table.insert(odds, { id = r.fish.id, p = r.p })
 		end
 	end
@@ -158,7 +179,8 @@ local function fullState(p, spotId)
 		state = S.snapState(p),
 		rods = rods,
 		rodStats = st,
-		luck = st.luck * (spot and spot.luck or 1),
+		luck = luck,
+		album = album,
 		odds = odds,
 		cooler = f.cooler,
 		tokens = tonumber(p.temperTokens) or 0,
@@ -265,7 +287,8 @@ function V.fishCast(plr, p, payload)
 	f.bait -= st.bait
 	f.casts += 1
 	local quality = M.castQuality(tick)
-	local luck = st.luck * spot.luck * (M.CAST.luck[quality] or 1)
+	-- rod × spot × album (PROPOSED set bonuses) × cast quality
+	local luck = st.luck * spot.luck * M.albumLuck(f.cooler, spot.zoneId) * (M.CAST.luck[quality] or 1)
 	local rng = Random.new()
 	local catches = {}
 	for _ = 1, st.bait do
@@ -335,6 +358,7 @@ function V.fishReel(plr, p, payload)
 	end
 	if result == "caught" then
 		f.landed += #pend.catches
+		local target = M.catchOfDay(today())
 		for _, c in ipairs(pend.catches) do
 			local row = f.cooler[c.id]
 			if type(row) ~= "table" then
@@ -346,6 +370,9 @@ function V.fishReel(plr, p, payload)
 			if c.kg > (tonumber(row.best) or 0) then
 				row.best = c.kg
 				c.record = not c.new
+			end
+			if target and c.id == target.id then
+				f.cotdGot = true
 			end
 		end
 		M.sortCatch(pend.catches)
@@ -463,6 +490,87 @@ function V.fishPrestigeRod(plr, p, payload)
 	row.gates = gates + 1
 	toast(plr, "Prestiged! Levels up to " .. M.levelCap(row.gates) .. " unlocked")
 	refresh(plr, p, payload.spotId)
+end
+
+-- Sell one fish kind from the cooler for coins (PROPOSED prices). Keeps the
+-- row at n=0 so the album still knows you caught it.
+function V.fishSell(plr, p, payload)
+	local f = S.ensure(p)
+	local id = type(payload) == "table" and payload.fishId
+	if not M.fish(id) then
+		return
+	end
+	local row = f.cooler[id]
+	local have = math.max(0, math.floor(tonumber(row and row.n) or 0))
+	if have <= 0 then
+		toast(plr, "None of those in the cooler")
+		return
+	end
+	local want = math.clamp(math.floor(tonumber(type(payload) == "table" and payload.n) or 1), 1, have)
+	local coins = M.sellCoins(id) * want
+	row.n = have - want
+	p.coins = (tonumber(p.coins) or 0) + coins
+	toast(plr, "Sold " .. want .. "  +" .. coins .. " coins")
+	refresh(plr, p, type(payload) == "table" and payload.spotId)
+end
+
+--[[
+	SELL ALL cooler fish for coins. Without confirm: price and ask (same
+	numbers the server will pay). With confirm: sell. Ore-pouch pattern.
+]]
+function V.fishSellAll(plr, p, payload)
+	local f = S.ensure(p)
+	local plan = M.sellPlan(f.cooler)
+	if plan.units <= 0 then
+		toast(plr, "Cooler is empty")
+		return
+	end
+	if not (type(payload) == "table" and payload.confirm) then
+		send(plr, "confirmSellAll", {
+			units = plan.units,
+			coins = plan.coins,
+			kinds = plan.kinds,
+			spotId = type(payload) == "table" and payload.spotId or nil,
+		})
+		return
+	end
+	for id, row in pairs(f.cooler) do
+		local n = math.max(0, math.floor(tonumber(row and row.n) or 0))
+		if n > 0 and M.fish(id) then
+			row.n = 0
+		end
+	end
+	p.coins = (tonumber(p.coins) or 0) + plan.coins
+	toast(plr, "Sold " .. plan.units .. " fish  +" .. plan.coins .. " coins")
+	refresh(plr, p, type(payload) == "table" and payload.spotId)
+end
+
+-- Claim catch-of-the-day coins once you have landed today's target.
+function V.fishClaimCotd(plr, p, payload)
+	local f = S.ensure(p)
+	local target = M.catchOfDay(today())
+	if not target then
+		return
+	end
+	if not f.cotdGot then
+		toast(plr, "Catch " .. target.name .. " today")
+		return
+	end
+	if f.cotdClaimed then
+		toast(plr, "Already claimed today's catch")
+		return
+	end
+	f.cotdClaimed = true
+	local coins = M.catchOfDayReward(target.id)
+	p.coins = (tonumber(p.coins) or 0) + coins
+	toast(plr, "Catch of the day! +" .. coins .. " coins")
+	local spotId = type(payload) == "table" and payload.spotId
+	if spotId then
+		refresh(plr, p, spotId)
+	else
+		ctx.markDirty(plr)
+		ctx.snap(plr)
+	end
 end
 
 S.VERBS = V

@@ -12,6 +12,7 @@ local Temper = require(shared:WaitForChild("MineTemper"))
 local Tools = require(shared:WaitForChild("MineTools"))
 local T = require(shared:WaitForChild("MineTheme"))
 local Icons = require(shared:WaitForChild("MineIcons"))
+local Stars = require(shared:WaitForChild("MineStars"))
 
 local BG = T.BG
 local BG2 = T.BG2
@@ -302,8 +303,9 @@ function MineForgeView.mountList(parent, opts)
 
 			label(seat, fam.label, 14, locked and MUTED or TEXT,
 				UDim2.fromOffset(78, 14), UDim2.new(1, -88, 0, 20), FONT)
+			-- Word kept; ★ beside it (MineStars / TODO B4). Tiny letter chips stay letter-only.
 			local sub = locked and "buy at shop"
-				or (kit and ((Temper.wordOf and Temper.wordOf(grade)) or grade or "") .. " " .. kit.name)
+				or (kit and (Stars.beside((Temper.wordOf and Temper.wordOf(grade)) or grade) .. " " .. kit.name))
 				or "empty"
 			label(seat, sub, 11, locked and MUTED or tint,
 				UDim2.fromOffset(78, 36), UDim2.new(1, -88, 0, 32))
@@ -344,8 +346,8 @@ function MineForgeView.mountList(parent, opts)
 		stroke(bar, 2, tint, 0.3)
 
 		label(bar, "SELECTED", 10, GOLD, UDim2.fromOffset(14, 6), UDim2.fromOffset(80, 14), FONT)
-		label(bar, (Temper.wordOf(grade) or "") .. "  " .. kit.name, 15, tint,
-			UDim2.fromOffset(14, 22), UDim2.new(0.45, -20, 0, 28), FONT)
+		label(bar, Stars.beside(Temper.wordOf(grade) or grade) .. "  " .. kit.name, 15, tint,
+			UDim2.fromOffset(14, 22), UDim2.new(0.55, -20, 0, 28), FONT)
 
 		local scrap = round(mk("TextButton", {
 			AnchorPoint = Vector2.new(1, 0.5),
@@ -551,7 +553,7 @@ function MineForgeView.mountList(parent, opts)
 				iconImage(thumb, "pickaxe", UDim2.fromOffset(42, 42), UDim2.fromOffset(7, 7))
 
 				label(tile, name, 13, TEXT, UDim2.fromOffset(76, 10), UDim2.new(1, -86, 0, 18), FONT)
-				label(tile, kit and ((Temper.wordOf(grade) or "") .. " " .. kit.name) or "no temper",
+				label(tile, kit and (Stars.beside(Temper.wordOf(grade) or grade) .. " " .. kit.name) or "no temper",
 					11, kit and tint or MUTED, UDim2.fromOffset(76, 30), UDim2.new(1, -86, 0, 16))
 
 				local can = tokens >= cost

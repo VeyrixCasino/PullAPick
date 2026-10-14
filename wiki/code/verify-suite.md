@@ -2,16 +2,17 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-13 @ 98c141a
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
   - tools/verify/_luau.js
+  - tools/verify/tool-dps.js
   - docs/START-HERE.md §1, §4.5, §4.6
   - docs/HANDOFF.md §2.4
   - docs/OPEN.md
   - tools/verify/runes-retired.js
-related: [luau-traps, tools-and-generators, local-setup]
+related: [luau-traps, tools-and-generators, local-setup, tools]
 ---
 
 # The verify suite (`tools/verify/`)
@@ -45,6 +46,9 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
     a regression someone decided to live with, and needs its reason written beside it.
   - Exit code: 0 only if everything ran and passed.
 - Single check: `node tools/verify/<name>.js`. Utility: `node tools/verify/luau-balance.js FILE`.
+- **Windows / PowerShell:** no suite `.ps1` yet — run one check per line, e.g.
+  `node tools/verify/tool-dps.js`, or use Git Bash for `suite.sh`. Never chain
+  with `&&` ([local-setup](local-setup.md)).
 
 ## Result at `299dd2c` (run 2026-10-10 on the owner's Windows machine)
 
@@ -94,6 +98,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
 | `daily-wheel` **L** | the daily wheel: weights sum to 100, the 16 slice ids are unchanged, every slice prints odds, a free spin gives a pet at most 10% of the time, the daily allowance (base, group, streak), a UTC-day reset, and a landing on the rolled slice from any start angle. Source checks: the lobby build is live, rebirth keeps the field, a spin saves, free spins go first and paid spins obey `PolicyNoRandom`, and the world wheel spins on the client. Added 2026-10-10. |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |
+| `tool-dps` | TODO B2 DPS table for forged families (pickaxe/hammer/drill/jackhammer/explosive): prints `dps`/`edps`, asserts fast↔slow trade, area on drills/explosives, and that same-grade explosives top `edps` (gaps FAIL; no retune). Pure JS. Added 2026-10-13. |
 | `dmg-live` **L** | runs `toolTierPower` in real declaration order |
 | `forge-snap` | the Forge reads no snapshot field the shop does not pass it |
 | `forge-upgrade` | forging the next tier carries the level across, so it is an upgrade |

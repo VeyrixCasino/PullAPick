@@ -2,7 +2,7 @@
 title: The candy house style (read before touching any UI)
 type: code
 status: current
-verified: 2026-10-10 @ 591434a
+verified: 2026-10-14 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTheme.luau
   - src/ReplicatedStorage/Mine/Shared/MineUI.luau
@@ -71,7 +71,9 @@ they pay out.
 7. **One UIScale per instance.** Roblox applies only the first UIScale (measured
    2026-10-08). `pop`, `juice` and `pulse` are channels on one shared `FxScale`
    and multiply together. Never add your own UIScale to a kit-styled frame; call
-   `MineUI.pop` instead.
+   `MineUI.pop` instead. **Never pulse `UIScale` on a `TextLabel`** (font sizes
+   flicker ~15 Hz); pulse a nearby claimable dot or button instead (2026-10-14
+   TODAY rows).
 8. **What pays out always moves.** A claimable thing pulses and shows a green
    dot, and `MineNotifs` badges pop and pulse. The HUD should always show the
    player their next reward.

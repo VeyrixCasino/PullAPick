@@ -123,6 +123,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 14 | **`tools/export/sync.ps1` deletes `tools/export/in/`** (`Remove-Item $in -Recurse -Force`). **Not a bug in the script**: that folder is a gitignored scratch directory the Studio export flow fills and consumes, and deleting it is the documented last step (the `b19c4c2` author checked and dismissed it). The only hazard was `CLAUDE.md` naming that folder as a place for Claude.ai exports. `CLAUDE.md` and the wiki now point exports at the gitignored `transcripts/` folder. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
 | 15 | **FIXED 2026-10-06: nothing checked Luau's 200-top-level-local ceiling.** `tools/verify/compile.js` now runs `luau-compile` over all 212 files and asserts at least 4 locals of headroom in both big scripts. It found `MineServer` sitting at **0 headroom** on arrival; collapsing seven service locals into one `Svc` table bought 5 back. It has since caught the same break twice more — a `do` block for the dev-scaffolding strip (fixed by making it an IIFE, since `do` shares the main chunk's budget while an IIFE gets its own). | *Read*, pinned by harness | [luau-traps](code/luau-traps.md) |
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
+| 21 | **FIXED in `b0c2430`: family tempers did nothing on forged tools.** `boosts()` gated `p.toolTempers[fam]` on `(tier or 0) > 0`, but `equippedTool` returns look-rung `0` for forged ore tools (ore tier is not that return). Gate now accepts `row.oreTool` / `row.oreTier`. `tools/verify/layers.js` pins it. | *Read* in code | [skins-cases-and-temper](systems/skins-cases-and-temper.md); `MineServer.boosts` |
 
 ## 1b. Found 2026-10-06/07, measured, not yet decided
 
@@ -166,8 +167,8 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
 - **Coins: what are they for?** Seams are free, the Forge runs on ore, tools are
   no longer sold for coins (`9733a05`), and the proposed shape (potions,
   consumables, outpost shops) is unsigned.
-- **Are skins cosmetic or a power source?** Docs disagree; today they are
-  tempers (stat kits).
+- **Are skins cosmetic or a power source?** Docs disagree (`ROADMAP` wrap-only
+  vs TODO §0.13 / §0.19 and live `MineSkins` / `MineTemper` kits). Do not invent.
 - **One charm per ore, or two?** Is the ~24 hand-authored charm rewrite (AUDIT)
   approved? Should charms sit in a boost layer?
 - **Pack pity and the Exotic floor:** build them, or keep "no pity"?
@@ -188,7 +189,9 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
   enchant books as a stopgap ([shops-and-monetisation](systems/shops-and-monetisation.md)).
 - **The Founders pack's 3 books** replaced its White Scroll as an assistant
   default, not an owner decision. Confirm or change it.
-- **Should family tempers apply to forged tools?** Today they do not.
+- ~~**Should family tempers apply to forged tools?**~~ **Answered in code
+  (`b0c2430`): yes** — same `toolTempers` + `applyTemper` path as a shop rung.
+  Broader cosmetic-vs-power question above is still open.
 - **Is a Meadow pack with no Mythic+ intended?**
 
 **Ship or cut** (AUDIT §5 asked for a yes that was never recorded)

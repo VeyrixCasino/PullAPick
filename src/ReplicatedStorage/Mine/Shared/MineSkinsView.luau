@@ -25,6 +25,7 @@ local UI = require(script.Parent:WaitForChild("MineUI"))
 local T = require(script.Parent:WaitForChild("MineTheme"))
 local Skins = require(script.Parent:WaitForChild("MineSkins"))
 local Gear = require(script.Parent:WaitForChild("MineGear"))
+local Stars = require(script.Parent:WaitForChild("MineStars"))
 
 local TIER_COLOR = Gear.RARITY_COLOR
 local ALL = "all"
@@ -54,11 +55,12 @@ for _, s in ipairs(Skins.SETS or {}) do
 end
 
 local function tierBadge(parent, tier)
+	-- Wider for "SSS  ★★★★★" (MineStars / TODO B4). Letter kept; ★ beside it.
 	local b = UI.new("Frame", {
 		BackgroundColor3 = TIER_COLOR[tier] or TIER_COLOR.F,
 		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(44, 24),
-		Position = UDim2.new(1, -50, 0, 6),
+		Size = UDim2.fromOffset(100, 24),
+		Position = UDim2.new(1, -106, 0, 6),
 		ZIndex = 6,
 	}, parent)
 	UI.round(b, 8)
@@ -67,9 +69,8 @@ local function tierBadge(parent, tier)
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
 		Font = Enum.Font.GothamBlack,
-		-- The tier IS the number here, so it gets the big type.
-		TextSize = T.TEXT_BODY,
-		Text = tier,
+		TextSize = T.TEXT_MIN,
+		Text = Stars.beside(tier),
 		TextColor3 = Color3.fromRGB(20, 12, 44),
 		ZIndex = 7,
 	}, b)

@@ -32,8 +32,59 @@ const TOP_SHARES = [1, 0.35, 0.15];
 const SECONDARY = 0.5;
 const PROC_CHANCE = new Set(["zap", "blastChance", "tidalWave", "ricochet", "earthquake"]);
 // Set pets' serial prefixes live in their own range, so a zone pet added later
-// (which counts up from the roster) can never collide with one.
+// (which counts up from the roster) can never collide with one. 0x400-0xBFF
+// filled up with the first 2,043; 0xC00-0xCFF is Halloween's (HolidayPets), so
+// pets added since (owner, 2026-10-10: "MAKE MORE FUCKING GOOD CARDS") count up
+// from 0xD00.
 const HEX_START = 0x400;
+const HEX_NEW = 0xd00;
+const HEX_END = 0x1000;
+
+/*
+  WHO MAY BE A RECOLOUR (owner, 2026-10-10): "recolors fore common, uncommon,
+  rare. Vastly different colors tho. thats all i will allow", and for the rest
+  "ALL UNIQUE".
+
+  - Common, Uncommon and Rare pets share bodies, but two pets on one body must
+    be VASTLY different colours: at least RECOLOUR_DE apart in CIELAB (CIE76).
+    Zone pets already wearing a shared species count too.
+  - Epic and up each wear a body of their own (the set's `topBodies`), worn by
+    no other pet in the game.
+*/
+const RECOLOUR_TIERS = new Set(["Common", "Uncommon", "Rare"]);
+const RECOLOUR_DE = 35;
+function lab(rgb) {
+  const lin = rgb.map((v) => { v /= 255; return v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92; });
+  const X = (lin[0] * 0.4124 + lin[1] * 0.3576 + lin[2] * 0.1805) / 0.95047;
+  const Y = lin[0] * 0.2126 + lin[1] * 0.7152 + lin[2] * 0.0722;
+  const Z = (lin[0] * 0.0193 + lin[1] * 0.1192 + lin[2] * 0.9505) / 1.08883;
+  const f = (t) => (t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116);
+  return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+}
+const deltaE = (a, b) => { const p = lab(a), q = lab(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); };
+
+// The pets already shipped, read back from the generated modules: their names,
+// serials and rarities are save data and never move. Looks may change.
+function readLock(key) {
+  const f = path.join(ROOT, OUT_DIR, pascal(key) + ".luau");
+  if (!fs.existsSync(f)) return [];
+  // Normalise CRLF so the ROLE block regex matches on Windows checkouts.
+  const src = fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
+  // Each shipped pet's role too: a role is what a Common-to-Legendary kit is
+  // built from, and it used to come from the body. New bodies must not quietly
+  // change the stats of a pet a player already owns, so the old role is kept.
+  const roleOf = {};
+  const roleBlock = (src.match(/\n\tROLE = \{\n([\s\S]*?)\n\t\},/) || [])[1] || "";
+  for (const m of roleBlock.matchAll(/\["((?:[^"\\]|\\.)*)"\] = "([^"]+)"/g)) {
+    roleOf[m[1].replace(/\\(.)/g, "$1")] = m[2];
+  }
+  const out = [];
+  for (const m of src.matchAll(/\{ name = "((?:[^"\\]|\\.)*)", hex3 = "([0-9a-f]{3})", animal = "(?:[^"\\]|\\.)*", tier = "(\w+)"/g)) {
+    const name = m[1].replace(/\\(.)/g, "$1");
+    out.push({ name, hex3: m[2], tier: m[3], role: roleOf[name] });
+  }
+  return out;
+}
 
 /*
   BUFFS THAT FIT THE SET (owner, 2026-10-10: "given buffs (that make sense)").
@@ -101,13 +152,21 @@ const lighten = (rgb, t) => rgb.map((c) => Math.round(c + (255 - c) * t));
 const nameKey = (n) => n.toLowerCase().replace(/s$/, "");
 
 // ---- read the game ----------------------------------------------------------
-function readGame() {
+function readGame(opts) {
   const meta = JSON.parse(read("tools/gen/sets/_sets.json")).sets;
   const data = {};
+  const broken = {};
   for (const s of meta) {
     const f = `tools/gen/sets/${s.key}.json`;
     if (!fs.existsSync(path.join(ROOT, f))) throw new Error("missing " + f);
-    data[s.key] = JSON.parse(read(f));
+    try {
+      data[s.key] = JSON.parse(read(f));
+    } catch (e) {
+      // --plan runs while several sets are mid-edit: one bad file must not
+      // hide every other set's report.
+      if (!(opts && opts.plan)) throw e;
+      broken[s.key] = "bad JSON: " + e.message;
+    }
   }
   // Every body: the factory's own species plus every PetBodies module.
   const pmf = read(SHARED + "PetModelFactory.luau");
@@ -130,7 +189,7 @@ function readGame() {
   const tintsBy = {};
   for (const a of Object.values(Z.G.animals)) (tintsBy[a.species] = tintsBy[a.species] || []).push(a.rgb);
   for (const a of Object.values(Z.newAnimals)) (tintsBy[a.species] = tintsBy[a.species] || []).push(a.rgb);
-  return { meta, data, species, takenNames, takenAnimals, tintsBy, G: Z.G };
+  return { meta, data, broken, species, takenNames, takenAnimals, tintsBy, G: Z.G };
 }
 
 // ---- build -------------------------------------------------------------------
@@ -141,15 +200,47 @@ function roleOfSpecies(sp, setBodies) {
   return "Striker";
 }
 
-function build() {
-  const R = readGame();
+/*
+  `opts.plan`: do not throw when a set runs short of recolour room or of top
+  bodies; count the shortfall instead (node tools/gen/set-pets.js --plan).
+*/
+function build(opts) {
+  opts = opts || {};
+  const R = readGame(opts);
   const usedKeys = new Set([...R.takenNames].map(nameKey));
   const usedAnimals = new Set(R.takenAnimals);
   const tintsBy = R.tintsBy;
-  let hex = HEX_START;
+  let hexNew = HEX_NEW;
   const sets = [];
+  const plan = [];
+
+  // Every top body is worn by one pet in the whole game: not a zone species,
+  // not another set's, not one of this set's recolour bodies.
+  const topOwner = {};
+  for (const m of R.meta) {
+    for (const b of ((R.data[m.key] || {}).topBodies || [])) {
+      if (topOwner[b.id]) throw new Error(`top body ${b.id} is listed by ${topOwner[b.id]} and ${m.key}`);
+      topOwner[b.id] = m.key;
+    }
+  }
+
+  // Locked names first, so a new pet can never take one.
+  const locks = {};
+  for (const m of R.meta) {
+    locks[m.key] = readLock(m.key);
+    for (const p of locks[m.key]) usedKeys.add(nameKey(p.name));
+  }
 
   R.meta.forEach((m, idx) => {
+    if (!opts.plan) return buildSet(m, idx);
+    if (R.broken[m.key]) { plan.push({ key: m.key, error: R.broken[m.key] }); return; }
+    try {
+      buildSet(m, idx);
+    } catch (e) {
+      plan.push({ key: m.key, error: e.message });
+    }
+  });
+  function buildSet(m, idx) {
     const d = R.data[m.key];
     const index = idx + 1;
     const mult = Math.pow(SET_STEP, index - 1);
@@ -157,19 +248,33 @@ function build() {
     for (const b of d.bodies) {
       if (!R.species[b.id] || !R.species[b.id].setBody) throw new Error(`${m.key}: body ${b.id} has no PetBodies module`);
       if (!ROLES[b.role]) throw new Error(`${m.key}: body ${b.id} has unknown role ${b.role}`);
+      if (topOwner[b.id]) throw new Error(`${m.key}: ${b.id} is both a recolour body and a top body`);
     }
     for (const sp of d.extraBodies || []) {
       if (!R.species[sp]) throw new Error(`${m.key}: extra body ${sp} does not exist`);
       if (R.species[sp].season) throw new Error(`${m.key}: extra body ${sp} is a holiday body`);
+      if (topOwner[sp]) throw new Error(`${m.key}: ${sp} is both an extra body and a top body`);
+    }
+    const tops = d.topBodies || [];
+    for (const b of tops) {
+      if (!R.species[b.id] || !R.species[b.id].setBody) {
+        if (opts.plan) continue;
+        throw new Error(`${m.key}: top body ${b.id} has no PetBodies module`);
+      }
+      if (!ROLES[b.role]) throw new Error(`${m.key}: top body ${b.id} has unknown role ${b.role}`);
+      if (!TIERS.includes(b.tier) || RECOLOUR_TIERS.has(b.tier)) throw new Error(`${m.key}: top body ${b.id} needs an Epic-or-better tier`);
+      if (!Array.isArray(b.tint) || b.tint.length !== 3) throw new Error(`${m.key}: top body ${b.id} needs a tint [r, g, b]`);
+      if (tintsBy[b.id] && tintsBy[b.id].length) throw new Error(`${m.key}: top body ${b.id} is already worn by a zone pet`);
     }
     if (!Array.isArray(d.buffs) || d.buffs.length !== 3) throw new Error(m.key + ": needs 3 buffs");
     if (d.buffs.filter((s) => PROC_CHANCE.has(s)).length > 1) throw new Error(m.key + ": more than one proc chance in buffs");
     for (const s of d.buffs) if (BANNED.has(s) || !R.G.stats[s]) throw new Error(`${m.key}: buff ${s} is not a pet stat`);
 
-    // Bodies: the set's own count double, so they lead; a few fitting old ones.
-    const pool = [];
-    for (const b of d.bodies) pool.push(b.id, b.id);
-    for (const sp of d.extraBodies || []) pool.push(sp);
+    // Recolour bodies: the set's own count double, so they lead; a few fitting old ones.
+    const weight = {};
+    for (const b of d.bodies) weight[b.id] = 2;
+    for (const sp of d.extraBodies || []) weight[sp] = 1;
+    const recolourBodies = Object.keys(weight);
     const bodyCount = {};
 
     const names = shuffled([...new Set(d.names)], m.key + ":names").filter((n) => {
@@ -179,66 +284,102 @@ function build() {
       return true;
     });
     const palette = d.palette.map((c) => ({ name: c[0], rgb: [c[1], c[2], c[3]] }));
+    const lock = locks[m.key];
     let nameAt = 0;
     const pets = [];
     const animals = {};
     const kits = {};
     const roles = {};
-    let topK = 0;
+    // Buff-rotation index must stay stable across regenerations. Sorting by
+    // hex3 keeps every previously shipped Mythic/Divine/Exotic ahead of any
+    // newly added one (old serials live in 0x400-0xBFF; new ones start at
+    // HEX_NEW), so adding pets never reshuffles an owned pet's buffs. File
+    // order alone is not enough: new Mythics sit before old Divines/Exotics.
+    const lockedTop = lock
+      .filter((p) => TOP.has(p.tier))
+      .slice()
+      .sort((a, b) => parseInt(a.hex3, 16) - parseInt(b.hex3, 16))
+      .map((p) => p.name);
+    const topIndexOf = new Map(lockedTop.map((n, i) => [n, i]));
+    let newTopK = lockedTop.length;
+    const short = { recolour: 0, top: {} };
 
     TIERS.forEach((tier, ti) => {
+      const locked = lock.filter((p) => p.tier === tier);
+      if (locked.length > m.counts[ti]) throw new Error(`${m.key}: ${tier} count ${m.counts[ti]} is below the ${locked.length} pets already shipped`);
+      const tierTops = tops.filter((b) => b.tier === tier && R.species[b.id]);
+      if (!RECOLOUR_TIERS.has(tier) && tierTops.length !== m.counts[ti]) {
+        if (opts.plan) short.top[tier] = m.counts[ti] - tierTops.length;
+        else throw new Error(`${m.key}: ${tier} has ${m.counts[ti]} pets but ${tierTops.length} top bodies; each needs its own`);
+      }
       for (let k = 0; k < m.counts[ti]; k++) {
         const si = pets.length;
-        const species = pool.slice().sort((a, b) => ((bodyCount[a] || 0) / (pool.filter((x) => x === a).length)) -
-          ((bodyCount[b] || 0) / (pool.filter((x) => x === b).length)) || fnv(a + si) - fnv(b + si))[0];
-        bodyCount[species] = (bodyCount[species] || 0) + 1;
-        const label = R.species[species].label;
-
-        const taken = tintsBy[species] || (tintsBy[species] = []);
-        const order = shuffled(palette, m.key + tier + si);
-        let pick = null;
-        for (const minDist of [40, 30, 22, 15, 8]) {
-          pick = order.find((c) => taken.every((t) => dist(t, c.rgb) >= minDist) &&
-            !usedAnimals.has(`${c.name} ${label}`));
-          if (pick) break;
-        }
-        if (!pick) {
-          // Out of distinct palette colours on this body: nudge one.
-          const base = order[si % order.length];
-          pick = { name: base.name, rgb: base.rgb.map((v, i) => Math.max(0, Math.min(255, v + ((si * (i + 3)) % 23) - 11))) };
-        }
-        taken.push(pick.rgb);
-
-        const skin = { species, rgb: pick.rgb };
-        const words = (d.topWords && d.topWords[tier]) || [];
-        let animal;
-        if (TOP.has(tier)) {
-          animal = `${words[si % Math.max(1, words.length)] || tier} ${label}`;
-          skin.glow = lighten(pick.rgb, 0.45);
-          if (tier === "Mythic") { skin.material = "Glass"; skin.reflect = 0.25; }
-          if (tier === "Divine") skin.transparency = 0.2;
-          if (tier === "Exotic") skin.chroma = true;
-        } else if (tier === "Legendary") {
-          animal = `${words[si % Math.max(1, words.length)] || "Radiant"} ${pick.name} ${label}`;
-          skin.glow = lighten(pick.rgb, 0.5);
-          skin.reflect = 0.2;
+        let name, hex3, lockedRole = null;
+        if (k < locked.length) {
+          name = locked[k].name;
+          hex3 = locked[k].hex3;
+          lockedRole = locked[k].role || null;
         } else {
-          animal = `${pick.name} ${label}`;
+          name = names[nameAt++];
+          if (!name) {
+            if (opts.plan) { short.names = (short.names || 0) + 1; continue; }
+            throw new Error(`${m.key}: ran out of names at ${pets.length + 1} of ${m.counts.reduce((a, b) => a + b, 0)}`);
+          }
+          hex3 = (hexNew++).toString(16).padStart(3, "0");
+        }
+
+        let species, skin, animal;
+        if (RECOLOUR_TIERS.has(tier)) {
+          // The least-worn body that still has a palette colour VASTLY unlike
+          // every colour already on it.
+          const order = recolourBodies.slice().sort((a, b) =>
+            ((bodyCount[a] || 0) / weight[a]) - ((bodyCount[b] || 0) / weight[b]) || fnv(a + si) - fnv(b + si));
+          let pick = null;
+          for (const sp of order) {
+            const label = R.species[sp].label;
+            const taken = tintsBy[sp] || [];
+            const c = shuffled(palette, m.key + tier + si + sp).find((c) =>
+              taken.every((t) => deltaE(t, c.rgb) >= RECOLOUR_DE) && !usedAnimals.has(`${c.name} ${label}`));
+            if (c) { pick = c; species = sp; break; }
+          }
+          if (!pick) {
+            if (opts.plan) { short.recolour++; continue; }
+            throw new Error(`${m.key}: no room for a ${tier} recolour ${RECOLOUR_DE} dE from every pet on its body; add recolour bodies or palette colours`);
+          }
+          (tintsBy[species] = tintsBy[species] || []).push(pick.rgb);
+          bodyCount[species] = (bodyCount[species] || 0) + 1;
+          skin = { species, rgb: pick.rgb };
+          animal = `${pick.name} ${R.species[species].label}`;
+        } else {
+          const body = tierTops[k];
+          if (!body) continue; // plan mode: counted above
+          species = body.id;
+          bodyCount[species] = 1;
+          (tintsBy[species] = tintsBy[species] || []).push(body.tint);
+          skin = { species, rgb: body.tint };
+          const label = R.species[species].label;
+          const words = (d.topWords && d.topWords[tier]) || [];
           if (tier === "Epic") {
-            skin.glow = lighten(pick.rgb, 0.4);
-            animal = `Glowing ${animal}`;
+            animal = label;
+            skin.glow = lighten(body.tint, 0.4);
+          } else {
+            animal = `${words[si % Math.max(1, words.length)] || tier} ${label}`;
+            skin.glow = lighten(body.tint, tier === "Legendary" ? 0.5 : 0.45);
+            if (tier === "Legendary") skin.reflect = 0.2;
+            if (tier === "Mythic") { skin.material = "Glass"; skin.reflect = 0.25; }
+            if (tier === "Divine") skin.transparency = 0.2;
+            if (tier === "Exotic") skin.chroma = true;
+          }
+          for (let n = 1; usedAnimals.has(animal); n++) {
+            animal = `${words[(si + n) % Math.max(1, words.length)] || tier} ${label}`;
+            if (n > 8) throw new Error("animal collision: " + animal);
           }
         }
-        for (let n = 2; usedAnimals.has(animal); n++) {
-          animal = TOP.has(tier) ? `${words[(si + n) % Math.max(1, words.length)] || tier} ${pick.name} ${label}` : `${animal.replace(/ (II|III|IV|V|VI)$/, "")} ${["", "", "II", "III", "IV", "V", "VI"][n] || n}`;
-          if (n > 8) throw new Error("animal collision: " + animal);
-        }
+        if (usedAnimals.has(animal)) throw new Error("animal collision: " + animal);
         usedAnimals.add(animal);
         animals[animal] = skin;
 
-        const name = names[nameAt++];
-        if (!name) throw new Error(`${m.key}: ran out of names at ${pets.length + 1} of ${m.counts.reduce((a, b) => a + b, 0)}`);
-        const pet = { name, hex3: (hex++).toString(16).padStart(3, "0"), animal, tier, set: m.key, species };
+        const pet = { name, hex3, animal, tier, set: m.key, species };
         pets.push(pet);
 
         // The kit: the approved ladder (lifted), +5% a set.
@@ -246,12 +387,17 @@ function build() {
         const kit = {};
         let statsUsed, shares;
         if (TOP.has(tier)) {
-          statsUsed = d.buffs.slice(topK % 3).concat(d.buffs.slice(0, topK % 3));
-          topK++;
+          // A shipped Mythic/Divine/Exotic keeps its place in the buff
+          // rotation; new ones continue after the shipped ones, so adding
+          // pets never reshuffles an owned pet's buffs.
+          const idx = topIndexOf.has(name) ? topIndexOf.get(name) : newTopK++;
+          statsUsed = d.buffs.slice(idx % 3).concat(d.buffs.slice(0, idx % 3));
           shares = TOP_SHARES;
           roles[name] = m.name;
         } else {
-          const role = roleOfSpecies(species, d.bodies);
+          // A shipped pet keeps its role (and so its stats); a new pet takes
+          // the role its own body suggests.
+          const role = (lockedRole && ROLES[lockedRole]) ? lockedRole : roleOfSpecies(species, d.bodies.concat(tops));
           const r = ROLES[role];
           const pairs = r.pairs.concat(tier !== "Common" && tier !== "Uncommon" && r.rarePlus ? r.rarePlus : []);
           statsUsed = fitToSet(pairs[fnv(name) % pairs.length], d.buffs);
@@ -268,11 +414,13 @@ function build() {
         kits[name] = kit;
       }
     });
+    if (opts.plan) plan.push({ key: m.key, ...short, names: (short.names || 0) });
     sets.push({ meta: m, data: d, index, mult, pets, animals, kits, roles, bodyCount });
-  });
-  if (hex > 0xc00) throw new Error("set serials overflow their range");
-  return { R, sets };
+  }
+  if (hexNew > HEX_END) throw new Error("new set serials overflow 0xD00-0xFFF");
+  return { R, sets, plan };
 }
+
 
 // ---- render -------------------------------------------------------------------
 const lq = (s) => '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
@@ -362,6 +510,20 @@ function outputs(B) {
 }
 
 function main() {
+  if (process.argv.includes("--plan")) {
+    // What each set still needs before it can be written: top bodies by tier,
+    // recolour room, names. Writes nothing.
+    const B = build({ plan: true });
+    const at = process.argv.indexOf("--only");
+    const only = at > 0 ? process.argv[at + 1] : null;
+    for (const p of B.plan) {
+      if (only && p.key !== only) continue;
+      if (p.error) { console.log(`${p.key.padEnd(17)} ERROR: ${p.error}`); continue; }
+      const tops = Object.entries(p.top).filter(([, n]) => n > 0).map(([t, n]) => `${t} ${n}`).join(", ");
+      console.log(`${p.key.padEnd(17)} top bodies short: ${tops || "none"} | recolours with no room: ${p.recolour} | names short: ${p.names}`);
+    }
+    return;
+  }
   const B = build();
   const check = process.argv.includes("--check");
   let stale = 0;
@@ -377,5 +539,5 @@ function main() {
   if (check && stale) process.exit(1);
 }
 
-module.exports = { PROC_OF, setProcFamily, fitToSet, build, outputs, renderSet, pascal, HEX_START, SET_STEP, OUT_DIR, OUT_MD };
+module.exports = { PROC_OF, setProcFamily, fitToSet, build, outputs, renderSet, pascal, HEX_START, HEX_NEW, HEX_END, SET_STEP, OUT_DIR, OUT_MD, RECOLOUR_TIERS, RECOLOUR_DE, deltaE, readLock };
 if (require.main === module) main();

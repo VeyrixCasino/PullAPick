@@ -18,9 +18,9 @@
 	  * a perfect cast sparkles, and a catch celebrates by its real rarity
 	    (MineCelebrate; a ★ minnow gets a pop, a ★★★★★ gets the works).
 
-	THE SCREEN (from a spot's Fish prompt): FISH (cast, rod, bait for tokens),
-	TACKLE (rods: buy, equip, level, prestige), ODDS (this spot's catch table),
-	COOLER (your fish cards).
+	THE SCREEN (from a spot's Fish prompt): FISH (cast, rod, bait for tokens,
+	catch of the day), TACKLE (rods: buy, equip, level, prestige), ODDS (this
+	spot's catch table), COOLER (fish cards; sell one or all for coins).
 
 	THE MINIGAME: cast (stop the bar in the gold) -> wait -> reel (hold REEL or
 	F; the client runs MineFishingFight at 30 ticks a second and records only
@@ -65,7 +65,9 @@ local HELP = {
 	"🐟  GREEN: hold REEL.   YELLOW: easy.   RED: LET GO (or tap).",
 	"💥  Too much tension snaps the line. Past 100 m the fish can escape.",
 	"🎣  Better rods: ⚡ reel faster, 💪 hold more, 🍀 find rarer fish. Every 10 levels needs 🎟.",
-	"📦  Every fish you land goes in your COOLER.",
+	"📦  Every fish you land goes in your COOLER. SELL them for 💰 coins.",
+	"📗  Album: catch every fish in this zone (12). Completing it adds 🍀 luck here.",
+	"⭐  Catch of the day: one fish each day. Land it, then CLAIM coins in TODAY.",
 }
 
 -- Every list here shows things in the order they were made (LayoutOrder),
@@ -300,6 +302,20 @@ function View.mount(gui, opts)
 		return hand
 	end
 
+	-- Album progress for this spot's zone (cooler known; n may be 0).
+	local function zoneAlbum()
+		local zoneId = data.spot and data.spot.zoneId or "sunscar"
+		return M.albumProgress(data.cooler, zoneId)
+	end
+
+	local function albumBonusText(album)
+		local mult = tonumber(album and album.luck) or 1
+		if mult <= 1 then
+			return nil
+		end
+		return string.format("🍀 +%d%%", math.floor((mult - 1) * 100 + 0.5))
+	end
+
 	-- FISH
 	local function paintFish()
 		local page = pages.fish
@@ -308,7 +324,53 @@ function View.mount(gui, opts)
 		local rodId = st.rod or M.STARTER_ROD
 		local r = rodDef(rodId)
 		local stats = data.rodStats or M.rodStats(rodId, st.rodLevel)
-		local card = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.new(1, -8, 0, 96), ZIndex = 42 }, page)
+		local y = 0
+		local cotd = st.catchOfDay
+		if type(cotd) == "table" and cotd.id then
+			local col = M.GRADE_COLOR[cotd.grade] or T.GOLD
+			local band = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.new(1, -8, 0, 52), ZIndex = 42 }, page)
+			round(band, 12)
+			stroke(band, cotd.got and not cotd.claimed and T.GREEN or col, 3)
+			label(band, "⭐ TODAY", 14, T.GOLD, { Position = UDim2.fromOffset(12, 6), Size = UDim2.fromOffset(90, 18), ZIndex = 43 })
+			label(band, "🐟 " .. tostring(cotd.name or cotd.id), 20, T.TEXT, {
+				Position = UDim2.fromOffset(12, 24), Size = UDim2.new(0.55, 0, 0, 22), ZIndex = 43,
+			})
+			local right
+			if cotd.claimed then
+				right = "DONE"
+			elseif cotd.got then
+				right = "CLAIM  💰 " .. short(cotd.reward or 0)
+			else
+				right = "CATCH!"
+			end
+			local claim = button(band, right, UDim2.fromOffset(168, 40), UDim2.new(1, -180, 0.5, -20),
+				(cotd.got and not cotd.claimed) and T.CANDY.gold[2] or T.DEAD)
+			claim.TextSize = 16
+			claim.ZIndex = 43
+			claim.MouseButton1Click:Connect(function()
+				if cotd.got and not cotd.claimed then
+					send("fishClaimCotd", { spotId = data.spotId })
+				end
+			end)
+			if cotd.got and not cotd.claimed and UI and UI.pulse then
+				pcall(UI.pulse, claim, 1.05, 1.1)
+			end
+			y = 60
+		end
+		local album = zoneAlbum()
+		local albumBand = mk("Frame", { BackgroundColor3 = T.CARD, Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, -8, 0, 36), ZIndex = 42 }, page)
+		round(albumBand, 10)
+		stroke(albumBand, album.complete and T.GREEN or T.LINE, album.complete and 2 or 1)
+		label(albumBand, string.format("📗 ALBUM  %d/%d", album.known, album.total), 16, T.TEXT, {
+			Position = UDim2.fromOffset(12, 6), Size = UDim2.new(0.55, 0, 0, 24), ZIndex = 43,
+		})
+		local bonus = albumBonusText(album)
+		label(albumBand, bonus or (album.complete and "SET!" or "catch more"), 15, bonus and T.GREEN or T.MUTED, {
+			Position = UDim2.new(1, -140, 0, 6), Size = UDim2.fromOffset(128, 24),
+			TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 43,
+		})
+		y += 44
+		local card = mk("Frame", { BackgroundColor3 = T.CARD, Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, -8, 0, 96), ZIndex = 42 }, page)
 		round(card, 14)
 		stroke(card, T.LINE, 2)
 		label(card, "🎣 " .. r.name, 24, T.TEXT, { Position = UDim2.fromOffset(16, 10), Size = UDim2.new(0.7, 0, 0, 28), ZIndex = 43 })
@@ -317,7 +379,7 @@ function View.mount(gui, opts)
 		local need = stats.bait or 1
 		local can = (st.bait or 0) >= need
 		local cast = button(page, can and "CAST" or ("🐛 " .. (st.bait or 0)), UDim2.fromOffset(280, 70),
-			UDim2.new(0.5, -140, 0, 108), can and T.CANDY.gold[2] or T.DEAD)
+			UDim2.new(0.5, -140, 0, y + 108), can and T.CANDY.gold[2] or T.DEAD)
 		cast.Name = "Cast"
 		cast.TextSize = 34
 		cast.ZIndex = 43
@@ -333,7 +395,7 @@ function View.mount(gui, opts)
 			end
 		end)
 		-- Bait for tokens: two buttons that say only what you get and what it costs.
-		local row = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 236), Size = UDim2.new(1, 0, 0, 48), ZIndex = 42 }, page)
+		local row = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(0, y + 236), Size = UDim2.new(1, 0, 0, 48), ZIndex = 42 }, page)
 		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			Padding = UDim.new(0, 12) }, row)
 		for _, n in ipairs({ 1, 5 }) do
@@ -397,10 +459,17 @@ function View.mount(gui, opts)
 		local page = pages.odds
 		clear(page)
 		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) }, page)
+		local album = zoneAlbum()
 		local top = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -10, 0, 36), ZIndex = 42 }, page)
 		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }, top)
 		chip(top, string.format("🍀 x%.2f", data.luck or 1), T.GREEN, 110)
 		chip(top, string.format("✨ x%.1f", M.CAST.luck.perfect), T.GOLD, 96)
+		local bonus = albumBonusText(album)
+		if bonus then
+			chip(top, "📗 " .. bonus, T.CANDY.green[1], 120)
+		else
+			chip(top, string.format("📗 %d/%d", album.known, album.total), T.MUTED, 100)
+		end
 		for _, row in ipairs(data.odds or {}) do
 			local f = M.fish(row.id)
 			if f then
@@ -418,34 +487,103 @@ function View.mount(gui, opts)
 		end
 	end
 
-	-- COOLER
+	-- COOLER (sell for coins; ore-pouch pattern: one SELL, SELL ALL asks first)
+	local sellConfirm = mk("Frame", {
+		Name = "SellConfirm", Visible = false, BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = 0.45, Size = UDim2.fromScale(1, 1), ZIndex = 70,
+	}, root)
+	local sellBox = mk("Frame", {
+		BackgroundColor3 = T.PANEL, AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(340, 200), ZIndex = 71,
+	}, sellConfirm)
+	round(sellBox, 14)
+	stroke(sellBox, T.CANDY.red[2], 3)
+	label(sellBox, "SELL ALL FISH?", 22, T.CANDY.red[1], {
+		Position = UDim2.fromOffset(18, 16), Size = UDim2.new(1, -36, 0, 28), ZIndex = 72,
+	})
+	local sellBody = label(sellBox, "", 16, T.TEXT, {
+		Position = UDim2.fromOffset(18, 52), Size = UDim2.new(1, -36, 0, 70),
+		TextWrapped = true, ZIndex = 72,
+	})
+	local sellYes = button(sellBox, "SELL", UDim2.fromOffset(140, 44), UDim2.new(0, 18, 1, -60), T.CANDY.gold[2])
+	sellYes.ZIndex = 72
+	local sellNo = button(sellBox, "KEEP", UDim2.fromOffset(140, 44), UDim2.new(1, -158, 1, -60), T.CANDY.blue[2])
+	sellNo.ZIndex = 72
+	local pendingSellSpot = nil
+	sellNo.MouseButton1Click:Connect(function()
+		sellConfirm.Visible = false
+	end)
+	sellYes.MouseButton1Click:Connect(function()
+		sellConfirm.Visible = false
+		send("fishSellAll", { confirm = true, spotId = pendingSellSpot or (data and data.spotId) })
+	end)
+
 	local function fishCard(parent, f, row, extra)
 		local col = M.GRADE_COLOR[f.grade]
-		local known = row ~= nil
+		local n = math.max(0, math.floor(tonumber(row and row.n) or 0))
+		local known = row ~= nil and ((tonumber(row.best) or 0) > 0 or n > 0)
 		local c = mk("Frame", { BackgroundColor3 = known and T.CARD or T.DEAD, ZIndex = 42 }, parent)
 		round(c, 12)
 		stroke(c, known and col or T.LINE, known and 3 or 1)
 		local band = mk("Frame", { BackgroundColor3 = known and col or T.LINE, Size = UDim2.new(1, 0, 0, 8), ZIndex = 43 }, c)
 		round(band, 6)
-		label(c, known and "🐟" or "❓", 36, T.TEXT, { Position = UDim2.fromOffset(0, 12), Size = UDim2.new(1, 0, 0, 42),
+		label(c, known and "🐟" or "❓", 32, T.TEXT, { Position = UDim2.fromOffset(0, 10), Size = UDim2.new(1, 0, 0, 36),
 			TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 43 })
-		label(c, known and f.name or "???", 16, T.TEXT, { Position = UDim2.fromOffset(6, 56), Size = UDim2.new(1, -12, 0, 20),
-			TextXAlignment = Enum.TextXAlignment.Center, TextScaled = true, ZIndex = 43 })
-		label(c, M.GRADE_TEXT[f.grade], 16, col, { Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 0, 20),
+		-- Fixed TextSize (no TextScaled): TextScaled under UIScale/grid reflow
+		-- chatters font size. Truncate long names instead.
+		label(c, known and f.name or "???", 14, T.TEXT, { Position = UDim2.fromOffset(6, 46), Size = UDim2.new(1, -12, 0, 18),
+			TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 43 })
+		label(c, M.GRADE_TEXT[f.grade], 15, col, { Position = UDim2.fromOffset(0, 66), Size = UDim2.new(1, 0, 0, 18),
 			TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 43 })
-		local foot = extra or (known and string.format("x%d   ⚖ %.2f kg", row.n or 0, row.best or 0) or "")
-		label(c, foot, 15, T.MUTED, { Position = UDim2.fromOffset(4, 100), Size = UDim2.new(1, -8, 0, 18),
-			TextXAlignment = Enum.TextXAlignment.Center, TextScaled = true, ZIndex = 43 })
+		local foot = extra or (known and string.format("x%d   ⚖ %.2f kg", n, row.best or 0) or "")
+		label(c, foot, 13, T.MUTED, { Position = UDim2.fromOffset(4, 86), Size = UDim2.new(1, -8, 0, 16),
+			TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 43 })
+		if n > 0 then
+			local price = M.sellCoins(f.id)
+			local sell = button(c, "💰 " .. short(price), UDim2.new(1, -16, 0, 28), UDim2.fromOffset(8, 108), T.CANDY.gold[2])
+			sell.TextSize = 14
+			sell.ZIndex = 44
+			sell.MouseButton1Click:Connect(function()
+				send("fishSell", { fishId = f.id, n = 1, spotId = data and data.spotId })
+			end)
+		end
 		return c
 	end
 
 	local function paintCooler()
 		local page = pages.cooler
 		clear(page)
-		mk("UIGridLayout", { CellSize = UDim2.fromOffset(140, 124), CellPadding = UDim2.fromOffset(8, 8) }, page)
+		mk("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }, page)
 		local zoneId = data.spot and data.spot.zoneId or "sunscar"
+		local album = zoneAlbum()
+		local albumHead = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.new(1, -8, 0, 40), ZIndex = 42 }, page)
+		round(albumHead, 10)
+		stroke(albumHead, album.complete and T.GREEN or T.LINE, album.complete and 2 or 1)
+		label(albumHead, string.format("📗 ALBUM  %d/%d", album.known, album.total), 18, T.TEXT, {
+			Position = UDim2.fromOffset(12, 8), Size = UDim2.new(0.55, 0, 0, 24), ZIndex = 43,
+		})
+		local bonus = albumBonusText(album)
+		label(albumHead, bonus or (album.complete and "SET COMPLETE" or "sell keeps known"), 15, bonus and T.GREEN or T.MUTED, {
+			Position = UDim2.new(1, -168, 0, 8), Size = UDim2.fromOffset(156, 24),
+			TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 43,
+		})
+		local plan = M.sellPlan(data.cooler)
+		local head = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -8, 0, 48), ZIndex = 42 }, page)
+		local sellAll = button(head, plan.units > 0 and ("SELL ALL  💰 " .. short(plan.coins)) or "EMPTY",
+			UDim2.new(1, 0, 0, 44), UDim2.fromOffset(0, 0), plan.units > 0 and T.CANDY.red[2] or T.DEAD)
+		sellAll.TextSize = 18
+		sellAll.ZIndex = 43
+		sellAll.MouseButton1Click:Connect(function()
+			if plan.units > 0 then
+				send("fishSellAll", { spotId = data.spotId })
+			end
+		end)
+		local grid = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -8, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 42 }, page)
+		mk("UIGridLayout", { CellSize = UDim2.fromOffset(140, 144), CellPadding = UDim2.fromOffset(8, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder }, grid)
 		for _, f in ipairs(M.FISH[zoneId] or {}) do
-			fishCard(page, f, data.cooler and data.cooler[f.id])
+			fishCard(grid, f, data.cooler and data.cooler[f.id])
 		end
 	end
 
@@ -678,9 +816,13 @@ function View.mount(gui, opts)
 	end
 
 	local function clearFx()
-		for _, inst in pairs(fx) do
-			if typeof(inst) == "Instance" then
-				inst:Destroy()
+		if fx.folder and fx.folder.Parent then
+			fx.folder:Destroy()
+		else
+			for _, inst in pairs(fx) do
+				if typeof(inst) == "Instance" then
+					inst:Destroy()
+				end
 			end
 		end
 		fx = {}
@@ -702,7 +844,35 @@ function View.mount(gui, opts)
 		end)
 	end
 
-	-- The rod at your right hand, the line from its tip, the bobber.
+	-- Glue a Massless part to an anchored (or welded) parent at the parent's current pose.
+	local function weldTo(parent, child)
+		child.Anchored = false
+		child.Massless = true
+		child.CanCollide = false
+		child.CanQuery = false
+		child.CanTouch = false
+		mk("WeldConstraint", { Part0 = parent, Part1 = child }, child)
+		return child
+	end
+
+	-- Cork bobber root stays Anchored; painted bits ride WeldConstraints so tweens move them too.
+	local function moveBob(pos)
+		if fx.bob then
+			fx.bob.CFrame = CFrame.new(pos)
+		end
+	end
+
+	local function tipWorld()
+		return (fx.tip and fx.tip.WorldPosition) or (fx.bob and fx.bob.Position) or Vector3.zero
+	end
+
+	--[[
+		Procedural hand rod + cork bobber (no mesh upload). The earlier stub welded a
+		thin stick to HRP with a classic Weld C0 and never set world CFrame first, so
+		the tip (and the bobber spawned on it) often sat at the origin; the cast loop
+		also never kept the bobber on the tip during the power wind-up. Rebuild:
+		pose parts in world, WeldConstraint to RightHand, cork float on the water.
+	]]
 	local function rigFx()
 		clearFx()
 		local char = Players.LocalPlayer.Character
@@ -716,33 +886,102 @@ function View.mount(gui, opts)
 				hum:UnequipTools()
 			end)
 		end
-		local grip = Vector3.new(1.1, 0.2, -0.9)
-		local dir = Vector3.new(0, math.sin(math.rad(38)), -math.cos(math.rad(38)))
-		local rod = mk("Part", {
-			Name = "FishingRod", Size = Vector3.new(0.18, 0.18, 7), Color = Color3.fromRGB(122, 84, 50),
-			Material = Enum.Material.Wood, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true,
-		}, workspace)
-		local reelKnob = mk("Part", {
-			Name = "Reel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.35, 0.6, 0.6),
-			Color = Color3.fromRGB(60, 60, 70), Material = Enum.Material.Metal,
+
+		local folder = mk("Folder", { Name = "MineFishFx" }, workspace)
+		fx.folder = folder
+
+		local hand = char:FindFirstChild("RightHand")
+			or char:FindFirstChild("Right Arm")
+			or hrp
+		local holdCF
+		if hand.Name == "RightHand" then
+			holdCF = hand.CFrame * CFrame.new(0, -0.12, 0.05)
+		elseif hand.Name == "Right Arm" then
+			holdCF = hand.CFrame * CFrame.new(0, -1.05, 0)
+		else
+			holdCF = hrp.CFrame * CFrame.new(1.2, 0.45, -0.55)
+		end
+
+		local pondAim = Vector3.new(pond.water.Position.X, pond.surface, pond.water.Position.Z)
+		local aim = pondAim - holdCF.Position
+		if aim.Magnitude < 1 then
+			aim = hrp.CFrame.LookVector + Vector3.new(0, 0.5, 0)
+		end
+		aim = (aim.Unit + Vector3.new(0, 0.28, 0)).Unit
+
+		local shaftLen = 6.2
+		local shaftCenter = holdCF.Position + aim * (shaftLen * 0.5 + 0.35)
+		local shaftCF = CFrame.lookAt(shaftCenter, shaftCenter + aim)
+
+		local shaft = mk("Part", {
+			Name = "FishingRod", Size = Vector3.new(0.28, 0.28, shaftLen),
+			Color = Color3.fromRGB(150, 102, 58), Material = Enum.Material.Wood,
 			CanCollide = false, CanQuery = false, CanTouch = false, Massless = true,
-		}, rod)
-		local w = mk("Weld", { Part0 = hrp, Part1 = rod, C0 = CFrame.lookAt(grip + dir * 3.5, grip + dir * 4.5) }, rod)
-		mk("Weld", { Part0 = rod, Part1 = reelKnob, C0 = CFrame.new(0.25, -0.1, 2.4) }, reelKnob)
-		local tip = mk("Attachment", { Name = "Tip", Position = Vector3.new(0, 0, -3.5) }, rod)
+			Anchored = true, CFrame = shaftCF, CastShadow = true,
+		}, folder)
+		local handle = mk("Part", {
+			Name = "Handle", Size = Vector3.new(0.4, 0.4, 1.1),
+			Color = Color3.fromRGB(86, 56, 34), Material = Enum.Material.Wood,
+			CFrame = shaftCF * CFrame.new(0, 0, shaftLen * 0.5 - 0.15),
+		}, folder)
+		weldTo(shaft, handle)
+		local tipBlank = mk("Part", {
+			Name = "TipBlank", Size = Vector3.new(0.12, 0.12, 1.2),
+			Color = Color3.fromRGB(168, 124, 78), Material = Enum.Material.Wood,
+			CFrame = shaftCF * CFrame.new(0, 0, -shaftLen * 0.5 + 0.4),
+		}, folder)
+		weldTo(shaft, tipBlank)
+		local reel = mk("Part", {
+			Name = "Reel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.28, 0.55, 0.55),
+			Color = Color3.fromRGB(70, 72, 82), Material = Enum.Material.Metal,
+			CFrame = shaftCF * CFrame.new(0.32, -0.05, shaftLen * 0.28) * CFrame.Angles(0, 0, math.rad(90)),
+		}, folder)
+		weldTo(shaft, reel)
+		local eye = mk("Part", {
+			Name = "TipEye", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.08, 0.28, 0.28),
+			Color = Color3.fromRGB(190, 190, 200), Material = Enum.Material.Metal,
+			CFrame = shaftCF * CFrame.new(0, 0, -shaftLen * 0.5) * CFrame.Angles(0, 0, math.rad(90)),
+		}, folder)
+		weldTo(shaft, eye)
+
+		-- Lock the posed rod to the hand (WeldConstraint keeps this world offset).
+		shaft.Anchored = false
+		mk("WeldConstraint", { Part0 = hand, Part1 = shaft }, shaft)
+
+		local tip = mk("Attachment", { Name = "Tip", Position = Vector3.new(0, 0, -shaftLen * 0.5) }, shaft)
 		tip.Axis = Vector3.new(0, -1, 0)
+
+		-- Cork float: tan body + red cap + thin stem (same idea as the harbor deco bobber).
+		local bobPos = tip.WorldPosition
 		local bob = mk("Part", {
-			Name = "Bobber", Shape = Enum.PartType.Ball, Size = Vector3.new(0.7, 0.7, 0.7), Anchored = true,
-			Color = Color3.fromRGB(235, 60, 60), Material = Enum.Material.SmoothPlastic,
-			CanCollide = false, CanQuery = false, CanTouch = false, CFrame = CFrame.new(tip.WorldPosition),
-		}, workspace)
-		local bobAt = mk("Attachment", { Name = "Line" }, bob)
+			Name = "Bobber", Shape = Enum.PartType.Ball, Size = Vector3.new(0.95, 0.95, 0.95),
+			Anchored = true, Color = Color3.fromRGB(210, 168, 98), Material = Enum.Material.SmoothPlastic,
+			CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false,
+			CFrame = CFrame.new(bobPos),
+		}, folder)
+		local bobCap = mk("Part", {
+			Name = "BobberCap", Shape = Enum.PartType.Ball, Size = Vector3.new(0.7, 0.7, 0.7),
+			Color = Color3.fromRGB(230, 40, 40), Material = Enum.Material.SmoothPlastic,
+			CFrame = CFrame.new(bobPos + Vector3.new(0, 0.32, 0)),
+		}, folder)
+		weldTo(bob, bobCap)
+		local bobStem = mk("Part", {
+			Name = "BobberStem", Size = Vector3.new(0.07, 0.45, 0.07),
+			Color = Color3.fromRGB(40, 40, 44), Material = Enum.Material.SmoothPlastic,
+			CFrame = CFrame.new(bobPos + Vector3.new(0, 0.55, 0)),
+		}, folder)
+		weldTo(bob, bobStem)
+		local bobAt = mk("Attachment", { Name = "Line", Position = Vector3.new(0, 0.35, 0) }, bob)
 		local line = mk("Beam", {
-			Attachment0 = tip, Attachment1 = bobAt, Width0 = 0.06, Width1 = 0.06, FaceCamera = true, Segments = 24,
-			Color = ColorSequence.new(Color3.fromRGB(240, 240, 240)), Transparency = NumberSequence.new(0.1),
+			Attachment0 = tip, Attachment1 = bobAt, Width0 = 0.05, Width1 = 0.05,
+			FaceCamera = true, Segments = 28, LightEmission = 0.05,
+			Color = ColorSequence.new(Color3.fromRGB(235, 235, 240)),
+			Transparency = NumberSequence.new(0.05),
 			CurveSize0 = 2.5, CurveSize1 = 0,
-		}, rod)
-		fx.rod, fx.bob, fx.line, fx.weld = rod, bob, line, w
+		}, shaft)
+
+		fx.rod, fx.tip, fx.bob, fx.bobCap, fx.bobStem, fx.line = shaft, tip, bob, bobCap, bobStem, line
+		moveBob(tip.WorldPosition)
 	end
 
 	-- The fish marker: a 🐟 bubble in the fish's colour, the distance under it.
@@ -763,8 +1002,17 @@ function View.mount(gui, opts)
 			Size = UDim2.fromOffset(84, 24), TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.2,
 			TextStrokeColor3 = T.OUTLINE })
 		fx.bubble, fx.distLabel = bubble, dist
-		-- The bobber is under now; the bubble and the splashes show the fish.
-		fx.bob.Transparency = 1
+		-- Keep the cork on the water under the 🐟 marker (owner: "bobber on the water").
+		-- Older code set Transparency = 1 here, which made the float vanish on the bite.
+		if fx.bob then
+			fx.bob.Transparency = 0
+		end
+		if fx.bobCap then
+			fx.bobCap.Transparency = 0
+		end
+		if fx.bobStem then
+			fx.bobStem.Transparency = 0
+		end
 	end
 
 	-- State of the running minigame.
@@ -848,6 +1096,10 @@ function View.mount(gui, opts)
 		heartbeat = RunService.Heartbeat:Connect(function()
 			castTick = math.floor((os.clock() - castT0) * Fight.HZ)
 			paintGauge(M.castBar(castTick), 0, true)
+			-- Keep the cork on the tip while the power bar runs (hand / camera may move).
+			if fx.bob and fx.tip then
+				moveBob(fx.tip.WorldPosition)
+			end
 			if castTick > M.CAST.maxTicks then
 				endMinigame()
 			end
@@ -875,7 +1127,7 @@ function View.mount(gui, opts)
 		send("fishCast", { tick = castTick })
 		-- The bobber flies out along an arc and lands; further for more power.
 		if fx.bob and pond and fx.rod then
-			local from = fx.rod.Tip.WorldPosition
+			local from = tipWorld()
 			local landDist = 20 + 60 * power
 			local to = pondPoint(landDist, (math.random() - 0.5) * 0.6)
 			local t0 = os.clock()
@@ -890,12 +1142,12 @@ function View.mount(gui, opts)
 					local b0 = os.clock()
 					heartbeat = RunService.Heartbeat:Connect(function()
 						if fx.bob then
-							fx.bob.CFrame = CFrame.new(to + Vector3.new(0, math.sin((os.clock() - b0) * 4) * 0.12, 0))
+							moveBob(to + Vector3.new(0, math.sin((os.clock() - b0) * 4) * 0.12, 0))
 						end
 					end)
 				end
 				if fx.bob then
-					fx.bob.CFrame = CFrame.new(p)
+					moveBob(p)
 				end
 			end)
 		end
@@ -913,7 +1165,7 @@ function View.mount(gui, opts)
 			wiggleT += (dt or Fight.DT) * speed
 			local reach = (s.colour == "red" and 0.95) or (s.colour == "yellow" and 0.65) or 0.35
 			wiggle += ((math.sin(wiggleT) * reach) - wiggle) * math.min(1, (dt or Fight.DT) * 4)
-			fx.bob.CFrame = CFrame.new(pondPoint(s.dist, wiggle))
+			moveBob(pondPoint(s.dist, wiggle))
 			if s.colour == "red" and math.random() < 0.06 then
 				splash(fx.bob.Position, c.col, false)
 			end
@@ -1124,6 +1376,11 @@ function View.mount(gui, opts)
 			if before and data.state and (data.state.bait or 0) > before and UI and UI.popNumber then
 				pcall(UI.popNumber, baitChip:FindFirstChildOfClass("TextLabel"))
 			end
+		elseif msg.kind == "confirmSellAll" then
+			pendingSellSpot = msg.spotId or (data and data.spotId)
+			sellBody.Text = string.format("%s fish  ·  %s kinds\n+%s coins",
+				short(msg.units or 0), tostring(msg.kinds or 0), short(msg.coins or 0))
+			sellConfirm.Visible = true
 		elseif msg.kind == "cast" then
 			startCast()
 		elseif msg.kind == "bite" then

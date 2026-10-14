@@ -1,67 +1,1146 @@
 {
   "key": "divine_relics",
   "bodies": [
-    { "id": "dv_idol", "label": "Idol", "role": "Bruiser" },
-    { "id": "dv_windup", "label": "Windup", "role": "Striker" },
-    { "id": "dv_lamp", "label": "Wish Lamp", "role": "Mystic" },
-    { "id": "dv_key", "label": "Relic Key", "role": "Seeker" },
-    { "id": "dv_hourglass", "label": "Hourglass", "role": "Prospector" }
+    {
+      "id": "dv_idol",
+      "label": "Idol",
+      "role": "Bruiser"
+    },
+    {
+      "id": "dv_windup",
+      "label": "Windup",
+      "role": "Striker"
+    },
+    {
+      "id": "dv_lamp",
+      "label": "Wish Lamp",
+      "role": "Mystic"
+    },
+    {
+      "id": "dv_key",
+      "label": "Relic Key",
+      "role": "Seeker"
+    },
+    {
+      "id": "dv_hourglass",
+      "label": "Hourglass",
+      "role": "Prospector"
+    },
+    {
+      "id": "dv_bell",
+      "label": "Shrine Bell",
+      "role": "Mystic"
+    },
+    {
+      "id": "dv_scroll",
+      "label": "Sage Scroll",
+      "role": "Seeker"
+    },
+    {
+      "id": "dv_ziggurat",
+      "label": "Step Pyramid",
+      "role": "Digger"
+    },
+    {
+      "id": "dv_padlock",
+      "label": "Temple Padlock",
+      "role": "Bruiser"
+    }
   ],
-  "extraBodies": ["golem", "beetle", "owl"],
-  "buffs": ["zap", "zapDamage", "luck"],
+  "topBodies": [
+    {
+      "id": "dv_t_hippo",
+      "label": "Faience Hippo",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        40,
+        140,
+        230
+      ]
+    },
+    {
+      "id": "dv_t_sphinx",
+      "label": "Pocket Sphinx",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        226,
+        186,
+        120
+      ]
+    },
+    {
+      "id": "dv_t_astrolabe",
+      "label": "Brass Astrolabe",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        40,
+        70,
+        190
+      ]
+    },
+    {
+      "id": "dv_t_chalice",
+      "label": "Chalice Sprite",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        245,
+        190,
+        40
+      ]
+    },
+    {
+      "id": "dv_t_tortoise",
+      "label": "Sundial Tortoise",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        110,
+        160,
+        60
+      ]
+    },
+    {
+      "id": "dv_t_gargoyle",
+      "label": "Roof Gargoyle",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        140,
+        120,
+        200
+      ]
+    },
+    {
+      "id": "dv_t_koi",
+      "label": "Mosaic Koi",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        255,
+        140,
+        40
+      ]
+    },
+    {
+      "id": "dv_t_mask",
+      "label": "Oracle Mask",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        30,
+        200,
+        190
+      ]
+    },
+    {
+      "id": "dv_t_toad",
+      "label": "Coin Toad",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        40,
+        180,
+        110
+      ]
+    },
+    {
+      "id": "dv_t_moth",
+      "label": "Lantern Moth",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        190,
+        240,
+        130
+      ]
+    },
+    {
+      "id": "dv_t_crab",
+      "label": "Shield Crab",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        255,
+        110,
+        90
+      ]
+    },
+    {
+      "id": "dv_t_seal",
+      "label": "Wax Seal",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        160,
+        20,
+        60
+      ]
+    },
+    {
+      "id": "dv_t_snail",
+      "label": "Gear Snail",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        200,
+        90,
+        50
+      ]
+    },
+    {
+      "id": "dv_t_drum",
+      "label": "Thunder Drum",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        210,
+        40,
+        50
+      ]
+    },
+    {
+      "id": "dv_t_candle",
+      "label": "Altar Candle",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        255,
+        170,
+        210
+      ]
+    },
+    {
+      "id": "dv_t_steed",
+      "label": "Wooden Steed",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        180,
+        110,
+        60
+      ]
+    },
+    {
+      "id": "dv_t_cat",
+      "label": "Temple Cat",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        50,
+        45,
+        70
+      ]
+    },
+    {
+      "id": "dv_t_tome",
+      "label": "Living Tome",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        130,
+        50,
+        190
+      ]
+    },
+    {
+      "id": "dv_t_griffin",
+      "label": "Relic Griffin",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        205,
+        130,
+        50
+      ]
+    },
+    {
+      "id": "dv_t_lion",
+      "label": "Shrine Lion",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        170,
+        120
+      ]
+    },
+    {
+      "id": "dv_t_jackal",
+      "label": "Jackal Warden",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        34,
+        36,
+        70
+      ]
+    },
+    {
+      "id": "dv_t_canopic",
+      "label": "Canopic Jar",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        245,
+        230,
+        190
+      ]
+    },
+    {
+      "id": "dv_t_ram",
+      "label": "Fleece Ram",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        214,
+        60
+      ]
+    },
+    {
+      "id": "dv_t_anvil",
+      "label": "Rune Anvil",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        100,
+        112,
+        150
+      ]
+    },
+    {
+      "id": "dv_t_lyre",
+      "label": "Temple Lyre",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        250,
+        110,
+        170
+      ]
+    },
+    {
+      "id": "dv_t_elephant",
+      "label": "Howdah Elephant",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        130,
+        170,
+        230
+      ]
+    },
+    {
+      "id": "dv_t_crane",
+      "label": "Prayer Crane",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        235,
+        50,
+        60
+      ]
+    },
+    {
+      "id": "dv_t_mirror",
+      "label": "Moon Mirror",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        180,
+        160,
+        255
+      ]
+    },
+    {
+      "id": "dv_t_censer",
+      "label": "Incense Burner",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        90,
+        200,
+        190
+      ]
+    },
+    {
+      "id": "dv_t_warrior",
+      "label": "Terracotta Guard",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        100,
+        60
+      ]
+    },
+    {
+      "id": "dv_t_ouroboros",
+      "label": "Ouroboros Ring",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        120,
+        220,
+        60
+      ]
+    },
+    {
+      "id": "dv_t_orrery",
+      "label": "Brass Orrery",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        30,
+        50,
+        150
+      ]
+    },
+    {
+      "id": "dv_t_kraken",
+      "label": "Clockwork Kraken",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        190,
+        90,
+        220
+      ]
+    },
+    {
+      "id": "dv_t_scales",
+      "label": "Fate Scales",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        220,
+        60,
+        120
+      ]
+    },
+    {
+      "id": "dv_t_phoenix",
+      "label": "Votive Phoenix",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        255,
+        90,
+        30
+      ]
+    },
+    {
+      "id": "dv_t_pegasus",
+      "label": "Cloud Pegasus",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        170,
+        210,
+        255
+      ]
+    },
+    {
+      "id": "dv_t_whale",
+      "label": "Starmap Whale",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        30,
+        70,
+        190
+      ]
+    },
+    {
+      "id": "dv_t_jelly",
+      "label": "Halo Jelly",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        255,
+        120,
+        210
+      ]
+    },
+    {
+      "id": "dv_t_wheel",
+      "label": "Seraph Wheel",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        255,
+        210,
+        40
+      ]
+    },
+    {
+      "id": "dv_t_sundisc",
+      "label": "Winged Sun Disc",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        255,
+        150,
+        0
+      ]
+    },
+    {
+      "id": "dv_t_crescent",
+      "label": "Dream Crescent",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        250,
+        235,
+        140
+      ]
+    },
+    {
+      "id": "dv_t_fox",
+      "label": "Shrine Fox",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        140,
+        60,
+        220
+      ]
+    },
+    {
+      "id": "dv_t_seahorse",
+      "label": "Comet Seahorse",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        0,
+        200,
+        180
+      ]
+    },
+    {
+      "id": "dv_t_stag",
+      "label": "Astral Stag",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        150,
+        100,
+        60
+      ]
+    },
+    {
+      "id": "dv_t_wyrm",
+      "label": "Pearl Wyrmling",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        40,
+        200,
+        90
+      ]
+    },
+    {
+      "id": "dv_t_lotus",
+      "label": "Lotus Throne",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        255,
+        190,
+        150
+      ]
+    },
+    {
+      "id": "dv_t_nimbus",
+      "label": "Thunder Nimbus",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        90,
+        110,
+        170
+      ]
+    },
+    {
+      "id": "dv_t_prism",
+      "label": "Dawn Prism",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        120,
+        240,
+        255
+      ]
+    },
+    {
+      "id": "dv_t_hare",
+      "label": "Elixir Hare",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        250,
+        248,
+        240
+      ]
+    },
+    {
+      "id": "dv_t_manta",
+      "label": "Sigil Manta",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        20,
+        30,
+        90
+      ]
+    },
+    {
+      "id": "dv_t_egg",
+      "label": "World Egg",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        70,
+        40,
+        140
+      ]
+    },
+    {
+      "id": "dv_t_tree",
+      "label": "Genesis Tree",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        90,
+        200,
+        80
+      ]
+    }
+  ],
+  "extraBodies": [
+    "golem",
+    "beetle",
+    "owl"
+  ],
+  "buffs": [
+    "zap",
+    "zapDamage",
+    "luck"
+  ],
   "palette": [
-    ["Sacred Gold", 240, 196, 80],
-    ["Ivory", 246, 236, 212],
-    ["Marble", 214, 216, 224],
-    ["Jade", 70, 170, 110],
-    ["Lapis", 38, 64, 170],
-    ["Bronze", 176, 116, 60],
-    ["Ruby", 200, 30, 70],
-    ["Celestial Blue", 120, 180, 255],
-    ["Sunstone", 255, 150, 60],
-    ["Amethyst", 150, 90, 200],
-    ["Rose Gold", 232, 160, 150],
-    ["Moon Silver", 170, 178, 196],
-    ["Terracotta", 196, 100, 64],
-    ["Verdigris", 90, 170, 160],
-    ["Dawn Pink", 255, 180, 210],
-    ["Twilight Indigo", 70, 50, 130],
-    ["Sandstone", 214, 180, 130],
-    ["Onyx", 40, 38, 46],
-    ["Turquoise Inlay", 60, 200, 210],
-    ["Starlight Lilac", 200, 180, 250],
-    ["Mint Relic", 170, 230, 190],
-    ["Night Sky", 24, 30, 70],
-    ["Emerald", 30, 140, 70],
-    ["Temple Coral", 255, 120, 110]
+    [
+      "Sacred Gold",
+      240,
+      196,
+      80
+    ],
+    [
+      "Ivory",
+      246,
+      236,
+      212
+    ],
+    [
+      "Marble",
+      214,
+      216,
+      224
+    ],
+    [
+      "Jade",
+      70,
+      170,
+      110
+    ],
+    [
+      "Lapis",
+      38,
+      64,
+      170
+    ],
+    [
+      "Bronze",
+      176,
+      116,
+      60
+    ],
+    [
+      "Ruby",
+      200,
+      30,
+      70
+    ],
+    [
+      "Celestial Blue",
+      120,
+      180,
+      255
+    ],
+    [
+      "Sunstone",
+      255,
+      150,
+      60
+    ],
+    [
+      "Amethyst",
+      150,
+      90,
+      200
+    ],
+    [
+      "Rose Gold",
+      232,
+      160,
+      150
+    ],
+    [
+      "Moon Silver",
+      170,
+      178,
+      196
+    ],
+    [
+      "Terracotta",
+      196,
+      100,
+      64
+    ],
+    [
+      "Verdigris",
+      90,
+      170,
+      160
+    ],
+    [
+      "Dawn Pink",
+      255,
+      180,
+      210
+    ],
+    [
+      "Twilight Indigo",
+      70,
+      50,
+      130
+    ],
+    [
+      "Sandstone",
+      214,
+      180,
+      130
+    ],
+    [
+      "Onyx",
+      40,
+      38,
+      46
+    ],
+    [
+      "Turquoise Inlay",
+      60,
+      200,
+      210
+    ],
+    [
+      "Starlight Lilac",
+      200,
+      180,
+      250
+    ],
+    [
+      "Mint Relic",
+      170,
+      230,
+      190
+    ],
+    [
+      "Night Sky",
+      24,
+      30,
+      70
+    ],
+    [
+      "Emerald",
+      30,
+      140,
+      70
+    ],
+    [
+      "Temple Coral",
+      255,
+      120,
+      110
+    ],
+    [
+      "Phoenix Red",
+      230,
+      25,
+      25
+    ],
+    [
+      "Sun Yellow",
+      255,
+      225,
+      0
+    ],
+    [
+      "Laurel Lime",
+      150,
+      215,
+      40
+    ],
+    [
+      "Cedar Green",
+      20,
+      80,
+      40
+    ],
+    [
+      "Sapphire",
+      20,
+      70,
+      230
+    ],
+    [
+      "Azure",
+      0,
+      150,
+      255
+    ],
+    [
+      "Royal Purple",
+      95,
+      20,
+      160
+    ],
+    [
+      "Orchid",
+      215,
+      50,
+      210
+    ],
+    [
+      "Fuchsia",
+      255,
+      60,
+      150
+    ],
+    [
+      "Garnet",
+      110,
+      10,
+      35
+    ],
+    [
+      "Cedarwood",
+      110,
+      60,
+      25
+    ],
+    [
+      "Olive Brass",
+      130,
+      130,
+      40
+    ],
+    [
+      "Sky Pearl",
+      205,
+      232,
+      255
+    ],
+    [
+      "Lemon Cream",
+      255,
+      250,
+      175
+    ],
+    [
+      "Iron",
+      80,
+      80,
+      88
+    ],
+    [
+      "Deep Teal",
+      0,
+      95,
+      95
+    ],
+    [
+      "Plum",
+      85,
+      20,
+      70
+    ],
+    [
+      "Ash Grey",
+      140,
+      140,
+      140
+    ],
+    [
+      "Halo White",
+      250,
+      250,
+      255
+    ],
+    [
+      "Obsidian",
+      12,
+      10,
+      16
+    ]
   ],
   "topWords": {
-    "Legendary": ["Gilded", "Carved", "Ancient", "Polished"],
-    "Mythic": ["Sacred", "Runed", "Clockwork", "Fabled"],
-    "Divine": ["Divine", "Celestial", "Exalted", "Haloed"],
-    "Exotic": ["Primordial", "Worldforged", "Firstborn", "Timeless"]
+    "Legendary": [
+      "Gilded",
+      "Carved",
+      "Ancient",
+      "Polished"
+    ],
+    "Mythic": [
+      "Sacred",
+      "Runed",
+      "Clockwork",
+      "Fabled"
+    ],
+    "Divine": [
+      "Divine",
+      "Celestial",
+      "Exalted",
+      "Haloed"
+    ],
+    "Exotic": [
+      "Primordial",
+      "Worldforged",
+      "Firstborn",
+      "Timeless"
+    ]
   },
   "names": [
-    "Relicorn", "Reliquo", "Relikin", "Reliquary", "Idolo", "Idolette", "Idolbit", "Idolpup",
-    "Templepup", "Totem", "Totemkin", "Talismo", "Amulette", "Amulet", "Charmstone", "Wardstone",
-    "Omenstone", "Crownstone", "Sigil", "Sigilbit", "Glyph", "Glyphy", "Runestone", "Cipher",
-    "Scrollkin", "Tabula", "Codex", "Oraclet", "Sanctum", "Shrinekeep", "Templebell", "Goblet",
-    "Urnie", "Amphora", "Ewer", "Locket", "Clasp", "Bauble", "Curio", "Curiosa",
-    "Oddment", "Wishlamp", "Lampling", "Lampkin", "Glowlamp", "Wishwick", "Wickling", "Wishmote",
-    "Turnkey", "Latchkey", "Keyhole", "Lockling", "Padlock", "Keybit", "Keyling", "Keyward",
-    "Worldkey", "Obelisk", "Pyramidion", "Ziggurat", "Menhir", "Dolmen", "Henge", "Plinthy",
-    "Pedestal", "Pillarstone", "Cornerstone", "Gatewatch", "Gatekeeper", "Sentinel", "Guardlet", "Cogwheel",
-    "Cogbit", "Coggle", "Cogsby", "Gearbit", "Gearling", "Gearlock", "Pinion", "Ticker",
-    "Tocky", "Tickletock", "Mainspring", "Windkey", "Windle", "Clockwork", "Clocksy", "Horologe",
-    "Hourling", "Sandglass", "Sandsprite", "Sandtick", "Granule", "Minutehand", "Tickhand", "Aeon",
-    "Epoch", "Timekeep", "Dialbit", "Sundial", "Gnomon", "Astrolabe", "Armilla", "Sextant",
-    "Meridian", "Stellara", "Sunwheel", "Moonwheel", "Starwheel", "Sunburst", "Sunray", "Sundisk",
-    "Sunstone", "Helio", "Heliodor", "Haloette", "Aureole", "Glorio", "Firstlight", "Firstspark",
-    "Dawnmaker", "Shaper", "Leonis", "Goldmane", "Sunmane", "Gildmane", "Gildpaw", "Gildwhisker",
-    "Gildwing", "Gildy", "Gildling", "Scarabelle", "Scarabit", "Sunscarab", "Bullion", "Aurum",
-    "Auri", "Aurix", "Aureus", "Orichalc", "Electrum", "Bronzy", "Brassy", "Brasslet",
-    "Patina", "Verdigris", "Ivoire", "Alabaster", "Marbleous", "Lapisa", "Carnelian", "Cinnabar",
-    "Opaline", "Artisan", "Chiselbit", "Mallet", "Engraver", "Filigree", "Inlay", "Mosaic",
-    "Tessera", "Fresco", "Etchling"
+    "Relicorn",
+    "Reliquo",
+    "Relikin",
+    "Reliquary",
+    "Idolo",
+    "Idolette",
+    "Idolbit",
+    "Idolpup",
+    "Templepup",
+    "Totem",
+    "Totemkin",
+    "Talismo",
+    "Amulette",
+    "Amulet",
+    "Charmstone",
+    "Wardstone",
+    "Omenstone",
+    "Crownstone",
+    "Sigil",
+    "Sigilbit",
+    "Glyph",
+    "Glyphy",
+    "Runestone",
+    "Cipher",
+    "Scrollkin",
+    "Tabula",
+    "Codex",
+    "Oraclet",
+    "Sanctum",
+    "Shrinekeep",
+    "Templebell",
+    "Goblet",
+    "Urnie",
+    "Amphora",
+    "Ewer",
+    "Locket",
+    "Clasp",
+    "Bauble",
+    "Curio",
+    "Curiosa",
+    "Oddment",
+    "Wishlamp",
+    "Lampling",
+    "Lampkin",
+    "Glowlamp",
+    "Wishwick",
+    "Wickling",
+    "Wishmote",
+    "Turnkey",
+    "Latchkey",
+    "Keyhole",
+    "Lockling",
+    "Padlock",
+    "Keybit",
+    "Keyling",
+    "Keyward",
+    "Worldkey",
+    "Obelisk",
+    "Pyramidion",
+    "Ziggurat",
+    "Menhir",
+    "Dolmen",
+    "Henge",
+    "Plinthy",
+    "Pedestal",
+    "Pillarstone",
+    "Cornerstone",
+    "Gatewatch",
+    "Gatekeeper",
+    "Sentinel",
+    "Guardlet",
+    "Cogwheel",
+    "Cogbit",
+    "Coggle",
+    "Cogsby",
+    "Gearbit",
+    "Gearling",
+    "Gearlock",
+    "Pinion",
+    "Ticker",
+    "Tocky",
+    "Tickletock",
+    "Mainspring",
+    "Windkey",
+    "Windle",
+    "Clockwork",
+    "Clocksy",
+    "Horologe",
+    "Hourling",
+    "Sandglass",
+    "Sandsprite",
+    "Sandtick",
+    "Granule",
+    "Minutehand",
+    "Tickhand",
+    "Aeon",
+    "Epoch",
+    "Timekeep",
+    "Dialbit",
+    "Sundial",
+    "Gnomon",
+    "Astrolabe",
+    "Armilla",
+    "Sextant",
+    "Meridian",
+    "Stellara",
+    "Sunwheel",
+    "Moonwheel",
+    "Starwheel",
+    "Sunburst",
+    "Sunray",
+    "Sundisk",
+    "Sunstone",
+    "Helio",
+    "Heliodor",
+    "Haloette",
+    "Aureole",
+    "Glorio",
+    "Firstlight",
+    "Firstspark",
+    "Dawnmaker",
+    "Shaper",
+    "Leonis",
+    "Goldmane",
+    "Sunmane",
+    "Gildmane",
+    "Gildpaw",
+    "Gildwhisker",
+    "Gildwing",
+    "Gildy",
+    "Gildling",
+    "Scarabelle",
+    "Scarabit",
+    "Sunscarab",
+    "Bullion",
+    "Aurum",
+    "Auri",
+    "Aurix",
+    "Aureus",
+    "Orichalc",
+    "Electrum",
+    "Bronzy",
+    "Brassy",
+    "Brasslet",
+    "Patina",
+    "Verdigris",
+    "Ivoire",
+    "Alabaster",
+    "Marbleous",
+    "Lapisa",
+    "Carnelian",
+    "Cinnabar",
+    "Opaline",
+    "Artisan",
+    "Chiselbit",
+    "Mallet",
+    "Engraver",
+    "Filigree",
+    "Inlay",
+    "Mosaic",
+    "Tessera",
+    "Fresco",
+    "Etchling",
+    "Ankhlet",
+    "Sphinxlet",
+    "Cartouche",
+    "Glyphlet",
+    "Runelet",
+    "Chalicette",
+    "Gobletta",
+    "Censerine",
+    "Incensa",
+    "Altarine",
+    "Shrinelet",
+    "Relicette",
+    "Hallowbit",
+    "Haloling",
+    "Nimbelle",
+    "Seraphin",
+    "Cherubel",
+    "Oracula",
+    "Augury",
+    "Omenbit",
+    "Lantella",
+    "Gearwhirl",
+    "Coglet",
+    "Orrerin",
+    "Gyrolabe",
+    "Astrolux",
+    "Moonglass",
+    "Sunglyph",
+    "Dawnrelic",
+    "Duskrelic",
+    "Gildheart",
+    "Gildtail",
+    "Aurelio",
+    "Aurelle",
+    "Lapislet",
+    "Jadeling",
+    "Opalis",
+    "Ambergleam",
+    "Elixirbit",
+    "Panacea",
+    "Talisprite",
+    "Wardling",
+    "Sigilette",
+    "Runekeep",
+    "Vaultling",
+    "Anvilkin",
+    "Hammerlet",
+    "Kilnling",
+    "Scarabeus",
+    "Sunbarque",
+    "Moonbarque",
+    "Lyrette",
+    "Chimelet",
+    "Beaconet",
+    "Aeonkin"
   ]
 }
