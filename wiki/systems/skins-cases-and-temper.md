@@ -2,7 +2,7 @@
 title: Skins, cases and temper
 type: system
 status: partial
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTemper.luau
   - src/ReplicatedStorage/Mine/Shared/MineForgeView.luau
@@ -16,7 +16,7 @@ sources:
   - docs/TODO.md §6.1
   - docs/OPEN.md P1 #9
   - docs/ROADMAP.md
-related: [tools, ores, charms, boosts-and-stats, traits, chests-and-lucky-blocks, forge-and-recycling, wandering-traders]
+related: [tools, ores, charms, boosts-and-stats, traits, chests-and-lucky-blocks, forge-and-recycling]
 ---
 
 # Skins, cases and temper
@@ -44,15 +44,33 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
 
 - **The roll.** `rollTemperament` picks a grade, then picks a kit uniformly
   within that grade.
+- **Batches show their best.** A ×10/×100 buy (`Verbs.openTemperCase`) or the
+  3-case bundle grants every roll but plays one reel. Since 2026-10-08 that
+  reel shows the **best** grade of the batch, not the last roll. Before, an SSS
+  on roll 3 of 10 was granted and never shown. The reveal says "BEST OF N".
+- **Skins in a pack run.** Ore-case skins ride an open-10 or open-all as cards
+  whose `rarityId` is a grade letter. `MinePackFX.rankOf` reads F…SSS on the
+  same 1–8 ladder, so a skin of A or better is a bulk hit. Before, every skin
+  scored as a DUD and an SSS was folded into "N cleared".
 - **Stat size.** Each stat is its slot share (1.00 / 0.60 / 0.35, from
   `MineTemper.BASE`) × `RARITY_MULT`. Chance stats use `ABS_PRIMARY` ×
   `PROC_RARITY_MULT` instead.
-- **What the player sees.** Players see words, not letters (`WORD_OF`). S, SS
-  and SSS all read "Mythic".
+- **What the player sees.** Players see words, not letters (`WORD_OF`).
+  - Since 2026-10-10 the words and colours are the cards' rarity ladder
+    (owner: *"same goes for skin cases.. same rarities"*). S used to read
+    "Mythic" along with SS and SSS.
+  - The ladder: F Common grey, D Uncommon green, C Rare blue, B Epic purple,
+    A Legendary orange, S Mythic light blue, SS Divine lavender, SSS Exotic
+    red (`MineTemper.RARITY_COLOR`).
+  - Pack cases' reels use the same ladder, and so does anything else that
+    reads it. (Traits did too, through `MineTraitView`, until they were
+    retired and that view deleted on 2026-10-12.)
 - **Old saves.** `LEGACY_RARITY` and `normalizeRarity` map the old names
   Common…Exotic to F…SSS so old saves still load.
-- **Traits** reuse these same odds (TODO §0.18,
-  [enchantments](traits.md)).
+- **Gear grades, charms and the trader** read these same odds
+  (`MineTemper.RARITY_WEIGHTS` in `MineGear`, `MineCharms`, `MineTrader`). Tool
+  traits reused them too (TODO §0.18) until they were retired on 2026-10-12
+  ([traits](traits.md)).
 
 **Owning and fitting.**
 - `p.tempers[kitId] = {rarity, n}` keeps the best grade seen and a copy count.
@@ -87,22 +105,14 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
    case. Temper tokens also come from rebirth (`MineSkillData.rebirthTokens`)
    and from selling forever tools.
 
-**Where temper tokens are spent (2026-10-07 additions).** Temper tokens are the
-currency of three more things now, all on the same `p.temperTokens` balance:
-the **graded charms** (`Verbs.buyCharm`, 15 tokens at F up to 2,500 at SSS, priced off
-`CASE_PRICE_TOKENS` as the unit), the **wandering traders' cases** (25 to 750 base,
-scaled by depth and zone) and the Temperament Case itself. See [charms](charms.md)
-and [wandering-traders](wandering-traders.md). The trader's hat case also draws its
-grade from `MineTemper.RARITY_WEIGHTS`, and `MineCharms.RARITY_LABEL` is built by
-inverting `MineTemper.LEGACY_RARITY`, so this ladder is now the shared rarity scale.
-
 **Grade reveal and iridescence.**
 - `MineGradeReveal` plays the step-by-step F→SSS animation that the server
   scripted with `MineToolGrades.rollClash`. Its header says gear crates; the one
-  live `rollClash` caller in MineServer is the lucky-block grade-up. It is
+  live `rollClash` caller in MineServer is opening a lucky block. It is
   **not** used for tempers.
 - `MineIridescence` draws the shared S / SS / SSS badge: 1, 2 or 3 marks on a
-  9-stop pastel gradient. Inventory, sockets and grade reveal use it.
+  9-stop pastel gradient. The inventory, MineClient and the grade reveal use it
+  (the sockets screen did too, until it was deleted on 2026-10-12).
 
 ## Where it lives
 

@@ -704,7 +704,27 @@ function MineForgeView.mount(parent, opts)
 			end
 			local sx = (avail.X * 0.96) / (720 * A)
 			local sy = (avail.Y * 0.90) / (580 * A)
-			fit.Scale = math.clamp(math.min(sx, sy), 0.32, 2.2)
+			--[[
+				A FIT SCALE SHRINKS. IT MUST NEVER BLOW THE PANEL UP.
+
+				Owner, 2026-10-10: "you also got to do something this fuicking
+				forge man.. its so ugly, i fucking hate it".
+
+				The cap here was 2.2, so on any roomy screen this did the
+				opposite of fitting. Measured in Studio at a 992x1052 viewport:
+				FitScale was 1.44, which stretched a panel drawn for 720x580
+				into 952x767 -- 96% of the width -- and took every size in the
+				layout with it. The 24px title rendered at ~35px and crowded
+				the wallet, the 13px subtitle at ~19px, and the fixed-pixel
+				cards lost the proportions they were drawn at. Nothing was
+				misplaced; it was just inflated, which is what read as ugly.
+
+				Capped at 1 the panel renders at the size it was designed for
+				and sits centred with room around it. The shrink path is
+				untouched, so small screens still fit: an iPhone portrait
+				(375pt) still lands at ~0.5.
+			]]
+			fit.Scale = math.clamp(math.min(sx, sy, 1), 0.32, 1)
 		end
 		applyFit()
 		task.defer(applyFit)

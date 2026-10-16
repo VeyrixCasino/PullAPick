@@ -2,7 +2,7 @@
 title: Mine For Cards — the game in one page
 type: meta
 status: current
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/START-HERE.md §2, §5
   - docs/HANDOFF.md §2.1, §2.5
@@ -63,8 +63,9 @@ to an axis that nothing gated. `roadmap/PRINCIPLES.md` §1–§2 tells the
 ## Three currencies, three jobs (the intended design)
 
 - **Ore** is power: tools are forged from it and levelled with it.
-- **Gems** are for gambling and access: traits, charm merges, cases, zones,
-  pouch upgrades. They are minted by selling ore.
+- **Gems** are for gambling and access: enchant book bundles, charm merges,
+  cases, zones, pouch upgrades. They are minted by selling ore. (Trait rolls and
+  runes were gem sinks until they were retired on 2026-10-12.)
 - **Coins** are for consumables and access. **This is not solved yet.** Coins
   have almost nothing to buy now that the Forge runs on ore, seams are free, and
   tools are no longer sold for coins (TODO §0.28, PROPOSAL line 23, commit
@@ -80,7 +81,9 @@ them.
 - [charms](systems/charms.md): ore drops; each one has a *shape*.
 - [skins](systems/skins-cases-and-temper.md): the top prize, hunted from ore
   cases.
-- [traits](systems/traits.md): a rolled prefix on your tool, such as "Lucky Stone Drill".
+- [enchants](systems/enchants.md): books in your tool's three slots (Damage,
+  Utility, Special); the Special picks the tool's proc. They replaced tool traits
+  and runes, retired on 2026-10-12 ([traits](systems/traits.md)).
 - [pets](systems/pets.md) and [hats](systems/hats-and-faces.md): support.
 - [skill tree](systems/rebirth-and-skill-tree.md): bought with rebirth tokens.
 
@@ -96,24 +99,13 @@ multiply ([boosts-and-stats](systems/boosts-and-stats.md)).
 - [social, quests and leaderboards](systems/social-quests-and-leaderboards.md)
 - [shops and Robux](systems/shops-and-monetisation.md)
 
-## State of things (2026-10-08)
+## State of things (2026-10-05)
 
-- PR #6 (the balance pass, forged-tool skins, economy fixes, performance) was
-  **merged into `main` on 2026-10-06**. The recent commit messages report live
-  Studio verification for many changes, so "has it run in Roblox?" is **unknown
-  per feature**, not "almost none" as `docs/START-HERE.md` §5 says. Ask the owner
-  or check the commit message.
-- **The owner's working branch is ahead of `main`** (this wiki follows it). Since PR #6
-  it has added chunked mine generation and rebuilt veins ([ores](systems/ores.md),
-  [zones-layers-and-seams](systems/zones-layers-and-seams.md)), 36 graded charms from
-  chests and tokens ([charms](systems/charms.md)), five wandering token traders
-  ([wandering-traders](systems/wandering-traders.md)) and a season clock that waits
-  for the owner's launch ([season-and-launch](systems/season-and-launch.md)). **Two of
-  those cannot be used yet:** nothing in `src/` calls `buyCharm` or `launchSeason`
-  ([open-questions](open-questions.md) §1b).
-- The owner's open P0 asks (TODO §6.1, 2026-10-07): Event Horizon tools "EXTREMELY
-  strong", every block, ore and tool cost ×10,000, and the launch timer. None is built
-  except the last (the clock; the button is missing).
+- The newest work is on `claude/vigilant-fermi-aucqjy`, open as PR #8 (PR #6 was merged
+  into `main` on 2026-10-06), about 145 commits ahead of `main`. This wiki follows
+  that branch. Many recent commit messages report Studio play-tests, so "has it run in
+  Roblox?" is **per feature**: read the commit message or the page's "State right now".
+  (`docs/START-HERE.md` §5 is older and says almost none has.)
 - The audit found about **1 line in 6 unreachable**. Some features are
   archived or cut ([retired-and-parked](systems/retired-and-parked.md)).
 - What is still undecided lives in [open-questions](open-questions.md) and

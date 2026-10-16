@@ -2,7 +2,7 @@
 title: Admin and debug
 type: system
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ServerScriptService/Mine/Admin/MineAdmin.luau
   - src/ServerScriptService/Mine/Admin/AdminAllowlist.luau
@@ -16,7 +16,7 @@ sources:
   - src/ReplicatedStorage/TCG/Shared/PlaceConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineBuild.luau
   - docs/AUDIT.md §5
-related: [shops-and-monetisation, social-quests-and-leaderboards, retired-and-parked]
+related: [shops-and-monetisation, social-quests-and-leaderboards, retired-and-parked, traits]
 ---
 
 # Admin and debug
@@ -107,7 +107,9 @@ are still there.
   files (static grep):
   - `src/ReplicatedStorage/MineGear_AdminTest.luau` and `src/ReplicatedStorage/MineGear.luau`, two old gear copies. Both
     require `MineRunes` from `ReplicatedStorage`'s root, where there is no such
-    module, so either would hang if required.
+    module, so either would hang if required. Since 2026-10-12 there is no
+    `MineRunes` anywhere: the `Shared` copy was deleted when runes were retired
+    ([traits](traits.md)). The two root copies were left in the tree on purpose.
   - `src/ReplicatedStorage/MineBags_NameCheck.luau`.
   - `src/ReplicatedStorage/MineBagNames.luau`, byte-identical to the `Shared` copy.
 

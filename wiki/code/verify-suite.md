@@ -2,7 +2,7 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
@@ -10,6 +10,7 @@ sources:
   - docs/START-HERE.md §1, §4.5, §4.6
   - docs/HANDOFF.md §2.4
   - docs/OPEN.md
+  - tools/verify/runes-retired.js
 related: [luau-traps, tools-and-generators, local-setup]
 ---
 
@@ -31,8 +32,9 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
   reports **SyntaxError only**; type errors are ignored.
   - If the download fails it prints "skipping" and **exits 0**, so work is never
     blocked.
-  - It does **not** catch the 200-local overflow (`luau-analyze` accepts 205
-    locals). `tools/verify/compile.js` does; see [luau-traps](luau-traps.md).
+  - It does **not** catch the 200-local overflow. Tested here: `luau-analyze`
+    accepts 205 locals, while `luau-compile` rejects them with "Out of local
+    registers". See [luau-traps](luau-traps.md).
 - **`suite.sh`** runs every `tools/verify/*.js` except helpers (`_*.js`) and the
   `luau-balance` utility.
   - Output containing `luau not present|skipping|cannot run|not runnable` counts
@@ -44,15 +46,28 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
   - Exit code: 0 only if everything ran and passed.
 - Single check: `node tools/verify/<name>.js`. Utility: `node tools/verify/luau-balance.js FILE`.
 
-## Result at `bae3c5b` (run 2026-10-08 in a Linux cloud container, after merging the owner's working branch)
+## Result at `98c141a` (run 2026-10-16 in a Linux cloud container, after merging the owner's working branch)
 
-**45 passed, 0 failed, 0 did not run, 0 known failures.** `syntax.sh`: 215 files, no
-syntax errors. `compile.js`: all 215 compile, `MineServer` 5 and `MineClient` 7
-top-level locals left. New since `41d8f3a`: `launch` (`bae3c5b`), `trader`
-(`a1f4cc1`, extended by `31df92e` and `d38b65e`) and a much larger `charms` block for
-the 36 graded charms (`b09cc4a`, `c1795ea`, `fd5c432`).
+**66 checks. 64 passed and 2 failed on the first run; 66 passed on the second.** `syntax.sh`:
+273 files, no syntax errors. `compile.js`: `MineServer` 12 and `MineClient` 11 top-level
+locals left. The two first-run failures are fresh-checkout effects, not regressions:
 
-## Earlier result at `41d8f3a` (run 2026-10-07 on the owner's Windows machine)
+- `generated-fresh` fails once on a clone with no `build/depth-sheet.json` (see below).
+- **`skins` fails once on a Linux checkout.** `tools/gen/skins.js` writes `MineSkins.luau`
+  with **CRLF** (`lua.join("\r\n")`), and the check asserts "regenerating is byte-identical".
+  Git stores the file as LF (`git ls-files --eol` says `i/lf`). I infer the owner's Windows
+  checkout is CRLF, which would explain why it passes there; I have not seen that machine. On Linux the first run rewrites the tracked file to CRLF and fails, and the second
+  run passes. **Do not commit that rewrite**: `git checkout -- src/ReplicatedStorage/Mine/Shared/MineSkins.luau`.
+
+Checks documented below are the ones whose rows I kept or wrote; the suite has more than the
+table lists (for example `fishing`, `enchants`, `forge-hub`, `today`, `set-pets`), which the
+owner's session added without a row here.
+
+## Result at `299dd2c` (run 2026-10-10 on the owner's Windows machine)
+
+**54 passed, 0 failed, 0 did not run, 0 known failures.** The newest check is `daily-wheel`.
+
+## Result at `41d8f3a` (run 2026-10-07 on the owner's Windows machine)
 
 **42 passed, 0 failed, 0 did not run, 0 known failures**, with
 `syntax.sh` at 212 files clean and `compile.js` reporting 5 top-level locals of
@@ -81,13 +96,8 @@ generation ceiling plus per-server randomness, 2026-10-07).
 
 ## Every check
 
-**L** marks the 22 checks that execute the `luau` binary (the original 14 plus
-`compile`, `economy-exploits`, `heldtool`, `oreframes`, `chunkload`, `depthgate`,
-`launch` and `trader`, by a grep for how each
-calls the binary; I did not run the suite with the binary removed). Without the binary they
-DID NOT RUN. The docs say "11 of 23", which is stale: there are 45 now, counting `wiki` and `askfirst` (`oreskins` `9733a05`, `heldtool` `b19c4c2`,
-`economy-exploits` `4cc82a5`, `compile` `5d59714`, `ui-scale` `39d94bf`,
-`oreframes` `bef7b0d`). The run on 2026-10-08 after the merge was **45 passed, 0 failed, 0 did not run**.
+**L** marks the 14 checks that execute the `luau` binary. Without the binary they
+DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b19c4c2` (`oreskins` arrived in `9733a05`, `heldtool` in `b19c4c2`). **This table is not complete:** at `4e4fbb3` `tools/verify/` holds 67 `.js` files (helpers included), and many newer checks (for example `enchants`, `forge-hub`) are not listed here yet. The counts in this paragraph were not rechecked on 2026-10-12.
 
 | check | asserts |
 |---|---|
@@ -98,9 +108,9 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 45 now, counting
 | `buyqty` | the typed quantity box, the cart and the server clamp share one ceiling |
 | `charms` **L** | runs the real MineCharms generator against the real 82-ore roster |
 | `check` | the tool-level curve behaves, using the tables in `tools/upgrade-calculator.html` (generated from MineConfig) |
-| `compile` **L** | every one of the 212 source files compiles with `luau-compile` (not just `luau-analyze`), and `MineServer` and `MineClient` each have at least 4 top-level locals of headroom (5 and 7 on 2026-10-08) |
 | `config-refs` | every `MineConfig.X` the code reads exists. Strips comments first. |
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
+| `daily-wheel` **L** | the daily wheel: weights sum to 100, the 16 slice ids are unchanged, every slice prints odds, a free spin gives a pet at most 10% of the time, the daily allowance (base, group, streak), a UTC-day reset, and a landing on the rolled slice from any start angle. Source checks: the lobby build is live, rebirth keeps the field, a spin saves, free spins go first and paid spins obey `PolicyNoRandom`, and the world wheel spins on the client. Added 2026-10-10. |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |
 | `dmg-live` **L** | runs `toolTierPower` in real declaration order |
 | `economy-exploits` **L** | the depth-desk sell curve never decreases with depth and no desk pays less than the surface, and no (forged-at, scrapped-at) pair beats a full climb. **Executes** the real functions and keeps the pre-fix arithmetic to prove the exploit was real. |
@@ -109,14 +119,15 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 45 now, counting
 | `gate-coverage` | every function that deals block damage consults the breaking gate |
 | `generated-fresh` | `mine-map.html` and `upgrade-calculator.html` regenerate byte-for-byte (`--check`) |
 | `ladder-climbable` | the ore ladder reaches tier 82 with no zone deadlock, and the Exotic band stays rare |
-| `heldtool` **L** | the held forged-tool row carries `oreTier` and `oreId`, so `MineBreaking.toolBreakingPower` resolves it from its ore, not as 1. **Executes** the real function against the real row shape, keeps the old broken row to prove it resolves to 1, and asserts both roster-migration guards are `<` not `~=`. |
+| `heldtool` | the held forged-tool row carries `oreTier` and `oreId`, so `MineBreaking.toolBreakingPower` resolves it from its ore, not as 1. **Executes** the real function against the real row shape, keeps the old broken row to prove it resolves to 1, and asserts both roster-migration guards are `<` not `~=`. |
 | `launch` **L** | the season is a duration: before launch `seasonNow()` is pinned to `SEASON_START`, after launch it advances from `launchedAt` (a year-late launch gives the same first week), the cosmetic teaser falls and rolls over, the three `SEASON_START` constants agree, the save happens before the announcement, a failed read or save leaves it unlaunched, and `launchSeason` is reachable from the dispatch. **It does not check the two season *ends*, which differ** ([season-and-launch](../systems/season-and-launch.md)) |
 | `layers` **L** | two boost layers, and the second multiplies the first. The owner's 100 → 300 example. |
+| `lucky-odds` **L** | lucky blocks show their odds, and those odds are the odds rolled. `gradeOdds` sums to 1 from every start and matches 200,000 real `rollClash` rolls. `rollLoot` draws match `KIND_TABLES`. The sheet adds up. The credit shop, the bag's ⓘ and the lucky screen all show `MineLuckyOddsView`, with no percentages typed in by hand. Since 2026-10-10 it also checks the prizes are real wild cases and real ore tiers, a better grade or block never pays a worse case, and grade-ups are off. Added 2026-10-08, because blocks are sold for Robux-bought credits and showed no odds. |
 | `minemap-runs` | `mine-map.html` actually executes under a DOM stub |
-| `oreframes` **L** | the baked `MineOreTools.FRAME_STATS` and `typeMult` steps equal what the priced roster supplied (2,460 values, 0 mismatches), so the roster can be deleted |
 | `oreforge` **L** | a forged tool IS its ore: the frame is derived from the ore's tier |
+| `oreframes` **L** | the baked `MineOreTools.FRAME_STATS` and `typeMult` steps equal what the priced roster supplied (2,460 values, 0 mismatches), so the roster can be deleted |
 | `orepacks` **L** | the preconditions for `Dig.bankOrePacks`: no pack bigger than a tier-1 pouch, and the midpoint pays fairly |
-| `oreskins` | no tool is sold for coins, and every ore tier has its own distinct skin in each family (246 distinct images). The refusal is asserted on the **server**, at the surface and depth doors, not on the shop rail. |
+| `oreskins` | no tool is sold for coins, and every ore tier has its own distinct pickaxe icon. The refusal is asserted on the **server**, at the surface and depth doors, not on the shop rail. |
 | `oretools` **L** | `ToolModelFactory.oreLook` gives the 82 ore tools distinct looks |
 | `outpost-depth` | outpost colours are wired to depth, not constants |
 | `packs` **L** | fossil packs are gone, and the chest loot tables are still well formed |
@@ -126,14 +137,15 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there are 45 now, counting
 | `skilltree` | every stat the tree grants is applied by the server |
 | `statkeys` | renamed stat keys (`oreYield`) still read in old saves |
 | `stats` **L** | `MineStats.STATS`, `STAT_ORDER`, `emptyBoosts` and `ADDITIVE_STATS` agree |
+| `runes-retired` | runes, scrolls, sockets and tool traits stay retired (2026-10-12): the five modules are deleted and nothing requires them; no rune, scroll or trait verb; `boosts()` pays none; old saves drop the fields; the pass, Founders pack and wheel pay books where they paid scrolls and runes; the tutorial and quests teach enchants; the Enchanter keeps Summon / Temper / Salvage / Dust; runes are not a trade kind; the rune cases are gone. Replaces the deleted `traits` **L** check (`tools/verify/traits.js`), which pinned the trait rules. |
 | `trader` **L** | the wandering-trader rules: 5 distinct placements and no collisions over thousands of rotations, flat visit spread, a trader cannot stock a case outside its depth gate (and the deep spot can), prices rise with depth and zone and never fall below base, the charm and hat cases follow the chest/temper ladders; statically, that the outpost list is **sorted** before placement, `buyTraderCase` re-derives the roster, checks the shelf and takes the price from the shelf row, trader parts are non-query and non-shadow, and the panel's countdown ticks on `RunService.Heartbeat` |
-| `traits` **L** | the trait rules: prefix, odds tied to MineTemper's skins table, Exotic 1/1000 |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |
-| `veins` **L** | the vein lattice keeps per-block ore density unchanged, the size distribution matches the owner's spec, and the field is re-rolled per server (two layout salts give two different mines; one salt gives the same mine) |
-| `chunkload` **L** | generation stops at the open chunk, the far path does not claim the frontier, and layer 1 differs per server cell by cell |
-| `depthgate` **L** | depth credit is earned: the one-block jump and the patient `DIG_LEAD` hop both fail, and ordinary digging never does |
 | `ui-scale` | the shipped `refreshMineUiScale` rule (parsed from the client) fits every fixed panel on twelve displays, and lists the displays where no scale can help as outstanding panel work |
+| `veins` **L** | the vein lattice keeps per-block ore density unchanged, the size distribution matches the owner's spec, and the field is re-rolled per server |
+| `chunkload` **L** | generation stops at the open chunk, the far path does not claim the frontier, and layer 1 differs per server cell by cell |
+| `compile` | every file passes `luau-compile`, and the two big scripts have top-level-local headroom left |
+| `depthgate` **L** | depth credit is earned: the one-block jump and the patient `DIG_LEAD` hop both fail, and ordinary digging never does |
 | `wiki` | wiki frontmatter, links, index coverage, cited paths, `Module.SYMBOL` drift |
 | `zones` | the calculator's zone panel reproduces the live numbers |
 

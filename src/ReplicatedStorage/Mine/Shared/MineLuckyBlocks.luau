@@ -21,7 +21,7 @@ MineLuckyBlocks.TYPES = {
 	lucky_block = {
 		id = "lucky_block",
 		name = "Lucky Block",
-		blurb = "Golden cube. One nice drop — meadow packs, not a lottery.",
+		blurb = "Golden cube. A mystery case, a skin case, or gems and stardust.",
 		color = Color3.fromRGB(255, 196, 64),
 		icon = "rbxassetid://86826521518359",
 		model = "rbxassetid://0", -- PLACEHOLDER 3D
@@ -29,15 +29,15 @@ MineLuckyBlocks.TYPES = {
 	super_lucky_block = {
 		id = "super_lucky_block",
 		name = "Diamond Lucky Block",
-		blurb = "Blue cube. Fatter packs and real tools. Never a pouch.",
+		blurb = "Blue cube. 2-star mystery cases and up, and deeper skin cases.",
 		color = Color3.fromRGB(64, 148, 255),
 		icon = "rbxassetid://130589291505484",
 		model = "rbxassetid://0",
 	},
 	godly_lucky_block = {
 		id = "godly_lucky_block",
-		name = "Mythic Lucky Block",
-		blurb = "Red crystal. Multi-pack lottery, T18–21, Omni, dust kicker on every open.",
+		name = "Godly Lucky Block",
+		blurb = "Red crystal. 3-star mystery cases and up, the deepest skin cases, and stardust on every open.",
 		color = Color3.fromRGB(220, 48, 64),
 		icon = "rbxassetid://75196830544563",
 		model = "rbxassetid://0",
@@ -45,19 +45,6 @@ MineLuckyBlocks.TYPES = {
 }
 
 MineLuckyBlocks.START_GRADES = { "F", "D", "C", "B", "A" }
-
-local ZONE_LOW = { "meadow", "sunscar", "mistreef" }
-local ZONE_MID = { "arcwork", "bloodmoon", "eclipse" }
-local ZONE_HIGH = { "riftmarch", "starfall", "mythral" }
-local ZONE_TOP = { "primordium", "bigbang" }
-
-local function pick(list, rng)
-	return list[rng:NextInteger(1, #list)]
-end
-
-local function packId(zone, slot)
-	return zone .. "_" .. slot
-end
 
 local function bandOf(grade)
 	local g = grade or "F"
@@ -129,10 +116,10 @@ end
 	not a second whale gate next to packs.
 ]]
 MineLuckyBlocks.SHOP = {
-	{ id = "lucky_block", credits = 45, blurb = "Golden cube · meadow packs & gems" },
-	{ id = "super_lucky_block", credits = 120, blurb = "Diamond cube · fatter packs & tools" },
-	{ id = "godly_lucky_block", credits = 280, label = "Goldy Lucky Block",
-		blurb = "Red crystal · multi-pack lottery" },
+	{ id = "lucky_block", credits = 45, blurb = "Golden cube · mystery & skin cases" },
+	{ id = "super_lucky_block", credits = 120, blurb = "Diamond cube · 2★+ mystery cases" },
+	{ id = "godly_lucky_block", credits = 280, label = "Godly Lucky Block",
+		blurb = "Red crystal · 3★+ mystery cases" },
 }
 MineLuckyBlocks.BUNDLE_10 = {
 	id = "lucky_block", qty = 10, credits = 350, label = "10× Lucky Blocks",
@@ -206,11 +193,15 @@ function MineLuckyBlocks.grant(p, blockId, startGrade, qty, luck)
 end
 
 --[[
-	Paying gems to raise a block's grade before it is opened (MineServer
-	Verbs.luckyGradeUp). The first level bought on a block costs
-	GRADE_UP_BASE whatever grade it starts at -- B to A costs the same as F
-	to D -- and each further level on the same block costs GRADE_UP_GROWTH
-	times the one before it: 25K, 125K, 625K, ...
+	GRADE-UPS ARE OFF. Owner, 2026-10-10: "Remove grade-ups" -- paying gems to
+	raise a block's grade before opening it (MineServer Verbs.luckyGradeUp).
+	gradeUpPrice answers nil while GRADE_UP_ON is false, which hides the button
+	(MineGradeReveal shows it only when there is a price) and makes the server
+	refuse. Blocks that already bought levels keep them; the levels still split
+	the stack (stackKey).
+
+	When it was on, the first level on a block cost GRADE_UP_BASE and each
+	further level GRADE_UP_GROWTH times the one before: 25K, 125K, 625K, ...
 ]]
 --[[
 	The climb a lucky block rolls (MineToolGrades.rollClash takes this as its
@@ -233,6 +224,7 @@ end
 ]]
 MineLuckyBlocks.UPGRADE_P = { 1 / 2, 1 / 2, 1 / 3, 1 / 4, 2 / 7, 2 / 7, 2 / 7 }
 
+MineLuckyBlocks.GRADE_UP_ON = false
 MineLuckyBlocks.GRADE_UP_BASE = 25000
 MineLuckyBlocks.GRADE_UP_GROWTH = 5
 
@@ -241,222 +233,201 @@ function MineLuckyBlocks.nextGrade(grade)
 end
 
 function MineLuckyBlocks.gradeUpPrice(entry)
+	if not MineLuckyBlocks.GRADE_UP_ON then
+		return nil
+	end
 	local bought = math.max(0, math.floor(tonumber(entry and entry.bought) or 0))
 	return MineLuckyBlocks.GRADE_UP_BASE * MineLuckyBlocks.GRADE_UP_GROWTH ^ bought
 end
 
-local function softToolId(rng, loTier, hiTier)
-	local byTier = {
-		[1] = "wood_pick", [2] = "stone_pick", [3] = "flint_pick",
-		[4] = "copper_pick", [5] = "bronze_pick", [6] = "iron_pick",
-		[7] = "hardened_pick", [8] = "steel_pick",
-		[12] = "quartz_pick", [13] = "amethyst_pick", [14] = "emerald_pick",
-		[15] = "sapphire_pick", [16] = "ruby_pick", [17] = "diamond_pick",
-		[18] = "prismatic_pick", [19] = "meteorite_pick", [20] = "voidsteel_pick",
-		[21] = "starforged_pick",
-	}
-	local tiers = {}
-	for t = loTier, hiTier do
-		if byTier[t] then table.insert(tiers, t) end
-	end
-	if #tiers == 0 then return "iron_pick" end
-	return byTier[tiers[rng:NextInteger(1, #tiers)]]
+--[[
+	THE LOOT TABLES, AS DATA.
+
+	Owner, 2026-10-10: lucky blocks were "hella boring, and not worth shit".
+	Redone to the owner's answers:
+	  * gems and stardust stay, as FIXED amounts ("not scaled.. good way to
+	    break economy"), and stay small: they are the filler;
+	  * the prizes are cases: "it should give cases/packs to give you pets,
+	    skins and charms" -- a MYSTERY CASE (MineCases wild case: one spin, 3
+	    of a set pack, which is where pets come from) or a SKIN CASE (an ore
+	    case: a skin, or that ore's charm);
+	  * a better block, and a better final grade, pays a better case. No % luck.
+	The old pickaxes (tools are forged now), scrolls, direct pet rolls and zone
+	packs are gone. Every number below is PROPOSED.
+
+	They are data so the odds sheet (oddsSheet, shown before you buy) reads the
+	SAME rows the server rolls: lucky blocks are sold for credits, and a paid
+	random item must show its odds. tools/verify/lucky-odds.js checks the two
+	agree.
+
+	Rows are { weight, kind }. Keys are a grade band -- low (F, D), mid (C, B),
+	high (A, S), top (SS, SSS) -- or an exact grade where it has its own row.
+]]
+MineLuckyBlocks.KIND_TABLES = {
+	lucky_block = {
+		low = { { 40, "mystery" }, { 10, "skincase" }, { 25, "gems" }, { 25, "dust" } },
+		mid = { { 45, "mystery" }, { 15, "skincase" }, { 20, "gems" }, { 20, "dust" } },
+		high = { { 50, "mystery" }, { 20, "skincase" }, { 15, "gems" }, { 15, "dust" } },
+		top = { { 55, "mystery" }, { 25, "skincase" }, { 10, "gems" }, { 10, "dust" } },
+	},
+	super_lucky_block = {
+		low = { { 50, "mystery" }, { 15, "skincase" }, { 18, "gems" }, { 17, "dust" } },
+		mid = { { 52, "mystery" }, { 20, "skincase" }, { 14, "gems" }, { 14, "dust" } },
+		high = { { 55, "mystery" }, { 25, "skincase" }, { 10, "gems" }, { 10, "dust" } },
+		top = { { 58, "mystery" }, { 28, "skincase" }, { 7, "gems" }, { 7, "dust" } },
+	},
+	godly_lucky_block = {
+		low = { { 55, "mystery" }, { 20, "skincase" }, { 13, "gems" }, { 12, "dust" } },
+		mid = { { 57, "mystery" }, { 25, "skincase" }, { 9, "gems" }, { 9, "dust" } },
+		high = { { 60, "mystery" }, { 28, "skincase" }, { 6, "gems" }, { 6, "dust" } },
+		top = { { 60, "mystery" }, { 32, "skincase" }, { 4, "gems" }, { 4, "dust" } },
+	},
+}
+
+-- Which kind rows a block rolls at a final grade. An unknown block id rolls the
+-- godly rows.
+function MineLuckyBlocks.kindTable(blockId, finalGrade)
+	local t = MineLuckyBlocks.KIND_TABLES[blockId] or MineLuckyBlocks.KIND_TABLES.godly_lucky_block
+	return t[finalGrade or "F"] or t[bandOf(finalGrade)]
 end
+
+--[[
+	PROPOSED. The mystery case a block pays, by its final grade: a MineCases
+	wild case id (case_1 is 1 star ... case_6 is 5 stars, case_3_4 is 2.5).
+	A Godly SSS pays two.
+]]
+MineLuckyBlocks.MYSTERY_CASE = {
+	lucky_block = { F = "case_1", D = "case_1", C = "case_2", B = "case_3", A = "case_3_4", S = "case_4", SS = "case_4_5", SSS = "case_5" },
+	super_lucky_block = { F = "case_3", D = "case_3", C = "case_3_4", B = "case_4", A = "case_4_5", S = "case_5", SS = "case_5_6", SSS = "case_6" },
+	godly_lucky_block = { F = "case_4", D = "case_4", C = "case_4_5", B = "case_5", A = "case_5", S = "case_5_6", SS = "case_6", SSS = "case_6" },
+}
+MineLuckyBlocks.MYSTERY_QTY = { godly_lucky_block = { SSS = 2 } }
+
+--[[
+	PROPOSED. The skin case a block pays: an ore case (`<ore>_ore_case`, a skin
+	or that ore's charm) for an ore in this tier range, picked by the server
+	(MineConfig.ORES). Deeper ore, better charm. { lo, hi } by band.
+]]
+MineLuckyBlocks.SKIN_CASE_TIERS = {
+	lucky_block = { low = { 1, 10 }, mid = { 8, 20 }, high = { 15, 30 }, top = { 25, 40 } },
+	super_lucky_block = { low = { 15, 30 }, mid = { 25, 40 }, high = { 35, 55 }, top = { 45, 65 } },
+	godly_lucky_block = { low = { 35, 55 }, mid = { 45, 65 }, high = { 55, 75 }, top = { 65, 82 } },
+}
+
+--[[
+	Fixed gem and stardust amounts, { lo, hi } by band (SSS has its own row
+	where it pays more). Not scaled to the player: the owner's call.
+]]
+MineLuckyBlocks.GEMS = {
+	lucky_block = { low = { 120, 320 }, mid = { 320, 800 }, high = { 700, 1600 }, top = { 1200, 2600 }, SSS = { 1800, 3800 } },
+	super_lucky_block = { low = { 800, 1920 }, mid = { 1760, 4160 }, high = { 3600, 8000 }, top = { 7200, 14400 }, SSS = { 9600, 18000 } },
+	godly_lucky_block = { low = { 4200, 9600 }, mid = { 5600, 12800 }, high = { 12800, 28800 }, top = { 25600, 56000 } },
+}
+MineLuckyBlocks.DUST = {
+	lucky_block = { low = { 60, 140 }, mid = { 180, 400 }, high = { 400, 900 }, top = { 700, 1600 }, SSS = { 1100, 2400 } },
+	super_lucky_block = { low = { 480, 1040 }, mid = { 960, 2080 }, high = { 1920, 4160 }, top = { 3200, 6800 }, SSS = { 4500, 9500 } },
+	godly_lucky_block = { low = { 2100, 4800 }, mid = { 2800, 6400 }, high = { 7200, 16000 }, top = { 9600, 22400 } },
+}
+
+local function amountRange(tbl, blockId, finalGrade)
+	local t = tbl[blockId] or tbl.lucky_block
+	return t[finalGrade or "F"] or t[bandOf(finalGrade)]
+end
+
+-- No pet tiers any more: pets come out of the mystery cases' packs. Kept as an
+-- empty table so the odds sheet's pet section has nothing to draw.
+MineLuckyBlocks.PET_TABLES = { default = {} }
+
+function MineLuckyBlocks.petTable(finalGrade)
+	return MineLuckyBlocks.PET_TABLES[finalGrade or ""] or MineLuckyBlocks.PET_TABLES.default
+end
+
+--[[
+	EXACT final-grade odds for a block starting at `startGrade`.
+
+	The same process MineToolGrades.rollClash runs on the server with
+	UPGRADE_P: each step climbs one rank with that rank's chance, a miss counts,
+	MISS_LIMIT misses or the top rank ends it. That is a small tree, so it is
+	walked exactly rather than simulated. Returns { [grade] = probability }.
+]]
+function MineLuckyBlocks.gradeOdds(startGrade)
+	local order = Grades.ORDER
+	local maxRank = #order
+	local missLimit = Grades.MISS_LIMIT or 3
+	local out = {}
+	for _, g in ipairs(order) do
+		out[g] = 0
+	end
+	local function walk(rank, misses, prob)
+		if rank >= maxRank or misses >= missLimit then
+			out[order[rank]] += prob
+			return
+		end
+		local p = Grades.upgradeChance(rank, MineLuckyBlocks.UPGRADE_P)
+		walk(rank + 1, misses, prob * p)
+		walk(rank, misses + 1, prob * (1 - p))
+	end
+	walk(math.clamp(Grades.rankOf(startGrade or "F"), 1, maxRank), 0, 1)
+	return out
+end
+
+--[[
+	Everything a player should see before buying: the final-grade odds and the
+	chance of each kind of reward. Both come from the tables rollLoot uses.
+]]
+function MineLuckyBlocks.oddsSheet(blockId, startGrade)
+	local grades = MineLuckyBlocks.gradeOdds(startGrade)
+	local kinds = {}
+	for grade, pg in pairs(grades) do
+		if pg > 0 then
+			local rows = MineLuckyBlocks.kindTable(blockId, grade)
+			local total = 0
+			for _, r in ipairs(rows) do
+				total += r[1]
+			end
+			for _, r in ipairs(rows) do
+				kinds[r[2]] = (kinds[r[2]] or 0) + pg * r[1] / total
+			end
+		end
+	end
+	return {
+		grades = grades,
+		kinds = kinds,
+		pets = {},
+		-- Godly blocks add a stardust kicker on EVERY open, on top of the roll.
+		bonusDust = blockId == "godly_lucky_block",
+	}
+end
+
+MineLuckyBlocks.KIND_NAMES = {
+	mystery = "A mystery case (spin for 3 packs)",
+	skincase = "A skin case (a skin, or a charm)",
+	gems = "Gems",
+	dust = "Stardust",
+}
 
 function MineLuckyBlocks.rollLoot(blockId, finalGrade, rng)
 	rng = rng or Random.new()
 	local def = MineLuckyBlocks.TYPES[blockId] or MineLuckyBlocks.TYPES.lucky_block
 	local band = bandOf(finalGrade)
-	local kind
-
-	if blockId == "lucky_block" then
-		if band == "low" then
-			kind = weighted(rng, { { 70, "pack" }, { 20, "gems" }, { 10, "dust" } })
-		elseif band == "mid" then
-			kind = weighted(rng, { { 62, "pack" }, { 23, "gems" }, { 15, "dust" } })
-		elseif band == "high" then
-			kind = weighted(rng, { { 52, "pack" }, { 24, "gems" }, { 19, "dust" }, { 5, "tool" } })
-		else
-			kind = weighted(rng, { { 48, "pack" }, { 22, "gems" }, { 20, "dust" }, { 10, "tool" }, { 2, "pet" } })
-		end
-	elseif blockId == "super_lucky_block" then
-		if band == "low" then
-			kind = weighted(rng, { { 48, "pack" }, { 18, "gems" }, { 18, "dust" }, { 16, "tool" } })
-		elseif band == "mid" then
-			kind = weighted(rng, { { 42, "pack" }, { 16, "gems" }, { 16, "dust" }, { 22, "tool" }, { 4, "scroll_white" } })
-		elseif band == "high" then
-			kind = weighted(rng, { { 36, "pack" }, { 14, "gems" }, { 16, "dust" }, { 26, "tool" }, { 8, "scroll_white" }, { 2, "pet" } })
-		elseif finalGrade == "SSS" then
-			kind = weighted(rng, { { 30, "pack" }, { 12, "gems" }, { 14, "dust" }, { 28, "tool" }, { 8, "scroll_black" }, { 8, "scroll_white" }, { 4, "pet" } })
-		else
-			kind = weighted(rng, { { 32, "pack" }, { 14, "gems" }, { 16, "dust" }, { 28, "tool" }, { 10, "scroll_white" } })
-		end
-	else
-		if band == "low" then
-			kind = weighted(rng, { { 40, "pack" }, { 12, "gems" }, { 14, "dust" }, { 30, "tool" }, { 4, "scroll_omni" } })
-		elseif band == "mid" then
-			kind = weighted(rng, { { 36, "pack" }, { 10, "gems" }, { 12, "dust" }, { 36, "tool" }, { 6, "scroll_omni" } })
-		elseif band == "high" then
-			kind = weighted(rng, { { 32, "pack" }, { 8, "gems" }, { 12, "dust" }, { 36, "tool" }, { 12, "scroll_omni" }, { 3, "pet" } })
-		elseif finalGrade == "SS" then
-			kind = weighted(rng, { { 26, "pack" }, { 8, "gems" }, { 16, "dust" }, { 40, "tool" }, { 10, "scroll_omni" }, { 5, "pet" } })
-		else
-			kind = weighted(rng, { { 22, "pack" }, { 8, "gems" }, { 18, "chase" }, { 40, "tool" }, { 12, "scroll_omni" }, { 8, "pet" } })
-		end
-	end
+	local kind = weighted(rng, MineLuckyBlocks.kindTable(blockId, finalGrade))
+	local key = MineLuckyBlocks.KIND_TABLES[blockId] and blockId or "godly_lucky_block"
 
 	local out = { blockId = blockId, blockName = def.name, finalGrade = finalGrade, kind = kind }
 
-	if kind == "pack" then
-		local zones, slot, qty
-		if blockId == "lucky_block" then
-			if band == "low" then
-				zones, slot = ZONE_LOW, (rng:NextNumber() < 0.9) and "pack_common" or "currency_common"
-				qty = 1
-			elseif band == "mid" then
-				zones, slot = ZONE_MID, (rng:NextNumber() < 0.55) and "pack_common" or "pack_rare"
-				qty = 1
-			elseif band == "high" then
-				zones, slot = ZONE_HIGH, (rng:NextNumber() < 0.55) and "pack_rare" or "pack_common"
-				qty = 2
-			elseif finalGrade == "SSS" then
-				zones, slot = ZONE_HIGH, (rng:NextNumber() < 0.7) and "pack_legendary" or "pack_rare"
-				qty = 3
-			else
-				zones, slot = ZONE_HIGH, (rng:NextNumber() < 0.55) and "pack_rare" or "pack_legendary"
-				qty = 2
-			end
-		elseif blockId == "super_lucky_block" then
-			if band == "low" then
-				zones, slot = ZONE_MID, (rng:NextNumber() < 0.65) and "pack_rare" or "pack_common"
-				qty = 2
-			elseif band == "mid" then
-				zones, slot = ZONE_HIGH, (rng:NextNumber() < 0.55) and "pack_rare" or "pack_legendary"
-				qty = 2
-			elseif band == "high" then
-				zones, slot = ZONE_TOP, (rng:NextNumber() < 0.55) and "pack_legendary" or "pack_rare"
-				qty = 3
-			else
-				zones, slot, qty = ZONE_TOP, "pack_legendary", 3
-			end
-		else
-			if band == "low" then
-				zones, slot = ZONE_HIGH, (rng:NextNumber() < 0.55) and "pack_legendary" or "pack_rare"
-				qty = 2
-			elseif band == "mid" then
-				zones, slot = ZONE_HIGH, (rng:NextNumber() < 0.7) and "pack_legendary" or "pack_rare"
-				qty = 3
-			elseif band == "high" then
-				zones, slot, qty = ZONE_TOP, "pack_legendary", 4
-			else
-				zones, slot, qty = ZONE_TOP, "pack_legendary", 5
-			end
-		end
-		out.packId = packId(pick(zones, rng), slot)
-		out.packQty = qty
+	if kind == "mystery" then
+		local cases = MineLuckyBlocks.MYSTERY_CASE[key]
+		out.caseId = cases[finalGrade or "F"] or cases.F
+		local qty = MineLuckyBlocks.MYSTERY_QTY[key]
+		out.caseQty = (qty and qty[finalGrade or ""]) or 1
+	elseif kind == "skincase" then
+		out.skinCaseTiers = MineLuckyBlocks.SKIN_CASE_TIERS[key][band]
 	elseif kind == "gems" then
-		local lo, hi
-		if blockId == "lucky_block" then
-			if band == "low" then lo, hi = 120, 320
-			elseif band == "mid" then lo, hi = 320, 800
-			elseif band == "high" then lo, hi = 700, 1600
-			elseif finalGrade == "SSS" then lo, hi = 1800, 3800
-			else lo, hi = 1200, 2600 end
-		elseif blockId == "super_lucky_block" then
-			if band == "low" then lo, hi = 800, 1920
-			elseif band == "mid" then lo, hi = 1760, 4160
-			elseif band == "high" then lo, hi = 3600, 8000
-			elseif finalGrade == "SSS" then lo, hi = 9600, 18000
-			else lo, hi = 7200, 14400 end
-		else
-			if band == "low" then lo, hi = 4200, 9600
-			elseif band == "mid" then lo, hi = 5600, 12800
-			elseif band == "high" then lo, hi = 12800, 28800
-			else lo, hi = 25600, 56000 end
-		end
-		out.gems = rangeAmount(rng, lo, hi)
+		local r = amountRange(MineLuckyBlocks.GEMS, key, finalGrade)
+		out.gems = rangeAmount(rng, r[1], r[2])
 	elseif kind == "dust" then
-		local lo, hi
-		if blockId == "lucky_block" then
-			if band == "low" then lo, hi = 60, 140
-			elseif band == "mid" then lo, hi = 180, 400
-			elseif band == "high" then lo, hi = 400, 900
-			elseif finalGrade == "SSS" then lo, hi = 1100, 2400
-			else lo, hi = 700, 1600 end
-		elseif blockId == "super_lucky_block" then
-			if band == "low" then lo, hi = 480, 1040
-			elseif band == "mid" then lo, hi = 960, 2080
-			elseif band == "high" then lo, hi = 1920, 4160
-			elseif finalGrade == "SSS" then lo, hi = 4500, 9500
-			else lo, hi = 3200, 6800 end
-		else
-			if band == "low" then lo, hi = 2100, 4800
-			elseif band == "mid" then lo, hi = 2800, 6400
-			elseif band == "high" then lo, hi = 7200, 16000
-			else lo, hi = 9600, 22400 end
-		end
-		out.dust = rangeAmount(rng, lo, hi)
-	elseif kind == "tool" then
-		local lo, hi
-		if blockId == "lucky_block" then
-			if finalGrade == "SSS" then lo, hi = 6, 8
-			elseif band == "top" then lo, hi = 4, 8
-			else lo, hi = 1, 4 end
-		elseif blockId == "super_lucky_block" then
-			if band == "low" then lo, hi = 8, 12
-			elseif band == "mid" then lo, hi = 12, 16
-			elseif band == "high" then lo, hi = 14, 18
-			else lo, hi = 16, 19 end
-		else
-			if band == "low" then lo, hi = 18, 19
-			elseif band == "mid" then lo, hi = 18, 20
-			else lo, hi = 19, 21 end
-		end
-		out.toolId = softToolId(rng, lo, hi)
-		out.toolFamily = "pickaxe"
-	elseif kind == "pet" then
-		--[[
-			A PET, AND ONLY A GOOD ONE.
-
-			Lucky blocks paid packs, gems, dust, tools and scrolls -- never a pet,
-			which is the thing the game is actually about. Added at the top bands
-			only and at small weight, so it stays an event rather than a drip.
-
-			Legendary is the FLOOR. A Common pet out of a Mythic block would read
-			as a miss, and the roster carries 118 pets at Legendary or better, so
-			there is plenty of room up here.
-		]]
-		--[[
-			TIER FOLLOWS THE GRADE.
-
-			A flat table meant an F block and an SSS block paid the same pet, which
-			makes grading up pointless on the one drop people care about most.
-
-			Divine and Exotic are deliberately tiny everywhere -- Exotic does not
-			exist at all below SS. Legendary is the bread and butter; Mythic is the
-			good day. The ceiling opens up as the grade climbs.
-		]]
-		local petTable
-		if finalGrade == "SSS" then
-			petTable = { { 600, "Legendary" }, { 300, "Mythic" }, { 80, "Divine" }, { 20, "Exotic" } }
-		elseif finalGrade == "SS" then
-			petTable = { { 720, "Legendary" }, { 230, "Mythic" }, { 45, "Divine" }, { 5, "Exotic" } }
-		elseif finalGrade == "S" then
-			petTable = { { 840, "Legendary" }, { 150, "Mythic" }, { 10, "Divine" } }
-		else
-			-- A and below: a Legendary is already the exception here.
-			petTable = { { 920, "Legendary" }, { 80, "Mythic" } }
-		end
-		out.petTier = weighted(rng, petTable)
-	elseif kind == "scroll_white" then
-		out.scrolls = { white = 1 }
-	elseif kind == "scroll_black" then
-		out.scrolls = { black = 1 }
-	elseif kind == "scroll_omni" then
-		out.scrolls = { omni = 1 }
-	elseif kind == "chase" then
-		out.kind = "dust"
-		out.dust = rangeAmount(rng, 14400, 32000)
+		local r = amountRange(MineLuckyBlocks.DUST, key, finalGrade)
+		out.dust = rangeAmount(rng, r[1], r[2])
 	end
 
 	if blockId == "godly_lucky_block" then
@@ -483,35 +454,18 @@ function MineLuckyBlocks.describeLoot(loot)
 		return "--"
 	end
 	local parts = {}
-	if loot.packId then
-		local q = math.max(1, math.floor(tonumber(loot.packQty) or 1))
-		local name = tostring(loot.packId):gsub("_", " ")
-		parts[#parts + 1] = (q > 1 and (q .. "× ") or "") .. "Pack: " .. name
+	if loot.caseId then
+		local q = math.max(1, math.floor(tonumber(loot.caseQty) or 1))
+		parts[#parts + 1] = (q > 1 and (q .. "× ") or "") .. tostring(loot.caseName or loot.caseId)
+	end
+	if loot.oreCaseName then
+		parts[#parts + 1] = tostring(loot.oreCaseName)
 	end
 	if loot.gems then
 		parts[#parts + 1] = loot.gems .. " Gems"
 	end
 	if loot.dust then
 		parts[#parts + 1] = loot.dust .. " Stardust"
-	end
-	if loot.toolId then
-		parts[#parts + 1] = "Tool: " .. tostring(loot.toolId):gsub("_", " ")
-	end
-	if type(loot.scrolls) == "table" then
-		local s = {}
-		for id, qty in pairs(loot.scrolls) do
-			s[#s + 1] = id .. " x" .. qty
-		end
-		table.sort(s)
-		if #s > 0 then
-			parts[#parts + 1] = table.concat(s, ", ")
-		end
-	end
-	if loot.petTier then
-		parts[#parts + 1] = tostring(loot.petTier) .. " Pet"
-	end
-	if loot.temperTokens then
-		parts[#parts + 1] = loot.temperTokens .. " Temper Tokens"
 	end
 	if #parts == 0 then
 		return loot.kind or "--"

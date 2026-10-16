@@ -113,13 +113,75 @@ function Ctx:round(size, cf, color, mat)
 	return meshed(self:box(size, cf, color, mat), Enum.MeshType.Head)
 end
 
--- Square pyramid: base at -Y, apex at +Y.
-function Ctx:cone(size, cf, color, mat)
-	return meshed(self:box(size, cf, color, mat), Enum.MeshType.Pyramid)
+--[[
+	POINTS THAT RENDER. Roblox no longer draws the old Pyramid and Prism
+	SpecialMesh types: a part meshed with either is simply invisible (seen in
+	Studio 2026-10-10, next to Wedge and CornerWedge, which do draw). Every
+	crystal, horn, quill, beak, fang, ear tip and witch hat built with these
+	helpers was missing from the game. They are now made of real wedge parts.
+
+	A CornerWedgePart's point stands over its (+X, -Z) corner. Turned a quarter
+	(which swaps its X and Z size), it points at another corner.
+]]
+local function corner(ctx, w, h, d, cf, turns, color, mat)
+	local swap = turns % 2 == 1
+	local size = swap and Vector3.new(d, h, w) or Vector3.new(w, h, d)
+	return ctx:raw("CornerWedgePart", size, cf * CFrame.Angles(0, turns * math.pi / 2, 0), color, mat)
 end
 
+-- Several parts answering as one, so a caller can still write
+-- `c:cone(...).Transparency = 0.5` or call a method on what it got back.
+local function group(parts)
+	return setmetatable({}, {
+		__index = function(_, k)
+			local v = parts[1][k]
+			if type(v) == "function" then
+				return function(_, ...)
+					local r
+					for _, p in ipairs(parts) do
+						r = p[k](p, ...)
+					end
+					return r
+				end
+			end
+			return v
+		end,
+		__newindex = function(_, k, v)
+			for _, p in ipairs(parts) do
+				p[k] = v
+			end
+		end,
+	})
+end
+
+-- Square pyramid: base at -Y, apex at +Y. A big one (a hat, a candy-corn tip)
+-- is four corner wedges meeting over the centre. A small one (a quill, a fang,
+-- a crystal point) is two, side by side, meeting over the middle of the back
+-- edge: just as pointed and left-right symmetric, at half the parts.
+function Ctx:cone(size, cf, color, mat)
+	local w, h, d = size.X, size.Y, size.Z
+	if math.min(w, d) >= 0.6 then
+		local parts = {}
+		for _, q in ipairs({ { -1, -1, 3 }, { 1, -1, 2 }, { -1, 1, 0 }, { 1, 1, 1 } }) do
+			local at = cf * CFrame.new(q[1] * w / 4, 0, q[2] * d / 4)
+			table.insert(parts, corner(self, w / 2, h, d / 2, at, q[3], color, mat))
+		end
+		return group(parts)
+	end
+	return group({
+		corner(self, w / 2, h, d, cf * CFrame.new(-w / 4, 0, 0), 0, color, mat),
+		corner(self, w / 2, h, d, cf * CFrame.new(w / 4, 0, 0), 1, color, mat),
+	})
+end
+
+-- Triangular prism: a ridge along X at the top, sloping to the front and back.
+-- Two wedges back to back (a WedgePart is tall at +Z and slopes down to -Z).
 function Ctx:prism(size, cf, color, mat)
-	return meshed(self:box(size, cf, color, mat), Enum.MeshType.Prism)
+	local half = Vector3.new(size.X, size.Y, size.Z / 2)
+	return group({
+		self:raw("WedgePart", half, cf * CFrame.new(0, 0, -size.Z / 4), color, mat),
+		self:raw("WedgePart", half, cf * CFrame.new(0, 0, size.Z / 4) * CFrame.Angles(0, math.pi, 0), color, mat),
+	})
 end
 
 -- A capsule spanning two points: legs, arms, antennae, tails. `caps` rounds both
@@ -703,39 +765,125 @@ local BONE = C3(244, 240, 230)
 --   mouth = false / mouthSize / mouthY / mouthColor
 --   legs  = false / legSize / legColor / legX / legY / legZ
 --   tail  = false / tailSize / tailColor
+--[[
+	BODY SHAPING PROFILES.
+
+	Each profile shrinks the core and fills the envelope back out with a few
+	rounded masses, so the outline stops being a box. Rows are fractions of the
+	envelope: { sizeX, sizeY, sizeZ, posX, posY, posZ, mirror }. `mirror` builds
+	the row at both +x and -x. posY is measured from the body centre at y = 0.06.
+
+	Fractions, not studs, so a species that overrides bodySize keeps its shape.
+]]
+local SHAPES = {
+	-- Four-legged: brow over the face, chest under it, a waist, round haunches.
+	quad = {
+		core = Vector3.new(0.80, 0.78, 0.86),
+		{ 0.78, 0.53, 0.69, 0.00, 0.20, 0.15 },
+		{ 0.71, 0.51, 0.61, 0.00, -0.22, 0.17 },
+		{ 0.64, 0.54, 0.76, 0.00, 0.21, -0.12 },
+		{ 0.26, 0.46, 0.56, 0.40, 0.06, 0.14, true },
+		{ 0.43, 0.69, 0.64, 0.31, -0.04, -0.22, true },
+	},
+	-- Upright: a deep breast carried forward, narrower crown, rump behind.
+	bird = {
+		core = Vector3.new(0.76, 0.80, 0.80),
+		{ 0.70, 0.50, 0.62, 0.00, 0.22, 0.10 },
+		{ 0.80, 0.62, 0.62, 0.00, -0.14, 0.20 },
+		{ 0.66, 0.50, 0.70, 0.00, 0.18, -0.16 },
+		{ 0.52, 0.46, 0.46, 0.00, -0.22, -0.30 },
+		{ 0.24, 0.56, 0.60, 0.38, 0.00, 0.02, true },
+	},
+	-- Blobs: dome over belly, no flat faces anywhere.
+	round = {
+		core = Vector3.new(0.84, 0.84, 0.84),
+		{ 0.80, 0.56, 0.80, 0.00, 0.20, 0.00 },
+		{ 0.86, 0.60, 0.82, 0.00, -0.20, 0.02 },
+		{ 0.62, 0.62, 0.44, 0.00, 0.00, 0.26 },
+		-- Rear. Every profile has to reach the back of the envelope: without
+		-- this one a dolphin's tail fin and a shark's dorsal, both placed on
+		-- the old rear face, hung off the end of the shrunken core.
+		{ 0.62, 0.62, 0.44, 0.00, 0.00, -0.26 },
+		{ 0.28, 0.62, 0.74, 0.38, 0.00, 0.00, true },
+	},
+}
+
 local function block(c, p, o)
 	o = o or {}
 	local size = o.bodySize or Vector3.new(2.02, 1.88, 1.80)
-	local body = (o.square and c.box or c.ovoid)(c, size, CFrame.new(0, 0.06, 0), o.bodyColor or p.base)
+	-- `size` stays the ENVELOPE either way, because the face, snout and legs are
+	-- all placed off it. With shaping on, the core shrinks inside that envelope
+	-- and the masses below fill it back out -- otherwise they hide within the
+	-- box and change nothing, which is exactly what the first attempt did.
+	local profile = o.shape and SHAPES[o.shape] or nil
+	local core = profile and (size * profile.core) or size
+	local body = (o.square and c.box or c.ovoid)(c, core, CFrame.new(0, 0.06, 0), o.bodyColor or p.base)
 	if o.bodyMat then
 		body.Material = o.bodyMat
 	end
 
+	--[[
+		BODY SHAPING.
+
+		One ovoid with a face on the front is a cube with nubs, and every
+		species built that way has the same outline as every other -- which is
+		what the owner was looking at. Outline is all you get at follow
+		distance, so the fix has to be mass, not markings.
+
+		Deliberately NOT a separate head volume. Species hardcode their face
+		details against this body (cat whiskers at z = 1.02, bunny teeth at
+		z = 1.00, fox cheek ruffs at y = -0.16); moving the face onto a head
+		would leave all of them behind on the chest, correct in isolation and
+		wrong on the model. Adding mass AROUND the existing face keeps every
+		one of those numbers true.
+
+		`shape = "quad"` gives the four-legged set a brow, cheeks, a chest and
+		haunches: a front-heavy head end, a waist, and a round rear.
+	]]
+	local bodyTop, bodyFz = 0.06 + size.Y * 0.5, size.Z * 0.5
+	c.headTop = nil
+	if profile then
+		local w, h, d, y0 = size.X, size.Y, size.Z, 0.06
+		local shade = o.shapeColor or o.bodyColor or p.base
+		for _, m in ipairs(profile) do
+			local sz = Vector3.new(w * m[1], h * m[2], d * m[3])
+			for _, s in ipairs(m[7] and { -1, 1 } or { 1 }) do
+				c:ovoid(sz, CFrame.new(w * m[4] * s, y0 + h * m[5], d * m[6]), shade)
+			end
+		end
+	end
+
 	-- `fz` is the FRONT SURFACE. Face pieces push outward from it, because on a
 	-- flat cube face anything centred inside the depth just disappears.
-	local fz = size.Z * 0.5
+	local fz = bodyFz
+	local faceY = 0
 	local ey, es = o.eyeY or 0.16, o.eyeSpread or 0.44
 	local esz = o.eyeSize or Vector3.new(0.56, 0.68, 0.22)
 	local eyeZ = fz + esz.Z * 0.5 - 0.07
 
-	-- Chest patch first so the face sits over it.
+	-- Chest patch first so the face sits over it. Always on the BODY front --
+	-- a bib belongs on the chest even when the face has moved up to a head.
 	if o.bib then
 		c:ovoid(
 			Vector3.new(o.bib.w or 0.90, o.bib.h or 0.80, 0.20),
-			CFrame.new(0, o.bib.y or -0.40, fz + 0.02),
+			CFrame.new(0, o.bib.y or -0.40, bodyFz + 0.02),
 			o.bib.color or p.pale
 		)
 	end
 
 	for _, s in ipairs({ -1, 1 }) do
-		c:round(esz, CFrame.new(es * s, ey, eyeZ), o.eyeColor or INK):SetAttribute("Eye", true)
+		c:round(esz, CFrame.new(es * s, faceY + ey, eyeZ), o.eyeColor or INK):SetAttribute("Eye", true)
 		c:round(
 			Vector3.new(esz.X * 0.34, esz.Y * 0.30, 0.12),
-			CFrame.new((es - esz.X * 0.17) * s, ey + esz.Y * 0.22, eyeZ + esz.Z * 0.5 - 0.02),
+			CFrame.new((es - esz.X * 0.17) * s, faceY + ey + esz.Y * 0.22, eyeZ + esz.Z * 0.5 - 0.02),
 			WHITE
 		):SetAttribute("Eye", true)
 		if o.brow then
-			c:ovoid(Vector3.new(esz.X * 1.1, 0.16, 0.18), CFrame.new(es * s, ey + esz.Y * 0.62, fz + 0.03), o.brow)
+			c:ovoid(
+				Vector3.new(esz.X * 1.1, 0.16, 0.18),
+				CFrame.new(es * s, faceY + ey + esz.Y * 0.62, fz + 0.03),
+				o.brow
+			)
 		end
 	end
 
@@ -743,7 +891,7 @@ local function block(c, p, o)
 	if o.snout then
 		local sn = o.snout
 		local sd = sn.d or 0.46
-		local sy = sn.y or -0.28
+		local sy = faceY + (sn.y or -0.28)
 		c:ovoid(
 			Vector3.new(sn.w or 0.72, sn.h or 0.52, sd),
 			CFrame.new(0, sy, fz + sd * 0.5 - 0.10),
@@ -756,7 +904,11 @@ local function block(c, p, o)
 		)
 	elseif o.mouth ~= false then
 		local msz = o.mouthSize or Vector3.new(0.30, 0.17, 0.14)
-		c:ovoid(msz, CFrame.new(0, o.mouthY or -0.36, fz + msz.Z * 0.5 - 0.05), o.mouthColor or C3(28, 25, 33))
+		c:ovoid(
+			msz,
+			CFrame.new(0, faceY + (o.mouthY or -0.36), fz + msz.Z * 0.5 - 0.05),
+			o.mouthColor or C3(28, 25, 33)
+		)
 	end
 
 	if o.legs ~= false then
@@ -775,25 +927,34 @@ local function block(c, p, o)
 	return size, fz, body
 end
 
+-- Ear positions were authored against the headless body, where the top of the
+-- block sat at y = 1.0 and the face was at z = 0. When block() built a head it
+-- recorded where that reference moved to, so the same numbers land on the head
+-- without every species having to restate them.
 local function ears(c, colour, kind, inner)
+	local d = c.headTop or Vector3.zero
+	local dy, dz = d.Y, d.Z
+	local function at(x, y, z)
+		return CFrame.new(x, y + dy, z + dz)
+	end
 	for _, s in ipairs({ -1, 1 }) do
 		if kind == "up" then
-			c:ovoid(Vector3.new(0.44, 0.62, 0.26), CFrame.new(0.54 * s, 1.14, 0.04) * CFrame.Angles(0, 0, -0.16 * s), colour)
+			c:ovoid(Vector3.new(0.44, 0.62, 0.26), at(0.54 * s, 1.14, 0.04) * CFrame.Angles(0, 0, -0.16 * s), colour)
 			if inner then
-				c:ovoid(Vector3.new(0.22, 0.34, 0.16), CFrame.new(0.54 * s, 1.10, 0.14) * CFrame.Angles(0, 0, -0.16 * s), inner)
+				c:ovoid(Vector3.new(0.22, 0.34, 0.16), at(0.54 * s, 1.10, 0.14) * CFrame.Angles(0, 0, -0.16 * s), inner)
 			end
 		elseif kind == "down" then
-			c:ovoid(Vector3.new(0.38, 0.86, 0.44), CFrame.new(1.16 * s, 0.30, 0.06) * CFrame.Angles(0, 0, -0.14 * s), colour)
+			c:ovoid(Vector3.new(0.38, 0.86, 0.44), at(1.16 * s, 0.30, 0.06) * CFrame.Angles(0, 0, -0.14 * s), colour)
 			if inner then
-				c:ovoid(Vector3.new(0.20, 0.52, 0.26), CFrame.new(1.28 * s, 0.30, 0.12) * CFrame.Angles(0, 0, -0.14 * s), inner)
+				c:ovoid(Vector3.new(0.20, 0.52, 0.26), at(1.28 * s, 0.30, 0.12) * CFrame.Angles(0, 0, -0.14 * s), inner)
 			end
 		elseif kind == "round" then
-			c:ovoid(Vector3.new(0.50, 0.48, 0.28), CFrame.new(0.62 * s, 1.04, 0), colour)
+			c:ovoid(Vector3.new(0.50, 0.48, 0.28), at(0.62 * s, 1.04, 0), colour)
 			if inner then
-				c:ovoid(Vector3.new(0.26, 0.26, 0.18), CFrame.new(0.62 * s, 1.04, 0.10), inner)
+				c:ovoid(Vector3.new(0.26, 0.26, 0.18), at(0.62 * s, 1.04, 0.10), inner)
 			end
 		elseif kind == "tuft" then
-			c:ovoid(Vector3.new(0.32, 0.50, 0.24), CFrame.new(0.64 * s, 1.10, 0) * CFrame.Angles(0, 0, -0.32 * s), colour)
+			c:ovoid(Vector3.new(0.32, 0.50, 0.24), at(0.64 * s, 1.10, 0) * CFrame.Angles(0, 0, -0.32 * s), colour)
 		end
 	end
 end
@@ -816,11 +977,18 @@ local function spots(c, colour, list, size)
 end
 
 -- Row of plates down the spine.
+-- Plates are made at least as deep as their spacing, so consecutive ones always
+-- touch. Every caller spaced them wider than they were (lizard 0.36 vs 0.24),
+-- which left a gap between each pair; it only SHOWS on the last plate, because
+-- the ones before it sit over the body and borrow its mass. Widening keeps the
+-- positions and the span exactly as authored.
 local function ridge(c, colour, count, y, z, dz, w)
+	local width = w or 0.30
+	local depth = math.max(width, (dz or 0) * 1.06)
 	for i = 1, count do
 		local t = (i - 1) / math.max(1, count - 1)
 		c:cone(
-			Vector3.new(w or 0.30, 0.34 - t * 0.12, w or 0.30),
+			Vector3.new(width, 0.34 - t * 0.12, depth),
 			CFrame.new(0, y - t * 0.34, z - (i - 1) * dz),
 			colour
 		)
@@ -835,6 +1003,7 @@ S.fox = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.62, h = 0.46, d = 0.56, color = p.pale },
 			bib = { w = 0.86, h = 0.60, y = -0.62, color = p.pale },
 			legColor = p.deep,
@@ -857,6 +1026,7 @@ S.hound = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.84, h = 0.58, d = 0.50, color = p.pale },
 			brow = p.dark,
 			legColor = p.pale,
@@ -878,6 +1048,7 @@ S.otter = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.68, h = 0.44, d = 0.42, color = p.pale },
 			bib = { w = 0.94, h = 0.72, y = -0.56, color = p.pale },
 			legSize = Vector3.new(0.56, 0.30, 0.60), legColor = p.dark,
@@ -902,6 +1073,7 @@ S.stag = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.62, h = 0.54, d = 0.50, color = p.dark },
 			bib = { w = 0.70, h = 0.54, y = -0.58, color = p.pale },
 			legSize = Vector3.new(0.34, 0.42, 0.38), legColor = C3(58, 44, 38),
@@ -931,6 +1103,7 @@ S.drake = {
 	back = CFrame.new(0, 0.20, -0.66),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.80, h = 0.50, d = 0.60, color = p.light, nose = p.deep },
 			brow = p.deep,
 			legColor = p.deep,
@@ -958,6 +1131,7 @@ S.wyrm = {
 	back = CFrame.new(0, 0.10, -0.70),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			legs = false, tail = false, mouthSize = Vector3.new(0.86, 0.22, 0.16),
 			brow = p.deep,
 		})
@@ -1004,6 +1178,7 @@ S.toad = {
 	back = CFrame.new(0, 0.10, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.16, 1.62, 1.86),
 			eyeY = 0.62, eyeSpread = 0.46, mouthY = -0.30, mouthSize = Vector3.new(1.06, 0.16, 0.16),
 			tail = false, legSize = Vector3.new(0.62, 0.34, 0.62), legY = -0.76, legX = 0.70,
@@ -1027,6 +1202,7 @@ S.crab = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.30, 1.52, 1.66),
 			eyeY = 0.30, eyeSpread = 0.48, mouthY = -0.36, mouthSize = Vector3.new(0.62, 0.14, 0.14),
 			tail = false, legSize = Vector3.new(0.30, 0.30, 0.42), legX = 0.98,
@@ -1053,6 +1229,7 @@ S.beetle = {
 	back = CFrame.new(0, 0.30, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodyColor = p.deep, tail = false, mouthSize = Vector3.new(0.44, 0.12, 0.14),
 			legSize = Vector3.new(0.28, 0.30, 0.40), legX = 0.92, legZ = { 0.44, 0, -0.44 },
 		})
@@ -1074,21 +1251,59 @@ S.moth = {
 	neck = CFrame.new(0, -0.30, 0.60),
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
-		block(c, p, { bodyColor = p.light, legs = false, tail = false, mouth = false })
+		--[[
+			The old moth was a body with two flat slabs stuck on the sides and a
+			wire antenna. At any angle but dead-on it read as sticks jammed into
+			a box, which is what the owner was seeing.
+
+			A wing is now a BLADE: overlapping panels from a broad root to a
+			narrow tip, each rotated a little further back, so the outline stays
+			a swept triangle from every angle instead of vanishing edge-on. The
+			abdomen tapers off behind the thorax so the body is not a single cube.
+		]]
+		block(c, p, {
+			bodySize = Vector3.new(1.62, 1.46, 1.52),
+			bodyColor = p.light, legs = false, tail = false, mouth = false,
+			eyeSpread = 0.38, eyeSize = Vector3.new(0.50, 0.60, 0.20),
+		})
+		-- Fuzzy thorax collar, then a two-segment abdomen trailing BEHIND. The
+		-- old one stacked downward and read as a beard under the face.
+		c:ovoid(Vector3.new(1.68, 0.60, 1.30), CFrame.new(0, 0.34, -0.22), p.pale)
+		c:ovoid(Vector3.new(1.08, 0.88, 0.94), CFrame.new(0, -0.32, -0.94), p.base)
+		c:ovoid(Vector3.new(0.78, 0.66, 0.62), CFrame.new(0, -0.46, -1.42), p.deep)
+
 		for _, s in ipairs({ -1, 1 }) do
-			c:ovoid(Vector3.new(1.50, 0.22, 1.28), CFrame.new(1.26 * s, 0.38, -0.06) * CFrame.Angles(0, 0, s * 0.30), p.base)
-			c:ovoid(Vector3.new(0.98, 0.20, 0.90), CFrame.new(1.00 * s, -0.44, -0.68) * CFrame.Angles(0, 0, s * 0.22), p.pale)
-			-- Eye-spots on the forewings: the moth tell.
-			c:ovoid(Vector3.new(0.42, 0.12, 0.42), CFrame.new(1.34 * s, 0.46, 0.04), p.glow, NEON)
-			c:ovoid(Vector3.new(0.20, 0.12, 0.20), CFrame.new(1.34 * s, 0.48, 0.04), p.deep)
-			-- Feathered antennae.
-			c:rod(Vector3.new(0.24 * s, 0.98, 0.42), Vector3.new(0.60 * s, 1.38, 0.14), 0.055, p.dark)
-			for f = 0, 2 do
-				c:ovoid(Vector3.new(0.16, 0.06, 0.06), CFrame.new((0.36 + f * 0.11) * s, 1.10 + f * 0.12, 0.34 - f * 0.08) * CFrame.Angles(0, 0, -0.7 * s), p.dark)
-			end
+			--[[
+				Wings RAISED into a V, not spread flat.
+
+				Flat wings are the whole problem. Thin horizontal panels on a
+				cube read as planks from the side and disappear entirely from
+				the front, which is why the old moth looked like sticks jammed
+				into a box. Held up the way a moth at rest holds them, the pair
+				makes a tall V that stays a clear shape from every angle, and
+				the wing's thin axis points sideways where nothing looks at it.
+			]]
+			c:ovoid(
+				Vector3.new(0.21, 1.66, 1.46),
+				CFrame.new(0.50 * s, 0.96, -0.14) * CFrame.Angles(0, -0.22 * s, -0.36 * s),
+				p.base
+			)
+			c:ovoid(
+				Vector3.new(0.18, 1.04, 0.98),
+				CFrame.new(0.58 * s, 0.06, -0.88) * CFrame.Angles(0, -0.34 * s, -0.28 * s),
+				p.pale
+			)
+			-- Eye-spot, sitting just proud of the wing's outer face.
+			c:ovoid(Vector3.new(0.15, 0.50, 0.50), CFrame.new(0.76 * s, 1.16, -0.12), p.glow, NEON)
+			c:ovoid(Vector3.new(0.16, 0.23, 0.23), CFrame.new(0.79 * s, 1.17, -0.12), p.deep)
+			-- Antenna: rooted at the front of the head and swept up and OUT, so
+			-- it clears the raised wings instead of cutting across the face.
+			c:ovoid(
+				Vector3.new(0.15, 0.14, 0.52),
+				CFrame.new(0.30 * s, 1.06, 0.56) * CFrame.Angles(-0.62, 0, -0.26 * s),
+				p.dark
+			)
 		end
-		-- Fuzzy collar ruff.
-		c:ovoid(Vector3.new(1.66, 0.44, 1.50), CFrame.new(0, 0.72, 0.02), p.pale)
 		c:light(p.glow, 1.6, 9)
 	end,
 }
@@ -1101,6 +1316,7 @@ S.hawk = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			mouth = false, brow = p.dark,
 			bib = { w = 0.94, h = 0.86, y = -0.44, color = p.pale },
 			legColor = C3(246, 190, 64), tailSize = Vector3.new(0.92, 0.26, 0.90),
@@ -1128,6 +1344,7 @@ S.owl = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			eyeSize = Vector3.new(0.50, 0.56, 0.20), eyeSpread = 0.44,
 			mouth = false, tail = false, legColor = C3(240, 186, 74),
 			bib = { w = 1.00, h = 0.90, y = -0.42, color = p.pale },
@@ -1156,6 +1373,7 @@ S.ray = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.06, 1.44, 1.90), eyeY = 0.24, eyeSpread = 0.44,
 			mouthY = -0.40, mouthSize = Vector3.new(0.66, 0.14, 0.14),
 			legs = false, tail = false,
@@ -1246,6 +1464,7 @@ S.pumpkin = {
 		-- Carved, not painted: dark sockets in the flesh, then the light sitting
 		-- inside them. Glow straight onto orange reads as nothing at all.
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.10, 1.94, 1.94),
 			eyeColor = socket, mouthColor = socket, mouthSize = Vector3.new(0.94, 0.28, 0.16),
 			legSize = Vector3.new(0.34, 0.34, 0.44), legColor = C3(96, 132, 60), tail = false,
@@ -1318,6 +1537,7 @@ S.skelehound = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			eyeColor = C3(126, 255, 156),
 			snout = { w = 0.78, h = 0.50, d = 0.54, color = p.pale, nose = C3(40, 38, 44) },
 			legColor = p.pale, tailColor = p.pale,
@@ -1358,6 +1578,307 @@ S.reaper = {
 	end,
 }
 
+--------------------------------------------------------------------------------
+-- HALLOWEEN 2026 BODIES (owner, 2026-10-10: "MAKE LIKE 10 HALLOWEEN MODELS").
+-- Holiday bodies are never in a zone pot or a random roll: only a "{Holiday}
+-- {year} Pack" may hand one out (MineZonePets.HOLIDAY). Same chassis rules as
+-- every other body: block() for the mass, features on the envelope.
+--------------------------------------------------------------------------------
+
+S.bat = {
+	label = "Bat",
+	season = "Halloween",
+	tint = C3(74, 58, 92),
+	names = { "Flitter", "Nightwing", "Fang", "Duskflap", "Vespertine", "Squeak", "Moonbat", "Echo" },
+	-- FIT_SIZE fits the widest dimension, and the wings are it: scaled back up so
+	-- the body reads the size of every other pet.
+	scale = 1.30,
+	head = CFrame.new(0, 1.04, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		block(c, p, {
+			shape = "round", bodySize = Vector3.new(1.84, 1.72, 1.66),
+			eyeColor = C3(255, 84, 120), mouth = false, tail = false,
+			legSize = Vector3.new(0.26, 0.26, 0.30), legX = 0.40, legZ = { 0.10 },
+		})
+		for _, s in ipairs({ -1, 1 }) do
+			-- Tall pointed ears with a pink inner.
+			c:cone(Vector3.new(0.46, 0.80, 0.30), CFrame.new(0.48 * s, 1.14, 0.04) * CFrame.Angles(0, 0, -0.22 * s), p.base)
+			c:cone(Vector3.new(0.24, 0.46, 0.14), CFrame.new(0.48 * s, 1.08, 0.18) * CFrame.Angles(0, 0, -0.22 * s), C3(226, 140, 172))
+			-- Two little fangs.
+			c:cone(Vector3.new(0.12, 0.22, 0.10), CFrame.new(0.15 * s, -0.40, 0.88) * CFrame.Angles(math.pi, 0, 0), WHITE)
+			-- Membrane wings: a bone along the top, two scalloped panels under it.
+			c:rod(Vector3.new(0.80 * s, 0.34, -0.12), Vector3.new(1.86 * s, 0.70, -0.18), 0.07, p.deep)
+			c:ovoid(Vector3.new(1.06, 0.80, 0.08), CFrame.new(1.30 * s, 0.26, -0.16) * CFrame.Angles(0, 0, 0.30 * s), p.dark)
+			c:ovoid(Vector3.new(0.66, 0.48, 0.08), CFrame.new(1.50 * s, -0.18, -0.16) * CFrame.Angles(0, 0, 0.42 * s), p.dark)
+		end
+		c:ovoid(Vector3.new(0.40, 0.08, 0.10), CFrame.new(0, -0.30, 0.89), INK)
+	end,
+}
+
+S.mummy = {
+	label = "Mummy",
+	season = "Halloween",
+	tint = C3(208, 196, 164),
+	names = { "Wrappy", "Tutt", "Gauze", "Pharaoh", "Linen", "Dustwrap", "Sphinxie", "Rattlewrap" },
+	head = CFrame.new(0, 1.04, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		block(c, p, { eyeColor = C3(255, 214, 90), mouth = false, tail = false, legColor = p.dark })
+		local wrap = p.pale
+		-- Bandages wound round the block, alternately tilted, leaving the eyes clear.
+		for i, y in ipairs({ 0.74, -0.20, -0.58 }) do
+			c:ovoid(Vector3.new(2.10, 0.18, 1.88), CFrame.new(0, y, 0) * CFrame.Angles(0, 0, (i % 2 == 0) and 0.10 or -0.10), wrap)
+		end
+		-- One strip slips across the right eye; one end dangles loose.
+		c:ovoid(Vector3.new(0.98, 0.22, 0.10), CFrame.new(0.40, 0.20, 0.94) * CFrame.Angles(0, 0, 0.45), wrap)
+		c:ovoid(Vector3.new(0.18, 0.72, 0.08), CFrame.new(-0.72, -0.86, 0.92) * CFrame.Angles(0, 0, 0.22), wrap)
+		c:light(C3(255, 214, 90), 1.2, 7)
+	end,
+}
+
+S.zombie = {
+	label = "Zombie",
+	season = "Halloween",
+	tint = C3(128, 178, 110),
+	names = { "Shamble", "Groan", "Stitchy", "Mossbite", "Brainsy", "Lurch", "Ghoulie", "Rotgut" },
+	head = CFrame.new(0, 1.04, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		block(c, p, {
+			eyeColor = C3(214, 255, 120), mouthSize = Vector3.new(0.62, 0.22, 0.14), mouthY = -0.30,
+			legColor = C3(70, 88, 140), tail = false,
+		})
+		-- Torn shirt round the belly, and two arms reaching out in front.
+		c:ovoid(Vector3.new(2.06, 0.44, 1.84), CFrame.new(0, -0.62, 0), C3(96, 120, 170))
+		for _, s in ipairs({ -1, 1 }) do
+			c:rod(Vector3.new(0.86 * s, -0.10, 0.40), Vector3.new(0.80 * s, 0.02, 1.46), 0.18, p.base)
+			c:ovoid(Vector3.new(0.34, 0.30, 0.30), CFrame.new(0.80 * s, 0.02, 1.58), p.dark)
+		end
+		-- Two teeth, and stitches across the brow.
+		for _, x in ipairs({ -0.12, 0.12 }) do
+			c:box(Vector3.new(0.12, 0.12, 0.06), CFrame.new(x, -0.24, 0.98), WHITE)
+		end
+		c:ovoid(Vector3.new(0.86, 0.06, 0.06), CFrame.new(-0.10, 0.74, 0.92), INK)
+		for i = -2, 2 do
+			c:ovoid(Vector3.new(0.05, 0.20, 0.06), CFrame.new(-0.10 + i * 0.18, 0.74, 0.93), INK)
+		end
+	end,
+}
+
+S.vampire = {
+	label = "Vampire",
+	season = "Halloween",
+	tint = C3(214, 208, 228),
+	names = { "Vlad", "Nocturne", "Crimson", "Countess", "Batrick", "Velvet", "Draculette", "Duskfang" },
+	head = CFrame.new(0, 1.10, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		local cape, lining = C3(28, 24, 34), C3(170, 24, 48)
+		block(c, p, {
+			eyeColor = C3(220, 30, 60), mouthSize = Vector3.new(0.40, 0.10, 0.12), mouthY = -0.32,
+			legColor = cape, tail = false,
+		})
+		-- Slicked hair cap with a widow's peak.
+		c:ovoid(Vector3.new(2.06, 0.28, 1.86), CFrame.new(0, 0.94, -0.02), cape)
+		c:cone(Vector3.new(0.42, 0.34, 0.20), CFrame.new(0, 0.72, 0.88) * CFrame.Angles(math.pi, 0, 0), cape)
+		for _, s in ipairs({ -1, 1 }) do
+			c:cone(Vector3.new(0.12, 0.22, 0.10), CFrame.new(0.13 * s, -0.46, 0.92) * CFrame.Angles(math.pi, 0, 0), WHITE)
+			-- The high collar: red lining inside a black flare, standing behind the head.
+			c:ovoid(Vector3.new(0.70, 1.20, 0.10), CFrame.new(0.74 * s, 0.86, -0.66) * CFrame.Angles(0.30, 0, -0.32 * s), lining)
+			c:ovoid(Vector3.new(0.76, 1.28, 0.08), CFrame.new(0.78 * s, 0.88, -0.74) * CFrame.Angles(0.30, 0, -0.32 * s), cape)
+		end
+		-- The cape falling down the back.
+		c:ovoid(Vector3.new(2.30, 1.76, 0.14), CFrame.new(0, -0.10, -0.98), cape)
+	end,
+}
+
+S.cauldron = {
+	label = "Cauldron",
+	season = "Halloween",
+	tint = C3(60, 56, 72),
+	names = { "Bubbles", "Brewster", "Stew", "Hexpot", "Simmer", "Gloop", "Potion", "Toil" },
+	head = CFrame.new(0, 1.26, 0.06),
+	neck = CFrame.new(0, -0.30, 0.66),
+	back = CFrame.new(0, 0.20, -0.66),
+	build = function(c, p)
+		local goo = C3(116, 255, 120)
+		block(c, p, {
+			shape = "round", bodySize = Vector3.new(2.10, 1.72, 2.06),
+			eyeColor = INK, mouthSize = Vector3.new(0.56, 0.20, 0.14),
+			legs = false, tail = false,
+		})
+		-- Iron rim, a glowing brew inside it, and bubbles breaking the surface.
+		c:box(Vector3.new(2.30, 0.24, 2.26), CFrame.new(0, 0.96, 0), p.dark, METAL)
+		c:box(Vector3.new(1.90, 0.14, 1.86), CFrame.new(0, 1.04, 0), goo, NEON)
+		for _, b in ipairs({ { 0.42, 1.22, 0.20, 0.34 }, { -0.36, 1.18, -0.30, 0.26 }, { -0.10, 1.30, 0.42, 0.20 } }) do
+			c:ball(Vector3.new(b[4], b[4], b[4]), CFrame.new(b[1], b[2], b[3]), goo, NEON)
+		end
+		-- Three stubby iron feet.
+		for i = 0, 2 do
+			local a = i * math.pi * 2 / 3 + math.pi / 6
+			c:box(Vector3.new(0.32, 0.36, 0.32), CFrame.new(math.cos(a) * 0.70, -0.92, math.sin(a) * 0.70), p.deep, METAL)
+		end
+		c:light(goo, 2.2, 9)
+	end,
+}
+
+S.candycorn = {
+	label = "Candy Corn",
+	season = "Halloween",
+	tint = C3(255, 140, 30),
+	names = { "Kernel", "Tricolor", "Sweetcorn", "Treat", "Sugarcone", "Nibs", "Triangle", "Cornsy" },
+	head = CFrame.new(0, 1.62, 0.04),
+	neck = CFrame.new(0, -0.10, 0.70),
+	back = CFrame.new(0, 0.10, -0.70),
+	build = function(c, p)
+		-- Three bands, wide to narrow: yellow foot, orange middle, white tip.
+		c:box(Vector3.new(2.00, 0.80, 1.80), CFrame.new(0, -0.50, 0), C3(255, 212, 64))
+		c:box(Vector3.new(1.60, 0.80, 1.44), CFrame.new(0, 0.30, 0), p.base)
+		c:cone(Vector3.new(1.24, 0.96, 1.10), CFrame.new(0, 1.18, 0), C3(250, 238, 214))
+		-- The face sits on the orange band.
+		c:eyes(0.40, 0.74, 0.32, 0.15)
+		c:ovoid(Vector3.new(0.40, 0.10, 0.10), CFrame.new(0, 0.10, 0.74), INK)
+		for _, s in ipairs({ -1, 1 }) do
+			c:ovoid(Vector3.new(0.20, 0.12, 0.06), CFrame.new(0.52 * s, 0.20, 0.73), C3(255, 150, 170))
+			c:box(Vector3.new(0.34, 0.20, 0.40), CFrame.new(0.50 * s, -0.98, 0.10), C3(214, 170, 40))
+		end
+	end,
+}
+
+S.scarecrow = {
+	label = "Scarecrow",
+	season = "Halloween",
+	tint = C3(196, 164, 112),
+	names = { "Strawman", "Patches", "Crowscare", "Burlap", "Haybale", "Stitch", "Fieldy", "Thatch" },
+	head = CFrame.new(0, 1.62, 0.04),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		local straw, hat = C3(236, 200, 90), C3(120, 86, 50)
+		block(c, p, {
+			eyeColor = INK, eyeSize = Vector3.new(0.34, 0.34, 0.16), mouth = false,
+			legColor = C3(92, 76, 120), tail = false,
+		})
+		-- A stitched grin.
+		c:ovoid(Vector3.new(0.92, 0.08, 0.08), CFrame.new(0, -0.32, 0.92), INK)
+		for i = -2, 2 do
+			c:ovoid(Vector3.new(0.05, 0.20, 0.06), CFrame.new(i * 0.20, -0.32, 0.93), INK)
+		end
+		-- Floppy hat: wide brim, slumped crown, red band.
+		c:box(Vector3.new(2.40, 0.10, 2.20), CFrame.new(0, 1.02, 0), hat)
+		c:cone(Vector3.new(1.30, 0.90, 1.20), CFrame.new(0.06, 1.48, -0.04) * CFrame.Angles(0, 0, 0.12), hat)
+		c:box(Vector3.new(1.32, 0.14, 1.22), CFrame.new(0, 1.12, -0.04), C3(170, 60, 50))
+		-- Straw poking out at the sides, and a patch on the burlap.
+		for _, s in ipairs({ -1, 1 }) do
+			for _, y in ipairs({ 0.10, -0.24 }) do
+				c:cone(Vector3.new(0.18, 0.52, 0.18), CFrame.new(1.06 * s, y, 0.20) * CFrame.Angles(0, 0, -1.30 * s), straw)
+			end
+		end
+		c:box(Vector3.new(0.40, 0.40, 0.06), CFrame.new(-0.52, -0.54, 0.92), C3(120, 140, 190))
+	end,
+}
+
+S.lantern = {
+	label = "Haunted Lantern",
+	season = "Halloween",
+	tint = C3(64, 60, 76),
+	names = { "Wick", "Glimmer", "Hauntlight", "Ember", "Flickers", "Lamplight", "Will", "Glow" },
+	-- Its roof and handle make it the tallest body, which FIT_SIZE shrinks.
+	scale = 1.18,
+	head = CFrame.new(0, 1.78, 0.04),
+	neck = CFrame.new(0, -0.30, 0.86),
+	back = CFrame.new(0, 0.20, -0.86),
+	build = function(c, p)
+		local flame = C3(255, 160, 50)
+		-- A lit glass body inside an iron frame.
+		local glass = c:box(Vector3.new(1.56, 1.56, 1.44), CFrame.new(0, 0.05, 0), C3(255, 196, 96), GLASS)
+		glass.Transparency = 0.25
+		c:ball(Vector3.new(0.90, 1.10, 0.90), CFrame.new(0, -0.05, 0), flame, NEON)
+		for _, s in ipairs({ -1, 1 }) do
+			for _, t in ipairs({ -1, 1 }) do
+				c:rod(Vector3.new(0.80 * s, -0.80, 0.74 * t), Vector3.new(0.80 * s, 0.90, 0.74 * t), 0.08, p.dark, METAL, false)
+			end
+		end
+		c:box(Vector3.new(1.90, 0.24, 1.80), CFrame.new(0, 0.98, 0), p.dark, METAL)
+		c:box(Vector3.new(1.90, 0.24, 1.80), CFrame.new(0, -0.86, 0), p.dark, METAL)
+		c:cone(Vector3.new(1.40, 0.50, 1.30), CFrame.new(0, 1.34, 0), p.dark, METAL)
+		-- A ring handle, and a ghostly face looking out of the glass.
+		c:rod(Vector3.new(-0.36, 1.46, 0), Vector3.new(0, 1.68, 0), 0.06, p.deep, METAL)
+		c:rod(Vector3.new(0, 1.68, 0), Vector3.new(0.36, 1.46, 0), 0.06, p.deep, METAL)
+		for _, s in ipairs({ -1, 1 }) do
+			c:round(Vector3.new(0.32, 0.42, 0.08), CFrame.new(0.34 * s, 0.24, 0.76), INK):SetAttribute("Eye", true)
+		end
+		c:ovoid(Vector3.new(0.44, 0.22, 0.08), CFrame.new(0, -0.20, 0.76), INK)
+		c:light(flame, 3.0, 12)
+	end,
+}
+
+S.frankenstein = {
+	label = "Frankenstein",
+	season = "Halloween",
+	tint = C3(128, 172, 104),
+	names = { "Franky", "Bolts", "Sparky", "Stitches", "Igor", "Voltage", "Lumber", "Monty" },
+	head = CFrame.new(0, 1.14, 0.06),
+	neck = CFrame.new(0, -0.30, 0.62),
+	back = CFrame.new(0, 0.20, -0.62),
+	build = function(c, p)
+		local hair = C3(30, 32, 30)
+		block(c, p, {
+			square = true, eyeColor = INK, eyeSize = Vector3.new(0.40, 0.44, 0.18),
+			mouthSize = Vector3.new(0.62, 0.12, 0.12), brow = hair,
+			legColor = C3(46, 42, 52), tail = false,
+		})
+		-- The flat top, with a ragged fringe over the brow.
+		c:box(Vector3.new(2.06, 0.34, 1.84), CFrame.new(0, 0.96, 0), hair)
+		for i = -1, 1 do
+			c:box(Vector3.new(0.40, 0.20, 0.12), CFrame.new(i * 0.56, 0.74, 0.90), hair)
+		end
+		-- Neck bolts, and a stitched scar.
+		for _, s in ipairs({ -1, 1 }) do
+			c:cyl(Vector3.new(0.30, 0.22, 0.22), CFrame.new(1.12 * s, -0.10, 0), C3(170, 176, 186), METAL)
+			c:box(Vector3.new(0.10, 0.32, 0.32), CFrame.new(1.28 * s, -0.10, 0), C3(140, 146, 156), METAL)
+		end
+		c:ovoid(Vector3.new(0.70, 0.06, 0.06), CFrame.new(-0.36, 0.48, 0.92) * CFrame.Angles(0, 0, 0.3), INK)
+		for i = -1, 1 do
+			c:ovoid(Vector3.new(0.05, 0.18, 0.06), CFrame.new(-0.36 + i * 0.20, 0.48 + i * 0.06, 0.93), INK)
+		end
+	end,
+}
+
+S.eyeball = {
+	label = "Eyeball",
+	season = "Halloween",
+	tint = C3(244, 240, 234),
+	names = { "Peeper", "Iris", "Gazer", "Blinky", "Optic", "Lookout", "Stare", "Winky" },
+	head = CFrame.new(0, 1.18, 0.06),
+	neck = CFrame.new(0, -0.30, 0.66),
+	back = CFrame.new(0, 0.20, -0.66),
+	build = function(c, p)
+		-- One big round eye: the white, an iris, a pupil and a glint.
+		c:round(Vector3.new(2.00, 2.00, 2.00), CFrame.new(0, 0.12, 0), p.base)
+		c:round(Vector3.new(1.04, 1.04, 0.26), CFrame.new(0, 0.18, 0.96), C3(80, 160, 255)):SetAttribute("Eye", true)
+		c:round(Vector3.new(0.52, 0.52, 0.20), CFrame.new(0, 0.18, 1.06), INK):SetAttribute("Eye", true)
+		c:round(Vector3.new(0.18, 0.18, 0.08), CFrame.new(0.18, 0.36, 1.14), WHITE):SetAttribute("Eye", true)
+		-- Red veins creeping in from the edge.
+		local vein = C3(220, 60, 70)
+		for _, v in ipairs({
+			{ -0.92, 0.62, 0.36, -0.52, 0.42, 0.84 }, { 0.94, 0.50, 0.30, 0.56, 0.36, 0.82 },
+			{ -0.86, -0.36, 0.42, -0.48, -0.16, 0.86 }, { 0.84, -0.42, 0.44, 0.50, -0.20, 0.86 },
+		}) do
+			c:rod(Vector3.new(v[1], v[2], v[3]), Vector3.new(v[4], v[5], v[6]), 0.03, vein, nil, false)
+		end
+		-- Three little tentacle feet.
+		for _, x in ipairs({ -0.50, 0, 0.50 }) do
+			c:cone(Vector3.new(0.30, 0.50, 0.30), CFrame.new(x, -0.98, 0.10) * CFrame.Angles(math.pi, 0, 0), C3(200, 90, 110))
+		end
+	end,
+}
+
 S.reindeer = {
 	label = "Reindeer",
 	season = "Christmas",
@@ -1368,6 +1889,7 @@ S.reindeer = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.66, h = 0.52, d = 0.52, color = p.dark, nose = C3(255, 62, 64) },
 			bib = { w = 0.72, h = 0.52, y = -0.60, color = p.pale },
 			legColor = C3(62, 46, 40),
@@ -1442,7 +1964,9 @@ S.gingerbread = {
 
 S.penguin = {
 	label = "Penguin",
-	season = "Christmas",
+	-- No season tag (2026-10-10): a penguin is an everyday animal, worn by ordinary
+	-- pets in the zone pots. A season tag makes a body a HOLIDAY body, and holiday
+	-- bodies are kept out of the game except through a holiday pack.
 	tint = C3(48, 54, 74),
 	names = { "Waddle", "Tux", "Iceberg", "Flipper", "Shuffle", "Krill", "Pebblebeak", "Blizzard" },
 	head = CFrame.new(0, 1.06, 0.06),
@@ -1450,6 +1974,7 @@ S.penguin = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			mouth = false, tail = false,
 			legSize = Vector3.new(0.56, 0.24, 0.66), legY = -0.94, legColor = C3(246, 176, 60),
 			legZ = { 0.24 },
@@ -1504,6 +2029,7 @@ S.cat = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.56, h = 0.38, d = 0.44, color = p.pale },
 			tailSize = Vector3.new(0.32, 0.32, 0.44), tailColor = p.base,
 		})
@@ -1527,6 +2053,7 @@ S.bunny = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.50, h = 0.34, d = 0.36, color = p.pale, nose = C3(234, 156, 168) },
 			bib = { w = 0.80, h = 0.56, y = -0.62, color = p.pale },
 			legSize = Vector3.new(0.44, 0.34, 0.62), legZ = { 0.40, -0.46 },
@@ -1552,6 +2079,7 @@ S.bear = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.14, 1.96, 1.88),
 			snout = { w = 0.80, h = 0.56, d = 0.48, color = p.pale },
 			legSize = Vector3.new(0.56, 0.42, 0.60), legX = 0.62,
@@ -1574,6 +2102,7 @@ S.wolf = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.62, h = 0.48, d = 0.66, color = p.pale },
 			brow = p.deep,
 			bib = { w = 0.78, h = 0.62, y = -0.58, color = p.pale },
@@ -1597,6 +2126,7 @@ S.bigcat = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.16, 1.92, 1.86),
 			snout = { w = 0.72, h = 0.44, d = 0.48, color = p.pale },
 			legSize = Vector3.new(0.52, 0.40, 0.58), legX = 0.62,
@@ -1620,6 +2150,7 @@ S.mouse = {
 	back = CFrame.new(0, 0.20, -0.58),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(1.86, 1.76, 1.70),
 			snout = { w = 0.44, h = 0.34, d = 0.52, color = p.pale, nose = C3(234, 150, 164) },
 			legSize = Vector3.new(0.34, 0.30, 0.42),
@@ -1642,6 +2173,7 @@ S.bird = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			bodySize = Vector3.new(1.84, 1.80, 1.72),
 			mouth = false,
 			bib = { w = 0.88, h = 0.76, y = -0.42, color = p.pale },
@@ -1666,6 +2198,7 @@ S.duck = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "bird",
 			bodySize = Vector3.new(1.96, 1.72, 1.84),
 			mouth = false,
 			legColor = C3(246, 168, 48), legSize = Vector3.new(0.52, 0.20, 0.64), legZ = { 0.24 },
@@ -1688,6 +2221,7 @@ S.horse = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			snout = { w = 0.62, h = 0.66, d = 0.66, color = p.light },
 			legSize = Vector3.new(0.36, 0.48, 0.40), legColor = p.deep,
 			tailSize = Vector3.new(0.36, 0.72, 0.40), tailColor = p.light,
@@ -1708,6 +2242,7 @@ S.pig = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.14, 1.82, 1.90),
 			mouth = false,
 			legSize = Vector3.new(0.44, 0.36, 0.48), legX = 0.62,
@@ -1731,6 +2266,7 @@ S.sheep = {
 	build = function(c, p)
 		-- Dark face poking out of a pale fleece: the sheep silhouette.
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.10, 1.88, 1.86), bodyColor = p.pale,
 			snout = { w = 0.66, h = 0.50, d = 0.46, color = p.dark, nose = C3(40, 36, 44) },
 			legSize = Vector3.new(0.32, 0.44, 0.36), legColor = p.dark,
@@ -1755,6 +2291,7 @@ S.turtle = {
 	back = CFrame.new(0, 0.30, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.16, 1.36, 1.90), bodyColor = p.dark,
 			snout = { w = 0.54, h = 0.36, d = 0.40, color = p.light },
 			legSize = Vector3.new(0.50, 0.28, 0.56), legX = 0.72, legY = -0.74,
@@ -1776,6 +2313,7 @@ S.fish = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(1.70, 1.80, 2.00),
 			mouthY = -0.42, mouthSize = Vector3.new(0.40, 0.26, 0.16),
 			legs = false, tail = false,
@@ -1797,6 +2335,7 @@ S.dolphin = {
 	back = CFrame.new(0, 0.30, -0.60),
 	build = function(c, p)
 		block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(1.72, 1.60, 2.10),
 			snout = { w = 0.44, h = 0.32, d = 0.76, color = p.light, nose = p.deep },
 			bib = { w = 0.84, h = 0.70, y = -0.48, color = p.pale },
@@ -1818,6 +2357,7 @@ S.lizard = {
 	back = CFrame.new(0, 0.20, -0.62),
 	build = function(c, p)
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(2.02, 1.62, 1.90),
 			mouthY = -0.40, mouthSize = Vector3.new(0.94, 0.16, 0.16),
 			legSize = Vector3.new(0.48, 0.28, 0.44), legX = 0.78, legY = -0.78,
@@ -1839,6 +2379,7 @@ S.slime = {
 	back = CFrame.new(0, 0.20, -0.60),
 	build = function(c, p)
 		local _, _, body = block(c, p, {
+			shape = "round",
 			bodySize = Vector3.new(2.16, 1.66, 2.00),
 			mouthY = -0.42, mouthSize = Vector3.new(0.52, 0.22, 0.16),
 			legs = false, tail = false,
@@ -1867,6 +2408,7 @@ S.critter = {
 	build = function(c, p)
 		-- The catch-all small mammal: raccoon, ferret, quokka, opossum, sloth.
 		block(c, p, {
+			shape = "quad",
 			bodySize = Vector3.new(1.96, 1.82, 1.78),
 			snout = { w = 0.54, h = 0.40, d = 0.54, color = p.pale },
 			bib = { w = 0.82, h = 0.60, y = -0.58, color = p.pale },
@@ -1905,20 +2447,68 @@ S.matterbox = {
 	end,
 }
 
+--[[
+	SET BODIES (2026-10-10: the 19 exclusive sets, about 5 new bodies each).
+
+	Each set's bodies live in their own module, PetBodies/<Set>.luau, so a set
+	can be built without touching this file. A module returns
+	function(K) -> { [speciesId] = def }, where K is this kit: the same
+	chassis (block), helpers and colours every body above uses. An id already
+	taken here is never overwritten.
+]]
+PetModelFactory.KIT = {
+	C3 = C3, PLASTIC = PLASTIC, METAL = METAL, NEON = NEON, GLASS = GLASS, SLATE = SLATE, WOOD = WOOD,
+	INK = INK, WHITE = WHITE, NOSE = NOSE, SHAPES = SHAPES,
+	block = block, ears = ears, wings = wings, spots = spots, ridge = ridge,
+}
+do
+	local folder = script.Parent:FindFirstChild("PetBodies")
+	if folder then
+		for _, mod in ipairs(folder:GetChildren()) do
+			if mod:IsA("ModuleScript") then
+				local ok, defs = pcall(function()
+					return require(mod)(PetModelFactory.KIT)
+				end)
+				if ok and type(defs) == "table" then
+					for id, def in pairs(defs) do
+						if S[id] == nil then
+							S[id] = def
+						end
+					end
+				else
+					warn("[PetModelFactory] PetBodies/" .. mod.Name .. ": " .. tostring(defs))
+				end
+			end
+		end
+	end
+end
+
+-- Every Halloween body (season = "Halloween"), sorted: the pet display draws
+-- them as their own block (PetShowcaseBuilder). Holiday bodies are in no zone
+-- pot and no random roll; only a "{Holiday} {year} Pack" may hand one out.
+PetModelFactory.HALLOWEEN = {}
+for id, def in pairs(PetModelFactory.SPECIES) do
+	if def.season == "Halloween" then
+		table.insert(PetModelFactory.HALLOWEEN, id)
+	end
+end
+table.sort(PetModelFactory.HALLOWEEN)
+
 --------------------------------------------------------------------------------
 -- ANIMALS
 --
--- GENERATED from the design roster (roster/genmap.js). Every animal in the pet
--- list resolves to an archetype body plus a skin, because 228 animals is far
--- too many to sculpt individually: "Tuxedo Cat" and "Ginger Cat" are the same
--- cat shape in different paint.
+-- Every animal resolves to an archetype body plus a skin, because hundreds of
+-- animals is far too many to sculpt individually: "Tuxedo Cat" and "Ginger Cat"
+-- are the same cat shape in different paint.
 --
--- Hand-edit freely -- adding a row here overrides the generated mapping, and a
--- new species in SPECIES can be pointed at from any row.
+-- Hand-maintained (its original generator, roster/genmap.js, was never in the
+-- repo). The zone pets' skins are NOT here: they live in
+-- MineZonePets.ANIMALS (tools/gen/zone-pets.js) and are merged in just below.
+-- A row here always wins over a merged one.
 --------------------------------------------------------------------------------
 
 PetModelFactory.ANIMALS = {
-	["Alien"] = { species = "sprite", tint = Color3.fromRGB(180, 200, 255) },
+	["Alien"] = { species = "sprite", tint = Color3.fromRGB(150, 230, 170) },
 	["Alpaca"] = { species = "sheep", tint = Color3.fromRGB(238, 226, 206) },
 	["Angel Cat"] = { species = "cat", tint = Color3.fromRGB(226, 232, 250), transparency = 0.2, glow = Color3.fromRGB(200, 210, 255) },
 	["Arctic Fox"] = { species = "fox", tint = Color3.fromRGB(242, 246, 252) },
@@ -1926,8 +2516,8 @@ PetModelFactory.ANIMALS = {
 	["Astronaut Dog"] = { species = "hound", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255), detail = { "helmet" } },
 	["Axolotl"] = { species = "toad", tint = Color3.fromRGB(248, 172, 196) },
 	["Baby Alligator"] = { species = "lizard", tint = Color3.fromRGB(104, 138, 82), detail = { "scales", "jaws" } },
-	["Baby Elephant"] = { species = "pig", tint = Color3.fromRGB(242, 168, 178) },
-	["Baby Hippo"] = { species = "pig", tint = Color3.fromRGB(242, 168, 178) },
+	["Baby Elephant"] = { species = "pig", tint = Color3.fromRGB(170, 174, 186) },
+	["Baby Hippo"] = { species = "pig", tint = Color3.fromRGB(160, 146, 170) },
 	["Bat"] = { species = "moth", tint = Color3.fromRGB(188, 168, 220) },
 	["Beagle"] = { species = "hound", tint = Color3.fromRGB(214, 174, 128) },
 	["Bear"] = { species = "bear", tint = Color3.fromRGB(140, 100, 68) },
@@ -1942,11 +2532,11 @@ PetModelFactory.ANIMALS = {
 	["Blue Jay"] = { species = "bird", tint = Color3.fromRGB(70, 150, 250) },
 	["Blue Shark"] = { species = "dolphin", tint = Color3.fromRGB(70, 150, 250) },
 	["Bread Dog"] = { species = "hound", tint = Color3.fromRGB(206, 158, 96), detail = { "crust" } },
-	["Brick Golem"] = { species = "golem", tint = Color3.fromRGB(136, 132, 128) },
+	["Brick Golem"] = { species = "golem", tint = Color3.fromRGB(168, 96, 74) },
 	["Brown Bear"] = { species = "bear", tint = Color3.fromRGB(138, 96, 62) },
 	["Brownie Bear"] = { species = "bear", tint = Color3.fromRGB(86, 54, 38) },
 	["Bulldog"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
-	["Bumblebee"] = { species = "beetle", tint = Color3.fromRGB(250, 206, 60), detail = { "bands", "bugwings" } },
+	["Bumblebee"] = { species = "beetle", tint = Color3.fromRGB(240, 180, 40), detail = { "bands", "bugwings" } },
 	["Bunny"] = { species = "bunny", tint = Color3.fromRGB(232, 224, 214) },
 	["Calico Cat"] = { species = "cat", tint = Color3.fromRGB(238, 196, 148) },
 	["Campfire Bear"] = { species = "bear", tint = Color3.fromRGB(244, 108, 48), glow = Color3.fromRGB(255, 150, 60) },
@@ -1960,10 +2550,10 @@ PetModelFactory.ANIMALS = {
 	["Cheetah"] = { species = "bigcat", tint = Color3.fromRGB(232, 190, 116), detail = { "spots" } },
 	["Chick"] = { species = "bird", tint = Color3.fromRGB(252, 220, 96) },
 	["Chipmunk"] = { species = "mouse", tint = Color3.fromRGB(190, 140, 92) },
-	["Circus Elephant"] = { species = "pig", tint = Color3.fromRGB(242, 168, 178) },
+	["Circus Elephant"] = { species = "pig", tint = Color3.fromRGB(186, 150, 196) },
 	["Cloud Bunny"] = { species = "bunny", tint = Color3.fromRGB(242, 246, 252) },
 	["Cloud Cat"] = { species = "cat", tint = Color3.fromRGB(242, 246, 252) },
-	["Coal Cat"] = { species = "cat", tint = Color3.fromRGB(44, 42, 52) },
+	["Coal Cat"] = { species = "cat", tint = Color3.fromRGB(62, 58, 64) },
 	["Colorful Dog"] = { species = "hound", tint = Color3.fromRGB(230, 140, 220), chroma = true },
 	["Cookie Dog"] = { species = "hound", tint = Color3.fromRGB(176, 124, 72), detail = { "chips" } },
 	["Corgi"] = { species = "hound", tint = Color3.fromRGB(222, 158, 92) },
@@ -1978,29 +2568,29 @@ PetModelFactory.ANIMALS = {
 	["Dalmatian"] = { species = "hound", tint = Color3.fromRGB(242, 244, 248), detail = { "spots" } },
 	["Dandelion Sprite"] = { species = "sprite", tint = Color3.fromRGB(250, 216, 72) },
 	["Deer"] = { species = "stag", tint = Color3.fromRGB(172, 124, 82) },
-	["Desert Lizard"] = { species = "lizard", tint = Color3.fromRGB(124, 196, 108), detail = { "scales" } },
+	["Desert Lizard"] = { species = "lizard", tint = Color3.fromRGB(206, 176, 110), detail = { "scales" } },
 	["Digital Bunny"] = { species = "bunny", tint = Color3.fromRGB(176, 186, 200), material = METAL, reflect = 0.4, glow = Color3.fromRGB(110, 230, 255), detail = { "robot" } },
 	["Dinosaur"] = { species = "lizard", tint = Color3.fromRGB(122, 156, 92), detail = { "scales", "jaws" } },
 	["Disco Duck"] = { species = "duck", tint = Color3.fromRGB(86, 74, 120), detail = { "discoball" } },
-	["Dog"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
+	["Dog"] = { species = "hound", tint = Color3.fromRGB(190, 150, 105) },
 	["Dolphin"] = { species = "dolphin", tint = Color3.fromRGB(126, 176, 220) },
 	["Donut Dog"] = { species = "hound", tint = Color3.fromRGB(214, 168, 120), detail = { "glaze" } },
 	["Dragon"] = { species = "drake", tint = Color3.fromRGB(148, 108, 220), detail = { "scales" } },
 	["Duck"] = { species = "duck", tint = Color3.fromRGB(246, 214, 110) },
 	["Eagle"] = { species = "hawk", tint = Color3.fromRGB(126, 96, 64) },
 	["Electric Mouse"] = { species = "mouse", tint = Color3.fromRGB(250, 224, 96), glow = Color3.fromRGB(255, 240, 140) },
-	["Elf Dog"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
-	["Ewok-like Bear"] = { species = "bear", tint = Color3.fromRGB(140, 100, 68) },
-	["Fairy"] = { species = "sprite", tint = Color3.fromRGB(180, 200, 255) },
+	["Elf Dog"] = { species = "hound", tint = Color3.fromRGB(96, 160, 104) },
+	["Ewok-like Bear"] = { species = "bear", tint = Color3.fromRGB(120, 86, 58) },
+	["Fairy"] = { species = "sprite", tint = Color3.fromRGB(250, 196, 236) },
 	["Falcon"] = { species = "hawk", tint = Color3.fromRGB(150, 122, 92) },
-	["Fancy Poodle"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
-	["Fawn"] = { species = "stag", tint = Color3.fromRGB(172, 124, 82) },
+	["Fancy Poodle"] = { species = "hound", tint = Color3.fromRGB(246, 240, 232) },
+	["Fawn"] = { species = "stag", tint = Color3.fromRGB(206, 166, 118) },
 	["Ferret"] = { species = "critter", tint = Color3.fromRGB(226, 206, 174) },
 	["Fire Fox"] = { species = "fox", tint = Color3.fromRGB(244, 108, 48), glow = Color3.fromRGB(255, 150, 60) },
 	["Fire Lizard"] = { species = "lizard", tint = Color3.fromRGB(244, 108, 48), glow = Color3.fromRGB(255, 150, 60) },
-	["Firework Dragon"] = { species = "drake", tint = Color3.fromRGB(244, 108, 48), glow = Color3.fromRGB(255, 150, 60), detail = { "scales" } },
+	["Firework Dragon"] = { species = "drake", tint = Color3.fromRGB(250, 80, 120), glow = Color3.fromRGB(255, 150, 60), detail = { "scales" } },
 	["Flamingo"] = { species = "bird", tint = Color3.fromRGB(248, 146, 176) },
-	["Flower Deer"] = { species = "stag", tint = Color3.fromRGB(172, 124, 82) },
+	["Flower Deer"] = { species = "stag", tint = Color3.fromRGB(226, 176, 186) },
 	["Forest Fox"] = { species = "fox", tint = Color3.fromRGB(96, 190, 104) },
 	["Fox"] = { species = "fox", tint = Color3.fromRGB(232, 138, 62) },
 	["Frog"] = { species = "toad", tint = Color3.fromRGB(110, 196, 96) },
@@ -2012,45 +2602,45 @@ PetModelFactory.ANIMALS = {
 	["Gorilla"] = { species = "critter", tint = Color3.fromRGB(64, 62, 70) },
 	["Gray Kitten"] = { species = "cat", tint = Color3.fromRGB(166, 172, 186) },
 	["Green Bird"] = { species = "bird", tint = Color3.fromRGB(96, 190, 104) },
-	["Green Parrot"] = { species = "bird", tint = Color3.fromRGB(96, 190, 104) },
-	["Gremlin"] = { species = "sprite", tint = Color3.fromRGB(180, 200, 255) },
+	["Green Parrot"] = { species = "bird", tint = Color3.fromRGB(70, 170, 86) },
+	["Gremlin"] = { species = "sprite", tint = Color3.fromRGB(160, 140, 96) },
 	["Griffin"] = { species = "hawk", tint = Color3.fromRGB(178, 120, 74) },
 	["Guinea Pig"] = { species = "pig", tint = Color3.fromRGB(222, 178, 130) },
 	["Gummy Bear"] = { species = "bear", tint = Color3.fromRGB(232, 72, 96) },
 	["Hamster"] = { species = "mouse", tint = Color3.fromRGB(226, 186, 138) },
 	["Hedgehog"] = { species = "critter", tint = Color3.fromRGB(156, 128, 100) },
-	["Holiday Reindeer"] = { species = "stag", tint = Color3.fromRGB(172, 124, 82) },
+	["Holiday Reindeer"] = { species = "stag", tint = Color3.fromRGB(150, 106, 72) },
 	["Husky"] = { species = "hound", tint = Color3.fromRGB(188, 200, 214) },
 	["Ice Cream Unicorn"] = { species = "horse", tint = Color3.fromRGB(250, 234, 212), material = GLASS, reflect = 0.25 },
 	["Ice Dragon"] = { species = "drake", tint = Color3.fromRGB(178, 226, 248), material = GLASS, reflect = 0.25, detail = { "scales" } },
 	["Ice Wolf"] = { species = "wolf", tint = Color3.fromRGB(178, 226, 248), material = GLASS, reflect = 0.25 },
-	["Japanese Spitz"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
+	["Japanese Spitz"] = { species = "hound", tint = Color3.fromRGB(250, 250, 248) },
 	["Jungle Snake"] = { species = "serpent", tint = Color3.fromRGB(96, 190, 104), detail = { "scales" } },
 	["Kangaroo"] = { species = "critter", tint = Color3.fromRGB(186, 132, 90) },
-	["Kitten"] = { species = "cat", tint = Color3.fromRGB(212, 168, 118) },
+	["Kitten"] = { species = "cat", tint = Color3.fromRGB(232, 196, 156) },
 	["Koala"] = { species = "bear", tint = Color3.fromRGB(168, 176, 186) },
-	["Koi Fish"] = { species = "fish", tint = Color3.fromRGB(238, 136, 92) },
+	["Koi Fish"] = { species = "fish", tint = Color3.fromRGB(250, 180, 90) },
 	["Ladybug"] = { species = "beetle", tint = Color3.fromRGB(220, 58, 54), detail = { "elytra", "spots", "bugwings" } },
 	["Lamb"] = { species = "sheep", tint = Color3.fromRGB(244, 242, 238) },
 	["Lava Dragon"] = { species = "drake", tint = Color3.fromRGB(244, 108, 48), glow = Color3.fromRGB(255, 150, 60), detail = { "scales" } },
-	["Lemon Bird"] = { species = "bird", tint = Color3.fromRGB(250, 216, 72) },
+	["Lemon Bird"] = { species = "bird", tint = Color3.fromRGB(236, 240, 96) },
 	["Lightning Leopard"] = { species = "bigcat", tint = Color3.fromRGB(250, 224, 96), glow = Color3.fromRGB(255, 240, 140) },
 	["Llama"] = { species = "sheep", tint = Color3.fromRGB(236, 224, 202) },
-	["Lop Bunny"] = { species = "bunny", tint = Color3.fromRGB(232, 224, 214) },
-	["Lunar Dragon"] = { species = "drake", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255), detail = { "scales" } },
+	["Lop Bunny"] = { species = "bunny", tint = Color3.fromRGB(206, 186, 166) },
+	["Lunar Dragon"] = { species = "drake", tint = Color3.fromRGB(108, 116, 180), glow = Color3.fromRGB(150, 190, 255), detail = { "scales" } },
 	["Magma Slime"] = { species = "slime", tint = Color3.fromRGB(244, 108, 48), glow = Color3.fromRGB(255, 150, 60) },
 	["Marshmallow Bunny"] = { species = "bunny", tint = Color3.fromRGB(250, 246, 242) },
-	["Mermaid Cat"] = { species = "cat", tint = Color3.fromRGB(212, 168, 118) },
-	["Mini Dragon"] = { species = "drake", tint = Color3.fromRGB(148, 108, 220), detail = { "scales" } },
+	["Mermaid Cat"] = { species = "cat", tint = Color3.fromRGB(120, 206, 196) },
+	["Mini Dragon"] = { species = "drake", tint = Color3.fromRGB(176, 140, 236), detail = { "scales" } },
 	["Misty Panther"] = { species = "bigcat", tint = Color3.fromRGB(140, 100, 210) },
 	["Monkey"] = { species = "critter", tint = Color3.fromRGB(156, 116, 78) },
 	["Moon Fox"] = { species = "fox", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255) },
 	["Moose"] = { species = "stag", tint = Color3.fromRGB(122, 88, 60) },
 	["Mouse"] = { species = "mouse", tint = Color3.fromRGB(186, 170, 160) },
-	["Northern Lights Wolf"] = { species = "wolf", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255) },
+	["Northern Lights Wolf"] = { species = "wolf", tint = Color3.fromRGB(110, 220, 190), glow = Color3.fromRGB(150, 190, 255) },
 	["Octopus"] = { species = "ray", tint = Color3.fromRGB(214, 108, 156) },
 	["Opossum"] = { species = "critter", tint = Color3.fromRGB(190, 190, 196) },
-	["Orange Cat"] = { species = "cat", tint = Color3.fromRGB(246, 152, 58) },
+	["Orange Cat"] = { species = "cat", tint = Color3.fromRGB(236, 128, 48) },
 	["Orca"] = { species = "dolphin", tint = Color3.fromRGB(40, 44, 56) },
 	["Otter"] = { species = "critter", tint = Color3.fromRGB(146, 110, 80) },
 	["Owl"] = { species = "owl", tint = Color3.fromRGB(176, 142, 104) },
@@ -2058,98 +2648,218 @@ PetModelFactory.ANIMALS = {
 	["Panda"] = { species = "bear", tint = Color3.fromRGB(246, 248, 250) },
 	["Parakeet"] = { species = "bird", tint = Color3.fromRGB(104, 168, 236) },
 	["Parrot"] = { species = "bird", tint = Color3.fromRGB(226, 76, 68) },
-	["Party Pony"] = { species = "horse", tint = Color3.fromRGB(228, 216, 226) },
-	["Patchwork Dog"] = { species = "hound", tint = Color3.fromRGB(230, 140, 220), chroma = true },
+	["Party Pony"] = { species = "horse", tint = Color3.fromRGB(250, 170, 210) },
+	["Patchwork Dog"] = { species = "hound", tint = Color3.fromRGB(198, 160, 110), chroma = true },
 	["Peacock"] = { species = "bird", tint = Color3.fromRGB(46, 148, 156) },
 	["Penguin"] = { species = "penguin", tint = Color3.fromRGB(52, 56, 74) },
 	["Persian Cat"] = { species = "cat", tint = Color3.fromRGB(238, 230, 214) },
-	["Phoenix"] = { species = "hawk", tint = Color3.fromRGB(178, 120, 74) },
+	["Phoenix"] = { species = "hawk", tint = Color3.fromRGB(250, 120, 48) },
 	["Pie Cat"] = { species = "cat", tint = Color3.fromRGB(226, 184, 120) },
 	["Pig"] = { species = "pig", tint = Color3.fromRGB(244, 168, 178) },
 	["Piglet"] = { species = "pig", tint = Color3.fromRGB(242, 168, 178) },
 	["Pink Dolphin"] = { species = "dolphin", tint = Color3.fromRGB(246, 148, 186) },
-	["Pirate Parrot"] = { species = "bird", tint = Color3.fromRGB(104, 168, 236), detail = { "pirate" } },
-	["Planet Pup"] = { species = "hound", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255), detail = { "helmet" } },
+	["Pirate Parrot"] = { species = "bird", tint = Color3.fromRGB(214, 86, 74), detail = { "pirate" } },
+	["Planet Pup"] = { species = "hound", tint = Color3.fromRGB(96, 84, 170), glow = Color3.fromRGB(150, 190, 255), detail = { "helmet" } },
 	["Polar Bear"] = { species = "bear", tint = Color3.fromRGB(242, 246, 252) },
-	["Pomeranian"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
-	["Poodle"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
+	["Pomeranian"] = { species = "hound", tint = Color3.fromRGB(240, 166, 86) },
+	["Poodle"] = { species = "hound", tint = Color3.fromRGB(214, 198, 176) },
 	["Porcupine"] = { species = "critter", tint = Color3.fromRGB(128, 108, 88) },
 	["Potato Penguin"] = { species = "penguin", tint = Color3.fromRGB(58, 64, 84) },
-	["Pufferfish"] = { species = "fish", tint = Color3.fromRGB(238, 136, 92) },
+	["Pufferfish"] = { species = "fish", tint = Color3.fromRGB(226, 206, 120) },
 	["Puffin"] = { species = "bird", tint = Color3.fromRGB(44, 44, 54) },
-	["Quiet Owl"] = { species = "owl", tint = Color3.fromRGB(176, 142, 104) },
+	["Quiet Owl"] = { species = "owl", tint = Color3.fromRGB(148, 128, 112) },
 	["Quokka"] = { species = "critter", tint = Color3.fromRGB(178, 142, 104) },
-	["Rabbit"] = { species = "bunny", tint = Color3.fromRGB(232, 224, 214) },
+	["Rabbit"] = { species = "bunny", tint = Color3.fromRGB(186, 166, 150) },
 	["Raccoon"] = { species = "critter", tint = Color3.fromRGB(140, 146, 158) },
-	["Racing Turtle"] = { species = "turtle", tint = Color3.fromRGB(110, 168, 96) },
+	["Racing Turtle"] = { species = "turtle", tint = Color3.fromRGB(86, 150, 200) },
 	["Rain Cloud Pet"] = { species = "sprite", tint = Color3.fromRGB(242, 246, 252) },
 	["Rainbow Gecko"] = { species = "lizard", tint = Color3.fromRGB(230, 140, 220), chroma = true, detail = { "scales" } },
 	["Rainbow Unicorn"] = { species = "horse", tint = Color3.fromRGB(230, 140, 220), chroma = true },
-	["Raven"] = { species = "hawk", tint = Color3.fromRGB(42, 42, 52) },
+	["Raven"] = { species = "hawk", tint = Color3.fromRGB(58, 54, 74) },
 	["Razzberry Dragon"] = { species = "drake", tint = Color3.fromRGB(196, 60, 118), detail = { "scales" } },
 	["Red Bird"] = { species = "bird", tint = Color3.fromRGB(222, 62, 62) },
 	["Red Panda"] = { species = "bear", tint = Color3.fromRGB(214, 108, 62) },
-	["Reindeer"] = { species = "stag", tint = Color3.fromRGB(172, 124, 82) },
-	["Ribbon Unicorn"] = { species = "horse", tint = Color3.fromRGB(228, 216, 226) },
+	["Reindeer"] = { species = "stag", tint = Color3.fromRGB(136, 100, 70) },
+	["Ribbon Unicorn"] = { species = "horse", tint = Color3.fromRGB(236, 200, 240) },
 	["Robot Cat"] = { species = "cat", tint = Color3.fromRGB(176, 186, 200), material = METAL, reflect = 0.4, glow = Color3.fromRGB(110, 230, 255), detail = { "robot" } },
 	["Robot Dog"] = { species = "hound", tint = Color3.fromRGB(176, 186, 200), material = METAL, reflect = 0.4, glow = Color3.fromRGB(110, 230, 255), detail = { "robot" } },
 	["Robot Hamster"] = { species = "mouse", tint = Color3.fromRGB(176, 186, 200), material = METAL, reflect = 0.4, glow = Color3.fromRGB(110, 230, 255), detail = { "robot" } },
 	["Rock Golem"] = { species = "golem", tint = Color3.fromRGB(136, 132, 128) },
-	["Rock Star Dog"] = { species = "hound", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255) },
-	["Roly-Poly Bug"] = { species = "beetle", tint = Color3.fromRGB(110, 150, 210), detail = { "bands" } },
-	["Sea Dragon"] = { species = "drake", tint = Color3.fromRGB(148, 108, 220), detail = { "scales" } },
+	["Rock Star Dog"] = { species = "hound", tint = Color3.fromRGB(48, 44, 60), glow = Color3.fromRGB(150, 190, 255) },
+	["Roly-Poly Bug"] = { species = "beetle", tint = Color3.fromRGB(128, 118, 140), detail = { "bands" } },
+	["Sea Dragon"] = { species = "drake", tint = Color3.fromRGB(72, 164, 196), detail = { "scales" } },
 	["Sea Turtle"] = { species = "turtle", tint = Color3.fromRGB(96, 156, 130) },
-	["Seahorse"] = { species = "fish", tint = Color3.fromRGB(238, 136, 92) },
+	["Seahorse"] = { species = "fish", tint = Color3.fromRGB(128, 196, 210) },
 	["Seal"] = { species = "critter", tint = Color3.fromRGB(176, 182, 194) },
 	["Shadow Cat"] = { species = "cat", tint = Color3.fromRGB(140, 100, 210) },
-	["Shadow Panther"] = { species = "bigcat", tint = Color3.fromRGB(140, 100, 210) },
+	["Shadow Panther"] = { species = "bigcat", tint = Color3.fromRGB(78, 66, 110) },
 	["Shark"] = { species = "dolphin", tint = Color3.fromRGB(130, 148, 168) },
 	["Sheep"] = { species = "sheep", tint = Color3.fromRGB(238, 236, 230) },
-	["Sheepdog"] = { species = "sheep", tint = Color3.fromRGB(238, 236, 230) },
+	["Sheepdog"] = { species = "sheep", tint = Color3.fromRGB(196, 186, 170) },
 	["Shiba Inu"] = { species = "hound", tint = Color3.fromRGB(226, 160, 88) },
 	["Siamese Cat"] = { species = "cat", tint = Color3.fromRGB(226, 208, 178) },
 	["Silver Wolf"] = { species = "wolf", tint = Color3.fromRGB(166, 172, 186) },
 	["Sleepy Sloth"] = { species = "critter", tint = Color3.fromRGB(166, 152, 128) },
 	["Slime"] = { species = "slime", tint = Color3.fromRGB(122, 220, 168) },
-	["Sloth"] = { species = "critter", tint = Color3.fromRGB(166, 152, 128) },
+	["Sloth"] = { species = "critter", tint = Color3.fromRGB(142, 130, 110) },
 	["Snake"] = { species = "serpent", tint = Color3.fromRGB(126, 190, 118) },
-	["Snow Bunny"] = { species = "bunny", tint = Color3.fromRGB(242, 246, 252) },
-	["Snow Monster"] = { species = "bear", tint = Color3.fromRGB(242, 246, 252) },
+	["Snow Bunny"] = { species = "bunny", tint = Color3.fromRGB(230, 240, 250) },
+	["Snow Monster"] = { species = "bear", tint = Color3.fromRGB(222, 234, 246) },
 	["Soda Cat"] = { species = "cat", tint = Color3.fromRGB(198, 112, 62), detail = { "soda" } },
 	["Soda Cub"] = { species = "bear", tint = Color3.fromRGB(198, 112, 62), detail = { "soda" } },
 	["Space Bunny"] = { species = "bunny", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255) },
 	["Space Cat"] = { species = "cat", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255) },
 	["Space Dragon"] = { species = "drake", tint = Color3.fromRGB(72, 62, 130), glow = Color3.fromRGB(150, 190, 255), detail = { "scales" } },
-	["Sparkle Fox"] = { species = "fox", tint = Color3.fromRGB(232, 138, 62) },
+	["Sparkle Fox"] = { species = "fox", tint = Color3.fromRGB(250, 196, 120) },
 	["Sparrow"] = { species = "bird", tint = Color3.fromRGB(166, 130, 96) },
 	["Spider"] = { species = "spider", tint = Color3.fromRGB(86, 66, 108) },
-	["Spirit Wolf"] = { species = "ghost", tint = Color3.fromRGB(226, 232, 250), transparency = 0.2, glow = Color3.fromRGB(200, 210, 255) },
+	["Spirit Wolf"] = { species = "ghost", tint = Color3.fromRGB(196, 214, 246), transparency = 0.2, glow = Color3.fromRGB(200, 210, 255) },
 	["Squirrel"] = { species = "mouse", tint = Color3.fromRGB(176, 122, 74) },
 	["Storm Serpent"] = { species = "serpent", tint = Color3.fromRGB(250, 224, 96), glow = Color3.fromRGB(255, 240, 140), detail = { "scales" } },
-	["Sun Lion"] = { species = "bigcat", tint = Color3.fromRGB(246, 200, 74), material = METAL, reflect = 0.35 },
+	["Sun Lion"] = { species = "bigcat", tint = Color3.fromRGB(250, 170, 60), material = METAL, reflect = 0.35 },
 	["Swan"] = { species = "bird", tint = Color3.fromRGB(246, 248, 252) },
 	["Tanuki"] = { species = "fox", tint = Color3.fromRGB(150, 122, 96) },
-	["Teacup Poodle"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
+	["Teacup Poodle"] = { species = "hound", tint = Color3.fromRGB(236, 214, 226) },
 	["Teddy Bear"] = { species = "bear", tint = Color3.fromRGB(186, 142, 96) },
-	["Terrier"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
-	["Thorn Bear"] = { species = "bear", tint = Color3.fromRGB(140, 100, 68) },
+	["Terrier"] = { species = "hound", tint = Color3.fromRGB(170, 140, 96) },
+	["Thorn Bear"] = { species = "bear", tint = Color3.fromRGB(92, 70, 52) },
 	["Tiger"] = { species = "bigcat", tint = Color3.fromRGB(240, 156, 52), detail = { "stripes" } },
-	["Tiny Dalmatian"] = { species = "hound", tint = Color3.fromRGB(242, 244, 248), detail = { "spots" } },
+	["Tiny Dalmatian"] = { species = "hound", tint = Color3.fromRGB(232, 236, 242), detail = { "spots" } },
 	["Toucan"] = { species = "bird", tint = Color3.fromRGB(40, 40, 48) },
-	["Tumbleweed Pup"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
+	["Tumbleweed Pup"] = { species = "hound", tint = Color3.fromRGB(196, 170, 112) },
 	["Turtle"] = { species = "turtle", tint = Color3.fromRGB(110, 168, 96) },
 	["Tuxedo Cat"] = { species = "cat", tint = Color3.fromRGB(40, 40, 48), detail = { "tuxedo" } },
 	["Unicorn"] = { species = "horse", tint = Color3.fromRGB(228, 216, 226) },
-	["White Cat"] = { species = "cat", tint = Color3.fromRGB(242, 246, 252) },
-	["Wild Dog"] = { species = "hound", tint = Color3.fromRGB(156, 112, 72) },
-	["Wind Hawk"] = { species = "hawk", tint = Color3.fromRGB(178, 120, 74) },
+	["White Cat"] = { species = "cat", tint = Color3.fromRGB(252, 252, 250) },
+	["Wild Dog"] = { species = "hound", tint = Color3.fromRGB(138, 96, 58) },
+	["Wind Hawk"] = { species = "hawk", tint = Color3.fromRGB(196, 208, 220) },
 	["Wolf"] = { species = "wolf", tint = Color3.fromRGB(126, 136, 154) },
-	["Yellow Chick"] = { species = "bird", tint = Color3.fromRGB(250, 216, 72) },
+	["Yellow Chick"] = { species = "bird", tint = Color3.fromRGB(252, 190, 80) },
 	["Zebra"] = { species = "horse", tint = Color3.fromRGB(242, 244, 248), detail = { "stripes" } },
 	["White Box"] = { species = "matterbox", tint = Color3.fromRGB(245, 248, 255), glow = Color3.fromRGB(220, 230, 255) },
 	["Black Box"] = { species = "matterbox", tint = Color3.fromRGB(12, 10, 18), glow = Color3.fromRGB(90, 40, 140) },
 	["Albert Einstein"] = { species = "sprite", tint = Color3.fromRGB(232, 220, 200), glow = Color3.fromRGB(255, 240, 180), detail = { "helmet" } },
+
+	-- Event Horizon. Added by tools/verify/petskins.js: without a row here
+	-- build() gets no skin and every one of these renders as the default fox.
+	["Accretion Fox"] = { species = "fox", tint = Color3.fromRGB(38, 30, 54), glow = Color3.fromRGB(255, 186, 90) },
+	["Ash Orbit Lizard"] = { species = "lizard", tint = Color3.fromRGB(128, 122, 118) },
+	["Bag Tide Seal"] = { species = "otter", tint = Color3.fromRGB(96, 142, 170) },
+	["Big Bang Cub"] = { species = "bear", tint = Color3.fromRGB(60, 44, 92), glow = Color3.fromRGB(255, 140, 220) },
+	["Bubble Tadpole"] = { species = "toad", tint = Color3.fromRGB(120, 200, 206) },
+	["Starflower Deer"] = { species = "stag", tint = Color3.fromRGB(214, 170, 230), glow = Color3.fromRGB(255, 220, 150) },
+	["Bolt Seed Mouse"] = { species = "mouse", tint = Color3.fromRGB(226, 206, 96), glow = Color3.fromRGB(255, 240, 120) },
+	["Bubble Orb Axolotl"] = { species = "toad", tint = Color3.fromRGB(240, 170, 206) },
+	["Axis Penguin"] = { species = "penguin", tint = Color3.fromRGB(70, 96, 150), glow = Color3.fromRGB(150, 220, 255) },
+	["Chill Bit Penguin"] = { species = "penguin", tint = Color3.fromRGB(160, 196, 220) },
+	["Clover Bit Lamb"] = { species = "sheep", tint = Color3.fromRGB(176, 214, 150) },
+	["Bang Coin Crab"] = { species = "crab", tint = Color3.fromRGB(230, 178, 70), glow = Color3.fromRGB(255, 230, 140) },
+	["Coin Seed Chick"] = { species = "bird", tint = Color3.fromRGB(244, 210, 110) },
+	["Crater Drake"] = { species = "drake", tint = Color3.fromRGB(110, 102, 96), glow = Color3.fromRGB(255, 130, 70) },
+	["Crater Roo"] = { species = "critter", tint = Color3.fromRGB(166, 142, 118) },
+	["Proto Crystal Drake"] = { species = "drake", tint = Color3.fromRGB(150, 226, 240), glow = Color3.fromRGB(190, 240, 255) },
+	["Moon Dirt Pig"] = { species = "pig", tint = Color3.fromRGB(150, 140, 126) },
+	["Disk Flare Lizard"] = { species = "lizard", tint = Color3.fromRGB(240, 140, 60), glow = Color3.fromRGB(255, 190, 90) },
+	["Dusk Chip Crow"] = { species = "bird", tint = Color3.fromRGB(74, 68, 96) },
+	["Cosmic Dustmite"] = { species = "beetle", tint = Color3.fromRGB(140, 128, 150) },
+	["Dust Nip Hamster"] = { species = "mouse", tint = Color3.fromRGB(196, 174, 146) },
+	["Dust Well Mole"] = { species = "critter", tint = Color3.fromRGB(116, 100, 92) },
+	["Echo Flare Pup"] = { species = "hound", tint = Color3.fromRGB(230, 150, 110), glow = Color3.fromRGB(255, 190, 140) },
+	["Echo Pea Owl"] = { species = "owl", tint = Color3.fromRGB(140, 180, 130) },
+	["Ember Bit Chick"] = { species = "bird", tint = Color3.fromRGB(250, 160, 90), glow = Color3.fromRGB(255, 150, 60) },
+	["Eventide Owl"] = { species = "owl", tint = Color3.fromRGB(86, 80, 130), glow = Color3.fromRGB(160, 150, 255) },
+	["Star Armadillo"] = { species = "critter", tint = Color3.fromRGB(190, 180, 206), glow = Color3.fromRGB(220, 220, 255) },
+	["Black Ice Fox"] = { species = "fox", tint = Color3.fromRGB(70, 92, 110), glow = Color3.fromRGB(150, 220, 255) },
+	["Nova Gem Cat"] = { species = "cat", tint = Color3.fromRGB(230, 110, 170), glow = Color3.fromRGB(255, 170, 220) },
+	["Glim Ore Bunny"] = { species = "bunny", tint = Color3.fromRGB(206, 196, 150), glow = Color3.fromRGB(255, 240, 170) },
+	["Gloom Mouse"] = { species = "mouse", tint = Color3.fromRGB(96, 92, 110) },
+	["Glowpuff Cloud Pup"] = { species = "hound", tint = Color3.fromRGB(236, 240, 250), glow = Color3.fromRGB(200, 230, 255) },
+	["Gravity Bear"] = { species = "bear", tint = Color3.fromRGB(44, 40, 70), glow = Color3.fromRGB(120, 110, 255) },
+	["Ice Ring Cat"] = { species = "cat", tint = Color3.fromRGB(176, 220, 240), glow = Color3.fromRGB(190, 240, 255) },
+	["Kelp Orb Otter"] = { species = "otter", tint = Color3.fromRGB(96, 146, 110) },
+	["Nova Leaf Turtle"] = { species = "turtle", tint = Color3.fromRGB(120, 190, 130), glow = Color3.fromRGB(190, 255, 170) },
+	["Moon Sheep"] = { species = "sheep", tint = Color3.fromRGB(220, 224, 240), glow = Color3.fromRGB(210, 220, 255) },
+	["Nebula Serpent"] = { species = "serpent", tint = Color3.fromRGB(130, 90, 190), glow = Color3.fromRGB(200, 140, 255) },
+	["Night Bag Bat"] = { species = "moth", tint = Color3.fromRGB(80, 70, 110) },
+	["Proto Ore Beetle"] = { species = "beetle", tint = Color3.fromRGB(160, 140, 100), glow = Color3.fromRGB(255, 210, 120) },
+	["Parallax Lite Pup"] = { species = "hound", tint = Color3.fromRGB(170, 190, 210), glow = Color3.fromRGB(210, 230, 255) },
+	["Orbit Peep Chick"] = { species = "bird", tint = Color3.fromRGB(250, 230, 150) },
+	["Star Petal Bunny"] = { species = "bunny", tint = Color3.fromRGB(246, 190, 210), glow = Color3.fromRGB(255, 220, 240) },
+	["Photon Bunny"] = { species = "bunny", tint = Color3.fromRGB(252, 248, 220), glow = Color3.fromRGB(255, 255, 200) },
+	["Moon Prism Cat"] = { species = "cat", tint = Color3.fromRGB(200, 190, 240), glow = Color3.fromRGB(220, 210, 255) },
+	["Orb Puddle Frog"] = { species = "toad", tint = Color3.fromRGB(110, 170, 160) },
+	["Pulsar Finch"] = { species = "bird", tint = Color3.fromRGB(240, 240, 250), glow = Color3.fromRGB(180, 200, 255) },
+	["Quasar Hawk"] = { species = "hawk", tint = Color3.fromRGB(90, 130, 220), glow = Color3.fromRGB(160, 200, 255) },
+	["Relativity Wolf"] = { species = "wolf", tint = Color3.fromRGB(100, 110, 140), glow = Color3.fromRGB(170, 190, 255) },
+	["Shade Chip Bat"] = { species = "moth", tint = Color3.fromRGB(60, 56, 72) },
+	["Shardlet Crab"] = { species = "crab", tint = Color3.fromRGB(180, 200, 220) },
+	["Shimmer Bit Gecko"] = { species = "lizard", tint = Color3.fromRGB(150, 220, 190) },
+	["Singularity Cat"] = { species = "cat", tint = Color3.fromRGB(26, 24, 36), glow = Color3.fromRGB(140, 90, 255) },
+	["Smelt Bit Mouse"] = { species = "mouse", tint = Color3.fromRGB(200, 130, 80), glow = Color3.fromRGB(255, 160, 80) },
+	["Snow Axis Fox"] = { species = "fox", tint = Color3.fromRGB(236, 244, 252) },
+	["Photon Kitten"] = { species = "cat", tint = Color3.fromRGB(250, 244, 206), glow = Color3.fromRGB(255, 250, 190) },
+	["Spark Kitten"] = { species = "cat", tint = Color3.fromRGB(246, 206, 110), glow = Color3.fromRGB(255, 220, 120) },
+	["Orbit Spark Mouse"] = { species = "mouse", tint = Color3.fromRGB(236, 196, 120), glow = Color3.fromRGB(255, 220, 140) },
+	["Spark Wisp Fox"] = { species = "fox", tint = Color3.fromRGB(250, 180, 100), glow = Color3.fromRGB(255, 200, 120) },
+	["Speck Mouse"] = { species = "mouse", tint = Color3.fromRGB(170, 160, 150) },
+	["Starloom Lamb"] = { species = "sheep", tint = Color3.fromRGB(240, 226, 250), glow = Color3.fromRGB(230, 210, 255) },
+	["Gravity Otter"] = { species = "otter", tint = Color3.fromRGB(70, 100, 130), glow = Color3.fromRGB(130, 170, 255) },
+	["Tiny Clink Mouse"] = { species = "mouse", tint = Color3.fromRGB(150, 156, 166) },
+	["Tinyspark Beetle"] = { species = "beetle", tint = Color3.fromRGB(230, 190, 80), glow = Color3.fromRGB(255, 215, 110) },
+	["Vanta Squirrel"] = { species = "critter", tint = Color3.fromRGB(40, 38, 50), glow = Color3.fromRGB(110, 90, 180) },
+	["Warp Puppy"] = { species = "hound", tint = Color3.fromRGB(130, 150, 230), glow = Color3.fromRGB(180, 200, 255) },
+	["Zip Mite"] = { species = "beetle", tint = Color3.fromRGB(200, 210, 120) },
+	["Zip Puppy"] = { species = "hound", tint = Color3.fromRGB(210, 190, 130) },
+	["Quark Ferret"] = { species = "critter", tint = Color3.fromRGB(196, 170, 200), glow = Color3.fromRGB(220, 190, 255) },
+
+	-- Event Horizon. Added by tools/verify/petskins.js: without a row here
+	-- build() gets no skin and every one of these renders as the default fox.
+	["Fruit Bat"] = { species = "moth", tint = Color3.fromRGB(168, 110, 78) },
+	["Chinchilla"] = { species = "critter", tint = Color3.fromRGB(158, 152, 166) },
+	["Duckling"] = { species = "duck", tint = Color3.fromRGB(250, 226, 140) },
+	["Dormouse"] = { species = "mouse", tint = Color3.fromRGB(214, 166, 112) },
+	["Porpoise"] = { species = "dolphin", tint = Color3.fromRGB(150, 166, 180) },
+	["Stoat"] = { species = "critter", tint = Color3.fromRGB(242, 236, 222) },
+	["Tree Frog"] = { species = "toad", tint = Color3.fromRGB(96, 210, 120) },
+	["Marshmallow Bear"] = { species = "bear", tint = Color3.fromRGB(250, 242, 232) },
+	["Emperor Penguin"] = { species = "penguin", tint = Color3.fromRGB(40, 44, 60) },
+	["Fennec Fox"] = { species = "fox", tint = Color3.fromRGB(238, 214, 172) },
+	["Flying Squirrel"] = { species = "critter", tint = Color3.fromRGB(170, 176, 190) },
+	["Gerbil"] = { species = "mouse", tint = Color3.fromRGB(230, 186, 130) },
+	["Harvest Mouse"] = { species = "mouse", tint = Color3.fromRGB(206, 184, 146) },
+	["Clockwork Mouse"] = { species = "mouse", tint = Color3.fromRGB(190, 160, 96), detail = { "robot" } },
+	["Boxer"] = { species = "hound", tint = Color3.fromRGB(182, 122, 70) },
+	["Doe"] = { species = "stag", tint = Color3.fromRGB(186, 146, 102) },
+	["Angora Rabbit"] = { species = "bunny", tint = Color3.fromRGB(246, 240, 228) },
+	["Cottontail"] = { species = "bunny", tint = Color3.fromRGB(166, 150, 134) },
+	["Tabby Cat"] = { species = "cat", tint = Color3.fromRGB(168, 142, 104) },
+	["Merino Sheep"] = { species = "sheep", tint = Color3.fromRGB(226, 214, 192) },
+	["Carpenter Bee"] = { species = "beetle", tint = Color3.fromRGB(62, 58, 86), detail = { "bands", "bugwings" } },
+	["Jellyfish"] = { species = "slime", tint = Color3.fromRGB(200, 180, 240) },
 }
+
+-- The zone pets' skins live with their data (MineZonePets.ANIMALS, generated by
+-- tools/gen/zone-pets.js). A row above always wins, so a zone skin can never
+-- repaint an existing pet.
+do
+	local ok, zp = pcall(require, script.Parent:FindFirstChild("MineZonePets"))
+	if ok and type(zp) == "table" and zp.ANIMALS then
+		for animal, skin in pairs(zp.ANIMALS) do
+			if PetModelFactory.ANIMALS[animal] == nil then
+				PetModelFactory.ANIMALS[animal] = skin
+			end
+		end
+	end
+	-- The 19 sets' pets bring their skins the same way (MineSetPets).
+	local okS, sp = pcall(require, script.Parent:FindFirstChild("MineSetPets"))
+	if okS and type(sp) == "table" and sp.ANIMALS then
+		for animal, skin in pairs(sp.ANIMALS) do
+			if PetModelFactory.ANIMALS[animal] == nil then
+				PetModelFactory.ANIMALS[animal] = skin
+			end
+		end
+	end
+end
 
 --------------------------------------------------------------------------------
 -- DETAILS
@@ -2266,6 +2976,11 @@ end
 
 -- Horizontal bands. Bees, wasps, anything striped front-to-back.
 D.bands = function(c, p, colour)
+	-- A detail's third argument is now the species (costumes read its anchors),
+	-- so only a real colour counts here.
+	if typeof(colour) ~= "Color3" then
+		colour = nil
+	end
 	for i = 0, 2 do
 		c:ovoid(Vector3.new(2.06, 0.34, 1.86), CFrame.new(0, 0.44 - i * 0.52, 0), colour or C3(34, 32, 40))
 	end
@@ -2411,6 +3126,103 @@ D.soda = function(c, p)
 		).Transparency = 0.35
 	end
 	c:sparkle(C3(255, 255, 255), 10, 1.2, 0.20)
+end
+
+--[[
+	HALLOWEEN COSTUMES (owner, 2026-10-10: the Halloween 2026 Pack's everyday
+	pets are "normal cards with a costume {simple shit like a dog costume on or
+	something}"). Each is a prop on an ordinary body, placed on the species' own
+	anchors -- `head` (the top of the head, where hats sit) and `back` -- so
+	one costume fits every body. Ids start "cos_" and are named in a skin's
+	`detail` list (tools/gen/holiday-pets.js).
+]]
+local HEAD0, BACK0 = CFrame.new(0, 1.10, 0.06), CFrame.new(0, 0.20, -0.60)
+local function anchor(def, key, fallback)
+	return (def and typeof(def[key]) == "CFrame") and def[key] or fallback
+end
+
+-- A pointed witch's hat with a purple band, tipped back a little.
+D.cos_witch = function(c, p, def)
+	local h = anchor(def, "head", HEAD0)
+	local hat, band = C3(44, 34, 58), C3(150, 70, 200)
+	c:box(Vector3.new(1.56, 0.10, 1.50), h * CFrame.new(0, 0.05, -0.02), hat)
+	c:box(Vector3.new(0.98, 0.16, 0.96), h * CFrame.new(0, 0.16, -0.04), band)
+	c:cone(Vector3.new(0.94, 1.12, 0.92), h * CFrame.new(0, 0.78, -0.12) * CFrame.Angles(-0.20, 0, 0.12), hat)
+end
+
+-- A carved pumpkin worn as a cap: ribs, a stem and one leaf.
+D.cos_pumpkin = function(c, p, def)
+	local h = anchor(def, "head", HEAD0)
+	local orange, rib = C3(242, 130, 32), C3(206, 94, 20)
+	c:box(Vector3.new(1.40, 0.66, 1.30), h * CFrame.new(0, 0.30, -0.04), orange)
+	for _, x in ipairs({ -0.40, 0, 0.40 }) do
+		c:box(Vector3.new(0.07, 0.68, 1.32), h * CFrame.new(x, 0.30, -0.04), rib)
+	end
+	c:box(Vector3.new(0.16, 0.28, 0.16), h * CFrame.new(0, 0.76, -0.04), C3(76, 116, 44))
+	c:box(Vector3.new(0.36, 0.06, 0.22), h * CFrame.new(0.20, 0.70, -0.04) * CFrame.Angles(0, 0, -0.45), C3(96, 166, 56))
+end
+
+-- A bedsheet ghost: draped over the top and down the back, with a wavy hem.
+D.cos_ghost = function(c, p, def)
+	local h, b = anchor(def, "head", HEAD0), anchor(def, "back", BACK0)
+	local sheet = C3(246, 246, 252)
+	c:box(Vector3.new(2.16, 0.10, 1.40), h * CFrame.new(0, 0.03, -0.46), sheet)
+	c:box(Vector3.new(2.16, 1.46, 0.10), b * CFrame.new(0, 0.08, -0.08), sheet)
+	for _, x in ipairs({ -0.72, 0, 0.72 }) do
+		c:box(Vector3.new(0.52, 0.26, 0.10), b * CFrame.new(x, -0.74, -0.08), sheet)
+	end
+end
+
+-- Little red devil horns and a pointed tail.
+D.cos_devil = function(c, p, def)
+	local h, b = anchor(def, "head", HEAD0), anchor(def, "back", BACK0)
+	local red = C3(214, 34, 46)
+	for _, sgn in ipairs({ -1, 1 }) do
+		c:cone(Vector3.new(0.28, 0.54, 0.28), h * CFrame.new(0.42 * sgn, 0.24, 0.08) * CFrame.Angles(0, 0, -0.30 * sgn), red)
+	end
+	local base = b.Position + Vector3.new(0, -0.20, -0.04)
+	local tip = base + Vector3.new(0, 0.62, -0.52)
+	c:rod(base, tip, 0.06, red, nil, false)
+	c:cone(Vector3.new(0.34, 0.34, 0.12), CFrame.new(tip + Vector3.new(0, 0.12, -0.04)), red)
+end
+
+-- A vampire's cape down the back, with a tall red collar.
+D.cos_vampire = function(c, p, def)
+	local h, b = anchor(def, "head", HEAD0), anchor(def, "back", BACK0)
+	local cape, lining = C3(26, 20, 32), C3(176, 22, 40)
+	c:box(Vector3.new(2.20, 1.66, 0.10), b * CFrame.new(0, -0.08, -0.10), cape)
+	for _, sgn in ipairs({ -1, 1 }) do
+		c:box(Vector3.new(0.10, 0.70, 0.80), h * CFrame.new(1.04 * sgn, -0.28, -0.30) * CFrame.Angles(0, 0, 0.22 * sgn), lining)
+	end
+end
+
+-- Black bat wings on the back.
+D.cos_batwings = function(c, p, def)
+	wings(c, C3(40, 30, 50), 0.20, 0.46, -0.38, 0.62)
+	for _, sgn in ipairs({ -1, 1 }) do
+		c:cone(Vector3.new(0.20, 0.36, 0.20), CFrame.new(1.42 * sgn, 0.96, -0.38) * CFrame.Angles(0, 0, -0.80 * sgn), C3(40, 30, 50))
+	end
+end
+
+-- A skeleton suit: white ribs down both flanks and a spine over the top.
+D.cos_skeleton = function(c, p, def)
+	local h = anchor(def, "head", HEAD0)
+	local bone = C3(240, 236, 222)
+	for _, sgn in ipairs({ -1, 1 }) do
+		for _, y in ipairs({ 0.34, 0.04, -0.26 }) do
+			c:box(Vector3.new(0.06, 0.12, 1.10), CFrame.new(1.09 * sgn, y, -0.12), bone)
+		end
+	end
+	c:box(Vector3.new(0.18, 0.08, 1.30), h * CFrame.new(0, 0.02, -0.56), bone)
+end
+
+-- Mummy wrappings: loose bandages round the body and one over the head.
+D.cos_mummy = function(c, p, def)
+	local h = anchor(def, "head", HEAD0)
+	local wrap = C3(232, 222, 194)
+	c:box(Vector3.new(2.22, 0.16, 2.02), CFrame.new(0, -0.66, 0) * CFrame.Angles(0, 0, 0.05), wrap)
+	c:box(Vector3.new(2.22, 0.14, 2.02), CFrame.new(0, 0.62, -0.10) * CFrame.Angles(0, 0, -0.06), wrap)
+	c:box(Vector3.new(0.18, 0.12, 1.60), h * CFrame.new(0.24, 0.02, -0.30) * CFrame.Angles(0, 0.4, 0), wrap)
 end
 
 --------------------------------------------------------------------------------
@@ -2767,7 +3579,7 @@ function PetModelFactory.build(opts)
 		for _, id in ipairs(skin.detail) do
 			local fn = PetModelFactory.DETAILS[id]
 			if fn then
-				fn(c, pal)
+				fn(c, pal, def)
 			end
 		end
 	end

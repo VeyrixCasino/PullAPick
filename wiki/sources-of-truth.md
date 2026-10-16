@@ -2,7 +2,7 @@
 title: Sources of truth — every doc, and how far to trust it
 type: meta
 status: current
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-16 @ 98c141a
 sources:
   - docs/START-HERE.md
   - docs/TODO.md §0
@@ -25,26 +25,19 @@ and last this wiki.
 
 ## Where the newest work is
 
-**The wiki now follows the owner's working branch** (`claude/vigilant-fermi-aucqjy`),
-not `main`. The owner chose that on 2026-10-08, because their other session keeps
-working there and merges locally. This wiki's branch (`claude/trusting-euler-sjugag`,
-draft PR #7) merged that branch in at `bae3c5b`, so a reader of the wiki sees the
-owner's newest code. The wiki branch does **not** push to the working branch; the
-owner's other session merges it. Check `git log origin/<working branch>` for what
-came after the stamp on a page.
-
-**`main` was current on 2026-10-08, and the working branch is ahead of it.** Draft [PR #6](https://github.com/VeyrixCasino/PullAPick/pull/6)
-(`claude/vigilant-fermi-aucqjy`, 96 commits) was merged into `main` on 2026-10-06
-(merge commit `ea255bb`: balance pass, forged-tool skins, economy fixes,
-performance). That PR page shows "closed" rather than "merged" in the API, but
-the merge commit is on `main`. The old branch still exists and was **one commit
-ahead** of `main` when I last looked (`8d5c230`, a scaffolding-strip tweak). By
-2026-10-08 it is many commits ahead: chunked generation, the rebuilt veins, 36 graded
-charms, the wandering traders and the season hold (`8d5c230`..`bae3c5b`).
-Other branches (`ore-face-art`, `ore-tools-power`, `cursor/slice-gem-sprites-cdbb`)
-are older, with open draft PRs #1, #2 and #4 on them. `ore-tools-power` carries
-the only copy of the `gen-ores.js` `--force-stale` guard, according to the ore
-researcher.
+**The wiki follows the owner's working branch**, `claude/vigilant-fermi-aucqjy`, not
+`main`. The owner chose that on 2026-10-08, because their other session keeps working
+there and merges locally. `main` is **behind**: [PR #6](https://github.com/VeyrixCasino/PullAPick/pull/6)
+was merged into it on 2026-10-06 (`ea255bb`; the API shows it as "closed"), and the
+branch has since gone about 145 commits further, now open as
+[PR #8](https://github.com/VeyrixCasino/PullAPick/pull/8). The ask-first rule and its
+check live on a separate branch, `claude/trusting-euler-sjugag`
+([PR #7](https://github.com/VeyrixCasino/PullAPick/pull/7), based on the working branch),
+which the owner's other session merges; it never pushes to the working branch. Other
+branches (`ore-face-art`, `ore-tools-power`, `cursor/slice-gem-sprites-cdbb`) are
+older, with open draft PRs #1, #2 and #4 on them. `ore-tools-power` carries
+the only copy of the `gen-ores.js` `--force-stale` guard, according to the
+ore researcher; it is not on the working branch.
 
 **Always `git fetch` and look at open PRs before relying on `main`.**
 
@@ -54,8 +47,9 @@ researcher.
 |---|---|---|---|
 | `docs/TODO.md` §0 | **Locked rules.** Owner decisions, "do not relitigate". | 2026-10-05 | Authority. Some sub-claims are stale; see open-questions. |
 | `docs/PROPOSAL.md` §0 | **The 38 signed-off numbers.** Two lines changed afterwards (seams free, two ore reaches). | 2026-10-05 | Authority on *intent*. Several lines are approved but **not built**. |
+| `docs/PETS-AND-SETS.md` | **The pet and pack-set spec.** The owner's 19 sets with their pack names and card counts, the zone pots, the legacy to retire, and the queued rewards pass. | 2026-10-10 | Authority on pets and sets. The newest direction. |
 | `docs/START-HERE.md` | The cold-start prompt plus the traps and the honest branch state. | 2026-10-05 | Good. §2 still says players "sell ore for coins"; it sells for gems. |
-| `docs/HANDOFF.md` | "The bible": traps, house style, the owner's complaint list. | 2026-10-05 | Good. §2.5 implies runes are gone; they are not. |
+| `docs/HANDOFF.md` | "The bible": traps, house style, the owner's complaint list. | 2026-10-05 | Good. §2.5 says traits replaced runes; since 2026-10-12 both are retired and enchants replaced them ([traits](systems/traits.md)). |
 | `docs/OPEN.md` | Every unfinished task, prioritised. | 2026-10-05 | Index into TODO. Some line numbers are stale. |
 | `docs/BLOCKED.md` | Questions only the owner can answer (TASTE / FACT / REACH). | 2026-10-05 | Mostly superseded by PROPOSAL §0; a few still open. |
 

@@ -27,6 +27,39 @@ MineHorizonTools.ZONE_ID = "bigbang"
 MineHorizonTools.ZONE_INDEX = EH_ZI
 MineHorizonTools.TOOLS = { pickaxe = {}, drill = {}, explosive = {} }
 
+--[[
+	A PRICE MUST STAY AN EXACT INTEGER.
+
+	Luau numbers are doubles: above 2^53 they stop representing consecutive
+	integers, so `p.spaceCoins >= price` and `p.spaceCoins -= price` are no
+	longer reliable and the top of this ladder is not dependably purchasable.
+	An economy audit measured 75 of these prices past that line, topping out
+	at 5.5e25.
+
+	The cause is upstream and is not the 10,000x pass, though the pass made it
+	worse. This file's header says "Twenty tools, one per dirt section" and
+	the loop below walks Depth.SECTIONS -- which is now 138 rows running to a
+	dirtHp of 9.3e18, because it describes the NORMAL mine's full depth.
+	Event Horizon is TWO sections, layers 1-50 (MineConfig: "Event Horizon: 2
+	sections (layers 1-50)"). So the shop has been pricing tools off rock that
+	does not exist in its own zone, and the deepest entries were already
+	unrepresentable before anything was scaled.
+
+	Fixing the ROSTER is a design change -- `tier` here is per family, and
+	MineBreaking.eventStrength spreads a tool's tier across the event's
+	strength range using the row's own `rungs`, so changing the count changes
+	every event tool's breaking power. That belongs to the owner, not to a
+	correctness pass, and it is written up rather than done here.
+
+	What IS fixed: the price can no longer leave exact-integer range. PRICE_MAX
+	is 2^53 / 1024, which leaves three orders of magnitude of headroom for a
+	boosted wallet and still sits far above anything earnable -- zone 11 pays
+	about 2.1e12 per block, so the cap is roughly four thousand blocks' work.
+	Prices plateau at the top instead of running away, which is the honest
+	shape anyway: income plateaus there too.
+]]
+local PRICE_MAX = 2 ^ 53 / 1024
+
 local prevDps = nil
 local prevPrice = 0
 local function priceFromPrev()
@@ -41,12 +74,34 @@ local function priceFromPrev()
 			price = prevPrice
 		end
 	end
+	if price > PRICE_MAX then
+		price = math.floor(PRICE_MAX)
+	end
 	prevPrice = price
 	return price
 end
 
+--[[
+	THE 10,000x PASS, TOOL SIDE. Owner, 2026-10-08: "10 thousand x in ONLY the
+	event mine".
+
+	Event Horizon blocks scale through the depth curve at zone index 11
+	(MineDepth.hpScaleFor), and this file prices every Horizon tool off the
+	AUTHORED SECTIONS dirtHp -- a different table. Those are the two halves of
+	a closed loop: zone 11 blocks are only ever broken by these tools, which
+	are eventOnly and minZone 11, so as long as both move by the same factor
+	nothing a player experiences changes and no number outside the event moves.
+
+	Scaling the reference HP here rather than the power below means the hit
+	counts underneath -- PICK_HITS 16, BORE_HITS 40, CHARGE_HITS 70 -- stay
+	exactly what they say they are, and the space-coin prices derived from dps
+	come along on their own, which is the "with whatever custom currency they
+	are using" half of the original ask.
+]]
+local EH_SCALE = (Depth.hpScaleFor and Depth.hpScaleFor(EH_ZI)) or 1
+
 for _, sec in ipairs(Depth.SECTIONS) do
-	local hp = math.max(1, math.floor(tonumber(sec.dirtHp) or 1))
+	local hp = math.max(1, math.floor((tonumber(sec.dirtHp) or 1) * EH_SCALE))
 	local band = sec.band
 	if band == "shallow" then
 		local power = math.max(1, math.floor(hp / PICK_HITS + 0.5))
@@ -209,4 +264,32 @@ do
 		end)
 	end
 end
+
+--[[
+	STAMP EACH ROW WITH ITS OWN LADDER LENGTH.
+
+	`tier` here is per FAMILY, not global -- it is assigned as
+	`#TOOLS.<family> + 1` as each row is built -- and the three families are
+	nothing like the same length: 12 pickaxes, 38 drills, 88 explosives.
+
+	MineBreaking.eventStrength spreads a tool's tier across the event's strength
+	range, so it needs to know how many rungs that tool's ladder has. Without
+	this it has to assume one number for all three, and whichever number it
+	picks is wrong for the other two: at 20, every drill past tier 20 and every
+	explosive past tier 20 clamps to the same strength, so two thirds of the
+	explosive ladder would be identical.
+
+	Stamped on the data rather than looked up from MineBreaking, so the module
+	that owns the ladder owns its length and MineBreaking needs no dependency on
+	this file. Done after the rename pass because that pass may rebuild rows.
+]]
+for _, fam in ipairs({ "pickaxe", "drill", "explosive" }) do
+	local list = MineHorizonTools.TOOLS and MineHorizonTools.TOOLS[fam]
+	if type(list) == "table" then
+		for _, row in ipairs(list) do
+			row.rungs = #list
+		end
+	end
+end
+
 return MineHorizonTools

@@ -1,0 +1,48 @@
+{
+  "key": "arcade_legends",
+  "bodies": [
+    { "id": "al_cabinet", "label": "Cabinet", "role": "Bruiser" },
+    { "id": "al_gamepad", "label": "Gamepad", "role": "Striker" },
+    { "id": "al_token", "label": "Token", "role": "Trader" },
+    { "id": "al_heartbit", "label": "Pixel Heart", "role": "Seeker" },
+    { "id": "al_bitbug", "label": "Bitbug", "role": "Digger" }
+  ],
+  "extraBodies": ["slime", "sprite", "drake"],
+  "buffs": ["coinBonus", "swingRate", "zap"],
+  "palette": [
+    ["Cherry", 240, 70, 100], ["Bubblegum", 255, 120, 196], ["Tangerine", 255, 140, 30], ["Lemon", 255, 240, 90],
+    ["Lime", 150, 240, 60], ["Mint", 96, 240, 180], ["Cyber", 40, 226, 255], ["Cobalt", 40, 90, 230],
+    ["Grape", 140, 60, 220], ["Magenta", 236, 40, 210], ["Ink", 30, 30, 40], ["Ivory", 240, 238, 228],
+    ["Beige", 214, 200, 168], ["Gunmetal", 86, 92, 104], ["Toxic", 60, 255, 90], ["Synth", 110, 40, 160],
+    ["Sunset", 255, 96, 64], ["Electric", 70, 160, 255], ["Jackpot", 250, 196, 40], ["Chrome", 196, 200, 214],
+    ["Lagoon", 0, 170, 170], ["Blaster", 196, 16, 36], ["Lavender", 190, 160, 255], ["Woodgrain", 150, 96, 56]
+  ],
+  "topWords": {
+    "Legendary": ["Champion", "Bonus", "Combo", "Arcade"],
+    "Mythic": ["Hyper", "Ultra", "Mega", "Boss"],
+    "Divine": ["Flawless", "Perfect", "Platinum", "Immortal"],
+    "Exotic": ["Glitched", "Overclocked", "Secret", "Hypercolor"]
+  },
+  "names": [
+    "Bleep", "Blorp", "Kilobyte", "Terabyte", "Chiptune", "Joypad", "Joystick", "D-Pad", "Combo", "Highscore",
+    "Topscore", "Scoreboard", "Checkpoint", "Powerup", "Level Up", "Extra Life", "Continue", "Replay", "Speedrun",
+    "Quickstart", "Cartridge", "Quarter", "Ticket", "Prize", "Bonus", "Multiplier", "Streak", "Glowstick",
+    "Strobe", "Laser", "Blaster", "Pew Pew", "Zap", "Vector", "Raster", "Synth", "Synthwave", "Retro", "Player One",
+    "Player Two", "Coinslot", "Coin-Op", "Pinball", "Bumper", "Plunger", "Multiball", "Stacker", "Nitro", "Miniboss",
+    "Bossfight", "Sidekick", "Questy", "Loot", "Lifebar", "Healthbar", "Elixir", "Thumbstick", "Trigger", "Eightbit",
+    "Bleeper", "Megabit", "Bitwise", "Bytesize", "Byteling", "Bitling", "Pixling", "Neonpop", "Glowbug", "Neonbug",
+    "Bytebug", "Coinflip", "Cheatcode", "Secret Level", "Bonus Stage", "Framerate", "Joybot", "Gamebot", "Beepbeep",
+    "Blipblop", "Press Start", "Spacebar", "Arrow Key", "Gridline", "Neon Grid", "Laserbeam", "Glowline", "Ding",
+    "Ka-Ching", "Ta-Da", "Kapow", "Zing", "Fwoosh", "Fireball", "Turbochip", "Overdrive", "Bitstream", "Datastream",
+    "Gigglebyte", "Snackbyte", "Megachomp", "Bitpaw", "Glitchy", "Beepboop", "Megablast", "Superjump", "Double Jump",
+    "Wall Jump", "Dash", "Combo King", "Free Play", "Credit", "Clawgrab", "Clawdrop", "Air Hockey", "Puck",
+    "Brickbash", "Blockdrop", "Coinrush", "Pixel Racer", "Neon Rider", "Laser Tag", "Buttonmash", "Mashy",
+    "Tappy", "Clicky", "Clickity", "Arpeggio", "Squarewave", "Sawtooth", "Neon Kitty", "Pixel Pup", "Bytebunny",
+    "Screensaver", "Bezel", "Marquee", "Scorechaser", "Leaderboard", "Rank Up", "Fightstick", "Uppercut", "Spinkick",
+    "Lightgun", "Crosshair", "Sharpshot", "Bonus Life", "Arcadey", "Tokenkid", "Bitbop", "Chipchop", "Glowpad",
+    "Neonbyte", "Pixel Pop", "Boss Key", "Game Save", "Bitmap", "Arcade Ace", "Neon Nibble", "Glowball", "Laserpup",
+    "Turbo Tot", "Combo Cub", "Coin Cub", "Bit Buddy", "Chip Champ", "Score Scout", "Retro Rex", "Synth Kid",
+    "Neon Knight", "Boss Bop", "Coin Stack", "Prize Wall", "Claw Champ", "Pixel Burst", "Bitburst", "Neon Burst",
+    "Megazap", "Ultra Combo", "Max Level", "Final Level", "Score Streak", "Prize Ticket"
+  ]
+}

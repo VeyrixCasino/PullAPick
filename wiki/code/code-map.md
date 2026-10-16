@@ -2,7 +2,7 @@
 title: Code map
 type: code
 status: current
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - default.project.json
   - AGENTS.md
@@ -51,9 +51,12 @@ children (AGENTS.md).
 ## ReplicatedStorage
 
 **`src/ReplicatedStorage/Mine/Shared/`** is where most design work happens. It has
-94 entries: data modules (`MineConfig`, `MineDepth`, `MineStats`, `MineTraits`,
-`MineCharms`, `MinePackConfig`…) and the client **views** (`*View.luau`, `MineForge`,
-`MineHotbar`, `MineUI`, `MineTheme`). The largest, by lines:
+113 entries at `4e4fbb3`: data modules (`MineConfig`, `MineDepth`, `MineStats`,
+`MineEnchants`, `MineCharms`, `MinePackConfig`…) and the client **views** (`*View.luau`, `MineForge`,
+`MineHotbar`, `MineUI`, `MineTheme`). `MineRunes`, `MineRunesView`,
+`MineSocketsView`, `MineTraits` and `MineTraitView` were deleted on 2026-10-12,
+when runes and tool traits were retired ([traits](../systems/traits.md)). The
+largest, by lines (counted at `26036a0`, not rechecked):
 
 | module | lines | note |
 |---|---|---|
@@ -83,12 +86,7 @@ Other ReplicatedStorage contents:
 ## ServerScriptService
 
 - `src/ServerScriptService/Mine/MineServer.server.luau`: **the whole game server**,
-  17,714 lines (17,050 at `26036a0`). See [server](server.md).
-- **New 2026-10-07:** `MineTraderNPC` (the five wandering traders' bodies, prompt and
-  roster check: [wandering-traders](../systems/wandering-traders.md)). Shared:
-  `MineTrader` (the rules), `MineLaunch` (the season clock:
-  [season-and-launch](../systems/season-and-launch.md)). `MineDigAuth` gained
-  `canCreditDepth` and `chunkCeiling` ([zones-layers-and-seams](../systems/zones-layers-and-seams.md)).
+  17,050 lines and about 600 KB at `26036a0`. See [server](server.md).
 - Other modules in `Mine/`: `MineDigAuth`, `MineDepthPlazas` (outposts, elevator
   rides), `MineDepthLive`, `WorldBuilder` (builds the map at boot), the zone themes
   `MineHarbor`, `MineBloodLake` and `MineEventHorizon` (loaded by `WorldBuilder` per
@@ -102,7 +100,7 @@ Other ReplicatedStorage contents:
 
 ## StarterPlayerScripts
 
-`MineClient.client.luau` (12,488 lines) is the client; see [client-and-ui](client-and-ui.md).
+`MineClient.client.luau` (12,255 lines) is the client; see [client-and-ui](client-and-ui.md).
 Alongside it: `MineAdminClient` (the admin panel), `MineAmbience` (client-side bobbing
 and other motion), `MineDiscordLinkClient`, and `LoadPlayerModule` (boots the default
 PlayerModule so WASD and the camera work). `TCGAfkClient` is disabled by its
@@ -115,7 +113,7 @@ Nearly everything below came in with the first Studio import, `566eecf`
 
 | what | status | evidence |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/_c.luau` | dead 1,710-line copy of MineConfig. Nothing requires it. | AUDIT §5, OPEN Housekeeping |
+| `src/ReplicatedStorage/Mine/Shared/_c.luau` | **deleted 2026-10-08.** Was a dead 1,710-line copy of MineConfig that nothing required, still carrying the pre-launch-clock versions of limitedActive/limitedCountdown -- a grep-driven edit landed there and silently did nothing. | AUDIT §5, OPEN Housekeeping |
 | `src/ServerScriptService/Mine/MineDepthPlazas_OLD_pre_v4.luau` | superseded, and nothing refers to it | AUDIT §5, grep |
 | `src/ServerScriptService/Mine/MineDiscordBridge.server.luau` | a stub that only prints "idle" | file header |
 | `src/ReplicatedStorage/MineGear_AdminTest.luau`, `MineBags_NameCheck.luau` | old copies of the modules, at the RS root. They require siblings that do not exist there. | AUDIT §5, file headers |
@@ -129,7 +127,7 @@ Nearly everything below came in with the first Studio import, `566eecf`
 | empty folders: `_BagProbe`, `_CursorSrc`, `_AudioPush`, `_BakerB64`, `_EMKeep`, `_PB_PUSH`, `BlockLuaScripts`, `ToolKitEditableMeshes`, `Shared/_PetBoostChunks`; zero-byte `IconCaptureRunner.luau`, `_ToolRenameMapMod.luau`, `_MineHatsB64.txt` | placeholders | `ls -la` |
 | `src/ServerStorage/OreToolBaker.luau` | committed, but nothing requires it. It has its own 82-row roster. | TODO §4 (corrected 2026-10-05), BLOCKED #14 |
 | `src/ServerStorage/OreBalanceSim.luau` | an offline sim. It reads five MineConfig symbols that no longer exist. | BLOCKED, "Broken, not blocked" |
-| `src/ServerStorage/MineParked/GroupWheel/` | the parked group wheel. The live `GroupWheelService` is still routed (`spin`), but the lobby build call is commented out in MineServer. | README.txt, grep |
+| `src/ServerStorage/MineParked/GroupWheel/` | a stale copy of the group wheel. The live `GroupWheelService` was rebuilt as the daily wheel and is built in the lobby again (2026-10-10). | README.txt, grep |
 | `MineBenchView` | superseded by the Forge (AUDIT says "already unmounted") | AUDIT §5 |
 
 The Studio bakers in ServerStorage (`OreToolBaker`, `UniqueToolBaker`,

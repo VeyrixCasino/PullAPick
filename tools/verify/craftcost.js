@@ -42,7 +42,8 @@ ${grab(/function MineConfig\.oreYieldFor\(tier\)[\s\S]*?\nend\n/, "oreYieldFor")
 ${grab(/function MineConfig\.oreBandForTier\(tier\)[\s\S]*?\nend\n/, "oreBandForTier")}
 ${grab(/function MineConfig\.craftBlocks\(tier\)[\s\S]*?\nend\n/, "craftBlocks")}
 ${grab(/function MineConfig\.oreYieldMid\(tier\)[\s\S]*?\nend\n/, "oreYieldMid")}
-${grab(/function MineConfig\.toolCraftCost\(tier, typeMult\)[\s\S]*?\nend\n/, "toolCraftCost")}
+${grab(/MineConfig\.FAMILY_CRAFT_COST = \{[\s\S]*?\n\}/, "FAMILY_CRAFT_COST")}
+${grab(/function MineConfig\.toolCraftCost\(tier, typeMult[^)]*\)[\s\S]*?\nend\n/, "toolCraftCost")}
 local C = MineConfig
 local fail = 0
 local function check(ok, msg)
@@ -107,6 +108,16 @@ check(hi > lo * 3, ("cost spans %d..%d across the roster"):format(lo, hi))
 
 -- typeMult still multiplies, since the Forge and the craft verb both pass it.
 check(C.toolCraftCost(30, 2) > C.toolCraftCost(30, 1), "typeMult still raises the cost")
+
+-- A FAMILY may cost more ORE without becoming stronger. typeMult drives power
+-- as well as cost, so the hammer surcharge has to be its own multiplier. These
+-- three are what prove it is wired and that nothing else moved with it.
+check(C.toolCraftCost(30, 1, "hammer") > C.toolCraftCost(30, 1),
+	"hammer costs more ore than a family with no surcharge")
+check(C.toolCraftCost(30, 1, "pickaxe") == C.toolCraftCost(30, 1),
+	"a family with no surcharge pays exactly what it paid before")
+check(C.toolCraftCost(30, 1, nil) == C.toolCraftCost(30, 1),
+	"omitting the family is unchanged")
 
 if fail > 0 then
 	print("")

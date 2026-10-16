@@ -139,7 +139,9 @@ depth points"*).
 
 ## State right now
 - The seam chain is wired, free and still **unconfirmed in engine** (`docs/OPEN.md` P0 §1).
-- Ten outposts per zone are wired, and the station bay content is undecided.
+- Ten outposts per zone are wired. The station bays of the 1,000 and 3,000
+  outposts hold fishing pools in zones that have fish (2026-10-11,
+  [fishing](fishing.md)); the rest are still RESERVED.
 
 ## Gotchas
 - **Depth-desk payouts: fixed in `4cc82a5`.** They used to be ×487.5 at seam 500, ×12,187.5 at seam 1500 and ×0.78 everywhere else, because `MineDepth.equivZoneIndex` special-cased two seams. `depthSellMult` is now `DEPTH_SELL_PER_SEAM ^ (seam / 500)` with a rate of 1.05, continuous in `seam`, so a desk added at an unlisted depth lands on the curve. See [currencies](currencies-and-economy.md).

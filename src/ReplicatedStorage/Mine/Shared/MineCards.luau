@@ -361,6 +361,16 @@ function MineCards.getSet(setId)
 	return MineCards.SETS[setId]
 end
 
+-- How prestigious a set is, F (starter) to SSS (the chase). Pack tiles print it
+-- beside the set name and break star ties with it. Only a set that carries
+-- `grade` has one; the Season-1 sets do not, so they show their name alone.
+MineCards.GRADE_RANK = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 8 }
+
+function MineCards.setGrade(setId)
+	local def = MineCards.SETS[setId]
+	return def and def.grade or nil
+end
+
 function MineCards.typeOf(setId, index)
 	local def = MineCards.SETS[setId]
 	if not def then
@@ -415,7 +425,12 @@ end
 	stat -- a multiplier starting at 0 zeroes everything it touches, and an
 	additive starting at 1 is a free +100%.
 ]]
-local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, procPower = true }
+-- oreHaul is ADDITIVE: sources contribute fractions that sum, and
+-- MineConfig.oreHaulMult turns the total into 1 + haul at the one place it is
+-- spent. Listing it here is what makes addStat accumulate from 0 instead of
+-- from 1 -- without it, a single +50% roll would read as 1.5 and then be spent
+-- as a 2.5x multiplier.
+local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, oreHaul = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, tidalWave = true, procPower = true, blastDamage = true, tideDamage = true, zapDamage = true, shatterDamage = true }
 MineCards.ADDITIVE_STATS = ADDITIVE_STATS
 
 local function addStat(b, key, amount)
@@ -570,6 +585,50 @@ end
 -- nothing at all. If you add a stat to MineStats.STATS, add it here.
 --
 -- Multiplier stats start at 1 (1.00 = +0%). Additive ones start at 0.
+--[[
+	THE FLOOR on a finished boosts table: MineServer's boosts() ends here.
+	Moved from MineRunes on 2026-10-12, when runes were retired. An ADDITIVE
+	stat floors at 0, a multiplier at x0.05, and the swing time at 0.05 s.
+
+	It used to keep its own list of additive stats, and that list had fallen
+	behind ADDITIVE_STATS. So Tidal Wave, every proc's damage, Proc Power and
+	Ore Haul were floored like multipliers, at 0.05: a tool the Special gate
+	had just zeroed still rolled a 5% Tidal Wave, and everyone had +5% Ore Haul.
+	There is one list now.
+]]
+local clampStats
+function MineCards.clampBoosts(b)
+	if type(b) ~= "table" then
+		return b
+	end
+	-- Looked up lazily like the other MineStats reads here, and retried until
+	-- found: a failed lookup must not switch the floor off for good. Without
+	-- MineStats it still floors every additive stat and the swing time.
+	if not clampStats then
+		local parent = script.Parent
+		local ok, Stats = pcall(function()
+			return require(parent:FindFirstChild("MineStats"))
+		end)
+		if ok and type(Stats) == "table" and type(Stats.STATS) == "table" then
+			clampStats = Stats.STATS
+		end
+	end
+	for stat in pairs(clampStats or ADDITIVE_STATS) do
+		if ADDITIVE_STATS[stat] then
+			b[stat] = math.max(0, tonumber(b[stat]) or 0)
+		elseif stat == "swingRate" then
+			b.swingSec = math.max(0.05, tonumber(b.swingSec) or 1)
+		else
+			local mult = b[stat]
+			if type(mult) == "number" then
+				b[stat] = math.max(0.05, mult)
+			end
+		end
+	end
+	b.swingSec = math.max(0.05, tonumber(b.swingSec) or 1)
+	return b
+end
+
 function MineCards.emptyBoosts()
 	return {
 		-- multipliers
@@ -581,6 +640,11 @@ function MineCards.emptyBoosts()
 		-- swingSec is a DURATION; kits grant swingRate, folded in by foldSwingRate.
 		swingSec = 1,
 		-- additive (blastChance = Blast % proc)
+		-- oreHaul multiplies ore OUT OF a block, where fossilFind decides WHICH
+		-- ore it is. It has to start here for the same reason as the two below:
+		-- the relic fold skips any key not already present, so leaving it out
+		-- would make every Ore Haul boost in the game silently do nothing.
+		oreHaul = 0,
 		echo = 0, zap = 0, blastRadius = 0, autoMine = 0, blastChance = 0, luckyFind = 0, fossilFind = 0, pulverize = 0,
 		scrap = 0, coolant = 0, shortFuse = 0, reach = 0,
 		-- PROC DAMAGE, separate from every proc CHANCE above it. Additive, and
@@ -592,6 +656,10 @@ function MineCards.emptyBoosts()
 		-- not already on the table (b[r.stat] ~= nil), so a missing key would be
 		-- a silently ignored boost rather than an error.
 		earthquake = 0, ricochet = 0,
+		-- Tidal Wave is a chance like Blast, so additive and present from the start.
+		tidalWave = 0,
+		-- Each proc's own damage stat (2026-10-10), additive like procPower.
+		blastDamage = 0, tideDamage = 0, zapDamage = 0, shatterDamage = 0,
 	}
 end
 
@@ -751,15 +819,9 @@ function MineCards.displayName(card)
 	local okB, Boosts = pcall(require, script.Parent:FindFirstChild("MinePetBoosts"))
 	local animal = card.animal or card.animalName
 	if (type(animal) ~= "string" or animal == "") and card.name then
-		local ok, Packs = pcall(require, script.Parent:FindFirstChild("MinePackConfig"))
-		if ok and Packs and Packs.CARD_BY_NAME and Packs.CARD_BY_NAME[card.name] then
-			animal = Packs.CARD_BY_NAME[card.name].animal
-		end
-		if (type(animal) ~= "string" or animal == "") then
-			local okR, Roster = pcall(require, script.Parent:FindFirstChild("MinePetRoster"))
-			if okR and Roster and Roster.BY_NAME and Roster.BY_NAME[card.name] then
-				animal = Roster.BY_NAME[card.name].animal
-			end
+		local okR, Roster = pcall(require, script.Parent:FindFirstChild("MinePetRoster"))
+		if okR and Roster and Roster.BY_NAME and Roster.BY_NAME[card.name] then
+			animal = Roster.BY_NAME[card.name].animal
 		end
 	end
 	local view = { name = card.name, animal = animal }

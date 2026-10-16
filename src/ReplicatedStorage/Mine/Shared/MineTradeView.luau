@@ -135,18 +135,15 @@ local function rarityInk(row, kind)
 	if kind == "gear" then
 		return Gear.RARITY_COLOR[row.rarity] or T.MUTED
 	end
-	if kind == "runes" then
-		local tierInk = { T.MUTED, T.GREEN, T.GEM, T.DUST, T.GOLD }
-		return tierInk[math.clamp(tonumber(row.tier) or 1, 1, 5)]
-	end
 	if kind == "cards" then
 		return (Cards.RARITY_COLOR and Cards.RARITY_COLOR[row.rarityId or ""]) or T.MUTED
 	end
 	return T.GOLD
 end
 
-local KINDS = { "cards", "packs", "runes", "gear", "potions" }
-local KIND_LABEL = { cards = "Cards", packs = "Packs", runes = "Runes", gear = "Gear", potions = "Potions" }
+-- Runes left the game on 2026-10-12 (enchants took their place).
+local KINDS = { "cards", "packs", "gear", "potions" }
+local KIND_LABEL = { cards = "Cards", packs = "Packs", gear = "Gear", potions = "Potions" }
 
 -- There was a sixth tab, "fossils", reading p.fossilPieces. Fossils are retired
 -- (§0.12) and every piece was cashed out, so the tab is gone with the kind.
@@ -196,11 +193,6 @@ local function stackKey(kind, row)
 			.. "|" .. tostring(row.rarityId or "")
 			.. "|" .. tostring(row.variant or "Normal")
 	end
-	if kind == "runes" then
-		return "rune:" .. tostring(row.stat or "?")
-			.. "|" .. tostring(row.tier or 1)
-			.. "|" .. tostring(row.pct or 0)
-	end
 	if kind == "gear" then
 		return "gear:" .. tostring(row.catalogId or row.setName or row.name or "?")
 			.. "|" .. tostring(row.rarity or "")
@@ -217,9 +209,6 @@ local function rarityRank(kind, row)
 	end
 	if kind == "gear" then
 		return GEAR_RANK[row.rarity or ""] or 0
-	end
-	if kind == "runes" then
-		return tonumber(row.tier) or 0
 	end
 	if kind == "packs" then
 		if row.kind == "lucky_block" or row.blockId then
@@ -605,7 +594,7 @@ function MineTradeView.mount(gui, opts)
 	-- State
 	----------------------------------------------------------------------------
 	local session = nil -- the last sync, exactly as the server sent it
-	local mine = { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {} } -- ids
+	local mine = { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, gear = {}, potions = {} } -- ids
 	local confirmUntil = 0
 	local peek = nil -- the other bag, when asked for
 	local noteUntil, noteText = 0, nil
@@ -724,11 +713,6 @@ function MineTradeView.mount(gui, opts)
 		local lines = {}
 		if kind == "cards" then
 			lines = cardStatLines(row)
-		elseif kind == "runes" then
-			lines = {
-				string.format("Tier %s", tostring(row.tier or 1)),
-				string.format("%s  +%.0f%%", tostring(row.stat or "?"), (tonumber(row.pct) or 0) * 100),
-			}
 		elseif kind == "gear" then
 			lines = {
 				tostring(row.rarity or ""),
@@ -793,7 +777,7 @@ function MineTradeView.mount(gui, opts)
 			end
 		end
 		if #free > 0 then
-			local total = #mine.cards + #mine.packs + #mine.runes + #mine.gear + #(mine.potions or {})
+			local total = #mine.cards + #mine.packs + #mine.gear + #(mine.potions or {})
 			if total >= ((session and session.maxItems) or 16) then
 				return
 			end
@@ -901,7 +885,7 @@ function MineTradeView.mount(gui, opts)
 			text(b, { Text = tostring(row.setName or row.name or "Gear"), TextSize = 12, Font = T.FONT,
 				TextXAlignment = Enum.TextXAlignment.Center, Position = UDim2.fromOffset(3, 78),
 				Size = UDim2.new(1, -6, 0, 32), ZIndex = 86 }).TextWrapped = true
-		else -- rune
+		else -- potions
 			text(b, { Text = "◆", Font = T.FONT, TextSize = 34, TextColor3 = ink,
 				TextXAlignment = Enum.TextXAlignment.Center, Position = UDim2.fromOffset(0, 8),
 				Size = UDim2.new(1, 0, 0, 40), ZIndex = 85 })
@@ -946,25 +930,6 @@ function MineTradeView.mount(gui, opts)
 		for _, c in ipairs(g:GetChildren()) do
 			if c:IsA("GuiObject") then c:Destroy() end
 		end
-	end
-
-	-- Runes fitted anywhere cannot be traded; the server refuses them too.
-	local function socketedRunes(snap)
-		local busy = {}
-		for _, sock in pairs(snap.toolSockets or {}) do
-			if type(sock) == "table" then
-				if sock.main then busy[sock.main] = true end
-				if sock.omni then busy[sock.omni] = true end
-			end
-		end
-		for _, g in ipairs(snap.gear or {}) do
-			for _, id in pairs(g.sockets or {}) do busy[id] = true end
-		end
-		for _, ct in ipairs(snap.chestTools or {}) do
-			if type(ct) == "table" and ct.runeId then busy[ct.runeId] = true end
-		end
-		for _, id in pairs(snap.petSockets or {}) do busy[id] = true end
-		return busy
 	end
 
 	local function countMarks(marks)
@@ -1079,7 +1044,6 @@ function MineTradeView.mount(gui, opts)
 			if not snap then return end
 			local _, theirMarks = S("marks")
 			theirMarks = theirMarks or {}
-			local busy = (bagKind == "runes") and socketedRunes(snap) or {}
 			local raw = {}
 			if bagKind == "potions" then
 				for _, row in ipairs((snap.potions and snap.potions.bag) or {}) do
@@ -1092,7 +1056,6 @@ function MineTradeView.mount(gui, opts)
 				if type(row) == "table" then
 					local id = idOf(bagKind, row)
 					local blocked = false
-					if bagKind == "runes" and busy[id] then blocked = true end
 					if bagKind == "gear" and (snap.equippedGear or {})[row.slot] == id then blocked = true end
 					if not blocked then
 						raw[#raw + 1] = row
@@ -1100,14 +1063,12 @@ function MineTradeView.mount(gui, opts)
 				end
 			end
 			end
-			-- Worn / socketed stay visible as single dimmed tiles (not mixed into stacks).
+			-- Worn gear stays visible as single dimmed tiles (not mixed into stacks).
 			local blockedRows = {}
 			for _, row in ipairs(bagSource(snap, bagKind)) do
 				if type(row) == "table" then
 					local id = idOf(bagKind, row)
-					if bagKind == "runes" and busy[id] then
-						blockedRows[#blockedRows + 1] = { row = row, why = "SOCKETED" }
-					elseif bagKind == "gear" and (snap.equippedGear or {})[row.slot] == id then
+					if bagKind == "gear" and (snap.equippedGear or {})[row.slot] == id then
 						blockedRows[#blockedRows + 1] = { row = row, why = "WORN" }
 					end
 				end
@@ -1435,7 +1396,7 @@ function MineTradeView.mount(gui, opts)
 		end
 		-- Your offer is whatever the server kept: rebuild the ids from it.
 		local view = S("offer") or {}
-		mine = { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {} }
+		mine = { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, gear = {}, potions = {} }
 		for _, c in ipairs(CURRENCIES) do
 			mine[c.key] = tonumber(view[c.key]) or 0
 			local box = myBoxes[c.key]

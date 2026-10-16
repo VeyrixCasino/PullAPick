@@ -1,8 +1,13 @@
 --[[
-	MineGroupWheelView -- limited-week group prize wheel UI.
+	MineGroupWheelView -- the DAILY WHEEL panel.
 
-	Top copy teases Galaxy + Spark = EXOTIC. Free spin for group members;
-	Robux packs bank paid spins. Sale window matches season week 1 packages.
+	Owner, 2026-10-10 (docs/TODO.md NOW, A1): one free spin a day for everyone,
+	+1 for group members, streak bonuses, odds printed. The rules live in
+	MineGroupWheel (shared); this only draws them and reports the SPIN press.
+
+	Follows wiki/code/candy-style.md: chunky, odds on every slice, the win
+	celebrated by its REAL rarity through MineCelebrate, and never a "spend
+	Robux" prompt in a region where paid random items are restricted.
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -37,13 +42,9 @@ end
 
 local function fmtWait(sec)
 	sec = math.max(0, math.floor(tonumber(sec) or 0))
-	local d = math.floor(sec / 86400)
-	local h = math.floor((sec % 86400) / 3600)
+	local h = math.floor(sec / 3600)
 	local m = math.floor((sec % 3600) / 60)
 	local s = sec % 60
-	if d > 0 then
-		return string.format("%dd %dh", d, h)
-	end
 	if h > 0 then
 		return string.format("%dh %dm", h, m)
 	end
@@ -53,24 +54,34 @@ local function fmtWait(sec)
 	return string.format("%ds", s)
 end
 
+local function kit()
+	local ok, UI = pcall(function()
+		return require(shared:WaitForChild("MineUI"))
+	end)
+	return ok and UI or nil
+end
+
 function MineGroupWheelView.mount(gui, opts)
 	opts = opts or {}
 	local net = opts.net
 	local player = Players.LocalPlayer
 	local getGroupId = opts.getGroupId or function()
-		return 0
+		return tonumber(C.GROUP_ID) or 0
+	end
+	local function productId(key)
+		local prod = C.product and C.product(key)
+		return prod and tonumber(prod.productId) or 0
 	end
 	local buyProduct = opts.buyProduct or function(key)
-		local prod = C.product and C.product(key)
-		local pid = prod and tonumber(prod.productId) or 0
+		local pid = productId(key)
 		if pid > 0 then
 			MarketplaceService:PromptProductPurchase(player, pid)
-		else
-			-- Studio / unwired: still useful copy.
 		end
 	end
 	local ctl = {}
-	local state = Wheel.payload(nil, os.time())
+	local state = { freeLeft = 0, freeTotal = Wheel.FREE_PER_DAY, paid = 0, resetIn = Wheel.resetIn(), segments = Wheel.SEGMENTS }
+	-- When the state arrived, so the countdown can tick between snapshots.
+	local stateAt = os.clock()
 	local spinning = false
 
 	local root = mk("Frame", {
@@ -83,134 +94,63 @@ function MineGroupWheelView.mount(gui, opts)
 		BackgroundColor3 = T.PANEL,
 		ZIndex = 90,
 	}, gui)
-	round(root, T.RADIUS_LG)
-	stroke(root, T.GOLD, 2)
+	round(root, T.RADIUS_LG + 4)
+	stroke(root, T.OUTLINE, T.STROKE_THICK)
 
-	mk("TextLabel", {
+	local titleL = mk("TextLabel", {
 		BackgroundTransparency = 1,
 		Font = T.FONT,
-		TextSize = 26,
+		TextSize = 32,
 		TextColor3 = T.GOLD,
-		Text = "GROUP WHEEL",
-		Position = UDim2.fromOffset(20, 10),
-		Size = UDim2.new(1, -80, 0, 30),
+		Text = "DAILY WHEEL",
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(22, 12),
+		Size = UDim2.new(1, -90, 0, 36),
 		ZIndex = 91,
 	}, root)
-
-	local tagline = mk("Frame", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(20, 38),
-		Size = UDim2.new(1, -80, 0, 28),
-		ZIndex = 91,
-	}, root)
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = T.FONT,
-		TextSize = 15,
-		TextColor3 = Color3.fromRGB(255, 245, 160),
-		Text = "Galaxy",
-		Size = UDim2.fromOffset(56, 28),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 92,
-	}, tagline)
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = T.FONT_M,
-		TextSize = 15,
-		TextColor3 = T.MUTED,
-		Text = "+",
-		Position = UDim2.fromOffset(58, 0),
-		Size = UDim2.fromOffset(18, 28),
-		ZIndex = 92,
-	}, tagline)
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = T.FONT,
-		TextSize = 15,
-		TextColor3 = Color3.fromRGB(85, 220, 255),
-		Text = "Spark",
-		Position = UDim2.fromOffset(76, 0),
-		Size = UDim2.fromOffset(48, 28),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 92,
-	}, tagline)
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = T.FONT_M,
-		TextSize = 15,
-		TextColor3 = T.MUTED,
-		Text = "=",
-		Position = UDim2.fromOffset(126, 0),
-		Size = UDim2.fromOffset(18, 28),
-		ZIndex = 92,
-	}, tagline)
-	-- Blacked-out mystery Exotic pet + ?
-	local mysteryPet = mk("Frame", {
-		Name = "MysteryPet",
-		BackgroundColor3 = Color3.fromRGB(12, 10, 16),
-		Position = UDim2.fromOffset(148, 1),
-		Size = UDim2.fromOffset(26, 26),
-		ZIndex = 92,
-	}, tagline)
-	round(mysteryPet, 13)
-	stroke(mysteryPet, Color3.fromRGB(255, 55, 55), 1)
-	mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(8, 6, 10),
-		AnchorPoint = Vector2.new(0.5, 0.55),
-		Position = UDim2.fromScale(0.5, 0.55),
-		Size = UDim2.fromOffset(14, 16),
-		ZIndex = 93,
-		BorderSizePixel = 0,
-	}, mysteryPet)
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = T.FONT,
-		TextSize = 16,
-		TextColor3 = Color3.fromRGB(255, 80, 100),
-		Text = "?",
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 94,
-	}, mysteryPet)
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = T.FONT,
-		TextSize = 14,
-		TextColor3 = Color3.fromRGB(255, 80, 100),
-		Text = "EXOTIC",
-		Position = UDim2.fromOffset(180, 0),
-		Size = UDim2.fromOffset(120, 28),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 92,
-	}, tagline)
 
 	local sub = mk("TextLabel", {
 		BackgroundTransparency = 1,
+		Font = T.FONT,
+		TextSize = 17,
+		TextColor3 = T.TEXT,
+		Text = "",
+		Position = UDim2.fromOffset(22, 52),
+		Size = UDim2.new(1, -44, 0, 22),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 91,
+	}, root)
+	local how = mk("TextLabel", {
+		BackgroundTransparency = 1,
 		Font = T.FONT_M,
-		TextSize = 13,
+		TextSize = 14,
 		TextColor3 = T.MUTED,
-		Text = "1 week limited · free spin for group · Robux packs",
-		Position = UDim2.fromOffset(20, 66),
-		Size = UDim2.new(1, -40, 0, 18),
+		Text = string.format("1 free spin every day  ·  +%d for group members  ·  +%d every %d-day login streak",
+			Wheel.GROUP_BONUS, Wheel.STREAK_BONUS, Wheel.STREAK_EVERY),
+		Position = UDim2.fromOffset(22, 76),
+		Size = UDim2.new(1, -44, 0, 18),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 91,
 	}, root)
 
 	local xbtn = mk("TextButton", {
-		AutoButtonColor = true,
-		BackgroundColor3 = T.INK,
+		Name = "Close",
+		AutoButtonColor = false,
+		BackgroundColor3 = T.RED,
 		Text = "X",
 		Font = T.FONT,
-		TextSize = 18,
-		TextColor3 = T.TEXT,
-		Position = UDim2.new(1, -44, 0, 12),
-		Size = UDim2.fromOffset(32, 32),
+		TextSize = 22,
+		TextColor3 = Color3.new(1, 1, 1),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 12),
+		Size = UDim2.fromOffset(42, 42),
 		ZIndex = 92,
 	}, root)
-	round(xbtn, 8)
+	round(xbtn, 12)
 
 	local wheelHost = mk("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(70, 88),
+		Position = UDim2.fromOffset(70, 104),
 		Size = UDim2.fromOffset(380, 380),
 		ZIndex = 91,
 	}, root)
@@ -223,150 +163,94 @@ function MineGroupWheelView.mount(gui, opts)
 		BackgroundColor3 = T.INK,
 		ZIndex = 92,
 	}, wheelHost)
-	-- Scale corner, not a pixel one: the disc is resized by refit, and a fixed
-	-- 170 radius stops being a circle the moment it is not 340 across.
+	-- Scale corner: the disc is resized by refit and must stay a circle.
 	mk("UICorner", { CornerRadius = UDim.new(1, 0) }, disc)
-	local wheelPx = 340 -- current disc diameter; refit owns this
-	stroke(disc, T.GOLD, 3)
+	local wheelPx = 340
+	stroke(disc, T.OUTLINE, 5)
 
-	local wedgeLabels = {}
 	local function paintWedges()
 		for _, c in ipairs(disc:GetChildren()) do
-			if c:IsA("GuiObject") and c.Name ~= "UICorner" and c.Name ~= "UIStroke" then
+			if c:IsA("GuiObject") then
 				c:Destroy()
 			end
 		end
-		wedgeLabels = {}
 		local segs = state.segments or Wheel.SEGMENTS
 		local n = #segs
-		--[[
-			The odds go ON the wheel. A prize wheel that will not say what
-			anything is worth asks you to spin on trust, and the weights are
-			already public in MineGroupWheel.SEGMENTS -- so print them.
-
-			Common outcomes read better as a percentage, rare ones as "1 in X":
-			"0.25%%" says far less to a player than "1 in 400".
-		]]
-		local totalW = 0
-		for _, sg in ipairs(segs) do
-			totalW += math.max(0, tonumber(sg.weight) or 0)
-		end
 		for i, seg in ipairs(segs) do
-			--[[
-				A WHEEL SEGMENT IS RADIAL, NOT TANGENTIAL.
-
-				These were 88 wide by 46 tall, sitting on a radius-108 ring. The
-				arc each segment actually owns at that radius is 2*pi*108/14 =
-				48px, so every chip overlapped its neighbours by nearly double
-				and the labels were 10px of rotated text fighting each other --
-				which is why the thing read as a cramped ring rather than a
-				wheel.
-
-				A segment runs OUTWARD: its width is the arc it owns, its height
-				is the band from the hub to the rim. Same rotation as before --
-				that part was always right -- so the text reads along the spoke.
-			]]
+			-- A segment runs OUTWARD: width is the arc it owns, height is the
+			-- band from hub to rim, rotated so the text reads along the spoke.
 			local ang = ((i - 0.5) / n) * math.pi * 2 - math.pi / 2
-			-- Band follows the disc, so the wheel can be as big as the screen.
 			local R = wheelPx * 0.5
 			local rOut = R - math.max(6, R * 0.05)
 			local rIn = math.max(24, R * 0.32)
 			local r = (rIn + rOut) * 0.5
 			local arcW = math.max(18, math.floor((2 * math.pi * r) / n) - 2)
 			local bandH = rOut - rIn
-			local x = math.cos(ang) * r
-			local y = math.sin(ang) * r
-			local isMystery = seg.mystery == true or seg.id == "exotic" or seg.reward and seg.reward.petPool == "droppable_exotic"
+			local isMystery = seg.mystery == true
 			local chip = mk("Frame", {
 				Name = "W" .. i,
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.new(0.5, x, 0.5, y),
+				Position = UDim2.new(0.5, math.cos(ang) * r, 0.5, math.sin(ang) * r),
 				Size = UDim2.fromOffset(arcW, bandH),
 				BackgroundColor3 = isMystery and Color3.fromRGB(14, 12, 18) or (seg.color or T.GOLD),
 				Rotation = math.deg(ang) + 90,
 				ZIndex = 93,
 			}, disc)
 			round(chip, 8)
-			-- Chase slices wear a bright rim so the wheel is not 16 flat blocks.
-			if seg.hype then
-				stroke(chip, Color3.fromRGB(255, 255, 255), 2)
-			end
-			if isMystery then
-				stroke(chip, Color3.fromRGB(255, 55, 55), 1)
-				-- Blacked-out pet silhouette + ?
-				local sil = mk("Frame", {
-					BackgroundColor3 = Color3.fromRGB(6, 5, 8),
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Position = UDim2.new(0.5, 0, 0.5, -2),
-					Size = UDim2.fromOffset(22, 24),
-					Rotation = -(math.deg(ang) + 90),
-					ZIndex = 94,
-					BorderSizePixel = 0,
-				}, chip)
-				round(sil, 10)
-				mk("TextLabel", {
-					BackgroundTransparency = 1,
-					Font = T.FONT,
-					TextSize = 20,
-					TextColor3 = Color3.fromRGB(255, 70, 90),
-					Text = "?",
-					Size = UDim2.fromScale(1, 1),
-					Rotation = -(math.deg(ang) + 90),
-					ZIndex = 95,
-				}, chip)
-			else
-				-- Name up at the rim end, payout under it, both down the spoke.
-				local nameLbl = mk("TextLabel", {
-					BackgroundTransparency = 1,
-					Font = T.FONT,
-					TextColor3 = Color3.new(0.1, 0.08, 0.05),
-					Text = tostring(seg.label or "?"),
-					Size = UDim2.new(1, -6, 0, math.floor(bandH * 0.40)),
-					Position = UDim2.fromOffset(3, 6),
-					TextWrapped = true,
-					ZIndex = 94,
-				}, chip)
-				mk("UITextSizeConstraint", { MaxTextSize = 15, MinTextSize = 7 }, nameLbl)
-				nameLbl.TextScaled = true
+			stroke(chip, seg.hype and Color3.new(1, 1, 1) or T.OUTLINE, seg.hype and 2.5 or 1.5)
+			-- The chip's top is the rim. Its outer half is narrower than its arc,
+			-- so nothing overlaps it; toward the hub the neighbours overlap. So
+			-- the name and the odds live in the outer half, and the flavour
+			-- line (least important) below them.
+			local nameLbl = mk("TextLabel", {
+				BackgroundTransparency = 1,
+				Font = T.FONT,
+				TextColor3 = isMystery and Color3.fromRGB(255, 80, 100) or Color3.new(0.1, 0.08, 0.05),
+				Text = isMystery and "?" or tostring(seg.label or "?"),
+				Size = UDim2.new(1, -6, 0, math.floor(bandH * 0.32)),
+				Position = UDim2.fromOffset(3, 5),
+				TextWrapped = true,
+				TextScaled = true,
+				ZIndex = 94,
+			}, chip)
+			mk("UITextSizeConstraint", { MaxTextSize = isMystery and 26 or 16, MinTextSize = 7 }, nameLbl)
+			-- The odds, on every slice, from the weights the server rolls: a dark
+			-- pill so they read on every slice colour.
+			local pillH = math.max(13, math.floor(bandH * 0.13))
+			local pill = mk("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 7 + math.floor(bandH * 0.32)),
+				Size = UDim2.new(1, -8, 0, pillH),
+				BackgroundColor3 = Color3.fromRGB(20, 12, 44),
+				BackgroundTransparency = 0.15,
+				ZIndex = 95,
+			}, chip)
+			round(pill, pillH)
+			local oddsLbl = mk("TextLabel", {
+				BackgroundTransparency = 1,
+				Font = T.FONT,
+				TextColor3 = isMystery and Color3.fromRGB(255, 120, 140) or Color3.new(1, 1, 1),
+				Text = Wheel.oddsText(seg),
+				Size = UDim2.new(1, -4, 1, -2),
+				Position = UDim2.fromOffset(2, 1),
+				TextScaled = true,
+				ZIndex = 96,
+			}, pill)
+			mk("UITextSizeConstraint", { MaxTextSize = 13, MinTextSize = 6 }, oddsLbl)
+			if not isMystery then
 				local subLbl = mk("TextLabel", {
 					BackgroundTransparency = 1,
 					Font = T.FONT_M,
 					TextColor3 = Color3.fromRGB(40, 30, 20),
 					Text = tostring(seg.sub or ""),
-					Size = UDim2.new(1, -6, 0, math.floor(bandH * 0.30)),
-					Position = UDim2.fromOffset(3, 6 + math.floor(bandH * 0.42)),
+					Size = UDim2.new(1, -6, 0, math.floor(bandH * 0.22)),
+					Position = UDim2.fromOffset(3, 9 + math.floor(bandH * 0.32) + pillH),
 					TextWrapped = true,
+					TextScaled = true,
 					ZIndex = 94,
 				}, chip)
 				mk("UITextSizeConstraint", { MaxTextSize = 12, MinTextSize = 6 }, subLbl)
-				subLbl.TextScaled = true
 			end
-			do
-				local w = math.max(0, tonumber(seg.weight) or 0)
-				local pct = (totalW > 0) and (w / totalW * 100) or 0
-				local odds = ""
-				if pct >= 10 then
-					odds = string.format("%.0f%%", pct)
-				elseif pct > 0 then
-					odds = string.format("1 in %d", math.floor(100 / pct + 0.5))
-				end
-				if odds ~= "" then
-					local oddsLbl = mk("TextLabel", {
-						BackgroundTransparency = 1,
-						Font = T.FONT_M,
-						TextColor3 = isMystery and Color3.fromRGB(255, 120, 140)
-							or Color3.fromRGB(28, 22, 14),
-						TextTransparency = 0.12,
-						Text = odds,
-						Size = UDim2.new(1, -6, 0, math.max(11, math.floor(bandH * 0.16))),
-						Position = UDim2.new(0, 3, 1, -math.max(13, math.floor(bandH * 0.18))),
-						ZIndex = 95,
-					}, chip)
-					mk("UITextSizeConstraint", { MaxTextSize = 12, MinTextSize = 6 }, oddsLbl)
-					oddsLbl.TextScaled = true
-				end
-			end
-			wedgeLabels[i] = chip
 		end
 		local hub = mk("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -376,10 +260,11 @@ function MineGroupWheelView.mount(gui, opts)
 			ZIndex = 95,
 		}, disc)
 		mk("UICorner", { CornerRadius = UDim.new(1, 0) }, hub)
+		stroke(hub, T.OUTLINE, 4)
 		mk("TextLabel", {
 			BackgroundTransparency = 1,
 			Font = T.FONT,
-			TextSize = 14,
+			TextSize = 22,
 			TextColor3 = T.ON_GOLD or Color3.fromRGB(30, 20, 10),
 			Text = "SPIN",
 			Size = UDim2.fromScale(1, 1),
@@ -390,131 +275,135 @@ function MineGroupWheelView.mount(gui, opts)
 	mk("TextLabel", {
 		BackgroundTransparency = 1,
 		Font = T.FONT,
-		TextSize = 26,
+		TextSize = 34,
 		TextColor3 = T.GOLD,
 		Text = "▼",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, -2),
-		Size = UDim2.fromOffset(40, 28),
+		Position = UDim2.new(0.5, 0, 0, -8),
+		Size = UDim2.fromOffset(44, 34),
 		ZIndex = 97,
 	}, wheelHost)
 
 	local status = mk("TextLabel", {
 		BackgroundTransparency = 1,
-		Font = T.FONT_M,
-		TextSize = 14,
+		Font = T.FONT,
+		TextSize = 18,
 		TextColor3 = T.TEXT,
 		Text = "",
-		Position = UDim2.fromOffset(20, 472),
-		Size = UDim2.new(1, -40, 0, 20),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -122),
+		Size = UDim2.new(1, -40, 0, 24),
 		ZIndex = 91,
 	}, root)
 
 	local spinBtn = mk("TextButton", {
-		AutoButtonColor = true,
+		Name = "Spin",
+		AutoButtonColor = false,
 		BackgroundColor3 = T.GOLD,
 		Font = T.FONT,
-		TextSize = 18,
-		TextColor3 = T.ON_GOLD or Color3.fromRGB(30, 20, 10),
+		TextSize = 24,
+		TextColor3 = Color3.new(1, 1, 1),
 		Text = "SPIN FREE",
-		Position = UDim2.fromOffset(20, 500),
-		Size = UDim2.fromOffset(220, 40),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, -70, 1, -64),
+		Size = UDim2.fromOffset(260, 52),
 		ZIndex = 92,
 	}, root)
-	round(spinBtn, 10)
+	round(spinBtn, 16)
 
 	local joinBtn = mk("TextButton", {
-		AutoButtonColor = true,
+		Name = "Join",
+		AutoButtonColor = false,
 		BackgroundColor3 = Color3.fromRGB(60, 140, 255),
 		Font = T.FONT,
 		TextSize = 15,
 		TextColor3 = Color3.new(1, 1, 1),
-		Text = "JOIN GROUP",
-		Position = UDim2.fromOffset(252, 500),
-		Size = UDim2.fromOffset(120, 40),
+		Text = "JOIN GROUP\n+1 SPIN A DAY",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 150, 1, -64),
+		Size = UDim2.fromOffset(160, 52),
 		ZIndex = 92,
 		Visible = false,
 	}, root)
-	round(joinBtn, 10)
+	round(joinBtn, 16)
 
+	-- Paid spins. Shown only when the product is real AND the player's region
+	-- allows paid random items; otherwise the row is simply not there.
 	local buyRow = mk("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(20, 548),
-		Size = UDim2.new(1, -40, 0, 68),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -12),
+		Size = UDim2.fromOffset(480, 44),
 		ZIndex = 91,
+		Visible = false,
 	}, root)
-
-	local buyBtns = {}
-	local prices = {
-		{ key = "group_wheel_1", label = "1 SPIN\nR$20" },
-		{ key = "group_wheel_5", label = "5 SPINS\nR$80" },
-		{ key = "group_wheel_10", label = "10 SPINS\nR$150" },
-	}
-	for i, row in ipairs(prices) do
-		local btn = mk("TextButton", {
-			AutoButtonColor = true,
-			BackgroundColor3 = Color3.fromRGB(40, 36, 52),
-			Font = T.FONT,
-			TextSize = 13,
-			TextColor3 = T.GOLD,
-			Text = row.label,
-			Position = UDim2.fromOffset((i - 1) * 160, 0),
-			Size = UDim2.fromOffset(150, 56),
-			ZIndex = 92,
-		}, buyRow)
-		round(btn, 10)
-		stroke(btn, T.GOLD, 1)
-		btn.MouseButton1Click:Connect(function()
-			if not state.live then
-				status.Text = "Week is over — come back next season."
-				return
-			end
-			local prod = C.product and C.product(row.key)
-			local pid = prod and tonumber(prod.productId) or 0
-			if pid <= 0 then
-				status.Text = "Product ID not wired yet — paste from Dashboard."
-				return
-			end
-			buyProduct(row.key)
-		end)
-		buyBtns[i] = btn
+	mk("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 10),
+	}, buyRow)
+	local anyProduct = false
+	for _, key in ipairs(Wheel.PRODUCT_KEYS) do
+		local prod = C.product and C.product(key) or {}
+		if productId(key) > 0 then
+			anyProduct = true
+			local btn = mk("TextButton", {
+				AutoButtonColor = false,
+				BackgroundColor3 = T.CARD_HI,
+				Font = T.FONT,
+				TextSize = 15,
+				TextColor3 = T.GOLD,
+				Text = string.format("%d SPIN%s  R$%d", tonumber(prod.spins) or 1,
+					(tonumber(prod.spins) or 1) == 1 and "" or "S", tonumber(prod.robuxPrice) or 0),
+				Size = UDim2.fromOffset(150, 40),
+				ZIndex = 92,
+			}, buyRow)
+			round(btn, 12)
+			btn.MouseButton1Click:Connect(function()
+				if player:GetAttribute("PolicyNoRandom") == true then
+					return
+				end
+				buyProduct(key)
+			end)
+		end
 	end
 
 	local function refreshChrome()
 		paintWedges()
-		local left = tonumber(state.saleLeft) or Wheel.saleLeft()
-		if state.live then
-			sub.Text = "Ends in " .. fmtWait(left) .. " · paid spins: " .. tostring(state.paid or 0)
-		else
-			sub.Text = "Week ended — spins banked still work if you have them"
-		end
+		local free = tonumber(state.freeLeft) or 0
 		local paid = tonumber(state.paid) or 0
-		if not state.live and paid <= 0 then
-			status.Text = "Group Wheel week is over."
-			spinBtn.Text = "ENDED"
-			spinBtn.BackgroundColor3 = T.INK
-			spinBtn.AutoButtonColor = false
-		elseif paid > 0 then
-			status.Text = string.format("%d paid spin%s ready.", paid, paid == 1 and "" or "s")
-			spinBtn.Text = "SPIN (" .. paid .. ")"
+		local wait = math.max(0, (tonumber(state.resetIn) or 0) - (os.clock() - stateAt))
+		local bits = { string.format("Free spins today: %d / %d", free, tonumber(state.freeTotal) or 1) }
+		if paid > 0 then
+			bits[#bits + 1] = string.format("Bought: %d", paid)
+		end
+		if state.streakDay then
+			bits[#bits + 1] = "Streak bonus today!"
+		end
+		sub.Text = table.concat(bits, "   ·   ")
+		joinBtn.Visible = state.member ~= true
+		buyRow.Visible = anyProduct and player:GetAttribute("PolicyNoRandom") ~= true
+		if spinning then
+			return
+		end
+		if free > 0 then
+			spinBtn.Text = free > 1 and string.format("SPIN FREE (%d)", free) or "SPIN FREE"
 			spinBtn.BackgroundColor3 = T.GOLD
-			spinBtn.AutoButtonColor = true
-		elseif state.ready then
-			status.Text = "Free spin ready — Galaxy · Spark · mystery Exotic"
-			spinBtn.Text = "SPIN FREE"
+			status.Text = state.member and "Spin it!" or "Spin it! Group members get a 2nd spin every day."
+		elseif paid > 0 and player:GetAttribute("PolicyNoRandom") ~= true then
+			spinBtn.Text = string.format("SPIN (%d)", paid)
 			spinBtn.BackgroundColor3 = T.GOLD
-			spinBtn.AutoButtonColor = true
+			status.Text = "Free spins used. Spinning a bought one."
 		else
-			status.Text = "Next free spin in " .. fmtWait(state.wait)
-			spinBtn.Text = "ON COOLDOWN"
-			spinBtn.BackgroundColor3 = T.INK
+			spinBtn.Text = "BACK IN " .. fmtWait(wait)
+			spinBtn.BackgroundColor3 = T.DEAD
+			status.Text = "You've spun today. New free spins at midnight (UTC)."
 		end
 	end
 
 	local function openGroupPage(gid)
 		gid = tonumber(gid) or tonumber(getGroupId()) or 0
 		if gid <= 0 then
-			status.Text = "Group ID not set — tell an admin."
 			return
 		end
 		pcall(function()
@@ -527,28 +416,33 @@ function MineGroupWheelView.mount(gui, opts)
 			local AES = game:GetService("AvatarEditorService")
 			AES:PromptSetFavorite(game.PlaceId, Enum.AvatarItemType.Asset, true)
 		end)
-		status.Text = "Won big — favorite the game so you don't lose it!"
 	end
 
 	function ctl.setPayload(payload)
 		if type(payload) == "table" then
-			state = payload
-			if not state.segments then
-				state.segments = Wheel.SEGMENTS
+			for k, v in pairs(payload) do
+				state[k] = v
 			end
+			state.segments = state.segments or Wheel.SEGMENTS
+			stateAt = os.clock()
 		end
-		refreshChrome()
+		if root.Visible then
+			refreshChrome()
+		end
 	end
 
 	function ctl.open(payload)
-		ctl.setPayload(payload or Wheel.payload(nil, os.time()))
-		joinBtn.Visible = false
+		ctl.setPayload(payload)
 		root.Visible = true
+		refreshChrome()
 	end
 
 	function ctl.close()
 		root.Visible = false
-		spinning = false
+	end
+
+	function ctl.isOpen()
+		return root.Visible
 	end
 
 	function ctl.onResult(msg)
@@ -559,72 +453,121 @@ function MineGroupWheelView.mount(gui, opts)
 			ctl.setPayload(msg.payload)
 		end
 		if msg.reason == "bought" then
-			status.Text = "Spins added — hit SPIN."
+			status.Text = "Spins added! Hit SPIN."
+			refreshChrome()
 			return
 		end
-		if msg.ok then
-			spinning = true
-			spinBtn.Text = "SPINNING..."
-			local segs = state.segments or Wheel.SEGMENTS
-			local n = math.max(1, #segs)
-			local index = math.clamp(tonumber(msg.index) or 1, 1, n)
-			local target = -((index - 0.5) / n) * 360
-			local turns = 5 * 360 + target
-			disc.Rotation = disc.Rotation % 360
-			local tw = TweenService:Create(disc, TweenInfo.new(4.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-				Rotation = disc.Rotation + turns,
-			})
-			tw:Play()
-			tw.Completed:Connect(function()
-				spinning = false
-				local line = table.concat(msg.lines or { msg.sub or msg.label }, " · ")
-				status.Text = tostring(msg.label or "WIN") .. " — " .. line
-				refreshChrome()
-				if msg.promptFavorite then
-					task.delay(0.6, promptFavorite)
-				end
-			end)
-		elseif msg.reason == "group" then
-			joinBtn.Visible = true
-			status.Text = "Join the group for free, or buy spins below."
-			openGroupPage(msg.groupId)
-		elseif msg.reason == "cooldown" then
-			status.Text = "Next free spin in " .. fmtWait(msg.wait)
-		elseif msg.reason == "ended" then
-			status.Text = "Group Wheel week is over."
+		if not msg.ok then
+			spinning = false
+			refreshChrome()
+			if msg.reason == "region" then
+				status.Text = "Bought spins aren't available in your region."
+			end
+			return
 		end
+		spinning = true
+		spinBtn.Text = "SPINNING..."
+		local segs = state.segments or Wheel.SEGMENTS
+		local n = math.max(1, #segs)
+		local index = math.clamp(tonumber(msg.index) or 1, 1, n)
+		--[[
+			Land on the slice the SERVER rolled, every time. The target is an
+			ABSOLUTE angle: slice i sits under the top pointer when the disc's
+			rotation is -((i - 0.5) / n) * 360 (mod 360). It used to add the
+			target to whatever angle the last spin stopped at, so every spin
+			after the first landed on the wrong slice.
+		]]
+		local target = (-((index - 0.5) / n) * 360) % 360
+		local from = disc.Rotation
+		local base = from - (from % 360)
+		local goal = base + 5 * 360 + target
+		if goal - from < 4 * 360 then
+			goal += 360
+		end
+		local tw = TweenService:Create(disc, TweenInfo.new(4.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			Rotation = goal,
+		})
+		tw:Play()
+		tw.Completed:Connect(function()
+			spinning = false
+			local line = table.concat(msg.lines or { msg.sub or msg.label }, "  ·  ")
+			-- The celebration is sized by the slice's REAL odds; a chase slice
+			-- is always at least a GREAT (candy-style rule 10).
+			pcall(function()
+				local Celebrate = require(shared:WaitForChild("MineCelebrate"))
+				local tier = Celebrate.fromOneIn(msg.oneIn)
+				if msg.hype then
+					tier = math.max(tier, 2)
+				end
+				Celebrate.burst(tier, { title = tier >= 2 and tostring(msg.label or "") or nil })
+			end)
+			refreshChrome()
+			status.Text = tostring(msg.label or "WIN") .. "!  " .. line
+			if msg.promptFavorite then
+				task.delay(1.2, promptFavorite)
+			end
+		end)
 	end
 
 	xbtn.MouseButton1Click:Connect(ctl.close)
 	spinBtn.MouseButton1Click:Connect(function()
-		if spinning then return end
+		if spinning then
+			return
+		end
+		local free = tonumber(state.freeLeft) or 0
 		local paid = tonumber(state.paid) or 0
-		if not state.live and paid <= 0 then
-			status.Text = "Group Wheel week is over."
+		if free <= 0 and (paid <= 0 or player:GetAttribute("PolicyNoRandom") == true) then
 			return
 		end
-		if paid <= 0 and not state.ready then
-			status.Text = "Next free spin in " .. fmtWait(state.wait)
-			return
-		end
+		spinning = true
+		spinBtn.Text = "SPINNING..."
 		if net then
 			net:FireServer("groupWheelSpin")
 		end
+		-- If the server refuses or the reply is lost, never strand the button.
+		task.delay(8, function()
+			if spinning and spinBtn.Text == "SPINNING..." then
+				spinning = false
+				refreshChrome()
+			end
+		end)
 	end)
 	joinBtn.MouseButton1Click:Connect(function()
 		openGroupPage(getGroupId())
 	end)
+
+	-- Candy: the kit's shapes and juice on the panel's own buttons.
+	do
+		local UI = kit()
+		if UI then
+			UI.candy(spinBtn, "gold", 3)
+			UI.outlineText(spinBtn, 2.5)
+			UI.juice(spinBtn)
+			UI.candy(joinBtn, "blue", 3)
+			UI.outlineText(joinBtn, 1.5)
+			UI.juice(joinBtn)
+			UI.candy(xbtn, "red", 3)
+			UI.outlineText(xbtn, 2)
+			UI.juice(xbtn, 1.12)
+			UI.outlineText(titleL, 3)
+			titleL.TextColor3 = T.GOLD
+		end
+	end
+
+	-- The countdown on the button ticks while the panel is open.
+	task.spawn(function()
+		while root.Parent do
+			if root.Visible and not spinning and (tonumber(state.freeLeft) or 0) <= 0 then
+				refreshChrome()
+			end
+			task.wait(1)
+		end
+	end)
+
 	--[[
-		THE WHEEL IS THE SCREEN.
-
-		The panel was a fixed 520x640 holding a 340 disc, so on any real monitor
-		it was a small box floating in the middle of nothing -- and the wheel,
-		the one thing anybody opens this for, came out smaller than the buttons
-		underneath it.
-
-		The panel takes the window now and the disc takes everything between the
-		header and the spin buttons. All the wedge geometry reads wheelPx, so a
-		resize is just a repaint.
+		THE WHEEL IS THE SCREEN. The panel takes the window and the disc takes
+		everything between the header and the buttons; the wedge geometry reads
+		wheelPx, so a resize is a repaint.
 	]]
 	local function refit()
 		local cam = workspace.CurrentCamera
@@ -634,7 +577,7 @@ function MineGroupWheelView.mount(gui, opts)
 		local pw = math.clamp(math.floor(W * 0.92), 320, 1180)
 		local ph = math.clamp(math.floor(H * 0.94), 300, 980)
 		root.Size = UDim2.fromOffset(pw, ph)
-		local topPad, botPad = 104, 158
+		local topPad, botPad = 110, 160
 		local d = math.max(200, math.min(pw - 48, ph - topPad - botPad))
 		wheelHost.AnchorPoint = Vector2.new(0.5, 0)
 		wheelHost.Position = UDim2.new(0.5, 0, 0, topPad)
@@ -648,6 +591,57 @@ function MineGroupWheelView.mount(gui, opts)
 	if workspace.CurrentCamera then
 		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(refit)
 	end
+
+	--[[
+		THE WORLD WHEEL'S IDLE SPIN, ON THIS CLIENT.
+
+		The server builds the wheel and never moves it (GroupWheelService). Here
+		it turns about its pivot's up axis, which the server set to the axle.
+		Under StreamingEnabled the wheel can arrive in pieces, and it can leave
+		and come back, so the pose is recorded only once all PartCount parts
+		are present, and recorded again whenever a new copy of the wheel
+		arrives. A wheel far from the camera is left alone.
+	]]
+	do
+		local RunService = game:GetService("RunService")
+		local current, base, t0 = nil, nil, os.clock()
+		local function complete(m)
+			local want = tonumber(m:GetAttribute("PartCount")) or 0
+			local n = 0
+			for _, d in ipairs(m:GetDescendants()) do
+				if d:IsA("BasePart") then
+					n += 1
+				end
+			end
+			return n >= want
+		end
+		local nextLook = 0
+		RunService.RenderStepped:Connect(function()
+			if not (current and current.Parent) then
+				current, base = nil, nil
+				local now = os.clock()
+				if now < nextLook then
+					return
+				end
+				nextLook = now + 0.5
+				local world = workspace:FindFirstChild("MineWorld")
+				local lobby = world and world:FindFirstChild("Lobby")
+				local folder = lobby and lobby:FindFirstChild("GroupWheel")
+				local m = folder and folder:FindFirstChild("Wheel")
+				if m and m:IsA("Model") and complete(m) then
+					current, base = m, m:GetPivot()
+				end
+				return
+			end
+			local cam = workspace.CurrentCamera
+			if cam and (cam.CFrame.Position - base.Position).Magnitude > 450 then
+				return
+			end
+			local speed = math.rad(tonumber(current:GetAttribute("SpinSpeed")) or 16)
+			current:PivotTo(base * CFrame.Angles(0, (os.clock() - t0) * speed, 0))
+		end)
+	end
+
 	ctl.root = root
 	return ctl
 end

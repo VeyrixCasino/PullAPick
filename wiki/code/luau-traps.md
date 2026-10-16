@@ -2,7 +2,7 @@
 title: Luau and workflow traps
 type: code
 status: current
-verified: 2026-10-08 @ ea255bb
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - docs/START-HERE.md §4, §5
   - docs/HANDOFF.md §2.3
@@ -28,13 +28,11 @@ related: [server, client-and-ui, verify-suite, save-data-and-migrations, rojo-an
   limit 200". For the client that means no HUD and no panels at all. For the
   server it means the game does nothing.
 - **Where we stand.**
-  - `MineServer` had **no registers left** until `5d59714`; it has **5** now
-    (`MineClient`: 7), measured by `compile.js`. **It broke twice on 2026-10-05**:
-    one extra top-level local stopped the whole server compiling ("Out of local
-    registers when trying to allocate id"). `MineNet` was never created and every
-    client hung on `WaitForChild("MineNet")`, with a single line of output. A
-    `do … end` block does **not** help: its locals share the main chunk's 200
-    registers (the dev-scaffolding strip in `8d68717` is an IIFE for this reason).
+  - `MineServer` has 197 top-level `local` lines. **It happened again on
+    2026-10-05** (`9733a05`): one extra top-level local broke the whole server
+    ("Out of local registers when trying to allocate id"). `MineNet` was never
+    created and every client hung on `WaitForChild("MineNet")`, with no other
+    symptom. The fix moved the list to `MineConfig.FORGE_ONLY_FAMILIES`.
   - `MineClient` has 176 lines, but several declare more than one name. It once
     hit 207, and later broke again when two constants were hoisted (see the
     comment above `refreshMineUiScale`).
@@ -47,12 +45,10 @@ related: [server, client-and-ui, verify-suite, save-data-and-migrations, rojo-an
 - **Counting is unreliable.** A local holding a never-reassigned constant is
   folded away by the compiler and takes no register. Tested here: 205
   `local vN = N` lines compile, while 205 `local vN = {}` lines fail.
-- **`syntax.sh` still will not catch it, but `compile.js` does** (`5d59714`).
-  `luau-analyze` parses and type-checks without allocating registers (190 locals:
-  both pass; 200: analyze passes, compile fails; 205: "Out of upvalue
-  registers"). `tools/verify/compile.js` runs `luau-compile` on all 212 files and
-  binary-searches headroom by appending live, table-valued locals (an unused or
-  constant local is folded away and measures nothing). It fails below 4 left.
+- **`syntax.sh` will not catch it.** It runs `luau-analyze`, which accepted the
+  205-table file. To check, run
+  `.luau-bin/luau-compile --binary src/ServerScriptService/Mine/MineServer.server.luau`.
+  Both scripts compile at `26036a0`. No check in the suite does this; it is a gap.
 
 ## 2. The global-read trap (the worst one)
 
@@ -92,8 +88,9 @@ Checked against `.luau-bin/luau` at `26036a0`:
 
 ## 4. Keys stored in saves are DATA
 
-- **Stat keys.** Names like `blastChance` are stored on runes and gear. Renaming
-  one is a migration, not a refactor. That is why `fossilFind` keeps its name.
+- **Stat keys.** Names like `blastChance` are stored on gear pieces (and were on
+  runes, until runes were retired on 2026-10-12). Renaming one is a migration, not
+  a refactor. That is why `fossilFind` keeps its name.
 - **Ore ids** are stored twice: `p.ores[id]` and `"<id>_ore_pack"`.
 
 Details: [save-data-and-migrations](save-data-and-migrations.md).
@@ -143,3 +140,27 @@ Details: [save-data-and-migrations](save-data-and-migrations.md).
 A disconnected Studio keeps running old scripts with no warning. Check the
 `MineBuild` line in the Output window before debugging
 ([rojo-and-studio](rojo-and-studio.md), TODO §0.14).
+
+## 10. Old SpecialMesh shapes draw nothing
+
+Roblox no longer renders the legacy `SpecialMesh` types **Pyramid** and
+**Prism**: a part meshed with either is invisible. Wedge, CornerWedge, Sphere,
+Cylinder, Head and Brick still draw (tested side by side in Studio,
+2026-10-10). `PetModelFactory`'s `cone` and `prism` used them, so every
+crystal, horn, quill, beak, fang and witch hat built with them was missing:
+51 of the 98 set bodies and 16 older ones (candy corn's tip, the scarecrow's
+hat, the lantern roof). They are now made of real `CornerWedgePart`s and
+`WedgePart`s. **Never mesh a part as Pyramid or Prism.** A
+`CornerWedgePart`'s point stands over its (+X, -Z) corner; a `WedgePart` is
+tall at +Z.
+
+## 11. Never rename a Rojo-synced instance aside in Studio
+
+Loading a fresh copy of a module by renaming the real one aside ("_held") and
+standing a clone in under its name left **duplicate modules** in
+ReplicatedStorage (2026-10-10: thirteen, all newly added files, each copy kept
+in sync). A later load could then pick a duplicate whose code Studio had
+cached long ago. To load fresh code from the command bar, clone the whole
+`Shared` folder somewhere private, require from the clone, and destroy it
+(what `PetShowcaseBuilder` now does). Check for duplicates with a scan of
+same-named siblings before trusting what Studio shows.

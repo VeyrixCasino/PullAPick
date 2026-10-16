@@ -1,0 +1,48 @@
+{
+  "key": "starfront",
+  "bodies": [
+    { "id": "sf_astronaut", "label": "Astronaut", "role": "Prospector" },
+    { "id": "sf_rover", "label": "Rover", "role": "Digger" },
+    { "id": "sf_satellite", "label": "Satellite", "role": "Seeker" },
+    { "id": "sf_rocket", "label": "Rocket", "role": "Striker" },
+    { "id": "sf_planet", "label": "Planet", "role": "Mystic" }
+  ],
+  "extraBodies": ["sprite", "golem"],
+  "buffs": ["rareOre", "luck", "blastChance"],
+  "palette": [
+    ["Lunar", 236, 238, 242], ["Mars", 200, 82, 54], ["Nebula", 140, 92, 208], ["Solar", 244, 188, 52],
+    ["Orbit", 62, 122, 228], ["Comet", 52, 186, 176], ["Crater", 118, 120, 132], ["Ignition", 250, 128, 40],
+    ["Void", 34, 40, 84], ["Aurora", 92, 214, 128], ["Ion", 110, 226, 250], ["Venus", 226, 162, 92],
+    ["Jupiter", 196, 160, 120], ["Neptune", 40, 86, 192], ["Titan", 168, 112, 60], ["Plasma", 242, 96, 186],
+    ["Stardust", 206, 170, 246], ["Eclipse", 24, 22, 32], ["Beacon", 228, 40, 58], ["Alloy", 186, 194, 206],
+    ["Meteor", 138, 70, 44], ["Saturn", 240, 222, 170], ["Pulsar", 190, 236, 60], ["Cosmic", 78, 60, 162],
+    ["Mercury", 160, 156, 150]
+  ],
+  "topWords": {
+    "Legendary": ["Orbital", "Stellar", "Pioneer", "Flagship"],
+    "Mythic": ["Interstellar", "Deep-Space", "Starborn", "Galactic"],
+    "Divine": ["Celestial", "Luminous", "Haloed", "Sunlit"],
+    "Exotic": ["Quasar", "Spectral", "Starfire", "Prismatic"]
+  },
+  "names": [
+    "Liftoff", "Countdown", "Blastoff", "Thruster", "Booster", "Capsule", "Payload", "Airlock", "Gantry", "Uplink",
+    "Downlink", "Telemetry", "Antenna", "Radar", "Lander", "Orbiter", "Shuttle", "Probe", "Gravity", "Zero-G",
+    "Starhop", "Moonhop", "Moonbeam", "Moonpup", "Moonkit", "Starcub", "Cometcub", "Meteorite", "Asteroid",
+    "Ringlet", "Regolith", "Moonrock", "Starchip", "Proton", "Electron", "Ion", "Parsec", "Lightspeed", "Apogee",
+    "Perigee", "Aphelion", "Equinox", "Umbra", "Penumbra", "Mercury", "Venus", "Jupiter", "Neptune", "Ceres",
+    "Eris", "Io", "Europa", "Ganymede", "Callisto", "Rhea", "Triton", "Phobos", "Deimos", "Oberon", "Miranda",
+    "Charon", "Enceladus", "Mimas", "Dione", "Tethys", "Hyperion", "Rigel", "Altair", "Deneb", "Polaris", "Arcturus",
+    "Antares", "Aldebaran", "Capella", "Spica", "Lyra", "Orion", "Andromeda", "Cassiopeia", "Draco", "Carina",
+    "Cygnus", "Castor", "Pollux", "Mira", "Alcor", "Mizar", "Vela", "Ursa", "Starbit", "Moonbit", "Spacepup",
+    "Cosmocub", "Stargazer", "Skywatch", "Spacewalk", "Visor", "Tether", "Jetpack", "Cadet", "Pilot", "Navigator",
+    "Splashdown", "Touchdown", "Reentry", "Solar Sail", "Heat Shield", "Little Dipper", "Big Dipper", "Moon Pebble",
+    "Comet Tail", "Space Bean", "Moonstep", "Crater Cub", "Orbitpup", "Starsailor", "Moonglider", "Telescope",
+    "Starlens", "Planetoid", "Exoplanet", "Moonlet", "Starseed", "Gas Giant", "Nebulette", "Cosmonaut", "Spaceling",
+    "Thrustbot", "Beepo", "Servo", "Gyro", "Circuit", "Scanner", "Sensor", "Relay", "Satcom", "Hatch", "Hangar",
+    "Launchling", "Mission Control", "Commander", "Flightdeck", "Starport", "Moonbase", "Outpost", "Habitat",
+    "Biodome", "Moonsprout", "Starfarer", "Skyrocket", "Nosecone", "Gimbal", "Sputter", "Zoomer", "Whoosh",
+    "Glidepath", "Trajectory", "Slingshot", "Flyby", "Rendezvous", "Starmap", "Starchart", "Moonglow", "Earthrise",
+    "Moonrise", "Gibbous", "Halfmoon", "Full Moon", "Spacey", "Floaty", "Hover", "Weightless", "Estrella",
+    "Celeste", "Lunette", "Starla", "Moonbuggy", "Spacesuit", "Starwatch"
+  ]
+}

@@ -49,6 +49,43 @@ function MinePotions.dustPrice(id)
 	return d and d.dust or 80
 end
 
+--[[
+	POTIONS CAN ALSO BE BOUGHT WITH COINS, AND THIS IS THE COIN ECONOMY'S
+	ONLY REPEATABLE SINK.
+
+	docs/PROPOSAL.md §0 line 23, approved 2026-10-05 and never built:
+	"potions add a coin price = dust x 40 (Sip 1,600 .. Elixir 56,000)".
+
+	Coins were in a bad way. An economy audit counted twelve faucets --
+	including the main one, a coin per point of block HP, multiplied by a
+	skill tree that reaches x10.97 -- against TWO live sinks: the wooden
+	pickaxe ladder, which is 306 coins across a player's entire lifetime, and
+	rebirth. Four more coin sinks exist as unreachable code: every shop tool
+	family is refused by FORGE_ONLY_FAMILIES, and MineDepth.seamPrice returns
+	a hard 0. The owner's own note in TODO §0.28 says it: "now that coins are
+	basically useless".
+
+	A potion is the right shape for the fix, and it is the shape the owner
+	asked for -- simple, repeatable, inside the mining loop rather than beside
+	it. You buy it, you drink it, it is gone, you buy another. A sink that
+	closes (a one-off upgrade) stops absorbing; this one never does.
+
+	ADD, not replace. Dust still buys potions. Dust's own main sink is ore
+	tool levels and it is in reasonable health; taking its shelf away to prop
+	up coins would just move the problem.
+
+	x40 is the approved ratio and it is not arbitrary: it prices a Sip at
+	1,600 coins, which is a few early blocks, and an Elixir at 56,000, which
+	is a real haul at the depth where you would want one. The multiplier is a
+	constant rather than a second price table so the two ladders cannot drift
+	-- rebalance the dust price and the coin price follows.
+]]
+MinePotions.COIN_PER_DUST = 40
+
+function MinePotions.coinPrice(id)
+	return math.max(1, math.floor(MinePotions.dustPrice(id) * MinePotions.COIN_PER_DUST))
+end
+
 function MinePotions.tradeValue(id)
 	return MinePotions.dustPrice(id)
 end

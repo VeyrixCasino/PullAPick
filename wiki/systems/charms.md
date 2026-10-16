@@ -163,9 +163,12 @@ unlike every other charm in the file:
   row carries its own `art = "rbxassetid://…"` from the owner's `charms2.svg`.
 - **Graded charms: built and harnessed, never run in the engine.** The chest drop was
   verified against the real module in a play session (the 20,000-roll figures above).
-- **No client buys a graded charm.** `Verbs.buyCharm` is dispatched, but I searched
-  `src/` and nothing sends `buyCharm`: there is no token shop panel yet. See
-  [open-questions](../open-questions.md) §1b.
+- **The token shop exists now.** My earlier note that nothing sent `buyCharm` is out of
+  date: `69f3de6` ("Charms are buyable with tokens: 36 priced rows nothing could reach")
+  lists the buyable graded charms **after the owned ones** in the Inventory charm list
+  (`MineInventoryView`, `opts.onBuyCharm`), and `MineClient` sends `buyCharm` with
+  `{ charmId, count }`. The server still takes the price from the module, not the payload.
+  Whether a player can find it is an unplayed UI question.
 
 ## Gotchas
 

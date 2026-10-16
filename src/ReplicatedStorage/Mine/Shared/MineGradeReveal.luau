@@ -60,6 +60,21 @@ local function colourFor(grade)
 	return (Gear.RARITY_COLOR and Gear.RARITY_COLOR[grade]) or Color3.fromRGB(220, 220, 230)
 end
 
+--[[
+	The big "SSS!" title is the shared MineCelebrate overlay, which holds for
+	about three seconds on its own clock. Closing a screen or moving on to the
+	next block or spin clears it, instead of leaving it over whatever comes next.
+	Owner, 2026-10-10: "make it so the sss doesnt stick around".
+]]
+local function clearCelebration()
+	local ok, Celebrate = pcall(function()
+		return require(shared:WaitForChild("MineCelebrate"))
+	end)
+	if ok and Celebrate and Celebrate.cancel then
+		pcall(Celebrate.cancel)
+	end
+end
+
 local function waitBeat(sec, shouldSkip)
 	local t0 = os.clock()
 	while os.clock() - t0 < sec do
@@ -307,7 +322,7 @@ local LUCKY_ART = {
 local LUCKY_NAMES = {
 	lucky_block = "Lucky Block",
 	super_lucky_block = "Diamond Lucky Block",
-	godly_lucky_block = "Mythic Lucky Block",
+	godly_lucky_block = "Godly Lucky Block",
 }
 -- The mark on every face, one little cube per X.
 local QMARK = { ".XXX.", "X...X", "....X", "...X.", "..X..", ".....", "..X.." }
@@ -484,6 +499,19 @@ function MineGradeReveal.lucky(parent, opts)
 	-- Clear of Roblox's own bottom bar.
 	local gradeBtn = button("GRADE UP", Color3.fromRGB(64, 120, 220), UDim2.fromScale(0.5, 0.9))
 	local skipBtn = button("SKIP", Color3.fromRGB(70, 74, 88), UDim2.fromScale(0.5, 0.9))
+	--[[
+		ODDS, top-left, opposite the close button. A paid random item shows its
+		odds, and Grade Up (gems) changes them, so this sheet is for the grade
+		the block is on RIGHT NOW (st.grade). Only while a block waits to open.
+	]]
+	local oddsBtn = mk("TextButton", {
+		Name = "Odds", BackgroundColor3 = Color3.fromRGB(30, 30, 36), BackgroundTransparency = 0.2,
+		Font = FONT, Text = "ODDS", TextSize = 18, TextColor3 = Color3.new(1, 1, 1),
+		Position = UDim2.fromOffset(16, 16), Size = UDim2.fromOffset(96, 44), ZIndex = 12, Visible = false,
+	}, sg)
+	mk("UICorner", { CornerRadius = UDim.new(0, 12) }, oddsBtn)
+	mk("UIStroke", { Thickness = 2, Transparency = 0.4, Color = Color3.new(1, 1, 1), ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, oddsBtn)
+	local oddsSheet
 	local closeBtn = mk("TextButton", {
 		BackgroundColor3 = Color3.fromRGB(30, 30, 36), BackgroundTransparency = 0.2, BorderSizePixel = 0,
 		Font = FONT, Text = "X", TextScaled = true, TextColor3 = Color3.new(1, 1, 1), AnchorPoint = Vector2.new(1, 0),
@@ -712,6 +740,7 @@ function MineGradeReveal.lucky(parent, opts)
 	end
 
 	function ctl.close()
+		clearCelebration()
 		sg.Enabled = false
 		st.mode = "closed"
 		st.queue = {}
@@ -739,6 +768,7 @@ function MineGradeReveal.lucky(parent, opts)
 		local blk = st.block
 		local price = (st.mode == "ready" and blk and opts.priceOf) and opts.priceOf(blk) or nil
 		gradeBtn.Visible = price ~= nil
+		oddsBtn.Visible = st.mode == "ready" and blk ~= nil
 		if price then
 			local afford = ((opts.gems and opts.gems()) or 0) >= price
 			gradeBtn.Text = "GRADE UP  " .. fmt(price) .. " GEMS"
@@ -788,6 +818,8 @@ function MineGradeReveal.lucky(parent, opts)
 		setTitle(payload.blockId, nil)
 		card.Visible = false
 		gradeBtn.Visible = false
+		oddsBtn.Visible = false
+		if oddsSheet then oddsSheet:Destroy() oddsSheet = nil end
 		skipBtn.Visible = true
 		skipBtn.Text = (#st.queue > 0) and ("SKIP ALL  (" .. (#st.queue + 1) .. ")") or "SKIP"
 		local steps = payload.info and payload.info.steps or {}
@@ -811,6 +843,18 @@ function MineGradeReveal.lucky(parent, opts)
 				local qty = math.max(1, math.floor(tonumber(loot.packQty) or 1))
 				table.insert(rows, { icon = "pack", packId = loot.packId, text = (qty > 1 and (qty .. "x  ") or "") .. pretty(loot.packId) })
 			end
+			-- A lucky block pays cases (MineLuckyBlocks.rollLoot). A mystery case
+			-- wears its case art; a skin case wears its ore's colour.
+			if loot.caseId then
+				local qty = math.max(1, math.floor(tonumber(loot.caseQty) or 1))
+				table.insert(rows, { packId = loot.caseId, text = (qty > 1 and (qty .. "x  ") or "") .. tostring(loot.caseName or pretty(loot.caseId)) })
+			end
+			if loot.oreCaseName then
+				table.insert(rows, { icon = "chest", packId = loot.oreId and (loot.oreId .. "_ore_pack") or nil, text = tostring(loot.oreCaseName) })
+			end
+			if loot.caseCount then
+				table.insert(rows, { icon = "chest", text = fmt(loot.caseCount) .. "  cases, in your bag" })
+			end
 			if loot.gems then
 				table.insert(rows, { icon = "gems", text = fmt(loot.gems) .. "  Gems" })
 			end
@@ -820,13 +864,28 @@ function MineGradeReveal.lucky(parent, opts)
 			if loot.toolId then
 				table.insert(rows, { icon = loot.toolFamily or "pickaxe", text = pretty(loot.toolId) })
 			end
-			if type(loot.scrolls) == "table" then
-				for id, qty in pairs(loot.scrolls) do
-					table.insert(rows, { icon = id, text = qty .. "x  " .. pretty(id) .. " scroll" })
-				end
-			end
 			if loot.temperTokens then
 				table.insert(rows, { icon = "tokens", text = fmt(loot.temperTokens) .. "  Temper tokens" })
+			end
+			--[[
+				Pets and potions were granted by the server but never listed here,
+				so they only showed through the lootText fallback, and only when
+				nothing else dropped. A godly block always adds dust, so a pet out
+				of one was never shown at all. A pet is Legendary or better, so it
+				goes FIRST. No pet or potion art exists yet (icons are the owner's
+				job): pets use the card album, potions an emoji until art lands.
+			]]
+			if loot.petTier then
+				local name = loot.petName and tostring(loot.petName) or (tostring(loot.petTier) .. " Pet")
+				table.insert(rows, 1, { icon = "binder", text = name .. "  (" .. tostring(loot.petTier) .. " pet)" })
+			end
+			if loot.potionId then
+				local qty = math.max(1, math.floor(tonumber(loot.potionQty) or 1))
+				table.insert(rows, { emoji = "🧪", text = (qty > 1 and (qty .. "x  ") or "") .. pretty(loot.potionId) })
+			end
+			-- Every lucky block's book bundle (MineEnchants.LUCKY_BUNDLE).
+			if type(loot.books) == "table" and #loot.books > 0 then
+				table.insert(rows, { emoji = "📖", text = #loot.books .. "  Enchant books, for the Forge" })
 			end
 		end
 		if #rows == 0 then
@@ -858,6 +917,11 @@ function MineGradeReveal.lucky(parent, opts)
 			mk("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height }, art)
 			if row.packId and PackFX and PackFX.drawSealed then
 				pcall(PackFX.drawSealed, art, row.packId, 36, 46)
+			elseif row.emoji then
+				mk("TextLabel", {
+					BackgroundTransparency = 1, Text = row.emoji, TextScaled = true,
+					Font = Enum.Font.GothamMedium, Size = UDim2.fromScale(1, 1), ZIndex = 24,
+				}, art)
 			elseif Icons and Icons.draw then
 				pcall(Icons.draw, art, row.icon, 1)
 			end
@@ -915,6 +979,26 @@ function MineGradeReveal.lucky(parent, opts)
 				for _ = 1, 28 do
 					sparks(8, 0.4, c)
 				end
+			end
+		end
+		--[[
+			Candy pass (2026-10-08): the lucky block's payoff never played a win
+			sound (playLuckyWin had no caller here). Now the tier stinger always
+			plays, and S and up also get the shared title-and-rays overlay. This
+			screen throws its own confetti, so the overlay doesn't add any.
+			The tier comes straight from the server's final grade.
+		]]
+		local okC, Celebrate = pcall(function()
+			return require(script.Parent:WaitForChild("MineCelebrate"))
+		end)
+		if okC and Celebrate then
+			local tier = Celebrate.fromRank(math.max(rank, 1))
+			if tier >= 3 then
+				pcall(Celebrate.burst, tier, { confetti = false, title = st.grade .. "!" })
+			else
+				pcall(function()
+					Audio.playLuckyWin(math.max(rank, 1))
+				end)
 			end
 		end
 	end
@@ -979,6 +1063,8 @@ function MineGradeReveal.lucky(parent, opts)
 		if st.mode == "ready" then
 			st.mode = "waiting"
 			gradeBtn.Visible = false
+			oddsBtn.Visible = false
+			if oddsSheet then oddsSheet:Destroy() oddsSheet = nil end
 			say("OPENING...")
 			anim.punchAt, anim.punch = os.clock(), 0.1
 			sfx("lucky")
@@ -1016,7 +1102,7 @@ function MineGradeReveal.lucky(parent, opts)
 			end
 			st.queue = {}
 			local best, bestRank = "F", 0
-			local totals = { gems = 0, dust = 0, packs = 0 }
+			local totals = { gems = 0, dust = 0, packs = 0, cases = 0 }
 			for _, q in ipairs(all) do
 				local g = (q.info and q.info.final) or q.startGrade or "F"
 				for i, x in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
@@ -1028,6 +1114,8 @@ function MineGradeReveal.lucky(parent, opts)
 				totals.gems += tonumber(loot.gems) or 0
 				totals.dust += tonumber(loot.dust) or 0
 				totals.packs += (loot.packId and math.max(1, math.floor(tonumber(loot.packQty) or 1)) or 0)
+				totals.cases += (loot.caseId and math.max(1, math.floor(tonumber(loot.caseQty) or 1)) or 0)
+					+ (loot.oreCaseName and 1 or 0)
 			end
 			st.grade = best
 			st.mode = "loot"
@@ -1039,6 +1127,7 @@ function MineGradeReveal.lucky(parent, opts)
 				rows.packId = nil
 			end
 			showCard(#all .. " lucky blocks opened", best, {
+				caseCount = totals.cases > 0 and totals.cases or nil,
 				gems = totals.gems > 0 and totals.gems or nil,
 				dust = totals.dust > 0 and totals.dust or nil,
 			}, totals.packs > 0 and (totals.packs .. " packs") or nil)
@@ -1066,6 +1155,7 @@ function MineGradeReveal.lucky(parent, opts)
 		if st.mode ~= "loot" then
 			return
 		end
+		clearCelebration()
 		card.Visible = false
 		st.payload = nil
 		local nextOne = table.remove(st.queue, 1)
@@ -1084,6 +1174,27 @@ function MineGradeReveal.lucky(parent, opts)
 	end
 	ctl.collect = collect
 	collectBtn.MouseButton1Click:Connect(collect)
+
+	oddsBtn.MouseButton1Click:Connect(function()
+		local blk = st.block
+		if not blk or st.mode ~= "ready" then
+			return
+		end
+		if oddsSheet then
+			oddsSheet:Destroy()
+		end
+		local okV, View = pcall(function()
+			return require(script.Parent:WaitForChild("MineLuckyOddsView"))
+		end)
+		if okV and View then
+			oddsSheet = View.show(sg, blk.blockId, st.grade, {
+				zIndex = 40,
+				onClose = function()
+					oddsSheet = nil
+				end,
+			})
+		end
+	end)
 
 	gradeBtn.MouseButton1Click:Connect(function()
 		if st.mode ~= "ready" or st.gradeBusy or not st.block then
@@ -1132,6 +1243,8 @@ function MineGradeReveal.lucky(parent, opts)
 		ctl.show(block)
 		st.mode = "manyWait"
 		gradeBtn.Visible = false
+		oddsBtn.Visible = false
+		if oddsSheet then oddsSheet:Destroy() oddsSheet = nil end
 		say("OPENING " .. count .. "...")
 		if opts.onOpen then
 			opts.onOpen(block, count)
@@ -1199,7 +1312,7 @@ end
 --------------------------------------------------------------------------------
 local TILE_W, TILE_GAP, SPIN_TIME = 132, 8, 5.4
 
-function MineGradeReveal.caseSpin(parent)
+function MineGradeReveal.caseSpin(parent, opts)
 	local INK = Color3.fromRGB(24, 26, 38)
 	local CARD = Color3.fromRGB(46, 50, 68)
 	local CARD_HI = Color3.fromRGB(58, 66, 96)
@@ -1338,7 +1451,9 @@ function MineGradeReveal.caseSpin(parent)
 	local tiles = {}
 	local function tile(i, row)
 		local grade = Temper.normalizeRarity(row.rarity) or "F"
-		local ink = Temper.colorOf(grade)
+		-- A row may bring its own colour and word (pack cases, MineCases.reelGrade);
+		-- temperaments and gear use the temper ladder.
+		local ink = row.color or Temper.colorOf(grade)
 		local t = mk("Frame", {
 			BackgroundColor3 = CARD_HI, BorderSizePixel = 0,
 			Position = UDim2.fromOffset((i - 1) * (TILE_W + TILE_GAP) + TILE_GAP, 10),
@@ -1356,7 +1471,7 @@ function MineGradeReveal.caseSpin(parent)
 		round(wash, 10)
 		local kit = Temper.kit(row.id)
 		local labelName = tostring(row.name or (kit and kit.name) or row.id)
-		say(t, string.upper(Temper.wordOf(grade)), 10, ink, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 0, 12), FONT)
+		say(t, string.upper(row.label or Temper.wordOf(grade)), 10, ink, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 0, 12), FONT)
 		local iconUrl = (kit and kit.icon) or row.icon
 		if (not iconUrl or iconUrl == "") and Icons and Icons.image then
 			pcall(function()
@@ -1434,6 +1549,7 @@ function MineGradeReveal.caseSpin(parent)
 		if playing and finishNow then
 			finishNow()
 		end
+		clearCelebration()
 		playing = true
 		for _, ch in ipairs(reel:GetChildren()) do
 			ch:Destroy()
@@ -1453,6 +1569,8 @@ function MineGradeReveal.caseSpin(parent)
 
 		local kit = Temper.kit(payload.id)
 		local grade = Temper.normalizeRarity(payload.rarity)
+		-- The winner's colour: the payload's own (pack cases), else the temper ladder.
+		local winInk = payload.color or Temper.colorOf(grade)
 		title.Text = string.upper(tostring(payload.title or Temper.CASE_NAME or "Temperament Case"))
 		sub.Text = "opening..."
 		resultName.Text = ""
@@ -1509,7 +1627,7 @@ function MineGradeReveal.caseSpin(parent)
 				if winRank >= 5 and not riserPlayed and frac >= 0.62 then
 					riserPlayed = true
 					if Audio and Audio.play then pcall(Audio.play, "riser") end
-					local ink = Temper.colorOf(grade)
+					local ink = winInk
 					TweenService:Create(boxStroke, TweenInfo.new(0.35, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 6, true), {
 						Color = ink:Lerp(Color3.new(1, 1, 1), 0.3), Thickness = 5, Transparency = 0,
 					}):Play()
@@ -1552,16 +1670,24 @@ function MineGradeReveal.caseSpin(parent)
 					end
 				end
 				if Audio and Audio.play then pcall(Audio.play, "thud") end
-				sub.Text = payload.dupe and "another copy -- your collection keeps the better grade"
+				sub.Text = payload.note
+					or (payload.dupe and "another copy -- your collection keeps the better grade")
 					or "yours to fit on any tool"
-				resultName.Text = string.upper(tostring(payload.word or Temper.wordOf(grade)))
-					.. "   " .. tostring((kit and kit.name) or payload.id or "")
-				resultName.TextColor3 = Temper.colorOf(grade)
+				-- A batch shows its best roll (the server picks it), so say so;
+				-- otherwise a x10 reads as one case and the other nine vanish.
+				local nBundle = tonumber(payload.bundle)
+				if nBundle and nBundle > 1 then
+					sub.Text = string.format("BEST OF %d  -  all %d are in your collection", nBundle, nBundle)
+				end
+				resultName.Text = payload.resultText
+					or (string.upper(tostring(payload.word or Temper.wordOf(grade)))
+						.. "   " .. tostring((kit and kit.name) or payload.id or ""))
+				resultName.TextColor3 = winInk
 				local bits = {}
-				for _, line in ipairs(Temper.describe(payload.id, grade) or {}) do
+				for _, line in ipairs((not payload.resultSub) and Temper.describe(payload.id, grade) or {}) do
 					table.insert(bits, tostring(line.label) .. " " .. tostring(line.text))
 				end
-				resultSub.Text = (#bits > 0) and table.concat(bits, "    ") or ""
+				resultSub.Text = payload.resultSub or ((#bits > 0) and table.concat(bits, "    ") or "")
 				-- Result line punches in.
 				do
 					local rp = resultName:FindFirstChild("Pop") or mk("UIScale", { Name = "Pop" }, resultName)
@@ -1579,7 +1705,7 @@ function MineGradeReveal.caseSpin(parent)
 							rank = i
 						end
 					end
-					local ink = Temper.colorOf(grade)
+					local ink = winInk
 					if rank >= 5 then
 						if Audio and Audio.play then pcall(Audio.play, "flash") end
 						-- Screen shake: the box rattles, harder for higher grades.
@@ -1661,6 +1787,18 @@ function MineGradeReveal.caseSpin(parent)
 						elseif Audio and Audio.play then
 							pcall(Audio.play, rank >= 6 and "jackpot" or "reveal")
 						end
+						-- S and up: the shared title and rays on top of this screen's
+						-- own flash and confetti (so no extra confetti, and the sting
+						-- above already played).
+						if rank >= 6 then
+							local okC, Celebrate = pcall(function()
+								return require(script.Parent:WaitForChild("MineCelebrate"))
+							end)
+							if okC and Celebrate then
+								pcall(Celebrate.burst, Celebrate.fromRank(rank),
+									{ confetti = false, sound = false, title = payload.celebrateTitle or (grade .. "!") })
+							end
+						end
 					elseif Audio and Audio.play then
 						pcall(Audio.play, "reveal")
 					end
@@ -1679,7 +1817,14 @@ function MineGradeReveal.caseSpin(parent)
 		end)
 	end
 
+	-- True while the reel or its result is on screen. A caller chaining several
+	-- spins (pack cases) waits for the player to close one before the next.
+	function ctl.isOpen()
+		return screen.Visible
+	end
+
 	function ctl.close()
+		clearCelebration()
 		setGuiOn(false)
 		playing = false
 		boxStroke.Color = GOLD

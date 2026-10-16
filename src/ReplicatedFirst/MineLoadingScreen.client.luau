@@ -23,9 +23,17 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 local bg = Instance.new("Frame")
 bg.Name = "Bg"
 bg.BorderSizePixel = 0
-bg.BackgroundColor3 = Color3.fromRGB(8, 10, 18)
+bg.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 bg.Size = UDim2.fromScale(1, 1)
 bg.Parent = gui
+-- Candy pass (2026-10-08): the game's indigo, lit from above. Inline colours,
+-- because this runs from ReplicatedFirst before MineTheme has replicated.
+do
+	local g = Instance.new("UIGradient")
+	g.Rotation = 90
+	g.Color = ColorSequence.new(Color3.fromRGB(58, 42, 124), Color3.fromRGB(11, 10, 26))
+	g.Parent = bg
+end
 
 local art = Instance.new("ImageLabel")
 art.Name = "Art"
@@ -49,35 +57,54 @@ title.Position = UDim2.fromScale(0.5, 0.78)
 title.Size = UDim2.new(0.86, 0, 0.07, 0)
 title.Font = Enum.Font.GothamBlack
 title.Text = "MINE FOR CARDS"
-title.TextColor3 = Color3.fromRGB(255, 196, 72)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextScaled = true
 title.Parent = bg
 local titleStroke = Instance.new("UIStroke")
-titleStroke.Color = Color3.fromRGB(40, 22, 6)
-titleStroke.Thickness = 2
+titleStroke.Color = Color3.fromRGB(20, 12, 44)
+titleStroke.Thickness = 4
 titleStroke.Parent = title
+do
+	-- Candy gold, top to bottom, like the HUD coin pill.
+	local g = Instance.new("UIGradient")
+	g.Rotation = 90
+	g.Color = ColorSequence.new(Color3.fromRGB(255, 226, 110), Color3.fromRGB(255, 160, 30))
+	g.Parent = title
+end
 
 local barHost = Instance.new("Frame")
 barHost.Name = "BarHost"
 barHost.AnchorPoint = Vector2.new(0.5, 1)
 barHost.Position = UDim2.new(0.5, 0, 1, -48)
-barHost.Size = UDim2.new(0.42, 0, 0, 10)
-barHost.BackgroundColor3 = Color3.fromRGB(24, 28, 40)
+barHost.Size = UDim2.new(0.42, 0, 0, 18)
+barHost.BackgroundColor3 = Color3.fromRGB(58, 53, 112)
 barHost.BorderSizePixel = 0
 barHost.Parent = bg
 local barCorner = Instance.new("UICorner")
 barCorner.CornerRadius = UDim.new(1, 0)
 barCorner.Parent = barHost
+do
+	local st = Instance.new("UIStroke")
+	st.Color = Color3.fromRGB(20, 12, 44)
+	st.Thickness = 3
+	st.Parent = barHost
+end
 
 local fill = Instance.new("Frame")
 fill.Name = "Fill"
 fill.BorderSizePixel = 0
-fill.BackgroundColor3 = Color3.fromRGB(255, 196, 72)
+fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 fill.Size = UDim2.fromScale(0.08, 1)
 fill.Parent = barHost
 local fillCorner = Instance.new("UICorner")
 fillCorner.CornerRadius = UDim.new(1, 0)
 fillCorner.Parent = fill
+do
+	local g = Instance.new("UIGradient")
+	g.Rotation = 90
+	g.Color = ColorSequence.new(Color3.fromRGB(255, 226, 110), Color3.fromRGB(255, 160, 30))
+	g.Parent = fill
+end
 
 local playerGui = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui")
 gui.Parent = playerGui
@@ -85,6 +112,16 @@ gui.Parent = playerGui
 TweenService:Create(fill, TweenInfo.new(1.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 	Size = UDim2.fromScale(0.92, 1),
 }):Play()
+-- The title bounces in and the art bobs: something is alive while it loads.
+do
+	local sc = Instance.new("UIScale")
+	sc.Scale = 0.4
+	sc.Parent = title
+	TweenService:Create(sc, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	TweenService:Create(art, TweenInfo.new(1.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+		Position = UDim2.fromScale(0.5, 0.44),
+	}):Play()
+end
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()

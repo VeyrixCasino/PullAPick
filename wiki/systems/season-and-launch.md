@@ -2,12 +2,14 @@
 title: Season and launch
 type: system
 status: partial
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-16 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineLaunch.luau
   - src/ReplicatedStorage/Mine/Shared/MineRotatingOffers.luau
   - src/ReplicatedStorage/Mine/Shared/MineScrolls.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
+  - src/ServerScriptService/Mine/Admin/MineAdmin.luau
+  - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - tools/verify/launch.js
   - docs/TODO.md §6.1
 related: [shops-and-monetisation, world-events, social-quests-and-leaderboards, open-questions]
@@ -46,12 +48,25 @@ through a season they never saw begin.
   (`AdminAllowlist.isAdmin`), stamps `MineLaunch.launch(os.time())`, and persists
   `{ at, by }` to the DataStore key `launch_v1`, **server-wide, not per profile**.
   `Verbs._loadLaunch` reads it once at boot.
+- **The switch is the chat command `/admin launch now`** (added in `cc0262f`, "Launch
+  audit, part 1"). `/admin launch` alone, or with `status`, only reports whether the
+  season is live. It is a command and not a button on purpose, so it is hard to hit by
+  accident, and `now` must be typed as the second word. `MineAdmin` calls the verb
+  through its `deps` table rather than re-implementing it, so there is one copy of
+  "throw the switch".
 - **There is no "unlaunch".** Rewinding would re-lock what players earned. A mistaken
   launch is fixed by a deliberate DataStore edit, not by a verb.
 - **Defaulted inside the modules, not at call sites.** `MineRotatingOffers`
   (`now = now or Launch.seasonNow()`) and `MineScrolls` (battle pass, `PASS_SEASON_*`)
   default to `seasonNow()`. Client panels are among their callers, and one still
   reading `os.time()` would show a different season than the server runs.
+- **More clocks were moved onto it in `cc0262f`.** `limitedSaleOpen` (it gates real
+  Robux purchases, and used to read a date already in the past) went onto the season
+  clock, and so did the group wheel's sale window. **The wheel has since been reworked**
+  into the daily wheel (`299dd2c`), so its old sale-window functions are gone
+  and I do not describe them here. Event Horizon's window (`bigbang`) reads the season
+  clock too (`MineConfig.limitedActive` via `launchClock()`), but a window with real
+  calendar dates (`opensUnix`, such as Hallow) reads `os.time()`.
 
 ### Three failure directions, chosen on purpose (pinned in `launch.js`)
 
@@ -68,6 +83,8 @@ through a season they never saw begin.
 |---|---|---|
 | `src/ReplicatedStorage/Mine/Shared/MineLaunch.luau` | the rule | `launchedAt`, `SEASON_START`, `seasonNow`, `elapsed`, `teaserLeft`, `launch`, `isLaunched` |
 | `src/ServerScriptService/Mine/MineServer.server.luau` | persistence and the switch | `Verbs._loadLaunch`, `Verbs.launchSeason`, dispatch `launchSeason` |
+| `src/ServerScriptService/Mine/Admin/MineAdmin.luau` | the `/admin launch` command | `cmd == "launch"`, `deps.launchSeason` |
+| `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | limited windows on the season clock | `limitedActive`, `limitedWindow`, `LIMITED_WINDOWS`, `LIMITED_DAYS` (47) |
 | `src/ReplicatedStorage/Mine/Shared/MineRotatingOffers.luau` | offer slots | `SEASON_START`, `SEASON_END` |
 | `src/ReplicatedStorage/Mine/Shared/MineScrolls.luau` | battle pass | `PASS_SEASON_START`, `PASS_SEASON_END` |
 | `tools/verify/launch.js` | rule, persistence order, constants agree | needs `luau` |
@@ -80,22 +97,22 @@ through a season they never saw begin.
 
 ## State right now
 
-- **Built and harnessed, never run in the engine.** The author wrote that the place
-  was closed when they went to check, so the boot path and the admin verb are covered
-  statically only.
+- **Built, wired and harnessed.** The launch audit (`cc0262f`) added the missing caller.
+  Whether the owner has actually run `/admin launch` in Studio is not recorded in
+  the commit; its message describes the boot path and the verb from the code. **The season
+  is unlaunched until someone types it.**
 - `SEASON_START` is stored **three times** (`MineLaunch`, `MineRotatingOffers`,
   `MineScrolls.PASS_SEASON_START`); `launch.js` asserts they agree, because drift
   would put the season weeks out without failing anything else.
 
 ## Gotchas
 
-- **Nothing in `src/` calls `launchSeason`.** The server dispatches the action, but I
-  searched `src/`, `tools/` and `docs/`: the only other mentions are inside
-  `launch.js`. No admin panel button or client script sends it, so **the owner has no
-  button to press** (see [open-questions](../open-questions.md) §1b).
-- **The limited-event window is a separate clock.** `MineConfig.LIMITED_START_UNIX` /
-  `LIMITED_DAYS` for Event Horizon still run on real time and were not moved.
-  See [world-events](world-events.md).
+- **Until `cc0262f`, nothing called `launchSeason`.** I recorded that as a finding on
+  2026-10-08; the owner's session found the same thing in its launch audit and fixed it
+  with `/admin launch now`. There is still **no button**, by design.
+- **Calendar windows are not on the season clock.** A limited window with real dates
+  (`opensUnix`, for example the Hallow one and the Candy Crypt) runs on `os.time()`, so
+  launching late does not shift it. See [world-events](world-events.md).
 - **The two season ends disagree.** `MineRotatingOffers.SEASON_END` is 2026-11-01
   **plus `EXTEND_SEC` (one week)** = 2026-11-08, but `MineScrolls.PASS_SEASON_END` is
   still `1793505600` = 2026-11-01 04:00 UTC. So the battle pass is one week shorter
@@ -107,8 +124,8 @@ through a season they never saw begin.
 
 ## Open questions
 
-- How does the owner throw the switch? (No caller exists today.)
-- Should Event Horizon's window also wait for launch? It does not.
+- Should the battle pass end with the offers (11-08) or a week earlier (11-01)? Both are
+  still that way; see the gotcha above.
 - What should players see before launch: the rolling teaser, or something that says
   "launching soon"?
 

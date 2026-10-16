@@ -2,7 +2,7 @@
 title: Wandering traders
 type: system
 status: partial
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-16 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTrader.luau
   - src/ServerScriptService/Mine/MineTraderNPC.luau
@@ -130,8 +130,9 @@ part-built figures, which was the owner's choice.
   `MineDepthPlazas.ride` lands players on `SurfaceClone.Square`.
 - `MineTrader` carries its **own** `mul32`; `MineConfig`'s is a file-local.
 - **Server script locals.** The `buyCharm` comment says `MineServer` "sits at 197 of
-  Luau's 200"; `compile.js` measured **5 left** on 2026-10-08. Trust the measurement,
-  and see [luau-traps](../code/luau-traps.md).
+  Luau's 200"; `compile.js` measured **5 left** on 2026-10-08 and **12 left** on
+  2026-10-16 (after the owner's later refactors). Trust the measurement, and see
+  [luau-traps](../code/luau-traps.md).
 
 ## Open questions
 

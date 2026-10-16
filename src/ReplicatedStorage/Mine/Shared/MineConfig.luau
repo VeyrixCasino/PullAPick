@@ -33,6 +33,31 @@ MineConfig.BLOCK = 5
 -- floor area of the old 13, so a layer is somewhere to explore rather than
 -- a room you clear in a few swings.
 MineConfig.GRID = 21
+--[[
+	BLOCKS PER LAYER, PER ZONE.
+
+	GRID is the default and every ordinary mine uses it. A zone may carry its
+	own `grid`, and Halloween does: it is a deliberately tiny mine, ten layers
+	to a section and a handful of blocks to a layer, so the depth runs away from
+	you instead of the floor area.
+
+	A layer is square, so the count is grid x grid -- there is no grid that
+	gives exactly 10. 3 gives 9 and keeps a true centre block, which matters
+	because the elevator and the pit centre are computed from it.
+
+	Zones that omit `grid` are unchanged to the block, which is the point:
+	this reads 21 for all eleven existing mines.
+]]
+function MineConfig.gridFor(zone)
+	if type(zone) ~= "table" then
+		zone = MineConfig.zoneById(zone)
+	end
+	local g = zone and tonumber(zone.grid)
+	if g and g >= 1 then
+		return math.floor(g)
+	end
+	return MineConfig.GRID or 21
+end
 MineConfig.LAYERS = 5000
 -- Layers are generated in a window below the deepest point reached, not all
 -- at once: 50 layers x 13 x 13 is 8,450 parts per zone, and building that in
@@ -226,17 +251,113 @@ end
 	a hat is something you see often enough to go looking for sets, a charm is
 	a real find. Hats run about 8x the rate of charms.
 
-	Per 1000 chests, roughly: 701 packs, 170 coins, 90 hats, 22 dust,
-	11 charms, 6 relics.
+	A SKIN CASE sits between hats and charms. Owner, 2026-10-10: "We need the
+	skin cases to be found in chests." Rarer than a hat because a skin is a
+	build and not a cosmetic, commoner than a charm because there are 225 of
+	them to collect and an F is meant to be an ordinary find. `lucky` so chest
+	luck moves it, the same as the two rows under it.
+
+	Per 1000 chests, roughly: 697 packs, 169 coins, 90 hats, 30 skin cases,
+	22 dust, 11 charms, 6 relics.
 ]]
 MineConfig.CHEST_LOOT = {
 	{ kind = "pack",   weight = 70 },
 	{ kind = "coins",  weight = 17 },
 	{ kind = "hat",    weight = 9 },
+	{ kind = "skincase", weight = 3, lucky = true },
 	{ kind = "dust",   weight = 2.2 },
 	{ kind = "charm",  weight = 1.1, lucky = true },
 	{ kind = "relic",  weight = 0.6, lucky = true },
 }
+
+--[[
+	WHICH TIER A SKIN CASE PAYS. Weights, not percentages, so a row can be
+	retuned without renormalising the rest by hand.
+
+	PROPOSED (2026-10-10). Skin cases are 3 of 102.9 chest weight (2.9% of
+	chests) and an SSS is 4 of 1000 cases, so an SSS is about **1 in 8,575
+	chests** -- roughly 3.4 million blocks at CHEST_CHANCE, and nine times that
+	for a SPECIFIC one. A chase, not a milestone, which is why the set bonus
+	exists for the people who never see one.
+
+	An earlier draft of this comment said 83,000 chests. That was wrong by a
+	factor of ten, and wrong in the direction that invites someone to loosen a
+	drop rate to fix a problem that was never there. tools/verify/skin-model.js
+	derives it now instead of restating it.
+]]
+MineConfig.SKIN_CASE_TIERS = {
+	{ tier = "F",   weight = 400 },
+	{ tier = "D",   weight = 240 },
+	{ tier = "C",   weight = 150 },
+	{ tier = "B",   weight = 90 },
+	{ tier = "A",   weight = 60 },
+	{ tier = "S",   weight = 36 },
+	{ tier = "SS",  weight = 20 },
+	{ tier = "SSS", weight = 4 },
+}
+
+--[[
+	SKIN CASES FROM CHESTS, BETTER FROM BETTER CHESTS. Owner, 2026-10-11, on
+	pack cases already scaling with the chest: "nothing for skins i dont
+	think.. same logic/rates", and chose "better chests -> better skin tiers".
+
+	  CHEST_SKIN_CASE_CHANCE  a chest drops a skin case this often: the 3 of
+	                          102.9 the CHEST_LOOT row above was given. Chest
+	                          luck raises it, capped at CHEST_SKIN_LUCK_CAP
+	                          (the pack cases' cap).
+	  CHEST_SKIN_RANK_SHIFT   tiers the SKIN_CASE_TIERS ladder starts higher:
+	                          a B chest rolls D at F's weight, D's at C's ...;
+	                          rows pushed past SSS drop off. The same rule
+	                          MineCases.chestCaseOdds applies to pack cases.
+	                          Lower ranks are never pushed down.
+
+	The CHEST_LOOT row was never reached: only giveDrop reads that table, and
+	nothing calls giveDrop. Wall chests open through openChestBlock, which rolls
+	this instead.
+]]
+MineConfig.CHEST_SKIN_CASE_CHANCE = 0.03
+MineConfig.CHEST_SKIN_LUCK_CAP = 3
+MineConfig.CHEST_SKIN_RANK_SHIFT = { B = 1, A = 2, S = 3 }
+
+-- { { tier, p } ... } for one skin case from a chest of `rank`, p summing to 1.
+function MineConfig.skinCaseTierOdds(rank)
+	local rows = MineConfig.SKIN_CASE_TIERS
+	local shift = MineConfig.CHEST_SKIN_RANK_SHIFT[rank or ""] or 0
+	local out, total = {}, 0
+	for i, r in ipairs(rows) do
+		local from = rows[i - shift]
+		local w = from and (tonumber(from.weight) or 0) or 0
+		total += w
+		table.insert(out, { tier = r.tier, p = w })
+	end
+	for _, r in ipairs(out) do
+		r.p = (total > 0) and (r.p / total) or 0
+	end
+	return out
+end
+
+-- A chest's skin case, if it drops one: the tier, or nil.
+function MineConfig.rollChestSkinTier(rank, rng, chestLuck)
+	rng = rng or Random.new()
+	local luck = math.clamp(tonumber(chestLuck) or 1, 1, MineConfig.CHEST_SKIN_LUCK_CAP)
+	if rng:NextNumber() >= MineConfig.CHEST_SKIN_CASE_CHANCE * luck then
+		return nil
+	end
+	local roll = rng:NextNumber()
+	local odds = MineConfig.skinCaseTierOdds(rank)
+	for _, r in ipairs(odds) do
+		roll -= r.p
+		if roll <= 0 and r.p > 0 then
+			return r.tier
+		end
+	end
+	for i = #odds, 1, -1 do
+		if odds[i].p > 0 then
+			return odds[i].tier
+		end
+	end
+	return nil
+end
 
 --[[
 	HOW MANY PACKS A PACK CHEST PAYS.
@@ -453,20 +574,116 @@ MineConfig.LIMITED_START_UNIX = 1790049600
 -- has to say the same thing the shelf does.
 MineConfig.LIMITED_DAYS = 47
 
-function MineConfig.limitedActive()
-	local start = MineConfig.LIMITED_START_UNIX or 0
-	if start <= 0 then
-		return true
+--[[
+	THE EVENT WINDOW RUNS ON THE SEASON CLOCK, NOT THE WALL CLOCK.
+
+	This read os.time() directly, so the 47 days were counted from
+	2026-09-22 whether or not the game had opened -- the window would have
+	closed on 2026-11-08 with nobody having played, and the owner's launch
+	switch could not have stopped it. That is the precise failure MineLaunch
+	exists to prevent, and this function was the last thing still measuring
+	the season against a date.
+
+	MineLaunch.seasonNow() returns SEASON_START exactly until the owner
+	launches, then SEASON_START + however long it has been running. Since
+	LIMITED_START_UNIX IS SEASON_START, before launch this reads zero seconds
+	elapsed and the event sits at its full 47 days; after launch it runs the
+	47 days from the moment the switch was thrown.
+
+	Required lazily rather than at the top of this file: MineConfig is required
+	by nearly everything, MineLaunch is leaf-level today, and keeping the edge
+	out of the load graph means a future require inside MineLaunch cannot turn
+	into a cycle through here.
+]]
+local function launchClock()
+	local ok, L = pcall(function()
+		return require(script.Parent:WaitForChild("MineLaunch"))
+	end)
+	if ok and type(L) == "table" and type(L.seasonNow) == "function" then
+		return L.seasonNow()
 	end
-	return os.time() < start + (MineConfig.LIMITED_DAYS or 35) * 86400
+	-- A missing module must not make a limited zone permanent, nor slam it
+	-- shut: fall back to the wall clock, which is the behaviour this replaced.
+	return os.time()
 end
 
-function MineConfig.limitedEndsAt()
+--[[
+	ONE WINDOW PER LIMITED ZONE, MEASURED IN DAYS FROM SEASON START.
+
+	There used to be exactly one limited zone, so there was exactly one window
+	and `limitedActive()` took no argument. Halloween is a second one, running
+	alongside Event Horizon rather than after it, so the window has to belong to
+	the zone.
+
+	Offsets from SEASON_START, NOT real dates, for the reason written at length
+	above: the clock here is MineLaunch's season clock, and a wall-clock window
+	would count down before the game opened. That is the default. A window
+	given as calendar dates (`opensUnix` / `closesUnix`) is the exception and
+	reads the wall clock: Halloween, which the owner wants on the real dates
+	even if that means it never runs (2026-10-10).
+
+	Passing no zoneId keeps the old meaning (Event Horizon), so every existing
+	caller still reads the same answer.
+]]
+MineConfig.LIMITED_WINDOWS = {
+	bigbang = { startDay = 0, days = 47 },
+	--[[
+		HALLOWEEN IS ON THE CALENDAR, NOT THE SEASON CLOCK (owner, 2026-10-10:
+		real dates; "if the game isn't live by then, it doesn't happen"). It was
+		season start + 25 days for 21 days, which slides with launch and could
+		have run Halloween in late November. A window with `opensUnix` /
+		`closesUnix` is read against the wall clock instead.
+		    opens  2026-10-17 00:00 ET (EDT, UTC-4)  1792209600
+		    closes 2026-11-08 00:00 ET (EST, UTC-5)  1794114000  -- Nov 7 is a full day
+		Same US Eastern midnights as Event Horizon's dates above.
+	]]
+	hallow = { opensUnix = 1792209600, closesUnix = 1794114000 },
+}
+
+-- The clock a window is read on: the wall clock for a calendar window, the
+-- season clock for the rest.
+local function windowNow(zoneId)
+	local w = MineConfig.LIMITED_WINDOWS[zoneId or "bigbang"]
+	if w and w.opensUnix then
+		return os.time()
+	end
+	return launchClock()
+end
+
+function MineConfig.limitedWindow(zoneId)
 	local start = MineConfig.LIMITED_START_UNIX or 0
 	if start <= 0 then
 		return nil
 	end
-	return start + (MineConfig.LIMITED_DAYS or 35) * 86400
+	local w = MineConfig.LIMITED_WINDOWS[zoneId or "bigbang"]
+	if not w then
+		return nil
+	end
+	if w.opensUnix then
+		return w.opensUnix, w.closesUnix
+	end
+	local from = start + (w.startDay or 0) * 86400
+	return from, from + (w.days or MineConfig.LIMITED_DAYS or 35) * 86400
+end
+
+function MineConfig.limitedActive(zoneId)
+	local start = MineConfig.LIMITED_START_UNIX or 0
+	if start <= 0 then
+		return true
+	end
+	local from, ends = MineConfig.limitedWindow(zoneId)
+	if not from then
+		return false
+	end
+	local now = windowNow(zoneId)
+	-- Lower bound as well as upper: a second window that opens later must read
+	-- CLOSED before it opens, not "not yet closed".
+	return now >= from and now < ends
+end
+
+function MineConfig.limitedEndsAt(zoneId)
+	local _, ends = MineConfig.limitedWindow(zoneId)
+	return ends
 end
 
 --[[
@@ -480,12 +697,22 @@ end
 	Returns nil when there is no deadline at all, so a caller can tell "no
 	event configured" apart from "no time left".
 ]]
-function MineConfig.limitedCountdown()
-	local ends = MineConfig.limitedEndsAt()
+function MineConfig.limitedCountdown(zoneId)
+	local from, ends = MineConfig.limitedWindow(zoneId)
 	if not ends then
 		return nil
 	end
-	local left = ends - os.time()
+	-- Season clock, for the same reason limitedActive uses it: a countdown
+	-- running off the wall clock would tick down before the game opened and
+	-- greet the first players with "closed". (A calendar window, Halloween,
+	-- reads the wall clock on purpose: see LIMITED_WINDOWS.)
+	local now = windowNow(zoneId)
+	-- A window that has not opened counts down to its OPENING. Counting down to
+	-- the close of something nobody can enter yet reads as a lie.
+	if now < from then
+		ends = from
+	end
+	local left = ends - now
 	if left <= 0 then
 		return "closed"
 	end
@@ -544,6 +771,15 @@ MineConfig.EVENTS = {
 		bannerImage = "rbxassetid://84324385292112",
 		ownedFlag = "bigbangOwned",
 	},
+	{
+		id = "candy_crypt",
+		zoneId = "hallow",
+		name = "Candy Crypt",
+		blurb = "A tiny mine that drops away fast. No chests, nothing sells for much — what you are down here for is candy corn, and candy buys Trick-or-Treat cases, seasonal packs and the Halloween bucket. Open 17 October to 7 November.",
+		-- No banner art yet; MineEventsView draws its own panel when this is
+		-- empty, so leaving it unset is a supported state, not a hole.
+		ownedFlag = "hallowOwned",
+	},
 }
 
 --[[
@@ -595,6 +831,16 @@ function MineConfig.isProgressionZone(zone)
 	end
 	return zone ~= nil and not zone.limited
 end
+--[[
+	PET LEVELS ARE GONE. Owner, 2026-10-10: maxing an Exotic cost 7,500 for
+	nearly double its damage; asked how strong that made pets, they chose
+	"Remove leveling". Nothing buys a level now: the server's "power" action and
+	the client's POWER-UP tab are gone. Levels already on a card stay and still
+	count in cardPower.
+
+	The old flat price was 25 x level. It is kept only to work out what those
+	levels cost, for the recycle refund (MineConfig.powerSpent).
+]]
 MineConfig.POWER_DUST = 25
 -- VIP gamepass. No shop discount, bag, walk, or luck.
 -- Perks: remote sell (cooldown), AFK coins/gems, [VIP] tag. (It used to add a
@@ -649,7 +895,7 @@ MineConfig.ITEM_SLOT_GEM_RATE = 1.08
 -- through three files. Gear, charms and potions are deliberately NOT here:
 -- they are equipment slots, not shelf stock.
 MineConfig.ITEM_BAG_FIELDS = {
-	"cards", "packs", "runes", "tempers",
+	"cards", "packs", "tempers",
 	"chestTools", "eventTools",
 }
 
@@ -661,7 +907,7 @@ function MineConfig.itemSlotsUsed(p)
 	for _, field in ipairs(MineConfig.ITEM_BAG_FIELDS) do
 		local t = p[field]
 		if type(t) == "table" then
-			-- Three shapes in play: arrays (cards, packs, runes, chestTools),
+			-- Three shapes in play: arrays (cards, packs, chestTools),
 			-- id-keyed maps (eventTools) and maps whose value
 			-- carries a copy count (tempers). Length first, then entries.
 			local n = #t
@@ -784,12 +1030,26 @@ function MineConfig.productCredits(key)
 	return tonumber(prod.creditsPrice) or tonumber(prod.robuxPrice)
 end
 
+--[[
+	ON THE SEASON CLOCK, like limitedActive above it.
+
+	This read os.time() against LIMITED_SALE_OPENS_AT (2026-09-22), a date
+	already in the past -- so it returned true today regardless of launch
+	state, while every other season system sat frozen at second zero. It gates
+	REAL ROBUX PURCHASES (MineServer buyProduct, the receipt handler, and the
+	shop shelf), so the effect was a limited sale open for business before the
+	owner had launched the game.
+
+	launchClock() returns SEASON_START until the switch is thrown, and
+	LIMITED_SALE_OPENS_AT equals SEASON_START, so `>=` is true from the moment
+	the season starts and not a second before.
+]]
 function MineConfig.limitedSaleOpen()
 	local t = tonumber(MineConfig.LIMITED_SALE_OPENS_AT) or 0
 	if t <= 0 then
 		return game:GetService("RunService"):IsStudio()
 	end
-	return os.time() >= t
+	return launchClock() >= t
 end
 
 do
@@ -1182,6 +1442,45 @@ MineConfig.CHEST_CHANCE = 0.003 -- ~1.3 chests / layer on 21x21; ~20 an hour of 
 -- Shallow Meadow (first 100 layers) doubles it again: the tutorial asks for three chests,
 -- and a new player should meet them inside their first ten minutes.
 MineConfig.MEADOW_SHALLOW_CHEST_MULT = 2
+--[[
+	BETTER CHESTS DEEPER. Owner, 2026-10-10: "zone and depth should have
+	something to do with chest drop rates across the map.. i can picture people
+	with explosoves nuking starter mine bcuz everything is one shot. there should
+	be incentive to go a little deeper". Then chose: BETTER chests only (the
+	count stays CHEST_CHANCE everywhere), x1 at a zone's top to x3 at its
+	deepest rock, inside every zone EXCEPT the first -- Dirt Meadow stays x1 --
+	and front-loaded.
+
+	The multiplier follows how tough the rock is, on a log scale. Block HP grows
+	linearly with depth (MineDepth.dirtHp), so log(HP / topHP) over
+	log(bottomHP / topHP) is how far through a zone's toughness a block sits.
+	That puts most of the gain early: x1.7 at layer 100, x2.2 at 500, x2.5 at
+	1,000, x3 at the floor. Going "a little deeper" pays at once, and the top of
+	a zone is never the best place to nuke.
+
+	It multiplies the weight of the ranks better than C -- B, A and S -- in the
+	zone's chest pool (MineChestRanks.roll `better`), and the catalog chests'
+	luck (MinePackConfig.rollChestAt). Better chests then pay better pack cases
+	and skin cases through their rank (MineCases.CHEST_RANK_SHIFT,
+	CHEST_SKIN_RANK_SHIFT). Event mines and Meadow are x1.
+]]
+MineConfig.CHEST_DEPTH_LUCK_MAX = 3
+MineConfig.CHEST_DEPTH_LUCK_SKIP = { meadow = true }
+
+function MineConfig.chestRankLuck(zoneId, layer)
+	local zone = MineConfig.zoneById(zoneId)
+	if not zone or zone.limited or MineConfig.CHEST_DEPTH_LUCK_SKIP[zone.id] then
+		return 1
+	end
+	local floor = math.max(2, MineConfig.zoneLayers(zone))
+	layer = math.clamp(math.floor(tonumber(layer) or 1), 1, floor)
+	-- The zone multiplier cancels in the ratio, so the meadow-shaped curve is
+	-- every zone's curve.
+	local top = Depth.meadowDirtHp(1)
+	local t = math.log(Depth.meadowDirtHp(layer) / top) / math.log(Depth.meadowDirtHp(floor) / top)
+	return 1 + (MineConfig.CHEST_DEPTH_LUCK_MAX - 1) * math.clamp(t, 0, 1)
+end
+
 -- Pit lucky cubes. 1 in 5,000. Mix 80/15/5 gold/diamond/mythic. Not 3× in bigbang.
 MineConfig.LUCKY_BLOCK_CHANCE = 0.00020
 --[[
@@ -1268,13 +1567,32 @@ MineConfig.RICOCHET_HOPS = 1
 	            narrowest and cannot chain.
 	  quake     0.12 a second for EARTHQUAKE_SEC, so 0.60 over a full life --
 	            worth starting, never a substitute for swinging.
+	  tide      0.18 x 12 blocks on your layer = 2.16 per proc, level with
+	            blast's 2.10: Tidal Wave (2026-10-10) is blast's flat cousin.
 
 	procPower scales all four together. A proc build is then a real build: at
 	the +300% cap a blast is 1.4 x 6 = 8.4x a swing, which is enormous and
 	cost a whole stat budget to reach.
 ]]
+--[[
+	THE 2026-10-10 PROC REWORK (owner; wiki/next-up.md section 2).
+
+	  blast    0.35 -> 0.12. "make blast less than tidal wave": it hits in three
+	           dimensions and stacks with blast range, which made it "way to OP".
+	           6 x 0.12 = 0.72 swings a proc.
+	  tide     0.18 on each of 12 cells on your layer = 2.16. The big one, and
+	           its reach never grows ("no range modifiers").
+	  zap      0.25 a hop, and the chain now has its own equation
+	           (ZAP_CONTINUE / ZAP_FALLOFF below): about 3 hops, 0.76 swings.
+	  shatter  0.15 to each of the 6 sides, and a block a shard breaks may
+	           shatter again, at most SHATTER_MAX_PROCS times per block you broke.
+	           Replaces Ricochet; the stat KEY stays "ricochet" (it is data).
+
+	Each proc also has its own damage stat (blastDamage, tideDamage, zapDamage,
+	shatterDamage) that adds to procPower for that proc alone: see procDamage.
+]]
 MineConfig.PROC_SHARE = {
-	blast = 0.35,
+	blast = 0.12,
 	--[[
 		0.45 -> 0.25. Owner, 2026-10-05: nerf the zap proc.
 
@@ -1289,7 +1607,11 @@ MineConfig.PROC_SHARE = {
 		of it.
 	]]
 	zap = 0.25,
+	-- Kept so procDamage("ricochet") still answers an old caller; the proc is
+	-- Shatter now (see "shatter").
 	ricochet = 0.60,
+	tide = 0.18,
+	shatter = 0.15,
 	-- Superseded by the stack model, which prices a quake as
 	-- QUAKE_STACK_SHARE per stack per second. Kept so procDamage("quake")
 	-- still answers for any caller that has not moved across.
@@ -1323,7 +1645,25 @@ MineConfig.ZAP_MAX_HOPS = 16
 	At 0.75 even 400% reached sixteen essentially never, so the hop cap did all
 	the work and the stat bought nothing past the first few hops.
 ]]
-MineConfig.ZAP_FALLOFF = 0.89
+MineConfig.ZAP_FALLOFF = 0.88
+--[[
+	THE ZAP CONTINUE EQUATION (owner, 2026-10-10: "make zap have a proc chance
+	and a zap continue equation. Just ensure its balanced").
+
+	The zap STAT is now only the chance to START a chain. Once started, hop h
+	continues with probability
+
+	    ZAP_CONTINUE x ZAP_FALLOFF ^ (h - 1)
+
+	which is the same for every player: 0.80, 0.70, 0.62, 0.55, ... so a chain
+	averages about 3 hops (0.76 swings at PROC_SHARE.zap 0.25), between blast's
+	0.72 and shatter's 0.90. Before this the stat drove both, so a big zap stat
+	bought long chains AND frequent ones at once.
+]]
+MineConfig.ZAP_CONTINUE = 0.80
+-- Shatter's chain: a block broken by a shard may shatter again, this many
+-- shatters in all per block you broke.
+MineConfig.SHATTER_MAX_PROCS = 3
 
 -- How far procPower can be stacked. A ceiling, not a target.
 MineConfig.PROC_POWER_CAP = 3.0
@@ -1334,14 +1674,17 @@ MineConfig.PROC_POWER_CAP = 3.0
 	The one place this is computed. A caller passing its own multiplier is how
 	Blast and Zap ended up disagreeing about what "full damage" meant.
 ]]
-function MineConfig.procDamage(dmg, which, procPower)
+-- `extra` is the proc's own damage stat (blastDamage, tideDamage, ...). It ADDS
+-- to procPower rather than multiplying it, so two damage sources never compound.
+function MineConfig.procDamage(dmg, which, procPower, extra)
 	local base = math.max(0, tonumber(dmg) or 0)
 	local share = (MineConfig.PROC_SHARE or {})[which]
 	if not share then
 		return 0
 	end
 	local pp = math.clamp(tonumber(procPower) or 0, 0, MineConfig.PROC_POWER_CAP or 3)
-	return math.max(1, math.floor(base * share * (1 + pp)))
+	local own = math.max(0, tonumber(extra) or 0)
+	return math.max(1, math.floor(base * share * (1 + pp + own)))
 end
 
 --[[
@@ -1529,6 +1872,9 @@ MineConfig.ZONES = {
 		minRebirth = 0,
 		buyCost = 0,
 		limited = true,
+		-- Which profile flag means "claimed". Was hardcoded in MineServer back
+		-- when one limited zone was the only limited zone.
+		ownedFlag = "bigbangOwned",
 		-- Chests three times as common as anywhere else: it is an event.
 		chestMult = 3,
 		sets = { "genesis_spark", "first_light", "proto_ore" },
@@ -1538,6 +1884,57 @@ MineConfig.ZONES = {
 		accent = Enum.Material.Glass,
 		decor = "ring",
 		angle = 18,
+	},
+	--[[
+		HALLOWEEN 2026. A second limited mine, open alongside Event Horizon
+		rather than after it (MineConfig.LIMITED_WINDOWS.hallow).
+
+		Owner, 2026-10-10: candy ores dropping candy corn, no chests at all,
+		nothing sells for much (more the deeper you go), no hardness gate so
+		surface tools work, ten layers to a section and about ten blocks to a
+		layer, and 3x per section. Candy buys Trick-or-Treat cases, seasonal
+		packs, skin and hat cases, and the Halloween bucket.
+
+		Every number here is PROPOSED except the ones the owner stated.
+	]]
+	{
+		radius = 9000,
+		id = "hallow",
+		name = "Candy Crypt",
+		prestige = 0,
+		minRebirth = 0,
+		buyCost = 0,
+		limited = true,
+		ownedFlag = "hallowOwned",
+		-- NO CHESTS. 0 survives the lookup in rollKind, which is why that
+		-- branch had to stop naming bigbang.
+		chestMult = 0,
+		-- A tiny pit: 3 x 3 = 9 blocks a layer, against 441 everywhere else.
+		-- Depth is the whole progression here, so the floor is barely there.
+		grid = 3,
+		-- No breaking-power gate: the owner wants surface tools to work.
+		noStrengthGate = true,
+		--[[
+			Meadow's sets on purpose, NOT candy ones.
+
+			`sets` is read as MineCards set ids, and candy_corn / gummy_vein /
+			sugar_glass are not registered there -- using them would hand broken
+			set ids to every pack this zone can produce. Limited zones already
+			draw pets from the meadow pot (`potZone` in MineServer), so this
+			matches the behaviour that is already true rather than inventing a
+			second answer.
+
+			This becomes the Halloween 2026 set once that pack exists; the pack
+			is the only legal source of holiday pets under the holiday rule, so
+			it cannot be a zone pot anyway.
+		]]
+		sets = { "dragons_dawn", "grass_glimmer", "prism_meadow" },
+		color = Color3.fromRGB(255, 142, 44),
+		dirt = Color3.fromRGB(62, 34, 78),
+		ground = Enum.Material.Sand,
+		accent = Enum.Material.Neon,
+		decor = "ring",
+		angle = 198,
 	},
 }
 
@@ -1615,15 +2012,37 @@ function MineConfig.cardPower(card)
 	return r * v * s * p
 end
 
-function MineConfig.salvageDust(card)
+-- A card's value before any power: its rarity's stardust x variant x finish.
+function MineConfig.cardBaseDust(card)
 	local base = MineConfig.RARITY_DUST[card.rarityId] or 8
 	local v = MineConfig.VARIANT_MULT[card.variant or "Normal"] or 1
 	local s = (card.shadow and MineConfig.SHADOW_MULT) or (card.shiny and MineConfig.SHINY_MULT) or 1
-	return math.floor(base * v * s * (1 + 0.1 * ((card.powerLevel or 1) - 1)))
+	return base * v * s
 end
 
-function MineConfig.powerDustCost(level)
-	return MineConfig.POWER_DUST * (level or 1)
+--[[
+	Recycling pays the card's value plus HALF the stardust put into its power
+	levels (owner: "Refund half the spend"). It used to pay +10% per level,
+	which made stardust: maxing an Exotic cost 7,500 and added 76,800.
+]]
+MineConfig.POWER_REFUND = 0.5
+
+function MineConfig.salvageDust(card)
+	return math.floor(MineConfig.cardBaseDust(card) + MineConfig.POWER_REFUND * MineConfig.powerSpent(card))
+end
+
+--[[
+	The stardust put into a card's levels: `powerSpent` if a level recorded it,
+	else the old flat 25 x level price, so a level bought for 25 can never
+	refund more than about half that.
+]]
+function MineConfig.powerSpent(card)
+	local spent = tonumber(card.powerSpent)
+	if spent then
+		return spent
+	end
+	local level = math.max(1, math.floor(tonumber(card.powerLevel) or 1))
+	return MineConfig.POWER_DUST * level * (level - 1) / 2
 end
 
 -- VIP spend: cost × 0.9, floor at 1 when cost > 0.
@@ -1697,6 +2116,29 @@ function MineConfig.blockHp(kind, zone, layer)
 	]]
 	if zoneId == "bigbang" then
 		zi = 11
+	end
+	--[[
+		THE CANDY CRYPT HAS ITS OWN CURVE, NOT A PLACE ON THE LADDER.
+
+		Being zone 12 would put its rock a step past Primordium, which is the
+		exact opposite of what the owner asked for: no hardness requirement, so
+		a surface tool works. Nothing else stops one -- unlike Event Horizon
+		there is no separate matter pool here, so an ordinary tool can spend
+		this HP; it is only the NUMBER that would have locked everyone out.
+
+		One curve does two jobs, because coins are one per point of HP (see
+		coinsFor): it is both how hard the rock is and what it sells for. So a
+		tiny base gives "sells for almost nothing", and 3x per 10-layer section
+		gives "more the deeper you get" and the exponential in one move. Section
+		1 pays 1, section 10 pays 19,683.
+	]]
+	if zoneId == "hallow" then
+		local hp = (MineConfig.CANDY_SELL_BASE or 1)
+			* (MineConfig.candySectionMult and MineConfig.candySectionMult(layer) or 1)
+		if kind == "chest" or kind == "crate" or kind == "lucky_block" then
+			hp = hp * (MineConfig.CHEST_HP_MULT or 2)
+		end
+		return math.max(1, math.floor(hp + 0.5))
 	end
 	local dirt = Depth.dirtHp(zi, layer)
 	if kind == "chest" or kind == "crate" or kind == "lucky_block" then
@@ -1934,6 +2376,7 @@ do
 		mythral = { word = "Ossuary", hue = Color3.fromRGB(200, 180, 120) },
 		primordium = { word = "Magma", hue = Color3.fromRGB(180, 70, 30) },
 		bigbang = { word = "Horizon", hue = Color3.fromRGB(200, 210, 255) },
+		hallow = { word = "Candy", hue = Color3.fromRGB(255, 142, 44) },
 	}
 	-- No "dust". Prefer stone / rock / ite (and a few hard rock words).
 	local TAIL = { "stone", "rock", "ite", "shale", "basalt", "flint", "ore", "slate", "granite", "vein" }
@@ -1948,6 +2391,7 @@ do
 		mythral = {"Boneloam","Relicsod","Tombclay","Ossumarl","Cryptpeat"},
 		primordium = {"Magmaloam","Lavasod","Emberclay","Coremarl","Pyrepeat"},
 		bigbang = {"Protozoam","Sparksod","Nullclay","Aethermarl","Genesispeat"},
+		hallow = {"Sugarloam","Gumsod","Toffeeclay","Caramarl","Liquorpeat"},
 	}
 	local PLANET_ROCK = {
 		sunscar = {"Glassite","Dunestone","Solrock","Scorchite","Mirageflint"},
@@ -1960,6 +2404,7 @@ do
 		mythral = {"Ossistone","Relicite","Tombflint","Boneite","Cryptrock"},
 		primordium = {"Magmite","Lavastone","Emberflint","Coreite","Pyrock"},
 		bigbang = {"Protostone","Nullite","Aetherflint","Horizite","Genesisrock"},
+		hallow = {"Candystone","Gumdropite","Toffeeflint","Nougatrock","Brittleite"},
 	}
 	for zoneId, theme in pairs(THEME) do
 		local list = {}
@@ -2021,10 +2466,27 @@ function MineConfig.refreshZoneSections()
 	end
 	MineConfig._zoneSecFrom = 0
 	-- Force the module's initial builder pattern by clearing and copying from Depth again.
+	--[[
+		THERE ARE TWO OF THESE AND A NEW ZONE NEEDS TO BE IN BOTH.
+
+		The block above runs at module load and is what normally populates
+		ZONE_SECTIONS. This one is the REBUILD, for when MineDepth's section
+		count changes under a Studio Source edit -- and the guard directly above
+		returns early whenever nothing has changed, so most of the time it never
+		runs at all.
+
+		Neither is dead, and they are easy to mistake for each other: the tables
+		have different shapes (THEME carries word+hue, here it is THEME_WORD and
+		THEME_HUE) but the same contents. A zone added to only one of them looks
+		correct in the file and reads nil at runtime, which is exactly what
+		`hallow` did -- added here first, where the early return meant it never
+		executed.
+	]]
 	local THEME_WORD = {
 		meadow = "", sunscar = "Sunscar", mistreef = "Tide", arcwork = "Cog",
 		bloodmoon = "Blood", eclipse = "Umbral", riftmarch = "Rift",
 		starfall = "Starfall", mythral = "Myth", primordium = "Primordial", bigbang = "Horizon",
+		hallow = "Candy",
 	}
 	local PLANET_DIRT = {
 		sunscar = {"Blisterloam","Cindersod","Scorchclay","Glassmarl","Duneseam"},
@@ -2037,6 +2499,7 @@ function MineConfig.refreshZoneSections()
 		mythral = {"Boneloam","Relicsod","Tombclay","Ossumarl","Cryptpeat"},
 		primordium = {"Magmaloam","Lavasod","Emberclay","Coremarl","Pyrepeat"},
 		bigbang = {"Protozoam","Sparksod","Nullclay","Aethermarl","Genesispeat"},
+		hallow = {"Sugarloam","Gumsod","Toffeeclay","Caramarl","Liquorpeat"},
 	}
 	local PLANET_ROCK = {
 		sunscar = {"Glassite","Dunestone","Solrock","Scorchite","Mirageflint"},
@@ -2049,6 +2512,7 @@ function MineConfig.refreshZoneSections()
 		mythral = {"Ossistone","Relicite","Tombflint","Boneite","Cryptrock"},
 		primordium = {"Magmite","Lavastone","Emberflint","Coreite","Pyrock"},
 		bigbang = {"Protostone","Nullite","Aetherflint","Horizite","Genesisrock"},
+		hallow = {"Candystone","Gumdropite","Toffeeflint","Nougatrock","Brittleite"},
 	}
 	local THEME_HUE = {
 		meadow = Color3.fromRGB(150, 110, 72), sunscar = Color3.fromRGB(210, 200, 175),
@@ -2057,6 +2521,7 @@ function MineConfig.refreshZoneSections()
 		riftmarch = Color3.fromRGB(120, 80, 160), starfall = Color3.fromRGB(90, 120, 180),
 		mythral = Color3.fromRGB(200, 180, 120), primordium = Color3.fromRGB(180, 70, 30),
 		bigbang = Color3.fromRGB(200, 210, 255),
+		hallow = Color3.fromRGB(255, 142, 44),
 	}
 	local TAIL = { "stone", "rock", "ite", "shale", "basalt", "flint", "ore", "slate", "granite", "vein" }
 	MineConfig.ZONE_SECTIONS = {}
@@ -2273,7 +2738,118 @@ function MineConfig.oreYieldFor(tier)
 	return last.lo, last.hi
 end
 
-MineConfig.ORE_HP_MULT = 3
+--[[
+	EVERY ORE HAD THE SAME HEALTH. Owner, 2026-10-08: "make it so all ores
+	arent same health (should be a base health, and is multiplied by layer
+	health multi)".
+
+	ORE_HP_MULT was a flat 3 applied to every ore in the game, so a Stone block
+	and an Oganesson block at the same layer took exactly the same number of
+	swings. The only thing that varied was the dirt curve underneath, which is
+	the LAYER's difficulty and says nothing about what is in the rock.
+
+	The shape the owner asked for is the shape this now has:
+
+	    ore block HP = oreHardness(ore)  x  dirtHp(zone, layer)
+
+	The second term is untouched -- it is the existing layer curve and every
+	other block still reads it directly, so nothing outside ore moves. The
+	first is the per-ore base, and it is a MULTIPLIER rather than an absolute
+	HP so an ore keeps its character at every depth instead of being trivial
+	deep down and impossible early.
+
+	STONE IS DELIBERATELY UNDER 1. Owner, same message: "make stone a little
+	weaker". At tier 1 with rock character it lands near 0.75, so the first ore
+	a player ever swings at is softer than the dirt around it rather than three
+	times harder, which is what the flat 3 made it.
+
+	Coins are one per point of HP, so a harder ore pays more for being harder.
+	That is already the rule for depth and it stays true across the roster.
+]]
+MineConfig.ORE_HP_MULT = 3       -- legacy flat value; oreHardness replaces it
+MineConfig.ORE_HP_MIN = 0.8       -- tier 1, before character
+MineConfig.ORE_HP_MAX = 4.0       -- tier 82, before character
+--[[
+	Above 1 so the curve stays low across most of the roster and climbs late.
+	Linear would make the middle of the game uniformly grindy; the interesting
+	jump belongs where the ore is actually rare.
+]]
+MineConfig.ORE_HP_POW = 1.35
+
+--[[
+	CHARACTER, FROM WHAT THE ORE IS MADE OF.
+
+	`met` and `rough` are already on every roster row -- they drive the block's
+	colour and material -- so the hardness can read the same two numbers rather
+	than needing a third table that would drift away from them.
+
+	    metal    tough: it deforms before it breaks
+	    crystal  smooth and non-metallic, so dense and hard
+	    rock     rough and non-metallic, so brittle
+
+	The spread is deliberately narrow. This is meant to make two ores of the
+	same tier feel different, not to overrule the tier curve above it.
+]]
+MineConfig.ORE_HP_METAL = 1.12
+MineConfig.ORE_HP_CRYSTAL = 1.06
+MineConfig.ORE_HP_ROCK = 0.94
+
+function MineConfig.oreHardness(ore)
+	if type(ore) == "string" then
+		ore = MineConfig.oreById(ore)
+	end
+	if type(ore) ~= "table" then
+		return MineConfig.ORE_HP_MULT or 3
+	end
+	local n = math.max(2, #MineConfig.ORES)
+	local tier = math.clamp(math.floor(tonumber(ore.tier) or 1), 1, n)
+	local f = ((tier - 1) / (n - 1)) ^ (MineConfig.ORE_HP_POW or 1)
+	local base = MineConfig.ORE_HP_MIN + (MineConfig.ORE_HP_MAX - MineConfig.ORE_HP_MIN) * f
+
+	local met = math.clamp(tonumber(ore.met) or 0, 0, 1)
+	local rough = math.clamp(tonumber(ore.rough) or 0.9, 0, 1)
+	local character
+	if met >= 0.5 then
+		character = MineConfig.ORE_HP_METAL
+	elseif rough <= 0.45 then
+		character = MineConfig.ORE_HP_CRYSTAL
+	else
+		character = MineConfig.ORE_HP_ROCK
+	end
+	return math.max(0.1, base * character)
+end
+
+--[[
+	What an ore block is actually worth in HP at a given place in the mine.
+
+	One function so the server that stamps the block and anything that quotes
+	it cannot disagree -- the flat multiply used to be written out at the one
+	call site, which is how it stayed flat without anyone noticing.
+]]
+function MineConfig.oreBlockHp(ore, zone, layer)
+	local dirt = MineConfig.blockHp("dirt", zone, layer)
+	return math.max(1, math.floor(dirt * MineConfig.oreHardness(ore) + 0.5))
+end
+
+--[[
+	ORES THAT ARE JUST A BLOCK. Owner, 2026-10-08: "make the stone ore, just a
+	grey block".
+
+	Two things follow from being in here, and they live on opposite sides of
+	the wire, so the set has to be somewhere both can read it:
+
+	  server  paints the block the ORE's own colour and material, instead of
+	          the darkened host rock every other ore block gets
+	  client  draws no face on it (MineOreFace.PLAIN reads this)
+
+	The dark SmoothPlastic host exists so pixel art has a flat surface to
+	itself. An ore with no art wants the opposite -- its own colour, its own
+	material -- so the two decisions are the same decision and share a list.
+]]
+MineConfig.ORE_PLAIN = {
+	stone = true,
+}
+
 MineConfig.ORE_CHANCE = 1 / 200
 
 --[[
@@ -2465,8 +3041,14 @@ MineConfig.ORE_MIN_SHARE = 1e-6
 ]]
 MineConfig.FORGE_ONLY_FAMILIES = {
 	pickaxe = true,
+	hammer = true,
 	drill = true,
+	jackhammer = true,
 	explosive = true,
+	-- `weapon` is a GHOST: it has a noun and sits here, but it is not in
+	-- MineOreTools.FAMILY_ORDER and ToolModelFactory has no builder for it --
+	-- buildRanged is parked with a note that the ranged family was cut. Left in
+	-- place because reviving weapons is still intended; it forges nothing today.
 	weapon = true,
 }
 
@@ -2882,12 +3464,18 @@ end
 
 -- Cost of the step from `level` to `level + 1`. Returns nil at the cap so a
 -- caller cannot accidentally charge for a level that does not exist.
-function MineConfig.toolUpgradeCost(tier, level, typeMult)
+--[[
+	`familyId` is optional and applies FAMILY_UPGRADE_COST to BOTH currencies,
+	because the owner asked for 25% more ore AND 25% more stardust on a hammer
+	or jackhammer upgrade. A caller that passes no family gets exactly the
+	numbers it got before.
+]]
+function MineConfig.toolUpgradeCost(tier, level, typeMult, familyId)
 	local L = clampLevel(level)
 	if L >= MineConfig.TOOL_MAX_LEVEL then
 		return nil, nil
 	end
-	local mult = MineConfig.toolCostMult(tier, typeMult)
+	local mult = MineConfig.toolCostMult(tier, typeMult) * MineConfig.familyUpgradeMult(familyId)
 	local ore = math.ceil(MineConfig.TOOL_ORE_BASE * (MineConfig.TOOL_ORE_GROW ^ (L - 1)) * mult)
 	local dust = math.ceil(MineConfig.TOOL_DUST_BASE * (MineConfig.TOOL_DUST_GROW ^ (L - 1)) * mult)
 	return ore, dust
@@ -3040,14 +3628,106 @@ end
 
 -- The mid of the ore's own drop band. Averaging lo and hi is right because the
 -- server rolls uniformly between them.
+--[[
+	HOW MUCH THE ORE HAUL STAT CAN ACTUALLY MULTIPLY A DROP.
+
+	Owner approved adding a quantity multiplier so endgame gear is what makes the
+	deep tools reachable. The existing comment at the drop site warns exactly why
+	this needs a ceiling: "yield multipliers on a flat per-block rate are how the
+	boost stack compounds". It is right. Ore drops on every ore block, forever,
+	and this game stacks boosts multiplicatively across pets, charms, gear, runes
+	and skills -- so an uncapped multiplier on a per-block payout is the one shape
+	that runs away fastest.
+
+	ORE_HAUL_CAP is therefore a hard clamp on the MULTIPLIER, not a soft curve: no
+	stack of anything can pay more than this many times the base roll. At 25x, the
+	measured 12 million blocks for an Exotic tool becomes about 480,000 -- still a
+	serious grind, still the longest chase in the game, but a number a determined
+	player can actually reach with full gear.
+
+	The floor is 1: the stat may only ever ADD ore. A negative or corrupt boost
+	must not silently take drops away from someone.
+]]
+MineConfig.ORE_HAUL_CAP = 25
+
+--[[
+	The multiplier a given Ore Haul boost is worth, clamped.
+
+	`haul` arrives as the usual boost fraction -- 0 means no bonus, 1.5 means
+	+150%. Returns the multiplier to apply to the rolled quantity.
+
+	Tolerant of nil and of nonsense: an absent boost table, a NaN out of a bad
+	save, or a negative all read as "no bonus" rather than erroring at the drop
+	site, because this runs on every single ore block and a throw there would
+	stop the player mining at all.
+]]
+function MineConfig.oreHaulMult(haul)
+	local h = tonumber(haul) or 0
+	-- NaN fails every comparison, so test it rather than relying on clamp.
+	if h ~= h or h < 0 then
+		h = 0
+	end
+	return math.min(1 + h, math.max(1, tonumber(MineConfig.ORE_HAUL_CAP) or 25))
+end
+
 function MineConfig.oreYieldMid(tier)
 	local lo, hi = MineConfig.oreYieldFor(tier)
 	return ((tonumber(lo) or 1) + (tonumber(hi) or 1)) / 2
 end
 
-function MineConfig.toolCraftCost(tier, typeMult)
+--[[
+	A COST-ONLY lever per family.
+
+	Owner, 2026-10-10: the hammer should cost a little more ore. The obvious
+	move is to raise its typeMult, and that is the wrong one -- typeMult drives
+	tool POWER as well as cost (MineOreTools has the note), so paying more would
+	silently make hammers stronger too. This multiplies the cost and nothing
+	else.
+
+	It lives in MineConfig rather than MineOreTools because MineConfig must not
+	require MineOreTools: MineOreTools already requires this file, and a cycle
+	never returns.
+
+	PROPOSED (2026-10-10): hammer 1.25. Families with no row pay exactly what
+	they paid before.
+]]
+MineConfig.FAMILY_CRAFT_COST = {
+	hammer = 1.25,
+	-- Owner, 2026-10-10: a jackhammer costs more to craft "like hammers do".
+	jackhammer = 1.25,
+}
+
+--[[
+	THE SAME SURCHARGE ON UPGRADES, IN STARDUST.
+
+	Owner, 2026-10-10: hammers and jackhammers also cost "more to upgrade --
+	25% more ore, and 25% more stardust". FAMILY_CRAFT_COST above is the ore at
+	the forge; this is the stardust at the bench, and they are separate numbers
+	because they are separate currencies spent at separate places.
+
+	PROPOSED (2026-10-10): both 1.25.
+]]
+MineConfig.FAMILY_UPGRADE_COST = {
+	hammer = 1.25,
+	jackhammer = 1.25,
+}
+
+function MineConfig.familyUpgradeMult(familyId)
+	if familyId == nil then
+		return 1
+	end
+	return tonumber(MineConfig.FAMILY_UPGRADE_COST[tostring(familyId)]) or 1
+end
+
+function MineConfig.toolCraftCost(tier, typeMult, familyId)
 	local mult = math.max(0.01, tonumber(typeMult) or 1)
-	return math.ceil(MineConfig.craftBlocks(tier) * MineConfig.oreYieldMid(tier) * mult)
+	-- Optional third argument: a caller that does not pass a family gets the
+	-- old number exactly, so no existing call site changes meaning by accident.
+	local fam = 1
+	if familyId ~= nil then
+		fam = tonumber(MineConfig.FAMILY_CRAFT_COST[tostring(familyId)]) or 1
+	end
+	return math.ceil(MineConfig.craftBlocks(tier) * MineConfig.oreYieldMid(tier) * mult * fam)
 end
 
 --[[
@@ -3513,6 +4193,20 @@ do
 	MineConfig.ORE_LADDER_ZONES = 10
 	MineConfig.ORE_DMAX_MARGIN = 0.4
 	do
+		--[[
+			Reads the curve raw, and that is now safe BECAUSE the 10,000x pass
+			is Event Horizon only. ORE_LADDER_ZONES is 10 -- the deepest NORMAL
+			mine -- and MineDepth.hpScaleFor returns 1 for every zone but 11,
+			so this coordinate is computed on exactly the numbers it always was.
+
+			It is worth saying why that matters, because a global pass broke it:
+			`d` is a depth COORDINATE, not an amount of HP, and homeHp = 20*6^d
+			prices every gem in the game off it. A scaled dirtHp here would add
+			log(scale)/log(6) to ORE_DMAX, which does not merely scale the
+			homeHp curve but makes it STEEPER -- changing the work ratio across
+			the roster, the exponent gemCompress solves from it, and every gem
+			price. If the scale ever goes global, divide it out here.
+		]]
 		local deepHp = Depth.dirtHp(MineConfig.ORE_LADDER_ZONES, MineConfig.LAYERS)
 		local deepD = math.log(math.max(20, deepHp) / 20) / math.log(6)
 		MineConfig.ORE_DMAX = math.max(1, deepD - MineConfig.ORE_DMAX_MARGIN)
@@ -3541,6 +4235,117 @@ end
 
 function MineConfig.oreById(id)
 	return MineConfig.ORE_BY_ID[tostring(id or "")]
+end
+
+--[[
+	CANDY ORES -- the Candy Crypt's own rock, and deliberately NOT in ORES.
+
+	ORES is one global 82-rung ladder, and `oreWeights` gives every rung a
+	weight from its own `d` against the zone's difficulty. There is no per-zone
+	filter. So a candy rung added to ORES would appear in EVERY mine at the
+	depth matching its d, and would shift the share of every ore around it --
+	changing spawn rates across all eleven existing zones. That is not a change
+	to make while adding a Halloween event, so candy lives in its own table and
+	ORES is untouched to the byte.
+
+	They also bypass the ore pouch. A pouch ore has to be sellable, forgeable,
+	benchable and discoverable, and candy is none of those: it is a currency you
+	spend at the Trick-or-Treat shelf. A block grants `candy` on break and that
+	is the whole contract.
+
+	`at` is the fraction of the way down the mine where the ore is centred, so
+	the mix walks from Candy Corn at the top to Jawbreakers at the bottom.
+
+	PROPOSED (2026-10-10): every candy number here -- the amounts, the spread,
+	and CANDY_ORE_SHARE.
+]]
+--[[
+	ONE TABLE FOR EVERY CANDY NUMBER, so the owner has one place to edit.
+	All PROPOSED (2026-10-10) except the two the owner stated: ten layers to a
+	section, and 3x per section.
+
+	  CANDY_ORE_SHARE      how many of the Crypt's blocks are candy ore
+	  CANDY_SECTION_SPAN   layers per section            -- owner: 10
+	  CANDY_SECTION_MULT   per-section multiplier        -- owner: 3x
+	  CANDY_DEPTH_LAYERS   depth the candy ladder spans, 12 ores x 10 layers
+	  CANDY_SELL_BASE      coins a Crypt block sells for in section 1
+]]
+MineConfig.CANDY_ORE_SHARE = 0.15
+MineConfig.CANDY_SECTION_SPAN = 10
+MineConfig.CANDY_SECTION_MULT = 3
+MineConfig.CANDY_DEPTH_LAYERS = 120
+MineConfig.CANDY_SELL_BASE = 1
+
+-- Which section of the Crypt a layer is in, 1-based. Its own span, because
+-- SECTION_SPAN is 25 game-wide and the owner asked for 10 here.
+function MineConfig.candySection(layer)
+	local span = math.max(1, tonumber(MineConfig.CANDY_SECTION_SPAN) or 10)
+	return math.max(1, math.floor(((tonumber(layer) or 1) - 1) / span) + 1)
+end
+
+-- 3x per section, compounding. This is the "extremely exponential" the owner
+-- asked for: section 10 pays 3^9 = 19,683 times section 1.
+function MineConfig.candySectionMult(layer)
+	local m = tonumber(MineConfig.CANDY_SECTION_MULT) or 3
+	return m ^ (MineConfig.candySection(layer) - 1)
+end
+
+MineConfig.CANDY_ORES = {
+	{ id = "candy_corn", name = "Candy Corn", at = 0.00, candy = 1, color = Color3.fromRGB(255, 176, 46), material = Enum.Material.SmoothPlastic },
+	{ id = "gumdrop", name = "Gumdrop", at = 0.09, candy = 2, color = Color3.fromRGB(226, 72, 128), material = Enum.Material.Glass },
+	{ id = "licorice", name = "Licorice", at = 0.18, candy = 3, color = Color3.fromRGB(46, 38, 54), material = Enum.Material.SmoothPlastic },
+	{ id = "caramel", name = "Caramel", at = 0.27, candy = 5, color = Color3.fromRGB(190, 118, 48), material = Enum.Material.Sand },
+	{ id = "taffy", name = "Taffy", at = 0.36, candy = 8, color = Color3.fromRGB(246, 150, 196), material = Enum.Material.SmoothPlastic },
+	{ id = "toffee_shard", name = "Toffee Shard", at = 0.45, candy = 12, color = Color3.fromRGB(150, 86, 36), material = Enum.Material.Glass },
+	{ id = "nougat", name = "Nougat", at = 0.54, candy = 18, color = Color3.fromRGB(236, 214, 170), material = Enum.Material.Foil },
+	{ id = "rock_candy", name = "Rock Candy", at = 0.63, candy = 26, color = Color3.fromRGB(152, 220, 246), material = Enum.Material.Ice },
+	{ id = "candy_apple", name = "Candy Apple", at = 0.72, candy = 38, color = Color3.fromRGB(206, 30, 44), material = Enum.Material.Glass },
+	{ id = "sugar_skull", name = "Sugar Skull", at = 0.81, candy = 55, color = Color3.fromRGB(244, 240, 228), material = Enum.Material.Plaster },
+	{ id = "chocolate_skull", name = "Chocolate Skull", at = 0.90, candy = 80, color = Color3.fromRGB(78, 46, 30), material = Enum.Material.Slate },
+	{ id = "jawbreaker", name = "Jawbreaker", at = 1.00, candy = 120, color = Color3.fromRGB(180, 120, 240), material = Enum.Material.Neon },
+}
+
+MineConfig.CANDY_BY_ID = {}
+for _, o in ipairs(MineConfig.CANDY_ORES) do
+	MineConfig.CANDY_BY_ID[o.id] = o
+end
+
+function MineConfig.candyOreById(id)
+	return MineConfig.CANDY_BY_ID[tostring(id or "")]
+end
+
+--[[
+	Which candy ore sits at this depth.
+
+	A narrow window that slides down the mine, not a flat roll: the top of the
+	Crypt is Candy Corn and the bottom is Jawbreakers, with a couple of
+	neighbours either side so a layer is never one single rock. `span` is how
+	far either side still has a chance, in the same 0..1 units as `at`.
+]]
+function MineConfig.candyOreAt(layer, rng, maxLayer)
+	local list = MineConfig.CANDY_ORES
+	local top = math.max(1, tonumber(maxLayer) or (MineConfig.CANDY_DEPTH_LAYERS or 100))
+	local t = math.clamp((tonumber(layer) or 1) / top, 0, 1)
+	local span = 0.22
+	local w, tot = table.create(#list), 0
+	for i, o in ipairs(list) do
+		local d = math.abs(o.at - t)
+		local v = (d >= span) and 0 or (1 - d / span) ^ 2
+		w[i] = v
+		tot += v
+	end
+	if tot <= 0 then
+		-- Past the bottom of the table: the deepest candy, not nothing.
+		return list[#list]
+	end
+	local pick = ((rng and rng.NextNumber) and rng:NextNumber() or math.random()) * tot
+	for i, o in ipairs(list) do
+		pick -= w[i]
+		if pick <= 0 then
+			return o
+		end
+	end
+	return list[#list]
 end
 
 --[[

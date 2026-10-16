@@ -1,0 +1,51 @@
+{
+  "key": "crystal_hollow",
+  "bodies": [
+    { "id": "ch_geode", "label": "Geode", "role": "Prospector" },
+    { "id": "ch_quartzback", "label": "Quartzback", "role": "Bruiser" },
+    { "id": "ch_cubeling", "label": "Cubeling", "role": "Trader" },
+    { "id": "ch_desertrose", "label": "Desert Rose", "role": "Tidecaller" },
+    { "id": "ch_hexling", "label": "Hexling", "role": "Mystic" }
+  ],
+  "extraBodies": ["golem", "beetle"],
+  "buffs": ["gemFind", "oreLuck", "ricochet"],
+  "palette": [
+    ["Amethyst", 150, 90, 210], ["Rose", 240, 160, 190], ["Citrine", 246, 196, 70], ["Emerald", 40, 180, 100],
+    ["Sapphire", 40, 80, 200], ["Ruby", 210, 30, 70], ["Topaz", 240, 132, 48], ["Aquamarine", 110, 210, 220],
+    ["Jade", 120, 176, 120], ["Onyx", 36, 34, 40], ["Quartz", 228, 242, 255], ["Smoky", 120, 104, 96],
+    ["Malachite", 20, 130, 90], ["Tanzanite", 90, 80, 200], ["Pyrite", 200, 176, 96], ["Fluorite", 140, 230, 190],
+    ["Lapis", 30, 46, 130], ["Garnet", 140, 20, 40], ["Peridot", 170, 210, 60], ["Opal", 250, 214, 230],
+    ["Hematite", 70, 70, 84], ["Sunstone", 226, 96, 70], ["Selenite", 244, 238, 196], ["Turquoise", 64, 200, 190],
+    ["Kunzite", 222, 160, 230]
+  ],
+  "topWords": {
+    "Legendary": ["Polished", "Faceted", "Brilliant", "Gleaming"],
+    "Mythic": ["Crystalline", "Deepvein", "Motherlode", "Hollowheart"],
+    "Divine": ["Radiant", "Pristine", "Luminous", "Flawless"],
+    "Exotic": ["Prismatic", "Iridescent", "Opalescent", "Aurora"]
+  },
+  "names": [
+    "Amethyst", "Fluorite", "Selenite", "Malachite", "Azurite", "Peridot", "Emerald", "Ruby", "Sapphire", "Jade",
+    "Lapis", "Turquoise", "Rhodonite", "Sodalite", "Celestine", "Apatite", "Barite", "Kyanite", "Labradorite",
+    "Moonstone", "Larimar", "Chrysocolla", "Chalcedony", "Jadeite", "Olivine", "Rutile", "Scheelite", "Sphalerite",
+    "Stibnite", "Wulfenite", "Vanadinite", "Rhodochrosite", "Aragonite", "Ametrine", "Moldavite", "Prehnite",
+    "Tanzanite", "Kunzite", "Iolite", "Lepidolite", "Charoite", "Danburite", "Epidote", "Variscite", "Cuprite",
+    "Chrysoprase", "Aventurine", "Howlite", "Ulexite", "Spodumene", "Benitoite", "Bismuth", "Thulite", "Hiddenite",
+    "Scolecite", "Apophyllite", "Stilbite", "Natrolite", "Mookaite", "Septarian", "Amazonite", "Sugilite",
+    "Smoky Quartz", "Rose Quartz", "Tiger Eye", "Cat's Eye", "Fool's Gold", "Moss Agate", "Fire Opal", "Black Opal",
+    "Star Ruby", "Cave Pearl", "Dogtooth", "Geode", "Druse", "Flowstone", "Vein", "Facet", "Cleave", "Lustre",
+    "Shard", "Sliver", "Gemlet", "Gemkin", "Gemmy", "Geodling", "Quartzling", "Glisten", "Gleamstone", "Clarity",
+    "Lucent", "Crystabel", "Sparkstone", "Moonquartz", "Starquartz", "Hollowgem", "Cavelight", "Echo Cave",
+    "Glimmerling", "Facetta", "Cabochon", "Marquise", "Rosecut", "Gemcutter", "Rockhound", "Loupe", "Crystalpup",
+    "Gempup", "Geopup", "Rubyroo", "Opalina", "Amber", "Pearl", "Ammolite", "Spectrolite", "Cluster", "Gemstone",
+    "Jewel", "Bijou", "Ice Quartz", "Frostgem", "Emberstone", "Sunshard", "Moonshard", "Starshard", "Glowshard",
+    "Dawnstone", "Duskstone", "Rainbowite", "Hexie", "Cubie", "Prismpaw", "Gempaw", "Geodette", "Druzybug",
+    "Quartzkit", "Mica Mite", "Crystal Cove", "Glittercave", "Hollowpip", "Pebblegem", "Facetfox", "Gemhound",
+    "Rhombo", "Dodeca", "Dendrite", "Lattice", "Pegmatite", "Kimberlite", "Quartzite", "Geyserite", "Travertine",
+    "Agatelle", "Alexandrite", "Andalusite", "Axinite", "Bixbite", "Cordierite", "Diopside", "Grossular", "Hessonite",
+    "Lazulite", "Morion", "Painite", "Phenakite", "Rhodolite", "Sphene", "Tsavorite", "Zincite", "Rubellite",
+    "Indicolite", "Verdelite", "Prasiolite", "Chrysoberyl", "Demantoid", "Spessartite", "Almandine", "Pyrope",
+    "Sardonyx", "Petalite", "Silica", "Corundum", "Sparklet", "Glimmerstone", "Twinklegem", "Gemdrop", "Glowgeode",
+    "Citrina", "Cavecrystal"
+  ]
+}

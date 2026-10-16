@@ -47,18 +47,23 @@ local C = require(shared:WaitForChild("MineConfig"))
 local Tools = require(shared:WaitForChild("MineTools"))
 -- The trait prefix. Loaded here so every caller that names a tool
 -- gets the prefix for free rather than remembering to add it.
-local Traits = require(shared:WaitForChild("MineTraits"))
 
 -- What one of these is called. Singular, because it names one tool.
 MineOreTools.NOUN = {
 	pickaxe = "Pickaxe",
+	hammer = "Hammer",
 	drill = "Drill",
+	jackhammer = "Jackhammer",
 	explosive = "Explosive",
 	weapon = "Weapon",
 }
 
 -- The families a player can actually forge in, in rail order.
-MineOreTools.FAMILY_ORDER = { "pickaxe", "drill", "explosive" }
+-- Hammer sits next to the pickaxe: both are single-target melee, and a player
+-- choosing between "chip fast" and "hit hard" should see them side by side.
+-- Jackhammer sits next to the drill for the same reason: both clear area, and
+-- the choice between them is "aim anywhere" against "straight down, faster".
+MineOreTools.FAMILY_ORDER = { "pickaxe", "hammer", "drill", "jackhammer", "explosive" }
 
 function MineOreTools.familyNoun(familyId)
 	local id = tostring(familyId or "pickaxe")
@@ -155,10 +160,67 @@ end
 	with nothing going up. That is a 30% cut to forge costs nobody asked for.
 	Baking the real curve removes the dependency and changes no number at all.
 ]]
+--[[
+	PER-FAMILY DAMAGE, which the game had no way to express until now.
+
+	Owner, 2026-10-10: "Hammers most damage".
+
+	`C.toolPower(tier, level, typeMult)` has no family argument, and typeMult
+	is the only family-dependent input -- so with the pickaxe's rung spacing a
+	hammer came out at IDENTICAL damage per hit and HALF the swing rate, which
+	is not a damage class, it is a worse pickaxe. Measured before this: a
+	tier-41 pick and hammer both hit for 24,484, at 2.8/sec against 1.30.
+
+	Raising it through typeMult instead was the other option and it is the
+	wrong one: typeMult also drives craft COST, so a hammer would have become
+	expensive rather than hard-hitting, and the two knobs would be welded
+	together forever.
+
+	2.2 is chosen against the rate ratio, not picked for feel. A hammer swings
+	at about 0.46x a pickaxe, so 1/0.46 = 2.15 is DPS parity; 2.2 puts it a
+	couple of percent above, which is the right side of even for a tool that
+	is strictly less flexible -- you cannot tap a hammer at a thin seam.
+
+	What a player feels: the hammer hits more than twice as hard per blow and
+	ends up in the same place over a minute. That matters because block HP is
+	a threshold, not a pool -- a blow that overkills a block wastes the
+	excess, so the hammer is better on deep high-HP rock and worse on shallow
+	chip-work. That is a real choice rather than a bigger number.
+]]
+MineOreTools.FAMILY_POWER = {
+	pickaxe = 1,
+	hammer = 2.2,
+	drill = 1,
+	--[[
+		SAME DPS AS A DRILL, PAID FOR BY BEING FASTER.
+
+		Owner, 2026-10-10: a jackhammer goes faster than a drill but lands on
+		the same DPS, because it can only dig DOWN. FRAME_STATS gives it 1.5x
+		the drill's swing rate, so its per-hit power has to come down by the
+		same 1.5 or the extra speed would be free damage. 1 / 1.5 = 0.667.
+
+		Keep this and the rate multiplier in step: they exist to cancel.
+	]]
+	jackhammer = 1 / 1.5,
+	explosive = 1,
+}
+
+function MineOreTools.familyPower(familyId)
+	return MineOreTools.FAMILY_POWER[tostring(familyId or "pickaxe")] or 1
+end
+
 MineOreTools.TYPE_MULT_STEPS = {
 	pickaxe = { 6, 16, 27, 37, 48, 59, 69, 82 },
 	drill = { 9, 19, 30, 41, 52, 63, 73, 82 },
 	explosive = { 9, 19, 30, 41, 52, 63, 73, 82 },
+	-- Hammers sit on the pickaxe's rung spacing: both are single-target melee,
+	-- so a hammer and a pick of the same ore should cost the same to forge.
+	-- (The hammer's EXTRA ore cost is MineConfig.FAMILY_CRAFT_COST, which is
+	-- cost-only; typeMult here would move power too.)
+	hammer = { 6, 16, 27, 37, 48, 59, 69, 82 },
+	-- Jackhammers are drills that only point down, so they share the drill's
+	-- rungs exactly.
+	jackhammer = { 9, 19, 30, 41, 52, 63, 73, 82 },
 }
 
 --[[
@@ -201,6 +263,48 @@ MineOreTools.FRAME_STATS = {
 		pattern = { {82,false} },
 		cooldown = { {82,false} },
 	},
+	--[[
+		HAMMERS -- the hardest hit in the game, and the slowest.
+
+		Owner, 2026-10-10: "make another class (Hammers most damage; looks
+		like sledge hammers)".
+
+		Damage in this game is `toolPower x rate`, so "most damage" has to be
+		expressed as damage PER SWING, not as damage per second -- otherwise
+		it is just a better pickaxe and there is no reason to carry one. A
+		hammer swings at roughly HALF a pickaxe's rate (1.1 to 1.6 against
+		2.3 to 3.2), and MineOreTools.typeMult puts it a rung above the pick,
+		so each blow lands far harder while the sustained output stays in
+		family.
+
+		That is the trade a player should feel: a pick chips, a hammer
+		commits. It is single-target melee like the pick -- one cell, no
+		radius -- because a slow AOE would simply be the explosive.
+
+		The rate curve rises a little across the roster, like the pick's, so
+		a deep hammer is not literally unplayable to hold.
+	]]
+	hammer = {
+		rate = {
+			{6,1.1}, {16,1.15}, {27,1.2}, {37,1.25}, {48,1.3},
+			{59,1.4}, {69,1.5}, {82,1.6},
+		},
+		-- `cells` is what the SHOP quotes. A hammer touches two: the aimed
+		-- block and the one under it, so this and `sink` have to move together
+		-- or the shop is lying (MinePatterns' header says exactly that).
+		cells = { {82,2} },
+		radius = { {82,0} },
+		shape = { {82,"melee"} },
+		width = { {82,false} },
+		axis = { {82,false} },
+		turn = { {82,false} },
+		bombs = { {82,false} },
+		pattern = { {82,false} },
+		cooldown = { {82,false} },
+		-- Owner, 2026-10-10: hammers break 2 blocks down at a time. Depth only;
+		-- still single-target across, which is what keeps it a hammer.
+		sink = { {82,2} },
+	},
 	drill = {
 		rate = {
 			{3,2.6}, {14,4}, {19,3.5}, {30,4}, {57,2.5}, {63,3},
@@ -211,22 +315,68 @@ MineOreTools.FRAME_STATS = {
 			{82,9},
 		},
 		radius = { {82,0} },
-		shape = {
-			{14,"down"}, {19,"dir"}, {63,"down"}, {68,"dir"}, {79,"down"}, {82,"dir"},
-		},
+		--[[
+			NO MORE DOWN DRILLS. Owner, 2026-10-10: drills mine everywhere, and
+			digging straight down is the jackhammer's job now.
+
+			shape and axis both used to flip between down and dir/aim four times
+			across the roster, so whether your drill could aim depended on which
+			ore it was made of -- buy the next rung up and lose the ability. They
+			are now "dir"/"aim" the whole way, which is the "mine everywhere"
+			asked for and also removes that trap.
+		]]
+		shape = { {82,"dir"} },
 		width = {
 			{30,1}, {57,3}, {63,2}, {68,1}, {73,2}, {79,1},
 			{82,3},
 		},
-		axis = {
-			{14,"down"}, {19,"aim"}, {63,"down"}, {68,"aim"}, {79,"down"}, {82,"aim"},
-		},
+		axis = { {82,"aim"} },
 		turn = {
 			{3,1.4}, {82,1.2},
 		},
 		bombs = { {82,false} },
 		pattern = { {82,false} },
 		cooldown = { {82,false} },
+	},
+	--[[
+		THE JACKHAMMER. A drill that only points down, and is faster for it.
+
+		Owner, 2026-10-10: like a drill except AUTO, a 3 second wind, straight
+		down only, faster than a drill but the same DPS.
+
+		rate is the drill's x1.5 and FAMILY_POWER.jackhammer is 1/1.5, so the
+		two cancel and the DPS lands on the drill's. The speed buys you nothing
+		but feel -- what you actually trade for is the ability to aim.
+
+		`auto` and `windSec` are read by the swing path; they are not part of
+		the old frame contract, which is why they are named here rather than
+		left implied.
+	]]
+	jackhammer = {
+		rate = {
+			{3,3.9}, {14,6}, {19,5.25}, {30,6}, {57,3.75}, {63,4.5},
+			{68,5.25}, {73,4.5}, {79,6}, {82,3.3},
+		},
+		cells = {
+			{30,1}, {57,9}, {63,4}, {68,1}, {73,4}, {79,1},
+			{82,9},
+		},
+		radius = { {82,0} },
+		-- Down, always. This is the whole identity of the family.
+		shape = { {82,"down"} },
+		width = {
+			{30,1}, {57,3}, {63,2}, {68,1}, {73,2}, {79,1},
+			{82,3},
+		},
+		axis = { {82,"down"} },
+		turn = { {3,1.4}, {82,1.2} },
+		bombs = { {82,false} },
+		pattern = { {82,false} },
+		cooldown = { {82,false} },
+		-- Holds to dig rather than swinging per click.
+		auto = { {82,true} },
+		-- Three seconds to spin up before the first block gives.
+		windSec = { {82,3} },
 	},
 	explosive = {
 		rate = { {82,1} },
@@ -328,18 +478,19 @@ end
 	(Sharp Stone Pickaxe, Lucky Stone Drill)". Every caller that names a tool
 	goes through here, so there is nowhere for an unprefixed name to leak out.
 ]]
-function MineOreTools.name(oreDef, familyId, trait)
+-- `_trait` is ignored: tool traits (the prefix) were retired on 2026-10-12,
+-- when enchants took their field. Kept in the signature for old callers.
+function MineOreTools.name(oreDef, familyId, _trait)
 	local ore = (type(oreDef) == "table" and (oreDef.name or oreDef.id)) or "Unknown"
-	return Traits.decorate(tostring(ore) .. " " .. MineOreTools.familyNoun(familyId), trait)
+	return tostring(ore) .. " " .. MineOreTools.familyNoun(familyId)
 end
 
--- The same, from a forged row. The row carries its own trait, so a tool
--- cannot be named without it.
+-- The same, from a forged row.
 function MineOreTools.toolName(tool)
 	if type(tool) ~= "table" then
 		return "Unknown Tool"
 	end
-	return MineOreTools.name(MineOreTools.oreOf(tool), tool.familyId, tool.trait)
+	return MineOreTools.name(MineOreTools.oreOf(tool), tool.familyId)
 end
 
 return MineOreTools

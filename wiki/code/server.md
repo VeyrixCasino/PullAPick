@@ -2,13 +2,13 @@
 title: The server — MineServer.server.luau
 type: code
 status: current
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/START-HERE.md §4, §5
   - docs/HANDOFF.md §2.2, §2.3, §2.8
   - docs/TODO.md §0.14, §1
-related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-and-debug, trading, social-quests-and-leaderboards]
+related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-and-debug, trading, social-quests-and-leaderboards, traits]
 ---
 
 # The server — `MineServer.server.luau`
@@ -19,15 +19,11 @@ related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-a
 
 ## Size and shape
 
-- `src/ServerScriptService/Mine/MineServer.server.luau` is **17,714 lines** at
-  `bae3c5b` (17,050 at `26036a0`). Older docs give 16.7k (HANDOFF §2.2) or about 14,800 (TODO §1,
+- `src/ServerScriptService/Mine/MineServer.server.luau` is **17,050 lines** at
+  `26036a0`. Older docs give 16.7k (HANDOFF §2.2) or about 14,800 (TODO §1,
   `tools/agent/house-rules.txt`). Read only the part you need. Never rewrite it.
-- Luau gives it 200 local registers per function, and it was **out of them**: zero
-  left until `5d59714` folded seven services (`Players`, `RunService`,
-  `TeleportService`, `CollectionService`, `DataStoreService`,
-  `MarketplaceService`, `ReplicatedStorage`) into one `Svc` table, buying **5**
-  back (57 references rewritten). `tools/verify/compile.js` now measures the
-  headroom and fails below 4. See [luau-traps](luau-traps.md).
+- It has **197 top-level `local` lines**, against Luau's limit of 200 local
+  registers per function. See [luau-traps](luau-traps.md).
 - The order of the file, top to bottom:
   1. requires
   2. the `Dig` and `Const` tables
@@ -47,8 +43,10 @@ related: [code-map, client-and-ui, save-data-and-migrations, luau-traps, admin-a
 A new module or helper does **not** get a new top-level `local`. It goes on a
 table that already exists:
 
-- `local Dig = { Traits, Layers, Depth, Auth, Shop, Plazas, Breaking }` holds
-  requires. The comment there said the script "sits at 197 of Luau's 200" (stale; see above).
+- `local Dig = { Enchants, Layers, Depth, Auth, Shop, Plazas, Breaking, Trader,
+  TraderNPC, Launch }` holds requires. `Dig.Traits` sat first until tool traits
+  were retired on 2026-10-12 ([traits](../systems/traits.md)). Comments elsewhere
+  say the script "sits at 197 of Luau's 200".
 - 26 more `Dig.x` fields are added further down: `Dig.bankOrePacks`, `Dig.addOre`,
   `Dig.pouch`, `Dig.QUAKE`, `Dig.echoAt`, `Dig.procsAt`, `Dig.boostSources`, and others.
 - `local Const = { THROW_SPEED, … }` packs scalars into one register.
@@ -67,15 +65,17 @@ declaration-order trap (HANDOFF §2.3).
 - Every client request arrives as `net:FireServer(action, payload)` and is handled
   by **one** `net.OnServerEvent:Connect(function(plr, action, payload)`. That
   handler is one long `if action == "…" elseif …` **string compare**. At
-  `26036a0` it had **142 distinct action strings**; `bae3c5b` added `buyCharm`,
-  `buyTraderCase` and `launchSeason`, and the router has 145 `action ==` branches. There is no Remotes type system
+  `26036a0` it has **142 distinct action strings**. There is no Remotes type system
   (START-HERE §5).
 - Handler order:
   1. `swing` takes a fast path: no lock, `pcall(swingBlock, …)`.
   2. Every other action takes a per-player `busy[userId]` lock. A second request
      that arrives while one is running is **dropped**, not queued.
   3. `Verbs.policyBlocks` refuses paid-random actions (when the PolicyNoRandom
-     attribute is set) and refuses `discordLink`.
+     attribute is set) and refuses `discordLink`. The paid-random list is
+     `Verbs.PAID_RANDOM`. On 2026-10-12 it lost `buyScroll`, `rollRune`,
+     `fuseRune`, `buyCrate` and `buyPouch` (rune-era verbs, now deleted) and
+     gained `enchBuyBundle`, the Forge's gem book bundle.
   4. The branch runs inside a `pcall`. An error goes to `warn("[Mine] …")`.
 - 57 of the 141 branch lines call `Verbs.x` on the same line. The rest call
   file-local functions (`buy`, `equip`, `openAt`, `swingBlock`…), call
@@ -111,9 +111,6 @@ event names. The client handles them in a single `net.OnClientEvent` ladder.
 |---|---|---|---|
 | `seamGate` | the seam panel | `buySeam` | `Verbs.buySeam` |
 | `openElevator` | `elevCtl.open` | `rideElevator` | `Dig.Plazas.ride` |
-| `traderShop` (fired by the trader's `ProximityPrompt`) | `ClientFns.showTraderShop` | `buyTraderCase` | `Verbs.buyTraderCase` |
-| (none: **no client sends it**) | none | `buyCharm` | `Verbs.buyCharm` |
-| (none: **no client sends it**) | none | `launchSeason` | `Verbs.launchSeason` (admin-gated) |
 
 So a grep for one name finds only half the chain. HANDOFF §2.8 and OPEN P0 #1
 record that the seam purchase was wrongly declared "unwired" this way. **Grep the
@@ -128,7 +125,8 @@ gives for this chain have drifted, so search by name.
   - wallet: `p.coins`, `p.gems`, `p.dust`, `p.credits`
   - ore: `p.ores[id]`, `p.oreTools`, `p.orePouchTier`, `p.oreLocks`, `p.oresSeen`
   - depth: `p.deepest`, `p.seams`
-  - inventory: `p.packs`, `p.cards`, `p.charms`, `p.gear`, `p.runes`
+  - inventory: `p.packs`, `p.cards`, `p.charms`, `p.gear`, `p.enchantBooks`
+    (`p.runes` and `p.scrolls` were dropped on 2026-10-12)
   - progression: `p.prestige`, `p.skillPresets`
   - counters: `p.stats`, `p.quest`, `p.intro`
 - Full shape and migrations: [save-data-and-migrations](save-data-and-migrations.md).

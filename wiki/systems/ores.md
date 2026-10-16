@@ -2,8 +2,9 @@
 title: Ores
 type: system
 status: current
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-10 @ 6c08171
 sources:
+  - src/ReplicatedStorage/Mine/Shared/MineOreFace.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - docs/ore-yield-and-vein-balance.md
   - tools/verify/veins.js
@@ -101,26 +102,6 @@ related: [ore-pouch-and-backpack, tools, forge-and-recycling, skins-cases-and-te
   - **Size never moves a spawn rate.** `veinWeights` sets `q_i = share_i / mean_i`,
     so twice the size is half the frequency; measured density holds at 1 in ~208
     against `ORE_CHANCE`'s 1 in 200.
-  - **The mine is random per server** (`8d68717`; owner: *"every time i join 4 halite
-    on top of the line"*). `veinOreAt` is positional by design, but its only seed was a
-    hash of the zone's name, so every server produced byte-identical ore. A per-zone
-    layout salt that `resetMineZone` re-picks now reaches the ore field through
-    `MineConfig.setVeinSalt`, which also drops the remembered cell. `veins.js` asserts
-    two salts give two different mines and one salt gives the same one.
-  - **Cost per block.** A vein's cell is generated once and remembered (`veinCell`),
-    not recomputed per block (`39d94bf`, then reworked by the chunked rebuild `8b44418`).
-    The 10.5× → 3.28× figures in `39d94bf` describe the *old* design and were not
-    re-measured on the rebuilt one.
-  - **The first layers are mostly stone** (owner: *"first few layers should be
-    pridominantly stone"*, then *"Stone should be a little more common (1 per 3k at
-    top 4 layers of z1)"*). Tightening the spread globally stalls the forge ladder
-    (`ladder-climbable.js` failed at K 0.40 and below), so only the **top** narrows:
-    `ORE_K_TOP 0.040` ramps back to `ORE_K 0.45` over `ORE_K_RAMP 1.5` in difficulty
-    units (`MineConfig.oreSpreadK`, `41d8f3a`). By that commit's own measurement Stone
-    goes from 43% to 86% of surface ore, one vein per 3,011 blocks in layers 1–4,
-    tapering to one per 9,689 by layer 100, and **the cheapest craftable tool halves
-    (13.5k blocks → 6.5k)**. (My earlier K 0.228 / 0.353 / 0.434 figures from
-    `8d68717` were superseded and are gone.)
 - **An ore block** has dirt HP × `ORE_HP_MULT 3`, is stamped `OreId`/`OreName`/
   `OreTier`, and wears a name tag. Breaking it puts `oreYieldFor(tier)` (uniform
   lo..hi) **straight into the pouch** via `Dig.addOre` (no pack), pays coin haul
@@ -138,11 +119,7 @@ related: [ore-pouch-and-backpack, tools, forge-and-recycling, skins-cases-and-te
   client-side as an EditableImage — not an uploaded asset, so no group-ownership
   problem. Packed by `tools/pack-ore-art.js`, mapped by `tools/map-ores-to-tiles.js`.
   `MineOreIcons.BY_ID` holds 82 icons + 82 case images (164 uploaded assets,
-  `tools/gen-ore-icons.js`). `0da6360` (owner: *"only use the ores i just gave u,
-  and use the cases for the rare drops"*) replaced the flat vector icons with 82
-  rendered 3D ones, wired in as `icon`; `case` is untouched and is what rare
-  drops use. The sheet held 84 for 82, so the owner named the two spares. I did
-  not check where the UI reads these. Tool look:
+  `tools/gen-ore-icons.js`) and **nothing reads it yet**. Tool look:
   `ToolModelFactory.oreLook`, `src/ServerStorage/OreToolBaker.luau`.
 
 ## Where it lives
@@ -170,8 +147,49 @@ related: [ore-pouch-and-backpack, tools, forge-and-recycling, skins-cases-and-te
 ## State right now
 
 Shipped on `claude/vigilant-fermi-aucqjy`: 82 roster, veins, share floor, reach
-split, ore dropping straight into the pouch. **None of it has run in Roblox**
-(START-HERE §5).
+split, ore dropping straight into the pouch.
+
+### Every ore has its own health (2026-10-08, `b747891`)
+
+`ORE_HP_MULT` was a flat **3 for every ore in the game**, written out at its one
+call site rather than behind a function — so a Stone block and an Oganesson
+block at the same layer took the same number of swings, and the only thing that
+varied was the dirt curve underneath, which describes the LAYER.
+
+Now `oreHardness(ore) × dirtHp(zone, layer)`. The layer term is untouched, so no
+other block moved. The ore term is a MULTIPLIER, so an ore keeps its character
+at every depth instead of being trivial deep down and impossible early.
+
+Character comes from `met` and `rough` — already on every roster row and already
+driving the block's colour — so an ore that *feels* like metal is one:
+
+| character | multiplier |
+|---|---|
+| metal (`met ≥ 0.5`) | ×1.12 |
+| crystal (`rough ≤ 0.45`) | ×1.06 |
+| rock | ×0.94 |
+
+Measured: **82 distinct hardness values** where there was one, spanning
+**0.75 → 4.48**, 81 of 81 adjacent pairs differing, 30 metal / 40 crystal /
+12 rock. **Stone is 0.75×** — deliberately under 1, so the first ore a player
+swings at is softer than the dirt around it rather than three times harder
+(owner: *"make stone a little weaker"*). Pinned by `tools/verify/orehp.js`.
+
+### Ore faces are drawn per ore and hung as decals (2026-10-08, `7042cf0`)
+
+`MineOreFace` replaces the `MineOreArt` path for blocks. The old one looked the
+ore up in `ORE_FACE`, an index into **thirty** hand-packed tiles shared across
+82 ores, and hung six *tiling* `Texture`s per block — the tiling is what looked
+glitchy at block edges. Decals have no tiling properties at all.
+
+A face is a cluster of bevelled nodules covering 7–25% of the side, crowded
+centrally and clamped off the edge (a nodule that runs off lines up with the
+neighbouring block and reads as a seam). Four looks from the same `met`/`rough`
+the hardness uses: **20 metal, 24 crystal, 11 rock, 27 glow**.
+
+**Stone is a plain grey block.** `MineConfig.ORE_PLAIN` is one list both sides
+read: the server paints the block the ore's own colour and material instead of
+the darkened art host, and the client draws no face.
 
 ## Gotchas
 

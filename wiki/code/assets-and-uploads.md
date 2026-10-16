@@ -55,9 +55,69 @@ related: [tools-and-generators, rojo-and-studio, owner, charms, ores, open-quest
   target a group (`build/ore-sheet/ASSETS.md`). Confirm the creator after every
   upload.
 
+## Personal upload, then share (owner, 2026-10-10)
+
+The owner relaxed the group-only rule above for the pack art: *"you can upload
+it via personal account, and i just have to share access"*.
+
+- Studio MCP `upload_image` uploads as the signed-in user (iPressBars,
+  `465369561`). The owner then grants the asset to the experience or group in
+  the Creator Hub. Until that is done the image does **not** draw in the group
+  place.
+- Proven on `rbxassetid://121132243117622`: unshared it failed to load; after
+  sharing it loaded at full size (732x1024) through `AssetService`.
+- **Studio caches a failed load for the session.** After sharing, the same
+  `rbxassetid://N` kept failing in that Studio session, while `rbxassetid://0N`
+  (a leading zero, same asset) loaded. Retest with a fresh session or a
+  leading-zero id before concluding the share did not work.
+- The 84 pack sprites and icons are in `build/pack-art/ids.json`, written by
+  `tools/pack-sprites/write-ids.js`; `build/pack-art/share-list.txt` lists them
+  for sharing. **All 84 shared and loading in the group place** (2026-10-10,
+  `PreloadAsync` 84/84; spot-checked sizes 732x1024 and 512x512).
+- **In the game:** `tools/pack-sprites/gen-pack-art.js` turns `ids.json` into
+  `MinePackArt` (do not hand-edit). `MinePackFX.art` asks it for any
+  `<setKey>_pack_<n>` id, so every set pack wears its set's sprite, picked by
+  the pack's stars: up to 2 -> sprite 1, 2.5 to 3.5 -> 2, 4 and up -> 3.
+  It also holds the set icons and rarity icons (`setIcon`, `rarityIcon`).
+- **Pack case art** (`MinePackArt.caseArt`) reads the `cases` map in
+  `ids.json`: one image per set, keyed by the set's file name, plus `Wild`.
+  - With no image, a set case wears its set's medallion and a wild case wears
+    the gem of its star tier.
+  - **The 20 images were made 2026-10-10.** The owner chose a booster box,
+    lid open, packs peeking out. How they were made:
+    - Canva `generate-image`, then `remove-background`;
+    - laid out on two pages of a working copy of the cover sheet, then
+      exported as transparent PNGs;
+    - cut into 732×1024 by `tools/pack-sprites/slice-cases.ps1`, into
+      `art/case-art/{Set}Case.png`.
+  - The Canva media ids are in `build/case-art/canva-media.json`.
+  - The images were uploaded as the owner's account and listed in
+    `build/case-art/share-list.txt`. Unshared, they failed to load. **The
+    owner shared all 20 on 2026-10-10.** After that, `PreloadAsync` loaded
+    20/20 at 732×1024 (checked with leading-zero ids), and the boxes drew on
+    the bag tiles and the opening screen in a play test.
+- **Tool icons from Canva** (2026-10-11 and 12). They use the same pipeline,
+  with `tools/icons/slice-grid.ps1` cutting each 10 × 9 sheet into
+  512 × 512 icons in `art/tool-icons/<family>/NN_<ore>.png`. Prompts and
+  Canva state are in `build/hammer-icons/` and `build/tool-icons/`.
+  - **Uploaded:** 82 hammers, 74 jackhammers and 81 pickaxes (tiers 1–81), as
+    the owner's account. All are listed in `build/hammer-icons/share-list.txt`.
+  - **Wired behind `MineIcons.NEW_TOOL_ICONS_SHARED`,** which is false until the
+    owner shares them. An unshared image draws nothing, and a blank hotbar is
+    worse than the old art.
+  - **Not done:** jackhammers 75–82, drills and explosives. Canva's AI
+    allowance ran out. Its help says about 7 images per 30 minutes, plus a
+    monthly allowance, and generation failed for 19+ hours. Resume from each
+    folder's `state.json`.
+- The owner has seen personal assets in the group they never shared by hand.
+  Roblox appears to grant an experience use of an asset its owner uses there
+  from Studio; *unverified*, so still share explicitly and test.
+
 ## Icons are the owner's job
 
-The owner said so (START-HERE §6, BLOCKED #11). Do not generate icon art.
+The owner said so (START-HERE §6, BLOCKED #11). Do not generate icon art
+unless asked. On 2026-10-10 the owner did ask: pack sprites, set icons and
+rarity icons, made by `tools/pack-sprites/` (see the section above).
 
 - The 164 generated charm icons (`tools/icons/gen-charm-art.js`) are **superseded**.
   The owner wants ornate jewellery instead, from a reference they supplied

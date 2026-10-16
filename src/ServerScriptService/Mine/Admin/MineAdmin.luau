@@ -83,6 +83,9 @@ function MineAdmin.start(deps)
 	local givePickaxe = deps.givePickaxe
 	local giveBackpackModel = deps.giveBackpackModel
 	local equippedTool = deps.equippedTool
+	-- Optional: `/admin launch now` reports a clear error rather than failing
+	-- silently if MineServer ever stops passing it.
+	local launchSeason = deps.launchSeason
 
 	local mineFolder = RS:WaitForChild("Mine")
 	local remotes = mineFolder:FindFirstChild("Remotes") or Instance.new("Folder")
@@ -158,12 +161,14 @@ function MineAdmin.start(deps)
 		qty = clampInt(qty, 1, MAX_PACK_QTY)
 		local ids = setIds()
 		local rng = Random.new()
+		local Cases = require(RS.Mine.Shared.MineCases)
 		p.packs = p.packs or {}
 		for _ = 1, qty do
-			table.insert(p.packs, {
+			-- A pack case is its own kind of row; a set pack keeps its set.
+			table.insert(p.packs, Cases.bagRow(packId) or {
 				packId = packId,
 				packName = def.name or packId,
-				setId = (#ids > 0) and ids[rng:NextInteger(1, #ids)] or "dragons_dawn",
+				setId = def.setKey or ((#ids > 0) and ids[rng:NextInteger(1, #ids)] or "dragons_dawn"),
 			})
 		end
 		return true, qty
@@ -247,7 +252,7 @@ function MineAdmin.start(deps)
 			if equippedTool then
 				equippedTool(p)
 			end
-			if p.tools[fam] ~= nil or fam == "pickaxe" or fam == "drill" or fam == "explosive" then
+			if p.tools[fam] ~= nil or fam == "pickaxe" or fam == "hammer" or fam == "drill" or fam == "explosive" then
 				p.tools[fam] = tier
 				p.toolFamily = fam
 				p.toolEquipped = true
@@ -355,7 +360,7 @@ function MineAdmin.start(deps)
 			else
 				local fam = tostring(payload.namedToolFamily or "")
 				local tier = clampInt(payload.namedToolTier or payload.toolTier or 1, 1, 99)
-				if fam ~= "pickaxe" and fam ~= "drill" and fam ~= "explosive" then
+				if fam ~= "pickaxe" and fam ~= "hammer" and fam ~= "drill" and fam ~= "explosive" then
 					return { ok = false, err = "unknown_named_tool" }
 				end
 				p.tools = p.tools or { pickaxe = 1, drill = 0, explosive = 0 }
@@ -852,7 +857,66 @@ function MineAdmin.start(deps)
 			notifyAdmin(admin, "/admin give <userId|Username|me> credits|coins|gems|dust|skill|temper <n>")
 			notifyAdmin(admin, "/admin give <who> pack <packId> [qty] | zone <n> | tool <family> [tier]")
 			notifyAdmin(admin, "/admin alltools [start] [count]  |  /admin alltools all   -- named tools into YOUR bag")
+			-- No tool count here: it was "246" (3 families x 82 ores) and went
+			-- stale the day hammers shipped. The command reports what it forged.
+			notifyAdmin(admin, "/admin oretools [all|pickaxe|hammer|drill|explosive]  -- forge every ore tool in a family (bypasses the 200 cap)")
 			notifyAdmin(admin, "/admin say <message>[|seconds]  -- banner on every player's screen")
+			notifyAdmin(admin, "/admin launch status   -- is the season running, and how far in")
+			notifyAdmin(admin, "/admin launch now      -- THROW THE SWITCH. Starts the season. Not undoable.")
+			return true
+		end
+
+		--[[
+			THE LAUNCH SWITCH. Without this the game could never start.
+
+			MineLaunch pins seasonNow() to SEASON_START until launchedAt is set,
+			and Verbs.launchSeason is the only thing that sets it -- correctly
+			written, admin-gated, persisted. Nothing anywhere fired it. No
+			client file contains the string and MineAdminClient has no
+			FireServer calls at all, so the entire launch design was wired to
+			nothing at the one point that mattered: rotating offers frozen on
+			slot one forever, the battle pass never counting down, the Event
+			Horizon window never opening or closing, the teaser rolling over
+			for eternity.
+
+			It is a chat command rather than a button because it must be hard
+			to hit by accident. There is no unlaunch -- rewinding would re-lock
+			what players earned -- so `now` is required as a second word and
+			the bare `/admin launch` reports status instead of firing.
+		]]
+		if cmd == "launch" then
+			local okL, Launch = pcall(function()
+				return require(game:GetService("ReplicatedStorage")
+					:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineLaunch"))
+			end)
+			if not okL or not Launch then
+				notifyAdmin(admin, "MineLaunch failed to load -- cannot launch")
+				return true
+			end
+			local sub = string.lower(args[2] or "status")
+			if Launch.isLaunched() then
+				notifyAdmin(admin, string.format("Season is LIVE -- %.2f days in (launched at %d)",
+					Launch.elapsed() / 86400, Launch.launchedAt))
+				return true
+			end
+			if sub ~= "now" then
+				notifyAdmin(admin, "Season is NOT launched. Everything seasonal sits at second zero.")
+				notifyAdmin(admin, "Type  /admin launch now  to start it. This cannot be undone.")
+				return true
+			end
+			--[[
+				Through the deps table, not a remote. Verbs.launchSeason owns
+				the whole operation -- the admin re-check, the already-launched
+				guard, the datastore write BEFORE the announcement, and the
+				broadcast -- so this must call it rather than reimplement any
+				part of it. A second copy of "throw the switch" is how a game
+				gets launched twice with two different timestamps.
+			]]
+			if type(launchSeason) ~= "function" then
+				notifyAdmin(admin, "launchSeason was not passed to MineAdmin.start -- cannot launch")
+				return true
+			end
+			launchSeason(admin)
 			return true
 		end
 
@@ -971,6 +1035,95 @@ function MineAdmin.start(deps)
 			return true
 		end
 		
+		--[[
+			EVERY FORGED ORE TOOL, FOR TESTING. Owner, 2026-10-10: "GIVE ME
+			EVERY SINGLE TOOLS TO MY INVENTORY."
+
+			`alltools` above grants CHEST tools -- the named found ones. It
+			does not touch the 246 FORGED tools, which are the real roster:
+			82 ores x pickaxe / drill / explosive. Those only ever existed by
+			crafting one at a time out of ore.
+
+			`/admin oretools [family]` forges one of each. No family means all
+			three.
+
+			IT BYPASSES THE 200 RACK CAP, which normal crafting enforces at
+			MineServer's craft verb. 246 does not fit in 200, and the cap is
+			there to keep a real profile's save small -- an admin asking for
+			the whole roster has said what they want. The count is reported so
+			it is obvious what just landed.
+
+			Rows are built in the same shape the craft verb stamps --
+			uid / typeId / familyId / tier / level / base -- because
+			equippedTool, the Forge and recycle all read those fields by name.
+			`base` equals `level` so these grant tools refund NOTHING on
+			scrap, which is correct: no ore was spent on them.
+		]]
+		if cmd == "oretools" then
+			local p = profiles[admin.UserId]
+			if not p then
+				notifyAdmin(admin, "no profile loaded yet")
+				return true
+			end
+			local okO, OreTools = pcall(function()
+				return require(RS.Mine.Shared.MineOreTools)
+			end)
+			if not okO or not OreTools then
+				notifyAdmin(admin, "MineOreTools failed to load")
+				return true
+			end
+			local want = string.lower(tostring(args[2] or "all"))
+			--[[
+				Read from MineOreTools.FAMILY_ORDER rather than listing the
+				families here. This said { pickaxe, drill, explosive } and
+				silently skipped hammers the day they shipped -- "all tools"
+				that quietly means "all but one family" is the worst kind of
+				admin command. A fifth family now needs no edit here.
+			]]
+			local fams = (want == "all")
+					and (OreTools.FAMILY_ORDER or { "pickaxe", "drill", "explosive" })
+				or (want == "pickaxe" or want == "hammer" or want == "drill" or want == "explosive") and { want }
+				or nil
+			if not fams then
+				notifyAdmin(admin, "usage: /admin oretools [" .. table.concat(OreTools.FAMILY_ORDER or {}, "|") .. "|all]")
+				return true
+			end
+			p.oreTools = p.oreTools or {}
+			-- Do not duplicate what is already racked.
+			local have = {}
+			for _, t in ipairs(p.oreTools) do
+				if type(t) == "table" then
+					have[tostring(t.familyId) .. "#" .. tostring(t.tier)] = true
+				end
+			end
+			local added = 0
+			for _, fam in ipairs(fams) do
+				for _, ore in ipairs(C.ORES or {}) do
+					local key = fam .. "#" .. tostring(ore.tier)
+					if not have[key] then
+						have[key] = true
+						local def = OreTools.frameForTier and OreTools.frameForTier(fam, ore.tier)
+						table.insert(p.oreTools, {
+							uid = string.format("%08x%08x", math.random(0, 2 ^ 31 - 1), math.random(0, 2 ^ 31 - 1)),
+							typeId = (def and def.id) or (fam .. "_" .. tostring(ore.tier)),
+							familyId = fam,
+							tier = ore.tier,
+							level = 1,
+							base = 1,
+						})
+						added += 1
+					end
+				end
+			end
+			if markDirty then
+				markDirty(admin)
+			end
+			snap(admin)
+			notifyAdmin(admin, string.format("oretools: +%d forged. Rack now %d (normal cap is 200).",
+				added, #p.oreTools))
+			return true
+		end
+
 		if cmd == "alltools" then
 			local p = profiles[admin.UserId]
 			if not p then

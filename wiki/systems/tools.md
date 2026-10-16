@@ -1,8 +1,8 @@
 ---
 title: Tools
 type: system
-status: partial
-verified: 2026-10-08 @ bae3c5b
+status: current
+verified: 2026-10-12 @ 4e4fbb3
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
@@ -15,11 +15,12 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineToolGrades.luau
   - src/ReplicatedStorage/Mine/Shared/MineHotbar.luau
   - src/ReplicatedStorage/ToolModelFactory.luau
+  - src/ReplicatedStorage/ToolModelFactory.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/TODO.md §0.13
   - docs/TODO.md §0.15
   - docs/PR-BALANCE-PASS.md
-related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, traits, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads]
+related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper, enchants, traits, chests-and-lucky-blocks, shops-and-monetisation, assets-and-uploads]
 ---
 
 # Tools
@@ -37,8 +38,10 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 1. **Event Horizon tool** (zone `bigbang`): `MineHorizonTools`, one per dirt
    section, paid in space coins.
 2. **Forged ore tool**: `p.oreToolEquipped` (a uid) → a `p.oreTools` row
-   `{uid, typeId, familyId, tier, level, trait?}`. `tier` is the **ore's index**
-   in `MineConfig.ORES`. Rack cap 200.
+   `{uid, typeId, familyId, tier, level, enchants?}`. `tier` is the **ore's index**
+   in `MineConfig.ORES`. Rack cap 200. `enchants` holds the tool's Damage /
+   Utility / Special books ([enchants](enchants.md)). Rows carried a `trait`
+   until 2026-10-12; load clears it now ([traits](traits.md)).
 3. **Chest flagship / "forever tool"** (shop "Secrets" tab): `p.chestTool` in
    `MineTools.CHEST_TOOLS`, `MineBandTools` (80) or `MineTools.PASS_TOOLS` (3).
 4. **Zone shop tool**: `p.shopToolId`, `MineShopLadders` (19 per zone, 190).
@@ -50,33 +53,18 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
    desks and the legacy `buy "pickaxe"` action (`buyTool`, `buyDepthTool`). The
    roster is kept because `MineOreTools.frames()` filters it on `price > 0`: the
    prices are now a forge input, not a shelf price.
-   **Owner, 2026-10-06** (`312721b`, `bef7b0d`): *"delete all tools in the game
-   besides for chest tools (if they still even exist) and ore tools"*. The chest
-   flagships (`MineTools.CHEST_TOOLS`, about 52, never sold) stay, and so does the
-   given wooden starter (without it a new player spawns with no tool and needs
-   about 2,800 blocks to forge one). To make deletion safe, the forge no longer
-   reads the roster: `MineOreTools.typeMult(family, tier)` and
-   `MineOreTools.FRAME_STATS` / `frameStats` are baked step tables, compared
-   against the roster for all 2,460 values by `tools/verify/oreframes.js`
-   (0 mismatches). **`MineTools.TOOLS` is still in the tree**; I did not check
-   whether a later commit deletes it.
 6. `MineConfig.BARE_HANDS` if no pickaxe was ever collected.
 
 Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
 weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`.
 
-**Other ways a tool arrives (2026-10-07).** A **wandering trader's tool case** pays a
-forged-style tool of a tier inside the case's band, in a random family, at level 1 with
-`base = 1`, for temper tokens ([wandering-traders](wandering-traders.md)). It is not
-bought with coins, so the 2026-10-05 rule still holds.
-
 **Forged tools** ("a forged tool IS its ore", TODO §0.15). Name `{Ore} {Noun}`
-plus a trait prefix (`MineOreTools.name` → `MineTraits.decorate`). The frame is
+(`MineOreTools.name`). Until 2026-10-12 a trait prefix went in front, from the
+now-deleted `MineTraits.decorate`; `name` keeps an ignored `_trait` argument so
+old callers still work. The frame is
 never picked: `MineOreTools.frameForTier` maps ore tier 1..82 proportionally
-onto the family's priced rungs (24 / 16 / 16). `typeMult` is a baked step
-function of tier per family (`312721b`; pickaxe 1–6 = 1 … 70–82 = 8, drills and
-explosives 1–9 = 1 … 74–82 = 8), identical to the old frame lookup. A forged
-tool's name is the family noun (`bef7b0d`), no longer the frame's invented title. Craft, level and scrap at
+onto the family's priced rungs (24 / 16 / 16). `typeMult` = the frame's
+`RARITY_RANK` (stamped by `MineTools.rarityForTier`). Craft, level and scrap at
 the [Forge](forge-and-recycling.md).
 
 **Levels.** `MineConfig.TOOL_MAX_LEVEL = 30` (commit `d505d6c`, was 100; owner
@@ -86,8 +74,7 @@ wanted an advertisable *"each level UP%X"*). Rates come from `perLevel(total)`:
 own ore `TOOL_ORE_BASE 4 × TOOL_ORE_GROW^(L-1)` + stardust `25 ×
 TOOL_DUST_GROW^(L-1)`, both × `toolCostMult` (bell `TOOL_COST_BANDS`, Epic ×18
 peak, Exotic ×1 floor, × `typeMult^0.5`). A new forge inherits the best level on
-the rack (`12b528a`); the row stamps the level it was forged at (`base`), and
-scrapping refunds only the climb above it (`4cc82a5`). Over-cap saves are clamped on load (`TOOL_CAP_V`), no refund.
+the rack (`12b528a`). Over-cap saves are clamped on load (`TOOL_CAP_V`), no refund.
 
 **Damage.** `MineConfig.toolPower = TOOL_DMG_BASE 10 × toolTierPower(tier) ×
 typeMult × STEP^(L-1)`; `toolTierPower = 6^(TOOL_TIER_SPAN 7 × (t-1)/81) ×
@@ -151,8 +138,7 @@ equip; the coin ladder resets.
 
 | file | role | key symbols |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/MineOreTools.luau` | forged naming and frames | `name`, `frameForTier`, `oreOf`, `typeMult`, `FRAME_STATS`, `frameStats` |
-| `src/ReplicatedStorage/Mine/Shared/MineIcons.luau` | per-ore tool skins | `ORE_PICK`, `ORE_DRILL`, `ORE_BOMB`, `forTool` |
+| `src/ReplicatedStorage/Mine/Shared/MineOreTools.luau` | forged naming and frames | `name`, `frameForTier`, `oreOf`, `typeMult` |
 | `src/ReplicatedStorage/Mine/Shared/MineTools.luau` | coin ladder, flagships, pass tools | `TOOLS`, `CHEST_TOOLS`, `PASS_TOOLS`, `RARITY_RANK` |
 | `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | level and damage curve | `TOOL_MAX_LEVEL`, `toolPower`, `toolUpgradeCost`, `TOOL_BAND_DMG` |
 | `src/ReplicatedStorage/Mine/Shared/MineBreaking.luau` | breaking power gate | `toolBreakingPower`, `SHOP_POWER`, `canBreak` |
@@ -171,24 +157,102 @@ equip; the coin ladder resets.
   forged from ore. Backpacks, the Ore Pouch and chest Secrets stay. The wooden
   pickaxe is given, never sold, and the commit says it **still levels on coins**
   (`MineConfig.isCoinTool`), kept on purpose as the on-ramp to the Forge.
-- **Every forged tool wears its ore: 246 skins** (`97c42ac`; owner, 2026-10-05:
-  *"apply the skins to each tool"*, and on the sheets: *"1st is wooden, then its
-  in order, last one is admin drill, hand gernade and pickaxe"*). `MineIcons`
-  holds a table per family (`ORE_PICK` with the wooden `ORE_PICK_STARTER` first,
-  `ORE_DRILL`, `ORE_BOMB`) of 82 tiers each, and `MineIcons.forTool(tool)` picks
-  the table by family, falling back to the flat family icon so one family cannot
-  borrow another's art. The sheet order is the owner's and replaced an earlier
-  colour-matching guess (that script was deleted). The author counted 246
-  distinct images live. `tools/verify/oreskins.js` pins it.
+- **Every ore tier has its own pickaxe skin** (`MineIcons.ORE_PICK`, one asset id
+  per tier; `Icons.forTool(tool)` is the one rule the hotbar, Forge and inventory
+  share). `tools/verify/oreskins.js` asserts the ids are distinct.
+- **New icons from Canva, one per ore** (owner, 2026-10-11).
+  - **Hammers and jackhammers** got icons for the first time (`ORE_HAMMER`,
+    `ORE_JACKHAMMER`). The owner approved them, with Frostfire redone as fire
+    against ice.
+  - **Pickaxes 1–81 are redone** (`ORE_PICK_CANVA`). The owner: *"i like
+    PICKAXE 82, BUT REDO THE RESTs ... make sure the colors make sense"*. Tier
+    82 keeps the original.
+  - **Drill and explosive 1–81 and jackhammer 75–82 are blocked** on Canva's
+    AI allowance.
+  - All of it switches on with `MineIcons.NEW_TOOL_ICONS_SHARED` once the owner
+    shares the uploads ([assets-and-uploads](../code/assets-and-uploads.md)).
 - **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line
   12).
 
 ## State right now
 
-The forged-tool system is shipped and, per the commit messages, has been exercised
-in live Studio sessions (breaking power fixed in `b19c4c2`; skins wired and
-counted live in `97c42ac`). I have not run it. The coin tool roster is being
-wound down (below).
+The forged-tool system is shipped. As of 2026-10-10 all 246 tools build, are
+visually distinct, and none is invisible — measured against the live modules,
+not inferred.
+
+### What a tool actually looks like (2026-10-10)
+
+**Procedural Parts are the only thing that renders.** Every MeshPart archive in
+this place is EMPTY: `ToolKitMeshes` 102/102, `ToolModels_50` 2,058/2,088,
+`ToolModels_50_Unreferenced` 2,060/2,060, all with
+`MeshContent = Content{SourceType=None}`. They came from
+`AssetService:CreateMeshPartAsync`, whose geometry is session-only and does not
+survive a place save — see [editablemesh constraint](../code/tools-and-generators.md).
+`fromNamed` and `tryToolKitMesh` both refuse an empty mesh now (`71386b0`) and
+fall through to the part builders.
+
+**Fifteen silhouettes, five per family** (`6c08171`), chosen by the ore's place
+on the roster so the shape climbs the ladder:
+
+| family | styles |
+|---|---|
+| pickaxe | hook · adze · warpick · crescent · spire |
+| drill | auger · tri-bit · ring corer · percussive hammer · lance |
+| explosive | orb · keg · canister · cluster · faceted prism |
+
+Only the business end swaps; haft, grip and motor stay shared so a drill still
+reads as a drill. Measured: 16–17 ores per style in every family, 246 built,
+0 invisible.
+
+**Hammers and jackhammers, built to the icons** (2026-10-11). Owner: *"i need
+the hammers and jackhammers fully built in.. every tool, every ore, all color
+ways.. extremely hq"*. `buildHammer` and `buildJackhammer` were rebuilt to match
+the Canva icons (`art/tool-icons/`). Each is the same silhouette at every ore,
+made of the ore (`oreLook`), and checked in Studio: all 82 of each build with no
+errors, at 39–59 and 45–68 parts.
+- **Sledge:** swelled throat, ferrules, an 8-turn wound grip and a three-piece
+  pommel. The head has bevelled edges, face plates with bosses, bands, cheek
+  panels with a rune slot (a glowing decorative part, not a socket) and rivets,
+  a collar and a wedge.
+  - Stone-age ores (rock, not metal) are rope-lashed and chipped instead.
+  - From t 0.35 it gains langets, from 0.62 shards of its ore, from 0.85 crown
+    fins and a pommel gem.
+- **Jackhammer:** T-bar with ridged grips and caps, braces and a throttle; a
+  finned air cylinder, a slotted muffler, and an air coupling with a curved
+  hose. Below that a striker with bolts, a retainer latch, an octagonal shank
+  and a flat chisel. Plates from 0.35, shards and an energy ring from 0.62,
+  coils and a gem from 0.85.
+- The Handle part, `GRIPS` and `SCALE` are unchanged, so both sit in the hand
+  where they did.
+
+**Frostfire is split** (all five families). Owner: *"should feel like more of a
+fight between fire and ice ... MAKE SURE FROSTFIRE IS GOOD"*. `oreLook` gives
+Frostfire a `split`, and `applySplit` runs after every builder:
+- parts left of the tool's centre turn to Ice, right of it to bright orange
+  fire with Neon embers;
+- a part running across the centre (a hammer head, a crossbar) is cut in two,
+  with a white-hot seam between the halves;
+- what cannot be cut goes by height (ice low, fire high);
+- a flame particle rises off the fire side.
+
+**Skins have a look on hammers and jackhammers** (`ToolModelFactory.buildSkinned`,
+`SKIN_FORMS`, `SKIN_PALETTES`). The owner picked "Ore look + skins". Each of the
+9 skin sets has the form `docs/SKINS.md` gives it (Toybox mallet and pogo stick,
+Cursed gravedigger's maul and iron stake, and so on: 18 forms).
+- **Shared per set:** palette, material and trim.
+- **Per skin:** an accent from its id.
+- **Per grade:** trim from B, glow and a PointLight from S, sparkles at SSS.
+- **The ore still shows:** an inlay gem in the ore's colour.
+- `givePickaxe` builds the skin form when `p.skinEquipped[family]` is set.
+  `Verbs.equipSkin` re-gives the tool, so the look changes at once.
+- All 18 build at 15–38 parts. They are a solid first pass, simpler than the
+  ore tools.
+- Pickaxe, drill and explosive skins still have no look.
+
+**The colour and material come from the ore** (`0b041f8`), via
+`ToolModelFactory.oreLook` reading `color / material / met / rough / glow`
+straight off the `MineConfig.ORES` row — the same row that colours the ore
+block, so a Copper pick matches the copper you mined.
 
 ## Gotchas
 
@@ -208,15 +272,18 @@ wound down (below).
   purpose). `_upgradeCoinTool` and the graduation step run only for a
   `p.oreTools` row with `typeId wood_pick`, and nothing on this branch creates
   one. The starter is coin rung 1 instead.
-- **The family skin skips forged tools.** `equippedTool` returns rung `0` for a
-  forged tool, so the family temperament never applies while you hold one
-  ([skins](skins-cases-and-temper.md)).
+- ~~**The family skin skips forged tools.**~~ **FIXED 2026-10-08 (`b0c2430`).**
+  The gate tested `tier > 0` to exclude found objects, but `equippedTool`
+  returns `0` on THREE paths — the two found-tool paths *and* the forged one,
+  deliberately, because a forged tool's rung is its ore's tier. So skins did
+  nothing on every tool past hour one while the Forge reported them as fitted.
+  Now tested positively on `oreTier`, which only a forged row carries.
 - **"tier" means three things.** On a forged row it is the ore index. On a coin
   row it is the rung. On the Tool instance, the attribute `Tier` is
   `lookTier`, which is cosmetic.
 - **"grade" is not a tool grade.** `MineToolGrades` is the F→SSS Clash-Royale
-  climb (`UPGRADE_P 1/3`, `MISS_LIMIT 3`); its one live server caller is the
-  lucky-block grade-up (gear now rolls letters from the temper weights, per its
+  climb (`UPGRADE_P 1/3`, `MISS_LIMIT 3`); its one live server caller is
+  opening a lucky block (gear now rolls letters from the temper weights, per its
   header). Forged tools have no grade.
 - **Raising the cap above 100 fails silently.** MineServer and OreBalanceSim
   read `math.min(100, TOOL_MAX_LEVEL)`.

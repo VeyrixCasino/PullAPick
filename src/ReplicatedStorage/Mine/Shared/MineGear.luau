@@ -1,5 +1,6 @@
--- MineGear: 8-tier gear pieces, set identities, predetermined stats, permanent sockets.
-local MineRunes = require(script.Parent:WaitForChild("MineRunes"))
+-- MineGear: 8-tier gear pieces, set identities, predetermined stats.
+-- (Gear sockets held runes; runes were retired on 2026-10-12, and a piece's
+-- `sockets` stays an empty table on old saves.)
 local ToolGrades = require(script.Parent:WaitForChild("MineToolGrades"))
 
 local MineGear = {}
@@ -19,13 +20,11 @@ MineGear.RARITIES = { "F", "D", "C", "B", "A", "S", "SS", "SSS" }
 --
 -- Both are real Roblox catalog items (MineHats), graded F..SSS off their RAP.
 --
--- ONE rune socket per piece, never more. Three pets + three hats + your face +
--- your tool is eight runes in the entire game, which is exactly why a rune is
--- allowed to be worth something (see MineRunes.SOCKET_GAIN).
+-- Pieces had one rune socket each until runes were retired (2026-10-12).
 --
 -- Old saves lose nothing: every retired slot folds into "hat" and is re-priced
 -- off the live sheet, so a Bedrock Plate becomes a Bedrock hat of the same
--- grade, sockets and all.
+-- grade.
 --------------------------------------------------------------------------------
 MineGear.SLOTS = { "hat", "face" }
 MineGear.SLOT_LABEL = { hat = "Hat", face = "Face" }
@@ -158,12 +157,20 @@ end
 MineGear.SETS = {
 	{ id = "inferno", name = "Inferno", stat = "blastRadius", fantasy = "Fire / blast" },
 	{ id = "glacier", name = "Glacier", stat = "swingRate", fantasy = "Frost tempo" },
-	{ id = "tide", name = "Tide", stat = "backpack", fantasy = "Water haul" },
-	{ id = "canopy", name = "Canopy", stat = "blastChance", fantasy = "Grass harvest" },
+	--[[
+		THE PROCS ON HATS (owner, 2026-10-10: "add all these new ones to hats").
+		A proc set carries its proc's CHANCE as the set stat and its own proc
+		DAMAGE as `stat2`, which rides on every piece of the set (boostLines).
+		Tide paid Backpack, which has paid nothing since 2026-10-04, and Prism
+		moves from Rare Ore to Shatter; `was` re-themes pieces already owned.
+		This supersedes PROPOSAL #29 for tide (-> reach) and prism (-> oreLuck).
+	]]
+	{ id = "tide", name = "Tide", stat = "tidalWave", stat2 = "tideDamage", was = "backpack", fantasy = "Water wave" },
+	{ id = "canopy", name = "Canopy", stat = "blastChance", stat2 = "blastDamage", fantasy = "Grass harvest" },
 	{ id = "bedrock", name = "Bedrock", stat = "dirtBreak", fantasy = "Ground excavate" },
 	{ id = "foundry", name = "Foundry", stat = "coinBonus", fantasy = "Metal refine" },
-	{ id = "storm", name = "Storm", stat = "zap", fantasy = "Electric chain zap" },
-	{ id = "prism", name = "Prism", stat = "rareOre", fantasy = "Crystal prospect" },
+	{ id = "storm", name = "Storm", stat = "zap", stat2 = "zapDamage", fantasy = "Electric chain zap" },
+	{ id = "prism", name = "Prism", stat = "ricochet", stat2 = "shatterDamage", was = "rareOre", fantasy = "Crystal shatter" },
 	{ id = "umbra", name = "Umbra", stat = "luck", fantasy = "Shadow fortune" },
 	--[[
 		ECHO IS BARRED AS A BUFF (TODO 6.2). Void rolled it, which made the one
@@ -204,6 +211,11 @@ MineGear.STAT_WEIGHT = {
 	autoMine = 0.25,
 	earthquake = 0.30,
 	ricochet = 0.28,
+	tidalWave = 0.40,
+	blastDamage = 0.20,
+	tideDamage = 0.20,
+	zapDamage = 0.20,
+	shatterDamage = 0.20,
 	-- Proc DAMAGE. Above any one proc chance because it multiplies all four,
 	-- below Blast because it is worth nothing without a chance to scale.
 	procPower = 0.38,
@@ -471,12 +483,9 @@ function MineGear.piecePct(setId, slot, rarity)
 	if cell.pct then
 		return round4(cell.pct)
 	end
-	-- Legacy rows (none ship any more) kept the old half-a-rune shape.
-	local set = MineGear.SETS_BY_ID[setId]
-	if not set then
-		return 0
-	end
-	return round4(MineRunes.initialMaxFraction(set.stat) / 2 * (1 + (cell.mult or 0)))
+	-- Legacy rows (none ship any more) were priced as half a rune; runes are
+	-- gone, so a row without its own pct pays nothing.
+	return 0
 end
 
 --[[
@@ -490,25 +499,71 @@ end
 	Hat/face lines on a piece. Merged pieces may carry several; rolled pieces
 	always have exactly one (set stat + sheet pct).
 ]]
+--[[
+	PROC LINES ARE PRICED (owner, 2026-10-10: proc odds "lowish" -- "dont cap
+	any.. just try to make sure it doesnt happen, and if it does just make sure
+	they pay for it").
+
+	The sheet's pct is a % of the set stat, the same at every grade for every
+	set: an SSS hat is +350% of whatever it carries. For Mine Speed that is a
+	big multiplier; for a proc CHANCE it was +350% Blast or Zap, which is every
+	swing. So a proc chance or proc damage line is divided by its MineStats
+	weight (points per +1%), the same price pets pay: an SSS Tide hat is +35%
+	Tidal Wave, not +350%. Applied when the line is READ, so hats already owned
+	are repriced too.
+]]
+MineGear.PRICED_BY_WEIGHT = {
+	blastChance = true, tidalWave = true, zap = true, ricochet = true, earthquake = true,
+	blastDamage = true, tideDamage = true, zapDamage = true, shatterDamage = true,
+}
+-- A proc set's damage line, as a share of its chance line's sheet pct.
+MineGear.STAT2_SHARE = 0.5
+
+function MineGear.pricedPct(stat, pct)
+	pct = tonumber(pct) or 0
+	if MineGear.PRICED_BY_WEIGHT[stat] then
+		local def = Stats.STATS and Stats.STATS[stat]
+		local w = def and tonumber(def.weight) or 1
+		if w > 0 then
+			return round4(pct / w)
+		end
+	end
+	return pct
+end
+
 function MineGear.boostLines(piece)
 	if type(piece) ~= "table" then
 		return {}
 	end
+	local raw = {}
 	if type(piece.stats) == "table" and #piece.stats > 0 then
-		local out = {}
 		for _, row in ipairs(piece.stats) do
 			if type(row) == "table" and row.stat and tonumber(row.pct) then
-				table.insert(out, { stat = row.stat, pct = tonumber(row.pct) or 0 })
+				table.insert(raw, { stat = row.stat, pct = tonumber(row.pct) or 0 })
 			end
 		end
-		if #out > 0 then
-			return out
+	end
+	if #raw == 0 and piece.stat then
+		raw = { { stat = piece.stat, pct = tonumber(piece.pct) or 0 } }
+	end
+	local set = piece.setId and MineGear.SETS_BY_ID[piece.setId]
+	local out, setLine = {}, nil
+	for _, line in ipairs(raw) do
+		local stat = line.stat
+		-- A re-themed set: the old set stat follows the set (Tide's Backpack).
+		if set and set.was and stat == set.was then
+			stat = set.stat
+		end
+		table.insert(out, { stat = stat, pct = MineGear.pricedPct(stat, line.pct) })
+		if set and stat == set.stat and not setLine then
+			setLine = line
 		end
 	end
-	if piece.stat then
-		return { { stat = piece.stat, pct = tonumber(piece.pct) or 0 } }
+	-- A proc set's damage rides with its chance on every piece of the set.
+	if set and set.stat2 and setLine then
+		table.insert(out, { stat = set.stat2, pct = MineGear.pricedPct(set.stat2, setLine.pct * MineGear.STAT2_SHARE) })
 	end
-	return {}
+	return out
 end
 
 function MineGear.pctOnStat(piece, stat)
@@ -569,18 +624,14 @@ end
 	ever explained it, and it is why gear ended up the single largest multiplier
 	in the game at +1225%.
 
-	Now: a pet contributes its own delta, scaled by its own rune, and that is
-	all. Gear is counted ONCE, by flatBoost below, and both land in layer 2 --
+	Now: a pet contributes its own delta, and that is all. Gear is counted ONCE, by flatBoost below, and both land in layer 2 --
 	see MineBoostLayers for what that means.
 ]]
 function MineGear.stackPets(pets)
 	local total = {}
 	for _, row in ipairs(pets or {}) do
-		-- A pet's own rune still rides its own delta. That is a property of the
-		-- pet, not of your hat, and it was never the part that was broken.
-		local runeAll = MineRunes.wearBroad(row.rune)
 		for stat, amount in pairs(row.delta or {}) do
-			local n = (tonumber(amount) or 0) * (1 + runeAll)
+			local n = tonumber(amount) or 0
 			if n ~= 0 then
 				total[stat] = (total[stat] or 0) + n
 			end
@@ -822,29 +873,6 @@ function MineGear.setCompletionScore(equipped)
 	return bestId, best, scores
 end
 
---[[
-	The pieces YOU wear, which means their runes -- a rune's own stat has always
-	landed on you and still does. What is deliberately NOT here any more is the
-	piece percentage: a hat multiplies every pet and a face multiplies
-	the team, and both of those happen in stackPets. Pouring them in here as
-	flat stats is what made gear invisible.
-
-	`ipairs` was also wrong: a piece whose first socket is empty holds its runes
-	at index 2 and up, and ipairs stops at the hole.
-]]
-function MineGear.applyEquipped(b, equipped, runeById)
-	for _, piece in pairs(equipped or {}) do
-		if piece then
-			for _, runeId in pairs(piece.sockets or {}) do
-				local rune = runeById and runeById[runeId]
-				if rune then
-					MineRunes.applyRune(b, rune, MineRunes.SOCKET_GAIN)
-				end
-			end
-		end
-	end
-end
-
 function MineGear.audit()
 	local rows, fails = {}, 0
 	for _, set in ipairs(MineGear.SETS) do
@@ -950,8 +978,8 @@ end
 	panel and the server agree on exactly which pairs are offerable instead of
 	each deciding for itself.
 
-	Two pieces fuse when they are the same set, the same slot and the same grade,
-	neither is in use, and neither has a rune in it. `worn` is a set of gear ids
+	Pieces fuse when they match (three of the same hat, two of the same face),
+	are the same grade, none is in use, and none has a rune in it (canFuse). `worn` is a set of gear ids
 	that are spoken for -- anything in one of your three hat seats or your face.
 	Refusing socketed pieces is
 	deliberate: a fuse consumes one of the two, and quietly eating a socketed
@@ -973,37 +1001,83 @@ function MineGear.isSocketed(piece)
 	return false
 end
 
-function MineGear.canUpgrade(a, b, worn)
-	if type(a) ~= "table" or type(b) ~= "table" then
-		return false, "Pick two pieces"
+--[[
+	HATS FUSE THREE OF A KIND (owner, 2026-10-10: "make sure only 3 ... of the
+	SAME HAT can merge for a ... tier up (up to a)"). The owner chose: the same
+	hat at the same grade, exactly one grade up, capped at FUSE_CAP (A), and it
+	is the ONLY way hats combine -- the old two-hat multi-stat merge is retired.
+	"The same hat" is its catalog hat (else its set): three C Dominus Astras.
+	Faces keep the pair fuse. A multi-stat hat from the retired merge keeps its
+	stats but cannot fuse: it is not the same hat as anything.
+]]
+MineGear.FUSE_NEED = { hat = 3, face = 2 }
+
+function MineGear.fuseNeed(slot)
+	return MineGear.FUSE_NEED[MineGear.migrateSlot(slot)] or 2
+end
+
+-- What makes two pieces "the same" for fusing.
+function MineGear.fuseIdentity(piece)
+	if MineGear.migrateSlot(piece.slot) == "hat" then
+		return tostring(piece.catalogId or piece.hatId or piece.itemName or piece.setId)
+			.. "|" .. tostring(piece.setId)
 	end
-	if a.id == b.id then
-		return false, "Pick two different pieces"
+	return tostring(piece.setId)
+end
+
+function MineGear.canFuse(pieces, worn)
+	if type(pieces) ~= "table" or type(pieces[1]) ~= "table" then
+		return false, "Pick the pieces to fuse"
 	end
-	local slotA, slotB = MineGear.migrateSlot(a.slot), MineGear.migrateSlot(b.slot)
-	if a.setId ~= b.setId or slotA ~= slotB then
-		return false, "Both pieces must be the same set and slot"
+	local first = pieces[1]
+	local slot = MineGear.migrateSlot(first.slot)
+	local need = MineGear.fuseNeed(slot)
+	if #pieces ~= need then
+		return false, (slot == "hat") and "Fusing takes three of the same hat" or ("Fusing takes " .. need .. " matching pieces")
 	end
-	local gradeA, gradeB = MineGear.migrateRarity(a.rarity), MineGear.migrateRarity(b.rarity)
-	if gradeA ~= gradeB then
-		return false, "Both pieces must be the same grade"
-	end
-	if not ToolGrades.nextGrade(gradeA) then
-		return false, tostring(ToolGrades.FUSE_CAP) .. " is as far as fusing goes"
-	end
+	local grade = MineGear.migrateRarity(first.rarity)
+	local ident = MineGear.fuseIdentity(first)
+	local seen = {}
 	worn = worn or {}
-	if worn[a.id] or worn[b.id] then
-		return false, "Take it off first"
+	for _, g in ipairs(pieces) do
+		if type(g) ~= "table" or seen[g.id] then
+			return false, "Pick different pieces"
+		end
+		seen[g.id] = true
+		if MineGear.migrateSlot(g.slot) ~= slot then
+			return false, "All pieces must be the same slot"
+		end
+		if slot == "hat" and g.merged then
+			return false, "A merged hat cannot fuse"
+		end
+		if MineGear.fuseIdentity(g) ~= ident then
+			return false, (slot == "hat") and "All three must be the same hat" or "Both pieces must be the same set"
+		end
+		if MineGear.migrateRarity(g.rarity) ~= grade then
+			return false, "All pieces must be the same grade"
+		end
+		if worn[g.id] then
+			return false, "Take it off first"
+		end
+		if MineGear.isSocketed(g) then
+			return false, "Unsocket the rune first"
+		end
 	end
-	if MineGear.isSocketed(a) or MineGear.isSocketed(b) then
-		return false, "Unsocket the rune first"
+	if not ToolGrades.nextGrade(grade) then
+		return false, tostring(ToolGrades.FUSE_CAP) .. " is as far as fusing goes"
 	end
 	return true
 end
 
--- Every pair a player could fuse right now, newest grade last so the panel can
--- show the cheapest win first. Pieces are paired off two at a time inside each
--- set/slot/grade bucket, so six matching C pieces offer three upgrades.
+-- Two-piece form, kept for any caller that still names a pair. A hat pair is
+-- refused (hats take three).
+function MineGear.canUpgrade(a, b, worn)
+	return MineGear.canFuse({ a, b }, worn)
+end
+
+-- Every group a player could fuse right now, lowest grade first so the panel
+-- shows the cheapest win first. Each row is { pieces, a, b, setId, slot, from,
+-- to, need }; nine matching C hats offer three fuses, six matching faces three.
 function MineGear.upgradePairs(list, worn)
 	worn = worn or {}
 	local groups, order = {}, {}
@@ -1011,8 +1085,9 @@ function MineGear.upgradePairs(list, worn)
 		if type(g) == "table" then
 			local slot = MineGear.migrateSlot(g.slot)
 			local grade = MineGear.migrateRarity(g.rarity)
-			if ToolGrades.nextGrade(grade) and not worn[g.id] and not MineGear.isSocketed(g) then
-				local key = tostring(g.setId) .. "|" .. tostring(slot) .. "|" .. tostring(grade)
+			if ToolGrades.nextGrade(grade) and not worn[g.id] and not MineGear.isSocketed(g)
+				and not (slot == "hat" and g.merged) then
+				local key = MineGear.fuseIdentity(g) .. "|" .. tostring(slot) .. "|" .. tostring(grade)
 				if not groups[key] then
 					groups[key] = {}
 					order[#order + 1] = key
@@ -1024,14 +1099,18 @@ function MineGear.upgradePairs(list, worn)
 	local out = {}
 	for _, key in ipairs(order) do
 		local bucket = groups[key]
-		for i = 1, #bucket - 1, 2 do
-			local first = bucket[i]
-			local grade = MineGear.migrateRarity(first.rarity)
+		local slot = MineGear.migrateSlot(bucket[1].slot)
+		local need = MineGear.fuseNeed(slot)
+		for i = 1, #bucket - need + 1, need do
+			local pieces = table.move(bucket, i, i + need - 1, 1, {})
+			local grade = MineGear.migrateRarity(pieces[1].rarity)
 			table.insert(out, {
-				a = first,
-				b = bucket[i + 1],
-				setId = first.setId,
-				slot = MineGear.migrateSlot(first.slot),
+				pieces = pieces,
+				a = pieces[1],
+				b = pieces[2],
+				setId = pieces[1].setId,
+				slot = slot,
+				need = need,
 				from = grade,
 				to = ToolGrades.nextGrade(grade),
 			})
@@ -1066,66 +1145,6 @@ function MineGear.upgradedFrom(piece, newId)
 	end
 	out.name = MineGear.shopName(out)
 	return out
-end
-
---[[
-	Merge two hat pieces into one multi-stat hat. Face pieces cannot merge.
-	Only path to multi-stat hats. Same-stat lines sum; rarity keeps the higher.
-]]
-function MineGear.mergeHats(a, b, newId)
-	local function hatish(g)
-		if MineGear.isFacePiece(g) then
-			return false
-		end
-		return MineGear.isHatPiece(g) or MineGear.migrateSlot(g and g.slot) == "hat"
-	end
-	if not (hatish(a) and hatish(b)) then
-		return nil, "Only hats merge"
-	end
-	local order = { "F", "D", "C", "B", "A", "S", "SS", "SSS" }
-	local function rank(r)
-		return table.find(order, MineGear.migrateRarity(r)) or 1
-	end
-	local primary = rank(a.rarity) >= rank(b.rarity) and a or b
-	local secondary = primary == a and b or a
-	local stats = {}
-	local function addLines(piece)
-		for _, line in ipairs(MineGear.boostLines(piece)) do
-			local found
-			for _, row in ipairs(stats) do
-				if row.stat == line.stat then
-					row.pct += line.pct
-					found = true
-					break
-				end
-			end
-			if not found then
-				table.insert(stats, { stat = line.stat, pct = line.pct })
-			end
-		end
-	end
-	addLines(a)
-	addLines(b)
-	if #stats == 0 then
-		return nil, "Nothing to merge"
-	end
-	return {
-		id = newId or primary.id,
-		setId = primary.setId,
-		setName = primary.setName,
-		stat = stats[1].stat,
-		pct = stats[1].pct,
-		stats = stats,
-		slot = "hat",
-		rarity = MineGear.migrateRarity(primary.rarity),
-		mult = primary.mult or 0,
-		slotCount = math.max(tonumber(primary.slotCount) or 1, tonumber(secondary.slotCount) or 1),
-		sockets = {},
-		hatId = primary.hatId or secondary.hatId,
-		catalogId = primary.catalogId or secondary.catalogId,
-		name = primary.name or secondary.name,
-		merged = true,
-	}
 end
 
 return MineGear

@@ -1,0 +1,455 @@
+{
+  "key": "halloween_2026",
+  "name": "Halloween 2026",
+  "holiday": "halloween",
+  "packId": "halloween_2026",
+  "packName": "Halloween 2026 Pack",
+  "note": "Owner, 2026-10-10: 60 Halloween pets; the 15 Halloween bodies are the rare ones, the other 45 are everyday pets in a simple costume. Costumes Common 20 / Uncommon 15 / Rare 10; specials Epic 6 / Legendary 4 / Mythic 2 / Divine 2 / Exotic 1. Event Horizon power. Names ship now, owner reviews after.",
+  "zoneLevel": 11,
+  "legacy": [
+    "Spindle",
+    "Spooky",
+    "Wisp"
+  ],
+  "buffs": [
+    "luck",
+    "luckyFind",
+    "ricochet"
+  ],
+  "costumeCounts": {
+    "Common": 20,
+    "Uncommon": 15,
+    "Rare": 10
+  },
+  "specials": [
+    {
+      "body": "reaper",
+      "tier": "Exotic",
+      "role": "Mystic"
+    },
+    {
+      "body": "vampire",
+      "tier": "Divine",
+      "role": "Striker"
+    },
+    {
+      "body": "frankenstein",
+      "tier": "Divine",
+      "role": "Bruiser"
+    },
+    {
+      "body": "mummy",
+      "tier": "Mythic",
+      "role": "Bruiser"
+    },
+    {
+      "body": "skelehound",
+      "tier": "Mythic",
+      "role": "Striker"
+    },
+    {
+      "body": "zombie",
+      "tier": "Legendary",
+      "role": "Bruiser"
+    },
+    {
+      "body": "scarecrow",
+      "tier": "Legendary",
+      "role": "Seeker"
+    },
+    {
+      "body": "cauldron",
+      "tier": "Legendary",
+      "role": "Mystic"
+    },
+    {
+      "body": "lantern",
+      "tier": "Legendary",
+      "role": "Prospector"
+    },
+    {
+      "body": "bat",
+      "tier": "Epic",
+      "role": "Striker"
+    },
+    {
+      "body": "candycorn",
+      "tier": "Epic",
+      "role": "Trader"
+    },
+    {
+      "body": "eyeball",
+      "tier": "Epic",
+      "role": "Seeker"
+    },
+    {
+      "body": "pumpkin",
+      "tier": "Epic",
+      "role": "Bruiser"
+    },
+    {
+      "body": "ghost",
+      "tier": "Epic",
+      "role": "Mystic"
+    },
+    {
+      "body": "spider",
+      "tier": "Epic",
+      "role": "Digger"
+    }
+  ],
+  "costumeBodies": [
+    "cat",
+    "hound",
+    "bunny",
+    "bear",
+    "fox",
+    "pig",
+    "owl",
+    "toad",
+    "sheep"
+  ],
+  "costumes": [
+    {
+      "id": "cos_witch",
+      "label": "Witch"
+    },
+    {
+      "id": "cos_pumpkin",
+      "label": "Pumpkin"
+    },
+    {
+      "id": "cos_ghost",
+      "label": "Sheet Ghost"
+    },
+    {
+      "id": "cos_devil",
+      "label": "Devil"
+    },
+    {
+      "id": "cos_vampire",
+      "label": "Caped"
+    },
+    {
+      "id": "cos_batwings",
+      "label": "Batwing"
+    },
+    {
+      "id": "cos_skeleton",
+      "label": "Skeleton"
+    },
+    {
+      "id": "cos_mummy",
+      "label": "Mummy"
+    }
+  ],
+  "furPalette": [
+    [
+      "Caramel",
+      206,
+      140,
+      70
+    ],
+    [
+      "Cocoa",
+      112,
+      74,
+      50
+    ],
+    [
+      "Cream",
+      240,
+      226,
+      196
+    ],
+    [
+      "Ash",
+      118,
+      114,
+      122
+    ],
+    [
+      "Ginger",
+      222,
+      118,
+      52
+    ],
+    [
+      "Snow",
+      244,
+      244,
+      248
+    ],
+    [
+      "Sable",
+      70,
+      58,
+      54
+    ],
+    [
+      "Honey",
+      232,
+      186,
+      92
+    ],
+    [
+      "Slate",
+      96,
+      104,
+      122
+    ],
+    [
+      "Rose",
+      230,
+      160,
+      170
+    ],
+    [
+      "Toffee",
+      172,
+      110,
+      58
+    ],
+    [
+      "Pepper",
+      52,
+      50,
+      58
+    ]
+  ],
+  "spookyPalette": [
+    [
+      "Midnight",
+      50,
+      42,
+      78
+    ],
+    [
+      "Slime",
+      128,
+      204,
+      72
+    ],
+    [
+      "Bone",
+      232,
+      226,
+      206
+    ],
+    [
+      "Blood Moon",
+      168,
+      28,
+      42
+    ],
+    [
+      "Witch Purple",
+      134,
+      72,
+      196
+    ],
+    [
+      "Candy Corn",
+      250,
+      198,
+      64
+    ],
+    [
+      "Ghost White",
+      240,
+      240,
+      252
+    ],
+    [
+      "Graveyard",
+      74,
+      100,
+      84
+    ],
+    [
+      "Moonlight",
+      178,
+      198,
+      236
+    ],
+    [
+      "Pumpkin",
+      240,
+      128,
+      30
+    ],
+    [
+      "Licorice",
+      38,
+      34,
+      44
+    ],
+    [
+      "Toxic",
+      170,
+      240,
+      90
+    ],
+    [
+      "Marshmallow",
+      250,
+      236,
+      240
+    ],
+    [
+      "Ember",
+      228,
+      84,
+      40
+    ],
+    [
+      "Fog",
+      196,
+      200,
+      210
+    ]
+  ],
+  "names": [
+    "Gourdy",
+    "Hollowby",
+    "Creakers",
+    "Cobwebby",
+    "Hexie",
+    "Hexley",
+    "Brewster",
+    "Cauldry",
+    "Grimsby",
+    "Gravely",
+    "Tombsy",
+    "Cryptkin",
+    "Batsy",
+    "Battybop",
+    "Fangsy",
+    "Nibblefang",
+    "Moonhowl",
+    "Howlie",
+    "Haunty",
+    "Hauntly",
+    "Spookums",
+    "Spooklet",
+    "Boolet",
+    "Shadowpaw",
+    "Candlewick",
+    "Wickers",
+    "Waxie",
+    "Treatsy",
+    "Tricksy",
+    "Gummy Worm",
+    "Licorice",
+    "Toffee Apple",
+    "Caramel Apple",
+    "Candy Apple",
+    "Jellybone",
+    "Bonejangle",
+    "Bonebag",
+    "Skully",
+    "Skullcap",
+    "Rattlebones",
+    "Jitterbones",
+    "Creepers",
+    "Crawly",
+    "Webby",
+    "Spinneret",
+    "Fogsy",
+    "Mistwhisper",
+    "Ghostling",
+    "Ghoulie",
+    "Murk",
+    "Murkle",
+    "Gloomy",
+    "Gloomberry",
+    "Duskbat",
+    "Duskpaw",
+    "Mooncandle",
+    "Hootenanny",
+    "Broomstick",
+    "Broomie",
+    "Witchy",
+    "Witchling",
+    "Potionpaw",
+    "Mugwort",
+    "Wolfsbane",
+    "Hayseed",
+    "Cornstalk",
+    "Hayride",
+    "Corny",
+    "Gourdon",
+    "Patchling",
+    "Coffinkin",
+    "Epitaph",
+    "Shroud",
+    "Sheetling",
+    "Bedsheet",
+    "Pillowcase",
+    "Treat Bag",
+    "Nougat",
+    "Taffy",
+    "Bonbones",
+    "Cackle",
+    "Shriek",
+    "Screech",
+    "Howler",
+    "Yowl",
+    "Grimalkin",
+    "Familiar",
+    "Eek",
+    "Yikes",
+    "Jinxy",
+    "Omen",
+    "Boogaloo",
+    "Spookster",
+    "Fright",
+    "Frightful",
+    "Ghostie",
+    "Hollow",
+    "Wickedly",
+    "Midnight Snack",
+    "Cobble Crypt",
+    "Moonlit",
+    "Nightcap",
+    "Owlbert",
+    "Squeaky Gate",
+    "Ricketty",
+    "Creaky",
+    "Dreadful",
+    "Bogle",
+    "Bugaboo",
+    "Willow",
+    "Wiggle Worm",
+    "Candy Bucket",
+    "Gumdrop Ghoul",
+    "Jack Gourd",
+    "Scarecrowe",
+    "Straw Hat",
+    "Hootie",
+    "Twilight",
+    "Pitchfork",
+    "Webster",
+    "Nibbles",
+    "Cobweb",
+    "Creeper Pup",
+    "Mumbles",
+    "Wrappy",
+    "Unwrapped",
+    "Bandage",
+    "Batwing",
+    "Fangtail",
+    "Count Paws",
+    "Graveyard Gus",
+    "Bonesy",
+    "Pumpkin Spice",
+    "Spice",
+    "Maple",
+    "Acorn Cap",
+    "Lanternlight",
+    "Flicker",
+    "Wickedwhisker",
+    "Hissy",
+    "Bristle"
+  ]
+}

@@ -775,6 +775,137 @@ function M.bake(startAt, count)
 	}
 end
 
+--------------------------------------------------------------------------------
+-- EVERY ORE IN EVERY FAMILY
+--
+-- M.bake above gives each ore ONE family, striding pickaxe/drill/explosive down
+-- the roster, so 82 ores come out as 82 tools -- about 28 of each. That was
+-- right when the roster was a shop rail. It is not what the Forge offers:
+-- MineOreTools builds {Ore} {Noun} for every family, so Stone alone is three
+-- craftable tools and the real roster is 82 x 3 = 246.
+--
+-- Named the same way MineOreTools names them, because the name IS the lookup
+-- key -- a folder called "Stone Pickaxe" is what MineOreTools.displayName
+-- produces for (stone, pickaxe), so nothing needs a translation table.
+--
+-- Ordered family-major (all 82 picks, then all drills, then all explosives)
+-- rather than interleaved, so a partial bake leaves whole families finished and
+-- an audit can report "pickaxes done, drills pending" instead of 246 fragments.
+--------------------------------------------------------------------------------
+local NOUN = { pickaxe = "Pickaxe", drill = "Drill", explosive = "Explosive" }
+
+--[[
+	Style strides within the family, not across the whole 246.
+
+	M.bake used `floor((i - 1) / #FAMILIES) % 5` because its families were
+	interleaved. Here they are contiguous, so the ore's own index is already the
+	position within the family and striding it directly gives each family all
+	five silhouettes evenly -- and the SAME ore lands on the same style in all
+	three families, so a player's Stone pick, drill and charge look like a set.
+]]
+local ALL = nil
+function M.all()
+	if ALL then
+		return ALL
+	end
+	ALL = {}
+	for fi, family in ipairs(FAMILIES) do
+		for oi, row in ipairs(M.ROSTER) do
+			ALL[#ALL + 1] = {
+				name = row[1] .. " " .. NOUN[family],
+				ore = row[1],
+				rarity = row[2],
+				family = family,
+				style = ((oi - 1) % 5) + 1,
+				familyIndex = fi,
+			}
+		end
+	end
+	return ALL
+end
+
+--[[
+	Same slicing discipline as M.bake, and for the same reason: CreateMeshPartAsync
+	at 20k triangles is slow enough that a long run stops the Studio VM answering
+	the MCP bridge. Ten per call keeps every call short. 246 tools is 25 calls.
+]]
+function M.bakeAll(startAt, count)
+	local all = M.all()
+	startAt = math.max(1, tonumber(startAt) or 1)
+	count = math.max(1, tonumber(count) or 10)
+	local last = math.min(#all, startAt + count - 1)
+	local okN, fails, minH, maxH = 0, {}, math.huge, 0
+	for i = startAt, last do
+		local e = all[i]
+		local ok, a = pcall(M.install, e.name, e.family, e.rarity, e.style)
+		if ok then
+			okN += 1
+			minH = math.min(minH, a)
+			maxH = math.max(maxH, a)
+		else
+			fails[#fails + 1] = e.name .. ": " .. tostring(a)
+		end
+	end
+	return {
+		from = startAt, to = last, total = #all,
+		ok = okN, fail = #fails, fails = fails,
+		minHeadTris = (minH == math.huge) and 0 or minH,
+		maxHeadTris = maxH,
+		done = last >= #all,
+	}
+end
+
+--[[
+	Audit the 246, and -- unlike M.audit -- check the mesh is actually THERE.
+
+	A folder with HeadTris = 20000 only proves the bake once ran. EditableMesh
+	geometry from CreateMeshPartAsync is session-only: it does not survive the
+	place being saved and reopened, and comes back as
+	Content{SourceType=None} with the attributes still sitting on the folder
+	looking healthy. Both archives in this place are in exactly that state, so
+	an audit that trusts the attribute reports 82 good tools that render nothing.
+]]
+function M.auditAll()
+	local root = game.ReplicatedStorage:FindFirstChild("ToolModels_50")
+	if not root then
+		return { error = "no ToolModels_50" }
+	end
+	local made, gutted, missing, offBudget = 0, {}, {}, {}
+	local byFamily = {}
+	for _, e in ipairs(M.all()) do
+		local f = root:FindFirstChild(e.name)
+		if not f then
+			missing[#missing + 1] = e.name
+		else
+			made += 1
+			byFamily[e.family] = (byFamily[e.family] or 0) + 1
+			local ht = f:GetAttribute("HeadTris") or 0
+			if ht ~= TRI_TARGET then
+				offBudget[#offBudget + 1] = e.name .. ": head " .. tostring(ht)
+			end
+			local live = false
+			for _, d in ipairs(f:GetDescendants()) do
+				if d:IsA("MeshPart") and not tostring(d.MeshContent):find("SourceType=None") then
+					live = true
+				end
+			end
+			if not live then
+				gutted[#gutted + 1] = e.name
+			end
+		end
+	end
+	return {
+		built = made,
+		expected = #M.all(),
+		byFamily = byFamily,
+		missingCount = #missing,
+		missing = { table.unpack(missing, 1, math.min(10, #missing)) },
+		guttedCount = #gutted,
+		gutted = { table.unpack(gutted, 1, math.min(10, #gutted)) },
+		offBudget = offBudget,
+	}
+end
+
 function M.audit()
 	local root = game.ReplicatedStorage:FindFirstChild("ToolModels_50")
 	if not root then

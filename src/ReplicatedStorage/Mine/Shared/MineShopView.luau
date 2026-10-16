@@ -95,8 +95,7 @@ end
 	progression rather than one of two parallel ladders that each ended
 	somewhere different. The Forge leads because it is the only line.
 
-	What STAYS: Backpacks (haul capacity, not a tool), the Ore Pouch, and
-	Secrets, which are pulled from chests and were never sold.
+	What STAYS: Backpacks (haul capacity, not a tool) and the Ore Pouch.
 
 	The roster in MineTools is NOT deleted with the tabs. MineOreTools reads it
 	for each forged tool's frame and cost multiplier -- `frames()` filters on
@@ -106,20 +105,48 @@ end
 	The server refuses the buy verbs independently of this list; a tab removed
 	from a client rail is a UI change, not a rule. See buyTool in MineServer.
 ]]
-local TABS = {
-	{ id = "bench", label = "Forge", blurb = "Forge a tool from ore, then level it. The wooden pickaxe levels on coins." },
-	{ id = "pouch", label = "Ore Pouch", blurb = "What you are carrying, and what it sells for. Ore pays gems; the pouch survives a rebirth." },
-	{ id = "backpack", label = "Backpacks", blurb = "Haul capacity. Coins for most rungs; the top pack is Robux." },
-	--[[
-		Secrets was wired everywhere and never given a button.
+--[[
+	THIS RAIL IS NOT A SHOP. Owner, 2026-10-10: "switch bottom bar to craft,
+	inventory, loadout, shit like that.. Not a shop anymore".
 
-		FAMILY_TINT carries a secrets colour, rows() returns secretRankList() for
-		it, paint() branches on it and the tab counter prints "have/total" for
-		it -- but no commit in this file's history ever put it in TABS, so the
-		forever tools could not be reached from the shop at all.
-	]]
-	{ id = "secrets", label = "Secrets", blurb = "Forever tools. Pulled from chests, never sold on a shelf." },
+	Only two of these three ever took money, and the one that led -- the bench --
+	takes ore. Labelling the rail after the VERB the player came to do beats
+	labelling it after a transaction that mostly is not one:
+
+		bench    -> Craft      you make a tool here
+		pouch    -> Inventory  what you are carrying
+		backpack -> Loadout    what you carry it in
+
+	SECRETS IS GONE FROM THIS RAIL, and nothing is stranded by that.
+
+	It was added here because the forever tools had no button anywhere. They do
+	now: MineInventoryView draws a "Found tools  N / M" grid with the same
+	blackout for undiscovered rows, which is where the owner asked for them --
+	"the secrets tab shouldnt be a thing, just the shit in your inventory".
+
+	The secrets BRANCHES in this file stay (rows(), paint(), FAMILY_TINT, the
+	stage). They are dead from the rail but still reachable if a future entry
+	wants them, and deleting ~25 live call sites to remove one button is how a
+	working stage gets broken. Dead-but-correct beats half-deleted.
+]]
+local TABS = {
+	{ id = "bench", label = "Crafting", blurb = "Every recipe in the game. The ones you can forge right now come first." },
+	{ id = "loadout", label = "Loadout", blurb = "What you are carrying and what you are wearing. Tap anything to inspect it." },
+	{ id = "upgrades", label = "Upgrades", blurb = "Level a tool, merge duplicates, or scrap what you have outgrown." },
 }
+
+--[[
+	WHERE THE OLD TABS WENT.
+
+	`pouch` and `backpack` are no longer tabs. The ore pouch was never a
+	destination -- it is a strip along the bottom of the craft screen and is
+	drawn there whatever tab is up, so a tab for it was a second way to look at
+	something already on screen. Backpacks are a purchase, so they belong behind
+	the SHOP entry on the rail with the other things you buy with coins.
+
+	Both ids still work in `rows()` and `paint()`: nothing that could reach them
+	has been deleted, so a stale call cannot land on a blank screen.
+]]
 
 --------------------------------------------------------------------------------
 -- HELPERS
@@ -223,18 +250,17 @@ end
 		onBuyTool(family)   -- buy the next rung in a tool family
 		onBuyBackpack()     -- buy the next backpack
 		onBuyCreditPack(packId)
-		onBuyScroll(id, bundle)
 		onEquip(family)     -- hold a family you already own
 		onClose()
 	Returns a controller: .root, .setState(snapshot), .open(tab), .close().
 ]]
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
-	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, oreLocks = {}, orePouch = {}, orePouchTier = 1, scrolls = {}, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
+	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, oreLocks = {}, orePouch = {}, orePouchTier = 1, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
 	-- Opens on the Forge, not on a shelf of coin-bought picks.
 	local activeTab = "bench"
 	local index = 1
-	state.tempers, state.toolTempers, state.toolSockets = {}, {}, {}
+	state.tempers, state.toolTempers = {}, {}
 	local view = {}
 	local CARD_HOME = UDim2.new(0.5, 0, 0, 104)
 
@@ -587,25 +613,30 @@ function MineShopView.mount(parent, opts)
 					-- comes off the pouch tier. Without this it defaulted to 1
 					-- and quoted a tier-1 pouch to everybody.
 					orePouchTier = state.orePouchTier or 1,
-					--[[
-						The skin and rune the selected tool's FAMILY is wearing.
-						Both are keyed by family, not by tool -- a forged row
-						cannot hold either -- and the Forge says so rather than
-						implying the fit is per-tool. `runes` is the loose list,
-						used to name a socketed rune when it is still in it.
-					]]
+					-- The skin the selected tool's FAMILY is wearing (keyed by
+					-- family, not by tool), which the Forge says so.
 					toolTempers = state.toolTempers or {},
-					toolSockets = state.toolSockets or {},
-					runes = state.runes or {},
 				}
 			end,
 			-- Out of the Forge and down to the second line.
 			onCoinShop = function()
 				view.setTab("pickaxe")
 			end,
-			-- Fitting a skin or socketing a rune happens at the Enchanter. The
-			-- Forge reports what is fitted and sends you there rather than
-			-- growing a second copy of those two screens.
+			-- The backpack shelf still exists; this is the only thing that
+			-- opens it now that the bottom bar is three tabs. See the note on
+			-- the BACKPACKS button in MineForge.paintModes.
+			onBackpacks = function()
+				view.setTab("backpack")
+			end,
+			-- Cards and charms merge; ore tools do not. This opens the screen
+			-- that owns the mechanic. See the note in MineForge.paintModes.
+			onMerge = function()
+				if opts.onOpenMerge then
+					opts.onOpenMerge()
+				end
+			end,
+			-- Fitting a skin happens at the Enchanter. The Forge reports what
+			-- is fitted and sends you there rather than growing a second copy.
 			onOpenEnchanter = function(tab)
 				if opts.onOpenEnchanter then
 					opts.onOpenEnchanter(tab)
@@ -712,6 +743,62 @@ function MineShopView.mount(parent, opts)
 				.. tostring(ctlP))
 		end
 		pouchCtl = okMountP and ctlP or nil
+	end
+
+	--[[
+		THE LOADOUT TAB.
+
+		Mounted exactly like the pouch above -- its own frame, its own module,
+		mounted through pcall so a throw costs one tab rather than the screen.
+
+		It is handed the whole state table rather than a hand-picked subset: it
+		reads tools, gear and the worn map, and the list of what a
+		loadout shows is the kind of thing that grows. The pouch gets a subset
+		because it must NOT compute its own prices; this one only reads.
+	]]
+	local okLoadout, LoadoutView = pcall(function()
+		return require(shared:WaitForChild("MineLoadoutView", 5))
+	end)
+	if not (okLoadout and LoadoutView and LoadoutView.mount) then
+		warn("[MineShopView] NO LOADOUT: "
+			.. "ReplicatedStorage.Mine.Shared.MineLoadoutView did not resolve ("
+			.. tostring(LoadoutView) .. ").")
+	end
+	local loadoutPanel, loadoutCtl
+	if okLoadout and LoadoutView and LoadoutView.mount then
+		loadoutPanel = mk("Frame", {
+			Name = "LoadoutHost",
+			Visible = false,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 156),
+			Size = UDim2.new(0.92, 0, 1, -236),
+			BackgroundTransparency = 1,
+			ZIndex = 86,
+		}, root)
+		local okMountL, ctlL = pcall(LoadoutView.mount, loadoutPanel, {
+			getSnap = function()
+				return state
+			end,
+			onEquipTool = function(uid)
+				if opts.onEquipOreTool then
+					opts.onEquipOreTool(uid)
+				end
+			end,
+			onEquipGear = function(id, slot)
+				if opts.onEquipGear then
+					opts.onEquipGear(id, slot)
+				end
+			end,
+			onUnequipGear = function(slot, id)
+				if opts.onUnequipGear then
+					opts.onUnequipGear(slot, id)
+				end
+			end,
+		})
+		if not okMountL then
+			warn("[MineShopView] NO LOADOUT: MineLoadoutView.mount threw: " .. tostring(ctlL))
+		end
+		loadoutCtl = okMountL and ctlL or nil
 	end
 
 	--[[
@@ -1168,9 +1255,21 @@ function MineShopView.mount(parent, opts)
 	strip.AnchorPoint = Vector2.new(0.5, 1)
 	strip.Position = UDim2.new(0.5, 0, 1, -44)
 	strip.Size = UDim2.fromOffset(920, 48)
+	--[[
+		THE BOTTOM TABS SIT IN THE MIDDLE. Owner, 2026-10-11: "Center the bottom
+		tabs, in this order: Crafting, Loadout, Upgrades."
+
+		The strip is already anchored at 0.5 and its UIListLayout is built with
+		HorizontalAlignment.Center -- and then this line overrode it to Right,
+		which is why three 164px buttons sat hard against the right edge of a
+		920px strip with a 300px hole on the left. Setting Center here rather
+		than deleting the line keeps the override explicit: this block is where
+		the bottom bar's geometry is decided, and a reader looking for the
+		alignment finds it with the rest of it.
+	]]
 	local stripLayout = strip:FindFirstChildOfClass("UIListLayout")
 	if stripLayout then
-		stripLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+		stripLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	end
 	for _, entry in pairs(tabBtns) do
 		entry.button.Size = UDim2.fromOffset(164, 52)
@@ -1806,8 +1905,17 @@ function MineShopView.mount(parent, opts)
 	end
 
 	function rows()
-		-- The bench is a list, not a shelf: no rungs to step through.
-		if activeTab == "bench" then
+		--[[
+			The three panel tabs are lists, not shelves: no rungs to step
+			through, so the carousel has nothing to count.
+
+			`upgrades` and `loadout` have to be named here as well as `bench`.
+			Without them they would fall through to the coin-shop ladder below
+			and `setTab` would size its index against a row set belonging to a
+			completely different screen -- no error, just a tab counter quoting
+			a number from somewhere else.
+		]]
+		if activeTab == "bench" or activeTab == "upgrades" or activeTab == "loadout" then
 			return {}
 		end
 		if activeTab == "backpack" then
@@ -1872,6 +1980,53 @@ function MineShopView.mount(parent, opts)
 	end
 
 	--[[
+		WHAT A BAG ACTUALLY COSTS, from the module the buy verb charges through.
+
+		MineBags.gemPrice(tier) -- 100 * 1.08^rung -- is what the server
+		deducts. `row.price` on the same row is the COIN figure, kept for sell
+		value, shop ordering and the dex, and it is not what anyone pays. This
+		is the single place that resolves it, so the affordability check and
+		the printed label cannot disagree the way they did.
+
+		THE RUNG IS THE LIST INDEX, AND IT IS IN THE ID.
+
+		gemPrice takes the index into MineBags.LIST -- that is what the buy verb
+		passes as `want`, clamped to #C.BACKPACKS. It is NOT row.tier, which is
+		nil on every bag row (checked: all 462), and it is NOT this shelf's loop
+		index either, because shopRows returns a FILTERED subset -- 25 rows for
+		zone 1 out of 462, so position 4 on the shelf is LIST[6].
+
+		shopRows stamps the id as "bag_<index>", which is the only thing on the
+		row that still knows where it came from. Parsed back out here.
+
+		Falls back to row.price only if the module or the function is missing,
+		which keeps a shelf rendering rather than showing every bag at zero.
+	]]
+	local function bagIndex(row, fallback)
+		if type(row) ~= "table" then
+			return fallback
+		end
+		local idx = tonumber(string.match(tostring(row.id or ""), "^bag_(%d+)$"))
+			or tonumber(row.id)
+			or tonumber(row.tier)
+		return idx and math.floor(idx) or fallback
+	end
+
+	local function bagPrice(row)
+		if type(row) ~= "table" then
+			return 0
+		end
+		local okB, Bags = pcall(function()
+			return require(shared:WaitForChild("MineBags"))
+		end)
+		local idx = bagIndex(row, nil)
+		if okB and Bags and Bags.gemPrice and idx then
+			return math.max(0, math.floor(tonumber(Bags.gemPrice(idx)) or 0))
+		end
+		return math.max(0, math.floor(tonumber(row.price) or 0))
+	end
+
+	--[[
 		What this rung is to the player right now.
 
 		"held" you are swinging it · "owned" bought · "buy" the next rung and
@@ -1916,8 +2071,29 @@ function MineShopView.mount(parent, opts)
 			if row.robux then
 				return "buy"
 			end
-			local price = row.price or 0
-			return ((state.coins or 0) >= price) and "buy" or "short"
+			--[[
+				BAGS COST GEMS, AND THIS SHELF WAS PRICING THEM IN COINS.
+
+				Wrong on both halves at once. `row.price` is the COIN figure --
+				MineBags keeps it on the row for sell value, shop ordering and
+				the dex -- while the buy verb charges MineBags.gemPrice(tier),
+				which is 100 * 1.08^rung and a completely different number.
+				This then compared that coin figure against state.coins.
+
+				So a player with coins and no gems saw "buy", clicked, and was
+				told "that bag costs N gems"; a player with the gems but not the
+				coins saw "short" on a bag they could afford. The shelf and the
+				server disagreed about the currency AND the amount.
+
+				MineBags' own file still carries a stale header saying "Coin
+				prices only. Never gems", which is contradicted forty lines
+				below it by the block that defines gemPrice -- that contradiction
+				is most likely how this survived.
+
+				Read through bagPrice below so the status and the label cannot
+				drift apart again.
+			]]
+			return (((state.gems or 0) >= bagPrice(row)) and "buy" or "short")
 		end
 		-- Surface shop ladder (all zones visible).
 		local needZone = math.floor(tonumber(row.zoneIndex) or 1)
@@ -1947,10 +2123,38 @@ function MineShopView.mount(parent, opts)
 			t.button.BackgroundColor3 = on and CARD_HI or CARD
 			t.stroke.Transparency = on and 0.05 or 0.6
 			t.label.TextColor3 = on and TEXT or MUTED
+			--[[
+				EACH TAB COUNTS THE THING THAT TAB IS ABOUT.
+
+				`bench` used to print the ore-tool count, which was right when
+				this tab was the whole Forge and is wrong now that it is only
+				the CRAFT half: the number of tools you own answers the UPGRADES
+				tab's question, not Crafting's. Crafting counts the recipes you
+				have unlocked, which is what an ore being discovered means.
+
+				No denominators here. A have/total needs both halves to mean the
+				same thing, and "recipes known" has no honest total to sit over
+				it while Rule 3 keeps undiscovered ores unnamed.
+			]]
 			if id == "bench" then
-				-- How many tools there are to work on, not a have/total: every
-				-- ore tool you own is levellable, so a denominator is noise.
+				local known = 0
+				local seen = state.oresSeen
+				if type(seen) == "table" then
+					for _, v in pairs(seen) do
+						if v then known += 1 end
+					end
+				else
+					for _, amt in pairs(state.ores or {}) do
+						if (tonumber(amt) or 0) > 0 then known += 1 end
+					end
+				end
+				t.count.Text = tostring(known)
+			elseif id == "upgrades" then
+				-- Every ore tool you own is levellable, so this is the count of
+				-- things there are to work on.
 				t.count.Text = tostring(#(state.oreTools or {}))
+			elseif id == "loadout" then
+				t.count.Text = tostring(#(state.oreTools or {}) + #(state.gear or {}))
 			elseif id == "secrets" then
 				local have = 0
 				local total = #(Tools.CHEST_TOOLS or {})
@@ -2012,10 +2216,22 @@ function MineShopView.mount(parent, opts)
 			on open for every player. If the module failed to require, fall back
 			to the first coin-shop family instead.
 		]]
-		if activeTab == "bench" and not benchPanel then
+		if (activeTab == "bench" or activeTab == "upgrades") and not benchPanel then
 			activeTab = "pickaxe"
 		end
-		if activeTab == "bench" then
+		--[[
+			CRAFTING AND UPGRADES ARE ONE PANEL IN TWO MODES.
+
+			Both tabs show the Forge; the difference is which half of it. The
+			mode used to be picked by two buttons on the Forge's own rail, and
+			those are gone (see MineForge.paintModes) precisely so the choice
+			lives in ONE place -- here -- rather than in a rail and a tab bar
+			that can disagree about which is selected.
+
+			setMode is a no-op when the mode already matches, so re-painting the
+			same tab does not throw away the player's selected recipe.
+		]]
+		if activeTab == "bench" or activeTab == "upgrades" then
 			creditsStage.Visible = false
 			card.Visible = false
 			leftBtn.Visible = false
@@ -2024,8 +2240,18 @@ function MineShopView.mount(parent, opts)
 			track.Visible = false
 			temperBar.Visible = false
 			vp.Visible = false
+			if loadoutPanel then
+				loadoutPanel.Visible = false
+			end
 			if benchPanel then
 				benchPanel.Visible = true
+			end
+			if benchCtl and benchCtl.setMode then
+				local okM, errM = pcall(benchCtl.setMode,
+					(activeTab == "upgrades") and "upgrade" or "craft")
+				if not okM then
+					warn("[MineShopView] forge setMode failed: " .. tostring(errM))
+				end
 			end
 			if benchCtl and benchCtl.refresh then
 				-- A bare pcall here is what made a thrown row look like an empty
@@ -2046,9 +2272,38 @@ function MineShopView.mount(parent, opts)
 			track.Visible = false
 			temperBar.Visible = false
 			vp.Visible = false
+			if loadoutPanel then
+				loadoutPanel.Visible = false
+			end
 			pouchPanel.Visible = true
 			if pouchCtl and pouchCtl.refresh then
 				pcall(pouchCtl.refresh)
+			end
+			return
+		end
+		--[[
+			LOADOUT. Owned tools, gear, gems and traits, with an inspection pane.
+
+			Same shape as the pouch branch above: hide the carousel chrome, show
+			one panel, ask it to refresh. It reads `state` directly, so a
+			snapshot landing while the tab is up redraws it without this file
+			knowing what a gear row looks like.
+		]]
+		if activeTab == "loadout" and loadoutPanel then
+			creditsStage.Visible = false
+			card.Visible = false
+			leftBtn.Visible = false
+			rightBtn.Visible = false
+			counter.Visible = false
+			track.Visible = false
+			temperBar.Visible = false
+			vp.Visible = false
+			loadoutPanel.Visible = true
+			if loadoutCtl and loadoutCtl.refresh then
+				local okL, errL = pcall(loadoutCtl.refresh)
+				if not okL then
+					warn("[MineShopView] loadout refresh failed: " .. tostring(errL))
+				end
 			end
 			return
 		end
@@ -2057,6 +2312,9 @@ function MineShopView.mount(parent, opts)
 		end
 		if benchPanel then
 			benchPanel.Visible = false
+		end
+		if loadoutPanel then
+			loadoutPanel.Visible = false
 		end
 		vp.Visible = true
 
@@ -2079,6 +2337,10 @@ function MineShopView.mount(parent, opts)
 		local currency = "coins"
 		if activeTab == "backpack" and row.robux then
 			currency = "Robux"
+		elseif activeTab == "backpack" then
+			-- Everything on this shelf that is not the Robux rig is bought
+			-- with gems; see bagPrice.
+			currency = "gems"
 		elseif row.eventOnly or row.currency == "space" then
 			currency = "space"
 		end
@@ -2154,31 +2416,6 @@ function MineShopView.mount(parent, opts)
 		local lines = (status == "zone") and {}
 			or (isSecrets and status == "locked") and { { "Rank", "#" .. index }, { "Rarity", "Secret" } }
 			or statLines(statFamily, row)
-		-- Every shop tool has its own rune slot. Rebirth takes the tool back but
-		-- not the rune, which waits in the slot until the tool is bought again.
-		if not isSecrets and activeTab ~= "backpack" and status ~= "zone" then
-			local rid = (state.shopToolRunes or {})[row.id]
-			local rune
-			for _, r in ipairs(state.runes or {}) do
-				if r.id == rid then
-					rune = r
-					break
-				end
-			end
-			local owned = status == "owned" or status == "held"
-			local label = "RUNE SLOT"
-			if rune then
-				local okS, Stats = pcall(require, shared:WaitForChild("MineStats"))
-				local def = okS and Stats.STATS and Stats.STATS[rune.stat]
-				label = owned and ("RUNE · " .. tostring(def and def.label or rune.stat))
-					or ("WAITING · " .. tostring(def and def.label or rune.stat))
-			end
-			table.insert(lines, {
-				label,
-				rune and string.format("+%.1f%%", (rune.pct or 0) * 100) or "Empty",
-				rune and GREEN or MUTED,
-			})
-		end
 		for i, sl in ipairs(lines) do
 			local pill = mk("Frame", {
 				Size = UDim2.fromOffset(158, 54), BackgroundColor3 = Color3.fromRGB(58, 44, 35),
@@ -2201,6 +2438,10 @@ function MineShopView.mount(parent, opts)
 		local price = row.price or 0
 		if row.robux then
 			price = row.robuxPrice or 0
+		elseif activeTab == "backpack" then
+			-- The gem price, not the row's coin figure. Same source as the
+			-- affordability check above and as the server's charge.
+			price = bagPrice(row)
 		end
 		-- The number you scan for. OWNED items have no price to show.
 		if status == "buy" or status == "short" then
@@ -2356,9 +2597,7 @@ function MineShopView.mount(parent, opts)
 		state.backpackTier = snapshot.backpackTier or 1
 		state.family = snapshot.tool and snapshot.tool.family or nil
 		state.credits = snapshot.credits or 0
-		state.scrolls = snapshot.scrolls or {}
 		state.creditPacks = snapshot.creditPacks or {}
-		state.scrollShop = snapshot.scrollShop or {}
 		state.chestTools = snapshot.chestTools or {}
 		state.chestTool = snapshot.chestTool
 		state.zoneId = snapshot.zoneId
@@ -2372,13 +2611,26 @@ function MineShopView.mount(parent, opts)
 			or state.maxUnlockedZone
 			or 1
 		state.ownedShopTools = snapshot.ownedShopTools or {}
-		state.shopToolRunes = snapshot.shopToolRunes or {}
-		state.runes = snapshot.runes or {}
+		--[[
+			WHAT THE LOADOUT TAB READS.
+
+			Gear, the worn map and the held tool's uid were not here, because nothing in this
+			screen had ever needed them. MineLoadoutView reads `state` directly,
+			so a field missing here is not an error -- it is an empty section
+			with no message, which is the failure this project keeps hitting:
+			two correct halves that were never introduced.
+
+			The held tool is `oreToolEquipped` -- the name Verbs.equipOreTool
+			writes on the server and the name MineForge already reads. Not
+			`equippedTool`, which is a server-side FUNCTION, and not
+			`equippedToolUid`, which does not exist.
+		]]
+		state.gear = snapshot.gear or {}
+		state.equippedGear = snapshot.equippedGear or {}
+		state.oreToolEquipped = snapshot.oreToolEquipped
 		state.shopToolId = snapshot.shopToolId or (snapshot.tool and snapshot.tool.id)
 		state.tempers = snapshot.tempers or {}
 		state.toolTempers = snapshot.toolTempers or {}
-		-- The Forge shows what the selected tool's FAMILY is wearing.
-		state.toolSockets = snapshot.toolSockets or {}
 		if root.Visible then
 			paint()
 		end
@@ -2435,7 +2687,12 @@ function MineShopView.mount(parent, opts)
 					MarketplaceService:PromptProductPurchase(Players.LocalPlayer, pid)
 					return
 				end
-				if opts.onBuyBackpack then opts.onBuyBackpack((row and row.tier) or index) end
+				-- Same reader the price uses, so the rung shown and the rung
+				-- bought cannot drift apart. `row.tier` alone is correct today
+				-- -- shopRows stamps it on all 484 shelf rows, verified -- and
+				-- bagIndex falls back to it; the id is just the more durable
+				-- of the two, since it is what shopRows keys the rung on.
+				if opts.onBuyBackpack then opts.onBuyBackpack(bagIndex(row, index)) end
 			else
 				local row = rows()[index]
 				if opts.onBuyTool then
