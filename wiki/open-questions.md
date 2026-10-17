@@ -136,14 +136,13 @@ because each moves the economy in more than one place. Measured figures are in
 | 18 | **The legacy ore-pack path and the live drop path disagree about the ore finder.** Pack conversion does `each = mid * (1 + oreFind)` — a straight quantity multiplier — while the live drop deliberately does not. One of the two is wrong about the design rule. | *Read* in code | [ores](systems/ores.md), [boosts-and-stats](systems/boosts-and-stats.md) |
 | 19 | **`MineDigAuth.canDigLayer` ends in an unconditional `return true`**, so every entitlement check above it is unreachable. This is deliberate for mining and was silently load-bearing for crediting; `canCreditDepth` now carries the strict half (see [zones-layers-and-seams](systems/zones-layers-and-seams.md)). **The dead checks in `canDigLayer` are still dead** — worth deciding whether they should be deleted or re-enabled, because right now they read as protection that does not exist. | *Read* in code | `MineDigAuth.canDigLayer` |
 | 20 | **A 6,500-block first tool.** With stone's surface share raised to hit the owner's 1-vein-per-3,000 target, the cheapest craftable tool costs ~6,500 blocks broken (was 13,500). Not obviously wrong, but it is the first number a new player meets and nobody has signed off on it. | measured | `docs/ore-yield-and-vein-balance.md` §2 |
-| 21 | **The battle pass ends a week before the offers.** `MineRotatingOffers.SEASON_END` is 2026-11-01 plus `EXTEND_SEC` (one week) = 2026-11-08, and `MineConfig.LIMITED_DAYS` is 47 (also 11-08), but `MineScrolls.PASS_SEASON_END` is still `1793505600` = 2026-11-01 and its label says "through Oct 31, midnight ET". `launch.js` pins the three season *start* constants, not the ends. Intended? (Found 2026-10-08, still true at `98c141a`.) | *Read* | [season-and-launch](systems/season-and-launch.md) |
-| 22 | **Chest Luck feeds the chest charm drop.** `Charms.CHARM_CHEST_CHANCE × b.chestLuck` in `openChestBlock`, and five of the 36 graded charms carry `chestLuck` (the SS Hourglass of Ages at +575%). A code comment on `luck` says "a chest charm is not rolled off luck". Does this break the self-feeding rule from `roadmap/PRINCIPLES.md` §1? (Found 2026-10-08, still true at `98c141a`.) | *Read* | [charms](systems/charms.md) |
+| 21 | **FIXED 2026-10-17: the battle pass ended a week before the offers.** `PASS_SEASON_END` was 40 days after the start while the offers and Event Horizon run 47; it is now 47 too, and `launch.js` pins the three lengths. The same change mirrors the launch stamp to clients (they never learned it, so after a launch they would have shown week one's offers and frozen countdowns) and puts the pass panel on the season clock. Owner: *"do what you think is best for the game"*. | *Read*, pinned by `launch.js` (proved to fail on the old code); not yet run in Studio | [season-and-launch](systems/season-and-launch.md) |
+| 22 | **DECIDED 2026-10-17: Chest Luck scales the chest charm drop, and that stays.** `CHARM_CHEST_CHANCE × b.chestLuck`, the same multiplier every other chest reward uses (cases, skins, book bundles, packs). There is **one charm slot**, so wearing one of the five Chest Luck charms means not wearing a power charm: a trade-off, not a free loop. (My earlier note that a code comment denies this was a misreading: that comment is about the `luck` stat, which the chest roll does not use.) | *Read* | [charms](systems/charms.md) |
 
 ## 2. Where the owner's rules and the code disagree
 
 | rule | what the code does | where |
 |---|---|---|
-| **TODO §0.5–0.6 / §0.13.5: charms drop "from ores, not chests"** | The owner's own 2026-10-07 words say the 36 graded charms "can be found in chests (0.5%) or bought with tokens", and the chest drop is built and live. The newer words win; TODO §0.13.5 has not been edited. | [charms](systems/charms.md) |
 | **TODO §0.13.5: "one charm per ore"** | Two per ore (164 generated). That was an agent design (TODO §6.1), never confirmed. | [charms](systems/charms.md) |
 | **TODO §0.13.6: "ore case rolls … to decide whether you get a tool"** | A case never pays a tool; it pays a skin (75%) or a charm (25%). | [skins-cases-and-temper](systems/skins-cases-and-temper.md) |
 | **TODO §9: "skin and temper crates cost ore only"** | Temper cases cost **temper tokens**. | same page |
@@ -171,10 +170,6 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
   consumables, outpost shops) is unsigned.
 - **Are skins cosmetic or a power source?** Docs disagree; today they are
   tempers (stat kits).
-- **Charms from chests:** should TODO §0.13.5 be rewritten to allow the 36 graded charms
-  from chests (0.5%)? And may Chest Luck raise that 0.5% (finding 22)?
-- **Should the battle pass end with the offers (2026-11-08) or a week earlier (11-01)?**
-  (finding 21)
 - **One charm per ore, or two?** Is the ~24 hand-authored charm rewrite (AUDIT)
   approved? Should charms sit in a boost layer?
 - **Pack pity and the Exotic floor:** build them, or keep "no pity"?

@@ -93,6 +93,58 @@ ok(!/\(now or os\.time\(\)\)/.test(SCROLLS),
     "launchSeason is reachable from the dispatch");
 }
 
+//[[ ------------------------------------------- the season's LENGTH ----
+// The starts were pinned; the ends were not, and they drifted: the offers got
+// "ONE MORE WEEK, ON EVERYTHING" and the pass did not, so it ended a week
+// before its own season. Under MineLaunch these are lengths, so compare lengths.
+{
+  const CONFIG = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineConfig.luau"));
+  const num = (src, re) => { const m = re.exec(src); return m ? Number(m[1]) : NaN; };
+  const passLen = num(SCROLLS, /MineScrolls\.PASS_SEASON_END\s*=\s*(\d{9,})/) - Number(pStart);
+  const week = num(OFFERS, /local WEEK\s*=\s*(\d+)/);
+  const extend = /MineRotatingOffers\.EXTEND_SEC\s*=\s*WEEK\b/.test(OFFERS) ? week
+    : num(OFFERS, /MineRotatingOffers\.EXTEND_SEC\s*=\s*(\d+)/);
+  const offersLen = num(OFFERS, /local ENDS\s*=\s*(\d{9,})/) + (extend || 0) - Number(oStart);
+  const limitedLen = num(CONFIG, /MineConfig\.LIMITED_DAYS\s*=\s*(\d+)/) * 86400;
+  ok(passLen > 0 && passLen === offersLen,
+    "the battle pass runs as long as the offers season",
+    `${passLen / 86400} days vs ${offersLen / 86400}`);
+  ok(offersLen === limitedLen,
+    "...and as long as the Event Horizon window (LIMITED_DAYS)",
+    `${offersLen / 86400} days vs ${limitedLen / 86400}`);
+}
+
+//[[ ------------------------------------------- clients know the launch ----
+// A client never runs Verbs._loadLaunch, so without a mirror its MineLaunch
+// stays at second zero forever: week one's offers in the shop after launch,
+// which the server then refuses, and frozen sale and event countdowns.
+{
+  const SRV = Luau.readSrc(path.join(ROOT, "src/ServerScriptService/Mine/MineServer.server.luau"));
+  ok(/function MineLaunch\.stamp\(\)/.test(LAUNCH) && /GetAttribute\(MineLaunch\.ATTRIBUTE\)/.test(LAUNCH),
+    "MineLaunch reads the replicated launch stamp");
+  ok(/IsClient\(\)/.test(LAUNCH.slice(LAUNCH.indexOf("function MineLaunch.stamp()"), LAUNCH.indexOf("function MineLaunch.isLaunched()"))),
+    "...on clients only (the server's own field stays the authority)");
+  ok(/local at = MineLaunch\.stamp\(\)/.test(LAUNCH) && /return MineLaunch\.stamp\(\) > 0/.test(LAUNCH),
+    "seasonNow and isLaunched both go through the stamp");
+  const load = SRV.slice(SRV.indexOf("function Verbs._loadLaunch()"), SRV.indexOf("function Verbs._mirrorLaunch()"));
+  ok(/Verbs\._mirrorLaunch\(\)/.test(load), "the server mirrors the stamp after loading it");
+  ok(/SetAttribute\(Dig\.Launch\.ATTRIBUTE/.test(SRV), "the mirror is an attribute on ReplicatedStorage");
+  const verb = SRV.slice(SRV.indexOf("function Verbs.launchSeason("), SRV.indexOf("\tBUY A CASE FROM A WANDERING TRADER"));
+  const saveAt = verb.indexOf("store:SetAsync"), mirrorAt = verb.indexOf("Verbs._mirrorLaunch()");
+  ok(saveAt > -1 && mirrorAt > saveAt,
+    "a launch is mirrored to clients only after it is saved",
+    "a client must never see a launch the datastore does not hold");
+
+  // The battle pass panel was the one client reader that passed the raw clock.
+  const INV = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau"));
+  const CLIENT = Luau.readSrc(path.join(ROOT, "src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau"));
+  const raw = /(formatPassClock|passSecondsLeft|formatPassTimer)\(\s*workspace:GetServerTimeNow\(\)/;
+  ok(!raw.test(INV) && !raw.test(CLIENT),
+    "no client hands the raw server clock to the pass countdown");
+  ok(!/"Oct 31 · 11:59 PM ET"/.test(INV),
+    "the pass panel no longer prints a hard-coded end date");
+}
+
 if (!Luau.LUAU || !fs.existsSync(Luau.LUAU) || !Luau.runnableHere(Luau.LUAU)) {
   console.log("  " + Luau.missing("luau"));
   console.log(fails === 0 ? ">>> launch OK (static only)" : `>>> ${fails} FAILED`);

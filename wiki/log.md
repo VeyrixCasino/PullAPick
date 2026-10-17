@@ -1370,3 +1370,22 @@ statements in `charms`, `world-events`, `season-and-launch`, `sources-of-truth` 
 `build/hammer-icons` and `build/tool-icons` as owner-disk-only. Suite: **66 checks, 66 passed on
 the second run**; the first run's `skins` failure is a CRLF/LF artefact of a Linux checkout
 (see [verify-suite](code/verify-suite.md)). Nothing under `src/` is changed.
+
+## [2026-10-17] decision | the four open questions, decided for the players
+The owner: *"do what you think is best for the game [for the players.. we pushing this to
+come out asap]"*. Applied to the four questions left open on 2026-10-16:
+(1) graded charms from chests stay, and TODO §0.13 rule 5 now records the 2026-10-07
+exception; (2) Chest Luck keeps scaling the 0.5% chest charm drop, like every other chest
+reward, because one charm slot makes it a trade-off (my earlier "a comment denies it" was a
+misreading: that comment is about `luck`); (3) the battle pass runs 47 days like the offers
+and Event Horizon (`PASS_SEASON_END` 1793505600 → 1794110400); (4) the wiki is edited by
+merging first and only adding gaps.
+
+Checking (3) turned up a **launch-day bug** that I fixed in the same change: clients never
+learned `launchedAt`, so after a launch the shop would have shown week one's deals (which the
+server refuses), and the battle pass panel counted down on the raw server clock to a printed
+"Oct 31". The server now mirrors the stamp to `ReplicatedStorage` (`MineLaunchedAt`) after a
+successful read or save, `MineLaunch.stamp()` reads it on clients only, and the pass panel uses
+`MineScrolls.seasonClock` and `passEndLabel`. `launch.js` gained nine checks, proved to fail on
+the old code and pass on the new. **Not run in Studio.** Updated: season-and-launch, charms,
+open-questions (21 fixed, 22 decided), owner, verify-suite.

@@ -133,8 +133,8 @@ unlike every other charm in the file:
   better, "but never because the number is bigger": a charm has a shape.
 - **§0.13.5:** charms are a rare drop **from ores, not chests. "One charm per
   ore."** The code ships *two* per ore. That was an agent design (TODO §6.1), not an owner decision. See Open questions.
-  **The 2026-10-07 graded charms say the opposite about chests** (*"found in chests
-  (0.5%)"*). The newer words win, but §0.13.5 has not been edited. See Open questions.
+  **Amended 2026-10-07:** the 36 graded charms also come from chests (0.5%) and tokens.
+  TODO §0.13 rule 5 records the exception (added 2026-10-17).
 - **§0.25 (2026-10-04):** "rather than merging it should cost gems." So
   `MERGE_COST` (copies eaten) went from 3 to 1, and gems pay for each step.
 - **PROPOSAL §0 line 20:** merge price stays `1200 × 1.14^(t−1)`.
@@ -191,13 +191,10 @@ unlike every other charm in the file:
 
 ## Open questions
 
-- **§0.13.5 says "not chests"; the owner's 2026-10-07 words say chests.** Should
-  §0.13.5 be rewritten to allow graded charms from chests?
-- **Chest Luck feeds the chest charm drop.** Five graded charms carry `chestLuck`
-  (Anchor Charm, Pearlmoon, Tidecaller, Sovereign Heart, and the SS Hourglass of Ages at
-  +575%), so wearing one raises the 0.5% charm chance. The
-  comment on `luck` says "a chest charm is not rolled off luck", which is not what
-  the code does. Allowed, or the self-feeding rule applied here too?
+- **Settled 2026-10-17** (owner: *"do what you think is best for the game"*): graded
+  charms drop from chests, and TODO §0.13 rule 5 now says so; Chest Luck keeps scaling
+  that 0.5% like every other chest reward, because one charm slot makes wearing a Chest
+  Luck charm a trade-off.
 - One charm per ore (§0.13.5) or two (code)? Ask the owner.
 - Rewrite to about 24 authored charms: is it approved, and who authors them?
 - Should charms join a boost layer, or stay outside both?

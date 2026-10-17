@@ -782,6 +782,12 @@ file in this repo disagrees, the file is wrong.
 
 5. **Charms are a NEW system: a rare drop from ORES.** Not from chests. One
    charm per ore.
+   **Amended by the owner, 2026-10-07:** the 36 graded charms (F…SSS) *"can be
+   found in chests (0.5%) or bought with tokens"*. Ore charms still come from
+   ores; the graded set is the exception. Confirmed 2026-10-17 (*"do what you
+   think is best for the game"*): Chest Luck scales that 0.5% like every other
+   chest reward, because one charm slot makes wearing a Chest Luck charm a real
+   trade-off.
 
 6. **Skin cases: one per ore, 82 of them.** The old system dropped tools from
    cases. Now an ore case rolls at **2% down to 0.5%** to decide whether you get

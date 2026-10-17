@@ -224,6 +224,7 @@ reopen it.
   - *"make 36 charms. make them all unique, and each come in their own rarity. they can be found in chests (0.5%) or bought with tokens"*: the 36 graded charms (`b09cc4a`, `c1795ea`, `fd5c432`; [charms](systems/charms.md)). **This is an exception to 0.5–0.6 and 0.13.5** ("charms drop from ores, not chests"). The newer words win, but TODO §0.13.5 has not been edited; that edit is the other session's.
   - *"make a rotating shop with tokens with a wandering trader that spawns at random depth outposts in random zones … (5 different cases (random tool), custom hats case, random charm case)"* and *"5 different traders at once"*; static part-built NPCs were the owner's choice ([wandering-traders](systems/wandering-traders.md)).
   - *"i want the timer to not actually start until i say launch, and rather just keep ticking down"* ([season-and-launch](systems/season-and-launch.md)).
+- **2026-10-17, said in chat:** *"do what you think is best for the game [for the players.. we pushing this to come out asap]"*. Applied to the open questions: graded charms from chests stay (TODO §0.13 rule 5 amended), Chest Luck keeps scaling that drop, the battle pass runs the full 47 days with the offers, and the wiki is edited by merging first and only adding what is missing.
 - **0.12** **Fossils do not exist.** The modules are deleted. The `fossilFind`
   key and the 60 fossil bags stay, because removing them would break saves.
 - **0.13** Charms and skins are the build: shape, not magnitude.

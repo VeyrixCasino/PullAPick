@@ -2,7 +2,7 @@
 title: Season and launch
 type: system
 status: partial
-verified: 2026-10-16 @ 98c141a
+verified: 2026-10-17 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineLaunch.luau
   - src/ReplicatedStorage/Mine/Shared/MineRotatingOffers.luau
@@ -81,12 +81,13 @@ through a season they never saw begin.
 
 | file | role | key symbols |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/MineLaunch.luau` | the rule | `launchedAt`, `SEASON_START`, `seasonNow`, `elapsed`, `teaserLeft`, `launch`, `isLaunched` |
+| `src/ReplicatedStorage/Mine/Shared/MineLaunch.luau` | the rule | `launchedAt`, `stamp`, `ATTRIBUTE`, `SEASON_START`, `seasonNow`, `elapsed`, `teaserLeft`, `launch`, `isLaunched` |
 | `src/ServerScriptService/Mine/MineServer.server.luau` | persistence and the switch | `Verbs._loadLaunch`, `Verbs.launchSeason`, dispatch `launchSeason` |
 | `src/ServerScriptService/Mine/Admin/MineAdmin.luau` | the `/admin launch` command | `cmd == "launch"`, `deps.launchSeason` |
 | `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | limited windows on the season clock | `limitedActive`, `limitedWindow`, `LIMITED_WINDOWS`, `LIMITED_DAYS` (47) |
 | `src/ReplicatedStorage/Mine/Shared/MineRotatingOffers.luau` | offer slots | `SEASON_START`, `SEASON_END` |
-| `src/ReplicatedStorage/Mine/Shared/MineScrolls.luau` | battle pass | `PASS_SEASON_START`, `PASS_SEASON_END` |
+| `src/ReplicatedStorage/Mine/Shared/MineScrolls.luau` | battle pass | `PASS_SEASON_START`, `PASS_SEASON_END`, `seasonClock`, `passEndLabel` |
+| `src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau` | the pass panel's countdown | `SeasonClock` row |
 | `tools/verify/launch.js` | rule, persistence order, constants agree | needs `luau` |
 
 ## Decided by the owner
@@ -113,19 +114,33 @@ through a season they never saw begin.
 - **Calendar windows are not on the season clock.** A limited window with real dates
   (`opensUnix`, for example the Hallow one and the Candy Crypt) runs on `os.time()`, so
   launching late does not shift it. See [world-events](world-events.md).
-- **The two season ends disagree.** `MineRotatingOffers.SEASON_END` is 2026-11-01
-  **plus `EXTEND_SEC` (one week)** = 2026-11-08, but `MineScrolls.PASS_SEASON_END` is
-  still `1793505600` = 2026-11-01 04:00 UTC. So the battle pass is one week shorter
-  than the offers around it. `launch.js` pins the three **start** constants only.
-  I have not asked the owner whether that is intended (see
-  [open-questions](../open-questions.md) §1b). Once launched, each end is
-  `launchedAt + (END − SEASON_START)`, so the lengths are 40 days and 47 days (measured
-  from the constants).
+- **A launch reaches only the server it was typed on.** `Verbs._loadLaunch` reads
+  `launch_v1` once at boot, and nothing tells other running servers. After
+  `/admin launch now`, every other live server stays unlaunched (season at second zero)
+  until it restarts. **On launch day: launch before opening the game to players, or
+  restart all servers right after launching.** A live broadcast (MessagingService) would
+  remove the step; it is not built.
+- **The pass used to end a week early.** It was 40 days while the offers and Event
+  Horizon run 47 (the offers got "ONE MORE WEEK, ON EVERYTHING", `EXTEND_SEC`, and the pass
+  was missed). Fixed on 2026-10-17 (owner: *"do what you think is best for the game"*):
+  `PASS_SEASON_END` is now `1794110400`, so all three run **47 days from launch**, and
+  `launch.js` pins the three lengths together.
+- **Clients used to stay at second zero forever.** A client never runs `_loadLaunch`, so
+  its copy of `MineLaunch` never learned `launchedAt`. After a launch the shop would have
+  kept showing week one's deals (`RotatingOffers.active()`), which the server then refuses
+  as not live, and the sale and Event Horizon countdowns would never have moved. Fixed on
+  2026-10-17: the server mirrors the stamp onto `ReplicatedStorage` as the attribute
+  `MineLaunchedAt` (`Verbs._mirrorLaunch`, called after a successful read or save) and
+  `MineLaunch.stamp()` reads it **on clients only**.
+- **The pass panel used the raw clock.** `MineInventoryView` passed
+  `workspace:GetServerTimeNow()` straight to the countdown and printed "Oct 31 · 11:59 PM
+  ET". Before launch it counted down to a calendar date; after a late launch it would have
+  said SEASON OVER mid-season. It now uses `MineScrolls.seasonClock(...)`, and the end label
+  comes from `MineScrolls.passEndLabel()`: "Starts at launch" before launch, then the real
+  end in the player's local time. **Not yet seen in Studio.**
 
 ## Open questions
 
-- Should the battle pass end with the offers (11-08) or a week earlier (11-01)? Both are
-  still that way; see the gotcha above.
 - What should players see before launch: the rolling teaser, or something that says
   "launching soon"?
 
