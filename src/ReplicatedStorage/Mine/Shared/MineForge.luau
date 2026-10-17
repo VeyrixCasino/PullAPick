@@ -42,6 +42,18 @@ local OreIcons = require(shared:WaitForChild("MineOreIcons"))
 local T = require(shared:WaitForChild("MineTheme"))
 local UI = require(shared:WaitForChild("MineUI"))
 local Icons = require(shared:WaitForChild("MineIcons"))
+--[[
+	The recipe detail shows the actual tool, turning, not a picture of one.
+	ToolModelFactory lives at the ReplicatedStorage root rather than under
+	Mine/Shared, and it is loaded with pcall because a ViewportFrame is a nicety
+	-- if the factory is missing the panel must still open and still forge.
+]]
+local okFactory, Factory = pcall(function()
+	return require(RS:WaitForChild("ToolModelFactory"))
+end)
+if not okFactory then
+	Factory = nil
+end
 
 local BG2 = T.BG2
 local BG3 = T.BG3
@@ -155,6 +167,85 @@ local function discoveredOres(snapshot)
 end
 
 --[[
+	EVERY RECIPE IN THE GAME, CRAFTABLE ONES FIRST.
+
+	Owner, 2026-10-08: "SHOW ALL RECIPLES, the ones can you craft should
+	automatically be at the top".
+
+	discoveredOres above returns only what the player has seen, which is right
+	for a rail you pick an ore out of and wrong for a catalogue: a grid that
+	shows eleven squares tells a player the game has eleven tools in it.
+
+	So this returns all 82, and carries `locked` for the ones not yet
+	discovered. Rule 3 at the top of this file still holds -- an undiscovered
+	ore must not leak its name, tier or colour -- so a locked square is drawn
+	as a blank, and nothing on it is read from the ore row. Showing that a
+	recipe EXISTS is not the same as showing what it is, and the count is the
+	part the owner asked for.
+
+	Sort is craftable, then owned, then everything else, each by tier. Craftable
+	first is the ask and it is also the only ordering that answers the question
+	a player opens this screen with. `tier` breaks ties so the order is stable
+	across redraws -- a grid that reshuffles under the cursor while ore comes in
+	is worse than one that is merely long.
+]]
+local function allRecipes(snapshot, familyId)
+	local held = snapshot.ores or {}
+	local seen = snapshot.oresSeen
+	local out = {}
+	for _, def in ipairs(C.ORES or {}) do
+		local have = tonumber(held[def.id]) or 0
+		local discovered
+		if type(seen) == "table" then
+			discovered = seen[def.id] and true or false
+		else
+			discovered = have > 0
+		end
+		local cost = C.toolCraftCost(def.tier, OreTools.typeMult(familyId, def.tier), familyId)
+		out[#out + 1] = {
+			id = def.id,
+			def = def,
+			tier = def.tier,
+			name = def.name,
+			have = have,
+			cost = cost,
+			locked = not discovered,
+			afford = discovered and have >= cost,
+		}
+	end
+	--[[
+		Craftable first, then discovered, then locked -- and BEST FIRST inside
+		each band.
+
+		Owner, 2026-10-11: craftable recipes go "at the top, sorted from best to
+		least", and the rest "sorted by descending rarity by default".
+
+		The tie-break used to be ascending tier, which put the weakest thing a
+		player could make at the very top of the screen. For an ore, tier IS the
+		rarity ladder -- deeper ore is rarer and better -- so one comparison
+		satisfies both halves of that sentence.
+
+		Locked stays last and still leaks nothing: Rule 3 means a locked square
+		is drawn blank, and ordering by tier does not name, colour or rank it on
+		screen.
+	]]
+	table.sort(out, function(a, b)
+		local ra = a.afford and 0 or (a.locked and 2 or 1)
+		local rb = b.afford and 0 or (b.locked and 2 or 1)
+		if ra ~= rb then
+			return ra < rb
+		end
+		if a.tier ~= b.tier then
+			return a.tier > b.tier
+		end
+		-- Stable across redraws: a grid that reshuffles under the cursor while
+		-- ore comes in is worse than one that is merely long.
+		return tostring(a.id) < tostring(b.id)
+	end)
+	return out
+end
+
+--[[
 	The owned tool for an ore, if the player has one.
 
 	Keyed on the ORE now, not on a frame id. One ore, one tool: that is the
@@ -233,6 +324,19 @@ function MineForge.mount(parent, opts)
 	local selMode = "craft"
 	local selOreId = nil
 	local selUid = nil
+	--[[
+		SCRAP ARMS BEFORE IT FIRES.
+
+		Scrapping destroys a tool outright and there was no step between the
+		click and the loss. That was survivable only while the button appeared
+		to be paying for it; now that the quote is honest, the common case reads
+		"+0 ore / +0 dust" and a single misclick on a 224px red button throws a
+		tool away for literally nothing.
+
+		Held by UID rather than by a flag, so arming one tool and then selecting
+		a different one does not leave the second one armed.
+	]]
+	local scrapArmed = nil
 	local refresh
 
 	--[[
@@ -292,6 +396,97 @@ function MineForge.mount(parent, opts)
 		Position = UDim2.fromOffset(RAIL_X + RAIL_W + 24, 62),
 		Size = UDim2.new(1, -RAIL_X - RAIL_W - 38, 1, -72 - POUCH_H),
 	}, root)
+
+	--[[
+		THE CRAFT PANE: A GRID OF RECIPES, NOT A RAIL AND A FORM.
+
+		Owner, 2026-10-08, on the old craft screen: "rn so so shit and i fucking
+		hate it .. make it like how the shop used to be, expect when you looking
+		for something to craft theres a bunch of recipe squares (5 recipes per
+		row, it should have the name icon what it needs)".
+
+		CRAFT gets the whole panel instead of a 232px rail and a text form in the
+		gutter beside it. The rail and the detail frame above are still used --
+		by UPGRADE, which genuinely is a list of a few owned tools and a pile of
+		numbers -- and are simply hidden while crafting.
+
+		Two screens, one at a time, switched on selOreId:
+
+		  nil -> THE GRID. Every recipe in the game as a square.
+		  set -> THE RECIPE. The tool in 3D, its cost and what it does.
+
+		Five per row comes from the CellSize scale: 0.2 of the pane width, so it
+		stays five across at any window size rather than reflowing to four on a
+		laptop and six on a monitor. The offset in the X term is the gutter, which
+		is why it is negative.
+	]]
+	local craftPane = mk("Frame", {
+		Name = "CraftPane",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(RAIL_X, 62),
+		Size = UDim2.new(1, -RAIL_X - 14, 1, -72 - POUCH_H),
+		Visible = false,
+	}, root)
+
+	--[[
+		SEARCH, over a catalogue of 82 recipes per family.
+
+		Owner, 2026-10-11: "Add search, sorting, and useful filters."
+
+		RULE 3 DECIDES WHAT IT CAN MATCH. An undiscovered ore must not leak its
+		name, tier or colour, so a locked square is drawn blank -- which means
+		it cannot be searched either. Matching a query against a hidden name
+		would tell a player exactly what they have not found yet: type "cobalt",
+		watch one blank square survive the filter, and the name is leaked by
+		position. So a query hides every locked row instead, and the count below
+		says how many are still out there.
+	]]
+	local searchBox = mk("TextBox", {
+		Name = "RecipeSearch",
+		BackgroundColor3 = BG3,
+		Size = UDim2.new(0.42, 0, 0, 30),
+		Position = UDim2.fromOffset(0, 0),
+		Font = FONT_M,
+		TextSize = 13,
+		TextColor3 = TEXT,
+		PlaceholderText = "Search recipes...",
+		PlaceholderColor3 = MUTED,
+		Text = "",
+		ClearTextOnFocus = false,
+		Visible = false,
+	}, craftPane)
+	round(searchBox, 8)
+
+	local searchNote = label(craftPane, "", 11, MUTED,
+		UDim2.new(0.44, 10, 0, 8), UDim2.new(0.56, -10, 0, 18), FONT_M)
+	searchNote.Visible = false
+
+	local grid = mk("ScrollingFrame", {
+		Name = "RecipeGrid",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(0, 38),
+		Size = UDim2.new(1, 0, 1, -38),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 5,
+		Visible = false,
+	}, craftPane)
+	mk("UIGridLayout", {
+		-- 124 -> 148: the card carries a rarity band, a 52px icon, a wrapped
+		-- tool name at the 14px floor, the cost and the ore. At 124 the ore
+		-- line fell off the bottom edge.
+		CellSize = UDim2.new(0.2, -10, 0, 148),
+		CellPadding = UDim2.fromOffset(10, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+	}, grid)
+
+	local recipeView = mk("Frame", {
+		Name = "RecipeView",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+	}, craftPane)
 
 	--[[
 		THE ORE POUCH, along the bottom.
@@ -469,8 +664,24 @@ function MineForge.mount(parent, opts)
 			Everything below is positioned off HERO_X, so the text column starts
 			clear of the portrait rather than being hand-offset in ten places.
 		]]
-		local PORTRAIT = 150
-		local HERO_X = PORTRAIT + 28
+		--[[
+			THE PANE IS BIG. THIS USED ABOUT A FIFTH OF IT.
+
+			Owner, 2026-10-12: "finish the forge ui". Everything this screen says
+			was already right -- portrait, rarity, the gain before the price, an
+			armed SCRAP -- and it was all crammed into a 340x200 corner of a pane
+			roughly 900 tall, with the remaining four fifths dark and empty. It
+			did not read as a simple screen, it read as an unfinished one.
+
+			So the same content is laid out against the pane instead of against
+			(0, 0): a hero band across the top, the numbers in a card that spans
+			the width, the actions in a row of buttons big enough to hit on a
+			phone, and the build at the bottom. Nothing below changes WHAT is
+			said, only where it sits and how big it is.
+		]]
+		local PORTRAIT = 200
+		local HERO_X = PORTRAIT + 36
+		local PANE_W = math.max(360, host.AbsoluteSize.X)
 
 		local orb = mk("Frame", {
 			BackgroundColor3 = T.CARD_HI,
@@ -478,7 +689,7 @@ function MineForge.mount(parent, opts)
 			Position = UDim2.fromOffset(0, 0),
 		}, host)
 		UI.round(orb, 999)
-		UI.edge(orb, T.ACCENT, 2)
+		UI.edge(orb, T.ACCENT, 3)
 		-- The ore's own skin for a forged pickaxe. This is the hero portrait, so
 		-- it is the one place a player studies the tool they are about to spend
 		-- on -- showing the same generic pickaxe for all 82 tiers here was the
@@ -486,20 +697,20 @@ function MineForge.mount(parent, opts)
 		UI.icon(orb, Icons.forTool(tool) or IMG.merge, math.floor(PORTRAIT * 0.6),
 			UDim2.fromOffset(math.floor(PORTRAIT * 0.2), math.floor(PORTRAIT * 0.2)))
 
-		label(host, OreTools.toolName(tool), 28, TEXT, UDim2.fromOffset(HERO_X, 0),
-			UDim2.new(1, -HERO_X, 0, 34), FONT)
+		label(host, OreTools.toolName(tool), 34, TEXT, UDim2.fromOffset(HERO_X, 8),
+			UDim2.new(1, -HERO_X, 0, 42), FONT)
 
 		-- Rarity as a chip and the tier beside it, the way the reference reads
 		-- them: what it is, then how deep it goes.
 		local band = C.oreBandForTier and C.oreBandForTier(tool.tier) or nil
 		if band then
-			UI.pill(host, string.upper(band), T.ACCENT, UDim2.fromOffset(HERO_X, 38))
+			UI.pill(host, string.upper(band), T.ACCENT, UDim2.fromOffset(HERO_X, 56))
 		end
-		label(host, string.format("Tier %s", tostring(tool.tier or "?")), 15, T.GEM,
-			UDim2.fromOffset(HERO_X + (band and 118 or 0), 38), UDim2.fromOffset(110, 26), FONT)
+		label(host, string.format("Tier %s", tostring(tool.tier or "?")), T.TEXT_BODY, T.GEM,
+			UDim2.fromOffset(HERO_X + (band and 128 or 0), 56), UDim2.fromOffset(120, 28), FONT)
 
-		label(host, string.format("level %d / %d", level, cap), 14,
-			maxed and GOLD or MUTED, UDim2.fromOffset(HERO_X, 68), UDim2.new(1, -HERO_X, 0, 18))
+		label(host, string.format("level %d / %d", level, cap), T.TEXT_BODY,
+			maxed and GOLD or MUTED, UDim2.fromOffset(HERO_X, 92), UDim2.new(1, -HERO_X, 0, 22))
 
 		--[[
 			Breaking power and reach, stated plainly, because they are the whole
@@ -509,8 +720,8 @@ function MineForge.mount(parent, opts)
 		if C.toolBreakingPower and not coinTool then
 			local bp = C.toolBreakingPower(tool)
 			label(host, string.format("breaking power %d  \u{00B7}  reaches ore tier %d",
-				bp, C.oreReachCap(bp)), 12, GOLD,
-				UDim2.fromOffset(HERO_X, 92), UDim2.new(1, -HERO_X, 0, 16))
+				bp, C.oreReachCap(bp)), T.TEXT_MIN, GOLD,
+				UDim2.fromOffset(HERO_X, 122), UDim2.new(1, -HERO_X, 0, 20))
 		end
 
 		local canStep, costLine, heldLine
@@ -525,7 +736,7 @@ function MineForge.mount(parent, opts)
 			heldLine = "held  " .. num(have) .. " coins"
 		else
 			local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
-			local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
+			local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult, tool.familyId)
 			-- C.ORES[tool.tier] is what the server's _oreToolCost uses. Resolve
 			-- it the same way or the panel quotes a different ore than the verb
 			-- charges.
@@ -560,23 +771,45 @@ function MineForge.mount(parent, opts)
 			heldLine = string.format("held  %s  \u{00B7}  %s", num(haveOre), num(haveDust))
 		end
 
-		label(host, costLine, 14, (maxed and GOLD) or (canStep and GREEN) or MUTED,
-			UDim2.fromOffset(HERO_X, 114), UDim2.new(1, -HERO_X, 0, 20))
+		--[[
+			THE PRICE GETS A CARD, SPANNING THE PANE.
+
+			It was two bare lines floating beside the portrait at 14 and 13px.
+			This is the number the whole screen is asking the player to agree
+			to, so it sits on its own surface, at the type floors, across the
+			full width -- which is also the space that was empty.
+		]]
+		local priceCard = mk("Frame", {
+			BackgroundColor3 = T.CARD,
+			Position = UDim2.fromOffset(0, PORTRAIT + 22),
+			Size = UDim2.new(1, 0, 0, heldLine and 82 or 58),
+		}, host)
+		UI.round(priceCard, 12)
+		UI.edge(priceCard, T.OUTLINE, T.STROKE_CHUNKY)
+		label(priceCard, costLine, T.TEXT_BODY, (maxed and GOLD) or (canStep and GREEN) or MUTED,
+			UDim2.fromOffset(16, 12), UDim2.new(1, -32, 0, 24), FONT)
 		if heldLine then
-			label(host, heldLine, 13, MUTED, UDim2.fromOffset(HERO_X, 136), UDim2.new(1, -HERO_X, 0, 16))
+			label(priceCard, heldLine, T.TEXT_MIN, MUTED,
+				UDim2.fromOffset(16, 44), UDim2.new(1, -32, 0, 20))
 		end
 
-		-- Clear of the 150px portrait, so nothing sits on top of it.
-		local y = 172
-		button(host, "+1", GREEN, UDim2.fromOffset(0, y), UDim2.fromOffset(56, 28),
+		-- Clear of the portrait AND the price card, so nothing overlaps.
+		local y = PORTRAIT + 22 + (heldLine and 82 or 58) + 16
+		--[[
+			Buttons at 92x44 rather than 56x28. The old row was below every
+			touch-target guidance there is, on a screen whose whole job is
+			spending, and it had four fifths of a pane going spare.
+		]]
+		local BW, BH, BGAP = 92, 44, 10
+		button(host, "+1", GREEN, UDim2.fromOffset(0, y), UDim2.fromOffset(BW, BH),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, 1) end
 			end)
-		button(host, "+10", GREEN, UDim2.fromOffset(62, y), UDim2.fromOffset(56, 28),
+		button(host, "+10", GREEN, UDim2.fromOffset(BW + BGAP, y), UDim2.fromOffset(BW, BH),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, 10) end
 			end)
-		button(host, "MAX", GREEN, UDim2.fromOffset(124, y), UDim2.fromOffset(56, 28),
+		button(host, "MAX", GREEN, UDim2.fromOffset((BW + BGAP) * 2, y), UDim2.fromOffset(BW, BH),
 			canStep == true, function()
 				if opts.onUpgrade then opts.onUpgrade(tool.uid, cap) end
 			end)
@@ -584,45 +817,106 @@ function MineForge.mount(parent, opts)
 		-- Scrapping is always offered; it is the one action that works when the
 		-- player cannot afford anything else.
 		local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
-		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult)
+		--[[
+			PASS `base`. THIS BUTTON QUOTED A REFUND THE SERVER DOES NOT PAY.
+
+			toolRecycle is (spent at `level`) - (spent at `baseLevel`), and
+			baseLevel defaults to 1 when the argument is left off. This call left
+			it off; the server passes the tool's real `base`. So the two sides
+			computed different things from the same function, which is exactly
+			what rule 1 at the top of this file exists to prevent -- and the rule
+			held for the price, which IS shared, while the refund quietly did not.
+
+			It is not a rounding difference. A newly forged tool INHERITS the
+			highest level you own and is stamped base = inherited (see the craft
+			verb), so once anything of yours is level 10 every tool you forge
+			starts at level 10 with base 10. For that tool:
+
+			  server : spent(10) - spent(10) = 0
+			  panel  : spent(10) - spent(1)  = the entire climb
+
+			The button therefore advertised a large ore and dust refund, the
+			server paid nothing, and the tool was destroyed either way -- with no
+			confirmation step in between, because the quote made it look free.
+
+			Reading `base` the same way the server does, clamp and fallback
+			included, so a row saved before `base` existed reads 1 on both sides.
+		]]
+		local recBase = math.clamp(math.floor(tonumber(tool.base) or 1), 1, level)
+		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult, recBase)
 		-- Equipping is what turns a forged tool into breaking power you actually
 		-- carry, so it sits beside the levelling buttons rather than buried.
 		local equipped = (snapshot.oreToolEquipped ~= nil and snapshot.oreToolEquipped == tool.uid)
+		local y2 = y + BH + BGAP
 		button(host, equipped and "EQUIPPED" or "EQUIP", GOLD,
-			UDim2.fromOffset(0, y + 38), UDim2.fromOffset(110, 26), not equipped, function()
+			UDim2.fromOffset(0, y2), UDim2.fromOffset(150, BH), not equipped, function()
 				if opts.onEquip then opts.onEquip(tool.uid) end
 			end)
 
-		button(host, "SCRAP  +" .. num(recOre) .. " ore / +" .. num(recDust) .. " dust",
-			RED, UDim2.fromOffset(116, y + 38), UDim2.fromOffset(224, 26), true, function()
-				if opts.onRecycle then opts.onRecycle(tool.uid) end
+		local armed = (scrapArmed == tool.uid)
+		button(host,
+			armed and "DESTROY IT?  click again"
+				or ("SCRAP  +" .. num(recOre) .. " ore / +" .. num(recDust) .. " dust"),
+			RED, UDim2.fromOffset(160, y2), UDim2.fromOffset(300, BH), true, function()
+				if armed then
+					scrapArmed = nil
+					if opts.onRecycle then
+						opts.onRecycle(tool.uid)
+					end
+				else
+					scrapArmed = tool.uid
+					refresh()
+				end
 			end)
+		if armed then
+			-- Says what is actually lost, because the refund line above may
+			-- legitimately read zero and "scrap for nothing" needs to be a
+			-- decision rather than a surprise.
+			label(host, recOre > 0
+					and "the tool is gone; only levels you bought come back"
+					or "this tool refunds NOTHING -- it was forged at its level",
+				T.TEXT_MIN, RED, UDim2.fromOffset(160, y2 + BH + 6),
+				UDim2.new(1, -160, 0, 20), FONT_M)
+		end
 
 		--[[
-			THE SKIN AND THE RUNE ON THIS TOOL.
+			THE SKIN AND THE ENCHANTS ON THIS TOOL.
 
 			Both were invisible here, which made the Forge a panel about levelling
 			a tool while saying nothing about the two things TODO 0.13 calls the
 			build. You had to go to the Enchanter to find out whether the pick you
 			were pouring ore into even had a skin on it.
 
-			BOTH ARE PER FAMILY, NOT PER TOOL, and that is the fact a reader needs:
-			p.toolSockets and p.toolTempers are keyed "pickaxe" / "drill" /
-			"explosive". A forged tool row carries only uid, typeId, familyId,
-			tier and level -- it cannot hold a rune or a temperament of its own.
-			So this shows what the FAMILY is wearing, which is what this tool
-			swings with, and says so rather than implying the fit is per-tool.
+			THE SKIN IS PER FAMILY, NOT PER TOOL: p.toolTempers is keyed
+			"pickaxe" / "drill" / "explosive", so this shows what the FAMILY is
+			wearing and says so. Enchants are per tool (tool.enchants, since runes
+			were retired on 2026-10-12) and are applied at the Forge hub.
 
 			It REPORTS and ROUTES rather than reimplementing. The Enchanter's
-			Temper and Sockets tabs are several hundred lines each and work;
+			Temper tab is several hundred lines and works;
 			building a second copy here is how two screens start disagreeing
 			about what is fitted. Whether those tabs should eventually live here
 			instead is a design call, not a side effect of this panel.
 		]]
 		local fam = tostring(tool.familyId or selFamily or "pickaxe")
-		local ySkin = y + 76
-		label(host, "ON THIS FAMILY", 11, MUTED, UDim2.fromOffset(0, ySkin),
-			UDim2.new(1, 0, 0, 14), FONT)
+		-- The build gets its own card under the actions, which is where the rest
+		-- of the pane's empty space was.
+		local ySkin = y2 + BH + 36
+		do
+			-- Flush with the price card above it, not bled 14px past the pane on
+			-- each side -- the right edge was running off the panel. And tall
+			-- enough for the button and both lines.
+			local buildCard = mk("Frame", {
+				BackgroundColor3 = T.CARD,
+				Position = UDim2.fromOffset(0, ySkin - 16),
+				Size = UDim2.new(1, 0, 0, 112),
+				ZIndex = 0,
+			}, host)
+			UI.round(buildCard, 12)
+			UI.edge(buildCard, T.OUTLINE, T.STROKE_CHUNKY)
+		end
+		label(host, "ON THIS FAMILY", T.TEXT_MIN, MUTED, UDim2.fromOffset(16, ySkin),
+			UDim2.new(1, -32, 0, 18), FONT)
 
 		local tt = (snapshot.toolTempers or {})[fam] or {}
 		local skinLine, skinInk = "no skin fitted", MUTED
@@ -635,43 +929,33 @@ function MineForge.mount(parent, opts)
 				tt.temperRarity and ("  " .. tostring(tt.temperRarity)) or "")
 			skinInk = GOLD
 		end
-		label(host, "skin   " .. skinLine, 12, skinInk, UDim2.fromOffset(0, ySkin + 16),
+		label(host, "skin   " .. skinLine, T.TEXT_MIN, skinInk, UDim2.fromOffset(16, ySkin + 26),
 			UDim2.new(1, -120, 0, 16))
 
-		local socket = (snapshot.toolSockets or {})[fam]
-		local runeId = (type(socket) == "table") and (socket.main or socket.omni) or socket
-		local runeLine, runeInk = "no rune socketed", MUTED
-		if runeId then
-			local okR, Runes = pcall(function()
-				return require(shared:WaitForChild("MineRunes"))
+		local enchLine, enchInk = "none · enchant it at the FORGE", MUTED
+		if type(tool.enchants) == "table" and next(tool.enchants) ~= nil then
+			local okE, E = pcall(function()
+				return require(shared:WaitForChild("MineEnchants"))
 			end)
-			local r
-			for _, row in ipairs(snapshot.runes or {}) do
-				if row.id == runeId then
-					r = row
-					break
+			local bits = {}
+			for _, slotId in ipairs({ "damage", "utility", "special" }) do
+				local e = tool.enchants[slotId]
+				local def = okE and type(e) == "table" and E.get(e.id) or nil
+				if def then
+					table.insert(bits, def.name .. " " .. E.roman(e.level))
 				end
 			end
-			if okR and Runes and Runes.describe and r then
-				runeLine = tostring(Runes.describe(r))
-			else
-				-- The rune is socketed but not in the loose list, which is exactly
-				-- what being socketed means. Say that rather than "none".
-				runeLine = "one socketed"
+			if #bits > 0 then
+				enchLine, enchInk = table.concat(bits, " · "), GOLD
 			end
-			runeInk = GOLD
 		end
-		label(host, "rune   " .. runeLine, 12, runeInk, UDim2.fromOffset(0, ySkin + 34),
+		label(host, "enchants   " .. enchLine, T.TEXT_MIN, enchInk, UDim2.fromOffset(16, ySkin + 52),
 			UDim2.new(1, -120, 0, 16))
 
 		if opts.onOpenEnchanter then
-			button(host, "FIT A SKIN", BG3, UDim2.new(1, -118, 0, ySkin + 14),
-				UDim2.fromOffset(112, 24), true, function()
+			button(host, "FIT A SKIN", BG3, UDim2.new(1, -166, 0, ySkin + 18),
+				UDim2.fromOffset(140, 30), true, function()
 					opts.onOpenEnchanter("temper")
-				end)
-			button(host, "SOCKET A RUNE", BG3, UDim2.new(1, -118, 0, ySkin + 42),
-				UDim2.fromOffset(112, 24), true, function()
-					opts.onOpenEnchanter("sockets")
 				end)
 		end
 	end
@@ -697,7 +981,10 @@ function MineForge.mount(parent, opts)
 		-- it was always a function of tier, and the frame lookup it reached
 		-- through is gone with the priced roster.
 		local typeMult = OreTools.typeMult(fam, row.tier)
-		local cost = C.toolCraftCost(row.tier, typeMult)
+		-- `fam`, the same family typeMult just used. `row` carries an ORE, not a
+		-- family, so reading row.familyId here would have passed nil and quoted
+		-- the cheaper pre-hammer price while the server charged the real one.
+		local cost = C.toolCraftCost(row.tier, typeMult, fam)
 		local afford = (row.have or 0) >= cost
 
 		label(host, OreTools.name(row.def, fam), 19, TEXT,
@@ -745,6 +1032,483 @@ function MineForge.mount(parent, opts)
 			label(host, string.format("you already have one, at level %d",
 				math.max(1, tonumber(owned.level) or 1)), 12, GOLD,
 				UDim2.fromOffset(160, 120), UDim2.new(1, -160, 0, 16))
+		end
+	end
+
+	--[[
+		ONE RECIPE SQUARE: icon, name, what it needs.
+
+		A locked square reads nothing off the ore row -- no name, no tier, no
+		colour -- because rule 3 at the top of this file says an undiscovered
+		ore must not leak through a recipe. It still occupies its place in the
+		grid, so the catalogue is honest about its own size.
+	]]
+	--[[
+		THE RECIPE CARD.
+
+		Owner, 2026-10-11: "Each recipe should be an item card with the icon and
+		name of the tool being crafted", with "excellent item cards" and
+		"distinct rarity treatments" -- and then, "forge needs all attention".
+
+		Four things were wrong with the old square:
+
+		1. It drew the ORE, not the tool. MineIcons carries ORE_PICK, ORE_DRILL
+		   and ORE_BOMB -- 82 per-tier icons each, 246 in all, of the actual
+		   forged tool -- and NOTHING in the game read one of them.
+		2. It was built out of raw instances, so it had none of the house
+		   chrome: no fat outline, no juice, no press.
+		3. Text sat at 10-12px against floors of 14/16.
+		4. The only state it showed was affordable-or-not. 82 recipes all look
+		   the same weight, so nothing told you a deep one was worth wanting.
+
+		THE ICON IS LAYERED, AND THAT IS DELIBERATE. 231 of those 246 ids do not
+		currently serve -- they are real Image assets, creator iPressBars, all
+		uploaded 2026-10-06, and only tiers 1/20/41/60/82 come back Success, the
+		same stuck batch as the charm art. A failed ImageLabel draws nothing, so
+		the ore icon goes UNDERNEATH and the tool icon on top: today the card
+		shows the ore and reads correctly, and the moment moderation clears the
+		tool art appears with no code change.
+	]]
+	local TOOL_SHEET = {
+		pickaxe = Icons.ORE_PICK,
+		drill = Icons.ORE_DRILL,
+		explosive = Icons.ORE_BOMB,
+	}
+	--[[
+		Five rarity bands across the 82 rungs, so depth reads as worth.
+		Deliberately NOT shown on a locked card: a coloured stripe on an
+		undiscovered square would leak its tier, which Rule 3 forbids just as
+		much as leaking the name.
+	]]
+	-- Color3.fromRGB spelled out: this file has no C3 helper, and a missing
+	-- local is a GLOBAL READ in Luau -- nil at runtime, clean at build time.
+	local BANDS = {
+		{ upto = 16, color = Color3.fromRGB(150, 156, 178) },
+		{ upto = 33, color = Color3.fromRGB(112, 214, 140) },
+		{ upto = 49, color = Color3.fromRGB(96, 176, 255) },
+		{ upto = 66, color = Color3.fromRGB(186, 124, 255) },
+		{ upto = 82, color = Color3.fromRGB(255, 194, 77) },
+	}
+	local function bandOf(tier)
+		for _, b in ipairs(BANDS) do
+			if (tonumber(tier) or 1) <= b.upto then
+				return b.color
+			end
+		end
+		return BANDS[#BANDS].color
+	end
+
+	local function recipeCell(host, r, order, onPick)
+		--[[
+			CELL OUTSIDE, BUTTON INSIDE, AND THAT SPLIT IS LOAD-BEARING.
+
+			`juice` works by putting a UIScale on what you hand it. Hand it a
+			UIGridLayout CELL and the cell scales inside a slot the layout has
+			already sized -- the bug the skins wardrobe shipped, where a scaled
+			tile left its own cell and rendered blank.
+
+			So the thing the grid owns is a plain Frame of fixed size, and
+			everything visible lives in a button filling it. The button carries
+			the art, the press and the scale; the grid only ever sees the frame.
+		]]
+		local cell = mk("Frame", {
+			BackgroundTransparency = 1,
+			LayoutOrder = order,
+		}, host)
+		local b = mk("TextButton", {
+			BackgroundColor3 = r.locked and BG3 or BG2,
+			BackgroundTransparency = r.locked and 0.25 or 0,
+			AutoButtonColor = false,
+			Text = "",
+			Size = UDim2.fromScale(1, 1),
+		}, cell)
+		round(b, 12)
+		-- The kit's edge(), not a raw UIStroke: it falls back to T.EDGE and a
+		-- 1px thickness if the theme keys are missing, which a direct
+		-- `stroke.Color = T.OUTLINE` does not -- that throws on nil and takes
+		-- the whole grid with it.
+		local stroke = UI.edge(b, T.OUTLINE, T.STROKE_CHUNKY)
+
+		if r.locked then
+			-- Rule 3: nothing here is read from the ore row.
+			label(b, "?", 34, MUTED, UDim2.fromOffset(0, 34), UDim2.new(1, 0, 0, 40),
+				FONT, Enum.TextXAlignment.Center)
+			label(b, "undiscovered", T.TEXT_MIN, MUTED, UDim2.fromOffset(0, 86),
+				UDim2.new(1, 0, 0, 18), FONT_M, Enum.TextXAlignment.Center)
+			return b
+		end
+
+		-- Rarity: a band across the top, and the same colour on the outline
+		-- once you can actually forge it.
+		local band = bandOf(r.tier)
+		local stripe = mk("Frame", {
+			Name = "Band", BackgroundColor3 = band, BorderSizePixel = 0,
+			Size = UDim2.new(1, 0, 0, 6), Position = UDim2.fromOffset(0, 0),
+		}, b)
+		round(stripe, 3)
+
+		-- Icon: ore underneath, the forged tool over the top of it.
+		local art = OreIcons.BY_ID and OreIcons.BY_ID[r.id]
+		if art and art.icon then
+			UI.icon(b, art.icon, 52, UDim2.new(0.5, -26, 0, 14))
+		end
+		local sheet = TOOL_SHEET[selFamily]
+		local toolArt = sheet and sheet[tonumber(r.tier) or -1]
+		if toolArt then
+			UI.icon(b, toolArt, 52, UDim2.new(0.5, -26, 0, 14))
+		end
+
+		label(b, OreTools.name(r.def, selFamily), T.TEXT_MIN, TEXT,
+			UDim2.fromOffset(6, 70), UDim2.new(1, -12, 0, 32),
+			FONT, Enum.TextXAlignment.Center).TextWrapped = true
+
+		-- What it NEEDS, which is the whole reason the square is readable at a
+		-- glance: the amount, and whether you are there yet.
+		local costLbl = label(b, string.format("%s / %s", num(r.have), num(r.cost)),
+			T.TEXT_MIN, r.afford and GREEN or MUTED, UDim2.fromOffset(6, 104),
+			UDim2.new(1, -12, 0, 18), FONT, Enum.TextXAlignment.Center)
+		costLbl.Font = Enum.Font.GothamBlack
+
+		label(b, r.name, T.TEXT_MIN - 1, MUTED, UDim2.fromOffset(6, 124),
+			UDim2.new(1, -12, 0, 16), FONT_M, Enum.TextXAlignment.Center)
+
+		if r.afford then
+			stroke.Color = GREEN
+			stroke.Thickness = T.STROKE_THICK or 4
+			stroke.Transparency = 0
+		end
+		-- Everything pressable gets juice; the kit's own rule.
+		UI.juice(b)
+		b.MouseButton1Click:Connect(onPick)
+		return b
+	end
+
+	local function drawGrid(snapshot)
+		for _, d in ipairs(grid:GetChildren()) do
+			if not d:IsA("UIGridLayout") then
+				d:Destroy()
+			end
+		end
+		local rows = allRecipes(snapshot, selFamily)
+		local q = string.lower(searchBox.Text or "")
+		local shown, hiddenLocked = 0, 0
+		for _, r in ipairs(rows) do
+			local keep = true
+			if q ~= "" then
+				if r.locked then
+					-- Never matched by name: see the Rule 3 note on searchBox.
+					keep = false
+					hiddenLocked += 1
+				else
+					local nm = string.lower(tostring(OreTools.name(r.def, selFamily) or r.name or ""))
+					keep = string.find(nm, q, 1, true) ~= nil
+				end
+			end
+			if keep then
+				shown += 1
+				local r2 = r
+				recipeCell(grid, r2, shown, function()
+					selOreId = r2.id
+					refresh()
+				end)
+			end
+		end
+		if q ~= "" then
+			searchNote.Visible = true
+			searchNote.Text = ("%d of %d  ·  %d undiscovered hidden")
+				:format(shown, #rows, hiddenLocked)
+		else
+			searchNote.Visible = false
+		end
+	end
+
+	--[[
+		Typing redraws the grid and nothing else.
+
+		Connected HERE, below drawGrid, and not up beside the TextBox: a local
+		referenced above its declaration compiles to a GLOBAL READ in Luau, so
+		the handler would have called nil on the first keystroke with no error
+		at build time.
+
+		drawGrid, not refresh: refresh rebuilds the rail, the modes and the
+		pouch strip too, and doing all of that per character is how a search box
+		ends up feeling broken on a phone.
+	]]
+	searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+		if grid.Visible then
+			drawGrid((opts.getSnap and opts.getSnap()) or {})
+		end
+	end)
+
+	--[[
+		THE RECIPE: the tool itself, then what it costs and what it does.
+
+		"when you click a recipe it should bring you into a 3d view of the tool,
+		with how much ore it takes, how much breaking power, how much damage."
+
+		The model is built the same way the server builds the one that ends up
+		in the player's hand -- ToolModelFactory.build with the ore's own look --
+		so the preview is the tool, not an impression of it.
+
+		No "about N blocks" line. The owner called it unprofessional and it is
+		gone; the ore cost is the number, and the pouch strip along the bottom
+		already says how close you are to it.
+	]]
+	local function drawRecipe(snapshot, r)
+		for _, d in ipairs(recipeView:GetChildren()) do
+			d:Destroy()
+		end
+
+		mk("TextButton", {
+			BackgroundColor3 = BG3, AutoButtonColor = true, Text = "\u{2190}  ALL RECIPES",
+			TextColor3 = TEXT, TextSize = 12, Font = FONT,
+			Size = UDim2.fromOffset(140, 26), Position = UDim2.fromOffset(0, 0),
+		}, recipeView).MouseButton1Click:Connect(function()
+			selOreId = nil
+			refresh()
+		end)
+
+		local stage = mk("Frame", {
+			BackgroundColor3 = BG3,
+			Position = UDim2.fromOffset(0, 36),
+			Size = UDim2.new(0.46, -8, 1, -44),
+		}, recipeView)
+		round(stage, 10)
+
+		--[[
+			A LIVE STAGE, NOT A DARK RECTANGLE. Owner, 2026-10-08: "can we make
+			the packground more active and shit".
+
+			Two things, both cheap and both tinted by the ORE so the backdrop
+			belongs to the tool standing on it rather than being generic chrome:
+
+			  a gradient that slowly turns, so the light on the stage moves
+			  motes that drift upward and recycle, so something is always moving
+
+			Deliberately low contrast. This sits behind a rotating 3D model and
+			under six lines of numbers; a background that competes with either
+			is worse than a flat one. The gradient runs ore-colour to panel at
+			0.55 transparency and the motes are 2-3px.
+
+			Everything here is parented INSIDE the stage, so clearing
+			recipeView on the next draw takes it all with it -- and the
+			Heartbeat below stops itself the moment the stage leaves the tree,
+			which is what keeps a tab change from leaking a connection per
+			recipe viewed.
+		]]
+		local tint = (typeof(r.def and r.def.color) == "Color3") and r.def.color or GOLD
+		local grad = mk("UIGradient", {
+			Color = ColorSequence.new(tint, BG3),
+			Transparency = NumberSequence.new(0.55),
+			Rotation = 0,
+		}, stage)
+
+		local motes = {}
+		for i = 1, 9 do
+			local m = mk("Frame", {
+				BackgroundColor3 = tint,
+				BackgroundTransparency = 0.45 + (i % 3) * 0.15,
+				BorderSizePixel = 0,
+				Size = UDim2.fromOffset(2 + (i % 2), 2 + (i % 2)),
+				Position = UDim2.fromScale(0.08 + (i * 0.1) % 0.86, (i * 0.11) % 1),
+				ZIndex = 0,
+			}, stage)
+			round(m, 2)
+			motes[i] = { f = m, speed = 0.02 + (i % 4) * 0.012, x = 0.08 + (i * 0.1) % 0.86 }
+		end
+
+		local t0 = 0
+		local drift
+		drift = game:GetService("RunService").Heartbeat:Connect(function(dt)
+			if not stage.Parent then
+				drift:Disconnect()
+				return
+			end
+			t0 += dt
+			grad.Rotation = (t0 * 8) % 360
+			for i, mo in ipairs(motes) do
+				local y = mo.f.Position.Y.Scale - mo.speed * dt
+				if y < -0.05 then
+					y = 1.05
+				end
+				-- a slow sideways sway, so they do not read as falling snow
+				mo.f.Position = UDim2.fromScale(mo.x + math.sin(t0 * 0.6 + i) * 0.012, y)
+			end
+		end)
+
+		if Factory and Factory.build then
+			local vp = mk("ViewportFrame", {
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+			}, stage)
+			local okBuild, model = pcall(function()
+				local look = Factory.oreLook and Factory.oreLook(r.def, C.ORE_COUNT or #C.ORES)
+				local m = Factory.build(selFamily, r.tier, C.ORE_COUNT or #C.ORES, look)
+				return m
+			end)
+			if okBuild and model then
+				--[[
+					A ViewportFrame renders neither lights nor particles, so the
+					FX folder is dead weight in here -- and an unanchored part
+					inside one falls. Strip and anchor before parenting.
+				]]
+				local fx = model:FindFirstChild("FX")
+				if fx then
+					fx:Destroy()
+				end
+				for _, d in ipairs(model:GetDescendants()) do
+					if d:IsA("BasePart") then
+						d.Anchored = true
+					end
+				end
+				model.Parent = vp
+				local cam = Instance.new("Camera")
+				cam.Parent = vp
+				vp.CurrentCamera = cam
+				local cf, size = model:GetBoundingBox()
+				local dist = math.max(size.Magnitude * 1.1, 3)
+				cam.CFrame = CFrame.lookAt(cf.Position + Vector3.new(dist * 0.6, dist * 0.42, dist * 0.78),
+					cf.Position)
+				--[[
+					TURN IT ABOUT WORLD Y, NOT ABOUT THE PIVOT'S OWN Y.
+
+					This read `model:PivotTo(model:GetPivot() * CFrame.Angles(0,
+					dt, 0))`, which spins about the PIVOT's local Y -- and the
+					pivot here is not upright. build() sets PrimaryPart to the
+					Handle, and the Handle is a cyl(), which bakes
+					CFrame.Angles(0, 0, rad(90)) into the part so the Roblox
+					cylinder (long on its own X) stands up. So the Handle's
+					local Y points along world -X, and spinning about it
+					tumbled the tool end over end -- which is why it was seen
+					lying on its side with the head at the bottom.
+
+					The MODEL is authored upright in world space already: the
+					pommel sits at y = -1.8 and the head's eye at y = +1.26.
+					Only the pivot's orientation is rotated. So the fix is to
+					rotate about world Y through the model's centre and leave
+					its orientation alone, rather than to re-orient anything.
+				]]
+				local cf0 = model:GetPivot()
+				local centre = select(1, model:GetBoundingBox()).Position
+				local angle = 0
+				local spin
+				spin = game:GetService("RunService").RenderStepped:Connect(function(dt)
+					if not vp.Parent or not model.Parent then
+						spin:Disconnect()
+						return
+					end
+					angle += dt * 0.6
+					local about = CFrame.new(centre) * CFrame.Angles(0, angle, 0) * CFrame.new(-centre)
+					model:PivotTo(about * cf0)
+				end)
+			end
+		end
+
+		local info = mk("Frame", {
+			BackgroundTransparency = 1,
+			Position = UDim2.new(0.46, 12, 0, 36),
+			Size = UDim2.new(0.54, -12, 1, -44),
+		}, recipeView)
+
+		label(info, OreTools.name(r.def, selFamily), 24, TEXT,
+			UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 30), FONT)
+		label(info, string.format("ore tier %d", r.tier), 12, MUTED,
+			UDim2.fromOffset(0, 32), UDim2.new(1, 0, 0, 14))
+
+		--[[
+			The three numbers the owner asked for, each on its own line and each
+			labelled, rather than packed into a sentence. Breaking power and
+			damage come from the same functions the server uses, so the recipe
+			cannot promise a tool the forge will not deliver.
+		]]
+		local stats = OreTools.frameStats(selFamily, r.tier) or {}
+		local bp = C.toolBreakingPower and C.toolBreakingPower(r.tier) or 0
+		local rate = tonumber(stats.rate) or 0
+		local cells = tonumber(stats.cells) or 1
+		--[[
+			DAMAGE IS toolPower, NOT BREAKING POWER.
+
+			This printed `bp * cells` under a DAMAGE label, which made a Stone
+			pick read as "1 damage" -- the same as the free wooden one -- and
+			that is not what it does. Breaking power is the GATE: which ore a
+			tool is allowed to touch at all, and it is the ore's tier by
+			definition, so tier 1 is 1. Damage is C.toolPower, which is
+			TOOL_DMG_BASE x toolTierPower(tier) x typeMult x step^(level-1).
+
+			A Stone pick is 10 and the wooden one is 1, so it is ten times the
+			starter, not equal to it.
+
+			Shown at the level this tool will ACTUALLY be forged at, not 1: the
+			craft verb stamps a new tool with the highest level you already own
+			(and bases it there). Quoting level 1 would understate every tool
+			after the first by the whole climb.
+		]]
+		local forgeLevel = 1
+		for _, t in ipairs(snapshot.oreTools or {}) do
+			if type(t) == "table" then
+				forgeLevel = math.max(forgeLevel, math.floor(tonumber(t.level) or 1))
+			end
+		end
+		forgeLevel = math.clamp(forgeLevel, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
+		local typeMult = OreTools.typeMult(selFamily, r.tier)
+		local dmg = C.toolPower and C.toolPower(r.tier, forgeLevel, typeMult) or 0
+
+		local function statLine(y, key, value, ink)
+			label(info, key, 12, MUTED, UDim2.fromOffset(0, y), UDim2.new(0.42, 0, 0, 16), FONT_M)
+			label(info, value, 15, ink or TEXT, UDim2.new(0.42, 0, 0, y - 2),
+				UDim2.new(0.58, 0, 0, 18), FONT)
+		end
+
+		--[[
+			THE COST READS AS A SENTENCE, WITH THE ORE IN IT.
+
+			Owner, 2026-10-08: "can we make the crafting show ore icons, and
+			make it more natural looking than 'have 56', and 'Costs 260'".
+
+			Two labelled rows of "COSTS 270 Stone / YOU HAVE 65 Stone" made the
+			player do the subtraction, repeated the ore's name twice, and named
+			the ore in text when there is already a 512px render of it.
+
+			One row instead: the ore's icon, then "65 / 270", then how much is
+			still missing. The icon says WHICH ore, the fraction says where you
+			are, and the shortfall says what to go and do -- which is the only
+			thing a player actually wants off this screen.
+		]]
+		local art = OreIcons.BY_ID and OreIcons.BY_ID[r.id]
+		if art and art.icon then
+			UI.icon(info, art.icon, 34, UDim2.fromOffset(0, 56))
+		end
+		label(info, string.format("%s / %s", num(r.have), num(r.cost)), 20,
+			r.afford and GREEN or TEXT, UDim2.fromOffset(42, 54),
+			UDim2.new(1, -42, 0, 24), FONT)
+		label(info, r.afford
+				and ("enough " .. r.name .. " to forge it")
+				or string.format("%s more %s needed", num(r.cost - r.have), r.name),
+			12, r.afford and GREEN or MUTED, UDim2.fromOffset(42, 78),
+			UDim2.new(1, -42, 0, 14), FONT_M)
+
+		statLine(116, "DAMAGE", string.format("%s per hit%s", num(math.floor(dmg)),
+			forgeLevel > 1 and (" at level " .. forgeLevel) or ""), GOLD)
+		-- DPS, because that is what it is and what a player already calls it.
+		statLine(140, "DPS", num(math.floor(dmg * rate * math.max(1, cells))), GOLD)
+		statLine(164, "SWING RATE", string.format("%.1f / sec%s", rate,
+			cells > 1 and string.format("  \u{00B7}  %d blocks", cells) or ""), TEXT)
+		-- The gate, labelled as one. It is the ore's tier and says which ore
+		-- the tool may touch -- not how hard it hits.
+		statLine(188, "BREAKS UP TO", string.format("ore tier %d  (power %s)",
+			C.oreReachCap and C.oreReachCap(bp) or r.tier, num(bp)), TEXT)
+
+		local owned = ownedForOre(snapshot, selFamily, r.tier)
+		button(info, r.afford and "FORGE" or "NEED ORE", GREEN,
+			UDim2.fromOffset(0, 224), UDim2.fromOffset(170, 34), r.afford, function()
+				if opts.onCraft then
+					opts.onCraft(selFamily, "", r.id)
+				end
+			end)
+		if owned then
+			label(info, string.format("you already have one, at level %d",
+				math.max(1, tonumber(owned.level) or 1)), 12, GOLD,
+				UDim2.fromOffset(180, 232), UDim2.new(1, -180, 0, 16))
 		end
 	end
 
@@ -827,38 +1591,100 @@ function MineForge.mount(parent, opts)
 				d:Destroy()
 			end
 		end
-		colButton("CRAFT", 1, selMode == "craft", true, function()
-			selMode = "craft"
-			refresh()
-		end)
-		colButton("UPGRADE", 2, selMode == "upgrade", true, function()
-			selMode = "upgrade"
-			refresh()
-		end)
+		--[[
+			THE RAIL IS NAVIGATION AND FILTERS NOW, NOT MODES.
+
+			Owner, 2026-10-11: the screen's bottom bar is "Crafting, Loadout,
+			Upgrades", and tool-type filters go "on the left for Pickaxe, Drill,
+			Explosive, Sledgehammer, and Jackhammer".
+
+			CRAFT and UPGRADE are gone from here because they ARE two of those
+			three tabs now; the host drives them through setMode. Keeping them
+			would have put the same choice in two places, which is how two
+			controls end up disagreeing about one piece of state.
+
+			SHOP stays, moved to the top: the owner asked for "the existing Shop
+			entry" to go "a sensible place in the navigation", and this rail IS
+			the navigation. It is a route rather than a filter -- it opens
+			another panel -- so it sits above the TOOL TYPE heading with the
+			filters grouped under it, rather than reading as a sixth tool type.
+		]]
 		if opts.onCoinShop then
-			-- A route, not a mode: it never reads as selected because the panel
-			-- it opens is not this one.
-			colButton("SHOP", 3, false, true, function()
+			-- A route, not a filter: it never reads as selected because the
+			-- panel it opens is not this one.
+			colButton("SHOP", 1, false, true, function()
 				opts.onCoinShop()
 			end)
 		end
+		--[[
+			BACKPACKS NEEDS A DOOR, AND THIS IS IT.
 
-		label(modeCol, "FAMILY", 10, MUTED, nil, UDim2.new(1, 0, 0, 20), FONT).LayoutOrder = 4
+			Backpacks used to be one of the bottom tabs. The owner's new bottom
+			bar is Crafting / Loadout / Upgrades, so that button is gone -- and
+			`backpack` is still a perfectly good shelf that `setTab` can show,
+			which means losing the button loses the only way to reach it. That
+			is precisely how the Secrets shelf spent its whole life unreachable.
+
+			It sits beside SHOP because it is the same kind of thing: capacity
+			you buy with coins, not a tool you forge and not a filter.
+		]]
+		if opts.onBackpacks then
+			colButton("BACKPACKS", 2, false, true, function()
+				opts.onBackpacks()
+			end)
+		end
+		--[[
+			MERGE IS A ROUTE, BECAUSE TOOLS DO NOT MERGE.
+
+			The owner asked Upgrades to carry "the available item operations,
+			such as merging and scrapping". Scrapping is right here -- the
+			UPGRADE pane arms a SCRAP button and quotes the ore and dust back.
+			Merging is not, and cannot be: an ore tool is levelled or scrapped,
+			and the things that actually merge in this game are CARDS (three
+			copies) and CHARMS (MineCharms.mergeTarget). There is no tool-merge
+			verb on the server to call.
+
+			So this opens the screen that really does it instead of growing a
+			second copy of it here. A button that routes somewhere honest beats
+			a button that implies a mechanic the game does not have.
+		]]
+		if opts.onMerge then
+			colButton("MERGE", 3, false, true, function()
+				opts.onMerge()
+			end)
+		end
+
+		label(modeCol, "TOOL TYPE", 10, MUTED, nil, UDim2.new(1, 0, 0, 20), FONT).LayoutOrder = 4
 		local order = 4
 		for _, famId in ipairs(OreTools.FAMILY_ORDER or {}) do
 			local defs = (Tools.TOOLS or {})[famId]
-			-- A family with no roster yet (weapons are flagged planned) would
-			-- otherwise be a button that selects nothing.
-			if defs and #defs > 0 then
-				order += 1
-				local id = famId
-				colButton(string.upper(OreTools.familyNoun(id) .. "s"), order,
-					selFamily == id, true, function()
-						selFamily = id
-						selUid = nil
-						refresh()
-					end)
-			end
+			local has = defs ~= nil and #defs > 0
+			order += 1
+			local id = famId
+			--[[
+				ALL FIVE SHOW, INCLUDING THE TWO WITH NOTHING IN THEM.
+
+				This used to skip a family whose roster was empty, so the rail
+				read "PICKAXES / DRILLS / EXPLOSIVES" and the owner's other two
+				tool types were simply absent from the game's own menu. They are
+				not absent by design: MineTools.TOOLS has 25 pickaxe frames, 16
+				drill and 16 explosive, and NIL for hammer and jackhammer, while
+				MineConfig already carries their craft multipliers (jackhammer
+				1.25). The cost maths was written and the rosters never were, so
+				the two halves have never met -- a recipe for a sledgehammer
+				does not exist anywhere in the game today.
+
+				Hiding that made it look intentional. Showing the filter with a
+				(0) and no click says what is actually true: the type exists and
+				has no recipes yet. The fix is a roster, which is content the
+				owner has to sign off, not a UI change.
+			]]
+			colButton(string.upper(OreTools.familyNoun(id) .. "s") .. (has and "" or "  (0)"),
+				order, has and selFamily == id, has, function()
+					selFamily = id
+					selUid = nil
+					refresh()
+				end)
 		end
 	end
 
@@ -898,6 +1724,47 @@ function MineForge.mount(parent, opts)
 			return b
 		end
 
+		--[[
+			CRAFT owns the whole panel; UPGRADE keeps the rail and detail pane.
+
+			Visibility is set here rather than at each click so there is exactly
+			one place that decides which of the two layouts is on screen. The
+			rail is still FILLED below in craft mode -- it costs nothing while
+			hidden and leaving the branch intact keeps upgrade's selection logic
+			in one piece -- but nothing in craft reads it any more.
+		]]
+		local crafting = selMode ~= "upgrade"
+		craftPane.Visible = crafting
+		rail.Visible = not crafting
+		detail.Visible = not crafting
+		if crafting then
+			local pick
+			if selOreId then
+				for _, r in ipairs(allRecipes(snapshot, selFamily)) do
+					if r.id == selOreId then
+						pick = r
+						break
+					end
+				end
+				-- A recipe that vanished (family switched under the selection)
+				-- drops back to the grid rather than showing an empty stage.
+				if not pick then
+					selOreId = nil
+				end
+			end
+			grid.Visible = pick == nil
+			-- The search box belongs to the CATALOGUE, not to one recipe.
+			searchBox.Visible = pick == nil
+			recipeView.Visible = pick ~= nil
+			if pick then
+				searchNote.Visible = false
+				drawRecipe(snapshot, pick)
+			else
+				drawGrid(snapshot)
+			end
+			return
+		end
+
 		if selMode == "upgrade" then
 			------------------------------------------------ what you have --
 			local mine = ownedOf(snapshot, selFamily)
@@ -925,6 +1792,10 @@ function MineForge.mount(parent, opts)
 						equipped and "   \u{00B7}   equipped" or ""),
 					TEXT, equipped and GOLD or GREEN, selUid == t.uid, function()
 						selUid = t.uid
+						-- Walking away disarms. Coming back to a tool still
+						-- primed to be destroyed is the kind of surprise this
+						-- confirmation exists to remove.
+						scrapArmed = nil
 						refresh()
 					end)
 			end
@@ -951,7 +1822,7 @@ function MineForge.mount(parent, opts)
 				selOreId = ores[1] and ores[1].id or nil
 			end
 			for i, o in ipairs(ores) do
-				local cost = C.toolCraftCost(o.tier, OreTools.typeMult(selFamily, o.tier))
+				local cost = C.toolCraftCost(o.tier, OreTools.typeMult(selFamily, o.tier), selFamily)
 				local owned = ownedForOre(snapshot, selFamily, o.tier)
 				local afford = (o.have or 0) >= cost
 				row(i, OreTools.name(o.def, selFamily),
@@ -972,7 +1843,31 @@ function MineForge.mount(parent, opts)
 	end
 
 	refresh()
-	return { refresh = refresh, root = root }
+	--[[
+		setMode lets the HOST drive craft-vs-upgrade.
+
+		Owner, 2026-10-11: the screen's bottom bar is "Crafting, Loadout,
+		Upgrades", so the choice that used to be two buttons on this rail is now
+		two of the three tabs. `selMode` is a local in this closure, so without
+		a setter the bottom bar could only fake it by clicking a button it does
+		not own.
+
+		Entering CRAFT clears selOreId for the same reason the rail's own CRAFT
+		button does: the catalogue is what a player is coming back for, not the
+		one recipe they opened several tabs ago.
+	]]
+	local function setMode(mode)
+		local want = (mode == "upgrade") and "upgrade" or "craft"
+		if selMode == want then
+			return
+		end
+		selMode = want
+		if want == "craft" then
+			selOreId = nil
+		end
+		refresh()
+	end
+	return { refresh = refresh, root = root, setMode = setMode, getMode = function() return selMode end }
 end
 
 return MineForge

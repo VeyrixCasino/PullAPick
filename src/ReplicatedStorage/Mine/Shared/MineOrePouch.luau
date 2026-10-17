@@ -87,12 +87,42 @@ MineOrePouch.RUNG_COST_SHARE = 0.75
 	deepest ore worth than the shallowest? The exponent is solved from it, which
 	means the curve holds its shape across any future change to the ore model.
 
-	10^6 is the placeholder: wide enough that depth plainly pays, narrow enough
-	that the flat gem prices elsewhere in the game (zones, runes) are not
-	instantly free. Still a placeholder -- see the header -- but now it is a
-	placeholder for a question with an answer.
+	10^4, SIGNED OFF. docs/PROPOSAL.md §0 line 16, approved by the owner
+	2026-10-05 and law under TODO §0.34. It was 10^6, which the comment here
+	called a placeholder and OPEN.md recorded as deferred -- that deferral is
+	older than the sign-off.
+
+	1e6 did not merely run hot, it ended the gem economy at the top of the
+	roster: an Oganesson was worth 5,099,169 gems, so ONE BLOCK of it bought
+	the 2,500,000-gem Gem Vault TWICE OVER. That is the real reason every flat
+	gem price in the game "gets outrun" -- not that the prices are low, but
+	that the faucet above them is unbounded.
+
+	                 tier 1   tier 41     tier 82
+	    1e6 (was)         5     2,697   5,099,169
+	    1e4 (now)         4       279      42,727
+
+	These are MEASURED off the live modules, not the round numbers the
+	proposal estimated (3 / ~300 / 30,000). The proposal's figures were close
+	enough to make the decision with and are wrong enough to mislead anyone
+	pricing a sink against them, so the measured ones are what is written here.
+
+	At 1e4 the derived sinks read sanely, which is the test: the Gem Vault is
+	58 Oganesson, all ten zone portals are 50, a T6 rune fuse is 0.6, and the
+	t82 charm merge is 1,142 -- an endgame number that is meant to look like
+	one.
+
+	WHAT THIS DID NOT FIX, and it is the open half: the change moved the
+	FAUCET down 119x and left the FLOOR PRICES alone. Every flat gem price --
+	trait roll 500, pack crate 200, backpack rung 1 at 100, rune re-socket 10,
+	rune banner 25 -- was pocket change at 1e6 and is still pocket change at
+	1e4. The sinks that track the curve (ore pouch, charm merge) corrected
+	themselves; the authored ones cannot and need their own pass.
+
+	The exponent below is SOLVED from this number rather than tuned beside it,
+	so the curve keeps its shape -- only its magnitude moves.
 ]]
-MineOrePouch.ORE_GEM_SPREAD = 1e6
+MineOrePouch.ORE_GEM_SPREAD = 1e4
 -- Scales the whole curve at once without changing its shape. A tier-1 ore is
 -- worth about ORE_GEM_BASE gems, and everything else follows from there.
 MineOrePouch.ORE_GEM_BASE = 3

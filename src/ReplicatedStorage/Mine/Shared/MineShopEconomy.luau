@@ -10,6 +10,9 @@ MineShopEconomy.TOOL_HAUL_MULT = 3.5
 MineShopEconomy.TOOL_RUNG_CURVE = 1.72
 
 MineShopEconomy.COMFORT = { shallow = 8, mid = 4, deep = 2, kilo = 3, abyss = 2 }
+-- Unscaled, deliberately. These are the normal game's band floors and the
+-- 10,000x pass is Event Horizon only (MineDepth.HP_SCALE); Event Horizon has
+-- no shop band.
 MineShopEconomy.BAND_FLOOR_HP = { shallow = 15, mid = 45000, deep = 2625000, kilo = 350000, abyss = 20000000 }
 
 -- Combat power vs shop price: picks hit ~25% softer; prices still use raw power.

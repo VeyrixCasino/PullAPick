@@ -1,0 +1,1136 @@
+{
+  "key": "royal_reserve",
+  "bodies": [
+    {
+      "id": "rr_lion",
+      "label": "Lion",
+      "role": "Striker"
+    },
+    {
+      "id": "rr_poodle",
+      "label": "Poodle",
+      "role": "Trader"
+    },
+    {
+      "id": "rr_peacock",
+      "label": "Peacock",
+      "role": "Seeker"
+    },
+    {
+      "id": "rr_jewelbox",
+      "label": "Jewel Box",
+      "role": "Prospector"
+    },
+    {
+      "id": "rr_crownling",
+      "label": "Crownling",
+      "role": "Mystic"
+    },
+    {
+      "id": "rr_tuffet",
+      "label": "Tuffet",
+      "role": "Bruiser"
+    },
+    {
+      "id": "rr_cabochon",
+      "label": "Cabochon",
+      "role": "Prospector"
+    },
+    {
+      "id": "rr_lipstick",
+      "label": "Lipstick",
+      "role": "Striker"
+    },
+    {
+      "id": "rr_ruff",
+      "label": "Lace Ruff",
+      "role": "Mystic"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "rr_t_atomizer",
+      "label": "Scent Atomizer",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        186,
+        120,
+        250
+      ]
+    },
+    {
+      "id": "rr_t_hatbox",
+      "label": "Ribbon Hatbox",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        30,
+        186,
+        176
+      ]
+    },
+    {
+      "id": "rr_t_purse",
+      "label": "Clasp Purse",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        210,
+        30,
+        60
+      ]
+    },
+    {
+      "id": "rr_t_cloche",
+      "label": "Silver Cloche",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        170,
+        196,
+        236
+      ]
+    },
+    {
+      "id": "rr_t_rattle",
+      "label": "Christening Rattle",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        255,
+        190,
+        140
+      ]
+    },
+    {
+      "id": "rr_t_medal",
+      "label": "Rosette Medal",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        40,
+        80,
+        230
+      ]
+    },
+    {
+      "id": "rr_t_bowtie",
+      "label": "Silk Bowtie",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        210,
+        40,
+        180
+      ]
+    },
+    {
+      "id": "rr_t_tassel",
+      "label": "Silk Tassel",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        255,
+        196,
+        40
+      ]
+    },
+    {
+      "id": "rr_t_rook",
+      "label": "Ebony Rook",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        46,
+        40,
+        60
+      ]
+    },
+    {
+      "id": "rr_t_register",
+      "label": "Brass Register",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        220,
+        150,
+        40
+      ]
+    },
+    {
+      "id": "rr_t_bag",
+      "label": "Boutique Bag",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        130,
+        230,
+        190
+      ]
+    },
+    {
+      "id": "rr_t_safe",
+      "label": "Dial Safe",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        20,
+        100,
+        60
+      ]
+    },
+    {
+      "id": "rr_t_chinchilla",
+      "label": "Plush Chinchilla",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        190,
+        180,
+        225
+      ]
+    },
+    {
+      "id": "rr_t_abacus",
+      "label": "Gilded Abacus",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        110,
+        130
+      ]
+    },
+    {
+      "id": "rr_t_knocker",
+      "label": "Door Knocker",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        120,
+        30,
+        70
+      ]
+    },
+    {
+      "id": "rr_t_tub",
+      "label": "Clawfoot Tub",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        100,
+        196,
+        255
+      ]
+    },
+    {
+      "id": "rr_t_spoonbill",
+      "label": "Silver Spoonbill",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        140,
+        180
+      ]
+    },
+    {
+      "id": "rr_t_gavel",
+      "label": "Auction Gavel",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        150,
+        70,
+        40
+      ]
+    },
+    {
+      "id": "rr_t_lorgnette",
+      "label": "Lorgnette",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        0,
+        170,
+        120
+      ]
+    },
+    {
+      "id": "rr_t_angelfish",
+      "label": "Queen Angelfish",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        0,
+        200,
+        210
+      ]
+    },
+    {
+      "id": "rr_t_sturgeon",
+      "label": "Sturgeon Baron",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        100,
+        120,
+        190
+      ]
+    },
+    {
+      "id": "rr_t_cello",
+      "label": "Concert Cello",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        216,
+        104,
+        36
+      ]
+    },
+    {
+      "id": "rr_t_chesterfield",
+      "label": "Chesterfield",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        110,
+        40,
+        180
+      ]
+    },
+    {
+      "id": "rr_t_sentry",
+      "label": "Palace Sentry",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        236,
+        40,
+        40
+      ]
+    },
+    {
+      "id": "rr_t_jester",
+      "label": "Court Jester",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        250,
+        220,
+        50
+      ]
+    },
+    {
+      "id": "rr_t_wig",
+      "label": "Powdered Wig",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        160,
+        200,
+        255
+      ]
+    },
+    {
+      "id": "rr_t_bellhop",
+      "label": "Bellhop Cart",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        140,
+        50,
+        110
+      ]
+    },
+    {
+      "id": "rr_t_hamper",
+      "label": "Picnic Hamper",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        230,
+        190,
+        110
+      ]
+    },
+    {
+      "id": "rr_t_pavilion",
+      "label": "Tourney Pavilion",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        230,
+        60,
+        100
+      ]
+    },
+    {
+      "id": "rr_t_locomotive",
+      "label": "Gilt Locomotive",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        30,
+        60,
+        140
+      ]
+    },
+    {
+      "id": "rr_t_stanchion",
+      "label": "Gala Stanchion",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        190,
+        16,
+        60
+      ]
+    },
+    {
+      "id": "rr_t_topiary",
+      "label": "Spiral Topiary",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        60,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "rr_t_pineapple",
+      "label": "Golden Pineapple",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        250,
+        170,
+        30
+      ]
+    },
+    {
+      "id": "rr_t_portrait",
+      "label": "Gilt Portrait",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        70,
+        40,
+        130
+      ]
+    },
+    {
+      "id": "rr_t_wreath",
+      "label": "Laurel Wreath",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        180,
+        220,
+        60
+      ]
+    },
+    {
+      "id": "rr_t_scepter",
+      "label": "Jewelled Scepter",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        150,
+        70,
+        230
+      ]
+    },
+    {
+      "id": "rr_t_fleur",
+      "label": "Fleur Emblem",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        40,
+        130,
+        255
+      ]
+    },
+    {
+      "id": "rr_t_escutcheon",
+      "label": "Crest Escutcheon",
+      "role": "Bruiser",
+      "tier": "Divine",
+      "tint": [
+        170,
+        40,
+        140
+      ]
+    },
+    {
+      "id": "rr_t_necklace",
+      "label": "Pendant Necklace",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        80,
+        240,
+        200
+      ]
+    },
+    {
+      "id": "rr_t_curtain",
+      "label": "Opera Curtain",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        220,
+        20,
+        50
+      ]
+    },
+    {
+      "id": "rr_t_bed",
+      "label": "Canopy Bed",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        100,
+        150
+      ]
+    },
+    {
+      "id": "rr_t_vitrine",
+      "label": "Gem Vitrine",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        20,
+        110,
+        120
+      ]
+    },
+    {
+      "id": "rr_t_betta",
+      "label": "Veiltail Betta",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        130,
+        60,
+        255
+      ]
+    },
+    {
+      "id": "rr_t_paradise",
+      "label": "Paradise Dancer",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        210,
+        20
+      ]
+    },
+    {
+      "id": "rr_t_mantle",
+      "label": "Ermine Mantle",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        120,
+        20,
+        200
+      ]
+    },
+    {
+      "id": "rr_t_gown",
+      "label": "Waltzing Gown",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        240,
+        60,
+        200
+      ]
+    },
+    {
+      "id": "rr_t_globus",
+      "label": "Globus",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        30,
+        70,
+        200
+      ]
+    },
+    {
+      "id": "rr_t_staircase",
+      "label": "Grand Staircase",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        40,
+        200,
+        120
+      ]
+    }
+  ],
+  "extraBodies": [
+    "horse",
+    "hawk",
+    "bigcat"
+  ],
+  "buffs": [
+    "coinBonus",
+    "chestLuck",
+    "packLuck"
+  ],
+  "palette": [
+    [
+      "Gold",
+      240,
+      194,
+      70
+    ],
+    [
+      "Rose Gold",
+      232,
+      160,
+      140
+    ],
+    [
+      "Platinum",
+      200,
+      210,
+      226
+    ],
+    [
+      "Silver",
+      168,
+      172,
+      184
+    ],
+    [
+      "Bronze",
+      176,
+      112,
+      60
+    ],
+    [
+      "Black Velvet",
+      34,
+      26,
+      40
+    ],
+    [
+      "Royal Purple",
+      108,
+      52,
+      160
+    ],
+    [
+      "Imperial Red",
+      186,
+      24,
+      44
+    ],
+    [
+      "Burgundy",
+      120,
+      26,
+      52
+    ],
+    [
+      "Navy",
+      34,
+      48,
+      110
+    ],
+    [
+      "Sapphire",
+      40,
+      90,
+      220
+    ],
+    [
+      "Emerald",
+      30,
+      150,
+      90
+    ],
+    [
+      "Ruby",
+      226,
+      36,
+      80
+    ],
+    [
+      "Amethyst",
+      170,
+      110,
+      220
+    ],
+    [
+      "Pearl",
+      244,
+      236,
+      226
+    ],
+    [
+      "Coral Rose",
+      244,
+      112,
+      104
+    ],
+    [
+      "Champagne",
+      236,
+      214,
+      170
+    ],
+    [
+      "Onyx",
+      62,
+      60,
+      70
+    ],
+    [
+      "Jade",
+      120,
+      200,
+      150
+    ],
+    [
+      "Topaz",
+      250,
+      160,
+      50
+    ],
+    [
+      "Blush",
+      250,
+      186,
+      206
+    ],
+    [
+      "Mauve",
+      180,
+      130,
+      170
+    ],
+    [
+      "Lilac",
+      200,
+      170,
+      240
+    ],
+    [
+      "Teal Velvet",
+      20,
+      110,
+      120
+    ],
+    [
+      "Jet",
+      14,
+      12,
+      18
+    ],
+    [
+      "Snow Ermine",
+      252,
+      252,
+      252
+    ],
+    [
+      "Citrine",
+      245,
+      225,
+      30
+    ],
+    [
+      "Peridot",
+      150,
+      215,
+      40
+    ],
+    [
+      "Fire Opal",
+      255,
+      90,
+      20
+    ],
+    [
+      "Aquamarine",
+      110,
+      225,
+      225
+    ],
+    [
+      "Turquoise",
+      0,
+      190,
+      180
+    ],
+    [
+      "Cobalt",
+      20,
+      40,
+      190
+    ],
+    [
+      "Fuchsia",
+      235,
+      40,
+      190
+    ],
+    [
+      "Forest Velvet",
+      16,
+      80,
+      44
+    ],
+    [
+      "Mahogany",
+      110,
+      46,
+      26
+    ],
+    [
+      "Cognac",
+      170,
+      100,
+      40
+    ],
+    [
+      "Tanzanite",
+      90,
+      60,
+      210
+    ],
+    [
+      "Orchid",
+      220,
+      120,
+      240
+    ],
+    [
+      "Mint Satin",
+      170,
+      245,
+      205
+    ],
+    [
+      "Sky Satin",
+      150,
+      200,
+      255
+    ],
+    [
+      "Midnight",
+      18,
+      22,
+      60
+    ],
+    [
+      "Clover",
+      60,
+      200,
+      40
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Gilded",
+      "Polished",
+      "Noble",
+      "Stately"
+    ],
+    "Mythic": [
+      "Imperial",
+      "Velvet",
+      "Regal",
+      "Crowned"
+    ],
+    "Divine": [
+      "Majestic",
+      "Exalted",
+      "Radiant",
+      "Sovereign"
+    ],
+    "Exotic": [
+      "Jewelled",
+      "Opulent",
+      "Resplendent",
+      "Diamond"
+    ]
+  },
+  "names": [
+    "Regalia",
+    "Majesty",
+    "Duchess",
+    "Duke",
+    "Baron",
+    "Viscount",
+    "Earl",
+    "Prince",
+    "Princeling",
+    "Princessa",
+    "Regent",
+    "Heir",
+    "Dauphin",
+    "Infanta",
+    "Tsarina",
+    "Empress",
+    "Emperor",
+    "Archduke",
+    "Grand Duke",
+    "Squire",
+    "Courtier",
+    "Chancellor",
+    "Steward",
+    "Butler",
+    "Footman",
+    "Jester",
+    "Herald",
+    "Esquire",
+    "Highness",
+    "Excellency",
+    "Lordling",
+    "Milady",
+    "Milord",
+    "Madame",
+    "Monsieur",
+    "Mademoiselle",
+    "Royalty",
+    "Nobleheart",
+    "Regalina",
+    "Regina",
+    "Reginald",
+    "Sir Pounce",
+    "Sir Fluffington",
+    "Lady Plume",
+    "Lady Velour",
+    "Lord Whiskers",
+    "Lord Fluff",
+    "Dame Glitter",
+    "Baron Biscuit",
+    "Duke Dumpling",
+    "Duchess Daisy",
+    "Count Crumpet",
+    "Prince Pudding",
+    "Princess Pearl",
+    "Queen Bee",
+    "Sir Reginald",
+    "Lady Arabella",
+    "Lord Barnaby",
+    "Duke Humphrey",
+    "Duchess Beatrix",
+    "Baron Rupert",
+    "Dame Henrietta",
+    "Lord Percival",
+    "Lady Genevieve",
+    "Sir Cedric",
+    "Prince Florian",
+    "Princess Posy",
+    "Lady Marigold",
+    "Lord Montgomery",
+    "Sir Archibald",
+    "Baroness Belle",
+    "Duke Alistair",
+    "Lady Rosalind",
+    "Sir Horatio",
+    "Lady Evangeline",
+    "Count Cornelius",
+    "Lord Ambrose",
+    "Dame Wilhelmina",
+    "Prince Edmund",
+    "Lady Isadora",
+    "Lady Seraphina",
+    "Sir Benedict",
+    "Lord Ignatius",
+    "Sir Waddleton",
+    "Lady Snugglepuff",
+    "Lord Snootington",
+    "Sir Pawsalot",
+    "Lady Purrington",
+    "Count Glitter",
+    "Duchess Sprinkle",
+    "Sir Goldpaw",
+    "Lady Goldilace",
+    "Lord Velvetpaw",
+    "Prince Plushie",
+    "Princess Pomp",
+    "Little Majesty",
+    "Tiny Tiara",
+    "Royal Ruffle",
+    "Royal Highness",
+    "Crown Prince",
+    "Crown Jewel",
+    "King Fluffy",
+    "Queen Velour",
+    "Sir Bijou",
+    "Velour",
+    "Satin",
+    "Silken",
+    "Ermine",
+    "Brocade",
+    "Damask",
+    "Organza",
+    "Cashmere",
+    "Plush",
+    "Plushie",
+    "Tassel",
+    "Gilt",
+    "Gilda",
+    "Goldleaf",
+    "Goldpaw",
+    "Goldtail",
+    "Goldwhisk",
+    "Goldcrown",
+    "Gilded Paw",
+    "Platina",
+    "Platinum",
+    "Moneybags",
+    "Riches",
+    "Crown",
+    "Crowny",
+    "Crownlet",
+    "Crownpaw",
+    "Scepter",
+    "Tiara",
+    "Tiarabelle",
+    "Diadem",
+    "Diadema",
+    "Coronet",
+    "Circlet",
+    "Signet",
+    "Medallion",
+    "Pendant",
+    "Chalice",
+    "Throne",
+    "Banner",
+    "Pennant",
+    "Heraldry",
+    "Crestwell",
+    "Fanfare",
+    "Gala",
+    "Soiree",
+    "Waltz",
+    "Minuet",
+    "Ballroom",
+    "Ballgown",
+    "Chandelier",
+    "Pearlette",
+    "Jewelina",
+    "Glamour",
+    "Lavish",
+    "Posh",
+    "Poshie",
+    "Fancy",
+    "Swank",
+    "Ritzy",
+    "Luxe",
+    "Luxie",
+    "Opulence",
+    "Splendor",
+    "Grandeur",
+    "Pomp",
+    "Pageant",
+    "Gallant",
+    "Chivalry",
+    "Dignity",
+    "Top Hat",
+    "Cravat",
+    "Cufflink",
+    "Bowtie",
+    "Parasol",
+    "Sash",
+    "Rosette",
+    "Plumage",
+    "Cygnet",
+    "Swanling",
+    "Leonine",
+    "Fleur",
+    "Fleurette",
+    "Palace",
+    "Palatine",
+    "Castella",
+    "Citadel",
+    "Parapet",
+    "Courtly",
+    "Manor",
+    "Chateau",
+    "Treasury",
+    "Petit Four",
+    "Promenade",
+    "Regatta",
+    "Croquet",
+    "Mantle",
+    "Cloak",
+    "Lace",
+    "Lacey",
+    "Gemcrown",
+    "Ebony",
+    "Noir",
+    "Velvetine",
+    "Inkwing",
+    "Peacock Blue",
+    "Royal Purple",
+    "Goldenrod",
+    "Dynasty",
+    "Lineage",
+    "Blueblood",
+    "Nobility",
+    "Heirloom",
+    "Signetta",
+    "Regalio",
+    "Kingly",
+    "Queenly",
+    "Princely",
+    "Lordly",
+    "Stately",
+    "Splendid",
+    "Gilded Gem",
+    "Goldfinch",
+    "Marquess",
+    "Marchioness",
+    "Countess",
+    "Baronet",
+    "Viceroy",
+    "Grandee",
+    "Patrician",
+    "Dowager",
+    "Laird",
+    "Thane",
+    "Liege",
+    "Margrave",
+    "Seigneur",
+    "Majordomo",
+    "Chamberlain",
+    "Equerry",
+    "Gilt Edge",
+    "Goldmere",
+    "Silverbell",
+    "Lady Truffle",
+    "Sir Monocle",
+    "Duke Doubloon",
+    "Count Cashmere",
+    "Baron Brocade",
+    "Lady Lorgnette",
+    "Sir Tassel",
+    "Sir Gilbert",
+    "Lady Opaline",
+    "Lord Ledger",
+    "Marquis Mops",
+    "Dame Damask",
+    "Lady Filigree",
+    "Sir Cufflink",
+    "Duchess Dimple",
+    "Prince Pompom",
+    "Lady Brocade",
+    "Lord Satin"
+  ]
+}

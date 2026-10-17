@@ -8,7 +8,219 @@ Place: "MINE FOR CARDS! SEASON ONE", placeId `73982848847016`,
 owned by the **Mine For Cards group, groupId `35326298`**.
 Repo: `VeyrixCasino/PullAPick`. Working branch: `claude/vigilant-fermi-aucqjy`.
 
-Last updated: 2026-10-03.
+Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
+
+---
+
+# ★ NOW — the owner's 2026-10-10 roadmap. Read this before anything else here.
+
+> **NEWEST (2026-10-10, late): start at [`wiki/next-up.md`](../wiki/next-up.md).**
+> It holds the owner's queued work and a paste-in prompt: the pet ladder at
+> 300/489, the proc rework (Blast 12%, Tidal Wave, Zap, Shatter, hats), 10
+> Halloween bodies and the holiday rule.
+>
+> **LATEST (2026-10-10, evening): PETS FIRST.** The owner: *"Just make the pet
+> models… once all pets are in place I'll get you to re-evaluate rewards."*
+> The full spec is [`docs/PETS-AND-SETS.md`](PETS-AND-SETS.md):
+> - zone pots for the existing pets;
+> - 19 exclusive sets with 2,043 cards;
+> - about 100 new body types;
+> - every pet named by hand, power +5% per zone and +5% per set;
+> - renames (always with an alias) and abilities.
+>
+> It also lists the legacy to retire (X/Y sets, variant odds at pack open) and
+> the queued rewards pass (pack cases, ★ wheel, the stardust NPC). **A1 is done.
+> A2 goes inside the Quests panel (decided). A2, A3 and B–D wait behind the pets.**
+
+**How to work this list (any agent, cold start):**
+
+1. **Read [`wiki/code/candy-style.md`](../wiki/code/candy-style.md) before you touch
+   any UI.** It is the house style the owner chose: chunky, candy, bubbly, juicy,
+   big text, honest rarity-scaled wins and no alarms. Every new screen follows it.
+   The kit (`MineUI`, `MineTheme`, `MineCelebrate`, `MineAudio`) makes it the
+   default.
+2. Read `CLAUDE.md` ("ask before you assume") and the locked rules in §0 below.
+3. **Work top-down: A, then B, then C, then D.** Finish and verify a phase before
+   starting the next.
+4. **Every number not marked *decided* below is PROPOSED.**
+   - Put proposed numbers in ONE config table per feature, commented `PROPOSED`.
+   - Give the owner a numbered block of them to approve. They answer best by
+     pasting it back with edits (`docs/PROPOSAL.md` §0 style).
+5. **Another session shares this checkout.**
+   - Commit only your own hunks. For a shared file, build a patch of your
+     hunks and stage it with `git apply --cached`.
+   - Never `git add -A`.
+   - Check `git diff` before every commit.
+6. **"Done" means all four:** `bash tools/verify/suite.sh --quiet` passes,
+   `node tools/verify/wiki.js` passes, the feature was played in Studio with
+   a clean console, and a screenshot was taken.
+7. **Models.** Opus is the lead for design, balance and cross-system code.
+   Hand repetitive bulk (hundreds of near-identical items) to cheaper
+   subagents (`model: "sonnet"`).
+
+**The owner's ask, 2026-10-10 (condensed):**
+
+- Fix the ores and tools: icons via Canva, 3D models via the cheapest route.
+  That is about 300 tools.
+- Add the **hammer**.
+- Rebalance speed, damage and range: fast/short/weak against slow/strong,
+  area tools (3×3 drills and explosives), and long-range explosives as the
+  top DPS short of higher-grade tools.
+- **Tool rolls**: rare chest and event drops in 5–6 sets, graded in stars.
+- **Grade everything in stars.**
+- Design every planet with Roblox psychology: *"nothing is ever too far away
+  to lose a player's attention"*.
+- **Higher priority:** a working daily wheel, more daily attractions, and
+  progression that is not only mining (fishing, events, mini-games).
+
+**Decided 2026-10-10:**
+
+- **Order:** daily loop → tools → art → planets.
+- **Daily wheel:** every player gets one free spin a day, group members
+  (`MineConfig.GROUP_ID`) get +1, and login streaks grant extra spins. It is
+  built in the lobby where everyone walks past it, with its odds printed on it.
+- **Second progression track: fishing,** limited by bait. ~~Bait costs **coins**~~
+  **Changed 2026-10-11:** the coin sink is the **rods** (bought and levelled with
+  coins, a token prestige every 10 levels); bait is AFK'd for, paid by quests or
+  bought with tokens, at most 15 a day (owner: *"make the rods cost coins, but make
+  the bait need to be afked for or claimed from quests or bought with tokens"*).
+  Details: wiki systems/fishing.
+- **Grades:** stars from **1★ to 5★ in half steps, 9 grades**.
+  - Tool rolls are graded in stars.
+  - Every other grade (Common–Exotic, F–SSS, tiers) shows a ★ equivalent
+    beside its current name; nothing is renamed.
+  - Compile one reference of every grading system in the game.
+- **The red lucky block is "Godly Lucky Block"** everywhere. Done in `223199f`.
+- **Icons:** the owner now wants them made (Canva). The rule "icons are the
+  owner's job" (START-HERE §6) is **lifted for this work**.
+- Assets still go to the group (§7), never to a personal account.
+
+## A. Daily loop (P0). Status: in progress (2026-10-10)
+
+- **A1. Daily wheel. DONE 2026-10-10 (`299dd2c`), verified in Studio.**
+  - It is built in the lobby, and the dock has a gold Wheel button whose badge
+    counts the free spins left. Each player gets 1 free spin a UTC day, +1 for
+    group members, and +1 on a claimed 7-day streak day. The odds are printed on
+    every slice, and a prize is celebrated by its real odds.
+  - Owner to approve: the PROPOSED allowances and the slice weights
+    (the two PROPOSED blocks at the top of `MineGroupWheel.luau`).
+  - Paid spins (`group_wheel_1/5/10`) are still `productId = 0`. BLOCKED on
+    the owner's product ids. The buy row stays hidden until they have ids.
+  - Details: `wiki/systems/social-quests-and-leaderboards.md` (Daily wheel).
+- **A1b. Wheel changes (queued for the rewards pass, `docs/PETS-AND-SETS.md`):**
+  - a free spin every 6 h;
+  - the face as one generated image;
+  - ~~★ pack-case slices instead of specific prizes~~ **done 2026-10-10**: the
+    pack slices pay wild pack cases (`wiki/systems/pack-cases.md`).
+- **A1c. Pack cases. Built 2026-10-10** (`MineCases`; wiki
+  `systems/pack-cases.md`). This covers:
+  - wild cases at nine grades, ★ to ★★★★★ in half steps (a half grade mixes
+    its two neighbours), and Starter, Collector and Vault set cases for every
+    set;
+  - chest drops, the wheel, the credit shelf (cases plus 4 featured set packs a
+    day, with the old packs taken off) and a Pack Cases tab in the stardust shop.
+
+  Still open:
+  - Decided later the same day:
+    - a better set costs 10% more than the set before it;
+    - shops carry no sets above grade B;
+    - Chaos Theory (SSS) comes from credit-bought wild cases only, at 0.5% of
+      their slots;
+    - case art is a booster box.
+  - [x] **The pricing pass, "how much everything is worth" (owner). Done
+        2026-10-10** (`wiki/systems/pack-cases.md`):
+        - case prices are set by return (wild 70%, set cases 65% → 55%), in
+          pretty numbers;
+        - chests: 10% get a case, and each grade is half as common;
+        - the wheel slices and the featured packs stay;
+        - set cases show their set's grade;
+        - zone packs are ★ / ★★ / ★★★;
+        - pet levelling was removed.
+  - [x] The old packs are off the rotating stardust shelf too (owner,
+        2026-10-10). It deals potions only (`MinePackConfig.DUST_OLD_PACKS`).
+  - [x] Case art from Canva: 19 booster boxes plus 1 wild mystery box, made,
+        uploaded and wired 2026-10-10 (`build/pack-art/ids.json` `cases`).
+  - [x] The owner shared the 20 case images (2026-10-10). They load 20/20
+        and draw on the bag tiles and the opening screen.
+  - [ ] See a case drop from a real chest in play. So far the roll has been
+        tested on its own.
+- **A2. More daily attractions.** **Built 2026-10-10:** TODAY sits at the top of
+  the Quests panel and shows only what is active (owner: *"just put active
+  ones"*): rewards ready to claim (daily, gifts, wheel, Job Board, pass) and
+  open event mines; a tap opens its screen (`MineToday`, `tools/verify/today.js`).
+  Still to add: fishing's "catch of the day", once A3 exists. The original brief:
+  the TODAY checklist goes **inside the Quests panel** (owner, 2026-10-10). First list what exists: the daily reward
+  calendar, the 3 daily quests, playtime gifts, the daily surprise, Job Board
+  contracts and the pass. Then add:
+  - The wheel.
+  - A fishing "catch of the day".
+  - A "TODAY" checklist on the HUD that shows every daily thing with its
+    timer. A ready item pulses (the candy-style rule "what pays out always
+    moves").
+  - The aim: a player never runs out of things to do, and there is always a
+    reason to come back tomorrow.
+- **A3. Fishing. FIRST CUT BUILT 2026-10-11** (wiki systems/fishing): Greyvein's
+  surface pool and the 1,000 / 3,000 outpost pools, 12 Greyvein fish, cast and reel
+  minigames (the fight replayed by the server), 4 rods with levels and token
+  prestige, bait capped at 15 a day, the cooler. Tuned by a learning machine
+  (`tools/sim/fishing-tune.js`, docs/FISHING-TUNING.md). Still to do: fish for the
+  other zones, selling / trading, album set bonuses, TODAY's catch of the day, a
+  rod and bobber in the world, fish art. The original brief:
+  - A pond on the lobby surface first, then one per planet surface (owner,
+    2026-10-10: the first spot is in zone 2 instead).
+  - Cast → bite → reel, as a short juicy minigame that can be skipped or sped up.
+  - Each cast uses one bait. Bait is bought with coins.
+  - The catch table is graded in ★, and its odds are shown at the bait seller.
+  - A fish collection (album) with set bonuses. Fish sell for coins or gems,
+    or can be traded.
+  - Fishing has its own progression, separate from mining, and never bottlenecks it.
+
+## B. Tools (P1). Not started
+
+- **B1. The hammer** is a 4th forged family (`MineOreTools.FAMILY_ORDER`), with
+  82 ores × 4 = **328 forged tools**. Decide its niche with the owner before
+  building. Proposed: slow, heavy, single-target, the highest hit.
+- **B2. Archetype rebalance.** Every family and frame trades speed, damage,
+  range and area:
+  - fast, short, low damage ↔ slow, long, high damage, with higher overall DPS
+  - drills and explosives get area (3×3 and up)
+  - long-range explosives top the DPS chart, beaten only by higher-grade tools
+  - Build the DPS table as a verify script first, so the ordering is asserted.
+- **B3. Tool rolls.**
+  - Rare drops from chests and events, in 5–6 sets from common to exotic,
+    graded 1★–5★ in half steps.
+  - "Same function": they plug into the existing chest-tool / flagship path
+    (`MineTools.CHEST_TOOLS`, `MineBandTools`).
+  - Show the odds wherever a roll can be bought.
+- **B4. Grade reference.** Every grading system (Common–Exotic, F–SSS, tiers,
+  pack bands, lucky ranks, pass tiers…) goes in one wiki page with its ★
+  equivalent, plus a shared `stars(gradeLike)` helper the UI can show beside
+  any grade.
+
+## C. Art (P1, after B). Not started
+
+- **3D models.**
+  - Today: procedural parts, 5 silhouettes per family, coloured per ore
+    (`ToolModelFactory`). Every uploaded mesh in the place is empty; see
+    [tools](../wiki/systems/tools.md).
+  - The cheapest good route: about 20 high-quality base shapes (5 families ×
+    ~4 styles), recoloured and re-materialed per ore. That is about 20
+    generations, not 328.
+- **Icons.** Render each tool's icon live from its model in a ViewportFrame.
+  That needs no uploads and never mismatches its model. Canva is for hero and
+  shop art and for the base icons.
+- **Ores** get the same treatment.
+
+## D. Planets (P2). Not started
+
+Redesign each planet surface with Roblox retention psychology:
+
+- Nothing worth doing is more than a few seconds' walk away.
+- Every station is visible from spawn.
+- There is a clear next goal in view.
+- The first ten seconds hook.
+
+Research first, then a one-page plan per planet for the owner, then build.
 
 ---
 
@@ -835,6 +1047,76 @@ it. Nothing here is an agent's to decide.
   it, so it does not break the game.
 
 ## 6.1 P0 — launch blockers
+
+### Owner, 2026-10-07 — the 10,000x pass and the launch timer
+
+- [ ] **Event Horizon tools must be EXTREMELY strong.** Owner's word. Zone 11
+      has always been off the normal ladder (`MineBreaking` says so: *"horizon is
+      different... doesnt use normal tools"*), and its own progression was never
+      built — which is the real reason Event Horizon reads as unmineable
+      (open-questions #4), not a breaking-power bug to patch. The art for it
+      arrived 2026-10-07 as `charms2`-style sheet `EVENT.SVG`: **38 ore +
+      pickaxe pairs**, meteorite rock up to a black-hole pick. Build zone 11 its
+      own ore roster and tool ladder off that art, on its own strength scale
+      above `MineBreaking.MAX`.
+- [x] **Every block and ore goes up 10,000x, and so does every tool cost.**
+      **DONE 2026-10-08 — EVENT MINE ONLY.** Owner clarified on seeing it go in
+      globally: *"nooo 10 thousand x in ONLY the event mine. Not in the normal
+      game."* The clue was in the original sentence — *"whatever custom
+      currency they are using"* is SPACE COINS, and only Event Horizon is
+      priced in those.
+      - `MineDepth.HP_SCALE = 10000` with `HP_SCALE_ZONE = 11`, and
+        `hpScaleFor(zoneIndex)` is the single place that decides. Zones 1-10
+        are byte-identical to the unscaled curve, verified at 50 points.
+      - Zone 11 is a closed loop and that is why it can take it: its blocks are
+        only broken by `MineHorizonTools` (eventOnly, minZone 11) and it is
+        paid in a currency that buys nothing else, so scaling it moves no
+        number outside it. Both halves scale — blocks through the depth curve,
+        tool power through the authored `SECTIONS` table — and `megascale.js`
+        checks they cancel.
+      - A global pass is still a real project, for the reason noted below: ore
+        quantity feeds `workOf` → `gemCompress` → every gem price, and the bag,
+        rune, trait and charm-merge tables are all authored in gems.
+      - Side effect worth keeping: Horizon tools were **86% off** their
+        advertised hit counts, because `power = max(1, floor(refHp/hits+0.5))`
+        clamped to 1 on shallow sections — a sinkcharge rated "about 70 hits"
+        took ten. The scale gives the integer room; now within 1.4%.
+      Owner: *"i want all blocks and ores to be 10000x what they are right now
+      (SAME WITH THE COST OF TOOLS, WITH WHATEVER CUSTOM [currency] THEY ARE
+      USING)"*. Both sides scale together, so the ratio a player experiences is
+      unchanged — this is a headroom and big-number change, not a balance one.
+      Before touching it, note what it collides with:
+      - `MineBigNum` already exists for display (§6.1, base 30, science form at
+        `9.999e^99`). Check the cap holds at 10,000x the top of the ore ladder.
+      - `toolCraftCost` is `craftBlocks x oreYieldMid`, and **`veinSizeMean` now
+        reads `craftBlocks`** (see `docs/ore-yield-and-vein-balance.md` §3). A
+        blanket multiply must not silently move vein sizes; scale the cost, not
+        the block count, or re-measure `veins.js` after.
+      - Gem value derives from work-per-unit (`MineOrePouch.workOf`), so ore
+        HP going up 10,000x moves gem prices unless it is scaled with them.
+      - Datastore: verify a 10,000x number still round-trips through the save
+        without precision loss.
+- [x] **The launch timer must not start until the owner says launch.** Owner:
+      *"i want the timer to not actually start until i say launch, and rather
+      just keep ticking down"*. **DONE 2026-10-08.** `MineLaunch` holds the
+      flag (`launchedAt`, 0 = not launched) and `seasonNow()` is the clock every
+      season-timed system reads instead of `os.time()`: it returns
+      `SEASON_START` exactly until launch, then `SEASON_START + (now -
+      launchedAt)`, so a delay of any length costs nothing and the season is
+      still a whole season. `MineRotatingOffers` and `MineScrolls` were already
+      on it.
+      - The last thing still on the wall clock was **`MineConfig.limitedActive`**,
+        which counted Event Horizon's 47 days from 2026-09-22 and would have
+        closed the event on **2026-11-08 with nobody having played**, with no way
+        for the launch switch to stop it. It and `limitedCountdown` now read the
+        season clock. Measured: unlaunched holds the full 47d, launched counts 47d
+        from the switch, day 48 closes.
+      - The **visible countdown** is wired. `teaserLeft()` existed and was
+        referenced by nothing; `MineEventsView` now shows it while unlaunched
+        (live, falling second by second off real `os.time()`, rolling over — it
+        counts toward nothing by design) and hands over to the real event
+        countdown the moment the switch is thrown, saying "Starts in" rather than
+        "Closes in" while it is teasing.
 
 ### Breaking power
 

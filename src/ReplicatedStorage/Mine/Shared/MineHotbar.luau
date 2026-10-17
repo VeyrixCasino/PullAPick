@@ -64,8 +64,9 @@ local MineHotbar = {}
 
 	MineClient's UIScale handles device size, so these stay in design pixels.
 ]]
-local SLOT = 60
-local GAP = 8
+-- 60 -> 68 in the candy pass (2026-10-08): a bigger, chunkier target.
+local SLOT = 68
+local GAP = 10
 local MAX_SLOTS = 5
 local TOOL_SLOTS = 1
 local TOOL_SLOTS_VIP = 2
@@ -176,11 +177,14 @@ function MineHotbar.mount(parent, opts)
 			Visible = i == 1,
 			ZIndex = 12,
 		}, row)
-		UI.round(b, T.RADIUS)
-		local edge = UI.edge(b, T.LINE)
+		UI.round(b, T.RADIUS_LG)
+		local edge = UI.edge(b, T.OUTLINE, T.STROKE_CHUNKY)
+		edge.Transparency = 0
+		UI.juice(b, 1.08)
 
 		-- The inner block. This is what lights up, so the slot keeps its own
 		-- outline and the state lands inside it rather than on the border.
+		-- candyTint shades it and adds the gloss; its hue is set per refresh.
 		local inner = UI.new("Frame", {
 			Name = "Inner",
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -190,21 +194,23 @@ function MineHotbar.mount(parent, opts)
 			BorderSizePixel = 0,
 			ZIndex = 13,
 		}, b)
-		UI.round(inner, T.RADIUS_SM)
+		UI.round(inner, T.RADIUS)
+		UI.candyTint(inner, 0)
 
 		-- Anchored rather than offset, so the icon stays centred whatever SLOT
 		-- is and however MineClient's UIScale stretches it. Sat at 0.44 to
 		-- leave the bottom strip for the key number.
-		local img = UI.icon(inner, "", math.floor(SLOT * 0.52))
+		local img = UI.icon(inner, "", math.floor(SLOT * 0.56))
 		img.AnchorPoint = Vector2.new(0.5, 0.5)
 		img.Position = UDim2.fromScale(0.5, 0.44)
 		img.ZIndex = 14
-		local key = UI.text(inner, tostring(i), 11, T.FAINT, T.FONT_M)
+		local key = UI.text(inner, tostring(i), 14, T.TEXT, T.FONT)
 		key.AnchorPoint = Vector2.new(0.5, 1)
-		key.Position = UDim2.new(0.5, 0, 1, -2)
-		key.Size = UDim2.new(1, 0, 0, 12)
+		key.Position = UDim2.new(0.5, 0, 1, 0)
+		key.Size = UDim2.new(1, 0, 0, 16)
 		key.TextXAlignment = Enum.TextXAlignment.Center
 		key.ZIndex = 14
+		UI.outlineText(key, 1.5)
 		slots[i] = { btn = b, edge = edge, inner = inner, img = img, key = key, uid = nil }
 	end
 
@@ -324,12 +330,18 @@ function MineHotbar.mount(parent, opts)
 				else
 					on = (held ~= nil and t.uid == held)
 				end
-				s.inner.BackgroundColor3 = on and T.ACCENT_DIM or T.CARD
+				-- Candy pass: the held slot is bright violet with a fat gold rim,
+				-- and it pops the moment it lights so equipping feels like a click.
+				s.inner.BackgroundColor3 = on and T.ACCENT or T.CARD
 				s.inner.BackgroundTransparency = 0
 				s.btn.BackgroundTransparency = 0.1
-				s.edge.Color = on and T.ACCENT or T.LINE
-				s.edge.Thickness = on and 2 or 1
-				s.key.TextColor3 = on and T.TEXT or T.FAINT
+				s.edge.Color = on and T.GOLD or T.OUTLINE
+				s.edge.Thickness = on and T.STROKE_THICK or T.STROKE_CHUNKY
+				s.key.TextColor3 = on and T.TEXT or T.MUTED
+				if on and not s.on then
+					UI.pop(s.btn, 1.15)
+				end
+				s.on = on
 				if t.uid == BASE_UID then
 					s.btn.Name = tostring(t.name or "Pickaxe")
 				else
@@ -344,9 +356,10 @@ function MineHotbar.mount(parent, opts)
 				s.inner.BackgroundColor3 = T.CARD
 				s.inner.BackgroundTransparency = 0.5
 				s.btn.BackgroundTransparency = 0.35
-				s.edge.Color = T.LINE
-				s.edge.Thickness = 1
-				s.key.TextColor3 = T.FAINT
+				s.edge.Color = T.OUTLINE
+				s.edge.Thickness = T.STROKE_CHUNKY
+				s.key.TextColor3 = T.MUTED
+				s.on = false
 			end
 		end
 

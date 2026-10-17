@@ -6,8 +6,9 @@
 	halves fly apart through a burst of sparks. About 1.4 seconds, and the caller
 	reveals the cards after it returns.
 
-	The art is this game's, not that one's: three tiers, each with its own colours
-	and crest, and the set name printed on the wrapper.
+	The art is this game's, not that one's. A pack with an image is drawn as that
+	image (the 19 sets' packs come from MinePackArt); one without gets the colour
+	wrapper with a band, a crest and the set name.
 
 	Self-contained on purpose -- the original leaned on UITheme/UIShell, and
 	dragging those across would have brought half of another game's UI with them.
@@ -60,9 +61,6 @@ MinePackFX.ART = {
 		before reading its name.
 	]]
 
-	rune_pack         = { primary = Color3.fromRGB(46, 28, 72),  accent = Color3.fromRGB(178, 132, 240), secondary = Color3.fromRGB(98, 66, 152), image = "rbxassetid://113565242847795" },
-	rune_heavy_pack   = { primary = Color3.fromRGB(34, 18, 62),  accent = Color3.fromRGB(200, 146, 255), secondary = Color3.fromRGB(112, 70, 180), image = "rbxassetid://119839016362746" },
-	rune_sealed_pack  = { primary = Color3.fromRGB(22, 10, 46),  accent = Color3.fromRGB(226, 176, 255), secondary = Color3.fromRGB(130, 82, 208), image = "rbxassetid://91167732083445" },
 
 	gear_pack         = { primary = Color3.fromRGB(30, 46, 66),  accent = Color3.fromRGB(122, 172, 224), secondary = Color3.fromRGB(66, 106, 152), image = "rbxassetid://131050081581531" },
 	gear_case_pack    = { primary = Color3.fromRGB(22, 38, 60),  accent = Color3.fromRGB(146, 196, 246), secondary = Color3.fromRGB(76, 122, 176), image = "rbxassetid://132056496410791" },
@@ -180,10 +178,26 @@ local function ensureOrePackArt()
 	MinePackFX._oreArtReady = true
 end
 
+-- The 19 sets' pack sprites (generated, tools/pack-sprites/gen-pack-art.js).
+local SetArt = nil
+do
+	local mod = script.Parent:FindFirstChild("MinePackArt")
+	local ok, m = pcall(function()
+		return mod and require(mod)
+	end)
+	SetArt = ok and m or nil
+end
+
 function MinePackFX.art(packId)
 	packId = tostring(packId or "")
 	local row = MinePackFX.ART[packId]
 	if row then
+		return row
+	end
+	-- A set pack ("<setKey>_pack_<n>") wears its set's sprite for its star band.
+	row = SetArt and SetArt.packArt and SetArt.packArt(packId)
+	if row then
+		MinePackFX.ART[packId] = row
 		return row
 	end
 	if string.sub(packId, -9) == "_ore_pack" then
@@ -683,12 +697,26 @@ local VARIANT_FALLBACK = { Normal = 1, Shiny = 2, Golden = 3, Prism = 4, Void = 
 -- reveal celebrates them (MineServer.openPack, MinePackReveal bulk hits).
 MinePackFX.BAND_ORDER = { DUD = 1, NICE = 2, HIT = 3, CHASE = 4, GOD = 5 }
 
+--[[
+	A card's rarity rank, 1..8. Ore-case skins ride a pack run as cards whose
+	rarityId is a temper GRADE letter (MineServer openPack). Cards.RARITY_RANK
+	has no F..SSS keys, so every skin scored rank 1 (DUD). An SSS skin from an
+	open-all was counted in "N cleared" and never shown. Grades sit on the same
+	1..8 ladder the case reel uses: F=1 ... A=5 (Legendary-equivalent) ... SSS=8.
+]]
+local GRADE_RANK = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 8 }
+function MinePackFX.rankOf(card, Cards, default)
+	local id = (card and card.rarityId) or ""
+	Cards = Cards or require(script.Parent:FindFirstChild("MineCards"))
+	return (Cards and Cards.RARITY_RANK and Cards.RARITY_RANK[id]) or GRADE_RANK[id] or default or 1
+end
+
 function MinePackFX.pullScore(card, Cards)
 	if not card then
 		return 1, "DUD"
 	end
 	Cards = Cards or require(script.Parent:FindFirstChild("MineCards"))
-	local base = (Cards and Cards.RARITY_RANK and Cards.RARITY_RANK[card.rarityId or ""]) or 1
+	local base = MinePackFX.rankOf(card, Cards)
 	local variant = card.variant or "Normal"
 	local var = (Cards and Cards.VARIANT_RANK and Cards.VARIANT_RANK[variant])
 		or VARIANT_FALLBACK[variant] or 1

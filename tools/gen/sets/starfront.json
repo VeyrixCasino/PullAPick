@@ -1,0 +1,1129 @@
+{
+  "key": "starfront",
+  "bodies": [
+    {
+      "id": "sf_astronaut",
+      "label": "Astronaut",
+      "role": "Prospector"
+    },
+    {
+      "id": "sf_rover",
+      "label": "Rover",
+      "role": "Digger"
+    },
+    {
+      "id": "sf_satellite",
+      "label": "Satellite",
+      "role": "Seeker"
+    },
+    {
+      "id": "sf_rocket",
+      "label": "Rocket",
+      "role": "Striker"
+    },
+    {
+      "id": "sf_planet",
+      "label": "Planet",
+      "role": "Mystic"
+    },
+    {
+      "id": "sf_helmetpup",
+      "label": "Helmet Pup",
+      "role": "Prospector"
+    },
+    {
+      "id": "sf_craterrock",
+      "label": "Crater Rock",
+      "role": "Digger"
+    },
+    {
+      "id": "sf_navbuoy",
+      "label": "Nav Buoy",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "sf_astroowl",
+      "label": "Astro Owl",
+      "role": "Seeker"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "sf_t_cubesat",
+      "label": "Pocket Cubesat",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        64,
+        206,
+        226
+      ]
+    },
+    {
+      "id": "sf_t_rotor",
+      "label": "Rotor Scout",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        236,
+        132,
+        52
+      ]
+    },
+    {
+      "id": "sf_t_capsule",
+      "label": "Splashdown Pod",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        70,
+        148,
+        236
+      ]
+    },
+    {
+      "id": "sf_t_dish",
+      "label": "Listening Dish",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        176,
+        108,
+        236
+      ]
+    },
+    {
+      "id": "sf_t_hare",
+      "label": "Lunar Hare",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        246,
+        178,
+        210
+      ]
+    },
+    {
+      "id": "sf_t_waterbear",
+      "label": "Star Waterbear",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        112,
+        198,
+        92
+      ]
+    },
+    {
+      "id": "sf_t_moth",
+      "label": "Solar Moth",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        214,
+        84,
+        196
+      ]
+    },
+    {
+      "id": "sf_t_pogo",
+      "label": "Crater Pogo",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        60,
+        212,
+        158
+      ]
+    },
+    {
+      "id": "sf_t_driller",
+      "label": "Core Driller",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        222,
+        94,
+        58
+      ]
+    },
+    {
+      "id": "sf_t_console",
+      "label": "Mission Console",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        52,
+        74,
+        170
+      ]
+    },
+    {
+      "id": "sf_t_tug",
+      "label": "Cargo Tug",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        250,
+        204,
+        44
+      ]
+    },
+    {
+      "id": "sf_t_crescent",
+      "label": "Sleepy Crescent",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        255,
+        228,
+        130
+      ]
+    },
+    {
+      "id": "sf_t_strider",
+      "label": "Lunar Strider",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        118,
+        136,
+        250
+      ]
+    },
+    {
+      "id": "sf_t_hound",
+      "label": "Crater Hound",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        160,
+        228,
+        72
+      ]
+    },
+    {
+      "id": "sf_t_crab",
+      "label": "Sample Crab",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        255,
+        118,
+        96
+      ]
+    },
+    {
+      "id": "sf_t_sprout",
+      "label": "Sprout Pod",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        188,
+        110,
+        64
+      ]
+    },
+    {
+      "id": "sf_t_jetpack",
+      "label": "Jetpack Pal",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        232,
+        58,
+        72
+      ]
+    },
+    {
+      "id": "sf_t_rivetbot",
+      "label": "Rivet Bot",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        58,
+        168,
+        150
+      ]
+    },
+    {
+      "id": "sf_t_lander",
+      "label": "Foil Lander",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        236,
+        150,
+        60
+      ]
+    },
+    {
+      "id": "sf_t_telescope",
+      "label": "Orbit Telescope",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        170,
+        190,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_shuttle",
+      "label": "Delta Shuttle",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        240,
+        242,
+        250
+      ]
+    },
+    {
+      "id": "sf_t_arm",
+      "label": "Grapple Arm",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        122,
+        40
+      ]
+    },
+    {
+      "id": "sf_t_module",
+      "label": "Dock Module",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        110,
+        220,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_record",
+      "label": "Golden Record",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        250,
+        212,
+        80
+      ]
+    },
+    {
+      "id": "sf_t_skycrane",
+      "label": "Sky Crane",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        214,
+        70,
+        62
+      ]
+    },
+    {
+      "id": "sf_t_crawler",
+      "label": "Crawler Platform",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        100,
+        182,
+        82
+      ]
+    },
+    {
+      "id": "sf_t_sail",
+      "label": "Photon Sail",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        192,
+        142,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_biodome",
+      "label": "Glass Biodome",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        76,
+        204,
+        150
+      ]
+    },
+    {
+      "id": "sf_t_relay",
+      "label": "Relay Tower",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        88,
+        120
+      ]
+    },
+    {
+      "id": "sf_t_moonlet",
+      "label": "Geyser Moonlet",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        170,
+        226,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_wheel",
+      "label": "Wheel Station",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        122,
+        160,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_orrery",
+      "label": "Planet Orrery",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        220,
+        168,
+        72
+      ]
+    },
+    {
+      "id": "sf_t_magma",
+      "label": "Magma World",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        92,
+        36
+      ]
+    },
+    {
+      "id": "sf_t_clipper",
+      "label": "Ion Clipper",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        56,
+        220,
+        236
+      ]
+    },
+    {
+      "id": "sf_t_sun",
+      "label": "Little Sun",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        255,
+        196,
+        56
+      ]
+    },
+    {
+      "id": "sf_t_observatory",
+      "label": "Dome Observatory",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        150,
+        120,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_twins",
+      "label": "Twin Planets",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        124,
+        102,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_nebula",
+      "label": "Nebula Puff",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        108,
+        220
+      ]
+    },
+    {
+      "id": "sf_t_aerostat",
+      "label": "Cloud Aerostat",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        168,
+        76
+      ]
+    },
+    {
+      "id": "sf_t_forge",
+      "label": "Star Forge",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        112,
+        52
+      ]
+    },
+    {
+      "id": "sf_t_rig",
+      "label": "Asteroid Rig",
+      "role": "Digger",
+      "tier": "Exotic",
+      "tint": [
+        150,
+        255,
+        120
+      ]
+    },
+    {
+      "id": "sf_t_diver",
+      "label": "Europa Diver",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        40,
+        176,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_elevator",
+      "label": "Sky Elevator",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        200,
+        250,
+        110
+      ]
+    },
+    {
+      "id": "sf_t_pulsar",
+      "label": "Pulsar Beacon",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        120,
+        255,
+        236
+      ]
+    },
+    {
+      "id": "sf_t_comet",
+      "label": "Tailed Comet",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        150,
+        216,
+        255
+      ]
+    },
+    {
+      "id": "sf_t_tortoise",
+      "label": "Moonbase Tortoise",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        92,
+        200,
+        112
+      ]
+    }
+  ],
+  "extraBodies": [
+    "sprite",
+    "golem"
+  ],
+  "buffs": [
+    "rareOre",
+    "luck",
+    "blastChance"
+  ],
+  "palette": [
+    [
+      "Lunar",
+      236,
+      238,
+      242
+    ],
+    [
+      "Mars",
+      200,
+      82,
+      54
+    ],
+    [
+      "Nebula",
+      140,
+      92,
+      208
+    ],
+    [
+      "Solar",
+      244,
+      188,
+      52
+    ],
+    [
+      "Orbit",
+      62,
+      122,
+      228
+    ],
+    [
+      "Comet",
+      52,
+      186,
+      176
+    ],
+    [
+      "Crater",
+      118,
+      120,
+      132
+    ],
+    [
+      "Ignition",
+      250,
+      128,
+      40
+    ],
+    [
+      "Void",
+      34,
+      40,
+      84
+    ],
+    [
+      "Aurora",
+      92,
+      214,
+      128
+    ],
+    [
+      "Ion",
+      110,
+      226,
+      250
+    ],
+    [
+      "Venus",
+      226,
+      162,
+      92
+    ],
+    [
+      "Jupiter",
+      196,
+      160,
+      120
+    ],
+    [
+      "Neptune",
+      40,
+      86,
+      192
+    ],
+    [
+      "Titan",
+      168,
+      112,
+      60
+    ],
+    [
+      "Plasma",
+      242,
+      96,
+      186
+    ],
+    [
+      "Stardust",
+      206,
+      170,
+      246
+    ],
+    [
+      "Eclipse",
+      24,
+      22,
+      32
+    ],
+    [
+      "Beacon",
+      228,
+      40,
+      58
+    ],
+    [
+      "Alloy",
+      186,
+      194,
+      206
+    ],
+    [
+      "Meteor",
+      138,
+      70,
+      44
+    ],
+    [
+      "Saturn",
+      240,
+      222,
+      170
+    ],
+    [
+      "Pulsar",
+      190,
+      236,
+      60
+    ],
+    [
+      "Cosmic",
+      78,
+      60,
+      162
+    ],
+    [
+      "Mercury",
+      160,
+      156,
+      150
+    ],
+    [
+      "Redshift",
+      140,
+      20,
+      36
+    ],
+    [
+      "Canopy",
+      24,
+      96,
+      48
+    ],
+    [
+      "Europa",
+      190,
+      222,
+      236
+    ],
+    [
+      "Halley",
+      140,
+      236,
+      200
+    ],
+    [
+      "Sunrise",
+      255,
+      206,
+      160
+    ],
+    [
+      "Nova",
+      214,
+      30,
+      160
+    ],
+    [
+      "Skylab",
+      120,
+      184,
+      255
+    ],
+    [
+      "Lichen",
+      128,
+      136,
+      48
+    ],
+    [
+      "Sunbeam",
+      252,
+      242,
+      80
+    ],
+    [
+      "Callisto",
+      16,
+      98,
+      108
+    ],
+    [
+      "Rosette",
+      255,
+      184,
+      212
+    ],
+    [
+      "Bedrock",
+      78,
+      50,
+      34
+    ],
+    [
+      "Ultraviolet",
+      116,
+      36,
+      232
+    ],
+    [
+      "Graphite",
+      66,
+      68,
+      78
+    ],
+    [
+      "Gamma",
+      48,
+      214,
+      52
+    ],
+    [
+      "Umbral",
+      58,
+      18,
+      72
+    ],
+    [
+      "Chlorella",
+      200,
+      244,
+      170
+    ],
+    [
+      "Hull",
+      88,
+      118,
+      150
+    ],
+    [
+      "Kuiper",
+      22,
+      54,
+      140
+    ],
+    [
+      "Starwhite",
+      250,
+      252,
+      255
+    ],
+    [
+      "Hotfire",
+      255,
+      70,
+      20
+    ],
+    [
+      "Amethyst",
+      170,
+      60,
+      140
+    ],
+    [
+      "Moonwalk",
+      210,
+      200,
+      186
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Orbital",
+      "Stellar",
+      "Pioneer",
+      "Flagship"
+    ],
+    "Mythic": [
+      "Interstellar",
+      "Deep-Space",
+      "Starborn",
+      "Galactic"
+    ],
+    "Divine": [
+      "Celestial",
+      "Luminous",
+      "Haloed",
+      "Sunlit"
+    ],
+    "Exotic": [
+      "Quasar",
+      "Spectral",
+      "Starfire",
+      "Prismatic"
+    ]
+  },
+  "names": [
+    "Liftoff",
+    "Countdown",
+    "Blastoff",
+    "Thruster",
+    "Booster",
+    "Capsule",
+    "Payload",
+    "Airlock",
+    "Gantry",
+    "Uplink",
+    "Downlink",
+    "Telemetry",
+    "Antenna",
+    "Radar",
+    "Lander",
+    "Orbiter",
+    "Shuttle",
+    "Probe",
+    "Gravity",
+    "Zero-G",
+    "Starhop",
+    "Moonhop",
+    "Moonbeam",
+    "Moonpup",
+    "Moonkit",
+    "Starcub",
+    "Cometcub",
+    "Meteorite",
+    "Asteroid",
+    "Ringlet",
+    "Regolith",
+    "Moonrock",
+    "Starchip",
+    "Proton",
+    "Electron",
+    "Ion",
+    "Parsec",
+    "Lightspeed",
+    "Apogee",
+    "Perigee",
+    "Aphelion",
+    "Equinox",
+    "Umbra",
+    "Penumbra",
+    "Mercury",
+    "Venus",
+    "Jupiter",
+    "Neptune",
+    "Ceres",
+    "Eris",
+    "Io",
+    "Europa",
+    "Ganymede",
+    "Callisto",
+    "Rhea",
+    "Triton",
+    "Phobos",
+    "Deimos",
+    "Oberon",
+    "Miranda",
+    "Charon",
+    "Enceladus",
+    "Mimas",
+    "Dione",
+    "Tethys",
+    "Hyperion",
+    "Rigel",
+    "Altair",
+    "Deneb",
+    "Polaris",
+    "Arcturus",
+    "Antares",
+    "Aldebaran",
+    "Capella",
+    "Spica",
+    "Lyra",
+    "Orion",
+    "Andromeda",
+    "Cassiopeia",
+    "Draco",
+    "Carina",
+    "Cygnus",
+    "Castor",
+    "Pollux",
+    "Mira",
+    "Alcor",
+    "Mizar",
+    "Vela",
+    "Ursa",
+    "Starbit",
+    "Moonbit",
+    "Spacepup",
+    "Cosmocub",
+    "Stargazer",
+    "Skywatch",
+    "Spacewalk",
+    "Visor",
+    "Tether",
+    "Jetpack",
+    "Cadet",
+    "Pilot",
+    "Navigator",
+    "Splashdown",
+    "Touchdown",
+    "Reentry",
+    "Solar Sail",
+    "Heat Shield",
+    "Little Dipper",
+    "Big Dipper",
+    "Moon Pebble",
+    "Comet Tail",
+    "Space Bean",
+    "Moonstep",
+    "Crater Cub",
+    "Orbitpup",
+    "Starsailor",
+    "Moonglider",
+    "Telescope",
+    "Starlens",
+    "Planetoid",
+    "Exoplanet",
+    "Moonlet",
+    "Starseed",
+    "Gas Giant",
+    "Nebulette",
+    "Cosmonaut",
+    "Spaceling",
+    "Thrustbot",
+    "Beepo",
+    "Servo",
+    "Gyro",
+    "Circuit",
+    "Scanner",
+    "Sensor",
+    "Relay",
+    "Satcom",
+    "Hatch",
+    "Hangar",
+    "Launchling",
+    "Mission Control",
+    "Commander",
+    "Flightdeck",
+    "Starport",
+    "Moonbase",
+    "Outpost",
+    "Habitat",
+    "Biodome",
+    "Moonsprout",
+    "Starfarer",
+    "Skyrocket",
+    "Nosecone",
+    "Gimbal",
+    "Sputter",
+    "Zoomer",
+    "Whoosh",
+    "Glidepath",
+    "Trajectory",
+    "Slingshot",
+    "Flyby",
+    "Rendezvous",
+    "Starmap",
+    "Starchart",
+    "Moonglow",
+    "Earthrise",
+    "Moonrise",
+    "Gibbous",
+    "Halfmoon",
+    "Full Moon",
+    "Spacey",
+    "Floaty",
+    "Hover",
+    "Weightless",
+    "Estrella",
+    "Celeste",
+    "Lunette",
+    "Starla",
+    "Moonbuggy",
+    "Spacesuit",
+    "Starwatch",
+    "Retrograde",
+    "Nadir",
+    "Parallax",
+    "Moonquake",
+    "Starquake",
+    "Spaceport",
+    "Rocketpup",
+    "Starkit",
+    "Moonmite",
+    "Cometkit",
+    "Orbitkit",
+    "Lunabug",
+    "Starbug",
+    "Astro Pip",
+    "Zoomstar",
+    "Thrustling",
+    "Sonar Pip",
+    "Graviton",
+    "Ecliptic",
+    "Azimuth",
+    "Ascension",
+    "Transit",
+    "Delta-V",
+    "Launch Pad",
+    "Moon Dust",
+    "Space Dust",
+    "Skyhook",
+    "Flywheel",
+    "Drydock",
+    "Orbit Bee",
+    "Comet Bee",
+    "Pod Pal",
+    "Star Sprout",
+    "Moon Muffin",
+    "Nebula Nugget",
+    "Rocket Rascal",
+    "Crater Critter",
+    "Starpip",
+    "Cometpip",
+    "Lunar Lark",
+    "Sky Scout",
+    "Star Scout",
+    "Retro Rocket",
+    "Afterburn",
+    "Contrail",
+    "Ion Trail",
+    "Plasma Puff",
+    "Ice Giant",
+    "Star Nursery",
+    "Protostar",
+    "Moonshot",
+    "Starshot",
+    "Earthshine",
+    "Moonwatch",
+    "Freefall",
+    "Dock Pup",
+    "Rover Rex",
+    "Crater Pip",
+    "Moon Mochi",
+    "Astro Bean",
+    "Star Biscuit",
+    "Orbit Otto",
+    "Pebble Probe",
+    "Nova Pip",
+    "Beep Boop"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "key": "pass_2026_10",
+  "name": "Season One Pass",
+  "holiday": "pass",
+  "anyBody": true,
+  "packId": null,
+  "packName": null,
+  "note": "Owner, 2026-10-16: the battle pass rework; the premium track's huge tiers (25, 50, 75, 100) pay season-exclusive pets, made by the assistant session (owner's pick): Legendary at 25, Mythic at 50, Divine at 75, Exotic at 100. Nothing else ever gives them (holiday = \"pass\", no pack). Event Horizon power like the Halloween pack. Names, colours and buffs are PROPOSED.",
+  "zoneLevel": 11,
+  "legacy": [],
+  "buffs": [
+    "oreHaul",
+    "chestLuck",
+    "mineSpeed"
+  ],
+  "costumeCounts": {
+    "Common": 0,
+    "Uncommon": 0,
+    "Rare": 0
+  },
+  "specials": [
+    { "body": "wyrm", "tier": "Exotic", "role": "Mystic" },
+    { "body": "hawk", "tier": "Divine", "role": "Seeker" },
+    { "body": "drake", "tier": "Mythic", "role": "Striker" },
+    { "body": "golem", "tier": "Legendary", "role": "Prospector" }
+  ],
+  "costumeBodies": [],
+  "costumes": [],
+  "furPalette": [],
+  "spookyPalette": [
+    ["Gemfire", 232, 72, 96],
+    ["Geode", 140, 92, 210],
+    ["Lodestar", 60, 120, 230],
+    ["Oreglow", 250, 186, 60],
+    ["Starshard", 210, 236, 250],
+    ["Deepgold", 214, 160, 40],
+    ["Prismite", 90, 220, 200],
+    ["Amberlode", 236, 128, 40],
+    ["Duskstone", 52, 44, 72],
+    ["Frostgem", 150, 210, 255]
+  ],
+  "names": [
+    "Motherlode",
+    "Glimmerjaw",
+    "Shardwing",
+    "Bedrock Bob",
+    "Lodestone",
+    "Nuggetail",
+    "Crystalback",
+    "Quarry King",
+    "Veinrunner",
+    "Gemheart",
+    "Pickwick",
+    "Stratos"
+  ]
+}

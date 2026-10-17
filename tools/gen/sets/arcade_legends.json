@@ -1,0 +1,1048 @@
+{
+  "key": "arcade_legends",
+  "bodies": [
+    {
+      "id": "al_cabinet",
+      "label": "Cabinet",
+      "role": "Bruiser"
+    },
+    {
+      "id": "al_gamepad",
+      "label": "Gamepad",
+      "role": "Striker"
+    },
+    {
+      "id": "al_token",
+      "label": "Token",
+      "role": "Trader"
+    },
+    {
+      "id": "al_heartbit",
+      "label": "Pixel Heart",
+      "role": "Seeker"
+    },
+    {
+      "id": "al_bitbug",
+      "label": "Bitbug",
+      "role": "Digger"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "al_t_joystick",
+      "label": "Joystick Jumper",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        235,
+        35,
+        45
+      ]
+    },
+    {
+      "id": "al_t_cartridge",
+      "label": "Cartridge Buddy",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        60,
+        100,
+        255
+      ]
+    },
+    {
+      "id": "al_t_bumper",
+      "label": "Pop Bumper",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        0,
+        190,
+        255
+      ]
+    },
+    {
+      "id": "al_t_spook",
+      "label": "Maze Spook",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        255,
+        140,
+        210
+      ]
+    },
+    {
+      "id": "al_t_tickets",
+      "label": "Prize Tickets",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        205,
+        30
+      ]
+    },
+    {
+      "id": "al_t_claw",
+      "label": "Claw Grabber",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        120,
+        255,
+        70
+      ]
+    },
+    {
+      "id": "al_t_telly",
+      "label": "Bitscreen Telly",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        150,
+        70
+      ]
+    },
+    {
+      "id": "al_t_paddle",
+      "label": "Paddle Bopper",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        0,
+        255,
+        180
+      ]
+    },
+    {
+      "id": "al_t_dropblock",
+      "label": "Drop Block",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        160,
+        50,
+        255
+      ]
+    },
+    {
+      "id": "al_t_capsule",
+      "label": "Power Capsule",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        255,
+        40,
+        120
+      ]
+    },
+    {
+      "id": "al_t_kart",
+      "label": "Pixel Kart",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        30,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "al_t_digit",
+      "label": "Neon Digit",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        200,
+        170,
+        255
+      ]
+    },
+    {
+      "id": "al_t_cherries",
+      "label": "Bonus Cherries",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        190,
+        0,
+        40
+      ]
+    },
+    {
+      "id": "al_t_bomb",
+      "label": "Bitbomb",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        40,
+        40,
+        120
+      ]
+    },
+    {
+      "id": "al_t_cursor",
+      "label": "Arrow Cursor",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        245,
+        245,
+        255
+      ]
+    },
+    {
+      "id": "al_t_skate",
+      "label": "Neon Skate",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        70,
+        230
+      ]
+    },
+    {
+      "id": "al_t_fireball",
+      "label": "Bit Fireball",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        90,
+        20
+      ]
+    },
+    {
+      "id": "al_t_spring",
+      "label": "Boing Booster",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        210,
+        255,
+        40
+      ]
+    },
+    {
+      "id": "al_t_pinball",
+      "label": "Pinball Table",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        20,
+        80,
+        255
+      ]
+    },
+    {
+      "id": "al_t_invader",
+      "label": "Pixel Invader",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        80,
+        255,
+        90
+      ]
+    },
+    {
+      "id": "al_t_hero",
+      "label": "Bitsword Hero",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        230,
+        50,
+        50
+      ]
+    },
+    {
+      "id": "al_t_dancepad",
+      "label": "Rhythm Pad",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        150,
+        220
+      ]
+    },
+    {
+      "id": "al_t_hoop",
+      "label": "Hoop Shot",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        130,
+        20
+      ]
+    },
+    {
+      "id": "al_t_pusher",
+      "label": "Coin Pusher",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        215,
+        60
+      ]
+    },
+    {
+      "id": "al_t_tester",
+      "label": "Strength Tester",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        150,
+        60,
+        255
+      ]
+    },
+    {
+      "id": "al_t_handheld",
+      "label": "Flip Handheld",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        150,
+        210,
+        40
+      ]
+    },
+    {
+      "id": "al_t_gamebox",
+      "label": "Retro Gamebox",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        210,
+        255
+      ]
+    },
+    {
+      "id": "al_t_cycle",
+      "label": "Synth Cycle",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        0,
+        150
+      ]
+    },
+    {
+      "id": "al_t_keytar",
+      "label": "Neon Keytar",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        0,
+        255,
+        200
+      ]
+    },
+    {
+      "id": "al_t_brickwall",
+      "label": "Brickbreak Wall",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        90,
+        50
+      ]
+    },
+    {
+      "id": "al_t_boss",
+      "label": "Final Boss",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        130,
+        30,
+        200
+      ]
+    },
+    {
+      "id": "al_t_hoverboard",
+      "label": "Turbo Hoverboard",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        0,
+        230,
+        255
+      ]
+    },
+    {
+      "id": "al_t_jukebox",
+      "label": "Neon Jukebox",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        150,
+        0
+      ]
+    },
+    {
+      "id": "al_t_vector",
+      "label": "Vector Fighter",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        60,
+        255,
+        120
+      ]
+    },
+    {
+      "id": "al_t_plasma",
+      "label": "Plasma Sphere",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        60,
+        255
+      ]
+    },
+    {
+      "id": "al_t_podium",
+      "label": "Victory Podium",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        210,
+        0
+      ]
+    },
+    {
+      "id": "al_t_savepoint",
+      "label": "Save Point",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        120,
+        220,
+        255
+      ]
+    },
+    {
+      "id": "al_t_sunset",
+      "label": "Sunset Grid",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        255,
+        90,
+        140
+      ]
+    },
+    {
+      "id": "al_t_marquee",
+      "label": "Neon Marquee",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        255,
+        240,
+        120
+      ]
+    },
+    {
+      "id": "al_t_swordstone",
+      "label": "Legend Swordstone",
+      "role": "Digger",
+      "tier": "Divine",
+      "tint": [
+        110,
+        140,
+        255
+      ]
+    },
+    {
+      "id": "al_t_firework",
+      "label": "Pixel Firework",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        255,
+        60,
+        40
+      ]
+    },
+    {
+      "id": "al_t_bolt",
+      "label": "Power Bolt",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        255,
+        230,
+        0
+      ]
+    },
+    {
+      "id": "al_t_chip",
+      "label": "Overclock Chip",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        0,
+        255,
+        160
+      ]
+    },
+    {
+      "id": "al_t_multiball",
+      "label": "Multiball Orbit",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        120,
+        0
+      ]
+    },
+    {
+      "id": "al_t_totem",
+      "label": "Button Totem",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        40,
+        80
+      ]
+    },
+    {
+      "id": "al_t_equalizer",
+      "label": "Neon Equalizer",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        100,
+        60,
+        255
+      ]
+    }
+  ],
+  "extraBodies": [
+    "slime",
+    "sprite",
+    "drake"
+  ],
+  "buffs": [
+    "coinBonus",
+    "swingRate",
+    "zap"
+  ],
+  "palette": [
+    [
+      "Cherry",
+      240,
+      70,
+      100
+    ],
+    [
+      "Bubblegum",
+      255,
+      120,
+      196
+    ],
+    [
+      "Tangerine",
+      255,
+      140,
+      30
+    ],
+    [
+      "Lemon",
+      255,
+      240,
+      90
+    ],
+    [
+      "Lime",
+      150,
+      240,
+      60
+    ],
+    [
+      "Mint",
+      96,
+      240,
+      180
+    ],
+    [
+      "Cyber",
+      40,
+      226,
+      255
+    ],
+    [
+      "Cobalt",
+      40,
+      90,
+      230
+    ],
+    [
+      "Grape",
+      140,
+      60,
+      220
+    ],
+    [
+      "Magenta",
+      236,
+      40,
+      210
+    ],
+    [
+      "Ink",
+      30,
+      30,
+      40
+    ],
+    [
+      "Ivory",
+      240,
+      238,
+      228
+    ],
+    [
+      "Beige",
+      214,
+      200,
+      168
+    ],
+    [
+      "Gunmetal",
+      86,
+      92,
+      104
+    ],
+    [
+      "Toxic",
+      60,
+      255,
+      90
+    ],
+    [
+      "Synth",
+      110,
+      40,
+      160
+    ],
+    [
+      "Sunset",
+      255,
+      96,
+      64
+    ],
+    [
+      "Electric",
+      70,
+      160,
+      255
+    ],
+    [
+      "Jackpot",
+      250,
+      196,
+      40
+    ],
+    [
+      "Chrome",
+      196,
+      200,
+      214
+    ],
+    [
+      "Lagoon",
+      0,
+      170,
+      170
+    ],
+    [
+      "Blaster",
+      196,
+      16,
+      36
+    ],
+    [
+      "Lavender",
+      190,
+      160,
+      255
+    ],
+    [
+      "Woodgrain",
+      150,
+      96,
+      56
+    ],
+    [
+      "Felt",
+      0,
+      96,
+      20
+    ],
+    [
+      "Bluescreen",
+      0,
+      0,
+      255
+    ],
+    [
+      "Jam",
+      120,
+      15,
+      75
+    ],
+    [
+      "Olive",
+      135,
+      135,
+      15
+    ],
+    [
+      "Midnight",
+      0,
+      60,
+      135
+    ],
+    [
+      "Maroon",
+      90,
+      0,
+      0
+    ],
+    [
+      "Rosewave",
+      210,
+      135,
+      150
+    ],
+    [
+      "Emerald",
+      0,
+      165,
+      45
+    ],
+    [
+      "Swamp",
+      30,
+      45,
+      0
+    ],
+    [
+      "Camo",
+      105,
+      135,
+      90
+    ],
+    [
+      "Phosphor",
+      225,
+      255,
+      165
+    ],
+    [
+      "Peach",
+      255,
+      165,
+      120
+    ],
+    [
+      "Deepwave",
+      0,
+      135,
+      180
+    ],
+    [
+      "Mauve",
+      135,
+      90,
+      150
+    ],
+    [
+      "Ultraviolet",
+      210,
+      0,
+      255
+    ],
+    [
+      "Void",
+      45,
+      0,
+      60
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Champion",
+      "Bonus",
+      "Combo",
+      "Arcade"
+    ],
+    "Mythic": [
+      "Hyper",
+      "Ultra",
+      "Mega",
+      "Boss"
+    ],
+    "Divine": [
+      "Flawless",
+      "Perfect",
+      "Platinum",
+      "Immortal"
+    ],
+    "Exotic": [
+      "Glitched",
+      "Overclocked",
+      "Secret",
+      "Hypercolor"
+    ]
+  },
+  "names": [
+    "Bleep",
+    "Blorp",
+    "Kilobyte",
+    "Terabyte",
+    "Chiptune",
+    "Joypad",
+    "Joystick",
+    "D-Pad",
+    "Combo",
+    "Highscore",
+    "Topscore",
+    "Scoreboard",
+    "Checkpoint",
+    "Powerup",
+    "Level Up",
+    "Extra Life",
+    "Continue",
+    "Replay",
+    "Speedrun",
+    "Quickstart",
+    "Cartridge",
+    "Quarter",
+    "Ticket",
+    "Prize",
+    "Bonus",
+    "Multiplier",
+    "Streak",
+    "Glowstick",
+    "Strobe",
+    "Laser",
+    "Blaster",
+    "Pew Pew",
+    "Zap",
+    "Vector",
+    "Raster",
+    "Synth",
+    "Synthwave",
+    "Retro",
+    "Player One",
+    "Player Two",
+    "Coinslot",
+    "Coin-Op",
+    "Pinball",
+    "Bumper",
+    "Plunger",
+    "Multiball",
+    "Stacker",
+    "Nitro",
+    "Miniboss",
+    "Bossfight",
+    "Sidekick",
+    "Questy",
+    "Loot",
+    "Lifebar",
+    "Healthbar",
+    "Elixir",
+    "Thumbstick",
+    "Trigger",
+    "Eightbit",
+    "Bleeper",
+    "Megabit",
+    "Bitwise",
+    "Bytesize",
+    "Byteling",
+    "Bitling",
+    "Pixling",
+    "Neonpop",
+    "Glowbug",
+    "Neonbug",
+    "Bytebug",
+    "Coinflip",
+    "Cheatcode",
+    "Secret Level",
+    "Bonus Stage",
+    "Framerate",
+    "Joybot",
+    "Gamebot",
+    "Beepbeep",
+    "Blipblop",
+    "Press Start",
+    "Spacebar",
+    "Arrow Key",
+    "Gridline",
+    "Neon Grid",
+    "Laserbeam",
+    "Glowline",
+    "Ding",
+    "Ka-Ching",
+    "Ta-Da",
+    "Kapow",
+    "Zing",
+    "Fwoosh",
+    "Fireball",
+    "Turbochip",
+    "Overdrive",
+    "Bitstream",
+    "Datastream",
+    "Gigglebyte",
+    "Snackbyte",
+    "Megachomp",
+    "Bitpaw",
+    "Glitchy",
+    "Beepboop",
+    "Megablast",
+    "Superjump",
+    "Double Jump",
+    "Wall Jump",
+    "Dash",
+    "Combo King",
+    "Free Play",
+    "Credit",
+    "Clawgrab",
+    "Clawdrop",
+    "Air Hockey",
+    "Puck",
+    "Brickbash",
+    "Blockdrop",
+    "Coinrush",
+    "Pixel Racer",
+    "Neon Rider",
+    "Laser Tag",
+    "Buttonmash",
+    "Mashy",
+    "Tappy",
+    "Clicky",
+    "Clickity",
+    "Arpeggio",
+    "Squarewave",
+    "Sawtooth",
+    "Neon Kitty",
+    "Pixel Pup",
+    "Bytebunny",
+    "Screensaver",
+    "Bezel",
+    "Marquee",
+    "Scorechaser",
+    "Leaderboard",
+    "Rank Up",
+    "Fightstick",
+    "Uppercut",
+    "Spinkick",
+    "Lightgun",
+    "Crosshair",
+    "Sharpshot",
+    "Bonus Life",
+    "Arcadey",
+    "Tokenkid",
+    "Bitbop",
+    "Chipchop",
+    "Glowpad",
+    "Neonbyte",
+    "Pixel Pop",
+    "Boss Key",
+    "Game Save",
+    "Bitmap",
+    "Arcade Ace",
+    "Neon Nibble",
+    "Glowball",
+    "Laserpup",
+    "Turbo Tot",
+    "Combo Cub",
+    "Coin Cub",
+    "Bit Buddy",
+    "Chip Champ",
+    "Score Scout",
+    "Retro Rex",
+    "Synth Kid",
+    "Neon Knight",
+    "Boss Bop",
+    "Coin Stack",
+    "Prize Wall",
+    "Claw Champ",
+    "Pixel Burst",
+    "Bitburst",
+    "Neon Burst",
+    "Megazap",
+    "Ultra Combo",
+    "Max Level",
+    "Final Level",
+    "Score Streak",
+    "Prize Ticket",
+    "Joybit",
+    "Bitwave",
+    "Neon Nova",
+    "Extra Ball",
+    "Bonus Bit",
+    "Combo Kid",
+    "Two Bits",
+    "Token Toss",
+    "Turbo Toot",
+    "Spritey",
+    "Arcadia",
+    "Neon Noodle",
+    "Pixelpuff",
+    "Lowres",
+    "Hi-Res",
+    "Start Button",
+    "Frame Skip",
+    "Side Scroll",
+    "Prize Pal",
+    "Tickety",
+    "Ticketeer",
+    "Neon Rush",
+    "Retrowave",
+    "Laser Lad",
+    "Blaster Bit",
+    "Dipswitch",
+    "Joyride",
+    "Free Credit",
+    "Game On",
+    "Ready Go",
+    "Dash Kid",
+    "Bitty",
+    "Neon Pip",
+    "Ampy",
+    "Hyperdrive",
+    "Sidequest",
+    "Insert Token",
+    "Token Tot",
+    "Pixel Pip",
+    "Blinkbit",
+    "Glowbyte",
+    "Hexbit",
+    "Neon Nugget",
+    "Bonus Bop",
+    "Coin Combo",
+    "Bonkbit",
+    "Retro Ray",
+    "Scorekeeper",
+    "Ticket Tally"
+  ]
+}

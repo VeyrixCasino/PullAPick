@@ -273,6 +273,26 @@ function MineSkillView.mount(parent, opts)
 		}, b)
 		presetButtons[i] = { button = b, text = t }
 		b.MouseButton1Click:Connect(function()
+			--[[
+				A LOCKED PRESET IS A BUY, NOT A DEAD BUTTON.
+
+				presetsAvailable returns PRESETS.free, and the second slot is
+				bought for 25 skill points through Verbs.skillBuySlot -- which
+				was complete, dispatched, and had no caller. So the 🔒 button
+				below was unclickable in effect: tapping it switched to a
+				preset that did not exist, the server clamped it, and nothing
+				told the player the slot was for sale at all.
+
+				Routed by lock state rather than by index, so adding a third
+				paid slot later needs no change here.
+			]]
+			local unlocked = i <= Data.presetsAvailable(opts.boughtSecond)
+			if not unlocked then
+				if opts.onBuyPresetSlot then
+					opts.onBuyPresetSlot(i)
+				end
+				return
+			end
 			if opts.onPreset then
 				opts.onPreset(i)
 			end
@@ -1416,6 +1436,19 @@ function MineSkillView.mount(parent, opts)
 			pb.button.BackgroundColor3 = (i == state.preset) and GOLD or PANEL_HI
 			pb.text.TextColor3 = (i == state.preset) and INK or (unlocked and TEXT or FAINT)
 			pb.text.Text = unlocked and tostring(i) or "🔒"
+			-- Say the price on the lock. A padlock with no number reads as
+			-- "not in the game yet"; the slot is for sale for 25 skill
+			-- points and nothing anywhere said so.
+			pb.button.Active = true
+			pb.button.AutoButtonColor = not unlocked or (i ~= state.preset)
+			if not unlocked then
+				pb.button.Size = UDim2.fromOffset(58, 30)
+				pb.text.Text = string.format("🔒 %d", Data.PRESETS.secondSlotCost or 25)
+				pb.text.TextSize = 12
+			else
+				pb.button.Size = UDim2.fromOffset(34, 30)
+				pb.text.TextSize = 13
+			end
 		end
 
 		local inClouds = Data.canEdit(opts.inClouds)

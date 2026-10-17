@@ -34,7 +34,7 @@ local DESK_BAND = {
 
 local TRIO = {
 	{ key = "pick", family = "pickaxe", rate = 2.9 },
-	{ key = "drill", family = "drill", width = 1, cells = 1, shape = "down", axis = "down", turn = 1.15, rate = 3.6 },
+	{ key = "drill", family = "drill", width = 1, cells = 1, shape = "down", axis = "down", turn = 0, rate = 3.6 }, -- drills are instant (owner, 2026-10-16)
 	{ key = "bomb", family = "explosive", bombs = 1, pattern = "splash", radius = 1, cooldown = 2.8, rate = 1 },
 }
 
@@ -361,7 +361,7 @@ for zi, zoneId in ipairs(ZONE_ORDER) do
 		}
 		if zi == 1 and key == "drill" and slot == 7 then
 			row.rate = 2.6
-			row.turn = 1.35
+			row.turn = 0
 			row.price = 75000
 			row.blurb = "First meadow drill — soft, mid-tier price"
 		elseif zi == 1 and key == "drill" and slot == 8 then

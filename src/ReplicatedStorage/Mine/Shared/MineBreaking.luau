@@ -254,6 +254,62 @@ MineBreaking.MAX = 1
 -- forged tools take you down.
 MineBreaking.SHOP_POWER = { 1, 2, 3, 4, 5 }
 
+--[[
+	EVENT HORIZON HAS ITS OWN LADDER, ABOVE THIS ONE.
+
+	The comment forty lines up used to say zone 11 "simply clamps at MAX" as
+	though that were an exemption. It is the opposite: MAX is the HARDEST
+	requirement in the game, so clamping there demanded breaking power 1000 at
+	every layer of zone 11 -- while every Event Horizon tool resolved to 1,
+	because MineHorizonTools rows carry `tier` and `power` but no
+	`breakingPower` and no `oreId`, so they fell through to SHOP_POWER[1].
+
+	Measured consequence: not one block in zone 11 could be broken by any tool
+	in the game, including a forged tier-82 pick (which reaches exactly MAX but
+	is matter-class "normal" and refused by the space-matter gate). The free
+	Wormhole Bag claim handed a player a mine they could never use.
+
+	So zone 11 gets its own scale. EVENT_MAX sits above MAX because the owner
+	asked for Event Horizon tools to be EXTREMELY strong, and because a shared
+	ceiling is what caused the collision: as long as zone 11 clamps to the same
+	number the normal ladder tops out at, there is no room for progression
+	inside the event and no way to be stronger than the normal endgame.
+
+	EVENT_ZONE is read rather than hardcoded at the call sites so that if Event
+	Horizon ever moves off index 11, one constant moves with it.
+]]
+MineBreaking.EVENT_ZONE = 11
+-- The event floor starts one above the normal ceiling, so the weakest Event
+-- Horizon tool is by construction stronger than the best ore tool in the game.
+MineBreaking.EVENT_FLOOR = MineBreaking.MAX + 1
+--[[
+	The same 50 as the normal ladder, deliberately.
+
+	I tried 5 first, reasoning that the event is one zone so its progression has
+	to come out of depth alone. Measured, that made the free claim tool clear
+	exactly FIVE layers before stopping — against the normal game, where the
+	first shop pick clears fifty. A player claiming the free Wormhole Bag would
+	have hit a wall almost immediately and concluded the event was broken, which
+	is barely better than it being unbreakable.
+
+	Matching the normal cadence keeps the event's pacing legible next to the rest
+	of the game: twenty rungs over five thousand layers is one tool per 250.
+]]
+MineBreaking.EVENT_LAYERS_PER_RUNG = 50
+--[[
+	DERIVED, like MAX, and for the same reason stated there: the top of the
+	ladder is exactly what the deepest layer demands, so the best event tool
+	reaches the event floor and nothing above it is unreachable or wasted.
+
+	A hardcoded ceiling gets this wrong in a way that is hard to see. MAX * 10
+	was the first thing I wrote here, and it put the top tool at 10,000 against
+	a deepest layer needing 1,100 -- so every tool from rung 2 up was overkill
+	and the event had no progression past its second tool. Deriving it means the
+	twenty rungs spread across the range depth actually uses.
+]]
+MineBreaking.EVENT_MAX = MineBreaking.EVENT_FLOOR
+	+ math.floor((MineBreaking.MAX_LAYER - 1) / MineBreaking.EVENT_LAYERS_PER_RUNG)
+
 local function clampInt(n, lo, hi)
 	n = math.floor(tonumber(n) or lo)
 	return math.clamp(n, lo, hi)
@@ -269,6 +325,19 @@ end
 function MineBreaking.layerStrength(zoneIndex, layer)
 	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
 	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	--[[
+		Event Horizon is measured on its own scale, not clamped onto the end of
+		this one. On the normal ladder every zone-11 layer computed past MAX and
+		clamped to it, which is a flat 1000 everywhere -- the hardest rock in the
+		game, identical at layer 1 and layer 5000, and unbreakable by anything.
+		Here depth means something again and the numbers live above the ore
+		ladder's ceiling, where event tools are.
+	]]
+	if zoneIndex >= (MineBreaking.EVENT_ZONE or 11) then
+		local rung = MineBreaking.EVENT_FLOOR
+			+ math.floor((layer - 1) / MineBreaking.EVENT_LAYERS_PER_RUNG)
+		return clampInt(rung, MineBreaking.EVENT_FLOOR, MineBreaking.EVENT_MAX)
+	end
 	local rung = 1
 		+ (zoneIndex - 1) * MineBreaking.ZONE_STEP
 		+ math.floor((layer - 1) / MineBreaking.LAYERS_PER_RUNG)
@@ -285,6 +354,29 @@ function MineBreaking.oreStrength(tier, oreCount)
 	local span = (tier - 1) / (oreCount - 1)
 	local curved = span ^ MineBreaking.ORE_POW
 	return clampInt(1 + math.floor(curved * (MineBreaking.MAX - 1) + 0.5), 1, MineBreaking.MAX)
+end
+
+--[[
+	An Event Horizon tool's breaking power, from its rung in the event ladder.
+
+	Mirrors oreStrength's contract on the event scale: rung 1 lands exactly on
+	EVENT_FLOOR and the top rung lands exactly on EVENT_MAX, so the first event
+	tool clears the event's surface and the last reaches its floor, with nothing
+	above either end unreachable or wasted.
+
+	`count` is how many rungs the event ladder has. It defaults to the live
+	Horizon pickaxe count rather than a literal, so adding tools to
+	MineHorizonTools re-spreads the ladder instead of leaving the new ones
+	bunched at the top. Passed in by callers that already know it.
+]]
+MineBreaking.EVENT_RUNGS = 20
+
+function MineBreaking.eventStrength(tier, count)
+	local n = math.max(2, math.floor(tonumber(count) or MineBreaking.EVENT_RUNGS or 20))
+	local t = math.clamp(math.floor(tonumber(tier) or 1), 1, n)
+	local span = (t - 1) / (n - 1)
+	local lo, hi = MineBreaking.EVENT_FLOOR, MineBreaking.EVENT_MAX
+	return clampInt(lo + math.floor(span * (hi - lo) + 0.5), lo, hi)
 end
 
 --[[
@@ -326,6 +418,25 @@ end
 function MineBreaking.toolBreakingPower(tool, oreCount)
 	if type(tool) ~= "table" then
 		return MineBreaking.SHOP_POWER[1]
+	end
+	--[[
+		EVENT TOOLS FIRST, and above the normal ceiling.
+
+		A Horizon row carries `tier` and `power` but no `breakingPower` and no
+		`oreId`, so before this branch existed it fell all the way through to the
+		shop-pick fallback: `tonumber("eh_shallow_pick")` is nil, rung 1,
+		SHOP_POWER[1] = 1. Every Event Horizon tool in the game had breaking
+		power 1 against rock that demanded 1000.
+
+		Checked before `stamped` deliberately. The stamped branch clamps to MAX,
+		which would cap an event tool at the normal ladder's ceiling and put it
+		right back under zone 11's floor -- the same collision, one line later.
+	]]
+	if tool.eventOnly then
+		-- `rungs` is stamped per row by MineHorizonTools, because tier is
+		-- per-FAMILY there and the families are 12, 38 and 88 long. One shared
+		-- count would flatten most of the two longer ladders.
+		return MineBreaking.eventStrength(tonumber(tool.tier) or 1, tonumber(tool.rungs))
 	end
 	local stamped = tonumber(tool.breakingPower or tool.bp)
 	if stamped then

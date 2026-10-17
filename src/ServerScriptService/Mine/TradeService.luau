@@ -5,9 +5,9 @@
 	THE FLOW
 	  invite    A asks B; B answers. Nobody is pulled into a window they did not
 	            agree to open.
-	  draft     Each side puts up cards, packs, runes, gear, and three
+	  draft     Each side puts up cards, packs, gear, and three
 	            currencies: gems, stardust and tokens. Items are named by their
-	            own ids (card serial, pack uid, rune id, gear id), never by where
+	            own ids (card serial, pack uid, gear id), never by where
 	            they sit in a list, so what you see offered is what moves.
 	  marks     Either side can mark the other's items WANT (green) or NO (red),
 	            on the table or still in their bag, and put a number on any of
@@ -35,7 +35,7 @@
 	     lock keeps a player who hops servers from loading anywhere else until
 	     that save is in. A player leaving mid-commit waits for the commit
 	     (onLeave) so their final save includes it.
-	  4. Socketed runes, worn gear and cards without a registry serial cannot be
+	  4. Worn gear and cards without a registry serial cannot be
 	     offered. Ephemeral profiles (a save that failed to load) cannot trade.
 ]]
 local HttpService = game:GetService("HttpService")
@@ -60,8 +60,9 @@ local CURRENCY = { gems = "gems", dust = "dust", tokens = "temperTokens" }
 local CURRENCY_ORDER = { "gems", "dust", "tokens" }
 -- A "fossils" kind traded here too. Fossils are retired (§0.12) and every
 -- piece was cashed out, so the kind is gone rather than left as an empty tab.
-local KINDS = { "cards", "packs", "runes", "gear", "potions" }
-local KIND_OK = { cards = true, packs = true, runes = true, gear = true, potions = true }
+-- Runes left the game on 2026-10-12 (enchants took their place).
+local KINDS = { "cards", "packs", "gear", "potions" }
+local KIND_OK = { cards = true, packs = true, gear = true, potions = true }
 
 local sessions = {} -- [sessionId] = session
 local byPlayer = {} -- [userId] = sessionId
@@ -99,7 +100,7 @@ local function commas(n)
 end
 
 local function emptyOffer()
-	return { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, runes = {}, gear = {}, potions = {} }
+	return { gems = 0, dust = 0, tokens = 0, cards = {}, packs = {}, gear = {}, potions = {} }
 end
 
 local function emptyAsks()
@@ -107,7 +108,7 @@ local function emptyAsks()
 end
 
 local function countOf(o)
-	return #o.cards + #o.packs + #o.runes + #o.gear + #(o.potions or {})
+	return #o.cards + #o.packs + #o.gear + #(o.potions or {})
 end
 
 local function hasAnything(o)
@@ -153,7 +154,7 @@ end
 -- The rows behind an offer, so the other window can draw them. Only what the
 -- offer names; never the rest of the inventory.
 local function expand(p, o)
-	local out = { gems = o.gems, dust = o.dust, tokens = o.tokens, cards = {}, packs = {}, runes = {}, gear = {}, potions = {} }
+	local out = { gems = o.gems, dust = o.dust, tokens = o.tokens, cards = {}, packs = {}, gear = {}, potions = {} }
 	if not p then
 		return out
 	end
@@ -164,10 +165,6 @@ local function expand(p, o)
 	for _, uid in ipairs(o.packs) do
 		local _, pk = findBy(p.packs, "uid", uid)
 		if pk then table.insert(out.packs, pk) end
-	end
-	for _, id in ipairs(o.runes) do
-		local _, r = findBy(p.runes, "id", id)
-		if r then table.insert(out.runes, r) end
 	end
 	for _, id in ipairs(o.gear) do
 		local _, g = findBy(p.gear, "id", id)
@@ -184,7 +181,6 @@ local function lootValue(view)
 	local sum = 0
 	for _, c in ipairs(view.cards) do sum += TradeValue.cardValue(c) end
 	for _, pk in ipairs(view.packs) do sum += TradeValue.packValue(pk) end
-	for _, r in ipairs(view.runes) do sum += TradeValue.runeValue(r) end
 	for _, g in ipairs(view.gear) do sum += TradeValue.gearValue(g) end
 	for _, pot in ipairs(view.potions or {}) do
 		local id = type(pot) == "table" and pot.id or pot
@@ -441,15 +437,6 @@ function TradeService.setOffer(net, profiles, plr, offer, deps)
 			end
 		end
 	end
-	for _, id in ipairs(type(offer.runes) == "table" and offer.runes or {}) do
-		if type(id) == "string" and not seen["r" .. id] and room() then
-			local _, r = findBy(p.runes, "id", id)
-			if r and not (deps.runeBusy and deps.runeBusy(p, id)) then
-				seen["r" .. id] = true
-				table.insert(clean.runes, id)
-			end
-		end
-	end
 	for _, id in ipairs(type(offer.gear) == "table" and offer.gear or {}) do
 		if type(id) == "string" and not seen["g" .. id] and room() then
 			local _, g = findBy(p.gear, "id", id)
@@ -568,7 +555,7 @@ function TradeService.peek(net, profiles, plr, deps)
 	if not p then
 		return
 	end
-	local out = { owner = theirId, cards = {}, packs = {}, runes = {}, gear = {} }
+	local out = { owner = theirId, cards = {}, packs = {}, gear = {} }
 	local left = TradeService.PEEK_MAX
 	for _, c in ipairs(p.cards or {}) do
 		local serial = type(c) == "table" and (c.serial or c.id)
@@ -580,12 +567,6 @@ function TradeService.peek(net, profiles, plr, deps)
 	for _, pk in ipairs(p.packs or {}) do
 		if left > 0 and type(pk) == "table" and pk.uid then
 			table.insert(out.packs, pk)
-			left -= 1
-		end
-	end
-	for _, r in ipairs(p.runes or {}) do
-		if left > 0 and type(r) == "table" and r.id and not (deps.runeBusy and deps.runeBusy(p, r.id)) then
-			table.insert(out.runes, r)
 			left -= 1
 		end
 	end
@@ -630,7 +611,7 @@ local function gather(p, o, deps)
 			return nil, "not enough " .. (k == "dust" and "stardust" or k)
 		end
 	end
-	local items = { cards = {}, packs = {}, runes = {}, gear = {}, potions = {} }
+	local items = { cards = {}, packs = {}, gear = {}, potions = {} }
 	for _, serial in ipairs(o.cards) do
 		local _, c = findCard(p, serial)
 		if not c then return nil, "a card is no longer there" end
@@ -640,13 +621,6 @@ local function gather(p, o, deps)
 		local _, pk = findBy(p.packs, "uid", uid)
 		if not pk then return nil, "a pack is no longer there" end
 		table.insert(items.packs, pk)
-	end
-	for _, id in ipairs(o.runes) do
-		local _, r = findBy(p.runes, "id", id)
-		if not r or (deps.runeBusy and deps.runeBusy(p, id)) then
-			return nil, "a rune is gone or socketed"
-		end
-		table.insert(items.runes, r)
 	end
 	for _, id in ipairs(o.gear) do
 		local _, g = findBy(p.gear, "id", id)
@@ -680,7 +654,6 @@ local function escrow(p, items, o)
 	end
 	p.cards = removeRows(p.cards, items.cards)
 	p.packs = removeRows(p.packs, items.packs)
-	p.runes = removeRows(p.runes, items.runes)
 	p.gear = removeRows(p.gear, items.gear)
 	do
 		local bag = p.potions or {}
@@ -711,7 +684,6 @@ local function deliver(p, items, o)
 	end
 	p.cards = p.cards or {}
 	p.packs = p.packs or {}
-	p.runes = p.runes or {}
 	p.gear = p.gear or {}
 	for _, c in ipairs(items.cards) do
 		local serial = c.serial or c.id
@@ -719,7 +691,6 @@ local function deliver(p, items, o)
 		table.insert(p.cards, c)
 	end
 	append(p.packs, items.packs)
-	append(p.runes, items.runes)
 	append(p.gear, items.gear)
 	p.potions = p.potions or {}
 	for _, row in ipairs(items.potions or {}) do
@@ -875,8 +846,8 @@ local function commit(net, profiles, sess, deps)
 	-- 4. Deliver, save both, and tell them.
 	for _, m in ipairs(moves) do
 		deliver(profiles[m.to], m.items, m.offer)
-		print(string.format("[Trade] %d -> %d: %d cards %d packs %d runes %d gear, %d gems %d dust %d tokens%s",
-			m.from, m.to, #m.items.cards, #m.items.packs, #m.items.runes, #m.items.gear,
+		print(string.format("[Trade] %d -> %d: %d cards %d packs %d gear, %d gems %d dust %d tokens%s",
+			m.from, m.to, #m.items.cards, #m.items.packs, #m.items.gear,
 			m.offer.gems, m.offer.dust, m.offer.tokens, sess.mode == "coinflip" and " (coinflip)" or ""))
 	end
 	if sess.mode == "coinflip" then

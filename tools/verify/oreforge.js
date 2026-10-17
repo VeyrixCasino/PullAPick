@@ -61,16 +61,13 @@ const fns = [
   slice(/function MineOreTools\.familyNoun\(familyId\)[\s\S]*?\nend\n/, "familyNoun"),
   slice(/function MineOreTools\.frames\(familyId\)[\s\S]*?\nend\n/, "frames"),
   slice(/function MineOreTools\.frameForTier\(familyId, oreTier\)[\s\S]*?\nend\n/, "frameForTier"),
-  slice(/function MineOreTools\.name\(oreDef, familyId, trait\)[\s\S]*?\nend\n/, "name"),
+  slice(/function MineOreTools\.name\(oreDef, familyId, _trait\)[\s\S]*?\nend\n/, "name"),
 ].join("\n");
 const noun = slice(/MineOreTools\.NOUN = \{[\s\S]*?\n\}/, "NOUN");
 
 const harness = `
 local C = { ORE_COUNT = ${oreCount} }
--- The enchantment prefix has its own check (tools/verify/traits.js). Here it
--- is stubbed to a pass-through so this file keeps testing the ORE half of the
--- name -- a real decorate would make "Stone Pickaxe" depend on the roster too.
-local Traits = { decorate = function(name, e) return name end }
+-- Tool names carry no prefix since traits were retired (2026-10-12).
 local Tools = { TOOLS = {
 ${Object.entries(families).map(([f, rows]) =>
   `\t${f} = {\n${rows.map((r) => "\t\t" + r + ",").join("\n")}\n\t},`).join("\n")}
@@ -198,8 +195,20 @@ src(/local ore, dust, oreDef = Verbs\._oreToolCost\(tool\)/.test(up),
   "upgradeOreTool prices from the tool's own ore");
 src(/p\.ores\[oreId\] = haveOre - spentOre/.test(up),
   "...and spends that same ore");
-src(/C\.toolUpgradeCost\(tool\.tier, level \+ i, typeMult\)/.test(up),
-  "...stepping the price up per level");
+src(/C\.toolUpgradeCost\(tool\.tier, level \+ i, typeMult, tool\.familyId\)/.test(up),
+  "...stepping the price up per level, and passing the family");
+
+// The family is what applies FAMILY_UPGRADE_COST (hammer and jackhammer pay
+// 25% more ore AND stardust to upgrade). Drop the argument and the surcharge
+// vanishes silently -- the quote and the charge would still agree with each
+// other, just both at the wrong price -- so it is asserted rather than assumed.
+//
+// The single-level quote lives in Verbs._oreToolCost, NOT in upgradeOreTool:
+// upgradeOreTool calls it for the price and only loops toolUpgradeCost itself
+// for the multi-level preview.
+const oneLevel = (server.match(/function Verbs\._oreToolCost[\s\S]*?\nend\n/) || [""])[0];
+src(/C\.toolUpgradeCost\(tool\.tier, level, typeMult, tool\.familyId\)/.test(oneLevel),
+  "...and _oreToolCost's single-level quote passes it too");
 
 // The panel says {ore} {tool} everywhere, and lists ores rather than frames.
 src(/OreTools\.toolName\(tool\)/.test(forge), "the Forge titles a forged tool {ore} {tool}");
@@ -207,9 +216,18 @@ src(/OreTools\.name\(row\.def, fam\)/.test(forge), "...and a craft recipe too");
 src(/OreTools\.name\(o\.def, selFamily\)/.test(forge), "...and every rail row");
 src(!/local function typeMultOf/.test(forge),
   "the Forge's duplicate typeMultOf is gone; MineOreTools owns the rule");
-src(/colButton\("SHOP"/.test(forge), "SHOP is a tab on the mode rail");
-src(/colButton\("CRAFT"/.test(forge) && /colButton\("UPGRADE"/.test(forge),
-  "...beside CRAFT and UPGRADE");
+src(/colButton\("SHOP"/.test(forge), "SHOP is an entry on the rail");
+// Owner, 2026-10-11: "Center the bottom tabs, in this order: Crafting, Loadout,
+// Upgrades." CRAFT and UPGRADE are two of those three tabs now, so they are NOT
+// on this rail any more -- having the same choice in a rail and a tab bar is how
+// two controls end up disagreeing about one piece of state. The host drives the
+// mode through setMode instead, and that is what has to exist.
+src(!/colButton\("CRAFT"/.test(forge) && !/colButton\("UPGRADE"/.test(forge),
+  "...and CRAFT/UPGRADE are not, because they are bottom tabs");
+src(/local function setMode\(mode\)/.test(forge) && /setMode = setMode/.test(forge),
+  "the Forge exposes setMode so the bottom bar can drive craft vs upgrade");
+src(/colButton\("BACKPACKS"/.test(forge),
+  "BACKPACKS has a rail entry, since it is no longer a bottom tab");
 
 console.log("");
 console.log(fail > 0 ? `>>> oreforge: ${fail} FAILED` : ">>> oreforge: all assertions passed");

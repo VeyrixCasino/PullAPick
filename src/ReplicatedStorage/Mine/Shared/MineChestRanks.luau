@@ -71,6 +71,9 @@ function MineChestRanks.roll(pool, rng, opts)
 	rng = rng or Random.new()
 	opts = opts or {}
 	local luck = math.max(0, tonumber(opts.luck) or 1)
+	-- `better` lifts only the ranks above C (B, A, S): depth's "better chests"
+	-- (MineConfig.chestRankLuck). `luck` keeps its old reach, which takes D too.
+	local better = math.max(0, tonumber(opts.better) or 1)
 	local total = 0
 	local rows = {}
 	for _, row in ipairs(pool or {}) do
@@ -78,6 +81,9 @@ function MineChestRanks.roll(pool, rng, opts)
 		if w > 0 then
 			if row.rank ~= "C" then
 				w = w * luck
+			end
+			if row.rank == "B" or row.rank == "A" or row.rank == "S" then
+				w = w * better
 			end
 			total += w
 			table.insert(rows, { row = row, w = w })

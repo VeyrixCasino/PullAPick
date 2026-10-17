@@ -294,14 +294,139 @@ function ToolModelFactory.oreLook(ore, oreCount)
 	end
 	local n = math.max(2, math.floor(tonumber(oreCount) or 82))
 	local tier = math.clamp(math.floor(tonumber(ore.tier) or 1), 1, n)
-	return {
-		shapeT = (tier - 1) / (n - 1),
+	--[[
+		THE HAFT IS WOOD, THEN METAL. IT IS NOT THE ORE'S COLOUR.
+
+		Owner, 2026-10-10: "all the coloring is off aswell / use the icons as
+		reference."
+
+		This returned `ore.color:Lerp(DARK, 0.75)` -- a dark version of the ORE
+		colour -- so a green ore gave a green-black haft and a blue ore a
+		blue-black one. No icon does that: icon-01 is a bronze head on a
+		WOOD-BROWN haft, icon-30 a bone head on the same wood, icon-55 a blue
+		head on near-BLACK, icon-73 a crystal head on near-black.
+
+		The haft tracks TIER, not ore -- wood early, dark metal late -- which
+		leaves the head as the only part carrying the ore's identity.
+		Crossfaded, so no rung visibly swaps handle.
+	]]
+	local t = (tier - 1) / (n - 1)
+	local look = {
+		shapeT = t,
 		metal = ore.color,
-		haft = ore.color:Lerp(C3(44, 36, 32), 0.75),
+		haft = C3(120, 82, 48):Lerp(C3(42, 44, 52), math.clamp(t * 1.25, 0, 1)),
 		mat = mat,
 		refl = met * (1 - rough) * 0.65,
 		lit = lit,
 	}
+	--[[
+		FROSTFIRE IS A FIGHT. Owner, 2026-10-11: "should feel like more of a
+		fight between fire and ice ... MAKE SURE FROSTFIRE IS GOOD". One ice-blue
+		colour with an orange glow read as an ice tool with a nightlight, so the
+		tool is split down the middle instead: one side glacier ice, the other
+		molten fire (applySplit, after every builder).
+	]]
+	if ore.id == "frostfire" then
+		look.split = {
+			ice = C3(170, 226, 255), iceMat = Enum.Material.Ice,
+			-- Bright plastic, not CrackedLava: lava renders near-black with
+			-- orange cracks, which reads as burnt rather than burning.
+			fire = C3(255, 112, 30), fireMat = Enum.Material.SmoothPlastic,
+			ember = C3(255, 196, 70),
+			seam = C3(255, 236, 200),
+		}
+	end
+	return look
+end
+
+-- Split a built tool down its own X axis (see oreLook's Frostfire note):
+-- parts left of centre turn to ice, right of centre to fire -- small fire-side
+-- parts glow as embers -- and thin parts on the line become the bright seam
+-- where the two meet. Neon parts (runes, vents, gems) burn either way.
+local function applySplit(model, split)
+	if type(split) ~= "table" then
+		return
+	end
+	--[[
+		A part that runs ACROSS the line (its own X along the model's X: a
+		hammer head, a band, a crossbar) is cut in two at x = 0, so the head
+		really is half ice and half fire. Only blocks and cylinders, and never
+		the Handle, which the grip is measured from.
+	]]
+	for _, p in ipairs(model:GetDescendants()) do
+		if p:IsA("Part") and p.Name ~= "Handle"
+			and (p.Shape == Enum.PartType.Block or p.Shape == Enum.PartType.Cylinder)
+			and math.abs(p.CFrame.RightVector.X) > 0.98 then
+			local x0, half = p.Position.X, p.Size.X * 0.5
+			local lo, hi = x0 - half, x0 + half
+			if lo < -0.04 and hi > 0.04 then
+				local rot = p.CFrame - p.CFrame.Position
+				for _, span in ipairs({ { lo, 0 }, { 0, hi } }) do
+					local q = p:Clone()
+					q.Size = Vector3.new(span[2] - span[1], p.Size.Y, p.Size.Z)
+					q.CFrame = CFrame.new((span[1] + span[2]) * 0.5, p.Position.Y, p.Position.Z) * rot
+					q.Parent = p.Parent
+				end
+				-- The seam where they meet: a thin bright slice, steam-white.
+				if p.Size.Y > 0.2 or p.Size.Z > 0.2 then
+					local s = p:Clone()
+					s.Name = "FrostSeam"
+					for _, c in ipairs(s:GetChildren()) do
+						c:Destroy()
+					end
+					s.Size = Vector3.new(0.05, p.Size.Y * 1.04, p.Size.Z * 1.04)
+					s.CFrame = CFrame.new(0, p.Position.Y, p.Position.Z) * rot
+					s.Color = split.seam
+					s.Material = Enum.Material.Neon
+					s.Parent = p.Parent
+				end
+				p:Destroy()
+			end
+		end
+	end
+	for _, p in ipairs(model:GetDescendants()) do
+		if p:IsA("BasePart") and p.Name ~= "FrostSeam" then
+			local x = p.Position.X
+			-- What could not be cut and sits on the line goes by height: the
+			-- fire climbs, the ice holds the bottom.
+			if math.abs(x) < 0.04 then
+				x = (p.Position.Y < 0) and -1 or 1
+			end
+			if p.Material == Enum.Material.Neon then
+				p.Color = split.ember
+			elseif x < 0 then
+				p.Color = split.ice
+				p.Material = split.iceMat
+				p.Reflectance = 0.15
+			elseif p.Size.Magnitude < 0.45 then
+				p.Color = split.ember
+				p.Material = Enum.Material.Neon
+			else
+				p.Color = split.fire
+				p.Material = split.fireMat
+				p.Reflectance = 0
+			end
+		end
+	end
+	local hot
+	for _, p in ipairs(model:GetDescendants()) do
+		if p:IsA("BasePart") and p.Material == split.fireMat and (not hot or p.Size.Magnitude > hot.Size.Magnitude) then
+			hot = p
+		end
+	end
+	if hot then
+		local f = Instance.new("ParticleEmitter")
+		f.Name = "Frostfire"
+		f.Color = ColorSequence.new(split.fire, C3(255, 214, 120))
+		f.LightEmission = 1
+		f.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.22), NumberSequenceKeypoint.new(1, 0) })
+		f.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+		f.Lifetime = NumberRange.new(0.35, 0.6)
+		f.Rate = 14
+		f.Speed = NumberRange.new(0.6, 1.2)
+		f.Acceleration = Vector3.new(0, 2.5, 0)
+		f.Parent = hot
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -311,6 +436,29 @@ end
 -- degrees per link, so the head curves down into a point instead of sticking out
 -- flat. Low tiers are stubby with a hard hook; high tiers are long and shallow.
 --------------------------------------------------------------------------------
+
+--[[
+	THE TOOL SILHOUETTES ARE FIXED PER FAMILY, and that is a correction.
+
+	Owner, 2026-10-10: "You cant just cut them in half and call them different
+	tools... use the icons as reference."
+
+	I had split each family into five head types on the theory that variety
+	meant different tools. The art in Downloads/icons/out says otherwise: a
+	pickaxe is ONE double-horned silhouette at every tier, a drill is ONE
+	spiral auger, and every explosive past the wood tier is ONE faceted
+	sphere. What climbs the roster is MATERIAL, plus growth at the deep end --
+	shards budding off a pick head, as in icon-73 -- not the shape.
+
+	So styleFor and the fourteen invented shapes are gone. What carries the
+	ore identity is colour, material and reflectance from oreLook, and the
+	haft deliberately does NOT take the ore colour: every icon puts a wood or
+	near-black handle under a coloured head.
+
+	Everything here is Parts. That is not a style choice -- it is the only
+	thing in this game that renders. Every MeshPart archive in the place is
+	empty, because CreateMeshPartAsync geometry does not survive a save.
+]]
 
 local function pickArm(model, root, t, col, mat, lit, refl)
 	-- Roughly 45 degrees of sweep, spread over more links the higher the tier:
@@ -326,7 +474,15 @@ local function pickArm(model, root, t, col, mat, lit, refl)
 	local thick = 0.54 - t * 0.10
 	local depth = 0.46 - t * 0.08
 
-	local cur = CFrame.new(0.24, 0, 0) * CFrame.Angles(0, 0, math.rad(9))
+	--[[
+		THE HORNS DROP. Owner: "use the icons as reference."
+
+		This started at +9 degrees and curved further positive, sweeping the
+		horn back and UP, which reads as a hooked climbing axe. Every pick
+		icon has the horns starting level and falling BELOW the collar line so
+		the head makes a shallow V.
+	]]
+	local cur = CFrame.new(0.24, 0, 0) * CFrame.Angles(0, 0, math.rad(-6))
 	for j = 1, segs do
 		local f = (j - 1) / segs
 		box({
@@ -352,6 +508,56 @@ local function pickArm(model, root, t, col, mat, lit, refl)
 			Color = lit, Material = Enum.Material.Neon,
 		}, model)
 	end
+end
+
+local function pickHead(model, root, t, col, mat, lit, refl)
+	--[[
+		ONE PICKAXE, RE-SKINNED -- NOT FIVE DIFFERENT TOOLS.
+
+		Owner, 2026-10-10: "You cant just cut them in half and call them
+		different tools... use the icons as reference."
+
+		I had built five head TYPES here -- adze, warpick, crescent, spire --
+		on the theory that variety meant different tools. The art says
+		otherwise. Downloads/icons/out/picks:
+
+		  icon-01  bronze head, wood haft   \
+		  icon-30  bone head, wood haft      |  the SAME double-horned pick
+		  icon-55  blue head, dark haft      |  every single time
+		  icon-73  crystal head, dark haft  /   + purple shards budding off it
+
+		One silhouette throughout: two horns sweeping down and out from a
+		central collar on a straight haft. What changes with tier is MATERIAL,
+		and at the deep end GROWTH -- shards budding around the collar -- not
+		the shape of the tool. A Spectrite pick is still a pickaxe.
+
+		The four invented heads are deleted rather than parked: they were
+		wrong about what the roster is, and a dead builder is an invitation to
+		switch it back on.
+	]]
+	pickArm(model, root, t, col, mat, lit, refl)
+	pickArm(model, root * CFrame.Angles(0, math.pi, 0), t, col, mat, lit, refl)
+
+	-- Growth, not a new head. icon-73 is this same pick with shards around the
+	-- collar, so they bud at the root of the horns rather than replacing them.
+	if t > 0.62 then
+		local n = 3 + math.floor((t - 0.62) * 10)
+		for i = 1, n do
+			local a = math.rad((i / n) * 360 + t * 90)
+			local up = 0.12 + ((i % 3) * 0.16)
+			local len = 0.22 + ((i % 2) * 0.16) + (t - 0.62) * 0.5
+			box({
+				Name = "Shard",
+				Size = Vector3.new(0.13, len, 0.13),
+				CFrame = root * CFrame.Angles(0, a, 0) * CFrame.new(0.2, up, 0)
+					* CFrame.Angles(math.rad(18), 0, math.rad((i % 2 == 0) and 24 or -24)),
+				Color = col:Lerp(C3(255, 255, 255), 0.3 + (i % 3) * 0.12),
+				Material = mat,
+				Reflectance = (refl or 0.1) + 0.12,
+			}, model)
+		end
+	end
+	return 0
 end
 
 local function buildPickaxe(t, model, look)
@@ -404,8 +610,9 @@ local function buildPickaxe(t, model, look)
 	end
 
 	local head = CFrame.new(0, 1.32, 0)
-	pickArm(model, head, t, metal, mat, lit, look and look.refl)
-	pickArm(model, head * CFrame.Angles(0, math.pi, 0), t, metal, mat, lit, look and look.refl)
+	-- The one pickaxe silhouette the icons show, plus deep-end shard growth.
+	local headStyle = pickHead(model, head, t, metal, mat, lit, look and look.refl)
+	model:SetAttribute("HeadStyle", headStyle)
 
 	-- A gem set in the eye from mid-ladder, a lit crown near the top.
 	if t > 0.30 then
@@ -439,7 +646,23 @@ local function buildDrill(t, model, look)
 	local body = (look and look.haft) or ramp(DRILL_BODY, t)
 	local bit = (look and look.metal) or ramp(DRILL_BIT, t)
 	local mat = (look and look.mat) or metalFor(t)
-	local lit = (look and look.lit) or ((not look) and ramp(CELL, t)) or ramp(CELL, t)
+	--[[
+		AN ORE THAT DOES NOT GLOW GETS A DARK CELL, NOT A BRIGHT ONE.
+
+		The old line read `(look and look.lit) or ((not look) and ramp(...)) or
+		ramp(...)`, where the trailing `or ramp(...)` made the middle clause
+		dead and handed a Neon cell to EVERY ore -- including the ones oreLook
+		deliberately leaves unlit, which is the case the rule at the top of this
+		file calls out by name: "a glowing vein on a lump of limestone is the
+		kind of detail that makes everything look cheap".
+
+		The cell, gauge and fins are structural, so they stay; they just stop
+		being light sources. Unlit ores get their own colour darkened and the
+		ore's own material instead of Neon.
+	]]
+	local glow = (look and look.lit) or ((not look) and ramp(CELL, t)) or nil
+	local lit = glow or bit:Lerp(DARK, 0.45)
+	local litMat = glow and Enum.Material.Neon or mat
 
 	-- Everything is authored pointing along -Z, so the bit leads.
 	local handle = box({
@@ -495,37 +718,53 @@ local function buildDrill(t, model, look)
 		}, model)
 	end
 
+	--[[
+		FIVE BITS, same reasoning as the five pickaxe heads. The body, motor
+		and grip stay shared -- a drill should still read as a drill -- and
+		the BUSINESS END is what changes, because that is the part a player
+		is looking at while it is pointed into a wall.
+
+		  0 AUGER    the original spiral cone
+		  1 TRIBIT   three straight cutters around a stubby core
+		  2 CORER    an open ring saw, hollow in the middle
+		  3 HAMMER   a blunt percussive piston, no spiral at all
+		  4 LANCE    a long thin spike ringed with floating emitters
+	]]
 	local blen = 1.75 + t * 1.15
 	local bz = -1.02
-	cone({
-		Name = "Bit", Length = blen, Dia = 0.76, Tip = 0.08, Segs = 8,
-		CFrame = CFrame.new(0, 0, bz) * CFrame.Angles(math.rad(-90), 0, 0),
-		Color = bit, Material = mat, Reflectance = 0.15 + t * 0.3,
-	}, model)
-	-- Helical flight: plates spiralling down the cone, riding just proud of its
-	-- surface so the bit reads as cut, not as a stack of discs.
-	local flights = 14 + math.floor(t * 10)
-	for i = 0, flights - 1 do
-		local f = i / flights
-		local r = 0.38 - f * 0.31
-		local ang = f * math.rad(500)
-		box({
-			Name = "Flight",
-			Size = Vector3.new(0.11, 0.34 - f * 0.24, 0.26),
-			CFrame = CFrame.new(0, 0, bz - blen * f)
-				* CFrame.Angles(0, 0, ang)
-				* CFrame.new(r, 0, 0)
-				* CFrame.Angles(0, math.rad(30), 0),
-			Color = bit:Lerp(C3(255, 255, 255), 0.2 + f * 0.3),
-			Material = mat, Reflectance = 0.2 + t * 0.3,
+	-- ONE BIT. The drill icons are the same spiral auger at every tier
+	-- (icon-01 and icon-55 are identical in shape), so the five bit types
+	-- that were here are gone with the five pickaxe heads. Material changes;
+	-- the tool does not.
+		cone({
+			Name = "Bit", Length = blen, Dia = 0.76, Tip = 0.08, Segs = 8,
+			CFrame = CFrame.new(0, 0, bz) * CFrame.Angles(math.rad(-90), 0, 0),
+			Color = bit, Material = mat, Reflectance = 0.15 + t * 0.3,
 		}, model)
-	end
+		-- Helical flight: plates spiralling down the cone, riding just proud of
+		-- its surface so the bit reads as cut, not as a stack of discs.
+		local flights = 14 + math.floor(t * 10)
+		for i = 0, flights - 1 do
+			local f = i / flights
+			local r = 0.38 - f * 0.31
+			local ang = f * math.rad(500)
+			box({
+				Name = "Flight",
+				Size = Vector3.new(0.11, 0.34 - f * 0.24, 0.26),
+				CFrame = CFrame.new(0, 0, bz - blen * f)
+					* CFrame.Angles(0, 0, ang)
+					* CFrame.new(r, 0, 0)
+					* CFrame.Angles(0, math.rad(30), 0),
+				Color = bit:Lerp(C3(255, 255, 255), 0.2 + f * 0.3),
+				Material = mat, Reflectance = 0.2 + t * 0.3,
+			}, model)
+		end
 
 	-- Power cell on the tail, then intakes and fins as the ladder climbs.
 	cyl({
 		Name = "Cell", Length = 0.66, Dia = 0.46,
 		CFrame = CFrame.new(0, 0.06, 1.45) * CFrame.Angles(math.rad(90), 0, 0),
-		Color = lit, Material = Enum.Material.Neon,
+		Color = lit, Material = litMat,
 	}, model)
 	cyl({
 		Name = "CellCap", Length = 0.12, Dia = 0.56,
@@ -544,7 +783,7 @@ local function buildDrill(t, model, look)
 	if t > 0.62 then
 		box({
 			Name = "Gauge", Size = Vector3.new(0.36, 0.18, 0.26),
-			CFrame = CFrame.new(0, 0.76, 0.95), Color = lit, Material = Enum.Material.Neon,
+			CFrame = CFrame.new(0, 0.76, 0.95), Color = lit, Material = litMat,
 		}, model)
 	end
 	if t > 0.80 then
@@ -552,7 +791,7 @@ local function buildDrill(t, model, look)
 			box({
 				Name = "Fin", Size = Vector3.new(0.1, 0.78, 0.78),
 				CFrame = CFrame.new(s * 0.66, 0.34, 0.55) * CFrame.Angles(0, 0, s * math.rad(24)),
-				Color = lit, Material = Enum.Material.Neon,
+				Color = lit, Material = litMat,
 			}, model)
 		end
 	end
@@ -727,7 +966,15 @@ local function buildExplosive(t, model, look)
 	local trim = (look and look.haft) or ramp(BOMB_TRIM, t)
 	local mat = (look and look.mat)
 		or (t < 0.5 and Enum.Material.Metal or Enum.Material.DiamondPlate)
-	local lit = (look and look.lit) or ramp(CELL, t)
+	--[[
+		Same unlit-ore case as buildDrill: `(look and look.lit) or ramp(...)`
+		gave a Neon core to every ore, because an ore oreLook decided should
+		NOT glow returns look.lit = nil and fell straight through to the ramp.
+		Unlit ores keep the part and lose the light.
+	]]
+	local glow = (look and look.lit) or ((not look) and ramp(CELL, t)) or nil
+	local lit = glow or body:Lerp(DARK, 0.45)
+	local litMat = glow and Enum.Material.Neon or mat
 
 	-- The charge is the object; the haft is just something to hold it by. Keep
 	-- the stick short or the whole thing reads as a lollipop.
@@ -756,25 +1003,48 @@ local function buildExplosive(t, model, look)
 		Reflectance = 0.15,
 	}, model)
 
-	ball({
-		Name = "Casing", Dia = r, CFrame = CFrame.new(0, cy, 0),
-		Color = body, Material = mat, Reflectance = 0.06 + t * 0.2,
-	}, model)
-	-- Equator band plus two latitude bands, with rivets round the belt.
-	for _, o in ipairs({ { 0, 1.015 }, { 0.3, 0.9 }, { -0.3, 0.9 } }) do
-		cyl({
-			Name = "Band", Length = 0.11, Dia = r * o[2],
-			CFrame = CFrame.new(0, cy + o[1] * r, 0), Color = trim,
-			Material = Enum.Material.Metal, Reflectance = 0.2,
-		}, model)
-	end
-	for i = 0, 7 do
+	--[[
+		FIVE SHELLS, same reasoning again. The haft, collar and fuse stay
+		shared; the body is what changes.
+
+		  0 ORB      the original banded sphere
+		  1 KEG      a squat cylinder with hoops, read as a powder keg
+		  2 CANISTER a tall ribbed drum with a shoulder taper
+		  3 CLUSTER  four small spheres strapped to a core
+		  4 PRISM    a faceted crystal charge with no metal at all
+	]]
+	-- ONE SHELL. Every explosive icon past the wood tier is the same faceted
+	-- sphere with a collar and a lit fuse (icon-30, 55 and 73 differ only in
+	-- material), so the five shell types are gone with the five pickaxe heads.
+	-- The casing is FACETED rather than smooth, which is what the art shows.
 		ball({
-			Name = "Rivet", Dia = 0.13,
-			CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, math.rad(i * 45), 0)
-				* CFrame.new(0, 0, r * 0.51),
-			Color = trim:Lerp(C3(255, 255, 255), 0.35), Material = Enum.Material.Metal,
+			Name = "Casing", Dia = r, CFrame = CFrame.new(0, cy, 0),
+			Color = body, Material = mat, Reflectance = 0.06 + t * 0.2,
 		}, model)
+		-- Equator band plus two latitude bands, with rivets round the belt.
+		for _, o in ipairs({ { 0, 1.015 }, { 0.3, 0.9 }, { -0.3, 0.9 } }) do
+			cyl({
+				Name = "Band", Length = 0.11, Dia = r * o[2],
+				CFrame = CFrame.new(0, cy + o[1] * r, 0), Color = trim,
+				Material = Enum.Material.Metal, Reflectance = 0.2,
+			}, model)
+		end
+	-- Rivets belong on a MANUFACTURED shell. The cluster straps its bomblets
+	-- instead, and the prism is grown rather than built -- a riveted crystal
+	-- is the kind of detail that undoes the whole shape.
+	-- Rivets round the belt, always: there is one shell now and it is a
+	-- manufactured one. (This used to be gated on shellStyle, which no longer
+	-- exists -- and a `nil ~= 3` comparison would have quietly been true
+	-- forever rather than erroring.)
+	do
+		for i = 0, 7 do
+			ball({
+				Name = "Rivet", Dia = 0.13,
+				CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, math.rad(i * 45), 0)
+					* CFrame.new(0, 0, r * 0.51),
+				Color = trim:Lerp(C3(255, 255, 255), 0.35), Material = Enum.Material.Metal,
+			}, model)
+		end
 	end
 
 	if t < 0.45 then
@@ -813,7 +1083,7 @@ local function buildExplosive(t, model, look)
 		}, model)
 		ball({
 			Name = "Beacon", Dia = 0.17,
-			CFrame = CFrame.new(0.23, cy + r * 0.5 + 0.8, 0), Color = lit, Material = Enum.Material.Neon,
+			CFrame = CFrame.new(0.23, cy + r * 0.5 + 0.8, 0), Color = lit, Material = litMat,
 		}, model)
 		for i = 0, 3 do
 			box({
@@ -844,12 +1114,12 @@ local function buildExplosive(t, model, look)
 				Name = "Vent", Size = Vector3.new(0.1, r * 0.44, 0.06),
 				CFrame = CFrame.new(0, cy, 0) * CFrame.Angles(0, math.rad(i * 60 + 30), 0)
 					* CFrame.new(0, 0, r * 0.5) * CFrame.Angles(0, 0, math.rad(18)),
-				Color = lit, Material = Enum.Material.Neon,
+				Color = lit, Material = litMat,
 			}, model)
 		end
 		ball({
 			Name = "Core", Dia = r * 0.34, CFrame = CFrame.new(0, cy, 0),
-			Color = lit, Material = Enum.Material.Neon,
+			Color = lit, Material = litMat,
 		}, model)
 	end
 	return handle
@@ -943,8 +1213,1049 @@ local function buildLunarPickaxe(variant, model)
 	return handle
 end
 
+--[[
+	HAMMERS AND JACKHAMMERS, BUILT TO THE ICONS.
+
+	Owner, 2026-10-11: "i need the hammers and jackhammers fully built in..
+	every tool, every ore, all color ways.. extremely hq". The icons for both
+	families were painted in Canva to match the pick, drill and grenade sheets
+	(art/tool-icons/), so these builders follow them: the same silhouette at
+	every ore, made OF the ore -- its colour, Enum.Material, shine and glow
+	(oreLook) -- with the deep end growing bands, langets, crystal shards and
+	fins rather than changing shape.
+
+	The Handle part, its size and position, and the grips are exactly what the
+	first builders used, so a hammer still sits in the hand where it did.
+	Everything is plain Parts: the MeshPart archives in this place are empty
+	(wiki: tools), so geometry is the detail.
+
+	Neon is accents only (runes, vents, gems). A Neon body lights every face at
+	once and reads as a blob, which is why metalFor never returns it.
+]]
+
+-- A rod from a to b (both Vector3), for hoses and lashings.
+local function rod(a, b, dia, o, parent)
+	local mid = (a + b) * 0.5
+	-- lookAt points -Z at b; a -90 degree turn about X brings +Y onto it, and
+	-- cyl() authors along +Y.
+	return cyl({
+		Name = o.Name or "Rod", Length = (b - a).Magnitude, Dia = dia,
+		CFrame = CFrame.lookAt(mid, b) * CFrame.Angles(math.rad(-90), 0, 0),
+		Color = o.Color, Material = o.Material, Reflectance = o.Reflectance,
+	}, parent)
+end
+
+-- A small deterministic wobble, so shards and chips are irregular but every
+-- copy of a tool is identical.
+local function wob(i, k)
+	return math.sin(i * 12.9898 + k * 78.233) * 0.5
+end
+
+-- A crystal shard: a long thin box with a pointed cap, leaning out of `at`.
+local function shard(at, len, w, tilt, o, parent)
+	local cf = at * tilt
+	box({
+		Name = "Shard", Size = Vector3.new(w, len, w),
+		CFrame = cf * CFrame.new(0, len * 0.5, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color = o.Color, Material = o.Material, Reflectance = o.Reflectance,
+	}, parent)
+	box({
+		Name = "ShardTip", Size = Vector3.new(w * 0.62, w * 0.9, w * 0.62),
+		CFrame = cf * CFrame.new(0, len + w * 0.3, 0) * CFrame.Angles(0, math.rad(45), 0),
+		Color = o.Tip or o.Color, Material = o.Material, Reflectance = o.Reflectance,
+	}, parent)
+end
+
+--[[
+	THE SLEDGEHAMMER. Owner, 2026-10-10: "make another class (Hammers most
+	damage; looks like sledge hammers)".
+
+	One solid block square across the top of a long two-handed haft -- the
+	pick's opposite in silhouette, so you never mistake which one you hold.
+]]
+local function buildHammer(t, model, look)
+	local metal = (look and look.metal) or ramp(PICK_METAL, t)
+	local haft = (look and look.haft) or ramp(PICK_HAFT, t)
+	local mat = (look and look.mat) or metalFor(t)
+	local lit = look and look.lit or nil
+	local refl = (look and look.refl) or (0.06 + t * 0.24)
+	local light = metal:Lerp(C3(255, 255, 255), 0.24)
+	local shade = metal:Lerp(DARK, 0.3)
+	-- The stone-age rungs are lashed with rope, as a stone tool is; metal
+	-- bands start once the ore is something you could forge a band from --
+	-- Copper and Tin are low tiers but metals, so they get bands.
+	local metallic = mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal
+		or mat == Enum.Material.Foil or mat == Enum.Material.DiamondPlate
+	local primitive = t < 0.16 and not metallic
+	local bandCol = primitive and C3(156, 120, 76) or metal:Lerp(DARK, 0.52)
+	local bandMat = primitive and Enum.Material.Fabric or Enum.Material.Metal
+	local woodHaft = t < 0.5
+	local haftMat = woodHaft and Enum.Material.Wood or Enum.Material.Metal
+
+	------------------------------------------------------------------ haft --
+	-- Longer and fatter than the pick's: a sledge is swung with two hands.
+	-- Same size and place as the first build, so the grip is unchanged.
+	local handle = cyl({
+		Name = "Handle", Length = 3.4, Dia = 0.38,
+		CFrame = CFrame.new(0, -0.35, 0),
+		Color = haft, Material = haftMat, Reflectance = woodHaft and 0 or refl * 0.5,
+	}, model)
+	-- The throat swells where the haft meets the head.
+	cyl({
+		Name = "Throat", Length = 0.46, Dia = 0.46,
+		CFrame = CFrame.new(0, 0.95, 0),
+		Color = haft:Lerp(DARK, 0.12), Material = haftMat,
+	}, model)
+	for _, y in ipairs({ 1.14, -1.38 }) do
+		cyl({
+			Name = "Ferrule", Length = 0.1, Dia = 0.5, CFrame = CFrame.new(0, y, 0),
+			Color = bandCol, Material = bandMat, Reflectance = primitive and 0 or 0.18,
+		}, model)
+	end
+	-- A wound grip: eight turns, each canted the other way, so it reads as
+	-- wrapped leather rather than a stack of rings.
+	local wrapCol = woodHaft and C3(72, 50, 34) or metal:Lerp(DARK, 0.66)
+	for i = 0, 7 do
+		cyl({
+			Name = "Wrap", Length = 0.14, Dia = 0.45,
+			CFrame = CFrame.new(0, -1.94 + i * 0.16, 0) * CFrame.Angles(math.rad((i % 2 == 0) and 7 or -7), 0, 0),
+			Color = wrapCol:Lerp(DARK, (i % 2) * 0.12), Material = Enum.Material.Fabric,
+		}, model)
+	end
+	cyl({
+		Name = "PommelRing", Length = 0.08, Dia = 0.6, CFrame = CFrame.new(0, -2.06, 0),
+		Color = shade, Material = mat, Reflectance = refl,
+	}, model)
+	cyl({
+		Name = "Pommel", Length = 0.2, Dia = 0.54, CFrame = CFrame.new(0, -2.18, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	ball({
+		Name = "PommelKnob", Dia = 0.34, CFrame = CFrame.new(0, -2.3, 0),
+		Color = light, Material = mat, Reflectance = refl,
+	}, model)
+
+	------------------------------------------------------------------ head --
+	local hy = 1.42
+	local hw = 1.25 + t * 0.45 -- across the haft (X)
+	local hh = 0.66 + t * 0.14 -- up (Y)
+	local hd = 0.66 + t * 0.12 -- front to back (Z)
+	box({
+		Name = "Head", Size = Vector3.new(hw, hh, hd), CFrame = CFrame.new(0, hy, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	-- Bevelled long edges: a diamond rod laid along each, in the lit colour,
+	-- so the block catches light on its corners like the icon.
+	for _, sy in ipairs({ -1, 1 }) do
+		for _, sz in ipairs({ -1, 1 }) do
+			box({
+				Name = "Bevel", Size = Vector3.new(hw * 0.97, 0.13, 0.13),
+				CFrame = CFrame.new(0, hy + sy * hh * 0.5, sz * hd * 0.5) * CFrame.Angles(math.rad(45), 0, 0),
+				Color = (sy > 0) and light or shade, Material = mat, Reflectance = refl + 0.06,
+			}, model)
+		end
+	end
+	-- Striking faces: a plate proud of each end, a raised boss on it, and a
+	-- band just behind -- rope on the stone rungs.
+	for _, s in ipairs({ -1, 1 }) do
+		local fx = s * (hw * 0.5 + 0.05)
+		box({
+			Name = "Face", Size = Vector3.new(0.12, hh * 1.06, hd * 1.06),
+			CFrame = CFrame.new(fx, hy, 0),
+			Color = light, Material = mat, Reflectance = refl + 0.1,
+		}, model)
+		box({
+			Name = "Boss", Size = Vector3.new(0.06, hh * 0.62, hd * 0.62),
+			CFrame = CFrame.new(fx + s * 0.08, hy, 0),
+			Color = light:Lerp(C3(255, 255, 255), 0.12), Material = mat, Reflectance = refl + 0.14,
+		}, model)
+		box({
+			Name = "Band", Size = Vector3.new(0.13, hh + 0.06, hd + 0.06),
+			CFrame = CFrame.new(s * (hw * 0.5 - 0.2), hy, 0),
+			Color = bandCol, Material = bandMat, Reflectance = primitive and 0 or 0.16,
+		}, model)
+	end
+	-- Cheek panels front and back, with a rune slot and four rivets.
+	for _, sz in ipairs({ -1, 1 }) do
+		local z = sz * (hd * 0.5 + 0.025)
+		box({
+			Name = "Cheek", Size = Vector3.new(hw * 0.5, hh * 0.62, 0.05),
+			CFrame = CFrame.new(0, hy, z),
+			Color = shade, Material = mat, Reflectance = refl,
+		}, model)
+		box({
+			Name = "Rune", Size = Vector3.new(hw * 0.36, 0.08, 0.04),
+			CFrame = CFrame.new(0, hy, z + sz * 0.03),
+			Color = lit or metal:Lerp(DARK, 0.6),
+			Material = lit and Enum.Material.Neon or mat,
+		}, model)
+		if not primitive then
+			for _, rx in ipairs({ -1, 1 }) do
+				for _, ry in ipairs({ -1, 1 }) do
+					ball({
+						Name = "Rivet", Dia = 0.08,
+						CFrame = CFrame.new(rx * hw * 0.21, hy + ry * hh * 0.22, z + sz * 0.03),
+						Color = light, Material = Enum.Material.Metal, Reflectance = 0.2,
+					}, model)
+				end
+			end
+		end
+	end
+	-- Collar where the haft passes through, and the wedge that pins it.
+	box({
+		Name = "Collar", Size = Vector3.new(0.5, 0.18, 0.56),
+		CFrame = CFrame.new(0, hy - hh * 0.5 - 0.07, 0),
+		Color = shade, Material = mat, Reflectance = refl,
+	}, model)
+	box({
+		Name = "Wedge", Size = Vector3.new(0.3, 0.08, 0.4),
+		CFrame = CFrame.new(0, hy + hh * 0.5 + 0.03, 0),
+		Color = haft:Lerp(C3(255, 255, 255), 0.08), Material = haftMat,
+	}, model)
+
+	if primitive then
+		-- A stone head is lashed on and chipped, not banded and riveted.
+		for _, sz in ipairs({ -1, 1 }) do
+			for _, sx in ipairs({ -1, 1 }) do
+				rod(
+					Vector3.new(sx * 0.3, hy - hh * 0.5 - 0.02, sz * (hd * 0.5 + 0.02)),
+					Vector3.new(-sx * 0.12, hy - hh * 0.5 - 0.32, sz * 0.2),
+					0.06, { Name = "Lashing", Color = bandCol, Material = Enum.Material.Fabric }, model
+				)
+			end
+		end
+		for i = 1, 3 do
+			box({
+				Name = "Chip", Size = Vector3.new(0.16, 0.12, 0.05),
+				CFrame = CFrame.new(wob(i, 1) * hw * 0.8, hy + wob(i, 2) * hh * 0.7, (i % 2 == 0 and 1 or -1) * (hd * 0.5 + 0.02))
+					* CFrame.Angles(0, 0, wob(i, 3) * 1.2),
+				Color = metal:Lerp((i % 2 == 0) and C3(255, 255, 255) or DARK, 0.2), Material = mat,
+			}, model)
+		end
+	end
+
+	-- Langets: straps running down the haft from the head, once the ore is a
+	-- real metal.
+	if t >= 0.35 then
+		for _, sz in ipairs({ -1, 1 }) do
+			box({
+				Name = "Langet", Size = Vector3.new(0.12, 0.8, 0.04),
+				CFrame = CFrame.new(0, hy - hh * 0.5 - 0.42, sz * 0.21),
+				Color = bandCol, Material = bandMat, Reflectance = 0.16,
+			}, model)
+			ball({
+				Name = "Rivet", Dia = 0.07, CFrame = CFrame.new(0, hy - hh * 0.5 - 0.66, sz * 0.24),
+				Color = light, Material = Enum.Material.Metal, Reflectance = 0.2,
+			}, model)
+		end
+	end
+
+	-- The deep end grows shards of its own ore off the head, as the pick does.
+	if t > 0.62 then
+		local n = 3 + math.floor((t - 0.62) * 10)
+		local shardMat = (lit and Enum.Material.Glass) or mat
+		for i = 1, n do
+			local x = (i / (n + 1) - 0.5) * hw * 0.9
+			shard(
+				CFrame.new(x, hy + hh * 0.5, wob(i, 4) * hd * 0.6),
+				0.28 + (i % 3) * 0.12 + t * 0.12, 0.12,
+				CFrame.Angles(wob(i, 5) * 0.7, 0, wob(i, 6) * 0.9),
+				{ Color = light, Tip = lit or light:Lerp(C3(255, 255, 255), 0.3), Material = shardMat, Reflectance = refl + 0.12 },
+				model
+			)
+		end
+	end
+	-- The very top: crown fins over each face and a gem in the pommel.
+	if t > 0.85 then
+		for _, s in ipairs({ -1, 1 }) do
+			box({
+				Name = "Fin", Size = Vector3.new(0.34, 0.08, hd * 0.7),
+				CFrame = CFrame.new(s * (hw * 0.5 - 0.12), hy + hh * 0.5 + 0.12, 0) * CFrame.Angles(0, 0, math.rad(s * -32)),
+				Color = light, Material = mat, Reflectance = refl + 0.1,
+			}, model)
+		end
+		ball({
+			Name = "Gem", Dia = 0.2, CFrame = CFrame.new(0, -2.46, 0),
+			Color = lit or light, Material = lit and Enum.Material.Neon or Enum.Material.Glass,
+		}, model)
+	end
+	return handle
+end
+
+--[[
+	THE JACKHAMMER. A pneumatic breaker: body up, chisel straight down.
+
+	Built on its own axis rather than reusing the drill. A drill is authored
+	pointing FORWARD (-Z) because you aim it; a jackhammer only ever points at
+	the floor, and that is the whole read of the family -- so the silhouette is
+	vertical and the working end is at the bottom where the eye expects it.
+
+	A T-bar with two grips across the top separates it from a drill at a
+	glance even when both are the same colour.
+]]
+local function buildJackhammer(t, model, look)
+	local metal = (look and look.metal) or ramp(PICK_METAL, t)
+	local haft = (look and look.haft) or ramp(PICK_HAFT, t)
+	local mat = (look and look.mat) or metalFor(t)
+	local lit = look and look.lit or nil
+	local refl = (look and look.refl) or (0.06 + t * 0.24)
+	local light = metal:Lerp(C3(255, 255, 255), 0.24)
+	local shade = metal:Lerp(DARK, 0.32)
+	local steel = C3(150, 154, 162):Lerp(metal, 0.25)
+	local gripCol = t < 0.55 and C3(58, 42, 30) or haft:Lerp(DARK, 0.3)
+
+	-- The body IS the handle, stood upright. Same size and place as before.
+	local body = cyl({
+		Name = "Handle", Length = 2.6, Dia = 0.62,
+		CFrame = CFrame.new(0, 0.5, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+
+	------------------------------------------------------------- the top --
+	cyl({
+		Name = "TopCap", Length = 0.18, Dia = 0.72, CFrame = CFrame.new(0, 1.8, 0),
+		Color = shade, Material = mat, Reflectance = refl,
+	}, model)
+	ball({
+		Name = "Dome", Dia = 0.6, CFrame = CFrame.new(0, 1.9, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	cyl({
+		Name = "Crossbar", Length = 1.7, Dia = 0.2,
+		CFrame = CFrame.new(0, 2.06, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = shade, Material = Enum.Material.Metal, Reflectance = 0.15,
+	}, model)
+	for _, s in ipairs({ -1, 1 }) do
+		-- A rubber grip on each end of the T, ridged, with a cap.
+		cyl({
+			Name = "Grip", Length = 0.56, Dia = 0.3,
+			CFrame = CFrame.new(s * 0.62, 2.06, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = gripCol, Material = Enum.Material.Fabric,
+		}, model)
+		for r = -1, 1 do
+			cyl({
+				Name = "GripRidge", Length = 0.05, Dia = 0.34,
+				CFrame = CFrame.new(s * (0.62 + r * 0.16), 2.06, 0) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = gripCol:Lerp(DARK, 0.3), Material = Enum.Material.Fabric,
+			}, model)
+		end
+		ball({
+			Name = "GripCap", Dia = 0.3, CFrame = CFrame.new(s * 0.92, 2.06, 0),
+			Color = metal, Material = mat, Reflectance = refl,
+		}, model)
+		-- Braces from the bar down to the cap.
+		rod(
+			Vector3.new(s * 0.44, 2.04, 0), Vector3.new(s * 0.22, 1.74, 0),
+			0.07, { Name = "Brace", Color = shade, Material = Enum.Material.Metal }, model
+		)
+	end
+	-- The throttle lever, under the right grip.
+	box({
+		Name = "Throttle", Size = Vector3.new(0.4, 0.06, 0.12),
+		CFrame = CFrame.new(0.6, 1.9, 0.12) * CFrame.Angles(0, 0, math.rad(-12)),
+		Color = C3(196, 60, 40):Lerp(metal, 0.3), Material = Enum.Material.Metal, Reflectance = 0.1,
+	}, model)
+
+	------------------------------------------------- the ribbed cylinder --
+	cyl({
+		Name = "Cylinder", Length = 1.2, Dia = 0.86, CFrame = CFrame.new(0, 1.1, 0),
+		Color = shade, Material = mat, Reflectance = refl,
+	}, model)
+	for i = 0, 6 do
+		cyl({
+			Name = "Fin", Length = 0.06, Dia = 1.02,
+			CFrame = CFrame.new(0, 0.6 + i * 0.165, 0),
+			Color = (i % 2 == 0) and metal or light, Material = mat, Reflectance = refl + 0.05,
+		}, model)
+	end
+	-- Exhaust muffler on the left, slotted; the slots glow on a lit ore.
+	box({
+		Name = "Muffler", Size = Vector3.new(0.18, 0.56, 0.36), CFrame = CFrame.new(-0.56, 1.02, 0),
+		Color = shade:Lerp(DARK, 0.2), Material = Enum.Material.Metal, Reflectance = 0.1,
+	}, model)
+	for i = -1, 1 do
+		box({
+			Name = "Vent", Size = Vector3.new(0.04, 0.06, 0.28), CFrame = CFrame.new(-0.66, 1.02 + i * 0.15, 0),
+			Color = lit or DARK, Material = lit and Enum.Material.Neon or Enum.Material.Metal,
+		}, model)
+	end
+	-- Air coupling on the right and a hose curling down and back.
+	cyl({
+		Name = "Coupling", Length = 0.2, Dia = 0.22,
+		CFrame = CFrame.new(0.56, 1.32, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = C3(196, 160, 72):Lerp(metal, 0.2), Material = Enum.Material.Metal, Reflectance = 0.2,
+	}, model)
+	local hose = {}
+	for i = 0, 4 do
+		local a = (i / 4) * math.pi * 0.5
+		table.insert(hose, Vector3.new(0.66 + math.sin(a) * 0.42, 1.32 - (1 - math.cos(a)) * 0.9 - i * 0.05, -math.sin(a) * 0.32))
+	end
+	for i = 1, #hose - 1 do
+		rod(hose[i], hose[i + 1], 0.16, { Name = "Hose", Color = C3(40, 38, 44), Material = Enum.Material.Fabric }, model)
+	end
+
+	------------------------------------------------------- the business end --
+	cyl({
+		Name = "Striker", Length = 0.5, Dia = 0.72, CFrame = CFrame.new(0, -0.74, 0),
+		Color = metal, Material = mat, Reflectance = refl,
+	}, model)
+	for i = 0, 3 do
+		local a = i * math.pi * 0.5 + math.pi * 0.25
+		ball({
+			Name = "Bolt", Dia = 0.12,
+			CFrame = CFrame.new(math.cos(a) * 0.37, -0.6, math.sin(a) * 0.37),
+			Color = light, Material = Enum.Material.Metal, Reflectance = 0.2,
+		}, model)
+	end
+	-- The retainer latch that holds the chisel in.
+	box({
+		Name = "Latch", Size = Vector3.new(0.14, 0.42, 0.1),
+		CFrame = CFrame.new(0, -0.98, 0.34) * CFrame.Angles(math.rad(-10), 0, 0),
+		Color = steel, Material = Enum.Material.Metal, Reflectance = 0.15,
+	}, model)
+	cyl({
+		Name = "Collar", Length = 0.16, Dia = 0.5, CFrame = CFrame.new(0, -1.06, 0),
+		Color = shade, Material = mat, Reflectance = refl,
+	}, model)
+	-- An octagonal shank: two square bars, one turned 45 degrees.
+	for _, a in ipairs({ 0, 45 }) do
+		box({
+			Name = "Shank", Size = Vector3.new(0.24, 1.0, 0.24),
+			CFrame = CFrame.new(0, -1.62, 0) * CFrame.Angles(0, math.rad(a), 0),
+			Color = metal, Material = mat, Reflectance = refl,
+		}, model)
+	end
+	-- The flat chisel: a blade narrowing to its edge.
+	box({
+		Name = "Blade", Size = Vector3.new(0.34, 0.36, 0.14), CFrame = CFrame.new(0, -2.28, 0),
+		Color = light, Material = mat, Reflectance = refl + 0.1,
+	}, model)
+	box({
+		Name = "Edge", Size = Vector3.new(0.3, 0.2, 0.06), CFrame = CFrame.new(0, -2.52, 0),
+		Color = light:Lerp(C3(255, 255, 255), 0.25), Material = mat, Reflectance = refl + 0.15,
+	}, model)
+
+	-- Reinforcing plates once it is a proper machine.
+	if t >= 0.35 then
+		for _, sz in ipairs({ -1, 1 }) do
+			box({
+				Name = "Plate", Size = Vector3.new(0.4, 0.9, 0.06), CFrame = CFrame.new(0, 0.05, sz * 0.32),
+				Color = shade, Material = mat, Reflectance = refl,
+			}, model)
+			for _, ry in ipairs({ -1, 1 }) do
+				ball({
+					Name = "Rivet", Dia = 0.07, CFrame = CFrame.new(0, 0.05 + ry * 0.34, sz * 0.36),
+					Color = light, Material = Enum.Material.Metal, Reflectance = 0.2,
+				}, model)
+			end
+		end
+	end
+	-- The deep end grows its ore off the fins and carries an energy ring.
+	if t > 0.62 then
+		local n = 3 + math.floor((t - 0.62) * 8)
+		local shardMat = (lit and Enum.Material.Glass) or mat
+		for i = 1, n do
+			local a = (i / n) * math.pi * 2
+			shard(
+				CFrame.new(math.cos(a) * 0.48, 1.0 + wob(i, 7) * 0.4, math.sin(a) * 0.48),
+				0.22 + (i % 3) * 0.1, 0.1,
+				CFrame.Angles(math.sin(a) * 0.9, 0, -math.cos(a) * 0.9),
+				{ Color = light, Tip = lit or light:Lerp(C3(255, 255, 255), 0.3), Material = shardMat, Reflectance = refl + 0.12 },
+				model
+			)
+		end
+		cyl({
+			Name = "EnergyRing", Length = 0.06, Dia = 0.7, CFrame = CFrame.new(0, 0.42, 0),
+			Color = lit or light, Material = lit and Enum.Material.Neon or Enum.Material.Glass,
+		}, model)
+	end
+	if t > 0.85 then
+		for i = 0, 2 do
+			cyl({
+				Name = "Coil", Length = 0.04, Dia = 0.34, CFrame = CFrame.new(0, -1.3 - i * 0.2, 0),
+				Color = lit or light, Material = lit and Enum.Material.Neon or Enum.Material.Glass,
+			}, model)
+		end
+		ball({
+			Name = "Gem", Dia = 0.22, CFrame = CFrame.new(0, 2.2, 0),
+			Color = lit or light, Material = lit and Enum.Material.Neon or Enum.Material.Glass,
+		}, model)
+	end
+	return body
+end
+
+--[[
+	SKINS ON HAMMERS AND JACKHAMMERS.
+
+	Owner, 2026-10-11, picked "Ore look + skins" for the hammer build: a skin
+	should actually show on the tool. docs/SKINS.md gives every set one form per
+	class (Toybox's hammer is a mallet, its jackhammer a pogo stick) and says
+	the palette, material and trim are what make a set recognisable "at twenty
+	studs" -- so those are fixed per set here, and the grade (F..SSS) only
+	escalates detail: trim from B, glow and a light from S, a flourish from SS,
+	sparkles at SSS.
+
+	The ore is not thrown away: every form carries an inlay in the ore's own
+	colour, so a Gold tool in a Toybox skin still says Gold.
+
+	Each form keeps its family's Handle exactly where the plain build puts it
+	(a 3.4-stud haft at y -0.35 for the hammer, a 2.6-stud body at y 0.5 for
+	the jackhammer), so GRIPS and SCALE apply unchanged.
+]]
+local SKIN_PALETTES = {
+	toybox = { main = C3(222, 52, 52), second = C3(44, 112, 232), trim = C3(255, 206, 44), glow = C3(255, 250, 220), mat = Enum.Material.SmoothPlastic, trimMat = Enum.Material.SmoothPlastic },
+	cursed = { main = C3(40, 38, 44), second = C3(226, 214, 186), trim = C3(150, 18, 24), glow = C3(196, 255, 222), mat = Enum.Material.Metal, trimMat = Enum.Material.Fabric },
+	pharaohs_tomb = { main = C3(240, 192, 72), second = C3(228, 214, 176), trim = C3(32, 64, 176), glow = C3(64, 228, 210), mat = Enum.Material.Foil, trimMat = Enum.Material.Marble },
+	wasteland = { main = C3(142, 74, 40), second = C3(72, 98, 54), trim = C3(240, 200, 44), glow = C3(255, 150, 50), mat = Enum.Material.CorrodedMetal, trimMat = Enum.Material.Fabric },
+	clockwork = { main = C3(208, 162, 74), second = C3(178, 98, 58), trim = C3(98, 60, 36), glow = C3(255, 184, 64), mat = Enum.Material.Metal, trimMat = Enum.Material.Wood },
+	carnival = { main = C3(226, 42, 62), second = C3(250, 244, 236), trim = C3(240, 190, 62), glow = C3(255, 240, 180), mat = Enum.Material.SmoothPlastic, trimMat = Enum.Material.Foil },
+	atomic_age = { main = C3(212, 216, 226), second = C3(236, 226, 206), trim = C3(122, 62, 42), glow = C3(92, 255, 124), mat = Enum.Material.Metal, trimMat = Enum.Material.SmoothPlastic },
+	arcade = { main = C3(26, 26, 32), second = C3(232, 32, 44), trim = C3(204, 208, 218), glow = C3(44, 240, 255), mat = Enum.Material.SmoothPlastic, trimMat = Enum.Material.Metal },
+	halloween = { main = C3(242, 122, 24), second = C3(112, 112, 120), trim = C3(240, 230, 202), glow = C3(124, 255, 84), mat = Enum.Material.SmoothPlastic, trimMat = Enum.Material.Slate },
+}
+
+-- A stable 0..1 from a skin id, so a skin always gets the same accent.
+local function idHash(s)
+	local h = 0
+	for i = 1, #s do
+		h = (h * 31 + string.byte(s, i)) % 100003
+	end
+	return h / 100003
+end
+
+-- The things every form shares: the grip wrap, the ore inlay, and the grade's
+-- glow, light and sparkle.
+local function skinExtras(model, at, P, rank, ore, glowAt)
+	-- The ore inlay: a small gem in the ore's colour.
+	ball({
+		Name = "OreInlay", Dia = 0.2, CFrame = at,
+		Color = ore or P.trim, Material = Enum.Material.Glass, Reflectance = 0.2,
+	}, model)
+	if rank >= 6 and glowAt then
+		local l = Instance.new("PointLight")
+		l.Color = P.glow
+		l.Brightness = rank >= 8 and 2.2 or 1.4
+		l.Range = rank >= 8 and 9 or 6
+		l.Parent = glowAt
+	end
+	if rank >= 8 and glowAt then
+		local e = Instance.new("ParticleEmitter")
+		e.Name = "SkinSparkle"
+		e.Color = ColorSequence.new(P.glow)
+		e.LightEmission = 1
+		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.18), NumberSequenceKeypoint.new(1, 0) })
+		e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
+		e.Lifetime = NumberRange.new(0.5, 0.9)
+		e.Rate = 10
+		e.Speed = NumberRange.new(0.3, 0.8)
+		e.SpreadAngle = Vector2.new(180, 180)
+		e.Parent = glowAt
+	end
+end
+
+-- The 3.4-stud haft every hammer form stands on (same place as buildHammer).
+local function skinHaft(model, P, color, mat, dia)
+	return cyl({
+		Name = "Handle", Length = 3.4, Dia = dia or 0.36, CFrame = CFrame.new(0, -0.35, 0),
+		Color = color, Material = mat,
+	}, model)
+end
+
+-- The 2.6-stud body every jackhammer form stands on (same place as buildJackhammer).
+local function skinBody(model, P, color, mat, dia)
+	return cyl({
+		Name = "Handle", Length = 2.6, Dia = dia or 0.62, CFrame = CFrame.new(0, 0.5, 0),
+		Color = color, Material = mat,
+	}, model)
+end
+
+local function glowMat(rank)
+	return rank >= 6 and Enum.Material.Neon or Enum.Material.Glass
+end
+
+local SKIN_FORMS = { hammer = {}, jackhammer = {} }
+
+---------------------------------------------------------------- Toybox --
+SKIN_FORMS.hammer.toybox = function(model, P, rank, ore)
+	local h = skinHaft(model, P, P.trim, P.trimMat, 0.34)
+	-- Peg studs up the handle.
+	for i = 0, 4 do
+		ball({ Name = "Peg", Dia = 0.16, CFrame = CFrame.new(0, -1.6 + i * 0.5, 0.17), Color = (i % 2 == 0) and P.main or P.second, Material = P.mat }, model)
+	end
+	-- The mallet: a fat cylinder across the top, capped in the second colour.
+	cyl({ Name = "Head", Length = 1.5, Dia = 0.86, CFrame = CFrame.new(0, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.main, Material = P.mat }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({ Name = "Cap", Length = 0.16, Dia = 0.94, CFrame = CFrame.new(s * 0.78, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.second, Material = P.mat }, model)
+		cyl({ Name = "Button", Length = 0.08, Dia = 0.46, CFrame = CFrame.new(s * 0.88, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.trim, Material = P.mat }, model)
+	end
+	-- The wind-up key on top.
+	cyl({ Name = "KeyStem", Length = 0.3, Dia = 0.1, CFrame = CFrame.new(0, 2.05, 0), Color = P.trim, Material = P.trimMat }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		box({ Name = "KeyWing", Size = Vector3.new(0.34, 0.24, 0.06), CFrame = CFrame.new(s * 0.2, 2.26, 0), Color = P.trim, Material = P.trimMat }, model)
+	end
+	if rank >= 4 then
+		for _, s in ipairs({ -1, 1 }) do
+			cyl({ Name = "Stripe", Length = 0.1, Dia = 0.9, CFrame = CFrame.new(s * 0.36, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.trim, Material = P.mat }, model)
+		end
+	end
+	local glow = ball({ Name = "Star", Dia = 0.26, CFrame = CFrame.new(0, 1.5, 0.44), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -2.15, 0), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.toybox = function(model, P, rank, ore)
+	-- A pogo stick: pole, handlebar, foot pegs, the spring and a rubber tip.
+	local h = skinBody(model, P, P.main, P.mat, 0.3)
+	cyl({ Name = "Bar", Length = 1.5, Dia = 0.16, CFrame = CFrame.new(0, 1.84, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.second, Material = P.mat }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({ Name = "Grip", Length = 0.42, Dia = 0.26, CFrame = CFrame.new(s * 0.62, 1.84, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.trim, Material = P.mat }, model)
+		box({ Name = "FootPeg", Size = Vector3.new(0.5, 0.1, 0.3), CFrame = CFrame.new(s * 0.36, -0.55, 0), Color = P.second, Material = P.mat }, model)
+	end
+	cyl({ Name = "Housing", Length = 0.9, Dia = 0.46, CFrame = CFrame.new(0, -0.15, 0), Color = P.second, Material = P.mat }, model)
+	for i = 0, 6 do
+		cyl({ Name = "Spring", Length = 0.05, Dia = 0.4, CFrame = CFrame.new(0, -0.9 - i * 0.13, 0) * CFrame.Angles(math.rad(8), 0, 0), Color = P.trim, Material = Enum.Material.Metal, Reflectance = 0.2 }, model)
+	end
+	cyl({ Name = "Plunger", Length = 0.9, Dia = 0.16, CFrame = CFrame.new(0, -1.3, 0), Color = C3(200, 200, 206), Material = Enum.Material.Metal }, model)
+	ball({ Name = "Tip", Dia = 0.34, CFrame = CFrame.new(0, -1.8, 0), Color = C3(40, 40, 44), Material = P.mat }, model)
+	if rank >= 4 then
+		for i = 0, 2 do
+			cyl({ Name = "Band", Length = 0.06, Dia = 0.34, CFrame = CFrame.new(0, 0.8 + i * 0.3, 0), Color = P.trim, Material = P.mat }, model)
+		end
+	end
+	local glow = ball({ Name = "Star", Dia = 0.24, CFrame = CFrame.new(0, 1.84, 0.12), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, 0.2, 0.24), P, rank, ore, glow)
+	return h
+end
+
+---------------------------------------------------------------- Cursed --
+SKIN_FORMS.hammer.cursed = function(model, P, rank, ore)
+	local h = skinHaft(model, P, C3(52, 40, 34), Enum.Material.Wood, 0.38)
+	-- Red thread wound round the grip.
+	for i = 0, 6 do
+		cyl({ Name = "Thread", Length = 0.06, Dia = 0.42, CFrame = CFrame.new(0, -1.9 + i * 0.18, 0) * CFrame.Angles(math.rad(12), 0, 0), Color = P.trim, Material = P.trimMat }, model)
+	end
+	-- The gravedigger's maul: a heavy blackened block, bone-inlaid, studded.
+	box({ Name = "Head", Size = Vector3.new(1.6, 0.8, 0.78), CFrame = CFrame.new(0, 1.45, 0), Color = P.main, Material = P.mat, Reflectance = 0.05 }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		box({ Name = "Face", Size = Vector3.new(0.12, 0.9, 0.88), CFrame = CFrame.new(s * 0.84, 1.45, 0), Color = P.main:Lerp(C3(90, 90, 96), 0.3), Material = P.mat }, model)
+		box({ Name = "Bone", Size = Vector3.new(1.0, 0.1, 0.04), CFrame = CFrame.new(0, 1.45, s * 0.41), Color = P.second, Material = Enum.Material.SmoothPlastic }, model)
+		for _, x in ipairs({ -0.5, 0, 0.5 }) do
+			box({ Name = "Stud", Size = Vector3.new(0.12, 0.12, 0.12), CFrame = CFrame.new(x, 1.9, s * 0.24) * CFrame.Angles(0, math.rad(45), 0), Color = P.main:Lerp(C3(120, 120, 126), 0.35), Material = P.mat }, model)
+		end
+	end
+	-- A finger-bone wedge and a wax seal.
+	box({ Name = "Wedge", Size = Vector3.new(0.2, 0.1, 0.5), CFrame = CFrame.new(0, 1.9, 0), Color = P.second, Material = Enum.Material.SmoothPlastic }, model)
+	cyl({ Name = "Wax", Length = 0.06, Dia = 0.3, CFrame = CFrame.new(0, 1.2, 0.42) * CFrame.Angles(math.rad(90), 0, 0), Color = P.trim, Material = Enum.Material.SmoothPlastic }, model)
+	if rank >= 4 then
+		for _, s in ipairs({ -1, 1 }) do
+			box({ Name = "Spike", Size = Vector3.new(0.14, 0.36, 0.14), CFrame = CFrame.new(s * 0.6, 1.0, 0) * CFrame.Angles(0, 0, math.rad(s * 150)), Color = P.second, Material = Enum.Material.SmoothPlastic }, model)
+		end
+	end
+	local glow = box({ Name = "Sigil", Size = Vector3.new(0.5, 0.06, 0.04), CFrame = CFrame.new(0, 1.62, 0.41), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -2.15, 0), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.cursed = function(model, P, rank, ore)
+	-- A great iron stake with a bone T-handle, bound in red thread.
+	local h = skinBody(model, P, P.main, P.mat, 0.46)
+	cyl({ Name = "Bar", Length = 1.6, Dia = 0.22, CFrame = CFrame.new(0, 1.86, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.second, Material = Enum.Material.SmoothPlastic }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		ball({ Name = "Knuckle", Dia = 0.3, CFrame = CFrame.new(s * 0.82, 1.86, 0), Color = P.second, Material = Enum.Material.SmoothPlastic }, model)
+	end
+	for i = 0, 5 do
+		cyl({ Name = "Thread", Length = 0.05, Dia = 0.5, CFrame = CFrame.new(0, 1.4 - i * 0.12, 0) * CFrame.Angles(math.rad(14), 0, 0), Color = P.trim, Material = P.trimMat }, model)
+	end
+	-- The square stake, tapering to a point.
+	for i = 0, 3 do
+		local w = 0.42 - i * 0.08
+		box({ Name = "Stake", Size = Vector3.new(w, 0.36, w), CFrame = CFrame.new(0, -0.95 - i * 0.34, 0) * CFrame.Angles(0, math.rad(45), 0), Color = P.main:Lerp(C3(80, 76, 84), i * 0.08), Material = P.mat }, model)
+	end
+	box({ Name = "Point", Size = Vector3.new(0.12, 0.3, 0.12), CFrame = CFrame.new(0, -2.32, 0) * CFrame.Angles(0, math.rad(45), 0), Color = P.main, Material = P.mat }, model)
+	if rank >= 4 then
+		for i = 0, 1 do
+			cyl({ Name = "Band", Length = 0.08, Dia = 0.52, CFrame = CFrame.new(0, 0.2 - i * 0.6, 0), Color = P.second, Material = Enum.Material.SmoothPlastic }, model)
+		end
+	end
+	local glow = box({ Name = "Rune", Size = Vector3.new(0.06, 0.6, 0.04), CFrame = CFrame.new(0, 0.4, 0.24), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, 1.86, 0.14), P, rank, ore, glow)
+	return h
+end
+
+-------------------------------------------------------- Pharaoh's Tomb --
+SKIN_FORMS.hammer.pharaohs_tomb = function(model, P, rank, ore)
+	-- A ceremonial flail: a gold rod banded in lapis, three beaded strands.
+	local h = skinHaft(model, P, P.main, P.mat, 0.3)
+	h.Reflectance = 0.25
+	for i = 0, 5 do
+		cyl({ Name = "Lapis", Length = 0.1, Dia = 0.36, CFrame = CFrame.new(0, -1.7 + i * 0.5, 0), Color = P.trim, Material = P.trimMat }, model)
+	end
+	cyl({ Name = "Crown", Length = 0.3, Dia = 0.46, CFrame = CFrame.new(0, 1.42, 0), Color = P.main, Material = P.mat, Reflectance = 0.25 }, model)
+	for i = -1, 1 do
+		local a = math.rad(i * 26)
+		for b = 1, 6 do
+			local d = 0.16 + b * 0.17
+			ball({
+				Name = "Bead", Dia = (b == 6) and 0.24 or 0.16,
+				CFrame = CFrame.new(math.sin(a) * d, 1.55 + math.cos(a) * d * 0.25 + b * 0.04, -d * 0.3),
+				Color = (b % 2 == 0) and P.trim or P.main, Material = (b % 2 == 0) and P.trimMat or P.mat, Reflectance = 0.2,
+			}, model)
+		end
+	end
+	box({ Name = "Glyphs", Size = Vector3.new(0.05, 0.5, 0.32), CFrame = CFrame.new(0, -0.6, 0), Color = P.second, Material = Enum.Material.Limestone }, model)
+	if rank >= 4 then
+		box({ Name = "Ankh", Size = Vector3.new(0.08, 0.36, 0.08), CFrame = CFrame.new(0, 1.82, 0), Color = P.main, Material = P.mat, Reflectance = 0.25 }, model)
+		cyl({ Name = "AnkhLoop", Length = 0.06, Dia = 0.22, CFrame = CFrame.new(0, 2.06, 0) * CFrame.Angles(math.rad(90), 0, 0), Color = P.main, Material = P.mat }, model)
+	end
+	local glow = ball({ Name = "Scarab", Dia = 0.22, CFrame = CFrame.new(0, 1.42, 0.24), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -2.15, 0), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.pharaohs_tomb = function(model, P, rank, ore)
+	-- An obelisk driver: a limestone obelisk point-down, gold-capped and glyphed.
+	local h = skinBody(model, P, P.second, Enum.Material.Limestone, 0.5)
+	cyl({ Name = "Bar", Length = 1.6, Dia = 0.2, CFrame = CFrame.new(0, 1.86, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.main, Material = P.mat, Reflectance = 0.25 }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		box({ Name = "Grip", Size = Vector3.new(0.4, 0.26, 0.26), CFrame = CFrame.new(s * 0.66, 1.86, 0), Color = P.trim, Material = P.trimMat }, model)
+	end
+	for i = 0, 4 do
+		local w = 0.62 - i * 0.1
+		box({ Name = "Obelisk", Size = Vector3.new(w, 0.42, w), CFrame = CFrame.new(0, -0.8 - i * 0.36, 0), Color = P.second, Material = Enum.Material.Limestone }, model)
+		box({ Name = "Glyph", Size = Vector3.new(w * 0.5, 0.06, 0.02), CFrame = CFrame.new(0, -0.8 - i * 0.36, w * 0.5 + 0.01), Color = P.trim, Material = P.trimMat }, model)
+	end
+	box({ Name = "Pyramidion", Size = Vector3.new(0.14, 0.24, 0.14), CFrame = CFrame.new(0, -2.68, 0) * CFrame.Angles(0, math.rad(45), 0), Color = P.main, Material = P.mat, Reflectance = 0.3 }, model)
+	cyl({ Name = "Collar", Length = 0.14, Dia = 0.7, CFrame = CFrame.new(0, -0.5, 0), Color = P.main, Material = P.mat, Reflectance = 0.25 }, model)
+	if rank >= 4 then
+		for i = 0, 2 do
+			cyl({ Name = "Band", Length = 0.06, Dia = 0.56, CFrame = CFrame.new(0, 0.3 + i * 0.45, 0), Color = P.trim, Material = P.trimMat }, model)
+		end
+	end
+	local glow = ball({ Name = "Eye", Dia = 0.2, CFrame = CFrame.new(0, 1.1, 0.26), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, 1.86, 0.12), P, rank, ore, glow)
+	return h
+end
+
+------------------------------------------------------------- Wasteland --
+SKIN_FORMS.hammer.wasteland = function(model, P, rank, ore)
+	-- A sledge of welded rebar and scrap.
+	local h = skinHaft(model, P, C3(110, 84, 64), Enum.Material.CorrodedMetal, 0.3)
+	for i = 0, 3 do
+		box({ Name = "Tarp", Size = Vector3.new(0.4, 0.3, 0.4), CFrame = CFrame.new(0, -1.8 + i * 0.26, 0) * CFrame.Angles(0, math.rad(i * 25), math.rad(8)), Color = C3(92, 112, 132), Material = Enum.Material.Fabric }, model)
+	end
+	box({ Name = "Head", Size = Vector3.new(1.5, 0.74, 0.74), CFrame = CFrame.new(0, 1.45, 0), Color = P.main, Material = P.mat }, model)
+	box({ Name = "Plate", Size = Vector3.new(0.7, 0.5, 0.8), CFrame = CFrame.new(0.3, 1.5, 0) * CFrame.Angles(0, 0, math.rad(6)), Color = P.second, Material = Enum.Material.Metal }, model)
+	box({ Name = "Paint", Size = Vector3.new(1.52, 0.1, 0.76), CFrame = CFrame.new(0, 1.3, 0), Color = P.trim, Material = Enum.Material.SmoothPlastic }, model)
+	for i = 1, 4 do
+		rod(Vector3.new(-0.7 + i * 0.28, 1.2, -0.3 + (i % 2) * 0.6), Vector3.new(-0.9 + i * 0.36, 1.95 + (i % 2) * 0.12, -0.2 + (i % 2) * 0.4), 0.07, { Name = "Rebar", Color = C3(96, 60, 42), Material = Enum.Material.CorrodedMetal }, model)
+	end
+	for _, s in ipairs({ -1, 1 }) do
+		box({ Name = "Weld", Size = Vector3.new(0.06, 0.78, 0.78), CFrame = CFrame.new(s * 0.45, 1.45, 0), Color = C3(70, 66, 62), Material = Enum.Material.Metal }, model)
+	end
+	if rank >= 4 then
+		box({ Name = "Spike", Size = Vector3.new(0.36, 0.1, 0.1), CFrame = CFrame.new(0.95, 1.45, 0), Color = C3(150, 150, 156), Material = Enum.Material.Metal }, model)
+	end
+	local glow = box({ Name = "Hazard", Size = Vector3.new(0.3, 0.16, 0.04), CFrame = CFrame.new(-0.3, 1.55, 0.38), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -2.15, 0), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.wasteland = function(model, P, rank, ore)
+	-- An engine piston: finned block, crank handle, jerrycan-green housing.
+	local h = skinBody(model, P, P.second, Enum.Material.Metal, 0.66)
+	box({ Name = "Block", Size = Vector3.new(0.86, 1.0, 0.7), CFrame = CFrame.new(0, 1.0, 0), Color = P.main, Material = P.mat }, model)
+	for i = 0, 5 do
+		box({ Name = "Fin", Size = Vector3.new(1.02, 0.06, 0.84), CFrame = CFrame.new(0, 0.6 + i * 0.16, 0), Color = P.main:Lerp(DARK, 0.2), Material = P.mat }, model)
+	end
+	cyl({ Name = "Bar", Length = 1.5, Dia = 0.18, CFrame = CFrame.new(0, 1.8, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = C3(120, 120, 126), Material = Enum.Material.CorrodedMetal }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		box({ Name = "Grip", Size = Vector3.new(0.42, 0.26, 0.26), CFrame = CFrame.new(s * 0.62, 1.8, 0), Color = C3(92, 112, 132), Material = Enum.Material.Fabric }, model)
+	end
+	box({ Name = "Stripe", Size = Vector3.new(0.68, 0.12, 0.02), CFrame = CFrame.new(0, 0.1, 0.34), Color = P.trim, Material = Enum.Material.SmoothPlastic }, model)
+	cyl({ Name = "Rod", Length = 1.0, Dia = 0.22, CFrame = CFrame.new(0, -1.2, 0), Color = C3(150, 150, 156), Material = Enum.Material.Metal, Reflectance = 0.15 }, model)
+	cyl({ Name = "Piston", Length = 0.4, Dia = 0.46, CFrame = CFrame.new(0, -1.85, 0), Color = C3(170, 170, 176), Material = Enum.Material.Metal, Reflectance = 0.2 }, model)
+	for i = 0, 1 do
+		cyl({ Name = "Ring", Length = 0.04, Dia = 0.48, CFrame = CFrame.new(0, -1.75 - i * 0.12, 0), Color = DARK, Material = Enum.Material.Metal }, model)
+	end
+	if rank >= 4 then
+		rod(Vector3.new(0.42, 1.2, 0), Vector3.new(0.5, -0.4, 0.2), 0.08, { Name = "Pipe", Color = C3(150, 90, 50), Material = Enum.Material.CorrodedMetal }, model)
+	end
+	local glow = box({ Name = "Gauge", Size = Vector3.new(0.22, 0.22, 0.04), CFrame = CFrame.new(0, 1.2, 0.37), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, 0.5, 0.34), P, rank, ore, glow)
+	return h
+end
+
+------------------------------------------------------------- Clockwork --
+SKIN_FORMS.hammer.clockwork = function(model, P, rank, ore)
+	-- A counterweight maul: brass drum head ringed with gear teeth.
+	local h = skinHaft(model, P, P.trim, P.trimMat, 0.34)
+	cyl({ Name = "Ferrule", Length = 0.12, Dia = 0.42, CFrame = CFrame.new(0, 1.0, 0), Color = P.main, Material = P.mat, Reflectance = 0.2 }, model)
+	cyl({ Name = "Head", Length = 1.4, Dia = 0.8, CFrame = CFrame.new(0, 1.45, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.main, Material = P.mat, Reflectance = 0.25 }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({ Name = "Face", Length = 0.12, Dia = 0.9, CFrame = CFrame.new(s * 0.72, 1.45, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.second, Material = Enum.Material.Metal, Reflectance = 0.15 }, model)
+	end
+	-- Gear teeth round the middle.
+	for i = 0, 11 do
+		local a = i * math.pi / 6
+		box({ Name = "Tooth", Size = Vector3.new(0.16, 0.12, 0.12), CFrame = CFrame.new(0, 1.45, 0) * CFrame.Angles(a, 0, 0) * CFrame.new(0, 0.46, 0), Color = P.main:Lerp(C3(255, 255, 255), 0.15), Material = P.mat, Reflectance = 0.25 }, model)
+	end
+	-- The counterweight: a brass ball hung below the head.
+	ball({ Name = "Weight", Dia = 0.34, CFrame = CFrame.new(0.5, 0.9, 0), Color = P.second, Material = Enum.Material.Metal, Reflectance = 0.15 }, model)
+	rod(Vector3.new(0.5, 1.08, 0), Vector3.new(0.5, 1.4, 0), 0.04, { Name = "Chain", Color = P.main, Material = Enum.Material.Metal }, model)
+	if rank >= 4 then
+		cyl({ Name = "Gear", Length = 0.06, Dia = 0.5, CFrame = CFrame.new(0, 1.45, 0.44) * CFrame.Angles(math.rad(90), 0, 0), Color = P.second, Material = Enum.Material.Metal, Reflectance = 0.2 }, model)
+	end
+	local glow = cyl({ Name = "Gauge", Length = 0.04, Dia = 0.3, CFrame = CFrame.new(0, 1.45, -0.42) * CFrame.Angles(math.rad(90), 0, 0), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -2.15, 0), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.clockwork = function(model, P, rank, ore)
+	-- A piston hammer: brass cylinder, exposed gears, walnut grips, a gauge.
+	local h = skinBody(model, P, P.main, P.mat, 0.6)
+	h.Reflectance = 0.2
+	cyl({ Name = "Bar", Length = 1.6, Dia = 0.18, CFrame = CFrame.new(0, 1.86, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.second, Material = Enum.Material.Metal, Reflectance = 0.15 }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({ Name = "Grip", Length = 0.48, Dia = 0.28, CFrame = CFrame.new(s * 0.64, 1.86, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.trim, Material = P.trimMat }, model)
+	end
+	cyl({ Name = "Cylinder", Length = 1.1, Dia = 0.84, CFrame = CFrame.new(0, 1.1, 0), Color = P.second, Material = Enum.Material.Metal, Reflectance = 0.15 }, model)
+	for i = 0, 2 do
+		cyl({ Name = "Band", Length = 0.08, Dia = 0.9, CFrame = CFrame.new(0, 0.7 + i * 0.4, 0), Color = P.main, Material = P.mat, Reflectance = 0.25 }, model)
+	end
+	-- Two gears on the side.
+	for _, g in ipairs({ { 0.48, 0.9, 0.42 }, { 0.48, 1.36, 0.28 } }) do
+		cyl({ Name = "Gear", Length = 0.06, Dia = g[3], CFrame = CFrame.new(g[1], g[2], 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(math.rad(90), 0, 0), Color = P.main, Material = P.mat, Reflectance = 0.25 }, model)
+		for i = 0, 7 do
+			local a = i * math.pi / 4
+			box({ Name = "Tooth", Size = Vector3.new(0.06, 0.08, 0.08), CFrame = CFrame.new(g[1] + 0.02, g[2] + math.cos(a) * g[3] * 0.55, math.sin(a) * g[3] * 0.55), Color = P.main, Material = P.mat }, model)
+		end
+	end
+	cyl({ Name = "Collar", Length = 0.16, Dia = 0.5, CFrame = CFrame.new(0, -0.9, 0), Color = P.second, Material = Enum.Material.Metal }, model)
+	cyl({ Name = "Shank", Length = 1.0, Dia = 0.26, CFrame = CFrame.new(0, -1.5, 0), Color = C3(170, 170, 176), Material = Enum.Material.Metal, Reflectance = 0.2 }, model)
+	box({ Name = "Blade", Size = Vector3.new(0.32, 0.4, 0.12), CFrame = CFrame.new(0, -2.2, 0), Color = C3(190, 190, 196), Material = Enum.Material.Metal, Reflectance = 0.25 }, model)
+	if rank >= 4 then
+		rod(Vector3.new(-0.42, 1.5, 0), Vector3.new(-0.38, 0.2, 0.2), 0.07, { Name = "Pipe", Color = P.second, Material = Enum.Material.Metal }, model)
+	end
+	local glow = cyl({ Name = "Gauge", Length = 0.04, Dia = 0.32, CFrame = CFrame.new(0, 1.1, 0.43) * CFrame.Angles(math.rad(90), 0, 0), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, 1.86, 0.12), P, rank, ore, glow)
+	return h
+end
+
+-------------------------------------------------------------- Carnival --
+SKIN_FORMS.hammer.carnival = function(model, P, rank, ore)
+	-- The strongman mallet: a huge striped barrel head on a gold-banded haft.
+	local h = skinHaft(model, P, C3(196, 150, 96), Enum.Material.Wood, 0.36)
+	for i = 0, 3 do
+		cyl({ Name = "Band", Length = 0.08, Dia = 0.4, CFrame = CFrame.new(0, -1.5 + i * 0.7, 0), Color = P.trim, Material = P.trimMat, Reflectance = 0.2 }, model)
+	end
+	for i = 0, 6 do
+		cyl({
+			Name = "Stripe", Length = 0.25, Dia = 1.06,
+			CFrame = CFrame.new(-0.75 + i * 0.25, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = (i % 2 == 0) and P.main or P.second, Material = P.mat,
+		}, model)
+	end
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({ Name = "Rim", Length = 0.08, Dia = 1.12, CFrame = CFrame.new(s * 0.9, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.trim, Material = P.trimMat, Reflectance = 0.2 }, model)
+	end
+	if rank >= 4 then
+		for i = 0, 5 do
+			local a = i * math.pi / 3
+			ball({ Name = "Bulb", Dia = 0.12, CFrame = CFrame.new(0, 1.5 + math.cos(a) * 0.55, math.sin(a) * 0.55), Color = P.glow, Material = glowMat(rank) }, model)
+		end
+	end
+	local glow = ball({ Name = "Star", Dia = 0.24, CFrame = CFrame.new(0.95, 1.5, 0), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -2.15, 0), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.carnival = function(model, P, rank, ore)
+	-- A carousel pole: candy-striped and gold-crowned, finial down.
+	local h = skinBody(model, P, P.trim, P.trimMat, 0.3)
+	for i = 0, 13 do
+		cyl({
+			Name = "Stripe", Length = 0.2, Dia = 0.34,
+			CFrame = CFrame.new(0, -0.8 + i * 0.19, 0) * CFrame.Angles(math.rad(18), 0, 0),
+			Color = (i % 2 == 0) and P.main or P.second, Material = P.mat,
+		}, model)
+	end
+	cyl({ Name = "Crown", Length = 0.3, Dia = 0.6, CFrame = CFrame.new(0, 1.86, 0), Color = P.trim, Material = P.trimMat, Reflectance = 0.25 }, model)
+	for i = 0, 5 do
+		local a = i * math.pi / 3
+		box({ Name = "Point", Size = Vector3.new(0.1, 0.24, 0.1), CFrame = CFrame.new(math.cos(a) * 0.26, 2.1, math.sin(a) * 0.26), Color = P.trim, Material = P.trimMat }, model)
+	end
+	cyl({ Name = "Bar", Length = 1.4, Dia = 0.16, CFrame = CFrame.new(0, 1.6, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.trim, Material = P.trimMat }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		ball({ Name = "Knob", Dia = 0.26, CFrame = CFrame.new(s * 0.72, 1.6, 0), Color = P.main, Material = P.mat }, model)
+	end
+	cyl({ Name = "Collar", Length = 0.14, Dia = 0.46, CFrame = CFrame.new(0, -0.95, 0), Color = P.trim, Material = P.trimMat }, model)
+	ball({ Name = "Finial", Dia = 0.36, CFrame = CFrame.new(0, -1.25, 0), Color = P.trim, Material = P.trimMat, Reflectance = 0.25 }, model)
+	box({ Name = "Spike", Size = Vector3.new(0.14, 0.7, 0.14), CFrame = CFrame.new(0, -1.75, 0) * CFrame.Angles(0, math.rad(45), 0), Color = P.trim, Material = P.trimMat }, model)
+	if rank >= 4 then
+		for i = 0, 7 do
+			local a = i * math.pi / 4
+			ball({ Name = "Bulb", Dia = 0.1, CFrame = CFrame.new(math.cos(a) * 0.32, 1.7, math.sin(a) * 0.32), Color = P.glow, Material = glowMat(rank) }, model)
+		end
+	end
+	local glow = ball({ Name = "Jewel", Dia = 0.2, CFrame = CFrame.new(0, 1.86, 0.3), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -1.25, 0.18), P, rank, ore, glow)
+	return h
+end
+
+------------------------------------------------------------ Atomic Age --
+SKIN_FORMS.hammer.atomic_age = function(model, P, rank, ore)
+	-- The impact mallet: a chrome rocket head with tailfins, bakelite grip.
+	local h = skinHaft(model, P, P.main, P.mat, 0.32)
+	h.Reflectance = 0.35
+	for i = 0, 4 do
+		cyl({ Name = "Bakelite", Length = 0.18, Dia = 0.4, CFrame = CFrame.new(0, -1.85 + i * 0.2, 0), Color = P.trim, Material = P.trimMat }, model)
+	end
+	cyl({ Name = "Head", Length = 1.2, Dia = 0.66, CFrame = CFrame.new(0, 1.45, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.main, Material = P.mat, Reflectance = 0.4 }, model)
+	ball({ Name = "Nose", Dia = 0.66, CFrame = CFrame.new(0.6, 1.45, 0), Color = P.main, Material = P.mat, Reflectance = 0.4 }, model)
+	cyl({ Name = "Face", Length = 0.14, Dia = 0.74, CFrame = CFrame.new(-0.64, 1.45, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.second, Material = P.trimMat }, model)
+	for i = 0, 2 do
+		local a = i * math.pi * 2 / 3
+		box({ Name = "Tailfin", Size = Vector3.new(0.4, 0.06, 0.3), CFrame = CFrame.new(-0.5, 1.45, 0) * CFrame.Angles(a, 0, 0) * CFrame.new(0, 0, 0.42), Color = P.trim, Material = P.trimMat }, model)
+	end
+	if rank >= 4 then
+		for i = 0, 1 do
+			cyl({ Name = "Ring", Length = 0.06, Dia = 0.72, CFrame = CFrame.new(-0.1 + i * 0.3, 1.45, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.glow, Material = glowMat(rank) }, model)
+		end
+	end
+	local glow = ball({ Name = "Isotope", Dia = 0.24, CFrame = CFrame.new(0.1, 1.45, 0.32), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -2.15, 0), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.atomic_age = function(model, P, rank, ore)
+	-- A reactor driver: chrome body, glowing isotope window, bakelite handles.
+	local h = skinBody(model, P, P.main, P.mat, 0.6)
+	h.Reflectance = 0.35
+	cyl({ Name = "Bar", Length = 1.6, Dia = 0.18, CFrame = CFrame.new(0, 1.86, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.main, Material = P.mat, Reflectance = 0.35 }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({ Name = "Grip", Length = 0.46, Dia = 0.3, CFrame = CFrame.new(s * 0.64, 1.86, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.trim, Material = P.trimMat }, model)
+		box({ Name = "Tailfin", Size = Vector3.new(0.06, 0.7, 0.4), CFrame = CFrame.new(s * 0.36, 1.3, -0.1) * CFrame.Angles(0, 0, math.rad(s * -14)), Color = P.second, Material = P.trimMat }, model)
+	end
+	cyl({ Name = "Core", Length = 0.9, Dia = 0.84, CFrame = CFrame.new(0, 1.0, 0), Color = P.main, Material = P.mat, Reflectance = 0.4 }, model)
+	local glow = box({ Name = "Window", Size = Vector3.new(0.34, 0.6, 0.06), CFrame = CFrame.new(0, 1.0, 0.42), Color = P.glow, Material = glowMat(math.max(rank, 6)) }, model)
+	for i = 0, 2 do
+		cyl({ Name = "RayRing", Length = 0.06, Dia = 0.7, CFrame = CFrame.new(0, 0.1 - i * 0.25, 0), Color = P.second, Material = P.trimMat }, model)
+	end
+	cyl({ Name = "Emitter", Length = 0.8, Dia = 0.3, CFrame = CFrame.new(0, -1.4, 0), Color = P.main, Material = P.mat, Reflectance = 0.4 }, model)
+	ball({ Name = "Tip", Dia = 0.34, CFrame = CFrame.new(0, -1.85, 0), Color = P.glow, Material = glowMat(rank) }, model)
+	if rank >= 4 then
+		for i = 0, 2 do
+			cyl({ Name = "Coil", Length = 0.04, Dia = 0.4, CFrame = CFrame.new(0, -1.2 - i * 0.2, 0), Color = P.glow, Material = glowMat(rank) }, model)
+		end
+	end
+	skinExtras(model, CFrame.new(0, 1.86, 0.12), P, rank, ore, glow)
+	return h
+end
+
+---------------------------------------------------------------- Arcade --
+SKIN_FORMS.hammer.arcade = function(model, P, rank, ore)
+	-- The mallet off a whack-a-mole: foam head, neon trim, a chrome coin plate.
+	local h = skinHaft(model, P, P.second, P.mat, 0.32)
+	for i = 0, 3 do
+		cyl({ Name = "Grip", Length = 0.12, Dia = 0.38, CFrame = CFrame.new(0, -1.85 + i * 0.16, 0), Color = P.main, Material = P.mat }, model)
+	end
+	cyl({ Name = "Head", Length = 1.3, Dia = 0.9, CFrame = CFrame.new(0, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.main, Material = P.mat }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({ Name = "Face", Length = 0.1, Dia = 0.94, CFrame = CFrame.new(s * 0.68, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.second, Material = P.mat }, model)
+		cyl({ Name = "Neon", Length = 0.05, Dia = 0.98, CFrame = CFrame.new(s * 0.56, 1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = (s > 0) and P.glow or C3(255, 54, 200), Material = Enum.Material.Neon }, model)
+	end
+	box({ Name = "CoinPlate", Size = Vector3.new(0.5, 0.3, 0.04), CFrame = CFrame.new(0, 1.5, 0.46), Color = P.trim, Material = P.trimMat, Reflectance = 0.3 }, model)
+	box({ Name = "Slot", Size = Vector3.new(0.04, 0.18, 0.02), CFrame = CFrame.new(0, 1.5, 0.49), Color = DARK, Material = P.mat }, model)
+	if rank >= 4 then
+		for i = 0, 3 do
+			box({ Name = "Pixel", Size = Vector3.new(0.14, 0.14, 0.14), CFrame = CFrame.new(-0.3 + i * 0.2, 2.0 + (i % 2) * 0.14, 0), Color = (i % 2 == 0) and P.glow or P.second, Material = Enum.Material.Neon }, model)
+		end
+	end
+	local glow = ball({ Name = "Light", Dia = 0.2, CFrame = CFrame.new(0, 1.95, 0), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -2.15, 0), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.arcade = function(model, P, rank, ore)
+	-- A joystick on a pole: red ball top, neon base, chrome coin plate.
+	local h = skinBody(model, P, P.main, P.mat, 0.4)
+	box({ Name = "Base", Size = Vector3.new(0.8, 0.3, 0.8), CFrame = CFrame.new(0, 1.55, 0), Color = P.main, Material = P.mat }, model)
+	box({ Name = "NeonEdge", Size = Vector3.new(0.84, 0.05, 0.84), CFrame = CFrame.new(0, 1.42, 0), Color = P.glow, Material = Enum.Material.Neon }, model)
+	cyl({ Name = "Stick", Length = 0.5, Dia = 0.12, CFrame = CFrame.new(0, 1.92, 0), Color = P.trim, Material = P.trimMat, Reflectance = 0.3 }, model)
+	ball({ Name = "Knob", Dia = 0.52, CFrame = CFrame.new(0, 2.24, 0), Color = P.second, Material = P.mat }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		cyl({ Name = "Button", Length = 0.06, Dia = 0.18, CFrame = CFrame.new(s * 0.24, 1.72, 0.2), Color = (s > 0) and P.glow or C3(255, 54, 200), Material = Enum.Material.Neon }, model)
+	end
+	box({ Name = "CoinPlate", Size = Vector3.new(0.4, 0.5, 0.04), CFrame = CFrame.new(0, 0.6, 0.22), Color = P.trim, Material = P.trimMat, Reflectance = 0.3 }, model)
+	box({ Name = "Slot", Size = Vector3.new(0.04, 0.24, 0.02), CFrame = CFrame.new(0, 0.6, 0.25), Color = DARK, Material = P.mat }, model)
+	-- A stepped, pixel-edged tip.
+	for i = 0, 3 do
+		local w = 0.36 - i * 0.08
+		box({ Name = "PixelTip", Size = Vector3.new(w, 0.18, w), CFrame = CFrame.new(0, -0.9 - i * 0.18, 0), Color = (i % 2 == 0) and P.main or P.glow, Material = (i % 2 == 0) and P.mat or Enum.Material.Neon }, model)
+	end
+	if rank >= 4 then
+		for i = 0, 2 do
+			box({ Name = "Scanline", Size = Vector3.new(0.42, 0.03, 0.42), CFrame = CFrame.new(0, 0.1 + i * 0.25, 0), Color = P.glow, Material = Enum.Material.Neon }, model)
+		end
+	end
+	local glow = ball({ Name = "Light", Dia = 0.16, CFrame = CFrame.new(0, 2.5, 0), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, 1.55, 0.42), P, rank, ore, glow)
+	return h
+end
+
+------------------------------------------------------------- Halloween --
+SKIN_FORMS.hammer.halloween = function(model, P, rank, ore)
+	-- A gravedigger's spade: D-grip, grave-grey blade, a pumpkin on the collar.
+	local h = skinHaft(model, P, C3(84, 62, 44), Enum.Material.Wood, 0.32)
+	box({ Name = "DGrip", Size = Vector3.new(0.6, 0.1, 0.14), CFrame = CFrame.new(0, -2.25, 0), Color = C3(84, 62, 44), Material = Enum.Material.Wood }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		box({ Name = "DSide", Size = Vector3.new(0.1, 0.34, 0.14), CFrame = CFrame.new(s * 0.26, -2.1, 0), Color = C3(84, 62, 44), Material = Enum.Material.Wood }, model)
+	end
+	box({ Name = "Blade", Size = Vector3.new(0.9, 1.0, 0.08), CFrame = CFrame.new(0, 1.85, 0), Color = P.second, Material = P.trimMat }, model)
+	box({ Name = "BladeTip", Size = Vector3.new(0.62, 0.26, 0.08), CFrame = CFrame.new(0, 2.45, 0), Color = P.second, Material = P.trimMat }, model)
+	box({ Name = "Socket", Size = Vector3.new(0.3, 0.36, 0.2), CFrame = CFrame.new(0, 1.28, 0), Color = P.second:Lerp(DARK, 0.3), Material = P.trimMat }, model)
+	ball({ Name = "Pumpkin", Dia = 0.42, CFrame = CFrame.new(0, 1.1, 0.16), Color = P.main, Material = P.mat }, model)
+	box({ Name = "Stem", Size = Vector3.new(0.06, 0.12, 0.06), CFrame = CFrame.new(0, 1.34, 0.16), Color = C3(60, 110, 40), Material = P.mat }, model)
+	-- Candle wax dripping off the blade's shoulder, and a cobweb strand.
+	for i = 0, 2 do
+		box({ Name = "Wax", Size = Vector3.new(0.08, 0.2 + i * 0.08, 0.04), CFrame = CFrame.new(-0.35 + i * 0.12, 1.4 - i * 0.04, 0.05), Color = P.trim, Material = Enum.Material.SmoothPlastic }, model)
+	end
+	if rank >= 4 then
+		rod(Vector3.new(-0.44, 2.3, 0.05), Vector3.new(0.44, 1.5, 0.05), 0.02, { Name = "Cobweb", Color = C3(236, 236, 240), Material = Enum.Material.SmoothPlastic }, model)
+	end
+	local glow = box({ Name = "Face", Size = Vector3.new(0.2, 0.06, 0.04), CFrame = CFrame.new(0, 1.08, 0.37), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, -1.9, 0.18), P, rank, ore, glow)
+	return h
+end
+
+SKIN_FORMS.jackhammer.halloween = function(model, P, rank, ore)
+	-- A coffin nail: a huge square nail, wax-dripped, glowing at the point.
+	local h = skinBody(model, P, P.second, P.trimMat, 0.44)
+	box({ Name = "NailHead", Size = Vector3.new(0.9, 0.2, 0.9), CFrame = CFrame.new(0, 1.86, 0), Color = P.second:Lerp(DARK, 0.2), Material = P.trimMat }, model)
+	cyl({ Name = "Bar", Length = 1.5, Dia = 0.18, CFrame = CFrame.new(0, 2.06, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = C3(84, 62, 44), Material = Enum.Material.Wood }, model)
+	for _, s in ipairs({ -1, 1 }) do
+		ball({ Name = "Pumpkin", Dia = 0.34, CFrame = CFrame.new(s * 0.78, 2.06, 0), Color = P.main, Material = P.mat }, model)
+	end
+	for i = 0, 3 do
+		local w = 0.4 - i * 0.07
+		box({ Name = "Shank", Size = Vector3.new(w, 0.4, w), CFrame = CFrame.new(0, -0.95 - i * 0.38, 0), Color = P.second, Material = P.trimMat }, model)
+	end
+	box({ Name = "Point", Size = Vector3.new(0.1, 0.34, 0.1), CFrame = CFrame.new(0, -2.42, 0) * CFrame.Angles(0, math.rad(45), 0), Color = P.glow, Material = glowMat(rank) }, model)
+	for i = 0, 3 do
+		box({ Name = "Wax", Size = Vector3.new(0.08, 0.18 + (i % 2) * 0.14, 0.06), CFrame = CFrame.new(-0.3 + i * 0.2, 1.62 - (i % 2) * 0.07, 0.42), Color = P.trim, Material = Enum.Material.SmoothPlastic }, model)
+	end
+	cyl({ Name = "Band", Length = 0.12, Dia = 0.5, CFrame = CFrame.new(0, 0.6, 0), Color = P.main, Material = P.mat }, model)
+	if rank >= 4 then
+		rod(Vector3.new(-0.22, 1.2, 0.24), Vector3.new(0.22, -0.2, 0.24), 0.02, { Name = "Cobweb", Color = C3(236, 236, 240), Material = Enum.Material.SmoothPlastic }, model)
+	end
+	local glow = box({ Name = "Rune", Size = Vector3.new(0.06, 0.5, 0.04), CFrame = CFrame.new(0, 0.1, 0.23), Color = P.glow, Material = glowMat(rank) }, model)
+	skinExtras(model, CFrame.new(0, 1.86, 0.46), P, rank, ore, glow)
+	return h
+end
+
 local BUILDERS = {
 	pickaxe = buildPickaxe, drill = buildDrill, explosive = buildExplosive,
+	hammer = buildHammer, jackhammer = buildJackhammer,
 }
 -- buildRanged is deliberately not in BUILDERS: the ranged family was cut, and
 -- build() falls back to pickaxe for anything it does not recognise. Kept in the
@@ -970,16 +2281,24 @@ local _ = buildRanged
 -- the fore/aft swing plane so one point leads.
 local HAFT_UP = CFrame.fromMatrix(Vector3.zero, Vector3.new(0, 1, 0), Vector3.new(0, 0, 1))
 
+
 local GRIPS = {
 	-- Hafted tools: stand it up, lean it forward, and slide the grip down the
 	-- haft so the hand sits on the lower third and the head rides at shoulder
 	-- height rather than swinging round the knees.
 	pickaxe = (HAFT_UP * CFrame.Angles(0, 0, math.rad(14)) * CFrame.new(0.7, 0, 0)):Inverse(),
 	explosive = (HAFT_UP * CFrame.Angles(0, 0, math.rad(10)) * CFrame.new(0.45, 0, 0)):Inverse(),
+	-- Hammer: hafted like the pickaxe, gripped a little lower because the haft
+	-- is longer and it is swung with two hands.
+	hammer = (HAFT_UP * CFrame.Angles(0, 0, math.rad(12)) * CFrame.new(0.95, 0, 0)):Inverse(),
 	-- Machines are authored with the grip up +Y and the working end down -Z,
 	-- which is already how an identity grip lands them: up is up, forward is
 	-- forward. They only need settling into the palm.
 	drill = CFrame.new(0, -0.25, 0.2),
+	-- The jackhammer is authored UPRIGHT with the chisel at the bottom, so it
+	-- is held like a haft rather than aimed like a machine: stood up, leaned
+	-- back a touch, hand on the crossbar.
+	jackhammer = (HAFT_UP * CFrame.Angles(0, 0, math.rad(-8)) * CFrame.new(-0.9, 0, 0)):Inverse(),
 }
 
 -- Each family is authored at whatever proportions read best on its own, then
@@ -989,7 +2308,7 @@ local GRIPS = {
 --
 -- Target: a held tool reads at roughly 3.5 studs against a 5-stud character,
 -- with the pickaxe deliberately larger because it is the two-handed one.
-local SCALE = { pickaxe = 1.28, drill = 0.68, explosive = 0.74 }
+local SCALE = { pickaxe = 1.28, drill = 0.68, explosive = 0.74, hammer = 1.2, jackhammer = 0.86 }
 
 --[[
 	NAMED HQ MESHES IN THE HAND.
@@ -1718,6 +3037,47 @@ function ToolModelFactory.fromNamed(toolName, finish, familyHint)
 		return nil
 	end
 
+	--[[
+		A FOLDER IS NOT A MODEL. REFUSE ONE THAT HOLDS NO GEOMETRY.
+
+		Every tool here is a MeshPart whose geometry came from
+		AssetService:CreateMeshPartAsync, and that geometry is SESSION-ONLY: it
+		does not survive the place being saved and reopened. What comes back is
+		the full folder -- right names, right sizes, right finish variants, the
+		HeadTris attribute still sitting there reading 20000 -- and MeshContent
+		set to Content{SourceType=None}. A mesh with nothing in it.
+
+		That is the state the archive in this place is in: measured, 2,058 of
+		2,088 folders are entirely hollow, INCLUDING all 82 named after an ore.
+
+		It matters here more than anywhere else because of the ORDER givePickaxe
+		tries things. fromNamed runs FIRST, on the ore's own name, and only falls
+		through to build() when it returns nil. A hollow folder made it return a
+		perfectly well-formed model instead, so the fallback never ran and the
+		player equipped a tool they could not see -- the exact symptom, and the
+		reason the ore tinting below never reached anyone's hands.
+
+		Checking the mesh rather than the folder, because the folder looks fine.
+	]]
+	do
+		local renderable = false
+		for _, d in ipairs(srcModel:GetDescendants()) do
+			if d:IsA("MeshPart") then
+				if not string.find(tostring(d.MeshContent), "SourceType=None", 1, true) then
+					renderable = true
+					break
+				end
+			elseif d:IsA("BasePart") then
+				-- A part-built model has real geometry by definition.
+				renderable = true
+				break
+			end
+		end
+		if not renderable then
+			return nil
+		end
+	end
+
 	-- The Shiny and Shadow variants are stored already fitted, posed and
 	-- finished (see bakeFinishVariants): hand them over as they are.
 	if srcModel:GetAttribute("Posed") then
@@ -1774,7 +3134,7 @@ function ToolModelFactory.fromNamed(toolName, finish, familyHint)
 	end
 
 	local family = familyHint or guessFamily(folderName or toolName)
-	if family ~= "drill" and family ~= "explosive" then
+	if family ~= "drill" and family ~= "explosive" and family ~= "hammer" then
 		family = "pickaxe"
 	end
 	local pose = NAMED_POSE[folderName] or NAMED_POSE[toolName] or measuredPoseFor(folderName or toolName, model, family) or {}
@@ -1860,7 +3220,15 @@ local KIT_SHAPES = {
 	explosive = { "Explosive", { "Grenade", "Quickcharge", "Breacher", "Precision", "Proximity", "Cluster" } },
 }
 
-local function tryToolKitMesh(family, tier, count)
+--[[
+	`look` is applied to the CLONE, never to the source MeshPart.
+
+	ToolKitMeshes is a shared folder under ReplicatedStorage and every tool in
+	the game clones out of it, so tinting `body` instead of `handle` would
+	repaint that shape for every player holding it -- and persist, because the
+	folder is replicated once and never restored.
+]]
+local function tryToolKitMesh(family, tier, count, look)
 	local root = game:GetService("ReplicatedStorage"):FindFirstChild("ToolKitMeshes")
 	if not root then return nil end
 	local entry = KIT_SHAPES[family]
@@ -1871,7 +3239,25 @@ local function tryToolKitMesh(family, tier, count)
 	count = math.max(2, count or 15)
 	tier = math.clamp(tier or 1, 1, count)
 	local t = (tier - 1) / (count - 1)
-	local si = math.clamp(math.floor(t * (#shapes - 1) + 1e-9) + 1, 1, #shapes)
+	--[[
+		SPREAD THE SHAPES OVER THE LADDER, NOT OVER ALL BUT THE LAST RUNG.
+
+		This read `floor(t * (#shapes - 1)) + 1`, which divides the ladder into
+		#shapes - 1 bands and reaches the final shape only when t is EXACTLY 1 --
+		tier 82 and nothing else. Measured across the 82 ores: the last silhouette
+		in every family went to a single ore (Frack 1, Cluster 1, TrenchShovel 1)
+		while the five below it carried about sixteen each.
+
+		That is backwards for the rung players care most about. The endgame tools
+		are meant to look like endgame tools, and instead eighty-one of eighty-two
+		ores stopped one shape short of the best one in the set.
+
+		Dividing by #shapes gives every shape an equal slice of the ladder, with
+		the top slice running from t = (#shapes-1)/#shapes to 1 like all the rest.
+		min() rather than clamp() on the upper end because t = 1 would otherwise
+		index one past the last shape.
+	]]
+	local si = math.min(math.floor(t * #shapes) + 1, #shapes)
 	-- body rarity advances inside each shape band
 	local band = 1 / #shapes
 	local localT = math.clamp((t - (si - 1) * band) / band, 0, 1)
@@ -1880,6 +3266,36 @@ local function tryToolKitMesh(family, tier, count)
 	if not toolFolder then return nil end
 	local body = toolFolder:FindFirstChild(KIT_BODY_NAMES[bi]) or toolFolder:FindFirstChild("FieldScrap")
 	if not (body and body:IsA("MeshPart")) then return nil end
+
+	--[[
+		A MeshPart WITH NO MESH IN IT IS NOT A TOOL.
+
+		Every one of these 102 kit meshes was produced by
+		AssetService:CreateMeshPartAsync in ToolKitProceduralBake and then saved
+		to .rbxm. That round trip does not keep the geometry: CreateMeshPartAsync
+		builds the mesh in the running session only, there is no uploaded asset
+		behind it, so what the .rbxm stores is a MeshPart with the right Size and
+		MeshId = "". Measured in the live place: 102 of 102 hollow.
+
+		This branch returns before the procedural builders below ever run, so a
+		hollow kit mesh is not a degraded tool -- it is an INVISIBLE one. The
+		player equips a Tool, the Handle is there, the swing works, the damage
+		lands, and there is nothing in their hand. Every mesh archive in this
+		place is in the same state (ToolModels_50 2,058 of 2,088, the
+		_Unreferenced copy 2,060 of 2,060), so there is currently no mesh
+		anywhere that can draw a tool.
+
+		Refusing it falls through to buildPickaxe/buildDrill/buildExplosive,
+		which assemble real Parts -- geometry that lives in the instance and
+		cannot be stripped by a save -- and which take `look`, so the tool is
+		ore-coloured on the way out.
+
+		Checked per call rather than once: the folder is replicated and a later
+		bake can fill these in, and when it does this check simply stops firing.
+	]]
+	if string.find(tostring(body.MeshContent), "SourceType=None", 1, true) then
+		return nil
+	end
 	local model = Instance.new("Model")
 	model.Name = string.format("%s_%d", family, tier)
 	local handle = body:Clone()
@@ -1893,11 +3309,42 @@ local function tryToolKitMesh(family, tier, count)
 	if k ~= 1 then
 		handle.Size = handle.Size * k
 	end
+
+	--[[
+		THE ORE, NOT THE KIT BODY.
+
+		Without this the kit mesh keeps the colour ToolKitProceduralBake baked
+		into it -- FieldScrap brown through Composite near-black, six shades
+		chosen by TIER -- so every one of the 82 ores in a family came out the
+		same handful of browns and greys. A Gold pickaxe and a Lead one were
+		pixel-identical, and the ore the player spent the grind on was visible
+		nowhere on the tool.
+
+		`look` already carries the answer and already reaches this function's
+		caller: oreLook pulls colour, material, metalness and roughness straight
+		off the MineConfig.ORES row, which is the same row that colours the ore
+		BLOCK -- so a Copper pick now matches the copper the player mined.
+
+		Material carries the glow on its own. Ores that should shine resolve to
+		Neon, Glass or CrackedLava in their own row, and those materials
+		self-illuminate, so none of this needs a PointLight per held tool.
+	]]
+	if look then
+		if typeof(look.metal) == "Color3" then
+			handle.Color = look.metal
+		end
+		if typeof(look.mat) == "EnumItem" then
+			handle.Material = look.mat
+		end
+		handle.Reflectance = math.clamp(tonumber(look.refl) or 0, 0, 1)
+	end
+
 	handle.Parent = model
 	model.PrimaryPart = handle
 	model:SetAttribute("KitMesh", famName .. "/" .. shapes[si] .. "/" .. (body.Name))
 	model:SetAttribute("KitShape", shapes[si])
 	model:SetAttribute("KitBody", body.Name)
+	model:SetAttribute("OreTinted", look ~= nil)
 	return model, handle, GRIPS[family] or GRIPS.pickaxe
 end
 
@@ -1906,15 +3353,25 @@ end
 	colours, material and silhouette taken from the ore it was made of rather
 	than from the eight-step ramp a cosmetic lookTier indexes.
 
-	A baked kit mesh still wins when one exists -- look only overrides the
-	PROCEDURAL build, which is the path every ore tool actually takes today
-	because no mesh is named after an ore.
+	A baked kit mesh still wins when one exists -- but it is now TINTED by the
+	look rather than ignoring it.
+
+	This comment used to end "look only overrides the PROCEDURAL build, which is
+	the path every ore tool actually takes today because no mesh is named after
+	an ore", and that stopped being true when ToolKitMeshes was checked in. The
+	folder is complete -- three families, every shape, all six bodies -- so
+	tryToolKitMesh hits on EVERY call, the procedural branch below is now
+	effectively unreachable for the families that have kit meshes, and `look`
+	was being dropped on the floor for every forged tool in the game.
+
+	Nothing reported it because both paths return a perfectly good model. The
+	only symptom was that all 82 ores in a family looked the same.
 ]]
 function ToolModelFactory.build(family, tier, count, look)
 	family = BUILDERS[family] and family or "pickaxe"
 	count = math.max(2, count or 15)
 	do
-		local km, kh, kg = tryToolKitMesh(family, tier, count)
+		local km, kh, kg = tryToolKitMesh(family, tier, count, look)
 		if kh then return km, kh, kg end
 	end
 	-- The ore's own position in the roster shapes it, so a tier-1 tool is stubby
@@ -1927,6 +3384,8 @@ function ToolModelFactory.build(family, tier, count, look)
 	model.Name = string.format("%s_%d", family, tier or 1)
 	local handle = BUILDERS[family](t, model, look)
 	handle.Name = "Handle"
+	-- Frostfire's fire-against-ice split (oreLook), on every family.
+	applySplit(model, look and look.split)
 
 	-- Scale before welding, or the welds freeze the unscaled offsets.
 	local k = SCALE[family] or 1
@@ -1941,6 +3400,51 @@ function ToolModelFactory.build(family, tier, count, look)
 
 	model.PrimaryPart = handle
 	weldAll(model, handle)
+	return model, handle, GRIPS[family] or GRIPS.pickaxe
+end
+
+--[[
+	A forged tool wearing a skin (MineSkins def: id, set, tier). Only hammers
+	and jackhammers have skin forms so far (SKIN_FORMS); for anything else this
+	returns nil and the caller builds the plain ore tool. `look` is the ore's
+	look, used for the inlay that keeps the ore visible under the skin.
+]]
+local SKIN_RANK = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 8 }
+
+function ToolModelFactory.hasSkinForm(family, setKey)
+	return SKIN_FORMS[family] ~= nil and SKIN_FORMS[family][setKey] ~= nil
+end
+
+function ToolModelFactory.buildSkinned(family, skin, look)
+	local forms = SKIN_FORMS[family]
+	local form = forms and type(skin) == "table" and forms[skin.set]
+	local base = type(skin) == "table" and SKIN_PALETTES[skin.set]
+	if not (form and base) then
+		return nil
+	end
+	-- Each skin gets its own accent inside its set's palette: the set stays
+	-- recognisable, and two skins of one set are not the same tool.
+	local P = table.clone(base)
+	P.second = base.second:Lerp(base.trim, idHash(tostring(skin.id or "")) * 0.35)
+	local rank = SKIN_RANK[skin.tier] or 1
+
+	local model = Instance.new("Model")
+	model.Name = string.format("%s_skin_%s", family, tostring(skin.id))
+	local handle = form(model, P, rank, look and look.metal)
+	handle.Name = "Handle"
+
+	local k = SCALE[family] or 1
+	if k ~= 1 then
+		for _, p in ipairs(model:GetDescendants()) do
+			if p:IsA("BasePart") then
+				p.Size = p.Size * k
+				p.CFrame = CFrame.new(p.CFrame.Position * k) * (p.CFrame - p.CFrame.Position)
+			end
+		end
+	end
+	model.PrimaryPart = handle
+	weldAll(model, handle)
+	model:SetAttribute("Skin", tostring(skin.id))
 	return model, handle, GRIPS[family] or GRIPS.pickaxe
 end
 

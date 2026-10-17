@@ -1,0 +1,1110 @@
+{
+  "key": "shoguns_oath",
+  "bodies": [
+    {
+      "id": "so_samurai",
+      "label": "Samurai",
+      "role": "Bruiser"
+    },
+    {
+      "id": "so_ninja",
+      "label": "Ninja",
+      "role": "Striker"
+    },
+    {
+      "id": "so_daruma",
+      "label": "Daruma",
+      "role": "Seeker"
+    },
+    {
+      "id": "so_luckycat",
+      "label": "Lucky Cat",
+      "role": "Trader"
+    },
+    {
+      "id": "so_koinobori",
+      "label": "Koi Kite",
+      "role": "Tidecaller"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "so_t_kokeshi",
+      "label": "Kokeshi Doll",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        40,
+        170,
+        170
+      ]
+    },
+    {
+      "id": "so_t_tanuki",
+      "label": "Kettle Tanuki",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        176,
+        110,
+        60
+      ]
+    },
+    {
+      "id": "so_t_sparrow",
+      "label": "Fukura Sparrow",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        236,
+        150,
+        80
+      ]
+    },
+    {
+      "id": "so_t_shuriken",
+      "label": "Shuriken Spinner",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        120,
+        150,
+        210
+      ]
+    },
+    {
+      "id": "so_t_onigiri",
+      "label": "Nori Onigiri",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        248,
+        246,
+        236
+      ]
+    },
+    {
+      "id": "so_t_geta",
+      "label": "Geta Hopper",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        214,
+        168,
+        104
+      ]
+    },
+    {
+      "id": "so_t_karakasa",
+      "label": "Karakasa",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        60,
+        80,
+        200
+      ]
+    },
+    {
+      "id": "so_t_kendama",
+      "label": "Kendama Kid",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        110,
+        40
+      ]
+    },
+    {
+      "id": "so_t_kappa",
+      "label": "River Kappa",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        60,
+        190,
+        110
+      ]
+    },
+    {
+      "id": "so_t_shogi",
+      "label": "Shogi General",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        238,
+        204,
+        120
+      ]
+    },
+    {
+      "id": "so_t_jubako",
+      "label": "Jubako Stack",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        196,
+        30,
+        50
+      ]
+    },
+    {
+      "id": "so_t_tsuba",
+      "label": "Tsuba Medallion",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        200,
+        124,
+        60
+      ]
+    },
+    {
+      "id": "so_t_suzumushi",
+      "label": "Suzumushi",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        200,
+        224,
+        60
+      ]
+    },
+    {
+      "id": "so_t_kamaitachi",
+      "label": "Kamaitachi",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        150,
+        210,
+        255
+      ]
+    },
+    {
+      "id": "so_t_brush",
+      "label": "Shodo Brush",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        60,
+        56,
+        90
+      ]
+    },
+    {
+      "id": "so_t_sakura",
+      "label": "Sakura Bloom",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        255,
+        168,
+        200
+      ]
+    },
+    {
+      "id": "so_t_sumo",
+      "label": "Sumo Champ",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        255,
+        182,
+        140
+      ]
+    },
+    {
+      "id": "so_t_clacker",
+      "label": "Bamboo Clacker",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        110,
+        200,
+        70
+      ]
+    },
+    {
+      "id": "so_t_onagadori",
+      "label": "Onagadori",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        200,
+        60
+      ]
+    },
+    {
+      "id": "so_t_katanarack",
+      "label": "Katana Rack",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        176,
+        24,
+        44
+      ]
+    },
+    {
+      "id": "so_t_torii",
+      "label": "Torii Walker",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        236,
+        60,
+        36
+      ]
+    },
+    {
+      "id": "so_t_komuso",
+      "label": "Komuso Flutist",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        214,
+        180,
+        110
+      ]
+    },
+    {
+      "id": "so_t_hyotan",
+      "label": "Hyotan Gourd",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        230,
+        70,
+        40
+      ]
+    },
+    {
+      "id": "so_t_shamisen",
+      "label": "Shamisen Bard",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        150,
+        80,
+        50
+      ]
+    },
+    {
+      "id": "so_t_bridge",
+      "label": "Lacquer Bridge",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        220,
+        44,
+        44
+      ]
+    },
+    {
+      "id": "so_t_rower",
+      "label": "Ricebowl Rower",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        36,
+        44,
+        96
+      ]
+    },
+    {
+      "id": "so_t_nurikabe",
+      "label": "Nurikabe",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        150,
+        146,
+        136
+      ]
+    },
+    {
+      "id": "so_t_karakuri",
+      "label": "Karakuri Doll",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        250,
+        120,
+        60
+      ]
+    },
+    {
+      "id": "so_t_quiver",
+      "label": "Yumi Quiver",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        30,
+        110,
+        100
+      ]
+    },
+    {
+      "id": "so_t_kadomatsu",
+      "label": "Kadomatsu",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        180,
+        80
+      ]
+    },
+    {
+      "id": "so_t_shachihoko",
+      "label": "Shachihoko",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        150,
+        30
+      ]
+    },
+    {
+      "id": "so_t_ittanmomen",
+      "label": "Ittan Momen",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        240,
+        244,
+        255
+      ]
+    },
+    {
+      "id": "so_t_byobu",
+      "label": "Byobu Screen",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        240,
+        200,
+        90
+      ]
+    },
+    {
+      "id": "so_t_castle",
+      "label": "Tenshu Castle",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        70,
+        170,
+        150
+      ]
+    },
+    {
+      "id": "so_t_amabie",
+      "label": "Amabie",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        80,
+        220,
+        200
+      ]
+    },
+    {
+      "id": "so_t_gissha",
+      "label": "Gissha Carriage",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        120,
+        30,
+        50
+      ]
+    },
+    {
+      "id": "so_t_tengu",
+      "label": "Mountain Tengu",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        230,
+        50,
+        40
+      ]
+    },
+    {
+      "id": "so_t_oni",
+      "label": "Kanabo Oni",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        60,
+        120,
+        240
+      ]
+    },
+    {
+      "id": "so_t_yatagarasu",
+      "label": "Yatagarasu",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        60,
+        50,
+        110
+      ]
+    },
+    {
+      "id": "so_t_magatama",
+      "label": "Magatama",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        40,
+        210,
+        130
+      ]
+    },
+    {
+      "id": "so_t_hokora",
+      "label": "Hokora",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        255,
+        228,
+        160
+      ]
+    },
+    {
+      "id": "so_t_kusudama",
+      "label": "Kusudama",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        250,
+        130,
+        40
+      ]
+    },
+    {
+      "id": "so_t_teabowl",
+      "label": "Raku Teabowl",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        150,
+        70,
+        60
+      ]
+    },
+    {
+      "id": "so_t_wave",
+      "label": "Seigaiha Wave",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        30,
+        90,
+        210
+      ]
+    },
+    {
+      "id": "so_t_katana",
+      "label": "Oathbound Katana",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        200,
+        40,
+        80
+      ]
+    },
+    {
+      "id": "so_t_hanabi",
+      "label": "Hanabi Burst",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        70,
+        190
+      ]
+    },
+    {
+      "id": "so_t_inkblot",
+      "label": "Sumi Inkblot",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        36,
+        34,
+        50
+      ]
+    },
+    {
+      "id": "so_t_kabuto",
+      "label": "Warlord Kabuto",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        180,
+        30,
+        40
+      ]
+    }
+  ],
+  "extraBodies": [
+    "fox",
+    "bigcat",
+    "wyrm"
+  ],
+  "buffs": [
+    "mineSpeed",
+    "tidalWave",
+    "tideDamage"
+  ],
+  "palette": [
+    [
+      "Vermilion",
+      228,
+      60,
+      40
+    ],
+    [
+      "Lacquer",
+      150,
+      24,
+      30
+    ],
+    [
+      "Sakura",
+      248,
+      186,
+      204
+    ],
+    [
+      "Matcha",
+      110,
+      150,
+      60
+    ],
+    [
+      "Indigo",
+      38,
+      52,
+      110
+    ],
+    [
+      "Sumi",
+      30,
+      28,
+      32
+    ],
+    [
+      "Goldleaf",
+      232,
+      186,
+      72
+    ],
+    [
+      "Plum",
+      160,
+      60,
+      110
+    ],
+    [
+      "Wisteria",
+      168,
+      140,
+      210
+    ],
+    [
+      "Bamboo",
+      170,
+      196,
+      110
+    ],
+    [
+      "Pine",
+      30,
+      90,
+      60
+    ],
+    [
+      "Persimmon",
+      240,
+      120,
+      40
+    ],
+    [
+      "Cedar",
+      140,
+      80,
+      50
+    ],
+    [
+      "Washi",
+      244,
+      238,
+      222
+    ],
+    [
+      "Steel",
+      150,
+      158,
+      170
+    ],
+    [
+      "Tea",
+      176,
+      140,
+      90
+    ],
+    [
+      "Tide",
+      60,
+      130,
+      200
+    ],
+    [
+      "Iris",
+      100,
+      70,
+      170
+    ],
+    [
+      "Camellia",
+      208,
+      40,
+      80
+    ],
+    [
+      "Moonlit",
+      210,
+      216,
+      236
+    ],
+    [
+      "Celadon",
+      150,
+      200,
+      170
+    ],
+    [
+      "Ash",
+      96,
+      92,
+      96
+    ],
+    [
+      "Ginkgo",
+      250,
+      224,
+      90
+    ],
+    [
+      "Peony",
+      236,
+      110,
+      160
+    ],
+    [
+      "Bronze",
+      176,
+      110,
+      60
+    ],
+    [
+      "Kingfisher",
+      0,
+      150,
+      210
+    ],
+    [
+      "Jade",
+      0,
+      170,
+      110
+    ],
+    [
+      "Wasabi",
+      160,
+      220,
+      30
+    ],
+    [
+      "Ruri",
+      30,
+      50,
+      210
+    ],
+    [
+      "Kikyo",
+      130,
+      50,
+      230
+    ],
+    [
+      "Azalea",
+      240,
+      50,
+      190
+    ],
+    [
+      "Yuzu",
+      250,
+      242,
+      50
+    ],
+    [
+      "Midnight",
+      14,
+      18,
+      50
+    ],
+    [
+      "Moss",
+      72,
+      96,
+      28
+    ],
+    [
+      "Hisoku",
+      170,
+      240,
+      236
+    ],
+    [
+      "Sora",
+      120,
+      190,
+      255
+    ],
+    [
+      "Chestnut",
+      80,
+      40,
+      24
+    ],
+    [
+      "Hakka",
+      150,
+      250,
+      180
+    ],
+    [
+      "Fuji",
+      226,
+      206,
+      255
+    ],
+    [
+      "Coral",
+      255,
+      130,
+      120
+    ],
+    [
+      "Murasaki",
+      70,
+      20,
+      100
+    ],
+    [
+      "Emerald",
+      10,
+      210,
+      90
+    ],
+    [
+      "Aotake",
+      0,
+      110,
+      110
+    ],
+    [
+      "Uguisu",
+      140,
+      140,
+      50
+    ],
+    [
+      "Azuki",
+      120,
+      40,
+      60
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Honored",
+      "Lacquered",
+      "Gilded",
+      "Noble"
+    ],
+    "Mythic": [
+      "Shogun",
+      "Ancestral",
+      "Ronin",
+      "Imperial"
+    ],
+    "Divine": [
+      "Sacred",
+      "Enlightened",
+      "Heavenly",
+      "Blessed"
+    ],
+    "Exotic": [
+      "Kintsugi",
+      "Goldwave",
+      "Moonblade",
+      "Spirit"
+    ]
+  },
+  "names": [
+    "Kaze",
+    "Kumo",
+    "Hoshi",
+    "Tsuki",
+    "Yuki",
+    "Ame",
+    "Hana",
+    "Kiku",
+    "Momiji",
+    "Ume",
+    "Matsu",
+    "Umi",
+    "Kawa",
+    "Yama",
+    "Mori",
+    "Kage",
+    "Tora",
+    "Inu",
+    "Tori",
+    "Tsubame",
+    "Kame",
+    "Koi",
+    "Kingyo",
+    "Hotaru",
+    "Kaeru",
+    "Shika",
+    "Kinu",
+    "Origami",
+    "Shoji",
+    "Tatami",
+    "Noren",
+    "Furin",
+    "Chochin",
+    "Torii",
+    "Taiko",
+    "Koto",
+    "Shamisen",
+    "Kendama",
+    "Kokeshi",
+    "Dango",
+    "Taiyaki",
+    "Onigiri",
+    "Senbei",
+    "Wagashi",
+    "Soba",
+    "Tempura",
+    "Bento",
+    "Takoyaki",
+    "Wakizashi",
+    "Tsuba",
+    "Saya",
+    "Kabuto",
+    "Hakama",
+    "Haori",
+    "Geta",
+    "Zori",
+    "Kunai",
+    "Shuriken",
+    "Bokken",
+    "Naginata",
+    "Yumi",
+    "Kyudo",
+    "Kendo",
+    "Dojo",
+    "Sensei",
+    "Senpai",
+    "Budo",
+    "Bushido",
+    "Daimyo",
+    "Kunoichi",
+    "Hanko",
+    "Haiku",
+    "Fude",
+    "Raku",
+    "Ikebana",
+    "Zen",
+    "Wabi",
+    "Sabi",
+    "Kaizen",
+    "Kodama",
+    "Chibi",
+    "Genki",
+    "Yuhi",
+    "Hinode",
+    "Yoake",
+    "Tasogare",
+    "Hoshizora",
+    "Kaminari",
+    "Nagi",
+    "Kuro",
+    "Aka",
+    "Ao",
+    "Midori",
+    "Momo",
+    "Mikan",
+    "Kaki",
+    "Nashi",
+    "Kuri",
+    "Sakuranbo",
+    "Biwa",
+    "Tsubaki",
+    "Ajisai",
+    "Botan",
+    "Asagao",
+    "Kaede",
+    "Sugi",
+    "Hinoki",
+    "Koke",
+    "Iwa",
+    "Suna",
+    "Kirakira",
+    "Wakuwaku",
+    "Gorogoro",
+    "Fuwafuwa",
+    "Kurukuru",
+    "Pyonpyon",
+    "Pochi",
+    "Tama",
+    "Mame",
+    "Mofu",
+    "Puni",
+    "Tonton",
+    "Koro",
+    "Silk Fan",
+    "Ink Brush",
+    "Tea Leaf",
+    "Wind Chime",
+    "Rice Ball",
+    "Plum Rain",
+    "Pine Wind",
+    "Bamboo Shoot",
+    "Folding Fan",
+    "Koi Pond",
+    "Sun Disc",
+    "Honor",
+    "Loyal",
+    "Resolve",
+    "Steadfast",
+    "Vigil",
+    "Serene",
+    "Hanami",
+    "Sakura Petal",
+    "Paper Lantern",
+    "Shogi",
+    "Go Stone",
+    "Sumo",
+    "Yokozuna",
+    "Edo",
+    "Koban",
+    "Inro",
+    "Netsuke",
+    "Maki-e",
+    "Urushi",
+    "Kinpaku",
+    "Seigaiha",
+    "Asanoha",
+    "Shippo",
+    "Uroko",
+    "Kikko",
+    "Kumiko",
+    "Sashiko",
+    "Tenugui",
+    "Furoshiki",
+    "Hachimaki",
+    "Yukata",
+    "Kimono",
+    "Kanzashi",
+    "Sensu",
+    "Uchiwa",
+    "Iaido",
+    "Aikido",
+    "Judo",
+    "Karate",
+    "Tenshu",
+    "Yagura",
+    "Ishigaki",
+    "Honmaru",
+    "Jinbaori",
+    "Sashimono",
+    "Nobori",
+    "Horagai",
+    "Gunbai",
+    "Tessen",
+    "Jitte",
+    "Kusarigama",
+    "Kama",
+    "Do-maru",
+    "Kote",
+    "Sode",
+    "Suneate",
+    "Maedate",
+    "Kuwagata",
+    "Horo",
+    "Hatamoto",
+    "Ashigaru",
+    "Kiai",
+    "Kata",
+    "Shinai",
+    "Tsuka",
+    "Kissaki",
+    "Hamon",
+    "Tamahagane",
+    "Shirasaya",
+    "Katanakake",
+    "Tachi",
+    "Odachi",
+    "Nodachi",
+    "Kogatana",
+    "Raden",
+    "Nashiji",
+    "Hagane",
+    "Kurogane",
+    "Shirogane",
+    "Kogane",
+    "Tsurugi",
+    "Kodachi",
+    "Oboro",
+    "Hayate",
+    "Shippu",
+    "Ikazuchi",
+    "Kagerou",
+    "Sazanami",
+    "Shiranami",
+    "Uzushio",
+    "Senkou",
+    "Hien",
+    "Koshirae",
+    "Menuki",
+    "Habaki",
+    "Kashira",
+    "Sageo",
+    "Mekugi",
+    "Kogai",
+    "Kozuka",
+    "Kabura",
+    "Ebira",
+    "Hamaya",
+    "Mononofu",
+    "Gunshi",
+    "Kachidoki"
+  ]
+}

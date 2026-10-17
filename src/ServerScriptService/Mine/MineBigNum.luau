@@ -11,7 +11,7 @@
 	  suffix form   999.9 Qa       legible, the default
 	  science form  9.999e^99      exact magnitude, for the deep end
 
-	Both show FOUR significant digits and no more. One leading digit plus three
+	Both cap at TWO decimals. One leading digit plus at most two
 	decimals in science form, up to three leading digits plus one decimal in
 	suffix form. Four is what stays readable at a glance; the rest is noise a
 	player cannot act on.
@@ -96,7 +96,7 @@ function MineBigNum.suffix(step)
 end
 
 --[[
-	Floor a mantissa to FOUR SIGNIFICANT FIGURES, as a string.
+	Floor a mantissa to at most TWO DECIMALS, as a string.
 
 	The places move with the leading digits -- 3 digits take one decimal, 2 take
 	two, 1 takes three -- so 1.234 K, 12.34 K and 123.4 K all read four figures.
@@ -113,7 +113,10 @@ end
 	to 1234 as "1.234 K".
 ]]
 local function floorFour(x)
-	local places = (x >= 100 and 1) or (x >= 10 and 2) or 3
+	-- Capped at TWO decimals to match MineAbbrev.currency (owner,
+	-- 2026-10-10: "X.XX instead of X.XXX"). Capped, not fixed, so only the
+	-- three-decimal case moves and nothing renders wider than before.
+	local places = math.min((x >= 100 and 1) or (x >= 10 and 2) or 3, 2)
 	local mult = 10 ^ places
 	local floored = math.floor(x * mult + 1e-9) / mult
 	return string.format("%." .. places .. "f", floored)

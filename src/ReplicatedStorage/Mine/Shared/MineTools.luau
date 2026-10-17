@@ -30,6 +30,13 @@ local MineTools = {}
 
 MineTools.FAMILIES = {
 	{ id = "pickaxe", name = "Pickaxes", stat = "mineSpeed", blurb = "Aim, swing, break. One block at a time." },
+	--[[
+		Hammers are FORGE-ONLY: there is no coin ladder for them, the same way
+		there is none for drills or explosives any more. MineTools.TOOLS has no
+		`hammer` key on purpose -- the family exists entirely through
+		MineOreTools, which is where the 82 forged rows come from.
+	]]
+	{ id = "hammer", name = "Hammers", stat = "mineSpeed", blurb = "Slow, and the hardest hit in the game. Two hands." },
 	{ id = "drill", name = "Drills", stat = "drillSpeed", blurb = "Hold to mine. Wide clears area, narrow melts rock." },
 	{ id = "explosive", name = "Explosives", stat = "blastRadius", blurb = "Throw and clear a pattern. Cooldown between charges." },
 	{ id = "weapon", name = "Weapons", stat = "damage", blurb = "For bosses. Useless on rock.", planned = true },
@@ -281,7 +288,7 @@ MineTools.PASS_TOOLS = {
 		blurb = "Battle Pass explosive. Holds two temperaments." },
 	{ id = "yardblade", name = "YardBlade", family = "pickaxe", power = 12, rate = 3.0, radius = 0, cells = 1, shape = "crescent",
 		rarity = "Legendary", rarityId = "Legendary", temperSlots = 2, special = "yardblade", omniBlast = 1.0,
-		blurb = "Fused half-moon + Eclipse. 100% Omni Blast before pets and runes." },
+		blurb = "Fused half-moon + Eclipse. 100% Omni Blast before pets and enchants." },
 }
 
 function MineTools.passTool(id)

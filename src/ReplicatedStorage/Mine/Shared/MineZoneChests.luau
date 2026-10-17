@@ -494,10 +494,13 @@ function MineZoneChests.onPermanentZoneUnlocked(unlockedZoneId)
 	end
 end
 
-function MineZoneChests.rollSpawn(zoneId, layer, zoneIndex)
+-- `better` (optional): depth's chest luck, MineConfig.chestRankLuck. It lifts
+-- the pool's B/A/S ranks and the catalog chests' luck; nil is x1.
+function MineZoneChests.rollSpawn(zoneId, layer, zoneIndex, better)
 	local rng = Random.new()
 	layer = math.max(1, math.floor(tonumber(layer) or 1))
 	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	better = math.max(1, tonumber(better) or 1)
 	local chestDef
 	-- Almost half the wall is the wider chest catalog (every mine-1 chest
 	-- whose depth band covers this layer). The rest is this planet's pool
@@ -513,14 +516,14 @@ function MineZoneChests.rollSpawn(zoneId, layer, zoneIndex)
 			mix = (layer <= 120) and 0.025 or 0.12
 		end
 		if rng:NextNumber() < mix then
-			chestDef = Packs.rollChestAt(1, layer, rng, 1)
+			chestDef = Packs.rollChestAt(1, layer, rng, better)
 			if chestDef and chestDef.id == "m1_lookingglass" then
 				chestDef = nil
 			end
 		end
 	end
 	if not chestDef then
-		local pick = MineZoneChests.roll(zoneId, rng, { luck = 1, layer = layer })
+		local pick = MineZoneChests.roll(zoneId, rng, { luck = 1, layer = layer, better = better })
 		chestDef = pick and pick.def or nil
 	end
 	local chance = 0

@@ -6,7 +6,7 @@
 	player already knows from every other game with an inventory in it:
 
 		Inventory   Equipment / Packs / Cards / Potions / VFX
-		Collection  Chests / Packs / Cards / Equipment / Runes
+		Collection  Chests / Packs / Cards / Equipment / Hats / Faces
 		Shop        Home / Build Box / Limited / Packs / Credits / VIP
 		Pass
 
@@ -32,6 +32,7 @@ local Irid = require(shared:WaitForChild("MineIridescence"))
 -- upvalue only errors when something indexes it -- which here is mount(), not
 -- the module body. A require check alone will not catch that class of break.
 local Packs = require(shared:WaitForChild("MinePackConfig"))
+local Stars = require(shared:WaitForChild("MineStars"))
 local Tools = require(shared:WaitForChild("MineTools"))
 local Icons = require(shared:WaitForChild("MineIcons"))
 local ToolIcons = require(shared:WaitForChild("MineToolIcons"))
@@ -63,15 +64,11 @@ local GEM = T.GEM
 local GREEN = T.GREEN
 
 local SECTIONS = {
-	-- Equipment first: it is what the Inventory button is for. Gear, Charms and
-	-- Runes had tabs here once; gear and charms are slots on the Equipment
-	-- screen now, and runes belong to the Enchanter (Collection -> Runes still
-	-- lists every one you own).
+	-- Equipment first: it is what the Inventory button is for. Gear and charms
+	-- had tabs here once and are slots on the Equipment screen now. The Runes
+	-- tabs left with runes (2026-10-12); enchants live at the Forge.
 	{ id = "inventory", label = "Inventory", tabs = {
 		{ id = "tools", label = "Equipment" },
-		-- Socketing is not a purchase, so it does not belong behind a walk to the
-		-- Enchanter. Buying runes and gear still does, and that half stays there.
-		{ id = "runes", label = "Runes" },
 		{ id = "packs", label = "Packs" },
 		{ id = "cards", label = "Cards" },
 		{ id = "potions", label = "Potions" },
@@ -84,7 +81,6 @@ local SECTIONS = {
 		{ id = "equipment", label = "Equipment" },
 		{ id = "hats", label = "Hats" },
 		{ id = "faces", label = "Faces" },
-		{ id = "runes", label = "Runes" },
 	} },
 	{ id = "shop", label = "Shop", tabs = {
 		{ id = "home", label = "Home" },
@@ -148,6 +144,25 @@ local function mk(class, props, parent)
 	end
 	o.Parent = parent
 	return o
+end
+
+--[[
+	An icon from MineIcons, centred in `host` and nudged by dx/dy.
+
+	Module-level on purpose. It was a local inside the shop's Home branch, and
+	the Limited branch calls it for offers that carry an icon. There it read a
+	nil global and threw "attempt to call a nil value", which killed the rest
+	of the Limited tab: every lucky-block row and the 10x bundle never drew.
+]]
+local function iconArt(host, key, size, dx, dy, z)
+	local img = Icons.image and Icons.image(key)
+	if img then
+		mk("ImageLabel", {
+			BackgroundTransparency = 1, Image = img, ScaleType = Enum.ScaleType.Fit,
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, dx or 0, 0.5, dy or 0),
+			Size = UDim2.fromOffset(size, size), ZIndex = z or 5,
+		}, host)
+	end
 end
 
 local function round(o, r)
@@ -293,41 +308,75 @@ end
 --[[
 	Five stars filled to a fraction, centred on `parent`.
 
-	Two rows of the same glyphs, grey under gold, with the gold row clipped to
-	the rating -- so three and a half stars is exactly three and a half rather
-	than a rounded three. Ratings come from MinePackConfig.packStars /
-	MineLuckyBlocks.blockStars.
+	Each star is its own cell with the glyph centred in it: grey underneath,
+	gold on top clipped to that star's share of the rating. So three and a half
+	stars is exactly three gold, one half, one grey. Ratings come from
+	MinePackConfig.packStars / MineLuckyBlocks.blockStars.
+
+	It used to be one five-star string clipped to rating/5 of a width GUESSED
+	from the text size (5.1 x size). BuilderSans draws a star far narrower than
+	that: five glyphs at 13 px are 40 px against a 66 px guess. A four-star clip
+	(53 px) covered all five glyphs, and the left-aligned run sat off centre.
+	Owner, 2026-10-10: "these 4 stars be saying their 5 star packs ... also
+	stars are far from centered".
 ]]
 local function starRow(parent, rating, yOffset, textSize)
 	textSize = textSize or 14
-	local width = math.floor(textSize * 5.1)
+	local cell = math.ceil(textSize * 0.8)
+	local tall = textSize + 2
 	local holder = mk("Frame", {
 		Name = "Stars",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, yOffset),
-		Size = UDim2.fromOffset(width, textSize + 2),
+		Size = UDim2.fromOffset(cell * 5, tall),
 		ZIndex = 6,
 	}, parent)
-	local function glyphs(colour, z)
+	local function glyph(colour, z, into)
 		return mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, Text = "★★★★★", TextSize = textSize,
-			TextColor3 = colour, TextXAlignment = Enum.TextXAlignment.Left,
-			Size = UDim2.fromOffset(width, textSize + 2), ZIndex = z,
-		}, nil)
+			BackgroundTransparency = 1, Font = FONT, Text = "★", TextSize = textSize,
+			TextColor3 = colour, TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.fromOffset(cell, tall), ZIndex = z,
+		}, into)
 	end
-	local back = glyphs(Color3.fromRGB(72, 72, 84), 6)
-	back.Parent = holder
-	local fill = math.clamp((tonumber(rating) or 0) / 5, 0, 1)
-	if fill > 0 then
-		local clip = mk("Frame", {
-			BackgroundTransparency = 1, ClipsDescendants = true,
-			Size = UDim2.fromOffset(math.floor(width * fill + 0.5), textSize + 2), ZIndex = 7,
+	local stars = math.clamp(tonumber(rating) or 0, 0, 5)
+	for i = 1, 5 do
+		local slot = mk("Frame", {
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset((i - 1) * cell, 0),
+			Size = UDim2.fromOffset(cell, tall), ZIndex = 6,
 		}, holder)
-		local front = glyphs(GOLD, 7)
-		front.Parent = clip
+		glyph(Color3.fromRGB(72, 72, 84), 6, slot)
+		local fill = math.clamp(stars - (i - 1), 0, 1)
+		if fill > 0 then
+			local clip = mk("Frame", {
+				BackgroundTransparency = 1, ClipsDescendants = true,
+				Size = UDim2.fromOffset(math.floor(cell * fill + 0.5), tall), ZIndex = 7,
+			}, slot)
+			glyph(GOLD, 7, clip)
+		end
 	end
 	return holder
+end
+
+--[[
+	A set case's grade where a pack shows its stars. Owner, 2026-10-10: "just
+	the rarity, if its a case for the set ... A 1 star pack of the top set and a
+	1 star of shittiest set means vastly different things." Same place and
+	height as starRow, so the grid lines up.
+]]
+local function gradeRow(parent, grade, yOffset, textSize)
+	textSize = textSize or 14
+	local col = (Gear.RARITY_COLOR and Gear.RARITY_COLOR[grade]) or GOLD
+	return mk("TextLabel", {
+		Name = "Grade",
+		BackgroundTransparency = 1, Font = FONT, TextSize = textSize, TextColor3 = col,
+		Text = "GRADE " .. tostring(grade or "?"),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, yOffset),
+		Size = UDim2.fromOffset(math.floor(textSize * 6), textSize + 2),
+		ZIndex = 6,
+	}, parent)
 end
 
 -- As wide as its label plus padding, and never narrower than `minWidth`.
@@ -446,8 +495,16 @@ local TOOL_PREWARM_MAX = 240
 local TOOL_MODEL_CACHE_N = 0
 local preparedToolModel
 
-preparedToolModel = function(name, finish, family, tier)
-	local key = table.concat({ name, finish, family, tostring(tier) }, "|")
+--[[
+	`count` and `oreTier` are part of the KEY, not just the build.
+
+	count decides which silhouette a tier maps to -- tryToolKitMesh clamps the
+	tier to it and then spreads the shapes over the range -- so the same tier
+	against a different ladder length is a genuinely different model. Leaving
+	it out of the key let the first caller's count win for every later one.
+]]
+preparedToolModel = function(name, finish, family, tier, count, oreTier)
+	local key = table.concat({ name, finish, family, tostring(tier), tostring(count), tostring(oreTier) }, "|")
 	local model
 	local master = TOOL_MODEL_CACHE[key]
 	if master then
@@ -466,7 +523,33 @@ preparedToolModel = function(name, finish, family, tier)
 			end
 		end
 		if not model and Factory.build then
-			local ok, m = pcall(Factory.build, family, math.max(1, tier))
+			--[[
+				THE TILE MUST BUILD THE TOOL THE SAME WAY THE HAND DOES.
+
+				This passed neither `count` nor `look`. Without count, build
+				falls back to its own default of 15 and clamps the tier to it,
+				so any ladder that is not 15 long showed a different silhouette
+				in the tile than the player was actually holding. Without look,
+				a forged tool lost the colour and material of the ore it was
+				made of and came out in the kit's stock brown.
+
+				Both now come from the same places the server reads them in
+				givePickaxe: the family's own ladder length, and the
+				MineConfig.ORES row for the tool's ore tier.
+			]]
+			local ladder = Tools.TOOLS and Tools.TOOLS[family]
+			local n = (type(ladder) == "table" and #ladder > 1) and #ladder or nil
+			local look
+			local ot = tonumber(oreTier)
+			if ot and Factory.oreLook and C.ORES then
+				local oreDef = C.ORES[math.floor(ot)]
+				if oreDef then
+					look = Factory.oreLook(oreDef, C.ORE_COUNT or #C.ORES)
+					-- An ore tool is placed on the ORE roster, not the shop ladder.
+					n = C.ORE_COUNT or #C.ORES
+				end
+			end
+			local ok, m = pcall(Factory.build, family, math.max(1, tier), n, look)
 			if ok then
 				model = m
 			end
@@ -557,7 +640,16 @@ local function prewarmTools(s)
 				if not seen[key] then
 					seen[key] = true
 					built += 1
-					local ok, m = pcall(preparedToolModel, row.name, finish, fam, 1)
+					--[[
+						Warmed with the SAME count paintToolViewport will ask
+						for. count is part of the cache key now, so warming
+						with nil would fill the cache with entries no tile
+						ever looks up -- the prewarm would still cost its
+						full budget and every tile would still miss.
+					]]
+					local wl = Tools.TOOLS and Tools.TOOLS[fam]
+					local wn = (type(wl) == "table" and #wl > 1) and #wl or nil
+					local ok, m = pcall(preparedToolModel, row.name, finish, fam, 1, wn, nil)
 					if ok and typeof(m) == "Instance" then
 						m:Destroy()
 					end
@@ -573,7 +665,7 @@ local function paintToolViewport(box, item, z)
 		return false
 	end
 	local family = item.family or (item.def and item.def.family) or "pickaxe"
-	if family ~= "drill" and family ~= "explosive" then
+	if family ~= "drill" and family ~= "explosive" and family ~= "hammer" then
 		family = "pickaxe"
 	end
 	local owned = item.owned
@@ -605,7 +697,18 @@ local function paintToolViewport(box, item, z)
 		tile, about nine times cheaper.
 	]]
 	local tier = tonumber(item.tier) or tonumber(item.def and item.def.tier) or 1
-	local model = preparedToolModel(name, finish, family, tier)
+	--[[
+		A forged tool carries its ORE tier, and that is what colours it. The
+		row shapes differ by source -- a ladder row has only `tier`, a forged
+		one adds oreTier/oreId -- so read whichever the item happens to have
+		rather than assuming one shape.
+	]]
+	local oreTier = tonumber(item.oreTier)
+		or tonumber(item.def and item.def.oreTier)
+		or tonumber(item.owned and type(item.owned) == "table" and item.owned.tier)
+	local ladder = Tools.TOOLS and Tools.TOOLS[family]
+	local count = (type(ladder) == "table" and #ladder > 1) and #ladder or nil
+	local model = preparedToolModel(name, finish, family, tier, count, oreTier)
 	if not model then
 		return false
 	end
@@ -1075,14 +1178,20 @@ function MineInventoryView.mount(parent, opts)
 		guaranteed good card, and the prestige pack -- which is a merchandising
 		decision, not something the odds tables can answer.
 	]]
-	-- Hand-picked: which packs are worth leading with is a merchandising call,
-	-- not something the odds tables can answer. One of the three new families
-	-- rides along so they are discoverable without hunting the grid for them.
-	local FEATURED = { "hopper_pack", "magma_pack", "shiny_pack", "apex_pack", "heirloom_pack" }
+	-- Owner, 2026-10-10: the credit shop sells "Cases by star + a few featured
+	-- set packs", and the old packs came off it. The hero leads with the best
+	-- wild case, then today's featured set packs (MineCases.featuredSetPacks).
+	local FEATURED = { "case_6" }
+	for _, id in ipairs(require(shared:WaitForChild("MineCases")).featuredSetPacks()) do
+		table.insert(FEATURED, id)
+	end
 	local heroAt = 1
 	local heroToken = 0
 	-- Custom booster box: up to 10 pack picks (always available).
 	local boxPicks = {}
+	-- The stardust shop's two tabs, and the set whose cases are showing. Kept
+	-- out here so a snapshot re-render does not snap back to the first ones.
+	local dustTab = { view = "cases", set = nil }
 
 	local function cartKey(kind, id, bundle)
 		return tostring(kind) .. "|" .. tostring(id) .. "|" .. (bundle and "10" or "1")
@@ -1111,15 +1220,8 @@ function MineInventoryView.mount(parent, opts)
 			end
 			return math.floor(sum * 0.88 + 0.5)
 		end
-		local shop = state.scrollShop or {}
-		local item = shop[line.id]
-		if not item then
-			return 0
-		end
-		if line.bundle then
-			return item.bundlePrice or ((item.price or 0) * (item.bundleQty or 1))
-		end
-		return item.price or 0
+		-- (Scrolls, the last other kind, were retired with runes.)
+		return 0
 	end
 
 	local function cartSubtotal()
@@ -1191,6 +1293,161 @@ function MineInventoryView.mount(parent, opts)
 		end
 		table.insert(cart, { kind = kind, id = id, bundle = bundle or false, qty = qty or 1 })
 		refreshCart()
+	end
+
+	--[[
+		THE MYSTERY CASE BUYER. Owner, 2026-10-10: "make it so when i go to buy
+		mystery crates i can choose what star count i want and quanity." One
+		panel instead of nine tiles: pick the star grade, set how many, buy.
+		The same panel in the credit shop (`currency` "credits": it goes to the
+		cart, as tens at the 10-for-7 bundle price plus singles) and the stardust
+		shop ("stardust": bought at once, MineServer Verbs.buyDustCase).
+		`mystery` keeps the pick across renders.
+	]]
+	local mystery = { id = "case_1", qty = 1 }
+	local function mysteryBuyer(parent, order, currency)
+		local Cases = require(shared:WaitForChild("MineCases"))
+		if not Cases.get(mystery.id) then
+			mystery.id = Cases.WILD[1] and Cases.WILD[1].id or "case_1"
+		end
+		local def = Cases.get(mystery.id)
+		local accent = PackFX.art(mystery.id).accent
+		local isDust = currency == "stardust"
+		local cur = isDust and (T.DUST or GEM) or (T.CREDIT or GOLD)
+
+		local panel = mk("Frame", { BackgroundColor3 = BG2, Size = UDim2.new(1, -6, 0, 196), LayoutOrder = order }, parent)
+		round(panel, 12)
+		stroke(panel, 2, accent)
+		local artHost = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 14),
+			Size = UDim2.fromOffset(120, 168), ZIndex = 3 }, panel)
+		pcall(PackFX.drawSealed, artHost, mystery.id, 120, 168)
+
+		local x = 150
+		label(panel, "MYSTERY CASE", 22, TEXT, UDim2.fromOffset(x, 12), UDim2.new(1, -x - 12, 0, 26), FONT).ZIndex = 3
+		label(panel, "One spin  ·  3 of the pack it lands on  ·  from any set", 13, MUTED,
+			UDim2.fromOffset(x, 40), UDim2.new(1, -x - 12, 0, 18)).ZIndex = 3
+
+		-- The star grade: one chip per wild case, worst to best.
+		local chips = stripOf(panel, "MysteryStars", 6)
+		chips.Position = UDim2.fromOffset(x, 64)
+		chips.Size = UDim2.new(1, -x - 12, 0, 40)
+		chips.ZIndex = 3
+		for i, w in ipairs(Cases.WILD) do
+			local on = w.id == mystery.id
+			local col = PackFX.art(w.id).accent
+			local text = string.gsub(w.name, " Wild Case", "")
+			local chip = mk("TextButton", {
+				AutoButtonColor = true, BackgroundColor3 = on and col or BG3, Font = FONT, TextSize = 15,
+				TextColor3 = on and Color3.fromRGB(20, 16, 24) or col, Text = "  " .. text .. "  ",
+				AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 32), LayoutOrder = i, ZIndex = 4,
+			}, chips)
+			round(chip, 8)
+			stroke(chip, 1, col)
+			chip.MouseButton1Click:Connect(function()
+				mystery.id = w.id
+				render()
+			end)
+		end
+
+		-- How many, and what it costs.
+		local qtyY = 118
+		label(panel, "HOW MANY", 12, MUTED, UDim2.fromOffset(x, qtyY + 8), UDim2.fromOffset(76, 18), FONT).ZIndex = 3
+		local function stepBtn(text, px)
+			local b = mk("TextButton", {
+				AutoButtonColor = true, BackgroundColor3 = BG3, Font = FONT, TextSize = 18, TextColor3 = TEXT,
+				Text = text, Position = UDim2.fromOffset(px, qtyY), Size = UDim2.fromOffset(34, 34), ZIndex = 4,
+			}, panel)
+			round(b, 8)
+			return b
+		end
+		local minus = stepBtn("-", x + 80)
+		local box = mk("TextBox", {
+			BackgroundColor3 = BG3, Font = FONT, TextSize = 16, TextColor3 = TEXT, ClearTextOnFocus = false,
+			Text = tostring(mystery.qty), Position = UDim2.fromOffset(x + 118, qtyY), Size = UDim2.fromOffset(60, 34),
+			ZIndex = 4,
+		}, panel)
+		round(box, 8)
+		local plus = stepBtn("+", x + 182)
+		local ten = stepBtn("x10", x + 220)
+		ten.Size = UDim2.fromOffset(48, 34)
+		ten.TextSize = 14
+
+		local buy = mk("TextButton", {
+			AutoButtonColor = true, BackgroundColor3 = cur, Font = FONT, TextSize = 16,
+			TextColor3 = Color3.fromRGB(26, 20, 40), Text = "",
+			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, qtyY - 2),
+			Size = UDim2.fromOffset(190, 40), ZIndex = 4,
+		}, panel)
+		round(buy, 10)
+		local note = label(panel, "", 12, GREEN, UDim2.fromOffset(x, qtyY + 44), UDim2.new(1, -x - 14, 0, 16))
+		note.ZIndex = 3
+
+		-- Credits: tens at the bundle price, the rest as singles (the cart's own
+		-- pricing). Stardust: a flat price each.
+		local function priceFor(qty)
+			if isDust then
+				return (Cases.dustPrice(mystery.id) or 0) * qty, 0
+			end
+			local unit = Packs.priceOf(mystery.id) or 0
+			local tens = math.floor(qty / (Packs.BUNDLE_QTY or 10))
+			local bundle = Packs.bundlePrice(mystery.id) or unit * 10
+			local total = tens * bundle + (qty - tens * (Packs.BUNDLE_QTY or 10)) * unit
+			return total, unit * qty - total
+		end
+		local function refresh()
+			mystery.qty = math.clamp(math.floor(tonumber(mystery.qty) or 1), 1, CART_QTY_MAX)
+			box.Text = tostring(mystery.qty)
+			local total, saved = priceFor(mystery.qty)
+			local can = (not isDust) or (state.dust or 0) >= total
+			buy.BackgroundColor3 = can and cur or BG3
+			paintCostButton(buy, (isDust and "BUY " or "ADD ") .. mystery.qty, total, currency,
+				can and Color3.fromRGB(26, 20, 40) or MUTED)
+			note.Text = (saved > 0) and ("save " .. shortNum(saved) .. " credits with the 10-pack price")
+				or (def and def.blurb or "")
+			note.TextColor3 = (saved > 0) and GREEN or MUTED
+		end
+		minus.MouseButton1Click:Connect(function()
+			mystery.qty -= 1
+			refresh()
+		end)
+		plus.MouseButton1Click:Connect(function()
+			mystery.qty += 1
+			refresh()
+		end)
+		ten.MouseButton1Click:Connect(function()
+			mystery.qty += 10
+			refresh()
+		end)
+		box.FocusLost:Connect(function()
+			mystery.qty = tonumber(box.Text) or mystery.qty
+			refresh()
+		end)
+		buy.MouseButton1Click:Connect(function()
+			local qty = mystery.qty
+			if isDust then
+				if (state.dust or 0) < priceFor(qty) then
+					if opts.onToast then opts.onToast("Not enough stardust") end
+					return
+				end
+				if opts.onBuyDustCase then
+					opts.onBuyDustCase(mystery.id, qty)
+				end
+				return
+			end
+			local size = Packs.BUNDLE_QTY or 10
+			local tens = math.floor(qty / size)
+			if tens > 0 then
+				cartAdd("pack", mystery.id, true, tens)
+			end
+			if qty - tens * size > 0 then
+				cartAdd("pack", mystery.id, false, qty - tens * size)
+			end
+			if opts.onToast then
+				opts.onToast(qty .. "x " .. (def and def.name or "case") .. " added to cart")
+			end
+		end)
+		refresh()
+		return panel
 	end
 
 	local inspectP
@@ -1280,8 +1537,10 @@ function MineInventoryView.mount(parent, opts)
 
 		local unit = Packs.unitWord and Packs.unitWord(g.packId, g.cards) or "cards"
 		local isCurrencyPack = packDef and packDef.kind == "currency"
-		local cardsL = label(inspectP, (g.cards > 0)
-			and (g.cards .. " " .. unit .. " -- every one rolls the odds below")
+		local Cases = require(shared:WaitForChild("MineCases"))
+		local caseDef = Cases.get(g.packId)
+		local cardsL = label(inspectP, (caseDef and (Cases.countText(g.packId) .. " -- opens into packs, not cards"))
+			or (g.cards > 0) and (g.cards .. " " .. unit .. " -- every one rolls the odds below")
 			or (isCurrencyPack and "Currency pouch -- opens into the rewards below")
 			or "",
 			13, tierCol, UDim2.fromOffset(12, 180), UDim2.new(1, -24, 0, 18), FONT)
@@ -1289,7 +1548,68 @@ function MineInventoryView.mount(parent, opts)
 		cardsL.ZIndex = 62
 
 		local y = 232
-		if isCurrencyPack then
+		if caseDef then
+			--[[
+				A PACK CASE lists what it holds: a set case its exact packs, a
+				wild case how likely each slot is to come from a set of each
+				grade (MineCases.wildGradeOdds), best grade last. The SSS row
+				says it is credit-bought cases only.
+			]]
+			local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+			local hdrK = label(inspectP, (caseDef.caseType == "set") and "WHAT'S INSIDE"
+				or ("EACH PACK IS " .. string.upper(caseDef.packText or SetPacks.STAR_TEXT[caseDef.starLevel])
+					.. (function()
+						-- A mixed case prints its split: "(50/50)", or "(65/35)" for the ★★★★★ case.
+						local odds = (#(caseDef.levels or {}) > 1) and require(shared:WaitForChild("MineCases")).levelOdds(caseDef) or {}
+						if #odds < 2 then
+							return ""
+						end
+						local parts = {}
+						for _, lv in ipairs(odds) do
+							table.insert(parts, tostring(math.floor(lv.p * 100 + 0.5)))
+						end
+						return " (" .. table.concat(parts, "/") .. ")"
+					end)() .. ", FROM A SET OF GRADE"),
+				13, MUTED, UDim2.fromOffset(18, 210), UDim2.new(1, -36, 0, 18), FONT)
+			hdrK.TextXAlignment = Enum.TextXAlignment.Left
+			hdrK.ZIndex = 62
+			local function caseRow(left, right, col)
+				local line = mk("Frame", {
+					BackgroundColor3 = BG2,
+					Position = UDim2.fromOffset(18, y),
+					Size = UDim2.new(1, -36, 0, 26),
+					ZIndex = 62,
+				}, inspectP)
+				round(line, 6)
+				mk("Frame", {
+					BackgroundColor3 = col,
+					BorderSizePixel = 0,
+					Size = UDim2.fromOffset(4, 26),
+					ZIndex = 63,
+				}, line)
+				local ll = label(line, left, 13, col, UDim2.fromOffset(12, 0), UDim2.new(1, -110, 0, 26), FONT)
+				ll.TextXAlignment = Enum.TextXAlignment.Left
+				ll.TextTruncate = Enum.TextTruncate.AtEnd
+				ll.ZIndex = 63
+				local rl = label(line, right, 13, TEXT, UDim2.new(1, -96, 0, 0), UDim2.fromOffset(84, 26))
+				rl.TextXAlignment = Enum.TextXAlignment.Right
+				rl.ZIndex = 63
+				y += 30
+			end
+			if caseDef.caseType == "set" then
+				for _, packId in ipairs(caseDef.packs) do
+					local _, level = Cases.parsePack(packId)
+					caseRow(Cases.packName(packId), SetPacks.STAR_TEXT[level or 1] or "",
+						Cards.RARITY_COLOR[SetPacks.STAR_TIER[level or 1]] or TEXT)
+				end
+			else
+				for _, row in ipairs(Cases.wildGradeOdds()) do
+					caseRow(string.format("Grade %s  (%d %s)%s", row.grade, row.sets, (row.sets == 1) and "set" or "sets",
+						row.paidOnly and "  --  bought with credits only" or ""),
+						string.format("%.1f%%", row.pct), (Gear.RARITY_COLOR and Gear.RARITY_COLOR[row.grade]) or TEXT)
+				end
+			end
+		elseif isCurrencyPack then
 			local hdrC = label(inspectP, "REWARDS", 13, MUTED, UDim2.fromOffset(18, 210),
 				UDim2.new(1, -36, 0, 18), FONT)
 			hdrC.TextXAlignment = Enum.TextXAlignment.Left
@@ -1365,12 +1685,14 @@ function MineInventoryView.mount(parent, opts)
 					Size = UDim2.fromOffset(4, 26),
 					ZIndex = 63,
 				}, line)
-				local rl = label(line, Cards.RARITY_LABEL[row.rarity] or row.rarity, 13, col,
-					UDim2.fromOffset(12, 0), UDim2.fromOffset(120, 26))
+				-- Word kept; ★ beside it (MineStars / TODO B4).
+				local rarName = Cards.RARITY_LABEL[row.rarity] or row.rarity
+				local rl = label(line, Stars.beside(rarName), 13, col,
+					UDim2.fromOffset(12, 0), UDim2.fromOffset(168, 26))
 				rl.TextXAlignment = Enum.TextXAlignment.Left
 				rl.ZIndex = 63
 				local pl = label(line, string.format("%.2f%%", row.weight), 13, TEXT,
-					UDim2.fromOffset(132, 0), UDim2.fromOffset(74, 26), FONT)
+					UDim2.fromOffset(180, 0), UDim2.fromOffset(60, 26), FONT)
 				pl.TextXAlignment = Enum.TextXAlignment.Right
 				pl.ZIndex = 63
 				local oneInPct = row.weight
@@ -1517,6 +1839,46 @@ function MineInventoryView.mount(parent, opts)
 	end
 
 	--[[
+		LUCKY BLOCK ODDS, before you buy.
+
+		Lucky blocks are sold for credits, which are bought with Robux, and Roblox
+		requires a paid random item to show its odds. Owner, 2026-10-08: "fix all".
+		The packs had their inspector; the blocks showed nothing.
+
+		Every number here comes from MineLuckyBlocks.oddsSheet, which reads the
+		same tables rollLoot rolls, computed exactly rather than simulated
+		(tools/verify/lucky-odds.js proves both). Nothing is typed in by hand,
+		so a rebalance moves the screen with it.
+	]]
+	local function showLuckyOdds(blockId, startGrade)
+		if inspectP then
+			inspectP:Destroy()
+		end
+		-- The sheet itself is MineLuckyOddsView, shared with the lucky screen.
+		local ok, View = pcall(function()
+			return require(shared:WaitForChild("MineLuckyOddsView"))
+		end)
+		if ok and View then
+			inspectP = View.show(root, blockId, startGrade or "F", {
+				onClose = function()
+					inspectP = nil
+				end,
+			})
+		end
+	end
+
+	-- The ⓘ on a bag stack. A lucky block has no pack odds, and the pack
+	-- inspector would fall back to an unrelated card table, so it gets its own
+	-- sheet at the grade it actually starts on.
+	local function inspectStack(g)
+		if g and g.kind == "lucky_block" then
+			showLuckyOdds(g.blockId or g.packId, g.startGrade or "F")
+			return
+		end
+		showPackInspect(g)
+	end
+
+	--[[
 		The circled i.
 
 		The tile is already clickable anywhere, but a thing that is clickable
@@ -1601,7 +1963,7 @@ function MineInventoryView.mount(parent, opts)
 		end
 
 		b.MouseButton1Click:Connect(function()
-			showPackInspect(g)
+			inspectStack(g)
 		end)
 		return b
 	end
@@ -1754,7 +2116,7 @@ function MineInventoryView.mount(parent, opts)
 					ZIndex = 5,
 				}, tile)
 				hit.MouseButton1Click:Connect(function()
-					showPackInspect(g)
+					inspectStack(g)
 				end)
 				infoBadge(tile, g)
 			end
@@ -1794,7 +2156,12 @@ function MineInventoryView.mount(parent, opts)
 			local isBlock = pk.kind == "lucky_block" or (pk.blockId ~= nil)
 			local tierName = pk.packName or C.PACK_TIERS[pk.tier or 1] or "Pack"
 			local set = Cards.SETS[pk.setId]
-			local setName = (set and set.displayName) or tostring(pk.setId or "Unknown set")
+			local setPack = Packs.PACK_BY_ID and Packs.PACK_BY_ID[pk.packId]
+			-- A wild pack case (MineCases) has no set: it draws from all 19.
+			local wildCase = setPack ~= nil and setPack.kind == "pack_case" and not setPack.setKey
+			setPack = (setPack and setPack.setKey) and setPack or nil
+			local setName = (set and set.displayName) or (setPack and setPack.setName)
+				or (wildCase and "Any set") or tostring(pk.setId or "Unknown set")
 			local luckMult = tonumber(pk.luck) or 1
 			local luckPct = (luckMult > 1) and math.floor((luckMult - 1) * 100 + 0.5) or 0
 			local key
@@ -1821,6 +2188,12 @@ function MineInventoryView.mount(parent, opts)
 					-- Silent tier: derived from the pack's own odds, so a new
 					-- pack sorts correctly without anyone ranking it by hand.
 					rank = isBlock and 50 or (Packs.packTier and Packs.packTier(pk.packId) or 0),
+					-- 0 = unrated: lucky blocks, and zone packs, which carry no stars.
+					stars = ((not isBlock) and Packs.isRated and Packs.isRated(pk.packId))
+						and Packs.packStars(pk.packId) or 0,
+					grade = (not isBlock) and ((setPack and setPack.grade)
+						or (Cards.setGrade and Cards.setGrade(pk.setId))) or nil,
+					setTier = (set and tonumber(string.match(tostring(set.tier or ""), "%d+"))) or 0,
 					cards = Packs.packCards and Packs.packCards(pk.packId) or 0,
 					count = 0, firstIndex = i,
 					-- A tile is a stack, but opening is always one pack. The
@@ -1845,11 +2218,25 @@ function MineInventoryView.mount(parent, opts)
 					only = name
 				end
 				g.setName = (unique == 1) and only or "Various"
+				-- A stack of several sets has no single grade to print.
+				if unique > 1 then
+					g.grade = nil
+				end
 			end
 		end
-		-- Worst first, then alphabetical. You work up through the junk; your
-		-- best pack should be the last thing you spend, not the first thing the
-		-- list hands you.
+		--[[
+			Best first: stars, then the set's grade. Owner, 2026-10-10: "by
+			default sort by stars and sets (5 star pebble bound trumps 4.5 star
+			Chaos Theory)". This replaced "worst first", which put the best pack
+			last on purpose.
+
+			Zone packs are unrated (0 stars) and so sit below every rated pack.
+			A set without a grade (every Season-1 set) ranks below any graded
+			one and falls back to its odds tier, T1 to T9.
+		]]
+		local function setRank(g)
+			return ((g.grade and Cards.GRADE_RANK and Cards.GRADE_RANK[g.grade]) or 0) * 100 + (g.setTier or 0)
+		end
 		table.sort(order, function(x, y)
 			-- Lucky blocks go first, best grade first: they are what you came to
 			-- open, and they were getting lost at the bottom of the bag.
@@ -1864,8 +2251,18 @@ function MineInventoryView.mount(parent, opts)
 				end
 				return tostring(x.key) < tostring(y.key)
 			end
+			if x.stars ~= y.stars then
+				return x.stars > y.stars
+			end
+			local xs, ys = setRank(x), setRank(y)
+			if xs ~= ys then
+				return xs > ys
+			end
 			if x.rank ~= y.rank then
-				return x.rank < y.rank
+				return x.rank > y.rank
+			end
+			if x.luckPct ~= y.luckPct then
+				return x.luckPct > y.luckPct
 			end
 			if x.tierName ~= y.tierName then
 				return x.tierName < y.tierName
@@ -1963,6 +2360,14 @@ function MineInventoryView.mount(parent, opts)
 					end
 				else
 					PackFX.drawSealed(artHost, g.packId, 54, 74)
+					-- Same place and size as the lucky-block stars, so the grid lines up.
+					-- A set case shows its set's grade instead (it still sorts by stars).
+					local setCase = require(shared:WaitForChild("MineCases")).get(g.packId)
+					if setCase and setCase.caseType == "set" then
+						gradeRow(tile, setCase.grade, 86, 13)
+					elseif g.stars > 0 then
+						starRow(tile, g.stars, 86, 13)
+					end
 				end
 				local peek = mk("TextButton", {
 					BackgroundTransparency = 1,
@@ -1981,7 +2386,7 @@ function MineInventoryView.mount(parent, opts)
 						end
 						return
 					end
-					showPackInspect(g)
+					inspectStack(g)
 				end)
 				infoBadge(tile, g)
 				if (g.luckPct or 0) > 0 then
@@ -2008,6 +2413,14 @@ function MineInventoryView.mount(parent, opts)
 					UDim2.new(1, -16, 0, 18))
 				setL.TextXAlignment = Enum.TextXAlignment.Center
 				setL.TextTruncate = Enum.TextTruncate.AtEnd
+				-- "Atlantis Rising · A": the set's grade in its own colour.
+				if g.grade then
+					local gradeCol = (Gear.RARITY_COLOR and Gear.RARITY_COLOR[g.grade]) or TEXT
+					local safe = string.gsub(string.gsub(tostring(g.setName), "&", "&amp;"), "<", "&lt;")
+					setL.RichText = true
+					setL.Text = string.format('%s  ·  <font color="#%s"><b>%s</b></font>',
+						safe, gradeCol:ToHex(), g.grade)
+				end
 				if g.count > 1 then
 					-- Quantity sits top-left (packs + lucky blocks share this tile).
 					-- Stack under the luck chip when both are present.
@@ -2026,7 +2439,9 @@ function MineInventoryView.mount(parent, opts)
 				end
 				-- How many cards you get. It was never stated anywhere, and the
 				-- packs do not all pay the same: 1, 3, 6 and 8 all exist.
-				local cardsL = label(tile, (g.cards > 0)
+				-- A pack case says how many packs ("3-5 packs" for a wild one).
+				local caseText = require(shared:WaitForChild("MineCases")).countText(g.packId)
+				local cardsL = label(tile, (caseText ~= "" and caseText) or (g.cards > 0)
 					and (g.cards .. " " .. (Packs.unitWord and Packs.unitWord(g.packId, g.cards) or "cards")) or "",
 					12, tierCol, UDim2.fromOffset(8, 136), UDim2.new(1, -16, 0, 16), FONT)
 				cardsL.TextXAlignment = Enum.TextXAlignment.Center
@@ -2456,29 +2871,6 @@ function MineInventoryView.mount(parent, opts)
 			return gradeInk(rarity)
 		end
 
-		-- What is fitted, in words. "+2 slots" tells you the piece could hold runes;
-	-- it does not tell you whether it does, which is the thing you want to know
-	-- while deciding what to wear.
-	local function runeSummary(sockets, slots)
-		local Runes = require(shared:WaitForChild("MineRunes"))
-		local byId = {}
-		for _, r in ipairs(state.runes or {}) do
-			byId[r.id] = r
-		end
-		local bits = {}
-		for i = 1, (slots or 0) do
-			local id = sockets and sockets[i]
-			local rune = id and byId[id]
-			if rune then
-				bits[#bits + 1] = string.format("%s +%.0f%%", tostring(rune.stat), (rune.pct or 0) * 100)
-			end
-		end
-		if #bits == 0 then
-			return (slots or 0) > 0 and ((slots or 0) .. " empty socket" .. ((slots == 1) and "" or "s")) or "no sockets"
-		end
-		return table.concat(bits, "   ")
-	end
-
 	--[[
 		THE CHARACTER SCREEN  (Inventory -> Equipment)
 
@@ -2703,13 +3095,11 @@ function MineInventoryView.mount(parent, opts)
 					table.insert(out, {
 						key = "forever|" .. tostring(row.id),
 						name = (row.nightmare and "Nightmare " or row.shadow and "Shadow " or row.shiny and "Shiny " or "") .. (def.name or row.id),
-						sub = tostring(def.rarity or "Found") .. " · chest",
+						sub = Stars.beside(def.rarity or "Found") .. " · chest",
 						rarity = def.rarity or (Tools.chestRarityFromDrop and def.drop and Tools.chestRarityFromDrop(def.drop)) or (Tools.rarityForPower and Tools.rarityForPower(def.power)), icon = Icons.image(row.id) or nil, def = def, owned = row, slot = "tool",
 						source = "forever", id = row.id,
 						equipped = eqSrc == "forever" and eqId == row.id,
-						sockets = row.sockets, runeId = row.runeId,
 						sell = { dust = dust, tokens = tokens },
-						why = row.runeId and "Unsocket its rune first" or nil,
 					})
 				end
 			end
@@ -2768,6 +3158,45 @@ function MineInventoryView.mount(parent, opts)
 						mergeWhy = mergeWhy, mergeCost = cost,
 						canMerge = mergeTo ~= nil and n >= cost,
 						why = "Charms are kept, not sold",
+					})
+				end
+			end
+
+			--[[
+				CHARMS YOU CAN BUY, WHICH NOTHING COULD.
+
+				Verbs.buyCharm is complete and dispatched and had no caller:
+				the client fires buyCharmsPack (gems) and buyLuckyCharm
+				(Robux), but the single-charm TOKEN buy -- 36 charms, F 15
+				through SSS 2,500 -- was unreachable. Temper tokens have few
+				sinks as it is (cases, rolls, skill buy-back, gear banner),
+				so a whole priced shelf being invisible mattered.
+
+				Listed AFTER everything owned, so the panel still opens on
+				what you have rather than on a catalogue. Only `source ==
+				"charm"` rows appear, which is the same gate the server
+				applies -- a chest-only or legacy charm is not for sale and
+				must not look like it is.
+
+				The price comes from Charms.charmTokenPrice, the function the
+				verb charges through, so the row cannot advertise a number the
+				server will refuse.
+			]]
+			for _, def in ipairs(Charms.LIST or {}) do
+				local owned = (state.charms or {})[def.id]
+				local price = (def.source == "charm") and Charms.charmTokenPrice
+					and Charms.charmTokenPrice(def) or nil
+				if not owned and price and price > 0 then
+					table.insert(out, {
+						key = "charmbuy|" .. def.id,
+						name = def.name,
+						sub = string.format("%s  \u{00B7}  %d token%s",
+							tostring(Charms.RARITY_LABEL and Charms.RARITY_LABEL[def.rarity] or def.rarity or "?"),
+							price, price == 1 and "" or "s"),
+						def = def, slot = "charm", source = "charmbuy", id = def.id,
+						buyTokens = price,
+						canBuy = (tonumber(state.temperTokens) or 0) >= price,
+						why = "Buy with temper tokens",
 					})
 				end
 			end
@@ -2956,42 +3385,9 @@ function MineInventoryView.mount(parent, opts)
 	end
 
 	-- How good a thing is, on a scale that only means anything inside one slot.
-	-- Gear: grade, then sockets, then its bonus. Tools: MineTools.budget, the
+	-- Gear: grade, then its bonus. Tools: MineTools.budget, the
 	-- game's own measure, with a shiny or shadow finish counted. Charms: the
 	-- sum of their stat multipliers.
---[[
-		The rune pane is the Enchanter's own sockets screen, mounted here once.
-
-		It hangs off `root` rather than `body` because body is cleared and
-		rebuilt on every render, which would destroy it mid-decision -- and it is
-		mounted lazily so a player who never opens the tab never pays for it.
-	]]
-	function eq.socketsPane()
-		if eq.socketsBroken then
-			return nil
-		end
-		if not eq.sockets then
-			local ok, SV = pcall(require, shared:WaitForChild("MineSocketsView"))
-			if not (ok and type(SV) == "table" and SV.mount) then
-				eq.socketsBroken = true
-				return nil
-			end
-			local ok2, view = pcall(SV.mount, root, {
-				onSocket = function(item, runeId, index)
-					if opts.onSocketAny then
-						opts.onSocketAny(item, runeId, index)
-					end
-				end,
-			})
-			if not (ok2 and type(view) == "table") then
-				eq.socketsBroken = true
-				return nil
-			end
-			eq.sockets = view
-		end
-		return eq.sockets
-	end
-
 	function eq.strength(item)
 		if not item then
 			return nil
@@ -3108,6 +3504,31 @@ function MineInventoryView.mount(parent, opts)
 			painted = paintToolViewport(box, item, z)
 		end
 		local img = item and item.icon
+		--[[
+			CHARM ART, WHICH NOTHING HAS EVER DRAWN.
+
+			Owner, 2026-10-10: "can you please use those fuckin charm images i
+			put in the game".
+
+			36 of the 73 rows in MineCharms carry `art = "rbxassetid://..."` --
+			uploaded to the game, and read by NO code. The only `.art` reads in
+			any view are PackFX.art(), a different function on a different
+			table, so every charm fell past this branch to the "?" glyph at the
+			bottom of this function.
+
+			Set HERE rather than on the row builders because there are two of
+			them -- the owned list and the token shelf -- and a third would miss
+			it the same way. One read covers every charm tile in the panel.
+
+			The 37 charms with no art keep the old fallback untouched: this adds
+			a picture where one exists and changes nothing where one does not.
+		]]
+		if (not img) and item and item.slot == "charm" and type(item.def) == "table" then
+			local art = item.def.art
+			if type(art) == "string" and art ~= "" then
+				img = art
+			end
+		end
 		if (not painted) and item and not img and item.slot == "tool" and Icons.image then
 			img = Icons.image(tostring(item.id or ""))
 				or Icons.image(item.family)
@@ -3332,7 +3753,8 @@ function MineInventoryView.mount(parent, opts)
 			rows = {
 				{ "Slot", isFace and "Face" or "Hat" },
 				{ "Set", tostring(g.setName or g.setId or "-") },
-				{ "Grade", tostring(g.rarity or "-") },
+				-- Letter kept; ★ beside it (MineStars / TODO B4).
+				{ "Grade", (g.rarity and Stars.beside(g.rarity)) or "-" },
 			}
 			for i, line in ipairs(boostLines) do
 				table.insert(rows, { i == 1 and "Boost" or "", line })
@@ -3340,9 +3762,14 @@ function MineInventoryView.mount(parent, opts)
 			if isFace then
 				table.insert(rows, { "Note", "Multiplies matching hat %s" })
 			end
-			table.insert(rows, { "Sockets", tostring(g.slotCount or 0) })
 		elseif item.source == "charm" then
 			rows = { { "Type", "Charm" }, { "Effect", tostring(item.def.blurb or item.def.source or "-") } }
+		elseif item.source == "charmbuy" then
+			rows = {
+				{ "Type", "Charm -- not owned" },
+				{ "Price", string.format("%d tokens", tonumber(item.buyTokens) or 0) },
+				{ "Effect", tostring(item.def.blurb or "-") },
+			}
 		else
 			rows = toolStats(item.def)
 		end
@@ -3370,40 +3797,16 @@ function MineInventoryView.mount(parent, opts)
 		}, card)
 		round(fitted, 10)
 		stroke(fitted, 1)
-		label(fitted, "RUNES", 10, MUTED, UDim2.fromOffset(14, 6), UDim2.new(1, -28, 0, 12), FONT)
+		-- Enchants took the runes' place (2026-10-12). They go on forged tools,
+		-- at the Forge, so this box says where rather than listing sockets.
+		label(fitted, "ENCHANTS", 10, MUTED, UDim2.fromOffset(14, 6), UDim2.new(1, -28, 0, 12), FONT)
 		local fitText
 		if item.source == "gear" then
-			fitText = runeSummary(item.def.sockets, item.def.slotCount)
-		elseif item.runeId then
-			local nameOf
-			for _, r in ipairs(state.runes or {}) do
-				if r.id == item.runeId then
-					nameOf = string.format("%s +%.0f%%", tostring(r.stat), (r.pct or 0) * 100)
-				end
-			end
-			fitText = nameOf or "one rune fitted"
-		elseif item.source == "charm" then
-			fitText = "Charms do not take runes"
-		elseif item.source == "ladder" or item.source == "shop" then
-			-- Coin tools share one socket per family: whatever rune is in the
-			-- pickaxe socket is in every pickaxe rung.
-			local sock = (state.toolSockets or {})[item.family or (item.def and item.def.family) or ""]
-			local bits = {}
-			if type(sock) == "table" then
-				for _, key in ipairs({ "main", "omni" }) do
-					local rid = sock[key]
-					for _, r in ipairs(state.runes or {}) do
-						if rid and r.id == rid then
-							table.insert(bits, string.format("%s %s +%.0f%%", key == "omni" and "Omni" or "Main",
-								tostring(r.stat), (r.pct or 0) * 100))
-						end
-					end
-				end
-			end
-			fitText = (#bits > 0) and table.concat(bits, "   ")
-				or "No rune in this family's socket · fit one at the Enchanter"
+			fitText = "Gear takes no enchants"
+		elseif item.source == "charm" or item.source == "charmbuy" then
+			fitText = "Charms take no enchants"
 		else
-			fitText = "No rune fitted · socket it at the Enchanter"
+			fitText = "Forged tools take enchants · open the FORGE"
 		end
 		label(fitted, fitText, 13, GEM, UDim2.fromOffset(14, 19), UDim2.new(1, -28, 0, 18))
 
@@ -3490,6 +3893,13 @@ function MineInventoryView.mount(parent, opts)
 				elseif opts.onEquipCharm then
 					opts.onEquipCharm(item.id)
 				end
+			elseif item.source == "charmbuy" then
+				-- Buying, not equipping: the row is a charm the player does
+				-- not own yet. The server re-derives the price from the def,
+				-- so the count is all that travels.
+				if item.canBuy and opts.onBuyCharm then
+					opts.onBuyCharm(item.id, 1)
+				end
 			elseif item.source == "pet" then
 				if item.equipped then
 					if opts.onUnequip then opts.onUnequip(item.id) end
@@ -3543,10 +3953,19 @@ function MineInventoryView.mount(parent, opts)
 			-- Gear and charms come off; a tool only ever gets swapped for
 			-- another, because a player with nothing in hand cannot mine.
 			local canTakeOff = item.source == "gear" or item.source == "charm" or item.source == "pet"
-			local inert = item.equipped and not canTakeOff
+			-- A charm you do not own has nothing to equip or take off: the
+			-- button buys it, and goes inert when you cannot afford it rather
+			-- than firing a verb that will only refuse.
+			local buying = item.source == "charmbuy"
+			local inert = (item.equipped and not canTakeOff) or (buying and not item.canBuy)
 			local eqB = mk("TextButton", {
 				AutoButtonColor = not inert, BackgroundColor3 = item.equipped and BG3 or GREEN,
-				Text = inert and "EQUIPPED" or (item.equipped and "UNEQUIP" or (item.source == "vipSeat" and "GET VIP" or "EQUIP")),
+				Text = buying
+						and (item.canBuy
+							and string.format("BUY  %d", tonumber(item.buyTokens) or 0)
+							or string.format("NEED %d TOKENS", tonumber(item.buyTokens) or 0))
+					or inert and "EQUIPPED"
+					or (item.equipped and "UNEQUIP" or (item.source == "vipSeat" and "GET VIP" or "EQUIP")),
 				Font = FONT, TextSize = 16,
 				TextColor3 = inert and GREEN or (item.equipped and TEXT or Color3.fromRGB(16, 38, 20)),
 				Position = UDim2.fromOffset(0, 66), Size = UDim2.new(0.48, -6, 0, 46),
@@ -4203,7 +4622,7 @@ function MineInventoryView.mount(parent, opts)
 			round(plus, 10)
 			stroke(plus, 1, GEM)
 			label(plus, "+", 44, GEM, UDim2.fromOffset(12, 8), UDim2.fromOffset(72, 76), FONT, Enum.TextXAlignment.Center)
-			label(plus, "MORE HATS & RUNES", 13, TEXT, UDim2.fromOffset(94, 24), UDim2.new(1, -104, 0, 18), FONT)
+			label(plus, "MORE HATS", 13, TEXT, UDim2.fromOffset(94, 24), UDim2.new(1, -104, 0, 18), FONT)
 			label(plus, "takes you to the Enchanter", 11, MUTED, UDim2.fromOffset(94, 46), UDim2.new(1, -104, 0, 16))
 			plus.MouseButton1Click:Connect(function()
 				if opts.onGoEnchanter then opts.onGoEnchanter() end
@@ -4370,10 +4789,11 @@ function MineInventoryView.mount(parent, opts)
 			sectionHeader("Wearing: " .. table.concat(names, "  +  "), 2)
 		end
 		--------------------------------------------------------------------
-		-- UPGRADE. Two matching pieces fuse into one of the next grade.
+		-- UPGRADE. Three of the same hat (two matching faces) fuse into one of
+		-- the next grade, up to A (MineGear.FUSE_NEED).
 		--
 		-- MineGear.upgradePairs decides what is offerable and Verbs.upgradeGear
-		-- re-checks with the same MineGear.canUpgrade, so this list can never
+		-- re-checks with the same MineGear.canFuse, so this list can never
 		-- put up a pair the server then refuses. Worn pieces are excluded by that
 		-- function, not by anything here.
 		--------------------------------------------------------------------
@@ -4399,7 +4819,7 @@ function MineInventoryView.mount(parent, opts)
 				}, body)
 				mk("UIGridLayout", {
 					CellPadding = UDim2.fromOffset(8, 8),
-					CellSize = UDim2.fromOffset(232, 96),
+					CellSize = UDim2.fromOffset(284, 96),
 					SortOrder = Enum.SortOrder.LayoutOrder,
 					HorizontalAlignment = Enum.HorizontalAlignment.Left,
 				}, ups)
@@ -4411,7 +4831,9 @@ function MineInventoryView.mount(parent, opts)
 					local row = mk("Frame", { BackgroundColor3 = BG2, LayoutOrder = pi }, ups)
 					round(row, 8)
 					stroke(row, 1, tint)
-					for k, piece in ipairs({ pair.a, pair.b }) do
+					local pieces = pair.pieces or { pair.a, pair.b }
+					local textX = 8 + #pieces * 52 + 4
+					for k, piece in ipairs(pieces) do
 						local well = mk("Frame", {
 							BackgroundColor3 = BG3,
 							Position = UDim2.fromOffset(8 + (k - 1) * 52, 8),
@@ -4431,10 +4853,14 @@ function MineInventoryView.mount(parent, opts)
 							}, well)
 						end
 					end
-					label(row, tostring(pair.from) .. "  +  " .. tostring(pair.from), 12, MUTED,
-						UDim2.fromOffset(8, 58), UDim2.fromOffset(104, 16), FONT)
+					local froms = {}
+					for _ = 1, #pieces do
+						table.insert(froms, tostring(pair.from))
+					end
+					label(row, table.concat(froms, " + "), 12, MUTED,
+						UDim2.fromOffset(8, 58), UDim2.fromOffset(textX - 12, 16), FONT)
 					label(row, "\u{2192}  " .. tostring(pair.to), 22, tint,
-						UDim2.fromOffset(116, 8), UDim2.fromOffset(108, 44), FONT)
+						UDim2.fromOffset(textX, 8), UDim2.fromOffset(276 - textX, 44), FONT)
 					local go = mk("TextButton", {
 						AutoButtonColor = true,
 						BackgroundColor3 = GREEN,
@@ -4442,13 +4868,17 @@ function MineInventoryView.mount(parent, opts)
 						TextSize = 13,
 						TextColor3 = Color3.fromRGB(10, 26, 16),
 						Text = "FUSE",
-						Position = UDim2.fromOffset(116, 58),
-						Size = UDim2.fromOffset(108, 28),
+						Position = UDim2.fromOffset(textX, 58),
+						Size = UDim2.fromOffset(276 - textX, 28),
 					}, row)
 					round(go, 6)
 					go.MouseButton1Click:Connect(function()
 						if opts.onUpgradeGear then
-							opts.onUpgradeGear(pair.a.id, pair.b.id)
+							local ids = {}
+							for _, piece in ipairs(pieces) do
+								table.insert(ids, piece.id)
+							end
+							opts.onUpgradeGear(ids)
 						end
 					end)
 				end
@@ -4477,7 +4907,7 @@ function MineInventoryView.mount(parent, opts)
 				for _, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
 					on = on or (eq[slot] == g.id)
 				end
-				local tile = mk("Frame", { BackgroundColor3 = on and CARD_HI or BG2, LayoutOrder = i }, grid)
+				local tile = mk("Frame", { BackgroundColor3 = on and T.CARD_HI or BG2, LayoutOrder = i }, grid)
 				round(tile, 8)
 				stroke(tile, on and 2 or 1, on and GREEN or col)
 				local well = mk("Frame", {
@@ -4512,7 +4942,7 @@ function MineInventoryView.mount(parent, opts)
 					UDim2.fromOffset(8, 102), UDim2.new(1, -16, 0, 28), FONT)
 				local btn = mk("TextButton", {
 					AutoButtonColor = true,
-					BackgroundColor3 = on and DEAD or GREEN,
+					BackgroundColor3 = on and T.DEAD or GREEN,
 					Font = FONT,
 					TextSize = 13,
 					TextColor3 = on and TEXT or Color3.fromRGB(10, 26, 16),
@@ -4872,11 +5302,7 @@ function MineInventoryView.mount(parent, opts)
 		note(body, "Live totals from everything you are running. The small line under each says where it comes from.", 99)
 	end
 
-	-- The Runes tab used to list MineConfig.RELICS, which are not runes -- they
-	-- are flat-stat relics, and every one of them read "Not found yet" forever.
-	-- It shows the seven rune sets and how far along each one you are, which is
-	-- the thing a collection tab is for.
-	-- One equipped identity. Not a rune socket — equip/unequip freely, never destroyed.
+	-- One equipped identity: equip/unequip freely, never destroyed.
 		local function renderVfx()
 			local Vfx = require(shared:WaitForChild("MineVfx"))
 			local owned = state.vfx or {}
@@ -4926,67 +5352,6 @@ function MineInventoryView.mount(parent, opts)
 			end
 		end
 
-		local function renderRunes()
-		local Runes = require(shared:WaitForChild("MineRunes"))
-		local owned = state.runes or {}
-
-		-- Distinct slots held per set, whether socketed or in the bag.
-		local held = {}
-		for _, r in ipairs(owned) do
-			if type(r) == "table" and r.setId and r.slot then
-				held[r.setId] = held[r.setId] or {}
-				held[r.setId][r.slot] = (held[r.setId][r.slot] or 0) + 1
-			end
-		end
-
-		local loose = 0
-		for _, r in ipairs(owned) do
-			if type(r) == "table" and not r.setId then
-				loose += 1
-			end
-		end
-
-		local head = panelRow(body, 40, 0)
-		label(head, "Rune sets", 15, TEXT, UDim2.fromOffset(14, 0), UDim2.new(0.6, 0, 1, 0), FONT)
-		label(head, #owned .. " runes held", 14, GOLD, UDim2.new(1, -160, 0, 0),
-			UDim2.fromOffset(146, 40), FONT, Enum.TextXAlignment.Right)
-
-		for i, set in ipairs(Runes.SETS) do
-			if matches(set.name .. " " .. table.concat(set.slots, " ")) then
-				local mine = held[set.id] or {}
-				local have = 0
-				for slot = 1, #set.slots do
-					if mine[slot] then
-						have += 1
-					end
-				end
-				local complete = have >= #set.slots
-				local row = panelRow(body, 78, i)
-				label(row, set.name, 15, complete and GOLD or TEXT, UDim2.fromOffset(14, 6),
-					UDim2.new(1, -140, 0, 20), FONT)
-				label(row, have .. " / " .. #set.slots, 14, complete and GOLD or MUTED,
-					UDim2.new(1, -120, 0, 6), UDim2.fromOffset(106, 20), FONT, Enum.TextXAlignment.Right)
-				-- Which of the three you are missing, by name, because "2/3" does
-				-- not tell you what to go and buy a crate for.
-				local bits = {}
-				for slot, stat in ipairs(set.slots) do
-					local n = mine[slot] or 0
-					local tag = (slot == 3) and " (chase)" or ""
-					bits[#bits + 1] = string.format("%s%s %s", stat, tag, n > 0 and ("x" .. n) or "--")
-				end
-				label(row, table.concat(bits, "    "), 12, MUTED, UDim2.fromOffset(14, 30),
-					UDim2.new(1, -28, 0, 18))
-				label(row, complete
-						and ("Set bonus active: +" .. math.floor(Runes.SET_BONUS_PCT * 100) .. "% " .. set.bonus .. " when all three are socketed")
-						or ("Completes to: +" .. math.floor(Runes.SET_BONUS_PCT * 100) .. "% " .. set.bonus),
-					12, complete and GREEN or GEM, UDim2.fromOffset(14, 50), UDim2.new(1, -28, 0, 18))
-			end
-		end
-
-		if loose > 0 then
-			note(body, loose .. " older runes belong to no set. They still work; they just cannot complete one.", 99)
-		end
-	end
 	----------------------------------------------------------------------------
 	-- COLLECTION
 	----------------------------------------------------------------------------
@@ -5445,8 +5810,7 @@ function MineInventoryView.mount(parent, opts)
 			elseif line.kind == "box" then
 				name = "Custom Box  " .. tostring(#(line.packs or {})) .. " packs"
 			else
-				local item = (state.scrollShop or {})[line.id]
-				name = ((item and item.name) or line.id) .. (line.bundle and "  5x" or "")
+				name = tostring(line.id)
 			end
 			local nl = label(row, name, 14, TEXT, UDim2.fromOffset(10, 6), UDim2.new(1, -110, 0, 18), FONT)
 			nl.TextXAlignment = Enum.TextXAlignment.Left
@@ -5634,20 +5998,9 @@ function MineInventoryView.mount(parent, opts)
 			end
 			local wide = (body.AbsoluteSize.X / kScale) >= 700
 
-			-- Three real packs to show off: the dearest card packs on the shelf.
-			local showcase = {}
-			do
-				local rows = {}
-				for _, def in ipairs(Packs.PACKS or {}) do
-					if Packs.priceOf(def.id) and (not Packs.packKind or Packs.packKind(def.id) == "card") then
-						table.insert(rows, def.id)
-					end
-				end
-				table.sort(rows, function(x, y) return (Packs.priceOf(x) or 0) > (Packs.priceOf(y) or 0) end)
-				for i = 1, math.min(3, #rows) do
-					showcase[i] = rows[i]
-				end
-			end
+			-- Three real things to show off: the best wild pack cases on the
+			-- credit shelf (the middle one sits in front).
+			local showcase = { "case_5", "case_6", "case_4" }
 			local function packFan(host, ids, w, h)
 				-- Overlapped, not rotated: a rotated frame escapes the scroll clip.
 				for i, pid in ipairs(ids) do
@@ -5659,16 +6012,8 @@ function MineInventoryView.mount(parent, opts)
 					pcall(PackFX.drawSealed, slot, pid, w, h)
 				end
 			end
-			local function iconArt(host, key, size, dx, dy, z)
-				local img = Icons.image and Icons.image(key)
-				if img then
-					mk("ImageLabel", {
-						BackgroundTransparency = 1, Image = img, ScaleType = Enum.ScaleType.Fit,
-						AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, dx or 0, 0.5, dy or 0),
-						Size = UDim2.fromOffset(size, size), ZIndex = z or 5,
-					}, host)
-				end
-			end
+			-- iconArt is module-level now (beside round): the Limited tab calls it
+			-- too, and as a local of THIS branch it was a nil global there.
 
 			-- HERO
 			local hero = mk("TextButton", {
@@ -5719,8 +6064,8 @@ function MineInventoryView.mount(parent, opts)
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}, grid)
 			local doors = {
-				{ tab = "packs", title = "Card Packs", sub = "Singles and 10× warehouse boxes", cta = "BROWSE", col = T.CREDIT or GOLD, packs = true },
-				{ tab = "dust", title = "Stardust Shop", sub = "New packs every 6 hours · limited stock", cta = "SHOP", col = T.DUST or GEM, icons = { "stardust" } },
+				{ tab = "packs", title = "Pack Cases", sub = "Wild cases by star · today's featured set packs", cta = "BROWSE", col = T.CREDIT or GOLD, packs = true },
+				{ tab = "dust", title = "Stardust Shop", sub = "Pack cases · new potions every 6 hours", cta = "SHOP", col = T.DUST or GEM, icons = { "stardust" } },
 				{ tab = "limited", title = "Lucky Blocks", sub = "Tap to open · grade them up for bigger loot", cta = "SEE", col = Color3.fromRGB(255, 200, 70), icons = { "lucky_block", "super_lucky_block", "godly_lucky_block" } },
 				{ tab = "box", title = "Build a Box", sub = "Any 10 packs you like · 12% off", cta = "BUILD", col = TEAL, icons = { "chest" } },
 				{ tab = "currencies", title = "Credits", sub = "Top up once, spend anywhere in the shop", cta = "TOP UP", col = GREEN, icons = { "credit_crate" } },
@@ -5768,9 +6113,12 @@ function MineInventoryView.mount(parent, opts)
 
 		elseif activeTab == "dust" then
 			--[[
-				THE STARDUST SHOP. Eight packs a rotation, a new shelf every six
-				hours. Two stocks per pack: yours (1-2) and the whole world's
-				(shared by every server). Both are the server's numbers.
+				THE STARDUST SHOP. Two tabs: the pack cases (always in stock) and
+				the rotating shelf, a new deal every six hours. The shelf sells
+				potions only since the old packs came off it
+				(MinePackConfig.DUST_OLD_PACKS). Two stocks per listing: yours
+				(1-2) and the whole world's (shared by every server). Both are
+				the server's numbers.
 			]]
 			local shop = state.dustShop or { offers = {} }
 			local DUSTC = T.DUST or GEM
@@ -5785,7 +6133,8 @@ function MineInventoryView.mount(parent, opts)
 			end
 			label(head, "STARDUST SHOP", 22, TEXT, UDim2.fromOffset(86, 12), UDim2.new(1, -300, 0, 28), FONT).ZIndex = 4
 			local left = math.max(0, (tonumber(shop.endsAt) or os.time()) - os.time())
-			label(head, string.format("New shelf in %dh %02dm  ·  packs + potions  ·  limited stock", left // 3600, (left % 3600) // 60),
+			label(head, (dustTab.view == "cases") and "Pack cases  ·  always in stock"
+				or string.format("New shelf in %dh %02dm  ·  potions  ·  limited stock", left // 3600, (left % 3600) // 60),
 				13, MUTED, UDim2.fromOffset(86, 44), UDim2.new(1, -300, 0, 20)).ZIndex = 4
 			local bal = mk("Frame", { BackgroundColor3 = BG3, AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -16, 0.5, 0), Size = UDim2.fromOffset(190, 44), ZIndex = 4 }, head)
@@ -5794,11 +6143,128 @@ function MineInventoryView.mount(parent, opts)
 			label(bal, shortNum(state.dust or 0) .. " stardust", 17, DUSTC, UDim2.fromOffset(12, 18),
 				UDim2.new(1, -24, 0, 22), FONT).ZIndex = 5
 
-			if #(shop.offers or {}) == 0 then
-				note(body, "The shelf is being restocked -- check back in a moment.", 1)
+			-- Two tabs (owner, 2026-10-10: pack cases are a new tab inside the
+			-- stardust shop, not a stall of their own).
+			do
+				local bar = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -6, 0, 40), LayoutOrder = 1 }, body)
+				for ti, t in ipairs({ { "cases", "PACK CASES" }, { "shelf", "ROTATING SHELF" } }) do
+					local on = dustTab.view == t[1]
+					local tb = mk("TextButton", {
+						AutoButtonColor = true, BackgroundColor3 = on and DUSTC or BG3, Font = FONT, TextSize = 14,
+						TextColor3 = on and Color3.fromRGB(30, 16, 44) or MUTED, Text = t[2],
+						Position = UDim2.fromOffset((ti - 1) * 176, 2), Size = UDim2.fromOffset(166, 36),
+					}, bar)
+					round(tb, 8)
+					tb.MouseButton1Click:Connect(function()
+						dustTab.view = t[1]
+						render()
+					end)
+				end
+			end
+
+			if dustTab.view == "cases" then
+				--[[
+					PACK CASES FOR STARDUST (MineCases). Always in stock, no
+					limits. A set case holds that set's exact packs; a wild case
+					3-5 random packs of its star grade from any set. Prices are
+					the server's (MineCases.dustPrice, PROPOSED); this only shows
+					them.
+				]]
+				local Cases = require(shared:WaitForChild("MineCases"))
+				local function caseTile(grid, id, order)
+					local def = Cases.get(id)
+					local price = Cases.dustPrice(id)
+					if not (def and price and matches(def.name .. " " .. (def.setName or ""))) then
+						return
+					end
+					local accent = PackFX.art(id).accent
+					local tile = mk("Frame", { BackgroundColor3 = BG2, LayoutOrder = order }, grid)
+					round(tile, 12)
+					stroke(tile, 2, accent)
+					local artHost = mk("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0),
+						Position = UDim2.new(0.5, 0, 0, 10), Size = UDim2.fromOffset(64, 88), ZIndex = 3 }, tile)
+					pcall(PackFX.drawSealed, artHost, id, 64, 88)
+					if def.caseType == "set" then
+						gradeRow(tile, def.grade, 102, 12)
+					else
+						starRow(tile, def.stars or 1, 102, 12)
+					end
+					local nm = label(tile, def.name, 14, TEXT, UDim2.fromOffset(6, 118), UDim2.new(1, -12, 0, 18), FONT,
+						Enum.TextXAlignment.Center)
+					nm.TextTruncate = Enum.TextTruncate.AtEnd
+					label(tile, Cases.countText(id), 12, accent, UDim2.fromOffset(6, 136), UDim2.new(1, -12, 0, 16), FONT,
+						Enum.TextXAlignment.Center)
+					infoBadge(tile, {
+						packId = id, tierName = def.name, setName = def.setName or "Any set",
+						cards = def.cards or 0, count = 0, firstIndex = nil, setId = def.setKey,
+					})
+					local function buyBtn(qty, y)
+						local can = (state.dust or 0) >= price * qty
+						local btn = mk("TextButton", {
+							AutoButtonColor = can,
+							BackgroundColor3 = can and DUSTC or BG3,
+							Font = FONT, TextSize = 14,
+							TextColor3 = can and Color3.fromRGB(30, 16, 44) or MUTED,
+							Text = string.format("BUY %d  ·  %s", qty, shortNum(price * qty)),
+							Position = UDim2.fromOffset(10, y), Size = UDim2.new(1, -20, 0, 30),
+						}, tile)
+						round(btn, 8)
+						if can then
+							btn.MouseButton1Click:Connect(function()
+								if opts.onBuyDustCase then
+									opts.onBuyDustCase(id, qty)
+								end
+							end)
+						end
+					end
+					buyBtn(1, 160)
+					buyBtn(5, 196)
+				end
+				local function caseGrid(order)
+					local grid = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -6, 0, 0),
+						AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = order }, body)
+					mk("UIGridLayout", { CellPadding = UDim2.fromOffset(10, 10), CellSize = UDim2.fromOffset(176, 236),
+						SortOrder = Enum.SortOrder.LayoutOrder }, grid)
+					return grid
+				end
+
+				-- One set at a time, and only the sets the shops carry (grade B
+				-- and lower; the better sets come out of wild cases).
+				local shopSets = Cases.shopSets()
+				local setKey = (dustTab.set and Cases.inShops(dustTab.set) and dustTab.set)
+					or (shopSets[1] and shopSets[1].key)
+				sectionHeader("Set cases  --  that set's exact packs, every time  ·  grade B and below", 2)
+				local chips = stripOf(body, "SetChips", 6)
+				chips.Size = UDim2.new(1, -6, 0, 40)
+				chips.LayoutOrder = 3
+				for si, s in ipairs(shopSets) do
+					local on = s.key == setKey
+					local gradeCol = (Gear.RARITY_COLOR and Gear.RARITY_COLOR[s.grade]) or TEXT
+					local chip = mk("TextButton", {
+						AutoButtonColor = true, BackgroundColor3 = on and gradeCol or BG3, Font = FONT, TextSize = 13,
+						TextColor3 = on and Color3.fromRGB(20, 16, 24) or TEXT,
+						Text = "  " .. s.name .. "  ·  " .. s.grade .. "  ",
+						AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 32), LayoutOrder = si,
+					}, chips)
+					round(chip, 8)
+					stroke(chip, 1, gradeCol)
+					chip.MouseButton1Click:Connect(function()
+						dustTab.set = s.key
+						render()
+					end)
+				end
+				local setGrid = caseGrid(4)
+				for ci, kind in ipairs(Cases.SET_CASES) do
+					caseTile(setGrid, Cases.setCaseId(setKey, kind.key), ci)
+				end
+
+				sectionHeader("Mystery cases  --  one spin, 3 of the pack it lands on, from any set up to SS", 5)
+				mysteryBuyer(body, 6, "stardust")
+			elseif #(shop.offers or {}) == 0 then
+				note(body, "The shelf is being restocked -- check back in a moment.", 2)
 			else
 				local grid = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -6, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 1 }, body)
+					AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 2 }, body)
 				mk("UIGridLayout", { CellPadding = UDim2.fromOffset(10, 10), CellSize = UDim2.fromOffset(176, 262),
 					SortOrder = Enum.SortOrder.LayoutOrder }, grid)
 				for i, o in ipairs(shop.offers) do
@@ -5916,17 +6382,15 @@ function MineInventoryView.mount(parent, opts)
 				CellSize = UDim2.fromOffset(156, 168),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}, grid)
-			-- Card packs only, same as the Packs tab: a booster box of rune
-			-- pouches is not a booster box.
+			-- The same shelf as the Packs tab (MineCases.creditShelf): the old
+			-- card packs came off both.
 			local rows = {}
-			for _, def in ipairs(Packs.PACKS or {}) do
-				if Packs.priceOf(def.id) and (not Packs.packKind or Packs.packKind(def.id) == "card") then
+			for _, id in ipairs(require(shared:WaitForChild("MineCases")).creditShelf()) do
+				local def = Packs.PACK_BY_ID[id]
+				if def and Packs.priceOf(id) then
 					table.insert(rows, def)
 				end
 			end
-			table.sort(rows, function(a, b)
-				return (Packs.priceOf(a.id) or 0) < (Packs.priceOf(b.id) or 0)
-			end)
 			for i, def in ipairs(rows) do
 				if matches(def.name or def.id) then
 					local unit = Packs.priceOf(def.id)
@@ -6039,6 +6503,17 @@ function MineInventoryView.mount(parent, opts)
 				buy.MouseButton1Click:Connect(function()
 					cartAdd("lucky_block", b.id, true, 1)
 				end)
+				local oddsB = mk("TextButton", {
+					AutoButtonColor = true, BackgroundColor3 = BG2,
+					Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(255, 196, 64), Text = "ODDS",
+					AnchorPoint = Vector2.new(1, 0.5),
+					Position = UDim2.new(1, -140, 0.5, 0), Size = UDim2.fromOffset(62, 30),
+				}, row)
+				round(oddsB, 7)
+				stroke(oddsB, 1, Color3.fromRGB(255, 196, 64))
+				oddsB.MouseButton1Click:Connect(function()
+					showLuckyOdds(b.id, "F")
+				end)
 			end
 
 			order += 1
@@ -6056,8 +6531,20 @@ function MineInventoryView.mount(parent, opts)
 				if LuckyBlocks.blockStars then
 					local stars = starRow(row, LuckyBlocks.blockStars(rowDef.id, "F"), 8, 13)
 					stars.AnchorPoint = Vector2.new(1, 0)
-					stars.Position = UDim2.new(1, -140, 0, 24)
+					stars.Position = UDim2.new(1, -206, 0, 24)
 				end
+				-- Odds before you buy: a paid random item has to show them.
+				local oddsB = mk("TextButton", {
+					AutoButtonColor = true, BackgroundColor3 = BG2,
+					Font = FONT, TextSize = 13, TextColor3 = col, Text = "ODDS",
+					AnchorPoint = Vector2.new(1, 0.5),
+					Position = UDim2.new(1, -130, 0.5, 0), Size = UDim2.fromOffset(62, 30),
+				}, row)
+				round(oddsB, 7)
+				stroke(oddsB, 1, col)
+				oddsB.MouseButton1Click:Connect(function()
+					showLuckyOdds(rowDef.id, "F")
+				end)
 				local buy = mk("TextButton", {
 					AutoButtonColor = true, BackgroundColor3 = BG3,
 					Font = FONT, TextSize = 13, TextColor3 = TEXT, Text = "",
@@ -6173,10 +6660,12 @@ function MineInventoryView.mount(parent, opts)
 					-- Shiny is a card finish, so the second half of this line is only
 					-- true for card packs. A gear bundle says what it actually is.
 					local heroUnit = Packs.unitWord and Packs.unitWord(id, (def.cards or 0) * 10) or "cards"
-					blurbL.Text = heroStars .. "   ·   " .. ((def.cards or 0) * 10) .. " " .. heroUnit
+					local caseText = require(shared:WaitForChild("MineCases")).countText(id)
+					blurbL.Text = heroStars .. "   ·   " .. ((caseText ~= "" and ("10 cases, " .. caseText .. " each"))
+						or (((def.cards or 0) * 10) .. " " .. heroUnit
 						.. ((Packs.hasShiny and not Packs.hasShiny(id))
 							and ""
-							or ("  --  " .. (def.shiny or 0) .. "% shiny per card"))
+							or ("  --  " .. (tonumber(def.shiny) or Packs.SHINY_CHANCE or 0) .. "% shiny per card"))))
 					saveL.Text = "save " .. (unit * 10 - bundle) .. " credits on the list price"
 					paintCostButton(cta, "ADD 10x", bundle, "credits", Color3.fromRGB(26, 20, 40))
 					for _, c in ipairs(dots:GetChildren()) do
@@ -6214,13 +6703,15 @@ function MineInventoryView.mount(parent, opts)
 				end)
 			end
 
-			note(body, "Warehouse packs  --  pay with Credits, 10% off at checkout.", 1)
+			-- Mystery cases: pick the star grade and how many (owner, 2026-10-10).
+			mysteryBuyer(body, 1, "credits")
+			note(body, "Today's featured set packs  --  pay with Credits, 10% off at checkout.", 2)
 
 			local grid = mk("Frame", {
 				BackgroundTransparency = 1,
 				Size = UDim2.new(1, -6, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
-				LayoutOrder = 2,
+				LayoutOrder = 3,
 			}, body)
 			mk("UIGridLayout", {
 				CellPadding = UDim2.fromOffset(8, 8),
@@ -6228,24 +6719,24 @@ function MineInventoryView.mount(parent, opts)
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}, grid)
 
-			-- Card packs only. Rune pouches and gear crates are rolled at the
-			-- Enchanter, and listing them here sold the same thing twice in two
-			-- different currencies.
+			--[[
+				THE SHELF IS MineCases.creditShelf. Owner, 2026-10-10: "clear out
+				the credit shop for now, of all the unused packs, and replace them
+				with the new ones" -- the wild cases by star, then today's
+				featured set packs. The old card packs (Hopper to Shiny) are off
+				it. Rune pouches and gear crates were never here: they are rolled
+				at the Enchanter.
+			]]
+			local Cases = require(shared:WaitForChild("MineCases"))
 			local rows = {}
-			for _, def in ipairs(Packs.PACKS or {}) do
-				if Packs.priceOf(def.id) and (not Packs.packKind or Packs.packKind(def.id) == "card") then
+			for _, id in ipairs(Cases.creditShelf()) do
+				local def = Packs.PACK_BY_ID[id]
+				-- The wild cases are bought through the mystery buyer above.
+				local wild = Cases.get(id) and Cases.get(id).caseType == "wild"
+				if def and Packs.priceOf(id) and not wild then
 					table.insert(rows, def)
 				end
 			end
-			-- Cheapest first: a price list that opens on the 220-credit pack
-			-- reads as expensive, the same list opening on 35 reads as generous.
-			table.sort(rows, function(x, y)
-				local px, py = Packs.priceOf(x.id), Packs.priceOf(y.id)
-				if px ~= py then
-					return px < py
-				end
-				return tostring(x.name) < tostring(y.name)
-			end)
 
 			for i, def in ipairs(rows) do
 				if matches(def.name or def.id) then
@@ -6272,15 +6763,21 @@ function MineInventoryView.mount(parent, opts)
 						UDim2.fromOffset(8, 104), UDim2.new(1, -16, 0, 20), FONT)
 					nameL.TextXAlignment = Enum.TextXAlignment.Center
 					nameL.TextTruncate = Enum.TextTruncate.AtEnd
-					local cardsL = label(tile, ((def.cards or 0) .. " "
+					-- A case says how many packs; a set pack says its set and grade.
+					local caseText = Cases.countText(def.id)
+					if caseText == "" and def.setKey and def.setName then
+						caseText = def.setName .. " · " .. tostring(def.grade or "")
+					end
+					local cardsL = label(tile, (caseText ~= "" and caseText) or ((def.cards or 0) .. " "
 			.. (Packs.unitWord and Packs.unitWord(def.id, def.cards) or "cards")),
 						12, tierCol, UDim2.fromOffset(8, 124), UDim2.new(1, -16, 0, 16), FONT)
 					cardsL.TextXAlignment = Enum.TextXAlignment.Center
 
 					infoBadge(tile, {
-						packId = def.id, tierName = def.name or def.id, setName = "",
+						packId = def.id, tierName = def.name or def.id,
+						setName = def.setName or (def.kind == "pack_case" and "Any set") or "",
 						cards = def.cards or 0, count = 0, firstIndex = nil,
-						setId = "dragons_dawn",
+						setId = def.setKey or "dragons_dawn",
 					})
 
 					local one = mk("TextButton", {
@@ -6462,45 +6959,6 @@ function MineInventoryView.mount(parent, opts)
 			end
 
 			order += 1
-			sectionHeader("SCROLLS  --  paid in Credits", order)
-			for id, item in pairs(state.scrollShop or {}) do
-				order += 1
-				local row = panelRow(body, 62, order)
-				label(row, item.name or id, 15, TEXT, UDim2.fromOffset(14, 8),
-					UDim2.new(1, -240, 0, 20), FONT)
-				local blurb = label(row, item.blurb or "", 11, MUTED,
-					UDim2.fromOffset(14, 30), UDim2.new(1, -240, 0, 26))
-				blurb.TextWrapped = true
-				local addOne = mk("TextButton", {
-					AutoButtonColor = true, BackgroundColor3 = BG3,
-					Font = FONT, TextSize = 13, TextColor3 = TEXT,
-					Text = "",
-					AnchorPoint = Vector2.new(1, 0.5),
-					Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(110, 32),
-				}, row)
-				round(addOne, 7)
-				stroke(addOne, 1, T.CREDIT or GOLD)
-				paintCostButton(addOne, "ADD", vipCreditPrice(item.price), "credits", TEXT)
-				addOne.MouseButton1Click:Connect(function()
-					cartAdd("scroll", id, false, 1)
-				end)
-				if item.bundleQty then
-					local addBundle = mk("TextButton", {
-						AutoButtonColor = true, BackgroundColor3 = T.CREDIT or GOLD,
-						Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(26, 20, 40),
-						Text = "",
-						AnchorPoint = Vector2.new(1, 0.5),
-						Position = UDim2.new(1, -130, 0.5, 0), Size = UDim2.fromOffset(110, 32),
-					}, row)
-					round(addBundle, 7)
-					paintCostButton(addBundle, item.bundleQty .. "x", vipCreditPrice(item.bundlePrice or item.price * item.bundleQty), "credits", Color3.fromRGB(26, 20, 40))
-					addBundle.MouseButton1Click:Connect(function()
-						cartAdd("scroll", id, true, 1)
-					end)
-				end
-			end
-
-			order += 1
 			sectionHeader("EARNED IN THE MINE", order)
 			order += 1
 			local row = panelRow(body, 52, order)
@@ -6512,6 +6970,67 @@ function MineInventoryView.mount(parent, opts)
 			label(row2, "Gems", 15, GEM, UDim2.fromOffset(14, 6), UDim2.new(1, -28, 0, 20), FONT)
 			label(row2, shortNum(state.gems or 0) .. " held  --  chests, and the charter spends them", 12, MUTED,
 				UDim2.fromOffset(14, 28), UDim2.new(1, -28, 0, 18))
+
+			--[[
+				THE CHARTER, WHICH THIS PANEL HAS BEEN ADVERTISING WITH NO WAY
+				TO BUY IT.
+
+				The line directly above says "the charter spends them". The
+				server side is complete and has been for a while --
+				Verbs.buyCharter, the dispatch, the bonus fold in boosts(),
+				`charter` in blank() and in the snapshot -- and NOTHING
+				anywhere fired it. Four permanent gem upgrades, 14,000 to
+				34,000 each and 14 million across all of them maxed, named to
+				the player and unreachable.
+
+				It belongs here rather than in the shop because it is the one
+				gem sink that does NOT reset on rebirth (MineConfig: "the
+				designed non-resetting gem sink"), and this is the panel that
+				explains what each currency is for.
+
+				Prices come from C.charterCost, which the server charges
+				through, so the button cannot quote a number the verb will not
+				honour -- the mistake the SCRAP button made.
+			]]
+			local okCh, CharterRows = pcall(function()
+				return C.CHARTER
+			end)
+			if okCh and type(CharterRows) == "table" and #CharterRows > 0 and opts.onBuyCharter then
+				order += 1
+				sectionHeader("THE CHARTER  ·  permanent, survives rebirth", order)
+				local held = (type(state.charter) == "table") and state.charter or {}
+				for _, row in ipairs(CharterRows) do
+					order += 1
+					local lvl = math.floor(tonumber(held[row.id]) or 0)
+					local maxed = lvl >= (tonumber(row.max) or 0)
+					local cost = (not maxed) and C.charterCost(row, lvl) or 0
+					local afford = (tonumber(state.gems) or 0) >= cost
+					local r = panelRow(body, 52, order)
+					label(r, string.format("%s   %d / %d", row.name, lvl, row.max), 15,
+						maxed and GOLD or TEXT, UDim2.fromOffset(14, 6), UDim2.new(1, -150, 0, 20), FONT)
+					label(r, string.format("+%d%% %s per level", math.floor((tonumber(row.per) or 0) * 100 + 0.5),
+						tostring(row.stat)), 12, MUTED,
+						UDim2.fromOffset(14, 28), UDim2.new(1, -150, 0, 18))
+					if not maxed then
+						local btn = mk("TextButton", {
+							AutoButtonColor = afford, BackgroundColor3 = afford and BG3 or BG2,
+							Font = FONT, TextSize = 13, TextColor3 = afford and TEXT or MUTED,
+							Text = "",
+							AnchorPoint = Vector2.new(1, 0.5),
+							Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(124, 32),
+						}, r)
+						round(btn, 7)
+						stroke(btn, 1, afford and GEM or BG3)
+						paintCostButton(btn, "SIGN", cost, "gems", afford and TEXT or MUTED)
+						btn.MouseButton1Click:Connect(function()
+							opts.onBuyCharter(row.id)
+						end)
+					else
+						label(r, "signed", 13, GOLD, UDim2.new(1, -120, 0.5, -9),
+							UDim2.fromOffset(108, 18), FONT, Enum.TextXAlignment.Right)
+					end
+				end
+			end
 		else
 			-- VIP tab (default when activeTab is vip / unknown shop tab)
 			if activeTab == "vfx" then
@@ -6662,8 +7181,8 @@ function MineInventoryView.mount(parent, opts)
 			local grants = {
 				{ "+5% Luck, always on",
 				  "Stated. Packs, chests, and finds lean a little luckier." },
-				{ "A White Scroll the moment you join",
-				  "Arms a rune before a fuse -- on a fail, both runes survive." },
+				{ "3 Enchant Books the moment you join",
+				  "Put them on your tools at the Forge." },
 				{ "Founder Tag",
 				  "Trumps [VIP] on your name. Switch either tag off in VFX." },
 				{ "Founders Bag",
@@ -6963,10 +7482,9 @@ function MineInventoryView.mount(parent, opts)
 			credits = Color3.fromRGB(80, 220, 140),
 			gems = Color3.fromRGB(90, 180, 255),
 			stardust = Color3.fromRGB(255, 160, 220),
-			scroll = Color3.fromRGB(240, 230, 180),
-			white = Color3.fromRGB(240, 230, 180),
-			black = Color3.fromRGB(90, 36, 48),
-			omni = Color3.fromRGB(232, 197, 106),
+			books = Color3.fromRGB(210, 150, 255),
+			pet = Color3.fromRGB(255, 120, 220),
+			skin = Color3.fromRGB(120, 230, 255),
 			battlepass = Color3.fromRGB(255, 214, 90),
 		}
 
@@ -6978,17 +7496,7 @@ function MineInventoryView.mount(parent, opts)
 			if not id and reward.credits then id = "credits" end
 			if not id and reward.gems then id = "gems" end
 			if not id and reward.dust then id = "stardust" end
-			if not id and reward.scrolls then
-				if reward.scrolls.omni then id = "omni"
-				elseif reward.scrolls.black then id = "black"
-				elseif reward.scrolls.white then id = "white"
-				else
-					for sid in pairs(reward.scrolls) do
-						id = sid
-						break
-					end
-				end
-			end
+			if not id and reward.books then id = "books" end
 			id = id or "gift"
 			local col = ICON_COL[id] or GOLD
 			if LuckyBlocks and LuckyBlocks.TYPES[id] then
@@ -7007,7 +7515,9 @@ function MineInventoryView.mount(parent, opts)
 			if id == "credits" then return "CR" end
 			if id == "gems" then return "GEM" end
 			if id == "stardust" then return "DST" end
-			if id == "scroll" then return "SCR" end
+			if id == "books" then return "BK" end
+			if id == "pet" then return "PET" end
+			if id == "skin" then return "SKIN" end
 			return "?"
 		end
 
@@ -7119,8 +7629,33 @@ function MineInventoryView.mount(parent, opts)
 				Active = true,
 			}, scroll)
 			round(btn, 12)
-			stroke(btn, allowed and 2.5 or 1.5,
-				allowed and GREEN or ((n % 10 == 0) and GOLD or (reached and col or T.LINE)))
+			--[[
+				Tier classes (owner, 2026-10-16: "every 5 should be decent, every
+				10 should be good and every 25 is huge"): the bigger the tier, the
+				louder its frame, plus a ribbon, so a kid sees the next big one
+				coming from across the rail.
+			]]
+			local class = Scrolls.tierClass and Scrolls.tierClass(n) or "small"
+			local CLASS_INK = {
+				huge = Color3.fromRGB(255, 96, 220),
+				good = GOLD,
+				decent = Color3.fromRGB(110, 210, 255),
+			}
+			local CLASS_WIDTH = { huge = 4, good = 3, decent = 2.5 }
+			stroke(btn, allowed and 3 or (CLASS_WIDTH[class] or 1.5),
+				allowed and GREEN or (CLASS_INK[class] or (reached and col or T.LINE)))
+			if class ~= "small" then
+				local ribbon = mk("Frame", {
+					BackgroundColor3 = CLASS_INK[class],
+					AnchorPoint = Vector2.new(0.5, 0),
+					Position = UDim2.new(0.5, 0, 0, -2),
+					Size = UDim2.fromOffset(class == "huge" and 78 or 58, 18),
+					ZIndex = 6,
+				}, btn)
+				round(ribbon, 9)
+				label(ribbon, (class == "huge" and "★ HUGE") or (class == "good" and "★ BIG") or "★", 12,
+					Color3.fromRGB(20, 14, 30), UDim2.fromOffset(0, 0), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center).ZIndex = 7
+			end
 
 			-- ONE BIG ICON. The reward is the art.
 			local plate = mk("Frame", {
@@ -7432,20 +7967,7 @@ function MineInventoryView.mount(parent, opts)
 		sortBar.Position = UDim2.fromOffset(L.x, L.top + tabsH + searchH)
 		body.Position = UDim2.fromOffset(L.x, L.top + top)
 		body.Size = UDim2.new(1, -L.w, 1, -(L.top + 16 + top))
-		do
-			local on = section == "inventory" and activeTab == "runes"
-			local sv = on and eq.socketsPane() or eq.sockets
-			if sv then
-				if sv.root then
-					sv.root.Position = UDim2.fromOffset(L.x, L.top + top)
-					sv.root.Size = UDim2.new(1, -L.w, 1, -(L.top + 16 + top))
-					sv.root.ZIndex = 40
-				end
-				sv.setState(state)
-				sv.setVisible(on)
-			end
-			body.Visible = not on
-		end
+		body.Visible = true
 
 		clear(body)
 		body.CanvasPosition = Vector2.zero
@@ -7458,8 +7980,6 @@ function MineInventoryView.mount(parent, opts)
 				renderPotions()
 			elseif activeTab == "vfx" then
 				renderVfx()
-			elseif activeTab == "runes" then
-				-- The sockets pane is drawn over the body (see above).
 			else
 				-- Equipment, and anything still named after a retired tab.
 				renderOwnedTools()
@@ -7478,7 +7998,8 @@ function MineInventoryView.mount(parent, opts)
 			elseif activeTab == "faces" then
 				renderNewGear("faces")
 			else
-				renderRunes()
+				-- Anything still named after a retired tab (Runes) lands on Chests.
+				renderChestDex()
 			end
 		elseif section == "shop" then
 			renderShop()
@@ -7827,8 +8348,10 @@ function MineInventoryView.mount(parent, opts)
 			activeTab = t or tabFor[sec] or sectionDef(sec).tabs[1].id
 			-- Gear, Runes and Charms no longer have Inventory tabs; an old
 			-- tutorial step or toast that names one gets Equipment.
-			if sec == "inventory" and (activeTab == "gear" or activeTab == "charms") then
+			if sec == "inventory" and (activeTab == "gear" or activeTab == "charms" or activeTab == "runes") then
 				activeTab = "tools"
+			elseif sec == "collection" and activeTab == "runes" then
+				activeTab = "chests"
 			end
 		end
 		root.Visible = true

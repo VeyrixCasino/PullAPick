@@ -63,19 +63,24 @@ for step = 1, ${AGREE_BELOW_STEP - 1} do
 	for _, m in ipairs({ 1.234, 12.34, 123.4, 1, 999.9 }) do
 		local n = m * 10 ^ (step * 3)
 		for name, s in pairs({ abbrev = MineAbbrev.currency(n), bignum = MineBigNum.auto(n) }) do
-			if sigFigs(s) ~= 4 then
+			-- Owner, 2026-10-10: at most TWO decimals. The significant-figure
+			-- count is no longer constant -- that IS the change -- so the shape
+			-- rule is now about decimals, which is what a reader actually sees.
+			local dot = string.find(s, ".", 1, true)
+			local decimals = dot and #(string.gsub(string.sub(s, dot + 1), "%a", "")) or 0
+			if decimals > 2 then
 				shapeBad += 1
-				print(("          %s(%g e%d) = %s is %d figures, not 4")
-					:format(name, m, step * 3, s, sigFigs(s)))
+				print(("          %s(%g e%d) = %s has %d decimals, max 2")
+					:format(name, m, step * 3, s, decimals))
 			end
 		end
 	end
 end
-check(shapeBad == 0, "both read four significant figures, every mantissa shape")
+check(shapeBad == 0, "both cap at two decimals, every mantissa shape")
 
 -- 2. Floored, never up. 1299 must never read 1.3K.
 local roundedUp = 0
-for _, pair in ipairs({ { 1299, "1.299K" }, { 1999, "1.999K" }, { 12999, "12.99K" },
+for _, pair in ipairs({ { 1299, "1.29K" }, { 1999, "1.99K" }, { 12999, "12.99K" },
                         { 129999, "129.9K" }, { 999999, "999.9K" } }) do
 	for name, s in pairs({ abbrev = MineAbbrev.currency(pair[1]), bignum = MineBigNum.auto(pair[1]) }) do
 		if s ~= pair[2] then
@@ -84,7 +89,7 @@ for _, pair in ipairs({ { 1299, "1.299K" }, { 1999, "1.999K" }, { 12999, "12.99K
 		end
 	end
 end
-check(roundedUp == 0, "both floor; 1299 reads 1.299K and never 1.3K")
+check(roundedUp == 0, "both floor; 1299 reads 1.29K and never 1.3K")
 
 -- 3. Identical below step 21 -- every magnitude a player will see.
 local diff, firstDiff = 0, nil

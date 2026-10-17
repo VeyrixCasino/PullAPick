@@ -82,6 +82,39 @@ for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
     shared.length ? shared.length + " shared ids" : "disjoint");
 }
 
+/*
+  Hammers and jackhammers (owner, 2026-10-11: "fully built in"). The Canva icons
+  are per ore like the others. Jackhammers 75-82 are the one allowed gap: the
+  Canva AI allowance ran out mid-run, and a missing tier falls back to the flat
+  family icon. Any OTHER missing tier is a bug.
+*/
+const allOther = [...ids];
+for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
+  const t = tableOf(name);
+  if (t) allOther.push(...t.values());
+}
+// ORE_PICK_CANVA is tiers 1-81 only: tier 82 keeps the original art the owner liked.
+for (const [name, allowedGap] of [["ORE_HAMMER", []], ["ORE_JACKHAMMER", [75, 76, 77, 78, 79, 80, 81, 82]], ["ORE_PICK_CANVA", [82]]]) {
+  const t = tableOf(name);
+  ok(!!t, `MineIcons.${name} exists`);
+  if (!t) continue;
+  const missing = [];
+  for (let tier = 1; tier <= oreCount; tier++) if (!t.has(tier)) missing.push(tier);
+  const unexpected = missing.filter((m) => !allowedGap.includes(m));
+  ok(unexpected.length === 0, `${name} covers every ore tier` + (allowedGap.length ? " except the known gap" : ""),
+    unexpected.length ? "missing " + unexpected.join(",") : `${t.size} of ${oreCount}` +
+      (!missing.length ? "" : name === "ORE_PICK_CANVA" ? " (82 keeps its original art)" : ` (still to come: ${missing.join(",")})`));
+  const v = [...t.values()];
+  const d = v.filter((x, i) => v.indexOf(x) !== i);
+  ok(d.length === 0, `${name} has no two ores sharing an icon`, d.length ? [...new Set(d)].join(", ") : v.length + " distinct");
+  const shared = v.filter((x) => allOther.includes(x));
+  ok(shared.length === 0, `${name} shares no asset with the pick, drill or bomb icons`, shared.length ? shared.length + " shared ids" : "disjoint");
+  allOther.push(...v);
+}
+ok(/MineIcons\.ORE_SKINS\.hammer = MineIcons\.ORE_HAMMER/.test(ICONS) && /MineIcons\.ORE_SKINS\.jackhammer = MineIcons\.ORE_JACKHAMMER/.test(ICONS),
+  "hammer and jackhammer icons join ORE_SKINS (behind NEW_TOOL_ICONS_SHARED)");
+ok(/MineIcons\.ORE_PICK\[tier\] = id/.test(ICONS), "the Canva pickaxes replace ORE_PICK's tiers once shared");
+
 for (const n of ["ADMIN_PICK", "ADMIN_DRILL", "ADMIN_BOMB"]) {
   ok(new RegExp("MineIcons\\." + n + ' = "rbxassetid://\\d+"').test(ICONS),
     `${n} is set`, "the last icon of each sheet is the admin tool");
@@ -157,10 +190,19 @@ for (const id of ["pickaxe", "drill", "explosive"]) {
   ok(tabs && !new RegExp(`id = "${id}"`).test(tabs[1]),
     `the ${id} tab is gone from the shop rail`);
 }
-for (const id of ["bench", "pouch", "backpack"]) {
-  ok(tabs && new RegExp(`id = "${id}"`).test(tabs[1]),
-    `${id} still sells`, id === "backpack" ? "capacity, not a tool" : "");
+// Owner, 2026-10-11: the bottom bar is "Crafting, Loadout, Upgrades". `pouch`
+// and `backpack` stopped being tabs that day -- the pouch is a strip drawn on
+// the craft screen whatever tab is up, and backpacks moved into the rail's
+// navigation beside SHOP.
+for (const id of ["bench", "loadout", "upgrades"]) {
+  ok(tabs && new RegExp(`id = "${id}"`).test(tabs[1]), `${id} is a bottom tab`);
 }
+// The point of the old assertion was never the BUTTON, it was that a shelf
+// which still exists keeps a way in. `backpack` is still a live branch in
+// rows() and paint(), so the only thing that can strand it is nothing calling
+// setTab. That is the Secrets bug, and this is the guard for it.
+ok(/onBackpacks\s*=\s*function\(\)\s*\n?\s*view\.setTab\("backpack"\)/.test(SHOP),
+  "the backpack shelf still has a door", "rail -> onBackpacks -> setTab");
 
 // --------------------------------------------- the roster is NOT deleted --
 // MineOreTools.frames filters Tools.TOOLS on price > 0 to pick a forged tool's

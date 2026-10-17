@@ -1,0 +1,863 @@
+{
+  "key": "chaos_theory",
+  "bodies": [
+    {
+      "id": "ct_glitchcat",
+      "label": "Glitch Cat",
+      "role": "Striker"
+    },
+    {
+      "id": "ct_shardling",
+      "label": "Shardling",
+      "role": "Mystic"
+    },
+    {
+      "id": "ct_hypercube",
+      "label": "Hypercube",
+      "role": "Prospector"
+    },
+    {
+      "id": "ct_flipside",
+      "label": "Flipside",
+      "role": "Trader"
+    },
+    {
+      "id": "ct_riftling",
+      "label": "Riftling",
+      "role": "Seeker"
+    },
+    {
+      "id": "ct_twistling",
+      "label": "Twistling",
+      "role": "Tidecaller"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "ct_t_crt",
+      "label": "Scanline CRT",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        110,
+        110,
+        120
+      ]
+    },
+    {
+      "id": "ct_t_fluff",
+      "label": "Static Fluff",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        200,
+        160,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_bristle",
+      "label": "Lagspike Bristle",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        255,
+        120,
+        20
+      ]
+    },
+    {
+      "id": "ct_t_buffer",
+      "label": "Buffer Bar",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        40,
+        110,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_packet",
+      "label": "Packet Envelope",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        255,
+        140,
+        190
+      ]
+    },
+    {
+      "id": "ct_t_flutter",
+      "label": "Pixel Flutter",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        120,
+        255,
+        60
+      ]
+    },
+    {
+      "id": "ct_t_jitter",
+      "label": "Jitter Bug",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        40,
+        200
+      ]
+    },
+    {
+      "id": "ct_t_wireframe",
+      "label": "Wireframe Cuboid",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        0,
+        230,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_seam",
+      "label": "Seam Rip",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        150,
+        10,
+        50
+      ]
+    },
+    {
+      "id": "ct_t_foldjay",
+      "label": "Fold Jay",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        90,
+        160,
+        230
+      ]
+    },
+    {
+      "id": "ct_t_bitrot",
+      "label": "Bitrot Bouquet",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        160,
+        255,
+        200
+      ]
+    },
+    {
+      "id": "ct_t_hexel",
+      "label": "Hexel Hive",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        220,
+        30
+      ]
+    },
+    {
+      "id": "ct_t_crash",
+      "label": "Crash Cushion",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        240,
+        40,
+        60
+      ]
+    },
+    {
+      "id": "ct_t_glyph",
+      "label": "Glitch Glyph",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        130,
+        60,
+        230
+      ]
+    },
+    {
+      "id": "ct_t_shift",
+      "label": "Reality Shift",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        200,
+        170
+      ]
+    },
+    {
+      "id": "ct_t_fracture",
+      "label": "Fracture Crack",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        170,
+        230,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_pattern",
+      "label": "Broken Pattern",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        20,
+        16,
+        32
+      ]
+    },
+    {
+      "id": "ct_t_datamosh",
+      "label": "Datamosh Panel",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        40,
+        200
+      ]
+    },
+    {
+      "id": "ct_t_radar",
+      "label": "Anomaly Radar",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        120,
+        255,
+        60
+      ]
+    },
+    {
+      "id": "ct_t_portal",
+      "label": "Void Portal",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        40,
+        120
+      ]
+    },
+    {
+      "id": "ct_t_scramble",
+      "label": "Scramble Dice",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        170,
+        60
+      ]
+    },
+    {
+      "id": "ct_t_chronobit",
+      "label": "Chronobit Dial",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        210,
+        170,
+        40
+      ]
+    },
+    {
+      "id": "ct_t_perspective",
+      "label": "Perspective Trap",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        150,
+        80,
+        40
+      ]
+    },
+    {
+      "id": "ct_t_optic",
+      "label": "Warp Optic",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        200,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_motor",
+      "label": "Paradox Motor",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        40,
+        200
+      ]
+    },
+    {
+      "id": "ct_t_mandelbrot",
+      "label": "Mandelbrot Fractal",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        130,
+        60,
+        230
+      ]
+    },
+    {
+      "id": "ct_t_gyro",
+      "label": "Timeslip Gyro",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        0,
+        230,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_entangle",
+      "label": "Entangle Pair",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        200,
+        160,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_collapse",
+      "label": "Infinite Collapse",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        20,
+        16,
+        32
+      ]
+    },
+    {
+      "id": "ct_t_hyperspace",
+      "label": "Hyperspace Fold",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        40,
+        110,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_tear",
+      "label": "Reality Tear",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        255,
+        40,
+        200
+      ]
+    },
+    {
+      "id": "ct_t_entropy",
+      "label": "Entropy Cascade",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        120,
+        255,
+        60
+      ]
+    },
+    {
+      "id": "ct_t_mobius",
+      "label": "Mobius Ribbon",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        40,
+        200
+      ]
+    },
+    {
+      "id": "ct_t_klein",
+      "label": "Klein Flask",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        60,
+        200,
+        170
+      ]
+    },
+    {
+      "id": "ct_t_stairs",
+      "label": "Impossible Stairs",
+      "role": "Digger",
+      "tier": "Exotic",
+      "tint": [
+        190,
+        196,
+        206
+      ]
+    },
+    {
+      "id": "ct_t_blivet",
+      "label": "Blivet Fork",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        210,
+        170,
+        40
+      ]
+    },
+    {
+      "id": "ct_t_necker",
+      "label": "Necker Illusion",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        240,
+        244,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_droste",
+      "label": "Droste Recursion",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        120,
+        20
+      ]
+    },
+    {
+      "id": "ct_t_strangeloop",
+      "label": "Strange Loop",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        130,
+        60,
+        230
+      ]
+    },
+    {
+      "id": "ct_t_tribar",
+      "label": "Impossible Tribar",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        200,
+        200,
+        220
+      ]
+    },
+    {
+      "id": "ct_t_waterfall",
+      "label": "Paradox Waterfall",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        40,
+        110,
+        255
+      ]
+    },
+    {
+      "id": "ct_t_frame",
+      "label": "Recursive Frame",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        140,
+        190
+      ]
+    },
+    {
+      "id": "ct_t_singularity",
+      "label": "Singularity Pit",
+      "role": "Digger",
+      "tier": "Exotic",
+      "tint": [
+        20,
+        16,
+        32
+      ]
+    },
+    {
+      "id": "ct_t_wormhole",
+      "label": "Wormhole Torus",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        150,
+        90,
+        240
+      ]
+    }
+  ],
+  "extraBodies": [
+    "sprite",
+    "slime"
+  ],
+  "buffs": [
+    "ricochet",
+    "shatterDamage",
+    "luckyFind"
+  ],
+  "palette": [
+    [
+      "Magenta",
+      255,
+      40,
+      200
+    ],
+    [
+      "Cyber Cyan",
+      0,
+      230,
+      255
+    ],
+    [
+      "Static",
+      110,
+      110,
+      120
+    ],
+    [
+      "Void Black",
+      20,
+      16,
+      32
+    ],
+    [
+      "Paradox Purple",
+      130,
+      60,
+      230
+    ],
+    [
+      "Error Red",
+      240,
+      40,
+      60
+    ],
+    [
+      "Hazard Yellow",
+      255,
+      220,
+      30
+    ],
+    [
+      "Acid Green",
+      120,
+      255,
+      60
+    ],
+    [
+      "Deep Indigo",
+      40,
+      40,
+      120
+    ],
+    [
+      "Prism White",
+      240,
+      244,
+      255
+    ],
+    [
+      "Rift Orange",
+      255,
+      120,
+      20
+    ],
+    [
+      "Hologram",
+      60,
+      200,
+      170
+    ],
+    [
+      "Infrared",
+      150,
+      10,
+      50
+    ],
+    [
+      "Pixel Pink",
+      255,
+      140,
+      190
+    ],
+    [
+      "Quantum Blue",
+      40,
+      110,
+      255
+    ],
+    [
+      "Chrome",
+      190,
+      196,
+      206
+    ],
+    [
+      "Rust Glitch",
+      150,
+      80,
+      40
+    ],
+    [
+      "Ice Fracture",
+      170,
+      230,
+      255
+    ],
+    [
+      "Solar Flare",
+      255,
+      170,
+      60
+    ],
+    [
+      "Mint Error",
+      160,
+      255,
+      200
+    ],
+    [
+      "Inverse Lilac",
+      200,
+      160,
+      255
+    ],
+    [
+      "Gold Paradox",
+      210,
+      170,
+      40
+    ],
+    [
+      "Overflow Olive",
+      120,
+      130,
+      30
+    ],
+    [
+      "Blueshift",
+      90,
+      160,
+      230
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Glitched",
+      "Warped",
+      "Jittery",
+      "Scrambled"
+    ],
+    "Mythic": [
+      "Fractured",
+      "Unstable",
+      "Paradox",
+      "Skewed"
+    ],
+    "Divine": [
+      "Impossible",
+      "Inverted",
+      "Hyperspace",
+      "Resonant"
+    ],
+    "Exotic": [
+      "Collapsed",
+      "Infinite",
+      "Singular",
+      "Anomalous"
+    ]
+  },
+  "names": [
+    "Bitflip",
+    "Bytebite",
+    "Byte",
+    "Kilobit",
+    "Megabyte",
+    "Gigabit",
+    "Bitcrush",
+    "Hexel",
+    "Voxel",
+    "Texel",
+    "Polygon",
+    "Vertex",
+    "Wireframe",
+    "Lagspike",
+    "Laggy",
+    "Buffer",
+    "Ping",
+    "Packet",
+    "Static",
+    "Staticat",
+    "Fuzz",
+    "Fuzzbox",
+    "Scanline",
+    "Crashy",
+    "Errorbit",
+    "Oopsie",
+    "Whoopsie",
+    "Kerfuffle",
+    "Jitter",
+    "Jitterbug",
+    "Stutter",
+    "Warp",
+    "Warpling",
+    "Tesser",
+    "Tessie",
+    "Quantum",
+    "Qubit",
+    "Entangle",
+    "Fractal",
+    "Fractalina",
+    "Shardy",
+    "Fragment",
+    "Fissure",
+    "Rift",
+    "Rupture",
+    "Breach",
+    "Anomaly",
+    "Oddity",
+    "Oddball",
+    "Quirk",
+    "Quirkle",
+    "Kooky",
+    "Zany",
+    "Wonky",
+    "Topsy",
+    "Turvy",
+    "Upsidaisy",
+    "Flipflop",
+    "Topsyturvy",
+    "Inverso",
+    "Reverso",
+    "Mirrorbit",
+    "Sdrawkcab",
+    "Loopy",
+    "Loophole",
+    "Infinity",
+    "Infini",
+    "Recursion",
+    "Recurso",
+    "Ouroboros",
+    "Spiral",
+    "Twisty",
+    "Zigzag",
+    "Zag",
+    "Zig",
+    "Skew",
+    "Askew",
+    "Slant",
+    "Tilt",
+    "Kilter",
+    "Offkilter",
+    "Wonkus",
+    "Discombob",
+    "Bamboozle",
+    "Strangelet",
+    "Muon",
+    "Gluon",
+    "Boson",
+    "Lepton",
+    "Tachyon",
+    "Neutrino",
+    "Positron",
+    "Antimatter",
+    "Darkmatter",
+    "Singularity",
+    "Wormhole",
+    "Chronobit",
+    "Timeslip",
+    "Dejavu",
+    "Nullbit",
+    "Null",
+    "Voidling",
+    "Zero",
+    "Minus",
+    "Overflow",
+    "Underflow",
+    "Segfault",
+    "Checksum",
+    "Hashbang",
+    "Debug",
+    "Bugbyte",
+    "Kludge",
+    "Jank",
+    "Janky",
+    "Borked",
+    "Wibble",
+    "Glitchling",
+    "Warpspeed",
+    "Bitblot",
+    "Datablob",
+    "Nullzone",
+    "Fizzix",
+    "Quantumpaw",
+    "Errorpup",
+    "Pixelpop",
+    "Dither",
+    "Moire",
+    "Artifact",
+    "Corrupto",
+    "Bitrot",
+    "Datamosh",
+    "Crunchbyte",
+    "Scramble",
+    "Shuffle",
+    "Mishmash",
+    "Hodgepodge",
+    "Chaoskit",
+    "Entropy",
+    "Butterfly",
+    "Flutterby",
+    "Strangeloop",
+    "Tangle",
+    "Knotwork",
+    "Hexagon",
+    "Octahedron",
+    "Cubeling",
+    "Prismatic",
+    "Paradoggo",
+    "Glitchpaw",
+    "Rewind",
+    "Fastforward",
+    "Undo",
+    "Redo",
+    "Respawn",
+    "Noclip",
+    "Hitbox",
+    "Lagcat",
+    "Glitchbit",
+    "Pixelpaw"
+  ]
+}

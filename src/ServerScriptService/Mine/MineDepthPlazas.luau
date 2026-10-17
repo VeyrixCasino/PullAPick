@@ -6,6 +6,9 @@ local CollectionService = game:GetService("CollectionService")
 local shared = game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared")
 local Depth = require(shared:WaitForChild("MineDepth"))
 local C = require(shared:WaitForChild("MineConfig"))
+-- Fishing spots in the station bays (TODO A3).
+local Fishing = require(shared:WaitForChild("MineFishing"))
+local FishPonds = require(script.Parent:WaitForChild("MineFishPonds"))
 
 local MineDepthPlazas = {}
 
@@ -783,6 +786,26 @@ local function wallOutpost(folder, zone, seam)
 	lbl.TextColor3 = Color3.fromRGB(150, 140, 125)
 	lbl.Text = "RESERVED"
 	lbl.Parent = sg
+
+	--[[
+		FISHING (TODO A3). Owner: "ever zone should have a couple underground
+		fishing areas in each zone (at outposts)", and chose the station bays of
+		the 1,000 and 3,000 outposts (MineFishing.OUTPOST_SEAMS). The pool sits on
+		the bay deck, its pier reaching back toward the room, and the bay's sign
+		names it instead of saying RESERVED.
+	]]
+	local spot = zone and Fishing.spot(zone.id .. "_" .. tostring(seam))
+	if spot then
+		lbl.Text = string.upper(spot.name)
+		local back = Vector3.new(bx, 0, bz)
+		local c = Vector3.new(bcx, floorY + 1, bcz) + back * 2
+		FishPonds.build(bay, spot, CFrame.lookAt(c, c + back), Vector2.new(math.min(30, bayW - 16), 13), {
+			rim = look.wall:Lerp(Color3.fromRGB(150, 146, 138), 0.35),
+			water = Color3.fromRGB(34, 92, 112),
+			deep = Color3.fromRGB(12, 24, 30),
+			light = true,
+		})
+	end
 end
 
 function buildDeck(zone, seam, desk)
@@ -826,16 +849,48 @@ function buildDeck(zone, seam, desk)
 	sell.CanCollide = false
 	addPrompt(sell, "Sell (depth)")
 
-	local shop = makePad(folder, "shop_depth", Vector3.new(size * 3.2, size * 2.2, size * 3.2),
-		CFrame.new(origin.X + offset, y + size, origin.Z - offset), {
-			Machine = "depth_shop",
-			DepthShop = desk,
-			Seam = seam,
-			ZoneId = zone.id,
-		})
-	shop.Transparency = 1
-	shop.CanCollide = false
-	addPrompt(shop, "Depth shop")
+	--[[
+		NO COUNTER WHERE THERE IS NOTHING TO SELL.
+
+		MineDepthShop.catalog returns {} for any desk past seam 2500 -- "sell
+		/ elevator only", by its own comment -- but this built the prompt at
+		every seam regardless, and MineDepth.SEAMS runs to 10,000. So a deep
+		player walked up to TEN counters at 3000, 3500, 4000, 4500, 5000,
+		6000, 7000, 8000, 9000 and 10,000, pressed each one, and got "Empty
+		desk / Nothing in stock here yet".
+
+		The view degrading gracefully is what kept this out of the bug list;
+		it is still ten promises the game does not keep. The sell pad and the
+		elevator above and below stay, because those are what an outpost past
+		2500 is actually for.
+
+		Asked of MineDepthShop rather than hardcoding 2500 here, so the rule
+		lives in one place and a future restock opens these automatically.
+	]]
+	local hasStock = true
+	do
+		-- Required here rather than at the top: this is the only use in the
+		-- file, and a failure to load must leave the counter standing (an
+		-- empty desk beats a missing one) rather than silently removing it.
+		local okCat, cat = pcall(function()
+			local Shop = require(game:GetService("ReplicatedStorage")
+				:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineDepthShop"))
+			return Shop.catalog((C.zoneIndex and C.zoneIndex(zone.id)) or 1, seam, desk)
+		end)
+		hasStock = (not okCat) or (type(cat) == "table" and #cat > 0)
+	end
+	if hasStock then
+		local shop = makePad(folder, "shop_depth", Vector3.new(size * 3.2, size * 2.2, size * 3.2),
+			CFrame.new(origin.X + offset, y + size, origin.Z - offset), {
+				Machine = "depth_shop",
+				DepthShop = desk,
+				Seam = seam,
+				ZoneId = zone.id,
+			})
+		shop.Transparency = 1
+		shop.CanCollide = false
+		addPrompt(shop, "Depth shop")
+	end
 
 	local ret = makePad(folder, "return_surface", Vector3.new(size * 2.2, 1.2, size * 2.2),
 		CFrame.new(origin.X - offset, y + 1.1, origin.Z + offset), {
@@ -1009,12 +1064,65 @@ function MineDepthPlazas.openAllForPreview()
 	end
 end
 
+--[[
+	PLAZA GEOMETRY DOES NOT CAST SHADOWS.
+
+	Measured in the live place: Pits holds 176 plazas, 37,805 parts, and 37,345
+	of them -- 99% -- were casting shadows. That is the single biggest render
+	cost the client carries, because Pits is 48,766 of the 62,781 instances a
+	client sees at all, and a shadow caster costs every frame it is on screen
+	rather than once at load.
+
+	It buys almost nothing here. These are underground rooms lit by their own
+	lamps and emissive signs; the sun does not reach them, so nearly every one
+	of those casters is resolving a shadow from a light that is not there.
+
+	The rest of the codebase already treats this as the default -- PetModelFactory,
+	ToolModelFactory, MineChestModel and MinePortalFX all clear CastShadow on
+	every part they build. The plaza builders are the one place that never did.
+
+	Done as ONE connection on Pits rather than an edit in each of the ten part
+	creators in this file: the folders are parented into Pits BEFORE their parts
+	are built, so a pass at parent time would see an empty folder, and a creator
+	added later would silently miss the convention again.
+
+	CanQuery is deliberately left alone. 61% of these parts answer raycasts and
+	the plaza code, the elevator ride and the trader placement all raycast
+	against them to find a surface to stand on -- turning that off would save
+	less and break more.
+]]
+local function noShadows(inst)
+	if inst:IsA("BasePart") then
+		inst.CastShadow = false
+	end
+end
+
+local shadowHookDone = false
+local function hushPitShadows()
+	if shadowHookDone then
+		return
+	end
+	local world = workspace:FindFirstChild("MineWorld")
+	local pits = world and world:FindFirstChild("Pits")
+	if not pits then
+		return
+	end
+	shadowHookDone = true
+	for _, d in ipairs(pits:GetDescendants()) do
+		noShadows(d)
+	end
+	pits.DescendantAdded:Connect(noShadows)
+end
+
 function MineDepthPlazas.start()
 	if boardsStarted then
 		return
 	end
 	boardsStarted = true
 	task.defer(function()
+		-- Before the builders below run, so everything they add is covered by
+		-- the DescendantAdded hook rather than needing a second sweep.
+		pcall(hushPitShadows)
 		MineDepthPlazas.ensureSurfaceBoards()
 		for _, zone in ipairs(C.ZONES or {}) do
 			pcall(buildElevator, zone)
