@@ -1357,3 +1357,20 @@ Full B3 (5?6 themed sets / new drop tables) still needs the owner.
 
 Updated: MineServer, MineShopView, MineInventoryView, chest-tools.js,
 open-questions, chests-and-lucky-blocks, tools.md, next-up, log.
+
+## [2026-10-17] fix | font sizes flicker, everywhere else
+Owner: *"the font sizes flicker.. fix"*. The 2026-10-14 fix only covered the
+TODAY rows. The same cause was still live across the HUD: a UIScale easing over
+text, which Roblox draws at whole font sizes, so it steps a pixel at a time.
+- `MineUI.pulse` on anything that carries text (quest CLAIM, dock badges with
+  counts, the rebirth button, the gifts button) now runs a ring that ripples
+  off the edge while the thing holds still. Dots still throb as before.
+- `MineUI.popNumber` (wallet pills, quest progress, skins count) lights the
+  outline gold on a change and fades after the last one. It used to restart a
+  size pop on every change, several times a second while digging.
+- The Forge hub rebuilt every card on every snapshot (up to ten a second). It
+  now repaints only on a real change, at most about once a second.
+- New check `tools/verify/text-motion.js`. Not yet seen in Studio (no place was
+  open).
+
+Updated: candy-style, client-and-ui, verify-suite, log.

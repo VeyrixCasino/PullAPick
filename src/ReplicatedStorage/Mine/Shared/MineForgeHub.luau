@@ -43,6 +43,7 @@
 ]]
 local RS = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 
 local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
@@ -1539,11 +1540,34 @@ function Hub.mount(gui, opts)
 		end)
 	end
 
+	--[[
+		WHAT A SNAPSHOT REPAINTS. Snapshots land up to ten times a second while
+		anything digs, and refresh() clears and rebuilds every card, model stage
+		and button on the page. At that rate the Forge never settled: a hovered
+		card snapped back and re-grew, and its TextScaled name re-fit each time,
+		which read as the font sizes flickering (owner, 2026-10-17). So a
+		snapshot repaints only when something the Forge shows has changed, and
+		at most about once a second -- except while an action waits on its
+		answer, which repaints at once so its button unlocks.
+	]]
+	local lastSig, lastPaint, trailing = nil, 0, false
+	local function signature()
+		local snap = getSnap() or {}
+		local ok, s = pcall(HttpService.JSONEncode, HttpService, {
+			coins = snap.coins, gems = snap.gems, dust = snap.dust,
+			ores = snap.ores, oresSeen = snap.oresSeen,
+			oreTools = snap.oreTools, oreToolEquipped = snap.oreToolEquipped,
+			enchants = snap.enchants, skins = snap.skins, skinEquipped = snap.skinEquipped,
+		})
+		return ok and s or nil
+	end
+
 	function ctl.refresh()
 		busyUntil = 0
 		if not root.Visible then
 			return
 		end
+		lastSig, lastPaint = signature(), os.clock()
 		paintChrome()
 		if state.tab == "craft" then
 			ctl.paintCraft(true)
@@ -1551,6 +1575,31 @@ function Hub.mount(gui, opts)
 			ctl.paintLoadout()
 		else
 			ctl.paintUpgrades()
+		end
+	end
+
+	-- The snapshot's way in (MineForgeHub.client); see WHAT A SNAPSHOT REPAINTS.
+	function ctl.onSnapshot()
+		if not root.Visible then
+			return
+		end
+		if busyUntil > 0 then
+			ctl.refresh()
+			return
+		end
+		local sig = signature()
+		if sig and sig == lastSig then
+			return
+		end
+		local wait = 1 - (os.clock() - lastPaint)
+		if wait <= 0 then
+			ctl.refresh()
+		elseif not trailing then
+			trailing = true
+			task.delay(wait, function()
+				trailing = false
+				ctl.onSnapshot()
+			end)
 		end
 	end
 

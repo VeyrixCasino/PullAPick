@@ -304,7 +304,7 @@ The header shows the player level and XP bar, the wallet, 🎒 BAGS and 💰 COI
 - The tutorial's step 3 (*BUY A BIGGER PICK*) carries `tab = "pickaxe"`. While a player is on that step, the server opens the coin shelf at the counter, so the step still ends in the purchase it teaches.
 - Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it.
 
-It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
+It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. A snapshot repaints the hub only when something it shows changed, at most about once a second (an action waiting on its answer repaints at once): rebuilding every card ten times a second read as flickering text (owner, 2026-10-17). `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
 
 ## UI removed with runes and traits (2026-10-12)
 
