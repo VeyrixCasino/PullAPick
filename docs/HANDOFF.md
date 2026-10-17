@@ -231,6 +231,8 @@ task in the project.**
 
 ## 2.9 House style, so the next agent matches
 
+- **Ask first, always (2026-10-08).** The owner wants to be hounded with questions so
+  nothing is EVER unclear. If you would otherwise be guessing, ask. Rules: `CLAUDE.md`.
 - Comments explain **why**, and name the bug that caused the code to exist. The
   codebase is written this way throughout; match it.
 - Never invent a balance number silently. Derive it from existing data

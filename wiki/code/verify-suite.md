@@ -51,6 +51,23 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
   `node tools/verify/tool-dps.js`, or use Git Bash for `suite.sh`. Never chain
   with `&&` ([local-setup](local-setup.md)).
 
+## Result at `98c141a` (run 2026-10-16 in a Linux cloud container, after merging the owner's working branch)
+
+**66 checks. 64 passed and 2 failed on the first run; 66 passed on the second.** `syntax.sh`:
+273 files, no syntax errors. `compile.js`: `MineServer` 12 and `MineClient` 11 top-level
+locals left. The two first-run failures are fresh-checkout effects, not regressions:
+
+- `generated-fresh` fails once on a clone with no `build/depth-sheet.json` (see below).
+- **`skins` fails once on a Linux checkout.** `tools/gen/skins.js` writes `MineSkins.luau`
+  with **CRLF** (`lua.join("\r\n")`), and the check asserts "regenerating is byte-identical".
+  Git stores the file as LF (`git ls-files --eol` says `i/lf`). I infer the owner's Windows
+  checkout is CRLF, which would explain why it passes there; I have not seen that machine. On Linux the first run rewrites the tracked file to CRLF and fails, and the second
+  run passes. **Do not commit that rewrite**: `git checkout -- src/ReplicatedStorage/Mine/Shared/MineSkins.luau`.
+
+Checks documented below are the ones whose rows I kept or wrote; the suite has more than the
+table lists (for example `fishing`, `enchants`, `forge-hub`, `today`, `set-pets`), which the
+owner's session added without a row here.
+
 ## Result at `299dd2c` (run 2026-10-10 on the owner's Windows machine)
 
 **54 passed, 0 failed, 0 did not run, 0 known failures.** The newest check is `daily-wheel`.
@@ -89,6 +106,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 
 | check | asserts |
 |---|---|
+| `askfirst` | the owner's ask-first rule is present at every agent entry point (`CLAUDE.md`, `AGENTS.md`, `house-rules.txt`, the pasted prompts, the Claude.ai text, TODO §0.35); the `UserPromptSubmit` and `SubagentStart` hooks exist, are plain single-quoted `echo`s PowerShell can run, and the subagent one is `additionalContext` JSON; the old soft rule has not come back |
 | `bignum` **L** | `MineBigNum` and `MineAbbrev.currency` agree: 4 significant figures, always floored |
 | `breaking` | the ORE_REACH +15 rule matches in `MineBreaking.blockStrength` (the gate) and `MineConfig.canBreakOre` (the UI) |
 | `build-stamp` | every `MineBuild.EXPECT` module exists and says what the player loses. The client calls `announce()`. |
@@ -99,6 +117,9 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
 | `daily-wheel` **L** | the daily wheel: weights sum to 100, the 16 slice ids are unchanged, every slice prints odds, a free spin gives a pet at most 10% of the time, the daily allowance (base, group, streak), a UTC-day reset, and a landing on the rolled slice from any start angle. Source checks: the lobby build is live, rebirth keeps the field, a spin saves, free spins go first and paid spins obey `PolicyNoRandom`, and the world wheel spins on the client. Added 2026-10-10. |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |
+| `economy-exploits` **L** | the depth-desk sell curve never decreases with depth and no desk pays less than the surface, and no (forged-at, scrapped-at) pair beats a full climb. **Executes** the real functions and keeps the pre-fix arithmetic to prove the exploit was real. |
+| `launch` **L** | the season is a duration: before launch `seasonNow()` is pinned to `SEASON_START`, after launch it advances from `launchedAt` (a year-late launch gives the same first week), the cosmetic teaser falls and rolls over, the three `SEASON_START` constants agree **and the pass, offers and Event Horizon run the same length (47 days)**, the save happens before the announcement, a failed read or save leaves it unlaunched, `launchSeason` is reachable, **the launch stamp is mirrored to clients only after it is saved, and no client hands the raw server clock to the pass countdown** |
+| `oreframes` **L** | the baked `MineOreTools.FRAME_STATS` and `typeMult` steps equal what the priced roster supplied (2,460 values, 0 mismatches), so the roster can be deleted |
 | `tool-dps` | TODO B1/B2 DPS table for forged families: prints single-block `dps` and full-footprint `edps`; asserts pick faster than hammer, hammer crowns single-block `dps`, jackhammer ≈ drill, area on drills/explosives, line depth baked, and same-grade explosives top `edps`. Pure JS. Added 2026-10-13; retuned 2026-10-14. |
 | `dmg-live` **L** | runs `toolTierPower` in real declaration order |
 | `forge-snap` | the Forge reads no snapshot field the shop does not pass it |
@@ -124,8 +145,10 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `stats` **L** | `MineStats.STATS`, `STAT_ORDER`, `emptyBoosts` and `ADDITIVE_STATS` agree |
 | `runes-retired` | runes, scrolls, sockets and tool traits stay retired (2026-10-12): the five modules are deleted and nothing requires them; no rune, scroll or trait verb; `boosts()` pays none; old saves drop the fields; the pass, Founders pack and wheel pay books where they paid scrolls and runes; the tutorial and quests teach enchants; the Enchanter keeps Summon / Temper / Salvage / Dust; runes are not a trade kind; the rune cases are gone. Replaces the deleted `traits` **L** check (`tools/verify/traits.js`), which pinned the trait rules. |
 | `text-motion` | text never rides a scale animation: `MineUI.pulse` gives anything with text a ring pulse (a text-free ring scales, the thing holds still), `popNumber` lights the outline instead of popping a size, and the Forge hub repaints on a snapshot only on a real change, at most about once a second. Pure JS. Added 2026-10-17 (owner: *"the font sizes flicker"*). |
+| `trader` **L** | the wandering-trader rules: 5 distinct placements and no collisions over thousands of rotations, flat visit spread, a trader cannot stock a case outside its depth gate (and the deep spot can), prices rise with depth and zone and never fall below base, the charm and hat cases follow the chest/temper ladders; statically, that the outpost list is **sorted** before placement, `buyTraderCase` re-derives the roster, checks the shelf and takes the price from the shelf row, trader parts are non-query and non-shadow, and the panel's countdown ticks on `RunService.Heartbeat` |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |
+| `ui-scale` | the shipped `refreshMineUiScale` rule (parsed from the client) fits every fixed panel on twelve displays, and lists the displays where no scale can help as outstanding panel work |
 | `veins` **L** | the vein lattice keeps per-block ore density unchanged, the size distribution matches the owner's spec, and the field is re-rolled per server |
 | `chunkload` **L** | generation stops at the open chunk, the far path does not claim the frontier, and layer 1 differs per server cell by cell |
 | `compile` | every file passes `luau-compile`, and the two big scripts have top-level-local headroom left |

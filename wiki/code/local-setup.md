@@ -2,7 +2,7 @@
 title: Local setup on the owner's machine
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - docs/HANDOFF.md §1
   - docs/START-HERE.md §1, §6, §8, §9
@@ -104,8 +104,24 @@ a bash, such as Git Bash *(the owner's setup is unverified)*.
   `node tools/*.js`, `rojo`, `rokit` and the read-only git commands
 - Added in the wiki commit just after `26036a0`:
   - `Edit(wiki/**)`
-  - a `UserPromptSubmit` hook that repeats the clarify-first rule on every prompt
   - the `/wiki` skill under `.claude/skills/`
+  - two hooks that carry the owner's "ask first, always" rule (TODO §0.35):
+    - `UserPromptSubmit`: prints the rule on every prompt. Seen firing in this
+      session.
+    - `SubagentStart`: prints it as `hookSpecificOutput.additionalContext` JSON.
+      Subagents never see the prompt hook, so they need their own.
+  - **How well the subagent hook was tested (2026-10-08):** a plain-text `echo`
+    was not seen by an `Explore` subagent. The JSON form **was** seen by a
+    `general-purpose` subagent (it quoted a sentence that is only in the hook, and
+    said its context also held `CLAUDE.md`), and was **not** seen by an `Explore`
+    one (tested twice, once per form). So: general-purpose subagents are covered
+    by the hook and `CLAUDE.md`; built-in `Explore` research agents are not covered
+    by the hook, so a parent agent must put the rule in their prompt. The
+    hook commands are plain single-quoted `echo`s with no `&&` and no angle
+    brackets, so they should run under bash and PowerShell; **not tried under
+    PowerShell.**
+  - `tools/verify/askfirst.js` fails if any agent entry point loses the rule or a
+    hook becomes something PowerShell cannot run.
 
 **`.claude/launch.json`:** one config, "tools", which runs `node tools/serve.js`
 on port 7421 ([tools-and-generators](tools-and-generators.md)).

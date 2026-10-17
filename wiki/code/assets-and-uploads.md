@@ -2,7 +2,7 @@
 title: Assets and uploads
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - docs/TODO.md §2, §6.3, §7, §9
   - docs/START-HERE.md §6
@@ -35,6 +35,12 @@ related: [tools-and-generators, rojo-and-studio, owner, charms, ores, open-quest
   personal account (named in TODO §7), **stop and upload again as the group**.
   Roblox cannot move assets between user and group inventories, so an upload to
   "My Inventory for now" is permanent.
+  - **But wait before you conclude it is an ownership problem.** On 2026-10-05
+    the 88 pickaxe icons "could not load" and an agent blamed a personal-account
+    upload and sent the owner off to bulk-import. Re-tested two hours later, the
+    same ids loaded: it was **moderation latency**, not ownership (`97c42ac`).
+    The console's *"doesn't have access permission"* wording during that window is
+    misleading. Re-test after a couple of hours before re-uploading.
 - **Naming:** `mfc_<feature>_<name>_vN`, for example `mfc_pack_loam_v2`. Use
   feature folders in the group inventory (`packs/`, `tools/`, `ui/`, `audio/`).
   Version the name, or replace the id in code. Never re-upload under a generic name.

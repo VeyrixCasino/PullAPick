@@ -158,7 +158,9 @@ const PATH_RE = /^(src|docs|roadmap|tools|build|wiki|\.claude|\.vscode)\/[^\s*<>
 const GONE_RE =
   /deleted|removed|retired|renamed|not in (the )?repo|not in git|not committed|gitignored|untracked|place[- ]file|studio[- ]only|does not exist|no longer|proposed|suggest|would|planned|was /i;
 // Owner-disk folders: real, but never in a clone.
-const OFFLINE_RE = /^(transcripts|mine-for-cards-transcripts|tools\/export\/in|\.luau-bin)(\/|$)/;
+// build/hammer-icons and build/tool-icons are untracked generator output (the share-list
+// and state files the icon scripts write); they exist on the owner's disk only.
+const OFFLINE_RE = /^(transcripts|mine-for-cards-transcripts|tools\/export\/in|\.luau-bin|build\/(hammer-icons|tool-icons))(\/|$)/;
 
 const cleanPath = (s) =>
   s

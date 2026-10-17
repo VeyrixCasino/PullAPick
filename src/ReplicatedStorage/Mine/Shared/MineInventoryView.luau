@@ -7370,9 +7370,11 @@ function MineInventoryView.mount(parent, opts)
 		stroke(clockRow, 1, GOLD, 0.55)
 		label(clockRow, "SEASON ENDS IN", 10, MUTED, UDim2.fromOffset(12, 3),
 			UDim2.new(1, -24, 0, 12), FONT, Enum.TextXAlignment.Center)
-		local timerLbl = label(clockRow, Scrolls.formatPassClock(workspace:GetServerTimeNow()), 17, GOLD,
+		-- Season time, not the raw server clock: the pass waits for launch, and a
+		-- countdown on the calendar would read SEASON OVER mid-season.
+		local timerLbl = label(clockRow, Scrolls.formatPassClock(Scrolls.seasonClock(workspace:GetServerTimeNow())), 17, GOLD,
 			UDim2.fromOffset(12, 13), UDim2.new(1, -24, 0, 20), FONT, Enum.TextXAlignment.Center)
-		local endLbl = label(clockRow, "Oct 31 · 11:59 PM ET", 10, MUTED,
+		local endLbl = label(clockRow, Scrolls.passEndLabel(), 10, MUTED,
 			UDim2.new(1, -150, 0, 11), UDim2.fromOffset(140, 14), nil, Enum.TextXAlignment.Right)
 		endLbl.TextTransparency = 0.25
 		passTimerGen = (passTimerGen or 0) + 1
@@ -7380,15 +7382,20 @@ function MineInventoryView.mount(parent, opts)
 		task.spawn(function()
 			local pulse = false
 			while timerGen == passTimerGen and timerLbl.Parent do
-				local now = workspace:GetServerTimeNow()
+				local now = Scrolls.seasonClock(workspace:GetServerTimeNow())
 				timerLbl.Text = Scrolls.formatPassClock(now)
 				local left = Scrolls.passSecondsLeft(now)
 				if left <= 0 then
 					endLbl.Text = "Next season is live"
-				elseif left < 86400 then
-					-- Final day: pulse red so nobody misses the deadline.
-					pulse = not pulse
-					timerLbl.TextColor3 = pulse and Color3.fromRGB(255, 96, 96) or GOLD
+				else
+					-- Re-read every tick: a launch mid-session turns
+					-- "Starts at launch" into the real end date.
+					endLbl.Text = Scrolls.passEndLabel()
+					if left < 86400 then
+						-- Final day: pulse red so nobody misses the deadline.
+						pulse = not pulse
+						timerLbl.TextColor3 = pulse and Color3.fromRGB(255, 96, 96) or GOLD
+					end
 				end
 				task.wait(1)
 			end

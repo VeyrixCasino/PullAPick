@@ -135,8 +135,8 @@ Code pages use the same frontmatter and pick whichever sections fit.
 The source can be a doc, a PR, a merged branch, a transcript folder or an
 owner message.
 1. Read it in full. If it is big or ambiguous, tell the owner the 3–5 takeaways
-   you plan to file and ask whether anything is wrong. Use the clarify rules in
-   `CLAUDE.md`.
+   you plan to file and ask whether anything is wrong. Follow "Ask first, always"
+   in `CLAUDE.md`.
 2. Update every page it touches. One source often touches many pages. Create a
    page only for a topic that will come up again.
 3. Bump `verified` on every page you re-checked against code.

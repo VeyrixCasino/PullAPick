@@ -101,10 +101,11 @@ multiply ([boosts-and-stats](systems/boosts-and-stats.md)).
 
 ## State of things (2026-10-05)
 
-- The newest work is on `claude/vigilant-fermi-aucqjy`, open as draft PR #6,
-  roughly 100 commits ahead of `main`. **Almost none of it has been run in
-  Roblox.** One change was confirmed in-engine
-  (`docs/START-HERE.md` §5; TODO §0.32).
+- The newest work is on `claude/vigilant-fermi-aucqjy`, open as PR #8 (PR #6 was merged
+  into `main` on 2026-10-06), about 145 commits ahead of `main`. This wiki follows
+  that branch. Many recent commit messages report Studio play-tests, so "has it run in
+  Roblox?" is **per feature**: read the commit message or the page's "State right now".
+  (`docs/START-HERE.md` §5 is older and says almost none has.)
 - The audit found about **1 line in 6 unreachable**. Some features are
   archived or cut ([retired-and-parked](systems/retired-and-parked.md)).
 - What is still undecided lives in [open-questions](open-questions.md) and

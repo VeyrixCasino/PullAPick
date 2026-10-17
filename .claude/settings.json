@@ -65,7 +65,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Clarify-first rule (standing instruction from the owner): if this request is broad, ambiguous, uses a word from wiki/ambiguous-terms.md without context, or needs a number or taste call the owner has not made, ask 1-4 short questions with options and your recommended default BEFORE doing the work. If it is clear and small, just do it. Use wiki/index.md for context first.'",
+            "command": "echo 'ASK FIRST (standing instruction from the owner): they want to be hounded with questions so nothing is EVER unclear. If you would otherwise be guessing what they want or mean, ask, however small. For any non-trivial work: look in the repo first, restate your understanding in 1-3 lines, then ask every question you need in one batch (grouped by topic, multiple choice, your recommended default first, no cap) and wait for answers. Do not ask what the repo can answer or re-ask rules locked in docs/TODO.md section 0, but do ask whether one applies. If nobody can answer, do only safe reversible steps and queue the questions. Full rules: CLAUDE.md.'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SubagentStart\",\"additionalContext\":\"ASK FIRST (standing instruction from the owner): they want to be hounded with questions so nothing is EVER unclear. You are a subagent and cannot reach the owner. If anything about your task is unclear or you would be guessing what they want, do not guess: put your questions at the top of your final report, grouped by topic, each with options and a recommended default, so the parent agent can ask. Meanwhile do only safe, reversible work. Do not ask what the repo can answer. Full rules: CLAUDE.md.\"}}'",
             "timeout": 5
           }
         ]

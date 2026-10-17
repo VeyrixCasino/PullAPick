@@ -10903,6 +10903,23 @@ function Verbs._loadLaunch()
 		Dig.Launch.launchedAt = 0
 		print("[Mine] season NOT launched yet -- clock pinned to season start")
 	end
+	Verbs._mirrorLaunch()
+end
+
+--[[
+	Clients never run _loadLaunch, so the stamp is mirrored onto
+	ReplicatedStorage for MineLaunch.stamp() to read there. Without it every
+	client sat at second zero after a launch: week one's offers in the shop
+	(which the server then refused), frozen sale and event countdowns.
+	Called only with a value the server already holds, i.e. after a successful
+	read or save, never before.
+]]
+function Verbs._mirrorLaunch()
+	local at = math.floor(tonumber(Dig.Launch.launchedAt) or 0)
+	pcall(function()
+		game:GetService("ReplicatedStorage"):SetAttribute(Dig.Launch.ATTRIBUTE or "MineLaunchedAt",
+			at > 0 and at or nil)
+	end)
 end
 
 --[[
@@ -10939,6 +10956,9 @@ function Verbs.launchSeason(plr)
 		return
 	end
 	print(("[Mine] SEASON LAUNCHED by %s (%d) at %d"):format(plr.Name, plr.UserId, at))
+	-- Saved first, mirrored second: a client must never see a launch the
+	-- datastore does not hold.
+	Verbs._mirrorLaunch()
 	net:FireClient(plr, "toast", "Season launched. The clock is running.")
 end
 

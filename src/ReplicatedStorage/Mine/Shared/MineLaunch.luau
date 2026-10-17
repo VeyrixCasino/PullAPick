@@ -62,8 +62,44 @@ MineLaunch.SEASON_START = 1790049600
 -- over and starts again; the number only has to look alive.
 MineLaunch.TEASER_PERIOD = 86400
 
+--[[
+	CLIENTS NEVER RUN THE SERVER'S LOAD, so they cannot know launchedAt by
+	themselves. Without this, every client copy of this module sat at second
+	zero forever: after a launch the shop kept showing week one's offers (which
+	the server then refused as not live), the limited sale and Event Horizon
+	countdowns never moved, and nothing on screen agreed with the server.
+
+	The server mirrors the stamp onto ReplicatedStorage as an attribute (set in
+	Verbs._loadLaunch and Verbs.launchSeason, only after the save succeeded), and
+	a CLIENT reads it from there. The server never reads the mirror: its own
+	field is the authority, so a rolled-back failed launch cannot be revived by
+	a stale attribute. Outside Roblox (the harness) there is no `game`, and this
+	is simply the field.
+]]
+MineLaunch.ATTRIBUTE = "MineLaunchedAt"
+
+-- The launch moment this machine should use: the field on the server, the
+-- replicated mirror on a client. 0 means not launched.
+function MineLaunch.stamp()
+	local at = math.floor(tonumber(MineLaunch.launchedAt) or 0)
+	if at > 0 then
+		return at
+	end
+	if typeof(game) == "Instance" then
+		local okRun, RunService = pcall(game.GetService, game, "RunService")
+		if okRun and RunService and RunService:IsClient() then
+			local okRS, RS = pcall(game.GetService, game, "ReplicatedStorage")
+			local v = okRS and RS and tonumber(RS:GetAttribute(MineLaunch.ATTRIBUTE))
+			if v and v > 0 then
+				return math.floor(v)
+			end
+		end
+	end
+	return 0
+end
+
 function MineLaunch.isLaunched()
-	return (tonumber(MineLaunch.launchedAt) or 0) > 0
+	return MineLaunch.stamp() > 0
 end
 
 --[[
@@ -75,7 +111,7 @@ end
 ]]
 function MineLaunch.seasonNow(realNow)
 	local t = math.floor(tonumber(realNow) or os.time())
-	local at = math.floor(tonumber(MineLaunch.launchedAt) or 0)
+	local at = MineLaunch.stamp()
 	if at <= 0 then
 		return MineLaunch.SEASON_START
 	end

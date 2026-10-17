@@ -10,7 +10,7 @@ This skill is the short operating procedure.
 
 Arguments: `/wiki <mode> [target]`. Modes are `ingest`, `query`, `lint` and
 `status`. With no mode, infer it from the request. If you cannot tell which one
-the owner wants, **ask**; see "Ask before you assume" in `CLAUDE.md`.
+the owner wants, **ask**; see "Ask first, always" in `CLAUDE.md`. The owner wants to be hounded with questions so nothing is ever unclear.
 
 ## ingest `<source>`
 
@@ -21,8 +21,8 @@ The source can be a doc path, a PR number, a branch, `transcripts/`,
    branches. Open PRs often hold newer work than `main`.
 2. Read the source in full. For transcripts and exports, read them only because
    the owner asked, and never copy them into tracked files; see `CLAUDE.md`.
-3. Before writing, tell the owner the 3–5 takeaways you plan to file. Ask about
-   anything ambiguous. Skip this step for a small, clear source.
+3. Before writing, tell the owner the takeaways you plan to file and ask about
+   anything you would otherwise be guessing. Do this even for a small source.
 4. Update every page the source touches, and create pages only for recurring
    topics. Cite paths and symbols, and bump `verified:` on every page you
    re-checked against code.

@@ -125,7 +125,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
 | 21 | **FIXED in `b0c2430`: family tempers did nothing on forged tools.** `boosts()` gated `p.toolTempers[fam]` on `(tier or 0) > 0`, but `equippedTool` returns look-rung `0` for forged ore tools (ore tier is not that return). Gate now accepts `row.oreTool` / `row.oreTier`. `tools/verify/layers.js` pins it. | *Read* in code | [skins-cases-and-temper](systems/skins-cases-and-temper.md); `MineServer.boosts` |
 
-## 1b. Found 2026-10-06/07, measured, not yet decided
+## 1b. Found 2026-10-06 to 08, measured or read, not yet decided
 
 These were found while doing other work and are **recorded rather than fixed**,
 because each moves the economy in more than one place. Measured figures are in
@@ -137,6 +137,9 @@ because each moves the economy in more than one place. Measured figures are in
 | 18 | **The legacy ore-pack path and the live drop path disagree about the ore finder.** Pack conversion does `each = mid * (1 + oreFind)` — a straight quantity multiplier — while the live drop deliberately does not. One of the two is wrong about the design rule. | *Read* in code | [ores](systems/ores.md), [boosts-and-stats](systems/boosts-and-stats.md) |
 | 19 | **`MineDigAuth.canDigLayer` ends in an unconditional `return true`**, so every entitlement check above it is unreachable. This is deliberate for mining and was silently load-bearing for crediting; `canCreditDepth` now carries the strict half (see [zones-layers-and-seams](systems/zones-layers-and-seams.md)). **The dead checks in `canDigLayer` are still dead** — worth deciding whether they should be deleted or re-enabled, because right now they read as protection that does not exist. | *Read* in code | `MineDigAuth.canDigLayer` |
 | 20 | **A 6,500-block first tool.** With stone's surface share raised to hit the owner's 1-vein-per-3,000 target, the cheapest craftable tool costs ~6,500 blocks broken (was 13,500). Not obviously wrong, but it is the first number a new player meets and nobody has signed off on it. | measured | `docs/ore-yield-and-vein-balance.md` §2 |
+| 21 | **FIXED 2026-10-17: the battle pass ended a week before the offers.** `PASS_SEASON_END` was 40 days after the start while the offers and Event Horizon run 47; it is now 47 too, and `launch.js` pins the three lengths. The same change mirrors the launch stamp to clients (they never learned it, so after a launch they would have shown week one's offers and frozen countdowns) and puts the pass panel on the season clock. Owner: *"do what you think is best for the game"*. | *Read*, pinned by `launch.js` (proved to fail on the old code); not yet run in Studio | [season-and-launch](systems/season-and-launch.md) |
+| 22 | **DECIDED 2026-10-17: Chest Luck scales the chest charm drop, and that stays.** `CHARM_CHEST_CHANCE × b.chestLuck`, the same multiplier every other chest reward uses (cases, skins, book bundles, packs). There is **one charm slot**, so wearing one of the five Chest Luck charms means not wearing a power charm: a trade-off, not a free loop. (My earlier note that a code comment denies this was a misreading: that comment is about the `luck` stat, which the chest roll does not use.) | *Read* | [charms](systems/charms.md) |
+| 23 | **How long is the battle pass season: 28, 40 or 47 days?** Three numbers now disagree. `d258771` (the pass rework, owner 2026-10-16: *"about 2 weeks no daily xp cap"*) sets the XP pace to about two weeks and adds `MineScrolls.PASS_SEASON_DAYS = 28`, which **nothing reads**. The pass's own end on that branch is still 40 days. PR #7 makes it 47 to match the offers and Event Horizon (decided on the owner's 2026-10-17 *"do what you think is best"*, before I saw the rework). Recommended: 47, so the pass, offers and Event Horizon end together, with "about 2 weeks" as the pace to finish it. | *Read* | [season-and-launch](systems/season-and-launch.md) |
 
 ## 2. Where the owner's rules and the code disagree
 
@@ -169,6 +172,8 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
   consumables, outpost shops) is unsigned.
 - **Are skins cosmetic or a power source?** Docs disagree (`ROADMAP` wrap-only
   vs TODO §0.13 / §0.19 and live `MineSkins` / `MineTemper` kits). Do not invent.
+- **Battle pass season length (finding 23):** 47 days with the offers (recommended), 28
+  (`PASS_SEASON_DAYS`, unused), or 40 (the current end on the working branch)?
 - **One charm per ore, or two?** Is the ~24 hand-authored charm rewrite (AUDIT)
   approved? Should charms sit in a boost layer?
 - **Pack pity and the Exotic floor:** build them, or keep "no pity"?

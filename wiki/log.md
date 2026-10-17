@@ -169,6 +169,80 @@ Running luau-analyze over the touched files found reads of undefined globals:
 
 Updated: chests-and-lucky-blocks, verify-suite, log.
 
+## [2026-10-08] ingest | main after PR #6 merged (9 commits since b19c4c2)
+Asked "are we good to go?", I found PR #6 merged into `main` on 2026-10-06
+(`ea255bb`) and its branch nine commits past the last ingest, so PR #7 pointed at
+a stale base and the wiki described old code. Merged `main` into this branch (no
+conflicts) and read all nine commit messages. The owner's session had **fixed
+three more of the wiki's findings**: depth desks (bug 5) and the recycle loop
+(bug 3) in `4cc82a5`, and the 200-local ceiling (bug 15) with a new `compile.js`
+check in `5d59714`. I read the new code to confirm each and ran `compile.js`
+(5 and 7 registers left). Other ingests: 246 per-ore tool skins, forge frame
+stats baked so the coin tool roster can be deleted, UI rescale, vein cost and
+random-mine fix, first layers mostly stone, pet bob rate, shadows (a Studio-only
+change), the Rojo stale-sync gotcha, and a correction that the 2026-10-05 upload
+"ownership" problem was moderation latency. Suite: **40 passed, 0 failed, 0 did not
+run** (was 36; new checks `compile`, `economy-exploits`, `oreframes`, `ui-scale`).
+Owner's newest decisions are in [owner](owner.md). Still open: bugs 4 and 6-13 and
+16 in [open-questions](open-questions.md). Retargeted PR #7 to `main`.
+
+## [2026-10-08] refactor | ask first, always: a stronger rule for ALL agents
+The owner said: *"from now on i want ALL agents to fucking hound me with questions
+so noithing is EVER unclear"*. That replaces the softer 2026-10-05 rule. Rewrote
+"Ask first, always" in `CLAUDE.md` (no cap on questions, restate before starting,
+ask the moment a new doubt appears, list assumptions at the end, and what to do when
+nobody can answer) and added it to `AGENTS.md`, `tools/agent/house-rules.txt`, the
+pasted prompts in `docs/START-HERE.md` and `docs/FABLE-PROMPT.md`,
+`roadmap/AGENT_PROMPT.md`, `roadmap/PROMPTS.md`, `docs/HANDOFF.md`, TODO §0.35 and
+§9, and the Claude.ai text. Replaced the `FABLE-PROMPT` line that said to ask only
+"one sharp question rather than guessing or stopping". Added a `SubagentStart` hook
+beside the prompt hook, and `tools/verify/askfirst.js` (proved to fail on a broken
+copy). Subagent coverage was tested rather than assumed: the JSON hook reached a
+general-purpose subagent, and did not reach the built-in `Explore` type (see
+[local-setup](code/local-setup.md)). Four design points were applied on my defaults
+and put to the owner as questions: the cap, locked rules, unattended runs, and
+restating before work.
+
+## [2026-10-08] query | owner confirms the four ask-first design points
+Asked the owner four open design points about the ask-first rule (question cap,
+locked rules, unattended runs, restating first). Every answer was the recommended
+default, which was already live, so no rule changed. Recorded in [owner](owner.md)
+and TODO §0.35. Found while checking the branches: the owner's working branch
+`claude/vigilant-fermi-aucqjy` holds an older merge of this wiki (`c04adad`) plus its
+own ingest (`c9b93c6`), and does not have the ask-first rule or hooks. Reconciling
+the two lines is an open question for the owner (5 wiki files would conflict).
+
+## [2026-10-08] refactor | the wiki now follows the owner's working branch
+The owner chose (asked twice) that the wiki follows `claude/vigilant-fermi-aucqjy`,
+that the ask-first rule reaches their branch through a PR their other session merges
+(never a push from here), and that conflicts resolve as "merge both; theirs wins on
+code facts". Merged that branch (`bae3c5b`) into this one (`06b5f89`). Five pages
+conflicted: `ores` (their rebuilt Veins block won; my K 0.228/0.353/0.434 figures were
+stale because `ORE_K_TOP` is now 0.040 after `41d8f3a`, so I replaced them), `open-questions`
+(kept my rows 3, 5 and 15 for the commit hashes and measurements, added their "caught the
+same break twice more"), `verify-suite`, `zones-layers-and-seams` and this log. After the
+merge: `wiki.js`, `askfirst.js` and `syntax.sh` clean, and the suite is **45 passed, 0
+failed, 0 did not run**, with `compile.js` at 5 and 7 registers left (215 files).
+
+## [2026-10-08] ingest | the owner's session: 36 charms, traders, season hold (`b09cc4a`..`bae3c5b`)
+Eight commits the other session's own ingest (`c9b93c6`) predates. Read the code, not only
+the messages. New pages: [wandering-traders](systems/wandering-traders.md) and
+[season-and-launch](systems/season-and-launch.md). Updated: charms (the 36 graded charms,
+their two ways in, prices), chests-and-lucky-blocks (the 0.5% drop), shops-and-monetisation,
+skins-cases-and-temper (new temper-token sinks), world-events (the season-end gotcha was
+stale: offers now end 11-08), tools, glossary, ambiguous-terms (`launch`, `trader`,
+`charm`, `tokens`), index, overview, owner, sources-of-truth, server, client-and-ui,
+code-map, tools-and-generators, verify-suite (`launch`, `trader`; 45 checks, 22 run the luau
+binary) and open-questions.
+
+**Four findings from reading the code, none fixed** ([open-questions](open-questions.md)
+§1b, #21–#24): nothing in `src/` sends `buyCharm`, so the token half of the graded charms
+has no shop; nothing sends `launchSeason`, so the owner has no launch button; the battle
+pass ends 2026-11-01 while the offers end 11-08; and Chest Luck raises the chest charm drop
+though a code comment says it does not. Also reframed bug 4 (Event Horizon) as the owner
+did in TODO §6.1: a missing progression, not a breaking-power bug. Not rechecked: the
+`ToolModels` archive move and anything not in the eight commits.
+
 ## [2026-10-10] decision | the red lucky block is "Godly Lucky Block"
 
 The owner answered "Godly everywhere". The block had three names: id
@@ -1403,3 +1477,54 @@ What changed:
 `tools/verify/battle-pass.js` runs the real track. The amounts and names are PROPOSED. Not yet seen in Studio: no place was open.
 
 Updated: shops-and-monetisation, pets, skins-cases-and-temper, open-questions, traits, log.
+
+## [2026-10-16] refactor | PR #7 rebuilt on the owner's branch, 144 commits later
+The owner's working branch had moved from `bae3c5b` to `98c141a` (PR #8, "Season 1 build",
+144 more commits, 269 files), and that branch's own wiki edits conflicted with mine in 20
+files. It still had **no ask-first rule**: no `CLAUDE.md` section, no hooks, no
+`askfirst.js`. I asked four questions; the owner answered *"ok build"*, which I read as a go
+ahead on my recommended defaults: merge, take **their** version of every conflicted wiki page,
+re-add only mine. Re-added: the "Asking them questions" section and the 2026-10-07/08 decision
+lines in `owner`, the intro and the `launch`, `trader` and `charm` rows in `ambiguous-terms`,
+six verify-suite rows (`askfirst`, `launch`, `trader`, `economy-exploits`, `oreframes`,
+`ui-scale`), my five 2026-10-08 log entries (in date order), the two new pages, and two
+findings that still hold (open-questions 21 and 22). **Dropped as already fixed upstream:** my
+findings that nothing sent `buyCharm` (`69f3de6` put the token shop in the Inventory charm list)
+and that nothing sent `launchSeason` (`cc0262f` added `/admin launch now`). Corrected stale
+statements in `charms`, `world-events`, `season-and-launch`, `sources-of-truth` and `overview`
+(PR #6 was merged; the Event Horizon window now reads the season clock). `wiki.js` now treats
+`build/hammer-icons` and `build/tool-icons` as owner-disk-only. Suite: **66 checks, 66 passed on
+the second run**; the first run's `skins` failure is a CRLF/LF artefact of a Linux checkout
+(see [verify-suite](code/verify-suite.md)). Nothing under `src/` is changed.
+
+## [2026-10-17] decision | the four open questions, decided for the players
+The owner: *"do what you think is best for the game [for the players.. we pushing this to
+come out asap]"*. Applied to the four questions left open on 2026-10-16:
+(1) graded charms from chests stay, and TODO §0.13 rule 5 now records the 2026-10-07
+exception; (2) Chest Luck keeps scaling the 0.5% chest charm drop, like every other chest
+reward, because one charm slot makes it a trade-off (my earlier "a comment denies it" was a
+misreading: that comment is about `luck`); (3) the battle pass runs 47 days like the offers
+and Event Horizon (`PASS_SEASON_END` 1793505600 → 1794110400); (4) the wiki is edited by
+merging first and only adding gaps.
+
+Checking (3) turned up a **launch-day bug** that I fixed in the same change: clients never
+learned `launchedAt`, so after a launch the shop would have shown week one's deals (which the
+server refuses), and the battle pass panel counted down on the raw server clock to a printed
+"Oct 31". The server now mirrors the stamp to `ReplicatedStorage` (`MineLaunchedAt`) after a
+successful read or save, `MineLaunch.stamp()` reads it on clients only, and the pass panel uses
+`MineScrolls.seasonClock` and `passEndLabel`. `launch.js` gained nine checks, proved to fail on
+the old code and pass on the new. **Not run in Studio.** Updated: season-and-launch, charms,
+open-questions (21 fixed, 22 decided), owner, verify-suite.
+
+## [2026-10-17] refactor | merged the pass rework (`d258771`) into PR #7
+The working branch moved to `d258771` (5 commits: the battle pass rework, drills, text
+animation, hammer and explosive niches, a restore point). Merged it into this branch: three
+wiki pages conflicted (`tools-and-generators`, `verify-suite`, `log`), took theirs and
+re-added only this branch's rows and log entries. The code merged without conflict, and
+both sides survive: their 100-tier pass at 90 XP a tier, my season clock and 47-day end.
+**One new ambiguity, asked, not decided:** the rework added `PASS_SEASON_DAYS = 28`
+(unused), the branch's pass ends at 40 days, and this PR says 47
+([open-questions](open-questions.md) 23). Checks: `launch` and `battle-pass` pass,
+`syntax.sh` 306 files clean, compile 12 and 11 locals left, suite 70/70 on the second run
+(first-run `skins` is the CRLF effect). Their `log.md` holds four bytes that are not valid UTF-8
+(Windows-1252 `…` and `×`, in the MineStars entry); I kept them as they were.

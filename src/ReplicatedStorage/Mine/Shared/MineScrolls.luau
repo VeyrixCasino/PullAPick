@@ -353,20 +353,66 @@ function MineScrolls.emptyPass()
 	return { xp = 0, owned = false, free = {}, prem = {}, day = "", dayXp = 0, season = MineScrolls.PASS_SEASON_ID }
 end
 
--- Season runs 2026-09-22 00:00 ET through 2026-11-01 00:00 ET
--- (EDT, UTC-4). Oct 31 is a full day. The clock hits zero at midnight.
+--[[
+	THE PASS IS 47 DAYS LONG, and these two numbers are a LENGTH, not dates.
+
+	MineLaunch pins the season clock to PASS_SEASON_START until the owner
+	launches, then runs it from that moment, so the pass ends 47 days after
+	launch whatever the calendar says. The constants still read as the original
+	calendar (2026-09-22 00:00 ET start) only so they line up with
+	MineRotatingOffers and MineConfig.LIMITED_DAYS.
+
+	It was 40 days. The offers got "ONE MORE WEEK, ON EVERYTHING"
+	(MineRotatingOffers.EXTEND_SEC) and Event Horizon runs LIMITED_DAYS = 47,
+	but the pass was missed, so it would have ended a week before the season it
+	belongs to. tools/verify/launch.js now pins the lengths together.
+]]
 MineScrolls.PASS_SEASON_ID = "2026-10"
 MineScrolls.PASS_SEASON_NEXT = "2026-11"
 MineScrolls.PASS_SEASON_START = 1790049600
-MineScrolls.PASS_SEASON_END = 1793505600
-MineScrolls.PASS_SEASON_LABEL = "through Oct 31, midnight ET"
+MineScrolls.PASS_SEASON_END = 1794110400
+-- No calendar date: the real end depends on when the season was launched.
+-- passEndLabel() gives the real one.
+MineScrolls.PASS_SEASON_LABEL = "when the countdown ends"
+
+--[[
+	THE SEASON CLOCK FOR A CLIENT. Pass it workspace:GetServerTimeNow().
+
+	Real server time is the wrong input for anything below: the pass is measured
+	on the season clock, which waits for launch. A client that handed the raw
+	server time to passSecondsLeft counted down to a calendar date while the
+	server's season had not begun, and would show SEASON OVER mid-season after a
+	late launch.
+]]
+function MineScrolls.seasonClock(realNow)
+	return Launch.seasonNow(realNow)
+end
+
+-- When the pass really ends, in the reader's own local time (os.date on a
+-- client is local). Before launch there is no date to give.
+function MineScrolls.passEndLabel()
+	local at = Launch.stamp and Launch.stamp() or 0
+	if at <= 0 then
+		return "Starts at launch"
+	end
+	local endsAt = at + (MineScrolls.PASS_SEASON_END - MineScrolls.PASS_SEASON_START)
+	-- "*t" rather than a strftime pattern, so the text is the same everywhere.
+	local t = os.date("*t", endsAt)
+	local months = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+	local h = t.hour % 12
+	if h == 0 then
+		h = 12
+	end
+	return string.format("%s %d · %d:%02d %s", months[t.month] or "?", t.day, h, t.min, t.hour < 12 and "AM" or "PM")
+end
 
 function MineScrolls.passSecondsLeft(now)
 	return math.max(0, MineScrolls.PASS_SEASON_END - (now or Launch.seasonNow()))
 end
 
 -- Live clock, always down to the second so the pass header visibly ticks.
--- `now` should be workspace:GetServerTimeNow() on the client.
+-- `now` is SEASON time: on a client pass seasonClock(workspace:GetServerTimeNow()),
+-- never the raw server time.
 function MineScrolls.formatPassClock(now)
 	local left = math.floor(MineScrolls.passSecondsLeft(now))
 	if left <= 0 then
@@ -387,7 +433,7 @@ function MineScrolls.formatPassTimer(now)
 	if left <= 0 then
 		return "Next pass is live"
 	end
-	return MineScrolls.formatPassClock(now) .. "  ·  ends " .. MineScrolls.PASS_SEASON_LABEL
+	return MineScrolls.formatPassClock(now) .. "  ·  ends " .. MineScrolls.passEndLabel()
 end
 
 -- Free and premium are separate claim ledgers. A season rollover wipes both,
