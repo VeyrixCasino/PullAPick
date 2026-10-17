@@ -1,68 +1,1021 @@
 {
   "key": "infernal_reign",
   "bodies": [
-    { "id": "ir_volcano", "label": "Volcanoling", "role": "Mystic" },
-    { "id": "ir_anvil", "label": "Anvil", "role": "Bruiser" },
-    { "id": "ir_furnace", "label": "Furnace", "role": "Trader" },
-    { "id": "ir_basaltoise", "label": "Basaltoise", "role": "Prospector" },
-    { "id": "ir_magmabull", "label": "Magma Bull", "role": "Striker" }
+    {
+      "id": "ir_volcano",
+      "label": "Volcanoling",
+      "role": "Mystic"
+    },
+    {
+      "id": "ir_anvil",
+      "label": "Anvil",
+      "role": "Bruiser"
+    },
+    {
+      "id": "ir_furnace",
+      "label": "Furnace",
+      "role": "Trader"
+    },
+    {
+      "id": "ir_basaltoise",
+      "label": "Basaltoise",
+      "role": "Prospector"
+    },
+    {
+      "id": "ir_magmabull",
+      "label": "Magma Bull",
+      "role": "Striker"
+    }
   ],
-  "extraBodies": ["golem", "lizard", "slime"],
-  "buffs": ["blastChance", "blastDamage", "dirtBreak"],
+  "topBodies": [
+    {
+      "id": "ir_t_bellows",
+      "label": "Forge Bellows",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        150,
+        92,
+        52
+      ]
+    },
+    {
+      "id": "ir_t_crucible",
+      "label": "Smelt Crucible",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        196,
+        120,
+        86
+      ]
+    },
+    {
+      "id": "ir_t_tongs",
+      "label": "Forge Tongs",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        150,
+        158,
+        176
+      ]
+    },
+    {
+      "id": "ir_t_kiln",
+      "label": "Brick Kiln",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        178,
+        90,
+        48
+      ]
+    },
+    {
+      "id": "ir_t_ladle",
+      "label": "Slag Ladle",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        128,
+        106,
+        94
+      ]
+    },
+    {
+      "id": "ir_t_grindstone",
+      "label": "Spark Grindstone",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        152,
+        148,
+        146
+      ]
+    },
+    {
+      "id": "ir_t_scuttle",
+      "label": "Coal Scuttle",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        96,
+        60,
+        40
+      ]
+    },
+    {
+      "id": "ir_t_chough",
+      "label": "Cinder Chough",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        44,
+        40,
+        52
+      ]
+    },
+    {
+      "id": "ir_t_scarab",
+      "label": "Forge Scarab",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        72,
+        152,
+        140
+      ]
+    },
+    {
+      "id": "ir_t_skink",
+      "label": "Ember Skink",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        124,
+        62,
+        156
+      ]
+    },
+    {
+      "id": "ir_t_marmot",
+      "label": "Pumice Marmot",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        208,
+        198,
+        184
+      ]
+    },
+    {
+      "id": "ir_t_lily",
+      "label": "Magma Lily",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        210,
+        30,
+        86
+      ]
+    },
+    {
+      "id": "ir_t_cricket",
+      "label": "Cinder Cricket",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        190,
+        230,
+        40
+      ]
+    },
+    {
+      "id": "ir_t_apron",
+      "label": "Smith Apron",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        126,
+        76,
+        48
+      ]
+    },
+    {
+      "id": "ir_t_chimney",
+      "label": "Soot Chimney",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        82,
+        80,
+        90
+      ]
+    },
+    {
+      "id": "ir_t_brazier",
+      "label": "Coal Brazier",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        198,
+        162,
+        78
+      ]
+    },
+    {
+      "id": "ir_t_trough",
+      "label": "Quench Trough",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        140,
+        164,
+        196
+      ]
+    },
+    {
+      "id": "ir_t_vise",
+      "label": "Bench Vise",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        40,
+        70,
+        200
+      ]
+    },
+    {
+      "id": "ir_t_portcullis",
+      "label": "Iron Portcullis",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        96,
+        110,
+        136
+      ]
+    },
+    {
+      "id": "ir_t_ibex",
+      "label": "Obsidian Ibex",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        46,
+        42,
+        58
+      ]
+    },
+    {
+      "id": "ir_t_echidna",
+      "label": "Cinder Echidna",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        152,
+        22,
+        54
+      ]
+    },
+    {
+      "id": "ir_t_triphammer",
+      "label": "Forge Triphammer",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        90,
+        100,
+        30
+      ]
+    },
+    {
+      "id": "ir_t_slagpot",
+      "label": "Slag Pot",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        110,
+        10,
+        10
+      ]
+    },
+    {
+      "id": "ir_t_sconce",
+      "label": "Iron Sconce",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        30,
+        120
+      ]
+    },
+    {
+      "id": "ir_t_caracal",
+      "label": "Ember Caracal",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        170,
+        120
+      ]
+    },
+    {
+      "id": "ir_t_obelisk",
+      "label": "Basalt Obelisk",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        20,
+        24,
+        60
+      ]
+    },
+    {
+      "id": "ir_t_firecrest",
+      "label": "Ember Firecrest",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        112,
+        170
+      ]
+    },
+    {
+      "id": "ir_t_antlion",
+      "label": "Cinder Antlion",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        208,
+        126,
+        76
+      ]
+    },
+    {
+      "id": "ir_t_barrow",
+      "label": "Ore Barrow",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        72,
+        140,
+        255
+      ]
+    },
+    {
+      "id": "ir_t_wolverine",
+      "label": "Slagclaw Wolverine",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        88,
+        60,
+        96
+      ]
+    },
+    {
+      "id": "ir_t_geyser",
+      "label": "Brimstone Geyser",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        232,
+        214,
+        82
+      ]
+    },
+    {
+      "id": "ir_t_caldera",
+      "label": "Smoking Caldera",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        122,
+        32
+      ]
+    },
+    {
+      "id": "ir_t_lavafall",
+      "label": "Obsidian Lavafall",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        220,
+        56,
+        34
+      ]
+    },
+    {
+      "id": "ir_t_loom",
+      "label": "Chainfire Loom",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        150,
+        40,
+        255
+      ]
+    },
+    {
+      "id": "ir_t_gatehouse",
+      "label": "Cinder Gatehouse",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        10,
+        80,
+        90
+      ]
+    },
+    {
+      "id": "ir_t_stagbeetle",
+      "label": "Forge Stagbeetle",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        98,
+        214,
+        112
+      ]
+    },
+    {
+      "id": "ir_t_citadel",
+      "label": "Infernal Citadel",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        120,
+        50,
+        200
+      ]
+    },
+    {
+      "id": "ir_t_halo",
+      "label": "Everburning Halo",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        255,
+        240,
+        214
+      ]
+    },
+    {
+      "id": "ir_t_harp",
+      "label": "Magma Harp",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        230,
+        40,
+        200
+      ]
+    },
+    {
+      "id": "ir_t_aegis",
+      "label": "Sunforged Aegis",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        255,
+        186,
+        50
+      ]
+    },
+    {
+      "id": "ir_t_chariot",
+      "label": "Hellbound Chariot",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        46,
+        44,
+        58
+      ]
+    },
+    {
+      "id": "ir_t_leviathan",
+      "label": "Basalt Leviathan",
+      "role": "Bruiser",
+      "tier": "Divine",
+      "tint": [
+        30,
+        110,
+        140
+      ]
+    },
+    {
+      "id": "ir_t_oriole",
+      "label": "Emberglass Oriole",
+      "role": "Digger",
+      "tier": "Divine",
+      "tint": [
+        255,
+        150,
+        30
+      ]
+    },
+    {
+      "id": "ir_t_keystone",
+      "label": "Ninefold Keystone",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        140,
+        150,
+        180
+      ]
+    },
+    {
+      "id": "ir_t_spire",
+      "label": "Ninefold Spire",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        190,
+        160,
+        230
+      ]
+    },
+    {
+      "id": "ir_t_fountain",
+      "label": "Molten Fountain",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        40,
+        220,
+        230
+      ]
+    },
+    {
+      "id": "ir_t_engine",
+      "label": "Infernal Engine",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        100,
+        140,
+        170
+      ]
+    },
+    {
+      "id": "ir_t_roc",
+      "label": "Cinderborn Roc",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        240,
+        90,
+        40
+      ]
+    }
+  ],
+  "extraBodies": [
+    "golem",
+    "lizard",
+    "slime"
+  ],
+  "buffs": [
+    "blastChance",
+    "blastDamage",
+    "dirtBreak"
+  ],
   "palette": [
-    ["Obsidian", 44, 40, 52],
-    ["Basalt", 82, 80, 90],
-    ["Molten Orange", 255, 122, 32],
-    ["Magma Red", 220, 56, 34],
-    ["Ember Gold", 255, 186, 50],
-    ["Ash", 152, 148, 146],
-    ["Wrought Iron", 96, 110, 136],
-    ["Scorched Umber", 106, 68, 46],
-    ["Brimstone", 232, 214, 82],
-    ["Slag", 128, 106, 94],
-    ["Crimson Forge", 152, 22, 54],
-    ["Smoky Plum", 88, 60, 96],
-    ["Rust", 178, 90, 48],
-    ["Volcanic Violet", 124, 62, 156],
-    ["Blue Flame", 72, 140, 255],
-    ["White Hot", 255, 240, 214],
-    ["Copper", 208, 126, 76],
-    ["Ruby Lava", 210, 30, 86],
-    ["Pumice", 208, 198, 184],
-    ["Brass", 198, 162, 78],
-    ["Green Flame", 98, 214, 112],
-    ["Flare Pink", 255, 112, 170],
-    ["Ashfall Blue", 140, 164, 196],
-    ["Verdigris", 72, 152, 140]
+    [
+      "Obsidian",
+      44,
+      40,
+      52
+    ],
+    [
+      "Basalt",
+      82,
+      80,
+      90
+    ],
+    [
+      "Molten Orange",
+      255,
+      122,
+      32
+    ],
+    [
+      "Magma Red",
+      220,
+      56,
+      34
+    ],
+    [
+      "Ember Gold",
+      255,
+      186,
+      50
+    ],
+    [
+      "Ash",
+      152,
+      148,
+      146
+    ],
+    [
+      "Wrought Iron",
+      96,
+      110,
+      136
+    ],
+    [
+      "Scorched Umber",
+      106,
+      68,
+      46
+    ],
+    [
+      "Brimstone",
+      232,
+      214,
+      82
+    ],
+    [
+      "Slag",
+      128,
+      106,
+      94
+    ],
+    [
+      "Crimson Forge",
+      152,
+      22,
+      54
+    ],
+    [
+      "Smoky Plum",
+      88,
+      60,
+      96
+    ],
+    [
+      "Rust",
+      178,
+      90,
+      48
+    ],
+    [
+      "Volcanic Violet",
+      124,
+      62,
+      156
+    ],
+    [
+      "Blue Flame",
+      72,
+      140,
+      255
+    ],
+    [
+      "White Hot",
+      255,
+      240,
+      214
+    ],
+    [
+      "Copper",
+      208,
+      126,
+      76
+    ],
+    [
+      "Ruby Lava",
+      210,
+      30,
+      86
+    ],
+    [
+      "Pumice",
+      208,
+      198,
+      184
+    ],
+    [
+      "Brass",
+      198,
+      162,
+      78
+    ],
+    [
+      "Green Flame",
+      98,
+      214,
+      112
+    ],
+    [
+      "Flare Pink",
+      255,
+      112,
+      170
+    ],
+    [
+      "Ashfall Blue",
+      140,
+      164,
+      196
+    ],
+    [
+      "Verdigris",
+      72,
+      152,
+      140
+    ],
+    [
+      "Sulfur Lime",
+      190,
+      230,
+      40
+    ],
+    [
+      "Cyan Flame",
+      40,
+      220,
+      230
+    ],
+    [
+      "Cobalt Slag",
+      40,
+      70,
+      200
+    ],
+    [
+      "Midnight Ember",
+      20,
+      24,
+      60
+    ],
+    [
+      "Ultraviolet",
+      150,
+      40,
+      255
+    ],
+    [
+      "Hellfire Magenta",
+      230,
+      40,
+      200
+    ],
+    [
+      "Lavender Ash",
+      190,
+      160,
+      230
+    ],
+    [
+      "Ember Blush",
+      255,
+      190,
+      200
+    ],
+    [
+      "Mint Steam",
+      180,
+      240,
+      210
+    ],
+    [
+      "Steam Blue",
+      170,
+      220,
+      255
+    ],
+    [
+      "Pale Sulfur",
+      250,
+      250,
+      170
+    ],
+    [
+      "Charred Black",
+      16,
+      14,
+      16
+    ],
+    [
+      "Deep Magma",
+      110,
+      10,
+      10
+    ],
+    [
+      "Scorched Olive",
+      90,
+      100,
+      30
+    ],
+    [
+      "Abyss Teal",
+      10,
+      80,
+      90
+    ],
+    [
+      "Hellforge Indigo",
+      60,
+      30,
+      120
+    ],
+    [
+      "Peach Glow",
+      255,
+      170,
+      120
+    ],
+    [
+      "Cinder Brown",
+      60,
+      36,
+      24
+    ]
   ],
   "topWords": {
-    "Legendary": ["Molten", "Forged", "Smoldering", "Scorched"],
-    "Mythic": ["Volcanic", "Blazing", "Cinderborn", "Ironbound"],
-    "Divine": ["Sunforged", "Incandescent", "Everburning", "Radiant"],
-    "Exotic": ["Infernal", "Primordial", "Cataclysmic", "Ninefold"]
+    "Legendary": [
+      "Molten",
+      "Forged",
+      "Smoldering",
+      "Scorched"
+    ],
+    "Mythic": [
+      "Volcanic",
+      "Blazing",
+      "Cinderborn",
+      "Ironbound"
+    ],
+    "Divine": [
+      "Sunforged",
+      "Incandescent",
+      "Everburning",
+      "Radiant"
+    ],
+    "Exotic": [
+      "Infernal",
+      "Primordial",
+      "Cataclysmic",
+      "Ninefold"
+    ]
   },
   "names": [
-    "Magmo", "Magmapuff", "Magmalade", "Magmalina", "Molty", "Moltenbit", "Lavabean", "Lavaloo",
-    "Lavapup", "Lavalump", "Lavadrip", "Lavatrickle", "Lavashell", "Lavahorn", "Lavaflow", "Volcanix",
-    "Volcanito", "Volcaby", "Caldera", "Fumarole", "Ventling", "Steamvent", "Geyserling", "Tephra",
-    "Scoria", "Pumice", "Basalto", "Obbie", "Obsidot", "Obsidia", "Glowrock", "Volcanopup",
-    "Craterkin", "Craterbelle", "Tortoblaze", "Pillarback", "Stoneshell", "Hotrock", "Grumble", "Tremor",
-    "Slowburn", "Shellember", "Cinderpop", "Cindersnap", "Cinderwhisk", "Cinderkeep", "Cinderspike", "Cindermoo",
-    "Ashby", "Ashling", "Ashpaw", "Ashcrown", "Ashflick", "Ashmote", "Ashenpaw", "Ashfall",
-    "Ashspire", "Sootie", "Sootling", "Sootpuff", "Smoldy", "Smokestack", "Puffstack", "Chimney",
-    "Chimbley", "Flue", "Damper", "Scorchpaw", "Scorchling", "Scorchette", "Searling", "Searpaw",
-    "Singe", "Singebit", "Firebrand", "Firebit", "Fireclaw", "Firesnout", "Firenewt", "Flamekit",
-    "Flamelet", "Flamewick", "Blazey", "Blazebug", "Blazelle", "Pyrebeak", "Pyrelet", "Ignito",
-    "Infernino", "Infernix", "Torchlet", "Torchtoe", "Wildfire", "Emberlyn", "Emberix", "Embertoe",
-    "Sizzlewick", "Hotsnout", "Cozyfire", "Salamander", "Newtron", "Mooblaze", "Molten Moo", "Hornblaze",
-    "Stompfire", "Chargehorn", "Charcoal", "Charby", "Charlump", "Charmallow", "Toastmallow", "Coalby",
-    "Coaldust", "Coalnose", "Coalbean", "Coalina", "Glowcoal", "Hotcoal", "Bristlecoal", "Prickleburn",
-    "Shardflare", "Brimbo", "Brimstone", "Brimble", "Brimkin", "Sulfie", "Clinker", "Clinkerton",
-    "Dross", "Forgeling", "Forgebolt", "Forgekin", "Forgeheart", "Bullforge", "Anvilo", "Anviltoe",
-    "Hammerhot", "Hotfoot", "Hotplate", "Ironjaw", "Ironpaw", "Ironbell", "Ironcrest", "Rivetta",
-    "Bellows", "Kiln", "Kilnby", "Crucible", "Ingot", "Slagger", "Smelter", "Smeltie",
-    "Tongs", "Flux", "Smithy", "Clang", "Clangor", "Klonk", "Clanky", "Stoker",
-    "Toasty", "Roasty", "Broiler", "Oven Mitt", "Blastfurnace", "Furnaceheart", "Hearthling", "Rampart",
+    "Magmo",
+    "Magmapuff",
+    "Magmalade",
+    "Magmalina",
+    "Molty",
+    "Moltenbit",
+    "Lavabean",
+    "Lavaloo",
+    "Lavapup",
+    "Lavalump",
+    "Lavadrip",
+    "Lavatrickle",
+    "Lavashell",
+    "Lavahorn",
+    "Lavaflow",
+    "Volcanix",
+    "Volcanito",
+    "Volcaby",
+    "Caldera",
+    "Fumarole",
+    "Ventling",
+    "Steamvent",
+    "Geyserling",
+    "Tephra",
+    "Scoria",
+    "Pumice",
+    "Basalto",
+    "Obbie",
+    "Obsidot",
+    "Obsidia",
+    "Glowrock",
+    "Volcanopup",
+    "Craterkin",
+    "Craterbelle",
+    "Tortoblaze",
+    "Pillarback",
+    "Stoneshell",
+    "Hotrock",
+    "Grumble",
+    "Tremor",
+    "Slowburn",
+    "Shellember",
+    "Cinderpop",
+    "Cindersnap",
+    "Cinderwhisk",
+    "Cinderkeep",
+    "Cinderspike",
+    "Cindermoo",
+    "Ashby",
+    "Ashling",
+    "Ashpaw",
+    "Ashcrown",
+    "Ashflick",
+    "Ashmote",
+    "Ashenpaw",
+    "Ashfall",
+    "Ashspire",
+    "Sootie",
+    "Sootling",
+    "Sootpuff",
+    "Smoldy",
+    "Smokestack",
+    "Puffstack",
+    "Chimney",
+    "Chimbley",
+    "Flue",
+    "Damper",
+    "Scorchpaw",
+    "Scorchling",
+    "Scorchette",
+    "Searling",
+    "Searpaw",
+    "Singe",
+    "Singebit",
+    "Firebrand",
+    "Firebit",
+    "Fireclaw",
+    "Firesnout",
+    "Firenewt",
+    "Flamekit",
+    "Flamelet",
+    "Flamewick",
+    "Blazey",
+    "Blazebug",
+    "Blazelle",
+    "Pyrebeak",
+    "Pyrelet",
+    "Ignito",
+    "Infernino",
+    "Infernix",
+    "Torchlet",
+    "Torchtoe",
+    "Wildfire",
+    "Emberlyn",
+    "Emberix",
+    "Embertoe",
+    "Sizzlewick",
+    "Hotsnout",
+    "Cozyfire",
+    "Salamander",
+    "Newtron",
+    "Mooblaze",
+    "Molten Moo",
+    "Hornblaze",
+    "Stompfire",
+    "Chargehorn",
+    "Charcoal",
+    "Charby",
+    "Charlump",
+    "Charmallow",
+    "Toastmallow",
+    "Coalby",
+    "Coaldust",
+    "Coalnose",
+    "Coalbean",
+    "Coalina",
+    "Glowcoal",
+    "Hotcoal",
+    "Bristlecoal",
+    "Prickleburn",
+    "Shardflare",
+    "Brimbo",
+    "Brimstone",
+    "Brimble",
+    "Brimkin",
+    "Sulfie",
+    "Clinker",
+    "Clinkerton",
+    "Dross",
+    "Forgeling",
+    "Forgebolt",
+    "Forgekin",
+    "Forgeheart",
+    "Bullforge",
+    "Anvilo",
+    "Anviltoe",
+    "Hammerhot",
+    "Hotfoot",
+    "Hotplate",
+    "Ironjaw",
+    "Ironpaw",
+    "Ironbell",
+    "Ironcrest",
+    "Rivetta",
+    "Bellows",
+    "Kiln",
+    "Kilnby",
+    "Crucible",
+    "Ingot",
+    "Slagger",
+    "Smelter",
+    "Smeltie",
+    "Tongs",
+    "Flux",
+    "Smithy",
+    "Clang",
+    "Clangor",
+    "Klonk",
+    "Clanky",
+    "Stoker",
+    "Toasty",
+    "Roasty",
+    "Broiler",
+    "Oven Mitt",
+    "Blastfurnace",
+    "Furnaceheart",
+    "Hearthling",
+    "Rampart",
     "Turret"
   ]
 }

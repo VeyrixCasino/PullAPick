@@ -2,16 +2,18 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-14 @ a299374
 sources:
   - tools/verify/suite.sh
   - tools/verify/syntax.sh
   - tools/verify/_luau.js
+  - tools/verify/tool-dps.js
   - docs/START-HERE.md §1, §4.5, §4.6
   - docs/HANDOFF.md §2.4
   - docs/OPEN.md
   - tools/verify/runes-retired.js
-related: [luau-traps, tools-and-generators, local-setup]
+  - tools/verify/text-motion.js
+related: [luau-traps, tools-and-generators, local-setup, tools]
 ---
 
 # The verify suite (`tools/verify/`)
@@ -45,6 +47,9 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
     a regression someone decided to live with, and needs its reason written beside it.
   - Exit code: 0 only if everything ran and passed.
 - Single check: `node tools/verify/<name>.js`. Utility: `node tools/verify/luau-balance.js FILE`.
+- **Windows / PowerShell:** no suite `.ps1` yet — run one check per line, e.g.
+  `node tools/verify/tool-dps.js`, or use Git Bash for `suite.sh`. Never chain
+  with `&&` ([local-setup](local-setup.md)).
 
 ## Result at `98c141a` (run 2026-10-16 in a Linux cloud container, after merging the owner's working branch)
 
@@ -112,20 +117,21 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
 | `daily-wheel` **L** | the daily wheel: weights sum to 100, the 16 slice ids are unchanged, every slice prints odds, a free spin gives a pet at most 10% of the time, the daily allowance (base, group, streak), a UTC-day reset, and a landing on the rolled slice from any start angle. Source checks: the lobby build is live, rebirth keeps the field, a spin saves, free spins go first and paid spins obey `PolicyNoRandom`, and the world wheel spins on the client. Added 2026-10-10. |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |
-| `dmg-live` **L** | runs `toolTierPower` in real declaration order |
 | `economy-exploits` **L** | the depth-desk sell curve never decreases with depth and no desk pays less than the surface, and no (forged-at, scrapped-at) pair beats a full climb. **Executes** the real functions and keeps the pre-fix arithmetic to prove the exploit was real. |
+| `launch` **L** | the season is a duration: before launch `seasonNow()` is pinned to `SEASON_START`, after launch it advances from `launchedAt` (a year-late launch gives the same first week), the cosmetic teaser falls and rolls over, the three `SEASON_START` constants agree **and the pass, offers and Event Horizon run the same length (47 days)**, the save happens before the announcement, a failed read or save leaves it unlaunched, `launchSeason` is reachable, **the launch stamp is mirrored to clients only after it is saved, and no client hands the raw server clock to the pass countdown** |
+| `oreframes` **L** | the baked `MineOreTools.FRAME_STATS` and `typeMult` steps equal what the priced roster supplied (2,460 values, 0 mismatches), so the roster can be deleted |
+| `tool-dps` | TODO B1/B2 DPS table for forged families: prints single-block `dps` and full-footprint `edps`; asserts pick faster than hammer, hammer crowns single-block `dps`, jackhammer ≈ drill, area on drills/explosives, line depth baked, and same-grade explosives top `edps`. Pure JS. Added 2026-10-13; retuned 2026-10-14. |
+| `dmg-live` **L** | runs `toolTierPower` in real declaration order |
 | `forge-snap` | the Forge reads no snapshot field the shop does not pass it |
 | `forge-upgrade` | forging the next tier carries the level across, so it is an upgrade |
 | `gate-coverage` | every function that deals block damage consults the breaking gate |
 | `generated-fresh` | `mine-map.html` and `upgrade-calculator.html` regenerate byte-for-byte (`--check`) |
 | `ladder-climbable` | the ore ladder reaches tier 82 with no zone deadlock, and the Exotic band stays rare |
 | `heldtool` | the held forged-tool row carries `oreTier` and `oreId`, so `MineBreaking.toolBreakingPower` resolves it from its ore, not as 1. **Executes** the real function against the real row shape, keeps the old broken row to prove it resolves to 1, and asserts both roster-migration guards are `<` not `~=`. |
-| `launch` **L** | the season is a duration: before launch `seasonNow()` is pinned to `SEASON_START`, after launch it advances from `launchedAt` (a year-late launch gives the same first week), the cosmetic teaser falls and rolls over, the three `SEASON_START` constants agree **and the pass, offers and Event Horizon run the same length (47 days)**, the save happens before the announcement, a failed read or save leaves it unlaunched, `launchSeason` is reachable, **the launch stamp is mirrored to clients only after it is saved, and no client hands the raw server clock to the pass countdown** |
 | `layers` **L** | two boost layers, and the second multiplies the first. The owner's 100 → 300 example. |
 | `lucky-odds` **L** | lucky blocks show their odds, and those odds are the odds rolled. `gradeOdds` sums to 1 from every start and matches 200,000 real `rollClash` rolls. `rollLoot` draws match `KIND_TABLES`. The sheet adds up. The credit shop, the bag's ⓘ and the lucky screen all show `MineLuckyOddsView`, with no percentages typed in by hand. Since 2026-10-10 it also checks the prizes are real wild cases and real ore tiers, a better grade or block never pays a worse case, and grade-ups are off. Added 2026-10-08, because blocks are sold for Robux-bought credits and showed no odds. |
 | `minemap-runs` | `mine-map.html` actually executes under a DOM stub |
 | `oreforge` **L** | a forged tool IS its ore: the frame is derived from the ore's tier |
-| `oreframes` **L** | the baked `MineOreTools.FRAME_STATS` and `typeMult` steps equal what the priced roster supplied (2,460 values, 0 mismatches), so the roster can be deleted |
 | `orepacks` **L** | the preconditions for `Dig.bankOrePacks`: no pack bigger than a tier-1 pouch, and the midpoint pays fairly |
 | `oreskins` | no tool is sold for coins, and every ore tier has its own distinct pickaxe icon. The refusal is asserted on the **server**, at the surface and depth doors, not on the shop rail. |
 | `oretools` **L** | `ToolModelFactory.oreLook` gives the 82 ore tools distinct looks |
@@ -138,6 +144,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `statkeys` | renamed stat keys (`oreYield`) still read in old saves |
 | `stats` **L** | `MineStats.STATS`, `STAT_ORDER`, `emptyBoosts` and `ADDITIVE_STATS` agree |
 | `runes-retired` | runes, scrolls, sockets and tool traits stay retired (2026-10-12): the five modules are deleted and nothing requires them; no rune, scroll or trait verb; `boosts()` pays none; old saves drop the fields; the pass, Founders pack and wheel pay books where they paid scrolls and runes; the tutorial and quests teach enchants; the Enchanter keeps Summon / Temper / Salvage / Dust; runes are not a trade kind; the rune cases are gone. Replaces the deleted `traits` **L** check (`tools/verify/traits.js`), which pinned the trait rules. |
+| `text-motion` | text never rides a scale animation: `MineUI.pulse` gives anything with text a ring pulse (a text-free ring scales, the thing holds still), `popNumber` lights the outline instead of popping a size, and the Forge hub repaints on a snapshot only on a real change, at most about once a second. Pure JS. Added 2026-10-17 (owner: *"the font sizes flicker"*). |
 | `trader` **L** | the wandering-trader rules: 5 distinct placements and no collisions over thousands of rotations, flat visit spread, a trader cannot stock a case outside its depth gate (and the deep spot can), prices rise with depth and zone and never fall below base, the charm and hat cases follow the chest/temper ladders; statically, that the outpost list is **sorted** before placement, `buyTraderCase` re-derives the roster, checks the shelf and takes the price from the shelf row, trader parts are non-query and non-shadow, and the panel's countdown ticks on `RunService.Heartbeat` |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |

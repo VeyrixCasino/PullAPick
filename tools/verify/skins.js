@@ -51,7 +51,11 @@ const rows = [...lua.matchAll(/\{ id = "([^"]+)", name = "([^"]+)", set = "([^"]
     kit: Object.fromEntries([...m[5].matchAll(/(\w+) = ([\d.]+)/g)].map((k) => [k[1], +k[2]])),
   }));
 
-ok(rows.length === 225, "225 skins", String(rows.length));
+// Pass sets (2026-10-16) sit outside the roster: only the battle pass grants them.
+const passSets = new Set([...((lua.match(/MineSkins\.SETS = \{[\s\S]*?\n\}/) || [""])[0]).matchAll(/key = "(\w+)"[^\n]*pass = true/g)].map((m) => m[1]));
+const passRows = rows.filter((r) => passSets.has(r.set));
+const core = rows.filter((r) => !passSets.has(r.set));
+ok(core.length === 225, "225 skins (plus the pass set's)", `${core.length} + ${passRows.length}`);
 ok(Object.keys(WEIGHT).length >= 20, "skins carry their own weight table", `${Object.keys(WEIGHT).length} stats priced`);
 
 // MineStats must be untouched by this feature: the skin weights are separate.
@@ -70,13 +74,20 @@ ok(dupId === 0, "every skin id is unique", dupId ? `${dupId} repeated` : "");
 ok(dupName === 0, "every skin NAME is unique", dupName ? `${dupName} repeated` : "");
 
 const bySet = {}, byTier = {};
-for (const r of rows) { bySet[r.set] = (bySet[r.set] || 0) + 1; byTier[r.tier] = (byTier[r.tier] || 0) + 1; }
+for (const r of core) { bySet[r.set] = (bySet[r.set] || 0) + 1; byTier[r.tier] = (byTier[r.tier] || 0) + 1; }
 ok(Object.keys(bySet).length === 9, "9 sets", String(Object.keys(bySet).length));
 ok(Object.values(bySet).every((n) => n === 25), "25 skins in every set",
   Object.entries(bySet).map(([k, v]) => `${k}=${v}`).join(" "));
 const WANT = { F: 54, D: 45, C: 36, B: 27, A: 27, S: 18, SS: 9, SSS: 9 };
 ok(Object.entries(WANT).every(([t, n]) => byTier[t] === n), "tier counts match the approved weighting",
   Object.entries(byTier).map(([k, v]) => `${k}=${v}`).join(" "));
+
+// --- the pass set (owner, 2026-10-16: 4 pass skins, S to SSS) ---------------
+ok(passRows.length === 4 && passRows.map((r) => r.tier).sort().join(",") === "S,SS,SS,SSS",
+  "the Season One Pass set is 4 skins: S, SS, SS, SSS", passRows.map((r) => r.name + " " + r.tier).join(", "));
+const server = fs.readFileSync(path.join(ROOT, "src", "ServerScriptService", "Mine", "MineServer.server.luau"), "utf8");
+const pools = (server.match(/if s\.tier == tier and not s\.pass then/g) || []).length + (server.match(/if not s\.pass then\s*\n\s*byGrade\[s\.tier\]/g) || []).length;
+ok(pools === 2, "no random pool ever pays a pass skin (the chest skin case, the temper migration)", String(pools));
 
 // --- the pool: nothing a tool cannot pay ------------------------------------
 const bad = [], unknown = [];

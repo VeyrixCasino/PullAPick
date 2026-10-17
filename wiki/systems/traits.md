@@ -93,11 +93,12 @@ related: [enchants, boosts-and-stats, retired-and-parked, tools, hats-and-faces,
 
 ## Open
 
-- **Coolant and Short Fuse now come only from the skill tree.** Drill spin-up
-  (`coolant`, Water's primary) and bomb cooldown (`shortFuse`, Metal's third)
-  also came from runes and traits. Pets and gear cannot roll them. Should
-  enchants offer them too?
-- **The battle pass rework** the owner mentioned has no brief yet.
+- ~~**Coolant and Short Fuse.**~~ Answered (owner, 2026-10-16: *"jack hammer spins up, drill is isntant, and short fuse should be a pet thing (and skill tree.. spin up is fine on skill tree, short fuse and enchnat [dont overdo it.. explosives cam be game breaking])"*):
+  - drills are instant, and only jackhammers spin up;
+  - Coolant stays on the skill tree only;
+  - Short Fuse is on the skill tree, on 2 pets in every zone, and on a small
+    explosives-only enchant. See [enchants](enchants.md) and [pets](pets.md).
+- ~~**The battle pass rework.**~~ Done 2026-10-16 ([shops-and-monetisation](shops-and-monetisation.md)).
 
 ## Kept on purpose
 

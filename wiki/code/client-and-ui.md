@@ -141,11 +141,13 @@ The indigo surfaces stay as the base, with bright candy on top.
     Owner, on seeing every row: *"to many quests and unneed info.. just put
     active ones"*. So a row shows only while it pays out (the daily reward,
     gifts, a free wheel spin, Job Board contracts, pass rewards: green, pulsing,
-    and lighting the panel's dot) or is an open event mine (gold). With nothing
-    active the box hides. Tapping a row opens its screen (`ClientFns.todayOpen`).
-    The rows come from `MineToday.rows` / `MineToday.active`, pure and checked
-    offline by `tools/verify/today.js`; the box repaints on every snapshot and
-    once a second, on the server clock (`workspace:GetServerTimeNow()`).
+    and lighting the panel's dot), is an open event mine (gold), or is fishing's
+    **catch of the day** while still to catch / claim (2026-10-13). With nothing
+    active the box hides. Tapping a row opens its screen (`ClientFns.todayOpen`);
+    catch of the day claims coins or opens the nearest pond. The rows come from
+    `MineToday.rows` / `MineToday.active`, pure and checked offline by
+    `tools/verify/today.js`; the box repaints on every snapshot and once a
+    second, on the server clock (`workspace:GetServerTimeNow()`).
     Event Horizon's open/closed comes from the snapshot: the client has no
     launch clock, so `C.limitedActive("bigbang")` is always true there.
   - The panel has one header with a collapse button. Collapsing shrinks it in
@@ -302,7 +304,7 @@ The header shows the player level and XP bar, the wallet, 🎒 BAGS and 💰 COI
 - The tutorial's step 3 (*BUY A BIGGER PICK*) carries `tab = "pickaxe"`. While a player is on that step, the server opens the coin shelf at the counter, so the step still ends in the purchase it teaches.
 - Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it.
 
-It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
+It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. A snapshot repaints the hub only when something it shows changed, at most about once a second (an action waiting on its answer repaints at once): rebuilding every card ten times a second read as flickering text (owner, 2026-10-17). `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
 
 ## UI removed with runes and traits (2026-10-12)
 

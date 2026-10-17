@@ -273,12 +273,11 @@ is injected from `S_QUEUE`.
   `MineZoneChests.rollCurrency`, which never had the crash. The same dead path is
   the only caller of `MinePackConfig.rollChest`, `MinePackConfig.CHESTS` and
   `MineConfig.chestPackCount`.
-- **Chest flagship tools never roll from zone chests** (static read, the
-  global-read trap). `openChestBlock` checks `if rollChestTool then`, but
-  `local function rollChestTool` is declared about 2,600 lines lower. At that
-  call site the name is a nil global, so the "Secrets" tools cannot drop there.
-  Only `openFrom` reaches it, and that path needs chest items in `p.backpack`,
-  which nothing creates any more.
+- ~~**Chest flagship tools never roll from zone chests**~~ **FIXED 2026-10-14.**
+  Was the global-read trap: `openChestBlock` saw a nil `rollChestTool` because
+  the real function was a later `local function`. Now forward-declared before
+  `openChestBlock` and assigned with `function rollChestTool`.
+  `tools/verify/chest-tools.js` pins it. Zone chests roll Secrets again.
 - **A catalog `m1_*` chest's own loot table is never used** (static read). The
   block shows that chest, but `ZoneChests.def` does not know the id, so opening
   re-rolls from the zone pool. In Meadow and Event Horizon the section chest

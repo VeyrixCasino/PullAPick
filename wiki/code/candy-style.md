@@ -2,7 +2,7 @@
 title: The candy house style (read before touching any UI)
 type: code
 status: current
-verified: 2026-10-10 @ 591434a
+verified: 2026-10-14 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTheme.luau
   - src/ReplicatedStorage/Mine/Shared/MineUI.luau
@@ -65,13 +65,19 @@ they pay out.
    - Kids skim, so cut words before you shrink type.
 6. **Juice everything.**
    - `MineUI.juice(btn)`: hover grows, press squashes.
-   - `popNumber(label)`: a number pops whenever it changes.
+   - `popNumber(label)`: a number's outline lights gold whenever it changes.
    - `pulse(inst)`: a loop for anything claimable. It returns a stop function.
    - `pop(frame, 0.9)`: a window springing open.
 7. **One UIScale per instance.** Roblox applies only the first UIScale (measured
    2026-10-08). `pop`, `juice` and `pulse` are channels on one shared `FxScale`
    and multiply together. Never add your own UIScale to a kit-styled frame; call
-   `MineUI.pop` instead.
+   `MineUI.pop` instead. **Text never rides a scale animation.** Roblox draws
+   text at whole font sizes, so an easing UIScale steps it a pixel at a time,
+   which reads as the font sizes flickering (owner, 2026-10-14 and 2026-10-17).
+   The kit enforces it: `pulse()` on anything that carries text runs a ring
+   that ripples off its edge while the thing holds still (an outline glow if
+   it holds a layout), and `popNumber()` lights the number's outline gold
+   instead of popping its size. Checked by `tools/verify/text-motion.js`.
 8. **What pays out always moves.** A claimable thing pulses and shows a green
    dot, and `MineNotifs` badges pop and pulse. The HUD should always show the
    player their next reward.

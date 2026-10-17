@@ -34,6 +34,7 @@ local shared = RS:WaitForChild("Mine"):WaitForChild("Shared")
 local UI = require(shared:WaitForChild("MineUI"))
 local T = require(shared:WaitForChild("MineTheme"))
 local Gear = require(shared:WaitForChild("MineGear"))
+local Stars = require(shared:WaitForChild("MineStars"))
 
 -- Optional dependencies. A missing icon pack must cost a picture, never the
 -- whole tab, so each is probed rather than required at the top.
@@ -347,10 +348,11 @@ function MineLoadoutView.mount(parent, opts)
 	iName.ZIndex = 87
 	UI.outlineText(iName)
 
+	-- Wide enough for "SSS  ★★★★★" (TODO B4: stars beside any grade).
 	local iRarity = UI.new("Frame", {
 		BackgroundColor3 = RARITY_COLOR.F or T.DEAD,
 		Position = UDim2.fromOffset(14, 198),
-		Size = UDim2.fromOffset(74, 24),
+		Size = UDim2.fromOffset(168, 24),
 		ZIndex = 87,
 	}, inspect)
 	UI.round(iRarity, 8)
@@ -421,7 +423,8 @@ function MineLoadoutView.mount(parent, opts)
 		local rar = tostring(row.rarity or "")
 		iRarity.Visible = rar ~= ""
 		iRarity.BackgroundColor3 = RARITY_COLOR[rar] or RARITY_COLOR.F or T.DEAD
-		iRarityLbl.Text = rar
+		-- Letter kept; ★ equivalent beside it (MineStars / TODO B4).
+		iRarityLbl.Text = (rar ~= "" and Stars.beside(rar)) or rar
 
 		for i, pair in ipairs(row.stats or {}) do
 			local line = UI.new("Frame", {

@@ -66,6 +66,7 @@ related: [ambiguous-terms, overview, index]
 - **Charm shape** — Focus, Twin, Pact, Ward, Brink or Surge: how a charm spends its budget. **Charm merge** — 1 copy plus gems gives the same variant one ore tier deeper. [charms](systems/charms.md)
 - **Ore case** — a 2% per-ore-block drop that pays a skin (75%) or a charm (25%). [skins-cases-and-temper](systems/skins-cases-and-temper.md)
 - **Temper / temperament** — an F…SSS stat kit (what the code calls a skin). **Temper case** — a roll for one. [skins-cases-and-temper](systems/skins-cases-and-temper.md)
+- **Stars (★)** — the shared 1★–5★ half-step display scale every other grade maps onto. Helper: `MineStars`. [grades-and-stars](systems/grades-and-stars.md)
 - **Enchant / enchant book** — a book applied to one of a forged tool's three slots (Damage, Utility, Special), levelled I–V; three of a book merge into one a level up. Books come in bundles from chests, lucky blocks and the Forge's gem shop. **Player level** — unlocks the slots. [enchants](systems/enchants.md)
 - **Enchanter** — the building with tabs Summon / Temper / Salvage / Dust. Its Traits, Merge and Sockets tabs went on 2026-10-12. It does not enchant; books are applied at the Forge. [client-and-ui](code/client-and-ui.md)
 - **Tool trait** (retired 2026-10-12) — the prefix once rolled onto one forged tool at the Enchanter. **Rune / socket / scroll** (retired 2026-10-12) — the old socketed-stat system. **Stage 3** — the old name for their retirement. [traits](systems/traits.md)

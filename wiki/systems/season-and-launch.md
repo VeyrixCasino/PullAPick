@@ -125,6 +125,11 @@ through a season they never saw begin.
   was missed). Fixed on 2026-10-17 (owner: *"do what you think is best for the game"*):
   `PASS_SEASON_END` is now `1794110400`, so all three run **47 days from launch**, and
   `launch.js` pins the three lengths together.
+- **Open: 28, 40 or 47 days?** The pass rework (`d258771`) added
+  `MineScrolls.PASS_SEASON_DAYS = 28`, which nothing reads; the working branch's pass still
+  ends at 40 days; this branch makes it 47. Asked in [open-questions](../open-questions.md)
+  (23). The rework's "about 2 weeks" is the XP pace to finish the pass (90 XP a tier,
+  9,000 in all, no daily cap), not obviously the season length.
 - **Clients used to stay at second zero forever.** A client never runs `_loadLaunch`, so
   its copy of `MineLaunch` never learned `launchedAt`. After a launch the shop would have
   kept showing week one's deals (`RotatingOffers.active()`), which the server then refuses

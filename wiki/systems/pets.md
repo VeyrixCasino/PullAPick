@@ -2,7 +2,7 @@
 title: Pets
 type: system
 status: partial
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-13 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MinePetRoster.luau
   - src/ReplicatedStorage/Mine/Shared/MineSetPets.luau
@@ -120,6 +120,12 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
   - **Rare+ roles:** Tidecallers roll Tidal Wave + its damage, and Mystics roll Zap,
     Shatter or Blast with their damage, or Earthquake + Mine Speed (was
     Earthquake + Zap).
+- **Short Fuse on a few pets (2026-10-16).** The owner: *"short fuse should be a pet
+  thing"*, choosing "a few per zone, small". Two pets per zone carry Short Fuse
+  as their second stat: below Mythic, with no ability, chosen by name hash, and
+  worth at most 10%. Points over the cap go to the first stat, so each pet's
+  power holds (`FUSE_PER_ZONE` and `FUSE_CAP` in `tools/gen/zone-pets.js`).
+  `MineStats.RUNE_ONLY` no longer lists `shortFuse`, so the kit keeps it.
 - **The calm pass (2026-10-12).** The owner: *"rework all pets so most a liitle
   less abiliy oriented"*, and chose "Both". The tool's Special enchant now
   decides which ability fires; a pet only boosts it ([enchants](enchants.md)).
@@ -164,19 +170,31 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
   Lucky blocks no longer roll pets; since 2026-10-10 they pay mystery cases,
   whose packs pay the pets ([chests-and-lucky-blocks](chests-and-lucky-blocks.md)).
 
-## The 19 sets (2026-10-10)
+## The 19 sets (2026-10-10; unique Epic+ tops 2026-10-13)
 
 The owner's 19 exclusive sets, graded F to SSS, each sold only through its own
-six packs ([cards-and-packs](cards-and-packs.md)). **2,043 named pets** on **98
-new bodies**. The full names sheet is `docs/SET-PETS.md` (generated).
+six packs ([cards-and-packs](cards-and-packs.md)). **2,493 named pets** after
+Epic+ was doubled (`tools/gen/sets/_sets.json`: *"MAKE MORE FUCKING GOOD CARDS
+TOO"*). The full names sheet is `docs/SET-PETS.md` (generated). Checked
+2026-10-13 @ `98c141a` by `node tools/gen/set-pets.js --check` and
+`node tools/verify/set-pets.js` (all assertions passed).
+- **Bodies now:** **142 recolour** + **900 unique Epic+ top bodies**, in **50
+  `PetBodies` modules** (19 base + 19 `*Top` + 12 Extra). Every Epic-or-better
+  pet wears its own top body (1:1); Common/Uncommon/Rare share recolour bodies
+  at least ΔE 35 apart (`RECOLOUR_DE` in `tools/gen/set-pets.js`).
 - **Owner:** set 1 (Pebblebound) starts at zone 1's level and each set is +5%,
-  so Chaos Theory is ×2.41. Names ship now and the owner reviews the sheet after.
-- **Counts are the owner's**, per set and rarity (`tools/gen/sets/_sets.json`),
-  from Pebblebound's 120 down to Chaos Theory's 95.
+  so Chaos Theory is ×2.41. Names ship now; **agent kid-friendly pass (2026-10-13)
+  flagged none** (`build/pet-bodies/_KID_FRIENDLY_REVIEW.md`). Optional owner
+  taste on Top looks remains (see [open-questions](../open-questions.md)).
+- **Counts are the owner's**, per set and rarity (`tools/gen/sets/_sets.json`).
 - **Kits** follow the zone pots' rules: the pet ladder × 1.05 per set. Mythic,
   Divine and Exotic take the set's own three-stat buff set; the rest take a role
-  from their body. The highest single proc chance is 37.4% (Segfault, Chaos
-  Theory, Shatter; 53.5% before the calm pass), under the 60% line.
+  from their body. The highest single proc chance after the calm pass is 40.1%
+  (Quetzal, Mythic Menagerie, Zap), under the 60% line.
+- **Lock on regen:** the original **2,043** pets (serials `0x400`–`0xBFF`) keep
+  locked names, serials and roles via `readLock` in `tools/gen/set-pets.js`. The
+  **450** added Epic+ pets use serials from `0xD00` (`HEX_NEW`; `0xC00`–`0xCFF`
+  is Halloween). Regenerating does not reshuffle an owned pet's kit.
 - **A proc always fits its set** (owner, 2026-10-10: *"buffs (that make
   sense)"*; chose "use the set's own proc"). A role can carry another theme's
   proc (every Mystic body zaps). Below Mythic that proc becomes the set's own
@@ -186,29 +204,36 @@ new bodies**. The full names sheet is `docs/SET-PETS.md` (generated).
   (`fitToSet` in the generator; checked by `tools/verify/set-pets.js`).
 - **Theme is the predominant type** (owner: *"not every single pet in atlantis has
   to be underwater but it should DEFINATLY be the prodionent type"*). Each set's
-  own themed bodies are weighted double, so they dress 71–85% of its pets; the
+  own themed bodies (recolour + tops) dress at least 60% of its pets; the
   2–4 `extraBodies` are existing species that also fit (Atlantis: turtle,
-  dolphin, ray, fish). About 85–98% of names are plainly on theme.
+  dolphin, ray, fish).
+- **Creature-repeat fixes (2026-10-13), landed in `src/ReplicatedStorage/Mine/Shared/PetBodies/`:** four
+  concept clashes from the Top QA pass (`build/pet-bodies/_QA_NOTES.md`) —
+  Pebblebound `pb_geode` → "Split Boulder"; Mosswood Top cuckoo → "Mossy
+  Birdhouse"; Holo Havoc spoonbill → "Mirrorball Ibis"; Holo Havoc jelly →
+  "Prism Jelly" (plus Pebblebound Top "Opal Medusa"). Verified in the shipped
+  modules.
 - **Where it lives:**
-  - `tools/gen/sets/<key>.json`: each set's names, palette, buffs and bodies
-    (written by hand, following `tools/gen/sets/README.md`).
-  - `PetBodies/<Set>.luau`: each set's 5 or 6 bodies, as `return function(K)`
-    over `PetModelFactory.KIT`. The factory loads every module in the folder.
+  - `tools/gen/sets/<key>.json`: each set's names, palette, buffs, recolour
+    bodies and `topBodies` (written by hand, following `tools/gen/sets/README.md`).
+  - `PetBodies/<Set>.luau`, `<Set>Top.luau`, and some `<Set>Extra.luau`:
+    `return function(K)` over `PetModelFactory.KIT`. The factory loads **every**
+    module in the folder (`PetModelFactory.luau`), so Studio Edit picks up new
+    species without editing the factory file.
   - `tools/gen/set-pets.js` writes `SetPets/<Set>.luau` and `docs/SET-PETS.md`.
     `MineSetPets` gathers the modules in the owner's order; the roster, the kit
     table and the factory merge them.
-- **Serials** live in their own range, 0x400–0xBFF, so a zone pet added later
-  can never collide with a set pet.
 - **The zone pots come first.** The set generator avoids every zone pet's name;
   the zone generator does not read the sets, so adding a set never renames a
   zone pet. (Reading them once did: it shifted the shuffled name pool.)
 - **Checked by** `tools/verify/set-pets.js`: counts, unique names and looks,
-  body use, no holiday bodies, kit values, buff sets, proc odds, a luau load
-  of every module, and the wiring.
-- **Seen in Studio:** the display builds all 2,837 pets (794 + 2,043) with no
-  fallback body. **Look pass done 2026-10-10**: all 98 set bodies, one set at a
-  time. It found the factory's invisible cones (crystals, horns, quills, crowns
-  and beaks were missing on 51 set bodies and 16 older ones; see
+  recolour use (3+), top bodies 1:1 with Epic+, no holiday bodies, kit values,
+  buff sets, proc odds, a luau load of every module, and the wiring.
+- **Seen in Studio:** with the old 2,043 count the display built 2,837 pets
+  (794 + 2,043). After the Epic+ double it is **794 + 2,493 = 3,287** plinths
+  (rebuild with `PetShowcaseBuilder.build()`). **Look pass done 2026-10-10** on
+  the first recolour bodies; **unique Top bodies integrated 2026-10-13**. The
+  earlier pass found the factory's invisible cones (see
   [luau-traps](../code/luau-traps.md) §10) and a Disco Ball that read as a plain
   grey cube from the front (now tiled in holo colours round its face).
 
@@ -246,6 +271,22 @@ in the engine; the admin commands cannot grant a pet.
 - `MinePetBoosts.displayName` puts the animal on the card. `LOCKED_DISPLAY` keeps Matter+,
   Matter-, Cosmo and Albert Minestein as names. `NAME_ALIASES` maps Horizon+ to Matter+
   and similar.
+
+## Season pets: the battle pass (2026-10-16)
+
+The pass's premium track pays four season pets on its huge tiers (owner's
+pick; this session made them). They are a second pack in `HolidayPets/`:
+`Pass202610`, generated by `tools/gen/holiday-pets.js` from
+`tools/gen/holiday/pass_2026_10.json`.
+- Pickwick, Legendary Golem (tier 25); Nuggetail, Mythic Drake (50);
+  Gemheart, Divine Hawk (75); Bedrock Bob, Exotic Wyrm (100). Serials c3c–c3f,
+  after Halloween's.
+- **`anyBody`** lets a non-holiday pack dress everyday bodies (never a holiday
+  one). With no `packId`, the module writes no `PACK_ID`, so MineSetPacks
+  lists no pack.
+- Every row is `holiday = "pass"`, so the existing holiday rule keeps them out
+  of every random roll. Only `Dig.grantPassExtras` mints one.
+- Names and buffs are PROPOSED (`docs/HOLIDAY-PETS.md` has the sheet).
 
 ## Holiday pets: Halloween 2026
 

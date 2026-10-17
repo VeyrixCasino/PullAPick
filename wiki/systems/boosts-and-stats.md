@@ -2,7 +2,7 @@
 title: Boosts and stats
 type: system
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-13 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineStats.luau
   - src/ReplicatedStorage/Mine/Shared/MineBoostLayers.luau
@@ -33,7 +33,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
   - `backpack` and `walkSpeed`, retired 2026-10-04;
   - `echo`, paid out as swing rate at `ECHO_TO_SWING`;
   - `autoMine`, paid out as gem find at `AUTO_MINE_TO_GEM`.
-- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach, coolant and shortFuse: kept off pet kits. With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
+- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach and coolant: kept off pet kits. (shortFuse left the list on 2026-10-16 so a few pets can carry it.) With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
 
 **Stat keys are data.** Keys are saved on gear (`piece.stat`, `piece.stats`) in live player saves (and were on runes, until 2026-10-12).
 - **Renaming a key is a save migration** (`docs/START-HERE.md` §4.4).
@@ -53,7 +53,11 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
      - the equipped charm (`MineCharms.applyEquipped`);
      - world events (`MineWorldEvents.foldBoosts`);
      - potions (`MinePotions.applyBoosts`);
-     - the tool's skin or temperament (`MineTemper.applyTemper`).
+     - the tool family's temperament (`MineTemper.applyTemper` on
+       `p.toolTempers[fam]`), including when the held tool is forged
+       (`oreTool` / `oreTier`; look-rung is 0 — fixed `b0c2430`).
+       Equipped `MineSkins` kits are added into **layer 1** earlier in the
+       same function (not only via `applyTemper`).
   6. **The proc gate, folds and floors.** Echo is folded into swing rate and autoMine into gem find, and the auto-mine licence is applied. `Dig.Enchants.gateProcs` keeps only the Special enchant's proc family ([enchants](enchants.md)). Then `MineCards.clampBoosts` applies **floors only**: every `ADDITIVE_STATS` stat ≥ 0, multipliers ≥ 0.05, `swingSec` ≥ 0.05.
 
 **The three luck channels** (TODO 6.2). Generic `luck` remains the shared base that prestige, VIP, the pass, skills and the Umbra set feed. Two channel stats multiply on top of it, and chest luck reuses an existing stat:
@@ -109,7 +113,10 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 
 ## State right now
 - The two layers are **only partly wired** (`docs/OPEN.md` §10).
-  - **Skins and tools** never enter `T1`: the skin is applied afterwards through `MineTemper.applyTemper`, and tools are not read at all.
+  - **MineSkins** enter `T1` from `p.skinEquipped[fam]` while that family is
+    held. **Legacy family tempers** still apply after the layers through
+    `MineTemper.applyTemper` (forged tools included since `b0c2430`). Shop
+    tool rows are not a separate boost source.
   - **The skill filter** passes 5 keys out of the ~20 the tree grants.
   - So Layer 1 really holds the trait plus those five keys.
 - Never run in engine (START-HERE §5).

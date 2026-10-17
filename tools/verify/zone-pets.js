@@ -206,6 +206,21 @@ for (const [mod, re, what] of gone) {
   check(!m, `${mod}: ${what} stay removed${m ? " (found " + m[0] + ")" : ""}`);
 }
 
+// Short Fuse on a few pets (owner, 2026-10-16: "short fuse should be a pet
+// thing"; chose "a few per zone, small").
+{
+  const fuse = pets.filter((p) => B.kits[p.name] && B.kits[p.name].shortFuse);
+  const perZone = {};
+  for (const p of fuse) perZone[p.zone] = (perZone[p.zone] || 0) + 1;
+  const zonesOk = Gen.ZONES.every((z) => perZone[z.id] === Gen.FUSE_PER_ZONE);
+  check(zonesOk, `Short Fuse rides on ${Gen.FUSE_PER_ZONE} pets in every zone (${fuse.length} in all)`);
+  const top = Math.max(...fuse.map((p) => B.kits[p.name].shortFuse));
+  check(top <= Gen.FUSE_CAP + 1e-9 && fuse.every((p) => !["Mythic", "Divine", "Exotic"].includes(p.tier)),
+    `...small: at most ${Gen.FUSE_CAP * 100}% (highest ${(top * 100).toFixed(1)}%), and never on a top pet`);
+  check(fuse.every((p) => Object.keys(B.kits[p.name]).length === 2 && !Object.keys(B.kits[p.name]).some((s) => Gen.PROC_FAMILY_OF[s])),
+    "...as the second stat of a pet with no ability");
+}
+
 console.log("");
 console.log(fail > 0 ? `>>> zone-pets: ${fail} FAILED` : ">>> zone-pets: all assertions passed");
 process.exit(fail > 0 ? 1 : 0);

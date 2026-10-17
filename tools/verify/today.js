@@ -34,6 +34,7 @@ local now = 86400 * 20000 + 3600 -- 01:00 UTC
 local a = byId(T.rows({
 	daily = { ready = true },
 	dailyQuests = { { ready = true }, { ready = false }, { ready = false } },
+	fishing = { catchOfDay = { id = "grit_perch", name = "Grit Perch", got = false, claimed = false } },
 	groupWheel = { freeLeft = 1 },
 	contracts = { { ready = false }, { ready = false }, { ready = false } },
 	pass = { tier = 3, freeClaimed = { 1 }, premClaimed = {}, owned = false, tiers = 100 },
@@ -41,7 +42,7 @@ local a = byId(T.rows({
 	eventPass = { quest = { progress = 50, goal = 100 }, questIndex = 4, questTotal = 10 },
 }, now, { giftSecs = 130, giftsGot = {}, gifts = gifts, crypt = { active = false, countdown = "6d 5h" } }))
 local function line(r) return r.id .. "=" .. r.text .. (r.ready and "!" or "") .. (r.done and "~" or "") .. (r.live and "*" or "") end
-print("A " .. line(a.daily) .. " " .. line(a.quests) .. " " .. line(a.gifts) .. " " .. line(a.wheel) .. " " .. line(a.jobs) .. " " .. line(a.pass) .. " " .. line(a.eventpass) .. " " .. line(a.bigbang) .. " " .. line(a.hallow))
+print("A " .. line(a.daily) .. " " .. line(a.quests) .. " " .. line(a.catch) .. " " .. line(a.gifts) .. " " .. line(a.wheel) .. " " .. line(a.jobs) .. " " .. line(a.pass) .. " " .. line(a.eventpass) .. " " .. line(a.bigbang) .. " " .. line(a.hallow))
 print("READY " .. T.readyCount(T.rows({
 	daily = { ready = true }, dailyQuests = { { ready = true } }, groupWheel = { freeLeft = 1 },
 	pass = { tier = 3, freeClaimed = { 1 }, premClaimed = {}, owned = false },
@@ -50,16 +51,18 @@ print("READY " .. T.readyCount(T.rows({
 local b = byId(T.rows({
 	daily = { ready = false },
 	dailyQuests = { { claimed = true }, { claimed = true }, { claimed = true } },
+	fishing = { catchOfDay = { id = "grit_perch", name = "Grit Perch", got = true, claimed = true } },
 	groupWheel = { freeLeft = 0 },
 	contracts = { { claimed = true }, { claimed = true }, { claimed = true } },
 	pass = { tier = 2, freeClaimed = { 1, 2 }, premClaimed = { 1, 2 }, owned = true, tiers = 100 },
 	limitedActive = false,
 }, now, { giftSecs = 9999, giftsGot = { ["1"] = true, ["2"] = true, ["3"] = true }, gifts = gifts, crypt = { active = true, countdown = "12d 3h" } }))
-print("B " .. line(b.daily) .. " " .. line(b.quests) .. " " .. line(b.gifts) .. " " .. line(b.wheel) .. " " .. line(b.jobs) .. " " .. line(b.pass) .. " " .. line(b.eventpass) .. " " .. line(b.bigbang) .. " " .. line(b.hallow))
+print("B " .. line(b.daily) .. " " .. line(b.quests) .. " " .. line(b.catch) .. " " .. line(b.gifts) .. " " .. line(b.wheel) .. " " .. line(b.jobs) .. " " .. line(b.pass) .. " " .. line(b.eventpass) .. " " .. line(b.bigbang) .. " " .. line(b.hallow))
 print("ROWS " .. #T.rows({}, now, {}) .. " ORDER " .. #T.ORDER)
 local function ids(list) local t = {} for _, r in ipairs(list) do table.insert(t, r.id) end return table.concat(t, ",") end
 print("ACTIVEA " .. ids(T.active(T.rows({
 	daily = { ready = true }, dailyQuests = { { ready = true } }, groupWheel = { freeLeft = 1 },
+	fishing = { catchOfDay = { id = "grit_perch", name = "Grit Perch", got = false, claimed = false } },
 	contracts = { { ready = false } }, pass = { tier = 3, freeClaimed = { 1 }, premClaimed = {}, owned = false },
 	limitedActive = true, eventPass = { quest = { progress = 1, goal = 9 }, questIndex = 1, questTotal = 10 },
 }, now, { giftSecs = 130, giftsGot = {}, gifts = gifts, crypt = { active = false, countdown = "6d" } }))))
@@ -67,6 +70,9 @@ print("ACTIVEB " .. ids(T.active(T.rows({ daily = { ready = false }, groupWheel 
 	now, { giftSecs = 0, giftsGot = {}, gifts = {}, crypt = { active = true, countdown = "9d" } }))))
 print("ACTIVEC " .. ids(T.active(T.rows({ daily = { ready = false }, groupWheel = { freeLeft = 0 }, limitedActive = false },
 	now, { giftSecs = 0, giftsGot = {}, gifts = {}, crypt = { active = false, countdown = "closed" } }))))
+print("CLAIM " .. line(byId(T.rows({
+	fishing = { catchOfDay = { id = "grit_perch", name = "Grit Perch", got = true, claimed = false } },
+}, now, {})).catch))
 `;
 const script = path.join(ROOT, ".luau-bin/today-check.luau");
 fs.writeFileSync(script, harness);
@@ -79,27 +85,31 @@ const A = get("A"), Bl = get("B");
 // 1. fresh day
 check(/daily=CLAIM!!/.test(A) && /quests=1 to claim!/.test(A) && /gifts=OPEN!!/.test(A) && /wheel=1 free spin!/.test(A),
   "a fresh day: the reward, a done quest, an opened gift and a free spin read READY");
+check(/catch=🐟 Grit Perch /.test(A), "catch of the day shows the target fish while still to catch");
 check(/jobs=0\/3 done /.test(A) && /pass=2 rewards!/.test(A), "contracts in progress show their count; two unclaimed pass tiers read READY");
 check(get("READY") === "5", "readyCount counts the claimable rows (reward, quest, gift, spin, pass: 5)");
 // 2. finished day
 check(/daily=in 23h 00m~/.test(Bl) && /quests=done  ·  new in 23h 00m~/.test(Bl) && /gifts=done  ·  new in 23h 00m~/.test(Bl)
   && /wheel=free spin in 23h 00m~/.test(Bl) && /jobs=done  ·  new in 23h 00m~/.test(Bl),
   "a finished day: every daily says when it comes back (UTC midnight)");
+check(/catch=done  ·  new in 23h 00m~/.test(Bl), "a claimed catch of the day is done until tomorrow");
 check(/pass=tier 2\/100 /.test(Bl) && !/!/.test(Bl.replace(/OPEN!/g, "")), "a fully claimed pass shows its tier, and nothing reads READY");
 // 3. events
 check(/eventpass=quest 4\/10  ·  50%/.test(A) && /bigbang=OPEN\*/.test(A) && /hallow=opens in 6d 5h/.test(A),
   "events open: event quest progress, Event Horizon OPEN, the Crypt counts down to opening");
 check(/eventpass=event closed~/.test(Bl) && /bigbang=closed~/.test(Bl) && /hallow=OPEN  ·  12d 3h left\*/.test(Bl),
   "events closed / open the other way round");
-check(get("ROWS") === "9 ORDER 9", "an empty snapshot still yields all nine rows");
+check(get("ROWS") === "9 ORDER 10", "an empty snapshot still yields the nine base rows; ORDER lists catch of the day too");
 
-check(get("ACTIVEA") === "daily,gifts,wheel,pass,bigbang", "only active rows show: ready ones and open events; no daily quests or event quests (owner: just put active ones)");
+check(get("ACTIVEA") === "daily,catch,gifts,wheel,pass,bigbang", "active rows: ready ones, open events, and an unfinished catch of the day; no daily/event quests");
 check(get("ACTIVEB") === "hallow" && get("ACTIVEC") === "", "a finished day shows only an open event mine, and nothing at all when none is open");
+check(get("CLAIM") === "catch=CLAIM!!", "a landed catch of the day reads READY to claim");
 
 // 4. wiring
 const cl = read("src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau");
 check(/function ClientFns\.paintTodayBox\(/.test(cl) && /function ClientFns\.todayOpen\(/.test(cl) && /MineToday/.test(cl),
   "MineClient paints the TODAY box and routes its taps");
+check(/where == "fish"/.test(cl) && /fishClaimCotd/.test(cl), "TODAY tap claims catch of the day or opens the nearest pond");
 const layout = (cl.match(/function ClientFns\.layoutQuestPanel[\s\S]*?\nend\n/) || [""])[0];
 check(/todayBox/.test(layout) && layout.indexOf("todayBox") < layout.indexOf("questBox.Position"),
   "the TODAY box is stacked first in the Quests panel, above the active quest");

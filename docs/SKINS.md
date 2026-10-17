@@ -170,6 +170,20 @@ One SSS per set — eight in the core sets, nine counting Halloween.
 
 ---
 
+## Pass set — Season One Pass
+*Gem-lit stone and gold seams: the season's own look.*
+
+> **Only the battle pass gives these** (owner, 2026-10-16: the pass rework;
+> "Exclusive pets, skins and books" on the premium track, 4 skins at tiers 20,
+> 40, 60 and 80, S to SSS). No case, chest or reroll ever drops one. Outside the
+> 200, like Halloween. Names are PROPOSED.
+
+| Tier | Name |
+| --- | --- |
+| S | Gemfire |
+| SS | Geode Heart · Deepgold Seam |
+| SSS | The Motherlode |
+
 ## Numbers — all PROPOSED
 
 ### A skin is a BUDGET, not a damage number
@@ -338,6 +352,7 @@ spread — and so collecting one is a decision:
 | Atomic Age | `blastDamage`, `zap`, `zapDamage` |
 | Arcade | `swingRate`, `procPower`, `blastChance` |
 | Halloween | `tidalWave`, `tideDamage`, `fossilFind` |
+| Season One Pass | `oreHaul`, `chestLuck`, `rareOre` |
 
 **Pull rates from a chest skin case.**
 

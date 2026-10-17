@@ -1,69 +1,1119 @@
 {
   "key": "rainbow_road",
   "bodies": [
-    { "id": "rd_snail", "label": "Snail", "role": "Prospector" },
-    { "id": "rd_cloudling", "label": "Cloudling", "role": "Mystic" },
-    { "id": "rd_hedgehog", "label": "Hedgehog", "role": "Digger" },
-    { "id": "rd_axolotl", "label": "Axolotl", "role": "Tidecaller" },
-    { "id": "rd_toucan", "label": "Toucan", "role": "Seeker" }
+    {
+      "id": "rd_snail",
+      "label": "Snail",
+      "role": "Prospector"
+    },
+    {
+      "id": "rd_cloudling",
+      "label": "Cloudling",
+      "role": "Mystic"
+    },
+    {
+      "id": "rd_hedgehog",
+      "label": "Hedgehog",
+      "role": "Digger"
+    },
+    {
+      "id": "rd_axolotl",
+      "label": "Axolotl",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "rd_toucan",
+      "label": "Toucan",
+      "role": "Seeker"
+    },
+    {
+      "id": "rd_pup",
+      "label": "Prismpup",
+      "role": "Striker"
+    },
+    {
+      "id": "rd_hamster",
+      "label": "Gemster",
+      "role": "Prospector"
+    },
+    {
+      "id": "rd_fawn",
+      "label": "Gemfawn",
+      "role": "Seeker"
+    }
   ],
-  "extraBodies": ["horse", "bird", "sprite"],
-  "buffs": ["luck", "oreLuck", "luckyFind"],
+  "topBodies": [
+    {
+      "id": "rd_t_koi",
+      "label": "Rainbow Koi",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        255,
+        140,
+        40
+      ]
+    },
+    {
+      "id": "rd_t_frog",
+      "label": "Opal Frog",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        70,
+        200,
+        150
+      ]
+    },
+    {
+      "id": "rd_t_bunny",
+      "label": "Prismear Bunny",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        190,
+        150
+      ]
+    },
+    {
+      "id": "rd_t_butterfly",
+      "label": "Huewing Butterfly",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        170,
+        110,
+        255
+      ]
+    },
+    {
+      "id": "rd_t_owl",
+      "label": "Huetuft Owl",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        120,
+        140,
+        240
+      ]
+    },
+    {
+      "id": "rd_t_kite",
+      "label": "Sunshower Kite",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        220,
+        60,
+        180
+      ]
+    },
+    {
+      "id": "rd_t_tortoise",
+      "label": "Rainstep Tortoise",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        90,
+        180,
+        80
+      ]
+    },
+    {
+      "id": "rd_t_otter",
+      "label": "Geodehug Otter",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        150,
+        100,
+        70
+      ]
+    },
+    {
+      "id": "rd_t_chick",
+      "label": "Sunbeam Chick",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        240,
+        130
+      ]
+    },
+    {
+      "id": "rd_t_jelly",
+      "label": "Rainbow Jelly",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        110,
+        230,
+        240
+      ]
+    },
+    {
+      "id": "rd_t_bumble",
+      "label": "Rainbow Bumble",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        190,
+        40
+      ]
+    },
+    {
+      "id": "rd_t_mole",
+      "label": "Gemlamp Mole",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        110,
+        90,
+        160
+      ]
+    },
+    {
+      "id": "rd_t_kitty",
+      "label": "Rainbell Kitty",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        130,
+        200,
+        255
+      ]
+    },
+    {
+      "id": "rd_t_droplet",
+      "label": "Dewbow Droplet",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        50,
+        110,
+        240
+      ]
+    },
+    {
+      "id": "rd_t_crab",
+      "label": "Gemclaw Crab",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        230,
+        60,
+        70
+      ]
+    },
+    {
+      "id": "rd_t_lamb",
+      "label": "Cloudwool Lamb",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        255,
+        220,
+        240
+      ]
+    },
+    {
+      "id": "rd_t_caterpillar",
+      "label": "Arc Caterpillar",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        170,
+        230,
+        70
+      ]
+    },
+    {
+      "id": "rd_t_flamingo",
+      "label": "Pastel Flamingo",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        110,
+        170
+      ]
+    },
+    {
+      "id": "rd_t_chameleon",
+      "label": "Huecurl Chameleon",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        200,
+        90
+      ]
+    },
+    {
+      "id": "rd_t_hummingbird",
+      "label": "Glint Hummingbird",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        30,
+        190,
+        160
+      ]
+    },
+    {
+      "id": "rd_t_seahorse",
+      "label": "Opaline Seahorse",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        160,
+        70
+      ]
+    },
+    {
+      "id": "rd_t_dragonfly",
+      "label": "Prism Dragonfly",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        50,
+        110,
+        255
+      ]
+    },
+    {
+      "id": "rd_t_whale",
+      "label": "Rainspout Whale",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        100,
+        200
+      ]
+    },
+    {
+      "id": "rd_t_balloon",
+      "label": "Skyhue Balloon",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        90,
+        120
+      ]
+    },
+    {
+      "id": "rd_t_paintpot",
+      "label": "Drippy Paintpot",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        250,
+        220,
+        60
+      ]
+    },
+    {
+      "id": "rd_t_beetle",
+      "label": "Opalback Beetle",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        30,
+        170,
+        110
+      ]
+    },
+    {
+      "id": "rd_t_shrimp",
+      "label": "Spectrum Shrimp",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        80,
+        110
+      ]
+    },
+    {
+      "id": "rd_t_seaslug",
+      "label": "Frilly Seaslug",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        170,
+        80,
+        255
+      ]
+    },
+    {
+      "id": "rd_t_elephant",
+      "label": "Gemtusk Elephant",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        140,
+        150,
+        230
+      ]
+    },
+    {
+      "id": "rd_t_sloth",
+      "label": "Archhang Sloth",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        150,
+        255
+      ]
+    },
+    {
+      "id": "rd_t_griffin",
+      "label": "Huecrest Griffin",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        196,
+        50
+      ]
+    },
+    {
+      "id": "rd_t_lion",
+      "label": "Crystalmane Lion",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        150,
+        40
+      ]
+    },
+    {
+      "id": "rd_t_lantern",
+      "label": "Prism Lantern",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        110,
+        220,
+        255
+      ]
+    },
+    {
+      "id": "rd_t_hatchling",
+      "label": "Geode Hatchling",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        180,
+        100,
+        255
+      ]
+    },
+    {
+      "id": "rd_t_quetzal",
+      "label": "Huetrain Quetzal",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        30,
+        200,
+        110
+      ]
+    },
+    {
+      "id": "rd_t_toadstool",
+      "label": "Prism Toadstool",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        240,
+        60,
+        80
+      ]
+    },
+    {
+      "id": "rd_t_pinwheel",
+      "label": "Prism Pinwheel",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        110,
+        200
+      ]
+    },
+    {
+      "id": "rd_t_penguin",
+      "label": "Iceprism Penguin",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        50,
+        70,
+        190
+      ]
+    },
+    {
+      "id": "rd_t_bat",
+      "label": "Duskhue Bat",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        120,
+        50,
+        190
+      ]
+    },
+    {
+      "id": "rd_t_panda",
+      "label": "Gemboo Panda",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        150,
+        200
+      ]
+    },
+    {
+      "id": "rd_t_unicorn",
+      "label": "Rainmane Unicorn",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        255,
+        170,
+        225
+      ]
+    },
+    {
+      "id": "rd_t_phoenix",
+      "label": "Huefire Phoenix",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        255,
+        80,
+        40
+      ]
+    },
+    {
+      "id": "rd_t_manta",
+      "label": "Skyglide Manta",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        40,
+        190,
+        230
+      ]
+    },
+    {
+      "id": "rd_t_golem",
+      "label": "Prismstone Golem",
+      "role": "Bruiser",
+      "tier": "Divine",
+      "tint": [
+        120,
+        110,
+        190
+      ]
+    },
+    {
+      "id": "rd_t_star",
+      "label": "Wishbow Star",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        255,
+        220,
+        60
+      ]
+    },
+    {
+      "id": "rd_t_windchime",
+      "label": "Prism Windchime",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        80,
+        220,
+        160
+      ]
+    },
+    {
+      "id": "rd_t_kitsune",
+      "label": "Sevenbow Kitsune",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        120,
+        50
+      ]
+    },
+    {
+      "id": "rd_t_dragon",
+      "label": "Huestream Dragon",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        70,
+        210,
+        190
+      ]
+    },
+    {
+      "id": "rd_t_prism",
+      "label": "Spectrum Prism",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        150,
+        250,
+        230
+      ]
+    },
+    {
+      "id": "rd_t_peacock",
+      "label": "Kaleido Peacock",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        30,
+        110,
+        255
+      ]
+    }
+  ],
+  "extraBodies": [
+    "horse",
+    "bird",
+    "sprite"
+  ],
+  "buffs": [
+    "luck",
+    "oreLuck",
+    "luckyFind"
+  ],
   "palette": [
-    ["Red", 238, 70, 70],
-    ["Orange", 255, 146, 50],
-    ["Yellow", 255, 222, 60],
-    ["Green", 80, 196, 96],
-    ["Blue", 60, 140, 240],
-    ["Indigo", 84, 70, 196],
-    ["Violet", 166, 84, 220],
-    ["Pastel Pink", 255, 192, 214],
-    ["Peach", 255, 204, 164],
-    ["Lemon", 255, 244, 160],
-    ["Mint", 168, 242, 204],
-    ["Sky", 158, 212, 255],
-    ["Lilac", 206, 176, 244],
-    ["Periwinkle", 140, 150, 236],
-    ["Coral", 255, 124, 110],
-    ["Teal", 30, 170, 166],
-    ["Magenta", 216, 50, 168],
-    ["Lime", 178, 232, 70],
-    ["Aqua", 80, 222, 232],
-    ["Rose", 236, 100, 146],
-    ["Cream", 252, 242, 216],
-    ["Tangerine", 250, 110, 30],
-    ["Lavender", 182, 146, 226],
-    ["Cloud Blue", 214, 232, 255]
+    [
+      "Red",
+      238,
+      70,
+      70
+    ],
+    [
+      "Orange",
+      255,
+      146,
+      50
+    ],
+    [
+      "Yellow",
+      255,
+      222,
+      60
+    ],
+    [
+      "Green",
+      80,
+      196,
+      96
+    ],
+    [
+      "Blue",
+      60,
+      140,
+      240
+    ],
+    [
+      "Indigo",
+      84,
+      70,
+      196
+    ],
+    [
+      "Violet",
+      166,
+      84,
+      220
+    ],
+    [
+      "Pastel Pink",
+      255,
+      192,
+      214
+    ],
+    [
+      "Peach",
+      255,
+      204,
+      164
+    ],
+    [
+      "Lemon",
+      255,
+      244,
+      160
+    ],
+    [
+      "Mint",
+      168,
+      242,
+      204
+    ],
+    [
+      "Sky",
+      158,
+      212,
+      255
+    ],
+    [
+      "Lilac",
+      206,
+      176,
+      244
+    ],
+    [
+      "Periwinkle",
+      140,
+      150,
+      236
+    ],
+    [
+      "Coral",
+      255,
+      124,
+      110
+    ],
+    [
+      "Teal",
+      30,
+      170,
+      166
+    ],
+    [
+      "Magenta",
+      216,
+      50,
+      168
+    ],
+    [
+      "Lime",
+      178,
+      232,
+      70
+    ],
+    [
+      "Aqua",
+      80,
+      222,
+      232
+    ],
+    [
+      "Rose",
+      236,
+      100,
+      146
+    ],
+    [
+      "Cream",
+      252,
+      242,
+      216
+    ],
+    [
+      "Tangerine",
+      250,
+      110,
+      30
+    ],
+    [
+      "Lavender",
+      182,
+      146,
+      226
+    ],
+    [
+      "Cloud Blue",
+      214,
+      232,
+      255
+    ],
+    [
+      "Ruby",
+      180,
+      20,
+      50
+    ],
+    [
+      "Garnet",
+      110,
+      20,
+      40
+    ],
+    [
+      "Sapphire",
+      20,
+      50,
+      160
+    ],
+    [
+      "Midnight",
+      24,
+      26,
+      64
+    ],
+    [
+      "Onyx",
+      22,
+      22,
+      30
+    ],
+    [
+      "Amethyst",
+      110,
+      50,
+      180
+    ],
+    [
+      "Plum",
+      90,
+      30,
+      100
+    ],
+    [
+      "Emerald",
+      0,
+      160,
+      100
+    ],
+    [
+      "Forest",
+      26,
+      100,
+      50
+    ],
+    [
+      "Topaz",
+      220,
+      160,
+      20
+    ],
+    [
+      "Pearl",
+      246,
+      246,
+      250
+    ],
+    [
+      "Moonbeam",
+      190,
+      196,
+      210
+    ],
+    [
+      "Storm Cloud",
+      104,
+      112,
+      132
+    ],
+    [
+      "Smoky Quartz",
+      110,
+      80,
+      60
+    ],
+    [
+      "Olivine",
+      130,
+      140,
+      30
+    ],
+    [
+      "Hot Pink",
+      255,
+      40,
+      160
+    ],
+    [
+      "Deep Sea",
+      0,
+      90,
+      110
+    ],
+    [
+      "Cobalt",
+      0,
+      80,
+      210
+    ]
   ],
   "topWords": {
-    "Legendary": ["Pastel", "Bright", "Sunny", "Cheerful"],
-    "Mythic": ["Prismatic", "Spectral", "Rainbow", "Crystal"],
-    "Divine": ["Radiant", "Shimmering", "Luminous", "Celestial"],
-    "Exotic": ["Kaleidoscopic", "Spectrum", "Aurora", "Everhue"]
+    "Legendary": [
+      "Pastel",
+      "Bright",
+      "Sunny",
+      "Cheerful"
+    ],
+    "Mythic": [
+      "Prismatic",
+      "Spectral",
+      "Rainbow",
+      "Crystal"
+    ],
+    "Divine": [
+      "Radiant",
+      "Shimmering",
+      "Luminous",
+      "Celestial"
+    ],
+    "Exotic": [
+      "Kaleidoscopic",
+      "Spectrum",
+      "Aurora",
+      "Everhue"
+    ]
   },
   "names": [
-    "Rainbow", "Rainbeau", "Rainbowie", "Rainbowlet", "Rainbelle", "Rainbud", "Rainbeam", "Sunshower",
-    "Skybow", "Skyarc", "Cloudbow", "Moonbow", "Fogbow", "Dewbow", "Sundog", "Arcbeam",
-    "Arcwing", "Arclet", "Bowtail", "Spectrum", "Spectrix", "Huebert", "Hue", "Tint",
-    "Tinty", "Prismo", "Prismlet", "Prismbud", "Prismtail", "Prismwing", "Prismheart", "Prismdrop",
-    "Prismbloom", "Prismite", "Iridite", "Crystalina", "Sugarquartz", "Pastel", "Pastelle", "Pastelpaw",
-    "Pastelpuff", "Pastelina", "Pastel Pip", "Lilac", "Periwinkle", "Aqua", "Magenta", "Fuchsia",
-    "Cerise", "Marigold", "Tangerine", "Teal", "Cyan", "Indigo", "Cerulean", "Azure",
-    "Ultramarine", "Chartreuse", "Citron", "Rosy", "Blush", "Orchid", "Heliotrope", "Mauve",
-    "Cherryblossom", "Lavenderling", "Sky Blue", "Sea Green", "Sunset", "Sunrise", "Daydream", "Whimsy",
-    "Fiesta", "Carnival", "Parade", "Pinata", "Balloon", "Bubblebow", "Dreamy", "Stardrop",
-    "Sundrop", "Sunpetal", "Petalbow", "Paintbox", "Palette", "Watercolor", "Tiedye", "Kaleidobloom",
-    "Colorburst", "Colorpop", "Colorwheel", "Hueberry", "Brightbloom", "Glowberry", "Candybow", "Spectrabloom",
-    "Sparklebow", "Shimmerbow", "Twinklebow", "Rainbow Pip", "Little Rainbow", "Prism Pip", "Prism Puff", "Rainbow Puff",
-    "Rainbow Sherbet", "Sky Ribbon", "Rainbow Ribbon", "Cloudlet", "Cloudpuff", "Skyhopper", "Mistbow", "Raincloud",
-    "Drizzlebow", "Puddlebow", "Splashbow", "Happy Hue", "Joybeam", "Joybow", "Gladbow", "Merrybow",
-    "Confetti Pop", "Huehop", "Huetail", "Huepaw", "Hueling", "Prismia", "Spectralina", "Multicolor",
-    "Crystal Bow", "Gem Arc", "Crystalarc", "Shardbow", "Gleambow", "Rainbowpaw", "Rainbowtail", "Rainbow Bun",
-    "Rainbow Bean", "Rainbow Kite", "Prismkit", "Prismhop", "Prism Pebble", "Prismsprout", "Prismfeather", "Prismberry",
-    "Prismfrost", "Prismglow", "Prism Kite", "Spectrapaw", "Spectrahop", "Spectrafin", "Huebud", "Huesprout",
-    "Huefeather", "Huebloom", "Huekite", "Colorbud", "Colorkit", "Colorwisp", "Colortail", "Colorfin",
-    "Tintbloom", "Tintwing", "Pastelwing", "Pastelbloom", "Pastelberry", "Pastelbun", "Pastelglow", "Lilacbow",
-    "Mintbow", "Peachbow", "Lemonbow", "Berrybow", "Rosebow", "Skybloom", "Arcbloom", "Arcpaw",
-    "Bowbeam", "Sevenfold", "Roygbiv"
+    "Rainbow",
+    "Rainbeau",
+    "Rainbowie",
+    "Rainbowlet",
+    "Rainbelle",
+    "Rainbud",
+    "Rainbeam",
+    "Sunshower",
+    "Skybow",
+    "Skyarc",
+    "Cloudbow",
+    "Moonbow",
+    "Fogbow",
+    "Dewbow",
+    "Sundog",
+    "Arcbeam",
+    "Arcwing",
+    "Arclet",
+    "Bowtail",
+    "Spectrum",
+    "Spectrix",
+    "Huebert",
+    "Hue",
+    "Tint",
+    "Tinty",
+    "Prismo",
+    "Prismlet",
+    "Prismbud",
+    "Prismtail",
+    "Prismwing",
+    "Prismheart",
+    "Prismdrop",
+    "Prismbloom",
+    "Prismite",
+    "Iridite",
+    "Crystalina",
+    "Sugarquartz",
+    "Pastel",
+    "Pastelle",
+    "Pastelpaw",
+    "Pastelpuff",
+    "Pastelina",
+    "Pastel Pip",
+    "Lilac",
+    "Periwinkle",
+    "Aqua",
+    "Magenta",
+    "Fuchsia",
+    "Cerise",
+    "Marigold",
+    "Tangerine",
+    "Teal",
+    "Cyan",
+    "Indigo",
+    "Cerulean",
+    "Azure",
+    "Ultramarine",
+    "Chartreuse",
+    "Citron",
+    "Rosy",
+    "Blush",
+    "Orchid",
+    "Heliotrope",
+    "Mauve",
+    "Cherryblossom",
+    "Lavenderling",
+    "Sky Blue",
+    "Sea Green",
+    "Sunset",
+    "Sunrise",
+    "Daydream",
+    "Whimsy",
+    "Fiesta",
+    "Carnival",
+    "Parade",
+    "Pinata",
+    "Balloon",
+    "Bubblebow",
+    "Dreamy",
+    "Stardrop",
+    "Sundrop",
+    "Sunpetal",
+    "Petalbow",
+    "Paintbox",
+    "Palette",
+    "Watercolor",
+    "Tiedye",
+    "Kaleidobloom",
+    "Colorburst",
+    "Colorpop",
+    "Colorwheel",
+    "Hueberry",
+    "Brightbloom",
+    "Glowberry",
+    "Candybow",
+    "Spectrabloom",
+    "Sparklebow",
+    "Shimmerbow",
+    "Twinklebow",
+    "Rainbow Pip",
+    "Little Rainbow",
+    "Prism Pip",
+    "Prism Puff",
+    "Rainbow Puff",
+    "Rainbow Sherbet",
+    "Sky Ribbon",
+    "Rainbow Ribbon",
+    "Cloudlet",
+    "Cloudpuff",
+    "Skyhopper",
+    "Mistbow",
+    "Raincloud",
+    "Drizzlebow",
+    "Puddlebow",
+    "Splashbow",
+    "Happy Hue",
+    "Joybeam",
+    "Joybow",
+    "Gladbow",
+    "Merrybow",
+    "Confetti Pop",
+    "Huehop",
+    "Huetail",
+    "Huepaw",
+    "Hueling",
+    "Prismia",
+    "Spectralina",
+    "Multicolor",
+    "Crystal Bow",
+    "Gem Arc",
+    "Crystalarc",
+    "Shardbow",
+    "Gleambow",
+    "Rainbowpaw",
+    "Rainbowtail",
+    "Rainbow Bun",
+    "Rainbow Bean",
+    "Rainbow Kite",
+    "Prismkit",
+    "Prismhop",
+    "Prism Pebble",
+    "Prismsprout",
+    "Prismfeather",
+    "Prismberry",
+    "Prismfrost",
+    "Prismglow",
+    "Prism Kite",
+    "Spectrapaw",
+    "Spectrahop",
+    "Spectrafin",
+    "Huebud",
+    "Huesprout",
+    "Huefeather",
+    "Huebloom",
+    "Huekite",
+    "Colorbud",
+    "Colorkit",
+    "Colorwisp",
+    "Colortail",
+    "Colorfin",
+    "Tintbloom",
+    "Tintwing",
+    "Pastelwing",
+    "Pastelbloom",
+    "Pastelberry",
+    "Pastelbun",
+    "Pastelglow",
+    "Lilacbow",
+    "Mintbow",
+    "Peachbow",
+    "Lemonbow",
+    "Berrybow",
+    "Rosebow",
+    "Skybloom",
+    "Arcbloom",
+    "Arcpaw",
+    "Bowbeam",
+    "Sevenfold",
+    "Roygbiv",
+    "Glimmerhue",
+    "Irisbelle",
+    "Chroma",
+    "Chromalee",
+    "Spectra",
+    "Lumibow",
+    "Huebie",
+    "Tintwhistle",
+    "Rainwhisk",
+    "Bowbell",
+    "Glassbow",
+    "Quartzbow",
+    "Opalbow",
+    "Gleamhue",
+    "Dazzlebow",
+    "Fizzlebow",
+    "Jellybow",
+    "Glitterarc",
+    "Shimmerling",
+    "Dewprism",
+    "Sunprism",
+    "Moonprism",
+    "Starprism",
+    "Rainprism",
+    "Huehoo",
+    "Tintsy",
+    "Pastelpop",
+    "Candyarc",
+    "Glintlet",
+    "Rainbird",
+    "Bowsprite",
+    "Twirlbow",
+    "Swirlbow",
+    "Whirlbow",
+    "Ribbonette",
+    "Streamer",
+    "Kaleido",
+    "Spectrabelle",
+    "Colorella",
+    "Tintabelle",
+    "Sunbow",
+    "Glowbow",
+    "Aurorabow",
+    "Refracta",
+    "Sparkler",
+    "Huewhisker",
+    "Chromapuff",
+    "Chromatail",
+    "Spectrabean",
+    "Opalfin",
+    "Iris"
   ]
 }

@@ -104,11 +104,42 @@ local sweet = nil
 for t = 0, 60 do if M.castQuality(t) == "perfect" then sweet = t break end end
 print("CAST " .. tostring(sweet) .. " " .. M.castQuality(0) .. " " .. M.castQuality(24))
 print("DIFF " .. table.concat(M.DIFFICULTY, ","))
-local ids, dup = {}, 0
-for _, list in pairs(M.FISH) do for _, f in ipairs(list) do if ids[f.id] then dup += 1 end ids[f.id] = true end end
+local ids, dup, zones, short, noDiff = {}, 0, 0, 0, 0
+for zoneId, list in pairs(M.FISH) do
+	zones += 1
+	if #list ~= 12 then short += 1 end
+	if not M.ZONE_DIFFICULTY[zoneId] then noDiff += 1 end
+	for _, f in ipairs(list) do if ids[f.id] then dup += 1 end ids[f.id] = true end
+end
 local orphan = 0
 for _, s in ipairs(M.SPOTS) do if not M.FISH[s.zoneId] then orphan += 1 end end
-print("DATA " .. #M.FISH.sunscar .. " " .. dup .. " " .. orphan .. " " .. #M.SPOTS)
+-- 1 surface (Greyvein) + 2 outposts per fish zone
+print("DATA " .. #M.FISH.sunscar .. " " .. dup .. " " .. orphan .. " " .. #M.SPOTS .. " " .. zones .. " " .. short .. " " .. noDiff)
+
+-- 7. Sell coins and catch of the day (pure).
+local p1s = M.sellCoins("gravel_minnow")
+local p9s = M.sellCoins("monolith_koi")
+local plan = M.sellPlan({ gravel_minnow = { n = 2, best = 0.1 }, monolith_koi = { n = 1, best = 50 } })
+print(string.format("SELL %d %d %d %d %d", p1s, p9s, plan.units, plan.coins, plan.kinds))
+local d0 = M.catchOfDay(20000)
+local d1 = M.catchOfDay(20000)
+local d2 = M.catchOfDay(20001)
+print("COTD " .. tostring(d0 and d0.id) .. " " .. tostring(d0 and d0.id == d1.id) .. " " .. tostring(d0 and d2 and d0.id ~= d2.id)
+	.. " " .. tostring(M.catchOfDayReward(d0 and d0.id)))
+
+-- 8. Album set bonuses (PROPOSED): known = cooler row; n=0 still counts.
+local empty = {}
+local three = {}
+for i, f in ipairs(M.FISH.sunscar) do
+	if i <= 3 then three[f.id] = { n = 0, best = 0.1 } end
+end
+local full = {}
+for _, f in ipairs(M.FISH.sunscar) do full[f.id] = { n = 0, best = 1 } end
+local sold = { gravel_minnow = { n = 0, best = 0.2 } }
+print(string.format("ALBUM %.2f %.2f %.2f %d %d %s",
+	M.albumLuck(empty, "sunscar"), M.albumLuck(three, "sunscar"), M.albumLuck(full, "sunscar"),
+	M.albumProgress(three, "sunscar").known, M.albumProgress(full, "sunscar").known,
+	tostring(M.albumKnown(sold, "gravel_minnow"))))
 `;
 const script = path.join(ROOT, ".luau-bin/fishing-check.luau");
 fs.writeFileSync(script, harness);
@@ -147,7 +178,10 @@ const diff = get("DIFF");
 check(tuned && tuned.split(",").map((x) => Number(x.trim())).join(",") === diff.split(",").map(Number).join(","),
   "MineFishing.DIFFICULTY is the learning machine's row (docs/FISHING-TUNING.md)");
 const data = get("DATA").split(" ").map(Number);
-check(data[0] === 12 && data[1] === 0 && data[2] === 0 && data[3] === 3, "Greyvein has 12 fish, ids unique; 3 spots (the pond, 1,000 and 3,000)");
+// sunscarCount, dupIds, orphanSpots, spotCount, zoneCount, shortLists, missingZoneDiff
+check(data[0] === 12 && data[1] === 0 && data[5] === 0, "every fish zone has 12 fish; Greyvein too; ids unique");
+check(data[2] === 0 && data[3] === 21 && data[4] === 10, "10 permanent zones → 21 spots (1 surface + 2 outposts each); no orphan spots");
+check(data[6] === 0, "every fish zone has a ZONE_DIFFICULTY entry");
 
 // 6 wiring
 const server = read("src/ServerScriptService/Mine/MineServer.server.luau");
@@ -168,6 +202,30 @@ const client = read("src/StarterPlayer/StarterPlayerScripts/MineClient.client.lu
 check(/action == "fishing" then/.test(client) && /MineFishingView/.test(client), "the client opens the fishing screen");
 const view = read(SH + "MineFishingView.luau");
 check(/table\.insert\(toggles, fight\.tick \+ 1\)/.test(view) && /Fight\.step\(fight, reelDown\)/.test(view), "the client records presses on the tick the replay applies them");
+
+// 7. sell + catch of the day
+const sell = get("SELL").split(" ").map(Number);
+check(sell[0] > 0 && sell[1] > sell[0] * 100, `sell coins scale with grade (★=${sell[0]}, ★★★★★=${sell[1]})`);
+check(sell[2] === 3 && sell[3] === sell[0] * 2 + sell[1] && sell[4] === 2, "sellPlan sums cooler stacks");
+const cotd = get("COTD").split(" ");
+check(cotd[0] !== "nil" && cotd[1] === "true" && cotd[2] === "true" && Number(cotd[3]) > 0,
+  "catch of the day is stable for a UTC day, changes the next day, and pays coins");
+check(/function V\.fishSell\b/.test(svc) && /function V\.fishSellAll\b/.test(svc) && /function V\.fishClaimCotd\b/.test(svc),
+  "service exposes fishSell, fishSellAll and fishClaimCotd");
+check(/fishSell/.test(view) && /confirmSellAll/.test(view) && /fishClaimCotd/.test(view),
+  "cooler sells and catch-of-day claim are on the fishing screen");
+check(/catchOfDay/.test(svc) && /cotdGot/.test(svc), "landing today's fish marks catch of the day");
+
+// 8. album set bonuses
+const album = get("ALBUM").split(" ");
+check(Number(album[0]) === 1 && Math.abs(Number(album[1]) - 1.02) < 1e-9 && Math.abs(Number(album[2]) - 1.05) < 1e-9,
+  "album luck: none=1, 3/12=+2% (PROPOSED), 12/12=+5% (PROPOSED)");
+check(Number(album[3]) === 3 && Number(album[4]) === 12 && album[5] === "true",
+  "album counts cooler known (n=0 still known); complete set is 12");
+check(/albumLuck\(f\.cooler/.test(svc) && /M\.albumLuck/.test(svc),
+  "fishCast multiplies album luck with rod × spot × cast");
+check(/albumProgress/.test(view) && /ALBUM/.test(view),
+  "cooler / FISH UI shows album progress");
 
 console.log("");
 console.log(fail > 0 ? `>>> fishing: ${fail} FAILED` : ">>> fishing: all assertions passed");

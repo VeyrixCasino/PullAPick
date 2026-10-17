@@ -2165,9 +2165,11 @@ function ClientFns.paintTodayBox()
 			r.status.TextColor3 = (row.ready and T.GREEN) or (row.live and GOLD) or (row.done and MUTED) or TEXT
 			r.name.TextColor3 = row.done and MUTED or TEXT
 			r.dot.Visible = row.ready
+			-- Pulse the green ready-dot, never the status TextLabel: UIScale on
+			-- text reads as font-size flicker (owner, 2026-10-14).
 			local stop = ClientFns.todayPulses[row.id]
 			if row.ready and not stop and ClientFns.UI then
-				ClientFns.todayPulses[row.id] = ClientFns.UI.pulse(r.status, 1.08, 0.8)
+				ClientFns.todayPulses[row.id] = ClientFns.UI.pulse(r.dot, 1.25, 0.8)
 			elseif not row.ready and stop then
 				stop()
 				ClientFns.todayPulses[row.id] = nil
@@ -3214,6 +3216,30 @@ function ClientFns.todayOpen(where)
 		local g = ClientFns.giftsPanel and ClientFns.giftsPanel()
 		if g and g.toggle then
 			g.toggle(true)
+		end
+	elseif where == "fish" then
+		-- Catch of the day: claim when ready, else open the nearest pond.
+		local cotd = snap and snap.fishing and snap.fishing.catchOfDay
+		if type(cotd) == "table" and cotd.got and not cotd.claimed then
+			net:FireServer("fishClaimCotd", {})
+			return
+		end
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local best, bestD = nil, math.huge
+		if hrp then
+			for _, part in ipairs(game:GetService("CollectionService"):GetTagged("MineFishSpot")) do
+				if part:IsA("BasePart") and part:IsDescendantOf(workspace) then
+					local d = (part.Position - hrp.Position).Magnitude
+					if d < bestD then
+						bestD, best = d, part
+					end
+				end
+			end
+		end
+		if best and bestD <= 40 then
+			net:FireServer("fishOpen", { spotId = best:GetAttribute("SpotId") })
+		else
+			showToast("Walk up to a fishing spot")
 		end
 	elseif where == "jobs" or where == "events" or where == "zones" then
 		ClientFns.routePanel(where)

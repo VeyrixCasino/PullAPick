@@ -1,67 +1,949 @@
 {
   "key": "atlantis_rising",
   "bodies": [
-    { "id": "at_seahorse", "label": "Seahorse", "role": "Seeker" },
-    { "id": "at_pearlclam", "label": "Pearl Clam", "role": "Trader" },
-    { "id": "at_octopus", "label": "Octopus", "role": "Tidecaller" },
-    { "id": "at_jellyfish", "label": "Jellyfish", "role": "Mystic" },
-    { "id": "at_columncrab", "label": "Column Crab", "role": "Bruiser" }
+    {
+      "id": "at_seahorse",
+      "label": "Seahorse",
+      "role": "Seeker"
+    },
+    {
+      "id": "at_pearlclam",
+      "label": "Pearl Clam",
+      "role": "Trader"
+    },
+    {
+      "id": "at_octopus",
+      "label": "Octopus",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "at_jellyfish",
+      "label": "Jellyfish",
+      "role": "Mystic"
+    },
+    {
+      "id": "at_columncrab",
+      "label": "Column Crab",
+      "role": "Bruiser"
+    }
   ],
-  "extraBodies": ["turtle", "dolphin", "ray", "fish"],
-  "buffs": ["tidalWave", "tideDamage", "gemFind"],
+  "topBodies": [
+    {
+      "id": "at_t_column",
+      "label": "Tide Column",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        64,
+        208,
+        200
+      ]
+    },
+    {
+      "id": "at_t_mosaic",
+      "label": "Floor Mosaic",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        40,
+        140,
+        230
+      ]
+    },
+    {
+      "id": "at_t_amphora",
+      "label": "Tide Amphora",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        160,
+        110,
+        60
+      ]
+    },
+    {
+      "id": "at_t_frieze",
+      "label": "Wave Frieze",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        120,
+        210,
+        250
+      ]
+    },
+    {
+      "id": "at_t_cornice",
+      "label": "Shell Cornice",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        244,
+        238,
+        228
+      ]
+    },
+    {
+      "id": "at_t_caryatid",
+      "label": "Pearl Caryatid",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        200,
+        190,
+        255
+      ]
+    },
+    {
+      "id": "at_t_trident",
+      "label": "Reef Trident",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        232,
+        120
+      ]
+    },
+    {
+      "id": "at_t_doubloon",
+      "label": "Sunken Doubloon",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        236,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "at_t_portico",
+      "label": "Lagoon Portico",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        30,
+        150,
+        110
+      ]
+    },
+    {
+      "id": "at_t_stele",
+      "label": "Ruin Stele",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        168,
+        172,
+        160
+      ]
+    },
+    {
+      "id": "at_t_oriel",
+      "label": "Tide Oriel",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        100,
+        255,
+        190
+      ]
+    },
+    {
+      "id": "at_t_balustrade",
+      "label": "Pearl Balustrade",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        160,
+        236,
+        210
+      ]
+    },
+    {
+      "id": "at_t_merling",
+      "label": "Lagoon Merling",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        64,
+        208,
+        200
+      ]
+    },
+    {
+      "id": "at_t_nymph",
+      "label": "Tide Nymph",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        255,
+        128,
+        128
+      ]
+    },
+    {
+      "id": "at_t_isopod",
+      "label": "Ruin Isopod",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        110,
+        60,
+        150
+      ]
+    },
+    {
+      "id": "at_t_lancet",
+      "label": "Coral Lancet",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        220,
+        60,
+        60
+      ]
+    },
+    {
+      "id": "at_t_plinth",
+      "label": "Gold Plinth",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        236,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "at_t_volute",
+      "label": "Shell Volute",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        250,
+        190,
+        160
+      ]
+    },
+    {
+      "id": "at_t_atrium",
+      "label": "Sunken Atrium",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        70,
+        180
+      ]
+    },
+    {
+      "id": "at_t_aqueduct",
+      "label": "Tide Aqueduct",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        20,
+        110,
+        120
+      ]
+    },
+    {
+      "id": "at_t_basilica",
+      "label": "Deep Basilica",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        52,
+        48,
+        70
+      ]
+    },
+    {
+      "id": "at_t_forum",
+      "label": "Pearl Forum",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        226,
+        206,
+        160
+      ]
+    },
+    {
+      "id": "at_t_rotunda",
+      "label": "Tide Rotunda",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        120,
+        210,
+        250
+      ]
+    },
+    {
+      "id": "at_t_peristyle",
+      "label": "Kelp Peristyle",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        76,
+        112,
+        46
+      ]
+    },
+    {
+      "id": "at_t_ossuary",
+      "label": "Deep Ossuary",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        110,
+        60,
+        150
+      ]
+    },
+    {
+      "id": "at_t_trireme",
+      "label": "Gold Trireme",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        236,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "at_t_siren",
+      "label": "Coral Siren",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        220,
+        70,
+        170
+      ]
+    },
+    {
+      "id": "at_t_hippocamp",
+      "label": "Gold Hippocamp",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        236,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "at_t_lamprey",
+      "label": "Abyss Lamprey",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        24,
+        60,
+        120
+      ]
+    },
+    {
+      "id": "at_t_mosasaur",
+      "label": "Ruin Mosasaur",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        140,
+        230
+      ]
+    },
+    {
+      "id": "at_t_tessera",
+      "label": "Gold Tessera",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        232,
+        120
+      ]
+    },
+    {
+      "id": "at_t_nymphaeum",
+      "label": "Pearl Nymphaeum",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        190,
+        255
+      ]
+    },
+    {
+      "id": "at_t_acropolis",
+      "label": "Tide Acropolis",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        40,
+        70,
+        180
+      ]
+    },
+    {
+      "id": "at_t_tholos",
+      "label": "Sunken Tholos",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        64,
+        208,
+        200
+      ]
+    },
+    {
+      "id": "at_t_triton",
+      "label": "Crown Triton",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        236,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "at_t_cetus",
+      "label": "Abyss Cetus",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        24,
+        60,
+        120
+      ]
+    },
+    {
+      "id": "at_t_panoply",
+      "label": "Orichalcum Panoply",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        236,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "at_t_atlanteum",
+      "label": "Lost Atlanteum",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        100,
+        255,
+        190
+      ]
+    },
+    {
+      "id": "at_t_poseidon",
+      "label": "Tide Poseidon",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        40,
+        140,
+        230
+      ]
+    },
+    {
+      "id": "at_t_amphitheater",
+      "label": "Deep Amphitheater",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        52,
+        48,
+        70
+      ]
+    },
+    {
+      "id": "at_t_nereid",
+      "label": "Moon Nereid",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        200,
+        190,
+        255
+      ]
+    },
+    {
+      "id": "at_t_ziggurat",
+      "label": "Luminous Ziggurat",
+      "role": "Bruiser",
+      "tier": "Divine",
+      "tint": [
+        255,
+        232,
+        120
+      ]
+    },
+    {
+      "id": "at_t_abyssgate",
+      "label": "Primeval Abyssgate",
+      "role": "Digger",
+      "tier": "Exotic",
+      "tint": [
+        24,
+        60,
+        120
+      ]
+    },
+    {
+      "id": "at_t_sanctum",
+      "label": "Tidebound Sanctum",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        64,
+        208,
+        200
+      ]
+    },
+    {
+      "id": "at_t_dais",
+      "label": "Deepthrone Dais",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        236,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "at_t_megalith",
+      "label": "Oceanborn Megalith",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        168,
+        172,
+        160
+      ]
+    },
+    {
+      "id": "at_t_heartstone",
+      "label": "Fathom Heartstone",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        220,
+        70,
+        170
+      ]
+    },
+    {
+      "id": "at_t_tidewell",
+      "label": "Genesis Tidewell",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        100,
+        255,
+        190
+      ]
+    }
+  ],
+  "extraBodies": [
+    "turtle",
+    "dolphin",
+    "ray",
+    "fish"
+  ],
+  "buffs": [
+    "tidalWave",
+    "tideDamage",
+    "gemFind"
+  ],
   "palette": [
-    ["Turquoise", 64, 208, 200],
-    ["Atlantean Gold", 236, 190, 70],
-    ["Pearl White", 244, 238, 228],
-    ["Coral Pink", 255, 128, 128],
-    ["Deep Sea", 24, 60, 120],
-    ["Lagoon Green", 30, 150, 110],
-    ["Seafoam", 160, 236, 210],
-    ["Sky Tide", 120, 210, 250],
-    ["Black Pearl", 52, 48, 70],
-    ["Kelp", 76, 112, 46],
-    ["Sandbar", 226, 206, 160],
-    ["Sunken Bronze", 160, 110, 60],
-    ["Urchin Purple", 110, 60, 150],
-    ["Starfish Orange", 250, 140, 50],
-    ["Lapis", 40, 70, 180],
-    ["Anemone Magenta", 220, 70, 170],
-    ["Moon Jelly", 200, 190, 255],
-    ["Shell Peach", 250, 190, 160],
-    ["Trench Teal", 20, 110, 120],
-    ["Ruin Stone", 168, 172, 160],
-    ["Glowtide", 100, 255, 190],
-    ["Coral Red", 220, 60, 60],
-    ["Wave Blue", 40, 140, 230],
-    ["Sunlit Shallows", 255, 232, 120]
+    [
+      "Turquoise",
+      64,
+      208,
+      200
+    ],
+    [
+      "Atlantean Gold",
+      236,
+      190,
+      70
+    ],
+    [
+      "Pearl White",
+      244,
+      238,
+      228
+    ],
+    [
+      "Coral Pink",
+      255,
+      128,
+      128
+    ],
+    [
+      "Deep Sea",
+      24,
+      60,
+      120
+    ],
+    [
+      "Lagoon Green",
+      30,
+      150,
+      110
+    ],
+    [
+      "Seafoam",
+      160,
+      236,
+      210
+    ],
+    [
+      "Sky Tide",
+      120,
+      210,
+      250
+    ],
+    [
+      "Black Pearl",
+      52,
+      48,
+      70
+    ],
+    [
+      "Kelp",
+      76,
+      112,
+      46
+    ],
+    [
+      "Sandbar",
+      226,
+      206,
+      160
+    ],
+    [
+      "Sunken Bronze",
+      160,
+      110,
+      60
+    ],
+    [
+      "Urchin Purple",
+      110,
+      60,
+      150
+    ],
+    [
+      "Starfish Orange",
+      250,
+      140,
+      50
+    ],
+    [
+      "Lapis",
+      40,
+      70,
+      180
+    ],
+    [
+      "Anemone Magenta",
+      220,
+      70,
+      170
+    ],
+    [
+      "Moon Jelly",
+      200,
+      190,
+      255
+    ],
+    [
+      "Shell Peach",
+      250,
+      190,
+      160
+    ],
+    [
+      "Trench Teal",
+      20,
+      110,
+      120
+    ],
+    [
+      "Ruin Stone",
+      168,
+      172,
+      160
+    ],
+    [
+      "Glowtide",
+      100,
+      255,
+      190
+    ],
+    [
+      "Coral Red",
+      220,
+      60,
+      60
+    ],
+    [
+      "Wave Blue",
+      40,
+      140,
+      230
+    ],
+    [
+      "Sunlit Shallows",
+      255,
+      232,
+      120
+    ],
+    [
+      "Lime",
+      160,
+      220,
+      80
+    ],
+    [
+      "Abyss Ink",
+      20,
+      20,
+      220
+    ],
+    [
+      "Seagrass Flash",
+      20,
+      220,
+      20
+    ],
+    [
+      "Coral Shadow",
+      100,
+      20,
+      20
+    ],
+    [
+      "Siren Violet",
+      180,
+      20,
+      220
+    ],
+    [
+      "Goldfin",
+      255,
+      255,
+      20
+    ]
   ],
   "topWords": {
-    "Legendary": ["Pearled", "Gilded", "Coral", "Tidal"],
-    "Mythic": ["Sunken", "Abyssal", "Atlantean", "Leviathan"],
-    "Divine": ["Luminous", "Crowned", "Moonlit", "Radiant"],
-    "Exotic": ["Deepthroned", "Tidebound", "Primeval", "Oceanborn"]
+    "Legendary": [
+      "Pearled",
+      "Gilded",
+      "Coral",
+      "Tidal"
+    ],
+    "Mythic": [
+      "Sunken",
+      "Abyssal",
+      "Atlantean",
+      "Leviathan"
+    ],
+    "Divine": [
+      "Luminous",
+      "Crowned",
+      "Moonlit",
+      "Radiant"
+    ],
+    "Exotic": [
+      "Deepthroned",
+      "Tidebound",
+      "Primeval",
+      "Oceanborn"
+    ]
   },
   "names": [
-    "Pearlie", "Pearlina", "Pearlbelle", "Pearlpup", "Pearlfin", "Pearlwhisk", "Pearlgate", "Nacre",
-    "Nacrelle", "Oysterbelle", "Clamdy", "Clamshell", "Clambake", "Clamwhistle", "Shellby", "Shelly",
-    "Shellbelle", "Seashell", "Driftshell", "Glowshell", "Conch", "Cowrie", "Whelk", "Scallop",
-    "Scallopini", "Abalone", "Limpet", "Barnacle", "Nautilo", "Nautilus", "Coralie", "Coralina",
-    "Corallo", "Coralbud", "Coralfin", "Coralkin", "Reefling", "Reefstar", "Reefwhisk", "Reefbell",
-    "Reefpup", "Anemone", "Polyp", "Sea Fan", "Urchin", "Urchy", "Seastar", "Brittlestar",
-    "Seasprout", "Curlytail", "Snoutwhistle", "Pipefish", "Moon Jelly", "Glowbell", "Driftbell", "Wobblebell",
-    "Squishbell", "Deepbell", "Tidebell", "Brinebell", "Sunkenbell", "Octavo", "Inkwell", "Inkblot",
-    "Squiddle", "Squidge", "Tentabelle", "Curlarm", "Wigglefin", "Pinchkin", "Snipsnap", "Clawlette",
-    "Sidestep", "Scuttlebug", "Pillarkin", "Colonnade", "Tridentina", "Kingtide", "Tidecrown", "Tidethrone",
-    "Tidegate", "Tidesong", "Moontide", "Crownwave", "Sunkencrown", "Sunkensong", "Atlantea", "Doubloon",
-    "Galleon", "Bellbuoy", "Buoy", "Porthole", "Spyglass", "Treasurefin", "Goldfin", "Gildtide",
-    "Gildfin", "Bubblecrown", "Bubbletiara", "Wavecrest", "Wavelet", "Wavewhisk", "Wavey", "Seabright",
-    "Seaglow", "Seaglass", "Seaspray", "Seafoam", "Spindrift", "Brine", "Briny", "Saltie",
-    "Seafarer", "Maris", "Surfie", "Surfwhisk", "Riptail", "Undercurrent", "Splashy", "Splish",
-    "Splosh", "Sploosh", "Plash", "Snorkel", "Paddlefin", "Rockpool", "Lagoona", "Lagoonie",
-    "Abyssa", "Benthic", "Trenchy", "Murky", "Gloomfin", "Lanternfin", "Anglerbelle", "Fathomfin",
-    "Deepglow", "Sonar", "Echofin", "Krakelet", "Krakenpup", "Glimmerfin", "Shimmerfin", "Bubblegill",
-    "Gillyfin", "Naiad", "Nixie", "Undine", "Sirena", "Ondine", "Aurelia", "Azurine",
-    "Cerulea", "Cyanne", "Aquabelle", "Tealfin", "Kelpkin", "Seaweed", "Sargasso", "Dulse",
-    "Finny", "Finnegan", "Finley", "Merpup", "Merkit", "Sealpup", "Narwhal", "Orcalet"
+    "Pearlie",
+    "Pearlina",
+    "Pearlbelle",
+    "Pearlpup",
+    "Pearlfin",
+    "Pearlwhisk",
+    "Pearlgate",
+    "Nacre",
+    "Nacrelle",
+    "Oysterbelle",
+    "Clamdy",
+    "Clamshell",
+    "Clambake",
+    "Clamwhistle",
+    "Shellby",
+    "Shelly",
+    "Shellbelle",
+    "Seashell",
+    "Driftshell",
+    "Glowshell",
+    "Conch",
+    "Cowrie",
+    "Whelk",
+    "Scallop",
+    "Scallopini",
+    "Abalone",
+    "Limpet",
+    "Barnacle",
+    "Nautilo",
+    "Nautilus",
+    "Coralie",
+    "Coralina",
+    "Corallo",
+    "Coralbud",
+    "Coralfin",
+    "Coralkin",
+    "Reefling",
+    "Reefstar",
+    "Reefwhisk",
+    "Reefbell",
+    "Reefpup",
+    "Anemone",
+    "Polyp",
+    "Sea Fan",
+    "Urchin",
+    "Urchy",
+    "Seastar",
+    "Brittlestar",
+    "Seasprout",
+    "Curlytail",
+    "Snoutwhistle",
+    "Pipefish",
+    "Moon Jelly",
+    "Glowbell",
+    "Driftbell",
+    "Wobblebell",
+    "Squishbell",
+    "Deepbell",
+    "Tidebell",
+    "Brinebell",
+    "Sunkenbell",
+    "Octavo",
+    "Inkwell",
+    "Inkblot",
+    "Squiddle",
+    "Squidge",
+    "Tentabelle",
+    "Curlarm",
+    "Wigglefin",
+    "Pinchkin",
+    "Snipsnap",
+    "Clawlette",
+    "Sidestep",
+    "Scuttlebug",
+    "Pillarkin",
+    "Colonnade",
+    "Tridentina",
+    "Kingtide",
+    "Tidecrown",
+    "Tidethrone",
+    "Tidegate",
+    "Tidesong",
+    "Moontide",
+    "Crownwave",
+    "Sunkencrown",
+    "Sunkensong",
+    "Atlantea",
+    "Doubloon",
+    "Galleon",
+    "Bellbuoy",
+    "Buoy",
+    "Porthole",
+    "Spyglass",
+    "Treasurefin",
+    "Goldfin",
+    "Gildtide",
+    "Gildfin",
+    "Bubblecrown",
+    "Bubbletiara",
+    "Wavecrest",
+    "Wavelet",
+    "Wavewhisk",
+    "Wavey",
+    "Seabright",
+    "Seaglow",
+    "Seaglass",
+    "Seaspray",
+    "Seafoam",
+    "Spindrift",
+    "Brine",
+    "Briny",
+    "Saltie",
+    "Seafarer",
+    "Maris",
+    "Surfie",
+    "Surfwhisk",
+    "Riptail",
+    "Undercurrent",
+    "Splashy",
+    "Splish",
+    "Splosh",
+    "Sploosh",
+    "Plash",
+    "Snorkel",
+    "Paddlefin",
+    "Rockpool",
+    "Lagoona",
+    "Lagoonie",
+    "Abyssa",
+    "Benthic",
+    "Trenchy",
+    "Murky",
+    "Gloomfin",
+    "Lanternfin",
+    "Anglerbelle",
+    "Fathomfin",
+    "Deepglow",
+    "Sonar",
+    "Echofin",
+    "Krakelet",
+    "Krakenpup",
+    "Glimmerfin",
+    "Shimmerfin",
+    "Bubblegill",
+    "Gillyfin",
+    "Naiad",
+    "Nixie",
+    "Undine",
+    "Sirena",
+    "Ondine",
+    "Aurelia",
+    "Azurine",
+    "Cerulea",
+    "Cyanne",
+    "Aquabelle",
+    "Tealfin",
+    "Kelpkin",
+    "Seaweed",
+    "Sargasso",
+    "Dulse",
+    "Finny",
+    "Finnegan",
+    "Finley",
+    "Merpup",
+    "Merkit",
+    "Sealpup",
+    "Narwhal",
+    "Orcalet"
   ]
 }

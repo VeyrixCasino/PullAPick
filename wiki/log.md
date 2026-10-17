@@ -1352,6 +1352,132 @@ The sweep corrected one claim: Coolant and Short Fuse still come from the skill 
 
 Updated: the pages above, log.
 
+## [2026-10-13] query | family tempers on forged tools (digest)
+Confirmed the digest against `MineServer.boosts` / `equippedTool`: the bug was
+real (`(tier or 0) > 0` excluded forged look-rung 0) and **already fixed in
+`b0c2430`**. No further MineServer edit. Pinned the gate in
+`tools/verify/layers.js`. Wiki gotcha / open Q updated; cosmetic-vs-power
+left open (do not invent).
+
+Updated: skins-cases-and-temper, boosts-and-stats, open-questions, log.
+
+## [2026-10-13] ingest | A3: cooler sell + catch of the day
+Built cooler sell for coins (fishSell / fishSellAll, ore-pouch confirm) and
+wired catch of the day into TODAY / FISH tab (global UTC target, fishClaimCotd).
+Sell and reward numbers are PROPOSED. Updated fishing.md, next-up, client-and-ui.
+
+## [2026-10-13] ingest | A3: hand rod + cork bobber
+`MineFishingView.rigFx` rebuilt: pose Parts in world, WeldConstraint to
+RightHand (wood shaft / handle / reel / tip eye), cork float (tan + red cap +
+stem) under `Workspace.MineFishFx`, Beam line, tip-track during cast wind-up.
+Cork stays on the water through the fight (no longer Transparency = 1 on bite).
+Studio Play on Quarry Pool (`sunscar_pond`): rod welded to RightHand, cork on
+surface after cast, Beam on, clean console for fishing. Fight module untouched.
+Updated: fishing.md, log.
+
+## [2026-10-13] ingest | A3: fish album set bonuses
+Album = cooler known (row kept at n=0 after sell). One set per zone (12 fish).
+PROPOSED luck at that zone's spots: +2% at 3/12, +5% at 12/12 (complete
+replaces milestone). Applied in `fishCast` / `fullState` with rod Ã— spot Ã—
+album Ã— cast. FISH + COOLER + ODDS show progress. Updated fishing.md, next-up.
+
+## [2026-10-13] ingest | TODO B4 grade reference + MineStars
+Surveyed every grade ladder (F…SSS / Common…Exotic, fishing GRADES, wild
+cases, set/zone pack stars, lucky ranks, chest ranks, pass tiers, ore bands).
+Added wiki/systems/grades-and-stars.md, MineStars.luau (stars/value/label/beside),
+and wired Loadout inspect rarity to MineStars.beside. No balance changes.
+
+Updated: grades-and-stars, index, glossary, ambiguous-terms, log.
+
+## [2026-10-14] fix | TODAY font-size flicker
+Ready TODAY rows pulsed `UIScale` on the status `TextLabel` (~15 Hz), which
+read as font sizes flickering. Pulse moved to the green ready-dot. Fishing cooler
+cards dropped `TextScaled` on name/foot (fixed size + truncate).
+
+Updated: MineClient, MineFishingView, log.
+
+## [2026-10-13] ingest | TODO B2 tool-dps verify (no rebalance)
+Added `tools/verify/tool-dps.js`: forged family DPS/`edps` table from live
+`toolPower` × `FAMILY_POWER` × `FRAME_STATS`. Soft-asserts B2 ordering; current
+tree fails same-grade explosive-top at most sample tiers (drills win on area
+throughput). No balance edits. Noted missing explosive `depth` RLE.
+
+Updated: tools.md, verify-suite.md, log.
+
+## [2026-10-14] ingest | MineStars.beside more UI sites
+Wired `MineStars.beside` on pack odds, inventory Grade row, forge temper word
+lines, skins tier badge, and lucky-block odds. Tiny letter chips unchanged. No
+balance changes. Candy-style gotcha: never pulse UIScale on TextLabels.
+
+Updated: MineInventoryView, MineForgeView, MineSkinsView, MineLuckyOddsView,
+grades-and-stars, candy-style, log.
+
+## [2026-10-14] ingest | B1 hammer niche lock + B2 explosive rebalance
+Owner locked B1: hammer = slow / heavy / single-target + highest single-block
+DPS. Retuned `FAMILY_POWER.hammer` 2.2?3.7, `explosive` 1?4; baked explosive
+`depth` RLE (wired through `equippedTool`); lengthened mid line cells/depth to
+13; trimmed mid sphere cooldowns. `tool-dps.js` now asserts hammer crowns
+single-block `dps` and full-footprint explosive `edps`.
+
+Updated: MineOreTools, MineServer, tool-dps.js, tools.md, next-up.md,
+verify-suite.md, log.
+
+## [2026-10-14] ingest | chest tool drops live + tool ? display
+Fixed open-questions #7: forward-declare `rollChestTool` before
+`openChestBlock` so zone chests can drop Secrets/forever tools again.
+Secrets shop rarity chip and Found forever-tool sub-lines use
+`MineStars.beside` (word kept). New `tools/verify/chest-tools.js`.
+Full B3 (5?6 themed sets / new drop tables) still needs the owner.
+
+Updated: MineServer, MineShopView, MineInventoryView, chest-tools.js,
+open-questions, chests-and-lucky-blocks, tools.md, next-up, log.
+
+## [2026-10-17] fix | font sizes flicker, everywhere else
+Owner: *"the font sizes flicker.. fix"*. The 2026-10-14 fix only covered the
+TODAY rows. The same cause was still live across the HUD: a UIScale easing over
+text, which Roblox draws at whole font sizes, so it steps a pixel at a time.
+- `MineUI.pulse` on anything that carries text (quest CLAIM, dock badges with
+  counts, the rebirth button, the gifts button) now runs a ring that ripples
+  off the edge while the thing holds still. Dots still throb as before.
+- `MineUI.popNumber` (wallet pills, quest progress, skins count) lights the
+  outline gold on a change and fades after the last one. It used to restart a
+  size pop on every change, several times a second while digging.
+- The Forge hub rebuilt every card on every snapshot (up to ten a second). It
+  now repaints only on a real change, at most about once a second.
+- New check `tools/verify/text-motion.js`. Not yet seen in Studio (no place was
+  open).
+
+Updated: candy-style, client-and-ui, verify-suite, log.
+
+## [2026-10-16] decision | Drills are instant; Short Fuse on pets and an enchant
+The owner: *"jack hammer spins up, drill is isntant, and short fuse should be a pet thing (and skill tree.. spin up is fine on skill tree, short fuse and enchnat [dont overdo it.. explosives cam be game breaking])"*. They chose "a few per zone, small" for the pets.
+- Every drill winds in no time. The swing rule is `fam == "drill"`, and the forged, coin-shop and Event Horizon drills carry `turn = 0`. Only jackhammers spin up, and Coolant (skill tree only) shortens that.
+- 2 pets in every zone carry Short Fuse as their second stat, at most 10%, with power unchanged. `shortFuse` left `MineStats.RUNE_ONLY`.
+- A new Damage enchant, Short Fuse, fits explosives only: +3% a level, +15% at V (PROPOSED).
+
+Updated: tools, pets, enchants, boosts-and-stats, traits, open-questions, log.
+
+## [2026-10-16] decision | The battle pass rework
+The owner's answers:
+- *"about 2 weeks no daily xp cap"*;
+- *"100 teirs, every 5 should be decent, every 10 should be good and every 25 is huge"*;
+- the premium track is exclusive pets, skins and books;
+- the free track pays something every tier, smaller;
+- 4 season pets on the huge tiers, made by this session;
+- "4 skins".
+
+What changed:
+- 90 XP a tier, 9,000 a season, from quests only, with no daily cap.
+- Both tracks pay every tier, in four classes.
+- The premium huge tiers pay Pickwick, Nuggetail, Gemheart and Bedrock Bob, a new `pass_2026_10` pack that nothing random rolls.
+- The premium 20 / 40 / 60 / 80 pay a new MineSkins pass set that no case drops.
+- Pets and skins are granted on the live profile only.
+- The rail flags â˜… BIG and â˜… HUGE tiles.
+
+`tools/verify/battle-pass.js` runs the real track. The amounts and names are PROPOSED. Not yet seen in Studio: no place was open.
+
+Updated: shops-and-monetisation, pets, skins-cases-and-temper, open-questions, traits, log.
+
 ## [2026-10-16] refactor | PR #7 rebuilt on the owner's branch, 144 commits later
 The owner's working branch had moved from `bae3c5b` to `98c141a` (PR #8, "Season 1 build",
 144 more commits, 269 files), and that branch's own wiki edits conflicted with mine in 20
@@ -1389,3 +1515,16 @@ successful read or save, `MineLaunch.stamp()` reads it on clients only, and the 
 `MineScrolls.seasonClock` and `passEndLabel`. `launch.js` gained nine checks, proved to fail on
 the old code and pass on the new. **Not run in Studio.** Updated: season-and-launch, charms,
 open-questions (21 fixed, 22 decided), owner, verify-suite.
+
+## [2026-10-17] refactor | merged the pass rework (`d258771`) into PR #7
+The working branch moved to `d258771` (5 commits: the battle pass rework, drills, text
+animation, hammer and explosive niches, a restore point). Merged it into this branch: three
+wiki pages conflicted (`tools-and-generators`, `verify-suite`, `log`), took theirs and
+re-added only this branch's rows and log entries. The code merged without conflict, and
+both sides survive: their 100-tier pass at 90 XP a tier, my season clock and 47-day end.
+**One new ambiguity, asked, not decided:** the rework added `PASS_SEASON_DAYS = 28`
+(unused), the branch's pass ends at 40 days, and this PR says 47
+([open-questions](open-questions.md) 23). Checks: `launch` and `battle-pass` pass,
+`syntax.sh` 306 files clean, compile 12 and 11 locals left, suite 70/70 on the second run
+(first-run `skins` is the CRLF effect). Their `log.md` holds four bytes that are not valid UTF-8
+(Windows-1252 `â€¦` and `Ã—`, in the MineStars entry); I kept them as they were.

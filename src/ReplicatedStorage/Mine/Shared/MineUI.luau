@@ -121,22 +121,81 @@ function MineUI.pop(inst, amount)
 end
 
 --[[
-	Pop a TextLabel every time its text changes, except the first set. Safe to
-	call twice on the same label.
+	TEXT NEVER RIDES A SCALE ANIMATION. Roblox draws text at whole font sizes,
+	so a UIScale easing over a label steps it 20 -> 21 -> 22 px instead of
+	growing it, and that stepping is what the owner keeps seeing as "the font
+	sizes flicker" (2026-10-14 TODAY rows, 2026-10-17 everywhere else).
+	popNumber and pulse below honour this for anything that carries text.
 ]]
-function MineUI.popNumber(label, amount)
+local TEXT_CLASS = { TextLabel = true, TextButton = true, TextBox = true }
+local function carriesText(inst)
+	if TEXT_CLASS[inst.ClassName] then
+		return true
+	end
+	for _, d in ipairs(inst:GetDescendants()) do
+		if TEXT_CLASS[d.ClassName] then
+			return true
+		end
+	end
+	return false
+end
+MineUI.carriesText = carriesText
+
+local GLOW = Color3.fromRGB(255, 226, 120)
+
+--[[
+	A number that changes lights its outline instead of popping its size. The
+	wallet and the quest count change several times a second while you dig, and
+	each change used to restart a size pop -- a constant font-size strobe. Now
+	the outline goes gold on a change, stays lit while changes keep coming, and
+	fades a beat after the last one. Safe to call twice on the same label.
+	`amount` is kept for old callers and ignored.
+]]
+function MineUI.popNumber(label, _amount)
 	if label:GetAttribute("PopNumber") then
 		return
 	end
 	label:SetAttribute("PopNumber", true)
 	local last = label.Text
+	local stroke, base, idle
+	local lastChange = 0
 	label:GetPropertyChangedSignal("Text"):Connect(function()
-		if label.Text ~= last then
-			last = label.Text
-			if label.Visible then
-				MineUI.pop(label, amount)
-			end
+		if label.Text == last then
+			return
 		end
+		last = label.Text
+		if not label.Visible then
+			return
+		end
+		if not stroke or not stroke.Parent then
+			-- The label's own outline if it has one (outlineText), else a hidden
+			-- one of ours: a UIStroke never changes the font size.
+			stroke = label:FindFirstChildOfClass("UIStroke")
+			idle = stroke == nil
+			if idle then
+				stroke = MineUI.new("UIStroke", {
+					Name = "NumberGlow", Color = GLOW, Thickness = 2, Transparency = 1,
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+				}, label)
+			end
+			base = stroke.Color
+		end
+		lastChange = os.clock()
+		if idle then
+			stroke.Transparency = 0
+		else
+			stroke.Color = GLOW
+		end
+		task.delay(0.25, function()
+			if os.clock() - lastChange < 0.24 or not stroke.Parent then
+				return
+			end
+			if idle then
+				MineUI.tween(stroke, 0.35, { Transparency = 1 })
+			else
+				MineUI.tween(stroke, 0.35, { Color = base })
+			end
+		end)
 	end)
 end
 
@@ -168,10 +227,80 @@ function MineUI.juice(btn, grow)
 end
 
 --[[
+	The pulse for anything that carries text: a ring that ripples out from the
+	edge and fades, while the thing itself (and its text) holds still. The ring
+	is a plain Frame child with no text, so scaling IT never steps a font. A
+	parent with a layout would slot the ring in as one more item, so there the
+	pulse lights the parent's own outline instead.
+]]
+local function ringPulse(inst, amount, period)
+	local alive = true
+	local beat = period or 0.7
+	if inst:FindFirstChildWhichIsA("UIGridStyleLayout") then
+		local edge = inst:FindFirstChildOfClass("UIStroke")
+		if not edge then
+			return function() end
+		end
+		local base = edge.Color
+		task.spawn(function()
+			while alive and inst.Parent and edge.Parent do
+				MineUI.tween(edge, beat / 2, { Color = GLOW }, Enum.EasingStyle.Sine)
+				task.wait(beat / 2)
+				if not alive then break end
+				MineUI.tween(edge, beat / 2, { Color = base }, Enum.EasingStyle.Sine)
+				task.wait(beat / 2)
+			end
+			if edge.Parent then
+				MineUI.tween(edge, 0.15, { Color = base })
+			end
+		end)
+		return function() alive = false end
+	end
+	local ring = MineUI.new("Frame", {
+		Name = "PulseRing", BackgroundTransparency = 1, BorderSizePixel = 0, Active = false,
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1), ZIndex = inst.ZIndex + 1,
+	}, inst)
+	local corner = inst:FindFirstChildOfClass("UICorner")
+	if corner then
+		MineUI.new("UICorner", { CornerRadius = corner.CornerRadius }, ring)
+	end
+	local edge = MineUI.new("UIStroke", {
+		Color = GLOW, Thickness = 3, Transparency = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	}, ring)
+	local grow = MineUI.new("UIScale", { Scale = 1 }, ring)
+	-- The callers' amounts (1.05-1.25) were sized for a whole-button throb; a
+	-- ring needs to travel further to read.
+	local reach = 1 + math.clamp(((amount or 1.08) - 1) * 2.5, 0.12, 0.35)
+	task.spawn(function()
+		while alive and inst.Parent and ring.Parent do
+			grow.Scale = 1
+			edge.Transparency = 0.1
+			MineUI.tween(grow, beat * 0.85, { Scale = reach }, Enum.EasingStyle.Quad)
+			MineUI.tween(edge, beat * 0.85, { Transparency = 1 }, Enum.EasingStyle.Quad)
+			task.wait(beat)
+		end
+		if ring.Parent then
+			ring:Destroy()
+		end
+	end)
+	return function()
+		alive = false
+		if ring.Parent then
+			ring:Destroy()
+		end
+	end
+end
+
+--[[
 	PULSE: a looping "look at me" throb for anything claimable. Returns a stop
-	function; calling it settles the scale back to 1.
+	function; calling it settles the scale back to 1. Anything with text in it
+	gets the ring instead (see ringPulse): a throbbing label is a flickering one.
 ]]
 function MineUI.pulse(inst, amount, period)
+	if carriesText(inst) then
+		return ringPulse(inst, amount, period)
+	end
 	local v = channel(inst, "pulse")
 	if not v then
 		return function() end

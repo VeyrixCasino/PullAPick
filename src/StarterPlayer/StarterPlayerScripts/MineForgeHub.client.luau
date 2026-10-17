@@ -86,7 +86,9 @@ net.OnClientEvent:Connect(function(action, payload)
 	if action == "snapshot" and type(payload) == "table" then
 		snap = payload
 		if hub.isOpen() then
-			pcall(hub.refresh)
+			-- Not refresh(): onSnapshot repaints only on a real change, at most
+			-- about once a second, so the page is not rebuilt ten times a second.
+			pcall(hub.onSnapshot or hub.refresh)
 		end
 	elseif action == "bookBundle" and type(payload) == "table" then
 		-- A bundle bought here (or a chest's, while the Forge is open).

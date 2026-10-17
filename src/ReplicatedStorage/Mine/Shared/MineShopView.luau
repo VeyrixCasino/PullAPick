@@ -29,6 +29,7 @@ local Factory = require(RS:WaitForChild("ToolModelFactory"))
 local ShopLadders = require(shared:WaitForChild("MineShopLadders"))
 local Icons = require(shared:WaitForChild("MineIcons"))
 local Cards = require(shared:WaitForChild("MineCards"))
+local Stars = require(shared:WaitForChild("MineStars"))
 
 --------------------------------------------------------------------------------
 -- PALETTE
@@ -2363,7 +2364,7 @@ function MineShopView.mount(parent, opts)
 		-- cardStroke removed (no card chrome)
 		if rar and not blackout then
 			rarityChip.Visible = true
-			rarityChip.Text = rar
+			rarityChip.Text = Stars.beside(rar)
 			rarityChip.BackgroundColor3 = rarInk or tint
 			rarityChip.TextColor3 = Color3.fromRGB(18, 20, 28)
 		else

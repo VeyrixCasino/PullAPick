@@ -113,7 +113,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 4 | **Event Horizon cannot be mined**: it counts as zone 11 (strength 1000) and event tools get breaking power 1. | *Reported* | [world-events](systems/world-events.md) |
 | 5 | **FIXED 2026-10-06: depth desks paid hundreds of times too much.** `DEPTH_SELL_FRAC` (the 0.78 haircut) is deleted and `depthSellMult` is now `DEPTH_SELL_PER_SEAM 1.05 ^ (depth/500)` — a smooth curve instead of ×487.5 at seam 500 and ×12,187.5 at seam 1500. Owner asked for seams to sell for **more**, not less, so the ramp rises gently rather than being clamped down. | *Read* in code | [zones-layers-and-seams](systems/zones-layers-and-seams.md) |
 | 6 | **The chest coin crash fix landed in dead code.** The `e77d84e` fix is in `rollChestLoot`, reached only by `giveDrop`, which nothing calls. Live chests use `MineZoneChests.rollCurrency`. | *Reported* | [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md) |
-| 7 | **Chest flagship tools never drop** (static read): `openChestBlock` reads `rollChestTool` about 2,600 lines above its declaration, so it is a global read and nil. | *Reported* | same page; see the global-read trap in [luau-traps](code/luau-traps.md) |
+| 7 | **FIXED 2026-10-14: chest flagship tools never dropped.** `openChestBlock` read `rollChestTool` ~2,600 lines above a later `local function`, so the name was a nil global. Forward-declare `local rollChestTool` before `openChestBlock`, then assign with `function rollChestTool`. Pinned by `tools/verify/chest-tools.js`. | *Read*, pinned by harness | [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md); [luau-traps](code/luau-traps.md) |
 | 8 | **Tutorial step 29 hands a new player SSS hats**, worth +1050% in layer 2. | *Reported* | [hats-and-faces](systems/hats-and-faces.md) |
 | 9 | **`MineStats.RUNE_ONLY` silently zeroes the `blastRadius` line on all 26 pets that have one.** Runes are retired (2026-10-12), but the table is kept on purpose because `MineCards` uses it as the pet-kit stat filter. | *Reported* (count not rechecked after the 2026-10-12 calm pass) | [pets](systems/pets.md) |
 | 10 | **The charm MERGE button wants 2 copies** (`math.max(2, MERGE_COST)`); the server needs 1 and the gem price is never shown. | *Reported* | [charms](systems/charms.md) |
@@ -123,6 +123,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 14 | **`tools/export/sync.ps1` deletes `tools/export/in/`** (`Remove-Item $in -Recurse -Force`). **Not a bug in the script**: that folder is a gitignored scratch directory the Studio export flow fills and consumes, and deleting it is the documented last step (the `b19c4c2` author checked and dismissed it). The only hazard was `CLAUDE.md` naming that folder as a place for Claude.ai exports. `CLAUDE.md` and the wiki now point exports at the gitignored `transcripts/` folder. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
 | 15 | **FIXED 2026-10-06: nothing checked Luau's 200-top-level-local ceiling.** `tools/verify/compile.js` now runs `luau-compile` over all 212 files and asserts at least 4 locals of headroom in both big scripts. It found `MineServer` sitting at **0 headroom** on arrival; collapsing seven service locals into one `Svc` table bought 5 back. It has since caught the same break twice more — a `do` block for the dev-scaffolding strip (fixed by making it an IIFE, since `do` shares the main chunk's budget while an IIFE gets its own). | *Read*, pinned by harness | [luau-traps](code/luau-traps.md) |
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
+| 21 | **FIXED in `b0c2430`: family tempers did nothing on forged tools.** `boosts()` gated `p.toolTempers[fam]` on `(tier or 0) > 0`, but `equippedTool` returns look-rung `0` for forged ore tools (ore tier is not that return). Gate now accepts `row.oreTool` / `row.oreTier`. `tools/verify/layers.js` pins it. | *Read* in code | [skins-cases-and-temper](systems/skins-cases-and-temper.md); `MineServer.boosts` |
 
 ## 1b. Found 2026-10-06 to 08, measured or read, not yet decided
 
@@ -138,6 +139,7 @@ because each moves the economy in more than one place. Measured figures are in
 | 20 | **A 6,500-block first tool.** With stone's surface share raised to hit the owner's 1-vein-per-3,000 target, the cheapest craftable tool costs ~6,500 blocks broken (was 13,500). Not obviously wrong, but it is the first number a new player meets and nobody has signed off on it. | measured | `docs/ore-yield-and-vein-balance.md` §2 |
 | 21 | **FIXED 2026-10-17: the battle pass ended a week before the offers.** `PASS_SEASON_END` was 40 days after the start while the offers and Event Horizon run 47; it is now 47 too, and `launch.js` pins the three lengths. The same change mirrors the launch stamp to clients (they never learned it, so after a launch they would have shown week one's offers and frozen countdowns) and puts the pass panel on the season clock. Owner: *"do what you think is best for the game"*. | *Read*, pinned by `launch.js` (proved to fail on the old code); not yet run in Studio | [season-and-launch](systems/season-and-launch.md) |
 | 22 | **DECIDED 2026-10-17: Chest Luck scales the chest charm drop, and that stays.** `CHARM_CHEST_CHANCE × b.chestLuck`, the same multiplier every other chest reward uses (cases, skins, book bundles, packs). There is **one charm slot**, so wearing one of the five Chest Luck charms means not wearing a power charm: a trade-off, not a free loop. (My earlier note that a code comment denies this was a misreading: that comment is about the `luck` stat, which the chest roll does not use.) | *Read* | [charms](systems/charms.md) |
+| 23 | **How long is the battle pass season: 28, 40 or 47 days?** Three numbers now disagree. `d258771` (the pass rework, owner 2026-10-16: *"about 2 weeks no daily xp cap"*) sets the XP pace to about two weeks and adds `MineScrolls.PASS_SEASON_DAYS = 28`, which **nothing reads**. The pass's own end on that branch is still 40 days. PR #7 makes it 47 to match the offers and Event Horizon (decided on the owner's 2026-10-17 *"do what you think is best"*, before I saw the rework). Recommended: 47, so the pass, offers and Event Horizon end together, with "about 2 weeks" as the pace to finish it. | *Read* | [season-and-launch](systems/season-and-launch.md) |
 
 ## 2. Where the owner's rules and the code disagree
 
@@ -168,8 +170,10 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
 - **Coins: what are they for?** Seams are free, the Forge runs on ore, tools are
   no longer sold for coins (`9733a05`), and the proposed shape (potions,
   consumables, outpost shops) is unsigned.
-- **Are skins cosmetic or a power source?** Docs disagree; today they are
-  tempers (stat kits).
+- **Are skins cosmetic or a power source?** Docs disagree (`ROADMAP` wrap-only
+  vs TODO §0.13 / §0.19 and live `MineSkins` / `MineTemper` kits). Do not invent.
+- **Battle pass season length (finding 23):** 47 days with the offers (recommended), 28
+  (`PASS_SEASON_DAYS`, unused), or 40 (the current end on the working branch)?
 - **One charm per ore, or two?** Is the ~24 hand-authored charm rewrite (AUDIT)
   approved? Should charms sit in a boost layer?
 - **Pack pity and the Exotic floor:** build them, or keep "no pity"?
@@ -183,14 +187,19 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
   and Short Fuse (bomb cooldown) came from runes, traits and the skill tree.
   Pets and gear cannot roll them (`MineStats.RUNE_ONLY`; zone pets are banned).
   Since 2026-10-12 only the skill tree grants them (the Water nodes give
-  `coolant`, the Metal nodes give `shortFuse`; `boosts()` applies both). Should
-  enchants offer them too?
-- **Rework the battle pass.** Owner, 2026-10-12: *"we have to rework the entire
-  battle pass"*. Nothing about the shape is decided. Its scroll rewards became
-  enchant books as a stopgap ([shops-and-monetisation](systems/shops-and-monetisation.md)).
+  `coolant`, the Metal nodes give `shortFuse`; `boosts()` applies both).
+  **Answered 2026-10-16:** drills are instant, and only jackhammers spin up, so
+  Coolant (skill tree only) shortens a jackhammer's spin-up. Short Fuse is also
+  on 2 pets in every zone (at most 10%) and on a small explosives-only enchant
+  (+15% at V). See [enchants](systems/enchants.md).
+- ~~**Rework the battle pass.**~~ Done 2026-10-16 to the owner's answers
+  ([shops-and-monetisation](systems/shops-and-monetisation.md)). Still open: the
+  PROPOSED amounts, the pass pets' and skins' names, and a look in a live server.
 - **The Founders pack's 3 books** replaced its White Scroll as an assistant
   default, not an owner decision. Confirm or change it.
-- **Should family tempers apply to forged tools?** Today they do not.
+- ~~**Should family tempers apply to forged tools?**~~ **Answered in code
+  (`b0c2430`): yes** — same `toolTempers` + `applyTemper` path as a shop rung.
+  Broader cosmetic-vs-power question above is still open.
 - **Is a Meadow pack with no Mythic+ intended?**
 
 **Ship or cut** (AUDIT §5 asked for a yes that was never recorded)

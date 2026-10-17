@@ -38,9 +38,13 @@ for (const m of (lua.match(/MineSkins\.BUDGET = \{[^\n]*/) || [""])[0].matchAll(
 const TIERS = ["F", "D", "C", "B", "A", "S", "SS", "SSS"];
 const ADDITIVE = new Set(((cards.match(/^local ADDITIVE_STATS = \{.*$/m) || [""])[0].match(/(\w+) = true/g) || []).map((x) => x.split(" ")[0]));
 
-const skins = [...lua.matchAll(/\{ id = "([^"]+)", name = "([^"]+)", set = "([^"]+)", tier = "(\w+)", kit = \{ ([^}]*) \} \},/g)]
+// Pass sets (2026-10-16) never drop: only the battle pass grants them, so the
+// drop model leaves them out.
+const passSets = new Set([...((lua.match(/MineSkins\.SETS = \{[\s\S]*?\n\}/) || [""])[0]).matchAll(/key = "(\w+)"[^\n]*pass = true/g)].map((m) => m[1]));
+const allSkins = [...lua.matchAll(/\{ id = "([^"]+)", name = "([^"]+)", set = "([^"]+)", tier = "(\w+)", kit = \{ ([^}]*) \} \},/g)]
   .map((m) => ({ id: m[1], name: m[2], set: m[3], tier: m[4],
     kit: Object.fromEntries([...m[5].matchAll(/(\w+) = ([\d.]+)/g)].map((k) => [k[1], +k[2]])) }));
+const skins = allSkins.filter((x) => !passSets.has(x.set));
 
 console.log(`  modelling ${skins.length} skins\n`);
 

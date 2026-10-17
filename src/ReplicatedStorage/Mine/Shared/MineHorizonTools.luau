@@ -146,7 +146,7 @@ for _, sec in ipairs(Depth.SECTIONS) do
 			cells = 25,
 			shape = "down",
 			axis = "down",
-			turn = 1.4,
+			turn = 0, -- drills are instant (owner, 2026-10-16)
 			radius = 0,
 			eventOnly = true,
 			minDepth = math.floor(((sec.layers and sec.layers[1] or 1) - 1) / 500) * 500,

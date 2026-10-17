@@ -2,7 +2,7 @@
 title: Next up (handoff, 2026-10-10, evening)
 type: meta
 status: current
-verified: 2026-10-10 @ 5f74929
+verified: 2026-10-14 @ a299374
 sources:
   - docs/PETS-AND-SETS.md
   - docs/SET-PETS.md
@@ -30,7 +30,7 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
 | Zone pots (70 a zone), pet ladder lifted, procs reworked, Tidal Wave, Shatter | [pets](systems/pets.md), [mining-and-breaking](systems/mining-and-breaking.md) |
 | Holiday pets out of the game; 10 Halloween bodies | [pets](systems/pets.md) |
 | **Packs pay named pets:** set packs draw their set, every other pack a zone pot (`1332e3d`) | [cards-and-packs](systems/cards-and-packs.md) |
-| **The 19 sets: 2,043 named pets on 98 new bodies** (this page's commit) | [pets](systems/pets.md#the-19-sets-2026-10-10), `docs/SET-PETS.md` |
+| **The 19 sets: 2,493 named pets; 900 unique Epic+ tops in `src/`** (2026-10-13; was 2,043 on 98 recolour bodies) | [pets](systems/pets.md#the-19-sets-2026-10-10-unique-epic-tops-2026-10-13), `docs/SET-PETS.md` |
 | Set pack sprites by star band (`5f74929`, the other session) | [assets-and-uploads](code/assets-and-uploads.md) |
 
 ## Who owns what (two sessions share this checkout)
@@ -58,9 +58,23 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
 
 ## 2. Pets: what is left
 
-- **DONE 2026-10-10: the look pass of the 98 set bodies.** It fixed the
-  factory's invisible cones and the Disco Ball (see [pets](systems/pets.md)).
-  Still worth an eye later:
+- **DONE 2026-10-13: unique Epic+ Top bodies for all 19 sets,** integrated into
+  `src/ReplicatedStorage/Mine/Shared/PetBodies/*Top.luau` (50 modules total: 19 base + 19 Top + 12 Extra).
+  Set-pets regenerated: **2,493 pets**, original **2,043 kits locked**
+  (`readLock` / serials `0x400`–`0xBFF`). Creature-repeat renames landed in
+  `src/`. Studio Edit loads the new species through `PetModelFactory`'s
+  PetBodies folder require. See [pets](systems/pets.md).
+- **DONE 2026-10-13: placeholder palette labels** — CE / Atlantis / Mythic
+  Menagerie `Swatch NNN` colours renamed to thematic names; set-pets regenerated.
+- **DONE 2026-10-13: agent kid-friendly name pass** — none flagged
+  (`build/pet-bodies/_KID_FRIENDLY_REVIEW.md`). Optional soft renames only.
+- **DONE 2026-10-13: Studio Edit probe bake** — 20 Top/Extra/core samples in
+  `workspace._TopBodyProbe` (parts 21–49, extents in range, 4 screenshots); no
+  build errors. Full showcase rebuild still optional:
+  `PetShowcaseBuilder.build()` (~3,287 plinths).
+- **DONE 2026-10-10: the look pass of the first 98 set (recolour) bodies.** It
+  fixed the factory's invisible cones and the Disco Ball (see
+  [pets](systems/pets.md)). Still worth an eye later:
   - Satellite is the smallest body (0.83 after the fit).
   - Hydra Pup has 38 parts.
   - Riftling is only 1.13 studs deep.
@@ -71,16 +85,42 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
   named pet; see [cards-and-packs](systems/cards-and-packs.md)).
 - **Studio Edit caches modules per session.** After a Studio restart the display
   shows current stat labels; before one, it can show old labels.
+- **Still BLOCKED / owner-only (no agent decision):**
+  - **Optional owner eye** on Top looks in Studio / showcase (taste only; name
+    safety pass already clean).
+  - **Tool icon share:** `MineIcons.NEW_TOOL_ICONS_SHARED` stays false until the
+    owner shares the personal uploads ([assets-and-uploads](code/assets-and-uploads.md)).
+  - **Case / chest owner calls** (odds, shelves, what still ships) — other
+    session owns those files; do not invent answers.
+  - **Commit on request only** for this Top integration work.
 
 ## 3. Still open from before
 
 - **A2 TODAY: DONE 2026-10-10** (active rows only, at the top of the Quests
-  panel; see [client-and-ui](code/client-and-ui.md)). Fishing's "catch of the
-  day" joins it when A3 exists.
+  panel; see [client-and-ui](code/client-and-ui.md)). **Catch of the day wired
+  2026-10-13** (global UTC target; claim coins from TODAY or the FISH tab).
 - **A3 fishing: FIRST CUT 2026-10-11** ([fishing](systems/fishing.md)): Greyvein's pond
-  and outpost pools, play-tested. Next for it: other zones' fish, selling, album
-  bonuses, catch of the day, a rod and bobber in the world.
-- B tools, C art, D planets ([open-questions](open-questions.md)).
+  and outpost pools, play-tested. **DONE 2026-10-13: 12-fish tables for all 10
+  permanent zones** (meadow→primordium; Event Horizon skipped); outpost spots
+  auto-register. **DONE 2026-10-13: cooler sell for coins + catch of the day.**
+  **DONE 2026-10-13: rod + cork bobber in the world** (`MineFishingView`).
+  **DONE 2026-10-13: album set bonuses** (per-zone 12-fish; PROPOSED +2%/+5%
+  luck at that zone's spots; FISH + COOLER progress). Next: trading.
+- **DONE 2026-10-13: B4 grade ★ reference** — `wiki/systems/grades-and-stars.md`
+  + `MineStars` helper; Loadout inspect shows letter + stars. **2026-10-14:**
+  also pack odds, inventory Grade, forge temper words, skins badge, lucky odds.
+- **DONE 2026-10-14: B1 hammer niche LOCKED** — slow / heavy / single-target,
+  hardest hit + highest single-block DPS (`FAMILY_POWER.hammer = 3.7`).
+- **DONE 2026-10-14: B2 archetype rebalance** — `tool-dps.js` green.
+  Explosive area `edps` tops same-grade (`FAMILY_POWER.explosive = 4`, line
+  depth baked, mid line length + sphere cooldown). Hammer crowns single-block
+  `dps`; jackhammer ≈ drill; pick stays faster.
+- **DONE 2026-10-14: B3 slice (no new rates)** — open-questions #7 fixed
+  (`rollChestTool` forward-declare; zone chests drop Secrets again). Secrets /
+  Found forever tools show ★ beside word rarity via `MineStars.beside`.
+  `tools/verify/chest-tools.js`. Full B3 (5–6 themed sets / event tables /
+  purchasable rolls) still owner. Next tools work: C art
+  ([tools](systems/tools.md)).
 - **The PR is open:** [VeyrixCasino/PullAPick#8](https://github.com/VeyrixCasino/PullAPick/pull/8) (2026-10-11), `claude/vigilant-fermi-aucqjy` into `main`. The repo has no CI checks; the verify suite is local.
 - **BLOCKED:**
   - **The wheel's Robux product ids:** the owner supplies them.
@@ -94,7 +134,8 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
   `execute_luau` through `ReplicatedStorage.Mine.Remotes.MineNet`; the server
   answers `openedRun`.
 - The display rebuilds with `require(game.ServerStorage.PetShowcaseBuilder).build()`
-  in Edit mode (2,837 pets; about 6 seconds). It loads fresh module copies.
+  in Edit mode (about 3,287 pets after the Epic+ double; about 6–8 seconds).
+  It loads fresh module copies.
 - **Restart play after code changes.** A running session keeps its old modules.
 
 ## The prompt (paste into a new session)

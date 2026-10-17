@@ -1,51 +1,1060 @@
 {
   "key": "crystal_hollow",
   "bodies": [
-    { "id": "ch_geode", "label": "Geode", "role": "Prospector" },
-    { "id": "ch_quartzback", "label": "Quartzback", "role": "Bruiser" },
-    { "id": "ch_cubeling", "label": "Cubeling", "role": "Trader" },
-    { "id": "ch_desertrose", "label": "Desert Rose", "role": "Tidecaller" },
-    { "id": "ch_hexling", "label": "Hexling", "role": "Mystic" }
+    {
+      "id": "ch_geode",
+      "label": "Geode",
+      "role": "Prospector"
+    },
+    {
+      "id": "ch_quartzback",
+      "label": "Quartzback",
+      "role": "Bruiser"
+    },
+    {
+      "id": "ch_cubeling",
+      "label": "Cubeling",
+      "role": "Trader"
+    },
+    {
+      "id": "ch_desertrose",
+      "label": "Desert Rose",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "ch_hexling",
+      "label": "Hexling",
+      "role": "Mystic"
+    },
+    {
+      "id": "ch_stalactite",
+      "label": "Drip Stalactite",
+      "role": "Seeker"
+    },
+    {
+      "id": "ch_botryoid",
+      "label": "Botryoid Blob",
+      "role": "Tidecaller"
+    }
   ],
-  "extraBodies": ["golem", "beetle"],
-  "buffs": ["gemFind", "oreLuck", "ricochet"],
+  "topBodies": [
+    {
+      "id": "ch_t_urchin",
+      "label": "Natrolite Urchin",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        230,
+        240,
+        255
+      ]
+    },
+    {
+      "id": "ch_t_hopper",
+      "label": "Halite Stepper",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        120,
+        150,
+        255
+      ]
+    },
+    {
+      "id": "ch_t_fishtail",
+      "label": "Fishtail Gypsum",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        240,
+        214,
+        130
+      ]
+    },
+    {
+      "id": "ch_t_croc",
+      "label": "Crocoite Croc",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        250,
+        104,
+        30
+      ]
+    },
+    {
+      "id": "ch_t_walrus",
+      "label": "Dogtooth Walrus",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        196,
+        130,
+        92
+      ]
+    },
+    {
+      "id": "ch_t_gecko",
+      "label": "Blacklight Gecko",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        110,
+        40,
+        220
+      ]
+    },
+    {
+      "id": "ch_t_lemur",
+      "label": "Onyx Lemur",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        64,
+        60,
+        76
+      ]
+    },
+    {
+      "id": "ch_t_bison",
+      "label": "Basalt Bison",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        78,
+        92,
+        120
+      ]
+    },
+    {
+      "id": "ch_t_anteater",
+      "label": "Garnet Anteater",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        150,
+        20,
+        46
+      ]
+    },
+    {
+      "id": "ch_t_pelican",
+      "label": "Pegmatite Pelican",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        250,
+        186,
+        160
+      ]
+    },
+    {
+      "id": "ch_t_cicada",
+      "label": "Citrine Cicada",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        250,
+        196,
+        30
+      ]
+    },
+    {
+      "id": "ch_t_spar",
+      "label": "Iceland Spar",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        180,
+        250,
+        225
+      ]
+    },
+    {
+      "id": "ch_t_helictite",
+      "label": "Helictite Curl",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        230,
+        80,
+        120
+      ]
+    },
+    {
+      "id": "ch_t_bowerbird",
+      "label": "Azurite Bowerbird",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        20,
+        44,
+        180
+      ]
+    },
+    {
+      "id": "ch_t_cross",
+      "label": "Staurolite Cross",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        176,
+        88,
+        48
+      ]
+    },
+    {
+      "id": "ch_t_bipyramid",
+      "label": "Fluorite Bipyramid",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        110,
+        230,
+        110
+      ]
+    },
+    {
+      "id": "ch_t_shark",
+      "label": "Rockhammer Shark",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        100,
+        130,
+        170
+      ]
+    },
+    {
+      "id": "ch_t_pika",
+      "label": "Talus Pika",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        214,
+        180,
+        120
+      ]
+    },
+    {
+      "id": "ch_t_eel",
+      "label": "Rutilated Eel",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        130,
+        100,
+        84
+      ]
+    },
+    {
+      "id": "ch_t_hoodoo",
+      "label": "Capstone Hoodoo",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        226,
+        112,
+        64
+      ]
+    },
+    {
+      "id": "ch_t_starfish",
+      "label": "Asterism Starfish",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        220,
+        40,
+        96
+      ]
+    },
+    {
+      "id": "ch_t_meerkat",
+      "label": "Feldspar Meerkat",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        70,
+        200,
+        170
+      ]
+    },
+    {
+      "id": "ch_t_spinosaur",
+      "label": "Kyanite Spinosaur",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        120,
+        230
+      ]
+    },
+    {
+      "id": "ch_t_gorilla",
+      "label": "Galena Gorilla",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        120,
+        124,
+        140
+      ]
+    },
+    {
+      "id": "ch_t_caddis",
+      "label": "Gemcase Caddis",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        150,
+        200,
+        80
+      ]
+    },
+    {
+      "id": "ch_t_cactus",
+      "label": "Cactus Amethyst",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        160,
+        80,
+        220
+      ]
+    },
+    {
+      "id": "ch_t_melon",
+      "label": "Melon Tourmaline",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        110,
+        150
+      ]
+    },
+    {
+      "id": "ch_t_mortar",
+      "label": "Lapis Mortar",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        30,
+        50,
+        150
+      ]
+    },
+    {
+      "id": "ch_t_hamster",
+      "label": "Jasper Hamster",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        70,
+        50
+      ]
+    },
+    {
+      "id": "ch_t_tumbler",
+      "label": "Rock Tumbler",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        160,
+        200
+      ]
+    },
+    {
+      "id": "ch_t_behemoth",
+      "label": "Bedrock Behemoth",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        150,
+        100,
+        70
+      ]
+    },
+    {
+      "id": "ch_t_cyclops",
+      "label": "Cabochon Cyclops",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        200,
+        170,
+        40
+      ]
+    },
+    {
+      "id": "ch_t_solitaire",
+      "label": "Solitaire Diamond",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        200,
+        240,
+        255
+      ]
+    },
+    {
+      "id": "ch_t_sunfish",
+      "label": "Schiller Sunfish",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        40,
+        110,
+        140
+      ]
+    },
+    {
+      "id": "ch_t_cathedral",
+      "label": "Amethyst Cathedral",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        140,
+        60,
+        220
+      ]
+    },
+    {
+      "id": "ch_t_alicanto",
+      "label": "Alicanto",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        250,
+        200,
+        60
+      ]
+    },
+    {
+      "id": "ch_t_bismuth",
+      "label": "Bismuth Spiral",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        220,
+        90,
+        200
+      ]
+    },
+    {
+      "id": "ch_t_organ",
+      "label": "Stalacpipe Organ",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        255,
+        190,
+        120
+      ]
+    },
+    {
+      "id": "ch_t_oread",
+      "label": "Summit Oread",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        150,
+        210,
+        255
+      ]
+    },
+    {
+      "id": "ch_t_trapiche",
+      "label": "Trapiche Mandala",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        40,
+        200,
+        110
+      ]
+    },
+    {
+      "id": "ch_t_coccolith",
+      "label": "Chalk Coccolith",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        140,
+        220,
+        230
+      ]
+    },
+    {
+      "id": "ch_t_carbuncle",
+      "label": "Ruby Carbuncle",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        250,
+        150,
+        60
+      ]
+    },
+    {
+      "id": "ch_t_tarsier",
+      "label": "Tanzanite Tarsier",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        90,
+        70,
+        230
+      ]
+    },
+    {
+      "id": "ch_t_colugo",
+      "label": "Muscovite Colugo",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        180,
+        150,
+        250
+      ]
+    },
+    {
+      "id": "ch_t_manatee",
+      "label": "Larimar Manatee",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        80,
+        180,
+        230
+      ]
+    },
+    {
+      "id": "ch_t_windmill",
+      "label": "Wulfenite Windmill",
+      "role": "Digger",
+      "tier": "Divine",
+      "tint": [
+        255,
+        140,
+        20
+      ]
+    },
+    {
+      "id": "ch_t_lattice",
+      "label": "Crystal Lattice",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        100,
+        220
+      ]
+    },
+    {
+      "id": "ch_t_raiju",
+      "label": "Fulgurite Raiju",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        100,
+        240,
+        200
+      ]
+    }
+  ],
+  "extraBodies": [
+    "golem",
+    "beetle"
+  ],
+  "buffs": [
+    "gemFind",
+    "oreLuck",
+    "ricochet"
+  ],
   "palette": [
-    ["Amethyst", 150, 90, 210], ["Rose", 240, 160, 190], ["Citrine", 246, 196, 70], ["Emerald", 40, 180, 100],
-    ["Sapphire", 40, 80, 200], ["Ruby", 210, 30, 70], ["Topaz", 240, 132, 48], ["Aquamarine", 110, 210, 220],
-    ["Jade", 120, 176, 120], ["Onyx", 36, 34, 40], ["Quartz", 228, 242, 255], ["Smoky", 120, 104, 96],
-    ["Malachite", 20, 130, 90], ["Tanzanite", 90, 80, 200], ["Pyrite", 200, 176, 96], ["Fluorite", 140, 230, 190],
-    ["Lapis", 30, 46, 130], ["Garnet", 140, 20, 40], ["Peridot", 170, 210, 60], ["Opal", 250, 214, 230],
-    ["Hematite", 70, 70, 84], ["Sunstone", 226, 96, 70], ["Selenite", 244, 238, 196], ["Turquoise", 64, 200, 190],
-    ["Kunzite", 222, 160, 230]
+    [
+      "Amethyst",
+      150,
+      90,
+      210
+    ],
+    [
+      "Rose",
+      240,
+      160,
+      190
+    ],
+    [
+      "Citrine",
+      246,
+      196,
+      70
+    ],
+    [
+      "Emerald",
+      40,
+      180,
+      100
+    ],
+    [
+      "Sapphire",
+      40,
+      80,
+      200
+    ],
+    [
+      "Ruby",
+      210,
+      30,
+      70
+    ],
+    [
+      "Topaz",
+      240,
+      132,
+      48
+    ],
+    [
+      "Aquamarine",
+      110,
+      210,
+      220
+    ],
+    [
+      "Jade",
+      120,
+      176,
+      120
+    ],
+    [
+      "Onyx",
+      36,
+      34,
+      40
+    ],
+    [
+      "Quartz",
+      228,
+      242,
+      255
+    ],
+    [
+      "Smoky",
+      120,
+      104,
+      96
+    ],
+    [
+      "Malachite",
+      20,
+      130,
+      90
+    ],
+    [
+      "Tanzanite",
+      90,
+      80,
+      200
+    ],
+    [
+      "Pyrite",
+      200,
+      176,
+      96
+    ],
+    [
+      "Fluorite",
+      140,
+      230,
+      190
+    ],
+    [
+      "Lapis",
+      30,
+      46,
+      130
+    ],
+    [
+      "Garnet",
+      140,
+      20,
+      40
+    ],
+    [
+      "Peridot",
+      170,
+      210,
+      60
+    ],
+    [
+      "Opal",
+      250,
+      214,
+      230
+    ],
+    [
+      "Hematite",
+      70,
+      70,
+      84
+    ],
+    [
+      "Sunstone",
+      226,
+      96,
+      70
+    ],
+    [
+      "Selenite",
+      244,
+      238,
+      196
+    ],
+    [
+      "Turquoise",
+      64,
+      200,
+      190
+    ],
+    [
+      "Kunzite",
+      222,
+      160,
+      230
+    ],
+    [
+      "Cobalt",
+      20,
+      30,
+      245
+    ],
+    [
+      "Uvarovite",
+      30,
+      235,
+      40
+    ],
+    [
+      "Erythrite",
+      235,
+      30,
+      235
+    ],
+    [
+      "Spinel",
+      250,
+      30,
+      160
+    ],
+    [
+      "Paraiba",
+      0,
+      170,
+      255
+    ],
+    [
+      "Cinnabar",
+      250,
+      20,
+      10
+    ],
+    [
+      "Purpurite",
+      120,
+      10,
+      95
+    ],
+    [
+      "Bronzite",
+      125,
+      80,
+      10
+    ],
+    [
+      "Bloodstone",
+      10,
+      50,
+      20
+    ],
+    [
+      "Sulfur",
+      250,
+      245,
+      30
+    ],
+    [
+      "Hyalite",
+      100,
+      255,
+      130
+    ],
+    [
+      "Moldavite",
+      80,
+      110,
+      10
+    ],
+    [
+      "Sugilite",
+      110,
+      10,
+      200
+    ],
+    [
+      "Morganite",
+      255,
+      185,
+      150
+    ],
+    [
+      "Chrysocolla",
+      0,
+      120,
+      140
+    ],
+    [
+      "Iolite",
+      120,
+      135,
+      185
+    ]
   ],
   "topWords": {
-    "Legendary": ["Polished", "Faceted", "Brilliant", "Gleaming"],
-    "Mythic": ["Crystalline", "Deepvein", "Motherlode", "Hollowheart"],
-    "Divine": ["Radiant", "Pristine", "Luminous", "Flawless"],
-    "Exotic": ["Prismatic", "Iridescent", "Opalescent", "Aurora"]
+    "Legendary": [
+      "Polished",
+      "Faceted",
+      "Brilliant",
+      "Gleaming"
+    ],
+    "Mythic": [
+      "Crystalline",
+      "Deepvein",
+      "Motherlode",
+      "Hollowheart"
+    ],
+    "Divine": [
+      "Radiant",
+      "Pristine",
+      "Luminous",
+      "Flawless"
+    ],
+    "Exotic": [
+      "Prismatic",
+      "Iridescent",
+      "Opalescent",
+      "Aurora"
+    ]
   },
   "names": [
-    "Amethyst", "Fluorite", "Selenite", "Malachite", "Azurite", "Peridot", "Emerald", "Ruby", "Sapphire", "Jade",
-    "Lapis", "Turquoise", "Rhodonite", "Sodalite", "Celestine", "Apatite", "Barite", "Kyanite", "Labradorite",
-    "Moonstone", "Larimar", "Chrysocolla", "Chalcedony", "Jadeite", "Olivine", "Rutile", "Scheelite", "Sphalerite",
-    "Stibnite", "Wulfenite", "Vanadinite", "Rhodochrosite", "Aragonite", "Ametrine", "Moldavite", "Prehnite",
-    "Tanzanite", "Kunzite", "Iolite", "Lepidolite", "Charoite", "Danburite", "Epidote", "Variscite", "Cuprite",
-    "Chrysoprase", "Aventurine", "Howlite", "Ulexite", "Spodumene", "Benitoite", "Bismuth", "Thulite", "Hiddenite",
-    "Scolecite", "Apophyllite", "Stilbite", "Natrolite", "Mookaite", "Septarian", "Amazonite", "Sugilite",
-    "Smoky Quartz", "Rose Quartz", "Tiger Eye", "Cat's Eye", "Fool's Gold", "Moss Agate", "Fire Opal", "Black Opal",
-    "Star Ruby", "Cave Pearl", "Dogtooth", "Geode", "Druse", "Flowstone", "Vein", "Facet", "Cleave", "Lustre",
-    "Shard", "Sliver", "Gemlet", "Gemkin", "Gemmy", "Geodling", "Quartzling", "Glisten", "Gleamstone", "Clarity",
-    "Lucent", "Crystabel", "Sparkstone", "Moonquartz", "Starquartz", "Hollowgem", "Cavelight", "Echo Cave",
-    "Glimmerling", "Facetta", "Cabochon", "Marquise", "Rosecut", "Gemcutter", "Rockhound", "Loupe", "Crystalpup",
-    "Gempup", "Geopup", "Rubyroo", "Opalina", "Amber", "Pearl", "Ammolite", "Spectrolite", "Cluster", "Gemstone",
-    "Jewel", "Bijou", "Ice Quartz", "Frostgem", "Emberstone", "Sunshard", "Moonshard", "Starshard", "Glowshard",
-    "Dawnstone", "Duskstone", "Rainbowite", "Hexie", "Cubie", "Prismpaw", "Gempaw", "Geodette", "Druzybug",
-    "Quartzkit", "Mica Mite", "Crystal Cove", "Glittercave", "Hollowpip", "Pebblegem", "Facetfox", "Gemhound",
-    "Rhombo", "Dodeca", "Dendrite", "Lattice", "Pegmatite", "Kimberlite", "Quartzite", "Geyserite", "Travertine",
-    "Agatelle", "Alexandrite", "Andalusite", "Axinite", "Bixbite", "Cordierite", "Diopside", "Grossular", "Hessonite",
-    "Lazulite", "Morion", "Painite", "Phenakite", "Rhodolite", "Sphene", "Tsavorite", "Zincite", "Rubellite",
-    "Indicolite", "Verdelite", "Prasiolite", "Chrysoberyl", "Demantoid", "Spessartite", "Almandine", "Pyrope",
-    "Sardonyx", "Petalite", "Silica", "Corundum", "Sparklet", "Glimmerstone", "Twinklegem", "Gemdrop", "Glowgeode",
-    "Citrina", "Cavecrystal"
+    "Amethyst",
+    "Fluorite",
+    "Selenite",
+    "Malachite",
+    "Azurite",
+    "Peridot",
+    "Emerald",
+    "Ruby",
+    "Sapphire",
+    "Jade",
+    "Lapis",
+    "Turquoise",
+    "Rhodonite",
+    "Sodalite",
+    "Celestine",
+    "Apatite",
+    "Barite",
+    "Kyanite",
+    "Labradorite",
+    "Moonstone",
+    "Larimar",
+    "Chrysocolla",
+    "Chalcedony",
+    "Jadeite",
+    "Olivine",
+    "Rutile",
+    "Scheelite",
+    "Sphalerite",
+    "Stibnite",
+    "Wulfenite",
+    "Vanadinite",
+    "Rhodochrosite",
+    "Aragonite",
+    "Ametrine",
+    "Moldavite",
+    "Prehnite",
+    "Tanzanite",
+    "Kunzite",
+    "Iolite",
+    "Lepidolite",
+    "Charoite",
+    "Danburite",
+    "Epidote",
+    "Variscite",
+    "Cuprite",
+    "Chrysoprase",
+    "Aventurine",
+    "Howlite",
+    "Ulexite",
+    "Spodumene",
+    "Benitoite",
+    "Bismuth",
+    "Thulite",
+    "Hiddenite",
+    "Scolecite",
+    "Apophyllite",
+    "Stilbite",
+    "Natrolite",
+    "Mookaite",
+    "Septarian",
+    "Amazonite",
+    "Sugilite",
+    "Smoky Quartz",
+    "Rose Quartz",
+    "Tiger Eye",
+    "Cat's Eye",
+    "Fool's Gold",
+    "Moss Agate",
+    "Fire Opal",
+    "Black Opal",
+    "Star Ruby",
+    "Cave Pearl",
+    "Dogtooth",
+    "Geode",
+    "Druse",
+    "Flowstone",
+    "Vein",
+    "Facet",
+    "Cleave",
+    "Lustre",
+    "Shard",
+    "Sliver",
+    "Gemlet",
+    "Gemkin",
+    "Gemmy",
+    "Geodling",
+    "Quartzling",
+    "Glisten",
+    "Gleamstone",
+    "Clarity",
+    "Lucent",
+    "Crystabel",
+    "Sparkstone",
+    "Moonquartz",
+    "Starquartz",
+    "Hollowgem",
+    "Cavelight",
+    "Echo Cave",
+    "Glimmerling",
+    "Facetta",
+    "Cabochon",
+    "Marquise",
+    "Rosecut",
+    "Gemcutter",
+    "Rockhound",
+    "Loupe",
+    "Crystalpup",
+    "Gempup",
+    "Geopup",
+    "Rubyroo",
+    "Opalina",
+    "Amber",
+    "Pearl",
+    "Ammolite",
+    "Spectrolite",
+    "Cluster",
+    "Gemstone",
+    "Jewel",
+    "Bijou",
+    "Ice Quartz",
+    "Frostgem",
+    "Emberstone",
+    "Sunshard",
+    "Moonshard",
+    "Starshard",
+    "Glowshard",
+    "Dawnstone",
+    "Duskstone",
+    "Rainbowite",
+    "Hexie",
+    "Cubie",
+    "Prismpaw",
+    "Gempaw",
+    "Geodette",
+    "Druzybug",
+    "Quartzkit",
+    "Mica Mite",
+    "Crystal Cove",
+    "Glittercave",
+    "Hollowpip",
+    "Pebblegem",
+    "Facetfox",
+    "Gemhound",
+    "Rhombo",
+    "Dodeca",
+    "Dendrite",
+    "Lattice",
+    "Pegmatite",
+    "Kimberlite",
+    "Quartzite",
+    "Geyserite",
+    "Travertine",
+    "Agatelle",
+    "Alexandrite",
+    "Andalusite",
+    "Axinite",
+    "Bixbite",
+    "Cordierite",
+    "Diopside",
+    "Grossular",
+    "Hessonite",
+    "Lazulite",
+    "Morion",
+    "Painite",
+    "Phenakite",
+    "Rhodolite",
+    "Sphene",
+    "Tsavorite",
+    "Zincite",
+    "Rubellite",
+    "Indicolite",
+    "Verdelite",
+    "Prasiolite",
+    "Chrysoberyl",
+    "Demantoid",
+    "Spessartite",
+    "Almandine",
+    "Pyrope",
+    "Sardonyx",
+    "Petalite",
+    "Silica",
+    "Corundum",
+    "Sparklet",
+    "Glimmerstone",
+    "Twinklegem",
+    "Gemdrop",
+    "Glowgeode",
+    "Citrina",
+    "Cavecrystal",
+    "Smithsonite",
+    "Hemimorphite",
+    "Dioptase",
+    "Cerussite",
+    "Anglesite",
+    "Cavansite",
+    "Okenite",
+    "Heliodor",
+    "Goshenite",
+    "Galena",
+    "Dolomite",
+    "Celestite",
+    "Fluorspar",
+    "Nodule",
+    "Geodekin",
+    "Sparkvein"
   ]
 }

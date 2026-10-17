@@ -2,7 +2,7 @@
 title: Tools and generators
 type: code
 status: current
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-13 @ 98c141a
 sources:
   - tools/serve.js
   - .claude/launch.json
@@ -35,7 +35,7 @@ related: [verify-suite, assets-and-uploads, code-map, rojo-and-studio, local-set
 | `tools/skills/gen.js` | `MineSkillData` node percentages | `MineSkillData.ENERGIES` and `MineStats.weight` | `--check` gives "0 would change" at `26036a0`. Rebuilt because the original was never committed (HANDOFF §2.3). |
 | `tools/gen/zone-pets.js` | `MineZonePets.luau`, `docs/ZONE-PETS.md` | its own name and buff tables, the roster, `PetModelFactory` | `--check`. The zone pots (70 a zone) and every named pet's kit. Never reads the sets. |
 | `tools/gen/holiday-pets.js` | `HolidayPets/<Pack>.luau`, `docs/HOLIDAY-PETS.md` | `tools/gen/holiday/*.json`, `PetModelFactory` (bodies, `cos_*` costumes), the zone and set generators | `--check`. The Halloween 2026 Pack's 60 pets. Checked by `tools/verify/holiday-pets.js`. |
-| `tools/gen/set-pets.js` | `SetPets/<Set>.luau` (19), `docs/SET-PETS.md` | `tools/gen/sets/*.json`, `PetBodies/*.luau`, `Zone.build()` | `--check`. The 19 sets' 2,043 pets. Checked by `tools/verify/set-pets.js`. |
+| `tools/gen/set-pets.js` | `SetPets/<Set>.luau` (19), `docs/SET-PETS.md` | `tools/gen/sets/*.json`, `PetBodies/*.luau` (50: base/Top/Extra), `Zone.build()` | `--check`. The 19 sets' **2,493** pets (900 unique Epic+ tops). Checked by `tools/verify/set-pets.js`. |
 | `tools/gen-ore-icons.js` | `src/ReplicatedStorage/Mine/Shared/MineOreIcons.luau` | `build/icons/ids.json` (tracked) and the live roster | exits non-zero if any ore lacks an icon |
 
 `tools/verify/generated-fresh.js` fails the suite when the mine map or the
@@ -49,9 +49,9 @@ calculator page drifts from the config.
 | `tools/gen-depth-sheet.js` | It overwrites `docs/depth-sheet.md` using the **retired** HP curve (`SECTIONS` × 6^(z−1) × 2). `MineDepth.dirtHp` is now linear × 5^(z−1) (`5a85c73`). Fix the script before running it. |
 | `tools/icons/gen-charm-art.js` (+ `charm-data.js`, `raster.js`) | It draws 164 charm PNGs into the gitignored `build/charm-icons/` and writes the tracked `manifest.json`. The owner rejected this art (HANDOFF §2.6), and **icons are the owner's job** (START-HERE §6). |
 | `tools/gen-charm-icons.js` | It would write `MineCharmIcons` from `build/charm-icons/ids.json`. Neither file exists yet, because no charm icons have been uploaded. |
-| `tools/icons/svg-icon-extract.js` (+ `ore-icon-ids.json`, `ore-icon-manifest.json`, `tool-skin-ids.json`, `tool-skin-manifest.json`) | It pulls icons out of Canva SVG sheets that are really paired base64 PNGs (a colour image with no alpha plus a greyscale matte), recomposites them as RGBA, and writes manifests of uploaded asset ids. `97c42ac` extracted picks 88, drills 96, explosives 96 and charms 18, and `0da6360` the 82 rendered ore icons. **Order is the owner's and positional**, not colour-matched: `match-icons-to-ores.js`, `ore-map.json` and `asset-ids.json` were removed because a colour match scored a mean distance of 1.1 against the stated order. The ore sheet held 84 icons for 82 ores (the owner named the two spares). |
 | `tools/icons/charm-sheet.js` | Added in `b09cc4a`. It decodes, tiles and re-encodes the extracted charm icons into one contact sheet (written to the gitignored `build/` folder, so it is gone on a fresh clone) so the art can be reviewed in a single image. Pure Node via `zlib`; there is no ImageMagick, Python or sharp on the owner's machine. |
 | `docs/prompts/drill-icons.md` | Not a script: the image-generation prompt for the 82 ore drill icons plus 18 Event Horizon ones (a 10×10 sheet, 256 px cells), with each colour taken from the ore's real `Color3` in `MineConfig.ORES`. Added in `81f3bd2`; the icons themselves are the owner's job. |
+| `tools/icons/svg-icon-extract.js`, `match-icons-to-ores.js` (+ `ore-map.json`, `asset-ids.json`) | Added in `9733a05`. The first pulls 88 pickaxe icons out of an SVG that is really paired base64 PNGs (content plus mask). The second matches icons to the 82 ores by colour with an optimal (Hungarian) assignment and writes `ore-map.json`. **The matching is not final**: the roster wants about 17 grey picks and the sheet has 9, and every pair is printed with its distance. `asset-ids.json` maps icon files to uploaded asset ids; `MineIcons.ORE_PICK` is what the game reads. |
 | `tools/extract-svg-icons.js` (+ `tools/_png.js`) | Added in `b19c4c2`. It saves every icon in a Canva-exported SVG sheet as its own transparent PNG (colour image plus its matte folded into RGBA), numbered in reading order. `_png.js` is a zero-dependency PNG codec shared by the sheet tools; `slice-ore-sheet.js` still carries its own copy. The 88 pickaxe icons it produced are tracked in `build/pickaxe-sheet/`. Usage: `node tools/extract-svg-icons.js` followed by the sheet path. |
 | `tools/map-ores-to-tiles.js`, `tools/slice-ore-sheet.js`, `tools/pack-ore-art.js` | The 2026-09-28 ore-face pipeline: hand-made tiles become `build/ore-sheet/` files, which become `MineOreArt` packed pixels. It was built for 121 ores. |
 | `tools/balance-board-data.js` | It writes `build/balance-board.json` (gitignored). `tools/balance-board.html` does not fetch that file *(how the page gets its data is unverified)*. |
@@ -111,7 +111,7 @@ the real source.
 - `tools/start-local-agent.ps1` and `tools/claude-rojo-clean.ps1`: launchers for
   the owner's machine. See [local-setup](local-setup.md).
 - `tools/agent/house-rules.txt`: a short briefing for any agent. Its "~14.8k
-  lines" for MineServer is stale; the file is 17,714 lines.
+  lines" for MineServer is stale; the file is 17,050 lines.
 - `tools/verify/`: see [verify-suite](verify-suite.md).
 
 ## Gotchas

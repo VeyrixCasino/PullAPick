@@ -1255,8 +1255,10 @@ local function load(plr)
 		if okSk and Skins and type(Skins.LIST) == "table" then
 			local byGrade = {}
 			for _, s in ipairs(Skins.LIST) do
-				byGrade[s.tier] = byGrade[s.tier] or {}
-				table.insert(byGrade[s.tier], s.id)
+				if not s.pass then
+					byGrade[s.tier] = byGrade[s.tier] or {}
+					table.insert(byGrade[s.tier], s.id)
+				end
 			end
 			for _, list in pairs(byGrade) do
 				table.sort(list) -- stable order, so the hash means the same thing twice
@@ -2324,49 +2326,13 @@ local function equippedTool(p)
 			p.oreToolEquipped = nil
 		else
 			local famId = held.familyId or "pickaxe"
+			local OreToolsPow = require(shared:WaitForChild("MineOreTools"))
 			local oreDef = C.ORES and C.ORES[tonumber(held.tier) or 1]
-			-- Same rarity rank the bench prices against, so what you paid for
-			-- and what you swing agree.
-			local typeMult = 1
-			local famList = Tools.TOOLS and Tools.TOOLS[famId]
-			if famList then
-				for _, td in ipairs(famList) do
-					if td.id == held.typeId then
-						local rr = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-						typeMult = (Tools.RARITY_RANK and Tools.RARITY_RANK[rr or td.rarity]) or 1
-						break
-					end
-				end
-			end
+			local typeMult = OreToolsPow.typeMult(famId, held.tier)
 			local lvl = math.max(1, tonumber(held.level) or 1)
-			local power = 1
-			if C.toolPower then
-				--[[
-					PER-FAMILY DAMAGE. toolPower takes no family argument, so a
-					hammer would otherwise hit exactly as hard as a pickaxe at
-					half the swing rate -- strictly worse, not a damage class.
-					See MineOreTools.FAMILY_POWER.
-
-					Required HERE rather than reaching for the `OreToolsM`
-					local further down this function: that one is declared in a
-					LATER branch, so naming it from this branch reads a nil
-					global. The `and` guard would have hidden it -- the
-					multiplier would silently fall back to 1 and hammers would
-					quietly stay broken.
-				]]
-				local famPow = 1
-				do
-					local okFP, FP = pcall(function()
-						return require(shared:WaitForChild("MineOreTools"))
-					end)
-					if okFP and FP and FP.familyPower then
-						famPow = FP.familyPower(famId)
-					end
-				end
-				-- x the skin's base: "multiplied by the ore damage off the rip".
-				power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)
-					* famPow * skinBase(p, famId)))
-			end
+			local famPow = (OreToolsPow.familyPower and OreToolsPow.familyPower(famId)) or 1
+			local power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)
+				* famPow * skinBase(p, famId)))
 			--[[
 				FINISHES RIDE AN ORE TOOL THE SAME WAY THEY RIDE A FLAGSHIP.
 
@@ -2416,21 +2382,40 @@ local function equippedTool(p)
 				deriving keeps a tool honest if the roster moves, and needs no
 				migration for the tools players already hold.
 			]]
+			-- FRAME_STATS must ride this return (was on a dead second branch).
+			local stats = OreToolsPow.frameStats(famId, held.tier)
 			return {
 				id = "oretool_" .. tostring(held.uid),
 				uid = held.uid,
-				name = (oreDef and oreDef.name) or "Ore Tool",
+				name = string.format("%s %s",
+					(oreDef and oreDef.name) or ("Tier " .. tostring(held.tier)),
+					OreToolsPow.familyNoun(famId)),
 				modelName = (oreDef and oreDef.name) or nil,
 				family = famId,
-				oreTier = tonumber(held.tier) or 1,
+				oreTier = math.max(1, math.floor(tonumber(held.tier) or 1)),
 				oreId = (oreDef and oreDef.id) or nil,
 				power = power,
 				level = lvl,
 				oreTool = true,
+				oreToolEquipped = held.uid,
 				shiny = shiny,
 				shadow = shadow,
 				nightmare = nightmare,
 				finish = finish,
+				rate = stats.rate or 2.6,
+				radius = stats.radius or 0,
+				cells = stats.cells or 1,
+				shape = stats.shape or "melee",
+				width = stats.width,
+				axis = stats.axis,
+				turn = stats.turn,
+				bombs = stats.bombs,
+				pattern = stats.pattern,
+				cooldown = stats.cooldown,
+				depth = stats.depth,
+				sink = stats.sink,
+				auto = stats.auto,
+				windSec = stats.windSec,
 			}, famId, 0
 		end
 	end
@@ -2468,94 +2453,6 @@ local function equippedTool(p)
 			t.power = math.max(1, math.floor((t.power or 1) * (C.SHINY_MULT or 1.5)))
 		end
 		return t, t.family or def.family or "pickaxe", 0
-	end
-	--[[
-		An equipped ore tool overrides the ladder, exactly as a chest flagship
-		does. It is not a rung you bought, it is an object you forged.
-
-		The row carries the ORE tier, and that tier is the tool's breaking power
-		(docs/TODO.md section 0.1). It is returned on the def as `oreTier` so
-		givePickaxe can stamp it on the Tool instance -- the swing gate reads it
-		from there. It deliberately does NOT ride the third return value, which
-		is `lookTier`, a cosmetic ladder rung clamped to the shop family's
-		length; conflating the two is how breaking power would silently become
-		a shop number.
-
-		typeMult is resolved inline rather than through Verbs._oreToolTypeMult,
-		because `local Verbs` is declared thousands of lines below this point.
-	]]
-	if p.oreToolEquipped then
-		local oreRow
-		for _, row in ipairs(p.oreTools or {}) do
-			if type(row) == "table" and row.uid == p.oreToolEquipped then
-				oreRow = row
-				break
-			end
-		end
-		if oreRow then
-			--[[
-				THE STATS COME FROM THE ORE, NOT FROM A FRAME.
-
-				This walked Tools.TOOLS for the row's typeId and took `rate`,
-				`radius`, `cells` and `shape` off whatever frame it found. That
-				roster is gone, so the stats are read from MineOreTools instead,
-				where they are baked per family per ore tier -- the same values,
-				verified 2,460 for 2,460 against the roster before it was removed.
-
-				Without this the fallbacks below would have taken over and every
-				forged DRILL and EXPLOSIVE would quietly become a one-cell melee
-				pickaxe: no area clear, no blast, and nothing to error on.
-
-				The name is the family's noun now. It used to be the FRAME's
-				name, so a forged tool read "Stone Chipped Crown" -- an ore and
-				an invented frame title, which is the exact confusion
-				MineOreTools was written to end.
-			]]
-			local famId = oreRow.familyId or "pickaxe"
-			local OreToolsM = require(shared:WaitForChild("MineOreTools"))
-			local stats = OreToolsM.frameStats(famId, oreRow.tier)
-			local typeMult = OreToolsM.typeMult(famId, oreRow.tier)
-			local oreDef = C.ORES and C.ORES[tonumber(oreRow.tier) or 1]
-			local level = math.max(1, tonumber(oreRow.level) or 1)
-			local def = {
-				id = "oretool_" .. tostring(oreRow.uid),
-				name = string.format("%s %s",
-					(oreDef and oreDef.name) or ("Tier " .. tostring(oreRow.tier)),
-					OreToolsM.familyNoun(famId)),
-				family = famId,
-				-- Per-family damage; see MineOreTools.FAMILY_POWER.
-				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult)
-					* (OreToolsM and OreToolsM.familyPower and OreToolsM.familyPower(famId) or 1)
-					-- x the skin worn on this family, before any boost.
-					* skinBase(p, famId))),
-				rate = stats.rate or 2.6,
-				radius = stats.radius or 0,
-				cells = stats.cells or 1,
-				shape = stats.shape or "melee",
-				-- Carried through for the families that use them. A drill needs
-				-- its width and axis to clear more than one block; an explosive
-				-- needs its bomb count, pattern and cooldown to be a bomb.
-				width = stats.width,
-				axis = stats.axis,
-				turn = stats.turn,
-				bombs = stats.bombs,
-				pattern = stats.pattern,
-				cooldown = stats.cooldown,
-				-- A hammer drives two cells DOWN (MinePatterns melee branch),
-				-- and a jackhammer holds to dig after a wind-up. These are read
-				-- off the frame like everything above: a stat added to
-				-- FRAME_STATS and not listed here never reaches the tool.
-				sink = stats.sink,
-				auto = stats.auto,
-				windSec = stats.windSec,
-				oreTier = math.max(1, math.floor(tonumber(oreRow.tier) or 1)),
-				oreToolEquipped = oreRow.uid,
-				level = level,
-			}
-			return def, famId, 0
-		end
-		-- Scrapped or never existed: stop pointing at it.
-		p.oreToolEquipped = nil
 	end
 	if p.chestTool then
 		-- Pass tools (lunar_pick / bp_eclipse / lunar_eclipse) live in chestTools
@@ -5408,7 +5305,8 @@ function Dig.grantChestSkin(p, tier, rng)
 	end
 	local pool = {}
 	for _, s in ipairs(Skins.LIST or {}) do
-		if s.tier == tier then
+		-- Pass skins come only from the battle pass (MineSkins.isPass).
+		if s.tier == tier and not s.pass then
 			table.insert(pool, s)
 		end
 	end
@@ -5946,6 +5844,10 @@ local function grantChestTool(plr, p, toolId)
 	markDirty(plr)
 end
 
+-- Forward declare: openChestBlock calls this; a `local function` below the
+-- call site would be a nil global read (open-questions #7). Assigned later.
+local rollChestTool
+
 local function openChestBlock(plr, p, chestId, b, part)
 	local rng = Random.new()
 	local luck = (b.chestLuck or 1)
@@ -6166,11 +6068,8 @@ local function openChestBlock(plr, p, chestId, b, part)
 		one against MineTemper's rarity weights, so the half-percent is spent mostly
 		on F and D and the single SSS is rare twice over.
 
-		`Charms` is the module upvalue from the top of this file, deliberately --
-		the `rollChestTool` call directly above reads a LOCAL declared ~2,600 lines
-		below, which makes it a global read that is always nil, so that branch never
-		runs (open-questions #7). Writing this against the upvalue is what keeps it
-		from being the same silent no-op.
+		`Charms` is the module upvalue from the top of this file. (rollChestTool
+		is forward-declared above openChestBlock so that branch is live too.)
 
 		Chest luck scales it, like the persist-bag roll below. No first-charm
 		guarantee here: that rule belongs to the zone grant and the ore case, which
@@ -7713,7 +7612,11 @@ local function swingBlock(plr, part)
 	-- while you keep digging, and only unwinds when you let go.
 	local nowDig = os.clock()
 	local SPIN_GRACE = 0.35
-	local turn = (tool.turn or 0) / (1 + math.max(0, tonumber(b.coolant) or 0))
+	-- DRILLS ARE INSTANT; JACKHAMMERS SPIN UP (owner, 2026-10-16: "jack hammer
+	-- spins up, drill is isntant"). Whatever a drill row still carries, it
+	-- winds in no time, so Coolant (skill tree only) only ever shortens a
+	-- jackhammer's spin-up.
+	local turn = (fam == "drill") and 0 or ((tool.turn or 0) / (1 + math.max(0, tonumber(b.coolant) or 0)))
 	if turn > 0 then
 		if (nowDig - (p.lastDigAt or 0)) > SPIN_GRACE then
 			p.turnReadyAt = nowDig + turn
@@ -9097,10 +9000,10 @@ end
 --
 -- Rolled on OPEN, not on break, because the chest is the thing being opened and
 -- luck should read the same way it does for cards.
--- Declared here, not beside its definition below: rollChestTool calls it,
--- and a local declared after its reader is a nil global to that closure.
+-- rollBigBangPet is forward-declared for the same reason as rollChestTool
+-- (callers above would otherwise see a nil global).
 local rollBigBangPet
-local function rollChestTool(plr, p, chestId, b, ctx)
+function rollChestTool(plr, p, chestId, b, ctx)
 	ctx = ctx or {}
 	local zoneId = ctx.zoneId
 	local layer = tonumber(ctx.layer) or 1
@@ -13103,6 +13006,51 @@ end
 	track it wants, so the worst a forged payload can do is ask for a tier it
 	has not reached, or one it already took.
 ]]
+--[[
+	THE PASS'S SEASON PET AND SKIN (the 2026-10-16 rework: the premium track is
+	"Exclusive pets, skins and books"). Given to the LIVE profile only: a claim
+	that carries a lucky block also applies its reward to the stored save
+	inside UpdateAsync, and a pet minted there too would be a second serial for
+	one claim. The pet is the generated pass pack's (MineScrolls.PASS_PET_PACK);
+	the skin is MineSkins' pass set.
+]]
+function Dig.grantPassExtras(p, plr, reward)
+	if type(reward) ~= "table" then
+		return
+	end
+	if type(reward.pet) == "string" then
+		local roster = PetRoster and PetRoster.BY_NAME and PetRoster.BY_NAME[reward.pet]
+		if roster then
+			local c = mint({
+				setId = Scrolls.PASS_PET_PACK,
+				index = 1,
+				name = reward.pet,
+				rarityId = roster.tier,
+				typeId = "Crystal",
+				animal = roster.animal,
+				roleName = "Battle Pass",
+				kind = "Unit",
+				setName = "Season One Pass",
+			}, plr and plr.UserId)
+			p.cards = p.cards or {}
+			table.insert(p.cards, c)
+		else
+			warn("[Mine] pass pet not in the roster: " .. reward.pet)
+		end
+	end
+	if type(reward.skin) == "string" then
+		local okSk, Skins = pcall(function()
+			return require(shared:WaitForChild("MineSkins"))
+		end)
+		local def = okSk and Skins and Skins.byId and Skins.byId(reward.skin)
+		if def then
+			p.skins = p.skins or {}
+			p.skins[def.id] = true
+			p.skinNotice = { name = def.name, tier = def.tier, set = def.set }
+		end
+	end
+end
+
 function Verbs.claimPass(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -13185,6 +13133,10 @@ function Verbs.claimPass(plr, payload)
 		end
 		if reward.toolId then
 			grantPassSignatureTool(profile, reward.toolId, livePlr)
+		end
+		-- The season pet and skin: live only (see Dig.grantPassExtras).
+		if profile == p then
+			Dig.grantPassExtras(p, livePlr, reward)
 		end
 	end
 
@@ -13345,6 +13297,7 @@ function Verbs.claimPass(plr, payload)
 			if reward.toolId then
 				grantPassSignatureTool(p, reward.toolId, plr)
 			end
+			Dig.grantPassExtras(p, plr, reward)
 		end
 	else
 		-- No lucky blocks: mark + grant in memory (still under the in-flight lock).

@@ -103,14 +103,49 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
   roughly one Robux at face value.
 - **Battle Pass.** `MineScrolls.BATTLE_PASS` costs 399 R$ (live id) or 399 credits
   (`buyBattlePassCredits`).
-  - It has 100 tiers (`PASS_TIERS`) at 280 XP each, with a 1,000 XP daily cap and
-    a 28-day season, `PASS_SEASON_ID` "2026-10".
-  - XP comes from digging (+1), selling (+25) and packs (+10 to +25).
-  - The free track pays at most 100 credits in total; the premium track pays at most 1,200.
-  - The premium track's scroll rewards at tiers 25, 55 and 88 became 3, 4 and
-    5 enchant books on 2026-10-12 (`MineScrolls` `buildPassTrack`, `books = n`;
-    the claim grants them with `Dig.grantBooks`). The owner added *"we have to
-    rework the entire battle pass"*. That rework is open and not specified.
+  - **Reworked 2026-10-16** (owner, 2026-10-16: *"about 2 weeks no daily xp cap"*, *"100 teirs, every 5 should be decent, every 10 should be good and every 25 is huge"*; premium track "Exclusive pets, skins and books"; free track "Something every tier, smaller"; 4 season pets on the huge tiers, made by the assistant session; "4 skins"). `MineScrolls` `buildPassTrack`;
+    `tools/verify/battle-pass.js` runs it and checks every tier.
+  - **The pace.** 100 tiers (`PASS_TIERS`) at 90 XP each, 9,000 for the season.
+    There is no daily cap (`PASS_DAILY_XP` is gone; `awardPassXp` never capped
+    anyway). XP comes from quests only: dailies 100, contracts 120, chain rungs
+    80 and milestones 70. Doing every daily and contract is ~660 a day, so about
+    12 days, and about two weeks for a kid who plays most days. The season is
+    still 28 days, `PASS_SEASON_ID` "2026-10".
+  - **The tier classes** (`MineScrolls.tierClass`):
+
+    | class | tiers | free | premium |
+    |---|---|---|---|
+    | small | the rest | gems, stardust or a Lucky Block, in turn | a Lucky Block, gems or a book |
+    | decent | every 5th | 2 books | a Diamond block + 3 books |
+    | good | every 10th | a Diamond block + gems | a season **skin** at 20 / 40 / 60 / 80, else a Godly block + 4 books |
+    | huge | every 25th | a Godly block + 3–4 books | a season **pet**: 25 Legendary, 50 Mythic, 75 Divine, 100 Exotic (+ a Godly A block at 100) |
+
+    Tier 1 keeps the signature tools (Lunar Pickaxe, Eclipse). Block grades climb
+    with the tier. The credits back are unchanged: free at most 100, premium at
+    most 1,200. The amounts are PROPOSED; the pets, skins and classes are the owner's.
+  - **The season pets** are the generated pack `pass_2026_10`
+    (`HolidayPets/Pass202610`, from `tools/gen/holiday/pass_2026_10.json`):
+    - Pickwick, a Legendary Golem;
+    - Nuggetail, a Mythic Drake;
+    - Gemheart, a Divine Hawk;
+    - Bedrock Bob, an Exotic Wyrm.
+
+    They use Event Horizon power and buff Ore Haul, Chest Luck and Mine Speed. Each
+    carries `holiday = "pass"` and the pack has no `PACK_ID`, so nothing
+    random rolls them. The names are PROPOSED. See [pets](pets.md).
+  - **The season skins** are MineSkins' pass set "Season One Pass":
+    - Gemfire (S);
+    - Geode Heart (SS);
+    - Deepgold Seam (SS);
+    - The Motherlode (SSS).
+
+    `MineSkins.isPass` keeps them out of every random pool. See
+    [skins-cases-and-temper](skins-cases-and-temper.md).
+  - **Claims.** `Dig.grantPassExtras` mints the pet and grants the skin on the
+    live profile only, because a claim that carries a lucky block also writes the
+    stored save, and a pet minted there would get a second serial.
+  - **The rail** marks the classes: a ★ ribbon and a louder frame on decent,
+    good (★ BIG) and huge (★ HUGE) tiles.
   - `src/ServerScriptService/TCGServer/BattlePass.luau` is an unrelated AFK-place stub.
 - **`MineConfig.PRODUCTS`** lists: patron_rig, lucky_charm, lucky_block_pet, two
   deals, starter_bundle 129, weekend_haul 349, group_wheel_1/5/10, coin_double

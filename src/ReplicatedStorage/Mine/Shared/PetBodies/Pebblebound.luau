@@ -1,17 +1,17 @@
 --[[ PetBodies/Pebblebound -- Pebblebound's bodies. See tools/gen/sets/README.md.
 
 	The starter set: plain rock, earthy colours, no glow. Five silhouettes a kid
-	can name at follow distance: a cracked-open geode, a banded rock armadillo,
+	can name at follow distance: a cracked-open boulder, a banded rock armadillo,
 	a mole with digging claws, a balanced stone cairn and a ram with stone horns.
 ]]
 return function(K)
 	local C3, block, spots = K.C3, K.block, K.spots
-	local SLATE, METAL, GLASS = K.SLATE, K.METAL, K.GLASS
+	local SLATE, METAL = K.SLATE, K.METAL
 	local S = {}
 
-	-- A round rock split open on top, with a cluster of crystals inside.
+	-- A round boulder split open on top: plain cracked rock, no crystal cluster.
 	S.pb_geode = {
-		label = "Geode",
+		label = "Split Boulder",
 		set = "pebblebound",
 		tint = C3(150, 140, 130),
 		head = CFrame.new(0, 1.20, 0.34),
@@ -29,14 +29,12 @@ return function(K)
 				c:cone(Vector3.new(0.40, 0.34, 0.40), CFrame.new(0.78 * s, 1.04, 0.62) * CFrame.Angles(0, 0, 0.2 * s), p.base, SLATE)
 				c:cone(Vector3.new(0.36, 0.30, 0.36), CFrame.new(0.80 * s, 1.02, -0.64) * CFrame.Angles(0, 0, -0.2 * s), p.dark, SLATE)
 			end
-			-- The crystal cluster: one tall point, four leaning around it.
-			c:cone(Vector3.new(0.46, 0.92, 0.46), CFrame.new(0, 1.40, -0.04), p.pale, GLASS)
-			for _, v in ipairs({
-				{ 0.40, 1.22, 0.16, -0.36, 0.10 }, { -0.40, 1.20, 0.14, 0.38, 0.12 },
-				{ 0.32, 1.16, -0.38, -0.30, -0.24 }, { -0.30, 1.18, -0.36, 0.30, -0.26 },
-			}) do
-				c:cone(Vector3.new(0.30, 0.62, 0.30), CFrame.new(v[1], v[2], v[3]) * CFrame.Angles(v[5], 0, v[4]), p.glow, GLASS)
-			end
+			-- Rough rock chunks wedged in the split (slate, not glass crystals).
+			c:box(Vector3.new(0.52, 0.48, 0.46), CFrame.new(0, 1.22, -0.04) * CFrame.Angles(0.15, 0.3, 0.1), p.pale, SLATE)
+			c:box(Vector3.new(0.36, 0.40, 0.34), CFrame.new(0.36, 1.14, 0.18) * CFrame.Angles(-0.2, 0.5, -0.15), p.light, SLATE)
+			c:box(Vector3.new(0.34, 0.38, 0.32), CFrame.new(-0.34, 1.12, 0.12) * CFrame.Angles(0.2, -0.4, 0.2), p.dark, SLATE)
+			c:box(Vector3.new(0.30, 0.34, 0.30), CFrame.new(0.18, 1.10, -0.36) * CFrame.Angles(-0.25, 0.2, 0.3), p.deep, SLATE)
+			c:box(Vector3.new(0.28, 0.32, 0.28), CFrame.new(-0.22, 1.08, -0.32) * CFrame.Angles(0.3, -0.25, -0.2), p.base, SLATE)
 			-- A zigzag crack down one flank, and a few knobbly lumps.
 			c:box(Vector3.new(0.06, 0.36, 0.08), CFrame.new(1.08, 0.34, 0.16) * CFrame.Angles(0.4, 0, 0), p.deep)
 			c:box(Vector3.new(0.06, 0.30, 0.08), CFrame.new(1.08, 0.04, 0.18) * CFrame.Angles(-0.4, 0, 0), p.deep)

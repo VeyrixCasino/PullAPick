@@ -9,25 +9,25 @@ own buff set; the rest take a role from their body.
 
 | # | set | grade | power | pets | buff set | bodies |
 |---|---|---|---|---|---|---|
-| 1 | Pebblebound | F | ×1.00 | 120 | Dirt Break, Ore Haul, Ore Finder | Geode, Rockadillo, Mole, Cairn, Ram |
-| 2 | Sugar Rush | D | ×1.05 | 119 | Swing Rate, Pack Luck, Shatter Chance | Bonbon, Cupcake, Scoop, Gummy, Lollipop |
-| 3 | Mosswood | C | ×1.10 | 117 | Dirt Break, Pulverizer, Lucky Block find | Toadstool, Stump, Snail, Hedgehog, Acorn |
-| 4 | Lost & Found | C | ×1.16 | 116 | Chest Luck, Coin Bonus, Luck | Compass, Map, Bottle, Teapot, Pouch |
-| 5 | Starfront | C | ×1.22 | 114 | Rare Ore, Luck, Blast Chance | Astronaut, Rover, Satellite, Rocket, Planet |
-| 6 | Arcade Legends | B | ×1.28 | 113 | Coin Bonus, Swing Rate, Zap Chance | Cabinet, Gamepad, Token, Pixel Heart, Bitbug |
-| 7 | Crystal Hollow | B | ×1.34 | 112 | Gem Find, Ore Luck, Shatter Chance | Geode, Quartzback, Cubeling, Desert Rose, Hexling |
-| 8 | Shogun's Oath | B | ×1.41 | 110 | Mine Speed, Tidal Wave, Tidal Wave Damage | Samurai, Ninja, Daruma, Lucky Cat, Koi Kite |
-| 9 | Royal Reserve | B | ×1.48 | 109 | Coin Bonus, Chest Luck, Pack Luck | Lion, Poodle, Peacock, Jewel Box, Crownling |
-| 10 | Crimson Eclipse | A | ×1.55 | 108 | Blast Chance, Blast Damage, Rare Ore | Crescent, Gargoyle, Rose, Grimoire, Eclipse |
-| 11 | Holo Havoc | A | ×1.63 | 106 | Shatter Chance, Shatter Damage, Gem Find | Disco Ball, Holo Pup, Shutterbug, Jellyfish, Chameleon |
-| 12 | Rainbow Road | A | ×1.71 | 105 | Luck, Ore Luck, Lucky Block find | Snail, Cloudling, Hedgehog, Axolotl, Toucan |
-| 13 | Infernal Reign | A | ×1.80 | 103 | Blast Chance, Blast Damage, Dirt Break | Volcanoling, Anvil, Furnace, Basaltoise, Magma Bull |
-| 14 | Atlantis Rising | A | ×1.89 | 102 | Tidal Wave, Tidal Wave Damage, Gem Find | Seahorse, Pearl Clam, Octopus, Jellyfish, Column Crab |
-| 15 | Divine Relics | A | ×1.98 | 101 | Zap Chance, Zap Damage, Luck | Idol, Windup, Wish Lamp, Relic Key, Hourglass |
-| 16 | Dragonfall | S | ×2.08 | 99 | Earthquake Chance, Coin Bonus, Rare Ore | Hatchling, Hoard Dragon, Fossil Dragon, Wyvern, Sky Wyrm |
-| 17 | Eternal Roots | S | ×2.18 | 98 | Dirt Break, Ore Finder, Earthquake Chance | Stumpling, Rootmole, Springback, Sapshell, Taproot, Groveback |
-| 18 | Mythic Menagerie | SS | ×2.29 | 96 | Luck, Pack Luck, Zap Chance | Griffin, Phoenix Chick, Kirin, Hydra Pup, Sphinx Kitten, Trihorn |
-| 19 | Chaos Theory | SSS | ×2.41 | 95 | Shatter Chance, Shatter Damage, Lucky Block find | Glitch Cat, Shardling, Hypercube, Flipside, Riftling, Twistling |
+| 1 | Pebblebound | F | ×1.00 | 141 | Dirt Break, Ore Haul, Ore Finder | Split Boulder, Rockadillo, Mole, Cairn, Ram, Rocktoise, Quarryhog, Toadstone, Pebblebat |
+| 2 | Sugar Rush | D | ×1.05 | 140 | Swing Rate, Pack Luck, Shatter Chance | Bonbon, Cupcake, Scoop, Gummy, Lollipop, Gumdrop, Sugar Mouse, Sprinkle Pup, Candy Egg |
+| 3 | Mosswood | C | ×1.10 | 139 | Dirt Break, Pulverizer, Lucky Block find | Toadstool, Stump, Snail, Hedgehog, Acorn, Barklouse, Bushtail, Fircone, Oakleaf |
+| 4 | Lost & Found | C | ×1.16 | 139 | Chest Luck, Coin Bonus, Luck | Compass, Map, Bottle, Teapot, Pouch, Marble, Thread Spool, Beach Conch, Sand Pail |
+| 5 | Starfront | C | ×1.22 | 137 | Rare Ore, Luck, Blast Chance | Astronaut, Rover, Satellite, Rocket, Planet, Helmet Pup, Crater Rock, Nav Buoy, Astro Owl |
+| 6 | Arcade Legends | B | ×1.28 | 136 | Coin Bonus, Swing Rate, Zap Chance | Cabinet, Gamepad, Token, Pixel Heart, Bitbug |
+| 7 | Crystal Hollow | B | ×1.34 | 136 | Gem Find, Ore Luck, Shatter Chance | Geode, Quartzback, Cubeling, Desert Rose, Hexling, Drip Stalactite, Botryoid Blob |
+| 8 | Shogun's Oath | B | ×1.41 | 134 | Mine Speed, Tidal Wave, Tidal Wave Damage | Samurai, Ninja, Daruma, Lucky Cat, Koi Kite |
+| 9 | Royal Reserve | B | ×1.48 | 133 | Coin Bonus, Chest Luck, Pack Luck | Lion, Poodle, Peacock, Jewel Box, Crownling, Tuffet, Cabochon, Lipstick, Lace Ruff |
+| 10 | Crimson Eclipse | A | ×1.55 | 132 | Blast Chance, Blast Damage, Rare Ore | Crescent, Gargoyle, Rose, Grimoire, Eclipse |
+| 11 | Holo Havoc | A | ×1.63 | 130 | Shatter Chance, Shatter Damage, Gem Find | Disco Ball, Holo Pup, Shutterbug, Prism Jelly, Chameleon, Glitter Finch, Sequin Wombat, Spangle Skunk, Foil Pompom |
+| 12 | Rainbow Road | A | ×1.71 | 130 | Luck, Ore Luck, Lucky Block find | Snail, Cloudling, Hedgehog, Axolotl, Toucan, Prismpup, Gemster, Gemfawn |
+| 13 | Infernal Reign | A | ×1.80 | 127 | Blast Chance, Blast Damage, Dirt Break | Volcanoling, Anvil, Furnace, Basaltoise, Magma Bull |
+| 14 | Atlantis Rising | A | ×1.89 | 126 | Tidal Wave, Tidal Wave Damage, Gem Find | Seahorse, Pearl Clam, Octopus, Jellyfish, Column Crab |
+| 15 | Divine Relics | A | ×1.98 | 127 | Zap Chance, Zap Damage, Luck | Idol, Windup, Wish Lamp, Relic Key, Hourglass, Shrine Bell, Sage Scroll, Step Pyramid, Temple Padlock |
+| 16 | Dragonfall | S | ×2.08 | 124 | Earthquake Chance, Coin Bonus, Rare Ore | Hatchling, Hoard Dragon, Fossil Dragon, Wyvern, Sky Wyrm, Pitaya Pal, Wyrm Vase, Hoard Ingot, Drakespin Top |
+| 17 | Eternal Roots | S | ×2.18 | 123 | Dirt Break, Ore Finder, Earthquake Chance | Stumpling, Rootmole, Springback, Sapshell, Taproot, Groveback, Trufflepig, Sproutfinch, Seedmouse |
+| 18 | Mythic Menagerie | SS | ×2.29 | 122 | Luck, Pack Luck, Zap Chance | Griffin, Phoenix Chick, Kirin, Hydra Pup, Sphinx Kitten, Trihorn |
+| 19 | Chaos Theory | SSS | ×2.41 | 117 | Shatter Chance, Shatter Damage, Lucky Block find | Glitch Cat, Shardling, Hypercube, Flipside, Riftling, Twistling |
 
 ## 1. Pebblebound (F, ×1.00)
 
@@ -35,126 +35,147 @@ Packs: Stone Cache · Copper Vein · Iron Hollow · Crystal Pocket · Deepcore D
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Brick | Malachite Mole | Digger | +34% Ore Haul, +17% Dirt Break |
-| Common | Flagstone | Serpentine Geode | Prospector | +19% Rare Ore, +9.4% Gem Find |
-| Common | Clonk | Azurite Cairn | Mystic | +34% Dirt Break, +17% Ore Haul |
-| Common | Cavern | Ochre Golem | Bruiser | +34% Dirt Break, +17% Ore Haul |
-| Common | Sluice | Copper Ram | Striker | +34% Mine Speed, +12% Swing Rate |
-| Common | Silvery | Serpentine Wyrm | Mystic | +34% Dirt Break, +17% Ore Haul |
-| Common | Bonk | Granite Rockadillo | Bruiser | +34% Mine Speed, +17% Dirt Break |
-| Common | Crevice | Ochre Beetle | Bruiser | +34% Mine Speed, +17% Dirt Break |
-| Common | Hematite | Sandstone Mole | Digger | +34% Dirt Break, +17% Ore Haul |
-| Common | Tumblestone | Fluorite Geode | Prospector | +19% Rare Ore, +9.4% Gem Find |
-| Common | Cragpaw | Sandstone Ram | Striker | +24% Swing Rate, +17% Mine Speed |
-| Common | Pebblecub | Sulfur Cairn | Mystic | +34% Dirt Break, +17% Ore Haul |
-| Common | Coppertop | Coal Rockadillo | Bruiser | +34% Mine Speed, +17% Dirt Break |
-| Common | Zinc | Rhodonite Ram | Striker | +34% Mine Speed, +12% Swing Rate |
-| Common | Copperkin | Rhodonite Golem | Bruiser | +34% Mine Speed, +17% Dirt Break |
-| Common | Rubblebug | Iron Cairn | Mystic | +34% Dirt Break, +17% Ore Haul |
-| Common | Rockdrop | Clay Geode | Prospector | +14% Ore Luck, +9.4% Gem Find |
-| Common | Boulder | Fluorite Wyrm | Mystic | +34% Dirt Break, +17% Ore Haul |
-| Common | Rockhop | Rhodonite Beetle | Bruiser | +34% Dirt Break, +17% Mine Speed |
-| Common | Dirtclod | Rust Rockadillo | Bruiser | +34% Dirt Break, +17% Mine Speed |
-| Common | Zincpaw | Limestone Mole | Digger | +23% Ore Finder, +17% Dirt Break |
-| Common | Moraine | Fluorite Ram | Striker | +34% Mine Speed, +12% Swing Rate |
-| Common | Bouldy | Fluorite Cairn | Mystic | +34% Dirt Break, +17% Mine Speed |
-| Common | Pebblebean | Serpentine Mole | Digger | +34% Dirt Break, +17% Ore Haul |
-| Common | Blackstone | Umber Rockadillo | Bruiser | +34% Dirt Break, +17% Mine Speed |
-| Common | Tapper | Hematite Geode | Prospector | +19% Rare Ore, +9.4% Gem Find |
-| Common | Rockpup | Gold Ore Ram | Striker | +24% Swing Rate, +17% Mine Speed |
-| Common | Thud | Clay Cairn | Mystic | +34% Dirt Break, +17% Ore Haul |
-| Common | Gneiss | Fluorite Mole | Digger | +23% Ore Finder, +17% Dirt Break |
-| Common | Rockbun | Hematite Beetle | Bruiser | +34% Dirt Break, +17% Ore Haul |
-| Common | Tor | Turquoise Wyrm | Mystic | +34% Dirt Break, +17% Mine Speed |
-| Common | Rockabye | Rhodonite Rockadillo | Bruiser | +34% Dirt Break, +17% Mine Speed |
-| Common | Argent | Limestone Golem | Bruiser | +34% Dirt Break, +17% Mine Speed |
-| Common | Stonecub | Rust Geode | Prospector | +14% Ore Luck, +9.4% Gem Find |
-| Common | Nugsy | Bronze Ram | Striker | +34% Mine Speed, +12% Swing Rate |
-| Common | Lodey | Coal Cairn | Mystic | +34% Dirt Break, +17% Mine Speed |
-| Common | Nugglet | Sulfur Mole | Digger | +34% Ore Haul, +17% Dirt Break |
-| Common | Gravelgrin | Sulfur Rockadillo | Bruiser | +34% Dirt Break, +17% Mine Speed |
-| Common | Pebblepop | Gold Ore Geode | Prospector | +14% Ore Luck, +9.4% Gem Find |
-| Common | Bluff | Limestone Ram | Striker | +34% Mine Speed, +12% Swing Rate |
-| Common | Claypot | Jasper Wyrm | Mystic | +34% Dirt Break, +17% Ore Haul |
-| Common | Talus | Jasper Beetle | Bruiser | +34% Mine Speed, +17% Dirt Break |
-| Common | Grindstone | Slate Cairn | Mystic | +34% Dirt Break, +17% Ore Haul |
-| Common | Coaly | Iron Mole | Digger | +23% Ore Finder, +17% Dirt Break |
-| Common | Craggy | Fluorite Rockadillo | Bruiser | +34% Dirt Break, +17% Mine Speed |
-| Common | Copper | Sulfur Golem | Bruiser | +34% Dirt Break, +17% Mine Speed |
-| Common | Panner | Basalt Geode | Prospector | +19% Rare Ore, +9.4% Gem Find |
-| Common | Clodhopper | Coal Ram | Striker | +24% Swing Rate, +17% Mine Speed |
-| Common | Gravelbeard | Ochre Cairn | Mystic | +34% Dirt Break, +17% Mine Speed |
-| Common | Scree | Coal Mole | Digger | +34% Dirt Break, +17% Ore Haul |
-| Common | Clatter | Limestone Rockadillo | Bruiser | +34% Mine Speed, +17% Dirt Break |
-| Common | Clunk | Malachite Geode | Prospector | +14% Ore Luck, +9.4% Gem Find |
-| Common | Talc | Umber Wyrm | Mystic | +34% Dirt Break, +17% Mine Speed |
-| Common | Knocker | Clay Rockadillo | Bruiser | +34% Mine Speed, +17% Dirt Break |
-| Uncommon | Rusty | Hematite Mole | Digger | +41% Dirt Break, +20% Ore Haul |
-| Uncommon | Ironclad | Slate Beetle | Bruiser | +41% Dirt Break, +20% Mine Speed |
-| Uncommon | Pebbs | Sandstone Golem | Bruiser | +41% Dirt Break, +20% Mine Speed |
-| Uncommon | Zinky | Slate Ram | Striker | +41% Mine Speed, +15% Swing Rate |
-| Uncommon | Gravel | Umber Cairn | Mystic | +41% Dirt Break, +20% Ore Haul |
-| Uncommon | Slate | Sandstone Geode | Prospector | +23% Rare Ore, +11% Gem Find |
-| Uncommon | Lode | Turquoise Rockadillo | Bruiser | +41% Dirt Break, +20% Ore Haul |
-| Uncommon | Hillock | Slate Geode | Prospector | +23% Gem Find, +11% Rare Ore |
-| Uncommon | Halite | Malachite Ram | Striker | +41% Mine Speed, +20% Dirt Break |
-| Uncommon | Ferro | Silver Ore Cairn | Mystic | +41% Dirt Break, +20% Mine Speed |
-| Uncommon | Talcum | Jasper Mole | Digger | +41% Ore Haul, +20% Dirt Break |
-| Uncommon | Butte | Malachite Wyrm | Mystic | +41% Dirt Break, +20% Mine Speed |
-| Uncommon | Schist | Sandstone Rockadillo | Bruiser | +41% Mine Speed, +20% Dirt Break |
-| Uncommon | Strata | Coal Golem | Bruiser | +41% Dirt Break, +20% Mine Speed |
-| Uncommon | Druzy | Silver Ore Geode | Prospector | +23% Rare Ore, +11% Gem Find |
-| Uncommon | Whetstone | Hematite Ram | Striker | +41% Mine Speed, +15% Swing Rate |
-| Uncommon | Pestle | Serpentine Cairn | Mystic | +41% Dirt Break, +20% Ore Haul |
-| Uncommon | Pebbly | Ochre Mole | Digger | +41% Ore Haul, +20% Dirt Break |
-| Uncommon | Flinty | Limestone Beetle | Bruiser | +41% Dirt Break, +20% Mine Speed |
-| Uncommon | Mortar | Ochre Rockadillo | Bruiser | +41% Dirt Break, +20% Ore Haul |
-| Uncommon | Gypsum | Iron Geode | Prospector | +23% Rare Ore, +11% Gem Find |
-| Uncommon | Tumbler | Jasper Ram | Striker | +41% Mine Speed, +20% Dirt Break |
-| Uncommon | Crag | Rhodonite Cairn | Mystic | +41% Dirt Break, +20% Ore Haul |
-| Uncommon | Coal | Bronze Mole | Digger | +27% Ore Finder, +20% Dirt Break |
-| Uncommon | Pebbledash | Clay Beetle | Bruiser | +41% Mine Speed, +20% Dirt Break |
-| Uncommon | Sandy | Serpentine Rockadillo | Bruiser | +41% Dirt Break, +20% Mine Speed |
-| Uncommon | Cobble | Granite Ram | Striker | +41% Mine Speed, +15% Swing Rate |
-| Uncommon | Millstone | Rust Golem | Bruiser | +41% Dirt Break, +20% Mine Speed |
-| Rare | Terra | Turquoise Cairn | Mystic | +50% Dirt Break, +25% Ore Haul |
-| Rare | Boulderby | Rhodonite Geode | Prospector | +28% Rare Ore, +14% Gem Find |
-| Rare | Gully | Limestone Wyrm | Mystic | +50% Dirt Break, +25% Ore Haul |
-| Rare | Quarry | Azurite Mole | Digger | +33% Ore Finder, +25% Dirt Break |
-| Rare | Bauxite | Serpentine Ram | Striker | +50% Mine Speed, +25% Dirt Break |
-| Rare | Cuprum | Malachite Cairn | Mystic | +50% Dirt Break, +25% Ore Haul |
-| Rare | Nuggy | Ochre Geode | Prospector | +28% Gem Find, +14% Rare Ore |
-| Rare | Delve | Azurite Rockadillo | Bruiser | +50% Mine Speed, +25% Dirt Break |
-| Rare | Sandstone | Turquoise Mole | Digger | +50% Ore Haul, +25% Dirt Break |
-| Rare | Deepvein | Fluorite Beetle | Bruiser | +50% Dirt Break, +25% Mine Speed |
-| Rare | Cobblebun | Azurite Ram | Striker | +50% Mine Speed, +25% Dirt Break |
-| Rare | Rockling | Fluorite Golem | Bruiser | +50% Mine Speed, +25% Dirt Break |
-| Rare | Oreling | Rust Cairn | Mystic | +50% Dirt Break, +25% Ore Haul |
-| Rare | Chipper | Turquoise Geode | Prospector | +28% Gem Find, +14% Rare Ore |
-| Rare | Boulderbean | Iron Wyrm | Mystic | +50% Dirt Break, +25% Ore Haul |
-| Rare | Pebblepip | Malachite Rockadillo | Bruiser | +50% Dirt Break, +25% Ore Haul |
-| Rare | Chert | Rhodonite Mole | Digger | +50% Dirt Break, +25% Ore Haul |
-| Epic | Orebit | Glowing Turquoise Ram | Striker | +62% Mine Speed, +22% Swing Rate |
-| Epic | Pebblestack | Glowing Slate Rockadillo | Bruiser | +62% Mine Speed, +31% Dirt Break |
-| Epic | Chalky | Glowing Azurite Geode | Prospector | +26% Ore Luck, +17% Gem Find |
-| Epic | Lodestone | Glowing Sandstone Cairn | Mystic | +62% Dirt Break, +31% Ore Haul |
-| Epic | Rockslide | Glowing Slate Mole | Digger | +62% Dirt Break, +31% Ore Haul |
-| Epic | Vuggy | Glowing Umber Mole | Digger | +41% Ore Finder, +31% Dirt Break |
-| Epic | Stratum | Glowing Umber Golem | Bruiser | +62% Mine Speed, +31% Dirt Break |
-| Epic | Ridge | Glowing Ochre Wyrm | Mystic | +62% Dirt Break, +31% Ore Haul |
-| Epic | Magnetite | Glowing Umber Ram | Striker | +62% Mine Speed, +22% Swing Rate |
-| Legendary | Crumb | Polished Hematite Rockadillo | Bruiser | +80% Mine Speed, +40% Dirt Break |
-| Legendary | Cobblecub | Tumbled Coal Beetle | Bruiser | +80% Dirt Break, +40% Ore Haul |
-| Legendary | Chalk | Banded Limestone Cairn | Mystic | +80% Dirt Break, +40% Ore Haul |
-| Legendary | Dune | Speckled Umber Geode | Prospector | +33% Ore Luck, +22% Gem Find |
-| Legendary | Ochre | Polished Copper Mole | Digger | +53% Ore Finder, +40% Dirt Break |
-| Legendary | Cobbs | Tumbled Bronze Cairn | Mystic | +80% Dirt Break, +40% Ore Haul |
-| Mythic | Cobblestone | Orebright Geode | Pebblebound | +109% Dirt Break, +38% Ore Haul, +11% Ore Finder |
-| Mythic | Chunk | Deepset Ram | Pebblebound | +109% Ore Haul, +26% Ore Finder, +16% Dirt Break |
-| Mythic | Mudstone | Veined Rockadillo | Pebblebound | +73% Ore Finder, +38% Dirt Break, +16% Ore Haul |
-| Divine | Bronze | Gleaming Wyrm | Pebblebound | +148% Dirt Break, +52% Ore Haul, +15% Ore Finder |
-| Exotic | Gravelly | Motherlode Mole | Pebblebound | +200% Ore Haul, +47% Ore Finder, +30% Dirt Break |
-| Exotic | Marl | Bedrock Golem | Pebblebound | +133% Ore Finder, +70% Dirt Break, +30% Ore Haul |
+| Common | Brick | Peridot Pebblebat | Digger | +34% Ore Haul, +17% Dirt Break |
+| Common | Flagstone | Cinnabar Mole | Prospector | +19% Rare Ore, +9.4% Gem Find |
+| Common | Clonk | Amethyst Split Boulder | Mystic | +34% Dirt Break, +17% Ore Haul |
+| Common | Cavern | Limestone Toadstone | Bruiser | +34% Dirt Break, +17% Ore Haul |
+| Common | Sluice | Gold Ore Cairn | Striker | +34% Mine Speed, +12% Swing Rate |
+| Common | Silvery | Garnet Wyrm | Mystic | +34% Dirt Break, +17% Ore Haul |
+| Common | Bonk | Bloodstone Golem | Bruiser | +34% Mine Speed, +17% Dirt Break |
+| Common | Crevice | Garnet Ram | Bruiser | +34% Mine Speed, +17% Dirt Break |
+| Common | Hematite | Coal Rockadillo | Digger | +34% Dirt Break, +17% Ore Haul |
+| Common | Tumblestone | Umber Quarryhog | Prospector | +19% Rare Ore, +9.4% Gem Find |
+| Common | Cragpaw | Malachite Rocktoise | Striker | +24% Swing Rate, +17% Mine Speed |
+| Common | Pebblecub | Realgar Ram | Mystic | +34% Dirt Break, +17% Ore Haul |
+| Common | Coppertop | Hematite Rocktoise | Bruiser | +34% Mine Speed, +17% Dirt Break |
+| Common | Zinc | Jasper Quarryhog | Striker | +34% Mine Speed, +12% Swing Rate |
+| Common | Copperkin | Malachite Pebblebat | Bruiser | +34% Mine Speed, +17% Dirt Break |
+| Common | Rubblebug | Silver Ore Cairn | Mystic | +34% Dirt Break, +17% Ore Haul |
+| Common | Rockdrop | Jasper Split Boulder | Prospector | +14% Ore Luck, +9.4% Gem Find |
+| Common | Boulder | Ochre Toadstone | Mystic | +34% Dirt Break, +17% Ore Haul |
+| Common | Rockhop | Sulfur Rockadillo | Bruiser | +34% Dirt Break, +17% Mine Speed |
+| Common | Dirtclod | Granite Mole | Bruiser | +34% Dirt Break, +17% Mine Speed |
+| Common | Zincpaw | Rhodonite Ram | Digger | +23% Ore Finder, +17% Dirt Break |
+| Common | Moraine | Lapis Rocktoise | Striker | +34% Mine Speed, +12% Swing Rate |
+| Common | Bouldy | Chalk Pebblebat | Mystic | +34% Dirt Break, +17% Mine Speed |
+| Common | Pebblebean | Garnet Cairn | Digger | +34% Dirt Break, +17% Ore Haul |
+| Common | Blackstone | Bloodstone Mole | Bruiser | +34% Dirt Break, +17% Mine Speed |
+| Common | Tapper | Amethyst Rockadillo | Prospector | +19% Rare Ore, +9.4% Gem Find |
+| Common | Rockpup | Lapis Quarryhog | Striker | +24% Swing Rate, +17% Mine Speed |
+| Common | Thud | Obsidian Split Boulder | Mystic | +34% Dirt Break, +17% Ore Haul |
+| Common | Gneiss | Rhodochrosite Toadstone | Digger | +23% Ore Finder, +17% Dirt Break |
+| Common | Rockbun | Obsidian Ram | Bruiser | +34% Dirt Break, +17% Ore Haul |
+| Common | Tor | Celestine Toadstone | Mystic | +34% Dirt Break, +17% Mine Speed |
+| Common | Rockabye | Kunzite Quarryhog | Bruiser | +34% Dirt Break, +17% Mine Speed |
+| Common | Argent | Fluorite Cairn | Bruiser | +34% Dirt Break, +17% Mine Speed |
+| Common | Stonecub | Sandstone Mole | Prospector | +14% Ore Luck, +9.4% Gem Find |
+| Common | Nugsy | Lepidolite Rockadillo | Striker | +34% Mine Speed, +12% Swing Rate |
+| Common | Lodey | Ruby Rocktoise | Mystic | +34% Dirt Break, +17% Mine Speed |
+| Common | Nugglet | Cobalt Pebblebat | Digger | +34% Ore Haul, +17% Dirt Break |
+| Common | Gravelgrin | Azurite Split Boulder | Bruiser | +34% Dirt Break, +17% Mine Speed |
+| Common | Pebblepop | Charoite Toadstone | Prospector | +14% Ore Luck, +9.4% Gem Find |
+| Common | Bluff | Imperial Topaz Ram | Striker | +34% Mine Speed, +12% Swing Rate |
+| Common | Claypot | Copper Cairn | Mystic | +34% Dirt Break, +17% Ore Haul |
+| Common | Talus | Celestine Mole | Bruiser | +34% Mine Speed, +17% Dirt Break |
+| Common | Grindstone | Jasper Rockadillo | Mystic | +34% Dirt Break, +17% Ore Haul |
+| Common | Coaly | Lepidolite Rocktoise | Digger | +23% Ore Finder, +17% Dirt Break |
+| Common | Craggy | Gold Ore Quarryhog | Bruiser | +34% Dirt Break, +17% Mine Speed |
+| Common | Copper | Ochre Pebblebat | Bruiser | +34% Dirt Break, +17% Mine Speed |
+| Common | Panner | Ochre Split Boulder | Prospector | +19% Rare Ore, +9.4% Gem Find |
+| Common | Clodhopper | Silver Ore Ram | Striker | +24% Swing Rate, +17% Mine Speed |
+| Common | Gravelbeard | Cobalt Cairn | Mystic | +34% Dirt Break, +17% Mine Speed |
+| Common | Scree | Cobalt Mole | Digger | +34% Dirt Break, +17% Ore Haul |
+| Common | Clatter | Turquoise Rockadillo | Bruiser | +34% Mine Speed, +17% Dirt Break |
+| Common | Clunk | Garnet Toadstone | Prospector | +14% Ore Luck, +9.4% Gem Find |
+| Common | Talc | Peridot Quarryhog | Mystic | +34% Dirt Break, +17% Mine Speed |
+| Common | Knocker | Silver Ore Rocktoise | Bruiser | +34% Mine Speed, +17% Dirt Break |
+| Uncommon | Rusty | Chrysocolla Split Boulder | Digger | +41% Dirt Break, +20% Ore Haul |
+| Uncommon | Ironclad | Hematite Pebblebat | Bruiser | +41% Dirt Break, +20% Mine Speed |
+| Uncommon | Pebbs | Silver Ore Rockadillo | Bruiser | +41% Dirt Break, +20% Mine Speed |
+| Uncommon | Zinky | Kunzite Mole | Striker | +41% Mine Speed, +15% Swing Rate |
+| Uncommon | Gravel | Iron Toadstone | Mystic | +41% Dirt Break, +20% Ore Haul |
+| Uncommon | Slate | Rose Quartz Quarryhog | Prospector | +23% Rare Ore, +11% Gem Find |
+| Uncommon | Lode | Iron Pebblebat | Bruiser | +41% Dirt Break, +20% Ore Haul |
+| Uncommon | Hillock | Iron Split Boulder | Prospector | +23% Gem Find, +11% Rare Ore |
+| Uncommon | Halite | Chrysocolla Ram | Striker | +41% Mine Speed, +20% Dirt Break |
+| Uncommon | Ferro | Sulfur Rocktoise | Mystic | +41% Dirt Break, +20% Mine Speed |
+| Uncommon | Talcum | Basalt Cairn | Digger | +41% Ore Haul, +20% Dirt Break |
+| Uncommon | Butte | Bronze Rockadillo | Mystic | +41% Dirt Break, +20% Mine Speed |
+| Uncommon | Schist | Malachite Quarryhog | Bruiser | +41% Mine Speed, +20% Dirt Break |
+| Uncommon | Strata | Kunzite Pebblebat | Bruiser | +41% Dirt Break, +20% Mine Speed |
+| Uncommon | Druzy | Lepidolite Split Boulder | Prospector | +23% Rare Ore, +11% Gem Find |
+| Uncommon | Whetstone | Cobalt Toadstone | Striker | +41% Mine Speed, +15% Swing Rate |
+| Uncommon | Pestle | Bronze Rocktoise | Mystic | +41% Dirt Break, +20% Ore Haul |
+| Uncommon | Pebbly | Mint Calcite Ram | Digger | +41% Ore Haul, +20% Dirt Break |
+| Uncommon | Flinty | Serpentine Cairn | Bruiser | +41% Dirt Break, +20% Mine Speed |
+| Uncommon | Mortar | Sulfur Mole | Bruiser | +41% Dirt Break, +20% Ore Haul |
+| Uncommon | Gypsum | Cinnabar Rockadillo | Prospector | +23% Rare Ore, +11% Gem Find |
+| Uncommon | Tumbler | Rhodonite Rocktoise | Striker | +41% Mine Speed, +20% Dirt Break |
+| Uncommon | Crag | Celestine Quarryhog | Mystic | +41% Dirt Break, +20% Ore Haul |
+| Uncommon | Coal | Rust Pebblebat | Digger | +27% Ore Finder, +20% Dirt Break |
+| Uncommon | Pebbledash | Rhodochrosite Split Boulder | Bruiser | +41% Mine Speed, +20% Dirt Break |
+| Uncommon | Sandy | Serpentine Toadstone | Bruiser | +41% Dirt Break, +20% Mine Speed |
+| Uncommon | Cobble | Cobalt Ram | Striker | +41% Mine Speed, +15% Swing Rate |
+| Uncommon | Millstone | Chrysocolla Cairn | Bruiser | +41% Dirt Break, +20% Mine Speed |
+| Rare | Terra | Rhodonite Mole | Mystic | +50% Dirt Break, +25% Ore Haul |
+| Rare | Boulderby | Cinnabar Quarryhog | Prospector | +28% Rare Ore, +14% Gem Find |
+| Rare | Gully | Emerald Ram | Mystic | +50% Dirt Break, +25% Ore Haul |
+| Rare | Quarry | Charoite Pebblebat | Digger | +33% Ore Finder, +25% Dirt Break |
+| Rare | Bauxite | Mint Calcite Cairn | Striker | +50% Mine Speed, +25% Dirt Break |
+| Rare | Cuprum | Serpentine Split Boulder | Mystic | +50% Dirt Break, +25% Ore Haul |
+| Rare | Nuggy | Cinnabar Toadstone | Prospector | +28% Gem Find, +14% Rare Ore |
+| Rare | Delve | Emerald Rockadillo | Bruiser | +50% Mine Speed, +25% Dirt Break |
+| Rare | Sandstone | Realgar Rocktoise | Digger | +50% Ore Haul, +25% Dirt Break |
+| Rare | Deepvein | Obsidian Mole | Bruiser | +50% Dirt Break, +25% Mine Speed |
+| Rare | Cobblebun | Rhodochrosite Quarryhog | Striker | +50% Mine Speed, +25% Dirt Break |
+| Rare | Rockling | Fluorite Ram | Bruiser | +50% Mine Speed, +25% Dirt Break |
+| Rare | Oreling | Chrysocolla Rocktoise | Mystic | +50% Dirt Break, +25% Ore Haul |
+| Rare | Chipper | Chrysocolla Pebblebat | Prospector | +28% Gem Find, +14% Rare Ore |
+| Rare | Boulderbean | Cinnabar Cairn | Mystic | +50% Dirt Break, +25% Ore Haul |
+| Rare | Pebblepip | Mint Calcite Split Boulder | Bruiser | +50% Dirt Break, +25% Ore Haul |
+| Rare | Chert | Turquoise Toadstone | Digger | +50% Dirt Break, +25% Ore Haul |
+| Epic | Orebit | Flint Fox | Striker | +62% Mine Speed, +22% Swing Rate |
+| Epic | Pebblestack | Pebble Owl | Bruiser | +62% Mine Speed, +31% Dirt Break |
+| Epic | Chalky | Cage Canary | Prospector | +26% Ore Luck, +17% Gem Find |
+| Epic | Lodestone | Tunnel Ant | Mystic | +62% Dirt Break, +31% Ore Haul |
+| Epic | Rockslide | Hardhat Hermit | Digger | +62% Dirt Break, +31% Ore Haul |
+| Epic | Vuggy | Ore Llama | Digger | +41% Ore Finder, +31% Dirt Break |
+| Epic | Stratum | Mica Moth | Bruiser | +62% Mine Speed, +31% Dirt Break |
+| Epic | Ridge | Shale Trilobite | Mystic | +62% Dirt Break, +31% Ore Haul |
+| Epic | Magnetite | Coil Ammonite | Striker | +62% Mine Speed, +22% Swing Rate |
+| Epic | Peaty | Lodestone Magnet | Prospector | +35% Rare Ore, +17% Gem Find |
+| Epic | Flintlet | Pumice Puff | Tidecaller | +52% Scrap, +7.8% Pulverizer |
+| Epic | Muddy | Stalagmite Sprout | Bruiser | +62% Dirt Break, +31% Ore Haul |
+| Epic | Mudpie | Rockpecker | Striker | +62% Mine Speed, +31% Dirt Break |
+| Epic | Rockhopper | Grotto Minnow | Tidecaller | +35% Gem Find, +7.8% Pulverizer |
+| Epic | Siltpup | Pyrite Cluster | Trader | +62% Ore Haul, +39% Coin Bonus |
+| Epic | Gritling | Brick Pup | Bruiser | +62% Dirt Break, +31% Mine Speed |
+| Epic | Geodie | Gravel Inchworm | Digger | +62% Ore Haul, +31% Dirt Break |
+| Epic | Chisel | Gold Pan Raccoon | Prospector | +35% Gem Find, +17% Rare Ore |
+| Legendary | Crumb | Tumbled Rumble Minecart | Bruiser | +80% Mine Speed, +40% Dirt Break |
+| Legendary | Cobblecub | Banded Tunnel Lantern | Bruiser | +80% Dirt Break, +40% Ore Haul |
+| Legendary | Chalk | Speckled Burrow Badger | Mystic | +80% Dirt Break, +40% Ore Haul |
+| Legendary | Dune | Polished Quartz Stag | Prospector | +33% Ore Luck, +22% Gem Find |
+| Legendary | Ochre | Tumbled Anvil Bulldog | Digger | +53% Ore Finder, +40% Dirt Break |
+| Legendary | Cobbs | Banded Sand Hourglass | Mystic | +80% Dirt Break, +40% Ore Haul |
+| Legendary | Vug | Speckled Cavern Axolotl | Tidecaller | +67% Scrap, +10% Pulverizer |
+| Legendary | Pebblehop | Polished Mason Beaver | Prospector | +45% Gem Find, +22% Rare Ore |
+| Legendary | Keystone | Tumbled Slate Stegosaur | Striker | +80% Mine Speed, +40% Dirt Break |
+| Legendary | Breccia | Banded Fossil Mammoth | Bruiser | +80% Mine Speed, +40% Dirt Break |
+| Legendary | Basalt | Speckled Drill Bot | Digger | +80% Ore Haul, +40% Dirt Break |
+| Legendary | Slatey | Polished Agate Scorpion | Striker | +80% Mine Speed, +40% Dirt Break |
+| Mythic | Cobblestone | Glinting Druse Drake | Pebblebound | +109% Dirt Break, +38% Ore Haul, +11% Ore Finder |
+| Mythic | Chunk | Orebright Sunstone Phoenix | Pebblebound | +109% Ore Haul, +26% Ore Finder, +16% Dirt Break |
+| Mythic | Mudstone | Deepset Opal Medusa | Pebblebound | +73% Ore Finder, +38% Dirt Break, +16% Ore Haul |
+| Mythic | Andesite | Veined Granite Lion | Pebblebound | +109% Dirt Break, +38% Ore Haul, +11% Ore Finder |
+| Mythic | Pebblenook | Glinting Strata Whale | Pebblebound | +109% Ore Haul, +26% Ore Finder, +16% Dirt Break |
+| Mythic | Orebun | Orebright Monolith Sage | Pebblebound | +73% Ore Finder, +38% Dirt Break, +16% Ore Haul |
+| Divine | Bronze | Burnished Selenite Pegasus | Pebblebound | +148% Dirt Break, +52% Ore Haul, +15% Ore Finder |
+| Divine | Quartz | Radiant Moonstone Sphinx | Pebblebound | +148% Dirt Break, +52% Ore Haul, +15% Ore Finder |
+| Exotic | Gravelly | Earthcore Gemstone Kraken | Pebblebound | +200% Ore Haul, +47% Ore Finder, +30% Dirt Break |
+| Exotic | Marl | Motherlode Geode Planetoid | Pebblebound | +133% Ore Finder, +70% Dirt Break, +30% Ore Haul |
+| Exotic | Sandpip | Bedrock Prism Hydra | Pebblebound | +200% Ore Haul, +47% Ore Finder, +30% Dirt Break |
+| Exotic | Oreheart | Heartstone Starfall Meteor | Pebblebound | +133% Ore Finder, +70% Dirt Break, +30% Ore Haul |
 
 ## 2. Sugar Rush (D, ×1.05)
 
@@ -162,125 +183,146 @@ Packs: Candy Corner · Sprinkle Party · Jelly Pop · Sugar Kingdom · Royal Con
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Jellyjig | Cotton Candy Sheep | Trader | +45% Coin Bonus, +18% Ore Haul |
-| Common | Cherrypop | Strawberry Bunny | Digger | +36% Dirt Break, +18% Ore Haul |
-| Common | Zingy | Blueberry Cupcake | Trader | +45% Coin Bonus, +5.1% Lucky Block find |
-| Common | Rock Candy | Raspberry Bonbon | Striker | +36% Mine Speed, +13% Swing Rate |
-| Common | Dulce | Chocolate Lollipop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
-| Common | Sweetpie | Tangerine Scoop | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
-| Common | Cakepop | Mint Gummy | Bruiser | +36% Mine Speed, +18% Dirt Break |
-| Common | Lemon Fizz | Strawberry Slime | Tidecaller | +30% Scrap, +4.5% Pulverizer |
-| Common | Humbug | Spearmint Cupcake | Trader | +45% Coin Bonus, +5.1% Lucky Block find |
-| Common | Sugarpie | Chocolate Bonbon | Striker | +26% Swing Rate, +18% Mine Speed |
-| Common | Glitterpop | Bubblegum Lollipop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
-| Common | Nomnom | Vanilla Gummy | Bruiser | +36% Dirt Break, +18% Mine Speed |
-| Common | Sugardrop | Blackcurrant Scoop | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
-| Common | Cocoabean | Cherry Bonbon | Striker | +36% Mine Speed, +13% Swing Rate |
-| Common | Fondant | Chocolate Bunny | Digger | +36% Dirt Break, +18% Ore Haul |
-| Common | Jellyroll | Blue Raspberry Sheep | Trader | +45% Coin Bonus, +5.1% Lucky Block find |
-| Common | Flossy | Lavender Lollipop | Mystic | +2.8% Shatter Chance, +8.3% Shatter Damage, +16% Dirt Break |
-| Common | Pistachio | Toffee Gummy | Bruiser | +36% Mine Speed, +18% Dirt Break |
-| Common | Sugar Heart | Cotton Candy Scoop | Tidecaller | +8.9% Pulverizer, +15% Scrap |
-| Common | Bubblegum | Blackcurrant Cupcake | Trader | +36% Ore Haul, +22% Coin Bonus |
-| Common | Sugarloaf | Cotton Candy Slime | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
-| Common | Sweetheart | Blueberry Bonbon | Striker | +26% Swing Rate, +18% Mine Speed |
-| Common | Jelly Ring | Honey Lollipop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
-| Common | Snowcone | Chocolate Gummy | Bruiser | +36% Dirt Break, +18% Ore Haul |
-| Common | Maple Drop | Peach Scoop | Tidecaller | +8.9% Pulverizer, +15% Scrap |
-| Common | Fruity | Vanilla Cupcake | Trader | +45% Coin Bonus, +18% Ore Haul |
-| Common | Halva | Cotton Candy Bonbon | Striker | +36% Mine Speed, +18% Dirt Break |
-| Common | Mintchip | Vanilla Lollipop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
-| Common | Sugarglow | Bubblegum Sheep | Trader | +36% Ore Haul, +22% Coin Bonus |
-| Common | Candykin | Lavender Bunny | Digger | +36% Ore Haul, +18% Dirt Break |
-| Common | Berrypop | Caramel Slime | Tidecaller | +30% Scrap, +4.5% Pulverizer |
-| Common | Molasses | Tangerine Gummy | Bruiser | +36% Mine Speed, +18% Dirt Break |
-| Common | Strawberry | Spearmint Scoop | Tidecaller | +8.9% Pulverizer, +15% Scrap |
-| Common | Peach Fizz | Peach Cupcake | Trader | +36% Ore Haul, +22% Coin Bonus |
-| Common | Jellybop | Licorice Lollipop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
-| Common | Syrup | Grape Bonbon | Striker | +36% Mine Speed, +13% Swing Rate |
-| Common | Lickety Split | Strawberry Gummy | Bruiser | +36% Dirt Break, +18% Mine Speed |
-| Common | Orange Fizz | Toffee Scoop | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
-| Common | Razzberry | Mint Cupcake | Trader | +45% Coin Bonus, +18% Ore Haul |
-| Common | Gumbubble | Tangerine Bunny | Digger | +36% Ore Haul, +18% Dirt Break |
-| Common | Cinnamint | Cherry Slime | Tidecaller | +8.9% Pulverizer, +15% Scrap |
-| Common | Cruller | Lime Sheep | Trader | +45% Coin Bonus, +18% Ore Haul |
-| Common | Starmint | Caramel Lollipop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
-| Common | Dragee | Lime Bonbon | Striker | +36% Mine Speed, +18% Dirt Break |
-| Common | Chewbit | Peach Gummy | Bruiser | +36% Dirt Break, +18% Ore Haul |
-| Common | Buttercream | Grape Scoop | Tidecaller | +8.9% Pulverizer, +15% Scrap |
-| Common | Sourball | Cherry Cupcake | Trader | +36% Ore Haul, +22% Coin Bonus |
-| Common | Whiptop | Toffee Lollipop | Mystic | +26% Swing Rate, +18% Mine Speed |
-| Common | Sugarbug | Lime Cupcake | Trader | +45% Coin Bonus, +18% Ore Haul |
-| Common | Chocochip | Honey Bonbon | Striker | +36% Mine Speed, +18% Dirt Break |
-| Common | Cherrybun | Caramel Gummy | Bruiser | +36% Dirt Break, +18% Ore Haul |
-| Common | Fizzbit | Lemon Scoop | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
-| Uncommon | Maplesugar | Blackcurrant Slime | Tidecaller | +24% Gem Find, +5.3% Pulverizer |
-| Uncommon | Honeycomb | Peach Sheep | Trader | +53% Coin Bonus, +6.1% Lucky Block find |
-| Uncommon | Milkshake | Lime Lollipop | Mystic | +3.3% Shatter Chance, +10.0% Shatter Damage, +19% Dirt Break |
-| Uncommon | Fizzpop | Peach Bonbon | Striker | +43% Mine Speed, +15% Swing Rate |
-| Uncommon | Doughnut | Caramel Bunny | Digger | +28% Ore Finder, +21% Dirt Break |
-| Uncommon | Lemonbun | Cotton Candy Gummy | Bruiser | +43% Dirt Break, +21% Ore Haul |
-| Uncommon | Candyapple | Vanilla Scoop | Tidecaller | +24% Gem Find, +5.3% Pulverizer |
-| Uncommon | Nougat | Blue Raspberry Cupcake | Trader | +53% Coin Bonus, +6.1% Lucky Block find |
-| Uncommon | Neapolitan | Peach Lollipop | Mystic | +30% Swing Rate, +21% Mine Speed |
-| Uncommon | Comfit | Blueberry Gummy | Bruiser | +43% Mine Speed, +21% Dirt Break |
-| Uncommon | Lemonpop | Toffee Bonbon | Striker | +30% Swing Rate, +21% Mine Speed |
-| Uncommon | Toffee Apple | Lavender Cupcake | Trader | +43% Ore Haul, +27% Coin Bonus |
-| Uncommon | Jellyjam | Chocolate Scoop | Tidecaller | +11% Pulverizer, +18% Scrap |
-| Uncommon | Honeydrop | Blackcurrant Lollipop | Mystic | +3.3% Shatter Chance, +10.0% Shatter Damage, +19% Dirt Break |
-| Uncommon | Chewy | Bubblegum Gummy | Bruiser | +43% Mine Speed, +21% Dirt Break |
-| Uncommon | Cream Soda | Pink Lemonade Slime | Tidecaller | +24% Gem Find, +5.3% Pulverizer |
-| Uncommon | Sprinkletop | Blue Raspberry Bunny | Digger | +43% Dirt Break, +21% Ore Haul |
-| Uncommon | Frosting | Toffee Cupcake | Trader | +43% Ore Haul, +27% Coin Bonus |
-| Uncommon | Sweetpea | Blueberry Scoop | Tidecaller | +11% Pulverizer, +18% Scrap |
-| Uncommon | Jellypop | Grape Sheep | Trader | +43% Ore Haul, +27% Coin Bonus |
-| Uncommon | Jujube | Caramel Bonbon | Striker | +43% Mine Speed, +21% Dirt Break |
-| Uncommon | Malted | Strawberry Bonbon | Striker | +43% Mine Speed, +15% Swing Rate |
-| Uncommon | Icing | Strawberry Lollipop | Mystic | +30% Swing Rate, +21% Mine Speed |
-| Uncommon | Mallowpuff | Lime Gummy | Bruiser | +43% Dirt Break, +21% Ore Haul |
-| Uncommon | Butterdrop | Strawberry Scoop | Tidecaller | +36% Scrap, +5.3% Pulverizer |
-| Uncommon | Cinnamon | Chocolate Cupcake | Trader | +43% Ore Haul, +27% Coin Bonus |
-| Uncommon | Grapey | Lavender Bonbon | Striker | +30% Swing Rate, +21% Mine Speed |
-| Uncommon | Cola Bottle | Raspberry Lollipop | Mystic | +30% Swing Rate, +8.9% Pack Luck |
-| Uncommon | Sourpuss | Caramel Sheep | Trader | +53% Coin Bonus, +21% Ore Haul |
-| Rare | Pop Fizz | Licorice Gummy | Bruiser | +52% Dirt Break, +26% Mine Speed |
-| Rare | Sweetie | Mint Bunny | Digger | +52% Dirt Break, +26% Ore Haul |
-| Rare | Peach Ring | Mint Scoop | Tidecaller | +13% Pulverizer, +22% Scrap |
-| Rare | Shinygum | Bubblegum Cupcake | Trader | +66% Coin Bonus, +7.5% Lucky Block find |
-| Rare | Sugarsnap | Lemon Slime | Tidecaller | +44% Scrap, +6.6% Pulverizer |
-| Rare | Gummybun | Spearmint Lollipop | Mystic | +37% Swing Rate, +11% Pack Luck |
-| Rare | Sherbie | Grape Gummy | Bruiser | +60% Mine Speed, +2.0% Shatter Chance |
-| Rare | Lemon Drop | Cherry Scoop | Tidecaller | +44% Scrap, +6.6% Pulverizer |
-| Rare | Rootbeer Float | Raspberry Cupcake | Trader | +66% Coin Bonus, +7.5% Lucky Block find |
-| Rare | Sugarcube | Blackcurrant Bonbon | Striker | +52% Mine Speed, +19% Swing Rate |
-| Rare | Cotton Candy | Blueberry Sheep | Trader | +66% Coin Bonus, +26% Ore Haul |
-| Rare | Cookie Dough | Cotton Candy Lollipop | Mystic | +37% Swing Rate, +11% Pack Luck |
-| Rare | Donut | Mint Bonbon | Striker | +37% Swing Rate, +26% Mine Speed |
-| Rare | Soda Pop | Blackcurrant Gummy | Bruiser | +52% Mine Speed, +19% Swing Rate |
-| Rare | Toffeebun | Grape Cupcake | Trader | +66% Coin Bonus, +26% Ore Haul |
-| Rare | Cacao | Blue Raspberry Scoop | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
-| Rare | Lime Twist | Grape Slime | Tidecaller | +4.1% Shatter Chance, +12% Shatter Damage, +24% Dirt Break |
-| Epic | Yumyum | Glowing Lime Bunny | Digger | +44% Ore Finder, +33% Dirt Break |
-| Epic | Wafer | Glowing Blue Raspberry Lollipop | Mystic | +47% Swing Rate, +33% Mine Speed |
-| Epic | Choco Chunk | Glowing Coconut Bonbon | Striker | +65% Mine Speed, +33% Dirt Break |
-| Epic | Sweetums | Glowing Licorice Cupcake | Trader | +82% Coin Bonus, +9.3% Lucky Block find |
-| Epic | Fruitchew | Glowing Licorice Scoop | Tidecaller | +36% Gem Find, +8.2% Pulverizer |
-| Epic | Candy Heart | Glowing Spearmint Gummy | Bruiser | +65% Dirt Break, +33% Ore Haul |
-| Epic | Candyfloss | Glowing Lemon Bonbon | Striker | +65% Mine Speed, +23% Swing Rate |
-| Epic | Icepop | Glowing Blackcurrant Bunny | Digger | +44% Ore Finder, +33% Dirt Break |
-| Epic | Fluffcake | Glowing Honey Cupcake | Trader | +65% Ore Haul, +41% Coin Bonus |
-| Legendary | Dollop | Glossy Raspberry Scoop | Tidecaller | +6.5% Shatter Chance, +20% Shatter Damage, +38% Dirt Break |
-| Legendary | Ganache | Glazed Blueberry Lollipop | Mystic | +60% Swing Rate, +42% Mine Speed |
-| Legendary | Lemonade | Frosted Lavender Gummy | Bruiser | +84% Mine Speed, +42% Dirt Break |
-| Legendary | Candy Bun | Sprinkled Spearmint Slime | Tidecaller | +60% Swing Rate, +18% Pack Luck |
-| Legendary | Limeade | Glossy Blackcurrant Sheep | Trader | +105% Coin Bonus, +42% Ore Haul |
-| Mythic | Peppermint | Candied Gummy | Sugar Rush | +86% Swing Rate, +17% Pack Luck, +1.3% Shatter Chance |
-| Mythic | Rocky Road | Sugarspun Bonbon | Sugar Rush | +53% Pack Luck, +3.1% Shatter Chance, +12% Swing Rate |
-| Divine | Lollypaw | Sugarlit Cupcake | Sugar Rush | +12% Shatter Chance, +72% Swing Rate, +9.8% Pack Luck |
-| Divine | Fudgling | Sparkling Scoop | Sugar Rush | +116% Swing Rate, +23% Pack Luck, +1.8% Shatter Chance |
-| Divine | Spumoni | Heavenly Lollipop | Sugar Rush | +72% Pack Luck, +4.3% Shatter Chance, +17% Swing Rate |
-| Divine | Whippy | Dreamy Gummy | Sugar Rush | +12% Shatter Chance, +72% Swing Rate, +9.8% Pack Luck |
-| Exotic | Brittle | Sugarstar Bonbon | Sugar Rush | +157% Swing Rate, +31% Pack Luck, +2.5% Shatter Chance |
+| Common | Jellyjig | Blueberry Sheep | Trader | +45% Coin Bonus, +18% Ore Haul |
+| Common | Cherrypop | Licorice Sprinkle Pup | Digger | +36% Dirt Break, +18% Ore Haul |
+| Common | Zingy | Cherry Bunny | Trader | +45% Coin Bonus, +5.1% Lucky Block find |
+| Common | Rock Candy | Fuchsia Pop Cupcake | Striker | +36% Mine Speed, +13% Swing Rate |
+| Common | Dulce | Coconut Bonbon | Mystic | +26% Swing Rate, +7.4% Pack Luck |
+| Common | Sweetpie | Strawberry Lollipop | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
+| Common | Cakepop | Blackcurrant Candy Egg | Bruiser | +36% Mine Speed, +18% Dirt Break |
+| Common | Lemon Fizz | Lavender Scoop | Tidecaller | +30% Scrap, +4.5% Pulverizer |
+| Common | Humbug | Caramel Gummy | Trader | +45% Coin Bonus, +5.1% Lucky Block find |
+| Common | Sugarpie | Honey Sugar Mouse | Striker | +26% Swing Rate, +18% Mine Speed |
+| Common | Glitterpop | Midnight Fudge Gumdrop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
+| Common | Nomnom | Neon Lime Bonbon | Bruiser | +36% Dirt Break, +18% Mine Speed |
+| Common | Sugardrop | Strawberry Gumdrop | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
+| Common | Cocoabean | Grape Lollipop | Striker | +36% Mine Speed, +13% Swing Rate |
+| Common | Fondant | Lime Sprinkle Pup | Digger | +36% Dirt Break, +18% Ore Haul |
+| Common | Jellyroll | Forest Gummy Gummy | Trader | +45% Coin Bonus, +5.1% Lucky Block find |
+| Common | Flossy | Midnight Fudge Scoop | Mystic | +2.8% Shatter Chance, +8.3% Shatter Damage, +16% Dirt Break |
+| Common | Pistachio | Cherry Cupcake | Bruiser | +36% Mine Speed, +18% Dirt Break |
+| Common | Sugar Heart | Sapphire Drop Sugar Mouse | Tidecaller | +8.9% Pulverizer, +15% Scrap |
+| Common | Bubblegum | Fuchsia Pop Candy Egg | Trader | +36% Ore Haul, +22% Coin Bonus |
+| Common | Sugarloaf | Forest Gummy Bunny | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
+| Common | Sweetheart | Smoky Toffee Bonbon | Striker | +26% Swing Rate, +18% Mine Speed |
+| Common | Jelly Ring | Forest Gummy Gumdrop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
+| Common | Snowcone | Forest Gummy Sprinkle Pup | Bruiser | +36% Dirt Break, +18% Ore Haul |
+| Common | Maple Drop | Lime Sheep | Tidecaller | +8.9% Pulverizer, +15% Scrap |
+| Common | Fruity | Lavender Lollipop | Trader | +45% Coin Bonus, +18% Ore Haul |
+| Common | Halva | Smoky Toffee Sugar Mouse | Striker | +36% Mine Speed, +18% Dirt Break |
+| Common | Mintchip | Blue Raspberry Candy Egg | Mystic | +26% Swing Rate, +7.4% Pack Luck |
+| Common | Sugarglow | Ube Gummy | Trader | +36% Ore Haul, +22% Coin Bonus |
+| Common | Candykin | Teal Taffy Scoop | Digger | +36% Ore Haul, +18% Dirt Break |
+| Common | Berrypop | Honey Cupcake | Tidecaller | +30% Scrap, +4.5% Pulverizer |
+| Common | Molasses | Teal Taffy Gumdrop | Bruiser | +36% Mine Speed, +18% Dirt Break |
+| Common | Strawberry | Toffee Sprinkle Pup | Tidecaller | +8.9% Pulverizer, +15% Scrap |
+| Common | Peach Fizz | Raspberry Candy Egg | Trader | +36% Ore Haul, +22% Coin Bonus |
+| Common | Jellybop | Burnt Sugar Lollipop | Mystic | +26% Swing Rate, +7.4% Pack Luck |
+| Common | Syrup | Aqua Fizz Sugar Mouse | Striker | +36% Mine Speed, +13% Swing Rate |
+| Common | Lickety Split | Burnt Sugar Bonbon | Bruiser | +36% Dirt Break, +18% Mine Speed |
+| Common | Orange Fizz | Licorice Gummy | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
+| Common | Razzberry | Fuchsia Pop Scoop | Trader | +45% Coin Bonus, +18% Ore Haul |
+| Common | Gumbubble | Aqua Fizz Cupcake | Digger | +36% Ore Haul, +18% Dirt Break |
+| Common | Cinnamint | Blueberry Sprinkle Pup | Tidecaller | +8.9% Pulverizer, +15% Scrap |
+| Common | Cruller | Toffee Candy Egg | Trader | +45% Coin Bonus, +18% Ore Haul |
+| Common | Starmint | Orange Soda Bunny | Mystic | +26% Swing Rate, +7.4% Pack Luck |
+| Common | Dragee | Pink Lemonade Lollipop | Striker | +36% Mine Speed, +18% Dirt Break |
+| Common | Chewbit | Forest Gummy Sugar Mouse | Bruiser | +36% Dirt Break, +18% Ore Haul |
+| Common | Buttercream | Violet Cream Bonbon | Tidecaller | +8.9% Pulverizer, +15% Scrap |
+| Common | Sourball | Lime Gumdrop | Trader | +36% Ore Haul, +22% Coin Bonus |
+| Common | Whiptop | Lime Gummy | Mystic | +26% Swing Rate, +18% Mine Speed |
+| Common | Sugarbug | Smoky Toffee Cupcake | Trader | +45% Coin Bonus, +18% Ore Haul |
+| Common | Chocochip | Vanilla Scoop | Striker | +36% Mine Speed, +18% Dirt Break |
+| Common | Cherrybun | Neon Lime Sugar Mouse | Bruiser | +36% Dirt Break, +18% Ore Haul |
+| Common | Fizzbit | Sapphire Drop Candy Egg | Tidecaller | +20% Gem Find, +4.5% Pulverizer |
+| Uncommon | Maplesugar | Blackcurrant Bonbon | Tidecaller | +24% Gem Find, +5.3% Pulverizer |
+| Uncommon | Honeycomb | Matcha Lollipop | Trader | +53% Coin Bonus, +6.1% Lucky Block find |
+| Uncommon | Milkshake | Vanilla Gumdrop | Mystic | +3.3% Shatter Chance, +10.0% Shatter Damage, +19% Dirt Break |
+| Uncommon | Fizzpop | Pink Lemonade Sprinkle Pup | Striker | +43% Mine Speed, +15% Swing Rate |
+| Uncommon | Doughnut | Pistachio Gummy | Digger | +28% Ore Finder, +21% Dirt Break |
+| Uncommon | Lemonbun | Watermelon Scoop | Bruiser | +43% Dirt Break, +21% Ore Haul |
+| Uncommon | Candyapple | Sour Apple Cupcake | Tidecaller | +24% Gem Find, +5.3% Pulverizer |
+| Uncommon | Nougat | Burnt Sugar Sugar Mouse | Trader | +53% Coin Bonus, +6.1% Lucky Block find |
+| Uncommon | Neapolitan | Lemon Gumdrop | Mystic | +30% Swing Rate, +21% Mine Speed |
+| Uncommon | Comfit | Teal Taffy Lollipop | Bruiser | +43% Mine Speed, +21% Dirt Break |
+| Uncommon | Lemonpop | Coconut Candy Egg | Striker | +30% Swing Rate, +21% Mine Speed |
+| Uncommon | Toffee Apple | Vanilla Gummy | Trader | +43% Ore Haul, +27% Coin Bonus |
+| Uncommon | Jellyjam | Honey Bonbon | Tidecaller | +11% Pulverizer, +18% Scrap |
+| Uncommon | Honeydrop | Peach Cupcake | Mystic | +3.3% Shatter Chance, +10.0% Shatter Damage, +19% Dirt Break |
+| Uncommon | Chewy | Violet Cream Bunny | Bruiser | +43% Mine Speed, +21% Dirt Break |
+| Uncommon | Cream Soda | Tangerine Sprinkle Pup | Tidecaller | +24% Gem Find, +5.3% Pulverizer |
+| Uncommon | Sprinkletop | Dark Chocolate Scoop | Digger | +43% Dirt Break, +21% Ore Haul |
+| Uncommon | Frosting | Sour Apple Sugar Mouse | Trader | +43% Ore Haul, +27% Coin Bonus |
+| Uncommon | Sweetpea | Midnight Fudge Lollipop | Tidecaller | +11% Pulverizer, +18% Scrap |
+| Uncommon | Jellypop | Cotton Candy Gummy | Trader | +43% Ore Haul, +27% Coin Bonus |
+| Uncommon | Jujube | Lavender Bonbon | Striker | +43% Mine Speed, +21% Dirt Break |
+| Uncommon | Malted | Blue Raspberry Scoop | Striker | +43% Mine Speed, +15% Swing Rate |
+| Uncommon | Icing | Violet Cream Cupcake | Mystic | +30% Swing Rate, +21% Mine Speed |
+| Uncommon | Mallowpuff | Orange Soda Gumdrop | Bruiser | +43% Dirt Break, +21% Ore Haul |
+| Uncommon | Butterdrop | Aqua Fizz Sprinkle Pup | Tidecaller | +36% Scrap, +5.3% Pulverizer |
+| Uncommon | Cinnamon | Lemon Candy Egg | Trader | +43% Ore Haul, +27% Coin Bonus |
+| Uncommon | Grapey | Sky Sherbet Sugar Mouse | Striker | +30% Swing Rate, +21% Mine Speed |
+| Uncommon | Cola Bottle | Strawberry Bonbon | Mystic | +30% Swing Rate, +8.9% Pack Luck |
+| Uncommon | Sourpuss | Mint Lollipop | Trader | +53% Coin Bonus, +21% Ore Haul |
+| Rare | Pop Fizz | Aqua Fizz Gumdrop | Bruiser | +52% Dirt Break, +26% Mine Speed |
+| Rare | Sweetie | Sour Apple Bunny | Digger | +52% Dirt Break, +26% Ore Haul |
+| Rare | Peach Ring | Bubblegum Gummy | Tidecaller | +13% Pulverizer, +22% Scrap |
+| Rare | Shinygum | Orange Soda Candy Egg | Trader | +66% Coin Bonus, +7.5% Lucky Block find |
+| Rare | Sugarsnap | Sugarplum Scoop | Tidecaller | +44% Scrap, +6.6% Pulverizer |
+| Rare | Gummybun | Blue Raspberry Cupcake | Mystic | +37% Swing Rate, +11% Pack Luck |
+| Rare | Sherbie | Cotton Candy Sprinkle Pup | Bruiser | +60% Mine Speed, +2.0% Shatter Chance |
+| Rare | Lemon Drop | Raspberry Sugar Mouse | Tidecaller | +44% Scrap, +6.6% Pulverizer |
+| Rare | Rootbeer Float | Neon Lime Lollipop | Trader | +66% Coin Bonus, +7.5% Lucky Block find |
+| Rare | Sugarcube | Forest Gummy Bonbon | Striker | +52% Mine Speed, +19% Swing Rate |
+| Rare | Cotton Candy | Ube Gumdrop | Trader | +66% Coin Bonus, +26% Ore Haul |
+| Rare | Cookie Dough | Sapphire Drop Gummy | Mystic | +37% Swing Rate, +11% Pack Luck |
+| Rare | Donut | Sky Sherbet Cupcake | Striker | +37% Swing Rate, +26% Mine Speed |
+| Rare | Soda Pop | Raspberry Sprinkle Pup | Bruiser | +52% Mine Speed, +19% Swing Rate |
+| Rare | Toffeebun | Cherry Candy Egg | Trader | +66% Coin Bonus, +26% Ore Haul |
+| Rare | Cacao | Caramel Scoop | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
+| Rare | Lime Twist | Sour Apple Lollipop | Tidecaller | +4.1% Shatter Chance, +12% Shatter Damage, +24% Dirt Break |
+| Epic | Yumyum | Macaron Tot | Digger | +44% Ore Finder, +33% Dirt Break |
+| Epic | Wafer | Sprinkle Donut | Mystic | +47% Swing Rate, +33% Mine Speed |
+| Epic | Choco Chunk | Gumball Bot | Striker | +65% Mine Speed, +33% Dirt Break |
+| Epic | Sweetums | Jellybean Crawler | Trader | +82% Coin Bonus, +9.3% Lucky Block find |
+| Epic | Fruitchew | Toasty Mallow | Tidecaller | +36% Gem Find, +8.2% Pulverizer |
+| Epic | Candy Heart | Peppermint Snake | Bruiser | +65% Dirt Break, +33% Ore Haul |
+| Epic | Candyfloss | Mint Swirl Snail | Striker | +65% Mine Speed, +23% Swing Rate |
+| Epic | Icepop | Chocobar Chomper | Digger | +44% Ore Finder, +33% Dirt Break |
+| Epic | Fluffcake | Ice Pop Penguin | Trader | +65% Ore Haul, +41% Coin Bonus |
+| Epic | Plum Pudding | Candyfloss Cloud | Mystic | +5.1% Shatter Chance, +52% Mine Speed |
+| Epic | Fizzwhiz | Chocochip Turtle | Bruiser | +65% Mine Speed, +33% Dirt Break |
+| Epic | Cherrypie | Swirlroll Pillbug | Digger | +44% Ore Finder, +33% Dirt Break |
+| Epic | Wintergreen | Flan Wobbler | Trader | +82% Coin Bonus, +9.3% Lucky Block find |
+| Epic | Gumgum | Mochi Seal | Tidecaller | +5.1% Shatter Chance, +15% Shatter Damage, +29% Dirt Break |
+| Epic | Creampuff | Sugarquill Hog | Prospector | +36% Rare Ore, +18% Gem Find |
+| Epic | Tangy | Bubblepop Frog | Striker | +65% Mine Speed, +23% Swing Rate |
+| Epic | Plumdrop | Waffle Duckling | Seeker | +30% Chest Luck, +16% Luck |
+| Epic | Glazey | Licorice Squiddle | Mystic | +47% Swing Rate, +14% Pack Luck |
+| Legendary | Dollop | Glazed Sundae Tower | Tidecaller | +6.5% Shatter Chance, +20% Shatter Damage, +38% Dirt Break |
+| Legendary | Ganache | Frosted Shortcake Slice | Mystic | +60% Swing Rate, +42% Mine Speed |
+| Legendary | Lemonade | Sprinkled Candy Cottage | Bruiser | +84% Mine Speed, +42% Dirt Break |
+| Legendary | Candy Bun | Glossy Candy Heartwing | Tidecaller | +60% Swing Rate, +18% Pack Luck |
+| Legendary | Limeade | Glazed Caramel Camel | Trader | +105% Coin Bonus, +42% Ore Haul |
+| Legendary | Toffeepop | Frosted Gumdrop Puffer | Tidecaller | +70% Scrap, +11% Pulverizer |
+| Legendary | Swirlpop | Sprinkled Meringue Swan | Seeker | +42% Luck, +19% Chest Luck |
+| Legendary | Caramel | Glossy Jawbreaker Beetle | Digger | +56% Ore Finder, +42% Dirt Break |
+| Legendary | Jellybug | Glazed Pinata Pony | Striker | +60% Swing Rate, +42% Mine Speed |
+| Legendary | Sugarswirl | Frosted Fondant Rhino | Bruiser | +84% Mine Speed, +42% Dirt Break |
+| Mythic | Peppermint | Swirled Toffee Phoenix | Sugar Rush | +86% Swing Rate, +17% Pack Luck, +1.3% Shatter Chance |
+| Mythic | Rocky Road | Caramelized Ribbon Candy Wyrm | Sugar Rush | +53% Pack Luck, +3.1% Shatter Chance, +12% Swing Rate |
+| Mythic | Honeybun | Candied Sherbet Unicorn | Sugar Rush | +53% Pack Luck, +3.1% Shatter Chance, +12% Swing Rate |
+| Mythic | Lollibell | Sugarspun Cherry Soda Genie | Sugar Rush | +8.9% Shatter Chance, +53% Swing Rate, +7.2% Pack Luck |
+| Divine | Lollypaw | Sugarlit Angel Food Cake | Sugar Rush | +12% Shatter Chance, +72% Swing Rate, +9.8% Pack Luck |
+| Divine | Fudgling | Sparkling Taffy Dragon | Sugar Rush | +116% Swing Rate, +23% Pack Luck, +1.8% Shatter Chance |
+| Divine | Spumoni | Heavenly Bubblegum Whale | Sugar Rush | +72% Pack Luck, +4.3% Shatter Chance, +17% Swing Rate |
+| Divine | Whippy | Dreamy Shaved Ice Yeti | Sugar Rush | +12% Shatter Chance, +72% Swing Rate, +9.8% Pack Luck |
+| Divine | Sweetboo | Sugarlit Truffle Owl | Sugar Rush | +116% Swing Rate, +23% Pack Luck, +1.8% Shatter Chance |
+| Divine | Mintybun | Sparkling Rock Candy Crab | Sugar Rush | +72% Pack Luck, +4.3% Shatter Chance, +17% Swing Rate |
+| Divine | Blue Razz | Heavenly Honeycomb Bee | Sugar Rush | +12% Shatter Chance, +72% Swing Rate, +9.8% Pack Luck |
+| Divine | Fudgepop | Dreamy Sugarplum Pixie | Sugar Rush | +116% Swing Rate, +23% Pack Luck, +1.8% Shatter Chance |
+| Exotic | Brittle | Sugarstar Bonbon Carousel | Sugar Rush | +157% Swing Rate, +31% Pack Luck, +2.5% Shatter Chance |
+| Exotic | Toffeetot | Everlasting Candy Monarch | Sugar Rush | +97% Pack Luck, +5.7% Shatter Chance, +22% Swing Rate |
 
 ## 3. Mosswood (C, ×1.10)
 
@@ -288,123 +330,145 @@ Packs: Fallen Branch · Mossy Stones · Fern Hollow · Hidden Spring · Ancient 
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Mosswick | Peat Toad | Digger | +37% Ore Haul, +19% Dirt Break |
-| Common | Copse | Cedar Hedgehog | Digger | +37% Ore Haul, +19% Dirt Break |
-| Common | Spinney | Chanterelle Stump | Bruiser | +37% Dirt Break, +19% Ore Haul |
-| Common | Mossling | Lichen Acorn | Trader | +37% Ore Haul, +23% Coin Bonus |
-| Common | Fernhollow | Bluebell Snail | Seeker | +17% Chest Luck, +9.4% Luck |
-| Common | Chamomile | Moss Stag | Bruiser | +37% Dirt Break, +19% Mine Speed |
-| Common | Oldwood | Cedar Toadstool | Mystic | +37% Dirt Break, +4.7% Pulverizer |
-| Common | Mushlet | Cedar Owl | Seeker | +17% Chest Luck, +9.4% Luck |
-| Common | Beech | Riverstone Stump | Bruiser | +37% Dirt Break, +19% Ore Haul |
-| Common | Rowanberry | Thistle Hedgehog | Digger | +37% Ore Haul, +19% Dirt Break |
-| Common | Inchworm | Chanterelle Acorn | Trader | +37% Ore Haul, +23% Coin Bonus |
-| Common | Brambly | Mushroom Toadstool | Mystic | +37% Dirt Break, +19% Mine Speed |
-| Common | Acornbit | Acorn Snail | Seeker | +16% Pack Luck, +9.4% Luck |
-| Common | Newtie | Pollen Stump | Bruiser | +37% Dirt Break, +19% Mine Speed |
-| Common | Mosswhisker | Toadstool Stag | Bruiser | +37% Dirt Break, +19% Mine Speed |
-| Common | Mist | Moss Hedgehog | Digger | +37% Dirt Break, +19% Ore Haul |
-| Common | Sedge | Foxglove Toad | Digger | +25% Ore Finder, +19% Dirt Break |
-| Common | Mossball | Riverstone Acorn | Trader | +37% Ore Haul, +23% Coin Bonus |
-| Common | Lichenpaw | Peat Owl | Seeker | +19% Luck, +8.5% Chest Luck |
-| Common | Capling | Fern Toadstool | Mystic | +37% Dirt Break, +4.7% Pulverizer |
-| Common | Dormy | Lichen Snail | Seeker | +16% Pack Luck, +9.4% Luck |
-| Common | Warbler | Juniper Acorn | Trader | +47% Coin Bonus, +5.3% Lucky Block find |
-| Common | Rosemary | Sloe Snail | Seeker | +19% Luck, +8.5% Chest Luck |
-| Common | Fernfoot | Pollen Toadstool | Mystic | +37% Dirt Break, +19% Mine Speed |
-| Common | Inkcap | Juniper Hedgehog | Digger | +37% Dirt Break, +19% Ore Haul |
-| Common | Thistledown | Birch Stump | Bruiser | +37% Dirt Break, +19% Ore Haul |
-| Common | Duckweed | Walnut Acorn | Trader | +47% Coin Bonus, +5.3% Lucky Block find |
-| Common | Woodsong | Thistle Snail | Seeker | +16% Pack Luck, +9.4% Luck |
-| Common | Caterpillar | Lichen Owl | Seeker | +19% Luck, +8.5% Chest Luck |
-| Common | Shroomlet | Bluebell Toadstool | Mystic | +37% Dirt Break, +19% Mine Speed |
-| Common | Fernpaw | Bluebell Stag | Bruiser | +37% Mine Speed, +19% Dirt Break |
-| Common | Prickly | Toadstool Stump | Bruiser | +37% Dirt Break, +19% Ore Haul |
-| Common | Bramblet | Pine Hedgehog | Digger | +25% Ore Finder, +19% Dirt Break |
-| Common | Stickleback | Bark Toad | Digger | +25% Ore Finder, +19% Dirt Break |
-| Common | Roly Poly | Toadstool Acorn | Trader | +47% Coin Bonus, +19% Ore Haul |
-| Common | Mossbud | Juniper Snail | Seeker | +17% Chest Luck, +9.4% Luck |
-| Common | Pinewhisker | Bluebell Stump | Bruiser | +37% Dirt Break, +19% Ore Haul |
-| Common | Treeling | Peat Toadstool | Mystic | +37% Dirt Break, +4.7% Pulverizer |
-| Common | Mossbun | Mushroom Hedgehog | Digger | +37% Ore Haul, +19% Dirt Break |
-| Common | Mossmuff | Pollen Owl | Seeker | +16% Pack Luck, +9.4% Luck |
-| Common | Porcini | Foxglove Acorn | Trader | +47% Coin Bonus, +19% Ore Haul |
-| Common | Bower | Juniper Stump | Bruiser | +37% Dirt Break, +19% Ore Haul |
-| Common | Mosspip | Riverstone Snail | Seeker | +16% Pack Luck, +9.4% Luck |
-| Common | Mossnose | Thistle Toadstool | Mystic | +37% Dirt Break, +19% Mine Speed |
-| Common | Harvestmouse | Juniper Toad | Digger | +37% Dirt Break, +19% Ore Haul |
-| Common | Katydid | Lichen Stag | Bruiser | +37% Mine Speed, +19% Dirt Break |
-| Common | Puddlemoss | Birch Hedgehog | Digger | +25% Ore Finder, +19% Dirt Break |
-| Common | Mushy | Lichen Stump | Bruiser | +37% Dirt Break, +19% Mine Speed |
-| Common | Pollen Puff | Moss Acorn | Trader | +47% Coin Bonus, +19% Ore Haul |
-| Common | Fiddlehead | Riverstone Toadstool | Mystic | +37% Dirt Break, +19% Mine Speed |
-| Uncommon | Fernbun | Pollen Snail | Seeker | +22% Luck, +10% Chest Luck |
-| Uncommon | Leafpip | Pollen Hedgehog | Digger | +30% Ore Finder, +22% Dirt Break |
-| Uncommon | Branch | Walnut Snail | Seeker | +19% Pack Luck, +11% Luck |
-| Uncommon | Woodsy | Birch Acorn | Trader | +56% Coin Bonus, +6.4% Lucky Block find |
-| Uncommon | Woodchip | Bark Toadstool | Mystic | +45% Dirt Break, +5.6% Pulverizer |
-| Uncommon | Hazelpip | Oak Stump | Bruiser | +45% Dirt Break, +22% Mine Speed |
-| Uncommon | Shroomy | Riverstone Hedgehog | Digger | +45% Dirt Break, +22% Ore Haul |
-| Uncommon | Leafkin | Chanterelle Stag | Bruiser | +45% Dirt Break, +22% Ore Haul |
-| Uncommon | Morel | Pine Toad | Digger | +45% Ore Haul, +22% Dirt Break |
-| Uncommon | Bilberry | Bluebell Owl | Seeker | +19% Pack Luck, +11% Luck |
-| Uncommon | Reedy | Thistle Stump | Bruiser | +45% Dirt Break, +22% Ore Haul |
-| Uncommon | Fernleaf | Sloe Acorn | Trader | +56% Coin Bonus, +22% Ore Haul |
-| Uncommon | Chrysalis | Birch Toadstool | Mystic | +45% Dirt Break, +5.6% Pulverizer |
-| Uncommon | Dormouse | Olive Snail | Seeker | +22% Luck, +10% Chest Luck |
-| Uncommon | Conifer | Walnut Hedgehog | Digger | +45% Ore Haul, +22% Dirt Break |
-| Uncommon | Dewleaf | Walnut Stump | Bruiser | +45% Dirt Break, +22% Mine Speed |
-| Uncommon | Toadsy | Olive Toad | Digger | +45% Dirt Break, +22% Ore Haul |
-| Uncommon | Mosscap | Bark Owl | Seeker | +22% Luck, +10% Chest Luck |
-| Uncommon | Stickle | Pollen Acorn | Trader | +45% Ore Haul, +28% Coin Bonus |
-| Uncommon | Shroomkin | Toadstool Toadstool | Mystic | +45% Dirt Break, +5.6% Pulverizer |
-| Uncommon | Tadpole | Sloe Hedgehog | Digger | +45% Ore Haul, +22% Dirt Break |
-| Uncommon | Dewberry | Dewdrop Snail | Seeker | +19% Pack Luck, +11% Luck |
-| Uncommon | Bristle | Walnut Stag | Bruiser | +45% Dirt Break, +22% Mine Speed |
-| Uncommon | Hedgerow | Moss Stump | Bruiser | +45% Mine Speed, +22% Dirt Break |
-| Uncommon | Frondle | Bluebell Hedgehog | Digger | +45% Ore Haul, +22% Dirt Break |
-| Uncommon | Puffball | Pine Acorn | Trader | +56% Coin Bonus, +22% Ore Haul |
-| Uncommon | Acorncap | Chanterelle Toadstool | Mystic | +45% Dirt Break, +5.6% Pulverizer |
-| Uncommon | Brooklet | Pine Snail | Seeker | +20% Chest Luck, +11% Luck |
-| Rare | Mossworth | Pine Stump | Bruiser | +55% Dirt Break, +28% Mine Speed |
-| Rare | Fernkin | Chanterelle Hedgehog | Digger | +37% Ore Finder, +28% Dirt Break |
-| Rare | Wildwood | Juniper Owl | Seeker | +23% Pack Luck, +14% Luck |
-| Rare | Mossdew | Pine Stag | Bruiser | +55% Dirt Break, +28% Mine Speed |
-| Rare | Mossfoot | Acorn Acorn | Trader | +69% Coin Bonus, +28% Ore Haul |
-| Rare | Treecreeper | Chanterelle Snail | Seeker | +25% Chest Luck, +14% Luck |
-| Rare | Pinenut | Pine Toadstool | Mystic | +55% Dirt Break, +28% Mine Speed |
-| Rare | Woodwren | Sloe Toad | Digger | +55% Ore Haul, +28% Dirt Break |
-| Rare | Lichenbug | Sloe Stump | Bruiser | +55% Mine Speed, +28% Dirt Break |
-| Rare | Sporey | Bluebell Acorn | Trader | +69% Coin Bonus, +28% Ore Haul |
-| Rare | Ferny | Sloe Toadstool | Mystic | +55% Dirt Break, +6.9% Pulverizer |
+| Common | Mosswick | Juniper Hedgehog | Digger | +37% Ore Haul, +19% Dirt Break |
+| Common | Copse | Lichen Stump | Digger | +37% Ore Haul, +19% Dirt Break |
+| Common | Spinney | Bluebell Acorn | Bruiser | +37% Dirt Break, +19% Ore Haul |
+| Common | Mossling | Cherry Oakleaf | Trader | +37% Ore Haul, +23% Coin Bonus |
+| Common | Fernhollow | Pine Barklouse | Seeker | +17% Chest Luck, +9.4% Luck |
+| Common | Chamomile | Primrose Bushtail | Bruiser | +37% Dirt Break, +19% Mine Speed |
+| Common | Oldwood | Foxglove Fircone | Mystic | +37% Dirt Break, +4.7% Pulverizer |
+| Common | Mushlet | Damselfly Snail | Seeker | +17% Chest Luck, +9.4% Luck |
+| Common | Beech | Beech Leaf Stag | Bruiser | +37% Dirt Break, +19% Ore Haul |
+| Common | Rowanberry | Snowdrop Toadstool | Digger | +37% Ore Haul, +19% Dirt Break |
+| Common | Inchworm | Raspberry Owl | Trader | +37% Ore Haul, +23% Coin Bonus |
+| Common | Brambly | Cherry Stump | Mystic | +37% Dirt Break, +19% Mine Speed |
+| Common | Acornbit | Olive Fircone | Seeker | +16% Pack Luck, +9.4% Luck |
+| Common | Newtie | Mushroom Oakleaf | Bruiser | +37% Dirt Break, +19% Mine Speed |
+| Common | Mosswhisker | Coral Fungus Hedgehog | Bruiser | +37% Dirt Break, +19% Mine Speed |
+| Common | Mist | Holly Acorn | Digger | +37% Dirt Break, +19% Ore Haul |
+| Common | Sedge | Pollen Toadstool | Digger | +25% Ore Finder, +19% Dirt Break |
+| Common | Mossball | Lichen Snail | Trader | +37% Ore Haul, +23% Coin Bonus |
+| Common | Lichenpaw | Bluebell Bushtail | Seeker | +19% Luck, +8.5% Chest Luck |
+| Common | Capling | Dewdrop Barklouse | Mystic | +37% Dirt Break, +4.7% Pulverizer |
+| Common | Dormy | Snowdrop Acorn | Seeker | +16% Pack Luck, +9.4% Luck |
+| Common | Warbler | Midnight Fircone | Trader | +47% Coin Bonus, +5.3% Lucky Block find |
+| Common | Rosemary | Pine Snail | Seeker | +19% Luck, +8.5% Chest Luck |
+| Common | Fernfoot | Emerald Bushtail | Mystic | +37% Dirt Break, +19% Mine Speed |
+| Common | Inkcap | Kingfisher Toadstool | Digger | +37% Dirt Break, +19% Ore Haul |
+| Common | Thistledown | Damselfly Hedgehog | Bruiser | +37% Dirt Break, +19% Ore Haul |
+| Common | Duckweed | Lilac Stump | Trader | +47% Coin Bonus, +5.3% Lucky Block find |
+| Common | Woodsong | Robin Egg Oakleaf | Seeker | +16% Pack Luck, +9.4% Luck |
+| Common | Caterpillar | Coral Fungus Barklouse | Seeker | +19% Luck, +8.5% Chest Luck |
+| Common | Shroomlet | Emerald Acorn | Mystic | +37% Dirt Break, +19% Mine Speed |
+| Common | Fernpaw | Jay Blue Snail | Bruiser | +37% Mine Speed, +19% Dirt Break |
+| Common | Prickly | Cedar Fircone | Bruiser | +37% Dirt Break, +19% Ore Haul |
+| Common | Bramblet | Thistle Barklouse | Digger | +25% Ore Finder, +19% Dirt Break |
+| Common | Stickleback | Damselfly Stump | Digger | +25% Ore Finder, +19% Dirt Break |
+| Common | Roly Poly | Sloe Toadstool | Trader | +47% Coin Bonus, +19% Ore Haul |
+| Common | Mossbud | Bog Teal Oakleaf | Seeker | +17% Chest Luck, +9.4% Luck |
+| Common | Pinewhisker | Sage Bushtail | Bruiser | +37% Dirt Break, +19% Ore Haul |
+| Common | Treeling | Midnight Hedgehog | Mystic | +37% Dirt Break, +4.7% Pulverizer |
+| Common | Mossbun | Primrose Acorn | Digger | +37% Ore Haul, +19% Dirt Break |
+| Common | Mossmuff | Riverstone Fircone | Seeker | +16% Pack Luck, +9.4% Luck |
+| Common | Porcini | Pine Stump | Trader | +47% Coin Bonus, +19% Ore Haul |
+| Common | Bower | Heather Bushtail | Bruiser | +37% Dirt Break, +19% Ore Haul |
+| Common | Mosspip | Raspberry Snail | Seeker | +16% Pack Luck, +9.4% Luck |
+| Common | Mossnose | Raspberry Toadstool | Mystic | +37% Dirt Break, +19% Mine Speed |
+| Common | Harvestmouse | Holly Barklouse | Digger | +37% Dirt Break, +19% Ore Haul |
+| Common | Katydid | Peat Oakleaf | Bruiser | +37% Mine Speed, +19% Dirt Break |
+| Common | Puddlemoss | Holly Hedgehog | Digger | +25% Ore Finder, +19% Dirt Break |
+| Common | Mushy | Wood Violet Stump | Bruiser | +37% Dirt Break, +19% Mine Speed |
+| Common | Pollen Puff | Chanterelle Fircone | Trader | +47% Coin Bonus, +19% Ore Haul |
+| Common | Fiddlehead | Beech Leaf Acorn | Mystic | +37% Dirt Break, +19% Mine Speed |
+| Uncommon | Fernbun | Saffron Snail | Seeker | +22% Luck, +10% Chest Luck |
+| Uncommon | Leafpip | Walnut Bushtail | Digger | +30% Ore Finder, +22% Dirt Break |
+| Uncommon | Branch | Sage Toadstool | Seeker | +19% Pack Luck, +11% Luck |
+| Uncommon | Woodsy | Heather Barklouse | Trader | +56% Coin Bonus, +6.4% Lucky Block find |
+| Uncommon | Woodchip | Midnight Oakleaf | Mystic | +45% Dirt Break, +5.6% Pulverizer |
+| Uncommon | Hazelpip | Chanterelle Hedgehog | Bruiser | +45% Dirt Break, +22% Mine Speed |
+| Uncommon | Shroomy | Wood Violet Acorn | Digger | +45% Dirt Break, +22% Ore Haul |
+| Uncommon | Leafkin | Acorn Snail | Bruiser | +45% Dirt Break, +22% Ore Haul |
+| Uncommon | Morel | Foxglove Toadstool | Digger | +45% Ore Haul, +22% Dirt Break |
+| Uncommon | Bilberry | Bog Teal Bushtail | Seeker | +19% Pack Luck, +11% Luck |
+| Uncommon | Reedy | Coral Fungus Stump | Bruiser | +45% Dirt Break, +22% Ore Haul |
+| Uncommon | Fernleaf | Chanterelle Barklouse | Trader | +56% Coin Bonus, +22% Ore Haul |
+| Uncommon | Chrysalis | Emerald Oakleaf | Mystic | +45% Dirt Break, +5.6% Pulverizer |
+| Uncommon | Dormouse | Snowdrop Fircone | Seeker | +22% Luck, +10% Chest Luck |
+| Uncommon | Conifer | Moss Hedgehog | Digger | +45% Ore Haul, +22% Dirt Break |
+| Uncommon | Dewleaf | Nightshade Stump | Bruiser | +45% Dirt Break, +22% Mine Speed |
+| Uncommon | Toadsy | Beech Leaf Barklouse | Digger | +45% Dirt Break, +22% Ore Haul |
+| Uncommon | Mosscap | Midnight Acorn | Seeker | +22% Luck, +10% Chest Luck |
+| Uncommon | Stickle | Peat Fircone | Trader | +45% Ore Haul, +28% Coin Bonus |
+| Uncommon | Shroomkin | Cedar Toadstool | Mystic | +45% Dirt Break, +5.6% Pulverizer |
+| Uncommon | Tadpole | Jay Blue Oakleaf | Digger | +45% Ore Haul, +22% Dirt Break |
+| Uncommon | Dewberry | Thistle Hedgehog | Seeker | +19% Pack Luck, +11% Luck |
+| Uncommon | Bristle | Beech Leaf Bushtail | Bruiser | +45% Dirt Break, +22% Mine Speed |
+| Uncommon | Hedgerow | Midnight Snail | Bruiser | +45% Mine Speed, +22% Dirt Break |
+| Uncommon | Frondle | Thistle Oakleaf | Digger | +45% Ore Haul, +22% Dirt Break |
+| Uncommon | Puffball | Snowdrop Stump | Trader | +56% Coin Bonus, +22% Ore Haul |
+| Uncommon | Acorncap | Rowan Bushtail | Mystic | +45% Dirt Break, +5.6% Pulverizer |
+| Uncommon | Brooklet | Mint Hedgehog | Seeker | +20% Chest Luck, +11% Luck |
+| Rare | Mossworth | Sage Acorn | Bruiser | +55% Dirt Break, +28% Mine Speed |
+| Rare | Fernkin | Emerald Fircone | Digger | +37% Ore Finder, +28% Dirt Break |
+| Rare | Wildwood | Primrose Barklouse | Seeker | +23% Pack Luck, +14% Luck |
+| Rare | Mossdew | Heather Snail | Bruiser | +55% Dirt Break, +28% Mine Speed |
+| Rare | Mossfoot | Wood Violet Toadstool | Trader | +69% Coin Bonus, +28% Ore Haul |
+| Rare | Treecreeper | Saffron Oakleaf | Seeker | +25% Chest Luck, +14% Luck |
+| Rare | Pinenut | Rowan Stump | Mystic | +55% Dirt Break, +28% Mine Speed |
+| Rare | Woodwren | Nightshade Barklouse | Digger | +55% Ore Haul, +28% Dirt Break |
+| Rare | Lichenbug | Walnut Acorn | Bruiser | +55% Mine Speed, +28% Dirt Break |
+| Rare | Sporey | Jay Blue Fircone | Trader | +69% Coin Bonus, +28% Ore Haul |
+| Rare | Ferny | Beech Leaf Toadstool | Mystic | +55% Dirt Break, +6.9% Pulverizer |
 | Rare | Mayfly | Toadstool Snail | Seeker | +25% Chest Luck, +14% Luck |
-| Rare | Woodbine | Toadstool Hedgehog | Digger | +55% Dirt Break, +28% Ore Haul |
-| Rare | Fernling | Juniper Stag | Bruiser | +55% Mine Speed, +28% Dirt Break |
-| Rare | Leafwhisk | Oak Hedgehog | Digger | +55% Dirt Break, +28% Ore Haul |
-| Rare | Brackenby | Thistle Acorn | Trader | +69% Coin Bonus, +7.9% Lucky Block find |
-| Rare | Lilypad | Sage Stump | Bruiser | +55% Dirt Break, +28% Ore Haul |
-| Epic | Mosskin | Glowing Foxglove Toadstool | Mystic | +69% Dirt Break, +8.6% Pulverizer |
-| Epic | Branchy | Glowing Cedar Snail | Seeker | +29% Pack Luck, +17% Luck |
-| Epic | Nettlepaw | Glowing Bluebell Toad | Digger | +46% Ore Finder, +34% Dirt Break |
-| Epic | Mosslet | Glowing Pine Owl | Seeker | +34% Luck, +16% Chest Luck |
-| Epic | Shrub | Glowing Cedar Stump | Bruiser | +69% Mine Speed, +34% Dirt Break |
-| Epic | Mosscrumb | Glowing Cedar Acorn | Trader | +69% Ore Haul, +43% Coin Bonus |
-| Epic | Mushkin | Glowing Dewdrop Hedgehog | Digger | +69% Ore Haul, +34% Dirt Break |
-| Epic | Chipmunk | Glowing Bark Snail | Seeker | +29% Pack Luck, +17% Luck |
-| Epic | Bough | Glowing Dewdrop Toadstool | Mystic | +69% Dirt Break, +34% Mine Speed |
-| Legendary | Snailshell | Mossy Bark Stump | Bruiser | +88% Mine Speed, +44% Dirt Break |
-| Legendary | Mossbell | Dappled Sage Acorn | Trader | +88% Ore Haul, +55% Coin Bonus |
-| Legendary | Bulrush | Dewy Foxglove Hedgehog | Digger | +88% Ore Haul, +44% Dirt Break |
-| Legendary | Vole | Gnarled Riverstone Toad | Digger | +59% Ore Finder, +44% Dirt Break |
-| Legendary | Budlet | Mossy Dewdrop Stag | Bruiser | +88% Dirt Break, +44% Mine Speed |
-| Legendary | Bracken | Dappled Fern Snail | Seeker | +37% Pack Luck, +22% Luck |
-| Mythic | Thrush | Lichened Owl | Mosswood | +121% Dirt Break, +11% Pulverizer, +5.2% Lucky Block find |
-| Mythic | Coppice | Hollowed Toadstool | Mosswood | +30% Pulverizer, +12% Lucky Block find, +18% Dirt Break |
-| Mythic | Teasel | Ancient Stump | Mosswood | +34% Lucky Block find, +42% Dirt Break, +4.5% Pulverizer |
-| Divine | Woodpip | Dawnlit Acorn | Mosswood | +164% Dirt Break, +14% Pulverizer, +7.0% Lucky Block find |
-| Exotic | Prickles | Wildheart Hedgehog | Mosswood | +55% Pulverizer, +22% Lucky Block find, +33% Dirt Break |
-| Exotic | Primrose | Oldgrowth Snail | Mosswood | +63% Lucky Block find, +77% Dirt Break, +8.3% Pulverizer |
-| Exotic | Elderwood | Heartwood Toadstool | Mosswood | +220% Dirt Break, +19% Pulverizer, +9.5% Lucky Block find |
+| Rare | Woodbine | Coral Fungus Bushtail | Digger | +55% Dirt Break, +28% Ore Haul |
+| Rare | Fernling | Kingfisher Hedgehog | Bruiser | +55% Mine Speed, +28% Dirt Break |
+| Rare | Leafwhisk | Midnight Bushtail | Digger | +55% Dirt Break, +28% Ore Haul |
+| Rare | Brackenby | Primrose Hedgehog | Trader | +69% Coin Bonus, +7.9% Lucky Block find |
+| Rare | Lilypad | Saffron Stump | Bruiser | +55% Dirt Break, +28% Ore Haul |
+| Epic | Mosskin | Bramble Badger | Mystic | +69% Dirt Break, +8.6% Pulverizer |
+| Epic | Branchy | Thicket Wren | Seeker | +29% Pack Luck, +17% Luck |
+| Epic | Nettlepaw | Hazel Dormouse | Digger | +46% Ore Finder, +34% Dirt Break |
+| Epic | Mosslet | Pine Marten | Seeker | +34% Luck, +16% Chest Luck |
+| Epic | Shrub | Ringtail Panda | Bruiser | +69% Mine Speed, +34% Dirt Break |
+| Epic | Mosscrumb | Fernbird Kiwi | Trader | +69% Ore Haul, +43% Coin Bonus |
+| Epic | Mushkin | Spotted Salamander | Digger | +69% Ore Haul, +34% Dirt Break |
+| Epic | Chipmunk | Brook Trout | Seeker | +29% Pack Luck, +17% Luck |
+| Epic | Bough | Creek Crayfish | Mystic | +69% Dirt Break, +34% Mine Speed |
+| Epic | Barkling | Marimo Ball | Mystic | +69% Dirt Break, +8.6% Pulverizer |
+| Epic | Woodcock | Bracket Fungus | Prospector | +38% Rare Ore, +19% Gem Find |
+| Epic | Fairy Bonnet | Walking Stick | Seeker | +29% Pack Luck, +17% Luck |
+| Epic | Woodruff | Speckled Wood | Mystic | +69% Dirt Break, +8.6% Pulverizer |
+| Epic | Rootle | Moss Millipede | Digger | +46% Ore Finder, +34% Dirt Break |
+| Epic | Blackcap | Twigweave Nest | Trader | +86% Coin Bonus, +9.8% Lucky Block find |
+| Epic | Woodlouse | Striped Tapir | Bruiser | +69% Mine Speed, +34% Dirt Break |
+| Epic | Hazelbun | Logtap Woodpecker | Striker | +69% Mine Speed, +24% Swing Rate |
+| Epic | Treefrog | Hollow Log | Prospector | +38% Gem Find, +19% Rare Ore |
+| Legendary | Snailshell | Dappled Copper Pheasant | Bruiser | +88% Mine Speed, +44% Dirt Break |
+| Legendary | Mossbell | Dewy Mossy Birdhouse | Trader | +88% Ore Haul, +55% Coin Bonus |
+| Legendary | Bulrush | Gnarled Woodland Cabin | Digger | +88% Ore Haul, +44% Dirt Break |
+| Legendary | Vole | Mossy Straw Skep | Digger | +59% Ore Finder, +44% Dirt Break |
+| Legendary | Budlet | Dappled Forest Okapi | Bruiser | +88% Dirt Break, +44% Mine Speed |
+| Legendary | Bracken | Dewy Lichen Beetle | Seeker | +37% Pack Luck, +22% Luck |
+| Legendary | Shroom | Gnarled Tufted Lynx | Striker | +63% Swing Rate, +44% Mine Speed |
+| Legendary | Dewmoss | Mossy Bristle Boar | Bruiser | +88% Dirt Break, +44% Mine Speed |
+| Legendary | Stoat | Dappled Brook Kingfisher | Tidecaller | +49% Gem Find, +11% Pulverizer |
+| Legendary | Nuthatch | Dewy Gumleaf Koala | Trader | +110% Coin Bonus, +44% Ore Haul |
+| Legendary | Turkey Tail | Gnarled Treetop Kangaroo | Digger | +88% Ore Haul, +44% Dirt Break |
+| Legendary | Ferndrop | Mossy Moss Bonsai | Mystic | +88% Dirt Break, +11% Pulverizer |
+| Mythic | Thrush | Fernbound Puffball Ring | Mosswood | +121% Dirt Break, +11% Pulverizer, +5.2% Lucky Block find |
+| Mythic | Coppice | Lichened Firefly Jar | Mosswood | +30% Pulverizer, +12% Lucky Block find, +18% Dirt Break |
+| Mythic | Teasel | Hollowed Mossbeard Gnome | Mosswood | +34% Lucky Block find, +42% Dirt Break, +4.5% Pulverizer |
+| Mythic | Fernwick | Ancient Glade Islet | Mosswood | +30% Pulverizer, +12% Lucky Block find, +18% Dirt Break |
+| Mythic | Hornbeam | Fernbound Jade Chrysalis | Mosswood | +34% Lucky Block find, +42% Dirt Break, +4.5% Pulverizer |
+| Mythic | Forager | Lichened Walnut Galleon | Mosswood | +121% Dirt Break, +11% Pulverizer, +5.2% Lucky Block find |
+| Divine | Woodpip | Evergreen Greenleaf Mask | Mosswood | +164% Dirt Break, +14% Pulverizer, +7.0% Lucky Block find |
+| Divine | Pinecrest | Sunlit Lyrebird | Mosswood | +41% Pulverizer, +16% Lucky Block find, +25% Dirt Break |
+| Exotic | Prickles | Elder Wolpertinger | Mosswood | +55% Pulverizer, +22% Lucky Block find, +33% Dirt Break |
+| Exotic | Primrose | Wildheart Shaggy Sasquatch | Mosswood | +63% Lucky Block find, +77% Dirt Break, +8.3% Pulverizer |
+| Exotic | Elderwood | Oldgrowth Fernscale Dragon | Mosswood | +220% Dirt Break, +19% Pulverizer, +9.5% Lucky Block find |
+| Exotic | Barkbun | Heartwood Barkhide Rhino | Mosswood | +63% Lucky Block find, +77% Dirt Break, +8.3% Pulverizer |
+| Exotic | Bluebird | Elder Springstone Well | Mosswood | +220% Dirt Break, +19% Pulverizer, +9.5% Lucky Block find |
+| Exotic | Fungus | Wildheart Crested Hornbill | Mosswood | +55% Pulverizer, +22% Lucky Block find, +33% Dirt Break |
 
 ## 4. Lost & Found (C, ×1.16)
 
@@ -412,122 +476,145 @@ Packs: Forgotten Trinket · Brass Compass · Buried Cache · Hidden Chamber · C
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Brassbuckle | Mahogany Compass | Seeker | +18% Chest Luck, +9.8% Luck |
-| Common | Wishcoin | Copper Penny Pouch | Trader | +39% Ore Haul, +25% Coin Bonus |
-| Common | Fossicker | Lapis Hound | Striker | +39% Mine Speed, +14% Swing Rate |
-| Common | Rummage | Ivory Bottle | Tidecaller | +33% Scrap, +4.9% Pulverizer |
-| Common | Nook | Lapis Map | Prospector | +22% Rare Ore, +11% Gem Find |
-| Common | Lost Button | Amber Critter | Digger | +39% Ore Haul, +20% Dirt Break |
-| Common | Copper Coin | Bottle Green Bird | Seeker | +16% Pack Luck, +9.8% Luck |
-| Common | Quest | Leather Teapot | Mystic | +18% Chest Luck, +25% Coin Bonus |
-| Common | Scavenger | Sealing Wax Compass | Seeker | +20% Luck, +8.9% Chest Luck |
-| Common | Envelope | Bottle Green Pouch | Trader | +49% Coin Bonus, +5.6% Lucky Block find |
-| Common | Pocket Fluff | Plum Velvet Map | Prospector | +22% Rare Ore, +11% Gem Find |
-| Common | Chartling | Plum Velvet Teapot | Mystic | +18% Chest Luck, +20% Mine Speed |
-| Common | Knapsack | Parchment Bottle | Tidecaller | +9.8% Pulverizer, +16% Scrap |
-| Common | Globie | Charcoal Compass | Seeker | +20% Luck, +8.9% Chest Luck |
-| Common | Hourglass | Bottle Green Hound | Striker | +28% Swing Rate, +20% Mine Speed |
-| Common | Thimble | Silver Map | Prospector | +22% Gem Find, +11% Rare Ore |
-| Common | Cork | Sea Glass Teapot | Mystic | +18% Chest Luck, +25% Coin Bonus |
-| Common | Bearing | Lapis Bird | Seeker | +18% Chest Luck, +9.8% Luck |
-| Common | Bottlecap | Teacup Blue Bottle | Tidecaller | +22% Gem Find, +4.9% Pulverizer |
-| Common | Cache | Plum Velvet Critter | Digger | +26% Ore Finder, +20% Dirt Break |
-| Common | Cog | Silver Pouch | Trader | +39% Ore Haul, +25% Coin Bonus |
-| Common | Lint | Ivory Compass | Seeker | +18% Chest Luck, +9.8% Luck |
-| Common | Hideaway | Lavender Ribbon Bottle | Tidecaller | +9.8% Pulverizer, +16% Scrap |
-| Common | Keychain | Parchment Pouch | Trader | +49% Coin Bonus, +5.6% Lucky Block find |
-| Common | Hairpin | Ivory Map | Prospector | +22% Rare Ore, +11% Gem Find |
-| Common | Hatpin | Rose Gold Teapot | Mystic | +18% Chest Luck, +20% Mine Speed |
-| Common | Peekaboo | Leather Compass | Seeker | +20% Luck, +8.9% Chest Luck |
-| Common | Ledger | Amber Hound | Striker | +28% Swing Rate, +20% Mine Speed |
-| Common | Knickknack | Amber Bird | Seeker | +20% Luck, +8.9% Chest Luck |
-| Common | Fossick | Amber Bottle | Tidecaller | +9.8% Pulverizer, +16% Scrap |
-| Common | Bundle | Parchment Teapot | Mystic | +18% Chest Luck, +20% Mine Speed |
-| Common | Tracker | Plum Velvet Pouch | Trader | +39% Ore Haul, +25% Coin Bonus |
-| Common | Latch | Teacup Blue Map | Prospector | +16% Ore Luck, +11% Gem Find |
-| Common | Questor | Mahogany Critter | Digger | +39% Dirt Break, +20% Ore Haul |
-| Common | Papyrus | Charcoal Teapot | Mystic | +18% Chest Luck, +25% Coin Bonus |
-| Common | Cuckoo | Leather Bottle | Tidecaller | +33% Scrap, +4.9% Pulverizer |
-| Common | Dicey | Rose Gold Pouch | Trader | +49% Coin Bonus, +20% Ore Haul |
-| Common | Barrel | Pewter Map | Prospector | +22% Gem Find, +11% Rare Ore |
-| Common | Crate | Jade Compass | Seeker | +20% Luck, +8.9% Chest Luck |
-| Common | Gold Dust | Lapis Teapot | Mystic | +18% Chest Luck, +25% Coin Bonus |
-| Common | Northy | Leather Bird | Seeker | +20% Luck, +8.9% Chest Luck |
-| Common | Clue | Pewter Bottle | Tidecaller | +33% Scrap, +4.9% Pulverizer |
-| Common | Farthing | Rose Gold Critter | Digger | +39% Dirt Break, +20% Ore Haul |
-| Common | Secret Map | Ink Blue Pouch | Trader | +49% Coin Bonus, +5.6% Lucky Block find |
-| Common | Latitude | Plum Velvet Compass | Seeker | +16% Pack Luck, +9.8% Luck |
-| Common | Treasure Hunt | Sealing Wax Hound | Striker | +28% Swing Rate, +20% Mine Speed |
-| Common | X Marks | Leather Map | Prospector | +22% Gem Find, +11% Rare Ore |
-| Common | Keepsake | Silver Bottle | Tidecaller | +33% Scrap, +4.9% Pulverizer |
-| Uncommon | Mystery | Sealing Wax Pouch | Trader | +59% Coin Bonus, +6.7% Lucky Block find |
-| Uncommon | Parcel | Mustard Teapot | Mystic | +21% Chest Luck, +24% Mine Speed |
-| Uncommon | Umbrella | Brass Compass | Seeker | +21% Chest Luck, +12% Luck |
-| Uncommon | Footprint | Mahogany Map | Prospector | +26% Rare Ore, +13% Gem Find |
-| Uncommon | Cellar | Rose Gold Bottle | Tidecaller | +39% Scrap, +5.9% Pulverizer |
-| Uncommon | Brass Button | Sealing Wax Critter | Digger | +47% Ore Haul, +24% Dirt Break |
-| Uncommon | Spintop | Sea Glass Hound | Striker | +47% Mine Speed, +24% Dirt Break |
-| Uncommon | Brooch | Brass Pouch | Trader | +59% Coin Bonus, +24% Ore Haul |
-| Uncommon | Logbook | Brass Bird | Seeker | +20% Pack Luck, +12% Luck |
-| Uncommon | Treasure Map | Lavender Ribbon Compass | Seeker | +20% Pack Luck, +12% Luck |
-| Uncommon | Notebook | Brass Map | Prospector | +26% Gem Find, +13% Rare Ore |
-| Uncommon | Jacks | Bottle Green Teapot | Mystic | +21% Chest Luck, +29% Coin Bonus |
-| Uncommon | Bobbin | Parchment Compass | Seeker | +20% Pack Luck, +12% Luck |
-| Uncommon | Cranny | Sealing Wax Bottle | Tidecaller | +26% Gem Find, +5.9% Pulverizer |
-| Uncommon | Sleuth | Sealing Wax Map | Prospector | +26% Rare Ore, +13% Gem Find |
-| Uncommon | Signpost | Lavender Ribbon Pouch | Trader | +59% Coin Bonus, +24% Ore Haul |
-| Uncommon | Lostling | Ivory Teapot | Mystic | +21% Chest Luck, +24% Mine Speed |
-| Uncommon | Music Box | Silver Bird | Seeker | +21% Chest Luck, +12% Luck |
-| Uncommon | Dig Spot | Sea Glass Compass | Seeker | +24% Luck, +11% Chest Luck |
-| Uncommon | Mapmaker | Plum Velvet Bottle | Tidecaller | +39% Scrap, +5.9% Pulverizer |
-| Uncommon | Gewgaw | Teacup Blue Critter | Digger | +47% Dirt Break, +24% Ore Haul |
-| Uncommon | Trinketbox | Bottle Green Map | Prospector | +26% Rare Ore, +13% Gem Find |
-| Uncommon | Cameo | Lavender Ribbon Teapot | Mystic | +21% Chest Luck, +24% Mine Speed |
-| Uncommon | Thingamajig | Mahogany Hound | Striker | +47% Mine Speed, +17% Swing Rate |
-| Uncommon | Penny Whistle | Teacup Blue Pouch | Trader | +47% Ore Haul, +29% Coin Bonus |
-| Uncommon | Hidey | Mustard Compass | Seeker | +24% Luck, +11% Chest Luck |
-| Uncommon | Lockbox | Ink Blue Map | Prospector | +26% Rare Ore, +13% Gem Find |
-| Uncommon | Attic | Gold Coin Teapot | Mystic | +21% Chest Luck, +29% Coin Bonus |
-| Rare | Silver Coin | Jade Bottle | Tidecaller | +48% Scrap, +7.2% Pulverizer |
-| Rare | Horseshoe | Sea Glass Pouch | Trader | +72% Coin Bonus, +8.3% Lucky Block find |
-| Rare | Journal | Sealing Wax Bird | Seeker | +24% Pack Luck, +14% Luck |
-| Rare | Waypoint | Pewter Compass | Seeker | +24% Pack Luck, +14% Luck |
-| Rare | Coffer | Mustard Bottle | Tidecaller | +14% Pulverizer, +24% Scrap |
-| Rare | Wonder | Bottle Green Critter | Digger | +58% Dirt Break, +29% Ore Haul |
-| Rare | Spool | Gold Coin Map | Prospector | +32% Gem Find, +16% Rare Ore |
-| Rare | Toy Boat | Ivory Pouch | Trader | +72% Coin Bonus, +29% Ore Haul |
-| Rare | Messenger | Brass Teapot | Mystic | +26% Chest Luck, +36% Coin Bonus |
-| Rare | Monocle | Ocean Chart Hound | Striker | +58% Mine Speed, +29% Dirt Break |
-| Rare | Beeper | Rose Gold Compass | Seeker | +24% Pack Luck, +14% Luck |
-| Rare | Finder | Sea Glass Bottle | Tidecaller | +48% Scrap, +7.2% Pulverizer |
-| Rare | Seekabout | Ocean Chart Pouch | Trader | +72% Coin Bonus, +8.3% Lucky Block find |
-| Rare | Thimblewit | Jade Map | Prospector | +32% Rare Ore, +16% Gem Find |
-| Rare | Brolly | Teacup Blue Teapot | Mystic | +26% Chest Luck, +36% Coin Bonus |
-| Rare | Wanderpaw | Pewter Bird | Seeker | +26% Chest Luck, +14% Luck |
-| Rare | Rustykey | Amber Compass | Seeker | +26% Chest Luck, +14% Luck |
-| Epic | Pouchy | Glowing Ink Blue Critter | Digger | +48% Ore Finder, +36% Dirt Break |
-| Epic | Whatnot | Glowing Mustard Map | Prospector | +40% Gem Find, +20% Rare Ore |
-| Epic | Tin Soldier | Glowing Khaki Teapot | Mystic | +33% Chest Luck, +36% Mine Speed |
-| Epic | Due North | Glowing Ink Blue Bottle | Tidecaller | +40% Gem Find, +9.0% Pulverizer |
-| Epic | Ticktock | Glowing Pewter Hound | Striker | +51% Swing Rate, +36% Mine Speed |
-| Epic | Ducat | Glowing Jade Pouch | Trader | +90% Coin Bonus, +10% Lucky Block find |
-| Epic | Buckle | Glowing Ocean Chart Compass | Seeker | +36% Luck, +16% Chest Luck |
-| Epic | Lucky Dice | Glowing Khaki Map | Prospector | +30% Ore Luck, +20% Gem Find |
-| Epic | Galoshes | Glowing Pewter Teapot | Mystic | +33% Chest Luck, +45% Coin Bonus |
-| Legendary | Wayfinder | Cherished Ocean Chart Bottle | Tidecaller | +23% Pulverizer, +39% Scrap |
-| Legendary | Sparkly | Heirloom Amber Pouch | Trader | +93% Ore Haul, +58% Coin Bonus |
-| Legendary | Keeper | Antique Khaki Pouch | Trader | +116% Coin Bonus, +13% Lucky Block find |
-| Legendary | Crossroads | Vintage Rose Gold Map | Prospector | +52% Rare Ore, +26% Gem Find |
-| Legendary | Stash | Cherished Silver Compass | Seeker | +46% Luck, +21% Chest Luck |
-| Legendary | Quadrant | Heirloom Jade Critter | Digger | +93% Ore Haul, +46% Dirt Break |
-| Mythic | Doodad | Hidden Bird | Lost & Found | +58% Chest Luck, +55% Coin Bonus, +9.5% Luck |
-| Mythic | Wayfarer | Uncharted Teapot | Lost & Found | +158% Coin Bonus, +22% Luck, +8.6% Chest Luck |
-| Mythic | Strongbox | Forgotten Bottle | Lost & Found | +63% Luck, +20% Chest Luck, +24% Coin Bonus |
-| Mythic | Pocketful | Secret Hound | Lost & Found | +58% Chest Luck, +55% Coin Bonus, +9.5% Luck |
-| Divine | Hunch | Gilded Pouch | Lost & Found | +215% Coin Bonus, +30% Luck, +12% Chest Luck |
-| Divine | Goldie | Shining Map | Lost & Found | +86% Luck, +27% Chest Luck, +32% Coin Bonus |
-| Exotic | Chart | Timeless Teapot | Lost & Found | +105% Chest Luck, +101% Coin Bonus, +17% Luck |
-| Exotic | Scrolly | Primeval Compass | Lost & Found | +289% Coin Bonus, +41% Luck, +16% Chest Luck |
+| Common | Brassbuckle | Bubblegum Compass | Seeker | +18% Chest Luck, +9.8% Luck |
+| Common | Wishcoin | Charcoal Pouch | Trader | +39% Ore Haul, +25% Coin Bonus |
+| Common | Fossicker | Turquoise Hound | Striker | +39% Mine Speed, +14% Swing Rate |
+| Common | Rummage | Teacup Blue Marble | Tidecaller | +33% Scrap, +4.9% Pulverizer |
+| Common | Nook | Mustard Bottle | Prospector | +22% Rare Ore, +11% Gem Find |
+| Common | Lost Button | Tangerine Map | Digger | +39% Ore Haul, +20% Dirt Break |
+| Common | Copper Coin | Ocean Chart Beach Conch | Seeker | +16% Pack Luck, +9.8% Luck |
+| Common | Quest | Coral Critter | Mystic | +18% Chest Luck, +25% Coin Bonus |
+| Common | Scavenger | Gold Coin Thread Spool | Seeker | +20% Luck, +8.9% Chest Luck |
+| Common | Envelope | Ivory Sand Pail | Trader | +49% Coin Bonus, +5.6% Lucky Block find |
+| Common | Pocket Fluff | Ink Blue Teapot | Prospector | +22% Rare Ore, +11% Gem Find |
+| Common | Chartling | Bottle Green Bird | Mystic | +18% Chest Luck, +20% Mine Speed |
+| Common | Knapsack | Copper Penny Beach Conch | Tidecaller | +9.8% Pulverizer, +16% Scrap |
+| Common | Globie | Khaki Compass | Seeker | +20% Luck, +8.9% Chest Luck |
+| Common | Hourglass | Turquoise Sand Pail | Striker | +28% Swing Rate, +20% Mine Speed |
+| Common | Thimble | Lapis Thread Spool | Prospector | +22% Gem Find, +11% Rare Ore |
+| Common | Cork | Emerald Map | Mystic | +18% Chest Luck, +25% Coin Bonus |
+| Common | Bearing | Mahogany Teapot | Seeker | +18% Chest Luck, +9.8% Luck |
+| Common | Bottlecap | Midnight Marble | Tidecaller | +22% Gem Find, +4.9% Pulverizer |
+| Common | Cache | Ocean Chart Bottle | Digger | +26% Ore Finder, +20% Dirt Break |
+| Common | Cog | Tangerine Pouch | Trader | +39% Ore Haul, +25% Coin Bonus |
+| Common | Lint | Coral Marble | Seeker | +18% Chest Luck, +9.8% Luck |
+| Common | Hideaway | Ivory Beach Conch | Tidecaller | +9.8% Pulverizer, +16% Scrap |
+| Common | Keychain | Amber Compass | Trader | +49% Coin Bonus, +5.6% Lucky Block find |
+| Common | Hairpin | Cobalt Glass Hound | Prospector | +22% Rare Ore, +11% Gem Find |
+| Common | Hatpin | Grape Soda Bird | Mystic | +18% Chest Luck, +20% Mine Speed |
+| Common | Peekaboo | Mustard Sand Pail | Seeker | +20% Luck, +8.9% Chest Luck |
+| Common | Ledger | Silver Bottle | Striker | +28% Swing Rate, +20% Mine Speed |
+| Common | Knickknack | Bubblegum Critter | Seeker | +20% Luck, +8.9% Chest Luck |
+| Common | Fossick | Jade Pouch | Tidecaller | +9.8% Pulverizer, +16% Scrap |
+| Common | Bundle | Kite Blue Teapot | Mystic | +18% Chest Luck, +20% Mine Speed |
+| Common | Tracker | Mahogany Map | Trader | +39% Ore Haul, +25% Coin Bonus |
+| Common | Latch | Tangerine Thread Spool | Prospector | +16% Ore Luck, +11% Gem Find |
+| Common | Questor | Ruby Teapot | Digger | +39% Dirt Break, +20% Ore Haul |
+| Common | Papyrus | Charcoal Beach Conch | Mystic | +18% Chest Luck, +25% Coin Bonus |
+| Common | Cuckoo | Bubblegum Marble | Tidecaller | +33% Scrap, +4.9% Pulverizer |
+| Common | Dicey | Midnight Bottle | Trader | +49% Coin Bonus, +20% Ore Haul |
+| Common | Barrel | Violet Marble Map | Prospector | +22% Gem Find, +11% Rare Ore |
+| Common | Crate | Silver Pouch | Seeker | +20% Luck, +8.9% Chest Luck |
+| Common | Gold Dust | Lime Peel Compass | Mystic | +18% Chest Luck, +25% Coin Bonus |
+| Common | Northy | Jade Sand Pail | Seeker | +20% Luck, +8.9% Chest Luck |
+| Common | Clue | Lavender Ribbon Thread Spool | Tidecaller | +33% Scrap, +4.9% Pulverizer |
+| Common | Farthing | Grape Soda Beach Conch | Digger | +39% Dirt Break, +20% Ore Haul |
+| Common | Secret Map | Violet Marble Bird | Trader | +49% Coin Bonus, +5.6% Lucky Block find |
+| Common | Latitude | Khaki Bottle | Seeker | +16% Pack Luck, +9.8% Luck |
+| Common | Treasure Hunt | Magenta Ribbon Critter | Striker | +28% Swing Rate, +20% Mine Speed |
+| Common | X Marks | Magenta Ribbon Sand Pail | Prospector | +22% Gem Find, +11% Rare Ore |
+| Common | Keepsake | Copper Penny Pouch | Tidecaller | +33% Scrap, +4.9% Pulverizer |
+| Uncommon | Mystery | Lavender Ribbon Teapot | Trader | +59% Coin Bonus, +6.7% Lucky Block find |
+| Uncommon | Parcel | Lapis Marble | Mystic | +21% Chest Luck, +24% Mine Speed |
+| Uncommon | Umbrella | Magenta Ribbon Hound | Seeker | +21% Chest Luck, +12% Luck |
+| Uncommon | Footprint | Ivory Compass | Prospector | +26% Rare Ore, +13% Gem Find |
+| Uncommon | Cellar | Magenta Ribbon Map | Tidecaller | +39% Scrap, +5.9% Pulverizer |
+| Uncommon | Brass Button | Lime Peel Thread Spool | Digger | +47% Ore Haul, +24% Dirt Break |
+| Uncommon | Spintop | Gold Coin Marble | Striker | +47% Mine Speed, +24% Dirt Break |
+| Uncommon | Brooch | Bubblegum Bottle | Trader | +59% Coin Bonus, +24% Ore Haul |
+| Uncommon | Logbook | Cobalt Glass Pouch | Seeker | +20% Pack Luck, +12% Luck |
+| Uncommon | Treasure Map | Magenta Ribbon Beach Conch | Seeker | +20% Pack Luck, +12% Luck |
+| Uncommon | Notebook | Ocean Chart Compass | Prospector | +26% Gem Find, +13% Rare Ore |
+| Uncommon | Jacks | Copper Penny Sand Pail | Mystic | +21% Chest Luck, +29% Coin Bonus |
+| Uncommon | Bobbin | Cobalt Glass Thread Spool | Seeker | +20% Pack Luck, +12% Luck |
+| Uncommon | Cranny | Gold Coin Map | Tidecaller | +26% Gem Find, +5.9% Pulverizer |
+| Uncommon | Sleuth | Parchment Teapot | Prospector | +26% Rare Ore, +13% Gem Find |
+| Uncommon | Signpost | Charcoal Compass | Trader | +59% Coin Bonus, +24% Ore Haul |
+| Uncommon | Lostling | Mahogany Bottle | Mystic | +21% Chest Luck, +24% Mine Speed |
+| Uncommon | Music Box | Lavender Ribbon Sand Pail | Seeker | +21% Chest Luck, +12% Luck |
+| Uncommon | Dig Spot | Violet Marble Critter | Seeker | +24% Luck, +11% Chest Luck |
+| Uncommon | Mapmaker | Emerald Thread Spool | Tidecaller | +39% Scrap, +5.9% Pulverizer |
+| Uncommon | Gewgaw | Pewter Map | Digger | +47% Dirt Break, +24% Ore Haul |
+| Uncommon | Trinketbox | Grape Soda Pouch | Prospector | +26% Rare Ore, +13% Gem Find |
+| Uncommon | Cameo | Violet Marble Teapot | Mystic | +21% Chest Luck, +24% Mine Speed |
+| Uncommon | Thingamajig | Turquoise Beach Conch | Striker | +47% Mine Speed, +17% Swing Rate |
+| Uncommon | Penny Whistle | Ivory Marble | Trader | +47% Ore Haul, +29% Coin Bonus |
+| Uncommon | Hidey | Forest Map Hound | Seeker | +24% Luck, +11% Chest Luck |
+| Uncommon | Lockbox | Plum Velvet Compass | Prospector | +26% Rare Ore, +13% Gem Find |
+| Uncommon | Attic | Lime Peel Sand Pail | Mystic | +21% Chest Luck, +29% Coin Bonus |
+| Rare | Silver Coin | Turquoise Thread Spool | Tidecaller | +48% Scrap, +7.2% Pulverizer |
+| Rare | Horseshoe | Bottle Green Map | Trader | +72% Coin Bonus, +8.3% Lucky Block find |
+| Rare | Journal | Lime Peel Teapot | Seeker | +24% Pack Luck, +14% Luck |
+| Rare | Waypoint | Pewter Beach Conch | Seeker | +24% Pack Luck, +14% Luck |
+| Rare | Coffer | Violet Marble Bottle | Tidecaller | +14% Pulverizer, +24% Scrap |
+| Rare | Wonder | Bubblegum Pouch | Digger | +58% Dirt Break, +29% Ore Haul |
+| Rare | Spool | Grape Soda Marble | Prospector | +32% Gem Find, +16% Rare Ore |
+| Rare | Toy Boat | Lemon Drop Beach Conch | Trader | +72% Coin Bonus, +29% Ore Haul |
+| Rare | Messenger | Jade Compass | Mystic | +26% Chest Luck, +36% Coin Bonus |
+| Rare | Monocle | Coral Bottle | Striker | +58% Mine Speed, +29% Dirt Break |
+| Rare | Beeper | Bottle Green Critter | Seeker | +24% Pack Luck, +14% Luck |
+| Rare | Finder | Parchment Map | Tidecaller | +48% Scrap, +7.2% Pulverizer |
+| Rare | Seekabout | Lemon Drop Pouch | Trader | +72% Coin Bonus, +8.3% Lucky Block find |
+| Rare | Thimblewit | Magenta Ribbon Thread Spool | Prospector | +32% Rare Ore, +16% Gem Find |
+| Rare | Brolly | Mustard Teapot | Mystic | +26% Chest Luck, +36% Coin Bonus |
+| Rare | Wanderpaw | Mahogany Marble | Seeker | +26% Chest Luck, +14% Luck |
+| Rare | Rustykey | Violet Marble Sand Pail | Seeker | +26% Chest Luck, +14% Luck |
+| Epic | Pouchy | Runaway Sock | Digger | +48% Ore Finder, +36% Dirt Break |
+| Epic | Whatnot | Tape Measure | Prospector | +40% Gem Find, +20% Rare Ore |
+| Epic | Tin Soldier | Thimble Snoozer | Mystic | +33% Chest Luck, +36% Mine Speed |
+| Epic | Due North | Lens Peeper | Tidecaller | +40% Gem Find, +9.0% Pulverizer |
+| Epic | Ticktock | Spyglass Dachshund | Striker | +51% Swing Rate, +36% Mine Speed |
+| Epic | Ducat | Paper Glider | Trader | +90% Coin Bonus, +10% Lucky Block find |
+| Epic | Buckle | Attic Teddy | Seeker | +36% Luck, +16% Chest Luck |
+| Epic | Lucky Dice | Beachcomb Ducky | Prospector | +30% Ore Luck, +20% Gem Find |
+| Epic | Galoshes | Tin Toy Robot | Mystic | +33% Chest Luck, +45% Coin Bonus |
+| Epic | Map Scrap | Puddle Brolly | Tidecaller | +18% Pulverizer, +30% Scrap |
+| Epic | Button Box | Trinket Packrat | Trader | +72% Ore Haul, +45% Coin Bonus |
+| Epic | Compass Rose | Jigsaw Piece | Seeker | +36% Luck, +16% Chest Luck |
+| Epic | Tick | Kitten Mitten | Seeker | +33% Chest Luck, +18% Luck |
+| Epic | Snowglobe | Muddy Welly | Digger | +72% Ore Haul, +36% Dirt Break |
+| Epic | Decoder | Postbag Pigeon | Trader | +90% Coin Bonus, +10% Lucky Block find |
+| Epic | Lost Sock | Sandcastle | Digger | +72% Ore Haul, +36% Dirt Break |
+| Epic | Hiker | Penny Piggy | Trader | +90% Coin Bonus, +36% Ore Haul |
+| Epic | Expedition | Bunny Top Hat | Mystic | +33% Chest Luck, +36% Mine Speed |
+| Legendary | Wayfinder | Heirloom Rotary Phone | Tidecaller | +23% Pulverizer, +39% Scrap |
+| Legendary | Sparkly | Antique Cuckoo Chalet | Trader | +93% Ore Haul, +58% Coin Bonus |
+| Legendary | Keeper | Vintage Gramophone Bud | Trader | +116% Coin Bonus, +13% Lucky Block find |
+| Legendary | Crossroads | Cherished Diving Helmet | Prospector | +52% Rare Ore, +26% Gem Find |
+| Legendary | Stash | Heirloom Steamer Trunk | Seeker | +46% Luck, +21% Chest Luck |
+| Legendary | Quadrant | Antique Bellows Camera | Digger | +93% Ore Haul, +46% Dirt Break |
+| Legendary | Shilling | Vintage Desk Globe | Seeker | +39% Pack Luck, +23% Luck |
+| Legendary | Memento | Cherished Chart Parrot | Trader | +93% Ore Haul, +58% Coin Bonus |
+| Legendary | Harmonica | Heirloom Detector Beagle | Prospector | +52% Gem Find, +26% Rare Ore |
+| Legendary | Lucky Clover | Antique Curio Jackalope | Striker | +93% Mine Speed, +46% Dirt Break |
+| Legendary | Breadcrumb | Vintage Inkwell Quill | Mystic | +42% Chest Luck, +58% Coin Bonus |
+| Legendary | Atlas | Cherished Clacky Typewriter | Bruiser | +93% Mine Speed, +46% Dirt Break |
+| Mythic | Doodad | Secret Snowdome Hamlet | Lost & Found | +58% Chest Luck, +55% Coin Bonus, +9.5% Luck |
+| Mythic | Wayfarer | Hidden Parlour Piano | Lost & Found | +158% Coin Bonus, +22% Luck, +8.6% Chest Luck |
+| Mythic | Strongbox | Uncharted Secret Bookcase | Lost & Found | +63% Luck, +20% Chest Luck, +24% Coin Bonus |
+| Mythic | Pocketful | Forgotten Flying Rug | Lost & Found | +58% Chest Luck, +55% Coin Bonus, +9.5% Luck |
+| Mythic | Torn Map | Secret Explorer Blimp | Lost & Found | +63% Luck, +20% Chest Luck, +24% Coin Bonus |
+| Mythic | Snooper | Hidden Heart Locket | Lost & Found | +58% Chest Luck, +55% Coin Bonus, +9.5% Luck |
+| Mythic | Tock | Uncharted Barnacle Anchor | Lost & Found | +158% Coin Bonus, +22% Luck, +8.6% Chest Luck |
+| Mythic | Thumbtack | Forgotten Riddle Puzzlebox | Lost & Found | +63% Luck, +20% Chest Luck, +24% Coin Bonus |
+| Divine | Hunch | Storied Lost Lighthouse | Lost & Found | +215% Coin Bonus, +30% Luck, +12% Chest Luck |
+| Divine | Goldie | Gilded Wishing Apple | Lost & Found | +86% Luck, +27% Chest Luck, +32% Coin Bonus |
+| Divine | Rummage Sale | Shining Glass Slipper | Lost & Found | +78% Chest Luck, +75% Coin Bonus, +13% Luck |
+| Divine | Bookmark | Fabled Golden Goose | Lost & Found | +215% Coin Bonus, +30% Luck, +12% Chest Luck |
+| Exotic | Chart | Primeval Jade Jaguar | Lost & Found | +105% Chest Luck, +101% Coin Bonus, +17% Luck |
+| Exotic | Scrolly | Long-Lost Oasis Oryx | Lost & Found | +289% Coin Bonus, +41% Luck, +16% Chest Luck |
+| Exotic | Vellum | Ancestral Sunmask Condor | Lost & Found | +116% Luck, +37% Chest Luck, +43% Coin Bonus |
+| Exotic | Windup | Timeless Ruin Capybara | Lost & Found | +105% Chest Luck, +101% Coin Bonus, +17% Luck |
 
 ## 5. Starfront (C, ×1.22)
 
@@ -535,120 +622,143 @@ Packs: Launch Sequence · Outer Rim · Nebula Raiders · Galactic Frontline · S
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Mizar | Meteor Planet | Mystic | +3.2% Blast Chance, +9.6% Blast Damage, +19% Mine Speed |
-| Common | Moon Pebble | Solar Rover | Digger | +41% Ore Haul, +21% Dirt Break |
-| Common | Europa | Plasma Golem | Bruiser | +41% Dirt Break, +21% Mine Speed |
-| Common | Mimas | Nebula Astronaut | Prospector | +17% Ore Luck, +11% Gem Find |
-| Common | Rendezvous | Orbit Sprite | Mystic | +3.2% Blast Chance, +9.6% Blast Damage, +19% Mine Speed |
-| Common | Draco | Beacon Rocket | Striker | +41% Mine Speed, +21% Dirt Break |
-| Common | Full Moon | Void Satellite | Seeker | +19% Chest Luck, +10% Luck |
-| Common | Starport | Titan Planet | Mystic | +23% Rare Ore, +21% Mine Speed |
-| Common | Moonglow | Meteor Rover | Digger | +28% Ore Finder, +21% Dirt Break |
-| Common | Moonrise | Alloy Astronaut | Prospector | +23% Rare Ore, +11% Gem Find |
-| Common | Thruster | Eclipse Satellite | Seeker | +21% Luck, +9.4% Chest Luck |
-| Common | Meteorite | Meteor Rocket | Striker | +41% Mine Speed, +15% Swing Rate |
-| Common | Flyby | Titan Satellite | Seeker | +19% Chest Luck, +10% Luck |
-| Common | Deimos | Mercury Golem | Bruiser | +41% Dirt Break, +21% Ore Haul |
-| Common | Moonglider | Eclipse Rover | Digger | +28% Ore Finder, +21% Dirt Break |
-| Common | Equinox | Meteor Sprite | Mystic | +3.2% Blast Chance, +33% Mine Speed |
-| Common | Flightdeck | Titan Astronaut | Prospector | +17% Ore Luck, +11% Gem Find |
-| Common | Altair | Alloy Planet | Mystic | +23% Rare Ore, +10% Luck |
-| Common | Starseed | Saturn Rocket | Striker | +41% Mine Speed, +21% Dirt Break |
-| Common | Deneb | Mercury Satellite | Seeker | +17% Pack Luck, +10% Luck |
+| Common | Mizar | Kuiper Crater Rock | Mystic | +3.2% Blast Chance, +9.6% Blast Damage, +19% Mine Speed |
+| Common | Moon Pebble | Saturn Planet | Digger | +41% Ore Haul, +21% Dirt Break |
+| Common | Europa | Chlorella Rover | Bruiser | +41% Dirt Break, +21% Mine Speed |
+| Common | Mimas | Sunrise Golem | Prospector | +17% Ore Luck, +11% Gem Find |
+| Common | Rendezvous | Lichen Astronaut | Mystic | +3.2% Blast Chance, +9.6% Blast Damage, +19% Mine Speed |
+| Common | Draco | Mercury Helmet Pup | Striker | +41% Mine Speed, +21% Dirt Break |
+| Common | Full Moon | Ultraviolet Sprite | Seeker | +19% Chest Luck, +10% Luck |
+| Common | Starport | Redshift Nav Buoy | Mystic | +23% Rare Ore, +21% Mine Speed |
+| Common | Moonglow | Titan Astro Owl | Digger | +28% Ore Finder, +21% Dirt Break |
+| Common | Moonrise | Canopy Rocket | Prospector | +23% Rare Ore, +11% Gem Find |
+| Common | Thruster | Starwhite Satellite | Seeker | +21% Luck, +9.4% Chest Luck |
+| Common | Meteorite | Nebula Satellite | Striker | +41% Mine Speed, +15% Swing Rate |
+| Common | Flyby | Pulsar Nav Buoy | Seeker | +19% Chest Luck, +10% Luck |
+| Common | Deimos | Rosette Astro Owl | Bruiser | +41% Dirt Break, +21% Ore Haul |
+| Common | Moonglider | Stardust Helmet Pup | Digger | +28% Ore Finder, +21% Dirt Break |
+| Common | Equinox | Lunar Rover | Mystic | +3.2% Blast Chance, +33% Mine Speed |
+| Common | Flightdeck | Umbral Astronaut | Prospector | +17% Ore Luck, +11% Gem Find |
+| Common | Altair | Bedrock Planet | Mystic | +23% Rare Ore, +10% Luck |
+| Common | Starseed | Comet Crater Rock | Striker | +41% Mine Speed, +21% Dirt Break |
+| Common | Deneb | Void Rocket | Seeker | +17% Pack Luck, +10% Luck |
 | Common | Moonkit | Lunar Rocket | Striker | +41% Mine Speed, +15% Swing Rate |
-| Common | Rigel | Titan Rover | Digger | +28% Ore Finder, +21% Dirt Break |
-| Common | Sensor | Plasma Planet | Mystic | +3.2% Blast Chance, +9.6% Blast Damage, +19% Mine Speed |
-| Common | Proton | Crater Astronaut | Prospector | +17% Ore Luck, +11% Gem Find |
-| Common | Airlock | Aurora Rocket | Striker | +41% Mine Speed, +21% Dirt Break |
-| Common | Ion | Jupiter Rover | Digger | +28% Ore Finder, +21% Dirt Break |
-| Common | Carina | Saturn Planet | Mystic | +23% Rare Ore, +10% Luck |
-| Common | Orbitpup | Beacon Satellite | Seeker | +21% Luck, +9.4% Chest Luck |
-| Common | Hyperion | Nebula Sprite | Mystic | +23% Rare Ore, +10% Luck |
-| Common | Aldebaran | Orbit Golem | Bruiser | +41% Dirt Break, +21% Ore Haul |
-| Common | Launchling | Comet Astronaut | Prospector | +17% Ore Luck, +11% Gem Find |
-| Common | Miranda | Ion Astronaut | Prospector | +23% Gem Find, +11% Rare Ore |
-| Common | Cadet | Mercury Planet | Mystic | +23% Rare Ore, +10% Luck |
-| Common | Nebulette | Aurora Satellite | Seeker | +21% Luck, +9.4% Chest Luck |
-| Common | Orion | Orbit Rover | Digger | +41% Dirt Break, +21% Ore Haul |
-| Common | Visor | Solar Rocket | Striker | +41% Mine Speed, +15% Swing Rate |
-| Common | Skyrocket | Plasma Astronaut | Prospector | +17% Ore Luck, +11% Gem Find |
-| Common | Charon | Cosmic Planet | Mystic | +23% Rare Ore, +21% Mine Speed |
-| Common | Enceladus | Nebula Rocket | Striker | +30% Swing Rate, +21% Mine Speed |
-| Common | Skywatch | Jupiter Satellite | Seeker | +21% Luck, +9.4% Chest Luck |
-| Common | Comet Tail | Aurora Sprite | Mystic | +3.2% Blast Chance, +33% Mine Speed |
-| Common | Gravity | Ignition Golem | Bruiser | +41% Dirt Break, +21% Mine Speed |
-| Common | Biodome | Plasma Rover | Digger | +28% Ore Finder, +21% Dirt Break |
-| Common | Ceres | Cosmic Satellite | Seeker | +19% Chest Luck, +10% Luck |
-| Common | Touchdown | Ignition Astronaut | Prospector | +17% Ore Luck, +11% Gem Find |
-| Common | Hangar | Nebula Planet | Mystic | +23% Rare Ore, +10% Luck |
-| Common | Lyra | Ion Rocket | Striker | +30% Swing Rate, +21% Mine Speed |
-| Common | Starbit | Crater Rover | Digger | +41% Ore Haul, +21% Dirt Break |
-| Uncommon | Satcom | Ignition Satellite | Seeker | +21% Pack Luck, +12% Luck |
-| Uncommon | Spacesuit | Lunar Astronaut | Prospector | +21% Ore Luck, +14% Gem Find |
-| Uncommon | Moonbit | Alloy Sprite | Mystic | +3.8% Blast Chance, +12% Blast Damage, +22% Mine Speed |
-| Uncommon | Starla | Mercury Rocket | Striker | +35% Swing Rate, +25% Mine Speed |
-| Uncommon | Cosmocub | Ion Golem | Bruiser | +49% Mine Speed, +25% Dirt Break |
-| Uncommon | Slingshot | Orbit Planet | Mystic | +27% Rare Ore, +12% Luck |
-| Uncommon | Servo | Comet Rover | Digger | +49% Dirt Break, +25% Ore Haul |
-| Uncommon | Eris | Solar Astronaut | Prospector | +21% Ore Luck, +14% Gem Find |
-| Uncommon | Castor | Stardust Rocket | Striker | +49% Mine Speed, +18% Swing Rate |
-| Uncommon | Zero-G | Pulsar Satellite | Seeker | +22% Chest Luck, +12% Luck |
-| Uncommon | Ganymede | Stardust Planet | Mystic | +27% Rare Ore, +12% Luck |
-| Uncommon | Scanner | Neptune Rover | Digger | +33% Ore Finder, +25% Dirt Break |
-| Uncommon | Starmap | Venus Rover | Digger | +49% Dirt Break, +25% Ore Haul |
-| Uncommon | Apogee | Cosmic Sprite | Mystic | +27% Rare Ore, +25% Mine Speed |
-| Uncommon | Crater Cub | Aurora Golem | Bruiser | +49% Dirt Break, +25% Ore Haul |
-| Uncommon | Moonrock | Orbit Astronaut | Prospector | +27% Gem Find, +14% Rare Ore |
-| Uncommon | Downlink | Aurora Planet | Mystic | +27% Rare Ore, +12% Luck |
-| Uncommon | Penumbra | Nebula Satellite | Seeker | +25% Luck, +11% Chest Luck |
-| Uncommon | Lightspeed | Ignition Rocket | Striker | +49% Mine Speed, +25% Dirt Break |
-| Uncommon | Moonhop | Alloy Satellite | Seeker | +25% Luck, +11% Chest Luck |
-| Uncommon | Regolith | Void Rocket | Striker | +49% Mine Speed, +25% Dirt Break |
-| Uncommon | Starchip | Aurora Astronaut | Prospector | +27% Gem Find, +14% Rare Ore |
-| Uncommon | Gantry | Mercury Rover | Digger | +33% Ore Finder, +25% Dirt Break |
-| Uncommon | Gyro | Solar Planet | Mystic | +27% Rare Ore, +12% Luck |
-| Uncommon | Orbiter | Plasma Sprite | Mystic | +27% Rare Ore, +12% Luck |
-| Uncommon | Arcturus | Venus Golem | Bruiser | +49% Mine Speed, +25% Dirt Break |
-| Uncommon | Radar | Stardust Satellite | Seeker | +25% Luck, +11% Chest Luck |
-| Rare | Whoosh | Neptune Rocket | Striker | +43% Swing Rate, +30% Mine Speed |
-| Rare | Starwatch | Saturn Rover | Digger | +61% Dirt Break, +30% Ore Haul |
-| Rare | Relay | Jupiter Astronaut | Prospector | +25% Ore Luck, +17% Gem Find |
-| Rare | Jetpack | Void Planet | Mystic | +34% Rare Ore, +15% Luck |
-| Rare | Starcub | Ion Satellite | Seeker | +28% Chest Luck, +15% Luck |
-| Rare | Spaceling | Mars Rocket | Striker | +61% Mine Speed, +30% Dirt Break |
-| Rare | Habitat | Cosmic Astronaut | Prospector | +25% Ore Luck, +17% Gem Find |
-| Rare | Rhea | Ion Rover | Digger | +61% Dirt Break, +30% Ore Haul |
-| Rare | Telemetry | Pulsar Planet | Mystic | +34% Rare Ore, +15% Luck |
-| Rare | Probe | Titan Rocket | Striker | +61% Mine Speed, +22% Swing Rate |
-| Rare | Blastoff | Plasma Satellite | Seeker | +25% Pack Luck, +15% Luck |
-| Rare | Andromeda | Jupiter Sprite | Mystic | +34% Rare Ore, +15% Luck |
-| Rare | Outpost | Neptune Golem | Bruiser | +61% Dirt Break, +30% Mine Speed |
-| Rare | Starlens | Meteor Astronaut | Prospector | +34% Gem Find, +17% Rare Ore |
-| Rare | Splashdown | Comet Planet | Mystic | +4.7% Blast Chance, +49% Mine Speed |
-| Rare | Beepo | Alloy Rover | Digger | +40% Ore Finder, +30% Dirt Break |
-| Epic | Moonpup | Glowing Crater Rocket | Striker | +76% Mine Speed, +27% Swing Rate |
-| Epic | Vela | Glowing Orbit Satellite | Seeker | +34% Chest Luck, +19% Luck |
-| Epic | Tether | Glowing Beacon Rover | Digger | +76% Ore Haul, +38% Dirt Break |
-| Epic | Gas Giant | Glowing Neptune Astronaut | Prospector | +42% Rare Ore, +21% Gem Find |
-| Epic | Spica | Glowing Crater Planet | Mystic | +42% Rare Ore, +19% Luck |
-| Epic | Jupiter | Glowing Alloy Rocket | Striker | +76% Mine Speed, +38% Dirt Break |
-| Epic | Mira | Glowing Comet Satellite | Seeker | +32% Pack Luck, +19% Luck |
-| Epic | Solar Sail | Glowing Venus Sprite | Mystic | +5.9% Blast Chance, +18% Blast Damage, +34% Mine Speed |
-| Epic | Starfarer | Glowing Beacon Golem | Bruiser | +76% Dirt Break, +38% Mine Speed |
-| Legendary | Weightless | Orbital Pulsar Astronaut | Prospector | +41% Ore Luck, +27% Gem Find |
-| Legendary | Booster | Stellar Aurora Rover | Digger | +97% Ore Haul, +49% Dirt Break |
-| Legendary | Hover | Pioneer Ignition Planet | Mystic | +7.6% Blast Chance, +23% Blast Damage, +44% Mine Speed |
-| Legendary | Sputter | Flagship Venus Astronaut | Prospector | +54% Rare Ore, +27% Gem Find |
-| Legendary | Gimbal | Orbital Mars Satellite | Seeker | +41% Pack Luck, +24% Luck |
-| Legendary | Little Dipper | Stellar Pulsar Rover | Digger | +65% Ore Finder, +49% Dirt Break |
-| Mythic | Mercury | Starborn Rocket | Starfront | +77% Rare Ore, +23% Luck, +1.6% Blast Chance |
-| Mythic | Capella | Galactic Planet | Starfront | +73% Luck, +3.6% Blast Chance, +11% Rare Ore |
-| Divine | Phobos | Celestial Planet | Starfront | +14% Blast Chance, +65% Rare Ore, +14% Luck |
-| Exotic | Moonstep | Spectral Astronaut | Starfront | +141% Rare Ore, +43% Luck, +2.8% Blast Chance |
-| Exotic | Space Bean | Starfire Golem | Starfront | +134% Luck, +6.6% Blast Chance, +20% Rare Ore |
-| Exotic | Tethys | Prismatic Satellite | Starfront | +19% Blast Chance, +88% Rare Ore, +18% Luck |
-| Exotic | Celeste | Quasar Rover | Starfront | +141% Rare Ore, +43% Luck, +2.8% Blast Chance |
-| Exotic | Estrella | Spectral Sprite | Starfront | +134% Luck, +6.6% Blast Chance, +20% Rare Ore |
+| Common | Rigel | Skylab Nav Buoy | Digger | +28% Ore Finder, +21% Dirt Break |
+| Common | Sensor | Solar Rover | Mystic | +3.2% Blast Chance, +9.6% Blast Damage, +19% Mine Speed |
+| Common | Proton | Hull Planet | Prospector | +17% Ore Luck, +11% Gem Find |
+| Common | Airlock | Canopy Astro Owl | Striker | +41% Mine Speed, +21% Dirt Break |
+| Common | Ion | Comet Satellite | Digger | +28% Ore Finder, +21% Dirt Break |
+| Common | Carina | Nova Sprite | Mystic | +23% Rare Ore, +10% Luck |
+| Common | Orbitpup | Hotfire Helmet Pup | Seeker | +21% Luck, +9.4% Chest Luck |
+| Common | Hyperion | Hotfire Golem | Mystic | +23% Rare Ore, +10% Luck |
+| Common | Aldebaran | Bedrock Astronaut | Bruiser | +41% Dirt Break, +21% Ore Haul |
+| Common | Launchling | Pulsar Crater Rock | Prospector | +17% Ore Luck, +11% Gem Find |
+| Common | Miranda | Callisto Astro Owl | Prospector | +23% Gem Find, +11% Rare Ore |
+| Common | Cadet | Pulsar Helmet Pup | Mystic | +23% Rare Ore, +10% Luck |
+| Common | Nebulette | Aurora Astronaut | Seeker | +21% Luck, +9.4% Chest Luck |
+| Common | Orion | Rosette Crater Rock | Digger | +41% Dirt Break, +21% Ore Haul |
+| Common | Visor | Orbit Planet | Striker | +41% Mine Speed, +15% Swing Rate |
+| Common | Skyrocket | Titan Satellite | Prospector | +17% Ore Luck, +11% Gem Find |
+| Common | Charon | Saturn Nav Buoy | Mystic | +23% Rare Ore, +21% Mine Speed |
+| Common | Enceladus | Sunbeam Rocket | Striker | +30% Swing Rate, +21% Mine Speed |
+| Common | Skywatch | Ultraviolet Rover | Seeker | +21% Luck, +9.4% Chest Luck |
+| Common | Comet Tail | Aurora Satellite | Mystic | +3.2% Blast Chance, +33% Mine Speed |
+| Common | Gravity | Skylab Astronaut | Bruiser | +41% Dirt Break, +21% Mine Speed |
+| Common | Biodome | Titan Crater Rock | Digger | +28% Ore Finder, +21% Dirt Break |
+| Common | Ceres | Ultraviolet Planet | Seeker | +19% Chest Luck, +10% Luck |
+| Common | Touchdown | Mars Rocket | Prospector | +17% Ore Luck, +11% Gem Find |
+| Common | Hangar | Halley Astro Owl | Mystic | +23% Rare Ore, +10% Luck |
+| Common | Lyra | Cosmic Helmet Pup | Striker | +30% Swing Rate, +21% Mine Speed |
+| Common | Starbit | Umbral Nav Buoy | Digger | +41% Ore Haul, +21% Dirt Break |
+| Uncommon | Satcom | Ultraviolet Golem | Seeker | +21% Pack Luck, +12% Luck |
+| Uncommon | Spacesuit | Lichen Rover | Prospector | +21% Ore Luck, +14% Gem Find |
+| Uncommon | Moonbit | Redshift Crater Rock | Mystic | +3.8% Blast Chance, +12% Blast Damage, +22% Mine Speed |
+| Uncommon | Starla | Hotfire Astronaut | Striker | +35% Swing Rate, +25% Mine Speed |
+| Uncommon | Cosmocub | Plasma Astro Owl | Bruiser | +49% Mine Speed, +25% Dirt Break |
+| Uncommon | Slingshot | Neptune Rocket | Mystic | +27% Rare Ore, +12% Luck |
+| Uncommon | Servo | Sunrise Satellite | Digger | +49% Dirt Break, +25% Ore Haul |
+| Uncommon | Eris | Neptune Nav Buoy | Prospector | +21% Ore Luck, +14% Gem Find |
+| Uncommon | Castor | Meteor Helmet Pup | Striker | +49% Mine Speed, +18% Swing Rate |
+| Uncommon | Zero-G | Sunbeam Planet | Seeker | +22% Chest Luck, +12% Luck |
+| Uncommon | Ganymede | Ignition Rover | Mystic | +27% Rare Ore, +12% Luck |
+| Uncommon | Scanner | Plasma Astronaut | Digger | +33% Ore Finder, +25% Dirt Break |
+| Uncommon | Starmap | Pulsar Rover | Digger | +49% Dirt Break, +25% Ore Haul |
+| Uncommon | Apogee | Neptune Astro Owl | Mystic | +27% Rare Ore, +25% Mine Speed |
+| Uncommon | Crater Cub | Ultraviolet Helmet Pup | Bruiser | +49% Dirt Break, +25% Ore Haul |
+| Uncommon | Moonrock | Hotfire Crater Rock | Prospector | +27% Gem Find, +14% Rare Ore |
+| Uncommon | Downlink | Halley Nav Buoy | Mystic | +27% Rare Ore, +12% Luck |
+| Uncommon | Penumbra | Eclipse Satellite | Seeker | +25% Luck, +11% Chest Luck |
+| Uncommon | Lightspeed | Europa Planet | Striker | +49% Mine Speed, +25% Dirt Break |
+| Uncommon | Moonhop | Comet Rocket | Seeker | +25% Luck, +11% Chest Luck |
+| Uncommon | Regolith | Crater Rocket | Striker | +49% Mine Speed, +25% Dirt Break |
+| Uncommon | Starchip | Stardust Satellite | Prospector | +27% Gem Find, +14% Rare Ore |
+| Uncommon | Gantry | Eclipse Astro Owl | Digger | +33% Ore Finder, +25% Dirt Break |
+| Uncommon | Gyro | Hotfire Nav Buoy | Mystic | +27% Rare Ore, +12% Luck |
+| Uncommon | Orbiter | Ultraviolet Crater Rock | Mystic | +27% Rare Ore, +12% Luck |
+| Uncommon | Arcturus | Callisto Rover | Bruiser | +49% Mine Speed, +25% Dirt Break |
+| Uncommon | Radar | Graphite Helmet Pup | Seeker | +25% Luck, +11% Chest Luck |
+| Rare | Whoosh | Starwhite Astronaut | Striker | +43% Swing Rate, +30% Mine Speed |
+| Rare | Starwatch | Titan Planet | Digger | +61% Dirt Break, +30% Ore Haul |
+| Rare | Relay | Hotfire Satellite | Prospector | +25% Ore Luck, +17% Gem Find |
+| Rare | Jetpack | Hotfire Astro Owl | Mystic | +34% Rare Ore, +15% Luck |
+| Rare | Starcub | Lichen Nav Buoy | Seeker | +28% Chest Luck, +15% Luck |
+| Rare | Spaceling | Stardust Rocket | Striker | +61% Mine Speed, +30% Dirt Break |
+| Rare | Habitat | Sunrise Helmet Pup | Prospector | +25% Ore Luck, +17% Gem Find |
+| Rare | Rhea | Ultraviolet Astronaut | Digger | +61% Dirt Break, +30% Ore Haul |
+| Rare | Telemetry | Aurora Crater Rock | Mystic | +34% Rare Ore, +15% Luck |
+| Rare | Probe | Nova Rover | Striker | +61% Mine Speed, +22% Swing Rate |
+| Rare | Blastoff | Nova Planet | Seeker | +25% Pack Luck, +15% Luck |
+| Rare | Andromeda | Ultraviolet Astro Owl | Mystic | +34% Rare Ore, +15% Luck |
+| Rare | Outpost | Jupiter Rocket | Bruiser | +61% Dirt Break, +30% Mine Speed |
+| Rare | Starlens | Pulsar Satellite | Prospector | +34% Gem Find, +17% Rare Ore |
+| Rare | Splashdown | Nova Helmet Pup | Mystic | +4.7% Blast Chance, +49% Mine Speed |
+| Rare | Beepo | Rosette Nav Buoy | Digger | +40% Ore Finder, +30% Dirt Break |
+| Epic | Moonpup | Pocket Cubesat | Striker | +76% Mine Speed, +27% Swing Rate |
+| Epic | Vela | Rotor Scout | Seeker | +34% Chest Luck, +19% Luck |
+| Epic | Tether | Splashdown Pod | Digger | +76% Ore Haul, +38% Dirt Break |
+| Epic | Gas Giant | Listening Dish | Prospector | +42% Rare Ore, +21% Gem Find |
+| Epic | Spica | Lunar Hare | Mystic | +42% Rare Ore, +19% Luck |
+| Epic | Jupiter | Star Waterbear | Striker | +76% Mine Speed, +38% Dirt Break |
+| Epic | Mira | Solar Moth | Seeker | +32% Pack Luck, +19% Luck |
+| Epic | Solar Sail | Crater Pogo | Mystic | +5.9% Blast Chance, +18% Blast Damage, +34% Mine Speed |
+| Epic | Starfarer | Core Driller | Bruiser | +76% Dirt Break, +38% Mine Speed |
+| Epic | Commander | Mission Console | Trader | +95% Coin Bonus, +38% Ore Haul |
+| Epic | Navigator | Cargo Tug | Trader | +95% Coin Bonus, +38% Ore Haul |
+| Epic | Dock Pup | Sleepy Crescent | Tidecaller | +5.9% Blast Chance, +18% Blast Damage, +34% Mine Speed |
+| Epic | Umbra | Lunar Strider | Bruiser | +76% Dirt Break, +38% Ore Haul |
+| Epic | Starsailor | Crater Hound | Seeker | +34% Chest Luck, +19% Luck |
+| Epic | Star Sprout | Sample Crab | Prospector | +42% Gem Find, +21% Rare Ore |
+| Epic | Spacey | Sprout Pod | Prospector | +42% Gem Find, +21% Rare Ore |
+| Epic | Heat Shield | Jetpack Pal | Striker | +76% Mine Speed, +38% Dirt Break |
+| Epic | Circuit | Rivet Bot | Digger | +76% Ore Haul, +38% Dirt Break |
+| Legendary | Weightless | Stellar Foil Lander | Prospector | +41% Ore Luck, +27% Gem Find |
+| Legendary | Booster | Pioneer Orbit Telescope | Digger | +97% Ore Haul, +49% Dirt Break |
+| Legendary | Hover | Flagship Delta Shuttle | Mystic | +7.6% Blast Chance, +23% Blast Damage, +44% Mine Speed |
+| Legendary | Sputter | Orbital Grapple Arm | Prospector | +54% Rare Ore, +27% Gem Find |
+| Legendary | Gimbal | Stellar Dock Module | Seeker | +41% Pack Luck, +24% Luck |
+| Legendary | Little Dipper | Pioneer Golden Record | Digger | +65% Ore Finder, +49% Dirt Break |
+| Legendary | Star Scout | Flagship Sky Crane | Digger | +97% Ore Haul, +49% Dirt Break |
+| Legendary | Rocketpup | Orbital Crawler Platform | Bruiser | +97% Dirt Break, +49% Ore Haul |
+| Legendary | Planetoid | Stellar Photon Sail | Tidecaller | +81% Scrap, +12% Pulverizer |
+| Legendary | Star Nursery | Pioneer Glass Biodome | Prospector | +41% Ore Luck, +27% Gem Find |
+| Legendary | Ion Trail | Flagship Relay Tower | Seeker | +49% Luck, +22% Chest Luck |
+| Legendary | Cassiopeia | Orbital Geyser Moonlet | Tidecaller | +54% Gem Find, +12% Pulverizer |
+| Mythic | Mercury | Deep-Space Wheel Station | Starfront | +77% Rare Ore, +23% Luck, +1.6% Blast Chance |
+| Mythic | Capella | Starborn Planet Orrery | Starfront | +73% Luck, +3.6% Blast Chance, +11% Rare Ore |
+| Mythic | Star Biscuit | Galactic Magma World | Starfront | +10% Blast Chance, +48% Rare Ore, +10.0% Luck |
+| Mythic | Graviton | Interstellar Ion Clipper | Starfront | +77% Rare Ore, +23% Luck, +1.6% Blast Chance |
+| Divine | Phobos | Luminous Little Sun | Starfront | +14% Blast Chance, +65% Rare Ore, +14% Luck |
+| Divine | Lander | Haloed Dome Observatory | Starfront | +100% Luck, +4.9% Blast Chance, +15% Rare Ore |
+| Exotic | Moonstep | Prismatic Twin Planets | Starfront | +141% Rare Ore, +43% Luck, +2.8% Blast Chance |
+| Exotic | Space Bean | Quasar Nebula Puff | Starfront | +134% Luck, +6.6% Blast Chance, +20% Rare Ore |
+| Exotic | Tethys | Spectral Cloud Aerostat | Starfront | +19% Blast Chance, +88% Rare Ore, +18% Luck |
+| Exotic | Celeste | Starfire Star Forge | Starfront | +141% Rare Ore, +43% Luck, +2.8% Blast Chance |
+| Exotic | Estrella | Prismatic Asteroid Rig | Starfront | +134% Luck, +6.6% Blast Chance, +20% Rare Ore |
+| Exotic | Plasma Puff | Quasar Europa Diver | Starfront | +19% Blast Chance, +88% Rare Ore, +18% Luck |
+| Exotic | Asteroid | Spectral Sky Elevator | Starfront | +141% Rare Ore, +43% Luck, +2.8% Blast Chance |
+| Exotic | Moonlet | Starfire Pulsar Beacon | Starfront | +134% Luck, +6.6% Blast Chance, +20% Rare Ore |
+| Exotic | Neptune | Prismatic Tailed Comet | Starfront | +19% Blast Chance, +88% Rare Ore, +18% Luck |
+| Exotic | Starchart | Quasar Moonbase Tortoise | Starfront | +141% Rare Ore, +43% Luck, +2.8% Blast Chance |
 
 ## 6. Arcade Legends (B, ×1.28)
 
@@ -656,119 +766,142 @@ Packs: Insert Coin · Bonus Round · Power-Up · Boss Rush · High Score · One 
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Neon Burst | Sunset Gamepad | Striker | +31% Swing Rate, +22% Mine Speed |
-| Common | Bytesize | Magenta Drake | Mystic | +3.8% Zap Chance, +10% Zap Damage, +14% Swing Rate |
-| Common | Quickstart | Toxic Pixel Heart | Seeker | +20% Chest Luck, +11% Luck |
-| Common | Pixling | Lemon Token | Trader | +54% Coin Bonus, +22% Ore Haul |
-| Common | Synthwave | Mint Bitbug | Digger | +29% Ore Finder, +22% Dirt Break |
-| Common | Arcadey | Electric Sprite | Mystic | +54% Coin Bonus, +16% Swing Rate |
-| Common | Fireball | Chrome Cabinet | Bruiser | +43% Dirt Break, +22% Ore Haul |
-| Common | Score Scout | Toxic Slime | Tidecaller | +36% Scrap, +5.4% Pulverizer |
-| Common | Neonbyte | Cyber Gamepad | Striker | +43% Mine Speed, +16% Swing Rate |
-| Common | Glowball | Electric Token | Trader | +54% Coin Bonus, +22% Ore Haul |
-| Common | Secret Level | Ivory Pixel Heart | Seeker | +20% Chest Luck, +11% Luck |
-| Common | Nitro | Lagoon Cabinet | Bruiser | +43% Mine Speed, +22% Dirt Break |
-| Common | Sidekick | Toxic Bitbug | Digger | +29% Ore Finder, +22% Dirt Break |
-| Common | Loot | Bubblegum Drake | Mystic | +54% Coin Bonus, +16% Swing Rate |
-| Common | Buttonmash | Beige Gamepad | Striker | +43% Mine Speed, +16% Swing Rate |
-| Common | Brickbash | Cherry Pixel Heart | Seeker | +18% Pack Luck, +11% Luck |
-| Common | Retro Rex | Cyber Token | Trader | +54% Coin Bonus, +6.2% Lucky Block find |
-| Common | Boss Key | Gunmetal Cabinet | Bruiser | +43% Mine Speed, +22% Dirt Break |
-| Common | Spinkick | Toxic Sprite | Mystic | +54% Coin Bonus, +16% Swing Rate |
-| Common | Bumper | Gunmetal Bitbug | Digger | +43% Dirt Break, +22% Ore Haul |
-| Common | Elixir | Beige Slime | Tidecaller | +24% Gem Find, +5.4% Pulverizer |
-| Common | Neonpop | Ink Gamepad | Striker | +31% Swing Rate, +22% Mine Speed |
-| Common | Snackbyte | Synth Cabinet | Bruiser | +43% Mine Speed, +22% Dirt Break |
-| Common | Chiptune | Ivory Token | Trader | +54% Coin Bonus, +22% Ore Haul |
-| Common | Neon Knight | Lagoon Pixel Heart | Seeker | +20% Chest Luck, +11% Luck |
-| Common | Questy | Ivory Bitbug | Digger | +29% Ore Finder, +22% Dirt Break |
-| Common | Checkpoint | Lime Gamepad | Striker | +43% Mine Speed, +22% Dirt Break |
-| Common | Score Streak | Woodgrain Cabinet | Bruiser | +43% Dirt Break, +22% Ore Haul |
-| Common | Highscore | Beige Sprite | Mystic | +54% Coin Bonus, +22% Mine Speed |
-| Common | Clawgrab | Ink Drake | Mystic | +54% Coin Bonus, +16% Swing Rate |
-| Common | Vector | Magenta Slime | Tidecaller | +36% Scrap, +5.4% Pulverizer |
-| Common | Glowbug | Jackpot Token | Trader | +54% Coin Bonus, +22% Ore Haul |
-| Common | Tokenkid | Magenta Pixel Heart | Seeker | +20% Chest Luck, +11% Luck |
-| Common | Double Jump | Sunset Bitbug | Digger | +43% Dirt Break, +22% Ore Haul |
-| Common | Clawdrop | Lavender Gamepad | Striker | +43% Mine Speed, +16% Swing Rate |
-| Common | Dash | Mint Cabinet | Bruiser | +43% Dirt Break, +22% Ore Haul |
-| Common | Bitmap | Grape Pixel Heart | Seeker | +20% Chest Luck, +11% Luck |
-| Common | Megablast | Beige Token | Trader | +43% Ore Haul, +27% Coin Bonus |
-| Common | Bitling | Magenta Bitbug | Digger | +43% Ore Haul, +22% Dirt Break |
-| Common | Sawtooth | Cherry Gamepad | Striker | +43% Mine Speed, +22% Dirt Break |
-| Common | Player One | Ink Bitbug | Digger | +43% Ore Haul, +22% Dirt Break |
-| Common | Cheatcode | Jackpot Cabinet | Bruiser | +43% Dirt Break, +22% Ore Haul |
-| Common | Arrow Key | Electric Slime | Tidecaller | +24% Gem Find, +5.4% Pulverizer |
-| Common | Arcade Ace | Magenta Sprite | Mystic | +54% Coin Bonus, +22% Mine Speed |
-| Common | Coinrush | Toxic Drake | Mystic | +54% Coin Bonus, +16% Swing Rate |
-| Common | Beepbeep | Lime Pixel Heart | Seeker | +18% Pack Luck, +11% Luck |
-| Uncommon | Megabit | Gunmetal Token | Trader | +65% Coin Bonus, +7.4% Lucky Block find |
-| Uncommon | Bytebug | Beige Cabinet | Bruiser | +52% Mine Speed, +26% Dirt Break |
-| Uncommon | Blaster | Tangerine Bitbug | Digger | +35% Ore Finder, +26% Dirt Break |
-| Uncommon | Healthbar | Chrome Gamepad | Striker | +52% Mine Speed, +26% Dirt Break |
-| Uncommon | Multiplier | Mint Pixel Heart | Seeker | +26% Luck, +12% Chest Luck |
-| Uncommon | Plunger | Magenta Token | Trader | +52% Ore Haul, +32% Coin Bonus |
-| Uncommon | Neon Rider | Lagoon Sprite | Mystic | +4.5% Zap Chance, +12% Zap Damage, +17% Swing Rate |
-| Uncommon | Coin Stack | Gunmetal Slime | Tidecaller | +43% Scrap, +6.5% Pulverizer |
-| Uncommon | Press Start | Grape Drake | Mystic | +65% Coin Bonus, +19% Swing Rate |
-| Uncommon | Byteling | Cobalt Gamepad | Striker | +52% Mine Speed, +19% Swing Rate |
-| Uncommon | Laserbeam | Sunset Pixel Heart | Seeker | +24% Chest Luck, +13% Luck |
-| Uncommon | Synth | Grape Token | Trader | +65% Coin Bonus, +26% Ore Haul |
-| Uncommon | Pinball | Ink Cabinet | Bruiser | +52% Mine Speed, +26% Dirt Break |
-| Uncommon | Prize Wall | Woodgrain Bitbug | Digger | +35% Ore Finder, +26% Dirt Break |
-| Uncommon | Continue | Cobalt Pixel Heart | Seeker | +26% Luck, +12% Chest Luck |
-| Uncommon | Pixel Pup | Lavender Token | Trader | +65% Coin Bonus, +26% Ore Haul |
-| Uncommon | Glowpad | Cherry Bitbug | Digger | +35% Ore Finder, +26% Dirt Break |
-| Uncommon | Combo Cub | Toxic Gamepad | Striker | +52% Mine Speed, +26% Dirt Break |
-| Uncommon | Thumbstick | Grape Cabinet | Bruiser | +52% Dirt Break, +26% Mine Speed |
-| Uncommon | Superjump | Lime Drake | Mystic | +65% Coin Bonus, +19% Swing Rate |
-| Uncommon | Chip Champ | Sunset Sprite | Mystic | +4.5% Zap Chance, +12% Zap Damage, +17% Swing Rate |
-| Uncommon | Ta-Da | Synth Pixel Heart | Seeker | +22% Pack Luck, +13% Luck |
-| Uncommon | Fwoosh | Woodgrain Token | Trader | +65% Coin Bonus, +26% Ore Haul |
-| Uncommon | Powerup | Bubblegum Slime | Tidecaller | +13% Pulverizer, +22% Scrap |
-| Uncommon | Sharpshot | Magenta Gamepad | Striker | +37% Swing Rate, +26% Mine Speed |
-| Uncommon | Ticket | Lagoon Bitbug | Digger | +35% Ore Finder, +26% Dirt Break |
-| Uncommon | Pew Pew | Cyber Cabinet | Bruiser | +52% Mine Speed, +26% Dirt Break |
-| Rare | Spacebar | Woodgrain Gamepad | Striker | +64% Mine Speed, +23% Swing Rate |
-| Rare | Blockdrop | Lavender Pixel Heart | Seeker | +29% Chest Luck, +16% Luck |
-| Rare | Pixel Racer | Bubblegum Token | Trader | +80% Coin Bonus, +32% Ore Haul |
-| Rare | Coin-Op | Lime Bitbug | Digger | +42% Ore Finder, +32% Dirt Break |
-| Rare | Combo | Tangerine Cabinet | Bruiser | +64% Dirt Break, +32% Mine Speed |
-| Rare | Arpeggio | Ink Sprite | Mystic | +80% Coin Bonus, +23% Swing Rate |
-| Rare | Coinslot | Synth Gamepad | Striker | +64% Mine Speed, +23% Swing Rate |
-| Rare | Bit Buddy | Synth Drake | Mystic | +80% Coin Bonus, +23% Swing Rate |
-| Rare | Glitchy | Ink Pixel Heart | Seeker | +32% Luck, +14% Chest Luck |
-| Rare | Bonus Stage | Cobalt Cabinet | Bruiser | +64% Dirt Break, +32% Ore Haul |
-| Rare | Tappy | Tangerine Token | Trader | +64% Ore Haul, +40% Coin Bonus |
-| Rare | Extra Life | Synth Slime | Tidecaller | +53% Scrap, +8.0% Pulverizer |
-| Rare | Cartridge | Synth Bitbug | Digger | +64% Ore Haul, +32% Dirt Break |
-| Rare | Prize Ticket | Grape Gamepad | Striker | +46% Swing Rate, +32% Mine Speed |
-| Rare | Glowline | Bubblegum Pixel Heart | Seeker | +27% Pack Luck, +16% Luck |
-| Rare | Uppercut | Lime Cabinet | Bruiser | +64% Dirt Break, +32% Mine Speed |
-| Rare | Joystick | Mint Token | Trader | +80% Coin Bonus, +9.1% Lucky Block find |
-| Epic | Ka-Ching | Glowing Lavender Bitbug | Digger | +79% Dirt Break, +40% Ore Haul |
-| Epic | Quarter | Glowing Mint Sprite | Mystic | +6.9% Zap Chance, +19% Zap Damage, +26% Swing Rate |
-| Epic | Max Level | Glowing Electric Gamepad | Striker | +57% Swing Rate, +40% Mine Speed |
-| Epic | Free Play | Glowing Jackpot Pixel Heart | Seeker | +33% Pack Luck, +20% Luck |
-| Epic | Player Two | Glowing Electric Cabinet | Bruiser | +79% Dirt Break, +40% Ore Haul |
-| Epic | Bitstream | Glowing Electric Bitbug | Digger | +53% Ore Finder, +40% Dirt Break |
-| Epic | Final Level | Glowing Lagoon Drake | Mystic | +6.9% Zap Chance, +19% Zap Damage, +26% Swing Rate |
-| Epic | Marquee | Glowing Lime Token | Trader | +99% Coin Bonus, +11% Lucky Block find |
-| Epic | Clicky | Glowing Cobalt Slime II | Tidecaller | +44% Gem Find, +9.9% Pulverizer |
-| Legendary | Kilobyte | Arcade Bubblegum Gamepad | Striker | +102% Mine Speed, +51% Dirt Break |
-| Legendary | Bossfight | Champion Cobalt Token | Trader | +102% Ore Haul, +64% Coin Bonus |
-| Legendary | Chipchop | Bonus Lemon Cabinet | Bruiser | +118% Mine Speed, +4.5% Zap Chance |
-| Legendary | Combo King | Combo Electric Pixel Heart | Seeker | +51% Luck, +23% Chest Luck |
-| Legendary | Credit | Arcade Cobalt Bitbug | Digger | +102% Ore Haul, +51% Dirt Break |
-| Legendary | Bytebunny | Champion Blaster Token | Trader | +128% Coin Bonus, +51% Ore Haul |
-| Mythic | Bitwise | Ultra Cabinet | Arcade Legends | +182% Coin Bonus, +35% Swing Rate, +1.8% Zap Chance |
-| Mythic | Pixel Pop | Mega Gamepad | Arcade Legends | +110% Swing Rate, +4.3% Zap Chance, +26% Coin Bonus |
-| Mythic | Turbo Tot | Boss Sprite | Arcade Legends | +12% Zap Chance, +113% Coin Bonus, +15% Swing Rate |
-| Divine | Neon Kitty | Flawless Pixel Heart | Arcade Legends | +247% Coin Bonus, +47% Swing Rate, +2.5% Zap Chance |
-| Divine | Turbochip | Perfect Bitbug | Arcade Legends | +150% Swing Rate, +5.8% Zap Chance, +36% Coin Bonus |
-| Divine | D-Pad | Platinum Slime | Arcade Legends | +17% Zap Chance, +154% Coin Bonus, +20% Swing Rate |
-| Exotic | Blipblop | Hypercolor Drake | Arcade Legends | +333% Coin Bonus, +64% Swing Rate, +3.3% Zap Chance |
-| Exotic | Level Up | Glitched Token | Arcade Legends | +201% Swing Rate, +7.8% Zap Chance, +48% Coin Bonus |
+| Common | Neon Burst | Jam Gamepad | Striker | +31% Swing Rate, +22% Mine Speed |
+| Common | Bytesize | Toxic Drake | Mystic | +3.8% Zap Chance, +10% Zap Damage, +14% Swing Rate |
+| Common | Quickstart | Rosewave Pixel Heart | Seeker | +20% Chest Luck, +11% Luck |
+| Common | Pixling | Phosphor Token | Trader | +54% Coin Bonus, +22% Ore Haul |
+| Common | Synthwave | Maroon Bitbug | Digger | +29% Ore Finder, +22% Dirt Break |
+| Common | Arcadey | Toxic Sprite | Mystic | +54% Coin Bonus, +16% Swing Rate |
+| Common | Fireball | Ink Cabinet | Bruiser | +43% Dirt Break, +22% Ore Haul |
+| Common | Score Scout | Swamp Slime | Tidecaller | +36% Scrap, +5.4% Pulverizer |
+| Common | Neonbyte | Bluescreen Gamepad | Striker | +43% Mine Speed, +16% Swing Rate |
+| Common | Glowball | Lime Token | Trader | +54% Coin Bonus, +22% Ore Haul |
+| Common | Secret Level | Deepwave Pixel Heart | Seeker | +20% Chest Luck, +11% Luck |
+| Common | Nitro | Mint Cabinet | Bruiser | +43% Mine Speed, +22% Dirt Break |
+| Common | Sidekick | Lime Bitbug | Digger | +29% Ore Finder, +22% Dirt Break |
+| Common | Loot | Ultraviolet Drake | Mystic | +54% Coin Bonus, +16% Swing Rate |
+| Common | Buttonmash | Peach Gamepad | Striker | +43% Mine Speed, +16% Swing Rate |
+| Common | Brickbash | Swamp Pixel Heart | Seeker | +18% Pack Luck, +11% Luck |
+| Common | Retro Rex | Gunmetal Token | Trader | +54% Coin Bonus, +6.2% Lucky Block find |
+| Common | Boss Key | Toxic Cabinet | Bruiser | +43% Mine Speed, +22% Dirt Break |
+| Common | Spinkick | Swamp Sprite | Mystic | +54% Coin Bonus, +16% Swing Rate |
+| Common | Bumper | Cobalt Bitbug | Digger | +43% Dirt Break, +22% Ore Haul |
+| Common | Elixir | Magenta Slime | Tidecaller | +24% Gem Find, +5.4% Pulverizer |
+| Common | Neonpop | Maroon Gamepad | Striker | +31% Swing Rate, +22% Mine Speed |
+| Common | Snackbyte | Ivory Cabinet | Bruiser | +43% Mine Speed, +22% Dirt Break |
+| Common | Chiptune | Felt Token | Trader | +54% Coin Bonus, +22% Ore Haul |
+| Common | Neon Knight | Grape Pixel Heart | Seeker | +20% Chest Luck, +11% Luck |
+| Common | Questy | Bubblegum Bitbug | Digger | +29% Ore Finder, +22% Dirt Break |
+| Common | Checkpoint | Phosphor Gamepad | Striker | +43% Mine Speed, +22% Dirt Break |
+| Common | Score Streak | Deepwave Cabinet | Bruiser | +43% Dirt Break, +22% Ore Haul |
+| Common | Highscore | Olive Drake | Mystic | +54% Coin Bonus, +22% Mine Speed |
+| Common | Clawgrab | Mint Token | Mystic | +54% Coin Bonus, +16% Swing Rate |
+| Common | Vector | Bluescreen Slime | Tidecaller | +36% Scrap, +5.4% Pulverizer |
+| Common | Glowbug | Cherry Pixel Heart | Trader | +54% Coin Bonus, +22% Ore Haul |
+| Common | Tokenkid | Void Bitbug | Seeker | +20% Chest Luck, +11% Luck |
+| Common | Double Jump | Beige Gamepad | Digger | +43% Dirt Break, +22% Ore Haul |
+| Common | Clawdrop | Lavender Cabinet | Striker | +43% Mine Speed, +16% Swing Rate |
+| Common | Dash | Lavender Pixel Heart | Bruiser | +43% Dirt Break, +22% Ore Haul |
+| Common | Bitmap | Jackpot Token | Seeker | +20% Chest Luck, +11% Luck |
+| Common | Megablast | Beige Bitbug | Trader | +43% Ore Haul, +27% Coin Bonus |
+| Common | Bitling | Synth Gamepad | Digger | +43% Ore Haul, +22% Dirt Break |
+| Common | Sawtooth | Bluescreen Drake | Striker | +43% Mine Speed, +22% Dirt Break |
+| Common | Player One | Deepwave Bitbug | Digger | +43% Ore Haul, +22% Dirt Break |
+| Common | Cheatcode | Woodgrain Cabinet | Bruiser | +43% Dirt Break, +22% Ore Haul |
+| Common | Arrow Key | Toxic Slime | Tidecaller | +24% Gem Find, +5.4% Pulverizer |
+| Common | Arcade Ace | Bluescreen Pixel Heart | Mystic | +54% Coin Bonus, +22% Mine Speed |
+| Common | Coinrush | Cobalt Token | Mystic | +54% Coin Bonus, +16% Swing Rate |
+| Common | Beepbeep | Sunset Cabinet | Seeker | +18% Pack Luck, +11% Luck |
+| Uncommon | Megabit | Cherry Bitbug | Trader | +65% Coin Bonus, +7.4% Lucky Block find |
+| Uncommon | Bytebug | Toxic Pixel Heart | Bruiser | +52% Mine Speed, +26% Dirt Break |
+| Uncommon | Blaster | Mint Gamepad | Digger | +35% Ore Finder, +26% Dirt Break |
+| Uncommon | Healthbar | Olive Token | Striker | +52% Mine Speed, +26% Dirt Break |
+| Uncommon | Multiplier | Cyber Pixel Heart | Seeker | +26% Luck, +12% Chest Luck |
+| Uncommon | Plunger | Emerald Gamepad | Trader | +52% Ore Haul, +32% Coin Bonus |
+| Uncommon | Neon Rider | Jam Token | Mystic | +4.5% Zap Chance, +12% Zap Damage, +17% Swing Rate |
+| Uncommon | Coin Stack | Camo Cabinet | Tidecaller | +43% Scrap, +6.5% Pulverizer |
+| Uncommon | Press Start | Tangerine Bitbug | Mystic | +65% Coin Bonus, +19% Swing Rate |
+| Uncommon | Byteling | Sunset Gamepad | Striker | +52% Mine Speed, +19% Swing Rate |
+| Uncommon | Laserbeam | Mint Pixel Heart | Seeker | +24% Chest Luck, +13% Luck |
+| Uncommon | Synth | Lagoon Token | Trader | +65% Coin Bonus, +26% Ore Haul |
+| Uncommon | Pinball | Grape Cabinet | Bruiser | +52% Mine Speed, +26% Dirt Break |
+| Uncommon | Prize Wall | Swamp Bitbug | Digger | +35% Ore Finder, +26% Dirt Break |
+| Uncommon | Continue | Chrome Pixel Heart | Seeker | +26% Luck, +12% Chest Luck |
+| Uncommon | Pixel Pup | Midnight Token | Trader | +65% Coin Bonus, +26% Ore Haul |
+| Uncommon | Glowpad | Magenta Bitbug | Digger | +35% Ore Finder, +26% Dirt Break |
+| Uncommon | Combo Cub | Ultraviolet Gamepad | Striker | +52% Mine Speed, +26% Dirt Break |
+| Uncommon | Thumbstick | Emerald Cabinet | Bruiser | +52% Dirt Break, +26% Mine Speed |
+| Uncommon | Superjump | Camo Pixel Heart | Mystic | +65% Coin Bonus, +19% Swing Rate |
+| Uncommon | Chip Champ | Electric Token | Mystic | +4.5% Zap Chance, +12% Zap Damage, +17% Swing Rate |
+| Uncommon | Ta-Da | Emerald Bitbug | Seeker | +22% Pack Luck, +13% Luck |
+| Uncommon | Fwoosh | Olive Gamepad | Trader | +65% Coin Bonus, +26% Ore Haul |
+| Uncommon | Powerup | Phosphor Cabinet | Tidecaller | +13% Pulverizer, +22% Scrap |
+| Uncommon | Sharpshot | Gunmetal Gamepad | Striker | +37% Swing Rate, +26% Mine Speed |
+| Uncommon | Ticket | Maroon Pixel Heart | Digger | +35% Ore Finder, +26% Dirt Break |
+| Uncommon | Pew Pew | Chrome Token | Bruiser | +52% Mine Speed, +26% Dirt Break |
+| Rare | Spacebar | Lemon Bitbug | Striker | +64% Mine Speed, +23% Swing Rate |
+| Rare | Blockdrop | Void Cabinet | Seeker | +29% Chest Luck, +16% Luck |
+| Rare | Pixel Racer | Swamp Gamepad | Trader | +80% Coin Bonus, +32% Ore Haul |
+| Rare | Coin-Op | Phosphor Pixel Heart | Digger | +42% Ore Finder, +32% Dirt Break |
+| Rare | Combo | Woodgrain Token | Bruiser | +64% Dirt Break, +32% Mine Speed |
+| Rare | Arpeggio | Bluescreen Bitbug | Mystic | +80% Coin Bonus, +23% Swing Rate |
+| Rare | Coinslot | Cyber Cabinet | Striker | +64% Mine Speed, +23% Swing Rate |
+| Rare | Bit Buddy | Lavender Gamepad | Mystic | +80% Coin Bonus, +23% Swing Rate |
+| Rare | Glitchy | Jackpot Pixel Heart | Seeker | +32% Luck, +14% Chest Luck |
+| Rare | Bonus Stage | Maroon Cabinet | Bruiser | +64% Dirt Break, +32% Ore Haul |
+| Rare | Tappy | Sunset Token | Trader | +64% Ore Haul, +40% Coin Bonus |
+| Rare | Extra Life | Mauve Bitbug | Tidecaller | +53% Scrap, +8.0% Pulverizer |
+| Rare | Cartridge | Midnight Gamepad | Digger | +64% Ore Haul, +32% Dirt Break |
+| Rare | Prize Ticket | Olive Pixel Heart | Striker | +46% Swing Rate, +32% Mine Speed |
+| Rare | Glowline | Jackpot Cabinet | Seeker | +27% Pack Luck, +16% Luck |
+| Rare | Uppercut | Bubblegum Token | Bruiser | +64% Dirt Break, +32% Mine Speed |
+| Rare | Joystick | Cyber Bitbug | Trader | +80% Coin Bonus, +9.1% Lucky Block find |
+| Epic | Ka-Ching | Joystick Jumper | Digger | +79% Dirt Break, +40% Ore Haul |
+| Epic | Quarter | Cartridge Buddy | Mystic | +6.9% Zap Chance, +19% Zap Damage, +26% Swing Rate |
+| Epic | Max Level | Pop Bumper | Striker | +57% Swing Rate, +40% Mine Speed |
+| Epic | Free Play | Maze Spook | Seeker | +33% Pack Luck, +20% Luck |
+| Epic | Player Two | Prize Tickets | Bruiser | +79% Dirt Break, +40% Ore Haul |
+| Epic | Bitstream | Claw Grabber | Digger | +53% Ore Finder, +40% Dirt Break |
+| Epic | Final Level | Bitscreen Telly | Mystic | +6.9% Zap Chance, +19% Zap Damage, +26% Swing Rate |
+| Epic | Marquee | Paddle Bopper | Trader | +99% Coin Bonus, +11% Lucky Block find |
+| Epic | Clicky | Drop Block | Tidecaller | +44% Gem Find, +9.9% Pulverizer |
+| Epic | Dash Kid | Power Capsule | Mystic | +99% Coin Bonus, +28% Swing Rate |
+| Epic | Kapow | Pixel Kart | Striker | +79% Mine Speed, +28% Swing Rate |
+| Epic | Trigger | Neon Digit | Seeker | +33% Pack Luck, +20% Luck |
+| Epic | Laser Tag | Bonus Cherries | Prospector | +44% Gem Find, +22% Rare Ore |
+| Epic | Framerate | Bitbomb | Bruiser | +79% Mine Speed, +40% Dirt Break |
+| Epic | Glowstick | Arrow Cursor | Seeker | +36% Chest Luck, +20% Luck |
+| Epic | Bonus Bit | Neon Skate | Striker | +79% Mine Speed, +28% Swing Rate |
+| Epic | Game Save | Bit Fireball | Striker | +57% Swing Rate, +40% Mine Speed |
+| Epic | Squarewave | Boing Booster | Digger | +79% Dirt Break, +40% Ore Haul |
+| Legendary | Kilobyte | Champion Pinball Table | Striker | +102% Mine Speed, +51% Dirt Break |
+| Legendary | Bossfight | Bonus Pixel Invader | Trader | +102% Ore Haul, +64% Coin Bonus |
+| Legendary | Chipchop | Combo Bitsword Hero | Bruiser | +118% Mine Speed, +4.5% Zap Chance |
+| Legendary | Combo King | Arcade Rhythm Pad | Seeker | +51% Luck, +23% Chest Luck |
+| Legendary | Credit | Champion Hoop Shot | Digger | +102% Ore Haul, +51% Dirt Break |
+| Legendary | Bytebunny | Bonus Coin Pusher | Trader | +128% Coin Bonus, +51% Ore Haul |
+| Legendary | Turbo Toot | Combo Strength Tester | Bruiser | +118% Mine Speed, +4.5% Zap Chance |
+| Legendary | Leaderboard | Arcade Flip Handheld | Digger | +68% Ore Finder, +51% Dirt Break |
+| Legendary | Screensaver | Champion Retro Gamebox | Prospector | +57% Rare Ore, +28% Gem Find |
+| Legendary | Sidequest | Bonus Synth Cycle | Striker | +102% Mine Speed, +51% Dirt Break |
+| Legendary | Bitpaw | Combo Neon Keytar | Tidecaller | +26% Pulverizer, +43% Scrap |
+| Legendary | Blinkbit | Arcade Brickbreak Wall | Digger | +102% Dirt Break, +51% Ore Haul |
+| Mythic | Bitwise | Hyper Final Boss | Arcade Legends | +182% Coin Bonus, +35% Swing Rate, +1.8% Zap Chance |
+| Mythic | Pixel Pop | Ultra Turbo Hoverboard | Arcade Legends | +110% Swing Rate, +4.3% Zap Chance, +26% Coin Bonus |
+| Mythic | Turbo Tot | Mega Neon Jukebox | Arcade Legends | +12% Zap Chance, +113% Coin Bonus, +15% Swing Rate |
+| Mythic | Ticket Tally | Boss Vector Fighter | Arcade Legends | +12% Zap Chance, +113% Coin Bonus, +15% Swing Rate |
+| Mythic | Overdrive | Hyper Plasma Sphere | Arcade Legends | +182% Coin Bonus, +35% Swing Rate, +1.8% Zap Chance |
+| Mythic | Pixelpuff | Ultra Victory Podium | Arcade Legends | +110% Swing Rate, +4.3% Zap Chance, +26% Coin Bonus |
+| Divine | Neon Kitty | Platinum Save Point | Arcade Legends | +247% Coin Bonus, +47% Swing Rate, +2.5% Zap Chance |
+| Divine | Turbochip | Immortal Sunset Grid | Arcade Legends | +150% Swing Rate, +5.8% Zap Chance, +36% Coin Bonus |
+| Divine | D-Pad | Flawless Neon Marquee | Arcade Legends | +17% Zap Chance, +154% Coin Bonus, +20% Swing Rate |
+| Divine | Token Tot | Perfect Legend Swordstone | Arcade Legends | +17% Zap Chance, +154% Coin Bonus, +20% Swing Rate |
+| Divine | Stacker | Platinum Pixel Firework | Arcade Legends | +247% Coin Bonus, +47% Swing Rate, +2.5% Zap Chance |
+| Divine | Coin Cub | Immortal Power Bolt | Arcade Legends | +150% Swing Rate, +5.8% Zap Chance, +36% Coin Bonus |
+| Exotic | Blipblop | Glitched Overclock Chip | Arcade Legends | +333% Coin Bonus, +64% Swing Rate, +3.3% Zap Chance |
+| Exotic | Level Up | Overclocked Multiball Orbit | Arcade Legends | +201% Swing Rate, +7.8% Zap Chance, +48% Coin Bonus |
+| Exotic | Ding | Secret Button Totem | Arcade Legends | +22% Zap Chance, +207% Coin Bonus, +27% Swing Rate |
+| Exotic | Neon Pip | Hypercolor Neon Equalizer | Arcade Legends | +333% Coin Bonus, +64% Swing Rate, +3.3% Zap Chance |
 
 ## 7. Crystal Hollow (B, ×1.34)
 
@@ -776,118 +909,142 @@ Packs: Quartz Pocket · Amethyst Vein · Geode Chamber · Emerald Cavern · Pris
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Sardonyx | Tanzanite Geode | Prospector | +25% Rare Ore, +13% Gem Find |
-| Common | Turquoise | Topaz Cubeling | Trader | +46% Ore Haul, +28% Coin Bonus |
-| Common | Benitoite | Rose Golem | Bruiser | +46% Dirt Break, +23% Ore Haul |
-| Common | Shard | Sunstone Desert Rose | Tidecaller | +25% Gem Find, +5.7% Pulverizer |
-| Common | Almandine | Opal Hexling | Mystic | +3.5% Shatter Chance, +11% Shatter Damage, +21% Dirt Break |
-| Common | Quartzkit | Sunstone Beetle | Bruiser | +46% Dirt Break, +23% Ore Haul |
-| Common | Travertine | Opal Quartzback | Bruiser | +46% Dirt Break, +23% Mine Speed |
-| Common | Smoky Quartz | Pyrite Geode | Prospector | +19% Ore Luck, +13% Gem Find |
-| Common | Cubie | Amethyst Quartzback | Bruiser | +46% Mine Speed, +23% Dirt Break |
-| Common | Apatite | Kunzite Cubeling | Trader | +46% Ore Haul, +28% Coin Bonus |
-| Common | Druse | Sapphire Hexling | Mystic | +3.5% Shatter Chance, +11% Shatter Damage, +21% Dirt Break |
-| Common | Chrysocolla | Tanzanite Desert Rose | Tidecaller | +38% Scrap, +5.7% Pulverizer |
-| Common | Lattice | Turquoise Golem | Bruiser | +46% Dirt Break, +23% Ore Haul |
-| Common | Variscite | Lapis Hexling | Mystic | +25% Gem Find, +23% Mine Speed |
-| Common | Glisten | Citrine Quartzback | Bruiser | +46% Mine Speed, +23% Dirt Break |
-| Common | Gemkin | Garnet Cubeling | Trader | +57% Coin Bonus, +23% Ore Haul |
-| Common | Tanzanite | Emerald Desert Rose | Tidecaller | +25% Gem Find, +5.7% Pulverizer |
-| Common | Quartzling | Garnet Geode | Prospector | +19% Ore Luck, +13% Gem Find |
-| Common | Rubyroo | Turquoise Beetle | Bruiser | +46% Mine Speed, +23% Dirt Break |
-| Common | Grossular | Topaz Hexling | Mystic | +25% Gem Find, +23% Mine Speed |
-| Common | Loupe | Tanzanite Cubeling | Trader | +57% Coin Bonus, +23% Ore Haul |
-| Common | Star Ruby | Garnet Desert Rose | Tidecaller | +25% Gem Find, +5.7% Pulverizer |
-| Common | Ametrine | Topaz Quartzback | Bruiser | +46% Mine Speed, +23% Dirt Break |
-| Common | Sunshard | Smoky Geode | Prospector | +25% Gem Find, +13% Rare Ore |
-| Common | Sparkstone | Pyrite Cubeling | Trader | +46% Ore Haul, +28% Coin Bonus |
-| Common | Crystalpup | Amethyst Hexling | Mystic | +3.5% Shatter Chance, +36% Mine Speed |
-| Common | Dawnstone | Jade Desert Rose | Tidecaller | +38% Scrap, +5.7% Pulverizer |
-| Common | Danburite | Malachite Beetle | Bruiser | +46% Dirt Break, +23% Mine Speed |
-| Common | Chrysoberyl | Aquamarine Quartzback | Bruiser | +46% Dirt Break, +23% Ore Haul |
-| Common | Geodette | Smoky Golem | Bruiser | +46% Dirt Break, +23% Ore Haul |
-| Common | Sugilite | Amethyst Geode | Prospector | +25% Gem Find, +13% Rare Ore |
-| Common | Glimmerling | Rose Desert Rose | Tidecaller | +25% Gem Find, +5.7% Pulverizer |
-| Common | Vanadinite | Sapphire Geode | Prospector | +25% Gem Find, +13% Rare Ore |
-| Common | Natrolite | Quartz Cubeling | Trader | +46% Ore Haul, +28% Coin Bonus |
-| Common | Mookaite | Ruby Quartzback | Bruiser | +46% Mine Speed, +23% Dirt Break |
-| Common | Lepidolite | Tanzanite Hexling | Mystic | +3.5% Shatter Chance, +11% Shatter Damage, +21% Dirt Break |
-| Common | Druzybug | Selenite Desert Rose | Tidecaller | +38% Scrap, +5.7% Pulverizer |
-| Common | Phenakite | Aquamarine Geode | Prospector | +25% Rare Ore, +13% Gem Find |
-| Common | Hessonite | Topaz Beetle | Bruiser | +46% Dirt Break, +23% Mine Speed |
-| Common | Amber | Selenite Quartzback | Bruiser | +46% Mine Speed, +23% Dirt Break |
-| Common | Wulfenite | Jade Cubeling | Trader | +57% Coin Bonus, +6.5% Lucky Block find |
-| Common | Bixbite | Fluorite Hexling | Mystic | +3.5% Shatter Chance, +11% Shatter Damage, +21% Dirt Break |
-| Common | Gleamstone | Sunstone Golem | Bruiser | +46% Dirt Break, +23% Mine Speed |
-| Common | Sliver | Peridot Cubeling | Trader | +57% Coin Bonus, +6.5% Lucky Block find |
-| Common | Facetta | Tanzanite Quartzback | Bruiser | +46% Dirt Break, +23% Mine Speed |
-| Uncommon | Cordierite | Malachite Desert Rose | Tidecaller | +30% Gem Find, +6.8% Pulverizer |
-| Uncommon | Spessartite | Peridot Geode | Prospector | +30% Rare Ore, +15% Gem Find |
-| Uncommon | Rhodochrosite | Ruby Hexling | Mystic | +30% Gem Find, +11% Ore Luck |
-| Uncommon | Gempaw | Sapphire Beetle | Bruiser | +54% Dirt Break, +27% Mine Speed |
-| Uncommon | Cluster | Fluorite Quartzback | Bruiser | +54% Mine Speed, +27% Dirt Break |
-| Uncommon | Morion | Turquoise Cubeling | Trader | +54% Ore Haul, +34% Coin Bonus |
-| Uncommon | Quartzite | Onyx Desert Rose | Tidecaller | +14% Pulverizer, +23% Scrap |
-| Uncommon | Azurite | Lapis Geode | Prospector | +30% Gem Find, +15% Rare Ore |
-| Uncommon | Kimberlite | Jade Hexling | Mystic | +4.2% Shatter Chance, +44% Mine Speed |
-| Uncommon | Moonquartz | Lapis Golem | Bruiser | +54% Dirt Break, +27% Mine Speed |
-| Uncommon | Stibnite | Pyrite Quartzback | Bruiser | +54% Mine Speed, +27% Dirt Break |
-| Uncommon | Geopup | Fluorite Cubeling | Trader | +68% Coin Bonus, +27% Ore Haul |
-| Uncommon | Cat's Eye | Jade Geode | Prospector | +30% Rare Ore, +15% Gem Find |
-| Uncommon | Howlite | Sapphire Desert Rose | Tidecaller | +14% Pulverizer, +23% Scrap |
-| Uncommon | Charoite | Quartz Hexling | Mystic | +30% Gem Find, +27% Mine Speed |
-| Uncommon | Diopside | Smoky Quartzback | Bruiser | +54% Dirt Break, +27% Ore Haul |
-| Uncommon | Glowshard | Tanzanite Golem | Bruiser | +54% Dirt Break, +27% Mine Speed |
-| Uncommon | Lucent | Rose Geode | Prospector | +30% Gem Find, +15% Rare Ore |
-| Uncommon | Sparklet | Onyx Cubeling | Trader | +54% Ore Haul, +34% Coin Bonus |
-| Uncommon | Mica Mite | Aquamarine Desert Rose | Tidecaller | +45% Scrap, +6.8% Pulverizer |
-| Uncommon | Ammolite | Turquoise Hexling | Mystic | +4.2% Shatter Chance, +44% Mine Speed |
-| Uncommon | Flowstone | Smoky Beetle | Bruiser | +54% Mine Speed, +27% Dirt Break |
-| Uncommon | Vein | Malachite Quartzback | Bruiser | +54% Mine Speed, +27% Dirt Break |
-| Uncommon | Ruby | Citrine Geode | Prospector | +30% Rare Ore, +15% Gem Find |
-| Uncommon | Sphene | Hematite Cubeling | Trader | +68% Coin Bonus, +7.8% Lucky Block find |
-| Uncommon | Prismpaw | Smoky Hexling | Mystic | +4.2% Shatter Chance, +13% Shatter Damage, +25% Dirt Break |
-| Uncommon | Moldavite | Ruby Desert Rose | Tidecaller | +30% Gem Find, +6.8% Pulverizer |
-| Rare | Bijou | Quartz Quartzback | Bruiser | +67% Dirt Break, +33% Ore Haul |
-| Rare | Rhodonite | Citrine Cubeling | Trader | +84% Coin Bonus, +33% Ore Haul |
-| Rare | Lustre | Opal Golem | Bruiser | +67% Mine Speed, +33% Dirt Break |
-| Rare | Chrysoprase | Citrine Hexling | Mystic | +5.2% Shatter Chance, +54% Mine Speed |
-| Rare | Cavelight | Onyx Geode | Prospector | +28% Ore Luck, +19% Gem Find |
-| Rare | Cuprite | Quartz Desert Rose | Tidecaller | +56% Scrap, +8.4% Pulverizer |
-| Rare | Epidote | Lapis Beetle | Bruiser | +67% Dirt Break, +33% Mine Speed |
-| Rare | Verdelite | Emerald Quartzback | Bruiser | +67% Dirt Break, +33% Mine Speed |
-| Rare | Gemcutter | Kunzite Geode | Prospector | +28% Ore Luck, +19% Gem Find |
-| Rare | Black Opal | Lapis Cubeling | Trader | +84% Coin Bonus, +33% Ore Haul |
-| Rare | Rhodolite | Kunzite Hexling | Mystic | +37% Gem Find, +14% Ore Luck |
-| Rare | Zincite | Pyrite Desert Rose | Tidecaller | +56% Scrap, +8.4% Pulverizer |
-| Rare | Scolecite | Jade Beetle | Bruiser | +67% Mine Speed, +33% Dirt Break |
-| Rare | Prasiolite | Rose Quartzback | Bruiser | +77% Mine Speed, +2.6% Shatter Chance |
-| Rare | Jewel | Malachite Golem | Bruiser | +67% Mine Speed, +33% Dirt Break |
-| Rare | Starquartz | Quartz Geode | Prospector | +37% Rare Ore, +19% Gem Find |
-| Epic | Peridot | Glowing Ruby Cubeling | Trader | +104% Coin Bonus, +42% Ore Haul |
-| Epic | Cleave | Glowing Garnet Hexling | Mystic | +46% Gem Find, +17% Ore Luck |
-| Epic | Geodling | Glowing Fluorite Desert Rose | Tidecaller | +46% Gem Find, +10% Pulverizer |
-| Epic | Stilbite | Glowing Sapphire Cubeling | Trader | +104% Coin Bonus, +42% Ore Haul |
-| Epic | Jade | Glowing Garnet Quartzback | Bruiser | +83% Mine Speed, +23% Gem Find |
-| Epic | Barite | Glowing Pyrite Hexling | Mystic | +6.5% Shatter Chance, +67% Mine Speed |
-| Epic | Jadeite | Glowing Topaz Desert Rose | Tidecaller | +69% Scrap, +10% Pulverizer |
-| Epic | Amazonite | Glowing Ruby Geode | Prospector | +46% Rare Ore, +23% Gem Find |
-| Epic | Ulexite | Glowing Garnet Beetle | Bruiser | +96% Mine Speed, +3.2% Shatter Chance |
-| Legendary | Dodeca | Faceted Smoky Cubeling | Trader | +134% Coin Bonus, +54% Ore Haul |
-| Legendary | Twinklegem | Brilliant Turquoise Quartzback | Bruiser | +107% Dirt Break, +54% Ore Haul |
-| Legendary | Gemmy | Gleaming Peridot Hexling | Mystic | +8.4% Shatter Chance, +86% Mine Speed |
-| Legendary | Echo Cave | Polished Hematite Golem | Bruiser | +107% Dirt Break, +54% Mine Speed |
-| Legendary | Moonstone | Faceted Peridot Desert Rose | Tidecaller | +90% Scrap, +13% Pulverizer |
-| Legendary | Selenite | Brilliant Sunstone Geode | Prospector | +60% Gem Find, +30% Rare Ore |
-| Mythic | Andalusite | Hollowheart Hexling | Crystal Hollow | +85% Gem Find, +21% Ore Luck, +1.7% Shatter Chance |
-| Mythic | Dendrite | Crystalline Desert Rose | Crystal Hollow | +67% Ore Luck, +4.0% Shatter Chance, +12% Gem Find |
-| Divine | Starshard | Pristine Quartzback | Crystal Hollow | +15% Shatter Chance, +72% Gem Find, +12% Ore Luck |
-| Divine | Emerald | Luminous Geode | Crystal Hollow | +115% Gem Find, +29% Ore Luck, +2.3% Shatter Chance |
-| Divine | Sodalite | Flawless Cubeling | Crystal Hollow | +92% Ore Luck, +5.4% Shatter Chance, +17% Gem Find |
-| Divine | Rose Quartz | Radiant Golem | Crystal Hollow | +15% Shatter Chance, +72% Gem Find, +12% Ore Luck |
-| Divine | Indicolite | Pristine Hexling | Crystal Hollow | +115% Gem Find, +29% Ore Luck, +2.3% Shatter Chance |
-| Divine | Lazulite | Luminous Beetle | Crystal Hollow | +92% Ore Luck, +5.4% Shatter Chance, +17% Gem Find |
-| Exotic | Moonshard | Aurora Desert Rose | Crystal Hollow | +21% Shatter Chance, +97% Gem Find, +17% Ore Luck |
+| Common | Sardonyx | Topaz Botryoid Blob | Prospector | +25% Rare Ore, +13% Gem Find |
+| Common | Turquoise | Amethyst Geode | Trader | +46% Ore Haul, +28% Coin Bonus |
+| Common | Benitoite | Uvarovite Cubeling | Bruiser | +46% Dirt Break, +23% Ore Haul |
+| Common | Shard | Erythrite Drip Stalactite | Tidecaller | +25% Gem Find, +5.7% Pulverizer |
+| Common | Almandine | Paraiba Golem | Mystic | +3.5% Shatter Chance, +11% Shatter Damage, +21% Dirt Break |
+| Common | Quartzkit | Smoky Desert Rose | Bruiser | +46% Dirt Break, +23% Ore Haul |
+| Common | Travertine | Smoky Hexling | Bruiser | +46% Dirt Break, +23% Mine Speed |
+| Common | Smoky Quartz | Sugilite Beetle | Prospector | +19% Ore Luck, +13% Gem Find |
+| Common | Cubie | Iolite Quartzback | Bruiser | +46% Mine Speed, +23% Dirt Break |
+| Common | Apatite | Emerald Botryoid Blob | Trader | +46% Ore Haul, +28% Coin Bonus |
+| Common | Druse | Selenite Hexling | Mystic | +3.5% Shatter Chance, +11% Shatter Damage, +21% Dirt Break |
+| Common | Chrysocolla | Purpurite Quartzback | Tidecaller | +38% Scrap, +5.7% Pulverizer |
+| Common | Lattice | Emerald Cubeling | Bruiser | +46% Dirt Break, +23% Ore Haul |
+| Common | Variscite | Peridot Geode | Mystic | +25% Gem Find, +23% Mine Speed |
+| Common | Glisten | Lapis Desert Rose | Bruiser | +46% Mine Speed, +23% Dirt Break |
+| Common | Gemkin | Malachite Drip Stalactite | Trader | +57% Coin Bonus, +23% Ore Haul |
+| Common | Tanzanite | Uvarovite Golem | Tidecaller | +25% Gem Find, +5.7% Pulverizer |
+| Common | Quartzling | Emerald Hexling | Prospector | +19% Ore Luck, +13% Gem Find |
+| Common | Rubyroo | Bloodstone Beetle | Bruiser | +46% Mine Speed, +23% Dirt Break |
+| Common | Grossular | Bloodstone Botryoid Blob | Mystic | +25% Gem Find, +23% Mine Speed |
+| Common | Loupe | Topaz Cubeling | Trader | +57% Coin Bonus, +23% Ore Haul |
+| Common | Star Ruby | Emerald Desert Rose | Tidecaller | +25% Gem Find, +5.7% Pulverizer |
+| Common | Ametrine | Cobalt Drip Stalactite | Bruiser | +46% Mine Speed, +23% Dirt Break |
+| Common | Sunshard | Rose Quartzback | Prospector | +25% Gem Find, +13% Rare Ore |
+| Common | Sparkstone | Fluorite Geode | Trader | +46% Ore Haul, +28% Coin Bonus |
+| Common | Crystalpup | Rose Cubeling | Mystic | +3.5% Shatter Chance, +36% Mine Speed |
+| Common | Dawnstone | Ruby Hexling | Tidecaller | +38% Scrap, +5.7% Pulverizer |
+| Common | Danburite | Topaz Desert Rose | Bruiser | +46% Dirt Break, +23% Mine Speed |
+| Common | Chrysoberyl | Uvarovite Drip Stalactite | Bruiser | +46% Dirt Break, +23% Ore Haul |
+| Common | Geodette | Moldavite Botryoid Blob | Bruiser | +46% Dirt Break, +23% Ore Haul |
+| Common | Sugilite | Paraiba Geode | Prospector | +25% Gem Find, +13% Rare Ore |
+| Common | Glimmerling | Amethyst Quartzback | Tidecaller | +25% Gem Find, +5.7% Pulverizer |
+| Common | Vanadinite | Chrysocolla Desert Rose | Prospector | +25% Gem Find, +13% Rare Ore |
+| Common | Natrolite | Rose Geode | Trader | +46% Ore Haul, +28% Coin Bonus |
+| Common | Mookaite | Opal Drip Stalactite | Bruiser | +46% Mine Speed, +23% Dirt Break |
+| Common | Lepidolite | Iolite Botryoid Blob | Mystic | +3.5% Shatter Chance, +11% Shatter Damage, +21% Dirt Break |
+| Common | Druzybug | Uvarovite Beetle | Tidecaller | +38% Scrap, +5.7% Pulverizer |
+| Common | Phenakite | Quartz Cubeling | Prospector | +25% Rare Ore, +13% Gem Find |
+| Common | Hessonite | Fluorite Quartzback | Bruiser | +46% Dirt Break, +23% Mine Speed |
+| Common | Amber | Iolite Hexling | Bruiser | +46% Mine Speed, +23% Dirt Break |
+| Common | Wulfenite | Ruby Cubeling | Trader | +57% Coin Bonus, +6.5% Lucky Block find |
+| Common | Bixbite | Spinel Quartzback | Mystic | +3.5% Shatter Chance, +11% Shatter Damage, +21% Dirt Break |
+| Common | Gleamstone | Ruby Desert Rose | Bruiser | +46% Dirt Break, +23% Mine Speed |
+| Common | Sliver | Cinnabar Geode | Trader | +57% Coin Bonus, +6.5% Lucky Block find |
+| Common | Facetta | Chrysocolla Drip Stalactite | Bruiser | +46% Dirt Break, +23% Mine Speed |
+| Uncommon | Cordierite | Purpurite Botryoid Blob | Tidecaller | +30% Gem Find, +6.8% Pulverizer |
+| Uncommon | Spessartite | Uvarovite Hexling | Prospector | +30% Rare Ore, +15% Gem Find |
+| Uncommon | Rhodochrosite | Sulfur Cubeling | Mystic | +30% Gem Find, +11% Ore Luck |
+| Uncommon | Gempaw | Citrine Quartzback | Bruiser | +54% Dirt Break, +27% Mine Speed |
+| Uncommon | Cluster | Selenite Desert Rose | Bruiser | +54% Mine Speed, +27% Dirt Break |
+| Uncommon | Morion | Malachite Geode | Trader | +54% Ore Haul, +34% Coin Bonus |
+| Uncommon | Quartzite | Spinel Drip Stalactite | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Uncommon | Azurite | Rose Hexling | Prospector | +30% Gem Find, +15% Rare Ore |
+| Uncommon | Kimberlite | Amethyst Botryoid Blob | Mystic | +4.2% Shatter Chance, +44% Mine Speed |
+| Uncommon | Moonquartz | Cobalt Quartzback | Bruiser | +54% Dirt Break, +27% Mine Speed |
+| Uncommon | Stibnite | Purpurite Cubeling | Bruiser | +54% Mine Speed, +27% Dirt Break |
+| Uncommon | Geopup | Hematite Geode | Trader | +68% Coin Bonus, +27% Ore Haul |
+| Uncommon | Cat's Eye | Sulfur Desert Rose | Prospector | +30% Rare Ore, +15% Gem Find |
+| Uncommon | Howlite | Bronzite Drip Stalactite | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Uncommon | Charoite | Amethyst Hexling | Mystic | +30% Gem Find, +27% Mine Speed |
+| Uncommon | Diopside | Smoky Botryoid Blob | Bruiser | +54% Dirt Break, +27% Ore Haul |
+| Uncommon | Glowshard | Lapis Quartzback | Bruiser | +54% Dirt Break, +27% Mine Speed |
+| Uncommon | Lucent | Topaz Geode | Prospector | +30% Gem Find, +15% Rare Ore |
+| Uncommon | Sparklet | Cobalt Cubeling | Trader | +54% Ore Haul, +34% Coin Bonus |
+| Uncommon | Mica Mite | Bronzite Desert Rose | Tidecaller | +45% Scrap, +6.8% Pulverizer |
+| Uncommon | Ammolite | Sulfur Hexling | Mystic | +4.2% Shatter Chance, +44% Mine Speed |
+| Uncommon | Flowstone | Peridot Drip Stalactite | Bruiser | +54% Mine Speed, +27% Dirt Break |
+| Uncommon | Vein | Quartz Botryoid Blob | Bruiser | +54% Mine Speed, +27% Dirt Break |
+| Uncommon | Ruby | Sulfur Quartzback | Prospector | +30% Rare Ore, +15% Gem Find |
+| Uncommon | Sphene | Hyalite Geode | Trader | +68% Coin Bonus, +7.8% Lucky Block find |
+| Uncommon | Prismpaw | Sapphire Cubeling | Mystic | +4.2% Shatter Chance, +13% Shatter Damage, +25% Dirt Break |
+| Uncommon | Moldavite | Cinnabar Hexling | Tidecaller | +30% Gem Find, +6.8% Pulverizer |
+| Rare | Bijou | Ruby Drip Stalactite | Bruiser | +67% Dirt Break, +33% Ore Haul |
+| Rare | Rhodonite | Purpurite Desert Rose | Trader | +84% Coin Bonus, +33% Ore Haul |
+| Rare | Lustre | Uvarovite Botryoid Blob | Bruiser | +67% Mine Speed, +33% Dirt Break |
+| Rare | Chrysoprase | Garnet Quartzback | Mystic | +5.2% Shatter Chance, +54% Mine Speed |
+| Rare | Cavelight | Hematite Cubeling | Prospector | +28% Ore Luck, +19% Gem Find |
+| Rare | Cuprite | Citrine Hexling | Tidecaller | +56% Scrap, +8.4% Pulverizer |
+| Rare | Epidote | Topaz Drip Stalactite | Bruiser | +67% Dirt Break, +33% Mine Speed |
+| Rare | Verdelite | Bloodstone Geode | Bruiser | +67% Dirt Break, +33% Mine Speed |
+| Rare | Gemcutter | Sulfur Botryoid Blob | Prospector | +28% Ore Luck, +19% Gem Find |
+| Rare | Black Opal | Cobalt Desert Rose | Trader | +84% Coin Bonus, +33% Ore Haul |
+| Rare | Rhodolite | Bronzite Quartzback | Mystic | +37% Gem Find, +14% Ore Luck |
+| Rare | Zincite | Pyrite Geode | Tidecaller | +56% Scrap, +8.4% Pulverizer |
+| Rare | Scolecite | Rose Botryoid Blob | Bruiser | +67% Mine Speed, +33% Dirt Break |
+| Rare | Prasiolite | Pyrite Cubeling | Bruiser | +77% Mine Speed, +2.6% Shatter Chance |
+| Rare | Jewel | Cobalt Hexling | Bruiser | +67% Mine Speed, +33% Dirt Break |
+| Rare | Starquartz | Rose Desert Rose | Prospector | +37% Rare Ore, +19% Gem Find |
+| Epic | Peridot | Natrolite Urchin | Trader | +104% Coin Bonus, +42% Ore Haul |
+| Epic | Cleave | Halite Stepper | Mystic | +46% Gem Find, +17% Ore Luck |
+| Epic | Geodling | Fishtail Gypsum | Tidecaller | +46% Gem Find, +10% Pulverizer |
+| Epic | Stilbite | Crocoite Croc | Trader | +104% Coin Bonus, +42% Ore Haul |
+| Epic | Jade | Dogtooth Walrus | Bruiser | +83% Mine Speed, +23% Gem Find |
+| Epic | Barite | Blacklight Gecko | Mystic | +6.5% Shatter Chance, +67% Mine Speed |
+| Epic | Jadeite | Onyx Lemur | Tidecaller | +69% Scrap, +10% Pulverizer |
+| Epic | Amazonite | Basalt Bison | Prospector | +46% Rare Ore, +23% Gem Find |
+| Epic | Ulexite | Garnet Anteater | Bruiser | +96% Mine Speed, +3.2% Shatter Chance |
+| Epic | Rhombo | Pegmatite Pelican | Prospector | +35% Ore Luck, +23% Gem Find |
+| Epic | Fluorspar | Citrine Cicada | Seeker | +35% Pack Luck, +21% Luck |
+| Epic | Hollowgem | Iceland Spar | Mystic | +46% Gem Find, +17% Ore Luck |
+| Epic | Gemhound | Helictite Curl | Mystic | +6.5% Shatter Chance, +67% Mine Speed |
+| Epic | Glimmerstone | Azurite Bowerbird | Trader | +104% Coin Bonus, +12% Lucky Block find |
+| Epic | Olivine | Staurolite Cross | Mystic | +6.5% Shatter Chance, +19% Shatter Damage, +38% Dirt Break |
+| Epic | Cave Pearl | Fluorite Bipyramid | Mystic | +46% Gem Find, +17% Ore Luck |
+| Epic | Moss Agate | Rockhammer Shark | Digger | +83% Ore Haul, +42% Dirt Break |
+| Epic | Opalina | Talus Pika | Seeker | +38% Chest Luck, +21% Luck |
+| Legendary | Dodeca | Brilliant Rutilated Eel | Trader | +134% Coin Bonus, +54% Ore Haul |
+| Legendary | Twinklegem | Gleaming Capstone Hoodoo | Bruiser | +107% Dirt Break, +54% Ore Haul |
+| Legendary | Gemmy | Polished Asterism Starfish | Mystic | +8.4% Shatter Chance, +86% Mine Speed |
+| Legendary | Echo Cave | Faceted Feldspar Meerkat | Bruiser | +107% Dirt Break, +54% Mine Speed |
+| Legendary | Moonstone | Brilliant Kyanite Spinosaur | Tidecaller | +90% Scrap, +13% Pulverizer |
+| Legendary | Selenite | Gleaming Galena Gorilla | Prospector | +60% Gem Find, +30% Rare Ore |
+| Legendary | Alexandrite | Polished Gemcase Caddis | Prospector | +45% Ore Luck, +30% Gem Find |
+| Legendary | Geodekin | Faceted Cactus Amethyst | Mystic | +60% Gem Find, +22% Ore Luck |
+| Legendary | Gemdrop | Brilliant Melon Tourmaline | Trader | +134% Coin Bonus, +15% Lucky Block find |
+| Legendary | Rockhound | Gleaming Lapis Mortar | Prospector | +60% Gem Find, +30% Rare Ore |
+| Legendary | Facet | Polished Jasper Hamster | Digger | +107% Dirt Break, +54% Ore Haul |
+| Legendary | Duskstone | Faceted Rock Tumbler | Trader | +107% Ore Haul, +67% Coin Bonus |
+| Mythic | Andalusite | Motherlode Bedrock Behemoth | Crystal Hollow | +85% Gem Find, +21% Ore Luck, +1.7% Shatter Chance |
+| Mythic | Dendrite | Hollowheart Cabochon Cyclops | Crystal Hollow | +67% Ore Luck, +4.0% Shatter Chance, +12% Gem Find |
+| Mythic | Fire Opal | Crystalline Solitaire Diamond | Crystal Hollow | +85% Gem Find, +21% Ore Luck, +1.7% Shatter Chance |
+| Mythic | Iolite | Deepvein Schiller Sunfish | Crystal Hollow | +67% Ore Luck, +4.0% Shatter Chance, +12% Gem Find |
+| Divine | Starshard | Luminous Amethyst Cathedral | Crystal Hollow | +15% Shatter Chance, +72% Gem Find, +12% Ore Luck |
+| Divine | Emerald | Flawless Alicanto | Crystal Hollow | +115% Gem Find, +29% Ore Luck, +2.3% Shatter Chance |
+| Divine | Sodalite | Radiant Bismuth Spiral | Crystal Hollow | +92% Ore Luck, +5.4% Shatter Chance, +17% Gem Find |
+| Divine | Rose Quartz | Pristine Stalacpipe Organ | Crystal Hollow | +15% Shatter Chance, +72% Gem Find, +12% Ore Luck |
+| Divine | Indicolite | Luminous Summit Oread | Crystal Hollow | +115% Gem Find, +29% Ore Luck, +2.3% Shatter Chance |
+| Divine | Lazulite | Flawless Trapiche Mandala | Crystal Hollow | +92% Ore Luck, +5.4% Shatter Chance, +17% Gem Find |
+| Divine | Fluorite | Radiant Chalk Coccolith | Crystal Hollow | +15% Shatter Chance, +72% Gem Find, +12% Ore Luck |
+| Divine | Malachite | Pristine Ruby Carbuncle | Crystal Hollow | +115% Gem Find, +29% Ore Luck, +2.3% Shatter Chance |
+| Divine | Silica | Luminous Tanzanite Tarsier | Crystal Hollow | +92% Ore Luck, +5.4% Shatter Chance, +17% Gem Find |
+| Divine | Corundum | Flawless Muscovite Colugo | Crystal Hollow | +15% Shatter Chance, +72% Gem Find, +12% Ore Luck |
+| Divine | Pegmatite | Radiant Larimar Manatee | Crystal Hollow | +115% Gem Find, +29% Ore Luck, +2.3% Shatter Chance |
+| Divine | Goshenite | Pristine Wulfenite Windmill | Crystal Hollow | +92% Ore Luck, +5.4% Shatter Chance, +17% Gem Find |
+| Exotic | Moonshard | Opalescent Crystal Lattice | Crystal Hollow | +21% Shatter Chance, +97% Gem Find, +17% Ore Luck |
+| Exotic | Gemlet | Aurora Fulgurite Raiju | Crystal Hollow | +21% Shatter Chance, +97% Gem Find, +17% Ore Luck |
 
 ## 8. Shogun's Oath (B, ×1.41)
 
@@ -895,116 +1052,140 @@ Packs: Rusted Tanto · Steel Petals · Crimson Dojo · Blade of Honor · Shogun'
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Shinai | Tea Ninja | Striker | +48% Mine Speed, +24% Dirt Break |
-| Common | Kendama | Tide Samurai | Bruiser | +48% Dirt Break, +24% Mine Speed |
-| Common | Iwa | Vermilion Daruma | Seeker | +24% Luck, +11% Chest Luck |
-| Common | Jinbaori | Ginkgo Fox | Striker | +48% Mine Speed, +17% Swing Rate |
-| Common | Nashiji | Sakura Koi Kite | Tidecaller | +12% Pulverizer, +20% Scrap |
-| Common | Koban | Indigo Wyrm | Mystic | +48% Mine Speed, +13% Gem Find |
-| Common | Kanzashi | Indigo Bigcat | Striker | +34% Swing Rate, +24% Mine Speed |
-| Common | Hotaru | Vermilion Lucky Cat | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
-| Common | Kirakira | Camellia Ninja | Striker | +34% Swing Rate, +24% Mine Speed |
-| Common | Koto | Ash Samurai | Bruiser | +48% Dirt Break, +24% Ore Haul |
-| Common | Kunoichi | Lacquer Koi Kite | Tidecaller | +27% Gem Find, +6.0% Pulverizer |
-| Common | Kaizen | Moonlit Lucky Cat | Trader | +60% Coin Bonus, +24% Ore Haul |
-| Common | Iaido | Lacquer Daruma | Seeker | +20% Pack Luck, +12% Luck |
-| Common | Edo | Matcha Fox | Striker | +48% Mine Speed, +24% Dirt Break |
-| Common | Shuriken | Ginkgo Koi Kite | Tidecaller | +12% Pulverizer, +20% Scrap |
-| Common | Chochin | Persimmon Ninja | Striker | +48% Mine Speed, +17% Swing Rate |
-| Common | Steadfast | Iris Wyrm | Mystic | +3.4% Tidal Wave, +38% Mine Speed |
-| Common | Shoji | Iris Bigcat | Striker | +48% Mine Speed, +24% Dirt Break |
-| Common | Kaze | Persimmon Samurai | Bruiser | +48% Mine Speed, +24% Dirt Break |
-| Common | Yama | Sumi Lucky Cat | Trader | +48% Ore Haul, +30% Coin Bonus |
-| Common | Tsuka | Sakura Daruma | Seeker | +24% Luck, +11% Chest Luck |
-| Common | Tsubaki | Sakura Lucky Cat | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
-| Common | Geta | Pine Samurai | Bruiser | +48% Dirt Break, +24% Ore Haul |
-| Common | Paper Lantern | Iris Koi Kite | Tidecaller | +40% Scrap, +6.0% Pulverizer |
-| Common | Kaminari | Ginkgo Ninja | Striker | +48% Mine Speed, +17% Swing Rate |
-| Common | Yokozuna | Washi Daruma | Seeker | +22% Chest Luck, +12% Luck |
-| Common | Sashimono | Pine Bigcat | Striker | +48% Mine Speed, +24% Dirt Break |
-| Common | Yoake | Washi Lucky Cat | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
-| Common | Resolve | Washi Samurai | Bruiser | +48% Mine Speed, +24% Dirt Break |
-| Common | Kikko | Sumi Koi Kite | Tidecaller | +12% Pulverizer, +20% Scrap |
-| Common | Mofu | Tide Fox | Striker | +48% Mine Speed, +17% Swing Rate |
-| Common | Wakizashi | Iris Ninja | Striker | +48% Mine Speed, +24% Dirt Break |
-| Common | Haiku | Tea Wyrm | Mystic | +12% Pulverizer, +24% Mine Speed |
-| Common | Kata | Matcha Daruma | Seeker | +20% Pack Luck, +12% Luck |
-| Common | Kokeshi | Tea Lucky Cat | Trader | +48% Ore Haul, +30% Coin Bonus |
-| Common | Kogatana | Tea Samurai | Bruiser | +48% Mine Speed, +24% Dirt Break |
-| Common | Honor | Bamboo Daruma | Seeker | +20% Pack Luck, +12% Luck |
-| Common | Kame | Plum Ninja | Striker | +34% Swing Rate, +24% Mine Speed |
-| Common | Genki | Tea Koi Kite | Tidecaller | +27% Gem Find, +6.0% Pulverizer |
-| Common | Hatamoto | Bamboo Fox | Striker | +48% Mine Speed, +17% Swing Rate |
-| Common | Ishigaki | Celadon Daruma | Seeker | +20% Pack Luck, +12% Luck |
-| Common | Gunbai | Pine Wyrm | Mystic | +12% Pulverizer, +24% Mine Speed |
-| Common | Loyal | Tide Bigcat | Striker | +48% Mine Speed, +24% Dirt Break |
-| Common | Kurukuru | Bamboo Lucky Cat | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
-| Uncommon | Yagura | Bronze Samurai | Bruiser | +57% Dirt Break, +29% Mine Speed |
-| Uncommon | Biwa | Washi Ninja | Striker | +57% Mine Speed, +20% Swing Rate |
-| Uncommon | Shippo | Steel Koi Kite | Tidecaller | +14% Pulverizer, +24% Scrap |
-| Uncommon | Kage | Cedar Lucky Cat | Trader | +71% Coin Bonus, +8.2% Lucky Block find |
-| Uncommon | Taiko | Cedar Samurai | Bruiser | +57% Mine Speed, +29% Dirt Break |
-| Uncommon | Furoshiki | Bronze Ninja | Striker | +41% Swing Rate, +29% Mine Speed |
-| Uncommon | Yukata | Goldleaf Daruma | Seeker | +29% Luck, +13% Chest Luck |
-| Uncommon | Go Stone | Vermilion Koi Kite | Tidecaller | +48% Scrap, +7.2% Pulverizer |
-| Uncommon | Hinode | Bamboo Wyrm | Mystic | +57% Mine Speed, +16% Gem Find |
-| Uncommon | Sensu | Bamboo Bigcat | Striker | +57% Mine Speed, +20% Swing Rate |
-| Uncommon | Urushi | Celadon Lucky Cat | Trader | +71% Coin Bonus, +29% Ore Haul |
-| Uncommon | Kama | Iris Samurai | Bruiser | +57% Mine Speed, +29% Dirt Break |
-| Uncommon | Wind Chime | Lacquer Fox | Striker | +57% Mine Speed, +20% Swing Rate |
-| Uncommon | Tessen | Steel Daruma | Seeker | +26% Chest Luck, +14% Luck |
-| Uncommon | Tasogare | Wisteria Ninja | Striker | +41% Swing Rate, +29% Mine Speed |
-| Uncommon | Kaki | Plum Koi Kite | Tidecaller | +14% Pulverizer, +24% Scrap |
-| Uncommon | Gorogoro | Goldleaf Ninja | Striker | +57% Mine Speed, +20% Swing Rate |
-| Uncommon | Tatami | Goldleaf Lucky Cat | Trader | +57% Ore Haul, +36% Coin Bonus |
-| Uncommon | Wagashi | Wisteria Koi Kite | Tidecaller | +48% Scrap, +7.2% Pulverizer |
-| Uncommon | Tsuki | Tide Daruma | Seeker | +24% Pack Luck, +14% Luck |
-| Uncommon | Asagao | Indigo Samurai | Bruiser | +57% Mine Speed, +29% Dirt Break |
-| Uncommon | Koi | Tide Ninja | Striker | +57% Mine Speed, +20% Swing Rate |
-| Uncommon | Dango | Indigo Fox | Striker | +57% Mine Speed, +29% Dirt Break |
-| Uncommon | Yuhi | Sakura Wyrm | Mystic | +14% Pulverizer, +29% Mine Speed |
-| Uncommon | Plum Rain | Steel Bigcat | Striker | +57% Mine Speed, +29% Dirt Break |
-| Uncommon | Taiyaki | Camellia Lucky Cat | Trader | +71% Coin Bonus, +29% Ore Haul |
-| Rare | Wakuwaku | Indigo Koi Kite | Tidecaller | +59% Scrap, +8.8% Pulverizer |
-| Rare | Pyonpyon | Moonlit Daruma | Seeker | +32% Chest Luck, +18% Luck |
-| Rare | Sashiko | Bamboo Samurai | Bruiser | +81% Mine Speed, +2.5% Tidal Wave |
-| Rare | Kumiko | Bamboo Koi Kite | Tidecaller | +59% Scrap, +8.8% Pulverizer |
-| Rare | Odachi | Plum Daruma | Seeker | +32% Chest Luck, +18% Luck |
-| Rare | Rice Ball | Moonlit Samurai | Bruiser | +70% Dirt Break, +35% Mine Speed |
-| Rare | Koi Pond | Peony Lucky Cat | Trader | +88% Coin Bonus, +10% Lucky Block find |
-| Rare | Onigiri | Matcha Ninja | Striker | +70% Mine Speed, +35% Dirt Break |
-| Rare | Honmaru | Celadon Fox | Striker | +70% Mine Speed, +25% Swing Rate |
-| Rare | Daimyo | Tide Koi Kite | Tidecaller | +18% Pulverizer, +29% Scrap |
-| Rare | Tenshu | Vermilion Ninja | Striker | +70% Mine Speed, +25% Swing Rate |
-| Rare | Aikido | Goldleaf Samurai | Bruiser | +70% Dirt Break, +35% Ore Haul |
-| Rare | Saya | Celadon Wyrm | Mystic | +4.9% Tidal Wave, +16% Tidal Wave Damage, +7.9% Pulverizer |
-| Rare | Mori | Cedar Bigcat | Striker | +70% Mine Speed, +25% Swing Rate |
-| Rare | Hinoki | Iris Lucky Cat | Trader | +70% Ore Haul, +44% Coin Bonus |
-| Rare | Hoshi | Camellia Daruma | Seeker | +32% Chest Luck, +18% Luck |
-| Epic | Suna | Glowing Moonlit Ninja | Striker | +88% Mine Speed, +44% Dirt Break |
-| Epic | Bamboo Shoot | Glowing Plum Samurai | Bruiser | +88% Dirt Break, +44% Ore Haul |
-| Epic | Inu | Glowing Bronze Koi Kite | Tidecaller | +73% Scrap, +11% Pulverizer |
-| Epic | Raden | Glowing Lacquer Lucky Cat | Trader | +109% Coin Bonus, +44% Ore Haul |
-| Epic | Kyudo | Glowing Ash Daruma | Seeker | +36% Pack Luck, +22% Luck |
-| Epic | Tsubame | Glowing Indigo Ninja | Striker | +88% Mine Speed, +44% Dirt Break |
-| Epic | Kuri | Glowing Peony Fox | Striker | +88% Mine Speed, +31% Swing Rate |
-| Epic | Ink Brush | Glowing Peony Bigcat | Striker | +88% Mine Speed, +31% Swing Rate |
-| Epic | Yumi | Glowing Iris Daruma | Seeker | +36% Pack Luck, +22% Luck |
-| Legendary | Netsuke | Noble Pine Lucky Cat | Trader | +141% Coin Bonus, +56% Ore Haul |
-| Legendary | Ao | Honored Goldleaf Koi Kite | Tidecaller | +94% Scrap, +14% Pulverizer |
-| Legendary | Nagi | Lacquered Camellia Samurai | Bruiser | +113% Mine Speed, +56% Dirt Break |
-| Legendary | Hamon | Gilded Tide Wyrm | Mystic | +113% Mine Speed, +31% Gem Find |
-| Legendary | Zori | Noble Cedar Ninja | Striker | +113% Mine Speed, +56% Dirt Break |
-| Legendary | Kendo | Honored Moonlit Koi Kite | Tidecaller | +28% Pulverizer, +47% Scrap |
-| Mythic | Sensei | Ancestral Lucky Cat | Shogun's Oath | +177% Mine Speed, +3.8% Tidal Wave, +11% Tidal Wave Damage |
-| Mythic | Vigil | Ronin Samurai | Shogun's Oath | +11% Tidal Wave, +25% Tidal Wave Damage, +85% Mine Speed |
-| Mythic | Folding Fan | Imperial Daruma | Shogun's Oath | +72% Tidal Wave Damage, +107% Mine Speed, +1.6% Tidal Wave |
-| Mythic | Senbei | Shogun Ninja | Shogun's Oath | +177% Mine Speed, +3.8% Tidal Wave, +11% Tidal Wave Damage |
-| Divine | Sumo | Enlightened Wyrm | Shogun's Oath | +15% Tidal Wave, +34% Tidal Wave Damage, +116% Mine Speed |
-| Divine | Fude | Heavenly Koi Kite | Shogun's Oath | +97% Tidal Wave Damage, +145% Mine Speed, +2.2% Tidal Wave |
-| Exotic | Midori | Spirit Lucky Cat | Shogun's Oath | +324% Mine Speed, +6.9% Tidal Wave, +20% Tidal Wave Damage |
-| Exotic | Furin | Kintsugi Bigcat | Shogun's Oath | +20% Tidal Wave, +46% Tidal Wave Damage, +156% Mine Speed |
-| Exotic | Ame | Goldwave Samurai | Shogun's Oath | +131% Tidal Wave Damage, +196% Mine Speed, +2.9% Tidal Wave |
+| Common | Shinai | Persimmon Ninja | Striker | +48% Mine Speed, +24% Dirt Break |
+| Common | Kendama | Wisteria Samurai | Bruiser | +48% Dirt Break, +24% Mine Speed |
+| Common | Iwa | Indigo Daruma | Seeker | +24% Luck, +11% Chest Luck |
+| Common | Jinbaori | Azalea Fox | Striker | +48% Mine Speed, +17% Swing Rate |
+| Common | Nashiji | Chestnut Koi Kite | Tidecaller | +12% Pulverizer, +20% Scrap |
+| Common | Koban | Azalea Wyrm | Mystic | +48% Mine Speed, +13% Gem Find |
+| Common | Kanzashi | Kikyo Bigcat | Striker | +34% Swing Rate, +24% Mine Speed |
+| Common | Hotaru | Emerald Lucky Cat | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
+| Common | Kirakira | Lacquer Ninja | Striker | +34% Swing Rate, +24% Mine Speed |
+| Common | Koto | Chestnut Samurai | Bruiser | +48% Dirt Break, +24% Ore Haul |
+| Common | Kunoichi | Goldleaf Koi Kite | Tidecaller | +27% Gem Find, +6.0% Pulverizer |
+| Common | Kaizen | Coral Lucky Cat | Trader | +60% Coin Bonus, +24% Ore Haul |
+| Common | Iaido | Camellia Daruma | Seeker | +20% Pack Luck, +12% Luck |
+| Common | Edo | Moss Fox | Striker | +48% Mine Speed, +24% Dirt Break |
+| Common | Shuriken | Pine Koi Kite | Tidecaller | +12% Pulverizer, +20% Scrap |
+| Common | Chochin | Wasabi Ninja | Striker | +48% Mine Speed, +17% Swing Rate |
+| Common | Steadfast | Moss Wyrm | Mystic | +3.4% Tidal Wave, +38% Mine Speed |
+| Common | Shoji | Kingfisher Bigcat | Striker | +48% Mine Speed, +24% Dirt Break |
+| Common | Kaze | Lacquer Samurai | Bruiser | +48% Mine Speed, +24% Dirt Break |
+| Common | Yama | Celadon Lucky Cat | Trader | +48% Ore Haul, +30% Coin Bonus |
+| Common | Tsuka | Moonlit Daruma | Seeker | +24% Luck, +11% Chest Luck |
+| Common | Tsubaki | Goldleaf Lucky Cat | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
+| Common | Geta | Goldleaf Samurai | Bruiser | +48% Dirt Break, +24% Ore Haul |
+| Common | Paper Lantern | Tide Koi Kite | Tidecaller | +40% Scrap, +6.0% Pulverizer |
+| Common | Kaminari | Hisoku Ninja | Striker | +48% Mine Speed, +17% Swing Rate |
+| Common | Yokozuna | Bronze Daruma | Seeker | +22% Chest Luck, +12% Luck |
+| Common | Sashimono | Azalea Bigcat | Striker | +48% Mine Speed, +24% Dirt Break |
+| Common | Yoake | Aotake Lucky Cat | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
+| Common | Resolve | Wasabi Samurai | Bruiser | +48% Mine Speed, +24% Dirt Break |
+| Common | Kikko | Sakura Koi Kite | Tidecaller | +12% Pulverizer, +20% Scrap |
+| Common | Mofu | Kikyo Fox | Striker | +48% Mine Speed, +17% Swing Rate |
+| Common | Wakizashi | Sakura Ninja | Striker | +48% Mine Speed, +24% Dirt Break |
+| Common | Haiku | Kikyo Wyrm | Mystic | +12% Pulverizer, +24% Mine Speed |
+| Common | Kata | Azalea Daruma | Seeker | +20% Pack Luck, +12% Luck |
+| Common | Kokeshi | Fuji Lucky Cat | Trader | +48% Ore Haul, +30% Coin Bonus |
+| Common | Kogatana | Bamboo Samurai | Bruiser | +48% Mine Speed, +24% Dirt Break |
+| Common | Honor | Kikyo Daruma | Seeker | +20% Pack Luck, +12% Luck |
+| Common | Kame | Ash Ninja | Striker | +34% Swing Rate, +24% Mine Speed |
+| Common | Genki | Plum Koi Kite | Tidecaller | +27% Gem Find, +6.0% Pulverizer |
+| Common | Hatamoto | Wasabi Bigcat | Striker | +48% Mine Speed, +17% Swing Rate |
+| Common | Ishigaki | Hakka Daruma | Seeker | +20% Pack Luck, +12% Luck |
+| Common | Gunbai | Tide Lucky Cat | Mystic | +12% Pulverizer, +24% Mine Speed |
+| Common | Loyal | Moonlit Samurai | Striker | +48% Mine Speed, +24% Dirt Break |
+| Common | Kurukuru | Iris Ninja | Trader | +60% Coin Bonus, +6.8% Lucky Block find |
+| Uncommon | Yagura | Coral Koi Kite | Bruiser | +57% Dirt Break, +29% Mine Speed |
+| Uncommon | Biwa | Plum Lucky Cat | Striker | +57% Mine Speed, +20% Swing Rate |
+| Uncommon | Shippo | Murasaki Samurai | Tidecaller | +14% Pulverizer, +24% Scrap |
+| Uncommon | Kage | Tea Ninja | Trader | +71% Coin Bonus, +8.2% Lucky Block find |
+| Uncommon | Taiko | Murasaki Koi Kite | Bruiser | +57% Mine Speed, +29% Dirt Break |
+| Uncommon | Furoshiki | Yuzu Daruma | Striker | +41% Swing Rate, +29% Mine Speed |
+| Uncommon | Yukata | Murasaki Lucky Cat | Seeker | +29% Luck, +13% Chest Luck |
+| Uncommon | Go Stone | Kikyo Samurai | Tidecaller | +48% Scrap, +7.2% Pulverizer |
+| Uncommon | Hinode | Jade Ninja | Mystic | +57% Mine Speed, +16% Gem Find |
+| Uncommon | Sensu | Matcha Daruma | Striker | +57% Mine Speed, +20% Swing Rate |
+| Uncommon | Urushi | Ruri Koi Kite | Trader | +71% Coin Bonus, +29% Ore Haul |
+| Uncommon | Kama | Wasabi Lucky Cat | Bruiser | +57% Mine Speed, +29% Dirt Break |
+| Uncommon | Wind Chime | Persimmon Samurai | Striker | +57% Mine Speed, +20% Swing Rate |
+| Uncommon | Tessen | Chestnut Daruma | Seeker | +26% Chest Luck, +14% Luck |
+| Uncommon | Tasogare | Kingfisher Ninja | Striker | +41% Swing Rate, +29% Mine Speed |
+| Uncommon | Kaki | Hisoku Koi Kite | Tidecaller | +14% Pulverizer, +24% Scrap |
+| Uncommon | Gorogoro | Ruri Ninja | Striker | +57% Mine Speed, +20% Swing Rate |
+| Uncommon | Tatami | Ruri Lucky Cat | Trader | +57% Ore Haul, +36% Coin Bonus |
+| Uncommon | Wagashi | Emerald Koi Kite | Tidecaller | +48% Scrap, +7.2% Pulverizer |
+| Uncommon | Tsuki | Emerald Daruma | Seeker | +24% Pack Luck, +14% Luck |
+| Uncommon | Asagao | Peony Samurai | Bruiser | +57% Mine Speed, +29% Dirt Break |
+| Uncommon | Koi | Ginkgo Ninja | Striker | +57% Mine Speed, +20% Swing Rate |
+| Uncommon | Dango | Matcha Lucky Cat | Striker | +57% Mine Speed, +29% Dirt Break |
+| Uncommon | Yuhi | Yuzu Koi Kite | Mystic | +14% Pulverizer, +29% Mine Speed |
+| Uncommon | Plum Rain | Pine Daruma | Striker | +57% Mine Speed, +29% Dirt Break |
+| Uncommon | Taiyaki | Azalea Samurai | Trader | +71% Coin Bonus, +29% Ore Haul |
+| Rare | Wakuwaku | Bamboo Koi Kite | Tidecaller | +59% Scrap, +8.8% Pulverizer |
+| Rare | Pyonpyon | Wisteria Daruma | Seeker | +32% Chest Luck, +18% Luck |
+| Rare | Sashiko | Moss Samurai | Bruiser | +81% Mine Speed, +2.5% Tidal Wave |
+| Rare | Kumiko | Cedar Lucky Cat | Tidecaller | +59% Scrap, +8.8% Pulverizer |
+| Rare | Odachi | Plum Ninja | Seeker | +32% Chest Luck, +18% Luck |
+| Rare | Rice Ball | Azalea Koi Kite | Bruiser | +70% Dirt Break, +35% Mine Speed |
+| Rare | Koi Pond | Goldleaf Daruma | Trader | +88% Coin Bonus, +10% Lucky Block find |
+| Rare | Onigiri | Jade Samurai | Striker | +70% Mine Speed, +35% Dirt Break |
+| Rare | Honmaru | Sumi Lucky Cat | Striker | +70% Mine Speed, +25% Swing Rate |
+| Rare | Daimyo | Azalea Ninja | Tidecaller | +18% Pulverizer, +29% Scrap |
+| Rare | Tenshu | Midnight Ninja | Striker | +70% Mine Speed, +25% Swing Rate |
+| Rare | Aikido | Lacquer Koi Kite | Bruiser | +70% Dirt Break, +35% Ore Haul |
+| Rare | Saya | Aotake Samurai | Mystic | +4.9% Tidal Wave, +16% Tidal Wave Damage, +7.9% Pulverizer |
+| Rare | Mori | Azalea Lucky Cat | Striker | +70% Mine Speed, +25% Swing Rate |
+| Rare | Hinoki | Kingfisher Daruma | Trader | +70% Ore Haul, +44% Coin Bonus |
+| Rare | Hoshi | Moss Ninja | Seeker | +32% Chest Luck, +18% Luck |
+| Epic | Suna | Kokeshi Doll | Striker | +88% Mine Speed, +44% Dirt Break |
+| Epic | Bamboo Shoot | Kettle Tanuki | Bruiser | +88% Dirt Break, +44% Ore Haul |
+| Epic | Inu | Fukura Sparrow | Tidecaller | +73% Scrap, +11% Pulverizer |
+| Epic | Raden | Shuriken Spinner | Trader | +109% Coin Bonus, +44% Ore Haul |
+| Epic | Kyudo | Nori Onigiri | Seeker | +36% Pack Luck, +22% Luck |
+| Epic | Tsubame | Geta Hopper | Striker | +88% Mine Speed, +44% Dirt Break |
+| Epic | Kuri | Karakasa | Striker | +88% Mine Speed, +31% Swing Rate |
+| Epic | Ink Brush | Kendama Kid | Striker | +88% Mine Speed, +31% Swing Rate |
+| Epic | Yumi | River Kappa | Seeker | +36% Pack Luck, +22% Luck |
+| Epic | Inro | Shogi General | Bruiser | +88% Dirt Break, +44% Mine Speed |
+| Epic | Judo | Jubako Stack | Trader | +109% Coin Bonus, +13% Lucky Block find |
+| Epic | Tori | Tsuba Medallion | Bruiser | +88% Dirt Break, +44% Mine Speed |
+| Epic | Kuro | Suzumushi | Seeker | +36% Pack Luck, +22% Luck |
+| Epic | Senkou | Kamaitachi | Striker | +63% Swing Rate, +44% Mine Speed |
+| Epic | Tamahagane | Shodo Brush | Mystic | +22% Pulverizer, +44% Mine Speed |
+| Epic | Soba | Sakura Bloom | Mystic | +22% Pulverizer, +44% Mine Speed |
+| Epic | Hachimaki | Sumo Champ | Bruiser | +88% Dirt Break, +44% Ore Haul |
+| Epic | Shippu | Bamboo Clacker | Tidecaller | +22% Pulverizer, +36% Scrap |
+| Legendary | Netsuke | Honored Onagadori | Trader | +141% Coin Bonus, +56% Ore Haul |
+| Legendary | Ao | Lacquered Katana Rack | Tidecaller | +94% Scrap, +14% Pulverizer |
+| Legendary | Nagi | Gilded Torii Walker | Bruiser | +113% Mine Speed, +56% Dirt Break |
+| Legendary | Hamon | Noble Komuso Flutist | Mystic | +113% Mine Speed, +31% Gem Find |
+| Legendary | Zori | Honored Hyotan Gourd | Striker | +113% Mine Speed, +56% Dirt Break |
+| Legendary | Kendo | Lacquered Shamisen Bard | Tidecaller | +28% Pulverizer, +47% Scrap |
+| Legendary | Serene | Gilded Lacquer Bridge | Tidecaller | +94% Scrap, +14% Pulverizer |
+| Legendary | Uchiwa | Noble Ricebowl Rower | Tidecaller | +63% Gem Find, +14% Pulverizer |
+| Legendary | Momiji | Honored Nurikabe | Digger | +113% Dirt Break, +56% Ore Haul |
+| Legendary | Uzushio | Lacquered Karakuri Doll | Trader | +141% Coin Bonus, +16% Lucky Block find |
+| Legendary | Tora | Gilded Yumi Quiver | Striker | +113% Mine Speed, +40% Swing Rate |
+| Legendary | Koshirae | Noble Kadomatsu | Prospector | +63% Rare Ore, +31% Gem Find |
+| Mythic | Sensei | Shogun Shachihoko | Shogun's Oath | +177% Mine Speed, +3.8% Tidal Wave, +11% Tidal Wave Damage |
+| Mythic | Vigil | Ancestral Ittan Momen | Shogun's Oath | +11% Tidal Wave, +25% Tidal Wave Damage, +85% Mine Speed |
+| Mythic | Folding Fan | Ronin Byobu Screen | Shogun's Oath | +72% Tidal Wave Damage, +107% Mine Speed, +1.6% Tidal Wave |
+| Mythic | Senbei | Imperial Tenshu Castle | Shogun's Oath | +177% Mine Speed, +3.8% Tidal Wave, +11% Tidal Wave Damage |
+| Mythic | Noren | Shogun Amabie | Shogun's Oath | +177% Mine Speed, +3.8% Tidal Wave, +11% Tidal Wave Damage |
+| Mythic | Bushido | Ancestral Gissha Carriage | Shogun's Oath | +11% Tidal Wave, +25% Tidal Wave Damage, +85% Mine Speed |
+| Mythic | Shika | Ronin Mountain Tengu | Shogun's Oath | +72% Tidal Wave Damage, +107% Mine Speed, +1.6% Tidal Wave |
+| Mythic | Sun Disc | Imperial Kanabo Oni | Shogun's Oath | +177% Mine Speed, +3.8% Tidal Wave, +11% Tidal Wave Damage |
+| Divine | Sumo | Sacred Yatagarasu | Shogun's Oath | +15% Tidal Wave, +34% Tidal Wave Damage, +116% Mine Speed |
+| Divine | Fude | Enlightened Magatama | Shogun's Oath | +97% Tidal Wave Damage, +145% Mine Speed, +2.2% Tidal Wave |
+| Divine | Kurogane | Heavenly Hokora | Shogun's Oath | +15% Tidal Wave, +34% Tidal Wave Damage, +116% Mine Speed |
+| Divine | Nobori | Blessed Kusudama | Shogun's Oath | +97% Tidal Wave Damage, +145% Mine Speed, +2.2% Tidal Wave |
+| Exotic | Midori | Kintsugi Raku Teabowl | Shogun's Oath | +324% Mine Speed, +6.9% Tidal Wave, +20% Tidal Wave Damage |
+| Exotic | Furin | Goldwave Seigaiha Wave | Shogun's Oath | +20% Tidal Wave, +46% Tidal Wave Damage, +156% Mine Speed |
+| Exotic | Ame | Moonblade Oathbound Katana | Shogun's Oath | +131% Tidal Wave Damage, +196% Mine Speed, +2.9% Tidal Wave |
+| Exotic | Sageo | Spirit Hanabi Burst | Shogun's Oath | +324% Mine Speed, +6.9% Tidal Wave, +20% Tidal Wave Damage |
+| Exotic | Shogi | Kintsugi Sumi Inkblot | Shogun's Oath | +20% Tidal Wave, +46% Tidal Wave Damage, +156% Mine Speed |
+| Exotic | Maki-e | Goldwave Warlord Kabuto | Shogun's Oath | +131% Tidal Wave Damage, +196% Mine Speed, +2.9% Tidal Wave |
 
 ## 9. Royal Reserve (B, ×1.48)
 
@@ -1012,115 +1193,139 @@ Packs: Gilded Entry · Noble Lineage · Gold Standard · Imperial Vault · Crown
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Tiara | Coral Rose Peacock | Seeker | +23% Chest Luck, +13% Luck |
-| Common | Courtly | Amethyst Jewel Box | Prospector | +21% Ore Luck, +14% Gem Find |
-| Common | Crowny | Silver Lion | Striker | +50% Mine Speed, +18% Swing Rate |
-| Common | Lord Velvetpaw | Topaz Horse | Trader | +50% Ore Haul, +31% Coin Bonus |
-| Common | Fanfare | Amethyst Poodle | Trader | +63% Coin Bonus, +7.2% Lucky Block find |
-| Common | Reginald | Champagne Bigcat | Striker | +50% Mine Speed, +18% Swing Rate |
-| Common | Petit Four | Gold Hawk | Seeker | +25% Luck, +11% Chest Luck |
-| Common | Blueblood | Teal Velvet Crownling | Mystic | +63% Coin Bonus, +25% Mine Speed |
-| Common | Pendant | Ruby Peacock | Seeker | +21% Pack Luck, +13% Luck |
-| Common | Regatta | Ruby Jewel Box | Prospector | +28% Rare Ore, +14% Gem Find |
-| Common | Jewelina | Lilac Lion | Striker | +50% Mine Speed, +25% Dirt Break |
-| Common | Baroness Belle | Rose Gold Crownling | Mystic | +63% Coin Bonus, +11% Chest Luck |
-| Common | Royalty | Teal Velvet Poodle | Trader | +50% Ore Haul, +31% Coin Bonus |
-| Common | Luxie | Champagne Peacock | Seeker | +23% Chest Luck, +13% Luck |
-| Common | Chateau | Mauve Horse | Trader | +63% Coin Bonus, +25% Ore Haul |
-| Common | Fleurette | Silver Hawk | Seeker | +23% Chest Luck, +13% Luck |
-| Common | Duke Alistair | Blush Lion | Striker | +36% Swing Rate, +25% Mine Speed |
-| Common | Velour | Jade Bigcat | Striker | +50% Mine Speed, +25% Dirt Break |
-| Common | Esquire | Rose Gold Poodle | Trader | +63% Coin Bonus, +7.2% Lucky Block find |
-| Common | Parasol | Imperial Red Crownling | Mystic | +63% Coin Bonus, +25% Mine Speed |
-| Common | Royal Purple | Mauve Jewel Box | Prospector | +28% Rare Ore, +14% Gem Find |
-| Common | Lordling | Lilac Poodle | Trader | +63% Coin Bonus, +25% Ore Haul |
-| Common | Heraldry | Ruby Crownling | Mystic | +63% Coin Bonus, +11% Chest Luck |
-| Common | Emperor | Coral Rose Jewel Box | Prospector | +21% Ore Luck, +14% Gem Find |
-| Common | Duchess Beatrix | Amethyst Peacock | Seeker | +21% Pack Luck, +13% Luck |
-| Common | Diadem | Champagne Lion | Striker | +50% Mine Speed, +18% Swing Rate |
-| Common | Majesty | Teal Velvet Bigcat | Striker | +36% Swing Rate, +25% Mine Speed |
-| Common | Pearlette | Onyx Poodle | Trader | +50% Ore Haul, +31% Coin Bonus |
-| Common | Earl | Gold Crownling | Mystic | +63% Coin Bonus, +25% Mine Speed |
-| Common | Empress | Navy Hawk | Seeker | +21% Pack Luck, +13% Luck |
-| Common | Gallant | Sapphire Lion | Striker | +50% Mine Speed, +25% Dirt Break |
-| Common | Viscount | Champagne Horse | Trader | +50% Ore Haul, +31% Coin Bonus |
-| Common | Lady Goldilace | Topaz Jewel Box | Prospector | +28% Gem Find, +14% Rare Ore |
-| Common | Sir Goldpaw | Navy Peacock | Seeker | +25% Luck, +11% Chest Luck |
-| Common | Waltz | Jade Lion | Striker | +50% Mine Speed, +18% Swing Rate |
-| Common | Minuet | Black Velvet Poodle | Trader | +63% Coin Bonus, +25% Ore Haul |
-| Common | Lace | Pearl Crownling | Mystic | +63% Coin Bonus, +11% Chest Luck |
-| Common | Heirloom | Champagne Jewel Box | Prospector | +28% Gem Find, +14% Rare Ore |
-| Common | Poshie | Silver Peacock | Seeker | +23% Chest Luck, +13% Luck |
-| Common | Grandeur | Bronze Lion | Striker | +36% Swing Rate, +25% Mine Speed |
-| Common | Cashmere | Platinum Bigcat | Striker | +50% Mine Speed, +18% Swing Rate |
-| Common | Crestwell | Emerald Poodle | Trader | +63% Coin Bonus, +25% Ore Haul |
-| Common | Rosette | Teal Velvet Hawk | Seeker | +23% Chest Luck, +13% Luck |
-| Common | Count Cornelius | Emerald Crownling | Mystic | +63% Coin Bonus, +25% Mine Speed |
-| Uncommon | Cloak | Lilac Peacock | Seeker | +30% Luck, +14% Chest Luck |
-| Uncommon | Lord Ambrose | Onyx Jewel Box | Prospector | +25% Ore Luck, +17% Gem Find |
-| Uncommon | Squire | Emerald Horse | Trader | +60% Ore Haul, +38% Coin Bonus |
-| Uncommon | Sir Archibald | Black Velvet Lion | Striker | +60% Mine Speed, +21% Swing Rate |
-| Uncommon | Gilt | Jade Poodle | Trader | +60% Ore Haul, +38% Coin Bonus |
-| Uncommon | Chandelier | Black Velvet Crownling | Mystic | +75% Coin Bonus, +14% Chest Luck |
-| Uncommon | Baron Rupert | Mauve Peacock | Seeker | +30% Luck, +14% Chest Luck |
-| Uncommon | Palatine | Teal Velvet Jewel Box | Prospector | +33% Rare Ore, +17% Gem Find |
-| Uncommon | Prince Edmund | Ruby Lion | Striker | +60% Mine Speed, +30% Dirt Break |
-| Uncommon | Organza | Mauve Bigcat | Striker | +60% Mine Speed, +21% Swing Rate |
-| Uncommon | Steward | Onyx Crownling | Mystic | +75% Coin Bonus, +30% Mine Speed |
-| Uncommon | Parapet | Lilac Hawk | Seeker | +30% Luck, +14% Chest Luck |
-| Uncommon | Manor | Silver Jewel Box | Prospector | +33% Rare Ore, +17% Gem Find |
-| Uncommon | Queenly | Imperial Red Peacock | Seeker | +30% Luck, +14% Chest Luck |
-| Uncommon | Coronet | Royal Purple Horse | Trader | +75% Coin Bonus, +8.6% Lucky Block find |
-| Uncommon | Moneybags | Mauve Poodle | Trader | +60% Ore Haul, +38% Coin Bonus |
-| Uncommon | Lord Percival | Topaz Lion | Striker | +60% Mine Speed, +21% Swing Rate |
-| Uncommon | Jester | Black Velvet Peacock | Seeker | +25% Pack Luck, +15% Luck |
-| Uncommon | Goldpaw | Sapphire Poodle | Trader | +60% Ore Haul, +38% Coin Bonus |
-| Uncommon | Lady Rosalind | Mauve Crownling | Mystic | +75% Coin Bonus, +14% Chest Luck |
-| Uncommon | Milord | Lilac Jewel Box | Prospector | +33% Rare Ore, +17% Gem Find |
-| Uncommon | Signetta | Jade Horse | Trader | +75% Coin Bonus, +30% Ore Haul |
-| Uncommon | Tiny Tiara | Coral Rose Bigcat | Striker | +43% Swing Rate, +30% Mine Speed |
-| Uncommon | Dame Glitter | Rose Gold Lion | Striker | +60% Mine Speed, +21% Swing Rate |
-| Uncommon | Mantle | Rose Gold Peacock | Seeker | +30% Luck, +14% Chest Luck |
-| Uncommon | Dignity | Platinum Poodle | Trader | +75% Coin Bonus, +8.6% Lucky Block find |
-| Rare | Opulence | Champagne Crownling | Mystic | +92% Coin Bonus, +17% Chest Luck |
-| Rare | Crown Jewel | Coral Rose Hawk | Seeker | +34% Chest Luck, +18% Luck |
-| Rare | Goldcrown | Black Velvet Jewel Box | Prospector | +31% Ore Luck, +20% Gem Find |
-| Rare | Milady | Emerald Lion | Striker | +74% Mine Speed, +26% Swing Rate |
-| Rare | Sir Reginald | Silver Poodle | Trader | +92% Coin Bonus, +37% Ore Haul |
-| Rare | Dame Wilhelmina | Topaz Crownling | Mystic | +92% Coin Bonus, +37% Mine Speed |
-| Rare | Excellency | Sapphire Peacock | Seeker | +37% Luck, +17% Chest Luck |
-| Rare | Ebony | Burgundy Jewel Box | Prospector | +41% Rare Ore, +20% Gem Find |
-| Rare | Lady Snugglepuff | Onyx Horse | Trader | +74% Ore Haul, +46% Coin Bonus |
-| Rare | Princely | Teal Velvet Lion | Striker | +74% Mine Speed, +37% Dirt Break |
-| Rare | Lord Ignatius | Emerald Jewel Box | Prospector | +31% Ore Luck, +20% Gem Find |
-| Rare | Ballroom | Jade Crownling | Mystic | +92% Coin Bonus, +17% Chest Luck |
-| Rare | Queen Bee | Blush Bigcat | Striker | +74% Mine Speed, +26% Swing Rate |
-| Rare | Count Glitter | Burgundy Poodle | Trader | +74% Ore Haul, +46% Coin Bonus |
-| Rare | Inkwing | Amethyst Hawk | Seeker | +37% Luck, +17% Chest Luck |
-| Epic | Lordly | Glowing Jade Peacock | Seeker | +38% Pack Luck, +23% Luck |
-| Epic | Fleur | Glowing Gold Lion | Striker | +92% Mine Speed, +33% Swing Rate |
-| Epic | Posh | Glowing Bronze Jewel Box | Prospector | +51% Rare Ore, +26% Gem Find |
-| Epic | Swank | Glowing Sapphire Crownling | Mystic | +115% Coin Bonus, +21% Chest Luck |
-| Epic | Plush | Glowing Bronze Poodle | Trader | +115% Coin Bonus, +46% Ore Haul |
-| Epic | Gala | Glowing Blush Peacock | Seeker | +42% Chest Luck, +23% Luck |
-| Epic | Palace | Glowing Emerald Bigcat | Striker | +92% Mine Speed, +46% Dirt Break |
-| Epic | Sir Pounce | Glowing Coral Rose Poodle | Trader | +115% Coin Bonus, +46% Ore Haul |
-| Epic | Citadel | Glowing Imperial Red Jewel Box | Prospector | +38% Ore Luck, +26% Gem Find |
-| Legendary | Bowtie | Noble Bronze Peacock | Seeker | +54% Chest Luck, +30% Luck |
-| Legendary | Dynasty | Stately Amethyst Lion | Striker | +118% Mine Speed, +42% Swing Rate |
-| Legendary | Velvetine | Gilded Amethyst Horse | Trader | +148% Coin Bonus, +17% Lucky Block find |
-| Legendary | Sir Waddleton | Polished Coral Rose Crownling | Mystic | +148% Coin Bonus, +27% Chest Luck |
-| Legendary | Lady Evangeline | Noble Jade Hawk | Seeker | +54% Chest Luck, +30% Luck |
-| Legendary | Prince Pudding | Stately Ruby Poodle | Trader | +148% Coin Bonus, +17% Lucky Block find |
-| Mythic | Princess Posy | Imperial Lion | Royal Reserve | +202% Coin Bonus, +26% Chest Luck, +10% Pack Luck |
-| Mythic | Goldleaf | Velvet Jewel Box | Royal Reserve | +73% Chest Luck, +24% Pack Luck, +30% Coin Bonus |
-| Divine | Circlet | Radiant Crownling | Royal Reserve | +91% Pack Luck, +96% Coin Bonus, +15% Chest Luck |
-| Divine | Throne | Sovereign Peacock | Royal Reserve | +274% Coin Bonus, +35% Chest Luck, +14% Pack Luck |
-| Exotic | Ritzy | Jewelled Lion | Royal Reserve | +134% Chest Luck, +43% Pack Luck, +55% Coin Bonus |
-| Exotic | Chivalry | Opulent Hawk | Royal Reserve | +123% Pack Luck, +129% Coin Bonus, +20% Chest Luck |
-| Exotic | Crownpaw | Resplendent Horse | Royal Reserve | +369% Coin Bonus, +47% Chest Luck, +18% Pack Luck |
-| Exotic | Prince Plushie | Diamond Jewel Box | Royal Reserve | +134% Chest Luck, +43% Pack Luck, +55% Coin Bonus |
-| Exotic | Lord Snootington | Jewelled Poodle | Royal Reserve | +123% Pack Luck, +129% Coin Bonus, +20% Chest Luck |
+| Common | Tiara | Ruby Peacock | Seeker | +23% Chest Luck, +13% Luck |
+| Common | Courtly | Turquoise Jewel Box | Prospector | +21% Ore Luck, +14% Gem Find |
+| Common | Crowny | Burgundy Lion | Striker | +50% Mine Speed, +18% Swing Rate |
+| Common | Lord Velvetpaw | Lilac Lipstick | Trader | +50% Ore Haul, +31% Coin Bonus |
+| Common | Fanfare | Clover Horse | Trader | +63% Coin Bonus, +7.2% Lucky Block find |
+| Common | Reginald | Orchid Poodle | Striker | +50% Mine Speed, +18% Swing Rate |
+| Common | Petit Four | Emerald Hawk | Seeker | +25% Luck, +11% Chest Luck |
+| Common | Blueblood | Coral Rose Tuffet | Mystic | +63% Coin Bonus, +25% Mine Speed |
+| Common | Pendant | Cognac Crownling | Seeker | +21% Pack Luck, +13% Luck |
+| Common | Regatta | Sky Satin Lace Ruff | Prospector | +28% Rare Ore, +14% Gem Find |
+| Common | Jewelina | Jet Cabochon | Striker | +50% Mine Speed, +25% Dirt Break |
+| Common | Baroness Belle | Forest Velvet Peacock | Mystic | +63% Coin Bonus, +11% Chest Luck |
+| Common | Royalty | Teal Velvet Lace Ruff | Trader | +50% Ore Haul, +31% Coin Bonus |
+| Common | Luxie | Mahogany Tuffet | Seeker | +23% Chest Luck, +13% Luck |
+| Common | Chateau | Mauve Cabochon | Trader | +63% Coin Bonus, +25% Ore Haul |
+| Common | Fleurette | Silver Lion | Seeker | +23% Chest Luck, +13% Luck |
+| Common | Duke Alistair | Teal Velvet Lipstick | Striker | +36% Swing Rate, +25% Mine Speed |
+| Common | Velour | Platinum Poodle | Striker | +50% Mine Speed, +25% Dirt Break |
+| Common | Esquire | Black Velvet Crownling | Trader | +63% Coin Bonus, +7.2% Lucky Block find |
+| Common | Parasol | Navy Jewel Box | Mystic | +63% Coin Bonus, +25% Mine Speed |
+| Common | Royal Purple | Mint Satin Lace Ruff | Prospector | +28% Rare Ore, +14% Gem Find |
+| Common | Lordling | Bronze Lipstick | Trader | +63% Coin Bonus, +25% Ore Haul |
+| Common | Heraldry | Teal Velvet Poodle | Mystic | +63% Coin Bonus, +11% Chest Luck |
+| Common | Emperor | Rose Gold Cabochon | Prospector | +21% Ore Luck, +14% Gem Find |
+| Common | Duchess Beatrix | Blush Tuffet | Seeker | +21% Pack Luck, +13% Luck |
+| Common | Diadem | Fire Opal Crownling | Striker | +50% Mine Speed, +18% Swing Rate |
+| Common | Majesty | Orchid Hawk | Striker | +36% Swing Rate, +25% Mine Speed |
+| Common | Pearlette | Silver Jewel Box | Trader | +50% Ore Haul, +31% Coin Bonus |
+| Common | Earl | Snow Ermine Peacock | Mystic | +63% Coin Bonus, +25% Mine Speed |
+| Common | Empress | Onyx Horse | Seeker | +21% Pack Luck, +13% Luck |
+| Common | Gallant | Fuchsia Lion | Striker | +50% Mine Speed, +25% Dirt Break |
+| Common | Viscount | Topaz Lion | Trader | +50% Ore Haul, +31% Coin Bonus |
+| Common | Lady Goldilace | Bronze Lace Ruff | Prospector | +28% Gem Find, +14% Rare Ore |
+| Common | Sir Goldpaw | Aquamarine Lipstick | Seeker | +25% Luck, +11% Chest Luck |
+| Common | Waltz | Topaz Poodle | Striker | +50% Mine Speed, +18% Swing Rate |
+| Common | Minuet | Tanzanite Cabochon | Trader | +63% Coin Bonus, +25% Ore Haul |
+| Common | Lace | Silver Crownling | Mystic | +63% Coin Bonus, +11% Chest Luck |
+| Common | Heirloom | Sapphire Jewel Box | Prospector | +28% Gem Find, +14% Rare Ore |
+| Common | Poshie | Rose Gold Peacock | Seeker | +23% Chest Luck, +13% Luck |
+| Common | Grandeur | Champagne Tuffet | Striker | +36% Swing Rate, +25% Mine Speed |
+| Common | Cashmere | Ruby Lion | Striker | +50% Mine Speed, +18% Swing Rate |
+| Common | Crestwell | Orchid Lace Ruff | Trader | +63% Coin Bonus, +25% Ore Haul |
+| Common | Rosette | Emerald Poodle | Seeker | +23% Chest Luck, +13% Luck |
+| Common | Count Cornelius | Aquamarine Cabochon | Mystic | +63% Coin Bonus, +25% Mine Speed |
+| Uncommon | Cloak | Peridot Hawk | Seeker | +30% Luck, +14% Chest Luck |
+| Uncommon | Lord Ambrose | Ruby Crownling | Prospector | +25% Ore Luck, +17% Gem Find |
+| Uncommon | Squire | Rose Gold Jewel Box | Trader | +60% Ore Haul, +38% Coin Bonus |
+| Uncommon | Sir Archibald | Jade Peacock | Striker | +60% Mine Speed, +21% Swing Rate |
+| Uncommon | Gilt | Fuchsia Horse | Trader | +60% Ore Haul, +38% Coin Bonus |
+| Uncommon | Chandelier | Tanzanite Lipstick | Mystic | +75% Coin Bonus, +14% Chest Luck |
+| Uncommon | Baron Rupert | Fire Opal Tuffet | Seeker | +30% Luck, +14% Chest Luck |
+| Uncommon | Palatine | Midnight Lion | Prospector | +33% Rare Ore, +17% Gem Find |
+| Uncommon | Prince Edmund | Peridot Lipstick | Striker | +60% Mine Speed, +30% Dirt Break |
+| Uncommon | Organza | Champagne Crownling | Striker | +60% Mine Speed, +21% Swing Rate |
+| Uncommon | Steward | Topaz Jewel Box | Mystic | +75% Coin Bonus, +30% Mine Speed |
+| Uncommon | Parapet | Clover Peacock | Seeker | +30% Luck, +14% Chest Luck |
+| Uncommon | Manor | Emerald Lace Ruff | Prospector | +33% Rare Ore, +17% Gem Find |
+| Uncommon | Queenly | Sapphire Poodle | Seeker | +30% Luck, +14% Chest Luck |
+| Uncommon | Coronet | Forest Velvet Cabochon | Trader | +75% Coin Bonus, +8.6% Lucky Block find |
+| Uncommon | Moneybags | Fuchsia Tuffet | Trader | +60% Ore Haul, +38% Coin Bonus |
+| Uncommon | Lord Percival | Fire Opal Horse | Striker | +60% Mine Speed, +21% Swing Rate |
+| Uncommon | Jester | Tanzanite Lion | Seeker | +25% Pack Luck, +15% Luck |
+| Uncommon | Goldpaw | Gold Tuffet | Trader | +60% Ore Haul, +38% Coin Bonus |
+| Uncommon | Lady Rosalind | Lilac Peacock | Mystic | +75% Coin Bonus, +14% Chest Luck |
+| Uncommon | Milord | Blush Lace Ruff | Prospector | +33% Rare Ore, +17% Gem Find |
+| Uncommon | Signetta | Jet Lipstick | Trader | +75% Coin Bonus, +30% Ore Haul |
+| Uncommon | Tiny Tiara | Fire Opal Poodle | Striker | +43% Swing Rate, +30% Mine Speed |
+| Uncommon | Dame Glitter | Amethyst Crownling | Striker | +60% Mine Speed, +21% Swing Rate |
+| Uncommon | Mantle | Citrine Cabochon | Seeker | +30% Luck, +14% Chest Luck |
+| Uncommon | Dignity | Peridot Jewel Box | Trader | +75% Coin Bonus, +8.6% Lucky Block find |
+| Rare | Opulence | Cobalt Tuffet | Mystic | +92% Coin Bonus, +17% Chest Luck |
+| Rare | Crown Jewel | Tanzanite Lace Ruff | Seeker | +34% Chest Luck, +18% Luck |
+| Rare | Goldcrown | Forest Velvet Lion | Prospector | +31% Ore Luck, +20% Gem Find |
+| Rare | Milady | Orchid Lipstick | Striker | +74% Mine Speed, +26% Swing Rate |
+| Rare | Sir Reginald | Clover Poodle | Trader | +92% Coin Bonus, +37% Ore Haul |
+| Rare | Dame Wilhelmina | Cobalt Crownling | Mystic | +92% Coin Bonus, +37% Mine Speed |
+| Rare | Excellency | Midnight Peacock | Seeker | +37% Luck, +17% Chest Luck |
+| Rare | Ebony | Fuchsia Jewel Box | Prospector | +41% Rare Ore, +20% Gem Find |
+| Rare | Lady Snugglepuff | Fuchsia Cabochon | Trader | +74% Ore Haul, +46% Coin Bonus |
+| Rare | Princely | Aquamarine Tuffet | Striker | +74% Mine Speed, +37% Dirt Break |
+| Rare | Lord Ignatius | Turquoise Lion | Prospector | +31% Ore Luck, +20% Gem Find |
+| Rare | Ballroom | Black Velvet Lace Ruff | Mystic | +92% Coin Bonus, +17% Chest Luck |
+| Rare | Queen Bee | Burgundy Lipstick | Striker | +74% Mine Speed, +26% Swing Rate |
+| Rare | Count Glitter | Snow Ermine Cabochon | Trader | +74% Ore Haul, +46% Coin Bonus |
+| Rare | Inkwing | Mahogany Jewel Box | Seeker | +37% Luck, +17% Chest Luck |
+| Epic | Lordly | Scent Atomizer | Seeker | +38% Pack Luck, +23% Luck |
+| Epic | Fleur | Ribbon Hatbox | Striker | +92% Mine Speed, +33% Swing Rate |
+| Epic | Posh | Clasp Purse | Prospector | +51% Rare Ore, +26% Gem Find |
+| Epic | Swank | Silver Cloche | Mystic | +115% Coin Bonus, +21% Chest Luck |
+| Epic | Plush | Christening Rattle | Trader | +115% Coin Bonus, +46% Ore Haul |
+| Epic | Gala | Rosette Medal | Seeker | +42% Chest Luck, +23% Luck |
+| Epic | Palace | Silk Bowtie | Striker | +92% Mine Speed, +46% Dirt Break |
+| Epic | Sir Pounce | Silk Tassel | Trader | +115% Coin Bonus, +46% Ore Haul |
+| Epic | Citadel | Ebony Rook | Prospector | +38% Ore Luck, +26% Gem Find |
+| Epic | Pageant | Brass Register | Trader | +115% Coin Bonus, +13% Lucky Block find |
+| Epic | Lady Marigold | Boutique Bag | Prospector | +51% Gem Find, +26% Rare Ore |
+| Epic | Silverbell | Dial Safe | Bruiser | +92% Dirt Break, +46% Mine Speed |
+| Epic | Regalina | Plush Chinchilla | Digger | +61% Ore Finder, +46% Dirt Break |
+| Epic | Cygnet | Gilded Abacus | Trader | +92% Ore Haul, +57% Coin Bonus |
+| Epic | Princeling | Door Knocker | Striker | +92% Mine Speed, +46% Dirt Break |
+| Epic | Tiarabelle | Clawfoot Tub | Tidecaller | +23% Pulverizer, +38% Scrap |
+| Epic | Sir Pawsalot | Silver Spoonbill | Seeker | +42% Chest Luck, +23% Luck |
+| Epic | Sash | Auction Gavel | Trader | +115% Coin Bonus, +46% Ore Haul |
+| Legendary | Bowtie | Stately Lorgnette | Seeker | +54% Chest Luck, +30% Luck |
+| Legendary | Dynasty | Gilded Queen Angelfish | Striker | +118% Mine Speed, +42% Swing Rate |
+| Legendary | Velvetine | Polished Sturgeon Baron | Trader | +148% Coin Bonus, +17% Lucky Block find |
+| Legendary | Sir Waddleton | Noble Concert Cello | Mystic | +148% Coin Bonus, +27% Chest Luck |
+| Legendary | Lady Evangeline | Stately Chesterfield | Seeker | +54% Chest Luck, +30% Luck |
+| Legendary | Prince Pudding | Gilded Palace Sentry | Trader | +148% Coin Bonus, +17% Lucky Block find |
+| Legendary | Dame Damask | Polished Court Jester | Striker | +85% Swing Rate, +59% Mine Speed |
+| Legendary | Viceroy | Noble Powdered Wig | Mystic | +148% Coin Bonus, +59% Mine Speed |
+| Legendary | Noir | Stately Bellhop Cart | Prospector | +66% Rare Ore, +33% Gem Find |
+| Legendary | Silken | Gilded Picnic Hamper | Digger | +118% Ore Haul, +59% Dirt Break |
+| Legendary | Lord Whiskers | Polished Tourney Pavilion | Striker | +118% Mine Speed, +42% Swing Rate |
+| Legendary | Platinum | Noble Gilt Locomotive | Striker | +118% Mine Speed, +59% Dirt Break |
+| Mythic | Princess Posy | Crowned Gala Stanchion | Royal Reserve | +202% Coin Bonus, +26% Chest Luck, +10% Pack Luck |
+| Mythic | Goldleaf | Imperial Spiral Topiary | Royal Reserve | +73% Chest Luck, +24% Pack Luck, +30% Coin Bonus |
+| Mythic | Baron | Velvet Golden Pineapple | Royal Reserve | +202% Coin Bonus, +26% Chest Luck, +10% Pack Luck |
+| Mythic | Crown Prince | Regal Gilt Portrait | Royal Reserve | +73% Chest Luck, +24% Pack Luck, +30% Coin Bonus |
+| Divine | Circlet | Sovereign Laurel Wreath | Royal Reserve | +91% Pack Luck, +96% Coin Bonus, +15% Chest Luck |
+| Divine | Throne | Majestic Jewelled Scepter | Royal Reserve | +274% Coin Bonus, +35% Chest Luck, +14% Pack Luck |
+| Divine | Royal Highness | Exalted Fleur Emblem | Royal Reserve | +91% Pack Luck, +96% Coin Bonus, +15% Chest Luck |
+| Divine | Count Cashmere | Radiant Crest Escutcheon | Royal Reserve | +274% Coin Bonus, +35% Chest Luck, +14% Pack Luck |
+| Exotic | Ritzy | Diamond Pendant Necklace | Royal Reserve | +134% Chest Luck, +43% Pack Luck, +55% Coin Bonus |
+| Exotic | Chivalry | Jewelled Opera Curtain | Royal Reserve | +123% Pack Luck, +129% Coin Bonus, +20% Chest Luck |
+| Exotic | Crownpaw | Opulent Canopy Bed | Royal Reserve | +369% Coin Bonus, +47% Chest Luck, +18% Pack Luck |
+| Exotic | Prince Plushie | Resplendent Gem Vitrine | Royal Reserve | +134% Chest Luck, +43% Pack Luck, +55% Coin Bonus |
+| Exotic | Lord Snootington | Diamond Veiltail Betta | Royal Reserve | +123% Pack Luck, +129% Coin Bonus, +20% Chest Luck |
+| Exotic | King Fluffy | Jewelled Paradise Dancer | Royal Reserve | +134% Chest Luck, +43% Pack Luck, +55% Coin Bonus |
+| Exotic | Dame Henrietta | Opulent Ermine Mantle | Royal Reserve | +123% Pack Luck, +129% Coin Bonus, +20% Chest Luck |
+| Exotic | Lady Lorgnette | Resplendent Waltzing Gown | Royal Reserve | +369% Coin Bonus, +47% Chest Luck, +18% Pack Luck |
+| Exotic | Sir Horatio | Diamond Globus | Royal Reserve | +134% Chest Luck, +43% Pack Luck, +55% Coin Bonus |
+| Exotic | Grand Duke | Jewelled Grand Staircase | Royal Reserve | +123% Pack Luck, +129% Coin Bonus, +20% Chest Luck |
 
 ## 10. Crimson Eclipse (A, ×1.55)
 
@@ -1128,114 +1333,138 @@ Packs: Blood Oath · Midnight Veil · Crimson Court · Eclipse Ritual · Immorta
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Nightharp | Moon Gold Gargoyle | Bruiser | +53% Dirt Break, +26% Ore Haul |
-| Common | Duskpaw | Rust Rose | Striker | +53% Mine Speed, +19% Swing Rate |
-| Common | Briarmoon | Candle Gold Moth | Seeker | +24% Chest Luck, +13% Luck |
-| Common | Moonfeather | Candle Gold Crescent | Tidecaller | +13% Pulverizer, +22% Scrap |
-| Common | Twilit | Scarlet Eclipse | Mystic | +29% Rare Ore, +26% Dirt Break |
-| Common | Moonmote | Plum Wolf | Striker | +53% Mine Speed, +26% Dirt Break |
-| Common | Rubyshade | Blood Moon Grimoire | Prospector | +22% Ore Luck, +15% Gem Find |
-| Common | Nightpetal | Thornberry Owl | Seeker | +22% Pack Luck, +13% Luck |
-| Common | Bellamoon | Copper Moon Gargoyle | Bruiser | +53% Mine Speed, +26% Dirt Break |
-| Common | Redveil | Dusk Violet Crescent | Tidecaller | +44% Scrap, +6.6% Pulverizer |
-| Common | Moonquill | Plum Eclipse | Mystic | +29% Rare Ore, +26% Mine Speed |
-| Common | Crimsonbell | Plum Grimoire | Prospector | +22% Ore Luck, +15% Gem Find |
-| Common | Midnight Waltz | Silver Moon Rose | Striker | +38% Swing Rate, +26% Mine Speed |
-| Common | Ravenna | Candle Gold Eclipse | Mystic | +4.1% Blast Chance, +12% Blast Damage, +24% Mine Speed |
-| Common | Somber | Rose Moth | Seeker | +24% Chest Luck, +13% Luck |
-| Common | Solemn | Blood Moon Gargoyle | Bruiser | +53% Mine Speed, +26% Dirt Break |
-| Common | Nightbell | Obsidian Rose | Striker | +53% Mine Speed, +26% Dirt Break |
-| Common | Moon Waltz | Copper Moon Owl | Seeker | +26% Luck, +12% Chest Luck |
-| Common | Gloomwick | Obsidian Wolf | Striker | +53% Mine Speed, +26% Dirt Break |
-| Common | Moonheart | Crimson Crescent | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
-| Common | Ravenwing | Rust Grimoire | Prospector | +29% Gem Find, +15% Rare Ore |
-| Common | Moonpaw | Ash Rose | Striker | +38% Swing Rate, +26% Mine Speed |
-| Common | Moonphase | Scarlet Gargoyle | Bruiser | +53% Dirt Break, +26% Ore Haul |
-| Common | Duchess Dusk | Garnet Crescent | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
-| Common | Gloombell | Midnight Eclipse | Mystic | +29% Rare Ore, +26% Dirt Break |
-| Common | Candelabra | Storm Grey Grimoire | Prospector | +22% Ore Luck, +15% Gem Find |
-| Common | Gloomling | Ember Wolf | Striker | +53% Mine Speed, +26% Dirt Break |
-| Common | Nightlace | Blood Moon Rose | Striker | +53% Mine Speed, +26% Dirt Break |
-| Common | Duskwing | Blood Moon Owl | Seeker | +24% Chest Luck, +13% Luck |
-| Common | Moonbloom | Copper Moon Crescent | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
-| Common | Crimsonfall | Rose Gargoyle | Bruiser | +53% Dirt Break, +26% Mine Speed |
-| Common | Pendulum | Twilight Blue Grimoire | Prospector | +22% Ore Luck, +15% Gem Find |
-| Common | Duskbloom | Thornberry Eclipse | Mystic | +4.1% Blast Chance, +12% Blast Damage, +24% Mine Speed |
-| Common | Masque | Twilight Blue Moth | Seeker | +22% Pack Luck, +13% Luck |
-| Common | Scarletveil | Ash Gargoyle | Bruiser | +53% Dirt Break, +26% Ore Haul |
-| Common | Rosewindow | Rust Crescent | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
-| Common | Moonsong | Scarlet Grimoire | Prospector | +29% Gem Find, +15% Rare Ore |
-| Common | Duskmoon | Copper Moon Rose | Striker | +53% Mine Speed, +26% Dirt Break |
-| Common | Pomegranate | Moon Blush Eclipse | Mystic | +4.1% Blast Chance, +42% Mine Speed |
-| Common | Waxwing | Cardinal Owl | Seeker | +24% Chest Luck, +13% Luck |
-| Common | Lacework | Thorn Green Crescent | Tidecaller | +13% Pulverizer, +22% Scrap |
-| Common | Moonhush | Obsidian Moth | Seeker | +22% Pack Luck, +13% Luck |
-| Common | Moondrop | Thorn Green Gargoyle | Bruiser | +53% Dirt Break, +26% Ore Haul |
-| Uncommon | Baron Dusk | Ember Grimoire | Prospector | +35% Gem Find, +18% Rare Ore |
-| Uncommon | Lunamoth | Silver Moon Eclipse | Mystic | +4.9% Blast Chance, +50% Mine Speed |
-| Uncommon | Masquerade | Silver Moon Wolf | Striker | +63% Mine Speed, +23% Swing Rate |
-| Uncommon | Corvina | Rose Rose | Striker | +63% Mine Speed, +23% Swing Rate |
-| Uncommon | Bell Tower | Rose Crescent | Tidecaller | +35% Gem Find, +7.9% Pulverizer |
-| Uncommon | Moonharp | Midnight Rose | Striker | +63% Mine Speed, +23% Swing Rate |
-| Uncommon | Starthorn | Bone Grimoire | Prospector | +26% Ore Luck, +18% Gem Find |
-| Uncommon | Stained Glass | Ember Eclipse | Mystic | +35% Rare Ore, +32% Dirt Break |
-| Uncommon | Corona | Ember Gargoyle | Bruiser | +63% Dirt Break, +32% Ore Haul |
-| Uncommon | Gloomkin | Blood Moon Wolf | Striker | +63% Mine Speed, +32% Dirt Break |
-| Uncommon | Moonveil | Crimson Grimoire | Prospector | +26% Ore Luck, +18% Gem Find |
-| Uncommon | Claret | Ember Crescent | Tidecaller | +35% Gem Find, +7.9% Pulverizer |
-| Uncommon | Crimson Moon | Garnet Eclipse | Mystic | +35% Rare Ore, +32% Dirt Break |
-| Uncommon | Rosarium | Thorn Green Moth | Seeker | +32% Luck, +14% Chest Luck |
-| Uncommon | Thistle | Garnet Rose | Striker | +45% Swing Rate, +32% Mine Speed |
-| Uncommon | Candlelight | Midnight Gargoyle | Bruiser | +63% Mine Speed, +32% Dirt Break |
-| Uncommon | Burgundy | Ember Owl | Seeker | +26% Pack Luck, +16% Luck |
-| Uncommon | Rouge | Plum Rose | Striker | +45% Swing Rate, +32% Mine Speed |
-| Uncommon | Belfry | Storm Grey Eclipse | Mystic | +35% Rare Ore, +32% Dirt Break |
-| Uncommon | Cometrose | Dusk Violet Gargoyle | Bruiser | +63% Dirt Break, +32% Ore Haul |
-| Uncommon | Scarlet | Garnet Grimoire | Prospector | +35% Gem Find, +18% Rare Ore |
-| Uncommon | Nightquill | Rosewood Crescent | Tidecaller | +53% Scrap, +7.9% Pulverizer |
-| Uncommon | Moonpetal | Rust Eclipse | Mystic | +4.9% Blast Chance, +50% Mine Speed |
-| Uncommon | Duskrose | Thornberry Rose | Striker | +45% Swing Rate, +32% Mine Speed |
-| Uncommon | Moonset | Ember Moth | Seeker | +29% Chest Luck, +16% Luck |
-| Rare | Nocturna | Obsidian Crescent | Tidecaller | +6.0% Blast Chance, +18% Blast Damage, +35% Mine Speed |
-| Rare | Bellringer | Plum Gargoyle | Bruiser | +77% Dirt Break, +39% Mine Speed |
-| Rare | Cherrystone | Rose Owl | Seeker | +39% Luck, +18% Chest Luck |
-| Rare | Hush | Candle Gold Wolf | Striker | +77% Mine Speed, +28% Swing Rate |
-| Rare | Oath | Silver Moon Grimoire | Prospector | +43% Rare Ore, +22% Gem Find |
-| Rare | Gothic | Crimson Eclipse | Mystic | +43% Rare Ore, +39% Dirt Break |
-| Rare | Steeple | Bone Rose | Striker | +77% Mine Speed, +28% Swing Rate |
-| Rare | Crowberry | Silver Moon Gargoyle | Bruiser | +77% Dirt Break, +39% Ore Haul |
-| Rare | Redfall | Midnight Grimoire | Prospector | +43% Gem Find, +22% Rare Ore |
-| Rare | Lunaria | Cardinal Crescent | Tidecaller | +65% Scrap, +9.7% Pulverizer |
-| Rare | Waxing | Obsidian Eclipse | Mystic | +43% Rare Ore, +39% Dirt Break |
-| Rare | Tome | Rust Moth | Seeker | +39% Luck, +18% Chest Luck |
-| Rare | Count Moonbeam | Dusk Violet Owl | Seeker | +32% Pack Luck, +19% Luck |
-| Rare | Rubytail | Thornberry Gargoyle | Bruiser | +77% Mine Speed, +22% Rare Ore |
-| Rare | Thornrose | Thornberry Grimoire | Prospector | +32% Ore Luck, +22% Gem Find |
-| Rare | Duskberry | Ash Crescent | Tidecaller | +19% Pulverizer, +32% Scrap |
-| Epic | Nightowl | Glowing Thornberry Wolf | Striker | +97% Mine Speed, +34% Swing Rate |
-| Epic | Quill Pen | Glowing Moon Blush Rose | Striker | +97% Mine Speed, +34% Swing Rate |
-| Epic | Dusklight | Glowing Moon Gold Eclipse | Mystic | +7.5% Blast Chance, +23% Blast Damage, +43% Mine Speed |
-| Epic | Vermilion | Glowing Moon Blush Grimoire | Prospector | +54% Gem Find, +27% Rare Ore |
-| Epic | Evernight | Glowing Candle Gold Gargoyle | Bruiser | +97% Dirt Break, +48% Mine Speed |
-| Epic | Red Giant | Glowing Blood Moon Crescent | Tidecaller | +80% Scrap, +12% Pulverizer |
-| Epic | Moonlit | Glowing Scarlet Rose | Striker | +69% Swing Rate, +48% Mine Speed |
-| Epic | Midnight Rose | Glowing Copper Moon Grimoire | Prospector | +40% Ore Luck, +27% Gem Find |
-| Epic | Mooncloak | Glowing Rosewood Eclipse | Mystic | +7.5% Blast Chance, +23% Blast Damage, +43% Mine Speed |
-| Legendary | Moonrose | Dusky Storm Grey Gargoyle | Bruiser | +124% Mine Speed, +35% Rare Ore |
-| Legendary | Ironrose | Velvet Moon Gold Crescent | Tidecaller | +31% Pulverizer, +52% Scrap |
-| Legendary | Wrought Iron | Gothic Bone Wolf | Striker | +124% Mine Speed, +44% Swing Rate |
-| Legendary | Moonberry | Moonlit Scarlet Moth | Seeker | +52% Pack Luck, +31% Luck |
-| Legendary | Bramblethorn | Dusky Thorn Green Rose | Striker | +89% Swing Rate, +62% Mine Speed |
-| Legendary | Shadeling | Velvet Storm Grey Owl | Seeker | +62% Luck, +28% Chest Luck |
-| Mythic | Red Velvet | Bloodmoon Eclipse | Crimson Eclipse | +13% Blast Chance, +28% Blast Damage, +52% Rare Ore |
-| Mythic | Moonember | Midnight Rose Grimoire | Crimson Eclipse | +79% Blast Damage, +65% Rare Ore, +2.0% Blast Chance |
-| Mythic | Dusky | Scarlet Rose | Crimson Eclipse | +108% Rare Ore, +4.6% Blast Chance, +12% Blast Damage |
-| Divine | Redcurrant | Haloed Gargoyle | Crimson Eclipse | +18% Blast Chance, +38% Blast Damage, +71% Rare Ore |
-| Divine | Redshift | Sanguine Crescent | Crimson Eclipse | +107% Blast Damage, +89% Rare Ore, +2.7% Blast Chance |
-| Divine | Rubymoon | Eclipsed Wolf | Crimson Eclipse | +147% Rare Ore, +6.3% Blast Chance, +16% Blast Damage |
-| Divine | Rosalie | Lunar Grimoire | Crimson Eclipse | +18% Blast Chance, +38% Blast Damage, +71% Rare Ore |
-| Divine | Evenrose | Haloed Rose | Crimson Eclipse | +107% Blast Damage, +89% Rare Ore, +2.7% Blast Chance |
-| Exotic | Gloaming | Starless Gargoyle | Crimson Eclipse | +198% Rare Ore, +8.4% Blast Chance, +22% Blast Damage |
+| Common | Nightharp | Garnet Gargoyle | Bruiser | +53% Dirt Break, +26% Ore Haul |
+| Common | Duskpaw | Garnet Rose | Striker | +53% Mine Speed, +19% Swing Rate |
+| Common | Briarmoon | Orchid Flare Moth | Seeker | +24% Chest Luck, +13% Luck |
+| Common | Moonfeather | Cardinal Crescent | Tidecaller | +13% Pulverizer, +22% Scrap |
+| Common | Twilit | Thornberry Eclipse | Mystic | +29% Rare Ore, +26% Dirt Break |
+| Common | Moonmote | Eclipse Indigo Wolf | Striker | +53% Mine Speed, +26% Dirt Break |
+| Common | Rubyshade | Silver Moon Grimoire | Prospector | +22% Ore Luck, +15% Gem Find |
+| Common | Nightpetal | Orchid Flare Owl | Seeker | +22% Pack Luck, +13% Luck |
+| Common | Bellamoon | Moon Blush Gargoyle | Bruiser | +53% Mine Speed, +26% Dirt Break |
+| Common | Redveil | Ash Crescent | Tidecaller | +44% Scrap, +6.6% Pulverizer |
+| Common | Moonquill | Absinthe Eclipse | Mystic | +29% Rare Ore, +26% Mine Speed |
+| Common | Crimsonbell | Chartreuse Grimoire | Prospector | +22% Ore Luck, +15% Gem Find |
+| Common | Midnight Waltz | Jade Spark Rose | Striker | +38% Swing Rate, +26% Mine Speed |
+| Common | Ravenna | Blood Moon Eclipse | Mystic | +4.1% Blast Chance, +12% Blast Damage, +24% Mine Speed |
+| Common | Somber | Eclipse Indigo Moth | Seeker | +24% Chest Luck, +13% Luck |
+| Common | Solemn | Twilight Blue Gargoyle | Bruiser | +53% Mine Speed, +26% Dirt Break |
+| Common | Nightbell | Thorn Green Rose | Striker | +53% Mine Speed, +26% Dirt Break |
+| Common | Moon Waltz | Absinthe Wolf | Seeker | +26% Luck, +12% Chest Luck |
+| Common | Gloomwick | Bone Crescent | Striker | +53% Mine Speed, +26% Dirt Break |
+| Common | Moonheart | Midnight Grimoire | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
+| Common | Ravenwing | Lilac Rose | Prospector | +29% Gem Find, +15% Rare Ore |
+| Common | Moonpaw | Scarlet Crescent | Striker | +38% Swing Rate, +26% Mine Speed |
+| Common | Moonphase | Crimson Gargoyle | Bruiser | +53% Dirt Break, +26% Ore Haul |
+| Common | Duchess Dusk | Eclipse Indigo Eclipse | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
+| Common | Gloombell | Rust Grimoire | Mystic | +29% Rare Ore, +26% Dirt Break |
+| Common | Candelabra | Orchid Flare Wolf | Prospector | +22% Ore Luck, +15% Gem Find |
+| Common | Gloomling | Obsidian Rose | Striker | +53% Mine Speed, +26% Dirt Break |
+| Common | Nightlace | Petal Neon Crescent | Striker | +53% Mine Speed, +26% Dirt Break |
+| Common | Duskwing | Twilight Blue Eclipse | Seeker | +24% Chest Luck, +13% Luck |
+| Common | Moonbloom | Candle Gold Grimoire | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
+| Common | Crimsonfall | Jade Spark Gargoyle | Bruiser | +53% Dirt Break, +26% Mine Speed |
+| Common | Pendulum | Bone Gargoyle | Prospector | +22% Ore Luck, +15% Gem Find |
+| Common | Duskbloom | Dusk Violet Crescent | Mystic | +4.1% Blast Chance, +12% Blast Damage, +24% Mine Speed |
+| Common | Masque | Absinthe Grimoire | Seeker | +22% Pack Luck, +13% Luck |
+| Common | Scarletveil | Cobalt Moon Rose | Bruiser | +53% Dirt Break, +26% Ore Haul |
+| Common | Rosewindow | Bone Eclipse | Tidecaller | +29% Gem Find, +6.6% Pulverizer |
+| Common | Moonsong | Rust Crescent | Prospector | +29% Gem Find, +15% Rare Ore |
+| Common | Duskmoon | Jade Spark Grimoire | Striker | +53% Mine Speed, +26% Dirt Break |
+| Common | Pomegranate | Crimson Rose | Mystic | +4.1% Blast Chance, +42% Mine Speed |
+| Common | Waxwing | Petal Neon Eclipse | Seeker | +24% Chest Luck, +13% Luck |
+| Common | Lacework | Candle Gold Gargoyle | Tidecaller | +13% Pulverizer, +22% Scrap |
+| Common | Moonhush | Thorn Green Crescent | Seeker | +22% Pack Luck, +13% Luck |
+| Common | Moondrop | Orchid Flare Gargoyle | Bruiser | +53% Dirt Break, +26% Ore Haul |
+| Uncommon | Baron Dusk | Thorn Green Grimoire | Prospector | +35% Gem Find, +18% Rare Ore |
+| Uncommon | Lunamoth | Rosewood Eclipse | Mystic | +4.9% Blast Chance, +50% Mine Speed |
+| Uncommon | Masquerade | Grave Moss Rose | Striker | +63% Mine Speed, +23% Swing Rate |
+| Uncommon | Corvina | Sea Glass Crescent | Striker | +63% Mine Speed, +23% Swing Rate |
+| Uncommon | Bell Tower | Sea Glass Gargoyle | Tidecaller | +35% Gem Find, +7.9% Pulverizer |
+| Uncommon | Moonharp | Bone Rose | Striker | +63% Mine Speed, +23% Swing Rate |
+| Uncommon | Starthorn | Eclipse Indigo Grimoire | Prospector | +26% Ore Luck, +18% Gem Find |
+| Uncommon | Stained Glass | Sea Glass Eclipse | Mystic | +35% Rare Ore, +32% Dirt Break |
+| Uncommon | Corona | Ash Grimoire | Bruiser | +63% Dirt Break, +32% Ore Haul |
+| Uncommon | Gloomkin | Moon Blush Crescent | Striker | +63% Mine Speed, +32% Dirt Break |
+| Uncommon | Moonveil | Thorn Green Eclipse | Prospector | +26% Ore Luck, +18% Gem Find |
+| Uncommon | Claret | Moon Blush Rose | Tidecaller | +35% Gem Find, +7.9% Pulverizer |
+| Uncommon | Crimson Moon | Cobalt Moon Gargoyle | Mystic | +35% Rare Ore, +32% Dirt Break |
+| Uncommon | Rosarium | Petal Neon Grimoire | Seeker | +32% Luck, +14% Chest Luck |
+| Uncommon | Thistle | Jade Spark Crescent | Striker | +45% Swing Rate, +32% Mine Speed |
+| Uncommon | Candlelight | Moon Gold Eclipse | Bruiser | +63% Mine Speed, +32% Dirt Break |
+| Uncommon | Burgundy | Absinthe Gargoyle | Seeker | +26% Pack Luck, +16% Luck |
+| Uncommon | Rouge | Moon Gold Rose | Striker | +45% Swing Rate, +32% Mine Speed |
+| Uncommon | Belfry | Thornberry Rose | Mystic | +35% Rare Ore, +32% Dirt Break |
+| Uncommon | Cometrose | Jade Spark Eclipse | Bruiser | +63% Dirt Break, +32% Ore Haul |
+| Uncommon | Scarlet | Thornberry Gargoyle | Prospector | +35% Gem Find, +18% Rare Ore |
+| Uncommon | Nightquill | Scarlet Grimoire | Tidecaller | +53% Scrap, +7.9% Pulverizer |
+| Uncommon | Moonpetal | Candle Gold Crescent | Mystic | +4.9% Blast Chance, +50% Mine Speed |
+| Uncommon | Duskrose | Sea Glass Rose | Striker | +45% Swing Rate, +32% Mine Speed |
+| Uncommon | Moonset | Obsidian Eclipse | Seeker | +29% Chest Luck, +16% Luck |
+| Rare | Nocturna | Eclipse Indigo Crescent | Tidecaller | +6.0% Blast Chance, +18% Blast Damage, +35% Mine Speed |
+| Rare | Bellringer | Obsidian Gargoyle | Bruiser | +77% Dirt Break, +39% Mine Speed |
+| Rare | Cherrystone | Orchid Flare Grimoire | Seeker | +39% Luck, +18% Chest Luck |
+| Rare | Hush | Chartreuse Eclipse | Striker | +77% Mine Speed, +28% Swing Rate |
+| Rare | Oath | Chartreuse Gargoyle | Prospector | +43% Rare Ore, +22% Gem Find |
+| Rare | Gothic | Cobalt Moon Grimoire | Mystic | +43% Rare Ore, +39% Dirt Break |
+| Rare | Steeple | Petal Neon Rose | Striker | +77% Mine Speed, +28% Swing Rate |
+| Rare | Crowberry | Orchid Flare Crescent | Bruiser | +77% Dirt Break, +39% Ore Haul |
+| Rare | Redfall | Eclipse Indigo Rose | Prospector | +43% Gem Find, +22% Rare Ore |
+| Rare | Lunaria | Grave Moss Eclipse | Tidecaller | +65% Scrap, +9.7% Pulverizer |
+| Rare | Waxing | Petal Neon Gargoyle | Mystic | +43% Rare Ore, +39% Dirt Break |
+| Rare | Tome | Rose Grimoire | Seeker | +39% Luck, +18% Chest Luck |
+| Rare | Count Moonbeam | Grave Moss Crescent | Seeker | +32% Pack Luck, +19% Luck |
+| Rare | Rubytail | Orchid Flare Eclipse | Bruiser | +77% Mine Speed, +22% Rare Ore |
+| Rare | Thornrose | Eclipse Indigo Gargoyle | Prospector | +32% Ore Luck, +22% Gem Find |
+| Rare | Duskberry | Grave Moss Grimoire | Tidecaller | +19% Pulverizer, +32% Scrap |
+| Epic | Nightowl | Choir Cardinal | Striker | +97% Mine Speed, +34% Swing Rate |
+| Epic | Quill Pen | Moonhop Jerboa | Striker | +97% Mine Speed, +34% Swing Rate |
+| Epic | Dusklight | Vesper Candelabra | Mystic | +7.5% Blast Chance, +23% Blast Damage, +43% Mine Speed |
+| Epic | Vermilion | Midnight Fobwatch | Prospector | +54% Gem Find, +27% Rare Ore |
+| Epic | Evernight | Twinkle Musicbox | Bruiser | +97% Dirt Break, +48% Mine Speed |
+| Epic | Red Giant | Courtly Borzoi | Tidecaller | +80% Scrap, +12% Pulverizer |
+| Epic | Moonlit | Iron Weathercock | Striker | +69% Swing Rate, +48% Mine Speed |
+| Epic | Midnight Rose | Foggy Gaslamp | Prospector | +40% Ore Luck, +27% Gem Find |
+| Epic | Mooncloak | Ruby Pomegranate | Mystic | +7.5% Blast Chance, +23% Blast Damage, +43% Mine Speed |
+| Epic | Rosemoon | Pillar Postbox | Trader | +97% Ore Haul, +60% Coin Bonus |
+| Epic | Moonmoth | Echo Tuningfork | Seeker | +40% Pack Luck, +24% Luck |
+| Epic | Nightplume | Nocturne Metronome | Prospector | +54% Rare Ore, +27% Gem Find |
+| Epic | Lunabelle | Dreamstar Mobile | Mystic | +7.5% Blast Chance, +23% Blast Damage, +43% Mine Speed |
+| Epic | Gargoylet | Dusk Nightjar | Tidecaller | +54% Rare Ore, +48% Dirt Break |
+| Epic | Mopey | Creaky Wardrobe | Bruiser | +97% Dirt Break, +48% Mine Speed |
+| Epic | Ravenquill | Velvet Kinkajou | Digger | +97% Dirt Break, +48% Ore Haul |
+| Epic | Starshade | Opera Glasses | Seeker | +44% Chest Luck, +24% Luck |
+| Epic | Redstar | Lullaby Note | Mystic | +54% Rare Ore, +48% Dirt Break |
+| Legendary | Moonrose | Velvet Cozy Hearth | Bruiser | +124% Mine Speed, +35% Rare Ore |
+| Legendary | Ironrose | Gothic Eclipse Altar | Tidecaller | +31% Pulverizer, +52% Scrap |
+| Legendary | Wrought Iron | Moonlit Grand Pendulum | Striker | +124% Mine Speed, +44% Swing Rate |
+| Legendary | Moonberry | Dusky Crimson Alembic | Seeker | +52% Pack Luck, +31% Luck |
+| Legendary | Bramblethorn | Velvet Velvet Basilisk | Striker | +89% Swing Rate, +62% Mine Speed |
+| Legendary | Shadeling | Gothic Silver Caladrius | Seeker | +62% Luck, +28% Chest Luck |
+| Legendary | Waning | Moonlit Twinhorn Bicorn | Striker | +124% Mine Speed, +44% Swing Rate |
+| Legendary | Immortelle | Dusky Moonchase Tiangou | Bruiser | +124% Mine Speed, +35% Rare Ore |
+| Legendary | Scarlet Moon | Velvet Quill Inkwell | Prospector | +52% Ore Luck, +35% Gem Find |
+| Legendary | Nighttide | Gothic Swinging Thurible | Mystic | +9.7% Blast Chance, +29% Blast Damage, +56% Mine Speed |
+| Legendary | Carmine | Moonlit Oriel Window | Seeker | +52% Pack Luck, +31% Luck |
+| Legendary | Duskglow | Dusky Nocturne Clavichord | Seeker | +52% Pack Luck, +31% Luck |
+| Mythic | Red Velvet | Midnight Gothic Rosewindow | Crimson Eclipse | +13% Blast Chance, +28% Blast Damage, +52% Rare Ore |
+| Mythic | Moonember | Bloodmoon Midnight Clocktower | Crimson Eclipse | +79% Blast Damage, +65% Rare Ore, +2.0% Blast Chance |
+| Mythic | Dusky | Crimson Lunar Reliquary | Crimson Eclipse | +108% Rare Ore, +4.6% Blast Chance, +12% Blast Damage |
+| Mythic | Hushling | Scarlet Moon Carillon | Crimson Eclipse | +13% Blast Chance, +28% Blast Damage, +52% Rare Ore |
+| Mythic | Nightfall | Midnight Midnight Lectern | Crimson Eclipse | +79% Blast Damage, +65% Rare Ore, +2.0% Blast Chance |
+| Mythic | Moonwhisp | Bloodmoon Crimson Steeple | Crimson Eclipse | +108% Rare Ore, +4.6% Blast Chance, +12% Blast Damage |
+| Divine | Redcurrant | Eclipsed Haloed Monstrance | Crimson Eclipse | +18% Blast Chance, +38% Blast Damage, +71% Rare Ore |
+| Divine | Redshift | Lunar Lunar Crozier | Crimson Eclipse | +107% Blast Damage, +89% Rare Ore, +2.7% Blast Chance |
+| Divine | Rubymoon | Haloed Bloodmoon Diadem | Crimson Eclipse | +147% Rare Ore, +6.3% Blast Chance, +16% Blast Damage |
+| Divine | Rosalie | Sanguine Eclipse Chalice | Crimson Eclipse | +18% Blast Chance, +38% Blast Damage, +71% Rare Ore |
+| Divine | Evenrose | Eclipsed Umbra Disk | Crimson Eclipse | +107% Blast Damage, +89% Rare Ore, +2.7% Blast Chance |
+| Divine | Clocktower | Lunar Sanguine Coronet | Crimson Eclipse | +18% Blast Chance, +38% Blast Damage, +71% Rare Ore |
+| Divine | Covenant | Haloed Vesper Belfry | Crimson Eclipse | +107% Blast Damage, +89% Rare Ore, +2.7% Blast Chance |
+| Divine | Owlmoon | Sanguine Moon Cloister | Crimson Eclipse | +147% Rare Ore, +6.3% Blast Chance, +16% Blast Damage |
+| Divine | Sconce | Eclipsed Haloed Psaltery | Crimson Eclipse | +18% Blast Chance, +38% Blast Damage, +71% Rare Ore |
+| Divine | Totality | Lunar Crimson Sundial | Crimson Eclipse | +107% Blast Damage, +89% Rare Ore, +2.7% Blast Chance |
+| Exotic | Gloaming | Everdark Crimson Manor | Crimson Eclipse | +198% Rare Ore, +8.4% Blast Chance, +22% Blast Damage |
+| Exotic | Scarletwing | Starless Grand Totality | Crimson Eclipse | +198% Rare Ore, +8.4% Blast Chance, +22% Blast Damage |
 
 ## 11. Holo Havoc (A, ×1.63)
 
@@ -1243,112 +1472,136 @@ Packs: Foil Frenzy · Color Shift · Mirror Match · Prismatic Chaos · Hyperhol
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Beam | Infrared Shutterbug | Prospector | +23% Ore Luck, +15% Gem Find |
-| Common | Lensbug | Holo Cyan Chameleon | Striker | +40% Swing Rate, +28% Mine Speed |
-| Common | Bifocal | Holo Cyan Jellyfish | Tidecaller | +31% Gem Find, +6.9% Pulverizer |
-| Common | Mirror Maze | Black Mirror Disco Ball | Mystic | +4.3% Shatter Chance, +13% Shatter Damage, +25% Dirt Break |
-| Common | Chrome | Black Mirror Fish | Tidecaller | +31% Gem Find, +6.9% Pulverizer |
-| Common | Holospark | Holo Cyan Holo Pup | Seeker | +23% Pack Luck, +14% Luck |
-| Common | Funhouse | Holo Cyan Beetle | Bruiser | +55% Mine Speed, +28% Dirt Break |
-| Common | Hologlint | Neon Teal Slime | Tidecaller | +46% Scrap, +6.9% Pulverizer |
-| Common | Reflection | Infrared Chameleon | Striker | +40% Swing Rate, +28% Mine Speed |
-| Common | Glitterfoil | Laser Lime Shutterbug | Prospector | +31% Rare Ore, +15% Gem Find |
-| Common | Dancefloor | Laser Lime Jellyfish | Tidecaller | +14% Pulverizer, +23% Scrap |
-| Common | Lightwave | Ice Glass Disco Ball | Mystic | +31% Gem Find, +28% Mine Speed |
-| Common | Holo Pip | Neon Teal Holo Pup | Seeker | +25% Chest Luck, +14% Luck |
-| Common | Afterglow | Cobalt Glass Fish | Tidecaller | +46% Scrap, +6.9% Pulverizer |
-| Common | Glossbeam | Neon Teal Shutterbug | Prospector | +31% Gem Find, +15% Rare Ore |
-| Common | Dazzler | Cobalt Glass Jellyfish | Tidecaller | +14% Pulverizer, +23% Scrap |
-| Common | Lightshow | Mirror Blue Chameleon | Striker | +55% Mine Speed, +20% Swing Rate |
-| Common | Chromepaw | Lemon Laser Disco Ball | Mystic | +31% Gem Find, +28% Mine Speed |
-| Common | Lens | Ultraviolet Beetle | Bruiser | +55% Dirt Break, +28% Ore Haul |
-| Common | Glasswing | Lemon Laser Slime | Tidecaller | +14% Pulverizer, +23% Scrap |
-| Common | Gleamwing | Chrome Holo Pup | Seeker | +28% Luck, +13% Chest Luck |
-| Common | Starglass | Magenta Flash Disco Ball | Mystic | +31% Gem Find, +28% Mine Speed |
-| Common | Opticat | Ultraviolet Chameleon | Striker | +55% Mine Speed, +20% Swing Rate |
-| Common | Shutter | Mint Glass Shutterbug | Prospector | +23% Ore Luck, +15% Gem Find |
-| Common | Alloy | Sunburst Jellyfish | Tidecaller | +14% Pulverizer, +23% Scrap |
-| Common | Afterimage | Infrared Holo Pup | Seeker | +25% Chest Luck, +14% Luck |
-| Common | Razzmatazz | Infrared Fish | Tidecaller | +31% Gem Find, +6.9% Pulverizer |
-| Common | Shimmerjack | Pearl Sheen Disco Ball | Mystic | +4.3% Shatter Chance, +13% Shatter Damage, +25% Dirt Break |
-| Common | Refraction | Lemon Laser Beetle | Bruiser | +55% Dirt Break, +28% Ore Haul |
-| Common | Titanium | Ice Glass Chameleon | Striker | +40% Swing Rate, +28% Mine Speed |
-| Common | Holo Hare | Magenta Flash Slime | Tidecaller | +46% Scrap, +6.9% Pulverizer |
-| Common | Photonix | Cobalt Glass Shutterbug | Prospector | +23% Ore Luck, +15% Gem Find |
-| Common | Glassfin | Pearl Sheen Jellyfish | Tidecaller | +46% Scrap, +6.9% Pulverizer |
-| Common | Glitterball | Ultraviolet Holo Pup | Seeker | +23% Pack Luck, +14% Luck |
-| Common | Lenspaw | Ultraviolet Disco Ball | Mystic | +31% Gem Find, +28% Mine Speed |
-| Common | Chromeflash | Chrome Shutterbug | Prospector | +31% Gem Find, +15% Rare Ore |
-| Common | Spangle | Ice Glass Jellyfish | Tidecaller | +14% Pulverizer, +23% Scrap |
-| Common | Flashbulb | Black Mirror Holo Pup | Seeker | +25% Chest Luck, +14% Luck |
-| Common | Mirror | Gunmetal Chameleon | Striker | +55% Mine Speed, +20% Swing Rate |
-| Common | Mirrorbot | Lemon Laser Chameleon | Striker | +55% Mine Speed, +20% Swing Rate |
-| Common | Holostar | Mirror Blue Disco Ball | Mystic | +4.3% Shatter Chance, +13% Shatter Damage, +25% Dirt Break |
-| Common | Lenticular | Holo Pink Beetle | Bruiser | +55% Dirt Break, +28% Mine Speed |
-| Uncommon | Refractor | Smoke Glass Slime | Tidecaller | +17% Pulverizer, +28% Scrap |
-| Uncommon | Boogaloo | Mirror Blue Jellyfish | Tidecaller | +55% Scrap, +8.3% Pulverizer |
-| Uncommon | Holopaw | Holo Violet Fish | Tidecaller | +17% Pulverizer, +28% Scrap |
-| Uncommon | Holo Hopper | Gold Foil Shutterbug | Prospector | +37% Gem Find, +18% Rare Ore |
-| Uncommon | Holo Kit | Holo Violet Holo Pup | Seeker | +30% Chest Luck, +17% Luck |
-| Uncommon | Groovy | Copper Foil Disco Ball | Mystic | +37% Gem Find, +33% Mine Speed |
-| Uncommon | Spectacles | Laser Lime Chameleon | Striker | +47% Swing Rate, +33% Mine Speed |
-| Uncommon | Hyperlight | Ultraviolet Jellyfish | Tidecaller | +55% Scrap, +8.3% Pulverizer |
+| Common | Beam | Teal Smoke Shutterbug | Prospector | +23% Ore Luck, +15% Gem Find |
+| Common | Lensbug | Infrared Chameleon | Striker | +40% Swing Rate, +28% Mine Speed |
+| Common | Bifocal | Night Violet Prism Jelly | Tidecaller | +31% Gem Find, +6.9% Pulverizer |
+| Common | Mirror Maze | Lilac Foil Disco Ball | Mystic | +4.3% Shatter Chance, +13% Shatter Damage, +25% Dirt Break |
+| Common | Chrome | Gunmetal Spangle Skunk | Tidecaller | +31% Gem Find, +6.9% Pulverizer |
+| Common | Holospark | Holo Violet Foil Pompom | Seeker | +23% Pack Luck, +14% Luck |
+| Common | Funhouse | Ultraviolet Sequin Wombat | Bruiser | +55% Mine Speed, +28% Dirt Break |
+| Common | Hologlint | Glowstick Green Glitter Finch | Tidecaller | +46% Scrap, +6.9% Pulverizer |
+| Common | Reflection | Infrared Holo Pup | Striker | +40% Swing Rate, +28% Mine Speed |
+| Common | Glitterfoil | Ruby Foil Slime | Prospector | +31% Rare Ore, +15% Gem Find |
+| Common | Dancefloor | Laser Mint Fish | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Common | Lightwave | Blue Laser Beetle | Mystic | +31% Gem Find, +28% Mine Speed |
+| Common | Holo Pip | Lilac Foil Sequin Wombat | Seeker | +25% Chest Luck, +14% Luck |
+| Common | Afterglow | Holo Cyan Shutterbug | Tidecaller | +46% Scrap, +6.9% Pulverizer |
+| Common | Glossbeam | Holo Cyan Prism Jelly | Prospector | +31% Gem Find, +15% Rare Ore |
+| Common | Dazzler | Gold Foil Foil Pompom | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Common | Lightshow | Deep Sapphire Chameleon | Striker | +55% Mine Speed, +20% Swing Rate |
+| Common | Chromepaw | Glowstick Green Disco Ball | Mystic | +31% Gem Find, +28% Mine Speed |
+| Common | Lens | Mirror Blue Spangle Skunk | Bruiser | +55% Dirt Break, +28% Ore Haul |
+| Common | Glasswing | Cobalt Glass Glitter Finch | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Common | Gleamwing | Sunburst Holo Pup | Seeker | +28% Luck, +13% Chest Luck |
+| Common | Starglass | Glowstick Green Fish | Mystic | +31% Gem Find, +28% Mine Speed |
+| Common | Opticat | Laser Fuchsia Sequin Wombat | Striker | +55% Mine Speed, +20% Swing Rate |
+| Common | Shutter | Bottle Glass Disco Ball | Prospector | +23% Ore Luck, +15% Gem Find |
+| Common | Alloy | Laser Lime Spangle Skunk | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Common | Afterimage | Mirror Blue Glitter Finch | Seeker | +25% Chest Luck, +14% Luck |
+| Common | Razzmatazz | Laser Lime Foil Pompom | Tidecaller | +31% Gem Find, +6.9% Pulverizer |
+| Common | Shimmerjack | Burnt Bronze Beetle | Mystic | +4.3% Shatter Chance, +13% Shatter Damage, +25% Dirt Break |
+| Common | Refraction | Flash Yellow Chameleon | Bruiser | +55% Dirt Break, +28% Ore Haul |
+| Common | Titanium | Laser Green Slime | Striker | +40% Swing Rate, +28% Mine Speed |
+| Common | Holo Hare | Flare Orange Shutterbug | Tidecaller | +46% Scrap, +6.9% Pulverizer |
+| Common | Photonix | Chrome Prism Jelly | Prospector | +23% Ore Luck, +15% Gem Find |
+| Common | Glassfin | Smoke Glass Holo Pup | Tidecaller | +46% Scrap, +6.9% Pulverizer |
+| Common | Glitterball | Olive Chrome Spangle Skunk | Seeker | +23% Pack Luck, +14% Luck |
+| Common | Lenspaw | Magenta Flash Foil Pompom | Mystic | +31% Gem Find, +28% Mine Speed |
+| Common | Chromeflash | Berry Foil Glitter Finch | Prospector | +31% Gem Find, +15% Rare Ore |
+| Common | Spangle | Burnt Bronze Disco Ball | Tidecaller | +14% Pulverizer, +23% Scrap |
+| Common | Flashbulb | Pearl Sheen Sequin Wombat | Seeker | +25% Chest Luck, +14% Luck |
+| Common | Mirror | Sunburst Chameleon | Striker | +55% Mine Speed, +20% Swing Rate |
+| Common | Mirrorbot | Deep Sapphire Shutterbug | Striker | +55% Mine Speed, +20% Swing Rate |
+| Common | Holostar | Ruby Foil Prism Jelly | Mystic | +4.3% Shatter Chance, +13% Shatter Damage, +25% Dirt Break |
+| Common | Lenticular | Glowstick Green Holo Pup | Bruiser | +55% Dirt Break, +28% Mine Speed |
+| Uncommon | Refractor | Burnt Bronze Chameleon | Tidecaller | +17% Pulverizer, +28% Scrap |
+| Uncommon | Boogaloo | Chrome Foil Pompom | Tidecaller | +55% Scrap, +8.3% Pulverizer |
+| Uncommon | Holopaw | Mint Glass Disco Ball | Tidecaller | +17% Pulverizer, +28% Scrap |
+| Uncommon | Holo Hopper | Copper Foil Spangle Skunk | Prospector | +37% Gem Find, +18% Rare Ore |
+| Uncommon | Holo Kit | Laser Green Prism Jelly | Seeker | +30% Chest Luck, +17% Luck |
+| Uncommon | Groovy | Ice Glass Glitter Finch | Mystic | +37% Gem Find, +33% Mine Speed |
+| Uncommon | Spectacles | Laser Fuchsia Beetle | Striker | +47% Swing Rate, +33% Mine Speed |
+| Uncommon | Hyperlight | Flare Orange Fish | Tidecaller | +55% Scrap, +8.3% Pulverizer |
 | Uncommon | Chromium | Ice Glass Holo Pup | Seeker | +33% Luck, +15% Chest Luck |
-| Uncommon | Laserlight | Smoke Glass Shutterbug | Prospector | +37% Rare Ore, +18% Gem Find |
-| Uncommon | Hologlass | Mint Glass Chameleon | Striker | +66% Mine Speed, +33% Dirt Break |
-| Uncommon | Hexashine | Chrome Disco Ball | Mystic | +37% Gem Find, +33% Mine Speed |
-| Uncommon | Holofoil | Silver Slime | Tidecaller | +55% Scrap, +8.3% Pulverizer |
-| Uncommon | Sparklebeam | Gold Foil Holo Pup | Seeker | +30% Chest Luck, +17% Luck |
-| Uncommon | Reflecta | Copper Foil Fish | Tidecaller | +37% Gem Find, +8.3% Pulverizer |
-| Uncommon | Beamlet | Holo Violet Beetle | Bruiser | +66% Dirt Break, +33% Ore Haul |
-| Uncommon | Lightbender | Holo Pink Shutterbug | Prospector | +37% Rare Ore, +18% Gem Find |
-| Uncommon | Phosphor | Smoke Glass Jellyfish | Tidecaller | +17% Pulverizer, +28% Scrap |
-| Uncommon | Discopaw | Holo Violet Chameleon | Striker | +66% Mine Speed, +24% Swing Rate |
-| Uncommon | Sheenwave | Laser Lime Holo Pup | Seeker | +30% Chest Luck, +17% Luck |
-| Uncommon | Neonfin | Rose Foil Jellyfish | Tidecaller | +55% Scrap, +8.3% Pulverizer |
-| Uncommon | Fluoro | Ice Glass Shutterbug | Prospector | +37% Rare Ore, +18% Gem Find |
-| Uncommon | Kaleidoscope | Gold Foil Disco Ball | Mystic | +37% Gem Find, +33% Mine Speed |
-| Uncommon | Foilwing | Gold Foil Chameleon | Striker | +66% Mine Speed, +33% Dirt Break |
-| Uncommon | Glossy | Sunburst Slime | Tidecaller | +55% Scrap, +8.3% Pulverizer |
-| Rare | Reflecto | Mint Glass Holo Pup | Seeker | +34% Pack Luck, +20% Luck |
-| Rare | Chromey | Copper Foil Jellyfish | Tidecaller | +45% Gem Find, +10% Pulverizer |
-| Rare | Iridescence | Holo Cyan Shutterbug | Prospector | +34% Ore Luck, +23% Gem Find |
-| Rare | Strobelight | Smoke Glass Fish | Tidecaller | +20% Pulverizer, +34% Scrap |
-| Rare | Gloss | Rose Foil Disco Ball | Mystic | +45% Gem Find, +41% Mine Speed |
-| Rare | Disco | Infrared Beetle | Bruiser | +81% Dirt Break, +41% Mine Speed |
-| Rare | Sheenbeam | Magenta Flash Holo Pup | Seeker | +34% Pack Luck, +20% Luck |
-| Rare | Tinfoil | Lemon Laser Shutterbug | Prospector | +45% Gem Find, +23% Rare Ore |
-| Rare | Chromebot | Black Mirror Jellyfish | Tidecaller | +20% Pulverizer, +34% Scrap |
-| Rare | Mirrorwing | Neon Teal Chameleon | Striker | +58% Swing Rate, +41% Mine Speed |
-| Rare | Lensy | Mint Glass Disco Ball | Mystic | +6.3% Shatter Chance, +19% Shatter Damage, +37% Dirt Break |
-| Rare | Neonglow | Silver Beetle | Bruiser | +81% Mine Speed, +41% Dirt Break |
-| Rare | Gleamer | Lilac Foil Fish | Tidecaller | +20% Pulverizer, +34% Scrap |
-| Rare | Infrared | Rose Foil Shutterbug | Prospector | +34% Ore Luck, +23% Gem Find |
-| Rare | Optic | Holo Pink Disco Ball | Mystic | +45% Gem Find, +41% Mine Speed |
-| Epic | Holo | Glowing Holo Pink Jellyfish | Tidecaller | +84% Scrap, +13% Pulverizer |
-| Epic | Holotail | Glowing Mirror Blue Slime | Tidecaller | +7.9% Shatter Chance, +24% Shatter Damage, +46% Dirt Break |
-| Epic | Holosheen | Glowing Pearl Sheen Holo Pup | Seeker | +46% Chest Luck, +25% Luck |
-| Epic | Spitshine | Glowing Cobalt Glass Chameleon | Striker | +72% Swing Rate, +51% Mine Speed |
-| Epic | Holozip | Glowing Black Mirror Shutterbug | Prospector | +56% Rare Ore, +28% Gem Find |
-| Epic | Looking Glass | Glowing Cobalt Glass Disco Ball | Mystic | +7.9% Shatter Chance, +81% Mine Speed |
-| Epic | Silverflash | Glowing Lilac Foil Holo Pup | Seeker | +51% Luck, +23% Chest Luck |
-| Epic | Huestorm | Glowing Magenta Flash Chameleon | Striker | +101% Mine Speed, +36% Swing Rate |
-| Epic | Burnish | Glowing Silver Jellyfish | Tidecaller | +25% Pulverizer, +42% Scrap |
-| Legendary | Twinsy | Gleaming Mirror Blue Beetle | Bruiser | +150% Mine Speed, +5.1% Shatter Chance |
-| Legendary | Glowbit | Glossy Gunmetal Fish | Tidecaller | +10% Shatter Chance, +30% Shatter Damage, +59% Dirt Break |
-| Legendary | Neonwhisk | Chrome Silver Shutterbug | Prospector | +73% Gem Find, +36% Rare Ore |
-| Legendary | Lensflare | Mirrored Copper Foil Chameleon | Striker | +131% Mine Speed, +65% Dirt Break |
-| Legendary | Pixelate | Gleaming Holo Violet Disco Ball | Mystic | +73% Gem Find, +65% Mine Speed |
-| Legendary | Laserlet | Glossy Ultraviolet Slime | Tidecaller | +109% Scrap, +16% Pulverizer |
-| Mythic | Glitterbit | Iridescent Holo Pup | Holo Havoc | +14% Shatter Chance, +29% Shatter Damage, +55% Gem Find |
-| Mythic | Hologram | Refracted Jellyfish | Holo Havoc | +83% Shatter Damage, +69% Gem Find, +2.1% Shatter Chance |
-| Divine | Polish | Radiant Shutterbug | Holo Havoc | +154% Gem Find, +6.6% Shatter Chance, +17% Shatter Damage |
-| Exotic | Laserpaw | Hyperholo Jellyfish | Holo Havoc | +25% Shatter Chance, +53% Shatter Damage, +100% Gem Find |
-| Exotic | Focus | Prismatic Holo Pup | Holo Havoc | +152% Shatter Damage, +126% Gem Find, +3.8% Shatter Chance |
-| Exotic | Mirrorball | Spectral Chameleon | Holo Havoc | +208% Gem Find, +8.9% Shatter Chance, +23% Shatter Damage |
-| Exotic | Foily | Infinite Disco Ball | Holo Havoc | +25% Shatter Chance, +53% Shatter Damage, +100% Gem Find |
-| Exotic | Iridess | Spectral Lemon Laser Jellyfish | Holo Havoc | +152% Shatter Damage, +126% Gem Find, +3.8% Shatter Chance |
-| Exotic | Shimmy | Infinite Rose Foil Holo Pup | Holo Havoc | +208% Gem Find, +8.9% Shatter Chance, +23% Shatter Damage |
+| Uncommon | Laserlight | Olive Chrome Sequin Wombat | Prospector | +37% Rare Ore, +18% Gem Find |
+| Uncommon | Hologlass | Mirror Blue Shutterbug | Striker | +66% Mine Speed, +33% Dirt Break |
+| Uncommon | Hexashine | Holo Pink Chameleon | Mystic | +37% Gem Find, +33% Mine Speed |
+| Uncommon | Holofoil | Bottle Glass Foil Pompom | Tidecaller | +55% Scrap, +8.3% Pulverizer |
+| Uncommon | Sparklebeam | Ultraviolet Disco Ball | Seeker | +30% Chest Luck, +17% Luck |
+| Uncommon | Reflecta | Bottle Glass Spangle Skunk | Tidecaller | +37% Gem Find, +8.3% Pulverizer |
+| Uncommon | Beamlet | Berry Foil Holo Pup | Bruiser | +66% Dirt Break, +33% Ore Haul |
+| Uncommon | Lightbender | Mint Glass Sequin Wombat | Prospector | +37% Rare Ore, +18% Gem Find |
+| Uncommon | Phosphor | Glowstick Green Shutterbug | Tidecaller | +17% Pulverizer, +28% Scrap |
+| Uncommon | Discopaw | Gold Foil Prism Jelly | Striker | +66% Mine Speed, +24% Swing Rate |
+| Uncommon | Sheenwave | Teal Smoke Glitter Finch | Seeker | +30% Chest Luck, +17% Luck |
+| Uncommon | Neonfin | Rose Foil Chameleon | Tidecaller | +55% Scrap, +8.3% Pulverizer |
+| Uncommon | Fluoro | Deep Sapphire Holo Pup | Prospector | +37% Rare Ore, +18% Gem Find |
+| Uncommon | Kaleidoscope | Holo Violet Shutterbug | Mystic | +37% Gem Find, +33% Mine Speed |
+| Uncommon | Foilwing | Gunmetal Prism Jelly | Striker | +66% Mine Speed, +33% Dirt Break |
+| Uncommon | Glossy | Gunmetal Foil Pompom | Tidecaller | +55% Scrap, +8.3% Pulverizer |
+| Rare | Reflecto | Holo Violet Fish | Seeker | +34% Pack Luck, +20% Luck |
+| Rare | Chromey | Night Violet Disco Ball | Tidecaller | +45% Gem Find, +10% Pulverizer |
+| Rare | Iridescence | Lemon Laser Sequin Wombat | Prospector | +34% Ore Luck, +23% Gem Find |
+| Rare | Strobelight | Berry Foil Spangle Skunk | Tidecaller | +20% Pulverizer, +34% Scrap |
+| Rare | Gloss | Olive Chrome Glitter Finch | Mystic | +45% Gem Find, +41% Mine Speed |
+| Rare | Disco | Black Mirror Sequin Wombat | Bruiser | +81% Dirt Break, +41% Mine Speed |
+| Rare | Sheenbeam | Flash Yellow Spangle Skunk | Seeker | +34% Pack Luck, +20% Luck |
+| Rare | Tinfoil | Laser Fuchsia Holo Pup | Prospector | +45% Gem Find, +23% Rare Ore |
+| Rare | Chromebot | Black Mirror Shutterbug | Tidecaller | +20% Pulverizer, +34% Scrap |
+| Rare | Mirrorwing | Mint Glass Prism Jelly | Striker | +58% Swing Rate, +41% Mine Speed |
+| Rare | Lensy | Plum Sheen Foil Pompom | Mystic | +6.3% Shatter Chance, +19% Shatter Damage, +37% Dirt Break |
+| Rare | Neonglow | Lemon Laser Chameleon | Bruiser | +81% Mine Speed, +41% Dirt Break |
+| Rare | Gleamer | Holo Cyan Disco Ball | Tidecaller | +20% Pulverizer, +34% Scrap |
+| Rare | Infrared | Bottle Glass Glitter Finch | Prospector | +34% Ore Luck, +23% Gem Find |
+| Rare | Optic | Flare Orange Spangle Skunk | Mystic | +45% Gem Find, +41% Mine Speed |
+| Epic | Holo | Balloon Giraffe | Tidecaller | +84% Scrap, +13% Pulverizer |
+| Epic | Holotail | Periscope Gopher | Tidecaller | +7.9% Shatter Chance, +24% Shatter Damage, +46% Dirt Break |
+| Epic | Holosheen | Mercury Slug | Seeker | +46% Chest Luck, +25% Luck |
+| Epic | Spitshine | Trading Holocard | Striker | +72% Swing Rate, +51% Mine Speed |
+| Epic | Holozip | Aviator Shades | Prospector | +56% Rare Ore, +28% Gem Find |
+| Epic | Looking Glass | Soapfilm Bubble | Mystic | +7.9% Shatter Chance, +81% Mine Speed |
+| Epic | Silverflash | Diner Toaster | Seeker | +51% Luck, +23% Chest Luck |
+| Epic | Huestorm | Foil Popper | Striker | +101% Mine Speed, +36% Swing Rate |
+| Epic | Burnish | Sheen Starling | Tidecaller | +25% Pulverizer, +42% Scrap |
+| Epic | Sequin | Strobe Cuttlefish | Bruiser | +101% Mine Speed, +51% Dirt Break |
+| Epic | Ultraviolet | Illusion Zebra | Digger | +101% Ore Haul, +51% Dirt Break |
+| Epic | Reflectra | Fiber Anemone | Seeker | +46% Chest Luck, +25% Luck |
+| Epic | Reflex | Reel Projector | Prospector | +42% Ore Luck, +28% Gem Find |
+| Epic | Chromeback | Optic Platter | Tidecaller | +25% Pulverizer, +42% Scrap |
+| Epic | Buffed | Mirrorball Ibis | Trader | +127% Coin Bonus, +14% Lucky Block find |
+| Epic | Hyperspark | Tinfoil Knight | Mystic | +7.9% Shatter Chance, +81% Mine Speed |
+| Epic | Holohorn | Sheer Lacewing | Striker | +72% Swing Rate, +51% Mine Speed |
+| Epic | Beambug | Filament Bulb | Bruiser | +101% Mine Speed, +51% Dirt Break |
+| Legendary | Twinsy | Glossy Twist Kaleidoscope | Bruiser | +150% Mine Speed, +5.1% Shatter Chance |
+| Legendary | Glowbit | Chrome Pendulum Cradle | Tidecaller | +10% Shatter Chance, +30% Shatter Damage, +59% Dirt Break |
+| Legendary | Neonwhisk | Mirrored Silver Hatchetfish | Prospector | +73% Gem Find, +36% Rare Ore |
+| Legendary | Lensflare | Gleaming Wobbly Funhouse | Striker | +131% Mine Speed, +65% Dirt Break |
+| Legendary | Pixelate | Glossy Stage Spotlight | Mystic | +73% Gem Find, +65% Mine Speed |
+| Legendary | Laserlet | Chrome Party Streamer | Tidecaller | +109% Scrap, +16% Pulverizer |
+| Legendary | Quicksilver | Mirrored Aluminium Caravan | Striker | +131% Mine Speed, +65% Dirt Break |
+| Legendary | Glitzy | Gleaming Holofold Origami | Bruiser | +131% Dirt Break, +65% Ore Haul |
+| Legendary | Shinewave | Glossy Laser Narwhal | Digger | +131% Ore Haul, +65% Dirt Break |
+| Legendary | Mirrorpop | Chrome Foilfringe Yak | Seeker | +59% Chest Luck, +33% Luck |
+| Legendary | Polishpaw | Mirrored Kitchen Foilroll | Prospector | +73% Rare Ore, +36% Gem Find |
+| Legendary | Gleampuff | Gleaming Sequin Ostrich | Tidecaller | +33% Pulverizer, +54% Scrap |
+| Mythic | Glitterbit | Holographic Infinity Mirror | Holo Havoc | +14% Shatter Chance, +29% Shatter Damage, +55% Gem Find |
+| Mythic | Hologram | Iridescent Anaglyph Toucan | Holo Havoc | +83% Shatter Damage, +69% Gem Find, +2.1% Shatter Chance |
+| Mythic | Foilfeather | Refracted Fibreoptic Porcupine | Holo Havoc | +14% Shatter Chance, +29% Shatter Damage, +55% Gem Find |
+| Mythic | Bling | Lustrous Moire Ripple | Holo Havoc | +83% Shatter Damage, +69% Gem Find, +2.1% Shatter Chance |
+| Divine | Polish | Dazzling Aureole Lens | Holo Havoc | +154% Gem Find, +6.6% Shatter Chance, +17% Shatter Damage |
+| Divine | Silverglint | Brilliant Caustic Pool | Holo Havoc | +154% Gem Find, +6.6% Shatter Chance, +17% Shatter Damage |
+| Exotic | Laserpaw | Spectral Penrose Triangle | Holo Havoc | +25% Shatter Chance, +53% Shatter Damage, +100% Gem Find |
+| Exotic | Focus | Infinite Dichroic Film | Holo Havoc | +152% Shatter Damage, +126% Gem Find, +3.8% Shatter Chance |
+| Exotic | Mirrorball | Hyperholo Lenticular Flip | Holo Havoc | +208% Gem Find, +8.9% Shatter Chance, +23% Shatter Damage |
+| Exotic | Foily | Prismatic Fresnel Lamp | Holo Havoc | +25% Shatter Chance, +53% Shatter Damage, +100% Gem Find |
+| Exotic | Iridess | Spectral Polarizer Cube | Holo Havoc | +152% Shatter Damage, +126% Gem Find, +3.8% Shatter Chance |
+| Exotic | Shimmy | Infinite Pocket Spectroscope | Holo Havoc | +208% Gem Find, +8.9% Shatter Chance, +23% Shatter Damage |
+| Exotic | Goggles | Hyperholo Chrome Zoetrope | Holo Havoc | +25% Shatter Chance, +53% Shatter Damage, +100% Gem Find |
+| Exotic | Foilpaw | Prismatic Stereo Viewer | Holo Havoc | +152% Shatter Damage, +126% Gem Find, +3.8% Shatter Chance |
+| Exotic | Starfoil | Spectral Diffraction Grating | Holo Havoc | +208% Gem Find, +8.9% Shatter Chance, +23% Shatter Damage |
+| Exotic | Shinyback | Infinite Newton Rings | Holo Havoc | +25% Shatter Chance, +53% Shatter Damage, +100% Gem Find |
+| Exotic | Neon | Hyperholo Ferrofluid Spike | Holo Havoc | +152% Shatter Damage, +126% Gem Find, +3.8% Shatter Chance |
+| Exotic | Sparkleglass | Prismatic Afterimage Twin | Holo Havoc | +208% Gem Find, +8.9% Shatter Chance, +23% Shatter Damage |
 
 ## 12. Rainbow Road (A, ×1.71)
 
@@ -1356,111 +1609,136 @@ Packs: Pastel Parade · Rainbow Starter · Prism Path · Spectrum Surge · Cryst
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Cloudbow | Orange Hedgehog | Digger | +58% Ore Haul, +29% Dirt Break |
-| Common | Dreamy | Blue Toucan | Seeker | +29% Luck, +13% Chest Luck |
-| Common | Skybloom | Blue Horse | Trader | +58% Ore Haul, +36% Coin Bonus |
-| Common | Prismdrop | Lemon Sprite | Mystic | +29% Luck, +29% Mine Speed |
-| Common | Colorburst | Violet Snail | Prospector | +32% Rare Ore, +16% Gem Find |
-| Common | Peachbow | Teal Cloudling | Mystic | +29% Luck, +29% Mine Speed |
-| Common | Tangerine | Periwinkle Axolotl | Tidecaller | +48% Scrap, +7.3% Pulverizer |
-| Common | Aqua | Aqua Bird | Seeker | +29% Luck, +13% Chest Luck |
-| Common | Huekite | Coral Toucan | Seeker | +29% Luck, +13% Chest Luck |
-| Common | Prismhop | Blue Snail | Prospector | +24% Ore Luck, +16% Gem Find |
-| Common | Glowberry | Aqua Axolotl | Tidecaller | +15% Pulverizer, +24% Scrap |
-| Common | Ultramarine | Coral Hedgehog | Digger | +39% Ore Finder, +29% Dirt Break |
-| Common | Prism Pip | Aqua Cloudling | Mystic | +29% Luck, +12% Ore Luck |
-| Common | Teal | Aqua Horse | Trader | +58% Ore Haul, +36% Coin Bonus |
-| Common | Tint | Sky Snail | Prospector | +24% Ore Luck, +16% Gem Find |
-| Common | Rainbeam | Cream Axolotl | Tidecaller | +15% Pulverizer, +24% Scrap |
-| Common | Rainbow Bun | Lilac Hedgehog | Digger | +58% Ore Haul, +29% Dirt Break |
-| Common | Prismkit | Periwinkle Sprite | Mystic | +29% Luck, +29% Mine Speed |
-| Common | Puddlebow | Magenta Bird | Seeker | +24% Pack Luck, +15% Luck |
-| Common | Sky Ribbon | Periwinkle Toucan | Seeker | +29% Luck, +13% Chest Luck |
-| Common | Rainbeau | Periwinkle Cloudling | Mystic | +29% Luck, +12% Ore Luck |
-| Common | Rainbow Pip | Peach Toucan | Seeker | +24% Pack Luck, +15% Luck |
-| Common | Blush | Lime Cloudling | Mystic | +29% Luck, +12% Ore Luck |
-| Common | Splashbow | Mint Snail | Prospector | +24% Ore Luck, +16% Gem Find |
-| Common | Prismlet | Lime Hedgehog | Digger | +58% Dirt Break, +29% Ore Haul |
-| Common | Carnival | Lilac Axolotl | Tidecaller | +32% Gem Find, +7.3% Pulverizer |
-| Common | Joybeam | Green Toucan | Seeker | +29% Luck, +13% Chest Luck |
-| Common | Petalbow | Sky Cloudling | Mystic | +29% Luck, +29% Mine Speed |
-| Common | Rainbelle | Rose Sprite | Mystic | +29% Luck, +29% Mine Speed |
-| Common | Mauve | Lime Bird | Seeker | +26% Chest Luck, +15% Luck |
-| Common | Arcwing | Rose Horse | Trader | +58% Ore Haul, +36% Coin Bonus |
-| Common | Gem Arc | Magenta Hedgehog | Digger | +58% Dirt Break, +29% Ore Haul |
-| Common | Rainbud | Lime Snail | Prospector | +24% Ore Luck, +16% Gem Find |
-| Common | Huepaw | Indigo Axolotl | Tidecaller | +15% Pulverizer, +24% Scrap |
-| Common | Sparklebow | Orange Toucan | Seeker | +29% Luck, +13% Chest Luck |
-| Common | Arcbeam | Violet Cloudling | Mystic | +29% Luck, +12% Ore Luck |
-| Common | Spectrum | Aqua Hedgehog | Digger | +39% Ore Finder, +29% Dirt Break |
+| Common | Cloudbow | Ruby Hedgehog | Digger | +58% Ore Haul, +29% Dirt Break |
+| Common | Dreamy | Lime Prismpup | Seeker | +29% Luck, +13% Chest Luck |
+| Common | Skybloom | Amethyst Toucan | Trader | +58% Ore Haul, +36% Coin Bonus |
+| Common | Prismdrop | Teal Gemster | Mystic | +29% Luck, +29% Mine Speed |
+| Common | Colorburst | Green Gemfawn | Prospector | +32% Rare Ore, +16% Gem Find |
+| Common | Peachbow | Smoky Quartz Snail | Mystic | +29% Luck, +29% Mine Speed |
+| Common | Tangerine | Teal Cloudling | Tidecaller | +48% Scrap, +7.3% Pulverizer |
+| Common | Aqua | Rose Axolotl | Seeker | +29% Luck, +13% Chest Luck |
+| Common | Huekite | Lavender Prismpup | Seeker | +29% Luck, +13% Chest Luck |
+| Common | Prismhop | Pastel Pink Toucan | Prospector | +24% Ore Luck, +16% Gem Find |
+| Common | Glowberry | Garnet Gemfawn | Tidecaller | +15% Pulverizer, +24% Scrap |
+| Common | Ultramarine | Peach Snail | Digger | +39% Ore Finder, +29% Dirt Break |
+| Common | Prism Pip | Forest Axolotl | Mystic | +29% Luck, +12% Ore Luck |
+| Common | Teal | Moonbeam Hedgehog | Trader | +58% Ore Haul, +36% Coin Bonus |
+| Common | Tint | Hot Pink Gemster | Prospector | +24% Ore Luck, +16% Gem Find |
+| Common | Rainbeam | Moonbeam Cloudling | Tidecaller | +15% Pulverizer, +24% Scrap |
+| Common | Rainbow Bun | Tangerine Gemfawn | Digger | +58% Ore Haul, +29% Dirt Break |
+| Common | Prismkit | Amethyst Prismpup | Mystic | +29% Luck, +29% Mine Speed |
+| Common | Puddlebow | Rose Snail | Seeker | +24% Pack Luck, +15% Luck |
+| Common | Sky Ribbon | Tangerine Hedgehog | Seeker | +29% Luck, +13% Chest Luck |
+| Common | Rainbeau | Lemon Toucan | Mystic | +29% Luck, +12% Ore Luck |
+| Common | Rainbow Pip | Smoky Quartz Cloudling | Seeker | +24% Pack Luck, +15% Luck |
+| Common | Blush | Smoky Quartz Gemster | Mystic | +29% Luck, +12% Ore Luck |
+| Common | Splashbow | Pearl Axolotl | Prospector | +24% Ore Luck, +16% Gem Find |
+| Common | Prismlet | Indigo Gemfawn | Digger | +58% Dirt Break, +29% Ore Haul |
+| Common | Carnival | Deep Sea Toucan | Tidecaller | +32% Gem Find, +7.3% Pulverizer |
+| Common | Joybeam | Periwinkle Cloudling | Seeker | +29% Luck, +13% Chest Luck |
+| Common | Petalbow | Blue Gemster | Mystic | +29% Luck, +29% Mine Speed |
+| Common | Rainbelle | Magenta Prismpup | Mystic | +29% Luck, +29% Mine Speed |
+| Common | Mauve | Deep Sea Snail | Seeker | +26% Chest Luck, +15% Luck |
+| Common | Arcwing | Cobalt Hedgehog | Trader | +58% Ore Haul, +36% Coin Bonus |
+| Common | Gem Arc | Green Axolotl | Digger | +58% Dirt Break, +29% Ore Haul |
+| Common | Rainbud | Orange Toucan | Prospector | +24% Ore Luck, +16% Gem Find |
+| Common | Huepaw | Ruby Cloudling | Tidecaller | +15% Pulverizer, +24% Scrap |
+| Common | Sparklebow | Periwinkle Hedgehog | Seeker | +29% Luck, +13% Chest Luck |
+| Common | Arcbeam | Deep Sea Gemfawn | Mystic | +29% Luck, +12% Ore Luck |
+| Common | Spectrum | Red Prismpup | Digger | +39% Ore Finder, +29% Dirt Break |
 | Common | Moonbow | Aqua Snail | Prospector | +24% Ore Luck, +16% Gem Find |
-| Common | Merrybow | Magenta Axolotl | Tidecaller | +15% Pulverizer, +24% Scrap |
-| Common | Chartreuse | Lime Toucan | Seeker | +24% Pack Luck, +15% Luck |
-| Uncommon | Pastelpuff | Lilac Bird | Seeker | +32% Chest Luck, +17% Luck |
-| Uncommon | Raincloud | Magenta Cloudling | Mystic | +35% Luck, +35% Mine Speed |
-| Uncommon | Multicolor | Aqua Sprite | Mystic | +35% Luck, +14% Ore Luck |
-| Uncommon | Gladbow | Periwinkle Horse | Trader | +87% Coin Bonus, +35% Ore Haul |
-| Uncommon | Pastelbloom | Cream Snail | Prospector | +39% Rare Ore, +19% Gem Find |
-| Uncommon | Lavenderling | Pastel Pink Axolotl | Tidecaller | +58% Scrap, +8.7% Pulverizer |
-| Uncommon | Fogbow | Yellow Hedgehog | Digger | +46% Ore Finder, +35% Dirt Break |
-| Uncommon | Pastel | Lavender Cloudling | Mystic | +35% Luck, +35% Mine Speed |
-| Uncommon | Prismbud | Aqua Toucan | Seeker | +35% Luck, +16% Chest Luck |
-| Uncommon | Mintbow | Orange Snail | Prospector | +29% Ore Luck, +19% Gem Find |
-| Uncommon | Huebloom | Mint Axolotl | Tidecaller | +17% Pulverizer, +29% Scrap |
-| Uncommon | Rainbowpaw | Lavender Hedgehog | Digger | +70% Dirt Break, +35% Ore Haul |
-| Uncommon | Rainbowlet | Peach Sprite | Mystic | +35% Luck, +14% Ore Luck |
-| Uncommon | Shimmerbow | Cloud Blue Toucan | Seeker | +35% Luck, +16% Chest Luck |
-| Uncommon | Pastelina | Cloud Blue Cloudling | Mystic | +35% Luck, +14% Ore Luck |
-| Uncommon | Huebud | Rose Bird | Seeker | +32% Chest Luck, +17% Luck |
-| Uncommon | Prismheart | Mint Horse | Trader | +70% Ore Haul, +43% Coin Bonus |
-| Uncommon | Huebert | Green Snail | Prospector | +29% Ore Luck, +19% Gem Find |
-| Uncommon | Palette | Teal Axolotl | Tidecaller | +39% Gem Find, +8.7% Pulverizer |
-| Uncommon | Paintbox | Indigo Hedgehog | Digger | +70% Ore Haul, +35% Dirt Break |
-| Uncommon | Prismtail | Pastel Pink Snail | Prospector | +39% Rare Ore, +19% Gem Find |
-| Uncommon | Periwinkle | Pastel Pink Hedgehog | Digger | +70% Ore Haul, +35% Dirt Break |
-| Uncommon | Pastelle | Green Axolotl | Tidecaller | +39% Gem Find, +8.7% Pulverizer |
-| Uncommon | Prismsprout | Rose Toucan | Seeker | +29% Pack Luck, +17% Luck |
-| Uncommon | Tinty | Yellow Cloudling | Mystic | +35% Luck, +14% Ore Luck |
-| Rare | Candybow | Yellow Horse | Trader | +85% Ore Haul, +53% Coin Bonus |
-| Rare | Prismglow | Mint Sprite | Mystic | +43% Luck, +18% Ore Luck |
-| Rare | Sunshower | Sky Bird | Seeker | +36% Pack Luck, +21% Luck |
-| Rare | Spectrahop | Indigo Snail | Prospector | +47% Gem Find, +24% Rare Ore |
-| Rare | Twinklebow | Red Hedgehog | Digger | +57% Ore Finder, +43% Dirt Break |
-| Rare | Mistbow | Peach Axolotl | Tidecaller | +21% Pulverizer, +36% Scrap |
-| Rare | Prism Pebble | Yellow Toucan | Seeker | +43% Luck, +19% Chest Luck |
-| Rare | Hueberry | Mint Cloudling | Mystic | +43% Luck, +18% Ore Luck |
-| Rare | Sunpetal | Red Snail | Prospector | +36% Ore Luck, +24% Gem Find |
-| Rare | Hue | Rose Axolotl | Tidecaller | +71% Scrap, +11% Pulverizer |
-| Rare | Cyan | Teal Hedgehog | Digger | +85% Ore Haul, +43% Dirt Break |
-| Rare | Rainbow Bean | Magenta Toucan | Seeker | +39% Chest Luck, +21% Luck |
-| Rare | Spectrix | Lilac Cloudling | Mystic | +43% Luck, +18% Ore Luck |
-| Rare | Tiedye | Coral Sprite | Mystic | +43% Luck, +18% Ore Luck |
-| Rare | Sea Green | Coral Bird | Seeker | +39% Chest Luck, +21% Luck |
-| Epic | Rainbow Kite | Glowing Mint Toucan | Seeker | +53% Luck, +24% Chest Luck |
-| Epic | Brightbloom | Glowing Lime Horse | Trader | +106% Ore Haul, +67% Coin Bonus |
-| Epic | Sky Blue | Glowing Mint Hedgehog | Digger | +106% Dirt Break, +53% Ore Haul |
-| Epic | Tintwing | Glowing Sky Axolotl | Tidecaller | +53% Luck, +22% Ore Luck |
-| Epic | Sunset | Glowing Pastel Pink Cloudling | Mystic | +53% Luck, +22% Ore Luck |
-| Epic | Prismberry | Glowing Teal Snail | Prospector | +44% Ore Luck, +30% Gem Find |
-| Epic | Cerise | Glowing Sky Toucan | Seeker | +53% Luck, +24% Chest Luck |
-| Epic | Cherryblossom | Glowing Tangerine Hedgehog | Digger | +71% Ore Finder, +53% Dirt Break |
-| Epic | Shardbow | Glowing Yellow Axolotl | Tidecaller | +89% Scrap, +13% Pulverizer |
-| Legendary | Pinata | Bright Rose Cloudling | Mystic | +69% Luck, +29% Ore Luck |
-| Legendary | Sevenfold | Sunny Rose Snail | Prospector | +76% Gem Find, +38% Rare Ore |
-| Legendary | Rainbow | Cheerful Mint Bird | Seeker | +62% Chest Luck, +34% Luck |
-| Legendary | Prismwing | Pastel Cream Sprite | Mystic | +69% Luck, +29% Ore Luck |
-| Legendary | Colortail | Bright Lemon Toucan | Seeker | +57% Pack Luck, +34% Luck |
-| Legendary | Pastelglow | Sunny Cloud Blue Hedgehog | Digger | +91% Ore Finder, +69% Dirt Break |
-| Mythic | Prism Puff | Crystal Cloudling | Rainbow Road | +93% Luck, +27% Ore Luck, +8.0% Lucky Block find |
-| Mythic | Roygbiv | Prismatic Axolotl | Rainbow Road | +78% Ore Luck, +19% Lucky Block find, +14% Luck |
-| Mythic | Stardrop | Spectral Horse | Rainbow Road | +53% Lucky Block find, +33% Luck, +12% Ore Luck |
-| Mythic | Iridite | Rainbow Snail | Rainbow Road | +93% Luck, +27% Ore Luck, +8.0% Lucky Block find |
-| Mythic | Cloudlet | Crystal Toucan | Rainbow Road | +78% Ore Luck, +19% Lucky Block find, +14% Luck |
-| Divine | Arcpaw | Radiant Axolotl | Rainbow Road | +73% Lucky Block find, +44% Luck, +16% Ore Luck |
-| Divine | Huefeather | Shimmering Hedgehog | Rainbow Road | +127% Luck, +37% Ore Luck, +11% Lucky Block find |
-| Divine | Spectralina | Luminous Cloudling | Rainbow Road | +106% Ore Luck, +25% Lucky Block find, +19% Luck |
-| Exotic | Daydream | Everhue Snail | Rainbow Road | +98% Lucky Block find, +60% Luck, +21% Ore Luck |
-| Exotic | Rainbow Puff | Kaleidoscopic Axolotl | Rainbow Road | +171% Luck, +50% Ore Luck, +15% Lucky Block find |
+| Common | Merrybow | Lemon Axolotl | Tidecaller | +15% Pulverizer, +24% Scrap |
+| Common | Chartreuse | Onyx Gemster | Seeker | +24% Pack Luck, +15% Luck |
+| Uncommon | Pastelpuff | Plum Cloudling | Seeker | +32% Chest Luck, +17% Luck |
+| Uncommon | Raincloud | Ruby Gemster | Mystic | +35% Luck, +35% Mine Speed |
+| Uncommon | Multicolor | Lavender Gemfawn | Mystic | +35% Luck, +14% Ore Luck |
+| Uncommon | Gladbow | Sapphire Snail | Trader | +87% Coin Bonus, +35% Ore Haul |
+| Uncommon | Pastelbloom | Red Toucan | Prospector | +39% Rare Ore, +19% Gem Find |
+| Uncommon | Lavenderling | Peach Prismpup | Tidecaller | +58% Scrap, +8.7% Pulverizer |
+| Uncommon | Fogbow | Hot Pink Hedgehog | Digger | +46% Ore Finder, +35% Dirt Break |
+| Uncommon | Pastel | Lavender Axolotl | Mystic | +35% Luck, +35% Mine Speed |
+| Uncommon | Prismbud | Lemon Cloudling | Seeker | +35% Luck, +16% Chest Luck |
+| Uncommon | Mintbow | Violet Gemster | Prospector | +29% Ore Luck, +19% Gem Find |
+| Uncommon | Huebloom | Garnet Toucan | Tidecaller | +17% Pulverizer, +29% Scrap |
+| Uncommon | Rainbowpaw | Aqua Gemfawn | Digger | +70% Dirt Break, +35% Ore Haul |
+| Uncommon | Rainbowlet | Topaz Snail | Mystic | +35% Luck, +14% Ore Luck |
+| Uncommon | Shimmerbow | Sky Prismpup | Seeker | +35% Luck, +16% Chest Luck |
+| Uncommon | Pastelina | Teal Hedgehog | Mystic | +35% Luck, +14% Ore Luck |
+| Uncommon | Huebud | Garnet Axolotl | Seeker | +32% Chest Luck, +17% Luck |
+| Uncommon | Prismheart | Lime Toucan | Trader | +70% Ore Haul, +43% Coin Bonus |
+| Uncommon | Huebert | Green Cloudling | Prospector | +29% Ore Luck, +19% Gem Find |
+| Uncommon | Palette | Olivine Gemster | Tidecaller | +39% Gem Find, +8.7% Pulverizer |
+| Uncommon | Paintbox | Yellow Gemfawn | Digger | +70% Ore Haul, +35% Dirt Break |
+| Uncommon | Prismtail | Olivine Prismpup | Prospector | +39% Rare Ore, +19% Gem Find |
+| Uncommon | Periwinkle | Emerald Snail | Digger | +70% Ore Haul, +35% Dirt Break |
+| Uncommon | Pastelle | Lemon Hedgehog | Tidecaller | +39% Gem Find, +8.7% Pulverizer |
+| Uncommon | Prismsprout | Aqua Axolotl | Seeker | +29% Pack Luck, +17% Luck |
+| Uncommon | Tinty | Plum Gemfawn | Mystic | +35% Luck, +14% Ore Luck |
+| Rare | Candybow | Deep Sea Prismpup | Trader | +85% Ore Haul, +53% Coin Bonus |
+| Rare | Prismglow | Moonbeam Snail | Mystic | +43% Luck, +18% Ore Luck |
+| Rare | Sunshower | Green Gemster | Seeker | +36% Pack Luck, +21% Luck |
+| Rare | Spectrahop | Lime Hedgehog | Prospector | +47% Gem Find, +24% Rare Ore |
+| Rare | Twinklebow | Onyx Axolotl | Digger | +57% Ore Finder, +43% Dirt Break |
+| Rare | Mistbow | Rose Toucan | Tidecaller | +21% Pulverizer, +36% Scrap |
+| Rare | Prism Pebble | Olivine Cloudling | Seeker | +43% Luck, +19% Chest Luck |
+| Rare | Hueberry | Garnet Prismpup | Mystic | +43% Luck, +18% Ore Luck |
+| Rare | Sunpetal | Lemon Gemfawn | Prospector | +36% Ore Luck, +24% Gem Find |
+| Rare | Hue | Blue Snail | Tidecaller | +71% Scrap, +11% Pulverizer |
+| Rare | Cyan | Plum Axolotl | Digger | +85% Ore Haul, +43% Dirt Break |
+| Rare | Rainbow Bean | Smoky Quartz Hedgehog | Seeker | +39% Chest Luck, +21% Luck |
+| Rare | Spectrix | Lilac Gemster | Mystic | +43% Luck, +18% Ore Luck |
+| Rare | Tiedye | Mint Toucan | Mystic | +43% Luck, +18% Ore Luck |
+| Rare | Sea Green | Orange Cloudling | Seeker | +39% Chest Luck, +21% Luck |
+| Epic | Rainbow Kite | Rainbow Koi | Seeker | +53% Luck, +24% Chest Luck |
+| Epic | Brightbloom | Opal Frog | Trader | +106% Ore Haul, +67% Coin Bonus |
+| Epic | Sky Blue | Prismear Bunny | Digger | +106% Dirt Break, +53% Ore Haul |
+| Epic | Tintwing | Huewing Butterfly | Tidecaller | +53% Luck, +22% Ore Luck |
+| Epic | Sunset | Huetuft Owl | Mystic | +53% Luck, +22% Ore Luck |
+| Epic | Prismberry | Sunshower Kite | Prospector | +44% Ore Luck, +30% Gem Find |
+| Epic | Cerise | Rainstep Tortoise | Seeker | +53% Luck, +24% Chest Luck |
+| Epic | Cherryblossom | Geodehug Otter | Digger | +71% Ore Finder, +53% Dirt Break |
+| Epic | Shardbow | Sunbeam Chick | Tidecaller | +89% Scrap, +13% Pulverizer |
+| Epic | Tintwhistle | Rainbow Jelly | Tidecaller | +59% Gem Find, +13% Pulverizer |
+| Epic | Spectrabloom | Rainbow Bumble | Trader | +106% Ore Haul, +67% Coin Bonus |
+| Epic | Pastelpaw | Gemlamp Mole | Digger | +71% Ore Finder, +53% Dirt Break |
+| Epic | Irisbelle | Rainbell Kitty | Trader | +106% Ore Haul, +67% Coin Bonus |
+| Epic | Opalfin | Dewbow Droplet | Tidecaller | +27% Pulverizer, +44% Scrap |
+| Epic | Chromatail | Gemclaw Crab | Digger | +106% Dirt Break, +53% Ore Haul |
+| Epic | Fuchsia | Cloudwool Lamb | Mystic | +53% Luck, +53% Mine Speed |
+| Epic | Happy Hue | Arc Caterpillar | Digger | +71% Ore Finder, +53% Dirt Break |
+| Epic | Skyhopper | Pastel Flamingo | Seeker | +48% Chest Luck, +27% Luck |
+| Legendary | Pinata | Sunny Huecurl Chameleon | Mystic | +69% Luck, +29% Ore Luck |
+| Legendary | Sevenfold | Cheerful Glint Hummingbird | Prospector | +76% Gem Find, +38% Rare Ore |
+| Legendary | Rainbow | Pastel Opaline Seahorse | Seeker | +62% Chest Luck, +34% Luck |
+| Legendary | Prismwing | Bright Prism Dragonfly | Mystic | +69% Luck, +29% Ore Luck |
+| Legendary | Colortail | Sunny Rainspout Whale | Seeker | +57% Pack Luck, +34% Luck |
+| Legendary | Pastelglow | Cheerful Skyhue Balloon | Digger | +91% Ore Finder, +69% Dirt Break |
+| Legendary | Bowbell | Pastel Drippy Paintpot | Prospector | +76% Rare Ore, +38% Gem Find |
+| Legendary | Balloon | Bright Opalback Beetle | Digger | +91% Ore Finder, +69% Dirt Break |
+| Legendary | Colorfin | Sunny Spectrum Shrimp | Bruiser | +137% Dirt Break, +69% Mine Speed |
+| Legendary | Sunbow | Cheerful Frilly Seaslug | Mystic | +69% Luck, +29% Ore Luck |
+| Legendary | Crystalarc | Pastel Gemtusk Elephant | Bruiser | +137% Mine Speed, +34% Luck |
+| Legendary | Swirlbow | Bright Archhang Sloth | Mystic | +69% Luck, +29% Ore Luck |
+| Mythic | Prism Puff | Rainbow Huecrest Griffin | Rainbow Road | +93% Luck, +27% Ore Luck, +8.0% Lucky Block find |
+| Mythic | Roygbiv | Crystal Crystalmane Lion | Rainbow Road | +78% Ore Luck, +19% Lucky Block find, +14% Luck |
+| Mythic | Stardrop | Prismatic Prism Lantern | Rainbow Road | +53% Lucky Block find, +33% Luck, +12% Ore Luck |
+| Mythic | Iridite | Spectral Geode Hatchling | Rainbow Road | +93% Luck, +27% Ore Luck, +8.0% Lucky Block find |
+| Mythic | Cloudlet | Rainbow Huetrain Quetzal | Rainbow Road | +78% Ore Luck, +19% Lucky Block find, +14% Luck |
+| Mythic | Skyarc | Crystal Prism Toadstool | Rainbow Road | +78% Ore Luck, +19% Lucky Block find, +14% Luck |
+| Mythic | Shimmerling | Prismatic Prism Pinwheel | Rainbow Road | +53% Lucky Block find, +33% Luck, +12% Ore Luck |
+| Mythic | Moonprism | Spectral Iceprism Penguin | Rainbow Road | +93% Luck, +27% Ore Luck, +8.0% Lucky Block find |
+| Mythic | Rosebow | Rainbow Duskhue Bat | Rainbow Road | +78% Ore Luck, +19% Lucky Block find, +14% Luck |
+| Mythic | Sparkler | Crystal Gemboo Panda | Rainbow Road | +53% Lucky Block find, +33% Luck, +12% Ore Luck |
+| Divine | Arcpaw | Radiant Rainmane Unicorn | Rainbow Road | +73% Lucky Block find, +44% Luck, +16% Ore Luck |
+| Divine | Huefeather | Shimmering Huefire Phoenix | Rainbow Road | +127% Luck, +37% Ore Luck, +11% Lucky Block find |
+| Divine | Spectralina | Luminous Skyglide Manta | Rainbow Road | +106% Ore Luck, +25% Lucky Block find, +19% Luck |
+| Divine | Pastel Pip | Celestial Prismstone Golem | Rainbow Road | +127% Luck, +37% Ore Luck, +11% Lucky Block find |
+| Divine | Glassbow | Radiant Wishbow Star | Rainbow Road | +106% Ore Luck, +25% Lucky Block find, +19% Luck |
+| Divine | Streamer | Shimmering Prism Windchime | Rainbow Road | +73% Lucky Block find, +44% Luck, +16% Ore Luck |
+| Exotic | Daydream | Aurora Sevenbow Kitsune | Rainbow Road | +98% Lucky Block find, +60% Luck, +21% Ore Luck |
+| Exotic | Rainbow Puff | Everhue Huestream Dragon | Rainbow Road | +171% Luck, +50% Ore Luck, +15% Lucky Block find |
+| Exotic | Huewhisker | Kaleidoscopic Spectrum Prism | Rainbow Road | +171% Luck, +50% Ore Luck, +15% Lucky Block find |
+| Exotic | Rosy | Spectrum Kaleido Peacock | Rainbow Road | +143% Ore Luck, +34% Lucky Block find, +26% Luck |
 
 ## 13. Infernal Reign (A, ×1.80)
 
@@ -1468,109 +1746,133 @@ Packs: Cinderborn · Ashen Pact · Hellbound · Demonforge · Infernal Citadel �
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Blastfurnace | Brimstone Magma Bull | Striker | +44% Swing Rate, +31% Mine Speed |
-| Common | Crucible | Obsidian Volcanoling | Mystic | +61% Dirt Break, +31% Mine Speed |
-| Common | Cozyfire | Ashfall Blue Golem | Bruiser | +61% Dirt Break, +31% Ore Haul |
-| Common | Molty | Rust Basaltoise | Prospector | +34% Rare Ore, +17% Gem Find |
-| Common | Volcaby | Ashfall Blue Lizard | Prospector | +34% Rare Ore, +17% Gem Find |
-| Common | Charlump | Brimstone Anvil | Bruiser | +61% Dirt Break, +31% Ore Haul |
-| Common | Brimbo | Magma Red Furnace | Trader | +76% Coin Bonus, +8.7% Lucky Block find |
-| Common | Tortoblaze | Green Flame Slime | Tidecaller | +15% Pulverizer, +25% Scrap |
-| Common | Glowrock | Volcanic Violet Magma Bull | Striker | +44% Swing Rate, +31% Mine Speed |
-| Common | Torchlet | Blue Flame Volcanoling | Mystic | +61% Dirt Break, +31% Mine Speed |
-| Common | Craterkin | Green Flame Basaltoise | Prospector | +25% Ore Luck, +17% Gem Find |
-| Common | Damper | Copper Furnace | Trader | +76% Coin Bonus, +31% Ore Haul |
-| Common | Obbie | Green Flame Anvil | Bruiser | +61% Mine Speed, +31% Dirt Break |
-| Common | Ashspire | Verdigris Golem | Bruiser | +61% Dirt Break, +31% Ore Haul |
-| Common | Glowcoal | Volcanic Violet Basaltoise | Prospector | +25% Ore Luck, +17% Gem Find |
-| Common | Blazelle | Volcanic Violet Volcanoling | Mystic | +4.8% Blast Chance, +14% Blast Damage, +27% Mine Speed |
-| Common | Puffstack | Slag Magma Bull | Striker | +61% Mine Speed, +22% Swing Rate |
-| Common | Broiler | Magma Red Lizard | Prospector | +34% Gem Find, +17% Rare Ore |
-| Common | Pyrebeak | Crimson Forge Slime | Tidecaller | +51% Scrap, +7.6% Pulverizer |
-| Common | Blazebug | Brimstone Furnace | Trader | +61% Ore Haul, +38% Coin Bonus |
-| Common | Embertoe | Crimson Forge Anvil | Bruiser | +61% Dirt Break, +31% Mine Speed |
-| Common | Torchtoe | Ruby Lava Volcanoling | Mystic | +61% Dirt Break, +31% Mine Speed |
-| Common | Forgeling | Verdigris Magma Bull | Striker | +61% Mine Speed, +31% Dirt Break |
-| Common | Stompfire | Crimson Forge Furnace | Trader | +76% Coin Bonus, +31% Ore Haul |
-| Common | Stoneshell | Pumice Basaltoise | Prospector | +25% Ore Luck, +17% Gem Find |
-| Common | Anvilo | Flare Pink Anvil | Bruiser | +61% Mine Speed, +31% Dirt Break |
-| Common | Firenewt | Magma Red Volcanoling | Mystic | +4.8% Blast Chance, +14% Blast Damage, +27% Mine Speed |
-| Common | Lavahorn | Volcanic Violet Lizard | Prospector | +25% Ore Luck, +17% Gem Find |
-| Common | Charcoal | Green Flame Magma Bull | Striker | +44% Swing Rate, +31% Mine Speed |
-| Common | Cinderpop | Obsidian Furnace | Trader | +61% Ore Haul, +38% Coin Bonus |
-| Common | Volcanix | Slag Slime | Tidecaller | +15% Pulverizer, +25% Scrap |
-| Common | Lavaflow | Slag Basaltoise | Prospector | +25% Ore Luck, +17% Gem Find |
-| Common | Smeltie | Blue Flame Golem | Bruiser | +61% Mine Speed, +31% Dirt Break |
-| Common | Slowburn | Ember Gold Anvil | Bruiser | +61% Dirt Break, +31% Ore Haul |
-| Common | Hotrock | Molten Orange Magma Bull | Striker | +61% Mine Speed, +22% Swing Rate |
-| Common | Mooblaze | Smoky Plum Volcanoling | Mystic | +61% Dirt Break, +31% Mine Speed |
-| Common | Infernix | Wrought Iron Furnace | Trader | +76% Coin Bonus, +31% Ore Haul |
-| Common | Smithy | Ashfall Blue Basaltoise | Prospector | +25% Ore Luck, +17% Gem Find |
-| Common | Oven Mitt | Obsidian Anvil | Bruiser | +61% Dirt Break, +31% Ore Haul |
-| Common | Smoldy | Green Flame Volcanoling | Mystic | +61% Dirt Break, +31% Mine Speed |
-| Uncommon | Clangor | Ruby Lava Basaltoise | Prospector | +41% Gem Find, +20% Rare Ore |
-| Uncommon | Ironjaw | Verdigris Slime | Tidecaller | +41% Gem Find, +9.1% Pulverizer |
-| Uncommon | Lavabean | Ash Lizard | Prospector | +41% Rare Ore, +20% Gem Find |
-| Uncommon | Emberlyn | Wrought Iron Magma Bull | Striker | +73% Mine Speed, +26% Swing Rate |
-| Uncommon | Shellember | Pumice Golem | Bruiser | +73% Dirt Break, +36% Ore Haul |
-| Uncommon | Craterbelle | Scorched Umber Furnace | Trader | +73% Ore Haul, +46% Coin Bonus |
-| Uncommon | Newtron | Basalt Anvil | Bruiser | +73% Dirt Break, +36% Mine Speed |
-| Uncommon | Charby | Brass Volcanoling | Mystic | +73% Dirt Break, +36% Mine Speed |
-| Uncommon | Volcanopup | Ember Gold Basaltoise | Prospector | +41% Rare Ore, +20% Gem Find |
-| Uncommon | Searling | Basalt Magma Bull | Striker | +52% Swing Rate, +36% Mine Speed |
-| Uncommon | Magmalade | White Hot Furnace | Trader | +91% Coin Bonus, +36% Ore Haul |
-| Uncommon | Rampart | Copper Anvil | Bruiser | +73% Mine Speed, +36% Dirt Break |
-| Uncommon | Forgeheart | Obsidian Magma Bull | Striker | +52% Swing Rate, +36% Mine Speed |
-| Uncommon | Molten Moo | Magma Red Slime | Tidecaller | +41% Gem Find, +9.1% Pulverizer |
-| Uncommon | Moltenbit | Verdigris Furnace | Trader | +91% Coin Bonus, +36% Ore Haul |
-| Uncommon | Ashby | Crimson Forge Volcanoling | Mystic | +73% Dirt Break, +36% Mine Speed |
-| Uncommon | Ashfall | Ruby Lava Lizard | Prospector | +41% Rare Ore, +20% Gem Find |
-| Uncommon | Brimble | Wrought Iron Golem | Bruiser | +73% Mine Speed, +36% Dirt Break |
-| Uncommon | Turret | Wrought Iron Anvil | Bruiser | +73% Dirt Break, +36% Ore Haul |
-| Uncommon | Lavaloo | Wrought Iron Basaltoise | Prospector | +41% Rare Ore, +20% Gem Find |
-| Uncommon | Sulfie | White Hot Basaltoise | Prospector | +41% Rare Ore, +20% Gem Find |
-| Uncommon | Shardflare | Blue Flame Anvil | Bruiser | +73% Dirt Break, +36% Ore Haul |
-| Uncommon | Hotplate | Brimstone Volcanoling | Mystic | +73% Dirt Break, +36% Mine Speed |
-| Uncommon | Pyrelet | Ember Gold Magma Bull | Striker | +52% Swing Rate, +36% Mine Speed |
-| Rare | Smokestack | Blue Flame Furnace | Trader | +90% Ore Haul, +56% Coin Bonus |
-| Rare | Coaldust | Volcanic Violet Golem | Bruiser | +90% Dirt Break, +45% Ore Haul |
-| Rare | Volcanito | Ember Gold Slime | Tidecaller | +50% Gem Find, +11% Pulverizer |
-| Rare | Smelter | Ashfall Blue Anvil | Bruiser | +90% Mine Speed, +45% Dirt Break |
-| Rare | Bristlecoal | Blue Flame Basaltoise | Prospector | +37% Ore Luck, +25% Gem Find |
-| Rare | Coalnose | Ash Volcanoling | Mystic | +90% Dirt Break, +45% Mine Speed |
-| Rare | Tephra | Ashfall Blue Magma Bull | Striker | +90% Mine Speed, +32% Swing Rate |
-| Rare | Prickleburn | Rust Lizard | Prospector | +37% Ore Luck, +25% Gem Find |
-| Rare | Forgekin | Ash Furnace | Trader | +90% Ore Haul, +56% Coin Bonus |
-| Rare | Forgebolt | Slag Anvil | Bruiser | +103% Mine Speed, +3.5% Blast Chance |
-| Rare | Flue | Crimson Forge Basaltoise | Prospector | +37% Ore Luck, +25% Gem Find |
-| Rare | Coalbean | Ember Gold Volcanoling | Mystic | +7.0% Blast Chance, +21% Blast Damage, +40% Mine Speed |
-| Rare | Hotcoal | Ash Magma Bull | Striker | +64% Swing Rate, +45% Mine Speed |
-| Rare | Toasty | Smoky Plum Furnace | Trader | +112% Coin Bonus, +45% Ore Haul |
-| Rare | Hammerhot | Crimson Forge Golem | Bruiser | +90% Dirt Break, +45% Ore Haul |
-| Epic | Hotsnout | Glowing Ash Slime | Tidecaller | +112% Dirt Break, +56% Mine Speed |
-| Epic | Caldera | Glowing Brass Magma Bull | Striker | +112% Mine Speed, +40% Swing Rate |
-| Epic | Ashflick | Glowing Ash Anvil | Bruiser | +112% Dirt Break, +56% Ore Haul |
-| Epic | Wildfire | Glowing Brass Basaltoise | Prospector | +62% Gem Find, +31% Rare Ore |
-| Epic | Steamvent | Glowing Wrought Iron Volcanoling | Mystic | +8.7% Blast Chance, +26% Blast Damage, +50% Mine Speed |
-| Epic | Clanky | Glowing Verdigris Lizard | Prospector | +47% Ore Luck, +31% Gem Find |
-| Epic | Ingot | Glowing Molten Orange Furnace | Trader | +140% Coin Bonus, +16% Lucky Block find |
-| Epic | Scorchpaw | Glowing Rust Magma Bull | Striker | +112% Mine Speed, +40% Swing Rate |
-| Epic | Lavatrickle | Glowing Verdigris Anvil | Bruiser | +112% Dirt Break, +56% Mine Speed |
-| Legendary | Chimbley | Molten Flare Pink Basaltoise | Prospector | +80% Gem Find, +40% Rare Ore |
-| Legendary | Ignito | Forged Slag Volcanoling | Mystic | +144% Dirt Break, +72% Mine Speed |
-| Legendary | Clinker | Smoldering Volcanic Violet Furnace | Trader | +144% Ore Haul, +90% Coin Bonus |
-| Legendary | Ashpaw | Scorched Flare Pink Volcanoling | Mystic | +144% Dirt Break, +72% Mine Speed |
-| Legendary | Kilnby | Molten Flare Pink Magma Bull | Striker | +103% Swing Rate, +72% Mine Speed |
-| Legendary | Obsidot | Forged White Hot Golem | Bruiser | +166% Mine Speed, +5.6% Blast Chance |
-| Mythic | Singebit | Cinderborn Basaltoise | Infernal Reign | +15% Blast Chance, +32% Blast Damage, +109% Dirt Break |
-| Mythic | Cinderkeep | Ironbound Anvil | Infernal Reign | +92% Blast Damage, +136% Dirt Break, +2.3% Blast Chance |
-| Mythic | Ashenpaw | Volcanic Lizard | Infernal Reign | +226% Dirt Break, +5.4% Blast Chance, +14% Blast Damage |
-| Divine | Bullforge | Incandescent Slime | Infernal Reign | +21% Blast Chance, +44% Blast Damage, +148% Dirt Break |
-| Divine | Ashcrown | Everburning Furnace | Infernal Reign | +124% Blast Damage, +185% Dirt Break, +3.1% Blast Chance |
-| Divine | Clang | Radiant Volcanoling | Infernal Reign | +307% Dirt Break, +7.2% Blast Chance, +19% Blast Damage |
-| Divine | Pumice | Sunforged Anvil | Infernal Reign | +21% Blast Chance, +44% Blast Damage, +148% Dirt Break |
-| Exotic | Basalto | Primordial Magma Bull | Infernal Reign | +168% Blast Damage, +250% Dirt Break, +4.2% Blast Chance |
-| Exotic | Stoker | Cataclysmic Furnace | Infernal Reign | +413% Dirt Break, +9.8% Blast Chance, +25% Blast Damage |
+| Common | Blastfurnace | White Hot Magma Bull | Striker | +44% Swing Rate, +31% Mine Speed |
+| Common | Crucible | Green Flame Volcanoling | Mystic | +61% Dirt Break, +31% Mine Speed |
+| Common | Cozyfire | Charred Black Golem | Bruiser | +61% Dirt Break, +31% Ore Haul |
+| Common | Molty | Slag Basaltoise | Prospector | +34% Rare Ore, +17% Gem Find |
+| Common | Volcaby | Charred Black Lizard | Prospector | +34% Rare Ore, +17% Gem Find |
+| Common | Charlump | Wrought Iron Anvil | Bruiser | +61% Dirt Break, +31% Ore Haul |
+| Common | Brimbo | Ember Gold Furnace | Trader | +76% Coin Bonus, +8.7% Lucky Block find |
+| Common | Tortoblaze | Copper Magma Bull | Tidecaller | +15% Pulverizer, +25% Scrap |
+| Common | Glowrock | Cobalt Slag Volcanoling | Striker | +44% Swing Rate, +31% Mine Speed |
+| Common | Torchlet | Cyan Flame Basaltoise | Mystic | +61% Dirt Break, +31% Mine Speed |
+| Common | Craterkin | Sulfur Lime Furnace | Prospector | +25% Ore Luck, +17% Gem Find |
+| Common | Damper | White Hot Anvil | Trader | +76% Coin Bonus, +31% Ore Haul |
+| Common | Obbie | Hellforge Indigo Basaltoise | Bruiser | +61% Mine Speed, +31% Dirt Break |
+| Common | Ashspire | Ember Blush Volcanoling | Bruiser | +61% Dirt Break, +31% Ore Haul |
+| Common | Glowcoal | Sulfur Lime Magma Bull | Prospector | +25% Ore Luck, +17% Gem Find |
+| Common | Blazelle | Ultraviolet Lizard | Mystic | +4.8% Blast Chance, +14% Blast Damage, +27% Mine Speed |
+| Common | Puffstack | Rust Anvil | Striker | +61% Mine Speed, +22% Swing Rate |
+| Common | Broiler | Ashfall Blue Furnace | Prospector | +34% Gem Find, +17% Rare Ore |
+| Common | Pyrebeak | Ashfall Blue Basaltoise | Tidecaller | +51% Scrap, +7.6% Pulverizer |
+| Common | Blazebug | Magma Red Volcanoling | Trader | +61% Ore Haul, +38% Coin Bonus |
+| Common | Embertoe | Hellforge Indigo Magma Bull | Bruiser | +61% Dirt Break, +31% Mine Speed |
+| Common | Torchtoe | Mint Steam Furnace | Mystic | +61% Dirt Break, +31% Mine Speed |
+| Common | Forgeling | Brass Anvil | Striker | +61% Mine Speed, +31% Dirt Break |
+| Common | Stompfire | Wrought Iron Volcanoling | Trader | +76% Coin Bonus, +31% Ore Haul |
+| Common | Stoneshell | Flare Pink Magma Bull | Prospector | +25% Ore Luck, +17% Gem Find |
+| Common | Anvilo | Scorched Umber Furnace | Bruiser | +61% Mine Speed, +31% Dirt Break |
+| Common | Firenewt | Crimson Forge Basaltoise | Mystic | +4.8% Blast Chance, +14% Blast Damage, +27% Mine Speed |
+| Common | Lavahorn | Lavender Ash Anvil | Prospector | +25% Ore Luck, +17% Gem Find |
+| Common | Charcoal | Brass Volcanoling | Striker | +44% Swing Rate, +31% Mine Speed |
+| Common | Cinderpop | Basalt Magma Bull | Trader | +61% Ore Haul, +38% Coin Bonus |
+| Common | Volcanix | Midnight Ember Furnace | Tidecaller | +15% Pulverizer, +25% Scrap |
+| Common | Lavaflow | Molten Orange Basaltoise | Prospector | +25% Ore Luck, +17% Gem Find |
+| Common | Smeltie | Cinder Brown Anvil | Bruiser | +61% Mine Speed, +31% Dirt Break |
+| Common | Slowburn | Ultraviolet Volcanoling | Bruiser | +61% Dirt Break, +31% Ore Haul |
+| Common | Hotrock | Cyan Flame Magma Bull | Striker | +61% Mine Speed, +22% Swing Rate |
+| Common | Mooblaze | Midnight Ember Basaltoise | Mystic | +61% Dirt Break, +31% Mine Speed |
+| Common | Infernix | Ruby Lava Furnace | Trader | +76% Coin Bonus, +31% Ore Haul |
+| Common | Smithy | Midnight Ember Anvil | Prospector | +25% Ore Luck, +17% Gem Find |
+| Common | Oven Mitt | Mint Steam Volcanoling | Bruiser | +61% Dirt Break, +31% Ore Haul |
+| Common | Smoldy | Magma Red Magma Bull | Mystic | +61% Dirt Break, +31% Mine Speed |
+| Uncommon | Clangor | Ember Blush Basaltoise | Prospector | +41% Gem Find, +20% Rare Ore |
+| Uncommon | Ironjaw | Molten Orange Furnace | Tidecaller | +41% Gem Find, +9.1% Pulverizer |
+| Uncommon | Lavabean | Blue Flame Anvil | Prospector | +41% Rare Ore, +20% Gem Find |
+| Uncommon | Emberlyn | Flare Pink Basaltoise | Striker | +73% Mine Speed, +26% Swing Rate |
+| Uncommon | Shellember | Scorched Umber Volcanoling | Bruiser | +73% Dirt Break, +36% Ore Haul |
+| Uncommon | Craterbelle | Green Flame Magma Bull | Trader | +73% Ore Haul, +46% Coin Bonus |
+| Uncommon | Newtron | Blue Flame Furnace | Bruiser | +73% Dirt Break, +36% Mine Speed |
+| Uncommon | Charby | Green Flame Anvil | Mystic | +73% Dirt Break, +36% Mine Speed |
+| Uncommon | Volcanopup | Brimstone Basaltoise | Prospector | +41% Rare Ore, +20% Gem Find |
+| Uncommon | Searling | Sulfur Lime Volcanoling | Striker | +52% Swing Rate, +36% Mine Speed |
+| Uncommon | Magmalade | Ember Gold Magma Bull | Trader | +91% Coin Bonus, +36% Ore Haul |
+| Uncommon | Rampart | Abyss Teal Furnace | Bruiser | +73% Mine Speed, +36% Dirt Break |
+| Uncommon | Forgeheart | Ultraviolet Anvil | Striker | +52% Swing Rate, +36% Mine Speed |
+| Uncommon | Molten Moo | Ashfall Blue Magma Bull | Tidecaller | +41% Gem Find, +9.1% Pulverizer |
+| Uncommon | Moltenbit | Peach Glow Furnace | Trader | +91% Coin Bonus, +36% Ore Haul |
+| Uncommon | Ashby | Hellfire Magenta Volcanoling | Mystic | +73% Dirt Break, +36% Mine Speed |
+| Uncommon | Ashfall | Volcanic Violet Anvil | Prospector | +41% Rare Ore, +20% Gem Find |
+| Uncommon | Brimble | Blue Flame Basaltoise | Bruiser | +73% Mine Speed, +36% Dirt Break |
+| Uncommon | Turret | Blue Flame Magma Bull | Bruiser | +73% Dirt Break, +36% Ore Haul |
+| Uncommon | Lavaloo | Ultraviolet Furnace | Prospector | +41% Rare Ore, +20% Gem Find |
+| Uncommon | Sulfie | Hellfire Magenta Basaltoise | Prospector | +41% Rare Ore, +20% Gem Find |
+| Uncommon | Shardflare | Flare Pink Anvil | Bruiser | +73% Dirt Break, +36% Ore Haul |
+| Uncommon | Hotplate | Flare Pink Volcanoling | Mystic | +73% Dirt Break, +36% Mine Speed |
+| Uncommon | Pyrelet | Green Flame Basaltoise | Striker | +52% Swing Rate, +36% Mine Speed |
+| Rare | Smokestack | Scorched Olive Anvil | Trader | +90% Ore Haul, +56% Coin Bonus |
+| Rare | Coaldust | Lavender Ash Volcanoling | Bruiser | +90% Dirt Break, +45% Ore Haul |
+| Rare | Volcanito | Ultraviolet Magma Bull | Tidecaller | +50% Gem Find, +11% Pulverizer |
+| Rare | Smelter | Hellforge Indigo Furnace | Bruiser | +90% Mine Speed, +45% Dirt Break |
+| Rare | Bristlecoal | Abyss Teal Basaltoise | Prospector | +37% Ore Luck, +25% Gem Find |
+| Rare | Coalnose | Hellfire Magenta Anvil | Mystic | +90% Dirt Break, +45% Mine Speed |
+| Rare | Tephra | Charred Black Volcanoling | Striker | +90% Mine Speed, +32% Swing Rate |
+| Rare | Prickleburn | Hellfire Magenta Magma Bull | Prospector | +37% Ore Luck, +25% Gem Find |
+| Rare | Forgekin | Hellfire Magenta Furnace | Trader | +90% Ore Haul, +56% Coin Bonus |
+| Rare | Forgebolt | Cyan Flame Anvil | Bruiser | +103% Mine Speed, +3.5% Blast Chance |
+| Rare | Flue | Ultraviolet Basaltoise | Prospector | +37% Ore Luck, +25% Gem Find |
+| Rare | Coalbean | Steam Blue Volcanoling | Mystic | +7.0% Blast Chance, +21% Blast Damage, +40% Mine Speed |
+| Rare | Hotcoal | Deep Magma Magma Bull | Striker | +64% Swing Rate, +45% Mine Speed |
+| Rare | Toasty | Green Flame Furnace | Trader | +112% Coin Bonus, +45% Ore Haul |
+| Rare | Hammerhot | Molten Orange Anvil | Bruiser | +90% Dirt Break, +45% Ore Haul |
+| Epic | Hotsnout | Forge Bellows | Tidecaller | +112% Dirt Break, +56% Mine Speed |
+| Epic | Caldera | Smelt Crucible | Striker | +112% Mine Speed, +40% Swing Rate |
+| Epic | Ashflick | Forge Tongs | Bruiser | +112% Dirt Break, +56% Ore Haul |
+| Epic | Wildfire | Brick Kiln | Prospector | +62% Gem Find, +31% Rare Ore |
+| Epic | Steamvent | Slag Ladle | Mystic | +8.7% Blast Chance, +26% Blast Damage, +50% Mine Speed |
+| Epic | Clanky | Spark Grindstone | Prospector | +47% Ore Luck, +31% Gem Find |
+| Epic | Ingot | Coal Scuttle | Trader | +140% Coin Bonus, +16% Lucky Block find |
+| Epic | Scorchpaw | Cinder Chough | Striker | +112% Mine Speed, +40% Swing Rate |
+| Epic | Lavatrickle | Forge Scarab | Bruiser | +112% Dirt Break, +56% Mine Speed |
+| Epic | Tongs | Ember Skink | Bruiser | +112% Mine Speed, +56% Dirt Break |
+| Epic | Magmo | Pumice Marmot | Digger | +112% Dirt Break, +56% Ore Haul |
+| Epic | Rivetta | Magma Lily | Seeker | +56% Luck, +25% Chest Luck |
+| Epic | Obsidia | Cinder Cricket | Prospector | +62% Rare Ore, +31% Gem Find |
+| Epic | Lavalump | Smith Apron | Tidecaller | +93% Scrap, +14% Pulverizer |
+| Epic | Ironbell | Soot Chimney | Trader | +112% Ore Haul, +70% Coin Bonus |
+| Epic | Furnaceheart | Coal Brazier | Mystic | +112% Dirt Break, +56% Mine Speed |
+| Epic | Firebrand | Quench Trough | Striker | +112% Mine Speed, +40% Swing Rate |
+| Epic | Tremor | Bench Vise | Bruiser | +112% Mine Speed, +56% Dirt Break |
+| Legendary | Chimbley | Forged Iron Portcullis | Prospector | +80% Gem Find, +40% Rare Ore |
+| Legendary | Ignito | Smoldering Obsidian Ibex | Mystic | +144% Dirt Break, +72% Mine Speed |
+| Legendary | Clinker | Scorched Cinder Echidna | Trader | +144% Ore Haul, +90% Coin Bonus |
+| Legendary | Ashpaw | Molten Forge Triphammer | Mystic | +144% Dirt Break, +72% Mine Speed |
+| Legendary | Kilnby | Forged Slag Pot | Striker | +103% Swing Rate, +72% Mine Speed |
+| Legendary | Obsidot | Smoldering Iron Sconce | Bruiser | +166% Mine Speed, +5.6% Blast Chance |
+| Legendary | Bellows | Scorched Ember Caracal | Striker | +144% Mine Speed, +51% Swing Rate |
+| Legendary | Searpaw | Molten Basalt Obelisk | Bruiser | +144% Dirt Break, +72% Ore Haul |
+| Legendary | Cindermoo | Forged Ember Firecrest | Digger | +96% Ore Finder, +72% Dirt Break |
+| Legendary | Magmapuff | Smoldering Cinder Antlion | Seeker | +72% Luck, +33% Chest Luck |
+| Legendary | Sootie | Scorched Ore Barrow | Prospector | +80% Gem Find, +40% Rare Ore |
+| Legendary | Ashling | Molten Slagclaw Wolverine | Tidecaller | +11% Blast Chance, +34% Blast Damage, +65% Mine Speed |
+| Mythic | Singebit | Blazing Brimstone Geyser | Infernal Reign | +15% Blast Chance, +32% Blast Damage, +109% Dirt Break |
+| Mythic | Cinderkeep | Cinderborn Smoking Caldera | Infernal Reign | +92% Blast Damage, +136% Dirt Break, +2.3% Blast Chance |
+| Mythic | Ashenpaw | Ironbound Obsidian Lavafall | Infernal Reign | +226% Dirt Break, +5.4% Blast Chance, +14% Blast Damage |
+| Mythic | Dross | Volcanic Chainfire Loom | Infernal Reign | +15% Blast Chance, +32% Blast Damage, +109% Dirt Break |
+| Mythic | Flux | Blazing Cinder Gatehouse | Infernal Reign | +92% Blast Damage, +136% Dirt Break, +2.3% Blast Chance |
+| Mythic | Flamekit | Cinderborn Forge Stagbeetle | Infernal Reign | +226% Dirt Break, +5.4% Blast Chance, +14% Blast Damage |
+| Divine | Bullforge | Radiant Infernal Citadel | Infernal Reign | +21% Blast Chance, +44% Blast Damage, +148% Dirt Break |
+| Divine | Ashcrown | Sunforged Everburning Halo | Infernal Reign | +124% Blast Damage, +185% Dirt Break, +3.1% Blast Chance |
+| Divine | Clang | Incandescent Magma Harp | Infernal Reign | +307% Dirt Break, +7.2% Blast Chance, +19% Blast Damage |
+| Divine | Pumice | Everburning Sunforged Aegis | Infernal Reign | +21% Blast Chance, +44% Blast Damage, +148% Dirt Break |
+| Divine | Flamewick | Radiant Hellbound Chariot | Infernal Reign | +21% Blast Chance, +44% Blast Damage, +148% Dirt Break |
+| Divine | Kiln | Sunforged Basalt Leviathan | Infernal Reign | +124% Blast Damage, +185% Dirt Break, +3.1% Blast Chance |
+| Divine | Firebit | Incandescent Emberglass Oriole | Infernal Reign | +307% Dirt Break, +7.2% Blast Chance, +19% Blast Damage |
+| Divine | Hearthling | Everburning Ninefold Keystone | Infernal Reign | +21% Blast Chance, +44% Blast Damage, +148% Dirt Break |
+| Exotic | Basalto | Ninefold Ninefold Spire | Infernal Reign | +168% Blast Damage, +250% Dirt Break, +4.2% Blast Chance |
+| Exotic | Stoker | Infernal Molten Fountain | Infernal Reign | +413% Dirt Break, +9.8% Blast Chance, +25% Blast Damage |
+| Exotic | Lavadrip | Primordial Infernal Engine | Infernal Reign | +168% Blast Damage, +250% Dirt Break, +4.2% Blast Chance |
+| Exotic | Fumarole | Cataclysmic Cinderborn Roc | Infernal Reign | +413% Dirt Break, +9.8% Blast Chance, +25% Blast Damage |
 
 ## 14. Atlantis Rising (A, ×1.89)
 
@@ -1578,108 +1880,132 @@ Packs: Tidepool Treasures · Coral Crown · Sunken City · Leviathan's Wake · A
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Lanternfin | Sunlit Shallows Jellyfish | Mystic | +36% Gem Find, +32% Mine Speed |
-| Common | Surfwhisk | Moon Jelly Dolphin | Tidecaller | +16% Pulverizer, +27% Scrap |
-| Common | Seaglow | Starfish Orange Turtle | Bruiser | +64% Mine Speed, +32% Dirt Break |
-| Common | Seastar | Sunlit Shallows Seahorse | Seeker | +27% Pack Luck, +16% Luck |
-| Common | Clambake | Starfish Orange Octopus | Tidecaller | +16% Pulverizer, +27% Scrap |
-| Common | Wavey | Urchin Purple Ray | Tidecaller | +53% Scrap, +8.0% Pulverizer |
-| Common | Moon Jelly | Trench Teal Fish | Tidecaller | +16% Pulverizer, +27% Scrap |
-| Common | Porthole | Deep Sea Column Crab | Bruiser | +64% Dirt Break, +32% Ore Haul |
-| Common | Nixie | Starfish Orange Pearl Clam | Trader | +64% Ore Haul, +40% Coin Bonus |
-| Common | Driftshell | Glowtide Pearl Clam | Trader | +80% Coin Bonus, +9.2% Lucky Block find |
-| Common | Driftbell | Starfish Orange Jellyfish | Mystic | +36% Gem Find, +32% Mine Speed |
-| Common | Narwhal | Pearl White Column Crab | Bruiser | +64% Dirt Break, +32% Ore Haul |
-| Common | Inkwell | Seafoam Octopus | Tidecaller | +36% Gem Find, +8.0% Pulverizer |
-| Common | Aurelia | Trench Teal Seahorse | Seeker | +29% Chest Luck, +16% Luck |
-| Common | Clamdy | Pearl White Turtle | Bruiser | +64% Dirt Break, +32% Ore Haul |
-| Common | Seafarer | Starfish Orange Fish | Tidecaller | +53% Scrap, +8.0% Pulverizer |
-| Common | Buoy | Pearl White Jellyfish | Mystic | +4.5% Tidal Wave, +15% Tidal Wave Damage, +7.2% Pulverizer |
-| Common | Merpup | Shell Peach Dolphin | Tidecaller | +16% Pulverizer, +27% Scrap |
-| Common | Tidecrown | Glowtide Column Crab | Bruiser | +64% Dirt Break, +32% Mine Speed |
-| Common | Moontide | Coral Red Octopus | Tidecaller | +53% Scrap, +8.0% Pulverizer |
-| Common | Murky | Moon Jelly Pearl Clam | Trader | +64% Ore Haul, +40% Coin Bonus |
-| Common | Abalone | Starfish Orange Ray | Tidecaller | +36% Gem Find, +8.0% Pulverizer |
-| Common | Cerulea | Lagoon Green Seahorse | Seeker | +27% Pack Luck, +16% Luck |
-| Common | Saltie | Lapis Pearl Clam | Trader | +80% Coin Bonus, +32% Ore Haul |
-| Common | Sploosh | Sky Tide Seahorse | Seeker | +29% Chest Luck, +16% Luck |
-| Common | Maris | Kelp Octopus | Tidecaller | +16% Pulverizer, +27% Scrap |
-| Common | Tridentina | Turquoise Jellyfish | Mystic | +4.5% Tidal Wave, +15% Tidal Wave Damage, +7.2% Pulverizer |
-| Common | Wavelet | Turquoise Column Crab | Bruiser | +64% Mine Speed, +32% Dirt Break |
-| Common | Octavo | Deep Sea Turtle | Bruiser | +64% Dirt Break, +32% Ore Haul |
-| Common | Coralbud | Sandbar Fish | Tidecaller | +36% Gem Find, +8.0% Pulverizer |
-| Common | Deepglow | Pearl White Dolphin | Tidecaller | +16% Pulverizer, +27% Scrap |
-| Common | Coralie | Shell Peach Pearl Clam | Trader | +64% Ore Haul, +40% Coin Bonus |
-| Common | Brittlestar | Deep Sea Jellyfish | Mystic | +36% Gem Find, +32% Mine Speed |
-| Common | Seaspray | Sunlit Shallows Ray | Tidecaller | +36% Gem Find, +8.0% Pulverizer |
-| Common | Sea Fan | Anemone Magenta Column Crab | Bruiser | +64% Dirt Break, +32% Ore Haul |
-| Common | Sonar | Sunken Bronze Octopus | Tidecaller | +16% Pulverizer, +27% Scrap |
-| Common | Aquabelle | Starfish Orange Seahorse | Seeker | +27% Pack Luck, +16% Luck |
-| Common | Inkblot | Seafoam Pearl Clam | Trader | +64% Ore Haul, +40% Coin Bonus |
-| Common | Glimmerfin | Lagoon Green Jellyfish | Mystic | +4.5% Tidal Wave, +15% Tidal Wave Damage, +7.2% Pulverizer |
-| Common | Reefpup | Trench Teal Column Crab | Bruiser | +64% Mine Speed, +32% Dirt Break |
-| Uncommon | Ondine | Moon Jelly Seahorse | Seeker | +38% Luck, +17% Chest Luck |
-| Uncommon | Plash | Moon Jelly Octopus | Tidecaller | +43% Gem Find, +9.6% Pulverizer |
-| Uncommon | Rockpool | Trench Teal Pearl Clam | Trader | +96% Coin Bonus, +38% Ore Haul |
-| Uncommon | Wigglefin | Sunken Bronze Ray | Tidecaller | +19% Pulverizer, +32% Scrap |
-| Uncommon | Reefling | Ruin Stone Seahorse | Seeker | +38% Luck, +17% Chest Luck |
-| Uncommon | Finley | Wave Blue Turtle | Bruiser | +77% Dirt Break, +38% Mine Speed |
-| Uncommon | Seabright | Seafoam Fish | Tidecaller | +19% Pulverizer, +32% Scrap |
-| Uncommon | Coralkin | Sunken Bronze Jellyfish | Mystic | +43% Gem Find, +38% Mine Speed |
-| Uncommon | Brine | Trench Teal Dolphin | Tidecaller | +19% Pulverizer, +32% Scrap |
-| Uncommon | Shimmerfin | Lagoon Green Column Crab | Bruiser | +77% Dirt Break, +38% Mine Speed |
-| Uncommon | Pearlgate | Pearl White Octopus | Tidecaller | +64% Scrap, +9.6% Pulverizer |
-| Uncommon | Krakenpup | Wave Blue Pearl Clam | Trader | +96% Coin Bonus, +38% Ore Haul |
-| Uncommon | Nautilo | Kelp Seahorse | Seeker | +38% Luck, +17% Chest Luck |
-| Uncommon | Nautilus | Atlantean Gold Jellyfish | Mystic | +43% Gem Find, +38% Mine Speed |
-| Uncommon | Spyglass | Sunken Bronze Column Crab | Bruiser | +77% Mine Speed, +38% Dirt Break |
-| Uncommon | Tealfin | Sandbar Octopus | Tidecaller | +64% Scrap, +9.6% Pulverizer |
-| Uncommon | Seashell | Deep Sea Pearl Clam | Trader | +77% Ore Haul, +48% Coin Bonus |
-| Uncommon | Dulse | Deep Sea Seahorse | Seeker | +32% Pack Luck, +19% Luck |
-| Uncommon | Colonnade | Kelp Turtle | Bruiser | +77% Mine Speed, +38% Dirt Break |
-| Uncommon | Pearlpup | Wave Blue Fish | Tidecaller | +19% Pulverizer, +32% Scrap |
-| Uncommon | Coralfin | Moon Jelly Jellyfish | Mystic | +43% Gem Find, +38% Mine Speed |
-| Uncommon | Undercurrent | Lapis Column Crab | Bruiser | +77% Mine Speed, +38% Dirt Break |
-| Uncommon | Shellby | Glowtide Octopus | Tidecaller | +19% Pulverizer, +32% Scrap |
-| Uncommon | Bubblecrown | Lapis Dolphin | Tidecaller | +43% Gem Find, +9.6% Pulverizer |
-| Rare | Splosh | Sky Tide Ray | Tidecaller | +24% Pulverizer, +39% Scrap |
-| Rare | Squiddle | Seafoam Jellyfish | Mystic | +6.6% Tidal Wave, +22% Tidal Wave Damage, +11% Pulverizer |
-| Rare | Urchy | Shell Peach Column Crab | Bruiser | +94% Mine Speed, +47% Dirt Break |
-| Rare | Conch | Deep Sea Octopus | Tidecaller | +24% Pulverizer, +39% Scrap |
-| Rare | Finny | Pearl White Pearl Clam | Trader | +118% Coin Bonus, +47% Ore Haul |
-| Rare | Pearlie | Urchin Purple Seahorse | Seeker | +43% Chest Luck, +24% Luck |
-| Rare | Pearlfin | Coral Pink Fish | Tidecaller | +24% Pulverizer, +39% Scrap |
-| Rare | Urchin | Glowtide Jellyfish | Mystic | +52% Gem Find, +47% Mine Speed |
-| Rare | Echofin | Sky Tide Dolphin | Tidecaller | +78% Scrap, +12% Pulverizer |
-| Rare | Sirena | Coral Red Seahorse | Seeker | +47% Luck, +21% Chest Luck |
-| Rare | Lagoonie | Sky Tide Pearl Clam | Trader | +118% Coin Bonus, +13% Lucky Block find |
-| Rare | Squidge | Kelp Ray | Tidecaller | +78% Scrap, +12% Pulverizer |
-| Rare | Whelk | Turquoise Turtle | Bruiser | +94% Mine Speed, +47% Dirt Break |
-| Rare | Lagoona | Sunlit Shallows Column Crab | Bruiser | +94% Mine Speed, +47% Dirt Break |
-| Epic | Briny | Glowing Trench Teal Octopus | Tidecaller | +98% Scrap, +15% Pulverizer |
-| Epic | Gildfin | Glowing Lapis Jellyfish | Mystic | +8.2% Tidal Wave, +94% Mine Speed |
-| Epic | Krakelet | Glowing Kelp Column Crab | Bruiser | +117% Mine Speed, +59% Dirt Break |
-| Epic | Sealpup | Glowing Sunlit Shallows Octopus | Tidecaller | +98% Scrap, +15% Pulverizer |
-| Epic | Curlytail | Glowing Atlantean Gold Pearl Clam | Trader | +117% Ore Haul, +73% Coin Bonus |
-| Epic | Nacre | Glowing Glowtide Seahorse | Seeker | +53% Chest Luck, +29% Luck |
-| Epic | Bubbletiara | Glowing Urchin Purple Jellyfish | Mystic | +65% Gem Find, +59% Mine Speed |
-| Epic | Barnacle | Glowing Deep Sea Dolphin | Tidecaller | +8.2% Tidal Wave, +27% Tidal Wave Damage, +13% Pulverizer |
-| Epic | Tidebell | Glowing Starfish Orange Column Crab | Bruiser | +117% Mine Speed, +59% Dirt Break |
-| Legendary | Reefstar | Tidal Coral Pink Octopus | Tidecaller | +11% Tidal Wave, +35% Tidal Wave Damage, +17% Pulverizer |
-| Legendary | Cyanne | Pearled Glowtide Fish | Tidecaller | +84% Gem Find, +76% Mine Speed |
-| Legendary | Undine | Gilded Coral Pink Pearl Clam | Trader | +189% Coin Bonus, +22% Lucky Block find |
-| Legendary | Seaglass | Coral Wave Blue Ray | Tidecaller | +38% Pulverizer, +63% Scrap |
-| Legendary | Tidethrone | Tidal Wave Blue Seahorse | Seeker | +63% Pack Luck, +38% Luck |
-| Legendary | Gildtide | Pearled Moon Jelly Turtle | Bruiser | +151% Dirt Break, +76% Mine Speed |
-| Legendary | Sunkenbell | Gilded Shell Peach Jellyfish | Mystic | +84% Gem Find, +76% Mine Speed |
-| Mythic | Merkit | Atlantean Seahorse | Atlantis Rising | +14% Tidal Wave, +34% Tidal Wave Damage, +64% Gem Find |
-| Mythic | Spindrift | Leviathan Octopus | Atlantis Rising | +96% Tidal Wave Damage, +80% Gem Find, +2.2% Tidal Wave |
-| Mythic | Splashy | Sunken Pearl Clam | Atlantis Rising | +132% Gem Find, +5.0% Tidal Wave, +14% Tidal Wave Damage |
-| Divine | Pearlina | Crowned Column Crab | Atlantis Rising | +20% Tidal Wave, +46% Tidal Wave Damage, +86% Gem Find |
-| Divine | Curlarm | Moonlit Fish | Atlantis Rising | +131% Tidal Wave Damage, +108% Gem Find, +2.9% Tidal Wave |
-| Exotic | Wavecrest | Oceanborn Jellyfish | Atlantis Rising | +241% Gem Find, +9.2% Tidal Wave, +26% Tidal Wave Damage |
-| Exotic | Splish | Deepthroned Ray | Atlantis Rising | +26% Tidal Wave, +62% Tidal Wave Damage, +116% Gem Find |
-| Exotic | Reefwhisk | Tidebound Pearl Clam | Atlantis Rising | +176% Tidal Wave Damage, +146% Gem Find, +4.0% Tidal Wave |
+| Common | Lanternfin | Abyss Ink Jellyfish | Mystic | +36% Gem Find, +32% Mine Speed |
+| Common | Surfwhisk | Abyss Ink Dolphin | Tidecaller | +16% Pulverizer, +27% Scrap |
+| Common | Seaglow | Abyss Ink Turtle | Bruiser | +64% Mine Speed, +32% Dirt Break |
+| Common | Seastar | Sunken Bronze Seahorse | Seeker | +27% Pack Luck, +16% Luck |
+| Common | Clambake | Lapis Octopus | Tidecaller | +16% Pulverizer, +27% Scrap |
+| Common | Wavey | Siren Violet Ray | Tidecaller | +53% Scrap, +8.0% Pulverizer |
+| Common | Moon Jelly | Abyss Ink Fish | Tidecaller | +16% Pulverizer, +27% Scrap |
+| Common | Porthole | Kelp Column Crab | Bruiser | +64% Dirt Break, +32% Ore Haul |
+| Common | Nixie | Lapis Pearl Clam | Trader | +64% Ore Haul, +40% Coin Bonus |
+| Common | Driftshell | Sunlit Shallows Pearl Clam | Trader | +80% Coin Bonus, +9.2% Lucky Block find |
+| Common | Driftbell | Deep Sea Jellyfish | Mystic | +36% Gem Find, +32% Mine Speed |
+| Common | Narwhal | Siren Violet Column Crab | Bruiser | +64% Dirt Break, +32% Ore Haul |
+| Common | Inkwell | Pearl White Octopus | Tidecaller | +36% Gem Find, +8.0% Pulverizer |
+| Common | Aurelia | Deep Sea Seahorse | Seeker | +29% Chest Luck, +16% Luck |
+| Common | Clamdy | Siren Violet Turtle | Bruiser | +64% Dirt Break, +32% Ore Haul |
+| Common | Seafarer | Atlantean Gold Jellyfish | Tidecaller | +53% Scrap, +8.0% Pulverizer |
+| Common | Buoy | Coral Shadow Dolphin | Mystic | +4.5% Tidal Wave, +15% Tidal Wave Damage, +7.2% Pulverizer |
+| Common | Merpup | Coral Red Column Crab | Tidecaller | +16% Pulverizer, +27% Scrap |
+| Common | Tidecrown | Wave Blue Octopus | Bruiser | +64% Dirt Break, +32% Mine Speed |
+| Common | Moontide | Ruin Stone Pearl Clam | Tidecaller | +53% Scrap, +8.0% Pulverizer |
+| Common | Murky | Goldfin Ray | Trader | +64% Ore Haul, +40% Coin Bonus |
+| Common | Abalone | Trench Teal Seahorse | Tidecaller | +36% Gem Find, +8.0% Pulverizer |
+| Common | Cerulea | Sky Tide Pearl Clam | Seeker | +27% Pack Luck, +16% Luck |
+| Common | Saltie | Starfish Orange Seahorse | Trader | +80% Coin Bonus, +32% Ore Haul |
+| Common | Sploosh | Sunlit Shallows Octopus | Seeker | +29% Chest Luck, +16% Luck |
+| Common | Maris | Goldfin Jellyfish | Tidecaller | +16% Pulverizer, +27% Scrap |
+| Common | Tridentina | Shell Peach Column Crab | Mystic | +4.5% Tidal Wave, +15% Tidal Wave Damage, +7.2% Pulverizer |
+| Common | Wavelet | Siren Violet Dolphin | Bruiser | +64% Mine Speed, +32% Dirt Break |
+| Common | Octavo | Seagrass Flash Turtle | Bruiser | +64% Dirt Break, +32% Ore Haul |
+| Common | Coralbud | Siren Violet Pearl Clam | Tidecaller | +36% Gem Find, +8.0% Pulverizer |
+| Common | Deepglow | Sky Tide Jellyfish | Tidecaller | +16% Pulverizer, +27% Scrap |
+| Common | Coralie | Lime Ray | Trader | +64% Ore Haul, +40% Coin Bonus |
+| Common | Brittlestar | Lapis Column Crab | Mystic | +36% Gem Find, +32% Mine Speed |
+| Common | Seaspray | Coral Pink Octopus | Tidecaller | +36% Gem Find, +8.0% Pulverizer |
+| Common | Sea Fan | Coral Shadow Seahorse | Bruiser | +64% Dirt Break, +32% Ore Haul |
+| Common | Sonar | Lime Pearl Clam | Tidecaller | +16% Pulverizer, +27% Scrap |
+| Common | Aquabelle | Seagrass Flash Jellyfish | Seeker | +27% Pack Luck, +16% Luck |
+| Common | Inkblot | Seagrass Flash Column Crab | Trader | +64% Ore Haul, +40% Coin Bonus |
+| Common | Glimmerfin | Siren Violet Octopus | Mystic | +4.5% Tidal Wave, +15% Tidal Wave Damage, +7.2% Pulverizer |
+| Common | Reefpup | Seafoam Seahorse | Bruiser | +64% Mine Speed, +32% Dirt Break |
+| Uncommon | Ondine | Coral Red Pearl Clam | Seeker | +38% Luck, +17% Chest Luck |
+| Uncommon | Plash | Seagrass Flash Ray | Tidecaller | +43% Gem Find, +9.6% Pulverizer |
+| Uncommon | Rockpool | Siren Violet Seahorse | Trader | +96% Coin Bonus, +38% Ore Haul |
+| Uncommon | Wigglefin | Siren Violet Jellyfish | Tidecaller | +19% Pulverizer, +32% Scrap |
+| Uncommon | Reefling | Coral Shadow Column Crab | Seeker | +38% Luck, +17% Chest Luck |
+| Uncommon | Finley | Anemone Magenta Octopus | Bruiser | +77% Dirt Break, +38% Mine Speed |
+| Uncommon | Seabright | Coral Shadow Pearl Clam | Tidecaller | +19% Pulverizer, +32% Scrap |
+| Uncommon | Coralkin | Wave Blue Seahorse | Mystic | +43% Gem Find, +38% Mine Speed |
+| Uncommon | Brine | Trench Teal Jellyfish | Tidecaller | +19% Pulverizer, +32% Scrap |
+| Uncommon | Shimmerfin | Sky Tide Column Crab | Bruiser | +77% Dirt Break, +38% Mine Speed |
+| Uncommon | Pearlgate | Black Pearl Octopus | Tidecaller | +64% Scrap, +9.6% Pulverizer |
+| Uncommon | Krakenpup | Anemone Magenta Pearl Clam | Trader | +96% Coin Bonus, +38% Ore Haul |
+| Uncommon | Nautilo | Seagrass Flash Seahorse | Seeker | +38% Luck, +17% Chest Luck |
+| Uncommon | Nautilus | Kelp Jellyfish | Mystic | +43% Gem Find, +38% Mine Speed |
+| Uncommon | Spyglass | Wave Blue Column Crab | Bruiser | +77% Mine Speed, +38% Dirt Break |
+| Uncommon | Tealfin | Abyss Ink Ray | Tidecaller | +64% Scrap, +9.6% Pulverizer |
+| Uncommon | Seashell | Abyss Ink Octopus | Trader | +77% Ore Haul, +48% Coin Bonus |
+| Uncommon | Dulse | Abyss Ink Pearl Clam | Seeker | +32% Pack Luck, +19% Luck |
+| Uncommon | Colonnade | Sunlit Shallows Seahorse | Bruiser | +77% Mine Speed, +38% Dirt Break |
+| Uncommon | Pearlpup | Seafoam Jellyfish | Tidecaller | +19% Pulverizer, +32% Scrap |
+| Uncommon | Coralfin | Sunlit Shallows Column Crab | Mystic | +43% Gem Find, +38% Mine Speed |
+| Uncommon | Undercurrent | Goldfin Octopus | Bruiser | +77% Mine Speed, +38% Dirt Break |
+| Uncommon | Shellby | Lime Jellyfish | Tidecaller | +19% Pulverizer, +32% Scrap |
+| Uncommon | Bubblecrown | Abyss Ink Column Crab | Tidecaller | +43% Gem Find, +9.6% Pulverizer |
+| Rare | Splosh | Glowtide Octopus | Tidecaller | +24% Pulverizer, +39% Scrap |
+| Rare | Squiddle | Glowtide Pearl Clam | Mystic | +6.6% Tidal Wave, +22% Tidal Wave Damage, +11% Pulverizer |
+| Rare | Urchy | Sky Tide Seahorse | Bruiser | +94% Mine Speed, +47% Dirt Break |
+| Rare | Conch | Coral Pink Jellyfish | Tidecaller | +24% Pulverizer, +39% Scrap |
+| Rare | Finny | Goldfin Column Crab | Trader | +118% Coin Bonus, +47% Ore Haul |
+| Rare | Pearlie | Sky Tide Octopus | Seeker | +43% Chest Luck, +24% Luck |
+| Rare | Pearlfin | Anemone Magenta Seahorse | Tidecaller | +24% Pulverizer, +39% Scrap |
+| Rare | Urchin | Black Pearl Pearl Clam | Mystic | +52% Gem Find, +47% Mine Speed |
+| Rare | Echofin | Wave Blue Jellyfish | Tidecaller | +78% Scrap, +12% Pulverizer |
+| Rare | Sirena | Coral Pink Seahorse | Seeker | +47% Luck, +21% Chest Luck |
+| Rare | Lagoonie | Starfish Orange Pearl Clam | Trader | +118% Coin Bonus, +13% Lucky Block find |
+| Rare | Squidge | Lime Column Crab | Tidecaller | +78% Scrap, +12% Pulverizer |
+| Rare | Whelk | Trench Teal Octopus | Bruiser | +94% Mine Speed, +47% Dirt Break |
+| Rare | Lagoona | Sandbar Jellyfish | Bruiser | +94% Mine Speed, +47% Dirt Break |
+| Epic | Briny | Tide Column | Tidecaller | +98% Scrap, +15% Pulverizer |
+| Epic | Gildfin | Floor Mosaic | Mystic | +8.2% Tidal Wave, +94% Mine Speed |
+| Epic | Krakelet | Tide Amphora | Bruiser | +117% Mine Speed, +59% Dirt Break |
+| Epic | Sealpup | Wave Frieze | Tidecaller | +98% Scrap, +15% Pulverizer |
+| Epic | Curlytail | Shell Cornice | Trader | +117% Ore Haul, +73% Coin Bonus |
+| Epic | Nacre | Pearl Caryatid | Seeker | +53% Chest Luck, +29% Luck |
+| Epic | Bubbletiara | Reef Trident | Mystic | +65% Gem Find, +59% Mine Speed |
+| Epic | Barnacle | Sunken Doubloon | Tidecaller | +8.2% Tidal Wave, +27% Tidal Wave Damage, +13% Pulverizer |
+| Epic | Tidebell | Lagoon Portico | Bruiser | +117% Mine Speed, +59% Dirt Break |
+| Epic | Pearlwhisk | Ruin Stele | Bruiser | +117% Dirt Break, +59% Mine Speed |
+| Epic | Pearlbelle | Tide Oriel | Digger | +78% Ore Finder, +59% Dirt Break |
+| Epic | Glowbell | Pearl Balustrade | Seeker | +53% Chest Luck, +29% Luck |
+| Epic | Scuttlebug | Lagoon Merling | Prospector | +65% Rare Ore, +33% Gem Find |
+| Epic | Sunkensong | Tide Nymph | Tidecaller | +29% Pulverizer, +49% Scrap |
+| Epic | Sargasso | Ruin Isopod | Trader | +147% Coin Bonus, +59% Ore Haul |
+| Epic | Azurine | Coral Lancet | Mystic | +8.2% Tidal Wave, +27% Tidal Wave Damage, +13% Pulverizer |
+| Epic | Trenchy | Gold Plinth | Striker | +84% Swing Rate, +59% Mine Speed |
+| Epic | Orcalet | Shell Volute | Bruiser | +117% Dirt Break, +59% Mine Speed |
+| Legendary | Reefstar | Pearled Sunken Atrium | Tidecaller | +11% Tidal Wave, +35% Tidal Wave Damage, +17% Pulverizer |
+| Legendary | Cyanne | Gilded Tide Aqueduct | Tidecaller | +84% Gem Find, +76% Mine Speed |
+| Legendary | Undine | Coral Deep Basilica | Trader | +189% Coin Bonus, +22% Lucky Block find |
+| Legendary | Seaglass | Tidal Pearl Forum | Tidecaller | +38% Pulverizer, +63% Scrap |
+| Legendary | Tidethrone | Pearled Tide Rotunda | Seeker | +63% Pack Luck, +38% Luck |
+| Legendary | Gildtide | Gilded Kelp Peristyle | Bruiser | +151% Dirt Break, +76% Mine Speed |
+| Legendary | Sunkenbell | Coral Deep Ossuary | Mystic | +84% Gem Find, +76% Mine Speed |
+| Legendary | Cowrie | Tidal Gold Trireme | Bruiser | +151% Mine Speed, +76% Dirt Break |
+| Legendary | Shelly | Pearled Coral Siren | Digger | +101% Ore Finder, +76% Dirt Break |
+| Legendary | Treasurefin | Gilded Gold Hippocamp | Seeker | +63% Pack Luck, +38% Luck |
+| Legendary | Squishbell | Coral Abyss Lamprey | Prospector | +63% Ore Luck, +42% Gem Find |
+| Legendary | Pinchkin | Tidal Ruin Mosasaur | Tidecaller | +84% Gem Find, +76% Mine Speed |
+| Legendary | Oysterbelle | Pearled Gold Tessera | Trader | +151% Ore Haul, +94% Coin Bonus |
+| Legendary | Benthic | Gilded Pearl Nymphaeum | Mystic | +84% Gem Find, +76% Mine Speed |
+| Mythic | Merkit | Atlantean Tide Acropolis | Atlantis Rising | +14% Tidal Wave, +34% Tidal Wave Damage, +64% Gem Find |
+| Mythic | Spindrift | Leviathan Sunken Tholos | Atlantis Rising | +96% Tidal Wave Damage, +80% Gem Find, +2.2% Tidal Wave |
+| Mythic | Splashy | Sunken Crown Triton | Atlantis Rising | +132% Gem Find, +5.0% Tidal Wave, +14% Tidal Wave Damage |
+| Mythic | Paddlefin | Abyssal Abyss Cetus | Atlantis Rising | +132% Gem Find, +5.0% Tidal Wave, +14% Tidal Wave Damage |
+| Mythic | Coralina | Atlantean Orichalcum Panoply | Atlantis Rising | +14% Tidal Wave, +34% Tidal Wave Damage, +64% Gem Find |
+| Mythic | Seaweed | Leviathan Lost Atlanteum | Atlantis Rising | +96% Tidal Wave Damage, +80% Gem Find, +2.2% Tidal Wave |
+| Divine | Pearlina | Luminous Tide Poseidon | Atlantis Rising | +20% Tidal Wave, +46% Tidal Wave Damage, +86% Gem Find |
+| Divine | Curlarm | Crowned Deep Amphitheater | Atlantis Rising | +131% Tidal Wave Damage, +108% Gem Find, +2.9% Tidal Wave |
+| Divine | Tidegate | Moonlit Moon Nereid | Atlantis Rising | +179% Gem Find, +6.9% Tidal Wave, +20% Tidal Wave Damage |
+| Divine | Gillyfin | Radiant Luminous Ziggurat | Atlantis Rising | +20% Tidal Wave, +46% Tidal Wave Damage, +86% Gem Find |
+| Exotic | Wavecrest | Deepthroned Primeval Abyssgate | Atlantis Rising | +241% Gem Find, +9.2% Tidal Wave, +26% Tidal Wave Damage |
+| Exotic | Splish | Tidebound Tidebound Sanctum | Atlantis Rising | +26% Tidal Wave, +62% Tidal Wave Damage, +116% Gem Find |
+| Exotic | Reefwhisk | Primeval Deepthrone Dais | Atlantis Rising | +176% Tidal Wave Damage, +146% Gem Find, +4.0% Tidal Wave |
+| Exotic | Riptail | Oceanborn Oceanborn Megalith | Atlantis Rising | +176% Tidal Wave Damage, +146% Gem Find, +4.0% Tidal Wave |
+| Exotic | Galleon | Deepthroned Fathom Heartstone | Atlantis Rising | +241% Gem Find, +9.2% Tidal Wave, +26% Tidal Wave Damage |
+| Exotic | Clamwhistle | Tidebound Genesis Tidewell | Atlantis Rising | +26% Tidal Wave, +62% Tidal Wave Damage, +116% Gem Find |
 
 ## 15. Divine Relics (A, ×1.98)
 
@@ -1687,107 +2013,133 @@ Packs: Forgotten Idol · Sacred Fragment · Relic of Ages · Celestial Artifact 
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Gildling | Mint Relic Windup | Striker | +48% Swing Rate, +34% Mine Speed |
-| Common | Keyward | Emerald Idol | Bruiser | +67% Mine Speed, +34% Dirt Break |
-| Common | Filigree | Temple Coral Relic Key | Seeker | +31% Chest Luck, +17% Luck |
-| Common | Gildpaw | Verdigris Hourglass | Prospector | +28% Ore Luck, +19% Gem Find |
-| Common | Relikin | Mint Relic Golem | Bruiser | +67% Mine Speed, +34% Dirt Break |
-| Common | Aeon | Twilight Indigo Wish Lamp | Mystic | +34% Luck, +34% Mine Speed |
-| Common | Bauble | Turquoise Inlay Owl | Seeker | +28% Pack Luck, +17% Luck |
-| Common | Glowlamp | Dawn Pink Beetle | Bruiser | +67% Dirt Break, +34% Ore Haul |
-| Common | Cipher | Moon Silver Idol | Bruiser | +67% Dirt Break, +34% Mine Speed |
-| Common | Wishwick | Dawn Pink Windup | Striker | +67% Mine Speed, +34% Dirt Break |
-| Common | Gildy | Moon Silver Hourglass | Prospector | +37% Gem Find, +19% Rare Ore |
-| Common | Moonwheel | Sacred Gold Wish Lamp | Mystic | +34% Luck, +34% Mine Speed |
-| Common | Latchkey | Onyx Relic Key | Seeker | +31% Chest Luck, +17% Luck |
-| Common | Tickhand | Onyx Hourglass | Prospector | +37% Rare Ore, +19% Gem Find |
-| Common | Templebell | Turquoise Inlay Idol | Bruiser | +67% Dirt Break, +34% Ore Haul |
-| Common | Minutehand | Turquoise Inlay Windup | Striker | +48% Swing Rate, +34% Mine Speed |
-| Common | Gatekeeper | Twilight Indigo Golem | Bruiser | +67% Mine Speed, +34% Dirt Break |
-| Common | Keybit | Verdigris Wish Lamp | Mystic | +5.9% Zap Chance, +16% Zap Damage, +22% Swing Rate |
-| Common | Codex | Temple Coral Beetle | Bruiser | +67% Dirt Break, +34% Mine Speed |
-| Common | Etchling | Mint Relic Owl | Seeker | +34% Luck, +15% Chest Luck |
-| Common | Tocky | Turquoise Inlay Relic Key | Seeker | +34% Luck, +15% Chest Luck |
-| Common | Gildmane | Rose Gold Windup | Striker | +67% Mine Speed, +34% Dirt Break |
-| Common | Relicorn | Turquoise Inlay Hourglass | Prospector | +37% Gem Find, +19% Rare Ore |
-| Common | Sextant | Twilight Indigo Idol | Bruiser | +67% Dirt Break, +34% Ore Haul |
-| Common | Chiselbit | Lapis Relic Key | Seeker | +28% Pack Luck, +17% Luck |
-| Common | Padlock | Ruby Wish Lamp | Mystic | +5.9% Zap Chance, +16% Zap Damage, +22% Swing Rate |
-| Common | Starwheel | Amethyst Windup | Striker | +48% Swing Rate, +34% Mine Speed |
-| Common | Gnomon | Temple Coral Hourglass | Prospector | +37% Rare Ore, +19% Gem Find |
-| Common | Ziggurat | Starlight Lilac Owl | Seeker | +28% Pack Luck, +17% Luck |
-| Common | Haloette | Verdigris Beetle | Bruiser | +67% Dirt Break, +34% Ore Haul |
-| Common | Amulette | Night Sky Idol | Bruiser | +67% Mine Speed, +34% Dirt Break |
-| Common | Mallet | Dawn Pink Relic Key | Seeker | +28% Pack Luck, +17% Luck |
-| Common | Cogsby | Celestial Blue Golem | Bruiser | +67% Dirt Break, +34% Mine Speed |
-| Common | Carnelian | Starlight Lilac Wish Lamp | Mystic | +34% Luck, +34% Mine Speed |
-| Common | Helio | Terracotta Idol | Bruiser | +67% Mine Speed, +34% Dirt Break |
-| Common | Pinion | Sacred Gold Windup | Striker | +67% Mine Speed, +24% Swing Rate |
-| Common | Templepup | Twilight Indigo Relic Key | Seeker | +31% Chest Luck, +17% Luck |
-| Common | Timekeep | Bronze Wish Lamp | Mystic | +34% Luck, +34% Mine Speed |
-| Uncommon | Brasslet | Lapis Hourglass | Prospector | +45% Rare Ore, +22% Gem Find |
-| Uncommon | Idolbit | Sunstone Hourglass | Prospector | +45% Gem Find, +22% Rare Ore |
-| Uncommon | Idolo | Rose Gold Relic Key | Seeker | +37% Chest Luck, +20% Luck |
-| Uncommon | Sunwheel | Twilight Indigo Beetle | Bruiser | +80% Mine Speed, +40% Dirt Break |
-| Uncommon | Hourling | Ivory Windup | Striker | +80% Mine Speed, +29% Swing Rate |
-| Uncommon | Scarabelle | Verdigris Owl | Seeker | +34% Pack Luck, +20% Luck |
-| Uncommon | Wardstone | Ruby Idol | Bruiser | +80% Dirt Break, +40% Mine Speed |
-| Uncommon | Firstlight | Moon Silver Golem | Bruiser | +80% Dirt Break, +40% Ore Haul |
-| Uncommon | Horologe | Emerald Wish Lamp | Mystic | +7.0% Zap Chance, +64% Mine Speed |
-| Uncommon | Sandglass | Sacred Gold Relic Key | Seeker | +40% Luck, +18% Chest Luck |
-| Uncommon | Locket | Starlight Lilac Windup | Striker | +57% Swing Rate, +40% Mine Speed |
-| Uncommon | Omenstone | Emerald Hourglass | Prospector | +34% Ore Luck, +22% Gem Find |
-| Uncommon | Electrum | Sandstone Idol | Bruiser | +80% Mine Speed, +40% Dirt Break |
-| Uncommon | Windkey | Celestial Blue Wish Lamp | Mystic | +7.0% Zap Chance, +19% Zap Damage, +26% Swing Rate |
-| Uncommon | Talismo | Ruby Relic Key | Seeker | +37% Chest Luck, +20% Luck |
-| Uncommon | Pyramidion | Twilight Indigo Hourglass | Prospector | +45% Rare Ore, +22% Gem Find |
-| Uncommon | Pillarstone | Amethyst Beetle | Bruiser | +80% Mine Speed, +40% Dirt Break |
-| Uncommon | Shrinekeep | Sunstone Idol | Bruiser | +80% Dirt Break, +40% Mine Speed |
-| Uncommon | Coggle | Lapis Windup | Striker | +57% Swing Rate, +40% Mine Speed |
-| Uncommon | Curiosa | Terracotta Golem | Bruiser | +80% Dirt Break, +40% Mine Speed |
-| Uncommon | Sandsprite | Lapis Wish Lamp | Mystic | +7.0% Zap Chance, +64% Mine Speed |
-| Uncommon | Reliquo | Amethyst Owl | Seeker | +37% Chest Luck, +20% Luck |
-| Uncommon | Inlay | Rose Gold Hourglass | Prospector | +34% Ore Luck, +22% Gem Find |
-| Rare | Windle | Amethyst Idol | Bruiser | +99% Mine Speed, +49% Dirt Break |
-| Rare | Bronzy | Marble Relic Key | Seeker | +49% Luck, +22% Chest Luck |
-| Rare | Glyph | Sunstone Wish Lamp | Mystic | +8.7% Zap Chance, +23% Zap Damage, +32% Swing Rate |
-| Rare | Dolmen | Temple Coral Windup | Striker | +99% Mine Speed, +35% Swing Rate |
-| Rare | Keyling | Dawn Pink Hourglass | Prospector | +41% Ore Luck, +27% Gem Find |
-| Rare | Gildwhisker | Mint Relic Idol | Bruiser | +99% Mine Speed, +49% Dirt Break |
-| Rare | Plinthy | Bronze Relic Key | Seeker | +49% Luck, +22% Chest Luck |
-| Rare | Crownstone | Night Sky Golem | Bruiser | +99% Dirt Break, +49% Mine Speed |
-| Rare | Epoch | Rose Gold Wish Lamp | Mystic | +49% Luck, +49% Mine Speed |
-| Rare | Clockwork | Dawn Pink Owl | Seeker | +41% Pack Luck, +25% Luck |
-| Rare | Ticker | Ruby Windup | Striker | +99% Mine Speed, +49% Dirt Break |
-| Rare | Goblet | Starlight Lilac Beetle | Bruiser | +99% Mine Speed, +49% Dirt Break |
-| Rare | Idolpup | Dawn Pink Idol | Bruiser | +99% Mine Speed, +49% Dirt Break |
-| Rare | Auri | Night Sky Wish Lamp | Mystic | +8.7% Zap Chance, +79% Mine Speed |
-| Epic | Stellara | Glowing Marble Hourglass | Prospector | +51% Ore Luck, +34% Gem Find |
-| Epic | Patina | Glowing Amethyst Relic Key | Seeker | +51% Pack Luck, +31% Luck |
-| Epic | Armilla | Glowing Twilight Indigo Windup | Striker | +123% Mine Speed, +62% Dirt Break |
-| Epic | Totemkin | Glowing Sandstone Beetle | Bruiser | +123% Mine Speed, +62% Dirt Break |
-| Epic | Gearling | Glowing Marble Idol | Bruiser | +123% Dirt Break, +62% Ore Haul |
-| Epic | Wickling | Glowing Rose Gold Owl | Seeker | +62% Luck, +28% Chest Luck |
-| Epic | Granule | Glowing Terracotta Hourglass | Prospector | +68% Gem Find, +34% Rare Ore |
-| Epic | Sunstone | Glowing Rose Gold Golem | Bruiser | +123% Dirt Break, +62% Ore Haul |
-| Epic | Astrolabe | Glowing Mint Relic Wish Lamp | Mystic | +62% Luck, +62% Mine Speed |
-| Legendary | Gearbit | Gilded Sunstone Relic Key | Seeker | +79% Luck, +36% Chest Luck |
-| Legendary | Sundisk | Carved Celestial Blue Windup | Striker | +113% Swing Rate, +79% Mine Speed |
-| Legendary | Aurix | Ancient Ruby Hourglass | Prospector | +66% Ore Luck, +44% Gem Find |
-| Legendary | Sigilbit | Polished Temple Coral Idol | Bruiser | +159% Dirt Break, +79% Ore Haul |
-| Legendary | Keyhole | Gilded Dawn Pink Wish Lamp | Mystic | +79% Luck, +79% Mine Speed |
-| Legendary | Worldkey | Carved Jade Relic Key | Seeker | +66% Pack Luck, +40% Luck |
-| Mythic | Sunburst | Clockwork Windup | Divine Relics | +19% Zap Chance, +35% Zap Damage, +60% Luck |
-| Mythic | Cinnabar | Fabled Beetle | Divine Relics | +101% Zap Damage, +75% Luck, +2.8% Zap Chance |
-| Divine | Gearlock | Divine Idol | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
-| Divine | Alabaster | Celestial Windup | Divine Relics | +26% Zap Chance, +48% Zap Damage, +82% Luck |
-| Divine | Sentinel | Exalted Golem | Divine Relics | +137% Zap Damage, +102% Luck, +3.8% Zap Chance |
-| Divine | Marbleous | Haloed Wish Lamp | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
-| Divine | Amulet | Divine Hourglass | Divine Relics | +26% Zap Chance, +48% Zap Damage, +82% Luck |
-| Divine | Glyphy | Celestial Relic Key | Divine Relics | +137% Zap Damage, +102% Luck, +3.8% Zap Chance |
-| Divine | Idolette | Exalted Owl | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
-| Divine | Cogwheel | Haloed Idol | Divine Relics | +26% Zap Chance, +48% Zap Damage, +82% Luck |
-| Exotic | Sundial | Primordial Wish Lamp | Divine Relics | +185% Zap Damage, +138% Luck, +5.2% Zap Chance |
+| Common | Gildling | Temple Coral Windup | Striker | +48% Swing Rate, +34% Mine Speed |
+| Common | Keyward | Jade Idol | Bruiser | +67% Mine Speed, +34% Dirt Break |
+| Common | Filigree | Ruby Relic Key | Seeker | +31% Chest Luck, +17% Luck |
+| Common | Gildpaw | Ivory Hourglass | Prospector | +28% Ore Luck, +19% Gem Find |
+| Common | Relikin | Sunstone Temple Padlock | Bruiser | +67% Mine Speed, +34% Dirt Break |
+| Common | Aeon | Emerald Sage Scroll | Mystic | +34% Luck, +34% Mine Speed |
+| Common | Bauble | Sunstone Wish Lamp | Seeker | +28% Pack Luck, +17% Luck |
+| Common | Glowlamp | Mint Relic Step Pyramid | Bruiser | +67% Dirt Break, +34% Ore Haul |
+| Common | Cipher | Marble Shrine Bell | Bruiser | +67% Dirt Break, +34% Mine Speed |
+| Common | Wishwick | Deep Teal Owl | Striker | +67% Mine Speed, +34% Dirt Break |
+| Common | Gildy | Starlight Lilac Shrine Bell | Prospector | +37% Gem Find, +19% Rare Ore |
+| Common | Moonwheel | Laurel Lime Hourglass | Mystic | +34% Luck, +34% Mine Speed |
+| Common | Latchkey | Iron Idol | Seeker | +31% Chest Luck, +17% Luck |
+| Common | Tickhand | Sacred Gold Windup | Prospector | +37% Rare Ore, +19% Gem Find |
+| Common | Templebell | Azure Step Pyramid | Bruiser | +67% Dirt Break, +34% Ore Haul |
+| Common | Minutehand | Cedarwood Wish Lamp | Striker | +48% Swing Rate, +34% Mine Speed |
+| Common | Gatekeeper | Ivory Relic Key | Bruiser | +67% Mine Speed, +34% Dirt Break |
+| Common | Keybit | Plum Sage Scroll | Mystic | +5.9% Zap Chance, +16% Zap Damage, +22% Swing Rate |
+| Common | Codex | Royal Purple Temple Padlock | Bruiser | +67% Dirt Break, +34% Mine Speed |
+| Common | Etchling | Plum Idol | Seeker | +34% Luck, +15% Chest Luck |
+| Common | Tocky | Marble Windup | Seeker | +34% Luck, +15% Chest Luck |
+| Common | Gildmane | Deep Teal Sage Scroll | Striker | +67% Mine Speed, +34% Dirt Break |
+| Common | Relicorn | Obsidian Owl | Prospector | +37% Gem Find, +19% Rare Ore |
+| Common | Sextant | Azure Temple Padlock | Bruiser | +67% Dirt Break, +34% Ore Haul |
+| Common | Chiselbit | Cedarwood Hourglass | Seeker | +28% Pack Luck, +17% Luck |
+| Common | Padlock | Terracotta Shrine Bell | Mystic | +5.9% Zap Chance, +16% Zap Damage, +22% Swing Rate |
+| Common | Starwheel | Jade Relic Key | Striker | +48% Swing Rate, +34% Mine Speed |
+| Common | Gnomon | Bronze Step Pyramid | Prospector | +37% Rare Ore, +19% Gem Find |
+| Common | Ziggurat | Mint Relic Wish Lamp | Seeker | +28% Pack Luck, +17% Luck |
+| Common | Haloette | Iron Windup | Bruiser | +67% Dirt Break, +34% Ore Haul |
+| Common | Amulette | Deep Teal Shrine Bell | Bruiser | +67% Mine Speed, +34% Dirt Break |
+| Common | Mallet | Starlight Lilac Idol | Seeker | +28% Pack Luck, +17% Luck |
+| Common | Cogsby | Laurel Lime Sage Scroll | Bruiser | +67% Dirt Break, +34% Mine Speed |
+| Common | Carnelian | Ivory Temple Padlock | Mystic | +34% Luck, +34% Mine Speed |
+| Common | Helio | Cedar Green Relic Key | Bruiser | +67% Mine Speed, +34% Dirt Break |
+| Common | Pinion | Cedar Green Step Pyramid | Striker | +67% Mine Speed, +24% Swing Rate |
+| Common | Templepup | Fuchsia Wish Lamp | Seeker | +31% Chest Luck, +17% Luck |
+| Common | Timekeep | Cedar Green Hourglass | Mystic | +34% Luck, +34% Mine Speed |
+| Uncommon | Brasslet | Plum Hourglass | Prospector | +45% Rare Ore, +22% Gem Find |
+| Uncommon | Idolbit | Lemon Cream Shrine Bell | Prospector | +45% Gem Find, +22% Rare Ore |
+| Uncommon | Idolo | Turquoise Inlay Relic Key | Seeker | +37% Chest Luck, +20% Luck |
+| Uncommon | Sunwheel | Azure Windup | Bruiser | +80% Mine Speed, +40% Dirt Break |
+| Uncommon | Hourling | Turquoise Inlay Sage Scroll | Striker | +80% Mine Speed, +29% Swing Rate |
+| Uncommon | Scarabelle | Dawn Pink Step Pyramid | Seeker | +34% Pack Luck, +20% Luck |
+| Uncommon | Wardstone | Dawn Pink Temple Padlock | Bruiser | +80% Dirt Break, +40% Mine Speed |
+| Uncommon | Firstlight | Orchid Idol | Bruiser | +80% Dirt Break, +40% Ore Haul |
+| Uncommon | Horologe | Ash Grey Wish Lamp | Mystic | +7.0% Zap Chance, +64% Mine Speed |
+| Uncommon | Sandglass | Twilight Indigo Relic Key | Seeker | +40% Luck, +18% Chest Luck |
+| Uncommon | Locket | Emerald Windup | Striker | +57% Swing Rate, +40% Mine Speed |
+| Uncommon | Omenstone | Azure Sage Scroll | Prospector | +34% Ore Luck, +22% Gem Find |
+| Uncommon | Electrum | Fuchsia Temple Padlock | Bruiser | +80% Mine Speed, +40% Dirt Break |
+| Uncommon | Windkey | Plum Shrine Bell | Mystic | +7.0% Zap Chance, +19% Zap Damage, +26% Swing Rate |
+| Uncommon | Talismo | Orchid Hourglass | Seeker | +37% Chest Luck, +20% Luck |
+| Uncommon | Pyramidion | Rose Gold Idol | Prospector | +45% Rare Ore, +22% Gem Find |
+| Uncommon | Pillarstone | Sapphire Step Pyramid | Bruiser | +80% Mine Speed, +40% Dirt Break |
+| Uncommon | Shrinekeep | Sun Yellow Wish Lamp | Bruiser | +80% Dirt Break, +40% Mine Speed |
+| Uncommon | Coggle | Celestial Blue Relic Key | Striker | +57% Swing Rate, +40% Mine Speed |
+| Uncommon | Curiosa | Starlight Lilac Sage Scroll | Bruiser | +80% Dirt Break, +40% Mine Speed |
+| Uncommon | Sandsprite | Night Sky Temple Padlock | Mystic | +7.0% Zap Chance, +64% Mine Speed |
+| Uncommon | Reliquo | Royal Purple Shrine Bell | Seeker | +37% Chest Luck, +20% Luck |
+| Uncommon | Inlay | Azure Hourglass | Prospector | +34% Ore Luck, +22% Gem Find |
+| Rare | Windle | Cedar Green Idol | Bruiser | +99% Mine Speed, +49% Dirt Break |
+| Rare | Bronzy | Sun Yellow Step Pyramid | Seeker | +49% Luck, +22% Chest Luck |
+| Rare | Glyph | Olive Brass Wish Lamp | Mystic | +8.7% Zap Chance, +23% Zap Damage, +32% Swing Rate |
+| Rare | Dolmen | Royal Purple Windup | Striker | +99% Mine Speed, +35% Swing Rate |
+| Rare | Keyling | Emerald Shrine Bell | Prospector | +41% Ore Luck, +27% Gem Find |
+| Rare | Gildwhisker | Ash Grey Hourglass | Bruiser | +99% Mine Speed, +49% Dirt Break |
+| Rare | Plinthy | Sunstone Idol | Seeker | +49% Luck, +22% Chest Luck |
+| Rare | Crownstone | Sacred Gold Relic Key | Bruiser | +99% Dirt Break, +49% Mine Speed |
+| Rare | Epoch | Laurel Lime Step Pyramid | Mystic | +49% Luck, +49% Mine Speed |
+| Rare | Clockwork | Dawn Pink Wish Lamp | Seeker | +41% Pack Luck, +25% Luck |
+| Rare | Ticker | Turquoise Inlay Windup | Striker | +99% Mine Speed, +49% Dirt Break |
+| Rare | Goblet | Ruby Sage Scroll | Bruiser | +99% Mine Speed, +49% Dirt Break |
+| Rare | Idolpup | Deep Teal Temple Padlock | Bruiser | +99% Mine Speed, +49% Dirt Break |
+| Rare | Auri | Phoenix Red Shrine Bell | Mystic | +8.7% Zap Chance, +79% Mine Speed |
+| Epic | Stellara | Faience Hippo | Prospector | +51% Ore Luck, +34% Gem Find |
+| Epic | Patina | Pocket Sphinx | Seeker | +51% Pack Luck, +31% Luck |
+| Epic | Armilla | Brass Astrolabe | Striker | +123% Mine Speed, +62% Dirt Break |
+| Epic | Totemkin | Chalice Sprite | Bruiser | +123% Mine Speed, +62% Dirt Break |
+| Epic | Gearling | Sundial Tortoise | Bruiser | +123% Dirt Break, +62% Ore Haul |
+| Epic | Wickling | Roof Gargoyle | Seeker | +62% Luck, +28% Chest Luck |
+| Epic | Granule | Mosaic Koi | Prospector | +68% Gem Find, +34% Rare Ore |
+| Epic | Sunstone | Oracle Mask | Bruiser | +123% Dirt Break, +62% Ore Haul |
+| Epic | Astrolabe | Coin Toad | Mystic | +62% Luck, +62% Mine Speed |
+| Epic | Talisprite | Lantern Moth | Seeker | +56% Chest Luck, +31% Luck |
+| Epic | Sunray | Shield Crab | Bruiser | +123% Mine Speed, +31% Luck |
+| Epic | Lapisa | Wax Seal | Mystic | +62% Luck, +62% Mine Speed |
+| Epic | Elixirbit | Gear Snail | Digger | +82% Ore Finder, +62% Dirt Break |
+| Epic | Ivoire | Thunder Drum | Striker | +88% Swing Rate, +62% Mine Speed |
+| Epic | Charmstone | Altar Candle | Mystic | +62% Luck, +62% Mine Speed |
+| Epic | Jadeling | Wooden Steed | Striker | +123% Mine Speed, +44% Swing Rate |
+| Epic | Aurelio | Temple Cat | Seeker | +51% Pack Luck, +31% Luck |
+| Epic | Sunscarab | Living Tome | Mystic | +62% Luck, +62% Mine Speed |
+| Legendary | Gearbit | Carved Relic Griffin | Seeker | +79% Luck, +36% Chest Luck |
+| Legendary | Sundisk | Ancient Shrine Lion | Striker | +113% Swing Rate, +79% Mine Speed |
+| Legendary | Aurix | Polished Jackal Warden | Prospector | +66% Ore Luck, +44% Gem Find |
+| Legendary | Sigilbit | Gilded Canopic Jar | Bruiser | +159% Dirt Break, +79% Ore Haul |
+| Legendary | Keyhole | Carved Fleece Ram | Mystic | +79% Luck, +79% Mine Speed |
+| Legendary | Worldkey | Ancient Rune Anvil | Seeker | +66% Pack Luck, +40% Luck |
+| Legendary | Shrinelet | Polished Temple Lyre | Mystic | +79% Luck, +79% Mine Speed |
+| Legendary | Kilnling | Gilded Howdah Elephant | Digger | +159% Dirt Break, +79% Ore Haul |
+| Legendary | Orichalc | Carved Prayer Crane | Seeker | +72% Chest Luck, +40% Luck |
+| Legendary | Wardling | Ancient Moon Mirror | Mystic | +79% Luck, +79% Mine Speed |
+| Legendary | Lampkin | Polished Incense Burner | Prospector | +66% Ore Luck, +44% Gem Find |
+| Legendary | Orrerin | Gilded Terracotta Guard | Striker | +159% Mine Speed, +79% Dirt Break |
+| Mythic | Sunburst | Runed Ouroboros Ring | Divine Relics | +19% Zap Chance, +35% Zap Damage, +60% Luck |
+| Mythic | Cinnabar | Clockwork Brass Orrery | Divine Relics | +101% Zap Damage, +75% Luck, +2.8% Zap Chance |
+| Mythic | Amphora | Fabled Clockwork Kraken | Divine Relics | +124% Luck, +6.6% Zap Chance, +15% Zap Damage |
+| Mythic | Tickletock | Sacred Fate Scales | Divine Relics | +19% Zap Chance, +35% Zap Damage, +60% Luck |
+| Divine | Gearlock | Celestial Votive Phoenix | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
+| Divine | Alabaster | Exalted Cloud Pegasus | Divine Relics | +26% Zap Chance, +48% Zap Damage, +82% Luck |
+| Divine | Sentinel | Haloed Starmap Whale | Divine Relics | +137% Zap Damage, +102% Luck, +3.8% Zap Chance |
+| Divine | Marbleous | Divine Halo Jelly | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
+| Divine | Amulet | Celestial Seraph Wheel | Divine Relics | +26% Zap Chance, +48% Zap Damage, +82% Luck |
+| Divine | Glyphy | Exalted Winged Sun Disc | Divine Relics | +137% Zap Damage, +102% Luck, +3.8% Zap Chance |
+| Divine | Idolette | Haloed Dream Crescent | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
+| Divine | Cogwheel | Divine Shrine Fox | Divine Relics | +26% Zap Chance, +48% Zap Damage, +82% Luck |
+| Divine | Aeonkin | Celestial Comet Seahorse | Divine Relics | +137% Zap Damage, +102% Luck, +3.8% Zap Chance |
+| Divine | Ankhlet | Exalted Astral Stag | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
+| Divine | Gearwhirl | Haloed Pearl Wyrmling | Divine Relics | +26% Zap Chance, +48% Zap Damage, +82% Luck |
+| Divine | Nimbelle | Divine Lotus Throne | Divine Relics | +137% Zap Damage, +102% Luck, +3.8% Zap Chance |
+| Divine | Seraphin | Celestial Thunder Nimbus | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
+| Divine | Hallowbit | Exalted Dawn Prism | Divine Relics | +26% Zap Chance, +48% Zap Damage, +82% Luck |
+| Divine | Curio | Haloed Elixir Hare | Divine Relics | +137% Zap Damage, +102% Luck, +3.8% Zap Chance |
+| Divine | Shaper | Divine Sigil Manta | Divine Relics | +169% Luck, +9.0% Zap Chance, +21% Zap Damage |
+| Exotic | Sundial | Worldforged World Egg | Divine Relics | +185% Zap Damage, +138% Luck, +5.2% Zap Chance |
+| Exotic | Runestone | Firstborn Genesis Tree | Divine Relics | +35% Zap Chance, +65% Zap Damage, +110% Luck |
 
 ## 16. Dragonfall (S, ×2.08)
 
@@ -1795,105 +2147,130 @@ Packs: Scaled Beginnings · Hatchling's Hoard · Drakefire · Wyrm's Treasury ·
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Emeraldclaw | Frost Scale Sky Wyrm | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Garnetwing | Plum Scale Hatchling | Seeker | +29% Pack Luck, +18% Luck |
-| Common | Cloudhopper | Moss Scale Drake | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Treasurewing | Jade Scale Hoard Dragon | Trader | +88% Coin Bonus, +35% Ore Haul |
-| Common | Skywhisker | Ember Orange Fossil Dragon | Digger | +71% Dirt Break, +35% Ore Haul |
-| Common | Worldbiter | Plum Scale Wyrm | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Fossilclaw | Sapphire Scale Lizard | Prospector | +39% Rare Ore, +20% Gem Find |
-| Common | Coinhoard | Moss Scale Wyvern | Striker | +71% Mine Speed, +25% Swing Rate |
-| Common | Scalesworth | Fossil Brown Sky Wyrm | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Stormwing | Sky Scale Hatchling | Seeker | +35% Luck, +16% Chest Luck |
-| Common | Glimmerclaw | Coral Scale Hoard Dragon | Trader | +88% Coin Bonus, +35% Ore Haul |
-| Common | Eggdrake | Storm Grey Wyvern | Striker | +71% Mine Speed, +35% Dirt Break |
-| Common | Bronzescale | Moss Scale Fossil Dragon | Digger | +71% Ore Haul, +35% Dirt Break |
-| Common | Bonejaw | Plum Scale Drake | Mystic | +5.5% Earthquake Chance, +57% Mine Speed |
-| Common | Vaultclaw | Bone Hoard Dragon | Trader | +88% Coin Bonus, +35% Ore Haul |
-| Common | Fumewing | Ash Scale Sky Wyrm | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Treasurekin | Moss Scale Wyrm | Mystic | +5.5% Earthquake Chance, +57% Mine Speed |
-| Common | Wyrmie | Emerald Scale Lizard | Prospector | +29% Ore Luck, +20% Gem Find |
-| Common | Zephyrwing | Venom Green Wyvern | Striker | +71% Mine Speed, +25% Swing Rate |
-| Common | Ambereye | Bronze Scale Hatchling | Seeker | +29% Pack Luck, +18% Luck |
-| Common | Hoarder | Teal Wyrm Fossil Dragon | Digger | +71% Ore Haul, +35% Dirt Break |
-| Common | Wyrmberry | Plum Scale Wyvern | Striker | +71% Mine Speed, +25% Swing Rate |
-| Common | Emberscale | Coral Scale Sky Wyrm | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Crownclaw | Hoard Gold Hoard Dragon | Trader | +71% Ore Haul, +44% Coin Bonus |
-| Common | Mistcoil | Twilight Violet Hatchling | Seeker | +29% Pack Luck, +18% Luck |
-| Common | Flamesnout | Amethyst Scale Fossil Dragon | Digger | +71% Dirt Break, +35% Ore Haul |
-| Common | Tremorclaw | Jade Scale Lizard | Prospector | +39% Rare Ore, +20% Gem Find |
-| Common | Regalscale | Sapphire Scale Wyvern | Striker | +50% Swing Rate, +35% Mine Speed |
-| Common | Pyrewing | Hoard Gold Sky Wyrm | Mystic | +88% Coin Bonus, +35% Mine Speed |
-| Common | Talonbit | Fossil Brown Wyrm | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Ancientwing | Hoard Gold Drake | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Fangling | Moss Scale Hoard Dragon | Trader | +88% Coin Bonus, +35% Ore Haul |
-| Common | Scalebit | Sapphire Scale Hatchling | Seeker | +32% Chest Luck, +18% Luck |
-| Common | Obsidiwing | Coral Scale Fossil Dragon | Digger | +71% Dirt Break, +35% Ore Haul |
-| Common | Hoardbelly | Sapphire Scale Hoard Dragon | Trader | +88% Coin Bonus, +35% Ore Haul |
-| Common | Kingscale | Emerald Scale Sky Wyrm | Mystic | +39% Rare Ore, +44% Coin Bonus |
-| Common | Gembelly | Rose Quartz Wyvern | Striker | +71% Mine Speed, +35% Dirt Break |
-| Uncommon | Opalscale | Midnight Blue Hatchling | Seeker | +42% Luck, +19% Chest Luck |
-| Uncommon | Wyrmkin | Bone Fossil Dragon | Digger | +56% Ore Finder, +42% Dirt Break |
-| Uncommon | Sapphirewing | Midnight Blue Drake | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
-| Uncommon | Goldtooth | Coral Scale Wyrm | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
-| Uncommon | Scalewhisk | Jade Scale Wyvern | Striker | +60% Swing Rate, +42% Mine Speed |
-| Uncommon | Firewhelp | Frost Scale Fossil Dragon | Digger | +84% Dirt Break, +42% Ore Haul |
-| Uncommon | Wyvie | Obsidian Scale Hatchling | Seeker | +35% Pack Luck, +21% Luck |
-| Uncommon | Shellwyrm | Plum Scale Lizard | Prospector | +47% Gem Find, +23% Rare Ore |
-| Uncommon | Skullwing | Ash Scale Hoard Dragon | Trader | +84% Ore Haul, +53% Coin Bonus |
-| Uncommon | Fossilfang | Plum Scale Sky Wyrm | Mystic | +106% Coin Bonus, +42% Mine Speed |
-| Uncommon | Wyrmpip | Frost Scale Wyvern | Striker | +60% Swing Rate, +42% Mine Speed |
-| Uncommon | Ruby Whelp | Jade Scale Hatchling | Seeker | +35% Pack Luck, +21% Luck |
-| Uncommon | Spadetail | Midnight Blue Hoard Dragon | Trader | +106% Coin Bonus, +12% Lucky Block find |
-| Uncommon | Clawlet | Twilight Violet Fossil Dragon | Digger | +84% Ore Haul, +42% Dirt Break |
-| Uncommon | Sunwhisker | Rose Quartz Sky Wyrm | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
-| Uncommon | Smokewing | Teal Wyrm Wyrm | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
-| Uncommon | Coinpurse | Amethyst Scale Wyvern | Striker | +84% Mine Speed, +42% Dirt Break |
-| Uncommon | Hatchwyrm | Sand Scale Fossil Dragon | Digger | +56% Ore Finder, +42% Dirt Break |
-| Uncommon | Goldscale | Jade Scale Drake | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
-| Uncommon | Skullcap | Obsidian Scale Lizard | Prospector | +47% Gem Find, +23% Rare Ore |
-| Uncommon | Hornlet | Bronze Scale Hoard Dragon | Trader | +106% Coin Bonus, +42% Ore Haul |
-| Uncommon | Jadewhisker | Amethyst Scale Sky Wyrm | Mystic | +106% Coin Bonus, +42% Mine Speed |
-| Uncommon | Coinclaw | Fossil Brown Hatchling | Seeker | +35% Pack Luck, +21% Luck |
-| Rare | Coinwyrm | Rose Quartz Hoard Dragon | Trader | +130% Coin Bonus, +52% Ore Haul |
-| Rare | Jadecoil | Midnight Blue Fossil Dragon | Digger | +69% Ore Finder, +52% Dirt Break |
-| Rare | Whelpy | Ruby Scale Hatchling | Seeker | +43% Pack Luck, +26% Luck |
-| Rare | Windwhisker | Ruby Scale Wyvern | Striker | +74% Swing Rate, +52% Mine Speed |
-| Rare | Wyvernette | Moss Scale Sky Wyrm | Mystic | +130% Coin Bonus, +52% Mine Speed |
-| Rare | Wingling | Amethyst Scale Wyrm | Mystic | +130% Coin Bonus, +52% Mine Speed |
-| Rare | Sheenscale | Sky Scale Drake | Mystic | +58% Rare Ore, +65% Coin Bonus |
-| Rare | Ruinwing | Twilight Violet Hoard Dragon | Trader | +104% Ore Haul, +65% Coin Bonus |
-| Rare | Sparkwing | Bone Hatchling | Seeker | +52% Luck, +24% Chest Luck |
-| Rare | Scaly | Sky Scale Fossil Dragon | Digger | +69% Ore Finder, +52% Dirt Break |
-| Rare | Gemwing | Coral Scale Wyvern | Striker | +104% Mine Speed, +52% Dirt Break |
-| Rare | Skyscale | Storm Grey Sky Wyrm | Mystic | +58% Rare Ore, +65% Coin Bonus |
-| Rare | Smokesnout | Twilight Violet Lizard | Prospector | +58% Gem Find, +29% Rare Ore |
-| Rare | Elderscale | Twilight Violet Wyvern | Striker | +104% Mine Speed, +37% Swing Rate |
-| Epic | Spiketail | Glowing Ruby Scale Fossil Dragon | Digger | +129% Dirt Break, +65% Ore Haul |
-| Epic | Thunderhorn | Glowing Ember Orange Sky Wyrm | Mystic | +10% Earthquake Chance, +129% Coin Bonus |
-| Epic | Bonesnout | Glowing Frost Scale Hatchling | Seeker | +59% Chest Luck, +32% Luck |
-| Epic | Cloudcoil | Glowing Emerald Scale Hoard Dragon | Trader | +129% Ore Haul, +81% Coin Bonus |
-| Epic | Crackshell | Glowing Fossil Brown Wyvern | Striker | +92% Swing Rate, +65% Mine Speed |
-| Epic | Queenscale | Glowing Teal Wyrm Sky Wyrm | Mystic | +72% Rare Ore, +81% Coin Bonus |
-| Epic | Gemclaw | Glowing Ash Scale Drake | Mystic | +10% Earthquake Chance, +129% Coin Bonus |
-| Epic | Amethystwing | Glowing Venom Green Hoard Dragon | Trader | +129% Ore Haul, +81% Coin Bonus |
-| Epic | Flarewing | Glowing Jade Scale Wyrm | Mystic | +72% Rare Ore, +81% Coin Bonus |
-| Legendary | Cliffscale | Horned Fossil Brown Lizard | Prospector | +93% Gem Find, +46% Rare Ore |
-| Legendary | Highwing | Scaled Teal Wyrm Hatchling | Seeker | +69% Pack Luck, +42% Luck |
-| Legendary | Ashwing | Gleaming Hoard Gold Fossil Dragon | Digger | +167% Dirt Break, +83% Ore Haul |
-| Legendary | Amberwing | Fierce Obsidian Scale Hoard Dragon | Trader | +208% Coin Bonus, +24% Lucky Block find |
-| Legendary | Hornback | Horned Sapphire Scale Sky Wyrm | Mystic | +93% Rare Ore, +104% Coin Bonus |
-| Legendary | Fossilette | Scaled Bone Wyvern | Striker | +167% Mine Speed, +83% Dirt Break |
-| Mythic | Skylord | Draconic Fossil Dragon | Dragonfall | +18% Earthquake Chance, +185% Coin Bonus, +19% Rare Ore |
-| Mythic | Bonewing | Fossilized Hatchling | Dragonfall | +297% Coin Bonus, +44% Rare Ore, +2.7% Earthquake Chance |
-| Mythic | Blazewing | Wyrmborn Hoard Dragon | Dragonfall | +139% Rare Ore, +6.2% Earthquake Chance, +43% Coin Bonus |
-| Divine | Shimmerscale | Kingly Sky Wyrm | Dragonfall | +24% Earthquake Chance, +251% Coin Bonus, +26% Rare Ore |
-| Divine | Drakelin | Skyborn Hatchling | Dragonfall | +403% Coin Bonus, +60% Rare Ore, +3.6% Earthquake Chance |
-| Exotic | Boulderback | Colossal Fossil Dragon | Dragonfall | +255% Rare Ore, +11% Earthquake Chance, +78% Coin Bonus |
-| Exotic | Glowscale | Worldshaker Wyvern | Dragonfall | +32% Earthquake Chance, +338% Coin Bonus, +35% Rare Ore |
-| Exotic | Mistwhisker | Elder Wyrm | Dragonfall | +543% Coin Bonus, +81% Rare Ore, +4.8% Earthquake Chance |
-| Exotic | Cinderwing | Primeval Drake | Dragonfall | +255% Rare Ore, +11% Earthquake Chance, +78% Coin Bonus |
-| Exotic | Hoardy | Colossal Lizard | Dragonfall | +32% Earthquake Chance, +338% Coin Bonus, +35% Rare Ore |
+| Common | Emeraldclaw | Lemon Scale Hoard Ingot | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Garnetwing | Emerald Scale Drakespin Top | Seeker | +29% Pack Luck, +18% Luck |
+| Common | Cloudhopper | Ruby Scale Sky Wyrm | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Treasurewing | Peach Scale Hatchling | Trader | +88% Coin Bonus, +35% Ore Haul |
+| Common | Skywhisker | Wine Scale Wyrm Vase | Digger | +71% Dirt Break, +35% Ore Haul |
+| Common | Worldbiter | Peach Scale Hoard Dragon | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Fossilclaw | Venom Green Drake | Prospector | +39% Rare Ore, +20% Gem Find |
+| Common | Coinhoard | Lemon Scale Fossil Dragon | Striker | +71% Mine Speed, +25% Swing Rate |
+| Common | Scalesworth | Electric Blue Lizard | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Stormwing | Magma Pink Wyvern | Seeker | +35% Luck, +16% Chest Luck |
+| Common | Glimmerclaw | Obsidian Scale Pitaya Pal | Trader | +88% Coin Bonus, +35% Ore Haul |
+| Common | Eggdrake | Emerald Scale Hoard Dragon | Striker | +71% Mine Speed, +35% Dirt Break |
+| Common | Bronzescale | Coal Black Hoard Ingot | Digger | +71% Ore Haul, +35% Dirt Break |
+| Common | Bonejaw | Jade Scale Pitaya Pal | Mystic | +5.5% Earthquake Chance, +57% Mine Speed |
+| Common | Vaultclaw | Magma Pink Sky Wyrm | Trader | +88% Coin Bonus, +35% Ore Haul |
+| Common | Fumewing | Mustard Scale Wyrm Vase | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Treasurekin | Moss Scale Wyvern | Mystic | +5.5% Earthquake Chance, +57% Mine Speed |
+| Common | Wyrmie | Lilac Scale Fossil Dragon | Prospector | +29% Ore Luck, +20% Gem Find |
+| Common | Zephyrwing | Wyrm Cyan Drakespin Top | Striker | +71% Mine Speed, +25% Swing Rate |
+| Common | Ambereye | Amethyst Scale Hatchling | Seeker | +29% Pack Luck, +18% Luck |
+| Common | Hoarder | Forest Scale Wyrm Vase | Digger | +71% Ore Haul, +35% Dirt Break |
+| Common | Wyrmberry | Pearl White Hoard Ingot | Striker | +71% Mine Speed, +25% Swing Rate |
+| Common | Emberscale | Magma Pink Pitaya Pal | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Crownclaw | Wyrm Cyan Wyvern | Trader | +71% Ore Haul, +44% Coin Bonus |
+| Common | Mistcoil | Ice Mint Sky Wyrm | Seeker | +29% Pack Luck, +18% Luck |
+| Common | Flamesnout | Storm Grey Drakespin Top | Digger | +71% Dirt Break, +35% Ore Haul |
+| Common | Tremorclaw | Electric Blue Hoard Dragon | Prospector | +39% Rare Ore, +20% Gem Find |
+| Common | Regalscale | Electric Blue Hatchling | Striker | +50% Swing Rate, +35% Mine Speed |
+| Common | Pyrewing | Ice Mint Fossil Dragon | Mystic | +88% Coin Bonus, +35% Mine Speed |
+| Common | Talonbit | Bronze Scale Wyrm Vase | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Ancientwing | Bronze Scale Hoard Ingot | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Fangling | Rose Quartz Pitaya Pal | Trader | +88% Coin Bonus, +35% Ore Haul |
+| Common | Scalebit | Royal Purple Drakespin Top | Seeker | +32% Chest Luck, +18% Luck |
+| Common | Obsidiwing | Magma Pink Hoard Dragon | Digger | +71% Dirt Break, +35% Ore Haul |
+| Common | Hoardbelly | Deep Sea Sky Wyrm | Trader | +88% Coin Bonus, +35% Ore Haul |
+| Common | Kingscale | Wine Scale Wyvern | Mystic | +39% Rare Ore, +44% Coin Bonus |
+| Common | Gembelly | Lime Drake Hatchling | Striker | +71% Mine Speed, +35% Dirt Break |
+| Uncommon | Opalscale | Coal Black Fossil Dragon | Seeker | +42% Luck, +19% Chest Luck |
+| Uncommon | Wyrmkin | Jade Scale Wyrm Vase | Digger | +56% Ore Finder, +42% Dirt Break |
+| Uncommon | Sapphirewing | Electric Blue Hoard Ingot | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
+| Uncommon | Goldtooth | Lava Red Hatchling | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
+| Uncommon | Scalewhisk | Sapphire Scale Wyvern | Striker | +60% Swing Rate, +42% Mine Speed |
+| Uncommon | Firewhelp | Ruby Scale Fossil Dragon | Digger | +84% Dirt Break, +42% Ore Haul |
+| Uncommon | Wyvie | Fossil Brown Drakespin Top | Seeker | +35% Pack Luck, +21% Luck |
+| Uncommon | Shellwyrm | Amethyst Scale Pitaya Pal | Prospector | +47% Gem Find, +23% Rare Ore |
+| Uncommon | Skullwing | Obsidian Scale Hoard Dragon | Trader | +84% Ore Haul, +53% Coin Bonus |
+| Uncommon | Fossilfang | Sapphire Scale Sky Wyrm | Mystic | +106% Coin Bonus, +42% Mine Speed |
+| Uncommon | Wyrmpip | Ember Orange Wyrm Vase | Striker | +60% Swing Rate, +42% Mine Speed |
+| Uncommon | Ruby Whelp | Jade Scale Hoard Ingot | Seeker | +35% Pack Luck, +21% Luck |
+| Uncommon | Spadetail | Pearl White Wyvern | Trader | +106% Coin Bonus, +12% Lucky Block find |
+| Uncommon | Clawlet | Frost Scale Pitaya Pal | Digger | +84% Ore Haul, +42% Dirt Break |
+| Uncommon | Sunwhisker | Coal Black Drakespin Top | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
+| Uncommon | Smokewing | Amethyst Scale Fossil Dragon | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
+| Uncommon | Coinpurse | Lilac Scale Hoard Dragon | Striker | +84% Mine Speed, +42% Dirt Break |
+| Uncommon | Hatchwyrm | Emerald Scale Sky Wyrm | Digger | +56% Ore Finder, +42% Dirt Break |
+| Uncommon | Goldscale | Ash Scale Hatchling | Mystic | +6.6% Earthquake Chance, +84% Coin Bonus |
+| Uncommon | Skullcap | Lime Drake Wyrm Vase | Prospector | +47% Gem Find, +23% Rare Ore |
+| Uncommon | Hornlet | Mustard Scale Pitaya Pal | Trader | +106% Coin Bonus, +42% Ore Haul |
+| Uncommon | Jadewhisker | Coal Black Wyvern | Mystic | +106% Coin Bonus, +42% Mine Speed |
+| Uncommon | Coinclaw | Deep Sea Fossil Dragon | Seeker | +35% Pack Luck, +21% Luck |
+| Rare | Coinwyrm | Lemon Scale Drakespin Top | Trader | +130% Coin Bonus, +52% Ore Haul |
+| Rare | Jadecoil | Wyrm Cyan Hoard Dragon | Digger | +69% Ore Finder, +52% Dirt Break |
+| Rare | Whelpy | Hoard Gold Hatchling | Seeker | +43% Pack Luck, +26% Luck |
+| Rare | Windwhisker | Fuchsia Scale Hoard Ingot | Striker | +74% Swing Rate, +52% Mine Speed |
+| Rare | Wyvernette | Fossil Brown Sky Wyrm | Mystic | +130% Coin Bonus, +52% Mine Speed |
+| Rare | Wingling | Magma Pink Drakespin Top | Mystic | +130% Coin Bonus, +52% Mine Speed |
+| Rare | Sheenscale | Coral Scale Hoard Dragon | Mystic | +58% Rare Ore, +65% Coin Bonus |
+| Rare | Ruinwing | Forest Scale Fossil Dragon | Trader | +104% Ore Haul, +65% Coin Bonus |
+| Rare | Sparkwing | Rose Quartz Hatchling | Seeker | +52% Luck, +24% Chest Luck |
+| Rare | Scaly | Bone Wyrm Vase | Digger | +69% Ore Finder, +52% Dirt Break |
+| Rare | Gemwing | Sky Scale Wyvern | Striker | +104% Mine Speed, +52% Dirt Break |
+| Rare | Skyscale | Sky Scale Sky Wyrm | Mystic | +58% Rare Ore, +65% Coin Bonus |
+| Rare | Smokesnout | Teal Wyrm Hoard Ingot | Prospector | +58% Gem Find, +29% Rare Ore |
+| Rare | Elderscale | Peach Scale Pitaya Pal | Striker | +104% Mine Speed, +37% Swing Rate |
+| Epic | Spiketail | Ember Newt | Digger | +129% Dirt Break, +65% Ore Haul |
+| Epic | Thunderhorn | Scale Dragonfly | Mystic | +10% Earthquake Chance, +129% Coin Bonus |
+| Epic | Bonesnout | Pixie Drakelet | Seeker | +59% Chest Luck, +32% Luck |
+| Epic | Cloudcoil | Coffer Mimic | Trader | +129% Ore Haul, +81% Coin Bonus |
+| Epic | Crackshell | Coinstack Critter | Striker | +92% Swing Rate, +65% Mine Speed |
+| Epic | Queenscale | Molten Gold Ooze | Mystic | +72% Rare Ore, +81% Coin Bonus |
+| Epic | Gemclaw | Ash Trilobite | Mystic | +10% Earthquake Chance, +129% Coin Bonus |
+| Epic | Amethystwing | Amber Drop | Trader | +129% Ore Haul, +81% Coin Bonus |
+| Epic | Flarewing | Scale Pangolin | Mystic | +72% Rare Ore, +81% Coin Bonus |
+| Epic | Coincrest | Candle Kobold | Digger | +86% Ore Finder, +65% Dirt Break |
+| Epic | Drakey | Hoard Magpie | Seeker | +65% Luck, +29% Chest Luck |
+| Epic | Sizzlewing | Leafy Seadrake | Tidecaller | +108% Scrap, +16% Pulverizer |
+| Epic | Vaultwing | Whisker Carp | Tidecaller | +32% Pulverizer, +54% Scrap |
+| Epic | Tiny Drake | Skull Hermit | Bruiser | +129% Dirt Break, +65% Ore Haul |
+| Epic | Drakepuff | Goblet Imp | Trader | +162% Coin Bonus, +18% Lucky Block find |
+| Epic | Templewing | Obsidian Scorpion | Striker | +129% Mine Speed, +65% Dirt Break |
+| Epic | Cragsnout | Wyrm Lantern | Mystic | +72% Rare Ore, +81% Coin Bonus |
+| Epic | Treasuretail | Snapdragon Sprout | Seeker | +65% Luck, +29% Chest Luck |
+| Legendary | Cliffscale | Scaled Plumed Coatl | Prospector | +93% Gem Find, +46% Rare Ore |
+| Legendary | Highwing | Gleaming Drakkar Longship | Seeker | +69% Pack Luck, +42% Luck |
+| Legendary | Ashwing | Fierce Ember Cockatrice | Digger | +167% Dirt Break, +83% Ore Haul |
+| Legendary | Amberwing | Horned Coinmunch Pixiu | Trader | +208% Coin Bonus, +24% Lucky Block find |
+| Legendary | Hornback | Scaled Crag Lindworm | Mystic | +93% Rare Ore, +104% Coin Bonus |
+| Legendary | Fossilette | Gleaming Twin Amphisbaena | Striker | +167% Mine Speed, +83% Dirt Break |
+| Legendary | Geodewing | Fierce Golddust Ant | Digger | +167% Ore Haul, +83% Dirt Break |
+| Legendary | Runetail | Horned Wyrmhorn Bugle | Bruiser | +167% Mine Speed, +104% Coin Bonus |
+| Legendary | Ruinclaw | Scaled Wyrmframe Gong | Mystic | +93% Rare Ore, +104% Coin Bonus |
+| Legendary | Sparktail | Gleaming Wyrmpaint Fan | Tidecaller | +42% Pulverizer, +69% Scrap |
+| Legendary | Emberheart | Fierce Rocking Drake | Bruiser | +167% Mine Speed, +83% Dirt Break |
+| Legendary | Mountainback | Horned Kingscrest Banner | Striker | +167% Mine Speed, +83% Dirt Break |
+| Mythic | Skylord | Ancient Wavecrest Serpent | Dragonfall | +18% Earthquake Chance, +185% Coin Bonus, +19% Rare Ore |
+| Mythic | Bonewing | Draconic Amberbone Raptor | Dragonfall | +297% Coin Bonus, +44% Rare Ore, +2.7% Earthquake Chance |
+| Mythic | Blazewing | Fossilized Dragoncoil Pillar | Dragonfall | +139% Rare Ore, +6.2% Earthquake Chance, +43% Coin Bonus |
+| Mythic | Pyreclaw | Wyrmborn Wyrmtalon Orb | Dragonfall | +297% Coin Bonus, +44% Rare Ore, +2.7% Earthquake Chance |
+| Mythic | Little Wyrm | Ancient Scale Chrysalis | Dragonfall | +139% Rare Ore, +6.2% Earthquake Chance, +43% Coin Bonus |
+| Mythic | Puffwing | Draconic Wyrm Chandelier | Dragonfall | +18% Earthquake Chance, +185% Coin Bonus, +19% Rare Ore |
+| Divine | Shimmerscale | Majestic Seraph Drake | Dragonfall | +24% Earthquake Chance, +251% Coin Bonus, +26% Rare Ore |
+| Divine | Drakelin | Sunscaled Skyruin Isle | Dragonfall | +403% Coin Bonus, +60% Rare Ore, +3.6% Earthquake Chance |
+| Divine | Sceptrescale | Kingly Wyrm Constellation | Dragonfall | +403% Coin Bonus, +60% Rare Ore, +3.6% Earthquake Chance |
+| Divine | Lavawyrm | Skyborn Dragon Palanquin | Dragonfall | +189% Rare Ore, +8.4% Earthquake Chance, +58% Coin Bonus |
+| Exotic | Boulderback | Colossal Parade Dragon | Dragonfall | +255% Rare Ore, +11% Earthquake Chance, +78% Coin Bonus |
+| Exotic | Glowscale | Worldshaker Dragon Leap Gate | Dragonfall | +32% Earthquake Chance, +338% Coin Bonus, +35% Rare Ore |
+| Exotic | Mistwhisker | Elder Dragonskull Keep | Dragonfall | +543% Coin Bonus, +81% Rare Ore, +4.8% Earthquake Chance |
+| Exotic | Cinderwing | Primeval Crowned Colossus | Dragonfall | +255% Rare Ore, +11% Earthquake Chance, +78% Coin Bonus |
+| Exotic | Hoardy | Colossal Dragonheart Gem | Dragonfall | +32% Earthquake Chance, +338% Coin Bonus, +35% Rare Ore |
+| Exotic | Copperscale | Worldshaker Scalemail Helm | Dragonfall | +32% Earthquake Chance, +338% Coin Bonus, +35% Rare Ore |
+| Exotic | Gemhoard | Elder Wyrm Pagoda | Dragonfall | +543% Coin Bonus, +81% Rare Ore, +4.8% Earthquake Chance |
+| Exotic | Goldfang | Primeval Wyrmvault Door | Dragonfall | +255% Rare Ore, +11% Earthquake Chance, +78% Coin Bonus |
+| Exotic | Summitclaw | Colossal Dragonlair Cavern | Dragonfall | +32% Earthquake Chance, +338% Coin Bonus, +35% Rare Ore |
+| Exotic | Basaltback | Worldshaker Wyrm Carousel | Dragonfall | +543% Coin Bonus, +81% Rare Ore, +4.8% Earthquake Chance |
 
 ## 17. Eternal Roots (S, ×2.18)
 
@@ -1901,104 +2278,129 @@ Packs: Taproot · Rootbound · Buried Spring · Root Cavern · Sapfall Deep · E
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Spore | Toadstool Springback | Tidecaller | +41% Gem Find, +9.3% Pulverizer |
-| Common | Oldgrowth | Cavern Slate Turtle | Bruiser | +74% Mine Speed, +37% Dirt Break |
-| Common | Resin | Sap Amber Taproot | Seeker | +31% Pack Luck, +19% Luck |
-| Common | Barknibble | Birchwhite Rootmole | Digger | +49% Ore Finder, +37% Dirt Break |
-| Common | Rootnest | Glowroot Stumpling | Bruiser | +74% Mine Speed, +37% Dirt Break |
-| Common | Trickle | Ember Root Wyrm | Mystic | +49% Ore Finder, +37% Dirt Break |
-| Common | Jicama | Heartwood Beetle | Bruiser | +74% Dirt Break, +37% Ore Haul |
-| Common | Glowworm | Spring Blue Sapshell | Prospector | +41% Gem Find, +21% Rare Ore |
-| Common | Silt | Starsap Groveback | Mystic | +49% Ore Finder, +37% Dirt Break |
-| Common | Sproutling | Deepwell Springback | Tidecaller | +41% Gem Find, +9.3% Pulverizer |
-| Common | Thicket | Cavern Slate Stumpling | Bruiser | +74% Mine Speed, +37% Dirt Break |
-| Common | Seedpod | Shoot Green Rootmole | Digger | +74% Dirt Break, +37% Ore Haul |
-| Common | Kapok | Terracotta Groveback | Mystic | +5.8% Earthquake Chance, +59% Mine Speed |
-| Common | Sapheart | Cavern Slate Taproot | Seeker | +37% Luck, +17% Chest Luck |
-| Common | Ringwood | Cavern Slate Sapshell | Prospector | +31% Ore Luck, +21% Gem Find |
-| Common | Turnip | Spring Blue Turtle | Bruiser | +74% Dirt Break, +37% Mine Speed |
-| Common | Sapdrop | Starsap Stumpling | Bruiser | +74% Mine Speed, +37% Dirt Break |
-| Common | Heartseed | Dewdrop Rootmole | Digger | +74% Ore Haul, +37% Dirt Break |
-| Common | Banyan | Deepwell Beetle | Bruiser | +74% Dirt Break, +37% Ore Haul |
-| Common | Everroot | Spring Blue Groveback | Mystic | +5.8% Earthquake Chance, +59% Dirt Break |
-| Common | Xylem | Seedpod Springback | Tidecaller | +19% Pulverizer, +31% Scrap |
-| Common | Rootcavern | Mandrake Sapshell | Prospector | +41% Gem Find, +21% Rare Ore |
-| Common | Sporelet | Heartwood Taproot | Seeker | +31% Pack Luck, +19% Luck |
-| Common | Turmeric | Spring Blue Wyrm | Mystic | +5.8% Earthquake Chance, +59% Dirt Break |
-| Common | Rooty | Mandrake Springback | Tidecaller | +41% Gem Find, +9.3% Pulverizer |
-| Common | Gnarly | Peat Rootmole | Digger | +74% Ore Haul, +37% Dirt Break |
-| Common | Wurzel | Dewdrop Sapshell | Prospector | +31% Ore Luck, +21% Gem Find |
-| Common | Fountain | Mossy Taproot | Seeker | +31% Pack Luck, +19% Luck |
-| Common | Knothole | Peat Stumpling | Bruiser | +74% Dirt Break, +37% Ore Haul |
-| Common | Tendril | Deepwell Groveback | Mystic | +49% Ore Finder, +37% Dirt Break |
-| Common | Rootvine | Terracotta Stumpling | Bruiser | +74% Dirt Break, +37% Ore Haul |
-| Common | Daikon | Heartwood Springback | Tidecaller | +62% Scrap, +9.3% Pulverizer |
-| Common | Gnarlwood | Spring Blue Beetle | Bruiser | +74% Dirt Break, +37% Mine Speed |
-| Common | Spelunk | Mandrake Rootmole | Digger | +74% Dirt Break, +37% Ore Haul |
-| Common | Grove | Deepwell Wyrm | Mystic | +49% Ore Finder, +37% Dirt Break |
-| Common | Heartroot | Peat Groveback | Mystic | +5.8% Earthquake Chance, +59% Mine Speed |
-| Uncommon | Sprouty | Ancient Stone Sapshell | Prospector | +37% Ore Luck, +25% Gem Find |
-| Uncommon | Sapwell | Spring Blue Taproot | Seeker | +44% Luck, +20% Chest Luck |
-| Uncommon | Dripwell | Ember Root Turtle | Bruiser | +89% Dirt Break, +44% Mine Speed |
-| Uncommon | Seedspark | Spring Blue Stumpling | Bruiser | +89% Mine Speed, +44% Dirt Break |
-| Uncommon | Phloem | Glowroot Springback | Tidecaller | +49% Gem Find, +11% Pulverizer |
-| Uncommon | Walnut | Mossy Sapshell | Prospector | +37% Ore Luck, +25% Gem Find |
-| Uncommon | Elderseed | Rootblossom Groveback | Mystic | +6.9% Earthquake Chance, +71% Mine Speed |
-| Uncommon | Artesian | Toadstool Rootmole | Digger | +89% Dirt Break, +44% Ore Haul |
-| Uncommon | Gnarl | Peat Taproot | Seeker | +44% Luck, +20% Chest Luck |
-| Uncommon | Seedling | Birchwhite Springback | Tidecaller | +74% Scrap, +11% Pulverizer |
-| Uncommon | Horseradish | Glowroot Wyrm | Mystic | +59% Ore Finder, +44% Dirt Break |
-| Uncommon | Gumtree | Nightroot Sapshell | Prospector | +37% Ore Luck, +25% Gem Find |
-| Uncommon | Cone | Fernleaf Beetle | Bruiser | +89% Dirt Break, +44% Mine Speed |
-| Uncommon | Cambium | Birchwhite Groveback | Mystic | +6.9% Earthquake Chance, +71% Dirt Break |
-| Uncommon | Underroot | Seedpod Turtle | Bruiser | +89% Dirt Break, +44% Ore Haul |
-| Uncommon | Cypress | Terracotta Rootmole | Digger | +89% Ore Haul, +44% Dirt Break |
-| Uncommon | Hollowkin | Elder Bark Stumpling | Bruiser | +89% Mine Speed, +44% Dirt Break |
-| Uncommon | Bedroot | Nightroot Taproot | Seeker | +40% Chest Luck, +22% Luck |
-| Uncommon | Stalagmite | Sap Amber Springback | Tidecaller | +22% Pulverizer, +37% Scrap |
-| Uncommon | Peat | Sap Amber Sapshell | Prospector | +37% Ore Luck, +25% Gem Find |
-| Uncommon | Ironwood | Ember Root Rootmole | Digger | +89% Ore Haul, +44% Dirt Break |
-| Uncommon | Rootbud | Sage Stumpling | Bruiser | +89% Dirt Break, +44% Ore Haul |
-| Uncommon | Podling | Seedpod Taproot | Seeker | +44% Luck, +20% Chest Luck |
-| Rare | Root Beer | Golden Sap Groveback | Mystic | +73% Ore Finder, +55% Dirt Break |
-| Rare | Mossbeard | Golden Sap Wyrm | Mystic | +73% Ore Finder, +55% Dirt Break |
-| Rare | Nutshell | Fernleaf Groveback | Mystic | +8.5% Earthquake Chance, +87% Mine Speed |
-| Rare | Elderroot | Deepwell Turtle | Bruiser | +109% Mine Speed, +55% Dirt Break |
-| Rare | Oaken | Nightroot Springback | Tidecaller | +91% Scrap, +14% Pulverizer |
-| Rare | Radix | Golden Sap Stumpling | Bruiser | +109% Dirt Break, +55% Mine Speed |
-| Rare | Bulbo | Terracotta Sapshell | Prospector | +61% Gem Find, +30% Rare Ore |
-| Rare | Rootcap | Sage Rootmole | Digger | +109% Dirt Break, +55% Ore Haul |
-| Rare | Ginseng | Elder Bark Taproot | Seeker | +55% Luck, +25% Chest Luck |
-| Rare | Rosin | Rootblossom Beetle | Bruiser | +109% Mine Speed, +55% Dirt Break |
-| Rare | Lumiroot | Mandrake Groveback | Mystic | +73% Ore Finder, +55% Dirt Break |
-| Rare | Grotto | Mandrake Taproot | Seeker | +45% Pack Luck, +27% Luck |
-| Rare | Deepsap | Sap Amber Rootmole | Digger | +109% Ore Haul, +55% Dirt Break |
-| Rare | Barkbit | Toadstool Sapshell | Prospector | +45% Ore Luck, +30% Gem Find |
-| Epic | Delver | Glowing Peat Springback | Tidecaller | +91% Ore Finder, +68% Dirt Break |
-| Epic | Rootknot | Glowing Deepwell Stumpling | Bruiser | +156% Mine Speed, +5.3% Earthquake Chance |
-| Epic | Sassafras | Glowing Cavern Slate Rootmole | Digger | +136% Dirt Break, +68% Ore Haul |
-| Epic | Sower | Glowing Dewdrop Turtle | Bruiser | +136% Mine Speed, +68% Dirt Break |
-| Epic | Rootlet | Glowing Fernleaf Taproot | Seeker | +57% Pack Luck, +34% Luck |
-| Epic | Pinesap | Glowing Mandrake Beetle | Bruiser | +136% Dirt Break, +68% Mine Speed |
-| Epic | Rootstock | Glowing Peat Sapshell | Prospector | +75% Gem Find, +38% Rare Ore |
-| Epic | Aquifer | Glowing Shoot Green Stumpling | Bruiser | +136% Dirt Break, +68% Ore Haul |
-| Epic | Sapsweet | Glowing Terracotta Springback | Tidecaller | +113% Scrap, +17% Pulverizer |
-| Legendary | Elmwood | Gnarled Seedpod Wyrm | Mystic | +175% Dirt Break, +87% Mine Speed |
-| Legendary | Eonroot | Sapgilt Ember Root Groveback | Mystic | +117% Ore Finder, +87% Dirt Break |
-| Legendary | Loamy | Evergreen Mandrake Stumpling | Bruiser | +175% Dirt Break, +87% Mine Speed |
-| Legendary | Sapsy | Deeprooted Shoot Green Springback | Tidecaller | +117% Ore Finder, +87% Dirt Break |
-| Legendary | Rootsy | Gnarled Ancient Stone Rootmole | Digger | +175% Ore Haul, +87% Dirt Break |
-| Legendary | Mistwell | Sapgilt Glowroot Sapshell | Prospector | +97% Rare Ore, +49% Gem Find |
-| Legendary | Brookroot | Evergreen Glowroot Taproot | Seeker | +87% Luck, +40% Chest Luck |
-| Mythic | Deeproot | Rootborn Groveback | Eternal Roots | +249% Dirt Break, +56% Ore Finder, +2.8% Earthquake Chance |
-| Mythic | Tunneler | Wellspring Beetle | Eternal Roots | +176% Ore Finder, +6.5% Earthquake Chance, +36% Dirt Break |
-| Mythic | Knotty | Ancient Rootmole | Eternal Roots | +19% Earthquake Chance, +155% Dirt Break, +24% Ore Finder |
-| Mythic | Beetroot | Primeval Stumpling | Eternal Roots | +249% Dirt Break, +56% Ore Finder, +2.8% Earthquake Chance |
-| Divine | Starroot | Sacred Sapshell | Eternal Roots | +239% Ore Finder, +8.8% Earthquake Chance, +49% Dirt Break |
-| Divine | Sprig | Radiant Taproot | Eternal Roots | +25% Earthquake Chance, +211% Dirt Break, +32% Ore Finder |
-| Divine | Canopy | Hallowed Springback | Eternal Roots | +339% Dirt Break, +76% Ore Finder, +3.8% Earthquake Chance |
-| Exotic | Woodknot | Worldroot Wyrm | Eternal Roots | +322% Ore Finder, +12% Earthquake Chance, +65% Dirt Break |
-| Exotic | Ashroot | Starseed Groveback | Eternal Roots | +34% Earthquake Chance, +284% Dirt Break, +44% Ore Finder |
+| Common | Spore | Wild Cherry Springback | Tidecaller | +41% Gem Find, +9.3% Pulverizer |
+| Common | Oldgrowth | Wild Plum Trufflepig | Bruiser | +74% Mine Speed, +37% Dirt Break |
+| Common | Resin | Lime Shoot Turtle | Seeker | +31% Pack Luck, +19% Luck |
+| Common | Barknibble | Sunpetal Sproutfinch | Digger | +49% Ore Finder, +37% Dirt Break |
+| Common | Rootnest | Golden Sap Taproot | Bruiser | +74% Mine Speed, +37% Dirt Break |
+| Common | Trickle | Glowroot Rootmole | Mystic | +49% Ore Finder, +37% Dirt Break |
+| Common | Jicama | Sunpetal Seedmouse | Bruiser | +74% Dirt Break, +37% Ore Haul |
+| Common | Glowworm | Terracotta Stumpling | Prospector | +41% Gem Find, +21% Rare Ore |
+| Common | Silt | Tangerine Sapshell | Mystic | +49% Ore Finder, +37% Dirt Break |
+| Common | Sproutling | Tangerine Beetle | Tidecaller | +41% Gem Find, +9.3% Pulverizer |
+| Common | Thicket | Olive Grove Groveback | Bruiser | +74% Mine Speed, +37% Dirt Break |
+| Common | Seedpod | Underdark Stumpling | Digger | +74% Dirt Break, +37% Ore Haul |
+| Common | Kapok | Sap Amber Rootmole | Mystic | +5.8% Earthquake Chance, +59% Mine Speed |
+| Common | Sapheart | Sage Trufflepig | Seeker | +37% Luck, +17% Chest Luck |
+| Common | Ringwood | Spring Spark Sproutfinch | Prospector | +31% Ore Luck, +21% Gem Find |
+| Common | Turnip | Dewdrop Groveback | Bruiser | +74% Dirt Break, +37% Mine Speed |
+| Common | Sapdrop | Wild Orchid Taproot | Bruiser | +74% Mine Speed, +37% Dirt Break |
+| Common | Heartseed | Glowroot Seedmouse | Digger | +74% Ore Haul, +37% Dirt Break |
+| Common | Banyan | Elder Bark Springback | Bruiser | +74% Dirt Break, +37% Ore Haul |
+| Common | Everroot | Deep Moss Sapshell | Mystic | +5.8% Earthquake Chance, +59% Dirt Break |
+| Common | Xylem | Bogberry Seedmouse | Tidecaller | +19% Pulverizer, +31% Scrap |
+| Common | Rootcavern | Wild Orchid Springback | Prospector | +41% Gem Find, +21% Rare Ore |
+| Common | Sporelet | Elder Bark Rootmole | Seeker | +31% Pack Luck, +19% Luck |
+| Common | Turmeric | Violet Bloom Sproutfinch | Mystic | +5.8% Earthquake Chance, +59% Dirt Break |
+| Common | Rooty | Seedpod Sapshell | Tidecaller | +41% Gem Find, +9.3% Pulverizer |
+| Common | Gnarly | Terracotta Taproot | Digger | +74% Ore Haul, +37% Dirt Break |
+| Common | Wurzel | Sap Amber Trufflepig | Prospector | +31% Ore Luck, +21% Gem Find |
+| Common | Fountain | Ancient Stone Stumpling | Seeker | +31% Pack Luck, +19% Luck |
+| Common | Knothole | Tangerine Turtle | Bruiser | +74% Dirt Break, +37% Ore Haul |
+| Common | Tendril | Nightroot Groveback | Mystic | +49% Ore Finder, +37% Dirt Break |
+| Common | Rootvine | Terracotta Trufflepig | Bruiser | +74% Dirt Break, +37% Ore Haul |
+| Common | Daikon | Mossy Stumpling | Tidecaller | +62% Scrap, +9.3% Pulverizer |
+| Common | Gnarlwood | Tangerine Springback | Bruiser | +74% Dirt Break, +37% Mine Speed |
+| Common | Spelunk | Bogberry Rootmole | Digger | +74% Dirt Break, +37% Ore Haul |
+| Common | Grove | Underdark Seedmouse | Mystic | +49% Ore Finder, +37% Dirt Break |
+| Common | Heartroot | Shoot Green Sproutfinch | Mystic | +5.8% Earthquake Chance, +59% Mine Speed |
+| Uncommon | Sprouty | Pine Shadow Groveback | Prospector | +37% Ore Luck, +25% Gem Find |
+| Uncommon | Sapwell | Dewdrop Sapshell | Seeker | +44% Luck, +20% Chest Luck |
+| Uncommon | Dripwell | Spring Teal Taproot | Bruiser | +89% Dirt Break, +44% Mine Speed |
+| Uncommon | Seedspark | Toadstool Trufflepig | Bruiser | +89% Mine Speed, +44% Dirt Break |
+| Uncommon | Phloem | Sap Amber Seedmouse | Tidecaller | +49% Gem Find, +11% Pulverizer |
+| Uncommon | Walnut | Spring Teal Springback | Prospector | +37% Ore Luck, +25% Gem Find |
+| Uncommon | Elderseed | Sky Sap Sapshell | Mystic | +6.9% Earthquake Chance, +71% Mine Speed |
+| Uncommon | Artesian | Sap Amber Groveback | Digger | +89% Dirt Break, +44% Ore Haul |
+| Uncommon | Gnarl | Deepwell Rootmole | Seeker | +44% Luck, +20% Chest Luck |
+| Uncommon | Seedling | Seedpod Sproutfinch | Tidecaller | +74% Scrap, +11% Pulverizer |
+| Uncommon | Horseradish | Wild Orchid Stumpling | Mystic | +59% Ore Finder, +44% Dirt Break |
+| Uncommon | Gumtree | Deep Indigo Taproot | Prospector | +37% Ore Luck, +25% Gem Find |
+| Uncommon | Cone | Birchwhite Springback | Bruiser | +89% Dirt Break, +44% Mine Speed |
+| Uncommon | Cambium | Sunpetal Sapshell | Mystic | +6.9% Earthquake Chance, +71% Dirt Break |
+| Uncommon | Underroot | Lime Shoot Trufflepig | Bruiser | +89% Dirt Break, +44% Ore Haul |
+| Uncommon | Cypress | Rootblossom Rootmole | Digger | +89% Ore Haul, +44% Dirt Break |
+| Uncommon | Hollowkin | Spring Teal Sproutfinch | Bruiser | +89% Mine Speed, +44% Dirt Break |
+| Uncommon | Bedroot | Deep Indigo Stumpling | Seeker | +40% Chest Luck, +22% Luck |
+| Uncommon | Stalagmite | Fernleaf Groveback | Tidecaller | +22% Pulverizer, +37% Scrap |
+| Uncommon | Peat | Rootblossom Taproot | Prospector | +37% Ore Luck, +25% Gem Find |
+| Uncommon | Ironwood | Deepwell Seedmouse | Digger | +89% Ore Haul, +44% Dirt Break |
+| Uncommon | Rootbud | Lavender Seedmouse | Bruiser | +89% Dirt Break, +44% Ore Haul |
+| Uncommon | Podling | Deepwell Springback | Seeker | +44% Luck, +20% Chest Luck |
+| Rare | Root Beer | Wild Cherry Sapshell | Mystic | +73% Ore Finder, +55% Dirt Break |
+| Rare | Mossbeard | Pine Shadow Trufflepig | Mystic | +73% Ore Finder, +55% Dirt Break |
+| Rare | Nutshell | Wild Orchid Groveback | Mystic | +8.5% Earthquake Chance, +87% Mine Speed |
+| Rare | Elderroot | Deep Moss Rootmole | Bruiser | +109% Mine Speed, +55% Dirt Break |
+| Rare | Oaken | Peat Sproutfinch | Tidecaller | +91% Scrap, +14% Pulverizer |
+| Rare | Radix | Dewdrop Stumpling | Bruiser | +109% Dirt Break, +55% Mine Speed |
+| Rare | Bulbo | Sky Sap Taproot | Prospector | +61% Gem Find, +30% Rare Ore |
+| Rare | Rootcap | Starsap Trufflepig | Digger | +109% Dirt Break, +55% Ore Haul |
+| Rare | Ginseng | Wild Cherry Groveback | Seeker | +55% Luck, +25% Chest Luck |
+| Rare | Rosin | Terracotta Seedmouse | Bruiser | +109% Mine Speed, +55% Dirt Break |
+| Rare | Lumiroot | Bogberry Springback | Mystic | +73% Ore Finder, +55% Dirt Break |
+| Rare | Grotto | Shoot Green Taproot | Seeker | +45% Pack Luck, +27% Luck |
+| Rare | Deepsap | Cobalt Spring Rootmole | Digger | +109% Ore Haul, +55% Dirt Break |
+| Rare | Barkbit | Deepwell Sproutfinch | Prospector | +45% Ore Luck, +30% Gem Find |
+| Epic | Delver | Acorn Roller | Tidecaller | +91% Ore Finder, +68% Dirt Break |
+| Epic | Rootknot | Pinecone Hog | Bruiser | +156% Mine Speed, +5.3% Earthquake Chance |
+| Epic | Sassafras | Toadstool Tot | Digger | +136% Dirt Break, +68% Ore Haul |
+| Epic | Sower | Cavern Glowworm | Bruiser | +136% Mine Speed, +68% Dirt Break |
+| Epic | Rootlet | Spring Axolotl | Seeker | +57% Pack Luck, +34% Luck |
+| Epic | Pinesap | Lilypad Croaker | Bruiser | +136% Dirt Break, +68% Mine Speed |
+| Epic | Rootstock | Hoarder Squirrel | Prospector | +75% Gem Find, +38% Rare Ore |
+| Epic | Aquifer | Hollowbark Owl | Bruiser | +136% Dirt Break, +68% Ore Haul |
+| Epic | Sapsweet | Cave Trilobite | Tidecaller | +113% Scrap, +17% Pulverizer |
+| Epic | Firstbloom | Whirligig Seed | Striker | +136% Mine Speed, +68% Dirt Break |
+| Epic | Hotspring | Dandelion Puff | Mystic | +91% Ore Finder, +68% Dirt Break |
+| Epic | Sapglow | Brook Platypus | Prospector | +75% Rare Ore, +38% Gem Find |
+| Epic | Ambertuft | Blossom Bee | Trader | +136% Ore Haul, +85% Coin Bonus |
+| Epic | Eonbud | Hotspring Otter | Tidecaller | +34% Pulverizer, +57% Scrap |
+| Epic | Seeplet | Fiddlehead Sprite | Mystic | +11% Earthquake Chance, +109% Dirt Break |
+| Epic | Elderglow | Wellspring Koi | Prospector | +75% Rare Ore, +38% Gem Find |
+| Epic | Kernel | Nutshell Hermit | Bruiser | +136% Mine Speed, +68% Dirt Break |
+| Epic | Sapling | Rootcave Bat | Striker | +136% Mine Speed, +68% Dirt Break |
+| Legendary | Elmwood | Sapgilt Mossantler Stag | Mystic | +175% Dirt Break, +87% Mine Speed |
+| Legendary | Eonroot | Evergreen Mossback Mammoth | Mystic | +117% Ore Finder, +87% Dirt Break |
+| Legendary | Loamy | Deeprooted Spring Nautilus | Bruiser | +175% Dirt Break, +87% Mine Speed |
+| Legendary | Sapsy | Gnarled Amber Dragonfly | Tidecaller | +117% Ore Finder, +87% Dirt Break |
+| Legendary | Rootsy | Sapgilt Dam Beaver | Digger | +175% Ore Haul, +87% Dirt Break |
+| Legendary | Mistwell | Evergreen Springwade Heron | Prospector | +97% Rare Ore, +49% Gem Find |
+| Legendary | Brookroot | Deeprooted Rootlamp Lantern | Seeker | +87% Luck, +40% Chest Luck |
+| Legendary | Rootsong | Gnarled Rootswing Sloth | Prospector | +73% Ore Luck, +49% Gem Find |
+| Legendary | Rootrumble | Sapgilt Cavern Geode | Prospector | +73% Ore Luck, +49% Gem Find |
+| Legendary | Seedwhisk | Evergreen Sprinkle Can | Trader | +219% Coin Bonus, +87% Ore Haul |
+| Legendary | Parsnip | Deeprooted Cavern Angler | Seeker | +87% Luck, +40% Chest Luck |
+| Legendary | Burdock | Gnarled Moss Piglet | Bruiser | +175% Dirt Break, +87% Mine Speed |
+| Legendary | Loamling | Sapgilt Leafsail Lizard | Striker | +175% Mine Speed, +62% Swing Rate |
+| Legendary | Wellwhisper | Evergreen Orchid Mantis | Striker | +175% Mine Speed, +62% Swing Rate |
+| Mythic | Deeproot | Rootborn Elder Treant | Eternal Roots | +249% Dirt Break, +56% Ore Finder, +2.8% Earthquake Chance |
+| Mythic | Tunneler | Wellspring Rootcoil Octopus | Eternal Roots | +176% Ore Finder, +6.5% Earthquake Chance, +36% Dirt Break |
+| Mythic | Knotty | Ancient Grove Drake | Eternal Roots | +19% Earthquake Chance, +155% Dirt Break, +24% Ore Finder |
+| Mythic | Beetroot | Primeval Sap Hourglass | Eternal Roots | +249% Dirt Break, +56% Ore Finder, +2.8% Earthquake Chance |
+| Mythic | Spout | Rootborn Treetop Longneck | Eternal Roots | +249% Dirt Break, +56% Ore Finder, +2.8% Earthquake Chance |
+| Mythic | Seedsong | Wellspring Foxfire Kitsune | Eternal Roots | +176% Ore Finder, +6.5% Earthquake Chance, +36% Dirt Break |
+| Mythic | Rutabaga | Ancient Mossclub Ankylo | Eternal Roots | +19% Earthquake Chance, +155% Dirt Break, +24% Ore Finder |
+| Mythic | Rootrise | Primeval Lunar Moth | Eternal Roots | +249% Dirt Break, +56% Ore Finder, +2.8% Earthquake Chance |
+| Divine | Starroot | Sacred Willow Wisp | Eternal Roots | +239% Ore Finder, +8.8% Earthquake Chance, +49% Dirt Break |
+| Divine | Sprig | Radiant Lotus Seraph | Eternal Roots | +25% Earthquake Chance, +211% Dirt Break, +32% Ore Finder |
+| Divine | Canopy | Hallowed Bloom Qilin | Eternal Roots | +339% Dirt Break, +76% Ore Finder, +3.8% Earthquake Chance |
+| Divine | Twiglet | Everbloom Banyan Monkey | Eternal Roots | +239% Ore Finder, +8.8% Earthquake Chance, +49% Dirt Break |
+| Divine | Offshoot | Sacred Sapfire Phoenix | Eternal Roots | +25% Earthquake Chance, +211% Dirt Break, +32% Ore Finder |
+| Divine | Sapshine | Radiant Fountain Spirit | Eternal Roots | +339% Dirt Break, +76% Ore Finder, +3.8% Earthquake Chance |
+| Exotic | Woodknot | Undying Rootbound Heart | Eternal Roots | +322% Ore Finder, +12% Earthquake Chance, +65% Dirt Break |
+| Exotic | Ashroot | Worldroot Seedling Planet | Eternal Roots | +34% Earthquake Chance, +284% Dirt Break, +44% Ore Finder |
+| Exotic | Cosmoss | Starseed Cosmic Egg | Eternal Roots | +322% Ore Finder, +12% Earthquake Chance, +65% Dirt Break |
+| Exotic | Echoroot | Genesis Moonroot Hare | Eternal Roots | +34% Earthquake Chance, +284% Dirt Break, +44% Ore Finder |
 
 ## 18. Mythic Menagerie (SS, ×2.29)
 
@@ -2006,102 +2408,128 @@ Packs: Tiny Terrors · Wildlings · Beastbound · Apex Predators · Mythical Bea
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Gryphon | Deep Tide Sphinx Kitten | Trader | +97% Coin Bonus, +11% Lucky Block find |
-| Common | Kitsune | Lilac Plume Phoenix Chick | Mystic | +6.8% Zap Chance, +18% Zap Damage, +25% Swing Rate |
-| Common | Moa | Deep Tide Kirin | Seeker | +39% Luck, +18% Chest Luck |
-| Common | Simurgh | Venom Green Griffin | Striker | +78% Mine Speed, +39% Dirt Break |
-| Common | Ptero | Umber Hydra Pup | Tidecaller | +43% Gem Find, +9.7% Pulverizer |
-| Common | Peryton | Talon Brown Drake | Mystic | +39% Luck, +16% Pack Luck |
-| Common | Talonpaw | Emberplume Horse | Trader | +78% Ore Haul, +49% Coin Bonus |
-| Common | Pyra | Emberplume Bigcat | Striker | +56% Swing Rate, +39% Mine Speed |
-| Common | Hatchling | Lime Crest Trihorn | Bruiser | +78% Dirt Break, +39% Mine Speed |
-| Common | Spino | Stone Grey Kirin | Seeker | +32% Pack Luck, +19% Luck |
-| Common | Fenghuang | Lilac Plume Griffin | Striker | +56% Swing Rate, +39% Mine Speed |
-| Common | Flamefeather | Talon Brown Trihorn | Bruiser | +78% Dirt Break, +39% Ore Haul |
-| Common | Eggy | Talon Brown Hydra Pup | Tidecaller | +65% Scrap, +9.7% Pulverizer |
-| Common | Cockatrice | Storm Blue Sphinx Kitten | Trader | +97% Coin Bonus, +39% Ore Haul |
-| Common | Nestling | Deep Tide Phoenix Chick | Mystic | +6.8% Zap Chance, +18% Zap Damage, +25% Swing Rate |
-| Common | Trilobite | Stone Grey Horse | Trader | +97% Coin Bonus, +11% Lucky Block find |
-| Common | Hydie | Deep Tide Drake | Mystic | +39% Luck, +16% Pack Luck |
-| Common | Minotaur | Snowpelt Kirin | Seeker | +32% Pack Luck, +19% Luck |
-| Common | Thylacine | Rosehorn Griffin | Striker | +78% Mine Speed, +39% Dirt Break |
-| Common | Cinderchick | Umber Trihorn | Bruiser | +78% Dirt Break, +39% Mine Speed |
-| Common | Ladon | Olive Hide Bigcat | Striker | +56% Swing Rate, +39% Mine Speed |
-| Common | Diplo | Talon Brown Sphinx Kitten | Trader | +78% Ore Haul, +49% Coin Bonus |
-| Common | Kelpie | Emberplume Hydra Pup | Tidecaller | +43% Gem Find, +9.7% Pulverizer |
-| Common | Dimorph | Coral Crest Phoenix Chick | Mystic | +39% Luck, +39% Mine Speed |
-| Common | Rexy | Aqua Fin Griffin | Striker | +78% Mine Speed, +39% Dirt Break |
-| Common | Nestwarden | Snowpelt Trihorn | Bruiser | +78% Mine Speed, +39% Dirt Break |
-| Common | Pachy | Gilded Sphinx Kitten | Trader | +78% Ore Haul, +49% Coin Bonus |
-| Common | Jungle | Lagoon Kirin | Seeker | +32% Pack Luck, +19% Luck |
-| Common | Hydrabit | Lilac Plume Hydra Pup | Tidecaller | +65% Scrap, +9.7% Pulverizer |
-| Common | Baku | Lagoon Phoenix Chick | Mystic | +6.8% Zap Chance, +18% Zap Damage, +25% Swing Rate |
-| Common | Emberchick | Aqua Fin Sphinx Kitten | Trader | +78% Ore Haul, +49% Coin Bonus |
-| Common | Jadehorn | Lagoon Bigcat | Striker | +78% Mine Speed, +39% Dirt Break |
-| Common | Wildheart | Deep Tide Horse | Trader | +97% Coin Bonus, +39% Ore Haul |
-| Common | Wolpertinger | Rosehorn Drake | Mystic | +39% Luck, +16% Pack Luck |
-| Uncommon | Broody | Stone Grey Griffin | Striker | +67% Swing Rate, +47% Mine Speed |
-| Uncommon | Moonhare | Frost Kirin | Seeker | +39% Pack Luck, +23% Luck |
-| Uncommon | Anzu | Deep Tide Hydra Pup | Tidecaller | +78% Scrap, +12% Pulverizer |
-| Uncommon | Yolky | Lime Crest Phoenix Chick | Mystic | +8.2% Zap Chance, +22% Zap Damage, +30% Swing Rate |
-| Uncommon | Orthrus | Stone Grey Trihorn | Bruiser | +93% Dirt Break, +47% Mine Speed |
-| Uncommon | Beastie | Royal Violet Trihorn | Bruiser | +93% Mine Speed, +47% Dirt Break |
-| Uncommon | Xiezhi | Olive Hide Sphinx Kitten | Trader | +116% Coin Bonus, +47% Ore Haul |
-| Uncommon | Lairling | Lime Crest Griffin | Striker | +93% Mine Speed, +47% Dirt Break |
-| Uncommon | Ichthy | Storm Blue Hydra Pup | Tidecaller | +23% Pulverizer, +39% Scrap |
-| Uncommon | Tusky | Coral Crest Kirin | Seeker | +42% Chest Luck, +23% Luck |
-| Uncommon | Clutch | Sunfeather Phoenix Chick | Mystic | +47% Luck, +19% Pack Luck |
-| Uncommon | Cloudhoof | Lime Crest Bigcat | Striker | +93% Mine Speed, +47% Dirt Break |
-| Uncommon | Behemutt | Lilac Plume Sphinx Kitten | Trader | +93% Ore Haul, +58% Coin Bonus |
-| Uncommon | Titanclaw | Gilded Horse | Trader | +93% Ore Haul, +58% Coin Bonus |
-| Uncommon | Typhon | Coral Crest Drake | Mystic | +47% Luck, +19% Pack Luck |
-| Uncommon | Roc | Jade Griffin | Striker | +67% Swing Rate, +47% Mine Speed |
-| Uncommon | Ammonite | Coral Crest Hydra Pup | Tidecaller | +23% Pulverizer, +39% Scrap |
-| Uncommon | Denkeeper | Aqua Fin Kirin | Seeker | +39% Pack Luck, +23% Luck |
-| Uncommon | Glyptodon | Talon Brown Phoenix Chick | Mystic | +47% Luck, +47% Mine Speed |
-| Uncommon | Frillby | Moonsilver Trihorn | Bruiser | +93% Mine Speed, +47% Dirt Break |
-| Uncommon | Wyrmling | Rust Mane Hydra Pup | Tidecaller | +52% Gem Find, +12% Pulverizer |
-| Uncommon | Rumbletusk | Desert Sand Sphinx Kitten | Trader | +116% Coin Bonus, +47% Ore Haul |
-| Rare | Centaur | Snowpelt Griffin | Striker | +114% Mine Speed, +57% Dirt Break |
-| Rare | Jackalope | Venom Green Kirin | Seeker | +52% Chest Luck, +29% Luck |
-| Rare | Kindlewing | Venom Green Phoenix Chick | Mystic | +57% Luck, +24% Pack Luck |
-| Rare | Fableclaw | Abyss Trihorn | Bruiser | +114% Dirt Break, +57% Ore Haul |
-| Rare | Savanna | Talon Brown Horse | Trader | +114% Ore Haul, +72% Coin Bonus |
-| Rare | Pixie | Gilded Drake | Mystic | +10% Zap Chance, +27% Zap Damage, +37% Swing Rate |
-| Rare | Shellcrack | Snowpelt Bigcat | Striker | +82% Swing Rate, +57% Mine Speed |
-| Rare | Hodag | Umber Kirin | Seeker | +57% Luck, +26% Chest Luck |
-| Rare | Unicorn | Ruby Scale Hydra Pup | Tidecaller | +57% Luck, +24% Pack Luck |
-| Rare | Stomptail | Desert Sand Phoenix Chick | Mystic | +57% Luck, +24% Pack Luck |
-| Rare | Capricorn | Rust Mane Griffin | Striker | +114% Mine Speed, +41% Swing Rate |
-| Rare | Manticore | Stone Grey Sphinx Kitten | Trader | +143% Coin Bonus, +16% Lucky Block find |
-| Rare | Mythling | Ruby Scale Trihorn | Bruiser | +132% Mine Speed, +5.0% Zap Chance |
-| Rare | Tengu | Desert Sand Trihorn | Bruiser | +114% Mine Speed, +57% Dirt Break |
-| Epic | Nilekit | Glowing Jade Kirin | Seeker | +71% Luck, +32% Chest Luck |
-| Epic | Stego | Glowing Olive Hide Griffin | Striker | +143% Mine Speed, +51% Swing Rate |
-| Epic | Gargoyle | Glowing Aqua Fin Hydra Pup | Tidecaller | +119% Scrap, +18% Pulverizer |
-| Epic | Ogopogo | Glowing Rust Mane Sphinx Kitten | Trader | +178% Coin Bonus, +20% Lucky Block find |
-| Epic | Qilin | Glowing Moonsilver Phoenix Chick | Mystic | +71% Luck, +71% Mine Speed |
-| Epic | Drakelet | Glowing Jade Trihorn | Bruiser | +143% Mine Speed, +36% Luck |
-| Epic | Basilisk | Glowing Rosehorn Kirin | Seeker | +59% Pack Luck, +36% Luck |
-| Epic | Skyclaw | Glowing Lagoon Griffin | Striker | +143% Mine Speed, +51% Swing Rate |
-| Epic | Bunyip | Glowing Abyss Hydra Pup | Tidecaller | +36% Pulverizer, +59% Scrap |
-| Legendary | Archaeo | Noble Moonsilver Sphinx Kitten | Trader | +230% Coin Bonus, +26% Lucky Block find |
-| Legendary | Lernie | Fabled Lilac Plume Horse | Trader | +230% Coin Bonus, +26% Lucky Block find |
-| Legendary | Shisa | Untamed Rust Mane Drake | Mystic | +16% Zap Chance, +43% Zap Damage, +59% Swing Rate |
-| Legendary | Roarbit | Storied Aqua Fin Phoenix Chick | Mystic | +92% Luck, +38% Pack Luck |
-| Legendary | Dodo | Noble Umber Bigcat | Striker | +184% Mine Speed, +92% Dirt Break |
-| Legendary | Bennu | Fabled Storm Blue Griffin | Striker | +184% Mine Speed, +92% Dirt Break |
-| Mythic | Raiju | Primordial Kirin | Mythic Menagerie | +131% Luck, +37% Pack Luck, +3.3% Zap Chance |
-| Mythic | Griffo | Elder Hydra Pup | Mythic Menagerie | +115% Pack Luck, +7.7% Zap Chance, +19% Luck |
-| Mythic | Iguanodon | Feral Phoenix Chick | Mythic Menagerie | +22% Zap Chance, +81% Luck, +16% Pack Luck |
-| Mythic | Stompasaur | Mythborn Trihorn | Mythic Menagerie | +131% Luck, +37% Pack Luck, +3.3% Zap Chance |
-| Mythic | Safari | Primordial Sphinx Kitten | Mythic Menagerie | +115% Pack Luck, +7.7% Zap Chance, +19% Luck |
-| Mythic | Tarasque | Elder Bigcat | Mythic Menagerie | +22% Zap Chance, +81% Luck, +16% Pack Luck |
-| Divine | Growlette | Haloed Griffin | Mythic Menagerie | +178% Luck, +50% Pack Luck, +4.5% Zap Chance |
-| Divine | Rexling | Celestial Kirin | Mythic Menagerie | +157% Pack Luck, +10% Zap Chance, +26% Luck |
-| Divine | Pawprint | Sacred Hydra Pup | Mythic Menagerie | +30% Zap Chance, +111% Luck, +21% Pack Luck |
-| Exotic | Lucky Hoof | Origin Trihorn | Mythic Menagerie | +240% Luck, +67% Pack Luck, +6.0% Zap Chance |
-| Exotic | Mosasaur | Paragon Sphinx Kitten | Mythic Menagerie | +211% Pack Luck, +14% Zap Chance, +34% Luck |
+| Common | Gryphon | Ruby Scale Sphinx Kitten | Trader | +97% Coin Bonus, +11% Lucky Block find |
+| Common | Kitsune | Jade Phoenix Chick | Mystic | +6.8% Zap Chance, +18% Zap Damage, +25% Swing Rate |
+| Common | Moa | Abyss Kirin | Seeker | +39% Luck, +18% Chest Luck |
+| Common | Simurgh | Rust Mane Griffin | Striker | +78% Mine Speed, +39% Dirt Break |
+| Common | Ptero | Ruby Scale Hydra Pup | Tidecaller | +43% Gem Find, +9.7% Pulverizer |
+| Common | Peryton | Herald Blue Drake | Mystic | +39% Luck, +16% Pack Luck |
+| Common | Talonpaw | Deep Thicket Horse | Trader | +78% Ore Haul, +49% Coin Bonus |
+| Common | Pyra | Deep Thicket Bigcat | Striker | +56% Swing Rate, +39% Mine Speed |
+| Common | Hatchling | Deep Tide Trihorn | Bruiser | +78% Dirt Break, +39% Mine Speed |
+| Common | Spino | Royal Violet Kirin | Seeker | +32% Pack Luck, +19% Luck |
+| Common | Fenghuang | Deep Tide Griffin | Striker | +56% Swing Rate, +39% Mine Speed |
+| Common | Flamefeather | Emberplume Trihorn | Bruiser | +78% Dirt Break, +39% Ore Haul |
+| Common | Eggy | Lagoon Hydra Pup | Tidecaller | +65% Scrap, +9.7% Pulverizer |
+| Common | Cockatrice | Umber Sphinx Kitten | Trader | +97% Coin Bonus, +39% Ore Haul |
+| Common | Nestling | Gilded Phoenix Chick | Mystic | +6.8% Zap Chance, +18% Zap Damage, +25% Swing Rate |
+| Common | Trilobite | Lilac Plume Kirin | Trader | +97% Coin Bonus, +11% Lucky Block find |
+| Common | Hydie | Royal Violet Griffin | Mystic | +39% Luck, +16% Pack Luck |
+| Common | Minotaur | Bone Trihorn | Seeker | +32% Pack Luck, +19% Luck |
+| Common | Thylacine | Venom Green Hydra Pup | Striker | +78% Mine Speed, +39% Dirt Break |
+| Common | Cinderchick | Lilac Plume Sphinx Kitten | Bruiser | +78% Dirt Break, +39% Mine Speed |
+| Common | Ladon | Aqua Fin Phoenix Chick | Striker | +56% Swing Rate, +39% Mine Speed |
+| Common | Diplo | Frost Griffin | Trader | +78% Ore Haul, +49% Coin Bonus |
+| Common | Kelpie | Herald Blue Trihorn | Tidecaller | +43% Gem Find, +9.7% Pulverizer |
+| Common | Dimorph | Frost Sphinx Kitten | Mystic | +39% Luck, +39% Mine Speed |
+| Common | Rexy | Jade Kirin | Striker | +78% Mine Speed, +39% Dirt Break |
+| Common | Nestwarden | Royal Violet Hydra Pup | Bruiser | +78% Mine Speed, +39% Dirt Break |
+| Common | Pachy | Talon Brown Phoenix Chick | Trader | +78% Ore Haul, +49% Coin Bonus |
+| Common | Jungle | Jade Griffin | Seeker | +32% Pack Luck, +19% Luck |
+| Common | Hydrabit | Sunfeather Sphinx Kitten | Tidecaller | +65% Scrap, +9.7% Pulverizer |
+| Common | Baku | Royal Violet Trihorn | Mystic | +6.8% Zap Chance, +18% Zap Damage, +25% Swing Rate |
+| Common | Emberchick | Herald Blue Kirin | Trader | +78% Ore Haul, +49% Coin Bonus |
+| Common | Jadehorn | Lime Crest Phoenix Chick | Striker | +78% Mine Speed, +39% Dirt Break |
+| Common | Wildheart | Rosehorn Hydra Pup | Trader | +97% Coin Bonus, +39% Ore Haul |
+| Common | Wolpertinger | Herald Blue Sphinx Kitten | Mystic | +39% Luck, +16% Pack Luck |
+| Uncommon | Broody | Deep Thicket Griffin | Striker | +67% Swing Rate, +47% Mine Speed |
+| Uncommon | Moonhare | Snowpelt Kirin | Seeker | +39% Pack Luck, +23% Luck |
+| Uncommon | Anzu | Lime Crest Hydra Pup | Tidecaller | +78% Scrap, +12% Pulverizer |
+| Uncommon | Yolky | Ruby Scale Phoenix Chick | Mystic | +8.2% Zap Chance, +22% Zap Damage, +30% Swing Rate |
+| Uncommon | Orthrus | Ruby Scale Trihorn | Bruiser | +93% Dirt Break, +47% Mine Speed |
+| Uncommon | Beastie | Wine Trihorn | Bruiser | +93% Mine Speed, +47% Dirt Break |
+| Uncommon | Xiezhi | Deep Tide Sphinx Kitten | Trader | +116% Coin Bonus, +47% Ore Haul |
+| Uncommon | Lairling | Gilded Griffin | Striker | +93% Mine Speed, +47% Dirt Break |
+| Uncommon | Ichthy | Desert Sand Hydra Pup | Tidecaller | +23% Pulverizer, +39% Scrap |
+| Uncommon | Tusky | Emberplume Kirin | Seeker | +42% Chest Luck, +23% Luck |
+| Uncommon | Clutch | Royal Violet Phoenix Chick | Mystic | +47% Luck, +19% Pack Luck |
+| Uncommon | Cloudhoof | Venom Green Sphinx Kitten | Striker | +93% Mine Speed, +47% Dirt Break |
+| Uncommon | Behemutt | Herald Blue Griffin | Trader | +93% Ore Haul, +58% Coin Bonus |
+| Uncommon | Titanclaw | Lagoon Kirin | Trader | +93% Ore Haul, +58% Coin Bonus |
+| Uncommon | Typhon | Beast Green Hydra Pup | Mystic | +47% Luck, +19% Pack Luck |
+| Uncommon | Roc | Wine Phoenix Chick | Striker | +67% Swing Rate, +47% Mine Speed |
+| Uncommon | Ammonite | Venom Green Trihorn | Tidecaller | +23% Pulverizer, +39% Scrap |
+| Uncommon | Denkeeper | Herald Blue Hydra Pup | Seeker | +39% Pack Luck, +23% Luck |
+| Uncommon | Glyptodon | Beast Green Sphinx Kitten | Mystic | +47% Luck, +47% Mine Speed |
+| Uncommon | Frillby | Wine Griffin | Bruiser | +93% Mine Speed, +47% Dirt Break |
+| Uncommon | Wyrmling | Beast Green Kirin | Tidecaller | +52% Gem Find, +12% Pulverizer |
+| Uncommon | Rumbletusk | Emberplume Phoenix Chick | Trader | +116% Coin Bonus, +47% Ore Haul |
+| Rare | Centaur | Gilded Trihorn | Striker | +114% Mine Speed, +57% Dirt Break |
+| Rare | Jackalope | Talon Brown Hydra Pup | Seeker | +52% Chest Luck, +29% Luck |
+| Rare | Kindlewing | Lagoon Sphinx Kitten | Mystic | +57% Luck, +24% Pack Luck |
+| Rare | Fableclaw | Lagoon Griffin | Bruiser | +114% Dirt Break, +57% Ore Haul |
+| Rare | Savanna | Desert Sand Kirin | Trader | +114% Ore Haul, +72% Coin Bonus |
+| Rare | Pixie | Beast Green Phoenix Chick | Mystic | +10% Zap Chance, +27% Zap Damage, +37% Swing Rate |
+| Rare | Shellcrack | Beast Green Trihorn | Striker | +82% Swing Rate, +57% Mine Speed |
+| Rare | Hodag | Talon Brown Kirin | Seeker | +57% Luck, +26% Chest Luck |
+| Rare | Unicorn | Abyss Hydra Pup | Tidecaller | +57% Luck, +24% Pack Luck |
+| Rare | Stomptail | Deep Tide Phoenix Chick | Mystic | +57% Luck, +24% Pack Luck |
+| Rare | Capricorn | Rosehorn Griffin | Striker | +114% Mine Speed, +41% Swing Rate |
+| Rare | Manticore | Deep Thicket Sphinx Kitten | Trader | +143% Coin Bonus, +16% Lucky Block find |
+| Rare | Mythling | Talon Brown Trihorn | Bruiser | +132% Mine Speed, +5.0% Zap Chance |
+| Rare | Tengu | Lime Crest Trihorn | Bruiser | +114% Mine Speed, +57% Dirt Break |
+| Epic | Nilekit | Thornjack Leveret | Seeker | +71% Luck, +32% Chest Luck |
+| Epic | Stego | Quilltip Porcupette | Striker | +143% Mine Speed, +51% Swing Rate |
+| Epic | Gargoyle | Jarglow Firefly | Tidecaller | +119% Scrap, +18% Pulverizer |
+| Epic | Ogopogo | Cloudfin Capricub | Trader | +178% Coin Bonus, +20% Lucky Block find |
+| Epic | Qilin | Softshell Tortling | Mystic | +71% Luck, +71% Mine Speed |
+| Epic | Drakelet | Sandear Fennecling | Bruiser | +143% Mine Speed, +36% Luck |
+| Epic | Basilisk | Snowpuff Ermine | Seeker | +59% Pack Luck, +36% Luck |
+| Epic | Skyclaw | Smileface Quokka | Striker | +143% Mine Speed, +51% Swing Rate |
+| Epic | Bunyip | Riverbend Otterling | Tidecaller | +36% Pulverizer, +59% Scrap |
+| Epic | Starstag | Honeycomb Bumblebee | Bruiser | +143% Dirt Break, +71% Ore Haul |
+| Epic | Fossilkin | Shellroll Armadillo | Digger | +95% Ore Finder, +71% Dirt Break |
+| Epic | Tanuki | Fluffcloud Alpaca | Seeker | +59% Pack Luck, +36% Luck |
+| Epic | Plesio | Moonspot Glowmoth | Prospector | +59% Ore Luck, +40% Gem Find |
+| Epic | Nessie | Scaleband Pangopup | Tidecaller | +36% Pulverizer, +59% Scrap |
+| Epic | Mammoth | Tideflipper Dugong | Trader | +178% Coin Bonus, +20% Lucky Block find |
+| Epic | Snowmane | Bramble Hedgelet | Mystic | +71% Luck, +30% Pack Luck |
+| Epic | Threehead | Twintail Axolpup | Striker | +143% Mine Speed, +51% Swing Rate |
+| Epic | Leviathan | Frosttoe Lemming | Bruiser | +143% Dirt Break, +71% Mine Speed |
+| Legendary | Archaeo | Fabled Spiketail Manticore | Trader | +230% Coin Bonus, +26% Lucky Block find |
+| Legendary | Lernie | Untamed Stormmane Hippogriff | Trader | +230% Coin Bonus, +26% Lucky Block find |
+| Legendary | Shisa | Storied Marshglow Bunyip | Mystic | +16% Zap Chance, +43% Zap Damage, +59% Swing Rate |
+| Legendary | Roarbit | Noble Tidebraid Kelpie | Mystic | +92% Luck, +38% Pack Luck |
+| Legendary | Dodo | Fabled Sealfriend Selkie | Striker | +184% Mine Speed, +92% Dirt Break |
+| Legendary | Bennu | Untamed Dreamfeast Baku | Striker | +184% Mine Speed, +92% Dirt Break |
+| Legendary | Lindworm | Storied Hornridge Hodag | Striker | +131% Swing Rate, +92% Mine Speed |
+| Legendary | Cerbie | Noble Antlerwing Peryton | Bruiser | +211% Mine Speed, +8.0% Zap Chance |
+| Legendary | Kiri | Fabled Plumecrest Simurgh | Digger | +184% Dirt Break, +92% Ore Haul |
+| Legendary | Lamassu | Untamed Stormbeak Anzu | Seeker | +77% Pack Luck, +46% Luck |
+| Legendary | Pixiu | Storied Shellspine Tarasque | Prospector | +77% Ore Luck, +51% Gem Find |
+| Legendary | Sunplume | Noble Islandback Zaratan | Tidecaller | +102% Gem Find, +23% Pulverizer |
+| Mythic | Raiju | Mythborn Cliffside Aerie | Mythic Menagerie | +131% Luck, +37% Pack Luck, +3.3% Zap Chance |
+| Mythic | Griffo | Primordial Stormcliff Rookery | Mythic Menagerie | +115% Pack Luck, +7.7% Zap Chance, +19% Luck |
+| Mythic | Iguanodon | Elder Softloam Warren | Mythic Menagerie | +22% Zap Chance, +81% Luck, +16% Pack Luck |
+| Mythic | Stompasaur | Feral Warmstone Hatchery | Mythic Menagerie | +131% Luck, +37% Pack Luck, +3.3% Zap Chance |
+| Mythic | Safari | Mythborn Glowmoss Broodhollow | Mythic Menagerie | +115% Pack Luck, +7.7% Zap Chance, +19% Luck |
+| Mythic | Tarasque | Primordial Silksoft Clutchbed | Mythic Menagerie | +22% Zap Chance, +81% Luck, +16% Pack Luck |
+| Mythic | Faun | Elder Leafcanopy Denward | Mythic Menagerie | +22% Zap Chance, +81% Luck, +16% Pack Luck |
+| Mythic | Bronto | Feral Amberglass Incubarium | Mythic Menagerie | +131% Luck, +37% Pack Luck, +3.3% Zap Chance |
+| Mythic | Frilly | Mythborn Feathered Nestgrove | Mythic Menagerie | +115% Pack Luck, +7.7% Zap Chance, +19% Luck |
+| Mythic | Flamebird | Primordial Runestone Eggspire | Mythic Menagerie | +22% Zap Chance, +81% Luck, +16% Pack Luck |
+| Mythic | Featherclaw | Elder Coralreef Hatchhall | Mythic Menagerie | +131% Luck, +37% Pack Luck, +3.3% Zap Chance |
+| Mythic | Kraken | Feral Living Bestiary | Mythic Menagerie | +115% Pack Luck, +7.7% Zap Chance, +19% Luck |
+| Divine | Growlette | Celestial Winged Lamassu | Mythic Menagerie | +178% Luck, +50% Pack Luck, +4.5% Zap Chance |
+| Divine | Rexling | Sacred Jadehorn Xiezhi | Mythic Menagerie | +157% Pack Luck, +10% Zap Chance, +26% Luck |
+| Divine | Pawprint | Exalted Labyrinth Minotaur | Mythic Menagerie | +30% Zap Chance, +111% Luck, +21% Pack Luck |
+| Divine | Megalodon | Haloed Starstride Centaur | Mythic Menagerie | +30% Zap Chance, +111% Luck, +21% Pack Luck |
+| Divine | Ashfeather | Celestial Grovehorn Faun | Mythic Menagerie | +178% Luck, +50% Pack Luck, +4.5% Zap Chance |
+| Divine | Wyvern | Sacred Skyrend Thunderbird | Mythic Menagerie | +157% Pack Luck, +10% Zap Chance, +26% Luck |
+| Exotic | Lucky Hoof | Origin Genesis Arkhold | Mythic Menagerie | +240% Luck, +67% Pack Luck, +6.0% Zap Chance |
+| Exotic | Mosasaur | Paragon Primordial Biotower | Mythic Menagerie | +211% Pack Luck, +14% Zap Chance, +34% Luck |
+| Exotic | Quetzal | Apex Worldspan Primordome | Mythic Menagerie | +40% Zap Chance, +149% Luck, +29% Pack Luck |
+| Exotic | Echidna | Titan Titanbone Titanroost | Mythic Menagerie | +240% Luck, +67% Pack Luck, +6.0% Zap Chance |
 
 ## 19. Chaos Theory (SSS, ×2.41)
 
@@ -2109,98 +2537,120 @@ Packs: Minor Glitch · Broken Pattern · Fracture Point · Reality Shift · Para
 
 | tier | name | looks like | role | boost |
 |---|---|---|---|---|
-| Common | Twisty | Void Black Twistling | Tidecaller | +20% Pulverizer, +34% Scrap |
-| Common | Fuzzbox | Overflow Olive Shardling | Mystic | +23% Lucky Block find, +41% Mine Speed |
-| Common | Checksum | Chrome Riftling | Seeker | +34% Pack Luck, +20% Luck |
-| Common | Loophole | Pixel Pink Flipside | Trader | +102% Coin Bonus, +12% Lucky Block find |
-| Common | Quirk | Paradox Purple Hypercube | Prospector | +34% Ore Luck, +23% Gem Find |
-| Common | Loopy | Gold Paradox Sprite | Mystic | +6.4% Shatter Chance, +65% Mine Speed |
-| Common | Errorpup | Infrared Glitch Cat | Striker | +58% Swing Rate, +41% Mine Speed |
-| Common | Flutterby | Cyber Cyan Slime | Tidecaller | +45% Gem Find, +10% Pulverizer |
-| Common | Dejavu | Rust Glitch Riftling | Seeker | +34% Pack Luck, +20% Luck |
-| Common | Fragment | Cyber Cyan Flipside | Trader | +102% Coin Bonus, +41% Ore Haul |
-| Common | Bugbyte | Magenta Hypercube | Prospector | +45% Gem Find, +23% Rare Ore |
-| Common | Entangle | Chrome Glitch Cat | Striker | +82% Mine Speed, +29% Swing Rate |
-| Common | Slant | Prism White Shardling | Mystic | +23% Lucky Block find, +41% Mine Speed |
-| Common | Vertex | Hologram Twistling | Tidecaller | +68% Scrap, +10% Pulverizer |
-| Common | Zag | Rift Orange Hypercube | Prospector | +34% Ore Luck, +23% Gem Find |
-| Common | Kilobit | Paradox Purple Flipside | Trader | +102% Coin Bonus, +12% Lucky Block find |
-| Common | Artifact | Solar Flare Sprite | Mystic | +23% Lucky Block find, +41% Mine Speed |
-| Common | Zig | Rift Orange Glitch Cat | Striker | +82% Mine Speed, +41% Dirt Break |
-| Common | Askew | Blueshift Shardling | Mystic | +23% Lucky Block find, +41% Mine Speed |
-| Common | Chaoskit | Magenta Riftling | Seeker | +34% Pack Luck, +20% Luck |
-| Common | Singularity | Error Red Twistling | Tidecaller | +20% Pulverizer, +34% Scrap |
-| Common | Octahedron | Overflow Olive Slime | Tidecaller | +68% Scrap, +10% Pulverizer |
-| Common | Strangelet | Paradox Purple Glitch Cat | Striker | +82% Mine Speed, +29% Swing Rate |
-| Common | Ouroboros | Static Shardling | Mystic | +6.4% Shatter Chance, +19% Shatter Damage, +37% Dirt Break |
-| Common | Debug | Blueshift Flipside | Trader | +102% Coin Bonus, +41% Ore Haul |
-| Common | Tilt | Acid Green Twistling | Tidecaller | +45% Gem Find, +10% Pulverizer |
-| Common | Neutrino | Quantum Blue Riftling | Seeker | +41% Luck, +19% Chest Luck |
-| Common | Glitchbit | Inverse Lilac Hypercube | Prospector | +34% Ore Luck, +23% Gem Find |
-| Common | Topsyturvy | Overflow Olive Glitch Cat | Striker | +82% Mine Speed, +29% Swing Rate |
-| Common | Jitterbug | Mint Error Shardling | Mystic | +6.4% Shatter Chance, +65% Mine Speed |
-| Common | Hitbox | Chrome Flipside | Trader | +82% Ore Haul, +51% Coin Bonus |
-| Common | Mishmash | Deep Indigo Hypercube | Prospector | +34% Ore Luck, +23% Gem Find |
-| Common | Antimatter | Mint Error Slime | Tidecaller | +45% Gem Find, +10% Pulverizer |
-| Common | Cubeling | Hazard Yellow Sprite | Mystic | +6.4% Shatter Chance, +19% Shatter Damage, +37% Dirt Break |
-| Common | Borked | Acid Green Riftling | Seeker | +34% Pack Luck, +20% Luck |
-| Common | Gluon | Hazard Yellow Twistling | Tidecaller | +45% Gem Find, +10% Pulverizer |
-| Common | Breach | Cyber Cyan Glitch Cat | Striker | +82% Mine Speed, +29% Swing Rate |
-| Common | Quirkle | Deep Indigo Flipside | Trader | +102% Coin Bonus, +12% Lucky Block find |
-| Uncommon | Megabyte | Static Hypercube | Prospector | +54% Rare Ore, +27% Gem Find |
-| Uncommon | Entropy | Deep Indigo Riftling | Seeker | +41% Pack Luck, +24% Luck |
-| Uncommon | Positron | Pixel Pink Shardling | Mystic | +28% Lucky Block find, +49% Mine Speed |
-| Uncommon | Butterfly | Gold Paradox Twistling | Tidecaller | +82% Scrap, +12% Pulverizer |
-| Uncommon | Minus | Ice Fracture Flipside | Trader | +98% Ore Haul, +61% Coin Bonus |
-| Uncommon | Warp | Magenta Shardling | Mystic | +7.6% Shatter Chance, +23% Shatter Damage, +44% Dirt Break |
-| Uncommon | Bitflip | Acid Green Slime | Tidecaller | +24% Pulverizer, +41% Scrap |
-| Uncommon | Voidling | Pixel Pink Twistling | Tidecaller | +54% Gem Find, +12% Pulverizer |
-| Uncommon | Topsy | Overflow Olive Sprite | Mystic | +28% Lucky Block find, +49% Mine Speed |
-| Uncommon | Recursion | Acid Green Glitch Cat | Striker | +98% Mine Speed, +35% Swing Rate |
-| Uncommon | Oddball | Hologram Riftling | Seeker | +49% Luck, +22% Chest Luck |
-| Uncommon | Lagspike | Solar Flare Hypercube | Prospector | +41% Ore Luck, +27% Gem Find |
-| Uncommon | Offkilter | Mint Error Glitch Cat | Striker | +98% Mine Speed, +49% Dirt Break |
-| Uncommon | Stutter | Ice Fracture Shardling | Mystic | +7.6% Shatter Chance, +78% Mine Speed |
-| Uncommon | Wonky | Rust Glitch Twistling | Tidecaller | +54% Gem Find, +12% Pulverizer |
-| Uncommon | Oopsie | Cyber Cyan Riftling | Seeker | +49% Luck, +22% Chest Luck |
-| Uncommon | Pixelpop | Mint Error Hypercube | Prospector | +41% Ore Luck, +27% Gem Find |
-| Uncommon | Spiral | Hologram Flipside | Trader | +122% Coin Bonus, +14% Lucky Block find |
-| Uncommon | Kooky | Paradox Purple Sprite | Mystic | +28% Lucky Block find, +49% Mine Speed |
-| Uncommon | Reverso | Pixel Pink Glitch Cat | Striker | +98% Mine Speed, +35% Swing Rate |
-| Uncommon | Rewind | Error Red Shardling | Mystic | +28% Lucky Block find, +49% Mine Speed |
-| Uncommon | Tessie | Deep Indigo Slime | Tidecaller | +24% Pulverizer, +41% Scrap |
-| Rare | Tachyon | Hologram Hypercube | Prospector | +67% Gem Find, +33% Rare Ore |
-| Rare | Discombob | Hazard Yellow Riftling | Seeker | +55% Chest Luck, +30% Luck |
-| Rare | Kludge | Solar Flare Twistling | Tidecaller | +34% Lucky Block find, +60% Mine Speed |
-| Rare | Quantum | Solar Flare Flipside | Trader | +150% Coin Bonus, +17% Lucky Block find |
-| Rare | Warpling | Gold Paradox Hypercube | Prospector | +50% Ore Luck, +33% Gem Find |
-| Rare | Bitcrush | Overflow Olive Riftling | Seeker | +60% Luck, +27% Chest Luck |
-| Rare | Redo | Rift Orange Twistling | Tidecaller | +100% Scrap, +15% Pulverizer |
-| Rare | Darkmatter | Error Red Glitch Cat | Striker | +120% Mine Speed, +43% Swing Rate |
-| Rare | Kerfuffle | Acid Green Shardling | Mystic | +34% Lucky Block find, +60% Mine Speed |
-| Rare | Voxel | Inverse Lilac Flipside | Trader | +150% Coin Bonus, +17% Lucky Block find |
-| Rare | Wonkus | Pixel Pink Sprite | Mystic | +34% Lucky Block find, +60% Mine Speed |
-| Rare | Crunchbyte | Mint Error Riftling | Seeker | +55% Chest Luck, +30% Luck |
-| Rare | Jank | Void Black Slime | Tidecaller | +9.3% Shatter Chance, +28% Shatter Damage, +54% Dirt Break |
-| Epic | Wormhole | Glowing Ice Fracture Twistling | Tidecaller | +37% Pulverizer, +62% Scrap |
-| Epic | Bitrot | Glowing Ice Fracture Glitch Cat | Striker | +107% Swing Rate, +75% Mine Speed |
-| Epic | Respawn | Glowing Hazard Yellow Shardling | Mystic | +12% Shatter Chance, +35% Shatter Damage, +67% Dirt Break |
-| Epic | Fractal | Glowing Ice Fracture Hypercube | Prospector | +83% Gem Find, +42% Rare Ore |
-| Epic | Texel | Glowing Mint Error Flipside | Trader | +187% Coin Bonus, +75% Ore Haul |
-| Epic | Timeslip | Glowing Ice Fracture Riftling | Seeker | +75% Luck, +34% Chest Luck |
-| Epic | Overflow | Glowing Inverse Lilac Twistling | Tidecaller | +12% Shatter Chance, +35% Shatter Damage, +67% Dirt Break |
-| Legendary | Mirrorbit | Glitched Gold Paradox Flipside | Trader | +241% Coin Bonus, +28% Lucky Block find |
-| Legendary | Fuzz | Warped Acid Green Hypercube | Prospector | +80% Ore Luck, +54% Gem Find |
-| Legendary | Noclip | Jittery Blueshift Glitch Cat | Striker | +138% Swing Rate, +96% Mine Speed |
-| Legendary | Zigzag | Scrambled Infrared Shardling | Mystic | +55% Lucky Block find, +96% Mine Speed |
-| Legendary | Tesser | Glitched Ice Fracture Sprite | Mystic | +15% Shatter Chance, +45% Shatter Damage, +87% Dirt Break |
-| Mythic | Nullzone | Unstable Riftling | Chaos Theory | +20% Shatter Chance, +43% Shatter Damage, +42% Lucky Block find |
-| Mythic | Static | Paradox Flipside | Chaos Theory | +123% Shatter Damage, +52% Lucky Block find, +3.1% Shatter Chance |
-| Divine | Glitchpaw | Resonant Hypercube | Chaos Theory | +117% Lucky Block find, +9.7% Shatter Chance, +25% Shatter Damage |
-| Divine | Boson | Impossible Glitch Cat | Chaos Theory | +28% Shatter Chance, +58% Shatter Damage, +57% Lucky Block find |
-| Exotic | Scanline | Infinite Shardling | Chaos Theory | +225% Shatter Damage, +96% Lucky Block find, +5.6% Shatter Chance |
-| Exotic | Corrupto | Singular Slime | Chaos Theory | +158% Lucky Block find, +13% Shatter Chance, +34% Shatter Damage |
-| Exotic | Segfault | Anomalous Twistling | Chaos Theory | +37% Shatter Chance, +79% Shatter Damage, +76% Lucky Block find |
-| Exotic | Fractalina | Collapsed Flipside | Chaos Theory | +225% Shatter Damage, +96% Lucky Block find, +5.6% Shatter Chance |
-| Exotic | Bamboozle | Infinite Riftling | Chaos Theory | +158% Lucky Block find, +13% Shatter Chance, +34% Shatter Damage |
-| Exotic | Chronobit | Singular Glitch Cat | Chaos Theory | +37% Shatter Chance, +79% Shatter Damage, +76% Lucky Block find |
+| Common | Twisty | Infrared Twistling | Tidecaller | +20% Pulverizer, +34% Scrap |
+| Common | Fuzzbox | Paradox Purple Shardling | Mystic | +23% Lucky Block find, +41% Mine Speed |
+| Common | Checksum | Rift Orange Riftling | Seeker | +34% Pack Luck, +20% Luck |
+| Common | Loophole | Quantum Blue Flipside | Trader | +102% Coin Bonus, +12% Lucky Block find |
+| Common | Quirk | Rift Orange Hypercube | Prospector | +34% Ore Luck, +23% Gem Find |
+| Common | Loopy | Quantum Blue Glitch Cat | Mystic | +6.4% Shatter Chance, +65% Mine Speed |
+| Common | Errorpup | Rift Orange Twistling | Striker | +58% Swing Rate, +41% Mine Speed |
+| Common | Flutterby | Inverse Lilac Riftling | Tidecaller | +45% Gem Find, +10% Pulverizer |
+| Common | Dejavu | Chrome Flipside | Seeker | +34% Pack Luck, +20% Luck |
+| Common | Fragment | Prism White Shardling | Trader | +102% Coin Bonus, +41% Ore Haul |
+| Common | Bugbyte | Gold Paradox Hypercube | Prospector | +45% Gem Find, +23% Rare Ore |
+| Common | Entangle | Void Black Glitch Cat | Striker | +82% Mine Speed, +29% Swing Rate |
+| Common | Slant | Void Black Hypercube | Mystic | +23% Lucky Block find, +41% Mine Speed |
+| Common | Vertex | Void Black Flipside | Tidecaller | +68% Scrap, +10% Pulverizer |
+| Common | Zag | Rift Orange Glitch Cat | Prospector | +34% Ore Luck, +23% Gem Find |
+| Common | Kilobit | Acid Green Riftling | Trader | +102% Coin Bonus, +12% Lucky Block find |
+| Common | Artifact | Hologram Shardling | Mystic | +23% Lucky Block find, +41% Mine Speed |
+| Common | Zig | Prism White Twistling | Striker | +82% Mine Speed, +41% Dirt Break |
+| Common | Askew | Inverse Lilac Flipside | Mystic | +23% Lucky Block find, +41% Mine Speed |
+| Common | Chaoskit | Pixel Pink Hypercube | Seeker | +34% Pack Luck, +20% Luck |
+| Common | Singularity | Deep Indigo Glitch Cat | Tidecaller | +20% Pulverizer, +34% Scrap |
+| Common | Octahedron | Void Black Shardling | Tidecaller | +68% Scrap, +10% Pulverizer |
+| Common | Strangelet | Hazard Yellow Twistling | Striker | +82% Mine Speed, +29% Swing Rate |
+| Common | Ouroboros | Paradox Purple Riftling | Mystic | +6.4% Shatter Chance, +19% Shatter Damage, +37% Dirt Break |
+| Common | Debug | Prism White Glitch Cat | Trader | +102% Coin Bonus, +41% Ore Haul |
+| Common | Tilt | Rift Orange Flipside | Tidecaller | +45% Gem Find, +10% Pulverizer |
+| Common | Neutrino | Acid Green Shardling | Seeker | +41% Luck, +19% Chest Luck |
+| Common | Glitchbit | Blueshift Twistling | Prospector | +34% Ore Luck, +23% Gem Find |
+| Common | Topsyturvy | Chrome Riftling | Striker | +82% Mine Speed, +29% Swing Rate |
+| Common | Jitterbug | Error Red Hypercube | Mystic | +6.4% Shatter Chance, +65% Mine Speed |
+| Common | Hitbox | Gold Paradox Flipside | Trader | +82% Ore Haul, +51% Coin Bonus |
+| Common | Mishmash | Hazard Yellow Glitch Cat | Prospector | +34% Ore Luck, +23% Gem Find |
+| Common | Antimatter | Hologram Hypercube | Tidecaller | +45% Gem Find, +10% Pulverizer |
+| Common | Cubeling | Solar Flare Shardling | Mystic | +6.4% Shatter Chance, +19% Shatter Damage, +37% Dirt Break |
+| Common | Borked | Gold Paradox Riftling | Seeker | +34% Pack Luck, +20% Luck |
+| Common | Gluon | Quantum Blue Twistling | Tidecaller | +45% Gem Find, +10% Pulverizer |
+| Common | Breach | Rust Glitch Glitch Cat | Striker | +82% Mine Speed, +29% Swing Rate |
+| Common | Quirkle | Magenta Flipside | Trader | +102% Coin Bonus, +12% Lucky Block find |
+| Uncommon | Megabyte | Paradox Purple Hypercube | Prospector | +54% Rare Ore, +27% Gem Find |
+| Uncommon | Entropy | Error Red Riftling | Seeker | +41% Pack Luck, +24% Luck |
+| Uncommon | Positron | Error Red Shardling | Mystic | +28% Lucky Block find, +49% Mine Speed |
+| Uncommon | Butterfly | Void Black Twistling | Tidecaller | +82% Scrap, +12% Pulverizer |
+| Uncommon | Minus | Blueshift Flipside | Trader | +98% Ore Haul, +61% Coin Bonus |
+| Uncommon | Warp | Blueshift Shardling | Mystic | +7.6% Shatter Chance, +23% Shatter Damage, +44% Dirt Break |
+| Uncommon | Bitflip | Error Red Twistling | Tidecaller | +24% Pulverizer, +41% Scrap |
+| Uncommon | Voidling | Overflow Olive Glitch Cat | Tidecaller | +54% Gem Find, +12% Pulverizer |
+| Uncommon | Topsy | Ice Fracture Hypercube | Mystic | +28% Lucky Block find, +49% Mine Speed |
+| Uncommon | Recursion | Blueshift Riftling | Striker | +98% Mine Speed, +35% Swing Rate |
+| Uncommon | Oddball | Rust Glitch Flipside | Seeker | +49% Luck, +22% Chest Luck |
+| Uncommon | Lagspike | Deep Indigo Shardling | Prospector | +41% Ore Luck, +27% Gem Find |
+| Uncommon | Offkilter | Inverse Lilac Glitch Cat | Striker | +98% Mine Speed, +49% Dirt Break |
+| Uncommon | Stutter | Cyber Cyan Twistling | Mystic | +7.6% Shatter Chance, +78% Mine Speed |
+| Uncommon | Wonky | Rust Glitch Riftling | Tidecaller | +54% Gem Find, +12% Pulverizer |
+| Uncommon | Oopsie | Infrared Hypercube | Seeker | +49% Luck, +22% Chest Luck |
+| Uncommon | Pixelpop | Pixel Pink Glitch Cat | Prospector | +41% Ore Luck, +27% Gem Find |
+| Uncommon | Spiral | Pixel Pink Shardling | Trader | +122% Coin Bonus, +14% Lucky Block find |
+| Uncommon | Kooky | Inverse Lilac Twistling | Mystic | +28% Lucky Block find, +49% Mine Speed |
+| Uncommon | Reverso | Cyber Cyan Riftling | Striker | +98% Mine Speed, +35% Swing Rate |
+| Uncommon | Rewind | Static Hypercube | Mystic | +28% Lucky Block find, +49% Mine Speed |
+| Uncommon | Tessie | Deep Indigo Flipside | Tidecaller | +24% Pulverizer, +41% Scrap |
+| Rare | Tachyon | Deep Indigo Hypercube | Prospector | +67% Gem Find, +33% Rare Ore |
+| Rare | Discombob | Void Black Riftling | Seeker | +55% Chest Luck, +30% Luck |
+| Rare | Kludge | Static Twistling | Tidecaller | +34% Lucky Block find, +60% Mine Speed |
+| Rare | Quantum | Mint Error Glitch Cat | Trader | +150% Coin Bonus, +17% Lucky Block find |
+| Rare | Warpling | Overflow Olive Shardling | Prospector | +50% Ore Luck, +33% Gem Find |
+| Rare | Bitcrush | Hologram Flipside | Seeker | +60% Luck, +27% Chest Luck |
+| Rare | Redo | Acid Green Hypercube | Tidecaller | +100% Scrap, +15% Pulverizer |
+| Rare | Darkmatter | Pixel Pink Riftling | Striker | +120% Mine Speed, +43% Swing Rate |
+| Rare | Kerfuffle | Magenta Twistling | Mystic | +34% Lucky Block find, +60% Mine Speed |
+| Rare | Voxel | Cyber Cyan Glitch Cat | Trader | +150% Coin Bonus, +17% Lucky Block find |
+| Rare | Wonkus | Static Shardling | Mystic | +34% Lucky Block find, +60% Mine Speed |
+| Rare | Crunchbyte | Pixel Pink Flipside | Seeker | +55% Chest Luck, +30% Luck |
+| Rare | Jank | Deep Indigo Riftling | Tidecaller | +9.3% Shatter Chance, +28% Shatter Damage, +54% Dirt Break |
+| Epic | Wormhole | Scanline CRT | Tidecaller | +37% Pulverizer, +62% Scrap |
+| Epic | Bitrot | Static Fluff | Striker | +107% Swing Rate, +75% Mine Speed |
+| Epic | Respawn | Lagspike Bristle | Mystic | +12% Shatter Chance, +35% Shatter Damage, +67% Dirt Break |
+| Epic | Fractal | Buffer Bar | Prospector | +83% Gem Find, +42% Rare Ore |
+| Epic | Texel | Packet Envelope | Trader | +187% Coin Bonus, +75% Ore Haul |
+| Epic | Timeslip | Pixel Flutter | Seeker | +75% Luck, +34% Chest Luck |
+| Epic | Overflow | Jitter Bug | Tidecaller | +12% Shatter Chance, +35% Shatter Damage, +67% Dirt Break |
+| Epic | Null | Wireframe Cuboid | Mystic | +43% Lucky Block find, +75% Mine Speed |
+| Epic | Hexagon | Seam Rip | Striker | +107% Swing Rate, +75% Mine Speed |
+| Epic | Recurso | Fold Jay | Bruiser | +150% Mine Speed, +75% Dirt Break |
+| Epic | Rupture | Bitrot Bouquet | Digger | +100% Ore Finder, +75% Dirt Break |
+| Epic | Anomaly | Hexel Hive | Seeker | +62% Pack Luck, +37% Luck |
+| Epic | Fastforward | Crash Cushion | Prospector | +62% Ore Luck, +42% Gem Find |
+| Epic | Lagcat | Glitch Glyph | Tidecaller | +125% Scrap, +19% Pulverizer |
+| Legendary | Mirrorbit | Scrambled Reality Shift | Trader | +241% Coin Bonus, +28% Lucky Block find |
+| Legendary | Fuzz | Glitched Fracture Crack | Prospector | +80% Ore Luck, +54% Gem Find |
+| Legendary | Noclip | Warped Broken Pattern | Striker | +138% Swing Rate, +96% Mine Speed |
+| Legendary | Zigzag | Jittery Datamosh Panel | Mystic | +55% Lucky Block find, +96% Mine Speed |
+| Legendary | Tesser | Scrambled Anomaly Radar | Mystic | +15% Shatter Chance, +45% Shatter Damage, +87% Dirt Break |
+| Legendary | Fizzix | Glitched Void Portal | Seeker | +96% Luck, +44% Chest Luck |
+| Legendary | Bytebite | Warped Scramble Dice | Prospector | +107% Rare Ore, +54% Gem Find |
+| Legendary | Glitchling | Jittery Chronobit Dial | Tidecaller | +48% Pulverizer, +80% Scrap |
+| Legendary | Turvy | Scrambled Perspective Trap | Trader | +241% Coin Bonus, +28% Lucky Block find |
+| Legendary | Crashy | Glitched Warp Optic | Mystic | +15% Shatter Chance, +45% Shatter Damage, +87% Dirt Break |
+| Mythic | Nullzone | Unstable Paradox Motor | Chaos Theory | +20% Shatter Chance, +43% Shatter Damage, +42% Lucky Block find |
+| Mythic | Static | Paradox Mandelbrot Fractal | Chaos Theory | +123% Shatter Damage, +52% Lucky Block find, +3.1% Shatter Chance |
+| Mythic | Packet | Skewed Timeslip Gyro | Chaos Theory | +123% Shatter Damage, +52% Lucky Block find, +3.1% Shatter Chance |
+| Mythic | Whoopsie | Fractured Entangle Pair | Chaos Theory | +86% Lucky Block find, +7.2% Shatter Chance, +18% Shatter Damage |
+| Divine | Glitchpaw | Inverted Infinite Collapse | Chaos Theory | +117% Lucky Block find, +9.7% Shatter Chance, +25% Shatter Damage |
+| Divine | Boson | Hyperspace Hyperspace Fold | Chaos Theory | +28% Shatter Chance, +58% Shatter Damage, +57% Lucky Block find |
+| Divine | Paradoggo | Resonant Reality Tear | Chaos Theory | +28% Shatter Chance, +58% Shatter Damage, +57% Lucky Block find |
+| Divine | Muon | Impossible Entropy Cascade | Chaos Theory | +167% Shatter Damage, +71% Lucky Block find, +4.2% Shatter Chance |
+| Exotic | Scanline | Infinite Mobius Ribbon | Chaos Theory | +225% Shatter Damage, +96% Lucky Block find, +5.6% Shatter Chance |
+| Exotic | Corrupto | Singular Klein Flask | Chaos Theory | +158% Lucky Block find, +13% Shatter Chance, +34% Shatter Damage |
+| Exotic | Segfault | Anomalous Impossible Stairs | Chaos Theory | +37% Shatter Chance, +79% Shatter Damage, +76% Lucky Block find |
+| Exotic | Fractalina | Collapsed Blivet Fork | Chaos Theory | +225% Shatter Damage, +96% Lucky Block find, +5.6% Shatter Chance |
+| Exotic | Bamboozle | Infinite Necker Illusion | Chaos Theory | +158% Lucky Block find, +13% Shatter Chance, +34% Shatter Damage |
+| Exotic | Chronobit | Singular Droste Recursion | Chaos Theory | +37% Shatter Chance, +79% Shatter Damage, +76% Lucky Block find |
+| Exotic | Inverso | Anomalous Strange Loop | Chaos Theory | +158% Lucky Block find, +13% Shatter Chance, +34% Shatter Damage |
+| Exotic | Moire | Collapsed Impossible Tribar | Chaos Theory | +37% Shatter Chance, +79% Shatter Damage, +76% Lucky Block find |
+| Exotic | Fissure | Infinite Paradox Waterfall | Chaos Theory | +225% Shatter Damage, +96% Lucky Block find, +5.6% Shatter Chance |
+| Exotic | Datamosh | Singular Recursive Frame | Chaos Theory | +158% Lucky Block find, +13% Shatter Chance, +34% Shatter Damage |
+| Exotic | Hexel | Anomalous Singularity Pit | Chaos Theory | +37% Shatter Chance, +79% Shatter Damage, +76% Lucky Block find |
+| Exotic | Nullbit | Collapsed Wormhole Torus | Chaos Theory | +225% Shatter Damage, +96% Lucky Block find, +5.6% Shatter Chance |

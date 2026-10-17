@@ -77,7 +77,7 @@ function MineScrolls.creditPackIcon(pack)
 end
 
 -- Bought once, not consumed. ProcessReceipt sets pass.owned; free+premium
--- tracks claim via claimPass. XP is earned (dig/sell/pack) under PASS_DAILY_XP.
+-- tracks claim via claimPass. XP comes from quests, with no daily cap.
 MineScrolls.BATTLE_PASS = {
 	id = "battlepass",
 	name = "Battle Pass",
@@ -102,10 +102,10 @@ end
 
 
 --------------------------------------------------------------------------------
--- BATTLE PASS — Mine For Cards redesign (tiers 1–100)
--- Horizontal icon rails; lucky blocks (not packs on track); credit caps 100/1200.
--- Signature tools: free Lunar @1, premium Eclipse @1; fuse → Lunar Eclipse.
--- Earnable: dig (+1), sell haul (+25), open pack (+15), capped by PASS_DAILY_XP.
+-- BATTLE PASS — the 2026-10-16 rework (tiers 1–100)
+-- Horizontal icon rails; credit caps 100/1200; signature tools at tier 1
+-- (free Lunar, premium Eclipse; fuse → Lunar Eclipse). XP: quests only
+-- (MineServer awardPassXp), no daily cap; see PASS_XP_PER_TIER.
 --------------------------------------------------------------------------------
 MineScrolls.PASS_TIERS = 100
 MineScrolls.PASS_FREE_CREDIT_CAP = 100
@@ -151,100 +151,141 @@ local function mergeReward(a, b)
 	return out
 end
 
+--[[
+	THE TRACK. Owner, 2026-10-16: "100 teirs, every 5 should be decent, every 10
+	should be good and every 25 is huge"; the premium track is "Exclusive pets,
+	skins and books"; the free track pays "Something every tier, smaller".
+
+	  small   every tier   free: gems, stardust or a Lucky Block, in turn
+	                       premium: a Lucky Block, gems or a book
+	  decent  every 5th    free: 2 books; premium: a Diamond block + 3 books
+	  good    every 10th   free: a Diamond block + gems; premium: a season
+	                       SKIN at 20 / 40 / 60 / 80, else a Godly block + 4 books
+	  huge    every 25th   free: a Godly block + books; premium: a season PET
+	                       (25 Legendary, 50 Mythic, 75 Divine, 100 Exotic)
+
+	Tier 1 keeps the signature tools, and the credits back ride on top
+	(FREE_CREDITS, PREM_CREDITS). The pets are the generated HolidayPets pack
+	PASS_PET_PACK; the skins are MineSkins' pass set. The amounts are PROPOSED.
+]]
+MineScrolls.PASS_PET_PACK = "pass_2026_10"
+MineScrolls.PASS_PET_TIERS = { [25] = "Legendary", [50] = "Mythic", [75] = "Divine", [100] = "Exotic" }
+MineScrolls.PASS_SKINS = { [20] = "gemfire", [40] = "geode_heart", [60] = "deepgold_seam", [80] = "the_motherlode" }
+
+function MineScrolls.tierClass(n)
+	n = math.floor(tonumber(n) or 0)
+	if n % 25 == 0 then
+		return "huge"
+	elseif n % 10 == 0 then
+		return "good"
+	elseif n % 5 == 0 then
+		return "decent"
+	end
+	return "small"
+end
+
+-- A Lucky Block's starting grade climbs with the tier.
+local function gradeFor(n)
+	return (n <= 15 and "F") or (n <= 30 and "D") or (n <= 45 and "C") or (n <= 65 and "B") or "A"
+end
+
+-- The season's pets by tier, read off the generated pack.
+local function passPetNames()
+	local out = {}
+	pcall(function()
+		local folder = script.Parent:FindFirstChild("HolidayPets")
+		for _, mod in ipairs(folder and folder:GetChildren() or {}) do
+			if mod:IsA("ModuleScript") then
+				local ok, set = pcall(require, mod)
+				if ok and type(set) == "table" and set.KEY == MineScrolls.PASS_PET_PACK then
+					for _, row in ipairs(set.PETS or {}) do
+						out[row.tier] = row.name
+					end
+				end
+			end
+		end
+	end)
+	return out
+end
+
+local function skinInfo(id)
+	local info
+	pcall(function()
+		local Skins = require(script.Parent:WaitForChild("MineSkins", 5))
+		local sk = Skins.byId(id)
+		if sk and Skins.isPass and Skins.isPass(sk) then
+			info = { name = sk.name, tier = sk.tier }
+		end
+	end)
+	return info
+end
+
+local function iconOf(r)
+	if r.pet then return "pet" end
+	if r.skin then return "skin" end
+	if r.toolId then return r.toolId end
+	if r.luckyBlocks and r.luckyBlocks[1] then return r.luckyBlocks[1].id end
+	if r.books then return "books" end
+	if r.credits then return "credits" end
+	if r.gems then return "gems" end
+	if r.dust then return "stardust" end
+	return "gift"
+end
+
 local function buildPassTrack()
 	local track = {}
-	for tier = 1, 100 do
-		local free, prem = {}, {}
+	local pets = passPetNames()
+	for tier = 1, MineScrolls.PASS_TIERS do
+		local class = MineScrolls.tierClass(tier)
+		local g = gradeFor(tier)
+		local free, prem
 		if tier == 1 then
 			free = { toolId = "lunar_pick", icon = "lunar_pick" }
 			prem = { toolId = "bp_eclipse", icon = "bp_eclipse" }
+		elseif class == "huge" then
+			local godly = (tier == 25 and "D") or (tier == 50 and "C") or (tier == 75 and "B") or "A"
+			free = mergeReward(lb("godly_lucky_block", godly), { books = (tier >= 75) and 4 or 3 })
+			if tier == 100 then
+				free = mergeReward(free, { dust = 500 })
+			end
+			local petTier = MineScrolls.PASS_PET_TIERS[tier]
+			if pets[petTier] then
+				prem = { pet = pets[petTier], petTier = petTier, books = 3 }
+			else
+				-- The pet pack is missing from this build: never a blank huge tier.
+				prem = mergeReward(lb("godly_lucky_block", godly), { books = 5 })
+			end
+			if tier == 100 then
+				prem = mergeReward(prem, lb("godly_lucky_block", "A"))
+			end
+		elseif class == "good" then
+			free = mergeReward(lb("super_lucky_block", g), { gems = 200 + tier * 6 })
+			local skinId = MineScrolls.PASS_SKINS[tier]
+			local info = skinId and skinInfo(skinId)
+			if info then
+				prem = { skin = skinId, skinName = info.name, skinTier = info.tier, books = 2 }
+			else
+				prem = mergeReward(lb("godly_lucky_block", g), { books = 4 })
+			end
+		elseif class == "decent" then
+			free = { books = 2 }
+			prem = mergeReward(lb("super_lucky_block", g), { books = 3 })
 		else
-			if tier <= 9 then
-				free = lb("lucky_block", "F")
-				if tier % 3 == 0 then free = mergeReward(free, { gems = 80 + tier * 5 })
-				elseif tier % 3 == 1 then free = mergeReward(free, { dust = 30 + tier * 3 }) end
-			elseif tier == 10 then free = mergeReward(lb("lucky_block", "D"), { gems = 200 })
-			elseif tier < 20 then
-				free = lb("lucky_block", (tier % 2 == 0) and "D" or "F")
-				if tier % 4 == 0 then free = mergeReward(free, { dust = 60 }) end
-			elseif tier == 20 then free = lb("lucky_block", "C")
-			elseif tier < 30 then
-				free = lb("lucky_block", (tier % 2 == 0) and "C" or "D")
-				if tier % 5 == 0 then free = mergeReward(free, { gems = 350 }) end
-			elseif tier == 30 then free = mergeReward(lb("lucky_block", "C"), { dust = 120 })
-			elseif tier < 40 then free = lb("lucky_block", (tier % 2 == 0) and "C" or "B")
-			elseif tier == 40 then free = lb("lucky_block", "B")
-			elseif tier < 50 then
-				free = lb("lucky_block", "B")
-				if tier % 3 == 0 then free = mergeReward(free, { gems = 500 }) end
-			elseif tier == 50 then free = lb("super_lucky_block", "B")
-			elseif tier < 60 then free = lb((tier % 2 == 0) and "super_lucky_block" or "lucky_block", "B")
-			elseif tier == 60 then free = lb("lucky_block", "A")
-			elseif tier < 70 then
-				free = lb("lucky_block", "A")
-				if tier % 4 == 0 then free = mergeReward(free, { dust = 200 }) end
-			elseif tier == 70 then free = lb("super_lucky_block", "A")
-			elseif tier < 80 then free = lb("super_lucky_block", (tier % 2 == 0) and "A" or "B")
-			elseif tier == 80 then free = mergeReward(lb("super_lucky_block", "A"), { gems = 900 })
-			elseif tier <= 90 then free = lb("super_lucky_block", "A")
-			elseif tier < 100 then
-				free = lb("super_lucky_block", "A")
-				if tier % 2 == 0 then free = mergeReward(free, { dust = 250 }) end
-			else free = mergeReward(lb("super_lucky_block", "A"), { dust = 500 }) end
-
-			if tier == 50 or tier == 70 or tier == 85 or tier == 100 then
-				prem = lb("godly_lucky_block", "A")
-			elseif tier <= 20 then
-				local g = (tier <= 10) and "D" or "C"
-				prem = lb((tier % 5 == 0) and "super_lucky_block" or "lucky_block", g)
-			elseif tier <= 40 then
-				local g = (tier <= 30) and "C" or "B"
-				prem = lb((tier % 4 == 0) and "super_lucky_block" or "lucky_block", g)
-			elseif tier <= 60 then prem = lb("super_lucky_block", (tier % 2 == 0) and "A" or "B")
-			else prem = lb("super_lucky_block", "A") end
-
-			-- Enchant books where the scrolls were (owner, 2026-10-12; the whole
-			-- pass is due a rework). `books` = how many, granted as one bundle.
-			if tier == 25 then prem = mergeReward(prem, { books = 3 })
-			elseif tier == 55 then prem = mergeReward(prem, { books = 4 })
-			elseif tier == 88 then prem = mergeReward(prem, { books = 5 }) end
-			if tier % 7 == 0 then prem = mergeReward(prem, { gems = 400 + tier * 8 }) end
-			if tier % 9 == 0 then prem = mergeReward(prem, { dust = 100 + tier * 2 }) end
+			local k = tier % 3
+			free = (k == 0 and { gems = 50 + tier * 4 }) or (k == 1 and { dust = 25 + tier * 2 }) or lb("lucky_block", g)
+			if tier % 2 == 0 then
+				prem = lb(tier > 60 and "super_lucky_block" or "lucky_block", g)
+			elseif tier % 4 == 1 then
+				prem = { gems = 100 + tier * 6 }
+			else
+				prem = { books = 1 }
+			end
 		end
-
 		if FREE_CREDITS[tier] then free = mergeReward(free, { credits = FREE_CREDITS[tier] }) end
 		if PREM_CREDITS[tier] then prem = mergeReward(prem, { credits = PREM_CREDITS[tier] }) end
-
-		--[[
-			FREE TRACK CADENCE.
-
-			A free reward on every rung made the paid track read as a rounding
-			error. Free now pays on a beat — the first rungs teach claiming,
-			then every fifth tier — and the rungs in between are deliberately
-			empty (free = nil). Consumers treat a nil free as "nothing here":
-			the pass UI draws a dim slot, claimPass answers "Nothing on that
-			track", and the totals below skip it.
-		]]
-		local freeBeat = tier == 1 or tier == 3 or tier == 5 or tier == 8
-			or (tier >= 10 and tier % 5 == 0)
-		if not freeBeat then
-			free = nil
-		end
-
-		local function iconOf(r)
-			if r.toolId then return r.toolId end
-			if r.luckyBlocks and r.luckyBlocks[1] then return r.luckyBlocks[1].id end
-			if r.credits then return "credits" end
-			if r.gems then return "gems" end
-			if r.dust then return "stardust" end
-			if r.books then return "books" end
-			return "gift"
-		end
-		if free then
-			free.icon = free.icon or iconOf(free)
-		end
+		free.icon = free.icon or iconOf(free)
 		prem.icon = prem.icon or iconOf(prem)
-		track[tier] = { tier = tier, free = free, premium = prem }
+		track[tier] = { tier = tier, class = class, free = free, premium = prem }
 	end
 	return track
 end
@@ -292,9 +333,11 @@ do
 	assert(#MineScrolls.PASS_TRACK == MineScrolls.PASS_TIERS)
 end
 
--- Season: 280 XP/tier × 100 = 28,000; daily 1,000 → ~28 days at cap.
-MineScrolls.PASS_XP_PER_TIER = 280
-MineScrolls.PASS_DAILY_XP = 1000
+-- Pace (owner, 2026-10-16: "about 2 weeks no daily xp cap"): 90 XP a tier,
+-- 9,000 for all 100. A player doing every daily (3 x 100) and contract
+-- (3 x 120) earns ~660 a day plus chain quests and milestones, so about 12
+-- days; a kid who plays most days, about two weeks. PROPOSED.
+MineScrolls.PASS_XP_PER_TIER = 90
 MineScrolls.PASS_SEASON_DAYS = 28
 
 function MineScrolls.passXpFor(tier)
@@ -441,6 +484,8 @@ function MineScrolls.describeReward(reward)
 	if reward.credits then parts[#parts + 1] = reward.credits .. " Credits" end
 	if reward.gems then parts[#parts + 1] = reward.gems .. " Gems" end
 	if reward.dust then parts[#parts + 1] = reward.dust .. " Stardust" end
+	if reward.pet then parts[#parts + 1] = tostring(reward.pet) .. " (" .. tostring(reward.petTier or "season") .. " pet)" end
+	if reward.skin then parts[#parts + 1] = tostring(reward.skinName or reward.skin) .. " skin (" .. tostring(reward.skinTier or "") .. ")" end
 	if reward.books then parts[#parts + 1] = reward.books .. " Enchant Books" end
 	if #parts == 0 then return "--" end
 	return table.concat(parts, "  +  ")

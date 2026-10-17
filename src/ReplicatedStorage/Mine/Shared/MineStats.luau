@@ -218,8 +218,11 @@ function MineStats.canonStat(stat)
 	return MineStats.LEGACY_STAT[stat] or stat
 end
 
+-- Stats a pet kit or a skin may not carry (MineCards.addStat drops them from
+-- kits). Short Fuse left this list on 2026-10-16: the owner wants it on a few
+-- pets ("short fuse should be a pet thing").
 MineStats.RUNE_ONLY = {
-	blastRadius = true, reach = true, coolant = true, shortFuse = true,
+	blastRadius = true, reach = true, coolant = true,
 }
 
 MineStats.PET_ONLY = {
