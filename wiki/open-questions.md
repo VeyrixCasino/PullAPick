@@ -182,8 +182,11 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
   and Short Fuse (bomb cooldown) came from runes, traits and the skill tree.
   Pets and gear cannot roll them (`MineStats.RUNE_ONLY`; zone pets are banned).
   Since 2026-10-12 only the skill tree grants them (the Water nodes give
-  `coolant`, the Metal nodes give `shortFuse`; `boosts()` applies both). Should
-  enchants offer them too?
+  `coolant`, the Metal nodes give `shortFuse`; `boosts()` applies both).
+  **Answered 2026-10-16:** drills are instant, and only jackhammers spin up, so
+  Coolant (skill tree only) shortens a jackhammer's spin-up. Short Fuse is also
+  on 2 pets in every zone (at most 10%) and on a small explosives-only enchant
+  (+15% at V). See [enchants](systems/enchants.md).
 - **Rework the battle pass.** Owner, 2026-10-12: *"we have to rework the entire
   battle pass"*. Nothing about the shape is decided. Its scroll rewards became
   enchant books as a stopgap ([shops-and-monetisation](systems/shops-and-monetisation.md)).

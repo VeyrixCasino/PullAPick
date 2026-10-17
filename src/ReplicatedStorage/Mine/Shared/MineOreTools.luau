@@ -336,9 +336,9 @@ MineOreTools.FRAME_STATS = {
 			{82,3},
 		},
 		axis = { {82,"aim"} },
-		turn = {
-			{3,1.4}, {82,1.2},
-		},
+		-- Instant (owner, 2026-10-16: "drill is isntant"); the jackhammer is the
+		-- one that spins up.
+		turn = { {82,0} },
 		bombs = { {82,false} },
 		pattern = { {82,false} },
 		cooldown = { {82,false} },

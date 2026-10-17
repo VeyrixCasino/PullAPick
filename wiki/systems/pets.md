@@ -120,6 +120,12 @@ Legendary 5, Mythic 2, Divine 3, Exotic 3. Event Horizon keeps its own 73.
   - **Rare+ roles:** Tidecallers roll Tidal Wave + its damage, and Mystics roll Zap,
     Shatter or Blast with their damage, or Earthquake + Mine Speed (was
     Earthquake + Zap).
+- **Short Fuse on a few pets (2026-10-16).** The owner: *"short fuse should be a pet
+  thing"*, choosing "a few per zone, small". Two pets per zone carry Short Fuse
+  as their second stat: below Mythic, with no ability, chosen by name hash, and
+  worth at most 10%. Points over the cap go to the first stat, so each pet's
+  power holds (`FUSE_PER_ZONE` and `FUSE_CAP` in `tools/gen/zone-pets.js`).
+  `MineStats.RUNE_ONLY` no longer lists `shortFuse`, so the kit keeps it.
 - **The calm pass (2026-10-12).** The owner: *"rework all pets so most a liitle
   less abiliy oriented"*, and chose "Both". The tool's Special enchant now
   decides which ability fires; a pet only boosts it ([enchants](enchants.md)).

@@ -1374,3 +1374,11 @@ text, which Roblox draws at whole font sizes, so it steps a pixel at a time.
   open).
 
 Updated: candy-style, client-and-ui, verify-suite, log.
+
+## [2026-10-16] decision | Drills are instant; Short Fuse on pets and an enchant
+The owner: *"jack hammer spins up, drill is isntant, and short fuse should be a pet thing (and skill tree.. spin up is fine on skill tree, short fuse and enchnat [dont overdo it.. explosives cam be game breaking])"*. They chose "a few per zone, small" for the pets.
+- Every drill winds in no time. The swing rule is `fam == "drill"`, and the forged, coin-shop and Event Horizon drills carry `turn = 0`. Only jackhammers spin up, and Coolant (skill tree only) shortens that.
+- 2 pets in every zone carry Short Fuse as their second stat, at most 10%, with power unchanged. `shortFuse` left `MineStats.RUNE_ONLY`.
+- A new Damage enchant, Short Fuse, fits explosives only: +3% a level, +15% at V (PROPOSED).
+
+Updated: tools, pets, enchants, boosts-and-stats, traits, open-questions, log.

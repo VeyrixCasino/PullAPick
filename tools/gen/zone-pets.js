@@ -194,7 +194,17 @@ for (const [role, r] of Object.entries(ROLES)) for (const s of r.species) ROLE_O
 
 // Stats a pet may never carry: retired (pay nothing), rune-only (MineCards.addStat
 // drops them), procPower (PROPOSAL §0 line 7).
-const BANNED = new Set(["backpack", "walkSpeed", "echo", "autoMine", "blastRadius", "reach", "coolant", "shortFuse", "procPower"]);
+const BANNED = new Set(["backpack", "walkSpeed", "echo", "autoMine", "blastRadius", "reach", "coolant", "procPower"]);
+
+/*
+  SHORT FUSE ON A FEW PETS. Owner, 2026-10-16: "short fuse should be a pet
+  thing", and chose "a few per zone, small". FUSE_PER_ZONE pets in each zone,
+  below Mythic and with no ability, carry Short Fuse as their second stat,
+  worth at most FUSE_CAP; points over the cap go to the first stat, so the
+  pet's power holds. Picked by fnv(name..":fuse"), so it never moves.
+*/
+const FUSE_PER_ZONE = 2;
+const FUSE_CAP = 0.10;
 
 /*
   THE CALM PASS. Owner, 2026-10-12: "rework all pets so most a liitle less
@@ -534,11 +544,10 @@ function build() {
   const roles = {};
   const topIndex = {};
   const order = pets.slice().sort((a, b) => zoneIndex[a.zone] - zoneIndex[b.zone] || TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier) || a.name.localeCompare(b.name));
+  // Pass 1: which stats each pet carries.
+  const plan = new Map();
   for (const p of order) {
     const zone = ZONES[zoneIndex[p.zone] - 1];
-    const mult = Math.pow(ZONE_STEP, zoneIndex[p.zone] - 1);
-    const P = (LADDER[p.tier] / G.rarityMult[p.tier]) * mult; // primary points before RARITY_MULT
-    const kit = {};
     let shares, statsUsed;
     if (TOP.has(p.tier)) {
       const k = (topIndex[p.zone] = (topIndex[p.zone] || 0) + 1) - 1;
@@ -554,9 +563,38 @@ function build() {
       roles[p.name] = role;
     }
     statsUsed = calmProcs(p.name, statsUsed, { keepAll: TOP.has(p.tier) });
+    plan.set(p.name, { statsUsed, shares });
+  }
+  // Short Fuse: FUSE_PER_ZONE plain pets a zone, by name hash.
+  const fuseNames = new Set();
+  for (const z of ZONES) {
+    pets.filter((p) => p.zone === z.id && !TOP.has(p.tier)
+      && plan.get(p.name).statsUsed.length === 2
+      && !plan.get(p.name).statsUsed.some((s) => PROC_FAMILY_OF[s] || s === "shortFuse"))
+      .sort((a, b) => fnv(a.name + ":fuse") - fnv(b.name + ":fuse") || a.name.localeCompare(b.name))
+      .slice(0, FUSE_PER_ZONE)
+      .forEach((p) => fuseNames.add(p.name));
+  }
+  // Pass 2: the kits.
+  for (const p of order) {
+    const mult = Math.pow(ZONE_STEP, zoneIndex[p.zone] - 1);
+    const P = (LADDER[p.tier] / G.rarityMult[p.tier]) * mult; // primary points before RARITY_MULT
+    const kit = {};
+    let { statsUsed, shares } = plan.get(p.name);
+    if (fuseNames.has(p.name)) {
+      statsUsed = [statsUsed[0], "shortFuse"];
+    }
     const pts = {};
     statsUsed.forEach((stat, i) => { pts[stat] = (pts[stat] || 0) + P * shares[i]; });
-    Object.assign(kit, pointsKit(weakenPoints(pts, statsUsed), (s) => G.stats[s] && G.stats[s].weight));
+    weakenPoints(pts, statsUsed);
+    if (pts.shortFuse) {
+      const capPts = FUSE_CAP * G.stats.shortFuse.weight * 100;
+      if (pts.shortFuse > capPts) {
+        pts[statsUsed[0]] += pts.shortFuse - capPts;
+        pts.shortFuse = capPts;
+      }
+    }
+    Object.assign(kit, pointsKit(pts, (s) => G.stats[s] && G.stats[s].weight));
     kits[p.name] = kit;
   }
 
@@ -818,5 +856,5 @@ function main() {
 }
 
 module.exports = { build, renderLuau, renderMd, EVENT_ZONE, ZONES, QUOTA, LADDER, ZONE_STEP, TIERS, ROLES, BANNED, OUT_LUAU, OUT_MD,
-  calmProcs, weakenPoints, pointsKit, PROC_FAMILY_OF, PROC_WEAKEN };
+  calmProcs, weakenPoints, pointsKit, PROC_FAMILY_OF, PROC_WEAKEN, FUSE_PER_ZONE, FUSE_CAP };
 if (require.main === module) main();

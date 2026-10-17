@@ -66,6 +66,12 @@ Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
 weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`
 (`pickaxe`, `hammer`, `drill`, `jackhammer`, `explosive`).
 
+**Drills are instant** (owner, 2026-10-16: *"jack hammer spins up, drill is isntant"*):
+- the swing (`swingBlock`) gives every drill zero spin-up, whatever its row says;
+- the forged drill, the coin-shop drills and Event Horizon's bores carry `turn = 0`;
+- only the jackhammer spins up.
+- The deep coin drill's `zeroturn` special no longer sets it apart.
+
 **Family niches (B1 LOCKED 2026-10-14; B2 retuned same day).**
 
 | family | niche |
@@ -73,7 +79,7 @@ weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`
 | pickaxe | fastest melee; chips single blocks |
 | **hammer** | **slow / heavy / single-target**: hardest hit **and** highest single-block `dps` of every family (`FAMILY_POWER.hammer = 3.7`). Sink 2 is depth only — still single-target across |
 | drill | aimed area (up to 3×3); single-cell `dps` below hammer |
-| jackhammer | drill that only digs down; same single-cell `dps` as drill (`FAMILY_POWER` cancels 1.5× rate) |
+| jackhammer | drill that only digs down; same single-cell `dps` as drill (`FAMILY_POWER` cancels 1.5× rate). It spins up (`turn` 1.2 s; Coolant shortens it) |
 | explosive | area king: same-grade full-footprint `edps` tops the chart (`FAMILY_POWER.explosive = 4` + line depth bake + mid cooldown/line length). Higher-grade tools may beat a low explosive |
 
 **DPS table (TODO B2).** `tools/verify/tool-dps.js` computes single-block `dps`

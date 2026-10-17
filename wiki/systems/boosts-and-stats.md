@@ -33,7 +33,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
   - `backpack` and `walkSpeed`, retired 2026-10-04;
   - `echo`, paid out as swing rate at `ECHO_TO_SWING`;
   - `autoMine`, paid out as gem find at `AUTO_MINE_TO_GEM`.
-- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach, coolant and shortFuse: kept off pet kits. With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
+- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach and coolant: kept off pet kits. (shortFuse left the list on 2026-10-16 so a few pets can carry it.) With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
 
 **Stat keys are data.** Keys are saved on gear (`piece.stat`, `piece.stats`) in live player saves (and were on runes, until 2026-10-12).
 - **Renaming a key is a save migration** (`docs/START-HERE.md` §4.4).

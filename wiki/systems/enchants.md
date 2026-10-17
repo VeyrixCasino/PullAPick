@@ -77,6 +77,7 @@ says where it acts: Layer 1 (a stat in `boosts()`), the swing, or the ore drop.
 | Damage | Demolitionist | +40% on a block that takes 8+ hits | swing |
 | Damage | Overclock | +5% swing speed a one-shot in a row, max 20 (owner) | swing |
 | Damage | Combo | +2% damage a hit in a row, max 100 (owner) | swing |
+| Damage | Short Fuse | +15% shortFuse: bomb cooldown / 1.15, explosives only (owner: *"dont overdo it"*) | Layer 1 |
 | Utility | Fortune | +50% ore haul | Layer 1 |
 | Utility | Scavenger | +61% coins | Layer 1 |
 | Utility | Gemfinder | +47% gems | Layer 1 |

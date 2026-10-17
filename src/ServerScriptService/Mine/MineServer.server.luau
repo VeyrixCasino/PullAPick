@@ -7609,7 +7609,11 @@ local function swingBlock(plr, part)
 	-- while you keep digging, and only unwinds when you let go.
 	local nowDig = os.clock()
 	local SPIN_GRACE = 0.35
-	local turn = (tool.turn or 0) / (1 + math.max(0, tonumber(b.coolant) or 0))
+	-- DRILLS ARE INSTANT; JACKHAMMERS SPIN UP (owner, 2026-10-16: "jack hammer
+	-- spins up, drill is isntant"). Whatever a drill row still carries, it
+	-- winds in no time, so Coolant (skill tree only) only ever shortens a
+	-- jackhammer's spin-up.
+	local turn = (fam == "drill") and 0 or ((tool.turn or 0) / (1 + math.max(0, tonumber(b.coolant) or 0)))
 	if turn > 0 then
 		if (nowDig - (p.lastDigAt or 0)) > SPIN_GRACE then
 			p.turnReadyAt = nowDig + turn

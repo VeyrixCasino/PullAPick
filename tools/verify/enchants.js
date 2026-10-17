@@ -86,6 +86,11 @@ print(string.format("ORE %.3f %.3f %d %d %.3f", E.oreChance(E.get("alchemy"), 5)
 	E.veinBlocks(E.get("veinminer"), 5), E.veinBlocks(E.get("fortune"), 5), E.oreChance(E.get("fortune"), 5)))
 local allLive = true
 for _, d in ipairs(E.LIST) do if not d.live then allLive = false end end
+local sf = E.get("shortfuse")
+local sfE = E.compatible(sf, "explosive")
+local sfP = E.compatible(sf, "pickaxe")
+local sfS = E.statsAt(sf, 5)[1]
+print(string.format("FUSE %s %s %s %.3f", tostring(sfE), tostring(sfP), sfS and sfS.stat or "?", sfS and sfS.value or -1))
 print("LIVE " .. tostring(allLive) .. " " .. E.describe(E.get("combo"), 5) .. " | " .. E.describe(E.get("duplicator"), 5))
 -- 4. books
 local id, lv = E.parseBookKey(E.bookKey("gemfinder", 3))
@@ -173,6 +178,7 @@ const ore = num("ORE");
 check(Math.abs(ore[0] - 0.1) < 1e-9 && Math.abs(ore[1] - 0.2) < 1e-9 && ore[2] === 10 && ore[3] === 0 && ore[4] === 0,
   "Alchemy V 10%, Duplicator V 20%, Vein Miner V 10 more blocks (PROPOSED); other enchants roll none of these");
 check(/^true /.test(get("LIVE")), "every enchant is live: no card says COMING SOON any more");
+check(get("FUSE") === "true false shortFuse 0.150", "the Short Fuse enchant fits explosives only, and is small: +15% at V (owner: \"dont overdo it\")");
 check(get("LIVE").includes("damage a hit in a row (max 100)") && get("LIVE").includes("20% double ore"), "the cards say what the mining enchants do, with the real numbers");
 // 4
 check(get("KEY") === "gemfinder 3 nil", "book keys round-trip; a bad key is refused");

@@ -175,6 +175,13 @@ M.LIST = {
 	{ id = "overclock", name = "Overclock", icon = "⚡", slot = "damage", rarity = "Epic", live = true, families = SWUNG,
 		effect = { kind = "hit", perStack = 0.01, stacks = 20 },
 		blurb = "Faster with every one-shot in a row" }, -- owner: +5%/one-shot, max 20 (at V)
+	-- Owner, 2026-10-16: Short Fuse is an enchant too, "dont overdo it..
+	-- explosives cam be game breaking". Explosives only, and small: PROPOSED
+	-- +3% a level, +15% at V (bomb cooldown / 1.15, and that much mineSpeed on
+	-- the blast).
+	{ id = "shortfuse", name = "Short Fuse", icon = "⏱", slot = "damage", rarity = "Rare", live = true, families = { "explosive" },
+		effect = { kind = "add", stat = "shortFuse", per = 0.03 },
+		blurb = "Throw bombs a little sooner" },
 	{ id = "combo", name = "Combo", icon = "🔥", slot = "damage", rarity = "Epic", live = true, families = SWUNG,
 		effect = { kind = "hit", perStack = 0.004, stacks = 100 },
 		blurb = "Stronger with every hit in a row" }, -- owner: +2%/hit, max 100 (at V)
