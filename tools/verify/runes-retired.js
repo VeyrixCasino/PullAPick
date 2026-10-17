@@ -58,9 +58,8 @@ check(/enchBuyBundle = true/.test(sv), "the gem book bundle is a paid random ite
 
 // 3
 const scrolls = read(SH + "MineScrolls.luau");
-check(/tier == 25 then prem = mergeReward\(prem, \{ books = 3 \}\)/.test(scrolls) && /tier == 55 then prem = mergeReward\(prem, \{ books = 4 \}\)/.test(scrolls)
-  && /tier == 88 then prem = mergeReward\(prem, \{ books = 5 \}\)/.test(scrolls) && !/scrolls = \{ (white|black|omni)/.test(scrolls),
-  "the premium pass's scroll tiers (25, 55, 88) pay 3, 4 and 5 enchant books");
+check(!/scrolls = \{/.test(scrolls) && /prem = \{ books = 1 \}/.test(scrolls) && /free = \{ books = 2 \}/.test(scrolls),
+  "the pass pays no scroll anywhere; books took their place (and since the 2026-10-16 rework, every 5th tier pays books on both tracks)");
 check(/MineScrolls\.ITEMS = \{\}/.test(scrolls), "no scroll is for sale (ITEMS is empty)");
 check((sv.match(/Dig\.grantBooks\((p|profile), reward\.books\)/g) || []).length === 2, "both pass-claim paths grant the books");
 const founders = read(SH + "MineFounders.luau");

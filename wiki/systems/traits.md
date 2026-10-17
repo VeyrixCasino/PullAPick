@@ -98,7 +98,7 @@ related: [enchants, boosts-and-stats, retired-and-parked, tools, hats-and-faces,
   - Coolant stays on the skill tree only;
   - Short Fuse is on the skill tree, on 2 pets in every zone, and on a small
     explosives-only enchant. See [enchants](enchants.md) and [pets](pets.md).
-- **The battle pass rework** the owner mentioned has no brief yet.
+- ~~**The battle pass rework.**~~ Done 2026-10-16 ([shops-and-monetisation](shops-and-monetisation.md)).
 
 ## Kept on purpose
 

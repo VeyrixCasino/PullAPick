@@ -121,6 +121,18 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
   9-stop pastel gradient. The inventory, MineClient and the grade reveal use it
   (the sockets screen did too, until it was deleted on 2026-10-12).
 
+## The pass set (2026-10-16)
+
+MineSkins has a tenth set, **Season One Pass**: Gemfire (S), Geode Heart (SS),
+Deepgold Seam (SS) and The Motherlode (SSS), leaning on Ore Haul, Chest Luck
+and Rare Ore. Only the battle pass gives them, at tiers 20 / 40 / 60 / 80 of
+the premium track.
+- `docs/SKINS.md` heads it "Pass set — …". `tools/gen/skins.js` stamps the set
+  `pass = true`, and `MineSkins.isPass` reads it.
+- The chest skin case and the old temperament-to-skin migration both skip pass
+  skins.
+- The 225-skin roster and the drop model count only the core sets.
+
 ## Where it lives
 
 | file | role | key symbols |

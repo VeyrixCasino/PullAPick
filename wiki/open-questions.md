@@ -187,9 +187,9 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
   Coolant (skill tree only) shortens a jackhammer's spin-up. Short Fuse is also
   on 2 pets in every zone (at most 10%) and on a small explosives-only enchant
   (+15% at V). See [enchants](systems/enchants.md).
-- **Rework the battle pass.** Owner, 2026-10-12: *"we have to rework the entire
-  battle pass"*. Nothing about the shape is decided. Its scroll rewards became
-  enchant books as a stopgap ([shops-and-monetisation](systems/shops-and-monetisation.md)).
+- ~~**Rework the battle pass.**~~ Done 2026-10-16 to the owner's answers
+  ([shops-and-monetisation](systems/shops-and-monetisation.md)). Still open: the
+  PROPOSED amounts, the pass pets' and skins' names, and a look in a live server.
 - **The Founders pack's 3 books** replaced its White Scroll as an assistant
   default, not an owner decision. Confirm or change it.
 - ~~**Should family tempers apply to forged tools?**~~ **Answered in code

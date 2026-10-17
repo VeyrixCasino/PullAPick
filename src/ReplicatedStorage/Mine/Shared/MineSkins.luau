@@ -50,6 +50,7 @@ MineSkins.SETS = {
 	{ key = "atomic_age", name = "Atomic Age", bonus = false },
 	{ key = "arcade", name = "Arcade", bonus = false },
 	{ key = "halloween", name = "Halloween", bonus = true },
+	{ key = "season_one_pass", name = "Season One Pass", bonus = true, pass = true },
 }
 
 MineSkins.LIST = {
@@ -278,11 +279,29 @@ MineSkins.LIST = {
 	{ id = "the_hollow_king", name = "The Hollow King", set = "halloween", tier = "S", kit = { tidalWave = 0.892, tideDamage = 0.613, fossilFind = 0.451, pulverize = 0.422 } },
 	{ id = "all_hallows_eve", name = "All Hallows' Eve", set = "halloween", tier = "SS", kit = { tidalWave = 1.169, tideDamage = 0.689, fossilFind = 0.489, rareOre = 0.274, swingRate = 0.178 } },
 	{ id = "harvest_of_souls", name = "Harvest of Souls", set = "halloween", tier = "SSS", kit = { tidalWave = 1.538, tideDamage = 0.988, fossilFind = 0.637, oreHaul = 0.525, blastDamage = 0.438 } },
+	{ id = "gemfire", name = "Gemfire", set = "season_one_pass", tier = "S", kit = { oreHaul = 1.16, chestLuck = 0.293, rareOre = 0.335, blastChance = 0.341 } },
+	{ id = "geode_heart", name = "Geode Heart", set = "season_one_pass", tier = "SS", kit = { oreHaul = 1.506, chestLuck = 0.316, rareOre = 0.417, packLuck = 0.163, fossilFind = 0.317 } },
+	{ id = "deepgold_seam", name = "Deepgold Seam", set = "season_one_pass", tier = "SS", kit = { oreHaul = 1.52, chestLuck = 0.292, rareOre = 0.385, blastChance = 0.365, earthquake = 0.36 } },
+	{ id = "the_motherlode", name = "The Motherlode", set = "season_one_pass", tier = "SSS", kit = { oreHaul = 2, chestLuck = 0.383, rareOre = 0.51, fossilFind = 0.525, procPower = 0.398 } },
 }
 
+-- Pass sets: only the battle pass grants them, and every random pool skips
+-- a skin with `pass` set (MineSkins.isPass).
+local passSet = {}
+for _, set in ipairs(MineSkins.SETS) do
+	if set.pass then
+		passSet[set.key] = true
+	end
+end
 MineSkins.BY_ID = {}
 for _, s in ipairs(MineSkins.LIST) do
 	MineSkins.BY_ID[s.id] = s
+	s.pass = passSet[s.set] or nil
+end
+
+function MineSkins.isPass(skin)
+	local s = type(skin) == "table" and skin or MineSkins.BY_ID[tostring(skin or "")]
+	return s ~= nil and s.pass == true
 end
 
 function MineSkins.byId(id)

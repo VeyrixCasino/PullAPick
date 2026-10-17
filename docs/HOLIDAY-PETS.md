@@ -73,3 +73,16 @@ Also pays the older halloween pets: Spindle, Spooky, Wisp.
 | Common | Omen | Pumpkin Pig | Trader | +69% Coin Bonus, +7.9% Lucky Block find |
 | Common | Bandage | Sheet Ghost Owl | Seeker | +28% Luck, +13% Chest Luck |
 | Common | Candy Bucket | Devil Toad | Digger | +55% Ore Haul, +28% Dirt Break |
+
+## null (4 pets, power ×1.63)
+
+Owner: Owner, 2026-10-16: the battle pass rework; the premium track's huge tiers (25, 50, 75, 100) pay season-exclusive pets, made by the assistant session (owner's pick): Legendary at 25, Mythic at 50, Divine at 75, Exotic at 100. Nothing else ever gives them (holiday = "pass", no pack). Event Horizon power like the Halloween pack. Names, colours and buffs are PROPOSED.
+
+Also pays the older pass pets: .
+
+| tier | name | looks like | role | boost |
+|---|---|---|---|---|
+| Exotic | Bedrock Bob | Deepgold Wyrm | Season One Pass | +326% Ore Haul, +52% Chest Luck, +49% Mine Speed |
+| Divine | Gemheart | Starshard Hawk | Season One Pass | +110% Chest Luck, +85% Mine Speed, +36% Ore Haul |
+| Mythic | Nuggetail | Oreglow Drake | Season One Pass | +178% Mine Speed, +62% Ore Haul, +12% Chest Luck |
+| Legendary | Pickwick | Amberlode Golem | Prospector | +73% Rare Ore, +36% Gem Find |

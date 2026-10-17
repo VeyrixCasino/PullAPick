@@ -1255,8 +1255,10 @@ local function load(plr)
 		if okSk and Skins and type(Skins.LIST) == "table" then
 			local byGrade = {}
 			for _, s in ipairs(Skins.LIST) do
-				byGrade[s.tier] = byGrade[s.tier] or {}
-				table.insert(byGrade[s.tier], s.id)
+				if not s.pass then
+					byGrade[s.tier] = byGrade[s.tier] or {}
+					table.insert(byGrade[s.tier], s.id)
+				end
 			end
 			for _, list in pairs(byGrade) do
 				table.sort(list) -- stable order, so the hash means the same thing twice
@@ -5303,7 +5305,8 @@ function Dig.grantChestSkin(p, tier, rng)
 	end
 	local pool = {}
 	for _, s in ipairs(Skins.LIST or {}) do
-		if s.tier == tier then
+		-- Pass skins come only from the battle pass (MineSkins.isPass).
+		if s.tier == tier and not s.pass then
 			table.insert(pool, s)
 		end
 	end
@@ -12983,6 +12986,51 @@ end
 	track it wants, so the worst a forged payload can do is ask for a tier it
 	has not reached, or one it already took.
 ]]
+--[[
+	THE PASS'S SEASON PET AND SKIN (the 2026-10-16 rework: the premium track is
+	"Exclusive pets, skins and books"). Given to the LIVE profile only: a claim
+	that carries a lucky block also applies its reward to the stored save
+	inside UpdateAsync, and a pet minted there too would be a second serial for
+	one claim. The pet is the generated pass pack's (MineScrolls.PASS_PET_PACK);
+	the skin is MineSkins' pass set.
+]]
+function Dig.grantPassExtras(p, plr, reward)
+	if type(reward) ~= "table" then
+		return
+	end
+	if type(reward.pet) == "string" then
+		local roster = PetRoster and PetRoster.BY_NAME and PetRoster.BY_NAME[reward.pet]
+		if roster then
+			local c = mint({
+				setId = Scrolls.PASS_PET_PACK,
+				index = 1,
+				name = reward.pet,
+				rarityId = roster.tier,
+				typeId = "Crystal",
+				animal = roster.animal,
+				roleName = "Battle Pass",
+				kind = "Unit",
+				setName = "Season One Pass",
+			}, plr and plr.UserId)
+			p.cards = p.cards or {}
+			table.insert(p.cards, c)
+		else
+			warn("[Mine] pass pet not in the roster: " .. reward.pet)
+		end
+	end
+	if type(reward.skin) == "string" then
+		local okSk, Skins = pcall(function()
+			return require(shared:WaitForChild("MineSkins"))
+		end)
+		local def = okSk and Skins and Skins.byId and Skins.byId(reward.skin)
+		if def then
+			p.skins = p.skins or {}
+			p.skins[def.id] = true
+			p.skinNotice = { name = def.name, tier = def.tier, set = def.set }
+		end
+	end
+end
+
 function Verbs.claimPass(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -13065,6 +13113,10 @@ function Verbs.claimPass(plr, payload)
 		end
 		if reward.toolId then
 			grantPassSignatureTool(profile, reward.toolId, livePlr)
+		end
+		-- The season pet and skin: live only (see Dig.grantPassExtras).
+		if profile == p then
+			Dig.grantPassExtras(p, livePlr, reward)
 		end
 	end
 
@@ -13225,6 +13277,7 @@ function Verbs.claimPass(plr, payload)
 			if reward.toolId then
 				grantPassSignatureTool(p, reward.toolId, plr)
 			end
+			Dig.grantPassExtras(p, plr, reward)
 		end
 	else
 		-- No lucky blocks: mark + grant in memory (still under the in-flight lock).

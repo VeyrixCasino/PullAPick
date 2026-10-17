@@ -62,6 +62,7 @@ const LEAN = {
   atomic_age:   ["blastDamage", "zap", "zapDamage"],
   arcade:       ["swingRate", "procPower", "blastChance"],
   halloween:    ["tidalWave", "tideDamage", "fossilFind"],
+  season_one_pass: ["oreHaul", "chestLuck", "rareOre"],
 };
 const POOL = Object.keys(WEIGHT);
 
@@ -72,19 +73,22 @@ function parseRoster() {
   const md = fs.readFileSync(DOC, "utf8");
   const roster = md.slice(0, md.indexOf("## Numbers"));
   const out = [];
-  let set = null, bonus = false;
+  let set = null, bonus = false, pass = false;
   for (const line of roster.split(/\r?\n/)) {
     const h = line.match(/^## (?:\d+\. )?(.+?)(?: \*|$)/);
     if (h) {
-      bonus = /^Bonus set/.test(h[1]);
-      const name = h[1].replace(/^Bonus set — /, "").trim();
-      set = /^(How a skin|Numbers)/.test(name) ? null : { name, key: slug(name), bonus };
+      // A "Pass set" (2026-10-16) is a bonus set that only the battle pass
+      // grants: every random pool skips it (MineSkins.isPass).
+      pass = /^Pass set/.test(h[1]);
+      bonus = pass || /^Bonus set/.test(h[1]);
+      const name = h[1].replace(/^(Bonus|Pass) set — /, "").trim();
+      set = /^(How a skin|Numbers)/.test(name) ? null : { name, key: slug(name), bonus, pass };
       continue;
     }
     const m = line.match(/^\| (F|D|C|B|A|S|SS|SSS) \| (.+?) \|$/);
     if (!m || !set) continue;
     for (const n of m[2].split("·").map((x) => x.trim()).filter(Boolean)) {
-      out.push({ name: n, id: slug(n), set: set.key, setName: set.name, bonus: set.bonus, tier: m[1] });
+      out.push({ name: n, id: slug(n), set: set.key, setName: set.name, bonus: set.bonus, pass: set.pass, tier: m[1] });
     }
   }
   return out;
@@ -160,7 +164,9 @@ function buildKit(skin) {
 }
 
 const skins = parseRoster();
-if (skins.length !== 225) { console.error(`FAIL: parsed ${skins.length} skins, expected 225`); process.exit(1); }
+// Pass sets (2026-10-16) sit outside the 225: only the battle pass grants them.
+const coreCount = skins.filter((x) => !x.pass).length;
+if (coreCount !== 225) { console.error(`FAIL: parsed ${coreCount} core skins, expected 225`); process.exit(1); }
 
 const lua = [];
 lua.push(`--[[`);
@@ -187,7 +193,7 @@ lua.push(`}`);
 lua.push(``);
 const sets = [...new Map(skins.map((s) => [s.set, s])).values()];
 lua.push(`MineSkins.SETS = {`);
-for (const s of sets) lua.push(`\t{ key = "${s.set}", name = "${s.setName}", bonus = ${s.bonus} },`);
+for (const s of sets) lua.push(`\t{ key = "${s.set}", name = "${s.setName}", bonus = ${s.bonus}${s.pass ? ", pass = true" : ""} },`);
 lua.push(`}`);
 lua.push(``);
 lua.push(`MineSkins.LIST = {`);
@@ -198,9 +204,23 @@ for (const s of skins) {
 }
 lua.push(`}`);
 lua.push(``);
+lua.push(`-- Pass sets: only the battle pass grants them, and every random pool skips`);
+lua.push(`-- a skin with \`pass\` set (MineSkins.isPass).`);
+lua.push(`local passSet = {}`);
+lua.push(`for _, set in ipairs(MineSkins.SETS) do`);
+lua.push(`\tif set.pass then`);
+lua.push(`\t\tpassSet[set.key] = true`);
+lua.push(`\tend`);
+lua.push(`end`);
 lua.push(`MineSkins.BY_ID = {}`);
 lua.push(`for _, s in ipairs(MineSkins.LIST) do`);
 lua.push(`\tMineSkins.BY_ID[s.id] = s`);
+lua.push(`\ts.pass = passSet[s.set] or nil`);
+lua.push(`end`);
+lua.push(``);
+lua.push(`function MineSkins.isPass(skin)`);
+lua.push(`\tlocal s = type(skin) == "table" and skin or MineSkins.BY_ID[tostring(skin or "")]`);
+lua.push(`\treturn s ~= nil and s.pass == true`);
 lua.push(`end`);
 lua.push(``);
 lua.push(`function MineSkins.byId(id)`);

@@ -1382,3 +1382,24 @@ The owner: *"jack hammer spins up, drill is isntant, and short fuse should be a 
 - A new Damage enchant, Short Fuse, fits explosives only: +3% a level, +15% at V (PROPOSED).
 
 Updated: tools, pets, enchants, boosts-and-stats, traits, open-questions, log.
+
+## [2026-10-16] decision | The battle pass rework
+The owner's answers:
+- *"about 2 weeks no daily xp cap"*;
+- *"100 teirs, every 5 should be decent, every 10 should be good and every 25 is huge"*;
+- the premium track is exclusive pets, skins and books;
+- the free track pays something every tier, smaller;
+- 4 season pets on the huge tiers, made by this session;
+- "4 skins".
+
+What changed:
+- 90 XP a tier, 9,000 a season, from quests only, with no daily cap.
+- Both tracks pay every tier, in four classes.
+- The premium huge tiers pay Pickwick, Nuggetail, Gemheart and Bedrock Bob, a new `pass_2026_10` pack that nothing random rolls.
+- The premium 20 / 40 / 60 / 80 pay a new MineSkins pass set that no case drops.
+- Pets and skins are granted on the live profile only.
+- The rail flags ★ BIG and ★ HUGE tiles.
+
+`tools/verify/battle-pass.js` runs the real track. The amounts and names are PROPOSED. Not yet seen in Studio: no place was open.
+
+Updated: shops-and-monetisation, pets, skins-cases-and-temper, open-questions, traits, log.

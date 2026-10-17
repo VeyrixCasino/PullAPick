@@ -7483,6 +7483,8 @@ function MineInventoryView.mount(parent, opts)
 			gems = Color3.fromRGB(90, 180, 255),
 			stardust = Color3.fromRGB(255, 160, 220),
 			books = Color3.fromRGB(210, 150, 255),
+			pet = Color3.fromRGB(255, 120, 220),
+			skin = Color3.fromRGB(120, 230, 255),
 			battlepass = Color3.fromRGB(255, 214, 90),
 		}
 
@@ -7514,6 +7516,8 @@ function MineInventoryView.mount(parent, opts)
 			if id == "gems" then return "GEM" end
 			if id == "stardust" then return "DST" end
 			if id == "books" then return "BK" end
+			if id == "pet" then return "PET" end
+			if id == "skin" then return "SKIN" end
 			return "?"
 		end
 
@@ -7625,8 +7629,33 @@ function MineInventoryView.mount(parent, opts)
 				Active = true,
 			}, scroll)
 			round(btn, 12)
-			stroke(btn, allowed and 2.5 or 1.5,
-				allowed and GREEN or ((n % 10 == 0) and GOLD or (reached and col or T.LINE)))
+			--[[
+				Tier classes (owner, 2026-10-16: "every 5 should be decent, every
+				10 should be good and every 25 is huge"): the bigger the tier, the
+				louder its frame, plus a ribbon, so a kid sees the next big one
+				coming from across the rail.
+			]]
+			local class = Scrolls.tierClass and Scrolls.tierClass(n) or "small"
+			local CLASS_INK = {
+				huge = Color3.fromRGB(255, 96, 220),
+				good = GOLD,
+				decent = Color3.fromRGB(110, 210, 255),
+			}
+			local CLASS_WIDTH = { huge = 4, good = 3, decent = 2.5 }
+			stroke(btn, allowed and 3 or (CLASS_WIDTH[class] or 1.5),
+				allowed and GREEN or (CLASS_INK[class] or (reached and col or T.LINE)))
+			if class ~= "small" then
+				local ribbon = mk("Frame", {
+					BackgroundColor3 = CLASS_INK[class],
+					AnchorPoint = Vector2.new(0.5, 0),
+					Position = UDim2.new(0.5, 0, 0, -2),
+					Size = UDim2.fromOffset(class == "huge" and 78 or 58, 18),
+					ZIndex = 6,
+				}, btn)
+				round(ribbon, 9)
+				label(ribbon, (class == "huge" and "★ HUGE") or (class == "good" and "★ BIG") or "★", 12,
+					Color3.fromRGB(20, 14, 30), UDim2.fromOffset(0, 0), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center).ZIndex = 7
+			end
 
 			-- ONE BIG ICON. The reward is the art.
 			local plate = mk("Frame", {
