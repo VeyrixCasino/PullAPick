@@ -16,6 +16,8 @@ sources:
   - tools/icons/gen-charm-art.js
   - docs/HANDOFF.md §2.3
   - docs/OPEN.md
+  - tools/cursor/run.ps1
+  - tools/cursor/brief.md
 related: [verify-suite, assets-and-uploads, code-map, rojo-and-studio, local-setup]
 ---
 
@@ -111,6 +113,22 @@ the real source.
 - `tools/agent/house-rules.txt`: a short briefing for any agent. Its "~14.8k
   lines" for MineServer is stale; the file is 17,050 lines.
 - `tools/verify/`: see [verify-suite](verify-suite.md).
+- `tools/cursor/`: hands one job to the Cursor agent, which runs headless
+  (owner, 2026-10-18: *"setup something so you can deploy cursor to work"*).
+  - `run.ps1 -Task <name>` runs `tasks/<name>.md` together with `brief.md`.
+    The brief holds the standing rules:
+    - stay in scope;
+    - commit only your own files, and never push;
+    - follow the Studio etiquette;
+    - when unsure, stop and ask in the report instead of guessing.
+  - `-Login` signs the CLI in. The owner does this once, in a browser.
+  - The transcript goes to `build/cursor/<name>-<time>.log`. The agent writes
+    its own summary to `build/cursor/<name>-report.md`.
+  - The CLI ships inside the Cursor app, under
+    `%APPDATA%\Cursor\...\cursor-agent\versions`; `run.ps1` uses the newest copy.
+  - It runs with `--force`, so the agent runs any command without asking.
+  - Norton AI Agent Protection blocked Claude from running `run.ps1`
+    (2026-10-18), so the owner starts jobs for now.
 
 ## Gotchas
 

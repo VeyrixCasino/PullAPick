@@ -1403,3 +1403,19 @@ What changed:
 `tools/verify/battle-pass.js` runs the real track. The amounts and names are PROPOSED. Not yet seen in Studio: no place was open.
 
 Updated: shops-and-monetisation, pets, skins-cases-and-temper, open-questions, traits, log.
+
+## [2026-10-18] setup | Cursor jobs (`tools/cursor/`)
+Owner: *"give me cursor prompt or setup something so you can deploy cursor to
+work"*. The Cursor agent CLI already ships inside the Cursor app, but it was not
+signed in. `tools/cursor/run.ps1 -Task <name>` runs a job headless:
+- it reads `brief.md` (the standing rules) and `tasks/<name>.md`;
+- it uses `--force --trust --approve-mcps`, so it can drive Studio through the
+  Cursor `Roblox_Studio` MCP;
+- it writes a log and a report to the build/cursor folder, made on the first run.
+
+The first job is `icons-upload`: upload the Canva drills and explosives (tiers
+1-81) and wire them behind `NEW_TOOL_ICONS_SHARED`. The owner must run
+`-Login` once. Norton AI Agent Protection blocked Claude from running the
+script, so the owner starts jobs for now.
+
+Updated: tools-and-generators, log.
