@@ -94,23 +94,32 @@ ok(!/\(now or os\.time\(\)\)/.test(SCROLLS),
 }
 
 //[[ ------------------------------------------- the season's LENGTH ----
-// The starts were pinned; the ends were not, and they drifted: the offers got
-// "ONE MORE WEEK, ON EVERYTHING" and the pass did not, so it ended a week
-// before its own season. Under MineLaunch these are lengths, so compare lengths.
+// The starts were pinned; the ends were not, and they drifted. The owner set the
+// pass to 28 days (2026-10-18) inside a 47-day season (the offers' "ONE MORE
+// WEEK, ON EVERYTHING" and Event Horizon's LIMITED_DAYS). Under MineLaunch these
+// are lengths, so compare lengths: the pass is exactly PASS_SEASON_DAYS long and
+// ends inside the season; the offers and Event Horizon end together.
 {
   const CONFIG = Luau.readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineConfig.luau"));
   const num = (src, re) => { const m = re.exec(src); return m ? Number(m[1]) : NaN; };
-  const passLen = num(SCROLLS, /MineScrolls\.PASS_SEASON_END\s*=\s*(\d{9,})/) - Number(pStart);
+  const passDays = num(SCROLLS, /MineScrolls\.PASS_SEASON_DAYS\s*=\s*(\d+)/);
+  // The end is either a literal timestamp or derived from PASS_SEASON_DAYS.
+  const derived = /MineScrolls\.PASS_SEASON_END\s*=\s*MineScrolls\.PASS_SEASON_START\s*\+\s*MineScrolls\.PASS_SEASON_DAYS\s*\*\s*86400/.test(SCROLLS);
+  const passLen = derived ? passDays * 86400
+    : num(SCROLLS, /MineScrolls\.PASS_SEASON_END\s*=\s*(\d{9,})/) - Number(pStart);
   const week = num(OFFERS, /local WEEK\s*=\s*(\d+)/);
   const extend = /MineRotatingOffers\.EXTEND_SEC\s*=\s*WEEK\b/.test(OFFERS) ? week
     : num(OFFERS, /MineRotatingOffers\.EXTEND_SEC\s*=\s*(\d+)/);
   const offersLen = num(OFFERS, /local ENDS\s*=\s*(\d{9,})/) + (extend || 0) - Number(oStart);
   const limitedLen = num(CONFIG, /MineConfig\.LIMITED_DAYS\s*=\s*(\d+)/) * 86400;
-  ok(passLen > 0 && passLen === offersLen,
-    "the battle pass runs as long as the offers season",
-    `${passLen / 86400} days vs ${offersLen / 86400}`);
+  ok(passDays > 0 && passLen === passDays * 86400,
+    "the battle pass is exactly PASS_SEASON_DAYS long",
+    `${passLen / 86400} days vs PASS_SEASON_DAYS ${passDays}`);
+  ok(passLen > 0 && passLen <= offersLen,
+    "...and ends inside the season, not after it",
+    `${passLen / 86400} days in a ${offersLen / 86400}-day season`);
   ok(offersLen === limitedLen,
-    "...and as long as the Event Horizon window (LIMITED_DAYS)",
+    "the offers season runs as long as the Event Horizon window (LIMITED_DAYS)",
     `${offersLen / 86400} days vs ${limitedLen / 86400}`);
 }
 

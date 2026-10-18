@@ -1528,3 +1528,12 @@ both sides survive: their 100-tier pass at 90 XP a tier, my season clock and 47-
 `syntax.sh` 306 files clean, compile 12 and 11 locals left, suite 70/70 on the second run
 (first-run `skins` is the CRLF effect). Their `log.md` holds four bytes that are not valid UTF-8
 (Windows-1252 `…` and `×`, in the MineStars entry); I kept them as they were.
+
+## [2026-10-18] decision | the battle pass is 28 days
+The owner answered the open length question: *"28 days"*. `PASS_SEASON_END` is now derived
+from the rework's `PASS_SEASON_DAYS = 28` (`START + DAYS * 86400`), so the length is one number;
+the offers and Event Horizon stay at 47. `launch.js` now checks the pass is exactly
+`PASS_SEASON_DAYS` long and ends inside the season (proved to fail on the old 47-day literal).
+**New question, asked:** on day 29 `reconcilePass` restarts the same 100-tier track for everyone,
+so the season pets and Season One skins can be earned twice and premium must be rebought
+([open-questions](open-questions.md) 24).

@@ -139,7 +139,8 @@ because each moves the economy in more than one place. Measured figures are in
 | 20 | **A 6,500-block first tool.** With stone's surface share raised to hit the owner's 1-vein-per-3,000 target, the cheapest craftable tool costs ~6,500 blocks broken (was 13,500). Not obviously wrong, but it is the first number a new player meets and nobody has signed off on it. | measured | `docs/ore-yield-and-vein-balance.md` §2 |
 | 21 | **FIXED 2026-10-17: the battle pass ended a week before the offers.** `PASS_SEASON_END` was 40 days after the start while the offers and Event Horizon run 47; it is now 47 too, and `launch.js` pins the three lengths. The same change mirrors the launch stamp to clients (they never learned it, so after a launch they would have shown week one's offers and frozen countdowns) and puts the pass panel on the season clock. Owner: *"do what you think is best for the game"*. | *Read*, pinned by `launch.js` (proved to fail on the old code); not yet run in Studio | [season-and-launch](systems/season-and-launch.md) |
 | 22 | **DECIDED 2026-10-17: Chest Luck scales the chest charm drop, and that stays.** `CHARM_CHEST_CHANCE × b.chestLuck`, the same multiplier every other chest reward uses (cases, skins, book bundles, packs). There is **one charm slot**, so wearing one of the five Chest Luck charms means not wearing a power charm: a trade-off, not a free loop. (My earlier note that a code comment denies this was a misreading: that comment is about the `luck` stat, which the chest roll does not use.) | *Read* | [charms](systems/charms.md) |
-| 23 | **How long is the battle pass season: 28, 40 or 47 days?** Three numbers now disagree. `d258771` (the pass rework, owner 2026-10-16: *"about 2 weeks no daily xp cap"*) sets the XP pace to about two weeks and adds `MineScrolls.PASS_SEASON_DAYS = 28`, which **nothing reads**. The pass's own end on that branch is still 40 days. PR #7 makes it 47 to match the offers and Event Horizon (decided on the owner's 2026-10-17 *"do what you think is best"*, before I saw the rework). Recommended: 47, so the pass, offers and Event Horizon end together, with "about 2 weeks" as the pace to finish it. | *Read* | [season-and-launch](systems/season-and-launch.md) |
+| 23 | **DECIDED 2026-10-18: the battle pass is 28 days from launch** (owner: *"28 days"*). `PASS_SEASON_END` is now derived from `PASS_SEASON_DAYS` (28), so the length is one number. The offers and Event Horizon stay at 47. `launch.js` pins the pass to `PASS_SEASON_DAYS` and checks it ends inside the season. | *Read* | [season-and-launch](systems/season-and-launch.md) |
+| 24 | **What happens on day 29 of the pass?** `reconcilePass` rolls every player to `PASS_SEASON_NEXT` ("2026-11"), wipes XP and claims and sets `owned = false`, but the track is the same `PASS_TRACK`, and nothing stops XP or claims after the end. So the same 100 tiers restart: the season pets (`PASS_PET_TIERS`) and Season One skins can be earned a second time, and premium has to be bought again for the same rewards. Recommended: the pass closes after day 28 (no XP, no claims, "Season 2 coming soon") until a new track ships. | *Read* | [season-and-launch](systems/season-and-launch.md) |
 
 ## 2. Where the owner's rules and the code disagree
 
@@ -172,8 +173,8 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
   consumables, outpost shops) is unsigned.
 - **Are skins cosmetic or a power source?** Docs disagree (`ROADMAP` wrap-only
   vs TODO §0.13 / §0.19 and live `MineSkins` / `MineTemper` kits). Do not invent.
-- **Battle pass season length (finding 23):** 47 days with the offers (recommended), 28
-  (`PASS_SEASON_DAYS`, unused), or 40 (the current end on the working branch)?
+- **After the pass ends (finding 24):** close it until a new track ships (recommended),
+  restart the same track for everyone, or something else?
 - **One charm per ore, or two?** Is the ~24 hand-authored charm rewrite (AUDIT)
   approved? Should charms sit in a boost layer?
 - **Pack pity and the Exotic floor:** build them, or keep "no pity"?

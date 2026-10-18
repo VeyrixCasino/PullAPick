@@ -354,23 +354,24 @@ function MineScrolls.emptyPass()
 end
 
 --[[
-	THE PASS IS 47 DAYS LONG, and these two numbers are a LENGTH, not dates.
+	THE PASS IS 28 DAYS LONG (owner, 2026-10-18: "28 days"), counted from LAUNCH.
 
-	MineLaunch pins the season clock to PASS_SEASON_START until the owner
-	launches, then runs it from that moment, so the pass ends 47 days after
-	launch whatever the calendar says. The constants still read as the original
-	calendar (2026-09-22 00:00 ET start) only so they line up with
-	MineRotatingOffers and MineConfig.LIMITED_DAYS.
+	PASS_SEASON_DAYS above is the one number; the end is derived from it, so
+	changing the length is one edit. MineLaunch pins the season clock to
+	PASS_SEASON_START until the owner launches, then runs it from that moment,
+	so the pass ends 28 days after launch whatever the calendar says. START
+	still reads as the original calendar (2026-09-22 00:00 ET) only so it lines
+	up with MineRotatingOffers and MineLaunch.
 
-	It was 40 days. The offers got "ONE MORE WEEK, ON EVERYTHING"
-	(MineRotatingOffers.EXTEND_SEC) and Event Horizon runs LIMITED_DAYS = 47,
-	but the pass was missed, so it would have ended a week before the season it
-	belongs to. tools/verify/launch.js now pins the lengths together.
+	The pass is shorter than the season around it on purpose: the offers and
+	Event Horizon run 47 days (MineRotatingOffers.EXTEND_SEC, LIMITED_DAYS).
+	tools/verify/launch.js pins the pass to PASS_SEASON_DAYS and checks it ends
+	inside that season.
 ]]
 MineScrolls.PASS_SEASON_ID = "2026-10"
 MineScrolls.PASS_SEASON_NEXT = "2026-11"
 MineScrolls.PASS_SEASON_START = 1790049600
-MineScrolls.PASS_SEASON_END = 1794110400
+MineScrolls.PASS_SEASON_END = MineScrolls.PASS_SEASON_START + MineScrolls.PASS_SEASON_DAYS * 86400
 -- No calendar date: the real end depends on when the season was launched.
 -- passEndLabel() gives the real one.
 MineScrolls.PASS_SEASON_LABEL = "when the countdown ends"
