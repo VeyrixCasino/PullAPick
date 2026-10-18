@@ -86,6 +86,11 @@ print(string.format("ORE %.3f %.3f %d %d %.3f", E.oreChance(E.get("alchemy"), 5)
 	E.veinBlocks(E.get("veinminer"), 5), E.veinBlocks(E.get("fortune"), 5), E.oreChance(E.get("fortune"), 5)))
 local allLive = true
 for _, d in ipairs(E.LIST) do if not d.live then allLive = false end end
+local fos = {}
+for _, st in ipairs({ "zap", "zapDamage", "blastChance", "blastRadius", "tideDamage", "ricochet", "earthquake", "procPower", "mineSpeed", "oreHaul" }) do
+	table.insert(fos, st .. "=" .. tostring(E.familyOfStat(st)))
+end
+print("FAMOF " .. table.concat(fos, ","))
 local sf = E.get("shortfuse")
 local sfE = E.compatible(sf, "explosive")
 local sfP = E.compatible(sf, "pickaxe")
@@ -178,6 +183,8 @@ const ore = num("ORE");
 check(Math.abs(ore[0] - 0.1) < 1e-9 && Math.abs(ore[1] - 0.2) < 1e-9 && ore[2] === 10 && ore[3] === 0 && ore[4] === 0,
   "Alchemy V 10%, Duplicator V 20%, Vein Miner V 10 more blocks (PROPOSED); other enchants roll none of these");
 check(/^true /.test(get("LIVE")), "every enchant is live: no card says COMING SOON any more");
+check(get("FAMOF") === "zap=zap,zapDamage=zap,blastChance=blast,blastRadius=blast,tideDamage=tide,ricochet=shatter,earthquake=quake,procPower=*,mineSpeed=nil,oreHaul=nil",
+  "every proc stat knows its family (procPower pays any), so auto-equip can tell what a tool can use");
 check(get("FUSE") === "true false shortFuse 0.150", "the Short Fuse enchant fits explosives only, and is small: +15% at V (owner: \"dont overdo it\")");
 check(get("LIVE").includes("damage a hit in a row (max 100)") && get("LIVE").includes("20% double ore"), "the cards say what the mining enchants do, with the real numbers");
 // 4
@@ -240,6 +247,15 @@ check(/loot\.books/.test(read("src/ReplicatedStorage/Mine/Shared/MineGradeReveal
 const hub = read("src/ReplicatedStorage/Mine/Shared/MineForgeHub.luau");
 check(/act\("enchBuyBundle"/.test(hub) && /function ctl\.showBundle/.test(hub) && /hub\.showBundle/.test(read("src/StarterPlayer/StarterPlayerScripts/MineForgeHub.client.luau")),
   "the Forge sells the bundle and opens it on screen");
+// Auto-equip reads the Special (owner: "[make sure to encorperate this into auto equip]").
+const plan = (sv.match(/function Dig\.planUpgrades\(p\)[\s\S]*?\n\treturn plan\nend\n/) || [""])[0];
+check(/function Dig\.petShares\(c\)/.test(sv) && /Cards\.applyKit\(b, c, pw, 1\)/.test(sv) && /Dig\.Enchants\.familyOfStat\(stat\)/.test(sv),
+  "auto-equip splits each pet's whole kit (named kit and print perk) into plain stats, each proc family and generic proc damage");
+check(/usable \+= shares\.any \+ \(shares\.fam\[family\] or 0\)/.test(sv) && /local usable = shares\.plain/.test(sv),
+  "...and a pet is worth only what the held tool can use: plain stats, plus its own family's proc when the tool fires one");
+check(/local family = Dig\.heldProcFamily\(p\)/.test(plan) && /top = topFor\(family\)/.test(plan) && /for _, fam in ipairs\(\{ "", table\.unpack\(Dig\.Enchants\.PROC_ORDER\) \}\) do/.test(plan)
+  && /table\.insert\(wornPowers, Dig\.petWorth\(sh, family\)\)/.test(plan) && !/C\.cardPower\(c\)/.test(plan),
+  "Equip Best seats the strongest team for the Special's family; with no Special it tries every family (the tool keeps its best proc)");
 const svc = read("src/ServerScriptService/Mine/MineEnchantService.luau");
 const buy = (svc.match(/function V\.enchBuyBundle[\s\S]*?\nend\n/) || [""])[0];
 check(/< price then\s*\n\s*return/.test(buy) && buy.indexOf("< price") < buy.indexOf("p.gems = ") && /bundlePrice\(p\)/.test(buy),

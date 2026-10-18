@@ -1419,3 +1419,17 @@ The first job is `icons-upload`: upload the Canva drills and explosives (tiers
 script, so the owner starts jobs for now.
 
 Updated: tools-and-generators, log.
+
+## [2026-10-18] build | Equip Best reads the Special
+Owner's enchant brief: the Special *"determines which effect your tool will have,
+regardless of pet setup. The pets only boost this. [make sure to encorperate
+this into auto equip]"*. Equip Best (`Dig.planUpgrades`) used to seat pets by
+raw card power, so it could pick a Zap pet for a Blast tool.
+- Each pet is now scored by the share of its kit the held tool can use
+  (`Dig.petShares`, `Dig.petWorth`; `MineEnchants.familyOfStat`).
+- With no Special yet it tries every family and keeps the strongest team, since
+  the tool keeps its gear's best proc.
+
+`tools/verify/enchants.js` checks the family map and the wiring.
+
+Updated: enchants, log.

@@ -67,6 +67,26 @@ M.PROCS = {
 }
 M.PROC_ORDER = { "zap", "blast", "tide", "shatter", "quake" }
 
+-- Which proc family a stat belongs to (its chance, damage or extra), "*" for
+-- procPower (generic proc damage: it pays whichever family fires), or nil for
+-- a plain stat. Auto-equip reads it (MineServer Dig.petShares).
+M.FAMILY_OF_STAT = { procPower = "*" }
+for fam, proc in pairs(M.PROCS) do
+	if proc.chance then
+		M.FAMILY_OF_STAT[proc.chance] = fam
+	end
+	if proc.damage and proc.damage ~= "procPower" then
+		M.FAMILY_OF_STAT[proc.damage] = fam
+	end
+	for _, extra in ipairs(proc.extra or {}) do
+		M.FAMILY_OF_STAT[extra] = fam
+	end
+end
+
+function M.familyOfStat(stat)
+	return M.FAMILY_OF_STAT[stat]
+end
+
 --[[
 	THREE TIERS PER ABILITY. Owner, 2026-10-12: "Make 3 levels of abilities",
 	and chose tiers that CHANGE HOW IT WORKS, picked by the Special enchant's
