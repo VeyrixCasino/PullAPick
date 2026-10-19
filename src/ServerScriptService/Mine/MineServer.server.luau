@@ -4087,7 +4087,7 @@ local function introGrant(plr, p)
 	--[[
 		grantCraft (step 3, FORGE your first tool): exactly enough of that ore to
 		forge that recipe once -- 270 Stone for a Stone Pickaxe on 2026-10-19 --
-		priced by the same MineConfig.toolCraftCost the Forge quotes and charges,
+		priced by MineOreTools.craftCost, the one call the Forge quotes and charges,
 		so the number can never drift from the craft. Topped up, never added, and
 		skipped for anyone who has already forged. It keeps its own spent mark
 		because the old step 3 marked "3" spent on its coin grant, and a profile
@@ -4099,7 +4099,7 @@ local function introGrant(plr, p)
 		local fam = tostring(d.grantCraft.familyId or "pickaxe")
 		if oreDef and oreDef.tier and not introSatisfied(p, step) then
 			local OreTools = require(shared:WaitForChild("MineOreTools"))
-			local need = C.toolCraftCost(oreDef.tier, OreTools.typeMult(fam, oreDef.tier), fam)
+			local need = OreTools.craftCost(fam, oreDef.tier)
 			p.ores = p.ores or {}
 			local have = math.floor(tonumber(p.ores[oreDef.id]) or 0)
 			if need > have then

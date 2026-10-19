@@ -47,15 +47,15 @@ check(!/nextPick|BUY A BIGGER PICK/.test(sv), "the coin top-up (\"nextPick\") an
 
 // 2. The grant, priced by the Forge's own function, topped up once.
 const grant = (sv.match(/local function introGrant\(plr, p\)[\s\S]*?\nend\n/) || [""])[0];
-check(/C\.toolCraftCost\(oreDef\.tier, OreTools\.typeMult\(fam, oreDef\.tier\), fam\)/.test(grant),
-  "the grant is priced by C.toolCraftCost with the Forge's typeMult, never a number of its own");
+check(/OreTools\.craftCost\(fam, oreDef\.tier\)/.test(grant) && !/C\.toolCraftCost\(/.test(grant),
+  "the grant is priced by MineOreTools.craftCost, the Forge's own price, never a number of its own");
 check(/if need > have then\s*\n\s*p\.ores\[oreDef\.id\] = need/.test(grant) && /p\.oresSeen\[oreDef\.id\] = true/.test(grant),
   "...topped up (never added) and marked seen, so the recipe shows");
 check(/not p\.introGrants\[key \.\. "craft"\][\s\S]{0,80}p\.introGrants\[key \.\. "craft"\] = true/.test(grant)
   && /not introSatisfied\(p, step\)/.test(grant), "...once (its own spent mark), and not for anyone who already forged");
 const forgeHub = read(SH + "MineForgeHub.luau");
-check(/C\.toolCraftCost\(def\.tier, OreTools\.typeMult\(fam, def\.tier\), fam\)/.test(forgeHub),
-  "the Forge hub quotes with the same expression");
+check(/OreTools\.craftCost\(fam, def\.tier\)/.test(forgeHub),
+  "the Forge hub quotes with the same call");
 
 // The number, from the real config (craftcost.js slices the same functions).
 const grab = (re, what) => { const m = cfg.match(re); if (!m) { check(false, "could not find " + what); return ""; } return m[0]; };
