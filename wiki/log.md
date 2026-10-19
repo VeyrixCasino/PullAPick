@@ -1716,3 +1716,16 @@ one-time notice per event; Planets travel follows each zone's own window. New ch
 **Merging the five parts** needed two fixes: the tutorial's free Stone now uses
 `MineOreTools.craftCost`, and the `crypt` check reads the Crypt swap in `Dig.toolInHand`.
 Suite 83 of 84 (the Linux `skins` quirk). Nothing here has been seen in Studio.
+
+## [2026-10-19] feature | the Candy Crypt's screens, part 1: Events tab, event themes, pouch sell menu
+The Events tab shows every open event (`MineEventTabs`): one pill each, in its own theme, its own
+claim flag and claim text, "Owned — enter from Planets", and an (i) with that event's notice. The
+Crypt card's shell shows candy and a Trick-or-Treat OPEN at the snapshot's price (its odds sheet is
+the placeholder `MineCryptView.mountCaseOdds`). The first-entry pop-up shows once
+(`cryptNoticeSeen`); a candy pill shows in the Crypt only. The pouch gets a SELL UP TO chip and
+sells ticked candy ores for candy. **Bug found and fixed:** nothing could open the ore pouch since
+2026-10-11, so no one could sell ore for gems; the Forge hub's 💎 SELL ORE reopens it. Halloween and
+dark-universe palettes and `MineUI` themed builders (event pets' cards wear a ring and badge).
+Crypt tools, merging, charm crafting and the case reveal were left out on purpose: the owner
+redesigned them the same day (Crypt v2, [open-questions](open-questions.md) §0e). New check
+`crypt-ui`. Suite 84 of 85 (the Linux `skins` quirk). Not seen in Studio.
