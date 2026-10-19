@@ -39,7 +39,7 @@ const cfg = read(SH + "MineConfig.luau");
 
 // 1. The step itself.
 const step3 = (sv.match(/\[3\] = \{[^\n]*\}/) || [""])[0];
-check(/text = "FORGE your first tool/.test(step3), `step 3 reads "FORGE your first tool" (${step3.slice(0, 60)}...)`);
+check(/text = "[^"A-Za-z]*FORGE your first tool/.test(step3), `step 3 reads "FORGE your first tool" (${step3.slice(0, 60)}...)`);
 check(/panel = "forge", tab = "craft"/.test(step3), "...and opens the Forge on CRAFTING");
 check(/grantCraft = \{ oreId = "stone", familyId = "pickaxe" \}/.test(step3) && !/grantCoins/.test(step3),
   "...and grants Stone for a Stone Pickaxe, not coins");

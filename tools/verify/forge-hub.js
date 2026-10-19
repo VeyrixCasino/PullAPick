@@ -93,7 +93,7 @@ check(!/COIN SHOP"/.test(hubCode) && /"🚀 EVENT TOOLS"/.test(hubCode)
 // is refused. It is "FORGE your first tool" now (owner, 2026-10-19, launch audit
 // M1): it opens the hub on CRAFTING, and the counter opens the hub on every step.
 // tools/verify/tutorial-forge.js pins the rest of it.
-check(/\[3\] = \{ text = "FORGE your first tool[^"]*", panel = "forge", tab = "craft"/.test(server)
+check(/\[3\] = \{ text = "[^"A-Za-z]*FORGE your first tool[^"]*", panel = "forge", tab = "craft"/.test(server)
   && !/onPickStep/.test(server) && /if not firstVisit then\s*\n\s*net:FireClient\(plr, "openPanel", "shop"\)/.test(server),
   "the tutorial's step 3 opens the hub on CRAFTING, and the counter opens the hub on every step");
 check(/elseif tab == "craft" then[\s\S]{0,120}hub\.open\("craft"\)/.test(hubClient)

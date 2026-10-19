@@ -19,17 +19,19 @@
 local M = {}
 
 -- Row order, and where a tap goes (MineClient ClientFns.todayOpen reads `open`).
+-- Kid-friendly pass (owner, 2026-10-12 / 10-19: "icons with big numbers, 1-3
+-- words"): every row leads with its icon, and the names are one or two words.
 M.ORDER = {
-	{ id = "daily", label = "Daily reward", open = "daily" },
-	{ id = "quests", label = "Daily quests", open = "daily" },
-	{ id = "catch", label = "Catch of the day", open = "fish" },
-	{ id = "gifts", label = "Playtime gifts", open = "gifts" },
-	{ id = "wheel", label = "Wheel", open = "wheel" },
-	{ id = "jobs", label = "Job Board", open = "jobs" },
-	{ id = "pass", label = "Pass rewards", open = "pass" },
-	{ id = "eventpass", label = "Event quests", open = "events" },
-	{ id = "bigbang", label = "Event Horizon", open = "events" },
-	{ id = "hallow", label = "Candy Crypt", open = "zones" },
+	{ id = "daily", icon = "📅", label = "Daily", open = "daily" },
+	{ id = "quests", icon = "📜", label = "Quests", open = "daily" },
+	{ id = "catch", icon = "🐟", label = "Catch", open = "fish" },
+	{ id = "gifts", icon = "🎁", label = "Gifts", open = "gifts" },
+	{ id = "wheel", icon = "🎡", label = "Wheel", open = "wheel" },
+	{ id = "jobs", icon = "📋", label = "Jobs", open = "jobs" },
+	{ id = "pass", icon = "🎫", label = "Pass", open = "pass" },
+	{ id = "eventpass", icon = "⭐", label = "Event quests", open = "events" },
+	{ id = "bigbang", icon = "🌌", label = "Event Horizon", open = "events" },
+	{ id = "hallow", icon = "🍬", label = "Candy Crypt", open = "zones" },
 }
 
 -- "5h 12m", "12m", "45s": coarse far out, finer close in.
@@ -93,6 +95,7 @@ function M.rows(snap, now, ctx)
 				flags = flags or {}
 				table.insert(out, {
 					id = id,
+					icon = def.icon,
 					label = def.label,
 					open = def.open,
 					text = text,
@@ -136,7 +139,8 @@ function M.rows(snap, now, ctx)
 			elseif c.got then
 				put("catch", "CLAIM!", { ready = true })
 			else
-				put("catch", "🐟 " .. tostring(c.name or c.id))
+				-- The row's own icon is the fish, so the status is just its name.
+				put("catch", tostring(c.name or c.id))
 			end
 		end
 	end
@@ -171,7 +175,7 @@ function M.rows(snap, now, ctx)
 		local w = snap.groupWheel
 		local free = type(w) == "table" and (tonumber(w.freeLeft) or 0) or 0
 		if free > 0 then
-			put("wheel", free == 1 and "1 free spin" or (free .. " free spins"), { ready = true })
+			put("wheel", free .. " free", { ready = true })
 		else
 			put("wheel", "free spin in " .. reset, { done = true })
 		end
@@ -209,7 +213,7 @@ function M.rows(snap, now, ctx)
 				end
 			end
 			if n > 0 then
-				put("pass", n == 1 and "1 reward" or (n .. " rewards"), { ready = true })
+				put("pass", n .. " to claim", { ready = true })
 			else
 				put("pass", "tier " .. tier .. "/" .. tostring(p.tiers or 100))
 			end

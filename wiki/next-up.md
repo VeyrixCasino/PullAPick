@@ -106,8 +106,8 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
 - **Still BLOCKED / owner-only (no agent decision):**
   - **Optional owner eye** on Top looks in Studio / showcase (taste only; name
     safety pass already clean).
-  - **Tool icon share:** `MineIcons.NEW_TOOL_ICONS_SHARED` stays false until the
-    owner shares the personal uploads ([assets-and-uploads](code/assets-and-uploads.md)).
+  - **DONE 2026-10-19: tool icon share.** The owner shared all 407, and
+    `MineIcons.NEW_TOOL_ICONS_SHARED` is on ([assets-and-uploads](code/assets-and-uploads.md)).
   - **Case / chest owner calls** (odds, shelves, what still ships) — other
     session owns those files; do not invent answers.
   - **Commit on request only** for this Top integration work.

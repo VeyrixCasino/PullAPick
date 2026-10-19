@@ -3302,6 +3302,8 @@ local function questState(p)
 		goal = q.goal,
 		ready = current >= q.goal,
 		reward = Quests.describe(q.reward),
+		-- The quest card shows icons and numbers (kid-friendly pass).
+		rewardIcons = Quests.icons and Quests.icons(q.reward) or nil,
 		index = index,
 		total = Quests.COUNT,
 		done = false,
@@ -3355,6 +3357,7 @@ local function dailyQuestState(p, userId)
 				ready = progress >= def.goal and not row.claimed,
 				claimed = row.claimed and true or false,
 				reward = Quests.dailyGems(def, zone) .. " Gems",
+				gems = Quests.dailyGems(def, zone),
 			}
 		end
 	end
@@ -3891,19 +3894,24 @@ local Intro = {
 		to the step's cost, a pack appears only if the bag is empty. The spent
 		mark lives in p.introGrants so nothing can be farmed.
 	]]
+	--[[
+		Kid-friendly pass (owner, 2026-10-12, resumed 2026-10-19: "icons with big
+		numbers, 1-3 words"): every banner in the first ten minutes leads with an
+		icon and says one thing, with its CAPS word the thing to do.
+	]]
 	steps = {
-		[1] = { text = "HOLD on a rock to break it." },
-		[2] = { text = "Bag's filling up! Run it to the SELL PAD.", waypoint = "sell", bonusGems = 10 },
+		[1] = { text = "⛏️ HOLD on a rock to break it!" },
+		[2] = { text = "🎒 Bag filling up? Run to the SELL PAD!", waypoint = "sell", bonusGems = 10 },
 		-- Was "BUY A BIGGER PICK" on the coin shelf, where every BUY is refused
 		-- (pickaxes are in MineConfig.FORGE_ONLY_FAMILIES). Owner, 2026-10-19
 		-- (launch audit M1): FORGE your first tool. It opens the Forge on
 		-- CRAFTING, clears on the first craft (Verbs.craftOreTool), and tops the
 		-- pouch up to exactly one Stone Pickaxe's worth of Stone (grantCraft).
-		[3] = { text = "FORGE your first tool! Free Stone is in your pouch — CRAFT a Stone Pickaxe.", panel = "forge", tab = "craft", waypoint = "shop", grantCraft = { oreId = "stone", familyId = "pickaxe" } },
-		[4] = { text = "Chests are stuffed with packs. CRACK ONE.", waypoint = "chest" },
-		[5] = { text = "RIP IT OPEN — Inventory, Packs.", panel = "inventory", tab = "packs", grantPack = true },
-		[6] = { text = "Send your best pet out. It mines WITH you.", panel = "inventory", tab = "cards", highlight = "cardsTab", bonusGems = 15 },
-		[7] = { text = "Free gems, top-left. CLAIM IT.", highlight = "questClaim" },
+		[3] = { text = "🔨 FORGE your first tool! Free Stone is in your pouch!", panel = "forge", tab = "craft", waypoint = "shop", grantCraft = { oreId = "stone", familyId = "pickaxe" } },
+		[4] = { text = "🧰 Chests hide packs. CRACK ONE!", waypoint = "chest" },
+		[5] = { text = "📦 RIP IT OPEN: Inventory → Packs!", panel = "inventory", tab = "packs", grantPack = true },
+		[6] = { text = "🐾 Send your best pet out. It digs WITH you!", panel = "inventory", tab = "cards", highlight = "cardsTab", bonusGems = 15 },
+		[7] = { text = "💎 Free gems, top-left. CLAIM IT!", highlight = "questClaim" },
 		-- Enchants took the rune lesson's place (owner, 2026-10-12: "Teach enchants"):
 		-- two free Damage books, which level 1 can use, and the Forge opens on ENCHANT.
 		[8] = { text = "FREE BOOKS! 📖 Open the FORGE and ENCHANT your pick.", panel = "forge", tab = "enchant", grantBooks = 2, requireAction = "enchApply", bonusGems = 25 },
@@ -3911,20 +3919,20 @@ local Intro = {
 		-- player-only now, three seats, TODO 6.2) and it taught gems (they cost
 		-- rebirth tokens).
 		[10] = { text = "Summon a HAT — your first roll is FREE. Hats are real Roblox items, you wear them yourself, and after the free one they cost REBIRTH TOKENS.", panel = "summon", highlight = "gearRow", waypoint = "enchanter" },
-		[12] = { text = "NEW ZONE: Greyvein. The bar is how close you are.", panel = "zones" },
+		[12] = { text = "🗺️ NEW ZONE: Greyvein! The bar shows how close you are.", panel = "zones" },
 		[13] = { text = "JOBS: dailies and the board pay gems every UTC day. Come back here when you need more.", panel = "jobs", ack = true, waypoint = "contractor" },
-		[14] = { text = "EVENTS: Event Horizon is free while its timer runs — grab it from the portal.", panel = "events", ack = true },
+		[14] = { text = "🌌 EVENT: Event Horizon is FREE while its timer runs. Hop in at the portal!", panel = "events", ack = true },
 		-- Was the FOSSIL BENCH. Fossils are retired, and the step is repurposed
 		-- rather than removed: introAdvance walks these by number, so deleting 15
 		-- would strand every player sitting on it. The ore pouch is the right
 		-- replacement -- it is new, it is where ore turns into gems, and nothing
 		-- else taught it.
 		[15] = { text = "Your ORE POUCH holds everything you dig. Sell ore there for GEMS -- and it is the one thing a rebirth never takes.", panel = "shop", tab = "pouch", ack = true, waypoint = "shop" },
-		[16] = { text = "Last one — SPIN A TEMPERAMENT CASE.", panel = "enchanter", tab = "summon", highlight = "caseRow", waypoint = "enchanter", ack = true },
+		[16] = { text = "🎰 Last one: SPIN A TEMPERAMENT CASE!", panel = "enchanter", tab = "summon", highlight = "caseRow", waypoint = "enchanter", ack = true },
 		[17] = { text = "Rebirth grants SKILL POINTS for the Clouds skill tree.", ack = true },
-		[18] = { text = "REBIRTH. Reset small, come back way bigger.", panel = "prestige", waypoint = "prestige" },
-		[19] = { text = "DAILY REWARD: claim today's gift. Seven days in a row pays the day-7 jackpot.", highlight = "daily" },
-		[20] = { text = "FREE GIFTS fill up while you play. Tap the gift box under the wallet and open one.", highlight = "gifts" },
+		[18] = { text = "🔄 REBIRTH: reset small, come back BIG!", panel = "prestige", waypoint = "prestige" },
+		[19] = { text = "📅 DAILY GIFT! Claim it. 7 days in a row = JACKPOT!", highlight = "daily" },
+		[20] = { text = "🎁 FREE GIFTS fill up as you play. Tap the gift box and OPEN ONE!", highlight = "gifts" },
 		[21] = { text = "Dig down to 30m. The deepest miners get their name on the board at the far end of every mine." },
 		[22] = { text = "Chests glow. When the dirt around you picks up a warm light, a chest is close: dig toward it and open 3 chests.", count = 3 },
 		--[[
@@ -3936,7 +3944,7 @@ local Intro = {
 		[24] = { text = "A HAT is yours -- you have three seats, and every hat you wear makes every pet stronger. Tap a HAT seat, then tap a hat.", panel = "inventory", tab = "tools", highlight = "hatSeat", requireAction = "equipGearPiece" },
 		[25] = { text = "Your FACE is the one piece nobody else wears -- it multiplies your WHOLE team. Fit one here.", panel = "inventory", tab = "tools", highlight = "faceSeat", ack = true },
 		-- No `ack`: this one only clears when the pickaxe is actually in hand.
-		[27] = { text = "Go to the BLACKSMITH and grab your free pickaxe.", waypoint = "shop" },
+		[27] = { text = "⛏️ Go to the BLACKSMITH. Grab your FREE pick!", waypoint = "shop" },
 		[28] = { text = "Break the next block. That swing drops your charm." },
 		[29] = { text = "Open the 3 gear crates in your bag. They're rigged: the best hats for the pets you have out.", panel = "inventory", tab = "packs", count = 3, grantGear = 3 },
 		[30] = { text = "Tap GO ENCHANTER.", panel = "inventory", tab = "tools", highlight = "goEnchanter", ack = true },

@@ -84,9 +84,9 @@ for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
 
 /*
   Hammers and jackhammers (owner, 2026-10-11: "fully built in"). The Canva icons
-  are per ore like the others. Jackhammers 75-82 are the one allowed gap: the
-  Canva AI allowance ran out mid-run, and a missing tier falls back to the flat
-  family icon. Any OTHER missing tier is a bug.
+  are per ore like the others. Jackhammers 75-82 were the last gap (the Canva
+  AI allowance ran out mid-run) and were filled on 2026-10-19. A missing tier
+  falls back to the flat family icon, so any missing tier now is a bug.
 */
 const allOther = [...ids];
 for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
@@ -94,11 +94,11 @@ for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
   if (t) allOther.push(...t.values());
 }
 // The CANVA tables are tiers 1-81 only: tier 82 keeps the original art the owner
-// liked. Explosives 19, 29, 65, 67, 68, 71 and 77 are being redrawn (the cut-out
-// clipped the fuse spark), so they keep the old art until the redraws land.
+// liked. Every other family now covers every tier (jackhammers 75-82 and the
+// explosive redraws landed 2026-10-19), so any gap is a bug.
 const CANVA = ["ORE_PICK_CANVA", "ORE_DRILL_CANVA", "ORE_BOMB_CANVA"];
-for (const [name, allowedGap] of [["ORE_HAMMER", []], ["ORE_JACKHAMMER", [75, 76, 77, 78, 79, 80, 81, 82]],
-  ["ORE_PICK_CANVA", [82]], ["ORE_DRILL_CANVA", [82]], ["ORE_BOMB_CANVA", [19, 29, 65, 67, 68, 71, 77, 82]]]) {
+for (const [name, allowedGap] of [["ORE_HAMMER", []], ["ORE_JACKHAMMER", []],
+  ["ORE_PICK_CANVA", [82]], ["ORE_DRILL_CANVA", [82]], ["ORE_BOMB_CANVA", [82]]]) {
   const t = tableOf(name);
   ok(!!t, `MineIcons.${name} exists`);
   if (!t) continue;

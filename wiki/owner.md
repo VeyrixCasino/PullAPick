@@ -55,6 +55,7 @@ From `docs/START-HERE.md` §1 and §6, and TODO §0.31–§0.32:
 | **Tell them when they are wrong, with evidence.** | HANDOFF §2.9 |
 | **Nothing is "done" until it has run in Roblox.** Almost nothing on the current branch has. | START-HERE §5 |
 | "The UI isn't there" usually means **Studio is running old code**. Check sync before debugging. | TODO §0.14 |
+| **Always stop a Studio Play test the moment your check is done.** Never leave Play running. Ask before starting one, unless they just approved it for this check. They and other sessions share one Studio, so a running Play blocks their Edit work. | Owner, 2026-10-12: *"close playtest from now on"*; 2026-10-19: *"close it always, and tell wiki to alwsats close after playtest"* |
 | ~~**Icons are the owner's job.**~~ **Lifted 2026-10-10:** the owner asked for icons via Canva for the tool and ore art pass (TODO ★ NOW, C). | START-HERE §6; TODO ★ NOW |
 | **Assets are uploaded to the group, never a personal account.** | TODO §7, [assets](code/assets-and-uploads.md) |
 | If they swear, something promised did not work. Fix it; do not manage the tone. | START-HERE §6 |

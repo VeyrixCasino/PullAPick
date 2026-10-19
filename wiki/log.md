@@ -1614,10 +1614,104 @@ a two-part caption ran under the status strip.
 - Books use the Enchanter book art.
 - Tiles are taller, and long captions shrink to fit.
 
-`tools/verify/battle-pass.js` checks all of it. Not yet seen in Studio after the
-fix: Studio was in Play.
+`tools/verify/battle-pass.js` checks all of it. Seen in Studio Edit afterwards:
+the book art, the 🎨 MYTHIC SKIN tile and captions clear of the strip. The pet
+tiles held the right bodies (golem, drake, hawk, wyrm), but Studio was not
+drawing 3D at the time, so no picture of them yet.
 
 Updated: shops-and-monetisation, log.
+
+## [2026-10-19] fix | the last tool icons: jackhammers 75–82 and 9 redraws
+Canva drew jackhammers 75–82 and redrew 9 icons:
+- explosives 19, 29, 65, 67, 68, 71 and 77 (the first cut-out clipped the fuse
+  spark; 65 to 77 have a flatter star spark);
+- pickaxes 52 and 57 (the heads read as axes).
+
+All 17 are uploaded as the owner's account and wired into `MineIcons`, still
+behind `NEW_TOOL_ICONS_SHARED`. Every forged family now has an icon for every
+ore. Pickaxe 82 and the drill and explosive tier 82 keep their original art.
+`oreskins.js` no longer allows any gap. The share list holds the 407 current
+ids, with the 2 old pickaxe ids replaced.
+
+The run left things for the owner to judge:
+- 52 and 57 are slimmer than their neighbours;
+- jackhammer 82's rainbow reads mostly violet;
+- the full family sheets in Canva still show the old tiers. The new icons are
+  on their own pages.
+
+Updated: tools, assets-and-uploads, log.
+
+## [2026-10-19] decision | tool icons switched on
+The owner shared the 407 tool icons. Every one then loaded at full size in the
+group place (`AssetService`, 407/407), so `MineIcons.NEW_TOOL_ICONS_SHARED`
+is now true. A Studio grid built from `Icons.forTool` drew the new art on every
+tier of all five families. Pickaxe, drill and explosive tier 82 keep their
+original art.
+
+Trap: the string form of `ContentProvider:PreloadAsync` failed for every image
+in Studio Edit, even old art in use. Pass ImageLabels instead, or use
+`AssetService`.
+
+Updated: tools, assets-and-uploads, next-up, log.
+
+## [2026-10-19] decision | Always stop a Play test when the check is done
+Owner: *"close it always, and tell wiki to alwsats close after playtest"*. It is
+now a row in [owner](owner.md)'s "How to work with them" table.
+
+The Play test it was asked for: the three pets that followed the player came out
+as cat, hound and hound, no longer fox (the fix in bc42333). Studio was not
+drawing 3D or taking clicks at the time, so no picture of them, the pass pet
+tiles or the fishing marker. Play was stopped straight after.
+
+Updated: owner, log.
+
+## [2026-10-19] build | Kid-friendly pass resumes: the quest panel
+Owner: *"Kid-friendly early screens"*, resuming the pass they scoped on 2026-10-12
+(the first 10 minutes; icons with big numbers, 1-3 words, a pointing hand, reward
+juice, details behind (?)). First the panel that is always on screen:
+- TODAY rows lead with an icon and use one or two words.
+- The quest card, its CLAIM button and the daily quests show rewards as icons and
+  numbers (`MineQuests.icons`).
+
+Seen in Play: every emoji draws. The "lifted surfaces" restyle of the same panel
+(22ccfdf) is untouched; this pass changes words, not surfaces.
+
+Updated: client-and-ui, log.
+
+## [2026-10-19] build | Kid-friendly toasts: icons and numbers everywhere
+The kid-friendly pass, step 2. The server sends about 285 different toasts in
+words. Rather than rewrite each, the client runs every toast through
+`MineKidText.toast`:
+- "800 Coins" becomes "💰 800", and gems, stardust and credits likewise;
+- "Unlocks X" becomes "🔓 X";
+- "Quest done - ", "Milestone - " and "Gift: " lead with ✅, 🏆 and 🎁.
+
+`tools/verify/kid-text.js` runs it on real toasts. Not yet seen in Play: the same
+emoji were seen drawing in the quest panel.
+
+Updated: client-and-ui, log.
+
+## [2026-10-19] build | Kid-friendly tutorial banners and chest rows
+The kid-friendly pass, step 3: the first ten minutes' words.
+- Every tutorial banner in the walk-through leads with an icon and says one thing,
+  for example "🎒 Bag filling up? Run to the SELL PAD!". The CAPS action words
+  stay, and so does step 8.
+- The chest reveal's rows read a number and one word ("3  Books").
+- Short of gems it says "Need 💎 500".
+
+The pointing hand the brief asked for already exists for tutorial steps
+(`ClientFns.handPoint`). Not seen in Play: the owner's profile is past the tutorial.
+
+Updated: client-and-ui, verify-suite, log.
+
+## [2026-10-19] cleanup | The two stale MineGear copies are deleted
+Owner: *"Small cleanup"*. Deleted `src/ReplicatedStorage/MineGear.luau` (the old six-slot
+gear) and `MineGear_AdminTest.luau` (the hats-on-pets test copy). Both sat at the
+ReplicatedStorage root, shipped to every client, and required a `MineRunes` that no
+longer exists. Every live caller requires `Mine.Shared.MineGear`. Rojo removes them
+from Studio on the next sync. `MineBags_NameCheck` and the root `MineBagNames` stay.
+
+Updated: code-map, admin-and-debug, hats-and-faces, retired-and-parked, traits, log.
 
 ## [2026-10-19] query | launch audit of every screen, effect and tool card
 The owner asked for *"a deep audit of all uis, effects, tool cards etc, and determine what

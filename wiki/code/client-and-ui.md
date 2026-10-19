@@ -160,6 +160,19 @@ The indigo surfaces stay as the base, with bright candy on top.
     second, on the server clock (`workspace:GetServerTimeNow()`).
     Event Horizon's open/closed comes from the snapshot: the client has no
     launch clock, so `C.limitedActive("bigbang")` is always true there.
+  - **Kid-friendly (2026-10-19):** each TODAY row leads with its icon and names
+    itself in one or two words (`MineToday.ORDER` `icon`): 📅 Daily, 🐟 Catch,
+    🎁 Gifts, 🎡 Wheel, 📋 Jobs, 🎫 Pass, 🌌 Event Horizon, 🍬 Candy Crypt.
+    Rewards read as icons and numbers: the quest card says "Reward  💰 800"
+    and its CLAIM button "CLAIM  💰 800!" (`MineQuests.icons`, sent as
+    `rewardIcons`), and a daily quest pays "+45 💎". Toasts keep the words
+    (`MineQuests.describe`). Checked by `tools/verify/today.js`; seen in Play.
+  - **Toasts** go through `MineKidText.toast` in `showToast`, so all ~285 server
+    toasts read alike without rewriting each: an amount before its currency
+    word becomes icon + number ("Scrapped pack for 💎 50"), "Unlocks X" becomes
+    "🔓 X", and "Quest done - " / "Milestone - " / "Gift: " lead with ✅ / 🏆 / 🎁.
+    "Gem Shop", "Gemfinder" and a bare "you have 200" stay as they are. Checked by
+    `tools/verify/kid-text.js`.
   - The panel has one header with a collapse button. Collapsing shrinks it in
     place to a "QUESTS" pill.
   - The old "ear" tabs that slid the cards off screen are deleted.
@@ -323,6 +336,12 @@ The header shows the player level and XP bar, the wallet, 🎒 BAGS (the old sho
 **The Blacksmith counter opens the hub** (owner, 2026-10-12: *"the Blacksmith counter should open the Forge hub"*):
 - `ClientFns.routePanel` sends every plain `"shop"` there: the counters tagged `Machine="shop"` and the "to the Blacksmith" buttons.
 - `"shop"` with a named shelf (`pickaxe` or `backpack`) still opens the old shop, which since S13 shows Bags (or, in Event Horizon, the event's tool shelf for `pickaxe`).
+- **Tutorial banners (kid-friendly, 2026-10-19).** Every step in the walk-through
+  (`Intro.order`) leads with an icon and says one thing, its CAPS word the thing
+  to do: "⛏️ HOLD on a rock to break it!", "🔨 FORGE your first tool! Free Stone is in your pouch!",
+  "🔄 REBIRTH: reset small, come back BIG!". Step 8 keeps "FREE BOOKS! 📖 …".
+  The chest reveal's rows went to a number and one word ("3  Books", "5  Cases",
+  "Need 💎 500"). `tools/verify/kid-text.js` checks every walk-through step has an icon.
 - **The tutorial's step 3 is FORGE your first tool** (owner, 2026-10-19, launch audit M1). It was *BUY A BIGGER PICK* on the coin shelf, where every BUY is refused (`pickaxe` is in `MineConfig.FORGE_ONLY_FAMILIES`), so the 5th step in `Intro.order` could not be done. Now it carries `panel = "forge", tab = "craft"`, which `routePanel` turns into `hubOpen:Fire("craft")`: the hub opens on CRAFTING. The server tops the pouch up once to one Stone Pickaxe's worth (270 Stone, priced by `MineConfig.toolCraftCost`, `grantCraft`), and `Verbs.craftOreTool` clears the step on the first craft. Anyone who already owns a forged tool, or whose Wooden Pickaxe graduated (`ownsBetterPickaxe`), gets CLAIM instead. The counter opens the hub on every step, except on the visit that hands over the free pickaxe (S19): that one is only the toast, so a player with no ore is not shown the full-screen Forge. `tools/verify/tutorial-forge.js` pins all of it.
 - Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it; `Fire("craft")` opens it on CRAFTING, and `Fire("close")` only closes it (MineClient's `hidePanels`).
 

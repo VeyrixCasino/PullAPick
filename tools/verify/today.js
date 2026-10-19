@@ -83,10 +83,10 @@ const get = (tag) => (out.split(/\r?\n/).find((l) => l.startsWith(tag + " ")) ||
 const A = get("A"), Bl = get("B");
 
 // 1. fresh day
-check(/daily=CLAIM!!/.test(A) && /quests=1 to claim!/.test(A) && /gifts=OPEN!!/.test(A) && /wheel=1 free spin!/.test(A),
+check(/daily=CLAIM!!/.test(A) && /quests=1 to claim!/.test(A) && /gifts=OPEN!!/.test(A) && /wheel=1 free!/.test(A),
   "a fresh day: the reward, a done quest, an opened gift and a free spin read READY");
-check(/catch=🐟 Grit Perch /.test(A), "catch of the day shows the target fish while still to catch");
-check(/jobs=0\/3 done /.test(A) && /pass=2 rewards!/.test(A), "contracts in progress show their count; two unclaimed pass tiers read READY");
+check(/catch=Grit Perch /.test(A), "catch of the day shows the target fish while still to catch (the row's own icon is the fish)");
+check(/jobs=0\/3 done /.test(A) && /pass=2 to claim!/.test(A), "contracts in progress show their count; two unclaimed pass tiers read READY");
 check(get("READY") === "5", "readyCount counts the claimable rows (reward, quest, gift, spin, pass: 5)");
 // 2. finished day
 check(/daily=in 23h 00m~/.test(Bl) && /quests=done  ·  new in 23h 00m~/.test(Bl) && /gifts=done  ·  new in 23h 00m~/.test(Bl)
@@ -115,6 +115,18 @@ check(/todayBox/.test(layout) && layout.indexOf("todayBox") < layout.indexOf("qu
   "the TODAY box is stacked first in the Quests panel, above the active quest");
 const dot = (cl.match(/function ClientFns\.refreshQuestDrawerTabs[\s\S]*?\nend\n/) || [""])[0];
 check(/todayReady/.test(dot), "the panel's green dot also lights for a ready TODAY row");
+
+// 5. kid-friendly (owner: "icons with big numbers, 1-3 words")
+const order = (mod.match(/M\.ORDER = \{[\s\S]*?\n\}/) || [""])[0];
+const orderRows = order.split("\n").filter((l) => /\{ id = "/.test(l));
+check(orderRows.length === 10 && orderRows.every((l) => /icon = "[^"]+"/.test(l) && (/label = "([^"]+)"/.exec(l) || [, ""])[1].split(" ").length <= 2),
+  "every TODAY row leads with an icon and names itself in one or two words");
+check(/def\.icon and \(def\.icon \.\. "  "\)/.test(cl), "...and the panel draws the icon before the name");
+const quests = read("src/ReplicatedStorage/Mine/Shared/MineQuests.luau");
+const sv = read("src/ServerScriptService/Mine/MineServer.server.luau");
+check(/function MineQuests\.icons\(reward, gemsOverride\)/.test(quests) && /rewardIcons = Quests\.icons/.test(sv)
+  && /"Reward  " \.\. state\.rewardIcons/.test(cl) && /gems = Quests\.dailyGems\(def, zone\)/.test(sv) && /" 💎"/.test(cl),
+  "quest rewards read as icons and numbers: \"Reward  💰 800\" on the card, \"+45 💎\" on the dailies");
 
 console.log("");
 console.log(fail > 0 ? `>>> today: ${fail} FAILED` : ">>> today: all assertions passed");

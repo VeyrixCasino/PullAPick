@@ -854,7 +854,8 @@ function MineGradeReveal.lucky(parent, opts)
 				table.insert(rows, { icon = "chest", packId = loot.oreId and (loot.oreId .. "_ore_pack") or nil, text = tostring(loot.oreCaseName) })
 			end
 			if loot.caseCount then
-				table.insert(rows, { icon = "chest", text = fmt(loot.caseCount) .. "  cases, in your bag" })
+				-- Kid-friendly pass: the number, then one word. The icon says the rest.
+				table.insert(rows, { icon = "chest", text = fmt(loot.caseCount) .. "  Cases" })
 			end
 			if loot.gems then
 				table.insert(rows, { icon = "gems", text = fmt(loot.gems) .. "  Gems" })
@@ -866,7 +867,7 @@ function MineGradeReveal.lucky(parent, opts)
 				table.insert(rows, { icon = loot.toolFamily or "pickaxe", text = pretty(loot.toolId) })
 			end
 			if loot.temperTokens then
-				table.insert(rows, { icon = "tokens", text = fmt(loot.temperTokens) .. "  Temper tokens" })
+				table.insert(rows, { icon = "tokens", text = fmt(loot.temperTokens) .. "  Tokens" })
 			end
 			--[[
 				Pets and potions were granted by the server but never listed here,
@@ -886,7 +887,7 @@ function MineGradeReveal.lucky(parent, opts)
 			end
 			-- Every lucky block's book bundle (MineEnchants.LUCKY_BUNDLE).
 			if type(loot.books) == "table" and #loot.books > 0 then
-				table.insert(rows, { emoji = "📖", text = #loot.books .. "  Enchant books, for the Forge" })
+				table.insert(rows, { emoji = "📖", text = #loot.books .. "  Books" })
 			end
 		end
 		if #rows == 0 then
@@ -1270,7 +1271,7 @@ function MineGradeReveal.lucky(parent, opts)
 			return
 		end
 		if ((opts.gems and opts.gems()) or 0) < price then
-			say("You need " .. fmt(price) .. " gems", Color3.fromRGB(255, 150, 150))
+			say("Need 💎 " .. fmt(price), Color3.fromRGB(255, 150, 150))
 			return
 		end
 		st.gradeBusy = true

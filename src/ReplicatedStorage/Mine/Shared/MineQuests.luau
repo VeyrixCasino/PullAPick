@@ -259,6 +259,51 @@ function MineQuests.describe(reward, gemsOverride)
 	return #parts > 0 and table.concat(parts, "  +  ") or "--"
 end
 
+--[[
+	A reward as icons and numbers, for the kid-friendly HUD (owner: "icons with
+	big numbers, 1-3 words"): "💰 800  💎 60  🔓 Bronzewedge". describe() keeps
+	the words for toasts and logs; this is what the quest card shows.
+]]
+MineQuests.REWARD_ICON = { coins = "💰", gems = "💎", dust = "✨", credits = "💵", tool = "🔓", potion = "🧪", block = "🍀", pack = "📦" }
+
+function MineQuests.icons(reward, gemsOverride)
+	if type(reward) ~= "table" then
+		return ""
+	end
+	local I = MineQuests.REWARD_ICON
+	local parts = {}
+	if reward.coins then
+		parts[#parts + 1] = I.coins .. " " .. MineQuests.short(reward.coins)
+	end
+	local gems = gemsOverride or reward.gems
+	if gems and gems > 0 then
+		parts[#parts + 1] = I.gems .. " " .. MineQuests.short(gems)
+	end
+	if reward.dust then
+		parts[#parts + 1] = I.dust .. " " .. MineQuests.short(reward.dust)
+	end
+	if reward.credits then
+		parts[#parts + 1] = I.credits .. " " .. MineQuests.short(reward.credits)
+	end
+	if reward.tool then
+		parts[#parts + 1] = I.tool .. " " .. tostring(reward.toolName or "Tool")
+	end
+	if reward.potion then
+		parts[#parts + 1] = I.potion .. ((reward.potionQty or 1) > 1 and (" x" .. reward.potionQty) or "")
+	end
+	if type(reward.luckyBlocks) == "table" then
+		local n = 0
+		for _, b in ipairs(reward.luckyBlocks) do
+			n += (b.qty or 1)
+		end
+		parts[#parts + 1] = I.block .. (n > 1 and (" x" .. n) or "")
+	end
+	if reward.pack then
+		parts[#parts + 1] = I.pack .. ((reward.packQty or 1) > 1 and (" x" .. reward.packQty) or "")
+	end
+	return table.concat(parts, "  ")
+end
+
 function MineQuests.short(n)
 	n = math.floor(tonumber(n) or 0)
 	if n < 1000 then

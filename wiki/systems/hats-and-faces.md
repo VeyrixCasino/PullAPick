@@ -136,9 +136,9 @@ grade first, with a grade chip only for grades that have something. Checked by
   differ-in-kind test.
 - **"Gear" means three different things.** This system. `MineAntiGear`, which blocks Roblox
   catalog Gear *tools*. And `MineGearIcons`, icons for the retired six-slot pieces.
-- **Two dead copies at the ReplicatedStorage root:** `src/ReplicatedStorage/MineGear.luau`
-  (the old six-slot version) and `src/ReplicatedStorage/MineGear_AdminTest.luau` (the
-  hats-on-pets version). Nothing requires either. See [retired-and-parked](retired-and-parked.md).
+- **Two dead copies at the ReplicatedStorage root** (`MineGear.luau`, the old six-slot
+  version, and `MineGear_AdminTest.luau`, the hats-on-pets version) were **deleted 2026-10-19** (owner: "Small cleanup").
+  Nothing required either. See [retired-and-parked](retired-and-parked.md).
 
 ## Open questions
 
