@@ -1480,8 +1480,10 @@ a two-part caption ran under the status strip.
 - Books use the Enchanter book art.
 - Tiles are taller, and long captions shrink to fit.
 
-`tools/verify/battle-pass.js` checks all of it. Not yet seen in Studio after the
-fix: Studio was in Play.
+`tools/verify/battle-pass.js` checks all of it. Seen in Studio Edit afterwards:
+the book art, the 🎨 MYTHIC SKIN tile and captions clear of the strip. The pet
+tiles held the right bodies (golem, drake, hawk, wyrm), but Studio was not
+drawing 3D at the time, so no picture of them yet.
 
 Updated: shops-and-monetisation, log.
 
