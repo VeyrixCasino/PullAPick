@@ -4,7 +4,20 @@
 
 local MineBags = {}
 
--- Coin prices only. Never gems — zone buyCost is the gem sink.
+--[[
+	BAGS ARE BOUGHT WITH GEMS. See MineBags.gemPrice further down, which is
+	what the buy verb actually charges.
+
+	This line used to read "Coin prices only. Never gems -- zone buyCost is the
+	gem sink", which the gemPrice block below has contradicted ever since bags
+	moved onto gems. A file that states the opposite of its own code in its
+	header is how MineShopView came to price this shelf in coins while the
+	server deducted gems -- wrong currency and wrong number, in the one place a
+	reader would go to check.
+
+	The `price` field on each row stays, and stays a COIN figure: sell value,
+	shop ordering and the dex all read it. It is simply not what anyone pays.
+]]
 local Eco = require(script.Parent:WaitForChild("MineShopEconomy"))
 local BagNames = require(script.Parent:WaitForChild("MineBagNames"))
 local PRICE_FRAC = Eco.BAG_PRICE_FRAC or 0.35
@@ -24,10 +37,27 @@ local ZONE_ORDER = {
 }
 
 local SURFACE_HP = { 10, 45, 180, 700, 2800, 5500, 12000, 28000 }
--- Meadow early satchels. Slots are ~8× the old 60-slot starter so a loam
--- haul is about a minute, not six blocks. Prices stay put.
+--[[
+	Meadow early satchels. Slots are ~8x the old 60-slot starter so a loam haul
+	is about a minute, not six blocks. Prices stay put.
+
+	THE FREE ONE IS 200, SET DELIBERATELY. Owner, 2026-10-08: "set starter bag
+	to 200 blocks". That is the first bag every new profile gets -- cap() reads
+	C.BACKPACKS[1] when a player has no backpackTier -- so it is the number that
+	decides how long the very first trip lasts.
+
+	It is a cut from 480, against the reasoning in the line above: 200 loam is
+	well under the "about a minute" that 480 was chosen for, and the first sell
+	trip now comes roughly two and a half times sooner. That is the intent --
+	the first walk back to the surface is what teaches the loop -- but it is a
+	deliberate move away from the stated target, not a drift, so it is written
+	down here rather than left looking like the old number.
+
+	The paid rungs are untouched, so the first purchase is now a 6x jump
+	instead of 2.5x and reads as a real upgrade.
+]]
 local MEADOW_SATCHELS = {
-	{ slots = 480, price = 0 },
+	{ slots = 200, price = 0 },
 	{ slots = 1200, price = 100 },
 	{ slots = 2000, price = 350 },
 	{ slots = 4000, price = 800 },
@@ -345,6 +375,45 @@ table.insert(LIST, {
 	ability = "Cashes itself every 3 min once it is full.",
 	skin = "wormhole",
 	zoneId = "bigbang",
+})
+
+--[[
+	THE TRICK-OR-TREAT BUCKET -- the Candy Crypt's chase.
+
+	Owner, 2026-10-10: candy buys cases, and one of them pays an "extremely rare
+	halloween bucket". This is it, and it is the only thing in the Crypt that is
+	not consumable, which is what makes the case worth opening twice.
+
+	Smaller than the Wormhole Bag on purpose. That one is the SECOND best bag in
+	the game and is earned by claiming an endgame event; this is won from a case
+	bought with candy in a three-week holiday mine, and it should not quietly
+	become the best bag anyone ever needs.
+
+	1.5x the top coin bag (owner, 2026-10-10 — it was 2x, which put it close
+	enough to the Wormhole's 4x to read as second best). It is now clearly a
+	step above the best bag you can buy and clearly below the one you earn.
+
+	`limited = "hallow"` is read against the ZONE's ownedFlag now, not against
+	bigbangOwned -- see the bag gate in MineServer.
+
+	PROPOSED (2026-10-10): the slot count and the ability.
+]]
+nextId += 1
+table.insert(LIST, {
+	id = nextId,
+	name = "Trick-or-Treat Bucket",
+	slots = math.floor(topCoin.slots * 1.5 + 0.5),
+	price = 0,
+	minZone = 1,
+	band = "deep",
+	blurb = "Won from a Trick-or-Treat case. Heavier than it looks.",
+	limited = "hallow",
+	ability = "Candy blocks pay double while it is carried.",
+	-- The ability as a NUMBER the payout reads, not just the sentence above it.
+	-- A bag whose ability exists only in its blurb is a bag with no ability.
+	candyMult = 2,
+	skin = "candy",
+	zoneId = "hallow",
 })
 
 nextId += 1

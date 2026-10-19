@@ -71,25 +71,18 @@ console.log(deadPrimary.length
   : "  ok    no element's primary is a retired stat");
 
 // RETIRED STATS must not be in any roll pool. backpack and walkSpeed were
-// retired on 2026-10-04; echo and autoMine before them. A set rune takes its
-// stat straight from MineRunes.SETS and bypasses NO_ROLL_STATS entirely, which
-// is how Longhauler would have gone on minting dead runes.
+// retired on 2026-10-04; echo and autoMine before them. (The trait and rune
+// pools left with traits and runes on 2026-10-12.)
 const pools = {
-  "MineTraits.LIST": read("src/ReplicatedStorage/Mine/Shared/MineTraits.luau")
-    .match(/MineTraits\.LIST = \{[\s\S]*?\n\}/)[0],
   "MineGear.STAT_WEIGHT": read("src/ReplicatedStorage/Mine/Shared/MineGear.luau")
     .match(/MineGear\.STAT_WEIGHT = \{[\s\S]*?\n\}/)[0],
-  "MineRunes.FAMILY_STATS": read("src/ReplicatedStorage/Mine/Shared/MineRunes.luau")
-    .match(/MineRunes\.FAMILY_STATS = \{[\s\S]*?\n\}/)[0],
-  "MineRunes.SETS": read("src/ReplicatedStorage/Mine/Shared/MineRunes.luau")
-    .match(/MineRunes\.SETS = \{[\s\S]*?\n\}/)[0],
   "MineSkillData.ENERGIES": tree.match(/MineSkillData\.ENERGIES = \{[\s\S]*?\n\}/)[0],
 };
 // Comments stripped: the first run of this flagged backpack and walkSpeed in
 // the very comments explaining that they had been retired.
 //
 // Scoped to the 2026-10-04 retirements. echo and autoMine deliberately keep
-// entries in MineGear.STAT_WEIGHT and MineRunes.FAMILY_STATS so an
+// entries in MineGear.STAT_WEIGHT so an
 // already-rolled piece still resolves a weight -- both are documented in place,
 // and both are kept out of the pools by NO_ROLL_STATS.
 const RETIRED_NOW = ["backpack", "walkSpeed"];

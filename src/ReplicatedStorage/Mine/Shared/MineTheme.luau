@@ -95,9 +95,75 @@ MineTheme.RADIUS_LG = 14
 MineTheme.STROKE = 1.5
 
 -- The smallest text the game is allowed to draw. Below this it is decoration,
--- not a label, and on a phone it is nothing at all.
-MineTheme.TEXT_MIN = 12
-MineTheme.TEXT_BODY = 14
-MineTheme.TEXT_TITLE = 22
+-- not a label, and on a phone it is nothing at all. Raised 12/14/22 -> 14/16/26
+-- in the kid-appeal pass: the audience reads on phones, at arm's length.
+MineTheme.TEXT_MIN = 14
+MineTheme.TEXT_BODY = 16
+MineTheme.TEXT_TITLE = 26
+
+-- CANDY. The kid-appeal pass (2026-10-08): chunky, bright, outlined. The indigo
+-- surfaces above stay the base; these sit on top of them. A candy button is a
+-- fat dark OUTLINE, a bright TOP-to-BOTTOM gradient and a glossy highlight, so
+-- it reads as a pressable object rather than a label with a border.
+--
+-- OUTLINE is the near-black indigo every candy shape is stroked with (same hue
+-- family as MineIcons' #241a33 outline, so art and chrome match).
+MineTheme.OUTLINE = Color3.fromRGB(20, 12, 44)
+MineTheme.STROKE_CHUNKY = 3
+MineTheme.STROKE_THICK = 4
+
+-- Each entry is { top, bottom } for a vertical gradient. Colour = meaning:
+-- gold is the primary action and coins, green is go/claim/ready, cyan gems,
+-- magenta stardust and magic, orange the bag, blue the neutral tile.
+MineTheme.CANDY = {
+	gold    = { Color3.fromRGB(255, 226, 110), Color3.fromRGB(255, 160, 30) },
+	green   = { Color3.fromRGB(140, 245, 110), Color3.fromRGB(40, 190, 90) },
+	cyan    = { Color3.fromRGB(120, 235, 255), Color3.fromRGB(30, 150, 235) },
+	magenta = { Color3.fromRGB(255, 130, 235), Color3.fromRGB(180, 60, 220) },
+	orange  = { Color3.fromRGB(255, 190, 110), Color3.fromRGB(240, 110, 40) },
+	blue    = { Color3.fromRGB(130, 170, 255), Color3.fromRGB(70, 90, 230) },
+	red     = { Color3.fromRGB(255, 130, 130), Color3.fromRGB(220, 50, 70) },
+	purple  = { Color3.fromRGB(190, 130, 255), Color3.fromRGB(120, 60, 220) },
+}
+
+-- Dark text for light candy fills, white for dark ones.
+MineTheme.ON_CANDY = Color3.fromRGB(255, 255, 255)
+MineTheme.ON_CANDY_DARK = Color3.fromRGB(46, 22, 8)
+
+--[[
+	LIFTED SURFACES -- the cartoony layer.
+
+	Owner, 2026-10-18, on launch day: "still ugly ... does this look like the
+	cartoony top game it should be". It did not, and the reason was measurable
+	rather than a matter of taste. Every surface in the game sat between 0.04
+	and 0.20 relative luminance:
+
+	    INK  #0B0A1A 0.04    PANEL #171333 0.09
+	    CARD #221C4E 0.13    CARD_HI #3A2A7C 0.20
+
+	A card at 0.13 on a panel at 0.09 cannot pop, because there is nowhere for
+	it to pop TO. The games this one is chasing -- Pet Sim, Adopt Me, Mining
+	Simulator -- put the CARD FACE up around 0.6-0.9, cream or hard-saturated,
+	and ring it with a fat dark outline. The dark base is not the problem; the
+	absence of anything bright on top of it is.
+
+	These are additive on purpose. Flipping CARD and PANEL themselves would
+	re-skin forty screens in one commit on the morning of a launch, and no one
+	could tell a styling regression from a real one. Screens move onto FACE /
+	SHELL one at a time, each verified in Studio, starting with the daily popup
+	and the Forge because those are what a new player sees first.
+
+	    SHELL      the saturated body a panel is built from
+	    SHELL_HI   a raised band inside it (headers, footers)
+	    FACE       the bright card face that content sits on
+	    FACE_DIM   the same face, spent or claimed
+	    ON_FACE    text on a bright face -- never TEXT, which is near-white
+]]
+MineTheme.SHELL = Color3.fromRGB(88, 60, 182)
+MineTheme.SHELL_HI = Color3.fromRGB(118, 84, 218)
+MineTheme.FACE = Color3.fromRGB(246, 243, 255)
+MineTheme.FACE_DIM = Color3.fromRGB(198, 192, 226)
+MineTheme.ON_FACE = Color3.fromRGB(34, 22, 68)
+MineTheme.ON_FACE_MUTED = Color3.fromRGB(104, 94, 148)
 
 return MineTheme

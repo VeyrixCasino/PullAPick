@@ -27,7 +27,6 @@ let fail = 0;
 const check = (ok, msg) => { console.log((ok ? "  ok    " : "  FAIL  ") + msg); if (!ok) fail++; };
 
 const stats = read("src/ReplicatedStorage/Mine/Shared/MineStats.luau");
-const runes = read("src/ReplicatedStorage/Mine/Shared/MineRunes.luau");
 const gear = read("src/ReplicatedStorage/Mine/Shared/MineGear.luau");
 
 // Nothing may still use the old key — except oreYieldFor, which is the genuine
@@ -66,9 +65,7 @@ check(/MineStats\.LEGACY_STAT = \{[\s\S]*?oreYield = "blastChance"/.test(stats),
 check(/function MineStats\.canonStat\(stat\)/.test(stats), "canonStat exists");
 
 // The two places a stat key is stored in a save.
-const rnorm = (runes.match(/function MineRunes\.normalize\(rune\)[\s\S]*?\n^end$/m) || [""])[0];
-check(/rune\.stat = MineStats\.canonStat\(rune\.stat\)/.test(rnorm),
-  "MineRunes.normalize migrates rune.stat");
+// (Saved runes were the other place; they left with runes on 2026-10-12.)
 
 const gnorm = (gear.match(/function MineGear\.normalize\(piece\)[\s\S]*?\n^end$/m) || [""])[0];
 check(/piece\.stat = MineGear\.canonStat\(piece\.stat\)/.test(gnorm),
@@ -78,8 +75,7 @@ check(/row\.stat = MineGear\.canonStat\(row\.stat\)/.test(gnorm),
 
 // Both normalizers are actually called on load, or none of the above runs.
 const server = read("src/ServerScriptService/Mine/MineServer.server.luau");
-check(/Runes\.normalize\(r\)/.test(server), "the server normalizes saved runes on load");
-check(/Gear\.normalize\(piece\)/.test(server), "...and saved gear pieces");
+check(/Gear\.normalize\(piece\)/.test(server), "the server normalizes saved gear pieces on load");
 
 console.log("");
 console.log(fail > 0 ? `>>> statkeys: ${fail} FAILED` : ">>> statkeys: all assertions passed");

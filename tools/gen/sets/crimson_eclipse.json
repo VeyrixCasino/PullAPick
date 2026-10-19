@@ -1,0 +1,1003 @@
+{
+  "key": "crimson_eclipse",
+  "bodies": [
+    {
+      "id": "ce_crescent",
+      "label": "Crescent",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "ce_gargoyle",
+      "label": "Gargoyle",
+      "role": "Bruiser"
+    },
+    {
+      "id": "ce_rose",
+      "label": "Rose",
+      "role": "Striker"
+    },
+    {
+      "id": "ce_grimoire",
+      "label": "Grimoire",
+      "role": "Prospector"
+    },
+    {
+      "id": "ce_eclipse",
+      "label": "Eclipse",
+      "role": "Mystic"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "ce_t_cardinal",
+      "label": "Choir Cardinal",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        214,
+        24,
+        48
+      ]
+    },
+    {
+      "id": "ce_t_jerboa",
+      "label": "Moonhop Jerboa",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        200,
+        130,
+        150
+      ]
+    },
+    {
+      "id": "ce_t_candelabra",
+      "label": "Vesper Candelabra",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        236,
+        180,
+        60
+      ]
+    },
+    {
+      "id": "ce_t_fobwatch",
+      "label": "Midnight Fobwatch",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        70,
+        60,
+        160
+      ]
+    },
+    {
+      "id": "ce_t_musicbox",
+      "label": "Twinkle Musicbox",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        226,
+        86,
+        130
+      ]
+    },
+    {
+      "id": "ce_t_borzoi",
+      "label": "Courtly Borzoi",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        236,
+        224,
+        214
+      ]
+    },
+    {
+      "id": "ce_t_weathercock",
+      "label": "Iron Weathercock",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        70,
+        160,
+        140
+      ]
+    },
+    {
+      "id": "ce_t_gaslamp",
+      "label": "Foggy Gaslamp",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        44,
+        60,
+        110
+      ]
+    },
+    {
+      "id": "ce_t_pomegranate",
+      "label": "Ruby Pomegranate",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        170,
+        20,
+        80
+      ]
+    },
+    {
+      "id": "ce_t_postbox",
+      "label": "Pillar Postbox",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        176,
+        16,
+        30
+      ]
+    },
+    {
+      "id": "ce_t_tuningfork",
+      "label": "Echo Tuningfork",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        188,
+        196,
+        214
+      ]
+    },
+    {
+      "id": "ce_t_metronome",
+      "label": "Nocturne Metronome",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        110,
+        40,
+        90
+      ]
+    },
+    {
+      "id": "ce_t_mobile",
+      "label": "Dreamstar Mobile",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        60,
+        110,
+        200
+      ]
+    },
+    {
+      "id": "ce_t_nightjar",
+      "label": "Dusk Nightjar",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        130,
+        90,
+        150
+      ]
+    },
+    {
+      "id": "ce_t_wardrobe",
+      "label": "Creaky Wardrobe",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        120,
+        64,
+        40
+      ]
+    },
+    {
+      "id": "ce_t_kinkajou",
+      "label": "Velvet Kinkajou",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        196,
+        130,
+        70
+      ]
+    },
+    {
+      "id": "ce_t_glasses",
+      "label": "Opera Glasses",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        226,
+        170,
+        70
+      ]
+    },
+    {
+      "id": "ce_t_note",
+      "label": "Lullaby Note",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        70,
+        40,
+        140
+      ]
+    },
+    {
+      "id": "ce_t_hearth",
+      "label": "Cozy Hearth",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        180,
+        70,
+        40
+      ]
+    },
+    {
+      "id": "ce_t_altar",
+      "label": "Eclipse Altar",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        90,
+        30,
+        70
+      ]
+    },
+    {
+      "id": "ce_t_pendulum",
+      "label": "Grand Pendulum",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        160,
+        60
+      ]
+    },
+    {
+      "id": "ce_t_alembic",
+      "label": "Crimson Alembic",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        180,
+        120,
+        40
+      ]
+    },
+    {
+      "id": "ce_t_basilisk",
+      "label": "Velvet Basilisk",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        140,
+        90
+      ]
+    },
+    {
+      "id": "ce_t_caladrius",
+      "label": "Silver Caladrius",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        230,
+        230,
+        240
+      ]
+    },
+    {
+      "id": "ce_t_bicorn",
+      "label": "Twinhorn Bicorn",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        36,
+        70
+      ]
+    },
+    {
+      "id": "ce_t_tiangou",
+      "label": "Moonchase Tiangou",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        50,
+        40,
+        80
+      ]
+    },
+    {
+      "id": "ce_t_inkwell",
+      "label": "Quill Inkwell",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        50,
+        120
+      ]
+    },
+    {
+      "id": "ce_t_thurible",
+      "label": "Swinging Thurible",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        150,
+        50
+      ]
+    },
+    {
+      "id": "ce_t_oriel",
+      "label": "Oriel Window",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        70,
+        90,
+        150
+      ]
+    },
+    {
+      "id": "ce_t_clavichord",
+      "label": "Nocturne Clavichord",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        120,
+        50,
+        40
+      ]
+    },
+    {
+      "id": "ce_t_rosewindow",
+      "label": "Gothic Rosewindow",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        180,
+        40,
+        90
+      ]
+    },
+    {
+      "id": "ce_t_clocktower",
+      "label": "Midnight Clocktower",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        70,
+        50,
+        100
+      ]
+    },
+    {
+      "id": "ce_t_reliquary",
+      "label": "Lunar Reliquary",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        200,
+        160,
+        50
+      ]
+    },
+    {
+      "id": "ce_t_carillon",
+      "label": "Moon Carillon",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        200,
+        180,
+        60
+      ]
+    },
+    {
+      "id": "ce_t_lectern",
+      "label": "Midnight Lectern",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        100,
+        50,
+        40
+      ]
+    },
+    {
+      "id": "ce_t_steeple",
+      "label": "Crimson Steeple",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        140,
+        30,
+        50
+      ]
+    },
+    {
+      "id": "ce_t_monstrance",
+      "label": "Haloed Monstrance",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        230,
+        190,
+        60
+      ]
+    },
+    {
+      "id": "ce_t_crozier",
+      "label": "Lunar Crozier",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        160,
+        120,
+        200
+      ]
+    },
+    {
+      "id": "ce_t_diadem",
+      "label": "Bloodmoon Diadem",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        200,
+        40,
+        70
+      ]
+    },
+    {
+      "id": "ce_t_chalice",
+      "label": "Eclipse Chalice",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        180,
+        50,
+        90
+      ]
+    },
+    {
+      "id": "ce_t_umbra",
+      "label": "Umbra Disk",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        30,
+        20,
+        40
+      ]
+    },
+    {
+      "id": "ce_t_coronet",
+      "label": "Sanguine Coronet",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        160,
+        20,
+        50
+      ]
+    },
+    {
+      "id": "ce_t_belfry",
+      "label": "Vesper Belfry",
+      "role": "Bruiser",
+      "tier": "Divine",
+      "tint": [
+        90,
+        70,
+        110
+      ]
+    },
+    {
+      "id": "ce_t_cloister",
+      "label": "Moon Cloister",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        140,
+        140,
+        170
+      ]
+    },
+    {
+      "id": "ce_t_psaltery",
+      "label": "Haloed Psaltery",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        180,
+        100,
+        140
+      ]
+    },
+    {
+      "id": "ce_t_sundial",
+      "label": "Crimson Sundial",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        170,
+        50,
+        60
+      ]
+    },
+    {
+      "id": "ce_t_manor",
+      "label": "Crimson Manor",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        120,
+        30,
+        50
+      ]
+    },
+    {
+      "id": "ce_t_totality",
+      "label": "Grand Totality",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        20,
+        16,
+        30
+      ]
+    }
+  ],
+  "extraBodies": [
+    "wolf",
+    "moth",
+    "owl"
+  ],
+  "buffs": [
+    "blastChance",
+    "blastDamage",
+    "rareOre"
+  ],
+  "palette": [
+    [
+      "Blood Moon",
+      170,
+      16,
+      36
+    ],
+    [
+      "Crimson",
+      206,
+      28,
+      52
+    ],
+    [
+      "Scarlet",
+      250,
+      48,
+      44
+    ],
+    [
+      "Garnet",
+      120,
+      18,
+      40
+    ],
+    [
+      "Rose",
+      226,
+      86,
+      116
+    ],
+    [
+      "Moon Blush",
+      250,
+      170,
+      190
+    ],
+    [
+      "Ember",
+      236,
+      98,
+      50
+    ],
+    [
+      "Copper Moon",
+      204,
+      120,
+      78
+    ],
+    [
+      "Ash",
+      104,
+      96,
+      106
+    ],
+    [
+      "Obsidian",
+      30,
+      26,
+      36
+    ],
+    [
+      "Midnight",
+      40,
+      36,
+      86
+    ],
+    [
+      "Dusk Violet",
+      116,
+      62,
+      150
+    ],
+    [
+      "Plum",
+      86,
+      36,
+      84
+    ],
+    [
+      "Bone",
+      232,
+      224,
+      206
+    ],
+    [
+      "Silver Moon",
+      188,
+      196,
+      214
+    ],
+    [
+      "Moon Gold",
+      250,
+      214,
+      120
+    ],
+    [
+      "Rust",
+      158,
+      70,
+      38
+    ],
+    [
+      "Storm Grey",
+      136,
+      136,
+      150
+    ],
+    [
+      "Thorn Green",
+      52,
+      96,
+      60
+    ],
+    [
+      "Rosewood",
+      170,
+      96,
+      110
+    ],
+    [
+      "Candle Gold",
+      232,
+      186,
+      76
+    ],
+    [
+      "Cardinal",
+      196,
+      20,
+      90
+    ],
+    [
+      "Thornberry",
+      168,
+      40,
+      124
+    ],
+    [
+      "Twilight Blue",
+      70,
+      90,
+      150
+    ],
+    [
+      "Sea Glass",
+      100,
+      180,
+      170
+    ],
+    [
+      "Lilac",
+      180,
+      150,
+      220
+    ],
+    [
+      "Chartreuse",
+      180,
+      220,
+      60
+    ],
+    [
+      "Eclipse Indigo",
+      20,
+      20,
+      180
+    ],
+    [
+      "Grave Moss",
+      20,
+      140,
+      20
+    ],
+    [
+      "Cobalt Moon",
+      20,
+      140,
+      255
+    ],
+    [
+      "Absinthe",
+      20,
+      220,
+      20
+    ],
+    [
+      "Jade Spark",
+      20,
+      220,
+      140
+    ],
+    [
+      "Orchid Flare",
+      180,
+      20,
+      220
+    ],
+    [
+      "Petal Neon",
+      255,
+      140,
+      255
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Moonlit",
+      "Dusky",
+      "Velvet",
+      "Gothic"
+    ],
+    "Mythic": [
+      "Crimson",
+      "Scarlet",
+      "Midnight",
+      "Bloodmoon"
+    ],
+    "Divine": [
+      "Eclipsed",
+      "Lunar",
+      "Haloed",
+      "Sanguine"
+    ],
+    "Exotic": [
+      "Umbral",
+      "Coronal",
+      "Everdark",
+      "Starless"
+    ]
+  },
+  "names": [
+    "Moonset",
+    "Moonlit",
+    "Moonwick",
+    "Moonpetal",
+    "Moonberry",
+    "Moonpaw",
+    "Moonmote",
+    "Moonsong",
+    "Moonveil",
+    "Moonrose",
+    "Moonthorn",
+    "Moonmoth",
+    "Moonbell",
+    "Moonlace",
+    "Mooncloak",
+    "Moonhush",
+    "Moonkeeper",
+    "Redmoon",
+    "Rubymoon",
+    "Rosemoon",
+    "Scarlet Moon",
+    "Crimson Moon",
+    "Waning",
+    "Waxing",
+    "Moonphase",
+    "Lunabelle",
+    "Lunaria",
+    "Lunamoth",
+    "Bloodmoon",
+    "Corona",
+    "Totality",
+    "Syzygy",
+    "Nightfall",
+    "Gloaming",
+    "Duskmoon",
+    "Duskglow",
+    "Duskrose",
+    "Dusklight",
+    "Duskwing",
+    "Duskling",
+    "Nightling",
+    "Shadeling",
+    "Nightrose",
+    "Nightmoth",
+    "Nightbloom",
+    "Nightbell",
+    "Nightlace",
+    "Nighttide",
+    "Midnight Rose",
+    "Witching Hour",
+    "Redshift",
+    "Red Giant",
+    "Redstar",
+    "Emberstar",
+    "Cometrose",
+    "Scarlet",
+    "Carmine",
+    "Cardinal",
+    "Vermilion",
+    "Rosewood",
+    "Rouge",
+    "Claret",
+    "Burgundy",
+    "Pomegranate",
+    "Redcurrant",
+    "Rosehip",
+    "Hollyberry",
+    "Red Velvet",
+    "Rubytail",
+    "Scarletwing",
+    "Crimsonette",
+    "Cherrystone",
+    "Steeple",
+    "Belfry",
+    "Bellringer",
+    "Candelabra",
+    "Candlewick",
+    "Sconce",
+    "Quill Pen",
+    "Tome",
+    "Folio",
+    "Pendulum",
+    "Clocktower",
+    "Gothic",
+    "Gargoylet",
+    "Lacework",
+    "Filigrace",
+    "Wrought Iron",
+    "Rosewindow",
+    "Stained Glass",
+    "Thornrose",
+    "Rosethorn",
+    "Rosebud",
+    "Rosalie",
+    "Thornling",
+    "Bramblethorn",
+    "Thistle",
+    "Blackthorn",
+    "Wildrose",
+    "Raven",
+    "Ravenna",
+    "Corvid",
+    "Nightowl",
+    "Gloomy",
+    "Gloomkin",
+    "Gloomling",
+    "Mopey",
+    "Sulky",
+    "Duskpaw",
+    "Somber",
+    "Solemn",
+    "Hush",
+    "Hushling",
+    "Vow",
+    "Oath",
+    "Covenant",
+    "Immortelle",
+    "Everdusk",
+    "Evernight",
+    "Crimsonfall",
+    "Redfall",
+    "Ashrose",
+    "Veil",
+    "Midnight Veil",
+    "Nocturna",
+    "Sanguine",
+    "Rubescent",
+    "Ruddy",
+    "Rosy Dusk",
+    "Dusky",
+    "Twilit",
+    "Starshade",
+    "Moonshade",
+    "Eclipsette",
+    "Crimsonbell",
+    "Bellamoon",
+    "Ravenmoon",
+    "Owlmoon",
+    "Count Moonbeam",
+    "Lady Midnight",
+    "Lord Gloom",
+    "Baron Dusk",
+    "Duchess Dusk",
+    "Little Eclipse",
+    "Moonpip",
+    "Moonbun",
+    "Moonflower",
+    "Moondrop",
+    "Moonsilk",
+    "Moonfeather",
+    "Moonwhisp",
+    "Moonquill",
+    "Mooncrest",
+    "Moonharp",
+    "Moonbloom",
+    "Moonheart",
+    "Moonember",
+    "Scarletta",
+    "Rubyrose",
+    "Redthorn",
+    "Briarmoon",
+    "Thornmoon",
+    "Starthorn",
+    "Duskthorn",
+    "Duskbloom",
+    "Duskfeather",
+    "Duskberry",
+    "Nightberry",
+    "Nightquill",
+    "Nightharp",
+    "Nightsilk",
+    "Nightplume",
+    "Nightpetal",
+    "Evenrose",
+    "Corvina",
+    "Ravenwing",
+    "Ravenquill",
+    "Crowberry",
+    "Gloomberry",
+    "Gloomrose",
+    "Gloomwick",
+    "Gloombell",
+    "Shadowrose",
+    "Rosarium",
+    "Candlelight",
+    "Candleflick",
+    "Waxwing",
+    "Ember Moon",
+    "Rubyshade",
+    "Redveil",
+    "Scarletveil",
+    "Masquerade",
+    "Masque",
+    "Velvet Mask",
+    "Midnight Waltz",
+    "Moon Waltz",
+    "Bell Tower",
+    "Ironwork",
+    "Ironrose"
+  ]
+}

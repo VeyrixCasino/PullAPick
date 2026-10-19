@@ -1,10 +1,12 @@
--- MineStats: what a stat is worth, what each type specialises in, and the
--- budget a pet of a given tier is allowed to spend.
+-- MineStats: what a stat is worth.
 --
--- The point of this file is that "is this pet balanced?" has a NUMERIC answer.
--- Every stat carries a weight in points per +1%, every tier has a point budget,
--- and a kit is legal when its total lands inside the budget's tolerance. Run
--- MineStats.audit() to check the whole table at once.
+-- Every stat carries a weight in points per +1%, so "is this worth the same as
+-- that?" has a numeric answer. Runes, gear, traits, the skill tree and the pet
+-- kits (tools/gen/zone-pets.js -> MineZonePets) all price with these weights.
+--
+-- The old pet-kit generator that lived here (TYPE_KITS, TIER_BUDGET, the X / Y
+-- SET_PROFILE, kitFor, audit) was removed on 2026-10-10: nothing called it, and
+-- pet kits now come from the approved ladder in MineZonePets.
 local MineStats = {}
 
 --------------------------------------------------------------------------------
@@ -19,7 +21,7 @@ local MineStats = {}
 MineStats.STATS = {
 	mineSpeed   = { label = "Mine Speed",    weight = 1.0, unit = "%", desc = "Damage on every tool (pick, drill, bomb). Pets only — never a gem rune. Short Fuse rune adds more on explosives." },
 	swingRate   = { label = "Swing Rate",    weight = 1.4, unit = "%", desc = "Swings per second." },
-	reach       = { label = "Reach",         weight = 1.4, unit = "%", desc = "Pick/drill aim distance. 26 × (1 + reach). Rune only." },
+	reach       = { label = "Reach",         weight = 1.4, unit = "%", desc = "Pick/drill aim distance. 26 × (1 + reach). From the Reach enchant." },
 	--[[
 		BLAST RADIUS IS CUBIC, AND WAS PRICED LINEAR. Owner, 2026-10-04:
 		"balance fire.. rn fire is just way to over powered".
@@ -39,7 +41,26 @@ MineStats.STATS = {
 		sk.blastRadius line was restored and those nodes started paying at all.
 	]]
 	blastRadius = { label = "Blast Radius",  weight = 18.0, unit = "%", desc = "Tool pattern size. A sphere, so +50% radius is ~3.4x the blocks." },
-	blastChance    = { label = "Blast Chance",  weight = 4.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
+	--[[
+		PROC CHANCES ARE PRICED HIGH (owner, 2026-10-10): odds stay "lowish (~tidal
+		wave)", with no caps -- "make sure they pay for it in to many other area for
+		it to matter". Blast 9, Zap 8, Shatter 9, Earthquake 9 and Tidal Wave 10 points per +1%
+		put a top pet's chance near 25-30% and make stacking one cost the rest of
+		the kit. (Blast was 4.0, Zap 2.5, Ricochet 2.4, Tidal Wave 4.0.)
+	]]
+	blastChance    = { label = "Blast Chance",  weight = 9.0, unit = "%", desc = "CHANCE the aimed block's death also hits 6 neighbours. How hard it hits is Proc Power. Chests stay centre-only." },
+	--[[
+		TIDAL WAVE (owner, 2026-10-10: "a water theme aoe would be great").
+		Blast's flat cousin: a broken block sends a wave across ITS OWN LAYER,
+		hitting the 12 blocks in a diamond around it (two out on the level, one
+		on the diagonals). 12 x PROC_SHARE.tide 0.18 = 2.16 swings against
+		blast's 6 x 0.35 = 2.10, so it is priced like blast: a different shape,
+		not a stronger proc. Blast digs a pocket; a wave clears floor.
+	]]
+	-- Weight 10 (was 4): a wave is the biggest proc (2.16 swings), and the
+	-- owner wants proc odds "lowish" -- priced high, never capped, so stacking
+	-- chance costs everything else a kit could have had.
+	tidalWave   = { label = "Tidal Wave",    weight = 10.0, unit = "%", desc = "CHANCE a broken block sends a wave across your layer, hitting the 12 blocks around it. How hard is Proc Power. Chests stay centre-only." },
 	coinBonus   = { label = "Coin Bonus",    weight = 0.8, unit = "%", desc = "Coins from selling." },
 	gemFind     = { label = "Gem Find",      weight = 1.8, unit = "%", desc = "Gems dropped by ore." },
 	luck        = { label = "Luck",          weight = 2, unit = "%", desc = "Pack yield and tool finds; mined packs show a luck badge." },
@@ -65,7 +86,9 @@ MineStats.STATS = {
 	-- at ECHO_TO_SWING. The entry stays so an old kit or save still resolves a
 	-- weight; it is out of STAT_ORDER so no screen lists it.
 	echo        = { label = "Echo Strike",   weight = 1.5, unit = "%", desc = "Legacy: paid out as Swing Rate.", legacy = true },
-	zap         = { label = "Zap Chance",    weight = 2.5, unit = "%", desc = "CHANCE a dig chains to nearby blocks, up to 6 hops. How hard each hop lands is Proc Power." },
+	-- The stat only STARTS a chain now; the chain itself
+	-- follows MineConfig.ZAP_CONTINUE / ZAP_FALLOFF (about 3 hops, 0.76 swings).
+	zap         = { label = "Zap Chance",    weight = 8.0, unit = "%", desc = "CHANCE a dig starts a lightning chain. Each hop may continue (80%, then less each hop). How hard each hop lands is Proc Power + Zap Damage." },
 	-- LEGACY. Auto Mine was replaced by Gem Find: anything still carrying this
 	-- key is converted at AUTO_MINE_TO_GEM before it is paid or printed (see
 	-- MineStats.withoutAutoMine, MineTemper.magnitudes, MineServer.boosts). The
@@ -77,10 +100,36 @@ MineStats.STATS = {
 	-- Fossils are gone; ore replaced them. The key stays fossilFind so nothing
 	-- that writes it has to be rewritten, but it is the Ore Finder now.
 	fossilFind  = { label = "Ore Finder",       weight = 1.5, unit = "%", desc = "Multiplies how much ore a pack pays. Stamped on the pack when you mine it. Does not change which ore you get." },
+	--[[
+		ORE HAUL -- the one stat that multiplies ore OUT OF A BLOCK.
+
+		Owner, 2026-10-06: "REMEMBER ESPICALLY ENDGAME ENCHANTS BUFF THAT SO KEEP
+		IT HIGH". Measured in docs/ore-yield-and-vein-balance.md: nothing did.
+		The drop was math.random(lo, hi) straight off oreYieldFor with no boost,
+		enchant, luck or finder applied anywhere, so an Exotic tool cost ~12
+		MILLION blocks broken and no gear could move that number.
+
+		A NEW KEY, NOT fossilFind, deliberately. fossilFind is already spent
+		twice: it is the `rareOre` shift inside oreWeights, which decides WHICH
+		ore a block becomes, and it multiplies what a legacy pack pays. Hanging
+		quantity on it a third time would mean one stat silently doing quality
+		and quantity at once -- which is exactly what the comment at the drop
+		site refuses, and it is right to.
+
+		So Ore Finder stays a QUALITY stat (better ore), and Ore Haul is the
+		QUANTITY one (more of it). Two stats, two jobs, both legible on a
+		tooltip.
+
+		Weighted 1.0 rather than near zap's 2.5: it multiplies a payout that
+		already happens on every ore block, which is the shape of thing that
+		compounds hardest. The cap in MineConfig.ORE_HAUL_CAP is what actually
+		holds it; the weight only prices it on a roll.
+	]]
+	oreHaul     = { label = "Ore Haul",         weight = 1.0, unit = "%", desc = "Multiplies how much ore a block drops. Does not change which ore you get." },
 	pulverize   = { label = "Pulverizer",       weight = 4.0, unit = "%", desc = "Chance to drop 1 stardust when dirt/ore dies. Not chests or cubes." },
 	scrap       = { label = "Scrap",            weight = 1.2, unit = "%", desc = "Extra stardust when a chest dies. Not the Scrapper. Pets only." },
-	coolant     = { label = "Coolant",          weight = 2.5, unit = "%", desc = "Drill spin-up. turn / (1 + coolant). Apex stays 0. Rune only." },
-	shortFuse   = { label = "Short Fuse",       weight = 2.2, unit = "%", desc = "Bomb cooldown / (1 + p), and extra mineSpeed on explosives. Rune only." },
+	coolant     = { label = "Coolant",          weight = 2.5, unit = "%", desc = "Drill spin-up. turn / (1 + coolant). Apex stays 0." },
+	shortFuse   = { label = "Short Fuse",       weight = 2.2, unit = "%", desc = "Bomb cooldown / (1 + p), and extra mineSpeed on explosives." },
 	-- The two new build boosts. Priced near zap (2.5) because they are the
 	-- same shape of thing -- a chance to reach a block you did not swing at --
 	-- and neither multiplies the hit itself.
@@ -105,8 +154,12 @@ MineStats.STATS = {
 	]]
 	oreLuck     = { label = "Ore Luck",         weight = 2.4, unit = "%", desc = "Chance an ore block drops its ORE CASE. Does not touch chests or packs." },
 	packLuck    = { label = "Pack Luck",        weight = 2.4, unit = "%", desc = "Siphons a pack's card odds toward the chase when it is opened. Stamped on the pack when you get it." },
-	earthquake  = { label = "Earthquake Chance", weight = 2.6, unit = "%", desc = "CHANCE a block starts shaking and bleeds damage every second for 5s. Does not stack; 5 blocks at once." },
-	ricochet    = { label = "Ricochet Chance",  weight = 2.4, unit = "%", desc = "CHANCE breaking a block jumps the hit to one block beside it. Once only, and it chains no further." },
+	-- Weight 9 (was 2.6) with the other proc chances (2026-10-10): at 2.6 one pet
+	-- rolled a 103% quake chance.
+	earthquake  = { label = "Earthquake Chance", weight = 9.0, unit = "%", desc = "CHANCE a block starts shaking and bleeds damage every second for 5s. Does not stack; 5 blocks at once." },
+	-- SHATTER (was Ricochet; the KEY stays "ricochet" because it is data on
+	-- the skill tree, traits, gear, kits and saves). Owner, 2026-10-10.
+	ricochet    = { label = "Shatter Chance",   weight = 9.0, unit = "%", desc = "CHANCE a broken block shatters: shards hit its 6 sides, and a block a shard breaks may shatter again (up to 3 per block you break). How hard is Proc Power + Shatter Damage." },
 	--[[
 		PROC DAMAGE, and the only stat that moves it.
 
@@ -120,14 +173,21 @@ MineStats.STATS = {
 		less than Blast because it does nothing at all on a build with no proc
 		chance to scale.
 	]]
-	procPower   = { label = "Proc Power",       weight = 3.0, unit = "%", desc = "How hard Blast, Zap, Earthquake and Ricochet hit. Does nothing without a proc chance to scale." },
+	procPower   = { label = "Proc Power",       weight = 3.0, unit = "%", desc = "How hard Blast, Tidal Wave, Zap, Shatter and Earthquake hit. Does nothing without a proc chance to scale." },
+	-- One damage stat per proc (owner, 2026-10-10: "add damage %"). Each adds to
+	-- Proc Power for its own proc only (MineConfig.procDamage), so it is worth
+	-- half of Proc Power's 3.0.
+	blastDamage   = { label = "Blast Damage",      weight = 1.5, unit = "%", desc = "How hard Blast hits, on top of Proc Power." },
+	tideDamage    = { label = "Tidal Wave Damage", weight = 1.5, unit = "%", desc = "How hard Tidal Wave hits, on top of Proc Power. Its reach never grows." },
+	zapDamage     = { label = "Zap Damage",        weight = 1.5, unit = "%", desc = "How hard each Zap hop hits, on top of Proc Power." },
+	shatterDamage = { label = "Shatter Damage",    weight = 1.5, unit = "%", desc = "How hard each Shatter shard hits, on top of Proc Power." },
 }
 
 MineStats.STAT_ORDER = {
 	"mineSpeed", "swingRate", "reach", "blastRadius", "zap",
-	"blastChance", "rareOre", "gemFind", "coinBonus",
-	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "pulverize", "scrap",
-	"earthquake", "ricochet", "procPower",
+	"blastChance", "tidalWave", "rareOre", "gemFind", "coinBonus",
+	"luck", "oreLuck", "chestLuck", "packLuck", "luckyFind", "fossilFind", "oreHaul", "pulverize", "scrap",
+	"earthquake", "ricochet", "procPower", "blastDamage", "tideDamage", "zapDamage", "shatterDamage",
 	-- backpack and walkSpeed retired 2026-10-04; see their entries above.
 	"coolant", "shortFuse", "dirtBreak",
 }
@@ -158,128 +218,18 @@ function MineStats.canonStat(stat)
 	return MineStats.LEGACY_STAT[stat] or stat
 end
 
+-- Stats a pet kit or a skin may not carry (MineCards.addStat drops them from
+-- kits). Short Fuse left this list on 2026-10-16: the owner wants it on a few
+-- pets ("short fuse should be a pet thing").
 MineStats.RUNE_ONLY = {
-	blastRadius = true, reach = true, coolant = true, shortFuse = true,
+	blastRadius = true, reach = true, coolant = true,
 }
 
 MineStats.PET_ONLY = {
 	mineSpeed = true, luckyFind = true, scrap = true,
 }
 
---------------------------------------------------------------------------------
--- TYPE SPECIALISATION
---
--- Each type owns a VERB, not just a number. A pet's kit spends its budget
--- mostly on its type's primary, some on the secondary, and a little wherever.
--- This is what makes "I need a Shadow pet for chest runs" a real sentence.
---------------------------------------------------------------------------------
-
-MineStats.TYPE_KITS = {
-	Fire     = { verb = "Strike",    primary = "mineSpeed",  secondary = "dirtBreak",  tertiary = "swingRate" },
-	Frost    = { verb = "Tempo",     primary = "swingRate",  secondary = "mineSpeed",  tertiary = "dirtBreak" },
-	Water    = { verb = "Pulverize", primary = "pulverize",  secondary = "backpack",   tertiary = "walkSpeed" },
-	Grass    = { verb = "Harvest",   primary = "fossilFind", secondary = "backpack",   tertiary = "dirtBreak" },
-	Ground   = { verb = "Excavate",  primary = "dirtBreak",  secondary = "mineSpeed",  tertiary = "backpack" },
-	Metal    = { verb = "Scrap",     primary = "scrap",      secondary = "mineSpeed",  tertiary = "backpack" },
-	Electric = { verb = "Zap",       primary = "zap",        secondary = "swingRate",  tertiary = "mineSpeed" },
-	Crystal  = { verb = "Prospect",  primary = "gemFind",    secondary = "luck",       tertiary = "chestLuck" },
-	Shadow   = { verb = "Fortune",   primary = "luck",       secondary = "chestLuck",  tertiary = "backpack" },
-	Space    = { verb = "Find",      primary = "luckyFind",  secondary = "rareOre",       tertiary = "luck" },
-}
-
--- Cleared: no type/family marketing blurbs on pets (wild claims like instant-break).
-MineStats.TYPE_BLURB = {}
-
---------------------------------------------------------------------------------
--- BUDGETS
---
--- Point pool a pet of each tier may spend. X and Y spend the SAME budget in
--- different shapes: X concentrates it and takes a drawback, Y spreads it flat.
---------------------------------------------------------------------------------
-
-MineStats.TIER_BUDGET = {
-	Common = 25, Uncommon = 48, Rare = 60, Epic = 90,
-	Legendary = 125, Mythic = 190, Divine = 275, Exotic = 380,
-}
-
--- X and Y must be worth the SAME. X spends 1.15x its budget and hands 0.15x
--- back as a penalty, netting 1.00 -- identical to Y. An earlier version used
--- 1.35/0.15, which quietly made every X pet 20% stronger than its Y counterpart.
-MineStats.SET_PROFILE = {
-	-- Internal kit-shape only. No player-facing "family" flavour copy.
-	X = { stats = 2, concentration = 1.15, drawback = 0.15 },
-	Y = { stats = 4, concentration = 1.00, drawback = 0.00 },
-}
-
--- Filler and penalty stats are drawn from here, skipping anything the type
--- already uses -- otherwise a penalty can land on the type's own primary and
--- cancel it out. That is what broke Water, whose primary IS backpack.
-MineStats.NEUTRAL_STATS = { "backpack", "walkSpeed", "coinBonus", "mineSpeed" }
-
-MineStats.TOLERANCE = 0.05 -- a kit may land within +/-5% of its budget
-
---------------------------------------------------------------------------------
--- KIT GENERATION
---
--- Produces a legal default kit for a (type, tier, set). Hand-authored per-pet
--- boosts replace these; this is the shape they should be checked against.
---------------------------------------------------------------------------------
-
-local function round(v, dp)
-	local m = 10 ^ (dp or 2)
-	return math.floor(v * m + 0.5) / m
-end
-
-function MineStats.kitFor(typeName, tier, setKey)
-	local kit = MineStats.TYPE_KITS[typeName]
-	local budget = MineStats.TIER_BUDGET[tier]
-	local profile = MineStats.SET_PROFILE[setKey] or MineStats.SET_PROFILE.Y
-	if not (kit and budget) then
-		return {}
-	end
-
-	-- Stats this type owns; nothing else may land on them.
-	local owned = { [kit.primary] = true, [kit.secondary] = true, [kit.tertiary] = true }
-	local function freeStat()
-		for _, s in ipairs(MineStats.NEUTRAL_STATS) do
-			if not owned[s] then
-				return s
-			end
-		end
-		return nil
-	end
-
-	-- X pours its budget into two stats and hands some back as a penalty;
-	-- Y spreads the same points across four with no downside. Both net 1.00x.
-	local spend = budget * profile.concentration
-	local slots
-	if profile.stats == 2 then
-		slots = { { kit.primary, 0.68 }, { kit.secondary, 0.32 } }
-	else
-		local filler = freeStat()
-		owned[filler] = true
-		slots = { { kit.primary, 0.42 }, { kit.secondary, 0.26 }, { kit.tertiary, 0.20 }, { filler, 0.12 } }
-	end
-
-	local out = {}
-	for _, row in ipairs(slots) do
-		local stat, share = row[1], row[2]
-		local def = MineStats.STATS[stat]
-		if def then
-			out[stat] = round((spend * share) / def.weight / 100, 4)
-		end
-	end
-	if profile.drawback > 0 then
-		local penaltyStat = freeStat()
-		local def = penaltyStat and MineStats.STATS[penaltyStat]
-		if def then
-			out[penaltyStat] = round(-(budget * profile.drawback) / def.weight / 100, 4)
-		end
-	end
-	return out
-end
-
--- What a kit is actually worth, in budget points. Penalties count against it.
+-- What a kit is worth in points (weight x percent). Negative amounts count against it.
 function MineStats.valueOf(kit)
 	local total = 0
 	for stat, amount in pairs(kit or {}) do
@@ -357,38 +307,6 @@ function MineStats.describe(kit)
 		end
 	end
 	return lines
-end
-
---------------------------------------------------------------------------------
--- AUDIT
---
--- Checks every (type, tier, set) kit lands inside tolerance, and reports which
--- stat each type actually leans on. Returns a plain report table.
---------------------------------------------------------------------------------
-
-function MineStats.audit()
-	local rows, fails = {}, 0
-	for typeName in pairs(MineStats.TYPE_KITS) do
-		for tier, budget in pairs(MineStats.TIER_BUDGET) do
-			for _, setKey in ipairs({ "X", "Y" }) do
-				local kit = MineStats.kitFor(typeName, tier, setKey)
-				local value = MineStats.valueOf(kit)
-				-- Both sets net 1.00x budget, so the target is simply the budget.
-				local profile = MineStats.SET_PROFILE[setKey]
-				local target = budget * (profile.concentration - profile.drawback)
-				local drift = target > 0 and (value - target) / target or 0
-				local ok = math.abs(drift) <= MineStats.TOLERANCE
-				if not ok then
-					fails += 1
-				end
-				table.insert(rows, {
-					type = typeName, tier = tier, set = setKey,
-					value = value, target = target, drift = drift, ok = ok,
-				})
-			end
-		end
-	end
-	return rows, fails
 end
 
 return MineStats

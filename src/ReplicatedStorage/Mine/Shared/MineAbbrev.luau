@@ -116,15 +116,17 @@ function MineAbbrev.format(n)
 end
 
 --[[
-	CURRENCY. Four significant figures, always floored.
+	CURRENCY. Two decimals at most, always floored.
 
 	Distinct from MineAbbrev.format above, which rounds UP and shows one
 	decimal. That is right for block HP -- a label smaller than the rock reads
 	as broken -- and wrong for a wallet, where rounding up tells a player they
 	can afford something they cannot.
 
-	Four figures is the readable ceiling: 1.234K, 12.34K, 123.4K, then 1.234M.
-	The decimals shift with the magnitude so the digit count stays constant.
+	Decimals are capped at TWO (owner, 2026-10-10), so the ladder reads
+	1.23K, 12.34K, 123.4K, then 1.23M. The count is no longer constant --
+	that is the point: three decimals was the one shape that did not match the
+	rest of the wallet.
 ]]
 function MineAbbrev.currency(n)
 	n = tonumber(n) or 0
@@ -142,8 +144,22 @@ function MineAbbrev.currency(n)
 		unit = 10 ^ (exp * 3)
 		shown = n / unit
 	end
-	-- Keep four figures total: 3 digits -> .0, 2 digits -> .00, 1 digit -> .000
+	--[[
+		TWO DECIMALS AT MOST. Owner, 2026-10-10: "change all uis to X.XX
+		instead of X.XXX".
+
+		The ladder was 3 digits -> .0, 2 digits -> .00, 1 digit -> .000, which
+		kept four significant figures but meant the wallet showed 1.211M beside
+		12.35K -- two different shapes in one row, and the long one is the
+		hardest to read at a glance.
+
+		Capped rather than fixed at 2, so only the three-decimal case moves:
+		12.35K and 123.4M are untouched, and nothing gets WIDER than it was.
+		Making it a flat 2 would have turned 123.4M into 123.45M and pushed the
+		wallet pills out.
+	]]
 	local places = (shown >= 100 and 1) or (shown >= 10 and 2) or 3
+	places = math.min(places, 2)
 	local mult = 10 ^ places
 	shown = math.floor(shown * mult + 1e-9) / mult   -- floor, never up
 	return sign .. string.format("%." .. places .. "f", shown) .. suffix(exp)

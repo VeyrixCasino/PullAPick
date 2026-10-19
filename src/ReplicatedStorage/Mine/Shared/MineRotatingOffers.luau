@@ -15,6 +15,14 @@ local MineRotatingOffers = {}
 
 local LuckyBlocks = require(script.Parent:WaitForChild("MineLuckyBlocks"))
 local ZonePacks = require(script.Parent:WaitForChild("MineZonePacks"))
+--[[
+	The season clock, not the wall clock. Before the owner launches,
+	seasonNow() is pinned to SEASON_START, so slot one is live and nothing has
+	expired however long the game sits unlaunched. Defaulted HERE rather than at
+	the call sites so every caller -- client panels included -- gets it without
+	having to know the rule.
+]]
+local Launch = require(script.Parent:WaitForChild("MineLaunch"))
 
 local START = 1790049600
 local WEEK = 604800
@@ -41,7 +49,7 @@ MineRotatingOffers.OFFERS = {
 			{ id = "shiny_pack", qty = 2 },
 		},
 		pet = 1,
-		blurb = "LIMITED TIME. NEVER COMING BACK. 5 Lucky Blocks, 3 Diamond, 1 Mythic, a Lucky Block pet, plus 4 Heirloom, 2 Omen, 2 Shiny packs. 599 credits. Max 3.",
+		blurb = "LIMITED TIME. NEVER COMING BACK. 5 Lucky Blocks, 3 Diamond, 1 Godly, a Lucky Block pet, plus 4 Heirloom, 2 Omen, 2 Shiny packs. 599 credits. Max 3.",
 		toast = "Lucky Block Week claimed — open them in your bag",
 	},
 	{
@@ -53,10 +61,12 @@ MineRotatingOffers.OFFERS = {
 		packs = {
 			{ id = "heirloom_pack", qty = 3 },
 			{ id = "omen_pack", qty = 2 },
-			{ id = "apex_pack", qty = 1 },
+			-- Was an Apex Pack; Apex is retired (owner, 2026-10-11). The ★★★
+			-- Wild Case is the nearest in value.
+			{ id = "case_4", qty = 1 },
 		},
 		potions = { { id = "pot_t3_fortune", qty = 2 } },
-		blurb = "LIMITED TIME. NEVER COMING BACK. 200% Luck charm, 8 Shiny Packs, 3 Heirloom, 2 Omen, 1 Apex, and 2 Fortune Flasks. 599 credits. Max 1.",
+		blurb = "LIMITED TIME. NEVER COMING BACK. 200% Luck charm, 8 Shiny Packs, 3 Heirloom, 2 Omen, a ★★★ Wild Case, and 2 Fortune Flasks. 599 credits. Max 1.",
 		toast = "Pot of Gold claimed — equip the charm, then open the packs",
 	},
 	{
@@ -86,12 +96,12 @@ MineRotatingOffers.OFFERS = {
 	},
 	{
 		id = "feat_mythic", key = "feat_mythic", kind = "deal",
-		title = "Mythic Cube", icon = "godly_lucky_block",
+		title = "Godly Cube", icon = "godly_lucky_block",
 		credits = 280,
 		starts = START + 3 * WEEK, ends = START + 5 * WEEK,
 		blocks = { { id = "godly_lucky_block", qty = 1 } },
-		blurb = "1 Mythic Block for 2 weeks. 280 credits.",
-		toast = "Mythic Cube claimed",
+		blurb = "1 Godly Block for 2 weeks. 280 credits.",
+		toast = "Godly Cube claimed",
 	},
 	{
 		id = "feat_lucky_late", key = "feat_lucky_late", kind = "deal",
@@ -126,7 +136,7 @@ do
 end
 
 function MineRotatingOffers.isLive(offer, now)
-	now = now or os.time()
+	now = now or Launch.seasonNow()
 	if type(offer) ~= "table" then
 		return false
 	end
@@ -197,11 +207,14 @@ function MineRotatingOffers.grant(p, offer)
 	end
 	do
 		local Packs = require(script.Parent:WaitForChild("MinePackConfig"))
+		local Cases = require(script.Parent:WaitForChild("MineCases"))
 		for _, row in ipairs(offer.packs or {}) do
 			local id = tostring(row.id or "")
 			local def = Packs.PACK_BY_ID and Packs.PACK_BY_ID[id]
 			for _ = 1, math.max(1, math.floor(tonumber(row.qty) or 1)) do
-				table.insert(p.packs, {
+				-- A pack case is its own bag row; a deal is bought with credits,
+				-- so it is a paid case (MineCases.bagRow).
+				table.insert(p.packs, Cases.bagRow(id, true) or {
 					packId = id,
 					packName = (def and def.name) or id,
 					setId = "dragons_dawn",
@@ -218,14 +231,14 @@ function MineRotatingOffers.grant(p, offer)
 end
 
 function MineRotatingOffers.dayKey(now)
-	now = now or os.time()
+	now = now or Launch.seasonNow()
 	local left = math.max(0, ENDS - now)
 	local days = math.floor(left / 86400)
 	return string.format("%dd left in the season", days)
 end
 
 function MineRotatingOffers.active(now)
-	now = now or os.time()
+	now = now or Launch.seasonNow()
 	local out = {}
 	for _, row in ipairs(MineRotatingOffers.OFFERS) do
 		if MineRotatingOffers.isLive(row, now) then

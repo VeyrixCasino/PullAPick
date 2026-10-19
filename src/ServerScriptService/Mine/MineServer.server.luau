@@ -49,13 +49,44 @@ local Tools = require(shared.MineTools)
 local ChestModel = require(shared:WaitForChild("MineChestModel"))
 local ToolModels = require(game.ReplicatedStorage:WaitForChild("ToolModelFactory"))
 local Stats = require(shared.MineStats)
-local Runes = require(shared.MineRunes)
 local Charms = require(shared:WaitForChild("MineCharms"))
 local Vfx = require(shared:WaitForChild("MineVfx"))
 local Gear = require(shared.MineGear)
 local Scrolls = require(shared.MineScrolls)
 local LuckyBlocks = require(shared.MineLuckyBlocks)
 local Quests = require(shared:WaitForChild("MineQuests"))
+
+--[[
+	FORWARD DECLARATIONS, because these four are called above where they are
+	defined.
+
+	Luau scoping is positional: a `local function markDirty` on line 3919 is not
+	in scope on line 2032, so the call there does not resolve to it -- it
+	compiles to a GLOBAL lookup, which is nil. That is legal Luau, so
+	luau-compile passes and the gates stay green, and it only shows up when the
+	line actually runs:
+
+	    MineServer:2293: attempt to call a nil value
+
+	That one was skinBase and it took out equippedTool, and with it givePickaxe,
+	snap, boosts and mineTick. skinBase was moved above its callers. These four
+	could not be moved as cheaply -- openLuckyBlock would have to travel ~3,800
+	lines -- so they are declared here and ASSIGNED where they already live
+	(their definitions drop the `local`).
+
+	This costs no registers: `local markDirty` here plus `function markDirty()`
+	later is the same single top-level local it was before, which matters
+	because this file sits at the documented minimum of 4 spare.
+
+	Where each was being called before it existed:
+	    markDirty       2032   VIP gamepass grant
+	    tp              4949   dropping a player down a hole
+	    buy            10210   a buy routed from another verb
+	    openLuckyBlock  9346 / 9446   lucky block opened from a dig
+
+	tools/verify/localorder.js fails the build if this happens again.
+]]
+local markDirty, tp, buy, openLuckyBlock
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local LeaderboardService = require(script.Parent:WaitForChild("LeaderboardService"))
 local GroupWheelService = require(script.Parent:WaitForChild("GroupWheelService"))
@@ -63,11 +94,9 @@ local TradeService = require(script.Parent:WaitForChild("TradeService"))
 local SocialService = require(script.Parent:WaitForChild("SocialService"))
 -- Mine For Cards modules packed as one local to spare the 200-register main-chunk cap.
 local Dig = {
-	-- Traits: the prefix on a forged tool, and the one thing runes and
-	-- gear were replaced by. On Dig rather than a top-level local because this
-	-- script sits at 197 of Luau's 200, and boosts() reads it per swing so a
-	-- require-per-call is not an option either.
-	Traits = require(shared:WaitForChild("MineTraits")),
+	-- (Dig.Traits lived here until tool traits were retired, 2026-10-12.)
+	-- Enchants: three slots per tool, books, the player level (MineEnchants).
+	Enchants = require(shared:WaitForChild("MineEnchants")),
 	-- Two layers, and the second multiplies the first. See MineBoostLayers
 	-- for the owner's worked example (100 -> 300, not 250).
 	Layers = require(shared:WaitForChild("MineBoostLayers")),
@@ -76,6 +105,15 @@ local Dig = {
 	Shop = require(shared:WaitForChild("MineDepthShop")),
 	Plazas = require(script.Parent:WaitForChild("MineDepthPlazas")),
 	Breaking = require(shared:WaitForChild("MineBreaking")),
+	-- The wandering trader: rules in MineTrader (shared, harnessed), bodies in
+	-- MineTraderNPC (server). On Dig for the same reason as the rest -- this
+	-- script has five top-level locals left and these do not need two of them.
+	Trader = require(shared:WaitForChild("MineTrader")),
+	TraderNPC = require(script.Parent:WaitForChild("MineTraderNPC")),
+	-- The season clock. MineRotatingOffers and MineScrolls already default their
+	-- `now` to Launch.seasonNow(), so this handle exists for the server to LOAD
+	-- and STAMP the flag; nothing reads the time through it.
+	Launch = require(shared:WaitForChild("MineLaunch")),
 }
 -- TODO(dig-deeper): skill 4x depth bonuses not implemented yet — leave skill tables alone.
 
@@ -771,11 +809,33 @@ local function blank()
 		-- acquired or opened, so found is opened plus whatever is still in the
 		-- bag, and deriving it cannot drift out of step with reality.
 		packsOpened = {},
+		--[[
+			haulGems IS ALWAYS ZERO, and that is correct -- it is not a bug to
+			go and "fix" by wiring something into it.
+
+			Gems are not banked in the haul the way coins are. Coins are paid
+			per point of block HP and accumulate in haulCoins/haulMix as you
+			dig; gems come from SELLING ORE out of the pouch, priced by
+			MineOrePouch.gemValue at the moment of sale. So nothing ever adds
+			to this field, and the `gems += p.haulGems` at the sell site adds
+			zero by design.
+
+			Kept rather than deleted because it is a persisted profile key and
+			dropping it changes the save shape for no gain. Named here so the
+			next reader does not mistake a permanent zero for a lost payout.
+		]]
 		haulCoins = 0, haulGems = 0,
 		petSlots = C.STARTER_PET_SLOTS, zoneId = "meadow", maxUnlockedZone = 1,
 		-- Item bag rungs bought. Capacity is derived, never stored.
 		itemSlotUpgrades = 0,
 		bigbangOwned = false,
+		-- Halloween's claim flag and its currency. Candy is the Candy Crypt's
+		-- only real payout: the rock sells for almost nothing by design.
+		hallowOwned = false,
+		candy = 0,
+		-- Skins owned, and the one equipped per tool family.
+		skins = {},
+		skinEquipped = {},
 		coreSamples = {},
 		coreRiftOpened = {},
 		deepest = {}, depthUnlock = {}, backpack = {},
@@ -846,21 +906,18 @@ local function blank()
 		skillEarned = 0, skillBought = 0, skillSlot = 1, skillPresets = { { levels = {}, spent = 0 } },
 		-- skillBurned: points destroyed by sacrifice. temperTokens: what they paid.
 		boughtSecond = false, skillBurned = 0, temperTokens = 0,
-		runes = {}, gear = {},
+		gear = {},
 		-- Three hat seats, all the player's. Pets wear nothing.
 		equippedGear = { hat = nil, hat2 = nil, hat3 = nil, face = nil },
-		toolSockets = { pickaxe = nil, drill = nil, explosive = nil },
-		-- One temperament per tool family. Lives on the family, like its runes.
+		-- One temperament per tool family. Lives on the family.
 		toolTempers = {},
 		-- Owned temperaments, keyed by kit id: { rarity = grade, n = copies }.
 		tempers = {},
-		petSockets = {},
 		charms = {},
 		equippedCharm = nil,
 		vfx = {},
 		equippedVfx = Vfx.blankEquip(),
 		credits = 0,
-		scrolls = { white = 0, black = 0, omni = 0 },
 	}
 end
 
@@ -959,9 +1016,37 @@ local function load(plr)
 		running again on any server. Nobody else is touched. Studio has its own
 		stores now (MineConfig.DATASTORE_SUFFIX) and never gets here.
 	]]
-	if plr.UserId == 465369561 and not Svc.Run:IsStudio() then
+	--[[
+		RESET_EPOCH IS HOW A SECOND CLEAN START IS AUTHORISED.
+
+		Owner, 2026-10-08: "reset my save, i want to have nothing".
+
+		The block below already does exactly that, correctly -- back the save up
+		first, then remove it -- and already guarantees it happens at most once,
+		because the backup key's existence is the marker that stops it. Which
+		means it had already fired, and asking for a second reset had no way to
+		say so.
+
+		Bumping this number names a NEW backup key, so the marker for that key
+		does not exist yet and the reset runs one more time. It still cannot run
+		twice: the new backup is written before the save is removed, so the very
+		next join sees the marker. Every previous epoch's backup is left intact,
+		so nothing is ever actually lost -- epoch 1's save is still sitting under
+		_prelaunch_backup.
+
+		Raise it by one for each deliberate wipe. Never reuse a number.
+
+		Studio is included from epoch 2 on. Studio runs against its own store
+		(MineConfig.DATASTORE_SUFFIX) so the key is a different key there, and
+		the same once-per-epoch marker applies -- the old `not IsStudio()` guard
+		was there to stop a wipe on EVERY Studio run, which the marker now
+		handles on its own.
+	]]
+	local RESET_EPOCH = 2
+	if plr.UserId == 465369561 then
 		local key = "u_" .. plr.UserId
-		local backupKey = key .. "_prelaunch_backup"
+		local backupKey = (RESET_EPOCH <= 1) and (key .. "_prelaunch_backup")
+			or string.format("%s_reset_backup_%d", key, RESET_EPOCH)
 		local okB, already = pcall(function()
 			return store:GetAsync(backupKey)
 		end)
@@ -976,7 +1061,7 @@ local function load(plr)
 				pcall(function()
 					store:RemoveAsync(key)
 				end)
-				warn("[Mine] launch reset: owner's test save backed up to " .. backupKey .. " and cleared")
+				warn(string.format("[Mine] reset epoch %d: owner's save backed up to %s and cleared", RESET_EPOCH, backupKey))
 			end
 		end
 	end
@@ -1095,6 +1180,35 @@ local function load(plr)
 			end
 		end
 	end
+	--[[
+		One stack key per named pet (MinePetRoster.cardKeyOf). Copies minted by a
+		lucky block ("lucky_block:Name"), the wheel ("group_wheel:Name"), devGrant
+		or Event Horizon carried their source as their key, so they never stacked
+		or merged with the same pet from a pack. Idempotent: a card already on
+		its key is left alone. Generated cards ("set#007") are never touched.
+	]]
+	if PetRoster and PetRoster.cardKeyOf then
+		for _, c in ipairs(p.cards) do
+			if type(c) == "table" and type(c.name) == "string"
+				and not (type(c.cardKey) == "string" and string.find(c.cardKey, "#", 1, true)) then
+				local key = PetRoster.cardKeyOf(c.name)
+				if key and c.cardKey ~= key then
+					c.cardKey = key
+				end
+				--[[
+					A set pet's card wears the roster's CURRENT look. A card keeps
+					the `animal` it was minted with, and 2026-10-10 gave every
+					Epic-and-up set pet a body of its own and re-coloured the rest
+					(owner: "ALL UNIQUE"). Without this an old copy would keep
+					drawing the recolour it was pulled as. Idempotent.
+				]]
+				local row = PetRoster.BY_NAME and PetRoster.BY_NAME[c.name]
+				if row and row.set and type(row.animal) == "string" and c.animal ~= row.animal then
+					c.animal = row.animal
+				end
+			end
+		end
+	end
 	p.packs = p.packs or {}
 	p.packsOpened = p.packsOpened or {}
 	p.backpack = p.backpack or {}
@@ -1115,6 +1229,62 @@ local function load(plr)
 	p.coreSamples = p.coreSamples or {}
 	p.coreRiftOpened = p.coreRiftOpened or {}
 	p.bigbangOwned = p.bigbangOwned and true or false
+	p.hallowOwned = p.hallowOwned and true or false
+	p.candy = math.max(0, math.floor(tonumber(p.candy) or 0))
+	p.skins = type(p.skins) == "table" and p.skins or {}
+	p.skinEquipped = type(p.skinEquipped) == "table" and p.skinEquipped or {}
+	--[[
+		TEMPERS BECOME SKINS. Owner, 2026-10-10: the new skins replace them.
+
+		A MIGRATION, not a rename. p.tempers is a map of kit.id -> {rarity, n}
+		and the grades are the same F..SSS ladder, so each owned temper becomes
+		one owned skin of the SAME GRADE, picked deterministically from that
+		grade's skins by hashing the temper id. Deterministic because two
+		players with the same temper must get the same skin, and because a
+		player who logs in twice must not collect two.
+
+		The tempers are LEFT IN PLACE, not deleted. If this mapping turns out
+		wrong the source data is still there to remap from; deleting it would
+		make the migration unrepeatable and unauditable. `skinsFromTempers`
+		stops it running twice.
+	]]
+	if not p.skinsFromTempers then
+		local okSk, Skins = pcall(function()
+			return require(shared:WaitForChild("MineSkins"))
+		end)
+		if okSk and Skins and type(Skins.LIST) == "table" then
+			local byGrade = {}
+			for _, s in ipairs(Skins.LIST) do
+				if not s.pass then
+					byGrade[s.tier] = byGrade[s.tier] or {}
+					table.insert(byGrade[s.tier], s.id)
+				end
+			end
+			for _, list in pairs(byGrade) do
+				table.sort(list) -- stable order, so the hash means the same thing twice
+			end
+			local granted = 0
+			for tid, row in pairs(p.tempers or {}) do
+				local grade = type(row) == "table" and tostring(row.rarity or "F") or "F"
+				local pool = byGrade[grade] or byGrade.F
+				if pool and #pool > 0 then
+					local h = 0
+					for i = 1, #tid do
+						h = (h * 31 + string.byte(tid, i)) % 2147483647
+					end
+					local pick = pool[(h % #pool) + 1]
+					if not p.skins[pick] then
+						p.skins[pick] = true
+						granted += 1
+					end
+				end
+			end
+			if granted > 0 then
+				print(("[Mine] migrated %d temper(s) to skins for %d"):format(granted, plr.UserId))
+			end
+		end
+		p.skinsFromTempers = true
+	end
 	p.spaceCoins = math.max(0, math.floor(tonumber(p.spaceCoins) or 0))
 	p.haulSpace = math.max(0, math.floor(tonumber(p.haulSpace) or 0))
 	Dig.seedHaulMix(p)
@@ -1199,7 +1369,6 @@ local function load(plr)
 	if Dig.Depth.grantReachedSeams then
 		Dig.Depth.grantReachedSeams(p)
 	end
-	p.runes = p.runes or {}
 	p.gear = p.gear or {}
 	p.equippedGear = p.equippedGear or { hat = nil, face = nil }
 	if p.equippedGear.gloves ~= nil then
@@ -1299,21 +1468,39 @@ local function load(plr)
 		end
 	end
 	p.equippedVfx = Vfx.normalize(p.equippedVfx)
-	p.toolSockets = p.toolSockets or { pickaxe = nil, drill = nil, explosive = nil }
-	if p.toolSockets.ranged ~= nil then
-		-- Ranged tools/runes were cut; fold any leftover socket into pickaxe.
-		if p.toolSockets.ranged and not p.toolSockets.pickaxe then
-			p.toolSockets.pickaxe = p.toolSockets.ranged
-		end
-		p.toolSockets.ranged = nil
-	end
-	-- Migrate ranged runes so fuse/socket never target a dead family.
-	for _, rune in ipairs(p.runes or {}) do
-		if type(rune) == "table" and rune.kind == "ranged" then
-			rune.kind = "pickaxe"
+	--[[
+		RUNES, SCROLLS, SOCKETS AND TOOL TRAITS ARE RETIRED (owner, 2026-10-12:
+		"RETIRE RUNES AND TRAITS.. ENCHNATS TAKE OVERTHAT FEILD"; nobody has
+		played yet, so nothing is refunded). Whatever an old save still carries
+		is dropped here, so no reader ever finds a rune to pay.
+	]]
+	p.runes, p.toolSockets, p.petSockets, p.shopToolRunes, p.scrolls = nil, nil, nil, nil, nil
+	for _, t in ipairs(p.oreTools or {}) do
+		if type(t) == "table" then
+			t.trait = nil
 		end
 	end
-	p.petSockets = p.petSockets or {}
+	for _, ct in ipairs(p.chestTools or {}) do
+		if type(ct) == "table" then
+			ct.runeId = nil
+		end
+	end
+	for _, g in ipairs(p.gear or {}) do
+		if type(g) == "table" and type(g.sockets) == "table" then
+			g.sockets = {}
+		end
+	end
+	-- The three rune cases are gone from the pack table, so one left in a bag
+	-- could never open: it goes too.
+	if type(p.packs) == "table" then
+		local RUNE_CASE = { rune_pack = true, rune_heavy_pack = true, rune_sealed_pack = true }
+		for i = #p.packs, 1, -1 do
+			local row = p.packs[i]
+			if type(row) == "table" and (RUNE_CASE[tostring(row.packId or "")] or row.kind == "rune") then
+				table.remove(p.packs, i)
+			end
+		end
+	end
 	--[[
 		Temperaments are a COLLECTION now: you own them, and you choose which one
 		each tool wears. Anything already rolled onto a family or a flagship is
@@ -1356,12 +1543,6 @@ local function load(plr)
 	p.charms = p.charms or {}
 	if type(p.equippedCharm) == "string" and p.equippedCharm ~= "" and not p.charms[p.equippedCharm] then
 		p.equippedCharm = nil
-	end
-	-- Tiers arrived after these saves were written. normalize() labels each
-	-- rune from the percentage it already has and leaves that percentage alone.
-	p.runes = p.runes or {}
-	for _, r in ipairs(p.runes) do
-		Runes.normalize(r)
 	end
 	-- Gear grades became letters (F..SSS); saved pieces still carry the old
 	-- words, and the stat sheet is keyed by grade, so this has to run before
@@ -1434,6 +1615,19 @@ local function load(plr)
 		end
 		p.questVer = 2
 	end
+	--[[
+		v3 inserted forge1, charm1, skin1 and trait1 -- the four systems the
+		ladder never taught. Same move as v2: the saved index lands on the
+		same quest it was already on, so nobody is pushed forward or back a
+		rung by the insertion. Runs AFTER the v2 block above, so a very old
+		save migrates v1 -> v2 -> v3 in one login.
+	]]
+	if (math.floor(tonumber(p.questVer) or 1)) < 3 then
+		if Quests.remapV2 then
+			p.quest = Quests.remapV2(p.quest)
+		end
+		p.questVer = 3
+	end
 	-- The short-lived "tool mastery" bonus is gone; drop its ledger.
 	p.toolMastery = nil
 	-- Quest counters. Saves that predate quests have no history for blocks,
@@ -1464,10 +1658,6 @@ local function load(plr)
 		p.pass.owned = true
 	end
 	Scrolls.reconcilePass(p.pass)
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	p.scrolls.white = p.scrolls.white or 0
-	p.scrolls.black = p.scrolls.black or 0
-	p.scrolls.omni = p.scrolls.omni or 0
 	-- One-shot: old 6-rung gem backpack ladder → 30-rung coin ladder by capacity.
 	if not p.backpackCoinV2 then
 		local OLD = { 80, 650, 5400, 44000, 370000, 3100000 }
@@ -1870,7 +2060,7 @@ local function load(plr)
 				local seatsRef = { left = vipSeatsLeft }
 				if Founders.grant(p, plr, "gamepass", {
 					seatsRef = seatsRef,
-					grantScrolls = grantScrolls,
+					grantBooks = Dig.grantBooks,
 					toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 				}) then
 					vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -2048,6 +2238,48 @@ local function foreverToolZoneOk(p, def)
 	return true
 end
 
+--[[
+	THE SKIN'S BASE MULTIPLIER on the tool it is worn on.
+
+	Owner: "The skin is the base, multiplied by the ore damage off the rip,
+	then every other boost stacks on top of the skin boost." The stacking is
+	layer 1 and 2 in boosts(); THIS is the "off the rip" -- it multiplies the
+	ore tool's own power before any boost has had a say.
+
+	Per family, because a skin is worn per family. Returns 1 for no skin, so
+	an unskinned tool is exactly the tool it was.
+
+	IT LIVES ABOVE equippedTool, AND THAT IS THE WHOLE POINT.
+
+	It used to sit next to boosts(), ~370 lines BELOW the two places that call
+	it. In Luau a local referenced above its own declaration is not an error and
+	not a compile failure -- it is a GLOBAL READ, which is nil. So
+	`luau-compile` passed, every gate passed, and the game threw at runtime:
+
+	  MineServer:2293: attempt to call a nil value
+	  ... function equippedTool / boosts / mineTick
+
+	equippedTool is called by givePickaxe, snap, boosts and mineTick, so one
+	mis-ordered local took out spawning, the snapshot and the mining loop
+	together. Anything calling this must stay below it.
+]]
+local function skinBase(p, familyId)
+	if not p or not familyId then
+		return 1
+	end
+	local id = p.skinEquipped and p.skinEquipped[tostring(familyId)]
+	if not id then
+		return 1
+	end
+	local ok, Skins = pcall(function()
+		return require(shared:WaitForChild("MineSkins"))
+	end)
+	if not ok or not Skins then
+		return 1
+	end
+	return tonumber(Skins.baseOf(id)) or 1
+end
+
 local function equippedTool(p)
 	-- Migrate saves that predate the 70-tool table.
 	if not p.tools then
@@ -2094,25 +2326,13 @@ local function equippedTool(p)
 			p.oreToolEquipped = nil
 		else
 			local famId = held.familyId or "pickaxe"
+			local OreToolsPow = require(shared:WaitForChild("MineOreTools"))
 			local oreDef = C.ORES and C.ORES[tonumber(held.tier) or 1]
-			-- Same rarity rank the bench prices against, so what you paid for
-			-- and what you swing agree.
-			local typeMult = 1
-			local famList = Tools.TOOLS and Tools.TOOLS[famId]
-			if famList then
-				for _, td in ipairs(famList) do
-					if td.id == held.typeId then
-						local rr = Tools.normalizeToolRarity and Tools.normalizeToolRarity(td.rarity)
-						typeMult = (Tools.RARITY_RANK and Tools.RARITY_RANK[rr or td.rarity]) or 1
-						break
-					end
-				end
-			end
+			local typeMult = OreToolsPow.typeMult(famId, held.tier)
 			local lvl = math.max(1, tonumber(held.level) or 1)
-			local power = 1
-			if C.toolPower then
-				power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)))
-			end
+			local famPow = (OreToolsPow.familyPower and OreToolsPow.familyPower(famId)) or 1
+			local power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)
+				* famPow * skinBase(p, famId)))
 			--[[
 				FINISHES RIDE AN ORE TOOL THE SAME WAY THEY RIDE A FLAGSHIP.
 
@@ -2162,21 +2382,40 @@ local function equippedTool(p)
 				deriving keeps a tool honest if the roster moves, and needs no
 				migration for the tools players already hold.
 			]]
+			-- FRAME_STATS must ride this return (was on a dead second branch).
+			local stats = OreToolsPow.frameStats(famId, held.tier)
 			return {
 				id = "oretool_" .. tostring(held.uid),
 				uid = held.uid,
-				name = (oreDef and oreDef.name) or "Ore Tool",
+				name = string.format("%s %s",
+					(oreDef and oreDef.name) or ("Tier " .. tostring(held.tier)),
+					OreToolsPow.familyNoun(famId)),
 				modelName = (oreDef and oreDef.name) or nil,
 				family = famId,
-				oreTier = tonumber(held.tier) or 1,
+				oreTier = math.max(1, math.floor(tonumber(held.tier) or 1)),
 				oreId = (oreDef and oreDef.id) or nil,
 				power = power,
 				level = lvl,
 				oreTool = true,
+				oreToolEquipped = held.uid,
 				shiny = shiny,
 				shadow = shadow,
 				nightmare = nightmare,
 				finish = finish,
+				rate = stats.rate or 2.6,
+				radius = stats.radius or 0,
+				cells = stats.cells or 1,
+				shape = stats.shape or "melee",
+				width = stats.width,
+				axis = stats.axis,
+				turn = stats.turn,
+				bombs = stats.bombs,
+				pattern = stats.pattern,
+				cooldown = stats.cooldown,
+				depth = stats.depth,
+				sink = stats.sink,
+				auto = stats.auto,
+				windSec = stats.windSec,
 			}, famId, 0
 		end
 	end
@@ -2214,83 +2453,6 @@ local function equippedTool(p)
 			t.power = math.max(1, math.floor((t.power or 1) * (C.SHINY_MULT or 1.5)))
 		end
 		return t, t.family or def.family or "pickaxe", 0
-	end
-	--[[
-		An equipped ore tool overrides the ladder, exactly as a chest flagship
-		does. It is not a rung you bought, it is an object you forged.
-
-		The row carries the ORE tier, and that tier is the tool's breaking power
-		(docs/TODO.md section 0.1). It is returned on the def as `oreTier` so
-		givePickaxe can stamp it on the Tool instance -- the swing gate reads it
-		from there. It deliberately does NOT ride the third return value, which
-		is `lookTier`, a cosmetic ladder rung clamped to the shop family's
-		length; conflating the two is how breaking power would silently become
-		a shop number.
-
-		typeMult is resolved inline rather than through Verbs._oreToolTypeMult,
-		because `local Verbs` is declared thousands of lines below this point.
-	]]
-	if p.oreToolEquipped then
-		local oreRow
-		for _, row in ipairs(p.oreTools or {}) do
-			if type(row) == "table" and row.uid == p.oreToolEquipped then
-				oreRow = row
-				break
-			end
-		end
-		if oreRow then
-			--[[
-				THE STATS COME FROM THE ORE, NOT FROM A FRAME.
-
-				This walked Tools.TOOLS for the row's typeId and took `rate`,
-				`radius`, `cells` and `shape` off whatever frame it found. That
-				roster is gone, so the stats are read from MineOreTools instead,
-				where they are baked per family per ore tier -- the same values,
-				verified 2,460 for 2,460 against the roster before it was removed.
-
-				Without this the fallbacks below would have taken over and every
-				forged DRILL and EXPLOSIVE would quietly become a one-cell melee
-				pickaxe: no area clear, no blast, and nothing to error on.
-
-				The name is the family's noun now. It used to be the FRAME's
-				name, so a forged tool read "Stone Chipped Crown" -- an ore and
-				an invented frame title, which is the exact confusion
-				MineOreTools was written to end.
-			]]
-			local famId = oreRow.familyId or "pickaxe"
-			local OreToolsM = require(shared:WaitForChild("MineOreTools"))
-			local stats = OreToolsM.frameStats(famId, oreRow.tier)
-			local typeMult = OreToolsM.typeMult(famId, oreRow.tier)
-			local oreDef = C.ORES and C.ORES[tonumber(oreRow.tier) or 1]
-			local level = math.max(1, tonumber(oreRow.level) or 1)
-			local def = {
-				id = "oretool_" .. tostring(oreRow.uid),
-				name = string.format("%s %s",
-					(oreDef and oreDef.name) or ("Tier " .. tostring(oreRow.tier)),
-					OreToolsM.familyNoun(famId)),
-				family = famId,
-				power = math.max(1, math.floor(C.toolPower(oreRow.tier, level, typeMult))),
-				rate = stats.rate or 2.6,
-				radius = stats.radius or 0,
-				cells = stats.cells or 1,
-				shape = stats.shape or "melee",
-				-- Carried through for the families that use them. A drill needs
-				-- its width and axis to clear more than one block; an explosive
-				-- needs its bomb count, pattern and cooldown to be a bomb.
-				width = stats.width,
-				axis = stats.axis,
-				turn = stats.turn,
-				bombs = stats.bombs,
-				pattern = stats.pattern,
-				cooldown = stats.cooldown,
-				oreTier = math.max(1, math.floor(tonumber(oreRow.tier) or 1)),
-				oreToolEquipped = oreRow.uid,
-				level = level,
-			}
-			return def, famId, 0
-		end
-		-- Scrapped or never existed: stop pointing at it.
-		p.oreToolEquipped = nil
 	end
 	if p.chestTool then
 		-- Pass tools (lunar_pick / bp_eclipse / lunar_eclipse) live in chestTools
@@ -2386,15 +2548,10 @@ end
 Dig.tailor = setmetatable({}, { __mode = "k" })
 
 function Dig.petRows(p, n)
-	local pieces, runes = {}, {}
+	local pieces = {}
 	for _, g in ipairs(p.gear or {}) do
 		if type(g) == "table" and g.id then
 			pieces[g.id] = g
-		end
-	end
-	for _, r in ipairs(p.runes or {}) do
-		if type(r) == "table" and r.id then
-			runes[r.id] = r
 		end
 	end
 	local zero = Cards.emptyBoosts()
@@ -2424,11 +2581,10 @@ function Dig.petRows(p, n)
 				cardId = id,
 				-- No `hat`: a pet wears none. Your three seats apply to all of
 				-- them at once, and stackPets reads them from `eq`.
-				rune = runes[(p.petSockets or {})[id] or ""],
 			})
 		end
 	end
-	return rows, pieces, runes
+	return rows, pieces
 end
 
 --[[
@@ -2494,32 +2650,53 @@ local function boosts(p)
 		end
 	end
 	--[[
-		THE EQUIPPED TOOL'S ENCHANTMENT.
+		THE HELD TOOL'S ENCHANTS, LAYER 1 -- where traits sat (retired 2026-10-12), because
+		enchants take over the field traits and runes held (owner, 2026-10-11).
+		Damage and Utility only; Special is not a stat, it picks the proc
+		(gateProcs, at the end of this function).
+	]]
+	if Dig.EnchSvc then
+		for _, st in ipairs(Dig.EnchSvc.layerStats(p)) do
+			Dig.Layers.add(T1, st.stat, st.value)
+		end
+	end
 
-		One trait, on the tool you are holding, and nothing else: no
-		slots, no per-family sockets, no three hats and a face. A tool that is
-		not in your hands gives nothing, which is what makes the prefix on the
-		one you ARE holding mean something.
+	--[[
+		THE SKIN ON THE TOOL YOU ARE HOLDING. LAYER 1.
 
-		Folded through MineCards.ADDITIVE_STATS rather than a second opinion
-		about which stats add and which multiply -- the two drifting apart
-		would quietly pay a chance stat as a multiplier.
+		Not my placement -- the owner's note at the top of this function put
+		skins there already: "skills+skins+tools+traits are the very bottom ...
+		equipment+pets are #2". So a skin ADDS with the trait and the skill
+		tree, and the pets and gear layer multiplies that, which is exactly the
+		worked example in that note: base 100, skin +50%, pet +100% -> 300.
+
+		One skin per FAMILY, and only the family you are actually holding pays,
+		the same rule the tool's own trait follows directly above. A skin on
+		your drill does nothing while you swing a pickaxe.
+
+		Dig.Layers.add, not b[stat], so ADDITIVE_STATS is honoured in one place
+		rather than by a second opinion here about which stats add.
 	]]
 	do
 		local uid = p.oreToolEquipped
+		local fam
 		if uid then
 			for _, t in ipairs(p.oreTools or {}) do
 				if t.uid == uid then
-					if type(t.trait) == "table" then
-						-- Layer 1: the tool's own trait, beside skills
-						-- and skins rather than on top of them.
-						local def = Dig.Traits.byId(t.trait.id)
-						if def then
-							Dig.Layers.add(T1, def.stat,
-								Dig.Traits.amount(t.trait.id, t.trait.level))
-						end
-					end
+					fam = t.familyId
 					break
+				end
+			end
+		end
+		local id = fam and p.skinEquipped and p.skinEquipped[fam]
+		if id then
+			local okSk, Skins = pcall(function()
+				return require(shared:WaitForChild("MineSkins"))
+			end)
+			local def = okSk and Skins and Skins.byId(id)
+			if def then
+				for stat, amount in pairs(def.kit or {}) do
+					Dig.Layers.add(T1, stat, amount)
 				end
 			end
 		end
@@ -2634,7 +2811,8 @@ local function boosts(p)
 	-- procs (echo/zap/Blast/blastRadius/autoMine) add chance or radius instead.
 	local ADDITIVE_BOOST = {
 		echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
-		earthquake = true, ricochet = true,
+		earthquake = true, ricochet = true, tidalWave = true,
+		blastDamage = true, tideDamage = true, zapDamage = true, shatterDamage = true,
 	}
 	for _, held in ipairs(p.relics or {}) do
 		local r = C.relicById(held.id)
@@ -2658,62 +2836,11 @@ local function boosts(p)
 		end
 	end
 
-	-- Runes + gear (after relics/charter; clamped at the end).
-	local byRune = {}
-	for _, r in ipairs(p.runes or {}) do byRune[r.id] = r end
-	local equippedPieces = {}
-	for slot, pieceId in pairs(p.equippedGear or {}) do
-		if pieceId then
-			for _, g in ipairs(p.gear or {}) do
-				if g.id == pieceId then
-					equippedPieces[slot] = g
-					break
-				end
-			end
-		end
-	end
-	Gear.applyEquipped(b, equippedPieces, byRune)
-	local _, fam = equippedTool(p)
-	local sock = p.toolSockets and p.toolSockets[fam]
-	local mainId, omniId
-	if type(sock) == "string" then
-		mainId = sock
-	elseif type(sock) == "table" then
-		mainId, omniId = sock.main, sock.omni
-	end
-	-- Track what is actually socketed, so a completed set can pay its bonus.
-	-- Only worn runes count; a full set sitting in the bag is a full set you
-	-- have not equipped.
-	local socketed = {}
-	local function wear(rune)
-		if rune then
-			-- Six sockets in the whole loadout: a rune that earns one is worth
-			-- more than it was when a single head piece held five.
-			Runes.applyRune(b, rune, Runes.SOCKET_GAIN)
-			table.insert(socketed, rune)
-		end
-	end
-	if mainId and byRune[mainId] then wear(byRune[mainId]) end
-	if omniId and byRune[omniId] then wear(byRune[omniId]) end
-	for _, ct in ipairs(p.chestTools or {}) do
-		if ct.runeId and byRune[ct.runeId] and p.chestTool == ct.id then
-			wear(byRune[ct.runeId])
-		end
-	end
-	-- A coin-shop tool's own socket, while that tool is the one in hand.
-	if p.shopToolId and not p.chestTool and p.shopToolRunes then
-		local rid = p.shopToolRunes[p.shopToolId]
-		if rid and byRune[rid] then
-			wear(byRune[rid])
-		end
-	end
-	for _, cardId in ipairs(p.equipped or {}) do
-		local rid = p.petSockets and p.petSockets[cardId]
-		if rid and byRune[rid] then wear(byRune[rid]) end
-	end
-	Runes.applySetBonuses(b, socketed)
+	-- Runes, and the gear and tool sockets they sat in, were retired on
+	-- 2026-10-12: enchants took that field (owner: "RETIRE RUNES AND TRAITS..
+	-- ENCHNATS TAKE OVERTHAT FEILD"). Gear pays through layer 2 (Dig.layer2).
 
-	-- One equipped charm (does not take a rune/pet slot).
+	-- One equipped charm (does not take a pet slot).
 	if p.equippedCharm then
 		Charms.applyEquipped(b, p.equippedCharm, p)
 	end
@@ -2739,10 +2866,37 @@ local function boosts(p)
 			flagship. A flagship carries its own, above; only one temperament
 			ever applies, the one on the tool actually being swung.
 		]]
-		-- equippedTool resolves what is really in hand; a fossil tool comes back
-		-- as tier 0, and it is a found object with no family temperament.
-		local _, fam, tier = equippedTool(p)
-		local tt = (tier or 0) > 0 and p.toolTempers and p.toolTempers[fam]
+		--[[
+			A FORGED TOOL WEARS ITS FAMILY'S SKIN. IT DID NOT.
+
+			This read `(tier or 0) > 0`, meaning to exclude found objects -- the
+			comment said so: "a fossil tool comes back as tier 0, and it is a
+			found object with no family temperament". But equippedTool returns
+			tier 0 on THREE paths, not one: the two found-tool paths AND the
+			forged-ore-tool path, which returns `famId, 0` because a forged
+			tool's rung is its ORE's tier and deliberately does not ride the
+			third return value (equippedTool says so where it returns).
+
+			So the test excluded exactly the tools the Forge exists to make.
+			Fitting a skin to a pickaxe did nothing the moment the pickaxe you
+			were swinging was one you forged -- which, past the first hour, is
+			every pickaxe. The Forge's own panel reports the fitted skin for the
+			family, so it read as applied while contributing nothing.
+
+			Nothing caught it because both branches are silent: no skin fitted
+			and a skin fitted-but-ignored produce the same boost table.
+
+			Tested positively now. A forged row is the only one carrying
+			`oreTier` (MineTools never sets it on a chest def) and the primary
+			path also stamps `oreTool = true`, so either marker identifies one
+			without having to enumerate what it is not. Found tools still fall
+			through, and a flagship is still handled by the branch above --
+			only one temperament ever applies, the one on the tool in hand.
+		]]
+		local row, fam, tier = equippedTool(p)
+		local forged = type(row) == "table"
+			and (row.oreTool == true or tonumber(row.oreTier) ~= nil)
+		local tt = (forged or (tier or 0) > 0) and p.toolTempers and p.toolTempers[fam]
 		if type(tt) == "table" and tt.temperId then
 			require(shared.MineTemper).applyTemper(b, tt)
 		end
@@ -2788,52 +2942,20 @@ local function boosts(p)
 		b.autoMine = math.max(tonumber(b.autoMine) or 0, C.AUTO_MINE_LICENSE_RATE or 1)
 	end
 
-	return Runes.clampBoosts(b)
-end
-
-local function runeById(p, id)
-	for _, r in ipairs(p.runes or {}) do if r.id == id then return r end end
+	--[[
+		THE SPECIAL SLOT DECIDES THE PROC (owner: "This slot determines which
+		effect your tool will have, regardless of pet setup. The pets only boost
+		this"). Every other proc family is zeroed, the enchant adds its own, and
+		a chance over 100% becomes that proc's damage. MineEnchants.gateProcs.
+	]]
+	if Dig.EnchSvc then
+		b = Dig.Enchants.gateProcs(b, Dig.EnchSvc.special(p))
+	end
+	return Cards.clampBoosts(b)
 end
 
 local function gearById(p, id)
 	for _, g in ipairs(p.gear or {}) do if g.id == id then return g end end
-end
-
-local function removeRune(p, id)
-	for i, r in ipairs(p.runes or {}) do if r.id == id then return table.remove(p.runes, i) end end
-end
-
-local function familySocket(p, family)
-	p.toolSockets = p.toolSockets or {}
-	local v = p.toolSockets[family]
-	if type(v) == "string" then
-		v = { main = v, omni = nil, omniUnlocked = false }
-		p.toolSockets[family] = v
-	elseif type(v) ~= "table" then
-		v = { main = nil, omni = nil, omniUnlocked = false }
-		p.toolSockets[family] = v
-	else
-		v.main = v.main or nil
-		v.omni = v.omni or nil
-		v.omniUnlocked = v.omniUnlocked and true or false
-	end
-	return v
-end
-
-local function runeBusy(p, id)
-	for fam, _ in pairs(p.toolSockets or {}) do
-		local sock = familySocket(p, fam)
-		if sock.main == id or sock.omni == id then return "tool" end
-	end
-	for _, ct in ipairs(p.chestTools or {}) do if ct.runeId == id then return "chest" end end
-	for _, rid in pairs(p.petSockets or {}) do if rid == id then return "pet" end end
-	for _, rid in pairs(p.shopToolRunes or {}) do if rid == id then return "shop" end end
-	for _, g in ipairs(p.gear or {}) do
-		-- pairs, not ipairs: sockets is sparse whenever slot 1 is still empty,
-		-- and ipairs stops dead at the first hole.
-		for _, sid in pairs(g.sockets or {}) do if sid == id then return "gear" end end
-	end
-	return nil
 end
 
 local function cap(p)
@@ -3000,8 +3122,61 @@ local function questValue(p, stat)
 		return best
 	elseif stat == "gear" then
 		return #(p.gear or {})
-	elseif stat == "runes" then
-		return #(p.runes or {})
+	elseif stat == "enchants" then
+		-- Filled enchant slots across every tool (derived, like the four below).
+		local n = 0
+		for _, t in ipairs(p.oreTools or {}) do
+			if type(t) == "table" and type(t.enchants) == "table" then
+				for _, e in pairs(t.enchants) do
+					if type(e) == "table" then
+						n += 1
+					end
+				end
+			end
+		end
+		return n
+	elseif stat == "bookmerges" then
+		return tonumber(p.bookMerges) or 0
+	--[[
+		THE FOUR SYSTEMS THE LADDER NEVER MENTIONED.
+
+		Counted across the quest chain: rebirth appears 34 times, packs 32,
+		runes 16, gear 13, skills 11 -- and the Forge ONCE, charms once, skins
+		once, traits ZERO. The tutorial teaches the systems this game had two
+		revisions ago and never caught up with the ones it is now built on. A
+		player can reach two hours without being told traits exist, and the
+		Forge is 246 craftable tools and the centrepiece of the game.
+
+		All four are DERIVED from state the profile already keeps, so none of
+		them needs a new counter to be written, migrated or kept in sync:
+
+		  oretools  how many tools you have forged
+		  charms    how many charms you own (p.charms is a keyed set)
+		  skins     how many families have a temperament fitted
+
+		Derived also means they are correct for existing players on the first
+		login -- someone who already forged twenty tools reads 20, not 0, and
+		questBase then makes the goal count from now rather than retro-
+		crediting the rung.
+	]]
+	elseif stat == "oretools" then
+		return #(p.oreTools or {})
+	elseif stat == "charms" then
+		local n = 0
+		for _, owned in pairs(p.charms or {}) do
+			if owned then
+				n += 1
+			end
+		end
+		return n
+	elseif stat == "skins" then
+		local n = 0
+		for _, row in pairs(p.toolTempers or {}) do
+			if type(row) == "table" and row.temperId then
+				n += 1
+			end
+		end
+		return n
 	end
 	return 0
 end
@@ -3060,6 +3235,8 @@ local function questState(p)
 		goal = q.goal,
 		ready = current >= q.goal,
 		reward = Quests.describe(q.reward),
+		-- The quest card shows icons and numbers (kid-friendly pass).
+		rewardIcons = Quests.icons and Quests.icons(q.reward) or nil,
 		index = index,
 		total = Quests.COUNT,
 		done = false,
@@ -3112,6 +3289,7 @@ local function dailyQuestState(p, userId)
 				ready = progress >= def.goal and not row.claimed,
 				claimed = row.claimed and true or false,
 				reward = Quests.dailyGems(def, zone) .. " Gems",
+				gems = Quests.dailyGems(def, zone),
 			}
 		end
 	end
@@ -3355,12 +3533,26 @@ local function snap(plr)
 	end
 	net:FireClient(plr, "snapshot", {
 		settings = p.settings, starterBought = p.starterBought and true or false,
-		shopToolRunes = p.shopToolRunes or {},
 		playtime = p.playtime, serverTime = os.time(),
 		freeGear = (not p.freeGearUsed) and #(p.gear or {}) == 0,
 		gems = p.gems, coins = p.coins or 0, dust = p.dust, dustShop = Packs.dustShopPayload and Packs.dustShopPayload(p) or nil, prestige = p.prestige, pickaxeTier = p.pickaxeTier,
 		backpackTier = p.backpackTier, petSlots = p.petSlots, petSlotsEffective = C.effectivePetSlots and C.effectivePetSlots(p) or p.petSlots, zoneId = p.zoneId,
 		maxUnlockedZone = p.maxUnlockedZone, bigbangOwned = p.bigbangOwned and true or false,
+		hallowOwned = p.hallowOwned and true or false, candy = p.candy or 0,
+		skins = p.skins or {}, skinEquipped = p.skinEquipped or {},
+		-- One-shot: the client reads it once, then it is cleared below.
+		skinNotice = p.skinNotice,
+		-- Fishing's bait, rod and cooler count (MineFishingService; Verbs is
+		-- declared below this function, so it is required here).
+		fishing = (function()
+			local okF, Fish = pcall(require, script.Parent:WaitForChild("MineFishingService"))
+			return okF and Fish.snapState(p) or nil
+		end)(),
+		-- Enchant books and the player level (MineEnchantService).
+		enchants = (function()
+			local okE, Ench = pcall(require, script.Parent:WaitForChild("MineEnchantService"))
+			return okE and Ench.snapState(p) or nil
+		end)(),
 		eventPass = (function()
 			local ev = C.EVENTS and C.EVENTS[1]
 			if not ev then return nil end
@@ -3482,21 +3674,21 @@ local function snap(plr)
 		toolTier = p.toolTier or {},
 		-- Owned once. Pass XP/claims live under Inventory > Pass.
 		battlePass = p.battlePass,
-		runes = p.runes, gear = p.gear, equippedGear = p.equippedGear,
-		toolSockets = p.toolSockets, petSockets = p.petSockets,
+		gear = p.gear, equippedGear = p.equippedGear,
 		hatSlots = Gear.HAT_SLOTS,
 		tailorStat = Dig.tailor[p],
 		toolTempers = p.toolTempers or {},
 		tempers = p.tempers or {},
 		temperCasePrice = require(shared.MineTemper).CASE_PRICE_TOKENS,
-		runeRollPrice = Runes.rollPriceFor(p.maxUnlockedZone), gearRollPrice = tonumber(Gear.ROLL_TOKEN_COST) or 5,
-		credits = p.credits or 0, scrolls = p.scrolls or Scrolls.emptyBag(),
+		gearRollPrice = tonumber(Gear.ROLL_TOKEN_COST) or 5,
+		credits = p.credits or 0,
 		quest = questState(p),
 		dailyQuests = dailyQuestState(p, plr.UserId),
 		milestones = Quests.svMilestoneState(p),
 		contracts = Quests.svContractState(p, plr.UserId),
 		daily = dailyState(p),
-		groupWheel = GroupWheelService.payload(p),
+		-- Small (spins left, paid, reset): the panel has the prize table itself.
+		groupWheel = GroupWheelService.snapState(p, plr),
 		discordLinked = p.discordLinked == true,
 		discordId = p.discordId,
 		discordBonusClaimed = p.discordBonusClaimed == true,
@@ -3543,8 +3735,11 @@ local function snap(plr)
 				tiers = Scrolls.PASS_TIERS,
 			}
 		end)(),
-		creditPacks = Scrolls.CREDIT_PACKS, scrollShop = Scrolls.ITEMS,
+		creditPacks = Scrolls.CREDIT_PACKS,
 	})
+	-- The skin notice is ONE SHOT. Cleared after the send, or every snapshot
+	-- from here on re-announces the same skin -- and snaps are frequent.
+	p.skinNotice = nil
 end
 
 -- A snapshot is the whole profile: cards, packs, relics, skills. Sending one
@@ -3552,7 +3747,8 @@ end
 -- is exactly the hitch you feel when a big charge goes off. Mark the player
 -- dirty instead and flush at most ten times a second.
 local dirty = {}
-local function markDirty(plr)
+-- Assigned, not declared: the forward declaration is up with the requires.
+function markDirty(plr)
 	dirty[plr.UserId] = plr
 end
 
@@ -3610,38 +3806,42 @@ local Intro = {
 		to the step's cost, a pack appears only if the bag is empty. The spent
 		mark lives in p.introGrants so nothing can be farmed.
 	]]
+	--[[
+		Kid-friendly pass (owner, 2026-10-12, resumed 2026-10-19: "icons with big
+		numbers, 1-3 words"): every banner in the first ten minutes leads with an
+		icon and says one thing, with its CAPS word the thing to do.
+	]]
 	steps = {
-		[1] = { text = "HOLD on a rock to break it." },
-		[2] = { text = "Bag's filling up! Run it to the SELL PAD.", waypoint = "sell", bonusGems = 10 },
-		[3] = { text = "Coins burning a hole? BUY A BIGGER PICK.", panel = "shop", waypoint = "shop", grantCoins = "nextPick" },
-		[4] = { text = "Chests are stuffed with packs. CRACK ONE.", waypoint = "chest" },
-		[5] = { text = "RIP IT OPEN — Inventory, Packs.", panel = "inventory", tab = "packs", grantPack = true },
-		[6] = { text = "Send your best pet out. It mines WITH you.", panel = "inventory", tab = "cards", highlight = "cardsTab", bonusGems = 15 },
-		[7] = { text = "Free gems, top-left. CLAIM IT.", highlight = "questClaim" },
-		[8] = { text = "Now the good stuff: ROLL A RUNE.", panel = "summon", grantGems = "runeRoll", waypoint = "enchanter" },
-		[9] = { text = "Jam it into your pick. Yours forever, even through rebirth.", panel = "enchanter", tab = "sockets", requireAction = "socketToolRune", waypoint = "enchanter", bonusGems = 25 },
+		[1] = { text = "⛏️ HOLD on a rock to break it!" },
+		[2] = { text = "🎒 Bag filling up? Run to the SELL PAD!", waypoint = "sell", bonusGems = 10 },
+		[3] = { text = "💰 Got coins? BUY A BIGGER PICK!", panel = "shop", tab = "pickaxe", waypoint = "shop", grantCoins = "nextPick" },
+		[4] = { text = "🧰 Chests hide packs. CRACK ONE!", waypoint = "chest" },
+		[5] = { text = "📦 RIP IT OPEN: Inventory → Packs!", panel = "inventory", tab = "packs", grantPack = true },
+		[6] = { text = "🐾 Send your best pet out. It digs WITH you!", panel = "inventory", tab = "cards", highlight = "cardsTab", bonusGems = 15 },
+		[7] = { text = "💎 Free gems, top-left. CLAIM IT!", highlight = "questClaim" },
+		-- Enchants took the rune lesson's place (owner, 2026-10-12: "Teach enchants"):
+		-- two free Damage books, which level 1 can use, and the Forge opens on ENCHANT.
+		[8] = { text = "FREE BOOKS! 📖 Open the FORGE and ENCHANT your pick.", panel = "forge", tab = "enchant", grantBooks = 2, requireAction = "enchApply", bonusGems = 25 },
 		-- Two things wrong here before: it said hats go on your PETS (they are
 		-- player-only now, three seats, TODO 6.2) and it taught gems (they cost
 		-- rebirth tokens).
 		[10] = { text = "Summon a HAT — your first roll is FREE. Hats are real Roblox items, you wear them yourself, and after the free one they cost REBIRTH TOKENS.", panel = "summon", highlight = "gearRow", waypoint = "enchanter" },
-		[11] = { text = "Your runes live at the Enchanter, on its RUNES tab. Fuse spares there later (50%, no pity).", panel = "enchanter", tab = "runes", ack = true, waypoint = "enchanter" },
-		[12] = { text = "NEW ZONE: Greyvein. The bar is how close you are.", panel = "zones" },
+		[12] = { text = "🗺️ NEW ZONE: Greyvein! The bar shows how close you are.", panel = "zones" },
 		[13] = { text = "JOBS: dailies and the board pay gems every UTC day. Come back here when you need more.", panel = "jobs", ack = true, waypoint = "contractor" },
-		[14] = { text = "EVENTS: Event Horizon is free while its timer runs — grab it from the portal.", panel = "events", ack = true },
+		[14] = { text = "🌌 EVENT: Event Horizon is FREE while its timer runs. Hop in at the portal!", panel = "events", ack = true },
 		-- Was the FOSSIL BENCH. Fossils are retired, and the step is repurposed
 		-- rather than removed: introAdvance walks these by number, so deleting 15
 		-- would strand every player sitting on it. The ore pouch is the right
 		-- replacement -- it is new, it is where ore turns into gems, and nothing
 		-- else taught it.
 		[15] = { text = "Your ORE POUCH holds everything you dig. Sell ore there for GEMS -- and it is the one thing a rebirth never takes.", panel = "shop", tab = "pouch", ack = true, waypoint = "shop" },
-		[16] = { text = "Last one — SPIN A TEMPERAMENT CASE.", panel = "enchanter", tab = "summon", highlight = "caseRow", waypoint = "enchanter", ack = true },
+		[16] = { text = "🎰 Last one: SPIN A TEMPERAMENT CASE!", panel = "enchanter", tab = "summon", highlight = "caseRow", waypoint = "enchanter", ack = true },
 		[17] = { text = "Rebirth grants SKILL POINTS for the Clouds skill tree.", ack = true },
-		[18] = { text = "REBIRTH. Reset small, come back way bigger.", panel = "prestige", waypoint = "prestige" },
-		[19] = { text = "DAILY REWARD: claim today's gift. Seven days in a row pays the day-7 jackpot.", highlight = "daily" },
-		[20] = { text = "FREE GIFTS fill up while you play. Tap the gift box under the wallet and open one.", highlight = "gifts" },
+		[18] = { text = "🔄 REBIRTH: reset small, come back BIG!", panel = "prestige", waypoint = "prestige" },
+		[19] = { text = "📅 DAILY GIFT! Claim it. 7 days in a row = JACKPOT!", highlight = "daily" },
+		[20] = { text = "🎁 FREE GIFTS fill up as you play. Tap the gift box and OPEN ONE!", highlight = "gifts" },
 		[21] = { text = "Dig down to 30m. The deepest miners get their name on the board at the far end of every mine." },
 		[22] = { text = "Chests glow. When the dirt around you picks up a warm light, a chest is close: dig toward it and open 3 chests.", count = 3 },
-		[23] = { text = "Every tool has its own RUNE SLOT. Rebirth takes coin tools back, but the rune stays in the slot and is waiting when you buy that tool again.", panel = "enchanter", tab = "sockets", ack = true, waypoint = "enchanter" },
 		--[[
 			The hat/face/rune lessons. Each one opens the screen it teaches AND
 			points a hand at the exact thing to tap (`highlight` resolves to a
@@ -3650,9 +3850,8 @@ local Intro = {
 		]]
 		[24] = { text = "A HAT is yours -- you have three seats, and every hat you wear makes every pet stronger. Tap a HAT seat, then tap a hat.", panel = "inventory", tab = "tools", highlight = "hatSeat", requireAction = "equipGearPiece" },
 		[25] = { text = "Your FACE is the one piece nobody else wears -- it multiplies your WHOLE team. Fit one here.", panel = "inventory", tab = "tools", highlight = "faceSeat", ack = true },
-		[26] = { text = "Runes fit from your bag now: one per pet, one per hat, one in your face, one on your tool. Eight in the entire game.", panel = "inventory", tab = "runes", highlight = "runesTab", ack = true },
 		-- No `ack`: this one only clears when the pickaxe is actually in hand.
-		[27] = { text = "Go to the BLACKSMITH and grab your free pickaxe.", waypoint = "shop" },
+		[27] = { text = "⛏️ Go to the BLACKSMITH. Grab your FREE pick!", waypoint = "shop" },
 		[28] = { text = "Break the next block. That swing drops your charm." },
 		[29] = { text = "Open the 3 gear crates in your bag. They're rigged: the best hats for the pets you have out.", panel = "inventory", tab = "packs", count = 3, grantGear = 3 },
 		[30] = { text = "Tap GO ENCHANTER.", panel = "inventory", tab = "tools", highlight = "goEnchanter", ack = true },
@@ -3680,12 +3879,46 @@ local Intro = {
 		all, so the step asks for something real and the Blacksmith hands it
 		over free.
 
-		Runes and temperaments sit AFTER the rebirth step. They are the best
+		Enchants and temperaments sit AFTER the rebirth step. They are the best
 		part of the game and they mean nothing to someone who has not yet felt a
 		run end -- taught at minute three they were noise, taught after a
 		rebirth they are the reason to start the next one.
 	]]
-	order = { 27, 1, 2, 3, 4, 5, 6, 7, 12, 18, 8, 9, 16 },
+	--[[
+		19, 20 AND 14 WERE AUTHORED, GRANTED, HOOKED AND NEVER SHOWN.
+
+		introAdvance only fires when `p.intro == from`, and p.intro can only
+		ever hold a value from THIS list -- so every step not in it is dead,
+		along with its grants and its hook. A launch audit counted 26 of 39
+		steps unreachable and 15 live introAdvance call sites that can never
+		match.
+
+		The three added here are the ones that cost the most by being absent:
+
+		  19  DAILY REWARD  -- claimPlaytime already calls introAdvance(19)
+		  20  FREE GIFTS    -- the gift box, likewise already hooked
+		  14  EVENT HORIZON -- the event the whole limited season is built on
+
+		19 and 20 are the two retention hooks in the game and a player was
+		never told either existed. They go directly after the first rebirth
+		(8), which is the point a player starts thinking in sessions rather
+		than minutes and is when a daily and a gift box start to mean
+		something.
+
+		14 goes last, after enchants (8) and the temper case (16): Event Horizon
+		is a whole second mine, and pointing someone at it before they have a
+		build is pointing them at a wall they cannot break.
+
+		The comment above says "eight beats to the loop, then the two systems
+		that keep someone here". That was aspirational -- the two systems were
+		not in the list. Now they are.
+
+		The REST of the dead steps are left dead on purpose. Several grant
+		items (grantGear = 3, grantDust = 500, grantTokens = 15) and turning
+		them on would hand every existing player a payout on their next login;
+		that is a balance decision, not a wiring fix.
+	]]
+	order = { 27, 1, 2, 3, 4, 5, 6, 7, 12, 18, 8, 19, 20, 16, 14 },
 }
 -- Finished. Clear of every step number (the v2 ladder used 19 for done).
 Intro.done = 99
@@ -3730,8 +3963,13 @@ local function introSatisfied(p, step)
 		return #(p.equipped or {}) > 0
 	elseif step == 7 then
 		return (tonumber(p.quest) or 1) > 1
-	elseif step == 9 then
-		return next(p.toolSockets or {}) ~= nil or next(p.petSockets or {}) ~= nil
+	elseif step == 8 then
+		for _, t in ipairs(p.oreTools or {}) do
+			if type(t) == "table" and type(t.enchants) == "table" and next(t.enchants) ~= nil then
+				return true
+			end
+		end
+		return false
 	elseif step == 10 then
 		return next(p.equippedGear or {}) ~= nil
 	elseif step == 12 then
@@ -3789,8 +4027,12 @@ local function introGrant(plr, p)
 	if p.introGrants[key] then
 		return
 	end
-	if d.grantGear or d.grantDust or d.bonusGems or (type(d.grantTokens) == "number") then
+	if d.grantGear or d.grantDust or d.bonusGems or d.grantBooks or (type(d.grantTokens) == "number") then
 		p.introGrants[key] = true
+		if type(d.grantBooks) == "number" and d.grantBooks > 0 and Dig.grantBooks then
+			Dig.grantBooks(p, d.grantBooks, nil, { damage = true })
+			net:FireClient(plr, "toast", "📖 " .. d.grantBooks .. " FREE enchant books!")
+		end
 		if d.grantGear then
 			local def = Packs.PACK_BY_ID and Packs.PACK_BY_ID.gear_pack
 			p.packs = p.packs or {}
@@ -3818,10 +4060,6 @@ local function introGrant(plr, p)
 	end
 	-- grantZone: enough for that zone's portal, whatever it costs today.
 	local grantGems = d.grantGems
-	-- "runeRoll": one summon at today's price for this player's zones.
-	if grantGems == "runeRoll" then
-		grantGems = Runes.rollPriceFor(p.maxUnlockedZone)
-	end
 	if d.grantZone and C.ZONES[d.grantZone] then
 		grantGems = math.floor(tonumber(C.ZONES[d.grantZone].buyCost) or grantGems or 0)
 	end
@@ -4115,11 +4353,23 @@ local function rollKind(zone, x, layer, z, b, rng)
 	-- There is no ore. What you hope to see in the wall is a chest, and which
 	-- chest it is gets decided here so the block can look like that chest.
 	local strata = C.strataFor(zone.id)
-	-- Event Horizon (bigbang) only: 3× chest density for the limited event mine.
-	-- Never multiply other zones — zone.chestMult must not leak globally.
+	--[[
+		Chest density is the zone's own `chestMult`, defaulting to 1.
+
+		This used to name bigbang explicitly, which meant a new limited mine
+		silently inherited the ordinary rate and had no way to say otherwise.
+		Halloween pays in candy and has NO chests at all, so it needs to set 0 --
+		and 0 has to survive the lookup, which is why this is `or 1` on a nil
+		check rather than an `or` on the value (0 is truthy in Luau, so
+		`tonumber(0) or 1` is 0, but the intent is worth being explicit about).
+
+		Behaviour is unchanged for everyone: bigbang still carries chestMult 3,
+		and every other zone has none and so multiplies by 1.
+	]]
 	local chance = C.CHEST_CHANCE or 0.0025
-	if zone.id == "bigbang" then
-		chance = chance * (tonumber(zone.chestMult) or 3)
+	local zoneMult = tonumber(zone.chestMult)
+	if zoneMult then
+		chance = chance * zoneMult
 	elseif zone.id == "meadow" and (tonumber(layer) or 1) <= 100 then
 		-- Onboarding density: the tutorial's three chests should be met by
 		-- digging, not by a dry spell (MineConfig.MEADOW_SHALLOW_CHEST_MULT).
@@ -4204,7 +4454,9 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	local chestDef
 	if kind == "chest" then
 		local ZoneChests = require(shared:WaitForChild("MineZoneChests"))
-		chestDef = ZoneChests.rollSpawn(zone.id, y, (C.zoneIndex and C.zoneIndex(zone.id)) or 1)
+		-- Better chests deeper, inside every zone but Meadow (MineConfig.chestRankLuck).
+		chestDef = ZoneChests.rollSpawn(zone.id, y, (C.zoneIndex and C.zoneIndex(zone.id)) or 1,
+			C.chestRankLuck and C.chestRankLuck(zone.id, y) or 1)
 	end
 	local part = Instance.new("Part")
 	part.Name = "MineBlock"
@@ -4264,6 +4516,25 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		local rock = (zone and zone.dirt) or Color3.fromRGB(96, 92, 88)
 		part.Color = Color3.new(rock.R * 0.7, rock.G * 0.7, rock.B * 0.7)
 		--[[
+			A PLAIN ORE IS JUST ITS OWN BLOCK. Owner: "make the stone ore, just
+			a grey block".
+
+			The darkened host and the SmoothPlastic below exist to give pixel
+			art a flat surface to itself. An ore in C.ORE_PLAIN gets no art at
+			all -- MineOreFace reads the same list -- so that reasoning
+			inverts: it should wear its own colour and its own material, which
+			for Stone is plain grey Rock.
+
+			Only the two art-host lines are skipped. Everything after this
+			branch -- OreId, HP, the attributes the client and the dig path
+			read -- still runs, because a plain ore is a normal ore in every
+			way except how it is painted.
+		]]
+		local plain = (C.ORE_PLAIN and C.ORE_PLAIN[oreDef.id]) and true or false
+		if plain then
+			part.Color = oreDef.color or part.Color
+		end
+		--[[
 			SmoothPlastic on purpose: flat, textureless, no surface detail.
 
 			Roblox's stone materials carry their own grain, and that grain reads
@@ -4272,7 +4543,8 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 			gives the pixel art the whole surface to itself, which is why every
 			game that draws ore this way keeps the block underneath plain.
 		]]
-		part.Material = Enum.Material.SmoothPlastic
+		part.Material = plain and (oreDef.material or Enum.Material.Rock)
+			or Enum.Material.SmoothPlastic
 		part:SetAttribute("OreId", oreDef.id)
 		part:SetAttribute("OreName", oreDef.name)
 		part:SetAttribute("OreTier", oreDef.tier)
@@ -4369,6 +4641,42 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		part.Color = C.LUCKY_LAYER_COLOR or Color3.fromRGB(255, 214, 92)
 		part.Material = Enum.Material.Neon
 	end
+	--[[
+		CANDY CRYPT ROCK.
+
+		Rolled from the cell position, not from an RNG stream, so the same block
+		is the same candy on every server and after a reload -- the same reason
+		veinOreAt is a pure function of position.
+
+		Candy is NOT routed through oreDef. It is a currency, not a pouch ore,
+		and MineConfig.ORES is left untouched so no existing zone's ore mix
+		moves (see the comment on MineConfig.CANDY_ORES). Any OreId this block
+		picked up above is cleared, or it would pay out twice.
+	]]
+	if zone.id == "hallow" and C.candyOreAt
+		and kind ~= "chest" and kind ~= "core" and kind ~= "lucky_block"
+	then
+		-- bit32.bxor, not `~`: Luau has no bitwise-xor operator.
+		local seed = bit32.bxor(bit32.bxor(x * 73856093, y * 19349663), z * 83492791)
+		local crng = Random.new(seed)
+		if crng:NextNumber() < (C.CANDY_ORE_SHARE or 0.15) then
+			local cdef = C.candyOreAt(y, crng, C.CANDY_DEPTH_LAYERS)
+			if cdef then
+				part.Color = cdef.color
+				part.Material = cdef.material or Enum.Material.SmoothPlastic
+				part:SetAttribute("OreId", nil)
+				part:SetAttribute("OreName", nil)
+				part:SetAttribute("OreTier", nil)
+				part:SetAttribute("CandyOre", cdef.id)
+				part:SetAttribute("CandyName", cdef.name)
+				-- Banked at spawn so the payout cannot disagree with the block
+				-- the player actually looked at.
+				part:SetAttribute("Candy", math.max(1, math.floor(
+					(cdef.candy or 1) * (C.candySectionMult and C.candySectionMult(y) or 1)
+				)))
+			end
+		end
+	end
 	part:SetAttribute("ZoneId", zone.id)
 	part:SetAttribute("CX", x)
 	part:SetAttribute("CY", y)
@@ -4405,8 +4713,20 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 	elseif kind == "lucky_block" and C.chestHp then
 		maxHp = C.chestHp(y)
 	elseif kind == "ore" then
-		-- Tougher than the dirt around it: an ore you can see is worth the swing.
-		maxHp = math.floor(C.blockHp("dirt", zone, y) * (C.ORE_HP_MULT or 3))
+		--[[
+			Per ORE, not a flat multiple. This was
+			blockHp("dirt") * ORE_HP_MULT with ORE_HP_MULT = 3, so a Stone
+			block and an Oganesson block at the same layer took the same
+			number of swings -- the only thing that ever varied was the dirt
+			curve underneath, which describes the LAYER and not what is in it.
+
+			C.oreBlockHp is hardness x the same dirt curve, so the layer term
+			is unchanged and only the ore's own base moves. Falls back to the
+			old flat multiple when the ore is unknown, which keeps a block
+			breakable rather than giving it 1 HP.
+		]]
+		maxHp = oreDef and C.oreBlockHp and C.oreBlockHp(oreDef, zone, y)
+			or math.floor(C.blockHp("dirt", zone, y) * (C.ORE_HP_MULT or 3))
 	else
 		maxHp = C.blockHp(kind, zone, y)
 	end
@@ -4654,6 +4974,20 @@ local function ensureZone(zone, throughLayer)
 	local uncapped = zone.id == "meadow" or (tonumber(maxLayers) or 0) >= (C.MINE1_LAYERS or 2500)
 	local want = math.max(1, math.floor(throughLayer or (C.LAYER_WINDOW or 8)))
 	local target = uncapped and want or math.clamp(want, 1, maxLayers)
+	--[[
+		ONE CHUNK AT A TIME, AND NEVER BELOW THE OPEN ONE.
+
+		Every caller asks for `deepest + LAYER_WINDOW`, which is the right ask for
+		a player walking down and the wrong one for everything else: nothing
+		stopped the mine existing below what anyone had earned. Clamping here
+		rather than at the five call sites because this is the only place that
+		turns a request into rock, so a new caller cannot forget it.
+
+		The ceiling moves only when someone reaches a chunk floor, which is the
+		owner's rule: chunk two does not exist until the bottom of chunk one has
+		been mined. canCreditDepth refuses the depth; this refuses the rock.
+	]]
+	target = math.min(target, Dig.Auth.chunkCeiling(Dig.Auth.deepestReachedAcross(profiles, zone.id)))
 	local from = (builtTo[zone.id] or 0) + 1
 	if from > target then
 		syncPitWalls(zone)
@@ -4685,7 +5019,8 @@ local function ensureZone(zone, throughLayer)
 		missing -- a hole in the top of the mine.
 	]]
 	local band = math.max(1, Const.ENSURE_BAND)
-	if (target - from) >= Const.ENSURE_FAR then
+	local far = (target - from) >= Const.ENSURE_FAR
+	if far then
 		from = math.max(1, target - band + 1)
 	else
 		target = math.min(target, from + band - 1)
@@ -4727,10 +5062,13 @@ local function ensureZone(zone, throughLayer)
 	local rng = Random.new(salt + from)
 	local made = 0
 	local Depth = Dig.Depth
+	-- Blocks per layer is the ZONE's, not the game's: Halloween is a few blocks
+	-- wide on purpose. Every other zone reads the same 21 it always did.
+	local gridN = C.gridFor and C.gridFor(zone) or C.GRID
 	for y = from, target do
 		if Depth.isAirGap and Depth.isAirGap(y) then
-			for x = 0, C.GRID - 1 do
-				for z = 0, C.GRID - 1 do
+			for x = 0, gridN - 1 do
+				for z = 0, gridN - 1 do
 					local key = keyOf(zone.id, x, y, z)
 					if not voxels[zone.id][key] then
 						voxels[zone.id][key] = Const.VOXEL_SKIP
@@ -4738,8 +5076,8 @@ local function ensureZone(zone, throughLayer)
 				end
 			end
 		else
-			for x = 0, C.GRID - 1 do
-				for z = 0, C.GRID - 1 do
+			for x = 0, gridN - 1 do
+				for z = 0, gridN - 1 do
 					if not voxels[zone.id][keyOf(zone.id, x, y, z)] then
 						spawnVoxel(zone, x, y, z, rollKind(zone, x, y, z, { luck = 1, rareOre = 1 }, rng), { rareOre = 1 })
 						made += 1
@@ -4819,18 +5157,35 @@ local function ensureZone(zone, throughLayer)
 			end
 		end
 	end
-	-- builtTo already claimed at start; keep max in case of concurrent raises.
-	builtTo[zone.id] = math.max(builtTo[zone.id] or 0, target)
+	--[[
+		The far path must NOT advance the frontier, and used to.
+
+		The block comment above says so already -- "builtTo is NOT advanced,
+		because those layers genuinely are not built" -- but this line read
+		`max(builtTo, target)` unconditionally, so arriving at seam 2500 with a
+		frontier of 3 built layers 2506-2508 and then claimed 2508. Every later
+		call starts at builtTo+1, so layers 4-2505 could never be built by
+		anything: ride back up and you are standing in a void that no amount of
+		digging fills. Only the near path, which is contiguous with the frontier,
+		may move it.
+	]]
+	if not far then
+		-- keep max in case of concurrent raises
+		builtTo[zone.id] = math.max(builtTo[zone.id] or 0, target)
+	end
 	syncPitWalls(zone)
 end
 
-local function tp(plr, cf)
+-- Assigned, not declared: the forward declaration is up with the requires.
+function tp(plr, cf)
 	pcall(function()
 		Dig.Auth.allowTpUser(plr.UserId, 2.5)
 	end)
 	local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 	if root then root.CFrame = cf + Vector3.new(0, 3, 0) end
 end
+
+
 
 -- Digging is gated the same way portals are: limited Event Horizon after the
 -- first free claim (bigbangOwned), everything else only up to maxUnlockedZone.
@@ -4843,7 +5198,11 @@ function Gate.zoneUnlocked(p, zone)
 		return false
 	end
 	if zone.limited then
-		return p.bigbangOwned == true
+		-- Per zone, not per game. There are two limited mines now, and reading
+		-- bigbangOwned for both would have let an Event Horizon claim unlock
+		-- Halloween and vice versa.
+		local flag = zone.ownedFlag
+		return flag ~= nil and p[flag] == true
 	end
 	local idx = 1
 	for i, z in ipairs(C.ZONES) do
@@ -4882,17 +5241,30 @@ local function enterZone(plr, zoneId)
 		if z.id == zone.id then idx = i end
 	end
 	if zone.limited then
-		if not (C.limitedActive and C.limitedActive()) and not p.bigbangOwned then
+		local flag = zone.ownedFlag
+		local owned = flag ~= nil and p[flag] == true
+		-- The window is the ZONE's window. Halloween opens after Event Horizon
+		-- and closes before it, so one shared clock would have opened both.
+		if not (C.limitedActive and C.limitedActive(zone.id)) and not owned then
 			return zone.name .. " event has ended"
 		end
-		if not p.bigbangOwned then
+		if not owned then
 			-- Free claim while the limited window is live.
-			p.bigbangOwned = true
-			p.wormholeBag = true
-			p.eventTools = p.eventTools or {}
-			p.eventTools.eh_shallow_pick = true
-			p.eventToolId = p.eventToolId or "eh_shallow_pick"
-			net:FireClient(plr, "toast", "Wormhole Bag unlocked — best haul in the game")
+			if flag then
+				p[flag] = true
+			end
+			-- The Wormhole Bag and the starter pick belong to Event Horizon,
+			-- not to "any limited zone". Halloween has no gear of its own to
+			-- grant: its tools are bought with candy.
+			if zone.id == "bigbang" then
+				p.wormholeBag = true
+				p.eventTools = p.eventTools or {}
+				p.eventTools.eh_shallow_pick = true
+				p.eventToolId = p.eventToolId or "eh_shallow_pick"
+				net:FireClient(plr, "toast", "Wormhole Bag unlocked — best haul in the game")
+			else
+				net:FireClient(plr, "toast", zone.name .. " claimed — mine candy while it lasts")
+			end
 			markDirty(plr)
 		end
 	elseif idx > math.max(1, tonumber(p.maxUnlockedZone) or 1) then
@@ -4919,6 +5291,46 @@ local function zoneTierOf(zone)
 		if z.id == zone.id then return i end
 	end
 	return 1
+end
+
+--[[
+	A SKIN OF `tier`, from a chest's skin case: a skin of that tier at random
+	(MineSkins), granted. Returns "skin", name, tier -- or "skindupe", name,
+	stardust, because A DUPLICATE IS NOT A BLANK: 225 skins and an F pool of 54
+	make repeats routine, and a case that opens into "you already have this" is
+	one players learn to dread. nil if the skin list is missing.
+
+	It rides the profile (p.skinNotice, read once by MineSkinsView) because the
+	old CHEST_LOOT caller had no player; openChestBlock also toasts.
+]]
+function Dig.grantChestSkin(p, tier, rng)
+	rng = rng or Random.new()
+	local okSk, Skins = pcall(function()
+		return require(shared:WaitForChild("MineSkins"))
+	end)
+	if not (okSk and Skins) then
+		return nil
+	end
+	local pool = {}
+	for _, s in ipairs(Skins.LIST or {}) do
+		-- Pass skins come only from the battle pass (MineSkins.isPass).
+		if s.tier == tier and not s.pass then
+			table.insert(pool, s)
+		end
+	end
+	local def = pool[1] and pool[rng:NextInteger(1, #pool)] or nil
+	if not def then
+		return nil
+	end
+	p.skins = p.skins or {}
+	if p.skins[def.id] then
+		local dust = math.max(1, math.floor(20 * (Skins.TIER_RANK[tier] or 1)))
+		p.dust = (p.dust or 0) + dust
+		return "skindupe", def.name, dust
+	end
+	p.skins[def.id] = true
+	p.skinNotice = { name = def.name, tier = tier, set = def.set }
+	return "skin", def.name, tier
 end
 
 -- What a broken chest actually yields. Usually packs -- a run of them, which
@@ -5003,6 +5415,14 @@ local function rollChestLoot(p, kind, chest, tier, layer, zone, b, luck)
 		table.insert(p.packs, { kind = kind, chestId = chest.id, zoneTier = tier,
 			zoneId = zone.id, layer = layer, setId = C.setForLayer(zone, layer) })
 		return "pack", chest.id
+	elseif chosen.kind == "skincase" then
+		-- (Unreached: see MineConfig.CHEST_SKIN_CASE_CHANCE. Kept on the shared
+		-- grant so the two cannot drift.)
+		local tier = C.rollChestSkinTier and C.rollChestSkinTier(nil, rng, 0) or "F"
+		local got, name, extra = Dig.grantChestSkin(p, tier or "F", rng)
+		if got then
+			return got, name, extra
+		end
 	elseif chosen.kind == "charm" then
 		-- The rare one. Never a duplicate; a full set falls back to a pack so
 		-- the rarest roll is never a dead one, same as relics.
@@ -5175,7 +5595,22 @@ local function givePickaxe(plr)
 				local oreDef = C.ORES and C.ORES[math.floor(oTier)]
 				oreLook = oreDef and ToolModels.oreLook(oreDef, C.ORE_COUNT or #(C.ORES or {})) or nil
 			end
-			model, handle, grip = ToolModels.build(famId, lookTier, count, oreLook)
+			-- A skin worn on this family dresses the tool (owner, 2026-10-11:
+			-- "Ore look + skins"). Only families with skin forms build one;
+			-- the rest fall through to the plain ore tool.
+			local skinId = p and p.skinEquipped and p.skinEquipped[famId]
+			if skinId and ToolModels.buildSkinned then
+				local okS, Skins = pcall(function()
+					return require(shared:WaitForChild("MineSkins"))
+				end)
+				local skinDef = okS and Skins and Skins.byId(skinId)
+				if skinDef then
+					model, handle, grip = ToolModels.buildSkinned(famId, skinDef, oreLook)
+				end
+			end
+			if not handle then
+				model, handle, grip = ToolModels.build(famId, lookTier, count, oreLook)
+			end
 		end
 	end
 	if not handle then
@@ -5417,6 +5852,10 @@ local function grantChestTool(plr, p, toolId)
 	markDirty(plr)
 end
 
+-- Forward declare: openChestBlock calls this; a `local function` below the
+-- call site would be a nil global read (open-questions #7). Assigned later.
+local rollChestTool
+
 local function openChestBlock(plr, p, chestId, b, part)
 	local rng = Random.new()
 	local luck = (b.chestLuck or 1)
@@ -5432,7 +5871,8 @@ local function openChestBlock(plr, p, chestId, b, part)
 		def = ZoneChests.exclusiveFor(zone.id, layer)
 		rank = "native"
 	elseif not def then
-		local pick = ZoneChests.roll(zone.id, rng, { luck = luck, layer = layer })
+		local pick = ZoneChests.roll(zone.id, rng, { luck = luck, layer = layer,
+			better = C.chestRankLuck and C.chestRankLuck(zone.id, layer) or 1 })
 		if not pick or not pick.def then
 			return
 		end
@@ -5455,6 +5895,10 @@ local function openChestBlock(plr, p, chestId, b, part)
 		p.found[def.id] = nil
 	end
 	bumpStat(plr, p, "chests")
+	-- The player level: a chest pays XP, more for a better one (MineEnchants).
+	if Dig.EnchSvc then
+		Dig.EnchSvc.gainXp(plr, p, Dig.Enchants.XP_CHEST * (Dig.Enchants.XP_CHEST_RANK[rank or ""] or 1))
+	end
 	introAdvance(plr, p, 4)
 	do
 		-- Per-layer chest counts for the layer quests.
@@ -5556,6 +6000,56 @@ local function openChestBlock(plr, p, chestId, b, part)
 			})
 		end
 	end
+	--[[
+		A WILD PACK CASE, SOMETIMES. Owner, 2026-10-10: "chest drops can drop pack
+		cases, and with those cases you can win packs". Better chests drop them
+		of more stars (MineCases.chestCaseOdds: 10%, each grade half as common); chest
+		luck raises the chance, capped (MineCases.CHEST_LUCK_CAP). No pack luck
+		rides on it: owner, a better case is better "by design (Not a % boos[t])".
+	]]
+	do
+		local Cases = require(shared:WaitForChild("MineCases"))
+		local row = Cases.rollChestCase(rank, rng, b and b.chestLuck)
+		if row then
+			table.insert(p.packs, row)
+			table.insert(packNames, row.packName)
+			table.insert(packIds, row.packId)
+			local def = Cases.get(row.packId)
+			if def and (def.starLevel or 1) >= Cases.CHEST_POPUP_LEVEL then
+				net:FireClient(plr, "foundTool", {
+					name = row.packName,
+					kind = "pack",
+					packId = row.packId,
+					rarityId = Cases.rarityOf(row.packId),
+					title = "PACK CASE",
+					blurb = (def.blurb or "") .. ". It is in your bag.",
+				})
+			end
+		end
+	end
+	-- A BOOK BUNDLE, SOMETIMES (MineEnchants.CHEST_BOOK_CHANCE): 2 books, more
+	-- and better from a better chest. Owner: "Book buddles from lucky blocks,
+	-- and chest(not cases)".
+	if Dig.EnchSvc then
+		Dig.EnchSvc.chestBundle(plr, p, rank, rng, b and b.chestLuck)
+	end
+	--[[
+		A SKIN CASE, SOMETIMES (MineConfig.CHEST_SKIN_CASE_CHANCE, 3%). Owner,
+		2026-10-11: skins follow the pack cases' logic, so a better chest rank
+		pays a better tier (CHEST_SKIN_RANK_SHIFT); chest luck raises the chance,
+		capped. Opened on the spot: the skin, or stardust for a duplicate.
+	]]
+	do
+		local tier = C.rollChestSkinTier and C.rollChestSkinTier(rank, rng, b and b.chestLuck)
+		if tier then
+			local got, name, extra = Dig.grantChestSkin(p, tier, rng)
+			if got == "skin" then
+				net:FireClient(plr, "toast", ("SKIN CASE! %s (%s)"):format(tostring(name), tostring(tier)))
+			elseif got == "skindupe" then
+				net:FireClient(plr, "toast", ("SKIN CASE: %s again, +%d stardust"):format(tostring(name), tonumber(extra) or 0))
+			end
+		end
+	end
 
 	net:FireClient(plr, "chestOpened", {
 		id = def.id,
@@ -5573,6 +6067,49 @@ local function openChestBlock(plr, p, chestId, b, part)
 	})
 	if rollChestTool then
 		pcall(rollChestTool, plr, p, def.id, b, { layer = layer, zoneId = zone and zone.id, setId = setId })
+	end
+	--[[
+		A GRADED CHARM, 0.5% OF CHESTS. Owner, 2026-10-07: charms "can be found in
+		chests (0.5%) or bought with tokens".
+
+		The 0.5% decides only WHETHER a charm drops; rollChestCharm then draws which
+		one against MineTemper's rarity weights, so the half-percent is spent mostly
+		on F and D and the single SSS is rare twice over.
+
+		`Charms` is the module upvalue from the top of this file. (rollChestTool
+		is forward-declared above openChestBlock so that branch is live too.)
+
+		Chest luck scales it, like the persist-bag roll below. No first-charm
+		guarantee here: that rule belongs to the zone grant and the ore case, which
+		is where a new player meets their first charm.
+	]]
+	do
+		local roll = Charms.rollChestCharm and (tonumber(Charms.CHARM_CHEST_CHANCE) or 0) > 0
+		if roll and Random.new():NextNumber() < Charms.CHARM_CHEST_CHANCE * ((b and b.chestLuck) or 1) then
+			local cdef = Charms.rollChestCharm(Random.new())
+			if cdef then
+				p.charms = p.charms or {}
+				-- A tally, not a latch: see the note on the zone grant.
+				p.charms[cdef.id] = (tonumber(p.charms[cdef.id]) or 0) + 1
+				local wearing = type(p.equippedCharm) == "string" and p.equippedCharm ~= ""
+				if not wearing then
+					p.equippedCharm = cdef.id
+				end
+				local how = wearing and "equip it in Inventory → Equipment" or "equipped"
+				net:FireClient(plr, "toast", "Charm found: " .. cdef.name .. " — " .. how)
+				net:FireClient(plr, "foundTool", {
+					kind = "charm",
+					charmId = cdef.id,
+					name = cdef.name,
+					title = "CHARM FOUND",
+					-- The grade IS the rarity here, unlike the zone grant where the
+					-- depth band stands in for one.
+					rarityId = Charms.RARITY_LABEL and Charms.RARITY_LABEL[cdef.rarity] or "Legendary",
+					blurb = (cdef.blurb or "") .. "  ·  " .. how,
+				})
+				markDirty(plr)
+			end
+		end
 	end
 	-- Mid/deep: small chance at a zone persist bag (even zones 1/band, odd share the tool bands).
 	do
@@ -5660,8 +6197,19 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 		end)
 	end
 	do
-		-- deepest / plaza only if dig was allowed; break loot still resolves.
-		if Dig.Auth.canDigLayer(p, zone.id, layer) then
+		--[[
+			Deepest / plaza only if the dig was allowed; break loot still
+			resolves either way.
+
+			canCreditDepth is the gate that actually holds. canDigLayer ends in
+			an unconditional `return true` on purpose -- refusing a SWING only
+			means standing in rock that will not break -- so on its own it let a
+			single block broken at layer 5000 credit depth 5000. Owner,
+			2026-10-06: the chunk gate is "to ensure hackers dont break one block
+			in every chunk and unlock the depth points".
+		]]
+		if Dig.Auth.canDigLayer(p, zone.id, layer)
+			and Dig.Auth.canCreditDepth(p, zone.id, layer) then
 			Dig.Auth.noteDig(p, zone.id, layer, part:GetAttribute("CX"), part:GetAttribute("CZ"))
 			if Dig.Auth.creditDeepest(p, zone.id, layer) then
 				local zid = tostring(zone.id)
@@ -5803,19 +6351,73 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			peaks on Epic, matching where the cost bell peaks. Rolled here rather
 			than restated, so direct drops and any legacy pack stay identical.
 
-			THE ORE FINDER IS NOT APPLIED HERE, on purpose. It is a quality
-			stat, not a quantity one ("better roll quality, not more loot"), and
-			it already did its work in oreWeights via oreFindShift when this
-			block chose which ore to be. Paying it again as extra material would
-			quietly turn it into a yield multiplier -- and yield multipliers on
-			a flat per-block rate are how the boost stack compounds.
+			THE ORE FINDER IS STILL NOT APPLIED HERE, on purpose. It is a
+			quality stat, not a quantity one ("better roll quality, not more
+			loot"), and it already did its work in oreWeights via oreFindShift
+			when this block chose which ore to be. Paying it again as extra
+			material would be spending one stat twice.
+
+			ORE HAUL IS, and it is the only thing that multiplies this roll.
+			Owner, 2026-10-06: endgame enchants are meant to buff ore, and
+			measurement showed nothing did -- an Exotic tool came to ~12 MILLION
+			blocks broken with no gear able to move it (see
+			docs/ore-yield-and-vein-balance.md §4). Ore Haul is the stat that
+			moves it, and it is a separate key from the finder precisely so
+			quality and quantity stay two different things.
+
+			CAPPED, because the warning this comment used to carry is correct:
+			yield multipliers on a flat per-block rate are how the boost stack
+			compounds. MineConfig.oreHaulMult clamps it at ORE_HAUL_CAP however
+			tall the stack gets.
 		]]
+		--[[
+			CANDY first, and it returns: a candy block has no OreId, so the ore
+			branch below would not fire anyway, but making that explicit keeps
+			the two payouts from ever both running if a future change stamps
+			both. Candy goes straight to the balance -- no pouch, no capacity
+			check, nothing to sell.
+		]]
+		local candyGot = tonumber(part:GetAttribute("Candy"))
+		if candyGot and candyGot > 0 then
+			-- The Trick-or-Treat Bucket's ability, read off the equipped bag.
+			local bagRow = C.BACKPACKS and C.BACKPACKS[p.backpackTier]
+			local candyMult = bagRow and tonumber(bagRow.candyMult)
+			if candyMult and candyMult > 1 then
+				candyGot = math.floor(candyGot * candyMult)
+			end
+			p.candy = math.max(0, math.floor((tonumber(p.candy) or 0) + candyGot))
+			local cname = tostring(part:GetAttribute("CandyName") or "Candy")
+			net:FireClient(plr, "loot", {
+				text = ("+%d %s"):format(candyGot, cname),
+				color = part.Color,
+				pos = part.Position,
+			})
+			markDirty(plr)
+		end
 		local ore = C.oreById(part:GetAttribute("OreId"))
+		-- Alchemy (a Utility enchant) can turn it into the next ore up.
+		if ore and Dig.EnchSvc then
+			ore = Dig.EnchSvc.alchemy(plr, p, ore, part.Position)
+		end
 		if ore then
 			local lo, hi = C.oreYieldFor(ore.tier)
 			lo = math.max(1, math.floor(tonumber(lo) or 1))
 			hi = math.max(lo, math.floor(tonumber(hi) or lo))
+			-- Roll first, multiply after: multiplying the band ends would lose
+			-- the low end to flooring and quietly narrow the spread.
 			local got = math.random(lo, hi)
+			-- bb, this function's boosts. It read `b`, which is not defined
+			-- here, so Ore Haul (gear, pets, the Fortune enchant) never paid.
+			local haul = C.oreHaulMult(bb and bb.oreHaul)
+			if haul > 1 then
+				-- Floored, like every other payout here, and never below the
+				-- unboosted roll -- a boost must not be able to cost you ore.
+				got = math.max(got, math.floor(got * haul))
+			end
+			-- Duplicator (a Utility enchant): sometimes, twice the ore.
+			if Dig.EnchSvc then
+				got = Dig.EnchSvc.duplicate(plr, p, got, part.Position)
+			end
 			--[[
 				Into the POUCH, up to what it holds, and through Dig.addOre so the
 				capacity check lives in one place rather than at every site that
@@ -5872,8 +6474,15 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 					pos = part.Position,
 				})
 			end
-			-- TODO(runes): roll this ore's rune here, 2% down to 0.5% by tier,
-			-- F-SSS. Needs the rune overhaul; nothing rolls one yet.
+			-- The player level: every ore block pays XP (owner: "add levels,
+			-- from breaking ores and chests"). Runes are retired; nothing rolls one.
+			if Dig.EnchSvc then
+				Dig.EnchSvc.gainXp(plr, p, Dig.Enchants.XP_ORE)
+			end
+			-- Vein Miner (a Utility enchant): the rest of this ore's vein.
+			if Dig.veinAt then
+				Dig.veinAt(plr, p, zone, part)
+			end
 		end
 	elseif kind == "core" then
 		grantChestTool(plr, p, "geothermal_nuke")
@@ -6171,6 +6780,62 @@ local function swingNeighbour(plr, part, dmg, p)
 	if chip.broke then
 		finishBreak(plr, part, p, zone, kind, layer)
 	end
+	-- Shatter chains on this: a shard that breaks its block lets it shatter too.
+	return chip.broke == true
+end
+
+--[[
+	VEIN MINER (MineEnchants veinminer, a Utility enchant). The ore block you
+	just broke takes up to veinCount more blocks of the SAME ore with it,
+	spreading face to face. Each is a full-HP neighbour hit, so it pays, gates
+	and counts like any proc. A vein block never starts a vein of its own.
+]]
+Dig.veining = setmetatable({}, { __mode = "k" })
+function Dig.veinAt(plr, p, zone, part)
+	local n = (Dig.EnchSvc and Dig.EnchSvc.veinCount(p)) or 0
+	if n <= 0 or Dig.veining[p] or not (zone and part) then
+		return
+	end
+	local cells = voxels[zone.id]
+	local oreId = part:GetAttribute("OreId")
+	local cx, cy, cz = part:GetAttribute("CX"), part:GetAttribute("CY"), part:GetAttribute("CZ")
+	if not (cells and oreId and cx and cy and cz) then
+		return
+	end
+	local pos = part.Position
+	local took = 0
+	Dig.veining[p] = true
+	pcall(function()
+		local seen = { [keyOf(zone.id, cx, cy, cz)] = true }
+		local queue, head = { { cx, cy, cz } }, 1
+		while head <= #queue and took < n do
+			local c = queue[head]
+			head += 1
+			for _, d in ipairs(Dig.FACE6) do
+				if took >= n then
+					break
+				end
+				local nx, ny, nz = c[1] + d[1], c[2] + d[2], c[3] + d[3]
+				local k = keyOf(zone.id, nx, ny, nz)
+				if not seen[k] then
+					seen[k] = true
+					local other = cells[k]
+					if other and typeof(other) == "Instance" and other.Parent and other:GetAttribute("OreId") == oreId then
+						local hp = tonumber(other:GetAttribute("HP")) or tonumber(other:GetAttribute("MaxHP")) or 1
+						local ok, broke = pcall(swingNeighbour, plr, other, math.max(1, math.ceil(hp)), p)
+						if ok and broke then
+							took += 1
+							table.insert(queue, { nx, ny, nz })
+						end
+					end
+				end
+			end
+		end
+	end)
+	Dig.veining[p] = nil
+	if took > 0 then
+		net:FireClient(plr, "loot", { text = "VEIN +" .. took, color = Color3.fromRGB(255, 210, 90), pos = pos })
+	end
 end
 
 --[[
@@ -6215,6 +6880,28 @@ end
 
 Dig.PROC_SKIP = { chest = true, crate = true, core = true, lucky_block = true }
 Dig.FACE6 = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } }
+-- Blast's tier 2 and 3 reach (MineEnchants.TIERS.blast): the 18 cells that
+-- share a face or an edge, and all 26 around.
+Dig.EDGE18, Dig.CUBE26 = {}, {}
+for dx = -1, 1 do
+	for dy = -1, 1 do
+		for dz = -1, 1 do
+			local n = math.abs(dx) + math.abs(dy) + math.abs(dz)
+			if n > 0 then
+				table.insert(Dig.CUBE26, { dx, dy, dz })
+				if n <= 2 then
+					table.insert(Dig.EDGE18, { dx, dy, dz })
+				end
+			end
+		end
+	end
+end
+-- Tidal Wave's reach: the 12 cells within two steps on the SAME layer (x, z).
+Dig.TIDE_RING = {
+	{ 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
+	{ 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 },
+	{ 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 },
+}
 
 function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke, forceBlast)
 	if not (zone and cells and part and cx and cy and cz) then
@@ -6227,6 +6914,10 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		what a player's proc damage is mid-swing.
 	]]
 	local pp = tonumber(b.procPower) or 0
+	-- THE ABILITY'S TIER (MineEnchants.TIERS; owner: "Make 3 levels of
+	-- abilities"): the Special enchant's level picks it, 1 without one.
+	local tier = math.clamp(math.floor(tonumber(b.procTier) or 1), 1, 3)
+	local Tiers = Dig.Enchants and Dig.Enchants.tier
 	-- Omni Blast is a destroy-proc: chest / core / cube deaths stay
 	-- centre-only, both as the source and as a neighbour.
 	if broke and not Dig.PROC_SKIP[kind] then
@@ -6242,82 +6933,105 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		]]
 		local chance = forceBlast and 1 or math.min(1, b.blastChance or 0)
 		if chance > 0 and rng:NextNumber() < chance then
-			net:FireClient(plr, "loot", { text = "BLAST", color = Color3.fromRGB(255, 140, 70), pos = part.Position })
-			for _, d in ipairs(Dig.FACE6) do
-				local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
+			local tt = (Tiers and Tiers("blast", tier)) or { cells = "face6" }
+			local reach = (tt.cells == "cube26" and Dig.CUBE26) or (tt.cells == "edge18" and Dig.EDGE18) or Dig.FACE6
+			net:FireClient(plr, "loot", { text = (tier >= 3 and "DETONATION") or (tier == 2 and "BURST") or "BLAST",
+				color = Color3.fromRGB(255, 140, 70), pos = part.Position })
+			local blastDmg = C.procDamage(dmg, "blast", pp, b.blastDamage)
+			-- Tier 3: a block the blast breaks can pop a plain 6-side blast of its
+			-- own, at most chainMax times a swing, and those pops pop nothing.
+			local pops, popMax = 0, tonumber(tt.chainMax) or 0
+			for _, d in ipairs(reach) do
+				local nx, ny, nz = cx + d[1], cy + d[2], cz + d[3]
+				local other = cells[keyOf(zone.id, nx, ny, nz)]
 				if other and typeof(other) == "Instance" and other.Parent then
 					if not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-						pcall(swingNeighbour, plr, other,
-							C.procDamage(dmg, "blast", pp), p)
+						local okHit, killed = pcall(swingNeighbour, plr, other, blastDmg, p)
+						if okHit and killed and pops < popMax and rng:NextNumber() < (tonumber(tt.chain) or 0) then
+							pops += 1
+							for _, d2 in ipairs(Dig.FACE6) do
+								local o2 = cells[keyOf(zone.id, nx + d2[1], ny + d2[2], nz + d2[3])]
+								if o2 and typeof(o2) == "Instance" and o2.Parent and not Dig.PROC_SKIP[o2:GetAttribute("Kind")] then
+									pcall(swingNeighbour, plr, o2, blastDmg, p)
+								end
+							end
+						end
 					end
 				end
 			end
 		end
 	end
 	--[[
-		RICOCHET: the hit jumps to one block beside it AND BOUNCES BACK.
+		TIDAL WAVE (owner, 2026-10-10: "a water theme aoe would be great").
 
-		This is the only proc that returns. Blast spreads to six neighbours, zap
-		wanders up to sixteen blocks away, echo lands a full hit on a neighbour
-		which then rolls its own procs -- all three move damage AWAY from what
-		you are aiming at, which is waste when the valuable block is the one in
-		front of you.
-
-		Ricochet concentrates instead: one hit out, one hit back into the
-		original block. It is the proc you take when you care about the ore you
-		are swinging at rather than the dirt around it, and that is a build
-		identity rather than a damage number.
-
-		It briefly rerolled the other procs where it landed, which made it a
-		copy of Dig.echoAt -- and echo is already being wound down (MineStats:
-		"Legacy: paid out as Swing Rate"). Two procs doing one job is worse than
-		a weak proc.
-
-		Still break-only, like Blast: a ricochet off a block that survived the
-		swing would fire on every tick of a long dig. Still not a chain: the
-		return hit goes through swingNeighbour, which re-enters nothing.
+		Blast's flat cousin. A broken block sends a wave across its own layer and
+		hits the 12 cells of Dig.TIDE_RING: two out along the level, one on each
+		diagonal. Blast digs a pocket in three dimensions; the wave clears floor,
+		which is what a wide horizontal dig wants. Priced level with blast
+		(PROC_SHARE.tide 0.18 x 12 = 2.16 swings against 2.10), break-only and
+		clamped like blast, and its hits re-proc nothing (swingNeighbour).
 	]]
 	if broke and not Dig.PROC_SKIP[kind] then
-		-- Clamped for the same reason as blast: one jump, so over 1.0 is a
-		-- boolean rather than a rate.
-		-- Clamped like blast: one jump out and one back, so a value over 1.0 is
-		-- a boolean rather than a rate.
-		local ric = math.min(1, tonumber(b.ricochet) or 0)
-		if ric > 0 and rng:NextNumber() < ric then
-			local opts = {}
-			for _, d in ipairs(Dig.FACE6) do
-				local nx, ny, nz = cx + d[1], cy + d[2], cz + d[3]
-				local other = cells[keyOf(zone.id, nx, ny, nz)]
-				if other and typeof(other) == "Instance" and other.Parent
-					and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
-					-- Coords travel with the part: procsAt needs the cell, and a
-					-- block carries no Cx/Cy/Cz attribute to read them back off.
-					table.insert(opts, { part = other, cx = nx, cy = ny, cz = nz })
+		local tide = math.min(1, tonumber(b.tidalWave) or 0)
+		if tide > 0 and rng:NextNumber() < tide then
+			net:FireClient(plr, "loot", { text = "TIDAL WAVE", color = Color3.fromRGB(70, 170, 255), pos = part.Position })
+			local tideDmg = C.procDamage(dmg, "tide", pp, b.tideDamage)
+			-- Tier 2 and 3 roll the wave down one and two more layers.
+			local tt = (Tiers and Tiers("tide", tier)) or { layers = 1 }
+			for layerOff = 0, math.clamp(math.floor(tonumber(tt.layers) or 1), 1, 3) - 1 do
+				for _, d in ipairs(Dig.TIDE_RING) do
+					local other = cells[keyOf(zone.id, cx + d[1], cy - layerOff, cz + d[2])]
+					if other and typeof(other) == "Instance" and other.Parent
+						and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+						pcall(swingNeighbour, plr, other, tideDmg, p)
+					end
 				end
 			end
-			if #opts > 0 then
-				local pick = opts[rng:NextInteger(1, #opts)]
-				local hit = pick.part
-				local ricDmg = C.procDamage(dmg, "ricochet", pp)
-				net:FireClient(plr, "loot", { text = "RICOCHET",
-					color = Color3.fromRGB(140, 220, 255), pos = hit.Position })
-				pcall(swingNeighbour, plr, hit, ricDmg, p)
-				--[[
-					AND BACK.
+		end
+	end
+	--[[
+		SHATTER (owner, 2026-10-10; it replaces Ricochet). A broken block bursts
+		into shards that hit its 6 sides. A block a shard BREAKS rolls Shatter
+		too, and so on, at most C.SHATTER_MAX_PROCS shatters per block you broke
+		-- "chance when blocks break to send out shards, if other blocks break
+		they roll same ... max 3 procs per block you break".
 
-					The return lands on the block that was swung at. It has
-					already broken -- this branch is break-only -- so the bounce
-					goes to whatever is standing there now, which on a deep seam
-					is the next block the generator has pushed up into the cell.
-					When the cell is empty the bounce is simply lost, which is
-					the honest outcome: you cleared what you were aiming at.
-				]]
-				local home = cells[keyOf(zone.id, cx, cy, cz)]
-				if home and typeof(home) == "Instance" and home.Parent
-					and not Dig.PROC_SKIP[home:GetAttribute("Kind")] then
-					net:FireClient(plr, "loot", { text = "RICOCHET",
-						color = Color3.fromRGB(140, 220, 255), pos = home.Position })
-					pcall(swingNeighbour, plr, home, ricDmg, p)
+		The stat KEY stays "ricochet": it is data on the skill tree (Electric's
+		secondary), the Bouncing trait, gear, pet kits and saves. Its label is
+		Shatter (MineStats), the way fossilFind became Ore Finder.
+
+		Break-only and clamped at 1 like blast; damage is PROC_SHARE.shatter
+		plus Shatter Damage. The chain lives HERE rather than inside
+		swingNeighbour, which re-enters nothing -- so a shard can never start a
+		blast, a wave or a zap.
+	]]
+	if broke and not Dig.PROC_SKIP[kind] then
+		local sh = math.min(1, tonumber(b.ricochet) or 0)
+		if sh > 0 then
+			local shardDmg = C.procDamage(dmg, "shatter", pp, b.shatterDamage)
+			-- The tier sets how many bursts one broken block can set off.
+			local tt = Tiers and Tiers("shatter", tier)
+			local maxProcs = math.max(1, math.floor(tonumber(tt and tt.maxProcs) or tonumber(C.SHATTER_MAX_PROCS) or 3))
+			local queue = { { cx, cy, cz, part.Position } }
+			local shatters = 0
+			while #queue > 0 and shatters < maxProcs do
+				local at = table.remove(queue, 1)
+				if rng:NextNumber() < sh then
+					shatters += 1
+					net:FireClient(plr, "loot", { text = "SHATTER",
+						color = Color3.fromRGB(190, 160, 255), pos = at[4] })
+					for _, d in ipairs(Dig.FACE6) do
+						local nx, ny, nz = at[1] + d[1], at[2] + d[2], at[3] + d[3]
+						local other = cells[keyOf(zone.id, nx, ny, nz)]
+						if other and typeof(other) == "Instance" and other.Parent
+							and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+							local otherPos = other.Position
+							local okHit, shardBroke = pcall(swingNeighbour, plr, other, shardDmg, p)
+							if okHit and shardBroke then
+								table.insert(queue, { nx, ny, nz, otherPos })
+							end
+						end
+					end
 				end
 			end
 		end
@@ -6341,7 +7055,25 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 			-- subtracts what it was given rather than re-deriving a share, so
 			-- the quake a player started keeps its damage even if the stat
 			-- changes under it mid-shake.
-			Dig.startQuake(plr, p, part, C.procDamage(dmg, "quake", pp))
+			local tt = (Tiers and Tiers("quake", tier)) or { spread = 0, mult = 1 }
+			local qd = C.procDamage(dmg, "quake", pp) * (tonumber(tt.mult) or 1)
+			Dig.startQuake(plr, p, part, qd)
+			-- Tier 2 and 3 shake that many neighbours too (each at most once:
+			-- startQuake leaves a block already shaking alone).
+			local spread = math.floor(tonumber(tt.spread) or 0)
+			if spread > 0 then
+				local near = {}
+				for _, d in ipairs(Dig.FACE6) do
+					local other = cells[keyOf(zone.id, cx + d[1], cy + d[2], cz + d[3])]
+					if other and typeof(other) == "Instance" and other.Parent and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
+						table.insert(near, other)
+					end
+				end
+				for _ = 1, math.min(spread, #near) do
+					local pick = table.remove(near, rng:NextInteger(1, #near))
+					Dig.startQuake(plr, p, pick, qd)
+				end
+			end
 		end
 	end
 
@@ -6357,22 +7089,27 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		still re-proc nothing.
 	]]
 	--[[
-		NOT clamped, and that is the point. Owner, 2026-10-05: "zap over 100 CAN
-		make sense because its a chance decay".
+		START vs CONTINUE (owner, 2026-10-10: "make zap have a proc chance and a
+		zap continue equation. Just ensure its balanced").
 
-		`chance` is multiplied by ZAP_FALLOFF every hop, so a stat above 1.0 is
-		not thrown away -- it buys guaranteed early hops and moves the point
-		where the chain starts failing. Zap is the only one of the four where a
-		value over 1.0 is a curve rather than a boolean.
+		The zap stat is only the chance to START. Hop h then continues with
+		ZAP_CONTINUE x ZAP_FALLOFF^(h-1) -- the same for everyone -- so a chain
+		averages about 3 hops (MineConfig). It used to be one stat for both,
+		which made a big zap stat buy long chains and frequent ones at once. Not
+		clamped: over 1.0 simply means every swing starts one.
 	]]
 	local startZap = b.zap or 0
 	if startZap <= 0 or rng:NextNumber() >= startZap then
 		return
 	end
-	local falloff = tonumber(C.ZAP_FALLOFF) or 0.75
+	local falloff = tonumber(C.ZAP_FALLOFF) or 0.88
 	local maxHops = math.max(1, math.floor(tonumber(C.ZAP_MAX_HOPS) or 6))
-	local zapBase = C.procDamage(dmg, "zap", pp)
-	local chance = startZap
+	local zapBase = C.procDamage(dmg, "zap", pp, b.zapDamage)
+	-- The tier: Fork runs 2 chains, Storm 3 that continue more often. Each
+	-- chain keeps the hop cap, so a swing is at most chains x ZAP_MAX_HOPS hits.
+	local tt = (Tiers and Tiers("zap", tier)) or { chains = 1 }
+	for _chain = 1, math.clamp(math.floor(tonumber(tt.chains) or 1), 1, 3) do
+	local chance = tonumber(tt.continue) or tonumber(C.ZAP_CONTINUE) or 0.8
 	local fromCx, fromCy, fromCz = cx, cy, cz
 	local prevDx, prevDy, prevDz = 0, 0, 0
 	for hops = 1, maxHops do
@@ -6404,13 +7141,14 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 			made the tail of the chain not worth reaching.
 		]]
 		pcall(swingNeighbour, plr, pick.part, zapBase, p)
-		chance *= falloff
 		if rng:NextNumber() >= chance then
 			break
 		end
+		chance *= falloff
 		prevDx, prevDy, prevDz = pick.dx, pick.dy, pick.dz
 		fromCx, fromCy, fromCz = pick.nx, pick.ny, pick.nz
 	end
+	end -- chains
 end
 
 --[[
@@ -6845,6 +7583,11 @@ local function swingBlock(plr, part)
 	if not tool.cooldown then
 		local nowB = os.clock()
 		local manual = math.max(0.05, tonumber(tool.rate) or 2.5) / math.max(0.05, tonumber(b.swingSec) or 1)
+		-- Overclock (MineEnchants): a streak of one-shots swings faster, and the
+		-- client paces itself from the same number (the "enchSpeed" event).
+		if Dig.EnchSvc then
+			manual *= Dig.EnchSvc.swingSpeed(p)
+		end
 		local refill = math.max(manual, tonumber(b.autoMine) or 0) * 1.35
 		local bucket = swingBudget[plr.UserId]
 		if not bucket then
@@ -6877,7 +7620,11 @@ local function swingBlock(plr, part)
 	-- while you keep digging, and only unwinds when you let go.
 	local nowDig = os.clock()
 	local SPIN_GRACE = 0.35
-	local turn = (tool.turn or 0) / (1 + math.max(0, tonumber(b.coolant) or 0))
+	-- DRILLS ARE INSTANT; JACKHAMMERS SPIN UP (owner, 2026-10-16: "jack hammer
+	-- spins up, drill is isntant"). Whatever a drill row still carries, it
+	-- winds in no time, so Coolant (skill tree only) only ever shortens a
+	-- jackhammer's spin-up.
+	local turn = (fam == "drill") and 0 or ((tool.turn or 0) / (1 + math.max(0, tonumber(b.coolant) or 0)))
 	if turn > 0 then
 		if (nowDig - (p.lastDigAt or 0)) > SPIN_GRACE then
 			p.turnReadyAt = nowDig + turn
@@ -6928,6 +7675,13 @@ local function swingBlock(plr, part)
 			return
 		end
 	end
+	--[[
+		No scale here. The 10,000x pass is Event Horizon only
+		(MineDepth.HP_SCALE), and zone 11's side of it is handled where it
+		belongs: its blocks scale through the depth curve and its tools scale
+		their own power in MineHorizonTools, so the two cancel without the
+		normal game's swing ever knowing about it.
+	]]
 	local dmg = tool.power or 1
 	do
 		-- No one-shot rule lives here any more. "Dirt always breaks in one
@@ -6948,6 +7702,11 @@ local function swingBlock(plr, part)
 			dmg += 1
 		end
 		dmg = math.max(1, dmg)
+	end
+	-- The Damage slot's mining enchant (MineEnchants): Critical Strike,
+	-- Executioner, Demolitionist or Combo shapes this swing's damage.
+	if Dig.EnchSvc then
+		dmg = Dig.EnchSvc.hitDamage(plr, p, part, dmg, maxHp)
 	end
 	local function applyDmg(amount, echo)
 		if not part or not part.Parent then return true end
@@ -7033,10 +7792,16 @@ local function swingBlock(plr, part)
 	-- The cell you aimed at always takes a full-power hit.
 	local centreDmg = powerFor(kind, dmg)
 	local centreBroken = false
+	-- Overclock counts ONE-SHOTS: the aimed block was whole and this swing broke it.
+	local wasWhole = (tonumber(part:GetAttribute("HP")) or maxHp) >= maxHp
+	local aimPos = part.Position
 	if hitCentre or #touched == 0 then
 		centreBroken = applyDmg(centreDmg, false)
 	else
 		centreBroken = applyDmg(centreDmg, false)
+	end
+	if Dig.EnchSvc then
+		Dig.EnchSvc.afterSwing(plr, p, centreBroken and wasWhole, aimPos)
 	end
 
 	-- ECHO, BLAST, ZAP -- all three live in Dig.procsAt / Dig.echoAt now.
@@ -7113,6 +7878,8 @@ local function throwAt(plr, dir)
 	p.lastThrow = now
 
 	-- Rounded by chance like a swing (see swingBlock), so small boosts count.
+	-- No 10,000x scale: that pass is Event Horizon only and its charges carry
+	-- it in their own power. See MineDepth.HP_SCALE.
 	local function boosted(power)
 		local raw = (power or 1) * (b.mineSpeed or 1) * fuseMult * (b.dirtBreak or 1)
 		local whole = math.floor(raw)
@@ -7332,13 +8099,19 @@ mint = function(def, userId, rollFinish)
 	end
 	id = id or makeSerial(def)
 	local rosterPet = PetRoster and PetRoster.BY_NAME and PetRoster.BY_NAME[def.name]
+	-- A named pet's one stack key, whoever minted it (MinePetRoster.cardKeyOf).
+	-- Generated cards ("set#007") keep theirs.
+	local cardKey = def.cardKey
+	if rosterPet and PetRoster.cardKeyOf and not (type(cardKey) == "string" and string.find(cardKey, "#", 1, true)) then
+		cardKey = PetRoster.cardKeyOf(def.name) or cardKey
+	end
 	local card = {
 		id = id,
 		serial = id, -- PPP + 16-hex instance; never regenerated on trade/equip
 		speciesHex = string.sub(id, 1, 3),
 		setId = def.setId,
 		index = def.index,
-		cardKey = def.cardKey,
+		cardKey = cardKey,
 		name = def.name,
 		rarityId = def.rarityId or (rosterPet and rosterPet.tier) or nil,
 		typeId = def.typeId,
@@ -7703,7 +8476,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		end
 	end
 	--[[
-		FOSSIL, RUNE AND GEAR PACKS.
+		FOSSIL AND GEAR PACKS.
 
 		Everything a card pack does, with a different roller and a different
 		bucket, and then it leaves before any of the card machinery below runs.
@@ -7715,7 +8488,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		Items carry `rarityId` off the shared eight-name ladder, which is what
 		makes that possible -- the sort below, the reveal's colour and hold
 		timing, and the pull-grade screen effects all read that one field and
-		neither know nor care that this is a rune.
+		neither know nor care that this is gear.
 
 		Written inline, and MineLootPacks required here rather than at the top of
 		the file, because this script is at Luau's ceiling of 200 top-level
@@ -7759,9 +8532,6 @@ local function openPack(plr, setId, chestId, pk, collect)
 				elseif math.floor(tonumber(p.intro) or 0) == 38 then
 					introAdvance(plr, p, 38)
 				end
-			elseif item.kind == "rune" and item.rune then
-				p.runes = p.runes or {}
-				table.insert(p.runes, item.rune)
 			end
 		end
 		-- Best last, exactly as for cards, and for the same reason: the order
@@ -7774,8 +8544,8 @@ local function openPack(plr, setId, chestId, pk, collect)
 			end
 			return tostring(x.name or "") < tostring(y.name or "")
 		end)
-		-- Equipment packs count; gear/rune summons do not.
-		if packDef.kind ~= "gear" and packDef.kind ~= "rune" then
+		-- Equipment packs count; gear summons do not.
+		if packDef.kind ~= "gear" then
 			bumpStat(plr, p, "packs")
 		end
 		introAdvance(plr, p, 5)
@@ -7787,7 +8557,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 		local design = {
 			packId = packDef.id,
 			name = (pk and pk.packName) or packDef.name or "Pack",
-			setName = ({ rune = "Runes", gear = "Gear" })[packDef.kind] or "Loot",
+			setName = ({ gear = "Gear" })[packDef.kind] or "Loot",
 			kind = packDef.kind,
 		}
 		if collect then
@@ -7937,12 +8707,48 @@ local function openPack(plr, setId, chestId, pk, collect)
 	-- number prices the "1 in X" below, so the odds shown are the odds rolled.
 	local shadowShare = (Packs.shadowOfShiny and Packs.shadowOfShiny(packDef and packDef.id, C.SHADOW_OF_SHINY))
 		or (C.SHADOW_OF_SHINY or 0.01)
+	--[[
+		OLD GENERATED CARDS STOP DROPPING (owner, 2026-10-10). Every pack that
+		is not a set pack pays from a ZONE POT (MineZonePets, 70 named pets a
+		zone): the zone the pack belongs to (a zone pack, or a pack found in a
+		zone), else the zone that owns the pack's old set, else the meadow. The
+		rarity is still rolled exactly as before, from the same tables; only
+		WHO you get changes. Old cards already owned keep working.
+
+		A few old sets sit in no zone's list but carry a zone's name (Bloodmoon,
+		Eclipse, Mythral); they pay from that zone. A pack of a "Universal" set
+		pays from the deepest regular zone the player has opened.
+	]]
+	local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+	local potZone, potPets
+	if not (packDef and packDef.setKey) then
+		potZone = (packDef and packDef.zoneId) or (pk and pk.zoneId)
+		if not potZone then
+			local oldSet = Cards.SETS and Cards.SETS[setId]
+			local label = oldSet and string.lower(tostring(oldSet.displayName or "")) or ""
+			for _, z in ipairs(C.ZONES or {}) do
+				if (z.sets and table.find(z.sets, setId)) or z.id == label then
+					potZone = z.id
+					break
+				end
+			end
+		end
+		if not potZone then
+			local z = C.ZONES and C.ZONES[math.max(1, math.floor(tonumber(p and p.maxUnlockedZone) or 1))]
+			potZone = (z and not z.limited) and z.id or "meadow"
+		end
+		potPets = PetRoster.BY_ZONE and (PetRoster.BY_ZONE[potZone] or PetRoster.BY_ZONE.meadow)
+		if potPets and not PetRoster.BY_ZONE[potZone] then
+			potZone = "meadow"
+		end
+	end
+	local potName = potZone and ((C.zoneById(potZone) or {}).name or potZone) or nil
 
 	for slot = 1, want do
-		local def, variant, isShiny, poolN
+		local def, variant, isShiny, poolN, rolledTier
 		if legacy then
 			local r = legacy[slot]
-			variant, isShiny = r.variant, r.shiny
+			variant, isShiny, rolledTier = r.variant, r.shiny, r.tier
 			local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, r.tier or "Common") or {}
 			if #pool == 0 and Cards.indicesOfRarity then
 				pool = Cards.indicesOfRarity(setId, "Common") or {}
@@ -7953,23 +8759,48 @@ local function openPack(plr, setId, chestId, pk, collect)
 			local roll = (isGodPack and Packs.rollGodCard)
 				and Packs.rollGodCard(packDef, rng)
 				or Packs.rollCard(packDef, rng)
-			variant, isShiny = roll.variant, roll.shiny
-			local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, roll.tier) or {}
-			if #pool == 0 and Cards.indicesOfRarity then
-				pool = Cards.indicesOfRarity(setId, "Common") or {}
+			variant, isShiny, rolledTier = roll.variant, roll.shiny, roll.tier
+			if packDef.setKey then
+				--[[
+					A SET PACK DRAWS ONLY ITS SET'S PETS (owner, 2026-10-10:
+					"make some packs draw certain cards"). The rarity came from
+					the pack's star-grade odds just above; the pet is any of the
+					set's hand-named pets at that rarity (MineSetPacks.pickPet).
+				]]
+				local pets = PetRoster.BY_SET and PetRoster.BY_SET[packDef.setKey]
+				-- A holiday pack is the one pack allowed to pay holiday pets.
+				local pet, n = SetPacks.pickPet(pets, roll.tier, rng, packDef.holiday ~= nil)
+				if pet then
+					def = SetPacks.petCard(pet, packDef.setKey, packDef.setName)
+					poolN = n
+				end
+			else
+				local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, roll.tier) or {}
+				if #pool == 0 and Cards.indicesOfRarity then
+					pool = Cards.indicesOfRarity(setId, "Common") or {}
+				end
+				-- This pack's slice of that rarity, not the whole set: two packs of
+				-- one set used to be the same pack in a different wrapper.
+				if Packs.cardPoolFor then
+					pool = Packs.cardPoolFor(packDef, pool)
+				end
+				local index = (#pool > 0) and pool[rng:NextInteger(1, #pool)] or 1
+				def = Cards.getCard and Cards.getCard(setId, index) or nil
+				poolN = #pool
 			end
-			-- This pack's slice of that rarity, not the whole set: two packs of
-			-- one set used to be the same pack in a different wrapper.
-			if Packs.cardPoolFor then
-				pool = Packs.cardPoolFor(packDef, pool)
-			end
-			local index = (#pool > 0) and pool[rng:NextInteger(1, #pool)] or 1
-			def = Cards.getCard and Cards.getCard(setId, index) or nil
-			poolN = #pool
 		else
 			def = fallback and fallback[slot]
 			variant = "Normal"
 			isShiny = rng:NextNumber() * 100 < shinyPct
+		end
+		-- Same rarity, from the zone pot (see potPets above).
+		local potTier = rolledTier or (def and def.rarityId)
+		if potTier and potPets then
+			local pet, n = SetPacks.pickPet(potPets, potTier, rng)
+			if pet then
+				def = SetPacks.petCard(pet, potZone, potName)
+				poolN = poolN and n or nil
+			end
 		end
 		if def then
 			local c = mint(def, plr.UserId)
@@ -8148,7 +8979,7 @@ local function openPack(plr, setId, chestId, pk, collect)
 			or (pk and pk.tier and C.PACK_TIERS[pk.tier])
 			or (chest and chest.name)
 			or "Booster Pack",
-		setName = (set and set.displayName) or setId,
+		setName = (packDef and packDef.setKey and packDef.setName) or potName or (set and set.displayName) or setId,
 	}
 	if isGodPack then
 		design.godpack = true
@@ -8177,10 +9008,10 @@ end
 --
 -- Rolled on OPEN, not on break, because the chest is the thing being opened and
 -- luck should read the same way it does for cards.
--- Declared here, not beside its definition below: rollChestTool calls it,
--- and a local declared after its reader is a nil global to that closure.
+-- rollBigBangPet is forward-declared for the same reason as rollChestTool
+-- (callers above would otherwise see a nil global).
 local rollBigBangPet
-local function rollChestTool(plr, p, chestId, b, ctx)
+function rollChestTool(plr, p, chestId, b, ctx)
 	ctx = ctx or {}
 	local zoneId = ctx.zoneId
 	local layer = tonumber(ctx.layer) or 1
@@ -8480,6 +9311,14 @@ local function openFrom(plr)
 	end
 	if #p.packs > 0 then
 		local pk = table.remove(p.packs, 1)
+		-- A pack case opens into packs, never through openPack (MineCases).
+		local loot, design = require(shared:WaitForChild("MineCases")).open(p, pk)
+		if loot then
+			markDirty(plr)
+			snap(plr)
+			net:FireClient(plr, "opened", loot, design)
+			return
+		end
 		openPack(plr, pk.setId, pk.chestId, pk)
 		-- Forever tools never roll from packs — only real chests / fossils / events / pass.
 	else
@@ -8511,6 +9350,14 @@ local function openAt(plr, payload)
 	table.remove(p.packs, at)
 	if pk.kind == "lucky_block" or (pk.blockId and require(shared.MineLuckyBlocks).def(pk.blockId or pk.packId)) then
 		openLuckyBlock(plr, pk)
+		return
+	end
+	-- A pack case opens into packs, never through openPack (MineCases).
+	local loot, design = require(shared:WaitForChild("MineCases")).open(p, pk)
+	if loot then
+		markDirty(plr)
+		snap(plr)
+		net:FireClient(plr, "opened", loot, design)
 		return
 	end
 	openPack(plr, pk.setId, pk.chestId, pk)
@@ -8555,10 +9402,10 @@ local function openMany(plr, payload)
 	payload = (type(payload) == "table") and payload or {}
 	local packId = payload.packId
 	local want = math.clamp(math.floor(tonumber(payload.count) or 1), 1, Const.OPEN_RUN_MAX)
-	-- Gear / Rune cases: hard cap 3 concurrent reels. No Open All.
+	-- Gear cases: hard cap 3 concurrent reels. No Open All.
 	do
 		local def = packId and Packs.PACK_BY_ID[packId]
-		if def and (def.kind == "gear" or def.kind == "rune") then
+		if def and def.kind == "gear" then
 			want = math.min(want, 3)
 		end
 	end
@@ -8600,10 +9447,16 @@ local function openMany(plr, payload)
 			break
 		end
 		local pk = table.remove(p.packs, pick)
+		local caseLoot, caseDesign = require(shared:WaitForChild("MineCases")).open(p, pk)
 		if pk.kind == "lucky_block" or (pk.blockId and require(shared.MineLuckyBlocks).def(pk.blockId or pk.packId)) then
 			openLuckyBlock(plr, pk)
 			-- Count as one opened for the run budget; no card reveal payload.
 			table.insert(run, { luckyBlock = true, blockId = pk.blockId or pk.packId })
+		elseif caseLoot then
+			-- A pack case: its packs went into the bag, and the reveal shows them.
+			caseDesign.cards = caseLoot
+			table.insert(run, caseDesign)
+			markDirty(plr)
 		else
 			openPack(plr, pk.setId, pk.chestId, pk, run)
 			-- Forever tools never roll from packs (including open-10).
@@ -8846,21 +9699,6 @@ local function scrapPlan(p, kind, ids, into)
 				end
 			end
 		end
-	elseif kind == "rune" then
-		local byId = {}
-		for _, r in ipairs(p.runes or {}) do
-			byId[r.id] = r
-		end
-		for _, id in ipairs(order) do
-			local r = byId[id]
-			if not r then
-				block(id, nil, "not in your bag")
-			elseif runeBusy(p, id) then
-				block(id, r.name, "socketed")
-			else
-				add(id, r.name, 0, Runes.scrapGems(r))
-			end
-		end
 	elseif kind == "gear" then
 		local worn = {}
 		for _, id in pairs(p.equippedGear or {}) do
@@ -8879,18 +9717,7 @@ local function scrapPlan(p, kind, ids, into)
 			elseif worn[id] then
 				block(id, g.name or g.setName, "worn")
 			else
-				local socketed = false
-				for _, rid in pairs(g.sockets or {}) do
-					if rid then
-						socketed = true
-						break
-					end
-				end
-				if socketed then
-					block(id, g.name or g.setName, "has a rune in it")
-				else
-					add(id, g.name or g.setName, 0, Gear.scrapGems(g))
-				end
+				add(id, g.name or g.setName, 0, Gear.scrapGems(g))
 			end
 		end
 	elseif kind == "pack" then
@@ -8949,7 +9776,7 @@ local function scrapMany(plr, payload)
 		return
 	end
 	local kind = payload.kind
-	if kind ~= "card" and kind ~= "rune" and kind ~= "gear" and kind ~= "pack" then
+	if kind ~= "card" and kind ~= "gear" and kind ~= "pack" then
 		return
 	end
 	local into = (payload.into == "gems") and "gems" or "dust"
@@ -8999,12 +9826,6 @@ local function scrapMany(plr, payload)
 		for i = #(p.cards or {}), 1, -1 do
 			if go[p.cards[i].id] then
 				table.remove(p.cards, i)
-			end
-		end
-	elseif kind == "rune" then
-		for i = #(p.runes or {}), 1, -1 do
-			if go[p.runes[i].id] then
-				table.remove(p.runes, i)
 			end
 		end
 	elseif kind == "gear" then
@@ -9102,23 +9923,6 @@ local function scrapItem(plr, payload)
 		markDirty(plr)
 		snap(plr)
 		return
-	elseif kind == "rune" then
-		for i, r in ipairs(p.runes or {}) do
-			if r.id == id then
-				if runeBusy(p, id) then
-					net:FireClient(plr, "toast", "Unsocket it first")
-					return
-				end
-				local gems = Runes.scrapGems(r)
-				p.gems = (p.gems or 0) + gems
-				table.remove(p.runes, i)
-				markDirty(plr)
-				snap(plr)
-				walk(plr)
-				net:FireClient(plr, "toast", "Scrapped rune for " .. gems .. " gems")
-				return
-			end
-		end
 	elseif kind == "gear" then
 		for i, g in ipairs(p.gear or {}) do
 			if g.id == id then
@@ -9165,17 +9969,6 @@ local function salvage(plr, id)
 	end
 end
 
-local function powerUp(plr, id)
-	local p = profiles[plr.UserId]
-	local c = cardById(p, id)
-	if not c then return end
-	if (c.powerLevel or 1) >= C.MAX_POWER then net:FireClient(plr, "toast", "Max power") return end
-	local cost = C.vipPrice(C.powerDustCost(c.powerLevel or 1), hasVipPass(plr))
-	if p.dust < cost then net:FireClient(plr, "toast", "Need " .. cost .. " dust") return end
-	p.dust -= cost
-	c.powerLevel = (c.powerLevel or 1) + 1
-	snap(plr)
-end
 --[[
 	TOOLS ARE NOT BOUGHT ANY MORE. THEY ARE FORGED.
 
@@ -9507,9 +10300,41 @@ local function zoneIdAtCharacter(plr, fallback)
 	return bestId or fallback
 end
 
+--[[
+	Forward declaration for gotoStation, assigned just after
+	Verbs.grantFirstPick is defined. See the comment inside gotoStation: the
+	`Verbs` table is a local declared below this point, so naming it here
+	would read a nil global rather than the table.
+]]
+local grantFirstPickFn
+
 local function gotoStation(plr, id)
 	id = tostring(id or "sell")
 	local p = profiles[plr.UserId]
+	--[[
+		ARRIVING AT THE BLACKSMITH IS ENOUGH TO GET THE FREE PICKAXE.
+
+		Verbs.grantFirstPick had exactly one caller: the shop's proximity
+		prompt. gotoStation teleports a player onto the same pad and did not
+		grant -- so a new player who used the HUD button instead of walking
+		into the prompt landed there holding nothing, with no coins, unable
+		to swing (swingBlock refuses while gotFirstPick is false), and no
+		indication that a prompt they never saw was the thing standing in
+		their way. It is the first thing anyone does in this game.
+
+		grantFirstPick is idempotent -- it returns early unless gotFirstPick
+		is exactly false -- so calling it on every shop arrival is safe.
+
+		Called through a forward-declared local, NOT through `Verbs`. `local
+		Verbs = {}` is declared a hundred lines BELOW this function, so a
+		reference to it here would not be that upvalue -- it compiles as a
+		GLOBAL read, nil at runtime, and errors on the index. That trap is
+		already documented twice in this file; this is the third place it
+		would have bitten.
+	]]
+	if id == "shop" and p and p.gotFirstPick == false and grantFirstPickFn then
+		pcall(grantFirstPickFn, plr)
+	end
 	local fallbackZone = (p and p.zoneId) or (C.ZONES[1] and C.ZONES[1].id)
 	-- Sell goes to the mine you are standing in, not the last enterZone target.
 	local zoneId = (id == "sell") and zoneIdAtCharacter(plr, fallbackZone) or fallbackZone
@@ -9600,6 +10425,23 @@ end
 ]]
 local Verbs = {}
 
+-- FISHING (TODO A3): MineFishingService owns it -- casts, the replayed reel
+-- fight, bait, rods, the cooler. Every remote action starting "fish" goes
+-- there; so does a spot's prompt (Machine "fish").
+Verbs.Fish = require(script.Parent:WaitForChild("MineFishingService"))
+Verbs.Fish.init({ profiles = profiles, net = net, snap = snap, markDirty = markDirty })
+
+-- ENCHANTS (owner, 2026-10-11): MineEnchantService owns books, slots and the
+-- player level. Also on Dig, because boosts() is declared above Verbs.
+Verbs.Ench = require(script.Parent:WaitForChild("MineEnchantService"))
+Verbs.Ench.init({ profiles = profiles, net = net, snap = snap, markDirty = markDirty,
+	-- The tutorial's enchant step (Intro step 8) ends when a book goes on.
+	onApply = function(plr, p)
+		introAdvance(plr, p, 8)
+	end,
+})
+Dig.EnchSvc = Verbs.Ench
+
 --[[
 	THE FREE FIRST PICKAXE.
 
@@ -9627,6 +10469,10 @@ function Verbs.grantFirstPick(plr, p)
 	snap(plr)
 	return true
 end
+
+-- Hand it to gotoStation, which is defined above `local Verbs` and therefore
+-- cannot name the table. Assigned here, the moment the verb exists.
+grantFirstPickFn = Verbs.grantFirstPick
 
 -- Must stay BELOW `local Verbs = {}` above. This was first written next to
 -- sellAll, ~1900 lines earlier, where `Verbs` is still a nil global: it threw
@@ -9759,6 +10605,213 @@ function Verbs.buySeam(plr, payload)
 	snap(plr)
 end
 
+--[[
+	BUY AND OPEN A TRICK-OR-TREAT CASE.
+
+	One verb, not two. A case you own but have not opened would need a bag row,
+	an open path and a UI for it, and the owner asked for candy you "trade in"
+	-- so the trade and the open are one action and nothing is left sitting in
+	an inventory.
+
+	MineTrickOrTreat.roll returns a plain description of the prize and performs
+	no side effects, so the granting lives here where the profile is, and the
+	roll itself stays testable.
+]]
+--[[
+	EQUIP A SKIN, per tool family.
+
+	One skin per family, and it covers EVERY tool in that family -- the owner's
+	rule: "Skins work on every tool in the class." So this stores an id against
+	a family, never against a tool uid, and a player who forges a better pickaxe
+	keeps the skin they were wearing.
+
+	Passing no id unequips, which has to exist: a skin is a build choice and a
+	player must be able to take one off without owning a second.
+]]
+function Verbs.equipSkin(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local id = type(payload) == "table" and tostring(payload.id or "") or tostring(payload or "")
+	local fam = type(payload) == "table" and tostring(payload.family or "") or ""
+	local okSk, Skins = pcall(function()
+		return require(shared:WaitForChild("MineSkins"))
+	end)
+	if not okSk or not Skins then
+		return
+	end
+	p.skinEquipped = p.skinEquipped or {}
+	if id == "" then
+		if fam ~= "" then
+			p.skinEquipped[fam] = nil
+			markDirty(plr)
+			snap(plr)
+			-- The held tool drops the skin's look at once.
+			givePickaxe(plr)
+		end
+		return
+	end
+	local def = Skins.byId(id)
+	if not def then
+		net:FireClient(plr, "toast", "No such skin")
+		return
+	end
+	-- Owning it is the gate. Checked server side because the client sends the id.
+	if not (p.skins and p.skins[id]) then
+		net:FireClient(plr, "toast", "You do not own that skin")
+		return
+	end
+	-- A skin belongs to a FAMILY slot; the client says which tool class it is
+	-- dressing, and anything unknown falls back to the one being held.
+	if fam == "" then
+		local uid = p.oreToolEquipped
+		for _, t in ipairs(p.oreTools or {}) do
+			if t.uid == uid then
+				fam = tostring(t.familyId or "")
+				break
+			end
+		end
+	end
+	if fam == "" then
+		net:FireClient(plr, "toast", "Hold a tool to skin it")
+		return
+	end
+	p.skinEquipped[fam] = id
+	markDirty(plr)
+	snap(plr)
+	-- Re-give the held tool, so a skin with a form (hammers, jackhammers)
+	-- shows on it at once.
+	givePickaxe(plr)
+	net:FireClient(plr, "toast", ("%s equipped on your %s"):format(def.name, fam))
+end
+
+function Verbs.buyTrickOrTreat(plr)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local okT, TT = pcall(function()
+		return require(shared:WaitForChild("MineTrickOrTreat"))
+	end)
+	if not okT or type(TT) ~= "table" then
+		net:FireClient(plr, "toast", "Trick-or-Treat is unavailable")
+		return
+	end
+	-- Sold only while the Crypt is open, and only to someone who claimed it.
+	local zone = C.zoneById("hallow")
+	local flag = zone and zone.ownedFlag
+	if not (flag and p[flag]) then
+		net:FireClient(plr, "toast", "Claim the Candy Crypt first")
+		return
+	end
+	if C.limitedActive and not C.limitedActive("hallow") then
+		net:FireClient(plr, "toast", "The Candy Crypt has closed")
+		return
+	end
+	local price = math.max(1, math.floor(tonumber(TT.PRICE) or 2500))
+	if (tonumber(p.candy) or 0) < price then
+		net:FireClient(plr, "toast", ("Need %d candy"):format(price))
+		return
+	end
+	p.candy = math.max(0, math.floor((tonumber(p.candy) or 0) - price))
+
+	local prize = TT.roll(Random.new())
+	local kind = prize and prize.kind or "candy"
+	local text
+	if kind == "candy" then
+		local amt = math.max(1, math.floor(tonumber(prize.amount) or 1))
+		p.candy = math.floor((tonumber(p.candy) or 0) + amt)
+		text = ("+%d candy back"):format(amt)
+	elseif kind == "hat" then
+		-- Head-slot gear, rolled the one way the chest path rolls it. `p.gear`
+		-- is an ARRAY of pieces; there is no hat-id set on the profile.
+		local piece
+		if Gear and Gear.rollPiece then
+			p.gear = p.gear or {}
+			piece = Gear.rollPiece(instanceHex16(), Random.new(), "head")
+			if piece then
+				table.insert(p.gear, piece)
+			end
+		end
+		if piece then
+			text = piece.name or "a hat"
+		else
+			p.candy = math.floor((tonumber(p.candy) or 0) + price)
+			text = "nothing (refunded)"
+		end
+	elseif kind == "skin" then
+		-- A "skin" IS a temperament here; let the existing roller decide which.
+		-- A "skin" IS a temperament here (wiki: skins-cases-and-temper), and
+		-- MineTemper.rollTemperament is the one roller the rest of the game uses.
+		local Temper = require(shared.MineTemper)
+		local okS, kit, rarity = pcall(function()
+			return Temper.rollTemperament(Random.new())
+		end)
+		if okS and kit and kit.id then
+			--[[
+				p.tempers is a MAP KEYED BY kit.id holding { rarity, n }, not a
+				list. Granted exactly the way the ore cases do it: a duplicate
+				keeps the BETTER grade and bumps the count, because a second
+				copy of a worse roll must not downgrade one you already own.
+			]]
+			p.tempers = p.tempers or {}
+			local had = p.tempers[kit.id]
+			if had then
+				had.rarity = Temper.betterGrade(had.rarity, rarity)
+				had.n = (tonumber(had.n) or 1) + 1
+			else
+				p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
+			end
+			text = "a skin"
+		else
+			p.candy = math.floor((tonumber(p.candy) or 0) + price)
+			text = "nothing (refunded)"
+		end
+	elseif kind == "pack" and prize.id then
+		p.packs = p.packs or {}
+		table.insert(p.packs, { setId = tostring(prize.id) })
+		text = "a seasonal pack"
+	elseif kind == "bucket" then
+		--[[
+			The bucket is a BAG TIER, and owning it must not silently demote a
+			player who already carries something bigger. Granted as an unlock
+			and only equipped when it is an upgrade.
+		]]
+		--[[
+			`backpackTier` is an INDEX into C.BACKPACKS and is clamped to its
+			length -- not a bag id. Limited bags are owned through a dedicated
+			flag, the way the Wormhole Bag uses p.wormholeBag, because there is
+			no per-bag ownership set to put one in.
+		]]
+		local row, idx
+		for i, r in ipairs(C.BACKPACKS or {}) do
+			if r.limited == "hallow" then
+				row, idx = r, i
+				break
+			end
+		end
+		if row and idx then
+			p.trickBucket = true
+			local cur = C.BACKPACKS[p.backpackTier]
+			-- Only equip when it is an upgrade: winning it must never demote
+			-- someone already carrying something bigger.
+			if not cur or (tonumber(row.slots) or 0) > (tonumber(cur.slots) or 0) then
+				p.backpackTier = idx
+			end
+			text = "THE TRICK-OR-TREAT BUCKET"
+		else
+			p.candy = math.floor((tonumber(p.candy) or 0) + price)
+			text = "nothing (refunded)"
+		end
+	else
+		p.candy = math.floor((tonumber(p.candy) or 0) + price)
+		text = "nothing (refunded)"
+	end
+	markDirty(plr)
+	snap(plr)
+	net:FireClient(plr, "toast", "Trick-or-Treat: " .. tostring(text))
+end
 function Verbs.buyCharter(plr, id)
 	local p = profiles[plr.UserId]
 	local row = C.charterById(tostring(id or ""))
@@ -9831,6 +10884,254 @@ end
 	merge moves you onto the charm you just made instead. That is also just
 	what you wanted.
 ]]
+--[[
+	LOAD AND STAMP THE LAUNCH FLAG.
+
+	Owner, 2026-10-07: the timer keeps ticking but the season must not START
+	until they say so. MineLaunch holds the rule; this is the persistence and the
+	switch.
+
+	Stored server-wide, NOT per profile: a season that had begun for one player
+	and not another would be incoherent, and it has to survive every server
+	restart or the season silently rewinds to zero on the next one.
+
+	Read once at boot and cached on the module. The read is best-effort -- if the
+	datastore is down, the game stays UNLAUNCHED, which is the safe direction: a
+	failed read must never start the season by accident.
+]]
+function Verbs._loadLaunch()
+	local okRead, saved = pcall(function()
+		return store:GetAsync("launch_v1")
+	end)
+	if okRead and type(saved) == "table" and tonumber(saved.at) and tonumber(saved.at) > 0 then
+		Dig.Launch.launchedAt = math.floor(saved.at)
+		print(("[Mine] season LAUNCHED at %d (%d days in)"):format(
+			Dig.Launch.launchedAt, math.floor(Dig.Launch.elapsed() / 86400)))
+	else
+		Dig.Launch.launchedAt = 0
+		print("[Mine] season NOT launched yet -- clock pinned to season start")
+	end
+end
+
+--[[
+	Throw the switch. Admin only, and deliberately not undoable from here.
+
+	There is no "unlaunch": once players have spent a season's worth of time in
+	it, rewinding would re-lock what they earned. If it is ever thrown by
+	mistake, the fix is a deliberate datastore edit, not a verb anyone can call.
+]]
+function Verbs.launchSeason(plr)
+	local Allow = require(script.Parent:WaitForChild("Admin"):WaitForChild("AdminAllowlist"))
+	if not (Allow.isAdmin and Allow.isAdmin(plr.UserId)) then
+		return
+	end
+	if Dig.Launch.isLaunched() then
+		net:FireClient(plr, "toast", ("Season already launched (%d days in)"):format(
+			math.floor(Dig.Launch.elapsed() / 86400)))
+		return
+	end
+	local at = Dig.Launch.launch(os.time())
+	if not at then
+		net:FireClient(plr, "toast", "Could not launch -- bad server clock")
+		return
+	end
+	-- Persist BEFORE announcing: a launch that was announced and not saved would
+	-- rewind on the next server restart, which is worse than a failed launch.
+	local okSave = pcall(function()
+		store:SetAsync("launch_v1", { at = at, by = plr.UserId })
+	end)
+	if not okSave then
+		Dig.Launch.launchedAt = 0
+		net:FireClient(plr, "toast", "Launch FAILED to save -- still not launched")
+		warn("[Mine] launchSeason could not persist; season left unlaunched")
+		return
+	end
+	print(("[Mine] SEASON LAUNCHED by %s (%d) at %d"):format(plr.Name, plr.UserId, at))
+	net:FireClient(plr, "toast", "Season launched. The clock is running.")
+end
+
+--[[
+	BUY A CASE FROM A WANDERING TRADER.
+
+	Four things are checked before a token is spent, and each one is an exploit if
+	it is missing:
+
+	  IS A TRADER THERE. The prompt lives in the world, but a client can fire this
+	  verb without ever walking to one. canTrade re-derives the roster from the
+	  rotation, so naming an outpost is not the same as standing at it -- without
+	  this, a surface player buys the deep stock by sending a different seam.
+
+	  IS THAT CASE IN ITS STOCK. The trader's shelf is a function of (rotation,
+	  zone, seam); a caseId that is not on it is refused even though the case
+	  exists. Otherwise the depth gate in MineTrader.stockFor is decoration.
+
+	  CAN THE PLAYER BE THERE AT ALL. canAccessSeam, so a trader at 3,000 is not a
+	  way to shop past a seam you have not opened.
+
+	  THE PRICE IS THE SHELF'S. Taken from the stock row, not from the payload and
+	  not recomputed here, so what the panel quoted is what is charged.
+
+	The reward is rolled server-side with a fresh Random. The client is told what
+	it got, never what it would get.
+]]
+function Verbs.buyTraderCase(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p or type(payload) ~= "table" then
+		return
+	end
+	local zoneId = tostring(payload.zoneId or "")
+	local seam = math.floor(tonumber(payload.seam) or 0)
+	local caseId = tostring(payload.caseId or "")
+	local okHere, why = Dig.TraderNPC.canTrade(p, zoneId, seam, Dig.Auth)
+	if not okHere then
+		net:FireClient(plr, "toast",
+			why == "need_seam" and "You have not opened that seam" or "No trader there right now")
+		return
+	end
+	local offer = Dig.TraderNPC.offer(zoneId, seam)
+	local row
+	for _, r in ipairs(offer.stock or {}) do
+		if r.caseId == caseId then
+			row = r
+			break
+		end
+	end
+	if not row then
+		net:FireClient(plr, "toast", "That trader is not carrying that")
+		return
+	end
+	local price = math.max(1, math.floor(tonumber(row.tokens) or 0))
+	if (tonumber(p.temperTokens) or 0) < price then
+		net:FireClient(plr, "toast", ("Need %d tokens"):format(price))
+		return
+	end
+	local reward = Dig.Trader.rollCase(row.caseId, Random.new())
+	if not reward then
+		net:FireClient(plr, "toast", "That case is empty")
+		return
+	end
+	-- Debit only once the reward resolved, so a case that cannot pay never costs.
+	p.temperTokens = (tonumber(p.temperTokens) or 0) - price
+	local got = nil
+	if reward.kind == "charm" then
+		p.charms = p.charms or {}
+		p.charms[reward.charmId] = (tonumber(p.charms[reward.charmId]) or 0) + 1
+		got = reward.name
+	elseif reward.kind == "hat" then
+		local rng = Random.new()
+		local catalog = Gear.catalogFor and Gear.catalogFor("hat", reward.rarity, nil, rng)
+		local setId = (catalog and catalog.setId)
+			or (Gear.SETS and Gear.SETS[rng:NextInteger(1, #Gear.SETS)].id)
+		local piece = Gear.makePiece and Gear.makePiece(instanceHex16(), setId, "hat", reward.rarity, catalog)
+		if piece then
+			p.gear = p.gear or {}
+			table.insert(p.gear, piece)
+			got = (piece.name or "Hat") .. " (" .. tostring(reward.rarity) .. ")"
+		end
+	elseif reward.kind == "tool" then
+		local oreDef = C.ORES[math.clamp(reward.tier, 1, #C.ORES)]
+		local OreToolsM = require(shared:WaitForChild("MineOreTools"))
+		local familyId = ({ "pickaxe", "drill", "explosive" })[Random.new():NextInteger(1, 3)]
+		local def = oreDef and OreToolsM.frameForTier and OreToolsM.frameForTier(familyId, oreDef.tier)
+		if def and oreDef then
+			p.oreTools = p.oreTools or {}
+			table.insert(p.oreTools, {
+				uid = instanceHex16(),
+				typeId = def.id,
+				familyId = familyId,
+				tier = oreDef.tier,
+				-- A bought tool starts at 1, not at your inherited best: the case
+				-- is the tool, not a free run up the upgrade ladder.
+				level = 1,
+				base = 1,
+			})
+			got = (oreDef.name or "Tool") .. " " .. familyId
+		end
+	end
+	if not got then
+		-- Nothing could be built: refund rather than charge for nothing.
+		p.temperTokens = (tonumber(p.temperTokens) or 0) + price
+		net:FireClient(plr, "toast", "The trader had nothing to give")
+		return
+	end
+	net:FireClient(plr, "toast", ("%s — %s for %d tokens"):format(row.name, got, price))
+	net:FireClient(plr, "foundTool", {
+		kind = reward.kind,
+		name = got,
+		title = "TRADER CASE",
+		rarityId = reward.rarity and (Charms.RARITY_LABEL and Charms.RARITY_LABEL[reward.rarity]) or "Legendary",
+		blurb = row.blurb or "",
+	})
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
+	BUY A GRADED CHARM WITH TEMPER TOKENS.
+
+	Owner, 2026-10-07: charms "can be found in chests (0.5%) or bought with
+	tokens". This is the second half; the chest roll lives in openChestBlock.
+
+	The price comes from MineCharms.charmTokenPrice rather than from the payload,
+	which is the whole point of having it there: a client that asks to buy an SSS
+	for 15 tokens is quoted 2500 by the same table the shop panel reads.
+
+	Only `source == "charm"` rows are buyable. Zone grants, ore charms and the
+	gem pack are not on sale here, and checking the price is not enough on its
+	own -- charmTokenPrice keys off `rarity`, so any future row that gains a
+	rarity would quietly become purchasable. The source check is the gate.
+
+	Debits before granting, and re-reads the balance inside the loop, so a 10x
+	buy cannot overdraw on its last iteration.
+]]
+function Verbs.buyCharm(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p then
+		return
+	end
+	local id = tostring((type(payload) == "table" and payload.charmId) or "")
+	local def = Charms.byId(id)
+	if not def or def.source ~= "charm" then
+		net:FireClient(plr, "toast", "That charm is not for sale")
+		return
+	end
+	local price = Charms.charmTokenPrice(def)
+	if not price or price <= 0 then
+		net:FireClient(plr, "toast", "That charm has no price")
+		return
+	end
+	local want = math.clamp(math.floor(tonumber(type(payload) == "table" and payload.count) or 1), 1, 10)
+	local have = tonumber(p.temperTokens) or 0
+	if have < price then
+		net:FireClient(plr, "toast", ("Need %d token%s"):format(price, price == 1 and "" or "s"))
+		return
+	end
+	p.charms = p.charms or {}
+	local bought, spent = 0, 0
+	for _ = 1, want do
+		if (tonumber(p.temperTokens) or 0) < price then
+			break
+		end
+		p.temperTokens = (tonumber(p.temperTokens) or 0) - price
+		spent += price
+		-- A tally, like every other charm grant; a legacy `true` reads as one.
+		p.charms[def.id] = (tonumber(p.charms[def.id]) or 0) + 1
+		bought += 1
+	end
+	if bought <= 0 then
+		return
+	end
+	-- Wear it if nothing is on, so a first purchase is a boost rather than a
+	-- menu to go and find. Same rule as the chest and zone grants.
+	if not (type(p.equippedCharm) == "string" and p.equippedCharm ~= "") then
+		p.equippedCharm = def.id
+	end
+	net:FireClient(plr, "toast", ("Bought %s%s for %d tokens"):format(
+		def.name, bought > 1 and (" x" .. bought) or "", spent))
+	markDirty(plr)
+	snap(plr)
+end
+
 -- On Verbs rather than a local: this script sits at 197 of Luau's 200
 -- top-level locals and a verb does not need to spend one of the last three.
 function Verbs.mergeCharm(plr, payload)
@@ -10188,14 +11489,12 @@ local function buyProductWithCredits(plr, key)
 		end
 		p.coins = (p.coins or 0) + (tonumber(prod.coins) or 8000)
 		if (tonumber(prod.commonPet) or 1) > 0 then
-			local setId = "dragons_dawn"
-			local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, "Common") or {}
-			if #pool > 0 then
-				local index = pool[Random.new():NextInteger(1, #pool)]
-				local def = Cards.getCard and Cards.getCard(setId, index)
-				if def then
-					table.insert(p.cards, mint(def, plr.UserId, true))
-				end
+			-- A Common from the meadow's pot: old generated cards no longer drop.
+			local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+			local pet = SetPacks.pickPet(PetRoster.BY_ZONE and PetRoster.BY_ZONE.meadow, "Common", Random.new())
+			if pet then
+				local def = SetPacks.petCard(pet, "meadow", (C.zoneById("meadow") or {}).name)
+				table.insert(p.cards, mint(def, plr.UserId, true))
 			end
 		end
 		p.starterBought = true
@@ -10346,7 +11645,8 @@ local function buyZone(plr, zoneId)
 	snap(plr)
 end
 
-local function buy(plr, kind)
+-- Assigned, not declared: the forward declaration is up with the requires.
+function buy(plr, kind)
 	local p = profiles[plr.UserId]
 	-- No surface gate: the player now spawns in the mine and camp is 200
 	-- studs away. Item M puts the Toolsmith in the lobby, which gates this
@@ -10390,9 +11690,20 @@ local function buy(plr, kind)
 			end
 			return
 		end
-		if row.limited == "bigbang" and not p.bigbangOwned then
-			net:FireClient(plr, "toast", "Claim Event Horizon to unlock the Wormhole Bag")
-			return
+		--[[
+			A limited bag belongs to a limited ZONE, and the zone says which
+			profile flag owns it. This named bigbang and bigbangOwned directly,
+			so the Trick-or-Treat Bucket would have been gated on whether you
+			had claimed Event Horizon.
+		]]
+		if row.limited then
+			local lz = C.zoneById(row.limited)
+			local lflag = lz and lz.ownedFlag
+			if lflag and not p[lflag] then
+				net:FireClient(plr, "toast",
+					("Claim %s to unlock the %s"):format(lz.name or "that event", row.name or "bag"))
+				return
+			end
 		end
 		local needZ = math.floor(tonumber(row.minZone) or 1)
 		if needZ > math.max(1, tonumber(p.maxUnlockedZone) or 1) then
@@ -10500,6 +11811,13 @@ local function tryPrestige(plr)
 	-- Zones are bought with gems; rebirth does not gift the next island.
 	fresh.maxUnlockedZone = p.maxUnlockedZone or 1
 	fresh.bigbangOwned = p.bigbangOwned and true or false
+	-- Survives a rebirth the same way the Event Horizon claim does: the event
+	-- was claimed, and a prestige must not take it back.
+	fresh.hallowOwned = p.hallowOwned and true or false
+	fresh.candy = p.candy or 0
+	-- Skins are cosmetic-and-build items, not progression: a rebirth keeps them.
+	fresh.skins = p.skins or {}
+	fresh.skinEquipped = p.skinEquipped or {}
 	fresh.coreSamples = p.coreSamples or {}
 	fresh.coreRiftOpened = p.coreRiftOpened or {}
 	-- Skills survive a rebirth -- they ARE the rebirth reward.
@@ -10525,17 +11843,14 @@ local function tryPrestige(plr)
 
 		The COIN-LADDER tools (pickaxeTier and the shop rungs) still reset, and
 		that is deliberate and unchanged: those are the cheap early rungs rebirth
-		is meant to make you re-buy quickly, and their socketed runes stay on the
-		family so nothing permanent is lost. Forged tools are the opposite -- paid
-		for in a currency that itself survives.
+		is meant to make you re-buy quickly. Forged tools are the opposite -- paid
+		for in a currency that itself survives, and their enchants with them.
 	]]
 	fresh.oreTools = p.oreTools or {}
 	fresh.oreToolEquipped = p.oreToolEquipped
-	-- Coin-ladder tools reset; socketed runes stay on the family through rebirth.
-	fresh.runes = p.runes
+	-- Coin-ladder tools reset; forged tools, gear and charms stay.
 	fresh.gear = p.gear
 	fresh.equippedGear = p.equippedGear
-	fresh.petSockets = p.petSockets
 	fresh.charms = p.charms or {}
 	fresh.equippedCharm = p.equippedCharm
 	fresh.persistBags = p.persistBags or {}
@@ -10558,8 +11873,6 @@ local function tryPrestige(plr)
 	local rebirthGems = Skills.rebirthGemReward and Skills.rebirthGemReward(fresh.prestige, fresh.maxUnlockedZone) or 0
 	fresh.gems = (p.gems or 0) + rebirthGems
 	fresh.credits = p.credits or 0
-	fresh.scrolls = p.scrolls or Scrolls.emptyBag()
-	fresh.toolSockets = p.toolSockets or { pickaxe = nil, drill = nil, explosive = nil }
 	-- Temperaments ride on the family too, so the coin ladder resetting does not
 	-- take a roll you paid tokens for.
 	fresh.toolTempers = p.toolTempers or {}
@@ -10607,7 +11920,7 @@ local function tryPrestige(plr)
 	tp(plr, cloudCf())
 	givePickaxe(plr)
 	giveBackpackModel(plr)
-	net:FireClient(plr, "toast", string.format("Rebirth %d! +%d skill points, +%d tokens, +%d gems. Tool runes stay socketed through rebirth.",
+	net:FireClient(plr, "toast", string.format("Rebirth %d! +%d skill points, +%d tokens, +%d gems. Forged tools and their enchants stay.",
 		fresh.prestige, Skills.tokensFor(fresh.prestige), Skills.rebirthTokens(fresh.prestige), rebirthGems))
 	if fresh.prestige == 1 then
 		local Temper = require(shared.MineTemper)
@@ -10625,59 +11938,6 @@ local function tryPrestige(plr)
 		re-plan should open the screen you re-plan on.
 	]]
 	net:FireClient(plr, "openPanel", "skills")
-end
-
-function Verbs.debugGrantRune(plr, payload)
-	if not Svc.Run:IsStudio() then return end
-	local p = profiles[plr.UserId]
-	if not p then return end
-	p.runes = p.runes or {}
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	p.gear = p.gear or {}
-	p.equippedGear = p.equippedGear or {}
-
-	local n = math.clamp(tonumber(payload and payload.count) or 20, 1, 50)
-	local rng = Random.new()
-	for _ = 1, n do
-		-- T10 blast: 0.60% doubled nine times.
-		table.insert(p.runes, {
-			id = instanceHex16(),
-			kind = "explosive",
-			stat = "blastRadius",
-			tier = 10,
-			pct = Runes.pctForTier("blastRadius", 10),
-			level = 10,
-		})
-	end
-	-- Tier/level 99 "damage" runes = pickaxe mineSpeed (tool power).
-	local nDmg = math.clamp(tonumber(payload and payload.damageCount) or 20, 1, 50)
-	for _ = 1, nDmg do
-		table.insert(p.runes, {
-			id = instanceHex16(),
-			kind = "pickaxe",
-			stat = "mineSpeed",
-			tier = 10,
-			pct = Runes.pctForTier("mineSpeed", 10),
-			level = 99,
-		})
-	end
-	p.scrolls.white = (p.scrolls.white or 0) + 1
-
-	-- Full Exotic Inferno (blast) set, equipped.
-	for _, slot in ipairs(Gear.SLOTS) do
-		local piece = Gear.makePiece(instanceHex16(), "inferno", slot, "SSS",
-			Gear.catalogFor and Gear.catalogFor(slot, "SSS", "inferno", Random.new()) or nil)
-		if piece then
-			piece.stat = "blastRadius"
-			table.insert(p.gear, piece)
-			p.equippedGear[slot] = piece.id
-		end
-	end
-
-	givePickaxe(plr)
-	net:FireClient(plr, "toast", string.format("Granted %d blast + %d L99 damage runes, Sinkhole, Exotic Inferno", n, nDmg))
-	snap(plr)
-	walk(plr)
 end
 
 function Verbs.debugGrantBlastSet(plr)
@@ -10700,27 +11960,6 @@ function Verbs.debugGrantBlastSet(plr)
 	walk(plr)
 end
 
-function Verbs.debugGrantL99Blast(plr, payload)
-	if not Svc.Run:IsStudio() then return end
-	local p = profiles[plr.UserId]
-	if not p then return end
-	p.runes = p.runes or {}
-	local n = math.clamp(tonumber(payload and payload.count) or 5, 1, 30)
-	local rng = Random.new()
-	for _ = 1, n do
-		table.insert(p.runes, {
-			id = instanceHex16(),
-			kind = "explosive",
-			stat = "blastRadius",
-			tier = 10,
-			pct = Runes.pctForTier("blastRadius", 10),
-			level = 99,
-		})
-	end
-	net:FireClient(plr, "toast", string.format("Granted %d× L99 +300%% blast runes (gear-socketable)", n))
-	snap(plr)
-end
-
 --[[
 	Buy rolls in bulk.
 
@@ -10737,46 +11976,6 @@ local function rollCount(payload)
 		n = tonumber(payload.count)
 	end
 	return math.clamp(math.floor(n or 1), 1, Const.ROLL_MAX)
-end
-
-function Verbs.rollRuneBanner(plr, payload)
-	local p = profiles[plr.UserId]
-	local want = rollCount(payload)
-	local price = Runes.rollPriceFor(p.maxUnlockedZone)
-	if (p.gems or 0) < price then
-		net:FireClient(plr, "toast", "Need " .. price .. " gems")
-		return
-	end
-	local done = 0
-	local def = Packs.PACK_BY_ID.rune_pack
-	p.packs = p.packs or {}
-	for _ = 1, want do
-		if (p.gems or 0) < price then break end
-		p.gems -= price
-		done += 1
-		table.insert(p.packs, {
-			packId = "rune_pack",
-			packName = (def and def.name) or "Rune Pouch",
-			kind = "rune",
-		})
-	end
-	if done == 1 then
-		net:FireClient(plr, "toast", (def and def.name or "Rune Pouch") .. "!")
-	elseif done > 1 then
-		net:FireClient(plr, "toast", string.format("%d× %s  (-%s gems)",
-			done, (def and def.name) or "Rune Pouch", tostring(done * price)))
-	end
-	if done < want then
-		net:FireClient(plr, "toast", string.format("Ran out of gems after %d of %d", done, want))
-	end
-	if done > 0 then
-		introAdvance(plr, p, 8)
-		-- The pouch flies into the bag on screen (MineClient flyToBag).
-		net:FireClient(plr, "purchaseFx", { kind = "pack", packId = "rune_pack", count = done,
-			name = (def and def.name) or "Rune Pouch" })
-	end
-	snap(plr)
-	walk(plr)
 end
 
 function Verbs.rollGearBanner(plr, payload)
@@ -10828,50 +12027,16 @@ function Verbs.rollGearBanner(plr, payload)
 	walk(plr)
 end
 
-function Verbs.mergeHats(plr, payload)
-	local p = profiles[plr.UserId]
-	if not p then return end
-	local aId, bId = payload and payload.a, payload and payload.b
-	local a, b = gearById(p, aId), gearById(p, bId)
-	if not a or not b or aId == bId then
-		net:FireClient(plr, "toast", "Pick two different hats")
-		return
-	end
-	-- Unequip first — a worn hat cannot be consumed.
-	local function strip(id)
-		for slot, gid in pairs(p.equippedGear or {}) do
-			if gid == id then p.equippedGear[slot] = nil end
-		end
-	end
-	strip(aId)
-	strip(bId)
-	local merged, err = Gear.mergeHats(a, b, instanceHex16())
-	if not merged then
-		net:FireClient(plr, "toast", err or "Cannot merge")
-		return
-	end
-	-- Remove both inputs, insert result.
-	local kept = {}
-	for _, g in ipairs(p.gear or {}) do
-		if g.id ~= aId and g.id ~= bId then
-			table.insert(kept, g)
-		end
-	end
-	table.insert(kept, merged)
-	p.gear = kept
-	net:FireClient(plr, "toast", "Hats merged!")
-	markDirty(plr)
-	snap(plr)
-end
-
 --[[
-	Fuse two matching pieces into one of the next grade, capped at FUSE_CAP.
+	Fuse matching pieces into one of the next grade, capped at FUSE_CAP: three
+	of the same hat, or two of the same face (MineGear.FUSE_NEED; owner,
+	2026-10-10, hats take three).
 
-	MineGear.canUpgrade owns the rules, and the panel calls the very same
-	function to decide which pairs to offer, so the screen and this verb cannot
-	disagree about what is legal. It is re-checked here regardless: the client
-	names two ids and nothing else, because a client that names its own outcome
-	is not a client.
+	MineGear.canFuse owns the rules, and the panel's MineGear.upgradePairs uses
+	the very same ones to decide what to offer, so the screen and this verb
+	cannot disagree about what is legal. It is re-checked here regardless: the
+	client names ids and nothing else, because a client that names its own
+	outcome is not a client.
 
 	`gear in use` deliberately counts pet hats as well as worn pieces. A hat
 	sitting on a pet is not lying around spare, and consuming it out from under
@@ -10880,21 +12045,29 @@ end
 function Verbs.upgradeGear(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then return end
-	local aId, bId = payload and payload.a, payload and payload.b
-	local a, b = gearById(p, aId), gearById(p, bId)
-	if not a or not b then
-		net:FireClient(plr, "toast", "Pick two pieces")
-		return
+	-- The pieces by id: `ids` (three hats, or two faces), or the old a/b pair.
+	payload = (type(payload) == "table") and payload or {}
+	local ids = (type(payload.ids) == "table") and payload.ids or { payload.a, payload.b }
+	local pieces, consumed = {}, {}
+	for _, id in ipairs(ids) do
+		local g = gearById(p, id)
+		if not g then
+			net:FireClient(plr, "toast", "Pick the pieces to fuse")
+			return
+		end
+		table.insert(pieces, g)
+		consumed[id] = true
 	end
 	local used = {}
 	for _, id in pairs(p.equippedGear or {}) do
 		if id then used[id] = true end
 	end
-	local ok, why = Gear.canUpgrade(a, b, used)
+	local ok, why = Gear.canFuse(pieces, used)
 	if not ok then
 		net:FireClient(plr, "toast", why or "Cannot upgrade")
 		return
 	end
+	local a = pieces[1]
 	local was = a.rarity
 	local made = Gear.upgradedFrom(a, instanceHex16())
 	if not made then
@@ -10903,7 +12076,7 @@ function Verbs.upgradeGear(plr, payload)
 	end
 	local kept = {}
 	for _, g in ipairs(p.gear or {}) do
-		if g.id ~= aId and g.id ~= bId then
+		if not consumed[g.id] then
 			table.insert(kept, g)
 		end
 	end
@@ -10914,186 +12087,6 @@ function Verbs.upgradeGear(plr, payload)
 	net:FireClient(plr, "gearUpgraded", { id = made.id, from = was, to = made.rarity })
 	markDirty(plr)
 	snap(plr)
-end
-
-function Verbs.fuseRunes(plr, payload)
-	local p = profiles[plr.UserId]
-	local aId, bId = payload and payload.a, payload and payload.b
-	local a, b = runeById(p, aId), runeById(p, bId)
-	if not a or not b or aId == bId then net:FireClient(plr, "toast", "Pick two different runes") return end
-	if runeBusy(p, aId) or runeBusy(p, bId) then net:FireClient(plr, "toast", "Unequip both runes before fusing") return end
-	local preview, err = Runes.fusePreview(a, b)
-	if not preview then net:FireClient(plr, "toast", err or "Cannot fuse") return end
-	if (p.gems or 0) < preview.cost then net:FireClient(plr, "toast", "Need " .. preview.cost .. " gems") return end
-	local protected = (a.whiteArmed == true) or (b.whiteArmed == true)
-	p.gems -= preview.cost
-	--[[
-		One flat independent coin flip, Runes.FUSE_SUCCESS, every attempt.
-
-		There is no pity ledger, no per-level fail counter and no way to force a
-		win. The previous version kept p.fusePity keyed on levelA+levelB and
-		handed out a guaranteed success after five failures; that is exactly
-		what must not exist here. Do not add it back in any form.
-	]]
-	local chance = Runes.FUSE_SUCCESS
-	local hit = Random.new():NextNumber() < chance
-	-- Consume white arming either way; mark whiteUsed so future fuses are 5x.
-	local function consumeWhite(r)
-		if r.whiteArmed then
-			r.whiteArmed = nil
-			r.whiteUsed = true
-		end
-	end
-	if not hit then
-		if protected then
-			consumeWhite(a)
-			consumeWhite(b)
-			net:FireClient(plr, "toast", string.format("Fuse failed (%.0f%%). White Scroll saved both runes.", chance * 100))
-		else
-			removeRune(p, aId)
-			removeRune(p, bId)
-			net:FireClient(plr, "toast", string.format("Fuse failed (%.0f%%). Both runes destroyed.", chance * 100))
-		end
-		snap(plr)
-		return
-	end
-	consumeWhite(a)
-	consumeWhite(b)
-	local whiteUsed = a.whiteUsed or b.whiteUsed or false
-	removeRune(p, aId)
-	removeRune(p, bId)
-	local out = {
-		id = instanceHex16(), kind = preview.kind, stat = preview.stat, pct = preview.pct,
-		tier = preview.tier,
-		level = preview.level, secondaryStat = preview.secondaryStat, secondaryPct = preview.secondaryPct,
-		whiteUsed = whiteUsed,
-	}
-	table.insert(p.runes, out)
-	net:FireClient(plr, "toast", "Fused! " .. Runes.describe(out))
-	snap(plr)
-	walk(plr)
-end
-
-function Verbs.socketToolRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local runeId = payload and payload.runeId
-	local family = tostring(payload and payload.family or p.toolFamily or "pickaxe")
-	local chestId = payload and payload.chestId
-	local shopToolId = payload and payload.shopToolId
-	local rune = runeById(p, runeId)
-	if not rune then net:FireClient(plr, "toast", "Unknown rune") return end
-	if runeBusy(p, runeId) then net:FireClient(plr, "toast", "That rune is already socketed") return end
-	local function bindDestroyingPrevious(prevId, assign)
-		if prevId then
-			if (p.gems or 0) < Runes.RESOCKET_PRICE then
-				net:FireClient(plr, "toast", "Destroying the old rune costs " .. Runes.RESOCKET_PRICE .. " gems")
-				return false
-			end
-			p.gems -= Runes.RESOCKET_PRICE
-			removeRune(p, prevId)
-		end
-		assign()
-		return true
-	end
-	if chestId then
-		local ct
-		for _, row in ipairs(p.chestTools or {}) do if row.id == chestId then ct = row break end end
-		if not ct then net:FireClient(plr, "toast", "Unknown chest tool") return end
-		if not Runes.canSocketOnTool(rune, ct.family or family) then net:FireClient(plr, "toast", "Wrong rune kind") return end
-		if not bindDestroyingPrevious(ct.runeId, function() ct.runeId = runeId end) then return end
-	elseif shopToolId then
-		-- Every coin-shop tool has its own socket (the client always sent
-		-- shopToolId; nothing here read it, so the rune fell into the family
-		-- socket or bounced with "Buy that tool first").
-		shopToolId = tostring(shopToolId)
-		if not (p.ownedShopTools and p.ownedShopTools[shopToolId]) then net:FireClient(plr, "toast", "Buy that tool first") return end
-		p.shopToolRunes = p.shopToolRunes or {}
-		if not bindDestroyingPrevious(p.shopToolRunes[shopToolId], function() p.shopToolRunes[shopToolId] = runeId end) then return end
-	else
-		if not Runes.canSocketOnTool(rune, family) then net:FireClient(plr, "toast", "Wrong rune kind for that tool") return end
-		if (p.tools[family] or 0) <= 0 then net:FireClient(plr, "toast", "Buy that tool first") return end
-		local slot = tostring(payload and payload.slot or "main")
-		local sock = familySocket(p, family)
-		if slot == "omni" and not sock.omniUnlocked then
-			net:FireClient(plr, "toast", "Unlock omni socket with an Omniscroll first")
-			return
-		end
-		local prevId = (slot == "omni") and sock.omni or sock.main
-		if not bindDestroyingPrevious(prevId, function()
-			if slot == "omni" then sock.omni = runeId else sock.main = runeId end
-		end) then return end
-	end
-	net:FireClient(plr, "toast", "Socketed " .. Runes.describe(rune) .. " (locked until destroyed)")
-	introAdvance(plr, p, 9)
-	snap(plr)
-	walk(plr)
-end
-
-local function destroyToolRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local family = tostring(payload and payload.family or "")
-	local chestId = payload and payload.chestId
-	local shopToolId = payload and payload.shopToolId and tostring(payload.shopToolId)
-	if (p.gems or 0) < Runes.RESOCKET_PRICE then
-		net:FireClient(plr, "toast", "Destroying a socketed rune costs " .. Runes.RESOCKET_PRICE .. " gems")
-		return
-	end
-	if shopToolId then
-		local rid = p.shopToolRunes and p.shopToolRunes[shopToolId]
-		if rid then
-			p.gems -= Runes.RESOCKET_PRICE
-			removeRune(p, rid)
-			p.shopToolRunes[shopToolId] = nil
-			net:FireClient(plr, "toast", "Rune destroyed")
-			snap(plr)
-			walk(plr)
-			return
-		end
-	elseif chestId then
-		for _, ct in ipairs(p.chestTools or {}) do
-			if ct.id == chestId and ct.runeId then
-				p.gems -= Runes.RESOCKET_PRICE
-				removeRune(p, ct.runeId)
-				ct.runeId = nil
-				net:FireClient(plr, "toast", "Rune destroyed")
-				snap(plr)
-				walk(plr)
-				return
-		end
-		end
-	elseif family ~= "" then
-		local slot = tostring(payload and payload.slot or "main")
-		local sock = familySocket(p, family)
-		local runeId = (slot == "omni") and sock.omni or sock.main
-		if runeId then
-			p.gems -= Runes.RESOCKET_PRICE
-			removeRune(p, runeId)
-			if slot == "omni" then sock.omni = nil else sock.main = nil end
-			net:FireClient(plr, "toast", "Rune destroyed")
-			snap(plr)
-			walk(plr)
-			return
-		end
-	end
-	net:FireClient(plr, "toast", "No socketed rune to destroy")
-end
-
-function Verbs.socketPetRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local rune = runeById(p, payload and payload.runeId)
-	local cardId = payload and payload.cardId
-	if not rune or not Runes.canSocketOnPet(rune) then net:FireClient(plr, "toast", "Only pet runes go on pets") return end
-	if not cardById(p, cardId) then net:FireClient(plr, "toast", "Unknown pet") return end
-	if runeBusy(p, rune.id) then net:FireClient(plr, "toast", "Rune already socketed") return end
-	if p.petSockets[cardId] then
-		if (p.gems or 0) < Runes.RESOCKET_PRICE then net:FireClient(plr, "toast", "Resocket costs " .. Runes.RESOCKET_PRICE .. " gems") return end
-		p.gems -= Runes.RESOCKET_PRICE
-	end
-	p.petSockets[cardId] = rune.id
-	introAdvance(plr, p, 9)
-	introAdvance(plr, p, 26)
-	snap(plr)
-	walk(plr)
 end
 
 function Verbs.unequipGearPiece(plr, payload)
@@ -11210,152 +12203,14 @@ function Verbs.equipGearPiece(plr, payload)
 	applyPlayerCosmetics(plr)
 end
 
-function Verbs.socketGearRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local piece = gearById(p, payload and payload.gearId)
-	local rune = runeById(p, payload and payload.runeId)
-	local index = tonumber(payload and payload.index) or 1
-	if not piece or not rune then net:FireClient(plr, "toast", "Pick gear and rune") return end
-	if not Runes.canSocketOnGear(rune) then net:FireClient(plr, "toast", "That rune cannot socket on gear") return end
-	if runeBusy(p, rune.id) then net:FireClient(plr, "toast", "Rune already socketed") return end
-	piece.sockets = piece.sockets or {}
-	if index < 1 or index > (piece.slotCount or 0) then net:FireClient(plr, "toast", "No such socket") return end
-	if piece.sockets[index] then net:FireClient(plr, "toast", "Socket filled forever - cannot remove") return end
-	piece.sockets[index] = rune.id
-	net:FireClient(plr, "toast", "Locked into gear (permanent)")
-	introAdvance(plr, p, 9)
-	snap(plr)
-	walk(plr)
-end
-
-local function grantScrolls(p, id, qty)
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	p.scrolls[id] = (p.scrolls[id] or 0) + qty
-end
-
---[[
-	Pouches and crates. A pouch is a blind pull from every set; a crate is aimed
-	at one set and costs a lot more, which is how you finish the set you are
-	three-quarters through. Both pay gems, so there is a non-Robux path to
-	scrolls -- white protects a fuse, and fusing is the long grind.
-]]
-local function openRuneBox(plr, spec, setId)
-	local p = profiles[plr.UserId]
-	if not spec then
-		net:FireClient(plr, "toast", "Unknown box")
-		return
+-- Enchant books a reward pays (the pass, the Founders pack), as one bundle.
+-- They paid scrolls until scrolls were retired with runes (2026-10-12). A Dig
+-- field, not a local, so the join-time Founders check above can reach it.
+function Dig.grantBooks(p, n, rank, slotFilter)
+	n = math.floor(tonumber(n) or 0)
+	if Dig.EnchSvc and n > 0 then
+		return Dig.EnchSvc.grantBundle(p, n, rank, slotFilter)
 	end
-	if (p.gems or 0) < spec.gems then
-		net:FireClient(plr, "toast", "Need " .. spec.gems .. " gems")
-		return
-	end
-	p.gems -= spec.gems
-	local result = Runes.openBox(spec, setId, instanceHex16, Random.new())
-	for _, r in ipairs(result.runes or {}) do
-		table.insert(p.runes, r)
-	end
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	local extras = {}
-	for id, n in pairs(result.scrolls or {}) do
-		if n > 0 then
-			p.scrolls[id] = (p.scrolls[id] or 0) + n
-			table.insert(extras, n .. "x " .. id)
-		end
-	end
-	table.sort(extras)
-	local count = #(result.runes or {})
-	local line = spec.name .. ": " .. count .. (count == 1 and " rune" or " runes")
-	if #extras > 0 then
-		line = line .. " + " .. table.concat(extras, ", ")
-	end
-	net:FireClient(plr, "toast", line)
-	net:FireClient(plr, "boxOpened", { spec = spec.id, runes = result.runes, scrolls = result.scrolls })
-	snap(plr)
-	walk(plr)
-end
-
-function Verbs.buyPouch(plr, payload)
-	openRuneBox(plr, Runes.pouch(payload and payload.tier), nil)
-end
-
-function Verbs.buyCrate(plr, payload)
-	local setId = payload and payload.setId
-	if not Runes.set(setId) then
-		net:FireClient(plr, "toast", "Pick a set to aim the crate at")
-		return
-	end
-	openRuneBox(plr, Runes.crate(payload and payload.tier), setId)
-end
-
-function Verbs.buyScroll(plr, payload)
-	local p = profiles[plr.UserId]
-	local id = payload and payload.id
-	local item = Scrolls.itemById(id)
-	if not item then
-		net:FireClient(plr, "toast", "Unknown scroll")
-		return
-	end
-	local cost, grant = item.price, 1
-	if payload and payload.bundle then
-		if not item.bundleQty then
-			net:FireClient(plr, "toast", "No bundle for that item")
-			return
-		end
-		cost = item.bundlePrice or (item.price * item.bundleQty)
-		grant = item.bundleQty
-	end
-	cost = C.vipPrice(cost, hasVipPass(plr))
-
-	--[[
-		A TYPED QUANTITY. Owner: "a custom amoujt of packs to buy (the player
-		can write the number themselves [default 1])".
-
-		Multiplies whatever one unit costs -- so it stacks on a bundle too, and
-		the VIP discount is applied before the multiply rather than after, or
-		buying ten would round the discount away ten times.
-
-		Short on credits pays out what you CAN afford rather than refusing,
-		which is the same contract openMany documents for "open 10" off a stack
-		of six. Refusing a 50-pack request because you can afford 49 is the
-		behaviour that makes people stop using the box.
-	]]
-	local qty = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
-		1, Const.BUY_QTY_MAX)
-	local unit, unitGrant = cost, grant
-	local have = tonumber(p.credits) or 0
-	if unit > 0 then
-		qty = math.min(qty, math.floor(have / unit))
-	end
-	if qty < 1 then
-		net:FireClient(plr, "toast", "Need " .. unit .. " credits")
-		return
-	end
-	cost, grant = unit * qty, unitGrant * qty
-
-	if (p.credits or 0) < cost then
-		net:FireClient(plr, "toast", "Need " .. cost .. " credits")
-		return
-	end
-	p.credits -= cost
-	if id == "runesmith" and item.grants then
-		for k, v in pairs(item.grants) do
-			grantScrolls(p, k, v)
-		end
-	else
-		grantScrolls(p, id, grant)
-	end
-	net:FireClient(plr, "toast", "Bought " .. item.name .. (grant > 1 and (" x" .. grant) or ""))
-	-- Say so when the box asked for more than the wallet could cover, or a
-	-- short fill looks like the number was ignored.
-	do
-		local asked = math.clamp(math.floor(tonumber(payload and payload.qty) or 1),
-			1, Const.BUY_QTY_MAX)
-		if asked > qty then
-			net:FireClient(plr, "toast", string.format(
-				"Only %d of %d - that is what %d credits covered", qty, asked, have))
-		end
-	end
-	snap(plr)
 end
 
 --[[
@@ -11399,7 +12254,7 @@ local function joinVip(plr)
 			local seatsRef = { left = vipSeatsLeft }
 			if Founders.grant(p, plr, "gamepass", {
 				seatsRef = seatsRef,
-				grantScrolls = grantScrolls,
+				grantBooks = Dig.grantBooks,
 				toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 			}) then
 				vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -11423,7 +12278,7 @@ local function joinVip(plr)
 		local seatsRef = { left = vipSeatsLeft }
 		Founders.grant(p, plr, "credits", {
 			seatsRef = seatsRef,
-			grantScrolls = grantScrolls,
+			grantBooks = Dig.grantBooks,
 			toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 		})
 		vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -11436,7 +12291,7 @@ end
 
 local function cartPrice(line)
 	local kind, id = line.kind, tostring(line.id)
-	-- Shop sells packs (and scrolls) only — never individual cards.
+	-- Shop sells packs only — never individual cards. (Scrolls retired 2026-10-12.)
 	if kind == "card" or kind == "cards" or kind == "pet" then
 		return nil
 	end
@@ -11449,18 +12304,6 @@ local function cartPrice(line)
 			return Packs.bundlePrice(id), Packs.BUNDLE_QTY
 		end
 		return unit, 1
-	elseif kind == "scroll" then
-		local item = Scrolls.itemById(id)
-		if not item then
-			return nil
-		end
-		if line.bundle then
-			if not item.bundleQty then
-				return nil
-			end
-			return item.bundlePrice or (item.price * item.bundleQty), item.bundleQty
-		end
-		return item.price, 1
 	elseif kind == "lucky_block" then
 		local LuckyBlocks = require(shared.MineLuckyBlocks)
 		if not LuckyBlocks.def(id) then
@@ -11664,6 +12507,7 @@ local function buyCart(plr, payload)
 	end
 	table.sort(setIds)
 	local granted = {}
+	local Cases = require(shared:WaitForChild("MineCases"))
 	for _, line in ipairs(priced) do
 		if line.kind == "pack" then
 			local def = Packs.PACK_BY_ID[line.id]
@@ -11671,27 +12515,17 @@ local function buyCart(plr, payload)
 			for _ = 1, line.grant do
 				-- A random set each time, so a bundle spreads across the
 				-- collection instead of stacking ten of one set nobody needs.
-				table.insert(p.packs, {
+				-- A pack case or a set pack keeps its own (MineCases). Bought
+				-- with credits, so a wild case can roll the SSS set.
+				table.insert(p.packs, Cases.bagRow(line.id, true) or {
 					packId = line.id,
 					packName = (def and def.name) or line.id,
-					setId = (#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn",
+					setId = (def and def.setKey)
+						or ((#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn"),
 				})
 			end
 			table.insert(granted, { kind = "pack", id = line.id,
 				name = (def and def.name) or line.id, qty = line.grant })
-		elseif line.kind == "scroll" then
-			local item = Scrolls.itemById(line.id)
-			if line.id == "runesmith" and item and item.grants then
-				for _ = 1, line.qty do
-					for k, v in pairs(item.grants) do
-						grantScrolls(p, k, v)
-					end
-				end
-			else
-				grantScrolls(p, line.id, line.grant)
-			end
-			table.insert(granted, { kind = "scroll", id = line.id,
-				name = (item and item.name) or line.id, qty = line.grant })
 		elseif line.kind == "lucky_block" then
 			local LuckyBlocks = require(shared.MineLuckyBlocks)
 			local def = LuckyBlocks.def(line.id)
@@ -11716,10 +12550,11 @@ local function buyCart(plr, payload)
 				pid = tostring(pid)
 				local def = Packs.PACK_BY_ID[pid]
 				if def and Packs.priceOf(pid) then
-					table.insert(p.packs, {
+					table.insert(p.packs, Cases.bagRow(pid, true) or {
 						packId = pid,
 						packName = def.name or pid,
-						setId = (#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn",
+						setId = def.setKey
+							or ((#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn"),
 					})
 					n += 1
 				end
@@ -11794,7 +12629,8 @@ local function grantPassSignatureTool(p, toolId, plr)
 	return true
 end
 
-local function openLuckyBlock(plr, entry)
+-- Assigned, not declared: the forward declaration is up with the requires.
+function openLuckyBlock(plr, entry)
 	local p = profiles[plr.UserId]
 	if not p or type(entry) ~= "table" then
 		return
@@ -11809,84 +12645,53 @@ local function openLuckyBlock(plr, entry)
 	local rng = Random.new()
 	local finalGrade, info = Grades.rollClash(entry.startGrade or "F", rng, LuckyBlocks.UPGRADE_P)
 	local loot = LuckyBlocks.rollLoot(blockId, finalGrade, rng)
-	-- Grant loot
-	if loot.packId then
-		local def
-		for _, row in ipairs(Packs.PACKS or {}) do
-			if row.id == loot.packId then def = row break end
+	--[[
+		Grant the loot: a case, gems or stardust (MineLuckyBlocks.rollLoot).
+		A case goes in the bag and is opened like any other, so a mystery case
+		still spins its reel and a skin case still plays its own.
+	]]
+	p.packs = p.packs or {}
+	if loot.caseId then
+		local Cases = require(shared:WaitForChild("MineCases"))
+		local def = Cases.get(loot.caseId)
+		for _ = 1, math.max(1, math.floor(tonumber(loot.caseQty) or 1)) do
+			local row = Cases.bagRow(loot.caseId)
+			if row then
+				table.insert(p.packs, row)
+			end
 		end
-		-- Also resolve zone packs if present
-		pcall(function()
-			local ZonePacks = require(shared.MineZonePacks)
-			def = def or ZonePacks.get(loot.packId)
-		end)
-		p.packs = p.packs or {}
-		local packQty = math.max(1, math.floor(tonumber(loot.packQty) or 1))
-		for _ = 1, packQty do
+		loot.caseName = (def and def.name) or loot.caseId
+	end
+	if type(loot.skinCaseTiers) == "table" then
+		-- Any ore in the block's tier range, evenly. Same bag row a broken ore
+		-- block drops, so it opens to a skin or that ore's charm.
+		local lo = tonumber(loot.skinCaseTiers[1]) or 1
+		local hi = tonumber(loot.skinCaseTiers[2]) or lo
+		local pool = {}
+		for _, ore in ipairs(C.ORES or {}) do
+			local t = tonumber(ore.tier)
+			if t and t >= lo and t <= hi then
+				table.insert(pool, ore)
+			end
+		end
+		local ore = pool[1] and pool[rng:NextInteger(1, #pool)]
+		if ore then
 			table.insert(p.packs, {
-				packId = loot.packId,
-				packName = (def and def.name) or loot.packId,
-				setId = "dragons_dawn",
+				packId = ore.id .. "_ore_case",
+				packName = ore.name .. " Case",
+				kind = "ore_case",
+				oreId = ore.id,
 			})
+			loot.oreId = ore.id
+			loot.oreCaseName = ore.name .. " Case"
 		end
 	end
 	if loot.gems then p.gems = (p.gems or 0) + loot.gems end
 	if loot.dust then p.dust = (p.dust or 0) + loot.dust end
-	if loot.temperTokens then p.temperTokens = (p.temperTokens or 0) + loot.temperTokens end
-	if type(loot.scrolls) == "table" then
-		for id, qty in pairs(loot.scrolls) do grantScrolls(p, id, qty) end
-	end
-	if loot.potionId then
-		pcall(function()
-			local Potions = require(shared:WaitForChild("MinePotions"))
-			if Potions.grant(p, loot.potionId, loot.potionQty or 1) then
-				local def = Potions.def(loot.potionId)
-				net:FireClient(plr, "toast", "Potion: " .. ((def and def.name) or loot.potionId))
-			end
-		end)
-	end
-	if loot.toolId and loot.toolFamily then
-		p.tools = p.tools or {}
-		local cur = p.tools[loot.toolFamily] or 0
-		local ToolsMod = Tools
-		local shop = ToolsMod.tool(loot.toolFamily, loot.toolId)
-		if shop and shop.tier and shop.tier > cur then
-			p.tools[loot.toolFamily] = shop.tier
-		end
-	end
-	--[[
-		A PET OUT OF A LUCKY BLOCK.
-
-		Minted through the same path the group wheel used, so a pet won here is
-		indistinguishable from one won anywhere else -- same serial, same roster
-		lookup, same card shape. rollLoot only ever sets petTier at Legendary or
-		better (MineLuckyBlocks), so there is no floor to enforce here.
-	]]
-	if loot.petTier and mint then
-		pcall(function()
-			local Wheel = require(shared:WaitForChild("MineGroupWheel"))
-			local petName = Wheel.rollPetOfTier and Wheel.rollPetOfTier(loot.petTier, rng)
-			if not petName then
-				return
-			end
-			local roster = PetRoster and PetRoster.BY_NAME and PetRoster.BY_NAME[petName]
-			local c = mint({
-				setId = "lucky_block",
-				index = 1,
-				cardKey = "lucky_block:" .. petName,
-				name = petName,
-				rarityId = (roster and roster.tier) or loot.petTier,
-				typeId = "Crystal",
-				animal = roster and roster.animal or nil,
-				roleName = "Lucky Block",
-				kind = "Unit",
-				setName = "Lucky Block",
-			}, plr.UserId, true)
-			p.cards = p.cards or {}
-			table.insert(p.cards, c)
-			-- so the reveal card can name it rather than saying "Legendary Pet"
-			loot.petName = petName
-		end)
+	-- A BOOK BUNDLE with every lucky block (MineEnchants.LUCKY_BUNDLE: Lucky 2,
+	-- Diamond 3, Godly 5). Listed at the end of the reveal with the rest.
+	if Dig.EnchSvc then
+		loot.books = Dig.EnchSvc.luckyBundle(p, blockId, rng)
 	end
 	markDirty(plr)
 	snap(plr)
@@ -11985,7 +12790,11 @@ function Verbs.luckyGradeUp(plr, payload)
 	if not nextGrade then
 		return refuse("It is already the top grade")
 	end
+	-- nil while grade-ups are off (MineLuckyBlocks.GRADE_UP_ON).
 	local price = LuckyBlocks.gradeUpPrice(entry)
+	if not price then
+		return refuse("Grade-ups are gone")
+	end
 	if (p.gems or 0) < price then
 		return refuse("You need " .. price .. " gems")
 	end
@@ -12126,9 +12935,6 @@ function Verbs.sellTool(plr, payload)
 		if not row then
 			return refuse("You do not own that")
 		end
-		if row.runeId then
-			return refuse("Unsocket its rune first")
-		end
 		local def = Tools.chestTool(id)
 		local dust, tokens = Tools.foreverSellValue(def, row)
 		table.remove(p.chestTools, at)
@@ -12188,6 +12994,51 @@ end
 	track it wants, so the worst a forged payload can do is ask for a tier it
 	has not reached, or one it already took.
 ]]
+--[[
+	THE PASS'S SEASON PET AND SKIN (the 2026-10-16 rework: the premium track is
+	"Exclusive pets, skins and books"). Given to the LIVE profile only: a claim
+	that carries a lucky block also applies its reward to the stored save
+	inside UpdateAsync, and a pet minted there too would be a second serial for
+	one claim. The pet is the generated pass pack's (MineScrolls.PASS_PET_PACK);
+	the skin is MineSkins' pass set.
+]]
+function Dig.grantPassExtras(p, plr, reward)
+	if type(reward) ~= "table" then
+		return
+	end
+	if type(reward.pet) == "string" then
+		local roster = PetRoster and PetRoster.BY_NAME and PetRoster.BY_NAME[reward.pet]
+		if roster then
+			local c = mint({
+				setId = Scrolls.PASS_PET_PACK,
+				index = 1,
+				name = reward.pet,
+				rarityId = roster.tier,
+				typeId = "Crystal",
+				animal = roster.animal,
+				roleName = "Battle Pass",
+				kind = "Unit",
+				setName = "Season One Pass",
+			}, plr and plr.UserId)
+			p.cards = p.cards or {}
+			table.insert(p.cards, c)
+		else
+			warn("[Mine] pass pet not in the roster: " .. reward.pet)
+		end
+	end
+	if type(reward.skin) == "string" then
+		local okSk, Skins = pcall(function()
+			return require(shared:WaitForChild("MineSkins"))
+		end)
+		local def = okSk and Skins and Skins.byId and Skins.byId(reward.skin)
+		if def then
+			p.skins = p.skins or {}
+			p.skins[def.id] = true
+			p.skinNotice = { name = def.name, tier = def.tier, set = def.set }
+		end
+	end
+end
+
 function Verbs.claimPass(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -12253,10 +13104,8 @@ function Verbs.claimPass(plr, payload)
 		if reward.dust then
 			profile.dust = (profile.dust or 0) + reward.dust
 		end
-		if type(reward.scrolls) == "table" then
-			for id, qty in pairs(reward.scrolls) do
-				grantScrolls(profile, id, qty)
-			end
+		if reward.books then
+			Dig.grantBooks(profile, reward.books)
 		end
 		if type(reward.luckyBlocks) == "table" then
 			local okLB, LuckyBlocks = pcall(function()
@@ -12272,6 +13121,10 @@ function Verbs.claimPass(plr, payload)
 		end
 		if reward.toolId then
 			grantPassSignatureTool(profile, reward.toolId, livePlr)
+		end
+		-- The season pet and skin: live only (see Dig.grantPassExtras).
+		if profile == p then
+			Dig.grantPassExtras(p, livePlr, reward)
 		end
 	end
 
@@ -12422,18 +13275,17 @@ function Verbs.claimPass(plr, payload)
 				end
 				p.packs = livePacks
 			end
-			-- Currency / scrolls / tools from this claim onto live (ledger already on p.pass).
+			-- Currency / books / tools from this claim onto live (ledger already on p.pass).
 			if reward.credits then p.credits = (p.credits or 0) + reward.credits end
 			if reward.gems then p.gems = (p.gems or 0) + reward.gems end
 			if reward.dust then p.dust = (p.dust or 0) + reward.dust end
-			if type(reward.scrolls) == "table" then
-				for id, qty in pairs(reward.scrolls) do
-					grantScrolls(p, id, qty)
-				end
+			if reward.books then
+				Dig.grantBooks(p, reward.books)
 			end
 			if reward.toolId then
 				grantPassSignatureTool(p, reward.toolId, plr)
 			end
+			Dig.grantPassExtras(p, plr, reward)
 		end
 	else
 		-- No lucky blocks: mark + grant in memory (still under the in-flight lock).
@@ -12539,10 +13391,14 @@ grantReward = function(plr, p, reward, gemsOverride)
 			end
 		end
 		p.packs = p.packs or {}
+		-- A pack case is its own kind of bag row (MineCases.bagRow). The quests
+		-- that paid Apex Packs pay ★★★ Wild Cases since 2026-10-11 (owner: "we
+		-- dont need apex pack anymore").
+		local Cases = require(shared:WaitForChild("MineCases"))
 		for _ = 1, (reward.packQty or 1) do
 			-- A random set each time, so a run of rewards spreads across the
 			-- collection instead of stacking one set nobody needs.
-			table.insert(p.packs, {
+			table.insert(p.packs, Cases.bagRow(reward.pack) or {
 				packId = reward.pack,
 				packName = (def and def.name) or reward.pack,
 				setId = SET_IDS[rng:NextInteger(1, #SET_IDS)],
@@ -12642,6 +13498,8 @@ function Verbs.claimDailyQuest(plr, payload)
 	local gems = Quests.dailyGems(def, p.maxUnlockedZone or 1)
 	p.gems = (p.gems or 0) + gems
 	row.claimed = true
+	-- A daily quest pays bait too (owner: +2), toward the day's cap.
+	Verbs.Fish.questBait(plr, p)
 	introAdvance(plr, p, 7)
 	awardPassXp(plr, p, (Scrolls.PASS_XP_AWARD and Scrolls.PASS_XP_AWARD.daily) or 75, "daily")
 	markDirty(plr)
@@ -12847,74 +13705,6 @@ function Verbs.discordLink(plr, payload)
 	net:FireClient(plr, "toast", tostring(msg or (ok and "Linked" or "Failed")))
 end
 
-function Verbs.armWhiteScroll(plr, payload)
-	local p = profiles[plr.UserId]
-	local rune = runeById(p, payload and payload.runeId)
-	if not rune then
-		net:FireClient(plr, "toast", "Unknown rune")
-		return
-	end
-	if runeBusy(p, rune.id) then
-		net:FireClient(plr, "toast", "Unequip rune before arming")
-		return
-	end
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	if (p.scrolls.white or 0) < 1 then
-		net:FireClient(plr, "toast", "Need a White Scroll")
-		return
-	end
-	p.scrolls.white -= 1
-	rune.whiteArmed = true
-	net:FireClient(plr, "toast", "White Scroll armed on " .. Runes.describe(rune))
-	snap(plr)
-end
-
-function Verbs.blackUnequipToolRune(plr, payload)
-	local p = profiles[plr.UserId]
-	local family = tostring(payload and payload.family or p.toolFamily or "pickaxe")
-	local slot = tostring(payload and payload.slot or "main")
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	if (p.scrolls.black or 0) < 1 then
-		net:FireClient(plr, "toast", "Need a Black Scroll")
-		return
-	end
-	local sock = familySocket(p, family)
-	local runeId = (slot == "omni") and sock.omni or sock.main
-	if not runeId then
-		net:FireClient(plr, "toast", "No rune in that socket")
-		return
-	end
-	local rune = runeById(p, runeId)
-	p.scrolls.black -= 1
-	if slot == "omni" then sock.omni = nil else sock.main = nil end
-	if rune then
-		-- No "100% next fuse" any more: every fuse is a flat 50% for everyone.
-		net:FireClient(plr, "toast", "Black Scroll: " .. Runes.describe(rune) .. " returned to your runes")
-	else
-		net:FireClient(plr, "toast", "Socket cleared")
-	end
-	snap(plr)
-end
-
-function Verbs.applyOmniscroll(plr, payload)
-	local p = profiles[plr.UserId]
-	local family = tostring(payload and payload.family or p.toolFamily or "pickaxe")
-	p.scrolls = p.scrolls or Scrolls.emptyBag()
-	if (p.scrolls.omni or 0) < 1 then
-		net:FireClient(plr, "toast", "Need an Omniscroll")
-		return
-	end
-	local sock = familySocket(p, family)
-	if sock.omniUnlocked then
-		net:FireClient(plr, "toast", "That family already has omni unlocked")
-		return
-	end
-	p.scrolls.omni -= 1
-	sock.omniUnlocked = true
-	net:FireClient(plr, "toast", "Omniscroll unlocked second socket on " .. family)
-	snap(plr)
-end
-
 function Verbs.buyCreditPack(plr, payload)
 	local packId = payload and (payload.packId or payload.id)
 	local pack = Scrolls.packById(packId)
@@ -12922,8 +13712,23 @@ function Verbs.buyCreditPack(plr, payload)
 		net:FireClient(plr, "toast", "Unknown credit pack")
 		return
 	end
-	local pid = tonumber(pack.productId) or 0
-	if pid > 0 and not Svc.Run:IsStudio() then
+	--[[
+		STUDIO ONLY, FULL STOP. This guard used to FAIL OPEN.
+
+		It read `if pid > 0 and not IsStudio() then refuse end`, so a pack
+		WITHOUT a product id fell straight through to the grant on a live
+		server -- a client firing buyCreditPack with that id would mint
+		credits, which are the Robux currency, for free. Every pack in
+		CREDIT_PACKS happens to carry a real product id today, so it is not
+		exploitable right now; it becomes exploitable the moment someone adds
+		a pack and fills the id in later.
+
+		Inverted: this verb is a Studio shortcut and nothing else. On a live
+		server it always refuses, whatever the pack looks like, and real
+		purchases go through the receipt handler where Roblox has actually
+		taken the money.
+	]]
+	if not Svc.Run:IsStudio() then
 		net:FireClient(plr, "toast", "Buy credits with Robux from the shop prompt")
 		return
 	end
@@ -13024,9 +13829,17 @@ end)
 -- whole server compiling. tools/verify/compile.js caught it. A function body
 -- gets its own budget.
 ;(function()
+	--[[
+		NAMED EXPLICITLY, and LaneBodies is deliberately NOT here.
+
+		It was, on my guess that it was scaffolding. `LaneTips` sits beside it in
+		the workspace and the pair reads as real geometry, not a showcase -- so
+		the guess comes out. Everything in this list is a rack of art with a name
+		that says so; anything ambiguous stays in the world.
+	]]
 	local SHOWCASE = {
 		PetShowcase = true, OreShowcase = true, ToolModels_HQ = true,
-		ToolKit_Showcase = true, IconPoseExamples = true, LaneBodies = true,
+		ToolKit_Showcase = true, IconPoseExamples = true,
 		["Gem-N-Eye Preview"] = true,
 	}
 	local removed, parts = 0, 0
@@ -13046,6 +13859,42 @@ end)
 		print(("[Mine] stripped %d dev showcase folders (%d parts) from the live world")
 			:format(removed, parts))
 	end
+	--[[
+		The list above only matches NAMED FOLDERS and the `_` convention, so a
+		stray loose part at the workspace root walks straight past it.
+
+		One did: `ToolKit_DemoHandle`, an opaque MeshPart anchored 40 studs over
+		spawn, shipped to every player because it was neither in the list nor
+		underscored. `HQ Preview` sat at (200, 11, 200) the same way. Both are
+		gone from the place file now (2026-10-10).
+
+		So this does NOT destroy anything -- guessing wrong here deletes real
+		world geometry. It names what belongs and warns about the rest, which is
+		enough to catch the next one in the server log before players do.
+	]]
+	local EXPECTED = {
+		MineWorld = true, LaneBodies = true, LaneTips = true,
+		Terrain = true, Camera = true, SpawnLocation = true,
+	}
+	local strays = {}
+	for _, d in ipairs(workspace:GetChildren()) do
+		if not EXPECTED[d.Name] then
+			local n = 0
+			for _, k in ipairs(d:GetDescendants()) do
+				if k:IsA("BasePart") then
+					n += 1
+				end
+			end
+			if d:IsA("BasePart") then
+				n += 1
+			end
+			table.insert(strays, ("%s (%s, %d parts)"):format(d.Name, d.ClassName, n))
+		end
+	end
+	if #strays > 0 then
+		warn(("[Mine] %d unexpected object(s) at the workspace root -- players see these: %s")
+			:format(#strays, table.concat(strays, ", ")))
+	end
 end)()
 pcall(function()
 	require(script.Parent:WaitForChild("MineEdgeBarriers")).buildAll()
@@ -13056,15 +13905,35 @@ end)
 pcall(function()
 	local world = workspace:FindFirstChild("MineWorld")
 	local lobby = world and world:FindFirstChild("Lobby")
-	-- Unparked 2026-09-23: the Group Wheel is back in the lobby. Its Pad is a
-	-- real visible, collidable platform now, so the Spin prompt has something
-	-- under it that players can see and stand on.
-	-- Group wheel removed. Uncomment to bring it back:
-	-- GroupWheelService.build(lobby)
+	-- The DAILY WHEEL (owner, 2026-10-10: "we need that daily wheel working").
+	-- One free spin a day for everyone, +1 for group members, streak bonuses.
+	GroupWheelService.build(lobby)
 end)
+-- Before anything season-timed runs: the offers and the pass read
+-- Launch.seasonNow(), and a load after they first ask would have them answer
+-- from an unlaunched clock and then silently disagree with themselves.
+pcall(Verbs._loadLaunch)
 LeaderboardService.start(net)
 pcall(function()
 	Dig.Plazas.start()
+end)
+--[[
+	The wandering traders, after the plazas: MineTraderNPC.spots() reads the
+	DepthPlaza folders that Plazas.start just built, so starting first would find
+	nowhere to stand and place nobody until the next rotation.
+
+	The prompt only OPENS the shop. Buying goes through Verbs.buyTraderCase, which
+	re-checks that a trader is really there -- a prompt a client can see is not
+	authority to spend.
+]]
+pcall(function()
+	Dig.TraderNPC.start(function(plr, placement)
+		local p = profiles[plr.UserId]
+		if not p then
+			return
+		end
+		net:FireClient(plr, "traderShop", Dig.TraderNPC.offer(placement.zoneId, placement.seam))
+	end)
 end)
 ensureZone(C.ZONES[1], C.LAYER_WINDOW or 8)
 Verbs.scrubLobbyMineBlocks()
@@ -13410,6 +14279,68 @@ function Dig.gearScore(g)
 	return (Dig.GEAR_GRADE[tostring(g and g.rarity or "")] or 0) * 1000
 		+ (tonumber(g and g.pct) or 0) * 100 + (tonumber(g and g.slotCount) or 0)
 end
+--[[
+	AUTO-EQUIP READS THE SPECIAL. Owner's enchant brief: the Special slot
+	"determines which effect your tool will have, regardless of pet setup.
+	The pets only boost this. [make sure to encorperate this into auto
+	equip]". gateProcs zeroes every proc family but the tool's, so a pet's
+	chance and damage for any OTHER family is worth nothing on it.
+
+	Dig.petShares(c) splits one pet's whole kit (named kit and print perk,
+	through Cards.applyKit) into what it is worth, weighted the way the kits
+	were priced (MineStats weights): plain stats, each family's, and generic
+	proc damage. Dig.petWorth then counts only what the tool can use.
+]]
+function Dig.petShares(c)
+	local pw = C.cardPower(c)
+	local b, zero = Cards.emptyBoosts(), Cards.emptyBoosts()
+	Cards.applyKit(b, c, pw, 1)
+	local out = { pw = pw, total = 0, plain = 0, any = 0, fam = {} }
+	for stat, v in pairs(b) do
+		if type(v) == "number" then
+			local base = zero[stat]
+			if type(base) ~= "number" then
+				base = Cards.ADDITIVE_STATS[stat] and 0 or 1
+			end
+			local d = math.abs(v - base)
+			if d > 0 then
+				local st = Stats.STATS and Stats.STATS[stat]
+				local amt = d * ((st and st.weight) or 1)
+				out.total += amt
+				local fam = Dig.Enchants.familyOfStat(stat)
+				if fam == nil then
+					out.plain += amt
+				elseif fam == "*" then
+					out.any += amt
+				else
+					out.fam[fam] = (out.fam[fam] or 0) + amt
+				end
+			end
+		end
+	end
+	return out
+end
+
+-- A pet's card power, scaled by the share of its kit a tool firing `family`
+-- (nil: no proc at all) can use.
+function Dig.petWorth(shares, family)
+	if shares.total <= 0 then
+		return shares.pw
+	end
+	local usable = shares.plain
+	if family then
+		usable += shares.any + (shares.fam[family] or 0)
+	end
+	return shares.pw * usable / shares.total
+end
+
+-- The proc family the held tool's Special enchant fires, or nil without one.
+function Dig.heldProcFamily(p)
+	local e = Dig.EnchSvc and Dig.EnchSvc.special(p)
+	local def = e and Dig.Enchants.get(e.id)
+	return def and def.effect and def.effect.family or nil
+end
+
 function Dig.planUpgrades(p)
 	local plan = { gear = {}, gearCount = 0, pets = nil, petCount = 0 }
 	local worn = p.equippedGear or {}
@@ -13435,25 +14366,12 @@ function Dig.planUpgrades(p)
 	-- Claimed during this plan only. Higher-priority seats may take a hat off a
 	-- lower seat; sanitizeHatUniqueness clears duplicates after equip.
 	local used = {}
-	local function hasSocket(on)
-		for _, r in pairs((on and on.sockets) or {}) do
-			if r then
-				return true
-			end
-		end
-		return false
-	end
 	-- Better by effective boost value (universal-weighted powerScore), not grade alone.
 	local function beats(cand, on)
 		if not on then
 			return true
 		end
 		if cand == on or cand.id == on.id then
-			return false
-		end
-		-- A socket is permanent: swapping a piece with a rune in it strands the
-		-- rune, so "better" never means that on its own.
-		if hasSocket(on) then
 			return false
 		end
 		return Dig.gearScore(cand) > Dig.gearScore(on) + 1e-6
@@ -13501,29 +14419,60 @@ function Dig.planUpgrades(p)
 		end
 	end
 
-	-- Pets: the strongest seats by power, kept in a short sorted list.
+	-- Pets: the strongest seats by what they give THIS tool (Dig.petWorth),
+	-- kept in a short sorted list.
 	local n = math.max(1, math.floor(C.effectivePetSlots and C.effectivePetSlots(p) or tonumber(p.petSlots) or 3))
-	local top = {}
+	local sharesOf = {}
 	for _, c in ipairs(p.cards or {}) do
-		if type(c) == "table" and c.id then
-			local pw = C.cardPower(c)
+		if type(c) == "table" and c.id and not sharesOf[c.id] then
+			sharesOf[c.id] = Dig.petShares(c)
+		end
+	end
+	local function topFor(family)
+		local top = {}
+		for id, sh in pairs(sharesOf) do
+			local pw = Dig.petWorth(sh, family)
 			if #top < n or pw > top[#top].pw then
 				if #top >= n then
 					table.remove(top)
 				end
-				table.insert(top, { id = c.id, pw = pw })
+				table.insert(top, { id = id, pw = pw })
 				table.sort(top, function(a, b)
-					return a.pw > b.pw
+					if a.pw ~= b.pw then
+						return a.pw > b.pw
+					end
+					return tostring(a.id) < tostring(b.id)
 				end)
+			end
+		end
+		return top
+	end
+	local family = Dig.heldProcFamily(p)
+	local top
+	if family then
+		top = topFor(family)
+	else
+		-- No Special yet: the tool keeps its gear's BEST proc (gateProcs), so
+		-- try every family, and none, and keep the strongest team.
+		local bestSum
+		for _, fam in ipairs({ "", table.unpack(Dig.Enchants.PROC_ORDER) }) do
+			local f = (fam ~= "") and fam or nil
+			local t = topFor(f)
+			local sum = 0
+			for _, row in ipairs(t) do
+				sum += row.pw
+			end
+			if not bestSum or sum > bestSum + 1e-9 then
+				top, bestSum, family = t, sum, f
 			end
 		end
 	end
 	local on, wornPowers = {}, {}
 	for _, id in ipairs(p.equipped or {}) do
 		on[id] = true
-		local c = cardById(p, id)
-		if c then
-			table.insert(wornPowers, C.cardPower(c))
+		local sh = sharesOf[id]
+		if sh then
+			table.insert(wornPowers, Dig.petWorth(sh, family))
 		end
 	end
 	table.sort(wornPowers)
@@ -13597,7 +14546,8 @@ Dig.boostSources = function(p)
 	local out = {}
 	local ADD = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true,
 		fossilFind = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true,
-		earthquake = true, ricochet = true }
+		earthquake = true, ricochet = true, tidalWave = true,
+		blastDamage = true, tideDamage = true, zapDamage = true, shatterDamage = true }
 	local function add(stat, name, amt)
 		if type(amt) ~= "number" or math.abs(amt) < 0.0005 then
 			return
@@ -13646,42 +14596,6 @@ Dig.boostSources = function(p)
 				add(row.stat, "Charter: " .. tostring(row.name or id), row.per * math.min(level, row.max))
 			end
 		end
-		local byRune = {}
-		for _, r in ipairs(p.runes or {}) do
-			byRune[r.id] = r
-		end
-		local function rune(label, rid)
-			local r = rid and byRune[rid]
-			if r then
-				local b = Cards.emptyBoosts()
-				Runes.applyRune(b, r)
-				Cards.foldSwingRate(b)
-				diff(label, b)
-			end
-		end
-		local _, fam = equippedTool(p)
-		local sock = p.toolSockets and p.toolSockets[fam]
-		if type(sock) == "string" then
-			rune("Rune on your " .. tostring(fam), sock)
-		elseif type(sock) == "table" then
-			rune("Rune on your " .. tostring(fam), sock.main)
-			rune("Omni rune", sock.omni)
-		end
-		for _, ct in ipairs(p.chestTools or {}) do
-			if ct.runeId and p.chestTool == ct.id then
-				rune("Rune on " .. tostring(ct.name or "tool"), ct.runeId)
-			end
-		end
-		if p.shopToolId and not p.chestTool and p.shopToolRunes then
-			rune("Rune on your tool", p.shopToolRunes[p.shopToolId])
-		end
-		for _, cardId in ipairs(p.equipped or {}) do
-			local rid = p.petSockets and p.petSockets[cardId]
-			local c = rid and cardById(p, cardId)
-			if c then
-				rune("Rune on " .. tostring(c.name or "pet"), rid)
-			end
-		end
 		--[[
 			Hats and the face are multipliers on the pets, not stats of their
 			own, so each one is measured the honest way: stack the team with
@@ -13691,19 +14605,18 @@ Dig.boostSources = function(p)
 		do
 			local rows, pieces = Dig.petRows(p, #(p.equipped or {}))
 			local eq = p.equippedGear or {}
-			local function variant(withHats, withRunes, onlyIndex)
+			local function variant(withHats, onlyIndex)
 				local v = {}
 				for i, r in ipairs(rows) do
 					local keep = (onlyIndex == nil) or (i == onlyIndex)
 					v[i] = {
 						delta = r.delta,
 						hat = (withHats and keep) and r.hat or nil,
-						rune = (withRunes and keep) and r.rune or nil,
 					}
 				end
 				return v
 			end
-			local bare = Gear.stackPets(variant(false, false), nil, nil)
+			local bare = Gear.stackPets(variant(false), nil, nil)
 			local function emit(name, total)
 				local b = Cards.emptyBoosts()
 				for stat, amount in pairs(total) do
@@ -13721,10 +14634,7 @@ Dig.boostSources = function(p)
 			end
 			for i, row in ipairs(rows) do
 				if row.hat then
-					emit((row.hat.name or "Hat") .. " on " .. row.name, Gear.stackPets(variant(true, false, i), nil, nil))
-				end
-				if row.rune then
-					emit("Rune on " .. row.name .. " (spread)", Gear.stackPets(variant(false, true, i), nil, nil))
+					emit((row.hat.name or "Hat") .. " on " .. row.name, Gear.stackPets(variant(true, i), nil, nil))
 				end
 			end
 			--[[
@@ -13749,9 +14659,6 @@ Dig.boostSources = function(p)
 				Cards.foldSwingRate(gearOnly)
 				diff("Your gear (flat, layer 2)", gearOnly)
 			end
-			local gb = Cards.emptyBoosts()
-			Gear.applyEquipped(gb, { hat = myHat, face = myFace }, byRune)
-			diff("Runes in your gear", gb)
 		end
 		if p.equippedCharm then
 			local cb = Cards.emptyBoosts()
@@ -13780,9 +14687,16 @@ Verbs.KEEP_ON_REBIRTH = {
 	"codes", "receipts", "starterBought", "referredBy", "funnelJoined", "invites",
 	"discordLinked", "discordId", "discordBonusClaimed", "milestones", "freeGearUsed",
 	"dustShop", "backpackCoinV2",
+	-- fishing: rod levels "stays between rebirths" (owner), and so do the bait and the cooler
+	"fishing",
+	-- enchant books and the player level are account progress, not the coin ladder
+	"enchantBooks", "level", "xp", "bookMerges",
 	-- owned things (some bought with Robux)
 	"ownedPets", "potions", "activePotions", "vfx", "equippedVfx", "chestBag", "vipPass", "vip",
-	"shopToolRunes", "charms", "equippedCharm", "dealBuys", "creditBuys",
+	-- the daily wheel: banked Robux spins, and today's free spins (a rebirth
+	-- must neither wipe paid spins nor hand out a fresh day of free ones)
+	"groupWheel",
+	"charms", "equippedCharm", "dealBuys", "creditBuys",
 	-- records and settings
 	"packsOpened", "playtime", "settings",
 	-- save guard: a profile that never loaded must stay unsaveable
@@ -13918,16 +14832,62 @@ function Verbs.grantPacks(plr, p, list)
 	end
 	table.sort(setIds)
 	p.packs = p.packs or {}
+	local Cases = require(shared:WaitForChild("MineCases"))
 	for _, row in ipairs(list or {}) do
 		local def = Packs.PACK_BY_ID[row.id]
 		for _ = 1, math.max(1, tonumber(row.qty) or 1) do
-			table.insert(p.packs, {
+			-- A pack case is its own kind of bag row (MineCases.bagRow).
+			table.insert(p.packs, Cases.bagRow(row.id) or {
 				packId = row.id,
 				packName = (def and def.name) or row.id,
-				setId = (#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn",
+				-- A set pack belongs to its own set; anything else picks one.
+				setId = (def and def.setKey)
+					or ((#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn"),
 			})
 		end
 	end
+end
+
+--[[
+	A PACK CASE FOR STARDUST: the stardust shop's Cases tab (owner, 2026-10-10:
+	cases for a set are bought with stardust). Always on sale, no stock: the
+	rotating shelf beside it is the limited one. The price is MineCases.dustPrice
+	(PROPOSED, from expected value), decided here; the client only shows it.
+]]
+function Verbs.buyDustCase(plr, payload)
+	local p = profiles[plr.UserId]
+	if not p or type(payload) ~= "table" then
+		return
+	end
+	local Cases = require(shared:WaitForChild("MineCases"))
+	local id = tostring(payload.id or "")
+	local price = Cases.dustPrice(id)
+	if not price then
+		net:FireClient(plr, "toast", "That case isn't for sale")
+		return
+	end
+	-- The mystery buyer lets the player type a quantity (owner, 2026-10-10);
+	-- the same ceiling as a cart line.
+	local qty = math.clamp(math.floor(tonumber(payload.qty) or 1), 1, Const.BUY_QTY_MAX or 100)
+	local pay = price * qty
+	if (tonumber(p.dust) or 0) < pay then
+		net:FireClient(plr, "toast", "Need " .. pay .. " stardust")
+		return
+	end
+	p.dust -= pay
+	p.packs = p.packs or {}
+	for _ = 1, qty do
+		table.insert(p.packs, Cases.bagRow(id))
+	end
+	pcall(function()
+		game:GetService("AnalyticsService"):LogEconomyEvent(plr, Enum.AnalyticsEconomyFlowType.Sink,
+			"Stardust", pay, p.dust, Enum.AnalyticsEconomyTransactionType.Shop.Name, "case:" .. id)
+	end)
+	local name = Cases.get(id).name
+	net:FireClient(plr, "toast", "Bought " .. qty .. "x " .. name .. " for stardust")
+	net:FireClient(plr, "purchaseFx", { kind = "pack", packId = id, count = qty, name = name })
+	markDirty(plr)
+	snap(plr)
 end
 
 -- Sound switches from the Settings panel; the client applies them itself.
@@ -14124,10 +15084,12 @@ end
 	lookup is retried with backoff for as long as the player stays.
 ]]
 Verbs.PAID_RANDOM = {
-	buyCart = true, buyScroll = true, buyDustPack = true, luckyGradeUp = true,
-	rollRune = true, rollGear = true, rollTemper = true, fuseRune = true,
+	buyCart = true, buyDustPack = true, buyDustCase = true, luckyGradeUp = true,
+	rollGear = true, rollTemper = true,
 	openTemperCase = true, openTemperCaseBundle = true, scrapTemper = true,
-	buyCrate = true, buyCharmsPack = true, buyPouch = true,
+	buyCharmsPack = true,
+	-- The Forge's gem book bundle: random books for gems (MineEnchants.SHOP_BUNDLE).
+	enchBuyBundle = true,
 }
 
 function Verbs.fetchPolicy(plr)
@@ -14180,6 +15142,16 @@ function Verbs.hookPlayer(plr)
 		profiles[plr.UserId] = blank()
 		profiles[plr.UserId].tools = { pickaxe = 1, drill = 0, explosive = 0 }
 		profiles[plr.UserId].toolEquipped = true
+		--[[
+			AND MARK THE PICKAXE AS COLLECTED, or this profile cannot mine.
+
+			blank() leaves gotFirstPick = false, and swingBlock refuses with
+			"Grab your FREE pickaxe from the Blacksmith first" while that is
+			false -- so the fallback handed the player a visible tier-1
+			pickaxe and then would not let them swing it. The tool is granted
+			two lines up; this says so.
+		]]
+		profiles[plr.UserId].gotFirstPick = true
 		profiles[plr.UserId]._ephemeral = true
 	end
 	pcall(function()
@@ -14647,6 +15619,21 @@ function Verbs.openTemperCase(plr, payload)
 	end
 	local rng = Random.new()
 	p.tempers = p.tempers or {}
+	--[[
+		The reel shows the BEST roll of the batch, not the last. Owner, 2026-10-08,
+		on reveals: "HUGE with the ones that hit". A x10 or x100 that pulled an
+		SSS on roll 3 used to show roll 10, so the hit was granted and never
+		seen. Ties keep the earlier roll. Every roll is still granted below.
+	]]
+	local function gradeRank(g)
+		g = Temper.normalizeRarity(g)
+		for i, x in ipairs(Temper.GRADE_ORDER) do
+			if x == g then
+				return i
+			end
+		end
+		return 0
+	end
 	local done, spent, last = 0, 0, nil
 	for _ = 1, want do
 		if (p.temperTokens or 0) < price then break end
@@ -14663,8 +15650,10 @@ function Verbs.openTemperCase(plr, payload)
 		else
 			p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
 		end
-		local reel, at = Temper.caseReel(rng, kit, rarity)
-		last = { kit = kit, rarity = rarity, reel = reel, at = at, dupe = had ~= nil }
+		if not last or gradeRank(rarity) > gradeRank(last.rarity) then
+			local reel, at = Temper.caseReel(rng, kit, rarity)
+			last = { kit = kit, rarity = rarity, reel = reel, at = at, dupe = had ~= nil }
+		end
 	end
 	if done == 0 then
 		net:FireClient(plr, "toast", "That case came up empty -- nothing was charged")
@@ -14716,6 +15705,16 @@ function Verbs.openTemperCaseBundle(plr)
 	end
 	p.temperTokens -= price
 	p.tempers = p.tempers or {}
+	-- Shows the best of the bundle, like openTemperCase (see gradeRank there).
+	local function gradeRank(g)
+		g = Temper.normalizeRarity(g)
+		for i, x in ipairs(Temper.GRADE_ORDER) do
+			if x == g then
+				return i
+			end
+		end
+		return 0
+	end
 	local last
 	for _ = 1, n do
 		local rng = Random.new()
@@ -14728,8 +15727,10 @@ function Verbs.openTemperCaseBundle(plr)
 			else
 				p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
 			end
-			local reel, at = Temper.caseReel(rng, kit, rarity)
-			last = { kit = kit, rarity = rarity, reel = reel, at = at }
+			if not last or gradeRank(rarity) > gradeRank(last.rarity) then
+				local reel, at = Temper.caseReel(rng, kit, rarity)
+				last = { kit = kit, rarity = rarity, reel = reel, at = at }
+			end
 		end
 	end
 	if last then
@@ -14809,7 +15810,7 @@ function Verbs.equipTemper(plr, payload)
 	local target
 	local family = payload.family
 	if family then
-		if family ~= "pickaxe" and family ~= "drill" and family ~= "explosive" then
+		if family ~= "pickaxe" and family ~= "hammer" and family ~= "drill" and family ~= "explosive" then
 			net:FireClient(plr, "toast", "Unknown tool family")
 			return
 		end
@@ -14867,7 +15868,7 @@ function Verbs.rollTemper(plr, payload)
 	local family = type(payload) == "table" and payload.family or nil
 	local ft
 	if family then
-		if family ~= "pickaxe" and family ~= "drill" and family ~= "explosive" then
+		if family ~= "pickaxe" and family ~= "hammer" and family ~= "drill" and family ~= "explosive" then
 			net:FireClient(plr, "toast", "Unknown tool family")
 			return
 		end
@@ -14934,6 +15935,10 @@ function Verbs.rollTemper(plr, payload)
 	ft.temperSlots = slots
 	ft.temperRolls = (ft.temperRolls or 0) + 1
 	net:FireClient(plr, "toast", string.format("Spent %d tokens on temperament (slot %d): %s %s", cost, slot, rarity, kit.name))
+	-- The roll used to be a toast only, so an SSS read exactly like an F. The
+	-- client celebrates by the real grade (MineCelebrate).
+	net:FireClient(plr, "luckResult", { ok = true, kind = "temper", grade = Temper.normalizeRarity(rarity),
+		title = string.format("%s  %s", Temper.normalizeRarity(rarity), tostring(kit.name)) })
 	introAdvance(plr, p, 16)
 	markDirty(plr)
 	snap(plr)
@@ -15498,7 +16503,7 @@ function Verbs.Afk.start(plr)
 		coins = Verbs.Afk.coinsFor(p),
 		packBase = C.AFK_PACK_BASE or (1 / 120),
 	})
-	net:FireClient(plr, "toast", "AFK chill — mining slowly. Wake from the HUD when you are back.")
+	-- No toast: the 💤 AFK pill is the whole message (owner, 2026-10-11).
 	Verbs.Afk.bindMove(plr)
 end
 
@@ -15636,7 +16641,7 @@ function Verbs._oreToolCost(tool)
 	local oreDef = C.ORES and C.ORES[tonumber(tool.tier) or 1]
 	local typeMult = Verbs._oreToolTypeMult(tool)
 	local level = math.max(1, tonumber(tool.level) or 1)
-	local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult)
+	local ore, dust = C.toolUpgradeCost(tool.tier, level, typeMult, tool.familyId)
 	return ore, dust, oreDef, typeMult
 end
 
@@ -15689,7 +16694,7 @@ function Verbs.upgradeOreTool(plr, payload)
 	local typeMult = Verbs._oreToolTypeMult(tool)
 	local spentOre, spentDust, steps = 0, 0, 0
 	for i = 0, want - 1 do
-		local o, d = C.toolUpgradeCost(tool.tier, level + i, typeMult)
+		local o, d = C.toolUpgradeCost(tool.tier, level + i, typeMult, tool.familyId)
 		if not o then break end
 		if haveOre - spentOre < o or haveDust - spentDust < d then break end
 		spentOre += o
@@ -15930,7 +16935,7 @@ function Verbs.craftOreTool(plr, payload)
 	end
 
 	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = def.id })
-	local cost = C.toolCraftCost(oreDef.tier, typeMult)
+	local cost = C.toolCraftCost(oreDef.tier, typeMult, familyId)
 
 	p.ores = p.ores or {}
 	local have = tonumber(p.ores[oreId]) or 0
@@ -16021,74 +17026,6 @@ function Verbs.craftOreTool(plr, payload)
 	snap(plr)
 end
 
---[[
-	ENCHANT A TOOL. One verb, one flat price, one roll.
-
-	Owner, 2026-10-04: applying a trait is "the same rarity as rune/temperment/skins",
-	Exotic at 1/1000 and Exotic V at 1/5000, level random 1-5, and the price
-	"stays the same with rebirths (broke players arent going to try to get
-	exotic V, endgame players will.)".
-
-	So this is a GACHA, not a purchase: you pay MineTraits.ROLL_PRICE and get
-	what the table gives you. The price reads no prestige, no rebirth count, no
-	zone and no tool tier -- tools/verify/traits.js asserts that, because a
-	price that quietly scaled with rebirth would break the one sentence the
-	owner was most specific about.
-
-	Server-authoritative in the way that matters: the client names a uid and
-	nothing else. The rarity, the trait and the level are all rolled here
-	with a server rng.
-]]
-function Verbs.rollTrait(plr, payload)
-	local p = profiles[plr.UserId]
-	if not p then
-		return
-	end
-	local Traits = Dig.Traits
-	local uid = (type(payload) == "table") and payload.uid or payload
-	local tool = Verbs._findOreTool(p, uid)
-	if not tool then
-		net:FireClient(plr, "toast", "That tool is not in your bag")
-		return
-	end
-
-	local cost = Traits.ROLL_PRICE
-	local have = tonumber(p.gems) or 0
-	if have < cost then
-		net:FireClient(plr, "toast", string.format("Needs %s gems",
-			Verbs._benchNum(cost)))
-		return
-	end
-
-	local rolled = Traits.roll(Random.new())
-	if not rolled then
-		net:FireClient(plr, "toast", "The enchanter has nothing to give")
-		return
-	end
-
-	p.gems = have - cost
-	--[[
-		A roll REPLACES what was there. There is no "keep the better one"
-		prompt: that turns every roll into a dialog, and the gamble is the
-		feature. The old one is named in the toast so a player who just lost
-		something good sees what it was.
-	]]
-	local had = type(tool.trait) == "table" and Traits.label(tool.trait) or nil
-	tool.trait = rolled
-
-	local OreTools = require(shared:WaitForChild("MineOreTools"))
-	net:FireClient(plr, "toast", string.format("%s  \u{00B7}  %s%s",
-		OreTools.toolName(tool), Traits.label(rolled),
-		had and ("   (was " .. had .. ")") or ""))
-	bumpStat(plr, p, "traits")
-	-- Re-give the tool so its name and its stats both follow the roll.
-	if p.oreToolEquipped == tool.uid then
-		givePickaxe(plr)
-	end
-	markDirty(plr)
-	snap(plr)
-end
-
 function Verbs.recycleOreTool(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p then
@@ -16123,6 +17060,10 @@ function Verbs.recycleOreTool(plr, payload)
 	-- resolves. equippedTool self-heals from this, but re-giving the pickaxe
 	-- here is what actually puts the ladder tool back in the player's hand.
 	local wasHeld = (p.oreToolEquipped == tool.uid)
+	-- Its enchants come back as books: recycling a tool never eats an enchant.
+	if Dig.EnchSvc then
+		Dig.EnchSvc.returnBooks(p, tool)
+	end
 	table.remove(p.oreTools, index)
 	if wasHeld then
 		p.oreToolEquipped = nil
@@ -16160,9 +17101,16 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 	local ok, err = pcall(function()
 		if not profiles[plr.UserId] then load(plr) end
 		if Verbs.policyBlocks(plr, action) then return end
+		if type(action) == "string" and string.sub(action, 1, 4) == "fish" then
+			Verbs.Fish.dispatch(plr, action, payload)
+			return
+		end
+		if type(action) == "string" and string.sub(action, 1, 4) == "ench" then
+			Verbs.Ench.dispatch(plr, action, payload)
+			return
+		end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)
 		elseif action == "craftOreTool" then Verbs.craftOreTool(plr, payload)
-		elseif action == "rollTrait" then Verbs.rollTrait(plr, payload)
 		elseif action == "equipOreTool" then Verbs.equipOreTool(plr, payload)
 		elseif action == "upgradeOreTool" then Verbs.upgradeOreTool(plr, payload)
 		elseif action == "recycleOreTool" then Verbs.recycleOreTool(plr, payload)
@@ -16202,7 +17150,6 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "fusePassTools" then Verbs.fusePassTools(plr)
 		elseif action == "salvage" then salvage(plr, payload)
 		elseif action == "scrap" then scrapItem(plr, payload)
-		elseif action == "power" then powerUp(plr, payload)
 		elseif action == "buy" then buy(plr, payload)
 		elseif action == "introAck" then
 			local p = profiles[plr.UserId]
@@ -16214,6 +17161,15 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 					introAdvance(plr, p, step)
 				end
 			end
+		elseif action == "snapNow" then
+			-- A screen opening asks for fresh numbers (MineForgeDemo). At most once a
+			-- second per player, so it cannot be used to hammer snap().
+			Verbs.snapNowAt = Verbs.snapNowAt or {}
+			local now = os.clock()
+			if now - (Verbs.snapNowAt[plr.UserId] or 0) >= 1 then
+				Verbs.snapNowAt[plr.UserId] = now
+				snap(plr)
+			end
 		elseif action == "introPing" then
 			local p = profiles[plr.UserId]
 			local want = math.floor(tonumber(payload) or 0)
@@ -16222,6 +17178,8 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			end
 		elseif action == "prestige" then tryPrestige(plr)
 		elseif action == "buyZone" then buyZone(plr, payload)
+		elseif action == "buyTrickOrTreat" then Verbs.buyTrickOrTreat(plr)
+		elseif action == "equipSkin" then Verbs.equipSkin(plr, payload)
 		elseif action == "equipCharm" then equipCharm(plr, payload)
 		elseif action == "mergeCharm" then Verbs.mergeCharm(plr, payload)
 		elseif action == "equipVfx" then equipVfx(plr, payload)
@@ -16261,27 +17219,20 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "goClouds" then Verbs.goClouds(plr)
 		elseif action == "buyTool" then buyTool(plr, payload)
 		elseif action == "buyDepthTool" then buyDepthTool(plr, payload)
-		elseif action == "rollRune" then Verbs.rollRuneBanner(plr, payload)
 		elseif action == "rollGear" then Verbs.rollGearBanner(plr, payload)
-		elseif action == "fuseRune" then Verbs.fuseRunes(plr, payload)
-		elseif action == "socketToolRune" then Verbs.socketToolRune(plr, payload)
-		elseif action == "destroyToolRune" then destroyToolRune(plr, payload)
-		elseif action == "unsocketToolRune" then destroyToolRune(plr, payload)
-		elseif action == "socketPetRune" then Verbs.socketPetRune(plr, payload)
-		-- The client has always fired this from the hat-merge button; it was the
-		-- only one of 93 client actions with no branch here, so the button did
-		-- nothing at all. Verbs.mergeHats itself was complete.
-		elseif action == "mergeHats" then Verbs.mergeHats(plr, payload)
+		-- (No "mergeHats": the two-hat merge was retired 2026-10-10; hats fuse
+		-- three of a kind through upgradeGear.)
 		elseif action == "upgradeGear" then Verbs.upgradeGear(plr, payload)
 		elseif action == "upgradeOrePouch" then Verbs.upgradeOrePouch(plr)
 		elseif action == "toggleOreLock" then Verbs.toggleOreLock(plr, payload)
+		elseif action == "buyCharm" then Verbs.buyCharm(plr, payload)
+		elseif action == "buyTraderCase" then Verbs.buyTraderCase(plr, payload)
+		elseif action == "launchSeason" then Verbs.launchSeason(plr)
 		elseif action == "sellOre" then Verbs.sellOre(plr, payload)
 		elseif action == "sellAllOres" then Verbs.sellAllOres(plr, payload)
 		elseif action == "equipGear" then Verbs.equipGearPiece(plr, payload)
 		elseif action == "equipBest" then Verbs.equipBest(plr)
 		elseif action == "unequipGear" then Verbs.unequipGearPiece(plr, payload)
-		elseif action == "socketGearRune" then Verbs.socketGearRune(plr, payload)
-		elseif action == "buyScroll" then Verbs.buyScroll(plr, payload)
 		elseif action == "drinkPotion" then
 			local p = profiles[plr.UserId]
 			if not p or type(payload) ~= "table" then return end
@@ -16319,6 +17270,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			snap(plr)
 			net:FireClient(plr, "toast", "Merged into " .. def.name .. "  (-" .. tostring(e or 0) .. " dust)")
 		elseif action == "buyCart" then buyCart(plr, payload)
+		elseif action == "buyDustCase" then Verbs.buyDustCase(plr, payload)
 		elseif action == "buyDustPack" then
 			local p = profiles[plr.UserId]
 			if not p or type(payload) ~= "table" then return end
@@ -16344,8 +17296,46 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				return
 			end
 			qty = math.min(qty, left)
+			--[[
+				POTIONS MAY BE PAID FOR IN COINS. PROPOSAL §0 line 23.
+
+				The coin economy has two live sinks -- the 306-coin wooden
+				pickaxe ladder and rebirth -- against twelve faucets, one of
+				them a coin per point of block HP. A potion is the repeatable
+				sink: bought, drunk, gone, bought again, and it never closes
+				the way a one-off upgrade does.
+
+				POTIONS ONLY. A pack bought with coins would undercut the
+				credit shop, which is the Robux path, so `coins` is refused on
+				anything that is not a potion rather than silently falling
+				back to dust -- a player who asked to pay coins and was
+				charged dust would be right to be annoyed.
+
+				The price is derived (MinePotions.coinPrice = dust x 40), not
+				read off the offer row, so a client cannot name its own
+				currency and get the dust number charged in coins.
+			]]
+			local wantCoins = (type(payload) == "table") and (payload.currency == "coins")
+			local isPotion = (offer.kind or "pack") == "potion"
+			if wantCoins and not isPotion then
+				net:FireClient(plr, "toast", "Only potions can be bought with coins")
+				return
+			end
 			local pay = offer.price * qty
-			if (p.dust or 0) < pay then
+			if wantCoins then
+				local okP, Pot = pcall(function()
+					return require(shared:WaitForChild("MinePotions"))
+				end)
+				if not okP or not Pot or not Pot.coinPrice then
+					net:FireClient(plr, "toast", "Coin price unavailable right now")
+					return
+				end
+				pay = Pot.coinPrice(id) * qty
+				if (p.coins or 0) < pay then
+					net:FireClient(plr, "toast", "Need " .. pay .. " coins")
+					return
+				end
+			elseif (p.dust or 0) < pay then
 				net:FireClient(plr, "toast", "Need " .. pay .. " stardust")
 				return
 			end
@@ -16355,13 +17345,20 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 				snap(plr)
 				return
 			end
-			p.dust -= pay
+			-- Charged AFTER the stock take, so a sold-out shelf cannot bill
+			-- either wallet.
+			if wantCoins then
+				p.coins -= pay
+			else
+				p.dust -= pay
+			end
 			p.dustShop.bought[id] = already + qty
-			if (offer.kind or "pack") == "potion" then
+			if isPotion then
 				pcall(function()
 					require(shared:WaitForChild("MinePotions")).grant(p, id, qty)
 				end)
-				net:FireClient(plr, "toast", "Bought " .. qty .. "x " .. (offer.name or id) .. " for stardust")
+				net:FireClient(plr, "toast", "Bought " .. qty .. "x " .. (offer.name or id)
+					.. (wantCoins and " for coins" or " for stardust"))
 			else
 				p.packs = p.packs or {}
 				local def = Packs.PACK_BY_ID and Packs.PACK_BY_ID[id]
@@ -16382,14 +17379,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			markDirty(plr)
 			snap(plr)
 		elseif action == "joinVip" then joinVip(plr)
-		elseif action == "buyPouch" then Verbs.buyPouch(plr, payload)
-		elseif action == "buyCrate" then Verbs.buyCrate(plr, payload)
-		elseif action == "armWhiteScroll" then Verbs.armWhiteScroll(plr, payload)
-		elseif action == "debugGrantRune" then Verbs.debugGrantRune(plr, payload)
 		elseif action == "debugGrantBlastSet" then Verbs.debugGrantBlastSet(plr)
-		elseif action == "debugGrantL99Blast" then Verbs.debugGrantL99Blast(plr, payload)
-		elseif action == "blackUnequipToolRune" then Verbs.blackUnequipToolRune(plr, payload)
-		elseif action == "applyOmniscroll" then Verbs.applyOmniscroll(plr, payload)
 		elseif action == "buyCreditPack" then Verbs.buyCreditPack(plr, payload)
 		elseif action == "buyCharter" then Verbs.buyCharter(plr, payload)
 		elseif action == "buySeam" then Verbs.buySeam(plr, payload)
@@ -16592,6 +17582,32 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 					local p_devg = profiles[plr.UserId]
 					p_devg.gems = (p_devg.gems or 0) + payload.gems
 				end
+				--[[
+					Studio only: mint a named pet and put it in seat 1, so a pet's
+					kit (a zone pet's ability, Tidal Wave) can be tried in the
+					engine. devGrant { pet = "Fizzgig" }. Goes through mint, the
+					same path the wheel and lucky blocks use.
+				]]
+				if type(payload.pet) == "string" and PetRoster.BY_NAME[payload.pet] then
+					local p_devpet = profiles[plr.UserId]
+					local row = PetRoster.BY_NAME[payload.pet]
+					local card = mint({
+						setId = "dev", index = 1, cardKey = "dev:" .. row.name, name = row.name,
+						rarityId = row.tier, typeId = "Water", animal = row.animal,
+						roleName = "Studio", kind = "Unit", setName = "Studio",
+					}, plr.UserId)
+					p_devpet.cards = p_devpet.cards or {}
+					table.insert(p_devpet.cards, card)
+					p_devpet.equipped = p_devpet.equipped or {}
+					table.insert(p_devpet.equipped, 1, card.id)
+					-- Seat cap, as the real equip path keeps it: the newest stays, the oldest goes.
+					local capDev = C.effectivePetSlots and C.effectivePetSlots(p_devpet) or 3
+					while #p_devpet.equipped > capDev do
+						table.remove(p_devpet.equipped)
+					end
+					walk(plr)
+					net:FireClient(plr, "toast", "Studio: " .. row.name .. " (" .. row.tier .. ") in seat 1")
+				end
 				if payload.credits then
 					local p_devc = profiles[plr.UserId]
 					p_devc.credits = (p_devc.credits or 0) + payload.credits
@@ -16614,6 +17630,21 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 							packId = rp and rp.id or nil,
 							packName = rp and rp.name or nil,
 						})
+					end
+					snap(plr)
+				end
+				if type(payload.packIds) == "table" then
+					-- Studio only: these exact packs by id (zone packs, set packs),
+					-- stamped the way a real drop or grant stamps them.
+					local ZonePacks = require(shared:WaitForChild("MineZonePacks"))
+					for _, id in ipairs(payload.packIds) do
+						local def = Packs.PACK_BY_ID[tostring(id)] or ZonePacks.get(tostring(id))
+						if def then
+							table.insert(p_dev0.packs, {
+								packId = def.id, packName = def.name,
+								setId = def.setKey, zoneId = def.zoneId,
+							})
+						end
 					end
 					snap(plr)
 				end
@@ -16666,10 +17697,12 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			GroupWheelService.spin(plr, profiles, {
 				net = net,
 				markDirty = markDirty,
+				save = save,
 				snap = snap,
 				grantPacks = Verbs.grantPacks,
 				LuckyBlocks = LuckyBlocks,
 				mint = mint,
+				grantBooks = Dig.grantBooks,
 			})
 		elseif action == "discordLink" then Verbs.discordLink(plr, payload)
 		elseif action == "claimPass" then Verbs.claimPass(plr, payload)
@@ -16686,7 +17719,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			-- A coinflip is a mode inside the trade window now.
 			net:FireClient(plr, "toast", "Open a trade, then switch it to COINFLIP")
 		elseif action == "tradeOffer" then
-			TradeService.setOffer(net, profiles, plr, payload, { isCardSerial = isCardSerial, runeBusy = runeBusy })
+			TradeService.setOffer(net, profiles, plr, payload, { isCardSerial = isCardSerial })
 		elseif action == "tradeMode" then
 			TradeService.setMode(net, profiles, plr, typeof(payload) == "table" and payload.mode or payload)
 		elseif action == "tradeMark" then
@@ -16694,7 +17727,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		elseif action == "tradeWant" then
 			TradeService.want(net, profiles, plr, payload)
 		elseif action == "tradePeek" then
-			TradeService.peek(net, profiles, plr, { isCardSerial = isCardSerial, runeBusy = runeBusy })
+			TradeService.peek(net, profiles, plr, { isCardSerial = isCardSerial })
 		elseif action == "tradeBack" then
 			TradeService.back(net, profiles, plr)
 		elseif action == "tradeReady" then
@@ -16705,7 +17738,6 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			TradeService.confirm(net, profiles, plr, {
 				transferSerial = transferSerial,
 				isCardSerial = isCardSerial,
-				runeBusy = runeBusy,
 				save = save,
 				push = function(p) if p then snap(p) end end,
 			})
@@ -16810,7 +17842,13 @@ task.defer(function()
 				-- tagged Machine="shop" (Blacksmith, Chandlery, Bloodforge, Supply Pod)
 				-- and every one of them fell straight through this if-chain, so walking
 				-- up to a shop and pressing it did nothing at all.
-				net:FireClient(plr, "openPanel", "shop")
+				--
+				-- The counter opens THE FORGE HUB now (owner, 2026-10-12: "the
+				-- Blacksmith counter should open the Forge hub"). Only the tutorial's
+				-- "buy a bigger pick" step (3) opens the coin shelf it teaches.
+				local pc = profiles[plr.UserId]
+				local onPickStep = pc and math.floor(tonumber(pc.intro) or 0) == 3
+				net:FireClient(plr, "openPanel", "shop", onPickStep and "pickaxe" or nil)
 			elseif machine == "open" then openFrom(plr)
 			elseif machine == "prestige" then
 				-- Open the Rebirth panel, never rebirth outright.
@@ -16818,7 +17856,9 @@ task.defer(function()
 			elseif machine == "groupWheel" then
 				local p = profiles[plr.UserId]
 				if not p then return end
-				net:FireClient(plr, "openGroupWheel", GroupWheelService.payload(p))
+				net:FireClient(plr, "openGroupWheel", GroupWheelService.payload(p, plr))
+			elseif machine == "fish" then
+				Verbs.Fish.prompt(plr, parent)
 			elseif machine == "elevator" then
 				local p = profiles[plr.UserId]
 				if not p then return end
@@ -17057,14 +18097,12 @@ Verbs.grantReceipt = function(info)
 			end
 			p.coins = (p.coins or 0) + (tonumber(prod.coins) or 8000)
 			if (tonumber(prod.commonPet) or 1) > 0 then
-				local setId = "dragons_dawn"
-				local pool = Cards.indicesOfRarity and Cards.indicesOfRarity(setId, "Common") or {}
-				if #pool > 0 then
-					local index = pool[Random.new():NextInteger(1, #pool)]
-					local def = Cards.getCard and Cards.getCard(setId, index)
-					if def then
-						table.insert(p.cards, mint(def, plr.UserId, true))
-					end
+				-- A Common from the meadow's pot: old generated cards no longer drop.
+				local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+				local pet = SetPacks.pickPet(PetRoster.BY_ZONE and PetRoster.BY_ZONE.meadow, "Common", Random.new())
+				if pet then
+					local def = SetPacks.petCard(pet, "meadow", (C.zoneById("meadow") or {}).name)
+					table.insert(p.cards, mint(def, plr.UserId, true))
 				end
 			end
 			p.starterBought = true
@@ -17125,7 +18163,6 @@ Verbs.grantReceipt = function(info)
 		end
 		if key == "group_wheel_1" or key == "group_wheel_5" or key == "group_wheel_10" then
 			-- Always bank spins on a paid receipt — the charge already cleared.
-			local Wheel = require(shared:WaitForChild("MineGroupWheel"))
 			local prod = C.product(key) or {}
 			local n = math.max(1, math.floor(tonumber(prod.spins) or 1))
 			GroupWheelService.grantPaidSpins(p, n)
@@ -17134,9 +18171,9 @@ Verbs.grantReceipt = function(info)
 			net:FireClient(plr, "groupWheel", {
 				ok = false,
 				reason = "bought",
-				payload = Wheel.payload(p, os.time()),
+				payload = GroupWheelService.payload(p, plr),
 			})
-			net:FireClient(plr, "toast", string.format("+%d Group Wheel spin%s", n, n == 1 and "" or "s"))
+			net:FireClient(plr, "toast", string.format("+%d Daily Wheel spin%s", n, n == 1 and "" or "s"))
 			return true
 		end
 		return false
@@ -17240,7 +18277,7 @@ Svc.Marketplace.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId,
 			local seatsRef = { left = vipSeatsLeft }
 			if Founders.grant(p, plr, "gamepass", {
 				seatsRef = seatsRef,
-				grantScrolls = grantScrolls,
+				grantBooks = Dig.grantBooks,
 				toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 			}) then
 				vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -17276,6 +18313,12 @@ require(script.Parent.Admin.MineAdmin).start({
 	equippedTool = equippedTool,
 	blank = blank,
 	save = save,
+	-- `/admin launch now`. Verbs.launchSeason was complete, admin-gated and
+	-- persisted, and NOTHING fired it -- so the season could never start and
+	-- every seasonal system sat frozen at second zero. Passed as a dep rather
+	-- than reimplemented in MineAdmin, so there is exactly one place that
+	-- throws the switch.
+	launchSeason = Verbs.launchSeason,
 })
 
 -- Ensure AFK chill exists even if the world was built before this pad shipped.

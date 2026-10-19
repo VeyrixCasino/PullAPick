@@ -96,11 +96,29 @@ for fam in pairs(MineOreTools.FRAME_STATS) do
 		if type(s) ~= "table" then okCall = false end
 	end
 end
-check("frameStats answers for all 3 families x " .. N .. " tiers", okCall)
+check("frameStats answers for every family x " .. N .. " tiers", okCall)
 
 local d1, d82 = MineOreTools.frameStats("drill", 1), MineOreTools.frameStats("drill", 82)
-check("a tier 1 drill is still a drill", d1.shape == "down" and d1.axis == "down",
+--[[
+	A DRILL AIMS, A JACKHAMMER DOES NOT. Owner, 2026-10-10: drills mine
+	everywhere and digging straight down became the jackhammer's job.
+
+	This used to assert a tier 1 drill was "down", back when shape and axis
+	flipped between down and dir/aim four times across the roster -- so whether
+	your drill could aim depended on which ore it was made of. Asserting the
+	whole roster, not tier 1, because "drills aim" is only true if it is true
+	at every rung.
+]]
+local drillAims, jackDigs = true, true
+for t = 1, N do
+	local d = MineOreTools.frameStats("drill", t)
+	if d.shape ~= "dir" or d.axis ~= "aim" then drillAims = false end
+	local j = MineOreTools.frameStats("jackhammer", t)
+	if j.shape ~= "down" or j.axis ~= "down" then jackDigs = false end
+end
+check("a drill aims at every one of the " .. N .. " tiers", drillAims,
 	tostring(d1.shape) .. "/" .. tostring(d1.axis))
+check("a jackhammer digs down at every tier", jackDigs)
 check("a tier 82 drill clears 9 cells", d82.cells == 9, tostring(d82.cells))
 local e82 = MineOreTools.frameStats("explosive", 82)
 check("a tier 82 explosive still throws 3 bombs in a cluster",

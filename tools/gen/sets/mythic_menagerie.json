@@ -1,0 +1,986 @@
+{
+  "key": "mythic_menagerie",
+  "bodies": [
+    {
+      "id": "mm_griffin",
+      "label": "Griffin",
+      "role": "Striker"
+    },
+    {
+      "id": "mm_phoenix",
+      "label": "Phoenix Chick",
+      "role": "Mystic"
+    },
+    {
+      "id": "mm_kirin",
+      "label": "Kirin",
+      "role": "Seeker"
+    },
+    {
+      "id": "mm_hydra",
+      "label": "Hydra Pup",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "mm_sphinx",
+      "label": "Sphinx Kitten",
+      "role": "Trader"
+    },
+    {
+      "id": "mm_trihorn",
+      "label": "Trihorn",
+      "role": "Bruiser"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "mm_t_leveret",
+      "label": "Thornjack Leveret",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        236,
+        196,
+        150
+      ]
+    },
+    {
+      "id": "mm_t_porcupette",
+      "label": "Quilltip Porcupette",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        150,
+        110,
+        80
+      ]
+    },
+    {
+      "id": "mm_t_firefly",
+      "label": "Jarglow Firefly",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        255,
+        230,
+        80
+      ]
+    },
+    {
+      "id": "mm_t_capricub",
+      "label": "Cloudfin Capricub",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        180,
+        200,
+        220
+      ]
+    },
+    {
+      "id": "mm_t_tortling",
+      "label": "Softshell Tortling",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        120,
+        170,
+        100
+      ]
+    },
+    {
+      "id": "mm_t_fennecling",
+      "label": "Sandear Fennecling",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        240,
+        210,
+        150
+      ]
+    },
+    {
+      "id": "mm_t_ermine",
+      "label": "Snowpuff Ermine",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        246,
+        246,
+        250
+      ]
+    },
+    {
+      "id": "mm_t_quokka",
+      "label": "Smileface Quokka",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        180,
+        140,
+        90
+      ]
+    },
+    {
+      "id": "mm_t_otterling",
+      "label": "Riverbend Otterling",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        90,
+        140,
+        170
+      ]
+    },
+    {
+      "id": "mm_t_bumblebee",
+      "label": "Honeycomb Bumblebee",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        255,
+        200,
+        40
+      ]
+    },
+    {
+      "id": "mm_t_armadillo",
+      "label": "Shellroll Armadillo",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        160,
+        130,
+        90
+      ]
+    },
+    {
+      "id": "mm_t_alpaca",
+      "label": "Fluffcloud Alpaca",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        230,
+        210,
+        190
+      ]
+    },
+    {
+      "id": "mm_t_glowmoth",
+      "label": "Moonspot Glowmoth",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        200,
+        180,
+        255
+      ]
+    },
+    {
+      "id": "mm_t_pangopup",
+      "label": "Scaleband Pangopup",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        180,
+        150,
+        100
+      ]
+    },
+    {
+      "id": "mm_t_dugong",
+      "label": "Tideflipper Dugong",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        140,
+        180,
+        190
+      ]
+    },
+    {
+      "id": "mm_t_hedgelet",
+      "label": "Bramble Hedgelet",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        110,
+        140,
+        70
+      ]
+    },
+    {
+      "id": "mm_t_axolpup",
+      "label": "Twintail Axolpup",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        160,
+        190
+      ]
+    },
+    {
+      "id": "mm_t_lemming",
+      "label": "Frosttoe Lemming",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        200,
+        180,
+        160
+      ]
+    },
+    {
+      "id": "mm_t_manticore",
+      "label": "Spiketail Manticore",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        210,
+        90,
+        50
+      ]
+    },
+    {
+      "id": "mm_t_hippogriff",
+      "label": "Stormmane Hippogriff",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        90,
+        140,
+        200
+      ]
+    },
+    {
+      "id": "mm_t_bunyip",
+      "label": "Marshglow Bunyip",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        140,
+        110
+      ]
+    },
+    {
+      "id": "mm_t_kelpie",
+      "label": "Tidebraid Kelpie",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        120,
+        160
+      ]
+    },
+    {
+      "id": "mm_t_selkie",
+      "label": "Sealfriend Selkie",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        170,
+        190,
+        210
+      ]
+    },
+    {
+      "id": "mm_t_baku",
+      "label": "Dreamfeast Baku",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        160,
+        220
+      ]
+    },
+    {
+      "id": "mm_t_hodag",
+      "label": "Hornridge Hodag",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        80,
+        120,
+        70
+      ]
+    },
+    {
+      "id": "mm_t_peryton",
+      "label": "Antlerwing Peryton",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        140,
+        100,
+        70
+      ]
+    },
+    {
+      "id": "mm_t_simurgh",
+      "label": "Plumecrest Simurgh",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        140,
+        80
+      ]
+    },
+    {
+      "id": "mm_t_anzu",
+      "label": "Stormbeak Anzu",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        70,
+        100,
+        180
+      ]
+    },
+    {
+      "id": "mm_t_tarasque",
+      "label": "Shellspine Tarasque",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        100,
+        150,
+        80
+      ]
+    },
+    {
+      "id": "mm_t_zaratan",
+      "label": "Islandback Zaratan",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        90,
+        160,
+        120
+      ]
+    },
+    {
+      "id": "mm_t_aerie",
+      "label": "Cliffside Aerie",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        180,
+        140,
+        100
+      ]
+    },
+    {
+      "id": "mm_t_rookery",
+      "label": "Stormcliff Rookery",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        100,
+        130,
+        170
+      ]
+    },
+    {
+      "id": "mm_t_warren",
+      "label": "Softloam Warren",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        160,
+        120,
+        80
+      ]
+    },
+    {
+      "id": "mm_t_hatchery",
+      "label": "Warmstone Hatchery",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        220,
+        160,
+        90
+      ]
+    },
+    {
+      "id": "mm_t_broodhollow",
+      "label": "Glowmoss Broodhollow",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        80,
+        160,
+        100
+      ]
+    },
+    {
+      "id": "mm_t_clutchbed",
+      "label": "Silksoft Clutchbed",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        240,
+        200,
+        220
+      ]
+    },
+    {
+      "id": "mm_t_denward",
+      "label": "Leafcanopy Denward",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        100,
+        160,
+        70
+      ]
+    },
+    {
+      "id": "mm_t_incubarium",
+      "label": "Amberglass Incubarium",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        180,
+        60
+      ]
+    },
+    {
+      "id": "mm_t_nestgrove",
+      "label": "Feathered Nestgrove",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        140,
+        170,
+        90
+      ]
+    },
+    {
+      "id": "mm_t_eggspire",
+      "label": "Runestone Eggspire",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        160,
+        120,
+        220
+      ]
+    },
+    {
+      "id": "mm_t_hatchhall",
+      "label": "Coralreef Hatchhall",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        40,
+        180,
+        170
+      ]
+    },
+    {
+      "id": "mm_t_bestiary",
+      "label": "Living Bestiary",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        180,
+        140,
+        60
+      ]
+    },
+    {
+      "id": "mm_t_lamassu",
+      "label": "Winged Lamassu",
+      "role": "Digger",
+      "tier": "Divine",
+      "tint": [
+        220,
+        180,
+        80
+      ]
+    },
+    {
+      "id": "mm_t_xiezhi",
+      "label": "Jadehorn Xiezhi",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        60,
+        200,
+        140
+      ]
+    },
+    {
+      "id": "mm_t_minotaur",
+      "label": "Labyrinth Minotaur",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        140,
+        90,
+        50
+      ]
+    },
+    {
+      "id": "mm_t_centaur",
+      "label": "Starstride Centaur",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        200,
+        160,
+        100
+      ]
+    },
+    {
+      "id": "mm_t_faun",
+      "label": "Grovehorn Faun",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        120,
+        180,
+        80
+      ]
+    },
+    {
+      "id": "mm_t_thunderbird",
+      "label": "Skyrend Thunderbird",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        60,
+        80,
+        200
+      ]
+    },
+    {
+      "id": "mm_t_arkhold",
+      "label": "Genesis Arkhold",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        180,
+        140,
+        220
+      ]
+    },
+    {
+      "id": "mm_t_biotower",
+      "label": "Primordial Biotower",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        80,
+        200,
+        140
+      ]
+    },
+    {
+      "id": "mm_t_primordome",
+      "label": "Worldspan Primordome",
+      "role": "Digger",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        120,
+        180
+      ]
+    },
+    {
+      "id": "mm_t_titanroost",
+      "label": "Titanbone Titanroost",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        200,
+        180,
+        140
+      ]
+    }
+  ],
+  "extraBodies": [
+    "drake",
+    "horse",
+    "bigcat"
+  ],
+  "buffs": [
+    "luck",
+    "packLuck",
+    "zap"
+  ],
+  "palette": [
+    [
+      "Gilded",
+      210,
+      160,
+      60
+    ],
+    [
+      "Emberplume",
+      250,
+      110,
+      40
+    ],
+    [
+      "Jade",
+      70,
+      190,
+      140
+    ],
+    [
+      "Lagoon",
+      40,
+      150,
+      160
+    ],
+    [
+      "Desert Sand",
+      222,
+      196,
+      140
+    ],
+    [
+      "Bone",
+      236,
+      226,
+      200
+    ],
+    [
+      "Venom Green",
+      100,
+      150,
+      50
+    ],
+    [
+      "Talon Brown",
+      130,
+      90,
+      60
+    ],
+    [
+      "Storm Blue",
+      60,
+      110,
+      220
+    ],
+    [
+      "Snowpelt",
+      246,
+      246,
+      250
+    ],
+    [
+      "Ruby Scale",
+      190,
+      40,
+      50
+    ],
+    [
+      "Rust Mane",
+      196,
+      96,
+      56
+    ],
+    [
+      "Royal Violet",
+      120,
+      70,
+      170
+    ],
+    [
+      "Rosehorn",
+      246,
+      160,
+      210
+    ],
+    [
+      "Abyss",
+      50,
+      30,
+      70
+    ],
+    [
+      "Deep Tide",
+      24,
+      84,
+      140
+    ],
+    [
+      "Stone Grey",
+      130,
+      140,
+      150
+    ],
+    [
+      "Frost",
+      190,
+      226,
+      246
+    ],
+    [
+      "Umber",
+      84,
+      60,
+      52
+    ],
+    [
+      "Lilac Plume",
+      180,
+      160,
+      220
+    ],
+    [
+      "Lime Crest",
+      180,
+      230,
+      60
+    ],
+    [
+      "Moonsilver",
+      200,
+      204,
+      216
+    ],
+    [
+      "Olive Hide",
+      130,
+      130,
+      70
+    ],
+    [
+      "Aqua Fin",
+      80,
+      220,
+      230
+    ],
+    [
+      "Sunfeather",
+      255,
+      226,
+      80
+    ],
+    [
+      "Coral Crest",
+      250,
+      120,
+      110
+    ],
+    [
+      "Wine",
+      120,
+      40,
+      70
+    ],
+    [
+      "Herald Blue",
+      20,
+      20,
+      180
+    ],
+    [
+      "Deep Thicket",
+      20,
+      60,
+      20
+    ],
+    [
+      "Beast Green",
+      20,
+      180,
+      20
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Fabled",
+      "Untamed",
+      "Storied",
+      "Noble"
+    ],
+    "Mythic": [
+      "Mythborn",
+      "Primordial",
+      "Elder",
+      "Feral"
+    ],
+    "Divine": [
+      "Celestial",
+      "Sacred",
+      "Exalted",
+      "Haloed"
+    ],
+    "Exotic": [
+      "Apex",
+      "Titan",
+      "Origin",
+      "Paragon"
+    ]
+  },
+  "names": [
+    "Gryphon",
+    "Gryphlet",
+    "Griffo",
+    "Talonpaw",
+    "Featherclaw",
+    "Skyclaw",
+    "Pyra",
+    "Cinderchick",
+    "Ashfeather",
+    "Flamefeather",
+    "Emberchick",
+    "Kindlewing",
+    "Sunplume",
+    "Scorchy",
+    "Hydrabit",
+    "Hydie",
+    "Threehead",
+    "Lernie",
+    "Kiri",
+    "Qilin",
+    "Lucky Hoof",
+    "Cloudhoof",
+    "Jadehorn",
+    "Riddlepaw",
+    "Sandpaw",
+    "Nilekit",
+    "Trike",
+    "Frillby",
+    "Frilly",
+    "Rexy",
+    "Rexling",
+    "Dino",
+    "Stompasaur",
+    "Tinysaur",
+    "Fossilkin",
+    "Ammonite",
+    "Trilobite",
+    "Dodo",
+    "Mammoth",
+    "Saberkit",
+    "Sabertooth",
+    "Tusky",
+    "Ptero",
+    "Bronto",
+    "Stego",
+    "Ankylo",
+    "Pachy",
+    "Diplo",
+    "Raptor",
+    "Basilisk",
+    "Cockatrice",
+    "Wyvern",
+    "Manticore",
+    "Hippogriff",
+    "Pegasus",
+    "Unicorn",
+    "Kraken",
+    "Leviathan",
+    "Behemoth",
+    "Roc",
+    "Flamebird",
+    "Kitsune",
+    "Tanuki",
+    "Baku",
+    "Simurgh",
+    "Fenghuang",
+    "Jackalope",
+    "Wolpertinger",
+    "Selkie",
+    "Kelpie",
+    "Bunyip",
+    "Sasquatch",
+    "Bigfoot",
+    "Hodag",
+    "Nessie",
+    "Ogopogo",
+    "Cerbie",
+    "Orthrus",
+    "Ladon",
+    "Typhon",
+    "Echidna",
+    "Sphinx",
+    "Sunbird",
+    "Moonhare",
+    "Starstag",
+    "Nestling",
+    "Hatchling",
+    "Hatchy",
+    "Eggy",
+    "Yolky",
+    "Shellcrack",
+    "Nestwarden",
+    "Broody",
+    "Clutch",
+    "Roost",
+    "Lairling",
+    "Denkeeper",
+    "Pawprint",
+    "Beastie",
+    "Grizzle",
+    "Roarbit",
+    "Roary",
+    "Rumbletusk",
+    "Stomptail",
+    "Clawdia",
+    "Fangle",
+    "Growlette",
+    "Prowl",
+    "Safari",
+    "Savanna",
+    "Jungle",
+    "Titanclaw",
+    "Mythling",
+    "Behemutt",
+    "Gargoyle",
+    "Minotaur",
+    "Centaur",
+    "Faun",
+    "Pixie",
+    "Wyrmling",
+    "Drakelet",
+    "Dragonet",
+    "Lindworm",
+    "Quetzal",
+    "Coatl",
+    "Tarasque",
+    "Zaratan",
+    "Ziz",
+    "Anzu",
+    "Lamassu",
+    "Pixiu",
+    "Shisa",
+    "Komainu",
+    "Xiezhi",
+    "Tengu",
+    "Raiju",
+    "Peryton",
+    "Bennu",
+    "Hippocamp",
+    "Capricorn",
+    "Ichthy",
+    "Plesio",
+    "Mosasaur",
+    "Megalodon",
+    "Dimetro",
+    "Smilodon",
+    "Glyptodon",
+    "Moa",
+    "Thylacine",
+    "Archaeo",
+    "Iguanodon",
+    "Spino",
+    "Parasaur",
+    "Dimorph",
+    "Wildheart",
+    "Snowmane",
+    "Fableclaw"
+  ]
+}

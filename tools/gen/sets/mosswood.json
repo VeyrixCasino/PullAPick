@@ -1,0 +1,1108 @@
+{
+  "key": "mosswood",
+  "bodies": [
+    {
+      "id": "mw_toadstool",
+      "label": "Toadstool",
+      "role": "Mystic"
+    },
+    {
+      "id": "mw_stump",
+      "label": "Stump",
+      "role": "Bruiser"
+    },
+    {
+      "id": "mw_snail",
+      "label": "Snail",
+      "role": "Seeker"
+    },
+    {
+      "id": "mw_hedgehog",
+      "label": "Hedgehog",
+      "role": "Digger"
+    },
+    {
+      "id": "mw_acorn",
+      "label": "Acorn",
+      "role": "Trader"
+    },
+    {
+      "id": "mw_barklouse",
+      "label": "Barklouse",
+      "role": "Digger"
+    },
+    {
+      "id": "mw_bushtail",
+      "label": "Bushtail",
+      "role": "Trader"
+    },
+    {
+      "id": "mw_fircone",
+      "label": "Fircone",
+      "role": "Prospector"
+    },
+    {
+      "id": "mw_oakleaf",
+      "label": "Oakleaf",
+      "role": "Mystic"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "mw_t_badger",
+      "label": "Bramble Badger",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        70,
+        72,
+        90
+      ]
+    },
+    {
+      "id": "mw_t_wren",
+      "label": "Thicket Wren",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        178,
+        104,
+        56
+      ]
+    },
+    {
+      "id": "mw_t_dormouse",
+      "label": "Hazel Dormouse",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        236,
+        178,
+        80
+      ]
+    },
+    {
+      "id": "mw_t_marten",
+      "label": "Pine Marten",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        140,
+        58,
+        40
+      ]
+    },
+    {
+      "id": "mw_t_redpanda",
+      "label": "Ringtail Panda",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        214,
+        92,
+        40
+      ]
+    },
+    {
+      "id": "mw_t_kiwi",
+      "label": "Fernbird Kiwi",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        104,
+        140,
+        80
+      ]
+    },
+    {
+      "id": "mw_t_salamander",
+      "label": "Spotted Salamander",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        52,
+        56,
+        110
+      ]
+    },
+    {
+      "id": "mw_t_trout",
+      "label": "Brook Trout",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        70,
+        150,
+        180
+      ]
+    },
+    {
+      "id": "mw_t_crayfish",
+      "label": "Creek Crayfish",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        206,
+        64,
+        48
+      ]
+    },
+    {
+      "id": "mw_t_marimo",
+      "label": "Marimo Ball",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        70,
+        160,
+        80
+      ]
+    },
+    {
+      "id": "mw_t_bracket",
+      "label": "Bracket Fungus",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        224,
+        140,
+        64
+      ]
+    },
+    {
+      "id": "mw_t_stickbug",
+      "label": "Walking Stick",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        160,
+        150,
+        70
+      ]
+    },
+    {
+      "id": "mw_t_butterfly",
+      "label": "Speckled Wood",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        232,
+        180,
+        60
+      ]
+    },
+    {
+      "id": "mw_t_millipede",
+      "label": "Moss Millipede",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        140,
+        56,
+        110
+      ]
+    },
+    {
+      "id": "mw_t_nest",
+      "label": "Twigweave Nest",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        200,
+        170,
+        110
+      ]
+    },
+    {
+      "id": "mw_t_tapir",
+      "label": "Striped Tapir",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        90,
+        110,
+        150
+      ]
+    },
+    {
+      "id": "mw_t_woodpecker",
+      "label": "Logtap Woodpecker",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        236,
+        232,
+        222
+      ]
+    },
+    {
+      "id": "mw_t_hollowlog",
+      "label": "Hollow Log",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        126,
+        88,
+        58
+      ]
+    },
+    {
+      "id": "mw_t_pheasant",
+      "label": "Copper Pheasant",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        204,
+        110,
+        46
+      ]
+    },
+    {
+      "id": "mw_t_birdhouse",
+      "label": "Mossy Birdhouse",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        120,
+        70,
+        44
+      ]
+    },
+    {
+      "id": "mw_t_cabin",
+      "label": "Woodland Cabin",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        176,
+        70,
+        56
+      ]
+    },
+    {
+      "id": "mw_t_skep",
+      "label": "Straw Skep",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        232,
+        190,
+        90
+      ]
+    },
+    {
+      "id": "mw_t_okapi",
+      "label": "Forest Okapi",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        110,
+        48,
+        60
+      ]
+    },
+    {
+      "id": "mw_t_beetle",
+      "label": "Lichen Beetle",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        70,
+        110,
+        64
+      ]
+    },
+    {
+      "id": "mw_t_lynx",
+      "label": "Tufted Lynx",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        212,
+        176,
+        128
+      ]
+    },
+    {
+      "id": "mw_t_boar",
+      "label": "Bristle Boar",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        110,
+        82,
+        70
+      ]
+    },
+    {
+      "id": "mw_t_kingfisher",
+      "label": "Brook Kingfisher",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        30,
+        130,
+        210
+      ]
+    },
+    {
+      "id": "mw_t_koala",
+      "label": "Gumleaf Koala",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        150,
+        154,
+        170
+      ]
+    },
+    {
+      "id": "mw_t_kangaroo",
+      "label": "Treetop Kangaroo",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        196,
+        120,
+        90
+      ]
+    },
+    {
+      "id": "mw_t_bonsai",
+      "label": "Moss Bonsai",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        96,
+        150,
+        84
+      ]
+    },
+    {
+      "id": "mw_t_fairyring",
+      "label": "Puffball Ring",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        190,
+        156,
+        220
+      ]
+    },
+    {
+      "id": "mw_t_fireflyjar",
+      "label": "Firefly Jar",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        244,
+        206,
+        92
+      ]
+    },
+    {
+      "id": "mw_t_gnome",
+      "label": "Mossbeard Gnome",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        208,
+        60,
+        58
+      ]
+    },
+    {
+      "id": "mw_t_islet",
+      "label": "Glade Islet",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        112,
+        170,
+        96
+      ]
+    },
+    {
+      "id": "mw_t_chrysalis",
+      "label": "Jade Chrysalis",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        70,
+        180,
+        140
+      ]
+    },
+    {
+      "id": "mw_t_galleon",
+      "label": "Walnut Galleon",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        150,
+        104,
+        60
+      ]
+    },
+    {
+      "id": "mw_t_greenman",
+      "label": "Greenleaf Mask",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        140,
+        200,
+        110
+      ]
+    },
+    {
+      "id": "mw_t_lyrebird",
+      "label": "Lyrebird",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        206,
+        198,
+        236
+      ]
+    },
+    {
+      "id": "mw_t_wolpertinger",
+      "label": "Wolpertinger",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        210,
+        150,
+        100
+      ]
+    },
+    {
+      "id": "mw_t_sasquatch",
+      "label": "Shaggy Sasquatch",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        120,
+        86,
+        64
+      ]
+    },
+    {
+      "id": "mw_t_fernscale",
+      "label": "Fernscale Dragon",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        50,
+        150,
+        100
+      ]
+    },
+    {
+      "id": "mw_t_rhino",
+      "label": "Barkhide Rhino",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        124,
+        128,
+        140
+      ]
+    },
+    {
+      "id": "mw_t_wishwell",
+      "label": "Springstone Well",
+      "role": "Prospector",
+      "tier": "Exotic",
+      "tint": [
+        110,
+        140,
+        190
+      ]
+    },
+    {
+      "id": "mw_t_hornbill",
+      "label": "Crested Hornbill",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        232,
+        120,
+        40
+      ]
+    }
+  ],
+  "extraBodies": [
+    "toad",
+    "owl",
+    "stag"
+  ],
+  "buffs": [
+    "dirtBreak",
+    "pulverize",
+    "luckyFind"
+  ],
+  "palette": [
+    [
+      "Moss",
+      108,
+      136,
+      74
+    ],
+    [
+      "Fern",
+      86,
+      124,
+      70
+    ],
+    [
+      "Sage",
+      150,
+      166,
+      130
+    ],
+    [
+      "Lichen",
+      178,
+      190,
+      140
+    ],
+    [
+      "Olive",
+      120,
+      120,
+      60
+    ],
+    [
+      "Pine",
+      50,
+      84,
+      60
+    ],
+    [
+      "Juniper",
+      70,
+      100,
+      96
+    ],
+    [
+      "Bark",
+      104,
+      78,
+      58
+    ],
+    [
+      "Oak",
+      150,
+      112,
+      74
+    ],
+    [
+      "Walnut",
+      84,
+      58,
+      42
+    ],
+    [
+      "Acorn",
+      170,
+      120,
+      62
+    ],
+    [
+      "Peat",
+      64,
+      50,
+      40
+    ],
+    [
+      "Birch",
+      226,
+      220,
+      204
+    ],
+    [
+      "Mushroom",
+      196,
+      176,
+      150
+    ],
+    [
+      "Dewdrop",
+      190,
+      214,
+      210
+    ],
+    [
+      "Cedar",
+      160,
+      84,
+      56
+    ],
+    [
+      "Toadstool",
+      196,
+      60,
+      50
+    ],
+    [
+      "Chanterelle",
+      226,
+      160,
+      60
+    ],
+    [
+      "Pollen",
+      222,
+      200,
+      90
+    ],
+    [
+      "Bluebell",
+      120,
+      130,
+      190
+    ],
+    [
+      "Thistle",
+      170,
+      140,
+      180
+    ],
+    [
+      "Sloe",
+      70,
+      60,
+      100
+    ],
+    [
+      "Riverstone",
+      130,
+      136,
+      140
+    ],
+    [
+      "Foxglove",
+      200,
+      120,
+      170
+    ],
+    [
+      "Kingfisher",
+      22,
+      112,
+      214
+    ],
+    [
+      "Damselfly",
+      18,
+      178,
+      196
+    ],
+    [
+      "Buttercup",
+      250,
+      214,
+      24
+    ],
+    [
+      "Nightshade",
+      28,
+      24,
+      38
+    ],
+    [
+      "Beech Leaf",
+      126,
+      206,
+      58
+    ],
+    [
+      "Wood Violet",
+      120,
+      56,
+      196
+    ],
+    [
+      "Heather",
+      204,
+      84,
+      196
+    ],
+    [
+      "Rowan",
+      242,
+      108,
+      22
+    ],
+    [
+      "Midnight",
+      22,
+      30,
+      84
+    ],
+    [
+      "Raspberry",
+      206,
+      28,
+      108
+    ],
+    [
+      "Primrose",
+      250,
+      242,
+      160
+    ],
+    [
+      "Mint",
+      150,
+      236,
+      196
+    ],
+    [
+      "Lilac",
+      206,
+      178,
+      250
+    ],
+    [
+      "Coral Fungus",
+      250,
+      140,
+      124
+    ],
+    [
+      "Snowdrop",
+      250,
+      252,
+      255
+    ],
+    [
+      "Jay Blue",
+      86,
+      150,
+      250
+    ],
+    [
+      "Emerald",
+      0,
+      132,
+      84
+    ],
+    [
+      "Robin Egg",
+      150,
+      214,
+      236
+    ],
+    [
+      "Holly",
+      176,
+      18,
+      38
+    ],
+    [
+      "Cherry",
+      120,
+      10,
+      30
+    ],
+    [
+      "Plum",
+      84,
+      24,
+      70
+    ],
+    [
+      "Saffron",
+      220,
+      170,
+      0
+    ],
+    [
+      "Bog Teal",
+      0,
+      96,
+      110
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Mossy",
+      "Dappled",
+      "Dewy",
+      "Gnarled"
+    ],
+    "Mythic": [
+      "Ancient",
+      "Fernbound",
+      "Lichened",
+      "Hollowed"
+    ],
+    "Divine": [
+      "Sunlit",
+      "Dawnlit",
+      "Serene",
+      "Evergreen"
+    ],
+    "Exotic": [
+      "Heartwood",
+      "Elder",
+      "Wildheart",
+      "Oldgrowth"
+    ]
+  },
+  "names": [
+    "Mossball",
+    "Mosscap",
+    "Mossbud",
+    "Mosstoe",
+    "Mossling",
+    "Mossfoot",
+    "Mosspaw",
+    "Mossbun",
+    "Mossworth",
+    "Fernling",
+    "Fernleaf",
+    "Ferny",
+    "Frondle",
+    "Fiddlehead",
+    "Bracken",
+    "Brackenby",
+    "Mushy",
+    "Morel",
+    "Puffball",
+    "Shroom",
+    "Shroomy",
+    "Shroomkin",
+    "Porcini",
+    "Inkcap",
+    "Toadcap",
+    "Fungus",
+    "Sporey",
+    "Woodruff",
+    "Woodsy",
+    "Woodchip",
+    "Woodbine",
+    "Wildwood",
+    "Greenwood",
+    "Dapple",
+    "Dapplepaw",
+    "Copse",
+    "Coppice",
+    "Spinney",
+    "Bower",
+    "Leafy",
+    "Treeling",
+    "Barky",
+    "Bough",
+    "Branch",
+    "Branchy",
+    "Knot",
+    "Beech",
+    "Hazelnut",
+    "Hawthorn",
+    "Rowanberry",
+    "Bilberry",
+    "Brambling",
+    "Thistledown",
+    "Teasel",
+    "Primrose",
+    "Cloverleaf",
+    "Rosemary",
+    "Chamomile",
+    "Tansy",
+    "Mugwort",
+    "Fernwick",
+    "Conifer",
+    "Acorncap",
+    "Acornlet",
+    "Hazelpip",
+    "Snailshell",
+    "Mossback",
+    "Katydid",
+    "Grasshopper",
+    "Woodlouse",
+    "Pillbug",
+    "Roly Poly",
+    "Inchworm",
+    "Caterpillar",
+    "Chrysalis",
+    "Cocoon",
+    "Mayfly",
+    "Owlet",
+    "Thrush",
+    "Nuthatch",
+    "Warbler",
+    "Chickadee",
+    "Badger",
+    "Brock",
+    "Vole",
+    "Shrew",
+    "Dormouse",
+    "Hedgie",
+    "Prickles",
+    "Prickly",
+    "Bristle",
+    "Bristly",
+    "Mist",
+    "Dewberry",
+    "Dewleaf",
+    "Mossdew",
+    "Brooklet",
+    "Rivulet",
+    "Lilypad",
+    "Duckweed",
+    "Cattail",
+    "Bulrush",
+    "Reedy",
+    "Sedge",
+    "Toadlet",
+    "Froglet",
+    "Tadpole",
+    "Newt",
+    "Newtie",
+    "Mudpuppy",
+    "Stickleback",
+    "Pollen Puff",
+    "Budlet",
+    "Leafbun",
+    "Twigsy",
+    "Stickle",
+    "Oldwood",
+    "Elderwood",
+    "Mosswhisker",
+    "Fernfoot",
+    "Fernpaw",
+    "Barkbun",
+    "Acornbun",
+    "Squirrelly",
+    "Chipmunk",
+    "Dormy",
+    "Snuffle",
+    "Rootle",
+    "Forager",
+    "Treecreeper",
+    "Woodwren",
+    "Bluebird",
+    "Fieldmouse",
+    "Harvestmouse",
+    "Mossnose",
+    "Shrubby",
+    "Shrub",
+    "Hedgerow",
+    "Bramblet",
+    "Mosslet",
+    "Mosskin",
+    "Mosspip",
+    "Mossmuff",
+    "Mossdrop",
+    "Mosscrumb",
+    "Mosswick",
+    "Mossbell",
+    "Fernbun",
+    "Fernsy",
+    "Fernkin",
+    "Ferndrop",
+    "Fernshade",
+    "Lichenpaw",
+    "Lichenbug",
+    "Toadsy",
+    "Shroomcap",
+    "Shroomlet",
+    "Mushlet",
+    "Mushkin",
+    "Puffcap",
+    "Capling",
+    "Woodsong",
+    "Woodnook",
+    "Woodpip",
+    "Barkle",
+    "Twigsby",
+    "Stickybud",
+    "Pinewhisker",
+    "Pinenut",
+    "Conelet",
+    "Hazelbun",
+    "Acornbit",
+    "Leafwhisk",
+    "Leafpip",
+    "Leafkin",
+    "Puddlemoss",
+    "Brambly",
+    "Nettlepaw",
+    "Mossmitten",
+    "Fernhollow",
+    "Fernsprig",
+    "Burlwood",
+    "Sporeling",
+    "Sporecap",
+    "Gillie",
+    "Hazelwood",
+    "Alderkin",
+    "Aspen",
+    "Hornbeam",
+    "Woodsorrel",
+    "Ramsons",
+    "Bracketcap",
+    "Shelfcap",
+    "Kindling",
+    "Mossmop",
+    "Mosstuft",
+    "Mossmound",
+    "Fernflick",
+    "Frondlet",
+    "Dingle",
+    "Brushwood",
+    "Windfall",
+    "Twigtail",
+    "Burr",
+    "Cleavers",
+    "Dock Leaf",
+    "Speedwell",
+    "Woodbell",
+    "Celandine",
+    "Cowslip",
+    "Oxlip",
+    "Ivybud",
+    "Lichenlet",
+    "Pixie Cup",
+    "Earthstar",
+    "Jelly Ear",
+    "Turkey Tail",
+    "Oyster Cap",
+    "Fairy Bonnet",
+    "Elfcup",
+    "Bolete",
+    "Russula",
+    "Cep",
+    "Wood Ear",
+    "Shaggy Mane",
+    "Wood Mouse",
+    "Bank Vole",
+    "Treefrog",
+    "Dunnock",
+    "Goldcrest",
+    "Firecrest",
+    "Chiffchaff",
+    "Blackcap",
+    "Nightjar",
+    "Jaybird",
+    "Woodcock",
+    "Woodpigeon",
+    "Ringdove",
+    "Stoat",
+    "Polecat",
+    "Sett",
+    "Brocklet",
+    "Bramblebud",
+    "Fernbell",
+    "Dewmoss",
+    "Barkling",
+    "Conifer Kit",
+    "Pinecrest",
+    "Larchling",
+    "Hornbeamkin"
+  ]
+}

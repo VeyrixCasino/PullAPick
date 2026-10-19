@@ -1,0 +1,237 @@
+---
+title: World events
+type: system
+status: current
+verified: 2026-10-10 @ 31ecb3d
+sources:
+  - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
+  - src/ServerScriptService/Mine/MineEventHorizon.luau
+  - src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineSpaceMatter.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventPass.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEHPets.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventsView/init.luau
+  - src/ReplicatedStorage/Mine/Shared/MineWorldEvents.luau
+  - src/ReplicatedStorage/Mine/Shared/MineWorldPulseUI.luau
+  - src/ServerScriptService/Mine/MineBloodLake.luau
+  - src/ServerScriptService/Mine/MineHarbor.luau
+  - src/ServerScriptService/Mine/MineServer.server.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineTrickOrTreat.luau
+  - docs/OPEN.md P0 §3, P2
+  - docs/PROPOSAL.md §0 line 32
+  - docs/AUDIT.md §5
+related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-monetisation, social-quests-and-leaderboards]
+---
+
+# World events
+
+> "Event" covers three different things in this repo:
+> - **Event Horizon**, a limited-time mine (zone 11, id `bigbang`);
+> - the **Event Pass**, its own small progression track;
+> - **World Pulse**, random server-wide buffs. These are switched off.
+>
+> Blood Lake and Harbor are **not** events. They are zone theme builders (bottom
+> of this page).
+
+`MineServer` below means `src/ServerScriptService/Mine/MineServer.server.luau`.
+
+## How it works
+
+### Event Horizon (`bigbang`, zone index 11)
+- **The zone.** It is the last row of `MineConfig.ZONES`, with `limited = true`,
+  `chestMult = 3`, and sets `genesis_spark`, `first_light` and `proto_ore`. The
+  Events tab lists it in `MineConfig.EVENTS[1]`, id `event_horizon`.
+- **The window.** It opens at `MineConfig.LIMITED_START_UNIX` 1790049600
+  (2026-09-22 00:00 ET) and lasts `LIMITED_DAYS` 47 days. That ends it on
+  **2026-11-08 04:00 UTC** (computed). `MineConfig.limitedActive()` reports
+  whether it is open.
+- **Claiming it.** Claiming is free and sets `p.bigbangOwned`.
+  `Gate.zoneUnlocked` checks ownership, not the window, so a player who claimed
+  it keeps the mine after it closes. On load they also get the Wormhole Bag and
+  the starter `eh_shallow_pick`.
+- **Rock and tools.** The rock is **SpaceHP** (`MineSpaceMatter`): meadow tools
+  cannot spend it, and event tools cannot spend normal HP. The tools come from
+  `MineHorizonTools`, one per family per dirt section. They are priced in **space
+  coins** (`p.spaceCoins`), bought through `MineShopBuy.buyEvent`, and gated by
+  `p.deepest.bigbang`.
+- **Packs and pets.** Packs found here mint only Event Horizon sets (`openPack`).
+  The limited pets are Matter+, Matter−, Cosmo and Albert Minestein (the
+  `MineConfig.EVENTS` blurb, `MineEHPets`).
+- **The world.** `MineEventHorizon` builds a research station with a black hole.
+  The hole collapses every `MineConfig.MINE_RESET_SEC` (20 min), on the same
+  beat the mines reset, and `MineAmbience` plays the blast on clients.
+- **Off the breaking ladder.** Event Horizon does not use ore tools (OPEN P0 §3).
+
+### Candy Crypt (`hallow`, zone index 12) — Halloween 2026
+
+> **Built (2026-10-10).** Zone, window, claim, 3×3 pit, no chests, candy
+> balance, strata, twelve candy ores, 10-layer sections, the 3× curve, the sell
+> curve, twelve candy tools, and the Trick-or-Treat case with the Bucket.
+> **The Halloween 2026 Pack exists (2026-10-10)**, so the case's pack slot is
+> live: `MineTrickOrTreat.resolvedPack()` returns `halloween_2026` (checked in
+> a Studio play test). Its 60 pets are in [pets](pets.md#holiday-pets-halloween-2026).
+
+**The Trick-or-Treat case** (`MineTrickOrTreat`) is bought with candy and opens
+on the spot — no unopened case sits in a bag. It is **not** a `MineCases` case:
+those hold packs and nothing else, and this pays four different kinds of thing.
+
+| outcome | rate | comes from |
+| --- | --- | --- |
+| candy back | 52.0% | 19.5% of spend returns as candy |
+| hat | 32.8% | `Gear.rollPiece(id, rng, "head")` → `p.gear` |
+| skin | 15.1% | `MineTemper.rollTemperament` → `p.tempers` |
+| seasonal pack | — | conditional; folded into hats while absent |
+| **Trick-or-Treat Bucket** | **0.1%** | 1 in 1,015 over 200,000 rolls |
+
+The **Bucket** is a real bag with a real ability: `candyMult = 2` is a number
+the payout reads, not a line in a blurb. Winning it never demotes a player
+already carrying something bigger. At 1.5× the top coin bag (the Wormhole is 4×)
+it sits clearly above the best bag you can buy and clearly below the one you earn (owner, 2026-10-10: it was 2×).
+
+**Three profile fields do not exist, and each compiles fine if you guess:**
+- `p.hats[id]` — a hat is a **gear piece** appended to `p.gear` (an array).
+  `MineHats` is the catalogue the roller draws from, not a pool to pick from.
+- `p.tempers` is a **map keyed by `kit.id`** holding `{ rarity, n }`, not a
+  list. `table.insert` corrupts it. A duplicate keeps the **better** grade.
+- `p.bagsOwned` — `backpackTier` is an **index** into `C.BACKPACKS`; limited
+  bags are owned through a dedicated flag, like `p.wormholeBag`.
+
+A second limited mine, open **alongside** Event Horizon rather than after it.
+Owner's brief: candy ores dropping candy corn, **no chests**, nothing sells for
+much (more the deeper you go), **no hardness gate** so surface tools work, **ten
+layers to a section and about ten blocks to a layer**, 3× per section, and candy
+buys Trick-or-Treat cases, seasonal packs, skin and hat cases, and the Halloween
+bucket. Halloween tools are buyable with candy and must be sold with an explicit
+warning that they are very weak and only for seasonal events.
+
+Adding it forced three things that assumed exactly one limited zone:
+
+| was | now |
+| --- | --- |
+| `limitedActive()` took no argument | `limitedActive(zoneId)`, windows in `MineConfig.LIMITED_WINDOWS`. No argument still means `bigbang`. |
+| `Gate.zoneUnlocked` / `enterZone` read `p.bigbangOwned` for any limited zone | each zone names its own `ownedFlag` (`hallowOwned` here) |
+| `rollKind` named `bigbang` for chest density | reads `zone.chestMult`, so Halloween can set **0** |
+
+- **Halloween runs on real calendar dates** (owner, 2026-10-10: *"if the game
+  isn't live by then, it doesn't happen"*). `hallow = { opensUnix, closesUnix }`:
+  2026-10-17 00:00 to 2026-11-08 00:00 US Eastern, so 7 November is a full day.
+  A window given as calendar dates reads the wall clock; Event Horizon keeps
+  its day offsets on `MineLaunch.seasonNow()`. Before this it was season start
+  + 25 days, which slid with launch. Verified in Studio: on 2026-10-10 it reads
+  closed, opening in 6 days.
+- **Blocks per layer is per zone** (`MineConfig.gridFor`). A layer is square, so
+  no grid gives exactly 10: `grid = 3` gives 9 and keeps a true centre block,
+  which the elevator and pit centre are computed from. Applied at the three
+  places that decide what a layer *is* — generation, and `MineDigAuth`'s cell
+  lookup and pit bounds. Zones omitting `grid` read 21 and are unchanged.
+- **`sets` is meadow's, not candy.** It is read as `MineCards` set ids, and
+  `candy_corn` / `gummy_vein` / `sugar_glass` are **not registered** there —
+  using them hands broken set ids to every pack the zone can produce. Limited
+  zones already draw pets from the meadow pot. It becomes the Halloween 2026
+  set once that pack exists, which under the holiday rule is the only legal
+  source of holiday pets anyway.
+- **There is no "hardness gate" to switch off.** The gate is block HP, and the
+  Crypt has its own curve in `blockHp` rather than a place on the zone ladder —
+  index 12 would have put its surface rock past Primordium at 41,992,188 HP.
+  `zone.noStrengthGate` is on the row as documentation; the HP branch is what
+  actually does it. Nothing else was stopping a normal tool: unlike Event
+  Horizon there is no separate matter pool here.
+- **One curve is the difficulty *and* the sell value**, because coins are one
+  per point of HP (`coinsFor`). Base 1, ×3 per 10-layer section:
+  `L1 = 1`, `L50 = 81`, `L100 = 19,683`, `L120 = 177,147`.
+- **Candy ores are not in `MineConfig.ORES`** (`CANDY_ORES`, 12 of them).
+  `ORES` is one global 82-rung ladder weighted only by each rung's `d` against
+  zone difficulty — **there is no per-zone filter** — so a candy rung would
+  appear in every mine and shift the share of every ore around it. They also
+  bypass the ore pouch: candy is a currency, banked at spawn and paid on break.
+  The mix walks with depth (L1 70% Candy Corn, L130 77% Jawbreaker) and is
+  chosen from the cell position, so a block is the same candy on every server.
+- **`MineCandyTools`**: 12 tools, 4 families, priced in candy, every row
+  carrying `MineCandyTools.WARNING` and `seasonalOnly`. Deliberately **not**
+  `eventOnly` — that is Event Horizon's matter lock. They work anywhere and are
+  bad everywhere else: the best one needs **9,481 hits per block** on
+  Primordium's surface, which is the warning, earned.
+
+### Event Pass
+- **What it is.** `MineEventPass.TRACKS.event_horizon` has 6 tiers. Event XP
+  (0 → 360) comes from 10 event quests: blocks, sells, depth and packs.
+- **What it pays.** Only boosts, never currency or packs. At the top tier it
+  gives luck ×1.25, sell ×1.18, gems ×1.15, and "ore" ×1.12, which is folded in as
+  +0.12 `blastChance`.
+- **When it applies.** In `boosts()`, only while you stand in `bigbang` and
+  `limitedActive()` is true.
+- **A kept id.** Quest id `eh_fossils` survives, but it is now a depth quest. The
+  id stays because progress is keyed by id.
+
+### Events tab
+`MineEventsView` (mounted as `eventsCtl` in the client) shows the live limited
+event: a banner image, a countdown from `MineConfig.limitedCountdown`, and
+the pass.
+
+### World Pulse — disabled
+- **The design.** `MineWorldEvents.EVENTS` lists 8 short buffs: Lucky Breeze,
+  Pocket Change, Gem Glow, Fortune 150, Double Sell, Gem Tide, High Roller, Rich
+  Haul. Tiers 1–4 are gated by zone, rebirth or best gear grade (`canAccess`).
+- **The switch.** `startLoop` is a **no-op**: it sets `_nextAt = math.huge`, so
+  nothing ever fires. `chestSpawnMult` returns 1.
+- **What still loads.** The banner in `MineWorldPulseUI` is still installed, and
+  `foldBoosts` still runs; both simply find no event.
+
+### Not events: Blood Lake and Harbor
+These two modules build zone outposts. Each builds `Outpost_<zone>` with
+`MineShopFronts`, and `WorldBuilder` places the stand and portals.
+- **`MineBloodLake`** is Bloodmoon Hollow: an island in a lake of blood. Each
+  client sees red water through `MineAmbience`.
+- **`MineHarbor`** is Mistreef Depths, built as a harbour wharf.
+
+See [zones-layers-and-seams](zones-layers-and-seams.md).
+
+## Where it lives
+| file | role | key symbols |
+|---|---|---|
+| `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | event zone row, window, catalog | `ZONES`, `EVENTS`, `LIMITED_START_UNIX`, `LIMITED_DAYS`, `limitedActive`, `MINE_RESET_SEC` |
+| `src/ServerScriptService/Mine/MineEventHorizon.luau` | station and black-hole build | `HOLE_AT`, `outpost`, `setLowGravity` |
+| `src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau` | event tool shop | `TOOLS`, `ZONE_INDEX`, `byId` |
+| `src/ReplicatedStorage/Mine/Shared/MineSpaceMatter.luau` | which HP pool a tool may spend | `classOf` |
+| `src/ReplicatedStorage/Mine/Shared/MineEventPass.luau` | pass tiers and quests | `TRACKS`, `ensure`, `activeBonus`, `tick` |
+| `src/ReplicatedStorage/Mine/Shared/MineWorldEvents.luau`, `src/ReplicatedStorage/Mine/Shared/MineWorldPulseUI.luau` | World Pulse, inert | `EVENTS`, `startLoop`, `foldBoosts` |
+| MineServer | gates, boost fold, sets | `Gate.zoneUnlocked`, `boosts`, `openPack` |
+
+## Decided by the owner
+- **PROPOSAL §0 line 32** puts prestige, VIP and the event pass in **neither**
+  boost layer: *"(multiply the final)"*. See [boosts-and-stats](boosts-and-stats.md).
+- **The roster stays at 82.** TODO §0.13 rule 4: *"Event Horizon ores may be added later."*
+- **Fossils are gone** (§0.12). The Event Pass's fossil quest was repointed to depth.
+
+## State right now
+- **Event Horizon is live by the clock today** (2026-10-05), going by the window
+  above.
+- **The event code is inherited.** It is unchanged since the import (`566eecf`),
+  apart from fossil removal.
+- **World Pulse is off.** It was switched off before this branch.
+- **On the ARCHIVE list.** AUDIT §5 lists "Event pass / limited events (~900)"
+  for archiving. That is a proposal, and no archive has happened.
+
+## Gotchas
+- **A stale comment.** MineServer still says *"World Pulse loop: idle 15m →
+  random event 1–5m → repeat"* above `startLoop`, but the loop does nothing.
+- **Three different clocks.** The limited window, the rotating-offer season and
+  the group wheel are separate. Offers end 2026-11-01
+  (`MineRotatingOffers.SEASON_END`), but `LIMITED_DAYS` runs to 11-08. The
+  comment on `LIMITED_DAYS` says offers were "extended by a week", but
+  `SEASON_END` still reads 11-01.
+- **A rebirth mismatch.** Event Horizon's `minRebirth` is 0 while its surface
+  rock is 1.30e9 HP (OPEN P2, `docs/live-config.md`).
+- **A possible stray module.** OPEN P2 asks to delete a duplicate Event Horizon
+  pet module of 34 KB. Only `MineEHPets` exists in `src/`. `MinePetRoster` also
+  looks for `MineEventHorizonPets`, so the duplicate may live only in the place
+  file. Unverified.
+
+## Open questions
+- Archive the event pass and limited events, or keep them for launch (AUDIT §5)?
+- What happens to Event Horizon after 2026-11-08? Is a new event planned? Nothing in the repo says.
+- Should World Pulse be deleted, or revived?
+
+## See also
+[zones-layers-and-seams](zones-layers-and-seams.md) · [cards-and-packs](cards-and-packs.md) · [shops-and-monetisation](shops-and-monetisation.md) · [social-quests-and-leaderboards](social-quests-and-leaderboards.md) · [pets](pets.md)

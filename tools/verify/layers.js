@@ -94,7 +94,7 @@ check(z.luck == 1, "no contributions, no change")
 
 check(#L.LAYER1 == 4 and #L.LAYER2 == 2,
 	"layer 1 names four sources and layer 2 names two")
-for _, name in ipairs({ "skills", "skins", "tools", "traits" }) do
+for _, name in ipairs({ "skills", "skins", "tools", "enchants" }) do
 	check(L.TIER_OF[name] == 1, name .. " is layer 1")
 end
 for _, name in ipairs({ "equipment", "pets" }) do
@@ -140,13 +140,27 @@ const boosts = code((server.match(/local function boosts\(p\)[\s\S]*?\n^end$/m) 
 src(/local T1, T2 = \{\}, \{\}/.test(boosts), "boosts collects two layers");
 src(/Dig\.Layers\.apply\(b, T1, T2, Cards\.ADDITIVE_STATS\)/.test(boosts),
   "...and combines them once, through ADDITIVE_STATS");
-src(/Dig\.Layers\.add\(T1, def\.stat/.test(boosts), "the tool's trait is layer 1");
+src(/Dig\.Layers\.add\(T1, st\.stat, st\.value\)/.test(boosts), "the held tool's enchants are layer 1, where the trait sat");
+src(!/Dig\.Traits|t\.trait/.test(boosts), "...and traits pay nothing any more (retired 2026-10-12)");
 src(/Dig\.Layers\.add\(T1, key, sk\[stat\]\)/.test(boosts), "rebirth skills are layer 1");
 src(/T2, Dig\.tailor\[p\] = Dig\.layer2\(p, n\)/.test(boosts), "pets and gear are layer 2");
 src(!/Dig\.applyPets/.test(boosts), "the old applyPets mutation is gone");
 // Combining early would make the answer depend on source order.
 src(boosts.indexOf("Dig.Layers.apply") > boosts.indexOf("Dig.Layers.add(T1, key"),
   "the combine happens after every source has contributed");
+
+// Family temperament on forged tools (b0c2430). equippedTool returns rung 0 for
+// a forged ore tool on purpose (ore tier is not lookTier). The old gate was
+// `(tier or 0) > 0`, which excluded every forged tool — the only tools past the
+// first hour. Positive markers: oreTool / oreTier on the held row.
+src(/row\.oreTool == true or tonumber\(row\.oreTier\)/.test(boosts),
+  "family temper recognises a forged held tool (oreTool or oreTier)");
+src(/\(forged or \(tier or 0\) > 0\) and p\.toolTempers/.test(boosts),
+  "...and applies toolTempers for forged OR a shop rung > 0");
+src(!/local tt = \(tier or 0\) > 0 and p\.toolTempers/.test(boosts),
+  "...the rung-only gate is gone");
+src(/MineTemper\)\.applyTemper\(b, tt\)/.test(boosts),
+  "family temper still pays through MineTemper.applyTemper");
 
 console.log("");
 console.log(fail > 0 ? `>>> layers: ${fail} FAILED` : ">>> layers: all assertions passed");

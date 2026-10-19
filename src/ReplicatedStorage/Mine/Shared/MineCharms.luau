@@ -3,6 +3,10 @@
 -- Pack: 15 gem/Robux pool. Lucky Charm is reserved limited (not in pack).
 
 local MineCharms = {}
+
+-- The graded charms sit on MineTemper's F..SSS ladder rather than inventing a
+-- second one, so a grade means the same thing on a charm as on a temperament.
+local Temper = require(script.Parent:WaitForChild("MineTemper"))
 -- Numbers follow handoff/launch/CHARMS.md ("one slot = chase": a shallow charm is
 -- +100-140%, mid +170-230%, deep +250-320%). A morning retune had cut the five dig
 -- charms to +18-90%; the user asked for them back (2026-09-19).
@@ -60,6 +64,169 @@ local LIST = {
 		blurb = "+100% Chest Luck · +100% Scrap", stats = { chestLuck = 1.00, scrap = 1.00 } },
 	{ id = "aether_seal", name = "Aether Seal", source = "zone", zoneId = "mythral", band = "deep",
 		blurb = "+75% Omni Blast · +250% Mine Speed", stats = { blastChance = 0.75, mineSpeed = 2.50 } },
+
+	--[[
+		THE THIRTY-SIX GRADED CHARMS, 2026-10-07.
+
+		Owner: "make 36 charms. make them all unique, and each come in their own
+		rarity. they can be found in chests (0.5%) or bought with tokens", then the
+		art for all thirty-six (`charms2.svg`, extracted to
+		`build/charm-sheet2.png`). Every row is one icon: the picture came first and
+		the name and stat line follow what it actually shows, which is why a lotus
+		carries Luck and an anchor carries Chest Luck. `icon` is the sheet index, so
+		the pairing survives a re-export.
+
+		So, unlike every other charm in this file:
+
+		  GRADED. Each row carries a `rarity` on MineTemper's F..SSS ladder rather
+		  than a zone and a band. Magnitudes come from that grade, not from where
+		  the charm was found: primary is about RARITY_MULT x 1.15, secondary about
+		  x 0.35, which keeps an S charm meaningfully above a B without inventing a
+		  second scale to maintain. The spread is 8/7/6/5/4/3/2/1 from F to SSS, so
+		  the ladder thins the way the ore roster does.
+
+		  TWO WAYS IN, neither of them a zone drop. A chest pays one at
+		  CHARM_CHEST_CHANCE, and every charm has a token price. That is why there
+		  is no `zoneId` or `band` here -- ZONE_BAND indexes on those, and a row
+		  with both would also become a free zone grant by accident.
+
+		  RARITY FOLLOWS THE ART. The grandest pictures take the top grades: the
+		  galaxy in a locket is the one SSS, the winged blade and the hourglass are
+		  the two SS. The humble ones -- a leaf, an acorn, a feather -- are F. A
+		  player should be able to guess roughly what they found before reading it.
+
+		`backpack` appears on none of them. It is retired (`MineStats` marks it
+		`legacy = true`; capacity comes from the bag ladder and the pouch), though
+		24 of the generated ore charms still carry it -- see open-questions #11.
+
+		`luck` is fine here: the rule it would break -- no reward boosts its own
+		acquisition -- bites on ore-case charms, where luck raises the case chance
+		that pays the charm. A chest charm is not rolled off luck.
+	]]
+
+	-- F: humble things. One honest stat each.
+	{ id = "greenleaf", name = "Greenleaf Charm", source = "charm", rarity = "F", icon = 4,
+		art = "rbxassetid://92876185206702", -- a single green leaf on a gold stem
+		blurb = "+52% Scrap", stats = { scrap = 0.52 } },
+	{ id = "acorn_charm", name = "Acorn Charm", source = "charm", rarity = "F", icon = 27,
+		art = "rbxassetid://100555623479933", -- an acorn with a green light inside it
+		blurb = "+52% Mine Speed", stats = { mineSpeed = 0.52 } },
+	{ id = "gilt_quill", name = "Gilt Quill", source = "charm", rarity = "F", icon = 20,
+		art = "rbxassetid://133744953770197", -- a gold feather, a quill for counting takings
+		blurb = "+52% Coin Bonus", stats = { coinBonus = 0.52 } },
+	{ id = "silverplume", name = "Silverplume Charm", source = "charm", rarity = "F", icon = 32,
+		art = "rbxassetid://87693502882956", -- a silver feather set with small violet gems
+		blurb = "+18% Swing Rate", stats = { swingRate = 0.18 } },
+	{ id = "runestone_tablet", name = "Runestone Tablet", source = "charm", rarity = "F", icon = 22,
+		art = "rbxassetid://125991194910265", -- a carved stone tablet with blue gems at its ends
+		blurb = "+52% Dirt Break", stats = { dirtBreak = 0.52 } },
+	{ id = "anchor_charm", name = "Anchor Charm", source = "charm", rarity = "F", icon = 31,
+		art = "rbxassetid://123782673754717", -- a bronze anchor on a teal disc
+		blurb = "+52% Chest Luck", stats = { chestLuck = 0.52 } },
+	{ id = "green_flask", name = "Green Flask", source = "charm", rarity = "F", icon = 33,
+		art = "rbxassetid://118350563234345", -- a glass flask of bubbling green liquid
+		blurb = "+30% Pulverizer", stats = { pulverize = 0.30 } },
+	{ id = "wirewrap_shard", name = "Wirewrap Shard", source = "charm", rarity = "F", icon = 10,
+		art = "rbxassetid://80537908381100", -- a purple shard bound in silver wire
+		blurb = "+52% Gem Find", stats = { gemFind = 0.52 } },
+
+	-- D: a second stat starts to appear.
+	{ id = "darkmoon", name = "Darkmoon Charm", source = "charm", rarity = "D", icon = 5,
+		art = "rbxassetid://77918516274651", -- a black crescent moon chased with violet
+		blurb = "+80% Gem Find", stats = { gemFind = 0.80 } },
+	{ id = "pearlmoon", name = "Pearlmoon Charm", source = "charm", rarity = "D", icon = 7,
+		art = "rbxassetid://96590520795154", -- a silver filigree crescent cradling a pearl
+		blurb = "+80% Chest Luck", stats = { chestLuck = 0.80 } },
+	{ id = "wayfinder", name = "Wayfinder Compass", source = "charm", rarity = "D", icon = 8,
+		art = "rbxassetid://93612266081022", -- a gold compass rose around a teal centre
+		blurb = "+80% Mine Speed", stats = { mineSpeed = 0.80 } },
+	{ id = "gilded_scarab", name = "Gilded Scarab", source = "charm", rarity = "D", icon = 6,
+		art = "rbxassetid://131044491383735", -- a gold scarab on a coin-like disc
+		blurb = "+80% Coin Bonus", stats = { coinBonus = 0.80 } },
+	{ id = "emberrune", name = "Emberrune Stone", source = "charm", rarity = "D", icon = 16,
+		art = "rbxassetid://113724525530167", -- a dark stone split by a burning orange rune
+		blurb = "+80% Dirt Break · +25% Coin Bonus", stats = { dirtBreak = 0.80, coinBonus = 0.25 } },
+	{ id = "cogwheel", name = "Cogwheel Charm", source = "charm", rarity = "D", icon = 24,
+		art = "rbxassetid://102518470630814", -- a bronze gear turning inside a ring
+		blurb = "+60% Mine Speed · +25% Swing Rate", stats = { mineSpeed = 0.60, swingRate = 0.25 } },
+	{ id = "keenedge", name = "Keenedge Charm", source = "charm", rarity = "D", icon = 28,
+		art = "rbxassetid://120837991541927", -- a silver rhombus plate honed to a point
+		blurb = "+45% Pulverizer", stats = { pulverize = 0.45 } },
+
+	-- C: the middle of the ladder, where a charm earns its slot.
+	{ id = "sunface", name = "Sunface Medallion", source = "charm", rarity = "C", icon = 1,
+		art = "rbxassetid://133396769823189", -- a gold sun disc with a face at its centre
+		blurb = "+120% Coin Bonus", stats = { coinBonus = 1.20 } },
+	{ id = "rimefall", name = "Rimefall Charm", source = "charm", rarity = "C", icon = 2,
+		art = "rbxassetid://128223123383806", -- a silver snowflake set with a blue gem
+		blurb = "+100% Pulverizer · +37% Dirt Break", stats = { pulverize = 1.00, dirtBreak = 0.37 } },
+	{ id = "tidecaller", name = "Tidecaller Shell", source = "charm", rarity = "C", icon = 15,
+		art = "rbxassetid://109020345612119", -- a blue scallop shell holding a teal gem and pearls
+		blurb = "+120% Chest Luck", stats = { chestLuck = 1.20 } },
+	{ id = "lotus_charm", name = "Lotus Charm", source = "charm", rarity = "C", icon = 17,
+		art = "rbxassetid://111155701156001", -- a white lotus opened around a pearl
+		blurb = "+120% Luck", stats = { luck = 1.20 } },
+	{ id = "vivid_shard", name = "Vivid Shard", source = "charm", rarity = "C", icon = 23,
+		art = "rbxassetid://112927184530004", -- a magenta crystal in a bright silver frame
+		blurb = "+120% Gem Find · +37% Luck", stats = { gemFind = 1.20, luck = 0.37 } },
+	{ id = "helmsman", name = "Helmsman Charm", source = "charm", rarity = "C", icon = 12,
+		art = "rbxassetid://77444360783899", -- a copper ship's wheel on a watch case
+		blurb = "+120% Mine Speed · +37% Scrap", stats = { mineSpeed = 1.20, scrap = 0.37 } },
+
+	-- B: a clear specialism, and the first charms worth building around.
+	{ id = "stormbolt", name = "Stormbolt Charm", source = "charm", rarity = "B", icon = 11,
+		art = "rbxassetid://121481914621315", -- a white lightning bolt on a storm-blue disc
+		blurb = "+178% Mine Speed · +54% Swing Rate", stats = { mineSpeed = 1.78, swingRate = 0.54 } },
+	{ id = "heartfrost", name = "Heartfrost Charm", source = "charm", rarity = "B", icon = 21,
+		art = "rbxassetid://103023219746855", -- an ice crystal with a fire burning inside it
+		blurb = "+178% Dirt Break · +54% Pulverizer", stats = { dirtBreak = 1.78, pulverize = 0.54 } },
+	{ id = "magma_ring", name = "Magma Ring", source = "charm", rarity = "B", icon = 29,
+		art = "rbxassetid://105028895633143", -- a cracked black sphere with a molten ring through it
+		blurb = "+178% Dirt Break · +65% Omni Blast", stats = { dirtBreak = 1.78, blastChance = 0.65 } },
+	{ id = "coilfang", name = "Coilfang Charm", source = "charm", rarity = "B", icon = 13,
+		art = "rbxassetid://126986534765173", -- a green serpent coiled back through itself
+		blurb = "+178% Scrap · +54% Luck", stats = { scrap = 1.78, luck = 0.54 } },
+	{ id = "scarabright", name = "Scarabright Charm", source = "charm", rarity = "B", icon = 35,
+		art = "rbxassetid://104052421120518", -- a beetle shelled in iridescent green and blue
+		blurb = "+178% Gem Find · +54% Coin Bonus", stats = { gemFind = 1.78, coinBonus = 0.54 } },
+
+	-- A: one of these changes how a run feels.
+	{ id = "thunderheart", name = "Thunderheart Amethyst", source = "charm", rarity = "A", icon = 26,
+		art = "rbxassetid://115676544738828", -- a great amethyst with lightning caught inside
+		blurb = "+265% Mine Speed · +80% Swing Rate", stats = { mineSpeed = 2.65, swingRate = 0.80 } },
+	{ id = "thornset_ruby", name = "Thornset Ruby", source = "charm", rarity = "A", icon = 18,
+		art = "rbxassetid://94133030814441", -- a red gem held in a crown of black thorns
+		blurb = "+265% Dirt Break · +80% Omni Blast", stats = { dirtBreak = 2.65, blastChance = 0.80 } },
+	{ id = "sovereign_heart", name = "Sovereign Heart", source = "charm", rarity = "A", icon = 9,
+		art = "rbxassetid://133379738679371", -- a crowned gold heart around a red stone
+		blurb = "+265% Coin Bonus · +80% Chest Luck", stats = { coinBonus = 2.65, chestLuck = 0.80 } },
+	{ id = "northstar", name = "Northstar Diamond", source = "charm", rarity = "A", icon = 14,
+		art = "rbxassetid://101191514110672", -- an eight-pointed gold star around a white diamond
+		blurb = "+265% Luck · +80% Gem Find", stats = { luck = 2.65, gemFind = 0.80 } },
+
+	-- S: three charms, each the best in the game at one thing.
+	{ id = "prism_cluster", name = "Prism Cluster", source = "charm", rarity = "S", icon = 25,
+		art = "rbxassetid://98345534847092", -- a cluster of crystal throwing every colour at once
+		blurb = "+390% Gem Find · +119% Luck", stats = { gemFind = 3.90, luck = 1.19 } },
+	{ id = "lionheart_crest", name = "Lionheart Crest", source = "charm", rarity = "S", icon = 34,
+		art = "rbxassetid://91264778981667", -- a crowned red shield bearing a gold lion
+		blurb = "+390% Dirt Break · +119% Coin Bonus", stats = { dirtBreak = 3.90, coinBonus = 1.19 } },
+	{ id = "dragoneye", name = "Dragoneye Charm", source = "charm", rarity = "S", icon = 3,
+		art = "rbxassetid://105995325088619", -- a scaled orb with a slit red eye that watches back
+		blurb = "+390% Ore Finder · +119% Luck", stats = { fossilFind = 3.90, luck = 1.19 } },
+
+	-- SS: two, and you will remember finding either.
+	{ id = "seraph_edge", name = "Seraph Edge", source = "charm", rarity = "SS", icon = 30,
+		art = "rbxassetid://131609907456467", -- a white wing folded around a blade of light
+		blurb = "+575% Mine Speed · +175% Swing Rate", stats = { mineSpeed = 5.75, swingRate = 1.75 } },
+	{ id = "hourglass_ages", name = "Hourglass of Ages", source = "charm", rarity = "SS", icon = 36,
+		art = "rbxassetid://86200992977682", -- a gold hourglass running with violet starlight
+		blurb = "+575% Chest Luck · +175% Coin Bonus", stats = { chestLuck = 5.75, coinBonus = 1.75 } },
+
+	-- SSS: one charm. A galaxy, in a locket.
+	{ id = "galaxy_core", name = "Galaxy Core", source = "charm", rarity = "SSS", icon = 19,
+		art = "rbxassetid://136713205644319", -- a whole spiral galaxy turning behind gold glass
+		blurb = "+860% Mine Speed · +260% Omni Blast", stats = { mineSpeed = 8.60, blastChance = 2.60 } },
 
 	{ id = "jackhammer", name = "Jackhammer", source = "pack",
 		blurb = "+160% Dirt Break · +50% Swing Rate", stats = { dirtBreak = 1.60, swingRate = 0.50 } },
@@ -137,6 +304,73 @@ function MineCharms.zoneDropChance(ownsAny)
 		return 1
 	end
 	return 1 / math.max(1, MineCharms.ZONE_DROP_ONE_IN)
+end
+
+--[[
+	THE GRADED CHARMS: two ways in, and neither is a zone.
+
+	Owner, 2026-10-07: "they can be found in chests (0.5%) or bought with tokens".
+
+	0.5% is per CHEST OPENED, not per block broken, and it is the chance that a
+	chest pays a charm at all. Which charm is then a weighted draw over the
+	rarity ladder, so the 0.5% is spent mostly on F and D and an SSS is 0.5% of
+	2/10000 -- rare twice over, which is the point of a graded set.
+]]
+MineCharms.CHARM_CHEST_CHANCE = 0.005
+
+-- Token prices climb with the grade, on MineTemper's F..SSS ladder. Priced off
+-- MineTemper.CASE_PRICE_TOKENS = 20 as the unit a player already knows.
+MineCharms.CHARM_TOKEN_PRICE = {
+	F = 15, D = 30, C = 60, B = 120, A = 250, S = 500, SS = 1000, SSS = 2500,
+}
+
+--[[
+	Grade to the word a player sees. Built by INVERTING MineTemper.LEGACY_RARITY
+	rather than retyping the eight names, so the two cannot drift: the reveal
+	panel and the temper UI call the same grade the same thing.
+]]
+MineCharms.RARITY_LABEL = {}
+for word, grade in pairs(Temper.LEGACY_RARITY or {}) do
+	MineCharms.RARITY_LABEL[grade] = word
+end
+
+--[[
+	Which charm a chest pays, weighted by grade.
+
+	`rng` is passed in rather than taken from math.random so the server can seed
+	it and a harness can make the draw repeatable. Returns nil when there are no
+	graded charms, so a caller that forgets to check cannot hand out a nil id.
+]]
+function MineCharms.rollChestCharm(rng)
+	local graded = MineCharms.GRADED
+	if not graded or #graded == 0 then
+		return nil
+	end
+	local weights = Temper.RARITY_WEIGHTS or {}
+	local total = 0
+	for _, def in ipairs(graded) do
+		total += math.max(0, tonumber(weights[def.rarity]) or 0)
+	end
+	if total <= 0 then
+		return graded[1]
+	end
+	local pick = ((rng and rng:NextNumber()) or math.random()) * total
+	for _, def in ipairs(graded) do
+		pick -= math.max(0, tonumber(weights[def.rarity]) or 0)
+		if pick <= 0 then
+			return def
+		end
+	end
+	return graded[#graded]
+end
+
+-- What one graded charm costs in temper tokens, or nil if it is not graded.
+function MineCharms.charmTokenPrice(idOrDef)
+	local def = type(idOrDef) == "table" and idOrDef or MineCharms.byId(idOrDef)
+	if type(def) ~= "table" or not def.rarity then
+		return nil
+	end
+	return MineCharms.CHARM_TOKEN_PRICE[def.rarity]
 end
 
 --[[
@@ -698,9 +932,14 @@ local BY_ID = {}
 local ZONE_BAND = {}
 local PACK = {}
 local BY_ORE = {}
+local GRADED = {}
 for _, def in ipairs(LIST) do
 	BY_ID[def.id] = def
-	if def.source == "zone" and def.zoneId and def.band then
+	if def.source == "charm" then
+		-- Graded charms: chest or token, never a zone grant. Kept in LIST order so
+		-- the drawn six stay first and the roll is reproducible from a seed.
+		table.insert(GRADED, def)
+	elseif def.source == "zone" and def.zoneId and def.band then
 		ZONE_BAND[def.zoneId .. "|" .. def.band] = def
 	elseif def.source == "pack" then
 		table.insert(PACK, def)
@@ -713,6 +952,8 @@ for _, def in ipairs(LIST) do
 		BY_ORE[key][math.max(1, math.floor(tonumber(def.variant) or 1))] = def
 	end
 end
+
+MineCharms.GRADED = GRADED
 
 function MineCharms.byId(id)
 	return BY_ID[tostring(id or "")]

@@ -24,8 +24,10 @@ end
 
 --[[
 	Grant Founders once. `seatsRef` is { left = n } so the caller keeps seat state.
-	`grantScrolls(p, id, n)` and optional Vfx require come from the caller env.
+	`grantBooks(p, n)` and optional Vfx require come from the caller env.
+	The pack's scroll became enchant books when scrolls were retired (2026-10-12).
 ]]
+MineFounders.BOOKS = 3
 function MineFounders.grant(p, plr, source, opts)
 	opts = opts or {}
 	if MineFounders.isMember(p) then
@@ -35,8 +37,8 @@ function MineFounders.grant(p, plr, source, opts)
 	if opts.seatsRef then
 		opts.seatsRef.left = math.max(0, (opts.seatsRef.left or 0) - 1)
 	end
-	if opts.grantScrolls then
-		opts.grantScrolls(p, "white", 1)
+	if opts.grantBooks then
+		opts.grantBooks(p, MineFounders.BOOKS)
 	end
 	pcall(function()
 		local shared = game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared")
@@ -47,7 +49,7 @@ function MineFounders.grant(p, plr, source, opts)
 		end
 	end)
 	if plr and opts.toast then
-		opts.toast(plr, "Founders Pack active -- White Scroll, Founder Tag, +5% luck (stated)")
+		opts.toast(plr, "Founders Pack active -- " .. MineFounders.BOOKS .. " Enchant Books, Founder Tag, +5% luck (stated)")
 	end
 	return true
 end

@@ -108,7 +108,7 @@ end
 
 local TradeValue = require(shared:WaitForChild("MineTradeValue"))
 
--- Wallet dust + recycle value of cards/packs/runes/gear (= inventory net worth).
+-- Wallet dust + recycle value of cards/packs/gear (= inventory net worth).
 function LeaderboardService.profileStardustValue(p)
 	if type(p) ~= "table" then return 0 end
 	local offer = {
@@ -117,7 +117,6 @@ function LeaderboardService.profileStardustValue(p)
 		coins = 0,
 		cardIds = {},
 		packs = {},
-		runes = p.runes or {},
 		gear = p.gear or {},
 		tools = {},
 	}

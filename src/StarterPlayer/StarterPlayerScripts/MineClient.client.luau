@@ -292,6 +292,16 @@ end
 ]]
 local ClientFns = {}
 
+-- The candy kit (MineUI), reachable from HUD code without a top-level local.
+-- pcall'd like the watch above: a kit error must never kill the client. When
+-- it is nil, every caller below falls back to the plain look.
+do
+	local ok, UI = pcall(function()
+		return require(shared:WaitForChild("MineUI"))
+	end)
+	ClientFns.UI = ok and UI or nil
+end
+
 -- Dig deepest mirror (per zone + section). Mineshaft rides never write this.
 ClientFns.depthLocal = { zones = {}, sections = {}, liveZoneBest = {}, liveSectionBest = {} }
 
@@ -375,7 +385,7 @@ end
 -- Panel controllers. Declared up here because HUD pieces built further up the
 -- file close over them: a local declared below its use site is a nil global to
 -- that closure, and the call just silently does nothing.
-local skillP, skillCtl, shopCtl, depthShopCtl, elevCtl, invCtl, portalFx, eventsCtl, forgeCtl, groupWheelCtl
+local skillP, skillCtl, shopCtl, depthShopCtl, elevCtl, invCtl, portalFx, eventsCtl, forgeCtl, groupWheelCtl, skinsCtl
 local function persistCardSort(id)
 	if type(id) ~= "string" or not CARD_SORT_OK[id] then
 		return
@@ -429,9 +439,9 @@ local function layoutWallet()
 	local top = math.max(56, math.floor((inset.Y + 28) / k))
 	local room = gui.AbsoluteSize.X / k
 	-- Wide enough for abbreviated big coins (e.g. 110.8M) without crushing the pill.
-	local w = math.clamp(room - 16, 280, 560)
+	local w = math.clamp(room - 16, 300, 600)
 	wallet.Position = UDim2.fromOffset(10, top)
-	wallet.Size = UDim2.fromOffset(w, 56)
+	wallet.Size = UDim2.fromOffset(w, 64)
 end
 layoutWallet()
 uiScale:GetPropertyChangedSignal("Scale"):Connect(layoutWallet)
@@ -464,34 +474,35 @@ do
 	}, wallet)
 	round(glow, 26)
 	local gs = stroke(glow, 5)
-	gs.Color = Color3.fromRGB(255, 188, 78)
-	gs.Transparency = 0.78
+	gs.Color = T.ACCENT
+	gs.Transparency = 0.7
 end
+--[[
+	Candy pass (2026-10-08): the tray is the theme's deep indigo with a fat dark
+	outline, and each currency is a bright candy pill of its own colour. Kids
+	track their money before anything else, so the numbers are the biggest text
+	on the HUD, and they pop every time they change.
+]]
 local tray = mk("Frame", {
-	-- Deep charcoal with a cool blue-black cast (glass, not warm brown).
-	BackgroundColor3 = Color3.fromRGB(12, 14, 20),
-	BackgroundTransparency = 0.08,
+	BackgroundColor3 = T.PANEL,
+	BackgroundTransparency = 0.05,
 	Size = UDim2.fromScale(1, 1),
 	Active = false,
 	ZIndex = 20,
 	BorderSizePixel = 0,
 }, wallet)
-round(tray, 22)
+round(tray, 24)
 do
 	local grad = Instance.new("UIGradient")
-	grad.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 34, 48)),
-		ColorSequenceKeypoint.new(0.55, Color3.fromRGB(14, 16, 24)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 10, 16)),
-	})
-	grad.Rotation = 110
+	grad.Color = ColorSequence.new(T.CARD, T.INK)
+	grad.Rotation = 90
 	grad.Parent = tray
 end
-stroke(tray, 3.5)
+stroke(tray, T.STROKE_THICK)
 local trayStroke = tray:FindFirstChildOfClass("UIStroke")
 if trayStroke then
-	trayStroke.Color = Color3.fromRGB(255, 196, 88)
-	trayStroke.Transparency = 0.08
+	trayStroke.Color = T.OUTLINE
+	trayStroke.Transparency = 0
 end
 mk("UIListLayout", {
 	FillDirection = Enum.FillDirection.Horizontal,
@@ -507,7 +518,9 @@ mk("UIPadding", {
 	PaddingBottom = UDim.new(0, 10),
 }, tray)
 
-local function walletPill(asset, color, width, clickable)
+-- `candy` is a T.CANDY key: the pill's colour IS the currency's colour.
+local function walletPill(asset, candy, width, clickable)
+	local UI = ClientFns.UI
 	local row
 	if clickable then
 		row = mk("TextButton", {
@@ -516,7 +529,7 @@ local function walletPill(asset, color, width, clickable)
 			BackgroundColor3 = Color3.fromRGB(18, 20, 28),
 			BackgroundTransparency = 0.12,
 			Text = "",
-			Size = UDim2.new(0.25, -12, 0, 40),
+			Size = UDim2.new(0.25, -12, 0, 44),
 			BorderSizePixel = 0,
 			ZIndex = 21,
 		}, tray)
@@ -524,54 +537,61 @@ local function walletPill(asset, color, width, clickable)
 		row = mk("Frame", {
 			BackgroundColor3 = Color3.fromRGB(18, 20, 28),
 			BackgroundTransparency = 0.12,
-			Size = UDim2.new(0.25, -12, 0, 40),
+			Size = UDim2.new(0.25, -12, 0, 44),
 			BorderSizePixel = 0,
 			Active = false,
 			ZIndex = 21,
 		}, tray)
 	end
-	round(row, 16)
-	stroke(row, 1.6)
-	local s = row:FindFirstChildOfClass("UIStroke")
-	if s then
-		s.Color = color
-		s.Transparency = 0.42
+	round(row, 999)
+	if UI then
+		UI.candy(row, candy, 3)
+		local g = row:FindFirstChild("Gloss")
+		if g then g.ZIndex = 21 end
+		if clickable then UI.juice(row) end
+	else
+		stroke(row, 1.6)
 	end
-	-- Icons sit in a dark chip so they pop against the glass tray.
-	ClientFns.hudIcon(row, asset, UDim2.fromOffset(5, 4), 32)
+	-- The icon is a medallion that hangs off the pill's left end, bigger than
+	-- the pill, so the currency reads from across the room.
+	local ic = ClientFns.hudIcon(row, asset, UDim2.fromOffset(-6, -4), 46)
+	ic.BackgroundTransparency = 1
 	local lab = mk("TextLabel", {
 		BackgroundTransparency = 1,
 		Font = FONT,
-		TextSize = 16,
+		TextSize = 21,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
-		Position = UDim2.fromOffset(40, 0),
-		Size = UDim2.new(1, -44, 1, 0),
+		Position = UDim2.fromOffset(42, 0),
+		Size = UDim2.new(1, -48, 1, 0),
 		Text = "0",
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
-		TextStrokeTransparency = 0.45,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextScaled = false,
 		ZIndex = 22,
 		Active = false,
 	}, row)
+	if UI then
+		UI.outlineText(lab, 2)
+		UI.popNumber(lab)
+	end
 	return row, lab
 end
 
-local _, coinsL = walletPill(ICONS.coin, Color3.fromRGB(255, 214, 90), 118)
-local _, gemsL = walletPill(ICONS.gem, Color3.fromRGB(90, 210, 255), 96)
-local _, dustL = walletPill(ICONS.stardust, Color3.fromRGB(210, 160, 255), 88)
-local bagBtn, bagCount = walletPill(ICONS.backpack, Color3.fromRGB(220, 170, 110), 96, true)
+local _, coinsL = walletPill(ICONS.coin, "gold", 118)
+local _, gemsL = walletPill(ICONS.gem, "cyan", 96)
+local _, dustL = walletPill(ICONS.stardust, "magenta", 88)
+local bagBtn, bagCount = walletPill(ICONS.backpack, "orange", 96, true)
 -- A bag reads as "how full am I", not as two numbers you have to divide. The
 -- bar sits under the text and turns red the moment the bag stops accepting.
 local bagFill
 do
-	local trackH = 4
+	local trackH = 6
 	local track = mk("Frame", {
 		Name = "BagTrack",
-		BackgroundColor3 = Color3.fromRGB(20, 18, 24),
+		BackgroundColor3 = T.OUTLINE,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 40, 1, -5),
-		Size = UDim2.new(1, -46, 0, trackH),
+		Position = UDim2.new(0, 44, 1, -6),
+		Size = UDim2.new(1, -54, 0, trackH),
 		ZIndex = 22,
 		Active = false,
 	}, bagBtn)
@@ -586,19 +606,19 @@ do
 	}, track)
 	round(bagFill, 3)
 	-- The number moves up to make room for the bar.
-	bagCount.Position = UDim2.fromOffset(40, -3)
-	bagCount.TextSize = 14
+	bagCount.Position = UDim2.fromOffset(42, -4)
+	bagCount.TextSize = 17
 end
 
 local mineResetL = mk("TextLabel", {
-	BackgroundTransparency = 0.35,
-	BackgroundColor3 = Color3.fromRGB(28, 30, 36),
-	Font = FONT_M,
-	TextSize = 12,
-	TextColor3 = Color3.fromRGB(200, 210, 220),
+	BackgroundTransparency = 0.05,
+	BackgroundColor3 = T.PANEL,
+	Font = FONT,
+	TextSize = 15,
+	TextColor3 = TEXT,
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -16, 0, 70),
-	Size = UDim2.fromOffset(128, 28),
+	Size = UDim2.fromOffset(140, 30),
 	Text = "Mine 20:00",
 	TextXAlignment = Enum.TextXAlignment.Center,
 	-- Under the windows (ZIndex 30): at 40 it sat on top of the inventory's
@@ -607,8 +627,13 @@ local mineResetL = mk("TextLabel", {
 }, gui)
 do
 	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 8)
+	c.CornerRadius = UDim.new(0, 12)
 	c.Parent = mineResetL
+	local s = Instance.new("UIStroke")
+	s.Color = T.OUTLINE
+	s.Thickness = 3
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Parent = mineResetL
 end
 --[[
 	First-session guide. Three lines, each cleared by doing the thing it asks.
@@ -628,9 +653,17 @@ local introBanner = mk("Frame", {
 	ZIndex = 26,
 	Active = false,
 }, gui)
-round(introBanner, 12)
-local introStroke = stroke(introBanner, 2)
-introStroke.Transparency = 0.15
+round(introBanner, 16)
+-- Candy pass: the guide is the one gold-rimmed thing on screen, so a new
+-- player's eye lands on it first. Thick rim, lit fill, bigger words.
+local introStroke = stroke(introBanner, 3.5)
+introStroke.Transparency = 0
+do
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new(T.CARD_HI, T.PANEL)
+	g.Rotation = 90
+	g.Parent = introBanner
+end
 local introDot = mk("Frame", {
 	BackgroundColor3 = GOLD,
 	AnchorPoint = Vector2.new(0, 0.5),
@@ -643,7 +676,7 @@ round(introDot, 5)
 local introL = mk("TextLabel", {
 	BackgroundTransparency = 1,
 	Font = FONT,
-	TextSize = 15,
+	TextSize = 18,
 	TextColor3 = TEXT,
 	Text = "",
 	Position = UDim2.fromOffset(36, 0),
@@ -656,23 +689,23 @@ local introL = mk("TextLabel", {
 }, introBanner)
 local introAckHint = mk("TextLabel", {
 	BackgroundTransparency = 1,
-	Font = FONT_M,
-	TextSize = 11,
+	Font = FONT,
+	TextSize = 13,
 	TextColor3 = GOLD,
 	Text = "",
 	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -12, 1, -6),
-	Size = UDim2.fromOffset(280, 14),
+	Position = UDim2.new(1, -12, 1, -5),
+	Size = UDim2.fromOffset(280, 16),
 	TextXAlignment = Enum.TextXAlignment.Right,
 	ZIndex = 28,
 	Active = false,
 }, introBanner)
 local introBarBack = mk("Frame", {
 	Name = "TutBar",
-	BackgroundColor3 = Color3.fromRGB(42, 34, 26),
+	BackgroundColor3 = T.LINE,
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 36, 1, -8),
-	Size = UDim2.new(1, -52, 0, 5),
+	Size = UDim2.new(1, -52, 0, 7),
 	Visible = false,
 	ZIndex = 28,
 }, introBanner)
@@ -967,32 +1000,54 @@ end
 	input, so a player who wants to go straight to mining just walks off and
 	closes it later.
 ]]
+--[[
+	THE DAILY POPUP IS THE FIRST THING A NEW PLAYER SEES, so it is the first
+	screen onto the lifted surfaces (MineTheme SHELL / FACE -- see the note
+	there for the luminance measurements that prompted this).
+
+	What changed: the body is a saturated purple SHELL instead of the 0.09
+	panel, everything is ringed in the fat dark OUTLINE, the title went 22 ->
+	30 with a white outline so it reads as a banner rather than a heading, and
+	the supporting lines came up off 12/13 onto the 14/16 floors. The day tiles
+	themselves are in paintDailyCalendar.
+]]
 local dailyHud = {}
 dailyHud.card = mk("Frame", {
 	Name = "Daily",
 	Visible = false,
-	BackgroundColor3 = BG,
+	BackgroundColor3 = T.SHELL,
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.46),
 	Size = UDim2.fromOffset(420, 250),
 	ZIndex = 25,
 	Active = true,
 }, gui)
-round(dailyHud.card, 16)
+round(dailyHud.card, 22)
 do
-	local s = stroke(dailyHud.card, 2)
-	s.Transparency = 0.1
+	local s = stroke(dailyHud.card, T.STROKE_THICK or 4)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+	-- A top-down lift, so the body reads as a moulded surface rather than a
+	-- flat rectangle. The kit does it; it was simply never called here.
+	if ClientFns.UI and ClientFns.UI.lit then
+		ClientFns.UI.lit(dailyHud.card, 0.10)
+	end
 end
 dailyHud.title = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 22, TextColor3 = GOLD,
-	Text = "DAILY REWARD", Position = UDim2.fromOffset(0, 18),
-	Size = UDim2.new(1, 0, 0, 26), ZIndex = 26, Active = false,
+	BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 30,
+	TextColor3 = GOLD,
+	Text = "DAILY REWARD", Position = UDim2.fromOffset(0, 16),
+	Size = UDim2.new(1, 0, 0, 34), ZIndex = 26, Active = false,
 }, dailyHud.card)
 dailyHud.title.TextXAlignment = Enum.TextXAlignment.Center
+if ClientFns.UI and ClientFns.UI.outlineText then
+	ClientFns.UI.outlineText(dailyHud.title, 2)
+end
 dailyHud.day = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT_M, TextSize = 13, TextColor3 = MUTED,
-	Text = "", Position = UDim2.fromOffset(0, 46),
-	Size = UDim2.new(1, 0, 0, 18), ZIndex = 26, Active = false,
+	BackgroundTransparency = 1, Font = FONT, TextSize = T.TEXT_BODY or 16,
+	TextColor3 = Color3.fromRGB(214, 203, 255),
+	Text = "", Position = UDim2.fromOffset(0, 50),
+	Size = UDim2.new(1, 0, 0, 20), ZIndex = 26, Active = false,
 }, dailyHud.card)
 dailyHud.day.TextXAlignment = Enum.TextXAlignment.Center
 dailyHud.prize = mk("TextLabel", {
@@ -1003,22 +1058,41 @@ dailyHud.prize = mk("TextLabel", {
 dailyHud.prize.TextXAlignment = Enum.TextXAlignment.Center
 dailyHud.prize.TextScaled = false
 dailyHud.streak = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextColor3 = MUTED,
+	BackgroundTransparency = 1, Font = FONT_M, TextSize = T.TEXT_MIN or 14,
+	TextColor3 = Color3.fromRGB(205, 194, 248),
 	Text = "", Position = UDim2.fromOffset(0, 136),
-	Size = UDim2.new(1, 0, 0, 16), ZIndex = 26, Active = false,
+	Size = UDim2.new(1, 0, 0, 18), ZIndex = 26, Active = false,
 }, dailyHud.card)
 dailyHud.streak.TextXAlignment = Enum.TextXAlignment.Center
+--[[
+	CLAIM is the only thing on this popup worth pressing, so it is the only
+	thing painted like a button you press: a green candy gradient with the fat
+	outline, at 24 rather than 18. It was a flat gold rectangle the same weight
+	as the day tiles behind it.
+]]
 dailyHud.claim = mk("TextButton", {
-	AutoButtonColor = true, BackgroundColor3 = GOLD, Font = FONT, TextSize = 18,
-	TextColor3 = T.ON_GOLD, Text = "CLAIM",
+	AutoButtonColor = false, BackgroundColor3 = GOLD,
+	Font = Enum.Font.GothamBlack, TextSize = 24,
+	TextColor3 = Color3.new(1, 1, 1), Text = "CLAIM",
 	Position = UDim2.fromOffset(24, 178), Size = UDim2.new(1, -48, 0, 44), ZIndex = 26,
 }, dailyHud.card)
-round(dailyHud.claim, 10)
+round(dailyHud.claim, 14)
+if ClientFns.UI then
+	ClientFns.UI.candy(dailyHud.claim, "green", T.STROKE_CHUNKY or 3)
+	ClientFns.UI.outlineText(dailyHud.claim, 2)
+	ClientFns.UI.juice(dailyHud.claim)
+end
 dailyHud.close = mk("TextButton", {
-	AutoButtonColor = true, BackgroundTransparency = 1, Font = FONT, TextSize = 18,
-	TextColor3 = MUTED, Text = "X",
-	Position = UDim2.new(1, -40, 0, 12), Size = UDim2.fromOffset(28, 28), ZIndex = 27,
+	AutoButtonColor = false, BackgroundColor3 = T.SHELL_HI,
+	Font = Enum.Font.GothamBlack, TextSize = T.TEXT_BODY or 16,
+	TextColor3 = Color3.new(1, 1, 1), Text = "X",
+	Position = UDim2.new(1, -46, 0, 14), Size = UDim2.fromOffset(32, 32), ZIndex = 27,
 }, dailyHud.card)
+round(dailyHud.close, 10)
+if ClientFns.UI then
+	ClientFns.UI.candy(dailyHud.close, "red", 2)
+	ClientFns.UI.juice(dailyHud.close)
+end
 
 -- Dismissed for this session only; an unclaimed day comes back on the next join.
 dailyHud.dismissed = false
@@ -1204,73 +1278,149 @@ end)
 	glance away. When it is finished the bar is replaced by the claim button,
 	so "done" and "not done" cannot be confused at a distance.
 ]]
+--[[
+	ONE QUEST PANEL. Owner, 2026-10-08: "fix the quests and the ugly arrow to
+	push the quests out of the way (make it all a part of the same exact ui)".
+
+	The active quest and today's dailies used to be two separate cards, each
+	with an "ear" tab hanging off its right edge that slid the pair off screen.
+	Now there is one panel (QuestPanel) with one outline, one background and
+	one header. The collapse button lives IN that header, and collapsing shrinks
+	the panel into a small "QUESTS" pill in place. It no longer slides out of
+	sight, so there is nothing hanging off its edge.
+
+	questBox and the daily box are still their own frames, because everything
+	that paints them works unchanged. They are just transparent now, and
+	stacked inside the panel by ClientFns.layoutQuestPanel. The panel clips, so
+	collapsing is only a size change.
+]]
 local questBox = mk("Frame", {
+	--[[
+		THE ACTIVE QUEST IS THE MOST-LOOKED-AT THING IN THE GAME, so on the
+		lifted panel it is the one bright card rather than transparent text on
+		a dark band. Its ink goes dark to match (see below); white-on-cream is
+		the mistake that makes a light card look broken.
+	]]
 	Name = "Quest",
 	Visible = false,
-	BackgroundColor3 = Color3.fromRGB(12, 14, 20),
-	BackgroundTransparency = 0.08,
-	Position = UDim2.new(0, 16, 0, 300),
-	Size = UDim2.fromOffset(304, 118),
+	BackgroundColor3 = T.FACE,
+	BackgroundTransparency = 0,
+	Position = UDim2.new(0, 0, 0, 0),
+	Size = UDim2.fromOffset(304, 126),
 	ZIndex = 20,
 	Active = false,
 }, gui)
-round(questBox, 18)
+round(questBox, 14)
 do
-	local sh = mk("Frame", {
-		Name = "QuestShadow",
-		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		BackgroundTransparency = 0.55,
-		Position = UDim2.fromOffset(4, 7),
-		Size = UDim2.fromScale(1, 1),
+	local qs = stroke(questBox, T.STROKE_CHUNKY or 3)
+	qs.Color = T.OUTLINE
+	qs.Transparency = 0
+	questBox:SetAttribute("MineUIAdopted", true)
+end
+do
+	local HEADER = 40
+	ClientFns.QUEST_HEADER = HEADER
+	--[[
+		The quest tracker is the only panel that is ALWAYS on screen, so it is
+		the one most responsible for what the game looks like -- and it was
+		T.PANEL (0.09 luminance) under a gradient running CARD -> INK, i.e. a
+		dark box fading to black, carrying fifteen lines of 11-13px text.
+
+		SHELL with a lit top, so it reads as a moulded plaque rather than a
+		hole. It keeps its fat outline and its MineUIAdopted flag; the rows
+		inside it are lifted separately.
+	]]
+	local panel = mk("Frame", {
+		Name = "QuestPanel",
+		Visible = false,
+		BackgroundColor3 = T.SHELL,
+		BackgroundTransparency = 0.04,
+		Position = UDim2.new(0, 16, 0, 300),
+		Size = UDim2.fromOffset(304, HEADER),
+		ClipsDescendants = true,
+		ZIndex = 20,
 		Active = false,
-		ZIndex = 18,
-		BorderSizePixel = 0,
-	}, questBox)
-	round(sh, 18)
-	local glow = mk("Frame", {
-		Name = "QuestGlow",
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(-3, -3),
-		Size = UDim2.new(1, 6, 1, 6),
-		Active = false,
-		ZIndex = 19,
-		BorderSizePixel = 0,
-	}, questBox)
-	round(glow, 20)
-	local gs = stroke(glow, 4)
-	gs.Color = Color3.fromRGB(255, 188, 78)
-	gs.Transparency = 0.8
+	}, gui)
+	round(panel, 20)
 	local grad = Instance.new("UIGradient")
-	grad.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(28, 34, 48)),
-		ColorSequenceKeypoint.new(0.55, Color3.fromRGB(14, 16, 24)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 10, 16)),
-	})
-	grad.Rotation = 110
-	grad.Parent = questBox
-	local s = stroke(questBox, 3.5)
-	s.Color = Color3.fromRGB(255, 196, 88)
-	s.Transparency = 0.1
-	-- Left gold accent strip: mobile-quest widget cue, not a debug panel.
-	local accent = mk("Frame", {
-		Name = "Accent",
-		BackgroundColor3 = Color3.fromRGB(255, 196, 88),
-		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(0, 12),
-		Size = UDim2.new(0, 5, 1, -24),
-		ZIndex = 21,
-		Active = false,
-	}, questBox)
-	round(accent, 3)
+	grad.Color = ColorSequence.new(T.SHELL_HI, T.SHELL)
+	grad.Rotation = 90
+	grad.Parent = panel
+	local s = stroke(panel, T.STROKE_THICK)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+	panel:SetAttribute("MineUIAdopted", true)
+	-- The whole header is the toggle, so a thumb cannot miss it.
+	local header = mk("TextButton", {
+		Name = "Header", BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
+		Size = UDim2.new(1, 0, 0, HEADER), ZIndex = 24,
+	}, panel)
+	local title = mk("TextLabel", {
+		Name = "Title", BackgroundTransparency = 1, Font = Enum.Font.GothamBlack,
+		TextSize = 22, TextColor3 = GOLD,
+		Text = "QUESTS", TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(16, 0), Size = UDim2.fromOffset(96, HEADER), ZIndex = 25, Active = false,
+	}, panel)
+	if ClientFns.UI and ClientFns.UI.outlineText then
+		ClientFns.UI.outlineText(title, 2)
+	end
+	-- Green dot: something in here pays out right now. Pulses, open or shut.
+	local dot = mk("Frame", {
+		-- 96 -> 120: the title went 19 -> 22 and its box 80 -> 96, so the dot
+		-- was about to sit under the S of QUESTS.
+		Name = "ClaimDot", BackgroundColor3 = T.GREEN, Visible = false,
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 120, 0, HEADER / 2),
+		Size = UDim2.fromOffset(14, 14), ZIndex = 25, Active = false,
+	}, panel)
+	round(dot, 7)
+	do
+		local ds = stroke(dot, 2)
+		ds.Color = T.OUTLINE
+		ds.Transparency = 0
+	end
+	local toggle = mk("TextButton", {
+		Name = "Toggle", AutoButtonColor = false, Text = "-", Font = FONT, TextSize = 24,
+		TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = T.CARD_HI,
+		AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0, HEADER / 2),
+		Size = UDim2.fromOffset(30, 28), ZIndex = 26,
+	}, panel)
+	round(toggle, 9)
+	if ClientFns.UI then
+		ClientFns.UI.candy(toggle, "purple", 2.5)
+		ClientFns.UI.outlineText(toggle, 1.5)
+		ClientFns.UI.juice(toggle, 1.12)
+	end
+	-- A hairline under the header, so the open panel reads as title + body.
+	mk("Frame", {
+		Name = "HeaderRule", BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+		Position = UDim2.new(0, 12, 0, HEADER - 1), Size = UDim2.new(1, -24, 0, 2),
+		ZIndex = 21, Active = false,
+	}, panel)
+	header.MouseButton1Click:Connect(function()
+		ClientFns.questDrawerToggle(true)
+	end)
+	toggle.MouseButton1Click:Connect(function()
+		ClientFns.questDrawerToggle(true)
+	end)
+	questBox.Parent = panel
+	questBox.Position = UDim2.fromOffset(0, HEADER)
+	ClientFns.questPanel = panel
+	ClientFns.questPanelParts = { title = title, dot = dot, toggle = toggle }
+end
+do
 	mk("TextLabel", {
 		Name = "RewardHint",
 		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 12,
-		TextColor3 = Color3.fromRGB(198, 168, 108),
+		Font = FONT,
+		TextSize = 15,
+		TextColor3 = Color3.fromRGB(150, 94, 8),
 		Text = "",
-		Position = UDim2.fromOffset(18, 66),
-		Size = UDim2.new(1, -36, 0, 16),
+		Position = UDim2.fromOffset(18, 68),
+		Size = UDim2.new(1, -36, 0, 18),
+		-- Measured at 288px for "Reward: 60 Gems  +  Unlocks Bronze", which is
+		-- wider than the panel has ever been on a phone. One line, so it cannot
+		-- wrap; the panel clips, so without this it was cut mid-character.
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 21,
 		Active = false,
@@ -1279,11 +1429,11 @@ do
 		Name = "QuestTip",
 		BackgroundTransparency = 1,
 		Font = FONT_M,
-		TextSize = 11,
-		TextColor3 = Color3.fromRGB(150, 158, 178),
+		TextSize = T.TEXT_MIN or 14,
+		TextColor3 = T.ON_FACE_MUTED,
 		Text = "",
-		Position = UDim2.fromOffset(18, 84),
-		Size = UDim2.new(1, -36, 0, 28),
+		Position = UDim2.fromOffset(18, 88),
+		Size = UDim2.new(1, -36, 0, 32),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -1293,44 +1443,69 @@ do
 end
 -- Bold objective + progress index; thick gold bar; muted-gold reward hint.
 local questIdx = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT_M, TextSize = 11,
-	TextColor3 = Color3.fromRGB(186, 160, 104),
-	Text = "", Position = UDim2.new(1, -78, 0, 10), Size = UDim2.fromOffset(66, 16),
+	BackgroundTransparency = 1, Font = FONT, TextSize = 14,
+	TextColor3 = T.ON_FACE_MUTED,
+	Text = "", Position = UDim2.new(1, -78, 0, 11), Size = UDim2.fromOffset(66, 18),
 	TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 21, Active = false,
 }, questBox)
 local questText = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 17,
-	TextColor3 = Color3.fromRGB(255, 255, 255),
-	Text = "", Position = UDim2.fromOffset(18, 9), Size = UDim2.new(1, -100, 0, 22),
+	BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 20,
+	TextColor3 = T.ON_FACE,
+	Text = "", Position = UDim2.fromOffset(18, 8), Size = UDim2.new(1, -100, 0, 26),
 	TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21, Active = false,
 }, questBox)
 questText.TextTruncate = Enum.TextTruncate.AtEnd
+-- A fat, outlined bar with a candy-green fill and a shine: a bar that looks
+-- nearly full feels winnable, and that is what pulls the next swing.
 local questTrack = mk("Frame", {
-	BackgroundColor3 = Color3.fromRGB(18, 16, 24), BorderSizePixel = 0,
-	Position = UDim2.fromOffset(18, 38), Size = UDim2.new(1, -92, 0, 16),
+	BackgroundColor3 = Color3.fromRGB(206, 199, 232), BorderSizePixel = 0,
+	Position = UDim2.fromOffset(18, 40), Size = UDim2.new(1, -96, 0, 20),
 	ZIndex = 21, Active = false,
 }, questBox)
-round(questTrack, 8)
+round(questTrack, 10)
+do
+	local ts = stroke(questTrack, 2.5)
+	ts.Color = T.OUTLINE
+	ts.Transparency = 0
+end
 local questFill = mk("Frame", {
-	BackgroundColor3 = Color3.fromRGB(255, 196, 72), BorderSizePixel = 0,
+	BackgroundColor3 = T.GREEN, BorderSizePixel = 0,
 	Size = UDim2.fromScale(0, 1), ZIndex = 22, Active = false,
 }, questTrack)
-round(questFill, 8)
--- Crisp progress count to the right of the bar (mock: white 0/10).
+round(questFill, 10)
+if ClientFns.UI then
+	ClientFns.UI.candy(questFill, "green", 0)
+	local fs = questFill:FindFirstChildOfClass("UIStroke")
+	if fs then fs.Enabled = false end
+	local g = questFill:FindFirstChild("Gloss")
+	if g then g.ZIndex = 23 end
+end
+-- Crisp progress count to the right of the bar.
 local questProg = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 14,
-	TextColor3 = Color3.fromRGB(255, 255, 255),
-	Text = "", Position = UDim2.new(1, -70, 0, 36), Size = UDim2.fromOffset(56, 20),
+	BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 17,
+	TextColor3 = T.ON_FACE,
+	Text = "", Position = UDim2.new(1, -74, 0, 39), Size = UDim2.fromOffset(60, 22),
 	TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 21, Active = false,
 }, questBox)
-questProg.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-questProg.TextStrokeTransparency = 0.55
+if ClientFns.UI then
+	ClientFns.UI.outlineText(questProg, 2)
+	ClientFns.UI.popNumber(questProg, 1.12)
+end
 local questClaim = mk("TextButton", {
-	Visible = false, AutoButtonColor = true, BackgroundColor3 = GOLD,
-	Font = FONT, TextSize = 15, TextColor3 = T.ON_GOLD, Text = "CLAIM",
-	Position = UDim2.fromOffset(18, 38), Size = UDim2.new(1, -36, 0, 32), ZIndex = 22,
+	Visible = false, AutoButtonColor = false, BackgroundColor3 = T.GREEN,
+	Font = FONT, TextSize = 18, TextColor3 = Color3.fromRGB(255, 255, 255), Text = "CLAIM",
+	Position = UDim2.fromOffset(18, 40), Size = UDim2.new(1, -36, 0, 38), ZIndex = 22,
 }, questBox)
-round(questClaim, 10)
+round(questClaim, 14)
+if ClientFns.UI then
+	ClientFns.UI.candy(questClaim, "green", 3)
+	ClientFns.UI.outlineText(questClaim, 2)
+	ClientFns.UI.juice(questClaim)
+	-- The gloss is a child, so it would draw over the button's own Text. Push
+	-- it under by giving it the button's ZIndex and keeping it faint.
+	local g = questClaim:FindFirstChild("Gloss")
+	if g then g.Visible = false end
+end
 questClaim.MouseButton1Click:Connect(function()
 	questClaim.Active = false
 	questClaim.Text = "..."
@@ -1349,173 +1524,79 @@ function ClientFns.questIsPhone()
 	return math.min(v.X, v.Y) < 700
 end
 
--- Retractable left-side quest drawers (active quest + daily quests).
+--[[
+	HOW WIDE THE QUEST PANEL IS -- ONE ANSWER, NOT FOUR.
+
+	Owner, 2026-10-10: "this quest bar is obnixious, and if i was to guess it
+	doesnt scale to mobile".
+
+	Half right, and the half that was wrong is the interesting one. The panel
+	DOES already know about phones -- it starts collapsed on touch and shrinks
+	to 260 -- but 260 is a CONSTANT, so it was 260 on a 428pt phone and 260 on
+	a 320pt one, where it covers 81% of the screen. That is the "obnoxious".
+
+	Worse, that constant was written out in FOUR places (the panel layout, the
+	quest card, the daily box and today's box). Four copies of one number is
+	the shape of bug this project keeps hitting: every copy looks correct on
+	its own, and they only disagree once one of them is edited. They are one
+	call now.
+
+	Width is a fraction of the REAL viewport, floored so it never gets too
+	narrow to read a quest line and capped at the old desktop 304 so nothing
+	on a big screen changes.
+]]
+function ClientFns.questWidth()
+	if not ClientFns.questIsPhone() then
+		return 304
+	end
+	local cam = workspace.CurrentCamera
+	local v = cam and cam.ViewportSize or Vector2.new(1280, 720)
+	--[[
+		46% of the short edge, floored at 220 and capped at the old 260.
+
+		The floor is measured, not guessed. Every label in the live panel was
+		measured with TextService:GetTextSize: the widest WRAPPED line needs
+		293px (it wraps, so it does not care), and the widest UNWRAPPED one is
+		RewardHint -- "Reward: 60 Gems  +  Unlocks Bronze" -- at 288px. That
+		one already overflowed the old 260 phone width and was being chopped
+		mid-character by the panel's ClipsDescendants, so it is truncated with
+		an ellipsis now rather than cut.
+
+		220 keeps the ordinary quest rows ("Open 3 chests" at 144, "free spin
+		in 23h 05m" at 131) comfortable with room for the right-aligned
+		counter beside them.
+	]]
+	return math.clamp(math.floor(math.min(v.X, v.Y) * 0.46), 220, 260)
+end
+
+-- The quest panel's open/collapsed state (active quest + daily quests).
 -- preferred = user intent when no modal; peeking = temporary expand over a modal.
 --[[
-	THE DRAWER EAR IS PART OF THE FRAME, NOT A THING SITTING ON IT.
+	OPEN OR COLLAPSED, NEVER SLID AWAY.
 
-	Owner, 2026-10-05: "those arrows are still inside the quest block. is it
-	possible for you just to make it actually a part of the frame, and just make
-	it switch signs (exact same dimensions, scales the same no matter what
-	device, and will permentantly look good)".
+	This used to slide both cards off the left edge and leave an "ear" tab
+	behind to pull them back. Owner, 2026-10-08: "fix the quests and the ugly
+	arrow ... make it all a part of the same exact ui". Now the ears are gone.
+	The state below drives one thing, the QuestPanel's size: full when open,
+	a "QUESTS" pill when collapsed. The pill is the same frame and has the same
+	header button, so the way back is always the thing you can see.
 
-	Three things were wrong, and all three were geometry:
-
-	  * it OVERLAPPED. The ear sat at Position (1, -tuck) -- six pixels back
-	    inside the card -- and drew at ZIndex 45, above it. Shrinking the tuck
-	    from 20 to 6 moved it off the labels but it was still on top of the card,
-	    which is what reads as "inside the quest block".
-	  * it was FULL HEIGHT, Size (1, _, 1, 0). So the active-quest ear and the
-	    daily ear were different heights, and both changed height whenever a card
-	    grew a row. Nothing about it was fixed.
-	  * it was PER-DEVICE, 28 wide on a phone against 24 elsewhere, so it was a
-	    different shape on a phone for no reason.
-
-	Now: a fixed 24 x 46 tab, vertically centred on the card's right edge and
-	sitting OUTSIDE it. Same numbers on every device -- MineClient's UIScale
-	already scales the whole tree, so design pixels here stay identical in
-	proportion on a phone and on a monitor.
-
-	Only the glyph changes with state, which is all the owner asked to change:
-	the sign flips between the two directions.
-
-	The one remaining overlap is four pixels, and it is not padding -- it is the
-	square EarBody covering the rounded EarTip's LEFT stroke, which a UIStroke
-	draws just outside the tip's border and which would otherwise read as a
-	divider line down the join. Four pixels of card-coloured fill on a card whose
-	right-aligned labels all stop 15px short: invisible, and clear of every
-	number by eleven pixels.
+	A phone starts collapsed, so the panel stays off the thumbstick until it is
+	asked for. A modal still collapses it (see the QUEST_HIDERS wiring) and the
+	pill stays on top so the player can peek.
 ]]
-function ClientFns.questDrawerTabW()
-	return 24
-end
-
-function ClientFns.questDrawerEarH()
-	return 46
-end
-
-function ClientFns.questDrawerEarR()
-	return 12
-end
-
-function ClientFns.questDrawerTuck()
-	return 4
-end
-
 function ClientFns.questDrawerEnsure()
 	if ClientFns.questDrawerReady then
-		local q = ClientFns.questDrawerTabQ
-		if q and q.Parent and q:FindFirstChild("EarBody") then
-			return
-		end
-		if q then
-			q:Destroy()
-		end
-		if ClientFns.questDrawerTabD then
-			ClientFns.questDrawerTabD:Destroy()
-		end
-		ClientFns.questDrawerReady = false
+		return
 	end
 	if ClientFns.questDrawerPreferred == nil then
-		ClientFns.questDrawerPreferred = true
+		ClientFns.questDrawerPreferred = not ClientFns.questIsPhone()
 	end
 	if ClientFns.questDrawerOpen == nil then
-		ClientFns.questDrawerOpen = true
+		ClientFns.questDrawerOpen = ClientFns.questDrawerPreferred
 	end
 	ClientFns.questDrawerPeeking = false
 	ClientFns.questDrawerRestX = ClientFns.questDrawerRestX or 16
-	local function makeTab(name, color, glyph)
-		local tuck = ClientFns.questDrawerTuck()
-		local ear = ClientFns.questDrawerTabW()
-		local earH = ClientFns.questDrawerEarH()
-		local r = ClientFns.questDrawerEarR()
-		-- Both ears are the same shape. The old code sized the daily ear's
-		-- radius at 16 and the quest ear's at 18, so the two never matched.
-		local tab = mk("TextButton", {
-			Name = name,
-			AutoButtonColor = true,
-			BackgroundColor3 = Color3.fromRGB(12, 14, 20),
-			BackgroundTransparency = 1,
-			Font = FONT,
-			TextSize = 18,
-			TextColor3 = color,
-			Text = "",
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(1, -tuck, 0.5, 0),
-			Size = UDim2.fromOffset(tuck + ear, earH),
-			ZIndex = 45,
-			Visible = false,
-			BorderSizePixel = 0,
-		}, gui)
-		local fill = Color3.fromRGB(12, 14, 20)
-		-- The tip is the whole ear, rounded on all four corners. The body then
-		-- squares off its left side and hides the stroke there, so what shows is
-		-- a tab that grows out of the card's edge rather than a pill beside it.
-		local tip = mk("Frame", {
-			Name = "EarTip",
-			BackgroundColor3 = fill,
-			BackgroundTransparency = 0.08,
-			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(0, 0),
-			Size = UDim2.fromScale(1, 1),
-			ZIndex = 45,
-			Active = false,
-		}, tab)
-		round(tip, r)
-		local st = stroke(tip, 2.5)
-		st.Name = "EarStroke"
-		st.Color = color
-		st.Transparency = 0.15
-		local body = mk("Frame", {
-			Name = "EarBody",
-			BackgroundColor3 = fill,
-			BackgroundTransparency = 0.08,
-			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(-3, 0),
-			Size = UDim2.fromOffset(tuck + r + 3, earH),
-			ZIndex = 46,
-			Active = false,
-		}, tab)
-		mk("Frame", {
-			Name = "EarHairTop",
-			BackgroundColor3 = color,
-			BackgroundTransparency = 0.15,
-			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(0, 0),
-			Size = UDim2.new(1, 0, 0, 2),
-			ZIndex = 47,
-			Active = false,
-		}, body)
-		mk("Frame", {
-			Name = "EarHairBot",
-			BackgroundColor3 = color,
-			BackgroundTransparency = 0.15,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, 0, 1, 0),
-			Size = UDim2.new(1, 0, 0, 2),
-			ZIndex = 47,
-			Active = false,
-		}, body)
-		mk("TextLabel", {
-			Name = "EarGlyph",
-			BackgroundTransparency = 1,
-			Font = FONT,
-			TextSize = 18,
-			TextColor3 = color,
-			Text = glyph,
-			Size = UDim2.new(0, ear, 1, 0),
-			Position = UDim2.new(1, -ear, 0, 0),
-			ZIndex = 50,
-			TextXAlignment = Enum.TextXAlignment.Center,
-		}, tab)
-		tab.MouseButton1Click:Connect(function()
-			ClientFns.questDrawerToggle(true)
-		end)
-		return tab
-	end
-	ClientFns.questDrawerTabQ = makeTab("QuestDrawerTab", Color3.fromRGB(255, 196, 88), "‹")
-	ClientFns.questDrawerTabD = makeTab("DailyDrawerTab", Color3.fromRGB(120, 200, 255), "‹")
 	ClientFns.questDrawerReady = true
 end
 
@@ -1545,99 +1626,138 @@ function ClientFns.syncQuestDrawer()
 	ClientFns.setQuestDrawerOpen(want)
 end
 
+-- Header state: the toggle glyph, and the claim dot. Kept under its old name
+-- because every paint path already calls it.
 function ClientFns.refreshQuestDrawerTabs()
 	ClientFns.questDrawerEnsure()
+	local parts = ClientFns.questPanelParts
+	if not parts then
+		return
+	end
 	local open = ClientFns.questDrawerOpen ~= false
-	local glyph = open and "‹" or "›"
-	local tuck = ClientFns.questDrawerTuck()
-	local ear = ClientFns.questDrawerTabW()
-	local qTab = ClientFns.questDrawerTabQ
-	local dTab = ClientFns.questDrawerTabD
-	local z = (questsCovered or open == false) and 92 or (questBox.ZIndex + 5)
-	local function paint(tab, box)
-		if not tab then
-			return
+	parts.toggle.Text = open and "-" or "+"
+	local claimable = ClientFns.dailyClaimable == true
+		or ClientFns.todayReady == true
+		or (snap ~= nil and type(snap.quest) == "table" and snap.quest.ready == true and not snap.quest.done)
+	if parts.dot.Visible ~= claimable then
+		parts.dot.Visible = claimable
+		if ClientFns.questDotPulseStop then
+			ClientFns.questDotPulseStop()
+			ClientFns.questDotPulseStop = nil
 		end
-		local show = box ~= nil and box.Visible == true
-		if show and tab.Parent ~= box then
-			tab.Parent = box
-		end
-		tab.Visible = show
-		tab.ZIndex = z
-		-- Fixed size, centred on the card's right edge. Restated here because
-		-- this runs after every tween and after every layout pass, so whatever
-		-- it sets is what the ear actually ends up as.
-		tab.AnchorPoint = Vector2.new(0, 0.5)
-		tab.Size = UDim2.fromOffset(tuck + ear, ClientFns.questDrawerEarH())
-		tab.Position = UDim2.new(1, -tuck, 0.5, 0)
-		local gl = tab:FindFirstChild("EarGlyph")
-		if gl then
-			gl.Text = glyph
-			gl.ZIndex = z + 5
-		end
-		if box then
-			local fill = box.BackgroundColor3
-			local tr = box.BackgroundTransparency
-			local body = tab:FindFirstChild("EarBody")
-			local tip = tab:FindFirstChild("EarTip")
-			if body then
-				body.BackgroundColor3 = fill
-				body.BackgroundTransparency = tr
-				body.ZIndex = z + 1
-			end
-			if tip then
-				tip.BackgroundColor3 = fill
-				tip.BackgroundTransparency = tr
-				tip.ZIndex = z
-			end
+		if claimable and ClientFns.UI then
+			ClientFns.UI.pop(parts.dot, 1.6)
+			ClientFns.questDotPulseStop = ClientFns.UI.pulse(parts.dot, 1.25, 0.8)
 		end
 	end
-	paint(qTab, questBox)
-	paint(dTab, ClientFns.dailyBox)
+end
+
+--[[
+	Stack the quest card and the daily card inside the panel, and size the panel
+	to them: full when open, a pill when collapsed. Runs on every paint (about
+	ten a second while digging), so it only starts a tween when the target size
+	actually changes.
+]]
+function ClientFns.layoutQuestPanel(instant)
+	local panel = ClientFns.questPanel
+	if not panel then
+		return
+	end
+	ClientFns.questDrawerEnsure()
+	local H = ClientFns.QUEST_HEADER or 40
+	local d = ClientFns.dailyBox
+	local qVis = questBox.Visible
+	local dVis = d ~= nil and d.Visible
+	local y = H
+	--[[
+		THE PANEL AND ITS THREE CARDS ARE ONE WIDTH, DECIDED HERE.
+
+		This used to take the WIDEST card and grow the panel to fit it, with the
+		260/304 constant only as a fallback for when every card was empty. That
+		reads as careful and is the wrong way round: each card sized itself from
+		its OWN copy of that constant, so the panel's width was really three
+		copies agreeing by luck, and nothing re-sized them when the viewport
+		changed -- a phone that rotated kept whatever width it booted with.
+
+		questWidth() decides now and the cards are told. One number applied
+		top-down, which is also why re-running this on a viewport change is
+		enough to make rotation work; see the ViewportSize handler.
+	]]
+	local wide = ClientFns.questWidth()
+	local function fit(box)
+		if box and box.Size.X.Offset ~= wide then
+			box.Size = UDim2.fromOffset(wide, box.Size.Y.Offset)
+		end
+	end
+	-- TODAY first (MineToday; owner, 2026-10-10: at the top of the panel).
+	local todayBox = ClientFns.todayBox
+	local tVis = todayBox ~= nil and todayBox.Visible
+	if tVis then
+		fit(todayBox)
+		todayBox.Position = UDim2.fromOffset(0, y)
+		y += todayBox.Size.Y.Offset
+		local below = todayBox:FindFirstChild("Divider")
+		if below then
+			below.Visible = qVis or dVis
+		end
+	end
+	if qVis then
+		fit(questBox)
+		questBox.Position = UDim2.fromOffset(0, y)
+		y += questBox.Size.Y.Offset
+	end
+	if d then
+		fit(d)
+		d.Position = UDim2.fromOffset(0, y)
+		local rule = d:FindFirstChild("Divider")
+		if rule then
+			rule.Visible = qVis
+		end
+		if dVis then
+			y += d.Size.Y.Offset
+		end
+	end
+	--[[
+		A FULLSCREEN SCREEN GETS THE SCREEN. Owner, 2026-10-11: "Fix the issue
+		where the main menu stacks over the inventory."
+
+		raiseQuests() lifts this panel to ZIndex 90 whenever a modal is open, so
+		the collapsed QUESTS pill can be peeked at over the top of it. That is
+		right for a windowed panel and wrong for a fullscreen one: the pill
+		lands at the top-left, which is exactly where the Blacksmith screen puts
+		its CRAFT / UPGRADE / SHOP rail, so it covered the selected nav entry.
+
+		The rest of the HUD already knew this -- `apply()` switches the wallet,
+		the prestige label and the dock off whenever a HUD_HIDERS panel is up.
+		The quest panel was the one piece that stayed. It hides with them now,
+		and `questHudCovered` is read HERE rather than set on the instance so a
+		later relayout cannot quietly turn it back on.
+	]]
+	panel.Visible = (qVis or dVis or tVis) and not ClientFns.questHudCovered
+	panel.Position = UDim2.new(0, ClientFns.questDrawerRestX or 16, 0, ClientFns.questPanelY or 300)
+	local open = ClientFns.questDrawerOpen ~= false
+	local goal = open and UDim2.fromOffset(wide, y + 6) or UDim2.fromOffset(150, H)
+	if ClientFns.questPanelGoal ~= goal then
+		ClientFns.questPanelGoal = goal
+		local prev = ClientFns.questPanelTween
+		if prev then
+			pcall(function() prev:Cancel() end)
+			ClientFns.questPanelTween = nil
+		end
+		if instant or not panel.Visible then
+			panel.Size = goal
+		else
+			local tw = TweenService:Create(panel,
+				TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = goal })
+			ClientFns.questPanelTween = tw
+			tw:Play()
+		end
+	end
+	ClientFns.refreshQuestDrawerTabs()
 end
 
 function ClientFns.applyQuestDrawerPos(instant)
-	ClientFns.questDrawerEnsure()
-	local restX = ClientFns.questDrawerRestX or 16
-	local open = ClientFns.questDrawerOpen ~= false
-	local wide = questBox.Size.X.Offset
-	if ClientFns.dailyBox and ClientFns.dailyBox.Size.X.Offset > wide then
-		wide = ClientFns.dailyBox.Size.X.Offset
-	end
-	if wide < 80 then
-		wide = ClientFns.questIsPhone() and 260 or 304
-	end
-	local x = open and restX or (restX - wide)
-	local yQ = questBox.Position.Y.Offset
-	local yD = yQ + ((questBox.Visible and questBox.Size.Y.Offset > 0) and (questBox.Size.Y.Offset + 10) or 0)
-	local info = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local function slide(inst, y, key)
-		if not inst then
-			return
-		end
-		local goal = UDim2.new(0, x, 0, y)
-		local prev = ClientFns[key]
-		if prev then
-			pcall(function() prev:Cancel() end)
-			ClientFns[key] = nil
-		end
-		if instant then
-			inst.Position = goal
-		else
-			local tw = TweenService:Create(inst, info, { Position = goal })
-			ClientFns[key] = tw
-			tw:Play()
-			tw.Completed:Connect(function()
-				if ClientFns[key] == tw then
-					ClientFns[key] = nil
-				end
-				ClientFns.refreshQuestDrawerTabs()
-			end)
-		end
-	end
-	slide(questBox, yQ, "questDrawerTweenQ")
-	slide(ClientFns.dailyBox, yD, "questDrawerTweenD")
-	ClientFns.refreshQuestDrawerTabs()
+	ClientFns.layoutQuestPanel(instant)
 end
 
 function ClientFns.setQuestDrawerOpen(open, instant)
@@ -1737,10 +1857,12 @@ function ClientFns.showQuest(state)
 	if not phone then
 		ClientFns.questFolded = false
 	end
-	local folded = phone and ClientFns.questFolded
+	-- The phone "Quest" pill is retired: collapsing is the QuestPanel's job now
+	-- (one control for every device), so the card itself never folds.
+	local folded = false
 	questBox.Visible = true
 	questBox.Active = false
-	-- Never clip: drawer tabs / chevrons sit on the right edge outside the card.
+	-- The QuestPanel around it does the clipping (that is how it collapses).
 	questBox.ClipsDescendants = false
 	-- "5 / 16" only; the word QUEST does not fit the compact row and the bar
 	-- under a named objective already reads as a quest.
@@ -1782,7 +1904,7 @@ function ClientFns.showQuest(state)
 	chrome.label.Visible = false
 	chrome.tap.Visible = false
 	chrome.dot.Visible = false
-	chrome.collapse.Visible = phone
+	chrome.collapse.Visible = false
 	questIdx.Visible = true
 	questText.Visible = true
 	local sh = questBox:FindFirstChild("QuestShadow")
@@ -1794,8 +1916,8 @@ function ClientFns.showQuest(state)
 		questTip.Text = tip or ""
 		questTip.Visible = tip ~= nil and not state.ready and not phone
 	end
-	local wide = phone and 260 or 304
-	local tall = (tip and not state.ready and not phone) and 118 or 90
+	local wide = ClientFns.questWidth()
+	local tall = (tip and not state.ready and not phone) and 126 or 96
 	questBox.Size = UDim2.fromOffset(wide, tall)
 	if state.ready then
 		questTrack.Visible = false
@@ -1803,11 +1925,24 @@ function ClientFns.showQuest(state)
 		if rewardHint then
 			rewardHint.Visible = false
 		end
+		local was = questClaim.Visible
 		questClaim.Visible = true
 		questClaim.Active = true
-		questClaim.Text = "CLAIM  -  " .. tostring(state.reward)
-		questClaim.TextSize = (#tostring(state.reward) > 16) and 12 or 15
+		local prize = (type(state.rewardIcons) == "string" and state.rewardIcons ~= "") and state.rewardIcons or tostring(state.reward)
+		questClaim.Text = "CLAIM  " .. prize .. "!"
+		questClaim.TextSize = ((utf8.len(prize) or #prize) > 16) and 14 or 18
+		-- Something to claim always throbs: it is the one thing on the HUD that
+		-- pays out right now, so it should be the one thing that moves.
+		if not was and ClientFns.UI then
+			ClientFns.UI.pop(questClaim, 1.2)
+			if ClientFns.questClaimPulseStop then ClientFns.questClaimPulseStop() end
+			ClientFns.questClaimPulseStop = ClientFns.UI.pulse(questClaim, 1.06, 0.9)
+		end
 	else
+		if ClientFns.questClaimPulseStop then
+			ClientFns.questClaimPulseStop()
+			ClientFns.questClaimPulseStop = nil
+		end
 		questClaim.Visible = false
 		questTrack.Visible = true
 		questProg.Visible = true
@@ -1815,7 +1950,10 @@ function ClientFns.showQuest(state)
 		questProg.Text = Quests.short(cur) .. "/" .. Quests.short(goal)
 		if rewardHint then
 			rewardHint.Visible = true
-			rewardHint.Text = "Reward: " .. tostring(state.reward)
+			-- Icons and numbers ("Reward  💰 800"); words only from an old server.
+			rewardHint.Text = (type(state.rewardIcons) == "string" and state.rewardIcons ~= "")
+				and ("Reward  " .. state.rewardIcons) or ("Reward: " .. tostring(state.reward))
+			rewardHint.TextColor3 = GOLD
 		end
 	end
 	ClientFns.placeDailyBox()
@@ -1832,68 +1970,80 @@ function ClientFns.dailyBoxBuild()
 	if ClientFns.dailyBox then
 		return ClientFns.dailyBox
 	end
+	-- Lives inside the QuestPanel (see questBox): transparent, no chrome of its
+	-- own, with a hairline on top dividing it from the active quest above.
 	local box = mk("Frame", {
-		Name = "DailyQuests", Visible = false, BackgroundColor3 = Color3.fromRGB(12, 14, 20),
-		BackgroundTransparency = 0.08, Position = UDim2.new(0, 16, 0, 420), Size = UDim2.fromOffset(304, 164),
+		Name = "DailyQuests", Visible = false, BackgroundColor3 = T.PANEL,
+		BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, 0), Size = UDim2.fromOffset(304, 178),
 		ZIndex = 20, Active = false,
-	}, gui)
-	round(box, 16)
-	local st = stroke(box, 2.5)
-	st.Color = Color3.fromRGB(120, 200, 255)
-	st.Transparency = 0.2
-	round(mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(120, 200, 255), Position = UDim2.fromOffset(0, 10),
-		Size = UDim2.new(0, 5, 1, -20), ZIndex = 21, Active = false,
-	}, box), 3)
+	}, ClientFns.questPanel or gui)
+	box:SetAttribute("MineUIAdopted", true)
+	mk("Frame", {
+		Name = "Divider", BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+		Position = UDim2.new(0, 12, 0, 0), Size = UDim2.new(1, -24, 0, 2),
+		ZIndex = 21, Active = false,
+	}, box)
 	local header = mk("TextButton", {
-		BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 30), ZIndex = 22,
+		BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 34), ZIndex = 22,
 	}, box)
 	mk("TextLabel", {
-		BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = Color3.fromRGB(150, 214, 255),
+		BackgroundTransparency = 1, Font = FONT, TextSize = 17, TextColor3 = T.GEM,
 		Text = "DAILY QUESTS", TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(16, 6), Size = UDim2.new(0.5, 0, 0, 20), ZIndex = 22, Active = false,
+		Position = UDim2.fromOffset(16, 7), Size = UDim2.new(0.5, 0, 0, 22), ZIndex = 22, Active = false,
 	}, header)
 	local info = mk("TextLabel", {
-		BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextColor3 = MUTED, Text = "",
+		BackgroundTransparency = 1, Font = FONT_M, TextSize = 13, TextColor3 = MUTED, Text = "",
 		TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 8), Size = UDim2.new(0.55, 0, 0, 16), ZIndex = 22, Active = false,
+		Position = UDim2.new(1, -12, 0, 10), Size = UDim2.new(0.55, 0, 0, 18), ZIndex = 22, Active = false,
 	}, header)
 	local rows = {}
 	for i = 1, 3 do
 		local r = mk("Frame", {
-			BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 30 + (i - 1) * 43),
-			Size = UDim2.new(1, -28, 0, 40), ZIndex = 21, Active = false,
+			BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 34 + (i - 1) * 46),
+			Size = UDim2.new(1, -28, 0, 44), ZIndex = 21, Active = false,
 		}, box)
 		local text = mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 13, TextColor3 = TEXT, Text = "",
+			BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-			Size = UDim2.new(1, -70, 0, 18), ZIndex = 22, Active = false,
+			Size = UDim2.new(1, -74, 0, 20), ZIndex = 22, Active = false,
 		}, r)
 		local gems = mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextColor3 = T.GEM, Text = "",
+			BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = T.GEM, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 1), Size = UDim2.fromOffset(70, 16), ZIndex = 22, Active = false,
+			Position = UDim2.new(1, 0, 0, 1), Size = UDim2.fromOffset(74, 18), ZIndex = 22, Active = false,
 		}, r)
 		local track = mk("Frame", {
-			BackgroundColor3 = Color3.fromRGB(18, 16, 24), Position = UDim2.fromOffset(0, 22),
-			Size = UDim2.new(1, -70, 0, 10), ZIndex = 22, Active = false,
+			-- Lifted off T.LINE: on the purple plaque a dark track reads as a
+			-- hole punched in the panel rather than as an empty bar.
+			BackgroundColor3 = Color3.fromRGB(58, 40, 122), Position = UDim2.fromOffset(0, 24),
+			Size = UDim2.new(1, -74, 0, 13), ZIndex = 22, Active = false,
 		}, r)
-		round(track, 5)
+		round(track, 7)
+		do
+			local ts = stroke(track, 2)
+			ts.Color = T.OUTLINE
+			ts.Transparency = 0
+		end
 		local fill = mk("Frame", {
-			BackgroundColor3 = Color3.fromRGB(120, 200, 255), Size = UDim2.fromScale(0, 1), ZIndex = 23, Active = false,
+			BackgroundColor3 = T.GEM, Size = UDim2.fromScale(0, 1), ZIndex = 23, Active = false,
 		}, track)
-		round(fill, 5)
+		round(fill, 7)
 		local count = mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 12, TextColor3 = TEXT, Text = "",
+			BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = TEXT, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 19), Size = UDim2.fromOffset(64, 16), ZIndex = 22, Active = false,
+			Position = UDim2.new(1, 0, 0, 21), Size = UDim2.fromOffset(68, 18), ZIndex = 22, Active = false,
 		}, r)
 		local claim = mk("TextButton", {
-			Visible = false, AutoButtonColor = true, BackgroundColor3 = T.GREEN, Font = FONT, TextSize = 13,
-			TextColor3 = Color3.fromRGB(14, 40, 20), Text = "CLAIM", AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, 0, 0, 18), Size = UDim2.fromOffset(64, 20), ZIndex = 24,
+			Visible = false, AutoButtonColor = false, BackgroundColor3 = T.GREEN, Font = FONT, TextSize = 14,
+			TextColor3 = Color3.fromRGB(255, 255, 255), Text = "CLAIM", AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, 18), Size = UDim2.fromOffset(70, 26), ZIndex = 24,
 		}, r)
-		round(claim, 6)
+		round(claim, 9)
+		if ClientFns.UI then
+			ClientFns.UI.candy(claim, "green", 2.5, false)
+			ClientFns.UI.outlineText(claim, 1.5)
+			ClientFns.UI.juice(claim)
+		end
 		claim.MouseButton1Click:Connect(function()
 			if claim.Active then
 				claim.Active = false
@@ -1932,13 +2082,6 @@ function ClientFns.paintDailyBox(list)
 		ClientFns.refreshQuestDrawerTabs()
 		return
 	end
-	-- Phone quest pill: tuck daily rows away until the ladder card is expanded.
-	if ClientFns.questIsPhone() and ClientFns.questFolded then
-		box.Visible = false
-		ClientFns.placeDailyBox()
-		ClientFns.refreshQuestDrawerTabs()
-		return
-	end
 	local done = 0
 	for _, q in ipairs(list) do
 		if q.claimed then
@@ -1956,10 +2099,12 @@ function ClientFns.paintDailyBox(list)
 			local cur = math.clamp(tonumber(q.current) or 0, 0, goal)
 			r.text.Text = tostring(q.text)
 			r.text.TextColor3 = q.claimed and MUTED or TEXT
-			r.gems.Text = q.claimed and "DONE" or ("+" .. tostring(q.reward or ""))
+			-- "+45 💎": the number and the gem, not the word (kid-friendly pass).
+			r.gems.Text = q.claimed and "DONE"
+				or (q.gems and ("+" .. Quests.short(q.gems) .. " 💎") or ("+" .. tostring(q.reward or "")))
 			r.gems.TextColor3 = q.claimed and T.GREEN or T.GEM
 			r.fill.Size = UDim2.fromScale(cur / goal, 1)
-			r.fill.BackgroundColor3 = q.claimed and T.GREEN or Color3.fromRGB(120, 200, 255)
+			r.fill.BackgroundColor3 = q.claimed and T.GREEN or T.GEM
 			r.count.Text = Quests.short(cur) .. "/" .. Quests.short(goal)
 			r.count.Visible = not q.ready
 			r.claim.Visible = q.ready and not q.claimed
@@ -1971,23 +2116,169 @@ function ClientFns.paintDailyBox(list)
 			end
 		end
 	end
-	box.Size = UDim2.fromOffset((ClientFns.questIsPhone() and 260) or 304, ClientFns.dailyFolded and 30 or (30 + #list * 43 + 6))
+	box.Size = UDim2.fromOffset(ClientFns.questWidth(), ClientFns.dailyFolded and 34 or (34 + #list * 46 + 6))
 	box.Visible = true
 	box.ClipsDescendants = false
 	ClientFns.placeDailyBox()
 	ClientFns.syncQuestDrawer()
 end
 
--- Right under the quest card, or in its place when the ladder is finished.
-function ClientFns.placeDailyBox()
-	local box = ClientFns.dailyBox
-	if not box then
+--[[
+	TODAY (TODO A2; owner, 2026-10-10): at the top of the Quests panel, one row
+	per daily thing with its timer -- the daily reward, the daily quests, gifts,
+	the wheel, the Job Board, the pass, the event pass's quests, the event mines.
+	A row that pays out now goes green and pulses, and lights the panel's dot.
+	Only ACTIVE rows show (owner: "just put active ones"): ready ones, and event
+	mines that are open; with none, the box is hidden (MineToday.active).
+	Tapping a row opens its screen (ClientFns.todayOpen). The rows themselves
+	come from MineToday.rows, which is pure and checked offline
+	(tools/verify/today.js). Folds like the daily box; starts folded on touch.
+]]
+function ClientFns.todayBoxBuild()
+	if ClientFns.todayBox then
+		return ClientFns.todayBox
+	end
+	ClientFns.Today = ClientFns.Today or require(shared:WaitForChild("MineToday"))
+	local ROW = 26
+	local box = mk("Frame", {
+		Name = "Today", Visible = false, BackgroundColor3 = T.PANEL,
+		BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, 0), Size = UDim2.fromOffset(304, 34),
+		ZIndex = 20, Active = false,
+	}, ClientFns.questPanel or gui)
+	box:SetAttribute("MineUIAdopted", true)
+	local header = mk("TextButton", {
+		BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 34), ZIndex = 22,
+	}, box)
+	mk("TextLabel", {
+		BackgroundTransparency = 1, Font = FONT, TextSize = 17, TextColor3 = GOLD,
+		Text = "TODAY", TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(16, 7), Size = UDim2.new(0.4, 0, 0, 22), ZIndex = 22, Active = false,
+	}, header)
+	local info = mk("TextLabel", {
+		BackgroundTransparency = 1, Font = FONT_M, TextSize = 14, TextColor3 = MUTED, Text = "",
+		TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 9), Size = UDim2.new(0.6, 0, 0, 18), ZIndex = 22, Active = false,
+	}, header)
+	local rows = {}
+	for i, def in ipairs(ClientFns.Today.ORDER) do
+		local r = mk("TextButton", {
+			Name = "Row_" .. def.id, BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
+			Position = UDim2.fromOffset(12, 34 + (i - 1) * ROW), Size = UDim2.new(1, -24, 0, ROW - 2), ZIndex = 21,
+		}, box)
+		local dot = mk("Frame", {
+			Visible = false, BackgroundColor3 = T.GREEN, AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 2, 0.5, 0), Size = UDim2.fromOffset(9, 9), ZIndex = 23, Active = false,
+		}, r)
+		round(dot, 5)
+		-- Icon first, then one or two words (kid-friendly pass; MineToday.ORDER).
+		local name = mk("TextLabel", {
+			BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT,
+			Text = (def.icon and (def.icon .. "  ") or "") .. def.label,
+			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
+			Position = UDim2.fromOffset(16, 0), Size = UDim2.new(0.46, -16, 1, 0), ZIndex = 22, Active = false,
+		}, r)
+		local status = mk("TextLabel", {
+			BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = MUTED, Text = "",
+			TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd,
+			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0.56, 0, 1, 0),
+			ZIndex = 22, Active = false,
+		}, r)
+		r.MouseButton1Click:Connect(function()
+			if ClientFns.todayOpen then
+				ClientFns.todayOpen(def.open)
+			end
+		end)
+		rows[def.id] = { frame = r, dot = dot, name = name, status = status }
+	end
+	mk("Frame", {
+		Name = "Divider", Visible = false, BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 12, 1, 0), Size = UDim2.new(1, -24, 0, 2),
+		ZIndex = 21, Active = false,
+	}, box)
+	ClientFns.todayFolded = UIS.TouchEnabled and true or false
+	header.MouseButton1Click:Connect(function()
+		ClientFns.todayFolded = not ClientFns.todayFolded
+		ClientFns.paintTodayBox()
+	end)
+	ClientFns.todayParts = { info = info, rows = rows, ROW = ROW }
+	ClientFns.todayBox = box
+	ClientFns.questDrawerEnsure()
+	return box
+end
+
+function ClientFns.paintTodayBox()
+	if not snap then
 		return
 	end
-	local x = questBox.Position.X.Offset
-	local y = questBox.Position.Y.Offset + (questBox.Visible and (questBox.Size.Y.Offset + 10) or 0)
-	box.Position = UDim2.new(0, x, 0, y)
-	ClientFns.refreshQuestDrawerTabs()
+	local box = ClientFns.todayBoxBuild()
+	local parts = ClientFns.todayParts
+	local Today = ClientFns.Today
+	local secs, got = ClientFns.playtimeNow()
+	-- The server's clock, so a player's wrong PC clock cannot move the timers.
+	local now = workspace:GetServerTimeNow()
+	local list = Today.rows(snap, now, {
+		giftSecs = secs,
+		giftsGot = got,
+		gifts = Quests.PLAYTIME,
+		crypt = {
+			active = C.limitedActive and C.limitedActive("hallow") or false,
+			countdown = C.limitedCountdown and C.limitedCountdown("hallow") or "closed",
+		},
+	})
+	local shown = Today.active(list)
+	local ready = Today.readyCount(shown)
+	ClientFns.todayReady = ready > 0
+	ClientFns.todayPulses = ClientFns.todayPulses or {}
+	parts.info.Text = ((ready > 0) and (ready .. " ready") or "") .. (ClientFns.todayFolded and "  +" or "")
+	parts.info.TextColor3 = (ready > 0) and T.GREEN or MUTED
+	local slot = {}
+	for i, row in ipairs(shown) do
+		slot[row.id] = i
+	end
+	for _, row in ipairs(list) do
+		local r = parts.rows[row.id]
+		if r then
+			r.frame.Visible = (slot[row.id] ~= nil) and not ClientFns.todayFolded
+			r.frame.Position = UDim2.fromOffset(12, 34 + ((slot[row.id] or 1) - 1) * parts.ROW)
+			r.status.Text = row.text
+			r.status.TextColor3 = (row.ready and T.GREEN) or (row.live and GOLD) or (row.done and MUTED) or TEXT
+			r.name.TextColor3 = row.done and MUTED or TEXT
+			r.dot.Visible = row.ready
+			-- Pulse the green ready-dot, never the status TextLabel: UIScale on
+			-- text reads as font-size flicker (owner, 2026-10-14).
+			local stop = ClientFns.todayPulses[row.id]
+			if row.ready and not stop and ClientFns.UI then
+				ClientFns.todayPulses[row.id] = ClientFns.UI.pulse(r.dot, 1.25, 0.8)
+			elseif not row.ready and stop then
+				stop()
+				ClientFns.todayPulses[row.id] = nil
+			end
+		end
+	end
+	local h = ClientFns.todayFolded and 34 or (34 + #shown * parts.ROW + 6)
+	box.Size = UDim2.fromOffset(ClientFns.questWidth(), h)
+	box.Visible = #shown > 0
+	ClientFns.layoutQuestPanel()
+end
+
+-- Timers tick between snapshots (an idle player can go a long time without one).
+function ClientFns.todayLoop()
+	if ClientFns.todayLoopOn then
+		return
+	end
+	ClientFns.todayLoopOn = true
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			pcall(ClientFns.paintTodayBox)
+		end
+	end)
+end
+
+-- Right under the quest card, or in its place when the ladder is finished.
+function ClientFns.placeDailyBox()
+	-- Both cards live in the QuestPanel now; it stacks and sizes them.
+	ClientFns.layoutQuestPanel()
 end
 
 --[[
@@ -2015,16 +2306,23 @@ depthHud.chip = mk("Frame", {
 	BackgroundTransparency = 0.06,
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -16, 0, 104),
-	Size = UDim2.fromOffset(128, 34),
+	Size = UDim2.fromOffset(140, 36),
 	ZIndex = 20,
 	Active = false,
 }, gui)
-round(depthHud.chip, 10)
-stroke(depthHud.chip, 1)
+round(depthHud.chip, 12)
+do
+	local s = stroke(depthHud.chip, 3)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+end
 depthHud.label = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT,
+	BackgroundTransparency = 1, Font = FONT, TextSize = 18, TextColor3 = TEXT,
 	Size = UDim2.fromScale(1, 1), Text = "0m", ZIndex = 21, Active = false,
 }, depthHud.chip)
+if ClientFns.UI then
+	ClientFns.UI.outlineText(depthHud.label, 2)
+end
 
 --[[
 	REBIRTH PROGRESS, ON SCREEN.
@@ -2044,36 +2342,50 @@ depthHud.rb = mk("Frame", {
 	BackgroundColor3 = BG,
 	BackgroundTransparency = 0.06,
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -16, 0, 142),
-	Size = UDim2.fromOffset(128, 38),
+	Position = UDim2.new(1, -16, 0, 146),
+	Size = UDim2.fromOffset(140, 46),
 	ZIndex = 20,
 	Active = false,
 }, gui)
-round(depthHud.rb, 10)
-stroke(depthHud.rb, 1)
+round(depthHud.rb, 12)
+do
+	local s = stroke(depthHud.rb, 3)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+end
 depthHud.rbLabel = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 12, TextColor3 = GOLD,
-	Position = UDim2.fromOffset(8, 4), Size = UDim2.new(1, -16, 0, 14),
+	BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = GOLD,
+	Position = UDim2.fromOffset(9, 4), Size = UDim2.new(1, -18, 0, 17),
 	Text = "REBIRTH 1", TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 21, Active = false,
 }, depthHud.rb)
 depthHud.rbPct = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextColor3 = MUTED,
-	Position = UDim2.fromOffset(8, 4), Size = UDim2.new(1, -16, 0, 14),
+	BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = MUTED,
+	Position = UDim2.fromOffset(9, 4), Size = UDim2.new(1, -18, 0, 17),
 	Text = "0%", TextXAlignment = Enum.TextXAlignment.Right,
 	ZIndex = 21, Active = false,
 }, depthHud.rb)
 depthHud.rbTrack = mk("Frame", {
-	BackgroundColor3 = Color3.fromRGB(36, 34, 42), BorderSizePixel = 0,
-	Position = UDim2.fromOffset(8, 22), Size = UDim2.new(1, -16, 0, 9),
+	BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+	Position = UDim2.fromOffset(9, 25), Size = UDim2.new(1, -18, 0, 13),
 	ZIndex = 21, Active = false,
 }, depthHud.rb)
-round(depthHud.rbTrack, 4)
+round(depthHud.rbTrack, 7)
+do
+	local s = stroke(depthHud.rbTrack, 2)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+end
 depthHud.rbFill = mk("Frame", {
 	BackgroundColor3 = GOLD, BorderSizePixel = 0,
 	Size = UDim2.fromScale(0, 1), ZIndex = 22, Active = false,
 }, depthHud.rbTrack)
-round(depthHud.rbFill, 4)
+round(depthHud.rbFill, 7)
+if ClientFns.UI then
+	ClientFns.UI.candyTint(depthHud.rbFill, 0)
+	ClientFns.UI.outlineText(depthHud.rbLabel, 1.5)
+	depthHud.rbLabel.TextColor3 = GOLD
+end
 
 --[[
 	THE BIG BUTTON.
@@ -2090,10 +2402,10 @@ round(depthHud.rbFill, 4)
 depthHud.button = mk("TextButton", {
 	Name = "BigAction",
 	Visible = false,
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 	BackgroundColor3 = GOLD,
 	Font = FONT,
-	TextSize = 20,
+	TextSize = 24,
 	TextColor3 = T.ON_GOLD,
 	Text = "TO SURFACE",
 	AnchorPoint = Vector2.new(0.5, 1),
@@ -2101,7 +2413,13 @@ depthHud.button = mk("TextButton", {
 	Size = UDim2.fromOffset(280, 68),
 	ZIndex = 22,
 }, gui)
-round(depthHud.button, 16)
+round(depthHud.button, 20)
+if ClientFns.UI then
+	-- Candy tint: the hue stays in BackgroundColor3 (SELL green / SURFACE gold).
+	ClientFns.UI.candyTint(depthHud.button, T.STROKE_THICK)
+	ClientFns.UI.outlineText(depthHud.button, 2.5)
+	ClientFns.UI.juice(depthHud.button)
+end
 depthHud.mode = "surface"
 depthHud.button.MouseButton1Click:Connect(function()
 	if depthHud.mode == "sell" then
@@ -2166,19 +2484,29 @@ local presL = mk("TextLabel", {
 	Active = false,
 }, gui)
 
+-- Candy pass: a chunky outlined bubble with bold text that pops in when shown.
 local toast = mk("TextLabel", {
 	Visible = false,
 	BackgroundColor3 = BG,
-	BackgroundTransparency = 0.08,
-	Font = FONT_M,
-	TextSize = 16,
+	BackgroundTransparency = 0.04,
+	Font = FONT,
+	TextSize = 18,
 	TextColor3 = TEXT,
-	Position = UDim2.new(0.5, -160, 0, 20 + GuiService:GetGuiInset().Y),
-	Size = UDim2.fromOffset(320, 36),
+	Position = UDim2.new(0.5, -190, 0, 20 + GuiService:GetGuiInset().Y),
+	Size = UDim2.fromOffset(380, 44),
+	TextWrapped = true,
 	Text = "",
 }, gui)
-round(toast)
-stroke(toast)
+round(toast, 16)
+do
+	local s = stroke(toast, 3)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new(T.CARD_HI, T.PANEL)
+	g.Rotation = 90
+	g.Parent = toast
+end
 
 -- World Pulse banner (module - MineClient is at the Luau local register cap).
 require(shared:WaitForChild("MineWorldPulseUI")).install(gui, GuiService, BG, FONT_M, TEXT, round, stroke)
@@ -2195,7 +2523,7 @@ local function shortNum(n)
 	local ok, Ab = pcall(function()
 		return require(game.ReplicatedStorage.Mine.Shared:WaitForChild("MineAbbrev"))
 	end)
-	-- currency, not format: four significant figures and floored, so a wallet
+	-- currency, not format: two decimals at most and floored, so a wallet
 	-- never rounds up and tells a player they can afford something they cannot.
 	if ok and Ab and Ab.currency then
 		return Ab.currency(n)
@@ -2208,20 +2536,31 @@ end
 local spinBar = mk("Frame", {
 	Name = "SpinUp", Visible = false, AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, -84), Size = UDim2.fromOffset(420, 16),
-	BackgroundColor3 = Color3.fromRGB(26, 24, 30), ZIndex = 20,
+	BackgroundColor3 = T.LINE, ZIndex = 20,
 }, gui)
-round(spinBar, 8)
-stroke(spinBar, 1)
+round(spinBar, 9)
+do
+	local s = stroke(spinBar, 3)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+	spinBar.Size = UDim2.fromOffset(420, 22)
+end
 local spinFill = mk("Frame", {
-	Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.fromRGB(255, 186, 74),
+	Size = UDim2.fromScale(0, 1), BackgroundColor3 = GOLD,
 	ZIndex = 21,
 }, spinBar)
-round(spinFill, 8)
+round(spinFill, 9)
+if ClientFns.UI then
+	ClientFns.UI.candyTint(spinFill, 0)
+end
 local spinText = mk("TextLabel", {
 	BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Font = FONT,
-	TextSize = 12, TextColor3 = Color3.fromRGB(255, 236, 200),
+	TextSize = 15, TextColor3 = Color3.fromRGB(255, 255, 255),
 	Text = "SPINNING UP", ZIndex = 22,
 }, spinBar)
+if ClientFns.UI then
+	ClientFns.UI.outlineText(spinText, 2)
+end
 
 local spinUntil, spinFor = 0, 1
 function ClientFns.showSpin(dur)
@@ -2233,8 +2572,17 @@ end
 -- Last time the breaking-power refusal was shown, so a held swing cannot spam it.
 
 local function showToast(t)
+	-- Kid-friendly pass: "800 Coins" reads "💰 800" in every toast (MineKidText).
+	if not ClientFns.KidText then
+		local ok, mod = pcall(require, shared:WaitForChild("MineKidText"))
+		ClientFns.KidText = ok and mod or { toast = function(s) return s end }
+	end
+	t = ClientFns.KidText.toast(t)
 	toast.Text = t
 	toast.Visible = true
+	if ClientFns.UI then
+		ClientFns.UI.pop(toast, 1.12)
+	end
 	task.delay(2.4, function()
 		if toast.Text == t then
 			toast.Visible = false
@@ -2260,6 +2608,9 @@ local function btn(parent, text, pos, size, fn)
 	}, parent)
 	round(b)
 	stroke(b)
+	if ClientFns.UI then
+		ClientFns.UI.juice(b)
+	end
 	b.MouseButton1Click:Connect(fn)
 	return b
 end
@@ -2313,23 +2664,76 @@ local function panel(name)
 		ZIndex = 30,
 		BorderSizePixel = 0,
 	}, gui)
-	round(f, 10)
-	stroke(f)
-	mk("TextLabel", {
+	round(f, 18)
+	--[[
+		Candy pass (2026-10-08): every window built here gets the same chunky
+		chrome. A fat dark outline, a violet header band, a big outlined title,
+		a big red close button, and a springy pop each time it opens.
+	]]
+	do
+		local s = stroke(f, T.STROKE_THICK)
+		s.Color = T.OUTLINE
+		s.Transparency = 0
+		local g = Instance.new("UIGradient")
+		g.Rotation = 90
+		g.Color = ColorSequence.new(T.CARD, T.INK)
+		g.Parent = f
+		-- The band is a rounded bar plus a square filler under its lower half,
+		-- both with the same sideways gradient, so it reads as one shape with
+		-- rounded top corners and a flat bottom.
+		local function band(pos, size, r)
+			local b = mk("Frame", {
+				Name = "HeaderBand", BackgroundColor3 = Color3.new(1, 1, 1),
+				Position = pos, Size = size, ZIndex = 30, Active = false,
+			}, f)
+			if r then
+				round(b, r)
+			end
+			local bg = Instance.new("UIGradient")
+			bg.Color = ColorSequence.new(T.ACCENT_DIM, T.CARD_HI)
+			bg.Parent = b
+			b:SetAttribute("MineUIAdopted", true)
+		end
+		band(UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 50), 18)
+		band(UDim2.fromOffset(0, 25), UDim2.new(1, 0, 0, 25))
+		f:GetPropertyChangedSignal("Visible"):Connect(function()
+			if f.Visible and ClientFns.UI then
+				ClientFns.UI.pop(f, 0.9)
+			end
+		end)
+	end
+	local titleL = mk("TextLabel", {
 		BackgroundTransparency = 1,
 		Font = FONT,
-		TextSize = 22,
+		TextSize = 26,
 		Text = string.upper(name),
-		Size = UDim2.new(1, -72, 0, 36),
-		Position = UDim2.fromOffset(18, 10),
+		Size = UDim2.new(1, -72, 0, 40),
+		Position = UDim2.fromOffset(18, 5),
 		TextColor3 = TEXT,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 31,
 		Active = false,
 	}, f)
-	btn(f, "X", UDim2.new(1, -48, 0, 10), UDim2.fromOffset(36, 36), function()
-		f.Visible = false
-	end)
+	if ClientFns.UI then
+		ClientFns.UI.outlineText(titleL, 2.5)
+	end
+	do
+		local close = mk("TextButton", {
+			Name = "Close", AutoButtonColor = false, Text = "X", Font = FONT, TextSize = 24,
+			TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundColor3 = T.RED,
+			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 5),
+			Size = UDim2.fromOffset(40, 40), ZIndex = 33,
+		}, f)
+		round(close, 12)
+		if ClientFns.UI then
+			ClientFns.UI.candy(close, "red", 3)
+			ClientFns.UI.outlineText(close, 2)
+			ClientFns.UI.juice(close, 1.12)
+		end
+		close.MouseButton1Click:Connect(function()
+			f.Visible = false
+		end)
+	end
 	local body = mk("ScrollingFrame", {
 		Name = "Body",
 		BackgroundTransparency = 1,
@@ -2383,7 +2787,6 @@ enchantP.Size = UDim2.fromScale(0.94, 0.92)
 if enchantP.Body then
 	enchantP.Body.Visible = false
 end
-local runesCtl
 local tradeP = panel("Trade")
 local zoneP = panel("Planets")
 local presP = panel("Rebirth")
@@ -2518,8 +2921,20 @@ local function dockBtn(asset, label, open, opts)
 		Active = false,
 		ClipsDescendants = true,
 	}, b)
-	round(plate, 12)
-	if not opts.clearPlate then
+	round(plate, 14)
+	--[[
+		Candy pass (2026-10-08): every dock button is its own colour, so a kid
+		finds "the gold one" (Shop) or "the blue one" (Inventory) without reading.
+		Colour is per caption; anything unlisted is violet.
+	]]
+	local candyKey = opts.candy or ({
+		Shop = "gold", Inventory = "blue", Trade = "green", Pass = "purple",
+		Enchanter = "magenta", Planets = "cyan", Events = "orange", Jobs = "red",
+	})[label] or "purple"
+	if ClientFns.UI and not opts.clearPlate then
+		ClientFns.UI.candy(plate, candyKey, 3)
+		ClientFns.UI.juice(b, 1.1)
+	elseif not opts.clearPlate then
 		stroke(plate, 1.5)
 	end
 	local ar = Instance.new("UIAspectRatioConstraint")
@@ -2536,16 +2951,19 @@ local function dockBtn(asset, label, open, opts)
 		Size = UDim2.fromOffset(40, 40),
 		Active = false,
 	}, plate)
-	mk("TextLabel", {
+	local cap = mk("TextLabel", {
 		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 13,
+		Font = FONT,
+		TextSize = 15,
 		TextColor3 = TEXT,
 		Text = label,
 		Position = UDim2.fromOffset(0, 56),
 		Size = UDim2.new(1, 0, 0, 22),
 		Active = false,
 	}, b)
+	if ClientFns.UI then
+		ClientFns.UI.outlineText(cap, 2)
+	end
 	b.MouseButton1Click:Connect(open)
 	return b, plate
 end
@@ -2594,31 +3012,6 @@ function ClientFns.upgradeNudge()
 	ClientFns.upgradeShown = 0
 end
 
---[[
-	WHERE A RUNE GOES, in one function, because two screens ask the question now:
-	the Enchanter, and the Runes tab in your bag. Socketing is not a purchase, so
-	it does not belong behind a walk to a machine -- buying still does.
-]]
-function ClientFns.socketRoute(item, runeId, index)
-	if type(item) ~= "table" then
-		return
-	end
-	if item.kind == "gear" then
-		net:FireServer("socketGearRune", { gearId = item.id, runeId = runeId, index = index })
-	elseif item.kind == "pet" then
-		net:FireServer("socketPetRune", { cardId = item.id, runeId = runeId })
-	elseif item.kind == "chest" then
-		net:FireServer("socketToolRune", { runeId = runeId, chestId = item.id, family = item.family })
-	elseif item.kind == "shop" then
-		net:FireServer("socketToolRune", { runeId = runeId, shopToolId = item.id, family = item.family })
-	else
-		net:FireServer("socketToolRune", {
-			runeId = runeId, family = item.family,
-			slot = (index == 1) and "main" or "omni",
-		})
-	end
-end
-
 function ClientFns.onSurface()
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not root then
@@ -2628,17 +3021,59 @@ function ClientFns.onSurface()
 	return flat.Magnitude <= (C.CAMP_RADIUS or 52)
 end
 
-dockBtn(ICONS.cart, "Shop", function()
-	-- Takes you TO the shop rather than opening one wherever you stand. The
-	-- counter is the gate: you cannot browse tools from the bottom of a shaft,
-	-- and getting there costs you your position in the mine.
-	if shopCtl and shopCtl.root.Visible then
-		shopCtl.close()
-		return
-	end
-	hidePanels()
-	net:FireServer("goTo", "shop")
-end)
+--[[
+	THE SHOP BUTTON IS GONE FROM THE DOCK, NOT FROM THE GAME.
+
+	Owner, 2026-10-11: "Move the existing Shop entry to a sensible place in the
+	navigation. Its placement is unspecified, so inspect the current UI and use
+	the existing navigation to determine where it belongs."
+
+	The navigation it belongs to already exists and already has a SHOP entry:
+	the rail down the left of the Blacksmith screen, which is where the coin
+	shelves are browsed from (MineForge.paintModes -> opts.onCoinShop). So the
+	entry is not being invented anywhere, it is being left in the one place it
+	was already doing the job, and the duplicate on the dock is removed.
+
+	WHAT THE DOCK LOSES IS A DOOR, AND FORGE PICKS IT UP. This button's real job
+	was never "open a panel" -- it was `goTo shop`, the TRAVEL that gets you to
+	the counter, and the counter is a deliberate gate: you cannot browse tools
+	from the bottom of a shaft, and getting there costs you your place in the
+	mine. The Forge button below does exactly that same travel, so the gate is
+	intact and the Blacksmith still has a way in from the world.
+
+	It also keeps the column the same length -- one button out, one in -- which
+	is what lets Events stay on the exact row it was on.
+]]
+--[[
+	THE DAILY WHEEL (owner, 2026-10-10: "we need that daily wheel working").
+	A dock button, second from the top, because a daily reward nobody can find
+	is not a daily reward. Its badge counts the free spins left (MineNotifs).
+	The emoji stands in until the art pass draws a wheel icon.
+]]
+do
+	local _, plate = dockBtn("", "Wheel", function()
+		if not groupWheelCtl then
+			return
+		end
+		if groupWheelCtl.isOpen and groupWheelCtl.isOpen() then
+			groupWheelCtl.close()
+			return
+		end
+		hidePanels()
+		groupWheelCtl.open(snap and snap.groupWheel or nil)
+	end, { candy = "gold" })
+	mk("TextLabel", {
+		Name = "WheelIcon",
+		BackgroundTransparency = 1,
+		Text = "🎡",
+		TextSize = 30,
+		Font = Enum.Font.GothamMedium,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(38, 38),
+		Active = false,
+	}, plate)
+end
 dockBtn(ICONS.card, "Inventory", function()
 	-- Replaces the Binder button. The binder is still in there, as
 	-- Inventory > Cards.
@@ -2655,6 +3090,172 @@ dockBtn(ICONS.card, "Inventory", function()
 			-- Opens on Equipment every time, whatever tab it was left on.
 			invCtl.open("inventory", "tools")
 		end
+	end
+end)
+--[[
+	FORGE GETS A DOCK BUTTON, DRAWN RATHER THAN UPLOADED.
+
+	Owner, 2026-10-11: "Move Forge to the right side where Skins is now. Use an
+	anvil icon with no background."
+
+	It had no way in from the world at all: `ClientFns.onForge` is only reachable
+	from a button INSIDE the Blacksmith screen, so the Forge was a room you could
+	only enter from another room. It sits where Skins sat; Skins moves down one
+	and keeps its button.
+
+	THE ANVIL IS FOUR FRAMES, AND THAT IS A STAND-IN, NOT THE FINISH.
+
+	MineUI.icon's own header says chrome goes through it as an uploaded PNG
+	because an earlier icon set was "hand-drawn out of Frames and UICorners,
+	which is why they read as placeholder art". This is knowingly that, for one
+	button, for one reason: the 36 charm images uploaded on 2026-10-07 still
+	return AssetFetchStatus.Failure -- real ids, creator iPressBars, pending
+	moderation -- so an anvil uploaded today would most likely draw nothing at
+	all for days.
+
+	A drawn anvil that works beats a button with an invisible icon, and the dock
+	already carries the same bargain twice: Wheel and Planets are emoji that
+	"stand in until the art pass". REPLACE THIS with an uploaded anvil PNG once
+	moderation is clear -- add it to ICONS and pass it as the first argument;
+	nothing else here has to change.
+
+	IT KEEPS THE STANDARD PLATE. Owner, 2026-10-11: "put the ui button back
+	around the forge icon."
+
+	This passed `clearPlate` for one turn, on my reading of "an anvil icon with
+	no background" as "no UI plate". Wrong reading: the plate is the button, and
+	a button with no button under it is the only one in the column sitting
+	straight on the world. "No background" meant the anvil art itself should not
+	carry one -- which four frames on a transparent plate already satisfies.
+]]
+do
+	local _, plate = dockBtn("", "Forge", function()
+		--[[
+			THE BLACKSMITH, not MineForgeView.
+
+			Two different screens in this game answer to "forge". MineForgeView
+			is the temperament fitting panel whose title bar says FORGE;
+			the BLACKSMITH (MineShopView) is the one that holds the Forge
+			itself -- every recipe, the upgrade bench, the ore pouch -- and is
+			the screen the owner's Crafting / Loadout / Upgrades bar belongs to.
+			This opens that one.
+
+			It travels rather than opening in place, because it inherits the old
+			Shop button's job: the counter is the gate, and a player should not
+			be able to browse recipes from the bottom of a shaft. `goTo` teleports
+			and the arrival opens the panel (see the route map's `shop` entry).
+		]]
+		--[[
+			THE FORGE HUB, where it exists (owner, 2026-10-11: Forge A is the
+			design, the inventory brief the features). MineForgeHub.client makes
+			Mine.ForgeHubOpen; it opens in place -- no trip to the counter, since
+			"nothing is ever too far away" (TODO §0) and the craft verb checks
+			no station. Without it, the old trip to the Blacksmith below.
+		]]
+		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
+		if hubOpen then
+			hidePanels()
+			hubOpen:Fire()
+			return
+		end
+		if shopCtl and shopCtl.root and shopCtl.root.Visible then
+			shopCtl.close()
+			return
+		end
+		hidePanels()
+		net:FireServer("goTo", "shop")
+	end)
+
+	--[[
+		THE ANVIL CENTRES ITSELF, BECAUSE I CANNOT BE TRUSTED TO.
+
+		Owner, 2026-10-11: "CENTER FORGE ICON ANVIL".
+
+		The first version was hand-placed around the plate's middle, and an
+		anvil is not a symmetrical object -- it has a horn on one side. The
+		horn ran to x -25 while the body stopped at +17, so the SILHOUETTE's
+		centre sat at x -4, y +3.5 even though every slab was positioned
+		"from the centre". It was also only 42x25 inside a 56px plate, so it
+		read small as well as off.
+
+		So the shapes are authored in whatever coordinates suit the drawing,
+		their bounding box is measured, and everything is shifted by its
+		centre at the end. Re-proportioning the anvil later cannot un-centre
+		it, which is the part that actually went wrong.
+	]]
+	local INK = Color3.fromRGB(28, 28, 34)
+	local STEEL = Color3.fromRGB(214, 220, 232)
+	local FACE = Color3.fromRGB(240, 244, 252)
+	local parts = {}
+	local function slab(w, h, x, y, colour, radius)
+		local f = mk("Frame", {
+			BackgroundColor3 = colour,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, x, 0.5, y),
+			Size = UDim2.fromOffset(w, h),
+			Active = false,
+			ZIndex = 3,
+		}, plate)
+		round(f, radius or 3)
+		local s = Instance.new("UIStroke")
+		s.Color = INK
+		s.Thickness = 2
+		s.Parent = f
+		table.insert(parts, { f = f, x = x, y = y, w = w, h = h })
+		return f
+	end
+
+	-- Bottom-up. The horn is three stepped slabs so it tapers to a point
+	-- instead of being one stub hanging off the side.
+	--
+	-- Sized to leave a margin: the first pass at these proportions measured 92%
+	-- of the plate's width in Studio, which crowds both edges and reads as the
+	-- icon being too big for its button rather than as a big icon.
+	slab(30, 8, 0, 12, STEEL, 3)     -- base / foot
+	slab(11, 10, 0, 3, STEEL, 2)     -- waist
+	slab(33, 11, 2, -7, STEEL, 4)    -- body
+	slab(26, 4, 2, -13, FACE, 2)     -- the struck face, catching the light
+	slab(8, 9, -17, -7, STEEL, 3)    -- horn, step 1
+	slab(6, 7, -22, -7, STEEL, 3)    -- horn, step 2
+	slab(4, 5, -26, -7, STEEL, 2)    -- horn, tip
+
+	-- Measure the silhouette and move it onto the plate's middle.
+	local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+	for _, p in ipairs(parts) do
+		minX = math.min(minX, p.x - p.w / 2)
+		maxX = math.max(maxX, p.x + p.w / 2)
+		minY = math.min(minY, p.y - p.h / 2)
+		maxY = math.max(maxY, p.y + p.h / 2)
+	end
+	local cx = (minX + maxX) / 2
+	local cy = (minY + maxY) / 2
+	for _, p in ipairs(parts) do
+		p.f.Position = UDim2.new(0.5, math.floor(p.x - cx + 0.5), 0.5, math.floor(p.y - cy + 0.5))
+	end
+end
+
+--[[
+	SKINS. The wardrobe: 225 of them, filtered by set, equipped per tool class.
+
+	Reusing the enchanter art until skin art lands, the same way the Pass
+	button borrows the merge arrows. Better a button a kid can find with the
+	wrong picture than a feature with no way in at all.
+]]
+dockBtn(ICONS.enchanter, "Skins", function()
+	if not skinsCtl then
+		return
+	end
+	if skinsCtl.root.Visible then
+		skinsCtl.close()
+	else
+		hidePanels()
+		-- Feed the snapshot already held, or the first open shows an empty
+		-- wardrobe until the next dig -- the bug the Inventory button hit.
+		if snap then
+			skinsCtl.setState(snap)
+		end
+		skinsCtl.open()
 	end
 end)
 -- Trading. The picker opens from here; invites and the trade window itself
@@ -2679,8 +3280,56 @@ dockBtn(ICONS.pass, "Pass", function()
 	end
 end)
 dockBtn(ICONS.enchanter, "Enchanter", function()
-	ClientFns.routePanel("enchanter", "runes")
+	ClientFns.routePanel("enchanter", "summon")
 end)
+-- A TODAY row's tap (MineToday.ORDER `open`): the same screens the dock opens.
+function ClientFns.todayOpen(where)
+	if where == "daily" or where == "pass" then
+		if invCtl then
+			hidePanels()
+			if snap then
+				invCtl.setState(snap)
+			end
+			invCtl.open(where, where)
+		end
+	elseif where == "wheel" then
+		if groupWheelCtl then
+			hidePanels()
+			groupWheelCtl.open(snap and snap.groupWheel or nil)
+		end
+	elseif where == "gifts" then
+		local g = ClientFns.giftsPanel and ClientFns.giftsPanel()
+		if g and g.toggle then
+			g.toggle(true)
+		end
+	elseif where == "fish" then
+		-- Catch of the day: claim when ready, else open the nearest pond.
+		local cotd = snap and snap.fishing and snap.fishing.catchOfDay
+		if type(cotd) == "table" and cotd.got and not cotd.claimed then
+			net:FireServer("fishClaimCotd", {})
+			return
+		end
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local best, bestD = nil, math.huge
+		if hrp then
+			for _, part in ipairs(game:GetService("CollectionService"):GetTagged("MineFishSpot")) do
+				if part:IsA("BasePart") and part:IsDescendantOf(workspace) then
+					local d = (part.Position - hrp.Position).Magnitude
+					if d < bestD then
+						bestD, best = d, part
+					end
+				end
+			end
+		end
+		if best and bestD <= 40 then
+			net:FireServer("fishOpen", { spotId = best:GetAttribute("SpotId") })
+		else
+			showToast("Walk up to a fishing spot")
+		end
+	elseif where == "jobs" or where == "events" or where == "zones" then
+		ClientFns.routePanel(where)
+	end
+end
 --[[
 	Planets dock — cute globe emoji on the same plate as every other dock btn.
 ]]
@@ -2705,35 +3354,63 @@ do
 		Active = false,
 	}, plate)
 end
-dockBtn(ICONS.events, "Events", function()
-	if not eventsCtl then
-		return
-	end
-	if eventsCtl.root.Visible then
-		eventsCtl.close()
-		return
-	end
-	hidePanels()
-	if snap then
-		eventsCtl.setState(snap)
-	end
-	eventsCtl.open()
-end)
 --[[
-	EVENTS GETS THE SAME PLATE AS EVERY OTHER DOCK BUTTON.
+	EVENTS KEEPS THE UI PLATE. THE BACKGROUND TO REMOVE IS IN THE ARTWORK.
 
-	Owner, 2026-10-05: "can you remove the background to the event icon, and then
-	put a ui button block under it, so it matches every other icon in the row".
+	Owner, 2026-10-11, with a screenshot of the icon: "remove THIS background to
+	the event icon (NOT THE UI BUTTON)".
 
-	It used to pass clearPlate, which switched off the 56px plate AND its
-	hairline, so Events was the one button in the column with nothing behind it --
-	the art sat straight on the world. That was done because the popper asset had
-	a plate baked into it, and two plates looked worse than none.
+	I had this backwards for one turn and took the plate off, which left the
+	popper's own baked-in dark square sitting straight on the world -- the one
+	button in the column with no button under it, and the baked square still
+	there. Exactly the wrong half.
 
-	Dropping clearPlate puts the standard block back. If the baked plate is still
-	in the asset the art needs a transparent re-upload; the id lives in ICONS at
-	the top of this file and nothing else has to change.
+	The plate is back. The background being removed is in the IMAGE, and it is
+	worth naming exactly what it is, because the id is commented "transparent
+	party popper (no white plate)" and that is wrong.
+
+	Rendered on a white slab in Studio beside a known-transparent control, the
+	popper shows a dark CHECKERBOARD -- the editor's transparency grid, exported
+	as real pixels. The png was saved with the checker pattern flattened into it
+	instead of with an alpha channel. No code can undo that: an ImageLabel
+	cannot key a colour out of its own source, and ImageRectOffset crops rather
+	than masks.
+
+	So the art is swapped for the glyph until a real transparent png exists.
+	This is the same bargain the dock already makes twice -- Wheel is an emoji
+	and so is Planets, both captioned as standing in until the art pass -- and
+	a clean glyph on the standard plate is strictly better than a checkerboard
+	square on it. RESTORING THE PAINTING is a one-line change: re-export the
+	popper with alpha, upload, and pass ICONS.events as dockBtn's first argument
+	again.
 ]]
+do
+	local _, plate = dockBtn("", "Events", function()
+		if not eventsCtl then
+			return
+		end
+		if eventsCtl.root.Visible then
+			eventsCtl.close()
+			return
+		end
+		hidePanels()
+		if snap then
+			eventsCtl.setState(snap)
+		end
+		eventsCtl.open()
+	end)
+	mk("TextLabel", {
+		Name = "EventIcon",
+		BackgroundTransparency = 1,
+		Text = "🎉",
+		TextSize = 30,
+		Font = Enum.Font.GothamMedium,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(38, 38),
+		Active = false,
+	}, plate)
+end
 dockBtn(ICONS.skills, "Jobs", function()
 	if depthHud.contractor then
 		if snap then
@@ -2834,11 +3511,16 @@ end
 do
 	local gear = mk("TextButton", {
 		Name = "SettingsGear", Text = "", AutoButtonColor = false, Active = true,
-		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, 10, 0.5, 0), Size = UDim2.fromOffset(48, 48),
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, 10, 0.5, 0), Size = UDim2.fromOffset(52, 52),
 		BackgroundColor3 = Color3.fromRGB(12, 14, 20), BackgroundTransparency = 0.08, ZIndex = 21,
 	}, wallet)
-	round(gear, 24)
-	stroke(gear, 1.5)
+	round(gear, 26)
+	if ClientFns.UI then
+		ClientFns.UI.candy(gear, "blue", 3, false)
+		ClientFns.UI.juice(gear, 1.1)
+	else
+		stroke(gear, 1.5)
+	end
 	for i = 0, 3 do
 		round(mk("Frame", {
 			BackgroundColor3 = GOLD, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
@@ -2850,7 +3532,7 @@ do
 		Size = UDim2.fromOffset(22, 22), ZIndex = 23, Active = false,
 	}, gear), 11)
 	round(mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(12, 14, 20), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+		BackgroundColor3 = T.OUTLINE, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(9, 9), ZIndex = 24, Active = false,
 	}, gear), 5)
 	gear.MouseButton1Click:Connect(function()
@@ -2861,11 +3543,16 @@ end
 do
 	local btn = mk("TextButton", {
 		Name = "GiftsButton", Text = "", AutoButtonColor = false, Active = true,
-		Position = UDim2.new(1, 10, 1, 8), Size = UDim2.fromOffset(48, 48),
+		Position = UDim2.new(1, 10, 1, 8), Size = UDim2.fromOffset(52, 52),
 		BackgroundColor3 = Color3.fromRGB(12, 14, 20), BackgroundTransparency = 0.08, ZIndex = 21,
 	}, wallet)
-	round(btn, 12)
-	stroke(btn, 1.5)
+	round(btn, 14)
+	if ClientFns.UI then
+		ClientFns.UI.candy(btn, "purple", 3, false)
+		ClientFns.UI.juice(btn, 1.1)
+	else
+		stroke(btn, 1.5)
+	end
 	local red = Color3.fromRGB(214, 70, 82)
 	round(mk("Frame", {
 		BackgroundColor3 = red, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.62, 0),
@@ -2886,15 +3573,23 @@ do
 		}, btn), 2)
 	end
 	local timeL = mk("TextLabel", {
-		BackgroundTransparency = 1, Font = FONT, TextSize = 12, TextColor3 = TEXT, TextStrokeTransparency = 0.4,
-		Text = "", Position = UDim2.new(0, -8, 1, 1), Size = UDim2.new(1, 16, 0, 16), ZIndex = 22, Active = false,
+		BackgroundTransparency = 1, Font = FONT, TextSize = 14, TextColor3 = TEXT, TextStrokeTransparency = 1,
+		Text = "", Position = UDim2.new(0, -10, 1, 2), Size = UDim2.new(1, 20, 0, 18), ZIndex = 22, Active = false,
 	}, btn)
+	if ClientFns.UI then
+		ClientFns.UI.outlineText(timeL, 2)
+	end
 	local badge = mk("TextLabel", {
-		BackgroundColor3 = red, Font = FONT, TextSize = 12, TextColor3 = TEXT, Text = "", Visible = false,
-		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -2, 0, 2), Size = UDim2.fromOffset(18, 18),
+		BackgroundColor3 = red, Font = FONT, TextSize = 14, TextColor3 = TEXT, Text = "", Visible = false,
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -2, 0, 2), Size = UDim2.fromOffset(22, 22),
 		ZIndex = 25, Active = false,
 	}, btn)
-	round(badge, 9)
+	round(badge, 11)
+	do
+		local s = stroke(badge, 2)
+		s.Color = T.OUTLINE
+		s.Transparency = 0
+	end
 	btn.MouseButton1Click:Connect(function()
 		ClientFns.giftsPanel().toggle()
 	end)
@@ -2927,24 +3622,29 @@ function ClientFns.layoutDock()
 	-- Start under the mine timer (it sat on top of the Shop button) and stop
 	-- short of Roblox's corner button, or of the jump button on a phone.
 	local topRoom = (GuiService:GetGuiInset().Y + 8) / k
-	if mineResetL.Visible then
-		local under = (mineResetL.AbsolutePosition.Y + mineResetL.AbsoluteSize.Y - gui.AbsolutePosition.Y) / k
-		topRoom = math.max(topRoom, under + 8)
+	-- The depth chip and the rebirth bar share the dock's right-hand column,
+	-- so the dock starts under whichever of the three is lowest (the rebirth
+	-- bar sat on top of the Wheel button; owner's screen, 2026-10-18).
+	for _, above in ipairs({ mineResetL, depthHud.chip, depthHud.rb }) do
+		if above.Visible then
+			local under = (above.AbsolutePosition.Y + above.AbsoluteSize.Y - gui.AbsolutePosition.Y) / k
+			topRoom = math.max(topRoom, under + 8)
+		end
 	end
 	local bottomRoom = UIS.TouchEnabled and 140 or 48
 	local room = screen.Y - topRoom - bottomRoom
 	local gap = 6
-	local cellW, cellH, plateS, textS = 72, 78, 56, 13
+	local cellW, cellH, plateS, textS = 74, 80, 58, 15
 	local rows, cols = n, 1
 	if n * (cellH + gap) - gap > room then
 		-- A little shorter still fits one column: just tighten the captions.
 		local tight = math.floor((room + gap) / n) - gap
 		if tight >= 66 then
-			cellH, plateS, textS = tight, math.min(56, tight - 14), 12
+			cellH, plateS, textS = tight, math.min(58, tight - 16), 14
 		else
 			-- Otherwise smaller cells, as many columns as it takes, in from the
 			-- right edge.
-			cellW, cellH, plateS, textS = 62, 66, 48, 11
+			cellW, cellH, plateS, textS = 64, 68, 48, 13
 			rows = math.clamp(math.floor((room + gap) / (cellH + gap)), 1, n)
 			cols = math.ceil(n / rows)
 			rows = math.ceil(n / cols) -- even columns rather than one full and one stub
@@ -3002,6 +3702,8 @@ function ClientFns.layoutDock()
 end
 mineResetL:GetPropertyChangedSignal("AbsolutePosition"):Connect(ClientFns.layoutDock)
 mineResetL:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
+depthHud.chip:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
+depthHud.rb:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
 ClientFns.layoutDock()
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(ClientFns.layoutDock)
 uiScale:GetPropertyChangedSignal("Scale"):Connect(ClientFns.layoutDock)
@@ -3081,8 +3783,6 @@ portalFx = PortalFX.start(function() return snap end)
 local ShopView = require(shared:WaitForChild("MineShopView"))
 local DepthShopView = require(shared:WaitForChild("MineDepthShopView"))
 local ForgeView = require(shared:WaitForChild("MineForgeView"))
-local RunesView = require(shared:WaitForChild("MineRunesView"))
-local RunesSockets = require(shared:WaitForChild("MineSocketsView"))
 -- One window for packs, cards, the chest directory, the shop and passes:
 -- sections down the left, tabs across the top. The card art comes from this
 -- file's own paintCard, so there is exactly one card renderer in the game.
@@ -3112,6 +3812,13 @@ local InventoryView = require(shared:WaitForChild("MineInventoryView"))
 invCtl = InventoryView.mount(gui, {
 	-- One rung of the ITEM bag (+100 slots for gems). Not the backpack.
 	onBuyItemSlots = function() net:FireServer("buy", "itemSlots") end,
+	--[[
+		Sign one charter level. Verbs.buyCharter has existed, complete and
+		dispatched, with no caller -- four permanent gem upgrades the currency
+		panel named to the player and nothing could buy. The verb takes a bare
+		id, not a table.
+	]]
+	onBuyCharter = function(id) net:FireServer("buyCharter", tostring(id or "")) end,
 	paintCard = function(parent, card, w) return paintCard(parent, card, w) end,
 	petViewport = function(parent, card, pos, size)
 		return ClientFns.petViewport(parent, card, pos, size)
@@ -3142,9 +3849,9 @@ invCtl = InventoryView.mount(gui, {
 		if packRevealBusy then
 			return
 		end
-		-- Gear / Rune cases: never more than 3 at once.
+		-- Gear cases: never more than 3 at once.
 		local pid = tostring(packId or "")
-		if string.find(pid, "gear", 1, true) or string.find(pid, "rune", 1, true) then
+		if string.find(pid, "gear", 1, true) then
 			count = math.min(tonumber(count) or 1, 3)
 		end
 		armPackRevealBusy()
@@ -3171,11 +3878,15 @@ invCtl = InventoryView.mount(gui, {
 	onMerge = function(id) net:FireServer("merge", { ids = { id } }) end,
 	-- Gear tab. Tools and armour are the same question -- what am I taking down
 	-- there -- so they get answered in one place.
-	-- Fuse two matching pieces into the next grade. The client names two ids
-	-- and nothing else; MineGear.canUpgrade decides on the server.
-	onUpgradeGear = function(aId, bId)
+	-- Fuse matching pieces into the next grade: three of the same hat, two of
+	-- the same face. The client names ids and nothing else; MineGear.canFuse
+	-- decides on the server.
+	onUpgradeGear = function(ids, bId)
+		if type(ids) ~= "table" then
+			ids = { ids, bId }
+		end
 		Audio.play("equip")
-		net:FireServer("upgradeGear", { a = aId, b = bId })
+		net:FireServer("upgradeGear", { ids = ids })
 	end,
 	-- `slot` is the seat the player was looking at. The server honours it when it
 	-- names a real seat and takes the first free one otherwise.
@@ -3183,14 +3894,10 @@ invCtl = InventoryView.mount(gui, {
 		Audio.play("equip")
 		net:FireServer("equipGear", { gearId = id, slot = slot })
 	end,
-			onSocketGear = function(gearId, runeId, index)
-				net:FireServer("socketGearRune", { gearId = gearId, runeId = runeId, index = index })
-			end,
 	onUnequipGear = function(slot, gearId)
 		net:FireServer("unequipGear", { slot = slot, gearId = gearId })
 	end,
 	onEquipBest = function() net:FireServer("equipBest") end,
-	onSocketAny = function(item, runeId, index) ClientFns.socketRoute(item, runeId, index) end,
 	-- The plus tile at the end of your gear: walk to the machine, open summons.
 	onGoEnchanter = function()
 		net:FireServer("introPing", 30)
@@ -3202,6 +3909,18 @@ invCtl = InventoryView.mount(gui, {
 	onEquipCharm = function(id) net:FireServer("equipCharm", id) end,
 	onUnequipCharm = function() net:FireServer("equipCharm", "") end,
 	onBuyCharmsPack = function() net:FireServer("buyCharmsPack") end,
+	--[[
+		Buy ONE named charm with temper tokens. Verbs.buyCharm has been
+		complete and dispatched with no caller -- 36 purchasable charms, F 15
+		through SSS 2,500, a whole priced shelf that nothing could reach. The
+		gem pack and the Robux charm were the only wired paths.
+
+		Only the id and the count travel: the server looks the price up from
+		the def itself, so a client cannot name its own.
+	]]
+	onBuyCharm = function(charmId, count)
+		net:FireServer("buyCharm", { charmId = tostring(charmId or ""), count = count or 1 })
+	end,
 	onEquipVfx = function(kind, id) net:FireServer("equipVfx", { kind = kind, id = id }) end,
 	onBuyVfx = function(id) net:FireServer("buyVfx", id) end,
 	onBuyLuckyCharm = function() net:FireServer("buyLuckyCharm") end,
@@ -3247,6 +3966,7 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	-- Shop -> Stardust. The server checks both stocks and the price.
 	onBuyDustPack = function(id, qty) net:FireServer("buyDustPack", { id = id, qty = qty }) end,
+	onBuyDustCase = function(id, qty) net:FireServer("buyDustCase", { id = id, qty = qty }) end,
 	onDrinkPotion = function(id) net:FireServer("drinkPotion", { id = id }) end,
 	onMergePotion = function(id) net:FireServer("mergePotion", { id = id }) end,
 	onEquipBag = function(id) net:FireServer("equipBag", { id = id }) end,
@@ -3331,12 +4051,48 @@ function ClientFns.caseScreen()
 	return ClientFns.caseCtl
 end
 
+--[[
+	MYSTERY (WILD) PACK CASES SPIN. Owner, 2026-10-10: "these myster cases are
+	meant to be like csgo slots". Each design that carries a `reel`
+	(MineCases.open) plays on the case reel, one after another: the next spin
+	waits until the player has closed the last result. `done` runs after the
+	last one.
+]]
+function ClientFns.playCaseReels(designs, done)
+	local i = 0
+	local function nextOne()
+		i += 1
+		local d = designs[i]
+		if not d then
+			if done then
+				done()
+			end
+			return
+		end
+		local screen = ClientFns.caseScreen()
+		Audio.play("open")
+		screen.play(d.reel, function()
+			task.spawn(function()
+				while screen.isOpen and screen.isOpen() do
+					task.wait(0.1)
+				end
+				nextOne()
+			end)
+		end)
+	end
+	nextOne()
+end
+
 function ClientFns.luckyScreen()
 	if ClientFns.luckyCtl then
 		return ClientFns.luckyCtl
 	end
 	local LuckyBlocks = require(shared:WaitForChild("MineLuckyBlocks"))
 	ClientFns.luckyCtl = GradeReveal.lucky(player:WaitForChild("PlayerGui"), {
+		-- The same layer as every other reveal (packs, the case reel). It was
+		-- the module default, 95: bca50ca meant to move this screen to 120 but
+		-- changed caseSpin instead.
+		displayOrder = 120,
 		shortNum = shortNum,
 		gems = function()
 			return (snap and snap.gems) or 0
@@ -3453,9 +4209,15 @@ function ClientFns.flyToBag(info)
 		task.wait(0.55)
 		holder:Destroy()
 		if target then
-			local bump = target:FindFirstChild("FlyBump") or mk("UIScale", { Name = "FlyBump", Scale = 1 }, target)
-			bump.Scale = 1.28
-			TS:Create(bump, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+			-- Through the kit's shared FxScale: the dock buttons already carry it
+			-- (juice), and Roblox ignores a second UIScale on the same frame.
+			if ClientFns.UI then
+				ClientFns.UI.pop(target, 1.28)
+			else
+				local bump = target:FindFirstChild("FlyBump") or mk("UIScale", { Name = "FlyBump", Scale = 1 }, target)
+				bump.Scale = 1.28
+				TS:Create(bump, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+			end
 		end
 		Audio.play("equip")
 	end)
@@ -3761,6 +4523,11 @@ function ClientFns.chestPopup(payload)
 	-- Soft entrance: slight ease, no Back punch.
 	sc.Scale = 0.94
 	card.Visible = true
+	-- Owner, 2026-10-08: "less dopamine with the chests". So chests stay quiet,
+	-- and only an S-rank (Ultra Rare) chest gets the small tier-1 pluck.
+	if payload.rank == "S" then
+		pcall(Audio.playWin, 1)
+	end
 	TweenService:Create(sc, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	task.delay(2.1, function()
 		if ClientFns.chestToken ~= token then
@@ -3904,33 +4671,70 @@ function ClientFns.paintDailyCalendar(state)
 			c:Destroy()
 		end
 	end
+	--[[
+		BRIGHT FACES. See the MineTheme lifted-surface note.
+
+		These were T.CARD (#221C4E, luminance 0.13) sitting on a panel at 0.09,
+		with 12px text and a 1px stroke at 0.4 transparency -- seven near-black
+		rectangles that a player had to lean in to read. They are cream cards
+		with a fat dark outline and dark text now, which is the shape the genre
+		uses, and the three states are told apart by FILL rather than by a word:
+
+		    normal   FACE, dark text
+		    claimed  FACE_DIM, muted, a green CLAIMED
+		    jackpot  a gold candy gradient -- day seven should look like money
+		    today    the gold ring and a TODAY chip
+
+		TODAY is marked with a ring and a chip rather than a UIScale: scaling a
+		layout cell is what blanked a skins tile once already, and at 6px
+		padding a 1.06 scale would have the neighbours touching.
+	]]
 	for _, d in ipairs(cal) do
 		local tile = mk("Frame", {
-			BackgroundColor3 = d.jackpot and Color3.fromRGB(78, 60, 22) or T.CARD,
-			BackgroundTransparency = d.claimed and 0.45 or 0,
+			BackgroundColor3 = d.claimed and T.FACE_DIM or T.FACE,
 			Size = UDim2.fromOffset(80, 150), LayoutOrder = d.day, ZIndex = 27, Active = false,
 		}, dailyHud.cal)
-		round(tile, 12)
-		local st = stroke(tile, d.today and 3 or 1)
-		st.Color = d.today and GOLD or (d.jackpot and GOLD or T.LINE)
-		st.Transparency = d.today and 0 or 0.4
+		round(tile, 14)
+		if d.jackpot and ClientFns.UI then
+			ClientFns.UI.candy(tile, "gold", T.STROKE_CHUNKY or 3)
+		end
+		local st = stroke(tile, d.today and (T.STROKE_THICK or 4) or (T.STROKE_CHUNKY or 3))
+		st.Color = d.today and GOLD or T.OUTLINE
+		st.Transparency = 0
+
+		local ink = d.claimed and T.ON_FACE_MUTED or T.ON_FACE
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 15,
-			TextColor3 = d.today and GOLD or (d.claimed and MUTED or TEXT),
-			Text = "DAY " .. d.day, Position = UDim2.fromOffset(0, 6), Size = UDim2.new(1, 0, 0, 18), ZIndex = 28,
+			BackgroundTransparency = 1, Font = Enum.Font.GothamBlack,
+			TextSize = T.TEXT_BODY or 16, TextColor3 = ink,
+			Text = "DAY " .. d.day, Position = UDim2.fromOffset(0, 8),
+			Size = UDim2.new(1, 0, 0, 20), ZIndex = 28,
 		}, tile)
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextWrapped = true,
-			TextColor3 = d.claimed and MUTED or TEXT, TextYAlignment = Enum.TextYAlignment.Top,
-			Text = table.concat(d.parts or {}, "\n"), Position = UDim2.fromOffset(4, 28),
-			Size = UDim2.new(1, -8, 1, -52), ZIndex = 28,
+			BackgroundTransparency = 1, Font = FONT, TextSize = T.TEXT_MIN or 14,
+			TextWrapped = true, TextColor3 = ink, TextYAlignment = Enum.TextYAlignment.Top,
+			Text = table.concat(d.parts or {}, "\n"), Position = UDim2.fromOffset(6, 32),
+			Size = UDim2.new(1, -12, 1, -58), ZIndex = 28,
 		}, tile)
+
+		-- The state chip sits ON the card, so it reads at a glance instead of
+		-- being a word in the same ink as everything else.
 		local foot = d.claimed and "CLAIMED" or (d.today and "TODAY" or (d.jackpot and "JACKPOT" or ""))
-		mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 12,
-			TextColor3 = d.claimed and T.GREEN or GOLD, Text = foot,
-			Position = UDim2.new(0, 0, 1, -22), Size = UDim2.new(1, 0, 0, 16), ZIndex = 28,
-		}, tile)
+		if foot ~= "" then
+			local chip = mk("Frame", {
+				BackgroundColor3 = d.claimed and T.GREEN or GOLD,
+				Position = UDim2.new(0, 6, 1, -28), Size = UDim2.new(1, -12, 0, 22),
+				ZIndex = 28, Active = false,
+			}, tile)
+			round(chip, 8)
+			local cs = stroke(chip, 2)
+			cs.Color = T.OUTLINE
+			cs.Transparency = 0
+			mk("TextLabel", {
+				BackgroundTransparency = 1, Font = Enum.Font.GothamBlack,
+				TextSize = T.TEXT_MIN or 14, TextColor3 = Color3.fromRGB(28, 18, 52),
+				Text = foot, Size = UDim2.fromScale(1, 1), ZIndex = 29,
+			}, chip)
+		end
 	end
 	local mult = tonumber(state.weekMult) or 1
 	dailyHud.streak.Text = ((state.streak or 0) > 0
@@ -4135,6 +4939,12 @@ end
 function ClientFns.pulseGifts()
 	local b = ClientFns.giftBtn
 	if not b then
+		return
+	end
+	if ClientFns.UI then
+		-- Shared FxScale channel, so it stacks with the button's press squash.
+		local stop = ClientFns.UI.pulse(b.btn, 1.25, 0.9)
+		task.delay(0.9 * 4, stop)
 		return
 	end
 	local sc = b.btn:FindFirstChildOfClass("UIScale") or mk("UIScale", {}, b.btn)
@@ -4762,7 +5572,7 @@ shopCtl = ShopView.mount(gui, {
 		if ClientFns.teleportToEnchanter then
 			ClientFns.teleportToEnchanter()
 		end
-		ClientFns.routePanel("enchanter", tostring(tab or "sockets"))
+		ClientFns.routePanel("enchanter", tostring(tab or "temper"))
 	end,
 	onBuyTool = function(family, tier, toolId)
 		if toolId then
@@ -4789,9 +5599,6 @@ shopCtl = ShopView.mount(gui, {
 		else
 			net:FireServer("buyCreditPack", { packId = packId })
 		end
-	end,
-	onBuyScroll = function(id, bundle)
-		net:FireServer("buyScroll", { id = id, bundle = bundle and true or nil })
 	end,
 	--[[
 		The blacksmith bench.
@@ -4837,6 +5644,39 @@ shopCtl = ShopView.mount(gui, {
 		which opens the dialog on the server's own figures. The second carries
 		confirm and performs it.
 	]]
+	--[[
+		The LOADOUT tab's three actions. Each one only names the thing; the
+		server re-checks ownership and decides, and the view redraws off the
+		snapshot that comes back rather than predicting the result.
+
+		equipOreTool reads an empty uid as "put it away", which is why the
+		unequip case needs no verb of its own.
+	]]
+	onEquipOreTool = function(uid)
+		net:FireServer("equipOreTool", { uid = uid or "" })
+	end,
+	onEquipGear = function(id, slot)
+		net:FireServer("equipGear", { gearId = id, slot = slot })
+	end,
+	onUnequipGear = function(slot, id)
+		net:FireServer("unequipGear", { slot = slot, gearId = id })
+	end,
+	--[[
+		MERGE, from the Upgrades rail. Cards are what merge -- three copies make
+		one better card -- and that lives in Inventory > Cards, so this hands the
+		player to it rather than the Blacksmith growing a second copy of a screen
+		that already works.
+	]]
+	onOpenMerge = function()
+		if not invCtl then
+			return
+		end
+		hidePanels()
+		if snap then
+			invCtl.setState(snap)
+		end
+		invCtl.open("inventory", "cards")
+	end,
 	onUpgradeOrePouch = function()
 		net:FireServer("upgradeOrePouch")
 	end,
@@ -5011,12 +5851,35 @@ eventsCtl = require(shared:WaitForChild("MineEventsView")).mount(gui, {
 	onClaim = function(zoneId)
 		net:FireServer("buyZone", zoneId)
 	end,
+	-- Buys AND opens in one action: the owner asked for candy you trade in, so
+	-- nothing is left sitting unopened in an inventory. The server re-checks
+	-- the claim, the window and the price.
+	onTrickOrTreat = function()
+		net:FireServer("buyTrickOrTreat")
+	end,
+})
+
+skinsCtl = require(shared:WaitForChild("MineSkinsView")).mount(gui, {
+	-- One skin per tool FAMILY, covering every tool in that class.
+	-- Passing no id unequips; the server owns the ownership check.
+	onEquipSkin = function(id, family)
+		net:FireServer("equipSkin", { id = id, family = family })
+	end,
 })
 
 groupWheelCtl = require(shared:WaitForChild("MineGroupWheelView")).mount(gui, {
 	net = net,
 	getGroupId = function()
 		return tonumber(C.GROUP_ID) or 0
+	end,
+})
+
+-- FISHING (TODO A3): the screen and the cast / reel minigame. On ClientFns,
+-- because the top level has few locals to spare. The server opens it from a
+-- spot's Fish prompt ("fishing" { kind = "state" }).
+ClientFns.fishingCtl = require(shared:WaitForChild("MineFishingView")).mount(gui, {
+	send = function(verb, payload)
+		net:FireServer(verb, payload)
 	end,
 })
 
@@ -5030,6 +5893,10 @@ skillCtl = SkillView.mount(gui, {
 	inCloudsCheck = function() return C.playerInClouds(player) end,
 	onBuy = function(id) net:FireServer("skillBuy", id) end,
 	onPreset = function(i) net:FireServer("skillPreset", i) end,
+	-- Buy the second preset slot, 25 skill points, in the Clouds.
+	-- Verbs.skillBuySlot was complete and dispatched with no caller, so the
+	-- padlock on that button was decorative.
+	onBuyPresetSlot = function() net:FireServer("skillBuySlot") end,
 	onReset = function() net:FireServer("skillReset") end,
 	onSell = function() net:FireServer("skillSell") end,
 	onBuyBack = function() net:FireServer("skillBuyBack") end,
@@ -5586,6 +6453,22 @@ function ClientFns.petHatPiece(card)
 	return nil
 end
 
+--[[
+	A proc's animation and sound (MineProcFx). Loaded on the first proc, and a
+	module that fails to load costs the word on screen nothing.
+]]
+function ClientFns.procFx(text, pos)
+	if ClientFns.procFxMod == nil then
+		local ok, mod = pcall(function()
+			return require(shared:WaitForChild("MineProcFx"))
+		end)
+		ClientFns.procFxMod = ok and mod or false
+	end
+	if ClientFns.procFxMod then
+		ClientFns.procFxMod.play(text, pos)
+	end
+end
+
 function ClientFns.dressPet(model, card, onDone)
 	if not (model and card) then
 		return
@@ -5740,7 +6623,6 @@ function ClientFns.paintLoot(parent, item, w)
 	local rareCol = Cards.RARITY_COLOR[item.rarityId] or TEXT
 	local FAMILY = {
 		gear = { tag = "GEAR", tint = Color3.fromRGB(86, 132, 190) },
-		rune = { tag = "RUNE", tint = Color3.fromRGB(150, 104, 200) },
 		gems = { tag = "GEMS", tint = Color3.fromRGB(90, 180, 255) },
 		coins = { tag = "COINS", tint = Color3.fromRGB(240, 200, 90) },
 		stardust = { tag = "STARDUST", tint = Color3.fromRGB(210, 160, 255) },
@@ -5762,8 +6644,6 @@ function ClientFns.paintLoot(parent, item, w)
 	local image
 	if item.kind == "gear" and item.gear then
 		image = Gear.image(item.gear)
-	elseif item.kind == "rune" and item.rune then
-		image = Icons.image(item.rune.stat)
 	elseif item.kind == "gems" then
 		image = Icons.image("gems")
 	elseif item.kind == "coins" then
@@ -5911,8 +6791,6 @@ function ClientFns.paintLoot(parent, item, w)
 	if item.kind == "gear" and item.gear then
 		pillText = (Gear.SLOT_LABEL[item.gear.slot] or item.gear.slot or "")
 			.. "  " .. tostring(item.gear.rarity or "")
-	elseif item.kind == "rune" and item.rune then
-		pillText = tostring(item.rune.kind or "") .. "  T" .. tostring(item.rune.tier or 1)
 	elseif isCurrency then
 		pillText = fam.tag
 	elseif item.kind == "tool" then
@@ -5927,22 +6805,16 @@ function ClientFns.paintLoot(parent, item, w)
 		Text = pillText,
 	}, pill)
 
-	-- The right-hand number is the reason to want it: a percentage for gear
-	-- and runes.
+	-- The right-hand number is the reason to want it: a percentage for gear.
 	local right = ""
 	if item.kind == "gear" and item.gear then
-		local slots = item.gear.slotCount or 0
-		local socketText = slots .. ((slots == 1) and " socket" or " sockets")
-		-- An amulet is a socket slot and pays no percentage at all. "+0.0%"
-		-- on one reads as a piece that failed to roll rather than as the
-		-- point of the slot.
-		right = ((item.gear.pct or 0) > 0)
-			and string.format("+%.1f%%  %s", (item.gear.pct or 0) * 100, socketText)
-			or socketText
-	elseif item.kind == "rune" and item.rune then
-		right = string.format("+%.2f%%", (item.rune.pct or 0) * 100)
+		right = ((item.gear.pct or 0) > 0) and string.format("+%.1f%%", (item.gear.pct or 0) * 100) or ""
 	elseif item.kind == "tool" and tonumber(item.power) then
 		right = "power " .. ClientFns.commas(math.floor(tonumber(item.power)))
+	elseif item.kind == "pack" and tonumber(item.stars) then
+		-- A pack out of a pack case: its stars, the number that says how good.
+		local n = tonumber(item.stars)
+		right = string.rep("★", math.floor(n)) .. ((n % 1 >= 0.5) and "½" or "")
 	end
 	mk("TextLabel", {
 		BackgroundTransparency = 1,
@@ -7010,10 +7882,13 @@ local function refreshDust()
 	if not snap then
 		return
 	end
-	local Runes = require(shared:WaitForChild("MineRunes"))
 	local Gear = require(shared:WaitForChild("MineGear"))
 
 	local sel = scrapUI.sel
+	-- The POWER-UP tab is gone: pets no longer level (owner, 2026-10-10).
+	if scrapUI.tab == "power" then
+		scrapUI.tab = "cards"
+	end
 	local tab = scrapUI.tab
 
 	-- A plain explanatory line. MineInventoryView has `note` for this; this file
@@ -7069,7 +7944,8 @@ local function refreshDust()
 	walletPill(shortNum(snap.gems or 0) .. " GEMS", T.GEM, 198)
 
 	----------------------------------------------------------------------------
-	-- Tabs. Power-up is the only one that spends, and it lives alone.
+	-- Tabs. Every one of them earns stardust; the POWER-UP tab that spent it is
+	-- gone with pet levelling.
 	----------------------------------------------------------------------------
 	local tabRow = mk("Frame", {
 		BackgroundTransparency = 1,
@@ -7077,25 +7953,21 @@ local function refreshDust()
 		LayoutOrder = 1,
 	}, dustP.Body)
 	local tabs = {
-		{ "cards", "CARDS" }, { "packs", "PACKS" }, { "runes", "RUNES" }, { "gear", "GEAR" }, { "power", "POWER-UP" },
+		{ "cards", "CARDS" }, { "packs", "PACKS" }, { "gear", "GEAR" },
 	}
 	for ti, t in ipairs(tabs) do
 		local on = (tab == t[1])
-		local spend = (t[1] == "power")
 		local b = mk("TextButton", {
 			AutoButtonColor = true,
-			BackgroundColor3 = on and (spend and GOLD or T.GREEN) or BG2,
+			BackgroundColor3 = on and T.GREEN or BG2,
 			Font = FONT,
 			TextSize = 14,
-			TextColor3 = on and Color3.fromRGB(16, 20, 16) or (spend and GOLD or MUTED),
+			TextColor3 = on and Color3.fromRGB(16, 20, 16) or MUTED,
 			Text = t[2],
 			Position = UDim2.fromOffset((ti - 1) * 118, 0),
 			Size = UDim2.fromOffset(112, 30),
 		}, tabRow)
 		round(b, 7)
-		if spend and not on then
-			stroke(b, 1, GOLD)
-		end
 		b.MouseButton1Click:Connect(function()
 			scrapUI.tab = t[1]
 			scrapUI.sel = {}
@@ -7303,26 +8175,7 @@ local function refreshDust()
 			end
 		end
 		if #list == 0 then
-			scrapNote("No card packs to scrap. Currency / rune / gear packs stay sealed.")
-		end
-
-	elseif tab == "runes" then
-		local runes = Runes.looseRunes(snap)
-		for i, r in ipairs(runes) do
-			local gems = Runes.scrapGems(r)
-			tile(i, string.format("%s %s", tostring(r.kind), tostring(r.stat)),
-				string.format("+%.1f%%   tier %s", (r.pct or 0) * 100, tostring(r.tier or 1)),
-				"+" .. shortNum(gems) .. " gems", T.GEM, T.GEM, { r.id }, function()
-				sel[r.id] = (not sel[r.id]) or nil
-				refreshDust()
-			end)
-			if sel[r.id] then
-				totalN += 1
-				totalGems += gems
-			end
-		end
-		if #runes == 0 then
-			scrapNote("No loose runes. Socketed runes cannot be scrapped -- unsocket one first.")
+			scrapNote("No card packs to scrap. Currency and gear packs stay sealed.")
 		end
 
 	elseif tab == "gear" then
@@ -7357,48 +8210,13 @@ local function refreshDust()
 			scrapNote("No spare gear. Equipped pieces are not offered.")
 		end
 
-	else
-		--[[
-			POWER-UP SPENDS. It is on its own tab for exactly that reason: on the
-			old screen it sat one row above "Scrap ... +16 stardust" in identical
-			styling, and the minus sign was the only thing telling you which way
-			the stardust was going.
-		]]
-		scrapNote("This tab SPENDS stardust to level a card. Everything else here earns it.", 0)
-		local worn = {}
-		for _, id in ipairs(snap.equipped or {}) do
-			worn[id] = true
-		end
-		local shownAny = false
-		for i, card in ipairs(snap.cards or {}) do
-			local cost = C.vipPrice(C.powerDustCost(card.powerLevel or 1), snap and snap.vip)
-			local afford = (snap.dust or 0) >= cost
-			local col = Cards.RARITY_COLOR[card.rarityId or ""] or MUTED
-			shownAny = true
-			tile(i, tostring(card.name),
-				string.format("level %d%s", card.powerLevel or 1, worn[card.id] and "  equipped" or ""),
-				"-" .. shortNum(cost) .. " stardust", afford and GOLD or Color3.fromRGB(190, 80, 80),
-				col, {}, function()
-				if not afford then
-					showToast("Not enough stardust")
-					return
-				end
-				net:FireServer("power", card.id)
-			end)
-			if i >= 120 then
-				break
-			end
-		end
-		if not shownAny then
-			scrapNote("No cards to power up.")
-		end
 	end
 
 	----------------------------------------------------------------------------
 	-- The action bar. Outside the scroll, so the totals never scroll away while
 	-- you are still choosing.
 	----------------------------------------------------------------------------
-	if tab ~= "power" then
+	do
 		local bar = mk("Frame", {
 			Name = "ScrapBar",
 			BackgroundColor3 = BG2,
@@ -7442,7 +8260,6 @@ local function refreshDust()
 
 		local kind = (tab == "cards") and "card"
 			or (tab == "packs") and "pack"
-			or (tab == "runes") and "rune"
 			or "gear"
 		local function fire(into)
 			local ids = {}
@@ -7556,7 +8373,7 @@ function ClientFns.confirmRebirth()
 			local cost = (advice and advice.cost) or (snap and snap.rebirthCost) or 0
 			local early = (snap and (snap.coins or 0) or 0) < minCoins
 			return "You lose coins, the pick ladder, and mine depth.\n"
-				.. "You keep gems, cards, runes, gear, skills, skins, charms and your ore pouch.\n\n"
+				.. "You keep gems, cards, gear, forged tools and their enchants, skills, skins, charms and your ore pouch.\n\n"
 				.. string.format("Fee %s  |  Minimum bank %s%s\n",
 					shortNum(cost), shortNum(minCoins), early and "  |  early" or "")
 				.. string.format("Rebirth %d grants %d skill points + %d temper tokens + %d gems.",
@@ -7799,6 +8616,183 @@ function ClientFns.confirmSeam(payload)
 end
 
 --[[
+	THE WANDERING TRADER'S SHELF.
+
+	Opened by the server firing "traderShop" when the stall prompt is used. The
+	payload is the whole offer -- rotation, where, how long left, and the stock
+	rows with their prices -- so this panel never computes a price or decides
+	what is on sale. It cannot: MineTrader.stockFor is the authority and
+	Verbs.buyTraderCase re-derives all of it anyway, so anything worked out here
+	could only ever disagree.
+
+	REBUILT EVERY OPEN rather than cached like the seam panel. A trader's shelf
+	is 3-5 rows that change with the rotation and differ per outpost, so a cached
+	frame would have to be diffed against a new shelf every time -- more code than
+	just making five rows, and one more thing to get wrong when a row vanishes.
+
+	The countdown is cosmetic. It ticks from `secondsLeft` so a player can see the
+	roster is about to change, but nothing is gated on it here; if it runs out
+	mid-purchase the server simply says there is no trader there.
+]]
+function ClientFns.showTraderShop(payload)
+	if type(payload) ~= "table" or type(payload.stock) ~= "table" then
+		return
+	end
+	if ClientFns.traderMenu and ClientFns.traderMenu.Parent then
+		ClientFns.traderMenu:Destroy()
+		ClientFns.traderMenu = nil
+	end
+	if ClientFns.traderTick then
+		ClientFns.traderTick:Disconnect()
+		ClientFns.traderTick = nil
+	end
+	local touch = UIS.TouchEnabled
+	local stock = payload.stock
+	local rows = math.max(1, #stock)
+	-- Height follows the shelf: a 3-row trader should not open a 5-row card with
+	-- a hole in it.
+	local rowH = touch and 62 or 58
+	local f = mk("Frame", {
+		Name = "TraderShop", AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.46),
+		Size = UDim2.new(0.9, 0, 0, 132 + rows * (rowH + 8)),
+		BackgroundColor3 = Color3.fromRGB(44, 40, 60), ZIndex = 90,
+	}, gui)
+	mk("UISizeConstraint", {
+		MinSize = Vector2.new(300, 240), MaxSize = Vector2.new(520, 560),
+	}, f)
+	ClientFns.traderMenu = f
+	round(f, 18)
+	stroke(f, 2)
+
+	mk("TextLabel", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 16),
+		Size = UDim2.new(1, -24, 0, 30), Font = FONT, TextSize = touch and 20 or 23,
+		TextColor3 = Color3.fromRGB(255, 226, 150), TextStrokeTransparency = 1,
+		Text = "WANDERING TRADER", ZIndex = 91,
+	}, f)
+	local where = mk("TextLabel", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 46),
+		Size = UDim2.new(1, -24, 0, 20), Font = FONT_M, TextSize = touch and 12 or 13,
+		TextColor3 = Color3.fromRGB(198, 202, 220), TextStrokeTransparency = 1,
+		Text = "", ZIndex = 91,
+	}, f)
+
+	local list = mk("Frame", {
+		BackgroundTransparency = 1, Position = UDim2.new(0.05, 0, 0, 74),
+		Size = UDim2.new(0.9, 0, 0, rows * (rowH + 8)), ZIndex = 91,
+	}, f)
+	mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, list)
+
+	local buys = {}
+	for i, row in ipairs(stock) do
+		local card = mk("Frame", {
+			BackgroundColor3 = Color3.fromRGB(32, 30, 46), LayoutOrder = i,
+			Size = UDim2.new(1, 0, 0, rowH), ZIndex = 91,
+		}, list)
+		round(card, 10)
+		mk("TextLabel", {
+			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 6),
+			Size = UDim2.new(0.58, 0, 0, 20), Font = FONT, TextSize = touch and 14 or 15,
+			TextColor3 = Color3.fromRGB(255, 255, 255), TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd, Text = tostring(row.name or row.caseId),
+			ZIndex = 92,
+		}, card)
+		mk("TextLabel", {
+			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 26),
+			Size = UDim2.new(0.58, 0, 0, rowH - 32), Font = FONT_M, TextSize = touch and 11 or 12,
+			TextColor3 = Color3.fromRGB(186, 190, 210), TextXAlignment = Enum.TextXAlignment.Left,
+			TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top,
+			Text = tostring(row.blurb or ""), ZIndex = 92,
+		}, card)
+		local price = math.max(0, math.floor(tonumber(row.tokens) or 0))
+		local buy = mk("TextButton", {
+			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0),
+			Size = UDim2.new(0, touch and 104 or 112, 0, touch and 40 or 38),
+			BackgroundColor3 = Color3.fromRGB(96, 190, 104), Font = FONT,
+			TextSize = touch and 13 or 14, TextColor3 = Color3.fromRGB(12, 24, 16),
+			Text = price .. " tokens", ZIndex = 92,
+		}, card)
+		round(buy, 9)
+		buys[#buys + 1] = { btn = buy, price = price }
+		buy.MouseButton1Click:Connect(function()
+			--[[
+				Fire and close. The server re-checks that a trader is there, that
+				this case is on its shelf, and what it costs -- so there is nothing
+				useful to do here but ask, and leaving the panel open would invite
+				a second click on a case already bought.
+			]]
+			net:FireServer("buyTraderCase", {
+				zoneId = payload.zoneId, seam = payload.seam, caseId = row.caseId,
+			})
+			if ClientFns.traderMenu then
+				ClientFns.traderMenu:Destroy()
+				ClientFns.traderMenu = nil
+			end
+			if ClientFns.traderTick then
+				ClientFns.traderTick:Disconnect()
+				ClientFns.traderTick = nil
+			end
+		end)
+	end
+
+	local close = mk("TextButton", {
+		AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -14),
+		Size = UDim2.new(0.5, 0, 0, touch and 40 or 36),
+		BackgroundColor3 = Color3.fromRGB(70, 66, 92), Font = FONT,
+		TextSize = touch and 14 or 15, TextColor3 = Color3.fromRGB(226, 228, 240),
+		Text = "Close", ZIndex = 92,
+	}, f)
+	round(close, 9)
+	close.MouseButton1Click:Connect(function()
+		if ClientFns.traderMenu then
+			ClientFns.traderMenu:Destroy()
+			ClientFns.traderMenu = nil
+		end
+		if ClientFns.traderTick then
+			ClientFns.traderTick:Disconnect()
+			ClientFns.traderTick = nil
+		end
+	end)
+
+	-- Header line and affordability, repainted on a tick so the countdown runs
+	-- and a purchase elsewhere greys the buttons out.
+	local left = math.max(0, math.floor(tonumber(payload.secondsLeft) or 0))
+	local at = os.clock()
+	local function repaint()
+		local remain = math.max(0, left - math.floor(os.clock() - at))
+		local have = tonumber(snap and snap.temperTokens) or 0
+		where.Text = ("%s · depth %s · %d:%02d left · %d tokens"):format(
+			tostring(payload.zoneId or "?"), tostring(payload.seam or 0),
+			math.floor(remain / 60), remain % 60, have)
+		for _, b in ipairs(buys) do
+			local afford = have >= b.price
+			b.btn.BackgroundColor3 = afford and Color3.fromRGB(96, 190, 104) or Color3.fromRGB(70, 74, 92)
+			b.btn.TextColor3 = afford and Color3.fromRGB(12, 24, 16) or Color3.fromRGB(196, 200, 216)
+			b.btn.Active = afford
+			b.btn.AutoButtonColor = afford
+		end
+	end
+	repaint()
+	-- RunService, not RS: in this file `RS` is ReplicatedStorage.
+	ClientFns.traderTick = RunService.Heartbeat:Connect(function()
+		if not (ClientFns.traderMenu and ClientFns.traderMenu.Parent) then
+			if ClientFns.traderTick then
+				ClientFns.traderTick:Disconnect()
+				ClientFns.traderTick = nil
+			end
+			return
+		end
+		-- Once a second is enough for a countdown and an affordability tint.
+		if os.clock() - (ClientFns.traderPaintAt or 0) < 1 then
+			return
+		end
+		ClientFns.traderPaintAt = os.clock()
+		repaint()
+	end)
+end
+
+--[[
 	The Rebirth screen is ONE decision: "should I press the button yet?"
 	Everything on it serves that question, in reading order: what rebirth is,
 	how close your bank is (one bar, two marked lines), what stays vs what
@@ -8016,9 +9010,9 @@ refreshPrestige = function()
 		}, card)
 	end
 	half(0, "YOU KEEP", Color3.fromRGB(130, 215, 140),
-		"Gems | cards | runes | gear\nSkills | skins | charms | ore pouch\nZones stay unlocked")
+		"Gems | cards | gear | enchants\nSkills | skins | charms | ore pouch\nZones stay unlocked")
 	half(0.5, "RESETS", Color3.fromRGB(235, 150, 130),
-		"Coins | pickaxe ladder\nBackpack | mine depth\n(runes stay in their tool slots)")
+		"Coins | pickaxe ladder\nBackpack | mine depth")
 
 	-- 4. What the next rank pays.
 	local get = mk("Frame", {
@@ -8137,21 +9131,12 @@ refreshPrestige = function()
 end
 
 --[[
-	The Enchanter has two halves now.
-
-	"Runes" is the roll/fuse bench it always was. "Sockets" is the part that was
-	previously a list of buttons reading "Socket -> pickaxe main": pick the gear
-	or tool, see its sockets laid out around it, pick a rune, click the socket.
+	The Enchanter: Summon, Temper, Salvage and Dust. Its Traits, Merge and
+	Sockets tabs left with traits and runes on 2026-10-12 (enchants live at the
+	Forge), and it opens on Summon.
 ]]
-local socketsCtl, enchantTabs, traitCtl
---[[
-	The Enchanter opens on ENCHANT now, not on the rune bench.
-
-	Traits replaced runes as the thing you come here to do (TODO 0.17),
-	so the bench being the landing tab would put the retiring system in front
-	of the one that replaced it.
-]]
-local enchantTab = "trait"
+local enchantTabs
+local enchantTab = "summon"
 
 --[[
 	SUMMON -- its own tab.
@@ -8159,8 +9144,7 @@ local enchantTab = "trait"
 	It was on the rune bench, which meant every time you went to fuse something
 	the game put a purchase in front of you. Rolling is a thing you choose to
 	go and do, so it gets its own tab and stays out of the way until you pick
-	it. Both rune and gear rolls live here; there is nowhere else either of them
-	belongs.
+	it. Gear and temperament rolls live here.
 
 	One table because MineClient is a few locals off Luau's per-function cap.
 ]]
@@ -8170,11 +9154,8 @@ function rollsTab.build(parent)
 	if rollsTab.root then
 		return
 	end
-	-- BOTH required here. Neither is a top-level local in this file (the other
-	-- users require them inside their own functions), so out here they are nil
-	-- globals -- which is why Runes.ROLL_PRICE was indexing nil and this tab
-	-- rendered with zero buttons.
-	local Runes = require(shared:WaitForChild("MineRunes"))
+	-- Required here: not a top-level local in this file (the other users
+	-- require it inside their own functions), so out here it is a nil global.
 	local Gear = require(shared:WaitForChild("MineGear"))
 	local Icons = require(shared:WaitForChild("MineIcons"))
 	rollsTab.root = mk("Frame", {
@@ -8190,7 +9171,7 @@ function rollsTab.build(parent)
 	rollsTab.haveChip = nil
 	rollsTab.buttons = {}
 	-- The per-draw price chip on each card, repainted when the price moves
-	-- (summons are a flat price at every depth: MineRunes.rollPriceFor).
+	-- (the gear and temper prices come off the snapshot).
 	rollsTab.unitChips = {}
 
 	--[[
@@ -8208,9 +9189,13 @@ function rollsTab.build(parent)
 		predicate, so adding the next token row cannot leave one of them
 		paying gems.
 	]]
-	local function spendsTokens(kind)
+	-- On rollsTab, not a local of build(): rollsTab.paint calls it too, and as
+	-- a local here it was a nil global there. So the Summon tab threw on every
+	-- repaint (found by luau-analyze, 2026-10-08).
+	function rollsTab.spendsTokens(kind)
 		return kind == "temper" or kind == "gear"
 	end
+	local spendsTokens = rollsTab.spendsTokens
 
 	local function row(title, sub, art, unit, y, tint, fire, counts, kind)
 		counts = counts or { 1, 10, 100 }
@@ -8325,23 +9310,19 @@ function rollsTab.build(parent)
 		end
 		return fallback
 	end
-	row("Rune Case", "Pet-boost runes only - T1 to T5. Fits pets, tools, or gear.",
-		art("rune"), (snap and tonumber(snap.runeRollPrice)) or Runes.ROLL_PRICE, 24,
-		Color3.fromRGB(96, 196, 128), function(n)
-			net:FireServer("rollRune", { count = n or 1 })
-		end, { 1, 10, 100 }, "rune")
 	-- Crates land in the bag and open at your own pace, so a 100x buy is not
-	-- 100 ceremonies -- same as runes. Priced in REBIRTH TOKENS now, not gems.
+	-- 100 ceremonies. Priced in REBIRTH TOKENS, not gems. (The Rune Case row
+	-- left with runes, 2026-10-12; enchant books come from the Forge now.)
 	row("Gear Case", "Hats and faces, worn by YOU. Graded F to SSS. Costs rebirth tokens.",
 		art("gear", Hats.thumb and Hats.thumb(1016143686) or nil),
-		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_TOKEN_COST or 5, 136,
+		(snap and tonumber(snap.gearRollPrice)) or Gear.ROLL_TOKEN_COST or 5, 24,
 		Color3.fromRGB(168, 140, 255), function(n)
 			net:FireServer("rollGear", { count = n or 1 })
 		end, { 1, 10, 100 }, "gear")
 	-- The case lives where the other draws live, not behind a rebirth wall.
 	row(string.upper(tostring(Temper.CASE_NAME or "Temperament Case")),
 		"Spins for one temperament, Common to Mythic. Fit it to any tool.",
-		art("temper"), tonumber(Temper.CASE_PRICE_TOKENS) or 20, 248,
+		art("temper"), tonumber(Temper.CASE_PRICE_TOKENS) or 20, 136,
 		Color3.fromRGB(255, 176, 92), function(n)
 			net:FireServer("openTemperCase", { count = n or 1 })
 		end, { 1, 10, 100 }, "temper")
@@ -8351,6 +9332,7 @@ function rollsTab.paint()
 	if not rollsTab.root or not snap then
 		return
 	end
+	local spendsTokens = rollsTab.spendsTokens
 	-- Not a top-level local (see rollsTab.build); as a bare global it was nil,
 	-- so this errored on its first line and the buttons never repainted.
 	local Icons = require(shared:WaitForChild("MineIcons"))
@@ -8363,12 +9345,11 @@ function rollsTab.paint()
 	for _, c in ipairs(rollsTab.have:GetChildren()) do
 		c:Destroy()
 	end
-	-- The header chip is the GEM purse (the rune row). The gear and temper rows
-	-- price themselves in tokens and check haveTokens, via spendsTokens above.
-	rollsTab.haveChip = Icons.priceChip(rollsTab.have, "gems", shortNum(haveGems), {
+	-- The header chip is the TOKEN purse: both rows (gear, temper) cost tokens.
+	rollsTab.haveChip = Icons.priceChip(rollsTab.have, "tokens", shortNum(haveTokens), {
 		iconSize = 18,
 		textSize = 17,
-		textColor = T.GEM,
+		textColor = T.GOLD,
 		font = FONT,
 		zIndex = 35,
 	})
@@ -8376,8 +9357,6 @@ function rollsTab.paint()
 	local function priceOf(kind)
 		if kind == "gear" then
 			return tonumber(snap.gearRollPrice)
-		elseif kind == "rune" then
-			return tonumber(snap.runeRollPrice)
 		elseif kind == "temper" then
 			-- The case is one flat price, wherever you are standing.
 			return tonumber(snap.temperCasePrice)
@@ -8456,7 +9435,6 @@ end
 ClientFns.handTargets = {
 	-- inventory
 	equipmentTab = { find = function() return ClientFns.handFind(invCtl, { "Tab_tools" }) end },
-	runesTab = { find = function() return ClientFns.handFind(invCtl, { "Tab_runes" }) end },
 	cardsTab = { find = function() return ClientFns.handFind(invCtl, { "Tab_cards" }) end },
 	petSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_pet1", "Seat_pet2", "Seat_pet3" }) end },
 	faceSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_face" }) end },
@@ -8464,7 +9442,6 @@ ClientFns.handTargets = {
 	hatSeat = { find = function() return ClientFns.handFind(invCtl, { "Seat_hat", "Seat_hat2", "Seat_hat3" }) end },
 	-- enchanter
 	caseRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_temper", true) or nil end },
-	runeRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_rune", true) or nil end },
 	gearRow = { find = function() return (enchantP and enchantP.Visible) and enchantP:FindFirstChild("Row_gear", true) or nil end },
 	goEnchanter = { find = function() return ClientFns.handFind(invCtl, { "GoEnchanter" }) end },
 }
@@ -8718,20 +9695,15 @@ function ClientFns.paintEnchantExtra()
 	end
 end
 
+-- The Enchanter's four tabs since traits and runes left (2026-10-12).
+ClientFns.ENCHANT_TABS = { summon = true, temper = true, salvage = true, dust = true }
+
 function ClientFns.showEnchantTab(id)
+	-- A retired tab ("trait", "runes", "sockets") lands on Summon.
+	if not ClientFns.ENCHANT_TABS[id] then
+		id = "summon"
+	end
 	enchantTab = id
-	if runesCtl and runesCtl.root then
-		runesCtl.root.Visible = (id == "runes")
-		if id == "runes" then
-			runesCtl.paint()
-		end
-	end
-	if socketsCtl then
-		socketsCtl.setVisible(id == "sockets")
-	end
-	if traitCtl then
-		traitCtl.setVisible(id == "trait")
-	end
 	if rollsTab.root then
 		rollsTab.root.Visible = (id == "summon")
 		if id == "summon" then
@@ -8761,45 +9733,6 @@ end
 
 local function refreshEnchanter()
 	if not snap then return end
-	if not traitCtl then
-		--[[
-			Guarded like the Forge's panels: a module missing from a build
-			should cost this one tab, not the whole Enchanter. And LOUDLY --
-			the silent version of this guard is what hid the Forge for a week.
-		]]
-		local okE, EnchantView = pcall(function()
-			return require(shared:WaitForChild("MineTraitView", 5))
-		end)
-		if okE and EnchantView and EnchantView.mount then
-			local okM, ctl = pcall(EnchantView.mount, enchantP, {
-				getSnap = function()
-					return snap or {}
-				end,
-				-- A uid and nothing else. The rarity, the trait and the
-				-- level are all rolled on the server.
-				onTrait = function(uid)
-					net:FireServer("rollTrait", { uid = uid })
-				end,
-			})
-			if okM then
-				traitCtl = ctl
-			else
-				warn("[MineClient] NO TRAIT TAB: MineTraitView.mount threw: " .. tostring(ctl))
-			end
-		else
-			warn("[MineClient] NO TRAIT TAB: ReplicatedStorage.Mine.Shared."
-				.. "MineTraitView did not resolve (" .. tostring(EnchantView) .. ").")
-		end
-	end
-	if not socketsCtl then
-		socketsCtl = RunesSockets.mount(enchantP, {
-			onSocket = ClientFns.socketRoute,
-		})
-		if socketsCtl.root then
-			socketsCtl.root.Position = UDim2.fromOffset(12, 96)
-			socketsCtl.root.Size = UDim2.new(1, -24, 1, -108)
-		end
-	end
 	if not enchantTabs then
 		enchantTabs = {}
 		local strip = mk("Frame", {
@@ -8810,10 +9743,10 @@ local function refreshEnchanter()
 			FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, strip)
-		-- Trait leads: it is the prefix on your tool, and the reason to walk
-		-- here at all. Merge/Sockets/Summon are the rune bench, which is being
-		-- retired behind it.
-		for i, t in ipairs({ { "trait", "Traits" }, { "runes", "Merge" }, { "sockets", "Sockets" }, { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
+		-- Traits, Merge and Sockets left with traits and runes (owner, 2026-10-12:
+		-- "RETIRE RUNES AND TRAITS.. ENCHNATS TAKE OVERTHAT FEILD"); enchants live
+		-- at the Forge. The owner chose to keep the Enchanter for these four.
+		for i, t in ipairs({ { "summon", "Summon" }, { "temper", "Temper" }, { "salvage", "Salvage" }, { "dust", "Dust" } }) do
 			local b = mk("TextButton", {
 				AutoButtonColor = true, BackgroundColor3 = BG2, Font = FONT, TextSize = 13,
 				TextColor3 = TEXT, Text = t[2], Size = UDim2.fromOffset(96, 36),
@@ -8829,61 +9762,6 @@ local function refreshEnchanter()
 	end
 	rollsTab.build(enchantP)
 	rollsTab.paint()
-	-- Repaint the trait tab on every open: the tool list, the prefixes and
-	-- the gem count all move while the panel is shut.
-	if traitCtl then
-		traitCtl.setVisible(enchantTab == "trait")
-	end
-	socketsCtl.setState(snap)
-	if not runesCtl then
-		if enchantP.Body then
-			enchantP.Body.Visible = false
-		end
-		for _, ch in ipairs(enchantP:GetChildren()) do
-			if ch.Name == "RunesView" then ch:Destroy() end
-		end
-		runesCtl = RunesView.mount(enchantP, {
-			--[[
-				Bulk recycle, from the rune list. Same two-call path the inventory
-				uses: this is the ASK, and the server's `confirmScrap` reply opens
-				the review (which is drawn by the inventory view but parented to
-				the screen, so it shows over the Enchanter).
-			]]
-			onScrapMany = function(kind, ids, into, confirm)
-				net:FireServer("scrapMany", {
-					kind = kind or "rune",
-					ids = ids,
-					into = into,
-					confirm = confirm and true or nil,
-				})
-			end,
-			onToast = function(msg) showToast(tostring(msg)) end,
-			onRollRune = function(count) net:FireServer("rollRune", { count = count or 1 }) end,
-			onRollGear = function(count) net:FireServer("rollGear", { count = count or 1 }) end,
-			onFuse = function(a, b) net:FireServer("fuseRune", { a = a, b = b }) end,
-			onMergeHats = function(a, b) net:FireServer("mergeHats", { a = a, b = b }) end,
-			onArmWhite = function(id) net:FireServer("armWhiteScroll", { runeId = id }) end,
-			onSocketTool = function(id, fam, slot) net:FireServer("socketToolRune", { runeId = id, family = fam, slot = slot }) end,
-			onBlackUnequip = function(fam, slot) net:FireServer("blackUnequipToolRune", { family = fam, slot = slot }) end,
-			onDestroySocket = function(fam, slot) net:FireServer("destroyToolRune", { family = fam, slot = slot }) end,
-			onApplyOmni = function(fam) net:FireServer("applyOmniscroll", { family = fam }) end,
-			onSocketPet = function(id, cardId)
-				-- cardId was never sent, so the server always answered "Unknown pet".
-				net:FireServer("socketPetRune", { runeId = id, cardId = cardId })
-			end,
-			-- Off-ladder tools. socketToolRune has always taken a chestId; the
-			-- Enchanter just never offered them as targets.
-			onSocketChestTool = function(runeId, chestId)
-				net:FireServer("socketToolRune", { runeId = runeId, chestId = chestId })
-			end,
-			onEquipGear = function(id, slot) net:FireServer("equipGear", { gearId = id, slot = slot }) end,
-		})
-		if runesCtl.root then
-			runesCtl.root.Position = UDim2.fromOffset(12, 96)
-			runesCtl.root.Size = UDim2.new(1, -24, 1, -108)
-		end
-	end
-	runesCtl.setState(snap)
 	-- Temper tab: the Forge's own list, mounted bare, so a tool's temperament can
 	-- be rolled here as well as at the Forge. Kept on ClientFns rather than in a
 	-- new top-level local; this script's top level is at the register ceiling.
@@ -10502,6 +11380,19 @@ RunService.Heartbeat:Connect(function(dt)
 				depthHud.rbPct.Text = (f >= 1) and "READY" or (math.floor(f * 100) .. "%")
 				depthHud.rbPct.TextColor3 = (f >= 1)
 					and Color3.fromRGB(150, 230, 150) or MUTED
+				-- READY throbs, the same as every other thing that pays out now.
+				local ready = f >= 1
+				if ClientFns.UI and ready ~= (depthHud.rbReady == true) then
+					depthHud.rbReady = ready
+					if depthHud.rbPulseStop then
+						depthHud.rbPulseStop()
+						depthHud.rbPulseStop = nil
+					end
+					if ready then
+						ClientFns.UI.pop(depthHud.rb, 1.15)
+						depthHud.rbPulseStop = ClientFns.UI.pulse(depthHud.rb, 1.05, 1)
+					end
+				end
 			else
 				depthHud.rb.Visible = false
 			end
@@ -10615,7 +11506,9 @@ RunService.Heartbeat:Connect(function(dt)
 		local fuse = 1 + math.max(0, tonumber(snap and snap.boosts and snap.boosts.shortFuse) or 0)
 		need = (tl.cooldown / fuse) * 1.03
 	else
-		need = (1 / math.max(0.05, (tl and tl.rate) or 2.5)) * swingSec
+		local oc = ClientFns.enchSpeed
+		local ocMult = (oc and (os.clock() - oc.at) <= oc.grace) and math.max(1, oc.mult) or 1
+		need = (1 / math.max(0.05, (tl and tl.rate) or 2.5)) * swingSec / ocMult
 	end
 	hold += dt
 	swingFill.Size = UDim2.fromScale(math.clamp(hold / need, 0, 1), 1)
@@ -10696,16 +11589,19 @@ function ClientFns.pulsePanel(f)
 end
 
 function ClientFns.pulseQuestClaim()
-	-- Intro wants the CLAIM button seen; unfold the phone pill first.
-	if ClientFns.questFolded then
-		ClientFns.questFolded = false
-		if snap then
-			pcall(ClientFns.showQuest, snap.quest)
-		end
+	-- Intro wants the CLAIM button seen; open the quest panel first.
+	if ClientFns.questDrawerOpen == false then
+		ClientFns.questDrawerPreferred = true
+		pcall(ClientFns.syncQuestDrawer)
 	end
 	task.spawn(function()
 		for _ = 1, 8 do
-			if questClaim.Visible then
+			if questClaim.Visible and ClientFns.UI then
+				-- The candy claim colours itself with a gradient, so a colour
+				-- flash would stain it. Pop it instead.
+				ClientFns.UI.pop(questClaim, 1.15)
+				task.wait(0.8)
+			elseif questClaim.Visible then
 				local tw = TweenService:Create(questClaim, TweenInfo.new(0.4), { BackgroundColor3 = Color3.fromRGB(255, 240, 170) })
 				tw:Play()
 				tw.Completed:Wait()
@@ -10719,8 +11615,38 @@ function ClientFns.pulseQuestClaim()
 	end)
 end
 
+--[[
+	Other client scripts open a MineClient screen through this, for example the
+	Forge hub's BAGS and COIN SHOP buttons: Mine.OpenPanel:Fire(name, tab).
+]]
+do
+	local openPanelEv = Instance.new("BindableEvent")
+	openPanelEv.Name = "OpenPanel"
+	openPanelEv.Parent = game:GetService("ReplicatedStorage"):WaitForChild("Mine")
+	openPanelEv.Event:Connect(function(name, tab)
+		ClientFns.routePanel(name, tab)
+	end)
+end
+
 function ClientFns.routePanel(name, tab)
 	name = tostring(name or "")
+	--[[
+		THE BLACKSMITH OPENS THE FORGE HUB (owner, 2026-10-12: "the Blacksmith
+		counter should open the Forge hub"). Every plain "shop" -- the counters,
+		the "to the Blacksmith" buttons -- lands there. A named shelf (the
+		tutorial's coin pickaxe, the hub's BAGS and COIN SHOP) still opens the
+		old shop on that shelf, since the hub sells neither.
+	]]
+	if (name == "shop" and tab == nil) or name == "forge" then
+		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
+		if hubOpen then
+			hidePanels()
+			-- "forge" + "enchant": the tutorial's step, on Upgrades > ENCHANT.
+			hubOpen:Fire((name == "forge" and tab == "enchant") and "enchant" or "counter")
+			return
+		end
+		name = "shop"
+	end
 	if name == "depth_shop" then
 		if depthShopCtl then
 			hidePanels()
@@ -10769,6 +11695,10 @@ function ClientFns.routePanel(name, tab)
 			if shopCtl then
 				if snap then shopCtl.setState(snap) end
 				shopCtl.open()
+				-- The two shelves the Forge hub sends here.
+				if (tab == "pickaxe" or tab == "backpack") and shopCtl.setTab then
+					shopCtl.setTab(tab)
+				end
 			end
 		end },
 		merge = { mergeP, refreshMerge },
@@ -11073,8 +12003,15 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if ClientFns.hotbarCtl and ClientFns.hotbarCtl.refresh then
 			pcall(ClientFns.hotbarCtl.refresh)
 		end
+		if skinsCtl and skinsCtl.root.Visible then
+			skinsCtl.setState(payload)
+		end
 		ClientFns.syncPlaytime(payload)
 		pcall(ClientFns.paintDailyBox, payload and payload.dailyQuests)
+		pcall(ClientFns.paintTodayBox)
+		if not ClientFns.todayLoopOn then
+			ClientFns.todayLoop()
+		end
 		pcall(ClientFns.upgradeNudge)
 		if not ClientFns.chestBeaconsOn then
 			ClientFns.chestBeacons()
@@ -11128,6 +12065,10 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 					end
 				end,
 			})
+			-- Keep the daily wheel panel current (spins left, countdown).
+			if groupWheelCtl and type(payload.groupWheel) == "table" then
+				groupWheelCtl.setPayload(payload.groupWheel)
+			end
 		end
 		if payload then
 			-- Always cache; only redraw if the wheel is actually on screen.
@@ -11157,9 +12098,7 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if dustP and dustP.Visible then refreshDust() end
 		if zoneP and zoneP.Visible then refreshZones() end
 		if presP and presP.Visible then refreshPrestige() end
-		if runesCtl then
-			runesCtl.setState(payload)
-		elseif enchantP and enchantP.Visible and refreshEnchanter then
+		if enchantP and enchantP.Visible and refreshEnchanter then
 			refreshEnchanter()
 		end
 		local eq = payload.equipped or {}
@@ -11249,6 +12188,8 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		end
 	elseif action == "seamGate" then
 		ClientFns.confirmSeam(payload)
+	elseif action == "traderShop" and payload then
+		ClientFns.showTraderShop(payload)
 	elseif action == "tooWeak" then
 		--[[
 			The breaking-power refusal. There were briefly two of these, from
@@ -11377,8 +12318,8 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 					ClientFns.handClear()
 				end
 				if payload.requireAction then
-					-- Soft lock (socket step): keep the bench on screen while
-					-- the step wants a socket. Bounded -- two re-opens or 45
+					-- Soft lock (a step that wants an action): keep its screen up
+					-- while the step waits. Bounded -- two re-opens or 45
 					-- seconds, whichever runs out first -- so it can never
 					-- hold the screen hostage.
 					ClientFns.introRequire = {
@@ -11399,6 +12340,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		ClientFns.routePanel("merge")
 	elseif action == "spin" then
 		ClientFns.showSpin(payload)
+	elseif action == "enchSpeed" and type(payload) == "table" then
+		-- Overclock (MineEnchants): the server's swing speed for the held tool
+		-- right now. The swing bar paces by it, and it lapses on its own after
+		-- the grace, exactly as the server's does.
+		ClientFns.enchSpeed = { mult = tonumber(payload.mult) or 1, grace = tonumber(payload.grace) or 2.5, at = os.clock() }
 	elseif action == "hit" and payload then
 		if payload.pos and payload.dmg then
 			floatText("+" .. tostring(payload.dmg), Color3.fromRGB(190, 190, 195), payload.pos)
@@ -11411,12 +12357,23 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		ClientFns.foundReveal(payload)
 	elseif action == "loot" and payload then
 		floatText(payload.text or "+1", payload.color, payload.pos)
+		-- Procs (BLAST, TIDAL WAVE, ZAP, RICOCHET, QUAKE) get an animation and a
+		-- sound on top of the word: MineProcFx.
+		ClientFns.procFx(payload.text, payload.pos)
 	elseif action == "openPanel" then
 		-- Only live screens are routable; ClientFns.routePanel (above the
 		-- dispatcher) is the one map of what exists and how it fills itself.
 		ClientFns.routePanel(payload, extra)
 	elseif action == "adminBroadcast" then
 		ClientFns.showBroadcast(payload)
+	elseif action == "fishing" then
+		local ctl = ClientFns.fishingCtl
+		if ctl then
+			if type(payload) == "table" and payload.kind == "state" and not ctl.isOpen() then
+				hidePanels()
+			end
+			ctl.onMessage(payload)
+		end
 	elseif action == "openGroupWheel" then
 		hidePanels()
 		if groupWheelCtl then
@@ -11449,8 +12406,13 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- as a ten-pack run -- one pack is just a run of length one.
 		local design = (typeof(extra) == "table") and extra or { name = tostring(extra or "Booster Pack") }
 		design.cards = payload or {}
-		-- Gear / Rune cases use the CSGO reel (not PackReveal / lucky-block).
-		if design.kind == "gear" or design.kind == "rune" then
+		-- A mystery pack case spins instead (CS:GO reel).
+		if type(design.reel) == "table" then
+			ClientFns.playCaseReels({ design }, clearPackRevealBusy)
+			return
+		end
+		-- Gear cases use the CSGO reel (not PackReveal / lucky-block).
+		if design.kind == "gear" then
 			Audio.play("open")
 			local cards = design.cards or {}
 			local n = math.min(#cards, 3)
@@ -11520,10 +12482,10 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 				end
 				return {
 					reel = reel, at = at,
-					id = (item.gear and item.gear.id) or (item.rune and item.rune.id),
+					id = item.gear and item.gear.id,
 					name = item.name,
 					rarity = winR,
-					title = design.kind == "gear" and "Gear Case" or "Rune Case",
+					title = "Gear Case",
 					kind = design.kind,
 					sub = item.sub,
 					icon = reel[at] and reel[at].icon,
@@ -11569,10 +12531,27 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- A whole run in one reply. The server has already removed the packs and
 		-- says how many of that kind are left, so the prompt needs no round trip.
 		local meta = (typeof(extra) == "table") and extra or {}
-		if revealCtl then
-			revealCtl.play(payload or {}, meta)
+		-- Mystery pack cases in the run spin first (CS:GO reel), one by one;
+		-- whatever else came out plays the usual reveal after.
+		local spins, rest = {}, {}
+		for _, d in ipairs(payload or {}) do
+			if type(d) == "table" and type(d.reel) == "table" then
+				table.insert(spins, d)
+			else
+				table.insert(rest, d)
+			end
+		end
+		local function playRest()
+			if #rest > 0 and revealCtl then
+				revealCtl.play(rest, meta)
+			else
+				clearPackRevealBusy()
+			end
+		end
+		if #spins > 0 then
+			ClientFns.playCaseReels(spins, playRest)
 		else
-			clearPackRevealBusy()
+			playRest()
 		end
 	elseif action == "luckyBlockOpened" then
 		-- Tap-through reveal; the loot is shown at the end of it.
@@ -11605,6 +12584,21 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "temperCase" and payload then
 		Audio.play("open")
 		ClientFns.caseScreen().play(payload)
+	elseif action == "luckResult" and type(payload) == "table" then
+		--[[
+			Random outcomes that used to be a toast alone: temperament rolls (the
+			F..SSS ladder). Celebrated by the REAL result. A miss gets the small
+			"no" sound, never a fanfare.
+		]]
+		pcall(function()
+			if payload.ok == false then
+				Audio.playWin(0)
+				return
+			end
+			local Celebrate = require(shared:WaitForChild("MineCelebrate"))
+			local tier = Celebrate.fromGrade(payload.grade)
+			Celebrate.burst(tier, { title = (tier >= 2) and tostring(payload.title or "") or nil })
+		end)
 	elseif action == "luckyGraded" then
 		ClientFns.luckyScreen().graded(payload)
 	elseif action == "luckyGone" then
@@ -11704,8 +12698,9 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	end
 end)
 
--- Socket-step soft lock: if the bench is closed while the tutorial still
--- wants a socket, breathe it back open. Bounded by introRequire's budget.
+-- Soft lock: if a step's screen is closed while the tutorial still wants its
+-- action (step 8: enchant your pick, at the Forge), breathe it back open.
+-- Bounded by introRequire's budget.
 task.spawn(function()
 	while true do
 		task.wait(2)
@@ -11713,9 +12708,18 @@ task.spawn(function()
 		if req then
 			if os.clock() > req.expires or req.reopens <= 0 then
 				ClientFns.introRequire = nil
-			elseif enchantP and not enchantP.Visible then
-				req.reopens -= 1
-				ClientFns.routePanel(req.panel or "enchanter", req.tab or "sockets")
+			else
+				local up
+				if req.panel == "forge" then
+					local hub = gui:FindFirstChild("ForgeHub")
+					up = hub ~= nil and hub.Visible
+				else
+					up = enchantP ~= nil and enchantP.Visible
+				end
+				if not up then
+					req.reopens -= 1
+					ClientFns.routePanel(req.panel or "enchanter", req.tab)
+				end
 			end
 		end
 	end
@@ -11763,13 +12767,15 @@ print("[Mine] client ready")
 	main chunk's 200-register ceiling.
 ]]
 function ClientFns.wireQuestHudHiders()
-	local HUD_HIDERS = { ShopPanel = true, SkillWheel = true }
+	-- ForgeHub: THE FORGE (MineForgeHub) hides the dock and wallet like the Blacksmith (owner: "AS PER USUAL").
+	local HUD_HIDERS = { ShopPanel = true, SkillWheel = true, ForgeHub = true }
 	-- Any of these open -> quest drawers auto-collapse (tabs remain for a peek).
 	local QUEST_HIDERS = {
 		SkillWheel = true,
 		ShopPanel = true,
 		Inventory = true,
 		ForgePanel = true,
+		ForgeHub = true,
 		EventsPanel = true,
 		DepthShopPanel = true,
 		GiftsPanel = true,
@@ -11783,6 +12789,7 @@ function ClientFns.wireQuestHudHiders()
 		SkillWheel = true,
 		Inventory = true,
 		ForgePanel = true,
+		ForgeHub = true,
 		EventsPanel = true,
 		DepthShopPanel = true,
 		GiftsPanel = true,
@@ -11795,12 +12802,13 @@ function ClientFns.wireQuestHudHiders()
 	local function raiseQuests(onTop)
 		local z = onTop and 85 or 20
 		if questsCovered then
-			-- Keep drawer tabs above the modal so the player can peek.
+			-- Keep the collapsed QUESTS pill above the modal so the player can peek.
 			z = 90
 		end
-		questBox.ZIndex = z
-		if ClientFns.dailyBox then
-			ClientFns.dailyBox.ZIndex = z
+		-- The QuestPanel is the top-level frame now; the two cards inside it
+		-- only order among themselves.
+		if ClientFns.questPanel then
+			ClientFns.questPanel.ZIndex = z
 		end
 		if dailyHud and dailyHud.card then
 			dailyHud.card.ZIndex = onTop and 86 or 25
@@ -11851,6 +12859,9 @@ function ClientFns.wireQuestHudHiders()
 		wallet.Visible = not cover
 		presL.Visible = not cover
 		dock.Visible = not cover
+		-- The quest panel hides with the rest of the HUD under a fullscreen
+		-- screen; layoutQuestPanel reads this. See the note there.
+		ClientFns.questHudCovered = cover
 		if hideQuests then
 			if phone then
 				ClientFns.questFolded = true
@@ -11906,9 +12917,9 @@ local function layoutTopbar()
 	end
 	presL.Position = UDim2.new(0, 22 / s, 0, (top + 10) / s)
 	wallet.Position = UDim2.new(0, 16 / s, 0, (top + 34) / s)
-	-- Wallet capsule is 60px; sit the quest card just under it with a small gap.
+	-- Wallet capsule is 64px (candy pass); sit the quest panel just under it.
 	ClientFns.questDrawerRestX = 16 / s
-	questBox.Position = UDim2.new(0, ClientFns.questDrawerRestX, 0, (top + 104) / s)
+	ClientFns.questPanelY = (top + 112) / s
 	ClientFns.placeDailyBox()
 	ClientFns.applyQuestDrawerPos(true)
 	if mineResetL then
@@ -11930,6 +12941,12 @@ end)
 			refreshMineUiScale()
 			layoutTopbar()
 			ClientFns.introPlace(introBanner.Size.X.Offset)
+			-- Rotation changes the short edge, so it changes questWidth(). The
+			-- panel owns its cards' width now, so one instant re-layout is the
+			-- whole of "the quest bar scales".
+			if ClientFns.layoutQuestPanel then
+				ClientFns.layoutQuestPanel(true)
+			end
 		end)
 	end
 
@@ -11988,8 +13005,63 @@ task.spawn(function()
 		lastInput = os.clock()
 	end
 
+	--[[
+		IN A MENU IS NOT IDLE. Owner, 2026-10-11: "make the afk not pop up when
+		in ui". A tap on a button is "game processed", and this file used to
+		drop those before resetting the idle clock -- so browsing a shop, reading
+		the cooler or holding REEL through a long fish fight (all taps and holds
+		on buttons) counted as standing still, and the AFK chill grabbed you.
+
+		inUi() is true while any screen is up: the screens that say so
+		(isOpen), the old panels, and, as a catch-all, anything big and solid
+		drawn over the world. While it is true nothing starts AFK and the tip
+		stays away.
+	]]
+	local function ctlOpen(ctl)
+		if type(ctl) ~= "table" or type(ctl.isOpen) ~= "function" then
+			return false
+		end
+		local ok, v = pcall(ctl.isOpen)
+		return ok and v == true
+	end
+	local function inUi()
+		if packRevealBusy then
+			return true
+		end
+		for _, ctl in pairs({ ClientFns.luckyCtl, ClientFns.fishingCtl, ClientFns.tradeCtl, invCtl, forgeCtl, eventsCtl,
+			groupWheelCtl, shopCtl, depthShopCtl, elevCtl, skinsCtl, skillCtl }) do
+			if ctlOpen(ctl) then
+				return true
+			end
+		end
+		for _, p in pairs(panels) do
+			if p.Visible then
+				return true
+			end
+		end
+		local pg = player:FindFirstChild("PlayerGui")
+		local cam = workspace.CurrentCamera
+		if pg and cam then
+			local area = cam.ViewportSize.X * cam.ViewportSize.Y
+			for _, sg in ipairs(pg:GetChildren()) do
+				if sg:IsA("ScreenGui") and sg.Enabled and sg.Name ~= "MineAfkUI" and sg.Name ~= "MineAfkTipUI" then
+					for _, f in ipairs(sg:GetChildren()) do
+						if f:IsA("GuiObject") and f.Visible and f.BackgroundTransparency < 0.5
+							and f.AbsoluteSize.X * f.AbsoluteSize.Y > area * 0.2 then
+							return true
+						end
+					end
+				end
+			end
+		end
+		return false
+	end
+	ClientFns.inUi = inUi
+
 	UIS.InputBegan:Connect(function(input, gp)
 		if gp then
+			-- A tap on a button is still a person playing.
+			touch()
 			return
 		end
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -12039,7 +13111,7 @@ task.spawn(function()
 	pcall(function()
 		player.Idled:Connect(function(idleTime)
 			pokeIdle()
-			if packRevealBusy then
+			if packRevealBusy or inUi() then
 				touch()
 				return
 			end
@@ -12064,6 +13136,44 @@ task.spawn(function()
 		end
 	end)
 
+	--[[
+		THE AFK PILL. Owner, 2026-10-11, on the old card ("AFK CHILL", a line
+		of stats and a Wake up button): "i see that goddamn afk thing it piosses
+		me oiff so i know its gonna mke other people mad", and "just an x button
+		is all it takes.. move get you out of it".
+
+		So it is small and says almost nothing: 💤 AFK, then what you have
+		earned since you stopped, counting up. The X only closes it -- you stay
+		AFK, still earning -- and MOVING (or jumping) is what wakes you: the
+		server's watcher (Verbs.Afk.bindMove) stops AFK on movement, and the
+		keys below do the same from here.
+	]]
+	local earned, packsGot, dismissed = 0, 0, false
+	local function short(n)
+		n = tonumber(n) or 0
+		if n >= 1e9 then
+			return string.format("%.1fB", n / 1e9)
+		elseif n >= 1e6 then
+			return string.format("%.1fM", n / 1e6)
+		elseif n >= 1e3 then
+			return string.format("%.1fK", n / 1e3)
+		end
+		return tostring(math.floor(n))
+	end
+	local function paintPill()
+		if not statusL then
+			return
+		end
+		local t = "💤 AFK"
+		if earned > 0 then
+			t = t .. "   +" .. short(earned) .. " 💰"
+		end
+		if packsGot > 0 then
+			t = t .. "   +" .. packsGot .. " 📦"
+		end
+		statusL.Text = t
+	end
+
 	local function ensureHud()
 		if gui and gui.Parent then
 			return
@@ -12076,86 +13186,92 @@ task.spawn(function()
 		gui.Enabled = false
 		gui.Parent = player:WaitForChild("PlayerGui")
 		local card = Instance.new("Frame")
+		card.Name = "Pill"
 		card.AnchorPoint = Vector2.new(0.5, 0)
 		card.Position = UDim2.new(0.5, 0, 0, 14)
-		card.Size = UDim2.fromOffset(360, 108)
-		card.BackgroundColor3 = Color3.fromRGB(22, 28, 24)
+		card.Size = UDim2.fromOffset(250, 46)
+		card.AutomaticSize = Enum.AutomaticSize.X
+		card.BackgroundColor3 = Color3.fromRGB(23, 19, 51)
 		card.BorderSizePixel = 0
 		card.Parent = gui
 		local c = Instance.new("UICorner")
-		c.CornerRadius = UDim.new(0, 12)
+		c.CornerRadius = UDim.new(1, 0)
 		c.Parent = card
-		local title = Instance.new("TextLabel")
-		title.BackgroundTransparency = 1
-		title.Position = UDim2.fromOffset(14, 10)
-		title.Size = UDim2.new(1, -28, 0, 22)
-		title.Font = Enum.Font.GothamBlack
-		title.TextSize = 16
-		title.TextColor3 = Color3.fromRGB(170, 255, 180)
-		title.TextXAlignment = Enum.TextXAlignment.Left
-		title.Text = "AFK CHILL"
-		title.Parent = card
+		local st = Instance.new("UIStroke")
+		st.Color = Color3.fromRGB(112, 226, 148)
+		st.Thickness = 3
+		st.Parent = card
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft = UDim.new(0, 18)
+		pad.PaddingRight = UDim.new(0, 54)
+		pad.Parent = card
 		statusL = Instance.new("TextLabel")
 		statusL.BackgroundTransparency = 1
-		statusL.Position = UDim2.fromOffset(14, 36)
-		statusL.Size = UDim2.new(1, -28, 0, 34)
-		statusL.Font = Enum.Font.Gotham
-		statusL.TextSize = 13
-		statusL.TextColor3 = Color3.fromRGB(210, 220, 215)
+		statusL.AutomaticSize = Enum.AutomaticSize.X
+		statusL.Size = UDim2.new(0, 0, 1, 0)
+		statusL.Font = Enum.Font.BuilderSansBold
+		statusL.TextSize = 22
+		statusL.TextColor3 = Color3.fromRGB(236, 234, 255)
 		statusL.TextXAlignment = Enum.TextXAlignment.Left
-		statusL.TextWrapped = true
-		statusL.Text = "Mining slowly..."
+		statusL.Text = "💤 AFK"
 		statusL.Parent = card
 		wakeBtn = Instance.new("TextButton")
-		wakeBtn.AnchorPoint = Vector2.new(0.5, 1)
-		wakeBtn.Position = UDim2.new(0.5, 0, 1, -10)
-		wakeBtn.Size = UDim2.fromOffset(140, 28)
-		wakeBtn.BackgroundColor3 = Color3.fromRGB(90, 200, 120)
-		wakeBtn.Font = Enum.Font.GothamBold
-		wakeBtn.TextSize = 14
-		wakeBtn.TextColor3 = Color3.fromRGB(16, 22, 18)
-		wakeBtn.Text = "Wake up"
+		wakeBtn.Name = "Close"
+		wakeBtn.AnchorPoint = Vector2.new(1, 0.5)
+		wakeBtn.Position = UDim2.new(1, 46, 0.5, 0)
+		wakeBtn.Size = UDim2.fromOffset(34, 34)
+		wakeBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 70)
+		wakeBtn.Font = Enum.Font.BuilderSansBold
+		wakeBtn.TextSize = 20
+		wakeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		wakeBtn.Text = "X"
 		wakeBtn.Parent = card
 		local wc = Instance.new("UICorner")
-		wc.CornerRadius = UDim.new(0, 8)
+		wc.CornerRadius = UDim.new(1, 0)
 		wc.Parent = wakeBtn
+		local ws = Instance.new("UIStroke")
+		ws.Color = Color3.fromRGB(20, 12, 44)
+		ws.Thickness = 2
+		ws.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		ws.Parent = wakeBtn
 		wakeBtn.MouseButton1Click:Connect(function()
-			touch()
-			net:FireServer("afkStop")
+			-- Close the pill; stay AFK. Moving is what wakes you.
+			dismissed = true
+			gui.Enabled = false
 		end)
 	end
 
 	ClientFns.onAfkState = function(payload)
 		ensureHud()
 		afkLocal = payload and payload.active and true or false
-		gui.Enabled = afkLocal
 		if afkLocal then
 			tipShown = true
-			local sec = math.floor(tonumber(payload.interval) or 30)
-			statusL.Text = string.format(
-				"~%ds / block | %d coins | packs scale with luck + chest luck",
-				sec,
-				tonumber(payload.coins) or 3
-			)
+			earned, packsGot, dismissed = 0, 0, false
+			paintPill()
 		else
 			touch()
 		end
+		gui.Enabled = afkLocal and not dismissed
 	end
 
 	ClientFns.onAfkMine = function(payload)
 		ensureHud()
-		if not gui.Enabled then
+		earned += tonumber(payload and payload.coins) or 0
+		if payload and payload.pack then
+			packsGot += 1
+		end
+		if dismissed or not gui.Enabled then
 			return
 		end
-		local sec = math.floor(tonumber(payload and payload.interval) or 30)
-		local line = string.format("+%d coins | next ~%ds", tonumber(payload and payload.coins) or 3, sec)
-		if payload and payload.pack then
-			line = line .. " | PACK " .. tostring(payload.pack)
+		paintPill()
+		if ClientFns.UI and ClientFns.UI.popNumber then
+			pcall(ClientFns.UI.popNumber, statusL)
 		end
-		statusL.Text = line
 	end
 
-	-- once, early, while they are still here -- not after they have gone.
+	-- Once, early, while they are still here -- not after they have gone. A
+	-- pill, not a paragraph (owner: kids, "not a grown man who knows how to
+	-- read fluent english"); it goes on its own, or with its X.
 	-- Deliberately does not call busyOpening(): that local is declared below
 	-- this one, so from in here the name would resolve to a nil global.
 	local function showAfkTip()
@@ -12172,50 +13288,30 @@ task.spawn(function()
 		local tc = Instance.new("TextButton")
 		tc.AnchorPoint = Vector2.new(0.5, 0)
 		tc.Position = UDim2.new(0.5, 0, 0, 14)
-		tc.Size = UDim2.fromOffset(430, 94)
-		tc.BackgroundColor3 = Color3.fromRGB(22, 28, 24)
+		tc.Size = UDim2.fromOffset(300, 46)
+		tc.BackgroundColor3 = Color3.fromRGB(23, 19, 51)
 		tc.BorderSizePixel = 0
 		tc.AutoButtonColor = false
-		tc.Text = ""
+		tc.Font = Enum.Font.BuilderSansBold
+		tc.TextSize = 22
+		tc.TextColor3 = Color3.fromRGB(236, 234, 255)
+		tc.Text = "💤 AFK = FREE 💰 + 📦     X"
 		tc.Parent = tg
 		local tcc = Instance.new("UICorner")
-		tcc.CornerRadius = UDim.new(0, 12)
+		tcc.CornerRadius = UDim.new(1, 0)
 		tcc.Parent = tc
 		local ts = Instance.new("UIStroke")
-		ts.Color = Color3.fromRGB(90, 200, 120)
-		ts.Thickness = 2
+		ts.Color = Color3.fromRGB(112, 226, 148)
+		ts.Thickness = 3
+		ts.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		ts.Parent = tc
-		local tt = Instance.new("TextLabel")
-		tt.BackgroundTransparency = 1
-		tt.Position = UDim2.fromOffset(14, 9)
-		tt.Size = UDim2.new(1, -28, 0, 20)
-		tt.Font = Enum.Font.GothamBlack
-		tt.TextSize = 15
-		tt.TextColor3 = Color3.fromRGB(170, 255, 180)
-		tt.TextXAlignment = Enum.TextXAlignment.Left
-		tt.Text = "YOU KEEP MINING WHILE AFK"
-		tt.Parent = tc
-		local tb = Instance.new("TextLabel")
-		tb.BackgroundTransparency = 1
-		tb.Position = UDim2.fromOffset(14, 32)
-		tb.Size = UDim2.new(1, -28, 0, 48)
-		tb.Font = Enum.Font.Gotham
-		tb.TextSize = 13
-		tb.TextColor3 = Color3.fromRGB(210, 220, 215)
-		tb.TextXAlignment = Enum.TextXAlignment.Left
-		tb.TextYAlignment = Enum.TextYAlignment.Top
-		tb.TextWrapped = true
-		tb.Text = "Stand still 5 minutes and you mine on your own -- coins and free packs"
-			.. " keep rolling in while you are away. Leave the game open instead of"
-			.. " closing it.  (tap to dismiss)"
-		tb.Parent = tc
 		local function closeTip()
 			if tg and tg.Parent then
 				tg:Destroy()
 			end
 		end
 		tc.MouseButton1Click:Connect(closeTip)
-		task.delay(11, closeTip)
+		task.delay(6, closeTip)
 	end
 
 
@@ -12233,12 +13329,12 @@ task.spawn(function()
 	task.spawn(function()
 		while true do
 			task.wait(1.25)
-			if not tipShown and os.clock() - sessionStart >= 165 and not busyOpening() then
+			if not tipShown and os.clock() - sessionStart >= 165 and not busyOpening() and not inUi() then
 				showAfkTip()
 			end
 			if afkLocal then
 				-- Stay AFK until Wake or actual movement (WASD / jump / stick).
-			elseif busyOpening() then
+			elseif busyOpening() or inUi() then
 				touch()
 			elseif os.clock() - lastInput >= IDLE_SEC then
 				net:FireServer("afkStart")
@@ -12262,9 +13358,19 @@ end)
 	budget, so a plain block of locals here would break the whole client.
 ]]
 task.spawn(function()
+	--[[
+		MineOreFace replaces MineOreArt here. The old path looked the ore up in
+		Cfg.ORE_FACE -- an index into THIRTY hand-packed tiles shared across 82
+		ores, so most ores wore someone else's face -- and hung six tiling
+		Textures per block. The new one draws the ore's own colour and material
+		and hangs Decals, which have no tiling to drift at block edges.
+
+		MineOreArt is left in the tree: it still owns the packed-tile pipeline
+		and nothing else was asked to change about it.
+	]]
 	local okArt, Art = pcall(function()
 		return require(game:GetService("ReplicatedStorage")
-			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineOreArt"))
+			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineOreFace"))
 	end)
 	if not okArt or not Art then
 		return
@@ -12273,7 +13379,7 @@ task.spawn(function()
 		return require(game:GetService("ReplicatedStorage")
 			:WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineConfig"))
 	end)
-	if not okCfg or not Cfg or type(Cfg.ORE_FACE) ~= "table" then
+	if not okCfg or not Cfg or not Cfg.oreById then
 		return
 	end
 
@@ -12285,12 +13391,14 @@ task.spawn(function()
 		if type(id) ~= "string" then
 			return
 		end
-		local index = Cfg.ORE_FACE[id]
-		if not index then
+		-- The whole roster row, not an index: the face is drawn from the ore's
+		-- own colour, met, rough and glow.
+		local ore = Cfg.oreById(id)
+		if not ore then
 			return
 		end
 		pcall(function()
-			Art.apply(part, index)
+			Art.apply(part, ore)
 		end)
 	end
 

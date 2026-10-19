@@ -1,0 +1,1078 @@
+{
+  "key": "lost_and_found",
+  "bodies": [
+    {
+      "id": "lf_compass",
+      "label": "Compass",
+      "role": "Seeker"
+    },
+    {
+      "id": "lf_map",
+      "label": "Map",
+      "role": "Prospector"
+    },
+    {
+      "id": "lf_bottle",
+      "label": "Bottle",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "lf_teapot",
+      "label": "Teapot",
+      "role": "Mystic"
+    },
+    {
+      "id": "lf_pouch",
+      "label": "Pouch",
+      "role": "Trader"
+    },
+    {
+      "id": "lf_marble",
+      "label": "Marble",
+      "role": "Striker"
+    },
+    {
+      "id": "lf_spool",
+      "label": "Thread Spool",
+      "role": "Bruiser"
+    },
+    {
+      "id": "lf_conch",
+      "label": "Beach Conch",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "lf_pail",
+      "label": "Sand Pail",
+      "role": "Digger"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "lf_t_sock",
+      "label": "Runaway Sock",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        225,
+        45,
+        60
+      ]
+    },
+    {
+      "id": "lf_t_tape",
+      "label": "Tape Measure",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        240,
+        90,
+        30
+      ]
+    },
+    {
+      "id": "lf_t_thimble",
+      "label": "Thimble Snoozer",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        225,
+        225,
+        235
+      ]
+    },
+    {
+      "id": "lf_t_lens",
+      "label": "Lens Peeper",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        214,
+        170,
+        60
+      ]
+    },
+    {
+      "id": "lf_t_spyglass",
+      "label": "Spyglass Dachshund",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        150,
+        90,
+        50
+      ]
+    },
+    {
+      "id": "lf_t_glider",
+      "label": "Paper Glider",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        170,
+        220,
+        70
+      ]
+    },
+    {
+      "id": "lf_t_teddy",
+      "label": "Attic Teddy",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        240,
+        160,
+        110
+      ]
+    },
+    {
+      "id": "lf_t_duck",
+      "label": "Beachcomb Ducky",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        255,
+        214,
+        40
+      ]
+    },
+    {
+      "id": "lf_t_robot",
+      "label": "Tin Toy Robot",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        140,
+        160,
+        190
+      ]
+    },
+    {
+      "id": "lf_t_brolly",
+      "label": "Puddle Brolly",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        90,
+        190,
+        250
+      ]
+    },
+    {
+      "id": "lf_t_packrat",
+      "label": "Trinket Packrat",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        170,
+        150,
+        130
+      ]
+    },
+    {
+      "id": "lf_t_jigsaw",
+      "label": "Jigsaw Piece",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        235,
+        60,
+        170
+      ]
+    },
+    {
+      "id": "lf_t_mitten",
+      "label": "Kitten Mitten",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        40,
+        200,
+        210
+      ]
+    },
+    {
+      "id": "lf_t_welly",
+      "label": "Muddy Welly",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        50,
+        160,
+        70
+      ]
+    },
+    {
+      "id": "lf_t_pigeon",
+      "label": "Postbag Pigeon",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        120,
+        140,
+        220
+      ]
+    },
+    {
+      "id": "lf_t_sandcastle",
+      "label": "Sandcastle",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        250,
+        215,
+        160
+      ]
+    },
+    {
+      "id": "lf_t_piggy",
+      "label": "Penny Piggy",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        150,
+        190
+      ]
+    },
+    {
+      "id": "lf_t_tophat",
+      "label": "Bunny Top Hat",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        70,
+        40,
+        120
+      ]
+    },
+    {
+      "id": "lf_t_phone",
+      "label": "Rotary Phone",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        230,
+        90,
+        140
+      ]
+    },
+    {
+      "id": "lf_t_cuckoo",
+      "label": "Cuckoo Chalet",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        170,
+        110,
+        60
+      ]
+    },
+    {
+      "id": "lf_t_gramophone",
+      "label": "Gramophone Bud",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        240,
+        130,
+        40
+      ]
+    },
+    {
+      "id": "lf_t_helmet",
+      "label": "Diving Helmet",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        230,
+        190,
+        70
+      ]
+    },
+    {
+      "id": "lf_t_trunk",
+      "label": "Steamer Trunk",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        30,
+        140,
+        150
+      ]
+    },
+    {
+      "id": "lf_t_camera",
+      "label": "Bellows Camera",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        60,
+        50
+      ]
+    },
+    {
+      "id": "lf_t_globe",
+      "label": "Desk Globe",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        120,
+        220
+      ]
+    },
+    {
+      "id": "lf_t_parrot",
+      "label": "Chart Parrot",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        200,
+        80
+      ]
+    },
+    {
+      "id": "lf_t_beagle",
+      "label": "Detector Beagle",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        225,
+        160,
+        90
+      ]
+    },
+    {
+      "id": "lf_t_jackalope",
+      "label": "Curio Jackalope",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        160,
+        120,
+        220
+      ]
+    },
+    {
+      "id": "lf_t_inkwell",
+      "label": "Inkwell Quill",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        60,
+        160
+      ]
+    },
+    {
+      "id": "lf_t_typewriter",
+      "label": "Clacky Typewriter",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        60,
+        170,
+        110
+      ]
+    },
+    {
+      "id": "lf_t_snowdome",
+      "label": "Snowdome Hamlet",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        90,
+        170,
+        240
+      ]
+    },
+    {
+      "id": "lf_t_piano",
+      "label": "Parlour Piano",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        150,
+        40,
+        70
+      ]
+    },
+    {
+      "id": "lf_t_bookcase",
+      "label": "Secret Bookcase",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        130,
+        70,
+        45
+      ]
+    },
+    {
+      "id": "lf_t_rug",
+      "label": "Flying Rug",
+      "role": "Trader",
+      "tier": "Mythic",
+      "tint": [
+        220,
+        120,
+        30
+      ]
+    },
+    {
+      "id": "lf_t_blimp",
+      "label": "Explorer Blimp",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        90,
+        200,
+        160
+      ]
+    },
+    {
+      "id": "lf_t_locket",
+      "label": "Heart Locket",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        240,
+        80,
+        140
+      ]
+    },
+    {
+      "id": "lf_t_anchor",
+      "label": "Barnacle Anchor",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        60,
+        130,
+        140
+      ]
+    },
+    {
+      "id": "lf_t_puzzlebox",
+      "label": "Riddle Puzzlebox",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        150,
+        60,
+        200
+      ]
+    },
+    {
+      "id": "lf_t_lighthouse",
+      "label": "Lost Lighthouse",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        60,
+        100,
+        210
+      ]
+    },
+    {
+      "id": "lf_t_apple",
+      "label": "Wishing Apple",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        230,
+        30,
+        60
+      ]
+    },
+    {
+      "id": "lf_t_slipper",
+      "label": "Glass Slipper",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        170,
+        220,
+        255
+      ]
+    },
+    {
+      "id": "lf_t_goose",
+      "label": "Golden Goose",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        255,
+        220,
+        90
+      ]
+    },
+    {
+      "id": "lf_t_jaguar",
+      "label": "Jade Jaguar",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        40,
+        190,
+        120
+      ]
+    },
+    {
+      "id": "lf_t_oryx",
+      "label": "Oasis Oryx",
+      "role": "Tidecaller",
+      "tier": "Exotic",
+      "tint": [
+        240,
+        190,
+        120
+      ]
+    },
+    {
+      "id": "lf_t_condor",
+      "label": "Sunmask Condor",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        230,
+        110,
+        40
+      ]
+    },
+    {
+      "id": "lf_t_capybara",
+      "label": "Ruin Capybara",
+      "role": "Bruiser",
+      "tier": "Exotic",
+      "tint": [
+        190,
+        130,
+        70
+      ]
+    }
+  ],
+  "extraBodies": [
+    "critter",
+    "hound",
+    "bird"
+  ],
+  "buffs": [
+    "chestLuck",
+    "coinBonus",
+    "luck"
+  ],
+  "palette": [
+    [
+      "Brass",
+      196,
+      156,
+      84
+    ],
+    [
+      "Parchment",
+      222,
+      196,
+      146
+    ],
+    [
+      "Copper Penny",
+      184,
+      100,
+      56
+    ],
+    [
+      "Silver",
+      190,
+      194,
+      200
+    ],
+    [
+      "Gold Coin",
+      240,
+      196,
+      60
+    ],
+    [
+      "Sea Glass",
+      120,
+      196,
+      170
+    ],
+    [
+      "Bottle Green",
+      40,
+      100,
+      60
+    ],
+    [
+      "Ocean Chart",
+      50,
+      120,
+      180
+    ],
+    [
+      "Ink Blue",
+      34,
+      44,
+      90
+    ],
+    [
+      "Sealing Wax",
+      170,
+      40,
+      48
+    ],
+    [
+      "Leather",
+      150,
+      104,
+      70
+    ],
+    [
+      "Mahogany",
+      110,
+      50,
+      40
+    ],
+    [
+      "Ivory",
+      240,
+      234,
+      214
+    ],
+    [
+      "Charcoal",
+      54,
+      54,
+      58
+    ],
+    [
+      "Pewter",
+      140,
+      144,
+      150
+    ],
+    [
+      "Plum Velvet",
+      100,
+      50,
+      110
+    ],
+    [
+      "Khaki",
+      150,
+      140,
+      90
+    ],
+    [
+      "Amber",
+      230,
+      140,
+      30
+    ],
+    [
+      "Rose Gold",
+      220,
+      150,
+      140
+    ],
+    [
+      "Jade",
+      80,
+      170,
+      110
+    ],
+    [
+      "Lapis",
+      40,
+      80,
+      180
+    ],
+    [
+      "Teacup Blue",
+      140,
+      170,
+      220
+    ],
+    [
+      "Lavender Ribbon",
+      180,
+      160,
+      220
+    ],
+    [
+      "Mustard",
+      200,
+      168,
+      40
+    ],
+    [
+      "Emerald",
+      0,
+      190,
+      90
+    ],
+    [
+      "Lime Peel",
+      180,
+      240,
+      40
+    ],
+    [
+      "Magenta Ribbon",
+      220,
+      20,
+      170
+    ],
+    [
+      "Bubblegum",
+      255,
+      140,
+      215
+    ],
+    [
+      "Cobalt Glass",
+      20,
+      50,
+      230
+    ],
+    [
+      "Kite Blue",
+      80,
+      200,
+      255
+    ],
+    [
+      "Midnight",
+      14,
+      14,
+      34
+    ],
+    [
+      "Chalk White",
+      255,
+      255,
+      255
+    ],
+    [
+      "Tangerine",
+      255,
+      110,
+      0
+    ],
+    [
+      "Violet Marble",
+      120,
+      30,
+      210
+    ],
+    [
+      "Ruby",
+      225,
+      0,
+      40
+    ],
+    [
+      "Turquoise",
+      0,
+      190,
+      190
+    ],
+    [
+      "Lemon Drop",
+      255,
+      250,
+      90
+    ],
+    [
+      "Forest Map",
+      10,
+      70,
+      40
+    ],
+    [
+      "Grape Soda",
+      70,
+      0,
+      90
+    ],
+    [
+      "Coral",
+      255,
+      110,
+      110
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Antique",
+      "Vintage",
+      "Cherished",
+      "Heirloom"
+    ],
+    "Mythic": [
+      "Hidden",
+      "Uncharted",
+      "Forgotten",
+      "Secret"
+    ],
+    "Divine": [
+      "Gilded",
+      "Shining",
+      "Fabled",
+      "Storied"
+    ],
+    "Exotic": [
+      "Long-Lost",
+      "Ancestral",
+      "Timeless",
+      "Primeval"
+    ]
+  },
+  "names": [
+    "Keepsake",
+    "Knickknack",
+    "Doodad",
+    "Thingamajig",
+    "Whatnot",
+    "Gewgaw",
+    "Widget",
+    "Keyring",
+    "Keychain",
+    "Brasskey",
+    "Rustykey",
+    "Latch",
+    "Hinge",
+    "Buckle",
+    "Bobbin",
+    "Thimble",
+    "Spool",
+    "Teaspoon",
+    "Teacup",
+    "Saucer",
+    "Snowglobe",
+    "Music Box",
+    "Pocketwatch",
+    "Tick",
+    "Tock",
+    "Ticktock",
+    "Cuckoo",
+    "Monocle",
+    "Quadrant",
+    "Chart",
+    "Mapmaker",
+    "Atlas",
+    "Globe",
+    "Globie",
+    "Latitude",
+    "Longitude",
+    "Bearing",
+    "Waypoint",
+    "Landmark",
+    "Signpost",
+    "Crossroads",
+    "Trailhead",
+    "Breadcrumb",
+    "Footprint",
+    "Tracker",
+    "Clue",
+    "Sleuth",
+    "Hunch",
+    "Snooper",
+    "Rummage",
+    "Scavenger",
+    "Finder",
+    "Keeper",
+    "Finders Keepers",
+    "Lucky Penny",
+    "Horseshoe",
+    "Ducat",
+    "Florin",
+    "Farthing",
+    "Shilling",
+    "Sixpence",
+    "Groat",
+    "Guinea",
+    "Pouchy",
+    "Satchel",
+    "Knapsack",
+    "Rucksack",
+    "Haversack",
+    "Bindle",
+    "Bundle",
+    "Parcel",
+    "Crate",
+    "Barrel",
+    "Trunk",
+    "Coffer",
+    "Strongbox",
+    "Lockbox",
+    "Stash",
+    "Cache",
+    "Trowel",
+    "Attic",
+    "Cellar",
+    "Cubby",
+    "Cubbyhole",
+    "Nook",
+    "Cranny",
+    "Hideaway",
+    "Hidey",
+    "Peekaboo",
+    "Umbrella",
+    "Brolly",
+    "Galoshes",
+    "Kazoo",
+    "Harmonica",
+    "Spintop",
+    "Jacks",
+    "Dicey",
+    "Bottlecap",
+    "Corky",
+    "Cork",
+    "Messenger",
+    "Postcard",
+    "Stamp",
+    "Envelope",
+    "Letterbox",
+    "Scroll",
+    "Scrolly",
+    "Vellum",
+    "Papyrus",
+    "Ledger",
+    "Logbook",
+    "Journal",
+    "Notebook",
+    "Candlestick",
+    "Brassbuckle",
+    "Tarnish",
+    "Sparkly",
+    "Goldie",
+    "Silverspoon",
+    "Trekker",
+    "Hiker",
+    "Roamer",
+    "Wayfarer",
+    "Wayfinder",
+    "Waymark",
+    "Quest",
+    "Questor",
+    "Expedition",
+    "Fossick",
+    "Fossicker",
+    "Rummager",
+    "Beeper",
+    "Windup",
+    "Hourglass",
+    "Timepiece",
+    "Cog",
+    "Mystery",
+    "Wonder",
+    "Secret Map",
+    "Treasure Map",
+    "Old Map",
+    "X Marks",
+    "Map Pup",
+    "Compass Rose",
+    "Lostling",
+    "Foundling",
+    "Lost Sock",
+    "Odd Sock",
+    "Lost Mitt",
+    "Lost Button",
+    "Pocket Fluff",
+    "Lint",
+    "Spare Key",
+    "Penny Whistle",
+    "Tin Soldier",
+    "Toy Boat",
+    "Paper Boat",
+    "Lucky Dice",
+    "Wishcoin",
+    "Pocketful",
+    "Map Scrap",
+    "Torn Map",
+    "Mapkin",
+    "Chartling",
+    "True North",
+    "Due North",
+    "Northy",
+    "Brass Button",
+    "Copper Coin",
+    "Silver Coin",
+    "Tin Cup",
+    "Tin Whistle",
+    "Treasure Hunt",
+    "Dig Spot",
+    "Gold Dust",
+    "Lost Ring",
+    "Cameo",
+    "Brooch",
+    "Hatpin",
+    "Hairpin",
+    "Paperclip",
+    "Safety Pin",
+    "Thimblewit",
+    "Keepsy",
+    "Trinketbox",
+    "Seekabout",
+    "Wanderpaw",
+    "Bric-a-Brac",
+    "Memento",
+    "Souvenir",
+    "Trove",
+    "Rummage Sale",
+    "Flea Market",
+    "Junk Drawer",
+    "Attic Dust",
+    "Dust Bunny",
+    "Sock Drawer",
+    "Button Box",
+    "Spare Change",
+    "Loose Change",
+    "Penny Jar",
+    "Marble Bag",
+    "Missing Piece",
+    "Lost Kite",
+    "Lost Glove",
+    "Lost Marble",
+    "Found Penny",
+    "Lucky Find",
+    "Eureka",
+    "North Star",
+    "Waypost",
+    "Milestone",
+    "Map Pin",
+    "Pushpin",
+    "Thumbtack",
+    "Postmark",
+    "Telegram",
+    "Pen Pal",
+    "Bookmark",
+    "Dog-Ear",
+    "Footnote",
+    "Decoder",
+    "Trapdoor",
+    "Cellar Door",
+    "Tinderbox",
+    "Driftwood",
+    "Flotsam",
+    "Jetsam",
+    "Beachcomber",
+    "Tidepool",
+    "Castaway",
+    "Piece of Eight",
+    "Bonanza",
+    "Marked Spot",
+    "Dig Here",
+    "Knick",
+    "Knack",
+    "Odds N Ends",
+    "Whirligig",
+    "Lucky Clover"
+  ]
+}

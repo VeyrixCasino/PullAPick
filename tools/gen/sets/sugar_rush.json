@@ -1,0 +1,1100 @@
+{
+  "key": "sugar_rush",
+  "bodies": [
+    {
+      "id": "sr_bonbon",
+      "label": "Bonbon",
+      "role": "Striker"
+    },
+    {
+      "id": "sr_cupcake",
+      "label": "Cupcake",
+      "role": "Trader"
+    },
+    {
+      "id": "sr_scoop",
+      "label": "Scoop",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "sr_gummy",
+      "label": "Gummy",
+      "role": "Bruiser"
+    },
+    {
+      "id": "sr_lollipop",
+      "label": "Lollipop",
+      "role": "Mystic"
+    },
+    {
+      "id": "sr_gumdrop",
+      "label": "Gumdrop",
+      "role": "Bruiser"
+    },
+    {
+      "id": "sr_sugarmouse",
+      "label": "Sugar Mouse",
+      "role": "Seeker"
+    },
+    {
+      "id": "sr_sprinklepup",
+      "label": "Sprinkle Pup",
+      "role": "Digger"
+    },
+    {
+      "id": "sr_candyegg",
+      "label": "Candy Egg",
+      "role": "Prospector"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "sr_t_macaron",
+      "label": "Macaron Tot",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        150,
+        200
+      ]
+    },
+    {
+      "id": "sr_t_donut",
+      "label": "Sprinkle Donut",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        80,
+        170
+      ]
+    },
+    {
+      "id": "sr_t_gumball",
+      "label": "Gumball Bot",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        230,
+        30,
+        50
+      ]
+    },
+    {
+      "id": "sr_t_jellybean",
+      "label": "Jellybean Crawler",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        160,
+        235,
+        40
+      ]
+    },
+    {
+      "id": "sr_t_toastymallow",
+      "label": "Toasty Mallow",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        255,
+        190,
+        140
+      ]
+    },
+    {
+      "id": "sr_t_candysnake",
+      "label": "Peppermint Snake",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        20,
+        170,
+        110
+      ]
+    },
+    {
+      "id": "sr_t_mintsnail",
+      "label": "Mint Swirl Snail",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        110,
+        215,
+        255
+      ]
+    },
+    {
+      "id": "sr_t_chocobar",
+      "label": "Chocobar Chomper",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        130,
+        74,
+        44
+      ]
+    },
+    {
+      "id": "sr_t_icepop",
+      "label": "Ice Pop Penguin",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        30,
+        90,
+        255
+      ]
+    },
+    {
+      "id": "sr_t_flosscloud",
+      "label": "Candyfloss Cloud",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        200,
+        170,
+        255
+      ]
+    },
+    {
+      "id": "sr_t_cookieturtle",
+      "label": "Chocochip Turtle",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        30,
+        150,
+        150
+      ]
+    },
+    {
+      "id": "sr_t_swissroll",
+      "label": "Swirlroll Pillbug",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        255,
+        120,
+        100
+      ]
+    },
+    {
+      "id": "sr_t_flan",
+      "label": "Flan Wobbler",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        220,
+        90
+      ]
+    },
+    {
+      "id": "sr_t_mochiseal",
+      "label": "Mochi Seal",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        250,
+        236,
+        244
+      ]
+    },
+    {
+      "id": "sr_t_sugarquill",
+      "label": "Sugarquill Hog",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        255,
+        140,
+        30
+      ]
+    },
+    {
+      "id": "sr_t_bubblefrog",
+      "label": "Bubblepop Frog",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        80,
+        200,
+        70
+      ]
+    },
+    {
+      "id": "sr_t_waffleduck",
+      "label": "Waffle Duckling",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        225,
+        170,
+        70
+      ]
+    },
+    {
+      "id": "sr_t_licorice",
+      "label": "Licorice Squiddle",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        64,
+        52,
+        84
+      ]
+    },
+    {
+      "id": "sr_t_sundae",
+      "label": "Sundae Tower",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        100,
+        130
+      ]
+    },
+    {
+      "id": "sr_t_shortcake",
+      "label": "Shortcake Slice",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        180,
+        120,
+        255
+      ]
+    },
+    {
+      "id": "sr_t_cottage",
+      "label": "Candy Cottage",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        140,
+        235,
+        200
+      ]
+    },
+    {
+      "id": "sr_t_heartwing",
+      "label": "Candy Heartwing",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        40,
+        120
+      ]
+    },
+    {
+      "id": "sr_t_camel",
+      "label": "Caramel Camel",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        190,
+        110,
+        30
+      ]
+    },
+    {
+      "id": "sr_t_puffer",
+      "label": "Gumdrop Puffer",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        0,
+        200,
+        220
+      ]
+    },
+    {
+      "id": "sr_t_swan",
+      "label": "Meringue Swan",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        205,
+        235
+      ]
+    },
+    {
+      "id": "sr_t_jawbreaker",
+      "label": "Jawbreaker Beetle",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        120,
+        60,
+        220
+      ]
+    },
+    {
+      "id": "sr_t_pinata",
+      "label": "Pinata Pony",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        240,
+        60,
+        220
+      ]
+    },
+    {
+      "id": "sr_t_rhino",
+      "label": "Fondant Rhino",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        70,
+        120,
+        200
+      ]
+    },
+    {
+      "id": "sr_t_phoenix",
+      "label": "Toffee Phoenix",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        96,
+        24
+      ]
+    },
+    {
+      "id": "sr_t_ribbonwyrm",
+      "label": "Ribbon Candy Wyrm",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        0,
+        170,
+        210
+      ]
+    },
+    {
+      "id": "sr_t_unicorn",
+      "label": "Sherbet Unicorn",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        230,
+        140,
+        255
+      ]
+    },
+    {
+      "id": "sr_t_sodagenie",
+      "label": "Cherry Soda Genie",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        170,
+        10,
+        50
+      ]
+    },
+    {
+      "id": "sr_t_angelcake",
+      "label": "Angel Food Cake",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        255,
+        240,
+        150
+      ]
+    },
+    {
+      "id": "sr_t_taffydragon",
+      "label": "Taffy Dragon",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        30,
+        240,
+        60
+      ]
+    },
+    {
+      "id": "sr_t_bubblewhale",
+      "label": "Bubblegum Whale",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        120,
+        170,
+        255
+      ]
+    },
+    {
+      "id": "sr_t_yeti",
+      "label": "Shaved Ice Yeti",
+      "role": "Bruiser",
+      "tier": "Divine",
+      "tint": [
+        10,
+        60,
+        170
+      ]
+    },
+    {
+      "id": "sr_t_truffleowl",
+      "label": "Truffle Owl",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        160,
+        40,
+        110
+      ]
+    },
+    {
+      "id": "sr_t_rockcrab",
+      "label": "Rock Candy Crab",
+      "role": "Prospector",
+      "tier": "Divine",
+      "tint": [
+        190,
+        0,
+        250
+      ]
+    },
+    {
+      "id": "sr_t_honeybee",
+      "label": "Honeycomb Bee",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        255,
+        190,
+        0
+      ]
+    },
+    {
+      "id": "sr_t_pixie",
+      "label": "Sugarplum Pixie",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        130,
+        40,
+        170
+      ]
+    },
+    {
+      "id": "sr_t_carousel",
+      "label": "Bonbon Carousel",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        255,
+        120,
+        200
+      ]
+    },
+    {
+      "id": "sr_t_monarch",
+      "label": "Candy Monarch",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        250,
+        245,
+        20
+      ]
+    }
+  ],
+  "extraBodies": [
+    "slime",
+    "bunny",
+    "sheep"
+  ],
+  "buffs": [
+    "swingRate",
+    "packLuck",
+    "ricochet"
+  ],
+  "palette": [
+    [
+      "Strawberry",
+      236,
+      80,
+      110
+    ],
+    [
+      "Bubblegum",
+      255,
+      150,
+      206
+    ],
+    [
+      "Cherry",
+      200,
+      24,
+      52
+    ],
+    [
+      "Tangerine",
+      255,
+      146,
+      46
+    ],
+    [
+      "Lemon",
+      255,
+      226,
+      86
+    ],
+    [
+      "Lime",
+      140,
+      222,
+      72
+    ],
+    [
+      "Mint",
+      150,
+      238,
+      204
+    ],
+    [
+      "Spearmint",
+      40,
+      176,
+      150
+    ],
+    [
+      "Blue Raspberry",
+      50,
+      140,
+      255
+    ],
+    [
+      "Blueberry",
+      72,
+      70,
+      180
+    ],
+    [
+      "Grape",
+      146,
+      80,
+      196
+    ],
+    [
+      "Lavender",
+      204,
+      176,
+      244
+    ],
+    [
+      "Cotton Candy",
+      176,
+      220,
+      255
+    ],
+    [
+      "Peach",
+      255,
+      196,
+      156
+    ],
+    [
+      "Pink Lemonade",
+      255,
+      184,
+      194
+    ],
+    [
+      "Raspberry",
+      196,
+      36,
+      120
+    ],
+    [
+      "Blackcurrant",
+      92,
+      28,
+      84
+    ],
+    [
+      "Caramel",
+      214,
+      146,
+      62
+    ],
+    [
+      "Toffee",
+      160,
+      96,
+      46
+    ],
+    [
+      "Chocolate",
+      104,
+      60,
+      40
+    ],
+    [
+      "Licorice",
+      40,
+      32,
+      38
+    ],
+    [
+      "Vanilla",
+      252,
+      244,
+      214
+    ],
+    [
+      "Coconut",
+      246,
+      246,
+      246
+    ],
+    [
+      "Honey",
+      236,
+      176,
+      30
+    ],
+    [
+      "Sour Apple",
+      70,
+      200,
+      40
+    ],
+    [
+      "Matcha",
+      120,
+      150,
+      60
+    ],
+    [
+      "Forest Gummy",
+      20,
+      100,
+      50
+    ],
+    [
+      "Aqua Fizz",
+      60,
+      230,
+      230
+    ],
+    [
+      "Teal Taffy",
+      0,
+      130,
+      150
+    ],
+    [
+      "Deep Sea Taffy",
+      16,
+      70,
+      96
+    ],
+    [
+      "Sapphire Drop",
+      24,
+      60,
+      200
+    ],
+    [
+      "Midnight Fudge",
+      30,
+      28,
+      70
+    ],
+    [
+      "Violet Cream",
+      130,
+      100,
+      255
+    ],
+    [
+      "Sugarplum",
+      120,
+      36,
+      150
+    ],
+    [
+      "Fuchsia Pop",
+      236,
+      40,
+      200
+    ],
+    [
+      "Orange Soda",
+      255,
+      110,
+      0
+    ],
+    [
+      "Neon Lime",
+      190,
+      255,
+      20
+    ],
+    [
+      "Cranberry",
+      130,
+      10,
+      36
+    ],
+    [
+      "Burnt Sugar",
+      104,
+      62,
+      0
+    ],
+    [
+      "Dark Chocolate",
+      62,
+      34,
+      24
+    ],
+    [
+      "Silver Dragee",
+      176,
+      176,
+      186
+    ],
+    [
+      "Smoky Toffee",
+      110,
+      104,
+      112
+    ],
+    [
+      "Ube",
+      130,
+      100,
+      170
+    ],
+    [
+      "Salted Caramel",
+      196,
+      160,
+      120
+    ],
+    [
+      "Marshmallow",
+      236,
+      226,
+      255
+    ],
+    [
+      "Mint Frost",
+      214,
+      255,
+      230
+    ],
+    [
+      "Sky Sherbet",
+      110,
+      196,
+      255
+    ],
+    [
+      "Watermelon",
+      255,
+      70,
+      80
+    ],
+    [
+      "Rose Taffy",
+      170,
+      90,
+      120
+    ],
+    [
+      "Pistachio",
+      170,
+      210,
+      130
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Glazed",
+      "Frosted",
+      "Sprinkled",
+      "Glossy"
+    ],
+    "Mythic": [
+      "Candied",
+      "Sugarspun",
+      "Swirled",
+      "Caramelized"
+    ],
+    "Divine": [
+      "Heavenly",
+      "Dreamy",
+      "Sugarlit",
+      "Sparkling"
+    ],
+    "Exotic": [
+      "Royal",
+      "Jubilee",
+      "Sugarstar",
+      "Everlasting"
+    ]
+  },
+  "names": [
+    "Caramel",
+    "Nougat",
+    "Praline",
+    "Fondant",
+    "Ganache",
+    "Bubblegum",
+    "Sourball",
+    "Lemon Drop",
+    "Cherry Drop",
+    "Sugarcube",
+    "Sugarlump",
+    "Sugarpuff",
+    "Sugarbean",
+    "Sugarbug",
+    "Sugarloaf",
+    "Sweetpea",
+    "Sweetie",
+    "Sweetums",
+    "Candyfloss",
+    "Flossy",
+    "Cotton Candy",
+    "Rock Candy",
+    "Peppermint",
+    "Spearmint",
+    "Wintergreen",
+    "Mintdrop",
+    "Mintball",
+    "Humbug",
+    "Fizzy",
+    "Fizzpop",
+    "Sherbie",
+    "Jujube",
+    "Tutti Frutti",
+    "Fruity",
+    "Fruitchew",
+    "Chewy",
+    "Chewbit",
+    "Gumbit",
+    "Gummybun",
+    "Jellyroll",
+    "Jellypop",
+    "Jellyjam",
+    "Lolly",
+    "Swirly",
+    "Swirlpop",
+    "Nonpareil",
+    "Dragee",
+    "Comfit",
+    "Marshmallow",
+    "Brittle",
+    "Toffeepop",
+    "Dulce",
+    "Dulcie",
+    "Wafer",
+    "Wafflecone",
+    "Sugarcone",
+    "Sprinkletop",
+    "Frosting",
+    "Icing",
+    "Creampuff",
+    "Buttercream",
+    "Whippy",
+    "Whiptop",
+    "Dollop",
+    "Truffly",
+    "Cocoabean",
+    "Cacao",
+    "Chocodot",
+    "Chocochip",
+    "Cherrypop",
+    "Cherrypie",
+    "Applepop",
+    "Candyapple",
+    "Toffee Apple",
+    "Lemonade",
+    "Limeade",
+    "Lemon Fizz",
+    "Lemonpop",
+    "Lime Twist",
+    "Orange Fizz",
+    "Grapey",
+    "Berrybop",
+    "Berrypop",
+    "Razzberry",
+    "Blue Razz",
+    "Razz",
+    "Sourpuss",
+    "Tartlet",
+    "Tangy",
+    "Zingy",
+    "Fizzbit",
+    "Candybar",
+    "Candypuff",
+    "Candybug",
+    "Candykin",
+    "Candylou",
+    "Honeycomb",
+    "Honeydrop",
+    "Maple Drop",
+    "Maplesugar",
+    "Molasses",
+    "Treacle",
+    "Syrup",
+    "Syrupy",
+    "Cinnamon",
+    "Cinnamint",
+    "Vanilla",
+    "Vanillabean",
+    "Strawberry",
+    "Strawbie",
+    "Neapolitan",
+    "Spumoni",
+    "Rocky Road",
+    "Pistachio",
+    "Mintchip",
+    "Cookie Dough",
+    "Cakepop",
+    "Donut",
+    "Doughnut",
+    "Cruller",
+    "Halva",
+    "Icepop",
+    "Ice Lolly",
+    "Slushy",
+    "Snowcone",
+    "Bubbly",
+    "Gumbubble",
+    "Sugarbop",
+    "Sugarboo",
+    "Sweetboo",
+    "Cuddlecake",
+    "Jellybop",
+    "Jellybug",
+    "Lickety Split",
+    "Yummy",
+    "Yumyum",
+    "Nomnom",
+    "Goodie",
+    "Goodygum",
+    "Sugarpie",
+    "Sweetpie",
+    "Honeypie",
+    "Cutie Pie",
+    "Glitterpop",
+    "Candy Bun",
+    "Sweetbun",
+    "Gumgum",
+    "Fudgepop",
+    "Pudding Cup",
+    "Jellyjig",
+    "Sugarsnap",
+    "Lollybug",
+    "Lollypaw",
+    "Taffypaw",
+    "Gumdroplet",
+    "Sprinklepaw",
+    "Frostypaw",
+    "Cherrybun",
+    "Mintybun",
+    "Lemonbun",
+    "Peachy",
+    "Peach Fizz",
+    "Peach Ring",
+    "Gummy Worm",
+    "Jelly Ring",
+    "Candy Heart",
+    "Sugar Heart",
+    "Sweetheart",
+    "Starmint",
+    "Twinkle Pop",
+    "Pop Fizz",
+    "Soda Pop",
+    "Cola Bottle",
+    "Cream Soda",
+    "Rootbeer Float",
+    "Milkshake",
+    "Malty",
+    "Malted",
+    "Choco Malt",
+    "Marzipaw",
+    "Candy Cloud",
+    "Fluffcake",
+    "Mallowpuff",
+    "Choco Chunk",
+    "Fudgling",
+    "Butterdrop",
+    "Toffeebun",
+    "Sugarglow",
+    "Shinygum",
+    "Sugardrop",
+    "Sugarwhirl",
+    "Jellyhop",
+    "Lollipup",
+    "Truffle Tot",
+    "Pavlova",
+    "Profiterole",
+    "Shortbread",
+    "Macaroon",
+    "Tiramisu",
+    "Panna Cotta",
+    "Baklava",
+    "Turron",
+    "Alfajor",
+    "Brigadeiro",
+    "Sprinkletoes",
+    "Sugarsprout",
+    "Mallowmoo",
+    "Fizzwhiz",
+    "Popsy",
+    "Honeybun",
+    "Sugarfrost",
+    "Frostbun",
+    "Glazey",
+    "Sugarcrumb",
+    "Crumbcake",
+    "Spongecake",
+    "Angelcake",
+    "Plum Pudding",
+    "Brulee",
+    "Dolly Mixture",
+    "Pastille",
+    "Swirlicorn",
+    "Candypaw",
+    "Lollibell",
+    "Fizzlebean",
+    "Taffybell",
+    "Sugarbell",
+    "Toffeetot",
+    "Banana Split",
+    "Sugarmoon",
+    "Sweetmallow",
+    "Pralinepaw",
+    "Nougatine",
+    "Lemon Tart",
+    "Cherry Tart",
+    "Berry Tart",
+    "Plumdrop",
+    "Rock Sugar",
+    "Rainbow Drop",
+    "Fudgie",
+    "Minty Moo",
+    "Sprinkleboo",
+    "Sugarswirl",
+    "Bonbonnie",
+    "Gumdrop Gem",
+    "Key Lime"
+  ]
+}

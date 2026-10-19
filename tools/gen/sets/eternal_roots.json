@@ -1,0 +1,1127 @@
+{
+  "key": "eternal_roots",
+  "bodies": [
+    {
+      "id": "er_stumpling",
+      "label": "Stumpling",
+      "role": "Bruiser"
+    },
+    {
+      "id": "er_rootmole",
+      "label": "Rootmole",
+      "role": "Digger"
+    },
+    {
+      "id": "er_springback",
+      "label": "Springback",
+      "role": "Tidecaller"
+    },
+    {
+      "id": "er_sapshell",
+      "label": "Sapshell",
+      "role": "Prospector"
+    },
+    {
+      "id": "er_taproot",
+      "label": "Taproot",
+      "role": "Seeker"
+    },
+    {
+      "id": "er_groveback",
+      "label": "Groveback",
+      "role": "Mystic"
+    },
+    {
+      "id": "er_trufflepig",
+      "label": "Trufflepig",
+      "role": "Prospector"
+    },
+    {
+      "id": "er_sproutfinch",
+      "label": "Sproutfinch",
+      "role": "Seeker"
+    },
+    {
+      "id": "er_seedmouse",
+      "label": "Seedmouse",
+      "role": "Trader"
+    }
+  ],
+  "topBodies": [
+    {
+      "id": "er_t_acorn",
+      "label": "Acorn Roller",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        204,
+        146,
+        64
+      ]
+    },
+    {
+      "id": "er_t_pinehog",
+      "label": "Pinecone Hog",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        168,
+        98,
+        52
+      ]
+    },
+    {
+      "id": "er_t_toadstool",
+      "label": "Toadstool Tot",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        230,
+        52,
+        60
+      ]
+    },
+    {
+      "id": "er_t_glowworm",
+      "label": "Cavern Glowworm",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        60,
+        220,
+        200
+      ]
+    },
+    {
+      "id": "er_t_axolotl",
+      "label": "Spring Axolotl",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        255,
+        140,
+        196
+      ]
+    },
+    {
+      "id": "er_t_frog",
+      "label": "Lilypad Croaker",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        92,
+        204,
+        70
+      ]
+    },
+    {
+      "id": "er_t_squirrel",
+      "label": "Hoarder Squirrel",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        236,
+        110,
+        40
+      ]
+    },
+    {
+      "id": "er_t_owl",
+      "label": "Hollowbark Owl",
+      "role": "Seeker",
+      "tier": "Epic",
+      "tint": [
+        118,
+        104,
+        196
+      ]
+    },
+    {
+      "id": "er_t_trilobite",
+      "label": "Cave Trilobite",
+      "role": "Digger",
+      "tier": "Epic",
+      "tint": [
+        92,
+        128,
+        168
+      ]
+    },
+    {
+      "id": "er_t_samara",
+      "label": "Whirligig Seed",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        214,
+        44,
+        96
+      ]
+    },
+    {
+      "id": "er_t_dandelion",
+      "label": "Dandelion Puff",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        252,
+        226,
+        70
+      ]
+    },
+    {
+      "id": "er_t_platypus",
+      "label": "Brook Platypus",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        70,
+        170,
+        220
+      ]
+    },
+    {
+      "id": "er_t_bee",
+      "label": "Blossom Bee",
+      "role": "Trader",
+      "tier": "Epic",
+      "tint": [
+        255,
+        186,
+        30
+      ]
+    },
+    {
+      "id": "er_t_otter",
+      "label": "Hotspring Otter",
+      "role": "Tidecaller",
+      "tier": "Epic",
+      "tint": [
+        150,
+        96,
+        70
+      ]
+    },
+    {
+      "id": "er_t_fiddle",
+      "label": "Fiddlehead Sprite",
+      "role": "Mystic",
+      "tier": "Epic",
+      "tint": [
+        160,
+        230,
+        80
+      ]
+    },
+    {
+      "id": "er_t_koi",
+      "label": "Wellspring Koi",
+      "role": "Prospector",
+      "tier": "Epic",
+      "tint": [
+        255,
+        120,
+        70
+      ]
+    },
+    {
+      "id": "er_t_hermit",
+      "label": "Nutshell Hermit",
+      "role": "Bruiser",
+      "tier": "Epic",
+      "tint": [
+        186,
+        70,
+        160
+      ]
+    },
+    {
+      "id": "er_t_bat",
+      "label": "Rootcave Bat",
+      "role": "Striker",
+      "tier": "Epic",
+      "tint": [
+        70,
+        58,
+        120
+      ]
+    },
+    {
+      "id": "er_t_stag",
+      "label": "Mossantler Stag",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        222,
+        160,
+        96
+      ]
+    },
+    {
+      "id": "er_t_mammoth",
+      "label": "Mossback Mammoth",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        110,
+        140,
+        66
+      ]
+    },
+    {
+      "id": "er_t_nautilus",
+      "label": "Spring Nautilus",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        150,
+        230,
+        220
+      ]
+    },
+    {
+      "id": "er_t_dragonfly",
+      "label": "Amber Dragonfly",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        40,
+        120,
+        255
+      ]
+    },
+    {
+      "id": "er_t_beaver",
+      "label": "Dam Beaver",
+      "role": "Digger",
+      "tier": "Legendary",
+      "tint": [
+        140,
+        84,
+        50
+      ]
+    },
+    {
+      "id": "er_t_heron",
+      "label": "Springwade Heron",
+      "role": "Tidecaller",
+      "tier": "Legendary",
+      "tint": [
+        200,
+        220,
+        240
+      ]
+    },
+    {
+      "id": "er_t_lantern",
+      "label": "Rootlamp Lantern",
+      "role": "Mystic",
+      "tier": "Legendary",
+      "tint": [
+        255,
+        160,
+        40
+      ]
+    },
+    {
+      "id": "er_t_sloth",
+      "label": "Rootswing Sloth",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        176,
+        160,
+        120
+      ]
+    },
+    {
+      "id": "er_t_geode",
+      "label": "Cavern Geode",
+      "role": "Prospector",
+      "tier": "Legendary",
+      "tint": [
+        170,
+        80,
+        230
+      ]
+    },
+    {
+      "id": "er_t_can",
+      "label": "Sprinkle Can",
+      "role": "Trader",
+      "tier": "Legendary",
+      "tint": [
+        50,
+        160,
+        120
+      ]
+    },
+    {
+      "id": "er_t_angler",
+      "label": "Cavern Angler",
+      "role": "Seeker",
+      "tier": "Legendary",
+      "tint": [
+        30,
+        50,
+        110
+      ]
+    },
+    {
+      "id": "er_t_tardigrade",
+      "label": "Moss Piglet",
+      "role": "Bruiser",
+      "tier": "Legendary",
+      "tint": [
+        190,
+        230,
+        140
+      ]
+    },
+    {
+      "id": "er_t_sailback",
+      "label": "Leafsail Lizard",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        240,
+        90,
+        30
+      ]
+    },
+    {
+      "id": "er_t_mantis",
+      "label": "Orchid Mantis",
+      "role": "Striker",
+      "tier": "Legendary",
+      "tint": [
+        250,
+        170,
+        220
+      ]
+    },
+    {
+      "id": "er_t_treant",
+      "label": "Elder Treant",
+      "role": "Bruiser",
+      "tier": "Mythic",
+      "tint": [
+        150,
+        100,
+        60
+      ]
+    },
+    {
+      "id": "er_t_octopus",
+      "label": "Rootcoil Octopus",
+      "role": "Tidecaller",
+      "tier": "Mythic",
+      "tint": [
+        200,
+        60,
+        140
+      ]
+    },
+    {
+      "id": "er_t_drake",
+      "label": "Grove Drake",
+      "role": "Striker",
+      "tier": "Mythic",
+      "tint": [
+        40,
+        180,
+        90
+      ]
+    },
+    {
+      "id": "er_t_hourglass",
+      "label": "Sap Hourglass",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        255,
+        190,
+        60
+      ]
+    },
+    {
+      "id": "er_t_longneck",
+      "label": "Treetop Longneck",
+      "role": "Prospector",
+      "tier": "Mythic",
+      "tint": [
+        110,
+        200,
+        180
+      ]
+    },
+    {
+      "id": "er_t_kitsune",
+      "label": "Foxfire Kitsune",
+      "role": "Seeker",
+      "tier": "Mythic",
+      "tint": [
+        250,
+        240,
+        230
+      ]
+    },
+    {
+      "id": "er_t_ankylo",
+      "label": "Mossclub Ankylo",
+      "role": "Digger",
+      "tier": "Mythic",
+      "tint": [
+        60,
+        100,
+        76
+      ]
+    },
+    {
+      "id": "er_t_moth",
+      "label": "Lunar Moth",
+      "role": "Mystic",
+      "tier": "Mythic",
+      "tint": [
+        180,
+        250,
+        200
+      ]
+    },
+    {
+      "id": "er_t_willow",
+      "label": "Willow Wisp",
+      "role": "Mystic",
+      "tier": "Divine",
+      "tint": [
+        170,
+        230,
+        110
+      ]
+    },
+    {
+      "id": "er_t_lotus",
+      "label": "Lotus Seraph",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        255,
+        180,
+        210
+      ]
+    },
+    {
+      "id": "er_t_qilin",
+      "label": "Bloom Qilin",
+      "role": "Seeker",
+      "tier": "Divine",
+      "tint": [
+        60,
+        200,
+        230
+      ]
+    },
+    {
+      "id": "er_t_monkey",
+      "label": "Banyan Monkey",
+      "role": "Trader",
+      "tier": "Divine",
+      "tint": [
+        220,
+        150,
+        80
+      ]
+    },
+    {
+      "id": "er_t_phoenix",
+      "label": "Sapfire Phoenix",
+      "role": "Striker",
+      "tier": "Divine",
+      "tint": [
+        255,
+        90,
+        40
+      ]
+    },
+    {
+      "id": "er_t_fountain",
+      "label": "Fountain Spirit",
+      "role": "Tidecaller",
+      "tier": "Divine",
+      "tint": [
+        140,
+        200,
+        255
+      ]
+    },
+    {
+      "id": "er_t_heart",
+      "label": "Rootbound Heart",
+      "role": "Mystic",
+      "tier": "Exotic",
+      "tint": [
+        230,
+        40,
+        90
+      ]
+    },
+    {
+      "id": "er_t_planet",
+      "label": "Seedling Planet",
+      "role": "Trader",
+      "tier": "Exotic",
+      "tint": [
+        80,
+        90,
+        220
+      ]
+    },
+    {
+      "id": "er_t_egg",
+      "label": "Cosmic Egg",
+      "role": "Seeker",
+      "tier": "Exotic",
+      "tint": [
+        160,
+        120,
+        255
+      ]
+    },
+    {
+      "id": "er_t_hare",
+      "label": "Moonroot Hare",
+      "role": "Striker",
+      "tier": "Exotic",
+      "tint": [
+        230,
+        230,
+        255
+      ]
+    }
+  ],
+  "extraBodies": [
+    "wyrm",
+    "turtle",
+    "beetle"
+  ],
+  "buffs": [
+    "dirtBreak",
+    "fossilFind",
+    "earthquake"
+  ],
+  "palette": [
+    [
+      "Heartwood",
+      150,
+      92,
+      54
+    ],
+    [
+      "Elder Bark",
+      88,
+      64,
+      50
+    ],
+    [
+      "Birchwhite",
+      226,
+      220,
+      204
+    ],
+    [
+      "Sap Amber",
+      232,
+      150,
+      36
+    ],
+    [
+      "Golden Sap",
+      250,
+      210,
+      90
+    ],
+    [
+      "Toadstool",
+      222,
+      64,
+      70
+    ],
+    [
+      "Mossy",
+      104,
+      146,
+      64
+    ],
+    [
+      "Fernleaf",
+      60,
+      170,
+      90
+    ],
+    [
+      "Sage",
+      176,
+      196,
+      140
+    ],
+    [
+      "Spring Blue",
+      90,
+      180,
+      230
+    ],
+    [
+      "Deepwell",
+      40,
+      96,
+      150
+    ],
+    [
+      "Glowroot",
+      70,
+      220,
+      190
+    ],
+    [
+      "Mandrake",
+      138,
+      94,
+      170
+    ],
+    [
+      "Cavern Slate",
+      92,
+      100,
+      116
+    ],
+    [
+      "Terracotta",
+      196,
+      120,
+      90
+    ],
+    [
+      "Rootblossom",
+      240,
+      150,
+      190
+    ],
+    [
+      "Seedpod",
+      190,
+      170,
+      110
+    ],
+    [
+      "Ancient Stone",
+      150,
+      146,
+      136
+    ],
+    [
+      "Peat",
+      46,
+      40,
+      36
+    ],
+    [
+      "Shoot Green",
+      156,
+      222,
+      92
+    ],
+    [
+      "Starsap",
+      180,
+      160,
+      255
+    ],
+    [
+      "Dewdrop",
+      200,
+      236,
+      250
+    ],
+    [
+      "Ember Root",
+      236,
+      92,
+      44
+    ],
+    [
+      "Nightroot",
+      40,
+      44,
+      100
+    ],
+    [
+      "Cobalt Spring",
+      30,
+      60,
+      200
+    ],
+    [
+      "Violet Bloom",
+      140,
+      50,
+      220
+    ],
+    [
+      "Lime Shoot",
+      190,
+      245,
+      40
+    ],
+    [
+      "Sunpetal",
+      255,
+      240,
+      60
+    ],
+    [
+      "Deep Moss",
+      30,
+      80,
+      40
+    ],
+    [
+      "Underdark",
+      16,
+      18,
+      36
+    ],
+    [
+      "Wild Orchid",
+      225,
+      50,
+      210
+    ],
+    [
+      "Spring Teal",
+      0,
+      130,
+      130
+    ],
+    [
+      "Wild Plum",
+      100,
+      30,
+      90
+    ],
+    [
+      "Rust Root",
+      150,
+      50,
+      20
+    ],
+    [
+      "Spring Spark",
+      50,
+      240,
+      250
+    ],
+    [
+      "Lavender",
+      205,
+      185,
+      245
+    ],
+    [
+      "Pine Shadow",
+      20,
+      60,
+      60
+    ],
+    [
+      "Bogberry",
+      130,
+      16,
+      50
+    ],
+    [
+      "Deep Indigo",
+      40,
+      20,
+      120
+    ],
+    [
+      "Olive Grove",
+      120,
+      120,
+      30
+    ],
+    [
+      "Wild Cherry",
+      240,
+      20,
+      40
+    ],
+    [
+      "Mintleaf",
+      150,
+      255,
+      200
+    ],
+    [
+      "Tangerine",
+      255,
+      120,
+      20
+    ],
+    [
+      "Sky Sap",
+      100,
+      150,
+      255
+    ]
+  ],
+  "topWords": {
+    "Legendary": [
+      "Evergreen",
+      "Deeprooted",
+      "Gnarled",
+      "Sapgilt"
+    ],
+    "Mythic": [
+      "Primeval",
+      "Rootborn",
+      "Wellspring",
+      "Ancient"
+    ],
+    "Divine": [
+      "Everbloom",
+      "Sacred",
+      "Radiant",
+      "Hallowed"
+    ],
+    "Exotic": [
+      "Worldroot",
+      "Starseed",
+      "Genesis",
+      "Undying"
+    ]
+  },
+  "names": [
+    "Rootling",
+    "Sapling",
+    "Rootlet",
+    "Seedling",
+    "Knotty",
+    "Burl",
+    "Gnarl",
+    "Gnarly",
+    "Stumpkin",
+    "Sapsy",
+    "Amberdrop",
+    "Sapdrop",
+    "Sappy",
+    "Sapsweet",
+    "Resin",
+    "Rosin",
+    "Kernel",
+    "Pith",
+    "Xylem",
+    "Phloem",
+    "Cambium",
+    "Rhizome",
+    "Tuber",
+    "Bulbo",
+    "Rootnest",
+    "Mandrake",
+    "Wellspring",
+    "Springlet",
+    "Burble",
+    "Gurgle",
+    "Trickle",
+    "Fountain",
+    "Geyser",
+    "Seeplet",
+    "Rill",
+    "Spout",
+    "Grotto",
+    "Hollowroot",
+    "Deeproot",
+    "Grovey",
+    "Elderroot",
+    "Oldgrowth",
+    "Everroot",
+    "Mossbeard",
+    "Sporelet",
+    "Spore",
+    "Mycel",
+    "Pinesap",
+    "Woodknot",
+    "Knothole",
+    "Ringwood",
+    "Treering",
+    "Heartroot",
+    "Sapheart",
+    "Amberheart",
+    "Seedpod",
+    "Podling",
+    "Nutling",
+    "Eonroot",
+    "Loam",
+    "Loamy",
+    "Peat",
+    "Silt",
+    "Rootwalker",
+    "Bedroot",
+    "Rootstock",
+    "Graft",
+    "Sprig",
+    "Spriggle",
+    "Tendril",
+    "Starroot",
+    "Taprooty",
+    "Offshoot",
+    "Leaflet",
+    "Frond",
+    "Cone",
+    "Seedcase",
+    "Oaken",
+    "Elmwood",
+    "Ashroot",
+    "Banyan",
+    "Baobab",
+    "Mangrove",
+    "Cypress",
+    "Kapok",
+    "Teak",
+    "Mahogany",
+    "Ironwood",
+    "Driftroot",
+    "Rootknot",
+    "Sapwell",
+    "Dripwell",
+    "Dripstone",
+    "Stalagmite",
+    "Stalactite",
+    "Glowworm",
+    "Lumiroot",
+    "Wurzel",
+    "Radix",
+    "Rootsy",
+    "Rooty",
+    "Root Beer",
+    "Turnip",
+    "Parsnip",
+    "Rutabaga",
+    "Beetroot",
+    "Ginseng",
+    "Burdock",
+    "Cassava",
+    "Taro",
+    "Jicama",
+    "Daikon",
+    "Sproutling",
+    "Tumbleroot",
+    "Rootvine",
+    "Worldseed",
+    "Thicket",
+    "Rootcavern",
+    "Canopy",
+    "Grove",
+    "Arbor",
+    "Elderseed",
+    "Barkbit",
+    "Chipbark",
+    "Nutshell",
+    "Seedkeeper",
+    "Sower",
+    "Sprouty",
+    "Rootspring",
+    "Wellroot",
+    "Aquifer",
+    "Artesian",
+    "Hotspring",
+    "Mistwell",
+    "Underroot",
+    "Delver",
+    "Tunneler",
+    "Spelunk",
+    "Cavekin",
+    "Hollowkin",
+    "Amberkin",
+    "Ambergrove",
+    "Saptap",
+    "Sapsucker",
+    "Gumtree",
+    "Bonsai",
+    "Heartseed",
+    "Walnut",
+    "Beechnut",
+    "Butternut",
+    "Hickory",
+    "Sassafras",
+    "Sarsaparilla",
+    "Turmeric",
+    "Horseradish",
+    "Celeriac",
+    "Rootbud",
+    "Rootcap",
+    "Deepsap",
+    "Sapglow",
+    "Seedspark",
+    "Gnarlwood",
+    "Barknibble",
+    "Brookroot",
+    "Rootrumble",
+    "Sapsprout",
+    "Wellwhisper",
+    "Mossmuffin",
+    "Barkbutton",
+    "Twiglet",
+    "Seedsong",
+    "Rootsong",
+    "Loamling",
+    "Pebbleroot",
+    "Spriglet",
+    "Puddlewort",
+    "Rootrise",
+    "Fernwhirl",
+    "Gnarlbeard",
+    "Sapsnout",
+    "Rootsnuffle",
+    "Burrowbean",
+    "Seedwhisk",
+    "Mossmote",
+    "Dewroot",
+    "Starsprout",
+    "Cosmoss",
+    "Nebuleaf",
+    "Moonsap",
+    "Sunroot",
+    "Orbseed",
+    "Stardrip",
+    "Elderglow",
+    "Rootspark",
+    "Undergrove",
+    "Hollowhum",
+    "Echoroot",
+    "Echodrip",
+    "Wellbloom",
+    "Fossilfern",
+    "Ambertuft",
+    "Primroot",
+    "Firstbloom",
+    "Oldsprout",
+    "Eonbud",
+    "Aeonleaf",
+    "Mosslight",
+    "Glimroot",
+    "Sapshine",
+    "Bubbleroot",
+    "Rootripple",
+    "Ripplewell",
+    "Springbud",
+    "Brookbud",
+    "Puddlesprout",
+    "Gloamroot",
+    "Rootlantern",
+    "Burlbud",
+    "Knotling",
+    "Sapsong",
+    "Wellwisp"
+  ]
+}

@@ -30,3 +30,9 @@ Not in the repo (lives only in the place file): Workspace (map), Lighting, Teams
 1. `rojo serve` in the repo root.
 2. In Studio, open the Rojo plugin and click Connect. File edits sync into Studio live.
 3. Changes made in Studio are not written back automatically. To pull Studio's current state into `src/`, follow the steps at the top of `tools/export/sync.ps1`.
+
+## Knowledge base and clarifying questions
+
+`wiki/` is an LLM-maintained knowledge base for this game. Start at `wiki/index.md`. Its rules are in `wiki/SCHEMA.md`. Code and the owner's decisions outrank it, so fix a page when you find it wrong.
+
+The owner's standing instruction: if a request is broad, or you are not sure what they mean, ask short questions with options before doing the work. `wiki/ambiguous-terms.md` lists the words that need this. The full rules are in `CLAUDE.md`, under "Ask before you assume".

@@ -2,6 +2,9 @@
 local MineConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineConfig"))
 
 local WorldBuilder = {}
+-- Fishing spots (TODO A3): which zones have a surface pond, and the builder.
+local Fishing = require(game:GetService("ReplicatedStorage"):WaitForChild("Mine"):WaitForChild("Shared"):WaitForChild("MineFishing"))
+local FishPonds = require(script.Parent:WaitForChild("MineFishPonds"))
 
 local WOOD = Color3.fromRGB(118, 90, 62)
 local STONE = Color3.fromRGB(92, 90, 84)
@@ -1050,6 +1053,22 @@ function WorldBuilder.buildOutpost(parent, zone, origin, dir)
 			Color = pal.accent, Material = Enum.Material.Fabric }).CanCollide = false
 	end
 
+	--[[
+		FISHING (TODO A3; owner: "Make the first fishing spot in zone 2"). A zone
+		with a surface spot in MineFishing.SPOTS gets its pool on the back corner
+		of the square, past the Blacksmith: clear of the shops (hole + 40), the
+		lamps (side 9) and the banners (side 67). You walk out on the pier from
+		the path side and fish facing away from it.
+	]]
+	for _, spot in ipairs(Fishing.SPOTS) do
+		if spot.kind == "surface" and spot.zoneId == zone.id then
+			local c = at(hole + 84, 44, TOP)
+			FishPonds.build(f, spot, CFrame.lookAt(c, c + side), Vector2.new(24, 32), {
+				rim = stone:Lerp(Color3.fromRGB(60, 58, 54), 0.35),
+			})
+		end
+	end
+
 	return f
 end
 
@@ -1316,8 +1335,8 @@ function WorldBuilder.buildLobby(world)
 		{ x = 76, z = 40, style = "forge", title = "Blacksmith", verb = "FORGE", npc = "Bruk",
 		  role = "Picks, drills, bags", machine = "shop",
 		  pal = { brick = Color3.fromRGB(96, 92, 96), roof = Color3.fromRGB(58, 56, 64), trim = Color3.fromRGB(84, 62, 42), accent = Color3.fromRGB(255, 146, 62), mat = Enum.Material.Brick } },
-		{ x = -70, z = -46, style = "spire", title = "Enchanter", verb = "RUNES", npc = "Sable",
-		  role = "Runes, scrap, stardust shop", machine = "enchanter", locked = false,
+		{ x = -70, z = -46, style = "spire", title = "Enchanter", verb = "SUMMON", npc = "Sable",
+		  role = "Gear, skins, scrap, stardust", machine = "enchanter", locked = false,
 		  pal = { brick = Color3.fromRGB(74, 70, 106), roof = Color3.fromRGB(46, 42, 72), trim = Color3.fromRGB(102, 94, 138), accent = Color3.fromRGB(154, 144, 226), mat = Enum.Material.Slate } },
 		-- The FOSSIL BENCH stood here (x 66, z -30), and it is gone with the
 		-- fossil system. The slot is deliberately left empty rather than filled:

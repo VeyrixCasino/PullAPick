@@ -195,7 +195,7 @@ function MineBenchView.mount(parent, opts)
 		-- without it must still list what you own rather than blank the panel.
 		local costOre, costDust
 		if C.toolUpgradeCost then
-			costOre, costDust = C.toolUpgradeCost(tool.tier, level, typeMult)
+			costOre, costDust = C.toolUpgradeCost(tool.tier, level, typeMult, tool.familyId)
 		end
 		local canOne = (not maxed) and costOre and haveOre >= costOre and haveDust >= costDust
 

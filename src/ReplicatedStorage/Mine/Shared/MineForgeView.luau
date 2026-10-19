@@ -12,6 +12,7 @@ local Temper = require(shared:WaitForChild("MineTemper"))
 local Tools = require(shared:WaitForChild("MineTools"))
 local T = require(shared:WaitForChild("MineTheme"))
 local Icons = require(shared:WaitForChild("MineIcons"))
+local Stars = require(shared:WaitForChild("MineStars"))
 
 local BG = T.BG
 local BG2 = T.BG2
@@ -302,8 +303,9 @@ function MineForgeView.mountList(parent, opts)
 
 			label(seat, fam.label, 14, locked and MUTED or TEXT,
 				UDim2.fromOffset(78, 14), UDim2.new(1, -88, 0, 20), FONT)
+			-- Word kept; ★ beside it (MineStars / TODO B4). Tiny letter chips stay letter-only.
 			local sub = locked and "buy at shop"
-				or (kit and ((Temper.wordOf and Temper.wordOf(grade)) or grade or "") .. " " .. kit.name)
+				or (kit and (Stars.beside((Temper.wordOf and Temper.wordOf(grade)) or grade) .. " " .. kit.name))
 				or "empty"
 			label(seat, sub, 11, locked and MUTED or tint,
 				UDim2.fromOffset(78, 36), UDim2.new(1, -88, 0, 32))
@@ -344,8 +346,8 @@ function MineForgeView.mountList(parent, opts)
 		stroke(bar, 2, tint, 0.3)
 
 		label(bar, "SELECTED", 10, GOLD, UDim2.fromOffset(14, 6), UDim2.fromOffset(80, 14), FONT)
-		label(bar, (Temper.wordOf(grade) or "") .. "  " .. kit.name, 15, tint,
-			UDim2.fromOffset(14, 22), UDim2.new(0.45, -20, 0, 28), FONT)
+		label(bar, Stars.beside(Temper.wordOf(grade) or grade) .. "  " .. kit.name, 15, tint,
+			UDim2.fromOffset(14, 22), UDim2.new(0.55, -20, 0, 28), FONT)
 
 		local scrap = round(mk("TextButton", {
 			AnchorPoint = Vector2.new(1, 0.5),
@@ -551,7 +553,7 @@ function MineForgeView.mountList(parent, opts)
 				iconImage(thumb, "pickaxe", UDim2.fromOffset(42, 42), UDim2.fromOffset(7, 7))
 
 				label(tile, name, 13, TEXT, UDim2.fromOffset(76, 10), UDim2.new(1, -86, 0, 18), FONT)
-				label(tile, kit and ((Temper.wordOf(grade) or "") .. " " .. kit.name) or "no temper",
+				label(tile, kit and (Stars.beside(Temper.wordOf(grade) or grade) .. " " .. kit.name) or "no temper",
 					11, kit and tint or MUTED, UDim2.fromOffset(76, 30), UDim2.new(1, -86, 0, 16))
 
 				local can = tokens >= cost
@@ -704,7 +706,27 @@ function MineForgeView.mount(parent, opts)
 			end
 			local sx = (avail.X * 0.96) / (720 * A)
 			local sy = (avail.Y * 0.90) / (580 * A)
-			fit.Scale = math.clamp(math.min(sx, sy), 0.32, 2.2)
+			--[[
+				A FIT SCALE SHRINKS. IT MUST NEVER BLOW THE PANEL UP.
+
+				Owner, 2026-10-10: "you also got to do something this fuicking
+				forge man.. its so ugly, i fucking hate it".
+
+				The cap here was 2.2, so on any roomy screen this did the
+				opposite of fitting. Measured in Studio at a 992x1052 viewport:
+				FitScale was 1.44, which stretched a panel drawn for 720x580
+				into 952x767 -- 96% of the width -- and took every size in the
+				layout with it. The 24px title rendered at ~35px and crowded
+				the wallet, the 13px subtitle at ~19px, and the fixed-pixel
+				cards lost the proportions they were drawn at. Nothing was
+				misplaced; it was just inflated, which is what read as ugly.
+
+				Capped at 1 the panel renders at the size it was designed for
+				and sits centred with room around it. The shrink path is
+				untouched, so small screens still fit: an iPhone portrait
+				(375pt) still lands at ~0.5.
+			]]
+			fit.Scale = math.clamp(math.min(sx, sy, 1), 0.32, 1)
 		end
 		applyFit()
 		task.defer(applyFit)

@@ -93,7 +93,7 @@ local HOLD_BY_RANK = {
 local HOLD_BY_BAND = { CHASE = 0.25, GOD = 0.50 }
 
 local function holdFor(card, band)
-	local rank = (Cards.RARITY_RANK and Cards.RARITY_RANK[(card and card.rarityId) or ""]) or 0
+	local rank = PackFX.rankOf(card, Cards, 0)
 	return math.max(HOLD_BY_RANK[rank] or 0, HOLD_BY_BAND[band] or 0)
 end
 
@@ -163,7 +163,7 @@ local function pullKey(card)
 	if f then
 		return f
 	end
-	local r = (Cards.RARITY_RANK and Cards.RARITY_RANK[(card and card.rarityId) or ""]) or 1
+	local r = PackFX.rankOf(card, Cards)
 	return RANK_ODDS[math.clamp(r, 1, #RANK_ODDS)]
 end
 
@@ -424,6 +424,13 @@ function MinePackReveal.mount(playerGui, opts)
 	-- Set by SKIP ALL. awaitTap honours it, so a run in flight races to the end
 	-- instead of being torn down mid-tween.
 	local skipAll = false
+	-- Declared HERE, above the SKIP ALL handler that sets it. It used to be
+	-- declared ~100 lines further down, so `rush = true` in that handler wrote
+	-- a GLOBAL named rush and the reveal never sped up (wiki luau-traps).
+	local rush = false
+	-- Set by SKIP ALL for the whole run, so the end can celebrate the best hit
+	-- once (skipAll itself is reset as the run finishes).
+	local skippedRun = false
 	--[[
 		SKIP ALL -- the lucky-block bargain.
 
@@ -450,6 +457,7 @@ function MinePackReveal.mount(playerGui, opts)
 	mk("UICorner", { CornerRadius = UDim.new(0, 12) }, skipBtn)
 	skipBtn.MouseButton1Click:Connect(function()
 		skipAll = true
+		skippedRun = true
 		rush = true
 	end)
 
@@ -532,7 +540,7 @@ function MinePackReveal.mount(playerGui, opts)
 	local pending = false
 	local busy = false
 	local lastTap = 0
-	local rush = false
+	-- `rush` is declared above, with SKIP ALL.
 	-- A recap card blown back up in the middle (see focusRecap), or nil.
 	local focus = nil
 	-- The run on stage is a forced one (a chest find): it plays itself and a
@@ -633,6 +641,59 @@ function MinePackReveal.mount(playerGui, opts)
 			end
 		end
 		return false
+	end
+
+	--[[
+		THE BUILD-UP before a Legendary or better turns over. Owner, 2026-10-10:
+		"make the card flash legendary twice, mythic twice..... and the flicker
+		whatever it really is 3 times (just a buildup.. one click skips it tho)".
+
+		The back flashes each rarity from Legendary up to the one below the
+		card's, twice each, then flickers its own rarity three times. Every flash
+		is an anim(), so one tap ends the lot and the card turns at once; the
+		protected window after the flip drops that tap, so it cannot skip the
+		card too. A Legendary just flickers Legendary three times.
+	]]
+	local BUILD_FROM = 5 -- Legendary, in MineCards.RARITY_ORDER
+	local BUILD_ON, BUILD_OFF = 0.08, 0.12
+	local function buildUp(back, rank)
+		if not back or not back.Parent or rank < BUILD_FROM then
+			return
+		end
+		local order = Cards.RARITY_ORDER or {}
+		local glow = mk("Frame", {
+			Name = "BuildUp",
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 50,
+		}, back)
+		round(glow, 12)
+		local bs = back:FindFirstChildOfClass("UIStroke")
+		pcall(Audio.play, "riser")
+		for r = BUILD_FROM, rank do
+			local col = (Cards.RARITY_COLOR and Cards.RARITY_COLOR[order[r] or ""]) or MUTED
+			glow.BackgroundColor3 = col
+			if bs then
+				bs.Color, bs.Transparency, bs.Thickness = col, 0, 6
+			end
+			local cut = false
+			for _ = 1, (r == rank) and 3 or 2 do
+				pcall(Audio.play, "tick", 0.7, 0.9 + (r - BUILD_FROM) * 0.12)
+				if anim(glow, BUILD_ON, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, { BackgroundTransparency = 0.15 })
+					or anim(glow, BUILD_OFF, Enum.EasingStyle.Quad, Enum.EasingDirection.In, { BackgroundTransparency = 1 }) then
+					cut = true
+					break
+				end
+			end
+			if cut then
+				break
+			end
+		end
+		if glow.Parent then
+			glow:Destroy()
+		end
 	end
 
 	----------------------------------------------------------------------------
@@ -824,6 +885,26 @@ function MinePackReveal.mount(playerGui, opts)
 			focus.close()
 		end
 	end)
+
+	-- Make a recap slot (YOU PULLED strip or the open-all hits grid) tappable:
+	-- a tap lifts its card up for a look. The slot must hold a full-size face
+	-- named "Card", scaled down by a UIScale.
+	local function addPick(slot)
+		if not (slot:IsA("Frame") and slot:FindFirstChild("Card")) or slot:FindFirstChild("Pick") then
+			return
+		end
+		local pick = mk("TextButton", {
+			Name = "Pick",
+			BackgroundTransparency = 1,
+			Text = "",
+			AutoButtonColor = false,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 30,
+		}, slot)
+		pick.MouseButton1Click:Connect(function()
+			focusRecap(slot)
+		end)
+	end
 
 	----------------------------------------------------------------------------
 	-- ONE PACK.
@@ -1155,7 +1236,10 @@ function MinePackReveal.mount(playerGui, opts)
 
 			-- TENSION is an OFFER. Rush mode sets t.tension to zero, and a tap
 			-- mid-pulse cuts it short through anim() -- never a cutscene.
-			if t.tension > 0 and (band == "HIT" or band == "CHASE" or band == "GOD") then
+			-- Legendary and up get the rarity build-up instead (buildUp).
+			if t.tension > 0 and not skipAll and PackFX.rankOf(card, Cards) >= BUILD_FROM then
+				buildUp(back, PackFX.rankOf(card, Cards))
+			elseif t.tension > 0 and (band == "HIT" or band == "CHASE" or band == "GOD") then
 				local pulse = back and back:FindFirstChildOfClass("UIScale")
 				if pulse then
 					local hold = (band == "GOD") and t.tension * 2 or t.tension
@@ -1209,7 +1293,10 @@ function MinePackReveal.mount(playerGui, opts)
 			centre.ZIndex = 18
 			local cs = centre:FindFirstChildOfClass("UIScale") or mk("UIScale", {}, centre)
 			cs.Scale = 0.86
-			if Audio.playCard then
+			if skipAll then
+				-- Skipping: just the flip. The best hit's stinger plays once at the end.
+				Audio.play("flip")
+			elseif Audio.playCard then
 				Audio.playCard(band)
 			else
 				Audio.play("flip")
@@ -1232,15 +1319,17 @@ function MinePackReveal.mount(playerGui, opts)
 
 			-- And the screen reacts in proportion to what it actually is.
 			-- Mashing mutes the small stuff so nobody gets strobed for commons.
-			local quiet = rush and (band == "DUD" or band == "NICE")
+			-- SKIP ALL means skip: no per-card flash, banner or hold. The best
+			-- hit gets one celebration when the run lands (see playBulk).
+			local quiet = (rush and (band == "DUD" or band == "NICE")) or skipAll
 			if not quiet then
 				PackFX.playPullHit(fxHost, band, col, stage)
 			end
-			if band == "GOD" or band == "CHASE" then
+			if (band == "GOD" or band == "CHASE") and not skipAll then
 				titleL.Text = string.upper(tostring(card.name or ""))
 				titleL.TextColor3 = col
 				-- Legendary and up, or anything the odds call a god pull.
-				local rank = (Cards.RARITY_RANK and Cards.RARITY_RANK[card.rarityId or ""]) or 1
+				local rank = PackFX.rankOf(card, Cards)
 				if band == "GOD" or rank >= 5 then
 					showCrazy(col, band)
 				end
@@ -1269,7 +1358,7 @@ function MinePackReveal.mount(playerGui, opts)
 				fresh, deliberate one.
 			]]
 			local hold = holdFor(card, band)
-			if hold > 0 then
+			if hold > 0 and not skipAll then
 				task.wait(hold)
 				pending = false
 			end
@@ -1451,8 +1540,18 @@ function MinePackReveal.mount(playerGui, opts)
 	end)
 	-- The prompt is the only thing that turns this on, so it can never eat a
 	-- tap during the reveal itself.
+	--[[
+		The YOU PULLED strip rides ABOVE this layer while the prompt is up. It
+		sat below it (8 against 24), so a tap on a pulled card hit TapAnywhere
+		and closed the reveal instead of lifting the card for a look. Owner,
+		2026-10-10: "you used to be able to click what u found in the packs to
+		look at them, but now you cant". A tap that misses the cards still
+		closes.
+	]]
 	prompt:GetPropertyChangedSignal("Visible"):Connect(function()
 		dismiss.Visible = prompt.Visible
+		tray.ZIndex = prompt.Visible and 25 or 8
+		hitsHost.ZIndex = prompt.Visible and 25 or 9
 	end)
 
 	local function showPrompt(meta)
@@ -1532,19 +1631,7 @@ function MinePackReveal.mount(playerGui, opts)
 		-- once the pack is done: mid-pack, a tap near the strip has to keep
 		-- drawing cards for someone mashing through it.
 		for _, c in ipairs(tray:GetChildren()) do
-			if c:IsA("Frame") and c:FindFirstChild("Card") and not c:FindFirstChild("Pick") then
-				local pick = mk("TextButton", {
-					Name = "Pick",
-					BackgroundTransparency = 1,
-					Text = "",
-					AutoButtonColor = false,
-					Size = UDim2.fromScale(1, 1),
-					ZIndex = 30,
-				}, c)
-				pick.MouseButton1Click:Connect(function()
-					focusRecap(c)
-				end)
-			end
+			addPick(c)
 		end
 
 		prompt.Visible = true
@@ -1566,7 +1653,15 @@ function MinePackReveal.mount(playerGui, opts)
 			only the empty screen feeds you another.
 		]]
 		if left > 0 then
-			hintL.Text = "TAP FOR ANOTHER"
+			--[[
+				Say what a tap actually does. TapAnywhere (above, ZIndex 24) takes
+				every mouse or touch tap that misses a button and CLOSES, as the
+				owner asked on 2026-10-04. Only Space/Return reach the waiter below
+				and open another. The hint used to say "TAP FOR ANOTHER", so a tap
+				did the opposite of what the screen promised.
+			]]
+			local keys = game:GetService("UserInputService").KeyboardEnabled
+			hintL.Text = keys and "TAP TO CLOSE  -  SPACE FOR ANOTHER" or "TAP TO CLOSE"
 			-- Same reasoning as the protected window: a tap banked while the
 			-- last card was being looked at must not silently buy the next
 			-- pack. The waiter below wants a fresh one.
@@ -1650,7 +1745,7 @@ function MinePackReveal.mount(playerGui, opts)
 		Epic+ hits for tap-through like a normal pack.
 	]]
 	local function cardRank(card)
-		return (Cards.RARITY_RANK and Cards.RARITY_RANK[(card and card.rarityId) or ""]) or 1
+		return PackFX.rankOf(card, Cards)
 	end
 
 	--[[
@@ -1662,10 +1757,13 @@ function MinePackReveal.mount(playerGui, opts)
 		so a fifty-pack run could hand you thirty-odd cards to tap through one at
 		a time. Open-all was just running the single-pack ceremony thirty times.
 
-		Legendary and better earns a tap outright. A oneIn only earns one past
-		BULK_ONE_IN, which is the same 1-in-150 line MineServer already uses for
-		"actually rare". Everything else lands in the bag exactly as before --
-		the server granted it long ago; this screen only decides what you LOOK at.
+		Legendary and better earns a tap outright. Below that, only a special
+		finish (shiny, shadow or a variant) earns one, and only past BULK_ONE_IN,
+		the same 1-in-150 line MineServer uses for "actually rare". A plain Epic
+		with a "1 in X" ribbon used to count too, so the "N hits" title was mostly
+		Epics (odds audit, 2026-10-10; owner's call delegated 2026-10-18: "do it
+		all"). Everything else lands in the bag exactly as before -- the server
+		granted it long ago; this screen only decides what you LOOK at.
 	]]
 	local BULK_MIN_RANK = 5 -- Legendary and better
 	local BULK_ONE_IN = 150
@@ -1675,8 +1773,9 @@ function MinePackReveal.mount(playerGui, opts)
 		if cardRank(card) >= BULK_MIN_RANK then
 			return true
 		end
+		local fancy = card and (card.shiny or card.shadow or (card.variant or "Normal") ~= "Normal")
 		local one = tonumber(card and card.oneIn)
-		return one ~= nil and one >= BULK_ONE_IN
+		return fancy and one ~= nil and one >= BULK_ONE_IN or false
 	end
 
 	local function bulkAutoHold(card)
@@ -1802,6 +1901,7 @@ function MinePackReveal.mount(playerGui, opts)
 			-- Tap through them one at a time; SKIP ALL races to the end.
 			skipBtn.Text = string.format("SKIP ALL  (%d)", #hits)
 			skipBtn.Visible = #hits > 1
+			skippedRun = false
 			pcall(playPack, {
 				cards = hits,
 				name = "Hits",
@@ -1810,6 +1910,17 @@ function MinePackReveal.mount(playerGui, opts)
 			}, 1, 1)
 			skipBtn.Visible = false
 			skipAll = false
+			-- Skipped: one celebration, sized by the best hit (sorted last).
+			if skippedRun then
+				skippedRun = false
+				local _, bestBand = PackFX.pullScore(hits[#hits], Cards)
+				local okC, Celebrate = pcall(function()
+					return require(script.Parent:WaitForChild("MineCelebrate"))
+				end)
+				if okC and Celebrate then
+					pcall(Celebrate.burst, Celebrate.fromBand(bestBand))
+				end
+			end
 			--[[
 				AND IT ALWAYS ENDS ON THE FULL GRID.
 
@@ -1832,12 +1943,30 @@ function MinePackReveal.mount(playerGui, opts)
 				}, hitsHost)
 				slots[#slots + 1] = { slot = slot, card = hits[i] }
 			end
+			--[[
+				Each hit is built full size and scaled down, the same as a card in
+				the YOU PULLED strip, so a tap lifts it back up for a proper look
+				(focusRecap). It was painted straight at recap size with no way to
+				open it. Owner, 2026-10-10: "you used to be able to click what u
+				found in the packs to look at them".
+			]]
+			local fw, fh = cardSize()
 			task.spawn(function()
 				for i, row in ipairs(slots) do
 					if not row.slot.Parent then
 						return
 					end
-					pcall(buildFace, row.slot, row.card, RECAP_W, RECAP_H)
+					local holder = mk("Frame", {
+						Name = "Card",
+						BackgroundTransparency = 1,
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.fromScale(0.5, 0.5),
+						Size = UDim2.fromOffset(fw, fh),
+						ZIndex = 9,
+					}, row.slot)
+					mk("UIScale", { Scale = RECAP_W / math.max(1, fw) }, holder)
+					pcall(buildFace, holder, row.card, fw, fh)
+					addPick(row.slot)
 					if i % 6 == 0 then
 						task.wait()
 					end
