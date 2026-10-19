@@ -16,6 +16,12 @@
     "luckyFind",
     "ricochet"
   ],
+  "topNote": "**Halloween Mythic+ pets are 20% better than the best normal pets, even after the event** (owner, 2026-10-19: \"20%\"). Measured on the game's own pet power, MineCards.boostScore at Normal, power level 1 (kit points × RARITY_MULT), against the strongest pet that is not a Halloween pet; regenerating re-reads it, so a stronger normal pet is beaten again. PROPOSED (2026-10-19): Mythic 1.2×, Divine 1.3×, Exotic 1.4×, so a rarer Halloween pet still beats a commoner one. Rattlebones, whose lead stat is Shatter Chance, becomes the pack's Shatter build.",
+  "topBeat": {
+    "Mythic": 1.2,
+    "Divine": 1.3,
+    "Exotic": 1.4
+  },
   "costumeCounts": {
     "Common": 20,
     "Uncommon": 15,
@@ -96,6 +102,115 @@
       "body": "spider",
       "tier": "Epic",
       "role": "Digger"
+    }
+  ],
+  "extraNote": "Owner, 2026-10-19: \"12 more, new bodies\", and \"make some of these pets influence builds that wouldn't be possible without the pets, making them exceptionally important (for example a big blast radius, or a high proc chance pets)\". PROPOSED (2026-10-19): the twelve names, rarities (Epic 4, Legendary 3, Mythic 2, Divine 2, Exotic 1), bodies, fallbacks and build kits. Every Mythic+ one is a build: one ability family each, its whole budget on the shares below.",
+  "extraPets": [
+    {
+      "name": "Boomjaw",
+      "tier": "Exotic",
+      "body": "bonedragon",
+      "label": "Bone Dragon",
+      "fallback": "skelehound",
+      "build": "Crater",
+      "kit": { "blastRadius": 0.65, "blastChance": 0.2, "mineSpeed": 0.15 },
+      "blurb": "Blast Radius, which no other pet carries: bombs (explosives) blow a bigger sphere. Boomjaw and Sparkplug together are about +70% at Normal, so a radius-2 bomb becomes radius 3, and radius 4 with the Fire tree's Blast Radius. A bomb takes no Special enchant, so the proc gate keeps your gear's best proc: their Blast Chance keeps Blast the one that fires, and a tool with a Blast Special uses that chance as well."
+    },
+    {
+      "name": "Sparkplug",
+      "tier": "Divine",
+      "body": "imp",
+      "label": "Imp",
+      "fallback": "vampire",
+      "build": "Crater",
+      "kit": { "blastRadius": 0.65, "blastChance": 0.2, "mineSpeed": 0.15 },
+      "blurb": "Boomjaw's partner in the Crater build: Blast Radius and Blast Chance on a Divine."
+    },
+    {
+      "name": "Hexbolt",
+      "tier": "Divine",
+      "body": "grimoire",
+      "label": "Grimoire",
+      "fallback": "ghost",
+      "build": "Hex Storm",
+      "kit": { "zap": 0.5, "zapDamage": 0.3, "swingRate": 0.2 },
+      "blurb": "Zap Chance above any normal pet's, with Zap Damage and Swing Rate: on a tool with a Zap Special, most breaks start a chain."
+    },
+    {
+      "name": "Bogsplash",
+      "tier": "Mythic",
+      "body": "bogmonster",
+      "label": "Bog Monster",
+      "fallback": "zombie",
+      "build": "Bog Tide",
+      "kit": { "tidalWave": 0.45, "tideDamage": 0.3, "dirtBreak": 0.25 },
+      "blurb": "Tidal Wave Chance above any normal pet's, with Tidal Wave Damage: on a tool with a Tidal Wave Special, waves clear the floor. The Halloween skins lean Tidal Wave too."
+    },
+    {
+      "name": "Thudwing",
+      "tier": "Mythic",
+      "body": "gargoyle",
+      "label": "Gargoyle",
+      "fallback": "bat",
+      "build": "Gravequake",
+      "kit": { "earthquake": 0.45, "mineSpeed": 0.3, "dirtBreak": 0.25 },
+      "blurb": "Earthquake Chance above any normal pet's: on a tool with an Earthquake Special, block after block starts shaking."
+    },
+    {
+      "name": "Moonbark",
+      "tier": "Legendary",
+      "body": "werewolf",
+      "label": "Werewolf",
+      "fallback": "skelehound",
+      "role": "Striker"
+    },
+    {
+      "name": "Orbella",
+      "tier": "Legendary",
+      "body": "crystalball",
+      "label": "Crystal Ball",
+      "fallback": "eyeball",
+      "role": "Seeker"
+    },
+    {
+      "name": "Gravy",
+      "tier": "Legendary",
+      "body": "gravestone",
+      "label": "Gravestone",
+      "fallback": "frankenstein",
+      "role": "Bruiser"
+    },
+    {
+      "name": "Cawlin",
+      "tier": "Epic",
+      "body": "raven",
+      "label": "Raven",
+      "fallback": "bat",
+      "role": "Prospector"
+    },
+    {
+      "name": "Bubblebrew",
+      "tier": "Epic",
+      "body": "potion",
+      "label": "Potion",
+      "fallback": "cauldron",
+      "role": "Mystic"
+    },
+    {
+      "name": "Zoomstick",
+      "tier": "Epic",
+      "body": "broomstick",
+      "label": "Broomstick",
+      "fallback": "scarecrow",
+      "role": "Digger"
+    },
+    {
+      "name": "Boo Manor",
+      "tier": "Epic",
+      "body": "hauntedhouse",
+      "label": "Haunted House",
+      "fallback": "lantern",
+      "role": "Trader"
     }
   ],
   "costumeBodies": [

@@ -31,6 +31,18 @@ const BUDGET = { F: 80, D: 105, C: 135, B: 175, A: 225, S: 290, SS: 380, SSS: 50
 const BASE   = { F: 1.15, D: 1.35, C: 1.60, B: 1.90, A: 2.30, S: 3.00, SS: 4.00, SSS: 5.50 };
 const SLOTS  = { F: 2, D: 2, C: 3, B: 3, A: 4, S: 4, SS: 5, SSS: 5 };
 
+//[[ A SET'S EDGE: how much better its skins of a grade are than every other
+// skin of that grade, on both halves of a skin -- the damage base AND the buff
+// budget. Owner, 2026-10-19: Halloween Mythic+ "pets and skins are 20% better
+// than the best normal ones, even after the event" ("20%"). Skins' Mythic+ is
+// S, SS and SSS (MineTemper.WORD_OF); every other skin of a grade shares one
+// BASE and one BUDGET, so 1.2 x the grade's is 20% over the best of them.
+// No seasonal gate: the edge stays when the event ends.
+const EDGE = {
+  halloween: { S: 1.2, SS: 1.2, SSS: 1.2 },
+};
+const edgeOf = (skin) => (EDGE[skin.set] && EDGE[skin.set][skin.tier]) || 1;
+
 // Skins' own prices. NOT MineStats.STATS -- see the doc: editing those moves
 // runes, gear, traits, the tree and pets all at once.
 const WEIGHT = {
@@ -153,7 +165,7 @@ function buildKit(skin) {
     if (total < 1e-12) break; // every share is pinned; the split is forced
     shares = shares.map((s, i) => s + gap * (room[i] / total));
   }
-  const budget = BUDGET[skin.tier];
+  const budget = BUDGET[skin.tier] * edgeOf(skin);
   const kit = {};
   picked.forEach((stat, i) => {
     // points -> amount: points = amount * 100 * weight
@@ -185,6 +197,13 @@ lua.push(`MineSkins.TIERS = { ${TIERS.map((t) => `"${t}"`).join(", ")} }`);
 lua.push(`MineSkins.TIER_RANK = { ${TIERS.map((t, i) => `${t} = ${i + 1}`).join(", ")} }`);
 lua.push(`MineSkins.BASE = { ${TIERS.map((t) => `${t} = ${BASE[t]}`).join(", ")} }`);
 lua.push(`MineSkins.BUDGET = { ${TIERS.map((t) => `${t} = ${BUDGET[t]}`).join(", ")} }`);
+lua.push(``);
+lua.push(`-- A set's edge over every other skin of a grade, on its base AND its budget`);
+lua.push(`-- (owner, 2026-10-19: Halloween Mythic+ skins are 20% better, even after the`);
+lua.push(`-- event). Read through MineSkins.edgeOf / MineSkins.baseOf, never BASE alone.`);
+lua.push(`MineSkins.EDGE = {`);
+for (const [set, row] of Object.entries(EDGE)) lua.push(`\t${set} = { ${TIERS.filter((t) => row[t]).map((t) => `${t} = ${row[t]}`).join(", ")} },`);
+lua.push(`}`);
 lua.push(``);
 lua.push(`-- Skins' own prices. Read by nothing else; see docs/SKINS.md.`);
 lua.push(`MineSkins.WEIGHT = {`);
@@ -227,10 +246,23 @@ lua.push(`function MineSkins.byId(id)`);
 lua.push(`\treturn MineSkins.BY_ID[tostring(id or "")]`);
 lua.push(`end`);
 lua.push(``);
-lua.push(`-- The base multiplier a skin puts under the ore tool's damage.`);
+lua.push(`-- How much better this skin is than every other skin of its grade (1 for most).`);
+lua.push(`function MineSkins.edgeOf(skin)`);
+lua.push(`\tlocal s = type(skin) == "table" and skin or MineSkins.byId(skin)`);
+lua.push(`\tlocal row = s and MineSkins.EDGE[s.set]`);
+lua.push(`\treturn (row and row[s.tier]) or 1`);
+lua.push(`end`);
+lua.push(``);
+lua.push(`function MineSkins.isHalloween(skin)`);
+lua.push(`\tlocal s = type(skin) == "table" and skin or MineSkins.BY_ID[tostring(skin or "")]`);
+lua.push(`\treturn s ~= nil and s.set == "halloween"`);
+lua.push(`end`);
+lua.push(``);
+lua.push(`-- The base multiplier a skin puts under the ore tool's damage: its grade's,`);
+lua.push(`-- times its set's edge.`);
 lua.push(`function MineSkins.baseOf(skin)`);
 lua.push(`\tlocal s = type(skin) == "table" and skin or MineSkins.byId(skin)`);
-lua.push(`\treturn (s and MineSkins.BASE[s.tier]) or 1`);
+lua.push(`\treturn (s and MineSkins.BASE[s.tier] and MineSkins.BASE[s.tier] * MineSkins.edgeOf(s)) or 1`);
 lua.push(`end`);
 lua.push(``);
 lua.push(`-- What a kit cost, on skins' own weights. For the verify harness and the UI.`);

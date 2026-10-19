@@ -5,6 +5,16 @@
 
 	Holiday rule (owner): these pets come ONLY from this pack. Every row
 	carries `holiday`, which every random roll skips.
+
+	TOP_BEAT (owner, 2026-10-19: Mythic+ "20% better than the best normal
+	ones, even after the event"): each Mythic, Divine and Exotic here scores
+	at least TOP_BEAT[tier] x BEST_NORMAL.score on MineCards.boostScore at
+	Normal, power level 1. A stronger normal pet makes this file stale.
+
+	The last pets (owner, 2026-10-19: "12 more, new bodies") wear bodies
+	still to be built in Studio; an ANIMALS row with `fallback` wears that
+	Halloween body until its own exists (PetModelFactory). BUILD names the
+	build a pet makes possible (MineHalloweenPets.buildOf).
 ]]
 return {
 	KEY = "halloween_2026",
@@ -13,6 +23,8 @@ return {
 	PACK_ID = "halloween_2026",
 	PACK_NAME = "Halloween 2026 Pack",
 	POWER = 1.6289,
+	TOP_BEAT = { Mythic = 1.2, Divine = 1.3, Exotic = 1.4 },
+	BEST_NORMAL = { name = "Segfault", tier = "Exotic", score = 722.128 },
 	-- Older halloween pets, already in saves, that this pack also pays.
 	LEGACY = { "Spindle", "Spooky", "Wisp" },
 	BUFFS = { "luck", "luckyFind", "ricochet" },
@@ -77,6 +89,18 @@ return {
 		{ name = "Wickedwhisker", hex3 = "c39", animal = "Sheet Ghost Bear", tier = "Rare", set = "halloween_2026", holiday = "halloween" },
 		{ name = "Ghostie", hex3 = "c3a", animal = "Devil Fox", tier = "Rare", set = "halloween_2026", holiday = "halloween" },
 		{ name = "Nibblefang", hex3 = "c3b", animal = "Caped Pig", tier = "Rare", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Boomjaw", hex3 = "c40", animal = "Blood Moon Bone Dragon", tier = "Exotic", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Sparkplug", hex3 = "c41", animal = "Ember Imp", tier = "Divine", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Hexbolt", hex3 = "c42", animal = "Pumpkin Grimoire", tier = "Divine", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Bogsplash", hex3 = "c43", animal = "Pumpkin Bog Monster", tier = "Mythic", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Thudwing", hex3 = "c44", animal = "Blood Moon Gargoyle", tier = "Mythic", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Moonbark", hex3 = "c45", animal = "Midnight Werewolf", tier = "Legendary", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Orbella", hex3 = "c46", animal = "Candy Corn Crystal Ball", tier = "Legendary", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Gravy", hex3 = "c47", animal = "Bone Gravestone", tier = "Legendary", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Cawlin", hex3 = "c48", animal = "Graveyard Raven", tier = "Epic", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Bubblebrew", hex3 = "c49", animal = "Bone Potion", tier = "Epic", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Zoomstick", hex3 = "c4a", animal = "Ember Broomstick", tier = "Epic", set = "halloween_2026", holiday = "halloween" },
+		{ name = "Boo Manor", hex3 = "c4b", animal = "Graveyard Haunted House", tier = "Epic", set = "halloween_2026", holiday = "halloween" },
 	},
 	ANIMALS = {
 		["Slime Reaper"] = { species = "reaper", tint = Color3.fromRGB(128, 204, 72) },
@@ -139,13 +163,25 @@ return {
 		["Sheet Ghost Bear"] = { species = "bear", tint = Color3.fromRGB(206, 140, 70), detail = { "cos_ghost" } },
 		["Devil Fox"] = { species = "fox", tint = Color3.fromRGB(70, 58, 54), detail = { "cos_devil" } },
 		["Caped Pig"] = { species = "pig", tint = Color3.fromRGB(172, 110, 58), detail = { "cos_vampire" } },
+		["Blood Moon Bone Dragon"] = { species = "bonedragon", tint = Color3.fromRGB(168, 28, 42), fallback = "skelehound" },
+		["Ember Imp"] = { species = "imp", tint = Color3.fromRGB(228, 84, 40), fallback = "vampire" },
+		["Pumpkin Grimoire"] = { species = "grimoire", tint = Color3.fromRGB(240, 128, 30), fallback = "ghost" },
+		["Pumpkin Bog Monster"] = { species = "bogmonster", tint = Color3.fromRGB(240, 128, 30), fallback = "zombie" },
+		["Blood Moon Gargoyle"] = { species = "gargoyle", tint = Color3.fromRGB(168, 28, 42), fallback = "bat" },
+		["Midnight Werewolf"] = { species = "werewolf", tint = Color3.fromRGB(50, 42, 78), fallback = "skelehound" },
+		["Candy Corn Crystal Ball"] = { species = "crystalball", tint = Color3.fromRGB(250, 198, 64), fallback = "eyeball" },
+		["Bone Gravestone"] = { species = "gravestone", tint = Color3.fromRGB(232, 226, 206), fallback = "frankenstein" },
+		["Graveyard Raven"] = { species = "raven", tint = Color3.fromRGB(74, 100, 84), fallback = "bat" },
+		["Bone Potion"] = { species = "potion", tint = Color3.fromRGB(232, 226, 206), fallback = "cauldron" },
+		["Ember Broomstick"] = { species = "broomstick", tint = Color3.fromRGB(228, 84, 40), fallback = "scarecrow" },
+		["Graveyard Haunted House"] = { species = "hauntedhouse", tint = Color3.fromRGB(74, 100, 84), fallback = "lantern" },
 	},
 	KITS = {
-		["Webster"] = { luck = 0.3869, luckyFind = 0.074, ricochet = 0.0086 },
-		["Graveyard Gus"] = { luckyFind = 0.2245, ricochet = 0.0194, luck = 0.0533 },
-		["Rattlebones"] = { ricochet = 0.0553, luck = 0.2311, luckyFind = 0.0305 },
-		["Gloomy"] = { luck = 0.3578, luckyFind = 0.0685, ricochet = 0.008 },
-		["Cornstalk"] = { luckyFind = 0.2162, ricochet = 0.0186, luck = 0.0514 },
+		["Webster"] = { luck = 0.8004, luckyFind = 0.1532, ricochet = 0.0179 },
+		["Graveyard Gus"] = { luckyFind = 0.5812, ricochet = 0.0502, luck = 0.1381 },
+		["Rattlebones"] = { ricochet = 0.1432, luck = 0.5983, luckyFind = 0.0789 },
+		["Gloomy"] = { luck = 1.161, luckyFind = 0.2222, ricochet = 0.026 },
+		["Cornstalk"] = { luckyFind = 0.7015, ricochet = 0.0605, luck = 0.1667 },
 		["Screech"] = { dirtBreak = 0.6528, oreHaul = 0.3264 },
 		["Potionpaw"] = { chestLuck = 0.2967, luck = 0.1632 },
 		["Tombsy"] = { luck = 0.3264, luckyFind = 0.0933 },
@@ -201,6 +237,18 @@ return {
 		["Wickedwhisker"] = { dirtBreak = 0.6026, mineSpeed = 0.3013 },
 		["Ghostie"] = { mineSpeed = 0.6026, dirtBreak = 0.3013 },
 		["Nibblefang"] = { coinBonus = 0.7532, luckyFind = 0.0861 },
+		["Boomjaw"] = { blastRadius = 0.083, blastChance = 0.0511, mineSpeed = 0.3447 },
+		["Sparkplug"] = { blastRadius = 0.0998, blastChance = 0.0614, mineSpeed = 0.4142 },
+		["Hexbolt"] = { zap = 0.1726, zapDamage = 0.5523, swingRate = 0.3945 },
+		["Bogsplash"] = { tidalWave = 0.15, tideDamage = 0.6666, dirtBreak = 0.8333 },
+		["Thudwing"] = { earthquake = 0.1667, mineSpeed = 0.9999, dirtBreak = 0.8333 },
+		["Moonbark"] = { mineSpeed = 0.6528, swingRate = 0.2331 },
+		["Orbella"] = { packLuck = 0.272, luck = 0.1632 },
+		["Gravy"] = { dirtBreak = 0.6528, oreHaul = 0.3264 },
+		["Cawlin"] = { rareOre = 0.3519, gemFind = 0.176 },
+		["Bubblebrew"] = { luck = 0.3167, luckyFind = 0.0905 },
+		["Zoomstick"] = { fossilFind = 0.4223, dirtBreak = 0.3167 },
+		["Boo Manor"] = { coinBonus = 0.7918, luckyFind = 0.0905 },
 	},
 	ROLE = {
 		["Webster"] = "Halloween 2026",
@@ -263,5 +311,24 @@ return {
 		["Wickedwhisker"] = "Bruiser",
 		["Ghostie"] = "Striker",
 		["Nibblefang"] = "Trader",
+		["Boomjaw"] = "Crater build",
+		["Sparkplug"] = "Crater build",
+		["Hexbolt"] = "Hex Storm build",
+		["Bogsplash"] = "Bog Tide build",
+		["Thudwing"] = "Gravequake build",
+		["Moonbark"] = "Striker",
+		["Orbella"] = "Seeker",
+		["Gravy"] = "Bruiser",
+		["Cawlin"] = "Prospector",
+		["Bubblebrew"] = "Mystic",
+		["Zoomstick"] = "Digger",
+		["Boo Manor"] = "Trader",
+	},
+	BUILD = {
+		["Boomjaw"] = "Crater",
+		["Sparkplug"] = "Crater",
+		["Hexbolt"] = "Hex Storm",
+		["Bogsplash"] = "Bog Tide",
+		["Thudwing"] = "Gravequake",
 	},
 }

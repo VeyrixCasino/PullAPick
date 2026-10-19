@@ -53,6 +53,8 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
   glacier = swingRate, **tide = Tidal Wave + Tidal Wave Damage**, **canopy = blastChance +
   Blast Damage**, bedrock = dirtBreak, foundry = coinBonus, **storm = zap + Zap Damage**,
   **prism = Shatter + Shatter Damage**, umbra = luck, void = gemFind.
+  Inferno's blastRadius is not priced by weight (`MineGear.PRICED_BY_WEIGHT`), so an SSS piece
+  is +350%; since 2026-10-19 a bomb's radius stops at `MinePatterns.MAX_BLAST_RADIUS` (6).
 - **The procs on hats** (owner, 2026-10-10: *"add all these new ones to hats"*):
   - **`stat2` rides along.** A proc set's second stat (its damage) is on every
     piece of the set, at `STAT2_SHARE` 0.5 of the chance line.

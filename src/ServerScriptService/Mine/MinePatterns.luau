@@ -24,6 +24,18 @@ local function clampAxis(v)
 end
 
 --[[
+	THE LARGEST BLAST, IN CELLS OF RADIUS (PROPOSED 2026-10-19). A safety
+	ceiling for the server, not a balance number: a sphere's cells grow as r^3
+	and every cell is a swingNeighbour call. blastRadius has no other limit, an
+	SSS Inferno hat alone is +350%, and since 2026-10-19 two Halloween pets
+	carry it too (MineStats.NAMED_PET_OK), scaled by their variant and stacked
+	over three seats. 6 is the biggest designed bomb (radius 3) doubled: 925
+	cells a pod. It binds only past radius 6: a radius-2 bomb at +250% or more
+	(an SS or SSS Inferno hat does that alone).
+]]
+MinePatterns.MAX_BLAST_RADIUS = 6
+
+--[[
 	Falloff for a cell `d` away from an impact of radius `r`.
 
 	r = 0 (a single cell) is always full power: there is no rim to fall off to.
@@ -196,7 +208,8 @@ function MinePatterns.resolve(tool, cx, cy, cz, aim, boosts)
 		return out
 	end
 
-	local radius = math.floor((tool.radius or 0) * (1 + (boosts.blastRadius or 0)))
+	local radius = math.min(MinePatterns.MAX_BLAST_RADIUS,
+		math.floor((tool.radius or 0) * (1 + math.max(0, tonumber(boosts.blastRadius) or 0))))
 
 	if pattern == "sphere" or pattern == "blackhole" then
 		sphere(out, cx, cy, cz, radius, 1)

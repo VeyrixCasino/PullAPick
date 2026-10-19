@@ -433,9 +433,13 @@ end
 local ADDITIVE_STATS = { echo = true, zap = true, blastRadius = true, autoMine = true, blastChance = true, luckyFind = true, fossilFind = true, oreHaul = true, pulverize = true, scrap = true, coolant = true, shortFuse = true, reach = true, earthquake = true, ricochet = true, tidalWave = true, procPower = true, blastDamage = true, tideDamage = true, zapDamage = true, shatterDamage = true }
 MineCards.ADDITIVE_STATS = ADDITIVE_STATS
 
-local function addStat(b, key, amount)
+-- `named`: the stat comes from a named pet's kit, which may carry the few
+-- RUNE_ONLY stats MineStats.NAMED_PET_OK lists (the Halloween blast-radius
+-- pets). Families, traits and legacy prints still drop every RUNE_ONLY stat.
+local function addStat(b, key, amount, named)
 	local ok, Stats = pcall(require, script.Parent:FindFirstChild("MineStats"))
-	if ok and Stats and Stats.RUNE_ONLY and Stats.RUNE_ONLY[key] then
+	if ok and Stats and Stats.RUNE_ONLY and Stats.RUNE_ONLY[key]
+		and not (named and Stats.NAMED_PET_OK and Stats.NAMED_PET_OK[key]) then
 		return
 	end
 	if ADDITIVE_STATS[key] then
@@ -631,7 +635,7 @@ local function applyNamedKit(b, kit, pow)
 	end
 	for stat, amount in pairs(kit) do
 		if type(amount) == "number" and amount ~= 0 then
-			addStat(b, stat, amount * pow)
+			addStat(b, stat, amount * pow, true)
 		elseif type(amount) == "boolean" and amount then
 			b[stat] = true
 		end

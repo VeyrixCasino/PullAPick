@@ -104,10 +104,26 @@ const holiday = B.sets.flatMap((S) => S.pets.filter((p) => R.species[p.species] 
 check(holiday.length === 0, "no set pet wears a holiday body");
 const bodyFiles = fs.readdirSync(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/PetBodies")).filter((f) => f.endsWith(".luau"));
 const bodySrc = bodyFiles.map((f) => read("src/ReplicatedStorage/Mine/Shared/PetBodies/" + f));
-const baseN = bodyFiles.filter((f) => !/(Top|Extra)\.luau$/.test(f)).length;
-const topN = bodyFiles.filter((f) => /Top\.luau$/.test(f)).length;
-check(baseN === 19 && topN === 19 && bodySrc.every((s) => !/season\s*=/.test(code(s)) && /^\s*(--\[\[[\s\S]*?\]\]\s*)?return function\(K\)/m.test(s)),
-  `${bodyFiles.length} PetBodies modules (19 base + ${topN} Top + ${bodyFiles.length - baseN - topN} Extra), each a plain function of the kit with no season tag`);
+// Holiday body modules (PetBodies/Halloween*.luau: the twelve Halloween bodies of
+// 2026-10-19, a Cursor job) are not set modules: every body in one carries its
+// season tag, and no set pet may wear one.
+const HOLIDAY_FILE = /^Halloween\w*\.luau$/;
+const setFiles = bodyFiles.filter((f) => !HOLIDAY_FILE.test(f));
+const setSrc = bodyFiles.map((f, i) => [f, bodySrc[i]]).filter(([f]) => !HOLIDAY_FILE.test(f)).map(([, s]) => s);
+const baseN = setFiles.filter((f) => !/(Top|Extra)\.luau$/.test(f)).length;
+const topN = setFiles.filter((f) => /Top\.luau$/.test(f)).length;
+check(baseN === 19 && topN === 19 && setSrc.every((s) => !/season\s*=/.test(code(s)) && /^\s*(--\[\[[\s\S]*?\]\]\s*)?return function\(K\)/m.test(s)),
+  `${setFiles.length} set PetBodies modules (19 base + ${topN} Top + ${setFiles.length - baseN - topN} Extra), each a plain function of the kit with no season tag`);
+const HolidayGen = require("../gen/holiday-pets.js");
+const holidayBodies = {};
+bodyFiles.forEach((f, i) => {
+  if (HOLIDAY_FILE.test(f)) Object.assign(holidayBodies, HolidayGen.bodiesIn(code(bodySrc[i])));
+});
+const holidayFiles = bodyFiles.filter((f) => HOLIDAY_FILE.test(f));
+check(holidayFiles.every((f) => /^\s*(--\[\[[\s\S]*?\]\]\s*)?return function\(K\)/m.test(read("src/ReplicatedStorage/Mine/Shared/PetBodies/" + f))) &&
+  Object.values(holidayBodies).every((b) => b.season === "Halloween") &&
+  B.sets.every((S) => S.pets.every((p) => !holidayBodies[p.species])),
+  `${holidayFiles.length} holiday PetBodies module(s): every body (${Object.keys(holidayBodies).length}) tagged season = "Halloween", none worn by a set pet`);
 // A card is drawn by its ANIMAL. Until 2026-10-18 fromCard passed the pet's
 // name as the species, which beat the animal, so every named pet drew as a fox.
 const factory = read("src/ReplicatedStorage/Mine/Shared/PetModelFactory.luau");
