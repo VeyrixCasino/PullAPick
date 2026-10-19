@@ -157,6 +157,12 @@ The indigo surfaces stay as the base, with bright candy on top.
     and its CLAIM button "CLAIM  💰 800!" (`MineQuests.icons`, sent as
     `rewardIcons`), and a daily quest pays "+45 💎". Toasts keep the words
     (`MineQuests.describe`). Checked by `tools/verify/today.js`; seen in Play.
+  - **Toasts** go through `MineKidText.toast` in `showToast`, so all ~285 server
+    toasts read alike without rewriting each: an amount before its currency
+    word becomes icon + number ("Scrapped pack for 💎 50"), "Unlocks X" becomes
+    "🔓 X", and "Quest done - " / "Milestone - " / "Gift: " lead with ✅ / 🏆 / 🎁.
+    "Gem Shop", "Gemfinder" and a bare "you have 200" stay as they are. Checked by
+    `tools/verify/kid-text.js`.
   - The panel has one header with a collapse button. Collapsing shrinks it in
     place to a "QUESTS" pill.
   - The old "ear" tabs that slid the cards off screen are deleted.

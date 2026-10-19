@@ -2572,6 +2572,12 @@ end
 -- Last time the breaking-power refusal was shown, so a held swing cannot spam it.
 
 local function showToast(t)
+	-- Kid-friendly pass: "800 Coins" reads "💰 800" in every toast (MineKidText).
+	if not ClientFns.KidText then
+		local ok, mod = pcall(require, shared:WaitForChild("MineKidText"))
+		ClientFns.KidText = ok and mod or { toast = function(s) return s end }
+	end
+	t = ClientFns.KidText.toast(t)
 	toast.Text = t
 	toast.Visible = true
 	if ClientFns.UI then

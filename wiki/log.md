@@ -1543,3 +1543,16 @@ Seen in Play: every emoji draws. The "lifted surfaces" restyle of the same panel
 (22ccfdf) is untouched; this pass changes words, not surfaces.
 
 Updated: client-and-ui, log.
+
+## [2026-10-19] build | Kid-friendly toasts: icons and numbers everywhere
+The kid-friendly pass, step 2. The server sends about 285 different toasts in
+words. Rather than rewrite each, the client runs every toast through
+`MineKidText.toast`:
+- "800 Coins" becomes "💰 800", and gems, stardust and credits likewise;
+- "Unlocks X" becomes "🔓 X";
+- "Quest done - ", "Milestone - " and "Gift: " lead with ✅, 🏆 and 🎁.
+
+`tools/verify/kid-text.js` runs it on real toasts. Not yet seen in Play: the same
+emoji were seen drawing in the quest panel.
+
+Updated: client-and-ui, log.
