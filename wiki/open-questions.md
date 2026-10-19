@@ -226,7 +226,7 @@ the true rarity · S31 the text-scale rule covers repeating animations *(PC)* ·
 a card detail sheet *(PC)* · S37 Hats/Faces shows what can drop · S38 **keep Discord**: the
 owner runs the bot (`!link` in Discord, the bot writes the code through Open Cloud); show
 the invite **discord.gg/Ab5ZpVdRvp** as text · S39 remove the leaderboard reward text.
-Still unasked: S2 (the dead Lucky Charm row).
+S2 **remove the dead Lucky Charm row** (the Pot of Gold deal sells it; asked separately the same day).
 
 **Day 29 of the pass:** the owner will have a new pass; if it is late, the old one pauses.
 
