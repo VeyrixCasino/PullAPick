@@ -711,12 +711,27 @@ function MinePackFX.rankOf(card, Cards, default)
 	return (Cards and Cards.RARITY_RANK and Cards.RARITY_RANK[id]) or GRADE_RANK[id] or default or 1
 end
 
+--[[
+	How LOUD a card is, which can be more than its rarity. A rare find's finish
+	(shiny, shadow, nightmare) is rarer than the grade it rolled, so MineClient
+	foundReveal sends `hypeRarity`, a grade 1..3 steps up, and the celebration
+	is sized by it -- while the card itself prints the true rarity (owner,
+	2026-10-19, launch audit S28: a shiny Rare read "SHINY EPIC").
+]]
+function MinePackFX.hypeRankOf(card, Cards)
+	local rank = MinePackFX.rankOf(card, Cards)
+	if card and card.hypeRarity then
+		rank = math.max(rank, MinePackFX.rankOf({ rarityId = card.hypeRarity }, Cards))
+	end
+	return rank
+end
+
 function MinePackFX.pullScore(card, Cards)
 	if not card then
 		return 1, "DUD"
 	end
 	Cards = Cards or require(script.Parent:FindFirstChild("MineCards"))
-	local base = MinePackFX.rankOf(card, Cards)
+	local base = MinePackFX.hypeRankOf(card, Cards)
 	local variant = card.variant or "Normal"
 	local var = (Cards and Cards.VARIANT_RANK and Cards.VARIANT_RANK[variant])
 		or VARIANT_FALLBACK[variant] or 1

@@ -16,6 +16,7 @@ sources:
   - tools/verify/_shared.js
   - tools/verify/pet-identity.js
   - tools/verify/cards-tab.js
+  - tools/verify/reveal-runs.js
 related: [luau-traps, tools-and-generators, local-setup, tools]
 ---
 
@@ -143,6 +144,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `pet-spring` **L** | the pet-follow spring is stable at any framerate (`26036a0`) |
 | `pet-identity` **L** | runs the real `MineCards`, `MineEnchants` and the whole roster (via `_shared.js`): every named pet's family and trait come from its name and home, the spread is healthy (no family over 30%, all 12 traits, none over 15%), every copy from any source agrees, pay and text read one identity, the 41 legacy sets' prints keep theirs; Lone Wolf and Squad Bond text reads the pets-out count; lines the Special gate zeroes carry "needs a Zap Special". Launch audit S32–S34, 2026-10-19. |
 | `cards-tab` **L** | the Cards tab's rail draws only the real seats (no "GET VIP"); its card faces go through a cache that is **run** against stub frames (paint once, reuse, repaint on a change, lift, prune); the Hats/Faces collection lists `MineHats.dropCatalog`, which matches the drop pools exactly. Launch audit M5, S35, S37, 2026-10-19. |
+| `reveal-runs` **L** | a Gear Vault reels all its items; a run of reels waits for each close and has SKIP ALL (the run logic is lifted out and **run**); a rare find prints its true rarity while `hypeRankOf` sizes the celebration (the pull score is run); the lucky SKIP ALL card lists books, potions and named skin cases (`runRows` is run). Launch audit S24, S25, S28, S29, 2026-10-19. |
 | `procs` **L** | proc damage and proc chance are separate stats, and the zap chain terminates |
 | `seams` | a JS model of the coin-priced seam ladder. **Seams are free now** (`MineDepth.seamPrice` returns 0), so this asserts a retired design. |
 | `skilltree` | every stat the tree grants is applied by the server |

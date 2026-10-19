@@ -14,7 +14,10 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineNotifs.luau
   - src/ReplicatedStorage/Mine/Shared/MineCelebrate.luau
   - src/ReplicatedStorage/Mine/Shared/MineAudio.luau
+  - src/ReplicatedStorage/Mine/Shared/MineGradeReveal.luau
+  - src/ReplicatedStorage/Mine/Shared/MinePackFX.luau
   - src/ReplicatedFirst/MineLoadingScreen.client.luau
+  - tools/verify/reveal-runs.js
   - docs/AUDIO.md
   - docs/TODO.md §0.14, §0.33
 related: [server, code-map, luau-traps, rojo-and-studio, tools, traits, enchants]
@@ -212,7 +215,15 @@ The tier mappers take the real result:
   - **Packs** keep their own band FX (MinePackFX) and get the new stingers.
   - **Lucky blocks** play their win at last. They had no win sound, and S and
     up add the title-and-rays overlay.
-  - **The case reel** adds the overlay at S and up.
+  - **The case reel** adds the overlay at S and up. A run of reels (mystery
+    cases, a Gear Vault's items) waits for the player to close each result,
+    and SKIP ALL shows the whole run on one grid with one celebration for the
+    best (`ctl.playRun`, launch audit S24/S25, 2026-10-19).
+  - **Rare finds** (`ClientFns.foundReveal`) print their TRUE rarity. A
+    finish (shiny +1, shadow +2, nightmare +3) is rarer than its grade, so the
+    bumped grade rides as `hypeRarity` and only sizes the celebration
+    (`MinePackFX.hypeRankOf`); the card used to print it, so a shiny Rare read
+    "SHINY EPIC" (launch audit S28, 2026-10-19; `tools/verify/reveal-runs.js`).
   - **S-rank chests** get the small tier-1 pluck. Every other chest stays
     silent, by the owner's request.
   - **Temperament rolls** were a toast only, so an SSS looked like an F. They

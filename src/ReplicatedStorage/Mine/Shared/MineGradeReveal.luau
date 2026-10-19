@@ -827,6 +827,11 @@ function MineGradeReveal.lucky(parent, opts)
 		openScreen()
 	end
 
+	local function pretty(id)
+		local s2 = tostring(id or ""):gsub("_", " ")
+		return (s2:gsub("^%l", string.upper))
+	end
+
 	--[[
 		One row per thing you got: the pack's own art, or the icon for gems,
 		stardust, a tool or a scroll. They land one after another rather than
@@ -834,10 +839,6 @@ function MineGradeReveal.lucky(parent, opts)
 	]]
 	local function lootRows(loot, lootText)
 		local rows = {}
-		local function pretty(id)
-			local s2 = tostring(id or ""):gsub("_", " ")
-			return (s2:gsub("^%l", string.upper))
-		end
 		if type(loot) == "table" then
 			if loot.packId then
 				local qty = math.max(1, math.floor(tonumber(loot.packQty) or 1))
@@ -894,13 +895,92 @@ function MineGradeReveal.lucky(parent, opts)
 		return rows
 	end
 
-	local function fillLoot(loot, lootText)
+	--[[
+		SKIP ALL's card: everything a run of blocks paid, in the rows one block's
+		card uses, each kind totalled and each case named (owner, 2026-10-19,
+		launch audit S29: it summed gems, stardust and a case COUNT, and left out
+		the enchant books, potions and which skin cases they were).
+	]]
+	local function runRows(all)
+		local named, order = {}, {}
+		local function add(key, qty, row)
+			if not named[key] then
+				named[key] = { qty = 0, row = row }
+				table.insert(order, key)
+			end
+			named[key].qty += qty
+		end
+		local function qtyOf(n)
+			return math.max(1, math.floor(tonumber(n) or 1))
+		end
+		local pets, sums = {}, { gems = 0, dust = 0, tokens = 0, books = 0, cases = 0 }
+		for _, q in ipairs(all) do
+			local loot = type(q.loot) == "table" and q.loot or {}
+			if loot.petTier then
+				local name = loot.petName and tostring(loot.petName) or (tostring(loot.petTier) .. " Pet")
+				table.insert(pets, { icon = "binder", text = name .. "  (" .. tostring(loot.petTier) .. " pet)" })
+			end
+			if loot.packId then
+				add("pack:" .. tostring(loot.packId), qtyOf(loot.packQty), { icon = "pack", packId = loot.packId, name = pretty(loot.packId) })
+			end
+			if loot.caseId then
+				add("case:" .. tostring(loot.caseId), qtyOf(loot.caseQty),
+					{ packId = loot.caseId, name = tostring(loot.caseName or pretty(loot.caseId)) })
+			end
+			if loot.oreCaseName then
+				add("skin:" .. tostring(loot.oreCaseName), 1, { icon = "chest",
+					packId = loot.oreId and (loot.oreId .. "_ore_pack") or nil, name = tostring(loot.oreCaseName) })
+			end
+			if loot.potionId then
+				add("potion:" .. tostring(loot.potionId), qtyOf(loot.potionQty), { emoji = "🧪", name = pretty(loot.potionId) })
+			end
+			if loot.toolId then
+				add("tool:" .. tostring(loot.toolId), 1, { icon = loot.toolFamily or "pickaxe", name = pretty(loot.toolId) })
+			end
+			sums.gems += tonumber(loot.gems) or 0
+			sums.dust += tonumber(loot.dust) or 0
+			sums.tokens += tonumber(loot.temperTokens) or 0
+			sums.cases += tonumber(loot.caseCount) or 0
+			if type(loot.books) == "table" then
+				sums.books += #loot.books
+			end
+		end
+		local rows = pets
+		for _, key in ipairs(order) do
+			local e = named[key]
+			local row = e.row
+			row.text = (e.qty > 1 and (e.qty .. "x  ") or "") .. row.name
+			row.name = nil
+			table.insert(rows, row)
+		end
+		if sums.cases > 0 then
+			table.insert(rows, { icon = "chest", text = fmt(sums.cases) .. "  cases, in your bag" })
+		end
+		if sums.gems > 0 then
+			table.insert(rows, { icon = "gems", text = fmt(sums.gems) .. "  Gems" })
+		end
+		if sums.dust > 0 then
+			table.insert(rows, { icon = "stardust", text = fmt(sums.dust) .. "  Stardust" })
+		end
+		if sums.tokens > 0 then
+			table.insert(rows, { icon = "tokens", text = fmt(sums.tokens) .. "  Temper tokens" })
+		end
+		if sums.books > 0 then
+			table.insert(rows, { emoji = "📖", text = sums.books .. "  Enchant books, for the Forge" })
+		end
+		if #rows == 0 then
+			table.insert(rows, { icon = "chest", text = "--" })
+		end
+		return rows
+	end
+
+	local function fillLoot(loot, lootText, given)
 		for _, ch in ipairs(lootBox:GetChildren()) do
 			if not ch:IsA("UIListLayout") then
 				ch:Destroy()
 			end
 		end
-		local rows = lootRows(loot, lootText)
+		local rows = given or lootRows(loot, lootText)
 		for i, row in ipairs(rows) do
 			local line = mk("Frame", {
 				BackgroundColor3 = Color3.fromRGB(34, 34, 42), BorderSizePixel = 0,
@@ -940,11 +1020,11 @@ function MineGradeReveal.lucky(parent, opts)
 		end
 	end
 
-	local function showCard(titleText, grade, loot, lootText)
+	local function showCard(titleText, grade, loot, lootText, rows)
 		cardTitle.Text = titleText
 		cardGrade.Text = grade or ""
 		cardGrade.TextColor3 = colourFor(grade or "F")
-		fillLoot(loot, lootText)
+		fillLoot(loot, lootText, rows)
 		card.Visible = true
 		cardScale.Scale = 0.75
 		TweenService:Create(cardScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
@@ -1102,7 +1182,6 @@ function MineGradeReveal.lucky(parent, opts)
 			end
 			st.queue = {}
 			local best, bestRank = "F", 0
-			local totals = { gems = 0, dust = 0, packs = 0, cases = 0 }
 			for _, q in ipairs(all) do
 				local g = (q.info and q.info.final) or q.startGrade or "F"
 				for i, x in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
@@ -1110,27 +1189,13 @@ function MineGradeReveal.lucky(parent, opts)
 						best, bestRank = g, i
 					end
 				end
-				local loot = q.loot or {}
-				totals.gems += tonumber(loot.gems) or 0
-				totals.dust += tonumber(loot.dust) or 0
-				totals.packs += (loot.packId and math.max(1, math.floor(tonumber(loot.packQty) or 1)) or 0)
-				totals.cases += (loot.caseId and math.max(1, math.floor(tonumber(loot.caseQty) or 1)) or 0)
-					+ (loot.oreCaseName and 1 or 0)
 			end
 			st.grade = best
 			st.mode = "loot"
 			skipBtn.Visible = false
 			paintTier(best, false)
 			burst()
-			local rows = {}
-			if totals.packs > 0 then
-				rows.packId = nil
-			end
-			showCard(#all .. " lucky blocks opened", best, {
-				caseCount = totals.cases > 0 and totals.cases or nil,
-				gems = totals.gems > 0 and totals.gems or nil,
-				dust = totals.dust > 0 and totals.dust or nil,
-			}, totals.packs > 0 and (totals.packs .. " packs") or nil)
+			showCard(#all .. " lucky blocks opened", best, nil, nil, runRows(all))
 			return
 		end
 		local steps = st.payload.info and st.payload.info.steps or {}
@@ -1446,6 +1511,36 @@ function MineGradeReveal.caseSpin(parent, opts)
 	}, box)
 	round(closeBtn, 8)
 
+	--[[
+		A RUN OF REELS (launch audit S24, S25). Opening many mystery cases, or a
+		Gear Vault's five items, is one reel each, and the next reel starts only
+		when the player has CLOSED the last result (ctl.playRun) -- the Vault
+		used to start each reel the moment the last one stopped, and showed only
+		three of its five. SKIP ALL ends a run on the spot and puts everything it
+		won on one grid, straight from the payloads the server sent, with the
+		best one celebrated once.
+	]]
+	local skipAllBtn = mk("TextButton", {
+		AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(70, 74, 88), Text = "SKIP ALL", BorderSizePixel = 0,
+		Font = FONT_M, TextSize = 14, TextColor3 = TEXT, AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -18, 1, -10), Size = UDim2.fromOffset(150, 32), Visible = false, ZIndex = 124,
+	}, box)
+	round(skipAllBtn, 8)
+	local summary = mk("ScrollingFrame", {
+		BackgroundTransparency = 1, BorderSizePixel = 0, Active = true, Visible = false,
+		Position = UDim2.fromOffset(18, 66), Size = UDim2.new(1, -36, 0, 216), ZIndex = 123,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 6, ScrollingDirection = Enum.ScrollingDirection.Y,
+	}, box)
+	mk("UIGridLayout", {
+		CellPadding = UDim2.fromOffset(8, 8), CellSize = UDim2.fromOffset(100, 112),
+		SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	}, summary)
+	mk("UIPadding", { PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6) }, summary)
+	-- Callbacks for when the result on screen is closed (play's onClosed), the
+	-- run playing ({ list, i, onDone, onEach }), and the payload on screen.
+	local closeHooks, run, shown = {}, nil, nil
+
 	-- Tile art: grade wash + big icon (temperament / gear / hat) with the name
 	-- tucked under so the icon is what you read first.
 	local tiles = {}
@@ -1542,7 +1637,205 @@ function MineGradeReveal.caseSpin(parent, opts)
 		screen.Visible = on
 	end
 
-	function ctl.play(payload, onDone)
+	local function gradeRank(grade)
+		for i, g in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
+			if g == grade then
+				return i
+			end
+		end
+		return 0
+	end
+
+	-- Big hits get a real celebration -- flash, confetti, punch, sfx. A reel's
+	-- stop plays it for its winner; a SKIP ALL grid plays it once, for the best.
+	local function celebrate(grade, winInk, payload)
+		local rank = gradeRank(grade)
+		local ink = winInk
+		if rank >= 5 then
+			if Audio and Audio.play then pcall(Audio.play, "flash") end
+			-- Screen shake: the box rattles, harder for higher grades.
+			task.spawn(function()
+				local amp = (rank >= 7) and 14 or (rank >= 6 and 10 or 6)
+				local t0 = os.clock()
+				while os.clock() - t0 < 0.45 and box.Parent do
+					local k = 1 - (os.clock() - t0) / 0.45
+					box.Position = UDim2.new(0.5, (math.random() - 0.5) * 2 * amp * k, 0.5, (math.random() - 0.5) * 2 * amp * k)
+					RunService.RenderStepped:Wait()
+				end
+				box.Position = UDim2.fromScale(0.5, 0.5)
+			end)
+			local flash = mk("Frame", {
+				BackgroundColor3 = ink:Lerp(Color3.new(1, 1, 1), 0.45),
+				BackgroundTransparency = 0.08, BorderSizePixel = 0,
+				Size = UDim2.fromScale(1, 1), ZIndex = 200,
+			}, screen)
+			TweenService:Create(flash, TweenInfo.new(1.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				BackgroundTransparency = 1,
+			}):Play()
+			task.delay(1.1, function()
+				if flash.Parent then flash:Destroy() end
+			end)
+			-- Gold ring burst around the box.
+			for ring = 1, (rank >= 6 and 3 or 2) do
+				local halo = mk("Frame", {
+					BackgroundTransparency = 1, BorderSizePixel = 0,
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.5, 0.5),
+					Size = UDim2.fromOffset(40, 40), ZIndex = 199,
+				}, screen)
+				local st = mk("UIStroke", {
+					Thickness = 4, Color = ink:Lerp(Color3.new(1, 1, 1), 0.25),
+					Transparency = 0.1,
+				}, halo)
+				round(halo, 20)
+				local delay = (ring - 1) * 0.12
+				task.delay(delay, function()
+					TweenService:Create(halo, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Size = UDim2.fromOffset(520 + ring * 80, 280 + ring * 40),
+					}):Play()
+					TweenService:Create(st, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						Transparency = 1, Thickness = 1,
+					}):Play()
+					task.delay(0.75, function()
+						if halo.Parent then halo:Destroy() end
+					end)
+				end)
+			end
+			local nBits = (rank >= 7) and 110 or (rank >= 6 and 78 or 52)
+			for i = 1, nBits do
+				local x = math.random()
+				local bit = mk("Frame", {
+					BackgroundColor3 = (i % 3 == 0) and Color3.new(1, 1, 1)
+						or (i % 5 == 0) and GOLD or ink,
+					BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(x, -0.06),
+					Size = UDim2.fromOffset(rank >= 6 and 12 or 8, rank >= 6 and 18 or 13),
+					Rotation = math.random(0, 180), ZIndex = 201,
+				}, screen)
+				local fall = 1.05 + math.random() * 1.05
+				TweenService:Create(bit, TweenInfo.new(fall, Enum.EasingStyle.Linear), {
+					Position = UDim2.fromScale(x + (math.random() - 0.5) * 0.22, 1.14),
+					Rotation = bit.Rotation + math.random(220, 900),
+					BackgroundTransparency = 0.15,
+				}):Play()
+				task.delay(fall + 0.1, function()
+					if bit.Parent then bit:Destroy() end
+				end)
+			end
+			local punch = mk("UIScale", { Scale = 1 }, box)
+			punch.Scale = (rank >= 7) and 1.22 or (rank >= 6 and 1.14 or 1.1)
+			TweenService:Create(punch, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Scale = 1,
+			}):Play()
+			if Audio and Audio.playLuckyWin then
+				pcall(Audio.playLuckyWin, rank)
+			elseif Audio and Audio.play then
+				pcall(Audio.play, rank >= 6 and "jackpot" or "reveal")
+			end
+			-- S and up: the shared title and rays on top of this screen's
+			-- own flash and confetti (so no extra confetti, and the sting
+			-- above already played).
+			if rank >= 6 then
+				local okC, Celebrate = pcall(function()
+					return require(script.Parent:WaitForChild("MineCelebrate"))
+				end)
+				if okC and Celebrate then
+					pcall(Celebrate.burst, Celebrate.fromRank(rank),
+						{ confetti = false, sound = false, title = payload.celebrateTitle or (grade .. "!") })
+				end
+			end
+		elseif Audio and Audio.play then
+			pcall(Audio.play, "reveal")
+		end
+	end
+
+	-- SKIP ALL shows while a run has another reel to come, never on the grid.
+	local function refreshSkipAll()
+		local left = run and (#run.list - run.i) or 0
+		skipAllBtn.Visible = left > 0 and not summary.Visible
+		skipAllBtn.Text = "SKIP ALL  (" .. (left + 1) .. ")"
+	end
+
+	-- One result on the grid: its winning tile's art and grade, and its words.
+	local function summaryTile(p, order, best)
+		local row = (type(p.reel) == "table" and p.reel[tonumber(p.at) or 0]) or {}
+		local grade = Temper.normalizeRarity(p.rarity or row.rarity) or "F"
+		local ink = p.color or row.color or Temper.colorOf(grade)
+		local t = mk("Frame", {
+			BackgroundColor3 = CARD_HI, BorderSizePixel = 0, LayoutOrder = order, ZIndex = 125,
+		}, summary)
+		round(t, 10)
+		stroke(t, best and 4 or 2, ink, best and 0 or 0.15)
+		local wash = mk("Frame", {
+			BackgroundColor3 = ink, BackgroundTransparency = best and 0.55 or 0.72, BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 38), ZIndex = 126,
+		}, t)
+		round(wash, 10)
+		say(t, string.upper(tostring(p.word or row.label or Temper.wordOf(grade))), 12, ink,
+			UDim2.fromOffset(6, 3), UDim2.new(1, -12, 0, 14), FONT)
+		local icon = p.icon or row.icon
+		if (not icon or icon == "") and tonumber(p.catalogId or row.catalogId) then
+			icon = string.format("rbxthumb://type=Asset&id=%d&w=150&h=150", tonumber(p.catalogId or row.catalogId))
+		end
+		if icon and icon ~= "" then
+			mk("ImageLabel", {
+				BackgroundTransparency = 1, Image = icon, ScaleType = Enum.ScaleType.Fit,
+				AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 18),
+				Size = UDim2.fromOffset(54, 54), ZIndex = 127,
+			}, t)
+		end
+		-- Up to the 14 px floor, shrinking only for a long pack name.
+		local nameL = say(t, tostring(p.resultText or row.name or p.name or "?"), 14, TEXT, UDim2.fromOffset(4, 74),
+			UDim2.new(1, -8, 0, 34), FONT, Enum.TextXAlignment.Center, true)
+		mk("UITextSizeConstraint", { MaxTextSize = 14, MinTextSize = 9 }, nameL)
+		nameL.TextScaled = true
+	end
+
+	-- Everything a run won, best first, and one celebration for the best.
+	local function showSummary(list)
+		clearCelebration()
+		for _, ch in ipairs(summary:GetChildren()) do
+			if ch:IsA("GuiObject") then
+				ch:Destroy()
+			end
+		end
+		local order = {}
+		for i, p in ipairs(list) do
+			table.insert(order, { p = p, i = i, r = gradeRank(Temper.normalizeRarity(p.rarity)) })
+		end
+		table.sort(order, function(a, b)
+			if a.r ~= b.r then
+				return a.r > b.r
+			end
+			return a.i < b.i
+		end)
+		for n, e in ipairs(order) do
+			summaryTile(e.p, n, n == 1)
+		end
+		local best = order[1] and order[1].p
+		if not best then
+			return
+		end
+		local grade = Temper.normalizeRarity(best.rarity) or "F"
+		local ink = best.color or Temper.colorOf(grade)
+		track.Visible = false
+		resultName.Text = ""
+		resultSub.Text = ""
+		summary.CanvasPosition = Vector2.zero
+		summary.Visible = true
+		title.Text = string.upper(tostring(best.title or "Cases")) .. "  x" .. #list
+		sub.Text = "BEST  " .. tostring(best.resultText or best.name or grade)
+			.. (best.note and ("    ·    everything is " .. tostring(best.note)) or "")
+		sub.TextColor3 = ink
+		boxStroke.Color = ink
+		closeBtn.Visible = true
+		refreshSkipAll()
+		setGuiOn(true)
+		celebrate(grade, ink, best)
+	end
+
+	function ctl.play(payload, onDone, playOpts)
 		if type(payload) ~= "table" or type(payload.reel) ~= "table" then
 			return
 		end
@@ -1551,6 +1844,16 @@ function MineGradeReveal.caseSpin(parent, opts)
 		end
 		clearCelebration()
 		playing = true
+		-- onClosed: called once, when the player closes this result (or any
+		-- result shown over it). onDone keeps its old meaning: the reel stopped.
+		if playOpts and playOpts.onClosed then
+			table.insert(closeHooks, playOpts.onClosed)
+		end
+		shown = payload
+		summary.Visible = false
+		track.Visible = true
+		sub.TextColor3 = MUTED
+		refreshSkipAll()
 		for _, ch in ipairs(reel:GetChildren()) do
 			ch:Destroy()
 		end
@@ -1635,7 +1938,8 @@ function MineGradeReveal.caseSpin(parent, opts)
 			end)
 
 			local done = false
-			local function finish()
+			-- `silent`: SKIP ALL stopping the reel; its result goes on the grid.
+			local function finish(silent)
 				if done then
 					return
 				end
@@ -1647,6 +1951,9 @@ function MineGradeReveal.caseSpin(parent, opts)
 					tween = nil
 				end
 				reel.Position = UDim2.fromOffset(rest, 0)
+				if silent == true then
+					return
+				end
 				-- Winner swells and glows; losers fall back and dim.
 				for i, tl in pairs(tiles) do
 					if tl.frame.Parent then
@@ -1697,112 +2004,7 @@ function MineGradeReveal.caseSpin(parent, opts)
 					TweenService:Create(resultName, TweenInfo.new(0.2), { TextTransparency = 0 }):Play()
 				end
 				closeBtn.Visible = true
-				-- Big hits get a real celebration — flash, confetti, punch, sfx.
-				do
-					local rank = 0
-					for i, g in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
-						if g == grade then
-							rank = i
-						end
-					end
-					local ink = winInk
-					if rank >= 5 then
-						if Audio and Audio.play then pcall(Audio.play, "flash") end
-						-- Screen shake: the box rattles, harder for higher grades.
-						task.spawn(function()
-							local amp = (rank >= 7) and 14 or (rank >= 6 and 10 or 6)
-							local t0 = os.clock()
-							while os.clock() - t0 < 0.45 and box.Parent do
-								local k = 1 - (os.clock() - t0) / 0.45
-								box.Position = UDim2.new(0.5, (math.random() - 0.5) * 2 * amp * k, 0.5, (math.random() - 0.5) * 2 * amp * k)
-								RunService.RenderStepped:Wait()
-							end
-							box.Position = UDim2.fromScale(0.5, 0.5)
-						end)
-						local flash = mk("Frame", {
-							BackgroundColor3 = ink:Lerp(Color3.new(1, 1, 1), 0.45),
-							BackgroundTransparency = 0.08, BorderSizePixel = 0,
-							Size = UDim2.fromScale(1, 1), ZIndex = 200,
-						}, screen)
-						TweenService:Create(flash, TweenInfo.new(1.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-							BackgroundTransparency = 1,
-						}):Play()
-						task.delay(1.1, function()
-							if flash.Parent then flash:Destroy() end
-						end)
-						-- Gold ring burst around the box.
-						for ring = 1, (rank >= 6 and 3 or 2) do
-							local halo = mk("Frame", {
-								BackgroundTransparency = 1, BorderSizePixel = 0,
-								AnchorPoint = Vector2.new(0.5, 0.5),
-								Position = UDim2.fromScale(0.5, 0.5),
-								Size = UDim2.fromOffset(40, 40), ZIndex = 199,
-							}, screen)
-							local st = mk("UIStroke", {
-								Thickness = 4, Color = ink:Lerp(Color3.new(1, 1, 1), 0.25),
-								Transparency = 0.1,
-							}, halo)
-							round(halo, 20)
-							local delay = (ring - 1) * 0.12
-							task.delay(delay, function()
-								TweenService:Create(halo, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-									Size = UDim2.fromOffset(520 + ring * 80, 280 + ring * 40),
-								}):Play()
-								TweenService:Create(st, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-									Transparency = 1, Thickness = 1,
-								}):Play()
-								task.delay(0.75, function()
-									if halo.Parent then halo:Destroy() end
-								end)
-							end)
-						end
-						local nBits = (rank >= 7) and 110 or (rank >= 6 and 78 or 52)
-						for i = 1, nBits do
-							local x = math.random()
-							local bit = mk("Frame", {
-								BackgroundColor3 = (i % 3 == 0) and Color3.new(1, 1, 1)
-									or (i % 5 == 0) and GOLD or ink,
-								BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5),
-								Position = UDim2.fromScale(x, -0.06),
-								Size = UDim2.fromOffset(rank >= 6 and 12 or 8, rank >= 6 and 18 or 13),
-								Rotation = math.random(0, 180), ZIndex = 201,
-							}, screen)
-							local fall = 1.05 + math.random() * 1.05
-							TweenService:Create(bit, TweenInfo.new(fall, Enum.EasingStyle.Linear), {
-								Position = UDim2.fromScale(x + (math.random() - 0.5) * 0.22, 1.14),
-								Rotation = bit.Rotation + math.random(220, 900),
-								BackgroundTransparency = 0.15,
-							}):Play()
-							task.delay(fall + 0.1, function()
-								if bit.Parent then bit:Destroy() end
-							end)
-						end
-						local punch = mk("UIScale", { Scale = 1 }, box)
-						punch.Scale = (rank >= 7) and 1.22 or (rank >= 6 and 1.14 or 1.1)
-						TweenService:Create(punch, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-							Scale = 1,
-						}):Play()
-						if Audio and Audio.playLuckyWin then
-							pcall(Audio.playLuckyWin, rank)
-						elseif Audio and Audio.play then
-							pcall(Audio.play, rank >= 6 and "jackpot" or "reveal")
-						end
-						-- S and up: the shared title and rays on top of this screen's
-						-- own flash and confetti (so no extra confetti, and the sting
-						-- above already played).
-						if rank >= 6 then
-							local okC, Celebrate = pcall(function()
-								return require(script.Parent:WaitForChild("MineCelebrate"))
-							end)
-							if okC and Celebrate then
-								pcall(Celebrate.burst, Celebrate.fromRank(rank),
-									{ confetti = false, sound = false, title = payload.celebrateTitle or (grade .. "!") })
-							end
-						end
-					elseif Audio and Audio.play then
-						pcall(Audio.play, "reveal")
-					end
-				end
+				celebrate(grade, winInk, payload)
 				if onDone then
 					task.defer(onDone, payload)
 				end
@@ -1813,8 +2015,60 @@ function MineGradeReveal.caseSpin(parent, opts)
 				TweenInfo.new(SPIN_TIME, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 				{ Position = UDim2.fromOffset(rest, 0) })
 			tween:Play()
-			tween.Completed:Connect(finish)
+			tween.Completed:Connect(function()
+				finish()
+			end)
 		end)
+	end
+
+	--[[
+		Play `list` (reel payloads) one after another: each next reel starts when
+		the player closes the last result. runOpts.onEach(payload, i) runs as each
+		one starts; runOpts.onDone() once, after the last close (or after the
+		SKIP ALL grid closes). A run asked for while one plays joins its end.
+	]]
+	function ctl.playRun(list, runOpts)
+		runOpts = runOpts or {}
+		local valid = {}
+		for _, p in ipairs(list or {}) do
+			if type(p) == "table" and type(p.reel) == "table" then
+				table.insert(valid, p)
+			end
+		end
+		if run then
+			for _, p in ipairs(valid) do
+				table.insert(run.list, p)
+			end
+			local first, second = run.onDone, runOpts.onDone
+			run.onDone = function()
+				if first then first() end
+				if second then second() end
+			end
+			refreshSkipAll()
+			return
+		end
+		local me = { list = valid, i = 0, onDone = runOpts.onDone, onEach = runOpts.onEach }
+		run = me
+		local function step()
+			if run ~= me then
+				return
+			end
+			me.i += 1
+			local p = me.list[me.i]
+			if not p then
+				run = nil
+				refreshSkipAll()
+				if me.onDone then
+					me.onDone()
+				end
+				return
+			end
+			if me.onEach then
+				pcall(me.onEach, p, me.i)
+			end
+			ctl.play(p, nil, { onClosed = step })
+		end
+		step()
 	end
 
 	-- True while the reel or its result is on screen. A caller chaining several
@@ -1831,7 +2085,40 @@ function MineGradeReveal.caseSpin(parent, opts)
 		boxStroke.Thickness = 2
 		boxStroke.Transparency = 0.2
 		box.Position = UDim2.fromScale(0.5, 0.5)
+		summary.Visible = false
+		track.Visible = true
+		sub.TextColor3 = MUTED
+		skipAllBtn.Visible = false
+		-- Whoever waited for this result to close goes on now (a run's next reel).
+		local hooks = closeHooks
+		closeHooks = {}
+		for _, f in ipairs(hooks) do
+			task.defer(f)
+		end
 	end
+
+	skipAllBtn.MouseButton1Click:Connect(function()
+		if not run then
+			return
+		end
+		local me = run
+		run = nil
+		-- Everything the run won, including a result shown over it.
+		local all = {}
+		if shown and not table.find(me.list, shown) then
+			table.insert(all, shown)
+		end
+		for _, p in ipairs(me.list) do
+			table.insert(all, p)
+		end
+		if playing and finishNow then
+			finishNow(true)
+		end
+		if me.onDone then
+			table.insert(closeHooks, me.onDone)
+		end
+		showSummary(all)
+	end)
 
 	closeBtn.MouseButton1Click:Connect(ctl.close)
 	skip.MouseButton1Click:Connect(function()

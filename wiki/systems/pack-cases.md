@@ -9,6 +9,8 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MinePackConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineGroupWheel.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
+  - src/ReplicatedStorage/Mine/Shared/MineGradeReveal.luau
+  - tools/verify/reveal-runs.js
   - docs/PETS-AND-SETS.md
 related: [cards-and-packs, shops-and-monetisation, chests-and-lucky-blocks, social-quests-and-leaderboards, currencies-and-economy, assets-and-uploads]
 ---
@@ -47,7 +49,14 @@ There are two kinds (`MineCases.CASES`, kind `pack_case`):
     - `MineCases.wildReel` builds a 44-tile reel of packs drawn the same way,
       with the winner at tile 38. `MineCases.open` sends it as `design.reel`.
     - MineClient plays it on `MineGradeReveal.caseSpin`
-      (`ClientFns.playCaseReels`), one spin after another in a run.
+      (`ClientFns.playCaseReels` → `ctl.playRun`), one spin after another in
+      a run: the next starts when the player closes the last result.
+    - **SKIP ALL** (owner, 2026-10-19, launch audit S25). A run is up to
+      `Const.OPEN_RUN_MAX` (50) spins of 5.4 s. While more are to come, the
+      case screen shows SKIP ALL: it stops the spin and puts every result of
+      the run on one grid, best first, built from the payloads the server
+      sent, and celebrates the best one once. Checked by
+      `tools/verify/reveal-runs.js`.
     - **Each tile is coloured and labelled by its set's grade**, on the shared
       rarity ladder (`MineTemper.RARITY_COLOR` / `WORD_OF`, which skin cases
       use too):

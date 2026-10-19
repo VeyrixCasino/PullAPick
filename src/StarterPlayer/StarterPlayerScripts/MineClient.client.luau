@@ -4014,31 +4014,21 @@ end
 	meant to be like csgo slots". Each design that carries a `reel`
 	(MineCases.open) plays on the case reel, one after another: the next spin
 	waits until the player has closed the last result. `done` runs after the
-	last one.
+	last one. A run of up to Const.OPEN_RUN_MAX (50) cases was 50 spins of
+	5.4 s you could not leave; the case screen's SKIP ALL (playRun) ends it and
+	shows everything won on one grid (owner, 2026-10-19, launch audit S25).
 ]]
 function ClientFns.playCaseReels(designs, done)
-	local i = 0
-	local function nextOne()
-		i += 1
-		local d = designs[i]
-		if not d then
-			if done then
-				done()
-			end
-			return
-		end
-		local screen = ClientFns.caseScreen()
-		Audio.play("open")
-		screen.play(d.reel, function()
-			task.spawn(function()
-				while screen.isOpen and screen.isOpen() do
-					task.wait(0.1)
-				end
-				nextOne()
-			end)
-		end)
+	local reels = {}
+	for _, d in ipairs(designs or {}) do
+		table.insert(reels, d.reel)
 	end
-	nextOne()
+	ClientFns.caseScreen().playRun(reels, {
+		onEach = function()
+			Audio.play("open")
+		end,
+		onDone = done,
+	})
 end
 
 function ClientFns.luckyScreen()
@@ -6008,18 +5998,21 @@ function ClientFns.foundReveal(payload)
 			or (form >= 20 and "Epic") or "Rare")) or "Legendary"
 	end
 	--[[
-		A FINISH IS A RARITY TOO.
-	
+		A FINISH IS A RARITY TOO -- FOR THE NOISE, NOT THE CARD.
+
 		pullScore ranks off rarityId alone, so a NIGHTMARE Rare scored exactly
 		the same HIT as a plain Rare -- and a nightmare is shiny x shadow x
 		nightmare on top of the base drop, four orders of magnitude rarer. The
 		one pull most worth celebrating was the one that celebrated least.
-	
-		Promote the grade it reports instead of touching pullScore, which packs
-		and charms also run through.
+
+		This used to promote rarityId itself, so the card PRINTED the bump: a
+		shiny Rare read "SHINY EPIC" (owner, 2026-10-19, launch audit S28: print
+		the true rarity). The bumped grade rides as `hypeRarity` now, and only
+		MinePackFX.hypeRankOf reads it, to size the celebration.
 	]]
 	local FINISH_BUMP = { "Common", "Uncommon", "Rare", "Epic",
 		"Legendary", "Mythic", "Divine", "Exotic" }
+	local hype
 	do
 		local step = (payload.nightmare and 3) or (payload.shadow and 2)
 			or (payload.shiny and 1) or 0
@@ -6032,7 +6025,7 @@ function ClientFns.foundReveal(payload)
 				end
 			end
 			if at > 0 then
-				rarity = FINISH_BUMP[math.min(#FINISH_BUMP, at + step)]
+				hype = FINISH_BUMP[math.min(#FINISH_BUMP, at + step)]
 			end
 		end
 	end
@@ -6040,6 +6033,7 @@ function ClientFns.foundReveal(payload)
 		kind = (kind == "bundle") and "pack" or kind,
 		name = tostring(payload.name or "???"),
 		rarityId = rarity,
+		hypeRarity = hype,
 		baseName = payload.baseName,
 		family = payload.family,
 		power = payload.power,
@@ -12419,11 +12413,12 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 			ClientFns.playCaseReels({ design }, clearPackRevealBusy)
 			return
 		end
-		-- Gear cases use the CSGO reel (not PackReveal / lucky-block).
+		-- Gear cases use the CSGO reel (not PackReveal / lucky-block). Every
+		-- item gets its reel (a Gear Vault pays 5; this showed 3), and the next
+		-- starts when the player closes the last (owner, 2026-10-19, S24).
 		if design.kind == "gear" then
 			Audio.play("open")
 			local cards = design.cards or {}
-			local n = math.min(#cards, 3)
 			local function reelAround(item)
 				local Temper = require(shared:WaitForChild("MineTemper"))
 				local Hats = require(shared:WaitForChild("MineHats"))
@@ -12500,17 +12495,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 					catalogId = reel[at] and reel[at].catalogId,
 				}
 			end
-			local i = 1
-			local function nextReel()
-				if i > n then
-					clearPackRevealBusy()
-					return
-				end
-				local payload = reelAround(cards[i])
-				i += 1
-				ClientFns.caseScreen().play(payload, nextReel)
+			local reels = {}
+			for _, item in ipairs(cards) do
+				table.insert(reels, reelAround(item))
 			end
-			nextReel()
+			ClientFns.caseScreen().playRun(reels, { onDone = clearPackRevealBusy })
 			return
 		end
 		-- How many more of this same pack are sitting in the bag, so the prompt
