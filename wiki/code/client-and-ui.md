@@ -150,6 +150,13 @@ The indigo surfaces stay as the base, with bright candy on top.
     second, on the server clock (`workspace:GetServerTimeNow()`).
     Event Horizon's open/closed comes from the snapshot: the client has no
     launch clock, so `C.limitedActive("bigbang")` is always true there.
+  - **Kid-friendly (2026-10-19):** each TODAY row leads with its icon and names
+    itself in one or two words (`MineToday.ORDER` `icon`): 📅 Daily, 🐟 Catch,
+    🎁 Gifts, 🎡 Wheel, 📋 Jobs, 🎫 Pass, 🌌 Event Horizon, 🍬 Candy Crypt.
+    Rewards read as icons and numbers: the quest card says "Reward  💰 800"
+    and its CLAIM button "CLAIM  💰 800!" (`MineQuests.icons`, sent as
+    `rewardIcons`), and a daily quest pays "+45 💎". Toasts keep the words
+    (`MineQuests.describe`). Checked by `tools/verify/today.js`; seen in Play.
   - The panel has one header with a collapse button. Collapsing shrinks it in
     place to a "QUESTS" pill.
   - The old "ear" tabs that slid the cards off screen are deleted.

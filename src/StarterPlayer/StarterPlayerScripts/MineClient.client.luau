@@ -1928,8 +1928,9 @@ function ClientFns.showQuest(state)
 		local was = questClaim.Visible
 		questClaim.Visible = true
 		questClaim.Active = true
-		questClaim.Text = "CLAIM  " .. tostring(state.reward) .. "!"
-		questClaim.TextSize = (#tostring(state.reward) > 16) and 14 or 18
+		local prize = (type(state.rewardIcons) == "string" and state.rewardIcons ~= "") and state.rewardIcons or tostring(state.reward)
+		questClaim.Text = "CLAIM  " .. prize .. "!"
+		questClaim.TextSize = ((utf8.len(prize) or #prize) > 16) and 14 or 18
 		-- Something to claim always throbs: it is the one thing on the HUD that
 		-- pays out right now, so it should be the one thing that moves.
 		if not was and ClientFns.UI then
@@ -1949,7 +1950,9 @@ function ClientFns.showQuest(state)
 		questProg.Text = Quests.short(cur) .. "/" .. Quests.short(goal)
 		if rewardHint then
 			rewardHint.Visible = true
-			rewardHint.Text = "Reward: " .. tostring(state.reward)
+			-- Icons and numbers ("Reward  💰 800"); words only from an old server.
+			rewardHint.Text = (type(state.rewardIcons) == "string" and state.rewardIcons ~= "")
+				and ("Reward  " .. state.rewardIcons) or ("Reward: " .. tostring(state.reward))
 			rewardHint.TextColor3 = GOLD
 		end
 	end
@@ -2096,7 +2099,9 @@ function ClientFns.paintDailyBox(list)
 			local cur = math.clamp(tonumber(q.current) or 0, 0, goal)
 			r.text.Text = tostring(q.text)
 			r.text.TextColor3 = q.claimed and MUTED or TEXT
-			r.gems.Text = q.claimed and "DONE" or ("+" .. tostring(q.reward or ""))
+			-- "+45 💎": the number and the gem, not the word (kid-friendly pass).
+			r.gems.Text = q.claimed and "DONE"
+				or (q.gems and ("+" .. Quests.short(q.gems) .. " 💎") or ("+" .. tostring(q.reward or "")))
 			r.gems.TextColor3 = q.claimed and T.GREEN or T.GEM
 			r.fill.Size = UDim2.fromScale(cur / goal, 1)
 			r.fill.BackgroundColor3 = q.claimed and T.GREEN or T.GEM
@@ -2165,8 +2170,10 @@ function ClientFns.todayBoxBuild()
 			Position = UDim2.new(0, 2, 0.5, 0), Size = UDim2.fromOffset(9, 9), ZIndex = 23, Active = false,
 		}, r)
 		round(dot, 5)
+		-- Icon first, then one or two words (kid-friendly pass; MineToday.ORDER).
 		local name = mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT, Text = def.label,
+			BackgroundTransparency = 1, Font = FONT, TextSize = 15, TextColor3 = TEXT,
+			Text = (def.icon and (def.icon .. "  ") or "") .. def.label,
 			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
 			Position = UDim2.fromOffset(16, 0), Size = UDim2.new(0.46, -16, 1, 0), ZIndex = 22, Active = false,
 		}, r)

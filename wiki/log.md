@@ -1530,3 +1530,16 @@ drawing 3D or taking clicks at the time, so no picture of them, the pass pet
 tiles or the fishing marker. Play was stopped straight after.
 
 Updated: owner, log.
+
+## [2026-10-19] build | Kid-friendly pass resumes: the quest panel
+Owner: *"Kid-friendly early screens"*, resuming the pass they scoped on 2026-10-12
+(the first 10 minutes; icons with big numbers, 1-3 words, a pointing hand, reward
+juice, details behind (?)). First the panel that is always on screen:
+- TODAY rows lead with an icon and use one or two words.
+- The quest card, its CLAIM button and the daily quests show rewards as icons and
+  numbers (`MineQuests.icons`).
+
+Seen in Play: every emoji draws. The "lifted surfaces" restyle of the same panel
+(22ccfdf) is untouched; this pass changes words, not surfaces.
+
+Updated: client-and-ui, log.

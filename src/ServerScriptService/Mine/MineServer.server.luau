@@ -3235,6 +3235,8 @@ local function questState(p)
 		goal = q.goal,
 		ready = current >= q.goal,
 		reward = Quests.describe(q.reward),
+		-- The quest card shows icons and numbers (kid-friendly pass).
+		rewardIcons = Quests.icons and Quests.icons(q.reward) or nil,
 		index = index,
 		total = Quests.COUNT,
 		done = false,
@@ -3287,6 +3289,7 @@ local function dailyQuestState(p, userId)
 				ready = progress >= def.goal and not row.claimed,
 				claimed = row.claimed and true or false,
 				reward = Quests.dailyGems(def, zone) .. " Gems",
+				gems = Quests.dailyGems(def, zone),
 			}
 		end
 	end
