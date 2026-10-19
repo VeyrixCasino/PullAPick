@@ -1597,7 +1597,13 @@ function MinePackReveal.mount(playerGui, opts)
 				askMore(1)
 			end)
 			if left > 1 then
-				local many = math.min(left, 10)
+				-- A case (a set case reveals here) opens at most five at a time
+				-- (MineCaseStack), so it never offers ten it would not open.
+				local okS, CaseStack = pcall(function()
+					return require(script.Parent:WaitForChild("MineCaseStack", 5))
+				end)
+				local cap = (okS and CaseStack and CaseStack.isCase(packId)) and CaseStack.MAX or 10
+				local many = math.min(left, cap)
 				button("OPEN " .. many .. "x", GOLD, Color3.fromRGB(28, 20, 8), function()
 					askMore(many)
 				end)

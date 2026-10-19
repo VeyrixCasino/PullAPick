@@ -110,6 +110,7 @@ event names. The client handles them in a single `net.OnClientEvent` ladder.
 | `snapshot` | the full player view, sent by `snap(plr)`. `markDirty` batches these to at most 10 a second. |
 | `toast` | a text notice. About 437 call sites. |
 | `loot`, `purchaseFx`, `opened`, `foundTool` | feedback for rewards |
+| `temperCase`, `caseSpins` | case reels the server built around its own winners: one, or a list of up to five that spin stacked (`caseSpins`, 2026-10-19: Temperament Cases, the bundle, trader cases) |
 | `seamGate`, `openElevator`, `openPanel`, `confirmSellAll` | ask the client to open a UI |
 
 ## Round trips are named differently on each side

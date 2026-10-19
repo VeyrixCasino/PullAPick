@@ -83,15 +83,33 @@ MineRotatingOffers.OFFERS = {
 		credits = 599, max = 1, neverReturns = true,
 		starts = START, ends = START + 2 * WEEK,
 		charm = "lucky_charm", shinyPacks = 8,
+		--[[
+			WILD CASES WHERE THE RETIRED PACKS WERE (owner, 2026-10-19: "Use all
+			defaults": wild cases of about the same value). The deal paid 3
+			Heirloom and 2 Omen packs, off the shelves since 2026-10-10. Valued the
+			way Lucky Block Week's were (MinePackConfig.expectedDust,
+			MineCases.expectedDust: what the cards recycle for), read 2026-10-19:
+
+			  old  3 x Heirloom 6,888 + 2 x Omen 3,204
+			       = 27,071 stardust, 257 credits at the old list prices
+			  new  1 x 4.5-star 10,425 + 3 x 4-star 4,893 + 1 x 3-star 1,364
+			       + 1 x 2.5-star 906
+			       = 27,374 stardust (+1.1%), 255 credits at today's case prices
+
+			The ★★★ case it already paid (in place of the Apex Pack retired
+			2026-10-11) stays, so it is 2 ★★★ in the list. The 8 Shiny Packs are
+			not retired packs: they are Meadow Legendary packs, all-shiny at luck
+			x3 (shinyPacks below), and stay. Bought with credits, so the cases are
+			paid cases (MineCases.bagRow). PROPOSED (2026-10-19): the mix.
+		]]
 		packs = {
-			{ id = "heirloom_pack", qty = 3 },
-			{ id = "omen_pack", qty = 2 },
-			-- Was an Apex Pack; Apex is retired (owner, 2026-10-11). The ★★★
-			-- Wild Case is the nearest in value.
-			{ id = "case_4", qty = 1 },
+			{ id = "case_5_6", qty = 1 },
+			{ id = "case_5", qty = 3 },
+			{ id = "case_4", qty = 2 },
+			{ id = "case_3_4", qty = 1 },
 		},
 		potions = { { id = "pot_t3_fortune", qty = 2 } },
-		blurb = "LIMITED TIME. NEVER COMING BACK. 200% Luck charm, 8 Shiny Packs, 3 Heirloom, 2 Omen, a ★★★ Wild Case, and 2 Fortune Flasks. 599 credits. Max 1.",
+		blurb = "LIMITED TIME. NEVER COMING BACK. 200% Luck charm, 8 Shiny Packs, 7 Wild Cases (1 ★★★★½, 3 ★★★★, 2 ★★★, 1 ★★½), and 2 Fortune Flasks. 599 credits. Max 1.",
 		toast = "Pot of Gold claimed — equip the charm, then open the packs",
 	},
 	{
@@ -329,6 +347,122 @@ function MineRotatingOffers.hasRandom(offer)
 		return false
 	end
 	return #(offer.blocks or {}) > 0 or #(offer.packs or {}) > 0 or (tonumber(offer.shinyPacks) or 0) > 0
+end
+
+--[[
+	A DEAL'S ODDS, BEFORE YOU BUY (owner, 2026-10-19, "Use all defaults": limited
+	deals with lucky blocks or cases get an odds sheet). Every chance is read off
+	the table its roll uses, never typed:
+
+	  lucky blocks  MineLuckyBlocks.oddsSheet: the final grade (rollClash) and
+	                what that grade pays (rollLoot's kind tables), from grade F,
+	                which is how a deal grants them
+	  wild cases    MineCases.wildGradeOdds(true): the set a paid case's spin lands
+	                on (rollWildSet); MineCases.levelOdds: its pack's stars
+	  Shiny Packs   MinePackConfig.siphonOdds over the Meadow Legendary pack's own
+	                odds at the deal's luck x3: each card's rarity (rollCard)
+
+	Returns a spec for MineLuckyOddsView.sheet -- { title, sub, sections = {
+	{ header, rows = { { name, p, grade? } } } }, note } -- or nil for a deal with
+	nothing random in it. `grade` lets the screen tint a row.
+]]
+MineRotatingOffers.SHINY_PACK_LUCK = 3
+function MineRotatingOffers.oddsSheet(offer)
+	if not MineRotatingOffers.hasRandom(offer) then
+		return nil
+	end
+	local GRADES = { "F", "D", "C", "B", "A", "S", "SS", "SSS" }
+	local sections = {}
+	for _, b in ipairs(offer.blocks or {}) do
+		local sheet = LuckyBlocks.oddsSheet and LuckyBlocks.oddsSheet(b.id, "F")
+		if sheet then
+			local def = LuckyBlocks.TYPES and LuckyBlocks.TYPES[b.id]
+			local head = string.upper(tostring((def and def.name) or b.id)) .. "  x" .. tostring(b.qty or 1)
+			local grades = { header = head .. "  ·  FINAL GRADE", rows = {} }
+			for _, g in ipairs(GRADES) do
+				local p = (sheet.grades or {})[g] or 0
+				if p > 0 then
+					table.insert(grades.rows, { name = "Grade " .. g, p = p, grade = g })
+				end
+			end
+			table.insert(sections, grades)
+			local kinds = {}
+			for k, p in pairs(sheet.kinds or {}) do
+				table.insert(kinds, { k = k, p = p })
+			end
+			table.sort(kinds, function(x, y)
+				if x.p ~= y.p then
+					return x.p > y.p
+				end
+				return x.k < y.k
+			end)
+			local what = { header = head .. "  ·  WHAT EACH OPEN PAYS", rows = {} }
+			for _, e in ipairs(kinds) do
+				table.insert(what.rows, { name = (LuckyBlocks.KIND_NAMES and LuckyBlocks.KIND_NAMES[e.k]) or e.k, p = e.p })
+			end
+			table.insert(sections, what)
+		end
+	end
+	local Cases, SetPacks
+	local wild = {}
+	for _, row in ipairs(offer.packs or {}) do
+		Cases = Cases or require(script.Parent:WaitForChild("MineCases"))
+		local def = Cases.get(row.id)
+		if def and def.caseType == "wild" then
+			table.insert(wild, { def = def, qty = row.qty or 1 })
+		end
+	end
+	if #wild > 0 then
+		SetPacks = require(script.Parent:WaitForChild("MineSetPacks"))
+		local stars = { header = "WILD CASES  ·  THE PACK EACH SPIN PAYS 3 OF", rows = {} }
+		for _, w in ipairs(wild) do
+			for _, lv in ipairs(Cases.levelOdds(w.def)) do
+				table.insert(stars.rows, {
+					name = string.format("%s x%d: a %s pack", w.def.name, w.qty, tostring(SetPacks.STAR_TEXT[lv.level])),
+					p = lv.p,
+				})
+			end
+		end
+		table.insert(sections, stars)
+		-- Bought with credits, so these are paid cases: the SSS set's share too.
+		local sets = { header = "WILD CASES  ·  THE SET EACH SPIN LANDS ON", rows = {} }
+		for _, r in ipairs(Cases.wildGradeOdds(true)) do
+			table.insert(sets.rows, {
+				name = string.format("A grade %s set (%d %s)", r.grade, r.sets, (r.sets == 1) and "set" or "sets"),
+				p = (tonumber(r.pct) or 0) / 100, grade = r.grade,
+			})
+		end
+		table.insert(sections, sets)
+	end
+	local nShiny = math.floor(tonumber(offer.shinyPacks) or 0)
+	if nShiny > 0 then
+		local Packs = require(script.Parent:WaitForChild("MinePackConfig"))
+		local zdef = ZonePacks.get and ZonePacks.get(ZonePacks.id("meadow", "pack_legendary"))
+		local odds = zdef and zdef.odds and Packs.siphonOdds(zdef.odds, MineRotatingOffers.SHINY_PACK_LUCK)
+		if odds then
+			local total = 0
+			for _, v in pairs(odds) do
+				total += math.max(0, tonumber(v) or 0)
+			end
+			local cards = { header = string.format("SHINY PACK x%d  ·  EACH CARD'S RARITY (%d a pack, every one shiny)",
+				nShiny, tonumber(zdef.cards) or 5), rows = {} }
+			for i, r in ipairs({ "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic" }) do
+				local v = math.max(0, tonumber(odds[r]) or 0)
+				if v > 0 and total > 0 then
+					table.insert(cards.rows, { name = r, p = v / total, grade = GRADES[i] })
+				end
+			end
+			table.insert(sections, cards)
+		end
+	end
+	return {
+		title = string.upper(tostring(offer.title or offer.id)) .. "  ODDS",
+		sub = "Everything random in this deal, with the chance it rolls",
+		sections = sections,
+		note = "Bought with credits. Lucky blocks open from grade F. "
+			.. "Wild cases go in your bag and spin when you open them. "
+			.. "Everything else in the deal is fixed.",
+	}
 end
 
 -- The same question for any key MineServer's buyProductCredits takes: a deal

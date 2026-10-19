@@ -13,6 +13,10 @@ sources:
   - tools/gen-charm-icons.js
   - src/ReplicatedStorage/Mine/Shared/MineCryptIcons.luau
   - tools/cursor/tasks/crypt-icons.md
+  - tools/pack-sprites/render.ps1
+  - tools/pack-sprites/write-ids.js
+  - tools/cursor/tasks/pack-tops.md
+  - tools/verify/pack-tops.js
 related: [tools-and-generators, rojo-and-studio, owner, charms, ores, open-questions]
 ---
 
@@ -81,6 +85,17 @@ it via personal account, and i just have to share access"*.
   `<setKey>_pack_<n>` id, so every set pack wears its set's sprite, picked by
   the pack's stars: up to 2 -> sprite 1, 2.5 to 3.5 -> 2, 4 and up -> 3.
   It also holds the set icons and rarity icons (`setIcon`, `rarityIcon`).
+- **The pack tops go blank** (owner, 2026-10-19: the set name baked onto the
+  crinkled top seal of the 19 sets' sprites comes off). `render.ps1` draws that
+  title only when run with `-Title`; by default the seal is blank. The 57
+  sprites have **not** been re-rendered: that is the PC session's Cursor job
+  `tools/cursor/tasks/pack-tops.md` (render, upload as
+  `mfc_pack_<Set>_<band>_v2`, write ids, share). `write-ids.js` now **merges** a
+  partial upload into the `ids.json` already there, keeping the set icons,
+  rarity icons and `cases` art, and lists the ids that changed for the owner
+  to share (`build/pack-art/share-list-new.txt`, which does not exist until the job runs).
+  It used to rebuild the file from the upload alone, which refused a partial
+  upload and dropped `cases`. Checked by `tools/verify/pack-tops.js`.
 - **Pack case art** (`MinePackArt.caseArt`) reads the `cases` map in
   `ids.json`: one image per set, keyed by the set's file name, plus `Wild`.
   - With no image, a set case wears its set's medallion and a wild case wears

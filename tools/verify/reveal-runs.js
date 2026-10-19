@@ -58,16 +58,20 @@ const clientRaw = read("src/StarterPlayer/StarterPlayerScripts/MineClient.client
 const client = code(clientRaw);
 
 // ----------------------------------------------------------- S24 / S25 --
+// Since 2026-10-19 (owner: every case "up to 5 slot spins at a time"; see
+// case-stack.js) the gear branch hands its design to ClientFns.playCaseReels,
+// which reels every item through ClientFns.gearReels and plays the run in
+// stacked rounds. The S24 / S25 properties are pinned where they now live.
 const gearBranch = between(client, 'if design.kind == "gear" then', "local openedId = design.packId");
-check(gearBranch.length > 1500, "found the gear case branch of the opened handler");
-check(!/math\.min\(#cards, 3\)/.test(gearBranch) && /for _, item in ipairs\(cards\) do\s*table\.insert\(reels, reelAround\(item\)\)/.test(gearBranch),
+check(gearBranch.length > 50 && /ClientFns\.playCaseReels\(\{ design \}, clearPackRevealBusy\)/.test(gearBranch),
+  "found the gear case branch of the opened handler (it plays through ClientFns.playCaseReels)");
+const gearReels = between(client, "function ClientFns.gearReels(design)", "\nend");
+check(!/math\.min\(#cards, 3\)/.test(gearReels) && /for _, item in ipairs\(design\.cards or \{\}\) do\s*table\.insert\(reels, reelAround\(item\)\)/.test(gearReels),
   "a gear case reels EVERY item it paid (a Gear Vault's five), not the first three");
-check(/caseScreen\(\)\.playRun\(reels, \{ onDone = clearPackRevealBusy \}\)/.test(gearBranch)
-  && !/caseScreen\(\)\.play\(payload, nextReel\)/.test(gearBranch),
-  "the vault's reels chain on close (playRun), not on the last reel stopping");
 const caseReels = between(client, "function ClientFns.playCaseReels(designs, done)", "\nend");
-check(/caseScreen\(\)\.playRun\(reels, \{/.test(caseReels) && /onDone = done/.test(caseReels),
-  "a run of mystery cases plays through playRun, so it gets SKIP ALL");
+check(/caseScreen\(\)\.playRun\(reels, \{/.test(caseReels) && /onDone = done/.test(caseReels)
+  && /ClientFns\.gearReels\(d\)/.test(caseReels) && !/caseScreen\(\)\.play\(payload, nextReel\)/.test(client),
+  "a run of cases (a vault's items too) plays through playRun, so it chains on close and gets SKIP ALL");
 
 const caseSpin = between(grade, "function MineGradeReveal.caseSpin(parent, opts)", "\nreturn MineGradeReveal");
 check(caseSpin.length > 5000, "found the case reel (MineGradeReveal.caseSpin)");
@@ -88,12 +92,16 @@ const skipAll = between(gradeRaw, "\tskipAllBtn.MouseButton1Click:Connect(functi
 check(playRun.length > 500 && closeFn.length > 200 && skipAll.length > 300, "lifted playRun, close and the SKIP ALL handler");
 const runTest = `
 task = { defer = function(f, ...) f(...) end }
-UDim2 = { fromScale = function() return {} end }
+UDim2 = { fromScale = function() return {} end, fromOffset = function() return {} end }
 local ctl = {}
 local closeHooks, run, shown = {}, nil, nil
 local playing, finishNow = false, nil
 local played, summaryOf, stopped = {}, nil, 0
 local summary, track, sub, boxStroke, box = {}, {}, {}, {}, {}
+-- The stacked reels' pieces close() also resets (MineCaseStack; case-stack.js).
+local stackHost, calmGrid = {}, false
+local function stopStack() end
+local function setBoxHeight() end
 local MUTED, GOLD = "muted", "gold"
 local skipAllBtn = { MouseButton1Click = {} }
 local skipAllFn

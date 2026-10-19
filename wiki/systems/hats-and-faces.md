@@ -2,9 +2,10 @@
 title: Hats and faces (gear)
 type: system
 status: partial
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineGear.luau
+  - tools/verify/hat-stacks.js
   - src/ReplicatedStorage/Mine/Shared/MineHats.luau
   - src/ReplicatedStorage/Mine/Shared/MineLootPacks.luau
   - src/ReplicatedStorage/Mine/NewGear/Catalog.luau
@@ -75,6 +76,10 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
   - **Hat crate** (`gear_pack`) from the Enchanter's Summon tab: `Verbs.rollGearBanner`,
     `MineGear.ROLL_TOKEN_COST` 5 tokens from `p.temperTokens`, and your first draw is free
     (`p.freeGearUsed`). Tokens come from rebirth (`MineSkillData.rebirthTokens`) and from some loot.
+    The crates land in the bag and open there 1–5 at a time, every item on its own reel, the
+    reels stacked (a Gear Vault's five spin together; [pack-cases](pack-cases.md)). The filler
+    tiles are drawn the way a crate draws (`MineGear.rollRarity`, then a catalog hat of that
+    grade), not uniform grades, so the reel no longer flashes SSS hats it almost never pays.
   - **Chests:** the `CHEST_LOOT` `hat` row (weight 9, about 90 per 1,000 chests) calls
     `MineGear.rollPiece(id, rng, "head")`. The slot is forced, so a chest never pays a face.
   - **The roll:** grade comes from the skins ladder (`MineGear.rollRarity` reads
@@ -91,6 +96,16 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
 | `MineHats.LIST` | 116 droppable hats (F 17 · D 14 · C 14 · B 15 · A 12 · S 10 · SS 15 · SSS 19), each with a catalogId, RAP and set | drops, and the Collection → Hats browser |
 | `MineHats.LEFTOVERS` | 54 rows. Only the 23 `kind = "Face"` rows are droppable (D 5 · C 3 · B 1 · A 4 · S 9 · SSS 1). Neck and Back rows are coded but have no slot. | face drops, and the Collection → Faces browser |
 | `src/ReplicatedStorage/Mine/NewGear/` | **Prototype.** 180 hats and 120 faces, Roblox limiteds ranked by Rolimons RAP, with `Icon.rbxm` folders per grade. Its header says: "Not wired to drops, rolls, or equipped stats." | only `NG.icon` thumbnails in `MineInventoryView` |
+
+**Each hat once, "xN" for copies** (owner, 2026-10-19: *"hat inventory is messy. each hat
+should say the hat, and if multiple say xXXX"*). `MineGear.stackKey` calls two pieces the same
+when nothing a player sees differs (slot, grade, catalog item, name, every stat line), and
+`MineGear.stacks` groups them. The three lists of your hats use it: a seat's list and the
+Backpack (Inventory → Equipment) and Collection → Hats/Faces. A worn piece keeps its own tile;
+the spares stack with an "xN" badge, and EQUIP or SELL on a stack acts on its first copy
+(RECYCLE ticks the stack as a whole, like a pack stack). The Backpack used to draw each spare hat
+once per hat seat (three times) and a hat worn in one seat again from the other two. Checked by
+`tools/verify/hat-stacks.js`.
 
 **The collection lists what can drop** (owner, 2026-10-19, launch audit S37). Inventory →
 Collection → Hats/Faces showed the 300 NewGear limiteds: 67 of them drop, and 72 of the 139

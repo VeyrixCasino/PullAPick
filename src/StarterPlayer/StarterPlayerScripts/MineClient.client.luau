@@ -3893,10 +3893,11 @@ invCtl = InventoryView.mount(gui, {
 		if packRevealBusy then
 			return
 		end
-		-- Gear cases: never more than 3 at once.
-		local pid = tostring(packId or "")
-		if string.find(pid, "gear", 1, true) then
-			count = math.min(tonumber(count) or 1, 3)
+		-- A case opens up to five at a time, stacked (MineCaseStack; the server
+		-- clamps the same). Gear cases were held to three.
+		local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+		if CaseStack.isCase(packId) then
+			count = CaseStack.clamp(count)
 		end
 		armPackRevealBusy()
 		net:FireServer("openMany", { packId = packId, count = count, uid = uid })
@@ -4125,18 +4126,105 @@ end
 	last one. A run of up to Const.OPEN_RUN_MAX (50) cases was 50 spins of
 	5.4 s you could not leave; the case screen's SKIP ALL (playRun) ends it and
 	shows everything won on one grid (owner, 2026-10-19, launch audit S25).
+
+	UP TO FIVE AT A TIME, STACKED (owner, 2026-10-19: "make every case in the
+	game be able to spin up to 5 slot spins at a time (one on top of another)";
+	MineCaseStack). The run plays in rounds of up to five reels spinning at once,
+	one above another; each next round starts when the player closes the last
+	one's results. A gear case's design is one reel per item (ClientFns.gearReels),
+	so a Gear Vault's five spin together.
 ]]
 function ClientFns.playCaseReels(designs, done)
 	local reels = {}
 	for _, d in ipairs(designs or {}) do
-		table.insert(reels, d.reel)
+		if type(d.reel) == "table" then
+			table.insert(reels, d.reel)
+		elseif d.kind == "gear" then
+			for _, r in ipairs(ClientFns.gearReels(d)) do
+				table.insert(reels, r)
+			end
+		end
 	end
 	ClientFns.caseScreen().playRun(reels, {
+		stack = require(shared:WaitForChild("MineCaseStack")).MAX,
 		onEach = function()
 			Audio.play("open")
 		end,
 		onDone = done,
 	})
+end
+
+--[[
+	A GEAR CASE'S REELS: one per item it paid (a Gear Vault pays five), each
+	built around the hat the server granted, at MineTemper.CASE_WINNER_AT. The
+	other tiles are drawn the way a gear case draws (MineGear.rollRarity, then a
+	hat of that grade from MineGear.catalogFor), so the reel is no likelier to
+	flash an SSS than the case is to pay one. Was uniform grades over every hat.
+]]
+function ClientFns.gearReels(design)
+	local Temper = require(shared:WaitForChild("MineTemper"))
+	local Hats = require(shared:WaitForChild("MineHats"))
+	local Gear = require(shared:WaitForChild("MineGear"))
+	local Icons = require(shared:WaitForChild("MineIcons"))
+	local function reelAround(item)
+		local rng = Random.new()
+		local reel, at = {}, Temper.CASE_WINNER_AT or 38
+		local winR = item.rarityId or (item.gear and item.gear.rarity) or "Common"
+		local hatPool = Hats.LIST or {}
+		local function hatRow(h, rarity, name)
+			local cat = h and tonumber(h.catalogId)
+			return {
+				id = (h and h.id) or "?",
+				rarity = rarity,
+				name = name or (h and h.name) or "...",
+				kind = design.kind,
+				catalogId = cat,
+				icon = cat and string.format("rbxthumb://type=Asset&id=%d&w=150&h=150", cat)
+					or (Icons.image and Icons.image((h and h.id) or "")) or nil,
+			}
+		end
+		for i = 1, Temper.CASE_REEL or 44 do
+			if i == at then
+				local hatId = item.gear and (item.gear.hatId or item.gear.id)
+				local hat
+				for _, h in ipairs(hatPool) do
+					if h.id == hatId then
+						hat = h
+						break
+					end
+				end
+				local row = hatRow(hat or (item.gear and {
+					id = hatId, name = item.name, catalogId = item.gear.catalogId,
+				}), winR, item.name)
+				if (not row.icon) and item.gear and Gear.image then
+					row.icon = Gear.image(item.gear)
+				end
+				table.insert(reel, row)
+			else
+				local g = (Gear.rollRarity and Gear.rollRarity(rng))
+					or Temper.GRADE_ORDER[rng:NextInteger(1, #Temper.GRADE_ORDER)]
+				local cat = Gear.catalogFor and Gear.catalogFor("hat", g, nil, rng)
+				local h = cat or (#hatPool > 0 and hatPool[rng:NextInteger(1, #hatPool)]) or nil
+				table.insert(reel, hatRow(h, g, h and h.name))
+			end
+		end
+		return {
+			reel = reel, at = at,
+			id = item.gear and item.gear.id,
+			name = item.name,
+			rarity = winR,
+			title = (design.name and design.name ~= "") and design.name or "Gear Case",
+			kind = design.kind,
+			sub = item.sub,
+			icon = reel[at] and reel[at].icon,
+			catalogId = reel[at] and reel[at].catalogId,
+		}
+	end
+	local reels = {}
+	for _, item in ipairs(design.cards or {}) do
+		table.insert(reels, reelAround(item))
+	end
+	return reels
 end
 
 function ClientFns.luckyScreen()
@@ -8970,16 +9058,16 @@ function ClientFns.showTraderShop(payload)
 	local stock = payload.stock
 	local rows = math.max(1, #stock)
 	-- Height follows the shelf: a 3-row trader should not open a 5-row card with
-	-- a hole in it.
+	-- a hole in it. (+36 for the "how many at once" picker.)
 	local rowH = touch and 62 or 58
 	local f = mk("Frame", {
 		Name = "TraderShop", AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.46),
-		Size = UDim2.new(0.9, 0, 0, 132 + rows * (rowH + 8)),
+		Size = UDim2.new(0.9, 0, 0, 168 + rows * (rowH + 8)),
 		BackgroundColor3 = Color3.fromRGB(44, 40, 60), ZIndex = 90,
 	}, gui)
 	mk("UISizeConstraint", {
-		MinSize = Vector2.new(300, 240), MaxSize = Vector2.new(520, 560),
+		MinSize = Vector2.new(300, 276), MaxSize = Vector2.new(520, 596),
 	}, f)
 	ClientFns.traderMenu = f
 	round(f, 18)
@@ -8998,8 +9086,36 @@ function ClientFns.showTraderShop(payload)
 		Text = "", ZIndex = 91,
 	}, f)
 
+	--[[
+		HOW MANY AT ONCE (owner, 2026-10-19: every case "up to 5 slot spins at a
+		time"; MineCaseStack). One picker for the shelf: each buy button opens
+		that many of its case, charged all or nothing by the server, and they
+		spin stacked. The pick is remembered for the session.
+	]]
+	local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+	local pickRow = mk("Frame", {
+		BackgroundTransparency = 1, Position = UDim2.new(0.05, 0, 0, 72),
+		Size = UDim2.new(0.9, 0, 0, 28), ZIndex = 91,
+	}, f)
+	mk("TextLabel", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, -200, 1, 0),
+		Font = FONT, TextSize = 14, TextColor3 = Color3.fromRGB(226, 228, 240),
+		TextXAlignment = Enum.TextXAlignment.Left, Text = "OPEN AT ONCE", ZIndex = 92,
+	}, pickRow)
+	local repaint -- below; the picker repaints the prices it changes
+	local picker = CaseStack.picker(pickRow, {
+		key = "trader", color = Color3.fromRGB(255, 226, 150), ink = Color3.fromRGB(28, 22, 10),
+		size = Vector2.new(34, 28), gap = 5, zIndex = 92,
+		anchor = Vector2.new(1, 0), position = UDim2.new(1, 0, 0, 0),
+		onPick = function()
+			if repaint then
+				repaint()
+			end
+		end,
+	})
+
 	local list = mk("Frame", {
-		BackgroundTransparency = 1, Position = UDim2.new(0.05, 0, 0, 74),
+		BackgroundTransparency = 1, Position = UDim2.new(0.05, 0, 0, 110),
 		Size = UDim2.new(0.9, 0, 0, rows * (rowH + 8)), ZIndex = 91,
 	}, f)
 	mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, list)
@@ -9057,6 +9173,7 @@ function ClientFns.showTraderShop(payload)
 			]]
 			net:FireServer("buyTraderCase", {
 				zoneId = payload.zoneId, seam = payload.seam, caseId = row.caseId,
+				count = picker.get(),
 			})
 			if ClientFns.traderMenu then
 				ClientFns.traderMenu:Destroy()
@@ -9092,14 +9209,18 @@ function ClientFns.showTraderShop(payload)
 	-- and a purchase elsewhere greys the buttons out.
 	local left = math.max(0, math.floor(tonumber(payload.secondsLeft) or 0))
 	local at = os.clock()
-	local function repaint()
+	-- Assigns the forward-declared `repaint` above (the picker calls it).
+	function repaint()
 		local remain = math.max(0, left - math.floor(os.clock() - at))
 		local have = tonumber(snap and snap.temperTokens) or 0
 		where.Text = ("%s · depth %s · %d:%02d left · %d tokens"):format(
 			tostring(payload.zoneId or "?"), tostring(payload.seam or 0),
 			math.floor(remain / 60), remain % 60, have)
+		-- The shelf's price times the picked count: what the server charges.
+		local n = picker.get()
 		for _, b in ipairs(buys) do
-			local afford = have >= b.price
+			b.btn.Text = (n > 1) and (n .. "x  " .. (b.price * n) .. " tokens") or (b.price .. " tokens")
+			local afford = have >= b.price * n
 			b.btn.BackgroundColor3 = afford and Color3.fromRGB(96, 190, 104) or Color3.fromRGB(70, 74, 92)
 			b.btn.TextColor3 = afford and Color3.fromRGB(12, 24, 16) or Color3.fromRGB(196, 200, 216)
 			b.btn.Active = afford
@@ -9592,10 +9713,15 @@ function rollsTab.build(parent)
 			AutomaticSize = Enum.AutomaticSize.X,
 			Size = UDim2.fromOffset(0, 18),
 			TextXAlignment = Enum.TextXAlignment.Left,
-			Text = (#counts == 1) and "|  one draw" or "each",
+			Text = (counts ~= "picker" and #counts == 1) and "|  one draw" or "each",
 			LayoutOrder = 2,
 			ZIndex = 36,
 		}, unitHost)
+		-- A case opens one to five at once: a picker and one SPIN button.
+		if counts == "picker" then
+			rollsTab.casePicker(card, unit, tint, fire, kind)
+			return
+		end
 		local nCounts = #counts
 		for i, n in ipairs(counts) do
 			local b = mk("TextButton", {
@@ -9653,12 +9779,71 @@ function rollsTab.build(parent)
 			net:FireServer("rollGear", { count = n or 1 })
 		end, { 1, 10, 100 }, "gear")
 	-- The case lives where the other draws live, not behind a rebirth wall.
+	-- One to five at once, spinning stacked (MineCaseStack; owner, 2026-10-19:
+	-- every case "up to 5 slot spins at a time"): it was 1x / 10x / 100x.
 	row(string.upper(tostring(Temper.CASE_NAME or "Temperament Case")),
 		"Spins for one temperament, Common to Mythic. Fit it to any tool.",
 		art("temper"), tonumber(Temper.CASE_PRICE_TOKENS) or 20, 136,
 		Color3.fromRGB(255, 176, 92), function(n)
 			net:FireServer("openTemperCase", { count = n or 1 })
-		end, { 1, 10, 100 }, "temper")
+		end, "picker", "temper")
+end
+
+--[[
+	A CASE'S 1-5 PICKER AND ITS SPIN BUTTON, on a Summon row. The button joins
+	rollsTab.buttons like the 1x / 10x ones, with `n` the picked count, so
+	rollsTab.paint prices it (unit x n) and greys it when the purse is short. The
+	server charges all or nothing (Verbs.openTemperStack).
+]]
+function rollsTab.casePicker(card, unit, tint, fire, kind)
+	local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+	local Icons = require(shared:WaitForChild("MineIcons"))
+	local entry
+	local b = mk("TextButton", {
+		BackgroundColor3 = tint, Text = "", AutoButtonColor = true,
+		AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 46),
+		Size = UDim2.fromOffset(190, 44), ZIndex = 36,
+	}, card)
+	round(b, 10)
+	local xL = mk("TextLabel", {
+		BackgroundTransparency = 1, Font = FONT, TextSize = 20,
+		TextColor3 = Color3.fromRGB(18, 22, 28),
+		Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(86, 44),
+		TextXAlignment = Enum.TextXAlignment.Left, Text = "SPIN", ZIndex = 37,
+	}, b)
+	local costHost = mk("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(96, 13), Size = UDim2.new(1, -104, 0, 18),
+		ZIndex = 37,
+	}, b)
+	local function paintCost()
+		for _, c in ipairs(costHost:GetChildren()) do
+			c:Destroy()
+		end
+		Icons.priceChip(costHost, "tokens", shortNum(entry.unit * entry.n), {
+			iconSize = 14, textSize = 14, textColor = Color3.fromRGB(26, 30, 38), font = FONT_M, zIndex = 37,
+		})
+		xL.Text = (entry.n > 1) and ("SPIN x" .. entry.n) or "SPIN"
+	end
+	local picker = CaseStack.picker(card, {
+		key = "summon:" .. tostring(kind), color = tint, ink = Color3.fromRGB(18, 22, 28),
+		size = Vector2.new(34, 28), gap = 5, zIndex = 36,
+		anchor = Vector2.new(1, 0), position = UDim2.new(1, -16, 0, 10),
+		onPick = function(n)
+			entry.n = n
+			paintCost()
+			rollsTab.paint()
+		end,
+	})
+	entry = {
+		b = b, x = xL, n = picker.get(), unit = unit, tint = tint, kind = kind,
+		costHost = costHost, currencyId = "tokens",
+	}
+	paintCost()
+	b.MouseButton1Click:Connect(function()
+		fire(entry.n)
+	end)
+	table.insert(rollsTab.buttons, entry)
 end
 
 function rollsTab.paint()
@@ -12819,92 +13004,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 			return
 		end
 		-- Gear cases use the CSGO reel (not PackReveal / lucky-block). Every
-		-- item gets its reel (a Gear Vault pays 5; this showed 3), and the next
-		-- starts when the player closes the last (owner, 2026-10-19, S24).
+		-- item gets its reel (a Gear Vault pays 5; this showed 3; owner,
+		-- 2026-10-19, S24), and up to five spin at once, stacked
+		-- (ClientFns.gearReels, ClientFns.playCaseReels; MineCaseStack).
 		if design.kind == "gear" then
-			Audio.play("open")
-			local cards = design.cards or {}
-			local function reelAround(item)
-				local Temper = require(shared:WaitForChild("MineTemper"))
-				local Hats = require(shared:WaitForChild("MineHats"))
-				local Gear = require(shared:WaitForChild("MineGear"))
-				local Icons = require(shared:WaitForChild("MineIcons"))
-				local rng = Random.new()
-				local reel, at = {}, Temper.CASE_WINNER_AT or 38
-				local winR = item.rarityId or (item.gear and item.gear.rarity) or "Common"
-				local hatPool = Hats.LIST or {}
-				local function hatRow(h, rarity, name)
-					local cat = h and tonumber(h.catalogId)
-					return {
-						id = (h and h.id) or "?",
-						rarity = rarity,
-						name = name or (h and h.name) or "...",
-						kind = design.kind,
-						catalogId = cat,
-						icon = cat and string.format("rbxthumb://type=Asset&id=%d&w=150&h=150", cat)
-						or (Icons.image and Icons.image((h and h.id) or "")) or nil,
-					}
-				end
-				for i = 1, Temper.CASE_REEL or 44 do
-					if i == at then
-						if design.kind == "gear" then
-							local hatId = item.gear and (item.gear.hatId or item.gear.id)
-							local hat
-							for _, h in ipairs(hatPool) do
-								if h.id == hatId then hat = h break end
-							end
-							local row = hatRow(hat or (item.gear and {
-								id = hatId, name = item.name, catalogId = item.gear.catalogId,
-							}), winR, item.name)
-							if (not row.icon) and item.gear and Gear.image then
-								row.icon = Gear.image(item.gear)
-							end
-							table.insert(reel, row)
-						else
-							local stat = item.rune and item.rune.stat
-							table.insert(reel, {
-								id = stat or (item.rune and item.rune.id) or item.name,
-								rarity = winR,
-								name = item.name,
-								kind = design.kind,
-								icon = (Icons.image and (Icons.image(stat) or Icons.image(item.name))) or nil,
-							})
-						end
-					else
-						local g = Temper.GRADE_ORDER[rng:NextInteger(1, #Temper.GRADE_ORDER)]
-						if design.kind == "gear" and #hatPool > 0 then
-							local h = hatPool[rng:NextInteger(1, #hatPool)]
-							table.insert(reel, hatRow(h, g, h.name))
-						else
-							local kits = Temper.KITS or Temper.LIST or {}
-							local kit = kits[rng:NextInteger(1, math.max(1, #kits))]
-							local kid = (type(kit) == "table" and kit.id) or "?"
-							local stat = type(kit) == "table" and type(kit.stats) == "table" and kit.stats[1]
-							table.insert(reel, {
-								id = kid, rarity = g, kind = design.kind,
-								name = (type(kit) == "table" and kit.name) or "...",
-								icon = Icons.image and (Icons.image(stat) or Icons.image(kid)) or nil,
-							})
-						end
-					end
-				end
-				return {
-					reel = reel, at = at,
-					id = item.gear and item.gear.id,
-					name = item.name,
-					rarity = winR,
-					title = "Gear Case",
-					kind = design.kind,
-					sub = item.sub,
-					icon = reel[at] and reel[at].icon,
-					catalogId = reel[at] and reel[at].catalogId,
-				}
-			end
-			local reels = {}
-			for _, item in ipairs(cards) do
-				table.insert(reels, reelAround(item))
-			end
-			ClientFns.caseScreen().playRun(reels, { onDone = clearPackRevealBusy })
+			ClientFns.playCaseReels({ design }, clearPackRevealBusy)
 			return
 		end
 		-- How many more of this same pack are sitting in the bag, so the prompt
@@ -12933,11 +13037,12 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- A whole run in one reply. The server has already removed the packs and
 		-- says how many of that kind are left, so the prompt needs no round trip.
 		local meta = (typeof(extra) == "table") and extra or {}
-		-- Mystery pack cases in the run spin first (CS:GO reel), one by one;
-		-- whatever else came out plays the usual reveal after.
+		-- Cases in the run spin first (CS:GO reels, up to five stacked at a
+		-- time): mystery cases, ore cases' skins, and every item of a gear case.
+		-- Whatever else came out plays the usual reveal after.
 		local spins, rest = {}, {}
 		for _, d in ipairs(payload or {}) do
-			if type(d) == "table" and type(d.reel) == "table" then
+			if type(d) == "table" and (type(d.reel) == "table" or d.kind == "gear") then
 				table.insert(spins, d)
 			else
 				table.insert(rest, d)
@@ -12986,6 +13091,15 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "temperCase" and payload then
 		Audio.play("open")
 		ClientFns.caseScreen().play(payload)
+	elseif action == "caseSpins" and type(payload) == "table" and type(payload.list) == "table" then
+		-- Several cases opened at once (Temperament Cases, a trader's cases):
+		-- every reel the server built, up to five stacked at a time.
+		ClientFns.caseScreen().playRun(payload.list, {
+			stack = require(shared:WaitForChild("MineCaseStack")).MAX,
+			onEach = function()
+				Audio.play("open")
+			end,
+		})
 	elseif action == "luckResult" and type(payload) == "table" then
 		--[[
 			Random outcomes that used to be a toast alone: temperament rolls (the

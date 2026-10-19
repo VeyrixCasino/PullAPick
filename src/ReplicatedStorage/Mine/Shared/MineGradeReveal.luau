@@ -1466,13 +1466,19 @@ function MineGradeReveal.caseSpin(parent, opts)
 	}, screen)
 	round(box, 16)
 	local boxStroke = stroke(box, 2, GOLD, 0.2)
-	-- Fit the fixed 760x330 box to phones: scale down, never up.
+	-- Fit the box to phones: scale down, never up. It is 760x330 for one reel
+	-- and taller for a stack of them (setBoxHeight), so the fit reads its height.
 	local fit = mk("UIScale", { Name = "FitScale", Scale = 1 }, box)
 	local function applyFit()
 		local cam = workspace.CurrentCamera
 		local vp = cam and cam.ViewportSize or Vector2.new(1280, 720)
-		local s = math.min(1, (vp.X * 0.96) / 760, (vp.Y * 0.90) / 330)
+		local h = math.max(330, box.Size.Y.Offset)
+		local s = math.min(1, (vp.X * 0.96) / 760, (vp.Y * 0.90) / h)
 		fit.Scale = math.max(0.45, s)
+	end
+	local function setBoxHeight(h)
+		box.Size = UDim2.fromOffset(760, h)
+		applyFit()
 	end
 	applyFit()
 	if workspace.CurrentCamera then
@@ -1538,36 +1544,32 @@ function MineGradeReveal.caseSpin(parent, opts)
 		SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	}, summary)
 	mk("UIPadding", { PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6) }, summary)
+	--[[
+		STACKED REELS (MineCaseStack; owner, 2026-10-19: "up to 5 slot spins at a
+		time (one on top of another)"). Up to five tracks, one above another, in
+		this frame; the box grows to hold them (setBoxHeight). ctl.playStack
+		below spins them.
+	]]
+	local STACK_TOP, STACK_TRACK, STACK_GAP, STACK_FOOT = 72, 96, 8, 56
+	local SW, SG = 104, 8 -- a stacked tile's width, and the gap between tiles
+	local stackHost = mk("Frame", {
+		Name = "Stack", BackgroundTransparency = 1, BorderSizePixel = 0, Visible = false,
+		Position = UDim2.fromOffset(18, STACK_TOP), Size = UDim2.new(1, -36, 0, 0), ZIndex = 123,
+	}, box)
 	-- Callbacks for when the result on screen is closed (play's onClosed), the
 	-- run playing ({ list, i, onDone, onEach }), and the payload on screen.
 	local closeHooks, run, shown = {}, nil, nil
+	-- The results grid after a stack holds still (no punch; see celebrate).
+	local calmGrid = false
 
-	-- Tile art: grade wash + big icon (temperament / gear / hat) with the name
-	-- tucked under so the icon is what you read first.
-	local tiles = {}
-	local function tile(i, row)
-		local grade = Temper.normalizeRarity(row.rarity) or "F"
-		-- A row may bring its own colour and word (pack cases, MineCases.reelGrade);
-		-- temperaments and gear use the temper ladder.
-		local ink = row.color or Temper.colorOf(grade)
-		local t = mk("Frame", {
-			BackgroundColor3 = CARD_HI, BorderSizePixel = 0,
-			Position = UDim2.fromOffset((i - 1) * (TILE_W + TILE_GAP) + TILE_GAP, 10),
-			Size = UDim2.fromOffset(TILE_W, 130), ZIndex = 125,
-		}, reel)
-		round(t, 10)
-		local tStroke = stroke(t, 2, ink, 0.15)
-		mk("UIScale", { Name = "Pop", Scale = 1 }, t)
-		tiles[i] = { frame = t, stroke = tStroke, ink = ink, grade = grade }
-		local wash = mk("Frame", {
-			BackgroundColor3 = ink, BackgroundTransparency = 0.72, BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0),
-			Size = UDim2.new(1, 0, 0, 44), ZIndex = 126,
-		}, t)
-		round(wash, 10)
+	--[[
+		A tile's picture and name: the row's own icon, else the temperament's,
+		its stat's, a catalog thumbnail, or a hat looked up by id. One lookup for
+		the single reel's tiles and the stacked reels' smaller ones.
+	]]
+	local function iconFor(row)
 		local kit = Temper.kit(row.id)
 		local labelName = tostring(row.name or (kit and kit.name) or row.id)
-		say(t, string.upper(row.label or Temper.wordOf(grade)), 10, ink, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 0, 12), FONT)
 		local iconUrl = (kit and kit.icon) or row.icon
 		if (not iconUrl or iconUrl == "") and Icons and Icons.image then
 			pcall(function()
@@ -1597,6 +1599,34 @@ function MineGradeReveal.caseSpin(parent, opts)
 				end
 			end)
 		end
+		return iconUrl, labelName
+	end
+
+	-- Tile art: grade wash + big icon (temperament / gear / hat) with the name
+	-- tucked under so the icon is what you read first.
+	local tiles = {}
+	local function tile(i, row)
+		local grade = Temper.normalizeRarity(row.rarity) or "F"
+		-- A row may bring its own colour and word (pack cases, MineCases.reelGrade);
+		-- temperaments and gear use the temper ladder.
+		local ink = row.color or Temper.colorOf(grade)
+		local t = mk("Frame", {
+			BackgroundColor3 = CARD_HI, BorderSizePixel = 0,
+			Position = UDim2.fromOffset((i - 1) * (TILE_W + TILE_GAP) + TILE_GAP, 10),
+			Size = UDim2.fromOffset(TILE_W, 130), ZIndex = 125,
+		}, reel)
+		round(t, 10)
+		local tStroke = stroke(t, 2, ink, 0.15)
+		mk("UIScale", { Name = "Pop", Scale = 1 }, t)
+		tiles[i] = { frame = t, stroke = tStroke, ink = ink, grade = grade }
+		local wash = mk("Frame", {
+			BackgroundColor3 = ink, BackgroundTransparency = 0.72, BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 44), ZIndex = 126,
+		}, t)
+		round(wash, 10)
+		say(t, string.upper(row.label or Temper.wordOf(grade)), 10, ink, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 0, 12), FONT)
+		local iconUrl, labelName = iconFor(row)
 		if iconUrl and iconUrl ~= "" then
 			mk("ImageLabel", {
 				BackgroundTransparency = 1, Image = iconUrl, ScaleType = Enum.ScaleType.Fit,
@@ -1617,13 +1647,14 @@ function MineGradeReveal.caseSpin(parent, opts)
 		a fraction of a tile, because a case that stops dead centre every single
 		time looks scripted -- which is the one thing this must not look like.
 	]]
+	--[[
+		The track's width in the box's own units: the box is 760 wide with 18px
+		pads. Not AbsoluteSize, which is in screen pixels AFTER the FitScale, while
+		the reel's Position offsets are inside it -- on a phone, where the fit is
+		under 1, the winner stopped short of the marker.
+	]]
 	local function trackWidth()
-		local w = track.AbsoluteSize.X
-		if w < 1 then
-			-- Layout has not resolved yet; box is fixed 760 wide with 18px pads.
-			w = 724
-		end
-		return w
+		return box.Size.X.Offset - 36
 	end
 
 	local function restFor(at, jitter)
@@ -1723,11 +1754,15 @@ function MineGradeReveal.caseSpin(parent, opts)
 					if bit.Parent then bit:Destroy() end
 				end)
 			end
-			local punch = mk("UIScale", { Scale = 1 }, box)
-			punch.Scale = (rank >= 7) and 1.22 or (rank >= 6 and 1.14 or 1.1)
-			TweenService:Create(punch, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-				Scale = 1,
-			}):Play()
+			-- A stack's results grid holds still: its text never rides a scale
+			-- animation (MineUI's rule; calmGrid is set by the stacked reels).
+			if not calmGrid then
+				local punch = mk("UIScale", { Scale = 1 }, box)
+				punch.Scale = (rank >= 7) and 1.22 or (rank >= 6 and 1.14 or 1.1)
+				TweenService:Create(punch, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+					Scale = 1,
+				}):Play()
+			end
 			if Audio and Audio.playLuckyWin then
 				pcall(Audio.playLuckyWin, rank)
 			elseif Audio and Audio.play then
@@ -1750,11 +1785,12 @@ function MineGradeReveal.caseSpin(parent, opts)
 		end
 	end
 
-	-- SKIP ALL shows while a run has another reel to come, never on the grid.
+	-- SKIP ALL shows while a run has another reel (or round of reels) to come,
+	-- never on the grid. Its count is everything left, the reels on screen too.
 	local function refreshSkipAll()
 		local left = run and (#run.list - run.i) or 0
 		skipAllBtn.Visible = left > 0 and not summary.Visible
-		skipAllBtn.Text = "SKIP ALL  (" .. (left + 1) .. ")"
+		skipAllBtn.Text = "SKIP ALL  (" .. (left + ((run and run.shownN) or 1)) .. ")"
 	end
 
 	-- One result on the grid: its winning tile's art and grade, and its words.
@@ -1821,6 +1857,9 @@ function MineGradeReveal.caseSpin(parent, opts)
 		local grade = Temper.normalizeRarity(best.rarity) or "F"
 		local ink = best.color or Temper.colorOf(grade)
 		track.Visible = false
+		-- A stack's reels give way to the grid, and the box drops back to size.
+		stackHost.Visible = false
+		setBoxHeight(330)
 		resultName.Text = ""
 		resultSub.Text = ""
 		summary.CanvasPosition = Vector2.zero
@@ -1834,6 +1873,104 @@ function MineGradeReveal.caseSpin(parent, opts)
 		refreshSkipAll()
 		setGuiOn(true)
 		celebrate(grade, ink, best)
+		calmGrid = false
+	end
+
+	--[[
+		THE STACK, SPINNING. Up to five reels (MineCaseStack.MAX), one above
+		another. They start together and stop in turn, top to bottom, the top one
+		after MineCaseStack.SPIN seconds and each one under it STAGGER later
+		(stopAt). Each reel is built around the winner the server rolled; this only
+		decides when it stops. A reel that lands lights its winner and dims the
+		rest (a stroke and a fade: no tile scales, so no text does); when the last
+		one lands, the results go up on the grid, best first, celebrated once.
+		A tap stops them all at once; SKIP ALL (a run with more to come) ends it.
+	]]
+	local stackTracks, stack = {}, nil
+	local function caseStackMod()
+		local ok, mod = pcall(function()
+			return require(shared:WaitForChild("MineCaseStack", 5))
+		end)
+		return ok and mod or nil
+	end
+
+	-- One smaller tile on a stacked track: the grade word, the picture, the ink.
+	local function stackTile(reelFrame, i, row)
+		local grade = Temper.normalizeRarity(row.rarity) or "F"
+		local ink = row.color or Temper.colorOf(grade)
+		local t = mk("Frame", {
+			BackgroundColor3 = CARD_HI, BorderSizePixel = 0,
+			Position = UDim2.fromOffset((i - 1) * (SW + SG) + SG, 6),
+			Size = UDim2.fromOffset(SW, STACK_TRACK - 12), ZIndex = 125,
+		}, reelFrame)
+		round(t, 9)
+		local tStroke = stroke(t, 2, ink, 0.15)
+		mk("Frame", {
+			BackgroundColor3 = ink, BackgroundTransparency = 0.72, BorderSizePixel = 0,
+			AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 26), ZIndex = 126,
+		}, t)
+		local iconUrl, labelName = iconFor(row)
+		if iconUrl and iconUrl ~= "" then
+			mk("ImageLabel", {
+				BackgroundTransparency = 1, Image = iconUrl, ScaleType = Enum.ScaleType.Fit,
+				AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 6),
+				Size = UDim2.fromOffset(50, 50), ZIndex = 127,
+			}, t)
+		else
+			say(t, labelName, 14, TEXT, UDim2.fromOffset(4, 6),
+				UDim2.new(1, -8, 0, 50), FONT, Enum.TextXAlignment.Center, true)
+		end
+		say(t, string.upper(row.label or Temper.wordOf(grade)), 14, ink,
+			UDim2.new(0, 2, 1, -22), UDim2.new(1, -4, 0, 18), FONT)
+		return { frame = t, stroke = tStroke, ink = ink }
+	end
+
+	-- A track frame for row `i` of the stack, made once and reused.
+	local function stackTrack(i)
+		local tr = stackTracks[i]
+		if not tr then
+			local frame = mk("Frame", {
+				BackgroundColor3 = CARD, BorderSizePixel = 0, ClipsDescendants = true,
+				Position = UDim2.fromOffset(0, (i - 1) * (STACK_TRACK + STACK_GAP)),
+				Size = UDim2.new(1, 0, 0, STACK_TRACK), ZIndex = 123,
+			}, stackHost)
+			round(frame, 10)
+			stroke(frame, 1, nil, 0.5)
+			local reelFrame = mk("Frame", {
+				BackgroundTransparency = 1, BorderSizePixel = 0,
+				Size = UDim2.new(0, 0, 1, 0), ZIndex = 124,
+			}, frame)
+			-- The marker: the tile under this line is the one that reel won.
+			mk("Frame", { BackgroundColor3 = GOLD, BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 0), Size = UDim2.new(0, 3, 1, 0), ZIndex = 130 }, frame)
+			mk("Frame", { BackgroundColor3 = GOLD, BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 0), Size = UDim2.fromOffset(13, 6), ZIndex = 131 }, frame)
+			mk("Frame", { BackgroundColor3 = GOLD, BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 1),
+				Position = UDim2.new(0.5, 0, 1, 0), Size = UDim2.fromOffset(13, 6), ZIndex = 131 }, frame)
+			tr = { frame = frame, reel = reelFrame }
+			stackTracks[i] = tr
+		end
+		return tr
+	end
+
+	-- Stop whatever stack is going, without a word: its tweens, its ticks.
+	local function stopStack()
+		local s = stack
+		stack = nil
+		if not s then
+			return
+		end
+		if s.conn then
+			s.conn:Disconnect()
+			s.conn = nil
+		end
+		for _, r in ipairs(s.reels) do
+			if r.tween then
+				r.tween:Cancel()
+				r.tween = nil
+			end
+		end
 	end
 
 	function ctl.play(payload, onDone, playOpts)
@@ -1844,6 +1981,10 @@ function MineGradeReveal.caseSpin(parent, opts)
 			finishNow()
 		end
 		clearCelebration()
+		-- One reel: any stack goes, and the box is the one-reel size again.
+		stopStack()
+		stackHost.Visible = false
+		setBoxHeight(330)
 		playing = true
 		-- onClosed: called once, when the player closes this result (or any
 		-- result shown over it). onDone keeps its old meaning: the reel stopped.
@@ -2023,10 +2164,249 @@ function MineGradeReveal.caseSpin(parent, opts)
 	end
 
 	--[[
+		Spin `list` (reel payloads, at most MineCaseStack.MAX) at once, one reel
+		above another (see "THE STACK, SPINNING" above). One payload is ctl.play.
+		playOpts.onClosed runs when the player closes the results, as for play.
+	]]
+	function ctl.playStack(list, playOpts)
+		local CS = caseStackMod()
+		local cap = (CS and CS.MAX) or 5
+		local valid = {}
+		for _, p in ipairs(list or {}) do
+			if type(p) == "table" and type(p.reel) == "table" and #valid < cap then
+				table.insert(valid, p)
+			end
+		end
+		if #valid == 0 then
+			return
+		end
+		if #valid == 1 then
+			ctl.play(valid[1], nil, playOpts)
+			return
+		end
+		if playing and finishNow then
+			finishNow(true)
+		end
+		clearCelebration()
+		stopStack()
+		if playOpts and playOpts.onClosed then
+			table.insert(closeHooks, playOpts.onClosed)
+		end
+		shown = valid
+		playing = true
+		summary.Visible = false
+		track.Visible = false
+		resultName.Text = ""
+		resultSub.Text = ""
+		closeBtn.Visible = false
+		boxStroke.Color = GOLD
+		boxStroke.Thickness = 2
+		boxStroke.Transparency = 0.2
+		sub.TextColor3 = MUTED
+		local n = #valid
+		title.Text = string.upper(tostring(valid[1].title or "Cases")) .. "  x" .. n
+		sub.Text = "opening " .. n .. " at once..."
+		setBoxHeight(STACK_TOP + n * (STACK_TRACK + STACK_GAP) - STACK_GAP + STACK_FOOT)
+		stackHost.Size = UDim2.new(1, -36, 0, n * (STACK_TRACK + STACK_GAP) - STACK_GAP)
+		stackHost.Visible = true
+		for i, tr in ipairs(stackTracks) do
+			tr.frame.Visible = i <= n
+		end
+
+		local me = { list = valid, reels = {} }
+		stack = me
+		local W = trackWidth()
+		local bestRank, landed, t0 = 0, 0, os.clock()
+		for i, p in ipairs(valid) do
+			local tr = stackTrack(i)
+			tr.frame.Visible = true
+			for _, ch in ipairs(tr.reel:GetChildren()) do
+				ch:Destroy()
+			end
+			local rows = p.reel
+			local at = math.clamp(math.floor(tonumber(p.at) or #rows), 1, math.max(1, #rows))
+			local tilesOf = {}
+			for k, row in ipairs(rows) do
+				if type(row) == "table" then
+					tilesOf[k] = stackTile(tr.reel, k, row)
+				end
+			end
+			tr.reel.Size = UDim2.new(0, #rows * (SW + SG) + SG, 1, 0)
+			tr.reel.Position = UDim2.fromOffset(math.floor(W / 2), 0)
+			local grade = Temper.normalizeRarity(p.rarity) or "F"
+			local rank = gradeRank(grade)
+			bestRank = math.max(bestRank, rank)
+			local centre = (at - 1) * (SW + SG) + SG + SW / 2
+			local jitter = (math.random() - 0.5) * (SW * 0.5)
+			table.insert(me.reels, {
+				tr = tr, tiles = tilesOf, at = at, rank = rank,
+				ink = p.color or Temper.colorOf(grade),
+				rest = -(centre - W / 2) + jitter,
+				dur = (CS and CS.stopAt(i)) or (SPIN_TIME + (i - 1) * 0.5),
+			})
+		end
+		refreshSkipAll()
+		setGuiOn(true)
+
+		local function underMarker(r)
+			local x = -r.tr.reel.Position.X.Offset + W / 2
+			return math.floor((x - SG) / (SW + SG)) + 1
+		end
+		-- The tile passing the marker is outlined; nothing scales.
+		local function light(r, idx, on)
+			local tl = idx and r.tiles[idx]
+			if tl and tl.frame.Parent then
+				tl.stroke.Thickness = on and 4 or 2
+				tl.stroke.Transparency = on and 0 or 0.15
+			end
+		end
+		-- One reel lands: its winner lit, the rest faded. `quiet`: no sound.
+		local function land(r, quiet)
+			if r.landed then
+				return
+			end
+			r.landed = true
+			landed += 1
+			if r.tween then
+				r.tween:Cancel()
+				r.tween = nil
+			end
+			r.tr.reel.Position = UDim2.fromOffset(r.rest, 0)
+			for k, tl in pairs(r.tiles) do
+				if tl.frame.Parent then
+					if k == r.at then
+						tl.stroke.Thickness = 4
+						tl.stroke.Transparency = 0
+						TweenService:Create(tl.stroke, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+							Color = tl.ink:Lerp(Color3.new(1, 1, 1), 0.5),
+						}):Play()
+					else
+						tl.stroke.Thickness = 2
+						TweenService:Create(tl.frame, TweenInfo.new(0.3), { BackgroundTransparency = 0.5 }):Play()
+						TweenService:Create(tl.stroke, TweenInfo.new(0.3), { Transparency = 0.7 }):Play()
+					end
+				end
+			end
+			if quiet then
+				return
+			end
+			if Audio and Audio.play then
+				pcall(Audio.play, "thud")
+			end
+			-- An A or better flashes its own track in its colour: no scale, no shake.
+			if r.rank >= 5 then
+				local flash = mk("Frame", {
+					BackgroundColor3 = r.ink:Lerp(Color3.new(1, 1, 1), 0.4), BackgroundTransparency = 0.25,
+					BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), ZIndex = 132,
+				}, r.tr.frame)
+				TweenService:Create(flash, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					BackgroundTransparency = 1,
+				}):Play()
+				task.delay(0.75, function()
+					if flash.Parent then
+						flash:Destroy()
+					end
+				end)
+			end
+		end
+		-- Every reel down (or a tap): the results grid. `silent`: SKIP ALL is
+		-- stopping it and draws its own grid.
+		local function finishStack(silent)
+			if stack ~= me then
+				return
+			end
+			for _, r in ipairs(me.reels) do
+				land(r, true)
+			end
+			if me.conn then
+				me.conn:Disconnect()
+				me.conn = nil
+			end
+			stack = nil
+			playing = false
+			if silent == true then
+				return
+			end
+			calmGrid = true
+			showSummary(me.list)
+		end
+		finishNow = finishStack
+
+		-- Ticks for the top reel still spinning, pitch climbing as it slows; the
+		-- riser only when a reel really holds an A or better.
+		local lastIdx, riserDone = {}, false
+		me.conn = RunService.RenderStepped:Connect(function()
+			if stack ~= me then
+				return
+			end
+			local lead = nil
+			for k, r in ipairs(me.reels) do
+				if not r.landed then
+					local idx = underMarker(r)
+					if idx ~= lastIdx[k] then
+						light(r, lastIdx[k], false)
+						light(r, idx, true)
+						lastIdx[k] = idx
+						if not lead and Audio and Audio.play then
+							local frac = math.clamp((os.clock() - t0) / r.dur, 0, 1)
+							pcall(Audio.play, "tick", 0.8 + frac * 0.5, 0.85 + frac * 0.6)
+						end
+					end
+					lead = lead or k
+				end
+			end
+			local last = me.reels[#me.reels]
+			if bestRank >= 5 and not riserDone and last and (os.clock() - t0) / last.dur >= 0.62 then
+				riserDone = true
+				if Audio and Audio.play then
+					pcall(Audio.play, "riser")
+				end
+				TweenService:Create(boxStroke, TweenInfo.new(0.35, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 6, true), {
+					Color = GOLD:Lerp(Color3.new(1, 1, 1), 0.3), Thickness = 5, Transparency = 0,
+				}):Play()
+			end
+		end)
+
+		-- One frame, so the tracks exist before they move.
+		task.defer(function()
+			if stack ~= me then
+				return
+			end
+			if Audio and Audio.play then
+				pcall(Audio.play, "spin")
+			end
+			t0 = os.clock()
+			for _, r in ipairs(me.reels) do
+				r.tween = TweenService:Create(r.tr.reel,
+					TweenInfo.new(r.dur, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+					{ Position = UDim2.fromOffset(r.rest, 0) })
+				r.tween.Completed:Connect(function(state)
+					if state ~= Enum.PlaybackState.Completed or stack ~= me then
+						return
+					end
+					land(r)
+					if landed >= #me.reels then
+						-- A beat on the landed reels, then the grid.
+						task.delay(0.8, function()
+							finishStack()
+						end)
+					end
+				end)
+				r.tween:Play()
+			end
+		end)
+	end
+
+	--[[
 		Play `list` (reel payloads) one after another: each next reel starts when
 		the player closes the last result. runOpts.onEach(payload, i) runs as each
 		one starts; runOpts.onDone() once, after the last close (or after the
 		SKIP ALL grid closes). A run asked for while one plays joins its end.
+
+		runOpts.stack (MineCaseStack.MAX for case runs) plays the run in rounds of
+		that many reels spinning at once (ctl.playStack); each next round starts
+		when the player closes the last one's results. onEach then runs once per
+		round, with the round's first payload.
 	]]
 	function ctl.playRun(list, runOpts)
 		runOpts = runOpts or {}
@@ -2048,14 +2428,15 @@ function MineGradeReveal.caseSpin(parent, opts)
 			refreshSkipAll()
 			return
 		end
-		local me = { list = valid, i = 0, onDone = runOpts.onDone, onEach = runOpts.onEach }
+		local size = math.max(1, math.floor(tonumber(runOpts.stack) or 1))
+		local me = { list = valid, i = 0, onDone = runOpts.onDone, onEach = runOpts.onEach, size = size, shownN = 1 }
 		run = me
 		local function step()
 			if run ~= me then
 				return
 			end
-			me.i += 1
-			local p = me.list[me.i]
+			local from = me.i + 1
+			local p = me.list[from]
 			if not p then
 				run = nil
 				refreshSkipAll()
@@ -2064,10 +2445,21 @@ function MineGradeReveal.caseSpin(parent, opts)
 				end
 				return
 			end
-			if me.onEach then
-				pcall(me.onEach, p, me.i)
+			-- This round: one reel, or up to `size` of them stacked.
+			local round = {}
+			for j = from, math.min(#me.list, me.i + me.size) do
+				table.insert(round, me.list[j])
 			end
-			ctl.play(p, nil, { onClosed = step })
+			me.i += #round
+			me.shownN = #round
+			if me.onEach then
+				pcall(me.onEach, p, from)
+			end
+			if #round > 1 then
+				ctl.playStack(round, { onClosed = step })
+			else
+				ctl.play(p, nil, { onClosed = step })
+			end
 		end
 		step()
 	end
@@ -2082,6 +2474,11 @@ function MineGradeReveal.caseSpin(parent, opts)
 		clearCelebration()
 		setGuiOn(false)
 		playing = false
+		-- A stack still spinning stops where it is; the box is one reel again.
+		stopStack()
+		stackHost.Visible = false
+		setBoxHeight(330)
+		calmGrid = false
 		boxStroke.Color = GOLD
 		boxStroke.Thickness = 2
 		boxStroke.Transparency = 0.2
@@ -2104,10 +2501,14 @@ function MineGradeReveal.caseSpin(parent, opts)
 		end
 		local me = run
 		run = nil
-		-- Everything the run won, including a result shown over it.
+		-- Everything the run won, including a result shown over it (a stack puts
+		-- a list of them on screen).
 		local all = {}
-		if shown and not table.find(me.list, shown) then
-			table.insert(all, shown)
+		local onScreen = (type(shown) == "table" and shown.reel == nil) and shown or { shown }
+		for _, p in ipairs(onScreen) do
+			if p and not table.find(me.list, p) then
+				table.insert(all, p)
+			end
 		end
 		for _, p in ipairs(me.list) do
 			table.insert(all, p)

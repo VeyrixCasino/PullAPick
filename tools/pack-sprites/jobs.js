@@ -5,7 +5,9 @@
 //   2.5-3.5     -> cover 2
 //   4-5 star    -> cover 3
 // Covers are read from art/cover-art/{Set}Coverart{1,2,3}.png; sprites are
-// written to art/pack-sprites/{Set}Pack_{label}.png.
+// written to art/pack-sprites/{Set}Pack_{label}.png. Each job carries the set's
+// `title`, which render.ps1 prints on the top seal only with -Title (the seal is
+// blank by default since 2026-10-19).
 //
 // Usage: node tools/pack-sprites/jobs.js [outFile]
 // render.ps1 calls this itself; you only need it to inspect the job list.
