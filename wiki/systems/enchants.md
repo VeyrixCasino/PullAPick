@@ -64,6 +64,13 @@ family is worth nothing on this tool.
   keeps the strongest team.
 - Ties break on the card id, so the pick never flickers.
 
+**The pet card says what the gate zeroes** (2026-10-19, launch audit S34). A pet
+line for another family's proc is dimmed with "needs a Zap Special" (or "needs a
+Special" for generic proc damage when nothing fires). `MineEnchants.gateNote`
+marks the line off the same `familyOfStat` map, and `MineEnchants.liveFamily`
+reads the family still firing off the server's gated boosts in the snapshot.
+See [pets](pets.md).
+
 **Three tiers per ability** (owner, 2026-10-12: *"Make 3 levels of abilities"*, tiers that change how it works). The Special's level picks the tier: I–II tier 1, III–IV tier 2, V tier 3 (`MineEnchants.TIERS`, read by `Dig.procsAt` as `b.procTier`). Pets' best proc alone is tier 1. Each ability also carries its own proc chance and damage, both rising per level (owner: *"also made the ability itself have a proc chance and dmage"*). PROPOSED, each capped:
 
 | ability | tier 1 | tier 2 | tier 3 |

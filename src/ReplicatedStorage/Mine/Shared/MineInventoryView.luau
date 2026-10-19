@@ -387,8 +387,11 @@ local function fitButton(b, pad, minWidth)
 	return b
 end
 
-local function cardLess(a, b, mode, eq, indexOf, qtyOf)
+local function cardLess(a, b, mode, eq, indexOf, qtyOf, scoreOf)
 	local function boostOf(card)
+		if scoreOf then
+			return scoreOf[card]
+		end
 		if Cards.boostScore then
 			return Cards.boostScore(card)
 		end
@@ -430,7 +433,9 @@ local function cardLess(a, b, mode, eq, indexOf, qtyOf)
 			return (a.index or 0) < (b.index or 0)
 		end
 	elseif mode == "type" then
-		local ta, tb = tostring(a.typeId or ""), tostring(b.typeId or "")
+		-- The family the card shows and the server pays (MineCards.familyOf).
+		local ta = tostring((Cards.familyOf and Cards.familyOf(a)) or a.typeId or "")
+		local tb = tostring((Cards.familyOf and Cards.familyOf(b)) or b.typeId or "")
 		if ta ~= tb then
 			return ta < tb
 		end
@@ -2581,9 +2586,111 @@ function MineInventoryView.mount(parent, opts)
 			note(body, "Nothing matches that search.")
 		end
 	end
+	--[[
+		THE CARDS TAB KEEPS ITS FACES (launch audit S35). A card face is a
+		ViewportFrame with a whole pet model in it, and the tab painted one for
+		every card on every redraw: each equip tap, each keystroke in the search,
+		each snapshot (up to ten a second while you mine). Faces are kept by card
+		id now and repainted only when something on them changed: the card's own
+		fields, or what its lines read besides the card (opts.cardFaceKey: the
+		pets-out count and the held tool's proc). render() lifts them out before
+		it clears the body; closing the window lets them go.
+	]]
+	local faces = { card = {}, rail = {} }
+
+	function faces.sig(card, w, withKey)
+		local parts = {}
+		for k, v in pairs(card) do
+			local t = type(v)
+			if t == "string" or t == "number" or t == "boolean" then
+				table.insert(parts, tostring(k) .. "=" .. tostring(v))
+			end
+		end
+		table.sort(parts)
+		table.insert(parts, "w=" .. tostring(w))
+		if withKey and opts.cardFaceKey then
+			table.insert(parts, "@" .. tostring(opts.cardFaceKey(card)))
+		end
+		return table.concat(parts, "\n")
+	end
+
+	-- Reuse the cached face when nothing it shows changed, else paint a new one.
+	local function reuse(bag, id, sig, host)
+		local hit = id and bag[id]
+		if not hit then
+			return false
+		end
+		if hit.sig == sig and pcall(function()
+			hit.frame.Parent = host
+		end) then
+			return true
+		end
+		pcall(hit.frame.Destroy, hit.frame)
+		bag[id] = nil
+		return false
+	end
+
+	function faces.paint(slot, card, w)
+		local id = card.id or card.serial
+		local sig = id and faces.sig(card, w, true)
+		if reuse(faces.card, id, sig, slot) or not opts.paintCard then
+			return
+		end
+		local f = opts.paintCard(slot, card, w)
+		if id and typeof(f) == "Instance" then
+			faces.card[id] = { frame = f, sig = sig }
+		end
+	end
+
+	-- The team rail's pet: just the viewport, kept the same way.
+	function faces.railView(box, pet)
+		local id = pet.id or pet.serial
+		local sig = id and faces.sig(pet, "rail", false)
+		if reuse(faces.rail, id, sig, box) or not opts.petViewport then
+			return
+		end
+		local ok, vp = pcall(opts.petViewport, box, pet, UDim2.fromOffset(18, 20), UDim2.fromOffset(80, 62))
+		if ok and typeof(vp) == "Instance" then
+			vp.BackgroundTransparency = 1
+			if id then
+				faces.rail[id] = { frame = vp, sig = sig }
+			end
+		end
+	end
+
+	-- Before the body is cleared: take every kept face out of harm's way.
+	function faces.lift()
+		for _, bag in ipairs({ faces.card, faces.rail }) do
+			for id, e in pairs(bag) do
+				if not pcall(function()
+					e.frame.Parent = nil
+				end) then
+					bag[id] = nil
+				end
+			end
+		end
+	end
+
+	-- Drop faces of cards no longer owned; `cards` nil drops them all.
+	function faces.prune(cards)
+		local owned = {}
+		for _, c in ipairs(cards or {}) do
+			owned[c.id or c.serial or false] = true
+		end
+		for _, bag in ipairs({ faces.card, faces.rail }) do
+			for id, e in pairs(bag) do
+				if not owned[id] then
+					pcall(e.frame.Destroy, e.frame)
+					bag[id] = nil
+				end
+			end
+		end
+	end
+
 	local function renderOwnedCards()
 		local cards = state.cards or {}
 		if #cards == 0 then
+			faces.prune(cards)
 			note(body, "No cards yet. Open a pack.")
 			return
 		end
@@ -2646,8 +2753,19 @@ function MineInventoryView.mount(parent, opts)
 			indexOf[card] = i
 			list[i] = card
 		end
+		-- Each card's boost score once per redraw, not once per comparison.
+		local scoreOf = setmetatable({}, { __index = function(t, card)
+			local v
+			if Cards.boostScore then
+				v = Cards.boostScore(card)
+			else
+				v = (C.cardPower and C.cardPower(card)) or 0
+			end
+			t[card] = v
+			return v
+		end })
 		table.sort(list, function(a, b)
-			return cardLess(a, b, cardSort, eq, indexOf, mergeCount)
+			return cardLess(a, b, cardSort, eq, indexOf, mergeCount, scoreOf)
 		end)
 		local wrap = mk("Frame", {
 			BackgroundTransparency = 1,
@@ -2668,7 +2786,8 @@ function MineInventoryView.mount(parent, opts)
 		}, grid)
 		local shown = 0
 		for i, card in ipairs(list) do
-			if matches(table.concat({ card.name or "", card.setName or "", card.typeId or "",
+			if matches(table.concat({ card.name or "", card.setName or "",
+				(Cards.familyOf and Cards.familyOf(card)) or card.typeId or "",
 				card.rarityId or "", card.variant or "" }, " ")) then
 				shown += 1
 				local slot = mk("TextButton", {
@@ -2677,9 +2796,7 @@ function MineInventoryView.mount(parent, opts)
 					Text = "",
 					LayoutOrder = i,
 				}, grid)
-				if opts.paintCard then
-					opts.paintCard(slot, card, CW)
-				end
+				faces.paint(slot, card, CW)
 				local onTeam = eq[card.id] or eq[card.serial]
 				-- `scrapId` is what the server scraps by: c.id, never the serial.
 				-- Deliberately not called cardId -- the equip path below has its
@@ -2754,15 +2871,9 @@ function MineInventoryView.mount(parent, opts)
 						if opts.onEquip then
 							opts.onEquip({ id = cardId, slot = cardPetSeat })
 						end
-						local cap = math.max(3, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
-						local n = math.max(4, cap)
-						local nxt = cardPetSeat % n + 1
-						local guard = 0
-						while nxt > cap and guard < n do
-							nxt = nxt % n + 1
-							guard += 1
-					end
-						cardPetSeat = nxt
+						-- The next seat, round the real seats (there is no VIP fourth).
+						local cap = math.max(1, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
+						cardPetSeat = cardPetSeat % cap + 1
 						render()
 					end
 				end)
@@ -2773,7 +2884,13 @@ function MineInventoryView.mount(parent, opts)
 			note(body, "Nothing matches that search.")
 		end
 		do
-			local petCap = math.max(3, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
+			--[[
+				One box per REAL seat (launch audit M5). The rail drew four, and the
+				fourth said "GET VIP" and opened the VIP pass, but VIP has added no
+				seat since MineConfig.MAX_PET_SLOTS became 3 for everybody: the
+				player paid for a seat that never came.
+			]]
+			local petCap = math.max(1, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
 			if cardPetSeat > petCap then
 				cardPetSeat = 1
 			end
@@ -2782,11 +2899,10 @@ function MineInventoryView.mount(parent, opts)
 				BackgroundTransparency = 1,
 				AnchorPoint = Vector2.new(1, 0),
 				Position = UDim2.new(1, 0, 0, 0),
-				Size = UDim2.fromOffset(116, 456),
+				Size = UDim2.fromOffset(116, 18 + petCap * 108),
 			}, wrap)
 			label(rail, "TEAM", 11, GOLD, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 16), FONT, Enum.TextXAlignment.Center)
-			for i = 1, 4 do
-				local locked = i > petCap
+			for i = 1, petCap do
 				local petId = (state.equipped or {})[i]
 				local pet = nil
 				if petId then
@@ -2794,41 +2910,31 @@ function MineInventoryView.mount(parent, opts)
 						if c.id == petId then pet = c break end
 					end
 				end
-				local chosen = (not locked) and cardPetSeat == i
+				local chosen = cardPetSeat == i
 				local box = mk("TextButton", {
 					AutoButtonColor = true, Text = "",
-					BackgroundColor3 = chosen and BG3 or (locked and Color3.fromRGB(18, 18, 24) or BG2),
+					BackgroundColor3 = chosen and BG3 or BG2,
 					Position = UDim2.fromOffset(0, 18 + (i - 1) * 108),
 					Size = UDim2.fromOffset(116, 104),
 				}, rail)
 				round(box, 8)
 				stroke(box, chosen and 2 or 1, chosen and GOLD or nil)
-				label(box, locked and ("PET " .. i .. " VIP") or ("PET " .. i), 10,
+				label(box, "PET " .. i, 10,
 					chosen and GOLD or MUTED, UDim2.fromOffset(4, 4), UDim2.new(1, -8, 0, 14), FONT, Enum.TextXAlignment.Center)
-				if pet and opts.petViewport then
-					pcall(opts.petViewport, box, pet, UDim2.fromOffset(18, 20), UDim2.fromOffset(80, 62))
-					for _, ch in ipairs(box:GetChildren()) do
-						if ch:IsA("ViewportFrame") then
-							ch.BackgroundTransparency = 1
-						end
-					end
-				elseif locked then
-					label(box, "VIP", 16, MUTED, UDim2.fromOffset(0, 36), UDim2.new(1, 0, 0, 24), FONT, Enum.TextXAlignment.Center)
+				if pet then
+					faces.railView(box, pet)
 				else
 					label(box, "+", 22, Color3.fromRGB(88, 88, 98), UDim2.fromOffset(0, 32), UDim2.new(1, 0, 0, 28), FONT, Enum.TextXAlignment.Center)
 				end
-				label(box, pet and tostring(pet.name or "Pet") or (locked and "GET VIP" or "empty"), 11,
+				label(box, pet and tostring(pet.name or "Pet") or "empty", 11,
 					pet and TEXT or MUTED, UDim2.fromOffset(4, 84), UDim2.new(1, -8, 0, 16), FONT, Enum.TextXAlignment.Center)
 				box.MouseButton1Click:Connect(function()
-					if locked then
-						if opts.onBuyVipPass then opts.onBuyVipPass() end
-						return
-					end
 					cardPetSeat = i
 					render()
 				end)
 			end
 		end
+		faces.prune(cards)
 	end
 	-- running right now rather than an empty grid with a coming-soon label on it.
 	local BOOST_LABEL = {
@@ -3906,12 +4012,10 @@ function MineInventoryView.mount(parent, opts)
 				elseif opts.onEquip then
 					opts.onEquip({ id = item.id, slot = item.petSeat })
 				end
-			elseif item.source == "vipSeat" then
-				if opts.onBuyVipPass then opts.onBuyVipPass() end
 			end
 			local takingOff = item.equipped and (item.source == "gear" or item.source == "charm"
 				or item.source == "pet")
-			if item.source ~= "vipSeat" and item.source ~= "backpack" and not takingOff then
+			if item.source ~= "backpack" and not takingOff then
 				eq.advanceSlot()
 			end
 			closeCard()
@@ -3965,7 +4069,7 @@ function MineInventoryView.mount(parent, opts)
 							and string.format("BUY  %d", tonumber(item.buyTokens) or 0)
 							or string.format("NEED %d TOKENS", tonumber(item.buyTokens) or 0))
 					or inert and "EQUIPPED"
-					or (item.equipped and "UNEQUIP" or (item.source == "vipSeat" and "GET VIP" or "EQUIP")),
+					or (item.equipped and "UNEQUIP" or "EQUIP"),
 				Font = FONT, TextSize = 16,
 				TextColor3 = inert and GREEN or (item.equipped and TEXT or Color3.fromRGB(16, 38, 20)),
 				Position = UDim2.fromOffset(0, 66), Size = UDim2.new(0.48, -6, 0, 46),
@@ -4978,10 +5082,29 @@ function MineInventoryView.mount(parent, opts)
 			sectionHeader(isFace and "No faces owned yet." or "No hats owned yet.", 6)
 		end
 
-		if not NG then
+		--[[
+			WHAT CAN DROP (launch audit S37). This listed the 300 NewGear
+			prototype limiteds, which nothing rolls: 67 of them happen to drop, and
+			72 of the 139 hats and faces that do drop were not on it. It reads the
+			live pools now, the ones MineGear.catalogFor rolls every hat and face
+			from (MineHats.dropCatalog), so the page cannot drift from the drops.
+		]]
+		local Hats = Gear.Hats
+		if not (Hats and Hats.dropCatalog) then
 			return
 		end
-		sectionHeader("Limiteds", 7)
+		-- Only grades that have something; a grade picked on the other tab that
+		-- has nothing here falls back to ALL.
+		local grades = {}
+		for _, g in ipairs({ "SSS", "SS", "S", "A", "B", "C", "D", "F" }) do
+			if #Hats.dropCatalog(kind, g) > 0 then
+				table.insert(grades, g)
+			end
+		end
+		if newGearGrade and not table.find(grades, newGearGrade) then
+			newGearGrade = nil
+		end
+		sectionHeader(isFace and "Faces that can drop" or "Hats that can drop", 7)
 		local chipRow = mk("Frame", {
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, -6, 0, 32),
@@ -5012,15 +5135,15 @@ function MineInventoryView.mount(parent, opts)
 			end)
 		end
 		gradeChip(0, nil, "ALL", MUTED)
-		for i, g in ipairs(NG.GRADES) do
+		for i, g in ipairs(grades) do
 			gradeChip(i, g, g, Gear.RARITY_COLOR[g] or MUTED)
 		end
-		local rows = NG.byGrade(kind, newGearGrade)
+		local rows = Hats.dropCatalog(kind, newGearGrade)
 		local grid = mk("Frame", {
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, -6, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
-			LayoutOrder = 7,
+			LayoutOrder = 9,
 		}, body)
 		local CW = 136
 		local CH = 188
@@ -5032,10 +5155,10 @@ function MineInventoryView.mount(parent, opts)
 		}, grid)
 		local shown = 0
 		for i, row in ipairs(rows) do
-			local hay = tostring(row.n) .. " " .. tostring(row.g) .. " " .. tostring(row.id)
+			local hay = tostring(row.name) .. " " .. tostring(row.grade) .. " " .. tostring(row.id)
 			if matches(hay) then
 				shown += 1
-				local col = Gear.RARITY_COLOR[row.g] or MUTED
+				local col = Gear.RARITY_COLOR[row.grade] or MUTED
 				local tile = mk("Frame", { BackgroundColor3 = BG2, LayoutOrder = i }, grid)
 				round(tile, 8)
 				stroke(tile, 1.5, col)
@@ -5043,7 +5166,7 @@ function MineInventoryView.mount(parent, opts)
 					BackgroundColor3 = col,
 					Size = UDim2.new(1, 0, 0, 20),
 				}, tile)
-				label(banner, row.g .. "  " .. (isFace and "FACE" or "HAT"), 11,
+				label(banner, tostring(row.grade) .. "  " .. (isFace and "FACE" or "HAT"), 11,
 					Color3.fromRGB(18, 18, 22), UDim2.fromOffset(8, 0), UDim2.new(1, -12, 1, 0), FONT)
 				local well = mk("Frame", {
 					BackgroundColor3 = BG3,
@@ -5053,7 +5176,7 @@ function MineInventoryView.mount(parent, opts)
 				round(well, 6)
 				mk("ImageLabel", {
 					BackgroundTransparency = 1,
-					Image = NG.icon(row.id),
+					Image = Hats.thumb(row.catalogId) or "",
 					ScaleType = Enum.ScaleType.Fit,
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					Position = UDim2.fromScale(0.5, 0.5),
@@ -5068,17 +5191,17 @@ function MineInventoryView.mount(parent, opts)
 					}, well)
 					round(chip, 6)
 					stroke(chip, 1, col)
-					label(chip, tostring(row.g), 11, col,
+					label(chip, tostring(row.grade), 11, col,
 						UDim2.new(), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center)
 				end
-				label(tile, row.n, 13, TEXT, UDim2.fromOffset(8, 138),
+				label(tile, tostring(row.name), 13, TEXT, UDim2.fromOffset(8, 138),
 					UDim2.new(1, -16, 0, 22), FONT)
-				label(tile, shortNum(row.r) .. " RAP", 12, GOLD, UDim2.fromOffset(8, 160),
+				label(tile, shortNum(row.rap or 0) .. " RAP", 12, GOLD, UDim2.fromOffset(8, 160),
 					UDim2.new(1, -16, 0, 18), FONT_M)
 			end
 		end
 		if shown == 0 then
-			sectionHeader("No limiteds match.", 8)
+			sectionHeader(isFace and "No faces match." or "No hats match.", 10)
 		end
 	end
 
@@ -8091,6 +8214,16 @@ function MineInventoryView.mount(parent, opts)
 		end
 	end
 
+	-- The Cards tab's kept faces come out the same way (faces, above), so
+	-- clearing the body never destroys one.
+	do
+		local baseRender = render
+		render = function()
+			faces.lift()
+			baseRender()
+		end
+	end
+
 	searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 		search = string.lower(searchBox.Text)
 		render()
@@ -8333,10 +8466,16 @@ function MineInventoryView.mount(parent, opts)
 		MineInventoryView._settleCart(okFlag, msg, okFlag)
 	end
 
+	-- A reveal owns the screen while busy, so the Cards tab under it is not
+	-- seen: it waits, and setBusy(false) draws it when the reveal ends (S35).
+	local function cardsHidden()
+		return busy and section == "inventory" and activeTab == "cards"
+	end
+
 	function ctl.setBusy(flag)
 		busy = flag and true or false
 		state.busy = busy
-		if root.Visible then
+		if root.Visible and not cardsHidden() then
 			render()
 		end
 	end
@@ -8365,7 +8504,7 @@ function MineInventoryView.mount(parent, opts)
 			prewarmTools(s)
 		end
 		state.busy = busy
-		if root.Visible then
+		if root.Visible and not cardsHidden() then
 			render()
 		end
 	end
@@ -8409,6 +8548,9 @@ function MineInventoryView.mount(parent, opts)
 			scrapVeil:Destroy()
 			scrapVeil = nil
 		end
+		-- A closed window keeps no pet models in memory; the next open paints
+		-- them again (S35).
+		faces.prune(nil)
 	end
 
 	function ctl.toggle(sec, t)

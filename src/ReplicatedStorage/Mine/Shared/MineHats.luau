@@ -413,6 +413,37 @@ function MineHats.rollFor(slot, gradeOrPrint, setId, rng)
 	return MineHats.rollForSet(gradeOrPrint, setId, rng)
 end
 
+--[[
+	WHAT CAN DROP, for the collection browser (launch audit S37: it listed the
+	300 NewGear prototype limiteds, of which 67 drop, and missed 72 of the 139
+	that do). These are the exact pools rollFor draws from: every droppable
+	hat (DROP_BY_GRADE) or every face (FACE_BY_GRADE), best grade first and
+	cheapest first inside a grade. `grade` narrows it to one grade.
+]]
+function MineHats.dropCatalog(kind, grade)
+	local pools = (kind == "faces" or kind == "face") and MineHats.FACE_BY_GRADE or MineHats.DROP_BY_GRADE
+	local out = {}
+	for i = #MineHats.GRADE_LADDER, 1, -1 do
+		local g = MineHats.GRADE_LADDER[i]
+		if grade == nil or grade == g then
+			local rows = {}
+			for _, row in ipairs(pools[g] or {}) do
+				table.insert(rows, row)
+			end
+			table.sort(rows, function(a, b)
+				if (a.rap or 0) ~= (b.rap or 0) then
+					return (a.rap or 0) < (b.rap or 0)
+				end
+				return tostring(a.id) < tostring(b.id)
+			end)
+			for _, row in ipairs(rows) do
+				table.insert(out, row)
+			end
+		end
+	end
+	return out
+end
+
 function MineHats.counts()
 	local drop, leftovers = 0, 0
 	for _, r in ipairs(MineHats.LIST) do

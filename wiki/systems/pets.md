@@ -23,6 +23,10 @@ sources:
   - src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau
   - tools/verify/pet-spring.js
   - tools/verify/petskins.js
+  - tools/verify/pet-identity.js
+  - tools/verify/cards-tab.js
+  - src/ReplicatedStorage/Mine/Shared/MineEnchants.luau
+  - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
   - docs/TODO.md §0.24
   - docs/TODO.md §0.19
   - docs/TODO.md §6.2
@@ -43,7 +47,15 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
 - **Seats.** You own cards in `p.cards`, and the ones out are `p.equipped`. `MineConfig.MAX_PET_SLOTS` =
   `STARTER_PET_SLOTS` = 3, and `MineConfig.effectivePetSlots` clamps to 3..3. A save that
   bought up to eight seats is clamped on load and keeps every pet. `PET_SLOT_PRICE`
-  `{0,0,0}` survives only so old rows still resolve. VIP's fourth seat is gone.
+  `{0,0,0}` survives only so old rows still resolve. VIP's fourth seat is gone, and since
+  2026-10-19 (launch audit M5) the Cards tab's team rail draws only the real seats
+  (`petSlotsEffective`): its fourth box said "GET VIP" and opened the VIP pass.
+- **The Cards tab keeps its faces** (2026-10-19, launch audit S35). Each card face is a
+  ViewportFrame with a whole pet model, and the tab rebuilt every one on every redraw (each
+  equip tap, search keystroke and snapshot). `MineInventoryView` now keeps faces by card id
+  (`faces`) and repaints one only when the card's fields or `opts.cardFaceKey` (pets out and
+  the held tool's proc, `ClientFns.cardFaceKey`) change. Closing the window drops them, and
+  a reveal over the tab defers its redraw. Checked by `tools/verify/cards-tab.js`.
 - **Boost path.** `Dig.petRows` runs `MineCards.applyKit(one, card, cardPower(card), n)`
   for each pet, where `n` is the number of pets out, and keeps only what the pet adds.
   `MineGear.stackPets` sums the pets and `Dig.layer2` adds the gear, giving layer 2.
@@ -67,15 +79,33 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
     `tools/verify/zone-pets.js` fails if any of them comes back.
 - **Identity: every pet also has a family and a pet trait.** `MineCards.applyIdentity`
   adds a `FAMILY` boost (8 types, for example Fire "Forge Heart" +22% damage) and a
-  **pet trait** from `MineCards.TRAITS`. There are 12, hashed from (setId, index) or from the name.
-  **In practice that is not per pet** (2026-10-19 launch audit): `MineSetPacks.petCard` mints every
-  pack pet with `index = 1` and a home (`setKey`) that is not in `MineCards.SETS`, so
-  `MineCards.familyTrait` falls back to family "Crystal" (Facet Eye) for all of them, and the trait
-  seed is `131 + #setId * 17`: every pet from one home, and from any home whose id has the same
-  length, gets the same trait. See [open-questions](../open-questions.md) §0e.
+  **pet trait** from `MineCards.TRAITS` (12). Both come from `MineCards.familyTrait`, which the
+  server's pay (`applyKit`) and the card's lines (`describe`) both read.
+  - **A named pet hashes its name and home** (owner, 2026-10-19, launch audit S32: *re-roll
+    each pet's family and trait from its name*). The key is its stack key,
+    `MinePetRoster.cardKeyOf(name)` (`"<home>:<name>"`), so a copy from a pack, the wheel, a
+    lucky block or Event Horizon agrees. It is FNV-1a plus murmur3's finaliser, picking from
+    `FAMILY_ORDER` and `TRAITS`, whose order is load-bearing.
+  - Until then `MineSetPacks.petCard` minted every pack pet with `index = 1` and a home not in
+    `MineCards.SETS`, so every one was family "Crystal" (Facet Eye), with one trait per length of
+    the home's id. Test saves re-rolled; the game was not open.
+  - Across the 3,336 roster pets: the largest family is 13.5%, the largest trait 9.5%, and all
+    96 family-trait pairs occur (`tools/verify/pet-identity.js`).
+  - **A print of the 41 legacy sets** (a real `(setId, index)` in `MineCards.SETS`, with no
+    named kit) keeps the identity that pair always gave it.
+  - The card's family pill, the Type sort and the search read `MineCards.familyOf`, not the
+    stored `typeId`, which every named pet still carries as "Crystal".
   Lone Wolf pays only when that pet is your only one; Squad Bond scales with the number of *other* pets.
+  The card text reads the same count the server pays on (`#p.equipped`), since 2026-10-19
+  (S33): `ClientFns.cardContext` passes the team, or for a card not out, the team it would make.
   Pet traits **stay**: when tool traits were retired on 2026-10-12, the owner chose to
   retire only the tool kind. The retired tool trait is a different thing ([traits](traits.md)).
+- **Lines the Special gate zeroes say so** (2026-10-19, S34). A Zap line on a Blast tool pays
+  nothing ([enchants](enchants.md)), and the card now dims it with "needs a Zap Special".
+  `MineCards.describe(card, pow, n, gate)` returns a note per line from `MineEnchants.gateNote`,
+  using `familyOfStat`, the map `Dig.petShares` scores pets by. The live family is read off the
+  server's gated boosts (`MineEnchants.liveFamily`). A family or trait line with a plain stat
+  beside the proc keeps its colour and says "Zap part needs a Zap Special".
 
 ## Roster
 
@@ -504,8 +534,8 @@ sync.
   ([open-questions](../open-questions.md)).
 - **Pet traits and families carry retired stats.** Pack Lord and Cart Push carry backpack;
   Afterimage and Heavy Yield carry walkSpeed; Echo Strike's echo is paid as swing rate; the Earth and Water
-  families carry backpack. The comment on `MineCards.TRAITS` says **its order is load-bearing**:
-  reordering it gives every pet a different trait.
+  families carry backpack. The comments on `MineCards.TRAITS` and `FAMILY_ORDER` say **their order
+  is load-bearing**: reordering either gives every pet a different trait or family.
 - The `MineGear` header comment and `MineGear.hatMeansLine` still describe hats multiplying pets.
   That was the behaviour before §0.19.
 

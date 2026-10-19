@@ -87,6 +87,55 @@ function M.familyOfStat(stat)
 	return M.FAMILY_OF_STAT[stat]
 end
 
+-- The family gateProcs left firing on a FINISHED boosts table: the one whose
+-- chance is still above 0, or nil when none is. Every other family's chance is
+-- 0 after the gate, so this is exactly the gate's pick. The client reads it off
+-- the server's boosts (the snapshot) to say which pet lines the tool zeroes.
+function M.liveFamily(b)
+	if type(b) ~= "table" then
+		return nil
+	end
+	for _, key in ipairs(M.PROC_ORDER) do
+		if (tonumber(b[M.PROCS[key].chance]) or 0) > 0 then
+			return key
+		end
+	end
+	return nil
+end
+
+--[[
+	What the gate does to one card line carrying `stats` (stat keys) on a tool
+	firing `live` (a family key, or nil): nil when all of it pays; else the
+	note for the card and whether NOTHING on the line pays. Another family's
+	stat is zeroed; generic proc damage (procPower) only when no proc fires.
+	A line with a plain stat beside the zeroed one ("Live Wire: +9% Zap, +12%
+	Swing Rate") still pays that part, so its note names the part.
+]]
+function M.gateNote(stats, live)
+	local off, on, fam = 0, 0, nil
+	for _, stat in ipairs(stats or {}) do
+		local f = M.familyOfStat(stat)
+		local zeroed = (f == "*" and live == nil) or (f ~= nil and f ~= "*" and f ~= live)
+		if zeroed then
+			off += 1
+			if f ~= "*" then
+				fam = fam or f
+			end
+		else
+			on += 1
+		end
+	end
+	if off == 0 then
+		return nil, false
+	end
+	local name = fam and M.PROCS[fam] and M.PROCS[fam].name
+	local text = name and ("needs a " .. name .. " Special") or "needs a Special"
+	if on > 0 then
+		text = (name or "Proc damage") .. " part " .. text
+	end
+	return text, on == 0
+end
+
 --[[
 	THREE TIERS PER ABILITY. Owner, 2026-10-12: "Make 3 levels of abilities",
 	and chose tiers that CHANGE HOW IT WORKS, picked by the Special enchant's

@@ -3779,6 +3779,8 @@ invCtl = InventoryView.mount(gui, {
 	petViewport = function(parent, card, pos, size)
 		return ClientFns.petViewport(parent, card, pos, size)
 	end,
+	-- What a card face reads besides the card, so the Cards tab can keep faces.
+	cardFaceKey = function(card) return ClientFns.cardFaceKey(card) end,
 	cardSort = cardSort,
 	onCardSort = persistCardSort,
 	--[[
@@ -6912,6 +6914,43 @@ function ClientFns.toolViewport(parent, item, aspect)
 	end
 end
 
+--[[
+	What a card's stat lines read besides the card itself, the way the server
+	pays them (MineCards.describe):
+	  * how many pets are out, for Lone Wolf and Squad Bond. A card on the team
+	    reads the team. One that is not reads the team it would make, because it
+	    pays nothing until it is out (a full team swaps one out, so that stays
+	    the seat count);
+	  * the proc the held tool fires (MineEnchants.liveFamily of the server's
+	    gated boosts), so a line the Special gate zeroes says "needs a Zap
+	    Special".
+	MineInventoryView keys its cached card faces on the same two (cardFaceKey).
+]]
+function ClientFns.cardContext(card)
+	local eq = (snap and snap.equipped) or {}
+	local n = #eq
+	if type(card) == "table" and (card.id == nil or not table.find(eq, card.id)) then
+		local seats = tonumber(snap and (snap.petSlotsEffective or snap.petSlots)) or 3
+		n = math.min(seats, n + 1)
+	end
+	local gate
+	if snap and type(snap.boosts) == "table" then
+		gate = { family = require(shared:WaitForChild("MineEnchants")).liveFamily(snap.boosts) }
+	end
+	return n, gate
+end
+
+function ClientFns.cardLines(card, pow)
+	local n, gate = ClientFns.cardContext(card)
+	local _, lines, notes = Cards.describe(card, pow, n, gate)
+	return lines, notes
+end
+
+function ClientFns.cardFaceKey(card)
+	local n, gate = ClientFns.cardContext(card)
+	return tostring(n) .. "|" .. ((gate == nil) and "?" or tostring(gate.family or "none"))
+end
+
 paintCard = function(parent, card, w)
 	-- One painter for everything the reveal and the binder can show. A rune or
 	-- gear item carries `kind`; a card does not.
@@ -6921,7 +6960,10 @@ paintCard = function(parent, card, w)
 	w = w or 180
 	local h = math.floor(w * CARD_RATIO + 0.5)
 	local pad = math.max(6, math.floor(w * 0.05))
-	local typeCol = Cards.TYPE_COLOR[card.typeId] or Color3.fromRGB(48, 48, 54)
+	-- The family the server pays (MineCards.familyTrait), not the "Crystal"
+	-- every named pet was minted with.
+	local famType = (Cards.familyOf and Cards.familyOf(card)) or card.typeId
+	local typeCol = Cards.TYPE_COLOR[famType] or Color3.fromRGB(48, 48, 54)
 	local rareCol = Cards.RARITY_COLOR[card.rarityId] or TEXT
 	local kit = Cards.getKit(card.setId, card.index)
 	local pow = C.cardPower(card)
@@ -7023,7 +7065,7 @@ paintCard = function(parent, card, w)
 		TextSize = math.max(9, math.floor(h * 0.04)),
 		TextColor3 = Color3.fromRGB(16, 16, 18),
 		Size = UDim2.fromScale(1, 1),
-		Text = (Cards.typeName and Cards.typeName(card.typeId) or card.typeId or "")
+		Text = (Cards.typeName and Cards.typeName(famType) or famType or "")
 			.. "  " .. ((Cards.namedBoosts and Cards.namedBoosts(card)) and "Kit" or (kit and kit.roleName or "Unit")),
 	}, pill)
 	mk("TextLabel", {
@@ -7036,7 +7078,9 @@ paintCard = function(parent, card, w)
 		Size = UDim2.fromOffset(pillW, pillH),
 		Text = (card.variant or "Normal") .. "  P" .. tostring(card.powerLevel or 1),
 	}, f)
-	local _, boostLines = Cards.describe(card, pow)
+	-- The pets-out count the conditional traits read, and the held tool's proc,
+	-- so a line the Special gate zeroes says so (ClientFns.cardLines).
+	local boostLines, lineNotes = ClientFns.cardLines(card, pow)
 	if type(boostLines) == "table" and #boostLines > 0 then
 		local chipH = math.max(18, math.floor(h * 0.055))
 		local gap = math.max(2, math.floor(h * 0.008))
@@ -7045,18 +7089,26 @@ paintCard = function(parent, card, w)
 			local line = boostLines[i]
 			local y = statY + (i - 1) * (chipH + gap)
 			if y + chipH > h - 4 then break end
-			mk("TextLabel", {
-				BackgroundTransparency = 0.35,
+			local gated = lineNotes and lineNotes[i]
+			local chipText = math.max(8, math.floor(h * 0.034))
+			local chip = mk("TextLabel", {
+				BackgroundTransparency = (gated and gated.all) and 0.7 or 0.35,
 				BackgroundColor3 = Color3.fromRGB(28, 28, 34),
 				Font = FONT_M,
-				TextSize = math.max(8, math.floor(h * 0.034)),
-				TextColor3 = TEXT,
+				TextSize = chipText,
+				TextColor3 = (gated and gated.all) and MUTED or TEXT,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextTruncate = Enum.TextTruncate.AtEnd,
 				Position = UDim2.fromOffset(pad, y),
 				Size = UDim2.new(1, -pad * 2, 0, chipH),
-				Text = "  " .. tostring(line),
+				Text = "  " .. tostring(line) .. (gated and ("  ·  " .. gated.text) or ""),
 			}, f)
+			if gated then
+				-- Shrink to fit rather than cut the note off on a small tile; the
+				-- constraint goes on before TextScaled (parenting one clears it).
+				mk("UITextSizeConstraint", { MaxTextSize = chipText, MinTextSize = 6 }, chip)
+				chip.TextScaled = true
+			end
 		end
 	elseif kit then
 		local chipW = w - pad * 2

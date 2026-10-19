@@ -13,6 +13,9 @@ sources:
   - docs/OPEN.md
   - tools/verify/runes-retired.js
   - tools/verify/text-motion.js
+  - tools/verify/_shared.js
+  - tools/verify/pet-identity.js
+  - tools/verify/cards-tab.js
 related: [luau-traps, tools-and-generators, local-setup, tools]
 ---
 
@@ -138,6 +141,8 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `outpost-depth` | outpost colours are wired to depth, not constants |
 | `packs` **L** | fossil packs are gone, and the chest loot tables are still well formed |
 | `pet-spring` **L** | the pet-follow spring is stable at any framerate (`26036a0`) |
+| `pet-identity` **L** | runs the real `MineCards`, `MineEnchants` and the whole roster (via `_shared.js`): every named pet's family and trait come from its name and home, the spread is healthy (no family over 30%, all 12 traits, none over 15%), every copy from any source agrees, pay and text read one identity, the 41 legacy sets' prints keep theirs; Lone Wolf and Squad Bond text reads the pets-out count; lines the Special gate zeroes carry "needs a Zap Special". Launch audit S32–S34, 2026-10-19. |
+| `cards-tab` **L** | the Cards tab's rail draws only the real seats (no "GET VIP"); its card faces go through a cache that is **run** against stub frames (paint once, reuse, repaint on a change, lift, prune); the Hats/Faces collection lists `MineHats.dropCatalog`, which matches the drop pools exactly. Launch audit M5, S35, S37, 2026-10-19. |
 | `procs` **L** | proc damage and proc chance are separate stats, and the zap chain terminates |
 | `seams` | a JS model of the coin-priced seam ladder. **Seams are free now** (`MineDepth.seamPrice` returns 0), so this asserts a retired design. |
 | `skilltree` | every stat the tree grants is applied by the server |
@@ -191,7 +196,9 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 3. Put a non-zero floor under every count you assert over.
 4. To run Luau, use `require("./_luau")` for the binary path. If it cannot run,
    print the skip wording `suite.sh` matches. Decide the exit code in JS from
-   the output, not with `os.exit` in Luau.
+   the output, not with `os.exit` in Luau. To run real `Mine/Shared` modules
+   with their own lazy requires, `require("./_shared").prelude(ROOT, names,
+   folders)` gives a fake `Shared` folder (`pet-identity.js` uses it).
 5. Name it `tools/verify/<name>.js`. `suite.sh` picks it up automatically.
 
 ## Windows notes
