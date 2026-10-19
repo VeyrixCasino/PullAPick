@@ -123,6 +123,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `statkeys` | renamed stat keys (`oreYield`) still read in old saves |
 | `stats` **L** | `MineStats.STATS`, `STAT_ORDER`, `emptyBoosts` and `ADDITIVE_STATS` agree |
 | `runes-retired` | runes, scrolls, sockets and tool traits stay retired (2026-10-12): the five modules are deleted and nothing requires them; no rune, scroll or trait verb; `boosts()` pays none; old saves drop the fields; the pass, Founders pack and wheel pay books where they paid scrolls and runes; the tutorial and quests teach enchants; the Enchanter keeps Summon / Temper / Salvage / Dust; runes are not a trade kind; the rune cases are gone. Replaces the deleted `traits` **L** check (`tools/verify/traits.js`), which pinned the trait rules. |
+| `kid-text` | the kid-friendly pass (2026-10-19): `MineKidText.toast` turns "800 Coins" into "💰 800" on real toasts and leaves "Gem Shop" alone; the client runs every toast through it; every tutorial step in the walk-through carries an icon. |
 | `text-motion` | text never rides a scale animation: `MineUI.pulse` gives anything with text a ring pulse (a text-free ring scales, the thing holds still), `popNumber` lights the outline instead of popping a size, and the Forge hub repaints on a snapshot only on a real change, at most about once a second. Pure JS. Added 2026-10-17 (owner: *"the font sizes flicker"*). |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |

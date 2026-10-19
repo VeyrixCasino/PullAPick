@@ -59,6 +59,14 @@ const show = (cl.match(/local function showToast\(t\)[\s\S]*?\nend\n/) || [""])[
 check(/MineKidText/.test(show) && /t = ClientFns\.KidText\.toast\(t\)/.test(show) && show.indexOf("KidText.toast") < show.indexOf("toast.Text = t"),
   "the client runs every toast through MineKidText before showing it");
 
+// The tutorial banners: every step a new player walks through carries an icon.
+const sv = read("src/ServerScriptService/Mine/MineServer.server.luau");
+const order = ((sv.match(/\torder = \{ ([\d, ]+) \},/) || [, ""])[1]).split(",").map((n) => +n.trim()).filter(Boolean);
+const stepText = (n) => ((new RegExp(`\\t\\t\\[${n}\\] = \\{ text = "([^"]*)"`).exec(sv)) || [, ""])[1];
+const plain = order.filter((n) => !/[^\x00-\x7F—→]/.test(stepText(n).replace(/[—→]/g, "")));
+check(order.length >= 10 && plain.length === 0,
+  `every tutorial banner in the walk-through (${order.length} steps) carries an icon` + (plain.length ? `; plain: ${plain.join(", ")}` : ""));
+
 console.log("");
 console.log(fail > 0 ? `>>> kid-text: ${fail} FAILED` : ">>> kid-text: all assertions passed");
 process.exit(fail > 0 ? 1 : 0);

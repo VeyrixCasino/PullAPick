@@ -1556,3 +1556,16 @@ words. Rather than rewrite each, the client runs every toast through
 emoji were seen drawing in the quest panel.
 
 Updated: client-and-ui, log.
+
+## [2026-10-19] build | Kid-friendly tutorial banners and chest rows
+The kid-friendly pass, step 3: the first ten minutes' words.
+- Every tutorial banner in the walk-through leads with an icon and says one thing,
+  for example "🎒 Bag filling up? Run to the SELL PAD!". The CAPS action words
+  stay, and so does step 8.
+- The chest reveal's rows read a number and one word ("3  Books").
+- Short of gems it says "Need 💎 500".
+
+The pointing hand the brief asked for already exists for tutorial steps
+(`ClientFns.handPoint`). Not seen in Play: the owner's profile is past the tutorial.
+
+Updated: client-and-ui, verify-suite, log.

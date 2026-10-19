@@ -56,7 +56,7 @@ check(/if \(name == "shop" and tab == nil\) or name == "forge" then[\s\S]{0,300}
 check(/if \(tab == "pickaxe" or tab == "backpack"\) and shopCtl\.setTab then/.test(client) && /opts\.onShop\("backpack"\)/.test(hub) && /opts\.onShop\("pickaxe"\)/.test(hub)
   && /ev:Fire\("shop", tab\)/.test(hubClient) && /openPanelEv\.Name = "OpenPanel"/.test(client),
   "the hub's BAGS and COIN SHOP buttons still reach the old shop's two shelves");
-check(/\[3\] = \{ text = "Coins burning a hole\? BUY A BIGGER PICK\.", panel = "shop", tab = "pickaxe"/.test(server)
+check(/\[3\] = \{ text = "[^"]*BUY A BIGGER PICK!?\.?", panel = "shop", tab = "pickaxe"/.test(server)
   && /net:FireClient\(plr, "openPanel", "shop", onPickStep and "pickaxe" or nil\)/.test(server),
   "the tutorial's buy-a-pick step still lands on the coin pickaxes, at the counter too");
 check(/if tab == "counter" then\s*\n\s*if hub\.isOpen\(\) then\s*\n\s*return/.test(hubClient), "walking up to a counter only opens the hub, never closes it");

@@ -314,6 +314,12 @@ The header shows the player level and XP bar, the wallet, 🎒 BAGS and 💰 COI
 **The Blacksmith counter opens the hub** (owner, 2026-10-12: *"the Blacksmith counter should open the Forge hub"*):
 - `ClientFns.routePanel` sends every plain `"shop"` there: the counters tagged `Machine="shop"` and the "to the Blacksmith" buttons.
 - `"shop"` with a named shelf (`pickaxe` or `backpack`) still opens the old shop on that shelf.
+- **Tutorial banners (kid-friendly, 2026-10-19).** Every step in the walk-through
+  (`Intro.order`) leads with an icon and says one thing, its CAPS word the thing
+  to do: "⛏️ HOLD on a rock to break it!", "💰 Got coins? BUY A BIGGER PICK!",
+  "🔄 REBIRTH: reset small, come back BIG!". Step 8 keeps "FREE BOOKS! 📖 …".
+  The chest reveal's rows went to a number and one word ("3  Books", "5  Cases",
+  "Need 💎 500"). `tools/verify/kid-text.js` checks every walk-through step has an icon.
 - The tutorial's step 3 (*BUY A BIGGER PICK*) carries `tab = "pickaxe"`. While a player is on that step, the server opens the coin shelf at the counter, so the step still ends in the purchase it teaches.
 - Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it.
 
