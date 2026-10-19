@@ -26,7 +26,11 @@ MineQuests.CHAIN = {
 	-- Early (session 1)
 	{ id = "mine25",     stat = "blocks",   goal = 10,      text = "Break 10 blocks",              tip = "Hold LMB on a rock. Dig fills your bag.", reward = { coins = 200, pack = "loam_pack" } }, -- id kept: CHAIN_V1 names it
 	{ id = "sell1",      stat = "sells",    goal = 1,       text = "Sell your haul at the Depot",  tip = "Sell pad by the shops. Gems/coins bank; bag empties.", reward = { coins = 400 } },
-	{ id = "pick2",      stat = "picktier", goal = 1,       text = "Buy a better pickaxe",         tip = "Blacksmith → COIN SHOP. Coin tools reset on rebirth.", reward = { gems = 20 } },
+	-- Was "Buy a better pickaxe" (stat picktier): tools are forged from ore now,
+	-- so it matches the tutorial's step 3 (owner, 2026-10-19, launch audit M1).
+	-- Id kept: CHAIN_V1/V2 name it. `absolute`: a tool forged before this rung
+	-- went live still counts, so nobody has to forge a second "first" tool.
+	{ id = "pick2",      stat = "oretools", goal = 1,       absolute = true, text = "Forge your first tool", tip = "Tap the anvil (or visit the Blacksmith) and CRAFT. Ore makes every tool.", reward = { gems = 20 } },
 	{ id = "mine100",    stat = "blocks",   goal = 100,     text = "Break 100 blocks",             tip = "Chests hide in the wall — dig deeper for better odds.", reward = { gems = 25 } },
 	{ id = "chests3",    stat = "chests",   goal = 3,       text = "Open 3 chests",                tip = "Chests glow — when the dirt lights up, one is close.", reward = { gems = 60, tool = "meadow_surface_2_pick", toolName = "Bronzewedge" } },
 	{ id = "depth20",    stat = "depth",    goal = 20,      text = "Gain 20 depth",                tip = "Depth unlocks harder rock and richer chests.", reward = { coins = 800 } },
@@ -34,8 +38,11 @@ MineQuests.CHAIN = {
 	{ id = "mine250",    stat = "blocks",   goal = 250,     text = "Break 250 blocks",             tip = "Packs come from chests. Cards power every swing.", reward = { pack = "clay_pack" } },
 	{ id = "open3",      stat = "packs",    goal = 3,       text = "Open 3 packs",                 tip = "Open packs from your bag. Variants and shinies are permanent.", reward = { gems = 40 } },
 	{ id = "chestsL3",   stat = "chestsL3", goal = 3,       text = "Open 3 chests below 100m (Layer 3+)", tip = "Deeper layers hide better chests.", reward = { gems = 150, tool = "meadow_surface_4_pick", toolName = "Coppervine" } },
-	{ id = "cards10",    stat = "cards",    goal = 10,      text = "Collect 10 more cards",        tip = "Equip pets in slots. More slots unlock as you grow.", reward = { pack = "slate_pack" } },
-	{ id = "sell5",      stat = "sells",    goal = 5,       text = "Sell 5 hauls",                 tip = "Coins buy tools. Gems buy zones, gear and enchant books.", reward = { gems = 45 } },
+	-- Tips rewritten 2026-10-19 (launch audit S40): three pet seats for everyone
+	-- (MineConfig.MAX_PET_SLOTS), tools are forged and bags cost gems, so coins
+	-- pay for rebirth.
+	{ id = "cards10",    stat = "cards",    goal = 10,      text = "Collect 10 more cards",        tip = "Three pets go out at once. Send out your strongest.", reward = { pack = "slate_pack" } },
+	{ id = "sell5",      stat = "sells",    goal = 5,       text = "Sell 5 hauls",                 tip = "Coins pay for REBIRTH. Gems buy zones, bags and enchant books.", reward = { gems = 45 } },
 	--[[
 		THE FORGE, FINALLY ON THE LADDER.
 
@@ -92,7 +99,8 @@ MineQuests.CHAIN = {
 	{ id = "zone4",      stat = "zone",     goal = 3,       text = "Unlock three more zones",      tip = "Don't dig locked zones — buy the portal first.", reward = { gems = 144 } },
 	{ id = "depth500",   stat = "depth",    goal = 500,     text = "Gain 500 depth",               tip = "Temperaments ride forever tools through rebirth with the family.", reward = { gems = 106 } },
 	{ id = "gear12",     stat = "gear",     goal = 12,      text = "Own 12 more gear pieces",      tip = "Gear keeps. Re-equip after a rebirth if slots look empty.", reward = { gems = 86 } },
-	{ id = "cards250",   stat = "cards",    goal = 250,     text = "Collect 250 more cards",       tip = "Prestige yield +15%/rank and luck +5%/rank forever.", reward = { gems = 168 } },
+	-- Rebirth pays luck, not income: prestigeYield was deleted (MineConfig, 2026-10-04).
+	{ id = "cards250",   stat = "cards",    goal = 250,     text = "Collect 250 more cards",       tip = "Every rebirth adds +5% luck forever, plus skill points and tokens.", reward = { gems = 168 } },
 	{ id = "rebirth3",   stat = "rebirth",  goal = 3,       text = "Rebirth 3 more times",         tip = "Pay wall ≠ minimum. Farm the minimum bank shown on Rebirth.", reward = { gems = 192 } },
 	{ id = "mine25k",    stat = "blocks",   goal = 25000,   text = "Break 25,000 blocks",          tip = "Job Board + dailies reset on the UTC day — free gems.", reward = { gems = 240 } },
 	{ id = "merge60",    stat = "merges",   goal = 60,      text = "Merge 60 times",               tip = "High merges before a big rebirth bank pays off.", reward = { pack = "case_4", packQty = 3 } },
@@ -103,7 +111,8 @@ MineQuests.CHAIN = {
 	{ id = "sell200",    stat = "sells",    goal = 200,     text = "Sell 200 hauls",               tip = "Coins fund the next rebirth minimum. Don't idle on a full fee.", reward = { gems = 260 } },
 	{ id = "cards500",   stat = "cards",    goal = 500,     text = "Collect 500 more cards",       tip = "Collection milestones pay gems anytime — check Quests.", reward = { pack = "case_4", packQty = 4 } },
 	{ id = "rebirth5",   stat = "rebirth",  goal = 5,       text = "Rebirth 5 more times",         tip = "Skill tree roads are XOR — commit a path, then temper.", reward = { gems = 320 } },
-	{ id = "mine75k",    stat = "blocks",   goal = 75000,   text = "Break 75,000 blocks",          tip = "AFK chill pad parks you safely if you go idle.", reward = { gems = 400 } },
+	-- AFK starts after 2 idle minutes (MineConfig.AFK_IDLE_SEC) and pays coins and packs.
+	{ id = "mine75k",    stat = "blocks",   goal = 75000,   text = "Break 75,000 blocks",          tip = "Idle for 2 minutes and AFK keeps earning coins and packs. Move to wake up.", reward = { gems = 400 } },
 	{ id = "merge150",   stat = "merges",   goal = 150,     text = "Merge 150 times",              tip = "Merging cards makes stronger pets.", reward = { gems = 360 } },
 	{ id = "depth2k",    stat = "depth",    goal = 2000,    text = "Gain 2,000 depth",             tip = "Push depth on your strongest zone before banking a rebirth.", reward = { gems = 480 } },
 	{ id = "gear30",     stat = "gear",     goal = 30,      text = "Own 30 more gear pieces",      tip = "Matching gear sets add bonuses.", reward = { gems = 340 } },
@@ -319,6 +328,16 @@ MineQuests.DAILY_TIERS = {
 	},
 }
 
+--[[
+	TIER B BEFORE THE FIRST REBIRTH (launch audit S40, 2026-10-19).
+
+	"Rebirth once" was the whole of tier B, so it was handed to players on day
+	one who cannot rebirth for hours yet: a daily nobody could finish. Until a
+	profile has rebirthed once, rollDaily swaps it for this. Same tier, same pay.
+	PROPOSED (2026-10-19): sell 10 hauls for the same 90 gems.
+]]
+MineQuests.DAILY_NO_REBIRTH = { id = "d_sells_10", stat = "sells", goal = 10, text = "Sell 10 hauls", gems = 90 }
+
 -- Flat pool kept for dailyById lookups (claim UI / gem payout).
 MineQuests.DAILY_POOL = {}
 for _, tier in ipairs(MineQuests.DAILY_TIERS) do
@@ -326,6 +345,7 @@ for _, tier in ipairs(MineQuests.DAILY_TIERS) do
 		table.insert(MineQuests.DAILY_POOL, q)
 	end
 end
+table.insert(MineQuests.DAILY_POOL, MineQuests.DAILY_NO_REBIRTH)
 MineQuests.DAILY_COUNT = 3
 MineQuests.DAILY_ZONE_SCALE = 0.6
 
@@ -357,18 +377,21 @@ local function dailyOk(row)
 	return type(row) == "table" and not MineQuests.NOT_DAILY[row.stat]
 end
 
-function MineQuests.rollDaily(dayIndex, userId)
+-- `opts.prestige` (optional): below 1, no rebirth daily is offered (see
+-- DAILY_NO_REBIRTH). Without opts the roll is exactly what it always was.
+function MineQuests.rollDaily(dayIndex, userId, opts)
 	local rng = Random.new((tonumber(dayIndex) or 0) * 100003 + (tonumber(userId) or 0))
+	local noRebirth = type(opts) == "table" and (tonumber(opts.prestige) or 0) < 1
 	local out = {}
 	for _, fullTier in ipairs(MineQuests.DAILY_TIERS) do
 		local tier = {}
 		for _, row in ipairs(fullTier) do
-			if dailyOk(row) then
+			if dailyOk(row) and not (noRebirth and row.stat == "rebirth") then
 				table.insert(tier, row)
 			end
 		end
 		if #tier == 0 then
-			tier = { MineQuests.DAILY_TIERS[1][1] }
+			tier = { (noRebirth and MineQuests.DAILY_NO_REBIRTH) or MineQuests.DAILY_TIERS[1][1] }
 		end
 		local pick = tier[rng:NextInteger(1, #tier)]
 		table.insert(out, {

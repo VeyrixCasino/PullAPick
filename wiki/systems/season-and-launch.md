@@ -86,7 +86,7 @@ through a season they never saw begin.
 | `src/ServerScriptService/Mine/Admin/MineAdmin.luau` | the `/admin launch` command | `cmd == "launch"`, `deps.launchSeason` |
 | `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | limited windows on the season clock | `limitedActive`, `limitedWindow`, `LIMITED_WINDOWS`, `LIMITED_DAYS` (47) |
 | `src/ReplicatedStorage/Mine/Shared/MineRotatingOffers.luau` | offer slots | `SEASON_START`, `SEASON_END` |
-| `src/ReplicatedStorage/Mine/Shared/MineScrolls.luau` | battle pass | `PASS_SEASON_START`, `PASS_SEASON_END`, `seasonClock`, `passEndLabel` |
+| `src/ReplicatedStorage/Mine/Shared/MineScrolls.luau` | battle pass | `PASS_SEASON_START`, `PASS_SEASON_END`, `seasonClock`, `passEndLabel`, and the day-29 pause: `NEXT_TRACK`, `passPaused`, `activeEnd`, `trackFor` |
 | `src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau` | the pass panel's countdown | `SeasonClock` row |
 | `tools/verify/launch.js` | rule, persistence order, constants agree | needs `luau` |
 
@@ -126,13 +126,28 @@ through a season they never saw begin.
   end is now derived from it (`PASS_SEASON_START + PASS_SEASON_DAYS * 86400`), so the length
   is one number. The offers and Event Horizon still run 47 days; the pass ends inside that.
   `launch.js` checks the pass is exactly `PASS_SEASON_DAYS` long and ends inside the season.
-- **Day 29: decided 2026-10-19, not built.** The owner will have a new pass ready (*"i'll
-  having something ready"*), and picked a safety net: if the new track has not shipped by
-  day 29, the old pass **pauses** (no XP, no claims, "Next pass coming soon"). Today
-  `reconcilePass` moves every player to `PASS_SEASON_NEXT` ("2026-11") on the same
-  `PASS_TRACK`, wipes XP and claims and sets `owned = false`, and the panel says "Next season
-  is live" (`MineInventoryView` 7389), so without the pause players would re-earn the season
-  pets and Season One skins and re-buy premium. See [open-questions](../open-questions.md) (24).
+- **Day 29: the pass pauses (decided and built 2026-10-19).** The owner will have a new
+  pass ready (*"i'll having something ready"*) and picked a safety net: if it is late, the
+  old pass pauses. `MineScrolls.NEXT_TRACK` holds the next pass's rows and is nil until it
+  ships. Past `PASS_SEASON_END` with no `NEXT_TRACK`, `passPaused()` is true:
+  - `awardPassXp` gives nothing, `Verbs.claimPass` refuses, and premium is not sold
+    (`buyBattlePassCredits` refuses; a Robux receipt that lands anyway is paid out as its
+    face value in credits, PROPOSED);
+  - `reconcilePass` leaves XP, claims and premium exactly as they were, so nobody re-earns
+    the season pets and Season One skins or re-buys premium;
+  - the panel says "Next pass coming soon" with no CLAIM and no buy row. The snapshot
+    carries `pass.paused`, which also keeps the Pass badge (`MineNotifs`) and the TODAY row
+    (`MineToday`) quiet.
+
+  **Shipping a track is the un-pause.** `reconcilePass` then rolls each pass over once to
+  `PASS_SEASON_NEXT` (XP, claims and premium start clean), `trackFor(pass)` pays out of
+  `NEXT_TRACK`, and the countdown runs to `activeEnd()` (`NEXT_SEASON_DAYS`, defaulting to
+  `PASS_SEASON_DAYS`). When that pass ends with nothing further shipped, it pauses again.
+  The lucky-block claim ledger (`passClaims`) is keyed per season after the first, so a
+  rollover cannot refuse a new tier as "already claimed". `tools/verify/battle-pass.js` runs
+  the pause, the rollover and the second end in luau. Until 2026-10-19, `reconcilePass`
+  rolled everyone onto the same `PASS_TRACK` at the end and the panel said "Next season is
+  live". See [open-questions](../open-questions.md) (24).
 - **Clients used to stay at second zero forever.** A client never runs `_loadLaunch`, so
   its copy of `MineLaunch` never learned `launchedAt`. After a launch the shop would have
   kept showing week one's deals (`RotatingOffers.active()`), which the server then refuses

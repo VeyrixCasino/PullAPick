@@ -7361,6 +7361,11 @@ function MineInventoryView.mount(parent, opts)
 		local tiers = pass.tiers or Scrolls.PASS_TIERS or 100
 		local tier = math.clamp(pass.tier or 0, 0, tiers)
 		local owned = pass.owned and true or false
+		-- Day 29 (owner, 2026-10-19): the pass ended and the next one has not
+		-- shipped, so it is paused: no claims, no premium for sale (the server
+		-- refuses both); the clock says "Next pass coming soon".
+		local paused = pass.paused == true
+			or (Scrolls.passPaused and Scrolls.passPaused(Scrolls.seasonClock(workspace:GetServerTimeNow()))) == true
 		local LuckyBlocks = nil
 		pcall(function() LuckyBlocks = require(shared:WaitForChild("MineLuckyBlocks")) end)
 
@@ -7370,8 +7375,9 @@ function MineInventoryView.mount(parent, opts)
 		head.BackgroundColor3 = BG3
 		label(head, "BATTLE PASS", 20, GOLD, UDim2.fromOffset(16, 10),
 			UDim2.new(1, -220, 0, 24), FONT)
-		label(head, owned and "Premium unlocked" or "Free track  ·  claim Lunar at tier 1",
-			12, owned and GREEN or MUTED, UDim2.fromOffset(16, 34), UDim2.new(1, -220, 0, 16))
+		label(head, (paused and "Paused  ·  next pass coming soon") or (owned and "Premium unlocked")
+				or "Free track  ·  claim Lunar at tier 1",
+			12, (not paused and owned) and GREEN or MUTED, UDim2.fromOffset(16, 34), UDim2.new(1, -220, 0, 16))
 
 		-- SEASON CLOCK. Big, centered, ticking every second off server time.
 		local clockRow = mk("Frame", {
@@ -7400,7 +7406,9 @@ function MineInventoryView.mount(parent, opts)
 				timerLbl.Text = Scrolls.formatPassClock(now)
 				local left = Scrolls.passSecondsLeft(now)
 				if left <= 0 then
-					endLbl.Text = "Next season is live"
+					-- Over, and no next track yet: paused (MineScrolls DAY 29).
+					endLbl.Text = "Next pass coming soon"
+					timerLbl.TextColor3 = GOLD
 				else
 					-- Re-read every tick: a launch mid-session turns
 					-- "Starts at launch" into the real end date.
@@ -7439,7 +7447,11 @@ function MineInventoryView.mount(parent, opts)
 			11, (pass.dailyFromQuests and MUTED) or (capped and GOLD or MUTED), UDim2.new(0.55, 0, 0, 112), UDim2.new(0.45, -16, 0, 16),
 			nil, Enum.TextXAlignment.Right)
 
-		if not owned then
+		if not owned and paused then
+			-- Nothing to buy until the next pass ships (the server refuses it too).
+			label(head, "Premium returns with the next pass.", 12, MUTED,
+				UDim2.fromOffset(16, 138), UDim2.new(1, -32, 0, 16), FONT, Enum.TextXAlignment.Center)
+		elseif not owned then
 			local face = tonumber(Scrolls.BATTLE_PASS.credits) or tonumber(Scrolls.BATTLE_PASS.robux) or 399
 			local buyCr = mk("TextButton", {
 				AutoButtonColor = true,
@@ -7641,7 +7653,7 @@ function MineInventoryView.mount(parent, opts)
 			local ledger = isPrem and (pass.prem or {}) or (pass.free or {})
 			local claimed = passClaimed(isPrem, n)
 				or ((ledger[n] or ledger[tostring(n)]) and true or false)
-			local allowed = reached and not claimed and ((not isPrem) or owned)
+			local allowed = reached and not claimed and ((not isPrem) or owned) and not paused
 			local iconId, col = rewardIcon(reward)
 			local btn = mk("TextButton", {
 				AutoButtonColor = allowed,
@@ -7743,7 +7755,8 @@ function MineInventoryView.mount(parent, opts)
 				ZIndex = 4,
 			}, btn)
 			round(strip, 8)
-			local status = claimed and "CLAIMED" or (allowed and "CLAIM" or (isPrem and not owned and "LOCKED" or ("TIER " .. n)))
+			local status = claimed and "CLAIMED" or (allowed and "CLAIM" or (paused and "PAUSED")
+				or (isPrem and not owned and "LOCKED" or ("TIER " .. n)))
 			label(strip, status, 12, allowed and Color3.fromRGB(12, 24, 16) or (claimed and GREEN or MUTED),
 				UDim2.fromOffset(0, 0), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center).ZIndex = 5
 
@@ -7790,8 +7803,11 @@ function MineInventoryView.mount(parent, opts)
 			end)
 		end
 
+		-- The rows of the pass this player is on (MineScrolls.trackFor: the next
+		-- track once it has shipped and the pass rolled over).
+		local track = (Scrolls.trackFor and Scrolls.trackFor(pass)) or Scrolls.PASS_TRACK
 		for n = 1, tiers do
-			local row = Scrolls.PASS_TRACK[n]
+			local row = track[n]
 			if row then
 				tile(n, row.free, FREE_Y, false)
 				tile(n, row.premium, PREM_Y, true)
@@ -7844,21 +7860,27 @@ function MineInventoryView.mount(parent, opts)
 		label(head, "ACCOUNT", 17, GOLD, UDim2.fromOffset(16, 12),
 			UDim2.new(1, -32, 0, 22), FONT)
 
+		--[[
+			Launch audit S38 (owner, 2026-10-19): the link pays 5,000 gems and
+			nothing else, so this no longer promises "player markets and remote
+			trading". The server is discord.gg/Ab5ZpVdRvp, written as plain text:
+			Roblox does not allow a clickable off-site link.
+		]]
 		if linked then
 			label(head, "Discord connected" .. (masked ~= "" and ("  ·  " .. masked) or ""),
 				14, TEXT, UDim2.fromOffset(16, 42), UDim2.new(1, -32, 0, 20), FONT)
 			local bonusNote = bonusClaimed
-				and "Link bonus claimed · player markets & remote trading unlocked"
-				or "Markets unlocked · link bonus pending"
+				and "Link bonus claimed: 5,000 gems  ·  discord.gg/Ab5ZpVdRvp"
+				or "Your 5,000-gem link bonus pays the next time you join"
 			label(head, bonusNote, 12, MUTED, UDim2.fromOffset(16, 68),
 				UDim2.new(1, -32, 0, 28))
 		else
 			local blurb = label(head,
-				"Connect Discord for 5,000 gems — plus player markets and remote trading.",
+				"Link your Discord for 5,000 gems.",
 				14, TEXT, UDim2.fromOffset(16, 42), UDim2.new(1, -32, 0, 40), FONT)
 			blurb.TextWrapped = true
-			label(head, "In Discord type !link, then paste the code below.",
-				12, MUTED, UDim2.fromOffset(16, 90), UDim2.new(1, -32, 0, 40))
+			label(head, "Join discord.gg/Ab5ZpVdRvp, type !link there, then paste the code below.",
+				12, MUTED, UDim2.fromOffset(16, 90), UDim2.new(1, -32, 0, 40)).TextWrapped = true
 
 			local row = panelRow(body, 72, 1)
 			local box = mk("TextBox", {

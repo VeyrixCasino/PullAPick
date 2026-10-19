@@ -156,6 +156,16 @@ pcall(Audio.startBgm)
 pcall(Audio.setZoneResolver, function()
 	return snap and snap.zoneId or nil
 end)
+--[[
+	BUTTON SOUNDS ON (owner, 2026-10-19, launch audit S26). MineAudio.bindUiClicks
+	was written and never called, so no button in the game made a sound. One
+	call on this ScreenGui covers every window, since they all mount into it
+	(the Forge hub too): a soft click on a press, the low "can't" knock on a
+	greyed (Active = false) button. It binds once (the UiClicksBound attribute)
+	and MineAudio.play throttles each sound (CD.click, CD.deny). A button opts
+	out with the NoClickSfx attribute.
+]]
+pcall(Audio.bindUiClicks, gui)
 
 -- Desktop HUD uses fixed pixel sizes. On phones those dominate the screen;
 -- scale the whole MineUI tree down. Trail dashes are world parts, unaffected.
@@ -1138,11 +1148,15 @@ function dailyHud.show(state)
 end
 
 --[[
-	Day-4 surprise: Like + Favorite → random 2★+ pack.
+	Day-4 surprise: a random 2★+ pack, GIVEN REGARDLESS (owner, 2026-10-19,
+	launch audit S20). It used to ask for Like + Favorite first: no API can
+	open a Like, so LIKE only opened a browser (or nothing) and was ticked on
+	faith, and rewarding a like or a favorite is not something to build on.
+	Now CLAIM always works, closing the window claims too, and FAVORITE is an
+	optional ask through Roblox's real prompt that gates nothing.
 ]]
 local dailySurprise = {}
-dailySurprise.liked = false
-dailySurprise.favorited = false
+dailySurprise.claimed = false
 dailySurprise.root = mk("Frame", {
 	Name = "DailySurprise",
 	Visible = false,
@@ -1162,27 +1176,21 @@ mk("TextLabel", {
 }, dailySurprise.root).TextXAlignment = Enum.TextXAlignment.Center
 mk("TextLabel", {
 	BackgroundTransparency = 1, Font = FONT_M, TextSize = 14, TextColor3 = TEXT,
-	Text = "Like & Favorite the game for a random 2★+ pack",
+	Text = "Day 4 bonus: a random 2★+ pack. It's yours!",
 	Position = UDim2.fromOffset(20, 52), Size = UDim2.new(1, -40, 0, 40),
 	TextWrapped = true, ZIndex = 41,
 }, dailySurprise.root).TextXAlignment = Enum.TextXAlignment.Center
 dailySurprise.status = mk("TextLabel", {
 	BackgroundTransparency = 1, Font = FONT_M, TextSize = 13, TextColor3 = MUTED,
-	Text = "Tap both below, then claim",
+	Text = "Enjoying the game? Favorite it (optional).",
 	Position = UDim2.fromOffset(20, 100), Size = UDim2.new(1, -40, 0, 20),
 	ZIndex = 41,
 }, dailySurprise.root)
 dailySurprise.status.TextXAlignment = Enum.TextXAlignment.Center
-dailySurprise.likeBtn = mk("TextButton", {
-	AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(60, 140, 255),
-	Font = FONT, TextSize = 16, TextColor3 = Color3.new(1, 1, 1), Text = "LIKE",
-	Position = UDim2.fromOffset(24, 136), Size = UDim2.fromOffset(186, 44), ZIndex = 42,
-}, dailySurprise.root)
-round(dailySurprise.likeBtn, 10)
 dailySurprise.favBtn = mk("TextButton", {
 	AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(255, 170, 60),
-	Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(30, 20, 10), Text = "FAVORITE",
-	Position = UDim2.fromOffset(230, 136), Size = UDim2.fromOffset(186, 44), ZIndex = 42,
+	Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(30, 20, 10), Text = "★ FAVORITE",
+	Position = UDim2.fromOffset(24, 136), Size = UDim2.new(1, -48, 0, 44), ZIndex = 42,
 }, dailySurprise.root)
 round(dailySurprise.favBtn, 10)
 dailySurprise.claimBtn = mk("TextButton", {
@@ -1197,77 +1205,51 @@ dailySurprise.close = mk("TextButton", {
 	Position = UDim2.new(1, -40, 0, 12), Size = UDim2.fromOffset(28, 28), ZIndex = 43,
 }, dailySurprise.root)
 
-local function refreshSurpriseClaim()
-	local ready = dailySurprise.liked and dailySurprise.favorited
-	dailySurprise.claimBtn.AutoButtonColor = ready
-	dailySurprise.claimBtn.BackgroundColor3 = ready and GOLD or Color3.fromRGB(50, 50, 58)
-	dailySurprise.claimBtn.TextColor3 = ready and (T.ON_GOLD or Color3.fromRGB(30, 20, 10)) or MUTED
-	if ready then
-		dailySurprise.status.Text = "Ready — claim your surprise pack"
-		dailySurprise.status.TextColor3 = Color3.fromRGB(120, 255, 160)
-	else
-		local bits = {}
-		if not dailySurprise.liked then bits[#bits + 1] = "Like" end
-		if not dailySurprise.favorited then bits[#bits + 1] = "Favorite" end
-		dailySurprise.status.Text = "Still need: " .. table.concat(bits, " + ")
-		dailySurprise.status.TextColor3 = MUTED
-	end
-end
-
 function dailySurprise.open()
-	dailySurprise.liked = false
-	dailySurprise.favorited = false
-	dailySurprise.likeBtn.Text = "LIKE"
-	dailySurprise.favBtn.Text = "FAVORITE"
+	dailySurprise.claimed = false
+	dailySurprise.favBtn.Text = "★ FAVORITE"
 	dailySurprise.claimBtn.Text = "CLAIM SURPRISE"
 	dailySurprise.claimBtn.Active = true
-	refreshSurpriseClaim()
+	dailySurprise.status.Text = "Enjoying the game? Favorite it (optional)."
+	dailySurprise.status.TextColor3 = MUTED
 	dailySurprise.root.Visible = true
+end
+
+-- Nothing gates the pack: the server checks only that it is day 4 and not yet
+-- taken today (Verbs.claimDailySurprise), so a second send is harmless.
+function dailySurprise.claim()
+	if dailySurprise.claimed then
+		return
+	end
+	dailySurprise.claimed = true
+	dailySurprise.claimBtn.Active = false
+	dailySurprise.claimBtn.Text = "..."
+	net:FireServer("claimDailySurprise")
 end
 
 function dailySurprise.closePanel()
 	dailySurprise.root.Visible = false
 end
 
-dailySurprise.close.MouseButton1Click:Connect(dailySurprise.closePanel)
-dailySurprise.likeBtn.MouseButton1Click:Connect(function()
-	pcall(function()
-		GuiService:OpenBrowserWindow("https://www.roblox.com/games/" .. tostring(game.PlaceId))
-	end)
-	dailySurprise.liked = true
-	dailySurprise.likeBtn.Text = "LIKED ✓"
-	refreshSurpriseClaim()
+-- Closing claims too: the pack is given regardless.
+dailySurprise.close.MouseButton1Click:Connect(function()
+	dailySurprise.claim()
+	dailySurprise.closePanel()
 end)
 dailySurprise.favBtn.MouseButton1Click:Connect(function()
-	local ok = pcall(function()
+	-- Roblox's own favorite prompt; the player can say no and nothing changes.
+	pcall(function()
 		AvatarEditorService:PromptSetFavorite(game.PlaceId, Enum.AvatarItemType.Asset, true)
 	end)
-	-- Prefer a real favorite when the API answers; otherwise honor the prompt.
-	task.delay(0.4, function()
-		local favOk, isFav = pcall(function()
-			return AvatarEditorService:GetFavorite(game.PlaceId, Enum.AvatarItemType.Asset)
-		end)
-		if favOk and isFav == true then
-			dailySurprise.favorited = true
-		elseif ok then
-			dailySurprise.favorited = true
-		end
-		if dailySurprise.favorited then
+end)
+pcall(function()
+	AvatarEditorService.PromptSetFavoriteCompleted:Connect(function(result)
+		if result == Enum.AvatarPromptResult.Success then
 			dailySurprise.favBtn.Text = "FAVORITED ✓"
 		end
-		refreshSurpriseClaim()
 	end)
 end)
-dailySurprise.claimBtn.MouseButton1Click:Connect(function()
-	if not (dailySurprise.liked and dailySurprise.favorited) then
-		dailySurprise.status.Text = "Like and Favorite first"
-		dailySurprise.status.TextColor3 = Color3.fromRGB(255, 120, 120)
-		return
-	end
-	dailySurprise.claimBtn.Active = false
-	dailySurprise.claimBtn.Text = "..."
-	net:FireServer("claimDailySurprise")
-end)
+dailySurprise.claimBtn.MouseButton1Click:Connect(dailySurprise.claim)
 
 --[[
 	Quest tracker.
@@ -2849,6 +2831,28 @@ local function hidePanels()
 	if depthHud.contractor and depthHud.contractor.root then
 		depthHud.contractor.close()
 	end
+	--[[
+		Four windows this missed (launch audit S18, 2026-10-19), so opening
+		Inventory, Pass or Jobs over them left two windows stacked, the new one
+		underneath. Skins; the trade picker, and a live trade, which closing
+		cancels (the same as the trade window's own X); fishing, which gives up
+		a fish on the line (its own close does the same); and the Forge hub,
+		which lives in MineForgeHub.client and is closed through its event.
+		Each only if it exists, and the trade and fishing only if open.
+	]]
+	if skinsCtl and skinsCtl.close then
+		skinsCtl.close()
+	end
+	if ClientFns.tradeCtl and ClientFns.tradeCtl.close and ClientFns.tradeCtl.isOpen() then
+		ClientFns.tradeCtl.close()
+	end
+	if ClientFns.fishingCtl and ClientFns.fishingCtl.close and ClientFns.fishingCtl.isOpen() then
+		ClientFns.fishingCtl.close()
+	end
+	local hubEv = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
+	if hubEv then
+		hubEv:Fire("close")
+	end
 end
 
 local function togglePanel(p)
@@ -3107,10 +3111,16 @@ do
 			Mine.ForgeHubOpen; it opens in place -- no trip to the counter, since
 			"nothing is ever too far away" (TODO §0) and the craft verb checks
 			no station. Without it, the old trip to the Blacksmith below.
+
+			hidePanels closes the hub too now (S18), so it runs only when the hub
+			is shut: on an open hub the toggle below is what closes it.
 		]]
 		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
 		if hubOpen then
-			hidePanels()
+			local hubFrame = gui:FindFirstChild("ForgeHub")
+			if not (hubFrame and hubFrame.Visible) then
+				hidePanels()
+			end
 			hubOpen:Fire()
 			return
 		end
@@ -4622,7 +4632,21 @@ function ClientFns.paintDailyCalendar(state)
 		dailyHud.claim.Size = UDim2.new(1, -48, 0, 46)
 		dailyHud.open.Size = UDim2.new(1, 0, 0, 64)
 	end
-	for _, c in ipairs(dailyHud.cal:GetChildren()) do
+	--[[
+		Rebuilt only when the week itself changed (launch audit S23). show() runs
+		on every snapshot, up to ten a second while digging, and destroying and
+		re-making seven tiles each time is work for a card that has not changed.
+		The streak line below is still written every call: show() resets it.
+	]]
+	local parts = {}
+	for _, d in ipairs(cal) do
+		parts[#parts + 1] = table.concat({ tostring(d.day), tostring(d.claimed), tostring(d.today),
+			tostring(d.jackpot), table.concat(d.parts or {}, "/") }, ":")
+	end
+	local calKey = table.concat(parts, "|")
+	local same = dailyHud.calKey == calKey and #dailyHud.cal:GetChildren() > 1
+	dailyHud.calKey = calKey
+	for _, c in ipairs(same and {} or dailyHud.cal:GetChildren()) do
 		if c:IsA("GuiObject") then
 			c:Destroy()
 		end
@@ -4645,7 +4669,7 @@ function ClientFns.paintDailyCalendar(state)
 		layout cell is what blanked a skins tile once already, and at 6px
 		padding a 1.06 scale would have the neighbours touching.
 	]]
-	for _, d in ipairs(cal) do
+	for _, d in ipairs(same and {} or cal) do
 		local tile = mk("Frame", {
 			BackgroundColor3 = d.claimed and T.FACE_DIM or T.FACE,
 			Size = UDim2.fromOffset(80, 150), LayoutOrder = d.day, ZIndex = 27, Active = false,
@@ -4979,7 +5003,10 @@ function ClientFns.settings()
 		return ClientFns.settingsCtl
 	end
 	local ctl = {}
-	local W, H = 440, 564
+	-- 564 -> 620: FRIENDS and everything under it moved down 30 so the code
+	-- result (y 360) has its own line instead of printing on the FRIENDS
+	-- heading (launch audit S22), with room left under the last button.
+	local W, H = 440, 620
 	local frame = mk("Frame", {
 		Name = "SettingsPanel", Visible = false, Active = true,
 		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
@@ -5118,13 +5145,13 @@ function ClientFns.settings()
 	end
 
 	-- FRIENDS
-	label("FRIENDS", 13, MUTED, 356, 18, FONT)
+	label("FRIENDS", 13, MUTED, 386, 18, FONT)
 	local invite = mk("TextButton", {
 		Text = "INVITE FRIENDS", Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(14, 40, 20),
-		BackgroundColor3 = T.GREEN, Position = UDim2.fromOffset(22, 380), Size = UDim2.new(1, -44, 0, 40), ZIndex = 62,
+		BackgroundColor3 = T.GREEN, Position = UDim2.fromOffset(22, 410), Size = UDim2.new(1, -44, 0, 40), ZIndex = 62,
 	}, frame)
 	round(invite, 8)
-	label("A friend who joins from your invite gets a pack, and so do you.", 12, MUTED, 424, 18)
+	label("A friend who joins from your invite gets a pack, and so do you.", 12, MUTED, 454, 18)
 	invite.MouseButton1Click:Connect(function()
 		local social = game:GetService("SocialService")
 		local ok, can = pcall(function()
@@ -5140,10 +5167,10 @@ function ClientFns.settings()
 	end)
 
 	-- NOTIFICATIONS
-	label("NOTIFICATIONS", 13, MUTED, 458, 18, FONT)
+	label("NOTIFICATIONS", 13, MUTED, 488, 18, FONT)
 	local notify = mk("TextButton", {
 		Text = "NOTIFY ME", Font = FONT, TextSize = 16, TextColor3 = TEXT, BackgroundColor3 = T.CARD,
-		Position = UDim2.fromOffset(22, 482), Size = UDim2.new(1, -44, 0, 40), ZIndex = 62,
+		Position = UDim2.fromOffset(22, 512), Size = UDim2.new(1, -44, 0, 40), ZIndex = 62,
 	}, frame)
 	round(notify, 8)
 	stroke(notify, 1)
@@ -5164,7 +5191,7 @@ function ClientFns.settings()
 	-- STARTER BUNDLE, while it is on offer
 	local starter = mk("TextButton", {
 		Text = "", Font = FONT, TextSize = 16, TextColor3 = T.ON_GOLD, BackgroundColor3 = GOLD,
-		Position = UDim2.fromOffset(22, 536), Size = UDim2.new(1, -44, 0, 40), Visible = false, ZIndex = 62,
+		Position = UDim2.fromOffset(22, 566), Size = UDim2.new(1, -44, 0, 40), Visible = false, ZIndex = 62,
 	}, frame)
 	round(starter, 8)
 	starter.MouseButton1Click:Connect(function()
@@ -8250,14 +8277,33 @@ end
 	is out of the router, which no-ops on a key it does not know -- so the panel
 	is gone too rather than sitting unreachable with a fossil name on it.
 ]]
-refreshZones = function()
+--[[
+	`live` is the snapshot path (the map is already open). render() rebuilds the
+	whole map and selects `selectedZoneId`, so a snapshot used to throw away the
+	planet you had tapped and the scroll with it, up to ten times a second while
+	anything moved (launch audit S23). Now a snapshot rebuilds only when what the
+	planets themselves show changed (which zones you own), and keeps your pick.
+	Opening the map (no `live`) always rebuilds, on the zone you are in.
+]]
+refreshZones = function(live)
 	if not snap then
 		return
 	end
-	local gems = math.floor(tonumber(snap.gems) or 0)
+	local key = table.concat({ tostring(snap.maxUnlockedZone), tostring(snap.bigbangOwned),
+		tostring(snap.limitedActive), tostring(snap.hallowOwned) }, "|")
+	if live and ClientFns.mapKey == key then
+		return
+	end
+	ClientFns.mapKey = key
+	if not live then
+		ClientFns.mapSel = nil
+	end
 	local okMap, errMap = pcall(ZoneMapView.render, zoneP.Body, {
 		snap = snap,
-		selectedZoneId = snap.zoneId,
+		selectedZoneId = ClientFns.mapSel or snap.zoneId,
+		onSelect = function(zoneId)
+			ClientFns.mapSel = zoneId
+		end,
 		onCamp = function()
 			net:FireServer("camp")
 		end,
@@ -8266,9 +8312,11 @@ refreshZones = function()
 			zoneP.Visible = false
 		end,
 		onBuy = function(z)
+			-- Read now, not at render: the map no longer rebuilds per snapshot.
+			local gems = math.floor(tonumber(snap and snap.gems) or 0)
 			local cost = math.floor(tonumber(z.buyCost) or 0)
 			local needR = tonumber(z.minRebirth) or 0
-			if (tonumber(snap.prestige) or 0) < needR then
+			if (tonumber(snap and snap.prestige) or 0) < needR then
 				showToast("Need Rebirth " .. tostring(needR) .. "+")
 				return
 			end
@@ -9746,10 +9794,11 @@ local function refreshHud()
 	if not snap then
 		return
 	end
+	-- One currency on the coin pill: the one this zone pays (owner, 2026-10-19,
+	-- launch audit S21). "1.2K | 340 sp" ran off the pill once you owned space
+	-- coins; Event Horizon is the only zone that pays them (Dig.recountHaul).
 	if snap.zoneId == "bigbang" then
 		coinsL.Text = shortNum(snap.spaceCoins or 0) .. " sp"
-	elseif (snap.spaceCoins or 0) > 0 then
-		coinsL.Text = shortNum(snap.coins or 0) .. " | " .. shortNum(snap.spaceCoins or 0) .. " sp"
 	else
 		coinsL.Text = shortNum(snap.coins or 0)
 	end
@@ -11597,8 +11646,9 @@ function ClientFns.routePanel(name, tab)
 		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
 		if hubOpen then
 			hidePanels()
-			-- "forge" + "enchant": the tutorial's step, on Upgrades > ENCHANT.
-			hubOpen:Fire((name == "forge" and tab == "enchant") and "enchant" or "counter")
+			-- "forge" + "enchant": the tutorial's step 8, on Upgrades > ENCHANT.
+			-- "forge" + "craft": its step 3 (FORGE your first tool), on CRAFTING.
+			hubOpen:Fire((name == "forge" and (tab == "enchant" or tab == "craft")) and tab or "counter")
 			return
 		end
 		name = "shop"
@@ -12052,7 +12102,7 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if shopP and shopP.Visible then refreshShop() end
 		if mergeP and mergeP.Visible then refreshMerge() end
 		if dustP and dustP.Visible then refreshDust() end
-		if zoneP and zoneP.Visible then refreshZones() end
+		if zoneP and zoneP.Visible then refreshZones(true) end
 		if presP and presP.Visible then refreshPrestige() end
 		if enchantP and enchantP.Visible and refreshEnchanter then
 			refreshEnchanter()
@@ -12342,8 +12392,10 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 			dailySurprise.status.Text = "Got " .. tostring(payload.name or "pack") .. "!"
 			dailySurprise.status.TextColor3 = Color3.fromRGB(120, 255, 160)
 			dailySurprise.claimBtn.Text = "CLAIMED"
-			task.delay(1.2, dailySurprise.closePanel)
+			-- Stays up (X closes it), so the optional FAVORITE is not snatched
+			-- away a second after the claim.
 		else
+			dailySurprise.claimed = false
 			dailySurprise.claimBtn.Active = true
 			dailySurprise.claimBtn.Text = "CLAIM SURPRISE"
 		end
@@ -12616,30 +12668,16 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 				if you and you:IsA("TextLabel") then
 					local rankNum = info and info.rank
 					local val = (info and info.value) or 0
-					local rankTxt, rewardKey
+					local rankTxt
 					if rankNum then
 						rankTxt = "#" .. tostring(rankNum)
-						rewardKey = rankNum
 					elseif val > 0 then
 						rankTxt = "101-1000"
-						rewardKey = "101-1000"
 					else
 						rankTxt = "Unranked"
-						rewardKey = 0
 					end
-					local rewardTxt = "-"
-					if rewardKey == "101-1000" then
-						rewardTxt = "100 gems"
-					elseif type(rewardKey) == "number" and rewardKey > 0 then
-						if rewardKey == 1 then rewardTxt = "5,000 gems + Event pack"
-						elseif rewardKey == 2 then rewardTxt = "2,500 gems + Legendary pack"
-						elseif rewardKey == 3 then rewardTxt = "1,500 gems + Legendary pack"
-						elseif rewardKey <= 10 then rewardTxt = "750 gems + Rare pack"
-						elseif rewardKey <= 25 then rewardTxt = "400 gems"
-						elseif rewardKey <= 50 then rewardTxt = "250 gems"
-						elseif rewardKey <= 100 then rewardTxt = "150 gems"
-						else rewardTxt = "100 gems" end
-					end
+					-- No reward text after the rank: nothing pays a placement
+					-- (launch audit S39; LeaderboardService says the same).
 					local disp = player.DisplayName
 					if snap and snap.vip then
 						disp = (C.VIP_NAME_PREFIX or "[VIP] ") .. disp
@@ -12647,7 +12685,7 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 					you.TextColor3 = Color3.fromRGB(255, 245, 210)
 					you.Font = Enum.Font.GothamBold
 					you.TextSize = 15
-					you.Text = string.format("%s   %s   %s", disp, rankTxt, rewardTxt)
+					you.Text = string.format("%s   %s", disp, rankTxt)
 				end
 			end
 		end

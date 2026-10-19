@@ -892,38 +892,15 @@ local LOBBY_FACE = {
 	dust = { title = "STARDUST", sub = "all-time stardust" },
 }
 
--- Event season placement rewards (display on board; payout is separate).
-function LeaderboardService.rewardForRank(rank)
-	if rank == "101-1000" or rank == "101+" then
-		return "100 gems"
-	end
-	rank = tonumber(rank) or 0
-	if rank <= 0 then
-		return "—"
-	end
-	if rank == 1 then
-		return "5,000 gems + Event pack"
-	end
-	if rank == 2 then
-		return "2,500 gems + Legendary pack"
-	end
-	if rank == 3 then
-		return "1,500 gems + Legendary pack"
-	end
-	if rank <= 10 then
-		return "750 gems + Rare pack"
-	end
-	if rank <= 25 then
-		return "400 gems"
-	end
-	if rank <= 50 then
-		return "250 gems"
-	end
-	if rank <= 100 then
-		return "150 gems"
-	end
-	return "100 gems"
-end
+--[[
+	NO PLACEMENT REWARDS (owner, 2026-10-19, launch audit S39: remove the text).
+
+	rewardForRank used to return "5,000 gems + Event pack" down to "100 gems"
+	for every rank, and the board drew a "101+ Everyone else — 100 gems" row
+	under the top 100. Nothing ever paid any of it, so a board promising gems is
+	a board lying to kids. Both are gone; if placements ever pay, the payout and
+	its text arrive together.
+]]
 
 local function hideBigHeads(folder)
 	if not folder then
@@ -1054,15 +1031,6 @@ local function paintRankRow(list, row)
 	valL.Parent = cell
 end
 
-local function paintTailRow(list)
-	paintRankRow(list, {
-		rank = 101,
-		rankLabel = "101+",
-		name = "Everyone else",
-		valueText = "100 gems",
-	})
-end
-
 local function dressLobbyBoard(col, kind)
 	local board = col and col:FindFirstChild("Board")
 	if not (board and board:IsA("BasePart")) then
@@ -1183,13 +1151,10 @@ function paintBoardLists(folder)
 		if lay then
 			lay.SortOrder = Enum.SortOrder.LayoutOrder
 		end
-		-- Full 1–100 list (no podium skip). Rewards drawn on each row.
+		-- Full 1–100 list (no podium skip). No reward text: nothing pays a rank.
 		for i = 1, n do
-			local row = rows[i]
-			row.reward = LeaderboardService.rewardForRank(row.rank or i)
-			paintRankRow(list, row)
+			paintRankRow(list, rows[i])
 		end
-		paintTailRow(list)
 		local you = gui and gui:FindFirstChild("YouRow")
 		if you and you:IsA("TextLabel") then
 			you.TextColor3 = Color3.fromRGB(255, 245, 210)
