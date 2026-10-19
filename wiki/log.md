@@ -1519,3 +1519,14 @@ in Studio Edit, even old art in use. Pass ImageLabels instead, or use
 `AssetService`.
 
 Updated: tools, assets-and-uploads, next-up, log.
+
+## [2026-10-19] decision | Always stop a Play test when the check is done
+Owner: *"close it always, and tell wiki to alwsats close after playtest"*. It is
+now a row in [owner](owner.md)'s "How to work with them" table.
+
+The Play test it was asked for: the three pets that followed the player came out
+as cat, hound and hound, no longer fox (the fix in bc42333). Studio was not
+drawing 3D or taking clicks at the time, so no picture of them, the pass pet
+tiles or the fishing marker. Play was stopped straight after.
+
+Updated: owner, log.
