@@ -77,6 +77,12 @@ related: [server, luau-traps, ores, ore-pouch-and-backpack, tools, traits, retir
   `runes` and `scrolls` were collections too, until 2026-10-12 (see below).
 - **Progression:** `skillPresets`, `skillSlot`, `stats` (counters), `quest`,
   `dailyQuests`, `intro`, `pass`, `daily`
+- **The Halloween inventory** (Candy Crypt v2, 2026-10-19; [world-events](../systems/world-events.md)):
+  `halloween = { tools = { { uid, id, prestige, spent } }, tool, ores, team, charm,
+  seen, moved }`, plus `candy`, `hallowOwned`, `cryptToolWorld` and
+  `eventNoticeSeen`. Halloween pets stay in `cards` and Halloween charms in
+  `charms` (they belong to it by `MineCryptRules.isHalloweenItem`). It survives
+  rebirth (`KEEP_ON_REBIRTH` has `halloween`).
 - **Daily wheel:** `groupWheel = { day, used, paid, last }`. `day` is the UTC
   day index, and `used` counts free spins that day. A new day resets the count
   without a write. `paid` holds banked Robux spins. The field survives rebirth
@@ -106,6 +112,7 @@ A roster change needs an id→id map that keeps the old ids as aliases (TODO §9
 | **Fossils cash-out** | none (it clears the fields) | `retireFossils(p)` pays gems for pieces and tools, then toasts the player. Fossil verbs now only answer with a toast ([retired-and-parked](../systems/retired-and-parked.md)). |
 | **Legacy ore packs banked** | **none, on purpose** | `Dig.bankOrePacks(p)` turns each `<id>_ore_pack` into banked ore: the yield band's midpoint × the pack's stamped finder, capped by `MineConfig.ORE_PACK_FIND_CAP`. It only converts if the ore fits the pouch. Runs after the roster passes. |
 | Depth grandfathering | none (add-only) | `Dig.Depth.grantReachedSeams(p)` grants seams from `p.deepest` |
+| **Candy Crypt v1 retired, and the event-end move** (2026-10-19) | `halloween.moved` for the move; the rest runs every load | `MineCrypt.normalize`: drops v1's `cryptTools`, `cryptToolEquipped` and `candySeen` (kept as `halloween.seen`), the six crafted candy charms (`MineCharms.RETIRED_CANDY_CHARMS`, off the slot too), and moves candy ores from `p.ores` into the Halloween inventory while the event runs. **No refund** (the game is not open yet); a claimed save gets the Candy Corn Pick back. Once the event has ended it moves the Halloween inventory into the main one, once. |
 
 There are a few more lazy one-offs: the 70-tool table in `equippedTool`, and the
 legacy single temper moving into slot 1 when a temper is rolled.

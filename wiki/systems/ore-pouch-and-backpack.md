@@ -2,7 +2,7 @@
 title: Ore pouch and backpack
 type: system
 status: current
-verified: 2026-10-19 @ db59c60
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOrePouch.luau
   - src/ReplicatedStorage/Mine/Shared/MineOrePouchView.luau
@@ -57,14 +57,17 @@ related: [ores, forge-and-recycling, currencies-and-economy, rebirth-and-skill-t
   Legendary, Everything; a band and everything below it). A valid one is
   remembered in `p.settings.oreSellUpTo`; no `upTo` means Everything, what SELL
   ALL always did. `confirmSellAll` now also carries `upTo` and `candyUnits`.
-- **Candy ores live here too** (2026-10-19). A Candy Crypt candy block drops one
-  unit of its candy ore (`MineConfig.CANDY_ORES`) into `p.ores`
-  (`MineCrypt.addCandyOre`, room-checked, never into `oresSeen`). They have a band
-  for display (two per band) but never sell for gems; they sell for **candy**
-  through `cryptSellCandyOres` (ticked ores, or `all = true`, which skips locked
-  ones; same ask-then-confirm round trip, `cryptSellCandyConfirm`) and craft the
-  Halloween charms. `MineOrePouch.rows(..., { includeCandy = true })` lists them
-  with `candy = true` and `candyUnit`.
+- **Candy ores** (Candy Crypt v2, 2026-10-19). A Candy Crypt candy block drops its
+  candy ore's fixed amount (`MineConfig.CANDY_ORES`, `drop`) into the
+  **Halloween inventory** while the event runs (`p.halloween.ores`,
+  `MineCrypt.addCandyOre`, never into `oresSeen`), and they **move into
+  `p.ores` when the event ends**. In `p.ores` they **take no pouch room**
+  (`MineOrePouch.held` skips them), have a band for display (two per band) and
+  never sell for gems; they sell for **candy** through `cryptSellCandyOres`
+  (from wherever they live; ticked ores, or `all = true`, which skips locked
+  ones; same ask-then-confirm round trip, `cryptSellCandyConfirm`) and craft and
+  prestige the Halloween tools. `MineOrePouch.rows(..., { includeCandy = true })`
+  lists the ones in `p.ores` with `candy = true` and `candyUnit`.
 - **Upgrade with gems** through `Verbs.upgradeOrePouch`. `upgradeCost(n) =
   capacity(n) × gemValue(rungOre(n)) × RUNG_COST_SHARE 0.75`. The price is
   derived, not authored: it is three quarters of a full pouch of the ore you

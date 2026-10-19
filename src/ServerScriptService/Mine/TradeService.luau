@@ -64,6 +64,32 @@ local CURRENCY_ORDER = { "gems", "dust", "tokens" }
 local KINDS = { "cards", "packs", "gear", "potions" }
 local KIND_OK = { cards = true, packs = true, gear = true, potions = true }
 
+--[[
+	HALLOWEEN ITEMS DO NOT TRADE WHILE THE CANDY CRYPT RUNS (owner, 2026-10-19:
+	"Halloween tools and candy ores can't be traded during the event; tradable
+	once it ends", and the Halloween inventory's items with them). MineCrypt's
+	tradeLocked decides; this asks it for every card (a Halloween pet) and pack
+	the table would carry, when it is offered, shown and committed. Ores, tools
+	and charms have no trade kind here at all. Looked up once, lazily, and a
+	missing or broken MineCrypt locks nothing.
+]]
+local cryptMod = nil
+local function tradeLocked(p, kind, item)
+	if cryptMod == nil then
+		local ok, m = pcall(function()
+			local node = script.Parent:FindFirstChild("MineCrypt")
+			return node and require(node) or nil
+		end)
+		cryptMod = (ok and type(m) == "table") and m or false
+	end
+	if not cryptMod or type(cryptMod.tradeLocked) ~= "function" then
+		return false
+	end
+	local ok, locked = pcall(cryptMod.tradeLocked, p, kind, item)
+	return ok and locked == true
+end
+TradeService.LOCKED_TEXT = "Halloween items can be traded once the Candy Crypt closes"
+
 local sessions = {} -- [sessionId] = session
 local byPlayer = {} -- [userId] = sessionId
 local invites = {} -- [toUserId] = { from = userId, at = os.clock() }
@@ -417,25 +443,35 @@ function TradeService.setOffer(net, profiles, plr, offer, deps)
 	for _, k in ipairs(CURRENCY_ORDER) do
 		clean[k] = math.clamp(math.floor(tonumber(offer[k]) or 0), 0, balance(p, k))
 	end
+	local halloween = false
 	for _, serial in ipairs(type(offer.cards) == "table" and offer.cards or {}) do
 		if type(serial) == "string" and not seen["c" .. serial] and room() then
 			local _, c = findCard(p, serial)
 			-- Only cards the registry knows can move; anything else would be
 			-- deleted by the anti-dupe check on the other side.
 			if c and (not deps.isCardSerial or deps.isCardSerial(serial)) then
-				seen["c" .. serial] = true
-				table.insert(clean.cards, serial)
+				if tradeLocked(p, "cards", c) then
+					halloween = true
+				else
+					seen["c" .. serial] = true
+					table.insert(clean.cards, serial)
+				end
 			end
 		end
 	end
 	for _, uid in ipairs(type(offer.packs) == "table" and offer.packs or {}) do
 		if type(uid) == "string" and not seen["p" .. uid] and room() then
 			local _, pk = findBy(p.packs, "uid", uid)
-			if pk then
+			if pk and tradeLocked(p, "packs", pk) then
+				halloween = true
+			elseif pk then
 				seen["p" .. uid] = true
 				table.insert(clean.packs, uid)
 			end
 		end
+	end
+	if halloween then
+		toast(net, plr, TradeService.LOCKED_TEXT)
 	end
 	for _, id in ipairs(type(offer.gear) == "table" and offer.gear or {}) do
 		if type(id) == "string" and not seen["g" .. id] and room() then
@@ -559,13 +595,14 @@ function TradeService.peek(net, profiles, plr, deps)
 	local left = TradeService.PEEK_MAX
 	for _, c in ipairs(p.cards or {}) do
 		local serial = type(c) == "table" and (c.serial or c.id)
-		if left > 0 and type(serial) == "string" and (not deps.isCardSerial or deps.isCardSerial(serial)) then
+		if left > 0 and type(serial) == "string" and (not deps.isCardSerial or deps.isCardSerial(serial))
+			and not tradeLocked(p, "cards", c) then
 			table.insert(out.cards, c)
 			left -= 1
 		end
 	end
 	for _, pk in ipairs(p.packs or {}) do
-		if left > 0 and type(pk) == "table" and pk.uid then
+		if left > 0 and type(pk) == "table" and pk.uid and not tradeLocked(p, "packs", pk) then
 			table.insert(out.packs, pk)
 			left -= 1
 		end
@@ -615,11 +652,14 @@ local function gather(p, o, deps)
 	for _, serial in ipairs(o.cards) do
 		local _, c = findCard(p, serial)
 		if not c then return nil, "a card is no longer there" end
+		-- Asked again at commit: the event can start between offer and confirm.
+		if tradeLocked(p, "cards", c) then return nil, "Halloween pets trade once the Candy Crypt closes" end
 		table.insert(items.cards, c)
 	end
 	for _, uid in ipairs(o.packs) do
 		local _, pk = findBy(p.packs, "uid", uid)
 		if not pk then return nil, "a pack is no longer there" end
+		if tradeLocked(p, "packs", pk) then return nil, "Halloween items trade once the Candy Crypt closes" end
 		table.insert(items.packs, pk)
 	end
 	for _, id in ipairs(o.gear) do

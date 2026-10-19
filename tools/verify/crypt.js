@@ -1,55 +1,66 @@
-// THE CANDY CRYPT, REDESIGNED (owner, 2026-10-19; wiki/open-questions.md §0e).
+// THE CANDY CRYPT v2 (owner, 2026-10-19; wiki/open-questions.md "Candy Crypt
+// v2, and the main-game changes it brings"), server and shared half.
 //
-// Runs the REAL shared modules -- MineConfig, MineDepth, MineCandyTools,
-// MineTrickOrTreat, MineCryptRules, MineCharms, MineOrePouch, MineSpaceMatter,
-// MineBreaking, MineOreTools and the rest of their require tree -- and the real
-// server module MineCrypt, in luau, on a small Roblox stub. Nothing about the
-// Crypt is re-derived in JS: the numbers below come out of the modules.
+// Runs the REAL shared modules -- MineConfig, MineCandyTools, MineCryptChests,
+// MineTrickOrTreat, MineCryptRules, MineCharms, MineToolSkins, MineSkins,
+// MineOrePouch, MineSpaceMatter, MineBreaking, MineOreTools and the rest of
+// their require tree -- and the real server module MineCrypt, in luau, on the
+// Crypt harness (tools/verify/_crypt.js). Nothing is re-derived in JS.
 //
-// What it pins, in the order the build spec lists them:
-//   tool gating     only Crypt tools spend Crypt rock; Crypt tools spend no
-//                   other rock during the event; Event Horizon's two pools are
-//                   unchanged; the swap rule (MineCryptRules.heldRow)
-//   drop tables     Trick-or-Treat 85 / 5 / 7 / 2.9 / 0.1 with no candy back,
-//                   the case's tool tiers, the chest's banded tool roll
-//   candy 3x        every candy block pays 3x the 2026-10-10 amount
-//   HP curve        zone 3 hardness at the top, zone 10 at the bottom, and the
-//                   coin value kept on the old low curve
-//   candy ores      sixteen, the four new ones in by value, two per band
-//   merge ladder    3 x (tool, variant) -> 1 x next variant, pets' multipliers
-//   keep-after-event  tools stay; main-world use only once the Crypt has
-//                   closed, weaker than in the event
-//   charm recipes   six Halloween charms, deeper ore -> better grade
-//   pouch           SELL ALL never sells locked or candy ores; "sell up to"
-//   wiring          the MineServer hooks exist where the build spec says
+// What it pins, in the build spec's order:
+//   1 candy only     no normal ore spawns in the Crypt; every other block is
+//                    candy; the 20-minute reset and zone 3 -> 10 rock stay
+//   2 candy ores     sixteen, two per rarity; a fixed drop per ore; the odds
+//                    shift every ten layers and the Exotic pair stays capped
+//   3 candy          flat per ore, the same at every depth, about a quarter
+//                    of the block's ore-drop value; sold from the Halloween
+//                    inventory
+//   4 chests         eight ranks, rarer rarer and more common deeper; packs,
+//                    flat candy, the rank's charm at 0.5% x Chest Luck, books
+//   5 Trick-or-Treat pets and skins only; the 50/50; one push
+//   6 tools          crafted from candy ores, never dropped; prestige 1-10;
+//                    damage at every prestige; the cap of ten; scrap pays half
+//                    in candy; each tool's Halloween-skin factor; the top tool
+//                    at prestige 10 is the best normal tool at the top level
+//   7 inventory      the Halloween inventory, its own team and charm slot,
+//                    what counts in the Crypt, and the event-end move
+//   8 trading        tradeLocked, and TradeService asking it
+//   9 v1 retired     merge, chest/case tools, the six crafted charms
+//   + the MineServer hooks the build spec names
 //
 // Needs the luau binary (bash tools/verify/syntax.sh fetches it).
 //
 //   node tools/verify/crypt.js
+//   node tools/verify/crypt.js --root <path to another checkout>   (proves it bites)
 "use strict";
 const fs = require("fs");
 const path = require("path");
-const { execFileSync } = require("child_process");
-const Luau = require("./_luau");
+const H = require("./_crypt");
+const Luau = H.Luau;
 
-const ROOT = path.resolve(__dirname, "../..");
+const argRoot = (() => {
+  const i = process.argv.indexOf("--root");
+  return i > 0 && process.argv[i + 1] ? path.resolve(process.argv[i + 1]) : null;
+})();
+const ROOT = argRoot || H.ROOT;
 const SH = path.join(ROOT, "src/ReplicatedStorage/Mine/Shared");
 const SV = path.join(ROOT, "src/ServerScriptService/Mine");
-const read = (p) => Luau.readSrc(p);
+const read = (p) => (fs.existsSync(p) ? Luau.readSrc(p) : "");
 
 let fail = 0;
 const check = (ok, msg, detail) => {
   console.log((ok ? "  ok    " : "  FAIL  ") + msg + (detail ? "   " + detail : ""));
   if (!ok) fail++;
 };
-const strip = (s) => s.replace(/--\[\[[\s\S]*?\]\]/g, "").replace(/--[^\n]*/g, "");
+const strip = (s) => s.replace(/--\[(=*)\[[\s\S]*?\]\1\]/g, "").replace(/--[^\n]*/g, "");
 
-console.log("crypt: the Candy Crypt redesign -- rules, drops, gating, merge, keep-after-event");
+console.log("crypt: the Candy Crypt v2 -- candy, ores, chests, case, tools, Halloween inventory, trading"
+  + (argRoot ? `   (root ${argRoot})` : ""));
 
 // ------------------------------------------------------------ static wiring --
 const srv = strip(read(path.join(SV, "MineServer.server.luau")));
-const bodyOf = (name) => {
-  const lines = srv.split("\n");
+const bodyOf = (src, name) => {
+  const lines = src.split("\n");
   const re = new RegExp("^(local )?function " + name.replace(/\./g, "\\.") + "\\s*\\(");
   const i = lines.findIndex((l) => re.test(l));
   if (i < 0) return "";
@@ -57,51 +68,80 @@ const bodyOf = (name) => {
   return "";
 };
 {
-  const bz = bodyOf("buyZone");
-  check(/C\.limitedActive\(zone\.id\)/.test(bz) && /zone\.ownedFlag/.test(bz),
-    "buyZone claims a limited zone on ITS window and ITS flag (audit M2)");
-  check(!/^\s*p\.bigbangOwned = true/m.test(bz),
-    "buyZone no longer sets bigbangOwned for whatever zone was claimed");
-  check(/Verbs\.Crypt\.onClaim\(/.test(bz), "claiming the Crypt in buyZone grants the starter pick");
-  const ez = bodyOf("enterZone");
+  const bz = bodyOf(srv, "buyZone");
+  check(/C\.limitedActive\(zone\.id\)/.test(bz) && /zone\.ownedFlag/.test(bz) && /Verbs\.Crypt\.onClaim\(/.test(bz),
+    "buyZone claims the Crypt on its own window and flag, and hands over the starter pick");
+  const ez = bodyOf(srv, "enterZone");
   check(/Dig\.Crypt\.onClaim\(/.test(ez) && /Dig\.Crypt\.onEnterZone\(/.test(ez),
     "enterZone grants the starter on a free claim and re-gives the hands on entry");
-  // The held-tool chain lives in Dig.toolInHand; equippedTool is that plus the
-  // worn skin (Dig.wearSkin), so the Crypt swap must sit in toolInHand and
-  // equippedTool must still go through it.
-  const th = bodyOf("Dig.toolInHand");
+  const th = bodyOf(srv, "Dig.toolInHand");
   const ehAt = th.indexOf('p.zoneId == "bigbang"');
   const crAt = th.indexOf("Dig.Crypt.heldTool(p)");
-  check(ehAt > -1 && crAt > ehAt, "the held tool swaps in the Crypt tool, after Event Horizon's own branch");
-  check(/Dig\.toolInHand\(p\)/.test(bodyOf("equippedTool")), "...and equippedTool still reads the held tool through it");
+  check(ehAt > -1 && crAt > ehAt, "the held tool swaps in the Halloween tool, after Event Horizon's own branch");
+  check(/Dig\.wearSkin\(p, row, fam\)/.test(bodyOf(srv, "equippedTool")),
+    "equippedTool wears the skin on whatever is held (the Halloween factor rides MineToolSkins.wear)");
   for (const fn of ["swingBlock", "swingNeighbour"]) {
-    check(/if zone and zone\.noStrengthGate then\s+okBreak = true/.test(bodyOf(fn)),
+    check(/if zone and zone\.noStrengthGate then\s+okBreak = true/.test(bodyOf(srv, fn)),
       fn + " honours the zone's noStrengthGate (the Crypt's HP is its gate)");
   }
-  check(/zoneId == "hallow" and Dig\.Crypt[\s\S]{0,80}Dig\.Crypt\.haulPoints\(/.test(bodyOf("payDamage")),
+  check(/zoneId == "hallow" and Dig\.Crypt[\s\S]{0,80}Dig\.Crypt\.haulPoints\(/.test(bodyOf(srv, "payDamage")),
     "payDamage pays the Crypt's haul on the old low curve");
-  const fb = bodyOf("finishBreak");
+  const fb = bodyOf(srv, "finishBreak");
   const candyAt = fb.indexOf("Dig.Crypt.onBlockBroken(");
   const oreAt = fb.indexOf('if kind == "ore" then');
   check(candyAt > -1 && oreAt > candyAt, "a candy block pays OUTSIDE the ore branch (any kind of block)");
-  check(!/GetAttribute\("Candy"\)\)\s*\n\s*if candyGot/.test(fb), "the old ore-only candy payout is gone (no double pay)");
-  check(/GetAttribute\("ZoneId"\) == "hallow"[\s\S]{0,60}Dig\.Crypt\.openChest\(/.test(bodyOf("openChestBlock")),
+  check(/GetAttribute\("ZoneId"\) == "hallow"[\s\S]{0,60}Dig\.Crypt\.openChest\(/.test(bodyOf(srv, "openChestBlock")),
     "a Crypt chest opens through MineCrypt");
-  check(/part:SetAttribute\("Candy", C\.candyFor\(cdef, y\)\)/.test(bodyOf("spawnVoxel")),
-    "spawnVoxel banks candy through MineConfig.candyFor (3x)");
+  const sv = bodyOf(srv, "spawnVoxel");
+  check(/part:SetAttribute\("Candy", C\.candyFor\(cdef, y\)\)/.test(sv) && /C\.CANDY_ORE_SHARE/.test(sv)
+    && /Dig\.Crypt\.chestSpawnDef\(y\)/.test(sv),
+    "spawnVoxel banks the flat candy (MineConfig.candyFor), reads CANDY_ORE_SHARE, and asks MineCrypt which chest");
   check(/string\.sub\(action, 1, 5\) == "crypt"[\s\S]{0,120}Verbs\.Crypt\.dispatch\(/.test(srv),
     "every \"crypt*\" action dispatches to MineCrypt");
-  check(/crypt = Dig\.Crypt and Dig\.Crypt\.snapState\(p\)/.test(srv) && /limitedOpen = \(function\(\)/.test(srv),
-    "the snapshot carries the crypt block and every limited zone's own open state");
-  const sa = bodyOf("Verbs.sellAllOres");
-  check(/Pouch\.sellAllPlan\(p\.ores, p\.oreLocks, upTo\)/.test(sa) && /oreSellUpTo/.test(sa),
-    "SELL ALL takes and remembers a sell-up-to ceiling");
-  check(/Verbs\.Crypt\.buyTrickOrTreat\(plr\)/.test(bodyOf("Verbs.buyTrickOrTreat")),
+  check(/crypt = Dig\.Crypt and Dig\.Crypt\.snapState\(p\)/.test(srv), "the snapshot carries the crypt block");
+  check(/Verbs\.Crypt\.buyTrickOrTreat\(plr\)/.test(bodyOf(srv, "Verbs.buyTrickOrTreat")),
     "the Trick-or-Treat verb is served by MineCrypt");
-  const map = strip(read(path.join(SH, "MineZoneMapView.luau")));
-  const fx = strip(read(path.join(SH, "MinePortalFX.luau")));
-  check(/zone\.ownedFlag/.test(map) && /limitedOpen/.test(map) && /zone\.ownedFlag/.test(fx) && /limitedOpen/.test(fx),
-    "Planets Travel and the portals read each limited zone's own flag and window");
+  // 7: what counts where you stand.
+  check(/Dig\.Crypt and Dig\.Crypt\.petTeam\(p\)/.test(bodyOf(srv, "Dig.petRows")),
+    "the pets boosts() stacks are MineCrypt.petTeam's (only Halloween pets count in the Crypt)");
+  const bo = bodyOf(srv, "boosts");
+  check(/local n = #\(\(Dig\.Crypt and Dig\.Crypt\.petTeam\(p\)\) or p\.equipped or \{\}\)/.test(bo),
+    "...and so is the team size boosts() hands to each pet");
+  check(/worn = Dig\.Crypt\.charmFor\(p\)[\s\S]{0,80}Charms\.applyEquipped\(b, worn, p\)/.test(bo)
+    && !/Charms\.applyEquipped\(b, p\.equippedCharm, p\)/.test(bo),
+    "the charm boosts() applies is MineCrypt.charmFor's (a Halloween charm in the Crypt)");
+  check(/Dig\.Crypt\.mainTeamRefuses\(p, id\)/.test(bodyOf(srv, "equip")),
+    "the main team's equip refuses a Halloween pet while the event runs");
+  check(/grantPet = function\(plr, p, pet, setKey\)[\s\S]{0,400}mint\(SetPacks\.petCard\(pet, setKey, setName\), plr\.UserId\)/.test(srv),
+    "MineCrypt is handed the real pet mint (a Trick-or-Treat pet is a registered card)");
+  const keep = (srv.match(/Verbs\.KEEP_ON_REBIRTH = \{[\s\S]*?\n\}/) || [""])[0];
+  check(/"halloween"/.test(keep) && !/"cryptTools"/.test(keep), "a rebirth keeps the Halloween inventory (and no v1 field)");
+}
+{
+  // 8: TradeService asks MineCrypt at offer, peek and commit.
+  const ts = strip(read(path.join(SV, "TradeService.luau")));
+  const setOffer = ts.slice(ts.indexOf("function TradeService.setOffer"), ts.indexOf("function TradeService.setMode"));
+  const peek = ts.slice(ts.indexOf("function TradeService.peek"), ts.indexOf("local function removeRows"));
+  const gather = bodyOf(ts, "gather");
+  check(/cryptMod\.tradeLocked/.test(ts) && /FindFirstChild\("MineCrypt"\)/.test(ts),
+    "TradeService looks MineCrypt.tradeLocked up (lazily; a missing module locks nothing)");
+  check(/tradeLocked\(p, "cards", c\)/.test(setOffer) && /tradeLocked\(p, "packs", pk\)/.test(setOffer),
+    "an offer drops locked cards and packs");
+  check(/tradeLocked\(p, "cards", c\)/.test(peek), "browsing the other bag does not show their locked pets");
+  check(/tradeLocked\(p, "cards", c\)/.test(gather), "and the commit asks again (the event can start mid-trade)");
+}
+{
+  // 9: v1 retired in the source.
+  const charms = strip(read(path.join(SH, "MineCharms.luau")));
+  check(!/function MineCharms\.candyCharms/.test(charms) && !/function MineCharms\.recipeFor/.test(charms)
+    && !/MineCharms\.CANDY_CHARMS = \{/.test(charms) && /MineCharms\.RETIRED_CANDY_CHARMS = \{/.test(charms),
+    "the six crafted candy charms are gone from MineCharms (their ids listed for the load clean-up)");
+  const crypt = strip(read(path.join(SV, "MineCrypt.luau")));
+  check(!/VERBS\.cryptMerge/.test(crypt) && !/VERBS\.cryptCraftCharm/.test(crypt),
+    "no merge verb and no charm crafting");
+  const tools = strip(read(path.join(SH, "MineCandyTools.luau")));
+  check(tools.length > 0 && !/rollChestTool|rollCaseTool|CHEST_TOOL_CHANCE/.test(tools),
+    "Halloween tools never drop: no chest or case tool roll is left");
 }
 
 if (!Luau.ready) {
@@ -111,739 +151,741 @@ if (!Luau.ready) {
 }
 
 // --------------------------------------------------------------- the luau half --
-const MODULES = {
-  MineConfig: path.join(SH, "MineConfig.luau"),
-  MineDepth: path.join(SH, "MineDepth.luau"),
-  MineBags: path.join(SH, "MineBags.luau"),
-  MineBagNames: path.join(SH, "MineBagNames.luau"),
-  MineShopEconomy: path.join(SH, "MineShopEconomy.luau"),
-  MineLaunch: path.join(SH, "MineLaunch.luau"),
-  MineTools: path.join(SH, "MineTools.luau"),
-  MineOreTools: path.join(SH, "MineOreTools.luau"),
-  MineBreaking: path.join(SH, "MineBreaking.luau"),
-  MineStats: path.join(SH, "MineStats.luau"),
-  MineTemper: path.join(SH, "MineTemper.luau"),
-  MineCharms: path.join(SH, "MineCharms.luau"),
-  MineOrePouch: path.join(SH, "MineOrePouch.luau"),
-  MineSpaceMatter: path.join(SH, "MineSpaceMatter.luau"),
-  MineCandyTools: path.join(SH, "MineCandyTools.luau"),
-  MineTrickOrTreat: path.join(SH, "MineTrickOrTreat.luau"),
-  MineCryptRules: path.join(SH, "MineCryptRules.luau"),
-  MineCrypt: path.join(SV, "MineCrypt.luau"),
-};
-const factories = Object.entries(MODULES).map(([name, file]) =>
-  `FACTORY[${JSON.stringify(name)}] = function()\n` +
-  `\tlocal script = { Name = ${JSON.stringify(name)}, Parent = ${name === "MineCrypt" ? "SERVERDIR" : "SHARED"} }\n` +
-  read(file) + "\nend\n").join("\n");
-
-const prelude = `
--- ------------------------------------------------------------ roblox stub --
-local V3 = {}
-V3.__index = V3
-Vector3 = {}
-function Vector3.new(x, y, z)
-	return setmetatable({ X = x or 0, Y = y or 0, Z = z or 0 }, V3)
-end
-V3.__add = function(a, b) return Vector3.new(a.X + b.X, a.Y + b.Y, a.Z + b.Z) end
-V3.__sub = function(a, b) return Vector3.new(a.X - b.X, a.Y - b.Y, a.Z - b.Z) end
-V3.__mul = function(a, b)
-	if type(a) == "number" then return Vector3.new(b.X * a, b.Y * a, b.Z * a) end
-	if type(b) == "number" then return Vector3.new(a.X * b, a.Y * b, a.Z * b) end
-	return Vector3.new(a.X * b.X, a.Y * b.Y, a.Z * b.Z)
-end
-V3.__div = function(a, b) return Vector3.new(a.X / b, a.Y / b, a.Z / b) end
-V3.__unm = function(a) return Vector3.new(-a.X, -a.Y, -a.Z) end
-Vector3.zero = Vector3.new(0, 0, 0)
-Vector3.one = Vector3.new(1, 1, 1)
-Vector2 = { new = function(x, y) return { X = x or 0, Y = y or 0 } end }
-local function c3(r, g, b) return { R = r or 0, G = g or 0, B = b or 0, Lerp = function(self) return self end } end
-Color3 = {
-	fromRGB = function(r, g, b) return c3((r or 0) / 255, (g or 0) / 255, (b or 0) / 255) end,
-	new = function(r, g, b) return c3(r, g, b) end,
-	fromHSV = function(h, s, v) return c3(v, v, v) end,
-	fromHex = function() return c3(1, 1, 1) end,
-}
-local any = setmetatable({}, { __index = function() return function() return {} end end })
-CFrame = setmetatable({ new = function() return {} end }, { __index = function() return function() return {} end end })
-UDim2 = any
-UDim = any
-NumberRange = any
-NumberSequence = any
-NumberSequenceKeypoint = any
-ColorSequence = any
-ColorSequenceKeypoint = any
-TweenInfo = any
-Font = any
-local enumCache = {}
-Enum = setmetatable({}, { __index = function(_, k)
-	local t = enumCache[k]
-	if not t then
-		t = setmetatable({}, { __index = function(_, k2) return { Name = k2, EnumType = k } end })
-		enumCache[k] = t
-	end
-	return t
-end })
--- A seeded generator, so every roll below is the same on every run.
-Random = {}
-Random.__index = Random
-local seedCounter = 977
-function Random.new(seed)
-	seedCounter += 7919
-	return setmetatable({ s = ((seed or seedCounter) % 2147483646) + 1 }, Random)
-end
-function Random:NextNumber(a, b)
-	self.s = (self.s * 48271) % 2147483647
-	local u = self.s / 2147483647
-	if a and b then return a + (b - a) * u end
-	return u
-end
-function Random:NextInteger(a, b)
-	return a + math.floor(self:NextNumber() * (b - a + 1))
-end
-warn = function(...) end
-task = { wait = function() end, spawn = function(f, ...) end, delay = function() end, defer = function() end }
-typeof = typeof or function(v) return type(v) end
-
-local FACTORY, LOADED = {}, {}
-local function inst(name)
-	return { Name = name, WaitForChild = function(_, n) return inst(n) end, FindFirstChild = function(_, n)
-		if FACTORY[n] then return inst(n) end
-		return nil
-	end, Clone = function(self) return inst(self.Name) end, Destroy = function() end }
-end
-SHARED = inst("Shared")
-SERVERDIR = inst("Mine")
-local MINE = { Name = "Mine", WaitForChild = function() return SHARED end, FindFirstChild = function() return SHARED end }
-local RS = { Name = "ReplicatedStorage", WaitForChild = function() return MINE end, FindFirstChild = function() return MINE end }
-local guid = 0
-local SERVICES = {
-	ReplicatedStorage = RS,
-	RunService = { IsStudio = function() return false end, IsServer = function() return true end, IsClient = function() return false end },
-	ServerStorage = { FindFirstChild = function() return nil end, WaitForChild = function(_, n) return inst(n) end },
-	HttpService = {
-		GenerateGUID = function()
-			guid += 1
-			return string.format("%08x-0000-0000-0000-%012x", guid, guid)
-		end,
-		JSONEncode = function() return "{}" end,
-	},
-}
-game = { GetService = function(_, n) return SERVICES[n] or any end }
-workspace = { FindFirstChild = function() return nil end, GetServerTimeNow = function() return os.time() end }
-
-function require(t)
-	local n = type(t) == "table" and t.Name or tostring(t)
-	if LOADED[n] ~= nil then return LOADED[n] end
-	local f = FACTORY[n]
-	if not f then error("no module " .. tostring(n)) end
-	local m = f()
-	LOADED[n] = m
-	return m
-end
-
--- Lazily required, stubbed: the pack table (the case's pack slot) and gear.
-FACTORY.MinePackConfig = function()
-	return { PACK_BY_ID = { halloween_2026 = { id = "halloween_2026", name = "Halloween 2026 Pack", setKey = "halloween_2026" } } }
-end
-FACTORY.MineGear = function()
-	return { rollPiece = function(id, rng, slot) return { id = id, name = "Test Hat", slot = slot } end }
-end
-FACTORY.MineIcons = function() return {} end
-`;
-
 const body = `
 local fails = 0
 local function check(cond, name, detail)
-	print((cond and "  ok    " or "  FAIL  ") .. name .. (detail and ("   " .. tostring(detail)) or ""))
+	print((cond and "  ok    " or "  FAIL  ") .. name .. (detail ~= nil and ("   " .. tostring(detail)) or ""))
 	if not cond then fails += 1 end
 end
 local function near(a, b, tol) return math.abs(a - b) <= tol end
+local function try(label, fn)
+	local ok, err = pcall(fn)
+	if not ok then check(false, label .. " ran to the end", tostring(err)) end
+end
 
 local C = require("MineConfig")
 local Depth = require("MineDepth")
 local Breaking = require("MineBreaking")
 local OreTools = require("MineOreTools")
 local Tools = require("MineCandyTools")
+local Chests = require("MineCryptChests")
 local TT = require("MineTrickOrTreat")
 local Charms = require("MineCharms")
 local Pouch = require("MineOrePouch")
 local Matter = require("MineSpaceMatter")
+local Skins = require("MineSkins")
+local ToolSkins = require("MineToolSkins")
+local E = require("MineEnchants")
 local R = require("MineCryptRules")
 local S = require("MineCrypt")
-local Temper = require("MineTemper")
-
--- ------------------------------------------------------------ HP curve --
-print("")
 local N = C.CANDY_DEPTH_LAYERS
-check(C.cryptRockHp(1) == Depth.dirtHp(3, 1), "the Crypt's top rock is zone 3's", C.cryptRockHp(1))
-check(C.cryptRockHp(N) == Depth.dirtHp(10, 1), "its bottom rock (layer " .. N .. ") is zone 10's", C.cryptRockHp(N))
-do
-	local mono, smooth = true, true
-	local last = 0
-	for l = 1, N + 60 do
-		local hp = C.cryptRockHp(l)
-		if hp <= last then mono = false end
-		if last > 0 and hp / last > 1.2 then smooth = false end
-		last = hp
-	end
-	check(mono, "rock hardens every layer, past the bottom too")
-	check(smooth, "...smoothly (no step over 20% between two layers)")
-end
-check(C.blockHp("dirt", "hallow", 40) == C.cryptRockHp(40) and C.blockHp("chest", "hallow", 40) == C.cryptRockHp(40) * C.CHEST_HP_MULT,
-	"blockHp reads the Crypt curve for rock and chests")
-check(C.cryptSellHp(1) == 1 and C.cryptSellHp(N) == 3 ^ 11, "the coin value keeps the OLD curve: 1 at the top, 3^11 at the bottom",
-	C.cryptSellHp(N))
-do
-	local worst = 0
-	for l = 1, N do
-		local paid = C.cryptRockHp(l) * C.cryptHaulRatio(l)
-		worst = math.max(worst, math.abs(paid - C.cryptSellHp(l)) / C.cryptSellHp(l))
-		if C.cryptHaulRatio(l) > 1 then worst = math.huge end
-	end
-	check(worst < 1e-9, "a whole Crypt block pays its old-curve coins (haul ratio x HP)")
-end
-do
-	local carry = {}
-	local paid = 0
-	for _ = 1, C.cryptRockHp(1) do
-		paid += S.haulPoints(carry, 1, 1)
-	end
-	check(paid == C.cryptSellHp(1), "the haul carries fractions: 538 one-point hits at layer 1 still pay 1 coin", paid)
-end
-check(near(C.oreDifficulty("hallow", 90), math.log(math.max(20, C.cryptSellHp(90)) / 20) / math.log(6), 1e-12),
-	"the Crypt's normal-ore mix reads the old curve, not the harder rock")
-
--- ------------------------------------------------------------ candy ores --
-print("")
 local CO = C.CANDY_ORES
-check(#CO == 16, "sixteen candy ores", #CO)
-local want = { pop_rocks = true, milk_chocolate = true, white_chocolate = true, cotton_candy = true }
-local found, rising, ids, mats = 0, true, {}, true
-for i, o in ipairs(CO) do
-	if want[o.id] then found += 1 end
-	if i > 1 and o.candy <= CO[i - 1].candy then rising = false end
-	if ids[o.id] then rising = false end
-	ids[o.id] = true
-	if not (o.color and o.material and o.name) then mats = false end
-end
-check(found == 4, "Pop Rocks, Milk Chocolate, White Chocolate and Cotton Candy are in")
-check(rising, "the ladder is in value order (and ids are unique)")
-check(mats, "every candy ore has a name, colour and material")
-do
-	local even, bands = true, {}
-	for i, o in ipairs(CO) do
-		if not near(o.at, (i - 1) / 15, 1e-9) then even = false end
-		bands[o.band] = (bands[o.band] or 0) + 1
-		if o.rank ~= i or C.candyOreById(o.id) ~= o then even = false end
-	end
-	local two = true
-	for _, b in ipairs(C.ORE_BAND_ORDER) do
-		if bands[b] ~= 2 then two = false end
-	end
-	check(even, "spaced evenly down the Crypt, top to bottom")
-	check(two and CO[1].band == "Common" and CO[16].band == "Exotic", "two candies to each pouch band, Common to Exotic")
-end
-do
-	local seen, top, bottom = {}, 0, 0
-	local rng = Random.new(42)
-	for l = 1, N do
-		for _ = 1, 40 do
-			local o = C.candyOreAt(l, rng, N)
-			seen[o.id] = true
-			if l == 1 and o.id == "candy_corn" then top += 1 end
-			if l == N and o.id == "jawbreaker" then bottom += 1 end
-		end
-	end
-	local all = true
-	for _, o in ipairs(CO) do if not seen[o.id] then all = false end end
-	check(all, "every candy ore turns up somewhere in the Crypt")
-	check(top >= 20 and bottom >= 20, "Candy Corn leads the top, Jawbreaker the bottom", top .. " / " .. bottom .. " of 40")
-end
-
--- ------------------------------------------------------------ candy 3x --
-print("")
-check(C.CANDY_RATE_MULT == 3, "candy is 3x (CANDY_RATE_MULT)")
-do
-	local ok3 = true
-	for _, o in ipairs(CO) do
-		for _, l in ipairs({ 1, 15, 47, 88, N }) do
-			local old = math.floor(o.candy * C.candySectionMult(l))
-			if C.candyFor(o, l) ~= 3 * old then ok3 = false end
-		end
-	end
-	check(ok3, "every candy block pays exactly 3x the 2026-10-10 amount")
-	check(C.candyOreValue("candy_corn") >= 1 and C.candyOreValue("jawbreaker") > C.candyOreValue("rock_candy"),
-		"a candy ore sells for candy, more the deeper it lives", C.candyOreValue("jawbreaker"))
-	check(C.candyOreValue("stone") == 0 and R.candyOreValue("not_a_candy") == 0, "nothing else sells for candy")
-end
-
--- ------------------------------------------------------------ the tool table --
-print("")
-local all = Tools.all()
-check(#all == #Tools.TIERS * #Tools.FAMILIES, "one tool per tier and family", #all)
-do
-	local okRows, noPrice, fams = true, true, true
-	local idSeen = {}
-	for _, t in ipairs(all) do
-		if idSeen[t.id] or t.power < 1 or not t.rate or t.eventOnly ~= false then okRows = false end
-		idSeen[t.id] = true
-		if t.price ~= nil or t.currency ~= nil then noPrice = false end
-		if not table.find(Tools.FAMILIES, t.family) then fams = false end
-		if t.family == "explosive" and not (t.cooldown and t.pattern) then okRows = false end
-		if t.family == "drill" and not (t.shape == "dir" and t.width) then okRows = false end
-	end
-	check(okRows, "every row is a real tool of its family (drills aim, charges throw)")
-	check(fams, "every row carries its family (skins resolve by it)")
-	check(noPrice, "no row has a price: the candy-tool shop is gone")
-	local climbs = true
-	for _, fam in ipairs(Tools.FAMILIES) do
-		for ti = 2, #Tools.TIERS do
-			if Tools.pick(ti, fam).power <= Tools.pick(ti - 1, fam).power then climbs = false end
-		end
-	end
-	check(climbs, "deeper tiers hit harder, in every family")
-end
-local starter = Tools.byId(Tools.STARTER_ID)
-check(starter and starter.tier == 1 and starter.family == "pickaxe", "the starter is the tier-1 pick", Tools.STARTER_ID)
-do
-	local hitsTop = math.ceil(C.cryptRockHp(1) / starter.power)
-	check(hitsTop <= 1, "the starter pick breaks the top in one hit", hitsTop)
-	local deepest = {}
-	for ti = 1, #Tools.TIERS do
-		local pick = Tools.pick(ti, "pickaxe")
-		local d = 0
-		for l = 1, N + 40 do
-			if C.cryptRockHp(l) / pick.power <= Tools.PICK_HITS then d = l end
-		end
-		deepest[ti] = d
-	end
-	check(deepest[1] < deepest[2] and deepest[2] < deepest[3], "better tools go deeper (" .. Tools.PICK_HITS .. " hits a block)",
-		table.concat(deepest, " / "))
-	check(deepest[3] >= N - 15, "the best tier reaches the bottom in reasonable hits", deepest[3])
-	check(Tools.tierForLayer(1) == 1 and Tools.tierForLayer(40) == 1 and Tools.tierForLayer(41) == 2
-		and Tools.tierForLayer(80) == 2 and Tools.tierForLayer(81) == 3 and Tools.tierForLayer(500) == 3,
-		"the chest bands: 1-40, 41-80, 81 down")
-end
-
--- ------------------------------------------------------------ variants and merge --
-print("")
-check(table.concat(R.VARIANTS, ",") == "Normal,Golden,Prism,Rainbow", "the pets' ladder: Normal, Golden, Prism, Rainbow")
-check(R.variantMult("Golden") == C.VARIANT_MULT.Golden and R.variantMult("Rainbow") == C.VARIANT_MULT.Rainbow
-	and R.variantMult("Normal") == 1, "with the pets' multipliers (MineConfig.VARIANT_MULT)")
-check(R.nextVariant("Prism") == "Rainbow" and R.nextVariant("Rainbow") == nil and R.nextVariant("Shiny") == nil,
-	"Rainbow is the top; a card's legacy Shiny is not a tool variant")
-check(R.parseKey("candy_toffee_drill|Golden") == "candy_toffee_drill" and R.defOf("candy_toffee_drill|Gold") == nil
-	and R.defOf("nope|Golden") == nil, "stack keys parse, and a bad key names nothing")
-do
-	local key = R.stackKey(Tools.STARTER_ID, "Normal")
-	local p = { cryptTools = { [key] = 2 } }
-	check(R.mergePlan(p, key) == nil, "two copies do not merge")
-	p.cryptTools[key] = 7
-	local plan = R.mergePlan(p, key, math.huge)
-	check(plan and plan.times == 2 and plan.consumed == 6 and plan.to == R.stackKey(Tools.STARTER_ID, "Golden"),
-		"seven copies merge twice, three each, into Golden")
-	check(R.inEventPower(starter, "Rainbow", 0) == math.floor(starter.power * C.VARIANT_MULT.Rainbow + 0.5),
-		"a Rainbow copy hits for 5.5x")
-end
-
--- ------------------------------------------------------------ the server, end to end --
-print("")
-local sent = {}
-local function lastSent(name)
-	for i = #sent, 1, -1 do if sent[i].name == name then return sent[i].payload end end
-	return nil
-end
-local net = { FireClient = function(_, plr, name, payload) table.insert(sent, { name = name, payload = payload }) end }
-local plr = { UserId = 7 }
-local p = { ores = {}, oreLocks = {}, charms = {}, candy = 0, backpackTier = 1, orePouchTier = 10, hallowOwned = false }
-local profiles = { [7] = p }
-local given = 0
-S.init({
-	profiles = profiles, net = net,
-	snap = function() end, markDirty = function() end,
-	givePickaxe = function() given += 1 end,
-	bumpStat = function() end,
-	pouchTier = function(q) return q.orePouchTier or 1 end,
-	pouchFullToast = function() end,
-	chestXp = function() end,
-})
-S.normalize(p)
-check(next(p.cryptTools) == nil, "no claim, no tool")
-local crypt = C.zoneById("hallow")
-p.hallowOwned = true
-S.onClaim(plr, p, crypt)
-local skey = R.stackKey(Tools.STARTER_ID, "Normal")
-check(S.count(p, skey) == 1 and p.cryptToolEquipped == skey, "claiming the Crypt hands over the starter pick, in hand")
-S.onClaim(plr, p, crypt)
-check(S.count(p, skey) == 1, "a second claim does not hand over a second one")
-do
-	local q = { hallowOwned = true }
-	S.normalize(q)
-	check(S.count(q, skey) == 1, "a save with the claim and no tool gets the starter back on load")
-end
 
 -- The window, moved by hand: LIMITED_WINDOWS.hallow is read on every call.
 local realWindow = C.LIMITED_WINDOWS.hallow
 local now = os.time()
 local function duringEvent() C.LIMITED_WINDOWS.hallow = { opensUnix = now - 86400, closesUnix = now + 86400 } end
 local function afterEvent() C.LIMITED_WINDOWS.hallow = { opensUnix = now - 2 * 86400, closesUnix = now - 60 } end
-
 duringEvent()
-check(R.window().open and not R.window().ended, "the moved window reads open")
-p.zoneId = "hallow"
-local row, fam, tier = S.heldTool(p)
-check(row and row.eventMine == "hallow" and row.cryptTool and fam == "pickaxe" and tier == 1,
-	"in the Crypt the player holds their Crypt tool")
-check(row.power == starter.power, "at its event power", row.power)
-p.zoneId = "meadow"
-check(S.heldTool(p) == nil, "outside the Crypt during the event, a Crypt tool is not held")
-p.cryptToolWorld = true
-check(S.heldTool(p) == nil, "...not even when asked to be")
-p.cryptToolWorld = nil
-local sentBefore = #sent
-S.dispatch(plr, "cryptEquip", { world = true })
-check(p.cryptToolWorld == nil and sent[#sent].payload == R.WORLD_LOCKED_TEXT, "holding one out here is refused during the event")
+
+-- ------------------------------------------------------------ 1. candy only --
+print("")
+print(" 1. candy blocks only")
+local crypt = C.zoneById("hallow")
+check(crypt and crypt.candyOnly == true and crypt.eventToolsOnly and crypt.noStrengthGate and C.isCandyOnly("hallow")
+	and not C.isCandyOnly("meadow"), "the Crypt's row says candyOnly (and still event tools only, no strength gate)")
+check(C.CANDY_ORE_SHARE == 1, "every Crypt block that is not a chest is a candy block (CANDY_ORE_SHARE 1)")
 do
-	local q = { cryptTools = {}, zoneId = "hallow" }
-	local none = R.heldRow(q, "hallow")
-	check(none == R.NONE_ROW and none.none == true, "no Crypt tool in the Crypt is empty hands")
+	local crypts, meadow = 0, 0
+	for l = 1, N, 3 do
+		for x = 0, 2 do
+			for z = 0, 2 do
+				if C.veinOreAt("hallow", x, l, z, 1) then crypts += 1 end
+				if C.oreIdentity("hallow", l, Random.new(l * 31 + x), 1) then crypts += 1 end
+				if C.rollOre("hallow", l, Random.new(l * 7 + z), 1) then crypts += 1 end
+			end
+		end
+	end
+	for l = 1, 400 do
+		for x = 0, 20, 4 do
+			if C.veinOreAt("meadow", x, l, x, 1) then meadow += 1 end
+		end
+	end
+	check(crypts == 0, "no normal ore spawns in the Crypt (veinOreAt, oreIdentity, rollOre)", crypts)
+	check(meadow > 0, "...while the meadow still has its ore", meadow)
+end
+check(C.cryptRockHp(1) == Depth.dirtHp(3, 1) and C.cryptRockHp(N) == Depth.dirtHp(10, 1),
+	"the rock is still zone 3 at the top and zone 10 at the bottom", C.cryptRockHp(N))
+check(C.MINE_RESET_SEC == 1200, "the 20-minute reset is unchanged", C.MINE_RESET_SEC)
+
+-- ------------------------------------------------------------ 2/3. candy ores --
+print("")
+print(" 2-3. sixteen candy ores: two per rarity, a fixed drop, flat candy, shifting odds")
+check(#CO == 16, "sixteen candy ores", #CO)
+do
+	local bands, rising, quarter, fixed, flat = {}, true, true, true, true
+	local worst = 0
+	for i, o in ipairs(CO) do
+		bands[o.band] = (bands[o.band] or 0) + 1
+		local dv = o.drop * o.value
+		if i > 1 and dv <= CO[i - 1].drop * CO[i - 1].value then rising = false end
+		-- "about a quarter" of the ore-drop value, rounded to whole candy.
+		if not (o.candy >= 1 and math.abs(o.candy - 0.25 * dv) <= 0.5) then quarter = false end
+		worst = math.max(worst, math.abs(o.candy - 0.25 * dv) / math.max(1, dv))
+		for _, l in ipairs({ 1, 11, 47, 88, 120, 160, 400 }) do
+			if C.candyDropFor(o) ~= o.drop then fixed = false end
+			if C.candyFor(o, l) ~= o.candy then flat = false end
+		end
+	end
+	local two = true
+	for _, b in ipairs(C.CANDY_BANDS) do
+		if bands[b] ~= 2 then two = false end
+	end
+	check(two and CO[1].band == "Common" and CO[16].band == "Exotic", "two to each rarity, Common to Exotic, by value")
+	check(rising, "every rarer ore's block is worth more than the one before it (drop x value)")
+	check(fixed, "each ore drops the same number of items at every depth")
+	check(flat, "each ore's block pays the same candy at every depth")
+	check(quarter, "...about a quarter of its ore-drop value", string.format("worst %.3f", worst))
+	check(C.candyOreValue("stone") == 0 and R.candyOreValue("not_a_candy") == 0 and C.candyOreValue("jawbreaker") == CO[16].value,
+		"only candy ores sell for candy, at their own value")
+end
+do
+	local sums, capOk, shifts, holds, equalIn = true, true, true, true, true
+	local prev = nil
+	for s = 1, 14 do
+		local w = C.candyRarityOdds(s)
+		local t = 0
+		for _, v in ipairs(w) do t += v end
+		if not near(t, 1, 1e-9) then sums = false end
+		if w[8] > C.CANDY_ECONOMY.EXOTIC_CAP + 1e-12 then capOk = false end
+		if prev and s <= C.CANDY_ECONOMY.SECTIONS then
+			if not (w[1] < prev[1] and w[8] > prev[8]) then shifts = false end
+		elseif prev then
+			for k = 1, 8 do if w[k] ~= prev[k] then holds = false end end
+		end
+		for k = 2, 8 do if w[k] >= w[k - 1] then capOk = false end end
+		prev = w
+	end
+	for s = 1, 12 do
+		local a = C.candyOreOdds((s - 1) * 10 + 1)
+		local b = C.candyOreOdds(s * 10)
+		for i = 1, 16 do if a[i] ~= b[i] then equalIn = false end end
+	end
+	check(sums, "each section's odds sum to 1")
+	check(shifts and equalIn, "every ten layers the odds shift toward the rarer ores (and hold within a section)")
+	check(holds, "past section " .. C.CANDY_ECONOMY.SECTIONS .. " (the bottom) they hold")
+	check(capOk, "the rarest stay rare: Exotic never over " .. (C.CANDY_ECONOMY.EXOTIC_CAP * 100) .. "%, every rarity rarer than the one below",
+		string.format("bottom Exotic %.4f", C.candyRarityOdds(12)[8]))
+	-- The cap holds whatever the ratios are set to: at a 0.95 ratio an uncapped
+	-- Exotic would be 10%; capped it is the cap, the rest scaled to fill.
+	local cap = C.CANDY_ECONOMY.EXOTIC_CAP
+	local hot = C.capRatioWeights(8, 0.95, cap)
+	local t, order = 0, true
+	for k, v in ipairs(hot) do
+		t += v
+		if k > 1 and k < 8 and v >= hot[k - 1] then order = false end
+	end
+	check(near(hot[8], cap, 1e-12) and near(t, 1, 1e-9) and order,
+		"the cap holds at any ratio (0.95: Exotic " .. string.format("%.2f%%", hot[8] * 100) .. ", still summing to 1)")
+end
+do
+	-- 200,000 real rolls at the bottom section land on the odds.
+	local odds = C.candyOreOdds(115)
+	local got = {}
+	local rng = Random.new(1031)
+	local n = 200000
+	for _ = 1, n do
+		local o = C.candyOreAt(115, rng, N)
+		got[o.rank] = (got[o.rank] or 0) + 1
+	end
+	local worst = 0
+	for i = 1, 16 do
+		worst = math.max(worst, math.abs((got[i] or 0) / n - odds[i]))
+	end
+	check(worst < 0.004, "200,000 candyOreAt rolls at layer 115 land on the section's odds", string.format("worst %.4f", worst))
 end
 
--- Gating on the block itself (MineSpaceMatter), both damage paths' one rule.
+-- ------------------------------------------------------------ the server, set up --
+local sent = {}
+local function lastSent(name)
+	for i = #sent, 1, -1 do if sent[i].name == name then return sent[i].payload end end
+	return nil
+end
+local net = { FireClient = function(_, plr, name, payload) table.insert(sent, { name = name, payload = payload }) end }
+local cardN = 0
+local function grantPet(plr, q, pet, setKey)
+	cardN += 1
+	local c = { id = "card" .. cardN, serial = "S" .. cardN, name = pet.name, setId = setKey,
+		cardKey = setKey .. ":" .. pet.name, rarityId = pet.tier }
+	q.cards = q.cards or {}
+	table.insert(q.cards, c)
+	return c
+end
+local plr = { UserId = 7 }
+local p = { ores = {}, oreLocks = {}, charms = {}, cards = {}, equipped = {}, candy = 0, backpackTier = 1,
+	orePouchTier = 10, hallowOwned = false, petSlots = 3 }
+local profiles = { [7] = p }
+local given = 0
+S.init({
+	profiles = profiles, net = net, noTick = true,
+	snap = function() end, markDirty = function() end,
+	givePickaxe = function() given += 1 end,
+	bumpStat = function() end, chestXp = function() end,
+	grantPet = grantPet,
+})
 local function part(zoneId, extra)
 	local attrs = { ZoneId = zoneId, HP = 100, MaxHP = 100 }
 	for k, v in pairs(extra or {}) do attrs[k] = v end
-	return { attrs = attrs, GetAttribute = function(self, k) return self.attrs[k] end,
+	return { attrs = attrs, Position = Vector3.new(0, 0, 0), Color = Color3.fromRGB(1, 2, 3),
+		GetAttribute = function(self, k) return self.attrs[k] end,
 		SetAttribute = function(self, k, v) self.attrs[k] = v end }
 end
-local normalTool = { id = "oretool_x", name = "Stone Pickaxe", power = 10, oreTier = 1 }
-local ehTool = { id = "eh_shallow_pick", eventOnly = true, zoneId = "bigbang", power = 10 }
-p.zoneId = "hallow"
-local cryptRow = S.heldTool(p)
-check(Matter.reject(cryptRow, part("hallow")) == nil and Matter.chip(part("hallow"), cryptRow, 5).ok,
-	"a Crypt tool spends Crypt rock")
-check(Matter.reject(normalTool, part("hallow")) == Matter.EVENT_ONLY and not Matter.chip(part("hallow"), normalTool, 5).ok,
-	"a normal tool does not (\\"" .. Matter.TOAST.eventonly .. "\\")")
-check(Matter.reject(R.NONE_ROW, part("hallow")) == Matter.EVENT_ONLY, "empty hands do not")
-check(Matter.reject(ehTool, part("hallow")) == Matter.EVENT_ONLY, "an Event Horizon tool does not")
-check(Matter.reject(cryptRow, part("meadow")) == Matter.EVENT_TOOL and not Matter.chip(part("meadow"), cryptRow, 5).ok,
-	"a Crypt tool's event row spends no other rock")
-check(Matter.reject(normalTool, part("meadow")) == nil and Matter.chip(part("meadow"), normalTool, 5).ok,
-	"a normal tool on normal rock is untouched")
-check(Matter.reject(normalTool, part("bigbang")) == "weak" and Matter.reject(ehTool, part("bigbang")) == nil
-	and Matter.reject(ehTool, part("meadow")) == "heavy", "Event Horizon's two pools are unchanged")
-check(Matter.reject(cryptRow, part("bigbang")) == Matter.EVENT_TOOL, "a Crypt tool spends no Event Horizon matter")
 
--- ------------------------------------------------------------ keep after the event --
+-- ------------------------------------------------------------ 6. tools --
 print("")
-afterEvent()
-check(R.window().ended and not R.window().open, "the moved window reads ended")
-S.ensure(p)
-check(S.count(p, skey) == 1, "the event ending takes nothing away")
-p.zoneId = "hallow"
-check(S.heldTool(p) and S.heldTool(p).eventMine == "hallow", "the Crypt still takes its own tools after the event")
-p.zoneId = "meadow"
-check(S.heldTool(p) == nil, "out here it is the player's own tool until they choose the Crypt tool")
-S.dispatch(plr, "cryptEquip", { world = true })
-check(p.cryptToolWorld == true, "after the event, holding it in the main world is allowed")
-local wrow = S.heldTool(p)
-check(wrow and wrow.world and wrow.eventMine == nil and wrow.breakingPower == Breaking.oreStrength(starter.worldOreTier, #C.ORES),
-	"out here it is the world row, with its ore's breaking power")
-check(Matter.reject(wrow, part("meadow")) == nil and Matter.reject(wrow, part("hallow")) == Matter.EVENT_ONLY,
-	"the world row spends main-world rock, and never the Crypt's")
+print(" 6. Halloween tools: crafted, prestiged, capped, scrapped, skinned, and the top tool's match")
+local all = Tools.all()
+check(#all == 16, "sixteen Halloween tools, one per candy ore", #all)
 do
-	local weaker, mapped = true, true
+	local ids, ores, fams, okRow = {}, {}, {}, true
 	for _, t in ipairs(all) do
-		for _, v in ipairs(R.VARIANTS) do
-			if R.worldPower(t, v, 0) >= R.inEventPower(t, v, 0) then weaker = false end
-			local forged = C.toolPower(t.worldOreTier, 1, OreTools.typeMult(t.family, t.worldOreTier)) * OreTools.familyPower(t.family)
-			if R.worldPower(t, v, 0) ~= math.max(1, math.floor(forged * R.variantMult(v) + 0.5)) then mapped = false end
-		end
+		if ids[t.id] or ores[t.oreId] or not C.candyOreById(t.oreId) or t.power ~= nil or t.price ~= nil then okRow = false end
+		ids[t.id], ores[t.oreId] = true, true
+		fams[t.family] = (fams[t.family] or 0) + 1
+		if t.craft ~= Tools.CRAFT_BY_BAND[t.band] or t.band ~= C.candyOreById(t.oreId).band then okRow = false end
+		if not (t.cryptTool and t.eventOnly == false and string.sub(t.id, 1, 7) == "hallow_") then okRow = false end
+		if t.family == "explosive" and not (t.cooldown and t.pattern) then okRow = false end
+		if t.family == "drill" and not (t.shape == "dir" and t.width) then okRow = false end
 	end
-	check(weaker, "every Crypt tool is weaker in the main world than in the event")
-	check(mapped, "...exactly a level-1 forged tool of its worldOreTier, times its variant")
+	check(okRow, "each is crafted from its own ore, at its rarity's cost, and is a real tool of its family")
+	check(fams.pickaxe == 4 and fams.hammer == 4 and fams.drill == 4 and fams.explosive == 4,
+		"four families, four tools each")
+	check(Tools.STARTER_ID == all[1].id and all[1].family == "pickaxe" and all[1].oreId == "candy_corn",
+		"the starter is the Candy Corn Pick")
 end
-p.zoneId = "bigbang"
-check(S.heldTool(p) == nil, "Event Horizon keeps its own tools, world flag or not")
 do
-	-- A later event mine takes Crypt tools only once the Crypt has ended.
-	table.insert(C.ZONES, { id = "test_event", name = "Test Event", limited = true, eventToolsOnly = true })
-	local q = { cryptTools = { [skey] = 1 }, cryptToolEquipped = skey }
-	local erow = R.heldRow(q, "test_event")
-	check(erow and erow.eventMine == "test_event", "after the Crypt, its tools work in a later event mine")
-	duringEvent()
-	check(R.heldRow(q, "test_event") == R.NONE_ROW, "...but not while the Crypt is still running")
-	table.remove(C.ZONES)
-	afterEvent()
-end
-p.zoneId = "hallow"
-p.cryptToolWorld = nil
-
--- ------------------------------------------------------------ merging, through the verb --
-print("")
-p.cryptTools[skey] = 9
-S.dispatch(plr, "cryptMerge", { key = skey, all = true })
-local gkey = R.stackKey(Tools.STARTER_ID, "Golden")
-check(S.count(p, skey) == 0 and S.count(p, gkey) == 3, "nine Normal merge into three Golden")
-check(p.cryptToolEquipped == gkey, "merging away the tool in hand hands you what it became")
-S.dispatch(plr, "cryptMerge", { key = gkey })
-local pkey = R.stackKey(Tools.STARTER_ID, "Prism")
-check(S.count(p, gkey) == 0 and S.count(p, pkey) == 1, "three Golden merge into one Prism")
-S.dispatch(plr, "cryptMerge", { key = pkey })
-check(S.count(p, pkey) == 1, "one Prism does not merge")
-p.cryptTools[R.stackKey(Tools.STARTER_ID, "Rainbow")] = 3
-S.dispatch(plr, "cryptMerge", { key = R.stackKey(Tools.STARTER_ID, "Rainbow") })
-check(S.count(p, R.stackKey(Tools.STARTER_ID, "Rainbow")) == 3, "Rainbow is the top and refuses")
-
--- ------------------------------------------------------------ a candy block --
-print("")
-duringEvent()
-p.candy = 0
-local blk = part("hallow", { Candy = C.candyFor(C.candyOreById("taffy"), 33), CandyOre = "taffy" })
-blk.Color, blk.Position = Color3.fromRGB(1, 2, 3), Vector3.new(0, 0, 0)
-check(S.onBlockBroken(plr, p, blk, "dirt", 33, { candyFind = 1 }), "a candy block of plain rock pays")
-check(p.candy == C.candyFor(C.candyOreById("taffy"), 33) and p.ores.taffy == 1, "its candy, and one candy ore into the pouch")
-check(p.oresSeen == nil, "a candy ore stays out of oresSeen (the Forge's recipe rail)")
-p.candy = 0
-S.onBlockBroken(plr, p, blk, "dirt", 33, { candyFind = 1.56 })
-check(p.candy == math.floor(C.candyFor(C.candyOreById("taffy"), 33) * 1.56), "Candy Find multiplies it")
-
--- ------------------------------------------------------------ the pouch --
-print("")
-p.ores = { stone = 10, coal = 4, taffy = 5, jawbreaker = 2 }
-p.oreLocks = { coal = true }
-local plan = Pouch.sellAllPlan(p.ores, p.oreLocks)
-local soldIds = {}
-for _, r in ipairs(plan.rows) do soldIds[r.id] = true end
-check(soldIds.stone and not soldIds.coal and not soldIds.taffy and not soldIds.jawbreaker,
-	"SELL ALL sells neither locked ores nor candy ores", "candy skipped: " .. tostring(plan.candyUnits))
-local deep = C.ORES[#C.ORES]
-p.ores[deep.id] = 3
-local capped = Pouch.sellAllPlan(p.ores, p.oreLocks, "Common")
-local cappedIds = {}
-for _, r in ipairs(capped.rows) do cappedIds[r.id] = true end
-check(cappedIds.stone and not cappedIds[deep.id] and capped.aboveUnits == 3, "SELL UP TO Common keeps the Exotic")
-check(Pouch.sellAllPlan(p.ores, p.oreLocks, "Everything").units == Pouch.sellAllPlan(p.ores, p.oreLocks).units,
-	"Everything is what SELL ALL always did")
-check(#Pouch.SELL_UP_TO == 6 and Pouch.SELL_UP_TO[1] == "Common" and Pouch.SELL_UP_TO[6] == "Everything",
-	"the six ceilings: Common .. +Legendary, Everything")
-do
-	local rows = Pouch.rows(p.ores, p.oreLocks, { includeCandy = true })
-	local candyRows = 0
-	for _, r in ipairs(rows) do if r.candy then candyRows += 1 end end
-	check(candyRows == 2 and #Pouch.rows(p.ores, p.oreLocks) == #rows - 2,
-		"the pouch shows candy ores only to a screen that asks for them")
-end
-
--- ------------------------------------------------------------ selling candy ores --
-print("")
-p.candy = 0
-p.oreLocks.jawbreaker = true
-S.dispatch(plr, "cryptSellCandyOres", { all = true })
-local ask = lastSent("cryptSellCandyConfirm")
-check(ask and ask.units == 5 and ask.lockedSkipped == 1 and p.ores.taffy == 5, "the bulk sell asks first, and skips a locked candy ore")
-S.dispatch(plr, "cryptSellCandyOres", { all = true, confirm = true })
-check(p.ores.taffy == nil and p.ores.jawbreaker == 2 and p.candy == 5 * C.candyOreValue("taffy"),
-	"confirmed, it pays the asked candy")
-S.dispatch(plr, "cryptSellCandyOres", { oreIds = { "jawbreaker", "stone" }, confirm = true })
-check(p.ores.jawbreaker == nil and p.ores.stone == 10, "a ticked ore sells even if locked; a normal ore never sells for candy")
-
--- ------------------------------------------------------------ Halloween charms --
-print("")
-local cc = Charms.candyCharms()
-check(#cc == 6, "six Halloween charms", #cc)
-do
-	local order, okStats, okRecipe, deeper = Temper.GRADE_ORDER, true, true, true
-	local gradeAt = {}
-	for i, g in ipairs(order) do gradeAt[g] = i end
-	local lastGrade, lastRank = 0, 0
-	for _, d in ipairs(cc) do
-		local m = Temper.RARITY_MULT[d.rarity]
-		local others = 0
-		for k, v in pairs(d.stats) do
-			if k ~= "candyFind" and k ~= "eventDig" then
-				others += 1
-				if not near(v, math.floor(m * Charms.CANDY_CHARM_SHARE.normal * 100 + 1e-9) / 100, 1e-9) then okStats = false end
+	local climbs, prestigeClimbs, ladderOk, pickHits = true, true, true, true
+	for i, t in ipairs(all) do
+		if i > 1 then
+			local prev = all[i - 1]
+			if Tools.basePower(t) / OreTools.familyPower(t.family) <= Tools.basePower(prev) / OreTools.familyPower(prev.family) then
+				climbs = false
 			end
 		end
-		if others ~= 1 or not near(d.stats.candyFind, math.floor(m * 0.8 * 100 + 1e-9) / 100, 1e-9)
-			or not near(d.stats.eventDig, math.floor(m * 0.6 * 100 + 1e-9) / 100, 1e-9) then okStats = false end
-		local ore = C.candyOreById(d.recipe.oreId)
-		if not ore or d.recipe.count < 1 or d.source ~= "candy" then okRecipe = false end
-		if gradeAt[d.rarity] <= lastGrade or (ore and ore.rank <= lastRank) then deeper = false end
-		lastGrade, lastRank = gradeAt[d.rarity], ore and ore.rank or 99
-		if Charms.charmTokenPrice(d) ~= nil or table.find(Charms.GRADED, d) then okRecipe = false end
-		if Charms.mergeTarget(d.id) ~= nil then okRecipe = false end
-	end
-	check(okStats, "each: Candy Find, Event Digging and one small normal stat, scaled by its grade")
-	check(okRecipe, "each crafted from one candy ore; not a chest drop, not token-bought, not merged")
-	check(deeper, "deeper ore, better grade")
-	check(#R.charmRecipes(p) == 6 and R.charmRecipes(p)[1].cost == cc[1].recipe.count, "the recipe rows E2 renders")
-end
-do
-	local d = cc[1]
-	p.ores[d.recipe.oreId] = d.recipe.count - 1
-	p.charms, p.equippedCharm = {}, nil
-	S.dispatch(plr, "cryptCraftCharm", { charmId = d.id })
-	check((p.charms[d.id] or 0) == 0, "one short of the recipe crafts nothing")
-	p.ores[d.recipe.oreId] = d.recipe.count + 2
-	S.dispatch(plr, "cryptCraftCharm", { charmId = d.id })
-	check(p.charms[d.id] == 1 and p.ores[d.recipe.oreId] == 2 and p.equippedCharm == d.id,
-		"crafting spends the ore, grants the charm and wears it when nothing is worn")
-	p.zoneId = "hallow"
-	local boosted = S.heldTool(p)
-	check(boosted.power == R.inEventPower(Tools.byId(R.parseKey(p.cryptToolEquipped)), select(2, R.parseKey(p.cryptToolEquipped)), d.stats.eventDig)
-		and boosted.power > R.inEventPower(Tools.byId(R.parseKey(p.cryptToolEquipped)), select(2, R.parseKey(p.cryptToolEquipped)), 0),
-		"Event Digging raises the event tool's power")
-	local b = { mineSpeed = 1, coinBonus = 1 }
-	Charms.applyEquipped(b, d.id, p)
-	check(near(b.candyFind, 1 + d.stats.candyFind, 1e-9) and near(b.coinBonus, 1 + d.stats.coinBonus, 1e-9),
-		"the charm's Candy Find and normal stat land in boosts like any charm")
-end
-
--- ------------------------------------------------------------ Trick-or-Treat --
-print("")
-do
-	local w = TT.WEIGHTS
-	local tot = 0
-	for _, v in pairs(w) do tot += v end
-	check(w.tool == 850 and w.skincase == 50 and w.hat == 70 and w.pack == 29 and w.bucket == 1 and tot == 1000,
-		"weights: tools 85, skin case 5, hat 7, pack 2.9, bucket 0.1")
-	check(w.candy == nil, "no candy back")
-	local sum, sumNo = 0, 0
-	for _, r in ipairs(TT.odds(true)) do sum += r.pct end
-	local hatNo = 0
-	for _, r in ipairs(TT.odds(false)) do
-		sumNo += r.pct
-		if r.kind == "hat" then hatNo = r.pct end
-		if r.kind == "pack" then hatNo = -1 end
-	end
-	check(near(sum, 100, 1e-9) and near(sumNo, 100, 1e-9) and near(hatNo, 9.9, 1e-9),
-		"the odds sheet sums to 100, and a missing pack folds into hats")
-	local co = R.caseOdds(true)
-	local tiers = 0
-	for _, t in ipairs(co.toolTiers) do tiers += t.pct end
-	check(near(tiers, 85, 1e-9) and co.price == 2500, "the tool slot splits into tiers (60/30/10) and the price stays 2,500")
-	local n, got = 200000, { tool = 0, skincase = 0, hat = 0, pack = 0, bucket = 0 }
-	local tierN = { 0, 0, 0 }
-	local rng = Random.new(2026)
-	local okShape = true
-	for _ = 1, n do
-		local r = TT.roll(rng)
-		got[r.kind] = (got[r.kind] or 0) + 1
-		if r.kind == "tool" then
-			local def = Tools.byId(r.id)
-			if not def then okShape = false else tierN[def.tier] += 1 end
-		elseif r.kind == "skincase" then
-			if not (r.oreTier >= 10 and r.oreTier <= 40) then okShape = false end
-		elseif r.kind == "pack" then
-			if r.id ~= "halloween_2026" then okShape = false end
+		local hits = C.cryptRockHp(t.tuneLayer) / (Tools.cryptPower(t, 0, 0) / OreTools.familyPower(t.family))
+		if math.abs(hits - Tools.PICK_HITS) > 0.05 then pickHits = false end
+		local lad = R.prestigeLadder(t, 0)
+		if #lad ~= 11 or lad[1].prestige ~= 0 or lad[11].prestige ~= 10 or lad[1].cost ~= nil then ladderOk = false end
+		for k = 2, 11 do
+			if lad[k].crypt <= lad[k - 1].crypt or lad[k].world <= lad[k - 1].world then prestigeClimbs = false end
+			if lad[k].cost ~= Tools.prestigeCost(t, k - 1) or lad[k].cost <= (lad[k - 1].cost or 0) then ladderOk = false end
 		end
 	end
-	check(okShape, "every roll is a real tool, an ore case of tier 10-40, or the Halloween pack")
-	check(near(got.tool / n, 0.85, 0.005) and near(got.skincase / n, 0.05, 0.003) and near(got.hat / n, 0.07, 0.003)
-		and near(got.pack / n, 0.029, 0.002) and near(got.bucket / n, 0.001, 0.0005),
-		"200,000 opens land on the weights", string.format("tool %.3f skin %.3f hat %.3f pack %.4f bucket %.4f",
-			got.tool / n, got.skincase / n, got.hat / n, got.pack / n, got.bucket / n))
-	check(near(tierN[1] / got.tool, 0.6, 0.01) and near(tierN[3] / got.tool, 0.1, 0.01), "the case's tool tiers land 60/30/10")
+	check(climbs, "each tool up the ladder hits harder (family aside)")
+	check(pickHits, "a tool takes " .. Tools.PICK_HITS .. " pick-hits at its own layer at prestige 0 (tuned to the Crypt's rock)")
+	check(prestigeClimbs, "every prestige hits harder, in the Crypt and in the main world")
+	check(ladderOk, "prestigeLadder gives P0..P10 with each step's rising cost")
+	check(Tools.prestigeCost(all[1], 11) == nil and Tools.prestigeCost(all[1], 0) == nil, "there is no prestige 11 (or 0)")
 end
 do
-	p.candy = 10000
+	-- The owner: "I want the top tool at prestige to be ~the same as top tool, at top level".
+	local top = all[#all]
+	local best = OreTools.hitPower({ familyId = top.family, tier = #C.ORES, level = C.TOOL_MAX_LEVEL }, 1)
+	check(Tools.worldPower(top, 10, 0) == best, "the top tool at prestige 10 hits like the best normal " .. top.family
+		.. " at the top level (ore " .. #C.ORES .. ", level " .. C.TOOL_MAX_LEVEL .. ")", best)
+	local weaker = true
+	for _, t in ipairs(all) do
+		local fBest = OreTools.hitPower({ familyId = t.family, tier = #C.ORES, level = C.TOOL_MAX_LEVEL }, 1)
+		for k = 0, 10 do
+			if not (t == top and k == 10) and Tools.worldPower(t, k, 0) >= fBest then weaker = false end
+		end
+	end
+	check(weaker, "every other tool and prestige is weaker than the best normal tool of its family")
+	local lagging, n = true, 0
+	for _, t in ipairs(all) do
+		if t ~= top then
+			-- On rock of the same hardness, a fresh (prestige 0) tool takes more
+			-- hits out there than in the Crypt.
+			n += 1
+			if Tools.worldPower(t, 0, 0) >= Tools.cryptPower(t, 0, 0) then lagging = false end
+		end
+	end
+	check(lagging and n == 15, "at prestige 0 every tool but the top hits softer out there than in the Crypt")
+	local _, lv0 = Tools.worldEquivalent(top, 0)
+	local _, lv10 = Tools.worldEquivalent(top, 10)
+	check(lv0 == 1 and lv10 == C.TOOL_MAX_LEVEL, "prestige walks the main-world level from 1 to the cap")
+end
+do
+	-- The Halloween-skin factor: "always multiplier to the full multiplier".
+	local hs, other
+	for _, s in ipairs(Skins.LIST) do
+		if s.set == "halloween" and s.tier == "S" and not hs then hs = s end
+		if s.set ~= "halloween" and s.tier == "S" and not s.pass and not other then other = s end
+	end
+	local def = all[1]
+	local row = R.eventRow(def, { uid = "u1", prestige = 0 }, "hallow", 0)
+	local worn = ToolSkins.wear(row, hs)
+	check(worn.power == math.max(1, math.floor(row.power * Skins.BASE.S * def.skinFactor)),
+		"a Halloween skin on a Halloween tool: its whole multiplier x the tool's own factor", worn.power)
+	check(ToolSkins.wear(row, other).power == math.max(1, math.floor(row.power * Skins.BASE.S)),
+		"any other skin on it is unchanged")
+	local forged = { id = "oretool_x", family = "pickaxe", power = 1000 }
+	check(ToolSkins.wear(forged, hs).power == math.floor(1000 * Skins.BASE.S), "a Halloween skin on a normal tool is unchanged")
+	local differ = true
+	for i = 2, #all do
+		if all[i].skinFactor == all[i - 1].skinFactor or not (all[i].skinFactor > 1) then differ = false end
+	end
+	check(differ, "each tool has its own factor (no two neighbours alike, all above x1)")
+	check(R.worldRow(def, { uid = "u1", prestige = 3 }, 0).halloweenSkinFactor == def.skinFactor,
+		"the factor rides the main-world row too")
+end
+
+-- ------------------------------------------------------------ claim, the starter, the swap --
+print("")
+print(" 6b. the claim, the starter pick and the swap rule")
+S.normalize(p)
+check(#p.halloween.tools == 0, "no claim, no tool")
+p.hallowOwned = true
+S.onClaim(plr, p, crypt)
+check(#p.halloween.tools == 1 and p.halloween.tools[1].id == Tools.STARTER_ID and p.halloween.tool == p.halloween.tools[1].uid,
+	"claiming the Crypt hands over the Candy Corn Pick, in hand")
+S.onClaim(plr, p, crypt)
+check(#p.halloween.tools == 1, "a second claim does not hand over a second one")
+do
+	local q = { hallowOwned = true }
+	S.normalize(q)
+	check(#q.halloween.tools == 1, "a save with the claim and no tool gets the starter back on load")
+end
+p.zoneId = "hallow"
+local row = S.heldTool(p)
+check(row and row.eventMine == "hallow" and row.cryptTool and row.power == Tools.cryptPower(all[1], 0, 0),
+	"in the Crypt the player holds their Halloween tool, at its Crypt power", row and row.power)
+p.zoneId = "meadow"
+check(S.heldTool(p) == nil, "outside the Crypt during the event a Halloween tool is not held")
+S.dispatch(plr, "cryptEquip", { world = true })
+check(p.cryptToolWorld == nil and lastSent("toast") == R.WORLD_LOCKED_TEXT, "holding one out here is refused during the event")
+check(R.heldRow({ halloween = { tools = {} }, zoneId = "hallow" }, "hallow") == R.NONE_ROW, "no Halloween tool in the Crypt is empty hands")
+local normalTool = { id = "oretool_x", name = "Stone Pickaxe", power = 10, oreTier = 1 }
+p.zoneId = "hallow"
+local cryptRow = S.heldTool(p)
+check(Matter.reject(cryptRow, part("hallow")) == nil and Matter.reject(normalTool, part("hallow")) == Matter.EVENT_ONLY
+	and Matter.reject(cryptRow, part("meadow")) == Matter.EVENT_TOOL, "only Halloween tools spend Crypt rock, and they spend no other")
+
+-- ------------------------------------------------------------ 7. the Halloween inventory --
+print("")
+print(" 7. the Halloween inventory: candy blocks, the store, the team, the charm slot")
+p.candy = 0
+local taffy = C.candyOreById("taffy")
+local blk = part("hallow", { Candy = C.candyFor(taffy, 33), CandyOre = "taffy" })
+check(S.onBlockBroken(plr, p, blk, "dirt", 33, { candyFind = 1 }), "a candy block pays")
+check(p.candy == taffy.candy and p.halloween.ores.taffy == taffy.drop and p.ores.taffy == nil,
+	"its flat candy, and its fixed drop into the HALLOWEEN inventory (not the main pouch)",
+	p.candy .. " candy, " .. tostring(p.halloween.ores.taffy) .. " taffy")
+check(p.oresSeen == nil and p.halloween.seen.taffy == true, "a candy ore stays out of oresSeen (the Forge's ore rail)")
+p.candy = 0
+S.onBlockBroken(plr, p, blk, "dirt", 33, { candyFind = 1.56 })
+check(p.candy == math.floor(taffy.candy * 1.56) and p.halloween.ores.taffy == 2 * taffy.drop,
+	"Candy Find multiplies the candy, never the ore")
+check(Pouch.held({ stone = 5, taffy = 999 }) == 5, "candy ores never take main-pouch room")
+do
+	-- Selling candy ores, from the Halloween inventory.
+	p.halloween.ores = { taffy = 5, jawbreaker = 2 }
+	p.oreLocks = { jawbreaker = true }
+	p.candy = 0
+	S.dispatch(plr, "cryptSellCandyOres", { all = true })
+	local ask = lastSent("cryptSellCandyConfirm")
+	check(ask and ask.units == 5 and ask.lockedSkipped == 1 and p.halloween.ores.taffy == 5, "the bulk sell asks first, and skips a locked candy ore")
+	S.dispatch(plr, "cryptSellCandyOres", { all = true, confirm = true })
+	check(p.halloween.ores.taffy == nil and p.candy == 5 * taffy.value, "confirmed, it sells from the Halloween inventory at the ore's value")
+	p.ores.stone = 10
+	S.dispatch(plr, "cryptSellCandyOres", { oreIds = { "jawbreaker", "stone" }, confirm = true })
+	check(p.halloween.ores.jawbreaker == nil and p.ores.stone == 10, "a ticked ore sells even if locked; a normal ore never sells for candy")
+	p.oreLocks = {}
+end
+do
+	-- Halloween pets and their own team.
+	local hp = grantPet(plr, p, { name = "Spice", tier = "Common" }, "halloween_2026")
+	local hp2 = grantPet(plr, p, { name = "Bogle", tier = "Uncommon" }, "halloween_2026")
+	local normal = { id = "norm1", serial = "N1", name = "Breezy", setId = "meadow", cardKey = "meadow:Breezy", rarityId = "Rare" }
+	table.insert(p.cards, normal)
+	check(R.isHalloweenItem("pet", hp) and not R.isHalloweenItem("pet", normal), "a Halloween 2026 pet is a Halloween item; a meadow pet is not")
+	check(S.mainTeamRefuses(p, hp.id) and not S.mainTeamRefuses(p, normal.id), "the main team refuses a Halloween pet while the event runs")
+	S.dispatch(plr, "cryptTeam", { ids = { hp.id, normal.id, hp.id, hp2.id, "nope" } })
+	check(#p.halloween.team == 2 and p.halloween.team[1] == hp.id and p.halloween.team[2] == hp2.id,
+		"cryptTeam keeps only owned Halloween pets, once each")
+	p.equipped = { normal.id, hp.id }
 	p.zoneId = "hallow"
-	local before = 0
-	for _, v in pairs(p.cryptTools) do before += v end
-	local packsBefore, gearBefore = #(p.packs or {}), #(p.gear or {})
-	for _ = 1, 3 do S.buyTrickOrTreat(plr) end
-	local after = 0
-	for _, v in pairs(p.cryptTools) do after += v end
-	local opened = lastSent("trickOrTreatOpened")
-	check(p.candy == 10000 - 3 * TT.PRICE and opened and opened.price == TT.PRICE, "a case costs 2,500 candy, and there is no candy back")
-	check(after + #(p.packs or {}) + #(p.gear or {}) + (p.trickBucket and 1 or 0) - before - packsBefore - gearBefore == 3,
-		"each open pays exactly one prize")
-	local outEvent = p.candy
+	local t = S.petTeam(p)
+	check(#t == 2 and t[1] == hp.id, "in the Crypt only the Halloween team counts")
+	p.zoneId = "meadow"
+	t = S.petTeam(p)
+	check(#t == 1 and t[1] == normal.id, "outside it, the main team counts without Halloween pets (they are in the Halloween inventory)")
+	local ids = {}
+	for i = 1, 10 do table.insert(ids, grantPet(plr, p, { name = "P" .. i, tier = "Common" }, "halloween_2026").id) end
+	S.dispatch(plr, "cryptTeam", { ids = ids })
+	check(#p.halloween.team == R.teamCap(p), "the Halloween team has the main team's seats", #p.halloween.team)
+	S.dispatch(plr, "cryptTeam", { ids = { hp.id } })
+end
+do
+	-- The Halloween charm slot. A stand-in for the chest charms' module (another
+	-- agent's): every rank names one of the graded charms.
+	local graded = Charms.GRADED
+	Charms.cryptChestCharm = function(rankKey)
+		local r = Chests.rank(rankKey)
+		return r and graded[r.index] and graded[r.index].id or nil
+	end
+	local hc = Charms.cryptChestCharm("F")
+	check(R.isHalloweenItem("charm", hc) and not R.isHalloweenItem("charm", graded[20].id),
+		"a Crypt chest's charm is a Halloween charm; any other is not")
+	p.charms[hc] = 1
+	p.equippedCharm = graded[20].id
+	p.charms[graded[20].id] = 1
+	S.dispatch(plr, "cryptCharm", { charmId = graded[20].id })
+	check(p.halloween.charm == nil, "only a Halloween charm goes in the Halloween slot")
+	S.dispatch(plr, "cryptCharm", { charmId = hc })
+	check(p.halloween.charm == hc, "a Halloween charm you own does")
+	p.zoneId = "hallow"
+	check(S.charmFor(p) == hc, "in the Crypt the Halloween charm counts (not the main one)")
+	p.zoneId = "meadow"
+	check(S.charmFor(p) == graded[20].id, "outside it, the main charm")
+	p.equippedCharm = hc
+	check(S.charmFor(p) == nil, "a Halloween charm in the main slot counts nowhere while the event runs")
+	p.equippedCharm = graded[20].id
+end
+
+-- ------------------------------------------------------------ 6c. craft, prestige, scrap --
+print("")
+print(" 6c. craft, prestige, scrap")
+do
+	local mallet = Tools.forOre("gumdrop")
+	p.halloween.ores.gumdrop = mallet.craft - 1
+	S.dispatch(plr, "cryptCraft", { toolId = mallet.id })
+	check(#p.halloween.tools == 1, "one ore short crafts nothing")
+	p.halloween.ores.gumdrop = mallet.craft + 5000
+	S.dispatch(plr, "cryptCraft", { toolId = mallet.id })
+	local e = p.halloween.tools[2]
+	check(e and e.id == mallet.id and e.prestige == 0 and p.halloween.ores.gumdrop == 5000 and e.spent.gumdrop == mallet.craft,
+		"crafting spends the ore from the Halloween inventory and records what it cost")
+	local before = p.halloween.ores.gumdrop
+	S.dispatch(plr, "cryptPrestige", { uid = e.uid })
+	check(e.prestige == 1 and p.halloween.ores.gumdrop == before - Tools.prestigeCost(mallet, 1),
+		"prestige 1 is paid in more of that ore", Tools.prestigeCost(mallet, 1))
+	for _ = 2, 12 do S.dispatch(plr, "cryptPrestige", { uid = e.uid }) end
+	check(e.prestige == 10 and e.spent.gumdrop == Tools.totalSpent(mallet, 10), "it goes to prestige 10 and no further",
+		e.spent.gumdrop)
+	p.candy = 0
+	S.dispatch(plr, "cryptScrap", { uid = e.uid })
+	local ask = lastSent("cryptScrapConfirm")
+	local want = math.floor(Tools.totalSpent(mallet, 10) * C.candyOreValue("gumdrop") * 0.5)
+	check(ask and ask.candy == want and #p.halloween.tools == 2, "scrapping asks first, quoting half the candy value of every ore spent", ask and ask.candy)
+	S.dispatch(plr, "cryptScrap", { uid = e.uid, confirm = true })
+	check(#p.halloween.tools == 1 and p.candy == want and p.halloween.ores.gumdrop == before - (Tools.totalSpent(mallet, 10) - mallet.craft),
+		"confirmed: the tool goes, the candy comes, and no ore comes back")
+	S.dispatch(plr, "cryptScrap", { uid = p.halloween.tools[1].uid, confirm = true })
+	check(#p.halloween.tools == 1, "the last Halloween tool cannot be scrapped (it is how you dig)")
+	-- The cap.
+	p.halloween.ores.candy_corn = 100000
+	for _ = 1, 12 do S.dispatch(plr, "cryptCraft", { toolId = Tools.STARTER_ID }) end
+	check(#p.halloween.tools == Tools.CAP, "at most ten Halloween tools", #p.halloween.tools)
+	check(string.find(lastSent("toast") or "", "scrap one", 1, true) ~= nil, "the eleventh craft is refused until you scrap one")
+	local plan, why = R.craftPlan(p, Tools.STARTER_ID)
+	check(plan == nil and why ~= nil, "craftPlan says why (the Forge shows it)")
+end
+
+-- ------------------------------------------------------------ 4. chests --
+print("")
+print(" 4. Crypt chests: eight ranks")
+do
+	check(#Chests.RANKS == 8 and Chests.RANKS[1].key == "F" and Chests.RANKS[8].key == "SSS", "eight ranks, F to SSS")
+	local names, okPay = {}, true
+	for i, r in ipairs(Chests.RANKS) do
+		if names[r.name] or r.name == "" then okPay = false end
+		names[r.name] = true
+		if i > 1 then
+			local q = Chests.RANKS[i - 1]
+			if r.candy <= q.candy or r.packs < q.packs or r.luck < q.luck or (r.packs == q.packs and r.luck == q.luck) then okPay = false end
+		end
+		if Chests.rankOfId(Chests.spawnDef(r).id) ~= r then okPay = false end
+	end
+	check(okPay, "each has its own name, and a rarer rank pays more candy and more or luckier Halloween packs")
+	local rarer, deeper, capOk, sums = true, true, true, true
+	local prev
+	for s = 1, 12 do
+		local w = Chests.rankOdds(s)
+		local t = 0
+		for i, v in ipairs(w) do
+			t += v
+			if i > 1 and v >= w[i - 1] then rarer = false end
+		end
+		if not near(t, 1, 1e-9) then sums = false end
+		if w[8] > Chests.SSS_CAP + 1e-12 then capOk = false end
+		if prev then
+			-- C and up only: D, the second-commonest, peaks near the bottom as
+			-- the shares move on to the rarer ranks.
+			for i = 3, 8 do if w[i] < prev[i] - 1e-12 then deeper = false end end
+			if w[1] >= prev[1] then deeper = false end
+		end
+		prev = w
+	end
+	check(sums and rarer and capOk, "in every section a rarer rank is rarer, and SSS stays under its cap")
+	check(deeper, "deeper sections make every rank from C up more common, and the plain F rarer")
+	local n, top, bottom = 40000, 0, 0
+	local rng = Random.new(77)
+	for _ = 1, n do
+		if Chests.rollRank(5, rng).index >= 4 then top += 1 end
+		if Chests.rollRank(115, rng).index >= 4 then bottom += 1 end
+	end
+	check(bottom > 2 * top, "40,000 rolls: B or better is far more common at the bottom", top .. " vs " .. bottom)
+	check(near(Chests.charmChance(1), 0.005, 1e-12) and near(Chests.charmChance(3), 0.015, 1e-12), "the charm: 0.5% flat, raised by Chest Luck")
+end
+do
+	-- Open one, with the other agents' two hooks standing in.
+	E.rollHalloweenBook = function(rankIndex, rng) return (rankIndex >= 6) and "sugar_rush" or nil end
+	local okCharm = Chests.CHARM_CHANCE
+	Chests.CHARM_CHANCE = 1
+	local p2 = { ores = {}, charms = {}, cards = {}, equipped = {}, candy = 0, backpackTier = 1, hallowOwned = true, packs = {} }
+	profiles[8] = p2
+	S.normalize(p2)
+	local sPart = part("hallow", { CY = 7, ChestType = "crypt_chest_s" })
+	S.openChest({ UserId = 8 }, p2, sPart, { chestLuck = 1 })
+	local opened = lastSent("chestOpened")
+	local s = Chests.rank("S")
+	check(opened and opened.kind == "crypt" and opened.rank == "S" and opened.candy == s.candy and p2.candy == s.candy,
+		"a chest pays its rank's flat candy (the rank stamped on the block, even at layer 7)")
+	check(#p2.packs == s.packs and p2.packs[1].packId == "halloween_2026" and p2.packs[1].luck == s.luck
+		and #opened.packs == s.packs and opened.packIds[1] == "halloween_2026", "...its Halloween packs, at its pack luck")
+	local hc = Charms.cryptChestCharm("S")
+	check(opened.charm and opened.charm.id == hc and p2.charms[hc] == 1 and p2.halloween.charm == hc,
+		"...the rank's own Halloween charm (MineCharms.cryptChestCharm), worn in the Halloween slot")
+	check(opened.book and opened.book.id == "sugar_rush" and p2.enchantBooks[E.bookKey("sugar_rush", 1)] == 1,
+		"...and a Halloween book when MineEnchants.rollHalloweenBook gives one")
+	local deep = part("hallow", { CY = 118, ChestType = "crypt_chest_s" })
+	local c0 = p2.candy
+	S.openChest({ UserId = 8 }, p2, deep, { chestLuck = 1 })
+	check(p2.candy - c0 == s.candy, "the same rank pays the same candy at layer 118 (not depth-scaled)")
+	Chests.CHARM_CHANCE = okCharm
+	E.rollHalloweenBook = nil
+	local def = S.chestSpawnDef(100, Random.new(3))
+	check(def.crypt and def.rank and Chests.rankOfId(def.id) and C.CHEST_LOOK[def.kind] ~= nil,
+		"a spawning chest names its rank and borrows an existing chest look")
+	check(opened.coins == 0 and opened.gems == 0, "no coins and no gems")
+end
+
+-- ------------------------------------------------------------ 5. Trick-or-Treat --
+print("")
+print(" 5. Trick-or-Treat: pets and skins only, then 50/50")
+do
+	check(TT.TREAT_CHANCE == 0.5 and TT.KIND_WEIGHTS.pet and TT.KIND_WEIGHTS.skin and TT.WEIGHTS == nil,
+		"two prize kinds (no tools, candy, hats, packs or bucket), and a 50/50")
+	local sheet = R.caseOdds()
+	local sum, keep, okRows = 0, 0, true
+	for _, r in ipairs(sheet.rows) do
+		sum += r.pct
+		keep += r.keepPct
+		if not near(r.petPct + r.skinPct, r.pct, 1e-9) or r.pets < 1 or r.skins < 1 then okRows = false end
+	end
+	check(near(sum, 100, 1e-9) and near(keep, 50, 1e-9) and okRows and sheet.price == TT.PRICE,
+		"the odds sheet sums to 100 (50 kept), and every rarity has a pet and a skin to win")
+	local n = 100000
+	local treat, kinds, shape = 0, { pet = 0, skin = 0 }, true
+	local rng = Random.new(2026)
+	for _ = 1, n do
+		local roll = TT.roll(rng)
+		if roll.outcome == "treat" then treat += 1 end
+		kinds[roll.kind] += 1
+		local prize = R.casePrize(roll, rng)
+		if not prize then shape = false
+		elseif prize.kind == "pet" and not (prize.pet and prize.pet.holiday == "halloween") then shape = false
+		elseif prize.kind == "skin" and not (prize.skin and prize.skin.set == "halloween") then shape = false end
+	end
+	check(shape, "every prize is a Halloween pet or a Halloween skin")
+	check(near(treat / n, 0.5, 0.006), "100,000 opens: half TREAT, half TRICK", string.format("%.3f", treat / n))
+	check(near(kinds.pet / n, TT.KIND_WEIGHTS.pet / (TT.KIND_WEIGHTS.pet + TT.KIND_WEIGHTS.skin), 0.006),
+		"...and the pet / skin split lands on its weights")
+end
+do
+	local opens = 30
+	p.candy = opens * TT.PRICE
+	p.zoneId = "hallow"
+	local cards0 = #p.cards
+	sent = {}
+	for _ = 1, opens do S.buyTrickOrTreat(plr) end
+	check(p.candy == 0, "a case costs its price in candy, and there is no candy back", TT.PRICE)
+	local treats, tricks, okPush, okGive, petTreats = 0, 0, true, true, 0
+	for _, s in ipairs(sent) do
+		if s.name == "trickOrTreatOpened" then
+			local o = s.payload
+			if not (o.rarityIndex and o.rarity and o.reward and o.reward.name and (o.outcome == "treat" or o.outcome == "trick")) then okPush = false end
+			if o.outcome == "treat" then
+				treats += 1
+				if o.kind == "pet" then
+					petTreats += 1
+					if not (o.reward.cardId and R.cardById(p, o.reward.cardId)) then okGive = false end
+				elseif not (o.reward.skinId and p.skins[o.reward.skinId]) then
+					okGive = false
+				end
+			else
+				tricks += 1
+				if o.reward.cardId or o.reward.dupeDust then okGive = false end
+			end
+		end
+	end
+	check(okPush, "one push carries the rarity, the reward and the outcome")
+	check(okGive and treats > 0 and tricks > 0 and #p.cards - cards0 == petTreats,
+		"a TREAT gives the prize; a TRICK gives nothing", treats .. " treats, " .. tricks .. " tricks")
 	afterEvent()
+	p.candy = TT.PRICE
 	S.buyTrickOrTreat(plr)
-	check(p.candy == outEvent, "closed, the case is not sold")
+	check(p.candy == TT.PRICE, "closed, the case is not sold")
 	duringEvent()
 end
 
--- ------------------------------------------------------------ chests --
+-- ------------------------------------------------------------ 8. trading --
 print("")
+print(" 8. trading: Halloween items are locked while the event runs")
 do
-	local o = R.chestOdds(10)
-	check(o.chance == Tools.CHEST_TOOL_CHANCE and near((o.tiers[1] or 0) + (o.tiers[2] or 0), o.chance, 1e-12),
-		"a top chest: tool chance " .. Tools.CHEST_TOOL_CHANCE .. ", tier 1 or a lucky tier 2")
-	local deepOdds = R.chestOdds(110)
-	check(deepOdds.tiers[1] == nil and near(deepOdds.tiers[3], deepOdds.chance, 1e-12), "a deep chest pays only the deep tier")
-	check(near(Tools.chestToolChance(99), math.min(0.95, Tools.CHEST_TOOL_CHANCE * Tools.CHEST_LUCK_CAP), 1e-12),
-		"chest luck raises it, capped")
-	local rng = Random.new(5)
-	local hits, tierOk, n = 0, true, 40000
-	for _ = 1, n do
-		local t = Tools.rollChestTool(60, rng, 1)
-		if t then
-			hits += 1
-			if t.tier < 2 then tierOk = false end
-		end
-	end
-	check(near(hits / n, Tools.CHEST_TOOL_CHANCE, 0.01) and tierOk, "40,000 chests at layer 60 pay a tool ~30% of the time, never tier 1",
-		string.format("%.3f", hits / n))
-	check(R.chestCandy(50) == math.floor(C.candyFor(R.candyOreNear(50), 50) * R.CHEST_CANDY_BLOCKS), "a chest pays five candy blocks' worth")
-	check(S.chestSpawnDef(5).name == "Candy Corn Chest" and S.chestSpawnDef(100).name == "Jawbreaker Chest",
-		"a chest is named for its band")
-	check(crypt.chestMult and crypt.chestMult > 0 and crypt.eventToolsOnly and crypt.noStrengthGate,
-		"the Crypt row: chests back, event tools only, no strength gate")
-	local cbefore = p.candy
-	local chestPart = part("hallow", { CY = 100 })
-	chestPart.Position = Vector3.new(0, 0, 0)
-	S.openChest(plr, p, chestPart, { chestLuck = 1 })
-	local opened = lastSent("chestOpened")
-	check(opened and opened.kind == "crypt" and p.candy - cbefore == opened.candy and opened.candy == R.chestCandy(100),
-		"opening one pays its candy and says so")
+	local hp = p.cards[1]
+	local normal
+	for _, c in ipairs(p.cards) do if c.setId == "meadow" then normal = c end end
+	check(S.tradeLocked(p, "cards", hp.serial) and S.tradeLocked(p, "cards", hp) and not S.tradeLocked(p, "cards", normal),
+		"a Halloween pet is locked (by serial or card); a normal pet is not")
+	check(S.tradeLocked(p, "tool", Tools.STARTER_ID) and S.tradeLocked(p, "ore", "taffy") and S.tradeLocked(p, "charm", Charms.cryptChestCharm("F")),
+		"Halloween tools, candy ores and Halloween charms are locked")
+	check(not S.tradeLocked(p, "ore", "stone") and not S.tradeLocked(p, "packs", { packId = "halloween_2026" }),
+		"a normal ore and a pack are not")
 end
 
--- ------------------------------------------------------------ notice and snapshot --
+-- ------------------------------------------------------------ 7b. the event ends --
 print("")
+print(" 7b. when the event ends, the Halloween inventory moves into the main one")
 do
-	local q = { cryptTools = { [skey] = 1 }, cryptToolEquipped = skey, eventNoticeSeen = {}, hallowOwned = true }
-	profiles[8] = q
-	local plr8 = { UserId = 8 }
-	sent = {}
-	S.onEnterZone(plr8, q, crypt, "meadow")
-	local n = lastSent("eventNotice")
-	check(n and n.zoneId == "hallow" and n.text == R.NOTICE.text, "first entry pushes the pop-up text")
-	S.dispatch(plr8, "cryptNoticeSeen", { zoneId = "hallow" })
-	check(q.eventNoticeSeen.hallow == true, "cryptNoticeSeen marks it")
-	sent = {}
-	S.onEnterZone(plr8, q, crypt, "meadow")
-	check(lastSent("eventNotice") == nil, "and it does not come back")
-	check(R.NOTICE.text == "Only event tools work here. Tools you find are yours to keep: when the event ends they work in the main world too (weaker).",
-		"the pop-up says exactly the owner's line")
-	local st = R.stateFor(p)
-	check(st and st.zoneId == "hallow" and type(st.tools) == "table" and #st.tools >= 1 and st.window.closesAt
-		and #st.recipes == 6 and #st.candyOres == 16 and st.casePrice == TT.PRICE,
-		"the snapshot block carries tools, window, recipes, candy ores and the price")
-	local okRows = true
-	for _, t in ipairs(st.tools) do
-		if not (t.key and t.variant and t.count and t.power and t.worldPower and t.family) then okRows = false end
+	p.halloween.ores = { taffy = 7, jawbreaker = 1 }
+	p.ores = { stone = 3, taffy = 2 }
+	local hc = p.halloween.charm
+	p.equippedCharm = nil
+	afterEvent()
+	check(not R.separate(p), "after the window closes the Halloween inventory is no longer its own")
+	local moved = S.tick()
+	check(moved >= 1 and p.halloween.moved == true, "the tick moves everyone online", moved)
+	check(p.ores.taffy == 9 and p.ores.jawbreaker == 1 and next(p.halloween.ores) == nil,
+		"candy ores land in the main pouch (and still take no room there)")
+	check(#p.halloween.team == 0 and p.halloween.charm == nil and p.equippedCharm == hc,
+		"the Halloween team is cleared and the worn Halloween charm takes the empty main slot")
+	check(#p.halloween.tools == Tools.CAP, "the tools stay yours")
+	local again = S.moveToMain(p)
+	local again2 = S.tick()
+	check(not again and again2 == 0 and p.ores.taffy == 9, "the move is idempotent (load, tick, again)")
+	check(not S.tradeLocked(p, "cards", p.cards[1]) and not S.tradeLocked(p, "ore", "taffy"), "and Halloween items trade again")
+	check(not S.mainTeamRefuses(p, p.cards[1].id), "Halloween pets may join the main team")
+	-- The tools out here, and prestige, after the event.
+	p.zoneId = "meadow"
+	S.dispatch(plr, "cryptEquip", { world = true })
+	local w = S.heldTool(p)
+	local held = R.equippedEntry(p)
+	local hdef = Tools.byId(held.id)
+	local tier = Tools.worldEquivalent(hdef, held.prestige)
+	check(p.cryptToolWorld == true and w and w.world and w.power == Tools.worldPower(hdef, held.prestige, R.eventDigOf(p))
+		and w.breakingPower == Breaking.oreStrength(tier, #C.ORES), "a Halloween tool works in the main world, with its ore's breaking power")
+	check(Matter.reject(w, part("meadow")) == nil and Matter.reject(w, part("hallow")) == Matter.EVENT_ONLY,
+		"the world row spends main-world rock, never the Crypt's")
+	p.ores.candy_corn = 100000
+	local e = held
+	local k0 = e.prestige
+	S.dispatch(plr, "cryptPrestige", { uid = e.uid })
+	check(e.prestige == k0 + 1, "prestige keeps working after the event (paid from the main pouch now)")
+	local nTools = #p.halloween.tools
+	S.dispatch(plr, "cryptScrap", { uid = p.halloween.tools[2].uid, confirm = true })
+	S.dispatch(plr, "cryptCraft", { toolId = Tools.STARTER_ID })
+	check(#p.halloween.tools == nTools - 1, "crafting a new one waits for the next event (CRAFT_AFTER_EVENT false)")
+	p.zoneId = "bigbang"
+	check(S.heldTool(p) == nil, "Event Horizon keeps its own tools")
+	do
+		table.insert(C.ZONES, { id = "test_event", name = "Test Event", limited = true, eventToolsOnly = true })
+		local erow = R.heldRow(p, "test_event")
+		check(erow and erow.eventMine == "test_event", "after the Crypt, its tools work in a later event mine")
+		table.remove(C.ZONES)
 	end
-	check(okRows, "each tool row carries key, variant, count, both powers and family")
+	-- A save loaded after the event moves on load.
+	local q = { hallowOwned = true, ores = {}, halloween = { tools = {}, ores = { gumdrop = 4 }, team = { "x" } } }
+	S.normalize(q)
+	check(q.ores.gumdrop == 4 and q.halloween.moved and #q.halloween.team == 0, "a save loaded after the event is moved on load")
+	duringEvent()
+	p.cryptToolWorld = nil
+end
+
+-- ------------------------------------------------------------ 9. v1 retired --
+print("")
+print(" 9. the first design's pieces are retired, and test saves still load")
+do
+	local hits = 0
+	for id in pairs(Charms.RETIRED_CANDY_CHARMS) do
+		if Charms.byId(id) then hits += 1 end
+	end
+	check(hits == 0 and Charms.candyCharms == nil and Charms.recipeFor == nil, "the six crafted charms are gone")
+	local q = {
+		hallowOwned = true,
+		cryptTools = { ["candy_corn_pickaxe|Golden"] = 3 }, cryptToolEquipped = "candy_corn_pickaxe|Golden",
+		candySeen = { taffy = true },
+		charms = { hallow_kernel = 2, [Charms.GRADED[1].id] = 1 }, equippedCharm = "hallow_kernel",
+		ores = { taffy = 6, stone = 2 },
+	}
+	local ok = pcall(S.normalize, q)
+	check(ok, "a v1 test save loads without an error")
+	check(q.cryptTools == nil and q.cryptToolEquipped == nil and q.candySeen == nil and q.halloween.seen.taffy,
+		"its v1 tool stacks are dropped (and what it had seen is kept)")
+	check(q.charms.hallow_kernel == nil and q.equippedCharm == nil and q.charms[Charms.GRADED[1].id] == 1,
+		"its crafted candy charms are retired, and come off the slot; other charms stay")
+	check(q.ores.taffy == nil and q.halloween.ores.taffy == 6 and q.ores.stone == 2,
+		"its candy ores move from the pouch into the Halloween inventory")
+	check(#q.halloween.tools == 1 and q.halloween.tools[1].id == Tools.STARTER_ID, "and the claim gets the Candy Corn Pick")
+	check(S.VERBS.cryptMerge == nil and S.VERBS.cryptCraftCharm == nil and Tools.rollChestTool == nil and Tools.rollCaseTool == nil,
+		"no merge, no charm crafting, no tool from a chest or a case")
+end
+
+-- ------------------------------------------------------------ the snapshot --
+print("")
+print(" the snapshot and the contract")
+do
+	-- A fresh save, during the event (the one above has already been moved).
+	local q = { hallowOwned = true, ores = {}, charms = {}, cards = {}, equipped = {}, candy = 50, petSlots = 3 }
+	profiles[9] = q
+	S.normalize(q)
+	q.halloween.ores.taffy = 1000
+	S.dispatch({ UserId = 9 }, "cryptCraft", { toolId = Tools.forOre("taffy").id })
+	local st = R.stateFor(q)
+	local inv = S.inventoryOf(q)
+	check(st and st.zoneId == "hallow" and st.inventory and #st.recipes == 16 and #st.candyOres == 16 and st.casePrice == TT.PRICE
+		and st.window and st.window.closesAt and st.candy == 50, "the crypt block carries the inventory, the sixteen recipes, the candy ores and the price")
+	local okRows = #inv.tools == 2
+	for _, t in ipairs(inv.tools) do
+		if not (t.uid and t.name and t.prestige and t.power and t.worldPower and t.worldTier and t.worldLevel
+			and t.ladder == nil and #R.prestigeLadder(R.toolDef(t.id), 0) == 11 and t.scrapCandy and t.skinFactor and t.family) then
+			okRows = false
+		end
+	end
+	check(okRows and inv.tools[1].id == Tools.forOre("taffy").id and inv.toolCap == 10 and inv.separate == true and inv.teamCap >= 1
+		and #inv.ores == 16, "each tool row carries uid, prestige, both powers, the world equivalent, scrap value and factor (its ladder is prestigeLadder's); best first")
+	check(R.isHalloweenItem("tool", Tools.STARTER_ID) and R.isHalloweenItem("ore", "jawbreaker") and R.isHalloweenItem("pack", "halloween_2026")
+		and R.isHalloweenItem("skin", "candy_corn") and not R.isHalloweenItem("tool", "oretool_x") and not R.isHalloweenItem("ore", "stone"),
+		"isHalloweenItem answers for tools, ores, packs and skins")
+	check(R.NOTICE.text == "Only event tools work here. Tools you find are yours to keep: when the event ends they work in the main world too (weaker).",
+		"the pop-up still says exactly the owner's line")
 end
 
 C.LIMITED_WINDOWS.hallow = realWindow
 print("RESULT " .. fails)
 `;
 
-const script = path.join(Luau.BIN, "crypt-check.luau");
-fs.writeFileSync(script, prelude + "\n" + factories + "\n" + body);
 let out = "";
 try {
-  out = execFileSync(Luau.LUAU, [script], { encoding: "utf8", maxBuffer: 1 << 24 });
+  out = H.run("crypt", H.source(body, { root: argRoot }));
 } catch (e) {
-  process.stdout.write(e.stdout || "");
-  process.stderr.write(e.stderr || "");
+  out = (e.stdout || "").toString();
+  process.stdout.write(out);
+  process.stderr.write((e.stderr || "").toString().split("\n").slice(0, 8).join("\n") + "\n");
   console.log("  FAIL  the luau half did not run to the end");
   fail++;
+  out = "";
 }
 process.stdout.write(out.split("\n").filter((l) => !/^RESULT /.test(l)).join("\n"));
 const m = out.match(/^RESULT (\d+)/m);

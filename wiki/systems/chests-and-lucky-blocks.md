@@ -36,7 +36,7 @@ roll beats `MineConfig.CHEST_CHANCE` (0.003). That chance is multiplied in a few
 | where | multiplier | source |
 |---|---|---|
 | Event Horizon | ×3 | `zone.chestMult` |
-| Candy Crypt | ×3 (was 0 until 2026-10-19) | `zone.chestMult`; a Crypt chest pays candy and sometimes a Crypt tool, through `MineCrypt.openChest`, not the zone-chest tables ([world-events](world-events.md)) |
+| Candy Crypt | ×3 (was 0 until 2026-10-19) | `zone.chestMult`; one of eight Crypt chest ranks (F..SSS, Halloween names, `MineCryptChests`), rarer deeper, paying Halloween packs, flat candy, the rank's Halloween charm (0.5% x Chest Luck) and Halloween books, through `MineCrypt.openChest`, not the zone-chest tables ([world-events](world-events.md)) |
 | Meadow, layers 1–100 | ×2 | `MEADOW_SHALLOW_CHEST_MULT` |
 | during a World Pulse | ×`worldChestMult` | disabled, see [world-events](world-events.md) |
 

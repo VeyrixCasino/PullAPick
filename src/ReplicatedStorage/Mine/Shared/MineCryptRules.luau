@@ -1,44 +1,63 @@
 --[[
 	MineCryptRules -- the Candy Crypt's rules, in one place both sides read.
 
-	The owner's redesign, 2026-10-19 (wiki/open-questions.md §0e, "The Candy
-	Crypt, redesigned"): only event tools dig the Crypt; claiming it gives a
-	free starter pick; Crypt tools come from Crypt chests and Trick-or-Treat
-	cases; three identical tools merge Golden -> Prism -> Rainbow at the pets'
-	multipliers; the tools are yours to keep, and once the Crypt closes they
-	also work in the main world (weaker) and in later event mines; a pop-up on
-	first entry says so.
+	The owner's design, 2026-10-19, twice: the first redesign (wiki/open-
+	questions.md §0e) and "Candy Crypt v2" the same day, which replaced much of
+	it. v2, in short:
+	  * Candy blocks only; sixteen candy ores two per rarity; a fixed ore drop
+	    and a flat candy amount per ore (MineConfig.CANDY_ECONOMY).
+	  * Only Halloween tools dig the Crypt. They are CRAFTED at the Forge from
+	    candy ores and PRESTIGED 1-10 with more of that ore; at most ten;
+	    scrapping pays half their ore's candy value (MineCandyTools).
+	  * Eight Crypt chests, F to SSS, paying Halloween packs, flat candy, the
+	    rank's Halloween charm (0.5% x Chest Luck) and Halloween enchant books
+	    (MineCryptChests).
+	  * The Trick-or-Treat case pays Halloween pets and skins, then a 50/50
+	    TREAT or TRICK (MineTrickOrTreat).
+	  * A SEPARATE HALLOWEEN INVENTORY while the event runs: Halloween pets
+	    (and their own team), Halloween tools, candy ores and Halloween charms
+	    live there and are what counts inside the Crypt; skins and hats are
+	    shared. When the event ends it all moves into the main inventory.
+	  * Halloween tools, candy ores and Halloween-inventory items cannot be
+	    traded while the event runs.
 
 	The SERVER (ServerScriptService/Mine/MineCrypt) is the authority for every
-	roll, payout and gate and calls these. The CLIENT reads the same functions
-	to draw the screens, so a number on a card is the number the server uses.
+	roll, payout, price and gate and calls these. The CLIENT reads the same
+	functions to draw the screens, so a number on a card is the number the
+	server uses.
 
 	WHAT IS HERE (the client may call any of these):
 
 	  ZONE_ID, EVENT_ID, CURRENCY      "hallow", "candy_crypt", "candy"
 	  NOTICE / noticeFor(zoneId)       the first-entry pop-up: { title, text }
 	  window(now)                      { opensAt, closesAt, open, ended }
-	  MERGE_COUNT, VARIANTS            3, { "Normal", "Golden", "Prism", "Rainbow" }
-	  stackKey(id, variant)            "candy_corn_pickaxe|Golden"
-	  parseKey(key) / defOf(key)       id, variant / tool def, variant
-	  variantMult(v) / nextVariant(v)  MineConfig.VARIANT_MULT / the next rung
-	  mergePlan(p, key, times)         what a merge would do, or nil + reason
-	  toolTable()                      every Crypt tool def (MineCandyTools)
-	  inEventPower / worldPower / worldBreakingPower
-	  eventRow / worldRow / NONE_ROW   what the server puts in a player's hands
+	  separate(p, now)                 is the Halloween inventory its own?
+	  isHalloweenItem(kind, x)         pet/card, tool, ore, charm, skin, pack
+	  toolTable(), toolDef(id)         the sixteen Halloween tools
+	  prestigeLadder(def, dig)         damage at P0..P10, in the Crypt and out
+	  craftPlan / prestigePlan / scrapPlan   what a verb would do, or why not
 	  heldRow(p, zoneId, now)          THE swap rule (see below)
-	  chestCandy(layer), chestOdds(layer, chestLuck), caseOdds()
-	  candyOreValue(id), candyOreRows(ores, locks)
-	  charmRecipes(p)                  the six Halloween charms and their costs
+	  teamFor(p, zoneId, now)          the pets that count where you stand
+	  charmFor(p, zoneId, now)         the charm that counts where you stand
+	  casePrize(roll, rng), caseOdds() the Trick-or-Treat case
+	  chestOdds(layer, chestLuck)      a Crypt chest's ranks and its charm chance
+	  candyOreRows(ores, locks, seen)  the sixteen candy ores and what you hold
+	  inventoryOf(p, now)              the Halloween inventory, for a screen
 	  stateFor(p, now)                 the snapshot's `crypt` block
 
 	THE SAVE (MineCrypt keeps it straight; nothing here writes):
 
-	  p.cryptTools         { ["<toolId>|<variant>"] = copies }
-	  p.cryptToolEquipped  the stack key in hand, or nil
-	  p.cryptToolWorld     true = hold it in the main world too (after the event)
+	  p.halloween = {
+	    tools  = { { uid, id, prestige, spent = { [oreId] = n } } },
+	    tool   = uid in hand, or nil
+	    ores   = { [candyOreId] = n }      candy ores, while the event runs
+	    team   = { cardId, ... }           the Halloween pet team
+	    charm  = charmId or nil            the Halloween charm worn in the Crypt
+	    seen   = { [candyOreId] = true }   candy ores ever dug
+	    moved  = true once the event-end move has run
+	  }
+	  p.cryptToolWorld     true = hold the Halloween tool in the main world too
 	  p.eventNoticeSeen    { [zoneId] = true } once the pop-up is dismissed
-	  p.candySeen          { [candyOreId] = true } candy ores ever dug
 
 	EVERY NUMBER HERE NOT QUOTED FROM THE OWNER IS PROPOSED (2026-10-19).
 ]]
@@ -47,14 +66,18 @@ local R = {}
 local shared = script.Parent
 local C = require(shared:WaitForChild("MineConfig"))
 local Tools = require(shared:WaitForChild("MineCandyTools"))
-local OreTools = require(shared:WaitForChild("MineOreTools"))
+local Chests = require(shared:WaitForChild("MineCryptChests"))
+local TT = require(shared:WaitForChild("MineTrickOrTreat"))
 local Breaking = require(shared:WaitForChild("MineBreaking"))
 local Charms = require(shared:WaitForChild("MineCharms"))
-local TT = require(shared:WaitForChild("MineTrickOrTreat"))
 
 R.ZONE_ID = "hallow"
 R.EVENT_ID = "candy_crypt"
 R.CURRENCY = "candy"
+-- The Halloween pets' set (the Halloween 2026 Pack's) and the skins' set key.
+R.PET_SET = "halloween_2026"
+R.SKIN_SET = "halloween"
+R.TOOL_CAP = Tools.CAP
 
 --[[
 	THE FIRST-ENTRY POP-UP (owner, 2026-10-19), once per event per player, plus
@@ -72,8 +95,11 @@ function R.noticeFor(zoneId)
 	return R.NOTICES[tostring(zoneId or "")] or R.NOTICE
 end
 
--- Said when a player asks to hold a Crypt tool outside before the event ends.
-R.WORLD_LOCKED_TEXT = "Crypt tools work in the main world once the Candy Crypt closes."
+-- Said when a player asks to hold a Halloween tool outside before the event ends.
+R.WORLD_LOCKED_TEXT = "Halloween tools work in the main world once the Candy Crypt closes."
+-- Said when a Halloween pet is put on the main team while the event runs.
+R.MAIN_TEAM_TEXT = "Halloween pets go on your Halloween team until the event ends."
+R.TRADE_LOCKED_TEXT = "Halloween items can be traded once the Candy Crypt closes."
 
 --------------------------------------------------------------------------------
 -- THE WINDOW
@@ -84,9 +110,10 @@ R.WORLD_LOCKED_TEXT = "Crypt tools work in the main world once the Candy Crypt c
 	calendar dates; owner, 2026-10-10). `now` is optional: the server passes
 	nothing (os.time); a client should pass workspace:GetServerTimeNow().
 
-	`ended` is what turns the main-world use on. LIMITED_START_UNIX <= 0 is the
-	dev switch MineConfig.limitedActive treats as "everything open", and it is
-	honoured the same way here, so the two never disagree.
+	`ended` is what turns the main-world use on and moves the Halloween
+	inventory into the main one. LIMITED_START_UNIX <= 0 is the dev switch
+	MineConfig.limitedActive treats as "everything open", and it is honoured
+	the same way here, so the two never disagree.
 ]]
 function R.window(now)
 	local opens, closes = nil, nil
@@ -104,161 +131,263 @@ function R.window(now)
 	return { opensAt = opens, closesAt = closes, open = open, ended = ended }
 end
 
+local function inv(p)
+	return type(p) == "table" and type(p.halloween) == "table" and p.halloween or nil
+end
+
+--[[
+	IS THE HALLOWEEN INVENTORY ITS OWN? Until the event ends and the move has
+	run (owner: "When the event ends, everything in it moves into the main
+	inventory"). Before the window opens it is separate too, and empty.
+]]
+function R.separate(p, now)
+	local h = inv(p)
+	if h and h.moved then
+		return false
+	end
+	return not R.window(now).ended
+end
+
+-- The candy-ore store to read: the Halloween inventory's, or after the move
+-- the main pouch (p.ores).
+function R.oreStore(p, now)
+	if type(p) ~= "table" then
+		return {}
+	end
+	if R.separate(p, now) then
+		local h = inv(p)
+		return (h and type(h.ores) == "table") and h.ores or {}
+	end
+	return type(p.ores) == "table" and p.ores or {}
+end
+
 --------------------------------------------------------------------------------
--- STACKS, VARIANTS AND MERGING
+-- WHAT IS A HALLOWEEN ITEM
 --------------------------------------------------------------------------------
 
 --[[
-	A Crypt tool is not an instance with a uid: two copies of the same tool in
-	the same variant are identical, so the save is a COUNT per (tool, variant)
-	-- "candy_corn_pickaxe|Golden" = 2. Merging is arithmetic on those counts,
-	and the item bag counts the copies (MineConfig.ITEM_BAG_FIELDS).
+	Optional modules, looked up once: another agent's (MineHalloweenPets) or a
+	heavy one (MineSkins). boosts() reaches teamFor on every swing, so this must
+	not search the tree each time. `false` caches "not in this build".
 ]]
-R.MERGE_COUNT = 3
-R.VARIANTS = { "Normal", "Golden", "Prism", "Rainbow" }
-local VARIANT_RANK = {}
-for i, v in ipairs(R.VARIANTS) do
-	VARIANT_RANK[v] = i
-end
-R.VARIANT_RANK = VARIANT_RANK
-
-function R.stackKey(id, variant)
-	return tostring(id or "") .. "|" .. tostring(variant or "Normal")
-end
-
-function R.parseKey(key)
-	local id, variant = string.match(tostring(key or ""), "^([%w_]+)|(%a+)$")
-	return id, variant
-end
-
-function R.validVariant(v)
-	return VARIANT_RANK[tostring(v or "")] ~= nil
-end
-
--- The tool def and variant a key names, or nil for anything not real.
-function R.defOf(key)
-	local id, variant = R.parseKey(key)
-	if not id or not R.validVariant(variant) then
-		return nil
+local lazyCache = {}
+local function lazy(name)
+	local hit = lazyCache[name]
+	if hit ~= nil then
+		return hit or nil
 	end
-	local def = Tools.byId(id)
-	if not def then
-		return nil
+	local ok, m = pcall(function()
+		local node = shared:FindFirstChild(name)
+		return node and require(node) or nil
+	end)
+	hit = (ok and type(m) == "table") and m or false
+	lazyCache[name] = hit
+	return hit or nil
+end
+
+-- The Halloween 2026 Pack's pet list (HolidayPets/Halloween2026), or nil.
+local function holidayList()
+	local hit = lazyCache["HolidayPets/Halloween2026"]
+	if hit ~= nil then
+		return hit or nil
 	end
-	return def, variant
+	local ok, m = pcall(function()
+		local folder = shared:FindFirstChild("HolidayPets")
+		local node = folder and folder:FindFirstChild("Halloween2026")
+		return node and require(node) or nil
+	end)
+	hit = (ok and type(m) == "table") and m or false
+	lazyCache["HolidayPets/Halloween2026"] = hit
+	return hit or nil
 end
 
--- The pets' multipliers (MineConfig.VARIANT_MULT): 1 / 2.25 / 3.5 / 5.5.
-function R.variantMult(v)
-	return tonumber(C.VARIANT_MULT and C.VARIANT_MULT[tostring(v or "Normal")]) or 1
+local function isHalloweenCard(card)
+	if type(card) ~= "table" then
+		return false
+	end
+	local HP = lazy("MineHalloweenPets")
+	if HP and type(HP.isHalloween) == "function" then
+		local ok, yes = pcall(HP.isHalloween, card)
+		if ok then
+			return yes == true
+		end
+	end
+	if card.holiday == "halloween" or card.setId == R.PET_SET then
+		return true
+	end
+	local key = type(card.cardKey) == "string" and card.cardKey or ""
+	return string.sub(key, 1, #R.PET_SET + 1) == R.PET_SET .. ":"
 end
 
--- The next rung, or nil at Rainbow. Its own walk rather than C.nextVariant,
--- which also takes the cards' legacy "Shiny" -- a word no Crypt tool can carry.
-function R.nextVariant(v)
-	local i = VARIANT_RANK[tostring(v or "")]
-	return i and R.VARIANTS[i + 1] or nil
+-- The ids of the eight Crypt chest charms (MineCharms.cryptChestCharm, another
+-- agent's), cached once read.
+local chestCharmIds = nil
+local function cryptChestCharmIds()
+	if chestCharmIds then
+		return chestCharmIds
+	end
+	local out = {}
+	if type(Charms.cryptChestCharm) == "function" then
+		for _, rank in ipairs(Chests.RANKS) do
+			local ok, id = pcall(Charms.cryptChestCharm, rank.key)
+			if ok and type(id) == "table" then
+				id = id.id
+			end
+			if ok and type(id) == "string" and id ~= "" then
+				out[id] = rank.key
+			end
+		end
+		chestCharmIds = out
+	end
+	return out
 end
+R.cryptChestCharmIds = cryptChestCharmIds
+
+local function isHalloweenCharm(id)
+	id = (type(id) == "table" and id.id) or id
+	if type(id) ~= "string" or id == "" then
+		return false
+	end
+	if cryptChestCharmIds()[id] then
+		return true
+	end
+	local def = Charms.byId(id)
+	return type(def) == "table" and (def.holiday == "halloween" or def.event == "halloween"
+		or def.crypt == true or def.source == "crypt") or false
+end
+
+--[[
+	IS THIS A HALLOWEEN ITEM? (the cross-agent contract). `kind` is one of:
+	  "pet" / "card"   x = a card table (MineHalloweenPets.isHalloween when it
+	                   exists; else the Halloween 2026 set, by setId or cardKey)
+	  "tool"           x = a Halloween tool id, or a tool entry / row
+	  "ore"            x = a candy ore id
+	  "charm"          x = a charm id (a Crypt chest charm, or a charm def
+	                   marked halloween / crypt)
+	  "skin"           x = a skin id or def of the Halloween set
+	  "pack"           x = a pack id or bag row of the Halloween pack
+]]
+function R.isHalloweenItem(kind, x)
+	kind = tostring(kind or "")
+	if kind == "pet" or kind == "card" or kind == "cards" then
+		return isHalloweenCard(x)
+	elseif kind == "tool" or kind == "tools" then
+		local id = (type(x) == "table" and (x.id or x.toolId)) or x
+		return Tools.byId(id) ~= nil
+	elseif kind == "ore" or kind == "ores" then
+		local id = (type(x) == "table" and x.id) or x
+		return C.candyOreById(id) ~= nil
+	elseif kind == "charm" or kind == "charms" then
+		return isHalloweenCharm(x)
+	elseif kind == "skin" or kind == "skins" then
+		local def = x
+		if type(x) == "string" then
+			local Skins = lazy("MineSkins")
+			def = Skins and Skins.byId and Skins.byId(x) or nil
+		end
+		return type(def) == "table" and def.set == R.SKIN_SET
+	elseif kind == "pack" or kind == "packs" then
+		local id = (type(x) == "table" and x.packId) or x
+		return id == Chests.PACK_ID
+	end
+	return false
+end
+
+--------------------------------------------------------------------------------
+-- HALLOWEEN TOOLS
+--------------------------------------------------------------------------------
 
 function R.toolTable()
 	return Tools.all()
 end
 
-local function count(p, key)
-	local stacks = type(p) == "table" and p.cryptTools
-	return (type(stacks) == "table" and math.max(0, math.floor(tonumber(stacks[key]) or 0))) or 0
+function R.toolDef(id)
+	return Tools.byId(id)
 end
-R.count = count
+
+-- The tool entries a player owns (the save's rows), in save order.
+function R.ownedTools(p)
+	local h = inv(p)
+	local out = {}
+	for _, t in ipairs((h and type(h.tools) == "table") and h.tools or {}) do
+		if type(t) == "table" and type(t.uid) == "string" and Tools.byId(t.id) then
+			table.insert(out, t)
+		end
+	end
+	return out
+end
+
+function R.findTool(p, uid)
+	for i, t in ipairs(R.ownedTools(p)) do
+		if t.uid == uid then
+			return t, i
+		end
+	end
+	return nil
+end
+
+-- The entry in hand, if the player owns it. Never trusts the uid alone.
+function R.equippedEntry(p)
+	local h = inv(p)
+	local uid = h and h.tool
+	if type(uid) ~= "string" then
+		return nil
+	end
+	local t = R.findTool(p, uid)
+	if not t then
+		return nil
+	end
+	return t, Tools.byId(t.id)
+end
 
 --[[
-	What merging `key` `times` times would do: 3 x (id, variant) -> 1 x (id,
-	next variant), the pets' rule. `times` defaults to 1 and is clamped to what
-	the player owns; pass math.huge to merge every full set. Returns the plan, or
-	nil and a player-facing reason (the server toasts it as written).
+	Event Digging from the charm that counts in the Crypt (a Halloween charm),
+	as a fraction: 0.42 means +42%. Read off the charm, not off boosts():
+	boosts() asks what is held, and what is held asks this, so going through
+	boosts would loop.
 ]]
-function R.mergePlan(p, key, times)
-	local def, variant = R.defOf(key)
-	if not def then
-		return nil, "That tool is not in the game"
-	end
-	local nextV = R.nextVariant(variant)
-	if not nextV then
-		return nil, "That one is already Rainbow"
-	end
-	local most = math.floor(count(p, key) / R.MERGE_COUNT)
-	if most < 1 then
-		return nil, ("Merging takes %d identical copies"):format(R.MERGE_COUNT)
-	end
-	local n = math.floor(tonumber(times) or 1)
-	if n ~= n then
-		n = 1
-	end
-	n = math.clamp(n, 1, most)
-	return {
-		from = R.stackKey(def.id, variant),
-		to = R.stackKey(def.id, nextV),
-		times = n,
-		consumed = n * R.MERGE_COUNT,
-		def = def,
-		variant = variant,
-		nextVariant = nextV,
-	}
-end
-
---------------------------------------------------------------------------------
--- POWER, IN THE EVENT AND IN THE MAIN WORLD
---------------------------------------------------------------------------------
-
--- Event Digging from the worn charm (the Halloween charms), as a fraction:
--- 0.42 means +42%. Read off the charm, not off boosts(): boosts() asks what is
--- held, and what is held asks this, so going through boosts would loop.
 function R.eventDigOf(p)
-	local id = type(p) == "table" and p.equippedCharm
+	local id = R.charmFor(p, R.ZONE_ID, nil)
 	local def = (type(id) == "string" and id ~= "") and Charms.byId(id) or nil
 	local v = def and type(def.stats) == "table" and tonumber(def.stats.eventDig)
 	return math.max(0, v or 0)
 end
 
--- A Crypt tool's power inside an event mine.
-function R.inEventPower(def, variant, dig)
-	return math.max(1, math.floor((tonumber(def and def.power) or 1)
-		* R.variantMult(variant) * (1 + math.max(0, tonumber(dig) or 0)) + 0.5))
-end
-
 --[[
-	THE MAIN WORLD, AFTER THE EVENT: WEAKER (owner: events must pay better).
-
-	A Crypt tool there is mapped onto the main world's own ladder: it hits like
-	a LEVEL-1 FORGED tool of its family made from `worldOreTier` (MineCandyTools:
-	the last ore of zone 1, 3 or 5 for the three tiers), times its variant and
-	Event Digging, and it has that ore's breaking power (Basalt, Rime and Topaz
-	for the three tiers). About 1/13, 1/32 and 1/60 of its Crypt power: a Jawbreaker
-	Pick tuned for zone-9 rock in the Crypt is a fresh Topaz pick out here,
-	never better than a forged tool a player has levelled. Read through
-	MineConfig.toolPower and MineBreaking, so a retune of either moves this with
-	it.
+	A TOOL'S DAMAGE AT EVERY PRESTIGE (owner: "each tool shows its damage at
+	every prestige"): { [1] = P0, ..., [11] = P10 }, each
+	  { prestige, crypt, world, worldTier, worldLevel, worldOre, cost }
+	`cost` is what that prestige step costs in the tool's ore (nil at P0).
 ]]
-function R.worldPower(def, variant, dig)
-	local t = math.max(1, math.floor(tonumber(def and def.worldOreTier) or 1))
-	local fam = (def and def.family) or "pickaxe"
-	local base = C.toolPower(t, 1, OreTools.typeMult(fam, t)) * OreTools.familyPower(fam)
-	return math.max(1, math.floor(base * R.variantMult(variant)
-		* (1 + math.max(0, tonumber(dig) or 0)) + 0.5))
-end
-
-function R.worldBreakingPower(def)
-	local t = math.max(1, math.floor(tonumber(def and def.worldOreTier) or 1))
-	return Breaking.oreStrength(t, #(C.ORES or {}))
-end
-
-local function baseRow(def, variant)
-	local row = table.clone(def)
-	row.variant = variant
-	row.key = R.stackKey(def.id, variant)
-	row.baseName = def.name
-	if variant ~= "Normal" then
-		row.name = variant .. " " .. def.name
+function R.prestigeLadder(def, dig)
+	local out = {}
+	if type(def) ~= "table" then
+		return out
 	end
+	for k = 0, Tools.PRESTIGE_MAX do
+		local tier, level, ore = Tools.worldEquivalent(def, k)
+		table.insert(out, {
+			prestige = k,
+			crypt = Tools.cryptPower(def, k, dig),
+			world = Tools.worldPower(def, k, dig),
+			worldTier = tier,
+			worldLevel = level,
+			worldOre = ore and ore.name or nil,
+			cost = (k > 0) and Tools.prestigeCost(def, k) or nil,
+		})
+	end
+	return out
+end
+
+local function baseRow(def, entry)
+	local row = table.clone(def)
+	local k = Tools.clampPrestige(entry and entry.prestige)
+	row.uid = entry and entry.uid or nil
+	row.prestige = k
+	row.baseName = def.name
+	-- MineToolSkins.wear multiplies a Halloween-set skin's whole multiplier by
+	-- this (owner: "always multiplier to the full multiplier").
+	row.halloweenSkinFactor = def.skinFactor
 	row.cryptTool = true
 	return row
 end
@@ -269,24 +398,26 @@ end
 	rock and nothing else. No breaking power: those mines have no strength gate
 	(`noStrengthGate`), the HP is the gate.
 ]]
-function R.eventRow(def, variant, zoneId, dig)
-	local row = baseRow(def, variant)
-	row.power = R.inEventPower(def, variant, dig)
+function R.eventRow(def, entry, zoneId, dig)
+	local row = baseRow(def, entry)
+	row.power = Tools.cryptPower(def, row.prestige, dig)
 	row.eventMine = zoneId or R.ZONE_ID
 	return row
 end
 
 -- The row the server swings in the MAIN world once the event has ended.
-function R.worldRow(def, variant, dig)
-	local row = baseRow(def, variant)
-	row.power = R.worldPower(def, variant, dig)
-	row.breakingPower = R.worldBreakingPower(def)
+function R.worldRow(def, entry, dig)
+	local row = baseRow(def, entry)
+	local tier, level = Tools.worldEquivalent(def, row.prestige)
+	row.power = Tools.worldPower(def, row.prestige, dig)
+	row.breakingPower = Breaking.oreStrength(tier, #(C.ORES or {}))
+	row.worldTier, row.worldLevel = tier, level
 	row.world = true
 	return row
 end
 
 --[[
-	EMPTY HANDS IN AN EVENT MINE. Somebody with no Crypt tool (which a claim
+	EMPTY HANDS IN AN EVENT MINE. Somebody with no Halloween tool (which a claim
 	prevents, so this is a broken-save guard) holds nothing: `none` keeps
 	givePickaxe from building a model, and the event-only rule refuses the swing
 	with "Only event tools work here."
@@ -305,35 +436,20 @@ R.NONE_ROW = {
 	cryptNone = true,
 }
 
--- The stack in hand, if the player owns it. Never trusts the key alone.
-function R.equippedStack(p)
-	if type(p) ~= "table" then
-		return nil
-	end
-	local key = p.cryptToolEquipped
-	if type(key) ~= "string" or count(p, key) <= 0 then
-		return nil
-	end
-	local def, variant = R.defOf(key)
-	if not def then
-		return nil
-	end
-	return { key = key, def = def, variant = variant, count = count(p, key) }
-end
-
--- Rows are read-only to every caller (Event Horizon returns its shared rows
--- the same way), so they are cached: equippedTool runs several times a swing.
+-- Rows are read-only to every caller, so they are cached: equippedTool runs
+-- several times a swing.
 local rowCache = {}
-local function cachedRow(kind, def, variant, zoneId, dig)
-	local k = kind .. "|" .. def.id .. "|" .. variant .. "|" .. tostring(zoneId) .. "|" .. tostring(dig)
+local function cachedRow(kind, def, entry, zoneId, dig)
+	local k = kind .. "|" .. def.id .. "|" .. tostring(entry.uid) .. "|" .. tostring(entry.prestige)
+		.. "|" .. tostring(zoneId) .. "|" .. tostring(dig)
 	local hit = rowCache[k]
 	if hit then
 		return hit
 	end
 	if kind == "event" then
-		hit = R.eventRow(def, variant, zoneId, dig)
+		hit = R.eventRow(def, entry, zoneId, dig)
 	else
-		hit = R.worldRow(def, variant, dig)
+		hit = R.worldRow(def, entry, dig)
 	end
 	rowCache[k] = hit
 	return hit
@@ -343,14 +459,14 @@ end
 	THE SWAP RULE: what a player holds, given where they stand.
 
 	  In an event-tools-only mine (the Crypt; any later one that sets the flag):
-	    their equipped Crypt tool, at event power -- in the Crypt always, in a
-	    later event mine once the Crypt has ended ("and in future events").
-	    No Crypt tool: NONE_ROW, empty hands.
+	    their Halloween tool in hand, at Crypt power -- in the Crypt always, in
+	    a later event mine once the Crypt has ended ("and in future events").
+	    No Halloween tool: NONE_ROW, empty hands.
 	  In Event Horizon: nil. It keeps its own tools and rules (owner: "Crypt
 	    only for now").
-	  Anywhere else: their equipped Crypt tool at WORLD power, but only once the
+	  Anywhere else: their Halloween tool at WORLD power, but only once the
 	    Crypt has ended AND they chose to hold it there (`cryptToolWorld`).
-	    During the event Crypt tools do nothing out here.
+	    During the event Halloween tools do nothing out here.
 	  Otherwise nil, and the normal tool chain decides.
 
 	Returns row, family, tier -- the shape equippedTool returns.
@@ -365,17 +481,16 @@ function R.heldRow(p, zoneId, now)
 		zone = nil
 	end
 	local w = nil
-	local stack = R.equippedStack(p)
+	local entry, def = R.equippedEntry(p)
 	if zone and zone.eventToolsOnly then
-		if stack then
+		if entry and def then
 			local allowed = zid == R.ZONE_ID
 			if not allowed then
 				w = R.window(now)
 				allowed = w.ended
 			end
 			if allowed then
-				return cachedRow("event", stack.def, stack.variant, zid, R.eventDigOf(p)),
-					stack.def.family, stack.def.tier
+				return cachedRow("event", def, entry, zid, R.eventDigOf(p)), def.family, def.rank
 			end
 		end
 		return R.NONE_ROW, "pickaxe", 0
@@ -383,103 +498,330 @@ function R.heldRow(p, zoneId, now)
 	if zid == "bigbang" then
 		return nil
 	end
-	if stack and p.cryptToolWorld == true then
+	if entry and def and p.cryptToolWorld == true then
 		w = w or R.window(now)
 		if w.ended then
-			return cachedRow("world", stack.def, stack.variant, nil, R.eventDigOf(p)),
-				stack.def.family, stack.def.tier
+			return cachedRow("world", def, entry, nil, R.eventDigOf(p)), def.family, def.rank
 		end
 	end
 	return nil
 end
 
 --------------------------------------------------------------------------------
--- CHESTS AND CASES
+-- CRAFT, PRESTIGE, SCRAP: what a verb would do, or why not
 --------------------------------------------------------------------------------
 
 --[[
-	A CRYPT CHEST pays candy and, sometimes, a Crypt tool (MineCandyTools:
-	CHEST_TOOL_CHANCE, from the chest's own depth band). No coins, gems or packs:
-	the Crypt's packs would be another mine's, and its rewards are candy and
-	tools. The candy is CHEST_CANDY_BLOCKS candy blocks' worth of the candy ore
-	centred at the chest's depth. PROPOSED (2026-10-19): 5.
+	Each returns a plan, or nil and a player-facing reason (the server toasts it
+	as written). The server applies the plan it is given, so the number a
+	player agreed to is the number paid.
 ]]
-R.CHEST_CANDY_BLOCKS = 5
+function R.craftPlan(p, toolId, now)
+	local def = Tools.byId(toolId)
+	if not def then
+		return nil, "That tool is not in the game"
+	end
+	local w = R.window(now)
+	if w.ended and not Tools.CRAFT_AFTER_EVENT then
+		return nil, "Halloween tools are crafted while the Candy Crypt is open"
+	end
+	if #R.ownedTools(p) >= Tools.CAP then
+		return nil, ("You have %d Halloween tools -- scrap one to craft another"):format(Tools.CAP)
+	end
+	local store = R.oreStore(p, now)
+	local have = math.max(0, math.floor(tonumber(store[def.oreId]) or 0))
+	if have < def.craft then
+		return nil, ("Need %d %s (you have %d)"):format(def.craft, def.oreName, have)
+	end
+	return { def = def, oreId = def.oreId, cost = def.craft, have = have }
+end
 
--- The candy ore whose `at` sits nearest this layer (no roll: a chest's candy is
--- a fixed amount for its depth).
-function R.candyOreNear(layer)
-	local list = C.CANDY_ORES or {}
-	local depth = math.max(1, tonumber(C.CANDY_DEPTH_LAYERS) or 120)
-	local t = math.clamp((tonumber(layer) or 1) / depth, 0, 1)
-	local best, bestD = list[1], math.huge
-	for _, o in ipairs(list) do
-		local d = math.abs((tonumber(o.at) or 0) - t)
-		if d < bestD then
-			best, bestD = o, d
+function R.prestigePlan(p, uid, now)
+	local entry = R.findTool(p, uid)
+	local def = entry and Tools.byId(entry.id)
+	if not def then
+		return nil, "You do not have that tool"
+	end
+	local k = Tools.clampPrestige(entry.prestige)
+	if k >= Tools.PRESTIGE_MAX then
+		return nil, ("%s is already at prestige %d"):format(def.name, Tools.PRESTIGE_MAX)
+	end
+	local cost = Tools.prestigeCost(def, k + 1)
+	local store = R.oreStore(p, now)
+	local have = math.max(0, math.floor(tonumber(store[def.oreId]) or 0))
+	if have < cost then
+		return nil, ("Need %d %s (you have %d)"):format(cost, def.oreName, have)
+	end
+	return { def = def, entry = entry, oreId = def.oreId, cost = cost, have = have, to = k + 1 }
+end
+
+function R.scrapPlan(p, uid)
+	local entry = R.findTool(p, uid)
+	local def = entry and Tools.byId(entry.id)
+	if not def then
+		return nil, "You do not have that tool"
+	end
+	if #R.ownedTools(p) <= 1 then
+		return nil, "Keep at least one Halloween tool: it is how you dig the Crypt"
+	end
+	return { def = def, entry = entry, candy = Tools.scrapCandy(def, entry.prestige, entry.spent) }
+end
+
+--------------------------------------------------------------------------------
+-- PETS AND CHARMS THAT COUNT
+--------------------------------------------------------------------------------
+
+local function cardById(p, id)
+	for _, c in ipairs(type(p) == "table" and type(p.cards) == "table" and p.cards or {}) do
+		if type(c) == "table" and c.id == id then
+			return c
 		end
 	end
-	return best
+	return nil
 end
+R.cardById = cardById
 
-function R.chestCandy(layer)
-	local ore = R.candyOreNear(layer)
-	if not ore then
-		return 0
-	end
-	return math.max(1, math.floor(C.candyFor(ore, layer) * R.CHEST_CANDY_BLOCKS))
-end
-
--- The chance of a tool, and of each tier, from a chest at this layer.
-function R.chestOdds(layer, chestLuck)
-	return Tools.chestOdds(layer, chestLuck)
+local function inCrypt(p, zoneId)
+	return tostring(zoneId or (type(p) == "table" and p.zoneId) or "") == R.ZONE_ID
 end
 
 --[[
-	The Trick-or-Treat odds sheet: every outcome's share (MineTrickOrTreat.odds),
-	plus the tool slot broken into tiers (MineCandyTools.CASE_TIER_WEIGHTS) and
-	what the skin case can be. Every row's `pct` is out of 100.
+	THE PETS THAT COUNT WHERE YOU STAND (owner: "only Halloween pets count in
+	the Crypt"; a separate Halloween pet team while the event runs).
+
+	  In the Crypt, during the event: the Halloween team.
+	  In the Crypt, after it: the Halloween pets on your (main) team.
+	  Anywhere else, during the event: your main team WITHOUT Halloween pets
+	    (they are in the Halloween inventory).
+	  Anywhere else, after it: your main team, as it is.
+	Returns a list of card ids (a new table, safe to keep).
 ]]
-function R.caseOdds(packPresent)
-	local rows = TT.odds(packPresent)
-	local toolShare = 0
-	for _, r in ipairs(rows) do
-		if r.kind == "tool" then
-			toolShare = r.pct
+function R.teamFor(p, zoneId, now)
+	if type(p) ~= "table" then
+		return {}
+	end
+	local sep = R.separate(p, now)
+	local out = {}
+	if inCrypt(p, zoneId) then
+		local h = inv(p)
+		local src = (sep and h and type(h.team) == "table") and h.team or (not sep and p.equipped) or {}
+		for _, id in ipairs(src) do
+			local c = cardById(p, id)
+			if c and isHalloweenCard(c) then
+				table.insert(out, id)
+			end
+		end
+		return out
+	end
+	for _, id in ipairs(type(p.equipped) == "table" and p.equipped or {}) do
+		if not sep or not isHalloweenCard(cardById(p, id)) then
+			table.insert(out, id)
 		end
 	end
-	local tiers, tot = {}, 0
-	for _, w in ipairs(Tools.CASE_TIER_WEIGHTS) do
-		tot += w
+	return out
+end
+
+--[[
+	THE CHARM THAT COUNTS WHERE YOU STAND. In the Crypt only a Halloween charm
+	counts: during the event the Halloween inventory's slot, after it the main
+	slot if it holds a Halloween charm. Elsewhere the main slot, unless it holds
+	a Halloween charm while the event runs (that charm lives in the Halloween
+	inventory). nil means no charm applies.
+]]
+function R.charmFor(p, zoneId, now)
+	if type(p) ~= "table" then
+		return nil
 	end
-	for ti, w in ipairs(Tools.CASE_TIER_WEIGHTS) do
-		local tier = Tools.TIERS[ti]
-		table.insert(tiers, {
-			tier = ti,
-			name = tier and tier.name or tostring(ti),
-			pct = (tot > 0) and (toolShare * w / tot) or 0,
+	local sep = R.separate(p, now)
+	local main = (type(p.equippedCharm) == "string" and p.equippedCharm ~= "") and p.equippedCharm or nil
+	if inCrypt(p, zoneId) then
+		if sep then
+			local h = inv(p)
+			local id = h and h.charm
+			return (type(id) == "string" and isHalloweenCharm(id)) and id or nil
+		end
+		return (main and isHalloweenCharm(main)) and main or nil
+	end
+	if main and sep and isHalloweenCharm(main) then
+		return nil
+	end
+	return main
+end
+
+-- Halloween charms the player owns (p.charms tallies), name order.
+function R.halloweenCharms(p)
+	local out = {}
+	for id, n in pairs(type(p) == "table" and type(p.charms) == "table" and p.charms or {}) do
+		local count = (n == true) and 1 or math.max(0, math.floor(tonumber(n) or 0))
+		if count > 0 and isHalloweenCharm(id) then
+			local def = Charms.byId(id)
+			table.insert(out, {
+				id = id,
+				name = def and def.name or id,
+				rarity = def and def.rarity or nil,
+				rank = cryptChestCharmIds()[id],
+				n = count,
+			})
+		end
+	end
+	table.sort(out, function(a, b)
+		return a.name < b.name
+	end)
+	return out
+end
+
+-- Halloween pets the player owns: their card ids, in bag order.
+function R.halloweenPets(p)
+	local out = {}
+	for _, c in ipairs(type(p) == "table" and type(p.cards) == "table" and p.cards or {}) do
+		if type(c) == "table" and c.id and isHalloweenCard(c) then
+			table.insert(out, c.id)
+		end
+	end
+	return out
+end
+
+-- Pet seats on a team (the main team's: C.effectivePetSlots).
+function R.teamCap(p)
+	return math.max(1, math.floor(tonumber(C.effectivePetSlots and C.effectivePetSlots(p)
+		or (type(p) == "table" and p.petSlots) or 3) or 3))
+end
+
+--------------------------------------------------------------------------------
+-- THE TRICK-OR-TREAT CASE
+--------------------------------------------------------------------------------
+
+--[[
+	The Halloween pets of one rarity, as roster rows ({ name, tier, animal,
+	... }): MineHalloweenPets.pool (another agent's) when it exists, else the
+	Halloween 2026 Pack's own list.
+]]
+function R.petPool(rarity)
+	local HP = lazy("MineHalloweenPets")
+	if HP and type(HP.pool) == "function" then
+		local ok, rows = pcall(HP.pool, rarity)
+		if ok and type(rows) == "table" then
+			local out = {}
+			for _, r in ipairs(rows) do
+				if type(r) == "table" and (rarity == nil or (r.tier or r.rarityId or r.rarity) == rarity) then
+					table.insert(out, r)
+				end
+			end
+			return out
+		end
+	end
+	local list = holidayList()
+	local out = {}
+	for _, r in ipairs((list and list.PETS) or {}) do
+		if rarity == nil or r.tier == rarity then
+			table.insert(out, r)
+		end
+	end
+	return out
+end
+
+-- The Halloween-set skins of one tier (F..SSS), never a pass skin.
+function R.skinPool(tier)
+	local Skins = lazy("MineSkins")
+	local out = {}
+	for _, s in ipairs((Skins and Skins.LIST) or {}) do
+		if s.set == R.SKIN_SET and not s.pass and (tier == nil or s.tier == tier) then
+			table.insert(out, s)
+		end
+	end
+	return out
+end
+
+local function pickOne(list, rng)
+	if #list == 0 then
+		return nil
+	end
+	local i = (rng and rng.NextInteger) and rng:NextInteger(1, #list) or math.random(1, #list)
+	return list[math.clamp(i, 1, #list)]
+end
+
+--[[
+	WHICH prize a roll (MineTrickOrTreat.roll) names: a Halloween pet or skin of
+	its rarity. A rarity with nothing of that kind steps down a rung, then the
+	other kind is tried, so an open always names a real prize. Returns
+	  { kind = "pet", rarityIndex, rarity, pet = <roster row>, name }
+	  { kind = "skin", rarityIndex, rarity, skin = <skin def>, name }
+	or nil when there is nothing Halloween to give at all.
+]]
+function R.casePrize(roll, rng)
+	if type(roll) ~= "table" then
+		return nil
+	end
+	local order = { roll.kind, (roll.kind == "pet") and "skin" or "pet" }
+	for _, kind in ipairs(order) do
+		for idx = math.floor(tonumber(roll.rarityIndex) or 1), 1, -1 do
+			local rung = TT.rarity(idx)
+			if rung then
+				if kind == "pet" then
+					local pet = pickOne(R.petPool(rung.pet), rng)
+					if pet then
+						return { kind = "pet", rarityIndex = idx, rarity = rung.pet, pet = pet, name = pet.name }
+					end
+				else
+					local skin = pickOne(R.skinPool(rung.skin), rng)
+					if skin then
+						return { kind = "skin", rarityIndex = idx, rarity = rung.skin, skin = skin, name = skin.name }
+					end
+				end
+			end
+		end
+	end
+	return nil
+end
+
+--[[
+	The odds sheet (MineTrickOrTreat.odds), plus how many Halloween pets and
+	skins each rarity can be, so the sheet can say "1 of 20".
+]]
+function R.caseOdds()
+	local sheet = TT.odds()
+	for _, row in ipairs(sheet.rows) do
+		row.pets = #R.petPool(row.pet)
+		row.skins = #R.skinPool(row.skin)
+	end
+	return sheet
+end
+
+--------------------------------------------------------------------------------
+-- CHESTS
+--------------------------------------------------------------------------------
+
+--[[
+	A Crypt chest at this layer, for an odds sheet: each rank's chance (F
+	first) and the charm chance after Chest Luck.
+]]
+function R.chestOdds(layer, chestLuck)
+	local odds = Chests.rankOdds(Chests.section(layer))
+	local ranks = {}
+	for i, r in ipairs(Chests.RANKS) do
+		table.insert(ranks, {
+			key = r.key,
+			name = r.name,
+			pct = (odds[i] or 0) * 100,
+			packs = r.packs,
+			luck = r.luck,
+			candy = r.candy,
 		})
 	end
-	return {
-		price = TT.PRICE,
-		currency = TT.CURRENCY,
-		rows = rows,
-		toolTiers = tiers,
-		skinCaseOreTiers = TT.SKIN_CASE_ORE_TIERS,
-	}
+	return { ranks = ranks, charm = Chests.charmChance(chestLuck) }
 end
 
 --------------------------------------------------------------------------------
 -- CANDY ORES
 --------------------------------------------------------------------------------
 
--- Candy for one unit (MineConfig.candyOreValue). 0 for anything not candy.
+-- Candy for one item (MineConfig.candyOreValue). 0 for anything not candy.
 function R.candyOreValue(id)
 	return C.candyOreValue and C.candyOreValue(id) or 0
 end
 
--- All sixteen candy ores with what the player holds, for the pouch and the
--- candy-sell screen. Always sixteen rows, in ladder order.
+-- All sixteen candy ores with what the player holds, for the Halloween
+-- inventory and the candy-sell screen. Always sixteen rows, in ladder order.
 function R.candyOreRows(ores, locks, seen)
 	local out = {}
 	for _, o in ipairs(C.CANDY_ORES or {}) do
@@ -491,7 +833,8 @@ function R.candyOreRows(ores, locks, seen)
 			rank = o.rank,
 			band = o.band,
 			bandIndex = o.bandIndex,
-			homeLayer = C.candyHomeLayer(o),
+			drop = o.drop,
+			blockCandy = o.candy,
 			n = n,
 			candyEach = each,
 			candyValue = each * n,
@@ -503,61 +846,146 @@ function R.candyOreRows(ores, locks, seen)
 end
 
 --------------------------------------------------------------------------------
--- THE HALLOWEEN CHARMS
+-- THE HALLOWEEN INVENTORY, AND THE SNAPSHOT
 --------------------------------------------------------------------------------
 
--- The six, with what crafting each costs and whether `p` can afford it.
-function R.charmRecipes(p)
-	local ores = type(p) == "table" and p.ores or {}
-	local owned = type(p) == "table" and p.charms or {}
+-- One owned tool, as a screen draws it.
+local function toolView(p, entry, dig, heldUid, store)
+	local def = Tools.byId(entry.id)
+	local k = Tools.clampPrestige(entry.prestige)
+	local nextCost = (k < Tools.PRESTIGE_MAX) and Tools.prestigeCost(def, k + 1) or nil
+	local have = math.max(0, math.floor(tonumber(store[def.oreId]) or 0))
+	local tier, level, ore = Tools.worldEquivalent(def, k)
+	return {
+		uid = entry.uid,
+		id = def.id,
+		name = def.name,
+		family = def.family,
+		rank = def.rank,
+		band = def.band,
+		rarityId = def.rarityId,
+		oreId = def.oreId,
+		oreName = def.oreName,
+		prestige = k,
+		prestigeMax = Tools.PRESTIGE_MAX,
+		power = Tools.cryptPower(def, k, dig),
+		worldPower = Tools.worldPower(def, k, dig),
+		worldTier = tier,
+		worldLevel = level,
+		worldOre = ore and ore.name or nil,
+		worldBreakingPower = Breaking.oreStrength(tier, #(C.ORES or {})),
+		nextCost = nextCost,
+		canPrestige = nextCost ~= nil and have >= nextCost,
+		scrapCandy = Tools.scrapCandy(def, k, entry.spent),
+		skinFactor = def.skinFactor,
+		equipped = heldUid == entry.uid,
+		icon = def.icon or "",
+		cryptTool = true,
+	}
+end
+-- (No damage ladder on the row: the snapshot flushes up to ten times a second
+-- while digging, and the ladder never changes. A screen calls
+-- prestigeLadder(toolDef(row.id), dig) itself.)
+
+--[[
+	THE HALLOWEEN INVENTORY, as a screen draws it (the contract's
+	MineCrypt.inventoryOf serves this):
+
+	  separate   true while it is its own inventory (the event runs)
+	  tools      owned Halloween tools, best first (toolView rows)
+	  tool       the uid in hand, or nil
+	  toolCount / toolCap
+	  ores       the sixteen candy ores (candyOreRows), from oreStore
+	  pets       Halloween pet card ids (they live in p.cards)
+	  team / teamCap   the Halloween pet team (card ids) and its seats
+	  charms     Halloween charms owned ({ id, name, rarity, rank, n })
+	  charm      the Halloween charm worn in the Crypt, or nil
+]]
+function R.inventoryOf(p, now)
+	if type(p) ~= "table" then
+		return nil
+	end
+	local h = inv(p) or {}
+	local dig = R.eventDigOf(p)
+	local store = R.oreStore(p, now)
+	local held = select(1, R.equippedEntry(p))
+	local tools = {}
+	for _, entry in ipairs(R.ownedTools(p)) do
+		table.insert(tools, toolView(p, entry, dig, held and held.uid, store))
+	end
+	table.sort(tools, function(a, b)
+		if a.rank ~= b.rank then
+			return a.rank > b.rank
+		end
+		if a.prestige ~= b.prestige then
+			return a.prestige > b.prestige
+		end
+		return a.uid < b.uid
+	end)
+	local sep = R.separate(p, now)
+	local team = {}
+	for _, id in ipairs(type(h.team) == "table" and h.team or {}) do
+		table.insert(team, id)
+	end
+	return {
+		separate = sep,
+		tools = tools,
+		tool = held and held.uid or nil,
+		toolCount = #tools,
+		toolCap = Tools.CAP,
+		ores = R.candyOreRows(store, p.oreLocks, h.seen),
+		pets = R.halloweenPets(p),
+		team = team,
+		teamCap = R.teamCap(p),
+		charms = R.halloweenCharms(p),
+		charm = (type(h.charm) == "string" and h.charm ~= "") and h.charm or nil,
+	}
+end
+
+--[[
+	The Forge's Halloween recipes: all sixteen tools, what each costs, what you
+	hold of its ore, and whether a craft would go through (and if not, why).
+]]
+function R.recipes(p, now)
+	local store = R.oreStore(p, now)
 	local out = {}
-	for _, def in ipairs(Charms.candyCharms()) do
-		local rec = def.recipe or {}
-		local ore = C.candyOreById(rec.oreId)
-		local have = math.max(0, math.floor(tonumber((ores or {})[rec.oreId]) or 0))
-		local cost = math.max(1, math.floor(tonumber(rec.count) or 1))
-		local n = (owned or {})[def.id]
+	for _, def in ipairs(Tools.TOOLS) do
+		local plan, why = R.craftPlan(p, def.id, now)
 		table.insert(out, {
-			charmId = def.id,
+			id = def.id,
 			name = def.name,
-			rarity = def.rarity,
-			rarityLabel = Charms.RARITY_LABEL and Charms.RARITY_LABEL[def.rarity] or def.rarity,
-			blurb = def.blurb,
-			stats = def.stats,
-			oreId = rec.oreId,
-			oreName = ore and ore.name or rec.oreId,
-			cost = cost,
-			have = have,
-			canCraft = have >= cost,
-			owned = (n == true) and 1 or math.max(0, math.floor(tonumber(n) or 0)),
-			-- No art yet: empty means the client's generic charm icon.
-			icon = def.art or "",
+			family = def.family,
+			rank = def.rank,
+			band = def.band,
+			oreId = def.oreId,
+			oreName = def.oreName,
+			cost = def.craft,
+			have = math.max(0, math.floor(tonumber(store[def.oreId]) or 0)),
+			canCraft = plan ~= nil,
+			why = why,
+			skinFactor = def.skinFactor,
+			power = Tools.cryptPower(def, 0, 0),
+			worldPower = Tools.worldPower(def, 0, 0),
+			icon = def.icon or "",
 		})
 	end
 	return out
 end
 
---------------------------------------------------------------------------------
--- THE SNAPSHOT
---------------------------------------------------------------------------------
-
 --[[
-	The `crypt` block of the snapshot. Per-player state only; the static tables
-	(tools, odds, notice text, merge rule) are the functions above.
+	The `crypt` block of the snapshot. Per-player state; the static tables
+	(tools, costs, odds, notice text) are the functions above.
 
 	  zoneId, eventId          "hallow", "candy_crypt"
 	  owned                    claimed (p.hallowOwned)
 	  candy                    the balance
 	  window                   { opensAt, closesAt, open, ended } (wall clock)
-	  tools                    owned stacks, best first:
-	                           { key, id, name, family, tier, tierName, variant,
-	                             count, power, worldPower, worldBreakingPower,
-	                             nextVariant, merges, equipped, rarityId, icon }
-	  equipped                 the key in hand, or nil
+	  inventory                inventoryOf(p): tools, ores, pets, team, charms
+	  recipes                  recipes(p): the sixteen crafts
+	  equipped                 the Halloween tool's uid in hand, or nil
 	  world / worldActive      chose to hold it outside / and the event has ended
 	  noticeSeen               { [zoneId] = true }
-	  recipes                  charmRecipes(p)
-	  candyOres                candyOreRows(p.ores, p.oreLocks, p.candySeen)
+	  candyOres                inventory.ores (kept at this key for the pouch)
 	  sellUpTo                 the pouch's remembered SELL UP TO ceiling
 	  casePrice                Trick-or-Treat price in candy
 ]]
@@ -566,48 +994,7 @@ function R.stateFor(p, now)
 		return nil
 	end
 	local w = R.window(now)
-	local dig = R.eventDigOf(p)
-	local tools = {}
-	for key, n in pairs(type(p.cryptTools) == "table" and p.cryptTools or {}) do
-		local def, variant = R.defOf(key)
-		local c = math.max(0, math.floor(tonumber(n) or 0))
-		if def and c > 0 then
-			local tier = Tools.TIERS[def.tier]
-			local nextV = R.nextVariant(variant)
-			table.insert(tools, {
-				key = key,
-				id = def.id,
-				name = (variant ~= "Normal") and (variant .. " " .. def.name) or def.name,
-				family = def.family,
-				tier = def.tier,
-				tierName = tier and tier.name or nil,
-				variant = variant,
-				count = c,
-				power = R.inEventPower(def, variant, dig),
-				worldPower = R.worldPower(def, variant, dig),
-				worldBreakingPower = R.worldBreakingPower(def),
-				nextVariant = nextV,
-				merges = nextV and math.floor(c / R.MERGE_COUNT) or 0,
-				equipped = p.cryptToolEquipped == key,
-				rarityId = def.rarityId,
-				icon = def.icon or "",
-			})
-		end
-	end
-	local famOrder = {}
-	for i, f in ipairs(Tools.FAMILIES) do
-		famOrder[f] = i
-	end
-	table.sort(tools, function(a, b)
-		if a.tier ~= b.tier then
-			return a.tier > b.tier
-		end
-		local va, vb = VARIANT_RANK[a.variant] or 0, VARIANT_RANK[b.variant] or 0
-		if va ~= vb then
-			return va > vb
-		end
-		return (famOrder[a.family] or 9) < (famOrder[b.family] or 9)
-	end)
+	local inventory = R.inventoryOf(p, now)
 	local seen = {}
 	for zid, v in pairs(type(p.eventNoticeSeen) == "table" and p.eventNoticeSeen or {}) do
 		if v then
@@ -621,13 +1008,13 @@ function R.stateFor(p, now)
 		owned = p.hallowOwned == true,
 		candy = math.max(0, math.floor(tonumber(p.candy) or 0)),
 		window = w,
-		tools = tools,
-		equipped = R.equippedStack(p) and p.cryptToolEquipped or nil,
+		inventory = inventory,
+		recipes = R.recipes(p, now),
+		equipped = inventory.tool,
 		world = p.cryptToolWorld == true,
 		worldActive = (p.cryptToolWorld == true) and w.ended,
 		noticeSeen = seen,
-		recipes = R.charmRecipes(p),
-		candyOres = R.candyOreRows(p.ores, p.oreLocks, p.candySeen),
+		candyOres = inventory.ores,
 		sellUpTo = settings.oreSellUpTo or "Everything",
 		casePrice = TT.PRICE,
 	}
