@@ -2263,25 +2263,53 @@ end
 	equippedTool is called by givePickaxe, snap, boosts and mineTick, so one
 	mis-ordered local took out spawning, the snapshot and the mining loop
 	together. Anything calling this must stay below it.
+
+	Returns the multiplier AND the skin def (nil for none). `familyId` may be a
+	family name or any tool record with a `family` / `familyId`: the lookup is
+	MineToolSkins.skinFor, the one rule the screens use too.
 ]]
 local function skinBase(p, familyId)
 	if not p or not familyId then
-		return 1
+		return 1, nil
 	end
-	local id = p.skinEquipped and p.skinEquipped[tostring(familyId)]
-	if not id then
-		return 1
-	end
-	local ok, Skins = pcall(function()
-		return require(shared:WaitForChild("MineSkins"))
+	local ok, ToolSkins = pcall(function()
+		return require(shared:WaitForChild("MineToolSkins"))
 	end)
-	if not ok or not Skins then
-		return 1
+	if not ok or not ToolSkins then
+		return 1, nil
 	end
-	return tonumber(Skins.baseOf(id)) or 1
+	local worn = ToolSkins.skinFor(p.skinEquipped, familyId)
+	return ToolSkins.mult(worn), worn
 end
 
-local function equippedTool(p)
+--[[
+	THE WORN SKIN, ON WHATEVER IS IN HAND (owner, 2026-10-19: "one wardrobe
+	everywhere" -- event tools wear the same skins).
+
+	equippedTool hands every row it returns through here, so an Event Horizon
+	tool, a Candy Crypt tool, a chest find and a forged tool all wear their
+	family's skin by one rule: the skin's base under the tool's power, and the
+	skin stamped on the row (`skinId`) for the kit stats in boosts() and the
+	look in givePickaxe. A row that already carries `skinId` (the forged path
+	builds the skin into MineOreTools.hitPower) is passed through untouched.
+]]
+function Dig.wearSkin(p, row, fam)
+	if type(row) ~= "table" or row.none or row.skinId ~= nil then
+		return row
+	end
+	local ok, ToolSkins = pcall(function()
+		return require(shared:WaitForChild("MineToolSkins"))
+	end)
+	if not ok or not ToolSkins then
+		return row
+	end
+	local _, worn = skinBase(p, ToolSkins.familyOf(row, fam))
+	return worn and ToolSkins.wear(row, worn) or row
+end
+
+-- What is in hand BEFORE its skin; equippedTool, below the end of this, is
+-- what everything calls. Read the note there.
+function Dig.toolInHand(p)
 	-- Migrate saves that predate the 70-tool table.
 	if not p.tools then
 		p.tools = { pickaxe = math.max(1, p.pickaxeTier or 1), drill = 0, explosive = 0 }
@@ -2329,11 +2357,16 @@ local function equippedTool(p)
 			local famId = held.familyId or "pickaxe"
 			local OreToolsPow = require(shared:WaitForChild("MineOreTools"))
 			local oreDef = C.ORES and C.ORES[tonumber(held.tier) or 1]
-			local typeMult = OreToolsPow.typeMult(famId, held.tier)
 			local lvl = math.max(1, tonumber(held.level) or 1)
-			local famPow = (OreToolsPow.familyPower and OreToolsPow.familyPower(famId)) or 1
-			local power = math.max(1, math.floor(C.toolPower(held.tier, lvl, typeMult)
-				* famPow * skinBase(p, famId)))
+			--[[
+				ONE FORMULA, SHARED WITH THE FORGE'S CARDS (launch audit S11).
+				MineOreTools.hitPower is ore x level x FAMILY_POWER x the worn
+				skin's base, floored, then the finish below -- the arithmetic
+				that lived here, lifted out unchanged so a card cannot print a
+				number this swing does not land.
+			]]
+			local skinMult, worn = skinBase(p, famId)
+			local power = OreToolsPow.hitPower(held, skinMult)
 			--[[
 				FINISHES RIDE AN ORE TOOL THE SAME WAY THEY RIDE A FLAGSHIP.
 
@@ -2353,13 +2386,7 @@ local function equippedTool(p)
 			local shadow = held.shadow and true or nil
 			local nightmare = held.nightmare and true or nil
 			-- Highest finish wins outright; they never stack, same as withShiny.
-			if nightmare then
-				power = math.max(1, math.floor(power * (C.NIGHTMARE_MULT or 4.5)))
-			elseif shadow then
-				power = math.max(1, math.floor(power * (C.SHADOW_MULT or 3)))
-			elseif shiny then
-				power = math.max(1, math.floor(power * (C.SHINY_MULT or 1.5)))
-			end
+			-- The multiplier itself is in hitPower above, so it is applied once.
 			local finish = (nightmare and "Nightmare") or (shadow and "Shadow")
 				or (shiny and "Shiny") or "Normal"
 			--[[
@@ -2403,6 +2430,10 @@ local function equippedTool(p)
 				shadow = shadow,
 				nightmare = nightmare,
 				finish = finish,
+				-- The skin hitPower used: boosts() pays its kit and givePickaxe
+				-- builds its look off this, and Dig.wearSkin skips the row.
+				skinId = worn and worn.id or nil,
+				skinMult = worn and skinMult or nil,
 				rate = stats.rate or 2.6,
 				radius = stats.radius or 0,
 				cells = stats.cells or 1,
@@ -2526,6 +2557,24 @@ local function equippedTool(p)
 	end
 	tier = math.clamp(tier, 1, #list)
 	return list[tier], fam, tier
+end
+
+--[[
+	WHAT THE PLAYER IS ACTUALLY SWINGING: the tool in hand, wearing its skin.
+
+	Everything reads through here (givePickaxe, snap, boosts, the swing, the
+	throw), so this is the one place the skin is put on, and it is put on
+	whatever Dig.toolInHand found: forged, Event Horizon, a Candy Crypt tool, a
+	chest find. A path added to toolInHand later only has to return a row with
+	a `family`; it gets the wardrobe for free and must NOT multiply the skin in
+	itself (a row that does so stamps `skinId`, and wearSkin then leaves it).
+
+	Declared below toolInHand rather than in its place, which is safe: every
+	caller is further down the file, and toolInHand never calls this.
+]]
+local function equippedTool(p)
+	local row, fam, rung = Dig.toolInHand(p)
+	return Dig.wearSkin(p, row, fam), fam, rung
 end
 
 --[[
@@ -2677,19 +2726,15 @@ local function boosts(p)
 
 		Dig.Layers.add, not b[stat], so ADDITIVE_STATS is honoured in one place
 		rather than by a second opinion here about which stats add.
+
+		The skin is the one equippedTool put on the held row (`skinId`), so the
+		kit pays on every tool that wears it -- event tools included -- and is
+		always the same skin the damage and the look used. It used to look up
+		the forged tool's uid only, so an Event Horizon tool wore no kit.
 	]]
 	do
-		local uid = p.oreToolEquipped
-		local fam
-		if uid then
-			for _, t in ipairs(p.oreTools or {}) do
-				if t.uid == uid then
-					fam = t.familyId
-					break
-				end
-			end
-		end
-		local id = fam and p.skinEquipped and p.skinEquipped[fam]
+		local held = equippedTool(p)
+		local id = type(held) == "table" and held.skinId
 		if id then
 			local okSk, Skins = pcall(function()
 				return require(shared:WaitForChild("MineSkins"))
@@ -3647,7 +3692,9 @@ local function snap(plr)
 		upgrades = Dig.upgradesFor and Dig.upgradesFor(p, plr.UserId) or nil,
 		tool = (function()
 			local t, fam, tier = equippedTool(p)
-			return { id = t.id, name = t.name, family = fam, tier = tier, power = t.power,
+			-- `family` is what the Skins wardrobe reads as the class in hand,
+			-- and `skinId` the skin that class is wearing on it.
+			return { id = t.id, name = t.name, family = fam, tier = tier, power = t.power, skinId = t.skinId,
 				rate = t.rate, radius = t.radius, cooldown = t.cooldown, range = t.range, axis = t.axis,
 				-- Carried so the client cannot disagree with the server about reach.
 				reach = Tools.reachOf(t) * (1 + math.max(0, tonumber((boosts(p) or {}).reach) or 0)) }
@@ -5329,6 +5376,9 @@ end
 
 	It rides the profile (p.skinNotice, read once by MineSkinsView) because the
 	old CHEST_LOOT caller had no player; openChestBlock also toasts.
+
+	The skin's MineSkins def comes back fourth, for a caller that shows it (the
+	ore case's reel); the chest callers read three and are unchanged.
 ]]
 function Dig.grantChestSkin(p, tier, rng)
 	rng = rng or Random.new()
@@ -5353,11 +5403,11 @@ function Dig.grantChestSkin(p, tier, rng)
 	if p.skins[def.id] then
 		local dust = math.max(1, math.floor(20 * (Skins.TIER_RANK[tier] or 1)))
 		p.dust = (p.dust or 0) + dust
-		return "skindupe", def.name, dust
+		return "skindupe", def.name, dust, def
 	end
 	p.skins[def.id] = true
 	p.skinNotice = { name = def.name, tier = tier, set = def.set }
-	return "skin", def.name, tier
+	return "skin", def.name, tier, def
 end
 
 -- What a broken chest actually yields. Usually packs -- a run of them, which
@@ -5624,8 +5674,10 @@ local function givePickaxe(plr)
 			end
 			-- A skin worn on this family dresses the tool (owner, 2026-10-11:
 			-- "Ore look + skins"). Only families with skin forms build one;
-			-- the rest fall through to the plain ore tool.
-			local skinId = p and p.skinEquipped and p.skinEquipped[famId]
+			-- the rest fall through to the plain ore tool. The skin is the one
+			-- equippedTool put on this row, so the look, the damage and the
+			-- kit stats are always the same skin, on any tool that wears it.
+			local skinId = row and row.skinId
 			if skinId and ToolModels.buildSkinned then
 				local okS, Skins = pcall(function()
 					return require(shared:WaitForChild("MineSkins"))
@@ -6737,6 +6789,14 @@ function Dig.tuneProto(tool)
 	local copy = table.clone(tool)
 	copy.power = fresh.power
 	copy.spacePower = fresh.spacePower
+	-- Re-pricing a prototype must not take its worn skin off (Dig.wearSkin).
+	if copy.skinMult then
+		local ToolSkins = require(shared:WaitForChild("MineToolSkins"))
+		copy.power = ToolSkins.applyPower(copy.power, copy.skinMult)
+		if copy.spacePower ~= nil then
+			copy.spacePower = ToolSkins.applyPower(copy.spacePower, copy.skinMult)
+		end
+	end
 	if fresh.special then
 		copy.special = fresh.special
 	end
@@ -7362,6 +7422,15 @@ local ToolModels = require(game.ReplicatedStorage:WaitForChild("ToolModelFactory
 local function flingCharge(tool, from, dir, fuse, ignore)
 	local ok, model = pcall(function()
 		local fam = tool.family or "explosive"
+		-- The charge is the held tool, so it wears the held tool's skin form
+		-- (equippedTool stamped skinId). buildSkinned is nil for a family with
+		-- no form yet, and the plain build below takes over.
+		if tool.skinId and ToolModels.buildSkinned then
+			local skinned = ToolModels.buildSkinned(fam, require(shared:WaitForChild("MineSkins")).byId(tool.skinId))
+			if skinned then
+				return skinned
+			end
+		end
 		local list = Tools.TOOLS[fam]
 		return ToolModels.build(fam, tool.tier or 1, list and #list or 15)
 	end)
@@ -8270,9 +8339,9 @@ local function openPack(plr, setId, chestId, pk, collect)
 
 					The charm is the one for THIS ore -- every ore has exactly
 					one, generated from the roster, so there is no band lookup to
-					come up empty. A skin is rolled from the same kit catalog and
-					gets the same reel ceremony a bought case gets, because it is
-					the same prize and should not read as a lesser one.
+					come up empty. A skin is a wardrobe skin (MineSkins) on a
+					temper case's grade odds, and gets the same reel ceremony a
+					bought case gets, because it should not read as a lesser prize.
 				]]
 				local Temper = require(shared.MineTemper)
 				local ore = C.oreById(zdef.oreId)
@@ -8334,17 +8403,25 @@ local function openPack(plr, setId, chestId, pk, collect)
 					return
 				end
 
-				-- A skin. Same roll and same ceremony as a bought temper case.
-				local kit, rarity = Temper.rollTemperament(crng)
-				if kit then
-					p.tempers = p.tempers or {}
-					local had = p.tempers[kit.id]
-					if had then
-						had.rarity = Temper.betterGrade(had.rarity, rarity)
-						had.n = (tonumber(had.n) or 1) + 1
-					else
-						p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
-					end
+				--[[
+					A SKIN, AND A REAL ONE (launch audit S14; owner, 2026-10-19:
+					ore cases pay wardrobe skins).
+
+					This rolled a TEMPER and filed it in p.tempers, the old kit
+					catalog the Skins wardrobe never reads, so the case's "skin"
+					landed nowhere a player looks for skins. Now the GRADE rolls
+					on the very odds a temper case uses (rollTemperament, i.e.
+					MineTemper.RARITY_WEIGHTS: F 50% down to SSS 0.02%), and a
+					skin of that grade is granted by the chests' own
+					Dig.grantChestSkin: the same pool (never a pass skin) and the
+					same duplicate rule (stardust). Tempers already owned keep
+					the Enchanter's Temper tab. Same reel ceremony as before.
+				]]
+				local _, rarity = Temper.rollTemperament(crng)
+				local grade = Temper.normalizeRarity(rarity) or "F"
+				local got, skinName, extra, skinDef = Dig.grantChestSkin(p, grade, crng)
+				if got then
+					local dupe = got == "skindupe"
 					bumpStat(plr, p, "packs")
 					introAdvance(plr, p, 5)
 					awardPassXp(plr, p, 10)
@@ -8356,28 +8433,34 @@ local function openPack(plr, setId, chestId, pk, collect)
 							kind = "skin",
 							cards = { {
 								kind = "skin",
-								name = kit.name,
-								rarityId = Temper.normalizeRarity(rarity),
+								name = skinName,
+								rarityId = grade,
 							} },
 						})
 						return
 					end
-					local reel, at = Temper.caseReel(crng, kit, rarity)
+					local ToolSkins = require(shared:WaitForChild("MineToolSkins"))
+					local reel, at = ToolSkins.caseReel(crng, skinDef)
 					snap(plr)
 					net:FireClient(plr, "temperCase", {
-						reel = reel, at = at, id = kit.id, name = kit.name,
-						rarity = Temper.normalizeRarity(rarity),
-						word = Temper.wordOf(rarity),
-						dupe = had ~= nil,
+						reel = reel, at = at, id = skinDef and skinDef.id or nil, name = skinName,
+						rarity = grade,
+						word = Temper.wordOf(grade),
+						dupe = dupe,
 						source = "ore_case",
 						oreName = (ore and ore.name) or nil,
+						title = ((ore and ore.name) or "Ore") .. " Case",
+						resultText = string.upper(Temper.wordOf(grade)) .. "   " .. tostring(skinName),
+						resultSub = ToolSkins.powerLine(skinDef, 3),
+						note = dupe and string.format("already in your wardrobe  ·  +%d stardust", tonumber(extra) or 0)
+							or "a new skin  ·  wear it from SKINS",
 					})
 					return
 				end
 
 				--[[
-					The kit catalog came up empty, which it cannot do unless
-					MineTemper is broken. Pay the charm rather than eat the case:
+					No skin of that grade could be granted, which needs the skin
+					list to be missing. Pay the charm rather than eat the case:
 					a guarantee that silently pays nothing is worse than a
 					guarantee that pays the other half of itself.
 				]]
@@ -10674,14 +10757,31 @@ function Verbs.equipSkin(plr, payload)
 	if not okSk or not Skins then
 		return
 	end
+	local ToolSkins = require(shared:WaitForChild("MineToolSkins"))
+	--[[
+		The class the client names, or else the one in hand -- WHATEVER is in
+		hand (MineToolSkins: forged, event, chest), not only a forged tool, so
+		equipping from the wardrobe dresses an event tool too. Equip and take-off
+		resolve the same way. Only a real tool class is stored: a crafted request
+		cannot grow p.skinEquipped with junk keys.
+	]]
+	if fam == "" then
+		local _, heldFam = equippedTool(p)
+		fam = tostring(heldFam or "")
+	end
+	if not ToolSkins.isFamily(fam) then
+		net:FireClient(plr, "toast", "Hold a tool to skin it")
+		return
+	end
 	p.skinEquipped = p.skinEquipped or {}
 	if id == "" then
-		if fam ~= "" then
+		if p.skinEquipped[fam] ~= nil then
 			p.skinEquipped[fam] = nil
 			markDirty(plr)
 			snap(plr)
 			-- The held tool drops the skin's look at once.
 			givePickaxe(plr)
+			net:FireClient(plr, "toast", ("Skin taken off your %s"):format(fam))
 		end
 		return
 	end
@@ -10695,28 +10795,18 @@ function Verbs.equipSkin(plr, payload)
 		net:FireClient(plr, "toast", "You do not own that skin")
 		return
 	end
-	-- A skin belongs to a FAMILY slot; the client says which tool class it is
-	-- dressing, and anything unknown falls back to the one being held.
-	if fam == "" then
-		local uid = p.oreToolEquipped
-		for _, t in ipairs(p.oreTools or {}) do
-			if t.uid == uid then
-				fam = tostring(t.familyId or "")
-				break
-			end
-		end
-	end
-	if fam == "" then
-		net:FireClient(plr, "toast", "Hold a tool to skin it")
-		return
-	end
+	-- A skin belongs to a FAMILY slot (resolved above: the class the client
+	-- named, or the one in hand).
 	p.skinEquipped[fam] = id
 	markDirty(plr)
 	snap(plr)
 	-- Re-give the held tool, so a skin with a form (hammers, jackhammers)
-	-- shows on it at once.
+	-- shows on it at once. A family with no form yet gets the skin's power and
+	-- not its look, and the toast says so rather than letting it look broken.
 	givePickaxe(plr)
-	net:FireClient(plr, "toast", ("%s equipped on your %s"):format(def.name, fam))
+	local looks = ToolModels.hasSkinForm and ToolModels.hasSkinForm(fam, def.set)
+	net:FireClient(plr, "toast", ("%s equipped on your %s%s"):format(def.name, fam,
+		looks and "" or (" (" .. ToolSkins.STATS_ONLY .. ")")))
 end
 
 function Verbs.buyTrickOrTreat(plr)
@@ -17177,8 +17267,17 @@ function Verbs.craftOreTool(plr, payload)
 		return
 	end
 
-	local typeMult = Verbs._oreToolTypeMult({ familyId = familyId, typeId = def.id })
-	local cost = C.toolCraftCost(oreDef.tier, typeMult, familyId)
+	--[[
+		THE CARD'S NUMBER IS THE PRICE (launch audit S9; owner, 2026-10-19:
+		"the card's craft price is right").
+
+		This built typeMult from { familyId, typeId } -- no ore tier -- so
+		MineOreTools.typeMult read tier 1 and returned step 1 for every ore,
+		while the Forge's card quoted the ore's real step. From ore tier 7 up
+		the two disagreed. One function now, the one every Forge panel quotes
+		with.
+	]]
+	local cost = OreTools.craftCost(familyId, oreDef.tier)
 
 	p.ores = p.ores or {}
 	local have = tonumber(p.ores[oreId]) or 0
@@ -17213,17 +17312,11 @@ function Verbs.craftOreTool(plr, payload)
 		family, because the levels were paid for in ore and dust once and the
 		player does not owe them twice for choosing a different frame. Clamped,
 		so a profile carrying a pre-cap level cannot smuggle it past the cap.
+
+		MineOreTools.inheritedLevel, so the Forge's craft card can print the
+		level a new tool will arrive at instead of "Lv 1" (launch audit S11).
 	]]
-	local inherited = 1
-	for _, t in ipairs(p.oreTools) do
-		if type(t) == "table" then
-			local lv = math.floor(tonumber(t.level) or 1)
-			if lv > inherited then
-				inherited = lv
-			end
-		end
-	end
-	inherited = math.clamp(inherited, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
+	local inherited = OreTools.inheritedLevel(p.oreTools)
 
 	--[[
 		`base` is what makes the inheritance safe to scrap.
@@ -17288,18 +17381,18 @@ function Verbs.recycleOreTool(plr, payload)
 		return
 	end
 
-	local _, _, oreDef, typeMult = Verbs._oreToolCost(tool)
-	local level = math.max(1, tonumber(tool.level) or 1)
+	local _, _, oreDef = Verbs._oreToolCost(tool)
 	--[[
-		The level this tool was FORGED at. Levels it inherited cost nothing, so
-		they refund nothing; only the climb bought on this tool comes back.
+		Only the levels this tool BOUGHT come back: refunded from its `base`, the
+		level it was forged at. Inherited levels cost nothing, so they refund
+		nothing. Rows saved before `base` existed read 1, the generous side.
 
-		Rows saved before `base` existed fall back to 1 and refund on the old
-		terms, which is the generous direction and affects only tools already in
-		a profile.
+		MineOreTools.recycleRefund holds that rule, and the Forge's SCRAP card
+		quotes with the same call -- it used to pass base 1 and promise ore this
+		verb never paid (launch audit S10). Required here, not at the top: this
+		script is near Luau's 200-local ceiling.
 	]]
-	local base = math.clamp(math.floor(tonumber(tool.base) or 1), 1, level)
-	local ore, dust = C.toolRecycle(tool.tier, level, typeMult, base)
+	local ore, dust = require(shared:WaitForChild("MineOreTools")).recycleRefund(tool)
 	local oreId = oreDef and oreDef.id
 
 	-- Let go before it stops existing, or the hand keeps a uid that no longer

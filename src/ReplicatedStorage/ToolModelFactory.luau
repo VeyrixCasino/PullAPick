@@ -3404,15 +3404,22 @@ function ToolModelFactory.build(family, tier, count, look)
 end
 
 --[[
-	A forged tool wearing a skin (MineSkins def: id, set, tier). Only hammers
+	A held tool wearing a skin (MineSkins def: id, set, tier). Only hammers
 	and jackhammers have skin forms so far (SKIN_FORMS); for anything else this
-	returns nil and the caller builds the plain ore tool. `look` is the ore's
-	look, used for the inlay that keeps the ore visible under the skin.
+	returns nil and the caller builds the plain tool. `look` is the ore's look,
+	used for the inlay that keeps the ore visible under the skin (optional: a
+	tool with no ore gets its set's trim colour there). Callers: givePickaxe and
+	the thrown charge in MineServer, the Forge hub's owned-tool stage.
+	tools/cursor/tasks/skin-looks-more.md is the job for the other families.
 ]]
 local SKIN_RANK = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 8 }
 
+-- True only when buildSkinned would build one: a form for the family AND a
+-- palette for the set. The screens read this to say "stats only" honestly, so
+-- it must not claim a look for a set with no palette (the Season One pass set).
 function ToolModelFactory.hasSkinForm(family, setKey)
 	return SKIN_FORMS[family] ~= nil and SKIN_FORMS[family][setKey] ~= nil
+		and SKIN_PALETTES[setKey] ~= nil
 end
 
 function ToolModelFactory.buildSkinned(family, skin, look)

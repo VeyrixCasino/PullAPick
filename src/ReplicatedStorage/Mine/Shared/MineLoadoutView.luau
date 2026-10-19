@@ -46,6 +46,8 @@ local function soft(name)
 end
 local Icons = soft("MineIcons")
 local GearIcons = soft("MineGearIcons")
+-- "{Ore} {Tool}" (MineOreTools.toolName), the name every other screen uses.
+local OreTools = soft("MineOreTools")
 
 local RARITY_COLOR = Gear.RARITY_COLOR or {}
 local RARITY_RANK = Gear.RARITY_RANK or {}
@@ -103,10 +105,14 @@ local function toolRows(snap, opts)
 			local lvl = tonumber(t.level) or 1
 			local isHeld = (held ~= nil and tostring(t.uid) == tostring(held))
 				or (held == nil and t.equipped == true)
+			-- A forged row has no `name`: this printed "Pickaxe  ·  tier 46" for
+			-- every tool, with no ore in it (launch audit polish).
+			local ore = OreTools and OreTools.oreOf and OreTools.oreOf(t)
 			out[#out + 1] = {
 				key = "tool|" .. tostring(t.uid),
-				name = t.name or (fam:sub(1, 1):upper() .. fam:sub(2)),
-				sub = ("%s  ·  tier %d"):format(fam, math.floor(tonumber(t.tier) or 0)),
+				name = (OreTools and OreTools.toolName and OreTools.toolName(t)) or t.name or (fam:sub(1, 1):upper() .. fam:sub(2)),
+				sub = ore and ("Lv %d  ·  %s ore"):format(lvl, ore.name)
+					or ("%s  ·  tier %d"):format(fam, math.floor(tonumber(t.tier) or 0)),
 				rarity = t.rarity,
 				equipped = isHeld,
 				iconKey = { t.typeId, t.id, fam, "pickaxe" },

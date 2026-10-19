@@ -307,11 +307,15 @@ Owner: *"I FUCKING LOVE FORGE A.. WIDE SCREEN, NOT ENOUGH ROOM, AND TOO BIG BUTT
   - SCRAP: what you get back (books included) and *TAP AGAIN* to confirm;
   - MY BOOKS: a BOOK BUNDLE card (3 random books for gems; it opens on screen), then merge 3 → +1.
 
-The header shows the player level and XP bar, the wallet, 🎒 BAGS and 💰 COIN SHOP (the old shop's two shelves the hub has no tab for), and in Studio a 🧪 TEST BOOKS button.
+The header shows the player level and XP bar, the wallet, 🎒 BAGS (the old shop's one shelf the hub has no tab for), in Event Horizon only 🚀 EVENT TOOLS (the event's own tool shelf, space coins), and in Studio a 🧪 TEST BOOKS button. 💰 COIN SHOP is gone (launch audit S13, 2026-10-19): it opened a pickaxe shelf where every BUY is refused.
+
+**One Forge** (S13). The old shop (`MineShopView`) shows only Bags: it opens on a Bags tab, and its Crafting, Loadout and Upgrades tabs open this hub on that tab (`opts.onOpenForge`, which fires `Mine.ForgeHubOpen`). Any other shelf it is asked for lands on Bags, except the Event Horizon tool shelf while the player stands in the event.
+
+**The cards tell the truth** (S11). The craft card shows the hit per blow (family, the worn skin and the finish in it), hits per second, the area it clears, how it is used (swing / hold / hold, down only / throw), and the level a new craft arrives at; the Loadout card the same for a tool you own. All from `MineOreTools` (`cardStats`, `hitPower`, `inheritedLevel`), the functions the server swings and forges with; prices and the SCRAP refund likewise (`craftCost`, `recycleRefund`). The Loadout skin picker shows each skin's damage multiplier, its kit and "stats only" where the class has no skin form, and an owned tool's 3D stage wears its family's skin form.
 
 **The Blacksmith counter opens the hub** (owner, 2026-10-12: *"the Blacksmith counter should open the Forge hub"*):
 - `ClientFns.routePanel` sends every plain `"shop"` there: the counters tagged `Machine="shop"` and the "to the Blacksmith" buttons.
-- `"shop"` with a named shelf (`pickaxe` or `backpack`) still opens the old shop on that shelf.
+- `"shop"` with a named shelf (`pickaxe` or `backpack`) still opens the old shop, which since S13 shows Bags (or, in Event Horizon, the event's tool shelf for `pickaxe`).
 - **The tutorial's step 3 is FORGE your first tool** (owner, 2026-10-19, launch audit M1). It was *BUY A BIGGER PICK* on the coin shelf, where every BUY is refused (`pickaxe` is in `MineConfig.FORGE_ONLY_FAMILIES`), so the 5th step in `Intro.order` could not be done. Now it carries `panel = "forge", tab = "craft"`, which `routePanel` turns into `hubOpen:Fire("craft")`: the hub opens on CRAFTING. The server tops the pouch up once to one Stone Pickaxe's worth (270 Stone, priced by `MineConfig.toolCraftCost`, `grantCraft`), and `Verbs.craftOreTool` clears the step on the first craft. Anyone who already owns a forged tool, or whose Wooden Pickaxe graduated (`ownsBetterPickaxe`), gets CLAIM instead. The counter opens the hub on every step, except on the visit that hands over the free pickaxe (S19): that one is only the toast, so a player with no ore is not shown the full-screen Forge. `tools/verify/tutorial-forge.js` pins all of it.
 - Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it; `Fire("craft")` opens it on CRAFTING, and `Fire("close")` only closes it (MineClient's `hidePanels`).
 

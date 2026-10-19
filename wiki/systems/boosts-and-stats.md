@@ -113,8 +113,9 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 
 ## State right now
 - The two layers are **only partly wired** (`docs/OPEN.md` §10).
-  - **MineSkins** enter `T1` from `p.skinEquipped[fam]` while that family is
-    held. **Legacy family tempers** still apply after the layers through
+  - **MineSkins** enter `T1` from the skin `equippedTool` stamped on the held
+    row (`skinId`): the skin worn on that family, on any tool of it, event
+    tools included (since 2026-10-19; [skins-cases-and-temper](skins-cases-and-temper.md)). **Legacy family tempers** still apply after the layers through
     `MineTemper.applyTemper` (forged tools included since `b0c2430`). Shop
     tool rows are not a separate boost source.
   - **The skill filter** passes 5 keys out of the ~20 the tree grants.

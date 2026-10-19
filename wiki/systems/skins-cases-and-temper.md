@@ -5,6 +5,9 @@ status: partial
 verified: 2026-10-13 @ 98c141a
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTemper.luau
+  - src/ReplicatedStorage/Mine/Shared/MineSkins.luau
+  - src/ReplicatedStorage/Mine/Shared/MineToolSkins.luau
+  - src/ReplicatedStorage/Mine/Shared/MineSkinsView.luau
   - src/ReplicatedStorage/Mine/Shared/MineForgeView.luau
   - src/ReplicatedStorage/Mine/Shared/MineGradeReveal.luau
   - src/ReplicatedStorage/Mine/Shared/MineIridescence.luau
@@ -22,10 +25,12 @@ related: [tools, ores, charms, boosts-and-stats, traits, chests-and-lucky-blocks
 # Skins, cases and temper
 
 > A **temperament** ("temper") is a stat kit you fit onto a tool family or a
-> flagship tool. It is graded F to SSS. **Skins** are meant to replace tempers
-> as the main chase item. Today the code's "skin" *is* a temper, delivered by
-> an **ore case**: an ore block has a 2% chance to drop a case, and opening it
-> always pays a skin or a charm.
+> flagship tool. It is graded F to SSS. **Skins** (`MineSkins`, the Skins
+> wardrobe) replace tempers as the main chase item: a skin is worn per tool
+> family, multiplies the tool's damage and adds a stat kit. An **ore case** (an
+> ore block has a 2% chance to drop one) always pays a skin or a charm; since
+> the launch audit (2026-10-19, S14) the skin is a real wardrobe skin, not a
+> temper.
 
 ## How it works
 
@@ -83,9 +88,27 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
   **or** a forged ore tool (`row.oreTool` / `row.oreTier` — forged tools return
   look-rung `0` on purpose). Fixed in `b0c2430`; pinned by
   `tools/verify/layers.js`. Tempers survive rebirth.
-- Separately, equipped **MineSkins** (`p.skinEquipped[fam]`) fold into layer 1
-  while you hold that family's forged tool, and `skinBase` multiplies the
-  tool's ore power "off the rip".
+- Separately, equipped **MineSkins** (`p.skinEquipped[fam]`, one skin per tool
+  family) dress **every tool of that family you hold**: forged, Event Horizon,
+  Candy Crypt or chest (owner, 2026-10-19: *"one wardrobe everywhere"*).
+  `equippedTool` puts the skin on the held row through `Dig.wearSkin`
+  (`MineToolSkins.skinFor`, keyed on the row's `family`), so its base
+  (`MineSkins.BASE`, x1.15 at F to x5.5 at SSS) multiplies the tool's power
+  "off the rip", and it is stamped as `skinId`; `boosts()` folds that skin's kit
+  into layer 1 and `givePickaxe` builds its look. Until 2026-10-19 the damage
+  and the kit read the held FORGED tool only, so an event tool wore none of a
+  skin's power. Checked by `tools/verify/skin-wear.js`.
+- **Equipping.** `Verbs.equipSkin({id, family})`: an empty id takes the skin
+  off; an empty family means the class in hand (any tool); only a real tool
+  class (`MineToolSkins.FAMILIES`) is stored. The toast says "(stats only)"
+  when that class has no skin form for the set yet.
+- **The wardrobe** (`MineSkinsView`, the Skins dock button) reads the class in
+  hand from the snapshot's `tool.family` and marks that class's skin EQUIPPED
+  (a skin worn on another class says "ON DRILL"); tapping it again takes it
+  off. Every tile shows the skin's damage multiplier and its top stat, the line
+  under the grid the whole kit, and "stats only" where the class in hand has
+  no form. Until 2026-10-19 it read `heldFamily`, which the server never sends,
+  so no tile ever said EQUIPPED. The Forge's skin picker shows the same power.
 
 **Sources.**
 1. **Temperament Case**, at the Enchanter. `Verbs.openTemperCase` costs
@@ -104,8 +127,14 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
      - with chance `ORE_CASE_CHARM_SHARE 0.25`, you get one of that ore's
        charms (`MineCharms.rollOreCharm`). A player who owns no charm yet
        always gets a charm (`caseCharmShare`).
-     - otherwise you get a **"skin"**, which is a `rollTemperament` with the
-       same reel.
+     - otherwise you get a **wardrobe skin** (launch audit S14, 2026-10-19).
+       The grade rolls on a temper case's odds (`rollTemperament`, i.e.
+       `RARITY_WEIGHTS` below) and `Dig.grantChestSkin`, the chests' own
+       grant, pays a skin of that grade: never a pass skin, and a duplicate pays
+       stardust. Same `temperCase` reel, built of skins
+       (`MineToolSkins.caseReel`). Until then it was a temper filed in
+       `p.tempers`, where the wardrobe never looks; tempers already owned keep
+       the Enchanter's Temper tab.
    - **Never a tool, never ore.** 2% × 25% = 0.5% charm rate per ore block.
 4. **Scrapping.** `Verbs.scrapTemper` pays `SCRAP_TOKENS`: F 1, D 2, C 5, B 20,
    A 177, S 555, SS 1,515, SSS 6,312. That is aimed at about 65% return on a
@@ -138,7 +167,10 @@ the premium track.
 | file | role | key symbols |
 |---|---|---|
 | `src/ReplicatedStorage/Mine/Shared/MineTemper.luau` | kits, odds, case, scrap | `KITS`, `RARITY_WEIGHTS`, `rollTemperament`, `applyTemper`, `caseReel` |
-| `src/ServerScriptService/Mine/MineServer.server.luau` | verbs, ore case open, case drop | `Verbs.openTemperCase`, `Verbs.rollTemper`, `Verbs.equipTemper`, `Verbs.scrapTemper` |
+| `src/ServerScriptService/Mine/MineServer.server.luau` | verbs, ore case open, case drop, the worn skin | `Verbs.openTemperCase`, `Verbs.rollTemper`, `Verbs.equipTemper`, `Verbs.scrapTemper`, `Verbs.equipSkin`, `Dig.wearSkin`, `Dig.grantChestSkin` |
+| `src/ReplicatedStorage/Mine/Shared/MineSkins.luau` | the 229 skins (generated by `tools/gen/skins.js`) | `LIST`, `SETS`, `BASE`, `baseOf`, `isPass` |
+| `src/ReplicatedStorage/Mine/Shared/MineToolSkins.luau` | which skin a tool wears, and its power in words | `skinFor`, `wear`, `FAMILIES`, `powerLine`, `caseReel`, `STATS_ONLY` |
+| `src/ReplicatedStorage/Mine/Shared/MineSkinsView.luau` | the Skins wardrobe | `mount` |
 | `src/ReplicatedStorage/Mine/Shared/MineForgeView.luau` | Temper tab UI (the Enchanter's) | `mountList` |
 | `src/ReplicatedStorage/Mine/Shared/MineGradeReveal.luau` | F→SSS step animation | `play` |
 
@@ -161,8 +193,11 @@ the premium track.
 ## State right now
 
 **Partial.** The ore-case drop, the 75/25 skin/charm split and the per-ore case
-ids are shipped. The skin rename and wrap art are not started. Untested in the
-engine.
+ids are shipped, and since 2026-10-19 the case's skin is a wardrobe skin. Skins
+apply by one rule on every tool (damage, kit, look). Looks exist on hammers and
+jackhammers for 9 sets; pickaxe, drill and explosive forms and the Season One
+Pass palette are a Cursor job (`tools/cursor/tasks/skin-looks-more.md`), and
+until then the screens say "stats only". Untested in the engine.
 
 ## Gotchas
 
