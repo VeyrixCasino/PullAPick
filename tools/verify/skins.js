@@ -44,6 +44,13 @@ for (const m of (lua.match(/MineSkins\.WEIGHT = \{[\s\S]*?\n\}/) || [""])[0].mat
 const BUDGET = {}, BASE = {}, SLOTS = { F: 2, D: 2, C: 3, B: 3, A: 4, S: 4, SS: 5, SSS: 5 };
 for (const m of (lua.match(/MineSkins\.BUDGET = \{[^\n]*/) || [""])[0].matchAll(/(\w+) = ([\d.]+)/g)) BUDGET[m[1]] = +m[2];
 for (const m of (lua.match(/MineSkins\.BASE = \{[^\n]*/) || [""])[0].matchAll(/(\w+) = ([\d.]+)/g)) BASE[m[1]] = +m[2];
+// A set's edge over every other skin of a grade (owner, 2026-10-19: Halloween
+// Mythic+ skins 20% better): its kit spends BUDGET x edge.
+const EDGE = {};
+for (const m of ((lua.match(/MineSkins\.EDGE = \{[\s\S]*?\n\}/) || [""])[0]).matchAll(/\t(\w+) = \{ ([^}]*) \},/g)) {
+  EDGE[m[1]] = Object.fromEntries([...m[2].matchAll(/(\w+) = ([\d.]+)/g)].map((k) => [k[1], +k[2]]));
+}
+const edgeOf = (r) => (EDGE[r.set] && EDGE[r.set][r.tier]) || 1;
 
 const rows = [...lua.matchAll(/\{ id = "([^"]+)", name = "([^"]+)", set = "([^"]+)", tier = "(\w+)", kit = \{ ([^}]*) \} \},/g)]
   .map((m) => ({
@@ -104,7 +111,7 @@ ok(unknown.length === 0, "every rolled stat exists in MineStats", unknown.slice(
 // --- budget and spread ------------------------------------------------------
 let offBudget = 0, overCap = 0, wrongSlots = 0, worstOff = 0, worstShare = 0;
 for (const r of rows) {
-  const want = BUDGET[r.tier];
+  const want = BUDGET[r.tier] * edgeOf(r);
   const spent = Object.entries(r.kit).reduce((a, [s, v]) => a + v * 100 * (WEIGHT[s] || 1), 0);
   const off = Math.abs(spent - want) / want;
   if (off > 0.02) offBudget++;
@@ -121,8 +128,10 @@ for (const r of rows) {
     if (share > cap) overCap++;
   }
 }
-ok(offBudget === 0, "every kit spends its tier's budget (within 2% of rounding)",
+ok(offBudget === 0, "every kit spends its tier's budget, times its set's edge (within 2% of rounding)",
   `worst ${(worstOff * 100).toFixed(2)}%`);
+ok(Object.keys(EDGE).length > 0 && Object.values(EDGE).every((row) => Object.values(row).every((v) => v >= 1)),
+  "read the set edges (MineSkins.EDGE), none below 1", JSON.stringify(EDGE));
 ok(wrongSlots === 0, "every kit has the slot count its tier calls for", wrongSlots ? `${wrongSlots} wrong` : "");
 ok(overCap === 0, "no stat exceeds the spread cap", `worst share ${(worstShare * 100).toFixed(1)}%`);
 

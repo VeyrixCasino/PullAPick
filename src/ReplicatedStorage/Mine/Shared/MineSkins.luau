@@ -15,6 +15,13 @@ MineSkins.TIER_RANK = { F = 1, D = 2, C = 3, B = 4, A = 5, S = 6, SS = 7, SSS = 
 MineSkins.BASE = { F = 1.15, D = 1.35, C = 1.6, B = 1.9, A = 2.3, S = 3, SS = 4, SSS = 5.5 }
 MineSkins.BUDGET = { F = 80, D = 105, C = 135, B = 175, A = 225, S = 290, SS = 380, SSS = 500 }
 
+-- A set's edge over every other skin of a grade, on its base AND its budget
+-- (owner, 2026-10-19: Halloween Mythic+ skins are 20% better, even after the
+-- event). Read through MineSkins.edgeOf / MineSkins.baseOf, never BASE alone.
+MineSkins.EDGE = {
+	halloween = { S = 1.2, SS = 1.2, SSS = 1.2 },
+}
+
 -- Skins' own prices. Read by nothing else; see docs/SKINS.md.
 MineSkins.WEIGHT = {
 	oreLuck = 2.6,
@@ -275,10 +282,10 @@ MineSkins.LIST = {
 	{ id = "headless_ride", name = "Headless Ride", set = "halloween", tier = "A", kit = { tidalWave = 0.692, tideDamage = 0.451, fossilFind = 0.375, shatterDamage = 0.299 } },
 	{ id = "witching_hour", name = "Witching Hour", set = "halloween", tier = "A", kit = { tidalWave = 0.692, tideDamage = 0.486, fossilFind = 0.374, zapDamage = 0.265 } },
 	{ id = "soul_candle", name = "Soul Candle", set = "halloween", tier = "A", kit = { tidalWave = 0.692, tideDamage = 0.494, fossilFind = 0.356, dirtBreak = 0.33 } },
-	{ id = "samhain_fire", name = "Samhain Fire", set = "halloween", tier = "S", kit = { tidalWave = 0.892, tideDamage = 0.625, fossilFind = 0.429, blastChance = 0.365 } },
-	{ id = "the_hollow_king", name = "The Hollow King", set = "halloween", tier = "S", kit = { tidalWave = 0.892, tideDamage = 0.613, fossilFind = 0.451, pulverize = 0.422 } },
-	{ id = "all_hallows_eve", name = "All Hallows' Eve", set = "halloween", tier = "SS", kit = { tidalWave = 1.169, tideDamage = 0.689, fossilFind = 0.489, rareOre = 0.274, swingRate = 0.178 } },
-	{ id = "harvest_of_souls", name = "Harvest of Souls", set = "halloween", tier = "SSS", kit = { tidalWave = 1.538, tideDamage = 0.988, fossilFind = 0.637, oreHaul = 0.525, blastDamage = 0.438 } },
+	{ id = "samhain_fire", name = "Samhain Fire", set = "halloween", tier = "S", kit = { tidalWave = 1.071, tideDamage = 0.75, fossilFind = 0.515, blastChance = 0.438 } },
+	{ id = "the_hollow_king", name = "The Hollow King", set = "halloween", tier = "S", kit = { tidalWave = 1.071, tideDamage = 0.735, fossilFind = 0.541, pulverize = 0.506 } },
+	{ id = "all_hallows_eve", name = "All Hallows' Eve", set = "halloween", tier = "SS", kit = { tidalWave = 1.403, tideDamage = 0.827, fossilFind = 0.587, rareOre = 0.329, swingRate = 0.214 } },
+	{ id = "harvest_of_souls", name = "Harvest of Souls", set = "halloween", tier = "SSS", kit = { tidalWave = 1.846, tideDamage = 1.186, fossilFind = 0.764, oreHaul = 0.63, blastDamage = 0.525 } },
 	{ id = "gemfire", name = "Gemfire", set = "season_one_pass", tier = "S", kit = { oreHaul = 1.16, chestLuck = 0.293, rareOre = 0.335, blastChance = 0.341 } },
 	{ id = "geode_heart", name = "Geode Heart", set = "season_one_pass", tier = "SS", kit = { oreHaul = 1.506, chestLuck = 0.316, rareOre = 0.417, packLuck = 0.163, fossilFind = 0.317 } },
 	{ id = "deepgold_seam", name = "Deepgold Seam", set = "season_one_pass", tier = "SS", kit = { oreHaul = 1.52, chestLuck = 0.292, rareOre = 0.385, blastChance = 0.365, earthquake = 0.36 } },
@@ -308,10 +315,23 @@ function MineSkins.byId(id)
 	return MineSkins.BY_ID[tostring(id or "")]
 end
 
--- The base multiplier a skin puts under the ore tool's damage.
+-- How much better this skin is than every other skin of its grade (1 for most).
+function MineSkins.edgeOf(skin)
+	local s = type(skin) == "table" and skin or MineSkins.byId(skin)
+	local row = s and MineSkins.EDGE[s.set]
+	return (row and row[s.tier]) or 1
+end
+
+function MineSkins.isHalloween(skin)
+	local s = type(skin) == "table" and skin or MineSkins.BY_ID[tostring(skin or "")]
+	return s ~= nil and s.set == "halloween"
+end
+
+-- The base multiplier a skin puts under the ore tool's damage: its grade's,
+-- times its set's edge.
 function MineSkins.baseOf(skin)
 	local s = type(skin) == "table" and skin or MineSkins.byId(skin)
-	return (s and MineSkins.BASE[s.tier]) or 1
+	return (s and MineSkins.BASE[s.tier] and MineSkins.BASE[s.tier] * MineSkins.edgeOf(s)) or 1
 end
 
 -- What a kit cost, on skins' own weights. For the verify harness and the UI.

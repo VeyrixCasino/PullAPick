@@ -102,7 +102,9 @@ related: [enchants, boosts-and-stats, retired-and-parked, tools, hats-and-faces,
 
 ## Kept on purpose
 
-- `MineStats.RUNE_ONLY`: MineCards uses it to keep those stats off pet kits.
+- `MineStats.RUNE_ONLY`: MineCards uses it to keep those stats off pet kits (a named
+  pet's own kit may carry the ones `MineStats.NAMED_PET_OK` lists, since 2026-10-19:
+  [pets](pets.md)).
 - `MineTradeValue.RUNE_DUST`: `tierOf` reads it. `runeValue` remains but nothing
   calls it.
 - The `heavy_runes` id on the wheel slice: an id is identity.

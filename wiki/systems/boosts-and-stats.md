@@ -33,7 +33,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
   - `backpack` and `walkSpeed`, retired 2026-10-04;
   - `echo`, paid out as swing rate at `ECHO_TO_SWING`;
   - `autoMine`, paid out as gem find at `AUTO_MINE_TO_GEM`.
-- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach and coolant: kept off pet kits. (shortFuse left the list on 2026-10-16 so a few pets can carry it.) With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
+- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach and coolant: kept off pet kits. (shortFuse left the list on 2026-10-16 so a few pets can carry it.) Since 2026-10-19 `MineStats.NAMED_PET_OK` (blastRadius only) lets a *named* pet's own kit carry one anyway: PROPOSAL §0 line 6 keeps blastRadius on at most 30 pets, and the two Halloween Crater pets carry it ([pets](pets.md)). Families, traits and legacy prints still drop it. With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
 
 **Stat keys are data.** Keys are saved on gear (`piece.stat`, `piece.stats`) in live player saves (and were on runes, until 2026-10-12).
 - **Renaming a key is a save migration** (`docs/START-HERE.md` §4.4).
@@ -72,6 +72,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 - blast, tidal wave, shatter (`ricochet`) and earthquake chances are clamped to ≤ 1 in `Dig.procsAt`. They are a probability; there is no other cap (owner: price, don't cap);
 - zap is deliberately not clamped;
 - `procPower` ≤ `MineConfig.PROC_POWER_CAP 3.0`;
+- blastRadius has no balance cap, but a bomb's radius never passes `MinePatterns.MAX_BLAST_RADIUS` (6 cells, PROPOSED 2026-10-19): a server-safety ceiling, since cells grow as r³ and an SSS Inferno hat alone is +350%;
 - the forever-tool power cap is `foreverPowerCap`.
 
 **Potions** are `MinePotions.DEFS`: 25 potions, 5 stats × 5 tiers.

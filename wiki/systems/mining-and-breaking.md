@@ -27,7 +27,7 @@ related: [zones-layers-and-seams, boosts-and-stats, tools, ores, forge-and-recyc
 3. **Rate.** Each player has a 3-token bucket that refills at `max(rate / swingSec, autoMine) × 1.35`, which stops macros. Explosives use `cooldown / (1 + shortFuse)`. Drills wind up for `turn / (1 + coolant)`.
 4. **Breaking gate.** `Dig.Breaking.canBreak(tool, zoneIndex, layer, OreTier attr, #C.ORES, p.maxUnlockedZone)`. If it returns false, the swing does **zero** damage, not reduced damage. The server also fires a `tooWeak` event {need, have, ore}, throttled to once per 1.2 s, which `ClientFns.tooWeak` shows in red.
 5. **Damage.** `tool.power × b.mineSpeed × b.dirtBreak`, times `1 + shortFuse` on explosives. The fraction is rounded by chance, so small boosts still count on average. The minimum is 1.
-6. **Cells hit.** `MinePatterns.resolve` decides which cells the tool touches. The pattern is a sphere of radius × (1 + blastRadius). Each extra cell goes through `swingNeighbour` at `dmg × factor`. The cell you aimed at always takes the full hit.
+6. **Cells hit.** `MinePatterns.resolve` decides which cells the tool touches. The pattern is a sphere of radius × (1 + blastRadius), floored, and never more than `MinePatterns.MAX_BLAST_RADIUS` (6, a server-safety ceiling added 2026-10-19). Each extra cell goes through `swingNeighbour` at `dmg × factor`. The cell you aimed at always takes the full hit.
 7. **Procs.** `Dig.procsAt` runs, then Echo.
 
 **Breaking power** lives in `MineBreaking.luau`. It is pure arithmetic and requires no other module.

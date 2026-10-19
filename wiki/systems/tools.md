@@ -79,8 +79,9 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 everywhere"*, event tools wear the same skins). That list is `Dig.toolInHand`;
 `equippedTool` hands its row through `Dig.wearSkin`. The skin worn on the row's
 family (`MineToolSkins.skinFor`: any record with `family`, or a forged row's
-`familyId`) multiplies the tool's power by `MineSkins.BASE` (x1.15 at F to x5.5
-at SSS), and is stamped on the row as `skinId`. The kit stats (`boosts()`), the
+`familyId`) multiplies the tool's power by `MineSkins.baseOf` (`MineSkins.BASE`,
+x1.15 at F to x5.5 at SSS, times the Halloween set's 1.2 edge at S to SSS since
+2026-10-19: [skins](skins-cases-and-temper.md)), and is stamped on the row as `skinId`. The kit stats (`boosts()`), the
 look (`givePickaxe`, a thrown charge) and the damage therefore read one skin, on
 forged, Event Horizon, Candy Crypt and chest tools alike. Until then the damage
 and the kit read the forged tool's uid only, so an event tool wore no skin power.

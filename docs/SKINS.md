@@ -268,6 +268,19 @@ flat ~1.30× per tier, so no rung is a dead step and the whole spread is 6.25×.
 | SS | 4.00 | 380 | 5 |
 | SSS | **5.50** | **500** | 5 |
 
+**Halloween's top grades are 20% better** (owner, 2026-10-19: Halloween Mythic+
+pets *and skins* are "20% better than the best normal ones, even after the
+event"). Skins' Mythic+ is S, SS and SSS. Every other skin of a grade has the
+same base and budget, so a Halloween one gets **1.2×** both: `EDGE` in
+`tools/gen/skins.js`, read through `MineSkins.edgeOf` and `MineSkins.baseOf`.
+No seasonal gate, so the edge outlives the event.
+
+| Halloween tier | base × | buff budget (pts) |
+| --- | --- | --- |
+| S | 3.60 | 348 |
+| SS | 4.80 | 456 |
+| SSS | **6.60** | **600** |
+
 **F opens at 80 points**, which is a real kit on its own. Read against the live
 weights in `MineStats.STATS`, 80 points is any of:
 
