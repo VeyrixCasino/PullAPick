@@ -1639,3 +1639,14 @@ The owner: *"i'll having something ready"* (a new pass for day 29), and picked t
 if it is late, the old pass pauses (no XP, no claims, "Next pass coming soon") instead of
 restarting the same 100 tiers. Not built yet; queued with the audit fixes
 ([open-questions](open-questions.md) 24, [season-and-launch](systems/season-and-launch.md)).
+
+## [2026-10-19] decision | the owner picks the launch-audit fixes, and redesigns the Candy Crypt
+Fourteen multiple-choice questions and the owner's own words, recorded in full as
+[open-questions](open-questions.md) §0e decided, with the split in [next-up](next-up.md):
+the cloud session does logic and wording on PR #7, the PC session (Studio) does the visual
+fixes and checks. The game is **not open to the public yet**, so pet traits can be re-rolled.
+The Candy Crypt is redesigned: normal tools stop working in events, Crypt tools drop from
+chests and Trick-or-Treat cases (85% tools) and merge like pets, candy is 3x, rock runs zone 3
+to zone 10, four more candy ores, each candy block also drops a candy ore that crafts six new
+Halloween charms, and event tools keep working in the main world after the event ends (weaker).
+Event Horizon is unchanged for now. Merged the owner's branch (`bc55f16`) into PR #7 first.

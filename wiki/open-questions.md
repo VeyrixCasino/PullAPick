@@ -109,7 +109,7 @@ what needs to be done for launch, and what you need from me"*. Six read-only rev
 client↔server wiring and visible text; pets, cards, quests, Discord and world signs). **Every
 MUST-FIX row was re-read in the code by the parent agent**; SHOULD-FIX and POLISH rows are the
 reviewers' evidence, spot-checked. Nothing was run in Roblox. The owner chose "list first, you
-pick": **nothing below is fixed yet.** Pick by number.
+pick", then picked on 2026-10-19: see **§0e decided** below.
 
 **MUST-FIX: a player is stuck, sees something broken, or pays for something they do not get**
 
@@ -187,6 +187,75 @@ whether the dashboard prices are Founders R$799 and Battle Pass R$399 · optiona
 the Halloween pack image, a Candy Crypt banner · whether a Discord bot exists (S38) · sounds:
 library or the ElevenLabs set (`docs/AUDIO.md`) · **one phone play test from a blank profile
 through the first craft.**
+
+#### §0e decided by the owner, 2026-10-19 (the build spec)
+
+The owner answered every call in chat (multiple choice, plus their own words where
+quoted). **Split:** the cloud session (PR #7) does the **logic and wording** fixes; the
+owner's **PC session (with Studio)** does the **visual** ones and checks the cloud
+session's screens in Studio. See [next-up](next-up.md) "Who owns what".
+
+**Must-fix**
+
+- **M1** Step 3 becomes **"FORGE your first tool"**: it opens the Forge, clears on the first
+  craft (a forged tool counts), and grants enough Stone for a Stone Pickaxe (270) instead
+  of coins. Quest rung 3 matches.
+- **M2** **Fix the Crypt properly**, and the Crypt is redesigned (below).
+- **M3** **Odds on every paid random buy**: Mystery Case, Charms Pack, the Forge's 3 random
+  books, trader cases; the region block also covers credit deals, trader cases and the wheel.
+- **M4** Founders Rig: **799 credits, labelled as credits, with a confirm step.**
+- **M5** Pet seat 4 "GET VIP" goes (no decision needed; VIP adds no seat).
+- **M6** **The Founders Pack also gives the Founders Bag.**
+- **M7** Lucky Block Week: **a real existing lucky-block pet** (an Epic-ish one that fits)
+  and **wild cases of about the same value** instead of the retired packs; text to match.
+- **M8** Deal countdowns on the season clock; header says the real season length.
+- **M9** **Phones and tablets must work at launch**: no double shrink, tall windows fit the
+  screen instead of the whole HUD shrinking to half. *(PC session.)*
+- **M10** **Rebuild the collection page** for today's 19 sets, 10 zone pots, Event Horizon and
+  Halloween, with have / total and silhouettes. *(PC session.)*
+
+**Should-fix with a call:** S9 **the card's craft price is right** (fix the server) · S20 the
+day-4 pack is **given regardless; Favorite optional** via the real prompt · S32 **re-roll each
+pet's family and trait from its name** (safe: the game is not open yet) · **the other 15, as
+recommended**: S8 Box of 10 gets 30% off · S11 cards show true damage per hit, hits per
+second, area, use; "Lv" is the inherited level · S13 one Forge (the old shop shows only
+Bags; COIN SHOP goes) · S14 ore cases pay wardrobe skins · S15 superseded by "make skins
+work" (below) · S21 the coin pill shows the zone's currency · S25 SKIP ALL for case runs ·
+S26 click and "can't afford" sounds on · S27 VFX tab becomes "Tags" *(PC)* · S28 cards print
+the true rarity · S31 the text-scale rule covers repeating animations *(PC)* · S36 a tap opens
+a card detail sheet *(PC)* · S37 Hats/Faces shows what can drop · S38 **keep Discord**: the
+owner runs the bot (`!link` in Discord, the bot writes the code through Open Cloud); show
+the invite **discord.gg/Ab5ZpVdRvp** as text · S39 remove the leaderboard reward text.
+Still unasked: S2 (the dead Lucky Charm row).
+
+**Day 29 of the pass:** the owner will have a new pass; if it is late, the old one pauses.
+
+**The look.** *"better bubbly ui all around"*: **the main-world look is toned down**
+(calmer, less purple) *(PC session, which owns the lifted look)*. **Events get their own
+themes**: Halloween for the Candy Crypt, dark universe for Event Horizon, on the event's own
+screens **and on everything that belongs to an event** wherever it shows (its packs in the
+shop, its pets' cards, its tools, its case). The cloud session adds the two palettes to the
+kit and uses them on the event screens it builds. **Portals more attractive** *(PC)*.
+**Tool looks:** event tools get themed 3D models and icons (a Cursor job, checked in Studio).
+
+**The Candy Crypt, redesigned** (Event Horizon unchanged for now: *"Crypt only for now"*):
+
+| rule | the owner's call |
+|---|---|
+| tools in events | **Normal tools do not work in events.** Claiming the Crypt gives a free starter candy pick. |
+| where Crypt tools come from | **Crypt chests and Trick-or-Treat cases.** The candy-tool shop goes. |
+| Trick-or-Treat case | **tools 85%**, skin case 5%, hat 7%, Halloween pack 2.9%, bucket 0.1%; no candy back |
+| candy | **3x** today's rate |
+| Crypt rock | **zone 3 hardness at the top to zone 10 at the bottom**; it still sells for little |
+| candy ores | **4 more** (Pop Rocks, Milk Chocolate, White Chocolate, Cotton Candy): 16 in all |
+| a candy block pays | **candy AND 1 candy ore item** into the ore pouch |
+| candy charms | **a new set of 6 Halloween charms**, crafted at the Forge from candy ores (deeper ore, better charm); candy find, event digging and a small normal stat; **the same power everywhere** |
+| merging | **3 identical Crypt tools → Golden → Prism → Rainbow**, the pets' steps |
+| after the event | tools work in the event at once; **when it ends you keep them**, and they then also work in the main world (weaker: events must pay better) and in every future event |
+| telling players | **a pop-up on first entry** to each event, once, plus the same text behind an (i) on its card |
+| selling ores | the pouch's SELL ALL gets **"Sell up to"** (Common / +Uncommon / +Rare / +Epic / +Legendary / Everything), remembered, asks first; and you can **tick candy ores to sell for candy** |
+| skins | **one wardrobe everywhere** (event tools wear the same skins) and **"make skins work", all of it**: looks on every family (pickaxe, drill and explosive via a Cursor job), EQUIPPED and the skin's power in the wardrobe, ore-case skins into the wardrobe |
+
 
 ## 1. Probable bugs found while building the wiki
 
