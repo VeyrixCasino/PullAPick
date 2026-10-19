@@ -4328,26 +4328,40 @@ function MineInventoryView.mount(parent, opts)
 		-- SELECT -> pick pieces -> RECYCLE -> review -> hold 3s. The why of all
 		-- of that (no select-all, and the hold living on the review screen
 		-- rather than here) is in MineScrapSelect, which every list now shares.
+		--[[
+			THREE THINGS WANTED THE SAME 120px SLOT, AND TWO OF THEM TOOK IT.
+
+			MineScrapSelect.bar draws its own hint at exactly
+			UDim2.fromOffset(120, 0), and this block drew a second hint at
+			exactly UDim2.fromOffset(120, 0) whenever nothing was selected. Both
+			rendered, on top of each other, which is the unreadable smear in the
+			Equipment header. EQUIP BEST wants the same slot at (120, 9), so
+			handing the seat hint to the bar without thinking would only have
+			moved the collision rather than ended it.
+
+			One occupant, decided before the bar is built:
+
+			    selecting                -> the bar's own some / none hint
+			    not selecting, upgrades  -> the EQUIP BEST button
+			    not selecting, none      -> the seat hint, via the bar's `off`
+		]]
+		local better = tonumber((state.upgrades or {}).gear) or 0
+		local showBest = better > 0
 		local selOn = pick.bar(head, "gear", "gems", {
+			off = (not showBest) and "tap a seat, then tap what goes in it" or nil,
 			some = "RECYCLE to review what you picked",
 			none = "tap unequipped gear to select",
 		})
-		do
-			local better = tonumber((state.upgrades or {}).gear) or 0
-			if better > 0 and not selOn then
-				local b = mk("TextButton", {
-					AutoButtonColor = true, BackgroundColor3 = GREEN, Text = "EQUIP BEST",
-					Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(16, 38, 20),
-					Size = UDim2.fromOffset(110, 28), Position = UDim2.fromOffset(120, 9),
-				}, head)
-				round(b, 8)
-				b.MouseButton1Click:Connect(function()
-					if opts.onEquipBest then opts.onEquipBest() end
-				end)
-			elseif not selOn then
-				label(head, "tap a seat, then tap what goes in it", 11, MUTED,
-					UDim2.fromOffset(120, 0), UDim2.new(0.4, 0, 1, 0))
-			end
+		if showBest and not selOn then
+			local b = mk("TextButton", {
+				AutoButtonColor = true, BackgroundColor3 = GREEN, Text = "EQUIP BEST",
+				Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(16, 38, 20),
+				Size = UDim2.fromOffset(110, 28), Position = UDim2.fromOffset(120, 9),
+			}, head)
+			round(b, 8)
+			b.MouseButton1Click:Connect(function()
+				if opts.onEquipBest then opts.onEquipBest() end
+			end)
 		end
 
 		-- The paperdoll: three hat seats + face L, you, charm/tool/pack R. (It was

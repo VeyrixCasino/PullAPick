@@ -270,8 +270,11 @@ function MineShopView.mount(parent, opts)
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(6, 8, 14),
-		BackgroundTransparency = 0.15,
+		-- The full-screen scrim. #06080E read as a void on a wide monitor,
+		-- especially around a panel that does not stretch to fill it; a deep
+		-- violet reads as a designed backdrop instead of an absence.
+		BackgroundColor3 = Color3.fromRGB(26, 16, 60),
+		BackgroundTransparency = 0.12,
 		Visible = false,
 		ZIndex = 80,
 		BorderSizePixel = 0,
@@ -303,16 +306,26 @@ function MineShopView.mount(parent, opts)
 	local backdrop = mk("Frame", {
 		Name = "Backdrop",
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(20, 22, 34),
+		BackgroundColor3 = Color3.fromRGB(44, 28, 102),
 		ZIndex = 1,
 		BorderSizePixel = 0,
 	}, root)
+	--[[
+		SATURATED, NOT REALISTIC. Owner, 2026-10-18: this has to read as a
+		cartoon game, and the old ramp was a photographic one -- near-black
+		(9,11,20) falling through soot into a dim ember (88,50,27). Lit like a
+		real forge at night, and on screen just dark.
+
+		Same story, told in the genre's colours: deep violet at the top down
+		into a hot amber hearth at the floor. It keeps the "the fire is below
+		you" read while giving the cream cards something saturated to sit on.
+	]]
 	mk("UIGradient", {
 		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(9, 11, 20)),
-			ColorSequenceKeypoint.new(0.42, Color3.fromRGB(24, 23, 33)),
-			ColorSequenceKeypoint.new(0.76, Color3.fromRGB(56, 36, 29)),
-			ColorSequenceKeypoint.new(1.00, Color3.fromRGB(88, 50, 27)),
+			ColorSequenceKeypoint.new(0.00, Color3.fromRGB(40, 24, 96)),
+			ColorSequenceKeypoint.new(0.45, Color3.fromRGB(74, 44, 158)),
+			ColorSequenceKeypoint.new(0.78, Color3.fromRGB(132, 66, 150)),
+			ColorSequenceKeypoint.new(1.00, Color3.fromRGB(196, 110, 72)),
 		}),
 		Rotation = 90,
 	}, backdrop)
@@ -373,7 +386,9 @@ function MineShopView.mount(parent, opts)
 		-- height is what the logo moves down into rather than overlapping the
 		-- blurb underneath it.
 		Name = "Header", Size = UDim2.new(1, 0, 0, 78),
-		BackgroundColor3 = Color3.fromRGB(8, 10, 16), BackgroundTransparency = 0.35, ZIndex = 90,
+		-- Lifted off #080A10: the header band was the darkest thing on a screen
+		-- whose cards are now cream, which left it reading as a letterbox.
+		BackgroundColor3 = Color3.fromRGB(32, 19, 74), BackgroundTransparency = 0.18, ZIndex = 90,
 		BorderSizePixel = 0,
 	}, root)
 	mk("UIGradient", {
