@@ -2,9 +2,13 @@
 title: The client and the UI kit
 type: code
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ db59c60
 sources:
   - src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventsView/init.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCryptView.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventNotice.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventTabs.luau
   - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
   - src/ReplicatedStorage/Mine/Shared/MineLoadoutView.luau
   - src/ReplicatedStorage/Mine/Shared/MineUI.luau
@@ -80,7 +84,10 @@ and returns a controller: `invCtl`, `shopCtl`, `forgeCtl`, `ClientFns.hotbarCtl`
 | `MineInventoryView` | the main window (packs, cards, chests, shop, passes). 7,867 lines. |
 | `MineShopView` | the shop. It mounts `MineForge` (Forge tab) and `MineOrePouchView` (Ore Pouch tab). |
 | `MineForgeView` | the Enchanter's Temper pane. The Enchanter's other tabs (Summon, Salvage, Dust) are drawn in MineClient. `MineTraitView`, `MineRunesView` and `MineSocketsView` were deleted on 2026-10-12 with runes and traits. |
-| `MineSkillView`, `MineZoneMapView`, `MineDepthShopView`, `MineEventsView`, `MineProfileView` | other panels |
+| `MineSkillView`, `MineZoneMapView`, `MineDepthShopView`, `MineProfileView` | other panels |
+| `MineEventsView` | the Events tab: one pill per open event, a card per event in its own theme (2026-10-19; [world-events](../systems/world-events.md)). Mounted through `pcall`, so a throw costs the tab, not the client. Picks come from `MineEventTabs` (pure). |
+| `MineCryptView` | the Candy Crypt card's shell inside it: the candy balance and Trick-or-Treat's OPEN. The tools list, charm crafting and the case's odds and reveal wait for the Crypt's next redesign (owner, 2026-10-19); `mountCaseOdds` holds the odds sheet's place. |
+| `MineEventNotice` | the first-entry pop-up, once per event; "Got it" sends `cryptNoticeSeen` |
 | `MineTradeView`, `MineSocialView`, `MineGroupWheelView` | these break the rule: they call `net:FireServer` themselves (11, 11 and 1 calls) |
 | `MineBenchView` | superseded by the Forge (AUDIT §5) |
 
@@ -328,6 +335,7 @@ The owner's picks from the audit ([open-questions](../open-questions.md) §0e), 
 - **The skill tree has a red X** in its top bar that only hides the wheel (S17). Its big button travels (to the Clouds or back down), and was the only way out.
 - **Day-4 surprise pack:** given regardless; no LIKE; FAVORITE is an optional `PromptSetFavorite`, and closing the popup claims (S20).
 - **The coin pill shows one currency**, the zone's: space coins in Event Horizon, coins elsewhere (S21). "1.2K | 340 sp" ran off the pill.
+- **Candy in the Candy Crypt** (owner, 2026-10-19): a fifth wallet pill (🍬, the Crypt's pumpkin with a candy-purple rim) shows only while you stand in the Crypt (`ClientFns.buildCandyPill`, `ClientFns.paintCandyPill` from `refreshHud`); the tray shares five ways and the numbers step down 3 px while it shows. Outside the event the HUD is unchanged.
 - **Settings:** FRIENDS and everything below moved down 30 px (panel 564 → 620 tall) so the code result has its own line (S22).
 - **Snapshots:** the open Planets map rebuilds only when which zones you own changes, and keeps the planet you picked (`refreshZones(live)`); the daily card rebuilds its week only when the week changes (`dailyHud.calKey`) (S23).
 - **Button sounds are on** (S26): `MineAudio.bindUiClicks(gui)` runs once on the MineUI ScreenGui, so every window gets a click on a press and the low "can't" knock on a greyed button. The `UiClicksBound` attribute stops a second bind; `MineAudio.play` throttles each sound (`CD.click` 0.035 s, `CD.deny` 0.10 s); `NoClickSfx` opts a button out.

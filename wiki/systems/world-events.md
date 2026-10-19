@@ -2,7 +2,7 @@
 title: World events
 type: system
 status: current
-verified: 2026-10-19 @ 2efdf89
+verified: 2026-10-19 @ db59c60
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ServerScriptService/Mine/MineEventHorizon.luau
@@ -11,6 +11,11 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineEventPass.luau
   - src/ReplicatedStorage/Mine/Shared/MineEHPets.luau
   - src/ReplicatedStorage/Mine/Shared/MineEventsView/init.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventTabs.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCryptView.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventNotice.luau
+  - src/ReplicatedStorage/Mine/Shared/MineTheme.luau
+  - tools/verify/crypt-ui.js
   - src/ReplicatedStorage/Mine/Shared/MineWorldEvents.luau
   - src/ReplicatedStorage/Mine/Shared/MineWorldPulseUI.luau
   - src/ServerScriptService/Mine/MineBloodLake.luau
@@ -71,9 +76,14 @@ related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-m
 
 > **Built 2026-10-10, redesigned 2026-10-19** to the owner's build spec
 > ([open-questions §0e](../open-questions.md), "The Candy Crypt, redesigned").
-> The server and shared-data half is in; the client screens are the next job.
-> Nothing here has run in Studio yet. Every number the owner did not give is
-> PROPOSED in the code.
+> The server and shared-data half is in, and so are part of the client screens
+> (the Events tab's two cards, the Crypt card's shell, the first-entry pop-up,
+> the pouch's candy sale and SELL UP TO, the candy wallet pill; below). The
+> Crypt is being **redesigned again** (owner, 2026-10-19, later the same day):
+> its tools and charms API and the Trick-or-Treat loot will change, so the
+> tools list, merging, charm crafting and the case's odds sheet and result
+> reveal have no screens yet. Nothing here has run in Studio yet. Every number
+> the owner did not give is PROPOSED in the code.
 
 **The rules, as built** (`MineCryptRules` holds them for both sides; the server
 module `MineCrypt` grants and gates; `MineCandyTools` is the tool table):
@@ -170,10 +180,57 @@ No candy back (owner, 2026-10-19). `MineCryptRules.caseOdds()` is the odds sheet
 - **A kept id.** Quest id `eh_fossils` survives, but it is now a depth quest. The
   id stays because progress is keyed by id.
 
-### Events tab
-`MineEventsView` (mounted as `eventsCtl` in the client) shows the live limited
-event: a banner image, a countdown from `MineConfig.limitedCountdown`, and
-the pass.
+### Events tab (both events, 2026-10-19)
+`MineEventsView` (mounted as `eventsCtl` in the client, through `pcall`) shows
+**every event whose window is open**, one pill each, so the Crypt shows while
+Event Horizon is open too. It used to show the first open event, and Event
+Horizon is open all season, so the Crypt had no screen. Which events show,
+which one opens first and what each claim button says are
+`MineEventTabs` (pure; run by `tools/verify/crypt-ui.js`):
+- **Shown:** every event open by the snapshot's `limitedOpen` (else the Crypt's
+  `crypt.window`). A closed event is not shown; a Crypt card after the event
+  (for its tools' main-world switch) waits for the new tools API.
+- **Opens on** the event whose zone you stand in, else the Crypt while it is
+  open, else the first.
+- **Each card its own claim:** the Crypt reads `crypt.owned` (`hallowOwned`),
+  never `bigbangOwned`; "Claim Candy Crypt · FREE" / "Claim Event Horizon ·
+  FREE" sends `buyZone` with that card's zone; owned reads "Owned — enter from
+  Planets" and opens Planets.
+- **The (i)** shows the event's own notice (`MineCryptRules.NOTICES`; the
+  pop-up's words). Event Horizon has none, so its (i) shows its blurb, not
+  the Crypt's notice (that one promises a main-world life its tools do not
+  have).
+- **Themes:** each card wears its event's palette (Event Horizon dark
+  universe, the Crypt Halloween; `MineTheme.EVENT_THEMES`), and the panel
+  around it takes the theme of the one showing (`MineUI.applyTheme`).
+- **Event Horizon's card** keeps its banner, countdown (`limitedCountdown`,
+  the pre-launch teaser) and Event Pass.
+- **The Crypt's card** (`MineCryptView`, the shell): the candy balance beside
+  the rule (`R.NOTICE.text`), and the Trick-or-Treat case's OPEN, which sends
+  `buyTrickOrTreat`. It shows the snapshot's `casePrice`, and greys out and
+  does nothing with "NEED n MORE 🍬" when short, "CLAIM THE CRYPT FIRST", or
+  "OPENS SOON" / "THE CRYPT HAS CLOSED" (`MineCryptView.openState`). One case
+  at a time: a second tap within 3 s, before the server answers, sends
+  nothing. The window line on the card head shows its close date in the
+  player's local time.
+- **Not built (owner's scope change, 2026-10-19):** the Crypt tools list
+  (EQUIP, MERGE, the main-world switch), charm crafting, and the case's odds
+  sheet and result reveal. They will be built against the Crypt's new API. The
+  odds sheet's place is kept: `MineCryptView.mountCaseOdds` (builds nothing
+  yet) and a hidden `OddsSlot` frame beside OPEN. Until then OPEN shows **no
+  odds**; `buyTrickOrTreat` is not on `Verbs.PAID_RANDOM`, because candy does not
+  trace back to Robux.
+- **Results:** `trickOrTreatOpened` lets OPEN be pressed again; what came out
+  is the server's toast for now. A Crypt chest's popup shows the candy it paid.
+
+**First-entry pop-up** (`MineEventNotice`): on `eventNotice`, or when a snapshot
+finds you in the Crypt with its notice unseen (`crypt.noticeSeen`), once a
+session per event; only "Got it" closes it, and it sends `cryptNoticeSeen
+{ zoneId }`, so the server never asks again. In the event's theme, no scale
+animation.
+
+**Wallet:** a candy pill joins the wallet only while you stand in the Crypt
+(`ClientFns.paintCandyPill`); outside the event the HUD is unchanged.
 
 ### World Pulse — disabled
 - **The design.** `MineWorldEvents.EVENTS` lists 8 short buffs: Lucky Breeze,
@@ -204,6 +261,11 @@ See [zones-layers-and-seams](zones-layers-and-seams.md).
 | `src/ServerScriptService/Mine/MineCrypt.luau` | Crypt grants, verbs, hooks | `dispatch`, `heldTool`, `onClaim`, `onBlockBroken`, `openChest`, `buyTrickOrTreat`, `haulPoints` |
 | `src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau`, `src/ReplicatedStorage/Mine/Shared/MineTrickOrTreat.luau` | Crypt tool table; the case | `TOOLS`, `rollChestTool`, `rollCaseTool`; `WEIGHTS`, `roll`, `odds` |
 | `tools/verify/crypt.js` | runs the real modules: gating, drops, merge, keep-after-event | |
+| `src/ReplicatedStorage/Mine/Shared/MineEventsView/init.luau` | the Events tab: pills, one card per event, (i), Event Pass | `mount`, `view.onCaseOpened` |
+| `src/ReplicatedStorage/Mine/Shared/MineEventTabs.luau` | which events show, which first, each claim (pure) | `shown`, `defaultId`, `owned`, `claim`, `notice`, `cryptWindowLine` |
+| `src/ReplicatedStorage/Mine/Shared/MineCryptView.luau` | the Crypt card's shell: candy, Trick-or-Treat OPEN | `mount`, `openState`, `mountCaseOdds` (placeholder) |
+| `src/ReplicatedStorage/Mine/Shared/MineEventNotice.luau` | the first-entry pop-up | `mount`, `shouldShow` |
+| `tools/verify/crypt-ui.js` | the client half: verbs sent, pushes handled, both events, own claim, pouch, pop-up, themes; mounts the screens on a GUI stand-in and presses their buttons | |
 | `src/ReplicatedStorage/Mine/Shared/MineEventPass.luau` | pass tiers and quests | `TRACKS`, `ensure`, `activeBonus`, `tick` |
 | `src/ReplicatedStorage/Mine/Shared/MineWorldEvents.luau`, `src/ReplicatedStorage/Mine/Shared/MineWorldPulseUI.luau` | World Pulse, inert | `EVENTS`, `startLoop`, `foldBoosts` |
 | MineServer | gates, boost fold, sets | `Gate.zoneUnlocked`, `boosts`, `openPack` |
@@ -220,10 +282,14 @@ See [zones-layers-and-seams](zones-layers-and-seams.md).
 - **The event code is inherited.** It is unchanged since the import (`566eecf`),
   apart from fossil removal.
 - **World Pulse is off.** It was switched off before this branch.
-- **The Candy Crypt redesign is half built (2026-10-19).** The server and shared
-  data are in and pinned by `tools/verify/crypt.js`; the client screens (Crypt
-  tool inventory, merge, candy sell, charm crafting, the pop-up, Sell up to) are
-  not, and nothing has run in Studio.
+- **The Candy Crypt redesign: server built, client screens in part
+  (2026-10-19).** The server and shared data are pinned by
+  `tools/verify/crypt.js`. These screens are pinned by `tools/verify/crypt-ui.js`,
+  which also mounts them on a GUI stand-in: the Events tab's two cards, the
+  Crypt card's shell, the candy sale and SELL UP TO in the pouch, the pop-up and
+  the candy pill. The Crypt is being redesigned again, so the tools list, merge,
+  charm crafting and the case's odds and reveal wait for its new API.
+  **Nothing has run in Studio**; the PC session looks at the screens next.
 - **On the ARCHIVE list.** AUDIT §5 lists "Event pass / limited events (~900)"
   for archiving. That is a proposal, and no archive has happened.
 
@@ -256,6 +322,12 @@ See [zones-layers-and-seams](zones-layers-and-seams.md).
   10 layers (a deep candy block is worth hundreds of 2,500-candy cases)? Should
   Event Digging also boost Event Horizon tools (it does not)? Is "candy and
   maybe a tool" the whole of a Crypt chest?
+- The Crypt's screens (2026-10-19, asked in the client build report): does
+  Event Horizon get a first-entry notice of its own (its (i) shows its blurb
+  meanwhile)? Should the TODAY row for the Crypt open the Events tab rather
+  than Planets? Until the odds sheet is built, should OPEN stay live with no
+  odds on screen (as the scope change asked)? TODO B3 says "show the odds
+  wherever a roll can be bought".
 
 ## See also
 [zones-layers-and-seams](zones-layers-and-seams.md) · [cards-and-packs](cards-and-packs.md) · [shops-and-monetisation](shops-and-monetisation.md) · [social-quests-and-leaderboards](social-quests-and-leaderboards.md) · [pets](pets.md)

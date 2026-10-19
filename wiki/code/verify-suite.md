@@ -17,6 +17,7 @@ sources:
   - tools/verify/pet-identity.js
   - tools/verify/cards-tab.js
   - tools/verify/reveal-runs.js
+  - tools/verify/crypt-ui.js
 related: [luau-traps, tools-and-generators, local-setup, tools]
 ---
 
@@ -119,6 +120,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `check` | the tool-level curve behaves, using the tables in `tools/upgrade-calculator.html` (generated from MineConfig) |
 | `config-refs` | every `MineConfig.X` the code reads exists. Strips comments first. |
 | `crypt` **L** | the Candy Crypt redesign (2026-10-19), on the real modules and the real `MineCrypt`: only Crypt tools spend Crypt rock and Event Horizon's pools are unchanged, the swap rule in and out of the Crypt, Trick-or-Treat 85/5/7/2.9/0.1 with no candy back (200,000 rolls), chest tool odds by band, candy 3x, rock from zone 3 to zone 10 with the old coin curve, sixteen candy ores, the 3-into-1 variant merge, keep-after-event (weaker in the main world), the six charm recipes, SELL ALL never selling locked or candy ores, and the MineServer hooks |
+| `crypt-ui` **L** | the Candy Crypt's client half and the event themes (2026-10-19). Statically: every `crypt*` verb read off `MineCrypt`'s `VERBS`, and `buyTrickOrTreat`, is sent by some UI with the payload it reads. The exceptions are `cryptEquip`, `cryptMerge` and `cryptCraftCharm`, whose screens wait for the Crypt's next redesign (owner, 2026-10-19). OPEN reaches the remote through every hop (`MineCryptView` -> `MineEventsView` -> `MineClient`). Every push the Crypt fires is handled, except `cryptMerged`. No Events or Crypt screen reads `bigbangOwned` or says "Claim Event Horizon" / "enter from Zones", and the Events tab mounts through `pcall`. The pouch's SELL UP TO and candy sale are wired end to end: the pouch reads no field the shop does not pass, a locked candy ore is never sent, and the pouch can be opened. The pop-up shows once and sends `cryptNoticeSeen`. The case's price is the snapshot's, the odds sheet's placeholder (`mountCaseOdds`) is in place, and no new screen scales text. **Runs** `MineEventTabs`, `MineEventNotice.shouldShow`, `MineTheme` (roles, contrast over 7:1, `eventKeyOf` on 14 ids) and `MineCryptView.openState` against the real `MineConfig` / `MineCryptRules`. Then it **mounts** the Events tab, the pop-up and the pouch on a GUI stand-in and presses their buttons. Fails on `db59c60` (59 failures). |
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
 | `daily-wheel` **L** | the daily wheel: weights sum to 100, the 16 slice ids are unchanged, every slice prints odds, a free spin gives a pet at most 10% of the time, the daily allowance (base, group, streak), a UTC-day reset, and a landing on the rolled slice from any start angle. Source checks: the lobby build is live, rebirth keeps the field, a spin saves, free spins go first and paid spins obey `PolicyNoRandom`, and the world wheel spins on the client. Added 2026-10-10. |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |

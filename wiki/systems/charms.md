@@ -159,7 +159,10 @@ power everywhere.*
   Neither touches a normal tool, and Event Digging does not touch Event Horizon's.
 - **Crafting:** `cryptCraftCharm { charmId }` spends the candy ore, tallies the
   charm and wears it if nothing is worn. `MineCryptRules.charmRecipes(p)` is what
-  a screen draws. **No icons yet** (`art` is nil): the six pictures are owed.
+  a screen draws. **No screen sends it yet:** the Crypt is being redesigned again
+  and its charms API will change (owner, 2026-10-19), so the crafting screen
+  waits ([world-events](world-events.md)). **No icons yet** (`art` is nil): the
+  six pictures are owed.
 
 ## Decided by the owner
 

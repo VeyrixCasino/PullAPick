@@ -745,6 +745,8 @@ function MineShopView.mount(parent, opts)
 					orePouch = state.orePouch or {},
 					orePouchTier = state.orePouchTier or 1,
 					gems = state.gems or 0,
+					-- SELL UP TO's remembered ceiling (p.settings.oreSellUpTo).
+					sellUpTo = state.sellUpTo,
 				}
 			end,
 			onUpgradePouch = function()
@@ -762,9 +764,18 @@ function MineShopView.mount(parent, opts)
 					opts.onSellOre(oreId)
 				end
 			end,
-			onSellAll = function(confirm)
+			-- `upTo` is the SELL UP TO ceiling; the ask carries it too, which
+			-- is how the server remembers the player's choice.
+			onSellAll = function(confirm, upTo)
 				if opts.onSellAllOres then
-					opts.onSellAllOres(confirm)
+					opts.onSellAllOres(confirm, upTo)
+				end
+			end,
+			-- Ticked candy ores, sold for candy (cryptSellCandyOres): the ask,
+			-- then the same ores with confirm.
+			onSellCandy = function(oreIds, confirm)
+				if opts.onSellCandyOres then
+					opts.onSellCandyOres(oreIds, confirm)
 				end
 			end,
 		})
@@ -839,6 +850,13 @@ function MineShopView.mount(parent, opts)
 	function view.showSellAllConfirm(info)
 		if pouchCtl and pouchCtl.showConfirm then
 			pcall(pouchCtl.showConfirm, info)
+		end
+	end
+
+	-- The same for the candy sale: the server's `cryptSellCandyConfirm`.
+	function view.showCandyConfirm(info)
+		if pouchCtl and pouchCtl.showCandyConfirm then
+			pcall(pouchCtl.showCandyConfirm, info)
 		end
 	end
 
@@ -1945,7 +1963,7 @@ function MineShopView.mount(parent, opts)
 			completely different screen -- no error, just a tab counter quoting
 			a number from somewhere else.
 		]]
-		if activeTab == "bench" or activeTab == "upgrades" or activeTab == "loadout" then
+		if activeTab == "bench" or activeTab == "upgrades" or activeTab == "loadout" or activeTab == "pouch" then
 			return {}
 		end
 		if activeTab == "backpack" then
@@ -2308,6 +2326,9 @@ function MineShopView.mount(parent, opts)
 			return
 		end
 		if activeTab == "pouch" and pouchPanel then
+			-- No rail tab says what this is (the loop above lights none), so
+			-- the header does.
+			sub.Text = "Your ORE POUCH: sell ore for gems, and candy ores for candy. It survives a rebirth."
 			creditsStage.Visible = false
 			card.Visible = false
 			leftBtn.Visible = false
@@ -2613,12 +2634,21 @@ function MineShopView.mount(parent, opts)
 	-- Standing in Event Horizon, the tool tabs are the event's own tool shelf
 	-- (space coins, rows() below), reached from the hub's EVENT TOOLS button.
 	local EVENT_TABS = { pickaxe = true, drill = true, explosive = true }
+	--[[
+		THE ORE POUCH IS THE OTHER EXCEPTION (2026-10-19). It has had no tab
+		since 2026-10-11 and the Forge hub has no pouch screen, so nothing could
+		open it: no way to sell ore for gems. (MineServer's intro step 15 names
+		it -- panel "shop", tab "pouch" -- but is not in Intro.order, and would
+		have landed on Bags.) It is not put back on the rail (the old shop shows
+		Bags, S13); it opens when asked for by name: the hub's SELL ORE button.
+	]]
 	local function forgeRoute(id)
 		if FORGE_TABS[id] and opts.onOpenForge and opts.onOpenForge(FORGE_TABS[id]) then
 			view.close()
 			return nil
 		end
-		if opts.onOpenForge and not FORGE_TABS[id] and not (EVENT_TABS[id] and state.zoneId == "bigbang") then
+		if opts.onOpenForge and not FORGE_TABS[id] and not (EVENT_TABS[id] and state.zoneId == "bigbang")
+			and id ~= "pouch" then
 			return "backpack"
 		end
 		return id
@@ -2660,6 +2690,10 @@ function MineShopView.mount(parent, opts)
 		state.oreLocks = snapshot.oreLocks or {}
 		state.orePouch = snapshot.orePouch or {}
 		state.orePouchTier = snapshot.orePouchTier or 1
+		-- The pouch's SELL UP TO, as the server remembers it.
+		state.sellUpTo = (type(snapshot.settings) == "table" and snapshot.settings.oreSellUpTo)
+			or (type(snapshot.crypt) == "table" and snapshot.crypt.sellUpTo)
+			or nil
 		-- The Forge lists one recipe per ore ever held, not per ore banked, so
 		-- spending your last unit of something does not delete its recipe.
 		state.oresSeen = snapshot.oresSeen or {}

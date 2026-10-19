@@ -53,6 +53,9 @@ MineBuild.EXPECT = {
 	{ name = "MineForgeView", lost = "the Enchanter's temper pane" },
 	{ name = "MineCharms", lost = "charms -- every charm row reads as empty" },
 	{ name = "MineAbbrev", lost = "four-figure currency; numbers read wrong" },
+	{ name = "MineEventTabs", lost = "the Events tab -- no event cards at all" },
+	{ name = "MineCryptView", lost = "the Candy Crypt's card -- no candy balance or Trick-or-Treat button" },
+	{ name = "MineEventNotice", lost = "the event pop-up on first entry to the Candy Crypt" },
 }
 
 --[[

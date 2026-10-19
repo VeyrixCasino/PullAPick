@@ -390,6 +390,11 @@ end
 
 function MineUI.candy(inst, key, thickness, gloss)
 	local pair = type(key) == "string" and T.CANDY[key] or nil
+	-- A { top, bottom } pair straight from a palette (MineTheme.EVENT_THEMES'
+	-- CANDY entries carry pairs, not T.CANDY names).
+	if not pair and type(key) == "table" and key[1] ~= nil and key[2] ~= nil then
+		pair = key
+	end
 	if not pair then
 		local c = typeof(key) == "Color3" and key or T.ACCENT
 		pair = { shade(c, 1.25), shade(c, 0.78) }
@@ -817,6 +822,291 @@ function MineUI.flow(parent, vertical, gap)
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 	}, parent)
+end
+
+-- ------------------------------------------------------------------ themes --
+--[[
+	EVENT THEMES IN THE KIT (owner, 2026-10-19: Halloween for the Candy Crypt,
+	a dark universe for Event Horizon, on the event's own screens and on
+	everything that belongs to an event wherever it shows).
+
+	MineTheme.EVENT_THEMES holds the palettes; these build with them. A palette
+	is any table with MineTheme's lifted roles, so passing nil (or anything that
+	is not an event) builds in the main world's lifted look instead.
+
+	EVERY THEMED INSTANCE REMEMBERS ITS ROLE -- attributes ThemeFill (the
+	BackgroundColor3 role), ThemeInk (TextColor3), ThemeEdge (a UIStroke's Color)
+	and ThemeJob (a candy gradient's job) -- so applyTheme can repaint a whole
+	panel in another palette. That is how the Events tab swaps between the
+	Crypt's Halloween and Event Horizon's dark universe without rebuilding.
+
+	EVERY ONE IS STAMPED ADOPTED. MineUI.watch's adoptOne repaints any
+	desaturated fill onto the indigo surfaces and near-white type onto TEXT,
+	which would turn a night-black shell indigo and bone-white type blue-white
+	one frame after it was drawn.
+]]
+local THEME_FILL, THEME_INK, THEME_EDGE, THEME_JOB = "ThemeFill", "ThemeInk", "ThemeEdge", "ThemeJob"
+
+-- The pair a greyed (not now) button wears, in any theme.
+MineUI.OFF_PAIR = { Color3.fromRGB(158, 152, 170), Color3.fromRGB(98, 92, 112) }
+
+local function pairFor(theme, job)
+	if job == "off" then
+		return MineUI.OFF_PAIR
+	end
+	local candy = theme.CANDY or {}
+	return candy[job or "primary"] or candy.primary or T.CANDY.gold
+end
+
+-- Paint `inst` with a palette's roles, and remember them. `fill` and `ink` are
+-- role names ("SHELL", "TEXT", ...); either may be nil.
+function MineUI.tint(inst, theme, fill, ink)
+	theme = T.themeFor(theme)
+	if fill then
+		inst.BackgroundColor3 = theme[fill] or T.PANEL
+		inst:SetAttribute(THEME_FILL, fill)
+	end
+	if ink then
+		inst.TextColor3 = theme[ink] or T.TEXT
+		inst:SetAttribute(THEME_INK, ink)
+	end
+	inst:SetAttribute("MineUIAdopted", true)
+	return inst
+end
+
+function MineUI.themeStroke(inst, theme, role, thickness)
+	theme = T.themeFor(theme)
+	role = role or "OUTLINE"
+	local s = MineUI.new("UIStroke", {
+		Color = theme[role] or T.OUTLINE,
+		Thickness = thickness or T.STROKE_CHUNKY,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	}, inst)
+	s:SetAttribute(THEME_EDGE, role)
+	return s
+end
+
+-- A window in a palette: SHELL lit from above, the palette's EDGE as a fat rim.
+function MineUI.themePanel(parent, theme, size, pos)
+	local f = MineUI.new("Frame", {
+		BorderSizePixel = 0,
+		Size = size or UDim2.fromScale(1, 1),
+		Position = pos or UDim2.fromOffset(0, 0),
+	}, parent)
+	MineUI.tint(f, theme, "SHELL")
+	MineUI.round(f, T.RADIUS_LG + 4)
+	MineUI.themeStroke(f, theme, "EDGE", T.STROKE_THICK)
+	MineUI.lit(f, 0.18)
+	return f
+end
+
+-- A card or band inside a themed panel. `fill` is a role: "SHELL_HI" (default,
+-- a raised band), "FACE" (the bright card face), "SHELL".
+function MineUI.themeCard(parent, theme, size, pos, fill)
+	local f = MineUI.new("Frame", {
+		BorderSizePixel = 0,
+		Size = size or UDim2.new(1, 0, 0, 56),
+		Position = pos or UDim2.fromOffset(0, 0),
+	}, parent)
+	MineUI.tint(f, theme, fill or "SHELL_HI")
+	MineUI.round(f, T.RADIUS_LG)
+	MineUI.themeStroke(f, theme, "OUTLINE", T.STROKE_CHUNKY)
+	MineUI.lit(f, 0.1)
+	return f
+end
+
+-- Type in a palette. `ink` is a role ("TEXT" by default, "MUTED", "ACCENT",
+-- "GLOW", "ON_FACE" on a bright face).
+function MineUI.themeText(parent, str, size, theme, ink, font)
+	local l = MineUI.text(parent, str, size, nil, font or T.FONT)
+	MineUI.tint(l, theme, nil, ink or "TEXT")
+	return l
+end
+
+--[[
+	A candy button in a palette. `job` is "primary" (the one action), "secondary",
+	"go" (claim, craft, equip), "danger", or "off" (greyed: not now). Returns the
+	button and its label, like MineUI.button. setJob changes it later.
+]]
+function MineUI.themeButton(parent, str, size, pos, theme, job)
+	theme = T.themeFor(theme)
+	job = job or "primary"
+	local b, l = MineUI.button(parent, str, size, pos, false, pairFor(theme, job))
+	local g = b:FindFirstChildOfClass("UIGradient")
+	if g then
+		g:SetAttribute(THEME_JOB, job)
+	end
+	local s = b:FindFirstChildOfClass("UIStroke")
+	if s then
+		s.Color = theme.OUTLINE
+		s:SetAttribute(THEME_EDGE, "OUTLINE")
+	end
+	-- Built greyed is built inactive, exactly as setJob(..., "off") makes it.
+	b.Active = job ~= "off"
+	l:SetAttribute("MineUIAdopted", true)
+	return b, l
+end
+
+--[[
+	Give a theme button a new job. "off" greys it AND makes it inactive, which is
+	what MineAudio's click binder reads to play the low "can't" knock instead of
+	a click (S26): a greyed button says no when pressed.
+]]
+function MineUI.setJob(btn, theme, job)
+	theme = T.themeFor(theme)
+	local g = btn:FindFirstChildOfClass("UIGradient")
+	if g then
+		local pair = pairFor(theme, job)
+		g.Color = ColorSequence.new(pair[1], pair[2])
+		g:SetAttribute(THEME_JOB, job)
+	end
+	if btn:IsA("GuiButton") then
+		btn.Active = job ~= "off"
+	end
+	return btn
+end
+
+--[[
+	Repaint a whole tree in another palette, by the roles its instances were
+	built with. Instances with no role are left alone, so a panel can hold
+	things that are not themed (art, rarity colours) and keep them. A subtree
+	whose top carries the ThemeLock attribute keeps its own palette (the Events
+	tab's two cards and their switch pills each wear their own event's, whatever
+	the panel around them wears).
+]]
+function MineUI.applyTheme(root, theme)
+	theme = T.themeFor(theme)
+	local function paint(inst)
+		local fill = inst:GetAttribute(THEME_FILL)
+		if fill and theme[fill] and inst:IsA("GuiObject") then
+			inst.BackgroundColor3 = theme[fill]
+		end
+		local ink = inst:GetAttribute(THEME_INK)
+		if ink and theme[ink] and (inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox")) then
+			inst.TextColor3 = theme[ink]
+		end
+		local edge = inst:GetAttribute(THEME_EDGE)
+		if edge and theme[edge] and inst:IsA("UIStroke") then
+			inst.Color = theme[edge]
+		end
+		local job = inst:GetAttribute(THEME_JOB)
+		if job and inst:IsA("UIGradient") then
+			local pair = pairFor(theme, job)
+			inst.Color = ColorSequence.new(pair[1], pair[2])
+		end
+	end
+	if not root then
+		return theme
+	end
+	local function walk(inst)
+		paint(inst)
+		for _, child in ipairs(inst:GetChildren()) do
+			if not child:GetAttribute("ThemeLock") then
+				walk(child)
+			end
+		end
+	end
+	walk(root)
+	root:SetAttribute("EventTheme", theme.NAME)
+	return theme
+end
+
+--[[
+	EVENT MARK: the one helper that tells a player "this belongs to an event",
+	on any tile, card or row, wherever it shows (owner, 2026-10-19: the event's
+	theme goes on its packs, its pets' cards, its tools and its case too).
+
+	`key` is anything MineTheme.eventTheme or MineTheme.eventKeyOf understands
+	(a zone or event id, a theme name, a palette, an item table). nil, or
+	something that is not an event, REMOVES the mark, so a tile that is
+	repainted for another item can call it every time. Idempotent.
+
+	A CHILD FRAME, NOT A SECOND STROKE: the tile's own rim keeps its meaning
+	(rarity, selected), and the event rim sits just inside it in the palette's
+	ACCENT-to-EDGE gradient, with the palette's BADGE in a corner. A tile that
+	holds a layout would take a child frame as one more laid-out item, so there
+	the mark is the instance's own outline -- and only if it has none.
+
+	opts: inset (3), thickness (2.5), badge (true), badgeSize (18),
+	badgePos (top-right, inside), zIndex.
+]]
+function MineUI.eventMark(inst, key, opts)
+	if not inst then
+		return nil
+	end
+	opts = opts or {}
+	local theme = T.eventTheme(key)
+	if not theme and key ~= nil then
+		theme = T.eventTheme(T.eventKeyOf(key))
+	end
+	local old = inst:FindFirstChild("EventMark")
+	if not theme then
+		if old then
+			old:Destroy()
+		end
+		return nil
+	end
+	if old and old:GetAttribute("EventTheme") == theme.NAME then
+		return old
+	end
+	if old then
+		old:Destroy()
+	end
+	if inst:FindFirstChildWhichIsA("UIGridStyleLayout") then
+		if inst:FindFirstChildOfClass("UIStroke") then
+			return nil
+		end
+		local s = MineUI.new("UIStroke", {
+			Name = "EventMark", Color = theme.ACCENT, Thickness = opts.thickness or 3,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		}, inst)
+		s:SetAttribute("EventTheme", theme.NAME)
+		return s
+	end
+	local inset = opts.inset or 3
+	local mark = MineUI.new("Frame", {
+		Name = "EventMark",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Active = false,
+		Position = UDim2.fromOffset(inset, inset),
+		Size = UDim2.new(1, -inset * 2, 1, -inset * 2),
+		ZIndex = opts.zIndex or (inst.ZIndex + 6),
+	}, inst)
+	mark:SetAttribute("EventTheme", theme.NAME)
+	mark:SetAttribute("MineUIAdopted", true)
+	local corner = inst:FindFirstChildOfClass("UICorner")
+	if corner then
+		MineUI.new("UICorner", {
+			CornerRadius = UDim.new(corner.CornerRadius.Scale, math.max(0, corner.CornerRadius.Offset - inset)),
+		}, mark)
+	end
+	local edge = MineUI.new("UIStroke", {
+		Color = Color3.new(1, 1, 1),
+		Thickness = opts.thickness or 2.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	}, mark)
+	MineUI.new("UIGradient", {
+		Rotation = 35,
+		Color = ColorSequence.new(theme.ACCENT, theme.EDGE),
+	}, edge)
+	if opts.badge ~= false and (theme.BADGE or "") ~= "" then
+		local px = opts.badgeSize or 18
+		local badge = MineUI.new("TextLabel", {
+			Name = "EventBadge",
+			BackgroundTransparency = 1,
+			Text = theme.BADGE,
+			TextSize = px,
+			Font = T.FONT,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = opts.badgePos or UDim2.new(1, -2, 0, 2),
+			Size = UDim2.fromOffset(px + 6, px + 6),
+			ZIndex = mark.ZIndex + 1,
+			Active = false,
+		}, mark)
+		badge:SetAttribute("MineUIAdopted", true)
+	end
+	return mark
 end
 
 return MineUI

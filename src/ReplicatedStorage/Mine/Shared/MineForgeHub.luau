@@ -410,6 +410,21 @@ function Hub.mount(gui, opts)
 			opts.onShop("backpack")
 		end)
 		--[[
+			THE ORE POUCH'S DOOR (2026-10-19). Ore sells for gems -- and candy
+			ores for candy -- in the pouch panel, which nothing opened once the old
+			shop lost its pouch tab (2026-10-11): this hub shows only a read-only
+			strip. It opens in the old shop, asked for by name. 120 px, so the
+			chip row still clears the level bar with EVENT TOOLS showing too.
+			PROPOSED (2026-10-19): this door, its place and its words; a dock
+			button or a tab of its own are the alternatives.
+		]]
+		local pouchBtn = pill(chips, "💎 SELL ORE", TH.good, UDim2.fromOffset(120, 40), 15, 75)
+		pouchBtn.LayoutOrder = -2
+		pouchBtn.MouseButton1Click:Connect(function()
+			ctl.close()
+			opts.onShop("pouch")
+		end)
+		--[[
 			EXCEPT IN EVENT HORIZON. Standing in the event, the old shop's tool
 			shelf is the Event Horizon tool shelf (space coins; MineShopView rows
 			reads zoneId), and the Supply Pod opens this hub -- so COIN SHOP was
