@@ -1295,22 +1295,45 @@ end)
 	collapsing is only a size change.
 ]]
 local questBox = mk("Frame", {
+	--[[
+		THE ACTIVE QUEST IS THE MOST-LOOKED-AT THING IN THE GAME, so on the
+		lifted panel it is the one bright card rather than transparent text on
+		a dark band. Its ink goes dark to match (see below); white-on-cream is
+		the mistake that makes a light card look broken.
+	]]
 	Name = "Quest",
 	Visible = false,
-	BackgroundColor3 = T.PANEL,
-	BackgroundTransparency = 1,
+	BackgroundColor3 = T.FACE,
+	BackgroundTransparency = 0,
 	Position = UDim2.new(0, 0, 0, 0),
 	Size = UDim2.fromOffset(304, 126),
 	ZIndex = 20,
 	Active = false,
 }, gui)
+round(questBox, 14)
+do
+	local qs = stroke(questBox, T.STROKE_CHUNKY or 3)
+	qs.Color = T.OUTLINE
+	qs.Transparency = 0
+	questBox:SetAttribute("MineUIAdopted", true)
+end
 do
 	local HEADER = 40
 	ClientFns.QUEST_HEADER = HEADER
+	--[[
+		The quest tracker is the only panel that is ALWAYS on screen, so it is
+		the one most responsible for what the game looks like -- and it was
+		T.PANEL (0.09 luminance) under a gradient running CARD -> INK, i.e. a
+		dark box fading to black, carrying fifteen lines of 11-13px text.
+
+		SHELL with a lit top, so it reads as a moulded plaque rather than a
+		hole. It keeps its fat outline and its MineUIAdopted flag; the rows
+		inside it are lifted separately.
+	]]
 	local panel = mk("Frame", {
 		Name = "QuestPanel",
 		Visible = false,
-		BackgroundColor3 = T.PANEL,
+		BackgroundColor3 = T.SHELL,
 		BackgroundTransparency = 0.04,
 		Position = UDim2.new(0, 16, 0, 300),
 		Size = UDim2.fromOffset(304, HEADER),
@@ -1320,7 +1343,7 @@ do
 	}, gui)
 	round(panel, 20)
 	local grad = Instance.new("UIGradient")
-	grad.Color = ColorSequence.new(T.CARD, T.INK)
+	grad.Color = ColorSequence.new(T.SHELL_HI, T.SHELL)
 	grad.Rotation = 90
 	grad.Parent = panel
 	local s = stroke(panel, T.STROKE_THICK)
@@ -1333,14 +1356,20 @@ do
 		Size = UDim2.new(1, 0, 0, HEADER), ZIndex = 24,
 	}, panel)
 	local title = mk("TextLabel", {
-		Name = "Title", BackgroundTransparency = 1, Font = FONT, TextSize = 19, TextColor3 = GOLD,
+		Name = "Title", BackgroundTransparency = 1, Font = Enum.Font.GothamBlack,
+		TextSize = 22, TextColor3 = GOLD,
 		Text = "QUESTS", TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(16, 0), Size = UDim2.fromOffset(80, HEADER), ZIndex = 25, Active = false,
+		Position = UDim2.fromOffset(16, 0), Size = UDim2.fromOffset(96, HEADER), ZIndex = 25, Active = false,
 	}, panel)
+	if ClientFns.UI and ClientFns.UI.outlineText then
+		ClientFns.UI.outlineText(title, 2)
+	end
 	-- Green dot: something in here pays out right now. Pulses, open or shut.
 	local dot = mk("Frame", {
+		-- 96 -> 120: the title went 19 -> 22 and its box 80 -> 96, so the dot
+		-- was about to sit under the S of QUESTS.
 		Name = "ClaimDot", BackgroundColor3 = T.GREEN, Visible = false,
-		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 96, 0, HEADER / 2),
+		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 120, 0, HEADER / 2),
 		Size = UDim2.fromOffset(14, 14), ZIndex = 25, Active = false,
 	}, panel)
 	round(dot, 7)
@@ -1384,7 +1413,7 @@ do
 		BackgroundTransparency = 1,
 		Font = FONT,
 		TextSize = 15,
-		TextColor3 = GOLD,
+		TextColor3 = Color3.fromRGB(150, 94, 8),
 		Text = "",
 		Position = UDim2.fromOffset(18, 68),
 		Size = UDim2.new(1, -36, 0, 18),
@@ -1400,8 +1429,8 @@ do
 		Name = "QuestTip",
 		BackgroundTransparency = 1,
 		Font = FONT_M,
-		TextSize = 13,
-		TextColor3 = T.MUTED,
+		TextSize = T.TEXT_MIN or 14,
+		TextColor3 = T.ON_FACE_MUTED,
 		Text = "",
 		Position = UDim2.fromOffset(18, 88),
 		Size = UDim2.new(1, -36, 0, 32),
@@ -1415,13 +1444,13 @@ end
 -- Bold objective + progress index; thick gold bar; muted-gold reward hint.
 local questIdx = mk("TextLabel", {
 	BackgroundTransparency = 1, Font = FONT, TextSize = 14,
-	TextColor3 = T.MUTED,
+	TextColor3 = T.ON_FACE_MUTED,
 	Text = "", Position = UDim2.new(1, -78, 0, 11), Size = UDim2.fromOffset(66, 18),
 	TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 21, Active = false,
 }, questBox)
 local questText = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 20,
-	TextColor3 = Color3.fromRGB(255, 255, 255),
+	BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 20,
+	TextColor3 = T.ON_FACE,
 	Text = "", Position = UDim2.fromOffset(18, 8), Size = UDim2.new(1, -100, 0, 26),
 	TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21, Active = false,
 }, questBox)
@@ -1429,7 +1458,7 @@ questText.TextTruncate = Enum.TextTruncate.AtEnd
 -- A fat, outlined bar with a candy-green fill and a shine: a bar that looks
 -- nearly full feels winnable, and that is what pulls the next swing.
 local questTrack = mk("Frame", {
-	BackgroundColor3 = T.LINE, BorderSizePixel = 0,
+	BackgroundColor3 = Color3.fromRGB(206, 199, 232), BorderSizePixel = 0,
 	Position = UDim2.fromOffset(18, 40), Size = UDim2.new(1, -96, 0, 20),
 	ZIndex = 21, Active = false,
 }, questBox)
@@ -1453,8 +1482,8 @@ if ClientFns.UI then
 end
 -- Crisp progress count to the right of the bar.
 local questProg = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 17,
-	TextColor3 = Color3.fromRGB(255, 255, 255),
+	BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 17,
+	TextColor3 = T.ON_FACE,
 	Text = "", Position = UDim2.new(1, -74, 0, 39), Size = UDim2.fromOffset(60, 22),
 	TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 21, Active = false,
 }, questBox)
@@ -1981,7 +2010,9 @@ function ClientFns.dailyBoxBuild()
 			Position = UDim2.new(1, 0, 0, 1), Size = UDim2.fromOffset(74, 18), ZIndex = 22, Active = false,
 		}, r)
 		local track = mk("Frame", {
-			BackgroundColor3 = T.LINE, Position = UDim2.fromOffset(0, 24),
+			-- Lifted off T.LINE: on the purple plaque a dark track reads as a
+			-- hole punched in the panel rather than as an empty bar.
+			BackgroundColor3 = Color3.fromRGB(58, 40, 122), Position = UDim2.fromOffset(0, 24),
 			Size = UDim2.new(1, -74, 0, 13), ZIndex = 22, Active = false,
 		}, r)
 		round(track, 7)
