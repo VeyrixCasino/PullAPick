@@ -293,6 +293,19 @@ Halloween charms** (skins and hats are shared; it all moves into the main invent
 Halloween-skin boost from Halloween tools: *"make each tool different, but yeah always multiplier to the full
 multiplier"*: each Halloween tool has its own factor, applied to the skin's whole multiplier.
 
+**The Halloween enchants (owner, 2026-10-19):** four, all event-exclusive but **not event-dependent** (they work
+in the main game after the event): **Sugar Rush** (+2% speed per block in a combo, one-shot blocks only, up to
++100%), **Grave Digger** (stronger the deeper you are), **Spellbook** (an ability enchant that casts a random
+ability every few hits: Zap, Blast, Tidal Wave, Shatter, Earthquake, at reduced power) and **Flashlight** (a
+chance to reveal the rarest ore in a radius and make it glow; the owner: *"might be overpowered"*). Jack-o'-Lantern
+was scrapped. The owner: *"make sure all enchants works, Do balancing checks to make sure good enough, but not too
+overpowered stacked with enchants too, i want every ability enchant to be viable with different builds, depending
+on what their going for"*.
+
+**The jobs' 22 smaller calls:** all accepted as built (*"Use all defaults"*), including the three not yet built: Pot of
+Gold and the Weekend Haul swap their retired packs for wild cases of the same value; the Limited tab's Founders Bag
+gets the two-tap confirm; limited deals with lucky blocks or cases get an odds sheet.
+
 ## 1. Probable bugs found while building the wiki
 
 These are not fixed. They are in code that has never run in the engine.
