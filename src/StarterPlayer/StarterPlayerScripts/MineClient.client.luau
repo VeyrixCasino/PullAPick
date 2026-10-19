@@ -620,6 +620,38 @@ do
 	bagCount.TextSize = 17
 end
 
+--[[
+	CANDY, ON THE WALLET, IN THE CANDY CRYPT ONLY (owner, 2026-10-19: show the
+	candy balance in the event, and do not crowd the main HUD outside it).
+	A fifth pill in the tray, hidden everywhere else; ClientFns.paintCandyPill
+	(beside refreshHud) shows it, and shares the tray five ways while it does.
+	It wears the Crypt's pumpkin with a candy-purple rim, so it never reads as
+	the orange bag beside it. There is no candy icon upload: the medallion
+	carries the 🍬 glyph. PROPOSED (2026-10-19): its look and its place.
+]]
+function ClientFns.buildCandyPill()
+	local th = T.EVENT_THEMES and T.EVENT_THEMES.halloween
+	local row, lab = walletPill("", th and th.CANDY.primary or "orange", 96)
+	row.Name = "CandyPill"
+	row.LayoutOrder = 9
+	row.Visible = false
+	local edge = row:FindFirstChildOfClass("UIStroke")
+	if edge and th then
+		edge.Color = th.EDGE
+	end
+	for _, ch in ipairs(row:GetChildren()) do
+		if ch:IsA("Frame") and ch:FindFirstChildOfClass("ImageLabel") then
+			mk("TextLabel", {
+				Name = "CandyGlyph", BackgroundTransparency = 1, Text = "🍬", TextSize = 30,
+				Font = FONT, Size = UDim2.fromScale(1, 1), ZIndex = 24, Active = false,
+			}, ch)
+		end
+	end
+	ClientFns.candyPill, ClientFns.candyL = row, lab
+end
+-- Guarded: a pill that fails to build costs the pill, never the HUD.
+pcall(ClientFns.buildCandyPill)
+
 local mineResetL = mk("TextLabel", {
 	BackgroundTransparency = 0.05,
 	BackgroundColor3 = T.PANEL,
@@ -4465,6 +4497,17 @@ function ClientFns.chestPopup(payload)
 	end
 	local counts, keys = {}, {}
 	local ids = type(payload.packIds) == "table" and payload.packIds or {}
+	-- A Candy Crypt chest (kind "crypt", MineCrypt.openChest) pays candy: it
+	-- shows, in the Crypt's pumpkin. (Its Crypt tool still rides `packs`.)
+	if (tonumber(payload.candy) or 0) > 0 then
+		local th = T.EVENT_THEMES and T.EVENT_THEMES.halloween
+		row(function(host)
+			mk("TextLabel", {
+				BackgroundTransparency = 1, Text = "🍬", TextSize = 26, Font = FONT,
+				Size = UDim2.fromScale(1, 1), ZIndex = 73, Active = false,
+			}, host)
+		end, "+" .. ClientFns.commas(payload.candy) .. " candy", th and th.ACCENT or GOLD)
+	end
 	for i, name in ipairs(type(payload.packs) == "table" and payload.packs or {}) do
 		local key = tostring(ids[i] or name)
 		if not counts[key] then
@@ -5711,8 +5754,15 @@ shopCtl = ShopView.mount(gui, {
 	onSellOre = function(oreId, count)
 		net:FireServer("sellOre", { oreId = oreId, count = count })
 	end,
-	onSellAllOres = function(confirm)
-		net:FireServer("sellAllOres", { confirm = confirm and true or nil })
+	-- `upTo` is the pouch's SELL UP TO ceiling (MineOrePouch.SELL_UP_TO); the
+	-- server remembers it in p.settings.oreSellUpTo.
+	onSellAllOres = function(confirm, upTo)
+		net:FireServer("sellAllOres", { confirm = confirm and true or nil, upTo = upTo })
+	end,
+	-- Ticked candy ores for candy: the ask, then (after the server's
+	-- cryptSellCandyConfirm) the same ores with confirm.
+	onSellCandyOres = function(oreIds, confirm)
+		net:FireServer("cryptSellCandyOres", { oreIds = oreIds, confirm = confirm and true or nil })
 	end,
 })
 
@@ -5871,18 +5921,68 @@ do
 	end
 end
 
-eventsCtl = require(shared:WaitForChild("MineEventsView")).mount(gui, {
-	config = C,
-	onClaim = function(zoneId)
-		net:FireServer("buyZone", zoneId)
-	end,
-	-- Buys AND opens in one action: the owner asked for candy you trade in, so
-	-- nothing is left sitting unopened in an inventory. The server re-checks
-	-- the claim, the window and the price.
-	onTrickOrTreat = function()
-		net:FireServer("buyTrickOrTreat")
-	end,
-})
+--[[
+	THE EVENTS TAB (owner, 2026-10-19): every live event, each card claiming
+	ITS OWN zone (buyZone), and the Candy Crypt's card with its candy and
+	Trick-or-Treat. Its tools and charms screens wait for the Crypt's next API
+	(owner's scope change, the same day). The view never decides; the server
+	re-checks every action.
+
+	Mounted through pcall, like the pouch and the Forge: a screen that throws
+	while it builds costs its own tab, never this whole script (every use of
+	eventsCtl below checks it). An IIFE, so nothing joins this chunk's locals.
+]]
+eventsCtl = (function()
+	local opts = {
+		config = C,
+		onClaim = function(zoneId)
+			net:FireServer("buyZone", zoneId)
+		end,
+		-- "Owned — enter from Planets": the button takes you there.
+		onPlanets = function()
+			ClientFns.routePanel("zones")
+		end,
+		-- Buys AND opens in one action: the owner asked for candy you trade in,
+		-- so nothing is left sitting unopened in an inventory. The server
+		-- re-checks the claim, the window and the price.
+		onTrickOrTreat = function()
+			net:FireServer("buyTrickOrTreat")
+		end,
+	}
+	local okE, ctl = pcall(function()
+		return require(shared:WaitForChild("MineEventsView")).mount(gui, opts)
+	end)
+	if not okE then
+		warn("[MineClient] NO EVENTS TAB: MineEventsView.mount threw: " .. tostring(ctl))
+		return nil
+	end
+	return ctl
+end)()
+
+--[[
+	THE FIRST-ENTRY POP-UP (owner, 2026-10-19): once per event, "Got it" tells
+	the server (cryptNoticeSeen) and it never asks again. An IIFE, so its
+	locals never touch this chunk's register budget.
+]]
+ClientFns.eventNotice = (function()
+	local okN, Notice = pcall(function()
+		return require(shared:WaitForChild("MineEventNotice"))
+	end)
+	if not (okN and Notice and Notice.mount) then
+		warn("[MineClient] no event pop-up: MineEventNotice did not load (" .. tostring(Notice) .. ")")
+		return nil
+	end
+	local okM, ctl = pcall(Notice.mount, gui, {
+		onSeen = function(zoneId)
+			net:FireServer("cryptNoticeSeen", { zoneId = zoneId })
+		end,
+	})
+	if not okM then
+		warn("[MineClient] the event pop-up failed to mount: " .. tostring(ctl))
+		return nil
+	end
+	return ctl
+end)()
 
 skinsCtl = require(shared:WaitForChild("MineSkinsView")).mount(gui, {
 	-- One skin per tool FAMILY, covering every tool in that class.
@@ -7185,6 +7285,18 @@ paintCard = function(parent, card, w)
 		local chipW = w - pad * 2
 		ClientFns.statChip(f, kit.primary, kit.primaryBase * pow, UDim2.fromOffset(pad, statY), chipW)
 		ClientFns.statChip(f, kit.secondary, kit.secondaryBase * pow, UDim2.fromOffset(pad, statY + 25), chipW)
+	end
+	--[[
+		AN EVENT'S PET WEARS ITS EVENT (owner, 2026-10-19: the event theme goes
+		on its pets' cards wherever they show). Read off the card's own stack
+		key ("bigbang:..." / "halloween_2026:...") and where it came from
+		(setId), by MineTheme.eventKeyOf; a ring inside the rarity rim and the
+		event's badge in the art's corner. Every other card is untouched.
+	]]
+	local eventKey = T.eventKeyOf({ cardKey = card.cardKey, setId = card.setId })
+	if eventKey and ClientFns.UI and ClientFns.UI.eventMark then
+		pcall(ClientFns.UI.eventMark, f, eventKey,
+			{ badgePos = UDim2.new(1, -pad, 0, artY), badgeSize = math.max(14, math.floor(w * 0.1)) })
 	end
 	return f
 end
@@ -9962,11 +10074,45 @@ end
 
 local lastPetEquipKey = ""
 
+--[[
+	The candy pill (ClientFns.buildCandyPill): shown while you stand in the
+	Candy Crypt, with the snapshot's balance. While it shows, five pills share
+	the tray and each number steps down 3 px so "12.3K" still fits; a step on
+	a zone change, never an animation.
+]]
+function ClientFns.paintCandyPill()
+	local pill = ClientFns.candyPill
+	if not pill or not snap then
+		return
+	end
+	local on = snap.zoneId == "hallow"
+	if on and ClientFns.candyL then
+		local cr = type(snap.crypt) == "table" and snap.crypt or nil
+		ClientFns.candyL.Text = shortNum((cr and cr.candy) or snap.candy or 0)
+	end
+	if pill.Visible == on then
+		return
+	end
+	pill.Visible = on
+	for _, row in ipairs(pill.Parent and pill.Parent:GetChildren() or {}) do
+		if row:IsA("GuiObject") then
+			row.Size = on and UDim2.new(0.2, -10, 0, 44) or UDim2.new(0.25, -12, 0, 44)
+			local lab = row:FindFirstChildWhichIsA("TextLabel")
+			if lab then
+				local base = lab:GetAttribute("BaseTextSize") or lab.TextSize
+				lab:SetAttribute("BaseTextSize", base)
+				lab.TextSize = on and (base - 3) or base
+			end
+		end
+	end
+end
+
 -- Light HUD only - called on every coalesced snapshot while digging.
 local function refreshHud()
 	if not snap then
 		return
 	end
+	pcall(ClientFns.paintCandyPill)
 	-- One currency on the coin pill: the one this zone pays (owner, 2026-10-19,
 	-- launch audit S21). "1.2K | 340 sp" ran off the pill once you owned space
 	-- coins; Event Horizon is the only zone that pays them (Dig.recountHaul).
@@ -11878,6 +12024,11 @@ function ClientFns.routePanel(name, tab)
 				if (tab == "pickaxe" or tab == "backpack") and shopCtl.setTab then
 					shopCtl.setTab(tab)
 				end
+				-- The ore pouch, asked for by name: the hub's SELL ORE button
+				-- (and intro step 15, which names it but is not in Intro.order).
+				if tab == "pouch" and shopCtl.setTab then
+					shopCtl.setTab("pouch")
+				end
 			end
 		end },
 		merge = { mergeP, refreshMerge },
@@ -12225,6 +12376,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if forgeCtl then forgeCtl.setState(payload) end
 		if invCtl then invCtl.setState(payload) end
 		if eventsCtl then eventsCtl.setState(payload) end
+		-- Standing in an event mine whose notice is unseen (no push heard):
+		-- the pop-up, once (MineEventNotice.shouldShow).
+		if ClientFns.eventNotice then
+			pcall(ClientFns.eventNotice.onSnapshot, payload)
+		end
 		if depthHud.contractor then depthHud.contractor.setState(payload) end
 		do
 			local mergeReady = 0
@@ -12537,6 +12693,25 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "foundTool" and payload then
 		-- A rare find plays as a forced pack reveal; see ClientFns.foundReveal.
 		ClientFns.foundReveal(payload)
+	elseif action == "trickOrTreatOpened" and type(payload) == "table" then
+		-- The Trick-or-Treat case answered: OPEN can be pressed again. What
+		-- came out is the server's toast for now. PLACEHOLDER: the result
+		-- reveal is redone against the Crypt's new Trick-or-Treat loot API
+		-- (owner's scope change, 2026-10-19).
+		if eventsCtl and eventsCtl.onCaseOpened then
+			pcall(eventsCtl.onCaseOpened, payload)
+		end
+	elseif action == "eventNotice" and type(payload) == "table" then
+		-- First entry to an event mine: the once-only pop-up (MineEventNotice).
+		if ClientFns.eventNotice then
+			pcall(ClientFns.eventNotice.show, payload)
+		end
+	elseif action == "cryptSellCandyConfirm" and type(payload) == "table" then
+		-- The server priced a candy-ore sale: the pouch opens its dialog on the
+		-- server's own figures, as Sell All does.
+		if shopCtl and shopCtl.showCandyConfirm then
+			pcall(shopCtl.showCandyConfirm, payload)
+		end
 	elseif action == "loot" and payload then
 		floatText(payload.text or "+1", payload.color, payload.pos)
 		-- Procs (BLAST, TIDAL WAVE, ZAP, RICOCHET, QUAKE) get an animation and a
