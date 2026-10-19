@@ -1460,3 +1460,14 @@ The owner said *"do it all"* to the open list, so Claude went with its defaults:
   are pasted into the Cursor app.
 
 Updated: tools, assets-and-uploads, cards-and-packs, log.
+
+## [2026-10-18] fix | Pets wear their own bodies, not the fox
+Found while drawing the season pets on the pass rail. In a Play test, Taffy (a
+Candy Cat) and two dogs were foxes. `PetModelFactory.fromCard` passed the pet's
+name as its species, which beat the animal, and an unknown name falls back to
+the fox. So every named pet drew as a recoloured fox, and the set bodies and
+Epic+ tops never showed. The owner chose "Fix it now".
+- The animal picks the body; the name is only a guess for an unknown animal.
+- Studio check: all 3,344 roster pets build, on 1,092 bodies.
+
+Updated: pets, log.

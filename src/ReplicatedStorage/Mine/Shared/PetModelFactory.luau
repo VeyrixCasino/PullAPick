@@ -3709,8 +3709,17 @@ end
 -- Convenience for the mine client, which hands us a whole card.
 function PetModelFactory.fromCard(card)
 	card = card or {}
+	--[[
+		THE ANIMAL PICKS THE BODY. A named pet ("Taffy", a Candy Cat) says
+		nothing about its body, and passing the name as `species` beat the
+		animal in build(): resolveSpecies guessed from "Taffy", found nothing
+		and fell back to the fox. Every named pet drew as a recoloured fox, and
+		none of the set bodies or the Epic+ tops ever showed. The name is only a
+		guess now, for a card whose animal the roster does not know.
+	]]
+	local known = card.animal and PetModelFactory.ANIMALS[card.animal]
 	return PetModelFactory.build({
-		species = card.species or card.name,
+		species = card.species or ((not known) and card.name or nil),
 		animal = card.animal,
 		type = card.typeId,
 		variant = card.variant,
