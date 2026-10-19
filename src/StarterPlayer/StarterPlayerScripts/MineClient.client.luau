@@ -3952,7 +3952,11 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onEquipCharm = function(id) net:FireServer("equipCharm", id) end,
 	onUnequipCharm = function() net:FireServer("equipCharm", "") end,
-	onBuyCharmsPack = function() net:FireServer("buyCharmsPack") end,
+	-- One of the eight Charm Packs (F..SSS), for "gems" or "credits". The server
+	-- prices it and draws it (MineCharms.CHARM_PACKS, MineCharmService).
+	onBuyCharmPack = function(rarity, pay)
+		net:FireServer("buyCharmPack", { rarity = tostring(rarity or ""), pay = (pay == "credits") and "credits" or "gems" })
+	end,
 	--[[
 		Buy ONE named charm with temper tokens. Verbs.buyCharm has been
 		complete and dispatched with no caller -- 36 purchasable charms, F 15
@@ -4012,9 +4016,11 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onSellTool = function(payload) net:FireServer("sellTool", payload) end,
 	onScrapGear = function(id) net:FireServer("scrap", { kind = "gear", id = id }) end,
-	-- Three charms into one a tier deeper. The server owns the cost and the
-	-- target (MineCharms.MERGE_COST / mergeTarget); this only names the charm.
-	onMergeCharm = function(id) net:FireServer("mergeCharm", { id = id }) end,
+	-- Raise one copy of a charm a tier (I..V), using up `fodderId` at the same
+	-- tier. The server owns the price and the rules (MineCharms.canMerge).
+	onMergeCharm = function(id, tier, fodderId)
+		net:FireServer("mergeCharm", { id = id, tier = tier, fodderId = fodderId })
+	end,
 	--[[
 		Bulk scrap goes out twice. The first call carries no confirm flag and is
 		the ASK -- the server builds the plan and replies with `confirmScrap`,
@@ -4513,9 +4519,12 @@ function ClientFns.chestPopup(payload)
 		order += 1
 		return order
 	end
+	-- The rank badge rides on the name (F..SSS, MineChestRanks, 2026-10-19).
 	mk("TextLabel", {
 		BackgroundTransparency = 1, Font = FONT, TextSize = 18, TextColor3 = GOLD,
-		Text = string.upper(tostring(payload.name or "Chest")) .. (payload.first and "  |  NEW!" or ""),
+		Text = string.upper(tostring(payload.name or "Chest"))
+			.. ((type(payload.rank) == "string" and #payload.rank <= 3) and ("  ·  " .. payload.rank) or "")
+			.. (payload.first and "  |  NEW!" or ""),
 		TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
 		TextStrokeTransparency = 0.45, Size = UDim2.new(1, 0, 0, 24), LayoutOrder = nextOrder(), ZIndex = 71, Active = false,
 	}, card)
@@ -4591,8 +4600,8 @@ function ClientFns.chestPopup(payload)
 	sc.Scale = 0.94
 	card.Visible = true
 	-- Owner, 2026-10-08: "less dopamine with the chests". So chests stay quiet,
-	-- and only an S-rank (Ultra Rare) chest gets the small tier-1 pluck.
-	if payload.rank == "S" then
+	-- and only a Mythic-or-better chest (S, SS, SSS) gets the small tier-1 pluck.
+	if payload.rank == "S" or payload.rank == "SS" or payload.rank == "SSS" then
 		pcall(Audio.playWin, 1)
 	end
 	TweenService:Create(sc, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
@@ -11825,7 +11834,8 @@ RunService.Heartbeat:Connect(function(dt)
 			hoverName.Text = string.format("%s  |  L%d", section, layer or 1)
 		elseif target:GetAttribute("Kind") == "chest" then
 			local flavour = section and ("  |  " .. section) or ""
-			hoverName.Text = blockName .. flavour
+			local rk = target:GetAttribute("ChestRank")
+			hoverName.Text = blockName .. (type(rk) == "string" and ("  ·  " .. rk) or "") .. flavour
 		else
 			hoverName.Text = blockName
 		end

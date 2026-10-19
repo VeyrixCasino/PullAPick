@@ -95,19 +95,30 @@ How a case behaves in the game:
   `MineCases.rollChestCase` and `chestCaseOdds` work like this:
   - 10% of chests drop a case (`CHEST_CASE_CHANCE`).
   - Each grade is half as common as the one below (`CHEST_GRADE_FALLOFF`).
-  - A better chest shifts the ladder up one half-star per rank
-    (`CHEST_RANK_SHIFT`): B starts at ★½, A at ★★, S at ★★½.
-  - F and D start below ★, and a grade below ★ is no case, so they drop one
-    2.5% and 5% of the time.
+  - A better chest rank starts the ladder higher, in half-star steps
+    (`CHEST_RANK_SHIFT`). Since chests went F to SSS (2026-10-19) the steps are
+    F −0.5, D 0, C 0.5, B 1.25, A 2, S 2.75, SS 3.5, SSS 4.5. A fraction mixes the two
+    whole shifts around it. They are PROPOSED, fitted so an average chest's case
+    value stays within 10% of `3863d14` at every depth
+    (`tools/verify/economy-gems.js`).
+  - A grade below ★ is no case, so an F chest drops one 7.5% of the time; every
+    other rank drops one 10% of the time.
 
   | chest | any case | ★ | ★★ | ★★★ | ★★★★ | ★★★★★ | value per chest |
   |---|---|---|---|---|---|---|---|
-  | F | 2.5% | 1.25% | 0.31% | 0.08% | 0.02% | 0.005% | ~18 dust |
-  | C | 10% | 5% | 1.25% | 0.31% | 0.08% | 0.02% | ~73 dust |
-  | S | 10% | – | – | 2.5% | 0.64% | 0.16% | ~373 dust |
+  | F | 7.5% | 3.76% | 0.94% | 0.23% | 0.06% | 0.01% | ~32 dust |
+  | D | 10% | 5.01% | 1.25% | 0.31% | 0.08% | 0.02% | ~43 dust |
+  | C | 10% | 2.50% | 1.88% | 0.47% | 0.12% | 0.03% | ~58 dust |
+  | B | 10% | – | 3.14% | 0.79% | 0.20% | 0.05% | ~87 dust |
+  | A | 10% | – | 5.04% | 1.26% | 0.31% | 0.08% | ~127 dust |
+  | S | 10% | – | 1.26% | 2.22% | 0.55% | 0.14% | ~189 dust |
+  | SS | 10% | – | – | 3.85% | 0.96% | 0.24% | ~271 dust |
+  | SSS | 10% | – | – | 2.58% | 1.98% | 0.49% | ~438 dust |
 
-  "Value per chest" is what the cases' cards recycle for. A ★★★★★ case
-  comes from about 1 in 5,000 C chests.
+  The columns are the whole-star grades; the half-star grades between them make
+  up the rest of "any case". "Value per chest" is what the cases' cards recycle for
+  (`MineCases.expectedDust`, computed 2026-10-19). A ★★★★★ case comes from about
+  1 in 5,000 D chests.
   - The player's chest luck multiplies the chance, capped at ×3
     (`CHEST_LUCK_CAP`). The owner chose to keep this; the grade itself is never
     boosted.

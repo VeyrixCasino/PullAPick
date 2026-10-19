@@ -1,6 +1,14 @@
 -- MineCharms: one-equip chase identities.
 -- Zone grants: every second (odd) island × three depth bands.
 -- Pack: 15 gem/Robux pool. Lucky Charm is reserved limited (not in pack).
+--
+-- 2026-10-19 (owner): EVERY CHARM HAS ONE RARITY, F..SSS, forever ("{sod charm
+-- rare always}"), on every row: zone, pack and limited rows say it, the graded
+-- and Halloween rows always did, and an ore charm takes its ore's band. A charm
+-- climbs TIERS I..V by merging (gems plus any charm of the same tier, used up);
+-- a merge never changes the rarity. See TIERS below, the 32 NEW_GRADED charms
+-- (four per rarity), the eight CRYPT_CHEST_CHARMS (cryptChestCharm) and the
+-- eight CHARM_PACKS. The server half is MineCharmService.
 
 local MineCharms = {}
 
@@ -30,39 +38,39 @@ MineCharms.CHARM_ZONES = {
 }
 
 local LIST = {
-	{ id = "sod", name = "Sod Charm", source = "zone", zoneId = "meadow", band = "shallow",
+	{ id = "sod", name = "Sod Charm", source = "zone", rarity = "C", zoneId = "meadow", band = "shallow",
 		blurb = "+110% Mine Speed", stats = { mineSpeed = 1.10 } },
-	{ id = "rootstride", name = "Rootstride Charm", source = "zone", zoneId = "meadow", band = "mid",
+	{ id = "rootstride", name = "Rootstride Charm", source = "zone", rarity = "B", zoneId = "meadow", band = "mid",
 		blurb = "+180% Mine Speed · +60% Backpack", stats = { mineSpeed = 1.80, backpack = 0.60 } },
-	{ id = "thornvault", name = "Thornvault Charm", source = "zone", zoneId = "meadow", band = "deep",
+	{ id = "thornvault", name = "Thornvault Charm", source = "zone", rarity = "A", zoneId = "meadow", band = "deep",
 		blurb = "+260% Dirt Break · +40% Pulverizer", stats = { dirtBreak = 2.60, pulverize = 0.40 } },
 
-	{ id = "brine", name = "Brine Charm", source = "zone", zoneId = "mistreef", band = "shallow",
+	{ id = "brine", name = "Brine Charm", source = "zone", rarity = "C", zoneId = "mistreef", band = "shallow",
 		blurb = "+130% Gem Find", stats = { gemFind = 1.30 } },
-	{ id = "tideglass", name = "Tideglass Charm", source = "zone", zoneId = "mistreef", band = "mid",
+	{ id = "tideglass", name = "Tideglass Charm", source = "zone", rarity = "B", zoneId = "mistreef", band = "mid",
 		blurb = "+200% Mine Speed · +40% Swing Rate", stats = { mineSpeed = 2.00, swingRate = 0.40 } },
-	{ id = "abyss_latch", name = "Abyss Latch", source = "zone", zoneId = "mistreef", band = "deep",
+	{ id = "abyss_latch", name = "Abyss Latch", source = "zone", rarity = "B", zoneId = "mistreef", band = "deep",
 		blurb = "+55% Omni Blast · +90% Scrap", stats = { blastChance = 0.55, scrap = 0.90 } },
 
-	{ id = "emberseal", name = "Emberseal Charm", source = "zone", zoneId = "bloodmoon", band = "shallow",
+	{ id = "emberseal", name = "Emberseal Charm", source = "zone", rarity = "C", zoneId = "bloodmoon", band = "shallow",
 		blurb = "+140% Dirt Break", stats = { dirtBreak = 1.40 } },
-	{ id = "veilspike", name = "Veilspike Charm", source = "zone", zoneId = "bloodmoon", band = "mid",
+	{ id = "veilspike", name = "Veilspike Charm", source = "zone", rarity = "B", zoneId = "bloodmoon", band = "mid",
 		blurb = "+210% Mine Speed · +50% Luck", stats = { mineSpeed = 2.10, luck = 0.50 } },
-	{ id = "crimson_crown", name = "Crimson Crown", source = "zone", zoneId = "bloodmoon", band = "deep",
+	{ id = "crimson_crown", name = "Crimson Crown", source = "zone", rarity = "A", zoneId = "bloodmoon", band = "deep",
 		blurb = "+280% Coin Bonus · +70% Chest Luck", stats = { coinBonus = 2.80, chestLuck = 0.70 } },
 
-	{ id = "fracture_pin", name = "Fracture Pin", source = "zone", zoneId = "riftmarch", band = "shallow",
+	{ id = "fracture_pin", name = "Fracture Pin", source = "zone", rarity = "C", zoneId = "riftmarch", band = "shallow",
 		blurb = "+140% Mine Speed · +50% Dirt Break", stats = { mineSpeed = 1.40, dirtBreak = 0.50 } },
-	{ id = "scarpsign", name = "Scarpsign Charm", source = "zone", zoneId = "riftmarch", band = "mid",
+	{ id = "scarpsign", name = "Scarpsign Charm", source = "zone", rarity = "C", zoneId = "riftmarch", band = "mid",
 		blurb = "+70% Pulverizer · +80% Fossil Finder", stats = { pulverize = 0.70, fossilFind = 0.80 } },
-	{ id = "gatebreaker", name = "Gatebreaker Charm", source = "zone", zoneId = "riftmarch", band = "deep",
+	{ id = "gatebreaker", name = "Gatebreaker Charm", source = "zone", rarity = "A", zoneId = "riftmarch", band = "deep",
 		blurb = "+300% Mine Speed · +40% Swing Rate", stats = { mineSpeed = 3.00, swingRate = 0.40 } },
 
-	{ id = "prism_nail", name = "Prism Nail", source = "zone", zoneId = "mythral", band = "shallow",
+	{ id = "prism_nail", name = "Prism Nail", source = "zone", rarity = "C", zoneId = "mythral", band = "shallow",
 		blurb = "+120% Luck · +80% Gem Find", stats = { luck = 1.20, gemFind = 0.80 } },
-	{ id = "catacomb_key", name = "Catacomb Key", source = "zone", zoneId = "mythral", band = "mid",
+	{ id = "catacomb_key", name = "Catacomb Key", source = "zone", rarity = "C", zoneId = "mythral", band = "mid",
 		blurb = "+100% Chest Luck · +100% Scrap", stats = { chestLuck = 1.00, scrap = 1.00 } },
-	{ id = "aether_seal", name = "Aether Seal", source = "zone", zoneId = "mythral", band = "deep",
+	{ id = "aether_seal", name = "Aether Seal", source = "zone", rarity = "A", zoneId = "mythral", band = "deep",
 		blurb = "+75% Omni Blast · +250% Mine Speed", stats = { blastChance = 0.75, mineSpeed = 2.50 } },
 
 	--[[
@@ -228,35 +236,35 @@ local LIST = {
 		art = "rbxassetid://136713205644319", -- a whole spiral galaxy turning behind gold glass
 		blurb = "+860% Mine Speed · +260% Omni Blast", stats = { mineSpeed = 8.60, blastChance = 2.60 } },
 
-	{ id = "jackhammer", name = "Jackhammer", source = "pack",
+	{ id = "jackhammer", name = "Jackhammer", source = "pack", rarity = "B",
 		blurb = "+160% Dirt Break · +50% Swing Rate", stats = { dirtBreak = 1.60, swingRate = 0.50 } },
-	{ id = "midas_touch", name = "Midas Touch", source = "pack",
+	{ id = "midas_touch", name = "Midas Touch", source = "pack", rarity = "B",
 		blurb = "+200% Coin Bonus", stats = { coinBonus = 2.00 } },
-	{ id = "piggybank", name = "Piggybank", source = "pack",
+	{ id = "piggybank", name = "Piggybank", source = "pack", rarity = "B",
 		blurb = "+170% sell payout", stats = { coinBonus = 1.70 } },
-	{ id = "cartwright", name = "Cartwright", source = "pack",
+	{ id = "cartwright", name = "Cartwright", source = "pack", rarity = "B",
 		blurb = "+180% Backpack", stats = { backpack = 1.80 } },
-	{ id = "night_shift", name = "Night Shift", source = "pack",
+	{ id = "night_shift", name = "Night Shift", source = "pack", rarity = "C",
 		blurb = "+120% Chest Luck", stats = { chestLuck = 1.20 } },
-	{ id = "seer", name = "Seer", source = "pack",
+	{ id = "seer", name = "Seer", source = "pack", rarity = "C",
 		blurb = "+130% Luck", stats = { luck = 1.30 } },
-	{ id = "smelter", name = "Smelter", source = "pack",
+	{ id = "smelter", name = "Smelter", source = "pack", rarity = "D",
 		blurb = "+65% Pulverizer", stats = { pulverize = 0.65 } },
-	{ id = "prospector", name = "Prospector", source = "pack",
+	{ id = "prospector", name = "Prospector", source = "pack", rarity = "B",
 		blurb = "+200% Gem Find", stats = { gemFind = 2.00 } },
-	{ id = "spindle", name = "Spindle", source = "pack",
+	{ id = "spindle", name = "Spindle", source = "pack", rarity = "A",
 		blurb = "+100% Swing Rate", stats = { swingRate = 1.00 } },
-	{ id = "striker", name = "Striker", source = "pack",
+	{ id = "striker", name = "Striker", source = "pack", rarity = "A",
 		blurb = "+230% Mine Speed", stats = { mineSpeed = 2.30 } },
-	{ id = "chainlink", name = "Chainlink", source = "pack",
+	{ id = "chainlink", name = "Chainlink", source = "pack", rarity = "C",
 		blurb = "+60% Zap", stats = { zap = 0.60 } },
-	{ id = "yardarm", name = "Yardarm", source = "pack",
+	{ id = "yardarm", name = "Yardarm", source = "pack", rarity = "C",
 		blurb = "+100% Fossil Finder", stats = { fossilFind = 1.00 } },
-	{ id = "scrappers_sign", name = "Scrapper's Sign", source = "pack",
+	{ id = "scrappers_sign", name = "Scrapper's Sign", source = "pack", rarity = "C",
 		blurb = "+120% Scrap", stats = { scrap = 1.20 } },
-	{ id = "cubit_pin", name = "Cubit Pin", source = "pack",
+	{ id = "cubit_pin", name = "Cubit Pin", source = "pack", rarity = "C",
 		blurb = "+50% Lucky Find", stats = { luckyFind = 0.50 } },
-	{ id = "canopy", name = "Canopy", source = "pack",
+	{ id = "canopy", name = "Canopy", source = "pack", rarity = "B",
 		blurb = "+55% Omni Blast", stats = { blastChance = 0.55 } },
 
 	--[[
@@ -270,7 +278,7 @@ local LIST = {
 		paid for, and dropping it to 1.00 to make the row tidy would be a nerf
 		to something already bought. Everything else lands at a full 100%.
 	]]
-	{ id = "lucky_charm", name = "Pot of Gold", source = "limited",
+	{ id = "lucky_charm", name = "Pot of Gold", source = "limited", rarity = "S",
 		blurb = "200% Luck + 100% of every other luck. LIMITED TIME. NEVER COMING BACK.",
 		stats = {
 			luck = 2,            -- packs / cards
@@ -335,7 +343,33 @@ for word, grade in pairs(Temper.LEGACY_RARITY or {}) do
 end
 
 --[[
-	Which charm a chest pays, weighted by grade.
+	WHICH RARITY A CHEST CHARM IS (2026-10-19). Until now each graded charm
+	weighed its grade's Temper.RARITY_WEIGHTS, so a grade's share grew with its
+	count of charms. Every rarity has more charms now (NEW_GRADED), and adding
+	them that way would have made a chest's charm rarer on average. So the grade
+	is drawn first, at exactly the shares the 36 gave (count x weight: F 56.0%,
+	D 27.1%, C 10.5%, B 4.7%, A 1.4%, S 0.21%, SS 0.028%, SSS 0.0028%), and the
+	charm second, evenly among that grade's charms. "The same loot overall."
+]]
+MineCharms.CHEST_CHARM_GRADE_WEIGHT = {
+	F = 8 * 5000, D = 7 * 2763, C = 6 * 1250, B = 5 * 675,
+	A = 4 * 250, S = 3 * 50, SS = 2 * 10, SSS = 1 * 2,
+}
+
+-- The graded charms of one rarity, in LIST order.
+function MineCharms.gradedOf(rarity)
+	local out = {}
+	for _, def in ipairs(MineCharms.GRADED or {}) do
+		if def.rarity == rarity then
+			table.insert(out, def)
+		end
+	end
+	return out
+end
+
+--[[
+	Which charm a chest pays: a grade by CHEST_CHARM_GRADE_WEIGHT, then one of
+	that grade's charms, evenly.
 
 	`rng` is passed in rather than taken from math.random so the server can seed
 	it and a harness can make the draw repeatable. Returns nil when there are no
@@ -346,22 +380,22 @@ function MineCharms.rollChestCharm(rng)
 	if not graded or #graded == 0 then
 		return nil
 	end
-	local weights = Temper.RARITY_WEIGHTS or {}
-	local total = 0
-	for _, def in ipairs(graded) do
-		total += math.max(0, tonumber(weights[def.rarity]) or 0)
-	end
-	if total <= 0 then
-		return graded[1]
-	end
-	local pick = ((rng and rng:NextNumber()) or math.random()) * total
-	for _, def in ipairs(graded) do
-		pick -= math.max(0, tonumber(weights[def.rarity]) or 0)
-		if pick <= 0 then
-			return def
+	local odds = MineCharms.chestCharmOdds()
+	local u = (rng and rng:NextNumber()) or math.random()
+	local grade = odds[#odds] and odds[#odds].grade
+	for _, row in ipairs(odds) do
+		u -= row.p
+		if u <= 0 then
+			grade = row.grade
+			break
 		end
 	end
-	return graded[#graded]
+	local pool = MineCharms.gradedOf(grade)
+	if #pool == 0 then
+		return graded[1]
+	end
+	local v = (rng and rng:NextNumber()) or math.random()
+	return pool[math.clamp(math.floor(v * #pool) + 1, 1, #pool)]
 end
 
 -- What one graded charm costs in temper tokens, or nil if it is not graded.
@@ -761,6 +795,99 @@ local STAT_LABEL = {
 
 MineCharms.STAT_LABEL = STAT_LABEL
 
+-- "+52% Luck · +16% Scrap", largest first, from a stats table.
+local function statLine(stats)
+	local rows = {}
+	for stat, amt in pairs(stats or {}) do
+		table.insert(rows, { stat = stat, amt = tonumber(amt) or 0 })
+	end
+	table.sort(rows, function(a, b)
+		if math.abs(a.amt) ~= math.abs(b.amt) then
+			return math.abs(a.amt) > math.abs(b.amt)
+		end
+		return a.stat < b.stat
+	end)
+	local bits = {}
+	for _, r in ipairs(rows) do
+		local pct = math.floor(math.abs(r.amt) * 100 + 0.5)
+		table.insert(bits, string.format("%s%d%% %s", (r.amt < 0) and "−" or "+", pct, STAT_LABEL[r.stat] or r.stat))
+	end
+	return table.concat(bits, " · ")
+end
+MineCharms.statLine = statLine
+
+--[[
+	MORE CHARMS AT EVERY RARITY (owner, 2026-10-19: "more charm types at every
+	rarity"; Common and Uncommon charms exist too). Four more of each, so every
+	rarity has a real pool for its Charm Pack and the chest roll: F 12, D 11,
+	C 10, B 9, A 8, S 7, SS 6, SSS 5 graded charms in all.
+
+	They follow the 36's rule -- the primary is about RARITY_MULT x 1.15, the
+	secondary about x 0.35 (Swing Rate x 0.40, Omni Blast and Lucky Find on
+	their own smaller scales) -- so no new charm out-peaks its rarity. None
+	carries Gem Find, Ore Quality or Ore Finder: the gems hold their value
+	(owner: "make sure gems semi maintain the same ish value"), so no new charm
+	is a new gem faucet.
+
+	No art yet (`art` nil, the Inventory's generic charm icon): the pictures are
+	tools/cursor/tasks/chest-and-charm-icons.md. Names, stats and rarities are
+	PROPOSED (2026-10-19). The blurb is written from the stats, so it cannot
+	drift from them.
+]]
+MineCharms.NEW_GRADED = {
+	-- F: humble things
+	{ id = "clover_sprig", name = "Clover Sprig", rarity = "F", look = "a three-leaf clover on a tin ring", stats = { luck = 0.52 } },
+	{ id = "lucky_penny", name = "Lucky Penny", rarity = "F", look = "a shiny copper penny on a string", stats = { luckyFind = 0.22 } },
+	{ id = "firecracker_charm", name = "Firecracker Charm", rarity = "F", look = "a tiny red firecracker with a gold fuse", stats = { blastChance = 0.20 } },
+	{ id = "pebble_pal", name = "Pebble Pal", rarity = "F", look = "a round grey pebble with a painted smile", stats = { mineSpeed = 0.26, dirtBreak = 0.26 } },
+	-- D
+	{ id = "four_leaf", name = "Four-Leaf Clover", rarity = "D", look = "a bright four-leaf clover in clear resin", stats = { luck = 0.80 } },
+	{ id = "horseshoe_charm", name = "Horseshoe Charm", rarity = "D", look = "a silver horseshoe with gold nails", stats = { luckyFind = 0.35, chestLuck = 0.25 } },
+	{ id = "cherry_bomb", name = "Cherry Bomb", rarity = "D", look = "two red cherry-shaped bombs on one stem", stats = { blastChance = 0.30, dirtBreak = 0.25 } },
+	{ id = "tin_soldier", name = "Tin Soldier", rarity = "D", look = "a toy tin soldier with a drum", stats = { swingRate = 0.28, coinBonus = 0.25 } },
+	-- C
+	{ id = "rocket_fin", name = "Rocket Fin", rarity = "C", look = "a red rocket fin with a white stripe", stats = { swingRate = 0.42, mineSpeed = 0.37 } },
+	{ id = "treasure_map", name = "Treasure Map", rarity = "C", look = "a rolled map with a red X and a gold ribbon", stats = { luckyFind = 0.52, chestLuck = 0.37 } },
+	{ id = "thunder_egg", name = "Thunder Egg", rarity = "C", look = "a cracked stone egg with a lightning geode inside", stats = { blastChance = 0.45, dirtBreak = 0.37 } },
+	{ id = "honeycomb_charm", name = "Honeycomb Charm", rarity = "C", look = "a golden honeycomb dripping honey", stats = { dirtBreak = 1.20, coinBonus = 0.37 } },
+	-- B
+	{ id = "comet_tail", name = "Comet Tail", rarity = "B", look = "a blue comet with a long sparkling tail", stats = { mineSpeed = 1.78, chestLuck = 0.54 } },
+	{ id = "clockwork_heart", name = "Clockwork Heart", rarity = "B", look = "a brass heart full of turning gears", stats = { swingRate = 0.62, dirtBreak = 0.54 } },
+	{ id = "coin_fountain", name = "Coin Fountain", rarity = "B", look = "a tiny fountain spilling gold coins", stats = { coinBonus = 1.78, luck = 0.54 } },
+	{ id = "lantern_fish", name = "Lantern Fish", rarity = "B", look = "a deep-sea fish with a glowing lure", stats = { chestLuck = 1.78, scrap = 0.54 } },
+	-- A
+	{ id = "phoenix_feather", name = "Phoenix Feather", rarity = "A", look = "a fiery orange feather with flame tips", stats = { blastChance = 0.95, mineSpeed = 0.80 } },
+	{ id = "wizard_monocle", name = "Wizard's Monocle", rarity = "A", look = "a star-etched monocle on a purple chain", stats = { luck = 2.65, chestLuck = 0.80 } },
+	{ id = "kraken_tooth", name = "Kraken Tooth", rarity = "A", look = "a curved sea-green tooth wrapped in rope", stats = { dirtBreak = 2.65, swingRate = 0.80 } },
+	{ id = "golden_goose", name = "Golden Goose Egg", rarity = "A", look = "a shining golden egg in a little nest", stats = { coinBonus = 2.65, luckyFind = 0.80 } },
+	-- S
+	{ id = "storm_crown", name = "Storm Crown", rarity = "S", look = "a silver crown crackling with lightning", stats = { mineSpeed = 3.90, swingRate = 1.19 } },
+	{ id = "meteor_core", name = "Meteor Core", rarity = "S", look = "a glowing red meteor in a cage of iron", stats = { blastChance = 1.40, dirtBreak = 1.19 } },
+	{ id = "moonstone_key", name = "Moonstone Key", rarity = "S", look = "a pale moonstone key that glows blue", stats = { chestLuck = 3.90, luckyFind = 1.19 } },
+	{ id = "unicorn_horn", name = "Unicorn Horn", rarity = "S", look = "a spiral pearl horn with rainbow glints", stats = { luck = 3.90, coinBonus = 1.19 } },
+	-- SS
+	{ id = "world_seed", name = "World Seed", rarity = "SS", look = "a glowing seed with tiny roots and leaves", stats = { dirtBreak = 5.75, scrap = 1.75 } },
+	{ id = "halo_ring", name = "Halo Ring", rarity = "SS", look = "a floating golden halo with white wings", stats = { luck = 5.75, chestLuck = 1.75 } },
+	{ id = "supernova_shard", name = "Supernova Shard", rarity = "SS", look = "a crystal shard bursting with star light", stats = { blastChance = 2.00, mineSpeed = 1.75 } },
+	{ id = "golden_gauntlet", name = "Golden Gauntlet", rarity = "SS", look = "a golden glove set with six bright gems", stats = { coinBonus = 5.75, luckyFind = 1.75 } },
+	-- SSS
+	{ id = "black_hole_heart", name = "Black Hole Heart", rarity = "SSS", look = "a swirling black hole inside a gold ring", stats = { dirtBreak = 8.60, chestLuck = 2.60 } },
+	{ id = "sunheart_crown", name = "Sunheart Crown", rarity = "SSS", look = "a blazing sun set in a golden crown", stats = { coinBonus = 8.60, luck = 2.60 } },
+	{ id = "dragon_pearl", name = "Rainbow Dragon Pearl", rarity = "SSS", look = "a rainbow pearl held in a dragon's claw", stats = { luck = 8.60, luckyFind = 2.60 } },
+	{ id = "big_bang_bell", name = "Big Bang Bell", rarity = "SSS", look = "a cosmic bell that rings with exploding stars", stats = { blastChance = 3.00, mineSpeed = 2.60 } },
+}
+for _, r in ipairs(MineCharms.NEW_GRADED) do
+	table.insert(LIST, {
+		id = r.id,
+		name = r.name,
+		source = "charm",
+		rarity = r.rarity,
+		look = r.look,
+		stats = r.stats,
+		blurb = statLine(r.stats),
+	})
+end
+
 --[[
 	THE SIX HALLOWEEN CHARMS. Owner, 2026-10-19: "a new set of 6 Halloween
 	charms, crafted at the Forge from candy ores (deeper ore, better charm);
@@ -824,6 +951,69 @@ do
 				pct(candy), pct(dig), pct(normal), STAT_LABEL[r.normal] or r.normal),
 		})
 	end
+end
+
+--[[
+	THE CANDY CRYPT'S CHEST CHARMS, one per Crypt chest rank (owner, 2026-10-19:
+	"each Crypt chest tier has its own special charm, mergeable, 0.5% flat per
+	charm, raised by Chest Luck"). The Crypt (MineCrypt) rolls the 0.5% and
+	grants through the ordinary charm tally; this module only says WHICH charm a
+	rank's chest pays: MineCharms.cryptChestCharm(rankKey).
+
+	Each charm's rarity IS its chest's rank, fixed forever, and it merges I to V
+	like every charm. Stats follow the six Halloween charms' rule (RARITY_MULT x
+	CANDY_CHARM_SHARE: Candy Find, Event Digging and a small normal stat), so a
+	Crypt charm and a crafted one of the same rarity are worth the same.
+
+	Source "crypt": not graded (no Charm Pack, no chest roll in the main game, no
+	token price), not a zone grant. Names and normal stats PROPOSED (2026-10-19);
+	no art yet (tools/cursor/tasks/chest-and-charm-icons.md).
+]]
+MineCharms.CRYPT_CHEST_CHARMS = {
+	{ rank = "F", id = "hallow_wrapper", name = "Candy Wrapper Charm", normal = "coinBonus", look = "a twisted orange-and-black candy wrapper" },
+	{ rank = "D", id = "hallow_batwing", name = "Bat Wing Charm", normal = "scrap", look = "a little purple bat wing on a silver loop" },
+	{ rank = "C", id = "hallow_catbell", name = "Black Cat Bell", normal = "luck", look = "a black cat's collar bell with green eyes" },
+	{ rank = "B", id = "hallow_broom", name = "Witch's Broom Charm", normal = "dirtBreak", look = "a tiny witch's broom with a starry ribbon" },
+	{ rank = "A", id = "hallow_spidersilk", name = "Spider Silk Locket", normal = "chestLuck", look = "a locket wrapped in shining spider silk" },
+	{ rank = "S", id = "hallow_pumpkincrown", name = "Pumpkin King Crown", normal = "swingRate", look = "a carved pumpkin crown with a candle glow" },
+	{ rank = "SS", id = "hallow_ravenfeather", name = "Raven Moon Feather", normal = "luckyFind", look = "a black raven feather under a full moon" },
+	{ rank = "SSS", id = "hallow_cryptkey", name = "Crypt Keeper's Key", normal = "mineSpeed", look = "an old bone-white key with a glowing purple gem" },
+}
+do
+	local mult = Temper.RARITY_MULT or {}
+	local share = MineCharms.CANDY_CHARM_SHARE
+	local function hundredth(x)
+		return math.floor(x * 100 + 1e-9) / 100
+	end
+	for _, r in ipairs(MineCharms.CRYPT_CHEST_CHARMS) do
+		local m = tonumber(mult[r.rank]) or 1
+		local stats = {
+			candyFind = hundredth(m * share.candyFind),
+			eventDig = hundredth(m * share.eventDig),
+			[r.normal] = hundredth(m * share.normal),
+		}
+		table.insert(LIST, {
+			id = r.id,
+			name = r.name,
+			source = "crypt",
+			rarity = r.rank,
+			holiday = "halloween",
+			look = r.look,
+			stats = stats,
+			blurb = statLine(stats),
+		})
+	end
+end
+
+-- The charm special to a Candy Crypt chest of `rankKey` ("F".."SSS"): its id,
+-- or nil for a rank that is not one. (The cross-agent contract, 2026-10-19.)
+function MineCharms.cryptChestCharm(rankKey)
+	for _, r in ipairs(MineCharms.CRYPT_CHEST_CHARMS) do
+		if r.rank == rankKey then
+			return r.id
+		end
+	end
+	return nil
 end
 
 --[[
@@ -976,10 +1166,17 @@ do
 			end
 
 			local word = MineCharms.SHAPE_WORD[shape.id] or shape.label or "Charm"
+			-- ONE RARITY FOREVER (owner, 2026-10-19): an ore charm's is its
+			-- ore's band, Common F .. Exotic SSS, the ladder the ores already
+			-- print (MineConfig.ORE_YIELD_BANDS).
+			local GRADE_BY_BAND = { "F", "D", "C", "B", "A", "S", "SS", "SSS" }
+			local rarity = GRADE_BY_BAND[tonumber(ore.bandIndex) or 0]
+				or (Temper.LEGACY_RARITY and Temper.LEGACY_RARITY[ore.band]) or "F"
 			table.insert(LIST, {
 				id = MineCharms.oreCharmId(ore.id, variant),
 				name = string.format("%s %s Charm", ore.name or ore.id, word),
 				source = "ore",
+				rarity = rarity,
 				oreId = ore.id,
 				variant = variant,
 				tier = tier,
@@ -1054,6 +1251,323 @@ function MineCharms.recipeFor(charmId)
 end
 
 --[[
+	ONE RARITY FOREVER, AND A TIER, I TO V (owner, 2026-10-19).
+
+	"each charm has its own rarity always. {sod charm rare always}" and "f-sss
+	charms (same system as packs)": every charm in LIST carries one `rarity`,
+	F..SSS on MineTemper's ladder, and nothing ever changes it -- no grade is
+	rolled when a charm drops. The 36 graded charms kept theirs; the zone and
+	pack charms and Pot of Gold were given one by their power against that
+	ladder (the Sod Charm is Rare, C); an ore charm's is its ore's band.
+
+	"teir i to v": what a merge raises is the charm's TIER. A copy starts at I;
+	merging it costs gems plus ANY one charm at the same tier, which is used up,
+	and the copy comes out a tier higher. Merging never changes rarity. Tier V
+	is the top.
+
+	THE SAVE. `p.charms[id]` stays the count of copies at every tier (so every
+	grant -- the zone roll, the ore case, a chest, a trader, the Crypt -- keeps
+	adding a tier-I copy the way it always did), and `p.charmTiers[id]` holds
+	how many of them sit at II..V, keyed "II".."V". Tier I is the rest. A worn
+	charm (`p.equippedCharm`, an id) is always its best copy.
+
+	THE TIER EFFECT multiplies every stat by TIER_MULT -- except Gem Find, Ore
+	Quality and Ore Finder (TIER_FLAT), the three that pay gems straight out of
+	a chest or an ore. Merging must never print gems (owner: "make sure gems
+	semi maintain the same ish value"), so those three stay at their tier-I
+	value. tools/verify/economy-gems.js checks it. A pact's cost (a negative
+	stat) stays too: it is bounded under -100% on purpose.
+
+	PROPOSED (2026-10-19): TIER_MULT, TIER_FLAT, MERGE_GEMS, MERGE_TIER_STEP.
+]]
+MineCharms.TIER_MAX = 5
+MineCharms.TIER_ROMAN = { "I", "II", "III", "IV", "V" }
+MineCharms.TIER_MULT = { 1.00, 1.20, 1.45, 1.75, 2.10 }
+MineCharms.TIER_FLAT = { gemFind = true, rareOre = true, fossilFind = true }
+
+--[[
+	The gem price of one merge, by the charm's rarity and the tier it reaches:
+	MERGE_GEMS[rarity] to reach II, then x MERGE_TIER_STEP for every tier above.
+	All the way to V is 40x the first step: F 20k, B 240k, SSS 10M.
+]]
+MineCharms.MERGE_GEMS = {
+	F = 500, D = 1000, C = 2500, B = 6000, A = 15000, S = 40000, SS = 100000, SSS = 250000,
+}
+MineCharms.MERGE_TIER_STEP = 3
+
+-- Charms used up by a merge besides the one being raised: one, of the same tier.
+MineCharms.MERGE_COST = 1
+
+function MineCharms.romanTier(tier)
+	return MineCharms.TIER_ROMAN[math.clamp(math.floor(tonumber(tier) or 1), 1, MineCharms.TIER_MAX)]
+end
+
+-- The gem price of raising a charm of `rarityOrDef` to `toTier` (2..5), or nil.
+function MineCharms.mergeGemCost(rarityOrDef, toTier)
+	local rarity = type(rarityOrDef) == "table" and rarityOrDef.rarity or rarityOrDef
+	local base = MineCharms.MERGE_GEMS[rarity or ""]
+	local t = math.floor(tonumber(toTier) or 0)
+	if not base or t < 2 or t > MineCharms.TIER_MAX then
+		return nil
+	end
+	return math.floor(base * MineCharms.MERGE_TIER_STEP ^ (t - 2) + 0.5)
+end
+
+local TIER_KEY = { [2] = "II", [3] = "III", [4] = "IV", [5] = "V" }
+
+local function held(p, id)
+	local n = type(p) == "table" and type(p.charms) == "table" and p.charms[id]
+	if n == true then
+		return 1
+	end
+	return math.max(0, math.floor(tonumber(n) or 0))
+end
+
+--[[
+	How many copies of `id` this player holds at each tier: { [1]..[5] }, and
+	the total. Reads the save defensively: if something took copies away
+	without touching charmTiers, the lowest high tiers give way first, so the
+	best copies are the ones kept.
+]]
+function MineCharms.tierCounts(p, id)
+	id = tostring(id or "")
+	local total = held(p, id)
+	local counts = { 0, 0, 0, 0, 0 }
+	local row = type(p) == "table" and type(p.charmTiers) == "table" and p.charmTiers[id] or nil
+	local high = 0
+	for t = 2, MineCharms.TIER_MAX do
+		local n = math.max(0, math.floor(tonumber(type(row) == "table" and row[TIER_KEY[t]]) or 0))
+		counts[t] = n
+		high += n
+	end
+	local over = high - total
+	for t = 2, MineCharms.TIER_MAX do
+		if over <= 0 then
+			break
+		end
+		local cut = math.min(over, counts[t])
+		counts[t] -= cut
+		over -= cut
+	end
+	local sum = 0
+	for t = 2, MineCharms.TIER_MAX do
+		sum += counts[t]
+	end
+	counts[1] = math.max(0, total - sum)
+	return counts, total
+end
+
+-- Write counts { [1]..[5] } back into the save for `id`.
+local function storeCounts(p, id, counts)
+	p.charms = p.charms or {}
+	p.charmTiers = p.charmTiers or {}
+	local total, row = 0, {}
+	for t = 1, MineCharms.TIER_MAX do
+		total += counts[t] or 0
+		if t >= 2 and (counts[t] or 0) > 0 then
+			row[TIER_KEY[t]] = counts[t]
+		end
+	end
+	p.charms[id] = (total > 0) and total or nil
+	p.charmTiers[id] = next(row) and row or nil
+end
+
+--[[
+	On load: the tier save is a table, no row names a charm the tally does not
+	hold, and no charm claims more high-tier copies than it has (tierCounts
+	trims the lowest high tiers first, keeping the best).
+]]
+function MineCharms.normalizeTiers(p)
+	if type(p) ~= "table" then
+		return
+	end
+	p.charms = type(p.charms) == "table" and p.charms or {}
+	p.charmTiers = type(p.charmTiers) == "table" and p.charmTiers or {}
+	local ids = {}
+	for id in pairs(p.charmTiers) do
+		table.insert(ids, id)
+	end
+	for _, id in ipairs(ids) do
+		local row = p.charmTiers[id]
+		if type(row) ~= "table" or not MineCharms.byId(id) or not p.charms[id] then
+			p.charmTiers[id] = nil
+		else
+			local counts = MineCharms.tierCounts(p, id)
+			local fixed = {}
+			for t = 2, MineCharms.TIER_MAX do
+				if counts[t] > 0 then
+					fixed[TIER_KEY[t]] = counts[t]
+				end
+			end
+			p.charmTiers[id] = next(fixed) and fixed or nil
+		end
+	end
+end
+
+-- The best tier this player holds `id` at, 0 if none.
+function MineCharms.bestTier(p, id)
+	local counts = MineCharms.tierCounts(p, id)
+	for t = MineCharms.TIER_MAX, 1, -1 do
+		if counts[t] > 0 then
+			return t
+		end
+	end
+	return 0
+end
+
+-- The tier the worn charm is at (its best copy), or 1.
+function MineCharms.wornTier(p)
+	local id = type(p) == "table" and p.equippedCharm
+	if type(id) ~= "string" or id == "" then
+		return 1
+	end
+	return math.max(1, MineCharms.bestTier(p, id))
+end
+
+-- A charm's stats at `tier` (TIER_FLAT stats stay as they are at I).
+function MineCharms.statsAt(def, tier)
+	local out = {}
+	local m = MineCharms.TIER_MULT[math.clamp(math.floor(tonumber(tier) or 1), 1, MineCharms.TIER_MAX)] or 1
+	for stat, amt in pairs((type(def) == "table" and def.stats) or {}) do
+		local v = tonumber(amt) or 0
+		-- Only a gift grows. A pact's cost (a negative) stays as it is at I: it is
+		-- bounded under -100% on purpose, and a tier must not erase a stat.
+		if m ~= 1 and v > 0 and not MineCharms.TIER_FLAT[stat] then
+			v = math.floor(v * m * 100 + 0.5) / 100
+		end
+		out[stat] = v
+	end
+	return out
+end
+
+-- One stat of the worn charm at its tier, as a fraction (0.42 = +42%), or 0.
+-- For readers that cannot go through boosts() (MineCryptRules.eventDigOf).
+function MineCharms.wornStat(p, stat)
+	local id = type(p) == "table" and p.equippedCharm
+	local def = (type(id) == "string" and id ~= "") and MineCharms.byId(id) or nil
+	if not def then
+		return 0
+	end
+	return tonumber(MineCharms.statsAt(def, MineCharms.wornTier(p))[stat]) or 0
+end
+
+--[[
+	What merging this charm at `tier` makes: the same charm, a tier up. Returns
+	(id, def, nil), or (nil, nil, reason) -- a sentence a player can read, the
+	same one the server says.
+]]
+function MineCharms.mergeTarget(charmId, tier)
+	local def = MineCharms.byId(charmId)
+	if not def then
+		return nil, nil, "That charm is not in the game"
+	end
+	local t = math.max(1, math.floor(tonumber(tier) or 1))
+	if t >= MineCharms.TIER_MAX then
+		return nil, nil, "Tier V is the top"
+	end
+	return def.id, def, nil
+end
+
+--[[
+	Can this player merge their copy of `id` at `tier`, using up one `fodderId`
+	at the same tier? Returns (true, nil, gemCost) or (false, reason).
+	Pure: reads the profile, changes nothing.
+]]
+function MineCharms.canMerge(p, id, tier, fodderId)
+	local def = MineCharms.byId(id)
+	local fdef = MineCharms.byId(fodderId)
+	tier = math.floor(tonumber(tier) or 0)
+	if not def or not fdef then
+		return false, "That charm is not in the game"
+	end
+	if tier < 1 or tier >= MineCharms.TIER_MAX then
+		return false, (tier >= MineCharms.TIER_MAX) and "Tier V is the top" or "Pick a tier to merge"
+	end
+	local counts = MineCharms.tierCounts(p, def.id)
+	if counts[tier] < 1 then
+		return false, "You have no " .. def.name .. " at tier " .. MineCharms.romanTier(tier)
+	end
+	local fcounts = MineCharms.tierCounts(p, fdef.id)
+	local need = (fdef.id == def.id) and 2 or 1
+	if fcounts[tier] < need then
+		return false, "Merging needs another charm at tier " .. MineCharms.romanTier(tier)
+	end
+	-- The worn copy is the best one; it can be raised (two copies of the worn
+	-- charm make it a tier better), never used up to raise another charm.
+	if fdef.id ~= def.id and p.equippedCharm == fdef.id
+		and MineCharms.bestTier(p, fdef.id) == tier and fcounts[tier] <= 1 then
+		return false, "That's the charm you're wearing -- take it off to use it up"
+	end
+	local cost = MineCharms.mergeGemCost(def.rarity, tier + 1)
+	if not cost then
+		return false, "That charm has no rarity"
+	end
+	if math.floor(tonumber(p.gems) or 0) < cost then
+		return false, string.format("Needs %d gems to merge", cost), cost
+	end
+	return true, nil, cost
+end
+
+--[[
+	Do the merge: gems out, the fodder used up, the charm a tier up. All or
+	nothing, after canMerge. Returns (true, { cost, toTier }) or (false, reason).
+	If the fodder was the last copy of a worn charm, nothing is worn after.
+]]
+function MineCharms.applyMerge(p, id, tier, fodderId)
+	local ok, why, cost = MineCharms.canMerge(p, id, tier, fodderId)
+	if not ok then
+		return false, why
+	end
+	tier = math.floor(tonumber(tier) or 1)
+	local def, fdef = MineCharms.byId(id), MineCharms.byId(fodderId)
+	p.gems = math.floor(tonumber(p.gems) or 0) - cost
+	-- The fodder first: when it is the same charm, both edits land on one row.
+	local fcounts = MineCharms.tierCounts(p, fdef.id)
+	fcounts[tier] -= 1
+	storeCounts(p, fdef.id, fcounts)
+	local counts = MineCharms.tierCounts(p, def.id)
+	counts[tier] -= 1
+	counts[tier + 1] += 1
+	storeCounts(p, def.id, counts)
+	if p.equippedCharm == fdef.id and not (p.charms and p.charms[fdef.id]) then
+		p.equippedCharm = nil
+	end
+	return true, { cost = cost, toTier = tier + 1, id = def.id, fodderId = fdef.id }
+end
+
+--[[
+	The charms this player could use up to merge `id` at `tier`: every charm
+	held at that tier, the cheapest (lowest rarity) first, never the worn copy.
+	{ { id, def, count } }.
+]]
+function MineCharms.fodderFor(p, id, tier)
+	local out = {}
+	tier = math.floor(tonumber(tier) or 1)
+	for cid in pairs((type(p) == "table" and p.charms) or {}) do
+		local d = MineCharms.byId(cid)
+		if d then
+			local counts = MineCharms.tierCounts(p, cid)
+			local n = counts[tier] - ((cid == id) and 1 or 0)
+			if cid ~= id and p.equippedCharm == cid and MineCharms.bestTier(p, cid) == tier then
+				n -= 1
+			end
+			if n > 0 then
+				table.insert(out, { id = cid, def = d, count = n })
+			end
+		end
+	end
+	table.sort(out, function(a, b)
+		local ra = table.find(Temper.GRADE_ORDER, a.def.rarity) or 0
+		local rb = table.find(Temper.GRADE_ORDER, b.def.rarity) or 0
+		if ra ~= rb then
+			return ra < rb
+		end
+		return a.def.name < b.def.name
+	end)
+	return out
+end
+
+--[[
 	The charms an ore pays. Every ore has MineCharms.ORE_CHARM_VARIANTS of them,
 	and these are the only ways to ask: a caller that builds the id by hand goes
 	quietly nil the day the suffix changes.
@@ -1061,92 +1575,10 @@ end
 	`oreCharms` returns the whole list, variant-indexed. `oreCharm(id)` returns
 	one -- variant 1 by default, so every existing caller keeps working and keeps
 	meaning what it meant.
+
+	(Until 2026-10-19 an ore charm merged into the next ore's charm, a trade of
+	shape for depth. Merging raises the tier now, and the rarity never moves.)
 ]]
---[[
-	MERGING A CHARM INTO THE NEXT TIER.
-
-	Three copies of an ore charm become one copy of the charm one ore tier
-	deeper, same variant. Three because the card merge in the inventory is
-	already "MERGE 3 -> UP" and a second merge arithmetic in the same game is a
-	thing players have to learn twice.
-
-	IT IS A TRADE, NOT AN UPGRADE, and that is the point rather than a
-	compromise. A charm's shape and stat come from `k = (tier-1) * variants +
-	(variant-1)` -- shape is `k % 6`, the stat walks a second cycle -- so the
-	charm one tier up has a DIFFERENT shape and usually a different stat. You
-	are converting duplicates into depth and variety, not into a bigger number.
-	That is exactly what TODO 0.13 asks for: "later ones should be better, but
-	never because the number is bigger".
-
-	Only ore charms merge. The legacy 31 (zone grant, gem pack, limited) are
-	deliberately left out -- §6.0 still has an open owner call on whether they
-	are retired at all, and letting them feed a merge ladder would quietly make
-	that decision.
-
-	Returns the target id, the target def, and nil plus a reason when it cannot.
-	The reason is a player-facing sentence, so the server and any UI say the same
-	thing about why a merge is refused.
-]]
---[[
-	MERGING COSTS GEMS, NOT CHARMS. Owner, 2026-10-04: "rather than merging it
-	should cost gems."
-
-	It used to eat THREE copies of a charm to make one of the next tier, which
-	is the economy that makes every charm feel like fodder: if three of a thing
-	are worth one of a thing, then one of them is worth a third of a thing. That
-	is the "everything is worthless because better stuff exists" problem in its
-	purest form, and it was built in on purpose.
-
-	Now: one charm in, one charm out, and you pay gems for the step. A charm you
-	own is never consumed to feed another.
-
-	Priced off the TARGET's tier so a deep merge costs deep money. The curve is
-	gentle on purpose -- gems are already the pouch's only sink and the trait
-	roller's only sink, and a third steep one would starve both.
-]]
-MineCharms.MERGE_GEM_BASE = 1200
-MineCharms.MERGE_GEM_GROW = 1.14
-
-function MineCharms.mergeGemCost(targetTier)
-	local t = math.max(1, math.floor(tonumber(targetTier) or 1))
-	return math.ceil(MineCharms.MERGE_GEM_BASE
-		* (MineCharms.MERGE_GEM_GROW ^ (t - 1)) / 50) * 50
-end
-
--- Copies consumed. ONE: the charm being upgraded, and nothing else.
-MineCharms.MERGE_COST = 1
-
-function MineCharms.mergeTarget(charmId)
-	local def = MineCharms.byId(charmId)
-	if not def then
-		return nil, nil, "That charm is not in the game"
-	end
-	if def.source ~= "ore" then
-		return nil, nil, "Only ore charms merge"
-	end
-	local C = require(script.Parent:WaitForChild("MineConfig"))
-	local ores = C.ORES or {}
-	local nextTier = (tonumber(def.tier) or 0) + 1
-	-- ORES is ordered by tier and tier == index for all 82 rows, but read the
-	-- row's own tier rather than trusting that: a roster edit that breaks the
-	-- alignment should fail to find a target, not merge into the wrong charm.
-	local target
-	for i, ore in ipairs(ores) do
-		if (tonumber(ore.tier) or i) == nextTier then
-			target = ore
-			break
-		end
-	end
-	if not target then
-		return nil, nil, "This is the deepest charm there is"
-	end
-	local id = MineCharms.oreCharmId(target.id, def.variant)
-	local tdef = MineCharms.byId(id)
-	if not tdef then
-		return nil, nil, "That charm is not in the game"
-	end
-	return id, tdef, nil
-end
 
 function MineCharms.oreCharms(oreId)
 	return BY_ORE[tostring(oreId or "")] or {}
@@ -1232,7 +1664,9 @@ function MineCharms.applyEquipped(b, charmId, p)
 			return
 		end
 	end
-	for stat, amount in pairs(def.stats) do
+	-- The worn copy's tier (I..V): every stat but TIER_FLAT grows with it.
+	local tier = (type(p) == "table" and p.equippedCharm == def.id) and MineCharms.wornTier(p) or 1
+	for stat, amount in pairs(MineCharms.statsAt(def, tier)) do
 		amount = (tonumber(amount) or 0) * scale
 		if amount == 0 then
 			-- skip
@@ -1255,11 +1689,22 @@ end
 	doing nothing look identical otherwise, and that is the single most confusing
 	thing a conditional bonus can do.
 ]]
-function MineCharms.describe(def, p)
+function MineCharms.describe(def, p, tier)
 	if not def then
 		return ""
 	end
+	-- At a tier above I the numbers are the tier's (statsAt), written fresh.
+	local t = math.floor(tonumber(tier) or 1)
 	local line = def.blurb or def.name or ""
+	if t > 1 and type(def.stats) == "table" then
+		line = statLine(MineCharms.statsAt(def, t))
+		local cond = def.condition and MineCharms.CONDITIONS[def.condition]
+		if cond then
+			line = line .. " " .. cond.blurb
+		elseif def.shape == "ramp" then
+			line = line .. " at full stacks"
+		end
+	end
 	if def.shapeLabel then
 		line = line .. "  ·  " .. def.shapeLabel
 	end
@@ -1312,42 +1757,99 @@ function MineCharms.packOdds(ownedSet)
 end
 
 --[[
-	The chest charm ladder by grade, as rollChestCharm draws it (each graded
-	charm at its grade's Temper.RARITY_WEIGHTS share): { { grade, p, n } }, in
-	grade order. The wandering trader's Charm Case pays from this ladder, so its
-	odds sheet reads it (MineTrader.caseOdds, launch audit M3).
+	The chest charm ladder by grade, as rollChestCharm draws it (a grade at its
+	CHEST_CHARM_GRADE_WEIGHT share, then one of its `n` charms evenly):
+	{ { grade, p, n } }, in grade order. The wandering trader's Charm Case pays
+	from this ladder, so its odds sheet reads it (MineTrader.caseOdds, launch
+	audit M3).
 ]]
 function MineCharms.chestCharmOdds()
-	local graded = MineCharms.GRADED or {}
-	local weights = Temper.RARITY_WEIGHTS or {}
-	local total, byGrade = 0, {}
-	for _, def in ipairs(graded) do
-		local w = math.max(0, tonumber(weights[def.rarity]) or 0)
-		total += w
-		local row = byGrade[def.rarity]
-		if not row then
-			row = { grade = def.rarity, p = 0, n = 0 }
-			byGrade[def.rarity] = row
-		end
-		row.p += w
-		row.n += 1
-	end
-	local out = {}
-	if total <= 0 then
-		-- rollChestCharm pays the first graded charm when no weight is set.
-		if graded[1] then
-			table.insert(out, { grade = graded[1].rarity, p = 1, n = 1 })
-		end
-		return out
-	end
+	local total, out = 0, {}
 	for _, g in ipairs(Temper.GRADE_ORDER or { "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
-		local row = byGrade[g]
-		if row then
-			row.p /= total
-			table.insert(out, row)
+		local n = #MineCharms.gradedOf(g)
+		local w = (n > 0) and math.max(0, tonumber(MineCharms.CHEST_CHARM_GRADE_WEIGHT[g]) or 0) or 0
+		if w > 0 then
+			total += w
+			table.insert(out, { grade = g, p = w, n = n })
 		end
+	end
+	if total <= 0 then
+		local graded = MineCharms.GRADED or {}
+		if graded[1] then
+			return { { grade = graded[1].rarity, p = 1, n = 1 } }
+		end
+		return {}
+	end
+	for _, row in ipairs(out) do
+		row.p /= total
 	end
 	return out
+end
+
+--[[
+	THE EIGHT CHARM PACKS (owner, 2026-10-19: "charm packs for the main game,
+	one per chest rarity ("{rarity} Charm Pack")", "all 8 rarities get charms and
+	packs", sold "for gems or credits").
+
+	A pack is one charm of its rarity, drawn evenly from that rarity's graded
+	charms (gradedOf: F 12 .. SSS 5), always at tier I. charmPackOdds is the
+	draw, so the odds sheet and the roll cannot disagree; it is the same for
+	every player (owning a charm already is fine: a copy is merge fodder).
+
+	GEMS ARE THE SINK. A pack pays a charm and nothing else, and a charm never
+	turns back into gems, so every gem spent here leaves the game. The prices
+	climb about 3x a rarity, and tools/verify/economy-gems.js prices each in
+	minutes of gem income at the stage that rarity belongs to.
+
+	CREDITS are Robux-bought, so a credit (or gem) buy is a paid random item:
+	Verbs.PAID_RANDOM covers the verb, and the shelf shows the odds first.
+
+	Every price PROPOSED (2026-10-19). The old gem Charms Pack (15 legacy pack
+	charms, PACK_PRICE_GEMS) is off the shelf: these replace it (PROPOSAL §0
+	line 33, "keep the items, kill the three sources").
+]]
+MineCharms.CHARM_PACKS = {
+	{ id = "charm_pack_f", rarity = "F", gems = 2500, credits = 10 },
+	{ id = "charm_pack_d", rarity = "D", gems = 7500, credits = 15 },
+	{ id = "charm_pack_c", rarity = "C", gems = 20000, credits = 25 },
+	{ id = "charm_pack_b", rarity = "B", gems = 60000, credits = 45 },
+	{ id = "charm_pack_a", rarity = "A", gems = 175000, credits = 80 },
+	{ id = "charm_pack_s", rarity = "S", gems = 500000, credits = 150 },
+	{ id = "charm_pack_ss", rarity = "SS", gems = 1500000, credits = 280 },
+	{ id = "charm_pack_sss", rarity = "SSS", gems = 5000000, credits = 500 },
+}
+for _, row in ipairs(MineCharms.CHARM_PACKS) do
+	row.name = row.rarity .. " Charm Pack"
+	row.word = MineCharms.RARITY_LABEL[row.rarity] or row.rarity
+end
+
+-- A Charm Pack row by its id or its rarity, or nil.
+function MineCharms.charmPack(idOrRarity)
+	for _, row in ipairs(MineCharms.CHARM_PACKS) do
+		if row.id == idOrRarity or row.rarity == idOrRarity then
+			return row
+		end
+	end
+	return nil
+end
+
+-- What one Charm Pack of `rarity` can pay: { { id, name, blurb, p } }.
+function MineCharms.charmPackOdds(rarity)
+	local pool = MineCharms.gradedOf(rarity)
+	local out = {}
+	for _, def in ipairs(pool) do
+		table.insert(out, { id = def.id, name = def.name, blurb = def.blurb, p = 1 / #pool })
+	end
+	return out
+end
+
+function MineCharms.rollCharmPack(rarity, rng)
+	local pool = MineCharms.gradedOf(rarity)
+	if #pool == 0 then
+		return nil
+	end
+	local v = (rng and rng:NextNumber()) or math.random()
+	return pool[math.clamp(math.floor(v * #pool) + 1, 1, #pool)]
 end
 
 return MineCharms

@@ -629,8 +629,9 @@ function MineZoneMapView.render(body, opts)
 			poolW += w
 			poolWeight[id] = (poolWeight[id] or 0) + w
 		end
-		-- Section exclusive shares the roll pool as +1 weight next to vanity.
-		local poolSlots = poolW + 1
+		-- Each pool row's weight is its share of the zone's chests at the top
+		-- (MineZoneChests, 2026-10-19: section chests no longer spawn).
+		local poolSlots = math.max(poolW, 1)
 
 		local allChests = {}
 		for _, crow in ipairs(ZoneChests.collectionRows and ZoneChests.collectionRows() or {}) do

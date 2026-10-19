@@ -87,6 +87,10 @@ script = { Name = "MinePackConfig", Parent = SHARED }
 MODULES.MinePackConfig = (function()
 ${read("MinePackConfig")}
 end)()
+-- Set chests (MineSetChests, 2026-10-19) pay their own set's card pack.
+MODULES.MineSetChests = (function()
+${read("MineSetChests")}
+end)()
 local ZP = MODULES.MineZonePacks
 local ZC = (function()
 ${read("MineZoneChests")}
@@ -138,17 +142,26 @@ local badSlot, dupes, empty, chests = 0, 0, 0, 0
 for id, def in pairs(ZC.DEFS) do
 	chests += 1
 	local seen, n = {}, 0
-	for _, entry in ipairs(def.packs or {}) do
+	-- A ranked chest's packs come off payout() (2026-10-19); a set chest's
+	-- first entry is its own set's pack, not a zone slot.
+	local list = (def.rank and ZC.payout) and ZC.payout(def, def.zoneId, 1).packs or def.packs or {}
+	for _, entry in ipairs(list) do
 		n += 1
-		if not known[entry.slot] then
+		if entry.set then
+			if entry.set ~= def.setKey then
+				badSlot += 1
+				print(("          %s names another set's pack %s"):format(id, tostring(entry.set)))
+			end
+		elseif not known[entry.slot] then
 			badSlot += 1
 			print(("          %s names unknown slot %s"):format(id, tostring(entry.slot)))
 		end
-		if seen[entry.slot] then
+		local key = entry.slot or ("set:" .. tostring(entry.set))
+		if seen[key] then
 			dupes += 1
-			print(("          %s rolls %s twice"):format(id, tostring(entry.slot)))
+			print(("          %s rolls %s twice"):format(id, key))
 		end
-		seen[entry.slot] = true
+		seen[key] = true
 	end
 	if n == 0 then
 		empty += 1
@@ -164,7 +177,8 @@ local unresolved = 0
 for _, zoneId in ipairs(ZP.ZONE_ORDER) do
 	for _, def in pairs(ZC.DEFS) do
 		for _, id in ipairs(ZC.rollPackDrops(zoneId, def, Random.new())) do
-			if not ZP.PACKS[id] then
+			local setPack = def.setKey and string.sub(id, 1, #def.setKey + 6) == def.setKey .. "_pack_"
+			if not ZP.PACKS[id] and not setPack then
 				unresolved += 1
 				print("          " .. id .. " does not resolve")
 			end

@@ -69,8 +69,10 @@ eight-rung ladder. Letters and words are the same rungs
 star systems (fishing, wild cases) still use 4.5★.
 
 Lucky-block and gear climb use the same letters via `MineToolGrades.ORDER`
-(F→SSS). Chest pool ranks are a shorter cut of the same letters
-(`MineChestRanks.ORDER` = S, A, B, C, D, F; no SS/SSS).
+(F→SSS). Chest ranks use the full ladder too since 2026-10-19
+(`MineChestRanks.LADDER` = F … SSS, with the words of `MineChestRanks.LABEL`;
+[chests-and-lucky-blocks](chests-and-lucky-blocks.md)). Before that they were a
+shorter cut, S to F, with no SS or SSS.
 
 ## Systems that are already stars
 

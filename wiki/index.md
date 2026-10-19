@@ -37,7 +37,7 @@ related: [README, overview, owner, SCHEMA, log]
 
 **The build**
 - [boosts-and-stats](systems/boosts-and-stats.md): stat keys, the two boost layers, luck, caps, potions
-- [charms](systems/charms.md): ore charms, shapes, merging, legacy charms, the 36 graded charms
+- [charms](systems/charms.md): one rarity per charm, tiers I–V by merging, ore charms, shapes, legacy charms, the graded charms, Charm Packs, the Halloween charms
 - [skins-cases-and-temper](systems/skins-cases-and-temper.md): F…SSS tempers, ore cases, grade reveal
 - [grades-and-stars](systems/grades-and-stars.md): every grade ladder → ★½ map, and `MineStars`
 - [traits](systems/traits.md): tool traits and runes, retired 2026-10-12, and what replaced each payout
@@ -52,7 +52,7 @@ related: [README, overview, owner, SCHEMA, log]
 - [enchants](systems/enchants.md): three slots per tool, books, merging, the Special proc gate, the player level
 - [fishing](systems/fishing.md): spots, fish, the replayed reel fight, bait cap, rods and prestige, the cooler, the tuning bot
 - [grades-and-stars](systems/grades-and-stars.md): the shared ★½ ladder for every grade display (MineStars)
-- [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md): section chests, ranks, lucky blocks
+- [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md): F–SSS chests, the set chests, what a chest pays, lucky blocks
 - [world-events](systems/world-events.md): Event Horizon, Event Pass, World Pulse
 - [trading](systems/trading.md): the trade flow, pricing, the "pawning to new players" concern
 - [social-quests-and-leaderboards](systems/social-quests-and-leaderboards.md): quests, Job Board, leaderboards, group wheel, Discord

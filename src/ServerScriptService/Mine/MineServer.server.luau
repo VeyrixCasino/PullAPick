@@ -914,6 +914,8 @@ local function blank()
 		-- Owned temperaments, keyed by kit id: { rarity = grade, n = copies }.
 		tempers = {},
 		charms = {},
+		-- Copies at tiers II..V, keyed "II".."V" (MineCharms.tierCounts).
+		charmTiers = {},
 		equippedCharm = nil,
 		vfx = {},
 		equippedVfx = Vfx.blankEquip(),
@@ -1546,6 +1548,11 @@ local function load(plr)
 		end
 	end
 	p.charms = p.charms or {}
+	-- The tier save (2026-10-19): a table, agreeing with the tally. (Charms is
+	-- the module upvalue from the top of the file; Verbs is declared far below.)
+	if Charms.normalizeTiers then
+		Charms.normalizeTiers(p)
+	end
 	if type(p.equippedCharm) == "string" and p.equippedCharm ~= "" and not p.charms[p.equippedCharm] then
 		p.equippedCharm = nil
 	end
@@ -3681,6 +3688,8 @@ local function snap(plr)
 		itemSlotCap = C.itemSlotCap and C.itemSlotCap(p) or nil,
 		itemSlotPrice = C.itemSlotPrice and C.itemSlotPrice(p) or nil,
 		charms = p.charms, equippedCharm = p.equippedCharm,
+		-- How many copies sit at tiers II..V (MineCharms.tierCounts reads it).
+		charmTiers = p.charmTiers,
 		-- The RAMP's stacks, so the panel can say how charged a ramp charm is.
 		-- Sent rather than derived: the client has no block-break feed of its own.
 		charmRamp = p.charmRamp,
@@ -4807,6 +4816,10 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		-- from across a shaft, so the four kinds have to be distinct.
 		part:SetAttribute("ChestType", chestDef.id)
 		part:SetAttribute("ChestName", chestDef.name)
+		-- The rank badge (F..SSS), for the hover line and the lid (MineChestModel).
+		if chestDef.rank then
+			part:SetAttribute("ChestRank", chestDef.rank)
+		end
 		if chestDef.roman then
 			part:SetAttribute("SectionRoman", chestDef.roman)
 			part:SetAttribute("SectionArabic", chestDef.arabic or tostring(chestDef.sectionN or ""))
@@ -6003,27 +6016,23 @@ local function openChestBlock(plr, p, chestId, b, part)
 	local ZoneChests = require(shared:WaitForChild("MineZoneChests"))
 	local ZonePacks = require(shared:WaitForChild("MineZonePacks"))
 
-	-- Prefer the identity baked onto the block; meadow/EH always that section's chest.
+	--[[
+		THE CHEST ON THE BLOCK IS THE CHEST YOU OPEN (2026-10-19). Its rank is
+		its own (MineZoneChests, F..SSS) and everything below pays by it. Dirt
+		Meadow and Event Horizon used to pay their section chest whatever the
+		block said; that override is gone. A block spawned before the ranks
+		(a section or Mine 1 catalog id) rolls a ranked chest of its zone.
+	]]
 	local def = ZoneChests.def(tostring(chestId or ""))
-	local rank = nil
-	if (zone.id == "meadow" or zone.id == "bigbang") and ZoneChests.exclusiveFor then
-		def = ZoneChests.exclusiveFor(zone.id, layer)
-		rank = "native"
-	elseif not def then
-		local pick = ZoneChests.roll(zone.id, rng, { luck = luck, layer = layer,
+	local rank = def and def.rank or nil
+	if not (def and rank) then
+		local pick = ZoneChests.roll(zone.id, rng, { layer = layer, zoneIndex = C.zoneIndex(zone.id),
 			better = C.chestRankLuck and C.chestRankLuck(zone.id, layer) or 1 })
 		if not pick or not pick.def then
 			return
 		end
 		def = pick.def
 		rank = pick.rank
-	else
-		for _, row in ipairs(ZoneChests.pool(zone.id) or {}) do
-			if row.chestId == def.id then
-				rank = row.rank
-				break
-			end
-		end
 	end
 
 	p.found = p.found or {}
@@ -6054,8 +6063,8 @@ local function openChestBlock(plr, p, chestId, b, part)
 		end
 	end
 
-	-- Fixed gem/coin bands from the chest def only (no zone/layer scaling).
-	local coins, gems = ZoneChests.rollCurrency(def, rng)
+	-- The rank's bands for this zone and layer (MineZoneChests.payout).
+	local coins, gems = ZoneChests.rollCurrency(def, rng, layer, zone.id)
 	coins = math.max(1, math.floor(coins * (b.coinBonus or 1)))
 	gems = math.floor(gems * (b.gemFind or 1))
 	p.coins = (p.coins or 0) + coins
@@ -6084,7 +6093,7 @@ local function openChestBlock(plr, p, chestId, b, part)
 			setId = (zone.sets and zone.sets[1]) or "genesis_spark"
 		end
 	end
-	local drops = ZoneChests.rollPackDrops(zone.id, def, rng)
+	local drops = ZoneChests.rollPackDrops(zone.id, def, rng, layer)
 	-- Tutorial / stamped chests: PackQty forces that many packs (meadow IntroChest = 2).
 	local wantQty = tonumber(part and part:GetAttribute("PackQty"))
 	if wantQty then
@@ -6092,7 +6101,7 @@ local function openChestBlock(plr, p, chestId, b, part)
 		local guard = 0
 		while #drops < wantQty and guard < 8 do
 			guard += 1
-			local extra = ZoneChests.rollPackDrops(zone.id, def, rng)
+			local extra = ZoneChests.rollPackDrops(zone.id, def, rng, layer)
 			if #extra > 0 then
 				table.insert(drops, extra[1])
 			else
@@ -6110,21 +6119,28 @@ local function openChestBlock(plr, p, chestId, b, part)
 	end
 	for _, packId in ipairs(drops) do
 		local zpack = ZonePacks.get(packId)
-		local row = {
-			kind = "chest",
-			chestId = def.id,
-			packId = packId,
-			packName = (zpack and zpack.name) or packId,
-			zoneId = zone.id,
-			layer = layer,
-			setId = setId,
-			rank = rank,
-		}
+		local row
+		if zpack then
+			row = {
+				kind = "chest",
+				chestId = def.id,
+				packId = packId,
+				packName = zpack.name or packId,
+				zoneId = zone.id,
+				layer = layer,
+				setId = setId,
+				rank = rank,
+			}
+		else
+			-- A set chest's own set pack (MineSetChests): the bag row every set
+			-- pack has, and no layer, so it opens on its set's odds.
+			row = require(shared:WaitForChild("MineCases")).packRow(packId)
+		end
 		if stampedLuck > 1 then
 			row.luck = stampedLuck
 		end
 		table.insert(p.packs, row)
-		table.insert(packNames, (zpack and zpack.name) or packId)
+		table.insert(packNames, row.packName or packId)
 		table.insert(packIds, packId)
 		local slot = zpack and zpack.slot or packId
 		local rarePack = slot == "pack_legendary" or (type(slot) == "string" and string.find(slot, "legendary", 1, true))
@@ -10627,6 +10643,16 @@ Verbs.Ench.init({ profiles = profiles, net = net, snap = snap, markDirty = markD
 })
 Dig.EnchSvc = Verbs.Ench
 
+-- CHARMS (owner, 2026-10-19): one rarity forever, a tier I to V, and the
+-- eight Charm Packs. MineCharmService owns the merge and the pack buy.
+Verbs.Charm = require(script.Parent:WaitForChild("MineCharmService"))
+Verbs.Charm.init({ profiles = profiles, net = net, snap = snap, markDirty = markDirty,
+	walk = walk, bumpStat = bumpStat, save = save,
+	benchNum = function(n)
+		return Verbs._benchNum(n)
+	end,
+})
+
 --[[
 	THE CANDY CRYPT (owner's redesign, 2026-10-19): MineCrypt owns its tools,
 	drops, verbs and snapshot block. Every remote action starting "crypt" goes
@@ -10977,22 +11003,12 @@ local function equipCharm(plr, payload)
 end
 
 --[[
-	MERGE THREE CHARMS INTO ONE A TIER DEEPER.
-
-	The rule and the cost live in MineCharms.mergeTarget / MERGE_COST so the
-	client's button and this cannot disagree about what a merge produces -- and
-	the refusal sentence comes from there too, so "why not" reads the same in
-	both places.
-
-	ALL OR NOTHING, and the spend happens after the target resolves: an earlier
-	shape of this debited first and granted second, which on an unmergeable
-	charm would have eaten three copies for nothing.
-
-	The equipped charm is handled rather than ignored. Merging away the last
-	copy of what you are wearing would leave `p.equippedCharm` pointing at a
-	charm you no longer own, which the load path then silently clears -- so the
-	merge moves you onto the charm you just made instead. That is also just
-	what you wanted.
+	MERGING A CHARM (2026-10-19): it raises the copy's tier, I to V, for gems
+	plus any one charm of the same tier, and never its rarity. The rule, the
+	price and the refusal sentences live in MineCharms (canMerge / applyMerge),
+	so the client's picker and the server cannot disagree; MineCharmService is
+	the verb (Verbs.mergeCharm below). All or nothing: nothing is spent unless
+	the merge happens.
 ]]
 --[[
 	LOAD AND STAMP THE LAUNCH FLAG.
@@ -11264,83 +11280,11 @@ function Verbs.buyCharm(plr, payload)
 	snap(plr)
 end
 
--- On Verbs rather than a local: this script sits at 197 of Luau's 200
--- top-level locals and a verb does not need to spend one of the last three.
+-- On Verbs rather than a local: this script sits at Luau's 200-local ceiling and
+-- a verb does not need to spend one. Since 2026-10-19 a merge raises a charm's
+-- TIER (I..V) for gems plus any charm of the same tier; MineCharmService owns it.
 function Verbs.mergeCharm(plr, payload)
-	local p = profiles[plr.UserId]
-	if not p then
-		return
-	end
-	local id = payload
-	if type(payload) == "table" then
-		id = payload.id or payload.charmId or payload.charm
-	end
-	id = tostring(id or "")
-	p.charms = p.charms or {}
-
-	-- One copy, not three. The gems are the price now; see MineCharms.
-	local cost = math.max(1, math.floor(tonumber(Charms.MERGE_COST) or 1))
-	local have = math.floor(tonumber(p.charms[id]) or 0)
-	-- A legacy charm saved as `true` counts as one copy, the same as everywhere
-	-- else that reads this tally.
-	if p.charms[id] == true then
-		have = 1
-	end
-	if have < cost then
-		net:FireClient(plr, "toast", string.format(
-			"Need %d of that charm to merge (you have %d)", cost, have))
-		return
-	end
-
-	local targetId, targetDef, why = Charms.mergeTarget(id)
-	if not targetId then
-		net:FireClient(plr, "toast", why or "That charm cannot be merged")
-		return
-	end
-
-	--[[
-		THE GEMS. Owner, 2026-10-04: "rather than merging it should cost gems."
-
-		Priced off the TARGET's tier, not the source's, so the step you are
-		buying is what you pay for. Charged AFTER mergeTarget resolves -- a
-		charm that cannot merge must not take the gems first.
-	]]
-	local gemCost = Charms.mergeGemCost and Charms.mergeGemCost(targetDef.tier) or 0
-	local gems = math.floor(tonumber(p.gems) or 0)
-	if gemCost > 0 and gems < gemCost then
-		net:FireClient(plr, "toast", string.format(
-			"Needs %s gems to merge", Verbs._benchNum(gemCost)))
-		return
-	end
-	p.gems = gems - gemCost
-
-	p.charms[id] = have - cost
-	if p.charms[id] <= 0 then
-		p.charms[id] = nil
-	end
-	local had = p.charms[targetId]
-	if had == true then
-		had = 1
-	end
-	p.charms[targetId] = math.floor(tonumber(had) or 0) + 1
-	-- Mark it seen, the same as a drop would, or the Forge's recipe list and
-	-- anything else reading oresSeen would not know the ore behind it.
-	if targetDef.oreId then
-		p.oresSeen = p.oresSeen or {}
-		p.oresSeen[tostring(targetDef.oreId)] = true
-	end
-
-	if p.equippedCharm == id and not p.charms[id] then
-		p.equippedCharm = targetId
-	end
-
-	bumpStat(plr, p, "merges")
-	net:FireClient(plr, "toast", string.format("%d x %s  ->  %s",
-		cost, tostring(Charms.byId(id) and Charms.byId(id).name or id),
-		tostring(targetDef.name or targetId)))
-	markDirty(plr)
-	snap(plr)
-	walk(plr)
+	Verbs.Charm.merge(plr, payload)
 end
 
 local function equipVfx(plr, payload)
@@ -11416,39 +11360,15 @@ local function buyVfx(plr, payload)
 	snap(plr)
 end
 
+--[[
+	THE OLD GEM CHARMS PACK IS RETIRED (2026-10-19). The eight rarity Charm
+	Packs replaced it (MineCharms.CHARM_PACKS, Verbs.Charm.buyPack), and its 15
+	pack charms keep working for whoever owns them (PROPOSAL §0 line 33: "keep
+	the items, kill the three sources"). Answered so an old client hears where
+	the packs went, instead of nothing.
+]]
 local function buyCharmsPack(plr)
-	local p = profiles[plr.UserId]
-	if not p then
-		return
-	end
-	local cost = Charms.PACK_PRICE_GEMS or 2500
-	local gems = tonumber(p.gems) or 0
-	if gems < cost then
-		net:FireClient(plr, "toast", string.format("Charms Pack costs %d gems (you have %d)", cost, math.floor(gems)))
-		return
-	end
-	p.charms = p.charms or {}
-	local rolled = Charms.rollPack(p.charms, Random.new())
-	if not rolled then
-		net:FireClient(plr, "toast", "You already own every Charms Pack charm")
-		return
-	end
-	p.gems = gems - cost
-	p.charms[rolled.id] = (tonumber(p.charms[rolled.id]) or 0) + 1
-	net:FireClient(plr, "toast", "Charms Pack: " .. rolled.name .. " — equip in Inventory → Equipment")
-	-- The pack opens like a pack (MinePackReveal, forced): that is the purchase fx.
-	net:FireClient(plr, "foundTool", {
-		kind = "charm",
-		charmId = rolled.id,
-		name = rolled.name,
-		title = "CHARMS PACK",
-		rarityId = "Legendary",
-		blurb = (rolled.blurb or "") .. "  ·  equip it in Inventory → Equipment",
-	})
-	markDirty(plr)
-	save(plr)
-	snap(plr)
-	walk(plr)
+	net:FireClient(plr, "toast", "The Charms Pack is now 8 Charm Packs, F to SSS: Inventory -> Equipment -> Charm")
 end
 
 local function buyLuckyCharm(plr)
@@ -12035,6 +11955,7 @@ local function tryPrestige(plr)
 	fresh.gear = p.gear
 	fresh.equippedGear = p.equippedGear
 	fresh.charms = p.charms or {}
+	fresh.charmTiers = p.charmTiers or {}
 	fresh.equippedCharm = p.equippedCharm
 	fresh.persistBags = p.persistBags or {}
 	fresh.backpackBonus = p.backpackBonus or 0
@@ -15405,6 +15326,8 @@ Verbs.PAID_RANDOM = {
 	rollGear = true, rollTemper = true,
 	openTemperCase = true, openTemperCaseBundle = true, scrapTemper = true,
 	buyCharmsPack = true,
+	-- The eight Charm Packs (2026-10-19): a random charm for gems or credits.
+	buyCharmPack = true,
 	-- The Forge's gem book bundle: random books for gems (MineEnchants.SHOP_BUNDLE).
 	enchBuyBundle = true,
 	--[[
@@ -17595,6 +17518,8 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			end
 		elseif action == "buyVfx" then buyVfx(plr, payload)
 		elseif action == "buyCharmsPack" then buyCharmsPack(plr)
+		-- The eight Charm Packs, F..SSS, for gems or credits (MineCharmService).
+		elseif action == "buyCharmPack" then Verbs.Charm.buyPack(plr, payload)
 		elseif action == "buyLuckyCharm" then buyLuckyCharm(plr)
 		elseif action == "buyProductCredits" then buyProductWithCredits(plr, type(payload) == "table" and payload.key or payload)
 		elseif action == "buyBattlePassCredits" then buyBattlePassCredits(plr)

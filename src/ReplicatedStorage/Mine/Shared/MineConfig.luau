@@ -317,21 +317,36 @@ MineConfig.SKIN_CASE_TIERS = {
 ]]
 MineConfig.CHEST_SKIN_CASE_CHANCE = 0.03
 MineConfig.CHEST_SKIN_LUCK_CAP = 3
-MineConfig.CHEST_SKIN_RANK_SHIFT = { B = 1, A = 2, S = 3 }
+-- F..SSS chests (2026-10-19, MineChestRanks): F and D roll the ladder as
+-- written, the rest start higher. A fraction mixes the two whole shifts around
+-- it. PROPOSED, fitted to 3863d14's average (tools/verify/economy-gems.js).
+MineConfig.CHEST_SKIN_RANK_SHIFT = { C = 0.5, B = 1, A = 2, S = 3, SS = 4, SSS = 5 }
 
 -- { { tier, p } ... } for one skin case from a chest of `rank`, p summing to 1.
 function MineConfig.skinCaseTierOdds(rank)
 	local rows = MineConfig.SKIN_CASE_TIERS
-	local shift = MineConfig.CHEST_SKIN_RANK_SHIFT[rank or ""] or 0
-	local out, total = {}, 0
-	for i, r in ipairs(rows) do
-		local from = rows[i - shift]
-		local w = from and (tonumber(from.weight) or 0) or 0
-		total += w
-		table.insert(out, { tier = r.tier, p = w })
+	local function at(shift)
+		local out, total = {}, 0
+		for i, r in ipairs(rows) do
+			local from = rows[i - shift]
+			local w = from and (tonumber(from.weight) or 0) or 0
+			total += w
+			table.insert(out, { tier = r.tier, p = w })
+		end
+		for _, r in ipairs(out) do
+			r.p = (total > 0) and (r.p / total) or 0
+		end
+		return out
 	end
-	for _, r in ipairs(out) do
-		r.p = (total > 0) and (r.p / total) or 0
+	local shift = tonumber(MineConfig.CHEST_SKIN_RANK_SHIFT[rank or ""]) or 0
+	local lo = math.floor(shift)
+	local f = shift - lo
+	local out = at(lo)
+	if f > 1e-9 then
+		local hi = at(lo + 1)
+		for i, r in ipairs(out) do
+			r.p = r.p * (1 - f) + hi[i].p * f
+		end
 	end
 	return out
 end
@@ -1460,11 +1475,12 @@ MineConfig.MEADOW_SHALLOW_CHEST_MULT = 2
 	1,000, x3 at the floor. Going "a little deeper" pays at once, and the top of
 	a zone is never the best place to nuke.
 
-	It multiplies the weight of the ranks better than C -- B, A and S -- in the
-	zone's chest pool (MineChestRanks.roll `better`), and the catalog chests'
-	luck (MinePackConfig.rollChestAt). Better chests then pay better pack cases
-	and skin cases through their rank (MineCases.CHEST_RANK_SHIFT,
-	CHEST_SKIN_RANK_SHIFT). Event mines and Meadow are x1.
+	It is the `better` in MineChestRanks.odds: since 2026-10-19 (F..SSS) each
+	rank from C up has its weight multiplied by better ^ MineChestRanks.LIFT
+	(C 0.25 .. SSS 1.5), so the rarer the rank the harder depth lifts it, and F
+	and D get rarer. Better chests then pay better pack cases and skin cases
+	through their rank (MineCases.CHEST_RANK_SHIFT, CHEST_SKIN_RANK_SHIFT).
+	Event mines and Meadow are x1.
 ]]
 MineConfig.CHEST_DEPTH_LUCK_MAX = 3
 MineConfig.CHEST_DEPTH_LUCK_SKIP = { meadow = true }

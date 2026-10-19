@@ -12,6 +12,7 @@
 //      server's paid-random list covers the three new doors (statically).
 //   2. THE ODDS ARE THE ODDS ROLLED. The new odds functions are RUN against the
 //      real roll functions they describe: MineCharms.packOdds vs rollPack,
+//      charmPackOdds vs rollCharmPack (the eight Charm Packs, 2026-10-19),
 //      chestCharmOdds vs rollChestCharm, MineEnchants.bookOdds vs rollBookId,
 //      MineTrader.caseOdds vs rollCase, and MineCases.wildGradeOdds(paid) vs
 //      rollWildSet -- so a sheet cannot drift from what the server rolls.
@@ -51,7 +52,7 @@ const policy = (SRV.match(/function Verbs\.policyBlocks\(plr, action, payload\)[
 ok(/type\(rule\) == "function"/.test(policy) && /pcall\(rule, plr, payload/.test(policy),
   "Verbs.policyBlocks runs a function rule with the request's payload");
 ok(/Verbs\.policyBlocks\(plr, action, payload\)/.test(SRV), "...and the dispatcher hands it the payload");
-for (const v of ["buyCart", "buyDustCase", "buyCharmsPack", "enchBuyBundle"]) {
+for (const v of ["buyCart", "buyDustCase", "buyCharmsPack", "buyCharmPack", "enchBuyBundle"]) {
   ok(new RegExp(`\\b${v} = true`).test(paidRandom), `${v} is still on the list`);
 }
 
@@ -69,8 +70,9 @@ ok(/heroOdds\.MouseButton1Click:Connect\(function\(\)[\s\S]*?showPackInspect\(/.
   "the Packs hero (the 5-star wild case) has ODDS");
 const box = (INV.match(/elseif activeTab == "box" then[\s\S]*?elseif activeTab == "limited" then/) || [""])[0];
 ok(/infoBadge\(tile, \{[\s\S]*?paid = true/.test(box), "every Build-a-Box tile has its ⓘ (the box sells wild cases too)");
-ok(/Charms\.packOdds\(state\.charms\)/.test(INV) && /View\.sheet\(root, \{[\s\S]*?CHARMS PACK  ODDS/.test(INV),
-  "the Charms Pack has ODDS, from MineCharms.packOdds");
+// 2026-10-19: the one Charms Pack became eight Charm Packs, F to SSS.
+ok(/Charms\.charmPackOdds\(pack\.rarity\)/.test(INV) && /View\.sheet\(root, \{\s*title = string\.upper\(pack\.name\) \.\. "  ODDS"/.test(INV),
+  "each of the eight Charm Packs has ODDS, from MineCharms.charmPackOdds");
 ok(/E\.bookOdds\(\)/.test(FORGE) && /View\.sheet\(root, \{[\s\S]*?BOOK BUNDLE  ODDS/.test(FORGE),
   "the Forge's book bundle has ODDS, from MineEnchants.bookOdds");
 const traderOdds = (CLIENT.match(/function ClientFns\.traderOdds\([\s\S]*?\nend\n/) || [""])[0];
@@ -229,6 +231,19 @@ check("rollPack draws what packOdds says", w < 0.01, string.format("worst gap %.
 local all = {}
 for _, d in ipairs(pool) do all[d.id] = 1 end
 check("owning them all: no odds and no draw", #Charms.packOdds(all) == 0 and Charms.rollPack(all, rng) == nil)
+
+-- ------------------------------------ the eight Charm Packs (2026-10-19) --
+-- (The old Charms Pack above is off sale; its functions stay for old callers.)
+for _, pk in ipairs(Charms.CHARM_PACKS or {}) do
+	local odds = Charms.charmPackOdds(pk.rarity)
+	local cp = {}
+	for _, r in ipairs(odds) do cp[r.id] = r.p end
+	local wc, atc = gap(cp, function() return Charms.rollCharmPack(pk.rarity, rng).id end, 40000)
+	check(pk.name .. ": rollCharmPack draws what charmPackOdds says",
+		#odds > 0 and math.abs(sum(odds) - 1) < 1e-9 and wc < 0.012,
+		string.format("%d charms, worst gap %.2f%% at %s", #odds, wc * 100, atc))
+end
+check("eight Charm Packs", #(Charms.CHARM_PACKS or {}) == 8, #(Charms.CHARM_PACKS or {}))
 
 -- ----------------------------------------------- the chest charm ladder --
 local co = Charms.chestCharmOdds()

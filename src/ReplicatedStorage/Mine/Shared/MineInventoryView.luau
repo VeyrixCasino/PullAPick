@@ -3265,28 +3265,32 @@ function MineInventoryView.mount(parent, opts)
 						the same answer the server does.
 					]]
 					--[[
-						The COUNT, and what three of them merge into. A legacy
-						charm saved as `true` is one copy, which is how every
-						other reader of this tally treats it.
+						THE COUNT, THE RARITY AND THE TIER (2026-10-19). A charm's
+						rarity (F..SSS) never changes and paints the tile; its best
+						copy's tier (I..V) is what it is worth worn, so the name
+						carries it. A legacy `true` is one copy, as everywhere.
+						Merging needs another charm at the same tier
+						(MineCharms.fodderFor), so the button knows before you tap.
 					]]
-					local held = (state.charms or {})[def.id]
-					local n = (held == true) and 1 or math.floor(tonumber(held) or 0)
-					local mergeTo, mergeDef, mergeWhy
-					if Charms.mergeTarget then
-						mergeTo, mergeDef, mergeWhy = Charms.mergeTarget(def.id)
+					local counts, n = Charms.tierCounts(state, def.id)
+					local best = math.max(1, Charms.bestTier(state, def.id))
+					local mergeable = false
+					for t = 1, (Charms.TIER_MAX or 5) - 1 do
+						if counts[t] > 0 and #Charms.fodderFor(state, def.id, t) > 0 then
+							mergeable = true
+							break
+						end
 					end
-					local cost = math.max(2, math.floor(tonumber(Charms.MERGE_COST) or 3))
+					local desc = Charms.describe(def, state, best)
 					table.insert(out, {
 						key = "charm|" .. def.id,
-						name = def.name,
-						sub = Charms.describe(def, state) ~= "" and Charms.describe(def, state)
-							or (def.source or "Charm"),
+						name = def.name .. ((best > 1) and (" " .. Charms.romanTier(best)) or ""),
+						sub = desc ~= "" and desc or (def.source or "Charm"),
 						def = def, slot = "charm", source = "charm", id = def.id,
+						rarity = def.rarity, tier = best, tierCounts = counts,
 						equipped = state.equippedCharm == def.id,
 						count = n,
-						mergeTo = mergeTo, mergeName = mergeDef and mergeDef.name or nil,
-						mergeWhy = mergeWhy, mergeCost = cost,
-						canMerge = mergeTo ~= nil and n >= cost,
+						canMerge = mergeable,
 						why = "Charms are kept, not sold",
 					})
 				end
@@ -3320,6 +3324,7 @@ function MineInventoryView.mount(parent, opts)
 					table.insert(out, {
 						key = "charmbuy|" .. def.id,
 						name = def.name,
+						rarity = def.rarity,
 						sub = string.format("%s  \u{00B7}  %d token%s",
 							tostring(Charms.RARITY_LABEL and Charms.RARITY_LABEL[def.rarity] or def.rarity or "?"),
 							price, price == 1 and "" or "s"),
@@ -3535,8 +3540,10 @@ function MineInventoryView.mount(parent, opts)
 				or (o and o.shiny and (C.SHINY_MULT or 1.5)) or 1
 			return Tools.budget(item.def) * finish
 		elseif item.source == "charm" then
+			-- At the copy's tier (I..V, MineCharms.statsAt).
+			local Charms = require(shared:WaitForChild("MineCharms"))
 			local sum = 0
-			for _, v in pairs(item.def.stats or {}) do
+			for _, v in pairs(Charms.statsAt(item.def, item.tier or 1)) do
 				sum += tonumber(v) or 0
 			end
 			return sum
@@ -3893,10 +3900,26 @@ function MineInventoryView.mount(parent, opts)
 				table.insert(rows, { "Note", "Multiplies matching hat %s" })
 			end
 		elseif item.source == "charm" then
-			rows = { { "Type", "Charm" }, { "Effect", tostring(item.def.blurb or item.def.source or "-") } }
+			-- Rarity forever, tier I..V (MineCharms, 2026-10-19).
+			local Charms = require(shared:WaitForChild("MineCharms"))
+			local t = item.tier or 1
+			local bits = {}
+			for k = 1, Charms.TIER_MAX or 5 do
+				local c = item.tierCounts and item.tierCounts[k] or 0
+				if c > 0 then
+					table.insert(bits, Charms.romanTier(k) .. " x" .. c)
+				end
+			end
+			rows = {
+				{ "Rarity", tostring(item.def.rarity or "?") .. "  " .. tostring(Charms.RARITY_LABEL[item.def.rarity or ""] or "") },
+				{ "Tier", string.format("%s  (x%.2f)", Charms.romanTier(t), Charms.TIER_MULT[t] or 1) },
+				{ "Held", (#bits > 0) and table.concat(bits, "  ") or "-" },
+				{ "Effect", Charms.describe(item.def, nil, t) },
+			}
 		elseif item.source == "charmbuy" then
 			rows = {
 				{ "Type", "Charm -- not owned" },
+				{ "Rarity", tostring(item.def.rarity or "?") },
 				{ "Price", string.format("%d tokens", tonumber(item.buyTokens) or 0) },
 				{ "Effect", tostring(item.def.blurb or "-") },
 			}
@@ -4073,7 +4096,93 @@ function MineInventoryView.mount(parent, opts)
 			return (#bits > 0) and table.concat(bits, "   +   ") or "Nothing"
 		end
 
-		local showChoice, showConfirm
+		local showChoice, showConfirm, showMerge
+
+		--[[
+			THE MERGE PICKER (2026-10-19). A merge raises one copy of this charm
+			a tier (I..V) for gems plus ANY one charm of the same tier, which is
+			used up (owner: "teir i to v"). So the footer lists what you could
+			use up, cheapest first (MineCharms.fodderFor, never the worn copy),
+			with the price; a tap merges. Which copy: the best tier that has
+			fodder, switchable when there are several.
+		]]
+		function showMerge(pickTier)
+			eq.cardMode = "merge"
+			clear(footer)
+			local Charms = require(shared:WaitForChild("MineCharms"))
+			local tiers = {}
+			for t = 1, (Charms.TIER_MAX or 5) - 1 do
+				local c = item.tierCounts and item.tierCounts[t] or 0
+				if c > 0 and #Charms.fodderFor(state, item.id, t) > 0 then
+					table.insert(tiers, t)
+				end
+			end
+			local t = pickTier or tiers[#tiers]
+			if not t then
+				showChoice()
+				return
+			end
+			local cost = Charms.mergeGemCost(item.def.rarity, t + 1) or 0
+			local afford = (tonumber(state.gems) or 0) >= cost
+			label(footer, string.format("%s  %s -> %s   ·   %s gems", tostring(item.def.name),
+				Charms.romanTier(t), Charms.romanTier(t + 1), commas(cost)),
+				14, afford and GOLD or Color3.fromRGB(255, 150, 150),
+				UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 20), FONT, Enum.TextXAlignment.Center)
+			if #tiers > 1 then
+				for i, tt in ipairs(tiers) do
+					local tb = mk("TextButton", {
+						AutoButtonColor = true, BackgroundColor3 = (tt == t) and GEM or BG2,
+						Text = Charms.romanTier(tt), Font = FONT, TextSize = 14,
+						TextColor3 = (tt == t) and Color3.fromRGB(20, 28, 40) or TEXT,
+						Position = UDim2.fromOffset((i - 1) * 50, 22), Size = UDim2.fromOffset(44, 24),
+						ZIndex = 74,
+					}, footer)
+					round(tb, 6)
+					tb.MouseButton1Click:Connect(function()
+						showMerge(tt)
+					end)
+				end
+			else
+				label(footer, "Pick a tier-" .. Charms.romanTier(t) .. " charm to use up:", 12, MUTED,
+					UDim2.fromOffset(0, 24), UDim2.new(1, 0, 0, 18), nil, Enum.TextXAlignment.Center)
+			end
+			local strip = mk("ScrollingFrame", {
+				BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 50),
+				Size = UDim2.new(1, 0, 0, 62), CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.X,
+				AutomaticCanvasSize = Enum.AutomaticSize.X, ScrollBarThickness = 4, ZIndex = 74,
+			}, footer)
+			mk("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6),
+				SortOrder = Enum.SortOrder.LayoutOrder }, strip)
+			for i, f in ipairs(Charms.fodderFor(state, item.id, t)) do
+				local ink2 = gradeInk(f.def.rarity) or TEXT
+				local fb = mk("TextButton", {
+					AutoButtonColor = afford, BackgroundColor3 = BG2, LayoutOrder = i,
+					Text = string.format("%s  %s\nx%d", tostring(f.def.rarity or "?"), tostring(f.def.name), f.count),
+					Font = FONT, TextSize = 13, TextColor3 = ink2, TextWrapped = true,
+					Size = UDim2.fromOffset(150, 54), ZIndex = 75,
+				}, strip)
+				round(fb, 8)
+				stroke(fb, 1.5, ink2)
+				if afford then
+					fb.MouseButton1Click:Connect(function()
+						if opts.onMergeCharm then
+							opts.onMergeCharm(item.id, t, f.id)
+						end
+						closeCard()
+					end)
+				end
+			end
+			local back = mk("TextButton", {
+				AutoButtonColor = true, BackgroundColor3 = BG2, Text = afford and "BACK" or "BACK  ·  NOT ENOUGH GEMS",
+				Font = FONT, TextSize = 14, TextColor3 = TEXT,
+				Position = UDim2.fromOffset(0, 118), Size = UDim2.new(1, 0, 0, 30),
+				ZIndex = 74,
+			}, footer)
+			round(back, 8)
+			back.MouseButton1Click:Connect(function()
+				showChoice()
+			end)
+		end
 
 		function showChoice()
 			eq.cardMode = "choice"
@@ -4123,9 +4232,7 @@ function MineInventoryView.mount(parent, opts)
 			local rightOn = canSell or canMerge
 			local rightText
 			if isCharm then
-				rightText = canMerge
-					and string.format("MERGE %d", item.mergeCost or 3)
-					or "CAN'T MERGE"
+				rightText = canMerge and "MERGE" or "CAN'T MERGE"
 			else
 				rightText = canSell and "SELL" or "CAN'T SELL"
 			end
@@ -4139,27 +4246,18 @@ function MineInventoryView.mount(parent, opts)
 			}, footer)
 			round(sellB, 10)
 			if canMerge then
-				--[[
-					Say what it BECOMES, not just that it merges. The charm one
-					tier up has a different shape and usually a different stat,
-					so a player who is not told the name has no way to know
-					whether they want the trade.
-				]]
-				label(footer, string.format("%d held  ·  %d become %s",
-					item.count or 0, item.mergeCost or 3, tostring(item.mergeName or "the next charm")),
+				-- Say what a merge is before the picker: a tier up, same rarity.
+				label(footer, string.format("%d held  ·  raise a tier for gems + any charm of the same tier",
+					item.count or 0),
 					13, GOLD, UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil,
 					Enum.TextXAlignment.Center)
 				sellB.MouseButton1Click:Connect(function()
-					if opts.onMergeCharm then
-						opts.onMergeCharm(item.id)
-					end
-					closeCard()
+					showMerge()
 				end)
 			elseif isCharm then
-				local line = item.mergeWhy
-					or string.format("%d held  ·  %d needed to merge into %s",
-						item.count or 0, item.mergeCost or 3,
-						tostring(item.mergeName or "the next charm"))
+				local top = (item.tier or 1) >= 5
+				local line = top and "Tier V is the top"
+					or string.format("%d held  ·  merging needs another charm at the same tier", item.count or 0)
 				label(footer, line, 13, MUTED,
 					UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil, Enum.TextXAlignment.Center)
 			elseif canSell then
@@ -4774,61 +4872,85 @@ function MineInventoryView.mount(parent, opts)
 		-- Charms are bought here now that they have no tab of their own.
 		if eq.slot == "charm" then
 			local Charms = require(shared:WaitForChild("MineCharms"))
-			local packRow = panelRow(body, 56, 6)
-			label(packRow, "Charms Pack", 14, TEXT, UDim2.fromOffset(14, 8), UDim2.new(0.6, 0, 0, 20), FONT)
-			label(packRow, (Charms.PACK_PRICE_GEMS or 2500) .. " gems · random pack charm",
-				12, MUTED, UDim2.fromOffset(14, 30), UDim2.new(0.6, 0, 0, 18))
-			local pbtn = mk("TextButton", {
-				Text = "BUY PACK", Font = FONT, TextSize = 13,
-				TextColor3 = Color3.fromRGB(20, 28, 40), BackgroundColor3 = GEM,
-				Size = UDim2.fromOffset(110, 36), Position = UDim2.new(1, -124, 0.5, -18),
-				AutoButtonColor = true,
-			}, packRow)
-			round(pbtn, 8)
-			pbtn.MouseButton1Click:Connect(function()
-				if opts.onBuyCharmsPack then opts.onBuyCharmsPack() end
-			end)
 			--[[
-				ODDS BEFORE YOU BUY (owner, 2026-10-19, launch audit M3): the pack
-				costs gems, which trace back to Robux. Every chance comes from
-				MineCharms.packOdds, the same pool rollPack draws from: one charm
-				you do not own yet, each as likely as the next.
+				THE EIGHT CHARM PACKS (owner, 2026-10-19: "{rarity} Charm Pack",
+				one per rarity, F to SSS, "for gems or credits"). One charm of the
+				pack's rarity at tier I. Every number on a row is MineCharms's:
+				the price the server charges (CHARM_PACKS) and the odds it draws
+				(charmPackOdds), so the shelf cannot advertise what the server
+				refuses. Odds before you buy (launch audit M3): gems and credits
+				both trace back to Robux. They replaced the old gem Charms Pack.
 			]]
-			local podds = mk("TextButton", {
-				Text = "ODDS", Font = FONT, TextSize = 13, TextColor3 = GEM, BackgroundColor3 = BG3,
-				Size = UDim2.fromOffset(64, 36), Position = UDim2.new(1, -196, 0.5, -18),
-				AutoButtonColor = true,
-			}, packRow)
-			round(podds, 8)
-			stroke(podds, 1, GEM)
-			podds.MouseButton1Click:Connect(function()
-				if inspectP then
-					inspectP:Destroy()
-					inspectP = nil
-				end
-				local okV, View = pcall(function()
-					return require(shared:WaitForChild("MineLuckyOddsView"))
+			local shelf = mk("Frame", { Name = "CharmPacks", BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 6 }, body)
+			mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, shelf)
+			for i, pack in ipairs(Charms.CHARM_PACKS or {}) do
+				local ink = gradeInk(pack.rarity) or GEM
+				local pool = Charms.charmPackOdds(pack.rarity)
+				local packRow = panelRow(shelf, 56, i)
+				label(packRow, pack.rarity, 22, ink, UDim2.fromOffset(10, 0), UDim2.fromOffset(44, 56), FONT,
+					Enum.TextXAlignment.Center)
+				label(packRow, pack.name, 14, TEXT, UDim2.fromOffset(58, 8), UDim2.new(0.42, 0, 0, 20), FONT)
+				label(packRow, string.format("%s · one of %d charms · tier I", pack.word, #pool),
+					12, MUTED, UDim2.fromOffset(58, 30), UDim2.new(0.42, 0, 0, 18))
+				local canGems = (tonumber(state.gems) or 0) >= pack.gems
+				local gbtn = mk("TextButton", {
+					Text = shortNum(pack.gems) .. " GEMS", Font = FONT, TextSize = 13,
+					TextColor3 = Color3.fromRGB(20, 28, 40), BackgroundColor3 = canGems and GEM or BG3,
+					Size = UDim2.fromOffset(104, 36), Position = UDim2.new(1, -226, 0.5, -18),
+					AutoButtonColor = true,
+				}, packRow)
+				round(gbtn, 8)
+				gbtn.MouseButton1Click:Connect(function()
+					if opts.onBuyCharmPack then opts.onBuyCharmPack(pack.rarity, "gems") end
 				end)
-				if not (okV and View) then
-					return
-				end
-				local rows = {}
-				for _, r in ipairs(Charms.packOdds(state.charms)) do
-					table.insert(rows, { name = tostring(r.name) .. "  ·  " .. tostring(r.blurb or ""), p = r.p })
-				end
-				inspectP = View.sheet(root, {
-					title = "CHARMS PACK  ODDS",
-					sub = (#rows > 0) and ("One charm you don't own yet, out of " .. #rows .. ", each as likely")
-						or "You own every Charms Pack charm",
-					color = GEM,
-					sections = { { header = "ONE OF THESE", rows = rows } },
-					note = (Charms.PACK_PRICE_GEMS or 2500) .. " gems. Charms you already own are never drawn.",
-				}, {
-					onClose = function()
+				local cbtn = mk("TextButton", {
+					Text = tostring(pack.credits) .. " CR", Font = FONT, TextSize = 13,
+					TextColor3 = Color3.fromRGB(16, 38, 20), BackgroundColor3 = GREEN,
+					Size = UDim2.fromOffset(72, 36), Position = UDim2.new(1, -116, 0.5, -18),
+					AutoButtonColor = true,
+				}, packRow)
+				round(cbtn, 8)
+				cbtn.MouseButton1Click:Connect(function()
+					if opts.onBuyCharmPack then opts.onBuyCharmPack(pack.rarity, "credits") end
+				end)
+				local podds = mk("TextButton", {
+					Text = "ODDS", Font = FONT, TextSize = 12, TextColor3 = ink, BackgroundColor3 = BG3,
+					Size = UDim2.fromOffset(38, 36), Position = UDim2.new(1, -40, 0.5, -18),
+					AutoButtonColor = true,
+				}, packRow)
+				round(podds, 8)
+				stroke(podds, 1, ink)
+				podds.MouseButton1Click:Connect(function()
+					if inspectP then
+						inspectP:Destroy()
 						inspectP = nil
-					end,
-				})
-			end)
+					end
+					local okV, View = pcall(function()
+						return require(shared:WaitForChild("MineLuckyOddsView"))
+					end)
+					if not (okV and View) then
+						return
+					end
+					local rows = {}
+					for _, r in ipairs(Charms.charmPackOdds(pack.rarity)) do
+						table.insert(rows, { name = tostring(r.name) .. "  ·  " .. tostring(r.blurb or ""), p = r.p, tint = ink })
+					end
+					inspectP = View.sheet(root, {
+						title = string.upper(pack.name) .. "  ODDS",
+						sub = string.format("One %s (%s) charm at tier I, out of %d, each as likely", pack.word, pack.rarity, #rows),
+						color = ink,
+						sections = { { header = "ONE OF THESE", rows = rows } },
+						note = string.format("%s gems or %d credits. A charm you already own comes as a copy you can merge.",
+							commas(pack.gems), pack.credits),
+					}, {
+						onClose = function()
+							inspectP = nil
+						end,
+					})
+				end)
+				packRow.Name = "CharmPack_" .. pack.rarity
+			end
 			-- (The Lucky Charm "599 CR" row that sat here is gone: owner,
 			-- 2026-10-19, launch audit S2. Its buy only ever answered "That offer
 			-- moved"; Pot of Gold in the limited deals sells the charm, and the
@@ -4908,7 +5030,9 @@ function MineInventoryView.mount(parent, opts)
 		-- said EQUIPPED on a pickaxe you had just swapped out). Rebuild it from
 		-- the fresh item -- unless a sale is being held, which a rebuild would
 		-- silently reset -- and close it if the item is gone.
-		if eq.card and eq.card.Parent and eq.cardKey and eq.cardMode ~= "confirm" then
+		-- (Nor while the charm merge picker is up: a snapshot mid-pick would
+		-- throw the player back to the first screen.)
+		if eq.card and eq.card.Parent and eq.cardKey and eq.cardMode ~= "confirm" and eq.cardMode ~= "merge" then
 			local fresh
 			for _, sl in ipairs(EQUIP_SLOTS()) do
 				for _, it in ipairs(equipItems(sl.id)) do
@@ -5647,6 +5771,13 @@ function MineInventoryView.mount(parent, opts)
 							UDim2.fromOffset(8, 90), UDim2.new(1, -16, 0, 32), FONT, Enum.TextXAlignment.Center)
 						nameL.TextWrapped = true
 						nameL.TextTruncate = Enum.TextTruncate.AtEnd
+						-- The rank badge, top right (F..SSS, MineChestRanks, 2026-10-19).
+						if def.rank and Ranks.COLOR then
+							local badge = label(tile, def.rank, 16, Ranks.COLOR[def.rank] or GOLD,
+								UDim2.new(1, -44, 0, 10), UDim2.fromOffset(36, 20), FONT, Enum.TextXAlignment.Right)
+							badge.TextStrokeTransparency = 0.2
+							badge.ZIndex = 6
+						end
 						if has then
 							label(tile, "FOUND x" .. count, 11, GREEN,
 								UDim2.fromOffset(8, 124), UDim2.new(1, -16, 0, 14), FONT, Enum.TextXAlignment.Center)

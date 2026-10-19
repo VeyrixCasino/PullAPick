@@ -1,27 +1,568 @@
 --[[
-	MineZoneChests — per-zone chest pools with overlap + S/A/B/C/D/F ranks.
+	MineZoneChests -- every chest in the main game, its rank, and what it pays.
 
-	DEFS: fixed gem/coin ranges (no zone scaling at payout time).
-	POOLS[zoneId]: { { chestId, rank }, ... } — same chestId may appear in
-	multiple zones (overlap). Age on permanent zone unlock; inject next S.
+	THE RULE (owner, 2026-10-19): chests are F to SSS, "same system as packs";
+	8 tiers with "the same loot overall, split by tier" (rarer tiers rarer, more
+	often deeper, paying more); "all separate names", the rank shown as a badge;
+	and each of the 19 pack sets gets three named chests of its own
+	(MineSetChests).
+
+	HOW A CHEST IS CHOSEN (spawnTable / rollSpawn). A block that is a chest
+	rolls its RANK first, from MineChestRanks.odds(depth luck). Then which chest
+	of that rank: one of the zone's chests of that rank, or, where a pack set
+	lives, sometimes that set's chest of the rank (MineSetChests.SHARE). The
+	Shiny Chest stays a chase of its own, rolled before the rank.
+
+	WHAT A CHEST PAYS (payout). Everything is a function of the rank and the
+	zone, so the badge tells the truth:
+	  gems   GEM_BASE[zone] x PAY[rank]       (Dirt Meadow and Event Horizon: none)
+	  coins  (flat + perHp x rock HP) x PAY[rank], so coins grow with depth
+	  packs  PACK_BASE[zone][slot] x PACK_MULT[slot][rank]; a set chest pays one
+	         of its set's packs instead of the zone's card packs
+	  and, by rank, in their own modules: the pack case (MineCases.CHEST_RANK_SHIFT),
+	  the skin case (MineConfig.CHEST_SKIN_RANK_SHIFT), the book bundle and the
+	  player XP (MineEnchants.CHEST_BUNDLE, BOOK_RANK_LEVEL, XP_CHEST_RANK).
+
+	"THE SAME LOOT OVERALL". The bases are fitted to what a chest paid on
+	average at 3863d14 (2026-10-19), at every depth of every zone, so the total
+	is unchanged and only its split between ranks is new.
+	tools/verify/economy-gems.js re-measures it from these tables against that
+	baseline: gems within 5% at every depth, everything else within 20%.
+
+	WHAT CHANGED (2026-10-19). Ranks were per zone and aged (a zone unlock moved
+	every earlier zone's pool down a rank); a chest could show one name and pay
+	another (Dirt Meadow and Event Horizon always paid their section chest, and
+	the 80-chest Mine 1 catalog re-rolled from the zone pool on open). Now the
+	chest on the block is the chest you open, its rank is fixed, and the
+	section chests and the catalog no longer spawn (their data stays for saves
+	and old docs).
+
+	Every number below is PROPOSED (2026-10-19).
 ]]
 
 local MineChestRanks = require(script.Parent:WaitForChild("MineChestRanks"))
 local MineZonePacks = require(script.Parent:WaitForChild("MineZonePacks"))
+local MineSetChests = require(script.Parent:WaitForChild("MineSetChests"))
 
 local MineZoneChests = {}
 
-local function def(id, name, coins, gems, packs)
+local LADDER = MineChestRanks.LADDER
+
+--[[
+	PROPOSED. What a rank pays, as a multiple of its zone's base. A Common (F)
+	chest pays about half an average one, an Exotic (SSS) ten times.
+]]
+MineZoneChests.PAY = { F = 0.55, D = 0.85, C = 1.2, B = 1.7, A = 2.4, S = 3.5, SS = 5.5, SSS = 9.0 }
+
+--[[
+	PROPOSED. Each zone's gem base, fitted so an average chest at every depth
+	pays what it paid on 3863d14 (within 4%: Greyvein about 1.1k, Primordium
+	about 16k). Dirt Meadow and Event Horizon chests pay no gems, as before
+	(Meadow "stays gem-free"; its currency pouches pay a little).
+]]
+MineZoneChests.GEM_BASE = {
+	meadow = 0, sunscar = 1140, mistreef = 1530, arcwork = 2080, bloodmoon = 2980,
+	eclipse = 4090, riftmarch = 5720, starfall = 8030, mythral = 11220,
+	primordium = 15790, bigbang = 0,
+}
+
+--[[
+	PROPOSED. Coins: flat + perHp x the rock's HP at the chest's layer
+	(MineConfig.dirtHp), times PAY. Fitted the same way. Dirt Meadow and Event
+	Horizon chests paid 1.5 x the rock's HP on average (x3 in the Meadow's first
+	50 layers, so a new player's first chests move them along) and still do.
+]]
+MineZoneChests.COIN_BASE = {
+	meadow = { flat = 0, perHp = nil }, -- perHp derived below from NATIVE_COIN_HP
+	sunscar = { flat = 64, perHp = 0.215 },
+	mistreef = { flat = 78, perHp = 0.255 },
+	arcwork = { flat = 104, perHp = 0.25 },
+	bloodmoon = { flat = 136, perHp = 0.25 },
+	eclipse = { flat = 172, perHp = 0.245 },
+	riftmarch = { flat = 206, perHp = 0.245 },
+	starfall = { flat = 248, perHp = 0.24 },
+	mythral = { flat = 290, perHp = 0.24 },
+	primordium = { flat = 346, perHp = 0.24 },
+	bigbang = { flat = 0, perHp = nil },
+}
+MineZoneChests.NATIVE_COIN_HP = 1.5
+MineZoneChests.MEADOW_EARLY_LAYERS = 50
+MineZoneChests.MEADOW_EARLY_COIN_MULT = 3
+
+--[[
+	PROPOSED. Zone packs: a chest of rank r rolls each slot at
+	PACK_BASE[zone][slot] x PACK_MULT[slot][r] (a chance; over 1 pays one for
+	sure and rolls the rest). Better ranks swap Packs and Pouches for Rare and
+	Legendary Packs and Strongbox Pouches. The bases are fitted to 3863d14.
+]]
+MineZoneChests.PACK_MULT = {
+	pack_common = { F = 1.05, D = 1.0, C = 0.85, B = 0.7, A = 0.55, S = 0.45, SS = 0.35, SSS = 0.25 },
+	pack_rare = { F = 0.2, D = 0.5, C = 1.0, B = 1.8, A = 2.6, S = 3.2, SS = 3.8, SSS = 4.4 },
+	pack_legendary = { F = 0.05, D = 0.2, C = 0.6, B = 1.4, A = 3, S = 6, SS = 11, SSS = 18 },
+	currency_common = { F = 1.1, D = 1.0, C = 0.85, B = 0.65, A = 0.5, S = 0.4, SS = 0.3, SSS = 0.2 },
+	currency_rare = { F = 0.2, D = 0.5, C = 1.0, B = 1.8, A = 2.8, S = 4, SS = 6, SSS = 9 },
+}
+MineZoneChests.PACK_SLOTS = { "pack_common", "pack_rare", "pack_legendary", "currency_common", "currency_rare" }
+MineZoneChests.PACK_BASE = {
+	meadow = { pack_common = 0.186, pack_rare = 0.101, pack_legendary = 0.024, currency_common = 0.731, currency_rare = 0.049 },
+	sunscar = { pack_common = 0.320, pack_rare = 0.348, pack_legendary = 0.013, currency_common = 0.277, currency_rare = 0.064 },
+	mistreef = { pack_common = 0.336, pack_rare = 0.264, pack_legendary = 0.015, currency_common = 0.356, currency_rare = 0.056 },
+	arcwork = { pack_common = 0.314, pack_rare = 0.267, pack_legendary = 0.038, currency_common = 0.349, currency_rare = 0.076 },
+	bloodmoon = { pack_common = 0.301, pack_rare = 0.249, pack_legendary = 0.088, currency_common = 0.340, currency_rare = 0.045 },
+	eclipse = { pack_common = 0.294, pack_rare = 0.219, pack_legendary = 0.097, currency_common = 0.340, currency_rare = 0.065 },
+	riftmarch = { pack_common = 0.291, pack_rare = 0.205, pack_legendary = 0.101, currency_common = 0.340, currency_rare = 0.086 },
+	starfall = { pack_common = 0.292, pack_rare = 0.244, pack_legendary = 0.107, currency_common = 0.344, currency_rare = 0.051 },
+	mythral = { pack_common = 0.289, pack_rare = 0.250, pack_legendary = 0.111, currency_common = 0.345, currency_rare = 0.055 },
+	primordium = { pack_common = 0.291, pack_rare = 0.225, pack_legendary = 0.115, currency_common = 0.344, currency_rare = 0.076 },
+	bigbang = { pack_common = 0.518, pack_rare = 0.269, pack_legendary = 0.095, currency_common = 0.355, currency_rare = 0.195 },
+}
+
+--[[
+	THE CHESTS, one rank each. The zones' own chests kept their ids and names;
+	the seam chests now belong to the zone whose gems they always paid
+	(MineZoneChests used to share them between neighbours), and the two chests
+	each zone held back for aging (S_QUEUE) are its Divine and Exotic now. Event
+	Horizon had five and needed eight: Nebula Locker, Quasar Reliquary and
+	Big Bang Crown are PROPOSED names.
+]]
+MineZoneChests.ZONE_CHESTS = {
+	meadow = {
+		{ "meadow_topsoil", "Topsoil Cache", "F" }, { "meadow_sod_crate", "Sod Crate", "F" },
+		{ "meadow_rootbox", "Rootbox", "D" }, { "meadow_briar", "Briar Chest", "C" },
+		{ "meadow_hillock", "Hillock Cache", "B" }, { "meadow_loam_vault", "Loam Vault", "A" },
+		{ "meadow_sunrise", "Sunrise Strongbox", "S" }, { "meadow_age_s1", "Dewvault", "SS" },
+		{ "meadow_age_s2", "Canopy Coffer", "SSS" },
+	},
+	sunscar = {
+		{ "greyvein_flagstone", "Flagstone Chest", "F" }, { "seam_cobble", "Cobble Seam Chest", "F" },
+		{ "greyvein_quarry", "Quarry Cache", "D" }, { "greyvein_chisel", "Chisel Box", "C" },
+		{ "greyvein_shale", "Shale Coffer", "B" }, { "greyvein_bedrock", "Bedrock Strongbox", "A" },
+		{ "greyvein_granite", "Granite Vault", "S" }, { "greyvein_age_s1", "Keystone Vault", "SS" },
+		{ "greyvein_age_s2", "Slate Crown", "SSS" },
+	},
+	mistreef = {
+		{ "mist_tide", "Tide Chest", "F" }, { "mist_brine", "Brine Cache", "D" },
+		{ "seam_slate", "Slate Seam Chest", "C" }, { "mist_kelp", "Kelp Coffer", "B" },
+		{ "mist_coral", "Coral Box", "A" }, { "mist_reef", "Reef Vault", "S" },
+		{ "mist_age_s1", "Abyss Pearl", "SS" }, { "mist_age_s2", "Undertow Vault", "SSS" },
+	},
+	arcwork = {
+		{ "arc_coil", "Coil Chest", "F" }, { "arc_wire", "Wire Box", "D" },
+		{ "seam_mist", "Mist Seam Chest", "C" }, { "arc_spark", "Spark Coffer", "B" },
+		{ "arc_flux", "Flux Cache", "A" }, { "arc_core", "Core Vault", "S" },
+		{ "arc_age_s1", "Dynamo Vault", "SS" }, { "arc_age_s2", "Circuit Crown", "SSS" },
+	},
+	bloodmoon = {
+		{ "blood_ember", "Ember Chest", "F" }, { "blood_ash", "Ash Cache", "D" },
+		{ "seam_spark", "Spark Seam Chest", "C" }, { "blood_fang", "Fang Coffer", "B" },
+		{ "blood_veil", "Veil Box", "A" }, { "blood_lunar", "Lunar Vault", "S" },
+		{ "blood_age_s1", "Crimson Reliquary", "SS" }, { "blood_age_s2", "Eclipse Scar", "SSS" },
+	},
+	eclipse = {
+		{ "ecl_umbral", "Umbral Chest", "F" }, { "ecl_shade", "Shade Cache", "D" },
+		{ "seam_crimson", "Crimson Seam Chest", "C" }, { "ecl_void", "Void Coffer", "B" },
+		{ "ecl_penumbra", "Penumbra Box", "A" }, { "ecl_nocturne", "Nocturne Vault", "S" },
+		{ "ecl_age_s1", "Black Sun Vault", "SS" }, { "ecl_age_s2", "Totality Crown", "SSS" },
+	},
+	riftmarch = {
+		{ "rift_tear", "Tear Chest", "F" }, { "rift_fracture", "Fracture Cache", "D" },
+		{ "seam_shadow", "Shadow Seam Chest", "C" }, { "rift_scar", "Scar Coffer", "B" },
+		{ "rift_warp", "Warp Box", "A" }, { "rift_gate", "Gate Vault", "S" },
+		{ "rift_age_s1", "Breach Reliquary", "SS" }, { "rift_age_s2", "March Crown", "SSS" },
+	},
+	starfall = {
+		{ "star_dust", "Stardust Chest", "F" }, { "star_orbit", "Orbit Cache", "D" },
+		{ "seam_rift", "Rift Seam Chest", "C" }, { "star_comet", "Comet Coffer", "B" },
+		{ "star_meteor", "Meteor Box", "A" }, { "star_nova", "Nova Vault", "S" },
+		{ "star_age_s1", "Constellation Vault", "SS" }, { "star_age_s2", "Aurora Crown", "SSS" },
+	},
+	mythral = {
+		{ "myth_shard", "Shard Chest", "F" }, { "myth_gleam", "Gleam Cache", "D" },
+		{ "seam_star", "Star Seam Chest", "C" }, { "myth_lattice", "Lattice Coffer", "B" },
+		{ "myth_aether", "Aether Box", "A" }, { "myth_prism", "Prism Vault", "S" },
+		{ "myth_age_s1", "Mythforge Vault", "SS" }, { "myth_age_s2", "Crystal Crown", "SSS" },
+	},
+	primordium = {
+		{ "prime_seed", "Seed Chest", "F" }, { "seam_myth", "Myth Seam Chest", "F" },
+		{ "prime_ash", "Primordial Ash", "D" }, { "seam_prime", "Prime Seam Chest", "C" },
+		{ "prime_bone", "Bone Coffer", "B" }, { "prime_ember", "World Ember", "A" },
+		{ "prime_heart", "Heart Vault", "S" }, { "prime_age_s1", "Origin Reliquary", "SS" },
+		{ "prime_age_s2", "First Crown", "SSS" },
+	},
+	bigbang = {
+		{ "hz_event", "Event Cache", "F" }, { "hz_pulse", "Pulse Box", "D" },
+		{ "hz_singularity", "Singularity Coffer", "C" }, { "hz_nebula", "Nebula Locker", "B" },
+		{ "hz_collapse", "Collapse Chest", "A" }, { "hz_horizon", "Horizon Vault", "S" },
+		{ "hz_quasar", "Quasar Reliquary", "SS" }, { "hz_bigbang", "Big Bang Crown", "SSS" },
+	},
+}
+
+-- The look (MineChestModel palette) a rank wears, so a better chest reads as one.
+MineZoneChests.RANK_KIND = {
+	F = "native", D = "native", C = "broad", B = "broad",
+	A = "item", S = "item", SS = "chase", SSS = "chase",
+}
+
+--[[
+	The Shiny Chest: a chase of its own, rolled before the rank (as it always
+	was: zone 1 from layer 2,500 at 1 in 8,000, zones 2-10 from 1 in 2,500 to
+	0.8%). It wears the Mythic (S) badge and pays as its zone's S chest.
+]]
+MineZoneChests.SHINY_ID = "shiny_chest"
+MineZoneChests.SHINY_RANK = "S"
+
+local ZONE_OF_SEAM = {}
+MineZoneChests.DEFS = {}
+MineZoneChests.POOLS = {}
+-- Kept for old callers: nothing ages any more, so nothing is queued.
+MineZoneChests.S_QUEUE = {}
+
+-- E[PAY] at a zone's top, which the native coin rule divides by so the old
+-- 1.5 x HP average still holds across the ranks.
+local function payAtTop()
+	local odds = MineChestRanks.odds(1)
+	local e = 0
+	for _, r in ipairs(LADDER) do
+		e += odds[r] * (MineZoneChests.PAY[r] or 1)
+	end
+	return e
+end
+local NATIVE_PER_HP = MineZoneChests.NATIVE_COIN_HP / payAtTop()
+for _, zid in ipairs({ "meadow", "bigbang" }) do
+	MineZoneChests.COIN_BASE[zid].perHp = NATIVE_PER_HP
+end
+
+local function chestDef(id, name, rank, zoneId)
 	return {
 		id = id,
 		name = name,
-		coins = coins,
-		gems = gems,
-		packs = packs,
+		rank = rank,
+		zoneId = zoneId,
+		kind = MineZoneChests.RANK_KIND[rank] or "native",
 	}
 end
 
-local function packs(...)
+for zoneId, list in pairs(MineZoneChests.ZONE_CHESTS) do
+	local pool = {}
+	local perRank = {}
+	for _, row in ipairs(list) do
+		perRank[row[3]] = (perRank[row[3]] or 0) + 1
+	end
+	local top = MineChestRanks.odds(1)
+	for _, row in ipairs(list) do
+		local id, name, rank = row[1], row[2], row[3]
+		MineZoneChests.DEFS[id] = chestDef(id, name, rank, zoneId)
+		ZONE_OF_SEAM[id] = zoneId
+		-- `weight` is this chest's share of the zone's chests at its top, for
+		-- the zone map (MineZoneMapView reads it).
+		table.insert(pool, { chestId = id, rank = rank, weight = (top[rank] or 0) / math.max(1, perRank[rank]) })
+	end
+	MineZoneChests.POOLS[zoneId] = pool
+end
+
+do
+	local d = chestDef(MineZoneChests.SHINY_ID, "Shiny Chest", MineZoneChests.SHINY_RANK, nil)
+	d.kind = "chase"
+	d.shiny = true
+	MineZoneChests.DEFS[d.id] = d
+end
+
+for id, row in pairs(MineSetChests.BY_ID) do
+	local d = chestDef(id, row.name, row.rank, row.set.zoneId)
+	d.setKey = row.setKey
+	d.setTier = row.tier
+	MineZoneChests.DEFS[id] = d
+end
+
+--[[
+	FOR SCREENS ONLY: each chest also carries what it pays at its zone's top
+	(coins, gems, packs with printable `slot` names), so the screens that read
+	a def's bands (the zone map, the chest dex) keep working. payout() is what
+	pays; rollCurrency and rollPackDrops never read these.
+]]
+local function stampDisplay(d)
+	local pay = MineZoneChests.payout(d, d.zoneId, 1)
+	d.coins, d.gems = pay.coins, pay.gems
+	d.packs = {}
+	for _, pk in ipairs(pay.packs) do
+		table.insert(d.packs, { slot = MineZoneChests.packLabel(pk), chance = pk.chance })
+	end
+end
+
+function MineZoneChests.def(chestId)
+	local d = MineZoneChests.DEFS[chestId]
+	if d and d.rank and not d.coins then
+		stampDisplay(d)
+	end
+	return d
+end
+
+function MineZoneChests.pool(zoneId)
+	return MineZoneChests.POOLS[zoneId]
+end
+
+-- A chest's rank, or nil for an id that is not a chest.
+function MineZoneChests.rankOf(chestId)
+	local d = MineZoneChests.DEFS[chestId]
+	return d and d.rank or nil
+end
+
+local function zoneOr(zoneId)
+	if MineZoneChests.POOLS[zoneId] then
+		return zoneId
+	end
+	return "meadow"
+end
+
+-- The Shiny Chest's chance on a block of (zone, layer).
+function MineZoneChests.shinyChance(zoneIndex, layer)
+	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	if zoneIndex <= 1 then
+		return (layer >= 2500) and (1 / 8000) or 0
+	end
+	local t = math.clamp((zoneIndex - 1) / 9, 0, 1)
+	return (1 / 2500) * (1 - t) + 0.008 * t
+end
+
+--[[
+	THE SPAWN TABLE: every chest a chest block at (zone, layer) can be, with its
+	exact chance. rollSpawn draws from it, the economy check sums over it, and a
+	screen can print it. `better` is the depth luck (MineConfig.chestRankLuck),
+	`zoneIndex` the zone's place in MineConfig.ZONES (for the Shiny Chest).
+	{ { def, rank, p }, ... }, p summing to 1.
+]]
+function MineZoneChests.spawnTable(zoneId, layer, zoneIndex, better)
+	zoneId = zoneOr(zoneId)
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	local odds = MineChestRanks.odds(better)
+	local shiny = (zoneId == "bigbang") and 0 or MineZoneChests.shinyChance(zoneIndex, layer)
+	local living = MineSetChests.livingAt(zoneId, layer)
+	local rows = {}
+	local byRank = {}
+	for _, row in ipairs(MineZoneChests.POOLS[zoneId]) do
+		byRank[row.rank] = byRank[row.rank] or {}
+		table.insert(byRank[row.rank], MineZoneChests.DEFS[row.chestId])
+	end
+	for _, rank in ipairs(LADDER) do
+		local p = (odds[rank] or 0) * (1 - shiny)
+		local tier = MineSetChests.tierForRank(rank)
+		local setShare = (tier and #living > 0) and MineSetChests.SHARE or 0
+		local zoneDefs = byRank[rank] or {}
+		if #zoneDefs == 0 then
+			-- A zone with no chest of this rank pays a set chest when one
+			-- lives here, else its nearest rank down.
+			setShare = (setShare > 0) and 1 or 0
+		end
+		if setShare > 0 then
+			for _, set in ipairs(living) do
+				local d = MineZoneChests.DEFS[MineSetChests.chestId(set.key, tier)]
+				table.insert(rows, { def = d, rank = rank, p = p * setShare / #living })
+			end
+		end
+		local left = p * (1 - setShare)
+		if left > 0 then
+			if #zoneDefs == 0 then
+				for i = MineChestRanks.index(rank) - 1, 1, -1 do
+					zoneDefs = byRank[LADDER[i]] or {}
+					if #zoneDefs > 0 then
+						break
+					end
+				end
+			end
+			for _, d in ipairs(zoneDefs) do
+				table.insert(rows, { def = d, rank = d.rank, p = left / #zoneDefs })
+			end
+		end
+	end
+	if shiny > 0 then
+		table.insert(rows, { def = MineZoneChests.DEFS[MineZoneChests.SHINY_ID], rank = MineZoneChests.SHINY_RANK, p = shiny })
+	end
+	return rows
+end
+
+-- One chest for a chest block: rank first, then which chest (see the header).
+function MineZoneChests.rollSpawn(zoneId, layer, zoneIndex, better)
+	local rng = Random.new()
+	local rows = MineZoneChests.spawnTable(zoneId, layer, zoneIndex, better)
+	local u = rng:NextNumber()
+	for _, row in ipairs(rows) do
+		u -= row.p
+		if u <= 0 then
+			return row.def
+		end
+	end
+	return rows[1] and rows[1].def or nil
+end
+
+--[[
+	The open-time fallback for a block whose chest id is not known (a block
+	spawned before 2026-10-19 carrying a Mine 1 catalog or section chest id).
+	Rolls from the same table as a fresh block: { chestId, rank, def }.
+	opts: { layer, better, zoneIndex }.
+]]
+function MineZoneChests.roll(zoneId, rng, opts)
+	opts = opts or {}
+	rng = rng or Random.new()
+	local rows = MineZoneChests.spawnTable(zoneId, opts.layer, opts.zoneIndex, opts.better)
+	local u = rng:NextNumber()
+	for _, row in ipairs(rows) do
+		u -= row.p
+		if u <= 0 then
+			return { chestId = row.def.id, rank = row.def.rank, def = row.def }
+		end
+	end
+	local d = rows[1] and rows[1].def
+	return d and { chestId = d.id, rank = d.rank, def = d } or nil
+end
+
+-- The zone whose bases a chest pays from: its own, else where it was opened.
+local function payZone(def, zoneId)
+	local z = (def and def.zoneId) or zoneId
+	if not MineZoneChests.GEM_BASE[z] then
+		z = zoneOr(zoneId)
+	end
+	return z
+end
+
+local function hpAt(layer)
+	local okC, C = pcall(function()
+		return require(script.Parent:WaitForChild("MineConfig"))
+	end)
+	if okC and C and C.dirtHp then
+		return math.max(1, tonumber(C.dirtHp(layer)) or 1)
+	end
+	return 20 + 1.5 * layer
+end
+
+--[[
+	WHAT A CHEST PAYS at `layer`, opened in `zoneId` (a chest pays its own
+	zone's bases; the Shiny Chest pays where it is opened):
+	  { coins = { lo, hi }, gems = { lo, hi }, packs = { { slot | packIds, chance } } }
+	`chance` is a percent and may pass 100 (over 100 pays one for sure).
+	A set chest's card pack is its set's: { set = key, tier = tier, chance = 100 }.
+]]
+MineZoneChests.GEM_SPREAD = 0.2
+MineZoneChests.COIN_SPREAD = 0.3
+
+function MineZoneChests.payout(def, zoneId, layer)
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	local z = payZone(def, zoneId)
+	local rank = (def and def.rank) or "F"
+	local pay = MineZoneChests.PAY[rank] or 1
+	local gemMean = (MineZoneChests.GEM_BASE[z] or 0) * pay
+	local cb = MineZoneChests.COIN_BASE[z] or MineZoneChests.COIN_BASE.meadow
+	local coinMean = ((cb.flat or 0) + (cb.perHp or 0) * hpAt(layer)) * pay
+	if z == "meadow" and layer <= MineZoneChests.MEADOW_EARLY_LAYERS then
+		coinMean *= MineZoneChests.MEADOW_EARLY_COIN_MULT
+	end
+	local function band(mean, spread)
+		if mean <= 0 then
+			return { 0, 0 }
+		end
+		local lo = math.max(0, math.floor(mean * (1 - spread) + 0.5))
+		local hi = math.max(lo, math.floor(mean * (1 + spread) + 0.5))
+		return { lo, hi }
+	end
+	local packs = {}
+	local bases = MineZoneChests.PACK_BASE[z] or MineZoneChests.PACK_BASE.meadow
+	for _, slot in ipairs(MineZoneChests.PACK_SLOTS) do
+		local isCard = string.sub(slot, 1, 5) == "pack_"
+		if not (def and def.setKey and isCard) then
+			local c = (bases[slot] or 0) * ((MineZoneChests.PACK_MULT[slot] or {})[rank] or 0) * 100
+			if c > 0 then
+				table.insert(packs, { slot = slot, chance = math.floor(c * 10 + 0.5) / 10 })
+			end
+		end
+	end
+	if def and def.setKey then
+		table.insert(packs, 1, { set = def.setKey, tier = def.setTier, chance = 100 })
+	end
+	return {
+		coins = band(coinMean, MineZoneChests.COIN_SPREAD),
+		gems = band(gemMean, MineZoneChests.GEM_SPREAD),
+		packs = packs,
+		rank = rank,
+		zoneId = z,
+	}
+end
+
+--[[
+	Coins and gems for one chest, from payout's bands. `layer` and `zoneId`
+	are where it was opened; an old caller passing neither gets a chest at a
+	zone's top. A def that predates the ranks (the section chests, the catalog)
+	keeps its own bands.
+]]
+function MineZoneChests.rollCurrency(chestDef, rng, layer, zoneId)
+	rng = rng or Random.new()
+	local coinsBand, gemsBand
+	if chestDef and chestDef.rank and MineChestRanks.valid(chestDef.rank) then
+		local pay = MineZoneChests.payout(chestDef, zoneId, layer or 1)
+		coinsBand, gemsBand = pay.coins, pay.gems
+	else
+		coinsBand, gemsBand = chestDef and chestDef.coins, chestDef and chestDef.gems
+	end
+	local function roll(pair)
+		local lo = math.floor(tonumber(pair and pair[1]) or 0)
+		local hi = math.floor(tonumber(pair and pair[2]) or lo)
+		if hi <= lo then
+			return math.max(0, lo)
+		end
+		return rng:NextInteger(lo, hi)
+	end
+	local coins = roll(coinsBand)
+	local gems = roll(gemsBand)
+	if coins < 1 then
+		coins = 1
+	end
+	return coins, gems
+end
+
+--[[
+	The packs one chest pays: zone pack ids (MineZonePacks.id), and for a set
+	chest one of its set's packs ("<set>_pack_<n>"). Each entry is its own
+	roll; a chance over 100 pays floor(chance/100) for sure and rolls the rest.
+]]
+function MineZoneChests.rollPackDrops(zoneId, chestDef, rng, layer)
+	rng = rng or Random.new()
+	local out = {}
+	local list
+	if chestDef and chestDef.rank and MineChestRanks.valid(chestDef.rank) then
+		list = MineZoneChests.payout(chestDef, zoneId, layer or 1).packs
+	else
+		list = (chestDef and chestDef.packs) or {}
+	end
+	for _, entry in ipairs(list) do
+		local chance = tonumber(entry.chance) or 0
+		local n = math.floor(chance / 100)
+		if rng:NextNumber() * 100 < (chance - n * 100) then
+			n += 1
+		end
+		for _ = 1, n do
+			if entry.set then
+				local id = MineSetChests.rollPack(entry.set, entry.tier, rng)
+				if id then
+					table.insert(out, id)
+				end
+			elseif entry.slot then
+				table.insert(out, MineZonePacks.id(zoneId, entry.slot))
+			end
+		end
+	end
+	return out
+end
+
+-- Kept for old callers: ranks are fixed now, so nothing ages.
+function MineZoneChests.ageZone(_zoneId) end
+
+function MineZoneChests.onPermanentZoneUnlocked(_unlockedZoneId) end
+
+-- One chest identity per section (Meadow 100, Event Horizon 2). LEGACY since
+-- 2026-10-19: section chests no longer spawn or pay (a block's own chest pays
+-- now). Kept so an old id still names something.
+local exclusiveCache = {}
+
+local function legacyPacks(...)
 	local out = {}
 	for i = 1, select("#", ...), 2 do
 		local slot, chance = select(i, ...)
@@ -29,388 +570,6 @@ local function packs(...)
 	end
 	return out
 end
-
--- Fixed payouts — human bands, no runtime zone/depth multipliers.
-MineZoneChests.DEFS = {
-	-- Not in any pool. rollSpawn grants it under a hard cap.
-	shiny_chest = def("shiny_chest", "Shiny Chest", { 800, 2400 }, { 12, 40 }, packs("pack_legendary", 40, "currency_rare", 80)),
-	-- Meadow
-	meadow_topsoil = def("meadow_topsoil", "Topsoil Cache", { 6, 22 }, { 1, 3 },
-		packs("pack_common", 70, "currency_common", 40)),
-	meadow_rootbox = def("meadow_rootbox", "Rootbox", { 10, 35 }, { 1, 4 },
-		packs("pack_common", 55, "pack_rare", 25)),
-	meadow_loam_vault = def("meadow_loam_vault", "Loam Vault", { 20, 60 }, { 2, 6 },
-		packs("pack_rare", 45, "currency_rare", 30)),
-	meadow_sunrise = def("meadow_sunrise", "Sunrise Strongbox", { 40, 100 }, { 3, 8 },
-		packs("pack_legendary", 35, "pack_rare", 20)),
-	meadow_sod_crate = def("meadow_sod_crate", "Sod Crate", { 8, 28 }, { 1, 3 },
-		packs("currency_common", 60, "pack_common", 35)),
-	meadow_briar = def("meadow_briar", "Briar Chest", { 14, 44 }, { 1, 5 },
-		packs("pack_common", 50, "pack_rare", 20)),
-	meadow_hillock = def("meadow_hillock", "Hillock Cache", { 18, 55 }, { 2, 5 },
-		packs("pack_common", 35, "currency_common", 40)),
-	meadow_age_s1 = def("meadow_age_s1", "Dewvault", { 55, 130 }, { 4, 10 },
-		packs("pack_legendary", 40, "currency_rare", 35)),
-	meadow_age_s2 = def("meadow_age_s2", "Canopy Coffer", { 70, 160 }, { 5, 12 },
-		packs("pack_legendary", 45, "pack_rare", 28)),
-
-	-- Seam / overlap
-	seam_cobble = def("seam_cobble", "Cobble Seam Chest", { 15, 50 }, { 2, 5 },
-		packs("pack_common", 50, "pack_rare", 25)),
-	seam_slate = def("seam_slate", "Slate Seam Chest", { 30, 90 }, { 3, 8 },
-		packs("pack_rare", 45, "pack_common", 30)),
-	seam_mist = def("seam_mist", "Mist Seam Chest", { 45, 130 }, { 4, 11 },
-		packs("pack_rare", 50, "currency_rare", 30)),
-	seam_spark = def("seam_spark", "Spark Seam Chest", { 60, 170 }, { 5, 14 },
-		packs("pack_legendary", 35, "pack_rare", 40)),
-	seam_crimson = def("seam_crimson", "Crimson Seam Chest", { 80, 220 }, { 6, 16 },
-		packs("pack_legendary", 40, "pack_rare", 25)),
-	seam_shadow = def("seam_shadow", "Shadow Seam Chest", { 100, 280 }, { 8, 20 },
-		packs("pack_legendary", 42, "currency_rare", 35)),
-	seam_rift = def("seam_rift", "Rift Seam Chest", { 130, 340 }, { 10, 24 },
-		packs("pack_legendary", 45, "pack_rare", 30)),
-	seam_star = def("seam_star", "Star Seam Chest", { 160, 400 }, { 12, 28 },
-		packs("pack_legendary", 48, "pack_rare", 40)),
-	seam_myth = def("seam_myth", "Myth Seam Chest", { 200, 480 }, { 14, 32 },
-		packs("pack_legendary", 50, "pack_rare", 32)),
-	seam_prime = def("seam_prime", "Prime Seam Chest", { 240, 560 }, { 16, 36 },
-		packs("pack_legendary", 52, "currency_rare", 40)),
-
-	-- Greyvein (sunscar)
-	greyvein_flagstone = def("greyvein_flagstone", "Flagstone Chest", { 25, 80 }, { 3, 7 },
-		packs("pack_common", 65, "currency_common", 35)),
-	greyvein_shale = def("greyvein_shale", "Shale Coffer", { 40, 120 }, { 4, 10 },
-		packs("pack_rare", 50, "pack_common", 30)),
-	greyvein_granite = def("greyvein_granite", "Granite Vault", { 80, 200 }, { 6, 14 },
-		packs("pack_legendary", 40, "pack_rare", 22, "currency_rare", 25)),
-	greyvein_quarry = def("greyvein_quarry", "Quarry Cache", { 28, 90 }, { 3, 8 },
-		packs("pack_common", 55, "pack_rare", 28)),
-	greyvein_chisel = def("greyvein_chisel", "Chisel Box", { 35, 110 }, { 3, 9 },
-		packs("currency_common", 50, "pack_rare", 30)),
-	greyvein_bedrock = def("greyvein_bedrock", "Bedrock Strongbox", { 55, 150 }, { 5, 12 },
-		packs("pack_rare", 48, "currency_rare", 28)),
-	greyvein_age_s1 = def("greyvein_age_s1", "Keystone Vault", { 95, 240 }, { 7, 16 },
-		packs("pack_legendary", 42, "pack_rare", 26)),
-	greyvein_age_s2 = def("greyvein_age_s2", "Slate Crown", { 120, 280 }, { 8, 18 },
-		packs("pack_legendary", 48, "currency_rare", 32)),
-
-	-- Mistreef
-	mist_tide = def("mist_tide", "Tide Chest", { 35, 110 }, { 4, 9 },
-		packs("pack_common", 60, "currency_common", 40)),
-	mist_kelp = def("mist_kelp", "Kelp Coffer", { 50, 140 }, { 5, 11 },
-		packs("pack_rare", 48, "pack_common", 32)),
-	mist_reef = def("mist_reef", "Reef Vault", { 90, 230 }, { 7, 15 },
-		packs("pack_legendary", 38, "pack_rare", 24)),
-	mist_brine = def("mist_brine", "Brine Cache", { 40, 120 }, { 4, 10 },
-		packs("currency_common", 55, "pack_common", 40)),
-	mist_coral = def("mist_coral", "Coral Box", { 60, 160 }, { 5, 12 },
-		packs("pack_rare", 45, "currency_rare", 28)),
-	mist_age_s1 = def("mist_age_s1", "Abyss Pearl", { 130, 300 }, { 9, 18 },
-		packs("pack_legendary", 44, "pack_rare", 28)),
-	mist_age_s2 = def("mist_age_s2", "Undertow Vault", { 150, 340 }, { 10, 20 },
-		packs("pack_legendary", 50, "currency_rare", 30)),
-
-	-- Arcwork
-	arc_coil = def("arc_coil", "Coil Chest", { 50, 150 }, { 5, 12 },
-		packs("pack_common", 58, "currency_common", 42)),
-	arc_spark = def("arc_spark", "Spark Coffer", { 70, 190 }, { 6, 14 },
-		packs("pack_rare", 50, "pack_common", 30)),
-	arc_core = def("arc_core", "Core Vault", { 120, 300 }, { 9, 18 },
-		packs("pack_legendary", 40, "pack_rare", 25)),
-	arc_wire = def("arc_wire", "Wire Box", { 55, 160 }, { 5, 13 },
-		packs("currency_common", 50, "pack_common", 45)),
-	arc_flux = def("arc_flux", "Flux Cache", { 85, 220 }, { 7, 15 },
-		packs("pack_rare", 48, "currency_rare", 30)),
-	arc_age_s1 = def("arc_age_s1", "Dynamo Vault", { 160, 380 }, { 11, 22 },
-		packs("pack_legendary", 46, "pack_rare", 30)),
-	arc_age_s2 = def("arc_age_s2", "Circuit Crown", { 180, 420 }, { 12, 24 },
-		packs("pack_legendary", 52, "currency_rare", 32)),
-
-	-- Bloodmoon
-	blood_ember = def("blood_ember", "Ember Chest", { 70, 200 }, { 6, 14 },
-		packs("pack_common", 55, "currency_common", 40)),
-	blood_fang = def("blood_fang", "Fang Coffer", { 95, 250 }, { 8, 16 },
-		packs("pack_rare", 50, "pack_common", 32)),
-	blood_lunar = def("blood_lunar", "Lunar Vault", { 150, 360 }, { 11, 20 },
-		packs("pack_legendary", 42, "pack_rare", 26)),
-	blood_ash = def("blood_ash", "Ash Cache", { 75, 210 }, { 7, 15 },
-		packs("currency_common", 48, "pack_common", 42)),
-	blood_veil = def("blood_veil", "Veil Box", { 110, 280 }, { 9, 17 },
-		packs("pack_rare", 48, "currency_rare", 30)),
-	blood_age_s1 = def("blood_age_s1", "Crimson Reliquary", { 200, 460 }, { 13, 26 },
-		packs("pack_legendary", 48, "pack_rare", 30)),
-	blood_age_s2 = def("blood_age_s2", "Eclipse Scar", { 230, 520 }, { 14, 28 },
-		packs("pack_legendary", 54, "currency_rare", 34)),
-
-	-- Eclipse
-	ecl_umbral = def("ecl_umbral", "Umbral Chest", { 90, 250 }, { 8, 16 },
-		packs("pack_common", 52, "currency_common", 40)),
-	ecl_void = def("ecl_void", "Void Coffer", { 120, 310 }, { 10, 19 },
-		packs("pack_rare", 50, "pack_common", 34)),
-	ecl_nocturne = def("ecl_nocturne", "Nocturne Vault", { 190, 440 }, { 13, 24 },
-		packs("pack_legendary", 44, "pack_rare", 28)),
-	ecl_shade = def("ecl_shade", "Shade Cache", { 100, 270 }, { 9, 17 },
-		packs("currency_common", 48, "pack_common", 40)),
-	ecl_penumbra = def("ecl_penumbra", "Penumbra Box", { 140, 340 }, { 11, 20 },
-		packs("pack_rare", 48, "currency_rare", 32)),
-	ecl_age_s1 = def("ecl_age_s1", "Black Sun Vault", { 250, 560 }, { 15, 30 },
-		packs("pack_legendary", 50, "pack_rare", 32)),
-	ecl_age_s2 = def("ecl_age_s2", "Totality Crown", { 280, 620 }, { 16, 32 },
-		packs("pack_legendary", 55, "currency_rare", 36)),
-
-	-- Riftmarch
-	rift_tear = def("rift_tear", "Tear Chest", { 110, 300 }, { 10, 18 },
-		packs("pack_common", 50, "currency_common", 40)),
-	rift_scar = def("rift_scar", "Scar Coffer", { 150, 380 }, { 12, 22 },
-		packs("pack_rare", 50, "pack_common", 34)),
-	rift_gate = def("rift_gate", "Gate Vault", { 230, 520 }, { 15, 28 },
-		packs("pack_legendary", 46, "pack_rare", 30)),
-	rift_fracture = def("rift_fracture", "Fracture Cache", { 120, 320 }, { 11, 20 },
-		packs("currency_common", 48, "pack_common", 40)),
-	rift_warp = def("rift_warp", "Warp Box", { 170, 420 }, { 13, 24 },
-		packs("pack_rare", 48, "currency_rare", 32)),
-	rift_age_s1 = def("rift_age_s1", "Breach Reliquary", { 300, 680 }, { 18, 34 },
-		packs("pack_legendary", 52, "pack_rare", 34)),
-	rift_age_s2 = def("rift_age_s2", "March Crown", { 340, 740 }, { 20, 36 },
-		packs("pack_legendary", 56, "currency_rare", 38)),
-
-	-- Starfall
-	star_dust = def("star_dust", "Stardust Chest", { 140, 360 }, { 12, 22 },
-		packs("pack_common", 50, "currency_common", 42)),
-	star_comet = def("star_comet", "Comet Coffer", { 180, 440 }, { 14, 26 },
-		packs("pack_rare", 50, "pack_common", 35)),
-	star_nova = def("star_nova", "Nova Vault", { 280, 620 }, { 18, 32 },
-		packs("pack_legendary", 48, "pack_rare", 32)),
-	star_orbit = def("star_orbit", "Orbit Cache", { 150, 380 }, { 13, 24 },
-		packs("currency_common", 48, "pack_common", 40)),
-	star_meteor = def("star_meteor", "Meteor Box", { 210, 500 }, { 15, 28 },
-		packs("pack_rare", 48, "currency_rare", 34)),
-	star_age_s1 = def("star_age_s1", "Constellation Vault", { 360, 800 }, { 22, 40 },
-		packs("pack_legendary", 54, "pack_rare", 36)),
-	star_age_s2 = def("star_age_s2", "Aurora Crown", { 400, 880 }, { 24, 42 },
-		packs("pack_legendary", 58, "currency_rare", 40)),
-
-	-- Mythral
-	myth_shard = def("myth_shard", "Shard Chest", { 170, 420 }, { 14, 26 },
-		packs("pack_common", 48, "currency_common", 42)),
-	myth_lattice = def("myth_lattice", "Lattice Coffer", { 220, 520 }, { 16, 30 },
-		packs("pack_rare", 50, "pack_common", 36)),
-	myth_prism = def("myth_prism", "Prism Vault", { 340, 740 }, { 22, 36 },
-		packs("pack_legendary", 50, "pack_rare", 34)),
-	myth_gleam = def("myth_gleam", "Gleam Cache", { 180, 450 }, { 15, 28 },
-		packs("currency_common", 48, "pack_common", 40)),
-	myth_aether = def("myth_aether", "Aether Box", { 260, 600 }, { 18, 32 },
-		packs("pack_rare", 48, "currency_rare", 36)),
-	myth_age_s1 = def("myth_age_s1", "Mythforge Vault", { 440, 960 }, { 26, 46 },
-		packs("pack_legendary", 56, "pack_rare", 38)),
-	myth_age_s2 = def("myth_age_s2", "Crystal Crown", { 480, 1040 }, { 28, 48 },
-		packs("pack_legendary", 60, "currency_rare", 42)),
-
-	-- Primordium
-	prime_seed = def("prime_seed", "Seed Chest", { 210, 500 }, { 16, 30 },
-		packs("pack_common", 48, "currency_common", 42)),
-	prime_bone = def("prime_bone", "Bone Coffer", { 270, 620 }, { 19, 34 },
-		packs("pack_rare", 50, "pack_common", 38)),
-	prime_heart = def("prime_heart", "Heart Vault", { 400, 880 }, { 26, 42 },
-		packs("pack_legendary", 52, "pack_rare", 36)),
-	prime_ash = def("prime_ash", "Primordial Ash", { 230, 540 }, { 17, 32 },
-		packs("currency_common", 48, "pack_common", 40)),
-	prime_ember = def("prime_ember", "World Ember", { 320, 720 }, { 22, 38 },
-		packs("pack_rare", 48, "currency_rare", 38)),
-	prime_age_s1 = def("prime_age_s1", "Origin Reliquary", { 520, 1120 }, { 30, 52 },
-		packs("pack_legendary", 58, "pack_rare", 40)),
-	prime_age_s2 = def("prime_age_s2", "First Crown", { 580, 1240 }, { 32, 56 },
-		packs("pack_legendary", 62, "currency_rare", 44)),
-
-	-- Event Horizon (limited) — card/currency only.
-	hz_event = def("hz_event", "Event Cache", { 300, 700 }, { 20, 40 },
-		packs("pack_common", 55, "currency_common", 45)),
-	hz_singularity = def("hz_singularity", "Singularity Coffer", { 400, 900 }, { 26, 48 },
-		packs("pack_rare", 58, "pack_common", 40)),
-	hz_horizon = def("hz_horizon", "Horizon Vault", { 600, 1400 }, { 34, 60 },
-		packs("pack_legendary", 60, "pack_rare", 40)),
-	hz_pulse = def("hz_pulse", "Pulse Box", { 350, 800 }, { 22, 44 },
-		packs("currency_rare", 40, "pack_rare", 45)),
-	hz_collapse = def("hz_collapse", "Collapse Chest", { 500, 1100 }, { 30, 52 },
-		packs("pack_legendary", 55, "currency_rare", 40)),
-}
-
---[[
-	Initial pools (~12–16 identities). Neighbor overlap via seam_* and shared defs.
-	S_QUEUE injects a new S on each age-up.
-]]
---[[
-	GEM PACING (re-cut 2026-09-19 for launch). Chests are the main gem source
-	and pay a smooth ~1.3k gems in Greyvein, rising x1.4 a zone (to ~19k in
-	Primordium). With chests at MineConfig.CHEST_CHANCE and the zone prices in
-	MineConfig.ZONES, a typical player (simulated from the live shop, bag, HP,
-	chest, quest, gift and daily tables) spends 15 / 30 / 45 / 60 / 75 / 90 /
-	105 / 120 / 150 minutes in each zone before the next one: about 11.5 hours
-	from a fresh save to Primordium. Meadow chests stay gem-free (its currency
-	packs pay a little); the tutorial pays Greyvein's portal.
-
-	Applied to each chest's own range by its home zone, so the collection
-	screen and the payout read the same numbers. Seam chests belong to the
-	zone where they show up most.
-]]
-MineZoneChests.GEM_MULT = {
-	meadow = 1, sunscar = 250, mistreef = 270, arcwork = 285, bloodmoon = 345,
-	eclipse = 395, riftmarch = 465, starfall = 550, mythral = 660, primordium = 820,
-}
-local GEM_HOME_PREFIX = {
-	meadow = "meadow", greyvein = "sunscar", mist = "mistreef", arc = "arcwork", blood = "bloodmoon",
-	ecl = "eclipse", rift = "riftmarch", star = "starfall", myth = "mythral", prime = "primordium",
-}
-local GEM_HOME_SEAM = {
-	seam_cobble = "sunscar", seam_slate = "mistreef", seam_mist = "arcwork", seam_spark = "bloodmoon",
-	seam_crimson = "eclipse", seam_shadow = "riftmarch", seam_rift = "starfall", seam_star = "mythral",
-	seam_myth = "primordium", seam_prime = "primordium",
-}
-for id, d in pairs(MineZoneChests.DEFS) do
-	local home = GEM_HOME_SEAM[id] or GEM_HOME_PREFIX[string.match(id, "^(%a+)_") or ""]
-	local m = home and MineZoneChests.GEM_MULT[home] or 1
-	if m ~= 1 and type(d.gems) == "table" then
-		d.baseGems = { d.gems[1], d.gems[2] }
-		d.gems = { math.floor(d.gems[1] * m + 0.5), math.floor(d.gems[2] * m + 0.5) }
-	end
-end
-
-MineZoneChests.POOLS = {
-	meadow = {
-		{ chestId = "meadow_topsoil", rank = "C" },
-		{ chestId = "meadow_rootbox", rank = "C" },
-		{ chestId = "meadow_sod_crate", rank = "C" },
-		{ chestId = "meadow_briar", rank = "B" },
-		{ chestId = "meadow_hillock", rank = "B" },
-		{ chestId = "meadow_loam_vault", rank = "A" },
-		{ chestId = "meadow_sunrise", rank = "S" },
-		{ chestId = "seam_cobble", rank = "A" },
-	},
-	sunscar = {
-		{ chestId = "greyvein_flagstone", rank = "C" },
-		{ chestId = "greyvein_quarry", rank = "C" },
-		{ chestId = "greyvein_chisel", rank = "C" },
-		{ chestId = "greyvein_shale", rank = "B" },
-		{ chestId = "greyvein_bedrock", rank = "B" },
-		{ chestId = "greyvein_granite", rank = "S" },
-		{ chestId = "seam_cobble", rank = "B" },
-		{ chestId = "seam_slate", rank = "A" },
-		{ chestId = "meadow_loam_vault", rank = "D" },
-	},
-	mistreef = {
-		{ chestId = "mist_tide", rank = "C" },
-		{ chestId = "mist_brine", rank = "C" },
-		{ chestId = "mist_kelp", rank = "B" },
-		{ chestId = "mist_coral", rank = "B" },
-		{ chestId = "mist_reef", rank = "S" },
-		{ chestId = "seam_slate", rank = "B" },
-		{ chestId = "seam_mist", rank = "A" },
-		{ chestId = "greyvein_shale", rank = "D" },
-	},
-	arcwork = {
-		{ chestId = "arc_coil", rank = "C" },
-		{ chestId = "arc_wire", rank = "C" },
-		{ chestId = "arc_spark", rank = "B" },
-		{ chestId = "arc_flux", rank = "B" },
-		{ chestId = "arc_core", rank = "S" },
-		{ chestId = "seam_mist", rank = "B" },
-		{ chestId = "seam_spark", rank = "A" },
-		{ chestId = "mist_kelp", rank = "D" },
-	},
-	bloodmoon = {
-		{ chestId = "blood_ember", rank = "C" },
-		{ chestId = "blood_ash", rank = "C" },
-		{ chestId = "blood_fang", rank = "B" },
-		{ chestId = "blood_veil", rank = "B" },
-		{ chestId = "blood_lunar", rank = "S" },
-		{ chestId = "seam_spark", rank = "B" },
-		{ chestId = "seam_crimson", rank = "A" },
-		{ chestId = "arc_spark", rank = "D" },
-	},
-	eclipse = {
-		{ chestId = "ecl_umbral", rank = "C" },
-		{ chestId = "ecl_shade", rank = "C" },
-		{ chestId = "ecl_void", rank = "B" },
-		{ chestId = "ecl_penumbra", rank = "B" },
-		{ chestId = "ecl_nocturne", rank = "S" },
-		{ chestId = "seam_crimson", rank = "B" },
-		{ chestId = "seam_shadow", rank = "A" },
-		{ chestId = "blood_fang", rank = "D" },
-	},
-	riftmarch = {
-		{ chestId = "rift_tear", rank = "C" },
-		{ chestId = "rift_fracture", rank = "C" },
-		{ chestId = "rift_scar", rank = "B" },
-		{ chestId = "rift_warp", rank = "B" },
-		{ chestId = "rift_gate", rank = "S" },
-		{ chestId = "seam_shadow", rank = "B" },
-		{ chestId = "seam_rift", rank = "A" },
-		{ chestId = "ecl_void", rank = "D" },
-	},
-	starfall = {
-		{ chestId = "star_dust", rank = "C" },
-		{ chestId = "star_orbit", rank = "C" },
-		{ chestId = "star_comet", rank = "B" },
-		{ chestId = "star_meteor", rank = "B" },
-		{ chestId = "star_nova", rank = "S" },
-		{ chestId = "seam_rift", rank = "B" },
-		{ chestId = "seam_star", rank = "A" },
-		{ chestId = "rift_scar", rank = "D" },
-	},
-	mythral = {
-		{ chestId = "myth_shard", rank = "C" },
-		{ chestId = "myth_gleam", rank = "C" },
-		{ chestId = "myth_lattice", rank = "B" },
-		{ chestId = "myth_aether", rank = "B" },
-		{ chestId = "myth_prism", rank = "S" },
-		{ chestId = "seam_star", rank = "B" },
-		{ chestId = "seam_myth", rank = "A" },
-		{ chestId = "star_comet", rank = "D" },
-	},
-	primordium = {
-		{ chestId = "prime_seed", rank = "C" },
-		{ chestId = "prime_ash", rank = "C" },
-		{ chestId = "prime_bone", rank = "B" },
-		{ chestId = "prime_ember", rank = "B" },
-		{ chestId = "prime_heart", rank = "S" },
-		{ chestId = "seam_myth", rank = "B" },
-		{ chestId = "seam_prime", rank = "A" },
-		{ chestId = "myth_lattice", rank = "D" },
-	},
-	bigbang = {
-		{ chestId = "hz_event", rank = "C" },
-		{ chestId = "hz_pulse", rank = "C" },
-		{ chestId = "hz_singularity", rank = "B" },
-		{ chestId = "hz_collapse", rank = "A" },
-		{ chestId = "hz_horizon", rank = "S" },
-	},
-}
-
--- New S chests introduced when a zone ages (FIFO).
-MineZoneChests.S_QUEUE = {
-	meadow = { "meadow_age_s1", "meadow_age_s2" },
-	sunscar = { "greyvein_age_s1", "greyvein_age_s2" },
-	mistreef = { "mist_age_s1", "mist_age_s2" },
-	arcwork = { "arc_age_s1", "arc_age_s2" },
-	bloodmoon = { "blood_age_s1", "blood_age_s2" },
-	eclipse = { "ecl_age_s1", "ecl_age_s2" },
-	riftmarch = { "rift_age_s1", "rift_age_s2" },
-	starfall = { "star_age_s1", "star_age_s2" },
-	mythral = { "myth_age_s1", "myth_age_s2" },
-	primordium = { "prime_age_s1", "prime_age_s2" },
-}
-
-function MineZoneChests.def(chestId)
-	return MineZoneChests.DEFS[chestId]
-end
-
-function MineZoneChests.pool(zoneId)
-	return MineZoneChests.POOLS[zoneId]
-end
-
--- One chest identity per section (Meadow 100, Event Horizon 2). Shared body,
--- stamped number. Always coins; packs are independent extra rolls.
-local exclusiveCache = {}
 
 function MineZoneChests.exclusiveFor(zoneId, layer)
 	local C = require(script.Parent:WaitForChild("MineConfig"))
@@ -432,17 +591,14 @@ function MineZoneChests.exclusiveFor(zoneId, layer)
 	local prefix = isEH and "eh_chest_" or "sec_chest_"
 	local packList
 	if isEH then
-		packList = packs("pack_common", 50, "pack_rare", 16, "pack_legendary", 4, "currency_common", 35, "currency_rare", 12)
+		packList = legacyPacks("pack_common", 50, "pack_rare", 16, "pack_legendary", 4, "currency_common", 35, "currency_rare", 12)
 	else
-		-- Packs are chase from chests — coins default. Soft packs rare; legendaries brutal.
-		packList = packs("currency_common", 72, "pack_common", 18, "pack_rare", 6, "pack_legendary", 1, "currency_rare", 3)
+		packList = legacyPacks("currency_common", 72, "pack_common", 18, "pack_rare", 6, "pack_legendary", 1, "currency_rare", 3)
 	end
 	local def = {
 		id = prefix .. n,
 		name = stamp.label .. " " .. ((sec and sec.name) or "Chest"),
 		kind = "native",
-		-- First 100 layers of Meadow: 3-6 clods' worth, so a chest moves the
-		-- first purchases along instead of paying a single swing.
 		coins = (zoneId == "meadow" and n <= 2) and { hp * 3, hp * 6 } or { hp, math.max(hp, math.floor(hp * 2)) },
 		gems = { 0, 0 },
 		packs = packList,
@@ -454,232 +610,76 @@ function MineZoneChests.exclusiveFor(zoneId, layer)
 		zoneId = zoneId,
 	}
 	exclusiveCache[key] = def
-	MineZoneChests.DEFS[def.id] = def
 	return def
 end
 
-function MineZoneChests.ageZone(zoneId)
-	local pool = MineZoneChests.POOLS[zoneId]
-	if not pool then
-		return
+-- How a pack line reads on a screen: "Rare Pack", or a set chest's set pack.
+function MineZoneChests.packLabel(entry)
+	if type(entry) ~= "table" then
+		return "?"
 	end
-	pool = MineChestRanks.agePool(pool)
-	local q = MineZoneChests.S_QUEUE[zoneId]
-	if q and #q > 0 then
-		local nextId = table.remove(q, 1)
-		if MineZoneChests.DEFS[nextId] then
-			table.insert(pool, { chestId = nextId, rank = "S" })
-		end
-	end
-	MineZoneChests.POOLS[zoneId] = pool
-end
-
-function MineZoneChests.onPermanentZoneUnlocked(unlockedZoneId)
-	if unlockedZoneId == MineZonePacks.LIMITED_ZONE then
-		return
-	end
-	local order = MineZonePacks.ZONE_ORDER
-	local unlockedIndex = nil
-	for i, id in ipairs(order) do
-		if id == unlockedZoneId then
-			unlockedIndex = i
-			break
-		end
-	end
-	if not unlockedIndex or unlockedIndex <= 1 then
-		return
-	end
-	for i = 1, unlockedIndex - 1 do
-		MineZoneChests.ageZone(order[i])
-	end
-end
-
--- `better` (optional): depth's chest luck, MineConfig.chestRankLuck. It lifts
--- the pool's B/A/S ranks and the catalog chests' luck; nil is x1.
-function MineZoneChests.rollSpawn(zoneId, layer, zoneIndex, better)
-	local rng = Random.new()
-	layer = math.max(1, math.floor(tonumber(layer) or 1))
-	zoneIndex = math.max(1, math.floor(tonumber(zoneIndex) or 1))
-	better = math.max(1, tonumber(better) or 1)
-	local chestDef
-	-- Almost half the wall is the wider chest catalog (every mine-1 chest
-	-- whose depth band covers this layer). The rest is this planet's pool
-	-- plus the section chest. Lookingglass never comes from that catalog.
-	local okP, Packs = pcall(function()
-		return require(script.Parent:WaitForChild("MinePackConfig"))
-	end)
-	if okP and Packs and Packs.rollChestAt then
-		-- Zone 1 top layers: other (catalog) chests only very rarely.
-		-- Deeper / other planets keep a wider mix.
-		local mix = 0.45
-		if zoneIndex <= 1 then
-			mix = (layer <= 120) and 0.025 or 0.12
-		end
-		if rng:NextNumber() < mix then
-			chestDef = Packs.rollChestAt(1, layer, rng, better)
-			if chestDef and chestDef.id == "m1_lookingglass" then
-				chestDef = nil
+	if entry.set then
+		local okS, SetPacks = pcall(function()
+			return require(script.Parent:WaitForChild("MineSetPacks"))
+		end)
+		local name = tostring(entry.set)
+		local stars = {}
+		if okS and SetPacks then
+			local okP, SetPets = pcall(function()
+				return require(script.Parent:WaitForChild("MineSetPets"))
+			end)
+			local set = okP and SetPets and SetPets.BY_KEY and SetPets.BY_KEY[entry.set]
+			name = (set and set.NAME) or name
+			for _, r in ipairs(MineSetChests.PACK_STARS[entry.tier] or {}) do
+				table.insert(stars, (SetPacks.STAR_TEXT and SetPacks.STAR_TEXT[r[1]]) or tostring(r[1]))
 			end
 		end
+		return name .. " " .. table.concat(stars, " or ") .. " pack"
 	end
-	if not chestDef then
-		local pick = MineZoneChests.roll(zoneId, rng, { luck = 1, layer = layer, better = better })
-		chestDef = pick and pick.def or nil
-	end
-	local chance = 0
-	if zoneIndex <= 1 then
-		if layer >= 2500 then
-			chance = 1 / 8000
-		end
-	else
-		local t = math.clamp((zoneIndex - 1) / 9, 0, 1)
-		chance = (1 / 2500) * (1 - t) + 0.008 * t
-	end
-	if chance > 0 and rng:NextNumber() < chance then
-		local shiny = MineZoneChests.DEFS.shiny_chest
-		if shiny then
-			shiny.kind = "chase"
-			chestDef = shiny
-		end
-	end
-	return chestDef
+	local meta = MineZonePacks.SLOT_META and MineZonePacks.SLOT_META[entry.slot]
+	return (meta and meta.label) or tostring(entry.slot or "?")
 end
 
-function MineZoneChests.roll(zoneId, rng, opts)
-	opts = opts or {}
-	local pool = MineZoneChests.POOLS[zoneId]
-	-- Meadow (and EH) keep vanity pool chests at EVERY depth (a/b/c),
-	-- and also weight in the section-native exclusive for this layer.
-	local rollPool = pool
-	if opts.layer then
-		local def = MineZoneChests.exclusiveFor(zoneId, opts.layer)
-		if def then
-			rollPool = {}
-			for _, row in ipairs(pool or {}) do
-				table.insert(rollPool, row)
-			end
-			-- Section native is common filler alongside meadow vanity C chests.
-			table.insert(rollPool, { chestId = def.id, rank = "C", def = def })
-		end
-	end
-	local pick = MineChestRanks.roll(rollPool, rng, opts)
-	if not pick then
-		return nil
-	end
-	local chestDef = pick.def or MineZoneChests.DEFS[pick.chestId]
-	if not chestDef then
-		return nil
-	end
-	return {
-		chestId = pick.chestId,
-		rank = pick.rank,
-		def = chestDef,
-	}
-end
-
-function MineZoneChests.rollPackDrops(zoneId, chestDef, rng)
-	rng = rng or Random.new()
-	local out = {}
-	for _, entry in ipairs(chestDef.packs or {}) do
-		if rng:NextNumber() * 100 <= (entry.chance or 0) then
-			table.insert(out, MineZonePacks.id(zoneId, entry.slot))
-		end
-	end
-	return out
-end
-
--- Fixed gem/coin roll from def ranges only (no zone/layer scaling).
-function MineZoneChests.rollCurrency(chestDef, rng)
-	rng = rng or Random.new()
-	local function band(pair)
-		local lo = math.floor(tonumber(pair and pair[1]) or 0)
-		local hi = math.floor(tonumber(pair and pair[2]) or lo)
-		if hi < lo then
-			hi = lo
-		end
-		if hi <= lo then
-			return math.max(0, lo)
-		end
-		return rng:NextInteger(lo, hi)
-	end
-	local coins = band(chestDef.coins)
-	local gems = band(chestDef.gems)
-	if (chestDef.exclusive or chestDef.eh) and coins < 1 then
-		coins = 1
-	end
-	return coins, gems
-end
-
--- Collection rows: every def with zones/ranks it currently sits in.
+--[[
+	Collection rows: every chest, with its rank, the zone it lives in and what
+	it pays at that zone's top (coins grow with depth; the rest does not).
+	`packs` rows carry `slot` as their printed name, for the screens that print
+	it.
+]]
 function MineZoneChests.collectionRows()
-	local byId = {}
-	for zoneId, pool in pairs(MineZoneChests.POOLS) do
-		if zoneId ~= "bigbang" then
-			for _, row in ipairs(pool) do
-				local d = MineZoneChests.DEFS[row.chestId]
-				if d then
-					local entry = byId[row.chestId]
-					if not entry then
-						entry = {
-							id = d.id,
-							name = d.name,
-							coins = d.coins,
-							gems = d.gems,
-							packs = d.packs,
-							sectionN = d.sectionN,
-							zones = {},
-						}
-						byId[row.chestId] = entry
-					end
-					table.insert(entry.zones, { zoneId = zoneId, rank = row.rank })
-				end
-			end
-		end
-	end
-	local C = require(script.Parent:WaitForChild("MineConfig"))
-	for _, sec in ipairs(C.SECTIONS or {}) do
-		local layer = sec.layers and sec.layers[1] or 1
-		local d = MineZoneChests.exclusiveFor("meadow", layer)
-		if d and not byId[d.id] then
-			byId[d.id] = {
-				id = d.id,
-				name = d.name,
-				coins = d.coins,
-				gems = d.gems,
-				packs = d.packs,
-				sectionN = d.sectionN,
-				zones = { { zoneId = "meadow", rank = "native" } },
-			}
-		end
-	end
-	for _, layer in ipairs({ 1, 26 }) do
-		local d = MineZoneChests.exclusiveFor("bigbang", layer)
-		if d and not byId[d.id] then
-			byId[d.id] = {
-				id = d.id,
-				name = d.name,
-				coins = d.coins,
-				gems = d.gems,
-				packs = d.packs,
-				sectionN = d.sectionN,
-				zones = { { zoneId = "bigbang", rank = "native" } },
-			}
-		end
-	end
 	local list = {}
-	for _, row in pairs(byId) do
-		table.insert(list, row)
+	local function add(d, zoneId)
+		local pay = MineZoneChests.payout(d, zoneId, 1)
+		local packs = {}
+		for _, pk in ipairs(pay.packs) do
+			table.insert(packs, { slot = MineZoneChests.packLabel(pk), chance = pk.chance })
+		end
+		table.insert(list, {
+			id = d.id,
+			name = d.name,
+			rank = d.rank,
+			coins = pay.coins,
+			gems = pay.gems,
+			packs = packs,
+			setKey = d.setKey,
+			setTier = d.setTier,
+			zones = { { zoneId = zoneId, rank = d.rank } },
+		})
+	end
+	for zoneId, pool in pairs(MineZoneChests.POOLS) do
+		for _, row in ipairs(pool) do
+			add(MineZoneChests.DEFS[row.chestId], zoneId)
+		end
+	end
+	for _, set in ipairs(MineSetChests.SETS) do
+		for _, tier in ipairs(MineSetChests.TIERS) do
+			add(MineZoneChests.DEFS[MineSetChests.chestId(set.key, tier)], set.zoneId)
+		end
 	end
 	table.sort(list, function(a, b)
-		local na, nb = tonumber(a.sectionN) or 0, tonumber(b.sectionN) or 0
-		if na ~= nb and (na > 0 or nb > 0) then
-			if na == 0 then
-				return false
-			end
-			if nb == 0 then
-				return true
-			end
-			return na < nb
+		local ra, rb = MineChestRanks.index(a.rank), MineChestRanks.index(b.rank)
+		if ra ~= rb then
+			return ra < rb
 		end
 		return a.name < b.name
 	end)

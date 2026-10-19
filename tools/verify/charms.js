@@ -271,18 +271,7 @@ check(MineCharms.ownsAnyCharm({ charms = { [ore[1].id] = true } }) == true, "a l
 
 print("")
 --[[
-	MERGING: three copies into one a tier deeper.
-
-	The claim the implementation makes is that a merge is a TRADE rather than an
-	upgrade -- the charm one tier up has a different shape, so you are buying
-	depth and variety rather than a bigger number (TODO 0.13). That is an
-	arithmetic consequence of how charms are indexed, not a hope, so it is
-	checked: k = (tier-1) * variants + (variant-1), shape = k % #SHAPES, and a
-	merge moves k by exactly "variants". If that ever stops changing the shape,
-	merging silently becomes a pure power ladder and this fails.
-]]
---[[
-	MERGING COSTS GEMS, NOT CHARMS. Owner, 2026-10-04: "rather than merging it
+	MERGING COSTS GEMS, NOT A PILE OF CHARMS. Owner, 2026-10-04: "rather than merging it
 	should cost gems."
 
 	This used to assert MERGE_COST >= 2 -- that eating copies was "a real
@@ -291,82 +280,51 @@ print("")
 	a thing, which is the "everything feels worthless" problem in its purest
 	form. One charm in, one charm out, and gems pay for the step.
 ]]
+--[[
+	MERGING RAISES A CHARM'S TIER, I TO V (owner, 2026-10-19): "each charm has
+	its own rarity always"; a merge raises its "teir i to v" for gems plus "any
+	charm of the same tier", and never changes the rarity. That replaced the
+	ore-tier ladder (a merge used to turn one ore's charm into the next ore's,
+	a different shape, TODO 0.13) and the rule that legacy charms do not merge.
+	charm-tiers.js runs the merge on stub profiles; this keeps its shape:
+	one charm in, the same charm out a tier up, gems for the step, V the top.
+]]
 check(math.floor(tonumber(MineCharms.MERGE_COST) or 0) == 1,
 	("merging consumes exactly one charm (%s)"):format(tostring(MineCharms.MERGE_COST)))
 check(type(MineCharms.mergeGemCost) == "function", "merging has a gem price")
 if type(MineCharms.mergeGemCost) == "function" then
-	local lo, hi = MineCharms.mergeGemCost(1), MineCharms.mergeGemCost(60)
-	check(lo > 0, ("a tier-1 merge costs %d gems"):format(lo))
-	check(hi > lo, ("...and a deep one costs more (%d at tier 60)"):format(hi))
-	local rising = true
-	for t = 2, 82 do
-		if MineCharms.mergeGemCost(t) < MineCharms.mergeGemCost(t - 1) then rising = false end
-	end
-	check(rising, "the gem price never steps backwards with tier")
-end
-
-local topTier, merged, sameShape, wrongVariant, wrongTier = 0, 0, 0, 0, 0
-for _, o in ipairs(STUB_CONFIG.ORES) do
-	topTier = math.max(topTier, o.tier)
-end
-for _, o in ipairs(STUB_CONFIG.ORES) do
-	for v = 1, ${VARIANTS} do
-		local id = MineCharms.oreCharmId(o.id, v)
-		local srcDef = MineCharms.byId(id)
-		local tgtId, tgtDef, why = MineCharms.mergeTarget(id)
-		if o.tier >= topTier then
-			if tgtId ~= nil then
-				wrongTier += 1
-				print("          the deepest charm " .. id .. " still offers a merge")
-			end
-			if not why then
-				wrongTier += 1
-				print("          " .. id .. " refuses without saying why")
-			end
-		elseif not tgtId then
-			wrongTier += 1
-			print("          " .. id .. " cannot merge: " .. tostring(why))
-		else
-			merged += 1
-			if tgtDef.variant ~= v then wrongVariant += 1 end
-			if tgtDef.tier ~= o.tier + 1 then wrongTier += 1 end
-			-- The property that makes it a trade.
-			local function shapeOf(d)
-				return d and d.shape or (d and d.shapeId) or nil
-			end
-			local a, b = shapeOf(srcDef), shapeOf(tgtDef)
-			if a ~= nil and a == b then
-				sameShape += 1
-			end
+	local order = STUB_TEMPER.GRADE_ORDER
+	local positive, rising = true, true
+	for i, g in ipairs(order) do
+		local prev = 0
+		for t = 2, MineCharms.TIER_MAX do
+			local c = tonumber(MineCharms.mergeGemCost(g, t)) or 0
+			if c <= 0 then positive = false end
+			if c <= prev then rising = false end
+			prev = c
+		end
+		if i > 1 and not ((tonumber(MineCharms.mergeGemCost(g, 2)) or 0) > (tonumber(MineCharms.mergeGemCost(order[i - 1], 2)) or 0)) then
+			rising = false
 		end
 	end
+	check(positive, "every step up costs gems")
+	check(rising, "...more for a higher tier, and more for a rarer charm")
 end
-check(merged > 0, ("every ore charm below the top merges (%d of them)"):format(merged))
-check(wrongTier == 0, "a merge goes exactly one tier up, and the top tier refuses with a reason")
-check(wrongVariant == 0, "a merge keeps its variant")
-check(sameShape == 0,
-	("a merge always changes the SHAPE, so it is a trade not an upgrade (%d kept it)"):format(sameShape))
 
--- Legacy charms must not feed the ladder: §6.0 still has an open owner call on
--- whether they are retired at all, and merging them would decide it quietly.
-local legacyChecked, legacyMergeable = 0, 0
+local listed, intoItself, topRefused = 0, 0, 0
 for _, d in ipairs(MineCharms.LIST) do
-	if d.source ~= "ore" then
-		legacyChecked += 1
-		if (MineCharms.mergeTarget(d.id)) ~= nil then legacyMergeable += 1 end
+	listed += 1
+	local okAll = true
+	for t = 1, MineCharms.TIER_MAX - 1 do
+		if MineCharms.mergeTarget(d.id, t) ~= d.id then okAll = false end
 	end
+	if okAll then intoItself += 1 end
+	local topId, _, why = MineCharms.mergeTarget(d.id, MineCharms.TIER_MAX)
+	if topId == nil and why then topRefused += 1 end
 end
-check(legacyChecked > 0 and legacyMergeable == 0,
-	("the %d legacy charms do not merge"):format(legacyChecked))
-
--- A chain has to terminate, or a client walking it to show the ladder hangs.
-local walk, steps = MineCharms.oreCharmId(STUB_CONFIG.ORES[1].id, 1), 0
-while walk and steps < 500 do
-	walk = (MineCharms.mergeTarget(walk))
-	steps += 1
-end
-check(steps < 500 and steps == topTier,
-	("the merge chain terminates, in %d steps for %d tiers"):format(steps, topTier))
+check(listed > 0 and intoItself == listed,
+	("every charm merges into itself a tier up, ore and legacy alike (%d of %d)"):format(intoItself, listed))
+check(topRefused == listed, "tier V is the top, and the refusal says why")
 
 --[[
 	THE 36 GRADED CHARMS (owner, 2026-10-07).
@@ -382,7 +340,11 @@ check(steps < 500 and steps == topTier,
 print("")
 do
 	local graded = MineCharms.GRADED or {}
-	check(#graded == 36, ("there are 36 graded charms (%d)"):format(#graded))
+	-- 2026-10-19: "more charm types at every rarity" -- four more per grade.
+	local isNew = {}
+	for _, r in ipairs(MineCharms.NEW_GRADED or {}) do isNew[r.id] = true end
+	check(#graded == 36 + 32 and #(MineCharms.NEW_GRADED or {}) == 32,
+		("there are 36 graded charms plus 32 new ones, four per rarity (%d)"):format(#graded))
 
 	local byRarity, ids, names, dupId, dupName = {}, {}, {}, 0, 0
 	for _, def in ipairs(graded) do
@@ -486,9 +448,12 @@ do
 		sheet replaced the first, so a stale id from the old upload would also show
 		up here as a duplicate.
 	]]
+	-- The 32 new charms wait for their art (tools/cursor/tasks/chest-and-charm-icons.md).
 	local noArt, seenIcon, seenArt, dupIcon, dupArt = 0, {}, {}, 0, 0
 	for _, def in ipairs(graded) do
-		if not def.art or not def.icon then
+		if isNew[def.id] then
+			-- skip: no art yet
+		elseif not def.art or not def.icon then
 			noArt += 1
 		else
 			if seenIcon[def.icon] then dupIcon += 1 end
@@ -496,16 +461,19 @@ do
 			seenIcon[def.icon], seenArt[def.art] = true, true
 		end
 	end
-	check(noArt == 0, ("every graded charm is skinned (%d without art)"):format(noArt))
+	check(noArt == 0, ("every one of the first 36 graded charms is skinned (%d without art)"):format(noArt))
 	check(dupIcon == 0 and dupArt == 0,
 		("no two charms share a picture (%d icon, %d asset)"):format(dupIcon, dupArt))
 
 	-- The art has to match the grade, or the rarity is invisible until you read it.
-	local topArt = {}
+	local topArt, topNew = {}, 0
 	for _, def in ipairs(graded) do
-		if def.rarity == "SSS" then table.insert(topArt, def.name) end
+		if def.rarity == "SSS" then
+			if isNew[def.id] then topNew += 1 else table.insert(topArt, def.name) end
+		end
 	end
-	check(#topArt == 1, ("exactly one SSS charm (%s)"):format(table.concat(topArt, ", ")))
+	check(#topArt == 1 and topNew == 4,
+		("the first 36 keep exactly one SSS charm (%s), and four new ones join it (%d)"):format(table.concat(topArt, ", "), topNew))
 end
 
 if fail == 0 then

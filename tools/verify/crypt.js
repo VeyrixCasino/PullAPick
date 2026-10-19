@@ -673,10 +673,11 @@ do
 		if gradeAt[d.rarity] <= lastGrade or (ore and ore.rank <= lastRank) then deeper = false end
 		lastGrade, lastRank = gradeAt[d.rarity], ore and ore.rank or 99
 		if Charms.charmTokenPrice(d) ~= nil or table.find(Charms.GRADED, d) then okRecipe = false end
-		if Charms.mergeTarget(d.id) ~= nil then okRecipe = false end
+		-- 2026-10-19: every charm merges up the tiers I..V and keeps its rarity.
+		if Charms.mergeTarget(d.id, 1) ~= d.id then okRecipe = false end
 	end
 	check(okStats, "each: Candy Find, Event Digging and one small normal stat, scaled by its grade")
-	check(okRecipe, "each crafted from one candy ore; not a chest drop, not token-bought, not merged")
+	check(okRecipe, "each crafted from one candy ore; not a chest drop, not token-bought; merges up the tiers like every charm")
 	check(deeper, "deeper ore, better grade")
 	check(#R.charmRecipes(p) == 6 and R.charmRecipes(p)[1].cost == cc[1].recipe.count, "the recipe rows E2 renders")
 end

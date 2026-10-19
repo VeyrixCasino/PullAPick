@@ -213,6 +213,10 @@ end
 -- 0.42 means +42%. Read off the charm, not off boosts(): boosts() asks what is
 -- held, and what is held asks this, so going through boosts would loop.
 function R.eventDigOf(p)
+	-- At the worn copy's tier, I..V (MineCharms, 2026-10-19).
+	if Charms.wornStat then
+		return math.max(0, Charms.wornStat(p, "eventDig"))
+	end
 	local id = type(p) == "table" and p.equippedCharm
 	local def = (type(id) == "string" and id ~= "") and Charms.byId(id) or nil
 	local v = def and type(def.stats) == "table" and tonumber(def.stats.eventDig)

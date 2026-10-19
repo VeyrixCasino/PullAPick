@@ -47,6 +47,7 @@ const KNOWN = {
   fossil_equip: "fossils are retired; answered so old clients hear why",
   fossil_sell: "fossils are retired; answered so old clients hear why",
   dig: "legacy name; the live path is swingBlock",
+  buyCharmsPack: "the one Charms Pack is now eight Charm Packs (buyCharmPack, 2026-10-19); answered so an old client hears where they went",
 
   // Server-side aliases for a verb the client does fire under another name.
   tradeReady: "legacy alias for trade accept, which the client does fire",
