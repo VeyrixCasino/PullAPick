@@ -6052,8 +6052,11 @@ function MineInventoryView.mount(parent, opts)
 				FONT, Enum.TextXAlignment.Center).ZIndex = 6
 			label(hero, (RotatingOffers and RotatingOffers.headline()) or "Lucky Block Week · Pot of Gold · Founders Bag",
 				wide and 24 or 18, TEXT, UDim2.fromOffset(tx, 52), UDim2.new(1, -(tx + 190), 0, 32), FONT).ZIndex = 5
-			local secs = 86400 - (os.time() % 86400)
-			label(hero, string.format("New offers in %dh %02dm", secs // 3600, (secs % 3600) // 60),
+			-- To the next WEEKLY offer change, on the season clock. It counted to
+			-- the next UTC midnight, so it promised new offers every day.
+			local nextIn = RotatingOffers and RotatingOffers.nextOfferIn and RotatingOffers.nextOfferIn()
+			label(hero, nextIn and ("New offers in " .. RotatingOffers.clockText(nextIn))
+				or "The last offers of the season",
 				14, Color3.fromRGB(200, 196, 230), UDim2.fromOffset(tx, 90), UDim2.new(1, -(tx + 190), 0, 20)).ZIndex = 5
 			local goLtd = mk("TextButton", {
 				AutoButtonColor = true, BackgroundColor3 = AMBER, Font = FONT, TextSize = 17,
@@ -6466,8 +6469,9 @@ function MineInventoryView.mount(parent, opts)
 					label(row, offer.title or offer.id, 16, GOLD, UDim2.fromOffset(tx, 8), UDim2.new(1, -(tx + 120), 0, 22), FONT)
 					local sub = label(row, offer.blurb or "", 12, MUTED, UDim2.fromOffset(tx, 32), UDim2.new(1, -(tx + 120), 0, offer.neverReturns and 52 or 28))
 					sub.TextWrapped = true
-					local left = math.max(0, (tonumber(offer.ends) or 0) - os.time())
-					local when = string.format("ends %dd %dh", math.floor(left / 86400), math.floor((left % 86400) / 3600))
+					-- offer.ends is on the SEASON clock: minus os.time() it read
+					-- "ends 0d 0h" from day one (launch audit M8).
+					local when = "ends " .. RotatingOffers.clockText(RotatingOffers.secondsLeft(offer))
 					if offer.max then
 						when ..= "  ·  max " .. tostring(offer.max)
 					end
@@ -6476,17 +6480,36 @@ function MineInventoryView.mount(parent, opts)
 					end
 					label(row, when, 11, offer.neverReturns and Color3.fromRGB(255, 140, 150) or MUTED,
 						UDim2.fromOffset(tx, tall - 22), UDim2.new(1, -(tx + 120), 0, 16))
+					--[[
+						At its max, or random and refused in this player's region:
+						the button says so instead of a tap finding out (launch
+						audit S6, M3). The server refuses both regardless; this is
+						only so nobody is invited to pay for a "no".
+					]]
+					local maxed = offer.max ~= nil
+						and RotatingOffers.deny({ dealBuys = state.dealBuys or {} }, offer) ~= nil
+					local region = LocalPlayer:GetAttribute("PolicyNoRandom") == true and RotatingOffers.hasRandom(offer)
+					local buyable = not (maxed or region)
 					local buyCr = mk("TextButton", {
-						AutoButtonColor = true,
-						BackgroundColor3 = T.CREDIT or GOLD,
-						Font = FONT, TextSize = 13,
-						TextColor3 = Color3.fromRGB(26, 20, 40),
-						Text = tostring(face) .. " CR",
+						AutoButtonColor = buyable,
+						BackgroundColor3 = buyable and (T.CREDIT or GOLD) or BG3,
+						Font = FONT, TextSize = buyable and 13 or 11,
+						TextColor3 = buyable and Color3.fromRGB(26, 20, 40) or MUTED,
+						Text = (maxed and string.format("MAX %d/%d", offer.max, offer.max))
+							or (region and "UNAVAILABLE")
+							or (tostring(face) .. " CR"),
 						AnchorPoint = Vector2.new(1, 0.5),
 						Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(100, 32),
 					}, row)
 					round(buyCr, 8)
 					buyCr.MouseButton1Click:Connect(function()
+						if not buyable then
+							if opts.onToast then
+								opts.onToast(maxed and string.format("You have bought the most allowed (%d)", offer.max)
+									or "That isn't available in your region")
+							end
+							return
+						end
 						if opts.onBuyProductCredits then
 							opts.onBuyProductCredits(offer.key or offer.id)
 						elseif opts.onToast then
@@ -7199,8 +7222,11 @@ function MineInventoryView.mount(parent, opts)
 				  "Put them on your tools at the Forge." },
 				{ "Founder Tag",
 				  "Trumps [VIP] on your name. Switch either tag off in VFX." },
+				-- True since 2026-10-19 (launch audit M6): MineFounders.grant
+				-- gives the bag (Dig.grantFoundersBag) and wears it. There is no
+				-- bag picker to point at, so the card no longer points at one.
 				{ "Founders Bag",
-				  "Infinite haul. Equip it below if you also own Wormhole." },
+				  "Infinite haul: your bag never fills up. Worn the moment you join." },
 			}
 			for i, g in ipairs(grants) do
 				local row = panelRow(body, 58, i + 1)

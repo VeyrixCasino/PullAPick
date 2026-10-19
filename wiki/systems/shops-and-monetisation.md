@@ -46,7 +46,7 @@ related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tool
 | **Depth desks** | seam outposts (`Machine=depth_shop`) | coins | `MineDepthShop`, `MineDepthShopView` (Deeprock and Shadowzone themes) |
 | **Event Horizon tools** | `bigbang` shop | space coins | `MineHorizonTools` via `MineShopBuy.buyEvent` |
 | **Inventory → Shop** | menu | credits; stardust for the Stardust tab | `MineInventoryView` tabs home, box, limited, packs, dust, currencies, vip |
-| **Rotating offers** | Shop → Limited | credits or Robux | `MineRotatingOffers` (3 slots, season 2026-09-22 → 2026-11-01 ET) |
+| **Rotating offers** | Shop → Limited | credits or Robux | `MineRotatingOffers` (3 slots, on the season clock: 47 days from launch, see [season-and-launch](season-and-launch.md)) |
 
 Since 2026-10-12 the Blacksmith counter opens the Forge hub, whose BAGS and COIN
 SHOP buttons lead back to the old shop's shelves ([client-and-ui](../code/client-and-ui.md)).
@@ -161,7 +161,27 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
   299, auto_mine 499, founders, and pet_slot (retired). **Every one has
   `productId = 0`**, so none can be bought with Robux until ids are pasted in.
   Most can be bought with credits (`buyProductWithCredits`), up to
-  `CREDIT_BUY_LIMIT` 3 times each.
+  `CREDIT_BUY_LIMIT` 3 times each. `lucky_charm` and `lucky_block_pet` are
+  refused there ("That offer moved"); Pot of Gold sells the charm.
+- **Limited deals** (`MineRotatingOffers.OFFERS`, fixed 2026-10-19 from the launch
+  audit, §0e M7, M8, S4, S6):
+  - **Lucky Block Week** (599 credits, max 3) pays 5 Lucky, 3 Diamond and 1 Godly
+    block, the **Lucky Dice** pet (an Epic of Lost & Found, minted as a real card by
+    `Dig.mintDealPet`), and **8 wild cases** (3 ★★★★★, 2 ★★★★½, 3 ★★★★). It used to
+    write `ownedPets.lucky_block`, which nothing read, and pay the Heirloom, Omen and
+    Shiny packs retired on 2026-10-10. The cases match the old packs within 2% on
+    recycle value (83,403 vs 82,072 stardust) and list price (505 vs 502 credits).
+    The pet and the mix are PROPOSED.
+  - **Countdowns read the season clock** (`secondsLeft`, `nextOfferIn`, `clockText`).
+    They subtracted `os.time()` from season-clock ends, so every deal said "ends 0d
+    0h"; the header said 40 days left (the season is 47, `SEASON_END`); the home
+    banner counted to UTC midnight though offers change weekly.
+  - No blurb names a date ("all season", not "through Oct 31").
+  - **At its max** a deal's button reads "MAX 3/3" (the snapshot carries
+    `dealBuys`), the client will not prompt Robux for it, and a Robux receipt that
+    still arrives pays the deal's credit price back (`Dig.creditBack`, PROPOSED)
+    instead of saying "granted" and giving nothing.
+  - `tools/verify/deals.js` runs the real module and pins all of the above.
 - **Receipts.** `MarketplaceService.ProcessReceipt` saves `p.receipts[PurchaseId]`
   *before* it reports a grant, so a retried receipt is never paid twice. It keeps
   the newest 100. The grant itself is `Verbs.grantReceipt`.
@@ -178,10 +198,14 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     `MineConfig.effectivePetSlots` clamps every player to 3 (TODO §0.24).
 - **Founders Pack** (`MineFounders`, stored as `p.vip.since`).
   - **Price:** 799 credits, or the Founders gamepass.
-  - **What it gives:** 3 enchant books (`MineFounders.BOOKS`), the Founder tag
-    VFX, and +5% luck in `boosts`. Until 2026-10-12 it gave a White Scroll. Swapping
-    in 3 books was an assistant default when scrolls were retired, **not** an
-    owner decision.
+  - **What it gives:** the **Founders Bag** (owner, 2026-10-19, audit M6:
+    `MineFounders.grant` calls `opts.grantBag`, which is `Dig.grantFoundersBag`: the
+    rig's rung, `foundersBag`, worn, with its model, the same as buying the bag),
+    3 enchant books (`MineFounders.BOOKS`), the Founder tag VFX, and +5% luck in
+    `boosts`. Until 2026-10-12 it gave a White Scroll. Swapping in 3 books was an
+    assistant default when scrolls were retired, **not** an owner decision. The
+    card's "WHAT IT GRANTS" list says so, and no longer points at a bag picker
+    (there is none: nothing in the UI fires `equipBag`).
   - **Seats:** `VIP_SEATS` 500 per *server*, reset whenever that server restarts.
   - **The name clash.** MineServer's `isVip(p)` and `MinePackConfig.VIP_PRICE`,
     `MinePackConfig.VIP_SEATS` and `MinePackConfig.VIP_DISCOUNT` mean **Founders**, not the VIP gamepass.

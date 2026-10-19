@@ -3884,6 +3884,27 @@ invCtl = InventoryView.mount(gui, {
 	onBuyProductRobux = function(key)
 		local prod = C.product and C.product(key)
 		local pid = prod and tonumber(prod.productId) or 0
+		--[[
+			Never prompt for Robux the server would have to hand back (launch audit
+			S6): a limited deal at its max or off the shelf, or a random buy where
+			this player's rules restrict paid random items. The receipt handler
+			pays a maxed deal back in credits (Dig.creditBack); this is so it
+			never has to.
+		]]
+		local Offers = require(shared:WaitForChild("MineRotatingOffers"))
+		local deal = Offers.byId(key)
+		if deal and deal.kind == "deal" then
+			local why = Offers.deny({ dealBuys = (snap and snap.dealBuys) or {} }, deal)
+				or ((not Offers.isLive(deal)) and "That deal is not on sale right now")
+			if why then
+				showToast(why)
+				return
+			end
+		end
+		if player:GetAttribute("PolicyNoRandom") == true and Offers.isRandomBuy(key) then
+			showToast("That isn't available in your region")
+			return
+		end
 		if pid > 0 then
 			MarketplaceService:PromptProductPurchase(player, pid)
 		else

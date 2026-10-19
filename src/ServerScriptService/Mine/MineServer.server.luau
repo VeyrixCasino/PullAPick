@@ -2061,6 +2061,7 @@ local function load(plr)
 				if Founders.grant(p, plr, "gamepass", {
 					seatsRef = seatsRef,
 					grantBooks = Dig.grantBooks,
+					grantBag = Dig.grantFoundersBag,
 					toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 				}) then
 					vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -3619,6 +3620,9 @@ local function snap(plr)
 		vipPrice = Packs.VIP_PRICE,
 		vipRobux = Packs.VIP_ROBUX or C.FOUNDERS_ROBUX or 999,
 		vipSeatsTotal = Packs.VIP_SEATS,
+		-- Limited deals bought, per deal: the shop greys a deal out at its max
+		-- rather than inviting a purchase the server will refuse (audit S6).
+		dealBuys = p.dealBuys or {},
 		-- Lifetime counters. The quests already read these server-side; the pack
 		-- inspector wants the packs total, and it was printing 0 because the
 		-- table never crossed the wire.
@@ -11336,6 +11340,40 @@ local function buyLuckyCharm(plr)
 end
 
 --[[
+	A LIMITED DEAL'S PET, MINTED AS A REAL CARD (launch audit M7, 2026-10-19).
+
+	Lucky Block Week promised "a Lucky Block pet" and wrote ownedPets.lucky_block,
+	which nothing reads: buyers got no pet. A deal now names a roster pet
+	(MineRotatingOffers `pet`) and this mints it the way lucky blocks minted the
+	pets they used to pay: the roster's tier and body, the block's set and name,
+	a fresh serial, and the shiny/shadow luck a store-bought pet gets (mint's
+	rollFinish). mint moves it onto the pet's one stack key, so it stacks with
+	copies from packs. True only when a card was added.
+]]
+function Dig.mintDealPet(plr, p, petName)
+	local roster = PetRoster and PetRoster.BY_NAME and PetRoster.BY_NAME[tostring(petName or "")]
+	if not roster then
+		warn("[Mine] deal pet is not in the roster: " .. tostring(petName))
+		return false
+	end
+	local c = mint({
+		setId = "lucky_block",
+		index = 1,
+		cardKey = "lucky_block:" .. roster.name,
+		name = roster.name,
+		rarityId = roster.tier,
+		typeId = "Crystal",
+		animal = roster.animal,
+		roleName = "Lucky Block",
+		kind = "Unit",
+		setName = "Lucky Block",
+	}, plr.UserId, true)
+	p.cards = p.cards or {}
+	table.insert(p.cards, c)
+	return true
+end
+
+--[[
 	Credits face == Robux face. Bulk credit packs (bonus %) make the same number
 	cheaper in real Robux — that is the pass/limited deal, not an undercut.
 ]]
@@ -11371,7 +11409,9 @@ local function buyProductWithCredits(plr, key)
 			return
 		end
 		p.credits -= cost
-		if not Offers.grant(p, deal) then
+		if not Offers.grant(p, deal, { mintPet = function(name)
+			return Dig.mintDealPet(plr, p, name)
+		end }) then
 			p.credits += cost
 			net:FireClient(plr, "toast", "Could not grant that deal")
 			return
@@ -11409,12 +11449,9 @@ local function buyProductWithCredits(plr, key)
 			net:FireClient(plr, "toast", "You already own Lucky Charm")
 			return
 		end
-	elseif key == "lucky_block_pet" then
-		p.ownedPets = p.ownedPets or {}
-		if p.ownedPets.lucky_block then
-			net:FireClient(plr, "toast", "You already own Lucky Block pet")
-			return
-		end
+	-- (No "lucky_block_pet": it wrote ownedPets.lucky_block, which nothing
+	-- reads, and the refusal above already stops it. Lucky Block Week mints a
+	-- real pet now -- Dig.mintDealPet.)
 	elseif key == "patron_rig" then
 		local target = nil
 		for i, bp in ipairs(C.BACKPACKS or {}) do
@@ -11479,9 +11516,6 @@ local function buyProductWithCredits(plr, key)
 		p.charms.lucky_charm = true
 		net:FireClient(plr, "toast", "Lucky Charm owned — equip in Inventory → Equipment")
 		walk(plr)
-	elseif key == "lucky_block_pet" then
-		p.ownedPets.lucky_block = true
-		net:FireClient(plr, "toast", "Lucky Block pet owned")
 	elseif key == "patron_rig" then
 		local target = nil
 		for i, bp in ipairs(C.BACKPACKS or {}) do
@@ -12246,6 +12280,28 @@ end
 	FOUNDERS PACK (was Warehouse Pass).
 	1000 credits / R$999. Logic in MineFounders.
 ]]
+--[[
+	THE FOUNDERS BAG, as the Founders Pack grants it (owner, 2026-10-19, launch
+	audit M6: "The Founders Pack also gives the Founders Bag"). The same grant
+	as buying the bag on its own (buyProductWithCredits "patron_rig"): the rig's
+	rung, the founders flag, worn, with its model. Never a rung down. Every
+	MineFounders.grant call passes this as opts.grantBag.
+]]
+function Dig.grantFoundersBag(p, plr)
+	local target = nil
+	for i, bp in ipairs(C.BACKPACKS or {}) do
+		if bp.robux then target = i break end
+	end
+	if target and (p.backpackTier or 1) < target then
+		p.backpackTier = target
+	end
+	p.foundersBag = true
+	p.equippedBag = "founders"
+	if plr then
+		pcall(giveBackpackModel, plr)
+	end
+end
+
 local function isVip(p)
 	return require(shared.MineFounders).isMember(p)
 end
@@ -12267,6 +12323,7 @@ local function joinVip(plr)
 			if Founders.grant(p, plr, "gamepass", {
 				seatsRef = seatsRef,
 				grantBooks = Dig.grantBooks,
+				grantBag = Dig.grantFoundersBag,
 				toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 			}) then
 				vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -12291,6 +12348,7 @@ local function joinVip(plr)
 		Founders.grant(p, plr, "credits", {
 			seatsRef = seatsRef,
 			grantBooks = Dig.grantBooks,
+			grantBag = Dig.grantFoundersBag,
 			toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 		})
 		vipSeatsLeft = seatsRef.left or vipSeatsLeft
@@ -18016,6 +18074,29 @@ task.defer(function()
 	end
 end)
 
+--[[
+	ROBUX NEVER BUYS NOTHING (launch audit S6, 2026-10-19).
+
+	A receipt is money already taken: refusing it only makes Roblox ask again,
+	forever. So a paid product the server cannot deliver -- a limited deal
+	already at its max, or one whose grant failed -- pays its own credit price
+	in credits instead, and the player is told. The shop greys a maxed deal out
+	and the client will not prompt for one, so this is the backstop for a
+	prompt that slipped through (two servers, a stale snapshot).
+	PROPOSED (2026-10-19): credits at the deal's credit face, 1:1.
+]]
+function Dig.creditBack(plr, p, credits, why)
+	local n = math.max(0, math.floor(tonumber(credits) or 0))
+	p.credits = (p.credits or 0) + n
+	pcall(function()
+		game:GetService("AnalyticsService"):LogEconomyEvent(plr, Enum.AnalyticsEconomyFlowType.Source,
+			"Credits", n, p.credits, Enum.AnalyticsEconomyTransactionType.IAP.Name, "credit_back")
+	end)
+	markDirty(plr)
+	snap(plr)
+	net:FireClient(plr, "toast", string.format("%s -- you got %d credits instead", tostring(why), n))
+end
+
 Verbs.grantReceipt = function(info)
 	local plr = Svc.Players:GetPlayerByUserId(info.PlayerId)
 	if not plr then
@@ -18057,15 +18138,21 @@ Verbs.grantReceipt = function(info)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 
-	-- Robux bags + launch limiteds (Lucky Charm / Lucky Block pet).
+	-- Robux bags + launch limiteds (Lucky Charm; the limited deals).
 	local function grantProduct(key)
 		local Offers = require(shared:WaitForChild("MineRotatingOffers"))
 		local deal = Offers.byId(key)
 		if deal and deal.kind == "deal" then
-			if Offers.deny(p, deal) then
+			-- At its max, this said "granted" and gave nothing: Robux for nothing.
+			-- It pays the deal's credit price back now (Dig.creditBack, S6).
+			local why = Offers.deny(p, deal)
+			if why or not Offers.grant(p, deal, { mintPet = function(name)
+				return Dig.mintDealPet(plr, p, name)
+			end }) then
+				Dig.creditBack(plr, p, tonumber(deal.credits) or (C.productCredits and C.productCredits(key)),
+					string.format("%s: %s", tostring(deal.title or "That deal"), why or "it could not be delivered"))
 				return true
 			end
-			Offers.grant(p, deal)
 			markDirty(plr)
 			snap(plr)
 			net:FireClient(plr, "toast", deal.toast or (deal.title .. " claimed"))
@@ -18165,12 +18252,13 @@ Verbs.grantReceipt = function(info)
 			return true
 		end
 		if key == "lucky_block_pet" then
-			-- Grant path reserved; pet roster wires the named kit when product IDs land.
-			p.ownedPets = p.ownedPets or {}
-			p.ownedPets.lucky_block = true
-			markDirty(plr)
-			snap(plr)
-			net:FireClient(plr, "toast", "Lucky Block pet owned")
+			--[[
+				Never sold (productId 0, and the credits path refuses it). It wrote
+				ownedPets.lucky_block, which nothing reads, so a stray receipt now
+				pays its credit price back rather than a pet that does not exist.
+				Lucky Block Week mints the real one (Dig.mintDealPet).
+			]]
+			Dig.creditBack(plr, p, C.productCredits and C.productCredits(key), "The Lucky Block pet is no longer sold")
 			return true
 		end
 		if key == "group_wheel_1" or key == "group_wheel_5" or key == "group_wheel_10" then
@@ -18290,6 +18378,7 @@ Svc.Marketplace.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId,
 			if Founders.grant(p, plr, "gamepass", {
 				seatsRef = seatsRef,
 				grantBooks = Dig.grantBooks,
+				grantBag = Dig.grantFoundersBag,
 				toast = function(plr2, msg) net:FireClient(plr2, "toast", msg) end,
 			}) then
 				vipSeatsLeft = seatsRef.left or vipSeatsLeft
