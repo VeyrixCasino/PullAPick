@@ -93,8 +93,12 @@ for (const name of ["ORE_DRILL", "ORE_BOMB"]) {
   const t = tableOf(name);
   if (t) allOther.push(...t.values());
 }
-// ORE_PICK_CANVA is tiers 1-81 only: tier 82 keeps the original art the owner liked.
-for (const [name, allowedGap] of [["ORE_HAMMER", []], ["ORE_JACKHAMMER", [75, 76, 77, 78, 79, 80, 81, 82]], ["ORE_PICK_CANVA", [82]]]) {
+// The CANVA tables are tiers 1-81 only: tier 82 keeps the original art the owner
+// liked. Explosives 19, 29, 65, 67, 68, 71 and 77 are being redrawn (the cut-out
+// clipped the fuse spark), so they keep the old art until the redraws land.
+const CANVA = ["ORE_PICK_CANVA", "ORE_DRILL_CANVA", "ORE_BOMB_CANVA"];
+for (const [name, allowedGap] of [["ORE_HAMMER", []], ["ORE_JACKHAMMER", [75, 76, 77, 78, 79, 80, 81, 82]],
+  ["ORE_PICK_CANVA", [82]], ["ORE_DRILL_CANVA", [82]], ["ORE_BOMB_CANVA", [19, 29, 65, 67, 68, 71, 77, 82]]]) {
   const t = tableOf(name);
   ok(!!t, `MineIcons.${name} exists`);
   if (!t) continue;
@@ -103,7 +107,7 @@ for (const [name, allowedGap] of [["ORE_HAMMER", []], ["ORE_JACKHAMMER", [75, 76
   const unexpected = missing.filter((m) => !allowedGap.includes(m));
   ok(unexpected.length === 0, `${name} covers every ore tier` + (allowedGap.length ? " except the known gap" : ""),
     unexpected.length ? "missing " + unexpected.join(",") : `${t.size} of ${oreCount}` +
-      (!missing.length ? "" : name === "ORE_PICK_CANVA" ? " (82 keeps its original art)" : ` (still to come: ${missing.join(",")})`));
+      (!missing.length ? "" : CANVA.includes(name) && missing.join() === "82" ? " (82 keeps its original art)" : ` (still to come: ${missing.join(",")})`));
   const v = [...t.values()];
   const d = v.filter((x, i) => v.indexOf(x) !== i);
   ok(d.length === 0, `${name} has no two ores sharing an icon`, d.length ? [...new Set(d)].join(", ") : v.length + " distinct");
@@ -114,6 +118,8 @@ for (const [name, allowedGap] of [["ORE_HAMMER", []], ["ORE_JACKHAMMER", [75, 76
 ok(/MineIcons\.ORE_SKINS\.hammer = MineIcons\.ORE_HAMMER/.test(ICONS) && /MineIcons\.ORE_SKINS\.jackhammer = MineIcons\.ORE_JACKHAMMER/.test(ICONS),
   "hammer and jackhammer icons join ORE_SKINS (behind NEW_TOOL_ICONS_SHARED)");
 ok(/MineIcons\.ORE_PICK\[tier\] = id/.test(ICONS), "the Canva pickaxes replace ORE_PICK's tiers once shared");
+ok(/MineIcons\.ORE_DRILL\[tier\] = id/.test(ICONS) && /MineIcons\.ORE_BOMB\[tier\] = id/.test(ICONS),
+  "the Canva drills and explosives replace ORE_DRILL's and ORE_BOMB's tiers once shared");
 
 for (const n of ["ADMIN_PICK", "ADMIN_DRILL", "ADMIN_BOMB"]) {
   ok(new RegExp("MineIcons\\." + n + ' = "rbxassetid://\\d+"').test(ICONS),

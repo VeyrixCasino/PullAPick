@@ -1757,10 +1757,13 @@ function MinePackReveal.mount(playerGui, opts)
 		so a fifty-pack run could hand you thirty-odd cards to tap through one at
 		a time. Open-all was just running the single-pack ceremony thirty times.
 
-		Legendary and better earns a tap outright. A oneIn only earns one past
-		BULK_ONE_IN, which is the same 1-in-150 line MineServer already uses for
-		"actually rare". Everything else lands in the bag exactly as before --
-		the server granted it long ago; this screen only decides what you LOOK at.
+		Legendary and better earns a tap outright. Below that, only a special
+		finish (shiny, shadow or a variant) earns one, and only past BULK_ONE_IN,
+		the same 1-in-150 line MineServer uses for "actually rare". A plain Epic
+		with a "1 in X" ribbon used to count too, so the "N hits" title was mostly
+		Epics (odds audit, 2026-10-10; owner's call delegated 2026-10-18: "do it
+		all"). Everything else lands in the bag exactly as before -- the server
+		granted it long ago; this screen only decides what you LOOK at.
 	]]
 	local BULK_MIN_RANK = 5 -- Legendary and better
 	local BULK_ONE_IN = 150
@@ -1770,8 +1773,9 @@ function MinePackReveal.mount(playerGui, opts)
 		if cardRank(card) >= BULK_MIN_RANK then
 			return true
 		end
+		local fancy = card and (card.shiny or card.shadow or (card.variant or "Normal") ~= "Normal")
 		local one = tonumber(card and card.oneIn)
-		return one ~= nil and one >= BULK_ONE_IN
+		return fancy and one ~= nil and one >= BULK_ONE_IN or false
 	end
 
 	local function bulkAutoHold(card)

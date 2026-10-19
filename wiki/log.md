@@ -1433,3 +1433,30 @@ raw card power, so it could pick a Zap pet for a Blast tool.
 `tools/verify/enchants.js` checks the family map and the wiring.
 
 Updated: enchants, log.
+
+## [2026-10-18] decision | "do it all": icons in, hits screen, dock, two calls
+The owner said *"do it all"* to the open list, so Claude went with its defaults:
+- **Drill and explosive icons uploaded and wired.** That is 81 drills and 74
+  explosives (`ORE_DRILL_CANVA`, `ORE_BOMB_CANVA`), behind
+  `NEW_TOOL_ICONS_SHARED` like the rest; 392 images now wait to be shared.
+  - Explosives 19, 29, 65, 67, 68, 71 and 77 are being redrawn (the cut-out
+    clipped the fuse spark), and so are pickaxes 52 and 57 (the heads read as
+    axes). Jackhammers 75–82 are being drawn.
+  - `oreskins.js` checks the new tables.
+- **Open-all hits:** a plain Epic with a "1 in X" ribbon is no longer a hit. A
+  hit is Legendary or better, or a shiny, shadow or variant card at 1 in 150 or
+  rarer.
+- **Chest-found zone packs keep depth-only odds, on purpose.** Meadow is
+  Mine 1 (2,500 layers), so depth is its progression, and the owner asked for
+  deeper chests to pay better. Re-weighting by zone would nerf the core loop.
+- **The dock now starts under the depth chip and the rebirth bar.** The bar
+  sat on top of the Wheel button. Seen fixed in a Play session.
+- **Deleted Claude's untracked staging copies** in `build/` (pet bodies, set
+  JSONs, the staged generator). The shipped files are in `src/` and
+  `tools/gen/sets/`.
+- **The Cursor CLI job did not run.** The Sage hook in Cursor's `hooks.json`
+  fails under the CLI (a PowerShell command run by bash), so every tool call is
+  blocked. Fixing a security hook is the owner's call. Until then, Cursor jobs
+  are pasted into the Cursor app.
+
+Updated: tools, assets-and-uploads, cards-and-packs, log.

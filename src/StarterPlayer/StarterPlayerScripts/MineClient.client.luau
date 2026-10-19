@@ -3578,9 +3578,14 @@ function ClientFns.layoutDock()
 	-- Start under the mine timer (it sat on top of the Shop button) and stop
 	-- short of Roblox's corner button, or of the jump button on a phone.
 	local topRoom = (GuiService:GetGuiInset().Y + 8) / k
-	if mineResetL.Visible then
-		local under = (mineResetL.AbsolutePosition.Y + mineResetL.AbsoluteSize.Y - gui.AbsolutePosition.Y) / k
-		topRoom = math.max(topRoom, under + 8)
+	-- The depth chip and the rebirth bar share the dock's right-hand column,
+	-- so the dock starts under whichever of the three is lowest (the rebirth
+	-- bar sat on top of the Wheel button; owner's screen, 2026-10-18).
+	for _, above in ipairs({ mineResetL, depthHud.chip, depthHud.rb }) do
+		if above.Visible then
+			local under = (above.AbsolutePosition.Y + above.AbsoluteSize.Y - gui.AbsolutePosition.Y) / k
+			topRoom = math.max(topRoom, under + 8)
+		end
 	end
 	local bottomRoom = UIS.TouchEnabled and 140 or 48
 	local room = screen.Y - topRoom - bottomRoom
@@ -3653,6 +3658,8 @@ function ClientFns.layoutDock()
 end
 mineResetL:GetPropertyChangedSignal("AbsolutePosition"):Connect(ClientFns.layoutDock)
 mineResetL:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
+depthHud.chip:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
+depthHud.rb:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
 ClientFns.layoutDock()
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(ClientFns.layoutDock)
 uiScale:GetPropertyChangedSignal("Scale"):Connect(ClientFns.layoutDock)
