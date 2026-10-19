@@ -672,8 +672,11 @@ MineIcons.ORE_BOMB = {
 	draws nothing in the game until the owner shares it with the experience in
 	the Creator Hub (as with the case art), and a blank hotbar is worse than
 	the flat icon.
+
+	ON since 2026-10-19: the owner shared all 407 (share-list.txt), and every
+	one loaded at full size in the group place (AssetService, 407/407).
 ]]
-MineIcons.NEW_TOOL_ICONS_SHARED = false
+MineIcons.NEW_TOOL_ICONS_SHARED = true
 
 MineIcons.ORE_HAMMER = {
 	[1] = "rbxassetid://134468774478371", -- Stone

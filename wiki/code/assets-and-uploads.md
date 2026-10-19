@@ -103,9 +103,14 @@ it via personal account, and i just have to share access"*.
     - The redraws replaced their old ids in the list, so only ids the game
       uses need sharing.
     - The ids are in `build/tool-icons/ids.json` and `build/hammer-icons/ids.json`.
-  - **Wired behind `MineIcons.NEW_TOOL_ICONS_SHARED`,** which is false until the
-    owner shares them. An unshared image draws nothing, and a blank hotbar is
-    worse than the old art.
+  - **Wired behind `MineIcons.NEW_TOOL_ICONS_SHARED`, on since 2026-10-19.**
+    An unshared image draws nothing, so the flag waited for the owner. They
+    shared all 407, then every one loaded at full size in the group place
+    (`AssetService:CreateEditableImageAsync`, 407/407). A grid built from
+    `Icons.forTool` drew every family.
+    - The string form of `ContentProvider:PreloadAsync` reported Failure for
+      every image in Studio Edit, even for long-used art. Do not read that as
+      "not shared"; pass ImageLabels instead, or use AssetService.
   - Canva rate-limits generation: per its help, about 7 images per 30
     minutes, plus a monthly allowance. Resume a run from each folder's
     `state.json`.

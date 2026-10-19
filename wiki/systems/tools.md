@@ -206,8 +206,8 @@ equip; the coin ladder resets.
     - pickaxes 52 and 57, because their heads read as axes.
   - **Jackhammers 75–82 are done** (2026-10-19). Every family now has an icon
     for every ore (`oreskins.js`).
-  - All of it switches on with `MineIcons.NEW_TOOL_ICONS_SHARED` once the owner
-    shares the uploads ([assets-and-uploads](../code/assets-and-uploads.md)).
+  - **All of it is on** (`MineIcons.NEW_TOOL_ICONS_SHARED`, 2026-10-19). The
+    owner shared the uploads ([assets-and-uploads](../code/assets-and-uploads.md)).
 - **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line
   12).
 - **B1 hammer niche LOCKED (owner, 2026-10-14):** slow / heavy / single-target,

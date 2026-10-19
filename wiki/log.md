@@ -1504,3 +1504,16 @@ The run left things for the owner to judge:
   on their own pages.
 
 Updated: tools, assets-and-uploads, log.
+
+## [2026-10-19] decision | tool icons switched on
+The owner shared the 407 tool icons. Every one then loaded at full size in the
+group place (`AssetService`, 407/407), so `MineIcons.NEW_TOOL_ICONS_SHARED`
+is now true. A Studio grid built from `Icons.forTool` drew the new art on every
+tier of all five families. Pickaxe, drill and explosive tier 82 keep their
+original art.
+
+Trap: the string form of `ContentProvider:PreloadAsync` failed for every image
+in Studio Edit, even old art in use. Pass ImageLabels instead, or use
+`AssetService`.
+
+Updated: tools, assets-and-uploads, next-up, log.
