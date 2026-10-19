@@ -1650,3 +1650,19 @@ chests and Trick-or-Treat cases (85% tools) and merge like pets, candy is 3x, ro
 to zone 10, four more candy ores, each candy block also drops a candy ore that crafts six new
 Halloween charms, and event tools keep working in the main world after the event ends (weaker).
 Event Horizon is unchanged for now. Merged the owner's branch (`bc55f16`) into PR #7 first.
+
+## [2026-10-19] fix | launch fixes, part B: tutorial, menus, quests, Discord, day 29
+From the owner's §0e picks ([open-questions](open-questions.md)). Tutorial step 3 is now
+**FORGE your first tool**: it opens the Forge, tops the pouch up to exactly one Stone Pickaxe
+(270 Stone, from `C.toolCraftCost`), and clears on the first craft; coin purchases no longer
+clear it, and the first Blacksmith visit no longer pops the Forge. Menus: close-everything also
+closes Skins, Trade, Fishing and the Forge; the skill tree has an X; the day-4 pack is given
+regardless (Favorite is optional, no LIKE); one currency in the coin pill; Settings no longer
+overlaps; the Planets map and the daily calendar stop rebuilding; button sounds are on.
+Discord: an unknown code is refused instead of "Code accepted!", tries back off (the old
+cooldown read a nil global, so every redeem threw), a link finished in Discord pays its 5,000
+gems on the next join, and the Account tab shows discord.gg/Ab5ZpVdRvp. No leaderboard prize
+text; kid-safe find text; no "Rebirth once" daily before the first rebirth. **Day 29:** the
+pass pauses (no XP, claims or sales) until `MineScrolls.NEXT_TRACK` ships. New checks:
+`tutorial-forge`, `hud-launch`, `discord-link`, `promises`, `quests-launch`; suite 74 of 75
+(the Linux `skins` quirk). Not seen in Studio.
