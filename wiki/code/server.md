@@ -77,7 +77,12 @@ declaration-order trap (HANDOFF §2.3).
      attribute is set) and refuses `discordLink`. The paid-random list is
      `Verbs.PAID_RANDOM`. On 2026-10-12 it lost `buyScroll`, `rollRune`,
      `fuseRune`, `buyCrate` and `buyPouch` (rune-era verbs, now deleted) and
-     gained `enchBuyBundle`, the Forge's gem book bundle.
+     gained `enchBuyBundle`, the Forge's gem book bundle. On 2026-10-19 (launch
+     audit M3) it gained `buyTraderCase`, and two **function** entries, which
+     `policyBlocks(plr, action, payload)` calls with the request: `buyProductCredits`
+     (only a deal or product that pays something random,
+     `MineRotatingOffers.isRandomBuy`) and `groupWheelSpin` (only a spin that would
+     spend a bought spin; free spins always work). A rule that errors blocks.
   4. The branch runs inside a `pcall`. An error goes to `warn("[Mine] …")`.
 - 57 of the 141 branch lines call `Verbs.x` on the same line. The rest call
   file-local functions (`buy`, `equip`, `openAt`, `swingBlock`…), call

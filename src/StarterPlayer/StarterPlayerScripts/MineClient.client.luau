@@ -3896,6 +3896,27 @@ invCtl = InventoryView.mount(gui, {
 	onBuyProductRobux = function(key)
 		local prod = C.product and C.product(key)
 		local pid = prod and tonumber(prod.productId) or 0
+		--[[
+			Never prompt for Robux the server would have to hand back (launch audit
+			S6): a limited deal at its max or off the shelf, or a random buy where
+			this player's rules restrict paid random items. The receipt handler
+			pays a maxed deal back in credits (Dig.creditBack); this is so it
+			never has to.
+		]]
+		local Offers = require(shared:WaitForChild("MineRotatingOffers"))
+		local deal = Offers.byId(key)
+		if deal and deal.kind == "deal" then
+			local why = Offers.deny({ dealBuys = (snap and snap.dealBuys) or {} }, deal)
+				or ((not Offers.isLive(deal)) and "That deal is not on sale right now")
+			if why then
+				showToast(why)
+				return
+			end
+		end
+		if player:GetAttribute("PolicyNoRandom") == true and Offers.isRandomBuy(key) then
+			showToast("That isn't available in your region")
+			return
+		end
 		if pid > 0 then
 			MarketplaceService:PromptProductPurchase(player, pid)
 		else
@@ -3973,8 +3994,9 @@ invCtl = InventoryView.mount(gui, {
 		from its own tables, so a forged payload can ask for the wrong ITEMS but
 		never for the wrong COST.
 	]]
-	onBuyCart = function(lines)
-		net:FireServer("buyCart", { lines = lines })
+	onBuyCart = function(lines, token)
+		-- `token` names the order, so the server charges a resent order once.
+		net:FireServer("buyCart", { lines = lines, token = token })
 	end,
 	-- The server owns the seat count and the price; this only asks.
 	onJoinVip = function()
@@ -5288,27 +5310,41 @@ function ClientFns.offerStarter(force)
 		FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder,
 	}, row)
-	for i, r in ipairs(prod.packs or {}) do
-		local cell = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(96, 132), LayoutOrder = i, ZIndex = 91 }, row)
-		local art = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(96, 110), ZIndex = 92 }, cell)
-		pcall(PackFX.drawSealed, art, r.id, 84, 104)
-		local drawn = art:FindFirstChild("MiniPack")
-		if drawn then
-			drawn.AnchorPoint = Vector2.new(0.5, 0.5)
-			drawn.Position = UDim2.fromScale(0.5, 0.5)
+	--[[
+		WHAT IT GIVES, READ OFF THE PRODUCT ROW (launch audit S5, 2026-10-19).
+		This drew prod.packs and prod.gems, which the Starter Crate row does not
+		have and its grant never gives, so the popup listed nothing. The cells
+		are the grant's own fields, with the grant's own fallbacks (MineServer,
+		buyProductWithCredits and the receipt's "starter_bundle"): the bag rung,
+		the coins, and a Common pet from the Meadow.
+	]]
+	local Icons = require(shared:WaitForChild("MineIcons"))
+	local function cell(order, iconId, big, small, colour)
+		local c = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.fromOffset(120, 132), LayoutOrder = order, ZIndex = 91 }, row)
+		round(c, 12)
+		if iconId then
+			local host = mk("Frame", {
+				BackgroundTransparency = 1, Position = UDim2.fromOffset(30, 8), Size = UDim2.fromOffset(60, 60), ZIndex = 92,
+			}, c)
+			pcall(Icons.draw, host, iconId, 1)
 		end
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Text = "x" .. tostring(r.qty or 1), Font = FONT, TextSize = 18, TextColor3 = TEXT,
-			Position = UDim2.fromOffset(0, 110), Size = UDim2.new(1, 0, 0, 22), ZIndex = 93,
-		}, cell)
-	end
-	if (tonumber(prod.gems) or 0) > 0 then
-		local cell = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.fromOffset(96, 110), LayoutOrder = 99, ZIndex = 91 }, row)
-		round(cell, 12)
+			BackgroundTransparency = 1, Text = big, Font = FONT, TextSize = 20, TextColor3 = colour,
+			Position = UDim2.fromOffset(4, iconId and 70 or 28), Size = UDim2.new(1, -8, 0, 26), ZIndex = 92,
+		}, c)
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Text = "+" .. tostring(prod.gems) .. "\nGEMS", Font = FONT, TextSize = 20,
-			TextColor3 = T.GEM, Size = UDim2.fromScale(1, 1), ZIndex = 92,
-		}, cell)
+			BackgroundTransparency = 1, Text = small, Font = FONT_M, TextSize = 14, TextColor3 = MUTED,
+			TextWrapped = true, Position = UDim2.fromOffset(4, iconId and 96 or 58),
+			Size = UDim2.new(1, -8, 0, 34), ZIndex = 92,
+		}, c)
+	end
+	local rung = math.max(1, math.floor(tonumber(prod.bagRung) or 2))
+	local bag = C.BACKPACKS and C.BACKPACKS[rung]
+	cell(1, "backpack", "NEW BAG", tostring(bag and bag.name or ("Bag " .. rung)),
+		(T.CANDY and T.CANDY.orange and T.CANDY.orange[1]) or GOLD)
+	cell(2, "coins", "+" .. shortNum(tonumber(prod.coins) or 8000), "coins", GOLD)
+	if (tonumber(prod.commonPet) or 1) > 0 then
+		cell(3, nil, "+1 PET", "a Common from the Meadow", TEXT)
 	end
 	local buy = mk("TextButton", {
 		Text = "BUY  |  R$" .. tostring(prod.robuxPrice or ""), Font = FONT, TextSize = 20,
@@ -8684,6 +8720,70 @@ end
 	roster is about to change, but nothing is gated on it here; if it runs out
 	mid-purchase the server simply says there is no trader there.
 ]]
+--[[
+	A TRADER CASE'S ODDS (owner, 2026-10-19, launch audit M3: "trader cases"
+	show the case's real tier band and family odds). Every number comes from
+	MineTrader.caseOdds, which reads the tables rollCase rolls (and the server
+	rolls rollCase); nothing here computes or types a chance. Drawn into the
+	trader's own panel, so it goes when the panel goes.
+]]
+function ClientFns.traderOdds(parent, row)
+	local okT, Trader = pcall(function()
+		return require(shared:WaitForChild("MineTrader"))
+	end)
+	local okV, View = pcall(function()
+		return require(shared:WaitForChild("MineLuckyOddsView"))
+	end)
+	local odds = okT and Trader and Trader.caseOdds and Trader.caseOdds(row and row.caseId)
+	if not (odds and okV and View) then
+		return
+	end
+	if ClientFns.traderOddsSheet and ClientFns.traderOddsSheet.Parent then
+		ClientFns.traderOddsSheet:Destroy()
+	end
+	local okG, Temper = pcall(function()
+		return require(shared:WaitForChild("MineTemper"))
+	end)
+	local function gradeTint(g)
+		return okG and Temper and Temper.colorOf and Temper.colorOf(g) or nil
+	end
+	local sections, sub = {}, ""
+	if odds.kind == "tool" then
+		sub = string.format("One level 1 tool: any ore tier from %d to %d, any of %d families",
+			odds.tierLo, odds.tierHi, #odds.families)
+		local fams = { header = "FAMILY  (each as likely)", rows = {} }
+		for _, fr in ipairs(odds.families) do
+			local name = string.upper(string.sub(fr.id, 1, 1)) .. string.sub(fr.id, 2)
+			table.insert(fams.rows, { name = name, p = fr.p })
+		end
+		local tiers = { header = "ORE TIER  (each as likely)", rows = {} }
+		for _, tr in ipairs(odds.tiers) do
+			local ore = C.ORES and C.ORES[tr.tier]
+			table.insert(tiers.rows, { name = string.format("Tier %d  ·  %s", tr.tier, tostring(ore and ore.name or "?")), p = tr.p })
+		end
+		sections = { fams, tiers }
+	else
+		sub = (odds.kind == "hat") and "One hat, graded like a gear crate's"
+			or "One charm, on the same ladder chests use"
+		local grades = { header = "GRADE", rows = {} }
+		for _, gr in ipairs(odds.grades) do
+			local name = "Grade " .. tostring(gr.grade)
+			if gr.n then
+				name ..= string.format("  (%d %s)", gr.n, (gr.n == 1) and "charm" or "charms")
+			end
+			table.insert(grades.rows, { name = name, p = gr.p, tint = gradeTint(gr.grade) })
+		end
+		sections = { grades }
+	end
+	ClientFns.traderOddsSheet = View.sheet(parent, {
+		title = string.upper(tostring(row.name or row.caseId)) .. "  ODDS",
+		sub = sub,
+		color = Color3.fromRGB(255, 226, 150),
+		sections = sections,
+		note = "Paid in tokens. The trader rolls it when you buy; every chance above is the one it rolls.",
+	}, { zIndex = 100 })
+end
+
 function ClientFns.showTraderShop(payload)
 	if type(payload) ~= "table" or type(payload.stock) ~= "table" then
 		return
@@ -8743,14 +8843,14 @@ function ClientFns.showTraderShop(payload)
 		round(card, 10)
 		mk("TextLabel", {
 			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 6),
-			Size = UDim2.new(0.58, 0, 0, 20), Font = FONT, TextSize = touch and 14 or 15,
+			Size = UDim2.new(0.5, 0, 0, 20), Font = FONT, TextSize = touch and 14 or 15,
 			TextColor3 = Color3.fromRGB(255, 255, 255), TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd, Text = tostring(row.name or row.caseId),
 			ZIndex = 92,
 		}, card)
 		mk("TextLabel", {
 			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 26),
-			Size = UDim2.new(0.58, 0, 0, rowH - 32), Font = FONT_M, TextSize = touch and 11 or 12,
+			Size = UDim2.new(0.5, 0, 0, rowH - 32), Font = FONT_M, TextSize = touch and 11 or 12,
 			TextColor3 = Color3.fromRGB(186, 190, 210), TextXAlignment = Enum.TextXAlignment.Left,
 			TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top,
 			Text = tostring(row.blurb or ""), ZIndex = 92,
@@ -8764,6 +8864,19 @@ function ClientFns.showTraderShop(payload)
 			Text = price .. " tokens", ZIndex = 92,
 		}, card)
 		round(buy, 9)
+		-- Odds before you buy (launch audit M3): every case here rolls, and
+		-- tokens trace back to Robux. ClientFns.traderOdds draws them.
+		local odds = mk("TextButton", {
+			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -(touch and 122 or 130), 0.5, 0),
+			Size = UDim2.new(0, 58, 0, touch and 40 or 34),
+			BackgroundColor3 = Color3.fromRGB(70, 66, 92), Font = FONT,
+			TextSize = touch and 13 or 14, TextColor3 = Color3.fromRGB(255, 226, 150),
+			Text = "ODDS", ZIndex = 92,
+		}, card)
+		round(odds, 9)
+		odds.MouseButton1Click:Connect(function()
+			ClientFns.traderOdds(f, row)
+		end)
 		buys[#buys + 1] = { btn = buy, price = price }
 		buy.MouseButton1Click:Connect(function()
 			--[[
@@ -12087,6 +12200,9 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if depthShopCtl and depthShopCtl.root and depthShopCtl.root.Visible then
 			depthShopCtl.setState({
 				coins = payload.coins,
+				-- Bags at a desk cost gems; the bag rung marks them OWNED (S3).
+				gems = payload.gems,
+				backpackTier = payload.backpackTier,
 				spaceCoins = payload.spaceCoins,
 				deepest = payload.deepest,
 				tools = nil,

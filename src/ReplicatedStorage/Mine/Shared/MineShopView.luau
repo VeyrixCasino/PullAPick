@@ -12,7 +12,8 @@
 -- Purchase rules mirror the server exactly, so the UI never offers a button the
 -- server will refuse:
 --   * tools cost COINS and are bought one rung at a time, in order
---   * backpacks cost COINS (rungs 1-29); the final rung is Robux-only
+--   * backpacks cost GEMS (MineBags.gemPrice); the final rung, the Founders Rig,
+--     costs CREDITS and asks twice (launch audit M4, 2026-10-19)
 local MineShopView = {}
 
 local RS = game:GetService("ReplicatedStorage")
@@ -2028,6 +2029,19 @@ function MineShopView.mount(parent, opts)
 		return idx and math.floor(idx) or fallback
 	end
 
+	--[[
+		THE FOUNDERS RIG IS SOLD FOR CREDITS (owner, 2026-10-19, launch audit M4:
+		"799 credits, labelled as credits, with a confirm step"). This shelf said
+		"BUY 799 Robux", then -- the product id being 0 -- quietly took 799
+		credits in one tap. It reads and charges credits now, at the price the
+		server charges (MineConfig.PRODUCTS.patron_rig, buyProductWithCredits),
+		and a buy takes two taps (see the action button).
+	]]
+	local function rigCredits(row)
+		local face = C.productCredits and C.productCredits((row and row.productKey) or "patron_rig")
+		return math.max(0, math.floor(tonumber(face) or tonumber(row and row.robuxPrice) or 0))
+	end
+
 	local function bagPrice(row)
 		if type(row) ~= "table" then
 			return 0
@@ -2085,7 +2099,8 @@ function MineShopView.mount(parent, opts)
 				return "zone"
 			end
 			if row.robux then
-				return "buy"
+				-- Credits, like the server charges (rigCredits, M4).
+				return ((state.credits or 0) >= rigCredits(row)) and "buy" or "short"
 			end
 			--[[
 				BAGS COST GEMS, AND THIS SHELF WAS PRICING THEM IN COINS.
@@ -2352,7 +2367,8 @@ function MineShopView.mount(parent, opts)
 		local tint = FAMILY_TINT[(isSecrets and row.family) or row.family or activeTab] or GOLD
 		local currency = "coins"
 		if activeTab == "backpack" and row.robux then
-			currency = "Robux"
+			-- Never "Robux": the rig is bought with credits (M4).
+			currency = "credits"
 		elseif activeTab == "backpack" then
 			-- Everything on this shelf that is not the Robux rig is bought
 			-- with gems; see bagPrice.
@@ -2453,7 +2469,7 @@ function MineShopView.mount(parent, opts)
 
 		local price = row.price or 0
 		if row.robux then
-			price = row.robuxPrice or 0
+			price = rigCredits(row)
 		elseif activeTab == "backpack" then
 			-- The gem price, not the row's coin figure. Same source as the
 			-- affordability check above and as the server's charge.
@@ -2461,7 +2477,7 @@ function MineShopView.mount(parent, opts)
 		end
 		-- The number you scan for. OWNED items have no price to show.
 		if status == "buy" or status == "short" then
-			priceLbl.Text = (row.robux and commas(price) or money(price)) .. " " .. (row.robux and "Robux" or currency)
+			priceLbl.Text = (row.robux and commas(price) or money(price)) .. " " .. currency
 			priceLbl.TextColor3 = (status == "short") and Color3.fromRGB(255, 150, 150) or GOLD
 		else
 			priceLbl.Text = ""
@@ -2470,7 +2486,11 @@ function MineShopView.mount(parent, opts)
 			action.BackgroundColor3 = GREEN
 			actionLbl.TextColor3 = Color3.fromRGB(16, 40, 24)
 			if row.robux then
-				actionLbl.Text = "BUY   " .. commas(price) .. " Robux"
+				-- The confirm step: the first tap arms it and says what the second
+				-- tap spends (state.rigArmedAt, set by the action button).
+				local armed = state.rigArmedAt ~= nil and (os.clock() - state.rigArmedAt) < 4
+				actionLbl.Text = armed and ("TAP AGAIN: SPEND " .. commas(price) .. " credits")
+					or ("BUY   " .. commas(price) .. " credits")
 			else
 				actionLbl.Text = "BUY   " .. money(price) .. " " .. currency
 			end
@@ -2691,16 +2711,34 @@ function MineShopView.mount(parent, opts)
 			if activeTab == "backpack" then
 				local row = rows()[index]
 				if row and row.robux then
-					local pid = tonumber(row.productId) or 0
-					if pid <= 0 then
+					--[[
+						TWO TAPS FOR 799 CREDITS (M4). The first arms it and the
+						button says what the second spends; it disarms after four
+						seconds. Credits only, whatever productId says: the owner
+						chose credits for the rig, and a prompt for Robux behind a
+						"credits" label would be the old bug turned round.
+					]]
+					local now = os.clock()
+					if state.rigArmedAt and (now - state.rigArmedAt) < 4 then
+						state.rigArmedAt = nil
 						if opts.onBuyProductCredits then
 							opts.onBuyProductCredits(row.productKey or "patron_rig")
 						elseif opts.onToast then
 							opts.onToast("Buy Founders Rig with credits in the Shop")
 						end
+						paint()
 						return
 					end
-					MarketplaceService:PromptProductPurchase(Players.LocalPlayer, pid)
+					state.rigArmedAt = now
+					paint()
+					task.delay(4, function()
+						if state.rigArmedAt == now then
+							state.rigArmedAt = nil
+							if root.Visible then
+								paint()
+							end
+						end
+					end)
 					return
 				end
 				-- Same reader the price uses, so the rung shown and the rung

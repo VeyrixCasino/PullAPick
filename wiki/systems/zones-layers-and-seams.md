@@ -110,7 +110,7 @@ depth points"*).
 - **When it opens.** `MineDepthPlazas.tryOpenSeam` runs when you dig within the air gap (`MineDepthPlazas.onDepthCredit`).
 - **The elevator.** The mineshaft elevator (`MineDepthPlazas.ride`) needs `deepest ≥ seam`.
 - **Desk keys.** `MineDepth.bandUnlockKey` names the desk: `deeprock` 500, `thousand` 1000, `shadowzone` 1500, `twothou` 2000, `outpost_<n>` from 2500. `MineDepthShop.DESK_SEAM` maps them back.
-- **Depth desks.** A depth desk sells the haul × `MineDepth.depthSellMult` (1.05 per 500 m, compounding) (`MineDepthShop.sellPayout`) and stocks the depth tool catalogue (`MineDepthShop.catalog`). It is gated by `MineDigAuth.clampDesk` and `MineDigAuth.canAccessSeam`, which use your earned depth, never your Y position.
+- **Depth desks.** A depth desk sells the haul × `MineDepth.depthSellMult` (1.05 per 500 m, compounding) (`MineDepthShop.sellPayout`) and stocks the desk catalogue (`MineDepthShop.catalog`): bags for gems, and Event Horizon's tools for space coins. Since 2026-10-19 (launch audit S3) it leaves out the coin tools the till refuses (`FORGE_ONLY_FAMILIES`) and prices bags at `MineBags.gemPrice`. It is gated by `MineDigAuth.clampDesk` and `MineDigAuth.canAccessSeam`, which use your earned depth, never your Y position.
 
 **World and portals.**
 - **The world is rebuilt at boot.** `WorldBuilder.build()` runs when the server starts. It destroys and rebuilds `workspace.MineWorld`: lobby, `Camp`, biome plates, surface outposts, `Pits`, portals. It also clears Terrain.

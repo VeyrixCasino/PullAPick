@@ -275,6 +275,11 @@ end
 	charm is no commoner from a trader than from a chest; you are paying for the
 	certainty of getting one at all, not for better odds.
 ]]
+-- The families a tool case pays, each as likely as the next. The roll lived in
+-- MineServer as a literal; it is here so the odds sheet reads the table the
+-- roll uses (launch audit M3).
+MineTrader.TOOL_FAMILIES = { "pickaxe", "drill", "explosive" }
+
 function MineTrader.rollCase(caseOrId, rng)
 	local c = type(caseOrId) == "table" and caseOrId or MineTrader.CASE_BY_ID[tostring(caseOrId or "")]
 	if type(c) ~= "table" then
@@ -306,7 +311,60 @@ function MineTrader.rollCase(caseOrId, rng)
 	-- Tool: a tier inside the case's band, uniform. The band IS the product.
 	local lo = math.max(1, math.floor(tonumber(c.tierLo) or 1))
 	local hi = math.max(lo, math.floor(tonumber(c.tierHi) or lo))
-	return { kind = "tool", tier = r:NextInteger(lo, hi) }
+	local fams = MineTrader.TOOL_FAMILIES
+	return {
+		kind = "tool",
+		tier = r:NextInteger(lo, hi),
+		familyId = fams[r:NextInteger(1, #fams)],
+	}
+end
+
+--[[
+	A CASE'S ODDS, BEFORE YOU BUY (owner, 2026-10-19, launch audit M3: tokens
+	trace back to Robux here, so a trader case is a paid random item). Read off
+	the same tables rollCase rolls, never typed:
+
+	  tool   { kind, tierLo, tierHi, tiers = { { tier, p } }, families = { { id, p } } }
+	         every tier in the band and every family equally likely
+	  hat    { kind, grades = { { grade, p } } }   MineTemper's weights
+	  charm  { kind, grades = { { grade, p, n } } } the chest ladder (MineCharms)
+
+	nil for an unknown case. tools/verify/trader.js rolls rollCase against it.
+]]
+function MineTrader.caseOdds(caseOrId)
+	local c = type(caseOrId) == "table" and caseOrId or MineTrader.CASE_BY_ID[tostring(caseOrId or "")]
+	if type(c) ~= "table" then
+		return nil
+	end
+	if c.kind == "charm" then
+		return { kind = "charm", grades = (Charms.chestCharmOdds and Charms.chestCharmOdds()) or {} }
+	end
+	if c.kind == "hat" then
+		local order = Temper.GRADE_ORDER or { "F" }
+		local weights = Temper.RARITY_WEIGHTS or {}
+		local total = 0
+		for _, g in ipairs(order) do
+			total += math.max(0, tonumber(weights[g]) or 0)
+		end
+		local grades = {}
+		for i, g in ipairs(order) do
+			local w = math.max(0, tonumber(weights[g]) or 0)
+			-- No weight at all: rollCase pays the first grade.
+			local p = (total > 0) and (w / total) or ((i == 1) and 1 or 0)
+			table.insert(grades, { grade = g, p = p })
+		end
+		return { kind = "hat", grades = grades }
+	end
+	local lo = math.max(1, math.floor(tonumber(c.tierLo) or 1))
+	local hi = math.max(lo, math.floor(tonumber(c.tierHi) or lo))
+	local tiers, families = {}, {}
+	for t = lo, hi do
+		table.insert(tiers, { tier = t, p = 1 / (hi - lo + 1) })
+	end
+	for _, f in ipairs(MineTrader.TOOL_FAMILIES) do
+		table.insert(families, { id = f, p = 1 / #MineTrader.TOOL_FAMILIES })
+	end
+	return { kind = "tool", tierLo = lo, tierHi = hi, tiers = tiers, families = families }
 end
 
 return MineTrader

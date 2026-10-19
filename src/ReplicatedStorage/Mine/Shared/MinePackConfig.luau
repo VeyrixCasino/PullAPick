@@ -1304,9 +1304,15 @@ local Cases = nil
 -- A pack case or a featured set pack on today's credit shelf is priced by
 -- MineCases (PROPOSED, from expected value), so the cart, the 10x bundle and
 -- the box all read it here like any other pack.
+--
+-- THE LIVE SHELF ONLY (launch audit S7, 2026-10-19). This read PACK_PRICE first,
+-- so a crafted cart naming a retired card or gear pack (heirloom_pack,
+-- gear_vault_pack...) was priced and sold, though no shelf has shown one since
+-- 2026-10-10. MineCases.creditPrice answers only for today's credit shelf, and
+-- nil for anything else. PACK_PRICE stays for what still reads it directly:
+-- trade values, scrap returns, the stardust fallback.
 function MinePackConfig.priceOf(packId)
-	return MinePackConfig.PACK_PRICE[tostring(packId)]
-		or (Cases and Cases.creditPrice and Cases.creditPrice(packId))
+	return (Cases and Cases.creditPrice and Cases.creditPrice(packId)) or nil
 end
 
 -- Shop credit list prices (≈Robux). Wide disparity: filler impulse vs whale chase.
@@ -1359,6 +1365,37 @@ function MinePackConfig.bundlePrice(packId)
 		return nil
 	end
 	return math.floor(unit * MinePackConfig.BUNDLE_QTY * MinePackConfig.BUNDLE_RATE + 0.5)
+end
+
+--[[
+	A BUILD-A-BOX (launch audit S8; owner, 2026-10-19: "Box of 10 gets 30% off").
+	Any picks are BOX_RATE of their list (12% off). Ten of ONE pack is the 10x
+	bundle, at the bundle's own price (bundlePrice, 30% off): the box charged
+	12% off for exactly what the 10x button sold at 30%. nil when the box is
+	empty, over BUNDLE_QTY, or names anything off the live shelf. The server
+	charges this and the shop prints it, so the two cannot disagree.
+]]
+MinePackConfig.BOX_RATE = 0.88
+
+function MinePackConfig.boxPrice(packIds)
+	if type(packIds) ~= "table" or #packIds < 1 or #packIds > MinePackConfig.BUNDLE_QTY then
+		return nil
+	end
+	local sum, first, same = 0, tostring(packIds[1]), true
+	for _, pid in ipairs(packIds) do
+		local unit = MinePackConfig.priceOf(tostring(pid))
+		if not unit then
+			return nil
+		end
+		sum += unit
+		if tostring(pid) ~= first then
+			same = false
+		end
+	end
+	if same and #packIds == MinePackConfig.BUNDLE_QTY then
+		return MinePackConfig.bundlePrice(first)
+	end
+	return math.floor(sum * MinePackConfig.BOX_RATE + 0.5)
 end
 
 --[[

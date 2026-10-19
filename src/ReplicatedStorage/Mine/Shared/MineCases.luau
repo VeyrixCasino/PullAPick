@@ -353,8 +353,19 @@ end
 	For the inspector: how likely one wild slot is to come from a set of each
 	grade, best grade last: { { grade, pct, sets, paidOnly } }. The paid-only
 	grades print their share of a credit-bought case.
+
+	`paid` asks for a CREDIT-BOUGHT case's exact odds (the shop's mystery
+	buyer, launch audit M3): rollWildSet gives the paid-only sets their share
+	first, so every other grade gets (1 - PAID_ONLY_SHARE) of its weight and the
+	rows sum to 100. Without it, the rows are an earned case's odds (the other
+	grades are the whole draw), and the paid-only rows are listed, flagged, for
+	the inspector to say which cases can roll them.
 ]]
-function M.wildGradeOdds()
+function M.wildGradeOdds(paid)
+	local scale = 1
+	if paid == true and #wildPool(true) > 0 then
+		scale = 1 - M.PAID_ONLY_SHARE
+	end
 	local byGrade, total = {}, 0
 	for _, s in ipairs(wildPool(false)) do
 		local w = SetPacks.GRADE_WEIGHT[s.grade] or 1
@@ -367,7 +378,7 @@ function M.wildGradeOdds()
 	for _, g in ipairs({ "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
 		local row = byGrade[g]
 		if row then
-			row.pct = (total > 0) and (row.pct / total * 100) or 0
+			row.pct = (total > 0) and (row.pct / total * 100 * scale) or 0
 			table.insert(out, row)
 		elseif M.PAID_ONLY_GRADES[g] then
 			local n = 0

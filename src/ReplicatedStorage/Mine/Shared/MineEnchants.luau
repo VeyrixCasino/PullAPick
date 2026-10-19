@@ -600,6 +600,32 @@ function M.rollBookId(rng, slotFilter)
 	return M.LIST[1].id
 end
 
+--[[
+	THE ODDS OF ONE BOOK (owner, 2026-10-19, launch audit M3: the Forge's gem
+	bundle is a paid random buy, so it shows them before you pay). The same
+	walk rollBookId makes: every enchant in M.LIST (or in `slotFilter`'s slots)
+	at its RARITY_WEIGHT over their total. { { id, name, rarity, p } }, p
+	summing to 1. tools/verify/paid-odds.js rolls rollBookId against it.
+]]
+function M.bookOdds(slotFilter)
+	local total = 0
+	for _, def in ipairs(M.LIST) do
+		if not slotFilter or slotFilter[def.slot] then
+			total += M.RARITY_WEIGHT[def.rarity] or 1
+		end
+	end
+	local out = {}
+	for _, def in ipairs(M.LIST) do
+		if not slotFilter or slotFilter[def.slot] then
+			table.insert(out, {
+				id = def.id, name = def.name, rarity = def.rarity,
+				p = (total > 0) and ((M.RARITY_WEIGHT[def.rarity] or 1) / total) or 0,
+			})
+		end
+	end
+	return out
+end
+
 -- A book's level: I, unless a rank (B/A/S) lifts it (BOOK_RANK_LEVEL).
 local function liftLevel(rank, rng)
 	local lift = M.BOOK_RANK_LEVEL[rank or ""]

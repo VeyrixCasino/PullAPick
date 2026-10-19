@@ -62,10 +62,20 @@ part-built figures, which was the owner's choice.
   would make the shallow stop strictly worse. The author measured `case_rough` at 25
   on the zone 1 surface and 67 at Mythral 500.
 - **What a tool case pays** is a tier drawn **uniformly** inside the case's band, in
-  a random family (pickaxe, drill or explosive) chosen by `Verbs.buyTraderCase`. The
-  tool starts at **level 1 with `base = 1`**, not at your inherited best, "the case
-  is the tool, not a free run up the upgrade ladder" (see
+  a random family (pickaxe, drill or explosive, `MineTrader.TOOL_FAMILIES`). Since
+  2026-10-19 `MineTrader.rollCase` rolls the family with the tier (`familyId`), so the
+  odds sheet reads the table the roll uses; `Verbs.buyTraderCase` used to pick it from
+  a literal. The tool starts at **level 1 with `base = 1`**, not at your inherited
+  best, "the case is the tool, not a free run up the upgrade ladder" (see
   [forge-and-recycling](forge-and-recycling.md) for why `base` matters).
+- **Odds before you buy** (owner, 2026-10-19, launch audit M3: tokens trace back to
+  Robux, so a trader case is a paid random item). Every shelf row has an ODDS button
+  (`ClientFns.traderOdds`) that draws `MineTrader.caseOdds`: a tool case's tiers and
+  families (each equally likely), the hats case's grades on `MineTemper` weights, the
+  charm case's grades on the chest ladder (`MineCharms.chestCharmOdds`). The sheet is
+  `MineLuckyOddsView.sheet`. `tools/verify/paid-odds.js` rolls `rollCase` against it.
+  `buyTraderCase` is on `Verbs.PAID_RANDOM`, so it is refused where paid random items
+  are restricted.
 - **Buying** is `Verbs.buyTraderCase`. Before a token moves it re-derives what the
   client could lie about: `Dig.TraderNPC.canTrade` re-derives the roster from the
   clock (naming an outpost is not standing at it), the `caseId` must be on that
@@ -86,10 +96,10 @@ part-built figures, which was the owner's choice.
 
 | file | role | key symbols |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/MineTrader.luau` | the rules, shared with the client | `CASES`, `COUNT`, `ROTATE_SECONDS`, `rotationFor`, `placements`, `stockFor`, `priceFor`, `rollCase` |
+| `src/ReplicatedStorage/Mine/Shared/MineTrader.luau` | the rules, shared with the client | `CASES`, `COUNT`, `ROTATE_SECONDS`, `rotationFor`, `placements`, `stockFor`, `priceFor`, `rollCase`, `caseOdds`, `TOOL_FAMILIES` |
 | `src/ServerScriptService/Mine/MineTraderNPC.luau` | bodies, prompt, spot list, roster check | `spots`, `build`, `start`, `offer`, `canTrade` |
 | `src/ServerScriptService/Mine/MineServer.server.luau` | the till | `Verbs.buyTraderCase`, the `traderShop` remote |
-| `src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau` | the panel | `ClientFns.showTraderShop` |
+| `src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau` | the panel and its odds | `ClientFns.showTraderShop`, `ClientFns.traderOdds` |
 | `tools/verify/trader.js` | rules, placement spread, server wiring, client wiring | needs `luau` |
 
 ## Decided by the owner

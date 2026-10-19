@@ -1333,16 +1333,60 @@ function Hub.mount(gui, opts)
 		stroke(shop, TH.magic[1], 2)
 		text(shop, "📚", 30, Color3.new(1, 1, 1), { Position = UDim2.fromOffset(8, 0), Size = UDim2.fromOffset(48, 64), ZIndex = 77 })
 		local st = text(shop, "BOOK BUNDLE   ·   " .. size .. " random books", 19, TH.text, { Position = UDim2.fromOffset(62, 6),
-			Size = UDim2.new(1, -250, 0, 26), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 77 })
+			Size = UDim2.new(1, -340, 0, 26), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 77 })
 		ink(st, 1)
 		text(shop, "Chests and lucky blocks drop bundles too.", 14, TH.muted, { Position = UDim2.fromOffset(62, 34),
-			Size = UDim2.new(1, -250, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, Font = FONT_B, ZIndex = 77 })
+			Size = UDim2.new(1, -340, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, Font = FONT_B, ZIndex = 77 })
 		local buy = pill(shop, "💎 " .. short(price), canBuy and TH.good or TH.off, UDim2.fromOffset(170, 44), 18, 78)
 		buy.Position = UDim2.new(1, -180, 0.5, -22)
 		buy.MouseButton1Click:Connect(function()
 			if canBuy then
 				act("enchBuyBundle", {})
 			end
+		end)
+		--[[
+			ODDS BEFORE YOU BUY (owner, 2026-10-19, launch audit M3): the bundle is
+			random books for gems, and gems trace back to Robux. Each book is drawn
+			on its own at level I; every chance is MineEnchants.bookOdds, the
+			weights rollBundle rolls with.
+		]]
+		local oddsB = pill(shop, "ODDS", TH.cool, UDim2.fromOffset(84, 44), 16, 78)
+		oddsB.Position = UDim2.new(1, -274, 0.5, -22)
+		oddsB.MouseButton1Click:Connect(function()
+			if state.oddsSheet and state.oddsSheet.Parent then
+				state.oddsSheet:Destroy()
+			end
+			local okV, View = pcall(function()
+				return require(shared:WaitForChild("MineLuckyOddsView"))
+			end)
+			if not (okV and View) then
+				return
+			end
+			local rows = {}
+			for _, b in ipairs(E.bookOdds()) do
+				table.insert(rows, {
+					name = tostring(b.name) .. " I  ·  " .. tostring(b.rarity), p = b.p,
+					tint = Cards.RARITY_COLOR and Cards.RARITY_COLOR[b.rarity] or nil,
+				})
+			end
+			table.sort(rows, function(a, b)
+				if a.p ~= b.p then
+					return a.p > b.p
+				end
+				return a.name < b.name
+			end)
+			state.oddsSheet = View.sheet(root, {
+				title = "BOOK BUNDLE  ODDS",
+				sub = size .. " books, each drawn on its own, always level I",
+				color = TH.magic[1],
+				sections = { { header = "EACH BOOK IS ONE OF THESE", rows = rows } },
+				note = "A bundle can repeat a book. Merge " .. E.MERGE_COST .. " of the same book for the next level.",
+			}, {
+				zIndex = 90,
+				onClose = function()
+					state.oddsSheet = nil
+				end,
+			})
 		end)
 		local hdr = text(uWork, "📖 MY BOOKS   ·   merge " .. E.MERGE_COST .. " of the same book for +1 level", 18, TH.text, { Position = UDim2.fromOffset(0, 72),
 			Size = UDim2.new(1, 0, 0, 26), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 76 })

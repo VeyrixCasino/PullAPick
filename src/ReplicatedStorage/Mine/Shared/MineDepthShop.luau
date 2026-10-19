@@ -145,6 +145,48 @@ local function rowFrom(tool, family, tier)
 	}
 end
 
+--[[
+	WHAT A DESK SHOWS IS WHAT ITS TILL SELLS, AT THE TILL'S PRICE (launch audit
+	S3, 2026-10-19). The catalog fed both, and they disagreed:
+
+	  TOOLS. Coin tools are gone (MineConfig.FORGE_ONLY_FAMILIES, 2026-10-05);
+	  buyDepthTool refuses any shop-ladder tool of those families, and the desk
+	  still drew their cards with a BUY button. They are left out here, by the
+	  server's own test (a MineShopLadders row of a forge-only family), so Event
+	  Horizon's `eh_` tools, which still sell for space coins, stay.
+
+	  BAGS. The buy verb charges MineBags.gemPrice(tier) in GEMS; the desk printed
+	  the row's `price`, a COIN figure kept for sell value and sorting (MineBags'
+	  header). Bag rows now carry `currency = "gems"` and `gemPrice`, and `price`
+	  is left alone for everything else that reads it. The Founders Rig is not a
+	  desk item (the till refuses it there; it sells for credits on the Backpacks
+	  shelf), so it is left out too.
+]]
+local function forgeOnly(row)
+	local id = tostring(row and row.id or "")
+	if string.sub(id, 1, 3) == "eh_" then
+		return false
+	end
+	local L = loadLadders()
+	local lrow = L and L.byId and L.byId(id)
+	if not lrow then
+		return false
+	end
+	local Cfg = require(shared:WaitForChild("MineConfig"))
+	return (Cfg.FORGE_ONLY_FAMILIES or {})[tostring(lrow.family or "")] == true
+end
+
+local function deskBags(Bags, zoneIndex, band, seen, rows)
+	for _, b in ipairs(Bags.shopRows(zoneIndex, band)) do
+		if b and not b.robux and not seen[b.id] then
+			seen[b.id] = true
+			b.currency = "gems"
+			b.gemPrice = Bags.gemPrice and Bags.gemPrice(b.tier) or nil
+			table.insert(rows, b)
+		end
+	end
+end
+
 -- Depth-plaza catalogs: THIS zone + THIS desk only.
 -- Never inherit other zones' depth purchase options.
 function MineDepthShop.catalog(zoneIndex, seam, desk)
@@ -179,12 +221,7 @@ function MineDepthShop.catalog(zoneIndex, seam, desk)
 			return require(shared:WaitForChild("MineBags"))
 		end)
 		if okBags and Bags and Bags.shopRows then
-			for _, b in ipairs(Bags.shopRows(zoneIndex, band)) do
-				if b and not seen[b.id] then
-					seen[b.id] = true
-					table.insert(rows, b)
-				end
-			end
+			deskBags(Bags, zoneIndex, band, seen, rows)
 		end
 		return rows
 	end
@@ -200,24 +237,19 @@ function MineDepthShop.catalog(zoneIndex, seam, desk)
 	local seen = {}
 	if L and L.forDesk then
 		for _, t in ipairs(L.forDesk(zoneId, ladderDesk)) do
-			if not seen[t.id] then
+			if not seen[t.id] and not forgeOnly(t) then
 				seen[t.id] = true
 				table.insert(rows, rowFrom(t, t.family, t.slot))
 			end
 		end
 	end
-	-- Bags for this band
+	-- Bags for this band, at their gem price (see the block above).
 	local band = MineDepthShop.deskBand(desk)
 	local okBags, Bags = pcall(function()
 		return require(shared:WaitForChild("MineBags"))
 	end)
 	if okBags and Bags and Bags.shopRows then
-		for _, b in ipairs(Bags.shopRows(zoneIndex, band)) do
-			if b and not seen[b.id] then
-				seen[b.id] = true
-				table.insert(rows, b)
-			end
-		end
+		deskBags(Bags, zoneIndex, band, seen, rows)
 	end
 	return rows
 end

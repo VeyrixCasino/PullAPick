@@ -125,7 +125,7 @@ How a case behaves in the game:
 | file | role | key symbols |
 |---|---|---|
 | `MineCases.luau` | both case kinds, rolling, opening, prices, shelves | `CASES`, `open`, `rollChestCase`, `dustPrice`, `creditPrice`, `creditShelf`, `featuredSetPacks` |
-| `MinePackConfig.luau` | registers cases; `priceOf` falls back to MineCases | `PACK_BY_ID`, `priceOf`, `PACK_UNIT.pack_case` |
+| `MinePackConfig.luau` | registers cases; `priceOf` is the live credit shelf only (`MineCases.creditPrice`, since 2026-10-19); `boxPrice` prices a Build-a-Box | `PACK_BY_ID`, `priceOf`, `boxPrice`, `PACK_UNIT.pack_case` |
 | `MineServer.server.luau` | open dispatch, chest drop, cart grants, stardust buy | `Verbs.buyDustCase`, `openChestBlock` |
 | `MineGroupWheel.luau` | the wheel's pack slices now pay wild cases | `SEGMENTS` |
 | `MineInventoryView.luau` | bag tile, case inspector, credit shelf, stardust Cases tab | `dustTab`, `FEATURED` |
@@ -220,6 +220,11 @@ instead of nine tiles (`MineInventoryView` mysteryBuyer):
   singles, and says how much the bundle saves.
 - In the stardust shop it buys at once (`Verbs.buyDustCase`, now up to
   `Const.BUY_QTY_MAX`).
+- **ODDS before you buy** (owner, 2026-10-19, launch audit M3). The panel's ODDS
+  button opens the case inspector at the picked grade. In the credit shop it shows a
+  credit-bought case's exact split (`MineCases.wildGradeOdds(true)`: SSS 0.5% and
+  every other grade × 0.995, summing to 100%); in the stardust shop, an earned
+  case's. The Packs hero (★★★★★ case first) has ODDS and every Build-a-Box tile its ⓘ.
 
 | set case (stardust) | Starter | Collector | Vault | return |
 |---|---|---|---|---|
@@ -240,7 +245,9 @@ Featured set packs in credits (sets F to B only):
 - Four are featured each UTC day, at ★★★, ★★★★, ★★★★ and ★★★★★
   (`FEATURED_LEVELS`).
 
-Wild-slot odds by set grade (`MineCases.wildGradeOdds`):
+Wild-slot odds by set grade (`MineCases.wildGradeOdds`; an earned case's, the
+F–SS rows summing to 100%. A credit-bought case gives SSS its 0.5% first, so its
+other rows are each × 0.995):
 
 | grade | share |
 |---|---|

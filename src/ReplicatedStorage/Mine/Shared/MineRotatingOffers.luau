@@ -43,14 +43,39 @@ MineRotatingOffers.OFFERS = {
 			{ id = "super_lucky_block", qty = 3 },
 			{ id = "godly_lucky_block", qty = 1 },
 		},
+		--[[
+			WILD CASES WHERE THE RETIRED PACKS WERE (owner, 2026-10-19: "wild
+			cases of about the same value"). The deal paid 4 Heirloom, 2 Omen and
+			2 Shiny packs, which left the shelves on 2026-10-10. Valued the way
+			the cases are priced (MineCases.expectedDust, MinePackConfig
+			.expectedDust: what the cards recycle for), read 2026-10-19:
+
+			  old  4 x Heirloom 6,888 + 2 x Omen 3,204 + 2 x Shiny 24,056
+			       = 82,072 stardust, 502 credits at the old list prices
+			  new  3 x 5-star 15,958 + 2 x 4.5-star 10,425 + 3 x 4-star 4,893
+			       = 83,403 stardust, 505 credits at today's case prices
+
+			Eight cases for eight packs, within 2% on both counts. The deal is
+			bought with credits, so they are paid cases (MineCases.bagRow).
+			PROPOSED (2026-10-19): the mix.
+		]]
 		packs = {
-			{ id = "heirloom_pack", qty = 4 },
-			{ id = "omen_pack", qty = 2 },
-			{ id = "shiny_pack", qty = 2 },
+			{ id = "case_6", qty = 3 },
+			{ id = "case_5_6", qty = 2 },
+			{ id = "case_5", qty = 3 },
 		},
-		pet = 1,
-		blurb = "LIMITED TIME. NEVER COMING BACK. 5 Lucky Blocks, 3 Diamond, 1 Godly, a Lucky Block pet, plus 4 Heirloom, 2 Omen, 2 Shiny packs. 599 credits. Max 3.",
-		toast = "Lucky Block Week claimed — open them in your bag",
+		--[[
+			A REAL PET, ONE PER PURCHASE (owner, 2026-10-19: "a real existing
+			lucky-block pet (an Epic-ish one that fits)"). It used to write
+			ownedPets.lucky_block, which nothing in the game reads, so buyers
+			got no pet at all. Lucky Dice is an Epic of the Lost & Found set:
+			lucky blocks pay mystery cases, whose packs drop it. The server mints
+			it as a card the way lucky blocks minted pets (MineServer
+			Dig.mintDealPet). PROPOSED (2026-10-19): which pet.
+		]]
+		pet = "Lucky Dice",
+		blurb = "LIMITED TIME. NEVER COMING BACK. 5 Lucky Blocks, 3 Diamond, 1 Godly, the Lucky Dice pet (Epic), plus 8 Wild Cases: 3 ★★★★★, 2 ★★★★½, 3 ★★★★. 599 credits. Max 3.",
+		toast = "Lucky Block Week claimed — Lucky Dice joined your pets; the blocks and cases are in your bag",
 	},
 	{
 		id = "deal_pot_gold", key = "deal_pot_gold", kind = "deal",
@@ -74,7 +99,9 @@ MineRotatingOffers.OFFERS = {
 		title = "Founders Bag", icon = "logo",
 		credits = 799,
 		starts = START, ends = ENDS,
-		blurb = "The long one. Founders Bag stays on the shelf through Oct 31. 799 credits.",
+		-- No calendar date (2026-10-19): the season runs 47 days from launch,
+		-- whenever that is (MineLaunch), so "through Oct 31" was wrong either way.
+		blurb = "The long one. Founders Bag stays on the shelf all season. 799 credits.",
 	},
 	{
 		id = "feat_lucky10", key = "feat_lucky10", kind = "deal",
@@ -109,7 +136,7 @@ MineRotatingOffers.OFFERS = {
 		credits = 350,
 		starts = START + 4 * WEEK, ends = ENDS,
 		blocks = { { id = "lucky_block", qty = 10 } },
-		blurb = "10 Lucky Blocks through Oct 31. 350 credits.",
+		blurb = "10 Lucky Blocks until the season ends. 350 credits.",
 		toast = "Lucky Stack claimed",
 	},
 }
@@ -168,24 +195,35 @@ function MineRotatingOffers.deny(p, offer)
 	return nil
 end
 
-function MineRotatingOffers.grant(p, offer)
+--[[
+	`hooks.mintPet(name)` mints a named pet as a card and returns true. Only the
+	server can (it owns the serials), so an offer with a pet is REFUSED without
+	the hook, before anything is counted or granted: a deal that took the money
+	and skipped the pet is the bug this replaced. The pet goes first, so a mint
+	that fails leaves nothing half-granted and the caller can refund.
+]]
+function MineRotatingOffers.grant(p, offer, hooks)
 	if MineRotatingOffers.deny(p, offer) then
 		return false
 	end
+	if offer.pet and not (type(hooks) == "table" and type(hooks.mintPet) == "function") then
+		return false
+	end
 	p.dealBuys = p.dealBuys or {}
-	p.dealBuys[offer.id] = MineRotatingOffers.bought(p, offer) + 1
+	local before = MineRotatingOffers.bought(p, offer)
+	-- Counted before the mint, which can wait on a datastore: a second buy in
+	-- that gap must already see this one.
+	p.dealBuys[offer.id] = before + 1
+	if offer.pet then
+		local okPet, minted = pcall(hooks.mintPet, offer.pet)
+		if not okPet or minted ~= true then
+			p.dealBuys[offer.id] = before
+			return false
+		end
+	end
 	p.packs = p.packs or {}
 	for _, block in ipairs(offer.blocks or {}) do
 		LuckyBlocks.grant(p, block.id, "F", block.qty or 1)
-	end
-	if offer.pet then
-		p.ownedPets = p.ownedPets or {}
-		local cur = p.ownedPets.lucky_block
-		local n = (cur == true) and 1 or math.max(0, math.floor(tonumber(cur) or 0))
-		local room = 3 - n
-		if room > 0 then
-			p.ownedPets.lucky_block = n + math.min(offer.pet, room)
-		end
 	end
 	if offer.charm then
 		p.charms = p.charms or {}
@@ -232,9 +270,85 @@ end
 
 function MineRotatingOffers.dayKey(now)
 	now = now or Launch.seasonNow()
-	local left = math.max(0, ENDS - now)
+	-- SEASON_END, not the file-local ENDS: ENDS is the season before the extra
+	-- week (40 days), so the header said "40d left" in a 47-day season.
+	local left = math.max(0, MineRotatingOffers.SEASON_END - now)
 	local days = math.floor(left / 86400)
 	return string.format("%dd left in the season", days)
+end
+
+--[[
+	COUNTDOWNS RUN ON THE SEASON CLOCK (launch audit M8, 2026-10-19).
+
+	`starts` and `ends` are season-clock instants. The shop subtracted os.time()
+	from them, and the season clock sits at SEASON_START until launch and runs
+	behind the wall clock after it, so every limited deal read "ends 0d 0h"
+	from the day it went up. Every countdown goes through these instead, which
+	default `now` to the season clock like the rest of this module.
+]]
+function MineRotatingOffers.secondsLeft(offer, now)
+	now = now or Launch.seasonNow()
+	return math.max(0, math.floor((tonumber(offer and offer.ends) or 0) - now))
+end
+
+-- Seconds until the next offer goes up (offers change weekly), or nil once
+-- nothing new is still to come this season.
+function MineRotatingOffers.nextOfferIn(now)
+	now = now or Launch.seasonNow()
+	local soonest = nil
+	for _, row in ipairs(MineRotatingOffers.OFFERS) do
+		local s = tonumber(row.starts)
+		if s and s > now and (soonest == nil or s < soonest) then
+			soonest = s
+		end
+	end
+	return soonest and math.floor(soonest - now) or nil
+end
+
+-- "6d 23h", or "5h 07m" inside the last day.
+function MineRotatingOffers.clockText(secs)
+	secs = math.max(0, math.floor(tonumber(secs) or 0))
+	if secs >= 86400 then
+		return string.format("%dd %dh", secs // 86400, (secs % 86400) // 3600)
+	end
+	return string.format("%dh %02dm", secs // 3600, (secs % 3600) // 60)
+end
+
+--[[
+	DOES BUYING THIS ROLL ANYTHING?
+
+	Roblox restricts paid random items in some regions (MineServer
+	Verbs.PAID_RANDOM, the PolicyNoRandom attribute). A deal is a bundle of
+	fixed things, but the lucky blocks and cases in it are random items bought
+	with credits (and credits trace back to Robux), so a deal carrying any is a
+	paid random buy. Read off what the grant pays out, never a flag typed
+	beside it that could drift.
+]]
+function MineRotatingOffers.hasRandom(offer)
+	if type(offer) ~= "table" then
+		return false
+	end
+	return #(offer.blocks or {}) > 0 or #(offer.packs or {}) > 0 or (tonumber(offer.shinyPacks) or 0) > 0
+end
+
+-- The same question for any key MineServer's buyProductCredits takes: a deal
+-- here, else a MineConfig.PRODUCTS row (packs, lucky blocks, or the Starter
+-- Crate's random Common pet -- its grant defaults commonPet to 1, so this does).
+function MineRotatingOffers.isRandomBuy(key)
+	key = tostring(key or "")
+	local offer = MineRotatingOffers.byId(key)
+	if offer then
+		return MineRotatingOffers.hasRandom(offer)
+	end
+	local C = require(script.Parent:WaitForChild("MineConfig"))
+	local prod = C.product and C.product(key)
+	if type(prod) ~= "table" then
+		return false
+	end
+	if #(prod.packs or {}) > 0 or #(prod.blocks or {}) > 0 then
+		return true
+	end
+	return key == "starter_bundle" and (tonumber(prod.commonPet) or 1) > 0
 end
 
 function MineRotatingOffers.active(now)
