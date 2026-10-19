@@ -201,7 +201,10 @@ const get = (key) => {
   return m ? m[1].split(" ") : null;
 };
 
-// S32
+// S32. What "healthy" means is PROPOSED (2026-10-19): no family over 30% (the
+// brief's "about 30%"; even is 12.5%), no trait over 15% (even is 8.3%), 90+
+// of the 96 family x trait pairs, and every home of 40+ pets with 6+ families
+// and none over 35%. Today: 13.5%, 9.5%, 96, and 31 homes all mixed.
 const total = Number((get("TOTAL") || [0])[0]);
 check(total >= 3000, `the roster loads: ${total} named pets (zone pots, 19 sets, Event Horizon, holiday)`);
 const sp = (get("SPREAD") || []).map(Number);
