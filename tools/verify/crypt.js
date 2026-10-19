@@ -66,10 +66,14 @@ const bodyOf = (name) => {
   const ez = bodyOf("enterZone");
   check(/Dig\.Crypt\.onClaim\(/.test(ez) && /Dig\.Crypt\.onEnterZone\(/.test(ez),
     "enterZone grants the starter on a free claim and re-gives the hands on entry");
-  const et = bodyOf("equippedTool");
-  const ehAt = et.indexOf('p.zoneId == "bigbang"');
-  const crAt = et.indexOf("Dig.Crypt.heldTool(p)");
-  check(ehAt > -1 && crAt > ehAt, "equippedTool swaps in the Crypt tool, after Event Horizon's own branch");
+  // The held-tool chain lives in Dig.toolInHand; equippedTool is that plus the
+  // worn skin (Dig.wearSkin), so the Crypt swap must sit in toolInHand and
+  // equippedTool must still go through it.
+  const th = bodyOf("Dig.toolInHand");
+  const ehAt = th.indexOf('p.zoneId == "bigbang"');
+  const crAt = th.indexOf("Dig.Crypt.heldTool(p)");
+  check(ehAt > -1 && crAt > ehAt, "the held tool swaps in the Crypt tool, after Event Horizon's own branch");
+  check(/Dig\.toolInHand\(p\)/.test(bodyOf("equippedTool")), "...and equippedTool still reads the held tool through it");
   for (const fn of ["swingBlock", "swingNeighbour"]) {
     check(/if zone and zone\.noStrengthGate then\s+okBreak = true/.test(bodyOf(fn)),
       fn + " honours the zone's noStrengthGate (the Crypt's HP is its gate)");
