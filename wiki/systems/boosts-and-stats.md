@@ -58,7 +58,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
        (`oreTool` / `oreTier`; look-rung is 0 — fixed `b0c2430`).
        Equipped `MineSkins` kits are added into **layer 1** earlier in the
        same function (not only via `applyTemper`).
-  6. **The proc gate, folds and floors.** Echo is folded into swing rate and autoMine into gem find, and the auto-mine licence is applied. `Dig.Enchants.gateProcs` keeps only the Special enchant's proc family ([enchants](enchants.md)). Then `MineCards.clampBoosts` applies **floors only**: every `ADDITIVE_STATS` stat ≥ 0, multipliers ≥ 0.05, `swingSec` ≥ 0.05.
+  6. **The proc gate, folds and floors.** Echo is folded into swing rate and autoMine into gem find, and the auto-mine licence is applied. `Dig.Enchants.gateProcs` keeps only the Special enchant's proc family (a Spellbook keeps none and casts them by turns), and holds proc damage to its ceiling ([enchants](enchants.md)). Then `MineCards.clampBoosts` applies **floors only**: every `ADDITIVE_STATS` stat ≥ 0, multipliers ≥ 0.05, `swingSec` ≥ 0.05.
 
 **The three luck channels** (TODO 6.2). Generic `luck` remains the shared base that prestige, VIP, the pass, skills and the Umbra set feed. Two channel stats multiply on top of it, and chest luck reuses an existing stat:
 
@@ -71,7 +71,10 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 **Caps.** `MineStats` states "No magnitude caps", and `clampBoosts` only floors. The real limits are applied where each stat is used:
 - blast, tidal wave, shatter (`ricochet`) and earthquake chances are clamped to ≤ 1 in `Dig.procsAt`. They are a probability; there is no other cap (owner: price, don't cap);
 - zap is deliberately not clamped;
-- `procPower` ≤ `MineConfig.PROC_POWER_CAP 3.0`;
+- `procPower` ≤ `MineConfig.PROC_POWER_CAP 3.0`, and since 2026-10-19 Proc Power plus the live
+  proc family's own damage (`blastDamage`, `tideDamage`, `zapDamage`, `shatterDamage`) ≤ +300% together
+  (`MineEnchants.gateProcs`, `TUNING.procDamageCap`; the overflow from a chance over 100% lands in the
+  own damage, which had no ceiling: [enchants](enchants.md));
 - blastRadius has no balance cap, but a bomb's radius never passes `MinePatterns.MAX_BLAST_RADIUS` (6 cells, PROPOSED 2026-10-19): a server-safety ceiling, since cells grow as r³ and an SSS Inferno hat alone is +350%;
 - the forever-tool power cap is `foreverPowerCap`.
 

@@ -108,7 +108,10 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
   Pet traits **stay**: when tool traits were retired on 2026-10-12, the owner chose to
   retire only the tool kind. The retired tool trait is a different thing ([traits](traits.md)).
 - **Lines the Special gate zeroes say so** (2026-10-19, S34). A Zap line on a Blast tool pays
-  nothing ([enchants](enchants.md)), and the card now dims it with "needs a Zap Special".
+  nothing ([enchants](enchants.md)), and the card now dims it with "needs a Zap Special". On a
+  **Spellbook** tool (a Halloween Special, 2026-10-19) every family's line is zeroed -- the book picks
+  the ability, not the pets -- and `liveFamily` reads `"spell"`, so each such line says "needs a Zap
+  Special" (or Blast, ...) while generic proc damage still pays; Equip Best seats plain stats there.
   `MineCards.describe(card, pow, n, gate)` returns a note per line from `MineEnchants.gateNote`,
   using `familyOfStat`, the map `Dig.petShares` scores pets by. The live family is read off the
   server's gated boosts (`MineEnchants.liveFamily`). A family or trait line with a plain stat

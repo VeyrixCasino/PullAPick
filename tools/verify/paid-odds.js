@@ -241,7 +241,11 @@ check("rollChestCharm draws grades as chestCharmOdds says", w < 0.005, string.fo
 -- ------------------------------------------------ the Forge's book bundle --
 local E = MODULES.MineEnchants
 local bo = E.bookOdds()
-check("bookOdds lists every enchant", #bo == #E.LIST, #bo)
+-- Every enchant but the Halloween four, whose books come only from Candy
+-- Crypt chests (MineEnchants.rollHalloweenBook, owner 2026-10-19).
+local mainBooks = 0
+for _, d in ipairs(E.LIST) do if d.event == nil then mainBooks += 1 end end
+check("bookOdds lists every enchant a bundle can roll", #bo == mainBooks and mainBooks >= 22, #bo)
 check("...and sums to 1", math.abs(sum(bo) - 1) < 1e-9, sum(bo))
 local books = {}
 for _, r in ipairs(bo) do books[r.id] = r.p end
