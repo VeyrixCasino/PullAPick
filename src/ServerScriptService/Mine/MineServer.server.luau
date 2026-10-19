@@ -1304,6 +1304,11 @@ local function load(plr)
 		p.eventTools.eh_shallow_pick = true
 		p.eventToolId = p.eventToolId or "eh_shallow_pick"
 	end
+	-- The Candy Crypt's save: tool stacks, the equip, the notice flags, and
+	-- the starter pick for a claim that has no tool (MineCrypt.normalize).
+	if Dig.Crypt then
+		Dig.Crypt.normalize(p)
+	end
 	do
 		local oldEvent = {
 			eh_shallow_drill = "eh_crimson_pick",
@@ -2323,6 +2328,21 @@ function Dig.toolInHand(p)
 		local et = okH and Horizon and Horizon.byId(eid)
 		if et and p.eventTools and p.eventTools[eid] then
 			return et, et.family or "pickaxe", et.tier or 1
+		end
+	end
+	--[[
+		THE CANDY CRYPT SWINGS A CRYPT TOOL (owner, 2026-10-19: "Normal tools do
+		not work in events"). Inside an event-tools-only mine this is always the
+		player's Crypt tool, or empty hands; outside, once the Crypt has closed,
+		it is the Crypt tool they chose to keep holding, at its weaker main-world
+		power. nil means "not this branch" and the chain below decides as before.
+		The rule is MineCryptRules.heldRow; Event Horizon is left to the branch
+		above.
+	]]
+	if Dig.Crypt then
+		local crow, cfam, ctier = Dig.Crypt.heldTool(p)
+		if crow then
+			return crow, cfam or crow.family or "pickaxe", ctier or 0
 		end
 	end
 	--[[
@@ -3584,6 +3604,18 @@ local function snap(plr)
 		backpackTier = p.backpackTier, petSlots = p.petSlots, petSlotsEffective = C.effectivePetSlots and C.effectivePetSlots(p) or p.petSlots, zoneId = p.zoneId,
 		maxUnlockedZone = p.maxUnlockedZone, bigbangOwned = p.bigbangOwned and true or false,
 		hallowOwned = p.hallowOwned and true or false, candy = p.candy or 0,
+		-- The Candy Crypt's block (MineCryptRules.stateFor: Crypt tools,
+		-- equip, notice flags, recipes, candy ores, window) and every limited
+		-- zone's own open state, so a screen never reads Event Horizon's
+		-- window for the Crypt (Planets, portals).
+		crypt = Dig.Crypt and Dig.Crypt.snapState(p) or nil,
+		limitedOpen = (function()
+			local out = {}
+			for zid in pairs(C.LIMITED_WINDOWS or {}) do
+				out[zid] = (C.limitedActive and C.limitedActive(zid)) and true or false
+			end
+			return out
+		end)(),
 		skins = p.skins or {}, skinEquipped = p.skinEquipped or {},
 		-- One-shot: the client reads it once, then it is cleared below.
 		skinNotice = p.skinNotice,
@@ -4526,7 +4558,10 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 		luckyId = LuckyBlocks.rollPitId(Random.new())
 	end
 	local chestDef
-	if kind == "chest" then
+	if kind == "chest" and zone.id == "hallow" and Dig.Crypt then
+		-- A Candy Crypt chest, named for its depth band (MineCrypt).
+		chestDef = Dig.Crypt.chestSpawnDef(y)
+	elseif kind == "chest" then
 		local ZoneChests = require(shared:WaitForChild("MineZoneChests"))
 		-- Better chests deeper, inside every zone but Meadow (MineConfig.chestRankLuck).
 		chestDef = ZoneChests.rollSpawn(zone.id, y, (C.zoneIndex and C.zoneIndex(zone.id)) or 1,
@@ -4744,10 +4779,9 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 				part:SetAttribute("CandyOre", cdef.id)
 				part:SetAttribute("CandyName", cdef.name)
 				-- Banked at spawn so the payout cannot disagree with the block
-				-- the player actually looked at.
-				part:SetAttribute("Candy", math.max(1, math.floor(
-					(cdef.candy or 1) * (C.candySectionMult and C.candySectionMult(y) or 1)
-				)))
+				-- the player actually looked at. 3x since 2026-10-19 (owner):
+				-- MineConfig.candyFor carries CANDY_RATE_MULT.
+				part:SetAttribute("Candy", C.candyFor(cdef, y))
 			end
 		end
 	end
@@ -5328,14 +5362,16 @@ local function enterZone(plr, zoneId)
 				p[flag] = true
 			end
 			-- The Wormhole Bag and the starter pick belong to Event Horizon,
-			-- not to "any limited zone". Halloween has no gear of its own to
-			-- grant: its tools are bought with candy.
+			-- not to "any limited zone". The Candy Crypt grants its own starter
+			-- pick (owner, 2026-10-19), through MineCrypt.
 			if zone.id == "bigbang" then
 				p.wormholeBag = true
 				p.eventTools = p.eventTools or {}
 				p.eventTools.eh_shallow_pick = true
 				p.eventToolId = p.eventToolId or "eh_shallow_pick"
 				net:FireClient(plr, "toast", "Wormhole Bag unlocked — best haul in the game")
+			elseif Dig.Crypt then
+				Dig.Crypt.onClaim(plr, p, zone)
 			else
 				net:FireClient(plr, "toast", zone.name .. " claimed — mine candy while it lasts")
 			end
@@ -5349,11 +5385,17 @@ local function enterZone(plr, zoneId)
 		end
 		return string.format("Buy %s for %s gems", zone.name, tostring(cost))
 	end
+	local fromZoneId = p.zoneId
 	p.zoneId = zone.id
 	require(game.ServerScriptService.Mine.MineEventHorizon).setLowGravity(plr, zone.id == "bigbang")
 	ensureZone(zone, math.max((p.deepest[zone.id] or 0), Dig.Auth.depthPassOf(p, zone.id)) + (C.LAYER_WINDOW or 8))
 	tp(plr, surfaceCf(zone))
 	MineBadges.onEnterZone(plr, zone.id)
+	-- Into or out of an event mine the hands change (only event tools work
+	-- there), and the first entry gets the pop-up (MineCrypt).
+	if Dig.Crypt then
+		Dig.Crypt.onEnterZone(plr, p, zone, fromZoneId)
+	end
 	snap(plr)
 end
 -- Which chest a chest-block turns out to be is decided HERE, at break time,
@@ -5936,6 +5978,16 @@ end
 local rollChestTool
 
 local function openChestBlock(plr, p, chestId, b, part)
+	--[[
+		A CANDY CRYPT CHEST is its own thing (owner, 2026-10-19: Crypt chests are
+		where Crypt tools come from): candy, and sometimes a Crypt tool from the
+		chest's depth band. Nothing from the zone-chest tables -- the Crypt has
+		no zone packs of its own, so those would be broken pack ids. MineCrypt.
+	]]
+	if Dig.Crypt and part and part:GetAttribute("ZoneId") == "hallow" then
+		Dig.Crypt.openChest(plr, p, part, b or {})
+		return
+	end
 	local rng = Random.new()
 	local luck = (b.chestLuck or 1)
 	local zone = C.zoneById(p.zoneId) or C.ZONES[1]
@@ -6413,6 +6465,16 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			introAdvance(plr, p, 4)
 		end
 	end
+	--[[
+		A CANDY BLOCK PAYS candy and one candy ore (MineCrypt, owner 2026-10-19),
+		whatever KIND of block the candy sits in. spawnVoxel paints candy onto
+		any Crypt block, but the payout used to live inside the ore branch
+		below, so a candy block of plain rock paid nothing. A candy block has no
+		OreId (spawnVoxel clears it), so the ore branch still never pays twice.
+	]]
+	if Dig.Crypt and part:GetAttribute("Candy") ~= nil then
+		Dig.Crypt.onBlockBroken(plr, p, part, kind, layer, bb)
+	end
 	-- The haul was already paid, point of HP by point of HP, on the way down --
 	-- see payDamage. Breaking the block owes nothing further; only a chest has
 	-- anything left to resolve, and that is its own loot table.
@@ -6453,30 +6515,7 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 			compounds. MineConfig.oreHaulMult clamps it at ORE_HAUL_CAP however
 			tall the stack gets.
 		]]
-		--[[
-			CANDY first, and it returns: a candy block has no OreId, so the ore
-			branch below would not fire anyway, but making that explicit keeps
-			the two payouts from ever both running if a future change stamps
-			both. Candy goes straight to the balance -- no pouch, no capacity
-			check, nothing to sell.
-		]]
-		local candyGot = tonumber(part:GetAttribute("Candy"))
-		if candyGot and candyGot > 0 then
-			-- The Trick-or-Treat Bucket's ability, read off the equipped bag.
-			local bagRow = C.BACKPACKS and C.BACKPACKS[p.backpackTier]
-			local candyMult = bagRow and tonumber(bagRow.candyMult)
-			if candyMult and candyMult > 1 then
-				candyGot = math.floor(candyGot * candyMult)
-			end
-			p.candy = math.max(0, math.floor((tonumber(p.candy) or 0) + candyGot))
-			local cname = tostring(part:GetAttribute("CandyName") or "Candy")
-			net:FireClient(plr, "loot", {
-				text = ("+%d %s"):format(candyGot, cname),
-				color = part.Color,
-				pos = part.Position,
-			})
-			markDirty(plr)
-		end
+		-- (Candy is paid above, for every kind of block: MineCrypt.onBlockBroken.)
 		local ore = C.oreById(part:GetAttribute("OreId"))
 		-- Alchemy (a Utility enchant) can turn it into the next ore up.
 		if ore and Dig.EnchSvc then
@@ -6734,6 +6773,14 @@ local function payDamage(plr, p, kind, landed, zoneId, layer)
 	if C.BLOCKS[kind].noHaul then
 		return 0
 	end
+	-- The Candy Crypt's rock is hard but sells for little (owner, 2026-10-19):
+	-- its haul keeps the old low curve, MineCrypt.haulPoints.
+	if zoneId == "hallow" and Dig.Crypt then
+		landed = Dig.Crypt.haulPoints(p, landed, layer)
+		if landed <= 0 then
+			return 0
+		end
+	end
 	local room = cap(p) - (p.load or 0)
 	if room <= 0 then
 		-- The rock still breaks and chests still roll; you just stop being paid.
@@ -6845,6 +6892,10 @@ local function swingNeighbour(plr, part, dmg, p)
 		local zi = (C.zoneIndex and C.zoneIndex(part:GetAttribute("ZoneId") or (zone and zone.id))) or 1
 		local okBreak = Dig.Breaking.canBreak(
 			tool, zi, layer, tonumber(part:GetAttribute("OreTier")), #C.ORES, p.maxUnlockedZone)
+		-- No strength gate in the Candy Crypt; see the same lines in swingBlock.
+		if zone and zone.noStrengthGate then
+			okBreak = true
+		end
 		if not okBreak then
 			return
 		end
@@ -7665,7 +7716,9 @@ local function swingBlock(plr, part)
 			local nowT = os.clock()
 			if (Dig.eventToast[plr.UserId] or 0) + 2 < nowT then
 				Dig.eventToast[plr.UserId] = nowT
-				net:FireClient(plr, "toast", why == "weak" and "Too weak out here." or "Too heavy in this gravity.")
+				-- Matter.TOAST also says the event-only refusals (the Candy Crypt).
+				net:FireClient(plr, "toast", (Matter.TOAST and Matter.TOAST[why])
+					or (why == "weak" and "Too weak out here." or "Too heavy in this gravity."))
 			end
 			return
 		end
@@ -7760,6 +7813,12 @@ local function swingBlock(plr, part)
 		-- already passed drops to the full reach. See MineBreaking.reachFor.
 		local okBreak, need, have = Dig.Breaking.canBreak(
 			tool, zi, layer, oreTier, #C.ORES, p.maxUnlockedZone)
+		-- A zone with no strength gate (the Candy Crypt: its HP is the gate,
+		-- and only its own event tools reach this line -- MineSpaceMatter).
+		-- Its index, 12, would otherwise read Event Horizon's ladder.
+		if zone and zone.noStrengthGate then
+			okBreak = true
+		end
 		if not okBreak then
 			-- Throttled: a player holding the button swings into the wall ten
 			-- times a second and only needs telling once.
@@ -10365,8 +10424,10 @@ local function equipTool(plr, payload)
 	p.toolTier = p.toolTier or {}
 	p.toolTier[family] = math.clamp(wantTier or p.toolTier[family] or owned, 1, owned)
 	-- A chest or fossil tool overrides the ladder entirely, so choosing a
-	-- ladder tool has to put those down or nothing appears to change.
+	-- ladder tool has to put those down or nothing appears to change. So does
+	-- a kept Crypt tool held in the main world.
 	p.chestTool, p.shopToolId = nil, nil
+	p.cryptToolWorld = nil
 	p.toolFamily = family
 	p.toolEquipped = true
 	givePickaxe(plr)
@@ -10559,6 +10620,42 @@ Verbs.Ench.init({ profiles = profiles, net = net, snap = snap, markDirty = markD
 Dig.EnchSvc = Verbs.Ench
 
 --[[
+	THE CANDY CRYPT (owner's redesign, 2026-10-19): MineCrypt owns its tools,
+	drops, verbs and snapshot block. Every remote action starting "crypt" goes
+	there, like "fish" and "ench". Also on Dig, because equippedTool, snap,
+	payDamage, finishBreak and the chest code are all declared above Verbs.
+
+	Required under pcall, through a function so it takes no main-chunk local:
+	a Crypt bug must cost the Crypt, not the server. Every caller checks it.
+]]
+Verbs.Crypt = (function()
+	local ok, mod = pcall(require, script.Parent:WaitForChild("MineCrypt"))
+	if not ok then
+		warn("[Mine] MineCrypt failed to load: " .. tostring(mod))
+		return nil
+	end
+	return mod
+end)()
+if Verbs.Crypt then
+	Verbs.Crypt.init({
+		profiles = profiles, net = net, snap = snap, markDirty = markDirty,
+		givePickaxe = givePickaxe, bumpStat = bumpStat,
+		pouchTier = function(p)
+			return Dig.pouchTier(p)
+		end,
+		pouchFullToast = function(plr, p)
+			Dig.pouchFullToast(plr, p)
+		end,
+		chestXp = function(plr, p)
+			if Dig.EnchSvc then
+				Dig.EnchSvc.gainXp(plr, p, Dig.Enchants.XP_CHEST)
+			end
+		end,
+	})
+end
+Dig.Crypt = Verbs.Crypt
+
+--[[
 	THE FREE FIRST PICKAXE.
 
 	Walking up to the Blacksmith IS the pickup -- no coin check, no menu to
@@ -10730,8 +10827,8 @@ end
 	an inventory.
 
 	MineTrickOrTreat.roll returns a plain description of the prize and performs
-	no side effects, so the granting lives here where the profile is, and the
-	roll itself stays testable.
+	no side effects; the granting lives in MineCrypt (Verbs.buyTrickOrTreat
+	below hands over to it), and the roll itself stays testable.
 ]]
 --[[
 	EQUIP A SKIN, per tool family.
@@ -10810,130 +10907,12 @@ function Verbs.equipSkin(plr, payload)
 end
 
 function Verbs.buyTrickOrTreat(plr)
-	local p = profiles[plr.UserId]
-	if not p then
-		return
+	-- Served by MineCrypt since the 2026-10-19 redesign (tools 85%, skin case
+	-- 5%, hat 7%, Halloween pack 2.9%, bucket 0.1%, no candy back).
+	if Verbs.Crypt then
+		return Verbs.Crypt.buyTrickOrTreat(plr)
 	end
-	local okT, TT = pcall(function()
-		return require(shared:WaitForChild("MineTrickOrTreat"))
-	end)
-	if not okT or type(TT) ~= "table" then
-		net:FireClient(plr, "toast", "Trick-or-Treat is unavailable")
-		return
-	end
-	-- Sold only while the Crypt is open, and only to someone who claimed it.
-	local zone = C.zoneById("hallow")
-	local flag = zone and zone.ownedFlag
-	if not (flag and p[flag]) then
-		net:FireClient(plr, "toast", "Claim the Candy Crypt first")
-		return
-	end
-	if C.limitedActive and not C.limitedActive("hallow") then
-		net:FireClient(plr, "toast", "The Candy Crypt has closed")
-		return
-	end
-	local price = math.max(1, math.floor(tonumber(TT.PRICE) or 2500))
-	if (tonumber(p.candy) or 0) < price then
-		net:FireClient(plr, "toast", ("Need %d candy"):format(price))
-		return
-	end
-	p.candy = math.max(0, math.floor((tonumber(p.candy) or 0) - price))
-
-	local prize = TT.roll(Random.new())
-	local kind = prize and prize.kind or "candy"
-	local text
-	if kind == "candy" then
-		local amt = math.max(1, math.floor(tonumber(prize.amount) or 1))
-		p.candy = math.floor((tonumber(p.candy) or 0) + amt)
-		text = ("+%d candy back"):format(amt)
-	elseif kind == "hat" then
-		-- Head-slot gear, rolled the one way the chest path rolls it. `p.gear`
-		-- is an ARRAY of pieces; there is no hat-id set on the profile.
-		local piece
-		if Gear and Gear.rollPiece then
-			p.gear = p.gear or {}
-			piece = Gear.rollPiece(instanceHex16(), Random.new(), "head")
-			if piece then
-				table.insert(p.gear, piece)
-			end
-		end
-		if piece then
-			text = piece.name or "a hat"
-		else
-			p.candy = math.floor((tonumber(p.candy) or 0) + price)
-			text = "nothing (refunded)"
-		end
-	elseif kind == "skin" then
-		-- A "skin" IS a temperament here; let the existing roller decide which.
-		-- A "skin" IS a temperament here (wiki: skins-cases-and-temper), and
-		-- MineTemper.rollTemperament is the one roller the rest of the game uses.
-		local Temper = require(shared.MineTemper)
-		local okS, kit, rarity = pcall(function()
-			return Temper.rollTemperament(Random.new())
-		end)
-		if okS and kit and kit.id then
-			--[[
-				p.tempers is a MAP KEYED BY kit.id holding { rarity, n }, not a
-				list. Granted exactly the way the ore cases do it: a duplicate
-				keeps the BETTER grade and bumps the count, because a second
-				copy of a worse roll must not downgrade one you already own.
-			]]
-			p.tempers = p.tempers or {}
-			local had = p.tempers[kit.id]
-			if had then
-				had.rarity = Temper.betterGrade(had.rarity, rarity)
-				had.n = (tonumber(had.n) or 1) + 1
-			else
-				p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
-			end
-			text = "a skin"
-		else
-			p.candy = math.floor((tonumber(p.candy) or 0) + price)
-			text = "nothing (refunded)"
-		end
-	elseif kind == "pack" and prize.id then
-		p.packs = p.packs or {}
-		table.insert(p.packs, { setId = tostring(prize.id) })
-		text = "a seasonal pack"
-	elseif kind == "bucket" then
-		--[[
-			The bucket is a BAG TIER, and owning it must not silently demote a
-			player who already carries something bigger. Granted as an unlock
-			and only equipped when it is an upgrade.
-		]]
-		--[[
-			`backpackTier` is an INDEX into C.BACKPACKS and is clamped to its
-			length -- not a bag id. Limited bags are owned through a dedicated
-			flag, the way the Wormhole Bag uses p.wormholeBag, because there is
-			no per-bag ownership set to put one in.
-		]]
-		local row, idx
-		for i, r in ipairs(C.BACKPACKS or {}) do
-			if r.limited == "hallow" then
-				row, idx = r, i
-				break
-			end
-		end
-		if row and idx then
-			p.trickBucket = true
-			local cur = C.BACKPACKS[p.backpackTier]
-			-- Only equip when it is an upgrade: winning it must never demote
-			-- someone already carrying something bigger.
-			if not cur or (tonumber(row.slots) or 0) > (tonumber(cur.slots) or 0) then
-				p.backpackTier = idx
-			end
-			text = "THE TRICK-OR-TREAT BUCKET"
-		else
-			p.candy = math.floor((tonumber(p.candy) or 0) + price)
-			text = "nothing (refunded)"
-		end
-	else
-		p.candy = math.floor((tonumber(p.candy) or 0) + price)
-		text = "nothing (refunded)"
-	end
-	markDirty(plr)
-	snap(plr)
-	net:FireClient(plr, "toast", "Trick-or-Treat: " .. tostring(text))
+	net:FireClient(plr, "toast", "Trick-or-Treat is unavailable")
 end
 function Verbs.buyCharter(plr, id)
 	local p = profiles[plr.UserId]
@@ -11757,20 +11736,35 @@ local function buyZone(plr, zoneId)
 		return
 	end
 	if zone.limited then
-		if not (C.limitedActive and C.limitedActive()) then
+		--[[
+			PER ZONE: its own window and its own claim flag (launch audit M2,
+			fixed 2026-10-19). This read Event Horizon's window and set
+			bigbangOwned whatever was being claimed, so the Events tab's claim
+			for the Candy Crypt handed out Event Horizon and its Wormhole Bag.
+			Event Horizon's claim is unchanged.
+		]]
+		if not (C.limitedActive and C.limitedActive(zone.id)) then
 			net:FireClient(plr, "toast", zone.name .. " event has ended")
 			return
 		end
-		if p.bigbangOwned then
+		local flag = zone.ownedFlag or "bigbangOwned"
+		if p[flag] then
 			net:FireClient(plr, "toast", "Already unlocked")
 			return
 		end
-		p.bigbangOwned = true
-		p.wormholeBag = true
-		p.eventTools = p.eventTools or {}
-		p.eventTools.eh_shallow_pick = true
-		p.eventToolId = p.eventToolId or "eh_shallow_pick"
-		net:FireClient(plr, "toast", "Unlocked " .. zone.name .. " — Wormhole Bag is yours")
+		p[flag] = true
+		if zone.id == "bigbang" then
+			p.wormholeBag = true
+			p.eventTools = p.eventTools or {}
+			p.eventTools.eh_shallow_pick = true
+			p.eventToolId = p.eventToolId or "eh_shallow_pick"
+			net:FireClient(plr, "toast", "Unlocked " .. zone.name .. " — Wormhole Bag is yours")
+		elseif Verbs.Crypt then
+			-- The Candy Crypt: a free starter pick (MineCrypt).
+			Verbs.Crypt.onClaim(plr, p, zone)
+		else
+			net:FireClient(plr, "toast", "Unlocked " .. zone.name)
+		end
 		markDirty(plr)
 		snap(plr)
 		return
@@ -14388,6 +14382,21 @@ task.spawn(function()
 					warn("[Mine] Event Horizon reset failed: " .. tostring(err))
 				end
 			end
+			--[[
+				THE CANDY CRYPT IS REMADE ON THE SAME BEAT (2026-10-19). It is a
+				3x3 pit, so a busy server digs its top out within minutes, and
+				since the redesign its rock hardens from zone 3 to zone 10: a new
+				player's free starter pick only works near the top, and without a
+				reset there would soon be no top left to work. Only while its
+				window is open, like Event Horizon. PROPOSED.
+			]]
+			local crypt = C.zoneById("hallow")
+			if crypt and crypt.id == "hallow" and C.limitedActive and C.limitedActive("hallow") then
+				local ok, err = pcall(Verbs.resetMineZone, crypt)
+				if not ok then
+					warn("[Mine] Candy Crypt reset failed: " .. tostring(err))
+				end
+			end
 			left = period - (workspace:GetServerTimeNow() % period)
 		end
 		if math.floor(left) % 5 == 0 then
@@ -14994,6 +15003,9 @@ Verbs.KEEP_ON_REBIRTH = {
 	-- must neither wipe paid spins nor hand out a fresh day of free ones)
 	"groupWheel",
 	"charms", "equippedCharm", "dealBuys", "creditBuys",
+	-- Candy Crypt tools are "yours to keep" (owner, 2026-10-19), like forged
+	-- tools; the claim and the candy already ride along above (MineCrypt).
+	"cryptTools", "cryptToolEquipped", "cryptToolWorld", "eventNoticeSeen", "candySeen",
 	-- records and settings
 	"packsOpened", "playtime", "settings",
 	-- save guard: a profile that never loaded must stay unsaveable
@@ -16331,7 +16343,8 @@ function Verbs.toggleOreLock(plr, payload)
 		return
 	end
 	local id = tostring((type(payload) == "table" and payload.oreId) or "")
-	local ore = C.oreById(id)
+	-- A candy ore locks too (2026-10-19): the candy SELL ALL skips it.
+	local ore = C.oreById(id) or (C.candyOreById and C.candyOreById(id))
 	if not ore then
 		net:FireClient(plr, "toast", "That ore is not in the roster")
 		return
@@ -16398,7 +16411,14 @@ end
 	estimate the server then quietly disagrees with.
 
 	Locked ores are excluded by the plan itself, so there is no path through here
-	that can sell one.
+	that can sell one. Nor candy ores (2026-10-19): they sell for candy, through
+	MineCrypt.
+
+	SELL UP TO (owner, 2026-10-19): `payload.upTo` is a ceiling from
+	MineOrePouch.SELL_UP_TO ("Common" .. "Legendary", or "Everything"). A valid
+	one is remembered in p.settings.oreSellUpTo (the snapshot carries settings,
+	so the panel can preselect it). No upTo means "Everything", what SELL ALL
+	always did, so an older panel still sells what it says.
 ]]
 function Verbs.sellAllOres(plr, payload)
 	local p = profiles[plr.UserId]
@@ -16408,21 +16428,37 @@ function Verbs.sellAllOres(plr, payload)
 	local Pouch = require(shared:WaitForChild("MineOrePouch"))
 	p.ores = p.ores or {}
 	p.oreLocks = p.oreLocks or {}
-	local plan = Pouch.sellAllPlan(p.ores, p.oreLocks)
+	local upTo = type(payload) == "table" and payload.upTo or nil
+	if upTo ~= nil then
+		upTo = tostring(upTo)
+		if not (Pouch.validSellUpTo and Pouch.validSellUpTo(upTo)) then
+			upTo = "Everything"
+		end
+		p.settings = p.settings or {}
+		if p.settings.oreSellUpTo ~= upTo then
+			p.settings.oreSellUpTo = upTo
+			markDirty(plr)
+		end
+	end
+	local plan = Pouch.sellAllPlan(p.ores, p.oreLocks, upTo)
 	if plan.units <= 0 then
 		local anyLocked = next(p.oreLocks) ~= nil
-		net:FireClient(plr, "toast", anyLocked
-			and "Nothing to sell -- everything you hold is locked"
+		net:FireClient(plr, "toast", ((plan.aboveUnits or 0) > 0)
+			and ("Nothing to sell up to " .. tostring(upTo))
+			or (anyLocked and "Nothing to sell -- everything you hold is locked")
+			or (((plan.candyUnits or 0) > 0) and "Only candy ores left -- they sell for candy")
 			or "Your pouch is empty")
 		return
 	end
 	if not (type(payload) == "table" and payload.confirm) then
 		-- Ask first. The panel shows these numbers and sends the same verb back
-		-- with confirm = true.
+		-- with confirm = true (and the same upTo).
 		net:FireClient(plr, "confirmSellAll", {
 			units = plan.units,
 			gems = plan.gems,
 			rows = #plan.rows,
+			upTo = upTo or "Everything",
+			candyUnits = plan.candyUnits or 0,
 			locked = (function()
 				local n = 0
 				for _ in pairs(p.oreLocks) do
@@ -17206,6 +17242,9 @@ function Verbs.equipOreTool(plr, payload)
 	p.chestTool = nil
 	p.shopToolId = nil
 	p.toolFamily = tool.familyId or "pickaxe"
+	-- Picking a forged tool puts a kept Crypt tool down in the main world
+	-- (MineCryptRules.heldRow honours p.cryptToolWorld first).
+	p.cryptToolWorld = nil
 
 	givePickaxe(plr)
 	local oreDef = C.ORES and C.ORES[tonumber(tool.tier) or 1]
@@ -17446,6 +17485,14 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 		end
 		if type(action) == "string" and string.sub(action, 1, 4) == "ench" then
 			Verbs.Ench.dispatch(plr, action, payload)
+			return
+		end
+		-- The Candy Crypt's verbs (MineCrypt: cryptEquip, cryptMerge,
+		-- cryptSellCandyOres, cryptCraftCharm, cryptNoticeSeen).
+		if type(action) == "string" and string.sub(action, 1, 5) == "crypt" then
+			if Verbs.Crypt then
+				Verbs.Crypt.dispatch(plr, action, payload)
+			end
 			return
 		end
 		if action == "dig" and typeof(payload) == "Instance" then swingBlock(plr, payload)

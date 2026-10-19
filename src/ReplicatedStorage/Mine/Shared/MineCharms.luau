@@ -367,7 +367,9 @@ end
 -- What one graded charm costs in temper tokens, or nil if it is not graded.
 function MineCharms.charmTokenPrice(idOrDef)
 	local def = type(idOrDef) == "table" and idOrDef or MineCharms.byId(idOrDef)
-	if type(def) ~= "table" or not def.rarity then
+	-- Graded rows only: the Halloween charms carry a grade too, but they are
+	-- crafted from candy ore and never sold for tokens.
+	if type(def) ~= "table" or not def.rarity or def.source ~= "charm" then
 		return nil
 	end
 	return MineCharms.CHARM_TOKEN_PRICE[def.rarity]
@@ -750,9 +752,79 @@ local STAT_LABEL = {
 	backpack = "Backpack", swingRate = "Swing Rate", pulverize = "Pulverizer",
 	scrap = "Scrap", fossilFind = "Ore Finder", blastChance = "Omni Blast",
 	luckyFind = "Lucky Find",
+	-- The Halloween charms' two (2026-10-19). Candy Find multiplies the candy a
+	-- block or Crypt chest pays (MineCrypt reads boosts().candyFind); Event
+	-- Digging multiplies an EVENT tool's power wherever it is swung (MineCryptRules
+	-- reads it off the worn charm). Neither touches a normal tool.
+	candyFind = "Candy Find", eventDig = "Event Digging",
 }
 
 MineCharms.STAT_LABEL = STAT_LABEL
+
+--[[
+	THE SIX HALLOWEEN CHARMS. Owner, 2026-10-19: "a new set of 6 Halloween
+	charms, crafted at the Forge from candy ores (deeper ore, better charm);
+	candy find, event digging and a small normal stat; the same power
+	everywhere."
+
+	CRAFTED, NOT DROPPED. Source "candy": no zone grant, no chest roll, no token
+	price and no merge -- each is made from N of ONE candy ore (`recipe`), with
+	MineCrypt's `cryptCraftCharm` verb. The recipe is on the row, so the Forge
+	and the server read the same cost.
+
+	ON THE GRADED LADDER, D to SS, one grade per charm, deeper ore higher. The
+	numbers are not typed: each stat is MineTemper.RARITY_MULT for the grade
+	times a share (CANDY_CHARM_SHARE), the same "magnitude follows the grade"
+	rule the graded 36 use. So a D charm is +56% Candy Find, +42% Event
+	Digging and +10% of its normal stat, and the SS one +400%, +300% and +75%.
+
+	THE SAME POWER EVERYWHERE: nothing here is scaled by where you stand. Candy
+	Find only has candy to act on in the Crypt, Event Digging only has event
+	tools, and the normal stat (a different one per charm) works anywhere --
+	small on purpose, so wearing one in the main world costs you the slot.
+
+	NO ICONS YET (`art` nil): the Inventory falls back to the generic charm
+	icon. The six pictures are owed.
+
+	PROPOSED (2026-10-19): the names, which ores, the grades, the three shares
+	and the recipe counts.
+]]
+MineCharms.CANDY_CHARM_SHARE = { candyFind = 0.80, eventDig = 0.60, normal = 0.15 }
+MineCharms.CANDY_CHARMS = {
+	{ id = "hallow_kernel", name = "Candy Corn Kernel", rarity = "D", oreId = "candy_corn", count = 25, normal = "coinBonus" },
+	{ id = "hallow_wisp", name = "Cotton Candy Wisp", rarity = "C", oreId = "cotton_candy", count = 30, normal = "swingRate" },
+	{ id = "hallow_fizz", name = "Pop Rocks Fizz", rarity = "B", oreId = "pop_rocks", count = 35, normal = "dirtBreak" },
+	{ id = "hallow_lantern", name = "Rock Candy Lantern", rarity = "A", oreId = "rock_candy", count = 40, normal = "chestLuck" },
+	{ id = "hallow_moon", name = "White Chocolate Moon", rarity = "S", oreId = "white_chocolate", count = 50, normal = "gemFind" },
+	{ id = "hallow_skull", name = "Jawbreaker Skull", rarity = "SS", oreId = "jawbreaker", count = 60, normal = "mineSpeed" },
+}
+do
+	local mult = Temper.RARITY_MULT or {}
+	local share = MineCharms.CANDY_CHARM_SHARE
+	local function hundredth(x)
+		return math.floor(x * 100 + 1e-9) / 100
+	end
+	local function pct(x)
+		return math.floor(x * 100 + 1e-9)
+	end
+	for _, r in ipairs(MineCharms.CANDY_CHARMS) do
+		local m = tonumber(mult[r.rarity]) or 1
+		local candy = hundredth(m * share.candyFind)
+		local dig = hundredth(m * share.eventDig)
+		local normal = hundredth(m * share.normal)
+		table.insert(LIST, {
+			id = r.id,
+			name = r.name,
+			source = "candy",
+			rarity = r.rarity,
+			holiday = "halloween",
+			recipe = { oreId = r.oreId, count = r.count },
+			stats = { candyFind = candy, eventDig = dig, [r.normal] = normal },
+			blurb = string.format("+%d%% Candy Find · +%d%% Event Digging · +%d%% %s",
+				pct(candy), pct(dig), pct(normal), STAT_LABEL[r.normal] or r.normal),
+		})
+	end
+end
 
 --[[
 	TWO CHARMS PER ORE, 164 in all, and each ore's pair are different KINDS of
@@ -957,6 +1029,28 @@ MineCharms.GRADED = GRADED
 
 function MineCharms.byId(id)
 	return BY_ID[tostring(id or "")]
+end
+
+-- The six Halloween charms, in grade order (CANDY_CHARMS). Each def carries
+-- `recipe = { oreId, count }`: the candy ore and how many craft one.
+function MineCharms.candyCharms()
+	local out = {}
+	for _, r in ipairs(MineCharms.CANDY_CHARMS or {}) do
+		local def = BY_ID[r.id]
+		if def then
+			table.insert(out, def)
+		end
+	end
+	return out
+end
+
+-- A craftable charm's recipe, or nil for every other charm.
+function MineCharms.recipeFor(charmId)
+	local def = BY_ID[tostring(charmId or "")]
+	if def and def.source == "candy" and type(def.recipe) == "table" then
+		return def.recipe
+	end
+	return nil
 end
 
 --[[

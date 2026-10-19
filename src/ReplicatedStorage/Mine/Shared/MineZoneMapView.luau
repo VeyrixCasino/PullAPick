@@ -61,7 +61,24 @@ end
 local function zoneUnlocked(snap, index, zone)
 	local have = math.max(1, tonumber(snap.maxUnlockedZone) or 1)
 	if zone.limited then
-		return snap.bigbangOwned == true or snap.limitedActive == true
+		--[[
+			PER ZONE: its own claim flag and its own window (2026-10-19). This
+			read Event Horizon's flag and window for every limited zone, so Travel
+			to the Candy Crypt followed Event Horizon's dates. The server sends
+			each limited zone's open state as `limitedOpen`.
+		]]
+		local flag = zone.ownedFlag or "bigbangOwned"
+		if snap[flag] == true then
+			return true
+		end
+		local open = snap.limitedOpen
+		if type(open) == "table" and open[zone.id] ~= nil then
+			return open[zone.id] == true
+		end
+		if zone.id == "bigbang" then
+			return snap.limitedActive == true
+		end
+		return C.limitedActive ~= nil and C.limitedActive(zone.id) == true
 	end
 	return index <= have
 end

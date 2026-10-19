@@ -2,7 +2,7 @@
 title: Ore pouch and backpack
 type: system
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ 2efdf89
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOrePouch.luau
   - src/ReplicatedStorage/Mine/Shared/MineOrePouchView.luau
@@ -11,6 +11,7 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
+  - src/ServerScriptService/Mine/MineCrypt.luau
   - docs/TODO.md §0.12
   - docs/TODO.md §6.1
   - docs/PROPOSAL.md §0
@@ -46,8 +47,21 @@ related: [ores, forge-and-recycling, currencies-and-economy, rebirth-and-skill-t
 - **Selling verbs.** `Verbs.sellOre(oreId, count)` sells one row, even a locked
   one. `Verbs.sellAllOres` works in two calls: the first prices the sale and
   fires `confirmSellAll`; the second (`confirm = true`) applies it. Both build
-  the plan with `MineOrePouch.sellAllPlan`, which skips locked ores.
-  `Verbs.toggleOreLock` sets or clears a lock.
+  the plan with `MineOrePouch.sellAllPlan`, which skips locked ores **and candy
+  ores**. `Verbs.toggleOreLock` sets or clears a lock (candy ores too).
+- **Sell up to** (owner, 2026-10-19). `sellAllOres { upTo, confirm }` takes a
+  ceiling from `MineOrePouch.SELL_UP_TO` (Common, Uncommon, Rare, Epic,
+  Legendary, Everything; a band and everything below it). A valid one is
+  remembered in `p.settings.oreSellUpTo`; no `upTo` means Everything, what SELL
+  ALL always did. `confirmSellAll` now also carries `upTo` and `candyUnits`.
+- **Candy ores live here too** (2026-10-19). A Candy Crypt candy block drops one
+  unit of its candy ore (`MineConfig.CANDY_ORES`) into `p.ores`
+  (`MineCrypt.addCandyOre`, room-checked, never into `oresSeen`). They have a band
+  for display (two per band) but never sell for gems; they sell for **candy**
+  through `cryptSellCandyOres` (ticked ores, or `all = true`, which skips locked
+  ones; same ask-then-confirm round trip, `cryptSellCandyConfirm`) and craft the
+  Halloween charms. `MineOrePouch.rows(..., { includeCandy = true })` lists them
+  with `candy = true` and `candyUnit`.
 - **Upgrade with gems** through `Verbs.upgradeOrePouch`. `upgradeCost(n) =
   capacity(n) × gemValue(rungOre(n)) × RUNG_COST_SHARE 0.75`. The price is
   derived, not authored: it is three quarters of a full pouch of the ore you

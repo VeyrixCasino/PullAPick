@@ -2,7 +2,7 @@
 title: Tools
 type: system
 status: current
-verified: 2026-10-14 @ a299374
+verified: 2026-10-19 @ 2efdf89
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineToolSkins.luau
@@ -13,6 +13,8 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopLadders.luau
   - src/ReplicatedStorage/Mine/Shared/MineBandTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCryptRules.luau
   - src/ReplicatedStorage/Mine/Shared/MineToolGrades.luau
   - src/ReplicatedStorage/Mine/Shared/MineHotbar.luau
   - src/ReplicatedStorage/ToolModelFactory.luau
@@ -41,6 +43,16 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 **What you are holding.** `equippedTool(p)` in MineServer checks, in order:
 1. **Event Horizon tool** (zone `bigbang`): `MineHorizonTools`, one per dirt
    section, paid in space coins.
+   **Then the Candy Crypt's swap** (2026-10-19, `MineCryptRules.heldRow` via
+   `MineCrypt.heldTool`): in a zone with `eventToolsOnly` (the Crypt) the player's
+   equipped Crypt tool (`MineCandyTools`, `p.cryptToolEquipped`), or empty hands;
+   outside, once the Crypt has closed, the Crypt tool they chose to keep holding
+   (`p.cryptToolWorld`), as a level-1 forged tool of its `worldOreTier`. Otherwise
+   it returns nil and this list carries on. Crypt tools are 3 tiers x 4 families,
+   take their mechanics from the forged frames, carry a variant (Normal / Golden /
+   Prism / Rainbow, merged 3 into 1) and are not sold anywhere. See
+   [world-events](world-events.md). `equipOreTool` and `equipTool` put a kept
+   Crypt tool down in the main world.
 2. **Forged ore tool**: `p.oreToolEquipped` (a uid) → a `p.oreTools` row
    `{uid, typeId, familyId, tier, level, enchants?}`. `tier` is the **ore's index**
    in `MineConfig.ORES`. Rack cap 200. `enchants` holds the tool's Damage /
