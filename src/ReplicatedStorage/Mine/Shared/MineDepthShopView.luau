@@ -460,7 +460,9 @@ function MineDepthShopView.mount(parent, opts)
 		if state.zoneId == "bigbang" then
 			coinsL.Text = fmtCoins(state.spaceCoins or 0) .. " space"
 		else
-			coinsL.Text = fmtCoins(state.coins) .. " coins"
+			-- A desk sells bags for gems and nothing for coins (launch audit S3),
+			-- so the purse it shows is the one it spends.
+			coinsL.Text = fmtCoins(state.gems or 0) .. " gems"
 		end
 
 		local tools = state.tools or {}
@@ -479,9 +481,16 @@ function MineDepthShopView.mount(parent, opts)
 		index = ((index - 1) % #tools) + 1
 		local row = tools[index]
 		local rar, rarCol = rarityInk(row)
-		local price = tonumber(row.price)
+		-- A bag costs what the server charges, in gems (MineDepthShop.catalog
+		-- stamps gemPrice); `price` on a bag row is a coin figure nobody pays.
+		local gemPay = row.currency == "gems"
+		local price = gemPay and tonumber(row.gemPrice) or tonumber(row.price)
 		if not price or price <= 0 then
 			price = math.floor((tonumber(row.power) or 1) * 800)
+		end
+		if row.family == "backpack" and row.tier then
+			-- Live, so a bag bought here reads OWNED on the next snapshot.
+			row.owned = (tonumber(state.backpackTier) or 1) >= row.tier
 		end
 
 		tierChip.Text = "#" .. tostring(index)
@@ -532,8 +541,8 @@ function MineDepthShopView.mount(parent, opts)
 			action.AutoButtonColor = false
 		else
 			local spacePay = row.currency == "space" or row.eventOnly
-			local purse = spacePay and (state.spaceCoins or 0) or (state.coins or 0)
-			local unit = spacePay and " space" or ""
+			local purse = spacePay and (state.spaceCoins or 0) or (gemPay and (state.gems or 0)) or (state.coins or 0)
+			local unit = spacePay and " space" or (gemPay and " gems") or ""
 			local can = purse >= price
 			action.BackgroundColor3 = can and th.buy or Color3.fromRGB(70, 48, 40)
 			actionLbl.TextColor3 = can and th.buyText or th.muted

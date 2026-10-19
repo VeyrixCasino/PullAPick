@@ -142,6 +142,7 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `pet-spring` **L** | the pet-follow spring is stable at any framerate (`26036a0`) |
 | `procs` **L** | proc damage and proc chance are separate stats, and the zap chain terminates |
 | `seams` | a JS model of the coin-priced seam ladder. **Seams are free now** (`MineDepth.seamPrice` returns 0), so this asserts a retired design. |
+| `shop-guards` **L** | the shops charge what they say, once, for things they still sell (launch audit M4, S1, S3, S5, S7, S8, 2026-10-19). Statically: the Founders Rig reads and charges credits in two taps; a cart checkout sends nothing while one is out, carries an order id, and `buyCart` refuses an order it was paid for (one debit, after pricing); the desk prices bags in gems; the Starter popup reads the bag, coins and pet fields the server grants, with the same fallbacks. **Runs** `MineDepthShop.catalog` (no refused coin tools, gem-priced bags, no Founders Rig, Event Horizon tools kept) and the real `MinePackConfig` + `MineCases` shelf (no retired pack has a price; a box of ten of one pack is the 10x bundle, a mixed box 12% off). Fails on `2efdf89` (22 failures). |
 | `skilltree` | every stat the tree grants is applied by the server |
 | `statkeys` | renamed stat keys (`oreYield`) still read in old saves |
 | `stats` **L** | `MineStats.STATS`, `STAT_ORDER`, `emptyBoosts` and `ADDITIVE_STATS` agree |

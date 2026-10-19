@@ -3982,8 +3982,9 @@ invCtl = InventoryView.mount(gui, {
 		from its own tables, so a forged payload can ask for the wrong ITEMS but
 		never for the wrong COST.
 	]]
-	onBuyCart = function(lines)
-		net:FireServer("buyCart", { lines = lines })
+	onBuyCart = function(lines, token)
+		-- `token` names the order, so the server charges a resent order once.
+		net:FireServer("buyCart", { lines = lines, token = token })
 	end,
 	-- The server owns the seat count and the price; this only asks.
 	onJoinVip = function()
@@ -5290,27 +5291,41 @@ function ClientFns.offerStarter(force)
 		FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder,
 	}, row)
-	for i, r in ipairs(prod.packs or {}) do
-		local cell = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(96, 132), LayoutOrder = i, ZIndex = 91 }, row)
-		local art = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(96, 110), ZIndex = 92 }, cell)
-		pcall(PackFX.drawSealed, art, r.id, 84, 104)
-		local drawn = art:FindFirstChild("MiniPack")
-		if drawn then
-			drawn.AnchorPoint = Vector2.new(0.5, 0.5)
-			drawn.Position = UDim2.fromScale(0.5, 0.5)
+	--[[
+		WHAT IT GIVES, READ OFF THE PRODUCT ROW (launch audit S5, 2026-10-19).
+		This drew prod.packs and prod.gems, which the Starter Crate row does not
+		have and its grant never gives, so the popup listed nothing. The cells
+		are the grant's own fields, with the grant's own fallbacks (MineServer,
+		buyProductWithCredits and the receipt's "starter_bundle"): the bag rung,
+		the coins, and a Common pet from the Meadow.
+	]]
+	local Icons = require(shared:WaitForChild("MineIcons"))
+	local function cell(order, iconId, big, small, colour)
+		local c = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.fromOffset(120, 132), LayoutOrder = order, ZIndex = 91 }, row)
+		round(c, 12)
+		if iconId then
+			local host = mk("Frame", {
+				BackgroundTransparency = 1, Position = UDim2.fromOffset(30, 8), Size = UDim2.fromOffset(60, 60), ZIndex = 92,
+			}, c)
+			pcall(Icons.draw, host, iconId, 1)
 		end
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Text = "x" .. tostring(r.qty or 1), Font = FONT, TextSize = 18, TextColor3 = TEXT,
-			Position = UDim2.fromOffset(0, 110), Size = UDim2.new(1, 0, 0, 22), ZIndex = 93,
-		}, cell)
-	end
-	if (tonumber(prod.gems) or 0) > 0 then
-		local cell = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.fromOffset(96, 110), LayoutOrder = 99, ZIndex = 91 }, row)
-		round(cell, 12)
+			BackgroundTransparency = 1, Text = big, Font = FONT, TextSize = 20, TextColor3 = colour,
+			Position = UDim2.fromOffset(4, iconId and 70 or 28), Size = UDim2.new(1, -8, 0, 26), ZIndex = 92,
+		}, c)
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Text = "+" .. tostring(prod.gems) .. "\nGEMS", Font = FONT, TextSize = 20,
-			TextColor3 = T.GEM, Size = UDim2.fromScale(1, 1), ZIndex = 92,
-		}, cell)
+			BackgroundTransparency = 1, Text = small, Font = FONT_M, TextSize = 14, TextColor3 = MUTED,
+			TextWrapped = true, Position = UDim2.fromOffset(4, iconId and 96 or 58),
+			Size = UDim2.new(1, -8, 0, 34), ZIndex = 92,
+		}, c)
+	end
+	local rung = math.max(1, math.floor(tonumber(prod.bagRung) or 2))
+	local bag = C.BACKPACKS and C.BACKPACKS[rung]
+	cell(1, "backpack", "NEW BAG", tostring(bag and bag.name or ("Bag " .. rung)),
+		(T.CANDY and T.CANDY.orange and T.CANDY.orange[1]) or GOLD)
+	cell(2, "coins", "+" .. shortNum(tonumber(prod.coins) or 8000), "coins", GOLD)
+	if (tonumber(prod.commonPet) or 1) > 0 then
+		cell(3, nil, "+1 PET", "a Common from the Meadow", TEXT)
 	end
 	local buy = mk("TextButton", {
 		Text = "BUY  |  R$" .. tostring(prod.robuxPrice or ""), Font = FONT, TextSize = 20,
@@ -12089,6 +12104,9 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if depthShopCtl and depthShopCtl.root and depthShopCtl.root.Visible then
 			depthShopCtl.setState({
 				coins = payload.coins,
+				-- Bags at a desk cost gems; the bag rung marks them OWNED (S3).
+				gems = payload.gems,
+				backpackTier = payload.backpackTier,
 				spaceCoins = payload.spaceCoins,
 				deepest = payload.deepest,
 				tools = nil,

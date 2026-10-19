@@ -70,8 +70,9 @@ related: [ores, forge-and-recycling, currencies-and-economy, rebirth-and-skill-t
 - **Rungs.** `MineConfig.BACKPACKS = MineBags.LIST`, sorted by slots with at
   least 100 slots between rungs. A bag id is `bag_<index>`. Per zone there are
   16 surface satchels, 24 depth-desk packs and 6 fossil bags; across 10 zones
-  that is 460 bags, plus the Wormhole Bag and the Founders Rig (799 Robux,
-  infinite) = 462. Names come from `MineBagNames`.
+  that is 460 bags, plus the Wormhole Bag and the Founders Rig (infinite) = 462.
+  The rig is sold for 799 credits, in two taps (owner, 2026-10-19, audit M4), and
+  the Founders Pack grants it too (M6). Names come from `MineBagNames`.
 - **Price: the server charges gems.** It uses `MineBags.gemPrice(tier) = 100 ×
   1.08^(tier-1)`. Any rung can be bought in any order.
 - **What `cap(p)` adds up.** The bag's slots, `p.backpackBonus`, the retired

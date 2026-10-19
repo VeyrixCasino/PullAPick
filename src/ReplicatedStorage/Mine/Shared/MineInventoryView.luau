@@ -1214,11 +1214,8 @@ function MineInventoryView.mount(parent, opts)
 			return (LB.shopPrice and LB.shopPrice(line.id)) or 0
 		end
 		if line.kind == "box" then
-			local sum = 0
-			for _, pid in ipairs(line.packs or {}) do
-				sum += Packs.priceOf(pid) or 0
-			end
-			return math.floor(sum * 0.88 + 0.5)
+			-- The server's own price (MinePackConfig.boxPrice, launch audit S8).
+			return Packs.boxPrice(line.packs) or 0
 		end
 		-- (Scrolls, the last other kind, were retired with runes.)
 		return 0
@@ -5741,6 +5738,18 @@ function MineInventoryView.mount(parent, opts)
 	local pending
 
 	local function doCheckout()
+		--[[
+			ONE CHECKOUT AT A TIME (launch audit S1, 2026-10-19). The cart pill
+			stays on screen while the server answers, and its CONFIRM used to send
+			a second buyCart for the same cart: a second charge. Nothing is sent
+			while `pending` is set. It clears when the server answers
+			(_settleCart), or 20 s after sending if it never does (PROPOSED), well
+			past the 6 s "No reply" -- a reply that is merely late must not find
+			CONFIRM live again.
+		]]
+		if pending then
+			return
+		end
 		local pay, sub = cartPayable()
 		if #cart == 0 then
 			return
@@ -5764,14 +5773,24 @@ function MineInventoryView.mount(parent, opts)
 				packs = line.packs,
 			})
 		end
+		-- The order's id, kept on the cart until the order is paid for (the cart
+		-- is replaced then), so the same order sent twice is charged once
+		-- (MineServer buyCart).
+		cart.token = cart.token or game:GetService("HttpService"):GenerateGUID(false)
 		if opts.onBuyCart then
-			opts.onBuyCart(lines)
+			opts.onBuyCart(lines, cart.token)
 		end
-		-- If the server never answers, do not strand the sheet on screen.
+		-- If the server never answers, do not strand the sheet on screen; keep
+		-- CONFIRM shut a while longer in case the answer is only late.
 		task.delay(6, function()
 			if pending == sheet then
-				pending = nil
 				sheet.settle(false, "No reply from the server")
+				task.delay(14, function()
+					if pending == sheet then
+						pending = nil
+						refreshCart()
+					end
+				end)
 			end
 		end)
 	end
@@ -5970,11 +5989,13 @@ function MineInventoryView.mount(parent, opts)
 		discL.ZIndex = 71
 
 		local canPay = (state.credits or 0) >= pay and #cart > 0
+		-- While a checkout waits on the server, CONFIRM waits too (S1).
+		local waiting = pending ~= nil
 		local confirm = mk("TextButton", {
-			AutoButtonColor = true,
-			BackgroundColor3 = canPay and (T.CREDIT or GOLD) or Color3.fromRGB(255, 168, 72),
+			AutoButtonColor = not waiting,
+			BackgroundColor3 = waiting and BG3 or (canPay and (T.CREDIT or GOLD) or Color3.fromRGB(255, 168, 72)),
 			Font = FONT, TextSize = 16,
-			TextColor3 = canPay and Color3.fromRGB(26, 20, 40) or Color3.fromRGB(28, 18, 8),
+			TextColor3 = waiting and MUTED or (canPay and Color3.fromRGB(26, 20, 40) or Color3.fromRGB(28, 18, 8)),
 			Text = "",
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, -14),
@@ -5982,12 +6003,17 @@ function MineInventoryView.mount(parent, opts)
 			ZIndex = 71,
 		}, cartP)
 		round(confirm, 10)
-		if canPay then
+		if waiting then
+			confirm.Text = "CONFIRMING..."
+		elseif canPay then
 			paintCostButton(confirm, "CONFIRM", pay, "credits", Color3.fromRGB(26, 20, 40))
 		else
 			confirm.Text = "GET CREDITS"
 		end
 		confirm.MouseButton1Click:Connect(function()
+			if pending then
+				return
+			end
 			if not canPay then
 				if cartP then cartP:Destroy() cartP = nil end
 				section = "shop"
@@ -6128,7 +6154,9 @@ function MineInventoryView.mount(parent, opts)
 				{ tab = "packs", title = "Pack Cases", sub = "Wild cases by star · today's featured set packs", cta = "BROWSE", col = T.CREDIT or GOLD, packs = true },
 				{ tab = "dust", title = "Stardust Shop", sub = "Pack cases · new potions every 6 hours", cta = "SHOP", col = T.DUST or GEM, icons = { "stardust" } },
 				{ tab = "limited", title = "Lucky Blocks", sub = "Tap to open · grade them up for bigger loot", cta = "SEE", col = Color3.fromRGB(255, 200, 70), icons = { "lucky_block", "super_lucky_block", "godly_lucky_block" } },
-				{ tab = "box", title = "Build a Box", sub = "Any 10 packs you like · 12% off", cta = "BUILD", col = TEAL, icons = { "chest" } },
+				{ tab = "box", title = "Build a Box", sub = string.format("Any 10 packs you like · %d%% off, %d%% for 10 of one",
+					math.floor((1 - (Packs.BOX_RATE or 0.88)) * 100 + 0.5), math.floor((1 - (Packs.BUNDLE_RATE or 0.70)) * 100 + 0.5)),
+					cta = "BUILD", col = TEAL, icons = { "chest" } },
 				{ tab = "currencies", title = "Credits", sub = "Top up once, spend anywhere in the shop", cta = "TOP UP", col = GREEN, icons = { "credit_crate" } },
 				{ tab = "vip", title = "VIP & Founders", sub = "AFK earnings, Founders bag", cta = "VIEW", col = AMBER, icons = { "logo" } },
 				{ tools = true, title = "Tools & Backpacks", sub = "The blacksmith's counter", cta = "OPEN", col = T.GOLD or GOLD, icons = { "pickaxe", "backpack" } },
@@ -6384,7 +6412,11 @@ function MineInventoryView.mount(parent, opts)
 				end
 			end
 		elseif activeTab == "box" then
-			note(body, "Build your own booster box — choose up to 10 packs. 12% off the singles list.", 0)
+			-- Both rates from MinePackConfig, so this cannot drift from the charge.
+			local boxOff = math.floor((1 - (Packs.BOX_RATE or 0.88)) * 100 + 0.5)
+			local tenOff = math.floor((1 - (Packs.BUNDLE_RATE or 0.70)) * 100 + 0.5)
+			note(body, string.format("Build your own booster box — choose up to 10 packs. %d%% off the singles list, %d%% when all 10 are the same pack.",
+				boxOff, tenOff), 0)
 			local filled = #boxPicks
 			local slotBar = panelRow(body, 44, 1)
 			label(slotBar, "BOX  " .. filled .. " / 10", 16, TEXT, UDim2.fromOffset(14, 10), UDim2.new(0.5, 0, 0, 24), FONT)
@@ -6404,7 +6436,7 @@ function MineInventoryView.mount(parent, opts)
 			for _, pid in ipairs(boxPicks) do
 				sub += Packs.priceOf(pid) or 0
 			end
-			local boxPay = math.floor(sub * 0.88 + 0.5)
+			local boxPay = Packs.boxPrice(boxPicks) or 0
 			local payRow = panelRow(body, 56, 2)
 			label(payRow, filled == 0 and "Add packs below" or ("List " .. shortNum(sub) .. "  →  box " .. shortNum(boxPay)),
 				14, T.CREDIT or GOLD, UDim2.fromOffset(14, 8), UDim2.new(1, -160, 0, 20), FONT)
@@ -6426,9 +6458,10 @@ function MineInventoryView.mount(parent, opts)
 				for _, pid in ipairs(boxPicks) do
 					table.insert(copy, pid)
 				end
+				local saved = math.max(0, sub - boxPay)
 				cartAdd("box", "custom", false, 1, copy)
 				boxPicks = {}
-				if opts.onToast then opts.onToast("Box added to cart (12% off)") end
+				if opts.onToast then opts.onToast("Box added to cart (save " .. saved .. " credits)") end
 				render()
 			end)
 
@@ -8429,7 +8462,9 @@ function MineInventoryView.mount(parent, opts)
 		else
 			msg = tostring(payload.reason or "Purchase failed")
 		end
-		MineInventoryView._settleCart(okFlag, msg, okFlag)
+		-- A `dup` is this cart's order already paid for (its reply was lost):
+		-- nothing was charged now, and the cart empties as it would have then.
+		MineInventoryView._settleCart(okFlag, msg, okFlag or payload.dup == true)
 	end
 
 	function ctl.setBusy(flag)

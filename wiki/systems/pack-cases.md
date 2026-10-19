@@ -116,7 +116,7 @@ How a case behaves in the game:
 | file | role | key symbols |
 |---|---|---|
 | `MineCases.luau` | both case kinds, rolling, opening, prices, shelves | `CASES`, `open`, `rollChestCase`, `dustPrice`, `creditPrice`, `creditShelf`, `featuredSetPacks` |
-| `MinePackConfig.luau` | registers cases; `priceOf` falls back to MineCases | `PACK_BY_ID`, `priceOf`, `PACK_UNIT.pack_case` |
+| `MinePackConfig.luau` | registers cases; `priceOf` is the live credit shelf only (`MineCases.creditPrice`, since 2026-10-19); `boxPrice` prices a Build-a-Box | `PACK_BY_ID`, `priceOf`, `boxPrice`, `PACK_UNIT.pack_case` |
 | `MineServer.server.luau` | open dispatch, chest drop, cart grants, stardust buy | `Verbs.buyDustCase`, `openChestBlock` |
 | `MineGroupWheel.luau` | the wheel's pack slices now pay wild cases | `SEGMENTS` |
 | `MineInventoryView.luau` | bag tile, case inspector, credit shelf, stardust Cases tab | `dustTab`, `FEATURED` |

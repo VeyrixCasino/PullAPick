@@ -12395,19 +12395,13 @@ local function cartPrice(line)
 		end
 		return unit, 1
 	elseif kind == "box" then
-		local packs = line.packs
-		if type(packs) ~= "table" or #packs < 1 or #packs > 10 then
+		-- MinePackConfig.boxPrice: 12% off, and ten of one pack at the 10x
+		-- bundle's 30% (launch audit S8). The shop prints the same function.
+		local price = Packs.boxPrice(line.packs)
+		if not price then
 			return nil
 		end
-		local sum = 0
-		for _, pid in ipairs(packs) do
-			local u = Packs.priceOf(tostring(pid))
-			if not u then
-				return nil
-			end
-			sum += u
-		end
-		return math.floor(sum * 0.88 + 0.5), 1
+		return price, 1
 	end
 	return nil
 end
@@ -12519,9 +12513,29 @@ local function takeDustStock(packId, qty)
 	return true
 end
 
+--[[
+	ONE ORDER, ONE CHARGE (launch audit S1, 2026-10-19).
+
+	A request was already charged at most once: the whole cart is priced first,
+	the credit check and the debit run back to back with nothing that yields
+	between them, and the busy lock drops a second request that lands while one
+	is running. What nothing caught was the SAME order sent again a moment
+	later -- the client's CONFIRM stayed live while "Confirming" -- which is a
+	second charge for one press. The client now names each order (`token`, kept
+	on its cart until the order is paid) and an order already paid for is
+	refused with `dup`. In memory per player, weak on the Player: a rejoin is a
+	new cart anyway.
+]]
+Dig.cartPaid = setmetatable({}, { __mode = "k" })
+
 local function buyCart(plr, payload)
 	local p = profiles[plr.UserId]
 	if not p or type(payload) ~= "table" or type(payload.lines) ~= "table" then
+		return
+	end
+	local token = (type(payload.token) == "string" and #payload.token <= 64) and payload.token or nil
+	if token and Dig.cartPaid[plr] and Dig.cartPaid[plr][token] then
+		net:FireClient(plr, "cartResult", { ok = false, dup = true, reason = "That order already went through" })
 		return
 	end
 
@@ -12563,6 +12577,10 @@ local function buyCart(plr, payload)
 
 	-- 2. Charge once, then grant.
 	p.credits -= pay
+	if token then
+		Dig.cartPaid[plr] = Dig.cartPaid[plr] or {}
+		Dig.cartPaid[plr][token] = true
+	end
 	pcall(function()
 		game:GetService("AnalyticsService"):LogEconomyEvent(plr, Enum.AnalyticsEconomyFlowType.Sink,
 			"Credits", pay, p.credits, Enum.AnalyticsEconomyTransactionType.Shop.Name, "cart")
