@@ -492,11 +492,22 @@ function S.tradeLocked(p, kind, id)
 		end
 		return card ~= nil and R.isHalloweenItem("pet", card)
 	elseif kind == "tool" or kind == "tools" or kind == "cryptTool" then
-		return true
+		-- A Halloween tool: its id or row, or the uid of one you hold. A normal
+		-- tool never locks here.
+		if R.isHalloweenItem("tool", id) then
+			return true
+		end
+		local uid = (type(id) == "table" and id.uid) or id
+		return uid ~= nil and R.findTool(p, uid) ~= nil
 	elseif kind == "ore" or kind == "ores" then
 		return R.isHalloweenItem("ore", id)
 	elseif kind == "charm" or kind == "charms" then
 		return R.isHalloweenItem("charm", id)
+	elseif kind == "pack" or kind == "packs" then
+		-- The Halloween pack comes only from Crypt chests and opens Halloween
+		-- pets, so it waits with them (PROPOSED 2026-10-19; asked in the build
+		-- report). Every other pack trades as before.
+		return R.isHalloweenItem("pack", id)
 	end
 	return false
 end

@@ -64,9 +64,10 @@ ends"*): TradeService asks `MineCrypt.tradeLocked(p, kind, item)` for every card
 and pack when it is offered (`setOffer` drops it and toasts
 `TradeService.LOCKED_TEXT`), shown (`peek` hides it) and committed (`gather`
 refuses it, since the event can start mid-trade). A Halloween pet
-(`MineCryptRules.isHalloweenItem("pet", card)`) is locked until the event ends;
-Halloween tools, candy ores and Halloween charms have no trade kind at all. Packs,
-the Halloween pack included, are not locked ([world-events](world-events.md)).
+(`MineCryptRules.isHalloweenItem("pet", card)`) is locked until the event ends,
+and so is the Halloween 2026 Pack (PROPOSED: it comes only from Crypt chests and
+opens Halloween pets); every other pack trades as before. Halloween tools, candy
+ores and Halloween charms have no trade kind at all ([world-events](world-events.md)).
 
 **Never tradeable, because no trade kind exists for them:**
 - coins, credits and ore (`p.ores`);

@@ -751,8 +751,12 @@ do
 		"a Halloween pet is locked (by serial or card); a normal pet is not")
 	check(S.tradeLocked(p, "tool", Tools.STARTER_ID) and S.tradeLocked(p, "ore", "taffy") and S.tradeLocked(p, "charm", Charms.cryptChestCharm("F")),
 		"Halloween tools, candy ores and Halloween charms are locked")
-	check(not S.tradeLocked(p, "ore", "stone") and not S.tradeLocked(p, "packs", { packId = "halloween_2026" }),
-		"a normal ore and a pack are not")
+	check(S.tradeLocked(p, "tool", p.halloween.tools[1]) and S.tradeLocked(p, "tool", p.halloween.tools[1].uid)
+		and S.tradeLocked(p, "packs", { packId = "halloween_2026" }),
+		"a held Halloween tool (by row or uid) and the Halloween pack are locked")
+	check(not S.tradeLocked(p, "ore", "stone") and not S.tradeLocked(p, "packs", { packId = "meadow_1" })
+		and not S.tradeLocked(p, "tool", "oretool_stone") and not S.tradeLocked(p, "tool", "no_such_uid"),
+		"a normal ore, pack or tool is not")
 end
 
 -- ------------------------------------------------------------ 7b. the event ends --
@@ -775,7 +779,9 @@ do
 	local again = S.moveToMain(p)
 	local again2 = S.tick()
 	check(not again and again2 == 0 and p.ores.taffy == 9, "the move is idempotent (load, tick, again)")
-	check(not S.tradeLocked(p, "cards", p.cards[1]) and not S.tradeLocked(p, "ore", "taffy"), "and Halloween items trade again")
+	check(not S.tradeLocked(p, "cards", p.cards[1]) and not S.tradeLocked(p, "ore", "taffy")
+		and not S.tradeLocked(p, "packs", { packId = "halloween_2026" }) and not S.tradeLocked(p, "tool", p.halloween.tools[1]),
+		"and Halloween items trade again")
 	check(not S.mainTeamRefuses(p, p.cards[1].id), "Halloween pets may join the main team")
 	-- The tools out here, and prestige, after the event.
 	p.zoneId = "meadow"

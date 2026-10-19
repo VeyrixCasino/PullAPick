@@ -175,7 +175,8 @@ price; the tables are `MineConfig.CANDY_ECONOMY`, `MineCandyTools`,
   where they take no pouch room (`MineOrePouch.held` skips them).
 - **Trading:** Halloween tools, candy ores and Halloween-inventory items cannot be
   traded while the event runs (`MineCrypt.tradeLocked`; `TradeService` asks it at
-  offer, peek and commit). Packs are not locked.
+  offer, peek and commit). The Halloween 2026 Pack is locked with them
+  (PROPOSED: it comes only from Crypt chests); other packs are not.
 - **Selling candy ores** (`cryptSellCandyOres`, ask then confirm) sells from
   wherever they live now, at the ore's `value`.
 - **Retired from the first design:** Crypt tools from chests and cases, the
