@@ -2,9 +2,11 @@
 title: Mining and breaking
 type: system
 status: current
-verified: 2026-10-05 @ b19c4c2
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
+  - src/ServerScriptService/Mine/MineEnchantService.luau
+  - src/ReplicatedStorage/Mine/Shared/MineProcFx.luau
   - src/ReplicatedStorage/Mine/Shared/MineBreaking.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ServerScriptService/Mine/MineDigAuth.luau
@@ -28,7 +30,10 @@ related: [zones-layers-and-seams, boosts-and-stats, tools, ores, forge-and-recyc
 4. **Breaking gate.** `Dig.Breaking.canBreak(tool, zoneIndex, layer, OreTier attr, #C.ORES, p.maxUnlockedZone)`. If it returns false, the swing does **zero** damage, not reduced damage. The server also fires a `tooWeak` event {need, have, ore}, throttled to once per 1.2 s, which `ClientFns.tooWeak` shows in red.
 5. **Damage.** `tool.power × b.mineSpeed × b.dirtBreak`, times `1 + shortFuse` on explosives. The fraction is rounded by chance, so small boosts still count on average. The minimum is 1.
 6. **Cells hit.** `MinePatterns.resolve` decides which cells the tool touches. The pattern is a sphere of radius × (1 + blastRadius). Each extra cell goes through `swingNeighbour` at `dmg × factor`. The cell you aimed at always takes the full hit.
-7. **Procs.** `Dig.procsAt` runs, then Echo.
+7. **Procs.** `Dig.procsAt` runs; then, on a Spellbook tool, every few swings a cast
+   runs through `Dig.procsAt` again with one ability made certain
+   (`MineEnchantService.spellCast`, [enchants](enchants.md)); then Echo. The swing also
+   counts the blocks it broke in one hit for Sugar Rush (`afterSwing`'s last argument).
 
 **Breaking power** lives in `MineBreaking.luau`. It is pure arithmetic and requires no other module.
 - **Rock.** `layerStrength = 1 + (zone−1)·ZONE_STEP + ⌊(layer−1)/LAYERS_PER_RUNG⌋`, clamped to `MAX`. The dials are `LAYERS_PER_RUNG 50`, `ZONE_STEP 100`, `ORE_POW 1.0`, `MAX_LAYER 5000` and `ZONES 10`, which give `MAX 1000`.
@@ -45,7 +50,7 @@ related: [zones-layers-and-seams, boosts-and-stats, tools, ores, forge-and-recyc
 | proc | chance stat | fires on | damage (× `1 + procPower`, procPower capped at 3.0) |
 |---|---|---|---|
 | Blast | `blastChance`, clamped ≤ 1 | break | `PROC_SHARE.blast` **0.12** (was 0.35) to each of the 6 faces, + Blast Damage. 0.72 swings a proc. |
-| Tidal Wave (2026-10-10) | `tidalWave`, clamped ≤ 1 | break | `PROC_SHARE.tide` 0.18 to each of the 12 cells of `Dig.TIDE_RING`: two out along the layer, one on each diagonal, **same layer only**, + Tidal Wave Damage. 2.16 swings: the biggest proc. Its reach never grows. |
+| Tidal Wave (2026-10-10) | `tidalWave`, clamped ≤ 1 | break | `PROC_SHARE.tide` 0.18 to each of the 12 cells of `Dig.TIDE_RING`: two out along the layer, one on each diagonal, + Tidal Wave Damage. 2.16 swings: the biggest proc. Tiers 2 and 3 repeat the ring one and two layers **down** (+cy); until 2026-10-19 they went to `cy - layerOff`, up into the layers already dug. |
 | **Shatter** (replaced Ricochet, 2026-10-10) | `ricochet` (**key kept**: it is data), clamped ≤ 1 | break | `PROC_SHARE.shatter` 0.15 to each of the 6 faces, + Shatter Damage. A block a shard **breaks** rolls Shatter too, at most `SHATTER_MAX_PROCS` 3 per block you broke. 0.90 swings + chains. |
 | Earthquake | `earthquake`, clamped ≤ 1 | hit (not break) | A stack bank. Each tick is `QUAKE_STACK_SHARE 0.1 × stacks × stored dmg` per second. Stacks cap at 100. At most 5 blocks shake at once. The bank dies after 5 s with no new quake. |
 | Zap | `zap` = the chance to **start**, not clamped | any swing | 0.25 per hop, + Zap Damage, up to `ZAP_MAX_HOPS 16`. Hop h continues with `ZAP_CONTINUE 0.80 × ZAP_FALLOFF 0.88^(h−1)`, the same for everyone. That averages 3.05 hops (0.76 swings); Studio measured 3.11. |
@@ -56,7 +61,9 @@ related: [zones-layers-and-seams, boosts-and-stats, tools, ores, forge-and-recyc
 - Blast and Ricochet also never *land on* them.
 - **Zap's target list does not check `PROC_SKIP`**, so a zap hop can hit one.
 
-Proc damage is computed in `MineConfig.procDamage` and nowhere else.
+Proc damage is computed in `MineConfig.procDamage` and nowhere else. Since
+2026-10-19 `MineEnchants.gateProcs` holds Proc Power plus the live family's own
+damage to +300% together (`TUNING.procDamageCap`); `procDamage` only capped Proc Power.
 
 **What a proc looks and sounds like** (2026-10-10, owner: every proc *"needs an
 animation"* and *"a little sfx"*).
@@ -66,6 +73,11 @@ animation"* and *"a little sfx"*).
   - **Zap:** a lightning arc from hop to hop, staggered and climbing in pitch.
   - **Ricochet:** a spark there and back.
   - **Earthquake:** a dust ring, hopping stones and a small camera jolt.
+  - **Blast's tier words** BURST and DETONATION play Blast's burst. Until 2026-10-19
+    they matched nothing in `MineProcFx`, so a Blast III to V showed only the word.
+  - **SPELL** (a Spellbook cast): a purple flash; the cast's own ability plays on top.
+  - **FLASHLIGHT** (its own `flashlight` event, not a loot word): the lit ore glows
+    through the rock with its name over it, fading out after the glow time.
 - **Sounds** are Pro Sound Effects library ids in `MineAudio.IDS` (`proc_blast` …
   `proc_quake`). They are trimmed, cooled down and kept quieter than the dig.
 - **It draws only what the server reported**, on the top face of each block. The
@@ -117,7 +129,7 @@ they pay for it"*).
 | `src/ServerScriptService/Mine/MinePatterns.luau` | which cells a tool hits | `MinePatterns.resolve` |
 | `src/ReplicatedStorage/Mine/Shared/MineSpaceMatter.luau` | Event Horizon tool class, damage chip | `MineSpaceMatter.reject`, `MineSpaceMatter.chip` |
 
-Checks: `tools/verify/breaking.js`, `tools/verify/gate-coverage.js`, `tools/verify/procs.js`, `tools/verify/ladder-climbable.js`.
+Checks: `tools/verify/breaking.js`, `tools/verify/gate-coverage.js`, `tools/verify/procs.js`, `tools/verify/ladder-climbable.js`, `tools/verify/enchant-audit.js` and `tools/verify/enchant-balance.js` (these two run `Dig.procsAt` and the quake tick themselves, sliced out of MineServer).
 
 ## Decided by the owner
 - **Ore tier is breaking power.** Breaking power is not damage, block strength comes from layer and zone, and breaking power cannot be upgraded. Source: `docs/TODO.md` §0.13 rules 1–3 and 11.

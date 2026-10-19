@@ -6483,6 +6483,12 @@ local function finishBreak(plr, part, p, zone, kind, layer)
 	if Dig.Crypt and part:GetAttribute("Candy") ~= nil then
 		Dig.Crypt.onBlockBroken(plr, p, part, kind, layer, bb)
 	end
+	-- Flashlight (a Halloween Utility enchant, MineEnchants): now and then a
+	-- broken block lights the rarest ore near it. The service rolls, scans this
+	-- zone's voxels and tells the client which block to light.
+	if Dig.EnchSvc then
+		Dig.EnchSvc.flashlight(plr, p, zone, part, voxels[zone.id], keyOf, Dig.heldTool and Dig.heldTool[p])
+	end
 	-- The haul was already paid, point of HP by point of HP, on the way down --
 	-- see payDamage. Breaking the block owes nothing further; only a chest has
 	-- anything left to resolve, and that is its own loot table.
@@ -7126,11 +7132,14 @@ function Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, dmg, kind, broke,
 		if tide > 0 and rng:NextNumber() < tide then
 			net:FireClient(plr, "loot", { text = "TIDAL WAVE", color = Color3.fromRGB(70, 170, 255), pos = part.Position })
 			local tideDmg = C.procDamage(dmg, "tide", pp, b.tideDamage)
-			-- Tier 2 and 3 roll the wave down one and two more layers.
+			-- Tier 2 and 3 roll the wave down one and two more layers. DOWN is +cy
+			-- (cy is depth, as in MinePatterns). This read cy - layerOff until
+			-- 2026-10-19, so Breaker and Tsunami rolled UP into the layers you had
+			-- already dug and hit air (tools/verify/enchant-audit.js).
 			local tt = (Tiers and Tiers("tide", tier)) or { layers = 1 }
 			for layerOff = 0, math.clamp(math.floor(tonumber(tt.layers) or 1), 1, 3) - 1 do
 				for _, d in ipairs(Dig.TIDE_RING) do
-					local other = cells[keyOf(zone.id, cx + d[1], cy - layerOff, cz + d[2])]
+					local other = cells[keyOf(zone.id, cx + d[1], cy + layerOff, cz + d[2])]
 					if other and typeof(other) == "Instance" and other.Parent
 						and not Dig.PROC_SKIP[other:GetAttribute("Kind")] then
 						pcall(swingNeighbour, plr, other, tideDmg, p)
@@ -7942,6 +7951,8 @@ local function swingBlock(plr, part)
 	end
 
 	local hitCentre = false
+	-- Sugar Rush (MineEnchants) counts every block this swing breaks in one hit.
+	local oneShots = 0
 	for _, c in ipairs(touched) do
 		if c.cx == cx and c.cy == cy and c.cz == cz then
 			hitCentre = true
@@ -7949,9 +7960,13 @@ local function swingBlock(plr, part)
 			local other = cells and cells[keyOf(zone.id, c.cx, c.cy, c.cz)]
 			if other and typeof(other) == "Instance" and other.Parent then
 				local share = math.max(1, math.floor(dmg * (c.factor or 1)))
-				local ok = pcall(swingNeighbour, plr, other,
+				local whole = (tonumber(other:GetAttribute("HP")) or math.huge) >= (tonumber(other:GetAttribute("MaxHP")) or 0)
+				local ok, broke = pcall(swingNeighbour, plr, other,
 					powerFor(other:GetAttribute("Kind"), share), p)
 				if not ok then break end
+				if broke and whole then
+					oneShots += 1
+				end
 			end
 		end
 	end
@@ -7968,7 +7983,7 @@ local function swingBlock(plr, part)
 		centreBroken = applyDmg(centreDmg, false)
 	end
 	if Dig.EnchSvc then
-		Dig.EnchSvc.afterSwing(plr, p, centreBroken and wasWhole, aimPos)
+		Dig.EnchSvc.afterSwing(plr, p, centreBroken and wasWhole, aimPos, oneShots + 1)
 	end
 
 	-- ECHO, BLAST, ZAP -- all three live in Dig.procsAt / Dig.echoAt now.
@@ -7979,6 +7994,18 @@ local function swingBlock(plr, part)
 	-- rolls its own Blast and its own Zap -- but never its own Echo, so even
 	-- 100% Echo is one extra block per swing, not a chain reaction.
 	Dig.procsAt(plr, p, b, zone, cells, part, cx, cy, cz, centreDmg, kind, centreBroken, tool and tool.omniBlast)
+	--[[
+		SPELLBOOK (a Halloween Special, MineEnchants): every few swings the book
+		casts one ability at random -- Zap, Blast, Tidal Wave, Shatter or
+		Earthquake -- at reduced power. It runs through this same Dig.procsAt
+		with that ability made certain, so a cast IS the real ability, tiers,
+		caps and the breaking gate included. MineEnchantService.spellCast decides.
+	]]
+	local cast = Dig.EnchSvc and Dig.EnchSvc.spellCast(plr, p, b, centreBroken, aimPos)
+	if cast then
+		Dig.procsAt(plr, p, cast.b, zone, cells, part, cx, cy, cz,
+			math.max(1, math.floor(centreDmg * cast.power + 0.5)), kind, cast.broke, false)
+	end
 	local echoChance = (tool.special == "echo") and 1 or (b.echo or 0)
 	if echoChance > 0 and Random.new():NextNumber() < echoChance then
 		if not Dig.echoAt(plr, p, b, zone, cells, cx, cy, cz, centreDmg) and not centreBroken then

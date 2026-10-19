@@ -207,7 +207,7 @@ check(tot[0] > 500 && tot[0] < 600 && tot[1] > 3400 && tot[1] < 3700, `Utility (
 check(get("REWARDS") === "utility special 250 0", "level 10 unlocks Utility, 25 Special; every 5 levels a gift (owner's pick)");
 check(get("SLOTS") === "false true true", "slots unlock at their level, not before");
 const ls = num("LIST");
-check(ls[1] === 0 && ls[2] >= 5 && ls[3] >= 5 && ls[4] === 5, `${ls[0]} enchants, unique ids; ${ls[2]} damage, ${ls[3]} utility, 5 specials (one per proc)`);
+check(ls[1] === 0 && ls[2] >= 5 && ls[3] >= 5 && ls[4] === 6, `${ls[0]} enchants, unique ids; ${ls[2]} damage, ${ls[3]} utility, 6 specials (one per proc, and the Halloween Spellbook)`);
 
 // 6 wiring
 const sv = read("src/ServerScriptService/Mine/MineServer.server.luau");
@@ -230,7 +230,8 @@ check(/local tier = math\.clamp\(math\.floor\(tonumber\(b\.procTier\) or 1\), 1,
 check(/pops < popMax/.test(procs) && /math\.clamp\(math\.floor\(tonumber\(tt\.chains\) or 1\), 1, 3\)/.test(procs) && /math\.min\(spread, #near\)/.test(procs), "the tiers are capped: blast pops, zap chains and quake spread all have limits");
 check(/manual \*= Dig\.EnchSvc\.swingSpeed\(p\)/.test(sv), "Overclock speeds up the server's swing budget");
 check(/dmg = Dig\.EnchSvc\.hitDamage\(plr, p, part, dmg, maxHp\)/.test(sv), "the swing's damage goes through the Damage slot's mining enchant");
-check(/local wasWhole = /.test(sv) && /Dig\.EnchSvc\.afterSwing\(plr, p, centreBroken and wasWhole, aimPos\)/.test(sv), "Overclock counts one-shots: a whole block broken by one swing");
+check(/local wasWhole = /.test(sv) && /Dig\.EnchSvc\.afterSwing\(plr, p, centreBroken and wasWhole, aimPos, oneShots \+ 1\)/.test(sv),
+  "Overclock counts one-shots: a whole block broken by one swing (and Sugar Rush every block that swing broke in one hit)");
 check(/ore = Dig\.EnchSvc\.alchemy\(plr, p, ore, part\.Position\)/.test(sv) && /got = Dig\.EnchSvc\.duplicate\(plr, p, got, part\.Position\)/.test(sv),
   "ore breaks roll Alchemy (before the yield) and Duplicator (after Ore Haul)");
 check(/C\.oreHaulMult\(bb and bb\.oreHaul\)/.test(sv) && !/C\.oreHaulMult\(b and b\.oreHaul\)/.test(sv), "Ore Haul reads this function's boosts (bb): it read an undefined b and never paid");

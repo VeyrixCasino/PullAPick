@@ -23,6 +23,11 @@
 	Values marked PROPOSED are first passes for the owner; the ones the owner
 	gave are marked (owner).
 
+	THE HALLOWEEN FOUR (2026-10-19): Sugar Rush, Grave Digger, Spellbook and
+	Flashlight. Books only from Candy Crypt chests (rollHalloweenBook); they
+	work everywhere, and in the Crypt they are the only enchants that do
+	(activeHere). Their numbers, and the balance pass's, are TUNING.
+
 	LIVE vs NOT YET. An enchant whose effect needs mining code the game does
 	not have is marked `live = false`: the Forge shows it as "COMING SOON" and
 	the server refuses to apply it, so no card ever promises something the game
@@ -100,6 +105,11 @@ function M.liveFamily(b)
 			return key
 		end
 	end
+	-- A Spellbook tool casts all five by turns ("spell"): every family's own
+	-- line is zeroed on it, and generic proc damage pays (gateNote).
+	if (tonumber(b.spellEvery) or 0) > 0 then
+		return "spell"
+	end
 	return nil
 end
 
@@ -137,6 +147,78 @@ function M.gateNote(stats, live)
 end
 
 --[[
+	EVERY NUMBER THE 2026-10-19 PASS PROPOSED, in one table. PROPOSED
+	(2026-10-19), except the owner's Sugar Rush figures (2% a block, up to
+	100%), which are its level V the way Overclock's and Combo's owner figures
+	are theirs. tools/verify/enchant-balance.js runs every ability through the
+	server's own proc code and prints what they come to; it fails when one is
+	useless or a stack runs away.
+
+	The Halloween four (owner, 2026-10-19), and Halloween books:
+	  sugarRush    + perBlock x level swing speed for each block broken in one
+	               hit, in a row, up to maxBlocks (V: +2% a block, +100% at 50
+	               blocks). A swing whose aimed block takes more than one hit
+	               ends the rush, and so do `grace` seconds without a one-shot
+	               (Overclock's grace).
+	  graveDigger  + perLevel x level damage at the bottom of the mine, on the
+	               curve depth^curve (depth = layer / the mine's floor, 0 to 1).
+	               V: +60% at the floor, +39% halfway down, +15% a tenth of the
+	               way. The floor is MineConfig.LAYERS (5000), or the Crypt's own
+	               depth inside the Crypt.
+	  spellbook    a cast every `every[level]` swings that land, at `power` x the
+	               swing's damage, at the level's ability tier (TIER_OF, like
+	               every Special). Pets' ability chance and damage do not feed
+	               it (the book picks the ability); generic Proc Power does.
+	  flashlight   on a broken block, chance x level to light the rarest ore the
+	               tool can break within radius[level] blocks, glowing for
+	               glow[level] seconds; then cooldown[level] seconds before it can
+	               fire again (retry seconds when nothing was in range). At V: at
+	               most two a minute.
+	  books        Crypt chests, by rank index F..SSS (1..8): the chance one
+	               drops a book (x chest luck, capped like the main game's
+	               books), and how much the better chests flatten the rarity
+	               weights toward the rarer books (weight ^ (1 - tilt x (rank -
+	               1) / 7)).
+
+	The balance pass's two changes to abilities the game already had (the
+	owner: "not too overpowered stacked with enchants too, i want every
+	ability enchant to be viable"):
+	  shatterCascade  Shatter V's bursts per block you broke: 10 -> 7. With
+	                  matching Rainbow pets a Cascade broke 20 blocks a swing,
+	                  twice any other ability's best build.
+	  quake           Earthquake's own chance and damage a level: 4% -> 5% and
+	                  +10% -> +25% Proc Power. It is the one ability on hits that
+	                  do not break, and it barely moved stubborn rock; the damage
+	                  rides Proc Power, which MineConfig.procDamage caps at +300%,
+	                  so a full stack is no stronger than before.
+	  stormContinue   Zap V's (Storm's) three chains continue 80% a hop, like
+	                  the other tiers (was 85%). With Volt pets at Rainbow a
+	                  Storm landed 11x the damage on stubborn rock, twice
+	                  Earthquake's best there; now 10x, 1.8x.
+	  procDamageCap   Proc Power and an ability's own damage (Zap Damage, Tidal
+	                  Wave Damage, ...) together at most +300%, PROC_POWER_CAP's
+	                  number (gateProcs). The own damage had no ceiling, and the
+	                  chance over 100% pours into it.
+]]
+M.TUNING = {
+	sugarRush = { perBlock = 0.004, maxBlocks = 50, grace = 2.5 },
+	graveDigger = { perLevel = 0.12, curve = 0.6 },
+	spellbook = { every = { 8, 7, 6, 5, 4 }, power = 0.6 },
+	flashlight = {
+		chance = 0.02,
+		radius = { 4, 5, 6, 7, 8 },
+		glow = { 6, 7, 8, 9, 10 },
+		cooldown = { 60, 52, 45, 38, 30 },
+		retry = 5,
+	},
+	books = { chance = { 0.03, 0.04, 0.06, 0.08, 0.11, 0.15, 0.20, 0.27 }, tilt = 0.5 },
+	shatterCascade = 7,
+	quake = { chance = 0.05, damage = 0.25 },
+	stormContinue = 0.80,
+	procDamageCap = 3.0,
+}
+
+--[[
 	THREE TIERS PER ABILITY. Owner, 2026-10-12: "Make 3 levels of abilities",
 	and chose tiers that CHANGE HOW IT WORKS, picked by the Special enchant's
 	level: I-II tier 1, III-IV tier 2, V tier 3 (TIER_OF). "also made the
@@ -152,7 +234,8 @@ M.TIERS = {
 	zap = {
 		{ name = "Spark", text = "1 chain", chains = 1, continue = 0.80 },
 		{ name = "Fork", text = "2 chains", chains = 2, continue = 0.80 },
-		{ name = "Storm", text = "3 longer chains", chains = 3, continue = 0.85 },
+		-- Continued 85% of the time until the 2026-10-19 balance pass (TUNING.stormContinue).
+		{ name = "Storm", text = "3 chains", chains = 3, continue = M.TUNING.stormContinue },
 	},
 	blast = {
 		{ name = "Pop", text = "the 6 sides", cells = "face6" },
@@ -167,7 +250,8 @@ M.TIERS = {
 	shatter = {
 		{ name = "Crack", text = "up to 3 bursts", maxProcs = 3 },
 		{ name = "Splinter", text = "up to 6 bursts", maxProcs = 6 },
-		{ name = "Cascade", text = "up to 10 bursts", maxProcs = 10 },
+		-- 10 until the 2026-10-19 balance pass (TUNING.shatterCascade).
+		{ name = "Cascade", text = "up to " .. M.TUNING.shatterCascade .. " bursts", maxProcs = M.TUNING.shatterCascade },
 	},
 	quake = {
 		{ name = "Tremor", text = "1 block shakes", spread = 0, mult = 1 },
@@ -298,15 +382,79 @@ M.LIST = {
 	{ id = "shatter", name = "Shatter", icon = "🔷", slot = "special", rarity = "Rare", live = true,
 		effect = { kind = "proc", family = "shatter", chance = 0.06, damage = 0.1 },
 		blurb = "Shards fly into nearby blocks" },
+	-- 4% and +10% a level until the 2026-10-19 balance pass (TUNING.quake).
 	{ id = "quake", name = "Earthquake", icon = "🌋", slot = "special", rarity = "Legendary", live = true,
-		effect = { kind = "proc", family = "quake", chance = 0.04, damage = 0.1 },
+		effect = { kind = "proc", family = "quake", chance = M.TUNING.quake.chance, damage = M.TUNING.quake.damage },
 		blurb = "Hits build a quake that shakes everything" },
+
+	-- ------------------------------------------------- HALLOWEEN --
+	--[[
+		THE HALLOWEEN ENCHANTS (owner, 2026-10-19). Four, EVENT-EXCLUSIVE but
+		NOT EVENT-DEPENDENT: their books drop only from Candy Crypt chests
+		(rollHalloweenBook) -- never from a main-game chest, a lucky block, the
+		Forge's gem bundle or a level gift (rollBookId skips `event`) -- and
+		they work everywhere, in the main game too, forever. Inside the Crypt
+		they are the ONLY enchants that work (activeHere). Jack-o'-Lantern was
+		scrapped for Flashlight (owner: "Might be overpowered, but chance to
+		reveal the rarest ore in a radius, and make it glow").
+
+		The owner on all of them: "make sure all enchants works, Do balancing
+		checks to make sure good enough, but not too overpowered stacked with
+		enchants too, i want every ability enchant to be viable with different
+		builds, depending on what their going for". Their numbers live in
+		TUNING above; tools/verify/enchant-balance.js checks them.
+	]]
+	-- Owner: "speed that stacks while breaking in combos [2% per block, one
+	-- shot blocks only up to 100%]". A Damage enchant beside Overclock, so the
+	-- two speed streaks never stack: Overclock counts SWINGS that one-shot,
+	-- Sugar Rush counts every BLOCK a swing one-shots, so it is the area tools'
+	-- speed enchant (a 3x3 drill adds nine at a time) and Overclock the
+	-- single-target tools'.
+	{ id = "sugar_rush", name = "Sugar Rush", icon = "🍬", slot = "damage", rarity = "Epic", live = true, families = SWUNG,
+		event = "halloween", effect = { kind = "rush" },
+		blurb = "Faster with every block you break in one hit · Candy Crypt chests" },
+	-- "Stronger the deeper you are": damage that grows with how far down this
+	-- mine you are, so it is a deep-digger's Power, in every zone alike.
+	{ id = "grave_digger", name = "Grave Digger", icon = "🪦", slot = "damage", rarity = "Rare", live = true, families = SWUNG,
+		event = "halloween", effect = { kind = "depth" },
+		blurb = "Hits harder the deeper you dig · Candy Crypt chests" },
+	-- "An ability enchant that casts a random ability every few hits: Zap,
+	-- Blast, Tidal Wave, Shatter, Earthquake, at reduced power". A Special: its
+	-- family is "spell", which gateProcs reads as all five abilities by turns.
+	{ id = "spellbook", name = "Spellbook", icon = "📖", slot = "special", rarity = "Legendary", live = true,
+		event = "halloween", effect = { kind = "proc", family = "spell" },
+		blurb = "Every few hits, casts a random ability · Candy Crypt chests" },
+	{ id = "flashlight", name = "Flashlight", icon = "🔦", slot = "utility", rarity = "Epic", live = true,
+		event = "halloween", effect = { kind = "reveal" },
+		blurb = "Sometimes lights up the rarest ore nearby · Candy Crypt chests" },
 }
 
 M.BY_ID = {}
 for i, def in ipairs(M.LIST) do
 	def.index = i
 	M.BY_ID[def.id] = def
+end
+
+-- The Halloween four, in the order the Crypt's screens list them.
+M.HALLOWEEN = { "sugar_rush", "grave_digger", "spellbook", "flashlight" }
+
+--[[
+	WHERE AN ENCHANT WORKS. Owner, 2026-10-19: in the Candy Crypt "normal
+	enchants don't work"; the Halloween ones work there and everywhere else.
+	Every read of an enchant's effect goes through this (MineEnchantService).
+	`enchant` is an id or a def; an id that is no enchant is never active.
+]]
+M.NORMAL_OFF_ZONES = { hallow = true }
+
+function M.activeHere(zoneId, enchant)
+	local def = type(enchant) == "table" and enchant or M.get(enchant)
+	if type(def) ~= "table" or not M.BY_ID[def.id] then
+		return false
+	end
+	if def.event == "halloween" then
+		return true
+	end
+	return not M.NORMAL_OFF_ZONES[tostring(zoneId or "")]
 end
 
 function M.get(id)
@@ -366,6 +514,19 @@ function M.describe(def, level)
 		return "+" .. pct(a.base ^ level - 1) .. " damage, " .. pct(b.base ^ level - 1) .. " speed"
 	elseif e.kind == "xp" then
 		return "+" .. pct(e.base ^ level - 1) .. " XP"
+	elseif e.kind == "rush" then
+		local t = M.TUNING.sugarRush
+		return "+" .. pct(t.perBlock * level) .. " speed a block broken in one hit, in a row (max +"
+			.. pct(t.perBlock * level * t.maxBlocks) .. ")"
+	elseif e.kind == "depth" then
+		return "up to +" .. pct(M.depthBonus(level, 1, 1)) .. " damage, more the deeper you dig"
+	elseif e.kind == "reveal" then
+		local f = M.flashlightAt(level)
+		return pct(f.chance) .. " a block to light the rarest ore within " .. f.radius .. " blocks (" .. f.glow
+			.. "s, then " .. f.cooldown .. "s rest)"
+	elseif e.kind == "proc" and e.family == "spell" then
+		return "T" .. M.tierOf(level) .. ": every " .. M.spellEvery(level) .. " hits, a random ability at "
+			.. pct(M.TUNING.spellbook.power) .. " power"
 	elseif e.kind == "proc" then
 		local t = M.tier(e.family, M.tierOf(level))
 		return (t and ("T" .. M.tierOf(level) .. " " .. t.name .. ": " .. t.text .. " · ") or "")
@@ -417,12 +578,15 @@ end
 ]]
 function M.hitMult(def, level, h)
 	local e = def and def.live and def.effect
-	if not (e and e.kind == "hit" and type(h) == "table") then
+	if not (e and (e.kind == "hit" or e.kind == "depth") and type(h) == "table") then
 		return 1, nil
 	end
 	level = lv(level)
 	local dmg = math.max(1, tonumber(h.dmg) or 1)
-	if def.id == "crit" then
+	if e.kind == "depth" then
+		-- Grave Digger: h.layer is the block's layer, h.floor the mine's floor.
+		return 1 + M.depthBonus(level, h.layer, h.floor), nil
+	elseif def.id == "crit" then
 		if (tonumber(h.roll) or 1) < e.chance * level then
 			return e.mult, "CRIT!"
 		end
@@ -464,6 +628,68 @@ end
 function M.veinBlocks(def, level)
 	local e = def and def.live and def.id == "veinminer" and def.effect
 	return e and (e.blocks * lv(level)) or 0
+end
+
+-- ----------------------------------------------- the Halloween four --
+-- Sugar Rush's swing speed at a run of `blocks` broken in one hit (1 = none).
+function M.rushSpeed(def, level, blocks)
+	if not (def and def.live and def.id == "sugar_rush") then
+		return 1
+	end
+	local t = M.TUNING.sugarRush
+	return 1 + t.perBlock * lv(level) * math.clamp(math.floor(tonumber(blocks) or 0), 0, t.maxBlocks)
+end
+
+-- Grave Digger's bonus (0.6 = +60%) on a block at `layer` of a mine whose
+-- floor is `floor`: deeper is stronger, full strength at the floor.
+function M.depthBonus(level, layer, floor)
+	local t = M.TUNING.graveDigger
+	local depth = math.clamp((tonumber(layer) or 0) / math.max(1, tonumber(floor) or 1), 0, 1)
+	return t.perLevel * lv(level) * depth ^ t.curve
+end
+
+-- Spellbook: one cast every this many swings that land.
+function M.spellEvery(level)
+	return M.TUNING.spellbook.every[lv(level)]
+end
+
+--[[
+	Which ability a Spellbook cast is: one of the five at random. When the
+	aimed block has just broken, Earthquake is left out of the draw -- a quake
+	shakes the block you hit, and that block is gone -- so no cast is wasted.
+]]
+function M.spellPick(rng, broke)
+	local n = broke and 4 or 5
+	local pick = rng and rng.NextInteger and rng:NextInteger(1, n) or math.random(1, n)
+	return (broke and { "zap", "blast", "tide", "shatter" } or M.PROC_ORDER)[pick]
+end
+
+--[[
+	The boosts one cast runs with: the Spellbook tool's own (every family
+	already zeroed by gateProcs, generic Proc Power and the tier kept) with
+	the picked ability certain to fire. MineServer hands it to the same
+	Dig.procsAt a natural proc runs through, so a cast IS that ability.
+]]
+function M.spellBoosts(b, family)
+	local out = table.clone(b)
+	local proc = M.PROCS[family]
+	if proc then
+		out[proc.chance] = 1
+	end
+	return out
+end
+
+-- Flashlight at a level: { chance, radius (blocks), glow (s), cooldown (s) }.
+function M.flashlightAt(level)
+	local t = M.TUNING.flashlight
+	level = lv(level)
+	return {
+		chance = t.chance * level,
+		radius = t.radius[level],
+		glow = t.glow[level],
+		cooldown = t.cooldown[level],
+		retry = t.retry,
+	}
 end
 
 -- ----------------------------------------------------- compatibility --
@@ -512,6 +738,28 @@ function M.gateProcs(b, special)
 	local fromEnchant = fam ~= nil
 	-- The ability's tier: the Special's level picks it; pets' best proc is tier 1.
 	b.procTier = fromEnchant and M.tierOf(special.level) or 1
+	b.spellEvery = nil
+	if fam == "spell" then
+		--[[
+			SPELLBOOK: no ability fires on its own chance. Every family's chance
+			and damage go to 0 -- the book, not your pets, picks what is cast --
+			and the tool casts one at random every spellEvery swings at
+			spellPower (MineEnchantService.spellCast). Generic Proc Power stays:
+			it pays whichever ability the book casts.
+		]]
+		for _, proc in pairs(M.PROCS) do
+			b[proc.chance] = 0
+			if proc.damage ~= "procPower" then
+				b[proc.damage] = 0
+			end
+			for _, x in ipairs(proc.extra or {}) do
+				b[x] = 0
+			end
+		end
+		b.spellEvery = M.spellEvery(special.level)
+		b.spellPower = M.TUNING.spellbook.power
+		return b
+	end
 	if not fam then
 		-- Pets' best proc until a Special is chosen. Ties go in PROC_ORDER.
 		local best = 0
@@ -544,6 +792,20 @@ function M.gateProcs(b, special)
 		if over > 0 then
 			b[proc.chance] = 1
 			b[proc.damage] = (b[proc.damage] or 0) + over
+		end
+		--[[
+			ONE CEILING ON PROC DAMAGE (balance pass, 2026-10-19; the owner: "not
+			too overpowered stacked with enchants too"). MineConfig.procDamage
+			caps Proc Power at +300% (PROC_POWER_CAP) but added the family's own
+			damage on top uncapped, and chance over 100% pours into that own
+			damage -- so Rainbow pets, a skin and a charm stacked a Zap hop to
+			two swings and more. Proc Power and the family's own damage now
+			share the one ceiling, TUNING.procDamageCap (+300%, PROC_POWER_CAP's
+			number). Earthquake's damage IS Proc Power, already capped there.
+		]]
+		if proc.damage ~= "procPower" then
+			local room = math.max(0, M.TUNING.procDamageCap - math.max(0, tonumber(b.procPower) or 0))
+			b[proc.damage] = math.min(math.max(0, tonumber(b[proc.damage]) or 0), room)
 		end
 	else
 		-- No proc to boost: generic proc damage has nothing to land on.
@@ -581,16 +843,23 @@ M.CHEST_BOOK_CHANCE = 0.05
 M.BOOK_LUCK_CAP = 3
 M.BOOK_RANK_LEVEL = { B = { 0.15, 0 }, A = { 0.25, 0.05 }, S = { 0.35, 0.12 } } -- chance of II, of III
 
+-- A book the main game can roll: in the slots asked for, and not one of the
+-- Halloween four, whose books come only from Candy Crypt chests (owner,
+-- 2026-10-19: event-exclusive).
+local function mainGameBook(def, slotFilter)
+	return def.event == nil and (not slotFilter or slotFilter[def.slot])
+end
+
 function M.rollBookId(rng, slotFilter)
 	local total = 0
 	for _, def in ipairs(M.LIST) do
-		if not slotFilter or slotFilter[def.slot] then
+		if mainGameBook(def, slotFilter) then
 			total += M.RARITY_WEIGHT[def.rarity] or 1
 		end
 	end
 	local u = rng:NextNumber() * total
 	for _, def in ipairs(M.LIST) do
-		if not slotFilter or slotFilter[def.slot] then
+		if mainGameBook(def, slotFilter) then
 			u -= M.RARITY_WEIGHT[def.rarity] or 1
 			if u <= 0 then
 				return def.id
@@ -610,13 +879,13 @@ end
 function M.bookOdds(slotFilter)
 	local total = 0
 	for _, def in ipairs(M.LIST) do
-		if not slotFilter or slotFilter[def.slot] then
+		if mainGameBook(def, slotFilter) then
 			total += M.RARITY_WEIGHT[def.rarity] or 1
 		end
 	end
 	local out = {}
 	for _, def in ipairs(M.LIST) do
-		if not slotFilter or slotFilter[def.slot] then
+		if mainGameBook(def, slotFilter) then
 			table.insert(out, {
 				id = def.id, name = def.name, rarity = def.rarity,
 				p = (total > 0) and ((M.RARITY_WEIGHT[def.rarity] or 1) / total) or 0,
@@ -624,6 +893,52 @@ function M.bookOdds(slotFilter)
 		end
 	end
 	return out
+end
+
+--[[
+	HALLOWEEN BOOKS FROM CRYPT CHESTS (owner, 2026-10-19: "Halloween enchant
+	books drop from Crypt chests (rarer chests more often)"). `rankIndex` is the
+	chest's rank, 1..8 for F..SSS. A better chest drops a book more often AND
+	leans toward the rarer books: each book's RARITY_WEIGHT is raised to
+	1 - tilt x (rank - 1) / 7, so at SSS the weights are square-rooted.
+	halloweenBookOdds says it all ({ chance, books = { { id, name, rarity, p } } },
+	p summing to 1) and rollHalloweenBook draws from exactly that; chest luck
+	raises the chance like a main-game chest's (capped at BOOK_LUCK_CAP). A
+	book is level I: three merge into II, as every book does.
+]]
+function M.halloweenBookOdds(rankIndex, chestLuck)
+	local t = M.TUNING.books
+	local rank = math.clamp(math.floor(tonumber(rankIndex) or 1), 1, #t.chance)
+	local luck = math.clamp(tonumber(chestLuck) or 1, 1, M.BOOK_LUCK_CAP)
+	local power = 1 - t.tilt * (rank - 1) / (#t.chance - 1)
+	local total, books = 0, {}
+	for _, id in ipairs(M.HALLOWEEN) do
+		local def = M.BY_ID[id]
+		local w = (M.RARITY_WEIGHT[def.rarity] or 1) ^ power
+		total += w
+		table.insert(books, { id = id, name = def.name, rarity = def.rarity, w = w })
+	end
+	for _, b in ipairs(books) do
+		b.p = b.w / total
+		b.w = nil
+	end
+	return { chance = math.min(1, t.chance[rank] * luck), books = books }
+end
+
+function M.rollHalloweenBook(rankIndex, rng, chestLuck)
+	rng = rng or Random.new()
+	local odds = M.halloweenBookOdds(rankIndex, chestLuck)
+	if rng:NextNumber() >= odds.chance then
+		return nil
+	end
+	local u = rng:NextNumber()
+	for _, b in ipairs(odds.books) do
+		u -= b.p
+		if u <= 0 then
+			return b.id
+		end
+	end
+	return odds.books[#odds.books].id
 end
 
 -- A book's level: I, unless a rank (B/A/S) lifts it (BOOK_RANK_LEVEL).

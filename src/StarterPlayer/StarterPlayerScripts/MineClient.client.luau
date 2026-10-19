@@ -6630,7 +6630,7 @@ end
 	A proc's animation and sound (MineProcFx). Loaded on the first proc, and a
 	module that fails to load costs the word on screen nothing.
 ]]
-function ClientFns.procFx(text, pos)
+function ClientFns.procFx(text, pos, extra)
 	if ClientFns.procFxMod == nil then
 		local ok, mod = pcall(function()
 			return require(shared:WaitForChild("MineProcFx"))
@@ -6638,7 +6638,7 @@ function ClientFns.procFx(text, pos)
 		ClientFns.procFxMod = ok and mod or false
 	end
 	if ClientFns.procFxMod then
-		ClientFns.procFxMod.play(text, pos)
+		ClientFns.procFxMod.play(text, pos, extra)
 	end
 end
 
@@ -12761,6 +12761,10 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- Procs (BLAST, TIDAL WAVE, ZAP, RICOCHET, QUAKE) get an animation and a
 		-- sound on top of the word: MineProcFx.
 		ClientFns.procFx(payload.text, payload.pos)
+	elseif action == "flashlight" and type(payload) == "table" then
+		-- Flashlight (a Halloween enchant): the server picked the rarest ore near
+		-- the block you broke; MineProcFx lights it through the rock for a while.
+		ClientFns.procFx("FLASHLIGHT", payload.pos, payload)
 	elseif action == "openPanel" then
 		-- Only live screens are routable; ClientFns.routePanel (above the
 		-- dispatcher) is the one map of what exists and how it fills itself.
