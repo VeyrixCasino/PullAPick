@@ -1537,3 +1537,24 @@ the offers and Event Horizon stay at 47. `launch.js` now checks the pass is exac
 **New question, asked:** on day 29 `reconcilePass` restarts the same 100-tier track for everyone,
 so the season pets and Season One skins can be earned twice and premium must be rebought
 ([open-questions](open-questions.md) 24).
+
+## [2026-10-19] query | launch audit of every screen, effect and tool card
+The owner asked for *"a deep audit of all uis, effects, tool cards etc, and determine what
+needs to be done for launch, and what you need from me"* and chose "list first, you pick".
+Six read-only reviews at `b4aa4ed`; I re-read every MUST-FIX row in the code myself. Filed as
+[open-questions](open-questions.md) §0e: **10 must-fix** (the tutorial's 5th step can't be done;
+the live Candy Crypt's candy can't be spent; paid random buys without odds; a "799 Robux" button
+that takes credits; a VIP seat VIP no longer gives; two deals promising things they don't grant;
+deal countdowns stuck at "0d 0h"; the Forge shrunk twice on small screens; a card collection
+page of retired sets), **41 should-fix**, polish, and what only the owner can supply. One
+conflict between reviewers settled in the code: the Founders Rig button charges credits through
+`buyProductCredits`; the "not configured" toast belongs to `buyBackpack`, which that button never
+reaches. Corrected three pages the audit proved wrong: [client-and-ui](code/client-and-ui.md)
+(step 3 no longer ends in a purchase), [pets](systems/pets.md) (traits are not per pet in
+practice) and [server](code/server.md) (132 action strings, not 142); §1 #13 is half fixed.
+
+## [2026-10-19] decision | day 29 of the battle pass
+The owner: *"i'll having something ready"* (a new pass for day 29), and picked the safety net:
+if it is late, the old pass pauses (no XP, no claims, "Next pass coming soon") instead of
+restarting the same 100 tiers. Not built yet; queued with the audit fixes
+([open-questions](open-questions.md) 24, [season-and-launch](systems/season-and-launch.md)).

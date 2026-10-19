@@ -226,6 +226,8 @@ reopen it.
   - *"i want the timer to not actually start until i say launch, and rather just keep ticking down"* ([season-and-launch](systems/season-and-launch.md)).
 - **2026-10-17, said in chat:** *"do what you think is best for the game [for the players.. we pushing this to come out asap]"*. Applied to the open questions: graded charms from chests stay (TODO §0.13 rule 5 amended), Chest Luck keeps scaling that drop, the battle pass ran the full 47 days with the offers (changed 2026-10-18, below), and the wiki is edited by merging first and only adding what is missing.
 - **2026-10-18, said in chat:** *"28 days"*: the battle pass lasts 28 days from launch (`MineScrolls.PASS_SEASON_DAYS`). The offers and Event Horizon stay at 47.
+- **2026-10-18, said in chat:** *"do a deep audit of all uis, effects, tool cards etc, and determine what needs to be done for launch, and what you need from me"*, then picked **"list first, you pick"** (no fixes until they choose) and **chat + wiki** for the list. The list is [open-questions](open-questions.md) §0e.
+- **2026-10-19, said in chat:** day 29 of the battle pass: *"i'll having something ready"* (a new pass), with the safety net that the old pass **pauses** if the new one is late. Not built yet.
 - **0.12** **Fossils do not exist.** The modules are deleted. The `fossilFind`
   key and the 60 fossil bags stay, because removing them would break saves.
 - **0.13** Charms and skins are the build: shape, not magnitude.

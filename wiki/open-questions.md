@@ -2,7 +2,7 @@
 title: Open questions, contradictions and probable bugs
 type: meta
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ b4aa4ed
 sources:
   - docs/OPEN.md
   - docs/BLOCKED.md
@@ -96,9 +96,97 @@ or **cut**. Anything already fixed is out of this list entirely; see `wiki/log.m
 2. **Turn on one leaderboard.** `LeaderboardService` is 1,747 lines and wired;
    a visible board is the cheapest "other people exist" signal a new game has.
 3. **Check the Forge recipe page on a phone.** It is five cells per row at a
-   scale fraction, untested at narrow widths.
+   scale fraction, untested at narrow widths. **The 2026-10-19 audit found why it
+   will look wrong:** the Forge is shrunk twice (§0e M9).
 4. **Decide the Discord/code reward values.** `LAUNCH` grants 500 gems and the
    Discord link 5,000 — both flat, both now worth very little after `1e4`.
+
+### 0e. Launch audit of every screen, effect and tool card (2026-10-19)
+
+Owner, 2026-10-18: *"do a deep audit of all uis, effects, tool cards etc, and determine
+what needs to be done for launch, and what you need from me"*. Six read-only reviews at
+`b4aa4ed` (HUD and menus; shops and Robux; Forge, tool cards and skins; effects and sounds;
+client↔server wiring and visible text; pets, cards, quests, Discord and world signs). **Every
+MUST-FIX row was re-read in the code by the parent agent**; SHOULD-FIX and POLISH rows are the
+reviewers' evidence, spot-checked. Nothing was run in Roblox. The owner chose "list first, you
+pick": **nothing below is fixed yet.** Pick by number.
+
+**MUST-FIX: a player is stuck, sees something broken, or pays for something they do not get**
+
+| # | what the player sees | evidence | size | needs from owner |
+|---|---|---|---|---|
+| M1 | **The tutorial's 5th step can't be done.** Step 3 "BUY A BIGGER PICK" opens the coin pickaxe shelf, and every BUY is refused ("Tools are forged from ore now"). It clears only if the Wooden Pickaxe is levelled until it graduates, which nothing says. Quest rung 3 asks the same. | `MineServer` 3809, 3913, 3932–3946, 9999–10021; `MineConfig` 3042 (`FORGE_ONLY_FAMILIES`); `MineQuests` 29 | S | new wording |
+| M2 | **The Candy Crypt is live (since 17 Oct), but candy can't be spent.** The Events tab always shows Event Horizon (first in the list, open all season), so the Crypt card and its Trick-or-Treat button never appear. Even if they did: `setState` drops `hallowOwned`, the claim button says "Claim Event Horizon" and `buyZone` grants Event Horizon. The candy total is shown nowhere. | `MineEventsView/init` 749–761, 862, 892, 938–940; `MineServer` 11590–11607, 3538; `MineConfig` 640 | M | fix it or close the Crypt |
+| M3 | **Paid random buys with no odds shown** (credits, gems and tokens trace back to Robux): the Mystery Case buyer (the credit shop's main random item), the Charms Pack, the Forge's "3 random books", trader cases. The region block for paid random items skips `buyProductCredits`, `buyTraderCase` and `groupWheelSpin`. | `MineInventoryView` 1308–1450, 4637, 6735–6737; `MineForgeHub` 1335; `MineClient` 8508; `MineServer` 15005 | S each | confirm the rule applies |
+| M4 | **"BUY 799 Robux" on the Founders Rig bag takes 799 credits in one tap**, with no prompt and no confirm (product id 0, so the client falls back to credits). | `MineShopView` 2458, 2678–2686; `MineConfig` 975; `MineServer` 11397 | S | product id, or credits |
+| M5 | **Pet seat 4 says "GET VIP" and opens the VIP gamepass, but VIP no longer adds a seat** (3 is everyone's maximum; the VIP card itself says so). | `MineInventoryView` 2788–2824, 7074; `MineConfig` 112, 874 | S | none |
+| M6 | **The Founders Pack card lists the "Founders Bag – infinite haul"; buying the pack does not give it** (tag, 3 books and +5% luck only; the bag is a separate 799-credit buy). | `MineInventoryView` 7188; `MineFounders` 31–45 | S | which way |
+| M7 | **Lucky Block Week (599 credits, max 3) promises "a Lucky Block pet" that does not exist** (it writes `ownedPets.lucky_block`, which nothing reads), and pays the Heirloom, Omen and Shiny packs retired on 10-10. | `MineRotatingOffers` 35–52, 180–188 | S–M | which way |
+| M8 | **Limited deals read "LIMITED TIME · NEVER COMING BACK · ends 0d 0h" from today.** The countdown uses the real clock against end dates on the season clock. The header says "40d left" (the season is 47); the home banner says "New offers in Xh" every day though offers change weekly. | `MineInventoryView` 6041, 6455; `MineRotatingOffers` 233–237 | S | none |
+| M9 | **Small screens.** The Forge sizes itself from the raw screen inside a HUD that is already scaled, so it shows at about 57% on a 1280×720 laptop and about 21% on a sideways phone. The fishing window does the same. On a sideways phone the whole HUD is at half size (6–10 px text). The settings panel already does it right. | `MineForgeHub` 305–311; `MineFishingView` 199–203, 671–675; `MineClient` 162–166, 226–247, 4906 | S (double shrink), M (phone layout) | must phones work at launch? |
+| M10 | **The card collection page lists the 41 retired sets, stuck at 0/N forever.** The 19 sets and zone pots that drop today can't be browsed anywhere. | `MineInventoryView` 5503–5548; `MineCards` 53; `MineSetPacks` 331–342 | M | rebuild or hide |
+
+**SHOULD-FIX**
+
+| # | area | what the player sees | evidence | size | needs |
+|---|---|---|---|---|---|
+| S1 | shop | Cart CONFIRM stays tappable while "Confirming": possible double charge | `MineInventoryView` 5685, 5726, 5975 | S | none |
+| S2 | shop | Lucky Charm "599 CR" button always says "That offer moved" | `MineInventoryView` 4652–4680; `MineServer` 11388 | S | remove or sell |
+| S3 | shop | Depth desk shows coin prices for gem bags and tool cards the server refuses (§1 #13) | `MineDepthShopView` 482–541 | S | none |
+| S4 | shop | Founders Bag and Lucky Stack say "through Oct 31"; they run 47 days from launch | `MineRotatingOffers` 77, 112 | S | none |
+| S5 | shop | Starter Bundle popup lists the wrong contents (shows once its id is set) | `MineClient` 5187–5206 | S | none |
+| S6 | shop | Robux paid for a deal already at its max: "done", nothing granted (once deal ids exist) | `MineServer` 17972 | S | none |
+| S7 | shop | Retired card and gear packs still buyable by a crafted request | `MinePackConfig` 1307–1310 | S | none |
+| S8 | shop | A Build-a-Box of 10 of one pack costs more than its 10× button (12% vs 30% off) | `MineInventoryView` Build-a-Box | S | which discount |
+| S9 | Forge | Craft price on the card is not what the server charges from ore tier 7 up (the server passes no tier, so its multiplier is always 1) | `MineServer` 16856; `MineForgeHub` 242 | S | which number |
+| S10 | Forge | SCRAP promises ore and stardust the server won't pay (quotes base level 1) | `MineForgeHub` 1282; `MineServer` 16974 | S | none |
+| S11 | Forge | Card damage ignores tool family, skin and finish (Stone Hammer card says 10, hits 37); "Lv 1" though new tools inherit your level | `MineForgeHub` 229, 700, 951, 1097; `MineServer` 2333–2335 | S/M | what a card shows |
+| S12 | tools | 164 hammers and jackhammers show a plain pickaxe icon in the hotbar until the Canva icons are shared and `NEW_TOOL_ICONS_SHARED` is flipped; jackhammers 75–82 have no art | `MineIcons` 672, 928–962 | S | share icons |
+| S13 | Forge | COIN SHOP opens the pickaxe shelf where every BUY is refused; the old shop still has Crafting, Loadout, Upgrades tabs | `MineForgeHub` 370–374; `MineShopView` 2112 | S | one Forge or two |
+| S14 | skins | An ore-case "skin" lands in the temper system, not the Skins wardrobe | `MineServer` 8299 (chests use 5298) | M | skins or tempers |
+| S15 | skins | Wardrobe never shows EQUIPPED; a skin's ×1.15–5.5 damage is shown nowhere; most skins, including the Season One pass skins, change no look | `MineSkinsView` 158–160, 198–230, 260; `ToolModelFactory` 1776 | S/L | stat skins or looks |
+| S16 | HUD | Pop-up messages draw behind windows and replace each other instantly | `MineClient` 2409–2420 | S | none |
+| S17 | HUD | The skill tree has no close button; the only exit teleports you | `MineSkillView` 900–930 | S | none |
+| S18 | HUD | Windows open under Skins; "close everything" misses Skins, Trade, Fishing and the Forge | `MineClient` 2783–2811 | S | none |
+| S19 | HUD | First Blacksmith visit pops the full-screen Forge while the tutorial says "HOLD on a rock" | `MineServer` 17757–17770 | S | none |
+| S20 | HUD | Day-4 "Like & Favorite for a pack" popup: LIKE can't open anything, and rewarding likes may break Roblox rules | `MineClient` 1124, 1189–1196 | S | keep, change or cut |
+| S21 | HUD | Coin pill overflows once you own space coins | `MineClient` 522–560, 9666 | S | one pill or two |
+| S22 | HUD | Settings: the code result prints on the FRIENDS heading | `MineClient` 5011, 5036 | S | none |
+| S23 | HUD | Planets map and the daily-reward card rebuild on every update (scroll lost; up to 10×/s) | `MineClient` 8168–8174, 9682 | S | none |
+| S24 | effects | Gear Vault (daily wheel) shows 3 of its 5 items; each reel starts as the last stops | `MineClient` 12289, 12374; `MineGradeReveal` 1806 | S | none |
+| S25 | effects | Opening many mystery cases is up to 50 back-to-back 5.4 s spins you can't leave | `MineServer` 134; `MineClient` 3969–3990 | M | skip-all or short spins |
+| S26 | sound | No button makes a sound: `MineAudio.bindUiClicks` is written and never called | `MineAudio` 445 | S | on or off |
+| S27 | effects | The VFX tab offers trails, shovel FX and nameplates that do nothing (only tags work) and points to a Shop → VFX tab that does not exist | `MineInventoryView` 5306–5352; `MineServer` 201 | S | hide or build |
+| S28 | effects | A rare find's card prints a bumped rarity ("SHINY EPIC" for a shiny Rare) | `MineClient` 5948–5955, 6896 | S | true rarity? |
+| S29 | effects | Lucky-block SKIP ALL summary leaves out books, potions and skin cases | `MineGradeReveal` 1105–1133 | S | none |
+| S30 | effects | The celebration title is a fixed 900 px label and can run off a phone | `MineCelebrate` 318–323 | S | none |
+| S31 | style | Text still rides scale animations (case-reel tiles, card flips, toasts, button hover, chest popup); `text-motion.js` checks only two helpers | `MineUI` 114, 207; `MineGradeReveal` 1464, 1620, 1658; `MineClient` 2499 | M | how far the rule reaches |
+| S32 | pets | Every pack pet has family "Crystal" and its home's trait (see [pets](systems/pets.md)) | `MineSetPacks` 331–342; `MineCards` 451–468 | S | re-roll or by role |
+| S33 | pets | Lone Wolf and Squad Bond card text ignore how many pets are out | `MineCards` 520–540 | S | none |
+| S34 | pets | Pet ability lines are zeroed unless they match the held tool's Special; nothing says so | `MineEnchants` 440–470 | S | none |
+| S35 | pets | The Cards tab builds a 3D model for every card on every redraw (likely lag) | `MineInventoryView` 2667–2681 | M | none |
+| S36 | cards | Tap a card and it equips at once; no detail view; tiles fit 2 stat chips | `MineClient` 6954–6976 | M | detail sheet? |
+| S37 | gear | Hats/Faces collection shows the 300 prototype limiteds: 67 can drop, 103 that can drop never show | `MineInventoryView` 4773, 5004–5060 | M | which list |
+| S38 | Discord | Any 4–12 letter code gets "Code accepted!"; the tab promises "player markets and remote trading"; a link finished from Discord never pays its 5,000 gems | `MineDiscordLink` 46–60; `MineServer` 13690–13715 | S | is there a bot? |
+| S39 | world | Lobby leaderboards promise "101+ Everyone else — 100 gems"; nothing pays any rank; ~11 rows visible | `LeaderboardService` 896, 1056–1064, 1189 | S | pay or remove |
+| S40 | quests | Daily quest "Rebirth once" on day one; stale tips (cards10, sell5 "Coins buy tools", cards250, mine75k) | `MineQuests` 37, 38, 95, 106, 274, 277 | S | none |
+| S41 | text | The fallback find text is "You found some crazy shit" (nothing reaches it today; it's a kids' game) | `MineServer` 9044, 12638 | S | none |
+
+**POLISH** (one line each): shared or emoji dock icons (Trade = Pass, Skins = Enchanter; Wheel, Planets, Events emoji) and the Halloween pack showing Meadow art (needs 6 icons + 1 image) · wheel slice "3-5 packs" pays 3 · pass says "Super Lucky Block", elsewhere "Diamond" · Limited tab says "credits or Robux", only CR · Founders Bag never shows OWNED · trader header shows the raw zone id · God Pack chance not on the odds sheet · trade picker says "or coinflip" (off) · Events card says "enter from Zones" (it's Planets) · Planets offers Travel to the Crypt outside its dates · fishing can wait forever if a cast is dropped · a rare find plays two fanfares · the reel's big-win punch stacks UIScales · 14 ambience loops play at volume 0 · Event Horizon blast ignores Reduced Motion · the wheel spin is silent · no Escape or 1–5 keys · loading bar doesn't fade · World Pulse banner jargon · every card says "Normal P1" and "Crystal Kit" · Blacksmith tag "Picks, drills, bags" · "RESERVED" signs at bays without a pond · drills say "No spin-up" · every find says "Meadow \| chest find" · dead files nothing requires: `_MineHatsB64.txt` (0 bytes), `MineDepthPlazas_OLD_pre_v4`, `ServerStorage/MineParked/GroupWheel`, `MineBenchView`, `ReplicatedStorage/MineBags_NameCheck.luau`.
+
+**Checked and clean:** admin UI and F8 are allowlist-gated; legacy TCG scripts are disabled and
+`TCGUI` is empty; **all 119 client actions have a server handler** (0 dead buttons); no PROPOSED,
+TODO or placeholder text a player can see; no blank asset ids on screen; every reel, pack, block,
+wheel and fish result comes from the server; every reveal can be skipped and the pack reveal has a
+30 s watchdog; celebrations don't stack; no per-frame leaks found; all 322 pet species have a model;
+no stale dates on world signs.
+
+**What only the owner can supply:** the answers above · share the 237 Canva tool icons in the
+Creator Hub (S12) · Robux: the Founders Rig product id or "credits" (M4), which products ship, and
+whether the dashboard prices are Founders R$799 and Battle Pass R$399 · optional art: 6 dock icons,
+the Halloween pack image, a Candy Crypt banner · whether a Discord bot exists (S38) · sounds:
+library or the ElevenLabs set (`docs/AUDIO.md`) · **one phone play test from a blank profile
+through the first craft.**
 
 ## 1. Probable bugs found while building the wiki
 
@@ -119,7 +207,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 10 | **The charm MERGE button wants 2 copies** (`math.max(2, MERGE_COST)`); the server needs 1 and the gem price is never shown. | *Reported* | [charms](systems/charms.md) |
 | 11 | **24 ore charms carry `luck`**, which raises the ore-case chance that drops them. This breaks the "no reward boosts its own acquisition" rule. **24 carry the retired `backpack` stat.** | *Reported* | [charms](systems/charms.md) |
 | 12 | **Meadow zone packs can never pay Mythic, Divine or Exotic** (computed from `cardOdds`). | *Reported* | [cards-and-packs](systems/cards-and-packs.md) |
-| 13 | **Bag prices show in coins; the server charges gems.** | *Reported* | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
+| 13 | **Bag prices show in coins; the server charges gems.** Half fixed (2026-10-19 audit): the surface BAGS shelf now shows gems (`MineShopView.luau` 2338–2345, 2439–2445). The **depth desk** still shows coins and still offers tool cards the server refuses (`MineDepthShopView` 482–541, `MineDepthShop` 202). | *Read* | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
 | 14 | **`tools/export/sync.ps1` deletes `tools/export/in/`** (`Remove-Item $in -Recurse -Force`). **Not a bug in the script**: that folder is a gitignored scratch directory the Studio export flow fills and consumes, and deleting it is the documented last step (the `b19c4c2` author checked and dismissed it). The only hazard was `CLAUDE.md` naming that folder as a place for Claude.ai exports. `CLAUDE.md` and the wiki now point exports at the gitignored `transcripts/` folder. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
 | 15 | **FIXED 2026-10-06: nothing checked Luau's 200-top-level-local ceiling.** `tools/verify/compile.js` now runs `luau-compile` over all 212 files and asserts at least 4 locals of headroom in both big scripts. It found `MineServer` sitting at **0 headroom** on arrival; collapsing seven service locals into one `Svc` table bought 5 back. It has since caught the same break twice more — a `do` block for the dev-scaffolding strip (fixed by making it an IIFE, since `do` shares the main chunk's budget while an IIFE gets its own). | *Read*, pinned by harness | [luau-traps](code/luau-traps.md) |
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
@@ -140,7 +228,7 @@ because each moves the economy in more than one place. Measured figures are in
 | 21 | **FIXED 2026-10-17: the battle pass ended a week before the offers.** `PASS_SEASON_END` was 40 days after the start while the offers and Event Horizon run 47; it is now 47 too, and `launch.js` pins the three lengths. The same change mirrors the launch stamp to clients (they never learned it, so after a launch they would have shown week one's offers and frozen countdowns) and puts the pass panel on the season clock. Owner: *"do what you think is best for the game"*. | *Read*, pinned by `launch.js` (proved to fail on the old code); not yet run in Studio | [season-and-launch](systems/season-and-launch.md) |
 | 22 | **DECIDED 2026-10-17: Chest Luck scales the chest charm drop, and that stays.** `CHARM_CHEST_CHANCE × b.chestLuck`, the same multiplier every other chest reward uses (cases, skins, book bundles, packs). There is **one charm slot**, so wearing one of the five Chest Luck charms means not wearing a power charm: a trade-off, not a free loop. (My earlier note that a code comment denies this was a misreading: that comment is about the `luck` stat, which the chest roll does not use.) | *Read* | [charms](systems/charms.md) |
 | 23 | **DECIDED 2026-10-18: the battle pass is 28 days from launch** (owner: *"28 days"*). `PASS_SEASON_END` is now derived from `PASS_SEASON_DAYS` (28), so the length is one number. The offers and Event Horizon stay at 47. `launch.js` pins the pass to `PASS_SEASON_DAYS` and checks it ends inside the season. | *Read* | [season-and-launch](systems/season-and-launch.md) |
-| 24 | **What happens on day 29 of the pass?** `reconcilePass` rolls every player to `PASS_SEASON_NEXT` ("2026-11"), wipes XP and claims and sets `owned = false`, but the track is the same `PASS_TRACK`, and nothing stops XP or claims after the end. So the same 100 tiers restart: the season pets (`PASS_PET_TIERS`) and Season One skins can be earned a second time, and premium has to be bought again for the same rewards. Recommended: the pass closes after day 28 (no XP, no claims, "Season 2 coming soon") until a new track ships. | *Read* | [season-and-launch](systems/season-and-launch.md) |
+| 24 | **DECIDED 2026-10-19: day 29 gets a new battle pass, and the old one pauses if it is late.** Owner: *"i'll having something ready"*, then picked the safety net: if the new track has not shipped by day 29, the old pass stops giving XP and claims and shows "Next pass coming soon", so nobody re-earns the Season One pets and skins or re-buys premium for the same rewards. Today `reconcilePass` rolls everyone to `PASS_SEASON_NEXT` ("2026-11") on the same `PASS_TRACK`, and the panel says "Next season is live" (`MineInventoryView` 7389). **The pause is not built yet**; it is queued with the launch-audit fixes (§0e). | *Read* | [season-and-launch](systems/season-and-launch.md) |
 
 ## 2. Where the owner's rules and the code disagree
 

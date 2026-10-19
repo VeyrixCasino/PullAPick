@@ -68,6 +68,11 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
 - **Identity: every pet also has a family and a pet trait.** `MineCards.applyIdentity`
   adds a `FAMILY` boost (8 types, for example Fire "Forge Heart" +22% damage) and a
   **pet trait** from `MineCards.TRAITS`. There are 12, hashed from (setId, index) or from the name.
+  **In practice that is not per pet** (2026-10-19 launch audit): `MineSetPacks.petCard` mints every
+  pack pet with `index = 1` and a home (`setKey`) that is not in `MineCards.SETS`, so
+  `MineCards.familyTrait` falls back to family "Crystal" (Facet Eye) for all of them, and the trait
+  seed is `131 + #setId * 17`: every pet from one home, and from any home whose id has the same
+  length, gets the same trait. See [open-questions](../open-questions.md) §0e.
   Lone Wolf pays only when that pet is your only one; Squad Bond scales with the number of *other* pets.
   Pet traits **stay**: when tool traits were retired on 2026-10-12, the owner chose to
   retire only the tool kind. The retired tool trait is a different thing ([traits](traits.md)).

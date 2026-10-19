@@ -65,7 +65,9 @@ declaration-order trap (HANDOFF §2.3).
 - Every client request arrives as `net:FireServer(action, payload)` and is handled
   by **one** `net.OnServerEvent:Connect(function(plr, action, payload)`. That
   handler is one long `if action == "…" elseif …` **string compare**. At
-  `26036a0` it has **142 distinct action strings**. There is no Remotes type system
+  `26036a0` it had **142 distinct action strings**; at `b4aa4ed` (2026-10-19) it has
+  **132** (counted with `grep -oE 'action == "[A-Za-z0-9_]+"' | sort -u`). Prefix
+  routers (`fish*`) and enchant callbacks handle more. There is no Remotes type system
   (START-HERE §5).
 - Handler order:
   1. `swing` takes a fast path: no lock, `pcall(swingBlock, …)`.

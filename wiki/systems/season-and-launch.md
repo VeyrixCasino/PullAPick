@@ -2,7 +2,7 @@
 title: Season and launch
 type: system
 status: partial
-verified: 2026-10-18 @ d258771
+verified: 2026-10-19 @ b4aa4ed
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineLaunch.luau
   - src/ReplicatedStorage/Mine/Shared/MineRotatingOffers.luau
@@ -126,11 +126,13 @@ through a season they never saw begin.
   end is now derived from it (`PASS_SEASON_START + PASS_SEASON_DAYS * 86400`), so the length
   is one number. The offers and Event Horizon still run 47 days; the pass ends inside that.
   `launch.js` checks the pass is exactly `PASS_SEASON_DAYS` long and ends inside the season.
-- **Open: what happens on day 29?** `reconcilePass` moves every player to
-  `PASS_SEASON_NEXT` ("2026-11"), wipes XP and claims, and sets `owned = false`, but the
-  track is the same `PASS_TRACK`. Nothing stops XP or claims after the end, so players can
-  earn the same 100 tiers again, including the season pets and the Season One skins, and
-  premium must be bought again. Asked in [open-questions](../open-questions.md) (24).
+- **Day 29: decided 2026-10-19, not built.** The owner will have a new pass ready (*"i'll
+  having something ready"*), and picked a safety net: if the new track has not shipped by
+  day 29, the old pass **pauses** (no XP, no claims, "Next pass coming soon"). Today
+  `reconcilePass` moves every player to `PASS_SEASON_NEXT` ("2026-11") on the same
+  `PASS_TRACK`, wipes XP and claims and sets `owned = false`, and the panel says "Next season
+  is live" (`MineInventoryView` 7389), so without the pause players would re-earn the season
+  pets and Season One skins and re-buy premium. See [open-questions](../open-questions.md) (24).
 - **Clients used to stay at second zero forever.** A client never runs `_loadLaunch`, so
   its copy of `MineLaunch` never learned `launchedAt`. After a launch the shop would have
   kept showing week one's deals (`RotatingOffers.active()`), which the server then refuses
