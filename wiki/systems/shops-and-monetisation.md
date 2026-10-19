@@ -146,6 +146,15 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     stored save, and a pet minted there would get a second serial.
   - **The rail** marks the classes: a ★ ribbon and a louder frame on decent,
     good (★ BIG) and huge (★ HUGE) tiles.
+  - **Tile art** (2026-10-18, after a Studio look at the rail):
+    - a season pet tile draws the pet itself (`opts.petViewport`; the track
+      carries `petAnimal` and `petSpecies`);
+    - a season skin tile shows 🎨 and its grade word, since skins have no art.
+      Captions say the word too ("The Motherlode skin (Exotic)");
+    - books use the Enchanter's book art (`MineIcons` alias `books`), not a
+      "BK" placeholder;
+    - tiles are 172 tall, so a two-part caption clears the status strip, and
+      long captions shrink to fit.
   - `src/ServerScriptService/TCGServer/BattlePass.luau` is an unrelated AFK-place stub.
 - **`MineConfig.PRODUCTS`** lists: patron_rig, lucky_charm, lucky_block_pet, two
   deals, starter_bundle 129, weekend_haul 349, group_wheel_1/5/10, coin_double

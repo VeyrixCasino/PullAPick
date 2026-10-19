@@ -178,6 +178,9 @@ MineIcons.ALIAS = {
 		own thumbnail (MineHats.thumb).
 	]]
 	rune = "skills",
+	-- enchant books (pass tiles, bundles): the Enchanter's book art
+	books = "enchanter",
+	book = "enchanter",
 	temper = "credit_crate",
 	case = "credit_crate",
 	hat = "pack",

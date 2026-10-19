@@ -7547,7 +7547,9 @@ function MineInventoryView.mount(parent, opts)
 		]]
 		local DARK = Color3.fromRGB(13, 12, 18)
 		local DARK2 = Color3.fromRGB(24, 22, 32)
-		local TILE_W, TILE_H = 118, 152
+		-- Tall enough that a two-part caption ("Godly Lucky Block (B) + 4 Enchant
+		-- Books") clears the status strip instead of running under it.
+		local TILE_W, TILE_H = 118, 172
 		local COL_W = TILE_W + 14
 		local FREE_Y = 12
 		local MID_Y = FREE_Y + TILE_H + 8
@@ -7678,8 +7680,25 @@ function MineInventoryView.mount(parent, opts)
 				Size = UDim2.fromOffset(TILE_W - 16, TILE_W - 16),
 			}, btn)
 			round(plate, 10)
-			local imgId = Icons.image(iconId)
-			if not imgId and LuckyBlocks and LuckyBlocks.TYPES[iconId] then
+			--[[
+				A season pet shows the PET (opts.petViewport, the same viewport the
+				pet tiles use), and a season skin shows its grade word: skins have
+				no art of their own. Either falls back to the plain plate.
+			]]
+			local drawn = false
+			if reward.pet and reward.petAnimal and opts.petViewport then
+				drawn = pcall(opts.petViewport, plate,
+					{ name = reward.pet, animal = reward.petAnimal, species = reward.petSpecies, rarityId = reward.petTier },
+					UDim2.fromOffset(4, 4), UDim2.new(1, -8, 1, -8))
+			elseif reward.skin then
+				label(plate, "🎨", 44, col, UDim2.fromOffset(0, 8), UDim2.new(1, 0, 0, 56), FONT, Enum.TextXAlignment.Center)
+				local word = string.upper(tostring(reward.skinWord or reward.skinTier or ""))
+				label(plate, word .. "\nSKIN", 14, col, UDim2.new(0, 0, 1, -40), UDim2.new(1, 0, 0, 34), FONT,
+					Enum.TextXAlignment.Center).TextWrapped = true
+				drawn = true
+			end
+			local imgId = (not drawn) and Icons.image(iconId) or nil
+			if not drawn and not imgId and LuckyBlocks and LuckyBlocks.TYPES[iconId] then
 				local lb = LuckyBlocks.TYPES[iconId].icon
 				if type(lb) == "string" and lb ~= "rbxassetid://0" then
 					imgId = lb
@@ -7694,15 +7713,18 @@ function MineInventoryView.mount(parent, opts)
 					Size = UDim2.fromScale(0.88, 0.88),
 					ScaleType = Enum.ScaleType.Fit,
 				}, plate)
-			else
+			elseif not drawn then
 				label(plate, shortIconLabel(iconId), 26, col,
 					UDim2.fromOffset(0, 0), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center)
 			end
 
 			local what = label(btn, Scrolls.describeReward(reward), 10, reached and TEXT or MUTED,
-				UDim2.fromOffset(6, TILE_W - 4), UDim2.fromOffset(TILE_W - 12, 24), nil, Enum.TextXAlignment.Center)
+				UDim2.fromOffset(6, TILE_W - 6), UDim2.fromOffset(TILE_W - 12, 30), nil, Enum.TextXAlignment.Center)
 			what.TextWrapped = true
 			what.TextTruncate = Enum.TextTruncate.None
+			-- Long combos (tier 100) shrink to fit rather than spill.
+			what.TextScaled = true
+			mk("UITextSizeConstraint", { MaxTextSize = 10, MinTextSize = 7 }, what)
 
 			-- Status strip along the bottom: the tile answers "can I press it".
 			local strip = mk("Frame", {

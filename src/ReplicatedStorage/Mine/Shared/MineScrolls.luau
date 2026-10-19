@@ -189,8 +189,10 @@ local function gradeFor(n)
 	return (n <= 15 and "F") or (n <= 30 and "D") or (n <= 45 and "C") or (n <= 65 and "B") or "A"
 end
 
--- The season's pets by tier, read off the generated pack.
-local function passPetNames()
+-- The season's pets by tier, read off the generated pack: { name, animal,
+-- species }. The species rides along because a pet's NAME ("Bedrock Bob") does
+-- not say what body it has, and the rail draws the pet.
+local function passPetRows()
 	local out = {}
 	pcall(function()
 		local folder = script.Parent:FindFirstChild("HolidayPets")
@@ -199,7 +201,8 @@ local function passPetNames()
 				local ok, set = pcall(require, mod)
 				if ok and type(set) == "table" and set.KEY == MineScrolls.PASS_PET_PACK then
 					for _, row in ipairs(set.PETS or {}) do
-						out[row.tier] = row.name
+						local look = set.ANIMALS and set.ANIMALS[row.animal]
+						out[row.tier] = { name = row.name, animal = row.animal, species = look and look.species }
 					end
 				end
 			end
@@ -214,9 +217,16 @@ local function skinInfo(id)
 		local Skins = require(script.Parent:WaitForChild("MineSkins", 5))
 		local sk = Skins.byId(id)
 		if sk and Skins.isPass and Skins.isPass(sk) then
-			info = { name = sk.name, tier = sk.tier }
+			info = { name = sk.name, tier = sk.tier, word = sk.tier }
 		end
 	end)
+	-- Players read grade WORDS, not letters (MineTemper.WORD_OF: S is Mythic).
+	if info then
+		pcall(function()
+			local Temper = require(script.Parent:WaitForChild("MineTemper", 5))
+			info.word = Temper.wordOf(info.tier)
+		end)
+	end
 	return info
 end
 
@@ -234,7 +244,7 @@ end
 
 local function buildPassTrack()
 	local track = {}
-	local pets = passPetNames()
+	local pets = passPetRows()
 	for tier = 1, MineScrolls.PASS_TIERS do
 		local class = MineScrolls.tierClass(tier)
 		local g = gradeFor(tier)
@@ -249,8 +259,10 @@ local function buildPassTrack()
 				free = mergeReward(free, { dust = 500 })
 			end
 			local petTier = MineScrolls.PASS_PET_TIERS[tier]
-			if pets[petTier] then
-				prem = { pet = pets[petTier], petTier = petTier, books = 3 }
+			local petRow = pets[petTier]
+			if petRow then
+				-- petAnimal lets the rail draw the real pet (opts.petViewport).
+				prem = { pet = petRow.name, petTier = petTier, petAnimal = petRow.animal, petSpecies = petRow.species, books = 3 }
 			else
 				-- The pet pack is missing from this build: never a blank huge tier.
 				prem = mergeReward(lb("godly_lucky_block", godly), { books = 5 })
@@ -263,7 +275,7 @@ local function buildPassTrack()
 			local skinId = MineScrolls.PASS_SKINS[tier]
 			local info = skinId and skinInfo(skinId)
 			if info then
-				prem = { skin = skinId, skinName = info.name, skinTier = info.tier, books = 2 }
+				prem = { skin = skinId, skinName = info.name, skinTier = info.tier, skinWord = info.word, books = 2 }
 			else
 				prem = mergeReward(lb("godly_lucky_block", g), { books = 4 })
 			end
@@ -439,7 +451,7 @@ function MineScrolls.describeReward(reward)
 	if reward.gems then parts[#parts + 1] = reward.gems .. " Gems" end
 	if reward.dust then parts[#parts + 1] = reward.dust .. " Stardust" end
 	if reward.pet then parts[#parts + 1] = tostring(reward.pet) .. " (" .. tostring(reward.petTier or "season") .. " pet)" end
-	if reward.skin then parts[#parts + 1] = tostring(reward.skinName or reward.skin) .. " skin (" .. tostring(reward.skinTier or "") .. ")" end
+	if reward.skin then parts[#parts + 1] = tostring(reward.skinName or reward.skin) .. " skin (" .. tostring(reward.skinWord or reward.skinTier or "") .. ")" end
 	if reward.books then parts[#parts + 1] = reward.books .. " Enchant Books" end
 	if #parts == 0 then return "--" end
 	return table.concat(parts, "  +  ")

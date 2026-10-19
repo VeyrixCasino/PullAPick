@@ -1471,3 +1471,16 @@ Epic+ tops never showed. The owner chose "Fix it now".
 - Studio check: all 3,344 roster pets build, on 1,092 bodies.
 
 Updated: pets, log.
+
+## [2026-10-18] fix | Pass rail tiles: pet art, skin grade, book art
+A Studio Edit look at the reworked pass rail found three things. Books showed a
+"BK" placeholder; season pets and skins would have shown "PET" and "SKIN"; and
+a two-part caption ran under the status strip.
+- Pet tiles draw the pet, and skin tiles show the grade word.
+- Books use the Enchanter book art.
+- Tiles are taller, and long captions shrink to fit.
+
+`tools/verify/battle-pass.js` checks all of it. Not yet seen in Studio after the
+fix: Studio was in Play.
+
+Updated: shops-and-monetisation, log.
