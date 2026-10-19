@@ -445,26 +445,91 @@ local function addStat(b, key, amount)
 	end
 end
 
--- The family and trait a print carries. Both come from (setId, index), so a
--- pet's identity never shifts under it. Cards minted without an index (event
--- pets, some chest pets) hash their name instead.
+--[[
+	A NAMED PET'S IDENTITY COMES FROM ITS NAME (owner, 2026-10-19: "re-roll each
+	pet's family and trait from its name").
+
+	Every named pet is minted with index = 1 and a setId that is its set key or
+	zone id (MineSetPacks.petCard), or its source ("group_wheel", the pass
+	pack, Event Horizon's legacy "genesis_spark"), so the (setId, index) hash
+	below gave every pack pet family Crystal and one trait per length of that
+	id. A named pet now hashes its stack key instead: its canonical name and
+	home (MinePetRoster.cardKeyOf), so every copy from every source agrees. The
+	card painter and the server's pay (applyIdentity) both read this function.
+
+	FNV-1a over the key, then murmur3's finaliser so the top bits depend on
+	every byte, and the pick reads the TOP bits. 32-bit products are split into
+	16-bit halves to stay exact in a double. ORDER IS LOAD-BEARING in
+	FAMILY_ORDER, as in TRAITS: reordering either re-rolls every named pet.
+]]
+local FAMILY_ORDER = { "Fire", "Earth", "Water", "Rock", "Metal", "Electric", "Crystal", "Shadow" }
+
+local function mul32(a, b)
+	local lo = a % 65536
+	return (lo * b + ((a - lo) / 65536 * b % 65536) * 65536) % 4294967296
+end
+
+local function hash32(s)
+	local h = 2166136261
+	for i = 1, #s do
+		h = mul32(bit32.bxor(h, string.byte(s, i)), 16777619)
+	end
+	h = mul32(bit32.bxor(h, bit32.rshift(h, 16)), 0x85EBCA6B)
+	h = mul32(bit32.bxor(h, bit32.rshift(h, 13)), 0xC2B2AE35)
+	return bit32.bxor(h, bit32.rshift(h, 16))
+end
+
+local function pickByHash(list, h)
+	return list[math.floor(h / 4294967296 * #list) + 1]
+end
+
+-- (name, setId) -> { typeId, trait }. Bounded by the roster and its sources.
+local identityMemo = {}
+
+-- The stack key, and whether the roster answered (a key built without it is
+-- not memoised, so a later call can still get the real one).
+local function identityKey(card)
+	local name = card.name
+	local okB, Boosts = pcall(require, script.Parent:FindFirstChild("MinePetBoosts"))
+	if okB and Boosts and Boosts.resolveName then
+		name = Boosts.resolveName(name)
+	end
+	local okR, Roster = pcall(require, script.Parent:FindFirstChild("MinePetRoster"))
+	local key = okR and Roster and Roster.cardKeyOf and Roster.cardKeyOf(name)
+	return key or (tostring(card.setId or "") .. ":" .. tostring(name or "")), okR == true
+end
+
+-- The family and trait a card carries. A print of the 41 legacy sets keeps the
+-- one its (setId, index) always gave it; anything else -- every named pet --
+-- hashes its name and home (above).
 function MineCards.familyTrait(card)
 	if type(card) ~= "table" then
 		return nil, nil
 	end
-	local typeId, seed
-	if card.setId and card.index then
-		typeId = MineCards.typeName(MineCards.typeOf(card.setId, card.index))
-		seed = card.index * 131 + #tostring(card.setId) * 17
-	else
-		typeId = MineCards.typeName(card.typeId or "Crystal")
-		local name, acc = tostring(card.name or ""), 0
-		for i = 1, #name do
-			acc += name:byte(i) * i
-		end
-		seed = acc
+	if card.setId and card.index and MineCards.SETS[card.setId] and not MineCards.namedBoosts(card) then
+		local typeId = MineCards.typeName(MineCards.typeOf(card.setId, card.index))
+		local seed = card.index * 131 + #tostring(card.setId) * 17
+		return typeId, TRAITS[math.floor(hash01(seed + 9) * #TRAITS) + 1]
 	end
-	return typeId, TRAITS[math.floor(hash01(seed + 9) * #TRAITS) + 1]
+	local raw = tostring(card.name or "") .. "\0" .. tostring(card.setId or "")
+	local hit = identityMemo[raw]
+	if not hit then
+		local key, final = identityKey(card)
+		hit = {
+			pickByHash(FAMILY_ORDER, hash32(key .. "#family")),
+			pickByHash(TRAITS, hash32(key .. "#trait")),
+		}
+		if final then
+			identityMemo[raw] = hit
+		end
+	end
+	return hit[1], hit[2]
+end
+
+-- The family a card shows on its face (the pill, the Type sort): the same one
+-- applyIdentity pays, never the "Crystal" every named pet was minted with.
+function MineCards.familyOf(card)
+	return (MineCards.familyTrait(card))
 end
 
 function MineCards.family(typeId)
@@ -720,9 +785,48 @@ function MineCards.statLine(key, amount, pow)
 	return string.format("%s  +%d%%", MineCards.STAT_LABEL[key] or key, math.floor(amount * pow * 100 + 0.5))
 end
 
-function MineCards.describe(card, pow)
+--[[
+	The card's stat lines. `equippedCount` is how many pets are out, which the
+	conditional traits read (Lone Wolf, Squad Bond) the way the server pays them
+	(Dig.petRows). `gate`, when given, is { family = the proc the held tool
+	fires, or nil } (MineEnchants.liveFamily of the server's boosts), and the
+	third return then marks each line MineEnchants.gateProcs zeroes on that
+	tool: notes[i] = { text = "needs a Zap Special", all = true when nothing on
+	the line pays }. Without a gate, notes is empty.
+]]
+function MineCards.describe(card, pow, equippedCount, gate)
 	if not card then
-		return nil, { "No kit" }
+		return nil, { "No kit" }, {}
+	end
+	local notes = {}
+	local okE, Enchants = pcall(require, script.Parent:FindFirstChild("MineEnchants"))
+	local function note(lines, stats)
+		if gate and stats and okE and Enchants and Enchants.gateNote then
+			local text, all = Enchants.gateNote(stats, gate.family)
+			if text then
+				notes[#lines] = { text = text, all = all }
+			end
+		end
+	end
+	-- The family line and the trait line, each with the stats it pays.
+	local function identity(lines)
+		local idLines, typeId, trait = MineCards.identityLines(card, equippedCount)
+		local fam = MineCards.family(typeId)
+		local statsOf = {}
+		for _, t in ipairs({ fam or false, trait or false }) do
+			if t then
+				local keys = {}
+				for stat in pairs(t.stats or {}) do
+					table.insert(keys, stat)
+				end
+				table.sort(keys)
+				table.insert(statsOf, keys)
+			end
+		end
+		for i, line in ipairs(idLines) do
+			table.insert(lines, line)
+			note(lines, statsOf[i])
+		end
 	end
 	local named = lookupNamedBoosts(card)
 	if named then
@@ -746,32 +850,31 @@ function MineCards.describe(card, pow)
 		if ok and Stats and Stats.describe then
 			for _, row in ipairs(Stats.describe(scaled)) do
 				table.insert(lines, string.format("%s  %s", row.label, row.text))
+				note(lines, { row.stat })
 			end
 		else
 			for stat, amount in pairs(scaled) do
 				table.insert(lines, MineCards.statLine(stat, amount, 1))
+				note(lines, { stat })
 			end
 		end
 		local typeId, trait = MineCards.familyTrait(card)
-		for _, line in ipairs(MineCards.identityLines(card)) do
-			table.insert(lines, line)
-		end
+		identity(lines)
 		return { named = true, roleName = "Named", boosts = named, typeId = typeId,
-			family = MineCards.family(typeId), trait = trait }, lines
+			family = MineCards.family(typeId), trait = trait }, lines, notes
 	end
 	if not card.setId then
-		return nil, { "No kit" }
+		return nil, { "No kit" }, notes
 	end
 	local kit = MineCards.getKit(card.setId, card.index)
 	pow = pow or 1
-	local lines = {
-		MineCards.statLine(kit.primary, kit.primaryBase, pow),
-		MineCards.statLine(kit.secondary, kit.secondaryBase, pow),
-	}
-	for _, line in ipairs(MineCards.identityLines(card)) do
-		table.insert(lines, line)
+	local lines = {}
+	for _, row in ipairs({ { kit.primary, kit.primaryBase }, { kit.secondary, kit.secondaryBase } }) do
+		table.insert(lines, MineCards.statLine(row[1], row[2], pow))
+		note(lines, { row[1] })
 	end
-	return kit, lines
+	identity(lines)
+	return kit, lines, notes
 end
 
 function MineCards.namedBoosts(card)

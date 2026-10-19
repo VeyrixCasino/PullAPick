@@ -193,8 +193,11 @@ is injected from `S_QUEUE`.
   - Mystery cases from lucky blocks are **not** `paid`, so they never reach the
     0.5% SSS-set share that credit-bought cases have.
   - **The loot card** (`MineGradeReveal` `lootRows`) shows a mystery case with
-    its case art and name, and a skin case in its ore's colour. SKIP ALL
-    totals the cases.
+    its case art and name, and a skin case in its ore's colour. SKIP ALL's
+    card (`runRows`) lists the whole run the same way: each mystery and skin
+    case by name with its count, potions, tools, gems, stardust and the
+    enchant books. Until 2026-10-19 (launch audit S29) it showed only gems,
+    stardust and a case count.
   - Checked in Studio on 2026-10-10: 15 opens across all three blocks paid ★
     to ★★★★★ cases, two skin cases (Peridot, Starmetal) and stardust. They
     were in the bag, and the card showed "2x ★★★★★ Wild Case".

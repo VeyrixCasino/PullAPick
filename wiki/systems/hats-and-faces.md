@@ -9,6 +9,7 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineLootPacks.luau
   - src/ReplicatedStorage/Mine/NewGear/Catalog.luau
   - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
+  - tools/verify/cards-tab.js
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
   - docs/TODO.md §0.19
@@ -85,9 +86,16 @@ related: [traits, pets, boosts-and-stats, rebirth-and-skill-tree, chests-and-luc
 
 | table | contents | used for |
 |---|---|---|
-| `MineHats.LIST` | 116 droppable hats (F 17 · D 14 · C 14 · B 15 · A 12 · S 10 · SS 15 · SSS 19), each with a catalogId, RAP and set | drops |
-| `MineHats.LEFTOVERS` | 54 rows. Only the 23 `kind = "Face"` rows are droppable (D 5 · C 3 · B 1 · A 4 · S 9 · SSS 1). Neck and Back rows are coded but have no slot. | face drops |
-| `src/ReplicatedStorage/Mine/NewGear/` | **Prototype.** 180 hats and 120 faces, Roblox limiteds ranked by Rolimons RAP, with `Icon.rbxm` folders per grade. Its header says: "Not wired to drops, rolls, or equipped stats." | only the Inventory → Collection → Hats/Faces browser and `NG.icon` thumbnails in `MineInventoryView` |
+| `MineHats.LIST` | 116 droppable hats (F 17 · D 14 · C 14 · B 15 · A 12 · S 10 · SS 15 · SSS 19), each with a catalogId, RAP and set | drops, and the Collection → Hats browser |
+| `MineHats.LEFTOVERS` | 54 rows. Only the 23 `kind = "Face"` rows are droppable (D 5 · C 3 · B 1 · A 4 · S 9 · SSS 1). Neck and Back rows are coded but have no slot. | face drops, and the Collection → Faces browser |
+| `src/ReplicatedStorage/Mine/NewGear/` | **Prototype.** 180 hats and 120 faces, Roblox limiteds ranked by Rolimons RAP, with `Icon.rbxm` folders per grade. Its header says: "Not wired to drops, rolls, or equipped stats." | only `NG.icon` thumbnails in `MineInventoryView` |
+
+**The collection lists what can drop** (owner, 2026-10-19, launch audit S37). Inventory →
+Collection → Hats/Faces showed the 300 NewGear limiteds: 67 of them drop, and 72 of the 139
+hats and faces that do drop were missing. It reads `MineHats.dropCatalog(kind, grade)` now:
+the `DROP_BY_GRADE` and `FACE_BY_GRADE` pools that `MineGear.catalogFor` rolls from, best
+grade first, with a grade chip only for grades that have something. Checked by
+`tools/verify/cards-tab.js`.
 
 ## Decided by the owner
 
