@@ -69,14 +69,14 @@ moved: no `archive/` folder exists, and every file below is still in `src/`.**
 | `src/ReplicatedStorage/Mine/Shared/_c.luau` | 1,710 | a stale MineConfig copy with its own `ORES` and `coinsFor`. **deleted 2026-10-08** per PROPOSAL line 38, after a launch audit found it still held the old wall-clock season functions. |
 | `src/ServerScriptService/Mine/MineDepthPlazas_OLD_pre_v4.luau` | 673 | superseded by `MineDepthPlazas` |
 | `src/ReplicatedStorage/Mine/Shared/MineBenchView.luau` | 366 | unmounted (Forge replaced it), yet edited on 2026-10-05 in `2700164` |
-| `src/ReplicatedStorage/MineGear_AdminTest.luau` | 738 | test scaffold shipped to every client |
+| `src/ReplicatedStorage/MineGear_AdminTest.luau` and the root `MineGear.luau` | 738 + ~700 | test scaffold and an old six-slot copy, shipped to every client. **deleted 2026-10-19** (owner: "Small cleanup") |
 | `src/ReplicatedStorage/MineBags_NameCheck.luau` | 367 | same; it requires the root `MineBagNames` |
 | `src/ServerStorage/CaptureToolIcons*.luau`, `_CaptureToolIcons_Reload.luau` | 401 × 3 + 353 | four copies of one Studio script |
 | `src/ServerStorage/chk_824649944.luau`, `rig_545528744.luau` | 1,816 + 1,809 | scratch copies of `PetModelFactory` |
 
-- **Not on AUDIT's list but just as dead:** `src/ReplicatedStorage/MineGear.luau` (348
-  lines, the old six-slot gear; it requires a sibling `MineRunes` that does not exist at that
-  level) and `src/ReplicatedStorage/MineBagNames.luau` (identical to the Shared copy).
+- **Not on AUDIT's list but just as dead:** `src/ReplicatedStorage/MineBagNames.luau`
+  (identical to the Shared copy). The root `MineGear.luau` beside it (the old six-slot gear)
+  was deleted on 2026-10-19.
   `src/ServerStorage/OreBalanceSim.luau` is broken (BLOCKED #13).
 
 ## Why nothing was just deleted

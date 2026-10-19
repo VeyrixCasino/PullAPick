@@ -116,8 +116,8 @@ Nearly everything below came in with the first Studio import, `566eecf`
 | `src/ReplicatedStorage/Mine/Shared/_c.luau` | **deleted 2026-10-08.** Was a dead 1,710-line copy of MineConfig that nothing required, still carrying the pre-launch-clock versions of limitedActive/limitedCountdown -- a grep-driven edit landed there and silently did nothing. | AUDIT §5, OPEN Housekeeping |
 | `src/ServerScriptService/Mine/MineDepthPlazas_OLD_pre_v4.luau` | superseded, and nothing refers to it | AUDIT §5, grep |
 | `src/ServerScriptService/Mine/MineDiscordBridge.server.luau` | a stub that only prints "idle" | file header |
-| `src/ReplicatedStorage/MineGear_AdminTest.luau`, `MineBags_NameCheck.luau` | old copies of the modules, at the RS root. They require siblings that do not exist there. | AUDIT §5, file headers |
-| `src/ReplicatedStorage/MineGear.luau`, `MineBagNames.luau` (RS root) | stale or byte-identical copies of the `Mine/Shared` modules. **Not on AUDIT's list.** | md5sum |
+| `src/ReplicatedStorage/MineBags_NameCheck.luau` | an old copy at the RS root. It requires the root `MineBagNames`. (`MineGear_AdminTest.luau` beside it was **deleted 2026-10-19** (owner: "Small cleanup").) | AUDIT §5, file headers |
+| `src/ReplicatedStorage/MineBagNames.luau` (RS root) | a byte-identical copy of the `Mine/Shared` module. **Not on AUDIT's list.** (The root `MineGear.luau` was **deleted 2026-10-19** (owner: "Small cleanup").) | md5sum |
 | `src/ServerStorage/chk_824649944.luau`, `rig_545528744.luau` | numbered scratch copies of PetModelFactory | AUDIT §5 |
 | `CaptureToolIcons`, `CaptureToolIconsFresh`, `CaptureToolIcons_Live` | three byte-identical Studio scripts | md5sum, AUDIT §5 |
 | `ServerStorage/Wave13Batches`, `Wave14Batches`, `Wave14Existing`, `Wave12*.luau` | batches from mesh-generation jobs (GenerationService prompts) | file contents |

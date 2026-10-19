@@ -106,8 +106,8 @@ related: [enchants, boosts-and-stats, retired-and-parked, tools, hats-and-faces,
 - `MineTradeValue.RUNE_DUST`: `tierOf` reads it. `runeValue` remains but nothing
   calls it.
 - The `heavy_runes` id on the wheel slice: an id is identity.
-- `src/ReplicatedStorage/MineGear.luau` and `MineGear_AdminTest.luau`: stale root
-  copies that nothing requires. They still name MineRunes.
+- ~~`src/ReplicatedStorage/MineGear.luau` and `MineGear_AdminTest.luau`~~ (deleted): stale root
+  copies that named MineRunes. **deleted 2026-10-19** (owner: "Small cleanup").
 
 ## Gotchas
 

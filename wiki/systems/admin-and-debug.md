@@ -9,7 +9,6 @@ sources:
   - src/StarterPlayer/StarterPlayerScripts/MineAdminClient.client.luau
   - src/ServerScriptService/Mine/MineAntiGear.luau
   - src/ReplicatedStorage/Mine/Shared/MineStudioGrant.luau
-  - src/ReplicatedStorage/MineGear_AdminTest.luau
   - src/ReplicatedStorage/MineBags_NameCheck.luau
   - src/ServerScriptService/TCGServer/AfkService.server.luau
   - src/ServerScriptService/TCGServer/PortalService.server.luau
@@ -98,18 +97,17 @@ pad and the VIP AFK bonus.
 ## Decided by the owner
 No admin-specific decisions are recorded. AUDIT §5 puts `MineGear_AdminTest` and
 `MineBags_NameCheck` on the **DELETE** list as *"test scaffolding in
-ReplicatedStorage, shipped to every client"*. That is a proposal, and both files
-are still there.
+ReplicatedStorage, shipped to every client"*. `MineGear_AdminTest` and the root
+`MineGear` copy were deleted on 2026-10-19 (owner: *"Small cleanup"*);
+`MineBags_NameCheck` is still there.
 
 ## State right now
 - **Unchanged since the import** (`566eecf`): the admin, anti-gear and Studio-reset code.
 - **Dead scaffolding.** Nothing requires these root-level `ReplicatedStorage`
   files (static grep):
-  - `src/ReplicatedStorage/MineGear_AdminTest.luau` and `src/ReplicatedStorage/MineGear.luau`, two old gear copies. Both
-    require `MineRunes` from `ReplicatedStorage`'s root, where there is no such
-    module, so either would hang if required. Since 2026-10-12 there is no
-    `MineRunes` anywhere: the `Shared` copy was deleted when runes were retired
-    ([traits](traits.md)). The two root copies were left in the tree on purpose.
+  - ~~`src/ReplicatedStorage/MineGear_AdminTest.luau` and `src/ReplicatedStorage/MineGear.luau`~~ (deleted),
+    two old gear copies that required a `MineRunes` that no longer exists anywhere.
+    **deleted 2026-10-19** (owner: "Small cleanup"); every live caller requires `Mine.Shared.MineGear`.
   - `src/ReplicatedStorage/MineBags_NameCheck.luau`.
   - `src/ReplicatedStorage/MineBagNames.luau`, byte-identical to the `Shared` copy.
 

@@ -1569,3 +1569,12 @@ The pointing hand the brief asked for already exists for tutorial steps
 (`ClientFns.handPoint`). Not seen in Play: the owner's profile is past the tutorial.
 
 Updated: client-and-ui, verify-suite, log.
+
+## [2026-10-19] cleanup | The two stale MineGear copies are deleted
+Owner: *"Small cleanup"*. Deleted `src/ReplicatedStorage/MineGear.luau` (the old six-slot
+gear) and `MineGear_AdminTest.luau` (the hats-on-pets test copy). Both sat at the
+ReplicatedStorage root, shipped to every client, and required a `MineRunes` that no
+longer exists. Every live caller requires `Mine.Shared.MineGear`. Rojo removes them
+from Studio on the next sync. `MineBags_NameCheck` and the root `MineBagNames` stay.
+
+Updated: code-map, admin-and-debug, hats-and-faces, retired-and-parked, traits, log.
