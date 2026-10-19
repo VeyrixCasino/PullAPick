@@ -1823,3 +1823,15 @@ dark-universe palettes and `MineUI` themed builders (event pets' cards wear a ri
 Crypt tools, merging, charm crafting and the case reveal were left out on purpose: the owner
 redesigned them the same day (Crypt v2, [open-questions](open-questions.md) §0e). New check
 `crypt-ui`. Suite 84 of 85 (the Linux `skins` quirk). Not seen in Studio.
+
+## [2026-10-19] build | Halloween pets v2: 12 more, the 20% rule, build-defining pets
+Crypt v2 spec, part C ([open-questions](open-questions.md) §0e). **Twelve more Halloween 2026 pets**
+(Epic 4, Legendary 3, Mythic 2, Divine 2, Exotic 1, all PROPOSED; names in `docs/HOLIDAY-PETS.md`), each
+wearing an existing Halloween body until its own is built (Cursor brief `halloween-pet-bodies.md`).
+**Halloween Mythic+ pets beat the best normal pet** on the game's own `MineCards.boostScore` (Segfault,
+722.1) by 1.2×/1.3×/1.4× for Mythic/Divine/Exotic (PROPOSED steps), lifted by the generator so a stronger
+normal pet later re-lifts them; **Halloween S/SS/SSS skins get a 1.2 edge** on damage base and budget
+(`tools/gen/skins.js`). **Build pets:** Crater (Boomjaw, Sparkplug: blast radius), Hex Storm (Zap), Bog
+Tide (Tidal Wave), Gravequake (Earthquake), and Rattlebones for Shatter. New `MineHalloweenPets`
+(`pool`, `isHalloween`), `MineStats.NAMED_PET_OK` (blastRadius on named kits) and a server guard
+`MinePatterns.MAX_BLAST_RADIUS` 6 (PROPOSED). New check `halloween-power` (25 failures on the old code).
