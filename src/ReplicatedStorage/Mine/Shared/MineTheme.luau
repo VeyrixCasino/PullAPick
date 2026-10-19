@@ -130,4 +130,40 @@ MineTheme.CANDY = {
 MineTheme.ON_CANDY = Color3.fromRGB(255, 255, 255)
 MineTheme.ON_CANDY_DARK = Color3.fromRGB(46, 22, 8)
 
+--[[
+	LIFTED SURFACES -- the cartoony layer.
+
+	Owner, 2026-10-18, on launch day: "still ugly ... does this look like the
+	cartoony top game it should be". It did not, and the reason was measurable
+	rather than a matter of taste. Every surface in the game sat between 0.04
+	and 0.20 relative luminance:
+
+	    INK  #0B0A1A 0.04    PANEL #171333 0.09
+	    CARD #221C4E 0.13    CARD_HI #3A2A7C 0.20
+
+	A card at 0.13 on a panel at 0.09 cannot pop, because there is nowhere for
+	it to pop TO. The games this one is chasing -- Pet Sim, Adopt Me, Mining
+	Simulator -- put the CARD FACE up around 0.6-0.9, cream or hard-saturated,
+	and ring it with a fat dark outline. The dark base is not the problem; the
+	absence of anything bright on top of it is.
+
+	These are additive on purpose. Flipping CARD and PANEL themselves would
+	re-skin forty screens in one commit on the morning of a launch, and no one
+	could tell a styling regression from a real one. Screens move onto FACE /
+	SHELL one at a time, each verified in Studio, starting with the daily popup
+	and the Forge because those are what a new player sees first.
+
+	    SHELL      the saturated body a panel is built from
+	    SHELL_HI   a raised band inside it (headers, footers)
+	    FACE       the bright card face that content sits on
+	    FACE_DIM   the same face, spent or claimed
+	    ON_FACE    text on a bright face -- never TEXT, which is near-white
+]]
+MineTheme.SHELL = Color3.fromRGB(88, 60, 182)
+MineTheme.SHELL_HI = Color3.fromRGB(118, 84, 218)
+MineTheme.FACE = Color3.fromRGB(246, 243, 255)
+MineTheme.FACE_DIM = Color3.fromRGB(198, 192, 226)
+MineTheme.ON_FACE = Color3.fromRGB(34, 22, 68)
+MineTheme.ON_FACE_MUTED = Color3.fromRGB(104, 94, 148)
+
 return MineTheme
