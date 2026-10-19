@@ -2,7 +2,7 @@
 title: Enchants and the player level
 type: system
 status: partial
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-18 @ ae50158
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineEnchants.luau
   - src/ServerScriptService/Mine/MineEnchantService.luau
@@ -48,6 +48,21 @@ The families are Zap (`zap`/`zapDamage`), Blast (`blastChance`/`blastDamage`/`bl
 Tidal Wave (`tidalWave`/`tideDamage`), Shatter (`ricochet`/`shatterDamage`) and
 Earthquake (`earthquake`, with `procPower` as its damage). Explosives roll no procs, so
 they take no Special.
+
+**Equip Best reads the Special** (`Dig.planUpgrades`, since 2026-10-18; the
+owner's enchant brief: *"[make sure to encorperate this into auto equip]"*). The
+gate zeroes every other family's proc, so a pet's chance and damage for another
+family is worth nothing on this tool.
+- `Dig.petShares` splits each pet's whole kit (named kit and print perk) into
+  plain stats, each proc family's stats, and generic proc damage (`procPower`
+  pays any family). It weights them the way the kits were priced (MineStats
+  weights). `MineEnchants.familyOfStat` says which family a stat belongs to.
+- `Dig.petWorth` scales the pet's card power by the share the held tool can use:
+  plain stats, plus generic proc damage and its own family's proc.
+- With a Special, the team is the best for that family. Without one, the tool
+  keeps its gear's best proc, so Equip Best tries no proc and every family, and
+  keeps the strongest team.
+- Ties break on the card id, so the pick never flickers.
 
 **Three tiers per ability** (owner, 2026-10-12: *"Make 3 levels of abilities"*, tiers that change how it works). The Special's level picks the tier: I–II tier 1, III–IV tier 2, V tier 3 (`MineEnchants.TIERS`, read by `Dig.procsAt` as `b.procTier`). Pets' best proc alone is tier 1. Each ability also carries its own proc chance and damage, both rising per level (owner: *"also made the ability itself have a proc chance and dmage"*). PROPOSED, each capped:
 
@@ -170,15 +185,14 @@ works only in Studio.
 - **The Forge hub** shows and applies all of this ([client-and-ui](../code/client-and-ui.md)).
   The Blacksmith counter opens it.
 - **Retired for them (2026-10-12):** tool traits, runes, scrolls and sockets. The
-  rewards that paid scrolls pay books now: the premium pass's tiers 25 / 55 / 88
-  (3 / 4 / 5 books), the Founders pack (3), and the daily wheel's 6% slice
-  ("3 LUCKY BOOKS", S-chest levels). The tutorial's step 8 gives 2 free Damage
+  rewards that paid scrolls pay books now: the Founders pack (3) and the daily
+  wheel's 6% slice ("3 LUCKY BOOKS", S-chest levels). The reworked battle pass
+  (2026-10-16) pays books on most tiers
+  ([shops-and-monetisation](shops-and-monetisation.md)). The tutorial's step 8 gives 2 free Damage
   books and opens the Forge on ENCHANT; the quests ask for enchants and book
   merges. See [traits](traits.md).
-- **Not built yet:**
-  - auto-equip that reads the Special;
-  - an enchant for Coolant or Short Fuse (open: they now come only from the
-    skill tree).
+- **Built since:** Equip Best reads the Special (2026-10-18, above); the Short
+  Fuse enchant (2026-10-16). Coolant stays on the skill tree only (owner).
 - **Not yet seen in a live server:** the mining enchants and bundles are checked
   by code, not by play.
 - **Before level 25** the tool keeps its gear's best proc; the owner chose this over

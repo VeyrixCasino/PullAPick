@@ -14291,6 +14291,68 @@ function Dig.gearScore(g)
 	return (Dig.GEAR_GRADE[tostring(g and g.rarity or "")] or 0) * 1000
 		+ (tonumber(g and g.pct) or 0) * 100 + (tonumber(g and g.slotCount) or 0)
 end
+--[[
+	AUTO-EQUIP READS THE SPECIAL. Owner's enchant brief: the Special slot
+	"determines which effect your tool will have, regardless of pet setup.
+	The pets only boost this. [make sure to encorperate this into auto
+	equip]". gateProcs zeroes every proc family but the tool's, so a pet's
+	chance and damage for any OTHER family is worth nothing on it.
+
+	Dig.petShares(c) splits one pet's whole kit (named kit and print perk,
+	through Cards.applyKit) into what it is worth, weighted the way the kits
+	were priced (MineStats weights): plain stats, each family's, and generic
+	proc damage. Dig.petWorth then counts only what the tool can use.
+]]
+function Dig.petShares(c)
+	local pw = C.cardPower(c)
+	local b, zero = Cards.emptyBoosts(), Cards.emptyBoosts()
+	Cards.applyKit(b, c, pw, 1)
+	local out = { pw = pw, total = 0, plain = 0, any = 0, fam = {} }
+	for stat, v in pairs(b) do
+		if type(v) == "number" then
+			local base = zero[stat]
+			if type(base) ~= "number" then
+				base = Cards.ADDITIVE_STATS[stat] and 0 or 1
+			end
+			local d = math.abs(v - base)
+			if d > 0 then
+				local st = Stats.STATS and Stats.STATS[stat]
+				local amt = d * ((st and st.weight) or 1)
+				out.total += amt
+				local fam = Dig.Enchants.familyOfStat(stat)
+				if fam == nil then
+					out.plain += amt
+				elseif fam == "*" then
+					out.any += amt
+				else
+					out.fam[fam] = (out.fam[fam] or 0) + amt
+				end
+			end
+		end
+	end
+	return out
+end
+
+-- A pet's card power, scaled by the share of its kit a tool firing `family`
+-- (nil: no proc at all) can use.
+function Dig.petWorth(shares, family)
+	if shares.total <= 0 then
+		return shares.pw
+	end
+	local usable = shares.plain
+	if family then
+		usable += shares.any + (shares.fam[family] or 0)
+	end
+	return shares.pw * usable / shares.total
+end
+
+-- The proc family the held tool's Special enchant fires, or nil without one.
+function Dig.heldProcFamily(p)
+	local e = Dig.EnchSvc and Dig.EnchSvc.special(p)
+	local def = e and Dig.Enchants.get(e.id)
+	return def and def.effect and def.effect.family or nil
+end
+
 function Dig.planUpgrades(p)
 	local plan = { gear = {}, gearCount = 0, pets = nil, petCount = 0 }
 	local worn = p.equippedGear or {}
@@ -14369,29 +14431,60 @@ function Dig.planUpgrades(p)
 		end
 	end
 
-	-- Pets: the strongest seats by power, kept in a short sorted list.
+	-- Pets: the strongest seats by what they give THIS tool (Dig.petWorth),
+	-- kept in a short sorted list.
 	local n = math.max(1, math.floor(C.effectivePetSlots and C.effectivePetSlots(p) or tonumber(p.petSlots) or 3))
-	local top = {}
+	local sharesOf = {}
 	for _, c in ipairs(p.cards or {}) do
-		if type(c) == "table" and c.id then
-			local pw = C.cardPower(c)
+		if type(c) == "table" and c.id and not sharesOf[c.id] then
+			sharesOf[c.id] = Dig.petShares(c)
+		end
+	end
+	local function topFor(family)
+		local top = {}
+		for id, sh in pairs(sharesOf) do
+			local pw = Dig.petWorth(sh, family)
 			if #top < n or pw > top[#top].pw then
 				if #top >= n then
 					table.remove(top)
 				end
-				table.insert(top, { id = c.id, pw = pw })
+				table.insert(top, { id = id, pw = pw })
 				table.sort(top, function(a, b)
-					return a.pw > b.pw
+					if a.pw ~= b.pw then
+						return a.pw > b.pw
+					end
+					return tostring(a.id) < tostring(b.id)
 				end)
+			end
+		end
+		return top
+	end
+	local family = Dig.heldProcFamily(p)
+	local top
+	if family then
+		top = topFor(family)
+	else
+		-- No Special yet: the tool keeps its gear's BEST proc (gateProcs), so
+		-- try every family, and none, and keep the strongest team.
+		local bestSum
+		for _, fam in ipairs({ "", table.unpack(Dig.Enchants.PROC_ORDER) }) do
+			local f = (fam ~= "") and fam or nil
+			local t = topFor(f)
+			local sum = 0
+			for _, row in ipairs(t) do
+				sum += row.pw
+			end
+			if not bestSum or sum > bestSum + 1e-9 then
+				top, bestSum, family = t, sum, f
 			end
 		end
 	end
 	local on, wornPowers = {}, {}
 	for _, id in ipairs(p.equipped or {}) do
 		on[id] = true
-		local c = cardById(p, id)
-		if c then
-			table.insert(wornPowers, C.cardPower(c))
+		local sh = sharesOf[id]
+		if sh then
+			table.insert(wornPowers, Dig.petWorth(sh, family))
 		end
 	end
 	table.sort(wornPowers)

@@ -1115,9 +1115,19 @@ function MineForge.mount(parent, opts)
 			BackgroundTransparency = 1,
 			LayoutOrder = order,
 		}, host)
+		--[[
+			A BRIGHT FACE, so the card reads as a card.
+
+			This was BG2 (#221C4E, luminance 0.13) on a panel at 0.09 -- eighty
+			near-black rectangles that a player had to lean in to read. It is a
+			cream FACE with dark ink now (see the MineTheme lifted-surface
+			note). A LOCKED card stays on the shell colour instead: an
+			undiscovered recipe should recede, and Rule 3 means it must not
+			advertise itself anyway.
+		]]
 		local b = mk("TextButton", {
-			BackgroundColor3 = r.locked and BG3 or BG2,
-			BackgroundTransparency = r.locked and 0.25 or 0,
+			BackgroundColor3 = r.locked and T.SHELL_HI or T.FACE,
+			BackgroundTransparency = r.locked and 0.45 or 0,
 			AutoButtonColor = false,
 			Text = "",
 			Size = UDim2.fromScale(1, 1),
@@ -1158,18 +1168,19 @@ function MineForge.mount(parent, opts)
 			UI.icon(b, toolArt, 52, UDim2.new(0.5, -26, 0, 14))
 		end
 
-		label(b, OreTools.name(r.def, selFamily), T.TEXT_MIN, TEXT,
+		label(b, OreTools.name(r.def, selFamily), T.TEXT_MIN, T.ON_FACE,
 			UDim2.fromOffset(6, 70), UDim2.new(1, -12, 0, 32),
 			FONT, Enum.TextXAlignment.Center).TextWrapped = true
 
 		-- What it NEEDS, which is the whole reason the square is readable at a
 		-- glance: the amount, and whether you are there yet.
 		local costLbl = label(b, string.format("%s / %s", num(r.have), num(r.cost)),
-			T.TEXT_MIN, r.afford and GREEN or MUTED, UDim2.fromOffset(6, 104),
+			T.TEXT_MIN, r.afford and Color3.fromRGB(22, 122, 60) or T.ON_FACE_MUTED,
+			UDim2.fromOffset(6, 104),
 			UDim2.new(1, -12, 0, 18), FONT, Enum.TextXAlignment.Center)
 		costLbl.Font = Enum.Font.GothamBlack
 
-		label(b, r.name, T.TEXT_MIN - 1, MUTED, UDim2.fromOffset(6, 124),
+		label(b, r.name, T.TEXT_MIN - 1, T.ON_FACE_MUTED, UDim2.fromOffset(6, 124),
 			UDim2.new(1, -12, 0, 16), FONT_M, Enum.TextXAlignment.Center)
 
 		if r.afford then
@@ -1568,7 +1579,9 @@ function MineForge.mount(parent, opts)
 	]]
 	local function colButton(text, order, on, enabled, onClick)
 		local b = mk("TextButton", {
-			BackgroundColor3 = on and GOLD or BG3,
+			-- The rail sat on BG3 (#0B0A1A), the darkest token there is. SHELL_HI
+			-- keeps it quieter than the cards without being a black hole.
+			BackgroundColor3 = on and GOLD or T.SHELL_HI,
 			AutoButtonColor = enabled,
 			Text = text,
 			Font = FONT,

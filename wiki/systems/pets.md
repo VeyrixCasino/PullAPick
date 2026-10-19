@@ -362,7 +362,17 @@ What that means now:
 ## Models and the follow
 
 - `PetModelFactory` builds a procedural model per card (`fromCard`, `build`,
-  `buildFromRoster`) plus variant and rarity FX. It has not changed since import (`566eecf`).
+  `buildFromRoster`) plus variant and rarity FX.
+- **The animal picks the body** (fixed 2026-10-18). `fromCard` used to pass the
+  pet's *name* as `species`, and that beat the animal in `build`. A name like
+  "Taffy" matches no species, so `resolveSpecies` fell back to the fox. **Every
+  named pet drew as a recoloured fox**, in the bag, in the world and in reveals,
+  and none of the set bodies or Epic+ tops ever showed. The bug arrived with
+  named pets (`1332e3d`). Now the name is only a guess, for a card whose animal
+  the roster does not know.
+  - Checked in Studio: all 3,344 roster pets build, on 1,092 bodies. The 33
+    foxes left are the animals that really are foxes.
+  - `tools/verify/set-pets.js` keeps it fixed.
   `src/ServerStorage/chk_824649944.luau` and `rig_545528744.luau` are scratch copies
   that AUDIT puts on the DELETE list.
 - **Formation** (`ClientFns.stepPetFollow`, §0.24 fix): the centre is `(n+1)/2`, lateral offset

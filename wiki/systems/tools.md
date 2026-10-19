@@ -199,8 +199,11 @@ equip; the coin ladder resets.
   - **Pickaxes 1–81 are redone** (`ORE_PICK_CANVA`). The owner: *"i like
     PICKAXE 82, BUT REDO THE RESTs ... make sure the colors make sense"*. Tier
     82 keeps the original.
-  - **Drill and explosive 1–81 and jackhammer 75–82 are blocked** on Canva's
-    AI allowance.
+  - **Drills and explosives 1–81 are redone too** (`ORE_DRILL_CANVA`,
+    `ORE_BOMB_CANVA`, 2026-10-18). Explosives 19, 29, 65, 67, 68, 71 and 77
+    are being redrawn, because the cut-out clipped the fuse spark. Pickaxes 52
+    and 57 are being redrawn too, because their heads read as axes.
+    Jackhammers 75–82 are being drawn now.
   - All of it switches on with `MineIcons.NEW_TOOL_ICONS_SHARED` once the owner
     shares the uploads ([assets-and-uploads](../code/assets-and-uploads.md)).
 - **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line

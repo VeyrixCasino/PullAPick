@@ -1000,32 +1000,54 @@ end
 	input, so a player who wants to go straight to mining just walks off and
 	closes it later.
 ]]
+--[[
+	THE DAILY POPUP IS THE FIRST THING A NEW PLAYER SEES, so it is the first
+	screen onto the lifted surfaces (MineTheme SHELL / FACE -- see the note
+	there for the luminance measurements that prompted this).
+
+	What changed: the body is a saturated purple SHELL instead of the 0.09
+	panel, everything is ringed in the fat dark OUTLINE, the title went 22 ->
+	30 with a white outline so it reads as a banner rather than a heading, and
+	the supporting lines came up off 12/13 onto the 14/16 floors. The day tiles
+	themselves are in paintDailyCalendar.
+]]
 local dailyHud = {}
 dailyHud.card = mk("Frame", {
 	Name = "Daily",
 	Visible = false,
-	BackgroundColor3 = BG,
+	BackgroundColor3 = T.SHELL,
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.46),
 	Size = UDim2.fromOffset(420, 250),
 	ZIndex = 25,
 	Active = true,
 }, gui)
-round(dailyHud.card, 16)
+round(dailyHud.card, 22)
 do
-	local s = stroke(dailyHud.card, 2)
-	s.Transparency = 0.1
+	local s = stroke(dailyHud.card, T.STROKE_THICK or 4)
+	s.Color = T.OUTLINE
+	s.Transparency = 0
+	-- A top-down lift, so the body reads as a moulded surface rather than a
+	-- flat rectangle. The kit does it; it was simply never called here.
+	if ClientFns.UI and ClientFns.UI.lit then
+		ClientFns.UI.lit(dailyHud.card, 0.10)
+	end
 end
 dailyHud.title = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT, TextSize = 22, TextColor3 = GOLD,
-	Text = "DAILY REWARD", Position = UDim2.fromOffset(0, 18),
-	Size = UDim2.new(1, 0, 0, 26), ZIndex = 26, Active = false,
+	BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 30,
+	TextColor3 = GOLD,
+	Text = "DAILY REWARD", Position = UDim2.fromOffset(0, 16),
+	Size = UDim2.new(1, 0, 0, 34), ZIndex = 26, Active = false,
 }, dailyHud.card)
 dailyHud.title.TextXAlignment = Enum.TextXAlignment.Center
+if ClientFns.UI and ClientFns.UI.outlineText then
+	ClientFns.UI.outlineText(dailyHud.title, 2)
+end
 dailyHud.day = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT_M, TextSize = 13, TextColor3 = MUTED,
-	Text = "", Position = UDim2.fromOffset(0, 46),
-	Size = UDim2.new(1, 0, 0, 18), ZIndex = 26, Active = false,
+	BackgroundTransparency = 1, Font = FONT, TextSize = T.TEXT_BODY or 16,
+	TextColor3 = Color3.fromRGB(214, 203, 255),
+	Text = "", Position = UDim2.fromOffset(0, 50),
+	Size = UDim2.new(1, 0, 0, 20), ZIndex = 26, Active = false,
 }, dailyHud.card)
 dailyHud.day.TextXAlignment = Enum.TextXAlignment.Center
 dailyHud.prize = mk("TextLabel", {
@@ -1036,22 +1058,41 @@ dailyHud.prize = mk("TextLabel", {
 dailyHud.prize.TextXAlignment = Enum.TextXAlignment.Center
 dailyHud.prize.TextScaled = false
 dailyHud.streak = mk("TextLabel", {
-	BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextColor3 = MUTED,
+	BackgroundTransparency = 1, Font = FONT_M, TextSize = T.TEXT_MIN or 14,
+	TextColor3 = Color3.fromRGB(205, 194, 248),
 	Text = "", Position = UDim2.fromOffset(0, 136),
-	Size = UDim2.new(1, 0, 0, 16), ZIndex = 26, Active = false,
+	Size = UDim2.new(1, 0, 0, 18), ZIndex = 26, Active = false,
 }, dailyHud.card)
 dailyHud.streak.TextXAlignment = Enum.TextXAlignment.Center
+--[[
+	CLAIM is the only thing on this popup worth pressing, so it is the only
+	thing painted like a button you press: a green candy gradient with the fat
+	outline, at 24 rather than 18. It was a flat gold rectangle the same weight
+	as the day tiles behind it.
+]]
 dailyHud.claim = mk("TextButton", {
-	AutoButtonColor = true, BackgroundColor3 = GOLD, Font = FONT, TextSize = 18,
-	TextColor3 = T.ON_GOLD, Text = "CLAIM",
+	AutoButtonColor = false, BackgroundColor3 = GOLD,
+	Font = Enum.Font.GothamBlack, TextSize = 24,
+	TextColor3 = Color3.new(1, 1, 1), Text = "CLAIM",
 	Position = UDim2.fromOffset(24, 178), Size = UDim2.new(1, -48, 0, 44), ZIndex = 26,
 }, dailyHud.card)
-round(dailyHud.claim, 10)
+round(dailyHud.claim, 14)
+if ClientFns.UI then
+	ClientFns.UI.candy(dailyHud.claim, "green", T.STROKE_CHUNKY or 3)
+	ClientFns.UI.outlineText(dailyHud.claim, 2)
+	ClientFns.UI.juice(dailyHud.claim)
+end
 dailyHud.close = mk("TextButton", {
-	AutoButtonColor = true, BackgroundTransparency = 1, Font = FONT, TextSize = 18,
-	TextColor3 = MUTED, Text = "X",
-	Position = UDim2.new(1, -40, 0, 12), Size = UDim2.fromOffset(28, 28), ZIndex = 27,
+	AutoButtonColor = false, BackgroundColor3 = T.SHELL_HI,
+	Font = Enum.Font.GothamBlack, TextSize = T.TEXT_BODY or 16,
+	TextColor3 = Color3.new(1, 1, 1), Text = "X",
+	Position = UDim2.new(1, -46, 0, 14), Size = UDim2.fromOffset(32, 32), ZIndex = 27,
 }, dailyHud.card)
+round(dailyHud.close, 10)
+if ClientFns.UI then
+	ClientFns.UI.candy(dailyHud.close, "red", 2)
+	ClientFns.UI.juice(dailyHud.close)
+end
 
 -- Dismissed for this session only; an unclaimed day comes back on the next join.
 dailyHud.dismissed = false
@@ -3537,9 +3578,14 @@ function ClientFns.layoutDock()
 	-- Start under the mine timer (it sat on top of the Shop button) and stop
 	-- short of Roblox's corner button, or of the jump button on a phone.
 	local topRoom = (GuiService:GetGuiInset().Y + 8) / k
-	if mineResetL.Visible then
-		local under = (mineResetL.AbsolutePosition.Y + mineResetL.AbsoluteSize.Y - gui.AbsolutePosition.Y) / k
-		topRoom = math.max(topRoom, under + 8)
+	-- The depth chip and the rebirth bar share the dock's right-hand column,
+	-- so the dock starts under whichever of the three is lowest (the rebirth
+	-- bar sat on top of the Wheel button; owner's screen, 2026-10-18).
+	for _, above in ipairs({ mineResetL, depthHud.chip, depthHud.rb }) do
+		if above.Visible then
+			local under = (above.AbsolutePosition.Y + above.AbsoluteSize.Y - gui.AbsolutePosition.Y) / k
+			topRoom = math.max(topRoom, under + 8)
+		end
 	end
 	local bottomRoom = UIS.TouchEnabled and 140 or 48
 	local room = screen.Y - topRoom - bottomRoom
@@ -3612,6 +3658,8 @@ function ClientFns.layoutDock()
 end
 mineResetL:GetPropertyChangedSignal("AbsolutePosition"):Connect(ClientFns.layoutDock)
 mineResetL:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
+depthHud.chip:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
+depthHud.rb:GetPropertyChangedSignal("Visible"):Connect(ClientFns.layoutDock)
 ClientFns.layoutDock()
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(ClientFns.layoutDock)
 uiScale:GetPropertyChangedSignal("Scale"):Connect(ClientFns.layoutDock)
@@ -4579,33 +4627,70 @@ function ClientFns.paintDailyCalendar(state)
 			c:Destroy()
 		end
 	end
+	--[[
+		BRIGHT FACES. See the MineTheme lifted-surface note.
+
+		These were T.CARD (#221C4E, luminance 0.13) sitting on a panel at 0.09,
+		with 12px text and a 1px stroke at 0.4 transparency -- seven near-black
+		rectangles that a player had to lean in to read. They are cream cards
+		with a fat dark outline and dark text now, which is the shape the genre
+		uses, and the three states are told apart by FILL rather than by a word:
+
+		    normal   FACE, dark text
+		    claimed  FACE_DIM, muted, a green CLAIMED
+		    jackpot  a gold candy gradient -- day seven should look like money
+		    today    the gold ring and a TODAY chip
+
+		TODAY is marked with a ring and a chip rather than a UIScale: scaling a
+		layout cell is what blanked a skins tile once already, and at 6px
+		padding a 1.06 scale would have the neighbours touching.
+	]]
 	for _, d in ipairs(cal) do
 		local tile = mk("Frame", {
-			BackgroundColor3 = d.jackpot and Color3.fromRGB(78, 60, 22) or T.CARD,
-			BackgroundTransparency = d.claimed and 0.45 or 0,
+			BackgroundColor3 = d.claimed and T.FACE_DIM or T.FACE,
 			Size = UDim2.fromOffset(80, 150), LayoutOrder = d.day, ZIndex = 27, Active = false,
 		}, dailyHud.cal)
-		round(tile, 12)
-		local st = stroke(tile, d.today and 3 or 1)
-		st.Color = d.today and GOLD or (d.jackpot and GOLD or T.LINE)
-		st.Transparency = d.today and 0 or 0.4
+		round(tile, 14)
+		if d.jackpot and ClientFns.UI then
+			ClientFns.UI.candy(tile, "gold", T.STROKE_CHUNKY or 3)
+		end
+		local st = stroke(tile, d.today and (T.STROKE_THICK or 4) or (T.STROKE_CHUNKY or 3))
+		st.Color = d.today and GOLD or T.OUTLINE
+		st.Transparency = 0
+
+		local ink = d.claimed and T.ON_FACE_MUTED or T.ON_FACE
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 15,
-			TextColor3 = d.today and GOLD or (d.claimed and MUTED or TEXT),
-			Text = "DAY " .. d.day, Position = UDim2.fromOffset(0, 6), Size = UDim2.new(1, 0, 0, 18), ZIndex = 28,
+			BackgroundTransparency = 1, Font = Enum.Font.GothamBlack,
+			TextSize = T.TEXT_BODY or 16, TextColor3 = ink,
+			Text = "DAY " .. d.day, Position = UDim2.fromOffset(0, 8),
+			Size = UDim2.new(1, 0, 0, 20), ZIndex = 28,
 		}, tile)
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT_M, TextSize = 12, TextWrapped = true,
-			TextColor3 = d.claimed and MUTED or TEXT, TextYAlignment = Enum.TextYAlignment.Top,
-			Text = table.concat(d.parts or {}, "\n"), Position = UDim2.fromOffset(4, 28),
-			Size = UDim2.new(1, -8, 1, -52), ZIndex = 28,
+			BackgroundTransparency = 1, Font = FONT, TextSize = T.TEXT_MIN or 14,
+			TextWrapped = true, TextColor3 = ink, TextYAlignment = Enum.TextYAlignment.Top,
+			Text = table.concat(d.parts or {}, "\n"), Position = UDim2.fromOffset(6, 32),
+			Size = UDim2.new(1, -12, 1, -58), ZIndex = 28,
 		}, tile)
+
+		-- The state chip sits ON the card, so it reads at a glance instead of
+		-- being a word in the same ink as everything else.
 		local foot = d.claimed and "CLAIMED" or (d.today and "TODAY" or (d.jackpot and "JACKPOT" or ""))
-		mk("TextLabel", {
-			BackgroundTransparency = 1, Font = FONT, TextSize = 12,
-			TextColor3 = d.claimed and T.GREEN or GOLD, Text = foot,
-			Position = UDim2.new(0, 0, 1, -22), Size = UDim2.new(1, 0, 0, 16), ZIndex = 28,
-		}, tile)
+		if foot ~= "" then
+			local chip = mk("Frame", {
+				BackgroundColor3 = d.claimed and T.GREEN or GOLD,
+				Position = UDim2.new(0, 6, 1, -28), Size = UDim2.new(1, -12, 0, 22),
+				ZIndex = 28, Active = false,
+			}, tile)
+			round(chip, 8)
+			local cs = stroke(chip, 2)
+			cs.Color = T.OUTLINE
+			cs.Transparency = 0
+			mk("TextLabel", {
+				BackgroundTransparency = 1, Font = Enum.Font.GothamBlack,
+				TextSize = T.TEXT_MIN or 14, TextColor3 = Color3.fromRGB(28, 18, 52),
+				Text = foot, Size = UDim2.fromScale(1, 1), ZIndex = 29,
+			}, chip)
+		end
 	end
 	local mult = tonumber(state.weekMult) or 1
 	dailyHud.streak.Text = ((state.streak or 0) > 0

@@ -4328,26 +4328,40 @@ function MineInventoryView.mount(parent, opts)
 		-- SELECT -> pick pieces -> RECYCLE -> review -> hold 3s. The why of all
 		-- of that (no select-all, and the hold living on the review screen
 		-- rather than here) is in MineScrapSelect, which every list now shares.
+		--[[
+			THREE THINGS WANTED THE SAME 120px SLOT, AND TWO OF THEM TOOK IT.
+
+			MineScrapSelect.bar draws its own hint at exactly
+			UDim2.fromOffset(120, 0), and this block drew a second hint at
+			exactly UDim2.fromOffset(120, 0) whenever nothing was selected. Both
+			rendered, on top of each other, which is the unreadable smear in the
+			Equipment header. EQUIP BEST wants the same slot at (120, 9), so
+			handing the seat hint to the bar without thinking would only have
+			moved the collision rather than ended it.
+
+			One occupant, decided before the bar is built:
+
+			    selecting                -> the bar's own some / none hint
+			    not selecting, upgrades  -> the EQUIP BEST button
+			    not selecting, none      -> the seat hint, via the bar's `off`
+		]]
+		local better = tonumber((state.upgrades or {}).gear) or 0
+		local showBest = better > 0
 		local selOn = pick.bar(head, "gear", "gems", {
+			off = (not showBest) and "tap a seat, then tap what goes in it" or nil,
 			some = "RECYCLE to review what you picked",
 			none = "tap unequipped gear to select",
 		})
-		do
-			local better = tonumber((state.upgrades or {}).gear) or 0
-			if better > 0 and not selOn then
-				local b = mk("TextButton", {
-					AutoButtonColor = true, BackgroundColor3 = GREEN, Text = "EQUIP BEST",
-					Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(16, 38, 20),
-					Size = UDim2.fromOffset(110, 28), Position = UDim2.fromOffset(120, 9),
-				}, head)
-				round(b, 8)
-				b.MouseButton1Click:Connect(function()
-					if opts.onEquipBest then opts.onEquipBest() end
-				end)
-			elseif not selOn then
-				label(head, "tap a seat, then tap what goes in it", 11, MUTED,
-					UDim2.fromOffset(120, 0), UDim2.new(0.4, 0, 1, 0))
-			end
+		if showBest and not selOn then
+			local b = mk("TextButton", {
+				AutoButtonColor = true, BackgroundColor3 = GREEN, Text = "EQUIP BEST",
+				Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(16, 38, 20),
+				Size = UDim2.fromOffset(110, 28), Position = UDim2.fromOffset(120, 9),
+			}, head)
+			round(b, 8)
+			b.MouseButton1Click:Connect(function()
+				if opts.onEquipBest then opts.onEquipBest() end
+			end)
 		end
 
 		-- The paperdoll: three hat seats + face L, you, charm/tool/pack R. (It was
@@ -7540,7 +7554,9 @@ function MineInventoryView.mount(parent, opts)
 		]]
 		local DARK = Color3.fromRGB(13, 12, 18)
 		local DARK2 = Color3.fromRGB(24, 22, 32)
-		local TILE_W, TILE_H = 118, 152
+		-- Tall enough that a two-part caption ("Godly Lucky Block (B) + 4 Enchant
+		-- Books") clears the status strip instead of running under it.
+		local TILE_W, TILE_H = 118, 172
 		local COL_W = TILE_W + 14
 		local FREE_Y = 12
 		local MID_Y = FREE_Y + TILE_H + 8
@@ -7671,8 +7687,25 @@ function MineInventoryView.mount(parent, opts)
 				Size = UDim2.fromOffset(TILE_W - 16, TILE_W - 16),
 			}, btn)
 			round(plate, 10)
-			local imgId = Icons.image(iconId)
-			if not imgId and LuckyBlocks and LuckyBlocks.TYPES[iconId] then
+			--[[
+				A season pet shows the PET (opts.petViewport, the same viewport the
+				pet tiles use), and a season skin shows its grade word: skins have
+				no art of their own. Either falls back to the plain plate.
+			]]
+			local drawn = false
+			if reward.pet and reward.petAnimal and opts.petViewport then
+				drawn = pcall(opts.petViewport, plate,
+					{ name = reward.pet, animal = reward.petAnimal, species = reward.petSpecies, rarityId = reward.petTier },
+					UDim2.fromOffset(4, 4), UDim2.new(1, -8, 1, -8))
+			elseif reward.skin then
+				label(plate, "🎨", 44, col, UDim2.fromOffset(0, 8), UDim2.new(1, 0, 0, 56), FONT, Enum.TextXAlignment.Center)
+				local word = string.upper(tostring(reward.skinWord or reward.skinTier or ""))
+				label(plate, word .. "\nSKIN", 14, col, UDim2.new(0, 0, 1, -40), UDim2.new(1, 0, 0, 34), FONT,
+					Enum.TextXAlignment.Center).TextWrapped = true
+				drawn = true
+			end
+			local imgId = (not drawn) and Icons.image(iconId) or nil
+			if not drawn and not imgId and LuckyBlocks and LuckyBlocks.TYPES[iconId] then
 				local lb = LuckyBlocks.TYPES[iconId].icon
 				if type(lb) == "string" and lb ~= "rbxassetid://0" then
 					imgId = lb
@@ -7687,15 +7720,18 @@ function MineInventoryView.mount(parent, opts)
 					Size = UDim2.fromScale(0.88, 0.88),
 					ScaleType = Enum.ScaleType.Fit,
 				}, plate)
-			else
+			elseif not drawn then
 				label(plate, shortIconLabel(iconId), 26, col,
 					UDim2.fromOffset(0, 0), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center)
 			end
 
 			local what = label(btn, Scrolls.describeReward(reward), 10, reached and TEXT or MUTED,
-				UDim2.fromOffset(6, TILE_W - 4), UDim2.fromOffset(TILE_W - 12, 24), nil, Enum.TextXAlignment.Center)
+				UDim2.fromOffset(6, TILE_W - 6), UDim2.fromOffset(TILE_W - 12, 30), nil, Enum.TextXAlignment.Center)
 			what.TextWrapped = true
 			what.TextTruncate = Enum.TextTruncate.None
+			-- Long combos (tier 100) shrink to fit rather than spill.
+			what.TextScaled = true
+			mk("UITextSizeConstraint", { MaxTextSize = 10, MinTextSize = 7 }, what)
 
 			-- Status strip along the bottom: the tile answers "can I press it".
 			local strip = mk("Frame", {

@@ -161,6 +161,10 @@ found no roll bug: every pack paid its table. It also flagged three things,
 reported to the owner and not changed:
 - Chest-found zone packs use depth only, not the zone. A 1★ Meadow Pack from
   deep layers pays 25% Epic or better.
+  **Kept on purpose (2026-10-18, owner: *"do it all"*, so Claude made the
+  call).** Meadow is Mine 1, 2,500 layers deep, so depth is the progression
+  there. The owner also asked for deeper chests to pay better. Re-weighting by
+  zone would nerf deep Meadow packs, the core loop, without the owner asking for it.
 - `apex_pack` is rated 2.5★ but pays Epic or better 77% of the time (one card).
   **Retired 2026-10-11** (owner: *"we dont need apex pack anymore"*). Nothing
   hands it out now: the four quests that paid it (`merge25`, `merge60`,
@@ -168,7 +172,10 @@ reported to the owner and not changed:
   instead. That case is the nearest in value: about 1,360 stardust expected,
   against Apex's 1,500. Packs already in bags still open. The dead
   `Mine1ChestsData` rows still list it.
-- The open-all YOUR HITS screen counts an Epic with a "1 in X" ribbon as a hit.
+- The open-all YOUR HITS screen counted an Epic with a "1 in X" ribbon as a hit.
+  **Fixed 2026-10-18.** A hit is now Legendary or better, or a shiny, shadow
+  or variant card at 1 in 150 or rarer (`MinePackReveal` `isBulkHit`). Plain
+  Epics go into the quick flash with the rest.
 
 **The build-up** (`MinePackReveal` `buildUp`, 2026-10-10). Before a Legendary
 or better turns over, its back flashes every rarity from Legendary up to the

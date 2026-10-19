@@ -653,6 +653,26 @@ local function saturation(c)
 	return (mx - mn) / mx
 end
 
+--[[
+	A BRIGHT FACE IS A DECISION, THE SAME AS A SATURATED ONE.
+
+	adoptOne repaints a desaturated surface onto the theme's indigo, which is
+	right for a view that was built in placeholder greys and wrong for a card
+	deliberately painted light. MineTheme.FACE is #F6F3FF -- saturation 0.05,
+	so the saturation test waves it through -- and nearestSurface has no upper
+	bucket, so it landed on CARD_HI and every lifted card came back dark. That
+	is exactly what happened to the daily calendar's seven tiles on the first
+	attempt: the gold rings and chips drew, the cream faces did not.
+
+	Mean brightness, matched to nearestSurface's own measure. The darkest thing
+	the theme paints is CARD_HI at 0.29 and the dimmest intentional face is
+	FACE_DIM at 0.81, so 0.55 sits in open space between them.
+]]
+local LIGHT_FACE = 0.55
+local function brightness(c)
+	return (c.R + c.G + c.B) / 3
+end
+
 -- Nearest theme surface by brightness, so a view's own three-step greyscale
 -- lands on the theme's three-step indigo in the same order.
 local function nearestSurface(c)
@@ -688,7 +708,8 @@ function MineUI.adoptOne(inst)
 		local sat = saturation(bg)
 		local size = inst.AbsoluteSize
 		-- Saturated means it is carrying meaning. Its hue is never repainted.
-		if sat < 0.22 then
+		-- Neither is a bright face: see the LIGHT_FACE note above.
+		if sat < 0.22 and brightness(bg) < LIGHT_FACE then
 			inst.BackgroundColor3 = nearestSurface(bg)
 		end
 		if inst.BorderSizePixel ~= 0 then

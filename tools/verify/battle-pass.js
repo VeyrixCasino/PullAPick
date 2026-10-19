@@ -24,8 +24,13 @@ const check = (ok, msg) => { console.log((ok ? "  ok    " : "  FAIL  ") + msg); 
 
 if (!Luau.ready) { console.log(Luau.missing("luau") + "; skipping"); process.exit(1); }
 
+// The grade words players read (S is Mythic), lifted from the real MineTemper.
+const WORDS = (read(SH + "MineTemper.luau").match(/MineTemper\.WORD_OF = \{[\s\S]*?\n\}/) || ["MineTemper.WORD_OF = {}"])[0]
+  .replace("MineTemper.WORD_OF", "local WORD_OF");
 const harness = `
 Color3 = { fromRGB = function(r, g, b) return { r, g, b } end }
+${WORDS}
+local TEMPER = { wordOf = function(g) return WORD_OF[g] end }
 local SKINS = (function()
 ${read(SH + "MineSkins.luau")}
 end)()
@@ -44,6 +49,7 @@ local function require(m)
 	local n = type(m) == "table" and m.__name
 	if n == "MineLaunch" then return { seasonNow = function() return 0 end } end
 	if n == "MineSkins" then return SKINS end
+	if n == "MineTemper" then return TEMPER end
 	if n == "MineIcons" then return { IMAGES = {} } end
 	error("unexpected require " .. tostring(n))
 end
@@ -56,6 +62,7 @@ local function kinds(r)
 	for _, k in ipairs({ "toolId", "pet", "skin", "books", "gems", "dust", "credits" }) do
 		if r[k] ~= nil then table.insert(t, k .. "=" .. tostring(r[k])) end
 	end
+	if r.pet then table.insert(t, "animal=" .. tostring(r.petAnimal) .. ":" .. tostring(r.petSpecies)) end
 	if r.luckyBlocks then
 		for _, b in ipairs(r.luckyBlocks) do table.insert(t, "lb=" .. b.id .. ":" .. b.startGrade) end
 	end
@@ -120,7 +127,8 @@ const xp = get("XP");
 check(+xp[0] === 90 && xp[1] === "nil" && +xp[2] >= 8500 && +xp[2] <= 9500,
   `about two weeks, no daily cap: ${xp[0]} XP a tier, ${xp[2]} for the season, PASS_DAILY_XP gone (owner: "about 2 weeks no daily xp cap")`);
 const desc = get("DESC");
-check(/ pet\)/.test(desc[0]) && / skin \(SSS\)/.test(desc[1]), `the rail names the pet and the skin ("${desc[0]}" | "${desc[1]}")`);
+check(/ pet\)/.test(desc[0]) && / skin \(Exotic\)/.test(desc[1]), `the rail names the pet and the skin, by grade WORD not letter ("${desc[0]}" | "${desc[1]}")`);
+check([25, 50, 75, 100].every((n) => /animal=(?!nil)[\w ]+:(?!nil)\w/.test(tiers[n - 1].prem)), "...and each pet tile knows its animal and body, so the rail draws the real pet");
 
 // The server.
 const sv = read("src/ServerScriptService/Mine/MineServer.server.luau");
@@ -134,6 +142,13 @@ check(/if profile == p then\s*\n\s*Dig\.grantPassExtras\(p, livePlr, reward\)/.t
 // The rail.
 const inv = read(SH + "MineInventoryView.luau");
 check(/Scrolls\.tierClass\(n\)/.test(inv) && /"★ HUGE"/.test(inv) && /"★ BIG"/.test(inv), "the rail marks decent, good and huge tiers so the big ones show from afar");
+check(/reward\.pet and reward\.petAnimal and opts\.petViewport/.test(inv) && /reward\.skinWord/.test(inv),
+  "...a pet tile draws the pet, a skin tile its grade word");
+const tileH = +((inv.match(/local TILE_W, TILE_H = 118, (\d+)/) || [])[1] || 0);
+check(tileH >= 172 && /UDim2\.fromOffset\(6, TILE_W - 6\), UDim2\.fromOffset\(TILE_W - 12, 30\)/.test(inv),
+  `...and the caption (rows TILE_W - 6 to TILE_W + 24) ends above the status strip (TILE_H - 28; TILE_H ${tileH})`);
+const icons = read(SH + "MineIcons.luau");
+check(/\bbooks = "enchanter"/.test(icons), "book rewards draw the Enchanter's book art, not a \"BK\" placeholder");
 
 console.log("");
 console.log(fail > 0 ? `>>> battle-pass: ${fail} FAILED` : ">>> battle-pass: all assertions passed");

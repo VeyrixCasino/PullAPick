@@ -1538,6 +1538,87 @@ the offers and Event Horizon stay at 47. `launch.js` now checks the pass is exac
 so the season pets and Season One skins can be earned twice and premium must be rebought
 ([open-questions](open-questions.md) 24).
 
+## [2026-10-18] setup | Cursor jobs (`tools/cursor/`)
+Owner: *"give me cursor prompt or setup something so you can deploy cursor to
+work"*. The Cursor agent CLI already ships inside the Cursor app, but it was not
+signed in. `tools/cursor/run.ps1 -Task <name>` runs a job headless:
+- it reads `brief.md` (the standing rules) and `tasks/<name>.md`;
+- it uses `--force --trust --approve-mcps`, so it can drive Studio through the
+  Cursor `Roblox_Studio` MCP;
+- it writes a log and a report to the build/cursor folder, made on the first run.
+
+The first job is `icons-upload`: upload the Canva drills and explosives (tiers
+1-81) and wire them behind `NEW_TOOL_ICONS_SHARED`. The owner must run
+`-Login` once. Norton AI Agent Protection blocked Claude from running the
+script, so the owner starts jobs for now.
+
+Updated: tools-and-generators, log.
+
+## [2026-10-18] build | Equip Best reads the Special
+Owner's enchant brief: the Special *"determines which effect your tool will have,
+regardless of pet setup. The pets only boost this. [make sure to encorperate
+this into auto equip]"*. Equip Best (`Dig.planUpgrades`) used to seat pets by
+raw card power, so it could pick a Zap pet for a Blast tool.
+- Each pet is now scored by the share of its kit the held tool can use
+  (`Dig.petShares`, `Dig.petWorth`; `MineEnchants.familyOfStat`).
+- With no Special yet it tries every family and keeps the strongest team, since
+  the tool keeps its gear's best proc.
+
+`tools/verify/enchants.js` checks the family map and the wiring.
+
+Updated: enchants, log.
+
+## [2026-10-18] decision | "do it all": icons in, hits screen, dock, two calls
+The owner said *"do it all"* to the open list, so Claude went with its defaults:
+- **Drill and explosive icons uploaded and wired.** That is 81 drills and 74
+  explosives (`ORE_DRILL_CANVA`, `ORE_BOMB_CANVA`), behind
+  `NEW_TOOL_ICONS_SHARED` like the rest; 392 images now wait to be shared.
+  - Explosives 19, 29, 65, 67, 68, 71 and 77 are being redrawn (the cut-out
+    clipped the fuse spark), and so are pickaxes 52 and 57 (the heads read as
+    axes). Jackhammers 75–82 are being drawn.
+  - `oreskins.js` checks the new tables.
+- **Open-all hits:** a plain Epic with a "1 in X" ribbon is no longer a hit. A
+  hit is Legendary or better, or a shiny, shadow or variant card at 1 in 150 or
+  rarer.
+- **Chest-found zone packs keep depth-only odds, on purpose.** Meadow is
+  Mine 1 (2,500 layers), so depth is its progression, and the owner asked for
+  deeper chests to pay better. Re-weighting by zone would nerf the core loop.
+- **The dock now starts under the depth chip and the rebirth bar.** The bar
+  sat on top of the Wheel button. Seen fixed in a Play session.
+- **Deleted Claude's untracked staging copies** in `build/` (pet bodies, set
+  JSONs, the staged generator). The shipped files are in `src/` and
+  `tools/gen/sets/`.
+- **The Cursor CLI job did not run.** The Sage hook in Cursor's `hooks.json`
+  fails under the CLI (a PowerShell command run by bash), so every tool call is
+  blocked. Fixing a security hook is the owner's call. Until then, Cursor jobs
+  are pasted into the Cursor app.
+
+Updated: tools, assets-and-uploads, cards-and-packs, log.
+
+## [2026-10-18] fix | Pets wear their own bodies, not the fox
+Found while drawing the season pets on the pass rail. In a Play test, Taffy (a
+Candy Cat) and two dogs were foxes. `PetModelFactory.fromCard` passed the pet's
+name as its species, which beat the animal, and an unknown name falls back to
+the fox. So every named pet drew as a recoloured fox, and the set bodies and
+Epic+ tops never showed. The owner chose "Fix it now".
+- The animal picks the body; the name is only a guess for an unknown animal.
+- Studio check: all 3,344 roster pets build, on 1,092 bodies.
+
+Updated: pets, log.
+
+## [2026-10-18] fix | Pass rail tiles: pet art, skin grade, book art
+A Studio Edit look at the reworked pass rail found three things. Books showed a
+"BK" placeholder; season pets and skins would have shown "PET" and "SKIN"; and
+a two-part caption ran under the status strip.
+- Pet tiles draw the pet, and skin tiles show the grade word.
+- Books use the Enchanter book art.
+- Tiles are taller, and long captions shrink to fit.
+
+`tools/verify/battle-pass.js` checks all of it. Not yet seen in Studio after the
+fix: Studio was in Play.
+
+Updated: shops-and-monetisation, log.
+
 ## [2026-10-19] query | launch audit of every screen, effect and tool card
 The owner asked for *"a deep audit of all uis, effects, tool cards etc, and determine what
 needs to be done for launch, and what you need from me"* and chose "list first, you pick".

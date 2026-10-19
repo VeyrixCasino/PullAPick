@@ -108,6 +108,14 @@ const baseN = bodyFiles.filter((f) => !/(Top|Extra)\.luau$/.test(f)).length;
 const topN = bodyFiles.filter((f) => /Top\.luau$/.test(f)).length;
 check(baseN === 19 && topN === 19 && bodySrc.every((s) => !/season\s*=/.test(code(s)) && /^\s*(--\[\[[\s\S]*?\]\]\s*)?return function\(K\)/m.test(s)),
   `${bodyFiles.length} PetBodies modules (19 base + ${topN} Top + ${bodyFiles.length - baseN - topN} Extra), each a plain function of the kit with no season tag`);
+// A card is drawn by its ANIMAL. Until 2026-10-18 fromCard passed the pet's
+// name as the species, which beat the animal, so every named pet drew as a fox.
+const factory = read("src/ReplicatedStorage/Mine/Shared/PetModelFactory.luau");
+const fromCard = (factory.match(/function PetModelFactory\.fromCard\(card\)[\s\S]*?\nend\n/) || [""])[0];
+check(/local known = card\.animal and PetModelFactory\.ANIMALS\[card\.animal\]/.test(fromCard)
+  && /species = card\.species or \(\(not known\) and card\.name or nil\)/.test(fromCard)
+  && /resolveSpecies\(opts\.species or \(skin and skin\.species\)\)/.test(factory),
+  "a pet card wears its animal's body; its name is only a guess when the roster does not know the animal (no more all-fox pets)");
 
 // 5. kits
 const value = (kit) => Object.entries(kit).reduce((a, [s, v]) => a + v * 100 * R.G.stats[s].weight, 0);
