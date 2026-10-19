@@ -1678,3 +1678,41 @@ get **SKIP ALL** (one grid, best first, one celebration); finds print their true
 lucky-block SKIP ALL card names books, potions and skin cases. New checks: `pet-identity`,
 `cards-tab`, `reveal-runs` (they run the real Luau); suite 77 of 78 after merging parts B and D
 (the Linux `skins` quirk). Not seen in Studio.
+
+## [2026-10-19] fix | launch fixes, part A: shops and Robux
+From the owner's §0e picks. **ODDS before every paid random buy** (Mystery Case, wild cases,
+the Packs hero and Build-a-Box tiles, the Charms Pack, the Forge's book bundle, trader cases),
+on one shared sheet (`MineLuckyOddsView.sheet`) fed by the tables the rolls use; the region rule
+now covers credit deals with random items, trader cases and bought wheel spins. Founders Rig:
+"799 credits", two taps. The Founders Pack grants the Founders Bag. Lucky Block Week pays
+**Lucky Dice** (a real Epic) and 8 wild cases of the old packs' value (PROPOSED). Deal countdowns
+run on the season clock (47 days, weekly "New offers in"); no dates in blurbs; a maxed Robux deal
+is greyed and a stray receipt pays its credit price back. Cart orders carry ids (no double
+charge); depth desks price bags in gems and hide refused tools; the Starter popup reads its
+product row; only today's shelf has prices; a box of ten of one pack gets 30% off; the dead
+Lucky Charm row is gone. New checks: `deals`, `paid-odds`, `shop-guards`.
+
+## [2026-10-19] fix | launch fixes, part C: the Forge tells the truth, skins work on every tool
+Each Forge number now has one copy in `MineOreTools` (`craftCost`, `hitPower`, `cardStats`,
+`inheritedLevel`, `recycleRefund`), used by the verbs and every panel: the server charges the
+card's craft price (it charged step one for every ore), SCRAP quotes the real refund, and cards
+show the hit per blow, hits per second, area, use and the inherited level. One Forge: the old
+shop shows Bags, its other tabs open the hub, COIN SHOP is gone (kept as EVENT TOOLS inside Event
+Horizon, the only door to that shelf). `MineToolSkins` decides what skin any tool wears, event
+tools included; ore cases pay wardrobe skins; the wardrobe shows EQUIPPED, each skin's power and
+"stats only" where a family has no model yet. Cursor briefs: `skin-looks-more`, `event-tool-looks`.
+New checks: `forge-cards`, `skin-wear`; `recycle-quote` covers the hub.
+
+## [2026-10-19] build | the Candy Crypt redesign, server half
+The §0e Crypt spec's server and shared side (`MineCryptRules`, `MineCrypt`): only event tools dig
+the Crypt (a free Candy Corn Pickaxe on claim; the claim now sets `hallowOwned` on the Crypt's own
+window instead of granting Event Horizon), Crypt tools drop from Crypt chests (30%, PROPOSED) and
+Trick-or-Treat cases (85/5/7/2.9/0.1, no candy back), three merge into the next of Golden, Prism,
+Rainbow, and once the Crypt closes they are kept and also work in the main world at a ladder-mapped
+power (PROPOSED). Rock runs zone 3 to zone 10 on the old low coin curve; candy is 3x and every candy
+block now pays it (it used to pay only from ore-kind blocks) plus one candy ore; 16 candy ores; six
+crafted candy charms; the pouch sells "up to" a rarity and sells ticked candy ores for candy; a
+one-time notice per event; Planets travel follows each zone's own window. New check: `crypt`.
+**Merging the five parts** needed two fixes: the tutorial's free Stone now uses
+`MineOreTools.craftCost`, and the `crypt` check reads the Crypt swap in `Dig.toolInHand`.
+Suite 83 of 84 (the Linux `skins` quirk). Nothing here has been seen in Studio.
