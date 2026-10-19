@@ -1304,8 +1304,9 @@ local function load(plr)
 		p.eventTools.eh_shallow_pick = true
 		p.eventToolId = p.eventToolId or "eh_shallow_pick"
 	end
-	-- The Candy Crypt's save: tool stacks, the equip, the notice flags, and
-	-- the starter pick for a claim that has no tool (MineCrypt.normalize).
+	-- The Candy Crypt's save: the Halloween inventory (v2), the retired v1
+	-- pieces, the event-end move and the starter pick for a claim that has no
+	-- tool (MineCrypt.normalize).
 	if Dig.Crypt then
 		Dig.Crypt.normalize(p)
 	end
@@ -2626,7 +2627,9 @@ function Dig.petRows(p, n)
 	end
 	local zero = Cards.emptyBoosts()
 	local rows = {}
-	for _, id in ipairs(p.equipped or {}) do
+	-- The team that counts where the player stands: in the Candy Crypt only
+	-- Halloween pets, while its event runs their own team (MineCrypt.petTeam).
+	for _, id in ipairs((Dig.Crypt and Dig.Crypt.petTeam(p)) or p.equipped or {}) do
 		local c = cardById(p, id)
 		if c then
 			local one = Cards.emptyBoosts()
@@ -2686,7 +2689,7 @@ end
 
 local function boosts(p)
 	local b = Cards.emptyBoosts()
-	local n = #(p.equipped or {})
+	local n = #((Dig.Crypt and Dig.Crypt.petTeam(p)) or p.equipped or {})
 	--[[
 		THE TWO LAYERS. Owner, 2026-10-04:
 
@@ -2906,9 +2909,17 @@ local function boosts(p)
 	-- 2026-10-12: enchants took that field (owner: "RETIRE RUNES AND TRAITS..
 	-- ENCHNATS TAKE OVERTHAT FEILD"). Gear pays through layer 2 (Dig.layer2).
 
-	-- One equipped charm (does not take a pet slot).
-	if p.equippedCharm then
-		Charms.applyEquipped(b, p.equippedCharm, p)
+	-- One equipped charm (does not take a pet slot). In the Candy Crypt only a
+	-- Halloween charm counts, and while its event runs a Halloween charm counts
+	-- nowhere else (MineCrypt.charmFor; nil there means no charm applies).
+	do
+		local worn = p.equippedCharm
+		if Dig.Crypt then
+			worn = Dig.Crypt.charmFor(p)
+		end
+		if worn then
+			Charms.applyEquipped(b, worn, p)
+		end
 	end
 
 	-- World Pulse multipliers (eligible players only).
@@ -3585,7 +3596,8 @@ local function snap(plr)
 	do
 		local shown = {}
 		local seatN = C.effectivePetSlots and C.effectivePetSlots(p) or (p.petSlots or 3)
-		for _, id in ipairs(p.equipped or {}) do
+		-- The pets that count where you stand (the Halloween team in the Crypt).
+		for _, id in ipairs((Dig.Crypt and Dig.Crypt.petTeam(p)) or p.equipped or {}) do
 			local c = #shown < seatN and cardById(p, id)
 			if c then
 				shown[#shown + 1] = {
@@ -4787,8 +4799,8 @@ local function spawnVoxel(zone, x, y, z, kind, b)
 				part:SetAttribute("CandyOre", cdef.id)
 				part:SetAttribute("CandyName", cdef.name)
 				-- Banked at spawn so the payout cannot disagree with the block
-				-- the player actually looked at. 3x since 2026-10-19 (owner):
-				-- MineConfig.candyFor carries CANDY_RATE_MULT.
+				-- the player actually looked at. Flat per ore since Candy
+				-- Crypt v2 (MineConfig.candyFor); its ore drop is the ore's own.
 				part:SetAttribute("Candy", C.candyFor(cdef, y))
 			end
 		end
@@ -5987,10 +5999,11 @@ local rollChestTool
 
 local function openChestBlock(plr, p, chestId, b, part)
 	--[[
-		A CANDY CRYPT CHEST is its own thing (owner, 2026-10-19: Crypt chests are
-		where Crypt tools come from): candy, and sometimes a Crypt tool from the
-		chest's depth band. Nothing from the zone-chest tables -- the Crypt has
-		no zone packs of its own, so those would be broken pack ids. MineCrypt.
+		A CANDY CRYPT CHEST is its own thing (owner, 2026-10-19, Candy Crypt
+		v2): one of eight ranks, paying Halloween packs and flat candy, the
+		rank's Halloween charm (0.5% x Chest Luck) and sometimes a Halloween
+		enchant book. Nothing from the zone-chest tables. MineCrypt.openChest,
+		MineCryptChests.
 	]]
 	if Dig.Crypt and part and part:GetAttribute("ZoneId") == "hallow" then
 		Dig.Crypt.openChest(plr, p, part, b or {})
@@ -9717,6 +9730,12 @@ local function equip(plr, payload)
 	end
 	local p = profiles[plr.UserId]
 	if not cardById(p, id) then return end
+	-- While the Candy Crypt runs, a Halloween pet goes on the Halloween team
+	-- (cryptTeam), not this one (owner, 2026-10-19: a separate Halloween team).
+	if Dig.Crypt and Dig.Crypt.mainTeamRefuses(p, id) then
+		net:FireClient(plr, "toast", Dig.Crypt.MAIN_TEAM_TEXT)
+		return
+	end
 	local already = false
 	for _, e in ipairs(p.equipped) do
 		if e == id then already = true break end
@@ -10686,6 +10705,17 @@ if Verbs.Crypt then
 				Dig.EnchSvc.gainXp(plr, p, Dig.Enchants.XP_CHEST)
 			end
 		end,
+		-- A Trick-or-Treat pet: a roster row minted the way a pack mints one
+		-- (MineSetPacks.petCard, then the serial registry's mint).
+		grantPet = function(plr, p, pet, setKey)
+			local SetPacks = require(shared:WaitForChild("MineSetPacks"))
+			local setName = (SetPacks.HOLIDAY_BY_ID and SetPacks.HOLIDAY_BY_ID[setKey]
+				and SetPacks.HOLIDAY_BY_ID[setKey].setName) or "Halloween 2026"
+			local c = mint(SetPacks.petCard(pet, setKey, setName), plr.UserId)
+			p.cards = p.cards or {}
+			table.insert(p.cards, c)
+			return c
+		end,
 	})
 end
 Dig.Crypt = Verbs.Crypt
@@ -10942,8 +10972,8 @@ function Verbs.equipSkin(plr, payload)
 end
 
 function Verbs.buyTrickOrTreat(plr)
-	-- Served by MineCrypt since the 2026-10-19 redesign (tools 85%, skin case
-	-- 5%, hat 7%, Halloween pack 2.9%, bucket 0.1%, no candy back).
+	-- Served by MineCrypt (Candy Crypt v2, 2026-10-19): Halloween pets and
+	-- skins only, then a 50/50 TREAT or TRICK, no candy back.
 	if Verbs.Crypt then
 		return Verbs.Crypt.buyTrickOrTreat(plr)
 	end
@@ -15038,9 +15068,10 @@ Verbs.KEEP_ON_REBIRTH = {
 	-- must neither wipe paid spins nor hand out a fresh day of free ones)
 	"groupWheel",
 	"charms", "equippedCharm", "dealBuys", "creditBuys",
-	-- Candy Crypt tools are "yours to keep" (owner, 2026-10-19), like forged
+	-- The Halloween inventory (Candy Crypt v2: tools, candy ores, the Halloween
+	-- team and charm slot) is "yours to keep" (owner, 2026-10-19), like forged
 	-- tools; the claim and the candy already ride along above (MineCrypt).
-	"cryptTools", "cryptToolEquipped", "cryptToolWorld", "eventNoticeSeen", "candySeen",
+	"halloween", "cryptToolWorld", "eventNoticeSeen",
 	-- records and settings
 	"packsOpened", "playtime", "settings",
 	-- save guard: a profile that never loaded must stay unsaveable
@@ -17522,8 +17553,9 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			Verbs.Ench.dispatch(plr, action, payload)
 			return
 		end
-		-- The Candy Crypt's verbs (MineCrypt: cryptEquip, cryptMerge,
-		-- cryptSellCandyOres, cryptCraftCharm, cryptNoticeSeen).
+		-- The Candy Crypt's verbs (MineCrypt: cryptCraft, cryptPrestige,
+		-- cryptScrap, cryptEquip, cryptTeam, cryptCharm, cryptSellCandyOres,
+		-- cryptNoticeSeen).
 		if type(action) == "string" and string.sub(action, 1, 5) == "crypt" then
 			if Verbs.Crypt then
 				Verbs.Crypt.dispatch(plr, action, payload)

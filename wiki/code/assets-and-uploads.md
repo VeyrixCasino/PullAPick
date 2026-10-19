@@ -11,6 +11,8 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - tools/gen-ore-icons.js
   - tools/gen-charm-icons.js
+  - src/ReplicatedStorage/Mine/Shared/MineCryptIcons.luau
+  - tools/cursor/tasks/crypt-icons.md
 related: [tools-and-generators, rojo-and-studio, owner, charms, ores, open-questions]
 ---
 
@@ -120,6 +122,19 @@ it via personal account, and i just have to share access"*.
   - Canva rate-limits generation: per its help, about 7 images per 30
     minutes, plus a monthly allowance. Resume a run from each folder's
     `state.json`.
+- **Candy Crypt icons** (Candy Crypt v2, 2026-10-19; none made yet). The
+  Cursor job `tools/cursor/tasks/crypt-icons.md` makes 40 Canva images: the 16
+  candy ores, the 16 Halloween tools and the 8 Crypt chest ranks. It uploads
+  them as the owner's account and writes their ids into
+  `src/ReplicatedStorage/Mine/Shared/MineCryptIcons.luau` (`ORES`, `TOOLS`,
+  `CHESTS`). It also writes the list the owner shares from:
+  `build/crypt-icons/share-list.txt` (does not exist until the job runs).
+  - **Wired behind `MineCryptIcons.SHARED = false`.** Until the owner shares
+    them and flips the flag, `MineCryptIcons.ore/tool/chest` return `""`, so
+    the Crypt's rows carry `icon = ""` and a client draws its own fallback.
+  - The Event Horizon tools' icons are a separate job,
+    `tools/cursor/tasks/event-tool-looks.md`, with its own flag in
+    `MineIcons` (planned, not built yet).
 - The owner has seen personal assets in the group they never shared by hand.
   Roblox appears to grant an experience use of an asset its owner uses there
   from Studio; *unverified*, so still share explicitly and test.

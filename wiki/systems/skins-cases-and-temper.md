@@ -7,6 +7,7 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineTemper.luau
   - src/ReplicatedStorage/Mine/Shared/MineSkins.luau
   - src/ReplicatedStorage/Mine/Shared/MineToolSkins.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineSkinsView.luau
   - src/ReplicatedStorage/Mine/Shared/MineForgeView.luau
   - src/ReplicatedStorage/Mine/Shared/MineGradeReveal.luau
@@ -103,6 +104,14 @@ SS 12 and SSS 7. Each kit names 1–4 stats, for example "Godnail" or
   into layer 1 and `givePickaxe` builds its look. Until 2026-10-19 the damage
   and the kit read the held FORGED tool only, so an event tool wore none of a
   skin's power. Checked by `tools/verify/skin-wear.js`.
+- **Halloween tools love Halloween skins** (Candy Crypt v2, owner, 2026-10-19:
+  *"make each tool different, but yeah always multiplier to the full
+  multiplier"*). Each of the sixteen Halloween tools has its own factor
+  (`MineCandyTools` `skinFactor`, 1.5 to 2.5), carried on the held row as
+  `halloweenSkinFactor`; `MineToolSkins.mult(skin, tool)` multiplies a
+  **Halloween-set** skin's whole damage multiplier by it (an S Halloween skin, x3,
+  on a x2.5 tool is x7.5). Other skins, and Halloween skins on other tools, are
+  unchanged; the kit stats are not scaled. Checked by `tools/verify/crypt.js`.
 - **Equipping.** `Verbs.equipSkin({id, family})`: an empty id takes the skin
   off; an empty family means the class in hand (any tool); only a real tool
   class (`MineToolSkins.FAMILIES`) is stored. The toast says "(stats only)"

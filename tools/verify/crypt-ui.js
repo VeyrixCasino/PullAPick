@@ -26,10 +26,11 @@
 //      Crypt only; the Crypt's screens never say "Event Horizon"
 //
 // SCOPE (owner, 2026-10-19, later the same day): the Crypt's TOOLS and CHARMS
-// API and the Trick-or-Treat LOOT are being redone, so their screens are not
-// built: cryptEquip, cryptMerge and cryptCraftCharm need no UI here (DESCOPED
-// below), cryptMerged needs no handler, and the case's odds sheet and result
-// reveal are a named placeholder (MineCryptView.mountCaseOdds).
+// API and the Trick-or-Treat LOOT were redone ("Candy Crypt v2"). The server
+// half of v2 is in (tools/verify/crypt.js); its screens are the next client
+// session's: the v2 verbs and pushes below are AWAITING THE CLIENT (that
+// session removes each from these sets as it wires it), and the case's odds
+// sheet and result reveal are a named placeholder (MineCryptView.mountCaseOdds).
 //
 // Run against another checkout to prove it bites:
 //   node tools/verify/crypt-ui.js --root <path to a checkout>
@@ -106,10 +107,12 @@ const sends = (verb) => new RegExp(`FireServer\\(\\s*"${verb}"`).test(ALL_CLIENT
 
 // ------------------------------------------------------------- 1. the verbs --
 console.log("\n 1. every Crypt verb the screens own is sent by some UI; every push is handled");
-// The tools, merge and charm-crafting screens wait for the Crypt's next API
-// (owner, 2026-10-19): these verbs may be removed, so no UI is required for them.
-const DESCOPED_VERBS = new Set(["cryptEquip", "cryptMerge", "cryptCraftCharm"]);
-const DESCOPED_PUSHES = new Set(["cryptMerged"]);
+// AWAITING THE CLIENT: Candy Crypt v2's server verbs and pushes (2026-10-19)
+// whose screens the next client session builds -- the Forge's Halloween tools
+// (craft, prestige, scrap, equip), the Halloween team and charm slot, and the
+// event-end notice. Remove each one here as its screen sends or handles it.
+const DESCOPED_VERBS = new Set(["cryptEquip", "cryptCraft", "cryptPrestige", "cryptScrap", "cryptTeam", "cryptCharm"]);
+const DESCOPED_PUSHES = new Set(["cryptScrapConfirm", "cryptPrestiged", "cryptClosed"]);
 const verbs = [...new Set([...CRYPT_SV.matchAll(/function VERBS\.(crypt[A-Za-z]+)\s*\(/g)].map((m) => m[1]))];
 check(verbs.length >= 2, "the Crypt's verbs were read off MineCrypt.VERBS", verbs.join(", "));
 const owned = verbs.filter((v) => !DESCOPED_VERBS.has(v));
@@ -130,7 +133,9 @@ const pushes = [...new Set([...CRYPT_SV.matchAll(/fire\(plr, "([A-Za-z]+)"/g)].m
   .filter((p) => !DESCOPED_PUSHES.has(p));
 check(pushes.length >= 5, "the Crypt's pushes were read off MineCrypt", pushes.join(", "));
 for (const p of pushes) {
-  check(new RegExp(`action == "${p}"`).test(CLIENT), `the client handles the ${p} push`);
+  // Any client script may own a push: bookBundle is the Forge hub's
+  // (MineForgeHub.client.luau), not MineClient's.
+  check(new RegExp(`action == "${p}"`).test(ALL_CLIENT), `the client handles the ${p} push`);
 }
 check(/action == "eventNotice"[\s\S]{0,200}ClientFns\.eventNotice\.show/.test(CLIENT), "...eventNotice opens the pop-up");
 check(/action == "cryptSellCandyConfirm"[\s\S]{0,240}shopCtl\.showCandyConfirm/.test(CLIENT)
@@ -244,7 +249,7 @@ if (!Luau.ready) {
 
 const MODULES = ["MineConfig", "MineDepth", "MineBags", "MineBagNames", "MineShopEconomy", "MineLaunch", "MineTools",
   "MineOreTools", "MineBreaking", "MineStats", "MineTemper", "MineCharms", "MineOrePouch", "MineCandyTools",
-  "MineTrickOrTreat", "MineCryptRules", "MineTheme", "MineUI", "MineAbbrev", "MineEventTabs", "MineCryptView",
+  "MineTrickOrTreat", "MineCryptChests", "MineCryptRules", "MineTheme", "MineUI", "MineAbbrev", "MineEventTabs", "MineCryptView",
   "MineEventNotice", "MineOrePouchView", "MineEventsView/init"];
 const factories = MODULES.map((file) => {
   const name = file.replace(/\/init$/, "");
@@ -644,9 +649,13 @@ local profile = {
 	charms = {}, settings = { oreSellUpTo = "Rare" }, eventNoticeSeen = {},
 }
 local function snapFor(zoneId)
+	-- The screens show whatever price the snapshot carries; pinned to 2,500
+	-- here so the labels below do not move when the PROPOSED price does.
+	local crypt = R.stateFor(profile, NOW)
+	crypt.casePrice = 2500
 	return {
 		zoneId = zoneId, limitedOpen = { bigbang = true, hallow = true }, bigbangOwned = false,
-		hallowOwned = true, crypt = R.stateFor(profile, NOW), ores = profile.ores, oreLocks = profile.oreLocks,
+		hallowOwned = true, crypt = crypt, ores = profile.ores, oreLocks = profile.oreLocks,
 		settings = profile.settings,
 	}
 end

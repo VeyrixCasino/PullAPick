@@ -2,12 +2,13 @@
 title: Tools and generators
 type: code
 status: current
-verified: 2026-10-13 @ 98c141a
+verified: 2026-10-19 @ 3863d14
 sources:
   - tools/serve.js
   - .claude/launch.json
   - tools/gen-mine-map.js
   - tools/gen/upgrade-calculator.js
+  - tools/gen/crypt-doc.js
   - tools/skills/gen.js
   - tools/gen-ores.js
   - tools/gen-depth-sheet.js
@@ -39,6 +40,7 @@ related: [verify-suite, assets-and-uploads, code-map, rojo-and-studio, local-set
 | `tools/gen/holiday-pets.js` | `HolidayPets/<Pack>.luau`, `docs/HOLIDAY-PETS.md` | `tools/gen/holiday/*.json`, `PetModelFactory` and `PetBodies/` (bodies, season tags, `cos_*` costumes), the zone and set generators (names, tints, and kits for the best normal pet) | `--check`. The Halloween 2026 Pack's 72 pets (60, then 12 more on bodies still to build, each with a `fallback`); `topBeat` lifts its Mythic+ over the best normal pet (2026-10-19), so a stronger normal pet makes it stale. The pass pets too. Checked by `tools/verify/holiday-pets.js` and `halloween-power.js`. |
 | `tools/gen/set-pets.js` | `SetPets/<Set>.luau` (19), `docs/SET-PETS.md` | `tools/gen/sets/*.json`, `PetBodies/*.luau` (50: base/Top/Extra), `Zone.build()` | `--check`. The 19 sets' **2,493** pets (900 unique Epic+ tops). Checked by `tools/verify/set-pets.js`. |
 | `tools/gen-ore-icons.js` | `src/ReplicatedStorage/Mine/Shared/MineOreIcons.luau` | `build/icons/ids.json` (tracked) and the live roster | exits non-zero if any ore lacks an icon |
+| `tools/gen/crypt-doc.js` | `docs/CANDY-CRYPT.md` | the Candy Crypt's real Luau modules, run on `tools/verify/_crypt.js` (`MineConfig.CANDY_ECONOMY`, `MineCandyTools`, `MineCryptChests`, `MineTrickOrTreat`, `MineCryptRules`, `MineOreTools`) | `--check`, run by `tools/verify/crypt-doc.js`. The owner's numbers document (Candy Crypt v2, 2026-10-19): HP per section, ore odds, drops and candy with their spread, chests, the case, every tool's costs and damage, gems an hour. Samples `MineEnchants.rollHalloweenBook` (seeded) when another session's version is in, so **regenerate after merging** the enchant and charm work. Its one number of its own is the dig pace for the per-hour columns (1,200 blocks an hour). |
 
 `tools/verify/generated-fresh.js` fails the suite when the mine map or the
 calculator page drifts from the config.

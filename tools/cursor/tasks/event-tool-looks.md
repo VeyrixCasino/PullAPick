@@ -21,25 +21,20 @@ Today neither event's tools look like their event:
 
 ## The rosters (read the files at job time; they may have changed)
 
-**Candy Crypt**, `src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau`: three
-tiers x four families, ids `candy_<tier>_<family>`, `zoneId = "hallow"`.
+**Candy Crypt**, `src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau` (Candy
+Crypt v2, 2026-10-19): **sixteen Halloween tools, one per candy ore**, ids
+`hallow_<ore>_<noun>` (for example `hallow_candy_corn_pick`,
+`hallow_jawbreaker_auger`), `zoneId = "hallow"`, four families (Pick = pickaxe,
+Mallet = hammer, Auger = drill, Cracker = explosive), four tools each. A row's
+`rank` (1..16, its candy ore's place) is the ramp; `oreId` names its candy, so
+each tool wears its own candy (`MineConfig.CANDY_ORES` has the colour). The
+full list is in `tools/cursor/tasks/crypt-icons.md`, which makes their 2D icons
+(do not make Crypt icons here).
 
-| tier | pickaxe | hammer | drill | explosive |
-|---|---|---|---|---|
-| corn | Candy Corn Pick | Candy Corn Mallet | Candy Corn Auger | Candy Corn Cracker |
-| toffee | Toffee Pick | Toffee Mallet | Toffee Auger | Toffee Cracker |
-| jawbreaker | Jawbreaker Pick | Jawbreaker Mallet | Jawbreaker Auger | Jawbreaker Cracker |
-
-**The Crypt is being redesigned in parallel** (owner, 2026-10-19): Crypt tools
-drop from Crypt chests and Trick-or-Treat cases (the candy shop goes), and
-**3 identical Crypt tools merge into Golden, then Prism, then Rainbow**, the
-pets' steps. That work may change this roster, add tiers or add the three merge
-steps. Build for whatever `MineCandyTools` (or its replacement) holds when you
-start, and treat Golden / Prism / Rainbow as **finish-style looks** layered on
-the base model, the way `ToolModelFactory.applyFinish` lays Shiny / Shadow /
-Nightmare on any model: Golden a gold foil coat and glints, Prism a clear
-faceted shimmer, Rainbow a cycling hue. If the merge steps are not in the code
-yet, build the three finishes anyway and report that nothing calls them.
+**There is no merge any more**: v2 retired the Golden / Prism / Rainbow steps.
+A tool is **prestiged 0 to 10** instead (the held row carries `prestige`); if a
+look is wanted for it, a glow that grows with prestige is enough. Do not build
+the three merge finishes.
 
 **Event Horizon**, `src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau`:
 generated from `MineDepth.SECTIONS`, one tool per section, `zoneId = "bigbang"`:
@@ -59,8 +54,8 @@ one without being a different model.
 
 - **Candy Crypt (Halloween):** candy corn (yellow, orange and white bands),
   pumpkin, bone, licorice (black and red twists), wrapped candy, glossy amber
-  toffee, layered jawbreaker spheres, wax drips and cobwebs. Corn, toffee and
-  jawbreaker tiers should be told apart at a glance.
+  toffee, layered jawbreaker spheres, wax drips and cobwebs. Each of the
+  sixteen should read as its own candy at a glance.
 - **Event Horizon (dark universe):** dark metal, star glow, nebula inlay
   (purple to cyan), an accretion ring, a point of white light at the business
   end. Calm and deep, not neon soup.
@@ -73,10 +68,9 @@ family's shape kept (a pick is a pick, a bore is a bore, a charge is a bomb).
 1. **Models.** In `src/ReplicatedStorage/ToolModelFactory.luau` add
    `ToolModelFactory.buildEvent(row)`, returning `model, handle, grip` (or nil)
    for a row whose `zoneId` is `"hallow"` or `"bigbang"`, keyed by `row.family`
-   and ramped by `row.tier`. Keep the Handle, `GRIPS` and `SCALE` exactly as the
-   plain build of that family, so the tool sits in the hand where it does now.
-   Add the three Crypt merge finishes next to `applyFinish` (or inside it, as
-   new finish names), without changing what the existing finishes do.
+   and ramped by `row.tier` (a Crypt row's `tier` is its `rank`, 1..16). Keep
+   the Handle, `GRIPS` and `SCALE` exactly as the plain build of that family, so
+   the tool sits in the hand where it does now.
 2. **Wiring, two lines each, no new top-level `local`.** `MineServer` and
    `MineClient` sit near Luau's 200-local ceiling (`wiki/code/luau-traps.md`
    §1): use `ToolModels.` fields and locals inside the function only.
@@ -86,7 +80,8 @@ family's shape kept (a pick is a pick, a bore is a bore, a charge is a bomb).
      event look: the owner wants **one wardrobe everywhere**, event tools wear
      the same skins.
    - `flingCharge` in `MineServer`: the same order for a thrown event charge.
-3. **Icons.** Render one icon per event tool (and per Crypt merge step) with
+3. **Icons, Event Horizon only** (the Crypt's come from Canva:
+   `tools/cursor/tasks/crypt-icons.md`). Render one icon per Event Horizon tool with
    the existing capture pipeline in `src/ServerStorage/CaptureToolIcons*.luau`
    (read how it poses, lights and saves first). Then:
    - upload them with `upload_image` (this task lists them, so the upload is in
@@ -112,8 +107,8 @@ Do not touch the tools' stats, prices, drops or odds, `MineCandyTools` or
 ## Check it in Studio (Edit mode only; do not start Play)
 
 1. Build every Crypt tool, and the first, middle and last tool of each Horizon
-   family, with `ToolModelFactory.buildEvent`, plus each Crypt merge finish on
-   one tool. Parent them in rows in Workspace under `_EventToolLooksCheck`.
+   family, with `ToolModelFactory.buildEvent`. Parent them in rows in Workspace
+   under `_EventToolLooksCheck`.
 2. Screen-capture each row from the front and from a 3/4 angle. Look for
    floating parts, z-fighting, parts through the handle, and a handle that is
    no longer where a hand would hold it.

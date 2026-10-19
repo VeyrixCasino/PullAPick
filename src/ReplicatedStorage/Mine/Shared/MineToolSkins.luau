@@ -91,8 +91,22 @@ end
 
 -- The damage multiplier a skin puts under the tool's own power (MineSkins.BASE
 -- by grade, x1.15 at F to x5.5 at SSS). 1 for no skin.
-function MineToolSkins.mult(skin)
-	return tonumber(Skins.baseOf(skin)) or 1
+--[[
+	`tool` is optional: a HALLOWEEN TOOL multiplies a HALLOWEEN-SET skin's whole
+	multiplier by its own factor (owner, 2026-10-19: "make each tool different,
+	but yeah always multiplier to the full multiplier"). The factor rides the
+	row as `halloweenSkinFactor` (MineCryptRules builds it from MineCandyTools'
+	skinFactor), so an S Halloween skin (x3) on a x2.5 tool is x7.5. Any other
+	skin, or any other tool, is unchanged.
+]]
+MineToolSkins.HALLOWEEN_SET = "halloween"
+function MineToolSkins.mult(skin, tool)
+	local m = tonumber(Skins.baseOf(skin)) or 1
+	local factor = type(tool) == "table" and tonumber(tool.halloweenSkinFactor) or nil
+	if factor and factor > 0 and type(skin) == "table" and skin.set == MineToolSkins.HALLOWEEN_SET then
+		m *= factor
+	end
+	return m
 end
 
 -- A power number with the skin under it, rounded the way the server rounds.
@@ -120,7 +134,8 @@ function MineToolSkins.wear(tool, skin)
 	if type(tool) ~= "table" or type(skin) ~= "table" or tool.none or tool.skinId ~= nil then
 		return tool
 	end
-	local m = MineToolSkins.mult(skin)
+	-- A Halloween tool's factor on a Halloween skin is in here (see mult).
+	local m = MineToolSkins.mult(skin, tool)
 	local t = table.clone(tool)
 	t.power = MineToolSkins.applyPower(t.power, m)
 	if t.spacePower ~= nil then

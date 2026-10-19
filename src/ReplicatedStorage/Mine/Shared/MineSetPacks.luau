@@ -160,8 +160,8 @@ end
 	PACK_BY_ID and PACKS here, so no set-pack or case logic ever sees it;
 	MinePackConfig registers it for the bag, the inspector and the opener.
 
-	The Trick-or-Treat case (MineTrickOrTreat.PACK_ID = "halloween_2026") pays it
-	the moment it exists. PROPOSED odds below.
+	Candy Crypt chests pay it (MineCryptChests.packRows, Candy Crypt v2,
+	2026-10-19); the Trick-or-Treat case no longer does. PROPOSED odds below.
 ]]
 M.HOLIDAY_ODDS = { Common = 44, Uncommon = 28, Rare = 16, Epic = 7.5, Legendary = 3.2, Mythic = 0.9, Divine = 0.3, Exotic = 0.1 }
 M.HOLIDAY_CARDS = 3

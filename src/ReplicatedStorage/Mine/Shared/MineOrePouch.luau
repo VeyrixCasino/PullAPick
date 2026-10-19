@@ -257,10 +257,15 @@ function MineOrePouch.stackValue(ore, count)
 end
 
 -- Everything in the pouch, summed. The number capacity is measured against.
+-- Candy ores do not count (Candy Crypt v2, 2026-10-19): during the event they
+-- live in the Halloween inventory, and the ones that move into `p.ores` when
+-- it ends must not fill the pouch and stop a player mining ore.
 function MineOrePouch.held(ores)
 	local total = 0
-	for _, n in pairs(ores or {}) do
-		total += math.max(0, math.floor(tonumber(n) or 0))
+	for id, n in pairs(ores or {}) do
+		if not MineOrePouch.isCandy(id) then
+			total += math.max(0, math.floor(tonumber(n) or 0))
+		end
 	end
 	return total
 end
@@ -294,13 +299,15 @@ function MineOrePouch.sortLabel(key)
 end
 
 --[[
-	CANDY ORES LIVE IN THE POUCH TOO (owner, 2026-10-19), and they are not ore.
+	CANDY ORES ARE NOT ORE (owner, 2026-10-19).
 
-	A candy block in the Candy Crypt drops one unit of its candy ore into
-	`p.ores` (MineCrypt). It takes pouch room like any ore and is shown with a
-	rarity band (MineConfig.CANDY_ORES rows carry `band`), but it NEVER sells for
-	gems: SELL ALL skips it below, and Verbs.sellOre already refuses any id that
-	is not in the roster. Candy ores sell for CANDY, through MineCrypt.
+	A candy block in the Candy Crypt drops its candy ore into the Halloween
+	inventory while the event runs (MineCrypt, p.halloween.ores), and those move
+	into `p.ores` when it ends (Candy Crypt v2). In `p.ores` a candy ore is shown
+	with a rarity band (MineConfig.CANDY_ORES rows carry `band`), takes NO pouch
+	room (held, above), and NEVER sells for gems: SELL ALL skips it below, and
+	Verbs.sellOre already refuses any id that is not in the roster. Candy ores
+	sell for CANDY, through MineCrypt.
 ]]
 function MineOrePouch.isCandy(id)
 	return C.candyOreById ~= nil and C.candyOreById(id) ~= nil

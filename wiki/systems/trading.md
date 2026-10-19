@@ -2,9 +2,10 @@
 title: Trading
 type: system
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ServerScriptService/Mine/TradeService.luau
+  - src/ServerScriptService/Mine/MineCrypt.luau
   - src/ReplicatedStorage/Mine/Shared/MineTradeValue.luau
   - src/ReplicatedStorage/Mine/Shared/MineTradeView.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
@@ -56,6 +57,17 @@ The flow is written out in the header of `TradeService`:
 
 `PolicyNoTrade` also blocks a player whose `PolicyService` says paid-item trading
 is not allowed in their region (`Verbs.fetchPolicy`).
+
+**Halloween items, while the Candy Crypt runs** (owner, 2026-10-19: *"Halloween
+tools and candy ores can't be traded during the event; tradable once it
+ends"*): TradeService asks `MineCrypt.tradeLocked(p, kind, item)` for every card
+and pack when it is offered (`setOffer` drops it and toasts
+`TradeService.LOCKED_TEXT`), shown (`peek` hides it) and committed (`gather`
+refuses it, since the event can start mid-trade). A Halloween pet
+(`MineCryptRules.isHalloweenItem("pet", card)`) is locked until the event ends,
+and so is the Halloween 2026 Pack (PROPOSED: it comes only from Crypt chests and
+opens Halloween pets); every other pack trades as before. Halloween tools, candy
+ores and Halloween charms have no trade kind at all ([world-events](world-events.md)).
 
 **Never tradeable, because no trade kind exists for them:**
 - coins, credits and ore (`p.ores`);

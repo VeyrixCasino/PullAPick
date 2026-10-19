@@ -2,7 +2,7 @@
 title: Tools
 type: system
 status: current
-verified: 2026-10-19 @ 2efdf89
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineToolSkins.luau
@@ -43,16 +43,19 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 **What you are holding.** `equippedTool(p)` in MineServer checks, in order:
 1. **Event Horizon tool** (zone `bigbang`): `MineHorizonTools`, one per dirt
    section, paid in space coins.
-   **Then the Candy Crypt's swap** (2026-10-19, `MineCryptRules.heldRow` via
-   `MineCrypt.heldTool`): in a zone with `eventToolsOnly` (the Crypt) the player's
-   equipped Crypt tool (`MineCandyTools`, `p.cryptToolEquipped`), or empty hands;
-   outside, once the Crypt has closed, the Crypt tool they chose to keep holding
-   (`p.cryptToolWorld`), as a level-1 forged tool of its `worldOreTier`. Otherwise
-   it returns nil and this list carries on. Crypt tools are 3 tiers x 4 families,
-   take their mechanics from the forged frames, carry a variant (Normal / Golden /
-   Prism / Rainbow, merged 3 into 1) and are not sold anywhere. See
+   **Then the Candy Crypt's swap** (Candy Crypt v2, 2026-10-19,
+   `MineCryptRules.heldRow` via `MineCrypt.heldTool`): in a zone with
+   `eventToolsOnly` (the Crypt) the player's Halloween tool in hand
+   (`MineCandyTools`, `p.halloween.tool`), or empty hands; outside, once the
+   Crypt has closed, the Halloween tool they chose to keep holding
+   (`p.cryptToolWorld`), hitting like a forged tool of its family whose ore and
+   level come from its rank and prestige (the Jawbreaker Auger at prestige 10 is a
+   level-30 Oganesson drill). Otherwise it returns nil and this list carries on.
+   Halloween tools are sixteen, one per candy ore, in four families, take their
+   mechanics from the forged frames, are **crafted** from candy ores and
+   **prestiged** 1-10 (no levels, no merging), and are never sold or dropped. See
    [world-events](world-events.md). `equipOreTool` and `equipTool` put a kept
-   Crypt tool down in the main world.
+   Halloween tool down in the main world.
 2. **Forged ore tool**: `p.oreToolEquipped` (a uid) → a `p.oreTools` row
    `{uid, typeId, familyId, tier, level, enchants?}`. `tier` is the **ore's index**
    in `MineConfig.ORES`. Rack cap 200. `enchants` holds the tool's Damage /

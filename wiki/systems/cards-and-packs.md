@@ -199,7 +199,7 @@ cards can be tapped too (`addPick`). Checked in Studio on 2026-10-10.
 |---|---|---|
 | `cards` | `<zone>_pack_common/rare/legendary` (3/4/5 cards) | odds from `MineZonePacks` `cardOdds(zoneIndex, heat)`; a chest-found pack (with `layer`) uses `depthCardOdds` instead |
 | `currency` | `<zone>_currency_common/rare` | coins + gems, no cards |
-| `holiday` | `halloween_2026` (3 cards) | `MineSetPacks.HOLIDAY_ODDS` (PROPOSED); only its holiday pets, the one pack allowed to pay them. Kind `holiday` keeps it out of the day-4 surprise. Paid by the Trick-or-Treat case. |
+| `holiday` | `halloween_2026` (3 cards) | `MineSetPacks.HOLIDAY_ODDS` (PROPOSED); only its holiday pets, the one pack allowed to pay them. Kind `holiday` keeps it out of the day-4 surprise. Paid by Candy Crypt chests (`MineCryptChests.packRows`: more of them, luckier, at higher ranks); the Trick-or-Treat case stopped paying it in Candy Crypt v2. |
 | `cards` + `setKey` | `<setkey>_pack_1..6` (★ to ★★★★★; 3, 3, 4, 4, 5, 5 cards) | `MineSetPacks.ODDS` by star grade, scaled by the set's grade (`oddsFor`); only that set's pets |
 | card pack, no kind | 19 in `Mine1PacksData` (loam … heirloom; hopper 6 cards, magma 8, apex 1) | own `odds` table |
 | `gear` | `gear_pack`, `gear_case_pack`, `gear_vault_pack` (1, 3, 5 items) | `MineLootPacks` rolls one item per slot. Opened alone, each item spins on the case reel and the next starts when the player closes the last (`ctl.playRun`); until 2026-10-19 (launch audit S24) the client reeled only the first 3 of a Vault's 5, the worst ones, and started each reel as the last stopped. The three rune cases (`rune_pack`, `rune_heavy_pack`, `rune_sealed_pack`) were removed with runes on 2026-10-12, from `Mine1PacksData`, `MinePackConfig` and `MinePackFX`. |
