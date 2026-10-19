@@ -130,11 +130,21 @@ end
 	wants them, and deleting ~25 live call sites to remove one button is how a
 	working stage gets broken. Dead-but-correct beats half-deleted.
 ]]
+--[[
+	ONE FORGE (launch audit S13; owner, 2026-10-19: "the old shop shows only
+	Bags"). Bags is the one shelf the Forge hub has no tab for, so it is what
+	this screen shows. Crafting, Loadout and Upgrades stay on the bar as doors:
+	they open the Forge hub on that tab (opts.onOpenForge) instead of this
+	shop's own copies of them, which only come back if the hub is missing.
+]]
 local TABS = {
+	{ id = "backpack", label = "Bags", blurb = "A bigger bag carries more between trips to the sell pad." },
 	{ id = "bench", label = "Crafting", blurb = "Every recipe in the game. The ones you can forge right now come first." },
 	{ id = "loadout", label = "Loadout", blurb = "What you are carrying and what you are wearing. Tap anything to inspect it." },
 	{ id = "upgrades", label = "Upgrades", blurb = "Level a tool, merge duplicates, or scrap what you have outgrown." },
 }
+-- The tabs that open the Forge hub, and the hub tab each one lands on.
+local FORGE_TABS = { bench = "craft", loadout = "loadout", upgrades = "upgrades" }
 
 --[[
 	WHERE THE OLD TABS WENT.
@@ -147,6 +157,9 @@ local TABS = {
 
 	Both ids still work in `rows()` and `paint()`: nothing that could reach them
 	has been deleted, so a stale call cannot land on a blank screen.
+
+	`backpack` is a tab again since the launch audit (S13, above): with the
+	Forge in its own hub, Bags is the one shelf this screen exists to show.
 ]]
 
 --------------------------------------------------------------------------------
@@ -258,8 +271,8 @@ end
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
 	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, oreLocks = {}, orePouch = {}, orePouchTier = 1, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
-	-- Opens on the Forge, not on a shelf of coin-bought picks.
-	local activeTab = "bench"
+	-- Opens on Bags: the Forge lives in its own hub now (S13, see TABS).
+	local activeTab = "backpack"
 	local index = 1
 	state.tempers, state.toolTempers = {}, {}
 	local view = {}
@@ -2572,7 +2585,30 @@ function MineShopView.mount(parent, opts)
 		}):Play()
 	end
 
+	--[[
+		The Forge's three tabs leave for the hub, and every other shelf is Bags
+		(S13). Only when the host has no hub (onOpenForge missing, or it says it
+		could not open one) do the old in-shop panels and shelves come back.
+	]]
+	-- Standing in Event Horizon, the tool tabs are the event's own tool shelf
+	-- (space coins, rows() below), reached from the hub's EVENT TOOLS button.
+	local EVENT_TABS = { pickaxe = true, drill = true, explosive = true }
+	local function forgeRoute(id)
+		if FORGE_TABS[id] and opts.onOpenForge and opts.onOpenForge(FORGE_TABS[id]) then
+			view.close()
+			return nil
+		end
+		if opts.onOpenForge and not FORGE_TABS[id] and not (EVENT_TABS[id] and state.zoneId == "bigbang") then
+			return "backpack"
+		end
+		return id
+	end
+
 	function view.setTab(id)
+		id = forgeRoute(id)
+		if not id then
+			return
+		end
 		activeTab = id
 		local count = #rows()
 		if activeTab == "backpack" or activeTab == "secrets" then
@@ -2653,8 +2689,13 @@ function MineShopView.mount(parent, opts)
 	end
 
 	function view.open(tab)
+		-- A Forge tab goes to the hub; anything else lands on Bags (S13).
+		local routed = forgeRoute(tab or activeTab)
+		if not routed then
+			return
+		end
 		Audio.play("shop")
-		activeTab = (tab and tabBtns[tab]) and tab or activeTab
+		activeTab = tabBtns[routed] and routed or ((tab and tabBtns[tab]) and tab or activeTab)
 		local count = #rows()
 		if activeTab == "backpack" or activeTab == "secrets" then
 			index = (count > 0) and math.clamp(ownedCount() + 1, 1, count) or 1

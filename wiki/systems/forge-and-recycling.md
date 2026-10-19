@@ -4,6 +4,7 @@ type: system
 status: partial
 verified: 2026-10-12 @ 4e4fbb3
 sources:
+  - src/ReplicatedStorage/Mine/Shared/MineForgeHub.luau
   - src/ReplicatedStorage/Mine/Shared/MineForge.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
@@ -28,26 +29,56 @@ related: [tools, ores, ore-pouch-and-backpack, skins-cases-and-temper, rebirth-a
 
 ## How it works
 
-**The panel.** The shop's first tab has id `bench` and label "Forge"
-(`MineShopView` `TABS`), and the shop opens on it. `MineForge.mount` draws:
-- a left rail with three modes: CRAFT, UPGRADE and a COIN SHOP shortcut
+**One Forge** (launch audit S13; owner, 2026-10-19). The Forge is the hub,
+`MineForgeHub` (Crafting / Loadout / Upgrades; [client-and-ui](../code/client-and-ui.md)).
+The old shop (`MineShopView`) shows **only Bags** now: it opens on a Bags tab,
+and its Crafting, Loadout and Upgrades tabs open the hub on that tab
+(`opts.onOpenForge`; its own copies come back only if the hub is missing). The
+hub's COIN SHOP button is gone: it opened a pickaxe shelf where every BUY is
+refused. Its one live job was **Event Horizon**: standing in the event, that
+shelf is the event's own tool shelf (space coins), and the Supply Pod opens the
+hub, so an **EVENT TOOLS** button stays in its place, shown only in the event.
+
+**The old panel** (`MineForge`, a fallback now) draws:
+- a left rail with CRAFT, UPGRADE and a COIN SHOP shortcut
 - a family picker
 - a rail listing every tool, with a detail pane beside it
 - a read-only ore-pouch strip along the bottom
 
 Only discovered ores are drawn (`snapshot.oresSeen`). Every price comes from
-MineConfig, and every button sends a uid. `MineBenchView` is the older panel
-this replaced; nothing mounts it now.
+the functions the server charges with, and every button sends a uid.
+`MineBenchView` is the older panel this replaced; nothing mounts it now.
+
+**What a Forge card says** (S9-S11): one copy of each rule in `MineOreTools`,
+called by the verbs and by every panel, so a card cannot quote a number the
+server does not use:
+- the price, `MineOreTools.craftCost(family, ore tier)`;
+- the hit, `MineOreTools.hitPower` (family, the worn skin and the finish in it),
+  with hits per second, area and use from `MineOreTools.cardStats` ("swing",
+  "hold", "hold, down only", "throw");
+- a new craft's level, `MineOreTools.inheritedLevel` ("starts Lv N");
+- the SCRAP refund, `MineOreTools.recycleRefund`.
+Checked by `tools/verify/forge-cards.js` and `tools/verify/recycle-quote.js`.
 
 **Craft.** `Verbs.craftOreTool({familyId, oreId})`:
 - **Frame is re-derived.** The verb ignores `payload.typeId` and re-derives the
   frame with `MineOreTools.frameForTier`, so a modified client cannot pick a
   cheap frame. It refuses `wood_pick` and refuses a full rack (200).
-- **Cost** is `MineConfig.toolCraftCost(tier, typeMult) = ceil(craftBlocks(tier)
-  × oreYieldMid(tier) × typeMult)`. It is priced in **blocks broken** (commit
-  `417cd4a`; owner wanted it to vary with drop amount, rarity and depth):
+- **Cost** is `MineOreTools.craftCost(family, ore tier)` =
+  `MineConfig.toolCraftCost(tier, typeMult, family) = ceil(craftBlocks(tier)
+  × oreYieldMid(tier) × typeMult × FAMILY_CRAFT_COST)`, with `typeMult` the
+  ore's own step (`MineOreTools.typeMult(family, tier)`, 1 to 8). It is priced in
+  **blocks broken** (commit `417cd4a`; owner wanted it to vary with drop amount,
+  rarity and depth):
   `craftBlocks = CRAFT_BLOCKS 30 × 1/(1 + CRAFT_BAND_EASE 0.18 × (band-1)) ×
   (1 + CRAFT_DEPTH_SLOPE 4 × (t-1)/81)`.
+- **The card's number is the price** (launch audit S9; owner, 2026-10-19). Until
+  then the verb built `typeMult` with no ore tier, so it always charged step 1
+  while the card quoted the ore's real step: from pickaxe ore tier 7 up the
+  server charged less than the card said (tier 7: card 700, charged 350; up to
+  an eighth at the top). The server now charges the card's number, so crafts of
+  ore tier 7 and deeper cost what the card always showed: 2x to 8x what they
+  were really charged.
 - **Worked examples** (my arithmetic from these formulas):
   - Stone Pickaxe: 30 blocks × 9 ore = **270 Stone** (Common frame, typeMult 1).
   - Oganesson Pickaxe: about 66 blocks × 3 = 200 × typeMult 8 for the top
@@ -57,7 +88,8 @@ this replaced; nothing mounts it now.
   supplies no costs.
 - **Forging carries your level.** The new row takes the highest level on the
   rack, clamped to the cap (commit `12b528a`; `tools/forge-feel.js`). Without
-  this, every forge was a downgrade.
+  this, every forge was a downgrade. `MineOreTools.inheritedLevel`, which the
+  craft card prints too ("starts Lv N", not "Lv 1").
 - **Auto-equip.** The new tool is equipped straight away. This is the fix for
   the `uid` global-read bug (TODO §0.15).
 
@@ -70,8 +102,13 @@ as you can afford, up to `count` (+1, +10 or MAX) and the cap of 30. It pays
 **Recycle a forged tool.** `Verbs.recycleOreTool(uid)` handles one tool at a
 time:
 - It removes the row (unequipping it if it was held), then refunds
-  `MineConfig.toolRecycle = floor(toolSpent(tier, level, typeMult) ×
-  TOOL_RECYCLE_PCT 0.5)`.
+  `MineOreTools.recycleRefund(tool)` = `MineConfig.toolRecycle(tier, level,
+  typeMult, base)`: `TOOL_RECYCLE_PCT 0.5` of what the levels cost **above the
+  level the tool was forged at** (`base`, stamped at craft; a row without one
+  reads 1). Inherited levels refund nothing.
+- The SCRAP card quotes the same call. The hub quoted base 1 until the launch
+  audit (S10), so a tool forged at your best level showed a whole climb coming
+  back and the server paid nothing.
 - The ore goes back through `Dig.addOre`, and the stardust is added to the
   balance.
 - `toolSpent` counts **level spend only**. It does not include the craft cost.
@@ -100,8 +137,10 @@ The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
 
 | file | role | key symbols |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/MineForge.luau` | Forge panel | `mount`, `discoveredOres` |
-| `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | every price | `toolCraftCost`, `craftBlocks`, `toolUpgradeCost`, `toolSpent`, `toolRecycle` |
+| `src/ReplicatedStorage/Mine/Shared/MineForgeHub.luau` | the Forge (hub) | `mount`, `cardOf`, `wornSkin` |
+| `src/ReplicatedStorage/Mine/Shared/MineForge.luau` | old Forge panel (fallback) | `mount`, `discoveredOres` |
+| `src/ReplicatedStorage/Mine/Shared/MineOreTools.luau` | the numbers a verb and a card share | `craftCost`, `hitPower`, `cardStats`, `inheritedLevel`, `recycleRefund` |
+| `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | the curves under them | `toolCraftCost`, `craftBlocks`, `toolUpgradeCost`, `toolSpent`, `toolRecycle` |
 | `src/ServerScriptService/Mine/MineServer.server.luau` | verbs | `Verbs.craftOreTool`, `Verbs.upgradeOreTool`, `Verbs.recycleOreTool`, `scrapPlan`, `scrapMany` |
 | `src/ReplicatedStorage/Mine/Shared/MineScrapSelect.luau` | bulk select control | `new` |
 | `src/ReplicatedStorage/Mine/Shared/MineForgeView.luau` | temper UI (the Enchanter's tab), not yet folded in | — |
@@ -118,6 +157,11 @@ The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
     (line 15). The code is still flat 0.5.
 - The bag stays out of the Forge (PROPOSAL line 36).
 - Universal recycling is 50% back in ore and stardust (TODO §6.1).
+- **Launch audit, 2026-10-19** ([open-questions](../open-questions.md) §0e): the
+  card's craft price is right and the server charges it (S9); SCRAP quotes what
+  the server pays (S10); cards show true damage per hit, hits per second, area,
+  use, and the inherited level (S11); one Forge, the old shop shows only Bags
+  and COIN SHOP goes (S13).
 
 ## State right now
 
@@ -133,15 +177,11 @@ The coin ladder resets ([rebirth](rebirth-and-skill-tree.md)).
 
 ## Gotchas
 
-- **Probable exploit: recycle refunds levels the tool never paid for.** A
-  forged tool inherits your best level, but `toolRecycle` refunds 50% of
-  `toolSpent(level)` as if those levels had been bought on it.
-  - Example: with any level-30 tool on the rack, forging a Stone Pickaxe costs
-    270 Stone, and scrapping it returns about **23.8K Stone and 3.05M
-    stardust**. This is my arithmetic from MineConfig; I have not run it.
-  - It can be repeated until the pouch is full, and the stone sells for gems.
-  - Fix: store the amount actually spent on the row, or refund only the levels
-    bought on it. This is a design call for the owner.
+- ~~**Recycle refunded levels the tool never paid for.**~~ **FIXED 2026-10-06**
+  ([open-questions](../open-questions.md) §1 #3): the row stamps `base` at craft
+  and the refund is the difference above it (`tools/verify/economy-exploits.js`).
+  The SCRAP quotes followed only later: the old Forge's, then the hub's in the
+  launch audit (S10), both through `MineOreTools.recycleRefund` now.
 - **Recycle is not all-or-nothing (OPEN P0 #4).** The tool is removed first, and
   any ore refund that does not fit in the pouch is lost. The toast reports only
   what landed. Craft and upgrade do meet the "one transaction" bar.

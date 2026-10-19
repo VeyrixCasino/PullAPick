@@ -5519,6 +5519,20 @@ depthHud.contractor = require(shared:WaitForChild("MineContractor")).mount(gui, 
 local Scrolls = require(shared:WaitForChild("MineScrolls"))
 shopCtl = ShopView.mount(gui, {
 	--[[
+		ONE FORGE (launch audit S13). The shop shows only Bags; its Crafting,
+		Loadout and Upgrades tabs open the Forge hub on that tab. Returns false
+		when there is no hub, and the shop falls back to its own panels.
+	]]
+	onOpenForge = function(tab)
+		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
+		if not hubOpen then
+			return false
+		end
+		hidePanels()
+		hubOpen:Fire(tab)
+		return true
+	end,
+	--[[
 		The Forge reports the skin and rune on the selected tool's family and
 		sends you to the Enchanter to change either, rather than growing a second
 		copy of those two screens. routePanel hides the shop on the way, so this

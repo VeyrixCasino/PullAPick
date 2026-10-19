@@ -15,9 +15,21 @@
 	Tier rides a BADGE, never the tile fill, for the same reason: the tile is a
 	surface the kit owns and recolouring it would fight `adoptOne`.
 
-	State comes from the snapshot -- `skins`, `skinEquipped`, `skinNotice`. The
-	view owns no truth: equipping asks the server and waits for the next snap,
-	because the server is where ownership is checked.
+	State comes from the snapshot -- `skins`, `skinEquipped`, `skinNotice`, and
+	the class in hand from `tool.family`. The view owns no truth: equipping
+	asks the server and waits for the next snap, because the server is where
+	ownership is checked.
+
+	THE CLASS IN HAND (launch audit S15). This read `snap.heldFamily`, a field
+	the server never sends, so no tile ever showed EQUIPPED and the footer
+	always said "Hold a tool". The snapshot's `tool` is equippedTool's own row
+	and carries `family`, for any tool -- forged, event or chest.
+
+	WHAT A SKIN DOES is on every tile and in the line under the grid: its
+	damage multiplier (MineSkins.BASE, x1.15 to x5.5) and its kit, worded by
+	MineToolSkins the way the Forge's skin picker words them. While a class has
+	no skin form for a set, its tiles say "stats only": the skin changes the
+	tool's numbers, not its look (owner, 2026-10-19: make skins work, honestly).
 ]]
 local MineSkinsView = {}
 
@@ -26,6 +38,20 @@ local T = require(script.Parent:WaitForChild("MineTheme"))
 local Skins = require(script.Parent:WaitForChild("MineSkins"))
 local Gear = require(script.Parent:WaitForChild("MineGear"))
 local Stars = require(script.Parent:WaitForChild("MineStars"))
+local ToolSkins = require(script.Parent:WaitForChild("MineToolSkins"))
+-- Only to ask which classes have a skin form; a missing factory costs the
+-- "stats only" wording, never the wardrobe.
+local okFactory, Factory = pcall(function()
+	return require(game:GetService("ReplicatedStorage"):WaitForChild("ToolModelFactory", 5))
+end)
+if not okFactory then
+	Factory = nil
+end
+
+-- Does this skin change the LOOK of this class's tools, or only its numbers?
+local function hasLook(fam, skin)
+	return Factory ~= nil and Factory.hasSkinForm ~= nil and Factory.hasSkinForm(fam, skin.set) == true
+end
 
 local TIER_COLOR = Gear.RARITY_COLOR
 local ALL = "all"
@@ -79,9 +105,11 @@ end
 
 function MineSkinsView.mount(gui, opts)
 	opts = opts or {}
-	local state = { skins = {}, equipped = {}, filter = ALL, family = nil }
+	local state = { skins = {}, equipped = {}, filter = ALL, family = nil, focus = nil }
 
-	local root = UI.panel(gui, UDim2.fromOffset(720, 460), UDim2.fromScale(0.5, 0.5))
+	-- 760 x 580 (was 720 x 460): four taller tiles a row, so each can carry its
+	-- power, and a line under the grid for the whole kit of the one tapped.
+	local root = UI.panel(gui, UDim2.fromOffset(760, 580), UDim2.fromScale(0.5, 0.5))
 	root.Name = "SkinsPanel"
 	root.AnchorPoint = Vector2.new(0.5, 0.5)
 	root.Visible = false
@@ -124,7 +152,7 @@ function MineSkinsView.mount(gui, opts)
 
 	local grid = UI.new("ScrollingFrame", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -36, 1, -164),
+		Size = UDim2.new(1, -36, 1, -214),
 		Position = UDim2.fromOffset(18, 104),
 		ScrollBarThickness = 6,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -132,10 +160,18 @@ function MineSkinsView.mount(gui, opts)
 		ZIndex = 41,
 	}, root)
 	UI.new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(160, 84),
+		CellSize = UDim2.fromOffset(170, 132),
 		CellPadding = UDim2.fromOffset(10, 10),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}, grid)
+
+	-- The whole of the tapped skin: grade, damage, every stat, and whether it
+	-- changes the look of the class in hand.
+	local detail = UI.text(root, "Tap a skin to see everything it does.", T.TEXT_MIN)
+	detail.Position = UDim2.new(0, 18, 1, -104)
+	detail.Size = UDim2.new(1, -36, 0, 50)
+	detail.TextWrapped = true
+	detail.TextYAlignment = Enum.TextYAlignment.Top
 
 	-- The footer says what equipping will do, because a skin goes on a FAMILY
 	-- and the player is holding one tool. Saying so beats a surprise.
@@ -146,6 +182,34 @@ function MineSkinsView.mount(gui, opts)
 
 	local tiles = {}
 
+	local function familyWord(fam)
+		return string.lower(ToolSkins.FAMILY_NAME[fam] or tostring(fam))
+	end
+
+	local function paintDetail()
+		local s = state.focus
+		if not s then
+			detail.Text = "Tap a skin to see everything it does."
+			return
+		end
+		local fam = state.family
+		local looks
+		if fam then
+			looks = hasLook(fam, s) and ("new look on your " .. familyWord(fam))
+				or (ToolSkins.STATS_ONLY .. " on your " .. familyWord(fam))
+		else
+			local with = {}
+			for _, f in ipairs(ToolSkins.FAMILIES) do
+				if hasLook(f, s) then
+					table.insert(with, familyWord(f))
+				end
+			end
+			looks = (#with > 0) and ("new look on " .. table.concat(with, " and ") .. ", " .. ToolSkins.STATS_ONLY .. " on the rest")
+				or ToolSkins.STATS_ONLY
+		end
+		detail.Text = ("%s  (%s)  ·  %s  ·  %s"):format(s.name, Stars.beside(s.tier), ToolSkins.powerLine(s), looks)
+	end
+
 	local function redraw()
 		local owned, total = 0, #(Skins.LIST or {})
 		for _ in pairs(state.skins) do owned += 1 end
@@ -154,8 +218,9 @@ function MineSkinsView.mount(gui, opts)
 
 		local fam = state.family
 		foot.Text = fam
-			and ("Equipping dresses your %s. One skin per tool class."):format(fam)
+			and ("Tap a skin to dress your %s, again to take it off. One skin per tool class."):format(familyWord(fam))
 			or "Hold a tool to equip a skin on its class."
+		paintDetail()
 
 		for _, t in ipairs(tiles) do
 			local s = t.skin
@@ -164,13 +229,23 @@ function MineSkinsView.mount(gui, opts)
 			if show then
 				local have = state.skins[s.id] == true
 				local on = fam and state.equipped[fam] == s.id
+				-- Worn on another class (one skin can dress several).
+				local elsewhere = ToolSkins.wornOn(state.equipped, s.id)
 				t.name.TextTransparency = have and 0 or 0.45
 				t.frame.BackgroundTransparency = have and 0 or 0.35
 				t.badge.BackgroundTransparency = have and 0 or 0.45
+				-- Its power, and "stats only" while the class in hand has no
+				-- form for this set.
+				t.power.Text = ToolSkins.multText(s) .. " damage"
+					.. ((fam and not hasLook(fam, s)) and ("  ·  " .. ToolSkins.STATS_ONLY) or "")
+				t.power.TextTransparency = have and 0 or 0.35
 				-- Written out rather than chained through and/or: that chain is
 				-- what produced "locked" on every owned tile.
 				if on then
 					t.sub.Text = "EQUIPPED"
+				elseif have and #elsewhere > 0 then
+					t.sub.Text = "ON " .. string.upper(ToolSkins.FAMILY_NAME[elsewhere[1]] or elsewhere[1])
+						.. ((#elsewhere > 1) and (" +" .. (#elsewhere - 1)) or "")
 				elseif have then
 					t.sub.Text = SET_NAME[s.set] or s.set
 				else
@@ -195,7 +270,7 @@ function MineSkinsView.mount(gui, opts)
 	end
 
 	for i, s in ipairs(Skins.LIST or {}) do
-		local f = UI.card(grid, UDim2.fromOffset(160, 84))
+		local f = UI.card(grid, UDim2.fromOffset(170, 132))
 		f.LayoutOrder = i
 		local btn = UI.new("TextButton", {
 			BackgroundTransparency = 1,
@@ -205,33 +280,58 @@ function MineSkinsView.mount(gui, opts)
 		}, f)
 		UI.juice(btn)
 
+		-- Under the grade badge rather than beside it, so a long name has the
+		-- whole width of the tile.
 		local nameLbl = UI.text(f, s.name, T.TEXT_BODY)
-		nameLbl.Position = UDim2.fromOffset(10, 8)
-		nameLbl.Size = UDim2.fromOffset(100, 40)
+		nameLbl.Position = UDim2.fromOffset(10, 34)
+		nameLbl.Size = UDim2.new(1, -20, 0, 36)
 		nameLbl.TextXAlignment = Enum.TextXAlignment.Left
 		nameLbl.TextYAlignment = Enum.TextYAlignment.Top
 		nameLbl.TextWrapped = true
 		UI.outlineText(nameLbl)
 
+		-- What it does: the damage multiplier, in the coin gold the HUD uses
+		-- for numbers that pay, then its top stat.
+		local power = UI.text(f, ToolSkins.multText(s) .. " damage", T.TEXT_MIN, T.GOLD, Enum.Font.GothamBlack)
+		power.Position = UDim2.fromOffset(10, 72)
+		power.Size = UDim2.new(1, -20, 0, 18)
+		power.TextTruncate = Enum.TextTruncate.AtEnd
+		local kit = UI.muted(f, ToolSkins.kitText(s, 1), T.TEXT_MIN)
+		kit.Position = UDim2.fromOffset(10, 90)
+		kit.Size = UDim2.new(1, -20, 0, 16)
+		kit.TextTruncate = Enum.TextTruncate.AtEnd
+
 		local sub = UI.muted(f, s.set, T.TEXT_MIN)
-		sub.Position = UDim2.new(0, 10, 1, -26)
+		sub.Position = UDim2.new(0, 10, 1, -24)
 		sub.Size = UDim2.new(1, -20, 0, 18)
 		sub.TextXAlignment = Enum.TextXAlignment.Left
 
 		local badge = tierBadge(f, s.tier)
 
+		--[[
+			A tap shows the whole skin underneath, owned or not (the chase), and
+			on an owned skin it dresses the class in hand -- or, if that class
+			is already wearing it, takes it off, so the wardrobe can undo what it
+			does. The server decides; the view waits for the next snapshot.
+		]]
 		btn.MouseButton1Click:Connect(function()
-			if not state.skins[s.id] then
+			state.focus = s
+			paintDetail()
+			-- Nothing in hand: the footer says to hold a tool, and a skin must not
+			-- land on a class the player cannot see.
+			local fam = state.family
+			if not state.skins[s.id] or not opts.onEquipSkin or not fam then
 				return
 			end
-			if opts.onEquipSkin then
-				-- The server decides; the view waits for the next snapshot.
-				opts.onEquipSkin(s.id, state.family)
+			if state.equipped[fam] == s.id then
+				opts.onEquipSkin("", fam)
+			else
+				opts.onEquipSkin(s.id, fam)
 			end
 		end)
 
 		table.insert(tiles, {
-			skin = s, frame = f, name = nameLbl, sub = sub, badge = badge,
+			skin = s, frame = f, name = nameLbl, sub = sub, badge = badge, power = power,
 			subColor = sub.TextColor3,
 			-- MineUI.card already put a stroke on; reuse it rather than adding
 			-- a second one on top of the kit's.
@@ -257,7 +357,14 @@ function MineSkinsView.mount(gui, opts)
 		end
 		state.skins = snap.skins or {}
 		state.equipped = snap.skinEquipped or {}
-		state.family = snap.heldFamily or state.family
+		-- The class in hand is the snapshot's tool row (see the header). Put
+		-- away, or bare hands, is no class: the footer then says to hold one.
+		local tool = type(snap.tool) == "table" and snap.tool or nil
+		if snap.toolEquipped == false or (tool and tool.id == "bare_hands") then
+			state.family = nil
+		elseif tool and ToolSkins.isFamily(tool.family) then
+			state.family = tool.family
+		end
 		redraw()
 	end
 

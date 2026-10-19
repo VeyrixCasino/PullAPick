@@ -201,7 +201,8 @@ local function allRecipes(snapshot, familyId)
 		else
 			discovered = have > 0
 		end
-		local cost = C.toolCraftCost(def.tier, OreTools.typeMult(familyId, def.tier), familyId)
+		-- MineOreTools.craftCost: the one the craft verb charges (launch audit S9).
+		local cost = OreTools.craftCost(familyId, def.tier)
 		out[#out + 1] = {
 			id = def.id,
 			def = def,
@@ -816,7 +817,6 @@ function MineForge.mount(parent, opts)
 
 		-- Scrapping is always offered; it is the one action that works when the
 		-- player cannot afford anything else.
-		local typeMult = OreTools.typeMult(tool.familyId or selFamily, tool.tier)
 		--[[
 			PASS `base`. THIS BUTTON QUOTED A REFUND THE SERVER DOES NOT PAY.
 
@@ -841,9 +841,11 @@ function MineForge.mount(parent, opts)
 
 			Reading `base` the same way the server does, clamp and fallback
 			included, so a row saved before `base` existed reads 1 on both sides.
+			Since the launch audit (S10) that reading is MineOreTools.recycleRefund,
+			which the server's recycle verb and the Forge hub call too: the rule is
+			written once, so no panel can drop the argument again.
 		]]
-		local recBase = math.clamp(math.floor(tonumber(tool.base) or 1), 1, level)
-		local recOre, recDust = C.toolRecycle(tool.tier, level, typeMult, recBase)
+		local recOre, recDust = OreTools.recycleRefund(tool)
 		-- Equipping is what turns a forged tool into breaking power you actually
 		-- carry, so it sits beside the levelling buttons rather than buried.
 		local equipped = (snapshot.oreToolEquipped ~= nil and snapshot.oreToolEquipped == tool.uid)
@@ -977,14 +979,10 @@ function MineForge.mount(parent, opts)
 			return
 		end
 		local fam = selFamily
-		-- The multiplier is the ore's, not a frame's. See MineOreTools.typeMult:
-		-- it was always a function of tier, and the frame lookup it reached
-		-- through is gone with the priced roster.
-		local typeMult = OreTools.typeMult(fam, row.tier)
-		-- `fam`, the same family typeMult just used. `row` carries an ORE, not a
-		-- family, so reading row.familyId here would have passed nil and quoted
-		-- the cheaper pre-hammer price while the server charged the real one.
-		local cost = C.toolCraftCost(row.tier, typeMult, fam)
+		-- MineOreTools.craftCost, the function the craft verb charges with (the
+		-- ore's own typeMult step, and the family surcharge). `fam`, not
+		-- row.familyId: `row` carries an ORE, not a family.
+		local cost = OreTools.craftCost(fam, row.tier)
 		local afford = (row.have or 0) >= cost
 
 		label(host, OreTools.name(row.def, fam), 19, TEXT,
@@ -1454,15 +1452,11 @@ function MineForge.mount(parent, opts)
 			(and bases it there). Quoting level 1 would understate every tool
 			after the first by the whole climb.
 		]]
-		local forgeLevel = 1
-		for _, t in ipairs(snapshot.oreTools or {}) do
-			if type(t) == "table" then
-				forgeLevel = math.max(forgeLevel, math.floor(tonumber(t.level) or 1))
-			end
-		end
-		forgeLevel = math.clamp(forgeLevel, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
-		local typeMult = OreTools.typeMult(selFamily, r.tier)
-		local dmg = C.toolPower and C.toolPower(r.tier, forgeLevel, typeMult) or 0
+		-- Both through MineOreTools, the functions the craft verb and the swing
+		-- use (launch audit S11): the inherited level, and the hit with the
+		-- family's FAMILY_POWER in it. This panel's snapshot carries no skin.
+		local forgeLevel = OreTools.inheritedLevel(snapshot.oreTools)
+		local dmg = OreTools.hitPower({ familyId = selFamily, tier = r.tier, level = forgeLevel })
 
 		local function statLine(y, key, value, ink)
 			label(info, key, 12, MUTED, UDim2.fromOffset(0, y), UDim2.new(0.42, 0, 0, 16), FONT_M)
@@ -1835,7 +1829,7 @@ function MineForge.mount(parent, opts)
 				selOreId = ores[1] and ores[1].id or nil
 			end
 			for i, o in ipairs(ores) do
-				local cost = C.toolCraftCost(o.tier, OreTools.typeMult(selFamily, o.tier), selFamily)
+				local cost = OreTools.craftCost(selFamily, o.tier)
 				local owned = ownedForOre(snapshot, selFamily, o.tier)
 				local afford = (o.have or 0) >= cost
 				row(i, OreTools.name(o.def, selFamily),

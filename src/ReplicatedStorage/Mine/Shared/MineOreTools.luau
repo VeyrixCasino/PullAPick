@@ -519,4 +519,132 @@ function MineOreTools.toolName(tool)
 	return MineOreTools.name(MineOreTools.oreOf(tool), tool.familyId)
 end
 
+--[[
+	THE FORGE'S NUMBERS, ONE COPY EACH (launch audit 2026-10-19, S9-S11).
+
+	Each of these used to be worked out twice -- once by the verb that charges
+	or swings, once by the card that quotes it -- and every pair had drifted:
+
+	  S9   the craft verb built typeMult with no ore tier (always step 1), the
+	       card used the tier, so from ore tier 7 up the card and the charge
+	       were different numbers;
+	  S10  SCRAP quoted base level 1, the verb refunded from the tool's real
+	       `base`, so the card promised ore the server never paid;
+	  S11  the card's damage left out the family, the skin and the finish (a
+	       Stone Hammer card said 10 and hit 37), and showed "Lv 1" for a craft
+	       that arrives at your best level.
+
+	Rule 3 of the build spec: a card uses the function the server uses. So the
+	server's craftOreTool, recycleOreTool and equippedTool call these, and so
+	does every Forge panel. Neither side may compute its own.
+]]
+
+-- What forging this family out of this ore costs, in that ore.
+function MineOreTools.craftCost(familyId, oreTier)
+	local fam = tostring(familyId or "pickaxe")
+	return C.toolCraftCost(oreTier, MineOreTools.typeMult(fam, oreTier), fam)
+end
+
+--[[
+	What scrapping a forged row pays back: ore, stardust. Only the levels the
+	tool BOUGHT come back -- `base` is the level it was forged at (inherited
+	levels cost nothing, MineConfig.toolRecycle). A row saved before `base`
+	existed reads 1, the generous side.
+]]
+function MineOreTools.recycleRefund(tool)
+	local fam = tostring(tool.familyId or "pickaxe")
+	local level = math.max(1, tonumber(tool.level) or 1)
+	local base = math.clamp(math.floor(tonumber(tool.base) or 1), 1, level)
+	return C.toolRecycle(tool.tier, level, MineOreTools.typeMult(fam, tool.tier), base)
+end
+
+--[[
+	The level a NEW forge arrives at: the best level on the rack, clamped to the
+	cap. Forging carries your levelling (Verbs.craftOreTool explains why).
+]]
+function MineOreTools.inheritedLevel(oreTools)
+	local best = 1
+	for _, t in ipairs(type(oreTools) == "table" and oreTools or {}) do
+		if type(t) == "table" then
+			local lv = math.floor(tonumber(t.level) or 1)
+			if lv > best then
+				best = lv
+			end
+		end
+	end
+	return math.clamp(best, 1, tonumber(C.TOOL_MAX_LEVEL) or 30)
+end
+
+--[[
+	WHAT ONE BLOW OF A FORGED TOOL HITS FOR.
+
+	`row` is a forged row: { familyId, tier, level, shiny?, shadow?, nightmare? }.
+	Ore tier and level through MineConfig.toolPower, times the family's
+	FAMILY_POWER and the worn skin's base (`skinMult`, MineSkins.BASE; 1 for
+	none), floored once -- then the finish. The highest finish wins outright;
+	finishes never stack. This is the order equippedTool has always used, so no
+	held tool's number moved when it was lifted out of the server.
+]]
+function MineOreTools.hitPower(row, skinMult)
+	local fam = tostring(row.familyId or "pickaxe")
+	local lvl = math.max(1, tonumber(row.level) or 1)
+	local power = math.max(1, math.floor(C.toolPower(row.tier, lvl, MineOreTools.typeMult(fam, row.tier))
+		* MineOreTools.familyPower(fam) * (tonumber(skinMult) or 1)))
+	if row.nightmare then
+		power = math.max(1, math.floor(power * (C.NIGHTMARE_MULT or 4.5)))
+	elseif row.shadow then
+		power = math.max(1, math.floor(power * (C.SHADOW_MULT or 3)))
+	elseif row.shiny then
+		power = math.max(1, math.floor(power * (C.SHINY_MULT or 1.5)))
+	end
+	return power
+end
+
+--[[
+	WHAT A FORGE CARD PRINTS. Owner, 2026-10-19: cards show "true damage per hit,
+	hits per second, area, use".
+
+	Everything comes from what the server builds the held row out of --
+	hitPower and frameStats -- so a card cannot describe a tool the hand does
+	not hold. Boosts (pets, gear, enchants) are left out: they are the player's,
+	not the tool's, and they move while the card is open.
+
+	  hit     power per blow (hitPower)
+	  perSec  blows a second: the frame's rate; a thrown explosive lands its
+	          bombs once per cooldown
+	  area    "1 block", "1 block, 2 deep", "3x3", "33 blocks", "3 x 13 blocks"
+	  use     "swing", "hold", "hold, down only", "throw"
+]]
+function MineOreTools.cardStats(row, skinMult)
+	local fam = tostring(row.familyId or "pickaxe")
+	local s = MineOreTools.frameStats(fam, row.tier)
+	local out = { hit = MineOreTools.hitPower(row, skinMult) }
+	if s.cooldown then
+		local bombs = math.max(1, math.floor(tonumber(s.bombs) or 1))
+		-- A line blast runs `depth` into the wall; every other pattern is `cells`.
+		local per = math.max(tonumber(s.cells) or 1, (s.pattern == "line" and tonumber(s.depth)) or 0)
+		out.perSec = bombs / math.max(0.05, tonumber(s.cooldown) or 1)
+		out.area = (bombs > 1) and string.format("%d x %d blocks", bombs, per) or string.format("%d blocks", per)
+		out.use = "throw"
+	else
+		out.perSec = tonumber(s.rate) or 1
+		local w = math.max(1, math.floor(tonumber(s.width) or 1))
+		if w > 1 then
+			out.area = string.format("%dx%d", w, w)
+		elseif (tonumber(s.sink) or 1) > 1 then
+			out.area = string.format("1 block, %d deep", s.sink)
+		else
+			out.area = "1 block"
+		end
+		if s.shape == "down" or s.axis == "down" then
+			out.use = "hold, down only"
+		elseif s.shape == "dir" or s.auto then
+			out.use = "hold"
+		else
+			out.use = "swing"
+		end
+	end
+	return out
+end
+
 return MineOreTools

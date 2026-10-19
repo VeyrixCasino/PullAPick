@@ -62,6 +62,8 @@ end
 local Factory = optional("ToolModelFactory", RS)
 local Celebrate = optional("MineCelebrate")
 local Skins = optional("MineSkins")
+-- Which skin a tool wears, by the server's own rule (MineToolSkins.skinFor).
+local ToolSkins = optional("MineToolSkins")
 
 local Hub = {}
 
@@ -226,8 +228,43 @@ local function ownedName(tool)
 	return toolName(tool.familyId or "pickaxe", ORE_BY_TIER[tonumber(tool.tier) or 1])
 end
 
-local function damageOf(fam, tier, level)
-	return C.toolPower(tier, level or 1, OreTools.typeMult(fam, tier))
+--[[
+	THE SKIN A FAMILY IS WEARING, and its damage multiplier. A skin is worn per
+	tool family and dresses every tool of it, so a new craft wears it too.
+]]
+local function wornSkin(snap, fam)
+	if not ToolSkins then
+		return nil, 1
+	end
+	local worn = ToolSkins.skinFor(snap and snap.skinEquipped, fam)
+	return worn, ToolSkins.mult(worn)
+end
+
+-- "stats only" when this family has no skin form for the skin's set yet: the
+-- skin changes the tool's numbers, not its look (owner: say so honestly).
+local function looksLabel(fam, skin)
+	if not skin then
+		return ""
+	end
+	local looks = Factory and Factory.hasSkinForm and Factory.hasSkinForm(fam, skin.set)
+	return looks and "" or ("  ·  " .. ((ToolSkins and ToolSkins.STATS_ONLY) or "stats only"))
+end
+
+--[[
+	WHAT A CARD SAYS A TOOL DOES (launch audit S11). MineOreTools.cardStats is
+	the server's own swing maths -- hitPower (ore, level, family, the worn skin,
+	the finish) and the frame -- so the number on a card is the number the hand
+	lands. `row` is a forged row, or a recipe shaped like one.
+]]
+local function cardOf(snap, row)
+	-- "pickaxe" for a row with no family: the server's equippedTool reads it so.
+	local _, mult = wornSkin(snap, row.familyId or "pickaxe")
+	return OreTools.cardStats(row, mult)
+end
+
+local function perSecText(n)
+	n = tonumber(n) or 0
+	return (n >= 10 and tostring(math.floor(n + 0.5)) or (string.format("%.1f", n):gsub("%.0$", ""))) .. " hits/s"
 end
 
 -- ------------------------------------------------------------ data --
@@ -239,7 +276,8 @@ local function allRecipes(snap)
 		for _, def in ipairs(C.ORES or {}) do
 			local have = tonumber(held[def.id]) or 0
 			local discovered = (type(seen) == "table") and (seen[def.id] and true or false) or have > 0
-			local cost = C.toolCraftCost(def.tier, OreTools.typeMult(fam, def.tier), fam)
+			-- The craft verb charges exactly this (MineOreTools.craftCost; S9).
+			local cost = OreTools.craftCost(fam, def.tier)
 			local band = rarityOf(def.tier)
 			table.insert(out, {
 				key = fam .. ":" .. def.id, fam = fam, id = def.id, def = def, tier = def.tier, name = toolName(fam, def),
@@ -358,8 +396,12 @@ function Hub.mount(gui, opts)
 		return v
 	end
 	local coinsV, gemsV, dustV = chip(2, "💰"), chip(3, "💎"), chip(4, "✨")
-	-- The old shop's two shelves the Forge has no tab for, now that the
-	-- Blacksmith counter opens the Forge: bags, and the coin tools.
+	--[[
+		ONE FORGE (launch audit S13; owner, 2026-10-19). The old shop now shows
+		only Bags, the one shelf the Forge has no tab for, and its Crafting /
+		Loadout / Upgrades tabs open this hub. The COIN SHOP button is gone: it
+		opened a pickaxe shelf where every BUY is refused (tools are forged).
+	]]
 	if opts.onShop then
 		local bagsBtn = pill(chips, "🎒 BAGS", TH.cool, UDim2.fromOffset(120, 40), 16, 75)
 		bagsBtn.LayoutOrder = -1
@@ -367,9 +409,18 @@ function Hub.mount(gui, opts)
 			ctl.close()
 			opts.onShop("backpack")
 		end)
-		local coinBtn = pill(chips, "💰 COIN SHOP", TH.action, UDim2.fromOffset(150, 40), 16, 75)
-		coinBtn.LayoutOrder = 0
-		coinBtn.MouseButton1Click:Connect(function()
+		--[[
+			EXCEPT IN EVENT HORIZON. Standing in the event, the old shop's tool
+			shelf is the Event Horizon tool shelf (space coins; MineShopView rows
+			reads zoneId), and the Supply Pod opens this hub -- so COIN SHOP was
+			the one door to the event's tools. That door stays, named for what it
+			sells, and only while you are in the event (paintChrome).
+		]]
+		local eventBtn = pill(chips, "🚀 EVENT TOOLS", TH.magic, UDim2.fromOffset(170, 40), 16, 75)
+		eventBtn.LayoutOrder = 0
+		eventBtn.Visible = false
+		ctl._eventToolsBtn = eventBtn
+		eventBtn.MouseButton1Click:Connect(function()
 			ctl.close()
 			opts.onShop("pickaxe")
 		end)
@@ -485,7 +536,7 @@ function Hub.mount(gui, opts)
 				spin = nil
 			end
 		end)
-		function s.show(fam, tier, def)
+		function s.show(fam, tier, def, skin)
 			if spin then
 				spin:Disconnect()
 				spin = nil
@@ -496,6 +547,14 @@ function Hub.mount(gui, opts)
 			end
 			local ok, model = pcall(function()
 				local look = Factory.oreLook and Factory.oreLook(def, C.ORE_COUNT or #C.ORES)
+				-- A tool you own wears its family's skin here the way it does in
+				-- your hand (buildSkinned is nil for a family with no form yet).
+				if skin and Factory.buildSkinned then
+					local skinned = Factory.buildSkinned(fam, skin, look)
+					if skinned then
+						return skinned
+					end
+				end
 				return Factory.build(fam, tier, C.ORE_COUNT or #C.ORES, look)
 			end)
 			if not (ok and model) then
@@ -626,8 +685,10 @@ function Hub.mount(gui, opts)
 	stroke(cBadge, TH.outline, 2)
 	local cBadgeL = text(cBadge, "", 15, Color3.new(1, 1, 1), { Font = FONT_B, ZIndex = 77 })
 	ink(cBadgeL, 1)
-	local cStats = text(cDetail, "", 17, TH.muted, { Position = UDim2.fromOffset(10, 372), Size = UDim2.new(1, -20, 0, 22), ZIndex = 76 })
-	local cReq = mk("Frame", { BackgroundColor3 = TH.chip, Position = UDim2.fromOffset(20, 402), Size = UDim2.new(1, -40, 0, 70), ZIndex = 76 }, cDetail)
+	-- Two lines: what one hit does and how often, then the area and how it is used.
+	local cStats = text(cDetail, "", 17, TH.muted, { Position = UDim2.fromOffset(10, 372), Size = UDim2.new(1, -20, 0, 46),
+		TextWrapped = true, ZIndex = 76 })
+	local cReq = mk("Frame", { BackgroundColor3 = TH.chip, Position = UDim2.fromOffset(20, 424), Size = UDim2.new(1, -40, 0, 70), ZIndex = 76 }, cDetail)
 	round(cReq, 12)
 	stroke(cReq, TH.edge, 1.5, 0.4)
 	local cReqIcon = mk("Frame", { BackgroundColor3 = TH.edge, Position = UDim2.fromOffset(16, 17), Size = UDim2.fromOffset(36, 36), Rotation = 45, ZIndex = 77 }, cReq)
@@ -640,8 +701,8 @@ function Hub.mount(gui, opts)
 	round(cReqTrack, 7)
 	local cReqFill = mk("Frame", { BackgroundColor3 = TH.ok, Size = UDim2.fromScale(0, 1), ZIndex = 78 }, cReqTrack)
 	round(cReqFill, 7)
-	local cAction = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(20, 486), Size = UDim2.new(1, -40, 0, 48), ZIndex = 76 }, cDetail)
-	local cHint = text(cDetail, "", 14, TH.muted, { Position = UDim2.fromOffset(20, 540), Size = UDim2.new(1, -40, 0, 40), TextWrapped = true,
+	local cAction = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(20, 508), Size = UDim2.new(1, -40, 0, 48), ZIndex = 76 }, cDetail)
+	local cHint = text(cDetail, "", 14, TH.muted, { Position = UDim2.fromOffset(20, 562), Size = UDim2.new(1, -40, 0, 40), TextWrapped = true,
 		Font = FONT_B, ZIndex = 76 })
 
 	local cRailBtns = {}
@@ -697,7 +758,19 @@ function Hub.mount(gui, opts)
 		cName.Text = r.name
 		cBadgeL.Text = string.upper(r.band) .. "  ·  " .. string.upper(FAMILY_NAME[r.fam] or r.fam)
 		cBadge.BackgroundColor3 = col
-		cStats.Text = string.format("⚔ %s damage   ·   Lv 1 → %d", short(damageOf(r.fam, r.tier, 1)), C.TOOL_MAX_LEVEL or 30)
+		--[[
+			THE TRUTH ABOUT THE TOOL YOU ARE ABOUT TO MAKE (launch audit S11).
+			It arrives at your best level (the craft verb inherits it through the
+			same MineOreTools.inheritedLevel) and wears its family's skin, so the
+			hit is the one it will land the moment it is forged.
+		]]
+		local snapC = getSnap() or {}
+		local lvNew = OreTools.inheritedLevel(snapC.oreTools)
+		local card = cardOf(snapC, { familyId = r.fam, tier = r.tier, level = lvNew })
+		local worn = wornSkin(snapC, r.fam)
+		cStats.Text = string.format("⚔ %s per hit  ·  %s  ·  starts Lv %d\n🧱 %s  ·  ✋ %s%s",
+			short(card.hit), perSecText(card.perSec), lvNew, card.area, card.use,
+			worn and ("  ·  🎨 " .. ToolSkins.multText(worn)) or "")
 		cReqIcon.BackgroundColor3 = r.def.color or col
 		cReqL.Text = string.format("%s / %s  %s", short(r.have), short(r.cost), r.oreName)
 		cReqL.TextColor3 = r.afford and TH.ok or TH.bad
@@ -856,11 +929,12 @@ function Hub.mount(gui, opts)
 	stroke(lBadge, TH.outline, 2)
 	local lBadgeL = text(lBadge, "", 14, Color3.new(1, 1, 1), { Font = FONT_B, ZIndex = 77 })
 	ink(lBadgeL, 1)
-	local lStats = text(lDetail, "", 16, TH.text, { Position = UDim2.fromOffset(16, 324), Size = UDim2.new(1, -32, 0, 44), TextWrapped = true,
+	-- Three lines: the hit and its rate, the area and use, then the skin.
+	local lStats = text(lDetail, "", 16, TH.text, { Position = UDim2.fromOffset(16, 324), Size = UDim2.new(1, -32, 0, 66), TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 76 })
-	local lSlots = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 372), Size = UDim2.new(1, -32, 0, 112), ZIndex = 76 }, lDetail)
+	local lSlots = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 394), Size = UDim2.new(1, -32, 0, 112), ZIndex = 76 }, lDetail)
 	mk("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }, lSlots)
-	local lActions = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 492), Size = UDim2.new(1, -32, 0, 92), ZIndex = 76 }, lDetail)
+	local lActions = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 514), Size = UDim2.new(1, -32, 0, 92), ZIndex = 76 }, lDetail)
 	mk("UIGridLayout", { CellSize = UDim2.fromOffset(193, 40), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }, lActions)
 	local lSkinBox = mk("Frame", { Name = "SkinPicker", Visible = false, BackgroundColor3 = TH.chip, Position = UDim2.fromOffset(10, 10),
 		Size = UDim2.new(1, -20, 1, -20), ZIndex = 90 }, lDetail)
@@ -893,7 +967,8 @@ function Hub.mount(gui, opts)
 		lSkinBox.Visible = true
 		local snap = getSnap() or {}
 		local owned = snap.skins or {}
-		local wearing = (snap.skinEquipped or {})[o.fam]
+		local wearingDef = wornSkin(snap, o.fam)
+		local wearing = wearingDef and wearingDef.id
 		text(lSkinBox, "🎨 SKINS · " .. string.upper(FAMILY_NAME[o.fam] or o.fam), 20, TH.text, { Position = UDim2.fromOffset(14, 8),
 			Size = UDim2.new(1, -70, 0, 30), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 91 })
 		local x = pill(lSkinBox, "X", TH.danger, UDim2.fromOffset(34, 30), 16, 92)
@@ -911,12 +986,26 @@ function Hub.mount(gui, opts)
 				act("equipSkin", { id = "", family = o.fam })
 			end)
 		end
+		--[[
+			Each skin says what it does to THIS tool (owner, 2026-10-19: show the
+			skin's power): its damage multiplier and its kit, and "stats only"
+			while this family has no skin form for its set.
+		]]
 		for i, s in ipairs((Skins and Skins.LIST) or {}) do
 			if owned[s.id] then
 				any = true
 				local on = wearing == s.id
-				local b = pill(list, (on and "✅ " or "") .. s.name .. "  ·  " .. s.tier, on and TH.good or TH.cool, UDim2.new(1, -8, 0, 34), 15, 93)
+				local b = pill(list, "", on and TH.good or TH.cool, UDim2.new(1, -8, 0, 54), 15, 93)
 				b.LayoutOrder = i
+				local top = text(b, (on and "✅ " or "") .. s.name .. "  ·  " .. s.tier
+					.. (ToolSkins and ("  ·  " .. ToolSkins.multText(s) .. " damage") or ""), 16, Color3.new(1, 1, 1),
+					{ Position = UDim2.fromOffset(12, 4), Size = UDim2.new(1, -24, 0, 24), TextXAlignment = Enum.TextXAlignment.Left,
+						TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 94 })
+				ink(top, 1.5)
+				local kit = text(b, (ToolSkins and ToolSkins.kitText(s, 3) or "") .. looksLabel(o.fam, s), 13, Color3.new(1, 1, 1),
+					{ Position = UDim2.fromOffset(12, 28), Size = UDim2.new(1, -24, 0, 20), TextXAlignment = Enum.TextXAlignment.Left,
+						TextTruncate = Enum.TextTruncate.AtEnd, Font = FONT_B, ZIndex = 94 })
+				ink(kit, 1)
 				b.MouseButton1Click:Connect(function()
 					if not on then
 						act("equipSkin", { id = s.id, family = o.fam })
@@ -942,14 +1031,18 @@ function Hub.mount(gui, opts)
 		end
 		lBadge.Visible = true
 		local _, col = rarityOf(o.tier)
-		lStage.show(o.fam, o.tier, o.def)
+		local skinDef = wornSkin(snap, o.fam)
+		lStage.show(o.fam, o.tier, o.def, skinDef)
 		lName.Text = o.name
 		lBadgeL.Text = string.upper(o.band) .. "  ·  " .. string.upper(FAMILY_NAME[o.fam] or o.fam) .. "  ·  LV " .. o.level
 		lBadge.BackgroundColor3 = col
-		local skinId = (snap.skinEquipped or {})[o.fam]
-		local skinDef = Skins and Skins.byId and skinId and Skins.byId(skinId)
-		lStats.Text = string.format("⚔ %s damage   ·   Lv %d / %d%s\n🎨 %s", short(damageOf(o.fam, o.tier, o.level)), o.level,
-			C.TOOL_MAX_LEVEL or 30, o.equipped and "   ·   ✅ IN HAND" or "", skinDef and skinDef.name or "No skin")
+		-- What this tool lands in your hand: the server's own swing maths (S11).
+		-- The level is on the badge above, so these lines stay one line each.
+		local card = cardOf(snap, o.tool)
+		lStats.Text = string.format("⚔ %s per hit  ·  %s%s\n🧱 %s  ·  ✋ %s\n🎨 %s",
+			short(card.hit), perSecText(card.perSec), o.equipped and "  ·  ✅ IN HAND" or "",
+			card.area, card.use,
+			skinDef and (skinDef.name .. " " .. ToolSkins.multText(skinDef) .. looksLabel(o.fam, skinDef)) or "No skin")
 		local enchants = type(o.tool.enchants) == "table" and o.tool.enchants or {}
 		local lvl = snap.enchants and snap.enchants.level or 1
 		for i, sd in ipairs(E.SLOTS) do
@@ -1088,19 +1181,22 @@ function Hub.mount(gui, opts)
 
 	local function paintLevel(snap, o)
 		local stg = makeStage(uWork, UDim2.fromOffset(0, 0), UDim2.fromOffset(360, 300))
-		stg.show(o.fam, o.tier, o.def)
+		stg.show(o.fam, o.tier, o.def, (wornSkin(snap, o.fam)))
 		local mult = OreTools.typeMult(o.fam, o.tier)
 		local info = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(380, 10), Size = UDim2.new(1, -390, 1, -20), ZIndex = 76 }, uWork)
 		local n = text(info, o.name, 26, TH.text, { Size = UDim2.new(1, 0, 0, 34), TextXAlignment = Enum.TextXAlignment.Left, TextScaled = true, ZIndex = 77 })
 		ink(n, 2)
 		local lv, cap = o.level, C.TOOL_MAX_LEVEL or 30
-		local now = damageOf(o.fam, o.tier, lv)
+		-- Per hit, as the hand lands it (family, skin and finish in): S11.
+		local now = cardOf(snap, o.tool).hit
 		if lv >= cap then
-			text(info, "⭐ MAX LEVEL " .. cap .. "   ·   ⚔ " .. short(now), 22, TH.text, { Position = UDim2.fromOffset(0, 50), Size = UDim2.new(1, 0, 0, 30),
+			text(info, "⭐ MAX LEVEL " .. cap .. "   ·   ⚔ " .. short(now) .. " per hit", 22, TH.text, { Position = UDim2.fromOffset(0, 50), Size = UDim2.new(1, 0, 0, 30),
 				TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 77 })
 			return
 		end
-		local nxt = damageOf(o.fam, o.tier, lv + 1)
+		local upRow = table.clone(o.tool)
+		upRow.level = lv + 1
+		local nxt = cardOf(snap, upRow).hit
 		local cmp = text(info, string.format("LV %d  →  %d", lv, lv + 1), 30, TH.text, { Position = UDim2.fromOffset(0, 46), Size = UDim2.new(1, 0, 0, 36),
 			TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 77 })
 		ink(cmp, 2)
@@ -1275,11 +1371,17 @@ function Hub.mount(gui, opts)
 
 	local function paintScrap(snap, o)
 		local stg = makeStage(uWork, UDim2.fromOffset(0, 0), UDim2.fromOffset(360, 300))
-		stg.show(o.fam, o.tier, o.def)
+		stg.show(o.fam, o.tier, o.def, (wornSkin(snap, o.fam)))
 		local info = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(380, 10), Size = UDim2.new(1, -390, 1, -20), ZIndex = 76 }, uWork)
 		local n = text(info, o.name, 26, TH.text, { Size = UDim2.new(1, 0, 0, 34), TextXAlignment = Enum.TextXAlignment.Left, TextScaled = true, ZIndex = 77 })
 		ink(n, 2)
-		local ore, dust = C.toolRecycle(o.tier, o.level, OreTools.typeMult(o.fam, o.tier), 1)
+		--[[
+			What the server's recycleOreTool pays, by its own call (launch audit
+			S10). This quoted base level 1, so a tool forged at your best level --
+			which refunds only the levels it bought, often none -- showed a whole
+			climb coming back.
+		]]
+		local ore, dust = OreTools.recycleRefund(o.tool)
 		local en = type(o.tool.enchants) == "table" and o.tool.enchants or {}
 		local back = { string.format("🪨 %s %s", short(ore), o.def and o.def.name or "ore"), string.format("✨ %s stardust", short(dust)) }
 		for _, e in pairs(en) do
@@ -1466,6 +1568,9 @@ function Hub.mount(gui, opts)
 		coinsV.Text = short(snap.coins)
 		gemsV.Text = short(snap.gems)
 		dustV.Text = short(snap.dust)
+		if ctl._eventToolsBtn then
+			ctl._eventToolsBtn.Visible = snap.zoneId == "bigbang"
+		end
 		local en = snap.enchants or {}
 		lvL.Text = "LV " .. tostring(en.level or 1)
 		local frac = math.clamp((tonumber(en.xp) or 0) / math.max(1, tonumber(en.next) or 1), 0, 1)

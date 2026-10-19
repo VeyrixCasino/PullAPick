@@ -56,16 +56,23 @@ const dmg = (t, L) => BASE * Math.pow(6, SPAN * (t - 1) / (NORE - 1))
 console.log("forge-upgrade: cap " + MAXLVL + ", climb x" + CLIMB + ", span " + SPAN);
 
 // --- the mechanism is wired ---------------------------------------------------
+// Since the launch audit (S11) the scan lives in MineOreTools.inheritedLevel, so
+// the Forge's craft card can print the level a new tool arrives at by the very
+// function the verb uses. Both halves are asserted: the verb calls it, and it
+// still scans the rack and clamps to the cap.
+const oreTools = readSrc(path.join(ROOT, "src/ReplicatedStorage/Mine/Shared/MineOreTools.luau"));
+const inheritFn = (oreTools.match(/function MineOreTools\.inheritedLevel\([\s\S]*?\nend\n/) || [""])[0];
 const craft = srv.match(/function Verbs\.craftOreTool[\s\S]*?\n\tlocal row = \{[\s\S]*?\n\t\}/);
 ok(!!craft, "craftOreTool still builds the tool row");
 if (craft) {
   ok(!/\blevel = 1\b/.test(craft[0]),
     "a forged tool does not arrive at level 1",
     "level = 1 would make every forge a downgrade");
-  ok(/level = inherited/.test(craft[0]) && /t\.level/.test(craft[0]),
+  ok(/level = inherited/.test(craft[0]) && /local inherited = OreTools\.inheritedLevel\(p\.oreTools\)/.test(craft[0])
+    && /t\.level/.test(inheritFn) && /for _, t in ipairs\(/.test(inheritFn),
     "the forged level is inherited from the rack",
-    "craftOreTool scans p.oreTools for the best level");
-  ok(/math\.clamp\(inherited/.test(craft[0]),
+    "craftOreTool takes the best level on p.oreTools (MineOreTools.inheritedLevel)");
+  ok(/math\.clamp\(best, 1, tonumber\(C\.TOOL_MAX_LEVEL\)/.test(inheritFn),
     "the inherited level is clamped to the cap");
 }
 
