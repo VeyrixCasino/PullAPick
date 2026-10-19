@@ -1305,6 +1305,10 @@ function MineInventoryView.mount(parent, opts)
 		`mystery` keeps the pick across renders.
 	]]
 	local mystery = { id = "case_1", qty = 1 }
+	-- Forward: the pack inspector is defined below, and the buyer's ODDS
+	-- button calls it (a local used above its declaration reads as a nil
+	-- global; wiki code/luau-traps §2).
+	local showPackInspect
 	local function mysteryBuyer(parent, order, currency)
 		local Cases = require(shared:WaitForChild("MineCases"))
 		if not Cases.get(mystery.id) then
@@ -1326,6 +1330,27 @@ function MineInventoryView.mount(parent, opts)
 		label(panel, "MYSTERY CASE", 22, TEXT, UDim2.fromOffset(x, 12), UDim2.new(1, -x - 12, 0, 26), FONT).ZIndex = 3
 		label(panel, "One spin  ·  3 of the pack it lands on  ·  from any set", 13, MUTED,
 			UDim2.fromOffset(x, 40), UDim2.new(1, -x - 12, 0, 18)).ZIndex = 3
+		--[[
+			ODDS BEFORE YOU BUY (owner, 2026-10-19, launch audit M3). The credit
+			shop's main random item showed none. It opens the same inspector as a
+			case in the bag, at the picked grade; a credit-bought case's exact
+			split (the SSS share included) in the credit shop, an earned case's in
+			the stardust shop, which never rolls SSS.
+		]]
+		local oddsB = mk("TextButton", {
+			AutoButtonColor = true, BackgroundColor3 = BG3, Font = FONT, TextSize = 14,
+			TextColor3 = accent, Text = "ODDS",
+			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, 10),
+			Size = UDim2.fromOffset(72, 28), ZIndex = 4,
+		}, panel)
+		round(oddsB, 8)
+		stroke(oddsB, 1, accent)
+		oddsB.MouseButton1Click:Connect(function()
+			showPackInspect({
+				packId = mystery.id, tierName = (def and def.name) or mystery.id, setName = "Any set",
+				cards = 0, count = 0, firstIndex = nil, paid = not isDust,
+			})
+		end)
 
 		-- The star grade: one chip per wild case, worst to best.
 		local chips = stripOf(panel, "MysteryStars", 6)
@@ -1456,8 +1481,10 @@ function MineInventoryView.mount(parent, opts)
 		count }. The dex builds the same shape for packs the player has never
 		seen, with count 0 and no firstIndex -- which is how one inspector
 		serves both "the pack in my bag" and "the pack I am reading about".
+		`g.paid` marks a wild case bought with credits: its exact odds include
+		the credit-only SSS share (MineCases.wildGradeOdds).
 	]]
-	local function showPackInspect(g)
+	function showPackInspect(g)
 		if inspectP then
 			inspectP:Destroy()
 		end
@@ -1603,7 +1630,7 @@ function MineInventoryView.mount(parent, opts)
 						Cards.RARITY_COLOR[SetPacks.STAR_TIER[level or 1]] or TEXT)
 				end
 			else
-				for _, row in ipairs(Cases.wildGradeOdds()) do
+				for _, row in ipairs(Cases.wildGradeOdds(g.paid == true)) do
 					caseRow(string.format("Grade %s  (%d %s)%s", row.grade, row.sets, (row.sets == 1) and "set" or "sets",
 						row.paidOnly and "  --  bought with credits only" or ""),
 						string.format("%.1f%%", row.pct), (Gear.RARITY_COLOR and Gear.RARITY_COLOR[row.grade]) or TEXT)
@@ -4660,34 +4687,51 @@ function MineInventoryView.mount(parent, opts)
 			pbtn.MouseButton1Click:Connect(function()
 				if opts.onBuyCharmsPack then opts.onBuyCharmsPack() end
 			end)
-
-			-- Lucky Charm: 1:1 credits/Robux face; credits preferred (bulk pack deal).
-			local luckyOwned = (state.charms or {}).lucky_charm == true
-			local saleOpen = (not C.limitedSaleOpen) or C.limitedSaleOpen()
-			local prod = C.product and C.product("lucky_charm")
-			local face = (prod and (tonumber(prod.creditsPrice) or tonumber(prod.robuxPrice))) or 199
-			local luckRow = panelRow(body, 56, 7)
-			label(luckRow, "Lucky Charm", 14, GOLD, UDim2.fromOffset(14, 8), UDim2.new(0.45, 0, 0, 20), FONT)
-			label(luckRow, luckyOwned and "Owned — equip it above"
-				or (saleOpen and (face .. " credits = R$ " .. face) or "Goes on sale at launch 00:00"),
-				12, MUTED, UDim2.fromOffset(14, 30), UDim2.new(0.45, 0, 0, 18))
-			local lbtn = mk("TextButton", {
-				Text = luckyOwned and "OWNED" or (saleOpen and (face .. " CR") or "SOON"),
-				Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(20, 28, 40),
-				BackgroundColor3 = luckyOwned and Color3.fromRGB(90, 100, 120) or (saleOpen and (T.CREDIT or GOLD) or MUTED),
-				Size = UDim2.fromOffset(100, 36), Position = UDim2.new(1, -114, 0.5, -18),
-				AutoButtonColor = (not luckyOwned) and saleOpen,
-			}, luckRow)
-			round(lbtn, 8)
-			if (not luckyOwned) and saleOpen then
-				lbtn.MouseButton1Click:Connect(function()
-					if opts.onBuyProductCredits then
-						opts.onBuyProductCredits("lucky_charm")
-					elseif opts.onBuyLuckyCharm then
-						opts.onBuyLuckyCharm()
-					end
+			--[[
+				ODDS BEFORE YOU BUY (owner, 2026-10-19, launch audit M3): the pack
+				costs gems, which trace back to Robux. Every chance comes from
+				MineCharms.packOdds, the same pool rollPack draws from: one charm
+				you do not own yet, each as likely as the next.
+			]]
+			local podds = mk("TextButton", {
+				Text = "ODDS", Font = FONT, TextSize = 13, TextColor3 = GEM, BackgroundColor3 = BG3,
+				Size = UDim2.fromOffset(64, 36), Position = UDim2.new(1, -196, 0.5, -18),
+				AutoButtonColor = true,
+			}, packRow)
+			round(podds, 8)
+			stroke(podds, 1, GEM)
+			podds.MouseButton1Click:Connect(function()
+				if inspectP then
+					inspectP:Destroy()
+					inspectP = nil
+				end
+				local okV, View = pcall(function()
+					return require(shared:WaitForChild("MineLuckyOddsView"))
 				end)
-			end
+				if not (okV and View) then
+					return
+				end
+				local rows = {}
+				for _, r in ipairs(Charms.packOdds(state.charms)) do
+					table.insert(rows, { name = tostring(r.name) .. "  ·  " .. tostring(r.blurb or ""), p = r.p })
+				end
+				inspectP = View.sheet(root, {
+					title = "CHARMS PACK  ODDS",
+					sub = (#rows > 0) and ("One charm you don't own yet, out of " .. #rows .. ", each as likely")
+						or "You own every Charms Pack charm",
+					color = GEM,
+					sections = { { header = "ONE OF THESE", rows = rows } },
+					note = (Charms.PACK_PRICE_GEMS or 2500) .. " gems. Charms you already own are never drawn.",
+				}, {
+					onClose = function()
+						inspectP = nil
+					end,
+				})
+			end)
+			-- (The Lucky Charm "599 CR" row that sat here is gone: owner,
+			-- 2026-10-19, launch audit S2. Its buy only ever answered "That offer
+			-- moved"; Pot of Gold in the limited deals sells the charm, and the
+			-- server still refuses buyProductCredits("lucky_charm").)
 		end
 
 		--[[
@@ -6424,6 +6468,14 @@ function MineInventoryView.mount(parent, opts)
 					PackFX.drawSealed(artHost, def.id, 44, 60)
 					starRow(tile, Packs.packStars and Packs.packStars(def.id) or 3, 72, 12)
 					label(tile, def.name or def.id, 13, TEXT, UDim2.fromOffset(6, 88), UDim2.new(1, -12, 0, 18), FONT).TextXAlignment = Enum.TextXAlignment.Center
+					-- Odds before you buy (launch audit M3): the box sells the wild
+					-- cases too, and a box is bought with credits.
+					infoBadge(tile, {
+						packId = def.id, tierName = def.name or def.id,
+						setName = def.setName or ((def.kind == "pack_case") and "Any set") or "",
+						cards = def.cards or 0, count = 0, firstIndex = nil,
+						setId = def.setKey, paid = true,
+					})
 					local add = mk("TextButton", {
 						AutoButtonColor = true, BackgroundColor3 = BG3,
 						Font = FONT, TextSize = 13, TextColor3 = TEXT,
@@ -6722,6 +6774,27 @@ function MineInventoryView.mount(parent, opts)
 				cta.MouseButton1Click:Connect(function()
 					if current then
 						cartAdd("pack", current, true, 1)
+					end
+				end)
+				-- Odds before you buy (launch audit M3): the hero leads with the
+				-- 5-star wild case, so it gets the inspector the bag has.
+				local heroOdds = mk("TextButton", {
+					AutoButtonColor = true, BackgroundColor3 = BG3, Font = FONT, TextSize = 13,
+					TextColor3 = TEXT, Text = "ODDS",
+					AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -18, 0, 10),
+					Size = UDim2.fromOffset(72, 28), ZIndex = 4,
+				}, hero)
+				round(heroOdds, 8)
+				stroke(heroOdds, 1, T.CREDIT or GOLD)
+				heroOdds.MouseButton1Click:Connect(function()
+					local def = current and Packs.PACK_BY_ID[current]
+					if def then
+						showPackInspect({
+							packId = current, tierName = def.name or current,
+							setName = def.setName or ((def.kind == "pack_case") and "Any set") or "",
+							cards = def.cards or 0, count = 0, firstIndex = nil,
+							setId = def.setKey, paid = true,
+						})
 					end
 				end)
 

@@ -1181,18 +1181,79 @@ function MineCharms.describe(def, p)
 	return line
 end
 
-function MineCharms.rollPack(ownedSet, rng)
-	rng = rng or Random.new()
+-- The Charms Pack's draw for one player: every pack charm they do not own yet.
+-- One function, so the roll and the odds below cannot disagree.
+local function packPoolFor(ownedSet)
 	local pool = {}
 	for _, def in ipairs(PACK) do
 		if not (ownedSet and ownedSet[def.id]) then
 			table.insert(pool, def)
 		end
 	end
+	return pool
+end
+
+function MineCharms.rollPack(ownedSet, rng)
+	rng = rng or Random.new()
+	local pool = packPoolFor(ownedSet)
 	if #pool == 0 then
 		return nil
 	end
 	return pool[rng:NextInteger(1, #pool)]
+end
+
+--[[
+	THE CHARMS PACK'S ODDS (owner, 2026-10-19, launch audit M3: the pack costs
+	gems, which trace back to Robux, so it shows its odds before you pay). A
+	uniform draw over the pack charms this player does not own yet, exactly as
+	rollPack draws: { { id, name, blurb, p } }, empty when there is nothing left.
+]]
+function MineCharms.packOdds(ownedSet)
+	local pool = packPoolFor(ownedSet)
+	local out = {}
+	for _, def in ipairs(pool) do
+		table.insert(out, { id = def.id, name = def.name, blurb = def.blurb, p = 1 / #pool })
+	end
+	return out
+end
+
+--[[
+	The chest charm ladder by grade, as rollChestCharm draws it (each graded
+	charm at its grade's Temper.RARITY_WEIGHTS share): { { grade, p, n } }, in
+	grade order. The wandering trader's Charm Case pays from this ladder, so its
+	odds sheet reads it (MineTrader.caseOdds, launch audit M3).
+]]
+function MineCharms.chestCharmOdds()
+	local graded = MineCharms.GRADED or {}
+	local weights = Temper.RARITY_WEIGHTS or {}
+	local total, byGrade = 0, {}
+	for _, def in ipairs(graded) do
+		local w = math.max(0, tonumber(weights[def.rarity]) or 0)
+		total += w
+		local row = byGrade[def.rarity]
+		if not row then
+			row = { grade = def.rarity, p = 0, n = 0 }
+			byGrade[def.rarity] = row
+		end
+		row.p += w
+		row.n += 1
+	end
+	local out = {}
+	if total <= 0 then
+		-- rollChestCharm pays the first graded charm when no weight is set.
+		if graded[1] then
+			table.insert(out, { grade = graded[1].rarity, p = 1, n = 1 })
+		end
+		return out
+	end
+	for _, g in ipairs(Temper.GRADE_ORDER or { "F", "D", "C", "B", "A", "S", "SS", "SSS" }) do
+		local row = byGrade[g]
+		if row then
+			row.p /= total
+			table.insert(out, row)
+		end
+	end
+	return out
 end
 
 return MineCharms

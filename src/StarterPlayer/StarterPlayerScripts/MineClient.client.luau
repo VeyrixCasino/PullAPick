@@ -8611,6 +8611,70 @@ end
 	roster is about to change, but nothing is gated on it here; if it runs out
 	mid-purchase the server simply says there is no trader there.
 ]]
+--[[
+	A TRADER CASE'S ODDS (owner, 2026-10-19, launch audit M3: "trader cases"
+	show the case's real tier band and family odds). Every number comes from
+	MineTrader.caseOdds, which reads the tables rollCase rolls (and the server
+	rolls rollCase); nothing here computes or types a chance. Drawn into the
+	trader's own panel, so it goes when the panel goes.
+]]
+function ClientFns.traderOdds(parent, row)
+	local okT, Trader = pcall(function()
+		return require(shared:WaitForChild("MineTrader"))
+	end)
+	local okV, View = pcall(function()
+		return require(shared:WaitForChild("MineLuckyOddsView"))
+	end)
+	local odds = okT and Trader and Trader.caseOdds and Trader.caseOdds(row and row.caseId)
+	if not (odds and okV and View) then
+		return
+	end
+	if ClientFns.traderOddsSheet and ClientFns.traderOddsSheet.Parent then
+		ClientFns.traderOddsSheet:Destroy()
+	end
+	local okG, Temper = pcall(function()
+		return require(shared:WaitForChild("MineTemper"))
+	end)
+	local function gradeTint(g)
+		return okG and Temper and Temper.colorOf and Temper.colorOf(g) or nil
+	end
+	local sections, sub = {}, ""
+	if odds.kind == "tool" then
+		sub = string.format("One level 1 tool: any ore tier from %d to %d, any of %d families",
+			odds.tierLo, odds.tierHi, #odds.families)
+		local fams = { header = "FAMILY  (each as likely)", rows = {} }
+		for _, fr in ipairs(odds.families) do
+			local name = string.upper(string.sub(fr.id, 1, 1)) .. string.sub(fr.id, 2)
+			table.insert(fams.rows, { name = name, p = fr.p })
+		end
+		local tiers = { header = "ORE TIER  (each as likely)", rows = {} }
+		for _, tr in ipairs(odds.tiers) do
+			local ore = C.ORES and C.ORES[tr.tier]
+			table.insert(tiers.rows, { name = string.format("Tier %d  ·  %s", tr.tier, tostring(ore and ore.name or "?")), p = tr.p })
+		end
+		sections = { fams, tiers }
+	else
+		sub = (odds.kind == "hat") and "One hat, graded like a gear crate's"
+			or "One charm, on the same ladder chests use"
+		local grades = { header = "GRADE", rows = {} }
+		for _, gr in ipairs(odds.grades) do
+			local name = "Grade " .. tostring(gr.grade)
+			if gr.n then
+				name ..= string.format("  (%d %s)", gr.n, (gr.n == 1) and "charm" or "charms")
+			end
+			table.insert(grades.rows, { name = name, p = gr.p, tint = gradeTint(gr.grade) })
+		end
+		sections = { grades }
+	end
+	ClientFns.traderOddsSheet = View.sheet(parent, {
+		title = string.upper(tostring(row.name or row.caseId)) .. "  ODDS",
+		sub = sub,
+		color = Color3.fromRGB(255, 226, 150),
+		sections = sections,
+		note = "Paid in tokens. The trader rolls it when you buy; every chance above is the one it rolls.",
+	}, { zIndex = 100 })
+end
+
 function ClientFns.showTraderShop(payload)
 	if type(payload) ~= "table" or type(payload.stock) ~= "table" then
 		return
@@ -8670,14 +8734,14 @@ function ClientFns.showTraderShop(payload)
 		round(card, 10)
 		mk("TextLabel", {
 			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 6),
-			Size = UDim2.new(0.58, 0, 0, 20), Font = FONT, TextSize = touch and 14 or 15,
+			Size = UDim2.new(0.5, 0, 0, 20), Font = FONT, TextSize = touch and 14 or 15,
 			TextColor3 = Color3.fromRGB(255, 255, 255), TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd, Text = tostring(row.name or row.caseId),
 			ZIndex = 92,
 		}, card)
 		mk("TextLabel", {
 			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 26),
-			Size = UDim2.new(0.58, 0, 0, rowH - 32), Font = FONT_M, TextSize = touch and 11 or 12,
+			Size = UDim2.new(0.5, 0, 0, rowH - 32), Font = FONT_M, TextSize = touch and 11 or 12,
 			TextColor3 = Color3.fromRGB(186, 190, 210), TextXAlignment = Enum.TextXAlignment.Left,
 			TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top,
 			Text = tostring(row.blurb or ""), ZIndex = 92,
@@ -8691,6 +8755,19 @@ function ClientFns.showTraderShop(payload)
 			Text = price .. " tokens", ZIndex = 92,
 		}, card)
 		round(buy, 9)
+		-- Odds before you buy (launch audit M3): every case here rolls, and
+		-- tokens trace back to Robux. ClientFns.traderOdds draws them.
+		local odds = mk("TextButton", {
+			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -(touch and 122 or 130), 0.5, 0),
+			Size = UDim2.new(0, 58, 0, touch and 40 or 34),
+			BackgroundColor3 = Color3.fromRGB(70, 66, 92), Font = FONT,
+			TextSize = touch and 13 or 14, TextColor3 = Color3.fromRGB(255, 226, 150),
+			Text = "ODDS", ZIndex = 92,
+		}, card)
+		round(odds, 9)
+		odds.MouseButton1Click:Connect(function()
+			ClientFns.traderOdds(f, row)
+		end)
 		buys[#buys + 1] = { btn = buy, price = price }
 		buy.MouseButton1Click:Connect(function()
 			--[[

@@ -146,6 +146,9 @@ books, scaled.
 - **Gems at the Forge.** MY BOOKS has a BOOK BUNDLE card: 3 random books for 500
   gems, ×1.15 for each zone you have opened (PROPOSED). The owner chose this as
   the gem sink runes used to be. The bundle opens on screen (`ctl.showBundle`).
+  Its **ODDS** button (owner, 2026-10-19, launch audit M3: gems trace back to
+  Robux) shows each book's chance from `MineEnchants.bookOdds`, the weights
+  `rollBookId` rolls (`tools/verify/paid-odds.js` rolls one against the other).
 - **Never cases.**
 - Which enchant is picked by rarity weight (Common 100 … Legendary 2.5).
 - B, A and S chests can give level II or III (`BOOK_RANK_LEVEL`).

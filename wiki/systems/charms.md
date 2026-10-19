@@ -151,6 +151,12 @@ unlike every other charm in the file:
   charm guaranteed), the tutorial step 28 Sod Charm, the Charms Pack
   (`PACK_PRICE_GEMS` 2500, never a duplicate), the chest `charm` row (weight 1.1,
   draws from `packPool`), and Pot of Gold via `MineRotatingOffers` / Robux.
+- **The Charms Pack shows its odds** (owner, 2026-10-19, launch audit M3): an ODDS
+  button beside BUY PACK in Inventory → Equipment draws `MineCharms.packOdds`, the
+  same pool `rollPack` draws from (each un-owned pack charm equally likely). The
+  wandering trader's Charm Case shows the chest ladder (`chestCharmOdds`). The
+  Lucky Charm "599 CR" row beside it is gone (audit S2): its buy only ever said
+  "That offer moved".
 - **Proposed, not built:** cut 164 generated charms to about 24 hand-authored rule-charms
   (AUDIT §4, OPEN §8). AUDIT's reason is that "a Diamond Surge Charm is a Coal Surge
   Charm with a bigger number". In numbers: there are only 86 signatures across 164 charms, so 78

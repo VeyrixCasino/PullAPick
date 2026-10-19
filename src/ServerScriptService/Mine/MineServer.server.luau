@@ -11047,7 +11047,9 @@ function Verbs.buyTraderCase(plr, payload)
 	elseif reward.kind == "tool" then
 		local oreDef = C.ORES[math.clamp(reward.tier, 1, #C.ORES)]
 		local OreToolsM = require(shared:WaitForChild("MineOreTools"))
-		local familyId = ({ "pickaxe", "drill", "explosive" })[Random.new():NextInteger(1, 3)]
+		-- Rolled with the tier by MineTrader.rollCase (TOOL_FAMILIES), so the
+		-- odds the trader's panel shows are the ones that roll (audit M3).
+		local familyId = reward.familyId or Dig.Trader.TOOL_FAMILIES[1]
 		local def = oreDef and OreToolsM.frameForTier and OreToolsM.frameForTier(familyId, oreDef.tier)
 		if def and oreDef then
 			p.oreTools = p.oreTools or {}
@@ -15160,6 +15162,28 @@ Verbs.PAID_RANDOM = {
 	buyCharmsPack = true,
 	-- The Forge's gem book bundle: random books for gems (MineEnchants.SHOP_BUNDLE).
 	enchBuyBundle = true,
+	--[[
+		Three more doors (owner, 2026-10-19, launch audit M3: "the region block
+		also covers credit deals, trader cases and the wheel"). An entry may be a
+		function (plr, payload, p) -> true when THIS request is a paid random buy:
+		  buyProductCredits  only a deal or product that pays something random
+		                     (lucky blocks, cases, packs, the Starter Crate's pet:
+		                     MineRotatingOffers.isRandomBuy); the Founders Bag,
+		                     2x Coins and the rest are not random and still sell
+		  buyTraderCase      every trader case rolls, and tokens trace to Robux
+		  groupWheelSpin     only a spin that would spend a BOUGHT spin: free spins
+		                     are not paid and always work (GroupWheelService.spin
+		                     refuses the paid one too, with its own reply)
+	]]
+	buyProductCredits = function(_plr, payload)
+		local key = (type(payload) == "table" and payload.key) or payload
+		return require(shared:WaitForChild("MineRotatingOffers")).isRandomBuy(key)
+	end,
+	buyTraderCase = true,
+	groupWheelSpin = function(plr, _payload, p)
+		local st = p and GroupWheelService.snapState(p, plr)
+		return st ~= nil and (tonumber(st.freeLeft) or 0) <= 0 and (tonumber(st.paid) or 0) > 0
+	end,
 }
 
 function Verbs.fetchPolicy(plr)
@@ -15192,10 +15216,20 @@ function Verbs.fetchPolicy(plr)
 end
 
 -- True when this player's rules forbid the action (and says why).
-function Verbs.policyBlocks(plr, action)
-	if Verbs.PAID_RANDOM[action] and plr:GetAttribute("PolicyNoRandom") == true then
-		net:FireClient(plr, "toast", "That isn't available in your region")
-		return true
+function Verbs.policyBlocks(plr, action, payload)
+	local rule = Verbs.PAID_RANDOM[action]
+	if rule and plr:GetAttribute("PolicyNoRandom") == true then
+		local blocked = rule == true
+		if type(rule) == "function" then
+			local okRule, why = pcall(rule, plr, payload, profiles[plr.UserId])
+			-- A rule that errors blocks: the strict side, as for a lookup that
+			-- has not answered yet.
+			blocked = (not okRule) or why == true
+		end
+		if blocked then
+			net:FireClient(plr, "toast", "That isn't available in your region")
+			return true
+		end
 	end
 	if action == "discordLink" and plr:GetAttribute("PolicyDiscord") ~= true then
 		return true
@@ -17170,7 +17204,7 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 	busy[plr.UserId] = true
 	local ok, err = pcall(function()
 		if not profiles[plr.UserId] then load(plr) end
-		if Verbs.policyBlocks(plr, action) then return end
+		if Verbs.policyBlocks(plr, action, payload) then return end
 		if type(action) == "string" and string.sub(action, 1, 4) == "fish" then
 			Verbs.Fish.dispatch(plr, action, payload)
 			return
