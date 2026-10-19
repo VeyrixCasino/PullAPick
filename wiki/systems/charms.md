@@ -2,13 +2,16 @@
 title: Charms
 type: system
 status: partial
-verified: 2026-10-08 @ bae3c5b
+verified: 2026-10-19 @ 2efdf89
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineCharms.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
   - tools/verify/charms.js
+  - src/ServerScriptService/Mine/MineCrypt.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCryptRules.luau
+  - tools/verify/crypt.js
   - tools/gen-charm-icons.js
   - tools/icons/charm-sheet.js
   - src/ReplicatedStorage/Mine/Shared/MineTemper.luau
@@ -37,13 +40,15 @@ related: [skins-cases-and-temper, boosts-and-stats, ores, chests-and-lucky-block
   charms). See [boosts-and-stats](boosts-and-stats.md).
 - **Owned as a tally.** `p.charms[id]` is a count; a legacy `true` counts as one
   (`MineCharms.ownsAnyCharm`).
-- **Three families in `MineCharms.LIST`:**
+- **Four families in `MineCharms.LIST`:**
   - **164 ore charms**, generated at module load from `MineConfig.ORES`: 82 ores ×
     `ORE_CHARM_VARIANTS` 2. Ids `<ore>_charm` (variant 1, the id old saves hold)
     and `<ore>_charm_2` (`MineCharms.oreCharmId`). Name `<Ore> <Word> Charm`.
   - **31 legacy charms**: 15 zone charms (`CHARM_ZONES` 5 zones × shallow/mid/deep
     by `bandForLayer`), 15 pack charms, and Pot of Gold (id `lucky_charm`, limited).
   - **36 graded charms** (`source = "charm"`, 2026-10-07; see below).
+  - **6 Halloween charms** (`source = "candy"`, 2026-10-19), crafted from candy
+    ores; see the section after the graded ones.
 - **Ore-charm drop.** Each ore block rolls a case at `MineConfig.ORE_CASE_CHANCE`
   0.02 × `Dig.oreLuck(b)`. An opened case pays a charm with
   `ORE_CASE_CHARM_SHARE` 0.25, else a skin. That is 0.5% per ore block before luck.
@@ -126,6 +131,35 @@ unlike every other charm in the file:
   so the reveal panel and the temper UI cannot disagree on a grade's name.
 - `backpack` is on none of them (retired). `luck` is allowed here on the author's
   reading that the no-self-feeding rule bites ore-case charms only.
+
+## The six Halloween charms (2026-10-19)
+
+Owner, 2026-10-19 (the Candy Crypt build spec, [open-questions §0e](../open-questions.md)):
+*a new set of 6 Halloween charms, crafted at the Forge from candy ores (deeper
+ore, better charm); candy find, event digging and a small normal stat; the same
+power everywhere.*
+
+- **Rows:** `MineCharms.CANDY_CHARMS`, appended to `LIST` with `source = "candy"`,
+  a grade on the F..SSS ladder and a `recipe = { oreId, count }`. Not graded
+  (`GRADED`), not a zone grant, not a chest drop, not token-bought
+  (`charmTokenPrice` is nil for them) and not mergeable.
+- **The six,** deeper ore and better grade together: Candy Corn Kernel (D, 25
+  Candy Corn), Cotton Candy Wisp (C, 30 Cotton Candy), Pop Rocks Fizz (B, 35 Pop
+  Rocks), Rock Candy Lantern (A, 40 Rock Candy), White Chocolate Moon (S, 50 White
+  Chocolate), Jawbreaker Skull (SS, 60 Jawbreaker). Names, ores, grades and counts
+  are PROPOSED.
+- **Stats** are derived, not typed: `MineTemper.RARITY_MULT` for the grade times
+  `CANDY_CHARM_SHARE` (Candy Find 0.8, Event Digging 0.6, the normal stat 0.15).
+  D: +56% / +42% / +10%; SS: +400% / +300% / +75%. The normal stat differs per
+  charm (Coin Bonus, Swing Rate, Dirt Break, Chest Luck, Gem Find, Mine Speed).
+- **Candy Find** (`candyFind`) multiplies the candy a block or Crypt chest pays
+  (`MineCrypt` reads `boosts().candyFind`). **Event Digging** (`eventDig`)
+  multiplies an event tool's power wherever it is swung (`MineCryptRules.eventDigOf`
+  reads the worn charm, because `boosts()` asks for the held tool and would loop).
+  Neither touches a normal tool, and Event Digging does not touch Event Horizon's.
+- **Crafting:** `cryptCraftCharm { charmId }` spends the candy ore, tallies the
+  charm and wears it if nothing is worn. `MineCryptRules.charmRecipes(p)` is what
+  a screen draws. **No icons yet** (`art` is nil): the six pictures are owed.
 
 ## Decided by the owner
 

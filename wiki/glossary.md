@@ -23,6 +23,8 @@ related: [ambiguous-terms, overview, index]
 - **Forged tool / ore tool** — a tool made from one ore, named `{Ore} {Noun}`. [tools](systems/tools.md)
 - **Forge** (was bench, Blacksmith) — the crafting and levelling panel. [forge-and-recycling](systems/forge-and-recycling.md)
 - **Breaking power** — whether a tool can damage a block at all. **Not damage.** [mining-and-breaking](systems/mining-and-breaking.md)
+- **Crypt tool / event tool** — a Candy Crypt tool (`MineCandyTools`): the only kind that digs the Crypt; kept after the event, then weaker in the main world. Event Horizon's tools are event tools too, with their own rules. [world-events](systems/world-events.md)
+- **Candy / candy ore** — the Crypt's currency, and the sixteen ores whose blocks pay it; a candy ore sits in the ore pouch but sells for candy, never gems. [world-events](systems/world-events.md)
 - **Block strength** — the harder of the depth strength and the ore's strength, minus reach. [mining-and-breaking](systems/mining-and-breaking.md)
 - **Ore reach** — how many tiers above its own a tool can break: 5 at home, 15 once you are past the zone. [mining-and-breaking](systems/mining-and-breaking.md)
 - **`tooWeak`** — the event sent when the gate refuses a swing. [mining-and-breaking](systems/mining-and-breaking.md)

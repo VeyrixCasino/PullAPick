@@ -326,10 +326,19 @@ function MinePortalFX.start(getSnapshot)
 		end
 		local zone = C.zoneById(p.zoneId)
 		if zone and zone.limited then
-			if snapshot.bigbangOwned then
+			-- Per zone (2026-10-19): the zone's own claim flag and window, not
+			-- Event Horizon's for every limited mine.
+			if snapshot[zone.ownedFlag or "bigbangOwned"] then
 				return true
 			end
-			return snapshot.limitedActive == true
+			local open = snapshot.limitedOpen
+			if type(open) == "table" and open[zone.id] ~= nil then
+				return open[zone.id] == true
+			end
+			if zone.id == "bigbang" then
+				return snapshot.limitedActive == true
+			end
+			return C.limitedActive ~= nil and C.limitedActive(zone.id) == true
 		end
 		-- Owned islands light regardless of rebirth. minRebirth gates buyZone,
 		-- not travel — a stale Prestige=1 attr used to keep Sunscar dark after buy.

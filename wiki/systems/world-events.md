@@ -2,7 +2,7 @@
 title: World events
 type: system
 status: current
-verified: 2026-10-10 @ 31ecb3d
+verified: 2026-10-19 @ 2efdf89
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ServerScriptService/Mine/MineEventHorizon.luau
@@ -18,6 +18,10 @@ sources:
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineTrickOrTreat.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCryptRules.luau
+  - src/ServerScriptService/Mine/MineCrypt.luau
+  - tools/verify/crypt.js
+  - wiki/open-questions.md §0e
   - docs/OPEN.md P0 §3, P2
   - docs/PROPOSAL.md §0 line 32
   - docs/AUDIT.md §5
@@ -65,93 +69,95 @@ related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-m
 
 ### Candy Crypt (`hallow`, zone index 12) — Halloween 2026
 
-> **Built (2026-10-10).** Zone, window, claim, 3×3 pit, no chests, candy
-> balance, strata, twelve candy ores, 10-layer sections, the 3× curve, the sell
-> curve, twelve candy tools, and the Trick-or-Treat case with the Bucket.
-> **The Halloween 2026 Pack exists (2026-10-10)**, so the case's pack slot is
-> live: `MineTrickOrTreat.resolvedPack()` returns `halloween_2026` (checked in
-> a Studio play test). Its 60 pets are in [pets](pets.md#holiday-pets-halloween-2026).
+> **Built 2026-10-10, redesigned 2026-10-19** to the owner's build spec
+> ([open-questions §0e](../open-questions.md), "The Candy Crypt, redesigned").
+> The server and shared-data half is in; the client screens are the next job.
+> Nothing here has run in Studio yet. Every number the owner did not give is
+> PROPOSED in the code.
 
-**The Trick-or-Treat case** (`MineTrickOrTreat`) is bought with candy and opens
-on the spot — no unopened case sits in a bag. It is **not** a `MineCases` case:
-those hold packs and nothing else, and this pays four different kinds of thing.
+**The rules, as built** (`MineCryptRules` holds them for both sides; the server
+module `MineCrypt` grants and gates; `MineCandyTools` is the tool table):
 
-| outcome | rate | comes from |
-| --- | --- | --- |
-| candy back | 52.0% | 19.5% of spend returns as candy |
-| hat | 32.8% | `Gear.rollPiece(id, rng, "head")` → `p.gear` |
-| skin | 15.1% | `MineTemper.rollTemperament` → `p.tempers` |
-| seasonal pack | — | conditional; folded into hats while absent |
-| **Trick-or-Treat Bucket** | **0.1%** | 1 in 1,015 over 200,000 rolls |
+- **Only event tools dig it.** The zone row carries `eventToolsOnly`.
+  `equippedTool` hands the player their Crypt tool there (`MineCryptRules.heldRow`),
+  and `MineSpaceMatter` refuses any other tool on Crypt rock, on both damage paths
+  ("Only event tools work here."). A Crypt tool's event row spends no other rock.
+  Event Horizon is untouched.
+- **Claiming** (the Events tab's `buyZone`, or the free claim on entry) checks the
+  Crypt's own window and sets `hallowOwned`. `buyZone` used to read Event
+  Horizon's window and grant Event Horizon (launch audit M2). A claim gives the
+  starter `candy_corn_pickaxe`; a claimed save with no tool gets it back on load.
+- **Crypt tools.** 12 rows, 3 tiers (Candy Corn, Toffee, Jawbreaker; bands of 40
+  layers) x 4 families. Each borrows its family's forged frame and
+  `MineOreTools.FAMILY_POWER`, and is tuned to take `PICK_HITS` 12 pick hits at
+  layer 31, 71 or 111. No row has a price: the candy shop is gone.
+- **Where they come from.** Crypt chests (`chestMult` 3, about ten in the Crypt)
+  pay candy (5 candy blocks' worth) and a tool 30% of the time (x chest luck,
+  capped x3), from the chest's own band, a tier better 15% of the time. And the
+  Trick-or-Treat case (below).
+- **Save:** `p.cryptTools` (`"<id>|<variant>"` -> copies), `p.cryptToolEquipped`,
+  `p.cryptToolWorld`, `p.eventNoticeSeen`, `p.candySeen`.
+- **Merging** (`cryptMerge`): 3 x (tool, variant) -> 1 x the next variant,
+  Golden -> Prism -> Rainbow, at `MineConfig.VARIANT_MULT` (2.25 / 3.5 / 5.5).
+- **After the event** the tools stay. They always work in the Crypt; in the main
+  world only once the window has ended and the player chose it
+  (`cryptEquip { world = true }`), as a level-1 forged tool of the row's
+  `worldOreTier` (ore 8, 24 or 41) times its variant, with that ore's breaking
+  power; and in a later event mine (one with `eventToolsOnly`) once the Crypt has
+  ended. During the event they do nothing outside the Crypt.
+- **Rock:** `MineConfig.cryptRockHp`, zone 3's surface (538) at the top to zone
+  10's (41,992,188) at layer 120, smooth per layer, still hardening below. It
+  still **sells for little**: coins keep the old curve (`cryptSellHp`, x3 per 10
+  layers from 1), through `cryptHaulRatio` in `payDamage`; the normal-ore mix
+  keeps the old curve too (`oreDifficulty`). No strength gate (`noStrengthGate`,
+  read by both damage paths): HP is the gate.
+- **Candy is 3x** (`CANDY_RATE_MULT`). A candy block pays candy **and one candy
+  ore** into the pouch (`MineCrypt.onBlockBroken`), whatever kind of block it is.
+  The old payout sat in the ore branch, so almost no candy block paid.
+- **Sixteen candy ores** in value order (Cotton Candy, Pop Rocks, Milk and White
+  Chocolate are new), evenly spaced, two per pouch band. They take pouch room,
+  never sell for gems, and sell for candy (`cryptSellCandyOres`, at
+  `candyOreValue`: half a block at the ore's home depth).
+- **Six Halloween charms** are crafted from candy ores (`cryptCraftCharm`); see
+  [charms](charms.md).
+- **First entry** pushes `eventNotice` until `cryptNoticeSeen` marks it.
+- **The Crypt is remade** on the 20-minute mine-reset beat while it is open, so
+  there is always a top for the starter pick.
 
-The **Bucket** is a real bag with a real ability: `candyMult = 2` is a number
-the payout reads, not a line in a blurb. Winning it never demotes a player
-already carrying something bigger. At 1.5× the top coin bag (the Wormhole is 4×)
-it sits clearly above the best bag you can buy and clearly below the one you earn (owner, 2026-10-10: it was 2×).
+**The Trick-or-Treat case** (`MineTrickOrTreat`, 2,500 candy, bought and opened
+in one action, only while the Crypt is open and claimed):
+
+| outcome | rate | what it is |
+|---|---|---|
+| Crypt tool | 85% | tier 1/2/3 at 60/30/10, any family, Normal |
+| skin case | 5% | an ore case in the bag (`<ore>_ore_case`, ore tier 10-40) |
+| hat | 7% | `Gear.rollPiece(id, rng, "head")` -> `p.gear` |
+| Halloween 2026 Pack | 2.9% | a real bag row with `packId` (it was `{ setId }`, which openPack cannot resolve); folds into hats if the pack is missing |
+| **Trick-or-Treat Bucket** | **0.1%** | a bag (`candyMult = 2`), never demotes a bigger one |
+
+No candy back (owner, 2026-10-19). `MineCryptRules.caseOdds()` is the odds sheet.
 
 **Three profile fields do not exist, and each compiles fine if you guess:**
 - `p.hats[id]` — a hat is a **gear piece** appended to `p.gear` (an array).
-  `MineHats` is the catalogue the roller draws from, not a pool to pick from.
-- `p.tempers` is a **map keyed by `kit.id`** holding `{ rarity, n }`, not a
-  list. `table.insert` corrupts it. A duplicate keeps the **better** grade.
+- `p.tempers` is a **map keyed by `kit.id`** holding `{ rarity, n }`, not a list.
 - `p.bagsOwned` — `backpackTier` is an **index** into `C.BACKPACKS`; limited
-  bags are owned through a dedicated flag, like `p.wormholeBag`.
+  bags are owned through a dedicated flag, like `p.wormholeBag` and `p.trickBucket`.
 
-A second limited mine, open **alongside** Event Horizon rather than after it.
-Owner's brief: candy ores dropping candy corn, **no chests**, nothing sells for
-much (more the deeper you go), **no hardness gate** so surface tools work, **ten
-layers to a section and about ten blocks to a layer**, 3× per section, and candy
-buys Trick-or-Treat cases, seasonal packs, skin and hat cases, and the Halloween
-bucket. Halloween tools are buyable with candy and must be sold with an explicit
-warning that they are very weak and only for seasonal events.
-
-Adding it forced three things that assumed exactly one limited zone:
-
-| was | now |
-| --- | --- |
-| `limitedActive()` took no argument | `limitedActive(zoneId)`, windows in `MineConfig.LIMITED_WINDOWS`. No argument still means `bigbang`. |
-| `Gate.zoneUnlocked` / `enterZone` read `p.bigbangOwned` for any limited zone | each zone names its own `ownedFlag` (`hallowOwned` here) |
-| `rollKind` named `bigbang` for chest density | reads `zone.chestMult`, so Halloween can set **0** |
-
+**Built 2026-10-10, still true:**
 - **Halloween runs on real calendar dates** (owner, 2026-10-10: *"if the game
-  isn't live by then, it doesn't happen"*). `hallow = { opensUnix, closesUnix }`:
-  2026-10-17 00:00 to 2026-11-08 00:00 US Eastern, so 7 November is a full day.
-  A window given as calendar dates reads the wall clock; Event Horizon keeps
-  its day offsets on `MineLaunch.seasonNow()`. Before this it was season start
-  + 25 days, which slid with launch. Verified in Studio: on 2026-10-10 it reads
-  closed, opening in 6 days.
-- **Blocks per layer is per zone** (`MineConfig.gridFor`). A layer is square, so
-  no grid gives exactly 10: `grid = 3` gives 9 and keeps a true centre block,
-  which the elevator and pit centre are computed from. Applied at the three
-  places that decide what a layer *is* — generation, and `MineDigAuth`'s cell
-  lookup and pit bounds. Zones omitting `grid` read 21 and are unchanged.
-- **`sets` is meadow's, not candy.** It is read as `MineCards` set ids, and
-  `candy_corn` / `gummy_vein` / `sugar_glass` are **not registered** there —
-  using them hands broken set ids to every pack the zone can produce. Limited
-  zones already draw pets from the meadow pot. It becomes the Halloween 2026
-  set once that pack exists, which under the holiday rule is the only legal
-  source of holiday pets anyway.
-- **There is no "hardness gate" to switch off.** The gate is block HP, and the
-  Crypt has its own curve in `blockHp` rather than a place on the zone ladder —
-  index 12 would have put its surface rock past Primordium at 41,992,188 HP.
-  `zone.noStrengthGate` is on the row as documentation; the HP branch is what
-  actually does it. Nothing else was stopping a normal tool: unlike Event
-  Horizon there is no separate matter pool here.
-- **One curve is the difficulty *and* the sell value**, because coins are one
-  per point of HP (`coinsFor`). Base 1, ×3 per 10-layer section:
-  `L1 = 1`, `L50 = 81`, `L100 = 19,683`, `L120 = 177,147`.
-- **Candy ores are not in `MineConfig.ORES`** (`CANDY_ORES`, 12 of them).
-  `ORES` is one global 82-rung ladder weighted only by each rung's `d` against
-  zone difficulty — **there is no per-zone filter** — so a candy rung would
-  appear in every mine and shift the share of every ore around it. They also
-  bypass the ore pouch: candy is a currency, banked at spawn and paid on break.
-  The mix walks with depth (L1 70% Candy Corn, L130 77% Jawbreaker) and is
-  chosen from the cell position, so a block is the same candy on every server.
-- **`MineCandyTools`**: 12 tools, 4 families, priced in candy, every row
-  carrying `MineCandyTools.WARNING` and `seasonalOnly`. Deliberately **not**
-  `eventOnly` — that is Event Horizon's matter lock. They work anywhere and are
-  bad everywhere else: the best one needs **9,481 hits per block** on
-  Primordium's surface, which is the warning, earned.
+  isn't live by then, it doesn't happen"*): `LIMITED_WINDOWS.hallow` is
+  2026-10-17 00:00 to 2026-11-08 00:00 US Eastern on `os.time()`, while Event
+  Horizon keeps day offsets on `MineLaunch.seasonNow()`. `limitedActive(zoneId)`
+  takes the zone; no argument still means `bigbang`.
+- **Each limited zone names its own `ownedFlag`** (`hallowOwned` here), read by
+  `Gate.zoneUnlocked`, `enterZone`, `buyZone`, Planets Travel and the portals
+  (the snapshot's `limitedOpen` carries every limited zone's own window).
+- **Blocks per layer is per zone** (`MineConfig.gridFor`): `grid = 3`, nine
+  blocks a layer with a true centre block.
+- **`sets` is meadow's, not candy**, because they are `MineCards` set ids; the
+  Halloween pets come only from the Halloween 2026 Pack.
+- **Candy ores are not in `MineConfig.ORES`** (`CANDY_ORES`), because `ORES` has no
+  per-zone filter. The mix walks with depth and is chosen from the cell position.
 
 ### Event Pass
 - **What it is.** `MineEventPass.TRACKS.event_horizon` has 6 tiers. Event XP
@@ -193,7 +199,11 @@ See [zones-layers-and-seams](zones-layers-and-seams.md).
 | `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | event zone row, window, catalog | `ZONES`, `EVENTS`, `LIMITED_START_UNIX`, `LIMITED_DAYS`, `limitedActive`, `MINE_RESET_SEC` |
 | `src/ServerScriptService/Mine/MineEventHorizon.luau` | station and black-hole build | `HOLE_AT`, `outpost`, `setLowGravity` |
 | `src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau` | event tool shop | `TOOLS`, `ZONE_INDEX`, `byId` |
-| `src/ReplicatedStorage/Mine/Shared/MineSpaceMatter.luau` | which HP pool a tool may spend | `classOf` |
+| `src/ReplicatedStorage/Mine/Shared/MineSpaceMatter.luau` | which HP pool a tool may spend; the event-only rule | `classOf`, `reject`, `chip`, `TOAST` |
+| `src/ReplicatedStorage/Mine/Shared/MineCryptRules.luau` | the Candy Crypt's rules, shared | `heldRow`, `window`, `mergePlan`, `worldPower`, `caseOdds`, `charmRecipes`, `stateFor`, `NOTICE` |
+| `src/ServerScriptService/Mine/MineCrypt.luau` | Crypt grants, verbs, hooks | `dispatch`, `heldTool`, `onClaim`, `onBlockBroken`, `openChest`, `buyTrickOrTreat`, `haulPoints` |
+| `src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau`, `src/ReplicatedStorage/Mine/Shared/MineTrickOrTreat.luau` | Crypt tool table; the case | `TOOLS`, `rollChestTool`, `rollCaseTool`; `WEIGHTS`, `roll`, `odds` |
+| `tools/verify/crypt.js` | runs the real modules: gating, drops, merge, keep-after-event | |
 | `src/ReplicatedStorage/Mine/Shared/MineEventPass.luau` | pass tiers and quests | `TRACKS`, `ensure`, `activeBonus`, `tick` |
 | `src/ReplicatedStorage/Mine/Shared/MineWorldEvents.luau`, `src/ReplicatedStorage/Mine/Shared/MineWorldPulseUI.luau` | World Pulse, inert | `EVENTS`, `startLoop`, `foldBoosts` |
 | MineServer | gates, boost fold, sets | `Gate.zoneUnlocked`, `boosts`, `openPack` |
@@ -210,6 +220,10 @@ See [zones-layers-and-seams](zones-layers-and-seams.md).
 - **The event code is inherited.** It is unchanged since the import (`566eecf`),
   apart from fossil removal.
 - **World Pulse is off.** It was switched off before this branch.
+- **The Candy Crypt redesign is half built (2026-10-19).** The server and shared
+  data are in and pinned by `tools/verify/crypt.js`; the client screens (Crypt
+  tool inventory, merge, candy sell, charm crafting, the pop-up, Sell up to) are
+  not, and nothing has run in Studio.
 - **On the ARCHIVE list.** AUDIT §5 lists "Event pass / limited events (~900)"
   for archiving. That is a proposal, and no archive has happened.
 
@@ -237,6 +251,11 @@ See [zones-layers-and-seams](zones-layers-and-seams.md).
 - Archive the event pass and limited events, or keep them for launch (AUDIT §5)?
 - What happens to Event Horizon after 2026-11-08? Is a new event planned? Nothing in the repo says.
 - Should World Pulse be deleted, or revived?
+- Candy Crypt (2026-10-19, asked in the build report): should the Crypt end at
+  layer 120 instead of hardening on below it? Should candy keep tripling every
+  10 layers (a deep candy block is worth hundreds of 2,500-candy cases)? Should
+  Event Digging also boost Event Horizon tools (it does not)? Is "candy and
+  maybe a tool" the whole of a Crypt chest?
 
 ## See also
 [zones-layers-and-seams](zones-layers-and-seams.md) · [cards-and-packs](cards-and-packs.md) · [shops-and-monetisation](shops-and-monetisation.md) · [social-quests-and-leaderboards](social-quests-and-leaderboards.md) · [pets](pets.md)
