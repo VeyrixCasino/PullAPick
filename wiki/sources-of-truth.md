@@ -59,6 +59,7 @@ ore researcher; it is not on the working branch.
 |---|---|---|---|
 | `docs/AUDIT.md` | Full game audit and the cut list (archive / delete / keep). | 2026-10-04 | Good for the analysis. **Nothing on its cut list has moved yet.** |
 | `docs/BALANCE-MEASURED.md` | Boost ceilings and reach measurements, read off the modules. | 2026-10-05 | Good. Reproducible. |
+| `docs/CANDY-CRYPT.md` | The Candy Crypt's numbers (v2): HP, ore odds, drops and candy with their spread, chests, the case, every Halloween tool's costs and damage, gems an hour. | 2026-10-19 | **Generated** by `tools/gen/crypt-doc.js` from the modules; `tools/verify/crypt-doc.js` fails when stale. Its per-hour columns assume 1,200 blocks an hour. |
 | `docs/PR-BALANCE-PASS.md` | The PR body for the damage curve, level cap and zone gate. | 2026-10-05 | A write-up, not a spec. |
 | `docs/BALANCE-PROPOSAL.md` | The 2026-10-03 balance proposal. | 2026-10-03 | Partly superseded by PROPOSAL.md. |
 | `docs/SKILL-TREE.md` | Elements and the skill tree. | 2026-10-04 | Roster table predates a remap. |

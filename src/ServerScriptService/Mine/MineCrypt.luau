@@ -65,7 +65,8 @@
 	                                      skinId?, tier?, dupeDust? },
 	                           price, candyLeft }
 	  chestOpened            (the zone-chest event) with kind = "crypt", rank,
-	                           rankIndex, name, candy, packs (names), packIds,
+	                           rankIndex, name, icon ("" until MineCryptIcons is
+	                           shared), candy, packs (names), packIds,
 	                           charm = { id, name } | nil, book = { id, level } | nil
 	  foundTool              a crafted tool, a chest's charm, as reveals
 	  bookBundle             { books = { { id, level } }, source = "crypt" }
@@ -708,6 +709,7 @@ function S.openChest(plr, p, part, b)
 		kind = "crypt",
 		rank = rank.key,
 		rankIndex = rank.index,
+		icon = R.icon("chest", rank.key),
 		coins = 0,
 		gems = 0,
 		candy = candy,

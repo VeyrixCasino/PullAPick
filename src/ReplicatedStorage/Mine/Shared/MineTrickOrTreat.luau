@@ -36,12 +36,13 @@ MineTrickOrTreat.PACK_ID = "halloween_2026"
 --[[
 	THE ONE TABLE OF CASE NUMBERS (PROPOSED 2026-10-19, except the 50/50).
 
-	  PRICE         candy. About twenty minutes of a mid-depth dig's block candy
-	                (section 6, docs/CANDY-CRYPT.md), and more if you sell ores.
+	  PRICE         candy. About a quarter of an hour of block and chest candy at
+	                mid depth (dig section 6 in docs/CANDY-CRYPT.md §4), and a
+	                few minutes if you also sell your candy ores.
 	  TREAT_CHANCE  owner: 50/50.
 	  KIND_WEIGHTS  a Halloween pet or a Halloween skin. Pets lead: there are
-	                72 of them to collect and skins repeat (a skin you own pays
-	                stardust instead, as a chest skin does).
+	                many more of them to collect, and skins repeat (a skin you
+	                own pays stardust instead, as a chest skin does).
 	  RARITIES      the rarity roll. `pet` and `skin` are the two ladders' names
 	                for the same rung (pets Common .. Exotic, skins F .. SSS).
 ]]

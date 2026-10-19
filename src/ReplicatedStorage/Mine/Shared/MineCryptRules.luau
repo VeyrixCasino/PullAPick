@@ -185,6 +185,16 @@ local function lazy(name)
 	return hit or nil
 end
 
+-- The Crypt's icon ids (MineCryptIcons): "" until the Cursor job fills them and
+-- the owner shares them, and "" means "draw the fallback".
+local function iconOf(kind, key)
+	local I = lazy("MineCryptIcons")
+	local fn = I and I[kind]
+	return (type(fn) == "function" and fn(key)) or ""
+end
+-- R.icon("ore" | "tool" | "chest", id): the same, for a screen or a push.
+R.icon = iconOf
+
 -- The Halloween 2026 Pack's pet list (HolidayPets/Halloween2026), or nil.
 local function holidayList()
 	local hit = lazyCache["HolidayPets/Halloween2026"]
@@ -806,6 +816,7 @@ function R.chestOdds(layer, chestLuck)
 			packs = r.packs,
 			luck = r.luck,
 			candy = r.candy,
+			icon = iconOf("chest", r.key),
 		})
 	end
 	return { ranks = ranks, charm = Chests.charmChance(chestLuck) }
@@ -840,6 +851,7 @@ function R.candyOreRows(ores, locks, seen)
 			candyValue = each * n,
 			locked = (locks or {})[o.id] and true or false,
 			seen = (n > 0) or ((seen or {})[o.id] == true),
+			icon = iconOf("ore", o.id),
 		})
 	end
 	return out
@@ -879,7 +891,7 @@ local function toolView(p, entry, dig, heldUid, store)
 		scrapCandy = Tools.scrapCandy(def, k, entry.spent),
 		skinFactor = def.skinFactor,
 		equipped = heldUid == entry.uid,
-		icon = def.icon or "",
+		icon = iconOf("tool", def.id),
 		cryptTool = true,
 	}
 end
@@ -966,7 +978,7 @@ function R.recipes(p, now)
 			skinFactor = def.skinFactor,
 			power = Tools.cryptPower(def, 0, 0),
 			worldPower = Tools.worldPower(def, 0, 0),
-			icon = def.icon or "",
+			icon = iconOf("tool", def.id),
 		})
 	end
 	return out

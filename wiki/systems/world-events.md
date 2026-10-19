@@ -29,6 +29,10 @@ sources:
   - src/ServerScriptService/Mine/TradeService.luau
   - tools/verify/crypt.js
   - tools/verify/_crypt.js
+  - tools/gen/crypt-doc.js
+  - docs/CANDY-CRYPT.md
+  - src/ReplicatedStorage/Mine/Shared/MineCryptIcons.luau
+  - tools/cursor/tasks/crypt-icons.md
   - wiki/open-questions.md §0e
   - wiki/open-questions.md "Candy Crypt v2"
   - docs/OPEN.md P0 §3, P2
@@ -83,7 +87,9 @@ related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-m
 > day, which replaced much of it. The **server and shared half of v2 is in**
 > (below, pinned by `tools/verify/crypt.js`); its screens are the next client
 > session's (the v2 verbs and pushes are listed as awaiting the client in
-> `tools/verify/crypt-ui.js`). Nothing here has run in Studio. Every number the
+> `tools/verify/crypt-ui.js`). **Every number is in `docs/CANDY-CRYPT.md`**,
+> generated from the code by `tools/gen/crypt-doc.js` (and kept current by
+> `tools/verify/crypt-doc.js`). Nothing here has run in Studio. Every number the
 > owner did not give is PROPOSED in the code.
 
 **v2, as built** (`MineCryptRules` holds the rules for both sides; the server
@@ -179,7 +185,13 @@ price; the tables are `MineConfig.CANDY_ECONOMY`, `MineCandyTools`,
 - **First entry** pushes `eventNotice` until `cryptNoticeSeen` marks it.
 - **The Crypt is remade** on the 20-minute mine-reset beat while it is open.
 - **Gems:** nothing in the Crypt pays gems (candy ores never sell for gems; the
-  first design's normal ores did, a little, and are gone).
+  first design's normal ores did, about 190 to 720 an hour by section, and are
+  gone; `docs/CANDY-CRYPT.md` §8).
+- **Art:** none yet. `MineCryptIcons` holds the icon ids (empty, and `SHARED =
+  false`); `MineCryptRules` puts `icon` on tool, recipe, candy-ore and chest
+  rows. The Cursor job `tools/cursor/tasks/crypt-icons.md` makes the 40 Canva
+  images (16 ores, 16 tools, 8 chests) and fills it; the owner shares the
+  uploads and flips `SHARED`.
 
 **Three profile fields do not exist, and each compiles fine if you guess:**
 - `p.hats[id]` — a hat is a **gear piece** appended to `p.gear` (an array).
@@ -302,7 +314,9 @@ See [zones-layers-and-seams](zones-layers-and-seams.md).
 | `src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau` | the sixteen Halloween tools | `TOOL_TABLE`, `TOOLS`, `prestigeCost`, `totalSpent`, `scrapCandy`, `cryptPower`, `worldEquivalent`, `worldPower` |
 | `src/ReplicatedStorage/Mine/Shared/MineCryptChests.luau` | the eight Crypt chests | `RANKS`, `rankOdds`, `rollRank`, `spawnDef`, `charmChance`, `packRows` |
 | `src/ReplicatedStorage/Mine/Shared/MineTrickOrTreat.luau` | the case | `PRICE`, `RARITIES`, `KIND_WEIGHTS`, `TREAT_CHANCE`, `roll`, `odds` |
+| `src/ReplicatedStorage/Mine/Shared/MineCryptIcons.luau` | the Crypt's icon ids, behind `SHARED` | `ORES`, `TOOLS`, `CHESTS`, `ore`, `tool`, `chest` |
 | `tools/verify/crypt.js`, `tools/verify/_crypt.js` | runs the real modules and `MineCrypt` on one shared harness: v2 end to end | |
+| `tools/gen/crypt-doc.js`, `docs/CANDY-CRYPT.md`, `tools/verify/crypt-doc.js` | the numbers document, generated from the code, and its freshness check | |
 | `src/ReplicatedStorage/Mine/Shared/MineEventsView/init.luau` | the Events tab: pills, one card per event, (i), Event Pass | `mount`, `view.onCaseOpened` |
 | `src/ReplicatedStorage/Mine/Shared/MineEventTabs.luau` | which events show, which first, each claim (pure) | `shown`, `defaultId`, `owned`, `claim`, `notice`, `cryptWindowLine` |
 | `src/ReplicatedStorage/Mine/Shared/MineCryptView.luau` | the Crypt card's shell: candy, Trick-or-Treat OPEN | `mount`, `openState`, `mountCaseOdds` (placeholder) |

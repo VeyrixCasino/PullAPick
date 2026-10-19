@@ -37,7 +37,7 @@ const SHARED_MODULES = [
   "MineConfig", "MineDepth", "MineBags", "MineBagNames", "MineShopEconomy", "MineLaunch",
   "MineTools", "MineOreTools", "MineBreaking", "MineStats", "MineTemper", "MineCharms",
   "MineOrePouch", "MineSpaceMatter", "MineSkins", "MineToolSkins", "MineEnchants",
-  "MineCandyTools", "MineTrickOrTreat", "MineCryptChests", "MineCryptRules",
+  "MineCandyTools", "MineTrickOrTreat", "MineCryptChests", "MineCryptRules", "MineCryptIcons",
   // Another agent's (V2-C); used only when it exists.
   "MineHalloweenPets",
 ];

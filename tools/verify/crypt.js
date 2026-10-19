@@ -865,6 +865,17 @@ do
 	end
 	check(okRows and inv.tools[1].id == Tools.forOre("taffy").id and inv.toolCap == 10 and inv.separate == true and inv.teamCap >= 1
 		and #inv.ores == 16, "each tool row carries uid, prestige, both powers, the world equivalent, scrap value and factor (its ladder is prestigeLadder's); best first")
+	-- Icons (MineCryptIcons, filled by tools/cursor/tasks/crypt-icons.md).
+	local Icons = require("MineCryptIcons")
+	Icons.TOOLS[Tools.STARTER_ID] = "rbxassetid://123"
+	Icons.ORES.taffy = "rbxassetid://456"
+	local hidden = R.icon("tool", Tools.STARTER_ID) == "" and R.candyOreRows({}, {}, {})[6].icon == ""
+	Icons.SHARED = true
+	local starterRow
+	for _, t in ipairs(S.inventoryOf(q).tools) do if t.id == Tools.STARTER_ID then starterRow = t end end
+	check(hidden and starterRow and starterRow.icon == "rbxassetid://123" and R.candyOreRows({}, {}, {})[6].icon == "rbxassetid://456"
+		and R.chestOdds(5, 1).ranks[1].icon == "", "icon ids show only once the owner has shared them (MineCryptIcons.SHARED)")
+	Icons.SHARED = false
 	check(R.isHalloweenItem("tool", Tools.STARTER_ID) and R.isHalloweenItem("ore", "jawbreaker") and R.isHalloweenItem("pack", "halloween_2026")
 		and R.isHalloweenItem("skin", "candy_corn") and not R.isHalloweenItem("tool", "oretool_x") and not R.isHalloweenItem("ore", "stone"),
 		"isHalloweenItem answers for tools, ores, packs and skins")
