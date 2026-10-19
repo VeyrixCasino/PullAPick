@@ -1666,3 +1666,15 @@ text; kid-safe find text; no "Rebirth once" daily before the first rebirth. **Da
 pass pauses (no XP, claims or sales) until `MineScrolls.NEXT_TRACK` ships. New checks:
 `tutorial-forge`, `hud-launch`, `discord-link`, `promises`, `quests-launch`; suite 74 of 75
 (the Linux `skins` quirk). Not seen in Studio.
+
+## [2026-10-19] fix | launch fixes, part D: pet identity, the Cards tab, case runs, true rarity
+From the owner's §0e picks. **Named pets now hash their family and trait from name and home**
+(largest family 13.5%, largest trait 9.5%, all 96 pairs in use; the 41 legacy sets' prints are
+unchanged). Lone Wolf and Squad Bond read the pets-out count; lines the Special zeroes say
+"needs a Zap Special". The team rail shows only the real seats (no GET VIP); the Cards tab keeps
+card faces by id instead of rebuilding them; Hats/Faces lists the 116 hats and 23 faces that can
+drop. A Gear Vault reels all 5 items, each next reel after the player closes the last; case runs
+get **SKIP ALL** (one grid, best first, one celebration); finds print their true rarity; the
+lucky-block SKIP ALL card names books, potions and skin cases. New checks: `pet-identity`,
+`cards-tab`, `reveal-runs` (they run the real Luau); suite 77 of 78 after merging parts B and D
+(the Linux `skins` quirk). Not seen in Studio.
