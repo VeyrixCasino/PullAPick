@@ -271,7 +271,7 @@ often answered in their own words, quoted. The server half of the first design (
 | Crypt tools | **crafted from candy ores** at the Forge, never dropped; **prestige 1–10 with more ores** (no level upgrades; prestige replaces merging); each tool shows its damage at every prestige; prestige keeps working after the event; *"I want the top tool at prestige to be ~the same as top tool, at top level"*; **all Halloween tools give a 2x buff to Halloween skins** (*"costumes"*) |
 | tool cap | **at most 10 Halloween tools**; at 10, crafting is blocked until you scrap one; scrapping pays **half, in candy value, no ores back** |
 | trading | **Halloween tools and candy ores can't be traded during the event**; tradable once it ends |
-| Trick-or-Treat case | **pets, skins and charms only** (no candy, no tools); the win says its rarity, **then a 50/50 wheel with the reward in its middle: TREAT you get it, TRICK you get nothing**. Only this case gets the wheel |
+| Trick-or-Treat case | **pets and skins only** (no candy, no tools; **charms come from chests only**, the owner's correction: *"SORRY CHEST ONLY CHARMS"*); the win says its rarity, **then a 50/50 wheel with the reward in its middle: TREAT you get it, TRICK you get nothing**. Only this case gets the wheel |
 | every case in the game | **can open up to 5 at a time**, as stacked spins (one reel above another) |
 | Crypt chests | **Halloween packs and a flat candy amount only**; **8 chest tiers**, rarer ones with better packs; **each Crypt chest tier has its own special charm**, mergeable, **0.5% flat per charm, raised by Chest Luck** |
 | pets | **12 more Halloween pets, with new bodies** (built in Studio); **Halloween Mythic+ pets and skins are 20% better than the best normal ones, even after the event**; some enable builds nothing else can (e.g. a big blast radius, a high proc chance) |
@@ -281,9 +281,9 @@ often answered in their own words, quoted. The server half of the first design (
 | the numbers document | block HP per section, ore spawn chances, the candy and ore drop amounts with their spread, craft and prestige cost per ore: **in the repo, generated from the code, and as a web page** |
 
 **Main game, from the same answers:** **8 chest tiers** in the main game too (not the special charm
-per chest); **charms mergeable everywhere**: in the main game a merge costs gems plus a charm of the
-same tier and **never changes the charm's rarity** (*"each charm has its own rarity always. {sod charm
-rare always}"*); **charm packs for the main game, one per chest rarity** ("{rarity} Charm Pack").
+per chest); **charms mergeable everywhere**: a merge raises a charm's **tier, I to V** (*"teir i to v"*), costs gems
+plus **any charm of the same tier**, and **never changes the charm's rarity** (*"each charm has its own rarity
+always. {sod charm rare always}"*); **charm packs for the main game, one per chest rarity** ("{rarity} Charm Pack").
 
 ## 1. Probable bugs found while building the wiki
 
