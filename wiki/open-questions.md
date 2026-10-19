@@ -283,7 +283,15 @@ often answered in their own words, quoted. The server half of the first design (
 **Main game, from the same answers:** **8 chest tiers** in the main game too (not the special charm
 per chest); **charms mergeable everywhere**: a merge raises a charm's **tier, I to V** (*"teir i to v"*), costs gems
 plus **any charm of the same tier**, and **never changes the charm's rarity** (*"each charm has its own rarity
-always. {sod charm rare always}"*); **charm packs for the main game, one per chest rarity** ("{rarity} Charm Pack").
+always. {sod charm rare always}"*); **charm packs for the main game, one per chest rarity** ("{rarity} Charm Pack"), and **all 8 rarities get
+charms and packs** (Common and Uncommon charms exist too). **Rarity names are F to SSS** for chests and
+charms, *"same system as packs"* (the owner: *"lets go f-sss chests (sorry), and f-sss charms"*). Main-game chests
+become 8 tiers with **the same loot overall, split by tier** (rarer tiers rarer, more often deeper, paying more).
+
+**Answered after the table:** the Halloween inventory holds **Halloween pets, Halloween tools, candy ores and
+Halloween charms** (skins and hats are shared; it all moves into the main inventory when the event ends). The
+Halloween-skin boost from Halloween tools: *"make each tool different, but yeah always multiplier to the full
+multiplier"*: each Halloween tool has its own factor, applied to the skin's whole multiplier.
 
 ## 1. Probable bugs found while building the wiki
 
