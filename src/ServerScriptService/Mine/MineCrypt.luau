@@ -470,9 +470,8 @@ end
 	during the event; tradable once it ends", and the Halloween inventory's
 	items with them. TradeService asks this for every item it would put on the
 	table or move. `kind` is the trade's kind ("cards" with a card serial,
-	"packs" with a pack uid) or a Crypt kind ("tool", "ore", "charm", "pet").
-	Packs are NOT locked: the Halloween pack is a main-inventory item (asked in
-	the build report).
+	"packs" with a bag row) or a Crypt kind ("tool", "ore", "charm", "pet").
+	Of the packs, only the Halloween 2026 Pack locks (see below).
 ]]
 S.TRADE_LOCKED_TEXT = R.TRADE_LOCKED_TEXT
 function S.tradeLocked(p, kind, id)

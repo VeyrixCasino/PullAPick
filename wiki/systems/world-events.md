@@ -150,6 +150,11 @@ price; the tables are `MineConfig.CANDY_ECONOMY`, `MineCandyTools`,
   at 0.5% x Chest Luck** (`MineCharms.cryptChestCharm(rank)`, another agent's) and
   **a Halloween enchant book** when `MineEnchants.rollHalloweenBook(rankIndex, rng)`
   gives one (another agent's). No coins, gems or tools.
+  - **A Crypt chest is soft.** Its HP is the main mines' chest curve
+    (`MineConfig.chestHp`: the meadow's dirt × the look's multiplier), not the
+    Crypt's rock: an F chest has 220 HP at layer 60, where the rock has 143,357,
+    and 400 at layer 120 against 41,992,188. Lucky blocks there are the same.
+    Unchanged since the first design; asked of the owner (2026-10-19).
 - **The Trick-or-Treat case** (`MineTrickOrTreat`, 4,000 candy, bought and opened in
   one action while the Crypt is open and claimed): **Halloween pets and Halloween
   skins only**. The server rolls a rarity (40 / 25 / 15 / 10 / 6 / 2.5 / 1.2 /
