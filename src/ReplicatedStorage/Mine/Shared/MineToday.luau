@@ -193,7 +193,10 @@ function M.rows(snap, now, ctx)
 	-- Reads the claimed LISTS (the claim maps can arrive empty over the remote).
 	do
 		local p = snap.pass
-		if type(p) == "table" then
+		if type(p) == "table" and p.paused then
+			-- Day 29: the pass ended and the next one has not shipped; nothing to claim.
+			put("pass", "next pass soon")
+		elseif type(p) == "table" then
 			local tier = math.floor(tonumber(p.tier) or 0)
 			local free, prem = listedSet(p.freeClaimed), listedSet(p.premClaimed)
 			local n = 0

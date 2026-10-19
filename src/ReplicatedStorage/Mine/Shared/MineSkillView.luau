@@ -239,10 +239,42 @@ function MineSkillView.mount(parent, opts)
 		Text = "0 POINTS TO SPEND",
 	}, tokenPill)
 
-	-- Preset tabs, right side.
-	local presetBar = mk("Frame", {
+	--[[
+		CLOSE (launch audit S17, 2026-10-19). The wheel had no way out but the
+		big button at the bottom, and that one TRAVELS (up to the Clouds, or
+		back down to the mine). This X only hides the wheel and leaves you
+		where you stand. Red candy, like every other window's close (MineUI).
+	]]
+	local closeBtn = corner(mk("TextButton", {
+		Name = "Close",
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -(PAD + 6), 0.5, 0),
+		Size = UDim2.fromOffset(40, 40),
+		BackgroundColor3 = T.RED or BAD,
+		Text = "X",
+		Font = FONT,
+		TextSize = 24,
+		TextColor3 = Color3.new(1, 1, 1),
+		AutoButtonColor = false,
+		ZIndex = 5,
+	}, top), 12)
+	pcall(function()
+		local UI = require(script.Parent:WaitForChild("MineUI"))
+		UI.candy(closeBtn, "red", 3)
+		UI.outlineText(closeBtn, 2)
+		UI.juice(closeBtn, 1.12)
+	end)
+	closeBtn.MouseButton1Click:Connect(function()
+		root.Visible = false
+		if opts.onClose then
+			opts.onClose()
+		end
+	end)
+
+	-- Preset tabs, right side (left of the close button).
+	local presetBar = mk("Frame", {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -(PAD + 6 + 40 + 10), 0.5, 0),
 		Size = UDim2.fromOffset(Data.PRESETS.max * 34 + (Data.PRESETS.max - 1) * 6, 30),
 		BackgroundTransparency = 1,
 	}, top)

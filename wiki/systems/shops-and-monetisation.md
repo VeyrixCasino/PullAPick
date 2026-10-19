@@ -110,7 +110,9 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     anyway). XP comes from quests only: dailies 100, contracts 120, chain rungs
     80 and milestones 70. Doing every daily and contract is ~660 a day, so about
     12 days, and about two weeks for a kid who plays most days. The season is
-    still 28 days, `PASS_SEASON_ID` "2026-10".
+    still 28 days, `PASS_SEASON_ID` "2026-10". After it ends the pass **pauses**
+    (no XP, claims or premium sales) until the owner ships the next track
+    (`MineScrolls.NEXT_TRACK`); see [season-and-launch](season-and-launch.md).
   - **The tier classes** (`MineScrolls.tierClass`):
 
     | class | tiers | free | premium |

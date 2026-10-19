@@ -1467,6 +1467,16 @@ function MineTradeView.mount(gui, opts)
 		return win.Visible or picker.Visible
 	end
 
+	-- MineClient's close-everything (hidePanels, launch audit S18): the picker
+	-- just hides; a live trade window closes the way its own X does, by
+	-- cancelling the trade, so it is never left running behind a hidden window.
+	function ctl.close()
+		picker.Visible = false
+		if win.Visible then
+			cancel()
+		end
+	end
+
 	return ctl
 end
 

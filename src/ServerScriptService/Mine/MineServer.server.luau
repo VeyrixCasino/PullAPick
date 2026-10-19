@@ -3220,9 +3220,10 @@ local function questState(p)
 	end
 	-- picktier is an absolute milestone (own any paid/shop pick), not a delta
 	-- from when the rung became active — otherwise a pre-owned Sodpick never
-	-- lights CLAIM on "Buy a better pickaxe".
+	-- lights CLAIM on "Buy a better pickaxe". A rung marked `absolute` (rung 3,
+	-- "Forge your first tool") reads the same way.
 	local current
-	if q.stat == "picktier" then
+	if q.stat == "picktier" or q.absolute then
 		current = questValue(p, q.stat)
 	else
 		current = math.max(0, questValue(p, q.stat) - questBase(p, q.stat))
@@ -3266,7 +3267,8 @@ local function ensureDailyQuests(p, userId)
 		end
 	end
 	if stale then
-		p.dailyQuests = { day = today, list = Quests.rollDaily(today, userId) }
+		-- prestige: no "Rebirth once" before the first rebirth (MineQuests.DAILY_NO_REBIRTH).
+		p.dailyQuests = { day = today, list = Quests.rollDaily(today, userId, { prestige = p.prestige }) }
 	end
 	return p.dailyQuests
 end
@@ -3730,6 +3732,9 @@ local function snap(plr)
 				dailyCap = 0,
 				dailyFromQuests = true,
 				tiers = Scrolls.PASS_TIERS,
+				-- Day 29: ended with no next track. The panel says "Next pass
+				-- coming soon", and nothing counts as claimable.
+				paused = Scrolls.passPaused(),
 			}
 		end)(),
 		creditPacks = Scrolls.CREDIT_PACKS,
@@ -3806,7 +3811,12 @@ local Intro = {
 	steps = {
 		[1] = { text = "HOLD on a rock to break it." },
 		[2] = { text = "Bag's filling up! Run it to the SELL PAD.", waypoint = "sell", bonusGems = 10 },
-		[3] = { text = "Coins burning a hole? BUY A BIGGER PICK.", panel = "shop", tab = "pickaxe", waypoint = "shop", grantCoins = "nextPick" },
+		-- Was "BUY A BIGGER PICK" on the coin shelf, where every BUY is refused
+		-- (pickaxes are in MineConfig.FORGE_ONLY_FAMILIES). Owner, 2026-10-19
+		-- (launch audit M1): FORGE your first tool. It opens the Forge on
+		-- CRAFTING, clears on the first craft (Verbs.craftOreTool), and tops the
+		-- pouch up to exactly one Stone Pickaxe's worth of Stone (grantCraft).
+		[3] = { text = "FORGE your first tool! Free Stone is in your pouch — CRAFT a Stone Pickaxe.", panel = "forge", tab = "craft", waypoint = "shop", grantCraft = { oreId = "stone", familyId = "pickaxe" } },
 		[4] = { text = "Chests are stuffed with packs. CRACK ONE.", waypoint = "chest" },
 		[5] = { text = "RIP IT OPEN — Inventory, Packs.", panel = "inventory", tab = "packs", grantPack = true },
 		[6] = { text = "Send your best pet out. It mines WITH you.", panel = "inventory", tab = "cards", highlight = "cardsTab", bonusGems = 15 },
@@ -3950,6 +3960,13 @@ end
 -- the middle of the ladder is not asked to equip a card they equipped weeks ago.
 local function introSatisfied(p, step)
 	if step == 3 then
+		-- FORGE your first tool: any tool made of ore counts (the free Wooden
+		-- Pickaxe is not one), and so does a starter already graduated.
+		for _, t in ipairs(p.oreTools or {}) do
+			if type(t) == "table" and t.uid and not (C.isCoinTool and C.isCoinTool(t)) then
+				return true
+			end
+		end
 		return ownsBetterPickaxe(p)
 	elseif step == 6 then
 		return #(p.equipped or {}) > 0
@@ -4016,6 +4033,34 @@ local function introGrant(plr, p)
 	end
 	p.introGrants = p.introGrants or {}
 	local key = tostring(step)
+	--[[
+		grantCraft (step 3, FORGE your first tool): exactly enough of that ore to
+		forge that recipe once -- 270 Stone for a Stone Pickaxe on 2026-10-19 --
+		priced by the same MineConfig.toolCraftCost the Forge quotes and charges,
+		so the number can never drift from the craft. Topped up, never added, and
+		skipped for anyone who has already forged. It keeps its own spent mark
+		because the old step 3 marked "3" spent on its coin grant, and a profile
+		that sat on that unbeatable step still needs the Stone once.
+	]]
+	if type(d.grantCraft) == "table" and not p.introGrants[key .. "craft"] then
+		p.introGrants[key .. "craft"] = true
+		local oreDef = C.oreById and C.oreById(d.grantCraft.oreId)
+		local fam = tostring(d.grantCraft.familyId or "pickaxe")
+		if oreDef and oreDef.tier and not introSatisfied(p, step) then
+			local OreTools = require(shared:WaitForChild("MineOreTools"))
+			local need = C.toolCraftCost(oreDef.tier, OreTools.typeMult(fam, oreDef.tier), fam)
+			p.ores = p.ores or {}
+			local have = math.floor(tonumber(p.ores[oreDef.id]) or 0)
+			if need > have then
+				p.ores[oreDef.id] = need
+				p.oresSeen = p.oresSeen or {}
+				p.oresSeen[oreDef.id] = true
+				net:FireClient(plr, "toast", string.format("+%d %s: enough to forge your first %s",
+					need - have, tostring(oreDef.name or oreDef.id), OreTools.name(oreDef, fam)))
+			end
+		end
+		markDirty(plr)
+	end
 	if p.introGrants[key] then
 		return
 	end
@@ -4055,27 +4100,12 @@ local function introGrant(plr, p)
 	if d.grantZone and C.ZONES[d.grantZone] then
 		grantGems = math.floor(tonumber(C.ZONES[d.grantZone].buyCost) or grantGems or 0)
 	end
-	if not (grantGems or d.grantPack or d.grantCoins) then
+	if not (grantGems or d.grantPack) then
 		return
 	end
 	p.introGrants[key] = true
-	-- grantCoins "nextPick": enough for the cheapest meadow pickaxe they do not
-	-- own yet, so the Blacksmith step always ends in the purchase it teaches
-	-- (a player who sold after two clods has 30 coins, not a full bag).
-	if d.grantCoins == "nextPick" then
-		local okL, Ladders = pcall(require, shared:WaitForChild("MineShopLadders"))
-		local price
-		for _, row in ipairs((okL and Ladders.forDesk and Ladders.forDesk("meadow", "surface")) or {}) do
-			if row.family == "pickaxe" and not (p.ownedShopTools or {})[row.id] then
-				price = tonumber(row.price)
-				break
-			end
-		end
-		if price and (p.coins or 0) < price then
-			p.coins = price
-			net:FireClient(plr, "toast", "Starter coins: enough for your first real pickaxe")
-		end
-	end
+	-- (grantCoins "nextPick" topped coins up for the coin pickaxe the old step 3
+	-- sold. Nothing sells one now; step 3 grants ore through grantCraft above.)
 	if grantGems and grantGems > 0 and (p.gems or 0) < grantGems then
 		p.gems = grantGems
 		net:FireClient(plr, "toast", "Starter gems: " .. grantGems)
@@ -4093,12 +4123,13 @@ local function introSend(plr, p)
 	if p then
 		introGrant(plr, p)
 	end
-	-- Already own a shop/coin pickaxe: do not force the blacksmith — CLAIM instead.
+	-- Already forged a tool (or graduated the starter): do not force the Forge —
+	-- CLAIM instead.
 	local ack = (d and d.ack) == true
 	local panel = d and d.panel
 	local waypoint = d and d.waypoint
 	local claimLabel = nil
-	if step == 3 and ownsBetterPickaxe(p) then
+	if p and step == 3 and introSatisfied(p, 3) then
 		ack = true
 		panel = nil
 		waypoint = nil
@@ -6137,6 +6168,10 @@ end
 
 local function awardPassXp(plr, p, points, source)
 	p.pass = Scrolls.reconcilePass(p.pass or Scrolls.emptyPass())
+	-- Day 29: a paused pass (ended, next track not shipped) earns no XP.
+	if Scrolls.passPaused() then
+		return
+	end
 	local pass = p.pass
 	local today = passDayKey()
 	if pass.day ~= today then
@@ -8900,8 +8935,8 @@ local function openPack(plr, setId, chestId, pk, collect)
 		worth bragging about -- while `oddsForm` rides on every card so the
 		reveal can react to how rare it really was.
 
-		(The chase-pet "YOU FOUND SOME CRAZY SHIT" caption that used to fire
-		here is gone: the pet is already the last card of this very pack.)
+		(The chase-pet caption that used to fire here is gone: the pet is
+		already the last card of this very pack.)
 	]]
 	local shown = made
 	if next(pulled) then
@@ -9041,7 +9076,8 @@ function rollChestTool(plr, p, chestId, b, ctx)
 			nightmare = nightmare and true or false,
 			oneIn = oneIn,
 			kind = kind or "tool",
-			blurb = blurb or "You found some crazy shit",
+			-- A kids' game: the fallback line is kid-safe (launch audit S41).
+			blurb = blurb or "You found something amazing!",
 		}
 		-- The model to draw (baseName/family), and the odds the reveal ranks by.
 		for k, v in pairs(extra or {}) do
@@ -10074,7 +10110,8 @@ local function buyTool(plr, payload)
 	p.toolFamily = family
 	givePickaxe(plr)
 	giveBackpackModel(plr)
-	introAdvance(plr, p, 3)
+	-- No introAdvance(3) here any more: step 3 is FORGE your first tool, and a
+	-- coin purchase must not clear it (Verbs.craftOreTool does).
 	net:FireClient(plr, "toast", "Bought " .. row.name)
 	snap(plr)
 end
@@ -11544,7 +11581,13 @@ local function buyBattlePassCredits(plr)
 	if not p then
 		return
 	end
-	p.pass = p.pass or Scrolls.emptyPass()
+	-- Reconciled first, so a pass that rolled over mid-session is not read as
+	-- last season's purchase; and none is sold while paused (Day 29).
+	p.pass = Scrolls.reconcilePass(p.pass or Scrolls.emptyPass())
+	if Scrolls.passPaused() then
+		net:FireClient(plr, "toast", "The pass is paused. Next pass coming soon!")
+		return
+	end
 	if p.pass.owned then
 		net:FireClient(plr, "toast", "Battle Pass already owned")
 		return
@@ -12635,7 +12678,7 @@ local function grantPassSignatureTool(p, toolId, plr)
 			baseName = def.modelName or def.name,
 			family = def.family,
 			power = def.power,
-			blurb = def.blurb or "You found some crazy shit",
+			blurb = def.blurb or "You found something amazing!",
 		})
 	end
 	return true
@@ -13058,9 +13101,16 @@ function Verbs.claimPass(plr, payload)
 	end
 	p.pass = Scrolls.reconcilePass(p.pass or Scrolls.emptyPass())
 	local pass = p.pass
+	-- Day 29 (owner, 2026-10-19): an ended pass with no next track is paused,
+	-- and a paused pass takes no claims.
+	if Scrolls.passPaused() then
+		net:FireClient(plr, "toast", "The pass is paused. Next pass coming soon!")
+		return
+	end
 	local tier = math.floor(tonumber(payload and payload.tier) or 0)
 	local premium = (payload and payload.track) == "premium"
-	local row = (tier >= 1 and tier <= Scrolls.PASS_TIERS) and Scrolls.PASS_TRACK[tier] or nil
+	-- The rows of the pass this player is on (the next track once rolled over).
+	local row = (tier >= 1 and tier <= Scrolls.PASS_TIERS) and Scrolls.trackFor(pass)[tier] or nil
 	if not row then
 		net:FireClient(plr, "toast", "No such pass tier")
 		return
@@ -13181,7 +13231,12 @@ function Verbs.claimPass(plr, payload)
 				local storeLedger = premium and (old.pass.prem or {}) or (old.pass.free or {})
 				if premium then old.pass.prem = storeLedger else old.pass.free = storeLedger end
 				old.passClaims = old.passClaims or {}
+				-- Per season after the first, or a rollover would find last
+				-- season's "free_5" and refuse this season's tier 5.
 				local claimToken = lockKey
+				if old.pass.season and old.pass.season ~= Scrolls.PASS_SEASON_ID then
+					claimToken = lockKey .. "@" .. tostring(old.pass.season)
+				end
 				if storeLedger[tier] or storeLedger[tostring(tier)] or old.passClaims[claimToken] then
 					if outcome ~= "granted" then
 						outcome = "denied_claimed"
@@ -13443,7 +13498,7 @@ function Verbs.claimQuest(plr)
 	-- bought before "Buy a better pickaxe" went live still counts -- so the
 	-- tracker can no longer light CLAIM on a rung this then refuses.
 	local have
-	if q.stat == "picktier" then
+	if q.stat == "picktier" or q.absolute then
 		have = questValue(p, q.stat)
 	else
 		have = questValue(p, q.stat) - questBase(p, q.stat)
@@ -13619,11 +13674,14 @@ function Verbs.claimDaily(plr)
 		net:FireClient(plr, "purchaseFx", { kind = "pack", packId = reward.pack, count = reward.packQty or 1,
 			name = (def and def.name) or reward.pack })
 	end
-	-- Day 4 of the login cycle: offer Like + Favorite for a surprise 2★+ pack.
+	-- Day 4 of the login cycle: a surprise 2★+ pack, given regardless (owner,
+	-- 2026-10-19, launch audit S20). Nothing asks for a like or a favorite;
+	-- the popup only offers Roblox's favorite prompt, and claimDailySurprise
+	-- checks nothing but the day.
 	if Scrolls.dailyDay(streak) == 4 and tonumber(p.daily.surpriseAt) ~= today then
 		net:FireClient(plr, "dailySurpriseOffer", {
 			day = 4,
-			blurb = "Like & Favorite the game for a surprise pack (2★+)",
+			blurb = "Day 4 bonus: a surprise pack (2★+)",
 		})
 	end
 	snap(plr)
@@ -13680,32 +13738,62 @@ function Verbs.claimDailySurprise(plr)
 end
 
 Verbs.DISCORD_LINK_GEMS = 5000
+-- [userId] = os.clock() before which the next try is refused, and the misses
+-- in a row behind it (the backoff below).
 Verbs.discordLinkCooldown = {}
+Verbs.discordLinkMisses = {}
+
+-- The link bonus, once per profile, wherever the link was finished: here, or
+-- in Discord while the player was away (Verbs.discordJoinBonus). True if paid.
+function Verbs.payDiscordBonus(plr, p)
+	if not p or p.discordBonusClaimed then
+		return false
+	end
+	p.discordBonusClaimed = true
+	p.gems = (p.gems or 0) + Verbs.DISCORD_LINK_GEMS
+	markDirty(plr)
+	return true
+end
 
 function Verbs.discordLink(plr, payload)
 	if typeof(plr) ~= "Instance" or not plr:IsA("Player") then
 		return
 	end
+	--[[
+		THROTTLED, WITH BACKOFF (launch audit S38). This read a bare
+		`discordLinkCooldown`, a nil global (the table is Verbs.discordLinkCooldown),
+		so every redeem threw before it reached the code. Two seconds between
+		tries, doubling after each miss up to a minute, and reset by a link:
+		every try is a DataStore read, and that budget is shared with saves.
+		PROPOSED (2026-10-19): 2 s, x2 per miss, 60 s cap.
+	]]
 	local now = os.clock()
-	if (discordLinkCooldown[plr.UserId] or 0) > now then
-		net:FireClient(plr, "toast", "Slow down")
+	local uid = plr.UserId
+	local waitLeft = (Verbs.discordLinkCooldown[uid] or 0) - now
+	if waitLeft > 0 then
+		net:FireClient(plr, "toast", string.format("Try again in %d s", math.ceil(waitLeft)))
 		return
 	end
-	discordLinkCooldown[plr.UserId] = now + 2
+	Verbs.discordLinkCooldown[uid] = now + 2
 
 	local code = payload
 	if type(payload) == "table" then
 		code = payload.code or payload[1]
 	end
 	local ok, msg, discordId = DiscordLink.redeem(plr, code)
+	if ok then
+		Verbs.discordLinkMisses[uid] = nil
+	else
+		local misses = (Verbs.discordLinkMisses[uid] or 0) + 1
+		Verbs.discordLinkMisses[uid] = misses
+		Verbs.discordLinkCooldown[uid] = now + math.min(60, 2 ^ misses)
+	end
 	local p = profiles[plr.UserId]
 	if ok and p then
 		if discordId then
 			p.discordLinked = true
 			p.discordId = tostring(discordId)
-			if not p.discordBonusClaimed then
-				p.discordBonusClaimed = true
-				p.gems = (p.gems or 0) + Verbs.DISCORD_LINK_GEMS
+			if Verbs.payDiscordBonus(plr, p) then
 				msg = tostring(msg or "Linked") .. " (+" .. tostring(Verbs.DISCORD_LINK_GEMS) .. " gems)"
 			end
 			save(plr)
@@ -13715,6 +13803,35 @@ function Verbs.discordLink(plr, payload)
 		net:FireClient(plr, "discordLinked", { ok = true, discordId = p.discordId })
 	end
 	net:FireClient(plr, "toast", tostring(msg or (ok and "Linked" or "Failed")))
+end
+
+--[[
+	A LINK FINISHED IN DISCORD PAYS ON THE NEXT JOIN (launch audit S38).
+
+	The bot can complete a link on its own side (it writes the links store), so
+	a player can be linked without ever redeeming here. hookPlayer notices the
+	link on join (DiscordLink.getByRoblox) and sets discordLinked, but the 5,000
+	gems never came. This pays them once, by the same rule as the verb: only
+	where Roblox lets this player see Discord (PolicyDiscord, which
+	Verbs.fetchPolicy sets after join; a live server presets it false, so this
+	waits for the real answer, then gives up until the next join).
+]]
+function Verbs.discordJoinBonus(plr)
+	local deadline = os.clock() + 30
+	while plr.Parent and plr:GetAttribute("PolicyDiscord") ~= true and os.clock() < deadline do
+		task.wait(1)
+	end
+	local p = profiles[plr.UserId]
+	if not p or p._ephemeral or not p.discordLinked or not plr.Parent
+		or plr:GetAttribute("PolicyDiscord") ~= true then
+		return
+	end
+	if Verbs.payDiscordBonus(plr, p) then
+		save(plr)
+		snap(plr)
+		net:FireClient(plr, "discordLinked", { ok = true, discordId = p.discordId })
+		net:FireClient(plr, "toast", "Discord linked! +" .. tostring(Verbs.DISCORD_LINK_GEMS) .. " gems")
+	end
 end
 
 function Verbs.buyCreditPack(plr, payload)
@@ -15176,6 +15293,10 @@ function Verbs.hookPlayer(plr)
 			p.discordLinked = true
 			p.discordId = tostring(row.discordId)
 		end
+	end)
+	-- A link finished in Discord while this player was away still pays its bonus.
+	task.spawn(function()
+		pcall(Verbs.discordJoinBonus, plr)
 	end)
 	task.spawn(function()
 		local okJ, errJ = pcall(Verbs.handleJoin, plr)
@@ -17034,6 +17155,9 @@ function Verbs.craftOreTool(plr, payload)
 	p.chestTool = nil
 	p.toolEquipped = true
 	givePickaxe(plr)
+	-- The tutorial's FORGE step (Intro step 3) ends on the first craft. A no-op
+	-- for anyone not on that step.
+	introAdvance(plr, p, 3)
 	markDirty(plr)
 	snap(plr)
 end
@@ -17168,8 +17292,8 @@ net.OnServerEvent:Connect(function(plr, action, payload)
 			if p then
 				local step = math.floor(tonumber(p.intro) or 1)
 				local d = Intro.steps[step]
-				-- Step 3 becomes claimable once any non-starter shop pick is owned.
-				if (d and d.ack) or (step == 3 and ownsBetterPickaxe(p)) then
+				-- Step 3 becomes claimable once a tool is forged (or the starter graduated).
+				if (d and d.ack) or (step == 3 and introSatisfied(p, 3)) then
 					introAdvance(plr, p, step)
 				end
 			end
@@ -17849,18 +17973,24 @@ task.defer(function()
 				Verbs.sellAtPad(plr, parent, zoneId)
 			elseif machine == "shop" then
 				-- The Blacksmith owes every new player one pickaxe.
-				Verbs.grantFirstPick(plr, profiles[plr.UserId])
+				local firstVisit = Verbs.grantFirstPick(plr, profiles[plr.UserId])
 				-- There was no branch for this at all. Twelve counters in the world are
 				-- tagged Machine="shop" (Blacksmith, Chandlery, Bloodforge, Supply Pod)
 				-- and every one of them fell straight through this if-chain, so walking
 				-- up to a shop and pressing it did nothing at all.
 				--
 				-- The counter opens THE FORGE HUB now (owner, 2026-10-12: "the
-				-- Blacksmith counter should open the Forge hub"). Only the tutorial's
-				-- "buy a bigger pick" step (3) opens the coin shelf it teaches.
-				local pc = profiles[plr.UserId]
-				local onPickStep = pc and math.floor(tonumber(pc.intro) or 0) == 3
-				net:FireClient(plr, "openPanel", "shop", onPickStep and "pickaxe" or nil)
+				-- Blacksmith counter should open the Forge hub"), on every step:
+				-- the tutorial's old coin-pickaxe shelf for step 3 is gone with the
+				-- purchase it taught (step 3 is FORGE your first tool).
+				--
+				-- Except on the visit that hands over the free pickaxe (launch audit
+				-- S19): a brand new player has no ore, and the full-screen Forge
+				-- popped over a tutorial that is saying "HOLD on a rock".
+				-- grantFirstPick's toast is the whole handover.
+				if not firstVisit then
+					net:FireClient(plr, "openPanel", "shop")
+				end
 			elseif machine == "open" then openFrom(plr)
 			elseif machine == "prestige" then
 				-- Open the Rebirth panel, never rebirth outright.
@@ -18046,7 +18176,22 @@ Verbs.grantReceipt = function(info)
 	-- seven premium rewards to claim -- which is the point of buying late.
 	local bp = Scrolls.BATTLE_PASS
 	if bp and (tonumber(bp.productId) or 0) > 0 and info.ProductId == bp.productId then
-		p.pass = p.pass or Scrolls.emptyPass()
+		p.pass = Scrolls.reconcilePass(p.pass or Scrolls.emptyPass())
+		--[[
+			Paused (Day 29): there is no pass to unlock, and the panel shows no
+			buy button. A receipt can still land (a prompt left open across the
+			end, or a modified client), and the Robux must not vanish: the pass's
+			face value goes in as credits, 1:1 like every credit price here.
+			PROPOSED (2026-10-19).
+		]]
+		if Scrolls.passPaused() then
+			local face = math.floor(tonumber(bp.credits) or tonumber(bp.robux) or 399)
+			p.credits = (p.credits or 0) + face
+			markDirty(plr)
+			snap(plr)
+			net:FireClient(plr, "toast", string.format("The pass is paused, so your purchase became %d credits", face))
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
 		if not p.pass.owned then
 			p.pass.owned = true
 			p.pass.boughtAt = os.time()

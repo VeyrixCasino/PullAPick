@@ -60,8 +60,15 @@ openEv.Name = "ForgeHubOpen"
 openEv.Parent = mine
 openEv.Event:Connect(function(tab)
 	-- A counter or the tutorial only ever opens (walking up twice must not
-	-- close it); the Forge button toggles. "enchant" lands on Upgrades > ENCHANT.
-	if tab == "counter" then
+	-- close it); the Forge button toggles. "enchant" lands on Upgrades > ENCHANT,
+	-- "craft" on CRAFTING (the tutorial's FORGE step). "close" is MineClient's
+	-- close-everything (hidePanels): it only ever closes.
+	if tab == "close" then
+		if hub.isOpen() then
+			hub.close()
+		end
+		return
+	elseif tab == "counter" then
 		if hub.isOpen() then
 			return
 		end
@@ -71,6 +78,12 @@ openEv.Event:Connect(function(tab)
 			net:FireServer("snapNow")
 		end)
 		hub.open("upgrades", nil, "enchant")
+		return
+	elseif tab == "craft" then
+		pcall(function()
+			net:FireServer("snapNow")
+		end)
+		hub.open("craft")
 		return
 	elseif hub.isOpen() then
 		hub.close()

@@ -51,14 +51,21 @@ check(/Craftable first, best first/.test(hub), "recipes sort craftable first, be
 check(!exists("src/ReplicatedStorage/Mine/Shared/MineForgeDemo.luau") && !exists("src/StarterPlayer/StarterPlayerScripts/MineForgeDemo.client.luau"),
   "the two demo Forges are gone (the owner picked A)");
 // The Blacksmith counter (owner, 2026-10-12: "the Blacksmith counter should open the Forge hub").
-check(/if \(name == "shop" and tab == nil\) or name == "forge" then[\s\S]{0,300}hubOpen:Fire\(\(name == "forge" and tab == "enchant"\) and "enchant" or "counter"\)/.test(client),
+check(/if \(name == "shop" and tab == nil\) or name == "forge" then[\s\S]{0,400}hubOpen:Fire\(\(name == "forge" and \(tab == "enchant" or tab == "craft"\)\) and tab or "counter"\)/.test(client),
   "every plain \"shop\" (the counters, the Blacksmith buttons) opens the Forge hub");
 check(/if \(tab == "pickaxe" or tab == "backpack"\) and shopCtl\.setTab then/.test(client) && /opts\.onShop\("backpack"\)/.test(hub) && /opts\.onShop\("pickaxe"\)/.test(hub)
   && /ev:Fire\("shop", tab\)/.test(hubClient) && /openPanelEv\.Name = "OpenPanel"/.test(client),
   "the hub's BAGS and COIN SHOP buttons still reach the old shop's two shelves");
-check(/\[3\] = \{ text = "Coins burning a hole\? BUY A BIGGER PICK\.", panel = "shop", tab = "pickaxe"/.test(server)
-  && /net:FireClient\(plr, "openPanel", "shop", onPickStep and "pickaxe" or nil\)/.test(server),
-  "the tutorial's buy-a-pick step still lands on the coin pickaxes, at the counter too");
+// The tutorial's step 3 was "BUY A BIGGER PICK" on the coin shelf, where every buy
+// is refused. It is "FORGE your first tool" now (owner, 2026-10-19, launch audit
+// M1): it opens the hub on CRAFTING, and the counter opens the hub on every step.
+// tools/verify/tutorial-forge.js pins the rest of it.
+check(/\[3\] = \{ text = "FORGE your first tool[^"]*", panel = "forge", tab = "craft"/.test(server)
+  && !/onPickStep/.test(server) && /if not firstVisit then\s*\n\s*net:FireClient\(plr, "openPanel", "shop"\)/.test(server),
+  "the tutorial's step 3 opens the hub on CRAFTING, and the counter opens the hub on every step");
+check(/elseif tab == "craft" then[\s\S]{0,120}hub\.open\("craft"\)/.test(hubClient)
+  && /if tab == "close" then\s*\n\s*if hub\.isOpen\(\) then\s*\n\s*hub\.close\(\)/.test(hubClient),
+  "the hub opens on CRAFTING when asked, and \"close\" (MineClient's close-everything) only ever closes");
 check(/if tab == "counter" then\s*\n\s*if hub\.isOpen\(\) then\s*\n\s*return/.test(hubClient), "walking up to a counter only opens the hub, never closes it");
 
 console.log("");

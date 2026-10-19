@@ -301,10 +301,22 @@ The header shows the player level and XP bar, the wallet, 🎒 BAGS and 💰 COI
 **The Blacksmith counter opens the hub** (owner, 2026-10-12: *"the Blacksmith counter should open the Forge hub"*):
 - `ClientFns.routePanel` sends every plain `"shop"` there: the counters tagged `Machine="shop"` and the "to the Blacksmith" buttons.
 - `"shop"` with a named shelf (`pickaxe` or `backpack`) still opens the old shop on that shelf.
-- The tutorial's step 3 (*BUY A BIGGER PICK*) carries `tab = "pickaxe"`. While a player is on that step, the server opens the coin shelf at the counter. **That purchase no longer exists**: `pickaxe` is in `MineConfig.FORGE_ONLY_FAMILIES`, so every BUY there is refused ("Tools are forged from ore now"). The step is 5th in `Intro.order` and clears only through `ownsBetterPickaxe` (a levelled Wooden Pickaxe graduating), which nothing tells the player. Found in the 2026-10-19 launch audit; see [open-questions](../open-questions.md) §0e.
-- Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it.
+- **The tutorial's step 3 is FORGE your first tool** (owner, 2026-10-19, launch audit M1). It was *BUY A BIGGER PICK* on the coin shelf, where every BUY is refused (`pickaxe` is in `MineConfig.FORGE_ONLY_FAMILIES`), so the 5th step in `Intro.order` could not be done. Now it carries `panel = "forge", tab = "craft"`, which `routePanel` turns into `hubOpen:Fire("craft")`: the hub opens on CRAFTING. The server tops the pouch up once to one Stone Pickaxe's worth (270 Stone, priced by `MineConfig.toolCraftCost`, `grantCraft`), and `Verbs.craftOreTool` clears the step on the first craft. Anyone who already owns a forged tool, or whose Wooden Pickaxe graduated (`ownsBetterPickaxe`), gets CLAIM instead. The counter opens the hub on every step, except on the visit that hands over the free pickaxe (S19): that one is only the toast, so a player with no ore is not shown the full-screen Forge. `tools/verify/tutorial-forge.js` pins all of it.
+- Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it; `Fire("craft")` opens it on CRAFTING, and `Fire("close")` only closes it (MineClient's `hidePanels`).
 
 It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. A snapshot repaints the hub only when something it shows changed, at most about once a second (an action waiting on its answer repaints at once): rebuilding every card ten times a second read as flickering text (owner, 2026-10-17). `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
+
+## Launch-audit HUD fixes (2026-10-19)
+
+The owner's picks from the audit ([open-questions](../open-questions.md) §0e), checked by `tools/verify/hud-launch.js`. Not yet seen in Studio.
+- **Close everything** (`hidePanels`) also closes Skins, the trade picker (a live trade cancels, as its own X does), fishing (a fish on the line is given up, as its own close does) and the Forge hub (`ForgeHubOpen:Fire("close")`), so Inventory, Pass and Jobs no longer open underneath one of them (S18). The anvil button still toggles: it skips `hidePanels` while the hub is open.
+- **The skill tree has a red X** in its top bar that only hides the wheel (S17). Its big button travels (to the Clouds or back down), and was the only way out.
+- **Day-4 surprise pack:** given regardless; no LIKE; FAVORITE is an optional `PromptSetFavorite`, and closing the popup claims (S20).
+- **The coin pill shows one currency**, the zone's: space coins in Event Horizon, coins elsewhere (S21). "1.2K | 340 sp" ran off the pill.
+- **Settings:** FRIENDS and everything below moved down 30 px (panel 564 → 620 tall) so the code result has its own line (S22).
+- **Snapshots:** the open Planets map rebuilds only when which zones you own changes, and keeps the planet you picked (`refreshZones(live)`); the daily card rebuilds its week only when the week changes (`dailyHud.calKey`) (S23).
+- **Button sounds are on** (S26): `MineAudio.bindUiClicks(gui)` runs once on the MineUI ScreenGui, so every window gets a click on a press and the low "can't" knock on a greyed button. The `UiClicksBound` attribute stops a second bind; `MineAudio.play` throttles each sound (`CD.click` 0.035 s, `CD.deny` 0.10 s); `NoClickSfx` opts a button out.
+- **The lobby boards and your own row name no prizes** (S39): nothing pays a placement.
 
 ## UI removed with runes and traits (2026-10-12)
 
