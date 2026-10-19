@@ -306,6 +306,20 @@ on what their going for"*.
 Gold and the Weekend Haul swap their retired packs for wild cases of the same value; the Limited tab's Founders Bag
 gets the two-tap confirm; limited deals with lucky blocks or cases get an odds sheet.
 
+**Chests, charms and art (owner, 2026-10-19, last round):**
+- **Every chest has its own name** (the owner: *"all separate names"*); ranks stay F to SSS behind the scenes, shown as a
+  badge. The Crypt's 8 chests get Halloween names. **Each of the 19 pack sets gets 3 named chests of its own** (a low,
+  a mid and a high rank) paying that set's packs, where that set's pets live. Names are proposed for the owner to approve.
+- **Charms:** each charm has **one fixed rarity forever** (F to SSS); merging raises its **tier I to V** (gems + any charm
+  of the same tier); **more charm types at every rarity**; 8 Charm Packs sold for **gems or credits**.
+- **Gems must hold their value** (*"pet simulator 99 or whatever ... disgusts me because of the inflation"*): no new
+  runaway gem faucets; the numbers doc shows gems in and out per hour.
+- **Halloween enchant books drop from Crypt chests** (rarer chests more often).
+- **Images:** *"get cursor to get images for everything with canva then get everything done"*: Cursor jobs make Canva
+  images for everything new (charms, chests, candy ores, Halloween tools, enchant books, pets).
+- **Pack tops:** the set name baked onto the crinkled top of the 19 sets' pack images comes off; the renderer
+  (`tools/pack-sprites/PackRender3D.cs`) leaves it blank and the PC session re-renders and re-uploads.
+
 ## 1. Probable bugs found while building the wiki
 
 These are not fixed. They are in code that has never run in the engine.
