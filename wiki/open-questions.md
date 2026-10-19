@@ -257,6 +257,34 @@ kit and uses them on the event screens it builds. **Portals more attractive** *(
 | skins | **one wardrobe everywhere** (event tools wear the same skins) and **"make skins work", all of it**: looks on every family (pickaxe, drill and explosive via a Cursor job), EQUIPPED and the skin's power in the wardrobe, ore-case skins into the wardrobe |
 
 
+#### Candy Crypt v2, and the main-game changes it brings (owner, 2026-10-19, later the same day)
+
+**Supersedes the Crypt table above wherever they differ.** Asked as multiple choice; the owner
+often answered in their own words, quoted. The server half of the first design (`MineCryptRules`,
+`MineCrypt`) and the first screens are merged; the parts v2 replaces are rebuilt.
+
+| area | v2 decision |
+|---|---|
+| Crypt blocks | **candy blocks only** (no normal ores); the 20-minute reset stays |
+| candy ores | **16, two per rarity**: Common, Uncommon, Rare, Epic, Legendary, Mythic, Divine, Exotic. *"every ore drops the same amount every time"* (no depth scaling); **deeper sections make rare ores more common, but the rarest always stay rare** (values PROPOSED) |
+| candy | a **flat amount per ore, the same at every depth**, about **a quarter of the average ore drop's value** |
+| Crypt tools | **crafted from candy ores** at the Forge, never dropped; **prestige 1–10 with more ores** (no level upgrades; prestige replaces merging); each tool shows its damage at every prestige; prestige keeps working after the event; *"I want the top tool at prestige to be ~the same as top tool, at top level"*; **all Halloween tools give a 2x buff to Halloween skins** (*"costumes"*) |
+| tool cap | **at most 10 Halloween tools**; at 10, crafting is blocked until you scrap one; scrapping pays **half, in candy value, no ores back** |
+| trading | **Halloween tools and candy ores can't be traded during the event**; tradable once it ends |
+| Trick-or-Treat case | **pets, skins and charms only** (no candy, no tools); the win says its rarity, **then a 50/50 wheel with the reward in its middle: TREAT you get it, TRICK you get nothing**. Only this case gets the wheel |
+| every case in the game | **can open up to 5 at a time**, as stacked spins (one reel above another) |
+| Crypt chests | **Halloween packs and a flat candy amount only**; **8 chest tiers**, rarer ones with better packs; **each Crypt chest tier has its own special charm**, mergeable, **0.5% flat per charm, raised by Chest Luck** |
+| pets | **12 more Halloween pets, with new bodies** (built in Studio); **Halloween Mythic+ pets and skins are 20% better than the best normal ones, even after the event**; some enable builds nothing else can (e.g. a big blast radius, a high proc chance) |
+| enchants | **Halloween-exclusive enchants**, not event-dependent (they keep working in the main game after the event): **Sugar Rush** (owner's): *"speed that stacks while breaking in combos [2% per block, one shot blocks only up to 100%]"*; plus **10 more ideas** for the owner to pick from |
+| in the Crypt | **normal enchants don't work**; **a separate Halloween inventory** for the event (the owner: *"prob the simplest way to make it make sense to players"*); **hats can transfer** |
+| hats | the hat inventory is messy: **each hat shows once, with "xN" when you have several** |
+| the numbers document | block HP per section, ore spawn chances, the candy and ore drop amounts with their spread, craft and prestige cost per ore: **in the repo, generated from the code, and as a web page** |
+
+**Main game, from the same answers:** **8 chest tiers** in the main game too (not the special charm
+per chest); **charms mergeable everywhere**: in the main game a merge costs gems plus a charm of the
+same tier and **never changes the charm's rarity** (*"each charm has its own rarity always. {sod charm
+rare always}"*); **charm packs for the main game, one per chest rarity** ("{rarity} Charm Pack").
+
 ## 1. Probable bugs found while building the wiki
 
 These are not fixed. They are in code that has never run in the engine.
