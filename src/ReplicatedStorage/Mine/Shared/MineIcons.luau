@@ -664,8 +664,9 @@ MineIcons.ORE_BOMB = {
 	HAMMER AND JACKHAMMER ICONS, one per ore (owner, 2026-10-11: "i need the
 	hammers and jackhammers fully built in"; icons made in Canva to match the
 	pick, drill and grenade sheets -- build/hammer-icons/, art/tool-icons/).
-	Jackhammers 75-82 are still to come: Canva's AI allowance ran out mid-run,
-	and a missing tier falls back to the flat family icon (forTool).
+	Jackhammers 75-82 came last (2026-10-19), after Canva's AI allowance ran out
+	mid-run; every tier is covered now. A missing tier would fall back to the
+	flat family icon (forTool).
 
 	They join ORE_SKINS only once NEW_TOOL_ICONS_SHARED is true. An uploaded image
 	draws nothing in the game until the owner shares it with the experience in
@@ -834,6 +835,14 @@ MineIcons.ORE_JACKHAMMER = {
 	[72] = "rbxassetid://111076092003197", -- Orichalcum
 	[73] = "rbxassetid://120622713997592", -- Spectrite
 	[74] = "rbxassetid://107786622215745", -- Mythril
+	[75] = "rbxassetid://90061294122924", -- Dragonstone
+	[76] = "rbxassetid://116233056736044", -- Adamantite
+	[77] = "rbxassetid://93041519687456", -- Thorium
+	[78] = "rbxassetid://132692797315799", -- Uranium
+	[79] = "rbxassetid://87694500793833", -- Plutonium
+	[80] = "rbxassetid://105751923553395", -- Fermium
+	[81] = "rbxassetid://100827798143925", -- Lawrencium
+	[82] = "rbxassetid://80620725571972", -- Oganesson
 }
 
 --[[
@@ -894,12 +903,12 @@ MineIcons.ORE_PICK_CANVA = {
 	[49] = "rbxassetid://95255403242115", -- Obsidian
 	[50] = "rbxassetid://117656794373371", -- Cobalt
 	[51] = "rbxassetid://77645555085307", -- Gold
-	[52] = "rbxassetid://108288859705413", -- Regolith
+	[52] = "rbxassetid://79517116832301", -- Regolith
 	[53] = "rbxassetid://120871846606987", -- Sunstone
 	[54] = "rbxassetid://80482331104757", -- Emerald
 	[55] = "rbxassetid://120288868707523", -- Moonstone
 	[56] = "rbxassetid://120097395949709", -- Sapphire
-	[57] = "rbxassetid://109630776935523", -- Ruby
+	[57] = "rbxassetid://123921356984813", -- Ruby
 	[58] = "rbxassetid://89380026565673", -- Palladium
 	[59] = "rbxassetid://94925626810947", -- Aquamarine
 	[60] = "rbxassetid://85820788590824", -- Opal
@@ -931,8 +940,8 @@ MineIcons.ORE_PICK_CANVA = {
 	and explosives and pickaxes.. make sure the colors make sense"). Like the
 	pickaxes above, they replace ORE_DRILL's and ORE_BOMB's entries once
 	NEW_TOOL_ICONS_SHARED is true, and tier 82 keeps its original art.
-	Explosives 19, 29, 65, 67, 68, 71 and 77 are being redrawn (the cut-out
-	clipped the fuse spark); until they land, those tiers keep the old art.
+	Explosives 19, 29, 65, 67, 68, 71 and 77 were redrawn on 2026-10-19 (the
+	first cut-out clipped the fuse spark).
 ]]
 MineIcons.ORE_DRILL_CANVA = {
 	[1] = "rbxassetid://118561017705130", -- Stone
@@ -1037,6 +1046,7 @@ MineIcons.ORE_BOMB_CANVA = {
 	[16] = "rbxassetid://124004501759515", -- Lead
 	[17] = "rbxassetid://91124629403146", -- Zinc
 	[18] = "rbxassetid://80981112719358", -- Aluminum
+	[19] = "rbxassetid://97232892131800", -- Iron
 	[20] = "rbxassetid://82122909987792", -- Graphite
 	[21] = "rbxassetid://91869013319813", -- Pyrite
 	[22] = "rbxassetid://130254045536091", -- Marble
@@ -1046,6 +1056,7 @@ MineIcons.ORE_BOMB_CANVA = {
 	[26] = "rbxassetid://105866526927898", -- Amber
 	[27] = "rbxassetid://71881543153673", -- Petrifact
 	[28] = "rbxassetid://123659711346545", -- Nickel
+	[29] = "rbxassetid://117492360380547", -- Onyx
 	[30] = "rbxassetid://74136088240112", -- Bloodstone
 	[31] = "rbxassetid://71952078604869", -- Garnet
 	[32] = "rbxassetid://86610000189284", -- Citrine
@@ -1081,14 +1092,19 @@ MineIcons.ORE_BOMB_CANVA = {
 	[62] = "rbxassetid://135958946943659", -- Stormstone
 	[63] = "rbxassetid://77612989390597", -- Diamond
 	[64] = "rbxassetid://75107276474277", -- Starmetal
+	[65] = "rbxassetid://127404365942894", -- Aetherite
 	[66] = "rbxassetid://112580454179894", -- Meteorite
+	[67] = "rbxassetid://70601938759403", -- Soulstone
+	[68] = "rbxassetid://89259313679542", -- Galaxite
 	[69] = "rbxassetid://113349213632967", -- Frostfire
 	[70] = "rbxassetid://118912656395695", -- Umbrite
+	[71] = "rbxassetid://70814957296505", -- Celestine
 	[72] = "rbxassetid://138421185789687", -- Orichalcum
 	[73] = "rbxassetid://114669080413522", -- Spectrite
 	[74] = "rbxassetid://112511320432476", -- Mythril
 	[75] = "rbxassetid://73977190463237", -- Dragonstone
 	[76] = "rbxassetid://91663486636100", -- Adamantite
+	[77] = "rbxassetid://100718649331319", -- Thorium
 	[78] = "rbxassetid://138385813183877", -- Uranium
 	[79] = "rbxassetid://125310857099158", -- Plutonium
 	[80] = "rbxassetid://135392678682578", -- Fermium

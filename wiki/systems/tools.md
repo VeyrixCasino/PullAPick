@@ -200,10 +200,12 @@ equip; the coin ladder resets.
     PICKAXE 82, BUT REDO THE RESTs ... make sure the colors make sense"*. Tier
     82 keeps the original.
   - **Drills and explosives 1–81 are redone too** (`ORE_DRILL_CANVA`,
-    `ORE_BOMB_CANVA`, 2026-10-18). Explosives 19, 29, 65, 67, 68, 71 and 77
-    are being redrawn, because the cut-out clipped the fuse spark. Pickaxes 52
-    and 57 are being redrawn too, because their heads read as axes.
-    Jackhammers 75–82 are being drawn now.
+    `ORE_BOMB_CANVA`, 2026-10-18). Some were redrawn on 2026-10-19:
+    - explosives 19, 29, 65, 67, 68, 71 and 77, because the first cut-out
+      clipped the fuse spark (65 to 77 got a flatter star spark);
+    - pickaxes 52 and 57, because their heads read as axes.
+  - **Jackhammers 75–82 are done** (2026-10-19). Every family now has an icon
+    for every ore (`oreskins.js`).
   - All of it switches on with `MineIcons.NEW_TOOL_ICONS_SHARED` once the owner
     shares the uploads ([assets-and-uploads](../code/assets-and-uploads.md)).
 - **Decided, not shipped:** `WOOD_PICK_COIN_GROW` 1.55 → 1.40 (PROPOSAL §0 line

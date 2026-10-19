@@ -94,20 +94,21 @@ it via personal account, and i just have to share access"*.
   with `tools/icons/slice-grid.ps1` cutting each 10 × 9 sheet into
   512 × 512 icons in `art/tool-icons/<family>/NN_<ore>.png`. Prompts and
   Canva state are in `build/hammer-icons/` and `build/tool-icons/`.
-  - **Uploaded:** 82 hammers, 74 jackhammers, 81 pickaxes, 81 drills and 74
-    explosives, all as the owner's account. The pickaxes, drills and explosives
-    are tiers 1–81. All are listed in `build/hammer-icons/share-list.txt` (392
-    images). The 155 drills and explosives were added on 2026-10-18; their ids
-    are in `build/tool-icons/ids.json`.
+  - **Uploaded:** 82 hammers, 82 jackhammers, and tiers 1–81 of pickaxes,
+    drills and explosives, all as the owner's account. That is 407 images, all
+    listed in `build/hammer-icons/share-list.txt`.
+    - Drills and explosives were added on 2026-10-18.
+    - On 2026-10-19 came jackhammers 75–82 and the redraws (explosives 19, 29,
+      65, 67, 68, 71 and 77; pickaxes 52 and 57).
+    - The redraws replaced their old ids in the list, so only ids the game
+      uses need sharing.
+    - The ids are in `build/tool-icons/ids.json` and `build/hammer-icons/ids.json`.
   - **Wired behind `MineIcons.NEW_TOOL_ICONS_SHARED`,** which is false until the
     owner shares them. An unshared image draws nothing, and a blank hotbar is
     worse than the old art.
-  - **Not done yet:**
-    - jackhammers 75–82;
-    - redraws of explosives 19, 29, 65, 67, 68, 71 and 77 (the fuse spark was
-      clipped) and pickaxes 52 and 57 (the heads read as axes).
-    Canva rate-limits generation: per its help, about 7 images per 30 minutes,
-    plus a monthly allowance. Resume from each folder's `state.json`.
+  - Canva rate-limits generation: per its help, about 7 images per 30
+    minutes, plus a monthly allowance. Resume a run from each folder's
+    `state.json`.
 - The owner has seen personal assets in the group they never shared by hand.
   Roblox appears to grant an experience use of an asset its owner uses there
   from Studio; *unverified*, so still share explicitly and test.

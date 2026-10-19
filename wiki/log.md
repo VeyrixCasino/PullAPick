@@ -1484,3 +1484,23 @@ a two-part caption ran under the status strip.
 fix: Studio was in Play.
 
 Updated: shops-and-monetisation, log.
+
+## [2026-10-19] fix | the last tool icons: jackhammers 75–82 and 9 redraws
+Canva drew jackhammers 75–82 and redrew 9 icons:
+- explosives 19, 29, 65, 67, 68, 71 and 77 (the first cut-out clipped the fuse
+  spark; 65 to 77 have a flatter star spark);
+- pickaxes 52 and 57 (the heads read as axes).
+
+All 17 are uploaded as the owner's account and wired into `MineIcons`, still
+behind `NEW_TOOL_ICONS_SHARED`. Every forged family now has an icon for every
+ore. Pickaxe 82 and the drill and explosive tier 82 keep their original art.
+`oreskins.js` no longer allows any gap. The share list holds the 407 current
+ids, with the 2 old pickaxe ids replaced.
+
+The run left things for the owner to judge:
+- 52 and 57 are slimmer than their neighbours;
+- jackhammer 82's rainbow reads mostly violet;
+- the full family sheets in Canva still show the old tiers. The new icons are
+  on their own pages.
+
+Updated: tools, assets-and-uploads, log.
