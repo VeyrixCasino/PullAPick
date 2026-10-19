@@ -425,12 +425,14 @@ do
 	local def = all[1]
 	local row = R.eventRow(def, { uid = "u1", prestige = 0 }, "hallow", 0)
 	local worn = ToolSkins.wear(row, hs)
-	check(worn.power == math.max(1, math.floor(row.power * Skins.BASE.S * def.skinFactor)),
+	-- Skins.baseOf: a Halloween S/SS/SSS skin carries its own 1.2 edge (halloween-power.js);
+	-- "the full multiplier" is that edged multiplier, and the tool's factor multiplies it.
+	check(worn.power == math.max(1, math.floor(row.power * Skins.baseOf(hs) * def.skinFactor)),
 		"a Halloween skin on a Halloween tool: its whole multiplier x the tool's own factor", worn.power)
 	check(ToolSkins.wear(row, other).power == math.max(1, math.floor(row.power * Skins.BASE.S)),
 		"any other skin on it is unchanged")
 	local forged = { id = "oretool_x", family = "pickaxe", power = 1000 }
-	check(ToolSkins.wear(forged, hs).power == math.floor(1000 * Skins.BASE.S), "a Halloween skin on a normal tool is unchanged")
+	check(ToolSkins.wear(forged, hs).power == math.floor(1000 * Skins.baseOf(hs)), "a Halloween skin on a normal tool is unchanged")
 	local differ = true
 	for i = 2, #all do
 		if all[i].skinFactor == all[i - 1].skinFactor or not (all[i].skinFactor > 1) then differ = false end

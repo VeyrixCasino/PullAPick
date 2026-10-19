@@ -132,14 +132,14 @@ or tools.
 
 | rank | chest | Halloween packs | pack luck | candy | charm (0.5% x Chest Luck) | book chance |
 |---|---|---|---|---|---|---|
-| F | Candy Sack | 1 | plain | 40 | the rank's (MineCharms.cryptChestCharm, not in this build) | MineEnchants.rollHalloweenBook (not in this build) |
-| D | Pumpkin Pail | 1 | x1.25 | 100 | the rank's (MineCharms.cryptChestCharm, not in this build) | MineEnchants.rollHalloweenBook (not in this build) |
-| C | Cobweb Crate | 1 | x1.5 | 250 | the rank's (MineCharms.cryptChestCharm, not in this build) | MineEnchants.rollHalloweenBook (not in this build) |
-| B | Bat Box | 2 | x1.5 | 600 | the rank's (MineCharms.cryptChestCharm, not in this build) | MineEnchants.rollHalloweenBook (not in this build) |
-| A | Coffin Chest | 2 | x2 | 1,500 | the rank's (MineCharms.cryptChestCharm, not in this build) | MineEnchants.rollHalloweenBook (not in this build) |
-| S | Witch's Cauldron | 3 | x2.5 | 4,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | MineEnchants.rollHalloweenBook (not in this build) |
-| SS | Phantom Vault | 4 | x3 | 10,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | MineEnchants.rollHalloweenBook (not in this build) |
-| SSS | Pumpkin King's Hoard | 5 | x4 | 25,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | MineEnchants.rollHalloweenBook (not in this build) |
+| F | Candy Sack | 1 | plain | 40 | the rank's (MineCharms.cryptChestCharm, not in this build) | 2.8% (measured) |
+| D | Pumpkin Pail | 1 | x1.25 | 100 | the rank's (MineCharms.cryptChestCharm, not in this build) | 3.9% (measured) |
+| C | Cobweb Crate | 1 | x1.5 | 250 | the rank's (MineCharms.cryptChestCharm, not in this build) | 6.0% (measured) |
+| B | Bat Box | 2 | x1.5 | 600 | the rank's (MineCharms.cryptChestCharm, not in this build) | 8.2% (measured) |
+| A | Coffin Chest | 2 | x2 | 1,500 | the rank's (MineCharms.cryptChestCharm, not in this build) | 10.6% (measured) |
+| S | Witch's Cauldron | 3 | x2.5 | 4,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | 15.3% (measured) |
+| SS | Phantom Vault | 4 | x3 | 10,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | 19.9% (measured) |
+| SSS | Pumpkin King's Hoard | 5 | x4 | 25,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | 27.1% (measured) |
 
 ### Rank odds per section
 
@@ -166,11 +166,11 @@ already own pays stardust instead. Kinds: pets 70%, skins 30%.
 | 1 | Common | F | 40.0% | 28.0% | 12.0% | 20.0% | 20 | 6 |
 | 2 | Uncommon | D | 25.0% | 17.5% | 7.50% | 12.5% | 15 | 5 |
 | 3 | Rare | C | 15.0% | 10.5% | 4.50% | 7.50% | 10 | 4 |
-| 4 | Epic | B | 10.0% | 7.00% | 3.00% | 5.00% | 6 | 3 |
-| 5 | Legendary | A | 6.00% | 4.20% | 1.80% | 3.00% | 4 | 3 |
-| 6 | Mythic | S | 2.50% | 1.75% | 0.750% | 1.25% | 2 | 2 |
-| 7 | Divine | SS | 1.20% | 0.840% | 0.360% | 0.600% | 2 | 1 |
-| 8 | Exotic | SSS | 0.300% | 0.210% | 0.090% | 0.150% | 1 | 1 |
+| 4 | Epic | B | 10.0% | 7.00% | 3.00% | 5.00% | 10 | 3 |
+| 5 | Legendary | A | 6.00% | 4.20% | 1.80% | 3.00% | 7 | 3 |
+| 6 | Mythic | S | 2.50% | 1.75% | 0.750% | 1.25% | 4 | 2 |
+| 7 | Divine | SS | 1.20% | 0.840% | 0.360% | 0.600% | 4 | 1 |
+| 8 | Exotic | SSS | 0.300% | 0.210% | 0.090% | 0.150% | 2 | 1 |
 
 ## 7. Halloween tools
 
