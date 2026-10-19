@@ -2,9 +2,11 @@
 title: Shops and monetisation
 type: system
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
+  - tools/verify/deal-odds.js
+  - tools/verify/cart-box.js
   - src/ReplicatedStorage/Mine/Shared/MineShopBuy.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopEconomy.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopLadders.luau
@@ -73,7 +75,10 @@ Robux" and took credits in one tap). At a seam desk, selling pays `DEPTH_SELL_FR
   table first, so a crafted cart could still buy retired card and gear packs;
 - Build-a-Box: any 10 items from that same shelf, at 12% off, and **ten of one
   pack at the 10x bundle's 30%** (owner, 2026-10-19, audit S8: "Box of 10 gets 30%
-  off"). One function, `MinePackConfig.boxPrice`, is charged and printed;
+  off"). One function, `MinePackConfig.boxPrice`, is charged and printed. A box
+  line's quantity buttons buy that many boxes: `buyCart` charged boxPrice x qty
+  and granted one box until 2026-10-19; it grants every box it charges for now
+  (`tools/verify/cart-box.js`);
 - lucky blocks (`MineLuckyBlocks.SHOP`).
 
 **One checkout at a time** (audit S1, 2026-10-19). CONFIRM stayed live while
@@ -200,6 +205,23 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     still arrives pays the deal's credit price back (`Dig.creditBack`, PROPOSED)
     instead of saying "granted" and giving nothing.
   - `tools/verify/deals.js` runs the real module and pins all of the above.
+  - **Pot of Gold** (599 credits, max 1) pays the 200% Luck charm, 8 Shiny Packs
+    (Meadow Legendary packs, all shiny at luck x3), 2 Fortune Flasks and **7 wild
+    cases** (1 ★★★★½, 3 ★★★★, 2 ★★★, 1 ★★½; owner, 2026-10-19, "Use all
+    defaults"). It paid 3 Heirloom and 2 Omen packs, retired on 2026-10-10; the
+    cases that replace them recycle for 27,374 stardust against 27,071 (+1.1%) and
+    list at 255 credits against 257. The **Weekend Haul** product
+    (`MineConfig.PRODUCTS.weekend_haul`) pays 2 ★★★★★ and 1 ★★★½ cases for its
+    Heirloom, Shiny and Omen: 35,044 against 34,148 stardust (+2.6%), 195 against
+    196 credits. Both are paid cases (`Verbs.grantPacks`' `paid`). The mixes are
+    PROPOSED. `tools/verify/deal-odds.js` reruns the maths on the real modules.
+  - **Odds before you buy.** A deal with lucky blocks or cases has an ODDS button:
+    `MineRotatingOffers.oddsSheet` reads each block's `MineLuckyBlocks.oddsSheet`,
+    the cases' `MineCases.wildGradeOdds(true)` and `levelOdds`, and the Shiny
+    Packs' own odds at luck x3 (`MinePackConfig.siphonOdds`), drawn by
+    `MineLuckyOddsView.sheet`.
+  - **The Founders Bag takes two taps on the Limited tab too**, the Founders Rig's
+    confirm: the first arms it ("TAP AGAIN"), and a second within 4 s buys.
 - **Receipts.** `MarketplaceService.ProcessReceipt` saves `p.receipts[PurchaseId]`
   *before* it reports a grant, so a retried receipt is never paid twice. It keeps
   the newest 100. The grant itself is `Verbs.grantReceipt`.

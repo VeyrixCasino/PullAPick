@@ -51,8 +51,14 @@ MineQuests.CHAIN = {
 		banked ore in the pouch. Earlier and it asks for ore nobody has; much
 		later and they have spent an hour not knowing the game's main system
 		exists.
+
+		LEVEL UP, NOT FORGE (2026-10-19). It was "Forge a tool out of ore", which
+		rung 3 (pick2, "Forge your first tool") now teaches; this rung teaches the
+		Forge's other half. Stat `upgrades` counts the level-ups the Forge sold
+		(MineServer questValue). Id kept: CHAIN_V2 names it. The wording is
+		PROPOSED; the reward is unchanged.
 	]]
-	{ id = "forge1",     stat = "oretools", goal = 1,       text = "Forge a tool out of ore",      tip = "The Forge turns ore into a tool. Every ore makes its own pickaxe, drill and charge -- 246 in all.", reward = { gems = 60 } },
+	{ id = "forge1",     stat = "upgrades", goal = 1,       text = "Level up a tool once at the Forge", tip = "Forge → UPGRADES → +1 LEVEL. A tool levels up on the ore it is made of, and every level hits harder.", reward = { gems = 60 } },
 	{ id = "chests10",   stat = "chests",   goal = 10,      text = "Open 10 chests",               tip = "Chests can drop a BOOK BUNDLE: enchants for your tools.", reward = { gems = 200, tool = "meadow_surface_5_pick", toolName = "Ironvine" } },
 	{ id = "zone2",      stat = "zone",     goal = 1,       text = "Unlock the next zone",         tip = "Buy portals with gems. Zones stay unlocked after rebirth.", reward = { gems = 80 } },
 	{ id = "chestsL4",   stat = "chestsL4", goal = 5,       text = "Open 5 chests below 150m (Layer 4+)", tip = "Chest luck from pets, skills and enchants stacks.", reward = { gems = 300, tool = "meadow_surface_6_pick", toolName = "Hillforge" } },
@@ -318,6 +324,10 @@ end
 
 --------------------------------------------------------------------------------
 -- LIFETIME MILESTONES (absolute counters, claim anytime when met)
+--
+-- Honest labels (2026-10-19): `cards` and `gear` count what you HOLD now
+-- (#p.cards, #p.gear) and `depth` this run's deepest (depth resets on rebirth),
+-- so those rows say "Own N" and "in one run" instead of "Lifetime".
 --------------------------------------------------------------------------------
 MineQuests.MILESTONES = {
 	{ id = "ms_blocks_500",   stat = "blocks",  goal = 500,     text = "Lifetime: 500 blocks",      reward = { gems = 35 } },
@@ -325,19 +335,19 @@ MineQuests.MILESTONES = {
 	{ id = "ms_blocks_50k",   stat = "blocks",  goal = 50000,   text = "Lifetime: 50,000 blocks",  reward = { gems = 96 } },
 	{ id = "ms_blocks_250k",  stat = "blocks",  goal = 250000,  text = "Lifetime: 250,000 blocks", reward = { gems = 320 } },
 	{ id = "ms_packs_10",     stat = "packs",   goal = 10,      text = "Lifetime: 10 packs opened", reward = { gems = 60 } },
-	{ id = "ms_gear_15",      stat = "gear",    goal = 15,      text = "Lifetime: 15 gear pieces", reward = { gems = 72 } },
+	{ id = "ms_gear_15",      stat = "gear",    goal = 15,      text = "Own 15 gear pieces",       reward = { gems = 72 } },
 	{ id = "ms_packs_25",     stat = "packs",   goal = 25,      text = "Lifetime: 25 packs opened", reward = { gems = 32 } },
 	{ id = "ms_packs_100",    stat = "packs",   goal = 100,     text = "Lifetime: 100 packs opened",reward = { gems = 120 } },
-	{ id = "ms_cards_100",    stat = "cards",   goal = 100,     text = "Lifetime: 100 cards",       reward = { pack = "iron_pack", packQty = 2 } },
-	{ id = "ms_cards_500",    stat = "cards",   goal = 500,     text = "Lifetime: 500 cards",       reward = { gems = 192 } },
+	{ id = "ms_cards_100",    stat = "cards",   goal = 100,     text = "Own 100 cards",             reward = { pack = "iron_pack", packQty = 2 } },
+	{ id = "ms_cards_500",    stat = "cards",   goal = 500,     text = "Own 500 cards",             reward = { gems = 192 } },
 	{ id = "ms_merges_50",    stat = "merges",  goal = 50,      text = "Lifetime: 50 merges",      reward = { gems = 90 } },
 	{ id = "ms_merges_200",   stat = "merges",  goal = 200,     text = "Lifetime: 200 merges",     reward = { gems = 240 } },
 	{ id = "ms_zone_3",       stat = "zone",    goal = 3,       text = "Lifetime: own 3 zones",    reward = { gems = 64 } },
 	{ id = "ms_zone_5",       stat = "zone",    goal = 5,       text = "Lifetime: own 5 zones",    reward = { gems = 168 } },
 	{ id = "ms_rebirth_3",    stat = "rebirth", goal = 3,       text = "Lifetime: Rebirth 3",      reward = { gems = 120 } },
 	{ id = "ms_rebirth_10",   stat = "rebirth", goal = 10,      text = "Lifetime: Rebirth 10",     reward = { gems = 400 } },
-	{ id = "ms_depth_250",    stat = "depth",   goal = 250,     text = "Lifetime: depth 250",      reward = { gems = 80 } },
-	{ id = "ms_depth_1500",   stat = "depth",   goal = 1500,    text = "Lifetime: depth 1,500",    reward = { gems = 300 } },
+	{ id = "ms_depth_250",    stat = "depth",   goal = 250,     text = "Reach depth 250 in one run", reward = { gems = 80 } },
+	{ id = "ms_depth_1500",   stat = "depth",   goal = 1500,    text = "Reach depth 1,500 in one run", reward = { gems = 300 } },
 }
 
 function MineQuests.milestoneById(id)

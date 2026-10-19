@@ -2,9 +2,11 @@
 title: Wandering traders
 type: system
 status: partial
-verified: 2026-10-16 @ 98c141a
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTrader.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCaseStack.luau
+  - tools/verify/case-stack.js
   - src/ServerScriptService/Mine/MineTraderNPC.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
   - src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau
@@ -82,6 +84,15 @@ part-built figures, which was the owner's choice.
   trader's shelf, `canAccessSeam` must pass, and the **price is the shelf row's**,
   never the payload's. The reward is rolled before the debit; a reward that cannot
   be built refunds.
+- **One to five at once, spinning** (owner, 2026-10-19: every case *"up to 5 slot
+  spins at a time"*; `MineCaseStack`). The shelf has an "OPEN AT ONCE" 1–5 picker
+  and each buy button shows the price times it. The server takes `payload.count`
+  (clamped to 5), asks for the whole price first (all or nothing), rolls every
+  case, then charges; each reward is granted by `Verbs.grantTraderReward` and
+  spins on its own reel (`MineTrader.caseReel`: the granted reward at tile 38,
+  every other tile a fresh `rollCase`, so the reel shows what the case really
+  pays), all sent at once as `caseSpins` and played stacked. It used to open one
+  case into a "found" popup with no reel.
 - **The client panel** (`ClientFns.showTraderShop`, commit `d38b65e`) renders the
   offer the server sent and computes nothing: not prices, not stock, not
   affordability gates. It is rebuilt on every open, and its countdown ticks on
@@ -96,9 +107,9 @@ part-built figures, which was the owner's choice.
 
 | file | role | key symbols |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/MineTrader.luau` | the rules, shared with the client | `CASES`, `COUNT`, `ROTATE_SECONDS`, `rotationFor`, `placements`, `stockFor`, `priceFor`, `rollCase`, `caseOdds`, `TOOL_FAMILIES` |
+| `src/ReplicatedStorage/Mine/Shared/MineTrader.luau` | the rules, shared with the client | `CASES`, `COUNT`, `ROTATE_SECONDS`, `rotationFor`, `placements`, `stockFor`, `priceFor`, `rollCase`, `caseOdds`, `TOOL_FAMILIES`, `reelRow`, `caseReel` |
 | `src/ServerScriptService/Mine/MineTraderNPC.luau` | bodies, prompt, spot list, roster check | `spots`, `build`, `start`, `offer`, `canTrade` |
-| `src/ServerScriptService/Mine/MineServer.server.luau` | the till | `Verbs.buyTraderCase`, the `traderShop` remote |
+| `src/ServerScriptService/Mine/MineServer.server.luau` | the till | `Verbs.buyTraderCase`, `Verbs.grantTraderReward`, the `traderShop` remote |
 | `src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau` | the panel and its odds | `ClientFns.showTraderShop`, `ClientFns.traderOdds` |
 | `tools/verify/trader.js` | rules, placement spread, server wiring, client wiring | needs `luau` |
 

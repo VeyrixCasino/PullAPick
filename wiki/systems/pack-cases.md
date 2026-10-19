@@ -2,9 +2,12 @@
 title: Pack cases
 type: system
 status: partial
-verified: 2026-10-10 @ f6ca7a6
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineCases.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCaseStack.luau
+  - tools/verify/case-stack.js
+  - tools/cursor/tasks/pack-tops.md
   - src/ReplicatedStorage/Mine/Shared/MineSetPacks.luau
   - src/ReplicatedStorage/Mine/Shared/MinePackConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineGroupWheel.luau
@@ -49,14 +52,23 @@ There are two kinds (`MineCases.CASES`, kind `pack_case`):
     - `MineCases.wildReel` builds a 44-tile reel of packs drawn the same way,
       with the winner at tile 38. `MineCases.open` sends it as `design.reel`.
     - MineClient plays it on `MineGradeReveal.caseSpin`
-      (`ClientFns.playCaseReels` → `ctl.playRun`), one spin after another in
-      a run: the next starts when the player closes the last result.
-    - **SKIP ALL** (owner, 2026-10-19, launch audit S25). A run is up to
-      `Const.OPEN_RUN_MAX` (50) spins of 5.4 s. While more are to come, the
-      case screen shows SKIP ALL: it stops the spin and puts every result of
-      the run on one grid, best first, built from the payloads the server
-      sent, and celebrates the best one once. Checked by
-      `tools/verify/reveal-runs.js`.
+      (`ClientFns.playCaseReels` → `ctl.playRun`).
+    - **Up to five at a time, stacked** (owner, 2026-10-19: *"make every case
+      in the game be able to spin up to 5 slot spins at a time (one on top of
+      another)"*; `MineCaseStack`). A case stack's bag tile has a 1–5 picker in
+      place of x10 / ALL, and OPEN opens that many in one `openMany`, which
+      the server clamps to `MineCaseStack.MAX` (5) for any case. The reels spin
+      together, one above another (`ctl.playStack`), and stop in turn, top
+      first: `MineCaseStack.stopAt(i)` = 4.6 s + 0.5 s a reel (PROPOSED). Each
+      lit winner fades the rest (no tile scales: the text rule), then the
+      results go up on one grid, best first, celebrated once. A tap stops them
+      all. A run longer than five (five Gear Vaults are 25 items) plays in
+      rounds of five, each on the player's close.
+    - **SKIP ALL** (owner, 2026-10-19, launch audit S25). While more rounds
+      are to come, the case screen shows SKIP ALL: it stops the spin and puts
+      every result of the run on one grid, best first, built from the payloads
+      the server sent, and celebrates the best one once. Checked by
+      `tools/verify/reveal-runs.js` and `tools/verify/case-stack.js`.
     - **Each tile is coloured and labelled by its set's grade**, on the shared
       rarity ladder (`MineTemper.RARITY_COLOR` / `WORD_OF`, which skin cases
       use too):
@@ -90,6 +102,9 @@ How a case behaves in the game:
   - The reveal shows one card per pack, with its art, its stars and its set
     and grade.
   - No luck is stamped on the packs.
+  - **Set cases open 1–5 at a time too, without a spin**: their contents are
+    fixed, so a reel would be theatre. They go through the pack reveal, whose
+    "OPEN Nx" offers at most five of a case (`MinePackReveal`).
 - **Chest drops** (*decided*, owner 2026-10-10: the old 0.5–10% was "WAY to
   high … make each rarity 2x as rare as the last.. 10% base drop rate").
   `MineCases.rollChestCase` and `chestCaseOdds` work like this:
@@ -119,6 +134,10 @@ How a case behaves in the game:
   `ids.json` `cases`). The tile's colour says the grade. How the images were
   made is in [assets-and-uploads](../code/assets-and-uploads.md). The owner
   shared all 20 on 2026-10-10, and they load and draw in the game.
+  - **The packs' tops go blank** (owner, 2026-10-19). The 57 set-pack sprites
+    have the set's name baked on the crinkled top seal; `render.ps1` now
+    leaves it blank unless run with `-Title`. Re-rendering and re-uploading is
+    the PC session's Cursor job `tools/cursor/tasks/pack-tops.md` (not run yet).
 
 ## Where it lives
 
@@ -128,6 +147,8 @@ How a case behaves in the game:
 | `MinePackConfig.luau` | registers cases; `priceOf` is the live credit shelf only (`MineCases.creditPrice`, since 2026-10-19); `boxPrice` prices a Build-a-Box | `PACK_BY_ID`, `priceOf`, `boxPrice`, `PACK_UNIT.pack_case` |
 | `MineServer.server.luau` | open dispatch, chest drop, cart grants, stardust buy | `Verbs.buyDustCase`, `openChestBlock` |
 | `MineGroupWheel.luau` | the wheel's pack slices now pay wild cases | `SEGMENTS` |
+| `MineCaseStack.luau` | 1–5 at a time: the clamp, all-or-nothing price, stop order, rounds, the picker | `MAX`, `clamp`, `charge`, `stopAt`, `rounds`, `isCase`, `picker` |
+| `MineGradeReveal.luau` | the case reel, one or a stack of them | `caseSpin`, `ctl.playStack`, `ctl.playRun` |
 | `MineInventoryView.luau` | bag tile, case inspector, credit shelf, stardust Cases tab | `dustTab`, `FEATURED` |
 | `MinePackArt.luau` | generated; case art lookup | `caseArt`, `WILD_CASE` |
 
@@ -295,8 +316,9 @@ tested on its own: S-rank chests drop one about 10% of the time.
 - **`MineCases` must not require `MinePackConfig` at load.** MinePackConfig
   requires MineCases, and a require loop never returns. The prices read it
   lazily.
-- **`MineServer` has 4 top-level locals left.** The case code uses inline
-  requires and a `Verbs` field.
+- **`MineServer` sits near the 200-local ceiling** (12 left at `3863d14`,
+  `tools/verify/compile.js`). The case code uses inline requires and `Verbs`
+  fields (`Verbs.openTemperStack`, `Verbs.grantTraderReward`).
 
 ## Open questions
 

@@ -3203,6 +3203,10 @@ local function questValue(p, stat)
 		return n
 	elseif stat == "bookmerges" then
 		return tonumber(p.bookMerges) or 0
+	elseif stat == "upgrades" then
+		-- Times a tool was levelled at the Forge: Verbs.upgradeOreTool (ore, or
+		-- coins for the wooden pick) bumps it on every level-up it pays for.
+		return tonumber(s.upgrades) or 0
 	--[[
 		THE FOUR SYSTEMS THE LADDER NEVER MENTIONED.
 
@@ -8492,24 +8496,9 @@ local function openPack(plr, setId, chestId, pk, collect)
 					bumpStat(plr, p, "packs")
 					introAdvance(plr, p, 5)
 					awardPassXp(plr, p, 10)
-					if collect then
-						table.insert(collect, {
-							packId = zdef.id,
-							name = zdef.name,
-							setName = "Ore Case",
-							kind = "skin",
-							cards = { {
-								kind = "skin",
-								name = skinName,
-								rarityId = grade,
-							} },
-						})
-						return
-					end
 					local ToolSkins = require(shared:WaitForChild("MineToolSkins"))
 					local reel, at = ToolSkins.caseReel(crng, skinDef)
-					snap(plr)
-					net:FireClient(plr, "temperCase", {
+					local spin = {
 						reel = reel, at = at, id = skinDef and skinDef.id or nil, name = skinName,
 						rarity = grade,
 						word = Temper.wordOf(grade),
@@ -8521,7 +8510,26 @@ local function openPack(plr, setId, chestId, pk, collect)
 						resultSub = ToolSkins.powerLine(skinDef, 3),
 						note = dupe and string.format("already in your wardrobe  ·  +%d stardust", tonumber(extra) or 0)
 							or "a new skin  ·  wear it from SKINS",
-					})
+					}
+					if collect then
+						-- In a run of ore cases (up to five, MineCaseStack) the skin
+						-- spins on the stacked reels like a lone one: `reel` rides along.
+						table.insert(collect, {
+							packId = zdef.id,
+							name = zdef.name,
+							setName = "Ore Case",
+							kind = "skin",
+							cards = { {
+								kind = "skin",
+								name = skinName,
+								rarityId = grade,
+							} },
+							reel = spin,
+						})
+						return
+					end
+					snap(plr)
+					net:FireClient(plr, "temperCase", spin)
 					return
 				end
 
@@ -9584,11 +9592,16 @@ local function openMany(plr, payload)
 	payload = (type(payload) == "table") and payload or {}
 	local packId = payload.packId
 	local want = math.clamp(math.floor(tonumber(payload.count) or 1), 1, Const.OPEN_RUN_MAX)
-	-- Gear cases: hard cap 3 concurrent reels. No Open All.
+	--[[
+		A CASE OPENS UP TO FIVE AT A TIME (owner, 2026-10-19: "up to 5 slot spins
+		at a time"; MineCaseStack). Pack cases, ore (skin) cases and gear cases:
+		the bag's picker asks for 1-5 and the reels spin stacked. Packs keep their
+		long runs. (Gear cases were capped at 3 here.)
+	]]
 	do
-		local def = packId and Packs.PACK_BY_ID[packId]
-		if def and def.kind == "gear" then
-			want = math.min(want, 3)
+		local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+		if packId and CaseStack.isCase(packId) then
+			want = math.min(want, CaseStack.MAX)
 		end
 	end
 	-- The pack the player actually tapped, by its own id. Only the first open
@@ -11131,24 +11144,79 @@ function Verbs.buyTraderCase(plr, payload)
 		return
 	end
 	local price = math.max(1, math.floor(tonumber(row.tokens) or 0))
-	if (tonumber(p.temperTokens) or 0) < price then
-		net:FireClient(plr, "toast", ("Need %d tokens"):format(price))
+	--[[
+		ONE TO FIVE AT ONCE (owner, 2026-10-19: every case "up to 5 slot spins at
+		a time"; MineCaseStack), ALL OR NOTHING: tokens for every case or none
+		opens, and every case is rolled before a token moves, so one that cannot
+		roll charges nothing. Each spins on its own reel, stacked ("caseSpins").
+	]]
+	local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+	local n = CaseStack.clamp(payload.count)
+	local total = CaseStack.charge(p.temperTokens, price, n)
+	if not total then
+		net:FireClient(plr, "toast", ("Need %d tokens"):format(price * n))
 		return
 	end
-	local reward = Dig.Trader.rollCase(row.caseId, Random.new())
-	if not reward then
-		net:FireClient(plr, "toast", "That case is empty")
+	local rng = Random.new()
+	local rewards = {}
+	for _ = 1, n do
+		local reward = Dig.Trader.rollCase(row.caseId, rng)
+		if not reward then
+			net:FireClient(plr, "toast", "That case is empty")
+			return
+		end
+		table.insert(rewards, reward)
+	end
+	-- Debit only once every reward resolved, so a case that cannot pay never costs.
+	p.temperTokens = (tonumber(p.temperTokens) or 0) - total
+	-- Not a file-level local in this script (the 200-local ceiling).
+	local Temper = require(shared.MineTemper)
+	local spins, names, refunded = {}, {}, 0
+	for _, reward in ipairs(rewards) do
+		local got, made = Verbs.grantTraderReward(p, reward, rng)
+		if got then
+			table.insert(names, got)
+			local win = Dig.Trader.reelRow(reward, made, rng)
+			local reel, at = Dig.Trader.caseReel(row.caseId, win, rng)
+			table.insert(spins, {
+				reel = reel, at = at, id = win.id, name = got, rarity = win.rarity,
+				catalogId = win.catalogId, icon = win.icon,
+				title = row.name or "Trader Case",
+				resultText = string.upper(Temper.wordOf(win.rarity)) .. "   " .. got,
+				resultSub = (reward.kind == "tool" and "a level 1 tool  ·  hold it from your hotbar")
+					or (reward.kind == "hat" and "a hat  ·  wear it from Inventory → Equipment")
+					or "a charm  ·  equip it in Inventory → Equipment",
+				note = "yours to keep",
+			})
+		else
+			-- Nothing could be built: refund rather than charge for nothing.
+			p.temperTokens = (tonumber(p.temperTokens) or 0) + price
+			refunded += price
+		end
+	end
+	if #spins == 0 then
+		net:FireClient(plr, "toast", "The trader had nothing to give")
 		return
 	end
-	-- Debit only once the reward resolved, so a case that cannot pay never costs.
-	p.temperTokens = (tonumber(p.temperTokens) or 0) - price
-	local got = nil
+	net:FireClient(plr, "toast", ("%s — %s for %d tokens"):format(row.name,
+		(#names == 1) and names[1] or (#names .. " cases"), total - refunded))
+	net:FireClient(plr, "caseSpins", { list = spins })
+	markDirty(plr)
+	snap(plr)
+end
+
+--[[
+	Grant one rolled trader reward. Returns its label and what was made (the
+	hat piece, the charm def) for the reel's winning tile, or nil when nothing
+	could be built (the caller refunds that case).
+]]
+function Verbs.grantTraderReward(p, reward, rng)
+	rng = rng or Random.new()
 	if reward.kind == "charm" then
 		p.charms = p.charms or {}
 		p.charms[reward.charmId] = (tonumber(p.charms[reward.charmId]) or 0) + 1
-		got = reward.name
+		return reward.name, Charms.byId and Charms.byId(reward.charmId) or nil
 	elseif reward.kind == "hat" then
-		local rng = Random.new()
 		local catalog = Gear.catalogFor and Gear.catalogFor("hat", reward.rarity, nil, rng)
 		local setId = (catalog and catalog.setId)
 			or (Gear.SETS and Gear.SETS[rng:NextInteger(1, #Gear.SETS)].id)
@@ -11156,7 +11224,7 @@ function Verbs.buyTraderCase(plr, payload)
 		if piece then
 			p.gear = p.gear or {}
 			table.insert(p.gear, piece)
-			got = (piece.name or "Hat") .. " (" .. tostring(reward.rarity) .. ")"
+			return (piece.name or "Hat") .. " (" .. tostring(reward.rarity) .. ")", piece
 		end
 	elseif reward.kind == "tool" then
 		local oreDef = C.ORES[math.clamp(reward.tier, 1, #C.ORES)]
@@ -11177,25 +11245,10 @@ function Verbs.buyTraderCase(plr, payload)
 				level = 1,
 				base = 1,
 			})
-			got = (oreDef.name or "Tool") .. " " .. familyId
+			return (oreDef.name or "Tool") .. " " .. familyId, nil
 		end
 	end
-	if not got then
-		-- Nothing could be built: refund rather than charge for nothing.
-		p.temperTokens = (tonumber(p.temperTokens) or 0) + price
-		net:FireClient(plr, "toast", "The trader had nothing to give")
-		return
-	end
-	net:FireClient(plr, "toast", ("%s — %s for %d tokens"):format(row.name, got, price))
-	net:FireClient(plr, "foundTool", {
-		kind = reward.kind,
-		name = got,
-		title = "TRADER CASE",
-		rarityId = reward.rarity and (Charms.RARITY_LABEL and Charms.RARITY_LABEL[reward.rarity]) or "Legendary",
-		blurb = row.blurb or "",
-	})
-	markDirty(plr)
-	snap(plr)
+	return nil
 end
 
 --[[
@@ -11663,7 +11716,7 @@ local function buyProductWithCredits(plr, key)
 		net:FireClient(plr, "toast", "Starter Crate unlocked!")
 	elseif key == "weekend_haul" then
 		local prod = C.product("weekend_haul") or {}
-		Verbs.grantPacks(plr, p, prod.packs)
+		Verbs.grantPacks(plr, p, prod.packs, true) -- bought: paid cases
 		for _, row in ipairs(prod.blocks or {}) do
 			LuckyBlocks.grant(p, row.id, "F", row.qty or 1)
 		end
@@ -12771,17 +12824,24 @@ local function buyCart(plr, payload)
 			table.sort(setIds)
 			p.packs = p.packs or {}
 			local n = 0
-			for _, pid in ipairs(line.packs or {}) do
-				pid = tostring(pid)
-				local def = Packs.PACK_BY_ID[pid]
-				if def and Packs.priceOf(pid) then
-					table.insert(p.packs, Cases.bagRow(pid, true) or {
-						packId = pid,
-						packName = def.name or pid,
-						setId = def.setKey
-							or ((#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn"),
-					})
-					n += 1
+			--[[
+				EVERY BOX THE LINE PAID FOR (`line.grant` is its qty). The cart's
+				quantity buttons on a box line charged boxPrice x qty and this put
+				one box in the bag whatever the qty (2026-10-19).
+			]]
+			for _ = 1, math.max(1, math.floor(tonumber(line.grant) or 1)) do
+				for _, pid in ipairs(line.packs or {}) do
+					pid = tostring(pid)
+					local def = Packs.PACK_BY_ID[pid]
+					if def and Packs.priceOf(pid) then
+						table.insert(p.packs, Cases.bagRow(pid, true) or {
+							packId = pid,
+							packName = def.name or pid,
+							setId = def.setKey
+								or ((#setIds > 0) and setIds[Random.new():NextInteger(1, #setIds)] or "dragons_dawn"),
+						})
+						n += 1
+					end
 				end
 			end
 			table.insert(granted, { kind = "box", id = "custom", name = "Custom Box", qty = n })
@@ -15142,7 +15202,9 @@ task.spawn(function()
 	end
 end)
 
-function Verbs.grantPacks(plr, p, list)
+-- `paid`: bought with credits or Robux (the Weekend Haul), so a wild case in the
+-- list is a paid case and can roll the SSS set (MineCases.bagRow).
+function Verbs.grantPacks(plr, p, list, paid)
 	local setIds = {}
 	for id in pairs(Cards.SETS or {}) do
 		setIds[#setIds + 1] = id
@@ -15154,7 +15216,7 @@ function Verbs.grantPacks(plr, p, list)
 		local def = Packs.PACK_BY_ID[row.id]
 		for _ = 1, math.max(1, tonumber(row.qty) or 1) do
 			-- A pack case is its own kind of bag row (MineCases.bagRow).
-			table.insert(p.packs, Cases.bagRow(row.id) or {
+			table.insert(p.packs, Cases.bagRow(row.id, paid == true) or {
 				packId = row.id,
 				packName = (def and def.name) or row.id,
 				-- A set pack belongs to its own set; anything else picks one.
@@ -15966,6 +16028,12 @@ function Verbs.openTemperCase(plr, payload)
 	local Temper = require(shared.MineTemper)
 	local price = tonumber(Temper.CASE_PRICE_TOKENS) or 20
 	local want = rollCount(payload)
+	-- One to five open at once and spin stacked, paid all or nothing
+	-- (Verbs.openTemperStack). Ten and a hundred keep the best-of reel below.
+	if want <= require(shared:WaitForChild("MineCaseStack")).MAX then
+		Verbs.openTemperStack(plr, p, want, price)
+		return
+	end
 	if (p.temperTokens or 0) < price then
 		net:FireClient(plr, "toast", (Temper.CASE_NAME or "Case") .. " costs " .. price .. " tokens")
 		return
@@ -16039,6 +16107,73 @@ function Verbs.openTemperCase(plr, payload)
 	snap(plr)
 end
 
+--[[
+	ONE TO FIVE TEMPERAMENT CASES AT ONCE (owner, 2026-10-19: every case "up to
+	5 slot spins at a time"; MineCaseStack). ALL OR NOTHING: a purse that cannot
+	pay for every case opens none, and every case is rolled before a token
+	moves, so one that cannot roll charges nothing. Each is rolled exactly as a
+	single case is (rollTemperament) and granted; each gets its own reel built
+	around its winner, and they spin stacked ("caseSpins"). One case is the old
+	single reel ("temperCase").
+]]
+function Verbs.openTemperStack(plr, p, n, price)
+	local Temper = require(shared.MineTemper)
+	local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+	n = CaseStack.clamp(n)
+	local total = CaseStack.charge(p.temperTokens, price, n)
+	if not total then
+		net:FireClient(plr, "toast", (n == 1)
+			and ((Temper.CASE_NAME or "Case") .. " costs " .. price .. " tokens")
+			or string.format("%d cases cost %d tokens", n, price * n))
+		return
+	end
+	local rng = Random.new()
+	local rolls = {}
+	for _ = 1, n do
+		local kit, rarity = Temper.rollTemperament(rng)
+		if not kit then
+			net:FireClient(plr, "toast", "That case came up empty -- nothing was charged")
+			return
+		end
+		table.insert(rolls, { kit = kit, rarity = rarity })
+	end
+	p.temperTokens = (tonumber(p.temperTokens) or 0) - total
+	p.tempers = p.tempers or {}
+	local spins = {}
+	for _, r in ipairs(rolls) do
+		local had = p.tempers[r.kit.id]
+		if had then
+			had.rarity = Temper.betterGrade(had.rarity, r.rarity)
+			had.n = (tonumber(had.n) or 1) + 1
+		else
+			p.tempers[r.kit.id] = { rarity = Temper.normalizeRarity(r.rarity), n = 1 }
+		end
+		local reel, at = Temper.caseReel(rng, r.kit, r.rarity)
+		table.insert(spins, {
+			reel = reel, at = at, id = r.kit.id, name = r.kit.name,
+			rarity = Temper.normalizeRarity(r.rarity), word = Temper.wordOf(r.rarity),
+			dupe = had ~= nil,
+		})
+	end
+	if math.floor(tonumber(p.intro) or 0) == 36 then
+		p.introTemperRolls = (p.introTemperRolls or 0) + n
+		if p.introTemperRolls >= 5 then
+			introAdvance(plr, p, 36)
+		else
+			introSend(plr, p)
+		end
+	end
+	if n == 1 then
+		net:FireClient(plr, "temperCase", spins[1])
+	else
+		net:FireClient(plr, "caseSpins", { list = spins })
+		net:FireClient(plr, "toast", string.format("Opened %d cases (-%d tokens)", n, total))
+	end
+	introAdvance(plr, p, 16)
+	markDirty(plr)
+	snap(plr)
+end
+
 -- 3 cases for 50 tokens (vs 60 at singles). Shown once after first rebirth.
 function Verbs.openTemperCaseBundle(plr)
 	local p = profiles[plr.UserId]
@@ -16058,17 +16193,9 @@ function Verbs.openTemperCaseBundle(plr)
 	end
 	p.temperTokens -= price
 	p.tempers = p.tempers or {}
-	-- Shows the best of the bundle, like openTemperCase (see gradeRank there).
-	local function gradeRank(g)
-		g = Temper.normalizeRarity(g)
-		for i, x in ipairs(Temper.GRADE_ORDER) do
-			if x == g then
-				return i
-			end
-		end
-		return 0
-	end
-	local last
+	-- Every case of the bundle spins, stacked (MineCaseStack): it used to show
+	-- the best of the three on one reel.
+	local spins = {}
 	for _ = 1, n do
 		local rng = Random.new()
 		local kit, rarity = Temper.rollTemperament(rng)
@@ -16080,18 +16207,16 @@ function Verbs.openTemperCaseBundle(plr)
 			else
 				p.tempers[kit.id] = { rarity = Temper.normalizeRarity(rarity), n = 1 }
 			end
-			if not last or gradeRank(rarity) > gradeRank(last.rarity) then
-				local reel, at = Temper.caseReel(rng, kit, rarity)
-				last = { kit = kit, rarity = rarity, reel = reel, at = at }
-			end
+			local reel, at = Temper.caseReel(rng, kit, rarity)
+			table.insert(spins, {
+				reel = reel, at = at, id = kit.id, name = kit.name,
+				rarity = Temper.normalizeRarity(rarity), word = Temper.wordOf(rarity),
+				dupe = had ~= nil,
+			})
 		end
 	end
-	if last then
-		net:FireClient(plr, "temperCase", {
-			reel = last.reel, at = last.at, id = last.kit.id, name = last.kit.name,
-			rarity = Temper.normalizeRarity(last.rarity), word = Temper.wordOf(last.rarity),
-			bundle = n,
-		})
+	if #spins > 0 then
+		net:FireClient(plr, "caseSpins", { list = spins })
 	end
 	net:FireClient(plr, "toast", string.format("Opened %d cases (-%d tokens)", n, price))
 	markDirty(plr)
@@ -18557,7 +18682,7 @@ Verbs.grantReceipt = function(info)
 		end
 		if key == "weekend_haul" then
 			local prod = C.product("weekend_haul") or {}
-			Verbs.grantPacks(plr, p, prod.packs)
+			Verbs.grantPacks(plr, p, prod.packs, true) -- bought: paid cases
 			for _, row in ipairs(prod.blocks or {}) do
 				LuckyBlocks.grant(p, row.id, "F", row.qty or 1)
 			end

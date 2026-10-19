@@ -2,9 +2,10 @@
 title: Social, quests and leaderboards
 type: system
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ServerScriptService/Mine/SocialService.luau
+  - tools/verify/quests-honest.js
   - src/ReplicatedStorage/Mine/Shared/MineGroupWheelView.luau
   - tools/verify/daily-wheel.js
   - src/ReplicatedStorage/Mine/Shared/MineSocialView.luau
@@ -80,11 +81,18 @@ for nothing, its optional FAVORITE is Roblox's own prompt
   (+5% luck a rebirth; `prestigeYield` is gone) and `mine75k` (AFK after 2 idle minutes,
   not a "chill pad"). `tools/verify/quests-launch.js` checks each tip against the config
   value it quotes.
-- **Some "Lifetime" milestones are not lifetime.** `ms_cards_100/500` and `ms_gear_15`
-  read what you hold (`#p.cards`, `#p.gear`), and `ms_depth_*` read this run's deepest
-  (depth resets on rebirth). No lifetime counter exists for cards, gear or depth, so
-  they were left alone and asked about (Open questions below). Blocks, packs and merges
-  are true lifetime counters (`p.stats`).
+- **Milestones say what they count** (2026-10-19; the owner took the default, "relabel").
+  `ms_cards_100/500` and `ms_gear_15` read what you hold (`#p.cards`, `#p.gear`) and say
+  "Own 100 cards", "Own 15 gear pieces"; `ms_depth_*` read this run's deepest (depth resets
+  on rebirth) and say "Reach depth 250 in one run". Blocks, packs and merges are true
+  lifetime counters (`p.stats`) and keep "Lifetime:". The panel's header reads
+  "MILESTONES - claim when ready" (it said "lifetime").
+- **Chain rung `forge1` levels a tool up** (2026-10-19). It was "Forge a tool out of ore",
+  which rung 3 (`pick2`, above) now teaches. It is "Level up a tool once at the Forge"
+  (stat `upgrades`, goal 1, counted from when the rung goes active like the others; 60 gems
+  as before). `questValue` reads `p.stats.upgrades`, which `Verbs.upgradeOreTool` bumps on
+  every level-up it sells, the wooden pick's coin levels included. The wording is PROPOSED.
+  Both are checked by `tools/verify/quests-honest.js`.
 
 **The rune and trait quests teach enchants** (2026-10-12, when runes and traits
 were retired; same rewards, same places in the ladder):
@@ -267,8 +275,8 @@ A 16-slice prize wheel in the lobby, at about (40, 6, 0).
 - The Robux product ids for `group_wheel_1/5/10` (BLOCKED until the owner makes them).
 - ~~Who pays leaderboard placement rewards, and when (`rewardForRank`)?~~ **Answered
   2026-10-19:** nobody, so the reward text is removed (S39).
-- The "Lifetime" card, gear and depth milestones read what you hold now: add lifetime
-  counters, or relabel them "Own N"?
+- ~~The "Lifetime" card, gear and depth milestones read what you hold now: add lifetime
+  counters, or relabel them "Own N"?~~ **Answered 2026-10-19:** relabelled (above).
 
 ## See also
 [shops-and-monetisation](shops-and-monetisation.md) · [trading](trading.md) · [world-events](world-events.md) · [rebirth-and-skill-tree](rebirth-and-skill-tree.md) · [server](../code/server.md)

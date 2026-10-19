@@ -22,6 +22,8 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MinePackFX.luau
   - src/ReplicatedFirst/MineLoadingScreen.client.luau
   - tools/verify/reveal-runs.js
+  - src/ReplicatedStorage/Mine/Shared/MineCaseStack.luau
+  - tools/verify/case-stack.js
   - docs/AUDIO.md
   - docs/TODO.md §0.14, §0.33
 related: [server, code-map, luau-traps, rojo-and-studio, tools, traits, enchants]
@@ -65,7 +67,8 @@ related: [server, code-map, luau-traps, rojo-and-studio, tools, traits, enchants
 bumped when traits were retired). It then checks `MineBuild.EXPECT`, a list of
 the modules this build needs (MineForge, MineOrePouchView, MineBoostLayers and
 others), against the live DataModel. `MineTraits` and `MineTraitView` were
-removed from that list when they were deleted on 2026-10-12. If any is
+removed from that list when they were deleted on 2026-10-12; `MineCaseStack`
+joined it on 2026-10-19 (without it the bag's packs and every case open hang). If any is
 missing it warns **"THIS STUDIO IS RUNNING OLDER CODE THAN src/"**, names what the
 player loses, and gives the fix: `git pull` in the clone that `rojo serve` is
 running from, then reconnect. TODO §0.14 explains why this exists: "the UI isn't
@@ -239,6 +242,19 @@ The tier mappers take the real result:
     cases, a Gear Vault's items) waits for the player to close each result,
     and SKIP ALL shows the whole run on one grid with one celebration for the
     best (`ctl.playRun`, launch audit S24/S25, 2026-10-19).
+  - **Up to five reels at once, stacked** (owner, 2026-10-19; `MineCaseStack`).
+    `ctl.playRun(list, { stack = 5 })` plays a run in rounds of up to five, and
+    `ctl.playStack` spins a round's reels together, one above another, stopping
+    in turn (`MineCaseStack.stopAt`). The stacked tiles fade and light their
+    stroke; none scales, and the results grid after a stack skips its punch,
+    so no text rides a scale (the text rule). Every case door feeds it: the
+    bag's cases (`ClientFns.playCaseReels`, a gear case's items through
+    `ClientFns.gearReels`), and the server's `caseSpins` push (Temperament
+    Cases 1–5 and the bundle, trader cases). The box's track width now reads
+    its own offset, not `AbsoluteSize`, which is in screen pixels after the
+    box's `FitScale`: by reading the code, a reel on a scaled-down screen
+    stopped left of the marker (never seen in the engine).
+    `tools/verify/case-stack.js`.
   - **Rare finds** (`ClientFns.foundReveal`) print their TRUE rarity. A
     finish (shiny +1, shadow +2, nightmare +3) is rarer than its grade, so the
     bumped grade rides as `hypeRarity` and only sizes the celebration

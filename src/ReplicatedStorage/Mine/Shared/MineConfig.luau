@@ -996,7 +996,22 @@ MineConfig.PRODUCTS = {
 		robuxPrice = 349,
 		creditsPrice = 349,
 		name = "Weekend Haul",
-		packs = { { id = "heirloom_pack", qty = 1 }, { id = "shiny_pack", qty = 1 }, { id = "omen_pack", qty = 1 } },
+		--[[
+			WILD CASES WHERE THE RETIRED PACKS WERE (owner, 2026-10-19: "Use all
+			defaults": wild cases of about the same value). It paid one Heirloom,
+			one Shiny and one Omen pack, off the shelves since 2026-10-10. Valued
+			the way the cases are priced (MinePackConfig.expectedDust and
+			MineCases.expectedDust: what the cards recycle for), read 2026-10-19:
+
+			  old  Heirloom 6,888 + Shiny 24,056 + Omen 3,204
+			       = 34,148 stardust, 196 credits at the old list prices
+			  new  2 x 5-star 15,958 + 1 x 3.5-star 3,128
+			       = 35,044 stardust (+2.6%), 195 credits at today's case prices
+
+			Three cases for three packs. Bought with credits or Robux, so they are
+			paid cases (Verbs.grantPacks' `paid`). PROPOSED (2026-10-19): the mix.
+		]]
+		packs = { { id = "case_6", qty = 2 }, { id = "case_4_5", qty = 1 } },
 		blocks = { { id = "lucky_block", qty = 1 } },
 		potionId = "pot_t3_haul",
 		potionQty = 1,

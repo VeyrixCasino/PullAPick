@@ -1025,6 +1025,55 @@ function MineGear.fuseIdentity(piece)
 	return tostring(piece.setId)
 end
 
+--[[
+	WHICH PIECES ARE THE SAME TO LOOK AT, for the inventory's "xN" (owner,
+	2026-10-19: "hat inventory is messy. each hat should say the hat, and if
+	multiple say xXXX"). Two pieces stack when nothing a player can see differs:
+	the slot, the grade, the catalog item (fuseIdentity), the name and every stat
+	line as boostLines prints it. A merged multi-stat hat differs in its lines, so
+	it stands alone. Equipping, selling and fusing still name one id.
+]]
+function MineGear.stackKey(piece)
+	if type(piece) ~= "table" then
+		return nil
+	end
+	local lines = {}
+	for _, line in ipairs(MineGear.boostLines(piece)) do
+		table.insert(lines, tostring(line.stat) .. "=" .. string.format("%.4f", tonumber(line.pct) or 0))
+	end
+	return table.concat({
+		MineGear.migrateSlot(piece.slot),
+		tostring(MineGear.migrateRarity(piece.rarity)),
+		MineGear.fuseIdentity(piece),
+		tostring(piece.name or ""),
+		piece.merged and "merged" or "",
+		table.concat(lines, ","),
+	}, "|")
+end
+
+--[[
+	`list` grouped by stackKey, in first-seen order: { { key, piece, ids, count } }.
+	`piece` is the first copy, the one an EQUIP or SELL on the stack acts on.
+	`skip(piece)` (optional) leaves a piece out, e.g. one worn right now.
+]]
+function MineGear.stacks(list, skip)
+	local out, byKey = {}, {}
+	for _, g in ipairs(list or {}) do
+		if type(g) == "table" and not (skip and skip(g)) then
+			local key = MineGear.stackKey(g) or tostring(g.id)
+			local st = byKey[key]
+			if not st then
+				st = { key = key, piece = g, ids = {}, count = 0 }
+				byKey[key] = st
+				table.insert(out, st)
+			end
+			st.count += 1
+			table.insert(st.ids, g.id)
+		end
+	end
+	return out
+end
+
 function MineGear.canFuse(pieces, worn)
 	if type(pieces) ~= "table" or type(pieces[1]) ~= "table" then
 		return false, "Pick the pieces to fuse"

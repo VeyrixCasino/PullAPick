@@ -56,6 +56,7 @@ MineBuild.EXPECT = {
 	{ name = "MineEventTabs", lost = "the Events tab -- no event cards at all" },
 	{ name = "MineCryptView", lost = "the Candy Crypt's card -- no candy balance or Trick-or-Treat button" },
 	{ name = "MineEventNotice", lost = "the event pop-up on first entry to the Candy Crypt" },
+	{ name = "MineCaseStack", lost = "the bag's packs and every case open -- they wait on it and hang" },
 }
 
 --[[

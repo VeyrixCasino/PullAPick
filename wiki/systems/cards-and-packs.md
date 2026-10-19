@@ -202,7 +202,7 @@ cards can be tapped too (`addPick`). Checked in Studio on 2026-10-10.
 | `holiday` | `halloween_2026` (3 cards) | `MineSetPacks.HOLIDAY_ODDS` (PROPOSED); only its holiday pets, the one pack allowed to pay them. Kind `holiday` keeps it out of the day-4 surprise. Paid by the Trick-or-Treat case. |
 | `cards` + `setKey` | `<setkey>_pack_1..6` (★ to ★★★★★; 3, 3, 4, 4, 5, 5 cards) | `MineSetPacks.ODDS` by star grade, scaled by the set's grade (`oddsFor`); only that set's pets |
 | card pack, no kind | 19 in `Mine1PacksData` (loam … heirloom; hopper 6 cards, magma 8, apex 1) | own `odds` table |
-| `gear` | `gear_pack`, `gear_case_pack`, `gear_vault_pack` (1, 3, 5 items) | `MineLootPacks` rolls one item per slot. Opened alone, each item spins on the case reel and the next starts when the player closes the last (`ctl.playRun`); until 2026-10-19 (launch audit S24) the client reeled only the first 3 of a Vault's 5, the worst ones, and started each reel as the last stopped. The three rune cases (`rune_pack`, `rune_heavy_pack`, `rune_sealed_pack`) were removed with runes on 2026-10-12, from `Mine1PacksData`, `MinePackConfig` and `MinePackFX`. |
+| `gear` | `gear_pack`, `gear_case_pack`, `gear_vault_pack` (1, 3, 5 items) | `MineLootPacks` rolls one item per slot. Each item spins on its own case reel, up to five at once stacked one above another (a Vault's five spin together; owner, 2026-10-19, `MineCaseStack`), and the next five start when the player closes the last (`ctl.playRun`). The filler tiles are drawn the way the case draws (`ClientFns.gearReels`). Until 2026-10-19 (launch audit S24) the client reeled only the first 3 of a Vault's 5, the worst ones, and started each reel as the last stopped. The three rune cases (`rune_pack`, `rune_heavy_pack`, `rune_sealed_pack`) were removed with runes on 2026-10-12, from `Mine1PacksData`, `MinePackConfig` and `MinePackFX`. |
 | `ore_case` | `<ore>_ore_case` | a skin or a charm, see [skins-cases-and-temper](skins-cases-and-temper.md) |
 | `ore` (legacy) | `<ore>_ore_pack` | ore; converted on load (below) |
 | `lucky_block` | stored in `p.packs` | see [chests-and-lucky-blocks](chests-and-lucky-blocks.md) |
@@ -215,7 +215,7 @@ the day-4 surprise (`Verbs.claimDailySurprise`), AFK (`Verbs.Afk.grantPack`; 20%
 from your top zone, `Const.AFK_TOP_ZONE_SHARE`), lucky blocks and Weekend Haul.
 
 **Opening and buying.** Three verbs open packs: `open`, `openAt` and `openMany`.
-`openMany` opens up to `Const.OPEN_RUN_MAX` = 50 packs, but only 3 gear cases. The owner asked for a typed buy quantity ("a custom amount of packs to
+`openMany` opens up to `Const.OPEN_RUN_MAX` = 50 packs, but at most 5 of any case (pack, ore or gear case; `MineCaseStack.MAX`, owner 2026-10-19), and a case's bag tile offers 1–5. Gear cases were capped at 3. The owner asked for a typed buy quantity ("a custom amount of packs to
 buy… default 1", quoted in `tools/verify/buyqty.js`). It is a TextBox now, and
 three ceilings agree at 100: `Const.BUY_QTY_MAX`, `Const.CART_MAX_QTY` and the
 view's `CART_QTY_MAX`. A ten-pack costs 70% of ten singles (`BUNDLE_QTY`,
