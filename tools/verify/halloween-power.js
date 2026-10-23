@@ -21,8 +21,8 @@
 //   2. skins: every Halloween S, SS and SSS skin is at least 1.2x the best other
 //      skin of its grade on its damage base (MineSkins.baseOf, which the
 //      server's MineToolSkins.wear spends) and on its kit's points;
-//   3. MineHalloweenPets: pool() is the pack's own 72 (the 60 and the 12) as
-//      roster rows, pool(r) filters, isHalloween() is true for every copy from
+//   3. MineHalloweenPets: pool() is the pack's own 72 (the 60 and the 12) and
+//      the three older Halloween pets, as roster rows, pool(r) filters, isHalloween() is true for every copy from
 //      any source and false for anything else, card() stacks, buildOf();
 //   4. the 12 new pets: each builds today (PetModelFactory wears the fallback
 //      Halloween body until the real one exists), family and trait come from
@@ -179,9 +179,9 @@ if okH then
 		sum += #p
 	end
 	pool[1] = nil
-	local fresh = #H.pool() == 72 and H.pool()[1] ~= nil
+	local fresh = #H.pool() == 75 and H.pool()[1] ~= nil
 	out("POOL", #H.pool(), same, home, hol, sum, table.concat(byTier, ","), tostring(fresh),
-		tostring(names.Spindle == true or names.Spooky == true or names.Wisp == true))
+		tostring(names.Spindle == true and names.Spooky == true and names.Wisp == true))
 	local missingNew = {}
 	for _, nm in ipairs({ "Boomjaw", "Sparkplug", "Hexbolt", "Bogsplash", "Thudwing", "Moonbark", "Orbella", "Gravy", "Cawlin", "Bubblebrew", "Zoomstick", "Boo Manor" }) do
 		if not names[nm] then table.insert(missingNew, nm) end
@@ -342,9 +342,9 @@ check(Math.abs(num(wear[1]) - 6.6) < 1e-9 && num(wear[2]) === 6600 && num(wear[3
 const mod = get("MODULE") || [];
 check(mod[1] === "true", "MineHalloweenPets loads" + (mod[1] === "true" ? "" : ": " + (mod[2] || "missing")));
 const pool = get("POOL") || [];
-check(num(pool[1]) === 72 && num(pool[2]) === 72 && num(pool[3]) === 72 && num(pool[4]) === 72 && num(pool[5]) === 72 && !/!/.test(pool[6] || "!"),
-  `pool() is the pack's 72 as the roster's own rows, every one Halloween 2026; pool(rarity) filters (${pool[6]})`);
-check(pool[7] === "true" && pool[8] === "false", "pool() hands out a fresh list each call, and leaves the older Spindle, Spooky and Wisp to the Halloween 2026 Pack");
+check(num(pool[1]) === 75 && num(pool[2]) === 75 && num(pool[3]) === 75 && num(pool[4]) === 75 && num(pool[5]) === 75 && !/!/.test(pool[6] || "!"),
+  `pool() is the pack's 72 plus the 3 older Halloween pets, as the roster's own rows, every one Halloween 2026; pool(rarity) filters (${pool[6]})`);
+check(pool[7] === "true" && pool[8] === "true", "pool() hands out a fresh list each call, and includes the older Spindle, Spooky and Wisp (owner, 2026-10-19: \"Yes\")");
 const nw = get("NEW") || [];
 check(nw[1] === "0", "the 12 new pets are in the pool" + (nw[1] === "0" ? "" : ": missing " + nw[2]));
 const is = get("IS") || [];

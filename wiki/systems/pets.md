@@ -402,8 +402,9 @@ decisions, all in the same generator (`extraPets`, `topBeat` in the JSON):
   switches off. PROPOSAL §0 line 6 keeps `blastRadius` on at most 30 pets, so
   `MineStats.NAMED_PET_OK` lets a named kit carry it; `MinePatterns.MAX_BLAST_RADIUS`
   (6, PROPOSED) bounds the bomb.
-- **`MineHalloweenPets`** answers for the Crypt and its case (another agent builds
-  those): `pool(rarity)` (the pack's 72 as roster rows, not the older three),
+- **`MineHalloweenPets`** answers for the Crypt and its case: `pool(rarity)` (the
+  pack's 72 as roster rows, then the older three, Spindle, Spooky and Wisp; owner,
+  2026-10-19: *"Yes"* to the Crypt paying them, so 75 in all),
   `isHalloween(card)` (any copy, any source), `rowOf`, `buildOf`, `card(row)` (stacks
   on `halloween_2026:<name>`).
 - **Checked by** `tools/verify/halloween-power.js` on the real modules: the rule on

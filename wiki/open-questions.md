@@ -320,6 +320,109 @@ gets the two-tap confirm; limited deals with lucky blocks or cases get an odds s
 - **Pack tops:** the set name baked onto the crinkled top of the 19 sets' pack images comes off; the renderer
   (`tools/pack-sprites/PackRender3D.cs`) leaves it blank and the PC session re-renders and re-uploads.
 
+#### The v2 build's questions, queued 2026-10-23 (not yet answered)
+
+The five v2 jobs built a safe default for every call below and could not ask. **The default is
+listed first and is what the code does now.** Answers go here, then into the page they change.
+
+**Answered already (pets job, owner 2026-10-19):** keep the 1.2 / 1.3 / 1.4 steps for Halloween
+Mythic / Divine / Exotic; ship the 12 names as proposed; **yes**, the Crypt pays the three older
+Halloween pets too (built 2026-10-23: `MineHalloweenPets.pool` is 75 rows); on the blast-radius
+ceiling: *"WE LITEARLLY JUST HAVE TO MAKE SURE NOTHING LIKE THAT CAN HAPPEN [HENSE IM SO ADIMENT ON
+BALANCING]"*. How to make sure is the first question below.
+
+- **Blast radius.** Today nothing caps the stat: one SSS Inferno hat is +350%, and a full SSS Inferno
+  set asks for a radius-26 sphere. The server now clips every blast at radius 6
+  (`MinePatterns.MAX_BLAST_RADIUS`), silently. Default: **cap total Blast Radius at +100%** (a bomb at
+  most doubles), shrink any single source that would pass the cap on its own, keep the radius-6 clip as
+  a backstop, and add a check that stacks every source at its maximum. Or: cap at +100% and leave the
+  sources (extra is wasted) · a higher cap, e.g. +200% · the radius-6 clip only.
+- **Crater pets and the proc gate** (pets job Q3). A bomb takes no Special enchant, so the gate keeps your
+  gear's strongest proc; a Tidal-Wave-heavy Halloween skin on bombs switches the Crater pets' radius off.
+  Default: leave it, and say so in the build text · let Blast Radius ignore the gate on bombs.
+
+**The Crypt's screens (V2-E, next to build):**
+- **Where Halloween tools are crafted, prestiged and scrapped.** Default: a HALLOWEEN tab in the Forge hub
+  (it opens anywhere, the Crypt included; the spec says "at the Forge") · in the Crypt's Events card.
+- **Where the Halloween inventory lives** (equip a tool, the Halloween team, the charm slot). Default: in
+  the Crypt's Events card, as TOOLS / TEAM / CHARM · a Halloween switch at the top of the main Inventory
+  · a dock button that shows only while the event runs.
+- **The Trick-or-Treat reveal.** Default: the win's card with its rarity called out, then the 50/50 wheel
+  with that card in its middle, then TREAT or TRICK, then the result · skip the wheel on Common and
+  Uncommon wins.
+
+**The Crypt (V2-A):**
+1. Craft new Halloween tools after the event? Default **no**, only prestige keeps working
+   (`MineCandyTools.CRAFT_AFTER_EVENT = false`) · yes.
+2. Trade the Halloween 2026 Pack during the event? Default **locked** (it only comes from Crypt chests and
+   opens Halloween pets) · trades freely.
+3. Trick-or-Treat numbers: **4,000 candy** (about 15 minutes of mid-depth candy), pets 70 / skins 30,
+   rarity weights 40/25/15/10/6/2.5/1.2/0.3 · 2,500 (the first design's price) · your numbers.
+4. "Weaker in the main world" means: default **one ladder** (only the Jawbreaker Auger at prestige 10
+   equals the best normal tool, a top-level Oganesson Drill) · each family's top tool at prestige 10 equals
+   that family's best.
+5. Halloween-skin factor per tool: default **1.5 to 2.5**, around the owner's "2x" · all 2x · wider.
+6. Crypt chest charm chance (0.5% x Chest Luck): default **uncapped**, like every chest reward · capped,
+   e.g. at 2%.
+7. The pop-up says "Tools you find…", but v2 tools are crafted: default **keep the owner's exact line** ·
+   change it to "Tools you craft…".
+8. Crypt chests are very soft (main-mine chest HP: an F chest has 220 HP at layer 60, where the rock has
+   143,357): default **leave it** · scale chest HP to the Crypt rock.
+9. Lucky blocks still appear on Crypt blocks and can pay gems: default **leave them** · none in the Crypt.
+
+**Enchants (V2-B):**
+1. Which tool's enchants count in the Crypt? The service reads the equipped forged tool, so the Halloween
+   enchants on your main pick work there and its normal ones are off. Default **keep that** · Crypt tools
+   get their own enchant slots · no enchants in the Crypt.
+2. Sugar Rush: the owner's "+2% a block, up to 100%" is level V, and I–IV scale down (0.4% x level), as
+   Overclock and Combo do. Default **level V** · every level gets 2% and 100%.
+3. Sugar Rush comes out level with Overclock (same +100% cap, within 4.3%). Default **keep** · a higher
+   cap for the event book · a two-hit block doesn't end the rush.
+4. Earthquake never fires on rock broken in one hit. Default **keep it for tough rock** · add an aftershock
+   when a hit breaks. Its tick gives about 1.2x a swing a second at 100 stacks, where a comment says 10x:
+   default **keep the code** · raise it toward 10x.
+5. Flashlight lights only ore your tool can break (no gate in the Crypt). Default **yes** · any ore.
+6. Proc Power plus an ability's own damage are capped at +300% together. Default **keep** · cap only Proc
+   Power, as before.
+7. The early / mid / late balance builds are the job's guesses at a typical player (in
+   [enchants](systems/enchants.md)): confirm them, or name a real build to test.
+
+**Main chests and charms (V2-D1):**
+1. Where set chests live: default **Pebblebound in Dirt Meadow, then two sets per zone in the set order**
+   (the first from layer 1, the second from layer 250) · each set in the zone that fits its theme · a list.
+2. How strong set chests are: 20% of the D, B and S chests where a set lives; packs low ★, mid ★★★, high
+   ★★★★ 70% / ★★★★★ 30%; card value at most +30% (Meadow layer 1). Default **keep** · weaker (10%,
+   ★/★★/★★★) · stronger.
+3. Retired: Mine 1 catalog chests, the Meadow and Event Horizon section-chest override, rank aging, the
+   old 2,500-gem Charms Pack. Default **keep them retired** · bring some back.
+4. Tier rules: x1 / 1.2 / 1.45 / 1.75 / 2.1, and Gem Find, Ore Quality and Ore Finder never grow (gems
+   stay safe). Default **keep** · let Gem Find grow.
+5. Merge fodder: default **any charm of the same tier**, never the worn copy · only the same charm · only
+   the same rarity.
+6. Prices (Charm Packs F 2,500 gems / 10 credits up to SSS 5M / 500; merges 500 to 250,000 gems for tier
+   II, x3 a tier). Default **keep** · cheaper F and D (F costs 83 minutes of a new player's gems) · gems
+   only or credits only.
+7. Names: 57 set chests, 3 new Event Horizon chests, 32 charms, 8 Crypt charms; Pot of Gold is rank S,
+   the Sod Charm C. Default **approve** · send changes.
+
+**Cases and hats (V2-D2):**
+1. Bag cases: default **a 1–5 picker** (x10 / ALL are gone) · bring back ALL, in rounds of 5.
+2. Temperament Case 10x / 100x buttons: default **removed** (the server still takes 10 and 100) · put them
+   back · remove the server path too.
+3. Set cases have fixed contents, so they open 1–5 through the pack reveal with no spin. Default **keep** ·
+   give them a reel.
+4. Pot of Gold's 8 Shiny Packs are live packs, so they stay. Default **keep** · swap them for wild cases.
+5. One trader case now spins a reel instead of the "found" pop-up. Default **the reel** · pop-up for one,
+   reels for 2–5.
+6. Two-tap confirm: default **only the Founders Bag** · every Limited deal.
+7. Ore-case charms in a run stay in the pack reveal (only skins spin). Default **keep** · a reel for charms.
+8. The PROPOSED numbers (4.6 s a reel + 0.5 s per reel below; the Pot of Gold and Weekend Haul mixes;
+   the `forge1` wording). Default **accept** · change some.
+
+**Found by the jobs, not fixed (not owner calls, listed so nobody loses them):** Echo's swing rate never
+reaches the swing time (it is set after the only `foldSwingRate`); Gemfinder skips ore sales; Volt pets
+push late Zap builds to about 64 swings a second; auto-equip overrates Crater pets on non-bomb tools.
+
 ## 1. Probable bugs found while building the wiki
 
 These are not fixed. They are in code that has never run in the engine.
@@ -335,7 +438,7 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 6 | **The chest coin crash fix landed in dead code.** The `e77d84e` fix is in `rollChestLoot`, reached only by `giveDrop`, which nothing calls. Live chests use `MineZoneChests.rollCurrency`. | *Reported* | [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md) |
 | 7 | **FIXED 2026-10-14: chest flagship tools never dropped.** `openChestBlock` read `rollChestTool` ~2,600 lines above a later `local function`, so the name was a nil global. Forward-declare `local rollChestTool` before `openChestBlock`, then assign with `function rollChestTool`. Pinned by `tools/verify/chest-tools.js`. | *Read*, pinned by harness | [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md); [luau-traps](code/luau-traps.md) |
 | 8 | **Tutorial step 29 hands a new player SSS hats**, worth +1050% in layer 2. | *Reported* | [hats-and-faces](systems/hats-and-faces.md) |
-| 9 | **`MineStats.RUNE_ONLY` silently zeroes the `blastRadius` line on all 26 pets that have one.** Runes are retired (2026-10-12), but the table is kept on purpose because `MineCards` uses it as the pet-kit stat filter. | *Reported* (count not rechecked after the 2026-10-12 calm pass) | [pets](systems/pets.md) |
+| 9 | **`MineStats.RUNE_ONLY` silently zeroes the `blastRadius` line on all 26 pets that have one.** Runes are retired (2026-10-12), but the table is kept on purpose because `MineCards` uses it as the pet-kit stat filter. Since 2026-10-19 `MineStats.NAMED_PET_OK` lets a named kit carry it: the two Crater pets (Boomjaw, Sparkplug) pay it; the legacy prints still drop it (501 of them, per the pets job). | *Reported*; partly changed 2026-10-19 | [pets](systems/pets.md) |
 | 10 | **The charm MERGE button wants 2 copies** (`math.max(2, MERGE_COST)`); the server needs 1 and the gem price is never shown. | *Reported* | [charms](systems/charms.md) |
 | 11 | **24 ore charms carry `luck`**, which raises the ore-case chance that drops them. This breaks the "no reward boosts its own acquisition" rule. **24 carry the retired `backpack` stat.** | *Reported* | [charms](systems/charms.md) |
 | 12 | **Meadow zone packs can never pay Mythic, Divine or Exotic** (computed from `cardOdds`). | *Reported* | [cards-and-packs](systems/cards-and-packs.md) |

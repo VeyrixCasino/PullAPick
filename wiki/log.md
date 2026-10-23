@@ -1835,3 +1835,69 @@ normal pet later re-lifts them; **Halloween S/SS/SSS skins get a 1.2 edge** on d
 Tide (Tidal Wave), Gravequake (Earthquake), and Rattlebones for Shatter. New `MineHalloweenPets`
 (`pool`, `isHalloween`), `MineStats.NAMED_PET_OK` (blastRadius on named kits) and a server guard
 `MinePatterns.MAX_BLAST_RADIUS` 6 (PROPOSED). New check `halloween-power` (25 failures on the old code).
+
+## [2026-10-19] build | Halloween enchants, every enchant checked end to end, the ability balance pass
+Crypt v2 spec, part B ([open-questions](open-questions.md) §0e). **Four Halloween enchants**, whose books
+come only from Crypt chests (`MineEnchants.rollHalloweenBook`, odds in `halloweenBookOdds`): Sugar Rush
+(Damage; the owner's +2% a one-shot block up to +100% is level V), Grave Digger (Damage; up to +60% at
+the floor), Spellbook (Special; casts one of the five abilities at 60% every 8 to 4 swings through
+`Dig.procsAt`) and Flashlight (Utility; lights the rarest breakable ore nearby, then rests). **Normal
+enchants are off in the Crypt** (`MineEnchants.activeHere`, `NORMAL_OFF_ZONES`). The audit ran all 26
+enchants through the real service and MineServer's proc code. **Bugs found and fixed:** Tidal Wave's
+tiers 2 and 3 rolled up into dug layers; Blast's BURST and DETONATION words had no animation or sound.
+Balance: Cascade 10 -> 7, Storm 85% -> 80%, Earthquake 5% and +25% a level, Proc Power plus an ability's
+own damage capped at +300%. Every new number is in `MineEnchants.TUNING`, PROPOSED; seven questions for
+the owner are in the agent's report (queued in [open-questions](open-questions.md)). Found, not changed:
+Echo's swing rate never applies, Gemfinder skips ore sales, Volt pets push late Zap builds to about 64
+swings a second. Pages: [enchants](systems/enchants.md), mining-and-breaking, boosts-and-stats, pets,
+code/verify-suite. New checks `enchant-audit` and `enchant-balance`. Not seen in Studio.
+
+## [2026-10-19] build | Candy Crypt v2, server and shared
+Crypt v2 spec, part A. The Crypt spawns **candy blocks only** (`MineConfig.isCandyOnly`). **16 candy
+ores**, two per rarity, each with a fixed drop and flat candy (a quarter of the drop's value); the odds
+shift every ten layers, with Exotic capped at 1% (`CANDY_ECONOMY`, `candyOreOdds`). **16 Halloween
+tools** (`MineCandyTools`) are crafted at the Forge from their ore and prestige 1 to 10 instead of
+levelling or merging, with a cap of ten tools; scrapping pays half the candy value. Each tool has its
+own factor on a Halloween skin's whole multiplier (`MineToolSkins.mult`). In the main world after the
+event, the Jawbreaker Auger at prestige 10 equals a top-level Oganesson Drill. **8 Crypt chests**, F to
+SSS, Candy Sack to Pumpkin King's Hoard (`MineCryptChests`), pay packs, flat candy, the rank's charm at
+0.5% x Chest Luck and Halloween books. **Trick-or-Treat** pays Halloween pets and skins only, with the
+50/50 in one push (`MineTrickOrTreat`). A **separate Halloween inventory** (`p.halloween`) moves into
+the main one when the event ends. Halloween items, the Halloween pack included (PROPOSED), do not trade
+during the event (`MineCrypt.tradeLocked`). The first design's pieces are retired on load
+(`MineCrypt.normalize`). New: `docs/CANDY-CRYPT.md` (made by `tools/gen/crypt-doc.js`, checked by
+`crypt-doc`), `MineCryptIcons` and the Cursor job `crypt-icons.md`. The Crypt pays no gems. Nine
+questions for the owner queued. Not seen in Studio.
+
+## [2026-10-19] build | Cases 1–5 stacked, hats xN, shop defaults, quest fixes, pack tops
+Crypt v2 spec, part D2. **Every case** (pack, ore, gear, Temperament, trader) opens 1 to 5 at once, paid
+all or nothing; the reels spin stacked and stop in turn (`MineCaseStack`, `ctl.playStack`; PROPOSED 4.6 s
+plus 0.5 s a reel). **Hats and faces show once with "xN"** (`MineGear.stacks`); the Backpack no longer
+draws every spare hat once per seat. Pot of Gold and Weekend Haul pay wild cases where the retired packs
+were (PROPOSED mixes, within 3% on value); the Founders Bag takes two taps; Limited deals have odds sheets
+(`MineRotatingOffers.oddsSheet`). `forge1` reads "Level up a tool once at the Forge" (PROPOSED), the
+milestone labels say what they count, and a Build-a-Box line grants every box it charges for (it granted
+one). `render.ps1` leaves pack tops blank; `tools/cursor/tasks/pack-tops.md` re-renders and re-uploads the
+57 sprites (not run yet). Eight questions for the owner queued. New checks `case-stack`, `hat-stacks`,
+`deal-odds`, `cart-box`, `quests-honest`, `pack-tops`. Not seen in Studio.
+
+## [2026-10-19] build | F–SSS chests with names, 57 set chests, charm tiers I–V, Charm Packs
+Crypt v2 spec, part D1. **Chests rank F to SSS** (`MineChestRanks`), every one named, with the rank as a
+badge on the lid, the hover line, the chest card and the dex. Each of the 19 pack sets has a low, mid and
+high chest where it lives (`MineSetChests`), paying its packs. Catalog chests, the section-chest override
+and rank aging are retired. **Every charm has one rarity forever and a tier I to V**; a merge costs gems
+plus any charm of the same tier (`MineCharmService`, `Verbs.mergeCharm`, save field `p.charmTiers`).
+Added 32 graded charms, the 8 Crypt chest charms (`MineCharms.cryptChestCharm`) and **eight Charm Packs**,
+F to SSS, for gems or credits, with odds (`buyCharmPack`, on `PAID_RANDOM`); the old Charms Pack is
+retired. `economy-gems` measures gems earned per hour at +0.0/+0.2/+0.9/+0.7% by stage. Seven questions
+for the owner queued. New checks `chest-ranks`, `charm-tiers`, `economy-gems`. Not seen in Studio.
+
+## [2026-10-23] build | The five Crypt v2 branches merged into PR #7
+V2-C (pets), V2-B (enchants), V2-A (the Crypt), V2-D2 (cases and hats) and V2-D1 (chests and charms) are
+merged onto `claude/trusting-euler-sjugag`. **Fixed at the seams:** `crypt.js` reads the Crypt tool swap
+in `Dig.toolInHand`; the skin checks use `MineSkins.baseOf` (the Halloween 1.2 edge); `docs/CANDY-CRYPT.md`
+was regenerated twice and now names each Crypt chest's charm. **Two bugs the merge made, fixed:**
+`MineCharms.CANDY_CHARM_SHARE` was deleted with the crafted charms while the Crypt chest charms still read
+it (the module would not have loaded), and a Halloween charm worn in the Halloween slot paid at tier I
+because `applyEquipped` and `eventDigOf` asked the main slot's tier. Both now ask the charm's own best
+tier; `crypt.js` checks it. Suite 98 of 99 (the Linux `skins` quirk). Not seen in Studio.

@@ -14,11 +14,11 @@
 
 	  pool(rarity)     the roster rows the Crypt's packs and the Trick-or-Treat
 	                   case may pay: the Halloween 2026 pack's own pets (the 60
-	                   and the 12 of 2026-10-19), only `rarity`'s when one is
-	                   given. A fresh list each call; the rows are the roster's
-	                   own, so read them, never write them. Not the three older
-	                   Halloween pets (Spindle, Spooky, Wisp): the Halloween
-	                   2026 Pack still pays those.
+	                   and the 12 of 2026-10-19), then the three older Halloween
+	                   pets the pack also pays (Spindle, Spooky, Wisp; owner,
+	                   2026-10-19: "Yes" to the Crypt paying them too). Only
+	                   `rarity`'s when one is given. A fresh list each call; the
+	                   rows are the roster's own, so read them, never write them.
 	  isHalloween(c)   true for a Halloween pet's card, whatever minted it (a
 	                   pack, the Crypt, the wheel): its roster row says
 	                   holiday = "halloween". Takes a card or a pet's name.
@@ -55,12 +55,21 @@ local function rows()
 		return packRows
 	end
 	local out = {}
+	local seen = {}
 	local p = pack()
-	for _, row in ipairs((p and p.PETS) or {}) do
-		local r = Roster.BY_NAME[row.name]
-		if r and r.holiday == MineHalloweenPets.HOLIDAY then
+	local function add(name)
+		local r = Roster.BY_NAME[name]
+		if r and r.holiday == MineHalloweenPets.HOLIDAY and not seen[r.name] then
+			seen[r.name] = true
 			table.insert(out, r)
 		end
+	end
+	for _, row in ipairs((p and p.PETS) or {}) do
+		add(row.name)
+	end
+	-- The older Halloween pets the pack also pays (its LEGACY list).
+	for _, name in ipairs((p and p.LEGACY) or {}) do
+		add(name)
 	end
 	packRows = out
 	return out
