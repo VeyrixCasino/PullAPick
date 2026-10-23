@@ -2,9 +2,13 @@
 title: The client and the UI kit
 type: code
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ db59c60
 sources:
   - src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventsView/init.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCryptView.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventNotice.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventTabs.luau
   - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
   - src/ReplicatedStorage/Mine/Shared/MineLoadoutView.luau
   - src/ReplicatedStorage/Mine/Shared/MineUI.luau
@@ -14,7 +18,12 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineNotifs.luau
   - src/ReplicatedStorage/Mine/Shared/MineCelebrate.luau
   - src/ReplicatedStorage/Mine/Shared/MineAudio.luau
+  - src/ReplicatedStorage/Mine/Shared/MineGradeReveal.luau
+  - src/ReplicatedStorage/Mine/Shared/MinePackFX.luau
   - src/ReplicatedFirst/MineLoadingScreen.client.luau
+  - tools/verify/reveal-runs.js
+  - src/ReplicatedStorage/Mine/Shared/MineCaseStack.luau
+  - tools/verify/case-stack.js
   - docs/AUDIO.md
   - docs/TODO.md §0.14, §0.33
 related: [server, code-map, luau-traps, rojo-and-studio, tools, traits, enchants]
@@ -58,7 +67,8 @@ related: [server, code-map, luau-traps, rojo-and-studio, tools, traits, enchants
 bumped when traits were retired). It then checks `MineBuild.EXPECT`, a list of
 the modules this build needs (MineForge, MineOrePouchView, MineBoostLayers and
 others), against the live DataModel. `MineTraits` and `MineTraitView` were
-removed from that list when they were deleted on 2026-10-12. If any is
+removed from that list when they were deleted on 2026-10-12; `MineCaseStack`
+joined it on 2026-10-19 (without it the bag's packs and every case open hang). If any is
 missing it warns **"THIS STUDIO IS RUNNING OLDER CODE THAN src/"**, names what the
 player loses, and gives the fix: `git pull` in the clone that `rojo serve` is
 running from, then reconnect. TODO §0.14 explains why this exists: "the UI isn't
@@ -77,7 +87,10 @@ and returns a controller: `invCtl`, `shopCtl`, `forgeCtl`, `ClientFns.hotbarCtl`
 | `MineInventoryView` | the main window (packs, cards, chests, shop, passes). 7,867 lines. |
 | `MineShopView` | the shop. It mounts `MineForge` (Forge tab) and `MineOrePouchView` (Ore Pouch tab). |
 | `MineForgeView` | the Enchanter's Temper pane. The Enchanter's other tabs (Summon, Salvage, Dust) are drawn in MineClient. `MineTraitView`, `MineRunesView` and `MineSocketsView` were deleted on 2026-10-12 with runes and traits. |
-| `MineSkillView`, `MineZoneMapView`, `MineDepthShopView`, `MineEventsView`, `MineProfileView` | other panels |
+| `MineSkillView`, `MineZoneMapView`, `MineDepthShopView`, `MineProfileView` | other panels |
+| `MineEventsView` | the Events tab: one pill per open event, a card per event in its own theme (2026-10-19; [world-events](../systems/world-events.md)). Mounted through `pcall`, so a throw costs the tab, not the client. Picks come from `MineEventTabs` (pure). |
+| `MineCryptView` | the Candy Crypt card's shell inside it: the candy balance and Trick-or-Treat's OPEN. The tools list, charm crafting and the case's odds and reveal wait for the Crypt's next redesign (owner, 2026-10-19); `mountCaseOdds` holds the odds sheet's place. |
+| `MineEventNotice` | the first-entry pop-up, once per event; "Got it" sends `cryptNoticeSeen` |
 | `MineTradeView`, `MineSocialView`, `MineGroupWheelView` | these break the rule: they call `net:FireServer` themselves (11, 11 and 1 calls) |
 | `MineBenchView` | superseded by the Forge (AUDIT §5) |
 
@@ -225,7 +238,28 @@ The tier mappers take the real result:
   - **Packs** keep their own band FX (MinePackFX) and get the new stingers.
   - **Lucky blocks** play their win at last. They had no win sound, and S and
     up add the title-and-rays overlay.
-  - **The case reel** adds the overlay at S and up.
+  - **The case reel** adds the overlay at S and up. A run of reels (mystery
+    cases, a Gear Vault's items) waits for the player to close each result,
+    and SKIP ALL shows the whole run on one grid with one celebration for the
+    best (`ctl.playRun`, launch audit S24/S25, 2026-10-19).
+  - **Up to five reels at once, stacked** (owner, 2026-10-19; `MineCaseStack`).
+    `ctl.playRun(list, { stack = 5 })` plays a run in rounds of up to five, and
+    `ctl.playStack` spins a round's reels together, one above another, stopping
+    in turn (`MineCaseStack.stopAt`). The stacked tiles fade and light their
+    stroke; none scales, and the results grid after a stack skips its punch,
+    so no text rides a scale (the text rule). Every case door feeds it: the
+    bag's cases (`ClientFns.playCaseReels`, a gear case's items through
+    `ClientFns.gearReels`), and the server's `caseSpins` push (Temperament
+    Cases 1–5 and the bundle, trader cases). The box's track width now reads
+    its own offset, not `AbsoluteSize`, which is in screen pixels after the
+    box's `FitScale`: by reading the code, a reel on a scaled-down screen
+    stopped left of the marker (never seen in the engine).
+    `tools/verify/case-stack.js`.
+  - **Rare finds** (`ClientFns.foundReveal`) print their TRUE rarity. A
+    finish (shiny +1, shadow +2, nightmare +3) is rarer than its grade, so the
+    bumped grade rides as `hypeRarity` and only sizes the celebration
+    (`MinePackFX.hypeRankOf`); the card used to print it, so a shiny Rare read
+    "SHINY EPIC" (launch audit S28, 2026-10-19; `tools/verify/reveal-runs.js`).
   - **S-rank chests** get the small tier-1 pluck. Every other chest stays
     silent, by the owner's request.
   - **Temperament rolls** were a toast only, so an SSS looked like an F. They
@@ -309,21 +343,38 @@ Owner: *"I FUCKING LOVE FORGE A.. WIDE SCREEN, NOT ENOUGH ROOM, AND TOO BIG BUTT
   - SCRAP: what you get back (books included) and *TAP AGAIN* to confirm;
   - MY BOOKS: a BOOK BUNDLE card (3 random books for gems; it opens on screen), then merge 3 → +1.
 
-The header shows the player level and XP bar, the wallet, 🎒 BAGS and 💰 COIN SHOP (the old shop's two shelves the hub has no tab for), and in Studio a 🧪 TEST BOOKS button.
+The header shows the player level and XP bar, the wallet, 🎒 BAGS (the old shop's one shelf the hub has no tab for), in Event Horizon only 🚀 EVENT TOOLS (the event's own tool shelf, space coins), and in Studio a 🧪 TEST BOOKS button. 💰 COIN SHOP is gone (launch audit S13, 2026-10-19): it opened a pickaxe shelf where every BUY is refused.
+
+**One Forge** (S13). The old shop (`MineShopView`) shows only Bags: it opens on a Bags tab, and its Crafting, Loadout and Upgrades tabs open this hub on that tab (`opts.onOpenForge`, which fires `Mine.ForgeHubOpen`). Any other shelf it is asked for lands on Bags, except the Event Horizon tool shelf while the player stands in the event.
+
+**The cards tell the truth** (S11). The craft card shows the hit per blow (family, the worn skin and the finish in it), hits per second, the area it clears, how it is used (swing / hold / hold, down only / throw), and the level a new craft arrives at; the Loadout card the same for a tool you own. All from `MineOreTools` (`cardStats`, `hitPower`, `inheritedLevel`), the functions the server swings and forges with; prices and the SCRAP refund likewise (`craftCost`, `recycleRefund`). The Loadout skin picker shows each skin's damage multiplier, its kit and "stats only" where the class has no skin form, and an owned tool's 3D stage wears its family's skin form.
 
 **The Blacksmith counter opens the hub** (owner, 2026-10-12: *"the Blacksmith counter should open the Forge hub"*):
 - `ClientFns.routePanel` sends every plain `"shop"` there: the counters tagged `Machine="shop"` and the "to the Blacksmith" buttons.
-- `"shop"` with a named shelf (`pickaxe` or `backpack`) still opens the old shop on that shelf.
+- `"shop"` with a named shelf (`pickaxe` or `backpack`) still opens the old shop, which since S13 shows Bags (or, in Event Horizon, the event's tool shelf for `pickaxe`).
 - **Tutorial banners (kid-friendly, 2026-10-19).** Every step in the walk-through
   (`Intro.order`) leads with an icon and says one thing, its CAPS word the thing
-  to do: "⛏️ HOLD on a rock to break it!", "💰 Got coins? BUY A BIGGER PICK!",
+  to do: "⛏️ HOLD on a rock to break it!", "🔨 FORGE your first tool! Free Stone is in your pouch!",
   "🔄 REBIRTH: reset small, come back BIG!". Step 8 keeps "FREE BOOKS! 📖 …".
   The chest reveal's rows went to a number and one word ("3  Books", "5  Cases",
   "Need 💎 500"). `tools/verify/kid-text.js` checks every walk-through step has an icon.
-- The tutorial's step 3 (*BUY A BIGGER PICK*) carries `tab = "pickaxe"`. While a player is on that step, the server opens the coin shelf at the counter, so the step still ends in the purchase it teaches.
-- Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it.
+- **The tutorial's step 3 is FORGE your first tool** (owner, 2026-10-19, launch audit M1). It was *BUY A BIGGER PICK* on the coin shelf, where every BUY is refused (`pickaxe` is in `MineConfig.FORGE_ONLY_FAMILIES`), so the 5th step in `Intro.order` could not be done. Now it carries `panel = "forge", tab = "craft"`, which `routePanel` turns into `hubOpen:Fire("craft")`: the hub opens on CRAFTING. The server tops the pouch up once to one Stone Pickaxe's worth (270 Stone, priced by `MineConfig.toolCraftCost`, `grantCraft`), and `Verbs.craftOreTool` clears the step on the first craft. Anyone who already owns a forged tool, or whose Wooden Pickaxe graduated (`ownsBetterPickaxe`), gets CLAIM instead. The counter opens the hub on every step, except on the visit that hands over the free pickaxe (S19): that one is only the toast, so a player with no ore is not shown the full-screen Forge. `tools/verify/tutorial-forge.js` pins all of it.
+- Other scripts reach MineClient's screens through the client-only `Mine.OpenPanel` event (`:Fire(name, tab)`). A counter only opens the hub (`Fire("counter")`), never closes it; `Fire("craft")` opens it on CRAFTING, and `Fire("close")` only closes it (MineClient's `hidePanels`).
 
 It is a frame named `ForgeHub` inside the main HUD, so `MineClient's` HUD hiders hide the dock and wallet while it is open (owner: *"AS PER USUAL"*). The Forge (anvil) dock button opens it in place through the client-only `Mine.ForgeHubOpen` event. Every action is a live verb, locked until the next snapshot so a double tap never sends twice. A snapshot repaints the hub only when something it shows changed, at most about once a second (an action waiting on its answer repaints at once): rebuilding every card ten times a second read as flickering text (owner, 2026-10-17). `tools/verify/forge-hub.js` checks the wiring. The two demo Forges are removed.
+
+## Launch-audit HUD fixes (2026-10-19)
+
+The owner's picks from the audit ([open-questions](../open-questions.md) §0e), checked by `tools/verify/hud-launch.js`. Not yet seen in Studio.
+- **Close everything** (`hidePanels`) also closes Skins, the trade picker (a live trade cancels, as its own X does), fishing (a fish on the line is given up, as its own close does) and the Forge hub (`ForgeHubOpen:Fire("close")`), so Inventory, Pass and Jobs no longer open underneath one of them (S18). The anvil button still toggles: it skips `hidePanels` while the hub is open.
+- **The skill tree has a red X** in its top bar that only hides the wheel (S17). Its big button travels (to the Clouds or back down), and was the only way out.
+- **Day-4 surprise pack:** given regardless; no LIKE; FAVORITE is an optional `PromptSetFavorite`, and closing the popup claims (S20).
+- **The coin pill shows one currency**, the zone's: space coins in Event Horizon, coins elsewhere (S21). "1.2K | 340 sp" ran off the pill.
+- **Candy in the Candy Crypt** (owner, 2026-10-19): a fifth wallet pill (🍬, the Crypt's pumpkin with a candy-purple rim) shows only while you stand in the Crypt (`ClientFns.buildCandyPill`, `ClientFns.paintCandyPill` from `refreshHud`); the tray shares five ways and the numbers step down 3 px while it shows. Outside the event the HUD is unchanged.
+- **Settings:** FRIENDS and everything below moved down 30 px (panel 564 → 620 tall) so the code result has its own line (S22).
+- **Snapshots:** the open Planets map rebuilds only when which zones you own changes, and keeps the planet you picked (`refreshZones(live)`); the daily card rebuilds its week only when the week changes (`dailyHud.calKey`) (S23).
+- **Button sounds are on** (S26): `MineAudio.bindUiClicks(gui)` runs once on the MineUI ScreenGui, so every window gets a click on a press and the low "can't" knock on a greyed button. The `UiClicksBound` attribute stops a second bind; `MineAudio.play` throttles each sound (`CD.click` 0.035 s, `CD.deny` 0.10 s); `NoClickSfx` opts a button out.
+- **The lobby boards and your own row name no prizes** (S39): nothing pays a placement.
 
 ## UI removed with runes and traits (2026-10-12)
 

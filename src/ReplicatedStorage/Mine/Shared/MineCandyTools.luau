@@ -1,127 +1,328 @@
 --[[
-	MineCandyTools -- the Candy Crypt's shelf. Tools bought with CANDY.
+	MineCandyTools -- the Candy Crypt's HALLOWEEN TOOLS. The table, the craft
+	and prestige costs, and what each hits for in the Crypt and in the main
+	world. Pure: no Instances, no profile writes (MineCrypt grants and spends).
 
-	Owner, 2026-10-10: "You can buy halloween tools for candy too, but warn the
-	player that the tools are extremely weak and only suited for seasonal events
-	(like christmas, easter, valentines day shit like that)".
+	Owner, 2026-10-19 ("Candy Crypt v2", wiki/open-questions.md):
+	  * "crafted from candy ores" at the Forge, never dropped. One recipe per
+	    tool: N of ITS candy ore.
+	  * "prestige 1-10 with more ores (no level upgrades; prestige replaces
+	    merging)", paid in more of that ore. Each tool shows its damage at every
+	    prestige; "prestige keeps working after the event".
+	  * "at most 10 Halloween tools"; at 10, crafting is blocked until you
+	    scrap one; "scrapping pays half, in candy value, no ores back" -- half
+	    the candy value of EVERY ore spent on it, craft and prestiges.
+	  * "make each tool different, but yeah always multiplier to the full
+	    multiplier": each tool has its own factor (`skinFactor`) on the WHOLE
+	    damage multiplier of a Halloween-set skin worn on it
+	    (MineToolSkins.wear).
+	  * Power: tuned to the Crypt's rock while the event runs; afterwards they
+	    also work in the main world, weaker, "I want the top tool at prestige to
+	    be ~the same as top tool, at top level" (worldPower below).
 
-	So the warning is not a nicety here, it is the product: a player spending a
-	Halloween's worth of candy on a tool that is useless in a real mine has been
-	mis-sold. `MineCandyTools.WARNING` is the line the shop MUST show on the
-	shelf and on every row, and `seasonalOnly` is the flag anything else can
-	read.
+	WHY ONE TOOL PER CANDY ORE. Sixteen ores, sixteen tools, so every ore has a
+	job and "more of that ore" names one thing. The ten-tool cap then makes a
+	real choice: you cannot keep all sixteen. Two per rarity, in four families
+	(pick, mallet, auger, cracker), so each family has one tool in four of the
+	eight rarities.
 
-	WHY THEY ARE WEAK, in numbers rather than adjectives. These are tuned to the
-	Candy Crypt's own HP curve, which starts at 1 and climbs 3x per 10-layer
-	section (MineConfig.blockHp, zone "hallow"). The deepest candy tool lands
-	around 14,000 breaking power. An ordinary zone-10 tool is in the tens of
-	millions, because Primordium's rock is. A candy tool is not a cheap endgame
-	tool; it is a tool for rock that is made of candy.
+	WHAT A ROW IS (built below from TOOL_TABLE, nothing typed twice):
+	  id          "hallow_<ore>_<noun>"  (MineTheme.eventKeyOf reads "hallow_")
+	  name        "<Ore> <Noun>"         ("Candy Corn Pick", "Jawbreaker Auger")
+	  oreId, rank, band   its candy ore, 1..16, and that ore's rarity
+	  family      pickaxe / hammer / drill / explosive (skins resolve by it)
+	  craft       candy ore items it takes to craft
+	  skinFactor  this tool's factor on a Halloween skin's multiplier
+	  tuneLayer   the Crypt layer where a Normal pick of its power takes
+	              PICK_HITS hits; the other families scale by FAMILY_POWER
+	  rate, cells, radius, shape, ...  the forged frame of its family
+	  cryptTool = true, seasonalOnly = true, eventOnly = false (see below)
 
-	They are NOT event-locked the way Horizon tools are. Event Horizon rock is a
-	separate matter pool and a meadow tool cannot spend it; the Crypt has no
-	such pool, because the owner asked for surface tools to work here. A candy
-	tool is therefore usable anywhere -- it is simply bad everywhere else, which
-	is what the warning says.
-
-	EVERY NUMBER HERE IS PROPOSED (2026-10-10): the hit counts, the prices, the
-	tier bands and the rates.
+	EVERY NUMBER HERE IS PROPOSED (2026-10-19) except the owner's: ten
+	prestiges, the cap of ten, half back in candy, and the top tool's match.
 ]]
 local MineCandyTools = {}
 
-local Config = require(script.Parent:WaitForChild("MineConfig"))
+local shared = script.Parent
+local Config = require(shared:WaitForChild("MineConfig"))
+local OreTools = require(shared:WaitForChild("MineOreTools"))
 
 MineCandyTools.ZONE_ID = "hallow"
-MineCandyTools.CURRENCY = "candy"
 
+-- The tool card's line. The first-entry pop-up's text is MineCryptRules.NOTICE.
 MineCandyTools.WARNING =
-	"These are seasonal tools. They are extremely weak outside event mines — "
-	.. "fine in the Candy Crypt and the holiday mines to come, poor value anywhere else."
+	"Halloween tool: digs the Candy Crypt now. It is yours to keep: when the "
+	.. "event ends it also works in the main world, weaker."
 
--- Hits a tool of its band should take on the rock it is sold for. Higher is
--- weaker. A pick swings fastest and so is allowed the most hits per block.
-local HITS = { pickaxe = 12, hammer = 7, drill = 26, explosive = 40 }
-local RATE = { pickaxe = 1.8, hammer = 1.1, drill = 1.2, explosive = 0.7 }
-local CELLS = { pickaxe = 1, hammer = 1, drill = 9, explosive = 27 }
-local SHAPE = { pickaxe = "melee", hammer = "melee", drill = "bore", explosive = "blast" }
+MineCandyTools.FAMILIES = { "pickaxe", "hammer", "drill", "explosive" }
+MineCandyTools.NOUN = { pickaxe = "Pick", hammer = "Mallet", drill = "Auger", explosive = "Cracker" }
 
 --[[
-	Three tiers, each sold against the rock at the BOTTOM of its band, so a tool
-	is comfortable through its band and starts to struggle at the next -- which
-	is what makes the next one worth buying rather than a formality.
+	THE ONE TABLE OF TOOL NUMBERS (PROPOSED 2026-10-19).
+
+	  PICK_HITS        hits a Normal pick of a tool's base power takes at its
+	                   tuneLayer: comfortable above it, a slog below, which is
+	                   what makes the next tool worth crafting. 12, the v1 number.
+	  TUNE_FIRST/STEP  tool r is tuned to layer TUNE_FIRST + TUNE_STEP x (r-1):
+	                   the free Candy Corn Pick takes 12 hits at layer 15 (3 at
+	                   the top), the Jawbreaker Auger 12 at layer 120, the
+	                   bottom. Seven layers apart, about x2 rock per tool.
+	  PRESTIGE_MAX     owner: prestige 1 to 10.
+	  PRESTIGE_POWER   each prestige adds this share of the base power: P10 hits
+	                   x4, about two tools further down the ladder.
+	  PRESTIGE_COST    prestige k costs ceil(craft x BASE x GROWTH^(k-1)) of the
+	                   tool's own ore: P1 half a craft, P10 2.6 crafts, all ten
+	                   13 crafts.
+	  CAP              owner: at most ten Halloween tools.
+	  SCRAP_SHARE      owner: scrapping pays half the candy value of every ore
+	                   spent on the tool.
+	  CRAFT_AFTER_EVENT  crafting a NEW tool once the event has ended. false:
+	                   the owner said prestige keeps working afterwards and was
+	                   silent on crafting (asked in the build report).
+	  FRAME_TIER       whose forged frame (swing, footprint, fuse) each family
+	                   borrows: one frame per family, so only power changes up
+	                   the ladder.
+	  WORLD            the main-world mapping, see worldEquivalent.
+	  CRAFT_BY_BAND    ore items one craft takes, by the ore's rarity: rarer
+	                   ores are scarcer, so fewer of them.
+	  TOOL_TABLE       per tool, in ore order: its family and its skin factor.
+	                   The factors sit around the owner's first "2x" and differ
+	                   by tool (owner: "make each tool different").
 ]]
-local TIERS = {
-	{ key = "corn", name = "Candy Corn", throughSection = 4 },
-	{ key = "toffee", name = "Toffee", throughSection = 8 },
-	{ key = "jawbreaker", name = "Jawbreaker", throughSection = 12 },
+MineCandyTools.PICK_HITS = 12
+MineCandyTools.TUNE_FIRST = 15
+MineCandyTools.TUNE_STEP = 7
+MineCandyTools.PRESTIGE_MAX = 10
+MineCandyTools.PRESTIGE_POWER = 0.30
+MineCandyTools.PRESTIGE_COST = { BASE = 0.5, GROWTH = 1.2 }
+MineCandyTools.CAP = 10
+MineCandyTools.SCRAP_SHARE = 0.5
+MineCandyTools.CRAFT_AFTER_EVENT = false
+MineCandyTools.FRAME_TIER = { pickaxe = 41, hammer = 41, drill = 41, explosive = 36 }
+--[[
+	MAIN WORLD, AFTER THE EVENT. A Halloween tool there hits like a FORGED tool
+	of its family: ore tier T at level Lv, read through MineOreTools.hitPower,
+	and it breaks what that ore breaks (MineBreaking.oreStrength). With
+	x = (rank - 1 + prestige x PRESTIGE_RANKS) / (15 + 10 x PRESTIGE_RANKS):
+	  T  = LOW_TIER + (top ore - LOW_TIER) x x^CURVE   (8 Basalt .. 82 Oganesson)
+	  Lv = 1 + (TOOL_MAX_LEVEL - 1) x prestige / 10    (P0 level 1, P10 the cap)
+	So the Jawbreaker Auger at prestige 10 IS a top-level Oganesson Drill, the
+	best normal drill (owner: "~the same as top tool, at top level"), and every
+	other tool and prestige is weaker. CURVE > 1 keeps the low and middle of the
+	ladder well under the rock they were tuned for in the Crypt.
+]]
+MineCandyTools.WORLD = { LOW_TIER = 8, CURVE = 1.5, PRESTIGE_RANKS = 0.25 }
+MineCandyTools.CRAFT_BY_BAND = {
+	Common = 40, Uncommon = 40, Rare = 30, Epic = 25,
+	Legendary = 20, Mythic = 15, Divine = 12, Exotic = 10,
+}
+MineCandyTools.TOOL_TABLE = {
+	{ oreId = "candy_corn", family = "pickaxe", skinFactor = 2.5 },
+	{ oreId = "gumdrop", family = "hammer", skinFactor = 1.75 },
+	{ oreId = "licorice", family = "drill", skinFactor = 2.25 },
+	{ oreId = "cotton_candy", family = "explosive", skinFactor = 1.5 },
+	{ oreId = "caramel", family = "hammer", skinFactor = 2.0 },
+	{ oreId = "taffy", family = "pickaxe", skinFactor = 2.5 },
+	{ oreId = "pop_rocks", family = "explosive", skinFactor = 1.75 },
+	{ oreId = "toffee_shard", family = "drill", skinFactor = 2.25 },
+	{ oreId = "nougat", family = "pickaxe", skinFactor = 1.5 },
+	{ oreId = "rock_candy", family = "hammer", skinFactor = 2.0 },
+	{ oreId = "milk_chocolate", family = "drill", skinFactor = 2.5 },
+	{ oreId = "candy_apple", family = "explosive", skinFactor = 1.75 },
+	{ oreId = "white_chocolate", family = "hammer", skinFactor = 2.25 },
+	{ oreId = "sugar_skull", family = "pickaxe", skinFactor = 1.5 },
+	{ oreId = "chocolate_skull", family = "explosive", skinFactor = 2.0 },
+	{ oreId = "jawbreaker", family = "drill", skinFactor = 2.5 },
 }
 
-local NOUN = { pickaxe = "Pick", hammer = "Mallet", drill = "Auger", explosive = "Cracker" }
+-- The free pick a Crypt claim hands over: the first tool, the Candy Corn Pick.
+MineCandyTools.STARTER_ID = "hallow_candy_corn_pick"
 
-local function sectionHp(section)
-	-- The first layer of that section, through the Crypt's own curve.
-	local span = Config.CANDY_SECTION_SPAN or 10
-	local layer = (section - 1) * span + 1
-	return Config.blockHp("dirt", "hallow", layer)
+function MineCandyTools.toolIdFor(oreId, family)
+	return ("hallow_%s_%s"):format(tostring(oreId), string.lower(MineCandyTools.NOUN[family] or "pick"))
 end
 
-MineCandyTools.TOOLS = { pickaxe = {}, hammer = {}, drill = {}, explosive = {} }
+MineCandyTools.TOOLS = {}
+local BY_ID = {}
+local BY_ORE = {}
 
-for ti, tier in ipairs(TIERS) do
-	local hp = sectionHp(tier.throughSection)
-	for _, family in ipairs({ "pickaxe", "hammer", "drill", "explosive" }) do
-		local power = math.max(1, math.floor(hp / HITS[family] + 0.5))
+for rank, spec in ipairs(MineCandyTools.TOOL_TABLE) do
+	local ore = Config.candyOreById(spec.oreId)
+	local family = spec.family
+	local frame = OreTools.frameStats(family, MineCandyTools.FRAME_TIER[family] or 41)
+	local tuneLayer = MineCandyTools.TUNE_FIRST + MineCandyTools.TUNE_STEP * (rank - 1)
+	local row = {
+		id = MineCandyTools.toolIdFor(spec.oreId, family),
+		name = ("%s %s"):format(ore and ore.name or spec.oreId, MineCandyTools.NOUN[family] or "Pick"),
+		oreId = spec.oreId,
+		oreName = ore and ore.name or spec.oreId,
+		rank = rank,
+		band = ore and ore.band or "Common",
+		bandIndex = ore and ore.bandIndex or 1,
+		-- Kept for the screens that sort and colour by `tier` and `rarityId`.
+		tier = rank,
+		rarityId = ore and ore.band or "Common",
+		family = family,
+		craft = math.max(1, math.floor(tonumber(MineCandyTools.CRAFT_BY_BAND[ore and ore.band or "Common"]) or 10)),
+		skinFactor = tonumber(spec.skinFactor) or 2,
+		tuneLayer = tuneLayer,
+		-- The forged frame's mechanics. `false` there means absent, and
+		-- frameStats already turned it into nil.
+		rate = frame.rate or 2.6,
+		cells = frame.cells or 1,
+		radius = frame.radius or 0,
+		shape = frame.shape or "melee",
+		width = frame.width,
+		axis = frame.axis,
+		turn = frame.turn,
+		bombs = frame.bombs,
+		pattern = frame.pattern,
+		cooldown = frame.cooldown,
+		depth = frame.depth,
+		sink = frame.sink,
+		auto = frame.auto,
+		windSec = frame.windSec,
+		zoneId = MineCandyTools.ZONE_ID,
 		--[[
-			Price in candy, from what the band actually PAYS rather than from
-			the tool's power. A band's blocks drop candy on the same 3x curve,
-			so pricing off the rock keeps a tool at roughly a fixed number of
-			blocks' worth however the curve is retuned -- change the curve and
-			the shelf follows instead of drifting out of step with it.
+			A Crypt tool, wherever it is. NOT `eventOnly`: that is Event
+			Horizon's matter lock, and the Crypt's rock is ordinary HP. Which
+			rock a Halloween tool may spend is MineSpaceMatter's event-only rule,
+			keyed on the row MineCryptRules builds (`eventMine`).
 		]]
-		local price = math.max(5, math.floor(hp * 0.6 + 0.5))
-		table.insert(MineCandyTools.TOOLS[family], {
-			id = ("candy_%s_%s"):format(tier.key, family),
-			name = ("%s %s"):format(tier.name, NOUN[family]),
-			family = family,
-			tier = ti,
-			power = power,
-			rate = RATE[family],
-			radius = (family == "explosive") and 2 or 0,
-			cells = CELLS[family],
-			shape = SHAPE[family],
-			currency = MineCandyTools.CURRENCY,
-			price = price,
-			zoneId = "hallow",
-			seasonalOnly = true,
-			-- Deliberately NOT eventOnly: that is the Event Horizon matter lock,
-			-- and the Crypt has no matter pool. These work anywhere, badly.
-			eventOnly = false,
-			refHp = hp,
-			throughSection = tier.throughSection,
-			warning = MineCandyTools.WARNING,
-			blurb = ("About %d hits on section %d rock. %s"):format(
-				math.max(1, math.floor(hp / power)), tier.throughSection, MineCandyTools.WARNING),
-		})
-	end
+		cryptTool = true,
+		seasonalOnly = true,
+		eventOnly = false,
+		-- No icon or model yet (tools/cursor/tasks/crypt-icons.md): empty
+		-- means "fall back".
+		icon = "",
+		warning = MineCandyTools.WARNING,
+	}
+	table.insert(MineCandyTools.TOOLS, row)
+	BY_ID[row.id] = row
+	BY_ORE[row.oreId] = row
 end
 
 function MineCandyTools.all()
-	local out = {}
-	for _, family in ipairs({ "pickaxe", "hammer", "drill", "explosive" }) do
-		for _, t in ipairs(MineCandyTools.TOOLS[family]) do
-			table.insert(out, t)
-		end
-	end
-	return out
+	return table.clone(MineCandyTools.TOOLS)
 end
 
 function MineCandyTools.byId(id)
-	for _, t in ipairs(MineCandyTools.all()) do
-		if t.id == tostring(id or "") then
-			return t
-		end
+	return BY_ID[tostring(id or "")]
+end
+
+-- The tool a candy ore crafts, or nil.
+function MineCandyTools.forOre(oreId)
+	return BY_ORE[tostring(oreId or "")]
+end
+
+local function prestigeOf(k)
+	return math.clamp(math.floor(tonumber(k) or 0), 0, MineCandyTools.PRESTIGE_MAX)
+end
+MineCandyTools.clampPrestige = prestigeOf
+
+--------------------------------------------------------------------------------
+-- COSTS
+--------------------------------------------------------------------------------
+
+-- Ore items prestige `k` (1..10) costs: the step FROM k-1 TO k. nil past 10.
+function MineCandyTools.prestigeCost(def, k)
+	k = math.floor(tonumber(k) or 0)
+	if type(def) ~= "table" or k < 1 or k > MineCandyTools.PRESTIGE_MAX then
+		return nil
 	end
-	return nil
+	local c = MineCandyTools.PRESTIGE_COST
+	return math.max(1, math.ceil(def.craft * c.BASE * c.GROWTH ^ (k - 1) - 1e-9))
+end
+
+-- Ore items a tool at prestige `k` has cost in all: the craft and every step.
+function MineCandyTools.totalSpent(def, k)
+	if type(def) ~= "table" then
+		return 0
+	end
+	local n = def.craft
+	for i = 1, prestigeOf(k) do
+		n += MineCandyTools.prestigeCost(def, i) or 0
+	end
+	return n
+end
+
+--[[
+	What scrapping pays, in candy: SCRAP_SHARE of the candy value of every ore
+	item spent on it (owner: "half, in candy value, no ores back"). `spent` is
+	the tool's own ledger (MineCrypt records what each copy really cost, so a
+	retune never changes a refund); without one, the table's cost at its
+	prestige. The free starter cost nothing to craft, so its craft is not
+	refunded -- only prestiges paid for.
+]]
+function MineCandyTools.scrapCandy(def, prestige, spent)
+	if type(def) ~= "table" then
+		return 0
+	end
+	local value = Config.candyOreValue(def.oreId)
+	local items
+	if type(spent) == "table" then
+		items = 0
+		for oreId, n in pairs(spent) do
+			items += math.max(0, math.floor(tonumber(n) or 0)) * (oreId == def.oreId and 1 or 0)
+		end
+	else
+		items = MineCandyTools.totalSpent(def, prestige)
+	end
+	return math.floor(items * value * MineCandyTools.SCRAP_SHARE)
+end
+
+--------------------------------------------------------------------------------
+-- POWER
+--------------------------------------------------------------------------------
+
+-- The multiplier prestige `k` puts on a tool's base power: 1 at P0, 4 at P10.
+function MineCandyTools.prestigeMult(k)
+	return 1 + MineCandyTools.PRESTIGE_POWER * prestigeOf(k)
+end
+
+--[[
+	IN THE CRYPT. A Normal pick of base power takes PICK_HITS hits at the
+	tool's tuneLayer (MineConfig.cryptRockHp, so a retune of the rock moves the
+	tools with it); other families scale by the forged tools' family balance
+	(MineOreTools.FAMILY_POWER: hammer 3.7, explosive 4), so the hammer is still
+	the best single block and the cracker the best area, as everywhere else.
+	`dig` is Event Digging from the worn Halloween charm, as a fraction.
+]]
+function MineCandyTools.basePower(def)
+	if type(def) ~= "table" then
+		return 1
+	end
+	local hp = Config.cryptRockHp(def.tuneLayer)
+	return hp / MineCandyTools.PICK_HITS * OreTools.familyPower(def.family)
+end
+
+function MineCandyTools.cryptPower(def, prestige, dig)
+	return math.max(1, math.floor(MineCandyTools.basePower(def) * MineCandyTools.prestigeMult(prestige)
+		* (1 + math.max(0, tonumber(dig) or 0)) + 0.5))
+end
+
+--[[
+	THE MAIN WORLD: the forged tool this one hits like (WORLD, above). Returns
+	the ore tier, the level and that ore's row.
+]]
+function MineCandyTools.worldEquivalent(def, prestige)
+	local W = MineCandyTools.WORLD
+	local k = prestigeOf(prestige)
+	local n = #MineCandyTools.TOOLS
+	local span = (n - 1) + MineCandyTools.PRESTIGE_MAX * W.PRESTIGE_RANKS
+	local x = (((def and def.rank) or 1) - 1 + k * W.PRESTIGE_RANKS) / math.max(1e-9, span)
+	x = math.clamp(x, 0, 1)
+	local top = #(Config.ORES or {})
+	local tier = math.clamp(math.floor(W.LOW_TIER + (top - W.LOW_TIER) * x ^ W.CURVE + 0.5), 1, top)
+	local maxLv = math.max(1, math.floor(tonumber(Config.TOOL_MAX_LEVEL) or 30))
+	local level = 1 + math.floor((maxLv - 1) * k / MineCandyTools.PRESTIGE_MAX + 0.5)
+	return tier, level, (Config.ORES or {})[tier]
+end
+
+function MineCandyTools.worldPower(def, prestige, dig)
+	local tier, level = MineCandyTools.worldEquivalent(def, prestige)
+	local base = OreTools.hitPower({ familyId = (def and def.family) or "pickaxe", tier = tier, level = level }, 1)
+	return math.max(1, math.floor(base * (1 + math.max(0, tonumber(dig) or 0)) + 0.5))
 end
 
 return MineCandyTools

@@ -18,12 +18,22 @@
 	  layerStats(p)                   the held tool's Damage/Utility stats (for boosts)
 	  hitDamage(plr, p, part, dmg, maxHp)   a swing's damage, through the Damage
 	                                  slot's mining enchant (crit, executioner,
-	                                  demolition, combo)
-	  afterSwing(plr, p, oneShot, pos)  Overclock's streak, after the swing lands
-	  swingSpeed(p)                   Overclock's swing speed now (1 = none)
+	                                  demolition, combo, grave digger)
+	  afterSwing(plr, p, oneShot, pos, blocks)  Overclock's and Sugar Rush's
+	                                  streaks, after the swing lands (`blocks`:
+	                                  how many it broke in one hit)
+	  swingSpeed(p)                   Overclock's or Sugar Rush's swing speed now
+	  spellCast(plr, p, b, broke, pos)  Spellbook: every few swings, the cast to
+	                                  run through Dig.procsAt, or nil
+	  flashlight(plr, p, zone, part, cells, keyOf, tool)  Flashlight, on a block
+	                                  broken: maybe light the rarest ore near it
 	  alchemy(plr, p, ore, pos)       an ore drop, maybe the next ore up
 	  duplicate(plr, p, got, pos)     an ore count, maybe doubled
 	  veinCount(p)                    how many vein blocks Vein Miner takes
+
+	WHERE AN ENCHANT WORKS: every read below goes through E.activeHere with the
+	zone the player is in, so inside the Candy Crypt only the Halloween four
+	work (owner, 2026-10-19: in the Crypt "normal enchants don't work").
 
 	SERVER-AUTHORITATIVE. The client names a tool, a slot and a book; this
 	checks you own the tool and the book, the slot is unlocked at your level,
@@ -88,10 +98,15 @@ end
 
 -- ------------------------------------------------------------ boosts --
 
+-- In a slot, unlocked at the player's level, and working where they stand.
+local function counts(p, slot, e)
+	return type(e) == "table" and E.slotUnlocked(slot, p.level) and E.activeHere(p.zoneId, e.id)
+end
+
 function S.special(p)
 	local t = heldTool(p)
 	local e = t and type(t.enchants) == "table" and t.enchants.special or nil
-	if e and E.slotUnlocked("special", p.level) then
+	if counts(p, "special", e) then
 		return e
 	end
 	return nil
@@ -106,7 +121,7 @@ function S.layerStats(p)
 	end
 	for _, slot in ipairs({ "damage", "utility" }) do
 		local e = t.enchants[slot]
-		if e and E.slotUnlocked(slot, p.level) then
+		if counts(p, slot, e) then
 			for _, s in ipairs(E.statsAt(E.get(e.id), e.level)) do
 				if s.how == "layer" then
 					table.insert(out, s)
@@ -120,7 +135,7 @@ end
 local function xpMult(p)
 	local t = heldTool(p)
 	local e = t and type(t.enchants) == "table" and t.enchants.utility or nil
-	if e and E.slotUnlocked("utility", p.level) then
+	if counts(p, "utility", e) then
 		for _, s in ipairs(E.statsAt(E.get(e.id), e.level)) do
 			if s.how == "xp" then
 				return s.value
@@ -145,13 +160,16 @@ local FLASH = {
 	overclock = Color3.fromRGB(120, 220, 255),
 	alchemy = Color3.fromRGB(200, 140, 255),
 	duplicator = Color3.fromRGB(120, 255, 160),
+	-- The Halloween four: candy pink, and the book's purple.
+	sugar_rush = Color3.fromRGB(255, 120, 200),
+	spell = Color3.fromRGB(180, 110, 255),
 }
 
 -- The held tool's live enchant in a slot, and its level, or nil.
 local function slotEnchant(p, slot)
 	local t = heldTool(p)
 	local e = t and type(t.enchants) == "table" and t.enchants[slot] or nil
-	if not (e and E.slotUnlocked(slot, p.level)) then
+	if not counts(p, slot, e) then
 		return nil
 	end
 	local def = E.get(e.id)
@@ -164,7 +182,7 @@ end
 local function streak(p)
 	local s = streaks[p]
 	if not s then
-		s = { combo = 0, comboAt = 0, oc = 0, ocAt = 0 }
+		s = { combo = 0, comboAt = 0, oc = 0, ocAt = 0, rush = 0, rushAt = 0, spell = 0, flashReady = 0 }
 		streaks[p] = s
 	end
 	return s
@@ -186,12 +204,31 @@ local function roundByChance(x)
 	return math.max(1, n)
 end
 
+--[[
+	The floor of the mine a block is in, for Grave Digger: the Candy Crypt's
+	own depth inside the Crypt, MineConfig.LAYERS (5000) everywhere else --
+	Meadow runs to 10,000 and is simply at full strength from 5,000 down.
+]]
+local Config
+local function mineFloor(zoneId)
+	Config = Config or require(shared:WaitForChild("MineConfig"))
+	if tostring(zoneId or "") == "hallow" then
+		return tonumber(Config.CANDY_DEPTH_LAYERS) or 120
+	end
+	return tonumber(Config.LAYERS) or 5000
+end
+
 function S.hitDamage(plr, p, part, dmg, maxHp)
 	local def, level = slotEnchant(p, "damage")
-	if not (def and def.effect.kind == "hit") or def.id == "overclock" then
+	local kind = def and def.effect.kind
+	if not (kind == "hit" or kind == "depth") or def.id == "overclock" then
 		return dmg
 	end
 	local h = { dmg = dmg, maxHp = maxHp, hp = tonumber(part:GetAttribute("HP")) or maxHp, roll = math.random() }
+	if kind == "depth" then
+		h.layer = tonumber(part:GetAttribute("CY")) or 1
+		h.floor = mineFloor(part:GetAttribute("ZoneId"))
+	end
 	if def.id == "combo" then
 		local s, now = streak(p), os.clock()
 		if now - s.comboAt > E.COMBO_GRACE then
@@ -214,12 +251,49 @@ function S.hitDamage(plr, p, part, dmg, maxHp)
 	return roundByChance(dmg * mult)
 end
 
+--[[
+	SUGAR RUSH (a Halloween Damage enchant; owner: "speed that stacks while
+	breaking in combos [2% per block, one shot blocks only up to 100%]"). Every
+	block this swing broke in one hit adds to the run -- the aimed block and the
+	tool's own area cells, so a 3x3 drill adds nine -- while the aimed block
+	itself was a one-shot. A swing whose aimed block takes more than one hit
+	ends the run, and so does the grace without a one-shot. The client paces by
+	the same "enchSpeed" event Overclock uses.
+]]
+local function sugarRush(plr, s, def, level, oneShot, pos, blocks)
+	local t = E.TUNING.sugarRush
+	local now = os.clock()
+	local was = (now - s.rushAt <= t.grace) and s.rush or 0
+	local add = math.max(1, math.floor(tonumber(blocks) or 1))
+	s.rush = oneShot and math.min(t.maxBlocks, was + add) or 0
+	s.rushAt = now
+	if s.rush > 0 or was > 0 then
+		ctx.net:FireClient(plr, "enchSpeed", { mult = E.rushSpeed(def, level, s.rush), grace = t.grace })
+	end
+	-- A word at every quarter of the way to the cap.
+	local step = math.max(1, math.floor(t.maxBlocks / 4))
+	if s.rush > was and math.floor(s.rush / step) > math.floor(was / step) then
+		flash(plr, "SUGAR RUSH +" .. math.floor((E.rushSpeed(def, level, s.rush) - 1) * 100 + 0.5) .. "%", FLASH.sugar_rush, pos)
+	end
+end
+
 -- Overclock counts one-shots in a row: the block was whole and this swing
 -- broke it. Anything else ends the streak. The client is told every time it
 -- moves, because it paces its own swings ("enchSpeed").
-function S.afterSwing(plr, p, oneShot, pos)
+function S.afterSwing(plr, p, oneShot, pos, blocks)
 	local def, level = slotEnchant(p, "damage")
 	local s = streaks[p]
+	if def and def.id == "sugar_rush" then
+		if s and s.oc > 0 then
+			s.oc = 0
+		end
+		return sugarRush(plr, streak(p), def, level, oneShot, pos, blocks)
+	end
+	if s and s.rush > 0 then
+		-- The rush ends with the enchant (swapped tool, swapped book, the Crypt).
+		s.rush = 0
+		ctx.net:FireClient(plr, "enchSpeed", { mult = 1, grace = E.OVERCLOCK_GRACE })
+	end
 	if not (def and def.id == "overclock") then
 		if s and s.oc > 0 then
 			s.oc = 0
@@ -242,6 +316,10 @@ end
 
 function S.swingSpeed(p)
 	local s = streaks[p]
+	if s and s.rush > 0 and os.clock() - s.rushAt <= E.TUNING.sugarRush.grace then
+		local def, level = slotEnchant(p, "damage")
+		return E.rushSpeed(def, level, s.rush)
+	end
 	if not (s and s.oc > 0 and os.clock() - s.ocAt <= E.OVERCLOCK_GRACE) then
 		return 1
 	end
@@ -249,8 +327,122 @@ function S.swingSpeed(p)
 	return E.overclockSpeed(def, level, s.oc)
 end
 
-local Config
-local function nextOre(ore)
+--[[
+	SPELLBOOK (a Halloween Special; owner: "casts a random ability every few
+	hits: Zap, Blast, Tidal Wave, Shatter, Earthquake, at reduced power").
+	`b` is the swing's finished boosts: gateProcs set b.spellEvery only for a
+	Spellbook that works where the player stands, so b is the authority. Every
+	b.spellEvery-th swing that lands returns the cast for MineServer to run
+	through Dig.procsAt -- the same code a natural proc runs -- as
+	{ family, b (that ability certain to fire), power (x the swing's damage),
+	broke (the break flag that lets it fire) }. Otherwise nil.
+]]
+function S.spellCast(plr, p, b, broke, pos)
+	local every = type(b) == "table" and tonumber(b.spellEvery) or 0
+	if every <= 0 then
+		return nil
+	end
+	local s = streak(p)
+	s.spell += 1
+	if s.spell < every then
+		return nil
+	end
+	s.spell = 0
+	local family = E.spellPick(Random.new(), broke)
+	flash(plr, "SPELL", FLASH.spell, pos)
+	return {
+		family = family,
+		b = E.spellBoosts(b, family),
+		power = tonumber(b.spellPower) or E.TUNING.spellbook.power,
+		-- Blast, Tidal Wave and Shatter go off where the book points even on a
+		-- block still standing; Earthquake shakes a standing block (spellPick
+		-- leaves it out when the block broke); Zap fires either way.
+		broke = (family == "zap" and broke == true) or (family ~= "zap" and family ~= "quake"),
+	}
+end
+
+local nextOre
+--[[
+	FLASHLIGHT (a Halloween Utility enchant; owner: "chance to reveal the
+	rarest ore in a radius, and make it glow"). On a broken block, off its
+	cooldown, it rolls its chance; on a hit it looks through `cells` (the
+	zone's voxels, keyed by keyOf) within its radius for the rarest ore the
+	held tool can break -- highest ore tier, or candy ore rank in the Crypt;
+	the nearest on a tie -- and tells the client to light that block for a few
+	seconds ("flashlight"). Then the cooldown. Nothing in range: a short retry.
+	Returns the block it lit, or nil.
+]]
+local Breaking
+local function oreRank(part)
+	local tier = tonumber(part:GetAttribute("OreTier"))
+	if tier then
+		return tier
+	end
+	local candy = part:GetAttribute("CandyOre")
+	local cdef = candy and Config.candyOreById and Config.candyOreById(candy)
+	return cdef and tonumber(cdef.rank) or nil
+end
+
+function S.flashlight(plr, p, zone, part, cells, keyOf, tool)
+	local def, level = slotEnchant(p, "utility")
+	if not (def and def.id == "flashlight" and zone and part and cells and keyOf) then
+		return nil
+	end
+	local s = streak(p)
+	local now = os.clock()
+	if now < s.flashReady then
+		return nil
+	end
+	local f = E.flashlightAt(level)
+	if math.random() >= f.chance then
+		return nil
+	end
+	Config = Config or require(shared:WaitForChild("MineConfig"))
+	Breaking = Breaking or require(shared:WaitForChild("MineBreaking"))
+	local cx, cy, cz = part:GetAttribute("CX"), part:GetAttribute("CY"), part:GetAttribute("CZ")
+	if not (cx and cy and cz) then
+		return nil
+	end
+	local zi = (Config.zoneIndex and Config.zoneIndex(zone.id)) or 1
+	local r = f.radius
+	local best, bestRank, bestD = nil, -math.huge, math.huge
+	for dx = -r, r do
+		for dy = -r, r do
+			for dz = -r, r do
+				local d2 = dx * dx + dy * dy + dz * dz
+				if d2 > 0 and d2 <= r * r then
+					local other = cells[keyOf(zone.id, cx + dx, cy + dy, cz + dz)]
+					if other and typeof(other) == "Instance" and other.Parent then
+						local rank = oreRank(other)
+						if rank and (rank > bestRank or (rank == bestRank and d2 < bestD))
+							and (zone.noStrengthGate or Breaking.canBreak(tool, zi, cy + dy,
+								tonumber(other:GetAttribute("OreTier")), #(Config.ORES or {}), p.maxUnlockedZone)) then
+							best, bestRank, bestD = other, rank, d2
+						end
+					end
+				end
+			end
+		end
+	end
+	if not best then
+		s.flashReady = now + f.retry
+		return nil
+	end
+	s.flashReady = now + f.cooldown
+	local oreId, candyId = best:GetAttribute("OreId"), best:GetAttribute("CandyOre")
+	local odef = (oreId and Config.oreById and Config.oreById(oreId))
+		or (candyId and Config.candyOreById and Config.candyOreById(candyId)) or nil
+	ctx.net:FireClient(plr, "flashlight", {
+		pos = best.Position,
+		part = best,
+		name = tostring(best:GetAttribute("OreName") or best:GetAttribute("CandyName") or (odef and odef.name) or "Ore"),
+		color = (odef and odef.color) or best.Color,
+		secs = f.glow,
+	})
+	return best
+end
+
+function nextOre(ore)
 	Config = Config or require(shared:WaitForChild("MineConfig"))
 	local want = (tonumber(ore.tier) or 0) + 1
 	for _, o in ipairs(Config.ORES or {}) do

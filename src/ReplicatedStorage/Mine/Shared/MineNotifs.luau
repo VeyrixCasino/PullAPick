@@ -138,13 +138,15 @@ function MineNotifs.counts(snap, extra)
 		return out
 	end
 	local pass = snap.pass
-	if type(pass) == "table" then
+	-- A paused pass (Day 29: ended, next one not shipped) has nothing to claim.
+	if type(pass) == "table" and not pass.paused then
 		local tier = math.floor(tonumber(pass.tier) or 0)
 		local owned = pass.owned and true or false
 		local free = pass.free or {}
 		local prem = pass.prem or {}
+		local track = (Scrolls.trackFor and Scrolls.trackFor(pass)) or Scrolls.PASS_TRACK
 		for n = 1, math.floor(tonumber(pass.tiers) or 10) do
-			local row = Scrolls.PASS_TRACK and Scrolls.PASS_TRACK[n]
+			local row = track and track[n]
 			if tier >= n and row then
 				if row.free and not (free[n] or free[tostring(n)]) then
 					out.pass += 1

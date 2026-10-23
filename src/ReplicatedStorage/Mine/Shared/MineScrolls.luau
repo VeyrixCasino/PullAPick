@@ -365,20 +365,115 @@ function MineScrolls.emptyPass()
 	return { xp = 0, owned = false, free = {}, prem = {}, day = "", dayXp = 0, season = MineScrolls.PASS_SEASON_ID }
 end
 
--- Season runs 2026-09-22 00:00 ET through 2026-11-01 00:00 ET
--- (EDT, UTC-4). Oct 31 is a full day. The clock hits zero at midnight.
+--[[
+	THE PASS IS 28 DAYS LONG (owner, 2026-10-18: "28 days"), counted from LAUNCH.
+
+	PASS_SEASON_DAYS above is the one number; the end is derived from it, so
+	changing the length is one edit. MineLaunch pins the season clock to
+	PASS_SEASON_START until the owner launches, then runs it from that moment,
+	so the pass ends 28 days after launch whatever the calendar says. START
+	still reads as the original calendar (2026-09-22 00:00 ET) only so it lines
+	up with MineRotatingOffers and MineLaunch.
+
+	The pass is shorter than the season around it on purpose: the offers and
+	Event Horizon run 47 days (MineRotatingOffers.EXTEND_SEC, LIMITED_DAYS).
+	tools/verify/launch.js pins the pass to PASS_SEASON_DAYS and checks it ends
+	inside that season.
+]]
 MineScrolls.PASS_SEASON_ID = "2026-10"
 MineScrolls.PASS_SEASON_NEXT = "2026-11"
 MineScrolls.PASS_SEASON_START = 1790049600
-MineScrolls.PASS_SEASON_END = 1793505600
-MineScrolls.PASS_SEASON_LABEL = "through Oct 31, midnight ET"
+MineScrolls.PASS_SEASON_END = MineScrolls.PASS_SEASON_START + MineScrolls.PASS_SEASON_DAYS * 86400
+-- No calendar date: the real end depends on when the season was launched.
+-- passEndLabel() gives the real one.
+MineScrolls.PASS_SEASON_LABEL = "when the countdown ends"
+
+--[[
+	DAY 29 (owner, 2026-10-19): a new pass will be ready, and if it is late the
+	old one PAUSES. Rolling everyone onto the same track again would have let
+	players re-earn the season pets and Season One skins and re-buy premium.
+
+	NEXT_TRACK is the next pass: rows in PASS_TRACK's shape, nil until the owner
+	ships one (NEXT_SEASON_DAYS is its length, PASS_SEASON_DAYS if unset).
+	  * Before PASS_SEASON_END nothing here changes anything.
+	  * Past it with NEXT_TRACK nil, the pass is paused: passPaused() is true, so
+	    the server gives no pass XP, takes no claims and sells no premium, and
+	    the panel says "Next pass coming soon". reconcilePass leaves XP, claims
+	    and premium exactly as they were.
+	  * Past it with NEXT_TRACK set, reconcilePass rolls each pass over once to
+	    PASS_SEASON_NEXT (XP, claims and premium start clean), trackFor() pays
+	    out of NEXT_TRACK, and the countdown runs to activeEnd(). Shipping the
+	    track IS the un-pause; nothing else has to move.
+	tools/verify/battle-pass.js runs all three.
+]]
+MineScrolls.NEXT_TRACK = nil
+MineScrolls.NEXT_SEASON_DAYS = nil
+
+-- When the live pass ends, on the season clock: this one's end, or the next
+-- one's once it has shipped and this one is over.
+function MineScrolls.activeEnd(now)
+	now = now or Launch.seasonNow()
+	if now >= MineScrolls.PASS_SEASON_END and type(MineScrolls.NEXT_TRACK) == "table" then
+		local days = tonumber(MineScrolls.NEXT_SEASON_DAYS) or MineScrolls.PASS_SEASON_DAYS
+		return MineScrolls.PASS_SEASON_END + days * 86400
+	end
+	return MineScrolls.PASS_SEASON_END
+end
+
+-- True while no pass is running: the last one is over and no next track ships.
+function MineScrolls.passPaused(now)
+	now = now or Launch.seasonNow()
+	return now >= MineScrolls.activeEnd(now)
+end
+
+-- The rows a pass pays out of: the next track once this pass has rolled onto it.
+function MineScrolls.trackFor(pass)
+	if type(pass) == "table" and pass.season == MineScrolls.PASS_SEASON_NEXT
+		and type(MineScrolls.NEXT_TRACK) == "table" then
+		return MineScrolls.NEXT_TRACK
+	end
+	return MineScrolls.PASS_TRACK
+end
+
+--[[
+	THE SEASON CLOCK FOR A CLIENT. Pass it workspace:GetServerTimeNow().
+
+	Real server time is the wrong input for anything below: the pass is measured
+	on the season clock, which waits for launch. A client that handed the raw
+	server time to passSecondsLeft counted down to a calendar date while the
+	server's season had not begun, and would show SEASON OVER mid-season after a
+	late launch.
+]]
+function MineScrolls.seasonClock(realNow)
+	return Launch.seasonNow(realNow)
+end
+
+-- When the pass really ends, in the reader's own local time (os.date on a
+-- client is local). Before launch there is no date to give.
+function MineScrolls.passEndLabel()
+	local at = Launch.stamp and Launch.stamp() or 0
+	if at <= 0 then
+		return "Starts at launch"
+	end
+	local endsAt = at + (MineScrolls.activeEnd() - MineScrolls.PASS_SEASON_START)
+	-- "*t" rather than a strftime pattern, so the text is the same everywhere.
+	local t = os.date("*t", endsAt)
+	local months = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+	local h = t.hour % 12
+	if h == 0 then
+		h = 12
+	end
+	return string.format("%s %d · %d:%02d %s", months[t.month] or "?", t.day, h, t.min, t.hour < 12 and "AM" or "PM")
+end
 
 function MineScrolls.passSecondsLeft(now)
-	return math.max(0, MineScrolls.PASS_SEASON_END - (now or Launch.seasonNow()))
+	now = now or Launch.seasonNow()
+	return math.max(0, MineScrolls.activeEnd(now) - now)
 end
 
 -- Live clock, always down to the second so the pass header visibly ticks.
--- `now` should be workspace:GetServerTimeNow() on the client.
+-- `now` is SEASON time: on a client pass seasonClock(workspace:GetServerTimeNow()),
+-- never the raw server time.
 function MineScrolls.formatPassClock(now)
 	local left = math.floor(MineScrolls.passSecondsLeft(now))
 	if left <= 0 then
@@ -397,13 +492,16 @@ end
 function MineScrolls.formatPassTimer(now)
 	local left = MineScrolls.passSecondsLeft(now)
 	if left <= 0 then
-		return "Next pass is live"
+		-- Over with no next track: paused (see DAY 29 above).
+		return "Next pass coming soon"
 	end
-	return MineScrolls.formatPassClock(now) .. "  ·  ends " .. MineScrolls.PASS_SEASON_LABEL
+	return MineScrolls.formatPassClock(now) .. "  ·  ends " .. MineScrolls.passEndLabel()
 end
 
 -- Free and premium are separate claim ledgers. A season rollover wipes both,
--- plus XP and the premium unlock, so the next pass starts clean.
+-- plus XP and the premium unlock, so the next pass starts clean. It happens
+-- only once the next track has shipped (NEXT_TRACK); until then an ended pass
+-- is PAUSED and keeps everything as it was (DAY 29 above).
 function MineScrolls.reconcilePass(pass, now)
 	if type(pass) ~= "table" then
 		return pass
@@ -412,7 +510,7 @@ function MineScrolls.reconcilePass(pass, now)
 	pass.free = pass.free or {}
 	pass.prem = pass.prem or {}
 	pass.xp = tonumber(pass.xp) or 0
-	if now >= MineScrolls.PASS_SEASON_END then
+	if now >= MineScrolls.PASS_SEASON_END and type(MineScrolls.NEXT_TRACK) == "table" then
 		if pass.season ~= MineScrolls.PASS_SEASON_NEXT then
 			pass.xp = 0
 			pass.free = {}

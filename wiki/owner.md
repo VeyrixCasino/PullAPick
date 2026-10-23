@@ -2,7 +2,7 @@
 title: The owner — goals, decisions, and how to work with them
 type: meta
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-16 @ 98c141a
 sources:
   - docs/TODO.md §0, §9
   - docs/START-HERE.md §1, §6
@@ -63,18 +63,38 @@ From `docs/START-HERE.md` §1 and §6, and TODO §0.31–§0.32:
 
 ## Asking them questions
 
-They asked on 2026-10-05 that Claude **always ask when a request is broad or
-unclear**. The rules are in `CLAUDE.md` under "Ask before you assume".
+**Standing instruction, 2026-10-08:** *"from now on i want ALL agents to fucking
+hound me with questions so noithing is EVER unclear"*. This replaced the softer
+2026-10-05 rule ("ask when a request is broad or unclear"). The rules are in
+`CLAUDE.md` under "Ask first, always", and recorded as TODO §0.35.
 
-- Ask **few, concrete questions with options and a recommended default**.
-  Their own BLOCKED and PROPOSAL formats work well: numbered lines, a default
-  on each, paste back to approve.
+- **If you would otherwise be guessing what they want or mean, ask. However
+  small.** A wrong guess has cost days; a question costs seconds.
+- Look in the repo first and never ask what it can answer. Put what you found in
+  the question.
+- Before non-trivial work, **restate** what you think they want in 1–3 lines, with
+  your assumptions. Then ask every question you need in **one batch**, grouped by
+  topic, each multiple choice with your recommended default first. **No cap.** Wait
+  for the answers, and ask again if they open new doubts.
+- Their own BLOCKED and PROPOSAL formats work well: numbered lines, a default on
+  each, paste back to approve.
 - Use plain language, because they are not always reading code. Explain a
   trade-off in player terms: what the player feels.
-- **Never re-ask a locked rule.** TODO §0 is titled "do not relitigate, do not
-  ask again".
-- When they say "just do it", proceed on your defaults and list your
-  assumptions afterwards.
+- **Do not re-ask a locked rule** (TODO §0 says "do not relitigate"). Do ask
+  whether one *applies* when that is unclear.
+- When they say "just do it" **for that task**, proceed on your defaults and list
+  your assumptions afterwards.
+- **If nobody can answer** (scheduled run, background agent, subagent): take only
+  safe, reversible steps and write the questions down. A subagent puts its
+  questions at the top of its report so the parent can ask.
+- At the end of any piece of work: say what you assumed, and ask what is still
+  unclear.
+
+**Confirmed by the owner, 2026-10-08**, when asked four design points (each answer
+was the recommended default, so nothing changed): (1) **no cap** on questions, batched
+by topic; (2) locked rules are **not re-asked, but agents ask whether one applies**;
+(3) when nobody can answer, **safe reversible steps only, and queue the questions**;
+(4) **restate before any non-trivial work**.
 
 ## Decided 2026-10-10 (TODO ★ NOW)
 
@@ -200,6 +220,17 @@ reopen it.
 - **0.10** The wooden pick is only a tutorial pick. The tutorial hands over the
   stone pick.
 - **2026-10-05, after TODO §0 was written** (commit `9733a05`): **no tool is bought with coins**; every tool is forged from ore. Backpacks, the pouch and chest Secrets stay. Every forged ore tier gets its own pickaxe skin. Source: the comments on `MineConfig.FORGE_ONLY_FAMILIES`.
+- **2026-10-08, said in chat:** *"from now on i want ALL agents to fucking hound me with questions so noithing is EVER unclear"*. Ask first, always (TODO §0.35). See "Asking them questions" above.
+- **2026-10-07, recorded in commit messages** (the quoted words are the owner's):
+  - *"make 36 charms. make them all unique, and each come in their own rarity. they can be found in chests (0.5%) or bought with tokens"*: the 36 graded charms (`b09cc4a`, `c1795ea`, `fd5c432`; [charms](systems/charms.md)). **This is an exception to 0.5–0.6 and 0.13.5** ("charms drop from ores, not chests"). The newer words win, but TODO §0.13.5 has not been edited; that edit is the other session's.
+  - *"make a rotating shop with tokens with a wandering trader that spawns at random depth outposts in random zones … (5 different cases (random tool), custom hats case, random charm case)"* and *"5 different traders at once"*; static part-built NPCs were the owner's choice ([wandering-traders](systems/wandering-traders.md)).
+  - *"i want the timer to not actually start until i say launch, and rather just keep ticking down"* ([season-and-launch](systems/season-and-launch.md)).
+- **2026-10-17, said in chat:** *"do what you think is best for the game [for the players.. we pushing this to come out asap]"*. Applied to the open questions: graded charms from chests stay (TODO §0.13 rule 5 amended), Chest Luck keeps scaling that drop, the battle pass ran the full 47 days with the offers (changed 2026-10-18, below), and the wiki is edited by merging first and only adding what is missing.
+- **2026-10-18, said in chat:** *"28 days"*: the battle pass lasts 28 days from launch (`MineScrolls.PASS_SEASON_DAYS`). The offers and Event Horizon stay at 47.
+- **2026-10-18, said in chat:** *"do a deep audit of all uis, effects, tool cards etc, and determine what needs to be done for launch, and what you need from me"*, then picked **"list first, you pick"** (no fixes until they choose) and **chat + wiki** for the list. The list is [open-questions](open-questions.md) §0e.
+- **2026-10-19, said in chat:** day 29 of the battle pass: *"i'll having something ready"* (a new pass), with the safety net that the old pass **pauses** if the new one is late. Not built yet.
+- **2026-10-19, picked in chat (the launch-audit fixes):** "must-fix plus every should-fix that needs no call", then a call on each of the rest (all recorded in [open-questions](open-questions.md) §0e decided). Not open to the public yet. **Split:** logic here, looks on the PC session. On the look: *"better bubbly ui all around, in halloween, halloween theme, and dark/univedrsze theme in event horizon.. ,make the tools look accordeingly"* and *"make the mainworld shit more neutral"* (tone the main look down). On the Crypt: *"make normal tools not useable in events, but events usable in mormal.. also add tool merging (same as pet merging, but only crypt tools)"*, *"make the crypt have tools that drop from chests, rather than from buying, and make it so the trick of treat boxes drops tools mainly, and sometimes skin cases (rarely), but in doing so make the candy easier to get.. also add a few different candy ores"*, *"only grant tools after event ends, and mention that in game somewhere that is visable, but not plasted everywhere"*, *"make it so you can craft charms with candy ore"*, a pouch sell menu that lets you choose (*"sell all common/+uncommon/+rare etc."*), and *"make sure the skins are the samd in both obvioulys.. also make skins work"*. Discord invite: discord.gg/Ab5ZpVdRvp (the second one sent).
+- **2026-10-19, later, said in chat (Candy Crypt v2):** a redesign in the owner's own words, recorded as [open-questions](open-questions.md) §0e "Candy Crypt v2". Key quotes: *"make it so tools are now crafted with ores, and can be prestiged woth more ores, to a maximum of 10(no upgrades)"*, *"make all the cases roll a reward, then spin a 50/50 chance of of it being a trick or a treat, and in the middle of the wheel will be the reward it landed on"*, *"make every case in the game bebable to spin up to 5 slot spins at a time"*, *"Each player can only hold 10 halloween tools at a time so they stay rare after event"*, *"Make sure halloween rarer(mythic+) pets/skins are better than all the normal games pets, even after transfer"* (20%), *"make normal enchants not available in the candy crypt"*, *"seperate inventory for halloween event"*, *"8 teirs.. this should go for main game as well"*, *"make charms mergeable everywhere"* and *"make charm packs for normal game"*.
 - **0.12** **Fossils do not exist.** The modules are deleted. The `fossilFind`
   key and the 60 fossil bags stay, because removing them would break saves.
 - **0.13** Charms and skins are the build: shape, not magnitude.

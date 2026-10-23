@@ -2,7 +2,7 @@
 title: Open questions, contradictions and probable bugs
 type: meta
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ b4aa4ed
 sources:
   - docs/OPEN.md
   - docs/BLOCKED.md
@@ -96,9 +96,332 @@ or **cut**. Anything already fixed is out of this list entirely; see `wiki/log.m
 2. **Turn on one leaderboard.** `LeaderboardService` is 1,747 lines and wired;
    a visible board is the cheapest "other people exist" signal a new game has.
 3. **Check the Forge recipe page on a phone.** It is five cells per row at a
-   scale fraction, untested at narrow widths.
+   scale fraction, untested at narrow widths. **The 2026-10-19 audit found why it
+   will look wrong:** the Forge is shrunk twice (§0e M9).
 4. **Decide the Discord/code reward values.** `LAUNCH` grants 500 gems and the
    Discord link 5,000 — both flat, both now worth very little after `1e4`.
+
+### 0e. Launch audit of every screen, effect and tool card (2026-10-19)
+
+Owner, 2026-10-18: *"do a deep audit of all uis, effects, tool cards etc, and determine
+what needs to be done for launch, and what you need from me"*. Six read-only reviews at
+`b4aa4ed` (HUD and menus; shops and Robux; Forge, tool cards and skins; effects and sounds;
+client↔server wiring and visible text; pets, cards, quests, Discord and world signs). **Every
+MUST-FIX row was re-read in the code by the parent agent**; SHOULD-FIX and POLISH rows are the
+reviewers' evidence, spot-checked. Nothing was run in Roblox. The owner chose "list first, you
+pick", then picked on 2026-10-19: see **§0e decided** below.
+
+**MUST-FIX: a player is stuck, sees something broken, or pays for something they do not get**
+
+| # | what the player sees | evidence | size | needs from owner |
+|---|---|---|---|---|
+| M1 | **The tutorial's 5th step can't be done.** Step 3 "BUY A BIGGER PICK" opens the coin pickaxe shelf, and every BUY is refused ("Tools are forged from ore now"). It clears only if the Wooden Pickaxe is levelled until it graduates, which nothing says. Quest rung 3 asks the same. | `MineServer` 3809, 3913, 3932–3946, 9999–10021; `MineConfig` 3042 (`FORGE_ONLY_FAMILIES`); `MineQuests` 29 | S | new wording |
+| M2 | **The Candy Crypt is live (since 17 Oct), but candy can't be spent.** The Events tab always shows Event Horizon (first in the list, open all season), so the Crypt card and its Trick-or-Treat button never appear. Even if they did: `setState` drops `hallowOwned`, the claim button says "Claim Event Horizon" and `buyZone` grants Event Horizon. The candy total is shown nowhere. | `MineEventsView/init` 749–761, 862, 892, 938–940; `MineServer` 11590–11607, 3538; `MineConfig` 640 | M | fix it or close the Crypt |
+| M3 | **Paid random buys with no odds shown** (credits, gems and tokens trace back to Robux): the Mystery Case buyer (the credit shop's main random item), the Charms Pack, the Forge's "3 random books", trader cases. The region block for paid random items skips `buyProductCredits`, `buyTraderCase` and `groupWheelSpin`. | `MineInventoryView` 1308–1450, 4637, 6735–6737; `MineForgeHub` 1335; `MineClient` 8508; `MineServer` 15005 | S each | confirm the rule applies |
+| M4 | **"BUY 799 Robux" on the Founders Rig bag takes 799 credits in one tap**, with no prompt and no confirm (product id 0, so the client falls back to credits). | `MineShopView` 2458, 2678–2686; `MineConfig` 975; `MineServer` 11397 | S | product id, or credits |
+| M5 | **Pet seat 4 says "GET VIP" and opens the VIP gamepass, but VIP no longer adds a seat** (3 is everyone's maximum; the VIP card itself says so). | `MineInventoryView` 2788–2824, 7074; `MineConfig` 112, 874 | S | none |
+| M6 | **The Founders Pack card lists the "Founders Bag – infinite haul"; buying the pack does not give it** (tag, 3 books and +5% luck only; the bag is a separate 799-credit buy). | `MineInventoryView` 7188; `MineFounders` 31–45 | S | which way |
+| M7 | **Lucky Block Week (599 credits, max 3) promises "a Lucky Block pet" that does not exist** (it writes `ownedPets.lucky_block`, which nothing reads), and pays the Heirloom, Omen and Shiny packs retired on 10-10. | `MineRotatingOffers` 35–52, 180–188 | S–M | which way |
+| M8 | **Limited deals read "LIMITED TIME · NEVER COMING BACK · ends 0d 0h" from today.** The countdown uses the real clock against end dates on the season clock. The header says "40d left" (the season is 47); the home banner says "New offers in Xh" every day though offers change weekly. | `MineInventoryView` 6041, 6455; `MineRotatingOffers` 233–237 | S | none |
+| M9 | **Small screens.** The Forge sizes itself from the raw screen inside a HUD that is already scaled, so it shows at about 57% on a 1280×720 laptop and about 21% on a sideways phone. The fishing window does the same. On a sideways phone the whole HUD is at half size (6–10 px text). The settings panel already does it right. | `MineForgeHub` 305–311; `MineFishingView` 199–203, 671–675; `MineClient` 162–166, 226–247, 4906 | S (double shrink), M (phone layout) | must phones work at launch? |
+| M10 | **The card collection page lists the 41 retired sets, stuck at 0/N forever.** The 19 sets and zone pots that drop today can't be browsed anywhere. | `MineInventoryView` 5503–5548; `MineCards` 53; `MineSetPacks` 331–342 | M | rebuild or hide |
+
+**SHOULD-FIX**
+
+| # | area | what the player sees | evidence | size | needs |
+|---|---|---|---|---|---|
+| S1 | shop | Cart CONFIRM stays tappable while "Confirming": possible double charge | `MineInventoryView` 5685, 5726, 5975 | S | none |
+| S2 | shop | Lucky Charm "599 CR" button always says "That offer moved" | `MineInventoryView` 4652–4680; `MineServer` 11388 | S | remove or sell |
+| S3 | shop | Depth desk shows coin prices for gem bags and tool cards the server refuses (§1 #13) | `MineDepthShopView` 482–541 | S | none |
+| S4 | shop | Founders Bag and Lucky Stack say "through Oct 31"; they run 47 days from launch | `MineRotatingOffers` 77, 112 | S | none |
+| S5 | shop | Starter Bundle popup lists the wrong contents (shows once its id is set) | `MineClient` 5187–5206 | S | none |
+| S6 | shop | Robux paid for a deal already at its max: "done", nothing granted (once deal ids exist) | `MineServer` 17972 | S | none |
+| S7 | shop | Retired card and gear packs still buyable by a crafted request | `MinePackConfig` 1307–1310 | S | none |
+| S8 | shop | A Build-a-Box of 10 of one pack costs more than its 10× button (12% vs 30% off) | `MineInventoryView` Build-a-Box | S | which discount |
+| S9 | Forge | Craft price on the card is not what the server charges from ore tier 7 up (the server passes no tier, so its multiplier is always 1) | `MineServer` 16856; `MineForgeHub` 242 | S | which number |
+| S10 | Forge | SCRAP promises ore and stardust the server won't pay (quotes base level 1) | `MineForgeHub` 1282; `MineServer` 16974 | S | none |
+| S11 | Forge | Card damage ignores tool family, skin and finish (Stone Hammer card says 10, hits 37); "Lv 1" though new tools inherit your level | `MineForgeHub` 229, 700, 951, 1097; `MineServer` 2333–2335 | S/M | what a card shows |
+| S12 | tools | 164 hammers and jackhammers show a plain pickaxe icon in the hotbar until the Canva icons are shared and `NEW_TOOL_ICONS_SHARED` is flipped; jackhammers 75–82 have no art | `MineIcons` 672, 928–962 | S | share icons |
+| S13 | Forge | COIN SHOP opens the pickaxe shelf where every BUY is refused; the old shop still has Crafting, Loadout, Upgrades tabs | `MineForgeHub` 370–374; `MineShopView` 2112 | S | one Forge or two |
+| S14 | skins | An ore-case "skin" lands in the temper system, not the Skins wardrobe | `MineServer` 8299 (chests use 5298) | M | skins or tempers |
+| S15 | skins | Wardrobe never shows EQUIPPED; a skin's ×1.15–5.5 damage is shown nowhere; most skins, including the Season One pass skins, change no look | `MineSkinsView` 158–160, 198–230, 260; `ToolModelFactory` 1776 | S/L | stat skins or looks |
+| S16 | HUD | Pop-up messages draw behind windows and replace each other instantly | `MineClient` 2409–2420 | S | none |
+| S17 | HUD | The skill tree has no close button; the only exit teleports you | `MineSkillView` 900–930 | S | none |
+| S18 | HUD | Windows open under Skins; "close everything" misses Skins, Trade, Fishing and the Forge | `MineClient` 2783–2811 | S | none |
+| S19 | HUD | First Blacksmith visit pops the full-screen Forge while the tutorial says "HOLD on a rock" | `MineServer` 17757–17770 | S | none |
+| S20 | HUD | Day-4 "Like & Favorite for a pack" popup: LIKE can't open anything, and rewarding likes may break Roblox rules | `MineClient` 1124, 1189–1196 | S | keep, change or cut |
+| S21 | HUD | Coin pill overflows once you own space coins | `MineClient` 522–560, 9666 | S | one pill or two |
+| S22 | HUD | Settings: the code result prints on the FRIENDS heading | `MineClient` 5011, 5036 | S | none |
+| S23 | HUD | Planets map and the daily-reward card rebuild on every update (scroll lost; up to 10×/s) | `MineClient` 8168–8174, 9682 | S | none |
+| S24 | effects | Gear Vault (daily wheel) shows 3 of its 5 items; each reel starts as the last stops | `MineClient` 12289, 12374; `MineGradeReveal` 1806 | S | none |
+| S25 | effects | Opening many mystery cases is up to 50 back-to-back 5.4 s spins you can't leave | `MineServer` 134; `MineClient` 3969–3990 | M | skip-all or short spins |
+| S26 | sound | No button makes a sound: `MineAudio.bindUiClicks` is written and never called | `MineAudio` 445 | S | on or off |
+| S27 | effects | The VFX tab offers trails, shovel FX and nameplates that do nothing (only tags work) and points to a Shop → VFX tab that does not exist | `MineInventoryView` 5306–5352; `MineServer` 201 | S | hide or build |
+| S28 | effects | A rare find's card prints a bumped rarity ("SHINY EPIC" for a shiny Rare) | `MineClient` 5948–5955, 6896 | S | true rarity? |
+| S29 | effects | Lucky-block SKIP ALL summary leaves out books, potions and skin cases | `MineGradeReveal` 1105–1133 | S | none |
+| S30 | effects | The celebration title is a fixed 900 px label and can run off a phone | `MineCelebrate` 318–323 | S | none |
+| S31 | style | Text still rides scale animations (case-reel tiles, card flips, toasts, button hover, chest popup); `text-motion.js` checks only two helpers | `MineUI` 114, 207; `MineGradeReveal` 1464, 1620, 1658; `MineClient` 2499 | M | how far the rule reaches |
+| S32 | pets | Every pack pet has family "Crystal" and its home's trait (see [pets](systems/pets.md)) | `MineSetPacks` 331–342; `MineCards` 451–468 | S | re-roll or by role |
+| S33 | pets | Lone Wolf and Squad Bond card text ignore how many pets are out | `MineCards` 520–540 | S | none |
+| S34 | pets | Pet ability lines are zeroed unless they match the held tool's Special; nothing says so | `MineEnchants` 440–470 | S | none |
+| S35 | pets | The Cards tab builds a 3D model for every card on every redraw (likely lag) | `MineInventoryView` 2667–2681 | M | none |
+| S36 | cards | Tap a card and it equips at once; no detail view; tiles fit 2 stat chips | `MineClient` 6954–6976 | M | detail sheet? |
+| S37 | gear | Hats/Faces collection shows the 300 prototype limiteds: 67 can drop, 103 that can drop never show | `MineInventoryView` 4773, 5004–5060 | M | which list |
+| S38 | Discord | Any 4–12 letter code gets "Code accepted!"; the tab promises "player markets and remote trading"; a link finished from Discord never pays its 5,000 gems | `MineDiscordLink` 46–60; `MineServer` 13690–13715 | S | is there a bot? |
+| S39 | world | Lobby leaderboards promise "101+ Everyone else — 100 gems"; nothing pays any rank; ~11 rows visible | `LeaderboardService` 896, 1056–1064, 1189 | S | pay or remove |
+| S40 | quests | Daily quest "Rebirth once" on day one; stale tips (cards10, sell5 "Coins buy tools", cards250, mine75k) | `MineQuests` 37, 38, 95, 106, 274, 277 | S | none |
+| S41 | text | The fallback find text is "You found some crazy shit" (nothing reaches it today; it's a kids' game) | `MineServer` 9044, 12638 | S | none |
+
+**POLISH** (one line each): shared or emoji dock icons (Trade = Pass, Skins = Enchanter; Wheel, Planets, Events emoji) and the Halloween pack showing Meadow art (needs 6 icons + 1 image) · wheel slice "3-5 packs" pays 3 · pass says "Super Lucky Block", elsewhere "Diamond" · Limited tab says "credits or Robux", only CR · Founders Bag never shows OWNED · trader header shows the raw zone id · God Pack chance not on the odds sheet · trade picker says "or coinflip" (off) · Events card says "enter from Zones" (it's Planets) · Planets offers Travel to the Crypt outside its dates · fishing can wait forever if a cast is dropped · a rare find plays two fanfares · the reel's big-win punch stacks UIScales · 14 ambience loops play at volume 0 · Event Horizon blast ignores Reduced Motion · the wheel spin is silent · no Escape or 1–5 keys · loading bar doesn't fade · World Pulse banner jargon · every card says "Normal P1" and "Crystal Kit" · Blacksmith tag "Picks, drills, bags" · "RESERVED" signs at bays without a pond · drills say "No spin-up" · every find says "Meadow \| chest find" · dead files nothing requires: `_MineHatsB64.txt` (0 bytes), `MineDepthPlazas_OLD_pre_v4`, `ServerStorage/MineParked/GroupWheel`, `MineBenchView`, `ReplicatedStorage/MineBags_NameCheck.luau`.
+
+**Checked and clean:** admin UI and F8 are allowlist-gated; legacy TCG scripts are disabled and
+`TCGUI` is empty; **all 119 client actions have a server handler** (0 dead buttons); no PROPOSED,
+TODO or placeholder text a player can see; no blank asset ids on screen; every reel, pack, block,
+wheel and fish result comes from the server; every reveal can be skipped and the pack reveal has a
+30 s watchdog; celebrations don't stack; no per-frame leaks found; all 322 pet species have a model;
+no stale dates on world signs.
+
+**What only the owner can supply:** the answers above · share the 237 Canva tool icons in the
+Creator Hub (S12) · Robux: the Founders Rig product id or "credits" (M4), which products ship, and
+whether the dashboard prices are Founders R$799 and Battle Pass R$399 · optional art: 6 dock icons,
+the Halloween pack image, a Candy Crypt banner · whether a Discord bot exists (S38) · sounds:
+library or the ElevenLabs set (`docs/AUDIO.md`) · **one phone play test from a blank profile
+through the first craft.**
+
+#### §0e decided by the owner, 2026-10-19 (the build spec)
+
+The owner answered every call in chat (multiple choice, plus their own words where
+quoted). **Split:** the cloud session (PR #7) does the **logic and wording** fixes; the
+owner's **PC session (with Studio)** does the **visual** ones and checks the cloud
+session's screens in Studio. See [next-up](next-up.md) "Who owns what".
+
+**Must-fix**
+
+- **M1** Step 3 becomes **"FORGE your first tool"**: it opens the Forge, clears on the first
+  craft (a forged tool counts), and grants enough Stone for a Stone Pickaxe (270) instead
+  of coins. Quest rung 3 matches.
+- **M2** **Fix the Crypt properly**, and the Crypt is redesigned (below).
+- **M3** **Odds on every paid random buy**: Mystery Case, Charms Pack, the Forge's 3 random
+  books, trader cases; the region block also covers credit deals, trader cases and the wheel.
+- **M4** Founders Rig: **799 credits, labelled as credits, with a confirm step.**
+- **M5** Pet seat 4 "GET VIP" goes (no decision needed; VIP adds no seat).
+- **M6** **The Founders Pack also gives the Founders Bag.**
+- **M7** Lucky Block Week: **a real existing lucky-block pet** (an Epic-ish one that fits)
+  and **wild cases of about the same value** instead of the retired packs; text to match.
+- **M8** Deal countdowns on the season clock; header says the real season length.
+- **M9** **Phones and tablets must work at launch**: no double shrink, tall windows fit the
+  screen instead of the whole HUD shrinking to half. *(PC session.)*
+- **M10** **Rebuild the collection page** for today's 19 sets, 10 zone pots, Event Horizon and
+  Halloween, with have / total and silhouettes. *(PC session.)*
+
+**Should-fix with a call:** S9 **the card's craft price is right** (fix the server) · S20 the
+day-4 pack is **given regardless; Favorite optional** via the real prompt · S32 **re-roll each
+pet's family and trait from its name** (safe: the game is not open yet) · **the other 15, as
+recommended**: S8 Box of 10 gets 30% off · S11 cards show true damage per hit, hits per
+second, area, use; "Lv" is the inherited level · S13 one Forge (the old shop shows only
+Bags; COIN SHOP goes) · S14 ore cases pay wardrobe skins · S15 superseded by "make skins
+work" (below) · S21 the coin pill shows the zone's currency · S25 SKIP ALL for case runs ·
+S26 click and "can't afford" sounds on · S27 VFX tab becomes "Tags" *(PC)* · S28 cards print
+the true rarity · S31 the text-scale rule covers repeating animations *(PC)* · S36 a tap opens
+a card detail sheet *(PC)* · S37 Hats/Faces shows what can drop · S38 **keep Discord**: the
+owner runs the bot (`!link` in Discord, the bot writes the code through Open Cloud); show
+the invite **discord.gg/Ab5ZpVdRvp** as text · S39 remove the leaderboard reward text.
+S2 **remove the dead Lucky Charm row** (the Pot of Gold deal sells it; asked separately the same day).
+
+**Day 29 of the pass:** the owner will have a new pass; if it is late, the old one pauses.
+
+**The look.** *"better bubbly ui all around"*: **the main-world look is toned down**
+(calmer, less purple) *(PC session, which owns the lifted look)*. **Events get their own
+themes**: Halloween for the Candy Crypt, dark universe for Event Horizon, on the event's own
+screens **and on everything that belongs to an event** wherever it shows (its packs in the
+shop, its pets' cards, its tools, its case). The cloud session adds the two palettes to the
+kit and uses them on the event screens it builds. **Portals more attractive** *(PC)*.
+**Tool looks:** event tools get themed 3D models and icons (a Cursor job, checked in Studio).
+
+**The Candy Crypt, redesigned** (Event Horizon unchanged for now: *"Crypt only for now"*):
+
+| rule | the owner's call |
+|---|---|
+| tools in events | **Normal tools do not work in events.** Claiming the Crypt gives a free starter candy pick. |
+| where Crypt tools come from | **Crypt chests and Trick-or-Treat cases.** The candy-tool shop goes. |
+| Trick-or-Treat case | **tools 85%**, skin case 5%, hat 7%, Halloween pack 2.9%, bucket 0.1%; no candy back |
+| candy | **3x** today's rate |
+| Crypt rock | **zone 3 hardness at the top to zone 10 at the bottom**; it still sells for little |
+| candy ores | **4 more** (Pop Rocks, Milk Chocolate, White Chocolate, Cotton Candy): 16 in all |
+| a candy block pays | **candy AND 1 candy ore item** into the ore pouch |
+| candy charms | **a new set of 6 Halloween charms**, crafted at the Forge from candy ores (deeper ore, better charm); candy find, event digging and a small normal stat; **the same power everywhere** |
+| merging | **3 identical Crypt tools → Golden → Prism → Rainbow**, the pets' steps |
+| after the event | tools work in the event at once; **when it ends you keep them**, and they then also work in the main world (weaker: events must pay better) and in every future event |
+| telling players | **a pop-up on first entry** to each event, once, plus the same text behind an (i) on its card |
+| selling ores | the pouch's SELL ALL gets **"Sell up to"** (Common / +Uncommon / +Rare / +Epic / +Legendary / Everything), remembered, asks first; and you can **tick candy ores to sell for candy** |
+| skins | **one wardrobe everywhere** (event tools wear the same skins) and **"make skins work", all of it**: looks on every family (pickaxe, drill and explosive via a Cursor job), EQUIPPED and the skin's power in the wardrobe, ore-case skins into the wardrobe |
+
+
+#### Candy Crypt v2, and the main-game changes it brings (owner, 2026-10-19, later the same day)
+
+**Supersedes the Crypt table above wherever they differ.** Asked as multiple choice; the owner
+often answered in their own words, quoted. The server half of the first design (`MineCryptRules`,
+`MineCrypt`) and the first screens are merged; the parts v2 replaces are rebuilt.
+
+| area | v2 decision |
+|---|---|
+| Crypt blocks | **candy blocks only** (no normal ores); the 20-minute reset stays |
+| candy ores | **16, two per rarity**: Common, Uncommon, Rare, Epic, Legendary, Mythic, Divine, Exotic. *"every ore drops the same amount every time"* (no depth scaling); **deeper sections make rare ores more common, but the rarest always stay rare** (values PROPOSED) |
+| candy | a **flat amount per ore, the same at every depth**, about **a quarter of the average ore drop's value** |
+| Crypt tools | **crafted from candy ores** at the Forge, never dropped; **prestige 1–10 with more ores** (no level upgrades; prestige replaces merging); each tool shows its damage at every prestige; prestige keeps working after the event; *"I want the top tool at prestige to be ~the same as top tool, at top level"*; **all Halloween tools give a 2x buff to Halloween skins** (*"costumes"*) |
+| tool cap | **at most 10 Halloween tools**; at 10, crafting is blocked until you scrap one; scrapping pays **half, in candy value, no ores back** |
+| trading | **Halloween tools and candy ores can't be traded during the event**; tradable once it ends |
+| Trick-or-Treat case | **pets and skins only** (no candy, no tools; **charms come from chests only**, the owner's correction: *"SORRY CHEST ONLY CHARMS"*); the win says its rarity, **then a 50/50 wheel with the reward in its middle: TREAT you get it, TRICK you get nothing**. Only this case gets the wheel |
+| every case in the game | **can open up to 5 at a time**, as stacked spins (one reel above another) |
+| Crypt chests | **Halloween packs and a flat candy amount only**; **8 chest tiers**, rarer ones with better packs; **each Crypt chest tier has its own special charm**, mergeable, **0.5% flat per charm, raised by Chest Luck** |
+| pets | **12 more Halloween pets, with new bodies** (built in Studio); **Halloween Mythic+ pets and skins are 20% better than the best normal ones, even after the event**; some enable builds nothing else can (e.g. a big blast radius, a high proc chance) |
+| enchants | **Halloween-exclusive enchants**, not event-dependent (they keep working in the main game after the event): **Sugar Rush** (owner's): *"speed that stacks while breaking in combos [2% per block, one shot blocks only up to 100%]"*; plus **10 more ideas** for the owner to pick from |
+| in the Crypt | **normal enchants don't work**; **a separate Halloween inventory** for the event (the owner: *"prob the simplest way to make it make sense to players"*); **hats can transfer** |
+| hats | the hat inventory is messy: **each hat shows once, with "xN" when you have several** |
+| the numbers document | block HP per section, ore spawn chances, the candy and ore drop amounts with their spread, craft and prestige cost per ore: **in the repo, generated from the code, and as a web page** |
+
+**Main game, from the same answers:** **8 chest tiers** in the main game too (not the special charm
+per chest); **charms mergeable everywhere**: a merge raises a charm's **tier, I to V** (*"teir i to v"*), costs gems
+plus **any charm of the same tier**, and **never changes the charm's rarity** (*"each charm has its own rarity
+always. {sod charm rare always}"*); **charm packs for the main game, one per chest rarity** ("{rarity} Charm Pack"), and **all 8 rarities get
+charms and packs** (Common and Uncommon charms exist too). **Rarity names are F to SSS** for chests and
+charms, *"same system as packs"* (the owner: *"lets go f-sss chests (sorry), and f-sss charms"*). Main-game chests
+become 8 tiers with **the same loot overall, split by tier** (rarer tiers rarer, more often deeper, paying more).
+
+**Answered after the table:** the Halloween inventory holds **Halloween pets, Halloween tools, candy ores and
+Halloween charms** (skins and hats are shared; it all moves into the main inventory when the event ends). The
+Halloween-skin boost from Halloween tools: *"make each tool different, but yeah always multiplier to the full
+multiplier"*: each Halloween tool has its own factor, applied to the skin's whole multiplier.
+
+**The Halloween enchants (owner, 2026-10-19):** four, all event-exclusive but **not event-dependent** (they work
+in the main game after the event): **Sugar Rush** (+2% speed per block in a combo, one-shot blocks only, up to
++100%), **Grave Digger** (stronger the deeper you are), **Spellbook** (an ability enchant that casts a random
+ability every few hits: Zap, Blast, Tidal Wave, Shatter, Earthquake, at reduced power) and **Flashlight** (a
+chance to reveal the rarest ore in a radius and make it glow; the owner: *"might be overpowered"*). Jack-o'-Lantern
+was scrapped. The owner: *"make sure all enchants works, Do balancing checks to make sure good enough, but not too
+overpowered stacked with enchants too, i want every ability enchant to be viable with different builds, depending
+on what their going for"*.
+
+**The jobs' 22 smaller calls:** all accepted as built (*"Use all defaults"*), including the three not yet built: Pot of
+Gold and the Weekend Haul swap their retired packs for wild cases of the same value; the Limited tab's Founders Bag
+gets the two-tap confirm; limited deals with lucky blocks or cases get an odds sheet.
+
+**Chests, charms and art (owner, 2026-10-19, last round):**
+- **Every chest has its own name** (the owner: *"all separate names"*); ranks stay F to SSS behind the scenes, shown as a
+  badge. The Crypt's 8 chests get Halloween names. **Each of the 19 pack sets gets 3 named chests of its own** (a low,
+  a mid and a high rank) paying that set's packs, where that set's pets live. Names are proposed for the owner to approve.
+- **Charms:** each charm has **one fixed rarity forever** (F to SSS); merging raises its **tier I to V** (gems + any charm
+  of the same tier); **more charm types at every rarity**; 8 Charm Packs sold for **gems or credits**.
+- **Gems must hold their value** (*"pet simulator 99 or whatever ... disgusts me because of the inflation"*): no new
+  runaway gem faucets; the numbers doc shows gems in and out per hour.
+- **Halloween enchant books drop from Crypt chests** (rarer chests more often).
+- **Images:** *"get cursor to get images for everything with canva then get everything done"*: Cursor jobs make Canva
+  images for everything new (charms, chests, candy ores, Halloween tools, enchant books, pets).
+- **Pack tops:** the set name baked onto the crinkled top of the 19 sets' pack images comes off; the renderer
+  (`tools/pack-sprites/PackRender3D.cs`) leaves it blank and the PC session re-renders and re-uploads.
+
+#### The v2 build's questions, queued 2026-10-23 (not yet answered)
+
+The five v2 jobs built a safe default for every call below and could not ask. **The default is
+listed first and is what the code does now.** Answers go here, then into the page they change.
+
+**Answered already (pets job, owner 2026-10-19):** keep the 1.2 / 1.3 / 1.4 steps for Halloween
+Mythic / Divine / Exotic; ship the 12 names as proposed; **yes**, the Crypt pays the three older
+Halloween pets too (built 2026-10-23: `MineHalloweenPets.pool` is 75 rows); on the blast-radius
+ceiling: *"WE LITEARLLY JUST HAVE TO MAKE SURE NOTHING LIKE THAT CAN HAPPEN [HENSE IM SO ADIMENT ON
+BALANCING]"*. How to make sure is the first question below.
+
+- **Blast radius.** Today nothing caps the stat: one SSS Inferno hat is +350%, and a full SSS Inferno
+  set asks for a radius-26 sphere. The server now clips every blast at radius 6
+  (`MinePatterns.MAX_BLAST_RADIUS`), silently. Default: **cap total Blast Radius at +100%** (a bomb at
+  most doubles), shrink any single source that would pass the cap on its own, keep the radius-6 clip as
+  a backstop, and add a check that stacks every source at its maximum. Or: cap at +100% and leave the
+  sources (extra is wasted) · a higher cap, e.g. +200% · the radius-6 clip only.
+- **Crater pets and the proc gate** (pets job Q3). A bomb takes no Special enchant, so the gate keeps your
+  gear's strongest proc; a Tidal-Wave-heavy Halloween skin on bombs switches the Crater pets' radius off.
+  Default: leave it, and say so in the build text · let Blast Radius ignore the gate on bombs.
+
+**The Crypt's screens (V2-E, next to build):**
+- **Where Halloween tools are crafted, prestiged and scrapped.** Default: a HALLOWEEN tab in the Forge hub
+  (it opens anywhere, the Crypt included; the spec says "at the Forge") · in the Crypt's Events card.
+- **Where the Halloween inventory lives** (equip a tool, the Halloween team, the charm slot). Default: in
+  the Crypt's Events card, as TOOLS / TEAM / CHARM · a Halloween switch at the top of the main Inventory
+  · a dock button that shows only while the event runs.
+- **The Trick-or-Treat reveal.** Default: the win's card with its rarity called out, then the 50/50 wheel
+  with that card in its middle, then TREAT or TRICK, then the result · skip the wheel on Common and
+  Uncommon wins.
+
+**The Crypt (V2-A):**
+1. Craft new Halloween tools after the event? Default **no**, only prestige keeps working
+   (`MineCandyTools.CRAFT_AFTER_EVENT = false`) · yes.
+2. Trade the Halloween 2026 Pack during the event? Default **locked** (it only comes from Crypt chests and
+   opens Halloween pets) · trades freely.
+3. Trick-or-Treat numbers: **4,000 candy** (about 15 minutes of mid-depth candy), pets 70 / skins 30,
+   rarity weights 40/25/15/10/6/2.5/1.2/0.3 · 2,500 (the first design's price) · your numbers.
+4. "Weaker in the main world" means: default **one ladder** (only the Jawbreaker Auger at prestige 10
+   equals the best normal tool, a top-level Oganesson Drill) · each family's top tool at prestige 10 equals
+   that family's best.
+5. Halloween-skin factor per tool: default **1.5 to 2.5**, around the owner's "2x" · all 2x · wider.
+6. Crypt chest charm chance (0.5% x Chest Luck): default **uncapped**, like every chest reward · capped,
+   e.g. at 2%.
+7. The pop-up says "Tools you find…", but v2 tools are crafted: default **keep the owner's exact line** ·
+   change it to "Tools you craft…".
+8. Crypt chests are very soft (main-mine chest HP: an F chest has 220 HP at layer 60, where the rock has
+   143,357): default **leave it** · scale chest HP to the Crypt rock.
+9. Lucky blocks still appear on Crypt blocks and can pay gems: default **leave them** · none in the Crypt.
+
+**Enchants (V2-B):**
+1. Which tool's enchants count in the Crypt? The service reads the equipped forged tool, so the Halloween
+   enchants on your main pick work there and its normal ones are off. Default **keep that** · Crypt tools
+   get their own enchant slots · no enchants in the Crypt.
+2. Sugar Rush: the owner's "+2% a block, up to 100%" is level V, and I–IV scale down (0.4% x level), as
+   Overclock and Combo do. Default **level V** · every level gets 2% and 100%.
+3. Sugar Rush comes out level with Overclock (same +100% cap, within 4.3%). Default **keep** · a higher
+   cap for the event book · a two-hit block doesn't end the rush.
+4. Earthquake never fires on rock broken in one hit. Default **keep it for tough rock** · add an aftershock
+   when a hit breaks. Its tick gives about 1.2x a swing a second at 100 stacks, where a comment says 10x:
+   default **keep the code** · raise it toward 10x.
+5. Flashlight lights only ore your tool can break (no gate in the Crypt). Default **yes** · any ore.
+6. Proc Power plus an ability's own damage are capped at +300% together. Default **keep** · cap only Proc
+   Power, as before.
+7. The early / mid / late balance builds are the job's guesses at a typical player (in
+   [enchants](systems/enchants.md)): confirm them, or name a real build to test.
+
+**Main chests and charms (V2-D1):**
+1. Where set chests live: default **Pebblebound in Dirt Meadow, then two sets per zone in the set order**
+   (the first from layer 1, the second from layer 250) · each set in the zone that fits its theme · a list.
+2. How strong set chests are: 20% of the D, B and S chests where a set lives; packs low ★, mid ★★★, high
+   ★★★★ 70% / ★★★★★ 30%; card value at most +30% (Meadow layer 1). Default **keep** · weaker (10%,
+   ★/★★/★★★) · stronger.
+3. Retired: Mine 1 catalog chests, the Meadow and Event Horizon section-chest override, rank aging, the
+   old 2,500-gem Charms Pack. Default **keep them retired** · bring some back.
+4. Tier rules: x1 / 1.2 / 1.45 / 1.75 / 2.1, and Gem Find, Ore Quality and Ore Finder never grow (gems
+   stay safe). Default **keep** · let Gem Find grow.
+5. Merge fodder: default **any charm of the same tier**, never the worn copy · only the same charm · only
+   the same rarity.
+6. Prices (Charm Packs F 2,500 gems / 10 credits up to SSS 5M / 500; merges 500 to 250,000 gems for tier
+   II, x3 a tier). Default **keep** · cheaper F and D (F costs 83 minutes of a new player's gems) · gems
+   only or credits only.
+7. Names: 57 set chests, 3 new Event Horizon chests, 32 charms, 8 Crypt charms; Pot of Gold is rank S,
+   the Sod Charm C. Default **approve** · send changes.
+
+**Cases and hats (V2-D2):**
+1. Bag cases: default **a 1–5 picker** (x10 / ALL are gone) · bring back ALL, in rounds of 5.
+2. Temperament Case 10x / 100x buttons: default **removed** (the server still takes 10 and 100) · put them
+   back · remove the server path too.
+3. Set cases have fixed contents, so they open 1–5 through the pack reveal with no spin. Default **keep** ·
+   give them a reel.
+4. Pot of Gold's 8 Shiny Packs are live packs, so they stay. Default **keep** · swap them for wild cases.
+5. One trader case now spins a reel instead of the "found" pop-up. Default **the reel** · pop-up for one,
+   reels for 2–5.
+6. Two-tap confirm: default **only the Founders Bag** · every Limited deal.
+7. Ore-case charms in a run stay in the pack reveal (only skins spin). Default **keep** · a reel for charms.
+8. The PROPOSED numbers (4.6 s a reel + 0.5 s per reel below; the Pot of Gold and Weekend Haul mixes;
+   the `forge1` wording). Default **accept** · change some.
+
+**Found by the jobs, not fixed (not owner calls, listed so nobody loses them):** Echo's swing rate never
+reaches the swing time (it is set after the only `foldSwingRate`); Gemfinder skips ore sales; Volt pets
+push late Zap builds to about 64 swings a second; auto-equip overrates Crater pets on non-bomb tools.
 
 ## 1. Probable bugs found while building the wiki
 
@@ -115,17 +438,17 @@ Nobody has asked for fixes; ask the owner before changing any of them.
 | 6 | **The chest coin crash fix landed in dead code.** The `e77d84e` fix is in `rollChestLoot`, reached only by `giveDrop`, which nothing calls. Live chests use `MineZoneChests.rollCurrency`. | *Reported* | [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md) |
 | 7 | **FIXED 2026-10-14: chest flagship tools never dropped.** `openChestBlock` read `rollChestTool` ~2,600 lines above a later `local function`, so the name was a nil global. Forward-declare `local rollChestTool` before `openChestBlock`, then assign with `function rollChestTool`. Pinned by `tools/verify/chest-tools.js`. | *Read*, pinned by harness | [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md); [luau-traps](code/luau-traps.md) |
 | 8 | **Tutorial step 29 hands a new player SSS hats**, worth +1050% in layer 2. | *Reported* | [hats-and-faces](systems/hats-and-faces.md) |
-| 9 | **`MineStats.RUNE_ONLY` silently zeroes the `blastRadius` line on all 26 pets that have one.** Runes are retired (2026-10-12), but the table is kept on purpose because `MineCards` uses it as the pet-kit stat filter. | *Reported* (count not rechecked after the 2026-10-12 calm pass) | [pets](systems/pets.md) |
+| 9 | **`MineStats.RUNE_ONLY` silently zeroes the `blastRadius` line on all 26 pets that have one.** Runes are retired (2026-10-12), but the table is kept on purpose because `MineCards` uses it as the pet-kit stat filter. Since 2026-10-19 `MineStats.NAMED_PET_OK` lets a named kit carry it: the two Crater pets (Boomjaw, Sparkplug) pay it; the legacy prints still drop it (501 of them, per the pets job). | *Reported*; partly changed 2026-10-19 | [pets](systems/pets.md) |
 | 10 | **The charm MERGE button wants 2 copies** (`math.max(2, MERGE_COST)`); the server needs 1 and the gem price is never shown. | *Reported* | [charms](systems/charms.md) |
 | 11 | **24 ore charms carry `luck`**, which raises the ore-case chance that drops them. This breaks the "no reward boosts its own acquisition" rule. **24 carry the retired `backpack` stat.** | *Reported* | [charms](systems/charms.md) |
 | 12 | **Meadow zone packs can never pay Mythic, Divine or Exotic** (computed from `cardOdds`). | *Reported* | [cards-and-packs](systems/cards-and-packs.md) |
-| 13 | **Bag prices show in coins; the server charges gems.** | *Reported* | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
+| 13 | **Bag prices show in coins; the server charges gems.** Half fixed (2026-10-19 audit): the surface BAGS shelf now shows gems (`MineShopView.luau` 2338–2345, 2439–2445). The **depth desk** still shows coins and still offers tool cards the server refuses (`MineDepthShopView` 482–541, `MineDepthShop` 202). | *Read* | [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
 | 14 | **`tools/export/sync.ps1` deletes `tools/export/in/`** (`Remove-Item $in -Recurse -Force`). **Not a bug in the script**: that folder is a gitignored scratch directory the Studio export flow fills and consumes, and deleting it is the documented last step (the `b19c4c2` author checked and dismissed it). The only hazard was `CLAUDE.md` naming that folder as a place for Claude.ai exports. `CLAUDE.md` and the wiki now point exports at the gitignored `transcripts/` folder. | *Read* | [rojo-and-studio](code/rojo-and-studio.md); `tools/export/sync.ps1` |
 | 15 | **FIXED 2026-10-06: nothing checked Luau's 200-top-level-local ceiling.** `tools/verify/compile.js` now runs `luau-compile` over all 212 files and asserts at least 4 locals of headroom in both big scripts. It found `MineServer` sitting at **0 headroom** on arrival; collapsing seven service locals into one `Svc` table bought 5 back. It has since caught the same break twice more — a `do` block for the dev-scaffolding strip (fixed by making it an IIFE, since `do` shares the main chunk's budget while an IIFE gets its own). | *Read*, pinned by harness | [luau-traps](code/luau-traps.md) |
 | 16 | **`tools/start-local-agent.ps1` prints a `cd "<that path>"` hint**, which breaks the owner's no-placeholder rule, and still says "read HANDOFF". | *Reported* | [local-setup](code/local-setup.md) |
 | 21 | **FIXED in `b0c2430`: family tempers did nothing on forged tools.** `boosts()` gated `p.toolTempers[fam]` on `(tier or 0) > 0`, but `equippedTool` returns look-rung `0` for forged ore tools (ore tier is not that return). Gate now accepts `row.oreTool` / `row.oreTier`. `tools/verify/layers.js` pins it. | *Read* in code | [skins-cases-and-temper](systems/skins-cases-and-temper.md); `MineServer.boosts` |
 
-## 1b. Found 2026-10-06/07, measured, not yet decided
+## 1b. Found 2026-10-06 to 08, measured or read, not yet decided
 
 These were found while doing other work and are **recorded rather than fixed**,
 because each moves the economy in more than one place. Measured figures are in
@@ -137,6 +460,10 @@ because each moves the economy in more than one place. Measured figures are in
 | 18 | **The legacy ore-pack path and the live drop path disagree about the ore finder.** Pack conversion does `each = mid * (1 + oreFind)` — a straight quantity multiplier — while the live drop deliberately does not. One of the two is wrong about the design rule. | *Read* in code | [ores](systems/ores.md), [boosts-and-stats](systems/boosts-and-stats.md) |
 | 19 | **`MineDigAuth.canDigLayer` ends in an unconditional `return true`**, so every entitlement check above it is unreachable. This is deliberate for mining and was silently load-bearing for crediting; `canCreditDepth` now carries the strict half (see [zones-layers-and-seams](systems/zones-layers-and-seams.md)). **The dead checks in `canDigLayer` are still dead** — worth deciding whether they should be deleted or re-enabled, because right now they read as protection that does not exist. | *Read* in code | `MineDigAuth.canDigLayer` |
 | 20 | **A 6,500-block first tool.** With stone's surface share raised to hit the owner's 1-vein-per-3,000 target, the cheapest craftable tool costs ~6,500 blocks broken (was 13,500). Not obviously wrong, but it is the first number a new player meets and nobody has signed off on it. | measured | `docs/ore-yield-and-vein-balance.md` §2 |
+| 21 | **FIXED 2026-10-17: the battle pass ended a week before the offers.** `PASS_SEASON_END` was 40 days after the start while the offers and Event Horizon run 47; it is now 47 too, and `launch.js` pins the three lengths. The same change mirrors the launch stamp to clients (they never learned it, so after a launch they would have shown week one's offers and frozen countdowns) and puts the pass panel on the season clock. Owner: *"do what you think is best for the game"*. | *Read*, pinned by `launch.js` (proved to fail on the old code); not yet run in Studio | [season-and-launch](systems/season-and-launch.md) |
+| 22 | **DECIDED 2026-10-17: Chest Luck scales the chest charm drop, and that stays.** `CHARM_CHEST_CHANCE × b.chestLuck`, the same multiplier every other chest reward uses (cases, skins, book bundles, packs). There is **one charm slot**, so wearing one of the five Chest Luck charms means not wearing a power charm: a trade-off, not a free loop. (My earlier note that a code comment denies this was a misreading: that comment is about the `luck` stat, which the chest roll does not use.) | *Read* | [charms](systems/charms.md) |
+| 23 | **DECIDED 2026-10-18: the battle pass is 28 days from launch** (owner: *"28 days"*). `PASS_SEASON_END` is now derived from `PASS_SEASON_DAYS` (28), so the length is one number. The offers and Event Horizon stay at 47. `launch.js` pins the pass to `PASS_SEASON_DAYS` and checks it ends inside the season. | *Read* | [season-and-launch](systems/season-and-launch.md) |
+| 24 | **DECIDED 2026-10-19: day 29 gets a new battle pass, and the old one pauses if it is late.** Owner: *"i'll having something ready"*, then picked the safety net: if the new track has not shipped by day 29, the old pass stops giving XP and claims and shows "Next pass coming soon", so nobody re-earns the Season One pets and skins or re-buys premium for the same rewards. Today `reconcilePass` rolls everyone to `PASS_SEASON_NEXT` ("2026-11") on the same `PASS_TRACK`, and the panel says "Next season is live" (`MineInventoryView` 7389). **The pause is not built yet**; it is queued with the launch-audit fixes (§0e). | *Read* | [season-and-launch](systems/season-and-launch.md) |
 
 ## 2. Where the owner's rules and the code disagree
 
@@ -169,6 +496,8 @@ Ask them with options and a recommended default (see `CLAUDE.md`).
   consumables, outpost shops) is unsigned.
 - **Are skins cosmetic or a power source?** Docs disagree (`ROADMAP` wrap-only
   vs TODO §0.13 / §0.19 and live `MineSkins` / `MineTemper` kits). Do not invent.
+- **After the pass ends (finding 24):** close it until a new track ships (recommended),
+  restart the same track for everyone, or something else?
 - **One charm per ore, or two?** Is the ~24 hand-authored charm rewrite (AUDIT)
   approved? Should charms sit in a boost layer?
 - **Pack pity and the Exotic floor:** build them, or keep "no pity"?

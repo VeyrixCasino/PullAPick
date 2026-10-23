@@ -2,6 +2,10 @@
 
 Ready to paste. Each one is a single unit of work, written to stand alone.
 
+**Every task below also carries the owner's standing rule (2026-10-08): ask first, always.**
+If anything in a prompt is unclear to you, however small, ask before you start. See
+`CLAUDE.md`.
+
 **Every one of these assumes `roadmap/AGENT_PROMPT.md` was pasted first** — that is
 the briefing (what the game is, what already went wrong, the invariants, the
 formulas). Without it an agent will re-create the bootstrap loop. Paste the

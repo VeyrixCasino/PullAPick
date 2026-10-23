@@ -317,21 +317,36 @@ MineConfig.SKIN_CASE_TIERS = {
 ]]
 MineConfig.CHEST_SKIN_CASE_CHANCE = 0.03
 MineConfig.CHEST_SKIN_LUCK_CAP = 3
-MineConfig.CHEST_SKIN_RANK_SHIFT = { B = 1, A = 2, S = 3 }
+-- F..SSS chests (2026-10-19, MineChestRanks): F and D roll the ladder as
+-- written, the rest start higher. A fraction mixes the two whole shifts around
+-- it. PROPOSED, fitted to 3863d14's average (tools/verify/economy-gems.js).
+MineConfig.CHEST_SKIN_RANK_SHIFT = { C = 0.5, B = 1, A = 2, S = 3, SS = 4, SSS = 5 }
 
 -- { { tier, p } ... } for one skin case from a chest of `rank`, p summing to 1.
 function MineConfig.skinCaseTierOdds(rank)
 	local rows = MineConfig.SKIN_CASE_TIERS
-	local shift = MineConfig.CHEST_SKIN_RANK_SHIFT[rank or ""] or 0
-	local out, total = {}, 0
-	for i, r in ipairs(rows) do
-		local from = rows[i - shift]
-		local w = from and (tonumber(from.weight) or 0) or 0
-		total += w
-		table.insert(out, { tier = r.tier, p = w })
+	local function at(shift)
+		local out, total = {}, 0
+		for i, r in ipairs(rows) do
+			local from = rows[i - shift]
+			local w = from and (tonumber(from.weight) or 0) or 0
+			total += w
+			table.insert(out, { tier = r.tier, p = w })
+		end
+		for _, r in ipairs(out) do
+			r.p = (total > 0) and (r.p / total) or 0
+		end
+		return out
 	end
-	for _, r in ipairs(out) do
-		r.p = (total > 0) and (r.p / total) or 0
+	local shift = tonumber(MineConfig.CHEST_SKIN_RANK_SHIFT[rank or ""]) or 0
+	local lo = math.floor(shift)
+	local f = shift - lo
+	local out = at(lo)
+	if f > 1e-9 then
+		local hi = at(lo + 1)
+		for i, r in ipairs(out) do
+			r.p = r.p * (1 - f) + hi[i].p * f
+		end
 	end
 	return out
 end
@@ -775,7 +790,7 @@ MineConfig.EVENTS = {
 		id = "candy_crypt",
 		zoneId = "hallow",
 		name = "Candy Crypt",
-		blurb = "A tiny mine that drops away fast. No chests, nothing sells for much — what you are down here for is candy corn, and candy buys Trick-or-Treat cases, seasonal packs and the Halloween bucket. Open 17 October to 7 November.",
+		blurb = "A tiny mine that drops away fast, and only Halloween tools dig it: claim it for a free Candy Corn Pick. Every block is candy and pays candy and candy ores; craft and prestige Halloween tools from the ores, and spend candy on Trick-or-Treat cases. Your Halloween things are yours to keep. Open 17 October to 7 November.",
 		-- No banner art yet; MineEventsView draws its own panel when this is
 		-- empty, so leaving it unset is a supported state, not a hole.
 		ownedFlag = "hallowOwned",
@@ -897,6 +912,8 @@ MineConfig.ITEM_SLOT_GEM_RATE = 1.08
 MineConfig.ITEM_BAG_FIELDS = {
 	"cards", "packs", "tempers",
 	"chestTools", "eventTools",
+	-- Candy Crypt tools are not here: they live in the Halloween inventory
+	-- (MineCrypt, p.halloween.tools) under their own cap of ten (owner, v2).
 }
 
 function MineConfig.itemSlotsUsed(p)
@@ -994,7 +1011,22 @@ MineConfig.PRODUCTS = {
 		robuxPrice = 349,
 		creditsPrice = 349,
 		name = "Weekend Haul",
-		packs = { { id = "heirloom_pack", qty = 1 }, { id = "shiny_pack", qty = 1 }, { id = "omen_pack", qty = 1 } },
+		--[[
+			WILD CASES WHERE THE RETIRED PACKS WERE (owner, 2026-10-19: "Use all
+			defaults": wild cases of about the same value). It paid one Heirloom,
+			one Shiny and one Omen pack, off the shelves since 2026-10-10. Valued
+			the way the cases are priced (MinePackConfig.expectedDust and
+			MineCases.expectedDust: what the cards recycle for), read 2026-10-19:
+
+			  old  Heirloom 6,888 + Shiny 24,056 + Omen 3,204
+			       = 34,148 stardust, 196 credits at the old list prices
+			  new  2 x 5-star 15,958 + 1 x 3.5-star 3,128
+			       = 35,044 stardust (+2.6%), 195 credits at today's case prices
+
+			Three cases for three packs. Bought with credits or Robux, so they are
+			paid cases (Verbs.grantPacks' `paid`). PROPOSED (2026-10-19): the mix.
+		]]
+		packs = { { id = "case_6", qty = 2 }, { id = "case_4_5", qty = 1 } },
 		blocks = { { id = "lucky_block", qty = 1 } },
 		potionId = "pot_t3_haul",
 		potionQty = 1,
@@ -1458,11 +1490,12 @@ MineConfig.MEADOW_SHALLOW_CHEST_MULT = 2
 	1,000, x3 at the floor. Going "a little deeper" pays at once, and the top of
 	a zone is never the best place to nuke.
 
-	It multiplies the weight of the ranks better than C -- B, A and S -- in the
-	zone's chest pool (MineChestRanks.roll `better`), and the catalog chests'
-	luck (MinePackConfig.rollChestAt). Better chests then pay better pack cases
-	and skin cases through their rank (MineCases.CHEST_RANK_SHIFT,
-	CHEST_SKIN_RANK_SHIFT). Event mines and Meadow are x1.
+	It is the `better` in MineChestRanks.odds: since 2026-10-19 (F..SSS) each
+	rank from C up has its weight multiplied by better ^ MineChestRanks.LIFT
+	(C 0.25 .. SSS 1.5), so the rarer the rank the harder depth lifts it, and F
+	and D get rarer. Better chests then pay better pack cases and skin cases
+	through their rank (MineCases.CHEST_RANK_SHIFT, CHEST_SKIN_RANK_SHIFT).
+	Event mines and Meadow are x1.
 ]]
 MineConfig.CHEST_DEPTH_LUCK_MAX = 3
 MineConfig.CHEST_DEPTH_LUCK_SKIP = { meadow = true }
@@ -1896,6 +1929,17 @@ MineConfig.ZONES = {
 		packs, skin and hat cases, and the Halloween bucket.
 
 		Every number here is PROPOSED except the ones the owner stated.
+
+		REDESIGNED 2026-10-19 (owner; wiki/open-questions.md §0e): only event
+		tools dig here (Crypt tools, MineCandyTools), the rock runs zone 3 to
+		zone 10 hardness, a candy block also drops a candy ore, and Crypt CHESTS
+		are back.
+
+		V2, THE SAME DAY ("Candy Crypt v2"): candy blocks only (`candyOnly`: no
+		normal ore spawns here), sixteen candy ores two per rarity, flat candy
+		per ore, eight ranks of Crypt chest, Halloween tools CRAFTED from candy
+		ores (never dropped), and a separate Halloween inventory while the event
+		runs. The rules are MineCryptRules; the server is MineCrypt.
 	]]
 	{
 		radius = 9000,
@@ -1906,14 +1950,31 @@ MineConfig.ZONES = {
 		buyCost = 0,
 		limited = true,
 		ownedFlag = "hallowOwned",
-		-- NO CHESTS. 0 survives the lookup in rollKind, which is why that
-		-- branch had to stop naming bigbang.
-		chestMult = 0,
+		--[[
+			CHESTS, at Event Horizon's event density. PROPOSED (2026-10-19): it
+			was 0 ("no chests"), but the owner made Crypt chests a reward again.
+			3 x CHEST_CHANCE over 9 blocks a layer is about ten chests in the
+			120-layer Crypt. Which of the eight ranks, and what each pays, is
+			MineCryptChests.
+		]]
+		chestMult = 3,
+		-- Candy blocks only, no normal ore (owner, v2): MineConfig.isCandyOnly.
+		candyOnly = true,
 		-- A tiny pit: 3 x 3 = 9 blocks a layer, against 441 everywhere else.
 		-- Depth is the whole progression here, so the floor is barely there.
 		grid = 3,
-		-- No breaking-power gate: the owner wants surface tools to work.
+		-- No breaking-power gate: block HP is the gate here. Read by the two
+		-- damage paths in MineServer (swingBlock, swingNeighbour) since
+		-- 2026-10-19; before that it was documentation only.
 		noStrengthGate = true,
+		--[[
+			ONLY EVENT TOOLS WORK HERE (owner, 2026-10-19: "Normal tools do not
+			work in events"). MineCrypt swaps the held tool for the player's
+			Crypt tool, and MineSpaceMatter refuses any other tool on this zone's
+			blocks. A future event mine sets the same flag. Event Horizon does
+			not: it already has its own rule (space matter) and is unchanged.
+		]]
+		eventToolsOnly = true,
 		--[[
 			Meadow's sets on purpose, NOT candy ones.
 
@@ -2120,21 +2181,20 @@ function MineConfig.blockHp(kind, zone, layer)
 	--[[
 		THE CANDY CRYPT HAS ITS OWN CURVE, NOT A PLACE ON THE LADDER.
 
-		Being zone 12 would put its rock a step past Primordium, which is the
-		exact opposite of what the owner asked for: no hardness requirement, so
-		a surface tool works. Nothing else stops one -- unlike Event Horizon
-		there is no separate matter pool here, so an ordinary tool can spend
-		this HP; it is only the NUMBER that would have locked everyone out.
+		Being zone 12 would put its rock a step past Primordium. It used to be a
+		tiny curve instead (1 at the top, 19,683 by section 10) because surface
+		tools were meant to work here.
 
-		One curve does two jobs, because coins are one per point of HP (see
-		coinsFor): it is both how hard the rock is and what it sells for. So a
-		tiny base gives "sells for almost nothing", and 3x per 10-layer section
-		gives "more the deeper you get" and the exponential in one move. Section
-		1 pays 1, section 10 pays 19,683.
+		REDESIGNED 2026-10-19 (owner): only event tools dig here now (MineCrypt,
+		MineSpaceMatter's event-only rule), so the rock can be hard -- zone 3
+		hardness at the top to zone 10 at the bottom (cryptRockHp) -- and it
+		still sells for little, because the coin value is no longer this number:
+		it keeps the old low curve (cryptSellHp), and MineServer's payDamage
+		scales the Crypt's haul by cryptHaulRatio. There is still no breaking-
+		power gate here (`noStrengthGate` on the zone row): the HP is the gate.
 	]]
 	if zoneId == "hallow" then
-		local hp = (MineConfig.CANDY_SELL_BASE or 1)
-			* (MineConfig.candySectionMult and MineConfig.candySectionMult(layer) or 1)
+		local hp = MineConfig.cryptRockHp(layer)
 		if kind == "chest" or kind == "crate" or kind == "lucky_block" then
 			hp = hp * (MineConfig.CHEST_HP_MULT or 2)
 		end
@@ -4248,33 +4308,91 @@ end
 	to make while adding a Halloween event, so candy lives in its own table and
 	ORES is untouched to the byte.
 
-	They also bypass the ore pouch. A pouch ore has to be sellable, forgeable,
-	benchable and discoverable, and candy is none of those: it is a currency you
-	spend at the Trick-or-Treat shelf. A block grants `candy` on break and that
-	is the whole contract.
+	CANDY v2 (owner, 2026-10-19, later the same day; wiki/open-questions.md
+	"Candy Crypt v2"): "candy blocks only" -- EVERY Crypt block that is not a
+	chest is a candy-ore block, and no normal ore spawns there (`candyOnly` on
+	the zone row; veinOreAt / oreIdentity / rollOre answer nil for it).
 
-	`at` is the fraction of the way down the mine where the ore is centred, so
-	the mix walks from Candy Corn at the top to Jawbreakers at the bottom.
+	  * Sixteen candy ores, TWO PER RARITY, Common .. Exotic, assigned by value
+	    (the sixteen names were already in value order).
+	  * "every ore drops the same amount every time": each ore drops a fixed
+	    number of its ore item (`drop`), the same at every depth.
+	  * Every ten layers the spawn odds shift toward the rarer ores, "but the
+	    rarest always stay rare": the Exotic pair never passes EXOTIC_CAP.
+	  * Candy per block is a FLAT amount per ore, the same at every depth,
+	    about a quarter of the block's ore-drop value (`drop` x `value`, where
+	    `value` is what one item sells for, in candy).
 
-	PROPOSED (2026-10-10): every candy number here -- the amounts, the spread,
-	and CANDY_ORE_SHARE.
+	The ore items go to the HALLOWEEN INVENTORY while the event runs
+	(MineCrypt: p.halloween.ores), not the main pouch, and move into `p.ores`
+	when it ends. They are still NOT forge ores: they never sell for gems (SELL
+	ALL skips them, sellOre refuses them), they never enter `oresSeen`, and they
+	never take main-pouch room (MineOrePouch.held skips them). They sell for
+	CANDY (`cryptSellCandyOres`) and craft and prestige the Halloween tools
+	(MineCandyTools).
 ]]
 --[[
-	ONE TABLE FOR EVERY CANDY NUMBER, so the owner has one place to edit.
-	All PROPOSED (2026-10-10) except the two the owner stated: ten layers to a
-	section, and 3x per section.
+	ONE TABLE FOR THE CANDY ORES' NUMBERS, so the owner has one place to edit.
+	PROPOSED (2026-10-19) except where it says "owner".
 
-	  CANDY_ORE_SHARE      how many of the Crypt's blocks are candy ore
-	  CANDY_SECTION_SPAN   layers per section            -- owner: 10
-	  CANDY_SECTION_MULT   per-section multiplier        -- owner: 3x
-	  CANDY_DEPTH_LAYERS   depth the candy ladder spans, 12 ores x 10 layers
-	  CANDY_SELL_BASE      coins a Crypt block sells for in section 1
+	  CANDY_SHARE    candy a block pays, as a share of its ore-drop value.
+	                 owner: "about a quarter".
+	  SECTIONS       the odds shift every ten layers (owner) down to section 12
+	                 (layers 111-120, the Crypt's bottom) and hold there.
+	  RATIO_TOP      section 1: each rarity is this many times as common as the
+	                 one below it (0.30: 70% of blocks Common, 0.015% Exotic).
+	  RATIO_BOTTOM   section 12: the same ratio at the bottom (0.58: 42%
+	                 Common, 0.94% Exotic). Linear in between.
+	  EXOTIC_CAP     the rarest always stay rare (owner): the Exotic pair is
+	                 never more than this share of a section's blocks, whatever
+	                 the two ratios are set to.
+	  PAIR_SPLIT     the first (cheaper) ore of each rarity's pair takes this
+	                 share of the rarity's odds, the second the rest.
+	  DROP           items one block of each rarity drops, every time.
+	  ores           per ore: `value`, the candy one item sells for. Ore order
+	                 and names are CANDY_ORES below.
 ]]
-MineConfig.CANDY_ORE_SHARE = 0.15
+MineConfig.CANDY_ECONOMY = {
+	CANDY_SHARE = 0.25,
+	SECTIONS = 12,
+	RATIO_TOP = 0.30,
+	RATIO_BOTTOM = 0.58,
+	EXOTIC_CAP = 0.01,
+	PAIR_SPLIT = 0.5,
+	DROP = { Common = 4, Uncommon = 4, Rare = 3, Epic = 3, Legendary = 2, Mythic = 2, Divine = 1, Exotic = 1 },
+	-- A block's ore-drop value (drop x value) climbs about x1.65 an ore, so
+	-- every rarer block is worth more than the one below it.
+	VALUE = {
+		candy_corn = 1, gumdrop = 2, licorice = 3, cotton_candy = 5,
+		caramel = 10, taffy = 16, pop_rocks = 27, toffee_shard = 45,
+		nougat = 110, rock_candy = 180, milk_chocolate = 300, candy_apple = 500,
+		white_chocolate = 1600, sugar_skull = 2700, chocolate_skull = 4500, jawbreaker = 7500,
+	},
+}
+
+--[[
+	The rest of the Crypt's dials.
+
+	  CANDY_ORE_SHARE      how many of the Crypt's non-chest blocks are candy.
+	                       owner (v2): "candy blocks only", so all of them.
+	                       MineServer's spawnVoxel reads it.
+	  CANDY_SECTION_SPAN   layers per section            -- owner: 10
+	  CANDY_SECTION_MULT   per-section multiplier of the Crypt's COIN curve
+	                       (cryptSellHp) -- owner (2026-10-10): 3x. Candy no
+	                       longer rides it (v2: flat per ore).
+	  CANDY_DEPTH_LAYERS   the Crypt's bottom: the rock reaches CRYPT_BOTTOM_ZONE
+	                       hardness here and the ore odds stop shifting.
+	  CANDY_SELL_BASE      coins a Crypt block sells for in section 1
+	  CRYPT_TOP_ZONE       the zone whose surface rock the Crypt starts at -- owner: 3
+	  CRYPT_BOTTOM_ZONE    ...and the zone it ends at                     -- owner: 10
+]]
+MineConfig.CANDY_ORE_SHARE = 1
 MineConfig.CANDY_SECTION_SPAN = 10
 MineConfig.CANDY_SECTION_MULT = 3
 MineConfig.CANDY_DEPTH_LAYERS = 120
 MineConfig.CANDY_SELL_BASE = 1
+MineConfig.CRYPT_TOP_ZONE = 3
+MineConfig.CRYPT_BOTTOM_ZONE = 10
 
 -- Which section of the Crypt a layer is in, 1-based. Its own span, because
 -- SECTION_SPAN is 25 game-wide and the owner asked for 10 here.
@@ -4283,31 +4401,119 @@ function MineConfig.candySection(layer)
 	return math.max(1, math.floor(((tonumber(layer) or 1) - 1) / span) + 1)
 end
 
--- 3x per section, compounding. This is the "extremely exponential" the owner
--- asked for: section 10 pays 3^9 = 19,683 times section 1.
+-- 3x per section, compounding: the Crypt's COIN curve (cryptSellHp). Candy
+-- itself is flat per ore since v2 (candyFor).
 function MineConfig.candySectionMult(layer)
 	local m = tonumber(MineConfig.CANDY_SECTION_MULT) or 3
 	return m ^ (MineConfig.candySection(layer) - 1)
 end
 
+--[[
+	THE CRYPT'S ROCK: ZONE 3 HARDNESS AT THE TOP, ZONE 10 AT THE BOTTOM.
+
+	Owner, 2026-10-19. Read off the game's own ladder (MineDepth.dirtHp, the
+	surface rock of each zone) rather than authored, so a retune of the depth
+	curve moves the Crypt with it. Geometric between the two ends, which is the
+	same thing as walking the zone index smoothly from 3 to 10 down the Crypt:
+	x5 per zone step, so about x5 every 17 layers at CANDY_DEPTH_LAYERS 120, and
+	smooth per layer (MineDepth's own rule: stepped HP makes the best place in
+	the game the layer just before a step).
+
+	Below the bottom it keeps hardening at the same rate instead of flattening,
+	so digging past the candy ladder is never a free farm.
+
+	  layer 1     538          (= zone 3, layer 1)
+	  layer 31    ~9,200
+	  layer 71    ~407,000
+	  layer 111   ~17.9 million
+	  layer 120   41,992,188   (= zone 10, layer 1)
+]]
+function MineConfig.cryptRockHp(layer)
+	layer = math.max(1, math.floor(tonumber(layer) or 1))
+	local top = Depth.dirtHp(MineConfig.CRYPT_TOP_ZONE or 3, 1)
+	local bottom = Depth.dirtHp(MineConfig.CRYPT_BOTTOM_ZONE or 10, 1)
+	local span = math.max(1, (tonumber(MineConfig.CANDY_DEPTH_LAYERS) or 120) - 1)
+	local t = (layer - 1) / span
+	return math.max(1, math.floor(top * (bottom / math.max(1, top)) ^ t + 0.5))
+end
+
+--[[
+	...BUT IT STILL SELLS FOR LITTLE (owner, 2026-10-19).
+
+	Coins were one per point of HP here too, so the hardness change alone would
+	have made the Crypt the best coin mine in the game. The coin value is cut
+	loose from the HP and keeps the OLD curve: CANDY_SELL_BASE, x3 per 10-layer
+	section -- 1 at the top, 177,147 at layer 120, against rock that is
+	41,992,188 HP there. It also keeps the Crypt's NORMAL-ore mix where it was
+	(oreDifficulty reads this, not the rock), so the harder rock does not start
+	spawning zone-10 ore in a 3x3 event pit.
+]]
+function MineConfig.cryptSellHp(layer)
+	local m = MineConfig.candySectionMult(layer)
+	return math.max(1, math.floor((tonumber(MineConfig.CANDY_SELL_BASE) or 1) * m + 0.5))
+end
+
+-- What one point of Crypt damage is worth in the haul (bag load and coins), as
+-- a share of a point anywhere else. Capped at 1: the Crypt never pays MORE than
+-- one per point of HP, however deep someone digs.
+function MineConfig.cryptHaulRatio(layer)
+	return math.min(1, MineConfig.cryptSellHp(layer) / math.max(1, MineConfig.cryptRockHp(layer)))
+end
+
+--[[
+	SIXTEEN CANDY ORES, IN VALUE ORDER, TWO PER RARITY (owner, 2026-10-19:
+	"16, two per rarity: Common, Uncommon, Rare, Epic, Legendary, Mythic,
+	Divine, Exotic"). The names were already in value order, so the pairs fall
+	out of it: Candy Corn and Gumdrop are Common, Chocolate Skull and
+	Jawbreaker Exotic.
+
+	Derived just below from CANDY_ECONOMY, never typed per row:
+	  rank, band, bandIndex   the place on the ladder and its rarity
+	  drop                    items one block drops, every time (DROP[band])
+	  value                   candy one item sells for (VALUE[id])
+	  candy                   the FLAT candy a block pays: CANDY_SHARE x drop x
+	                          value, rounded, at least 1
+	`at` (v1, a depth the ore was centred on) is gone: v2 ores are not tied to
+	a depth, only to the odds of each ten-layer section (candyOreOdds).
+]]
 MineConfig.CANDY_ORES = {
-	{ id = "candy_corn", name = "Candy Corn", at = 0.00, candy = 1, color = Color3.fromRGB(255, 176, 46), material = Enum.Material.SmoothPlastic },
-	{ id = "gumdrop", name = "Gumdrop", at = 0.09, candy = 2, color = Color3.fromRGB(226, 72, 128), material = Enum.Material.Glass },
-	{ id = "licorice", name = "Licorice", at = 0.18, candy = 3, color = Color3.fromRGB(46, 38, 54), material = Enum.Material.SmoothPlastic },
-	{ id = "caramel", name = "Caramel", at = 0.27, candy = 5, color = Color3.fromRGB(190, 118, 48), material = Enum.Material.Sand },
-	{ id = "taffy", name = "Taffy", at = 0.36, candy = 8, color = Color3.fromRGB(246, 150, 196), material = Enum.Material.SmoothPlastic },
-	{ id = "toffee_shard", name = "Toffee Shard", at = 0.45, candy = 12, color = Color3.fromRGB(150, 86, 36), material = Enum.Material.Glass },
-	{ id = "nougat", name = "Nougat", at = 0.54, candy = 18, color = Color3.fromRGB(236, 214, 170), material = Enum.Material.Foil },
-	{ id = "rock_candy", name = "Rock Candy", at = 0.63, candy = 26, color = Color3.fromRGB(152, 220, 246), material = Enum.Material.Ice },
-	{ id = "candy_apple", name = "Candy Apple", at = 0.72, candy = 38, color = Color3.fromRGB(206, 30, 44), material = Enum.Material.Glass },
-	{ id = "sugar_skull", name = "Sugar Skull", at = 0.81, candy = 55, color = Color3.fromRGB(244, 240, 228), material = Enum.Material.Plaster },
-	{ id = "chocolate_skull", name = "Chocolate Skull", at = 0.90, candy = 80, color = Color3.fromRGB(78, 46, 30), material = Enum.Material.Slate },
-	{ id = "jawbreaker", name = "Jawbreaker", at = 1.00, candy = 120, color = Color3.fromRGB(180, 120, 240), material = Enum.Material.Neon },
+	{ id = "candy_corn", name = "Candy Corn", color = Color3.fromRGB(255, 176, 46), material = Enum.Material.SmoothPlastic },
+	{ id = "gumdrop", name = "Gumdrop", color = Color3.fromRGB(226, 72, 128), material = Enum.Material.Glass },
+	{ id = "licorice", name = "Licorice", color = Color3.fromRGB(46, 38, 54), material = Enum.Material.SmoothPlastic },
+	{ id = "cotton_candy", name = "Cotton Candy", color = Color3.fromRGB(250, 176, 222), material = Enum.Material.Fabric },
+	{ id = "caramel", name = "Caramel", color = Color3.fromRGB(190, 118, 48), material = Enum.Material.Sand },
+	{ id = "taffy", name = "Taffy", color = Color3.fromRGB(246, 150, 196), material = Enum.Material.SmoothPlastic },
+	{ id = "pop_rocks", name = "Pop Rocks", color = Color3.fromRGB(255, 84, 170), material = Enum.Material.Pebble },
+	{ id = "toffee_shard", name = "Toffee Shard", color = Color3.fromRGB(150, 86, 36), material = Enum.Material.Glass },
+	{ id = "nougat", name = "Nougat", color = Color3.fromRGB(236, 214, 170), material = Enum.Material.Foil },
+	{ id = "rock_candy", name = "Rock Candy", color = Color3.fromRGB(152, 220, 246), material = Enum.Material.Ice },
+	{ id = "milk_chocolate", name = "Milk Chocolate", color = Color3.fromRGB(128, 80, 48), material = Enum.Material.SmoothPlastic },
+	{ id = "candy_apple", name = "Candy Apple", color = Color3.fromRGB(206, 30, 44), material = Enum.Material.Glass },
+	{ id = "white_chocolate", name = "White Chocolate", color = Color3.fromRGB(250, 238, 212), material = Enum.Material.SmoothPlastic },
+	{ id = "sugar_skull", name = "Sugar Skull", color = Color3.fromRGB(244, 240, 228), material = Enum.Material.Plaster },
+	{ id = "chocolate_skull", name = "Chocolate Skull", color = Color3.fromRGB(78, 46, 30), material = Enum.Material.Slate },
+	{ id = "jawbreaker", name = "Jawbreaker", color = Color3.fromRGB(180, 120, 240), material = Enum.Material.Neon },
 }
 
+MineConfig.CANDY_BANDS = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic" }
 MineConfig.CANDY_BY_ID = {}
-for _, o in ipairs(MineConfig.CANDY_ORES) do
-	MineConfig.CANDY_BY_ID[o.id] = o
+do
+	local E = MineConfig.CANDY_ECONOMY
+	local list = MineConfig.CANDY_ORES
+	local bands = MineConfig.CANDY_BANDS
+	local n = #list
+	for i, o in ipairs(list) do
+		o.rank = i
+		o.bandIndex = math.clamp(math.ceil(i * #bands / n), 1, #bands)
+		o.band = bands[o.bandIndex]
+		-- The first of a rarity's pair is the cheaper one (value order).
+		o.pairIndex = (i % 2 == 1) and 1 or 2
+		o.drop = math.max(1, math.floor(tonumber(E.DROP[o.band]) or 1))
+		o.value = math.max(1, math.floor(tonumber(E.VALUE[o.id]) or 1))
+		o.candy = math.max(1, math.floor((tonumber(E.CANDY_SHARE) or 0.25) * o.drop * o.value + 0.5))
+		o.candyOre = true
+		MineConfig.CANDY_BY_ID[o.id] = o
+	end
 end
 
 function MineConfig.candyOreById(id)
@@ -4315,37 +4521,131 @@ function MineConfig.candyOreById(id)
 end
 
 --[[
-	Which candy ore sits at this depth.
-
-	A narrow window that slides down the mine, not a flat roll: the top of the
-	Crypt is Candy Corn and the bottom is Jawbreakers, with a couple of
-	neighbours either side so a layer is never one single rock. `span` is how
-	far either side still has a chance, in the same 0..1 units as `at`.
+	Candy a block of this ore pays: FLAT, the same at every depth (owner, v2:
+	"a flat amount per ore, the same at every depth"). `layer` is ignored and
+	kept only so MineServer's spawnVoxel, which banks it on the block, is
+	unchanged.
 ]]
-function MineConfig.candyOreAt(layer, rng, maxLayer)
+function MineConfig.candyFor(cdef, _layer)
+	if type(cdef) == "string" then
+		cdef = MineConfig.candyOreById(cdef)
+	end
+	if type(cdef) ~= "table" then
+		return 0
+	end
+	return math.max(1, math.floor(tonumber(cdef.candy) or 1))
+end
+
+-- Items one block of this ore drops: fixed, the same every time (owner).
+function MineConfig.candyDropFor(cdef)
+	if type(cdef) == "string" then
+		cdef = MineConfig.candyOreById(cdef)
+	end
+	if type(cdef) ~= "table" then
+		return 0
+	end
+	return math.max(1, math.floor(tonumber(cdef.drop) or 1))
+end
+
+-- What one candy ore item sells for, in CANDY (never gems). 0 for anything
+-- that is not a candy ore.
+function MineConfig.candyOreValue(cdef)
+	if type(cdef) == "string" then
+		cdef = MineConfig.candyOreById(cdef)
+	end
+	if type(cdef) ~= "table" then
+		return 0
+	end
+	return math.max(1, math.floor(tonumber(cdef.value) or 1))
+end
+
+--[[
+	THE SPAWN ODDS OF ONE SECTION, by rarity (1 = Common .. 8 = Exotic).
+
+	Each rarity is `q` times as common as the one below it, with q walking
+	linearly from RATIO_TOP in section 1 to RATIO_BOTTOM in section SECTIONS
+	and holding there: every ten layers the odds shift toward the rarer ores
+	(owner). The Exotic share is then capped at EXOTIC_CAP, and anything it
+	gives up goes back to the other seven in proportion, so "the rarest always
+	stay rare" holds whatever the two ratios are set to. Sums to 1.
+]]
+-- The shape on its own, uncached: rung k weighs q^(k-1), normalised, the top
+-- rung capped at `cap` with the rest scaled up to fill. MineCryptChests ranks
+-- its chests the same way.
+function MineConfig.capRatioWeights(n, q, cap)
+	q = math.clamp(tonumber(q) or 0.5, 0.01, 1)
+	local w, tot = {}, 0
+	for k = 1, n do
+		w[k] = q ^ (k - 1)
+		tot += w[k]
+	end
+	for k = 1, n do
+		w[k] /= tot
+	end
+	cap = math.clamp(tonumber(cap) or 1, 0, 1)
+	if w[n] > cap then
+		local rest = 1 - w[n]
+		w[n] = cap
+		for k = 1, n - 1 do
+			w[k] = w[k] * (1 - cap) / math.max(1e-12, rest)
+		end
+	end
+	return w
+end
+
+local candyOddsCache = {}
+function MineConfig.candyRarityOdds(section)
+	local E = MineConfig.CANDY_ECONOMY
+	local sections = math.max(1, math.floor(tonumber(E.SECTIONS) or 12))
+	local s = math.clamp(math.floor(tonumber(section) or 1), 1, sections)
+	local hit = candyOddsCache[s]
+	if hit then
+		return hit
+	end
+	local f = (sections > 1) and ((s - 1) / (sections - 1)) or 0
+	local top, bottom = tonumber(E.RATIO_TOP) or 0.3, tonumber(E.RATIO_BOTTOM) or 0.58
+	local w = MineConfig.capRatioWeights(#MineConfig.CANDY_BANDS, top + (bottom - top) * f, tonumber(E.EXOTIC_CAP) or 0.01)
+	candyOddsCache[s] = w
+	return w
+end
+
+-- The section the odds read for a layer: ten layers each (CANDY_SECTION_SPAN),
+-- capped at CANDY_ECONOMY.SECTIONS.
+function MineConfig.candyOddsSection(layer)
+	local sections = math.max(1, math.floor(tonumber(MineConfig.CANDY_ECONOMY.SECTIONS) or 12))
+	return math.min(sections, MineConfig.candySection(layer))
+end
+
+-- Every candy ore's chance at this layer, in ladder order (sums to 1).
+function MineConfig.candyOreOdds(layer)
+	local byRarity = MineConfig.candyRarityOdds(MineConfig.candyOddsSection(layer))
+	local split = math.clamp(tonumber(MineConfig.CANDY_ECONOMY.PAIR_SPLIT) or 0.5, 0, 1)
+	local out = {}
+	for i, o in ipairs(MineConfig.CANDY_ORES) do
+		local share = (o.pairIndex == 1) and split or (1 - split)
+		out[i] = (byRarity[o.bandIndex] or 0) * share
+	end
+	return out
+end
+
+--[[
+	Which candy ore a block at this layer is: one weighted roll on the section's
+	odds. `rng` is the block's own seeded Random (spawnVoxel seeds it from the
+	cell, so the same block is the same candy on every server). `_maxLayer` is
+	ignored (v1 slid a window down to it) and kept for spawnVoxel's call.
+]]
+function MineConfig.candyOreAt(layer, rng, _maxLayer)
 	local list = MineConfig.CANDY_ORES
-	local top = math.max(1, tonumber(maxLayer) or (MineConfig.CANDY_DEPTH_LAYERS or 100))
-	local t = math.clamp((tonumber(layer) or 1) / top, 0, 1)
-	local span = 0.22
-	local w, tot = table.create(#list), 0
+	local odds = MineConfig.candyOreOdds(layer)
+	local pick = (rng and rng.NextNumber) and rng:NextNumber() or math.random()
 	for i, o in ipairs(list) do
-		local d = math.abs(o.at - t)
-		local v = (d >= span) and 0 or (1 - d / span) ^ 2
-		w[i] = v
-		tot += v
-	end
-	if tot <= 0 then
-		-- Past the bottom of the table: the deepest candy, not nothing.
-		return list[#list]
-	end
-	local pick = ((rng and rng.NextNumber) and rng:NextNumber() or math.random()) * tot
-	for i, o in ipairs(list) do
-		pick -= w[i]
+		pick -= odds[i]
 		if pick <= 0 then
 			return o
 		end
 	end
-	return list[#list]
+	-- Float dust past the end: the commonest ore, never a free rare one.
+	return list[1]
 end
 
 --[[
@@ -4373,7 +4673,15 @@ end
 
 -- How hard the rock is here, on the same axis the ores sit on.
 function MineConfig.oreDifficulty(zoneId, layer)
-	local hp = MineConfig.blockHp("dirt", zoneId, layer)
+	local zid = type(zoneId) == "table" and zoneId.id or zoneId
+	local hp
+	if zid == "hallow" then
+		-- The Candy Crypt's NORMAL-ore mix stays on its old curve: the rock got
+		-- harder on 2026-10-19, the ore in it did not (see cryptSellHp).
+		hp = MineConfig.cryptSellHp(layer)
+	else
+		hp = MineConfig.blockHp("dirt", zoneId, layer)
+	end
 	return math.log(math.max(20, hp) / 20) / math.log(6)
 end
 
@@ -4495,7 +4803,37 @@ function MineConfig.oreWeights(zoneId, layer, rareOre)
 end
 
 -- WHICH ore, given that it already is one. Never returns nil for a real zone.
+--[[
+	CANDY-ONLY MINES (owner, 2026-10-19, Candy Crypt v2: "candy blocks only (no
+	normal ores)"). A zone row with `candyOnly` spawns nothing from ORES:
+	veinOreAt, oreIdentity and rollOre answer nil there, so rollKind never calls
+	a block "ore" and spawnVoxel paints every non-chest block with candy
+	(CANDY_ORE_SHARE 1). Read off the rows once and cached.
+]]
+local candyOnlyZones = nil
+function MineConfig.isCandyOnly(zoneId)
+	local set = candyOnlyZones
+	if set == nil then
+		set = {}
+		for _, z in ipairs(MineConfig.ZONES or {}) do
+			if z.candyOnly then
+				set[z.id] = true
+			end
+		end
+		candyOnlyZones = set
+	end
+	-- veinOreAt asks for every block the generator makes: no allocation, no
+	-- string work on the way through.
+	if type(zoneId) == "table" then
+		zoneId = zoneId.id
+	end
+	return zoneId ~= nil and set[zoneId] == true
+end
+
 function MineConfig.oreIdentity(zoneId, layer, rng, rareOre)
+	if MineConfig.isCandyOnly(zoneId) then
+		return nil
+	end
 	local row = MineConfig.oreWeights(zoneId, layer, rareOre)
 	if row.tot <= 0 then
 		return nil
@@ -4518,6 +4856,9 @@ end
 -- in clusters instead of singles. Kept because the balance sim and the verify
 -- harnesses measure the DISTRIBUTION, which veins do not change.
 function MineConfig.rollOre(zoneId, layer, rng, rareOre)
+	if MineConfig.isCandyOnly(zoneId) then
+		return nil
+	end
 	local roll = (rng and rng.NextNumber) and rng:NextNumber() or math.random()
 	if roll >= MineConfig.ORE_CHANCE then
 		return nil
@@ -5195,6 +5536,10 @@ function MineConfig._veinCellReset()
 end
 
 function MineConfig.veinOreAt(zoneId, x, y, z, rareOre)
+	-- No ore at all in a candy-only mine (the Candy Crypt; see isCandyOnly).
+	if MineConfig.isCandyOnly(zoneId) then
+		return nil
+	end
 	local cell = MineConfig.VEIN_CELL or 4
 	local cx, cy, cz = math.floor(x / cell), math.floor(y / cell), math.floor(z / cell)
 

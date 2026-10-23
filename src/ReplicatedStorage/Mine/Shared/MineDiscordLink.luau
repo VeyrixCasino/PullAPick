@@ -12,6 +12,9 @@ local function pendingStore() return DataStoreService:GetDataStore(PENDING) end
 local function claimsStore() return DataStoreService:GetDataStore(CLAIMS) end
 local function linksStore() return DataStoreService:GetDataStore(LINKS) end
 
+-- What a code that is not a live !link code gets (launch audit S38).
+MineDiscordLink.NOT_VALID = "That code isn't valid. Type !link in our Discord to get a new one."
+
 function MineDiscordLink.normalizeCode(raw)
 	return string.upper((tostring(raw or ""):gsub("%s", "")))
 end
@@ -36,7 +39,7 @@ function MineDiscordLink.redeem(plr, rawCode)
 	end
 	local code = MineDiscordLink.normalizeCode(rawCode)
 	if #code < 4 or #code > 12 then
-		return false, "Invalid code"
+		return false, MineDiscordLink.NOT_VALID
 	end
 	local okGet, data = pcall(function()
 		return pendingStore():GetAsync(code)
@@ -44,20 +47,21 @@ function MineDiscordLink.redeem(plr, rawCode)
 	if not okGet then
 		return false, "DataStore busy — try again"
 	end
+	--[[
+		NOT IN PENDING MEANS NOT A CODE (launch audit S38, owner 2026-10-19).
+
+		The owner's bot answers `!link` in Discord by writing the code into
+		PENDING through Open Cloud, and only then gives it to the player. So a
+		code that is not in PENDING was mistyped, already used, or never issued.
+		This used to answer every such code with "Code accepted! Wait in Discord"
+		and write a claim row for it: any 4-12 letters were told they had linked,
+		and each try cost a DataStore write. No write here, and the truth.
+	]]
 	if type(data) ~= "table" or data.discordId == nil then
 		if type(data) == "table" and data.fromGame then
 			return false, "That code is for Discord — type !link " .. code .. " there"
 		end
-		local okClaim = pcall(function()
-			claimsStore():SetAsync(code, {
-				robloxUserId = plr.UserId,
-				at = DateTime.now().UnixTimestampMillis,
-			})
-		end)
-		if not okClaim then
-			return false, "Could not save claim — try again"
-		end
-		return true, "Code accepted! Wait in Discord — it should say Linked."
+		return false, MineDiscordLink.NOT_VALID
 	end
 	if type(data.expiresAt) == "number" and data.expiresAt < DateTime.now().UnixTimestampMillis then
 		pcall(function()
@@ -80,6 +84,20 @@ function MineDiscordLink.redeem(plr, rawCode)
 	if not okSet then
 		return false, "Failed to save link — try again"
 	end
+	--[[
+		THE ONE CLAIM WORTH WRITING. The bot reads the claims store, and this row
+		is how it learns that a code it issued was redeemed, and by whom, so it
+		can say "Linked" in Discord. One write per real link, after the link is
+		saved; best effort, because the link already stands if this one fails.
+	]]
+	pcall(function()
+		claimsStore():SetAsync(code, {
+			robloxUserId = plr.UserId,
+			discordId = discordId,
+			linked = true,
+			at = DateTime.now().UnixTimestampMillis,
+		})
+	end)
 	return true, "Linked to Discord!", discordId
 end
 

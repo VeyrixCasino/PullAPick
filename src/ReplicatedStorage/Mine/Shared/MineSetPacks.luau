@@ -104,8 +104,12 @@ M.STAR_TIER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
 	the star grade of that case. Better chests drop cases more often and of
 	higher stars; a five-star case stays rare everywhere.
 ]]
-M.CHEST_CASE_CHANCE = { F = 0.005, D = 0.01, C = 0.02, native = 0.02, B = 0.035, A = 0.06, S = 0.10 }
+-- (Superseded: chests roll their case through MineCases.rollChestCase, which
+-- has the F..SSS ladder. Nothing calls M.rollChestCase; SS and SSS read as S.)
+M.CHEST_CASE_CHANCE = { F = 0.005, D = 0.01, C = 0.02, native = 0.02, B = 0.035, A = 0.06, S = 0.10, SS = 0.10, SSS = 0.10 }
 M.CHEST_CASE_STARS = {
+	SS = { 15, 18, 22, 22, 16, 7 },
+	SSS = { 15, 18, 22, 22, 16, 7 },
 	F = { 45, 28, 17, 7, 2.5, 0.5 },
 	D = { 45, 28, 17, 7, 2.5, 0.5 },
 	C = { 40, 27, 18, 10, 4, 1 },
@@ -160,8 +164,8 @@ end
 	PACK_BY_ID and PACKS here, so no set-pack or case logic ever sees it;
 	MinePackConfig registers it for the bag, the inspector and the opener.
 
-	The Trick-or-Treat case (MineTrickOrTreat.PACK_ID = "halloween_2026") pays it
-	the moment it exists. PROPOSED odds below.
+	Candy Crypt chests pay it (MineCryptChests.packRows, Candy Crypt v2,
+	2026-10-19); the Trick-or-Treat case no longer does. PROPOSED odds below.
 ]]
 M.HOLIDAY_ODDS = { Common = 44, Uncommon = 28, Rare = 16, Epic = 7.5, Legendary = 3.2, Mythic = 0.9, Divine = 0.3, Exotic = 0.1 }
 M.HOLIDAY_CARDS = 3

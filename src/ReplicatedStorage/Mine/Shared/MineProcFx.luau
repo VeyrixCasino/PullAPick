@@ -14,7 +14,11 @@
 	turns each into an animation and a sound. It draws nothing the server did
 	not report, so the picture never promises damage that did not land.
 
-	MineProcFx.play(text, pos) -> true when it knew the proc.
+	Since 2026-10-19 it also draws the Halloween enchants' moments: SPELL
+	(a Spellbook cast) and FLASHLIGHT (the ore a Flashlight lit), and Blast's
+	tier words BURST and DETONATION, which used to play nothing.
+
+	MineProcFx.play(text, pos, extra) -> true when it knew the proc.
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -269,21 +273,102 @@ function M.quake(pos)
 	end
 end
 
+-- SPELL (Spellbook, a Halloween Special): the book's purple flash where a
+-- cast goes off. The ability it cast plays its own effect on top.
+function M.spell(pos)
+	flash(top(pos), Color3.fromRGB(180, 110, 255), M.BLOCK * 1.6, 0.3)
+	flash(top(pos), Color3.fromRGB(240, 210, 255), M.BLOCK * 0.8, 0.18)
+end
+
+--[[
+	FLASHLIGHT (a Halloween Utility enchant). The server picked the rarest ore
+	near the block you broke (MineEnchantService.flashlight); this lights that
+	block THROUGH the rock for `secs`: a Highlight drawn on top, its fill
+	breathing in the ore's own colour, and the ore's name above it. Fades only
+	(text never rides a scale animation: candy style), and it all goes when
+	the block is mined. `extra` = { part, name, color, secs }.
+]]
+function M.flashlight(pos, extra)
+	extra = type(extra) == "table" and extra or {}
+	local secs = math.clamp(tonumber(extra.secs) or 6, 1, 20)
+	local colour = typeof(extra.color) == "Color3" and extra.color or Color3.fromRGB(255, 230, 140)
+	local block = extra.part
+	if not (typeof(block) == "Instance" and block:IsA("BasePart") and block.Parent) then
+		-- The block is not streamed in: a beacon where it stands.
+		block = part({ Name = "Flashlight", Color = colour, Transparency = 0.6, Size = Vector3.one * (M.BLOCK - 0.4),
+			CFrame = CFrame.new(pos) })
+		Debris:AddItem(block, secs + 0.5)
+	end
+	local hl = Instance.new("Highlight")
+	hl.Name = "MineFlashlight"
+	hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	hl.FillColor = colour
+	hl.OutlineColor = Color3.fromRGB(255, 244, 190)
+	hl.FillTransparency = 1
+	hl.OutlineTransparency = 1
+	hl.Parent = block
+	local tag = Instance.new("BillboardGui")
+	tag.Name = "MineFlashlightTag"
+	tag.AlwaysOnTop = true
+	tag.Size = UDim2.fromOffset(200, 34)
+	tag.StudsOffsetWorldSpace = Vector3.new(0, M.BLOCK * 0.9, 0)
+	tag.LightInfluence = 0
+	tag.Parent = block
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextSize = 20
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextStrokeColor3 = Color3.fromRGB(40, 24, 56)
+	label.TextStrokeTransparency = 1
+	label.TextTransparency = 1
+	label.Text = "🔦 " .. tostring(extra.name or "Ore")
+	label.Parent = tag
+	tween(hl, 0.35, { FillTransparency = 0.35, OutlineTransparency = 0 })
+	tween(label, 0.35, { TextTransparency = 0, TextStrokeTransparency = 0.2 })
+	-- Breathe the fill while it lasts, then fade everything out.
+	task.spawn(function()
+		local t0 = os.clock()
+		local up = false
+		while hl.Parent and os.clock() - t0 < secs - 0.6 do
+			tween(hl, 0.6, { FillTransparency = up and 0.35 or 0.6 }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+			up = not up
+			task.wait(0.6)
+		end
+		if hl.Parent then
+			tween(hl, 0.5, { FillTransparency = 1, OutlineTransparency = 1 })
+			tween(label, 0.5, { TextTransparency = 1, TextStrokeTransparency = 1 })
+		end
+		task.wait(0.55)
+		hl:Destroy()
+		tag:Destroy()
+	end)
+	sound("pack_sparkle", pos)
+end
+
 local BY_TEXT = {
 	BLAST = M.blast,
+	-- Blast's tier 2 and 3 words (MineServer Dig.procsAt): until 2026-10-19 they
+	-- matched nothing here, so a Blast III-V played no animation and no sound.
+	BURST = M.blast,
+	DETONATION = M.blast,
 	["TIDAL WAVE"] = M.tide,
 	ZAP = M.zap,
 	SHATTER = M.shatter,
 	RICOCHET = M.shatter,
 	QUAKE = M.quake,
+	SPELL = M.spell,
+	FLASHLIGHT = M.flashlight,
 }
 
-function M.play(text, pos)
+-- `extra` rides along to the effect (the Flashlight's block, name and time).
+function M.play(text, pos, extra)
 	local fn = BY_TEXT[text]
 	if not fn or typeof(pos) ~= "Vector3" then
 		return false
 	end
-	local ok, err = pcall(fn, pos)
+	local ok, err = pcall(fn, pos, extra)
 	if not ok then
 		warn("[MineProcFx] " .. tostring(text) .. ": " .. tostring(err))
 	end

@@ -156,6 +156,16 @@ pcall(Audio.startBgm)
 pcall(Audio.setZoneResolver, function()
 	return snap and snap.zoneId or nil
 end)
+--[[
+	BUTTON SOUNDS ON (owner, 2026-10-19, launch audit S26). MineAudio.bindUiClicks
+	was written and never called, so no button in the game made a sound. One
+	call on this ScreenGui covers every window, since they all mount into it
+	(the Forge hub too): a soft click on a press, the low "can't" knock on a
+	greyed (Active = false) button. It binds once (the UiClicksBound attribute)
+	and MineAudio.play throttles each sound (CD.click, CD.deny). A button opts
+	out with the NoClickSfx attribute.
+]]
+pcall(Audio.bindUiClicks, gui)
 
 -- Desktop HUD uses fixed pixel sizes. On phones those dominate the screen;
 -- scale the whole MineUI tree down. Trail dashes are world parts, unaffected.
@@ -609,6 +619,38 @@ do
 	bagCount.Position = UDim2.fromOffset(42, -4)
 	bagCount.TextSize = 17
 end
+
+--[[
+	CANDY, ON THE WALLET, IN THE CANDY CRYPT ONLY (owner, 2026-10-19: show the
+	candy balance in the event, and do not crowd the main HUD outside it).
+	A fifth pill in the tray, hidden everywhere else; ClientFns.paintCandyPill
+	(beside refreshHud) shows it, and shares the tray five ways while it does.
+	It wears the Crypt's pumpkin with a candy-purple rim, so it never reads as
+	the orange bag beside it. There is no candy icon upload: the medallion
+	carries the 🍬 glyph. PROPOSED (2026-10-19): its look and its place.
+]]
+function ClientFns.buildCandyPill()
+	local th = T.EVENT_THEMES and T.EVENT_THEMES.halloween
+	local row, lab = walletPill("", th and th.CANDY.primary or "orange", 96)
+	row.Name = "CandyPill"
+	row.LayoutOrder = 9
+	row.Visible = false
+	local edge = row:FindFirstChildOfClass("UIStroke")
+	if edge and th then
+		edge.Color = th.EDGE
+	end
+	for _, ch in ipairs(row:GetChildren()) do
+		if ch:IsA("Frame") and ch:FindFirstChildOfClass("ImageLabel") then
+			mk("TextLabel", {
+				Name = "CandyGlyph", BackgroundTransparency = 1, Text = "🍬", TextSize = 30,
+				Font = FONT, Size = UDim2.fromScale(1, 1), ZIndex = 24, Active = false,
+			}, ch)
+		end
+	end
+	ClientFns.candyPill, ClientFns.candyL = row, lab
+end
+-- Guarded: a pill that fails to build costs the pill, never the HUD.
+pcall(ClientFns.buildCandyPill)
 
 local mineResetL = mk("TextLabel", {
 	BackgroundTransparency = 0.05,
@@ -1138,11 +1180,15 @@ function dailyHud.show(state)
 end
 
 --[[
-	Day-4 surprise: Like + Favorite → random 2★+ pack.
+	Day-4 surprise: a random 2★+ pack, GIVEN REGARDLESS (owner, 2026-10-19,
+	launch audit S20). It used to ask for Like + Favorite first: no API can
+	open a Like, so LIKE only opened a browser (or nothing) and was ticked on
+	faith, and rewarding a like or a favorite is not something to build on.
+	Now CLAIM always works, closing the window claims too, and FAVORITE is an
+	optional ask through Roblox's real prompt that gates nothing.
 ]]
 local dailySurprise = {}
-dailySurprise.liked = false
-dailySurprise.favorited = false
+dailySurprise.claimed = false
 dailySurprise.root = mk("Frame", {
 	Name = "DailySurprise",
 	Visible = false,
@@ -1162,27 +1208,21 @@ mk("TextLabel", {
 }, dailySurprise.root).TextXAlignment = Enum.TextXAlignment.Center
 mk("TextLabel", {
 	BackgroundTransparency = 1, Font = FONT_M, TextSize = 14, TextColor3 = TEXT,
-	Text = "Like & Favorite the game for a random 2★+ pack",
+	Text = "Day 4 bonus: a random 2★+ pack. It's yours!",
 	Position = UDim2.fromOffset(20, 52), Size = UDim2.new(1, -40, 0, 40),
 	TextWrapped = true, ZIndex = 41,
 }, dailySurprise.root).TextXAlignment = Enum.TextXAlignment.Center
 dailySurprise.status = mk("TextLabel", {
 	BackgroundTransparency = 1, Font = FONT_M, TextSize = 13, TextColor3 = MUTED,
-	Text = "Tap both below, then claim",
+	Text = "Enjoying the game? Favorite it (optional).",
 	Position = UDim2.fromOffset(20, 100), Size = UDim2.new(1, -40, 0, 20),
 	ZIndex = 41,
 }, dailySurprise.root)
 dailySurprise.status.TextXAlignment = Enum.TextXAlignment.Center
-dailySurprise.likeBtn = mk("TextButton", {
-	AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(60, 140, 255),
-	Font = FONT, TextSize = 16, TextColor3 = Color3.new(1, 1, 1), Text = "LIKE",
-	Position = UDim2.fromOffset(24, 136), Size = UDim2.fromOffset(186, 44), ZIndex = 42,
-}, dailySurprise.root)
-round(dailySurprise.likeBtn, 10)
 dailySurprise.favBtn = mk("TextButton", {
 	AutoButtonColor = true, BackgroundColor3 = Color3.fromRGB(255, 170, 60),
-	Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(30, 20, 10), Text = "FAVORITE",
-	Position = UDim2.fromOffset(230, 136), Size = UDim2.fromOffset(186, 44), ZIndex = 42,
+	Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(30, 20, 10), Text = "★ FAVORITE",
+	Position = UDim2.fromOffset(24, 136), Size = UDim2.new(1, -48, 0, 44), ZIndex = 42,
 }, dailySurprise.root)
 round(dailySurprise.favBtn, 10)
 dailySurprise.claimBtn = mk("TextButton", {
@@ -1197,77 +1237,51 @@ dailySurprise.close = mk("TextButton", {
 	Position = UDim2.new(1, -40, 0, 12), Size = UDim2.fromOffset(28, 28), ZIndex = 43,
 }, dailySurprise.root)
 
-local function refreshSurpriseClaim()
-	local ready = dailySurprise.liked and dailySurprise.favorited
-	dailySurprise.claimBtn.AutoButtonColor = ready
-	dailySurprise.claimBtn.BackgroundColor3 = ready and GOLD or Color3.fromRGB(50, 50, 58)
-	dailySurprise.claimBtn.TextColor3 = ready and (T.ON_GOLD or Color3.fromRGB(30, 20, 10)) or MUTED
-	if ready then
-		dailySurprise.status.Text = "Ready — claim your surprise pack"
-		dailySurprise.status.TextColor3 = Color3.fromRGB(120, 255, 160)
-	else
-		local bits = {}
-		if not dailySurprise.liked then bits[#bits + 1] = "Like" end
-		if not dailySurprise.favorited then bits[#bits + 1] = "Favorite" end
-		dailySurprise.status.Text = "Still need: " .. table.concat(bits, " + ")
-		dailySurprise.status.TextColor3 = MUTED
-	end
-end
-
 function dailySurprise.open()
-	dailySurprise.liked = false
-	dailySurprise.favorited = false
-	dailySurprise.likeBtn.Text = "LIKE"
-	dailySurprise.favBtn.Text = "FAVORITE"
+	dailySurprise.claimed = false
+	dailySurprise.favBtn.Text = "★ FAVORITE"
 	dailySurprise.claimBtn.Text = "CLAIM SURPRISE"
 	dailySurprise.claimBtn.Active = true
-	refreshSurpriseClaim()
+	dailySurprise.status.Text = "Enjoying the game? Favorite it (optional)."
+	dailySurprise.status.TextColor3 = MUTED
 	dailySurprise.root.Visible = true
+end
+
+-- Nothing gates the pack: the server checks only that it is day 4 and not yet
+-- taken today (Verbs.claimDailySurprise), so a second send is harmless.
+function dailySurprise.claim()
+	if dailySurprise.claimed then
+		return
+	end
+	dailySurprise.claimed = true
+	dailySurprise.claimBtn.Active = false
+	dailySurprise.claimBtn.Text = "..."
+	net:FireServer("claimDailySurprise")
 end
 
 function dailySurprise.closePanel()
 	dailySurprise.root.Visible = false
 end
 
-dailySurprise.close.MouseButton1Click:Connect(dailySurprise.closePanel)
-dailySurprise.likeBtn.MouseButton1Click:Connect(function()
-	pcall(function()
-		GuiService:OpenBrowserWindow("https://www.roblox.com/games/" .. tostring(game.PlaceId))
-	end)
-	dailySurprise.liked = true
-	dailySurprise.likeBtn.Text = "LIKED ✓"
-	refreshSurpriseClaim()
+-- Closing claims too: the pack is given regardless.
+dailySurprise.close.MouseButton1Click:Connect(function()
+	dailySurprise.claim()
+	dailySurprise.closePanel()
 end)
 dailySurprise.favBtn.MouseButton1Click:Connect(function()
-	local ok = pcall(function()
+	-- Roblox's own favorite prompt; the player can say no and nothing changes.
+	pcall(function()
 		AvatarEditorService:PromptSetFavorite(game.PlaceId, Enum.AvatarItemType.Asset, true)
 	end)
-	-- Prefer a real favorite when the API answers; otherwise honor the prompt.
-	task.delay(0.4, function()
-		local favOk, isFav = pcall(function()
-			return AvatarEditorService:GetFavorite(game.PlaceId, Enum.AvatarItemType.Asset)
-		end)
-		if favOk and isFav == true then
-			dailySurprise.favorited = true
-		elseif ok then
-			dailySurprise.favorited = true
-		end
-		if dailySurprise.favorited then
+end)
+pcall(function()
+	AvatarEditorService.PromptSetFavoriteCompleted:Connect(function(result)
+		if result == Enum.AvatarPromptResult.Success then
 			dailySurprise.favBtn.Text = "FAVORITED ✓"
 		end
-		refreshSurpriseClaim()
 	end)
 end)
-dailySurprise.claimBtn.MouseButton1Click:Connect(function()
-	if not (dailySurprise.liked and dailySurprise.favorited) then
-		dailySurprise.status.Text = "Like and Favorite first"
-		dailySurprise.status.TextColor3 = Color3.fromRGB(255, 120, 120)
-		return
-	end
-	dailySurprise.claimBtn.Active = false
-	dailySurprise.claimBtn.Text = "..."
-	net:FireServer("claimDailySurprise")
-end)
+dailySurprise.claimBtn.MouseButton1Click:Connect(dailySurprise.claim)
 
 --[[
 	Quest tracker.
@@ -2893,6 +2907,28 @@ local function hidePanels()
 	if depthHud.contractor and depthHud.contractor.root then
 		depthHud.contractor.close()
 	end
+	--[[
+		Four windows this missed (launch audit S18, 2026-10-19), so opening
+		Inventory, Pass or Jobs over them left two windows stacked, the new one
+		underneath. Skins; the trade picker, and a live trade, which closing
+		cancels (the same as the trade window's own X); fishing, which gives up
+		a fish on the line (its own close does the same); and the Forge hub,
+		which lives in MineForgeHub.client and is closed through its event.
+		Each only if it exists, and the trade and fishing only if open.
+	]]
+	if skinsCtl and skinsCtl.close then
+		skinsCtl.close()
+	end
+	if ClientFns.tradeCtl and ClientFns.tradeCtl.close and ClientFns.tradeCtl.isOpen() then
+		ClientFns.tradeCtl.close()
+	end
+	if ClientFns.fishingCtl and ClientFns.fishingCtl.close and ClientFns.fishingCtl.isOpen() then
+		ClientFns.fishingCtl.close()
+	end
+	local hubEv = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
+	if hubEv then
+		hubEv:Fire("close")
+	end
 end
 
 local function togglePanel(p)
@@ -3151,10 +3187,16 @@ do
 			Mine.ForgeHubOpen; it opens in place -- no trip to the counter, since
 			"nothing is ever too far away" (TODO §0) and the craft verb checks
 			no station. Without it, the old trip to the Blacksmith below.
+
+			hidePanels closes the hub too now (S18), so it runs only when the hub
+			is shut: on an open hub the toggle below is what closes it.
 		]]
 		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
 		if hubOpen then
-			hidePanels()
+			local hubFrame = gui:FindFirstChild("ForgeHub")
+			if not (hubFrame and hubFrame.Visible) then
+				hidePanels()
+			end
 			hubOpen:Fire()
 			return
 		end
@@ -3823,6 +3865,8 @@ invCtl = InventoryView.mount(gui, {
 	petViewport = function(parent, card, pos, size)
 		return ClientFns.petViewport(parent, card, pos, size)
 	end,
+	-- What a card face reads besides the card, so the Cards tab can keep faces.
+	cardFaceKey = function(card) return ClientFns.cardFaceKey(card) end,
 	cardSort = cardSort,
 	onCardSort = persistCardSort,
 	--[[
@@ -3849,10 +3893,11 @@ invCtl = InventoryView.mount(gui, {
 		if packRevealBusy then
 			return
 		end
-		-- Gear cases: never more than 3 at once.
-		local pid = tostring(packId or "")
-		if string.find(pid, "gear", 1, true) then
-			count = math.min(tonumber(count) or 1, 3)
+		-- A case opens up to five at a time, stacked (MineCaseStack; the server
+		-- clamps the same). Gear cases were held to three.
+		local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+		if CaseStack.isCase(packId) then
+			count = CaseStack.clamp(count)
 		end
 		armPackRevealBusy()
 		net:FireServer("openMany", { packId = packId, count = count, uid = uid })
@@ -3908,7 +3953,11 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onEquipCharm = function(id) net:FireServer("equipCharm", id) end,
 	onUnequipCharm = function() net:FireServer("equipCharm", "") end,
-	onBuyCharmsPack = function() net:FireServer("buyCharmsPack") end,
+	-- One of the eight Charm Packs (F..SSS), for "gems" or "credits". The server
+	-- prices it and draws it (MineCharms.CHARM_PACKS, MineCharmService).
+	onBuyCharmPack = function(rarity, pay)
+		net:FireServer("buyCharmPack", { rarity = tostring(rarity or ""), pay = (pay == "credits") and "credits" or "gems" })
+	end,
 	--[[
 		Buy ONE named charm with temper tokens. Verbs.buyCharm has been
 		complete and dispatched with no caller -- 36 purchasable charms, F 15
@@ -3928,6 +3977,27 @@ invCtl = InventoryView.mount(gui, {
 	onBuyProductRobux = function(key)
 		local prod = C.product and C.product(key)
 		local pid = prod and tonumber(prod.productId) or 0
+		--[[
+			Never prompt for Robux the server would have to hand back (launch audit
+			S6): a limited deal at its max or off the shelf, or a random buy where
+			this player's rules restrict paid random items. The receipt handler
+			pays a maxed deal back in credits (Dig.creditBack); this is so it
+			never has to.
+		]]
+		local Offers = require(shared:WaitForChild("MineRotatingOffers"))
+		local deal = Offers.byId(key)
+		if deal and deal.kind == "deal" then
+			local why = Offers.deny({ dealBuys = (snap and snap.dealBuys) or {} }, deal)
+				or ((not Offers.isLive(deal)) and "That deal is not on sale right now")
+			if why then
+				showToast(why)
+				return
+			end
+		end
+		if player:GetAttribute("PolicyNoRandom") == true and Offers.isRandomBuy(key) then
+			showToast("That isn't available in your region")
+			return
+		end
 		if pid > 0 then
 			MarketplaceService:PromptProductPurchase(player, pid)
 		else
@@ -3947,9 +4017,11 @@ invCtl = InventoryView.mount(gui, {
 	end,
 	onSellTool = function(payload) net:FireServer("sellTool", payload) end,
 	onScrapGear = function(id) net:FireServer("scrap", { kind = "gear", id = id }) end,
-	-- Three charms into one a tier deeper. The server owns the cost and the
-	-- target (MineCharms.MERGE_COST / mergeTarget); this only names the charm.
-	onMergeCharm = function(id) net:FireServer("mergeCharm", { id = id }) end,
+	-- Raise one copy of a charm a tier (I..V), using up `fodderId` at the same
+	-- tier. The server owns the price and the rules (MineCharms.canMerge).
+	onMergeCharm = function(id, tier, fodderId)
+		net:FireServer("mergeCharm", { id = id, tier = tier, fodderId = fodderId })
+	end,
 	--[[
 		Bulk scrap goes out twice. The first call carries no confirm flag and is
 		the ASK -- the server builds the plan and replies with `confirmScrap`,
@@ -4005,8 +4077,9 @@ invCtl = InventoryView.mount(gui, {
 		from its own tables, so a forged payload can ask for the wrong ITEMS but
 		never for the wrong COST.
 	]]
-	onBuyCart = function(lines)
-		net:FireServer("buyCart", { lines = lines })
+	onBuyCart = function(lines, token)
+		-- `token` names the order, so the server charges a resent order once.
+		net:FireServer("buyCart", { lines = lines, token = token })
 	end,
 	-- The server owns the seat count and the price; this only asks.
 	onJoinVip = function()
@@ -4056,31 +4129,108 @@ end
 	meant to be like csgo slots". Each design that carries a `reel`
 	(MineCases.open) plays on the case reel, one after another: the next spin
 	waits until the player has closed the last result. `done` runs after the
-	last one.
+	last one. A run of up to Const.OPEN_RUN_MAX (50) cases was 50 spins of
+	5.4 s you could not leave; the case screen's SKIP ALL (playRun) ends it and
+	shows everything won on one grid (owner, 2026-10-19, launch audit S25).
+
+	UP TO FIVE AT A TIME, STACKED (owner, 2026-10-19: "make every case in the
+	game be able to spin up to 5 slot spins at a time (one on top of another)";
+	MineCaseStack). The run plays in rounds of up to five reels spinning at once,
+	one above another; each next round starts when the player closes the last
+	one's results. A gear case's design is one reel per item (ClientFns.gearReels),
+	so a Gear Vault's five spin together.
 ]]
 function ClientFns.playCaseReels(designs, done)
-	local i = 0
-	local function nextOne()
-		i += 1
-		local d = designs[i]
-		if not d then
-			if done then
-				done()
+	local reels = {}
+	for _, d in ipairs(designs or {}) do
+		if type(d.reel) == "table" then
+			table.insert(reels, d.reel)
+		elseif d.kind == "gear" then
+			for _, r in ipairs(ClientFns.gearReels(d)) do
+				table.insert(reels, r)
 			end
-			return
 		end
-		local screen = ClientFns.caseScreen()
-		Audio.play("open")
-		screen.play(d.reel, function()
-			task.spawn(function()
-				while screen.isOpen and screen.isOpen() do
-					task.wait(0.1)
-				end
-				nextOne()
-			end)
-		end)
 	end
-	nextOne()
+	ClientFns.caseScreen().playRun(reels, {
+		stack = require(shared:WaitForChild("MineCaseStack")).MAX,
+		onEach = function()
+			Audio.play("open")
+		end,
+		onDone = done,
+	})
+end
+
+--[[
+	A GEAR CASE'S REELS: one per item it paid (a Gear Vault pays five), each
+	built around the hat the server granted, at MineTemper.CASE_WINNER_AT. The
+	other tiles are drawn the way a gear case draws (MineGear.rollRarity, then a
+	hat of that grade from MineGear.catalogFor), so the reel is no likelier to
+	flash an SSS than the case is to pay one. Was uniform grades over every hat.
+]]
+function ClientFns.gearReels(design)
+	local Temper = require(shared:WaitForChild("MineTemper"))
+	local Hats = require(shared:WaitForChild("MineHats"))
+	local Gear = require(shared:WaitForChild("MineGear"))
+	local Icons = require(shared:WaitForChild("MineIcons"))
+	local function reelAround(item)
+		local rng = Random.new()
+		local reel, at = {}, Temper.CASE_WINNER_AT or 38
+		local winR = item.rarityId or (item.gear and item.gear.rarity) or "Common"
+		local hatPool = Hats.LIST or {}
+		local function hatRow(h, rarity, name)
+			local cat = h and tonumber(h.catalogId)
+			return {
+				id = (h and h.id) or "?",
+				rarity = rarity,
+				name = name or (h and h.name) or "...",
+				kind = design.kind,
+				catalogId = cat,
+				icon = cat and string.format("rbxthumb://type=Asset&id=%d&w=150&h=150", cat)
+					or (Icons.image and Icons.image((h and h.id) or "")) or nil,
+			}
+		end
+		for i = 1, Temper.CASE_REEL or 44 do
+			if i == at then
+				local hatId = item.gear and (item.gear.hatId or item.gear.id)
+				local hat
+				for _, h in ipairs(hatPool) do
+					if h.id == hatId then
+						hat = h
+						break
+					end
+				end
+				local row = hatRow(hat or (item.gear and {
+					id = hatId, name = item.name, catalogId = item.gear.catalogId,
+				}), winR, item.name)
+				if (not row.icon) and item.gear and Gear.image then
+					row.icon = Gear.image(item.gear)
+				end
+				table.insert(reel, row)
+			else
+				local g = (Gear.rollRarity and Gear.rollRarity(rng))
+					or Temper.GRADE_ORDER[rng:NextInteger(1, #Temper.GRADE_ORDER)]
+				local cat = Gear.catalogFor and Gear.catalogFor("hat", g, nil, rng)
+				local h = cat or (#hatPool > 0 and hatPool[rng:NextInteger(1, #hatPool)]) or nil
+				table.insert(reel, hatRow(h, g, h and h.name))
+			end
+		end
+		return {
+			reel = reel, at = at,
+			id = item.gear and item.gear.id,
+			name = item.name,
+			rarity = winR,
+			title = (design.name and design.name ~= "") and design.name or "Gear Case",
+			kind = design.kind,
+			sub = item.sub,
+			icon = reel[at] and reel[at].icon,
+			catalogId = reel[at] and reel[at].catalogId,
+		}
+	end
+	local reels = {}
+	for _, item in ipairs(design.cards or {}) do
+		table.insert(reels, reelAround(item))
+	end
+	return reels
 end
 
 function ClientFns.luckyScreen()
@@ -4457,9 +4607,12 @@ function ClientFns.chestPopup(payload)
 		order += 1
 		return order
 	end
+	-- The rank badge rides on the name (F..SSS, MineChestRanks, 2026-10-19).
 	mk("TextLabel", {
 		BackgroundTransparency = 1, Font = FONT, TextSize = 18, TextColor3 = GOLD,
-		Text = string.upper(tostring(payload.name or "Chest")) .. (payload.first and "  |  NEW!" or ""),
+		Text = string.upper(tostring(payload.name or "Chest"))
+			.. ((type(payload.rank) == "string" and #payload.rank <= 3) and ("  ·  " .. payload.rank) or "")
+			.. (payload.first and "  |  NEW!" or ""),
 		TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
 		TextStrokeTransparency = 0.45, Size = UDim2.new(1, 0, 0, 24), LayoutOrder = nextOrder(), ZIndex = 71, Active = false,
 	}, card)
@@ -4485,6 +4638,17 @@ function ClientFns.chestPopup(payload)
 	end
 	local counts, keys = {}, {}
 	local ids = type(payload.packIds) == "table" and payload.packIds or {}
+	-- A Candy Crypt chest (kind "crypt", MineCrypt.openChest) pays candy: it
+	-- shows, in the Crypt's pumpkin. (Its Crypt tool still rides `packs`.)
+	if (tonumber(payload.candy) or 0) > 0 then
+		local th = T.EVENT_THEMES and T.EVENT_THEMES.halloween
+		row(function(host)
+			mk("TextLabel", {
+				BackgroundTransparency = 1, Text = "🍬", TextSize = 26, Font = FONT,
+				Size = UDim2.fromScale(1, 1), ZIndex = 73, Active = false,
+			}, host)
+		end, "+" .. ClientFns.commas(payload.candy) .. " candy", th and th.ACCENT or GOLD)
+	end
 	for i, name in ipairs(type(payload.packs) == "table" and payload.packs or {}) do
 		local key = tostring(ids[i] or name)
 		if not counts[key] then
@@ -4524,8 +4688,8 @@ function ClientFns.chestPopup(payload)
 	sc.Scale = 0.94
 	card.Visible = true
 	-- Owner, 2026-10-08: "less dopamine with the chests". So chests stay quiet,
-	-- and only an S-rank (Ultra Rare) chest gets the small tier-1 pluck.
-	if payload.rank == "S" then
+	-- and only a Mythic-or-better chest (S, SS, SSS) gets the small tier-1 pluck.
+	if payload.rank == "S" or payload.rank == "SS" or payload.rank == "SSS" then
 		pcall(Audio.playWin, 1)
 	end
 	TweenService:Create(sc, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
@@ -4666,7 +4830,21 @@ function ClientFns.paintDailyCalendar(state)
 		dailyHud.claim.Size = UDim2.new(1, -48, 0, 46)
 		dailyHud.open.Size = UDim2.new(1, 0, 0, 64)
 	end
-	for _, c in ipairs(dailyHud.cal:GetChildren()) do
+	--[[
+		Rebuilt only when the week itself changed (launch audit S23). show() runs
+		on every snapshot, up to ten a second while digging, and destroying and
+		re-making seven tiles each time is work for a card that has not changed.
+		The streak line below is still written every call: show() resets it.
+	]]
+	local parts = {}
+	for _, d in ipairs(cal) do
+		parts[#parts + 1] = table.concat({ tostring(d.day), tostring(d.claimed), tostring(d.today),
+			tostring(d.jackpot), table.concat(d.parts or {}, "/") }, ":")
+	end
+	local calKey = table.concat(parts, "|")
+	local same = dailyHud.calKey == calKey and #dailyHud.cal:GetChildren() > 1
+	dailyHud.calKey = calKey
+	for _, c in ipairs(same and {} or dailyHud.cal:GetChildren()) do
 		if c:IsA("GuiObject") then
 			c:Destroy()
 		end
@@ -4689,7 +4867,7 @@ function ClientFns.paintDailyCalendar(state)
 		layout cell is what blanked a skins tile once already, and at 6px
 		padding a 1.06 scale would have the neighbours touching.
 	]]
-	for _, d in ipairs(cal) do
+	for _, d in ipairs(same and {} or cal) do
 		local tile = mk("Frame", {
 			BackgroundColor3 = d.claimed and T.FACE_DIM or T.FACE,
 			Size = UDim2.fromOffset(80, 150), LayoutOrder = d.day, ZIndex = 27, Active = false,
@@ -5023,7 +5201,10 @@ function ClientFns.settings()
 		return ClientFns.settingsCtl
 	end
 	local ctl = {}
-	local W, H = 440, 564
+	-- 564 -> 620: FRIENDS and everything under it moved down 30 so the code
+	-- result (y 360) has its own line instead of printing on the FRIENDS
+	-- heading (launch audit S22), with room left under the last button.
+	local W, H = 440, 620
 	local frame = mk("Frame", {
 		Name = "SettingsPanel", Visible = false, Active = true,
 		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
@@ -5162,13 +5343,13 @@ function ClientFns.settings()
 	end
 
 	-- FRIENDS
-	label("FRIENDS", 13, MUTED, 356, 18, FONT)
+	label("FRIENDS", 13, MUTED, 386, 18, FONT)
 	local invite = mk("TextButton", {
 		Text = "INVITE FRIENDS", Font = FONT, TextSize = 16, TextColor3 = Color3.fromRGB(14, 40, 20),
-		BackgroundColor3 = T.GREEN, Position = UDim2.fromOffset(22, 380), Size = UDim2.new(1, -44, 0, 40), ZIndex = 62,
+		BackgroundColor3 = T.GREEN, Position = UDim2.fromOffset(22, 410), Size = UDim2.new(1, -44, 0, 40), ZIndex = 62,
 	}, frame)
 	round(invite, 8)
-	label("A friend who joins from your invite gets a pack, and so do you.", 12, MUTED, 424, 18)
+	label("A friend who joins from your invite gets a pack, and so do you.", 12, MUTED, 454, 18)
 	invite.MouseButton1Click:Connect(function()
 		local social = game:GetService("SocialService")
 		local ok, can = pcall(function()
@@ -5184,10 +5365,10 @@ function ClientFns.settings()
 	end)
 
 	-- NOTIFICATIONS
-	label("NOTIFICATIONS", 13, MUTED, 458, 18, FONT)
+	label("NOTIFICATIONS", 13, MUTED, 488, 18, FONT)
 	local notify = mk("TextButton", {
 		Text = "NOTIFY ME", Font = FONT, TextSize = 16, TextColor3 = TEXT, BackgroundColor3 = T.CARD,
-		Position = UDim2.fromOffset(22, 482), Size = UDim2.new(1, -44, 0, 40), ZIndex = 62,
+		Position = UDim2.fromOffset(22, 512), Size = UDim2.new(1, -44, 0, 40), ZIndex = 62,
 	}, frame)
 	round(notify, 8)
 	stroke(notify, 1)
@@ -5208,7 +5389,7 @@ function ClientFns.settings()
 	-- STARTER BUNDLE, while it is on offer
 	local starter = mk("TextButton", {
 		Text = "", Font = FONT, TextSize = 16, TextColor3 = T.ON_GOLD, BackgroundColor3 = GOLD,
-		Position = UDim2.fromOffset(22, 536), Size = UDim2.new(1, -44, 0, 40), Visible = false, ZIndex = 62,
+		Position = UDim2.fromOffset(22, 566), Size = UDim2.new(1, -44, 0, 40), Visible = false, ZIndex = 62,
 	}, frame)
 	round(starter, 8)
 	starter.MouseButton1Click:Connect(function()
@@ -5313,27 +5494,41 @@ function ClientFns.offerStarter(force)
 		FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder,
 	}, row)
-	for i, r in ipairs(prod.packs or {}) do
-		local cell = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(96, 132), LayoutOrder = i, ZIndex = 91 }, row)
-		local art = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(96, 110), ZIndex = 92 }, cell)
-		pcall(PackFX.drawSealed, art, r.id, 84, 104)
-		local drawn = art:FindFirstChild("MiniPack")
-		if drawn then
-			drawn.AnchorPoint = Vector2.new(0.5, 0.5)
-			drawn.Position = UDim2.fromScale(0.5, 0.5)
+	--[[
+		WHAT IT GIVES, READ OFF THE PRODUCT ROW (launch audit S5, 2026-10-19).
+		This drew prod.packs and prod.gems, which the Starter Crate row does not
+		have and its grant never gives, so the popup listed nothing. The cells
+		are the grant's own fields, with the grant's own fallbacks (MineServer,
+		buyProductWithCredits and the receipt's "starter_bundle"): the bag rung,
+		the coins, and a Common pet from the Meadow.
+	]]
+	local Icons = require(shared:WaitForChild("MineIcons"))
+	local function cell(order, iconId, big, small, colour)
+		local c = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.fromOffset(120, 132), LayoutOrder = order, ZIndex = 91 }, row)
+		round(c, 12)
+		if iconId then
+			local host = mk("Frame", {
+				BackgroundTransparency = 1, Position = UDim2.fromOffset(30, 8), Size = UDim2.fromOffset(60, 60), ZIndex = 92,
+			}, c)
+			pcall(Icons.draw, host, iconId, 1)
 		end
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Text = "x" .. tostring(r.qty or 1), Font = FONT, TextSize = 18, TextColor3 = TEXT,
-			Position = UDim2.fromOffset(0, 110), Size = UDim2.new(1, 0, 0, 22), ZIndex = 93,
-		}, cell)
-	end
-	if (tonumber(prod.gems) or 0) > 0 then
-		local cell = mk("Frame", { BackgroundColor3 = T.CARD, Size = UDim2.fromOffset(96, 110), LayoutOrder = 99, ZIndex = 91 }, row)
-		round(cell, 12)
+			BackgroundTransparency = 1, Text = big, Font = FONT, TextSize = 20, TextColor3 = colour,
+			Position = UDim2.fromOffset(4, iconId and 70 or 28), Size = UDim2.new(1, -8, 0, 26), ZIndex = 92,
+		}, c)
 		mk("TextLabel", {
-			BackgroundTransparency = 1, Text = "+" .. tostring(prod.gems) .. "\nGEMS", Font = FONT, TextSize = 20,
-			TextColor3 = T.GEM, Size = UDim2.fromScale(1, 1), ZIndex = 92,
-		}, cell)
+			BackgroundTransparency = 1, Text = small, Font = FONT_M, TextSize = 14, TextColor3 = MUTED,
+			TextWrapped = true, Position = UDim2.fromOffset(4, iconId and 96 or 58),
+			Size = UDim2.new(1, -8, 0, 34), ZIndex = 92,
+		}, c)
+	end
+	local rung = math.max(1, math.floor(tonumber(prod.bagRung) or 2))
+	local bag = C.BACKPACKS and C.BACKPACKS[rung]
+	cell(1, "backpack", "NEW BAG", tostring(bag and bag.name or ("Bag " .. rung)),
+		(T.CANDY and T.CANDY.orange and T.CANDY.orange[1]) or GOLD)
+	cell(2, "coins", "+" .. shortNum(tonumber(prod.coins) or 8000), "coins", GOLD)
+	if (tonumber(prod.commonPet) or 1) > 0 then
+		cell(3, nil, "+1 PET", "a Common from the Meadow", TEXT)
 	end
 	local buy = mk("TextButton", {
 		Text = "BUY  |  R$" .. tostring(prod.robuxPrice or ""), Font = FONT, TextSize = 20,
@@ -5563,6 +5758,20 @@ depthHud.contractor = require(shared:WaitForChild("MineContractor")).mount(gui, 
 local Scrolls = require(shared:WaitForChild("MineScrolls"))
 shopCtl = ShopView.mount(gui, {
 	--[[
+		ONE FORGE (launch audit S13). The shop shows only Bags; its Crafting,
+		Loadout and Upgrades tabs open the Forge hub on that tab. Returns false
+		when there is no hub, and the shop falls back to its own panels.
+	]]
+	onOpenForge = function(tab)
+		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
+		if not hubOpen then
+			return false
+		end
+		hidePanels()
+		hubOpen:Fire(tab)
+		return true
+	end,
+	--[[
 		The Forge reports the skin and rune on the selected tool's family and
 		sends you to the Enchanter to change either, rather than growing a second
 		copy of those two screens. routePanel hides the shop on the way, so this
@@ -5686,8 +5895,15 @@ shopCtl = ShopView.mount(gui, {
 	onSellOre = function(oreId, count)
 		net:FireServer("sellOre", { oreId = oreId, count = count })
 	end,
-	onSellAllOres = function(confirm)
-		net:FireServer("sellAllOres", { confirm = confirm and true or nil })
+	-- `upTo` is the pouch's SELL UP TO ceiling (MineOrePouch.SELL_UP_TO); the
+	-- server remembers it in p.settings.oreSellUpTo.
+	onSellAllOres = function(confirm, upTo)
+		net:FireServer("sellAllOres", { confirm = confirm and true or nil, upTo = upTo })
+	end,
+	-- Ticked candy ores for candy: the ask, then (after the server's
+	-- cryptSellCandyConfirm) the same ores with confirm.
+	onSellCandyOres = function(oreIds, confirm)
+		net:FireServer("cryptSellCandyOres", { oreIds = oreIds, confirm = confirm and true or nil })
 	end,
 })
 
@@ -5846,18 +6062,68 @@ do
 	end
 end
 
-eventsCtl = require(shared:WaitForChild("MineEventsView")).mount(gui, {
-	config = C,
-	onClaim = function(zoneId)
-		net:FireServer("buyZone", zoneId)
-	end,
-	-- Buys AND opens in one action: the owner asked for candy you trade in, so
-	-- nothing is left sitting unopened in an inventory. The server re-checks
-	-- the claim, the window and the price.
-	onTrickOrTreat = function()
-		net:FireServer("buyTrickOrTreat")
-	end,
-})
+--[[
+	THE EVENTS TAB (owner, 2026-10-19): every live event, each card claiming
+	ITS OWN zone (buyZone), and the Candy Crypt's card with its candy and
+	Trick-or-Treat. Its tools and charms screens wait for the Crypt's next API
+	(owner's scope change, the same day). The view never decides; the server
+	re-checks every action.
+
+	Mounted through pcall, like the pouch and the Forge: a screen that throws
+	while it builds costs its own tab, never this whole script (every use of
+	eventsCtl below checks it). An IIFE, so nothing joins this chunk's locals.
+]]
+eventsCtl = (function()
+	local opts = {
+		config = C,
+		onClaim = function(zoneId)
+			net:FireServer("buyZone", zoneId)
+		end,
+		-- "Owned — enter from Planets": the button takes you there.
+		onPlanets = function()
+			ClientFns.routePanel("zones")
+		end,
+		-- Buys AND opens in one action: the owner asked for candy you trade in,
+		-- so nothing is left sitting unopened in an inventory. The server
+		-- re-checks the claim, the window and the price.
+		onTrickOrTreat = function()
+			net:FireServer("buyTrickOrTreat")
+		end,
+	}
+	local okE, ctl = pcall(function()
+		return require(shared:WaitForChild("MineEventsView")).mount(gui, opts)
+	end)
+	if not okE then
+		warn("[MineClient] NO EVENTS TAB: MineEventsView.mount threw: " .. tostring(ctl))
+		return nil
+	end
+	return ctl
+end)()
+
+--[[
+	THE FIRST-ENTRY POP-UP (owner, 2026-10-19): once per event, "Got it" tells
+	the server (cryptNoticeSeen) and it never asks again. An IIFE, so its
+	locals never touch this chunk's register budget.
+]]
+ClientFns.eventNotice = (function()
+	local okN, Notice = pcall(function()
+		return require(shared:WaitForChild("MineEventNotice"))
+	end)
+	if not (okN and Notice and Notice.mount) then
+		warn("[MineClient] no event pop-up: MineEventNotice did not load (" .. tostring(Notice) .. ")")
+		return nil
+	end
+	local okM, ctl = pcall(Notice.mount, gui, {
+		onSeen = function(zoneId)
+			net:FireServer("cryptNoticeSeen", { zoneId = zoneId })
+		end,
+	})
+	if not okM then
+		warn("[MineClient] the event pop-up failed to mount: " .. tostring(ctl))
+		return nil
+	end
+	return ctl
+end)()
 
 skinsCtl = require(shared:WaitForChild("MineSkinsView")).mount(gui, {
 	-- One skin per tool FAMILY, covering every tool in that class.
@@ -6050,18 +6316,21 @@ function ClientFns.foundReveal(payload)
 			or (form >= 20 and "Epic") or "Rare")) or "Legendary"
 	end
 	--[[
-		A FINISH IS A RARITY TOO.
-	
+		A FINISH IS A RARITY TOO -- FOR THE NOISE, NOT THE CARD.
+
 		pullScore ranks off rarityId alone, so a NIGHTMARE Rare scored exactly
 		the same HIT as a plain Rare -- and a nightmare is shiny x shadow x
 		nightmare on top of the base drop, four orders of magnitude rarer. The
 		one pull most worth celebrating was the one that celebrated least.
-	
-		Promote the grade it reports instead of touching pullScore, which packs
-		and charms also run through.
+
+		This used to promote rarityId itself, so the card PRINTED the bump: a
+		shiny Rare read "SHINY EPIC" (owner, 2026-10-19, launch audit S28: print
+		the true rarity). The bumped grade rides as `hypeRarity` now, and only
+		MinePackFX.hypeRankOf reads it, to size the celebration.
 	]]
 	local FINISH_BUMP = { "Common", "Uncommon", "Rare", "Epic",
 		"Legendary", "Mythic", "Divine", "Exotic" }
+	local hype
 	do
 		local step = (payload.nightmare and 3) or (payload.shadow and 2)
 			or (payload.shiny and 1) or 0
@@ -6074,7 +6343,7 @@ function ClientFns.foundReveal(payload)
 				end
 			end
 			if at > 0 then
-				rarity = FINISH_BUMP[math.min(#FINISH_BUMP, at + step)]
+				hype = FINISH_BUMP[math.min(#FINISH_BUMP, at + step)]
 			end
 		end
 	end
@@ -6082,6 +6351,7 @@ function ClientFns.foundReveal(payload)
 		kind = (kind == "bundle") and "pack" or kind,
 		name = tostring(payload.name or "???"),
 		rarityId = rarity,
+		hypeRarity = hype,
 		baseName = payload.baseName,
 		family = payload.family,
 		power = payload.power,
@@ -6457,7 +6727,7 @@ end
 	A proc's animation and sound (MineProcFx). Loaded on the first proc, and a
 	module that fails to load costs the word on screen nothing.
 ]]
-function ClientFns.procFx(text, pos)
+function ClientFns.procFx(text, pos, extra)
 	if ClientFns.procFxMod == nil then
 		local ok, mod = pcall(function()
 			return require(shared:WaitForChild("MineProcFx"))
@@ -6465,7 +6735,7 @@ function ClientFns.procFx(text, pos)
 		ClientFns.procFxMod = ok and mod or false
 	end
 	if ClientFns.procFxMod then
-		ClientFns.procFxMod.play(text, pos)
+		ClientFns.procFxMod.play(text, pos, extra)
 	end
 end
 
@@ -6956,6 +7226,43 @@ function ClientFns.toolViewport(parent, item, aspect)
 	end
 end
 
+--[[
+	What a card's stat lines read besides the card itself, the way the server
+	pays them (MineCards.describe):
+	  * how many pets are out, for Lone Wolf and Squad Bond. A card on the team
+	    reads the team. One that is not reads the team it would make, because it
+	    pays nothing until it is out (a full team swaps one out, so that stays
+	    the seat count);
+	  * the proc the held tool fires (MineEnchants.liveFamily of the server's
+	    gated boosts), so a line the Special gate zeroes says "needs a Zap
+	    Special".
+	MineInventoryView keys its cached card faces on the same two (cardFaceKey).
+]]
+function ClientFns.cardContext(card)
+	local eq = (snap and snap.equipped) or {}
+	local n = #eq
+	if type(card) == "table" and (card.id == nil or not table.find(eq, card.id)) then
+		local seats = tonumber(snap and (snap.petSlotsEffective or snap.petSlots)) or 3
+		n = math.min(seats, n + 1)
+	end
+	local gate
+	if snap and type(snap.boosts) == "table" then
+		gate = { family = require(shared:WaitForChild("MineEnchants")).liveFamily(snap.boosts) }
+	end
+	return n, gate
+end
+
+function ClientFns.cardLines(card, pow)
+	local n, gate = ClientFns.cardContext(card)
+	local _, lines, notes = Cards.describe(card, pow, n, gate)
+	return lines, notes
+end
+
+function ClientFns.cardFaceKey(card)
+	local n, gate = ClientFns.cardContext(card)
+	return tostring(n) .. "|" .. ((gate == nil) and "?" or tostring(gate.family or "none"))
+end
+
 paintCard = function(parent, card, w)
 	-- One painter for everything the reveal and the binder can show. A rune or
 	-- gear item carries `kind`; a card does not.
@@ -6965,7 +7272,10 @@ paintCard = function(parent, card, w)
 	w = w or 180
 	local h = math.floor(w * CARD_RATIO + 0.5)
 	local pad = math.max(6, math.floor(w * 0.05))
-	local typeCol = Cards.TYPE_COLOR[card.typeId] or Color3.fromRGB(48, 48, 54)
+	-- The family the server pays (MineCards.familyTrait), not the "Crystal"
+	-- every named pet was minted with.
+	local famType = (Cards.familyOf and Cards.familyOf(card)) or card.typeId
+	local typeCol = Cards.TYPE_COLOR[famType] or Color3.fromRGB(48, 48, 54)
 	local rareCol = Cards.RARITY_COLOR[card.rarityId] or TEXT
 	local kit = Cards.getKit(card.setId, card.index)
 	local pow = C.cardPower(card)
@@ -7067,7 +7377,7 @@ paintCard = function(parent, card, w)
 		TextSize = math.max(9, math.floor(h * 0.04)),
 		TextColor3 = Color3.fromRGB(16, 16, 18),
 		Size = UDim2.fromScale(1, 1),
-		Text = (Cards.typeName and Cards.typeName(card.typeId) or card.typeId or "")
+		Text = (Cards.typeName and Cards.typeName(famType) or famType or "")
 			.. "  " .. ((Cards.namedBoosts and Cards.namedBoosts(card)) and "Kit" or (kit and kit.roleName or "Unit")),
 	}, pill)
 	mk("TextLabel", {
@@ -7080,7 +7390,9 @@ paintCard = function(parent, card, w)
 		Size = UDim2.fromOffset(pillW, pillH),
 		Text = (card.variant or "Normal") .. "  P" .. tostring(card.powerLevel or 1),
 	}, f)
-	local _, boostLines = Cards.describe(card, pow)
+	-- The pets-out count the conditional traits read, and the held tool's proc,
+	-- so a line the Special gate zeroes says so (ClientFns.cardLines).
+	local boostLines, lineNotes = ClientFns.cardLines(card, pow)
 	if type(boostLines) == "table" and #boostLines > 0 then
 		local chipH = math.max(18, math.floor(h * 0.055))
 		local gap = math.max(2, math.floor(h * 0.008))
@@ -7089,23 +7401,43 @@ paintCard = function(parent, card, w)
 			local line = boostLines[i]
 			local y = statY + (i - 1) * (chipH + gap)
 			if y + chipH > h - 4 then break end
-			mk("TextLabel", {
-				BackgroundTransparency = 0.35,
+			local gated = lineNotes and lineNotes[i]
+			local chipText = math.max(8, math.floor(h * 0.034))
+			local chip = mk("TextLabel", {
+				BackgroundTransparency = (gated and gated.all) and 0.7 or 0.35,
 				BackgroundColor3 = Color3.fromRGB(28, 28, 34),
 				Font = FONT_M,
-				TextSize = math.max(8, math.floor(h * 0.034)),
-				TextColor3 = TEXT,
+				TextSize = chipText,
+				TextColor3 = (gated and gated.all) and MUTED or TEXT,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextTruncate = Enum.TextTruncate.AtEnd,
 				Position = UDim2.fromOffset(pad, y),
 				Size = UDim2.new(1, -pad * 2, 0, chipH),
-				Text = "  " .. tostring(line),
+				Text = "  " .. tostring(line) .. (gated and ("  ·  " .. gated.text) or ""),
 			}, f)
+			if gated then
+				-- Shrink to fit rather than cut the note off on a small tile; the
+				-- constraint goes on before TextScaled (parenting one clears it).
+				mk("UITextSizeConstraint", { MaxTextSize = chipText, MinTextSize = 6 }, chip)
+				chip.TextScaled = true
+			end
 		end
 	elseif kit then
 		local chipW = w - pad * 2
 		ClientFns.statChip(f, kit.primary, kit.primaryBase * pow, UDim2.fromOffset(pad, statY), chipW)
 		ClientFns.statChip(f, kit.secondary, kit.secondaryBase * pow, UDim2.fromOffset(pad, statY + 25), chipW)
+	end
+	--[[
+		AN EVENT'S PET WEARS ITS EVENT (owner, 2026-10-19: the event theme goes
+		on its pets' cards wherever they show). Read off the card's own stack
+		key ("bigbang:..." / "halloween_2026:...") and where it came from
+		(setId), by MineTheme.eventKeyOf; a ring inside the rarity rim and the
+		event's badge in the art's corner. Every other card is untouched.
+	]]
+	local eventKey = T.eventKeyOf({ cardKey = card.cardKey, setId = card.setId })
+	if eventKey and ClientFns.UI and ClientFns.UI.eventMark then
+		pcall(ClientFns.UI.eventMark, f, eventKey,
+			{ badgePos = UDim2.new(1, -pad, 0, artY), badgeSize = math.max(14, math.floor(w * 0.1)) })
 	end
 	return f
 end
@@ -8294,14 +8626,33 @@ end
 	is out of the router, which no-ops on a key it does not know -- so the panel
 	is gone too rather than sitting unreachable with a fossil name on it.
 ]]
-refreshZones = function()
+--[[
+	`live` is the snapshot path (the map is already open). render() rebuilds the
+	whole map and selects `selectedZoneId`, so a snapshot used to throw away the
+	planet you had tapped and the scroll with it, up to ten times a second while
+	anything moved (launch audit S23). Now a snapshot rebuilds only when what the
+	planets themselves show changed (which zones you own), and keeps your pick.
+	Opening the map (no `live`) always rebuilds, on the zone you are in.
+]]
+refreshZones = function(live)
 	if not snap then
 		return
 	end
-	local gems = math.floor(tonumber(snap.gems) or 0)
+	local key = table.concat({ tostring(snap.maxUnlockedZone), tostring(snap.bigbangOwned),
+		tostring(snap.limitedActive), tostring(snap.hallowOwned) }, "|")
+	if live and ClientFns.mapKey == key then
+		return
+	end
+	ClientFns.mapKey = key
+	if not live then
+		ClientFns.mapSel = nil
+	end
 	local okMap, errMap = pcall(ZoneMapView.render, zoneP.Body, {
 		snap = snap,
-		selectedZoneId = snap.zoneId,
+		selectedZoneId = ClientFns.mapSel or snap.zoneId,
+		onSelect = function(zoneId)
+			ClientFns.mapSel = zoneId
+		end,
 		onCamp = function()
 			net:FireServer("camp")
 		end,
@@ -8310,9 +8661,11 @@ refreshZones = function()
 			zoneP.Visible = false
 		end,
 		onBuy = function(z)
+			-- Read now, not at render: the map no longer rebuilds per snapshot.
+			local gems = math.floor(tonumber(snap and snap.gems) or 0)
 			local cost = math.floor(tonumber(z.buyCost) or 0)
 			local needR = tonumber(z.minRebirth) or 0
-			if (tonumber(snap.prestige) or 0) < needR then
+			if (tonumber(snap and snap.prestige) or 0) < needR then
 				showToast("Need Rebirth " .. tostring(needR) .. "+")
 				return
 			end
@@ -8634,6 +8987,70 @@ end
 	roster is about to change, but nothing is gated on it here; if it runs out
 	mid-purchase the server simply says there is no trader there.
 ]]
+--[[
+	A TRADER CASE'S ODDS (owner, 2026-10-19, launch audit M3: "trader cases"
+	show the case's real tier band and family odds). Every number comes from
+	MineTrader.caseOdds, which reads the tables rollCase rolls (and the server
+	rolls rollCase); nothing here computes or types a chance. Drawn into the
+	trader's own panel, so it goes when the panel goes.
+]]
+function ClientFns.traderOdds(parent, row)
+	local okT, Trader = pcall(function()
+		return require(shared:WaitForChild("MineTrader"))
+	end)
+	local okV, View = pcall(function()
+		return require(shared:WaitForChild("MineLuckyOddsView"))
+	end)
+	local odds = okT and Trader and Trader.caseOdds and Trader.caseOdds(row and row.caseId)
+	if not (odds and okV and View) then
+		return
+	end
+	if ClientFns.traderOddsSheet and ClientFns.traderOddsSheet.Parent then
+		ClientFns.traderOddsSheet:Destroy()
+	end
+	local okG, Temper = pcall(function()
+		return require(shared:WaitForChild("MineTemper"))
+	end)
+	local function gradeTint(g)
+		return okG and Temper and Temper.colorOf and Temper.colorOf(g) or nil
+	end
+	local sections, sub = {}, ""
+	if odds.kind == "tool" then
+		sub = string.format("One level 1 tool: any ore tier from %d to %d, any of %d families",
+			odds.tierLo, odds.tierHi, #odds.families)
+		local fams = { header = "FAMILY  (each as likely)", rows = {} }
+		for _, fr in ipairs(odds.families) do
+			local name = string.upper(string.sub(fr.id, 1, 1)) .. string.sub(fr.id, 2)
+			table.insert(fams.rows, { name = name, p = fr.p })
+		end
+		local tiers = { header = "ORE TIER  (each as likely)", rows = {} }
+		for _, tr in ipairs(odds.tiers) do
+			local ore = C.ORES and C.ORES[tr.tier]
+			table.insert(tiers.rows, { name = string.format("Tier %d  ·  %s", tr.tier, tostring(ore and ore.name or "?")), p = tr.p })
+		end
+		sections = { fams, tiers }
+	else
+		sub = (odds.kind == "hat") and "One hat, graded like a gear crate's"
+			or "One charm, on the same ladder chests use"
+		local grades = { header = "GRADE", rows = {} }
+		for _, gr in ipairs(odds.grades) do
+			local name = "Grade " .. tostring(gr.grade)
+			if gr.n then
+				name ..= string.format("  (%d %s)", gr.n, (gr.n == 1) and "charm" or "charms")
+			end
+			table.insert(grades.rows, { name = name, p = gr.p, tint = gradeTint(gr.grade) })
+		end
+		sections = { grades }
+	end
+	ClientFns.traderOddsSheet = View.sheet(parent, {
+		title = string.upper(tostring(row.name or row.caseId)) .. "  ODDS",
+		sub = sub,
+		color = Color3.fromRGB(255, 226, 150),
+		sections = sections,
+		note = "Paid in tokens. The trader rolls it when you buy; every chance above is the one it rolls.",
+	}, { zIndex = 100 })
+end
+
 function ClientFns.showTraderShop(payload)
 	if type(payload) ~= "table" or type(payload.stock) ~= "table" then
 		return
@@ -8650,16 +9067,16 @@ function ClientFns.showTraderShop(payload)
 	local stock = payload.stock
 	local rows = math.max(1, #stock)
 	-- Height follows the shelf: a 3-row trader should not open a 5-row card with
-	-- a hole in it.
+	-- a hole in it. (+36 for the "how many at once" picker.)
 	local rowH = touch and 62 or 58
 	local f = mk("Frame", {
 		Name = "TraderShop", AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.46),
-		Size = UDim2.new(0.9, 0, 0, 132 + rows * (rowH + 8)),
+		Size = UDim2.new(0.9, 0, 0, 168 + rows * (rowH + 8)),
 		BackgroundColor3 = Color3.fromRGB(44, 40, 60), ZIndex = 90,
 	}, gui)
 	mk("UISizeConstraint", {
-		MinSize = Vector2.new(300, 240), MaxSize = Vector2.new(520, 560),
+		MinSize = Vector2.new(300, 276), MaxSize = Vector2.new(520, 596),
 	}, f)
 	ClientFns.traderMenu = f
 	round(f, 18)
@@ -8678,8 +9095,36 @@ function ClientFns.showTraderShop(payload)
 		Text = "", ZIndex = 91,
 	}, f)
 
+	--[[
+		HOW MANY AT ONCE (owner, 2026-10-19: every case "up to 5 slot spins at a
+		time"; MineCaseStack). One picker for the shelf: each buy button opens
+		that many of its case, charged all or nothing by the server, and they
+		spin stacked. The pick is remembered for the session.
+	]]
+	local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+	local pickRow = mk("Frame", {
+		BackgroundTransparency = 1, Position = UDim2.new(0.05, 0, 0, 72),
+		Size = UDim2.new(0.9, 0, 0, 28), ZIndex = 91,
+	}, f)
+	mk("TextLabel", {
+		BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, -200, 1, 0),
+		Font = FONT, TextSize = 14, TextColor3 = Color3.fromRGB(226, 228, 240),
+		TextXAlignment = Enum.TextXAlignment.Left, Text = "OPEN AT ONCE", ZIndex = 92,
+	}, pickRow)
+	local repaint -- below; the picker repaints the prices it changes
+	local picker = CaseStack.picker(pickRow, {
+		key = "trader", color = Color3.fromRGB(255, 226, 150), ink = Color3.fromRGB(28, 22, 10),
+		size = Vector2.new(34, 28), gap = 5, zIndex = 92,
+		anchor = Vector2.new(1, 0), position = UDim2.new(1, 0, 0, 0),
+		onPick = function()
+			if repaint then
+				repaint()
+			end
+		end,
+	})
+
 	local list = mk("Frame", {
-		BackgroundTransparency = 1, Position = UDim2.new(0.05, 0, 0, 74),
+		BackgroundTransparency = 1, Position = UDim2.new(0.05, 0, 0, 110),
 		Size = UDim2.new(0.9, 0, 0, rows * (rowH + 8)), ZIndex = 91,
 	}, f)
 	mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, list)
@@ -8693,14 +9138,14 @@ function ClientFns.showTraderShop(payload)
 		round(card, 10)
 		mk("TextLabel", {
 			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 6),
-			Size = UDim2.new(0.58, 0, 0, 20), Font = FONT, TextSize = touch and 14 or 15,
+			Size = UDim2.new(0.5, 0, 0, 20), Font = FONT, TextSize = touch and 14 or 15,
 			TextColor3 = Color3.fromRGB(255, 255, 255), TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd, Text = tostring(row.name or row.caseId),
 			ZIndex = 92,
 		}, card)
 		mk("TextLabel", {
 			BackgroundTransparency = 1, Position = UDim2.new(0, 12, 0, 26),
-			Size = UDim2.new(0.58, 0, 0, rowH - 32), Font = FONT_M, TextSize = touch and 11 or 12,
+			Size = UDim2.new(0.5, 0, 0, rowH - 32), Font = FONT_M, TextSize = touch and 11 or 12,
 			TextColor3 = Color3.fromRGB(186, 190, 210), TextXAlignment = Enum.TextXAlignment.Left,
 			TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top,
 			Text = tostring(row.blurb or ""), ZIndex = 92,
@@ -8714,6 +9159,19 @@ function ClientFns.showTraderShop(payload)
 			Text = price .. " tokens", ZIndex = 92,
 		}, card)
 		round(buy, 9)
+		-- Odds before you buy (launch audit M3): every case here rolls, and
+		-- tokens trace back to Robux. ClientFns.traderOdds draws them.
+		local odds = mk("TextButton", {
+			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -(touch and 122 or 130), 0.5, 0),
+			Size = UDim2.new(0, 58, 0, touch and 40 or 34),
+			BackgroundColor3 = Color3.fromRGB(70, 66, 92), Font = FONT,
+			TextSize = touch and 13 or 14, TextColor3 = Color3.fromRGB(255, 226, 150),
+			Text = "ODDS", ZIndex = 92,
+		}, card)
+		round(odds, 9)
+		odds.MouseButton1Click:Connect(function()
+			ClientFns.traderOdds(f, row)
+		end)
 		buys[#buys + 1] = { btn = buy, price = price }
 		buy.MouseButton1Click:Connect(function()
 			--[[
@@ -8724,6 +9182,7 @@ function ClientFns.showTraderShop(payload)
 			]]
 			net:FireServer("buyTraderCase", {
 				zoneId = payload.zoneId, seam = payload.seam, caseId = row.caseId,
+				count = picker.get(),
 			})
 			if ClientFns.traderMenu then
 				ClientFns.traderMenu:Destroy()
@@ -8759,14 +9218,18 @@ function ClientFns.showTraderShop(payload)
 	-- and a purchase elsewhere greys the buttons out.
 	local left = math.max(0, math.floor(tonumber(payload.secondsLeft) or 0))
 	local at = os.clock()
-	local function repaint()
+	-- Assigns the forward-declared `repaint` above (the picker calls it).
+	function repaint()
 		local remain = math.max(0, left - math.floor(os.clock() - at))
 		local have = tonumber(snap and snap.temperTokens) or 0
 		where.Text = ("%s · depth %s · %d:%02d left · %d tokens"):format(
 			tostring(payload.zoneId or "?"), tostring(payload.seam or 0),
 			math.floor(remain / 60), remain % 60, have)
+		-- The shelf's price times the picked count: what the server charges.
+		local n = picker.get()
 		for _, b in ipairs(buys) do
-			local afford = have >= b.price
+			b.btn.Text = (n > 1) and (n .. "x  " .. (b.price * n) .. " tokens") or (b.price .. " tokens")
+			local afford = have >= b.price * n
 			b.btn.BackgroundColor3 = afford and Color3.fromRGB(96, 190, 104) or Color3.fromRGB(70, 74, 92)
 			b.btn.TextColor3 = afford and Color3.fromRGB(12, 24, 16) or Color3.fromRGB(196, 200, 216)
 			b.btn.Active = afford
@@ -9259,10 +9722,15 @@ function rollsTab.build(parent)
 			AutomaticSize = Enum.AutomaticSize.X,
 			Size = UDim2.fromOffset(0, 18),
 			TextXAlignment = Enum.TextXAlignment.Left,
-			Text = (#counts == 1) and "|  one draw" or "each",
+			Text = (counts ~= "picker" and #counts == 1) and "|  one draw" or "each",
 			LayoutOrder = 2,
 			ZIndex = 36,
 		}, unitHost)
+		-- A case opens one to five at once: a picker and one SPIN button.
+		if counts == "picker" then
+			rollsTab.casePicker(card, unit, tint, fire, kind)
+			return
+		end
 		local nCounts = #counts
 		for i, n in ipairs(counts) do
 			local b = mk("TextButton", {
@@ -9320,12 +9788,71 @@ function rollsTab.build(parent)
 			net:FireServer("rollGear", { count = n or 1 })
 		end, { 1, 10, 100 }, "gear")
 	-- The case lives where the other draws live, not behind a rebirth wall.
+	-- One to five at once, spinning stacked (MineCaseStack; owner, 2026-10-19:
+	-- every case "up to 5 slot spins at a time"): it was 1x / 10x / 100x.
 	row(string.upper(tostring(Temper.CASE_NAME or "Temperament Case")),
 		"Spins for one temperament, Common to Mythic. Fit it to any tool.",
 		art("temper"), tonumber(Temper.CASE_PRICE_TOKENS) or 20, 136,
 		Color3.fromRGB(255, 176, 92), function(n)
 			net:FireServer("openTemperCase", { count = n or 1 })
-		end, { 1, 10, 100 }, "temper")
+		end, "picker", "temper")
+end
+
+--[[
+	A CASE'S 1-5 PICKER AND ITS SPIN BUTTON, on a Summon row. The button joins
+	rollsTab.buttons like the 1x / 10x ones, with `n` the picked count, so
+	rollsTab.paint prices it (unit x n) and greys it when the purse is short. The
+	server charges all or nothing (Verbs.openTemperStack).
+]]
+function rollsTab.casePicker(card, unit, tint, fire, kind)
+	local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+	local Icons = require(shared:WaitForChild("MineIcons"))
+	local entry
+	local b = mk("TextButton", {
+		BackgroundColor3 = tint, Text = "", AutoButtonColor = true,
+		AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 46),
+		Size = UDim2.fromOffset(190, 44), ZIndex = 36,
+	}, card)
+	round(b, 10)
+	local xL = mk("TextLabel", {
+		BackgroundTransparency = 1, Font = FONT, TextSize = 20,
+		TextColor3 = Color3.fromRGB(18, 22, 28),
+		Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(86, 44),
+		TextXAlignment = Enum.TextXAlignment.Left, Text = "SPIN", ZIndex = 37,
+	}, b)
+	local costHost = mk("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(96, 13), Size = UDim2.new(1, -104, 0, 18),
+		ZIndex = 37,
+	}, b)
+	local function paintCost()
+		for _, c in ipairs(costHost:GetChildren()) do
+			c:Destroy()
+		end
+		Icons.priceChip(costHost, "tokens", shortNum(entry.unit * entry.n), {
+			iconSize = 14, textSize = 14, textColor = Color3.fromRGB(26, 30, 38), font = FONT_M, zIndex = 37,
+		})
+		xL.Text = (entry.n > 1) and ("SPIN x" .. entry.n) or "SPIN"
+	end
+	local picker = CaseStack.picker(card, {
+		key = "summon:" .. tostring(kind), color = tint, ink = Color3.fromRGB(18, 22, 28),
+		size = Vector2.new(34, 28), gap = 5, zIndex = 36,
+		anchor = Vector2.new(1, 0), position = UDim2.new(1, -16, 0, 10),
+		onPick = function(n)
+			entry.n = n
+			paintCost()
+			rollsTab.paint()
+		end,
+	})
+	entry = {
+		b = b, x = xL, n = picker.get(), unit = unit, tint = tint, kind = kind,
+		costHost = costHost, currencyId = "tokens",
+	}
+	paintCost()
+	b.MouseButton1Click:Connect(function()
+		fire(entry.n)
+	end)
+	table.insert(rollsTab.buttons, entry)
 end
 
 function rollsTab.paint()
@@ -9785,15 +10312,50 @@ end
 
 local lastPetEquipKey = ""
 
+--[[
+	The candy pill (ClientFns.buildCandyPill): shown while you stand in the
+	Candy Crypt, with the snapshot's balance. While it shows, five pills share
+	the tray and each number steps down 3 px so "12.3K" still fits; a step on
+	a zone change, never an animation.
+]]
+function ClientFns.paintCandyPill()
+	local pill = ClientFns.candyPill
+	if not pill or not snap then
+		return
+	end
+	local on = snap.zoneId == "hallow"
+	if on and ClientFns.candyL then
+		local cr = type(snap.crypt) == "table" and snap.crypt or nil
+		ClientFns.candyL.Text = shortNum((cr and cr.candy) or snap.candy or 0)
+	end
+	if pill.Visible == on then
+		return
+	end
+	pill.Visible = on
+	for _, row in ipairs(pill.Parent and pill.Parent:GetChildren() or {}) do
+		if row:IsA("GuiObject") then
+			row.Size = on and UDim2.new(0.2, -10, 0, 44) or UDim2.new(0.25, -12, 0, 44)
+			local lab = row:FindFirstChildWhichIsA("TextLabel")
+			if lab then
+				local base = lab:GetAttribute("BaseTextSize") or lab.TextSize
+				lab:SetAttribute("BaseTextSize", base)
+				lab.TextSize = on and (base - 3) or base
+			end
+		end
+	end
+end
+
 -- Light HUD only - called on every coalesced snapshot while digging.
 local function refreshHud()
 	if not snap then
 		return
 	end
+	pcall(ClientFns.paintCandyPill)
+	-- One currency on the coin pill: the one this zone pays (owner, 2026-10-19,
+	-- launch audit S21). "1.2K | 340 sp" ran off the pill once you owned space
+	-- coins; Event Horizon is the only zone that pays them (Dig.recountHaul).
 	if snap.zoneId == "bigbang" then
 		coinsL.Text = shortNum(snap.spaceCoins or 0) .. " sp"
-	elseif (snap.spaceCoins or 0) > 0 then
-		coinsL.Text = shortNum(snap.coins or 0) .. " | " .. shortNum(snap.spaceCoins or 0) .. " sp"
 	else
 		coinsL.Text = shortNum(snap.coins or 0)
 	end
@@ -11457,7 +12019,8 @@ RunService.Heartbeat:Connect(function(dt)
 			hoverName.Text = string.format("%s  |  L%d", section, layer or 1)
 		elseif target:GetAttribute("Kind") == "chest" then
 			local flavour = section and ("  |  " .. section) or ""
-			hoverName.Text = blockName .. flavour
+			local rk = target:GetAttribute("ChestRank")
+			hoverName.Text = blockName .. (type(rk) == "string" and ("  ·  " .. rk) or "") .. flavour
 		else
 			hoverName.Text = blockName
 		end
@@ -11641,8 +12204,9 @@ function ClientFns.routePanel(name, tab)
 		local hubOpen = game:GetService("ReplicatedStorage").Mine:FindFirstChild("ForgeHubOpen")
 		if hubOpen then
 			hidePanels()
-			-- "forge" + "enchant": the tutorial's step, on Upgrades > ENCHANT.
-			hubOpen:Fire((name == "forge" and tab == "enchant") and "enchant" or "counter")
+			-- "forge" + "enchant": the tutorial's step 8, on Upgrades > ENCHANT.
+			-- "forge" + "craft": its step 3 (FORGE your first tool), on CRAFTING.
+			hubOpen:Fire((name == "forge" and (tab == "enchant" or tab == "craft")) and tab or "counter")
 			return
 		end
 		name = "shop"
@@ -11698,6 +12262,11 @@ function ClientFns.routePanel(name, tab)
 				-- The two shelves the Forge hub sends here.
 				if (tab == "pickaxe" or tab == "backpack") and shopCtl.setTab then
 					shopCtl.setTab(tab)
+				end
+				-- The ore pouch, asked for by name: the hub's SELL ORE button
+				-- (and intro step 15, which names it but is not in Intro.order).
+				if tab == "pouch" and shopCtl.setTab then
+					shopCtl.setTab("pouch")
 				end
 			end
 		end },
@@ -12035,6 +12604,9 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if depthShopCtl and depthShopCtl.root and depthShopCtl.root.Visible then
 			depthShopCtl.setState({
 				coins = payload.coins,
+				-- Bags at a desk cost gems; the bag rung marks them OWNED (S3).
+				gems = payload.gems,
+				backpackTier = payload.backpackTier,
 				spaceCoins = payload.spaceCoins,
 				deepest = payload.deepest,
 				tools = nil,
@@ -12043,6 +12615,11 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if forgeCtl then forgeCtl.setState(payload) end
 		if invCtl then invCtl.setState(payload) end
 		if eventsCtl then eventsCtl.setState(payload) end
+		-- Standing in an event mine whose notice is unseen (no push heard):
+		-- the pop-up, once (MineEventNotice.shouldShow).
+		if ClientFns.eventNotice then
+			pcall(ClientFns.eventNotice.onSnapshot, payload)
+		end
 		if depthHud.contractor then depthHud.contractor.setState(payload) end
 		do
 			local mergeReady = 0
@@ -12096,7 +12673,7 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		if shopP and shopP.Visible then refreshShop() end
 		if mergeP and mergeP.Visible then refreshMerge() end
 		if dustP and dustP.Visible then refreshDust() end
-		if zoneP and zoneP.Visible then refreshZones() end
+		if zoneP and zoneP.Visible then refreshZones(true) end
 		if presP and presP.Visible then refreshPrestige() end
 		if enchantP and enchantP.Visible and refreshEnchanter then
 			refreshEnchanter()
@@ -12355,11 +12932,34 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "foundTool" and payload then
 		-- A rare find plays as a forced pack reveal; see ClientFns.foundReveal.
 		ClientFns.foundReveal(payload)
+	elseif action == "trickOrTreatOpened" and type(payload) == "table" then
+		-- The Trick-or-Treat case answered: OPEN can be pressed again. What
+		-- came out is the server's toast for now. PLACEHOLDER: the result
+		-- reveal is redone against the Crypt's new Trick-or-Treat loot API
+		-- (owner's scope change, 2026-10-19).
+		if eventsCtl and eventsCtl.onCaseOpened then
+			pcall(eventsCtl.onCaseOpened, payload)
+		end
+	elseif action == "eventNotice" and type(payload) == "table" then
+		-- First entry to an event mine: the once-only pop-up (MineEventNotice).
+		if ClientFns.eventNotice then
+			pcall(ClientFns.eventNotice.show, payload)
+		end
+	elseif action == "cryptSellCandyConfirm" and type(payload) == "table" then
+		-- The server priced a candy-ore sale: the pouch opens its dialog on the
+		-- server's own figures, as Sell All does.
+		if shopCtl and shopCtl.showCandyConfirm then
+			pcall(shopCtl.showCandyConfirm, payload)
+		end
 	elseif action == "loot" and payload then
 		floatText(payload.text or "+1", payload.color, payload.pos)
 		-- Procs (BLAST, TIDAL WAVE, ZAP, RICOCHET, QUAKE) get an animation and a
 		-- sound on top of the word: MineProcFx.
 		ClientFns.procFx(payload.text, payload.pos)
+	elseif action == "flashlight" and type(payload) == "table" then
+		-- Flashlight (a Halloween enchant): the server picked the rarest ore near
+		-- the block you broke; MineProcFx lights it through the rock for a while.
+		ClientFns.procFx("FLASHLIGHT", payload.pos, payload)
 	elseif action == "openPanel" then
 		-- Only live screens are routable; ClientFns.routePanel (above the
 		-- dispatcher) is the one map of what exists and how it fills itself.
@@ -12386,8 +12986,10 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 			dailySurprise.status.Text = "Got " .. tostring(payload.name or "pack") .. "!"
 			dailySurprise.status.TextColor3 = Color3.fromRGB(120, 255, 160)
 			dailySurprise.claimBtn.Text = "CLAIMED"
-			task.delay(1.2, dailySurprise.closePanel)
+			-- Stays up (X closes it), so the optional FAVORITE is not snatched
+			-- away a second after the claim.
 		else
+			dailySurprise.claimed = false
 			dailySurprise.claimBtn.Active = true
 			dailySurprise.claimBtn.Text = "CLAIM SURPRISE"
 		end
@@ -12411,98 +13013,12 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 			ClientFns.playCaseReels({ design }, clearPackRevealBusy)
 			return
 		end
-		-- Gear cases use the CSGO reel (not PackReveal / lucky-block).
+		-- Gear cases use the CSGO reel (not PackReveal / lucky-block). Every
+		-- item gets its reel (a Gear Vault pays 5; this showed 3; owner,
+		-- 2026-10-19, S24), and up to five spin at once, stacked
+		-- (ClientFns.gearReels, ClientFns.playCaseReels; MineCaseStack).
 		if design.kind == "gear" then
-			Audio.play("open")
-			local cards = design.cards or {}
-			local n = math.min(#cards, 3)
-			local function reelAround(item)
-				local Temper = require(shared:WaitForChild("MineTemper"))
-				local Hats = require(shared:WaitForChild("MineHats"))
-				local Gear = require(shared:WaitForChild("MineGear"))
-				local Icons = require(shared:WaitForChild("MineIcons"))
-				local rng = Random.new()
-				local reel, at = {}, Temper.CASE_WINNER_AT or 38
-				local winR = item.rarityId or (item.gear and item.gear.rarity) or "Common"
-				local hatPool = Hats.LIST or {}
-				local function hatRow(h, rarity, name)
-					local cat = h and tonumber(h.catalogId)
-					return {
-						id = (h and h.id) or "?",
-						rarity = rarity,
-						name = name or (h and h.name) or "...",
-						kind = design.kind,
-						catalogId = cat,
-						icon = cat and string.format("rbxthumb://type=Asset&id=%d&w=150&h=150", cat)
-						or (Icons.image and Icons.image((h and h.id) or "")) or nil,
-					}
-				end
-				for i = 1, Temper.CASE_REEL or 44 do
-					if i == at then
-						if design.kind == "gear" then
-							local hatId = item.gear and (item.gear.hatId or item.gear.id)
-							local hat
-							for _, h in ipairs(hatPool) do
-								if h.id == hatId then hat = h break end
-							end
-							local row = hatRow(hat or (item.gear and {
-								id = hatId, name = item.name, catalogId = item.gear.catalogId,
-							}), winR, item.name)
-							if (not row.icon) and item.gear and Gear.image then
-								row.icon = Gear.image(item.gear)
-							end
-							table.insert(reel, row)
-						else
-							local stat = item.rune and item.rune.stat
-							table.insert(reel, {
-								id = stat or (item.rune and item.rune.id) or item.name,
-								rarity = winR,
-								name = item.name,
-								kind = design.kind,
-								icon = (Icons.image and (Icons.image(stat) or Icons.image(item.name))) or nil,
-							})
-						end
-					else
-						local g = Temper.GRADE_ORDER[rng:NextInteger(1, #Temper.GRADE_ORDER)]
-						if design.kind == "gear" and #hatPool > 0 then
-							local h = hatPool[rng:NextInteger(1, #hatPool)]
-							table.insert(reel, hatRow(h, g, h.name))
-						else
-							local kits = Temper.KITS or Temper.LIST or {}
-							local kit = kits[rng:NextInteger(1, math.max(1, #kits))]
-							local kid = (type(kit) == "table" and kit.id) or "?"
-							local stat = type(kit) == "table" and type(kit.stats) == "table" and kit.stats[1]
-							table.insert(reel, {
-								id = kid, rarity = g, kind = design.kind,
-								name = (type(kit) == "table" and kit.name) or "...",
-								icon = Icons.image and (Icons.image(stat) or Icons.image(kid)) or nil,
-							})
-						end
-					end
-				end
-				return {
-					reel = reel, at = at,
-					id = item.gear and item.gear.id,
-					name = item.name,
-					rarity = winR,
-					title = "Gear Case",
-					kind = design.kind,
-					sub = item.sub,
-					icon = reel[at] and reel[at].icon,
-					catalogId = reel[at] and reel[at].catalogId,
-				}
-			end
-			local i = 1
-			local function nextReel()
-				if i > n then
-					clearPackRevealBusy()
-					return
-				end
-				local payload = reelAround(cards[i])
-				i += 1
-				ClientFns.caseScreen().play(payload, nextReel)
-			end
-			nextReel()
+			ClientFns.playCaseReels({ design }, clearPackRevealBusy)
 			return
 		end
 		-- How many more of this same pack are sitting in the bag, so the prompt
@@ -12531,11 +13047,12 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 		-- A whole run in one reply. The server has already removed the packs and
 		-- says how many of that kind are left, so the prompt needs no round trip.
 		local meta = (typeof(extra) == "table") and extra or {}
-		-- Mystery pack cases in the run spin first (CS:GO reel), one by one;
-		-- whatever else came out plays the usual reveal after.
+		-- Cases in the run spin first (CS:GO reels, up to five stacked at a
+		-- time): mystery cases, ore cases' skins, and every item of a gear case.
+		-- Whatever else came out plays the usual reveal after.
 		local spins, rest = {}, {}
 		for _, d in ipairs(payload or {}) do
-			if type(d) == "table" and type(d.reel) == "table" then
+			if type(d) == "table" and (type(d.reel) == "table" or d.kind == "gear") then
 				table.insert(spins, d)
 			else
 				table.insert(rest, d)
@@ -12584,6 +13101,15 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 	elseif action == "temperCase" and payload then
 		Audio.play("open")
 		ClientFns.caseScreen().play(payload)
+	elseif action == "caseSpins" and type(payload) == "table" and type(payload.list) == "table" then
+		-- Several cases opened at once (Temperament Cases, a trader's cases):
+		-- every reel the server built, up to five stacked at a time.
+		ClientFns.caseScreen().playRun(payload.list, {
+			stack = require(shared:WaitForChild("MineCaseStack")).MAX,
+			onEach = function()
+				Audio.play("open")
+			end,
+		})
 	elseif action == "luckResult" and type(payload) == "table" then
 		--[[
 			Random outcomes that used to be a toast alone: temperament rolls (the
@@ -12660,30 +13186,16 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 				if you and you:IsA("TextLabel") then
 					local rankNum = info and info.rank
 					local val = (info and info.value) or 0
-					local rankTxt, rewardKey
+					local rankTxt
 					if rankNum then
 						rankTxt = "#" .. tostring(rankNum)
-						rewardKey = rankNum
 					elseif val > 0 then
 						rankTxt = "101-1000"
-						rewardKey = "101-1000"
 					else
 						rankTxt = "Unranked"
-						rewardKey = 0
 					end
-					local rewardTxt = "-"
-					if rewardKey == "101-1000" then
-						rewardTxt = "100 gems"
-					elseif type(rewardKey) == "number" and rewardKey > 0 then
-						if rewardKey == 1 then rewardTxt = "5,000 gems + Event pack"
-						elseif rewardKey == 2 then rewardTxt = "2,500 gems + Legendary pack"
-						elseif rewardKey == 3 then rewardTxt = "1,500 gems + Legendary pack"
-						elseif rewardKey <= 10 then rewardTxt = "750 gems + Rare pack"
-						elseif rewardKey <= 25 then rewardTxt = "400 gems"
-						elseif rewardKey <= 50 then rewardTxt = "250 gems"
-						elseif rewardKey <= 100 then rewardTxt = "150 gems"
-						else rewardTxt = "100 gems" end
-					end
+					-- No reward text after the rank: nothing pays a placement
+					-- (launch audit S39; LeaderboardService says the same).
 					local disp = player.DisplayName
 					if snap and snap.vip then
 						disp = (C.VIP_NAME_PREFIX or "[VIP] ") .. disp
@@ -12691,7 +13203,7 @@ net.OnClientEvent:Connect(function(action, payload, extra)
 					you.TextColor3 = Color3.fromRGB(255, 245, 210)
 					you.Font = Enum.Font.GothamBold
 					you.TextSize = 15
-					you.Text = string.format("%s   %s   %s", disp, rankTxt, rewardTxt)
+					you.Text = string.format("%s   %s", disp, rankTxt)
 				end
 			end
 		end

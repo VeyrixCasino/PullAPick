@@ -225,6 +225,20 @@ MineStats.RUNE_ONLY = {
 	blastRadius = true, reach = true, coolant = true,
 }
 
+--[[
+	The RUNE_ONLY stats a NAMED pet's kit may still carry (MineCards.addStat
+	pays them on the named-kit path only). PROPOSAL §0 line 6 (approved
+	2026-10-05) keeps blastRadius on pets, "keep 26, cap 30": at most 30 pets.
+	Owner, 2026-10-19: Halloween pets "influence builds that wouldn't be
+	possible without the pets ... (for example a big blast radius". The
+	generators ban it everywhere else, so only the Halloween build pets carry
+	it (tools/gen/holiday-pets.js; tools/verify/halloween-power.js counts them).
+	A legacy print's or a family's blastRadius is still dropped.
+]]
+MineStats.NAMED_PET_OK = {
+	blastRadius = true,
+}
+
 MineStats.PET_ONLY = {
 	mineSpeed = true, luckyFind = true, scrap = true,
 }

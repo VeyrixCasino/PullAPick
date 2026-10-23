@@ -2,9 +2,10 @@
 title: Tools
 type: system
 status: current
-verified: 2026-10-14 @ a299374
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOreTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineToolSkins.luau
   - src/ReplicatedStorage/Mine/Shared/MineTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineIcons.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
@@ -12,6 +13,8 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopLadders.luau
   - src/ReplicatedStorage/Mine/Shared/MineBandTools.luau
   - src/ReplicatedStorage/Mine/Shared/MineHorizonTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCandyTools.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCryptRules.luau
   - src/ReplicatedStorage/Mine/Shared/MineToolGrades.luau
   - src/ReplicatedStorage/Mine/Shared/MineHotbar.luau
   - src/ReplicatedStorage/ToolModelFactory.luau
@@ -40,6 +43,19 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
 **What you are holding.** `equippedTool(p)` in MineServer checks, in order:
 1. **Event Horizon tool** (zone `bigbang`): `MineHorizonTools`, one per dirt
    section, paid in space coins.
+   **Then the Candy Crypt's swap** (Candy Crypt v2, 2026-10-19,
+   `MineCryptRules.heldRow` via `MineCrypt.heldTool`): in a zone with
+   `eventToolsOnly` (the Crypt) the player's Halloween tool in hand
+   (`MineCandyTools`, `p.halloween.tool`), or empty hands; outside, once the
+   Crypt has closed, the Halloween tool they chose to keep holding
+   (`p.cryptToolWorld`), hitting like a forged tool of its family whose ore and
+   level come from its rank and prestige (the Jawbreaker Auger at prestige 10 is a
+   level-30 Oganesson drill). Otherwise it returns nil and this list carries on.
+   Halloween tools are sixteen, one per candy ore, in four families, take their
+   mechanics from the forged frames, are **crafted** from candy ores and
+   **prestiged** 1-10 (no levels, no merging), and are never sold or dropped. See
+   [world-events](world-events.md). `equipOreTool` and `equipTool` put a kept
+   Halloween tool down in the main world.
 2. **Forged ore tool**: `p.oreToolEquipped` (a uid) → a `p.oreTools` row
    `{uid, typeId, familyId, tier, level, enchants?}`. `tier` is the **ore's index**
    in `MineConfig.ORES`. Rack cap 200. `enchants` holds the tool's Damage /
@@ -61,6 +77,19 @@ related: [ores, forge-and-recycling, mining-and-breaking, skins-cases-and-temper
    roster is kept because `MineOreTools.frames()` filters it on `price > 0`: the
    prices are now a forge input, not a shelf price.
 6. `MineConfig.BARE_HANDS` if no pickaxe was ever collected.
+
+**The skin rides whatever is held** (owner, 2026-10-19: *"one wardrobe
+everywhere"*, event tools wear the same skins). That list is `Dig.toolInHand`;
+`equippedTool` hands its row through `Dig.wearSkin`. The skin worn on the row's
+family (`MineToolSkins.skinFor`: any record with `family`, or a forged row's
+`familyId`) multiplies the tool's power by `MineSkins.baseOf` (`MineSkins.BASE`,
+x1.15 at F to x5.5 at SSS, times the Halloween set's 1.2 edge at S to SSS since
+2026-10-19: [skins](skins-cases-and-temper.md)), and is stamped on the row as `skinId`. The kit stats (`boosts()`), the
+look (`givePickaxe`, a thrown charge) and the damage therefore read one skin, on
+forged, Event Horizon, Candy Crypt and chest tools alike. Until then the damage
+and the kit read the forged tool's uid only, so an event tool wore no skin power.
+A path added to `toolInHand` just returns a row with a `family`; it must not
+multiply the skin itself (a row carrying `skinId` is left alone).
 
 Families: pickaxe (aim, swing), drill (hold), explosive (throw, cooldown);
 weapon is planned (`MineTools.FAMILIES`). Forgeable: `MineOreTools.FAMILY_ORDER`
@@ -112,7 +141,10 @@ the rack (`12b528a`). Over-cap saves are clamped on load (`TOOL_CAP_V`), no refu
 typeMult × STEP^(L-1)`; `toolTierPower = 6^(TOOL_TIER_SPAN 7 × (t-1)/81) ×
 TOOL_BAND_DMG` (Legendary ×2, Mythic ×4, Divine ×8, Exotic ×16 — because tiers
 68–82 buy no new ore access at reach 15). Row finishes: Shiny ×1.5, Shadow ×3,
-Nightmare ×4.5 (`SHINY_MULT` etc.).
+Nightmare ×4.5 (`SHINY_MULT` etc.). A held forged tool hits for
+`MineOreTools.hitPower`: that power × `FAMILY_POWER` × the worn skin's base,
+floored, then the finish. The Forge's cards print the same function (launch
+audit S11, 2026-10-19; a Stone Hammer card said 10 and hit 37).
 
 **Breaking power** (§0.13 rules 1, 2, 11) is never damage.
 `MineBreaking.toolBreakingPower`: a stamped `breakingPower`/`bp`; else, if the
@@ -170,11 +202,12 @@ equip; the coin ladder resets.
 
 | file | role | key symbols |
 |---|---|---|
-| `src/ReplicatedStorage/Mine/Shared/MineOreTools.luau` | forged naming and frames | `name`, `frameForTier`, `oreOf`, `typeMult` |
+| `src/ReplicatedStorage/Mine/Shared/MineOreTools.luau` | forged naming and frames; the Forge's numbers, shared by the verbs and the cards | `name`, `frameForTier`, `oreOf`, `typeMult`, `hitPower`, `cardStats`, `craftCost`, `recycleRefund`, `inheritedLevel` |
+| `src/ReplicatedStorage/Mine/Shared/MineToolSkins.luau` | which skin a tool wears, by family, on any tool | `skinFor`, `wear`, `familyOf`, `FAMILIES`, `powerLine`, `caseReel` |
 | `src/ReplicatedStorage/Mine/Shared/MineTools.luau` | coin ladder, flagships, pass tools | `TOOLS`, `CHEST_TOOLS`, `PASS_TOOLS`, `RARITY_RANK` |
 | `src/ReplicatedStorage/Mine/Shared/MineConfig.luau` | level and damage curve | `TOOL_MAX_LEVEL`, `toolPower`, `toolUpgradeCost`, `TOOL_BAND_DMG` |
 | `src/ReplicatedStorage/Mine/Shared/MineBreaking.luau` | breaking power gate | `toolBreakingPower`, `SHOP_POWER`, `canBreak` |
-| `src/ServerScriptService/Mine/MineServer.server.luau` | what is held, equip | `equippedTool`, `givePickaxe`, `Verbs.equipOreTool` |
+| `src/ServerScriptService/Mine/MineServer.server.luau` | what is held, its skin, equip | `equippedTool`, `Dig.toolInHand`, `Dig.wearSkin`, `givePickaxe`, `Verbs.equipOreTool` |
 | `src/ReplicatedStorage/Mine/Shared/MineHotbar.luau` | custom hotbar | `mount` |
 
 ## Decided by the owner
@@ -287,11 +320,17 @@ Cursed gravedigger's maul and iron stake, and so on: 18 forms).
 - **Per skin:** an accent from its id.
 - **Per grade:** trim from B, glow and a PointLight from S, sparkles at SSS.
 - **The ore still shows:** an inlay gem in the ore's colour.
-- `givePickaxe` builds the skin form when `p.skinEquipped[family]` is set.
+- `givePickaxe` builds the form of the skin `equippedTool` stamped on the held
+  row (`row.skinId`), on any tool of the family; so do a thrown charge
+  (`flingCharge`) and the Forge hub's stage for a tool you own.
   `Verbs.equipSkin` re-gives the tool, so the look changes at once.
 - All 18 build at 15–38 parts. They are a solid first pass, simpler than the
   ore tools.
-- Pickaxe, drill and explosive skins still have no look.
+- Pickaxe, drill and explosive skins still have no look, and neither has the
+  Season One Pass set on any family (it has no palette). Every screen says so:
+  "stats only" wherever `ToolModelFactory.hasSkinForm` is false (it now needs a
+  palette as well as a form). The Cursor job
+  `tools/cursor/tasks/skin-looks-more.md` builds the other 32 forms.
 
 **The colour and material come from the ore** (`0b041f8`), via
 `ToolModelFactory.oreLook` reading `color / material / met / rough / glow`

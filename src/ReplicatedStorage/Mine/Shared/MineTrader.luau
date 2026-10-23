@@ -275,6 +275,11 @@ end
 	charm is no commoner from a trader than from a chest; you are paying for the
 	certainty of getting one at all, not for better odds.
 ]]
+-- The families a tool case pays, each as likely as the next. The roll lived in
+-- MineServer as a literal; it is here so the odds sheet reads the table the
+-- roll uses (launch audit M3).
+MineTrader.TOOL_FAMILIES = { "pickaxe", "drill", "explosive" }
+
 function MineTrader.rollCase(caseOrId, rng)
 	local c = type(caseOrId) == "table" and caseOrId or MineTrader.CASE_BY_ID[tostring(caseOrId or "")]
 	if type(c) ~= "table" then
@@ -306,7 +311,138 @@ function MineTrader.rollCase(caseOrId, rng)
 	-- Tool: a tier inside the case's band, uniform. The band IS the product.
 	local lo = math.max(1, math.floor(tonumber(c.tierLo) or 1))
 	local hi = math.max(lo, math.floor(tonumber(c.tierHi) or lo))
-	return { kind = "tool", tier = r:NextInteger(lo, hi) }
+	local fams = MineTrader.TOOL_FAMILIES
+	return {
+		kind = "tool",
+		tier = r:NextInteger(lo, hi),
+		familyId = fams[r:NextInteger(1, #fams)],
+	}
+end
+
+--[[
+	A CASE'S ODDS, BEFORE YOU BUY (owner, 2026-10-19, launch audit M3: tokens
+	trace back to Robux here, so a trader case is a paid random item). Read off
+	the same tables rollCase rolls, never typed:
+
+	  tool   { kind, tierLo, tierHi, tiers = { { tier, p } }, families = { { id, p } } }
+	         every tier in the band and every family equally likely
+	  hat    { kind, grades = { { grade, p } } }   MineTemper's weights
+	  charm  { kind, grades = { { grade, p, n } } } the chest ladder (MineCharms)
+
+	nil for an unknown case. tools/verify/trader.js rolls rollCase against it.
+]]
+function MineTrader.caseOdds(caseOrId)
+	local c = type(caseOrId) == "table" and caseOrId or MineTrader.CASE_BY_ID[tostring(caseOrId or "")]
+	if type(c) ~= "table" then
+		return nil
+	end
+	if c.kind == "charm" then
+		return { kind = "charm", grades = (Charms.chestCharmOdds and Charms.chestCharmOdds()) or {} }
+	end
+	if c.kind == "hat" then
+		local order = Temper.GRADE_ORDER or { "F" }
+		local weights = Temper.RARITY_WEIGHTS or {}
+		local total = 0
+		for _, g in ipairs(order) do
+			total += math.max(0, tonumber(weights[g]) or 0)
+		end
+		local grades = {}
+		for i, g in ipairs(order) do
+			local w = math.max(0, tonumber(weights[g]) or 0)
+			-- No weight at all: rollCase pays the first grade.
+			local p = (total > 0) and (w / total) or ((i == 1) and 1 or 0)
+			table.insert(grades, { grade = g, p = p })
+		end
+		return { kind = "hat", grades = grades }
+	end
+	local lo = math.max(1, math.floor(tonumber(c.tierLo) or 1))
+	local hi = math.max(lo, math.floor(tonumber(c.tierHi) or lo))
+	local tiers, families = {}, {}
+	for t = lo, hi do
+		table.insert(tiers, { tier = t, p = 1 / (hi - lo + 1) })
+	end
+	for _, f in ipairs(MineTrader.TOOL_FAMILIES) do
+		table.insert(families, { id = f, p = 1 / #MineTrader.TOOL_FAMILIES })
+	end
+	return { kind = "tool", tierLo = lo, tierHi = hi, tiers = tiers, families = families }
+end
+
+--[[
+	A TRADER CASE SPINS (owner, 2026-10-19: every case "up to 5 slot spins at a
+	time"; MineCaseStack). The server rolls the case (rollCase) and grants it;
+	the reel MineGradeReveal spins is built around what it granted, at
+	REEL_WIN_AT, and every other tile is drawn by rollCase itself, so the reel
+	shows what this case really pays and how often. The spin decides nothing.
+]]
+MineTrader.REEL_LENGTH = 44
+MineTrader.REEL_WIN_AT = 38
+
+local function softRequire(name)
+	local ok, mod = pcall(function()
+		return require(script.Parent:WaitForChild(name))
+	end)
+	return ok and mod or nil
+end
+
+--[[
+	One reel tile for a reward: { id, rarity (F..SSS), name, icon?, catalogId? }.
+	`made` is what the server actually granted (the hat piece, the charm def), so
+	the winning tile is that very hat; without it a hat tile draws a catalog hat
+	of its grade, the way a gear crate does (MineGear.catalogFor).
+]]
+function MineTrader.reelRow(reward, made, rng)
+	if type(reward) ~= "table" then
+		return { id = "?", rarity = "F", name = "?" }
+	end
+	if reward.kind == "charm" then
+		local def = made or (Charms.byId and Charms.byId(reward.charmId))
+		return {
+			id = reward.charmId, name = reward.name or (def and def.name) or "Charm",
+			rarity = Temper.normalizeRarity(reward.rarity) or "F",
+			icon = (def and type(def.art) == "string" and def.art ~= "") and def.art or nil,
+		}
+	end
+	if reward.kind == "hat" then
+		local cat = made
+		if not cat then
+			local Gear = softRequire("MineGear")
+			cat = Gear and Gear.catalogFor and Gear.catalogFor("hat", reward.rarity, nil, rng) or nil
+		end
+		return {
+			id = (cat and (cat.hatId or cat.id)) or "hat",
+			name = (cat and (cat.itemName or cat.name)) or "Hat",
+			rarity = Temper.normalizeRarity(reward.rarity) or "F",
+			catalogId = cat and tonumber(cat.catalogId) or nil,
+		}
+	end
+	local C = softRequire("MineConfig")
+	local ores = (C and C.ORES) or {}
+	local ore = ores[math.clamp(math.floor(tonumber(reward.tier) or 1), 1, math.max(1, #ores))]
+	local fam = reward.familyId or MineTrader.TOOL_FAMILIES[1]
+	local Icons = softRequire("MineIcons")
+	return {
+		id = fam,
+		name = ((ore and ore.name) or "Tool") .. " " .. string.upper(string.sub(fam, 1, 1)) .. string.sub(fam, 2),
+		-- A tool's grade is its ore's band, on the same ladder as every reel.
+		rarity = Temper.normalizeRarity(ore and ore.band) or "F",
+		icon = Icons and Icons.forTool and Icons.forTool({ familyId = fam, tier = (ore and ore.tier) or reward.tier }) or nil,
+	}
+end
+
+-- The reel for one opened case: `win` (reelRow of the granted reward) at
+-- REEL_WIN_AT, every other tile a fresh rollCase. Returns rows, REEL_WIN_AT.
+function MineTrader.caseReel(caseOrId, win, rng)
+	local c = type(caseOrId) == "table" and caseOrId or MineTrader.CASE_BY_ID[tostring(caseOrId or "")]
+	rng = rng or Random.new()
+	local rows = {}
+	for i = 1, MineTrader.REEL_LENGTH do
+		if i == MineTrader.REEL_WIN_AT then
+			table.insert(rows, win)
+		else
+			table.insert(rows, MineTrader.reelRow(c and MineTrader.rollCase(c, rng), nil, rng))
+		end
+	end
+	return rows, MineTrader.REEL_WIN_AT
 end
 
 return MineTrader

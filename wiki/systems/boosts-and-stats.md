@@ -33,7 +33,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
   - `backpack` and `walkSpeed`, retired 2026-10-04;
   - `echo`, paid out as swing rate at `ECHO_TO_SWING`;
   - `autoMine`, paid out as gem find at `AUTO_MINE_TO_GEM`.
-- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach and coolant: kept off pet kits. (shortFuse left the list on 2026-10-16 so a few pets can carry it.) With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
+- **Restricted stats.** `MineStats.RUNE_ONLY` is blastRadius, reach and coolant: kept off pet kits. (shortFuse left the list on 2026-10-16 so a few pets can carry it.) Since 2026-10-19 `MineStats.NAMED_PET_OK` (blastRadius only) lets a *named* pet's own kit carry one anyway: PROPOSAL §0 line 6 keeps blastRadius on at most 30 pets, and the two Halloween Crater pets carry it ([pets](pets.md)). Families, traits and legacy prints still drop it. With runes gone, reach comes from the Reach enchant and the tree, and coolant and shortFuse only from the skill tree (open: [traits](traits.md)). `MineStats.PET_ONLY` is mineSpeed, luckyFind and scrap.
 
 **Stat keys are data.** Keys are saved on gear (`piece.stat`, `piece.stats`) in live player saves (and were on runes, until 2026-10-12).
 - **Renaming a key is a save migration** (`docs/START-HERE.md` §4.4).
@@ -58,7 +58,7 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
        (`oreTool` / `oreTier`; look-rung is 0 — fixed `b0c2430`).
        Equipped `MineSkins` kits are added into **layer 1** earlier in the
        same function (not only via `applyTemper`).
-  6. **The proc gate, folds and floors.** Echo is folded into swing rate and autoMine into gem find, and the auto-mine licence is applied. `Dig.Enchants.gateProcs` keeps only the Special enchant's proc family ([enchants](enchants.md)). Then `MineCards.clampBoosts` applies **floors only**: every `ADDITIVE_STATS` stat ≥ 0, multipliers ≥ 0.05, `swingSec` ≥ 0.05.
+  6. **The proc gate, folds and floors.** Echo is folded into swing rate and autoMine into gem find, and the auto-mine licence is applied. `Dig.Enchants.gateProcs` keeps only the Special enchant's proc family (a Spellbook keeps none and casts them by turns), and holds proc damage to its ceiling ([enchants](enchants.md)). Then `MineCards.clampBoosts` applies **floors only**: every `ADDITIVE_STATS` stat ≥ 0, multipliers ≥ 0.05, `swingSec` ≥ 0.05.
 
 **The three luck channels** (TODO 6.2). Generic `luck` remains the shared base that prestige, VIP, the pass, skills and the Umbra set feed. Two channel stats multiply on top of it, and chest luck reuses an existing stat:
 
@@ -71,7 +71,11 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 **Caps.** `MineStats` states "No magnitude caps", and `clampBoosts` only floors. The real limits are applied where each stat is used:
 - blast, tidal wave, shatter (`ricochet`) and earthquake chances are clamped to ≤ 1 in `Dig.procsAt`. They are a probability; there is no other cap (owner: price, don't cap);
 - zap is deliberately not clamped;
-- `procPower` ≤ `MineConfig.PROC_POWER_CAP 3.0`;
+- `procPower` ≤ `MineConfig.PROC_POWER_CAP 3.0`, and since 2026-10-19 Proc Power plus the live
+  proc family's own damage (`blastDamage`, `tideDamage`, `zapDamage`, `shatterDamage`) ≤ +300% together
+  (`MineEnchants.gateProcs`, `TUNING.procDamageCap`; the overflow from a chance over 100% lands in the
+  own damage, which had no ceiling: [enchants](enchants.md));
+- blastRadius has no balance cap, but a bomb's radius never passes `MinePatterns.MAX_BLAST_RADIUS` (6 cells, PROPOSED 2026-10-19): a server-safety ceiling, since cells grow as r³ and an SSS Inferno hat alone is +350%;
 - the forever-tool power cap is `foreverPowerCap`.
 
 **Potions** are `MinePotions.DEFS`: 25 potions, 5 stats × 5 tiers.
@@ -113,8 +117,9 @@ related: [mining-and-breaking, rebirth-and-skill-tree, pets, traits, hats-and-fa
 
 ## State right now
 - The two layers are **only partly wired** (`docs/OPEN.md` §10).
-  - **MineSkins** enter `T1` from `p.skinEquipped[fam]` while that family is
-    held. **Legacy family tempers** still apply after the layers through
+  - **MineSkins** enter `T1` from the skin `equippedTool` stamped on the held
+    row (`skinId`): the skin worn on that family, on any tool of it, event
+    tools included (since 2026-10-19; [skins-cases-and-temper](skins-cases-and-temper.md)). **Legacy family tempers** still apply after the layers through
     `MineTemper.applyTemper` (forged tools included since `b0c2430`). Shop
     tool rows are not a separate boost source.
   - **The skill filter** passes 5 keys out of the ~20 the tree grants.

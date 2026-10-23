@@ -1,36 +1,27 @@
 --[[
 	MineTrickOrTreat -- the Candy Crypt's case, bought with candy.
 
-	Owner, 2026-10-10: "Collect some and you can trade it in for Trick or Treat
-	cases and pull seasonal packs, skin cases, hat cases, Extremely rare
-	halloween bucket."
+	Owner, 2026-10-19 ("Candy Crypt v2", wiki/open-questions.md): the case pays
+	"pets and skins only (no candy, no tools; charms come from chests only)";
+	"the win says its rarity, then a 50/50 wheel with the reward in its middle:
+	TREAT you get it, TRICK you get nothing. Only this case gets the wheel."
 
-	WHY THIS IS NOT A MineCases CASE. A MineCases case holds PACKS and nothing
-	else -- open one and packs land in your bag. This one has to pay four
-	different KINDS of thing (a pack, a hat, a skin, a bag), so it is its own
-	roll. It still behaves like a case everywhere it matters: one id, bought
-	once, opened once, and every outcome is a thing the game already knows how
-	to grant.
+	SO ONE OPEN IS THREE ROLLS, ALL ON THE SERVER, ALL BEFORE ANYTHING IS SHOWN:
+	  1. the RARITY (RARITIES weights), 1 = Common / F .. 8 = Exotic / SSS
+	  2. the KIND, a Halloween pet or a Halloween skin (KIND_WEIGHTS), and then
+	     WHICH one of that rarity (MineCryptRules.casePrize picks it from the
+	     Halloween pets and the Halloween skin set)
+	  3. the WHEEL: TREAT_CHANCE says you get it, else TRICK and nothing
+	MineCrypt sends the rarity, the reward and the outcome in one push
+	(`trickOrTreatOpened`), so the client shows the rarity, then spins the
+	wheel with the reward in its middle and lands where the server already did.
 
-	WHAT IT PAYS, and where each pool actually comes from:
+	`roll` is pure: a plain description, no side effects, no Instances, so it
+	can be tested and replayed. `odds` is the sheet a paid random buy shows
+	before it is bought (MineLuckyOddsView's rule).
 
-	  candy    a partial refund, so a bad open is not a dead open
-	  hat      MineHats.DROP_BY_GRADE / FACE_BY_GRADE, the live hat pool
-	  skin     a temperament roll -- in this codebase a "skin" IS a temper
-	           (wiki: systems/skins-cases-and-temper)
-	  pack     the seasonal pack, IF one is registered -- see PACK_ID below
-	  bucket   the Trick-or-Treat Bucket (MineBags), the chase
-
-	THE SEASONAL PACK SLOT IS CONDITIONAL ON PURPOSE. The Halloween 2026 Pack
-	does not exist yet; it is queued in the rewards pass. Rather than block the
-	whole case on it, `resolvedPack()` looks the id up at roll time and the
-	weight table drops the slot when it is missing, folding its chance into the
-	hat slot. The day that pack is registered the case starts paying it with no
-	change here. A case that silently paid nothing for one slot would be worse
-	than one that never had the slot.
-
-	EVERY NUMBER HERE IS PROPOSED (2026-10-10): the price, the weights, the
-	refund band and the bucket's rarity.
+	The owner's numbers are the 50/50 and the two prize kinds. The price, the
+	rarity weights and the pet / skin split are PROPOSED (2026-10-19).
 ]]
 local MineTrickOrTreat = {}
 
@@ -38,127 +29,152 @@ MineTrickOrTreat.CASE_ID = "trick_or_treat_case"
 MineTrickOrTreat.NAME = "Trick-or-Treat Case"
 MineTrickOrTreat.CURRENCY = "candy"
 
---[[
-	Priced off the candy a mid-depth section actually pays, so the case costs
-	roughly a section's work rather than a number picked in a vacuum. Section 6
-	candy ore pays 243 x its own base, and a case should be a handful of those.
-]]
-MineTrickOrTreat.PRICE = 2500
-
--- The pack this case wants to pay. Not required to exist.
+-- The Halloween set the case's pets come from: the Halloween 2026 Pack's
+-- (its set key is the pack's id). The case no longer pays the pack itself.
 MineTrickOrTreat.PACK_ID = "halloween_2026"
 
 --[[
-	Weights, not percentages, so a missing slot can be removed without the rest
-	needing to be renormalised by hand.
+	THE ONE TABLE OF CASE NUMBERS (PROPOSED 2026-10-19, except the 50/50).
 
-	The bucket is 1 in 1,000 openings. It is the only permanent thing in the
-	mine and the event runs three weeks, so it should be a story rather than a
-	milestone -- and because it is a BAG, a player who never sees one has lost
-	nothing they needed.
+	  PRICE         candy. About a quarter of an hour of block and chest candy at
+	                mid depth (dig section 6 in docs/CANDY-CRYPT.md §4), and a
+	                few minutes if you also sell your candy ores.
+	  TREAT_CHANCE  owner: 50/50.
+	  KIND_WEIGHTS  a Halloween pet or a Halloween skin. Pets lead: there are
+	                many more of them to collect, and skins repeat (a skin you
+	                own pays stardust instead, as a chest skin does).
+	  RARITIES      the rarity roll. `pet` and `skin` are the two ladders' names
+	                for the same rung (pets Common .. Exotic, skins F .. SSS).
 ]]
-MineTrickOrTreat.WEIGHTS = {
-	candy = 520,
-	hat = 300,
-	skin = 150,
-	pack = 29,
-	bucket = 1,
+MineTrickOrTreat.PRICE = 4000
+MineTrickOrTreat.TREAT_CHANCE = 0.5
+MineTrickOrTreat.KIND_WEIGHTS = { pet = 70, skin = 30 }
+MineTrickOrTreat.KIND_ORDER = { "pet", "skin" }
+MineTrickOrTreat.RARITIES = {
+	{ pet = "Common", skin = "F", weight = 40 },
+	{ pet = "Uncommon", skin = "D", weight = 25 },
+	{ pet = "Rare", skin = "C", weight = 15 },
+	{ pet = "Epic", skin = "B", weight = 10 },
+	{ pet = "Legendary", skin = "A", weight = 6 },
+	{ pet = "Mythic", skin = "S", weight = 2.5 },
+	{ pet = "Divine", skin = "SS", weight = 1.2 },
+	{ pet = "Exotic", skin = "SSS", weight = 0.3 },
+}
+for i, r in ipairs(MineTrickOrTreat.RARITIES) do
+	r.index = i
+end
+
+MineTrickOrTreat.LABEL = {
+	pet = "A Halloween pet",
+	skin = "A Halloween skin",
+	treat = "TREAT",
+	trick = "TRICK",
 }
 
--- Candy back, as a fraction of the price. A refund that beat the price would
--- make the case a currency printer.
-MineTrickOrTreat.REFUND = { lo = 0.15, hi = 0.60 }
+local function sum(t)
+	local s = 0
+	for _, v in pairs(t) do
+		s += tonumber(v) or 0
+	end
+	return s
+end
+
+-- A rarity rung by index (1..8), or nil.
+function MineTrickOrTreat.rarity(index)
+	return MineTrickOrTreat.RARITIES[math.floor(tonumber(index) or 0)]
+end
 
 --[[
-	Is the seasonal pack registered yet? Looked up lazily and defensively:
-	MinePackConfig requires half the pack system, and this module is required by
-	the shop, so a hard require at load would be a cycle waiting to happen.
+	THE ODDS SHEET: every rarity with its chance, split by kind, plus the wheel.
+	Every `pct` is out of 100 and is the chance of being SHOWN that prize; the
+	chance of KEEPING it is that times `treat` (both are on the sheet, so the
+	50/50 is never hidden).
+
+	  { price, currency, treat = 0.5,
+	    kinds = { { kind = "pet", pct }, { kind = "skin", pct } },
+	    rows  = { { index, pet, skin, pct, petPct, skinPct, keepPct }, ... } }
 ]]
-function MineTrickOrTreat.resolvedPack()
-	local ok, Packs = pcall(function()
-		return require(script.Parent:WaitForChild("MinePackConfig"))
-	end)
-	if not ok or type(Packs) ~= "table" then
-		return nil
+function MineTrickOrTreat.odds()
+	local wTot = 0
+	for _, r in ipairs(MineTrickOrTreat.RARITIES) do
+		wTot += r.weight
 	end
-	local byId = Packs.PACK_BY_ID
-	if type(byId) ~= "table" then
-		return nil
+	local kTot = sum(MineTrickOrTreat.KIND_WEIGHTS)
+	local kinds = {}
+	for _, k in ipairs(MineTrickOrTreat.KIND_ORDER) do
+		table.insert(kinds, {
+			kind = k,
+			label = MineTrickOrTreat.LABEL[k],
+			pct = (kTot > 0) and (MineTrickOrTreat.KIND_WEIGHTS[k] / kTot * 100) or 0,
+		})
 	end
-	return byId[MineTrickOrTreat.PACK_ID] and MineTrickOrTreat.PACK_ID or nil
+	local rows = {}
+	for _, r in ipairs(MineTrickOrTreat.RARITIES) do
+		local pct = (wTot > 0) and (r.weight / wTot * 100) or 0
+		table.insert(rows, {
+			index = r.index,
+			pet = r.pet,
+			skin = r.skin,
+			pct = pct,
+			petPct = pct * ((kTot > 0) and MineTrickOrTreat.KIND_WEIGHTS.pet / kTot or 0),
+			skinPct = pct * ((kTot > 0) and MineTrickOrTreat.KIND_WEIGHTS.skin / kTot or 0),
+			keepPct = pct * MineTrickOrTreat.TREAT_CHANCE,
+		})
+	end
+	return {
+		id = MineTrickOrTreat.CASE_ID,
+		name = MineTrickOrTreat.NAME,
+		price = MineTrickOrTreat.PRICE,
+		currency = MineTrickOrTreat.CURRENCY,
+		treat = MineTrickOrTreat.TREAT_CHANCE,
+		kinds = kinds,
+		rows = rows,
+	}
 end
 
--- The live weight table: the pack slot is dropped, and its weight handed to
--- hats, whenever no seasonal pack is registered.
-function MineTrickOrTreat.weights()
-	local w = {}
-	for k, v in pairs(MineTrickOrTreat.WEIGHTS) do
-		w[k] = v
-	end
-	if not MineTrickOrTreat.resolvedPack() then
-		w.hat = (w.hat or 0) + (w.pack or 0)
-		w.pack = nil
-	end
-	return w
+local function num(rng)
+	return (rng and rng.NextNumber) and rng:NextNumber() or math.random()
 end
 
 --[[
-	Roll one open. Returns a plain table the server acts on, never an Instance
-	and never a side effect, so the roll can be tested and replayed:
-
-	  { kind = "candy",  amount = n }
-	  { kind = "hat",    id = "..." }
-	  { kind = "skin" }                 -- server runs its own rollTemperament
-	  { kind = "pack",   id = "..." }
-	  { kind = "bucket" }
+	One open, as a plain description:
+	  { rarityIndex = 1..8, pet = "Common", skin = "F", kind = "pet" | "skin",
+	    outcome = "treat" | "trick" }
+	WHICH pet or skin is chosen by the caller from that rarity
+	(MineCryptRules.casePrize), so this stays free of the pet roster.
 ]]
 function MineTrickOrTreat.roll(rng)
-	local function num()
-		return (rng and rng.NextNumber) and rng:NextNumber() or math.random()
+	local wTot = 0
+	for _, r in ipairs(MineTrickOrTreat.RARITIES) do
+		wTot += r.weight
 	end
-	local w = MineTrickOrTreat.weights()
-	local order = { "candy", "hat", "skin", "pack", "bucket" }
-	local tot = 0
-	for _, k in ipairs(order) do
-		tot += (w[k] or 0)
-	end
-	if tot <= 0 then
-		return { kind = "candy", amount = math.floor(MineTrickOrTreat.PRICE * MineTrickOrTreat.REFUND.lo) }
-	end
-	local pick = num() * tot
-	local chosen = "candy"
-	for _, k in ipairs(order) do
-		pick -= (w[k] or 0)
+	local pick = num(rng) * wTot
+	local rung = MineTrickOrTreat.RARITIES[1]
+	for _, r in ipairs(MineTrickOrTreat.RARITIES) do
+		pick -= r.weight
 		if pick <= 0 then
-			chosen = k
+			rung = r
 			break
 		end
 	end
-
-	if chosen == "candy" then
-		local r = MineTrickOrTreat.REFUND
-		local frac = r.lo + num() * (r.hi - r.lo)
-		return { kind = "candy", amount = math.max(1, math.floor(MineTrickOrTreat.PRICE * frac + 0.5)) }
-	elseif chosen == "hat" then
-		--[[
-			No id, on purpose. A hat in this game is a GEAR PIECE rolled by
-			Gear.rollPiece(id, rng, "head") -- not a MineHats id you can name
-			here. MineHats is the catalogue the roller draws from; picking from
-			it directly would produce something the wardrobe has never seen.
-			So the case says "a hat" and the server rolls it the one way
-			everything else does.
-		]]
-		return { kind = "hat" }
-	elseif chosen == "skin" then
-		return { kind = "skin" }
-	elseif chosen == "pack" then
-		local id = MineTrickOrTreat.resolvedPack()
-		if not id then
-			return { kind = "hat" }
+	local kTot = sum(MineTrickOrTreat.KIND_WEIGHTS)
+	local kpick = num(rng) * kTot
+	local kind = MineTrickOrTreat.KIND_ORDER[1]
+	for _, k in ipairs(MineTrickOrTreat.KIND_ORDER) do
+		kpick -= MineTrickOrTreat.KIND_WEIGHTS[k] or 0
+		if kpick <= 0 then
+			kind = k
+			break
 		end
-		return { kind = "pack", id = id }
 	end
-	return { kind = "bucket" }
+	local outcome = (num(rng) < MineTrickOrTreat.TREAT_CHANCE) and "treat" or "trick"
+	return {
+		rarityIndex = rung.index,
+		pet = rung.pet,
+		skin = rung.skin,
+		kind = kind,
+		outcome = outcome,
+	}
 end
 
 return MineTrickOrTreat

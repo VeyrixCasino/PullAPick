@@ -65,7 +65,9 @@ declaration-order trap (HANDOFF §2.3).
 - Every client request arrives as `net:FireServer(action, payload)` and is handled
   by **one** `net.OnServerEvent:Connect(function(plr, action, payload)`. That
   handler is one long `if action == "…" elseif …` **string compare**. At
-  `26036a0` it has **142 distinct action strings**. There is no Remotes type system
+  `26036a0` it had **142 distinct action strings**; at `b4aa4ed` (2026-10-19) it has
+  **132** (counted with `grep -oE 'action == "[A-Za-z0-9_]+"' | sort -u`). Prefix
+  routers (`fish*`) and enchant callbacks handle more. There is no Remotes type system
   (START-HERE §5).
 - Handler order:
   1. `swing` takes a fast path: no lock, `pcall(swingBlock, …)`.
@@ -75,7 +77,12 @@ declaration-order trap (HANDOFF §2.3).
      attribute is set) and refuses `discordLink`. The paid-random list is
      `Verbs.PAID_RANDOM`. On 2026-10-12 it lost `buyScroll`, `rollRune`,
      `fuseRune`, `buyCrate` and `buyPouch` (rune-era verbs, now deleted) and
-     gained `enchBuyBundle`, the Forge's gem book bundle.
+     gained `enchBuyBundle`, the Forge's gem book bundle. On 2026-10-19 (launch
+     audit M3) it gained `buyTraderCase`, and two **function** entries, which
+     `policyBlocks(plr, action, payload)` calls with the request: `buyProductCredits`
+     (only a deal or product that pays something random,
+     `MineRotatingOffers.isRandomBuy`) and `groupWheelSpin` (only a spin that would
+     spend a bought spin; free spins always work). A rule that errors blocks.
   4. The branch runs inside a `pcall`. An error goes to `warn("[Mine] …")`.
 - 57 of the 141 branch lines call `Verbs.x` on the same line. The rest call
   file-local functions (`buy`, `equip`, `openAt`, `swingBlock`…), call
@@ -103,6 +110,7 @@ event names. The client handles them in a single `net.OnClientEvent` ladder.
 | `snapshot` | the full player view, sent by `snap(plr)`. `markDirty` batches these to at most 10 a second. |
 | `toast` | a text notice. About 437 call sites. |
 | `loot`, `purchaseFx`, `opened`, `foundTool` | feedback for rewards |
+| `temperCase`, `caseSpins` | case reels the server built around its own winners: one, or a list of up to five that spin stacked (`caseSpins`, 2026-10-19: Temperament Cases, the bundle, trader cases) |
 | `seamGate`, `openElevator`, `openPanel`, `confirmSellAll` | ask the client to open a UI |
 
 ## Round trips are named differently on each side

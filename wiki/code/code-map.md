@@ -74,8 +74,9 @@ Other ReplicatedStorage contents:
 
 - `src/ReplicatedStorage/ToolModelFactory.luau`: 108 KB of procedural tool models.
   It is live, with about 65 files referring to it.
-- `src/ReplicatedStorage/Mine/NewGear/`: the hat and face catalog, with 420 `.rbxm`
-  files. `MineInventoryView` reads it.
+- `src/ReplicatedStorage/Mine/NewGear/`: the prototype hat and face list (not wired to
+  drops), with 420 `.rbxm` files. `MineInventoryView` uses only its `NG.icon` thumbnail
+  helper; the collection lists the live drops (`MineHats.dropCatalog`, 2026-10-19).
 - `Mine/PetModels` (43 `.rbxm`), `Mine/BagModels` (2), `Mine/ToolPreviews` (11),
   `ToolKitMeshes/{Swing,Drill,Explosive}` (102 `.rbxm`).
 - `Mine/Remotes/` is an empty folder in git. `MineNet` and the `Admin*` remotes are

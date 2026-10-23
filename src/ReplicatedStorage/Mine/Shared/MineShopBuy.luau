@@ -98,7 +98,8 @@ function MineShopBuy.buySurface(plr, p, payload, deps)
 	p.chestTool = nil
 	givePickaxe(plr)
 	giveBackpackModel(plr)
-	if introAdvance then introAdvance(plr, p, 3) end
+	-- The tutorial's step 3 is FORGE your first tool now (MineServer Intro); a
+	-- coin purchase no longer clears it, the first craft does.
 	net:FireClient(plr, "toast", "Bought " .. (row.name or toolId))
 	snap(plr)
 	return true

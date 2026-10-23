@@ -37,7 +37,7 @@ related: [README, overview, owner, SCHEMA, log]
 
 **The build**
 - [boosts-and-stats](systems/boosts-and-stats.md): stat keys, the two boost layers, luck, caps, potions
-- [charms](systems/charms.md): ore charms, shapes, merging, legacy charms
+- [charms](systems/charms.md): one rarity per charm, tiers I–V by merging, ore charms, shapes, legacy charms, the graded charms, Charm Packs, the Halloween charms
 - [skins-cases-and-temper](systems/skins-cases-and-temper.md): F…SSS tempers, ore cases, grade reveal
 - [grades-and-stars](systems/grades-and-stars.md): every grade ladder → ★½ map, and `MineStars`
 - [traits](systems/traits.md): tool traits and runes, retired 2026-10-12, and what replaced each payout
@@ -52,11 +52,13 @@ related: [README, overview, owner, SCHEMA, log]
 - [enchants](systems/enchants.md): three slots per tool, books, merging, the Special proc gate, the player level
 - [fishing](systems/fishing.md): spots, fish, the replayed reel fight, bait cap, rods and prestige, the cooler, the tuning bot
 - [grades-and-stars](systems/grades-and-stars.md): the shared ★½ ladder for every grade display (MineStars)
-- [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md): section chests, ranks, lucky blocks
+- [chests-and-lucky-blocks](systems/chests-and-lucky-blocks.md): F–SSS chests, the set chests, what a chest pays, lucky blocks
 - [world-events](systems/world-events.md): Event Horizon, Event Pass, World Pulse
 - [trading](systems/trading.md): the trade flow, pricing, the "pawning to new players" concern
 - [social-quests-and-leaderboards](systems/social-quests-and-leaderboards.md): quests, Job Board, leaderboards, group wheel, Discord
 - [shops-and-monetisation](systems/shops-and-monetisation.md): every shop, Robux products, VIP vs Founders, battle pass
+- [wandering-traders](systems/wandering-traders.md): five rotating token shops at depth outposts, seven cases, the till
+- [season-and-launch](systems/season-and-launch.md): the season clock that waits for the owner's launch switch
 - [admin-and-debug](systems/admin-and-debug.md): admin panel, anti-gear, dev-only code
 - [retired-and-parked](systems/retired-and-parked.md): what is gone but must not be renamed, and the cut list
 
@@ -68,7 +70,7 @@ related: [README, overview, owner, SCHEMA, log]
 - [candy-style](code/candy-style.md): **the UI house style. Read before touching any UI.** Kit, colours, motion, honest wins, checklist.
 - [save-data-and-migrations](code/save-data-and-migrations.md): DataStores, save shape, every migration
 - [rojo-and-studio](code/rojo-and-studio.md): the Rojo mapping, place-only content, syncback, the loss matrix
-- [verify-suite](code/verify-suite.md): all 36 checks, `suite.sh`, `syntax.sh`, how to add one
+- [verify-suite](code/verify-suite.md): all 45 checks, `suite.sh`, `syntax.sh`, how to add one
 - [tools-and-generators](code/tools-and-generators.md): generators, one-off scripts, calculators
 - [assets-and-uploads](code/assets-and-uploads.md): group upload rules, icons, `build/`
 - [luau-traps](code/luau-traps.md): nine traps that have cost days. **Read before editing Luau.**

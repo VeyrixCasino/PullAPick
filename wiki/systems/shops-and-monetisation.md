@@ -2,9 +2,11 @@
 title: Shops and monetisation
 type: system
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
+  - tools/verify/deal-odds.js
+  - tools/verify/cart-box.js
   - src/ReplicatedStorage/Mine/Shared/MineShopBuy.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopEconomy.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopLadders.luau
@@ -43,10 +45,10 @@ related: [currencies-and-economy, cards-and-packs, chests-and-lucky-blocks, tool
 | shop | where | paid in | code |
 |---|---|---|---|
 | **Shop panel** | world shop pad | ore (Forge), coins (backpacks) | `MineShopView`, with tabs Forge (`bench`), Ore Pouch, Backpacks, Secrets. The Pickaxes, Drills and Explosives tabs were removed in `9733a05`. |
-| **Depth desks** | seam outposts (`Machine=depth_shop`) | coins | `MineDepthShop`, `MineDepthShopView` (Deeprock and Shadowzone themes) |
+| **Depth desks** | seam outposts (`Machine=depth_shop`) | gems (bags); space coins (Event Horizon tools) | `MineDepthShop`, `MineDepthShopView` (Deeprock and Shadowzone themes). Since 2026-10-19 (audit S3) the catalog leaves out the coin tools the till refuses and the Founders Rig, and prices bags at `MineBags.gemPrice` in gems. |
 | **Event Horizon tools** | `bigbang` shop | space coins | `MineHorizonTools` via `MineShopBuy.buyEvent` |
 | **Inventory → Shop** | menu | credits; stardust for the Stardust tab | `MineInventoryView` tabs home, box, limited, packs, dust, currencies, vip |
-| **Rotating offers** | Shop → Limited | credits or Robux | `MineRotatingOffers` (3 slots, season 2026-09-22 → 2026-11-01 ET) |
+| **Rotating offers** | Shop → Limited | credits or Robux | `MineRotatingOffers` (3 slots, on the season clock: 47 days from launch, see [season-and-launch](season-and-launch.md)) |
 
 Since 2026-10-12 the Blacksmith counter opens the Forge hub, whose BAGS and COIN
 SHOP buttons lead back to the old shop's shelves ([client-and-ui](../code/client-and-ui.md)).
@@ -54,8 +56,10 @@ SHOP buttons lead back to the old shop's shelves ([client-and-ui](../code/client
 **Coin-shop tools.** `MineShopLadders` sells 10 tools per zone on the surface
 plus 3 per depth desk: "19 per zone · 190 shop tools total", per its header.
 `MineShopEconomy` prices them in "hauls". They are bought one rung at a time
-(`MineShopBuy.buySurface`). Backpacks cost coins, except the Robux top rung,
-the Founders Rig (`patron_rig`). At a seam desk, selling pays `DEPTH_SELL_FRAC`
+(`MineShopBuy.buySurface`). Backpacks cost **gems** (`MineBags.gemPrice`), except
+the top rung, the Founders Rig (`patron_rig`): **799 credits**, labelled in credits
+and bought with two taps (owner, 2026-10-19, audit M4; the shelf said "BUY 799
+Robux" and took credits in one tap). At a seam desk, selling pays `DEPTH_SELL_FRAC`
 0.78.
 
 **The credits store.** It runs through `buyCart`. Payment is `p.credits`, at
@@ -66,9 +70,23 @@ the Founders Rig (`patron_rig`). At a seam desk, selling pays `DEPTH_SELL_FRAC`
   credit-bought wild case can roll Chaos Theory (SSS), at 0.5% of its slots.
   The old card packs (Hopper to Shiny) came off
   it (owner: *"clear out the credit shop… of all the unused packs"*). Prices
-  are PROPOSED; see [pack-cases](pack-cases.md);
-- Build-a-Box: any 10 items from that same shelf, at 12% off;
+  are PROPOSED; see [pack-cases](pack-cases.md). `MinePackConfig.priceOf` answers
+  **only for today's shelf** (audit S7, 2026-10-19): it read the old `PACK_PRICE`
+  table first, so a crafted cart could still buy retired card and gear packs;
+- Build-a-Box: any 10 items from that same shelf, at 12% off, and **ten of one
+  pack at the 10x bundle's 30%** (owner, 2026-10-19, audit S8: "Box of 10 gets 30%
+  off"). One function, `MinePackConfig.boxPrice`, is charged and printed. A box
+  line's quantity buttons buy that many boxes: `buyCart` charged boxPrice x qty
+  and granted one box until 2026-10-19; it grants every box it charges for now
+  (`tools/verify/cart-box.js`);
 - lucky blocks (`MineLuckyBlocks.SHOP`).
+
+**One checkout at a time** (audit S1, 2026-10-19). CONFIRM stayed live while
+"Confirming", so a second tap sent the same cart again and charged twice. CONFIRM
+now waits for the server's answer (or 20 s), and every order carries an id
+(`token`, kept on the cart until it is paid) that `buyCart` refuses a second time
+(`Dig.cartPaid`). One request was always one charge: priced first, then a single
+debit with nothing that yields in between, under the per-player busy lock.
 
 Until 2026-10-12 it also had a SCROLLS shelf (White, Black, Omniscroll and the
 Runesmith Package). Those were rune tools, so they went with runes
@@ -110,7 +128,9 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     anyway). XP comes from quests only: dailies 100, contracts 120, chain rungs
     80 and milestones 70. Doing every daily and contract is ~660 a day, so about
     12 days, and about two weeks for a kid who plays most days. The season is
-    still 28 days, `PASS_SEASON_ID` "2026-10".
+    still 28 days, `PASS_SEASON_ID` "2026-10". After it ends the pass **pauses**
+    (no XP, claims or premium sales) until the owner ships the next track
+    (`MineScrolls.NEXT_TRACK`); see [season-and-launch](season-and-launch.md).
   - **The tier classes** (`MineScrolls.tierClass`):
 
     | class | tiers | free | premium |
@@ -161,7 +181,47 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
   299, auto_mine 499, founders, and pet_slot (retired). **Every one has
   `productId = 0`**, so none can be bought with Robux until ids are pasted in.
   Most can be bought with credits (`buyProductWithCredits`), up to
-  `CREDIT_BUY_LIMIT` 3 times each.
+  `CREDIT_BUY_LIMIT` 3 times each. `lucky_charm` and `lucky_block_pet` are
+  refused there ("That offer moved"); Pot of Gold sells the charm. The Starter
+  Bundle popup (`ClientFns.offerStarter`) lists what `starter_bundle` grants, read
+  off its row: the bag rung, the coins and a Common Meadow pet (audit S5; it drew
+  packs and gems the bundle never gave).
+- **Limited deals** (`MineRotatingOffers.OFFERS`, fixed 2026-10-19 from the launch
+  audit, §0e M7, M8, S4, S6):
+  - **Lucky Block Week** (599 credits, max 3) pays 5 Lucky, 3 Diamond and 1 Godly
+    block, the **Lucky Dice** pet (an Epic of Lost & Found, minted as a real card by
+    `Dig.mintDealPet`), and **8 wild cases** (3 ★★★★★, 2 ★★★★½, 3 ★★★★). It used to
+    write `ownedPets.lucky_block`, which nothing read, and pay the Heirloom, Omen and
+    Shiny packs retired on 2026-10-10. The cases match the old packs within 2% on
+    recycle value (83,403 vs 82,072 stardust) and list price (505 vs 502 credits).
+    The pet and the mix are PROPOSED.
+  - **Countdowns read the season clock** (`secondsLeft`, `nextOfferIn`, `clockText`).
+    They subtracted `os.time()` from season-clock ends, so every deal said "ends 0d
+    0h"; the header said 40 days left (the season is 47, `SEASON_END`); the home
+    banner counted to UTC midnight though offers change weekly.
+  - No blurb names a date ("all season", not "through Oct 31").
+  - **At its max** a deal's button reads "MAX 3/3" (the snapshot carries
+    `dealBuys`), the client will not prompt Robux for it, and a Robux receipt that
+    still arrives pays the deal's credit price back (`Dig.creditBack`, PROPOSED)
+    instead of saying "granted" and giving nothing.
+  - `tools/verify/deals.js` runs the real module and pins all of the above.
+  - **Pot of Gold** (599 credits, max 1) pays the 200% Luck charm, 8 Shiny Packs
+    (Meadow Legendary packs, all shiny at luck x3), 2 Fortune Flasks and **7 wild
+    cases** (1 ★★★★½, 3 ★★★★, 2 ★★★, 1 ★★½; owner, 2026-10-19, "Use all
+    defaults"). It paid 3 Heirloom and 2 Omen packs, retired on 2026-10-10; the
+    cases that replace them recycle for 27,374 stardust against 27,071 (+1.1%) and
+    list at 255 credits against 257. The **Weekend Haul** product
+    (`MineConfig.PRODUCTS.weekend_haul`) pays 2 ★★★★★ and 1 ★★★½ cases for its
+    Heirloom, Shiny and Omen: 35,044 against 34,148 stardust (+2.6%), 195 against
+    196 credits. Both are paid cases (`Verbs.grantPacks`' `paid`). The mixes are
+    PROPOSED. `tools/verify/deal-odds.js` reruns the maths on the real modules.
+  - **Odds before you buy.** A deal with lucky blocks or cases has an ODDS button:
+    `MineRotatingOffers.oddsSheet` reads each block's `MineLuckyBlocks.oddsSheet`,
+    the cases' `MineCases.wildGradeOdds(true)` and `levelOdds`, and the Shiny
+    Packs' own odds at luck x3 (`MinePackConfig.siphonOdds`), drawn by
+    `MineLuckyOddsView.sheet`.
+  - **The Founders Bag takes two taps on the Limited tab too**, the Founders Rig's
+    confirm: the first arms it ("TAP AGAIN"), and a second within 4 s buys.
 - **Receipts.** `MarketplaceService.ProcessReceipt` saves `p.receipts[PurchaseId]`
   *before* it reports a grant, so a retried receipt is never paid twice. It keeps
   the newest 100. The grant itself is `Verbs.grantReceipt`.
@@ -178,10 +238,14 @@ building for each trade: forge, depot, arcane, works, spire, board, rotunda.
     `MineConfig.effectivePetSlots` clamps every player to 3 (TODO §0.24).
 - **Founders Pack** (`MineFounders`, stored as `p.vip.since`).
   - **Price:** 799 credits, or the Founders gamepass.
-  - **What it gives:** 3 enchant books (`MineFounders.BOOKS`), the Founder tag
-    VFX, and +5% luck in `boosts`. Until 2026-10-12 it gave a White Scroll. Swapping
-    in 3 books was an assistant default when scrolls were retired, **not** an
-    owner decision.
+  - **What it gives:** the **Founders Bag** (owner, 2026-10-19, audit M6:
+    `MineFounders.grant` calls `opts.grantBag`, which is `Dig.grantFoundersBag`: the
+    rig's rung, `foundersBag`, worn, with its model, the same as buying the bag),
+    3 enchant books (`MineFounders.BOOKS`), the Founder tag VFX, and +5% luck in
+    `boosts`. Until 2026-10-12 it gave a White Scroll. Swapping in 3 books was an
+    assistant default when scrolls were retired, **not** an owner decision. The
+    card's "WHAT IT GRANTS" list says so, and no longer points at a bag picker
+    (there is none: nothing in the UI fires `equipBag`).
   - **Seats:** `VIP_SEATS` 500 per *server*, reset whenever that server restarts.
   - **The name clash.** MineServer's `isVip(p)` and `MinePackConfig.VIP_PRICE`,
     `MinePackConfig.VIP_SEATS` and `MinePackConfig.VIP_DISCOUNT` mean **Founders**, not the VIP gamepass.

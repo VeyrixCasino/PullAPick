@@ -257,10 +257,15 @@ function MineOrePouch.stackValue(ore, count)
 end
 
 -- Everything in the pouch, summed. The number capacity is measured against.
+-- Candy ores do not count (Candy Crypt v2, 2026-10-19): during the event they
+-- live in the Halloween inventory, and the ones that move into `p.ores` when
+-- it ends must not fill the pouch and stop a player mining ore.
 function MineOrePouch.held(ores)
 	local total = 0
-	for _, n in pairs(ores or {}) do
-		total += math.max(0, math.floor(tonumber(n) or 0))
+	for id, n in pairs(ores or {}) do
+		if not MineOrePouch.isCandy(id) then
+			total += math.max(0, math.floor(tonumber(n) or 0))
+		end
 	end
 	return total
 end
@@ -294,11 +299,79 @@ function MineOrePouch.sortLabel(key)
 end
 
 --[[
+	CANDY ORES ARE NOT ORE (owner, 2026-10-19).
+
+	A candy block in the Candy Crypt drops its candy ore into the Halloween
+	inventory while the event runs (MineCrypt, p.halloween.ores), and those move
+	into `p.ores` when it ends (Candy Crypt v2). In `p.ores` a candy ore is shown
+	with a rarity band (MineConfig.CANDY_ORES rows carry `band`), takes NO pouch
+	room (held, above), and NEVER sells for gems: SELL ALL skips it below, and
+	Verbs.sellOre already refuses any id that is not in the roster. Candy ores
+	sell for CANDY, through MineCrypt.
+]]
+function MineOrePouch.isCandy(id)
+	return C.candyOreById ~= nil and C.candyOreById(id) ~= nil
+end
+
+--[[
+	"SELL UP TO" (owner, 2026-10-19): SELL ALL takes a ceiling, so a player can
+	clear the commons without touching the rest. Each option is a band name,
+	meaning that band and everything below it; "Everything" is every band, which
+	is what SELL ALL always did. Locked ores and candy ores are never sold,
+	whatever the ceiling. The client remembers the choice (the server keeps it
+	in p.settings.oreSellUpTo) and asks first.
+]]
+MineOrePouch.SELL_UP_TO = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Everything" }
+MineOrePouch.SELL_UP_TO_LABEL = {
+	Common = "Common",
+	Uncommon = "+Uncommon",
+	Rare = "+Rare",
+	Epic = "+Epic",
+	Legendary = "+Legendary",
+	Everything = "Everything",
+}
+
+-- The highest band index a ceiling sells, or nil for "Everything" (no cap).
+-- Anything unrecognised reads as Everything, which is what SELL ALL meant
+-- before there was a ceiling.
+function MineOrePouch.sellUpToIndex(upTo)
+	if upTo == nil or upTo == "" or upTo == "Everything" then
+		return nil
+	end
+	local idx = C.ORE_BAND_INDEX and C.ORE_BAND_INDEX[tostring(upTo)]
+	if not idx then
+		for i, b in ipairs(C.ORE_BAND_ORDER or {}) do
+			if b == upTo then
+				idx = i
+				break
+			end
+		end
+	end
+	return idx
+end
+
+-- Is `upTo` one of SELL_UP_TO? (The server keeps only a valid one.)
+function MineOrePouch.validSellUpTo(upTo)
+	for _, v in ipairs(MineOrePouch.SELL_UP_TO) do
+		if v == upTo then
+			return true
+		end
+	end
+	return false
+end
+
+--[[
 	Rows for the pouch screen, sorted and filtered.
 
 	`ores` is the id -> count map. `opts.sort` is one of SORTS, `opts.band`
 	filters to one rarity band, and `opts.hideEmpty` drops rows at zero (on by
 	default: a pouch listing all 82 ores, most of them empty, is a wall).
+
+	`opts.includeCandy` adds the candy ores (off by default, so a screen that
+	has not been taught about them sees exactly what it always did). A candy row
+	carries `candy = true`, `unit = 0` and `value = 0` (gems: it never sells for
+	any), and `candyUnit` / `candyValue`, what it sells for in candy. Its `tier`
+	is its place on the candy ladder, 1..16.
 ]]
 function MineOrePouch.rows(ores, locks, opts)
 	opts = opts or {}
@@ -320,6 +393,29 @@ function MineOrePouch.rows(ores, locks, opts)
 				value = unit * n,
 				locked = (locks or {})[ore.id] and true or false,
 			})
+		end
+	end
+	if opts.includeCandy then
+		for _, ore in ipairs(C.CANDY_ORES or {}) do
+			local n = math.max(0, math.floor(tonumber((ores or {})[ore.id]) or 0))
+			local bandOk = (not opts.band) or opts.band == "" or ore.band == opts.band
+			if bandOk and ((not hideEmpty) or n > 0) then
+				local each = C.candyOreValue and C.candyOreValue(ore) or 0
+				table.insert(out, {
+					id = ore.id,
+					name = ore.name or ore.id,
+					tier = tonumber(ore.rank) or 1,
+					band = ore.band,
+					bandIndex = tonumber(ore.bandIndex) or 1,
+					n = n,
+					unit = 0,
+					value = 0,
+					candy = true,
+					candyUnit = each,
+					candyValue = each * n,
+					locked = (locks or {})[ore.id] and true or false,
+				})
+			end
 		end
 	end
 	local key = tostring(opts.sort or "rarity")
@@ -353,20 +449,39 @@ end
 	All can sit behind one confirmation instead of a prompt per row: the ores a
 	player would hate to lose are the ones they locked, and the button cannot
 	touch them.
+
+	A CANDY ORE IS NEVER SOLD HERE EITHER (2026-10-19). It sells for candy, not
+	gems; before this it would have gone for 1 gem a unit, because gemValue
+	floors an unknown id at 1. `candyUnits` reports how many were skipped.
+
+	`upTo` is the SELL UP TO ceiling (a band name, or nil / "Everything"). With
+	a ceiling, only roster ores at or below it sell; "Everything" also sells an
+	id the roster no longer knows, at gemValue's floor, exactly as before.
 ]]
-function MineOrePouch.sellAllPlan(ores, locks)
+function MineOrePouch.sellAllPlan(ores, locks, upTo)
 	local gems, units, rows = 0, 0, {}
+	local candyUnits, abovePlan = 0, 0
+	local cap = MineOrePouch.sellUpToIndex(upTo)
 	for id, raw in pairs(ores or {}) do
 		local n = math.max(0, math.floor(tonumber(raw) or 0))
 		if n > 0 and not (locks or {})[id] then
-			local ore = C.oreById(id)
-			local got = MineOrePouch.stackValue(ore, n)
-			gems += got
-			units += n
-			table.insert(rows, { id = id, n = n, gems = got })
+			if MineOrePouch.isCandy(id) then
+				candyUnits += n
+			else
+				local ore = C.oreById(id)
+				local band = ore and tonumber(ore.bandIndex)
+				if cap and not (band and band <= cap) then
+					abovePlan += n
+				else
+					local got = MineOrePouch.stackValue(ore, n)
+					gems += got
+					units += n
+					table.insert(rows, { id = id, n = n, gems = got })
+				end
+			end
 		end
 	end
-	return { gems = gems, units = units, rows = rows }
+	return { gems = gems, units = units, rows = rows, candyUnits = candyUnits, aboveUnits = abovePlan }
 end
 
 return MineOrePouch

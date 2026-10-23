@@ -23,6 +23,17 @@ sources:
   - src/StarterPlayer/StarterPlayerScripts/MineClient.client.luau
   - tools/verify/pet-spring.js
   - tools/verify/petskins.js
+  - tools/verify/pet-identity.js
+  - tools/verify/cards-tab.js
+  - src/ReplicatedStorage/Mine/Shared/MineEnchants.luau
+  - src/ReplicatedStorage/Mine/Shared/MineInventoryView.luau
+  - src/ReplicatedStorage/Mine/Shared/MineHalloweenPets.luau
+  - src/ReplicatedStorage/Mine/Shared/HolidayPets/Halloween2026.luau
+  - tools/gen/holiday-pets.js
+  - tools/gen/holiday/halloween_2026.json
+  - tools/verify/holiday-pets.js
+  - tools/verify/halloween-power.js
+  - tools/cursor/tasks/halloween-pet-bodies.md
   - docs/TODO.md §0.24
   - docs/TODO.md §0.19
   - docs/TODO.md §6.2
@@ -43,7 +54,15 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
 - **Seats.** You own cards in `p.cards`, and the ones out are `p.equipped`. `MineConfig.MAX_PET_SLOTS` =
   `STARTER_PET_SLOTS` = 3, and `MineConfig.effectivePetSlots` clamps to 3..3. A save that
   bought up to eight seats is clamped on load and keeps every pet. `PET_SLOT_PRICE`
-  `{0,0,0}` survives only so old rows still resolve. VIP's fourth seat is gone.
+  `{0,0,0}` survives only so old rows still resolve. VIP's fourth seat is gone, and since
+  2026-10-19 (launch audit M5) the Cards tab's team rail draws only the real seats
+  (`petSlotsEffective`): its fourth box said "GET VIP" and opened the VIP pass.
+- **The Cards tab keeps its faces** (2026-10-19, launch audit S35). Each card face is a
+  ViewportFrame with a whole pet model, and the tab rebuilt every one on every redraw (each
+  equip tap, search keystroke and snapshot). `MineInventoryView` now keeps faces by card id
+  (`faces`) and repaints one only when the card's fields or `opts.cardFaceKey` (pets out and
+  the held tool's proc, `ClientFns.cardFaceKey`) change. Closing the window drops them, and
+  a reveal over the tab defers its redraw. Checked by `tools/verify/cards-tab.js`.
 - **Boost path.** `Dig.petRows` runs `MineCards.applyKit(one, card, cardPower(card), n)`
   for each pet, where `n` is the number of pets out, and keeps only what the pet adds.
   `MineGear.stackPets` sums the pets and `Dig.layer2` adds the gear, giving layer 2.
@@ -67,10 +86,36 @@ related: [cards-and-packs, boosts-and-stats, hats-and-faces, traits, world-event
     `tools/verify/zone-pets.js` fails if any of them comes back.
 - **Identity: every pet also has a family and a pet trait.** `MineCards.applyIdentity`
   adds a `FAMILY` boost (8 types, for example Fire "Forge Heart" +22% damage) and a
-  **pet trait** from `MineCards.TRAITS`. There are 12, hashed from (setId, index) or from the name.
+  **pet trait** from `MineCards.TRAITS` (12). Both come from `MineCards.familyTrait`, which the
+  server's pay (`applyKit`) and the card's lines (`describe`) both read.
+  - **A named pet hashes its name and home** (owner, 2026-10-19, launch audit S32: *re-roll
+    each pet's family and trait from its name*). The key is its stack key,
+    `MinePetRoster.cardKeyOf(name)` (`"<home>:<name>"`), so a copy from a pack, the wheel, a
+    lucky block or Event Horizon agrees. It is FNV-1a plus murmur3's finaliser, picking from
+    `FAMILY_ORDER` and `TRAITS`, whose order is load-bearing.
+  - Until then `MineSetPacks.petCard` minted every pack pet with `index = 1` and a home not in
+    `MineCards.SETS`, so every one was family "Crystal" (Facet Eye), with one trait per length of
+    the home's id. Test saves re-rolled; the game was not open.
+  - Across the 3,336 roster pets: the largest family is 13.5%, the largest trait 9.5%, and all
+    96 family-trait pairs occur (`tools/verify/pet-identity.js`).
+  - **A print of the 41 legacy sets** (a real `(setId, index)` in `MineCards.SETS`, with no
+    named kit) keeps the identity that pair always gave it.
+  - The card's family pill, the Type sort and the search read `MineCards.familyOf`, not the
+    stored `typeId`, which every named pet still carries as "Crystal".
   Lone Wolf pays only when that pet is your only one; Squad Bond scales with the number of *other* pets.
+  The card text reads the same count the server pays on (`#p.equipped`), since 2026-10-19
+  (S33): `ClientFns.cardContext` passes the team, or for a card not out, the team it would make.
   Pet traits **stay**: when tool traits were retired on 2026-10-12, the owner chose to
   retire only the tool kind. The retired tool trait is a different thing ([traits](traits.md)).
+- **Lines the Special gate zeroes say so** (2026-10-19, S34). A Zap line on a Blast tool pays
+  nothing ([enchants](enchants.md)), and the card now dims it with "needs a Zap Special". On a
+  **Spellbook** tool (a Halloween Special, 2026-10-19) every family's line is zeroed -- the book picks
+  the ability, not the pets -- and `liveFamily` reads `"spell"`, so each such line says "needs a Zap
+  Special" (or Blast, ...) while generic proc damage still pays; Equip Best seats plain stats there.
+  `MineCards.describe(card, pow, n, gate)` returns a note per line from `MineEnchants.gateNote`,
+  using `familyOfStat`, the map `Dig.petShares` scores pets by. The live family is read off the
+  server's gated boosts (`MineEnchants.liveFamily`). A family or trait line with a plain stat
+  beside the proc keeps its colour and says "Zap part needs a Zap Special".
 
 ## Roster
 
@@ -252,8 +297,13 @@ body is kept out of every pot without editing a list.
 - **Halloween 2026 added ten:** Bat, Mummy, Zombie, Vampire, Cauldron, Candy Corn, Scarecrow,
   Haunted Lantern (`lantern`), Frankenstein and Eyeball. `PetModelFactory.HALLOWEEN` lists all
   15 Halloween bodies, and the display draws them as a block.
-- **They are bodies, not pets yet.** A Halloween 2026 Pack is the only way one should ever reach
-  a player. The owner's brief (60 Halloween pets, an event mine) is in [next-up](../next-up.md).
+- **Twelve more are still to build** (owner, 2026-10-19: *"12 more, new bodies"*): `bonedragon`,
+  `imp`, `grimoire`, `bogmonster`, `gargoyle`, `werewolf`, `crystalball`, `gravestone`, `raven`,
+  `potion`, `broomstick`, `hauntedhouse`. A Cursor job (`tools/cursor/tasks/halloween-pet-bodies.md`)
+  puts them in `PetBodies/Halloween*.luau`, the one PetBodies file name allowed a season tag
+  (`tools/verify/set-pets.js`). Until a body exists its pet wears the existing Halloween body its
+  ANIMALS row names as `fallback`: `PetModelFactory` swaps it in when it merges the holiday skins,
+  so no pet falls through `resolveSpecies` to the fox.
 - **Penguin lost its Christmas tag** (2026-10-10). It is an everyday animal worn by 22 ordinary
   pets, and the tag would have pulled them all out of the game.
 - **Mind FIT_SIZE.** It scales a model so its LARGEST dimension fits 2.5 studs, so wide wings or
@@ -290,9 +340,9 @@ pick; this session made them). They are a second pack in `HolidayPets/`:
 
 ## Holiday pets: Halloween 2026
 
-**The Halloween 2026 Pack** (`halloween_2026`) pays **60 new pets** plus the three
-older Halloween pets (Spindle, Spooky, Wisp), which until now had no source.
-The names sheet is `docs/HOLIDAY-PETS.md` (generated).
+**The Halloween 2026 Pack** (`halloween_2026`) pays **72 pets** (the 60 below and
+the 12 of 2026-10-19) plus the three older Halloween pets (Spindle, Spooky, Wisp),
+which until then had no source. The names sheet is `docs/HOLIDAY-PETS.md` (generated).
 - **Owner, 2026-10-10:** *"make it 60 halloween pets [keep the specaltiy ones as
   as rare ones, and for the others just make them normal cards with a costume]"*.
   The owner chose the split and the power:
@@ -316,7 +366,50 @@ The names sheet is `docs/HOLIDAY-PETS.md` (generated).
   set pack, case or shop sees it. Serials 0xC00-0xCFF.
 - **Checked by** `tools/verify/holiday-pets.js` (counts, names, looks, bodies,
   kits, the holiday stamp, the wiring).
-- **Buffs (PROPOSED):** Luck, Lucky Block find and Shatter; every proc is Shatter.
+- **Buffs (PROPOSED):** Luck, Lucky Block find and Shatter; every proc on the 60 is Shatter.
+
+**Candy Crypt v2 (owner, 2026-10-19; [open-questions](../open-questions.md)).** Three
+decisions, all in the same generator (`extraPets`, `topBeat` in the JSON):
+- **Twelve more on new bodies** (*"12 more, new bodies"*). PROPOSED split Epic 4 /
+  Legendary 3 / Mythic 2 / Divine 2 / Exotic 1, names and bodies in the names sheet.
+  Serials 0xC40-0xC4B, after the pass pets, so no older serial moved. Each wears its
+  `fallback` body until its own is built (see "Holiday bodies" above). Their look's name
+  is the JSON label, so building the body never renames a minted card's `animal`.
+- **Mythic+ are 20% better than the best normal pet, even after the event** (*"20%"*).
+  "Better" is `MineCards.boostScore` at Normal, power level 1 (kit points ×
+  `RARITY_MULT`), the number the "best pets" sort uses. The generator finds the best
+  pet that is not a Halloween pet (today Segfault, Chaos Theory's Exotic, 722.1) and
+  lifts each Halloween Mythic+ to `TOP_BEAT` × it: **PROPOSED Mythic 1.2, Divine 1.3,
+  Exotic 1.4**, so a rarer Halloween pet still beats a commoner one. Kits round up, so
+  the rule survives rounding. A stronger normal pet makes the module stale, and
+  regenerating lifts the Halloween pets over it again. The five older Mythic+ keep their
+  stats and shares (Webster becomes +352% Luck at Normal).
+- **Builds nothing else allows** (*"a big blast radius, or a high proc chance"*). Every
+  new Mythic+ spends its whole budget on its own `kit` shares, one ability family each,
+  with no calm pass:
+
+  | build | pets | what it does (at Normal) |
+  |---|---|---|
+  | Crater | Boomjaw (X), Sparkplug (D) | **Blast Radius**, on no other pet: +36.5% and +33.9%, so a radius-2 bomb becomes radius 3, and 4 with the Fire tree; plus about 22% Blast Chance, which keeps Blast the live proc on a bomb |
+  | Hex Storm | Hexbolt (D) | 58.7% Zap Chance (best normal pet 40.1%) |
+  | Bog Tide | Bogsplash (M) | 39.0% Tidal Wave (best normal 26.4%) |
+  | Gravequake | Thudwing (M) | 43.3% Earthquake (best normal 34.0%) |
+  | Shatter | Rattlebones (D, one of the 60) | the rule lifts its Shatter to 48.7% (best normal 37.4%) |
+
+  The Special gate still applies ([enchants](enchants.md)): a proc build needs that
+  Special. A bomb takes no Special, so the gate keeps your gear's best proc; wear a
+  tide-heavy skin on bombs (the Halloween set leans Tidal Wave) and Crater's radius
+  switches off. PROPOSAL §0 line 6 keeps `blastRadius` on at most 30 pets, so
+  `MineStats.NAMED_PET_OK` lets a named kit carry it; `MinePatterns.MAX_BLAST_RADIUS`
+  (6, PROPOSED) bounds the bomb.
+- **`MineHalloweenPets`** answers for the Crypt and its case: `pool(rarity)` (the
+  pack's 72 as roster rows, then the older three, Spindle, Spooky and Wisp; owner,
+  2026-10-19: *"Yes"* to the Crypt paying them, so 75 in all),
+  `isHalloween(card)` (any copy, any source), `rowOf`, `buildOf`, `card(row)` (stacks
+  on `halloween_2026:<name>`).
+- **Checked by** `tools/verify/halloween-power.js` on the real modules: the rule on
+  `boostScore`, the skins' 20% ([skins](skins-cases-and-temper.md)), the contract,
+  the twelve building today, their identity from name and home, and the builds.
 
 ## Event Horizon pets
 
@@ -462,7 +555,11 @@ sync.
 - **PROPOSAL §0 lines 3–8 (approved 2026-10-05):**
   - **Built for every named pet, 2026-10-10.** The ladder is Common 34 … Exotic 150.
     Blast is on 25 of 773 pets, Rare or better only. No pet carries
-    `blastRadius`, `procPower`, `backpack` or `walkSpeed`.
+    `procPower`, `backpack` or `walkSpeed`.
+  - **Line 6, "blastRadius on pets: keep 26, cap 30"**, reads as a count (at most 30
+    pets). The 2026-10-10 build dropped it from every kit; since 2026-10-19 the two
+    Halloween Crater pets carry it (`MineStats.NAMED_PET_OK`), checked by
+    `tools/verify/halloween-power.js`.
   - **Not built: line 4, the variant stack.** That is Rainbow 1.6 / Shadow 1.25 /
     PL25 1.25, for a perfect Exotic at 375. Code today is Rainbow 5.5 and
     `SHADOW_MULT` 3.
@@ -491,16 +588,18 @@ sync.
   adds 19 including the 4 neon, and `sprite` ships its motes in the body
   itself. A connectivity audit that flags these is reporting FX, so check the
   builder before "fixing" a gap.
-- **Pet blastRadius pays nothing.** `MineCards.addStat` drops anything in
-  `MineStats.RUNE_ONLY` (blastRadius, reach, coolant, shortFuse), so no kit carries one
-  any more (the generator bans them). The table is named for runes, which were retired
-  on 2026-10-12, but it is kept because this filter is its job now. With runes and
-  tool traits gone, coolant and shortFuse come only from the skill tree
-  ([open-questions](../open-questions.md)).
+- **Most pet blastRadius pays nothing.** `MineCards.addStat` drops anything in
+  `MineStats.RUNE_ONLY` (blastRadius, reach, coolant), and the generators ban them. The
+  one exception (2026-10-19) is a named pet's own kit carrying a stat in
+  `MineStats.NAMED_PET_OK` (only blastRadius, only the Halloween Crater pets): families,
+  traits and the legacy prints still drop it (501 prints roll a blastRadius line that
+  pays nothing). The table is named for runes, which were retired on 2026-10-12, but it
+  is kept because this filter is its job now. With runes and tool traits gone, coolant
+  comes only from the skill tree ([open-questions](../open-questions.md)).
 - **Pet traits and families carry retired stats.** Pack Lord and Cart Push carry backpack;
   Afterimage and Heavy Yield carry walkSpeed; Echo Strike's echo is paid as swing rate; the Earth and Water
-  families carry backpack. The comment on `MineCards.TRAITS` says **its order is load-bearing**:
-  reordering it gives every pet a different trait.
+  families carry backpack. The comments on `MineCards.TRAITS` and `FAMILY_ORDER` say **their order
+  is load-bearing**: reordering either gives every pet a different trait or family.
 - The `MineGear` header comment and `MineGear.hatMeansLine` still describe hats multiplying pets.
   That was the behaviour before §0.19.
 

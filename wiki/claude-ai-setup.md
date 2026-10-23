@@ -2,7 +2,7 @@
 title: Using this wiki from Claude.ai (Projects and preferences)
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - CLAUDE.md
 related: [owner, index, ambiguous-terms]
@@ -11,8 +11,8 @@ related: [owner, index, ambiguous-terms]
 # Using this wiki from Claude.ai
 
 > Claude Code reads `CLAUDE.md` and the hook in `.claude/settings.json` on its
-> own. **Claude.ai chats read neither.** To get the same behaviour there (ask
-> first when you are broad, and know the game), paste the blocks below once.
+> own. **Claude.ai chats read neither.** To get the same behaviour there (hound
+> you with questions so nothing is ever unclear, and know the game), paste the blocks below once.
 > The UI labels may move, but the content stays the same.
 
 ## 1. Personal preferences: applies to every Claude.ai chat
@@ -20,11 +20,14 @@ related: [owner, index, ambiguous-terms]
 Claude.ai → Settings → Profile → the personal-preferences box. Paste:
 
 ```
-When my request is broad or you are not sure what I mean, ask me 1-4 short
-questions before doing the work. Give each question concrete options with your
-recommended default first, in plain language. If the request is clear and small,
-just do it. If I say "just do it" or "you decide", go with your defaults and list
-the assumptions at the end.
+Hound me with questions so nothing is EVER unclear. If you would otherwise be
+guessing what I want or mean, ask, however small. Before any non-trivial work,
+restate what you think I want in 1-3 lines, then ask every question you need in
+one batch: grouped by topic, multiple choice, your recommended default first, no
+cap on how many, plain language. Wait for my answers, and ask again if they open
+new doubts. If I say "just do it" for a task, go with your defaults and list your
+assumptions at the end. When you finish, say what you assumed and ask what is
+still unclear.
 
 I am on Windows PowerShell: never give me commands with && or <placeholders>;
 one command per line, real quoted paths.
@@ -46,14 +49,19 @@ pages for whatever you are working on. Re-sync after big merges.
 You are helping the owner of "Mine For Cards" (Roblox, repo VeyrixCasino/PullAPick).
 The project knowledge holds an LLM-maintained wiki. Start from index.md.
 
-Ask before you assume:
-- If my request is broad ("fix the economy", "make packs fun", "rebalance"),
-  ambiguous, uses a word listed in ambiguous-terms.md without context (tool,
-  pack, level, tier, shop, gear, boost, trait, seam, layer...), or needs a
-  number or taste call I have not made, ask 1-4 short questions with options
-  and your recommended default BEFORE answering in full.
-- Do the homework first: check the wiki so the question is specific.
-- Never re-ask a locked rule (owner.md, "Locked decisions"). Those are settled.
+Ask first, always. I want you to hound me with questions so nothing is EVER unclear:
+- If you would otherwise be guessing what I want or mean, ask, however small.
+  That includes broad requests ("fix the economy", "make packs fun", "rebalance"),
+  any word listed in ambiguous-terms.md used without context (tool, pack, level,
+  tier, shop, gear, boost, trait, seam, layer...), any number or taste call I
+  have not made, and anything hard to undo.
+- Do the homework first: check the wiki so each question is specific. Never ask
+  what the wiki or repo already answers.
+- Restate what you think I want in 1-3 lines, then ask every question you need
+  in one batch: grouped by topic, multiple choice, your recommended default
+  first, no cap. Wait for my answers before doing the work.
+- Never re-ask a locked rule (owner.md, "Locked decisions"), but do ask whether
+  one applies.
 
 Which source wins: my own words > locked rules (docs/TODO.md section 0, docs/PROPOSAL.md
 section 0) > the code > docs > roadmap > the wiki. The wiki can be stale; say

@@ -2,15 +2,18 @@
 title: Ore pouch and backpack
 type: system
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-19 @ 3863d14
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineOrePouch.luau
   - src/ReplicatedStorage/Mine/Shared/MineOrePouchView.luau
+  - src/ReplicatedStorage/Mine/Shared/MineForgeHub.luau
+  - tools/verify/crypt-ui.js
   - src/ReplicatedStorage/Mine/Shared/MineBags.luau
   - src/ReplicatedStorage/Mine/Shared/MineBagNames.luau
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - src/ReplicatedStorage/Mine/Shared/MineShopView.luau
   - src/ServerScriptService/Mine/MineServer.server.luau
+  - src/ServerScriptService/Mine/MineCrypt.luau
   - docs/TODO.md §0.12
   - docs/TODO.md §6.1
   - docs/PROPOSAL.md §0
@@ -41,22 +44,59 @@ related: [ores, forge-and-recycling, currencies-and-economy, rebirth-and-skill-t
 - **Selling mints gems.** `MineOrePouch.gemValue(ore) = floor(ORE_GEM_BASE 3 ×
   workOf^k)`, where `workOf = homeHp / mid-yield` (the rock HP the ore costs per
   unit). The exponent `k` is solved by `gemCompress` so that tier 82 is worth
-  `ORE_GEM_SPREAD` (1e6) × tier 1. Computed from the formulas (not run): about
-  5 gems at tier 1, 2.7K at tier 41 and 5.1M at tier 82.
+  `ORE_GEM_SPREAD` (1e4 in the code) × tier 1. The `MineOrePouch` header quotes
+  4 gems at tier 1, 279 at tier 41 and 42,727 at tier 82, measured off the
+  modules (at the old 1e6 they were 5, 2.7K and 5.1M).
 - **Selling verbs.** `Verbs.sellOre(oreId, count)` sells one row, even a locked
   one. `Verbs.sellAllOres` works in two calls: the first prices the sale and
   fires `confirmSellAll`; the second (`confirm = true`) applies it. Both build
-  the plan with `MineOrePouch.sellAllPlan`, which skips locked ores.
-  `Verbs.toggleOreLock` sets or clears a lock.
+  the plan with `MineOrePouch.sellAllPlan`, which skips locked ores **and candy
+  ores**. `Verbs.toggleOreLock` sets or clears a lock (candy ores too).
+- **Sell up to** (owner, 2026-10-19). `sellAllOres { upTo, confirm }` takes a
+  ceiling from `MineOrePouch.SELL_UP_TO` (Common, Uncommon, Rare, Epic,
+  Legendary, Everything; a band and everything below it). A valid one is
+  remembered in `p.settings.oreSellUpTo`; no `upTo` means Everything, what SELL
+  ALL always did. `confirmSellAll` now also carries `upTo` and `candyUnits`.
+- **Candy ores** (Candy Crypt v2, 2026-10-19). A Candy Crypt candy block drops its
+  candy ore's fixed amount (`MineConfig.CANDY_ORES`, `drop`) into the
+  **Halloween inventory** while the event runs (`p.halloween.ores`,
+  `MineCrypt.addCandyOre`, never into `oresSeen`), and they **move into
+  `p.ores` when the event ends**. In `p.ores` they **take no pouch room**
+  (`MineOrePouch.held` skips them), have a band for display (two per band) and
+  never sell for gems; they sell for **candy** through `cryptSellCandyOres`
+  (from wherever they live; ticked ores, or `all = true`, which skips locked
+  ones; same ask-then-confirm round trip, `cryptSellCandyConfirm`) and craft and
+  prestige the Halloween tools. `MineOrePouch.rows(..., { includeCandy = true })`
+  lists the ones in `p.ores` with `candy = true` and `candyUnit`.
 - **Upgrade with gems** through `Verbs.upgradeOrePouch`. `upgradeCost(n) =
   capacity(n) × gemValue(rungOre(n)) × RUNG_COST_SHARE 0.75`. The price is
   derived, not authored: it is three quarters of a full pouch of the ore you
   are plausibly mining at that rung. Computed: 7,500 gems for rung 1→2, 63K for
   2→3, 486K for 3→4, up to about 2.6e11 for 9→10.
-- **UI.** The shop tab "Ore Pouch" (`MineOrePouchView`) sorts by rarity, depth,
-  amount, value or name, filters by band, hides empty rows and has Sell All
-  behind a confirm. The Forge also shows a read-only pouch strip
+- **UI.** The pouch panel (`MineOrePouchView`, hosted by the old shop) sorts by
+  rarity, depth, amount, value or name, filters by band, hides empty rows and
+  has Sell All behind a confirm. The Forge also shows a read-only pouch strip
   ([forge](forge-and-recycling.md)).
+  - **How to open it (2026-10-19):** the Forge hub's **💎 SELL ORE** button
+    (`opts.onShop("pouch")` -> `ClientFns.routePanel("shop", "pouch")` ->
+    `shopCtl.setTab("pouch")`). From 2026-10-11 (when the shop lost its pouch
+    tab) to 2026-10-19 nothing could open it, so ore could not be sold for gems.
+    Intro step 15 names the same route (`panel = "shop", tab = "pouch"`) but is
+    not in `Intro.order`. It is not a tab on the old shop's rail (S13 keeps that
+    rail to Bags); `MineShopView`'s `forgeRoute` lets `pouch` through.
+  - **SELL UP TO:** a chip beside SELL ALL that cycles through
+    `MineOrePouch.SELL_UP_TO` on each tap, captioned by `SELL_UP_TO_LABEL`, like
+    the panel's filter and sort (a row of six chips cost a phone's ore list most
+    of its height). It starts on the remembered ceiling (`settings.oreSellUpTo`,
+    passed in as `sellUpTo`). SELL ALL asks with the ceiling and confirms with
+    the one the server priced (`confirmSellAll` carries `upTo`); the preview is
+    `sellAllPlan(ores, locks, upTo)`.
+  - **Candy ores** have their own section at the foot of the list, in the
+    Crypt's Halloween theme: a tick box per ore (a locked one shows 🔒 and cannot
+    be ticked), LOCK, and **SELL TICKED FOR CANDY**, which asks
+    `cryptSellCandyOres { oreIds }`, opens the dialog on `cryptSellCandyConfirm`'s
+    figures, and on YES resends the same ores with `confirm = true`. A locked
+    candy ore is never sent, so never sold (the server would sell a named one).
 - **Survives rebirth.** The rung, the contents, the locks and `oresSeen` all
   carry over (`tryPrestige`).
 
@@ -70,8 +110,9 @@ related: [ores, forge-and-recycling, currencies-and-economy, rebirth-and-skill-t
 - **Rungs.** `MineConfig.BACKPACKS = MineBags.LIST`, sorted by slots with at
   least 100 slots between rungs. A bag id is `bag_<index>`. Per zone there are
   16 surface satchels, 24 depth-desk packs and 6 fossil bags; across 10 zones
-  that is 460 bags, plus the Wormhole Bag and the Founders Rig (799 Robux,
-  infinite) = 462. Names come from `MineBagNames`.
+  that is 460 bags, plus the Wormhole Bag and the Founders Rig (infinite) = 462.
+  The rig is sold for 799 credits, in two taps (owner, 2026-10-19, audit M4), and
+  the Founders Pack grants it too (M6). Names come from `MineBagNames`.
 - **Price: the server charges gems.** It uses `MineBags.gemPrice(tier) = 100 ×
   1.08^(tier-1)`. Any rung can be bought in any order.
 - **What `cap(p)` adds up.** The bag's slots, `p.backpackBonus`, the retired
@@ -113,15 +154,18 @@ runs on every load, after the roster migrations:
   Deleting them would renumber every `bag_<index>` (TODO §0.12).
 - **`ORE_GEM_SPREAD` 1e6 → 1e4** (PROPOSAL §0 line 16), and the gemvault/warren
   prices should become 60 × the gem value of the zone's top ore (line 17).
-  **Decided, not shipped:** the code still has 1e6.
+  The spread **is 1e4 in the code** (`MineOrePouch.ORE_GEM_SPREAD`, pinned by
+  `tools/verify/gem-spread.js`); this page said 1e6 until 2026-10-19. Whether
+  the vault prices moved was not rechecked.
 - `backpack` is retired as a boost. Capacity comes only from the bag ladder and
   the pouch (TODO §0.21).
 
 ## State right now
 
-The pouch, its verbs and its UI are shipped, and so is legacy pack banking. The
-gem-spread retune is decided but not shipped. None of this has been tested in
-the engine.
+The pouch, its verbs and its UI are shipped, and so is legacy pack banking.
+SELL UP TO, the candy section and the SELL ORE door are built (2026-10-19) and
+pinned by `tools/verify/crypt-ui.js`, which also mounts the panel on a GUI
+stand-in and presses its buttons. None of this has been tested in the engine.
 
 ## Gotchas
 
@@ -151,8 +195,9 @@ the engine.
 
 - Should gem-bought backpack rungs and item slots survive rebirth? ROADMAP's
   Forge section proposes making them permanent; the code resets them.
-- When will the approved 1e4 spread land? Every gem price downstream moves with
-  it ([currencies-and-economy](currencies-and-economy.md)).
+- Where should the pouch live? It opens from the Forge hub's SELL ORE button
+  (2026-10-19); a dock button or a tab of its own are the alternatives (asked in
+  the Crypt client build report).
 
 ## See also
 

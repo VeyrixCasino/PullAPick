@@ -93,7 +93,8 @@ local HOLD_BY_RANK = {
 local HOLD_BY_BAND = { CHASE = 0.25, GOD = 0.50 }
 
 local function holdFor(card, band)
-	local rank = PackFX.rankOf(card, Cards, 0)
+	-- A find's finish lengthens the look like a better grade would (hypeRankOf).
+	local rank = card and card.hypeRarity and PackFX.hypeRankOf(card, Cards) or PackFX.rankOf(card, Cards, 0)
 	return math.max(HOLD_BY_RANK[rank] or 0, HOLD_BY_BAND[band] or 0)
 end
 
@@ -1328,8 +1329,9 @@ function MinePackReveal.mount(playerGui, opts)
 			if (band == "GOD" or band == "CHASE") and not skipAll then
 				titleL.Text = string.upper(tostring(card.name or ""))
 				titleL.TextColor3 = col
-				-- Legendary and up, or anything the odds call a god pull.
-				local rank = PackFX.rankOf(card, Cards)
+				-- Legendary and up, or anything the odds call a god pull. A find's
+				-- finish counts as the grade it is worth (hypeRankOf), as before.
+				local rank = PackFX.hypeRankOf(card, Cards)
 				if band == "GOD" or rank >= 5 then
 					showCrazy(col, band)
 				end
@@ -1595,7 +1597,13 @@ function MinePackReveal.mount(playerGui, opts)
 				askMore(1)
 			end)
 			if left > 1 then
-				local many = math.min(left, 10)
+				-- A case (a set case reveals here) opens at most five at a time
+				-- (MineCaseStack), so it never offers ten it would not open.
+				local okS, CaseStack = pcall(function()
+					return require(script.Parent:WaitForChild("MineCaseStack", 5))
+				end)
+				local cap = (okS and CaseStack and CaseStack.isCase(packId)) and CaseStack.MAX or 10
+				local many = math.min(left, cap)
 				button("OPEN " .. many .. "x", GOLD, Color3.fromRGB(28, 20, 8), function()
 					askMore(many)
 				end)

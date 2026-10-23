@@ -2,7 +2,7 @@
 title: Mine For Cards wiki — start here
 type: meta
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - CLAUDE.md
 related: [index, SCHEMA, overview]
@@ -42,13 +42,17 @@ You do not have to use the slash command; asking in plain words works too.
 
 ## "Ask me first"
 
-Claude is set up to **ask follow-up questions when a request is broad or
-unclear** instead of guessing. Three things make that happen:
+The owner's standing instruction (2026-10-08): **every agent hounds them with
+questions so nothing is ever unclear.** If an agent would otherwise be guessing
+what they want or mean, it asks, however small. Four things make that happen:
 
-- the "Ask before you assume" rules in `CLAUDE.md`
-- a reminder hook that runs on every prompt (`.claude/settings.json`)
+- the "Ask first, always" rules in `CLAUDE.md`, and the same rule in `AGENTS.md`
+  for Cursor, Codex and other tools
+- a reminder hook that runs on every prompt, and another that runs when a
+  subagent starts (`.claude/settings.json`)
 - [ambiguous-terms](ambiguous-terms.md), a list of the words in this project
   that mean more than one thing
+- `tools/verify/askfirst.js`, which fails the suite if any of these loses the rule
 
 If it ever asks too much or too little, tell it. That feedback goes into
 [owner](owner.md).

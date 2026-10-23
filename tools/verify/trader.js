@@ -301,8 +301,11 @@ print(fails == 0 and ">>> trader OK" or (">>> " .. fails .. " FAILED"))
     "the price comes from the shelf row, never from the payload");
   ok(/p\.temperTokens = \(tonumber\(p\.temperTokens\) or 0\) \+ price/.test(verb),
     "a case that cannot build its reward refunds instead of charging for nothing");
-  // Debit must come after the roll resolves, or a nil reward still costs.
-  const rollAt = verb.indexOf("Dig.Trader.rollCase("), debitAt = verb.indexOf("- price");
+  // Debit must come after the roll resolves, or a nil reward still costs. Since
+  // 2026-10-19 one to five cases open at once (MineCaseStack, case-stack.js):
+  // every one is rolled, then all of them are charged at once (`- total`).
+  const rollAt = verb.indexOf("Dig.Trader.rollCase("),
+    debitAt = verb.search(/p\.temperTokens = \(tonumber\(p\.temperTokens\) or 0\) - (price|total)\b/);
   ok(rollAt > -1 && debitAt > rollAt,
     "the reward is rolled before the tokens are taken",
     "debiting first means a failed roll is a paid-for nothing");

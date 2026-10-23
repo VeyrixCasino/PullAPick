@@ -2,7 +2,8 @@
 //
 //   1. the depth curve: x1 at a zone's top, x3 at its floor, front-loaded;
 //      Meadow and the event mines stay x1
-//   2. it lifts only the B/A/S ranks of a zone's pool (MineChestRanks `better`)
+//   2. it lifts the ranks from C up, the rarer the harder, and F and D get
+//      rarer (MineChestRanks `better` and LIFT; F..SSS since 2026-10-19)
 //   3. a chest's skin case: 3%, and a better rank shifts the tier ladder up
 //   4. wiring: the spawn, the open-time fallback and openChestBlock use it
 //
@@ -38,6 +39,7 @@ const hpBase = (depth.match(/MineDepth\.HP_BASE = ([\d.]+)/) || [])[1];
 const hpPer = (depth.match(/MineDepth\.HP_PER_LAYER = ([\d.]+)/) || [])[1];
 
 const harness = `
+Color3 = { fromRGB = function(r, g, b) return { R = r, G = g, B = b } end }
 Random = {}
 Random.__index = Random
 function Random.new(seed) return setmetatable({ s = (seed or 48611) % 2147483647 }, Random) end
@@ -70,24 +72,25 @@ for l = 1, 5000, 37 do
 	last = v
 end
 print("MONO " .. tostring(mono))
--- 2. The sunscar pool's rank shares at the top and the floor.
+-- 2. A zone's rank shares at the top and the floor (F..SSS, 2026-10-19): the
+-- odds, and a pool roll against them (two F rows split F's share).
 local pool = {
-	{ chestId = "a", rank = "C" }, { chestId = "b", rank = "C" }, { chestId = "c", rank = "C" },
-	{ chestId = "d", rank = "B" }, { chestId = "e", rank = "B" }, { chestId = "f", rank = "S" },
-	{ chestId = "g", rank = "B" }, { chestId = "h", rank = "A" }, { chestId = "i", rank = "D" },
+	{ chestId = "a", rank = "F" }, { chestId = "b", rank = "F" }, { chestId = "c", rank = "D" },
+	{ chestId = "d", rank = "C" }, { chestId = "e", rank = "B" }, { chestId = "f", rank = "A" },
+	{ chestId = "g", rank = "S" }, { chestId = "h", rank = "SS" }, { chestId = "i", rank = "SSS" },
 }
-local function shares(better)
-	local rng = Random.new(7)
-	local n = { S = 0, A = 0, B = 0, C = 0, D = 0 }
-	for _ = 1, 40000 do
-		local r = Ranks.roll(pool, rng, { luck = 1, better = better })
-		n[r.rank] += 1
-	end
-	return n
+local top, floor = Ranks.odds(1), Ranks.odds(3)
+local lifts = {}
+for _, r in ipairs(Ranks.LADDER) do table.insert(lifts, r .. "=" .. string.format("%.4f", floor[r] / top[r])) end
+print("LIFTS " .. table.concat(lifts, " "))
+local rng7, n, N = Random.new(7), {}, 200000
+for _ = 1, N do
+	local r = Ranks.roll(pool, rng7, { better = 3 })
+	n[r.rank] = (n[r.rank] or 0) + 1
 end
-local top, floor = shares(1), shares(3)
-print(string.format("RANKS top S%d A%d B%d C%d D%d floor S%d A%d B%d C%d D%d",
-	top.S, top.A, top.B, top.C, top.D, floor.S, floor.A, floor.B, floor.C, floor.D))
+local worst = 0
+for _, r in ipairs(Ranks.LADDER) do worst = math.max(worst, math.abs((n[r] or 0) / N - floor[r])) end
+print("POOLROLL " .. string.format("%.5f", worst))
 -- 3. Skin tiers by rank.
 local function line(rank)
 	local t = {}
@@ -98,6 +101,7 @@ print("SKIN_C " .. line("C"))
 print("SKIN_B " .. line("B"))
 print("SKIN_S " .. line("S"))
 print("SKIN_F " .. line("F"))
+print("SKIN_D " .. line("D"))
 do
 	local rng = Random.new(11)
 	local got, sss = 0, 0
@@ -129,21 +133,24 @@ check(get("FLAT") === "1.00 1.00 1.00 1.00", "Dirt Meadow, Event Horizon and an 
 check(get("MONO") === "true", "deeper is never worse");
 
 // 2. ranks
-const r = get("RANKS").match(/top S(\d+) A(\d+) B(\d+) C(\d+) D(\d+) floor S(\d+) A(\d+) B(\d+) C(\d+) D(\d+)/);
-if (r) {
-  const [tS, tA, tB, tC, tD, fS, fA, fB, fC, fD] = r.slice(1).map(Number);
-  console.log(`        sunscar pool, per 40,000 chests: top S ${tS} A ${tA} B ${tB} C ${tC} D ${tD}; floor S ${fS} A ${fA} B ${fB} C ${fC} D ${fD}`);
-  check(fS > tS * 2 && fA > tA * 2 && fB > tB * 2, "at the floor, S, A and B chests are more than twice as common");
-  check(fD < tD && fC < tC, "...and D and C chests are rarer (only the better ranks are lifted)");
+const lifts = Object.fromEntries(get("LIFTS").split(" ").filter(Boolean).map((kv) => kv.split("=")).map(([k, v]) => [k, Number(v)]));
+if (lifts.SSS) {
+  console.log(`        share at a zone's floor / at its top: ${get("LIFTS")}`);
+  const up = ["C", "B", "A", "S", "SS", "SSS"];
+  check(up.every((k, i) => lifts[k] > 1 && (i === 0 || lifts[k] > lifts[up[i - 1]])) && lifts.S > 2,
+    "at the floor every rank from C up is more common, the rarer the more (S more than twice)");
+  check(lifts.F < 1 && lifts.D < 1, "...and F and D chests are rarer (the common ranks are not lifted)");
+  check(Number(get("POOLROLL")) < 0.004, `a zone pool's roll draws those odds (worst gap ${get("POOLROLL")})`);
 } else check(false, "rank shares printed");
 
 // 3. skins
 const odds = (tag) => Object.fromEntries(get(tag).split(" ").map((kv) => kv.split("=")).map(([k, v]) => [k, Number(v)]));
-const sc = odds("SKIN_C"), sb = odds("SKIN_B"), ss = odds("SKIN_S"), sf = odds("SKIN_F");
-check(Math.abs(sc.F - 400 / 1000) < 1e-3 && Math.abs(sc.SSS - 4 / 1000) < 1e-3, "a C chest's skin case rolls SKIN_CASE_TIERS as written");
+const sc = odds("SKIN_C"), sb = odds("SKIN_B"), ss = odds("SKIN_S"), sf = odds("SKIN_F"), sd = odds("SKIN_D");
+check(Math.abs(sf.F - 400 / 1000) < 1e-3 && Math.abs(sf.SSS - 4 / 1000) < 1e-3, "an F chest's skin case rolls SKIN_CASE_TIERS as written");
+check(Math.abs(sc.F - 200 / 1000) < 1e-3 && sc.F < sf.F, "a C chest is half a tier up (half the ladder as written, half shifted one)");
 check(sb.F === 0 && Math.abs(sb.D - 400 / 996) < 1e-3, "a B chest starts the ladder one tier up (D at F's weight)");
-check(ss.F === 0 && ss.D === 0 && ss.C === 0 && ss.SSS > sc.SSS * 10, "an S chest starts at B, and its SSS share is over 10x a C chest's");
-check(JSON.stringify(sf) === JSON.stringify(sc), "low ranks are never pushed down (an F chest rolls like a C)");
+check(ss.F === 0 && ss.D === 0 && ss.C === 0 && ss.SSS > sf.SSS * 10, "an S chest starts at B, and its SSS share is over 10x an F chest's");
+check(JSON.stringify(sd) === JSON.stringify(sf), "low ranks are never pushed down (a D chest rolls like an F)");
 const [got, sss] = get("ROLL").split(" ").map(Number);
 check(got > 5400 && got < 6600, `about 3% of chests drop a skin case (${got} of 200,000)`);
 check(sss > 0, "an A chest's skin case can be SSS");
@@ -159,9 +166,11 @@ const open = (server.match(/local function openChestBlock\([\s\S]*?\nend\n/) || 
 check(/C\.rollChestSkinTier\(rank, rng/.test(open) && /Dig\.grantChestSkin\(p, tier, rng\)/.test(open),
   "openChestBlock rolls the skin case by the chest's rank and grants it");
 const zc = read(SH + "MineZoneChests.luau");
-check(/function MineZoneChests\.rollSpawn\(zoneId, layer, zoneIndex, better\)/.test(zc)
-  && /rollChestAt\(1, layer, rng, better\)/.test(zc) && /better = better/.test(zc),
-  "rollSpawn feeds it to the pool roll and the catalog roll");
+// 2026-10-19: one spawn table (rank first, then the zone's or a set's chest of
+// that rank) replaced the pool roll and the Mine 1 catalog roll.
+check(/function MineZoneChests\.rollSpawn\(zoneId, layer, zoneIndex, better\)[\s\S]{0,120}?MineZoneChests\.spawnTable\(zoneId, layer, zoneIndex, better\)/.test(zc)
+  && /MineZoneChests\.spawnTable\(zoneId, opts\.layer, opts\.zoneIndex, opts\.better\)/.test(zc),
+  "rollSpawn and the open-time roll both draw the spawn table at that depth luck");
 
 console.log("");
 console.log(fail > 0 ? `>>> chest-depth: ${fail} FAILED` : ">>> chest-depth: all assertions passed");

@@ -2,7 +2,7 @@
 title: Assets and uploads
 type: code
 status: current
-verified: 2026-10-05 @ 26036a0
+verified: 2026-10-08 @ ea255bb
 sources:
   - docs/TODO.md §2, §6.3, §7, §9
   - docs/START-HERE.md §6
@@ -11,6 +11,12 @@ sources:
   - src/ReplicatedStorage/Mine/Shared/MineConfig.luau
   - tools/gen-ore-icons.js
   - tools/gen-charm-icons.js
+  - src/ReplicatedStorage/Mine/Shared/MineCryptIcons.luau
+  - tools/cursor/tasks/crypt-icons.md
+  - tools/pack-sprites/render.ps1
+  - tools/pack-sprites/write-ids.js
+  - tools/cursor/tasks/pack-tops.md
+  - tools/verify/pack-tops.js
 related: [tools-and-generators, rojo-and-studio, owner, charms, ores, open-questions]
 ---
 
@@ -35,6 +41,12 @@ related: [tools-and-generators, rojo-and-studio, owner, charms, ores, open-quest
   personal account (named in TODO §7), **stop and upload again as the group**.
   Roblox cannot move assets between user and group inventories, so an upload to
   "My Inventory for now" is permanent.
+  - **But wait before you conclude it is an ownership problem.** On 2026-10-05
+    the 88 pickaxe icons "could not load" and an agent blamed a personal-account
+    upload and sent the owner off to bulk-import. Re-tested two hours later, the
+    same ids loaded: it was **moderation latency**, not ownership (`97c42ac`).
+    The console's *"doesn't have access permission"* wording during that window is
+    misleading. Re-test after a couple of hours before re-uploading.
 - **Naming:** `mfc_<feature>_<name>_vN`, for example `mfc_pack_loam_v2`. Use
   feature folders in the group inventory (`packs/`, `tools/`, `ui/`, `audio/`).
   Version the name, or replace the id in code. Never re-upload under a generic name.
@@ -73,6 +85,17 @@ it via personal account, and i just have to share access"*.
   `<setKey>_pack_<n>` id, so every set pack wears its set's sprite, picked by
   the pack's stars: up to 2 -> sprite 1, 2.5 to 3.5 -> 2, 4 and up -> 3.
   It also holds the set icons and rarity icons (`setIcon`, `rarityIcon`).
+- **The pack tops go blank** (owner, 2026-10-19: the set name baked onto the
+  crinkled top seal of the 19 sets' sprites comes off). `render.ps1` draws that
+  title only when run with `-Title`; by default the seal is blank. The 57
+  sprites have **not** been re-rendered: that is the PC session's Cursor job
+  `tools/cursor/tasks/pack-tops.md` (render, upload as
+  `mfc_pack_<Set>_<band>_v2`, write ids, share). `write-ids.js` now **merges** a
+  partial upload into the `ids.json` already there, keeping the set icons,
+  rarity icons and `cases` art, and lists the ids that changed for the owner
+  to share (`build/pack-art/share-list-new.txt`, which does not exist until the job runs).
+  It used to rebuild the file from the upload alone, which refused a partial
+  upload and dropped `cases`. Checked by `tools/verify/pack-tops.js`.
 - **Pack case art** (`MinePackArt.caseArt`) reads the `cases` map in
   `ids.json`: one image per set, keyed by the set's file name, plus `Wild`.
   - With no image, a set case wears its set's medallion and a wild case wears
@@ -114,6 +137,19 @@ it via personal account, and i just have to share access"*.
   - Canva rate-limits generation: per its help, about 7 images per 30
     minutes, plus a monthly allowance. Resume a run from each folder's
     `state.json`.
+- **Candy Crypt icons** (Candy Crypt v2, 2026-10-19; none made yet). The
+  Cursor job `tools/cursor/tasks/crypt-icons.md` makes 40 Canva images: the 16
+  candy ores, the 16 Halloween tools and the 8 Crypt chest ranks. It uploads
+  them as the owner's account and writes their ids into
+  `src/ReplicatedStorage/Mine/Shared/MineCryptIcons.luau` (`ORES`, `TOOLS`,
+  `CHESTS`). It also writes the list the owner shares from:
+  `build/crypt-icons/share-list.txt` (does not exist until the job runs).
+  - **Wired behind `MineCryptIcons.SHARED = false`.** Until the owner shares
+    them and flips the flag, `MineCryptIcons.ore/tool/chest` return `""`, so
+    the Crypt's rows carry `icon = ""` and a client draws its own fallback.
+  - The Event Horizon tools' icons are a separate job,
+    `tools/cursor/tasks/event-tool-looks.md`, with its own flag in
+    `MineIcons` (planned, not built yet).
 - The owner has seen personal assets in the group they never shared by hand.
   Roblox appears to grant an experience use of an asset its owner uses there
   from Studio; *unverified*, so still share explicitly and test.

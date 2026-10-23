@@ -38,7 +38,14 @@ check(verbs.length >= 8 && missing.length === 0, `every action is a real verb ($
 check(/action == "snapNow"/.test(server) && /FireServer\("snapNow"\)/.test(hubClient), "opening asks the server for fresh numbers");
 
 // 3
-check(/C\.toolCraftCost\(/.test(hub) && /C\.toolUpgradeCost\(/.test(hub) && /C\.toolRecycle\(/.test(hub), "prices come from MineConfig, never the panel's own maths");
+// Launch audit S9/S10: the craft quote and the SCRAP quote go through the same
+// MineOreTools functions the server's verbs charge and pay with (see
+// forge-cards.js and recycle-quote.js), and the panel calls MineConfig's craft
+// and recycle maths directly nowhere -- that is how the two sides drifted.
+const hubCode = hub.replace(/--\[\[[\s\S]*?\]\]/g, "").replace(/--[^\n]*/g, "");
+check(/OreTools\.craftCost\(/.test(hubCode) && /C\.toolUpgradeCost\(/.test(hubCode) && /OreTools\.recycleRefund\(o\.tool\)/.test(hubCode)
+  && !/C\.toolCraftCost\(|C\.toolRecycle\(/.test(hubCode),
+  "prices come from the server's own rules (MineOreTools / MineConfig), never the panel's own maths");
 check(/E\.compatible\(/.test(hub) && /E\.describe\(/.test(hub) && /E\.slotUnlocked\(/.test(hub), "enchant cards read MineEnchants (compatibility, effect text, slot locks)");
 check(/COMING SOON/.test(hub) && /def\.live/.test(hub), "not-yet-live enchants say COMING SOON instead of pretending");
 
@@ -51,14 +58,47 @@ check(/Craftable first, best first/.test(hub), "recipes sort craftable first, be
 check(!exists("src/ReplicatedStorage/Mine/Shared/MineForgeDemo.luau") && !exists("src/StarterPlayer/StarterPlayerScripts/MineForgeDemo.client.luau"),
   "the two demo Forges are gone (the owner picked A)");
 // The Blacksmith counter (owner, 2026-10-12: "the Blacksmith counter should open the Forge hub").
-check(/if \(name == "shop" and tab == nil\) or name == "forge" then[\s\S]{0,300}hubOpen:Fire\(\(name == "forge" and tab == "enchant"\) and "enchant" or "counter"\)/.test(client),
+check(/if \(name == "shop" and tab == nil\) or name == "forge" then[\s\S]{0,400}hubOpen:Fire\(\(name == "forge" and \(tab == "enchant" or tab == "craft"\)\) and tab or "counter"\)/.test(client),
   "every plain \"shop\" (the counters, the Blacksmith buttons) opens the Forge hub");
-check(/if \(tab == "pickaxe" or tab == "backpack"\) and shopCtl\.setTab then/.test(client) && /opts\.onShop\("backpack"\)/.test(hub) && /opts\.onShop\("pickaxe"\)/.test(hub)
+// ONE FORGE (launch audit S13; owner, 2026-10-19): the old shop shows only Bags,
+// its Crafting / Loadout / Upgrades tabs open this hub, and COIN SHOP is gone
+// (it opened a pickaxe shelf where every BUY is refused).
+check(/if \(tab == "pickaxe" or tab == "backpack"\) and shopCtl\.setTab then/.test(client) && /opts\.onShop\("backpack"\)/.test(hubCode)
   && /ev:Fire\("shop", tab\)/.test(hubClient) && /openPanelEv\.Name = "OpenPanel"/.test(client),
-  "the hub's BAGS and COIN SHOP buttons still reach the old shop's two shelves");
-check(/\[3\] = \{ text = "[^"]*BUY A BIGGER PICK!?\.?", panel = "shop", tab = "pickaxe"/.test(server)
-  && /net:FireClient\(plr, "openPanel", "shop", onPickStep and "pickaxe" or nil\)/.test(server),
-  "the tutorial's buy-a-pick step still lands on the coin pickaxes, at the counter too");
+  "the hub's BAGS button still reaches the old shop's Bags shelf");
+// The tool shelf's one live job was Event Horizon's own tools (space coins):
+// that door stays, renamed, and only while the player stands in the event.
+check(!/COIN SHOP"/.test(hubCode) && /"🚀 EVENT TOOLS"/.test(hubCode)
+  && /_eventToolsBtn\.Visible = snap\.zoneId == "bigbang"/.test(hubCode)
+  && (hubCode.match(/opts\.onShop\("pickaxe"\)/g) || []).length === 1,
+  "the hub's COIN SHOP button is gone (S13); the tool-shelf door shows only in Event Horizon");
+{
+  const shop = read("src/ReplicatedStorage/Mine/Shared/MineShopView.luau");
+  const tabs = (/local TABS = \{([\s\S]*?)\n\}/.exec(shop) || ["", ""])[1].split("\n").filter((l) => /id = "/.test(l));
+  check(tabs.length === 4 && /id = "backpack"/.test(tabs[0]),
+    "the old shop opens on Bags, its first tab (S13)");
+  check(/local FORGE_TABS = \{ bench = "craft", loadout = "loadout", upgrades = "upgrades" \}/.test(shop)
+    && /local activeTab = "backpack"/.test(shop),
+    "...and its Crafting / Loadout / Upgrades tabs map to the hub's three tabs");
+  check(/FORGE_TABS\[id\] and opts\.onOpenForge and opts\.onOpenForge\(FORGE_TABS\[id\]\)/.test(shop)
+    && /function view\.setTab\(id\)\s*\n\s*id = forgeRoute\(id\)/.test(shop)
+    && /local routed = forgeRoute\(tab or activeTab\)/.test(shop),
+    "...and both setTab and open send those tabs to the hub, every other shelf to Bags");
+  check(/not \(EVENT_TABS\[id\] and state\.zoneId == "bigbang"\)/.test(shop) && /Horizon\.shopRows\(activeTab\)/.test(shop),
+    "...except the Event Horizon tool shelf, while standing in the event");
+  check(/onOpenForge = function\(tab\)[\s\S]{0,300}FindFirstChild\("ForgeHubOpen"\)[\s\S]{0,120}hubOpen:Fire\(tab\)/.test(client),
+    "MineClient hands the shop a door to the hub (onOpenForge fires ForgeHubOpen)");
+}
+// The tutorial's step 3 was "BUY A BIGGER PICK" on the coin shelf, where every buy
+// is refused. It is "FORGE your first tool" now (owner, 2026-10-19, launch audit
+// M1): it opens the hub on CRAFTING, and the counter opens the hub on every step.
+// tools/verify/tutorial-forge.js pins the rest of it.
+check(/\[3\] = \{ text = "[^"A-Za-z]*FORGE your first tool[^"]*", panel = "forge", tab = "craft"/.test(server)
+  && !/onPickStep/.test(server) && /if not firstVisit then\s*\n\s*net:FireClient\(plr, "openPanel", "shop"\)/.test(server),
+  "the tutorial's step 3 opens the hub on CRAFTING, and the counter opens the hub on every step");
+check(/elseif tab == "craft" then[\s\S]{0,120}hub\.open\("craft"\)/.test(hubClient)
+  && /if tab == "close" then\s*\n\s*if hub\.isOpen\(\) then\s*\n\s*hub\.close\(\)/.test(hubClient),
+  "the hub opens on CRAFTING when asked, and \"close\" (MineClient's close-everything) only ever closes");
 check(/if tab == "counter" then\s*\n\s*if hub\.isOpen\(\) then\s*\n\s*return/.test(hubClient), "walking up to a counter only opens the hub, never closes it");
 
 console.log("");

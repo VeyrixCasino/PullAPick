@@ -1,204 +1,187 @@
--- MineEventsView: Events tab — live limited event, banner, ticking countdown.
+--[[
+	MineEventsView -- the Events tab: every live event, each in its own theme.
 
+	Owner, 2026-10-19 (wiki/open-questions.md §0e):
+	  * BOTH EVENTS. The tab showed the first event with an open window, and
+	    Event Horizon is open all season, so the Candy Crypt never had a
+	    screen. A switcher now shows every event whose window is open, and the
+	    tab opens on the event whose zone you are standing in, else the Crypt
+	    while it is open (MineEventTabs, pure, run by tools/verify/crypt-ui.js).
+	  * EACH CARD ITS OWN CLAIM. Its own flag (crypt.owned for the Crypt,
+	    bigbangOwned for Event Horizon), its own button ("Claim Candy Crypt ·
+	    FREE" / "Claim Event Horizon · FREE" -> buyZone with ITS zone), and
+	    "Owned — enter from Planets", which opens Planets.
+	  * AN (i) ON EACH CARD with the event's notice -- the same words the
+	    first-entry pop-up shows (MineEventTabs.notice).
+	  * THE EVENT THEMES (MineTheme.EVENT_THEMES): the Crypt's card is
+	    Halloween, Event Horizon's dark universe, and the panel around them
+	    takes the theme of whichever is up (MineUI.applyTheme).
+
+	The Crypt's own body (its candy, the rule, Trick-or-Treat) is MineCryptView.
+	Its tools and charms screens wait for the Crypt's next API (owner's scope
+	change, 2026-10-19). Event Horizon keeps its banner and its Event Pass.
+
+	The view owns no rules: it renders the snapshot it is handed and reports
+	taps through opts (the host fires the remotes):
+	  config, onClaim(zoneId), onPlanets(), onTrickOrTreat(), onOpenPass()
+
+	PROPOSED (2026-10-19): the layout, the pills (badge + name, 222 px), the
+	window line's local date ("ddd, MMM D, h:mm A"), and opening on the event
+	you stand in, else the Crypt.
+]]
 local RunService = game:GetService("RunService")
 
 local MineEventsView = {}
 
-local FONT = Enum.Font.GothamBold
-local FONT_M = Enum.Font.GothamMedium
-local FONT_S = Enum.Font.Gotham
-local PANEL = Color3.fromRGB(22, 24, 32)
-local BG2 = Color3.fromRGB(32, 36, 48)
-local TEXT = Color3.fromRGB(235, 238, 245)
-local MUTED = Color3.fromRGB(150, 158, 175)
-local ACCENT = Color3.fromRGB(200, 220, 255)
-local CTA = Color3.fromRGB(70, 140, 255)
-local OWNED = Color3.fromRGB(70, 180, 120)
-local PASS_ACCENT = Color3.fromRGB(120, 180, 255)
+local shared = script.Parent
+local T = require(shared:WaitForChild("MineTheme"))
+local UI = require(shared:WaitForChild("MineUI"))
+local Tabs = require(shared:WaitForChild("MineEventTabs"))
 
-local function mk(className, props, parent)
-	local inst = Instance.new(className)
-	if props then
-		for k, v in pairs(props) do
-			inst[k] = v
-		end
-	end
-	if parent then
-		inst.Parent = parent
-	end
+local function keep(inst)
+	inst:SetAttribute("MineUIAdopted", true)
 	return inst
 end
 
-local function round(inst, r)
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, r or 10)
-	c.Parent = inst
-	return c
+local function frame(parent, props)
+	local f = UI.new("Frame", props, parent)
+	f.BorderSizePixel = 0
+	return keep(f)
 end
 
-local function stroke(inst, t)
-	local s = Instance.new("UIStroke")
-	s.Thickness = t or 1
-	s.Color = Color3.fromRGB(55, 60, 78)
-	s.Parent = inst
-	return s
+local function rules()
+	local ok, R = pcall(function()
+		return require(shared:WaitForChild("MineCryptRules"))
+	end)
+	return ok and R or nil
 end
 
 -- Cartoon banner: moon planet + black hole with white event-horizon ring.
--- Used when bannerImage is empty, or under an optional uploaded image.
+-- Used when bannerImage is empty, or under an optional uploaded image. It is
+-- art, so every piece is stamped: the kit's adopt pass would outline the moon
+-- and hairline the stars.
 local function paintCartoonBanner(parent)
+	local function mk(className, props, p)
+		local inst = Instance.new(className)
+		for k, v in pairs(props or {}) do
+			inst[k] = v
+		end
+		if inst:IsA("GuiObject") then
+			keep(inst)
+		end
+		inst.Parent = p
+		return inst
+	end
+	local function round(inst, r)
+		local c = Instance.new("UICorner")
+		c.CornerRadius = UDim.new(0, r or 10)
+		c.Parent = inst
+	end
 	local stage = mk("Frame", {
-		Name = "CartoonBanner",
-		BackgroundColor3 = Color3.fromRGB(12, 14, 28),
-		BorderSizePixel = 0,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 1,
+		Name = "CartoonBanner", BackgroundColor3 = Color3.fromRGB(12, 14, 28), BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1), ZIndex = 1,
 	}, parent)
 	round(stage, 14)
-
-	-- soft nebula blobs
 	local nebA = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(48, 36, 90),
-		BackgroundTransparency = 0.55,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(220, 120),
-		Position = UDim2.new(0.55, 0, 0.1, 0),
-		ZIndex = 2,
+		BackgroundColor3 = Color3.fromRGB(48, 36, 90), BackgroundTransparency = 0.55, BorderSizePixel = 0,
+		Size = UDim2.fromOffset(220, 120), Position = UDim2.new(0.55, 0, 0.1, 0), ZIndex = 2,
 	}, stage)
 	round(nebA, 60)
-
 	local neb = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(36, 60, 110),
-		BackgroundTransparency = 0.6,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(180, 100),
-		Position = UDim2.new(0.08, 0, 0.55, 0),
-		ZIndex = 2,
+		BackgroundColor3 = Color3.fromRGB(36, 60, 110), BackgroundTransparency = 0.6, BorderSizePixel = 0,
+		Size = UDim2.fromOffset(180, 100), Position = UDim2.new(0.08, 0, 0.55, 0), ZIndex = 2,
 	}, stage)
 	round(neb, 50)
-
-	-- stars
 	for i = 1, 18 do
 		local x = (i * 37) % 97
 		local y = (i * 53) % 89
 		mk("Frame", {
-			BackgroundColor3 = Color3.fromRGB(230, 235, 255),
-			BorderSizePixel = 0,
-			Size = UDim2.fromOffset(2 + (i % 3), 2 + (i % 3)),
-			Position = UDim2.new(x / 100, 0, y / 100, 0),
-			ZIndex = 3,
+			BackgroundColor3 = Color3.fromRGB(230, 235, 255), BorderSizePixel = 0,
+			Size = UDim2.fromOffset(2 + (i % 3), 2 + (i % 3)), Position = UDim2.new(x / 100, 0, y / 100, 0), ZIndex = 3,
 		}, stage)
 	end
-
-	-- black hole (upper right)
 	local holeWrap = mk("Frame", {
-		Name = "BlackHole",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(150, 150),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.72, 0, 0.38, 0),
-		ZIndex = 4,
+		Name = "BlackHole", BackgroundTransparency = 1, Size = UDim2.fromOffset(150, 150),
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.72, 0, 0.38, 0), ZIndex = 4,
 	}, stage)
 	local ring = mk("Frame", {
-		Name = "HorizonRing",
-		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-		BorderSizePixel = 0,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 4,
+		Name = "HorizonRing", BackgroundColor3 = Color3.fromRGB(255, 255, 255), BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1), ZIndex = 4,
 	}, holeWrap)
 	round(ring, 999)
 	local hole = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.82, 0.82),
-		ZIndex = 5,
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0), BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.82, 0.82), ZIndex = 5,
 	}, holeWrap)
 	round(hole, 999)
-	-- thin accretion hint
 	local disk = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(160, 140, 255),
-		BackgroundTransparency = 0.35,
-		BorderSizePixel = 0,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1.35, 0, 0.22, 0),
-		Rotation = -18,
-		ZIndex = 3,
+		BackgroundColor3 = Color3.fromRGB(160, 140, 255), BackgroundTransparency = 0.35, BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1.35, 0, 0.22, 0),
+		Rotation = -18, ZIndex = 3,
 	}, holeWrap)
 	round(disk, 40)
-
-	-- moon planet (lower left)
 	local moon = mk("Frame", {
-		Name = "Moon",
-		BackgroundColor3 = Color3.fromRGB(178, 186, 198),
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(210, 210),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.22, 0, 1.05, 0),
-		ZIndex = 6,
+		Name = "Moon", BackgroundColor3 = Color3.fromRGB(178, 186, 198), BorderSizePixel = 0,
+		Size = UDim2.fromOffset(210, 210), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.22, 0, 1.05, 0), ZIndex = 6,
 	}, stage)
 	round(moon, 999)
-	local function crater(ox, oy, s, t)
-		local c = mk("Frame", {
-			BackgroundColor3 = Color3.fromRGB(148, 156, 170),
-			BackgroundTransparency = t or 0.15,
-			BorderSizePixel = 0,
-			Size = UDim2.fromOffset(s, s),
-			Position = UDim2.new(ox, 0, oy, 0),
-			ZIndex = 7,
+	for _, c in ipairs({ { 0.18, 0.22, 28 }, { 0.55, 0.18, 18 }, { 0.4, 0.45, 36, 0.25 }, { 0.7, 0.4, 14 } }) do
+		local crater = mk("Frame", {
+			BackgroundColor3 = Color3.fromRGB(148, 156, 170), BackgroundTransparency = c[4] or 0.15, BorderSizePixel = 0,
+			Size = UDim2.fromOffset(c[3], c[3]), Position = UDim2.new(c[1], 0, c[2], 0), ZIndex = 7,
 		}, moon)
-		round(c, 999)
+		round(crater, 999)
 	end
-	crater(0.18, 0.22, 28)
-	crater(0.55, 0.18, 18)
-	crater(0.4, 0.45, 36, 0.25)
-	crater(0.7, 0.4, 14)
-
-	-- little cartoon miner on the moon, looking at the hole
 	local miner = mk("Frame", {
-		Name = "Miner",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(44, 58),
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.42, 0, 0.12, 0),
-		ZIndex = 8,
+		Name = "Miner", BackgroundTransparency = 1, Size = UDim2.fromOffset(44, 58),
+		AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.42, 0, 0.12, 0), ZIndex = 8,
 	}, moon)
-	local head = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(255, 220, 180),
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(18, 18),
-		Position = UDim2.fromOffset(13, 0),
-		ZIndex = 9,
-	}, miner)
-	round(head, 999)
-	local helm = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(90, 100, 120),
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(22, 10),
-		Position = UDim2.fromOffset(11, -2),
-		ZIndex = 10,
-	}, miner)
-	round(helm, 4)
-	local body = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(70, 130, 200),
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(20, 22),
-		Position = UDim2.fromOffset(12, 18),
-		ZIndex = 9,
-	}, miner)
-	round(body, 4)
-	local legs = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(50, 55, 70),
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(18, 14),
-		Position = UDim2.fromOffset(13, 40),
-		ZIndex = 9,
-	}, miner)
-	round(legs, 3)
-
+	for _, part in ipairs({
+		{ Color3.fromRGB(255, 220, 180), 18, 18, 13, 0, 9, 999 },
+		{ Color3.fromRGB(90, 100, 120), 22, 10, 11, -2, 10, 4 },
+		{ Color3.fromRGB(70, 130, 200), 20, 22, 12, 18, 9, 4 },
+		{ Color3.fromRGB(50, 55, 70), 18, 14, 13, 40, 9, 3 },
+	}) do
+		local f = mk("Frame", {
+			BackgroundColor3 = part[1], BorderSizePixel = 0, Size = UDim2.fromOffset(part[2], part[3]),
+			Position = UDim2.fromOffset(part[4], part[5]), ZIndex = part[6],
+		}, miner)
+		round(f, part[7])
+	end
 	return stage
+end
+
+--[[
+	BEFORE LAUNCH THE CLOCK TICKS; AFTER IT, IT COUNTS THE REAL EVENT (owner,
+	2026-10-07: "i want the timer to not actually start until i say launch,
+	and rather just keep ticking down"). Event Horizon's window runs on the
+	season clock, which does not move until launch, so before launch its line
+	shows MineLaunch.teaserLeft() -- real time, falling second by second,
+	counting toward nothing -- and after launch the real countdown. The Crypt
+	is on real calendar dates and counts its own window (MineEventTabs).
+]]
+local okLaunch, Launch = pcall(function()
+	return require(shared:WaitForChild("MineLaunch"))
+end)
+
+local function horizonLeft(C)
+	if okLaunch and Launch and Launch.teaserLeft then
+		local teaser = Launch.teaserLeft()
+		if teaser then
+			return Tabs.clock(teaser), true
+		end
+	end
+	if C.limitedCountdown then
+		return C.limitedCountdown("bigbang"), false
+	end
+	return nil, false
+end
+
+local function serverNow()
+	local ok, t = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return (ok and tonumber(t)) or os.time()
 end
 
 function MineEventsView.mount(parent, opts)
@@ -206,436 +189,312 @@ function MineEventsView.mount(parent, opts)
 	local C = opts.config
 	assert(C, "MineEventsView needs opts.config")
 
-	local state = {
-		bigbangOwned = false,
-		limitedActive = false,
-		eventPass = nil,
-	}
+	local okCV, CryptView = pcall(function()
+		return require(shared:WaitForChild("MineCryptView"))
+	end)
+	if not okCV then
+		warn("[MineEventsView] no Crypt card: MineCryptView did not load (" .. tostring(CryptView) .. ")")
+		CryptView = nil
+	end
+
+	local state = {}
 	local tickConn = nil
 	local passOpen = false
+	local selectedId = nil
+	local shownKey = nil
+	local currentTheme = nil
 
-	local root = mk("Frame", {
-		Name = "EventsPanel",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromScale(0.92, 0.88),
-		BackgroundColor3 = PANEL,
-		BackgroundTransparency = 0.04,
-		Visible = false,
-		ZIndex = 40,
-		BorderSizePixel = 0,
-	}, parent)
-	round(root, 12)
-	stroke(root, 1.5)
-	do
-		local cap = Instance.new("UISizeConstraint")
-		cap.MaxSize = Vector2.new(1180, 820)
-		cap.MinSize = Vector2.new(520, 380)
-		cap.Parent = root
+	-- ------------------------------------------------------------ the panel --
+	local root = UI.themePanel(parent, "universe", UDim2.fromScale(0.92, 0.88), UDim2.fromScale(0.5, 0.52))
+	root.Name = "EventsPanel"
+	root.AnchorPoint = Vector2.new(0.5, 0.5)
+	root.Visible = false
+	root.ZIndex = 40
+	UI.new("UISizeConstraint", { MaxSize = Vector2.new(1180, 820), MinSize = Vector2.new(520, 380) }, root)
+
+	local title = UI.themeText(root, "EVENTS", 26, nil, "TEXT")
+	title.Position = UDim2.fromOffset(20, 14)
+	title.Size = UDim2.new(1, -100, 0, 34)
+	title.ZIndex = 41
+
+	local closeBtn = UI.button(root, "X", UDim2.fromOffset(48, 48), UDim2.new(1, -60, 0, 10), false, "red")
+	closeBtn.Name = "Close"
+	closeBtn.ZIndex = 45
+
+	-- One pill per event that is up; the one showing is lit in its own theme.
+	local switch = frame(root, {
+		Name = "Switch", BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 62),
+		Size = UDim2.new(1, -32, 0, 50), ZIndex = 41,
+	})
+	UI.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center,
+	}, switch)
+
+	local body = UI.new("ScrollingFrame", {
+		Name = "Body", BackgroundTransparency = 1, BorderSizePixel = 0,
+		Position = UDim2.fromOffset(16, 120), Size = UDim2.new(1, -32, 1, -134),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollBarThickness = 6, ZIndex = 41,
+	}, root)
+	keep(body)
+	UI.new("UIListLayout", { Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder }, body)
+
+	local empty = UI.themeText(body, "No event right now.", 18, nil, "MUTED", T.FONT_M)
+	empty.Size = UDim2.new(1, 0, 0, 40)
+	empty.LayoutOrder = 99
+	empty.Visible = false
+
+	-- ------------------------------------------------------------- the cards --
+	-- A card per event zone. Each wears its OWN theme (ThemeLock), whatever the
+	-- panel around it wears.
+	local cards = {}
+	-- Forward-declared: every card's (i) opens it, and the cards are built
+	-- above it (a local used above its declaration is a nil global).
+	local showInfo
+
+	local function newCard(zoneId, order)
+		local theme = T.themeFor(zoneId)
+		local card = UI.themeCard(body, theme, UDim2.new(1, -10, 0, 0))
+		card.Name = "EventCard_" .. tostring(zoneId)
+		card.AutomaticSize = Enum.AutomaticSize.Y
+		card.LayoutOrder = order
+		card.Visible = false
+		card:SetAttribute("ThemeLock", true)
+		UI.new("UIPadding", {
+			PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 14),
+			PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12),
+		}, card)
+		UI.new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, card)
+		local c = { card = card, theme = theme, zoneId = zoneId }
+		cards[zoneId] = c
+		return c
 	end
 
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT,
-		TextSize = 22,
-		Text = "EVENTS",
-		Size = UDim2.new(1, -72, 0, 36),
-		Position = UDim2.fromOffset(18, 10),
-		TextColor3 = TEXT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 41,
-	}, root)
-
-	local closeBtn = mk("TextButton", {
-		Text = "X",
-		Font = FONT,
-		TextSize = 18,
-		TextColor3 = TEXT,
-		BackgroundColor3 = BG2,
-		Size = UDim2.fromOffset(46, 46),
-		Position = UDim2.new(1, -48, 0, 10),
-		ZIndex = 42,
-		AutoButtonColor = true,
-	}, root)
-	round(closeBtn, 8)
-
-	local body = mk("ScrollingFrame", {
-		Name = "Body",
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(16, 52),
-		Size = UDim2.new(1, -32, 1, -68),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 6,
-		CanvasSize = UDim2.new(),
-		BorderSizePixel = 0,
-		ZIndex = 41,
-	}, root)
-	mk("UIListLayout", {
-		Padding = UDim.new(0, 12),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, body)
-
-	local card = mk("Frame", {
-		Name = "EventCard",
-		BackgroundColor3 = BG2,
-		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 0, 440),
-		LayoutOrder = 1,
-		ZIndex = 42,
-	}, body)
-	round(card, 14)
-	stroke(card, 1)
-
-	local bannerHost = mk("Frame", {
-		Name = "Banner",
-		BackgroundColor3 = Color3.fromRGB(10, 12, 22),
-		BorderSizePixel = 0,
-		ClipsDescendants = true,
-		Size = UDim2.new(1, -24, 0, 200),
-		Position = UDim2.fromOffset(12, 12),
-		ZIndex = 43,
-	}, card)
-	round(bannerHost, 12)
-	paintCartoonBanner(bannerHost)
-
-	local bannerImg = mk("ImageLabel", {
-		Name = "BannerImage",
-		BackgroundTransparency = 1,
-		Image = "",
-		ScaleType = Enum.ScaleType.Crop,
-		Size = UDim2.fromScale(1, 1),
-		Visible = false,
-		ZIndex = 50,
-	}, bannerHost)
-
-	local title = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT,
-		TextSize = 26,
-		Text = "Event Horizon",
-		TextColor3 = ACCENT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(16, 224),
-		Size = UDim2.new(1, -32, 0, 32),
-		ZIndex = 44,
-	}, card)
-
-	local timerLbl = mk("TextLabel", {
-		Name = "Timer",
-		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 16,
-		Text = "",
-		TextColor3 = TEXT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(16, 256),
-		Size = UDim2.new(1, -32, 0, 24),
-		ZIndex = 44,
-	}, card)
-
-	local blurb = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT_S,
-		TextSize = 15,
-		Text = "",
-		TextColor3 = MUTED,
-		TextWrapped = true,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Top,
-		Position = UDim2.fromOffset(16, 286),
-		Size = UDim2.new(1, -32, 0, 56),
-		ZIndex = 44,
-	}, card)
-
-	local cta = mk("TextButton", {
-		Name = "Claim",
-		Font = FONT,
-		TextSize = 16,
-		Text = "Claim",
-		TextColor3 = Color3.fromRGB(255, 255, 255),
-		BackgroundColor3 = CTA,
-		AutoButtonColor = true,
-		Position = UDim2.fromOffset(16, 354),
-		Size = UDim2.new(0.48, -20, 0, 44),
-		ZIndex = 45,
-	}, card)
-	round(cta, 10)
-
-	--[[
-		THE TRICK-OR-TREAT SHELF.
-
-		Only ever visible for the Candy Crypt, and only once it is claimed and
-		open -- the server refuses otherwise, and a button that exists to be
-		refused is worse than no button. It sits under the CTA row rather than
-		replacing anything, so the Horizon's layout is untouched.
-	]]
-	local totBtn = mk("TextButton", {
-		Name = "TrickOrTreat",
-		Font = FONT,
-		TextSize = 15,
-		Text = "Trick-or-Treat Case",
-		TextColor3 = Color3.fromRGB(32, 18, 8),
-		BackgroundColor3 = Color3.fromRGB(255, 142, 44),
-		AutoButtonColor = true,
-		Position = UDim2.fromOffset(16, 404),
-		Size = UDim2.new(1, -32, 0, 40),
-		Visible = false,
-		ZIndex = 45,
-	}, card)
-	round(totBtn, 10)
-
-	totBtn.MouseButton1Click:Connect(function()
-		if totBtn.Visible and opts.onTrickOrTreat then
-			opts.onTrickOrTreat()
-		end
-	end)
-
-	local detailsBtn = mk("TextButton", {
-		Name = "Details",
-		Font = FONT,
-		TextSize = 16,
-		Text = "Event Pass",
-		TextColor3 = Color3.fromRGB(255, 255, 255),
-		BackgroundColor3 = Color3.fromRGB(55, 70, 110),
-		AutoButtonColor = true,
-		Position = UDim2.new(0.52, 4, 0, 354),
-		Size = UDim2.new(0.48, -20, 0, 44),
-		ZIndex = 45,
-		Visible = false,
-	}, card)
-	round(detailsBtn, 10)
-
-	local empty = mk("TextLabel", {
-		Name = "Empty",
-		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 16,
-		Text = "No event right now.",
-		TextColor3 = MUTED,
-		Visible = false,
-		Size = UDim2.new(1, 0, 0, 40),
-		LayoutOrder = 2,
-		ZIndex = 42,
-	}, body)
-
-	-- Pass overlay
-	local passLayer = mk("Frame", {
-		Name = "PassLayer",
-		BackgroundColor3 = Color3.fromRGB(8, 10, 16),
-		BackgroundTransparency = 0.25,
-		BorderSizePixel = 0,
-		Size = UDim2.fromScale(1, 1),
-		Visible = false,
-		ZIndex = 60,
-	}, root)
-
-	local passPanel = mk("Frame", {
-		Name = "PassPanel",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(0.94, 0, 0.92, 0),
-		BackgroundColor3 = PANEL,
-		BorderSizePixel = 0,
-		ZIndex = 61,
-	}, passLayer)
-	round(passPanel, 12)
-	stroke(passPanel, 1.5)
-
-	local passTitle = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT,
-		TextSize = 20,
-		Text = "Event Pass",
-		TextColor3 = TEXT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(18, 10),
-		Size = UDim2.new(1, -100, 0, 32),
-		ZIndex = 62,
-	}, passPanel)
-
-	local passBack = mk("TextButton", {
-		Text = "Back",
-		Font = FONT_M,
-		TextSize = 14,
-		TextColor3 = TEXT,
-		BackgroundColor3 = BG2,
-		Size = UDim2.fromOffset(72, 32),
-		Position = UDim2.new(1, -88, 0, 10),
-		ZIndex = 63,
-		AutoButtonColor = true,
-	}, passPanel)
-	round(passBack, 8)
-
-	local passScroll = mk("ScrollingFrame", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(14, 50),
-		Size = UDim2.new(1, -28, 1, -64),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 6,
-		CanvasSize = UDim2.new(),
-		BorderSizePixel = 0,
-		ZIndex = 62,
-	}, passPanel)
-	mk("UIListLayout", {
-		Padding = UDim.new(0, 10),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, passScroll)
-
-	local passBlurb = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT_S,
-		TextSize = 14,
-		Text = "",
-		TextColor3 = MUTED,
-		TextWrapped = true,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Size = UDim2.new(1, 0, 0, 40),
-		LayoutOrder = 1,
-		ZIndex = 63,
-	}, passScroll)
-
-	local tierCard = mk("Frame", {
-		BackgroundColor3 = BG2,
-		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 0, 88),
-		LayoutOrder = 2,
-		ZIndex = 63,
-	}, passScroll)
-	round(tierCard, 10)
-	stroke(tierCard, 1)
-
-	local tierName = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT,
-		TextSize = 18,
-		Text = "Tier",
-		TextColor3 = PASS_ACCENT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(14, 10),
-		Size = UDim2.new(1, -28, 0, 24),
-		ZIndex = 64,
-	}, tierCard)
-
-	local tierTip = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT_S,
-		TextSize = 13,
-		Text = "",
-		TextColor3 = MUTED,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(14, 34),
-		Size = UDim2.new(1, -28, 0, 18),
-		ZIndex = 64,
-	}, tierCard)
-
-	local xpTrack = mk("Frame", {
-		BackgroundColor3 = Color3.fromRGB(20, 22, 30),
-		BorderSizePixel = 0,
-		Position = UDim2.fromOffset(14, 60),
-		Size = UDim2.new(1, -28, 0, 14),
-		ZIndex = 64,
-	}, tierCard)
-	round(xpTrack, 7)
-
-	local xpFill = mk("Frame", {
-		BackgroundColor3 = PASS_ACCENT,
-		BorderSizePixel = 0,
-		Size = UDim2.new(0, 0, 1, 0),
-		ZIndex = 65,
-	}, xpTrack)
-	round(xpFill, 7)
-
-	local xpLbl = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 11,
-		Text = "0 XP",
-		TextColor3 = TEXT,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 66,
-	}, xpTrack)
-
-	local questCard = mk("Frame", {
-		BackgroundColor3 = BG2,
-		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 0, 110),
-		LayoutOrder = 3,
-		ZIndex = 63,
-	}, passScroll)
-	round(questCard, 10)
-	stroke(questCard, 1)
-
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 12,
-		Text = "EVENT QUEST  ·  XP ONLY",
-		TextColor3 = PASS_ACCENT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(14, 8),
-		Size = UDim2.new(1, -28, 0, 16),
-		ZIndex = 64,
-	}, questCard)
-
-	local questText = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT,
-		TextSize = 15,
-		Text = "",
-		TextColor3 = TEXT,
-		TextWrapped = true,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Top,
-		Position = UDim2.fromOffset(14, 28),
-		Size = UDim2.new(1, -28, 0, 40),
-		ZIndex = 64,
-	}, questCard)
-
-	local questProg = mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 13,
-		Text = "",
-		TextColor3 = MUTED,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Position = UDim2.fromOffset(14, 72),
-		Size = UDim2.new(1, -28, 0, 20),
-		ZIndex = 64,
-	}, questCard)
-
-	mk("TextLabel", {
-		BackgroundTransparency = 1,
-		Font = FONT_M,
-		TextSize = 13,
-		Text = "Pass tiers",
-		TextColor3 = TEXT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Size = UDim2.new(1, 0, 0, 22),
-		LayoutOrder = 4,
-		ZIndex = 63,
-	}, passScroll)
-
-	local tiersHost = mk("Frame", {
-		Name = "TiersHost",
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 10),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		LayoutOrder = 5,
-		ZIndex = 63,
-	}, passScroll)
-	mk("UIListLayout", {
-		Padding = UDim.new(0, 6),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, tiersHost)
-
-	local function clearTiers()
-		for _, ch in ipairs(tiersHost:GetChildren()) do
-			if ch:IsA("Frame") then
-				ch:Destroy()
+	-- The head every event's card has: title, (i), its window, its claim.
+	local function head(c, titleText, order)
+		local h = frame(c.card, {
+			BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = order,
+		})
+		UI.new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, h)
+		local top = frame(h, { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 44), LayoutOrder = 1 })
+		local t = UI.themeText(top, titleText, 26, c.theme, "TEXT")
+		t.Size = UDim2.new(1, -60, 1, 0)
+		t.TextTruncate = Enum.TextTruncate.AtEnd
+		local info, infoL = UI.themeButton(top, "i", UDim2.fromOffset(44, 44), UDim2.new(1, -46, 0, 0), c.theme, "secondary")
+		info.Name = "Info"
+		infoL.TextSize = 22
+		local timer = UI.themeText(h, "", 16, c.theme, "GLOW", T.FONT_M)
+		timer.Size = UDim2.new(1, 0, 0, 22)
+		timer.LayoutOrder = 2
+		timer.TextTruncate = Enum.TextTruncate.AtEnd
+		local cta, ctaL = UI.themeButton(h, "", UDim2.new(1, 0, 0, 56), nil, c.theme, "go")
+		cta.Name = "Claim"
+		cta.LayoutOrder = 3
+		ctaL.TextSize = 20
+		c.title, c.info, c.timer, c.cta, c.ctaL = t, info, timer, cta, ctaL
+		info.MouseButton1Click:Connect(function()
+			showInfo(c)
+		end)
+		-- Claims THIS card's zone; owned, it opens Planets; ended, nothing.
+		cta.MouseButton1Click:Connect(function()
+			if c.claims then
+				if opts.onClaim then
+					opts.onClaim(c.zoneId)
+				end
+			elseif c.job == "secondary" and opts.onPlanets then
+				opts.onPlanets(c.zoneId)
 			end
+		end)
+		return h
+	end
+
+	-- Event Horizon: its banner, its blurb, its Event Pass.
+	local eh = newCard("bigbang", 1)
+	do
+		local bannerHost = frame(eh.card, {
+			Name = "Banner", BackgroundColor3 = Color3.fromRGB(10, 12, 22), ClipsDescendants = true,
+			Size = UDim2.new(1, 0, 0, 200), LayoutOrder = 0,
+		})
+		UI.round(bannerHost, 12)
+		paintCartoonBanner(bannerHost)
+		eh.bannerImg = keep(UI.new("ImageLabel", {
+			Name = "BannerImage", BackgroundTransparency = 1, Image = "", ScaleType = Enum.ScaleType.Crop,
+			Size = UDim2.fromScale(1, 1), Visible = false, ZIndex = 50,
+		}, bannerHost))
+		head(eh, "🌌 EVENT HORIZON", 1)
+		eh.blurb = UI.themeText(eh.card, "", 16, eh.theme, "MUTED", T.FONT_M)
+		eh.blurb.TextWrapped = true
+		eh.blurb.Size = UDim2.new(1, 0, 0, 0)
+		eh.blurb.AutomaticSize = Enum.AutomaticSize.Y
+		eh.blurb.LayoutOrder = 2
+		local pass, passL = UI.themeButton(eh.card, "EVENT PASS", UDim2.new(1, 0, 0, 50), nil, eh.theme, "secondary")
+		pass.Name = "EventPass"
+		pass.LayoutOrder = 3
+		passL.TextSize = 19
+		eh.pass = pass
+	end
+
+	-- The Candy Crypt: its head here, everything else MineCryptView.
+	local crypt = newCard("hallow", 2)
+	head(crypt, "🎃 CANDY CRYPT", 1)
+	local cryptHost = frame(crypt.card, {
+		Name = "CryptHost", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 2,
+	})
+	local cryptCtl = nil
+	if CryptView then
+		local okM, ctl = pcall(CryptView.mount, cryptHost, {
+			overlay = root,
+			onTrickOrTreat = function()
+				if opts.onTrickOrTreat then
+					opts.onTrickOrTreat()
+				end
+			end,
+		})
+		if okM then
+			cryptCtl = ctl
+		else
+			warn("[MineEventsView] the Crypt card failed to mount: " .. tostring(ctl))
 		end
 	end
 
+	-- An event added to MineConfig.EVENTS later gets a plain card: its head.
+	local function cardFor(ev)
+		local zid = ev and ev.zoneId
+		if not zid then
+			return nil
+		end
+		local c = cards[zid]
+		if not c then
+			c = newCard(zid, 10 + #(C.EVENTS or {}))
+			head(c, string.upper(tostring(ev.name or "Event")), 1)
+		end
+		return c
+	end
+
+	-- ------------------------------------------------------- the (i) sheet --
+	local infoVeil = UI.new("TextButton", {
+		Name = "InfoVeil", Text = "", AutoButtonColor = false, BorderSizePixel = 0,
+		BackgroundColor3 = T.INK, BackgroundTransparency = 0.35, Size = UDim2.fromScale(1, 1),
+		Visible = false, ZIndex = 70,
+	}, root)
+	UI.tint(infoVeil, nil, "INK")
+	infoVeil:SetAttribute("NoClickSfx", true)
+	local infoBox = UI.themePanel(infoVeil, nil, UDim2.new(0.84, 0, 0, 300), UDim2.fromScale(0.5, 0.5))
+	infoBox.AnchorPoint = Vector2.new(0.5, 0.5)
+	infoBox.ZIndex = 71
+	UI.new("UISizeConstraint", { MaxSize = Vector2.new(560, 320) }, infoBox)
+	local infoTitle = UI.themeText(infoBox, "", 24, nil, "GLOW")
+	infoTitle.TextXAlignment = Enum.TextXAlignment.Center
+	infoTitle.Position = UDim2.fromOffset(20, 18)
+	infoTitle.Size = UDim2.new(1, -40, 0, 32)
+	infoTitle.TextWrapped = true
+	infoTitle.ZIndex = 72
+	local infoText = UI.themeText(infoBox, "", 18, nil, "TEXT", T.FONT_M)
+	infoText.TextXAlignment = Enum.TextXAlignment.Center
+	infoText.TextYAlignment = Enum.TextYAlignment.Top
+	infoText.TextWrapped = true
+	infoText.Position = UDim2.fromOffset(24, 60)
+	infoText.Size = UDim2.new(1, -48, 1, -140)
+	infoText.ZIndex = 72
+	local infoOk, infoOkL = UI.themeButton(infoBox, "OK", UDim2.fromOffset(180, 52), UDim2.new(0.5, -90, 1, -70), nil, "go")
+	infoOk.ZIndex = 73
+	infoOkL.ZIndex = 74
+
+	function showInfo(c)
+		if not (c and c.ev) then
+			return
+		end
+		local n = Tabs.notice(c.ev, rules())
+		UI.applyTheme(infoVeil, c.theme)
+		infoTitle.Text = n.title
+		infoText.Text = n.text
+		infoVeil.Visible = true
+	end
+	local function hideInfo()
+		infoVeil.Visible = false
+	end
+	infoVeil.MouseButton1Click:Connect(hideInfo)
+	infoOk.MouseButton1Click:Connect(hideInfo)
+
+	-- ------------------------------------------------------ the Event Pass --
+	-- Event Horizon's pass, in its theme. Shown over the panel.
+	local passTheme = T.EVENT_THEMES.universe
+	local passLayer = UI.new("Frame", {
+		Name = "PassLayer", BorderSizePixel = 0, BackgroundColor3 = passTheme.INK, BackgroundTransparency = 0.25,
+		Size = UDim2.fromScale(1, 1), Visible = false, ZIndex = 60,
+	}, root)
+	keep(passLayer)
+	passLayer:SetAttribute("ThemeLock", true)
+	local passPanel = UI.themePanel(passLayer, passTheme, UDim2.fromScale(0.94, 0.92), UDim2.fromScale(0.5, 0.5))
+	passPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+	passPanel.ZIndex = 61
+	local passTitle = UI.themeText(passPanel, "Event Pass", 22, passTheme, "TEXT")
+	passTitle.Position = UDim2.fromOffset(18, 12)
+	passTitle.Size = UDim2.new(1, -120, 0, 32)
+	local passBack, passBackL = UI.themeButton(passPanel, "BACK", UDim2.fromOffset(96, 40),
+		UDim2.new(1, -110, 0, 10), passTheme, "secondary")
+	passBackL.TextSize = 16
+	local passScroll = UI.new("ScrollingFrame", {
+		BackgroundTransparency = 1, BorderSizePixel = 0, Position = UDim2.fromOffset(14, 58),
+		Size = UDim2.new(1, -28, 1, -72), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(), ScrollBarThickness = 6, ZIndex = 62,
+	}, passPanel)
+	keep(passScroll)
+	UI.new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, passScroll)
+	local passBlurb = UI.themeText(passScroll, "", 15, passTheme, "MUTED", T.FONT_M)
+	passBlurb.TextWrapped = true
+	passBlurb.Size = UDim2.new(1, -8, 0, 0)
+	passBlurb.AutomaticSize = Enum.AutomaticSize.Y
+	passBlurb.LayoutOrder = 1
+
+	local tierCard = UI.themeCard(passScroll, passTheme, UDim2.new(1, -8, 0, 96))
+	tierCard.LayoutOrder = 2
+	local tierName = UI.themeText(tierCard, "Tier", 20, passTheme, "ACCENT")
+	tierName.Position = UDim2.fromOffset(14, 8)
+	tierName.Size = UDim2.new(1, -28, 0, 26)
+	local tierTip = UI.themeText(tierCard, "", 14, passTheme, "MUTED", T.FONT_M)
+	tierTip.Position = UDim2.fromOffset(14, 36)
+	tierTip.Size = UDim2.new(1, -28, 0, 20)
+	tierTip.TextTruncate = Enum.TextTruncate.AtEnd
+	local xpTrack = frame(tierCard, {
+		Position = UDim2.fromOffset(14, 62), Size = UDim2.new(1, -28, 0, 20),
+	})
+	UI.tint(xpTrack, passTheme, "INK")
+	UI.round(xpTrack, 10)
+	local xpFill = frame(xpTrack, { Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = passTheme.ACCENT })
+	UI.tint(xpFill, passTheme, "ACCENT")
+	UI.round(xpFill, 10)
+	local xpLbl = UI.themeText(xpTrack, "0 XP", 14, passTheme, "TEXT")
+	xpLbl.TextXAlignment = Enum.TextXAlignment.Center
+	xpLbl.Size = UDim2.fromScale(1, 1)
+	UI.outlineText(xpLbl, 1.5)
+
+	local questCard = UI.themeCard(passScroll, passTheme, UDim2.new(1, -8, 0, 116))
+	questCard.LayoutOrder = 3
+	local qHead = UI.themeText(questCard, "EVENT QUEST  \u{00B7}  XP ONLY", 14, passTheme, "ACCENT")
+	qHead.Position = UDim2.fromOffset(14, 8)
+	qHead.Size = UDim2.new(1, -28, 0, 18)
+	local questText = UI.themeText(questCard, "", 16, passTheme, "TEXT")
+	questText.TextWrapped = true
+	questText.TextYAlignment = Enum.TextYAlignment.Top
+	questText.Position = UDim2.fromOffset(14, 30)
+	questText.Size = UDim2.new(1, -28, 0, 44)
+	local questProg = UI.themeText(questCard, "", 14, passTheme, "MUTED", T.FONT_M)
+	questProg.Position = UDim2.fromOffset(14, 82)
+	questProg.Size = UDim2.new(1, -28, 0, 20)
+
+	local tiersHead = UI.themeText(passScroll, "PASS TIERS", 16, passTheme, "TEXT")
+	tiersHead.Size = UDim2.new(1, -8, 0, 24)
+	tiersHead.LayoutOrder = 4
+	local tiersHost = frame(passScroll, {
+		Name = "TiersHost", BackgroundTransparency = 1, Size = UDim2.new(1, -8, 0, 10),
+		AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 5,
+	})
+	UI.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, tiersHost)
+
+	local passSig = nil
 	local function paintPass()
 		local ep = state.eventPass
 		if not ep then
@@ -647,262 +506,195 @@ function MineEventsView.mount(parent, opts)
 			xpLbl.Text = "0 XP"
 			questText.Text = "No active event quest."
 			questProg.Text = ""
-			clearTiers()
 			return
 		end
-
-		passTitle.Text = ep.name or "Event Pass"
-		passBlurb.Text = (ep.blurb or "") .. "  Quests only count inside the event mine. Rewards are event bonuses — never coins, gems, or packs."
-
+		passTitle.Text = tostring(ep.name or "Event Pass")
+		passBlurb.Text = tostring(ep.blurb or "") .. "  Quests only count inside the event mine. Rewards are event bonuses — never coins, gems, or packs."
 		local tier = ep.tier
 		tierName.Text = (tier and tier.name) or "Horizon Scout"
 		tierTip.Text = (tier and tier.tip) or ""
-
 		local xp = tonumber(ep.xp) or 0
-		local nextT = ep.nextTier
 		local curXp = (tier and tonumber(tier.xp)) or 0
-		local nextXp = nextT and tonumber(nextT.xp) or nil
+		local nextXp = ep.nextTier and tonumber(ep.nextTier.xp) or nil
 		local frac = 1
 		if nextXp and nextXp > curXp then
 			frac = math.clamp((xp - curXp) / (nextXp - curXp), 0, 1)
 			xpLbl.Text = string.format("%d / %d XP", xp, nextXp)
 		else
-			xpLbl.Text = string.format("%d XP  ·  MAX", xp)
+			xpLbl.Text = string.format("%d XP  \u{00B7}  MAX", xp)
 		end
 		xpFill.Size = UDim2.new(frac, 0, 1, 0)
-
 		local q = ep.quest
 		if q then
-			questText.Text = q.text or ""
-			questProg.Text = string.format(
-				"%d / %d   ·   Reward: %d event XP only",
-				tonumber(q.progress) or 0,
-				tonumber(q.goal) or 0,
-				tonumber(q.xp) or 0
-			)
+			questText.Text = tostring(q.text or "")
+			questProg.Text = string.format("%d / %d   \u{00B7}   Reward: %d event XP only",
+				tonumber(q.progress) or 0, tonumber(q.goal) or 0, tonumber(q.xp) or 0)
 		else
 			questText.Text = "All event quests cleared."
 			questProg.Text = string.format("Quest %d / %d", tonumber(ep.questTotal) or 0, tonumber(ep.questTotal) or 0)
 		end
-
-		clearTiers()
-		local tiers = ep.tiers or {}
+		-- The tier rows are rebuilt only when they change, not on every snapshot.
 		local ti = tonumber(ep.tierIndex) or 1
-		for i, t in ipairs(tiers) do
-			local row = mk("Frame", {
-				BackgroundColor3 = (i == ti) and Color3.fromRGB(40, 52, 78) or Color3.fromRGB(28, 32, 44),
-				BorderSizePixel = 0,
-				Size = UDim2.new(1, 0, 0, 48),
-				LayoutOrder = i,
-				ZIndex = 64,
-			}, tiersHost)
-			round(row, 8)
-			mk("TextLabel", {
-				BackgroundTransparency = 1,
-				Font = FONT_M,
-				TextSize = 14,
-				Text = string.format("%s  ·  %d XP", t.name or ("Tier " .. i), tonumber(t.xp) or 0),
-				TextColor3 = (i <= ti) and TEXT or MUTED,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				Position = UDim2.fromOffset(12, 4),
-				Size = UDim2.new(1, -24, 0, 20),
-				ZIndex = 65,
-			}, row)
-			mk("TextLabel", {
-				BackgroundTransparency = 1,
-				Font = FONT_S,
-				TextSize = 12,
-				Text = t.tip or "",
-				TextColor3 = MUTED,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				Position = UDim2.fromOffset(12, 24),
-				Size = UDim2.new(1, -24, 0, 18),
-				ZIndex = 65,
-			}, row)
+		local sig = tostring(ti) .. "|" .. tostring(#(ep.tiers or {}))
+		if sig == passSig then
+			return
+		end
+		passSig = sig
+		for _, ch in ipairs(tiersHost:GetChildren()) do
+			if ch:IsA("GuiObject") then
+				ch:Destroy()
+			end
+		end
+		for i, t in ipairs(ep.tiers or {}) do
+			local row = UI.themeCard(tiersHost, passTheme, UDim2.new(1, 0, 0, 54), nil, (i == ti) and "SHELL_HI" or "SHELL")
+			row.LayoutOrder = i
+			local n = UI.themeText(row, string.format("%s  \u{00B7}  %d XP", t.name or ("Tier " .. i), tonumber(t.xp) or 0),
+				15, passTheme, (i <= ti) and "TEXT" or "MUTED", T.FONT_M)
+			n.Position = UDim2.fromOffset(12, 6)
+			n.Size = UDim2.new(1, -24, 0, 22)
+			local tip = UI.themeText(row, tostring(t.tip or ""), 14, passTheme, "MUTED", T.FONT_M)
+			tip.Position = UDim2.fromOffset(12, 28)
+			tip.Size = UDim2.new(1, -24, 0, 20)
+			tip.TextTruncate = Enum.TextTruncate.AtEnd
 		end
 	end
 
 	local function openPass()
 		passOpen = true
 		passLayer.Visible = true
+		passSig = nil
 		paintPass()
 		if opts.onOpenPass then
 			opts.onOpenPass()
 		end
 	end
-
 	local function closePass()
 		passOpen = false
 		passLayer.Visible = false
 	end
+	passBack.MouseButton1Click:Connect(closePass)
+	eh.pass.MouseButton1Click:Connect(openPass)
 
-	--[[
-		The event to SHOW. This returned EVENTS[1] unconditionally, which was
-		right while Event Horizon was the only one; with the Candy Crypt running
-		alongside it, the tab would always have shown the Horizon and the Crypt
-		would have had no screen at all.
+	-- ----------------------------------------------------------- painting --
+	local pills = {}
+	-- Forward-declared: a pill's click repaints, and the pills are built
+	-- above paint (a local used above its declaration is a nil global).
+	local paint
 
-		An event whose own window is open wins, so a live event is never hidden
-		behind one that merely sorts first. Falls back to the first entry, which
-		is the old behaviour exactly.
-	]]
-	local function currentEvent()
-		local list = C.EVENTS or {}
-		if C.limitedActive then
-			for _, ev in ipairs(list) do
-				if ev.zoneId and C.limitedActive(ev.zoneId) then
-					return ev
-				end
+	local function rebuildPills(list)
+		for _, p in pairs(pills) do
+			p.btn:Destroy()
+		end
+		pills = {}
+		for i, row in ipairs(list) do
+			local ev = row.ev
+			local th = T.themeFor(ev.zoneId)
+			local caption = ((th.BADGE or "") ~= "" and (th.BADGE .. " ") or "") .. tostring(ev.name or ev.id)
+			local btn, lbl = UI.themeButton(switch, caption, UDim2.fromOffset(222, 46), nil, th, "secondary")
+			btn.Name = "Pill_" .. tostring(ev.id)
+			btn.LayoutOrder = i
+			btn:SetAttribute("ThemeLock", true)
+			lbl.TextSize = 18
+			local id = ev.id
+			btn.MouseButton1Click:Connect(function()
+				selectedId = id
+				hideInfo()
+				closePass()
+				paint()
+			end)
+			pills[id] = { btn = btn, theme = th, job = "secondary" }
+		end
+	end
+
+	local function paintCard(c, row)
+		local ev = row.ev
+		c.ev = ev
+		local text, claims = Tabs.claim(ev, state, row.open)
+		c.ctaL.Text = text
+		c.claims = claims
+		local job = (claims and "go") or (row.owned and "secondary") or "off"
+		if c.job ~= job then
+			c.job = job
+			UI.setJob(c.cta, c.theme, job)
+		end
+		-- A free claim is a thing to collect: it moves (house style rule 8).
+		if claims and not c.stopPulse then
+			c.stopPulse = UI.pulse(c.cta, 1.06, 0.9)
+		elseif not claims and c.stopPulse then
+			c.stopPulse()
+			c.stopPulse = nil
+		end
+		if ev.zoneId == "hallow" then
+			local line, at = Tabs.cryptWindowLine(state, serverNow())
+			local date = (at and not Tabs.hasEnded(ev, state)) and Tabs.localDate(at) or ""
+			c.timer.Text = (date ~= "") and (line .. "  \u{00B7}  " .. (row.open and "ends " or "") .. date) or line
+			if cryptCtl then
+				cryptCtl.setState(state)
+			end
+		else
+			local left, teasing = horizonLeft(C)
+			if not row.open or left == "closed" then
+				c.timer.Text = "Event ended"
+			elseif left then
+				c.timer.Text = (teasing and "Starts in " or "Closes in ") .. left
+					.. (row.owned and "  \u{00B7}  yours to keep" or "")
+			else
+				c.timer.Text = row.owned and "Yours to keep" or "Live now"
+			end
+			if c.blurb then
+				c.blurb.Text = tostring(ev.blurb or "")
+			end
+			if c.bannerImg then
+				local img = ev.bannerImage
+				local ok = type(img) == "string" and img ~= "" and not string.find(img, "REPLACE", 1, true)
+				c.bannerImg.Image = ok and img or ""
+				c.bannerImg.Visible = ok and true or false
+			end
+			if c.pass then
+				c.pass.Visible = state.eventPass ~= nil
 			end
 		end
-		for _, ev in ipairs(list) do
-			return ev
-		end
-		return nil
 	end
 
-	-- Has this event been claimed? Per event, from its own flag.
-	local function eventOwned(ev, state)
-		local flag = ev and ev.ownedFlag
-		if not flag then
-			return false
+	function paint()
+		local list = Tabs.shown(C, state)
+		local ids = {}
+		for _, row in ipairs(list) do
+			table.insert(ids, tostring(row.ev.id))
 		end
-		return state[flag] == true
-	end
-
-	--[[
-		BEFORE LAUNCH THE CLOCK TICKS; AFTER IT, IT COUNTS THE REAL EVENT.
-
-		Owner, 2026-10-07: "i want the timer to not actually start until i say
-		launch, and rather just keep ticking down".
-
-		Those are two different clocks and this is where they meet.
-		limitedCountdown now runs on the season clock, which does not move until
-		the owner launches -- correct, but it means a pre-launch screen would
-		show a FROZEN "47d 0h" sitting there, which reads as a broken timer
-		rather than a game that has not started.
-
-		So while unlaunched the label shows MineLaunch.teaserLeft(), which is
-		driven by real os.time() and falls second by second. It is cosmetic by
-		design: it counts toward nothing, nothing watches it, and it rolls over
-		and starts again. Its whole job is to be alive on screen.
-
-		The moment the switch is thrown teaserLeft returns nil and this falls
-		through to the real event countdown, so the handover needs no state of
-		its own.
-	]]
-	local okLaunch, Launch = pcall(function()
-		return require(game:GetService("ReplicatedStorage").Mine.Shared:WaitForChild("MineLaunch"))
-	end)
-
-	local function hms(secs)
-		local d = math.floor(secs / 86400)
-		local h = math.floor((secs % 86400) / 3600)
-		local m = math.floor((secs % 3600) / 60)
-		local s = math.floor(secs % 60)
-		if d >= 1 then
-			return string.format("%dd %dh", d, h)
+		local key = table.concat(ids, "|")
+		if key ~= shownKey then
+			shownKey = key
+			rebuildPills(list)
 		end
-		if h >= 1 then
-			return string.format("%dh %dm", h, m)
+		local row = selectedId and Tabs.find(list, selectedId) or nil
+		if not row then
+			selectedId = nil
+			row = Tabs.find(list, Tabs.defaultId(list, state))
 		end
-		return string.format("%dm %02ds", m, s)
-	end
-
-	local function formatLeft()
-		if okLaunch and Launch and Launch.teaserLeft then
-			local teaser = Launch.teaserLeft()
-			if teaser then
-				return hms(teaser), true
+		switch.Visible = #list > 0
+		empty.Visible = row == nil
+		for id, p in pairs(pills) do
+			local job = (row and row.ev.id == id) and "primary" or "secondary"
+			if p.job ~= job then
+				p.job = job
+				UI.setJob(p.btn, p.theme, job)
 			end
 		end
-		if C.limitedCountdown then
-			return C.limitedCountdown(), false
+		local shownCard = row and cardFor(row.ev) or nil
+		for _, c in pairs(cards) do
+			c.card.Visible = c == shownCard
 		end
-		return nil, false
-	end
-
-	local function paint()
-		local ev = currentEvent()
-		if not ev then
-			card.Visible = false
-			empty.Visible = true
-			empty.Text = "No event right now."
-			detailsBtn.Visible = false
+		local theme = T.themeFor(row and row.ev.zoneId or nil)
+		if currentTheme ~= theme.NAME then
+			currentTheme = theme.NAME
+			UI.applyTheme(root, theme)
+		end
+		if not row then
 			closePass()
 			return
 		end
-
-		card.Visible = true
-		title.Text = ev.name or "Event"
-		blurb.Text = ev.blurb or ""
-
-		local img = ev.bannerImage
-		if type(img) == "string" and img ~= "" and not string.find(img, "REPLACE", 1, true) then
-			bannerImg.Image = img
-			bannerImg.Visible = true
-		else
-			bannerImg.Visible = false
-		end
-
-		-- Per event, not per game: two limited mines now, each with its own
-		-- claim flag and its own window.
-		local owned = eventOwned(ev, state)
-		local active = state.limitedActive == true
-		if C.limitedActive then
-			active = C.limitedActive(ev and ev.zoneId)
-		end
-		local left, teasing = formatLeft()
-
-		--[[
-			The shelf, priced from the module so the button and the server can
-			never disagree about what a case costs. Shown only when it is
-			actually buyable: the Crypt, claimed, and open.
-		]]
-		if ev and ev.zoneId == "hallow" and owned and active then
-			local price
-			local okT, TT = pcall(function()
-				return require(script.Parent:WaitForChild("MineTrickOrTreat"))
-			end)
-			if okT and type(TT) == "table" then
-				price = tonumber(TT.PRICE)
-			end
-			totBtn.Text = price
-				and ("Trick-or-Treat Case  \u{00B7}  " .. tostring(price) .. " candy")
-				or "Trick-or-Treat Case"
-			totBtn.Visible = true
-		else
-			totBtn.Visible = false
-		end
-
-		detailsBtn.Visible = true
-
-		if owned then
-			timerLbl.Text = (active and left and left ~= "closed")
-				and ("Yours to keep  \u{00B7}  event " .. (teasing and "starts in " or "closes in ") .. left)
-				or "Yours to keep"
-			cta.Text = "Owned — enter from Zones"
-			cta.BackgroundColor3 = OWNED
-			cta.Active = false
-			empty.Visible = false
-		elseif active and left ~= "closed" then
-			-- Pre-launch the number is the teaser, so it must not say "closes":
-			-- nothing is closing, the season has not begun.
-			timerLbl.Text = left and ((teasing and "Starts in " or "Closes in ") .. left) or "Live now"
-			cta.Text = "Claim Event Horizon  ·  FREE"
-			cta.BackgroundColor3 = CTA
-			cta.Active = true
-			empty.Visible = false
-		else
-			timerLbl.Text = "Event ended"
-			cta.Text = "Event ended"
-			cta.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
-			cta.Active = false
-			empty.Visible = true
-			empty.Text = "No event right now. Last up: " .. (ev.name or "Event Horizon") .. "."
-			detailsBtn.Visible = state.eventPass ~= nil
-		end
-
+		paintCard(shownCard, row)
 		if passOpen then
 			paintPass()
 		end
@@ -934,17 +726,17 @@ function MineEventsView.mount(parent, opts)
 	local view = {}
 
 	function view.setState(snap)
-		snap = snap or {}
-		state.bigbangOwned = snap.bigbangOwned and true or false
-		state.limitedActive = snap.limitedActive and true or false
-		state.eventPass = snap.eventPass
+		state = type(snap) == "table" and snap or {}
 		if root.Visible then
 			paint()
 		end
 	end
 
+	-- Opens on the default event (MineEventTabs.defaultId), every time.
 	function view.open()
+		selectedId = nil
 		root.Visible = true
+		hideInfo()
 		closePass()
 		paint()
 		startTick()
@@ -952,6 +744,7 @@ function MineEventsView.mount(parent, opts)
 
 	function view.close()
 		closePass()
+		hideInfo()
 		root.Visible = false
 		stopTick()
 	end
@@ -964,27 +757,15 @@ function MineEventsView.mount(parent, opts)
 		end
 	end
 
+	-- A Trick-or-Treat case answered (trickOrTreatOpened).
+	function view.onCaseOpened(payload)
+		if cryptCtl and cryptCtl.onCaseOpened then
+			cryptCtl.onCaseOpened(payload)
+		end
+	end
+
 	closeBtn.MouseButton1Click:Connect(function()
 		view.close()
-	end)
-
-	passBack.MouseButton1Click:Connect(function()
-		closePass()
-	end)
-
-	detailsBtn.MouseButton1Click:Connect(function()
-		openPass()
-	end)
-
-	cta.MouseButton1Click:Connect(function()
-		if not cta.Active then
-			return
-		end
-		local ev = currentEvent()
-		local zoneId = ev and ev.zoneId or "bigbang"
-		if opts.onClaim then
-			opts.onClaim(zoneId)
-		end
 	end)
 
 	root:GetPropertyChangedSignal("Visible"):Connect(function()
@@ -998,6 +779,7 @@ function MineEventsView.mount(parent, opts)
 	end)
 
 	view.root = root
+	view.cards = cards
 	paint()
 	return view
 end

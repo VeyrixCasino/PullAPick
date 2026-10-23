@@ -1,10 +1,16 @@
 # Renders the 3D booster-pack sprites (foil pouch, cover art on the front,
-# set name on the top seal, tier shown by the seals).
+# tier shown by the seals).
 #
 #   powershell -ExecutionPolicy Bypass -File tools\pack-sprites\render.ps1
 #
-# With no -Jobs it renders every set (76 sprites) via jobs.js. The angle
-# defaults are the ones the owner approved on 2026-10-10.
+# The top seal is BLANK by default (owner, 2026-10-19: the set name baked onto
+# the crinkled top "comes off"). -Title prints each set's name there again, the
+# way the 2026-10-10 sprites were made:
+#
+#   powershell -ExecutionPolicy Bypass -File tools\pack-sprites\render.ps1 -Title
+#
+# With no -Jobs it renders every set (57 sprites: 19 sets x 3 covers) via
+# jobs.js. The angle defaults are the ones the owner approved on 2026-10-10.
 param(
     # Optional JSON array of { cover, out, style, accent, title }.
     # style: plain (1-2 star) | foil (3 star) | silver (4 star) | gold (5 star)
@@ -14,7 +20,9 @@ param(
     [int]$Height = 1024,
     [double]$Yaw = -11,
     [double]$Pitch = -5,
-    [double]$Roll = -5
+    [double]$Roll = -5,
+    # Print the set name on the top seal. Off by default since 2026-10-19.
+    [switch]$Title
 )
 
 if (-not $Jobs) {
@@ -27,7 +35,11 @@ Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition (Get-Content -Raw 
 foreach ($job in (Get-Content -Raw $Jobs | ConvertFrom-Json)) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $job.out) | Out-Null
     $accent = [Convert]::ToInt32($job.accent.TrimStart('#'), 16)
+    # PowerShell names are case-insensitive, so this cannot be called $title:
+    # that IS the -Title switch. An empty string leaves the seal blank.
+    $sealText = ""
+    if ($Title) { $sealText = [string]$job.title }
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    [PackRender3D]::Render($job.cover, $job.out, $job.style, $accent, $Width, $Height, $Yaw, $Pitch, $Roll, [string]$job.title)
+    [PackRender3D]::Render($job.cover, $job.out, $job.style, $accent, $Width, $Height, $Yaw, $Pitch, $Roll, $sealText)
     Write-Output ("wrote {0} in {1:n1}s" -f $job.out, $sw.Elapsed.TotalSeconds)
 }

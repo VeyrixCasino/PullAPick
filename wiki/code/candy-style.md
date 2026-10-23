@@ -2,10 +2,13 @@
 title: The candy house style (read before touching any UI)
 type: code
 status: current
-verified: 2026-10-14 @ 98c141a
+verified: 2026-10-19 @ db59c60
 sources:
   - src/ReplicatedStorage/Mine/Shared/MineTheme.luau
   - src/ReplicatedStorage/Mine/Shared/MineUI.luau
+  - src/ReplicatedStorage/Mine/Shared/MineEventsView/init.luau
+  - src/ReplicatedStorage/Mine/Shared/MineCryptView.luau
+  - tools/verify/crypt-ui.js
   - src/ReplicatedStorage/Mine/Shared/MineCelebrate.luau
   - src/ReplicatedStorage/Mine/Shared/MineAudio.luau
   - src/ReplicatedStorage/Mine/Shared/MineLuckyOddsView.luau
@@ -124,6 +127,49 @@ Text sizes inside the old windows were **not** raised, because their
 fixed-width labels would clip. When you rewrite a window, raise its type to
 the floors above. Opt out of all this with the `NoAdopt` attribute.
 
+## Event themes (2026-10-19)
+
+Owner: *"better bubbly ui all around, in halloween, halloween theme, and
+dark/univedrsze theme in event horizon"*, on the event's own screens **and on
+everything that belongs to an event wherever it shows** (its packs, its pets'
+cards, its tools, its case). The main world keeps the lifted look; toning that
+down is the PC session's job.
+
+- **Palettes** (`MineTheme.EVENT_THEMES`): `halloween` (night purple-black shell,
+  candy-purple bands and edge, bone-white face and type, pumpkin accent, slime
+  glow) and `universe` (deep-space shell, nebula-violet bands and edge,
+  star-white face, teal accent and glow). Each has the lifted roles (`SHELL`,
+  `SHELL_HI`, `FACE`, `FACE_DIM`, `ON_FACE`, `ON_FACE_MUTED`, `ACCENT`, `EDGE`)
+  plus `INK`, `TEXT`, `MUTED`, `GLOW`, `OUTLINE`, `CANDY` button pairs by job
+  (`primary`, `secondary`, `go`, `danger`) and a corner `BADGE` (🎃 / 🌌).
+  `MineTheme.LIFTED` is the main world's in the same shape. Every value is
+  PROPOSED; `crypt-ui.js` checks type on shell and face reads (over 7:1).
+- **Which theme:** `MineTheme.eventTheme(key)` takes a zone, event or theme name;
+  `themeFor` never returns nil; `eventKeyOf(item)` names an item's event from the
+  ids the game already stamps (a pet's `cardKey` home, pack ids, `eventOnly` /
+  Crypt tool ids, `hallow_` charms, a pouch row's `candy`).
+- **Build with it** (`MineUI`): `themePanel`, `themeCard`, `themeText`,
+  `themeButton` (job `"off"` greys it and makes it inactive, so the click binder
+  plays the "can't" knock), `setJob`, `tint`, `themeStroke`. Every themed
+  instance records its role (`ThemeFill` / `ThemeInk` / `ThemeEdge` /
+  `ThemeJob`) and is stamped adopted, so `MineUI.watch` cannot repaint a night
+  shell indigo. `applyTheme(root, theme)` repaints a tree by role, skipping any
+  subtree marked `ThemeLock` (the Events tab's cards keep their own palette).
+  `candy()` now also takes a `{ top, bottom }` pair.
+- **One helper for event items anywhere:** `MineUI.eventMark(inst, key)` puts a
+  ring in the event's ACCENT-to-EDGE gradient just inside the tile's own rim
+  (a child frame, so the rarity rim keeps its meaning) and the event's badge in
+  a corner; `nil` removes it, so a repainted tile can call it every time.
+- **Where it is on (2026-10-19):** the Events tab (both cards, the pills, the
+  panel, Event Horizon's pass), the Crypt's card, the first-entry pop-up, the
+  pouch's candy-ore section, the candy wallet pill, a Crypt chest's candy row,
+  and event pets' cards (`paintCard`). **Not yet:** event packs in the shop
+  and the inventory (`MineInventoryView` belongs to another session), Event
+  Horizon's tool shelf in the old shop and the Forge hub's EVENT TOOLS, the
+  hotbar, the case reel. The PC session finishes those. Crypt tools, charms
+  and Trick-or-Treat prizes wait for the Crypt's next redesign (owner,
+  2026-10-19).
+
 ## Checklist for a new screen
 
 - [ ] Built from `MineUI` constructors. No raw surfaces.
@@ -140,8 +186,8 @@ the floors above. Opt out of all this with the `NoAdopt` attribute.
 
 | piece | file |
 |---|---|
-| tokens: `CANDY`, `OUTLINE`, strokes, text floors | `MineTheme.luau` |
-| constructors, shapes, motion, `watch`/`adopt` | `MineUI.luau` |
+| tokens: `CANDY`, `OUTLINE`, strokes, text floors; the event palettes `EVENT_THEMES`, `eventTheme`, `eventKeyOf` | `MineTheme.luau` |
+| constructors, shapes, motion, `watch`/`adopt`; themed builders, `applyTheme`, `eventMark` | `MineUI.luau` |
 | rarity-scaled celebrations, `skipHint`, `suspense` | `MineCelebrate.luau` |
 | win stingers, music, every sound slot | `MineAudio.luau`, `docs/AUDIO.md` |
 | odds sheet for paid random items | `MineLuckyOddsView.luau` |

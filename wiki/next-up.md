@@ -35,6 +35,24 @@ related: [owner, pets, cards-and-packs, zones-layers-and-seams, chests-and-lucky
 
 ## Who owns what (two sessions share this checkout)
 
+- **Launch-audit fixes, split by the owner on 2026-10-19** (spec:
+  [open-questions](open-questions.md) §0e decided):
+  - **The cloud session (PR #7, branch `claude/trusting-euler-sjugag`)** does the
+    **logic and wording**: the tutorial step, the Candy Crypt (its redesign, its
+    Events card, Trick-or-Treat, candy ores and charms, tool merging, the
+    first-entry pop-up, the two event palettes on event screens), odds sheets,
+    deals, Founders, Forge prices and scrap, pets, quests, Discord, the day-29
+    pause, sounds, the double charge, the pouch's "Sell up to".
+  - **The PC session (with Studio)** does the **visual** ones it can check: phone
+    scaling (§0e M9), the collection page (M10), the card detail sheet, the VFX
+    tab, toasts on top, the celebration title, the text-scale rule, **toning the
+    main-world look down** (the owner: *"tone the main look down"*), the bubbly
+    restyle, **more attractive portals**, and a Studio look at the cloud
+    session's screens once PR #7 is merged.
+  - **Cursor jobs to write** (cloud session drafts the brief, the PC session
+    runs them): themed 3D models and icons for the Candy Crypt and Event Horizon
+    tools; skin looks for pickaxes, drills and explosives (hammers and
+    jackhammers are `skin-looks`).
 - **The "Collection pack designs" session** is building pack cases, chest case
   drops, the credit shop, the stardust shop's Cases tab and the daily wheel
   (in MineServer, MineInventoryView, MinePackConfig, MineRotatingOffers,

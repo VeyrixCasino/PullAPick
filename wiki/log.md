@@ -169,6 +169,80 @@ Running luau-analyze over the touched files found reads of undefined globals:
 
 Updated: chests-and-lucky-blocks, verify-suite, log.
 
+## [2026-10-08] ingest | main after PR #6 merged (9 commits since b19c4c2)
+Asked "are we good to go?", I found PR #6 merged into `main` on 2026-10-06
+(`ea255bb`) and its branch nine commits past the last ingest, so PR #7 pointed at
+a stale base and the wiki described old code. Merged `main` into this branch (no
+conflicts) and read all nine commit messages. The owner's session had **fixed
+three more of the wiki's findings**: depth desks (bug 5) and the recycle loop
+(bug 3) in `4cc82a5`, and the 200-local ceiling (bug 15) with a new `compile.js`
+check in `5d59714`. I read the new code to confirm each and ran `compile.js`
+(5 and 7 registers left). Other ingests: 246 per-ore tool skins, forge frame
+stats baked so the coin tool roster can be deleted, UI rescale, vein cost and
+random-mine fix, first layers mostly stone, pet bob rate, shadows (a Studio-only
+change), the Rojo stale-sync gotcha, and a correction that the 2026-10-05 upload
+"ownership" problem was moderation latency. Suite: **40 passed, 0 failed, 0 did not
+run** (was 36; new checks `compile`, `economy-exploits`, `oreframes`, `ui-scale`).
+Owner's newest decisions are in [owner](owner.md). Still open: bugs 4 and 6-13 and
+16 in [open-questions](open-questions.md). Retargeted PR #7 to `main`.
+
+## [2026-10-08] refactor | ask first, always: a stronger rule for ALL agents
+The owner said: *"from now on i want ALL agents to fucking hound me with questions
+so noithing is EVER unclear"*. That replaces the softer 2026-10-05 rule. Rewrote
+"Ask first, always" in `CLAUDE.md` (no cap on questions, restate before starting,
+ask the moment a new doubt appears, list assumptions at the end, and what to do when
+nobody can answer) and added it to `AGENTS.md`, `tools/agent/house-rules.txt`, the
+pasted prompts in `docs/START-HERE.md` and `docs/FABLE-PROMPT.md`,
+`roadmap/AGENT_PROMPT.md`, `roadmap/PROMPTS.md`, `docs/HANDOFF.md`, TODO §0.35 and
+§9, and the Claude.ai text. Replaced the `FABLE-PROMPT` line that said to ask only
+"one sharp question rather than guessing or stopping". Added a `SubagentStart` hook
+beside the prompt hook, and `tools/verify/askfirst.js` (proved to fail on a broken
+copy). Subagent coverage was tested rather than assumed: the JSON hook reached a
+general-purpose subagent, and did not reach the built-in `Explore` type (see
+[local-setup](code/local-setup.md)). Four design points were applied on my defaults
+and put to the owner as questions: the cap, locked rules, unattended runs, and
+restating before work.
+
+## [2026-10-08] query | owner confirms the four ask-first design points
+Asked the owner four open design points about the ask-first rule (question cap,
+locked rules, unattended runs, restating first). Every answer was the recommended
+default, which was already live, so no rule changed. Recorded in [owner](owner.md)
+and TODO §0.35. Found while checking the branches: the owner's working branch
+`claude/vigilant-fermi-aucqjy` holds an older merge of this wiki (`c04adad`) plus its
+own ingest (`c9b93c6`), and does not have the ask-first rule or hooks. Reconciling
+the two lines is an open question for the owner (5 wiki files would conflict).
+
+## [2026-10-08] refactor | the wiki now follows the owner's working branch
+The owner chose (asked twice) that the wiki follows `claude/vigilant-fermi-aucqjy`,
+that the ask-first rule reaches their branch through a PR their other session merges
+(never a push from here), and that conflicts resolve as "merge both; theirs wins on
+code facts". Merged that branch (`bae3c5b`) into this one (`06b5f89`). Five pages
+conflicted: `ores` (their rebuilt Veins block won; my K 0.228/0.353/0.434 figures were
+stale because `ORE_K_TOP` is now 0.040 after `41d8f3a`, so I replaced them), `open-questions`
+(kept my rows 3, 5 and 15 for the commit hashes and measurements, added their "caught the
+same break twice more"), `verify-suite`, `zones-layers-and-seams` and this log. After the
+merge: `wiki.js`, `askfirst.js` and `syntax.sh` clean, and the suite is **45 passed, 0
+failed, 0 did not run**, with `compile.js` at 5 and 7 registers left (215 files).
+
+## [2026-10-08] ingest | the owner's session: 36 charms, traders, season hold (`b09cc4a`..`bae3c5b`)
+Eight commits the other session's own ingest (`c9b93c6`) predates. Read the code, not only
+the messages. New pages: [wandering-traders](systems/wandering-traders.md) and
+[season-and-launch](systems/season-and-launch.md). Updated: charms (the 36 graded charms,
+their two ways in, prices), chests-and-lucky-blocks (the 0.5% drop), shops-and-monetisation,
+skins-cases-and-temper (new temper-token sinks), world-events (the season-end gotcha was
+stale: offers now end 11-08), tools, glossary, ambiguous-terms (`launch`, `trader`,
+`charm`, `tokens`), index, overview, owner, sources-of-truth, server, client-and-ui,
+code-map, tools-and-generators, verify-suite (`launch`, `trader`; 45 checks, 22 run the luau
+binary) and open-questions.
+
+**Four findings from reading the code, none fixed** ([open-questions](open-questions.md)
+§1b, #21–#24): nothing in `src/` sends `buyCharm`, so the token half of the graded charms
+has no shop; nothing sends `launchSeason`, so the owner has no launch button; the battle
+pass ends 2026-11-01 while the offers end 11-08; and Chest Luck raises the chest charm drop
+though a code comment says it does not. Also reframed bug 4 (Event Horizon) as the owner
+did in TODO §6.1: a missing progression, not a breaking-power bug. Not rechecked: the
+`ToolModels` archive move and anything not in the eight commits.
+
 ## [2026-10-10] decision | the red lucky block is "Godly Lucky Block"
 
 The owner answered "Godly everywhere". The block had three names: id
@@ -1404,6 +1478,66 @@ What changed:
 
 Updated: shops-and-monetisation, pets, skins-cases-and-temper, open-questions, traits, log.
 
+## [2026-10-16] refactor | PR #7 rebuilt on the owner's branch, 144 commits later
+The owner's working branch had moved from `bae3c5b` to `98c141a` (PR #8, "Season 1 build",
+144 more commits, 269 files), and that branch's own wiki edits conflicted with mine in 20
+files. It still had **no ask-first rule**: no `CLAUDE.md` section, no hooks, no
+`askfirst.js`. I asked four questions; the owner answered *"ok build"*, which I read as a go
+ahead on my recommended defaults: merge, take **their** version of every conflicted wiki page,
+re-add only mine. Re-added: the "Asking them questions" section and the 2026-10-07/08 decision
+lines in `owner`, the intro and the `launch`, `trader` and `charm` rows in `ambiguous-terms`,
+six verify-suite rows (`askfirst`, `launch`, `trader`, `economy-exploits`, `oreframes`,
+`ui-scale`), my five 2026-10-08 log entries (in date order), the two new pages, and two
+findings that still hold (open-questions 21 and 22). **Dropped as already fixed upstream:** my
+findings that nothing sent `buyCharm` (`69f3de6` put the token shop in the Inventory charm list)
+and that nothing sent `launchSeason` (`cc0262f` added `/admin launch now`). Corrected stale
+statements in `charms`, `world-events`, `season-and-launch`, `sources-of-truth` and `overview`
+(PR #6 was merged; the Event Horizon window now reads the season clock). `wiki.js` now treats
+`build/hammer-icons` and `build/tool-icons` as owner-disk-only. Suite: **66 checks, 66 passed on
+the second run**; the first run's `skins` failure is a CRLF/LF artefact of a Linux checkout
+(see [verify-suite](code/verify-suite.md)). Nothing under `src/` is changed.
+
+## [2026-10-17] decision | the four open questions, decided for the players
+The owner: *"do what you think is best for the game [for the players.. we pushing this to
+come out asap]"*. Applied to the four questions left open on 2026-10-16:
+(1) graded charms from chests stay, and TODO §0.13 rule 5 now records the 2026-10-07
+exception; (2) Chest Luck keeps scaling the 0.5% chest charm drop, like every other chest
+reward, because one charm slot makes it a trade-off (my earlier "a comment denies it" was a
+misreading: that comment is about `luck`); (3) the battle pass runs 47 days like the offers
+and Event Horizon (`PASS_SEASON_END` 1793505600 → 1794110400); (4) the wiki is edited by
+merging first and only adding gaps.
+
+Checking (3) turned up a **launch-day bug** that I fixed in the same change: clients never
+learned `launchedAt`, so after a launch the shop would have shown week one's deals (which the
+server refuses), and the battle pass panel counted down on the raw server clock to a printed
+"Oct 31". The server now mirrors the stamp to `ReplicatedStorage` (`MineLaunchedAt`) after a
+successful read or save, `MineLaunch.stamp()` reads it on clients only, and the pass panel uses
+`MineScrolls.seasonClock` and `passEndLabel`. `launch.js` gained nine checks, proved to fail on
+the old code and pass on the new. **Not run in Studio.** Updated: season-and-launch, charms,
+open-questions (21 fixed, 22 decided), owner, verify-suite.
+
+## [2026-10-17] refactor | merged the pass rework (`d258771`) into PR #7
+The working branch moved to `d258771` (5 commits: the battle pass rework, drills, text
+animation, hammer and explosive niches, a restore point). Merged it into this branch: three
+wiki pages conflicted (`tools-and-generators`, `verify-suite`, `log`), took theirs and
+re-added only this branch's rows and log entries. The code merged without conflict, and
+both sides survive: their 100-tier pass at 90 XP a tier, my season clock and 47-day end.
+**One new ambiguity, asked, not decided:** the rework added `PASS_SEASON_DAYS = 28`
+(unused), the branch's pass ends at 40 days, and this PR says 47
+([open-questions](open-questions.md) 23). Checks: `launch` and `battle-pass` pass,
+`syntax.sh` 306 files clean, compile 12 and 11 locals left, suite 70/70 on the second run
+(first-run `skins` is the CRLF effect). Their `log.md` holds four bytes that are not valid UTF-8
+(Windows-1252 `…` and `×`, in the MineStars entry); I kept them as they were.
+
+## [2026-10-18] decision | the battle pass is 28 days
+The owner answered the open length question: *"28 days"*. `PASS_SEASON_END` is now derived
+from the rework's `PASS_SEASON_DAYS = 28` (`START + DAYS * 86400`), so the length is one number;
+the offers and Event Horizon stay at 47. `launch.js` now checks the pass is exactly
+`PASS_SEASON_DAYS` long and ends inside the season (proved to fail on the old 47-day literal).
+**New question, asked:** on day 29 `reconcilePass` restarts the same 100-tier track for everyone,
+so the season pets and Season One skins can be earned twice and premium must be rebought
+([open-questions](open-questions.md) 24).
+
 ## [2026-10-18] setup | Cursor jobs (`tools/cursor/`)
 Owner: *"give me cursor prompt or setup something so you can deploy cursor to
 work"*. The Cursor agent CLI already ships inside the Cursor app, but it was not
@@ -1578,3 +1712,200 @@ longer exists. Every live caller requires `Mine.Shared.MineGear`. Rojo removes t
 from Studio on the next sync. `MineBags_NameCheck` and the root `MineBagNames` stay.
 
 Updated: code-map, admin-and-debug, hats-and-faces, retired-and-parked, traits, log.
+
+## [2026-10-19] query | launch audit of every screen, effect and tool card
+The owner asked for *"a deep audit of all uis, effects, tool cards etc, and determine what
+needs to be done for launch, and what you need from me"* and chose "list first, you pick".
+Six read-only reviews at `b4aa4ed`; I re-read every MUST-FIX row in the code myself. Filed as
+[open-questions](open-questions.md) §0e: **10 must-fix** (the tutorial's 5th step can't be done;
+the live Candy Crypt's candy can't be spent; paid random buys without odds; a "799 Robux" button
+that takes credits; a VIP seat VIP no longer gives; two deals promising things they don't grant;
+deal countdowns stuck at "0d 0h"; the Forge shrunk twice on small screens; a card collection
+page of retired sets), **41 should-fix**, polish, and what only the owner can supply. One
+conflict between reviewers settled in the code: the Founders Rig button charges credits through
+`buyProductCredits`; the "not configured" toast belongs to `buyBackpack`, which that button never
+reaches. Corrected three pages the audit proved wrong: [client-and-ui](code/client-and-ui.md)
+(step 3 no longer ends in a purchase), [pets](systems/pets.md) (traits are not per pet in
+practice) and [server](code/server.md) (132 action strings, not 142); §1 #13 is half fixed.
+
+## [2026-10-19] decision | day 29 of the battle pass
+The owner: *"i'll having something ready"* (a new pass for day 29), and picked the safety net:
+if it is late, the old pass pauses (no XP, no claims, "Next pass coming soon") instead of
+restarting the same 100 tiers. Not built yet; queued with the audit fixes
+([open-questions](open-questions.md) 24, [season-and-launch](systems/season-and-launch.md)).
+
+## [2026-10-19] decision | the owner picks the launch-audit fixes, and redesigns the Candy Crypt
+Fourteen multiple-choice questions and the owner's own words, recorded in full as
+[open-questions](open-questions.md) §0e decided, with the split in [next-up](next-up.md):
+the cloud session does logic and wording on PR #7, the PC session (Studio) does the visual
+fixes and checks. The game is **not open to the public yet**, so pet traits can be re-rolled.
+The Candy Crypt is redesigned: normal tools stop working in events, Crypt tools drop from
+chests and Trick-or-Treat cases (85% tools) and merge like pets, candy is 3x, rock runs zone 3
+to zone 10, four more candy ores, each candy block also drops a candy ore that crafts six new
+Halloween charms, and event tools keep working in the main world after the event ends (weaker).
+Event Horizon is unchanged for now. Merged the owner's branch (`bc55f16`) into PR #7 first.
+
+## [2026-10-19] fix | launch fixes, part B: tutorial, menus, quests, Discord, day 29
+From the owner's §0e picks ([open-questions](open-questions.md)). Tutorial step 3 is now
+**FORGE your first tool**: it opens the Forge, tops the pouch up to exactly one Stone Pickaxe
+(270 Stone, from `C.toolCraftCost`), and clears on the first craft; coin purchases no longer
+clear it, and the first Blacksmith visit no longer pops the Forge. Menus: close-everything also
+closes Skins, Trade, Fishing and the Forge; the skill tree has an X; the day-4 pack is given
+regardless (Favorite is optional, no LIKE); one currency in the coin pill; Settings no longer
+overlaps; the Planets map and the daily calendar stop rebuilding; button sounds are on.
+Discord: an unknown code is refused instead of "Code accepted!", tries back off (the old
+cooldown read a nil global, so every redeem threw), a link finished in Discord pays its 5,000
+gems on the next join, and the Account tab shows discord.gg/Ab5ZpVdRvp. No leaderboard prize
+text; kid-safe find text; no "Rebirth once" daily before the first rebirth. **Day 29:** the
+pass pauses (no XP, claims or sales) until `MineScrolls.NEXT_TRACK` ships. New checks:
+`tutorial-forge`, `hud-launch`, `discord-link`, `promises`, `quests-launch`; suite 74 of 75
+(the Linux `skins` quirk). Not seen in Studio.
+
+## [2026-10-19] fix | launch fixes, part D: pet identity, the Cards tab, case runs, true rarity
+From the owner's §0e picks. **Named pets now hash their family and trait from name and home**
+(largest family 13.5%, largest trait 9.5%, all 96 pairs in use; the 41 legacy sets' prints are
+unchanged). Lone Wolf and Squad Bond read the pets-out count; lines the Special zeroes say
+"needs a Zap Special". The team rail shows only the real seats (no GET VIP); the Cards tab keeps
+card faces by id instead of rebuilding them; Hats/Faces lists the 116 hats and 23 faces that can
+drop. A Gear Vault reels all 5 items, each next reel after the player closes the last; case runs
+get **SKIP ALL** (one grid, best first, one celebration); finds print their true rarity; the
+lucky-block SKIP ALL card names books, potions and skin cases. New checks: `pet-identity`,
+`cards-tab`, `reveal-runs` (they run the real Luau); suite 77 of 78 after merging parts B and D
+(the Linux `skins` quirk). Not seen in Studio.
+
+## [2026-10-19] fix | launch fixes, part A: shops and Robux
+From the owner's §0e picks. **ODDS before every paid random buy** (Mystery Case, wild cases,
+the Packs hero and Build-a-Box tiles, the Charms Pack, the Forge's book bundle, trader cases),
+on one shared sheet (`MineLuckyOddsView.sheet`) fed by the tables the rolls use; the region rule
+now covers credit deals with random items, trader cases and bought wheel spins. Founders Rig:
+"799 credits", two taps. The Founders Pack grants the Founders Bag. Lucky Block Week pays
+**Lucky Dice** (a real Epic) and 8 wild cases of the old packs' value (PROPOSED). Deal countdowns
+run on the season clock (47 days, weekly "New offers in"); no dates in blurbs; a maxed Robux deal
+is greyed and a stray receipt pays its credit price back. Cart orders carry ids (no double
+charge); depth desks price bags in gems and hide refused tools; the Starter popup reads its
+product row; only today's shelf has prices; a box of ten of one pack gets 30% off; the dead
+Lucky Charm row is gone. New checks: `deals`, `paid-odds`, `shop-guards`.
+
+## [2026-10-19] fix | launch fixes, part C: the Forge tells the truth, skins work on every tool
+Each Forge number now has one copy in `MineOreTools` (`craftCost`, `hitPower`, `cardStats`,
+`inheritedLevel`, `recycleRefund`), used by the verbs and every panel: the server charges the
+card's craft price (it charged step one for every ore), SCRAP quotes the real refund, and cards
+show the hit per blow, hits per second, area, use and the inherited level. One Forge: the old
+shop shows Bags, its other tabs open the hub, COIN SHOP is gone (kept as EVENT TOOLS inside Event
+Horizon, the only door to that shelf). `MineToolSkins` decides what skin any tool wears, event
+tools included; ore cases pay wardrobe skins; the wardrobe shows EQUIPPED, each skin's power and
+"stats only" where a family has no model yet. Cursor briefs: `skin-looks-more`, `event-tool-looks`.
+New checks: `forge-cards`, `skin-wear`; `recycle-quote` covers the hub.
+
+## [2026-10-19] build | the Candy Crypt redesign, server half
+The §0e Crypt spec's server and shared side (`MineCryptRules`, `MineCrypt`): only event tools dig
+the Crypt (a free Candy Corn Pickaxe on claim; the claim now sets `hallowOwned` on the Crypt's own
+window instead of granting Event Horizon), Crypt tools drop from Crypt chests (30%, PROPOSED) and
+Trick-or-Treat cases (85/5/7/2.9/0.1, no candy back), three merge into the next of Golden, Prism,
+Rainbow, and once the Crypt closes they are kept and also work in the main world at a ladder-mapped
+power (PROPOSED). Rock runs zone 3 to zone 10 on the old low coin curve; candy is 3x and every candy
+block now pays it (it used to pay only from ore-kind blocks) plus one candy ore; 16 candy ores; six
+crafted candy charms; the pouch sells "up to" a rarity and sells ticked candy ores for candy; a
+one-time notice per event; Planets travel follows each zone's own window. New check: `crypt`.
+**Merging the five parts** needed two fixes: the tutorial's free Stone now uses
+`MineOreTools.craftCost`, and the `crypt` check reads the Crypt swap in `Dig.toolInHand`.
+Suite 83 of 84 (the Linux `skins` quirk). Nothing here has been seen in Studio.
+
+## [2026-10-19] feature | the Candy Crypt's screens, part 1: Events tab, event themes, pouch sell menu
+The Events tab shows every open event (`MineEventTabs`): one pill each, in its own theme, its own
+claim flag and claim text, "Owned — enter from Planets", and an (i) with that event's notice. The
+Crypt card's shell shows candy and a Trick-or-Treat OPEN at the snapshot's price (its odds sheet is
+the placeholder `MineCryptView.mountCaseOdds`). The first-entry pop-up shows once
+(`cryptNoticeSeen`); a candy pill shows in the Crypt only. The pouch gets a SELL UP TO chip and
+sells ticked candy ores for candy. **Bug found and fixed:** nothing could open the ore pouch since
+2026-10-11, so no one could sell ore for gems; the Forge hub's 💎 SELL ORE reopens it. Halloween and
+dark-universe palettes and `MineUI` themed builders (event pets' cards wear a ring and badge).
+Crypt tools, merging, charm crafting and the case reveal were left out on purpose: the owner
+redesigned them the same day (Crypt v2, [open-questions](open-questions.md) §0e). New check
+`crypt-ui`. Suite 84 of 85 (the Linux `skins` quirk). Not seen in Studio.
+
+## [2026-10-19] build | Halloween pets v2: 12 more, the 20% rule, build-defining pets
+Crypt v2 spec, part C ([open-questions](open-questions.md) §0e). **Twelve more Halloween 2026 pets**
+(Epic 4, Legendary 3, Mythic 2, Divine 2, Exotic 1, all PROPOSED; names in `docs/HOLIDAY-PETS.md`), each
+wearing an existing Halloween body until its own is built (Cursor brief `halloween-pet-bodies.md`).
+**Halloween Mythic+ pets beat the best normal pet** on the game's own `MineCards.boostScore` (Segfault,
+722.1) by 1.2×/1.3×/1.4× for Mythic/Divine/Exotic (PROPOSED steps), lifted by the generator so a stronger
+normal pet later re-lifts them; **Halloween S/SS/SSS skins get a 1.2 edge** on damage base and budget
+(`tools/gen/skins.js`). **Build pets:** Crater (Boomjaw, Sparkplug: blast radius), Hex Storm (Zap), Bog
+Tide (Tidal Wave), Gravequake (Earthquake), and Rattlebones for Shatter. New `MineHalloweenPets`
+(`pool`, `isHalloween`), `MineStats.NAMED_PET_OK` (blastRadius on named kits) and a server guard
+`MinePatterns.MAX_BLAST_RADIUS` 6 (PROPOSED). New check `halloween-power` (25 failures on the old code).
+
+## [2026-10-19] build | Halloween enchants, every enchant checked end to end, the ability balance pass
+Crypt v2 spec, part B ([open-questions](open-questions.md) §0e). **Four Halloween enchants**, whose books
+come only from Crypt chests (`MineEnchants.rollHalloweenBook`, odds in `halloweenBookOdds`): Sugar Rush
+(Damage; the owner's +2% a one-shot block up to +100% is level V), Grave Digger (Damage; up to +60% at
+the floor), Spellbook (Special; casts one of the five abilities at 60% every 8 to 4 swings through
+`Dig.procsAt`) and Flashlight (Utility; lights the rarest breakable ore nearby, then rests). **Normal
+enchants are off in the Crypt** (`MineEnchants.activeHere`, `NORMAL_OFF_ZONES`). The audit ran all 26
+enchants through the real service and MineServer's proc code. **Bugs found and fixed:** Tidal Wave's
+tiers 2 and 3 rolled up into dug layers; Blast's BURST and DETONATION words had no animation or sound.
+Balance: Cascade 10 -> 7, Storm 85% -> 80%, Earthquake 5% and +25% a level, Proc Power plus an ability's
+own damage capped at +300%. Every new number is in `MineEnchants.TUNING`, PROPOSED; seven questions for
+the owner are in the agent's report (queued in [open-questions](open-questions.md)). Found, not changed:
+Echo's swing rate never applies, Gemfinder skips ore sales, Volt pets push late Zap builds to about 64
+swings a second. Pages: [enchants](systems/enchants.md), mining-and-breaking, boosts-and-stats, pets,
+code/verify-suite. New checks `enchant-audit` and `enchant-balance`. Not seen in Studio.
+
+## [2026-10-19] build | Candy Crypt v2, server and shared
+Crypt v2 spec, part A. The Crypt spawns **candy blocks only** (`MineConfig.isCandyOnly`). **16 candy
+ores**, two per rarity, each with a fixed drop and flat candy (a quarter of the drop's value); the odds
+shift every ten layers, with Exotic capped at 1% (`CANDY_ECONOMY`, `candyOreOdds`). **16 Halloween
+tools** (`MineCandyTools`) are crafted at the Forge from their ore and prestige 1 to 10 instead of
+levelling or merging, with a cap of ten tools; scrapping pays half the candy value. Each tool has its
+own factor on a Halloween skin's whole multiplier (`MineToolSkins.mult`). In the main world after the
+event, the Jawbreaker Auger at prestige 10 equals a top-level Oganesson Drill. **8 Crypt chests**, F to
+SSS, Candy Sack to Pumpkin King's Hoard (`MineCryptChests`), pay packs, flat candy, the rank's charm at
+0.5% x Chest Luck and Halloween books. **Trick-or-Treat** pays Halloween pets and skins only, with the
+50/50 in one push (`MineTrickOrTreat`). A **separate Halloween inventory** (`p.halloween`) moves into
+the main one when the event ends. Halloween items, the Halloween pack included (PROPOSED), do not trade
+during the event (`MineCrypt.tradeLocked`). The first design's pieces are retired on load
+(`MineCrypt.normalize`). New: `docs/CANDY-CRYPT.md` (made by `tools/gen/crypt-doc.js`, checked by
+`crypt-doc`), `MineCryptIcons` and the Cursor job `crypt-icons.md`. The Crypt pays no gems. Nine
+questions for the owner queued. Not seen in Studio.
+
+## [2026-10-19] build | Cases 1–5 stacked, hats xN, shop defaults, quest fixes, pack tops
+Crypt v2 spec, part D2. **Every case** (pack, ore, gear, Temperament, trader) opens 1 to 5 at once, paid
+all or nothing; the reels spin stacked and stop in turn (`MineCaseStack`, `ctl.playStack`; PROPOSED 4.6 s
+plus 0.5 s a reel). **Hats and faces show once with "xN"** (`MineGear.stacks`); the Backpack no longer
+draws every spare hat once per seat. Pot of Gold and Weekend Haul pay wild cases where the retired packs
+were (PROPOSED mixes, within 3% on value); the Founders Bag takes two taps; Limited deals have odds sheets
+(`MineRotatingOffers.oddsSheet`). `forge1` reads "Level up a tool once at the Forge" (PROPOSED), the
+milestone labels say what they count, and a Build-a-Box line grants every box it charges for (it granted
+one). `render.ps1` leaves pack tops blank; `tools/cursor/tasks/pack-tops.md` re-renders and re-uploads the
+57 sprites (not run yet). Eight questions for the owner queued. New checks `case-stack`, `hat-stacks`,
+`deal-odds`, `cart-box`, `quests-honest`, `pack-tops`. Not seen in Studio.
+
+## [2026-10-19] build | F–SSS chests with names, 57 set chests, charm tiers I–V, Charm Packs
+Crypt v2 spec, part D1. **Chests rank F to SSS** (`MineChestRanks`), every one named, with the rank as a
+badge on the lid, the hover line, the chest card and the dex. Each of the 19 pack sets has a low, mid and
+high chest where it lives (`MineSetChests`), paying its packs. Catalog chests, the section-chest override
+and rank aging are retired. **Every charm has one rarity forever and a tier I to V**; a merge costs gems
+plus any charm of the same tier (`MineCharmService`, `Verbs.mergeCharm`, save field `p.charmTiers`).
+Added 32 graded charms, the 8 Crypt chest charms (`MineCharms.cryptChestCharm`) and **eight Charm Packs**,
+F to SSS, for gems or credits, with odds (`buyCharmPack`, on `PAID_RANDOM`); the old Charms Pack is
+retired. `economy-gems` measures gems earned per hour at +0.0/+0.2/+0.9/+0.7% by stage. Seven questions
+for the owner queued. New checks `chest-ranks`, `charm-tiers`, `economy-gems`. Not seen in Studio.
+
+## [2026-10-23] build | The five Crypt v2 branches merged into PR #7
+V2-C (pets), V2-B (enchants), V2-A (the Crypt), V2-D2 (cases and hats) and V2-D1 (chests and charms) are
+merged onto `claude/trusting-euler-sjugag`. **Fixed at the seams:** `crypt.js` reads the Crypt tool swap
+in `Dig.toolInHand`; the skin checks use `MineSkins.baseOf` (the Halloween 1.2 edge); `docs/CANDY-CRYPT.md`
+was regenerated twice and now names each Crypt chest's charm. **Two bugs the merge made, fixed:**
+`MineCharms.CANDY_CHARM_SHARE` was deleted with the crafted charms while the Crypt chest charms still read
+it (the module would not have loaded), and a Halloween charm worn in the Halloween slot paid at tier I
+because `applyEquipped` and `eventDigOf` asked the main slot's tier. Both now ask the charm's own best
+tier; `crypt.js` checks it. Suite 98 of 99 (the Linux `skins` quirk). Not seen in Studio.
+
+## [2026-10-23] build | The Crypt's numbers as a web page
+The owner asked for the numbers document "in the repo, generated from the code, and as a web page". The page
+is a private Dashboard artifact, [Candy Crypt Numbers](https://claude.ai/artifact/Ja9MrGqcA5AFv6MaP883KX): six
+tabs (Blocks, Ores, Chests, Trick-or-Treat, Tools, Gems), every table and chart drawn from ten datasets that
+`node tools/gen/crypt-doc.js --data <dir>` writes from the same Luau numbers as `docs/CANDY-CRYPT.md` (at
+`b1aa23d`). To refresh it after a numbers change: run that, upload the files to the artifact, point its
+datasets at them. Not yet loaded in a browser when written, so the dashboard's own check had not run.

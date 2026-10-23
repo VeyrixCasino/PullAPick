@@ -39,7 +39,7 @@ Last updated: 2026-10-03. The ★ NOW section below was added 2026-10-10.
    big text, honest rarity-scaled wins and no alarms. Every new screen follows it.
    The kit (`MineUI`, `MineTheme`, `MineCelebrate`, `MineAudio`) makes it the
    default.
-2. Read `CLAUDE.md` ("ask before you assume") and the locked rules in §0 below.
+2. Read `CLAUDE.md` ("Ask first, always") and the locked rules in §0 below.
 3. **Work top-down: A, then B, then C, then D.** Finish and verify a phase before
    starting the next.
 4. **Every number not marked *decided* below is PROPOSED.**
@@ -242,6 +242,25 @@ Two things deliberately STAY, and neither is open for cleanup:
   `bag_<index into LIST>`, so deleting them would renumber every bag above them
   and hand every player a different backpack. They are unobtainable and hidden
   from every shelf and count; that is the fix, not deletion.
+
+**0.35 — ASK FIRST, ALWAYS. HOUND THE OWNER.** Owner, 2026-10-08: *"from now on i want
+ALL agents to fucking hound me with questions so noithing is EVER unclear"*.
+
+This replaces the softer "ask when it is broad" rule from earlier the same week. Every
+agent, every tool, every subagent. The test is: **if you would otherwise be guessing
+what the owner wants or means, ask, however small it looks.** Rules, with the exact
+wording: `CLAUDE.md` ("Ask first, always"). Carried to Claude Code by a hook on every
+prompt and one on every subagent (`.claude/settings.json`), to other agents by
+`AGENTS.md` and `tools/agent/house-rules.txt`, and to Claude.ai by
+`wiki/claude-ai-setup.md`. `tools/verify/askfirst.js` fails if any of them loses the
+rule.
+
+Confirmed 2026-10-08: no cap on questions; restate before any non-trivial work; with
+nobody to answer, safe reversible steps only and queue the questions.
+
+It does **not** reopen the other locked rules in this section: those stay settled,
+and agents should not re-ask them. It does mean asking whether one *applies* when that
+is unclear.
 
 **0.34 — THE NUMBERS ARE SIGNED OFF. `docs/PROPOSAL.md` §0 IS LAW.**
 Owner, 2026-10-05, pasted the 38-line block back unchanged after asking for
@@ -763,6 +782,12 @@ file in this repo disagrees, the file is wrong.
 
 5. **Charms are a NEW system: a rare drop from ORES.** Not from chests. One
    charm per ore.
+   **Amended by the owner, 2026-10-07:** the 36 graded charms (F…SSS) *"can be
+   found in chests (0.5%) or bought with tokens"*. Ore charms still come from
+   ores; the graded set is the exception. Confirmed 2026-10-17 (*"do what you
+   think is best for the game"*): Chest Luck scales that 0.5% like every other
+   chest reward, because one charm slot makes wearing a Chest Luck charm a real
+   trade-off.
 
 6. **Skin cases: one per ore, 82 of them.** The old system dropped tools from
    cases. Now an ore case rolls at **2% down to 0.5%** to decide whether you get
@@ -2166,6 +2191,7 @@ not dormant — they were reachable:
 
 # 9. Standing rules
 
+- **Ask first, always.** Hound the owner with questions so nothing is EVER unclear (§0.35).
 - **No pity systems.** No floors, no guarantees after N.
 - **Don't cripple the datastore.** Ore ids are load-bearing twice — `p.ores[id]` is
   banked material and packs are `<id>_ore_pack`. Any roster change needs an id→id

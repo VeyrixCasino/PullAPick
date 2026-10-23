@@ -25,6 +25,9 @@ public static class PackRender3D
     const int MW = 1400, MH = 196;
     static float[] mFill, mLine;
 
+    // An empty title leaves the top seal blank, and that is render.ps1's default
+    // since 2026-10-19 (owner: the set name on the crinkled top "comes off");
+    // render.ps1 -Title passes the set's name and prints it as before.
     static void BuildTitleMask(string text)
     {
         mFill = null; mLine = null;

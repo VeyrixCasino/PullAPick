@@ -29,6 +29,24 @@
 	are noise. Within a band it falls back to depth, then name, so the order is
 	stable -- a list that reshuffles between frames is unreadable however it is
 	sorted.
+
+	SELL UP TO (owner, 2026-10-19; wiki/open-questions.md §0e). SELL ALL has a
+	ceiling picker: Common / +Uncommon / +Rare / +Epic / +Legendary /
+	Everything (MineOrePouch.SELL_UP_TO and SELL_UP_TO_LABEL). The pick rides
+	`sellAllOres { upTo }`, which is how the server remembers it
+	(p.settings.oreSellUpTo, read back as `sellUpTo`); it still asks first with
+	the server's numbers, and a locked ore is never sold.
+
+	CANDY ORES (same day). The Candy Crypt's candy ores take pouch room, so they
+	are shown, in their own Halloween section below the ores: each with a tick
+	box, and SELL TICKED FOR CANDY, which asks the server
+	(`cryptSellCandyOres`), shows the server's figures
+	(`cryptSellCandyConfirm`) and only then sells (`confirm = true`). A LOCKED
+	candy ore cannot be ticked and is never sent, so it is never sold.
+
+	PROPOSED (2026-10-19): SELL UP TO as one chip that cycles on each tap (a
+	row of six chips cost a phone's ore list most of its height), its place
+	beside SELL ALL, and the candy section's layout and wording.
 ]]
 local MineOrePouchView = {}
 
@@ -39,6 +57,9 @@ local OreIcons = require(shared:WaitForChild("MineOreIcons"))
 local Pouch = require(shared:WaitForChild("MineOrePouch"))
 local Abbrev = require(shared:WaitForChild("MineAbbrev"))
 local T = require(shared:WaitForChild("MineTheme"))
+local UI = require(shared:WaitForChild("MineUI"))
+-- The candy section wears the Candy Crypt's theme: candy ores belong to it.
+local HALLOWEEN = T.EVENT_THEMES and T.EVENT_THEMES.halloween or T.LIFTED
 
 local BG = T.BG or Color3.fromRGB(22, 22, 28)
 local BG2 = T.BG2
@@ -143,10 +164,18 @@ function MineOrePouchView.mount(parent, opts)
 
 	-- View state. Outside render() so a snapshot arriving mid-decision does not
 	-- throw the player back to the default sort.
+	--   upTo     the SELL UP TO pick made on this screen; nil reads the server's
+	--            remembered one (snapshot `sellUpTo`), so a snapshot never
+	--            undoes a pick the player just made
+	--   ticked   candy ores ticked for sale, by ore id
+	--   confirm  the open dialog: { kind = "gems" | "candy", info, ids }
 	local ui = {
 		sort = "rarity",
 		band = "",
 		confirm = nil,
+		upTo = nil,
+		ticked = {},
+		candyAsk = nil,
 	}
 
 	local function snap()
@@ -241,28 +270,63 @@ function MineOrePouchView.mount(parent, opts)
 	}, list)
 
 	--------------------------------------------------------------------------
-	-- SELL ALL, across the bottom.
+	-- SELL ALL, across the bottom, with SELL UP TO beside it.
 	--------------------------------------------------------------------------
 	local sellAll = round(mk("TextButton", {
 		BackgroundColor3 = Color3.fromRGB(44, 34, 34),
 		AutoButtonColor = true,
 		Text = "",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.new(1, -24, 0, FOOT_H - 12),
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -12, 1, -10),
+		Size = UDim2.new(0.64, -18, 0, FOOT_H - 12),
 	}, root), 10)
 	local sellAllTop = label(sellAll, "SELL ALL", 14, RED, UDim2.fromOffset(0, 6),
 		UDim2.fromScale(1, 0), FONT, Enum.TextXAlignment.Center)
 	sellAllTop.Size = UDim2.new(1, 0, 0, 17)
-	local sellAllSub = label(sellAll, "", 11, MUTED, UDim2.fromOffset(0, 24),
-		UDim2.new(1, 0, 0, 14), FONT_M, Enum.TextXAlignment.Center)
+	local sellAllSub = label(sellAll, "", 11, MUTED, UDim2.fromOffset(6, 24),
+		UDim2.new(1, -12, 0, 14), FONT_M, Enum.TextXAlignment.Center)
+
+	--[[
+		SELL UP TO: the ceiling SELL ALL stops at, one of MineOrePouch.SELL_UP_TO,
+		captioned by SELL_UP_TO_LABEL. A chip that CYCLES on each tap, like this
+		panel's filter and sort: on a phone the pouch is under 300 px tall, and a
+		row of six chips would have cost the ore list most of its height.
+	]]
+	local upToBtn = round(mk("TextButton", {
+		Name = "SellUpTo",
+		BackgroundColor3 = BG3,
+		AutoButtonColor = true,
+		Text = "",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 12, 1, -10),
+		Size = UDim2.new(0.36, -6, 0, FOOT_H - 12),
+	}, root), 10)
+	label(upToBtn, "SELL UP TO", 11, MUTED, UDim2.fromOffset(0, 5),
+		UDim2.new(1, 0, 0, 14), FONT, Enum.TextXAlignment.Center)
+	local upToVal = label(upToBtn, "", 15, GOLD, UDim2.fromOffset(4, 21),
+		UDim2.new(1, -8, 0, 19), FONT, Enum.TextXAlignment.Center)
+	local render
+
+	-- The ceiling in force: the pick made here, else the one the server keeps.
+	local function upToNow(s)
+		local u = ui.upTo or (s and s.sellUpTo) or "Everything"
+		return Pouch.validSellUpTo(u) and u or "Everything"
+	end
+
+	upToBtn.MouseButton1Click:Connect(function()
+		local order = Pouch.SELL_UP_TO
+		local at = table.find(order, upToNow(snap())) or #order
+		ui.upTo = order[(at % #order) + 1]
+		render()
+	end)
 
 	--------------------------------------------------------------------------
-	-- THE CONFIRMATION. Built once, shown on demand.
+	-- THE CONFIRMATION. Built once, shown on demand, for both sales: SELL ALL
+	-- (gems) and SELL TICKED FOR CANDY. Every figure in it is the server's.
 	--
-	-- It covers the panel on purpose: Sell All is the one irreversible button
-	-- here, and a dialog that leaves the list tappable behind it invites the
-	-- second tap that the first one was supposed to stop.
+	-- It covers the panel on purpose: these are the irreversible buttons here,
+	-- and a dialog that leaves the list tappable behind it invites the second
+	-- tap that the first one was supposed to stop.
 	--------------------------------------------------------------------------
 	local veil = mk("TextButton", {
 		BackgroundColor3 = Color3.new(0, 0, 0),
@@ -277,14 +341,14 @@ function MineOrePouchView.mount(parent, opts)
 		BackgroundColor3 = BG,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(330, 194),
+		Size = UDim2.fromOffset(380, 250),
 		ZIndex = 41,
 	}, veil), 12)
-	mk("UIStroke", { Color = RED, Thickness = 1, Transparency = 0.4 }, box)
-	label(box, "SELL ALL ORE?", 15, RED, UDim2.fromOffset(16, 14),
+	local boxEdge = mk("UIStroke", { Color = RED, Thickness = 1, Transparency = 0.4 }, box)
+	local confirmTitle = label(box, "SELL ALL ORE?", 15, RED, UDim2.fromOffset(16, 14),
 		UDim2.new(1, -32, 0, 18), FONT)
 	local confirmBody = label(box, "", 12, TEXT, UDim2.fromOffset(16, 40),
-		UDim2.new(1, -32, 0, 72))
+		UDim2.new(1, -32, 0, 136))
 	confirmBody.TextWrapped = true
 	confirmBody.TextYAlignment = Enum.TextYAlignment.Top
 	confirmBody.TextTruncate = Enum.TextTruncate.None
@@ -292,20 +356,18 @@ function MineOrePouchView.mount(parent, opts)
 	local noBtn = round(mk("TextButton", {
 		BackgroundColor3 = BG3, AutoButtonColor = true, Text = "KEEP IT",
 		TextColor3 = TEXT, TextSize = 13, Font = FONT,
-		Position = UDim2.fromOffset(16, 142),
-		Size = UDim2.fromOffset(146, 36),
+		Position = UDim2.new(0, 16, 1, -52),
+		Size = UDim2.new(0.5, -22, 0, 36),
 		ZIndex = 42,
 	}, box), 8)
 	local yesBtn = round(mk("TextButton", {
 		BackgroundColor3 = Color3.fromRGB(96, 42, 42), AutoButtonColor = true,
 		Text = "SELL IT ALL", TextColor3 = TEXT, TextSize = 13, Font = FONT,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -16, 0, 142),
-		Size = UDim2.fromOffset(146, 36),
+		Position = UDim2.new(1, -16, 1, -52),
+		Size = UDim2.new(0.5, -22, 0, 36),
 		ZIndex = 42,
 	}, box), 8)
-
-	local render
 
 	local function closeConfirm()
 		ui.confirm = nil
@@ -315,12 +377,25 @@ function MineOrePouchView.mount(parent, opts)
 	veil.MouseButton1Click:Connect(closeConfirm)
 	noBtn.MouseButton1Click:Connect(closeConfirm)
 	yesBtn.MouseButton1Click:Connect(function()
+		local c = ui.confirm
 		closeConfirm()
-		if opts.onSellAll then
-			-- With confirm. The server re-prices from the same plan function, so
-			-- a sale that grew between the ask and the answer pays the new total
-			-- rather than the quoted one.
-			opts.onSellAll(true)
+		if not c then
+			return
+		end
+		if c.kind == "candy" then
+			-- The same ores the server priced, with confirm. Locked ones were
+			-- never in the list (they cannot be ticked), so none is sold.
+			if opts.onSellCandy and type(c.ids) == "table" and #c.ids > 0 then
+				opts.onSellCandy(c.ids, true)
+			end
+			ui.ticked = {}
+			ui.candyAsk = nil
+		elseif opts.onSellAll then
+			-- With confirm and the same ceiling. The server re-prices from the
+			-- same plan function, so a sale that grew between the ask and the
+			-- answer pays the new total rather than the quoted one.
+			local info = c.info or {}
+			opts.onSellAll(true, info.upTo or upToNow(nil))
 		end
 	end)
 
@@ -401,6 +476,138 @@ function MineOrePouchView.mount(parent, opts)
 		end
 		return row
 	end
+
+	--------------------------------------------------------------------------
+	-- CANDY ORES: their own section at the foot of the list, in the Candy
+	-- Crypt's Halloween theme (they belong to the event). Built once, rows
+	-- keyed by ore id like the ore rows, hidden rather than destroyed.
+	--------------------------------------------------------------------------
+	local function keep(inst)
+		inst:SetAttribute("MineUIAdopted", true)
+		return inst
+	end
+
+	local candyHead = UI.themeCard(list, HALLOWEEN, UDim2.new(1, 0, 0, 58), nil, "SHELL_HI")
+	candyHead.Name = "CandyHead"
+	candyHead.LayoutOrder = 10000
+	candyHead.Visible = false
+	local candyTitle = UI.themeText(candyHead, "🍬 CANDY ORES", 16, HALLOWEEN, "TEXT")
+	candyTitle.Position = UDim2.fromOffset(12, 6)
+	candyTitle.Size = UDim2.new(1, -24, 0, 22)
+	local candyHint = UI.themeText(candyHead, "Tick them to sell for candy. Locked ones are never sold.",
+		14, HALLOWEEN, "MUTED", T.FONT_M)
+	candyHint.Position = UDim2.fromOffset(12, 30)
+	candyHint.Size = UDim2.new(1, -24, 0, 20)
+	candyHint.TextTruncate = Enum.TextTruncate.AtEnd
+
+	local candyFoot = keep(mk("Frame", {
+		Name = "CandyFoot",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 58),
+		LayoutOrder = 20000,
+		Visible = false,
+	}, list))
+	local candySell, candySellL = UI.themeButton(candyFoot, "SELL TICKED FOR CANDY", UDim2.new(1, -8, 0, 52),
+		UDim2.fromOffset(4, 3), HALLOWEEN, "off")
+	candySellL.TextSize = 17
+	local candyJob = "off"
+
+	local candyRows = {}
+	local function candyRowFor(r)
+		local row = candyRows[r.id]
+		if row then
+			return row
+		end
+		local f = keep(round(mk("Frame", { Size = UDim2.new(1, 0, 0, ROW_H) }, list), 8))
+		UI.tint(f, HALLOWEEN, "SHELL")
+		UI.themeStroke(f, HALLOWEEN, "EDGE", 1.5)
+		local tick = keep(round(mk("TextButton", {
+			Name = "Tick",
+			AutoButtonColor = false,
+			Text = "",
+			Font = FONT,
+			TextSize = 18,
+			Position = UDim2.fromOffset(8, 8),
+			Size = UDim2.fromOffset(30, 30),
+		}, f), 8))
+		UI.tint(tick, HALLOWEEN, "FACE", "ON_FACE")
+		UI.themeStroke(tick, HALLOWEEN, "OUTLINE", 2)
+		local swatch = keep(round(mk("Frame", {
+			Position = UDim2.fromOffset(46, 11),
+			Size = UDim2.fromOffset(24, 24),
+		}, f), 6))
+		local name = UI.themeText(f, "", 13, HALLOWEEN, "TEXT")
+		name.Position = UDim2.fromOffset(78, 6)
+		name.Size = UDim2.new(0.42, -78, 0, 16)
+		name.TextTruncate = Enum.TextTruncate.AtEnd
+		local sub = UI.themeText(f, "", 11, HALLOWEEN, "MUTED", FONT_M)
+		sub.Position = UDim2.fromOffset(78, 24)
+		sub.Size = UDim2.new(0.42, -78, 0, 14)
+		sub.TextTruncate = Enum.TextTruncate.AtEnd
+		local amount = UI.themeText(f, "", 13, HALLOWEEN, "TEXT")
+		amount.Position = UDim2.new(0.42, 0, 0, 6)
+		amount.Size = UDim2.new(0.18, 0, 0, 16)
+		amount.TextXAlignment = Enum.TextXAlignment.Right
+		local worth = UI.themeText(f, "", 11, HALLOWEEN, "ACCENT", FONT_M)
+		worth.Position = UDim2.new(0.42, 0, 0, 24)
+		worth.Size = UDim2.new(0.18, 0, 0, 14)
+		worth.TextXAlignment = Enum.TextXAlignment.Right
+		local lockBtn = keep(round(mk("TextButton", {
+			AutoButtonColor = true, Text = "",
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -10, 0.5, 0),
+			Size = UDim2.fromOffset(96, 30),
+		}, f), 7))
+		UI.tint(lockBtn, HALLOWEEN, "SHELL_HI")
+		local lockLbl = UI.themeText(lockBtn, "", 11, HALLOWEEN, "MUTED")
+		lockLbl.TextXAlignment = Enum.TextXAlignment.Center
+		lockLbl.Size = UDim2.fromScale(1, 1)
+		row = { frame = f, tick = tick, swatch = swatch, name = name, sub = sub, amount = amount, worth = worth, lockLbl = lockLbl }
+		-- By ORE ID, as above.
+		local id = r.id
+		tick.MouseButton1Click:Connect(function()
+			if row.locked then
+				return
+			end
+			ui.ticked[id] = (not ui.ticked[id]) or nil
+			render()
+		end)
+		lockBtn.MouseButton1Click:Connect(function()
+			if opts.onToggleLock then
+				opts.onToggleLock(id)
+			end
+		end)
+		candyRows[id] = row
+		return row
+	end
+
+	-- The candy ores to sell: ticked, held and NOT locked, in ladder order.
+	local function tickedIds(candy)
+		local ids = {}
+		for _, r in ipairs(candy) do
+			if ui.ticked[r.id] and not r.locked and r.n > 0 then
+				table.insert(ids, r.id)
+			end
+		end
+		return ids
+	end
+
+	candySell.MouseButton1Click:Connect(function()
+		local s = snap()
+		local candy = {}
+		for _, r in ipairs(Pouch.rows(s.ores or {}, s.oreLocks or {}, { includeCandy = true, sort = "tier" })) do
+			if r.candy then
+				table.insert(candy, r)
+			end
+		end
+		local ids = tickedIds(candy)
+		if #ids == 0 or not opts.onSellCandy then
+			return
+		end
+		-- The ASK: the server prices it and answers with cryptSellCandyConfirm.
+		ui.candyAsk = ids
+		opts.onSellCandy(ids, false)
+	end)
 
 	function render()
 		local s = snap()
@@ -496,34 +703,129 @@ function MineOrePouchView.mount(parent, opts)
 		end
 
 		--------------------------------------------------------------------
+		-- Candy ores, in their own section. Values are MineOrePouch's (the
+		-- same MineConfig.candyOreValue the server sells at); the sale's
+		-- figures come back from the server before anything is sold.
+		--------------------------------------------------------------------
+		local candy = {}
+		for _, r in ipairs(Pouch.rows(ores, locks, { includeCandy = true, sort = ui.sort })) do
+			if r.candy then
+				table.insert(candy, r)
+			end
+		end
+		local liveCandy = {}
+		for i, r in ipairs(candy) do
+			liveCandy[r.id] = true
+			local row = candyRowFor(r)
+			local def = C.candyOreById and C.candyOreById(r.id)
+			row.locked = r.locked
+			if r.locked then
+				-- A locked candy ore is never sold: it cannot stay ticked.
+				ui.ticked[r.id] = nil
+			end
+			row.frame.LayoutOrder = 10000 + i
+			row.frame.Visible = true
+			row.swatch.BackgroundColor3 = (def and def.color) or HALLOWEEN.ACCENT
+			row.tick.Text = r.locked and "🔒" or (ui.ticked[r.id] and "✓" or "")
+			row.name.Text = r.name
+			row.sub.Text = string.format("%s · %s candy each", tostring(r.band or "?"), num(r.candyUnit or 0))
+			row.amount.Text = num(r.n)
+			row.worth.Text = num(r.candyValue or 0) .. " candy"
+			row.lockLbl.Text = r.locked and "LOCKED" or "LOCK"
+		end
+		for id, row in pairs(candyRows) do
+			if not liveCandy[id] then
+				row.frame.Visible = false
+				ui.ticked[id] = nil
+			end
+		end
+		candyHead.Visible = #candy > 0
+		candyFoot.Visible = #candy > 0
+		local ids = tickedIds(candy)
+		local pick = 0
+		for _, r in ipairs(candy) do
+			if ui.ticked[r.id] and not r.locked then
+				pick += r.candyValue or 0
+			end
+		end
+		local job = (#ids > 0) and "primary" or "off"
+		candySellL.Text = (#ids > 0) and string.format("SELL %d TICKED · about %s candy", #ids, num(pick))
+			or "TICK CANDY ORES TO SELL THEM FOR CANDY"
+		if job ~= candyJob then
+			candyJob = job
+			UI.setJob(candySell, HALLOWEEN, job)
+		end
+
+		--------------------------------------------------------------------
+		-- Sell up to.
+		--------------------------------------------------------------------
+		local upTo = upToNow(s)
+		upToVal.Text = string.upper(Pouch.SELL_UP_TO_LABEL[upTo] or upTo) .. "  ▶"
+		upToVal.TextColor3 = (upTo == "Everything") and TEXT or GOLD
+
+		--------------------------------------------------------------------
 		-- Sell All. Priced here only as a PREVIEW of what it would take; the
 		-- figure that governs comes back from the server.
 		--------------------------------------------------------------------
-		local plan = Pouch.sellAllPlan(ores, locks)
+		local plan = Pouch.sellAllPlan(ores, locks, upTo)
 		local lockedN = 0
 		for _ in pairs(locks) do
 			lockedN += 1
 		end
+		local ceiling = (upTo == "Everything") and "" or ("   ·   up to " .. (Pouch.SELL_UP_TO_LABEL[upTo] or upTo))
 		if plan.units <= 0 then
-			sellAllSub.Text = (lockedN > 0) and "everything you hold is locked" or "pouch is empty"
+			sellAllSub.Text = (((plan.aboveUnits or 0) > 0) and ("nothing at or below " .. (Pouch.SELL_UP_TO_LABEL[upTo] or upTo)))
+				or ((lockedN > 0) and "everything you hold is locked")
+				or (((plan.candyUnits or 0) > 0) and "only candy ores: they sell for candy, below")
+				or "pouch is empty"
 			sellAll.BackgroundColor3 = BG2
 			sellAllTop.TextColor3 = MUTED
 		else
-			sellAllSub.Text = string.format("%s ore → about %s gems%s",
-				num(plan.units), num(plan.gems),
+			sellAllSub.Text = string.format("%s ore → about %s gems%s%s",
+				num(plan.units), num(plan.gems), ceiling,
 				(lockedN > 0) and ("   ·   " .. lockedN .. " locked, kept") or "")
 			sellAll.BackgroundColor3 = Color3.fromRGB(44, 34, 34)
 			sellAllTop.TextColor3 = RED
 		end
 
-		if ui.confirm then
-			local info = ui.confirm
+		local c = ui.confirm
+		if c and c.kind == "candy" then
+			local info = c.info or {}
+			local lines = {}
+			for i, r in ipairs(type(info.rows) == "table" and info.rows or {}) do
+				if i > 4 then
+					table.insert(lines, string.format("...and %d more", #info.rows - 4))
+					break
+				end
+				table.insert(lines, string.format("%s %s  →  %s candy", num(r.n or 0), tostring(r.name or r.id), num(r.candy or 0)))
+			end
+			confirmTitle.Text = "SELL CANDY ORE FOR CANDY?"
+			confirmTitle.TextColor3 = HALLOWEEN.ACCENT
+			boxEdge.Color = HALLOWEEN.ACCENT
+			confirmBody.Text = string.format("%s candy ore for %s candy.\n%s%s\n\nThis cannot be undone.",
+				num(info.units or 0), num(info.candy or 0), table.concat(lines, "\n"),
+				((tonumber(info.lockedSkipped) or 0) > 0)
+					and ("\n" .. math.floor(info.lockedSkipped) .. " locked kept, as always.") or "")
+			yesBtn.Text = "SELL FOR CANDY"
+			yesBtn.BackgroundColor3 = Color3.fromRGB(150, 72, 18)
+			veil.Visible = true
+		elseif c then
+			local info = c.info or {}
+			local cap = info.upTo and info.upTo ~= "Everything"
+				and ("Only " .. (Pouch.SELL_UP_TO_LABEL[info.upTo] or info.upTo) .. " and below.\n") or ""
+			confirmTitle.Text = "SELL ALL ORE?"
+			confirmTitle.TextColor3 = RED
+			boxEdge.Color = RED
 			confirmBody.Text = string.format(
-				"%s ore from %d of your rows, for %s gems.\n\n%s\n\nThis cannot be undone.",
-				num(info.units or 0), math.floor(tonumber(info.rows) or 0), num(info.gems or 0),
+				"%s ore from %d of your rows, for %s gems.\n%s\n%s%s\n\nThis cannot be undone.",
+				num(info.units or 0), math.floor(tonumber(info.rows) or 0), num(info.gems or 0), cap,
 				((tonumber(info.locked) or 0) > 0)
 					and (math.floor(info.locked) .. " locked ore kept, as always.")
-					or "Nothing is locked, so everything goes.")
+					or "Nothing is locked, so everything goes.",
+				((tonumber(info.candyUnits) or 0) > 0)
+					and ("\nYour " .. num(info.candyUnits) .. " candy ore stay: they sell for candy.") or "")
+			yesBtn.Text = "SELL IT ALL"
+			yesBtn.BackgroundColor3 = Color3.fromRGB(96, 42, 42)
 			veil.Visible = true
 		else
 			veil.Visible = false
@@ -558,9 +860,10 @@ function MineOrePouchView.mount(parent, opts)
 
 	sellAll.MouseButton1Click:Connect(function()
 		if opts.onSellAll then
-			-- No confirm flag: this is the ASK. The server prices it and sends
-			-- the figures back through showConfirm.
-			opts.onSellAll(false)
+			-- No confirm flag: this is the ASK, with the ceiling (which is also
+			-- how the server remembers it). The server prices it and sends the
+			-- figures back through showConfirm.
+			opts.onSellAll(false, upToNow(snap()))
 		end
 	end)
 
@@ -572,7 +875,21 @@ function MineOrePouchView.mount(parent, opts)
 
 	-- The host forwards the server's `confirmSellAll` here.
 	function ctl.showConfirm(info)
-		ui.confirm = (type(info) == "table") and info or { units = 0, gems = 0, rows = 0 }
+		ui.confirm = {
+			kind = "gems",
+			info = (type(info) == "table") and info or { units = 0, gems = 0, rows = 0 },
+		}
+		render()
+	end
+
+	-- ...and the server's `cryptSellCandyConfirm` here: the dialog shows its
+	-- figures, and YES resends the ores that were asked about with confirm.
+	function ctl.showCandyConfirm(info)
+		ui.confirm = {
+			kind = "candy",
+			info = (type(info) == "table") and info or { units = 0, candy = 0, rows = {} },
+			ids = ui.candyAsk or {},
+		}
 		render()
 	end
 

@@ -2855,6 +2855,15 @@ do
 	if okS and type(sp) == "table" and sp.ANIMALS then
 		for animal, skin in pairs(sp.ANIMALS) do
 			if PetModelFactory.ANIMALS[animal] == nil then
+				-- A body still to be built in Studio (the twelve Halloween pets
+				-- of 2026-10-19, tools/cursor/tasks/halloween-pet-bodies.md)
+				-- wears its `fallback` until its PetBodies module exists, so the
+				-- pet never drops through resolveSpecies to the default fox.
+				if type(skin) == "table" and skin.fallback and S[skin.species] == nil and S[skin.fallback] then
+					skin = table.clone(skin)
+					skin.wants = skin.species
+					skin.species = skin.fallback
+				end
 				PetModelFactory.ANIMALS[animal] = skin
 			end
 		end

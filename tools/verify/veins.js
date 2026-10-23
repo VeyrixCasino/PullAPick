@@ -122,6 +122,10 @@ const parts = [
   line("local vwZone, vwSec, vwBucket, vwRow ="),
   block("function MineConfig.veinWeights(", "end"),
   line("local veinCell ="),
+  // The candy-only guard veinOreAt asks first (Candy Crypt v2, 2026-10-19). It
+  // reads MineConfig.ZONES, which is not sliced, so no zone is candy-only here.
+  line("local candyOnlyZones ="),
+  block("function MineConfig.isCandyOnly(", "end"),
   block("function MineConfig.veinOreAt(", "end"),
 ];
 parts.sort((a, b) => a.i - b.i);

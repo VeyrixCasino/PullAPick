@@ -2,9 +2,15 @@
 title: The verify suite
 type: code
 status: current
-verified: 2026-10-14 @ a299374
+verified: 2026-10-19 @ 3863d14
 sources:
   - tools/verify/suite.sh
+  - tools/verify/case-stack.js
+  - tools/verify/hat-stacks.js
+  - tools/verify/deal-odds.js
+  - tools/verify/cart-box.js
+  - tools/verify/quests-honest.js
+  - tools/verify/pack-tops.js
   - tools/verify/syntax.sh
   - tools/verify/_luau.js
   - tools/verify/tool-dps.js
@@ -13,6 +19,19 @@ sources:
   - docs/OPEN.md
   - tools/verify/runes-retired.js
   - tools/verify/text-motion.js
+  - tools/verify/_shared.js
+  - tools/verify/pet-identity.js
+  - tools/verify/cards-tab.js
+  - tools/verify/reveal-runs.js
+  - tools/verify/crypt-ui.js
+  - tools/verify/crypt.js
+  - tools/verify/_crypt.js
+  - tools/verify/crypt-doc.js
+  - tools/verify/_stubs.js
+  - tools/verify/charm-tiers.js
+  - tools/verify/chest-ranks.js
+  - tools/verify/chest-depth.js
+  - tools/verify/economy-gems.js
 related: [luau-traps, tools-and-generators, local-setup, tools]
 ---
 
@@ -50,6 +69,23 @@ bash tools/verify/suite.sh      # runs every check: pass / FAIL / DID NOT RUN
 - **Windows / PowerShell:** no suite `.ps1` yet — run one check per line, e.g.
   `node tools/verify/tool-dps.js`, or use Git Bash for `suite.sh`. Never chain
   with `&&` ([local-setup](local-setup.md)).
+
+## Result at `98c141a` (run 2026-10-16 in a Linux cloud container, after merging the owner's working branch)
+
+**66 checks. 64 passed and 2 failed on the first run; 66 passed on the second.** `syntax.sh`:
+273 files, no syntax errors. `compile.js`: `MineServer` 12 and `MineClient` 11 top-level
+locals left. The two first-run failures are fresh-checkout effects, not regressions:
+
+- `generated-fresh` fails once on a clone with no `build/depth-sheet.json` (see below).
+- **`skins` fails once on a Linux checkout.** `tools/gen/skins.js` writes `MineSkins.luau`
+  with **CRLF** (`lua.join("\r\n")`), and the check asserts "regenerating is byte-identical".
+  Git stores the file as LF (`git ls-files --eol` says `i/lf`). I infer the owner's Windows
+  checkout is CRLF, which would explain why it passes there; I have not seen that machine. On Linux the first run rewrites the tracked file to CRLF and fails, and the second
+  run passes. **Do not commit that rewrite**: `git checkout -- src/ReplicatedStorage/Mine/Shared/MineSkins.luau`.
+
+Checks documented below are the ones whose rows I kept or wrote; the suite has more than the
+table lists (for example `fishing`, `enchants`, `forge-hub`, `today`, `set-pets`), which the
+owner's session added without a row here.
 
 ## Result at `299dd2c` (run 2026-10-10 on the owner's Windows machine)
 
@@ -89,20 +125,42 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 
 | check | asserts |
 |---|---|
+| `askfirst` | the owner's ask-first rule is present at every agent entry point (`CLAUDE.md`, `AGENTS.md`, `house-rules.txt`, the pasted prompts, the Claude.ai text, TODO §0.35); the `UserPromptSubmit` and `SubagentStart` hooks exist, are plain single-quoted `echo`s PowerShell can run, and the subagent one is `additionalContext` JSON; the old soft rule has not come back |
 | `bignum` **L** | `MineBigNum` and `MineAbbrev.currency` agree: 4 significant figures, always floored |
 | `breaking` | the ORE_REACH +15 rule matches in `MineBreaking.blockStrength` (the gate) and `MineConfig.canBreakOre` (the UI) |
 | `build-stamp` | every `MineBuild.EXPECT` module exists and says what the player loses. The client calls `announce()`. |
 | `buyqty` | the typed quantity box, the cart and the server clamp share one ceiling |
-| `charms` **L** | runs the real MineCharms generator against the real 82-ore roster |
+| `charms` **L** | runs the real MineCharms generator against the real 82-ore roster. Since 2026-10-19: every charm merges into itself a tier up (I to V, V refuses with a reason), the gem price climbs with tier and rarity, and the graded charms are the 36 plus 32 new ones (only the 36 need art yet) |
+| `charm-tiers` **L** | one rarity per charm and tiers I to V (owner, 2026-10-19). **Runs** the real `MineCharms` (with the real `MineConfig` and `MineTemper`) and the real `MineCharmService` on stub profiles: every charm has a rarity (an ore charm its ore's band, the Sod Charm C), a real pool at every rarity, no gem lever on a new charm; `statsAt` grows gifts but never Gem Find, Ore Quality, Ore Finder or a pact's cost; a merge raises one copy, uses up a charm of the same tier, charges gems and keeps the rarity, every refusal changes nothing, the worn copy is safe, 16 copies climb to V in 15 merges; the service's merge and Charm Pack buys charge right and an unaffordable buy takes nothing; the eight packs' odds are their draws; a chest charm keeps the 36's rarity shares; `cryptChestCharm` gives each Crypt rank a mergeable Halloween charm. Statically: the verbs, `Verbs.PAID_RANDOM`, the tier save in snapshot / rebirth / load / `blank()`, the client payloads and the shelf with its odds sheet, and that the service is handed `save` and its other locals from above the wiring (a Charm Pack buy saves at once). Fails on `3863d14` (52 of 53). |
+| `chest-depth` **L** | better chests deeper (owner, 2026-10-10/11): `chestRankLuck` is ×1 at a zone's top, ×3 at its floor and front-loaded, Meadow and the event mines stay ×1; since 2026-10-19 it lifts every rank from C up, the rarer the more, and F and D get rarer; skin cases shift up by rank (F and D as written); the spawn, the open-time roll and `openChestBlock` use it |
+| `chest-ranks` **L** | F to SSS chests (owner, 2026-10-19). **Runs** the real `MineChestRanks`, `MineZoneChests`, `MineSetChests`, `MineConfig`, `MineCases` and `MineEnchants`: eight ranks, each rarer than the last and lifted harder by depth; every chest named, ranked and present at every rank in every zone; the spawn table sums to 1 at every sampled depth and the set chests leave the rank split exactly as it was; set chests spawn only in their set's zone, from their set's layer, at D / B / S; a rarer rank pays more of everything; 57 set chests with 57 names pay their own set's packs; `rollSpawn` draws the table. Statically: `openChestBlock` pays the block's own chest by its rank, the badge on the lid, the hover line, the card and the dex, and every rank-keyed table reaches SS and SSS. Fails on `3863d14` (33 of 38). |
+| `economy-gems` **L** | gems hold their value (owner, 2026-10-19). Runs `economy-gems.luau` on the real modules and compares with `economy-gems.baseline.json` (measured the same way on `3863d14`): an average chest at 77 depths keeps its gems within 5%, its coins, cases, skins, books and XP within 15%, each pack slot within 20%, and its cards up no more than 35%. Gems in per hour at four stages rise no more than 5%, also wearing the best Gem Find charm. The eight Charm Packs are a gem sink. `--baseline DIR` re-measures the baseline. Fails on `3863d14` (10 failures). |
 | `check` | the tool-level curve behaves, using the tables in `tools/upgrade-calculator.html` (generated from MineConfig) |
 | `config-refs` | every `MineConfig.X` the code reads exists. Strips comments first. |
+| `crypt` **L** | the Candy Crypt v2 (owner, 2026-10-19), on the real modules and the real `MineCrypt` through the shared harness `_crypt.js`: no normal ore in the Crypt and every other block candy; sixteen candy ores, two per rarity, a fixed drop and flat candy (a quarter of the drop's value) at every depth, odds shifting every ten layers with the Exotic pair capped (200,000 rolls); sixteen Halloween tools crafted from candy ores, prestige 1-10 with rising cost and power, 12 pick-hits at each tool's layer, the cap of ten, scrap for half the ore's candy value, each tool's Halloween-skin factor on the whole multiplier, the top tool at prestige 10 equal to the best normal drill at the top level and everything else weaker; eight Crypt chests (rarer deeper, flat candy, luckier Halloween packs, the rank's charm at 0.5% x Chest Luck, Halloween books); Trick-or-Treat pets and skins only, the 50/50 (100,000 rolls) and its one push; the Halloween inventory, its team and charm slot, what counts in the Crypt, and the idempotent event-end move; `tradeLocked`; the v1 pieces retired and a v1 test save loading; plus the MineServer and TradeService hooks. Fails on `3863d14` (15 failures; its Luau half stops at the first missing v2 module). |
+| `crypt-doc` **L** | `docs/CANDY-CRYPT.md` is the generator's output byte for byte (`node tools/gen/crypt-doc.js --check`, line endings aside) and still has every section the owner asked for: HP per section, each ore's drop and candy, the odds per section, the per-block mix with its spread, the chests, the case, every tool's costs and damage at every prestige in the Crypt and out, scrap value, gems. The fix is always `node tools/gen/crypt-doc.js`. Fails on `3863d14` (13 failures: no generator, no document). |
+| `crypt-ui` **L** | the Candy Crypt's client half and the event themes (2026-10-19). Statically: every `crypt*` verb read off `MineCrypt`'s `VERBS`, and `buyTrickOrTreat`, is sent by some UI with the payload it reads. The exceptions are Candy Crypt v2's verbs and pushes awaiting the client (`cryptEquip`, `cryptCraft`, `cryptPrestige`, `cryptScrap`, `cryptTeam`, `cryptCharm`; `cryptScrapConfirm`, `cryptPrestiged`, `cryptClosed`): the next client session removes each as it wires it. OPEN reaches the remote through every hop (`MineCryptView` -> `MineEventsView` -> `MineClient`). Every other push the Crypt fires is handled by some client script. No Events or Crypt screen reads `bigbangOwned` or says "Claim Event Horizon" / "enter from Zones", and the Events tab mounts through `pcall`. The pouch's SELL UP TO and candy sale are wired end to end: the pouch reads no field the shop does not pass, a locked candy ore is never sent, and the pouch can be opened. The pop-up shows once and sends `cryptNoticeSeen`. The case's price is the snapshot's, the odds sheet's placeholder (`mountCaseOdds`) is in place, and no new screen scales text. **Runs** `MineEventTabs`, `MineEventNotice.shouldShow`, `MineTheme` (roles, contrast over 7:1, `eventKeyOf` on 14 ids) and `MineCryptView.openState` against the real `MineConfig` / `MineCryptRules`. Then it **mounts** the Events tab, the pop-up and the pouch on a GUI stand-in and presses their buttons. Fails on `db59c60` (59 failures). |
 | `craftcost` **L** | craft cost depends on drop amount, rarity and progression |
 | `daily-wheel` **L** | the daily wheel: weights sum to 100, the 16 slice ids are unchanged, every slice prints odds, a free spin gives a pet at most 10% of the time, the daily allowance (base, group, streak), a UTC-day reset, and a landing on the rolled slice from any start angle. Source checks: the lobby build is live, rebirth keeps the field, a spin saves, free spins go first and paid spins obey `PolicyNoRandom`, and the world wheel spins on the client. Added 2026-10-10. |
 | `damage-curve` | levelling matters past level 34 for every tier, and forging above tier 60 is a visible gain |
+| `deals` **L** | limited deals and the Founders Pack give what the shop says (launch audit M6, M7, M8, S4, S6, 2026-10-19). **Runs** the real `MineRotatingOffers`: the header counts the 47-day season, countdowns run on the season clock, "new offers" counts to the next weekly offer, Lucky Block Week is refused without a pet minter and otherwise mints its pet once and pays 9 blocks and 8 paid wild cases, max 3, and the random-buy test. **Runs** `MineFounders.grant`: the bag is granted once. Statically: the deal's pet is a real Epic set pet, its packs are wild cases, nothing touches `ownedPets.lucky_block`, no blurb names a date, a Robux receipt at the max pays credits back, the client will not prompt for a maxed deal, every `Founders.grant` passes the bag grant. Fails on `2efdf89` (27 failures). |
+| `deal-odds` **L** | the three shop defaults (owner, 2026-10-19). **Runs** the real `MinePackConfig` / `MineCases`: Pot of Gold and the Weekend Haul pay paid wild cases, not the retired Heirloom / Omen / Shiny packs, worth the old packs' recycle value and list price within 3%. **Runs** `MineRotatingOffers.oddsSheet` on the real `MineLuckyBlocks` / `MineCases` / `MinePackConfig` / `MineZonePacks`: every random deal's sheet sums to 1 per roll and matches the tables the rolls use (Pot of Gold's includes its Shiny Packs' card odds at the deal's x3 luck), and a deal with nothing random has none. Statically: the Limited tab's Founders Bag takes two taps, and a deal row has ODDS when the deal rolls anything. Fails on `3863d14` (16 failures). |
+| `cart-box` **L** | a Build-a-Box line grants every box it charges for: `buyCart` and `cartPrice` are sliced out of `MineServer` and **run** on the real `MinePackConfig` / `MineCases`. A line of 3 charged three boxes and granted one until 2026-10-19. Fails on `3863d14` (2 failures). |
+| `quests-honest` **L** | chain rung `forge1` asks for a Forge level-up (`stat = "upgrades"`, which `questValue` reads from `p.stats.upgrades`), not a second "forge a tool", with the same id and reward; milestones that count what you hold or this run's depth say "Own N" / "in one run", not "Lifetime:". **Runs** the real `MineQuests`. Fails on `3863d14` (6 failures). |
+| `pack-tops` | the pack tops go blank (owner, 2026-10-19): `render.ps1` draws the set name on the top seal only with `-Title` (read statically: PowerShell does not run here); `write-ids.js` is **run** in a scratch tree and merges a partial upload into `ids.json`, keeping set icons, rarity icons and case art; the Cursor job `tools/cursor/tasks/pack-tops.md` exists. Fails on `3863d14` (7 failures). |
+| `economy-exploits` **L** | the depth-desk sell curve never decreases with depth and no desk pays less than the surface, and no (forged-at, scrapped-at) pair beats a full climb. **Executes** the real functions and keeps the pre-fix arithmetic to prove the exploit was real. |
+| `launch` **L** | the season is a duration: before launch `seasonNow()` is pinned to `SEASON_START`, after launch it advances from `launchedAt` (a year-late launch gives the same first week), the cosmetic teaser falls and rolls over, the three `SEASON_START` constants agree **the pass is exactly `PASS_SEASON_DAYS` (28) long and ends inside the 47-day season, which the offers and Event Horizon share**, the save happens before the announcement, a failed read or save leaves it unlaunched, `launchSeason` is reachable, **the launch stamp is mirrored to clients only after it is saved, and no client hands the raw server clock to the pass countdown** |
+| `paid-odds` **L** | every paid random buy shows its odds before purchase, and the region rule covers it (launch audit M3, 2026-10-19). Statically: the Mystery Case buyer, the Packs hero, every Build-a-Box tile, the eight Charm Packs (2026-10-19; they replaced the Charms Pack), the Forge's book bundle and every trader case have an ODDS / ⓘ button whose sheet reads a module, with no typed percentages; `Verbs.PAID_RANDOM` covers random credit deals, trader cases, bought wheel spins and `buyCharmPack`. **Runs** the real `MineCharms`, `MineEnchants`, `MineTrader` and `MineCases` and draws each roll against its odds: `packOdds`/`rollPack`, `charmPackOdds`/`rollCharmPack` for each Charm Pack, `chestCharmOdds`/`rollChestCharm`, `bookOdds`/`rollBookId`, `caseOdds`/`rollCase` (tiers, families, grades), `wildGradeOdds(true)`/`rollWildSet(paid)`. Fails on `2efdf89` (17 failures, then the run errors). |
+| `oreframes` **L** | the baked `MineOreTools.FRAME_STATS` and `typeMult` steps equal what the priced roster supplied (2,460 values, 0 mismatches), so the roster can be deleted |
 | `tool-dps` | TODO B1/B2 DPS table for forged families: prints single-block `dps` and full-footprint `edps`; asserts pick faster than hammer, hammer crowns single-block `dps`, jackhammer ≈ drill, area on drills/explosives, line depth baked, and same-grade explosives top `edps`. Pure JS. Added 2026-10-13; retuned 2026-10-14. |
 | `dmg-live` **L** | runs `toolTierPower` in real declaration order |
 | `forge-snap` | the Forge reads no snapshot field the shop does not pass it |
 | `forge-upgrade` | forging the next tier carries the level across, so it is an upgrade |
+| `enchant-audit` **L** | every enchant, end to end (owner, 2026-10-19: *"make sure all enchants works"*): for each of the 26, its book comes from the main game's rolls (or, for the Halloween four, only from Crypt chests, `rollHalloweenBook`), the real `enchApply` takes it at V on a tool it fits, what the server then does (**runs** `MineEnchantService` and MineServer's own `Dig.procsAt`, `Dig.startQuake` and quake tick, sliced in file order by `_enchant-sim.js`, on a voxel world), that it is off in the Candy Crypt (on for the four), and what the client shows; prints a status table. Also pins the sim's swing to `swingBlock`'s text step by step, Tidal Wave's tiers rolling DOWN (found rolling up), every ability word having an animation (BURST and DETONATION had none), and the Flashlight glow. Fails on `3863d14` (13 failures). |
+| `enchant-balance` **L** | the ability enchants' balance pass (owner, 2026-10-19): `enchant-balance.luau` digs with each Special on each tool family at three stages in four builds, through the real proc code and Equip Best's real scorers, and measures what the ability stack adds on area, tough rock and one stubborn block. Asserts each ability is the strongest choice somewhere and adds +10% at every stage, no ability's best area build is over 2.25x the median ability's, no tough-rock or single-block runaway (2x the runner-up), Sugar Rush level with Overclock and Grave Digger paying deep, and Flashlight's pace; prints the tables in [enchants](../systems/enchants.md). About 30 s. Fails on `3863d14`. |
+| `forge-cards` **L** | a Forge card says what the server does (launch audit S9, S11, 2026-10-19): the craft verb and every panel price through `MineOreTools.craftCost`, the held forged tool and every card's hit through `MineOreTools.hitPower`, a new craft's level through `inheritedLevel`. **Executes** them: the price is the card's number for every ore x family and the server's old tierless price really differed; `hitPower` equals the swing's old inline arithmetic on 14,000 rows (nothing held moved) and the card's old `toolPower`-only number really differed (Stone Hammer: card 10, hits 37); the hits a second, area and use each family reports. |
+| `recycle-quote` **L** | every SCRAP quote equals the server's payout: the server's `recycleOreTool`, the Forge hub and the old Forge all call `MineOreTools.recycleRefund`, and nobody computes `toolRecycle` by hand. **Executes** it against the server's pre-S10 arithmetic (nothing moved) and both old panel forms, base 1 and the three-arg call, to prove the harness sees them. |
+| `skin-wear` **L** | one rule for which skin a tool wears (owner, 2026-10-19: *"one wardrobe everywhere"*): `equippedTool` wears the skin on whatever `Dig.toolInHand` returns, the kit and the look read its `skinId` stamp, `equipSkin` falls back to the class in hand, the ore case pays a wardrobe skin (S14), and the wardrobe reads `snap.tool` and shows power and "stats only". **Executes** `MineToolSkins` and the server's own `skinBase` / `Dig.wearSkin` / `equippedTool` slices on a forged row, an event tool and a Crypt-shaped record. |
 | `gate-coverage` | every function that deals block damage consults the breaking gate |
 | `generated-fresh` | `mine-map.html` and `upgrade-calculator.html` regenerate byte-for-byte (`--check`) |
 | `ladder-climbable` | the ore ladder reaches tier 82 with no zone deadlock, and the Exotic band stays rare |
@@ -115,18 +173,27 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 | `oreskins` | no tool is sold for coins, and every ore tier has its own distinct pickaxe icon. The refusal is asserted on the **server**, at the surface and depth doors, not on the shop rail. |
 | `oretools` **L** | `ToolModelFactory.oreLook` gives the 82 ore tools distinct looks |
 | `outpost-depth` | outpost colours are wired to depth, not constants |
-| `packs` **L** | fossil packs are gone, and the chest loot tables are still well formed |
+| `packs` **L** | fossil packs are gone, and the chest loot tables are still well formed (since 2026-10-19 read off `payout`, and a set chest's first pack is its own set's) |
 | `pet-spring` **L** | the pet-follow spring is stable at any framerate (`26036a0`) |
+| `pet-identity` **L** | runs the real `MineCards`, `MineEnchants` and the whole roster (via `_shared.js`): every named pet's family and trait come from its name and home, the spread is healthy (no family over 30%, all 12 traits, none over 15%), every copy from any source agrees, pay and text read one identity, the 41 legacy sets' prints keep theirs; Lone Wolf and Squad Bond text reads the pets-out count; lines the Special gate zeroes carry "needs a Zap Special". Launch audit S32–S34, 2026-10-19. |
+| `halloween-power` **L** | the Candy Crypt v2 pet and skin rules (owner, 2026-10-19), on the real modules via `_shared.js` (MineConfig's `cardPower` sliced in): every Halloween Mythic, Divine and Exotic is at least 1.2x (and its `TOP_BEAT`) the best non-Halloween pet on `MineCards.boostScore`, and the generator's `BEST_NORMAL` is the one the game finds; every Halloween S/SS/SSS skin is 1.2x the best other skin of its grade on `baseOf` and kit points, and `MineToolSkins.wear` spends it; `MineHalloweenPets` (`pool`, `isHalloween` from any source, `card`, `buildOf`); the twelve new pets build today (`PetModelFactory` wears the fallback until their body exists) and keep identity from name and home; the builds beat every normal pet's chance in their family by 20%, Blast Radius pays only on a named Halloween kit (at most 30 pets), the gate keeps it on a bomb and zeroes it on a Zap tool, and `MinePatterns.MAX_BLAST_RADIUS` bounds a bomb. Fails on `3863d14`. |
+| `cards-tab` **L** | the Cards tab's rail draws only the real seats (no "GET VIP"); its card faces go through a cache that is **run** against stub frames (paint once, reuse, repaint on a change, lift, prune); the Hats/Faces collection lists `MineHats.dropCatalog`, which matches the drop pools exactly. Launch audit M5, S35, S37, 2026-10-19. |
+| `reveal-runs` **L** | a Gear Vault reels all its items (through `ClientFns.playCaseReels` / `gearReels` since 2026-10-19); a run of reels waits for each close and has SKIP ALL (the run logic is lifted out and **run**); a rare find prints its true rarity while `hypeRankOf` sizes the celebration (the pull score is run); the lucky SKIP ALL card lists books, potions and named skin cases (`runRows` is run). Launch audit S24, S25, S28, S29, 2026-10-19. |
+| `case-stack` **L** | every case opens up to five at a time as stacked spins (owner, 2026-10-19). **Runs** `MineCaseStack` on the real `MineCases` / `MinePackConfig` (the 1–5 clamp, all-or-nothing `charge`, `stopAt` order, rounds of five, which packs are cases), `Verbs.openTemperStack` sliced out of `MineServer` on the real `MineTemper` (short purse opens none, five charge once and send five reels), `MineTrader.caseReel` / `reelRow`, and `ctl.playRun` / `playStack` lifted out of `MineGradeReveal` (rounds, one `onEach` a round, SKIP ALL over a stacked run). Statically: `openMany` clamps a case run to five, `buyTraderCase` charges all or nothing and sends `caseSpins`, the stacked tiles carry no `UIScale`, the results grid after a stack holds still, and the bag tile, the Summon tab and the trader shelf each have the picker. Fails on `3863d14` (25 failures). |
+| `hat-stacks` **L** | each hat once with "xN" for copies (owner, 2026-10-19). **Runs** `MineGear.stackKey` / `stacks` on the real `MineGear` (same piece stacks, a different grade, hat or stat line does not, a skipped worn piece stays out). Statically: a seat's list, the Backpack and Collection → Hats/Faces stack spares with a badge, keep the worn piece on its own tile, draw each spare once (not once per hat seat), and EQUIP / SELL send one id. Fails on `3863d14` (14 failures). |
 | `procs` **L** | proc damage and proc chance are separate stats, and the zap chain terminates |
 | `seams` | a JS model of the coin-priced seam ladder. **Seams are free now** (`MineDepth.seamPrice` returns 0), so this asserts a retired design. |
+| `shop-guards` **L** | the shops charge what they say, once, for things they still sell (launch audit M4, S1, S3, S5, S7, S8, 2026-10-19). Statically: the Founders Rig reads and charges credits in two taps; a cart checkout sends nothing while one is out, carries an order id, and `buyCart` refuses an order it was paid for (one debit, after pricing); the desk prices bags in gems; the Starter popup reads the bag, coins and pet fields the server grants, with the same fallbacks. **Runs** `MineDepthShop.catalog` (no refused coin tools, gem-priced bags, no Founders Rig, Event Horizon tools kept) and the real `MinePackConfig` + `MineCases` shelf (no retired pack has a price; a box of ten of one pack is the 10x bundle, a mixed box 12% off). Fails on `2efdf89` (22 failures). |
 | `skilltree` | every stat the tree grants is applied by the server |
 | `statkeys` | renamed stat keys (`oreYield`) still read in old saves |
 | `stats` **L** | `MineStats.STATS`, `STAT_ORDER`, `emptyBoosts` and `ADDITIVE_STATS` agree |
 | `runes-retired` | runes, scrolls, sockets and tool traits stay retired (2026-10-12): the five modules are deleted and nothing requires them; no rune, scroll or trait verb; `boosts()` pays none; old saves drop the fields; the pass, Founders pack and wheel pay books where they paid scrolls and runes; the tutorial and quests teach enchants; the Enchanter keeps Summon / Temper / Salvage / Dust; runes are not a trade kind; the rune cases are gone. Replaces the deleted `traits` **L** check (`tools/verify/traits.js`), which pinned the trait rules. |
 | `kid-text` | the kid-friendly pass (2026-10-19): `MineKidText.toast` turns "800 Coins" into "💰 800" on real toasts and leaves "Gem Shop" alone; the client runs every toast through it; every tutorial step in the walk-through carries an icon. |
 | `text-motion` | text never rides a scale animation: `MineUI.pulse` gives anything with text a ring pulse (a text-free ring scales, the thing holds still), `popNumber` lights the outline instead of popping a size, and the Forge hub repaints on a snapshot only on a real change, at most about once a second. Pure JS. Added 2026-10-17 (owner: *"the font sizes flicker"*). |
+| `trader` **L** | the wandering-trader rules: 5 distinct placements and no collisions over thousands of rotations, flat visit spread, a trader cannot stock a case outside its depth gate (and the deep spot can), prices rise with depth and zone and never fall below base, the charm and hat cases follow the chest/temper ladders; statically, that the outpost list is **sorted** before placement, `buyTraderCase` re-derives the roster, checks the shelf and takes the price from the shelf row (debited as `price` or, for 1–5 at once, `total`), trader parts are non-query and non-shadow, and the panel's countdown ticks on `RunService.Heartbeat` |
 | `trap` | in the calculator, "levels re-bought" is independent of tier, type and level |
 | `tune` | which calculator dial controls "too many ores" |
+| `ui-scale` | the shipped `refreshMineUiScale` rule (parsed from the client) fits every fixed panel on twelve displays, and lists the displays where no scale can help as outstanding panel work |
 | `veins` **L** | the vein lattice keeps per-block ore density unchanged, the size distribution matches the owner's spec, and the field is re-rolled per server |
 | `chunkload` **L** | generation stops at the open chunk, the far path does not claim the frontier, and layer 1 differs per server cell by cell |
 | `compile` | every file passes `luau-compile`, and the two big scripts have top-level-local headroom left |
@@ -169,7 +236,19 @@ DID NOT RUN. The docs say "11 of 23", which is stale: there were 36 checks at `b
 3. Put a non-zero floor under every count you assert over.
 4. To run Luau, use `require("./_luau")` for the binary path. If it cannot run,
    print the skip wording `suite.sh` matches. Decide the exit code in JS from
-   the output, not with `os.exit` in Luau.
+   the output, not with `os.exit` in Luau. To run real `Mine/Shared` modules
+   with their own lazy requires, `require("./_shared").prelude(ROOT, names,
+   folders)` gives a fake `Shared` folder (`pet-identity.js` uses it). A
+   module that needs Roblox datatypes, `game:GetService` or `:Clone()`
+   (`MineConfig`, a server module) also needs `require("./_stubs").ROBLOX`
+   appended after the prelude; `_stubs.ECONOMY_MODULES` lists what loading
+   `MineConfig`, the chests and the charms takes (`chest-ranks.js`,
+   `charm-tiers.js`, `economy-gems.js` use it). For the Candy Crypt's modules
+   and the server's `MineCrypt`, `require("./_crypt")` has the fuller Roblox
+   stand-in (Vector3, Color3, a seeded Random, Players), offers a module only
+   when its file exists (so another session's optional module reads as missing,
+   the way Roblox would answer), and runs each script from its own temp file, so
+   two checkouts sharing `.luau-bin` cannot overwrite each other.
 5. Name it `tools/verify/<name>.js`. `suite.sh` picks it up automatically.
 
 ## Windows notes

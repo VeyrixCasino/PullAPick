@@ -2,7 +2,7 @@
 title: Sources of truth — every doc, and how far to trust it
 type: meta
 status: current
-verified: 2026-10-12 @ 4e4fbb3
+verified: 2026-10-16 @ 98c141a
 sources:
   - docs/START-HERE.md
   - docs/TODO.md §0
@@ -25,9 +25,15 @@ and last this wiki.
 
 ## Where the newest work is
 
-`main` is **behind**. The newest state is the open draft
-[PR #6](https://github.com/VeyrixCasino/PullAPick/pull/6), branch
-`claude/vigilant-fermi-aucqjy`, about 100 commits ahead of `main`. Other
+**The wiki follows the owner's working branch**, `claude/vigilant-fermi-aucqjy`, not
+`main`. The owner chose that on 2026-10-08, because their other session keeps working
+there and merges locally. `main` is **behind**: [PR #6](https://github.com/VeyrixCasino/PullAPick/pull/6)
+was merged into it on 2026-10-06 (`ea255bb`; the API shows it as "closed"), and the
+branch has since gone about 145 commits further, now open as
+[PR #8](https://github.com/VeyrixCasino/PullAPick/pull/8). The ask-first rule and its
+check live on a separate branch, `claude/trusting-euler-sjugag`
+([PR #7](https://github.com/VeyrixCasino/PullAPick/pull/7), based on the working branch),
+which the owner's other session merges; it never pushes to the working branch. Other
 branches (`ore-face-art`, `ore-tools-power`, `cursor/slice-gem-sprites-cdbb`) are
 older, with open draft PRs #1, #2 and #4 on them. `ore-tools-power` carries
 the only copy of the `gen-ores.js` `--force-stale` guard, according to the
@@ -53,6 +59,7 @@ ore researcher; it is not on the working branch.
 |---|---|---|---|
 | `docs/AUDIT.md` | Full game audit and the cut list (archive / delete / keep). | 2026-10-04 | Good for the analysis. **Nothing on its cut list has moved yet.** |
 | `docs/BALANCE-MEASURED.md` | Boost ceilings and reach measurements, read off the modules. | 2026-10-05 | Good. Reproducible. |
+| `docs/CANDY-CRYPT.md` | The Candy Crypt's numbers (v2): HP, ore odds, drops and candy with their spread, chests, the case, every Halloween tool's costs and damage, gems an hour. | 2026-10-19 | **Generated** by `tools/gen/crypt-doc.js` from the modules; `tools/verify/crypt-doc.js` fails when stale. Its per-hour columns assume 1,200 blocks an hour. |
 | `docs/PR-BALANCE-PASS.md` | The PR body for the damage curve, level cap and zone gate. | 2026-10-05 | A write-up, not a spec. |
 | `docs/BALANCE-PROPOSAL.md` | The 2026-10-03 balance proposal. | 2026-10-03 | Partly superseded by PROPOSAL.md. |
 | `docs/SKILL-TREE.md` | Elements and the skill tree. | 2026-10-04 | Roster table predates a remap. |

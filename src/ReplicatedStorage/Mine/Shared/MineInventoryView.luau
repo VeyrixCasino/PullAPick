@@ -387,8 +387,11 @@ local function fitButton(b, pad, minWidth)
 	return b
 end
 
-local function cardLess(a, b, mode, eq, indexOf, qtyOf)
+local function cardLess(a, b, mode, eq, indexOf, qtyOf, scoreOf)
 	local function boostOf(card)
+		if scoreOf then
+			return scoreOf[card]
+		end
 		if Cards.boostScore then
 			return Cards.boostScore(card)
 		end
@@ -430,7 +433,9 @@ local function cardLess(a, b, mode, eq, indexOf, qtyOf)
 			return (a.index or 0) < (b.index or 0)
 		end
 	elseif mode == "type" then
-		local ta, tb = tostring(a.typeId or ""), tostring(b.typeId or "")
+		-- The family the card shows and the server pays (MineCards.familyOf).
+		local ta = tostring((Cards.familyOf and Cards.familyOf(a)) or a.typeId or "")
+		local tb = tostring((Cards.familyOf and Cards.familyOf(b)) or b.typeId or "")
 		if ta ~= tb then
 			return ta < tb
 		end
@@ -1214,11 +1219,8 @@ function MineInventoryView.mount(parent, opts)
 			return (LB.shopPrice and LB.shopPrice(line.id)) or 0
 		end
 		if line.kind == "box" then
-			local sum = 0
-			for _, pid in ipairs(line.packs or {}) do
-				sum += Packs.priceOf(pid) or 0
-			end
-			return math.floor(sum * 0.88 + 0.5)
+			-- The server's own price (MinePackConfig.boxPrice, launch audit S8).
+			return Packs.boxPrice(line.packs) or 0
 		end
 		-- (Scrolls, the last other kind, were retired with runes.)
 		return 0
@@ -1305,6 +1307,10 @@ function MineInventoryView.mount(parent, opts)
 		`mystery` keeps the pick across renders.
 	]]
 	local mystery = { id = "case_1", qty = 1 }
+	-- Forward: the pack inspector is defined below, and the buyer's ODDS
+	-- button calls it (a local used above its declaration reads as a nil
+	-- global; wiki code/luau-traps §2).
+	local showPackInspect
 	local function mysteryBuyer(parent, order, currency)
 		local Cases = require(shared:WaitForChild("MineCases"))
 		if not Cases.get(mystery.id) then
@@ -1326,6 +1332,27 @@ function MineInventoryView.mount(parent, opts)
 		label(panel, "MYSTERY CASE", 22, TEXT, UDim2.fromOffset(x, 12), UDim2.new(1, -x - 12, 0, 26), FONT).ZIndex = 3
 		label(panel, "One spin  ·  3 of the pack it lands on  ·  from any set", 13, MUTED,
 			UDim2.fromOffset(x, 40), UDim2.new(1, -x - 12, 0, 18)).ZIndex = 3
+		--[[
+			ODDS BEFORE YOU BUY (owner, 2026-10-19, launch audit M3). The credit
+			shop's main random item showed none. It opens the same inspector as a
+			case in the bag, at the picked grade; a credit-bought case's exact
+			split (the SSS share included) in the credit shop, an earned case's in
+			the stardust shop, which never rolls SSS.
+		]]
+		local oddsB = mk("TextButton", {
+			AutoButtonColor = true, BackgroundColor3 = BG3, Font = FONT, TextSize = 14,
+			TextColor3 = accent, Text = "ODDS",
+			AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, 10),
+			Size = UDim2.fromOffset(72, 28), ZIndex = 4,
+		}, panel)
+		round(oddsB, 8)
+		stroke(oddsB, 1, accent)
+		oddsB.MouseButton1Click:Connect(function()
+			showPackInspect({
+				packId = mystery.id, tierName = (def and def.name) or mystery.id, setName = "Any set",
+				cards = 0, count = 0, firstIndex = nil, paid = not isDust,
+			})
+		end)
 
 		-- The star grade: one chip per wild case, worst to best.
 		local chips = stripOf(panel, "MysteryStars", 6)
@@ -1456,8 +1483,10 @@ function MineInventoryView.mount(parent, opts)
 		count }. The dex builds the same shape for packs the player has never
 		seen, with count 0 and no firstIndex -- which is how one inspector
 		serves both "the pack in my bag" and "the pack I am reading about".
+		`g.paid` marks a wild case bought with credits: its exact odds include
+		the credit-only SSS share (MineCases.wildGradeOdds).
 	]]
-	local function showPackInspect(g)
+	function showPackInspect(g)
 		if inspectP then
 			inspectP:Destroy()
 		end
@@ -1603,7 +1632,7 @@ function MineInventoryView.mount(parent, opts)
 						Cards.RARITY_COLOR[SetPacks.STAR_TIER[level or 1]] or TEXT)
 				end
 			else
-				for _, row in ipairs(Cases.wildGradeOdds()) do
+				for _, row in ipairs(Cases.wildGradeOdds(g.paid == true)) do
 					caseRow(string.format("Grade %s  (%d %s)%s", row.grade, row.sets, (row.sets == 1) and "set" or "sets",
 						row.paidOnly and "  --  bought with credits only" or ""),
 						string.format("%.1f%%", row.pct), (Gear.RARITY_COLOR and Gear.RARITY_COLOR[row.grade]) or TEXT)
@@ -2536,14 +2565,46 @@ function MineInventoryView.mount(parent, opts)
 					Position = UDim2.fromOffset(10, 156),
 					Size = UDim2.new(1, -20, 0, 32),
 				}, tile) or nil
+
+				--[[
+					A CASE OPENS ONE TO FIVE AT A TIME (owner, 2026-10-19: "make every
+					case in the game be able to spin up to 5 slot spins at a time (one
+					on top of another)"; MineCaseStack). A case stack's thin row is a
+					1-5 picker instead of x10 / ALL, OPEN opens that many in one
+					request, and the reels spin stacked. The pick is remembered per
+					stack. Packs keep 1 / x10 / ALL.
+				]]
+				local CaseStack = require(shared:WaitForChild("MineCaseStack"))
+				local isCase = g.kind ~= "lucky_block" and CaseStack.isCase(g.packId)
+				local pickKey = "bag:" .. tostring(g.packId)
+				local function openText()
+					local n = CaseStack.recall(pickKey, g.count)
+					return (n > 1) and ("OPEN " .. n) or "OPEN"
+				end
 				if open then
 					round(open, 7)
+					if isCase then
+						open.Text = openText()
+					end
 					open.MouseButton1Click:Connect(function()
-						fire(1)
+						fire(isCase and CaseStack.recall(pickKey, g.count) or 1)
 					end)
 				end
 
-				if g.count > 1 and not packSel then
+				if isCase and g.count > 1 and not packSel then
+					local max = math.min(CaseStack.MAX, g.count)
+					local chipW = math.floor((132 - (max - 1) * 3) / max)
+					CaseStack.picker(tile, {
+						max = max, key = pickKey, color = tierCol,
+						size = Vector2.new(chipW, 26), gap = 3,
+						position = UDim2.fromOffset(10, 192),
+						onPick = function()
+							if open then
+								open.Text = openText()
+							end
+						end,
+					})
+				elseif g.count > 1 and not packSel then
 					local row = mk("Frame", {
 						BackgroundTransparency = 1,
 						Position = UDim2.fromOffset(10, 192),
@@ -2581,9 +2642,111 @@ function MineInventoryView.mount(parent, opts)
 			note(body, "Nothing matches that search.")
 		end
 	end
+	--[[
+		THE CARDS TAB KEEPS ITS FACES (launch audit S35). A card face is a
+		ViewportFrame with a whole pet model in it, and the tab painted one for
+		every card on every redraw: each equip tap, each keystroke in the search,
+		each snapshot (up to ten a second while you mine). Faces are kept by card
+		id now and repainted only when something on them changed: the card's own
+		fields, or what its lines read besides the card (opts.cardFaceKey: the
+		pets-out count and the held tool's proc). render() lifts them out before
+		it clears the body; closing the window lets them go.
+	]]
+	local faces = { card = {}, rail = {} }
+
+	function faces.sig(card, w, withKey)
+		local parts = {}
+		for k, v in pairs(card) do
+			local t = type(v)
+			if t == "string" or t == "number" or t == "boolean" then
+				table.insert(parts, tostring(k) .. "=" .. tostring(v))
+			end
+		end
+		table.sort(parts)
+		table.insert(parts, "w=" .. tostring(w))
+		if withKey and opts.cardFaceKey then
+			table.insert(parts, "@" .. tostring(opts.cardFaceKey(card)))
+		end
+		return table.concat(parts, "\n")
+	end
+
+	-- Reuse the cached face when nothing it shows changed, else paint a new one.
+	local function reuse(bag, id, sig, host)
+		local hit = id and bag[id]
+		if not hit then
+			return false
+		end
+		if hit.sig == sig and pcall(function()
+			hit.frame.Parent = host
+		end) then
+			return true
+		end
+		pcall(hit.frame.Destroy, hit.frame)
+		bag[id] = nil
+		return false
+	end
+
+	function faces.paint(slot, card, w)
+		local id = card.id or card.serial
+		local sig = id and faces.sig(card, w, true)
+		if reuse(faces.card, id, sig, slot) or not opts.paintCard then
+			return
+		end
+		local f = opts.paintCard(slot, card, w)
+		if id and typeof(f) == "Instance" then
+			faces.card[id] = { frame = f, sig = sig }
+		end
+	end
+
+	-- The team rail's pet: just the viewport, kept the same way.
+	function faces.railView(box, pet)
+		local id = pet.id or pet.serial
+		local sig = id and faces.sig(pet, "rail", false)
+		if reuse(faces.rail, id, sig, box) or not opts.petViewport then
+			return
+		end
+		local ok, vp = pcall(opts.petViewport, box, pet, UDim2.fromOffset(18, 20), UDim2.fromOffset(80, 62))
+		if ok and typeof(vp) == "Instance" then
+			vp.BackgroundTransparency = 1
+			if id then
+				faces.rail[id] = { frame = vp, sig = sig }
+			end
+		end
+	end
+
+	-- Before the body is cleared: take every kept face out of harm's way.
+	function faces.lift()
+		for _, bag in ipairs({ faces.card, faces.rail }) do
+			for id, e in pairs(bag) do
+				if not pcall(function()
+					e.frame.Parent = nil
+				end) then
+					bag[id] = nil
+				end
+			end
+		end
+	end
+
+	-- Drop faces of cards no longer owned; `cards` nil drops them all.
+	function faces.prune(cards)
+		local owned = {}
+		for _, c in ipairs(cards or {}) do
+			owned[c.id or c.serial or false] = true
+		end
+		for _, bag in ipairs({ faces.card, faces.rail }) do
+			for id, e in pairs(bag) do
+				if not owned[id] then
+					pcall(e.frame.Destroy, e.frame)
+					bag[id] = nil
+				end
+			end
+		end
+	end
+
 	local function renderOwnedCards()
 		local cards = state.cards or {}
 		if #cards == 0 then
+			faces.prune(cards)
 			note(body, "No cards yet. Open a pack.")
 			return
 		end
@@ -2646,8 +2809,19 @@ function MineInventoryView.mount(parent, opts)
 			indexOf[card] = i
 			list[i] = card
 		end
+		-- Each card's boost score once per redraw, not once per comparison.
+		local scoreOf = setmetatable({}, { __index = function(t, card)
+			local v
+			if Cards.boostScore then
+				v = Cards.boostScore(card)
+			else
+				v = (C.cardPower and C.cardPower(card)) or 0
+			end
+			t[card] = v
+			return v
+		end })
 		table.sort(list, function(a, b)
-			return cardLess(a, b, cardSort, eq, indexOf, mergeCount)
+			return cardLess(a, b, cardSort, eq, indexOf, mergeCount, scoreOf)
 		end)
 		local wrap = mk("Frame", {
 			BackgroundTransparency = 1,
@@ -2668,7 +2842,8 @@ function MineInventoryView.mount(parent, opts)
 		}, grid)
 		local shown = 0
 		for i, card in ipairs(list) do
-			if matches(table.concat({ card.name or "", card.setName or "", card.typeId or "",
+			if matches(table.concat({ card.name or "", card.setName or "",
+				(Cards.familyOf and Cards.familyOf(card)) or card.typeId or "",
 				card.rarityId or "", card.variant or "" }, " ")) then
 				shown += 1
 				local slot = mk("TextButton", {
@@ -2677,9 +2852,7 @@ function MineInventoryView.mount(parent, opts)
 					Text = "",
 					LayoutOrder = i,
 				}, grid)
-				if opts.paintCard then
-					opts.paintCard(slot, card, CW)
-				end
+				faces.paint(slot, card, CW)
 				local onTeam = eq[card.id] or eq[card.serial]
 				-- `scrapId` is what the server scraps by: c.id, never the serial.
 				-- Deliberately not called cardId -- the equip path below has its
@@ -2754,15 +2927,9 @@ function MineInventoryView.mount(parent, opts)
 						if opts.onEquip then
 							opts.onEquip({ id = cardId, slot = cardPetSeat })
 						end
-						local cap = math.max(3, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
-						local n = math.max(4, cap)
-						local nxt = cardPetSeat % n + 1
-						local guard = 0
-						while nxt > cap and guard < n do
-							nxt = nxt % n + 1
-							guard += 1
-					end
-						cardPetSeat = nxt
+						-- The next seat, round the real seats (there is no VIP fourth).
+						local cap = math.max(1, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
+						cardPetSeat = cardPetSeat % cap + 1
 						render()
 					end
 				end)
@@ -2773,7 +2940,13 @@ function MineInventoryView.mount(parent, opts)
 			note(body, "Nothing matches that search.")
 		end
 		do
-			local petCap = math.max(3, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
+			--[[
+				One box per REAL seat (launch audit M5). The rail drew four, and the
+				fourth said "GET VIP" and opened the VIP pass, but VIP has added no
+				seat since MineConfig.MAX_PET_SLOTS became 3 for everybody: the
+				player paid for a seat that never came.
+			]]
+			local petCap = math.max(1, math.floor(tonumber(state.petSlotsEffective or state.petSlots) or 3))
 			if cardPetSeat > petCap then
 				cardPetSeat = 1
 			end
@@ -2782,11 +2955,10 @@ function MineInventoryView.mount(parent, opts)
 				BackgroundTransparency = 1,
 				AnchorPoint = Vector2.new(1, 0),
 				Position = UDim2.new(1, 0, 0, 0),
-				Size = UDim2.fromOffset(116, 456),
+				Size = UDim2.fromOffset(116, 18 + petCap * 108),
 			}, wrap)
 			label(rail, "TEAM", 11, GOLD, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 16), FONT, Enum.TextXAlignment.Center)
-			for i = 1, 4 do
-				local locked = i > petCap
+			for i = 1, petCap do
 				local petId = (state.equipped or {})[i]
 				local pet = nil
 				if petId then
@@ -2794,41 +2966,31 @@ function MineInventoryView.mount(parent, opts)
 						if c.id == petId then pet = c break end
 					end
 				end
-				local chosen = (not locked) and cardPetSeat == i
+				local chosen = cardPetSeat == i
 				local box = mk("TextButton", {
 					AutoButtonColor = true, Text = "",
-					BackgroundColor3 = chosen and BG3 or (locked and Color3.fromRGB(18, 18, 24) or BG2),
+					BackgroundColor3 = chosen and BG3 or BG2,
 					Position = UDim2.fromOffset(0, 18 + (i - 1) * 108),
 					Size = UDim2.fromOffset(116, 104),
 				}, rail)
 				round(box, 8)
 				stroke(box, chosen and 2 or 1, chosen and GOLD or nil)
-				label(box, locked and ("PET " .. i .. " VIP") or ("PET " .. i), 10,
+				label(box, "PET " .. i, 10,
 					chosen and GOLD or MUTED, UDim2.fromOffset(4, 4), UDim2.new(1, -8, 0, 14), FONT, Enum.TextXAlignment.Center)
-				if pet and opts.petViewport then
-					pcall(opts.petViewport, box, pet, UDim2.fromOffset(18, 20), UDim2.fromOffset(80, 62))
-					for _, ch in ipairs(box:GetChildren()) do
-						if ch:IsA("ViewportFrame") then
-							ch.BackgroundTransparency = 1
-						end
-					end
-				elseif locked then
-					label(box, "VIP", 16, MUTED, UDim2.fromOffset(0, 36), UDim2.new(1, 0, 0, 24), FONT, Enum.TextXAlignment.Center)
+				if pet then
+					faces.railView(box, pet)
 				else
 					label(box, "+", 22, Color3.fromRGB(88, 88, 98), UDim2.fromOffset(0, 32), UDim2.new(1, 0, 0, 28), FONT, Enum.TextXAlignment.Center)
 				end
-				label(box, pet and tostring(pet.name or "Pet") or (locked and "GET VIP" or "empty"), 11,
+				label(box, pet and tostring(pet.name or "Pet") or "empty", 11,
 					pet and TEXT or MUTED, UDim2.fromOffset(4, 84), UDim2.new(1, -8, 0, 16), FONT, Enum.TextXAlignment.Center)
 				box.MouseButton1Click:Connect(function()
-					if locked then
-						if opts.onBuyVipPass then opts.onBuyVipPass() end
-						return
-					end
 					cardPetSeat = i
 					render()
 				end)
 			end
 		end
+		faces.prune(cards)
 	end
 	-- running right now rather than an empty grid with a coming-soon label on it.
 	local BOOST_LABEL = {
@@ -3135,28 +3297,32 @@ function MineInventoryView.mount(parent, opts)
 						the same answer the server does.
 					]]
 					--[[
-						The COUNT, and what three of them merge into. A legacy
-						charm saved as `true` is one copy, which is how every
-						other reader of this tally treats it.
+						THE COUNT, THE RARITY AND THE TIER (2026-10-19). A charm's
+						rarity (F..SSS) never changes and paints the tile; its best
+						copy's tier (I..V) is what it is worth worn, so the name
+						carries it. A legacy `true` is one copy, as everywhere.
+						Merging needs another charm at the same tier
+						(MineCharms.fodderFor), so the button knows before you tap.
 					]]
-					local held = (state.charms or {})[def.id]
-					local n = (held == true) and 1 or math.floor(tonumber(held) or 0)
-					local mergeTo, mergeDef, mergeWhy
-					if Charms.mergeTarget then
-						mergeTo, mergeDef, mergeWhy = Charms.mergeTarget(def.id)
+					local counts, n = Charms.tierCounts(state, def.id)
+					local best = math.max(1, Charms.bestTier(state, def.id))
+					local mergeable = false
+					for t = 1, (Charms.TIER_MAX or 5) - 1 do
+						if counts[t] > 0 and #Charms.fodderFor(state, def.id, t) > 0 then
+							mergeable = true
+							break
+						end
 					end
-					local cost = math.max(2, math.floor(tonumber(Charms.MERGE_COST) or 3))
+					local desc = Charms.describe(def, state, best)
 					table.insert(out, {
 						key = "charm|" .. def.id,
-						name = def.name,
-						sub = Charms.describe(def, state) ~= "" and Charms.describe(def, state)
-							or (def.source or "Charm"),
+						name = def.name .. ((best > 1) and (" " .. Charms.romanTier(best)) or ""),
+						sub = desc ~= "" and desc or (def.source or "Charm"),
 						def = def, slot = "charm", source = "charm", id = def.id,
+						rarity = def.rarity, tier = best, tierCounts = counts,
 						equipped = state.equippedCharm == def.id,
 						count = n,
-						mergeTo = mergeTo, mergeName = mergeDef and mergeDef.name or nil,
-						mergeWhy = mergeWhy, mergeCost = cost,
-						canMerge = mergeTo ~= nil and n >= cost,
+						canMerge = mergeable,
 						why = "Charms are kept, not sold",
 					})
 				end
@@ -3190,6 +3356,7 @@ function MineInventoryView.mount(parent, opts)
 					table.insert(out, {
 						key = "charmbuy|" .. def.id,
 						name = def.name,
+						rarity = def.rarity,
 						sub = string.format("%s  \u{00B7}  %d token%s",
 							tostring(Charms.RARITY_LABEL and Charms.RARITY_LABEL[def.rarity] or def.rarity or "?"),
 							price, price == 1 and "" or "s"),
@@ -3212,37 +3379,62 @@ function MineInventoryView.mount(parent, opts)
 			local isHatSeat = table.find(Gear.HAT_SLOTS or { "hat" }, slotId) ~= nil
 			local gearSlot = slotId
 			local wornId = (state.equippedGear or {})[gearSlot]
+			--[[
+				ONE TILE PER HAT, WITH "xN" FOR COPIES (owner, 2026-10-19: "hat
+				inventory is messy. each hat should say the hat, and if multiple
+				say xXXX"). A piece worn in any seat keeps a tile of its own; the
+				copies nobody wears stack (MineGear.stacks), and EQUIP or SELL on a
+				stack acts on its first copy. The stack's key is its MineGear
+				stackKey, so an open card follows the stack when a copy goes.
+			]]
+			local pool = {}
 			for _, g in ipairs(state.gear or {}) do
 				local match = (isHatSeat and Gear.isHatPiece(g))
 					or (gearSlot == "face" and Gear.isFacePiece(g))
 					or ((not isHatSeat) and gearSlot ~= "face" and Gear.migrateSlot(g.slot) == gearSlot)
 				if match then
-					-- A piece is equipped in THIS seat only. A hat in seat 1 must
-					-- not light up as EQUIPPED while you are looking at seat 2 --
-					-- gearWearer says where it actually is instead.
-					local on = wornId == g.id
-					local sub = (Gear.hatEffectLine and Gear.hatEffectLine(g))
-						or ("+" .. math.floor((tonumber(g.pct) or 0) * 100 + 0.5) .. "% " .. eq.statLabel(g.stat))
-					if gearSlot == "face" and sub ~= "" then
-						sub = sub .. "  ·  scales hats"
-					end
-					local elsewhere = (not on) and gearWearer(g.id) or nil
-					if elsewhere then
-						sub = sub .. "  (" .. elsewhere .. ")"
-					end
-					table.insert(out, {
-						key = "gear|" .. tostring(g.id) .. "|" .. tostring(slotId),
-						name = (g.rarity or "") .. " " .. (g.name or g.setName or ""),
-						sub = sub,
-						rarity = g.rarity, def = g, slot = slotId, source = "gear", id = g.id,
-						equipped = on,
-						sockets = g.sockets, slotCount = g.slotCount,
-						icon = (g.catalogId and NG and NG.icon(g.catalogId))
-							or (Gear.image and Gear.image(g)) or nil,
-						sell = { gems = Gear.scrapGems(g) },
-						why = on and "Take it off first" or (elsewhere and ("Worn " .. elsewhere) or nil),
-					})
+					table.insert(pool, g)
 				end
+			end
+			local function add(g, st)
+				-- A piece is equipped in THIS seat only. A hat in seat 1 must
+				-- not light up as EQUIPPED while you are looking at seat 2 --
+				-- gearWearer says where it actually is instead.
+				local on = wornId == g.id
+				local sub = (Gear.hatEffectLine and Gear.hatEffectLine(g))
+					or ("+" .. math.floor((tonumber(g.pct) or 0) * 100 + 0.5) .. "% " .. eq.statLabel(g.stat))
+				if gearSlot == "face" and sub ~= "" then
+					sub = sub .. "  ·  scales hats"
+				end
+				local elsewhere = (not on) and gearWearer(g.id) or nil
+				if elsewhere then
+					sub = sub .. "  (" .. elsewhere .. ")"
+				end
+				table.insert(out, {
+					key = "gear|" .. tostring(st and st.key or g.id) .. "|" .. tostring(slotId),
+					name = (g.rarity or "") .. " " .. (g.name or g.setName or ""),
+					sub = sub,
+					rarity = g.rarity, def = g, slot = slotId, source = "gear", id = g.id,
+					count = st and st.count or 1, ids = st and st.ids or { g.id },
+					worn = (on or elsewhere ~= nil) or nil,
+					equipped = on,
+					sockets = g.sockets, slotCount = g.slotCount,
+					icon = (g.catalogId and NG and NG.icon(g.catalogId))
+						or (Gear.image and Gear.image(g)) or nil,
+					sell = { gems = Gear.scrapGems(g) },
+					why = on and "Take it off first" or (elsewhere and ("Worn " .. elsewhere) or nil),
+				})
+			end
+			local function isWorn(g)
+				return gearWearer(g.id) ~= nil
+			end
+			for _, g in ipairs(pool) do
+				if isWorn(g) then
+					add(g, nil)
+				end
+			end
+			for _, st in ipairs(Gear.stacks(pool, isWorn)) do
+				add(st.piece, st)
 			end
 			table.sort(out, function(a, b)
 				local ra = Gear.RARITY_RANK[a.rarity] or 0
@@ -3405,8 +3597,10 @@ function MineInventoryView.mount(parent, opts)
 				or (o and o.shiny and (C.SHINY_MULT or 1.5)) or 1
 			return Tools.budget(item.def) * finish
 		elseif item.source == "charm" then
+			-- At the copy's tier (I..V, MineCharms.statsAt).
+			local Charms = require(shared:WaitForChild("MineCharms"))
 			local sum = 0
-			for _, v in pairs(item.def.stats or {}) do
+			for _, v in pairs(Charms.statsAt(item.def, item.tier or 1)) do
 				sum += tonumber(v) or 0
 			end
 			return sum
@@ -3634,6 +3828,29 @@ function MineInventoryView.mount(parent, opts)
 	end
 
 	--[[
+		"x3" in the corner of a stacked item's picture (identical hats and faces;
+		MineGear.stacks). Gold on ink, at the text floor, top-right over the art.
+	]]
+	function eq.countBadge(parent, n, pos, z)
+		n = tonumber(n) or 1
+		if n <= 1 then
+			return nil
+		end
+		local b = mk("Frame", {
+			Name = "StackCount",
+			BackgroundColor3 = Color3.fromRGB(16, 18, 24), BackgroundTransparency = 0.05,
+			AnchorPoint = Vector2.new(1, 0), Position = pos,
+			Size = UDim2.fromOffset(n >= 100 and 50 or (n >= 10 and 42 or 34), 22),
+			ZIndex = z or 20,
+		}, parent)
+		round(b, 11)
+		stroke(b, 1.5, GOLD)
+		local t = label(b, "x" .. n, 14, GOLD, UDim2.fromScale(0, 0), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center)
+		t.ZIndex = (z or 20) + 1
+		return b
+	end
+
+	--[[
 		A ring that fills as you hold. 48 segments, because a swept arc in Roblox
 		means either an image nobody has drawn yet or two clipped half-discs
 		whose maths goes wrong at exactly 50%; 48 little rotated bars are
@@ -3722,7 +3939,9 @@ function MineInventoryView.mount(parent, opts)
 		refit()
 		root:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
 
-		local titleLbl = label(card, string.upper(tostring(item.name or "")), 20, ink,
+		-- A stack of identical hats says how many (its buttons act on one copy).
+		local stackN = tonumber(item.count) or 1
+		local titleLbl = label(card, string.upper(tostring(item.name or "")) .. ((stackN > 1) and ("  x" .. stackN) or ""), 20, ink,
 			UDim2.fromOffset(20, 14), UDim2.new(1, -40, 0, 28), FONT, Enum.TextXAlignment.Center)
 		-- A long name used to clip mid-word. Shrink it to fit instead of cutting it.
 		-- Constraint first, TextScaled last -- parenting the constraint clears the flag.
@@ -3763,10 +3982,26 @@ function MineInventoryView.mount(parent, opts)
 				table.insert(rows, { "Note", "Multiplies matching hat %s" })
 			end
 		elseif item.source == "charm" then
-			rows = { { "Type", "Charm" }, { "Effect", tostring(item.def.blurb or item.def.source or "-") } }
+			-- Rarity forever, tier I..V (MineCharms, 2026-10-19).
+			local Charms = require(shared:WaitForChild("MineCharms"))
+			local t = item.tier or 1
+			local bits = {}
+			for k = 1, Charms.TIER_MAX or 5 do
+				local c = item.tierCounts and item.tierCounts[k] or 0
+				if c > 0 then
+					table.insert(bits, Charms.romanTier(k) .. " x" .. c)
+				end
+			end
+			rows = {
+				{ "Rarity", tostring(item.def.rarity or "?") .. "  " .. tostring(Charms.RARITY_LABEL[item.def.rarity or ""] or "") },
+				{ "Tier", string.format("%s  (x%.2f)", Charms.romanTier(t), Charms.TIER_MULT[t] or 1) },
+				{ "Held", (#bits > 0) and table.concat(bits, "  ") or "-" },
+				{ "Effect", Charms.describe(item.def, nil, t) },
+			}
 		elseif item.source == "charmbuy" then
 			rows = {
 				{ "Type", "Charm -- not owned" },
+				{ "Rarity", tostring(item.def.rarity or "?") },
 				{ "Price", string.format("%d tokens", tonumber(item.buyTokens) or 0) },
 				{ "Effect", tostring(item.def.blurb or "-") },
 			}
@@ -3906,12 +4141,10 @@ function MineInventoryView.mount(parent, opts)
 				elseif opts.onEquip then
 					opts.onEquip({ id = item.id, slot = item.petSeat })
 				end
-			elseif item.source == "vipSeat" then
-				if opts.onBuyVipPass then opts.onBuyVipPass() end
 			end
 			local takingOff = item.equipped and (item.source == "gear" or item.source == "charm"
 				or item.source == "pet")
-			if item.source ~= "vipSeat" and item.source ~= "backpack" and not takingOff then
+			if item.source ~= "backpack" and not takingOff then
 				eq.advanceSlot()
 			end
 			closeCard()
@@ -3945,7 +4178,93 @@ function MineInventoryView.mount(parent, opts)
 			return (#bits > 0) and table.concat(bits, "   +   ") or "Nothing"
 		end
 
-		local showChoice, showConfirm
+		local showChoice, showConfirm, showMerge
+
+		--[[
+			THE MERGE PICKER (2026-10-19). A merge raises one copy of this charm
+			a tier (I..V) for gems plus ANY one charm of the same tier, which is
+			used up (owner: "teir i to v"). So the footer lists what you could
+			use up, cheapest first (MineCharms.fodderFor, never the worn copy),
+			with the price; a tap merges. Which copy: the best tier that has
+			fodder, switchable when there are several.
+		]]
+		function showMerge(pickTier)
+			eq.cardMode = "merge"
+			clear(footer)
+			local Charms = require(shared:WaitForChild("MineCharms"))
+			local tiers = {}
+			for t = 1, (Charms.TIER_MAX or 5) - 1 do
+				local c = item.tierCounts and item.tierCounts[t] or 0
+				if c > 0 and #Charms.fodderFor(state, item.id, t) > 0 then
+					table.insert(tiers, t)
+				end
+			end
+			local t = pickTier or tiers[#tiers]
+			if not t then
+				showChoice()
+				return
+			end
+			local cost = Charms.mergeGemCost(item.def.rarity, t + 1) or 0
+			local afford = (tonumber(state.gems) or 0) >= cost
+			label(footer, string.format("%s  %s -> %s   ·   %s gems", tostring(item.def.name),
+				Charms.romanTier(t), Charms.romanTier(t + 1), commas(cost)),
+				14, afford and GOLD or Color3.fromRGB(255, 150, 150),
+				UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 20), FONT, Enum.TextXAlignment.Center)
+			if #tiers > 1 then
+				for i, tt in ipairs(tiers) do
+					local tb = mk("TextButton", {
+						AutoButtonColor = true, BackgroundColor3 = (tt == t) and GEM or BG2,
+						Text = Charms.romanTier(tt), Font = FONT, TextSize = 14,
+						TextColor3 = (tt == t) and Color3.fromRGB(20, 28, 40) or TEXT,
+						Position = UDim2.fromOffset((i - 1) * 50, 22), Size = UDim2.fromOffset(44, 24),
+						ZIndex = 74,
+					}, footer)
+					round(tb, 6)
+					tb.MouseButton1Click:Connect(function()
+						showMerge(tt)
+					end)
+				end
+			else
+				label(footer, "Pick a tier-" .. Charms.romanTier(t) .. " charm to use up:", 12, MUTED,
+					UDim2.fromOffset(0, 24), UDim2.new(1, 0, 0, 18), nil, Enum.TextXAlignment.Center)
+			end
+			local strip = mk("ScrollingFrame", {
+				BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 50),
+				Size = UDim2.new(1, 0, 0, 62), CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.X,
+				AutomaticCanvasSize = Enum.AutomaticSize.X, ScrollBarThickness = 4, ZIndex = 74,
+			}, footer)
+			mk("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6),
+				SortOrder = Enum.SortOrder.LayoutOrder }, strip)
+			for i, f in ipairs(Charms.fodderFor(state, item.id, t)) do
+				local ink2 = gradeInk(f.def.rarity) or TEXT
+				local fb = mk("TextButton", {
+					AutoButtonColor = afford, BackgroundColor3 = BG2, LayoutOrder = i,
+					Text = string.format("%s  %s\nx%d", tostring(f.def.rarity or "?"), tostring(f.def.name), f.count),
+					Font = FONT, TextSize = 13, TextColor3 = ink2, TextWrapped = true,
+					Size = UDim2.fromOffset(150, 54), ZIndex = 75,
+				}, strip)
+				round(fb, 8)
+				stroke(fb, 1.5, ink2)
+				if afford then
+					fb.MouseButton1Click:Connect(function()
+						if opts.onMergeCharm then
+							opts.onMergeCharm(item.id, t, f.id)
+						end
+						closeCard()
+					end)
+				end
+			end
+			local back = mk("TextButton", {
+				AutoButtonColor = true, BackgroundColor3 = BG2, Text = afford and "BACK" or "BACK  ·  NOT ENOUGH GEMS",
+				Font = FONT, TextSize = 14, TextColor3 = TEXT,
+				Position = UDim2.fromOffset(0, 118), Size = UDim2.new(1, 0, 0, 30),
+				ZIndex = 74,
+			}, footer)
+			round(back, 8)
+			back.MouseButton1Click:Connect(function()
+				showChoice()
+			end)
+		end
 
 		function showChoice()
 			eq.cardMode = "choice"
@@ -3965,7 +4284,7 @@ function MineInventoryView.mount(parent, opts)
 							and string.format("BUY  %d", tonumber(item.buyTokens) or 0)
 							or string.format("NEED %d TOKENS", tonumber(item.buyTokens) or 0))
 					or inert and "EQUIPPED"
-					or (item.equipped and "UNEQUIP" or (item.source == "vipSeat" and "GET VIP" or "EQUIP")),
+					or (item.equipped and "UNEQUIP" or "EQUIP"),
 				Font = FONT, TextSize = 16,
 				TextColor3 = inert and GREEN or (item.equipped and TEXT or Color3.fromRGB(16, 38, 20)),
 				Position = UDim2.fromOffset(0, 66), Size = UDim2.new(0.48, -6, 0, 46),
@@ -3995,9 +4314,7 @@ function MineInventoryView.mount(parent, opts)
 			local rightOn = canSell or canMerge
 			local rightText
 			if isCharm then
-				rightText = canMerge
-					and string.format("MERGE %d", item.mergeCost or 3)
-					or "CAN'T MERGE"
+				rightText = canMerge and "MERGE" or "CAN'T MERGE"
 			else
 				rightText = canSell and "SELL" or "CAN'T SELL"
 			end
@@ -4011,27 +4328,18 @@ function MineInventoryView.mount(parent, opts)
 			}, footer)
 			round(sellB, 10)
 			if canMerge then
-				--[[
-					Say what it BECOMES, not just that it merges. The charm one
-					tier up has a different shape and usually a different stat,
-					so a player who is not told the name has no way to know
-					whether they want the trade.
-				]]
-				label(footer, string.format("%d held  ·  %d become %s",
-					item.count or 0, item.mergeCost or 3, tostring(item.mergeName or "the next charm")),
+				-- Say what a merge is before the picker: a tier up, same rarity.
+				label(footer, string.format("%d held  ·  raise a tier for gems + any charm of the same tier",
+					item.count or 0),
 					13, GOLD, UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil,
 					Enum.TextXAlignment.Center)
 				sellB.MouseButton1Click:Connect(function()
-					if opts.onMergeCharm then
-						opts.onMergeCharm(item.id)
-					end
-					closeCard()
+					showMerge()
 				end)
 			elseif isCharm then
-				local line = item.mergeWhy
-					or string.format("%d held  ·  %d needed to merge into %s",
-						item.count or 0, item.mergeCost or 3,
-						tostring(item.mergeName or "the next charm"))
+				local top = (item.tier or 1) >= 5
+				local line = top and "Tier V is the top"
+					or string.format("%d held  ·  merging needs another charm at the same tier", item.count or 0)
 				label(footer, line, 13, MUTED,
 					UDim2.fromOffset(0, 40), UDim2.new(1, 0, 0, 20), nil, Enum.TextXAlignment.Center)
 			elseif canSell then
@@ -4562,7 +4870,12 @@ function MineInventoryView.mount(parent, opts)
 		local items = equipItems(eq.slot)
 		local wornHere = equippedIn(eq.slot)
 		do
-			sectionHeader((slotDef and slotDef.label or "Slot") .. "  ·  " .. #items .. " owned", 3)
+			-- Pieces, not tiles: a stack of three identical hats is one tile.
+			local owned = 0
+			for _, it in ipairs(items) do
+				owned += tonumber(it.count) or 1
+			end
+			sectionHeader((slotDef and slotDef.label or "Slot") .. "  ·  " .. owned .. " owned", 3)
 		end
 		if #items == 0 then
 			note(body, "Nothing for this seat yet — the + below goes shopping.", 4)
@@ -4586,6 +4899,7 @@ function MineInventoryView.mount(parent, opts)
 					-- and one buff per line -- `sub` carries newlines and they
 					-- must not be crushed onto a single row.
 					eq.thumb(tile, item, 72, UDim2.fromOffset(12, 12), eq.isUpgrade(item, wornHere))
+					eq.countBadge(tile, item.count, UDim2.fromOffset(88, 6), 20)
 					local nameLbl = label(tile, tostring(item.name), 13, ink,
 						UDim2.fromOffset(94, 10), UDim2.new(1, -104, 0, 28), FONT)
 					nameLbl.TextWrapped = true
@@ -4646,48 +4960,89 @@ function MineInventoryView.mount(parent, opts)
 		-- Charms are bought here now that they have no tab of their own.
 		if eq.slot == "charm" then
 			local Charms = require(shared:WaitForChild("MineCharms"))
-			local packRow = panelRow(body, 56, 6)
-			label(packRow, "Charms Pack", 14, TEXT, UDim2.fromOffset(14, 8), UDim2.new(0.6, 0, 0, 20), FONT)
-			label(packRow, (Charms.PACK_PRICE_GEMS or 2500) .. " gems · random pack charm",
-				12, MUTED, UDim2.fromOffset(14, 30), UDim2.new(0.6, 0, 0, 18))
-			local pbtn = mk("TextButton", {
-				Text = "BUY PACK", Font = FONT, TextSize = 13,
-				TextColor3 = Color3.fromRGB(20, 28, 40), BackgroundColor3 = GEM,
-				Size = UDim2.fromOffset(110, 36), Position = UDim2.new(1, -124, 0.5, -18),
-				AutoButtonColor = true,
-			}, packRow)
-			round(pbtn, 8)
-			pbtn.MouseButton1Click:Connect(function()
-				if opts.onBuyCharmsPack then opts.onBuyCharmsPack() end
-			end)
-
-			-- Lucky Charm: 1:1 credits/Robux face; credits preferred (bulk pack deal).
-			local luckyOwned = (state.charms or {}).lucky_charm == true
-			local saleOpen = (not C.limitedSaleOpen) or C.limitedSaleOpen()
-			local prod = C.product and C.product("lucky_charm")
-			local face = (prod and (tonumber(prod.creditsPrice) or tonumber(prod.robuxPrice))) or 199
-			local luckRow = panelRow(body, 56, 7)
-			label(luckRow, "Lucky Charm", 14, GOLD, UDim2.fromOffset(14, 8), UDim2.new(0.45, 0, 0, 20), FONT)
-			label(luckRow, luckyOwned and "Owned — equip it above"
-				or (saleOpen and (face .. " credits = R$ " .. face) or "Goes on sale at launch 00:00"),
-				12, MUTED, UDim2.fromOffset(14, 30), UDim2.new(0.45, 0, 0, 18))
-			local lbtn = mk("TextButton", {
-				Text = luckyOwned and "OWNED" or (saleOpen and (face .. " CR") or "SOON"),
-				Font = FONT, TextSize = 13, TextColor3 = Color3.fromRGB(20, 28, 40),
-				BackgroundColor3 = luckyOwned and Color3.fromRGB(90, 100, 120) or (saleOpen and (T.CREDIT or GOLD) or MUTED),
-				Size = UDim2.fromOffset(100, 36), Position = UDim2.new(1, -114, 0.5, -18),
-				AutoButtonColor = (not luckyOwned) and saleOpen,
-			}, luckRow)
-			round(lbtn, 8)
-			if (not luckyOwned) and saleOpen then
-				lbtn.MouseButton1Click:Connect(function()
-					if opts.onBuyProductCredits then
-						opts.onBuyProductCredits("lucky_charm")
-					elseif opts.onBuyLuckyCharm then
-						opts.onBuyLuckyCharm()
-					end
+			--[[
+				THE EIGHT CHARM PACKS (owner, 2026-10-19: "{rarity} Charm Pack",
+				one per rarity, F to SSS, "for gems or credits"). One charm of the
+				pack's rarity at tier I. Every number on a row is MineCharms's:
+				the price the server charges (CHARM_PACKS) and the odds it draws
+				(charmPackOdds), so the shelf cannot advertise what the server
+				refuses. Odds before you buy (launch audit M3): gems and credits
+				both trace back to Robux. They replaced the old gem Charms Pack.
+			]]
+			local shelf = mk("Frame", { Name = "CharmPacks", BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 6 }, body)
+			mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, shelf)
+			for i, pack in ipairs(Charms.CHARM_PACKS or {}) do
+				local ink = gradeInk(pack.rarity) or GEM
+				local pool = Charms.charmPackOdds(pack.rarity)
+				local packRow = panelRow(shelf, 56, i)
+				label(packRow, pack.rarity, 22, ink, UDim2.fromOffset(10, 0), UDim2.fromOffset(44, 56), FONT,
+					Enum.TextXAlignment.Center)
+				label(packRow, pack.name, 14, TEXT, UDim2.fromOffset(58, 8), UDim2.new(0.42, 0, 0, 20), FONT)
+				label(packRow, string.format("%s · one of %d charms · tier I", pack.word, #pool),
+					12, MUTED, UDim2.fromOffset(58, 30), UDim2.new(0.42, 0, 0, 18))
+				local canGems = (tonumber(state.gems) or 0) >= pack.gems
+				local gbtn = mk("TextButton", {
+					Text = shortNum(pack.gems) .. " GEMS", Font = FONT, TextSize = 13,
+					TextColor3 = Color3.fromRGB(20, 28, 40), BackgroundColor3 = canGems and GEM or BG3,
+					Size = UDim2.fromOffset(104, 36), Position = UDim2.new(1, -226, 0.5, -18),
+					AutoButtonColor = true,
+				}, packRow)
+				round(gbtn, 8)
+				gbtn.MouseButton1Click:Connect(function()
+					if opts.onBuyCharmPack then opts.onBuyCharmPack(pack.rarity, "gems") end
 				end)
+				local cbtn = mk("TextButton", {
+					Text = tostring(pack.credits) .. " CR", Font = FONT, TextSize = 13,
+					TextColor3 = Color3.fromRGB(16, 38, 20), BackgroundColor3 = GREEN,
+					Size = UDim2.fromOffset(72, 36), Position = UDim2.new(1, -116, 0.5, -18),
+					AutoButtonColor = true,
+				}, packRow)
+				round(cbtn, 8)
+				cbtn.MouseButton1Click:Connect(function()
+					if opts.onBuyCharmPack then opts.onBuyCharmPack(pack.rarity, "credits") end
+				end)
+				local podds = mk("TextButton", {
+					Text = "ODDS", Font = FONT, TextSize = 12, TextColor3 = ink, BackgroundColor3 = BG3,
+					Size = UDim2.fromOffset(38, 36), Position = UDim2.new(1, -40, 0.5, -18),
+					AutoButtonColor = true,
+				}, packRow)
+				round(podds, 8)
+				stroke(podds, 1, ink)
+				podds.MouseButton1Click:Connect(function()
+					if inspectP then
+						inspectP:Destroy()
+						inspectP = nil
+					end
+					local okV, View = pcall(function()
+						return require(shared:WaitForChild("MineLuckyOddsView"))
+					end)
+					if not (okV and View) then
+						return
+					end
+					local rows = {}
+					for _, r in ipairs(Charms.charmPackOdds(pack.rarity)) do
+						table.insert(rows, { name = tostring(r.name) .. "  ·  " .. tostring(r.blurb or ""), p = r.p, tint = ink })
+					end
+					inspectP = View.sheet(root, {
+						title = string.upper(pack.name) .. "  ODDS",
+						sub = string.format("One %s (%s) charm at tier I, out of %d, each as likely", pack.word, pack.rarity, #rows),
+						color = ink,
+						sections = { { header = "ONE OF THESE", rows = rows } },
+						note = string.format("%s gems or %d credits. A charm you already own comes as a copy you can merge.",
+							commas(pack.gems), pack.credits),
+					}, {
+						onClose = function()
+							inspectP = nil
+						end,
+					})
+				end)
+				packRow.Name = "CharmPack_" .. pack.rarity
 			end
+			-- (The Lucky Charm "599 CR" row that sat here is gone: owner,
+			-- 2026-10-19, launch audit S2. Its buy only ever answered "That offer
+			-- moved"; Pot of Gold in the limited deals sells the charm, and the
+			-- server still refuses buyProductCredits("lucky_charm").)
 		end
 
 		--[[
@@ -4702,10 +5057,20 @@ function MineInventoryView.mount(parent, opts)
 		-- Unequipped overflow from every slot (including the selected one).
 		-- Skipping eq.slot hid spare tools whenever Tool was selected, which
 		-- made BACKPACK look empty while duplicates still showed EQUIPPED.
+		--
+		-- Hats once each (owner, 2026-10-19: "hat inventory is messy"): all
+		-- three hat seats list every hat, so each spare hat was drawn three
+		-- times, and a hat worn in one seat showed up from the other two. A
+		-- piece worn anywhere is left out, and a stack is drawn once, "xN".
+		local seenGear = {}
 		for si, slot in ipairs(EQUIP_SLOTS()) do
 			local worn = equippedIn(slot.id)
 			for _, item in ipairs(equipItems(slot.id)) do
-				if not item.equipped and not item.lowerRung and matches(tostring(item.name)) then
+				local dupe = item.source == "gear" and (item.worn or seenGear[tostring(item.id)])
+				if not item.equipped and not item.lowerRung and not dupe and matches(tostring(item.name)) then
+					if item.source == "gear" then
+						seenGear[tostring(item.id)] = true
+					end
 					table.insert(bag, { item = item, up = eq.isUpgrade(item, worn), si = si, n = #bag + 1 })
 				end
 			end
@@ -4732,7 +5097,9 @@ function MineInventoryView.mount(parent, opts)
 				local ink = (item.rarity and gradeInk(item.rarity)) or TEXT
 				local canSell = pick.on("gear") and item.source == "gear" and item.id
 					and not item.equipped and not item.why
-				local picked = canSell and pick.has("gear", item.id) or false
+				-- A stack ticks as a whole, like a pack stack (MineScrapSelect).
+				local stackIds = item.ids or { item.id }
+				local picked = canSell and pick.has("gear", stackIds[1]) or false
 				local tile = mk("TextButton", {
 					BackgroundColor3 = picked and Color3.fromRGB(72, 36, 36) or BG2, Text = "",
 					AutoButtonColor = true, LayoutOrder = order,
@@ -4746,12 +5113,13 @@ function MineInventoryView.mount(parent, opts)
 				nameLbl.TextScaled = true
 				nameLbl.TextYAlignment = Enum.TextYAlignment.Top
 				eq.thumb(tile, item, 88, UDim2.new(0.5, -44, 0, 36), entry.up)
+				eq.countBadge(tile, item.count, UDim2.new(0.5, 46, 0, 32), 20)
 				if picked then
 					label(tile, "✓", 18, ScrapSelect.TICK,
 						UDim2.new(1, -28, 0, 4), UDim2.fromOffset(22, 22), FONT)
 				end
 				tile.MouseButton1Click:Connect(function()
-					if pick.tap("gear", { item.id }, canSell) then
+					if pick.tap("gear", stackIds, canSell) then
 						return
 					end
 					showItemCard(item)
@@ -4763,7 +5131,9 @@ function MineInventoryView.mount(parent, opts)
 		-- said EQUIPPED on a pickaxe you had just swapped out). Rebuild it from
 		-- the fresh item -- unless a sale is being held, which a rebuild would
 		-- silently reset -- and close it if the item is gone.
-		if eq.card and eq.card.Parent and eq.cardKey and eq.cardMode ~= "confirm" then
+		-- (Nor while the charm merge picker is up: a snapshot mid-pick would
+		-- throw the player back to the first screen.)
+		if eq.card and eq.card.Parent and eq.cardKey and eq.cardMode ~= "confirm" and eq.cardMode ~= "merge" then
 			local fresh
 			for _, sl in ipairs(EQUIP_SLOTS()) do
 				for _, it in ipairs(equipItems(sl.id)) do
@@ -4911,16 +5281,44 @@ function MineInventoryView.mount(parent, opts)
 			HorizontalAlignment = Enum.HorizontalAlignment.Left,
 		}, grid)
 		local shown = 0
+		-- The mount's `eq` (its countBadge) before the worn-seats `eq` below hides it.
+		local countBadge = eq.countBadge
 		local eq = state.equippedGear or {}
-		for i, g in ipairs(state.gear or {}) do
+		local function isOn(g)
+			local on = (eq.face == g.id)
+			for _, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
+				on = on or (eq[slot] == g.id)
+			end
+			return on
+		end
+		--[[
+			EACH HAT ONCE, "xN" FOR COPIES (owner, 2026-10-19: "each hat should say
+			the hat, and if multiple say xXXX"). Worn pieces keep a tile each, with
+			UNEQUIP; identical spares stack (MineGear.stacks) and EQUIP puts on the
+			stack's first copy.
+		]]
+		local mine = {}
+		for _, g in ipairs(state.gear or {}) do
 			local ok = isFace and Gear.isFacePiece(g) or ((not isFace) and Gear.isHatPiece(g))
 			if ok and matches(tostring(g.name or "") .. " " .. tostring(g.rarity or "")) then
+				table.insert(mine, g)
+			end
+		end
+		local entries = {}
+		for _, g in ipairs(mine) do
+			if isOn(g) then
+				table.insert(entries, { piece = g, count = 1 })
+			end
+		end
+		for _, st in ipairs(Gear.stacks(mine, isOn)) do
+			table.insert(entries, st)
+		end
+		for i, st in ipairs(entries) do
+			local g = st.piece
+			do
 				shown += 1
 				local col = Gear.RARITY_COLOR[g.rarity] or MUTED
-				local on = (eq.face == g.id)
-				for _, slot in ipairs(Gear.HAT_SLOTS or { "hat" }) do
-					on = on or (eq[slot] == g.id)
-				end
+				local on = isOn(g)
 				local tile = mk("Frame", { BackgroundColor3 = on and T.CARD_HI or BG2, LayoutOrder = i }, grid)
 				round(tile, 8)
 				stroke(tile, on and 2 or 1, on and GREEN or col)
@@ -4952,6 +5350,7 @@ function MineInventoryView.mount(parent, opts)
 					label(chip, tostring(g.rarity or "?"), 11, col,
 						UDim2.new(), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center)
 				end
+				countBadge(well, st.count, UDim2.new(1, -4, 0, 4), 6)
 				label(tile, tostring(g.rarity or "") .. " " .. tostring(g.name or g.setName or "Hat"), 12, TEXT,
 					UDim2.fromOffset(8, 102), UDim2.new(1, -16, 0, 28), FONT)
 				local btn = mk("TextButton", {
@@ -4978,10 +5377,29 @@ function MineInventoryView.mount(parent, opts)
 			sectionHeader(isFace and "No faces owned yet." or "No hats owned yet.", 6)
 		end
 
-		if not NG then
+		--[[
+			WHAT CAN DROP (launch audit S37). This listed the 300 NewGear
+			prototype limiteds, which nothing rolls: 67 of them happen to drop, and
+			72 of the 139 hats and faces that do drop were not on it. It reads the
+			live pools now, the ones MineGear.catalogFor rolls every hat and face
+			from (MineHats.dropCatalog), so the page cannot drift from the drops.
+		]]
+		local Hats = Gear.Hats
+		if not (Hats and Hats.dropCatalog) then
 			return
 		end
-		sectionHeader("Limiteds", 7)
+		-- Only grades that have something; a grade picked on the other tab that
+		-- has nothing here falls back to ALL.
+		local grades = {}
+		for _, g in ipairs({ "SSS", "SS", "S", "A", "B", "C", "D", "F" }) do
+			if #Hats.dropCatalog(kind, g) > 0 then
+				table.insert(grades, g)
+			end
+		end
+		if newGearGrade and not table.find(grades, newGearGrade) then
+			newGearGrade = nil
+		end
+		sectionHeader(isFace and "Faces that can drop" or "Hats that can drop", 7)
 		local chipRow = mk("Frame", {
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, -6, 0, 32),
@@ -5012,15 +5430,15 @@ function MineInventoryView.mount(parent, opts)
 			end)
 		end
 		gradeChip(0, nil, "ALL", MUTED)
-		for i, g in ipairs(NG.GRADES) do
+		for i, g in ipairs(grades) do
 			gradeChip(i, g, g, Gear.RARITY_COLOR[g] or MUTED)
 		end
-		local rows = NG.byGrade(kind, newGearGrade)
+		local rows = Hats.dropCatalog(kind, newGearGrade)
 		local grid = mk("Frame", {
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, -6, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
-			LayoutOrder = 7,
+			LayoutOrder = 9,
 		}, body)
 		local CW = 136
 		local CH = 188
@@ -5032,10 +5450,10 @@ function MineInventoryView.mount(parent, opts)
 		}, grid)
 		local shown = 0
 		for i, row in ipairs(rows) do
-			local hay = tostring(row.n) .. " " .. tostring(row.g) .. " " .. tostring(row.id)
+			local hay = tostring(row.name) .. " " .. tostring(row.grade) .. " " .. tostring(row.id)
 			if matches(hay) then
 				shown += 1
-				local col = Gear.RARITY_COLOR[row.g] or MUTED
+				local col = Gear.RARITY_COLOR[row.grade] or MUTED
 				local tile = mk("Frame", { BackgroundColor3 = BG2, LayoutOrder = i }, grid)
 				round(tile, 8)
 				stroke(tile, 1.5, col)
@@ -5043,7 +5461,7 @@ function MineInventoryView.mount(parent, opts)
 					BackgroundColor3 = col,
 					Size = UDim2.new(1, 0, 0, 20),
 				}, tile)
-				label(banner, row.g .. "  " .. (isFace and "FACE" or "HAT"), 11,
+				label(banner, tostring(row.grade) .. "  " .. (isFace and "FACE" or "HAT"), 11,
 					Color3.fromRGB(18, 18, 22), UDim2.fromOffset(8, 0), UDim2.new(1, -12, 1, 0), FONT)
 				local well = mk("Frame", {
 					BackgroundColor3 = BG3,
@@ -5053,7 +5471,7 @@ function MineInventoryView.mount(parent, opts)
 				round(well, 6)
 				mk("ImageLabel", {
 					BackgroundTransparency = 1,
-					Image = NG.icon(row.id),
+					Image = Hats.thumb(row.catalogId) or "",
 					ScaleType = Enum.ScaleType.Fit,
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					Position = UDim2.fromScale(0.5, 0.5),
@@ -5068,17 +5486,17 @@ function MineInventoryView.mount(parent, opts)
 					}, well)
 					round(chip, 6)
 					stroke(chip, 1, col)
-					label(chip, tostring(row.g), 11, col,
+					label(chip, tostring(row.grade), 11, col,
 						UDim2.new(), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center)
 				end
-				label(tile, row.n, 13, TEXT, UDim2.fromOffset(8, 138),
+				label(tile, tostring(row.name), 13, TEXT, UDim2.fromOffset(8, 138),
 					UDim2.new(1, -16, 0, 22), FONT)
-				label(tile, shortNum(row.r) .. " RAP", 12, GOLD, UDim2.fromOffset(8, 160),
+				label(tile, shortNum(row.rap or 0) .. " RAP", 12, GOLD, UDim2.fromOffset(8, 160),
 					UDim2.new(1, -16, 0, 18), FONT_M)
 			end
 		end
 		if shown == 0 then
-			sectionHeader("No limiteds match.", 8)
+			sectionHeader(isFace and "No faces match." or "No hats match.", 10)
 		end
 	end
 
@@ -5483,6 +5901,13 @@ function MineInventoryView.mount(parent, opts)
 							UDim2.fromOffset(8, 90), UDim2.new(1, -16, 0, 32), FONT, Enum.TextXAlignment.Center)
 						nameL.TextWrapped = true
 						nameL.TextTruncate = Enum.TextTruncate.AtEnd
+						-- The rank badge, top right (F..SSS, MineChestRanks, 2026-10-19).
+						if def.rank and Ranks.COLOR then
+							local badge = label(tile, def.rank, 16, Ranks.COLOR[def.rank] or GOLD,
+								UDim2.new(1, -44, 0, 10), UDim2.fromOffset(36, 20), FONT, Enum.TextXAlignment.Right)
+							badge.TextStrokeTransparency = 0.2
+							badge.ZIndex = 6
+						end
 						if has then
 							label(tile, "FOUND x" .. count, 11, GREEN,
 								UDim2.fromOffset(8, 124), UDim2.new(1, -16, 0, 14), FONT, Enum.TextXAlignment.Center)
@@ -5697,6 +6122,18 @@ function MineInventoryView.mount(parent, opts)
 	local pending
 
 	local function doCheckout()
+		--[[
+			ONE CHECKOUT AT A TIME (launch audit S1, 2026-10-19). The cart pill
+			stays on screen while the server answers, and its CONFIRM used to send
+			a second buyCart for the same cart: a second charge. Nothing is sent
+			while `pending` is set. It clears when the server answers
+			(_settleCart), or 20 s after sending if it never does (PROPOSED), well
+			past the 6 s "No reply" -- a reply that is merely late must not find
+			CONFIRM live again.
+		]]
+		if pending then
+			return
+		end
 		local pay, sub = cartPayable()
 		if #cart == 0 then
 			return
@@ -5720,14 +6157,24 @@ function MineInventoryView.mount(parent, opts)
 				packs = line.packs,
 			})
 		end
+		-- The order's id, kept on the cart until the order is paid for (the cart
+		-- is replaced then), so the same order sent twice is charged once
+		-- (MineServer buyCart).
+		cart.token = cart.token or game:GetService("HttpService"):GenerateGUID(false)
 		if opts.onBuyCart then
-			opts.onBuyCart(lines)
+			opts.onBuyCart(lines, cart.token)
 		end
-		-- If the server never answers, do not strand the sheet on screen.
+		-- If the server never answers, do not strand the sheet on screen; keep
+		-- CONFIRM shut a while longer in case the answer is only late.
 		task.delay(6, function()
 			if pending == sheet then
-				pending = nil
 				sheet.settle(false, "No reply from the server")
+				task.delay(14, function()
+					if pending == sheet then
+						pending = nil
+						refreshCart()
+					end
+				end)
 			end
 		end)
 	end
@@ -5926,11 +6373,13 @@ function MineInventoryView.mount(parent, opts)
 		discL.ZIndex = 71
 
 		local canPay = (state.credits or 0) >= pay and #cart > 0
+		-- While a checkout waits on the server, CONFIRM waits too (S1).
+		local waiting = pending ~= nil
 		local confirm = mk("TextButton", {
-			AutoButtonColor = true,
-			BackgroundColor3 = canPay and (T.CREDIT or GOLD) or Color3.fromRGB(255, 168, 72),
+			AutoButtonColor = not waiting,
+			BackgroundColor3 = waiting and BG3 or (canPay and (T.CREDIT or GOLD) or Color3.fromRGB(255, 168, 72)),
 			Font = FONT, TextSize = 16,
-			TextColor3 = canPay and Color3.fromRGB(26, 20, 40) or Color3.fromRGB(28, 18, 8),
+			TextColor3 = waiting and MUTED or (canPay and Color3.fromRGB(26, 20, 40) or Color3.fromRGB(28, 18, 8)),
 			Text = "",
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, -14),
@@ -5938,12 +6387,17 @@ function MineInventoryView.mount(parent, opts)
 			ZIndex = 71,
 		}, cartP)
 		round(confirm, 10)
-		if canPay then
+		if waiting then
+			confirm.Text = "CONFIRMING..."
+		elseif canPay then
 			paintCostButton(confirm, "CONFIRM", pay, "credits", Color3.fromRGB(26, 20, 40))
 		else
 			confirm.Text = "GET CREDITS"
 		end
 		confirm.MouseButton1Click:Connect(function()
+			if pending then
+				return
+			end
 			if not canPay then
 				if cartP then cartP:Destroy() cartP = nil end
 				section = "shop"
@@ -6052,8 +6506,11 @@ function MineInventoryView.mount(parent, opts)
 				FONT, Enum.TextXAlignment.Center).ZIndex = 6
 			label(hero, (RotatingOffers and RotatingOffers.headline()) or "Lucky Block Week · Pot of Gold · Founders Bag",
 				wide and 24 or 18, TEXT, UDim2.fromOffset(tx, 52), UDim2.new(1, -(tx + 190), 0, 32), FONT).ZIndex = 5
-			local secs = 86400 - (os.time() % 86400)
-			label(hero, string.format("New offers in %dh %02dm", secs // 3600, (secs % 3600) // 60),
+			-- To the next WEEKLY offer change, on the season clock. It counted to
+			-- the next UTC midnight, so it promised new offers every day.
+			local nextIn = RotatingOffers and RotatingOffers.nextOfferIn and RotatingOffers.nextOfferIn()
+			label(hero, nextIn and ("New offers in " .. RotatingOffers.clockText(nextIn))
+				or "The last offers of the season",
 				14, Color3.fromRGB(200, 196, 230), UDim2.fromOffset(tx, 90), UDim2.new(1, -(tx + 190), 0, 20)).ZIndex = 5
 			local goLtd = mk("TextButton", {
 				AutoButtonColor = true, BackgroundColor3 = AMBER, Font = FONT, TextSize = 17,
@@ -6081,7 +6538,9 @@ function MineInventoryView.mount(parent, opts)
 				{ tab = "packs", title = "Pack Cases", sub = "Wild cases by star · today's featured set packs", cta = "BROWSE", col = T.CREDIT or GOLD, packs = true },
 				{ tab = "dust", title = "Stardust Shop", sub = "Pack cases · new potions every 6 hours", cta = "SHOP", col = T.DUST or GEM, icons = { "stardust" } },
 				{ tab = "limited", title = "Lucky Blocks", sub = "Tap to open · grade them up for bigger loot", cta = "SEE", col = Color3.fromRGB(255, 200, 70), icons = { "lucky_block", "super_lucky_block", "godly_lucky_block" } },
-				{ tab = "box", title = "Build a Box", sub = "Any 10 packs you like · 12% off", cta = "BUILD", col = TEAL, icons = { "chest" } },
+				{ tab = "box", title = "Build a Box", sub = string.format("Any 10 packs you like · %d%% off, %d%% for 10 of one",
+					math.floor((1 - (Packs.BOX_RATE or 0.88)) * 100 + 0.5), math.floor((1 - (Packs.BUNDLE_RATE or 0.70)) * 100 + 0.5)),
+					cta = "BUILD", col = TEAL, icons = { "chest" } },
 				{ tab = "currencies", title = "Credits", sub = "Top up once, spend anywhere in the shop", cta = "TOP UP", col = GREEN, icons = { "credit_crate" } },
 				{ tab = "vip", title = "VIP & Founders", sub = "AFK earnings, Founders bag", cta = "VIEW", col = AMBER, icons = { "logo" } },
 				{ tools = true, title = "Tools & Backpacks", sub = "The blacksmith's counter", cta = "OPEN", col = T.GOLD or GOLD, icons = { "pickaxe", "backpack" } },
@@ -6337,7 +6796,11 @@ function MineInventoryView.mount(parent, opts)
 				end
 			end
 		elseif activeTab == "box" then
-			note(body, "Build your own booster box — choose up to 10 packs. 12% off the singles list.", 0)
+			-- Both rates from MinePackConfig, so this cannot drift from the charge.
+			local boxOff = math.floor((1 - (Packs.BOX_RATE or 0.88)) * 100 + 0.5)
+			local tenOff = math.floor((1 - (Packs.BUNDLE_RATE or 0.70)) * 100 + 0.5)
+			note(body, string.format("Build your own booster box — choose up to 10 packs. %d%% off the singles list, %d%% when all 10 are the same pack.",
+				boxOff, tenOff), 0)
 			local filled = #boxPicks
 			local slotBar = panelRow(body, 44, 1)
 			label(slotBar, "BOX  " .. filled .. " / 10", 16, TEXT, UDim2.fromOffset(14, 10), UDim2.new(0.5, 0, 0, 24), FONT)
@@ -6357,7 +6820,7 @@ function MineInventoryView.mount(parent, opts)
 			for _, pid in ipairs(boxPicks) do
 				sub += Packs.priceOf(pid) or 0
 			end
-			local boxPay = math.floor(sub * 0.88 + 0.5)
+			local boxPay = Packs.boxPrice(boxPicks) or 0
 			local payRow = panelRow(body, 56, 2)
 			label(payRow, filled == 0 and "Add packs below" or ("List " .. shortNum(sub) .. "  →  box " .. shortNum(boxPay)),
 				14, T.CREDIT or GOLD, UDim2.fromOffset(14, 8), UDim2.new(1, -160, 0, 20), FONT)
@@ -6379,9 +6842,10 @@ function MineInventoryView.mount(parent, opts)
 				for _, pid in ipairs(boxPicks) do
 					table.insert(copy, pid)
 				end
+				local saved = math.max(0, sub - boxPay)
 				cartAdd("box", "custom", false, 1, copy)
 				boxPicks = {}
-				if opts.onToast then opts.onToast("Box added to cart (12% off)") end
+				if opts.onToast then opts.onToast("Box added to cart (save " .. saved .. " credits)") end
 				render()
 			end)
 
@@ -6421,6 +6885,14 @@ function MineInventoryView.mount(parent, opts)
 					PackFX.drawSealed(artHost, def.id, 44, 60)
 					starRow(tile, Packs.packStars and Packs.packStars(def.id) or 3, 72, 12)
 					label(tile, def.name or def.id, 13, TEXT, UDim2.fromOffset(6, 88), UDim2.new(1, -12, 0, 18), FONT).TextXAlignment = Enum.TextXAlignment.Center
+					-- Odds before you buy (launch audit M3): the box sells the wild
+					-- cases too, and a box is bought with credits.
+					infoBadge(tile, {
+						packId = def.id, tierName = def.name or def.id,
+						setName = def.setName or ((def.kind == "pack_case") and "Any set") or "",
+						cards = def.cards or 0, count = 0, firstIndex = nil,
+						setId = def.setKey, paid = true,
+					})
 					local add = mk("TextButton", {
 						AutoButtonColor = true, BackgroundColor3 = BG3,
 						Font = FONT, TextSize = 13, TextColor3 = TEXT,
@@ -6463,36 +6935,132 @@ function MineInventoryView.mount(parent, opts)
 						iconArt(row, offer.icon, 48, 12, 12, 4)
 						tx = 70
 					end
-					label(row, offer.title or offer.id, 16, GOLD, UDim2.fromOffset(tx, 8), UDim2.new(1, -(tx + 120), 0, 22), FONT)
-					local sub = label(row, offer.blurb or "", 12, MUTED, UDim2.fromOffset(tx, 32), UDim2.new(1, -(tx + 120), 0, offer.neverReturns and 52 or 28))
+					--[[
+						ODDS BEFORE YOU BUY (owner, 2026-10-19, "Use all defaults": a
+						deal with lucky blocks or cases gets an odds sheet). Every row
+						comes from MineRotatingOffers.oddsSheet, which reads the tables
+						the rolls use; nil for a deal with nothing random in it.
+					]]
+					local oddsSpec = RotatingOffers.oddsSheet and RotatingOffers.oddsSheet(offer)
+					local rightW = oddsSpec and 196 or 124
+					label(row, offer.title or offer.id, 16, GOLD, UDim2.fromOffset(tx, 8), UDim2.new(1, -(tx + rightW), 0, 22), FONT)
+					local sub = label(row, offer.blurb or "", 12, MUTED, UDim2.fromOffset(tx, 32), UDim2.new(1, -(tx + rightW), 0, offer.neverReturns and 52 or 28))
 					sub.TextWrapped = true
-					local left = math.max(0, (tonumber(offer.ends) or 0) - os.time())
-					local when = string.format("ends %dd %dh", math.floor(left / 86400), math.floor((left % 86400) / 3600))
+					-- offer.ends is on the SEASON clock: minus os.time() it read
+					-- "ends 0d 0h" from day one (launch audit M8).
+					local when = "ends " .. RotatingOffers.clockText(RotatingOffers.secondsLeft(offer))
 					if offer.max then
 						when ..= "  ·  max " .. tostring(offer.max)
 					end
 					if offer.neverReturns then
 						when = "LIMITED TIME · NEVER COMING BACK  ·  " .. when
 					end
-					label(row, when, 11, offer.neverReturns and Color3.fromRGB(255, 140, 150) or MUTED,
-						UDim2.fromOffset(tx, tall - 22), UDim2.new(1, -(tx + 120), 0, 16))
+					local whenL = label(row, when, 11, offer.neverReturns and Color3.fromRGB(255, 140, 150) or MUTED,
+						UDim2.fromOffset(tx, tall - 22), UDim2.new(1, -(tx + rightW), 0, 16))
+					--[[
+						At its max, or random and refused in this player's region:
+						the button says so instead of a tap finding out (launch
+						audit S6, M3). The server refuses both regardless; this is
+						only so nobody is invited to pay for a "no".
+					]]
+					local maxed = offer.max ~= nil
+						and RotatingOffers.deny({ dealBuys = state.dealBuys or {} }, offer) ~= nil
+					local region = LocalPlayer:GetAttribute("PolicyNoRandom") == true and RotatingOffers.hasRandom(offer)
+					local buyable = not (maxed or region)
+					--[[
+						THE FOUNDERS BAG TAKES TWO TAPS (owner, 2026-10-19, "Use all
+						defaults"), the same confirm as the Backpacks shelf's Founders
+						Rig: the first tap arms it and says what the second spends; it
+						disarms after four seconds. On `eq` (mount() is at Luau's local
+						cap) so a snapshot's re-render keeps it armed.
+					]]
+					local twoTap = offer.kind == "founders"
+					local armed = twoTap and eq.dealArm ~= nil and eq.dealArm.id == offer.id
+						and (os.clock() - eq.dealArm.at) < 4
 					local buyCr = mk("TextButton", {
-						AutoButtonColor = true,
-						BackgroundColor3 = T.CREDIT or GOLD,
-						Font = FONT, TextSize = 13,
-						TextColor3 = Color3.fromRGB(26, 20, 40),
-						Text = tostring(face) .. " CR",
+						AutoButtonColor = buyable,
+						BackgroundColor3 = buyable and ((armed and GREEN) or T.CREDIT or GOLD) or BG3,
+						Font = FONT, TextSize = buyable and 13 or 11,
+						TextColor3 = buyable and Color3.fromRGB(26, 20, 40) or MUTED,
+						Text = (maxed and string.format("MAX %d/%d", offer.max, offer.max))
+							or (region and "UNAVAILABLE")
+							or (armed and "TAP AGAIN")
+							or (tostring(face) .. " CR"),
 						AnchorPoint = Vector2.new(1, 0.5),
-						Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(100, 32),
+						Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(108, 32),
 					}, row)
 					round(buyCr, 8)
+					if armed then
+						whenL.Text = "Tap again to spend " .. tostring(face) .. " credits"
+						whenL.TextColor3 = GREEN
+					end
 					buyCr.MouseButton1Click:Connect(function()
+						if not buyable then
+							if opts.onToast then
+								opts.onToast(maxed and string.format("You have bought the most allowed (%d)", offer.max)
+									or "That isn't available in your region")
+							end
+							return
+						end
+						if twoTap then
+							local now = os.clock()
+							if not (eq.dealArm and eq.dealArm.id == offer.id and (now - eq.dealArm.at) < 4) then
+								eq.dealArm = { id = offer.id, at = now }
+								render()
+								task.delay(4, function()
+									if eq.dealArm and eq.dealArm.at == now then
+										eq.dealArm = nil
+										if root.Visible then
+											render()
+										end
+									end
+								end)
+								return
+							end
+							eq.dealArm = nil
+						end
 						if opts.onBuyProductCredits then
 							opts.onBuyProductCredits(offer.key or offer.id)
 						elseif opts.onToast then
 							opts.onToast("Credits buy not wired")
 						end
+						if twoTap then
+							render()
+						end
 					end)
+					if oddsSpec then
+						local oddsB = mk("TextButton", {
+							AutoButtonColor = true, BackgroundColor3 = BG2,
+							Font = FONT, TextSize = 13, TextColor3 = edge, Text = "ODDS",
+							AnchorPoint = Vector2.new(1, 0.5),
+							Position = UDim2.new(1, -128, 0.5, 0), Size = UDim2.fromOffset(62, 32),
+						}, row)
+						round(oddsB, 7)
+						stroke(oddsB, 1, edge)
+						oddsB.MouseButton1Click:Connect(function()
+							if inspectP then
+								inspectP:Destroy()
+								inspectP = nil
+							end
+							local okV, View = pcall(function()
+								return require(shared:WaitForChild("MineLuckyOddsView"))
+							end)
+							if not (okV and View) then
+								return
+							end
+							for _, section in ipairs(oddsSpec.sections or {}) do
+								for _, r in ipairs(section.rows or {}) do
+									r.tint = r.grade and Gear.RARITY_COLOR and Gear.RARITY_COLOR[r.grade] or nil
+								end
+							end
+							oddsSpec.color = edge
+							inspectP = View.sheet(root, oddsSpec, {
+								onClose = function()
+									inspectP = nil
+								end,
+							})
+						end)
+					end
 				end
 			end
 
@@ -6699,6 +7267,27 @@ function MineInventoryView.mount(parent, opts)
 				cta.MouseButton1Click:Connect(function()
 					if current then
 						cartAdd("pack", current, true, 1)
+					end
+				end)
+				-- Odds before you buy (launch audit M3): the hero leads with the
+				-- 5-star wild case, so it gets the inspector the bag has.
+				local heroOdds = mk("TextButton", {
+					AutoButtonColor = true, BackgroundColor3 = BG3, Font = FONT, TextSize = 13,
+					TextColor3 = TEXT, Text = "ODDS",
+					AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -18, 0, 10),
+					Size = UDim2.fromOffset(72, 28), ZIndex = 4,
+				}, hero)
+				round(heroOdds, 8)
+				stroke(heroOdds, 1, T.CREDIT or GOLD)
+				heroOdds.MouseButton1Click:Connect(function()
+					local def = current and Packs.PACK_BY_ID[current]
+					if def then
+						showPackInspect({
+							packId = current, tierName = def.name or current,
+							setName = def.setName or ((def.kind == "pack_case") and "Any set") or "",
+							cards = def.cards or 0, count = 0, firstIndex = nil,
+							setId = def.setKey, paid = true,
+						})
 					end
 				end)
 
@@ -7199,8 +7788,11 @@ function MineInventoryView.mount(parent, opts)
 				  "Put them on your tools at the Forge." },
 				{ "Founder Tag",
 				  "Trumps [VIP] on your name. Switch either tag off in VFX." },
+				-- True since 2026-10-19 (launch audit M6): MineFounders.grant
+				-- gives the bag (Dig.grantFoundersBag) and wears it. There is no
+				-- bag picker to point at, so the card no longer points at one.
 				{ "Founders Bag",
-				  "Infinite haul. Equip it below if you also own Wormhole." },
+				  "Infinite haul: your bag never fills up. Worn the moment you join." },
 			}
 			for i, g in ipairs(grants) do
 				local row = panelRow(body, 58, i + 1)
@@ -7311,7 +7903,9 @@ function MineInventoryView.mount(parent, opts)
 		-- Lifetime milestones (claimable anytime, not chain-gated).
 		local ms = state.milestones
 		if type(ms) == "table" and #ms > 0 then
-			note(body, "MILESTONES  -  lifetime, claim when ready", 50)
+			-- Not "lifetime": the card, gear and depth rows count what you own now
+			-- or this run's depth, and say so (MineQuests.MILESTONES).
+			note(body, "MILESTONES  -  claim when ready", 50)
 			for i, m in ipairs(ms) do
 				local row = panelRow(body, 56, 50 + i)
 				if m.ready then
@@ -7361,6 +7955,11 @@ function MineInventoryView.mount(parent, opts)
 		local tiers = pass.tiers or Scrolls.PASS_TIERS or 100
 		local tier = math.clamp(pass.tier or 0, 0, tiers)
 		local owned = pass.owned and true or false
+		-- Day 29 (owner, 2026-10-19): the pass ended and the next one has not
+		-- shipped, so it is paused: no claims, no premium for sale (the server
+		-- refuses both); the clock says "Next pass coming soon".
+		local paused = pass.paused == true
+			or (Scrolls.passPaused and Scrolls.passPaused(Scrolls.seasonClock(workspace:GetServerTimeNow()))) == true
 		local LuckyBlocks = nil
 		pcall(function() LuckyBlocks = require(shared:WaitForChild("MineLuckyBlocks")) end)
 
@@ -7370,8 +7969,9 @@ function MineInventoryView.mount(parent, opts)
 		head.BackgroundColor3 = BG3
 		label(head, "BATTLE PASS", 20, GOLD, UDim2.fromOffset(16, 10),
 			UDim2.new(1, -220, 0, 24), FONT)
-		label(head, owned and "Premium unlocked" or "Free track  ·  claim Lunar at tier 1",
-			12, owned and GREEN or MUTED, UDim2.fromOffset(16, 34), UDim2.new(1, -220, 0, 16))
+		label(head, (paused and "Paused  ·  next pass coming soon") or (owned and "Premium unlocked")
+				or "Free track  ·  claim Lunar at tier 1",
+			12, (not paused and owned) and GREEN or MUTED, UDim2.fromOffset(16, 34), UDim2.new(1, -220, 0, 16))
 
 		-- SEASON CLOCK. Big, centered, ticking every second off server time.
 		local clockRow = mk("Frame", {
@@ -7384,9 +7984,11 @@ function MineInventoryView.mount(parent, opts)
 		stroke(clockRow, 1, GOLD, 0.55)
 		label(clockRow, "SEASON ENDS IN", 10, MUTED, UDim2.fromOffset(12, 3),
 			UDim2.new(1, -24, 0, 12), FONT, Enum.TextXAlignment.Center)
-		local timerLbl = label(clockRow, Scrolls.formatPassClock(workspace:GetServerTimeNow()), 17, GOLD,
+		-- Season time, not the raw server clock: the pass waits for launch, and a
+		-- countdown on the calendar would read SEASON OVER mid-season.
+		local timerLbl = label(clockRow, Scrolls.formatPassClock(Scrolls.seasonClock(workspace:GetServerTimeNow())), 17, GOLD,
 			UDim2.fromOffset(12, 13), UDim2.new(1, -24, 0, 20), FONT, Enum.TextXAlignment.Center)
-		local endLbl = label(clockRow, "Oct 31 · 11:59 PM ET", 10, MUTED,
+		local endLbl = label(clockRow, Scrolls.passEndLabel(), 10, MUTED,
 			UDim2.new(1, -150, 0, 11), UDim2.fromOffset(140, 14), nil, Enum.TextXAlignment.Right)
 		endLbl.TextTransparency = 0.25
 		passTimerGen = (passTimerGen or 0) + 1
@@ -7394,15 +7996,22 @@ function MineInventoryView.mount(parent, opts)
 		task.spawn(function()
 			local pulse = false
 			while timerGen == passTimerGen and timerLbl.Parent do
-				local now = workspace:GetServerTimeNow()
+				local now = Scrolls.seasonClock(workspace:GetServerTimeNow())
 				timerLbl.Text = Scrolls.formatPassClock(now)
 				local left = Scrolls.passSecondsLeft(now)
 				if left <= 0 then
-					endLbl.Text = "Next season is live"
-				elseif left < 86400 then
-					-- Final day: pulse red so nobody misses the deadline.
-					pulse = not pulse
-					timerLbl.TextColor3 = pulse and Color3.fromRGB(255, 96, 96) or GOLD
+					-- Over, and no next track yet: paused (MineScrolls DAY 29).
+					endLbl.Text = "Next pass coming soon"
+					timerLbl.TextColor3 = GOLD
+				else
+					-- Re-read every tick: a launch mid-session turns
+					-- "Starts at launch" into the real end date.
+					endLbl.Text = Scrolls.passEndLabel()
+					if left < 86400 then
+						-- Final day: pulse red so nobody misses the deadline.
+						pulse = not pulse
+						timerLbl.TextColor3 = pulse and Color3.fromRGB(255, 96, 96) or GOLD
+					end
 				end
 				task.wait(1)
 			end
@@ -7432,7 +8041,11 @@ function MineInventoryView.mount(parent, opts)
 			11, (pass.dailyFromQuests and MUTED) or (capped and GOLD or MUTED), UDim2.new(0.55, 0, 0, 112), UDim2.new(0.45, -16, 0, 16),
 			nil, Enum.TextXAlignment.Right)
 
-		if not owned then
+		if not owned and paused then
+			-- Nothing to buy until the next pass ships (the server refuses it too).
+			label(head, "Premium returns with the next pass.", 12, MUTED,
+				UDim2.fromOffset(16, 138), UDim2.new(1, -32, 0, 16), FONT, Enum.TextXAlignment.Center)
+		elseif not owned then
 			local face = tonumber(Scrolls.BATTLE_PASS.credits) or tonumber(Scrolls.BATTLE_PASS.robux) or 399
 			local buyCr = mk("TextButton", {
 				AutoButtonColor = true,
@@ -7634,7 +8247,7 @@ function MineInventoryView.mount(parent, opts)
 			local ledger = isPrem and (pass.prem or {}) or (pass.free or {})
 			local claimed = passClaimed(isPrem, n)
 				or ((ledger[n] or ledger[tostring(n)]) and true or false)
-			local allowed = reached and not claimed and ((not isPrem) or owned)
+			local allowed = reached and not claimed and ((not isPrem) or owned) and not paused
 			local iconId, col = rewardIcon(reward)
 			local btn = mk("TextButton", {
 				AutoButtonColor = allowed,
@@ -7736,7 +8349,8 @@ function MineInventoryView.mount(parent, opts)
 				ZIndex = 4,
 			}, btn)
 			round(strip, 8)
-			local status = claimed and "CLAIMED" or (allowed and "CLAIM" or (isPrem and not owned and "LOCKED" or ("TIER " .. n)))
+			local status = claimed and "CLAIMED" or (allowed and "CLAIM" or (paused and "PAUSED")
+				or (isPrem and not owned and "LOCKED" or ("TIER " .. n)))
 			label(strip, status, 12, allowed and Color3.fromRGB(12, 24, 16) or (claimed and GREEN or MUTED),
 				UDim2.fromOffset(0, 0), UDim2.fromScale(1, 1), FONT, Enum.TextXAlignment.Center).ZIndex = 5
 
@@ -7783,8 +8397,11 @@ function MineInventoryView.mount(parent, opts)
 			end)
 		end
 
+		-- The rows of the pass this player is on (MineScrolls.trackFor: the next
+		-- track once it has shipped and the pass rolled over).
+		local track = (Scrolls.trackFor and Scrolls.trackFor(pass)) or Scrolls.PASS_TRACK
 		for n = 1, tiers do
-			local row = Scrolls.PASS_TRACK[n]
+			local row = track[n]
 			if row then
 				tile(n, row.free, FREE_Y, false)
 				tile(n, row.premium, PREM_Y, true)
@@ -7837,21 +8454,27 @@ function MineInventoryView.mount(parent, opts)
 		label(head, "ACCOUNT", 17, GOLD, UDim2.fromOffset(16, 12),
 			UDim2.new(1, -32, 0, 22), FONT)
 
+		--[[
+			Launch audit S38 (owner, 2026-10-19): the link pays 5,000 gems and
+			nothing else, so this no longer promises "player markets and remote
+			trading". The server is discord.gg/Ab5ZpVdRvp, written as plain text:
+			Roblox does not allow a clickable off-site link.
+		]]
 		if linked then
 			label(head, "Discord connected" .. (masked ~= "" and ("  ·  " .. masked) or ""),
 				14, TEXT, UDim2.fromOffset(16, 42), UDim2.new(1, -32, 0, 20), FONT)
 			local bonusNote = bonusClaimed
-				and "Link bonus claimed · player markets & remote trading unlocked"
-				or "Markets unlocked · link bonus pending"
+				and "Link bonus claimed: 5,000 gems  ·  discord.gg/Ab5ZpVdRvp"
+				or "Your 5,000-gem link bonus pays the next time you join"
 			label(head, bonusNote, 12, MUTED, UDim2.fromOffset(16, 68),
 				UDim2.new(1, -32, 0, 28))
 		else
 			local blurb = label(head,
-				"Connect Discord for 5,000 gems — plus player markets and remote trading.",
+				"Link your Discord for 5,000 gems.",
 				14, TEXT, UDim2.fromOffset(16, 42), UDim2.new(1, -32, 0, 40), FONT)
 			blurb.TextWrapped = true
-			label(head, "In Discord type !link, then paste the code below.",
-				12, MUTED, UDim2.fromOffset(16, 90), UDim2.new(1, -32, 0, 40))
+			label(head, "Join discord.gg/Ab5ZpVdRvp, type !link there, then paste the code below.",
+				12, MUTED, UDim2.fromOffset(16, 90), UDim2.new(1, -32, 0, 40)).TextWrapped = true
 
 			local row = panelRow(body, 72, 1)
 			local box = mk("TextBox", {
@@ -8080,6 +8703,16 @@ function MineInventoryView.mount(parent, opts)
 				eq.card:Destroy()
 				eq.card = nil
 			end
+			baseRender()
+		end
+	end
+
+	-- The Cards tab's kept faces come out the same way (faces, above), so
+	-- clearing the body never destroys one.
+	do
+		local baseRender = render
+		render = function()
+			faces.lift()
 			baseRender()
 		end
 	end
@@ -8323,13 +8956,21 @@ function MineInventoryView.mount(parent, opts)
 		else
 			msg = tostring(payload.reason or "Purchase failed")
 		end
-		MineInventoryView._settleCart(okFlag, msg, okFlag)
+		-- A `dup` is this cart's order already paid for (its reply was lost):
+		-- nothing was charged now, and the cart empties as it would have then.
+		MineInventoryView._settleCart(okFlag, msg, okFlag or payload.dup == true)
+	end
+
+	-- A reveal owns the screen while busy, so the Cards tab under it is not
+	-- seen: it waits, and setBusy(false) draws it when the reveal ends (S35).
+	local function cardsHidden()
+		return busy and section == "inventory" and activeTab == "cards"
 	end
 
 	function ctl.setBusy(flag)
 		busy = flag and true or false
 		state.busy = busy
-		if root.Visible then
+		if root.Visible and not cardsHidden() then
 			render()
 		end
 	end
@@ -8358,7 +8999,7 @@ function MineInventoryView.mount(parent, opts)
 			prewarmTools(s)
 		end
 		state.busy = busy
-		if root.Visible then
+		if root.Visible and not cardsHidden() then
 			render()
 		end
 	end
@@ -8402,6 +9043,9 @@ function MineInventoryView.mount(parent, opts)
 			scrapVeil:Destroy()
 			scrapVeil = nil
 		end
+		-- A closed window keeps no pet models in memory; the next open paints
+		-- them again (S35).
+		faces.prune(nil)
 	end
 
 	function ctl.toggle(sec, t)

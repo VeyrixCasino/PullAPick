@@ -12,7 +12,8 @@
 -- Purchase rules mirror the server exactly, so the UI never offers a button the
 -- server will refuse:
 --   * tools cost COINS and are bought one rung at a time, in order
---   * backpacks cost COINS (rungs 1-29); the final rung is Robux-only
+--   * backpacks cost GEMS (MineBags.gemPrice); the final rung, the Founders Rig,
+--     costs CREDITS and asks twice (launch audit M4, 2026-10-19)
 local MineShopView = {}
 
 local RS = game:GetService("ReplicatedStorage")
@@ -130,11 +131,21 @@ end
 	wants them, and deleting ~25 live call sites to remove one button is how a
 	working stage gets broken. Dead-but-correct beats half-deleted.
 ]]
+--[[
+	ONE FORGE (launch audit S13; owner, 2026-10-19: "the old shop shows only
+	Bags"). Bags is the one shelf the Forge hub has no tab for, so it is what
+	this screen shows. Crafting, Loadout and Upgrades stay on the bar as doors:
+	they open the Forge hub on that tab (opts.onOpenForge) instead of this
+	shop's own copies of them, which only come back if the hub is missing.
+]]
 local TABS = {
+	{ id = "backpack", label = "Bags", blurb = "A bigger bag carries more between trips to the sell pad." },
 	{ id = "bench", label = "Crafting", blurb = "Every recipe in the game. The ones you can forge right now come first." },
 	{ id = "loadout", label = "Loadout", blurb = "What you are carrying and what you are wearing. Tap anything to inspect it." },
 	{ id = "upgrades", label = "Upgrades", blurb = "Level a tool, merge duplicates, or scrap what you have outgrown." },
 }
+-- The tabs that open the Forge hub, and the hub tab each one lands on.
+local FORGE_TABS = { bench = "craft", loadout = "loadout", upgrades = "upgrades" }
 
 --[[
 	WHERE THE OLD TABS WENT.
@@ -147,6 +158,9 @@ local TABS = {
 
 	Both ids still work in `rows()` and `paint()`: nothing that could reach them
 	has been deleted, so a stale call cannot land on a blank screen.
+
+	`backpack` is a tab again since the launch audit (S13, above): with the
+	Forge in its own hub, Bags is the one shelf this screen exists to show.
 ]]
 
 --------------------------------------------------------------------------------
@@ -258,8 +272,8 @@ end
 function MineShopView.mount(parent, opts)
 	opts = opts or {}
 	local state = { coins = 0, gems = 0, credits = 0, dust = 0, tokens = 0, ores = {}, oresSeen = {}, oreTools = {}, oreLocks = {}, orePouch = {}, orePouchTier = 1, tools = {}, backpackTier = 1, family = "pickaxe", creditPacks = {}, scrollShop = {}, chestTools = {}, chestTool = nil, maxUnlockedZone = 1, zoneIndex = 1, ownedShopTools = {}, shopToolId = nil }
-	-- Opens on the Forge, not on a shelf of coin-bought picks.
-	local activeTab = "bench"
+	-- Opens on Bags: the Forge lives in its own hub now (S13, see TABS).
+	local activeTab = "backpack"
 	local index = 1
 	state.tempers, state.toolTempers = {}, {}
 	local view = {}
@@ -731,6 +745,8 @@ function MineShopView.mount(parent, opts)
 					orePouch = state.orePouch or {},
 					orePouchTier = state.orePouchTier or 1,
 					gems = state.gems or 0,
+					-- SELL UP TO's remembered ceiling (p.settings.oreSellUpTo).
+					sellUpTo = state.sellUpTo,
 				}
 			end,
 			onUpgradePouch = function()
@@ -748,9 +764,18 @@ function MineShopView.mount(parent, opts)
 					opts.onSellOre(oreId)
 				end
 			end,
-			onSellAll = function(confirm)
+			-- `upTo` is the SELL UP TO ceiling; the ask carries it too, which
+			-- is how the server remembers the player's choice.
+			onSellAll = function(confirm, upTo)
 				if opts.onSellAllOres then
-					opts.onSellAllOres(confirm)
+					opts.onSellAllOres(confirm, upTo)
+				end
+			end,
+			-- Ticked candy ores, sold for candy (cryptSellCandyOres): the ask,
+			-- then the same ores with confirm.
+			onSellCandy = function(oreIds, confirm)
+				if opts.onSellCandyOres then
+					opts.onSellCandyOres(oreIds, confirm)
 				end
 			end,
 		})
@@ -825,6 +850,13 @@ function MineShopView.mount(parent, opts)
 	function view.showSellAllConfirm(info)
 		if pouchCtl and pouchCtl.showConfirm then
 			pcall(pouchCtl.showConfirm, info)
+		end
+	end
+
+	-- The same for the candy sale: the server's `cryptSellCandyConfirm`.
+	function view.showCandyConfirm(info)
+		if pouchCtl and pouchCtl.showCandyConfirm then
+			pcall(pouchCtl.showCandyConfirm, info)
 		end
 	end
 
@@ -1931,7 +1963,7 @@ function MineShopView.mount(parent, opts)
 			completely different screen -- no error, just a tab counter quoting
 			a number from somewhere else.
 		]]
-		if activeTab == "bench" or activeTab == "upgrades" or activeTab == "loadout" then
+		if activeTab == "bench" or activeTab == "upgrades" or activeTab == "loadout" or activeTab == "pouch" then
 			return {}
 		end
 		if activeTab == "backpack" then
@@ -2028,6 +2060,19 @@ function MineShopView.mount(parent, opts)
 		return idx and math.floor(idx) or fallback
 	end
 
+	--[[
+		THE FOUNDERS RIG IS SOLD FOR CREDITS (owner, 2026-10-19, launch audit M4:
+		"799 credits, labelled as credits, with a confirm step"). This shelf said
+		"BUY 799 Robux", then -- the product id being 0 -- quietly took 799
+		credits in one tap. It reads and charges credits now, at the price the
+		server charges (MineConfig.PRODUCTS.patron_rig, buyProductWithCredits),
+		and a buy takes two taps (see the action button).
+	]]
+	local function rigCredits(row)
+		local face = C.productCredits and C.productCredits((row and row.productKey) or "patron_rig")
+		return math.max(0, math.floor(tonumber(face) or tonumber(row and row.robuxPrice) or 0))
+	end
+
 	local function bagPrice(row)
 		if type(row) ~= "table" then
 			return 0
@@ -2085,7 +2130,8 @@ function MineShopView.mount(parent, opts)
 				return "zone"
 			end
 			if row.robux then
-				return "buy"
+				-- Credits, like the server charges (rigCredits, M4).
+				return ((state.credits or 0) >= rigCredits(row)) and "buy" or "short"
 			end
 			--[[
 				BAGS COST GEMS, AND THIS SHELF WAS PRICING THEM IN COINS.
@@ -2280,6 +2326,9 @@ function MineShopView.mount(parent, opts)
 			return
 		end
 		if activeTab == "pouch" and pouchPanel then
+			-- No rail tab says what this is (the loop above lights none), so
+			-- the header does.
+			sub.Text = "Your ORE POUCH: sell ore for gems, and candy ores for candy. It survives a rebirth."
 			creditsStage.Visible = false
 			card.Visible = false
 			leftBtn.Visible = false
@@ -2352,7 +2401,8 @@ function MineShopView.mount(parent, opts)
 		local tint = FAMILY_TINT[(isSecrets and row.family) or row.family or activeTab] or GOLD
 		local currency = "coins"
 		if activeTab == "backpack" and row.robux then
-			currency = "Robux"
+			-- Never "Robux": the rig is bought with credits (M4).
+			currency = "credits"
 		elseif activeTab == "backpack" then
 			-- Everything on this shelf that is not the Robux rig is bought
 			-- with gems; see bagPrice.
@@ -2453,7 +2503,7 @@ function MineShopView.mount(parent, opts)
 
 		local price = row.price or 0
 		if row.robux then
-			price = row.robuxPrice or 0
+			price = rigCredits(row)
 		elseif activeTab == "backpack" then
 			-- The gem price, not the row's coin figure. Same source as the
 			-- affordability check above and as the server's charge.
@@ -2461,7 +2511,7 @@ function MineShopView.mount(parent, opts)
 		end
 		-- The number you scan for. OWNED items have no price to show.
 		if status == "buy" or status == "short" then
-			priceLbl.Text = (row.robux and commas(price) or money(price)) .. " " .. (row.robux and "Robux" or currency)
+			priceLbl.Text = (row.robux and commas(price) or money(price)) .. " " .. currency
 			priceLbl.TextColor3 = (status == "short") and Color3.fromRGB(255, 150, 150) or GOLD
 		else
 			priceLbl.Text = ""
@@ -2470,7 +2520,11 @@ function MineShopView.mount(parent, opts)
 			action.BackgroundColor3 = GREEN
 			actionLbl.TextColor3 = Color3.fromRGB(16, 40, 24)
 			if row.robux then
-				actionLbl.Text = "BUY   " .. commas(price) .. " Robux"
+				-- The confirm step: the first tap arms it and says what the second
+				-- tap spends (state.rigArmedAt, set by the action button).
+				local armed = state.rigArmedAt ~= nil and (os.clock() - state.rigArmedAt) < 4
+				actionLbl.Text = armed and ("TAP AGAIN: SPEND " .. commas(price) .. " credits")
+					or ("BUY   " .. commas(price) .. " credits")
 			else
 				actionLbl.Text = "BUY   " .. money(price) .. " " .. currency
 			end
@@ -2572,7 +2626,39 @@ function MineShopView.mount(parent, opts)
 		}):Play()
 	end
 
+	--[[
+		The Forge's three tabs leave for the hub, and every other shelf is Bags
+		(S13). Only when the host has no hub (onOpenForge missing, or it says it
+		could not open one) do the old in-shop panels and shelves come back.
+	]]
+	-- Standing in Event Horizon, the tool tabs are the event's own tool shelf
+	-- (space coins, rows() below), reached from the hub's EVENT TOOLS button.
+	local EVENT_TABS = { pickaxe = true, drill = true, explosive = true }
+	--[[
+		THE ORE POUCH IS THE OTHER EXCEPTION (2026-10-19). It has had no tab
+		since 2026-10-11 and the Forge hub has no pouch screen, so nothing could
+		open it: no way to sell ore for gems. (MineServer's intro step 15 names
+		it -- panel "shop", tab "pouch" -- but is not in Intro.order, and would
+		have landed on Bags.) It is not put back on the rail (the old shop shows
+		Bags, S13); it opens when asked for by name: the hub's SELL ORE button.
+	]]
+	local function forgeRoute(id)
+		if FORGE_TABS[id] and opts.onOpenForge and opts.onOpenForge(FORGE_TABS[id]) then
+			view.close()
+			return nil
+		end
+		if opts.onOpenForge and not FORGE_TABS[id] and not (EVENT_TABS[id] and state.zoneId == "bigbang")
+			and id ~= "pouch" then
+			return "backpack"
+		end
+		return id
+	end
+
 	function view.setTab(id)
+		id = forgeRoute(id)
+		if not id then
+			return
+		end
 		activeTab = id
 		local count = #rows()
 		if activeTab == "backpack" or activeTab == "secrets" then
@@ -2604,6 +2690,10 @@ function MineShopView.mount(parent, opts)
 		state.oreLocks = snapshot.oreLocks or {}
 		state.orePouch = snapshot.orePouch or {}
 		state.orePouchTier = snapshot.orePouchTier or 1
+		-- The pouch's SELL UP TO, as the server remembers it.
+		state.sellUpTo = (type(snapshot.settings) == "table" and snapshot.settings.oreSellUpTo)
+			or (type(snapshot.crypt) == "table" and snapshot.crypt.sellUpTo)
+			or nil
 		-- The Forge lists one recipe per ore ever held, not per ore banked, so
 		-- spending your last unit of something does not delete its recipe.
 		state.oresSeen = snapshot.oresSeen or {}
@@ -2653,8 +2743,13 @@ function MineShopView.mount(parent, opts)
 	end
 
 	function view.open(tab)
+		-- A Forge tab goes to the hub; anything else lands on Bags (S13).
+		local routed = forgeRoute(tab or activeTab)
+		if not routed then
+			return
+		end
 		Audio.play("shop")
-		activeTab = (tab and tabBtns[tab]) and tab or activeTab
+		activeTab = tabBtns[routed] and routed or ((tab and tabBtns[tab]) and tab or activeTab)
 		local count = #rows()
 		if activeTab == "backpack" or activeTab == "secrets" then
 			index = (count > 0) and math.clamp(ownedCount() + 1, 1, count) or 1
@@ -2691,16 +2786,34 @@ function MineShopView.mount(parent, opts)
 			if activeTab == "backpack" then
 				local row = rows()[index]
 				if row and row.robux then
-					local pid = tonumber(row.productId) or 0
-					if pid <= 0 then
+					--[[
+						TWO TAPS FOR 799 CREDITS (M4). The first arms it and the
+						button says what the second spends; it disarms after four
+						seconds. Credits only, whatever productId says: the owner
+						chose credits for the rig, and a prompt for Robux behind a
+						"credits" label would be the old bug turned round.
+					]]
+					local now = os.clock()
+					if state.rigArmedAt and (now - state.rigArmedAt) < 4 then
+						state.rigArmedAt = nil
 						if opts.onBuyProductCredits then
 							opts.onBuyProductCredits(row.productKey or "patron_rig")
 						elseif opts.onToast then
 							opts.onToast("Buy Founders Rig with credits in the Shop")
 						end
+						paint()
 						return
 					end
-					MarketplaceService:PromptProductPurchase(Players.LocalPlayer, pid)
+					state.rigArmedAt = now
+					paint()
+					task.delay(4, function()
+						if state.rigArmedAt == now then
+							state.rigArmedAt = nil
+							if root.Visible then
+								paint()
+							end
+						end
+					end)
 					return
 				end
 				-- Same reader the price uses, so the rung shown and the rung
