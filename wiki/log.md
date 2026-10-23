@@ -1901,3 +1901,11 @@ was regenerated twice and now names each Crypt chest's charm. **Two bugs the mer
 it (the module would not have loaded), and a Halloween charm worn in the Halloween slot paid at tier I
 because `applyEquipped` and `eventDigOf` asked the main slot's tier. Both now ask the charm's own best
 tier; `crypt.js` checks it. Suite 98 of 99 (the Linux `skins` quirk). Not seen in Studio.
+
+## [2026-10-23] build | The Crypt's numbers as a web page
+The owner asked for the numbers document "in the repo, generated from the code, and as a web page". The page
+is a private Dashboard artifact, [Candy Crypt Numbers](https://claude.ai/artifact/Ja9MrGqcA5AFv6MaP883KX): six
+tabs (Blocks, Ores, Chests, Trick-or-Treat, Tools, Gems), every table and chart drawn from ten datasets that
+`node tools/gen/crypt-doc.js --data <dir>` writes from the same Luau numbers as `docs/CANDY-CRYPT.md` (at
+`b1aa23d`). To refresh it after a numbers change: run that, upload the files to the artifact, point its
+datasets at them. Not yet loaded in a browser when written, so the dashboard's own check had not run.
