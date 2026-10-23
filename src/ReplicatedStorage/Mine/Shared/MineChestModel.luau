@@ -170,6 +170,38 @@ function MineChestModel.build(part, kind, scale)
 		fTiny.Parent = front
 	end
 
+	--[[
+		THE RANK BADGE (2026-10-19). Every chest has its own name and an F..SSS
+		rank (MineChestRanks); the rank rides on the lid as a big letter in its
+		rarity colour, so an Exotic reads as one before you reach it. Section
+		chests (the stamp above) no longer spawn, so the lid is free.
+	]]
+	local rank = part:GetAttribute("ChestRank")
+	if type(rank) == "string" and rank ~= "" and not roman then
+		local okR, Ranks = pcall(function()
+			return require(script.Parent:WaitForChild("MineChestRanks"))
+		end)
+		local ink = (okR and Ranks and Ranks.COLOR and Ranks.COLOR[rank]) or pal.metal
+		local plate = piece(part, at(0, 0.72, 0.15), sz(2.2, 0.08, 1.4), pal.dark, Enum.Material.SmoothPlastic)
+		local sg = Instance.new("SurfaceGui")
+		sg.Name = "RankBadge"
+		sg.Face = Enum.NormalId.Top
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 80
+		sg.LightInfluence = 0.1
+		sg.Parent = plate
+		local letter = Instance.new("TextLabel")
+		letter.BackgroundTransparency = 1
+		letter.Font = Enum.Font.GothamBlack
+		letter.Text = rank
+		letter.TextColor3 = ink
+		letter.TextStrokeTransparency = 0
+		letter.TextStrokeColor3 = Color3.fromRGB(20, 16, 24)
+		letter.TextScaled = true
+		letter.Size = UDim2.fromScale(1, 1)
+		letter.Parent = sg
+	end
+
 	-- 2D chest cutout on the front so each identity reads at shaft distance.
 	local chestId = part:GetAttribute("ChestType")
 	if chestId and body then

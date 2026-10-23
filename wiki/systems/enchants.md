@@ -197,8 +197,9 @@ calls it):
 2026-10-12: *"Book buddles from lucky blocks, and chest(not cases)"*, choosing 2–5
 books, scaled.
 - **Chests.** 5% of chests drop a bundle (`CHEST_BOOK_CHANCE`), raised by chest
-  luck up to ×3. A bundle is 2 books, 3 from a B or A chest and 4 from an S
-  (`CHEST_BUNDLE`). The toast names the books.
+  luck up to ×3. A bundle is 2 books, 3 from a B or A chest, 4 from an S or SS
+  and 5 from an SSS (`CHEST_BUNDLE`; SS and SSS added 2026-10-19, PROPOSED). The
+  toast names the books.
 - **Lucky blocks.** Every lucky block pays a bundle on top of its loot
   (`LUCKY_BUNDLE`): Lucky 2, Diamond 3 (A-chest levels) and Godly 5 (S-chest
   levels). The end of the lucky reveal lists them.
@@ -220,14 +221,16 @@ books, scaled.
   them (`event = "halloween"`), so no main-game chest, lucky block, gem bundle, level
   gift, pass tier or wheel slice pays one. The Crypt (agent V2-A's area) calls it.
 - Which enchant is picked by rarity weight (Common 100 … Legendary 2.5).
-- B, A and S chests can give level II or III (`BOOK_RANK_LEVEL`).
+- C chests and up can give level II, and A and up level III (`BOOK_RANK_LEVEL`:
+  C 5% / 0% up to SSS 60% / 25%; C, SS and SSS added 2026-10-19, PROPOSED).
 - `enchApply` uses a book up, and whatever was in the slot comes back as a book.
 - `enchRemove` returns the book.
 - `enchMerge` turns three of one book at one level into one a level up.
 - Recycling a tool returns its enchants as books.
 
 **The player level** (`p.level`, `p.xp`; kept through rebirth):
-- An ore block pays 3 XP; a chest pays 15 × its rank (F 0.6 … S 3).
+- An ore block pays 3 XP; a chest pays 15 × its rank (`XP_CHEST_RANK`: F 0.8,
+  D 1, C 1.25, B 1.6, A 2.2, S 3.2, SS 4.6, SSS 7 since 2026-10-19, PROPOSED).
 - The step to the next level is 40 × 1.1^(level − 1): about 550 XP to level 10 and
   3,500 to 25.
 - Every 5 levels pays a gift: a book for a slot you have open, plus 250 × (level / 5)

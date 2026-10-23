@@ -572,18 +572,23 @@ end
 	                     starts at ★½, A at ★★, S at ★★½. F and D start below
 	                     ★, and a grade below ★ is no case at all, so they drop
 	                     one about a quarter and a half as often.
+
+	F TO SSS (2026-10-19). Chests rank F..SSS now, F the everyday one
+	(MineChestRanks), so the shifts were re-cut on that ladder: a step may be a
+	fraction, which mixes the two whole shifts around it (F -0.5 is half the
+	-1 ladder and half the 0 one). PROPOSED, fitted so the case value of an
+	average chest stays where it was on 3863d14 (tools/verify/economy-gems.js:
+	within 10% at every depth).
 ]]
 M.CHEST_CASE_CHANCE = 0.10
 M.CHEST_GRADE_FALLOFF = 0.5
-M.CHEST_RANK_SHIFT = { F = -2, D = -1, C = 0, native = 0, B = 1, A = 2, S = 3 }
+M.CHEST_RANK_SHIFT = {
+	F = -0.5, D = 0, C = 0.5, B = 1.25, A = 2, S = 2.75, SS = 3.5, SSS = 4.5,
+	native = 0,
+}
 
---[[
-	The odds of each outcome when a chest of `rank` rolls its case:
-	{ { def, p }, ... } with p per chest (no chest luck), plus the chance of no
-	case. Used by the roll and by the wiki's numbers.
-]]
-function M.chestCaseOdds(rank)
-	local shift = M.CHEST_RANK_SHIFT[rank or ""] or 0
+-- The case ladder at one whole shift: { { def, p } }, and the no-case share.
+local function caseOddsAt(shift)
 	-- Ladder positions k = 0, 1, 2 ... start at grade index 1 + shift and
 	-- run to the best grade; a position below grade 1 is "no case".
 	local rows, total = {}, 0
@@ -608,6 +613,38 @@ function M.chestCaseOdds(rank)
 		end
 	end
 	return out, none
+end
+
+--[[
+	The odds of each outcome when a chest of `rank` rolls its case:
+	{ { def, p }, ... } with p per chest (no chest luck), plus the chance of no
+	case. Used by the roll and by the wiki's numbers. A fractional shift mixes
+	the two whole shifts around it.
+]]
+function M.chestCaseOdds(rank)
+	local shift = tonumber(M.CHEST_RANK_SHIFT[rank or ""]) or 0
+	local lo = math.floor(shift)
+	local f = shift - lo
+	if f <= 1e-9 then
+		return caseOddsAt(lo)
+	end
+	local a, noneA = caseOddsAt(lo)
+	local b, noneB = caseOddsAt(lo + 1)
+	local byId, order = {}, {}
+	local function add(rows, k)
+		for _, r in ipairs(rows) do
+			local row = byId[r.def.id]
+			if not row then
+				row = { def = r.def, p = 0 }
+				byId[r.def.id] = row
+				table.insert(order, row)
+			end
+			row.p += r.p * k
+		end
+	end
+	add(a, 1 - f)
+	add(b, f)
+	return order, noneA * (1 - f) + noneB * f
 end
 
 --[[

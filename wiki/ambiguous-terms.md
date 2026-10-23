@@ -56,8 +56,8 @@ related: [glossary, owner, open-questions, overview]
 | **boost** | layer 1, layer 2, charms (in neither layer), or potions | Which layer? See [boosts-and-stats](systems/boosts-and-stats.md) |
 | **layer** | a depth row of the mine, or one of the two **boost layers** | Mine or boosts? |
 | **slot / seat** | pet seats (3), hat seats (3), a tool's three enchant slots, or bag capacity. Rune sockets were retired on 2026-10-12; `MineGear.SHEET.slots` is their dead socket count. | Which? |
-| **merge** | charm merge (gems), hat merge (three of a kind), enchant book merge (three of a book make one a level up), or card "MERGE 3". Rune fuse is retired. | Which? |
-| **charm** | one of 164 ore charms, 31 legacy charms, or one of the **36 graded charms** (chest or tokens, F…SSS) | Which family? See [charms](systems/charms.md) |
+| **merge** | charm merge (a tier up, I to V, for gems plus a charm of the same tier), hat merge (three of a kind), enchant book merge (three of a book make one a level up), or card "MERGE 3". Rune fuse is retired. | Which? |
+| **charm** | one of 164 ore charms, 31 legacy charms, the **68 graded charms** (chest, tokens or a Charm Pack) or the 8 Crypt chest charms (the 6 crafted candy charms were retired, 2026-10-19). Every one has a rarity F…SSS and a tier I…V. | Which family? See [charms](systems/charms.md) |
 | **build** | the player's charms-and-skins build, the `MineBuild` stamp, or `rojo build` | Which? |
 | **echo** | a retired stat, a tool special, or the Space element's verb | Which? |
 | **oreYield** | the old key for blast chance (now `blastChance`), or `MineConfig.oreYieldFor` (ore quantity) | Chance or quantity? |
@@ -69,7 +69,7 @@ related: [glossary, owner, open-questions, overview]
 |---|---|---|
 | **pack** | a card pack, a currency pouch, a gear case, an ore case, a lucky block, or the legacy `<ore>_ore_pack`. (The three rune cases were removed on 2026-10-12.) | Which? See [cards-and-packs](systems/cards-and-packs.md) |
 | **case** | an ore case, a temper (skin) case, a "Gear Case", or the old pack | Which? |
-| **chest** | a zone chest, a `Mine1ChestsData` catalog chest, a Shiny chase chest, or the dead `MinePackConfig.CHESTS` | Which table is the real list? See [chests](systems/chests-and-lucky-blocks.md) |
+| **chest** | a zone chest (F…SSS, `MineZoneChests.ZONE_CHESTS`), a set chest (`MineSetChests`), the Shiny chase chest, a Crypt chest, a retired `Mine1ChestsData` catalog chest, or the dead `MinePackConfig.CHESTS` | Which table is the real list? See [chests](systems/chests-and-lucky-blocks.md) |
 | **card** | a pet (the pet *is* the card), or a collectible card | Should players ever see "card"? |
 | **bag** | the ore pouch, the backpack (haul bag), or the item bag | Which? See [ore-pouch-and-backpack](systems/ore-pouch-and-backpack.md) |
 | **sell** | ore → gems (pouch), or haul → coins (sell pad) | Which? |

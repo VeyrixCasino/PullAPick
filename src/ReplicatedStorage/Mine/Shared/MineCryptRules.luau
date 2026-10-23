@@ -359,7 +359,17 @@ end
 function R.eventDigOf(p)
 	local id = R.charmFor(p, R.ZONE_ID, nil)
 	local def = (type(id) == "string" and id ~= "") and Charms.byId(id) or nil
-	local v = def and type(def.stats) == "table" and tonumber(def.stats.eventDig)
+	if not def then
+		return 0
+	end
+	-- At that copy's best tier, I..V (MineCharms, 2026-10-19). The charm that
+	-- counts here may sit in the Halloween slot, not the main one, so this asks
+	-- for its own tier rather than the main slot's (MineCharms.wornStat).
+	local stats = def.stats
+	if Charms.statsAt and Charms.bestTier then
+		stats = Charms.statsAt(def, math.max(1, Charms.bestTier(p, def.id)))
+	end
+	local v = type(stats) == "table" and tonumber(stats.eventDig)
 	return math.max(0, v or 0)
 end
 

@@ -529,12 +529,14 @@ do
 	S.dispatch(plr, "cryptTeam", { ids = { hp.id } })
 end
 do
-	-- The Halloween charm slot. A stand-in for the chest charms' module (another
-	-- agent's): every rank names one of the graded charms.
+	-- The Halloween charm slot. MineCharms names each Crypt chest rank's charm
+	-- (cryptChestCharm); a stand-in only if that module is missing it.
 	local graded = Charms.GRADED
-	Charms.cryptChestCharm = function(rankKey)
-		local r = Chests.rank(rankKey)
-		return r and graded[r.index] and graded[r.index].id or nil
+	if type(Charms.cryptChestCharm) ~= "function" or Charms.cryptChestCharm("F") == nil then
+		Charms.cryptChestCharm = function(rankKey)
+			local r = Chests.rank(rankKey)
+			return r and graded[r.index] and graded[r.index].id or nil
+		end
 	end
 	local hc = Charms.cryptChestCharm("F")
 	check(R.isHalloweenItem("charm", hc) and not R.isHalloweenItem("charm", graded[20].id),
@@ -548,6 +550,22 @@ do
 	check(p.halloween.charm == hc, "a Halloween charm you own does")
 	p.zoneId = "hallow"
 	check(S.charmFor(p) == hc, "in the Crypt the Halloween charm counts (not the main one)")
+	-- Charms merge I..V (2026-10-19). The Halloween slot's charm pays at its own
+	-- tier, though the main slot holds another charm.
+	local hdef = Charms.byId(hc)
+	if hdef and Charms.statsAt and Charms.bestTier then
+		local b1, b3 = {}, {}
+		p.charmTiers = nil
+		local dig1 = R.eventDigOf(p)
+		Charms.applyEquipped(b1, hc, p)
+		p.charmTiers = { [hc] = { III = 1 } }
+		local dig3 = R.eventDigOf(p)
+		Charms.applyEquipped(b3, hc, p)
+		p.charmTiers = nil
+		check(near(dig1, Charms.statsAt(hdef, 1).eventDig or 0, 1e-9) and near(dig3, Charms.statsAt(hdef, 3).eventDig or 0, 1e-9)
+			and dig3 > dig1 and (b3.candyFind or 0) > (b1.candyFind or 0),
+			"the Halloween slot's charm pays at its own tier (III here), in Event Digging and in boosts", dig3)
+	end
 	p.zoneId = "meadow"
 	check(S.charmFor(p) == graded[20].id, "outside it, the main charm")
 	p.equippedCharm = hc

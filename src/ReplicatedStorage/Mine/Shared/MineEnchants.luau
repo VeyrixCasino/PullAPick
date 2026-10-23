@@ -841,7 +841,12 @@ M.MERGE_COST = 3 -- three of the same book at the same level make one a level up
 ]]
 M.CHEST_BOOK_CHANCE = 0.05
 M.BOOK_LUCK_CAP = 3
-M.BOOK_RANK_LEVEL = { B = { 0.15, 0 }, A = { 0.25, 0.05 }, S = { 0.35, 0.12 } } -- chance of II, of III
+-- chance of II, of III. F..SSS chests (2026-10-19, MineChestRanks): C, SS and
+-- SSS added, PROPOSED, fitted to 3863d14's average (tools/verify/economy-gems.js).
+M.BOOK_RANK_LEVEL = {
+	C = { 0.05, 0 }, B = { 0.15, 0 }, A = { 0.25, 0.05 }, S = { 0.35, 0.12 },
+	SS = { 0.45, 0.18 }, SSS = { 0.6, 0.25 },
+}
 
 -- A book the main game can roll: in the slots asked for, and not one of the
 -- Halloween four, whose books come only from Candy Crypt chests (owner,
@@ -976,7 +981,7 @@ end
 	Cases never drop books. PROPOSED: the gem price and its step.
 ]]
 M.CHEST_BUNDLE_BASE = 2
-M.CHEST_BUNDLE = { S = 4, A = 3, B = 3 }
+M.CHEST_BUNDLE = { SSS = 5, SS = 4, S = 4, A = 3, B = 3 }
 M.LUCKY_BUNDLE = {
 	lucky_block = { n = 2 },
 	super_lucky_block = { n = 3, rank = "A" },
@@ -1037,7 +1042,10 @@ end
 ]]
 M.XP_ORE = 3
 M.XP_CHEST = 15
-M.XP_CHEST_RANK = { F = 0.6, D = 0.8, C = 1, native = 1, B = 1.4, A = 2, S = 3 }
+-- F..SSS chests (2026-10-19, MineChestRanks): F is the everyday chest now, so
+-- the ladder was re-cut to keep an average chest's XP (PROPOSED; within 5% of
+-- 3863d14 at every depth, tools/verify/economy-gems.js).
+M.XP_CHEST_RANK = { F = 0.8, D = 1, C = 1.25, native = 1, B = 1.6, A = 2.2, S = 3.2, SS = 4.6, SSS = 7 }
 M.MAX_PLAYER_LEVEL = 200
 M.GIFT_EVERY = 5
 M.GIFT_GEMS = 250 -- x (level / 5)

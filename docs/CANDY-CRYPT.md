@@ -132,14 +132,14 @@ or tools.
 
 | rank | chest | Halloween packs | pack luck | candy | charm (0.5% x Chest Luck) | book chance |
 |---|---|---|---|---|---|---|
-| F | Candy Sack | 1 | plain | 40 | the rank's (MineCharms.cryptChestCharm, not in this build) | 2.8% (measured) |
-| D | Pumpkin Pail | 1 | x1.25 | 100 | the rank's (MineCharms.cryptChestCharm, not in this build) | 3.9% (measured) |
-| C | Cobweb Crate | 1 | x1.5 | 250 | the rank's (MineCharms.cryptChestCharm, not in this build) | 6.0% (measured) |
-| B | Bat Box | 2 | x1.5 | 600 | the rank's (MineCharms.cryptChestCharm, not in this build) | 8.2% (measured) |
-| A | Coffin Chest | 2 | x2 | 1,500 | the rank's (MineCharms.cryptChestCharm, not in this build) | 10.6% (measured) |
-| S | Witch's Cauldron | 3 | x2.5 | 4,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | 15.3% (measured) |
-| SS | Phantom Vault | 4 | x3 | 10,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | 19.9% (measured) |
-| SSS | Pumpkin King's Hoard | 5 | x4 | 25,000 | the rank's (MineCharms.cryptChestCharm, not in this build) | 27.1% (measured) |
+| F | Candy Sack | 1 | plain | 40 | Candy Wrapper Charm | 2.8% (measured) |
+| D | Pumpkin Pail | 1 | x1.25 | 100 | Bat Wing Charm | 3.9% (measured) |
+| C | Cobweb Crate | 1 | x1.5 | 250 | Black Cat Bell | 6.0% (measured) |
+| B | Bat Box | 2 | x1.5 | 600 | Witch's Broom Charm | 8.2% (measured) |
+| A | Coffin Chest | 2 | x2 | 1,500 | Spider Silk Locket | 10.6% (measured) |
+| S | Witch's Cauldron | 3 | x2.5 | 4,000 | Pumpkin King Crown | 15.3% (measured) |
+| SS | Phantom Vault | 4 | x3 | 10,000 | Raven Moon Feather | 19.9% (measured) |
+| SSS | Pumpkin King's Hoard | 5 | x4 | 25,000 | Crypt Keeper's Key | 27.1% (measured) |
 
 ### Rank odds per section
 
