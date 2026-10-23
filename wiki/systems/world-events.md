@@ -89,8 +89,10 @@ related: [zones-layers-and-seams, cards-and-packs, boosts-and-stats, shops-and-m
 > session's (the v2 verbs and pushes are listed as awaiting the client in
 > `tools/verify/crypt-ui.js`). **Every number is in `docs/CANDY-CRYPT.md`**,
 > generated from the code by `tools/gen/crypt-doc.js` (and kept current by
-> `tools/verify/crypt-doc.js`). Nothing here has run in Studio. Every number the
-> owner did not give is PROPOSED in the code.
+> `tools/verify/crypt-doc.js`), and on the web page the owner asked for, the
+> Dashboard artifact [Candy Crypt Numbers](https://claude.ai/artifact/Ja9MrGqcA5AFv6MaP883KX)
+> (fed by `crypt-doc.js --data`; private until the owner shares it). Nothing here has
+> run in Studio. Every number the owner did not give is PROPOSED in the code.
 
 **v2, as built** (`MineCryptRules` holds the rules for both sides; the server
 module `MineCrypt` grants, gates and is the authority for every roll, payout and

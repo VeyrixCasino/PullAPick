@@ -388,7 +388,96 @@ function render(d) {
   return L.join("\n") + "\n";
 }
 
+/*
+  THE SAME NUMBERS AS ROWS, for the web page (owner: the numbers document "in the
+  repo, generated from the code, and as a web page"). One JSON file per table, raw
+  numbers with no formatting, chances as fractions (0.25 = 25%). The page draws
+  every figure from these, so it can never disagree with this document.
+
+    node tools/gen/crypt-doc.js --data <dir>
+*/
+function datasets(d) {
+  const S = d.sections;
+  const bands = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Exotic"];
+  const tr = d.toolRules;
+  const c = d.case;
+  const bph = d.assume.blocksPerHour;
+  const out = {};
+  out.rules = [{
+    blocksPerHour: bph, sectionLayers: d.span, sections: S, resetMinutes: d.resetSec / 60,
+    candyShare: d.economy.CANDY_SHARE, ratioTop: d.economy.RATIO_TOP, ratioBottom: d.economy.RATIO_BOTTOM,
+    exoticCap: d.economy.EXOTIC_CAP, pairSplit: d.economy.PAIR_SPLIT,
+    chestChance: d.chestChance, chestsPerHour: d.chestChance * bph, charmChance: d.charmChance,
+    casePrice: c.price, treatChance: c.treat,
+    prestigeMax: tr.prestigeMax, prestigeCostBase: tr.costBase, prestigeCostGrowth: tr.costGrowth,
+    prestigePower: tr.prestigePower, toolCap: tr.cap, scrapShare: tr.scrapShare,
+    craftAfterEvent: tr.craftAfterEvent, topOre: tr.topOre, maxLevel: tr.maxLevel, pickHits: tr.pickHits,
+  }];
+  out.hp = d.hp.map((h) => ({
+    section: h.section, layers: `${h.first}-${h.last}`, firstLayer: h.first, lastLayer: h.last,
+    hpFirst: h.hpFirst, hpLast: h.hpLast, coinsFirst: h.coinsFirst, coinsLast: h.coinsLast, belowBottom: h.section > S,
+  }));
+  out.ores = d.ores.map((o) => ({
+    rank: o.rank, ore: o.name, id: o.id, rarity: o.band, itemsPerBlock: o.drop, candyPerItem: o.value,
+    oreValuePerBlock: o.drop * o.value, candyPerBlock: o.candy, crafts: o.tool || null,
+  }));
+  out.spawn = [];
+  for (let s = 0; s < S; s++) {
+    d.ores.forEach((o, i) => out.spawn.push({ section: s + 1, ore: o.name, rarity: o.band, chance: d.odds[s][i] }));
+  }
+  out.payouts = d.mix.map((m, s) => {
+    const blocksCandy = m.candy + d.chestChance * m.chestCandy;
+    return {
+      section: s + 1, candyPerBlock: m.candy, candySd: m.candySd, oreItemsPerBlock: m.units, oreItemsSd: m.unitsSd,
+      oreValuePerBlock: m.value, oreValueSd: m.valueSd, chestCandyPerBlock: d.chestChance * m.chestCandy,
+      candyPerHour: blocksCandy * bph, candyPerHourSellingOres: (blocksCandy + m.value) * bph,
+      firstDesignGemsPerHour: m.v1GemsPerBlock * bph, gemsPerHour: 0,
+    };
+  });
+  out.chests = d.chests.map((ch) => ({
+    rank: ch.key, chest: ch.name, packs: ch.packs, packLuck: ch.luck, candy: ch.candy,
+    charm: d.charmHook ? (ch.charm || null) : null, bookChance: d.bookHook ? ch.bookChance : null,
+  }));
+  out.chestOdds = [];
+  for (let s = 0; s < S; s++) {
+    d.chests.forEach((ch, i) => out.chestOdds.push({ section: s + 1, rank: ch.key, chest: ch.name, chance: d.chestOdds[s][i] }));
+  }
+  out.trickOrTreat = c.rows.map((r) => ({
+    rung: r.index, pet: r.pet, skin: r.skin, shown: r.pct / 100, petChance: r.petPct / 100,
+    skinChance: r.skinPct / 100, kept: r.keepPct / 100, pets: r.pets, skins: r.skins,
+  }));
+  out.tools = d.tools.map((t) => ({
+    rank: t.rank, tool: t.name, id: t.id, family: t.family, ore: t.ore, rarity: t.band, craftOre: t.craft,
+    prestigeOre: t.total - t.craft, totalOre: t.total, skinFactor: t.skinFactor, tuneLayer: t.tuneLayer,
+    bestNormal: t.bestNormal,
+    worldP0: `Lv ${t.worldEq[0].level} ${t.worldEq[0].ore}`, worldP5: `Lv ${t.worldEq[5].level} ${t.worldEq[5].ore}`,
+    worldP10: `Lv ${t.worldEq[10].level} ${t.worldEq[10].ore}`,
+  }));
+  out.prestige = [];
+  for (const t of d.tools) {
+    for (let k = 0; k <= tr.prestigeMax; k++) {
+      out.prestige.push({
+        tool: t.name, prestige: k, costOre: k === 0 ? null : t.costs[k - 1],
+        cryptDamage: t.crypt[k], worldDamage: t.world[k], scrapCandy: t.scrap[k],
+      });
+    }
+  }
+  return out;
+}
+
 function main() {
+  const at = process.argv.indexOf("--data");
+  if (at !== -1) {
+    const dir = process.argv[at + 1];
+    if (!dir) throw new Error("--data needs a folder to write into");
+    const sets = datasets(gather());
+    fs.mkdirSync(dir, { recursive: true });
+    for (const [name, rows] of Object.entries(sets)) {
+      fs.writeFileSync(path.join(dir, name + ".json"), JSON.stringify(rows) + "\n");
+    }
+    console.log("wrote " + Object.keys(sets).length + " datasets to " + dir);
+    return;
+  }
   const doc = render(gather());
   if (process.argv.includes("--check")) {
     const have = fs.existsSync(OUT) ? fs.readFileSync(OUT, "utf8").split("\r\n").join("\n") : "";
